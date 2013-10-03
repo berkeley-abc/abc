@@ -486,10 +486,73 @@ void Gia_Iso2ManCollectOrder( Gia_Man_t * pGia, int * pPos, int nPos, Vec_Int_t 
   SeeAlso     []
 
 ***********************************************************************/
-int Gia_Iso2ManCheckIsoClass( Gia_Man_t * p, Vec_Int_t * vClass, Vec_Int_t * vRoots, Vec_Int_t * vVec0, Vec_Int_t * vVec1, Vec_Int_t * vMap0, Vec_Int_t * vMap1 )
+int Gia_Iso2ManCheckIsoPair( Gia_Man_t * p, Vec_Int_t * vVec0, Vec_Int_t * vVec1, Vec_Int_t * vMap0, Vec_Int_t * vMap1 )
 {
     Gia_Obj_t * pObj0, * pObj1;
-    int i, k, iObj0, iObj1, iPo;
+    int k, iObj0, iObj1;
+    Vec_IntForEachEntryTwo( vVec0, vVec1, iObj0, iObj1, k )
+    {
+        if ( iObj0 == iObj1 )
+            continue;
+        pObj0 = Gia_ManObj(p, iObj0);
+        pObj1 = Gia_ManObj(p, iObj1);
+        if ( pObj0->Value != pObj1->Value )
+            return 0;
+        assert( pObj0->Value == pObj1->Value );
+        if ( !Gia_ObjIsAnd(pObj0) )
+            continue;
+        if ( Gia_ObjFanin0(pObj0)->Value <= Gia_ObjFanin1(pObj0)->Value )
+        {
+            if ( Gia_ObjFanin0(pObj1)->Value <= Gia_ObjFanin1(pObj1)->Value )
+            {
+                if ( Gia_ObjFaninC0(pObj0) != Gia_ObjFaninC0(pObj1)  || Gia_ObjFaninC1(pObj0) != Gia_ObjFaninC1(pObj1)   ||
+                     Vec_IntEntry(vMap0, Gia_ObjFaninId0p(p, pObj0)) != Vec_IntEntry( vMap1, Gia_ObjFaninId0p(p, pObj1)) || 
+                     Vec_IntEntry(vMap0, Gia_ObjFaninId1p(p, pObj0)) != Vec_IntEntry( vMap1, Gia_ObjFaninId1p(p, pObj1)) )
+                     return 0;
+            }
+            else
+            {
+                if ( Gia_ObjFaninC0(pObj0) != Gia_ObjFaninC1(pObj1)  || Gia_ObjFaninC1(pObj0) != Gia_ObjFaninC0(pObj1)   ||
+                     Vec_IntEntry(vMap0, Gia_ObjFaninId0p(p, pObj0)) != Vec_IntEntry( vMap1, Gia_ObjFaninId1p(p, pObj1)) || 
+                     Vec_IntEntry(vMap0, Gia_ObjFaninId1p(p, pObj0)) != Vec_IntEntry( vMap1, Gia_ObjFaninId0p(p, pObj1)) )
+                     return 0;
+            }
+        }
+        else
+        {
+            if ( Gia_ObjFanin0(pObj1)->Value <= Gia_ObjFanin1(pObj1)->Value )
+            {
+                if ( Gia_ObjFaninC1(pObj0) != Gia_ObjFaninC0(pObj1)  || Gia_ObjFaninC0(pObj0) != Gia_ObjFaninC1(pObj1)   ||
+                     Vec_IntEntry(vMap0, Gia_ObjFaninId1p(p, pObj0)) != Vec_IntEntry( vMap1, Gia_ObjFaninId0p(p, pObj1)) || 
+                     Vec_IntEntry(vMap0, Gia_ObjFaninId0p(p, pObj0)) != Vec_IntEntry( vMap1, Gia_ObjFaninId1p(p, pObj1)) )
+                     return 0;
+            }
+            else
+            {
+                if ( Gia_ObjFaninC1(pObj0) != Gia_ObjFaninC1(pObj1)  || Gia_ObjFaninC0(pObj0) != Gia_ObjFaninC0(pObj1)   ||
+                     Vec_IntEntry(vMap0, Gia_ObjFaninId1p(p, pObj0)) != Vec_IntEntry( vMap1, Gia_ObjFaninId1p(p, pObj1)) || 
+                     Vec_IntEntry(vMap0, Gia_ObjFaninId0p(p, pObj0)) != Vec_IntEntry( vMap1, Gia_ObjFaninId0p(p, pObj1)) )
+                     return 0;
+            }
+        }
+    }
+    return 1;
+} 
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Gia_Iso2ManCheckIsoClassOneSkip( Gia_Man_t * p, Vec_Int_t * vClass, Vec_Int_t * vRoots, Vec_Int_t * vVec0, Vec_Int_t * vVec1, Vec_Int_t * vMap0, Vec_Int_t * vMap1 )
+{
+    int i, iPo;
     assert( Vec_IntSize(vClass) > 1 );
     iPo = Vec_IntEntry( vClass, 0 );
     Gia_Iso2ManCollectOrder( p, &iPo, 1, vRoots, vVec0, vMap0 );
@@ -497,57 +560,13 @@ int Gia_Iso2ManCheckIsoClass( Gia_Man_t * p, Vec_Int_t * vClass, Vec_Int_t * vRo
     {
         Gia_Iso2ManCollectOrder( p, &iPo, 1, vRoots, vVec1, vMap1 );
         if ( Vec_IntSize(vVec0) != Vec_IntSize(vVec1) )
-            continue;
-        Vec_IntForEachEntryTwo( vVec0, vVec1, iObj0, iObj1, k )
-        {
-            if ( iObj0 == iObj1 )
-                continue;
-            pObj0 = Gia_ManObj(p, iObj0);
-            pObj1 = Gia_ManObj(p, iObj1);
-            if ( pObj0->Value != pObj1->Value )
-                return 0;
-            assert( pObj0->Value == pObj1->Value );
-            if ( !Gia_ObjIsAnd(pObj0) )
-                continue;
-            if ( Gia_ObjFanin0(pObj0)->Value <= Gia_ObjFanin1(pObj0)->Value )
-            {
-                if ( Gia_ObjFanin0(pObj1)->Value <= Gia_ObjFanin1(pObj1)->Value )
-                {
-                    if ( Gia_ObjFaninC0(pObj0) != Gia_ObjFaninC0(pObj1)  || Gia_ObjFaninC1(pObj0) != Gia_ObjFaninC1(pObj1)   ||
-                         Vec_IntEntry(vMap0, Gia_ObjFaninId0p(p, pObj0)) != Vec_IntEntry( vMap1, Gia_ObjFaninId0p(p, pObj1)) || 
-                         Vec_IntEntry(vMap0, Gia_ObjFaninId1p(p, pObj0)) != Vec_IntEntry( vMap1, Gia_ObjFaninId1p(p, pObj1)) )
-                         return 0;
-                }
-                else
-                {
-                    if ( Gia_ObjFaninC0(pObj0) != Gia_ObjFaninC1(pObj1)  || Gia_ObjFaninC1(pObj0) != Gia_ObjFaninC0(pObj1)   ||
-                         Vec_IntEntry(vMap0, Gia_ObjFaninId0p(p, pObj0)) != Vec_IntEntry( vMap1, Gia_ObjFaninId1p(p, pObj1)) || 
-                         Vec_IntEntry(vMap0, Gia_ObjFaninId1p(p, pObj0)) != Vec_IntEntry( vMap1, Gia_ObjFaninId0p(p, pObj1)) )
-                         return 0;
-                }
-            }
-            else
-            {
-                if ( Gia_ObjFanin0(pObj1)->Value <= Gia_ObjFanin1(pObj1)->Value )
-                {
-                    if ( Gia_ObjFaninC1(pObj0) != Gia_ObjFaninC0(pObj1)  || Gia_ObjFaninC0(pObj0) != Gia_ObjFaninC1(pObj1)   ||
-                         Vec_IntEntry(vMap0, Gia_ObjFaninId1p(p, pObj0)) != Vec_IntEntry( vMap1, Gia_ObjFaninId0p(p, pObj1)) || 
-                         Vec_IntEntry(vMap0, Gia_ObjFaninId0p(p, pObj0)) != Vec_IntEntry( vMap1, Gia_ObjFaninId1p(p, pObj1)) )
-                         return 0;
-                }
-                else
-                {
-                    if ( Gia_ObjFaninC1(pObj0) != Gia_ObjFaninC1(pObj1)  || Gia_ObjFaninC0(pObj0) != Gia_ObjFaninC0(pObj1)   ||
-                         Vec_IntEntry(vMap0, Gia_ObjFaninId1p(p, pObj0)) != Vec_IntEntry( vMap1, Gia_ObjFaninId1p(p, pObj1)) || 
-                         Vec_IntEntry(vMap0, Gia_ObjFaninId0p(p, pObj0)) != Vec_IntEntry( vMap1, Gia_ObjFaninId0p(p, pObj1)) )
-                         return 0;
-                }
-            }
-        }
+            return 0;
+        if ( !Gia_Iso2ManCheckIsoPair( p, vVec0, vVec1, vMap0, vMap1 ) )
+            return 0;
     }
     return 1;
 } 
-Vec_Wec_t * Gia_Iso2ManCheckIsoClasses( Gia_Man_t * p, Vec_Wec_t * vEquivs )
+Vec_Wec_t * Gia_Iso2ManCheckIsoClassesSkip( Gia_Man_t * p, Vec_Wec_t * vEquivs )
 {
     Vec_Wec_t * vEquivs2;
     Vec_Int_t * vRoots = Vec_IntAlloc( 10000 );
@@ -562,16 +581,7 @@ Vec_Wec_t * Gia_Iso2ManCheckIsoClasses( Gia_Man_t * p, Vec_Wec_t * vEquivs )
     {
         if ( i % 100 == 0 )
             printf( "%8d finished...\r", i );
-/*
-        if ( i == 17 )
-        {
-            Gia_Man_t * pCone;
-            pCone = Gia_ManDupCones( p, Vec_IntArray(vClass), 2, 1 );
-            Gia_AigerWrite( pCone, "dump.aig", 0, 0 );
-            Gia_ManStop( pCone );
-        }
-*/
-        if ( Vec_IntSize(vClass) < 2 || Gia_Iso2ManCheckIsoClass(p, vClass, vRoots, vVec0, vVec1, vMap0, vMap1) )
+        if ( Vec_IntSize(vClass) < 2 || Gia_Iso2ManCheckIsoClassOneSkip(p, vClass, vRoots, vVec0, vVec1, vMap0, vMap1) )
         {
             vClass2 = Vec_WecPushLevel( vEquivs2 );
             *vClass2 = *vClass;
@@ -580,7 +590,6 @@ Vec_Wec_t * Gia_Iso2ManCheckIsoClasses( Gia_Man_t * p, Vec_Wec_t * vEquivs )
         }
         else
         {
-//            printf( "Class %d failed.\n", i );
             Vec_IntForEachEntry( vClass, Entry, k )
             {
                 vClass2 = Vec_WecPushLevel( vEquivs2 );
@@ -595,6 +604,65 @@ Vec_Wec_t * Gia_Iso2ManCheckIsoClasses( Gia_Man_t * p, Vec_Wec_t * vEquivs )
     Vec_IntFree( vMap1 );
     return vEquivs2;
 }
+
+void Gia_Iso2ManCheckIsoClassOne( Gia_Man_t * p, Vec_Int_t * vClass, Vec_Int_t * vRoots, Vec_Int_t * vVec0, Vec_Int_t * vVec1, Vec_Int_t * vMap0, Vec_Int_t * vMap1, Vec_Int_t * vNewClass )
+{
+    int i, k = 1, iPo;
+    Vec_IntClear( vNewClass );
+    if ( Vec_IntSize(vClass) <= 1 )
+        return;
+    assert( Vec_IntSize(vClass) > 1 );
+    iPo = Vec_IntEntry( vClass, 0 );
+    Gia_Iso2ManCollectOrder( p, &iPo, 1, vRoots, vVec0, vMap0 );
+    Vec_IntForEachEntryStart( vClass, iPo, i, 1 )
+    {
+        Gia_Iso2ManCollectOrder( p, &iPo, 1, vRoots, vVec1, vMap1 );
+        if ( Vec_IntSize(vVec0) == Vec_IntSize(vVec1) && Gia_Iso2ManCheckIsoPair(p, vVec0, vVec1, vMap0, vMap1) )
+            Vec_IntWriteEntry( vClass, k++, iPo );
+        else
+            Vec_IntPush( vNewClass, iPo );
+    }
+    Vec_IntShrink( vClass, k );
+} 
+Vec_Wec_t * Gia_Iso2ManCheckIsoClasses( Gia_Man_t * p, Vec_Wec_t * vEquivs )
+{
+    Vec_Wec_t * vEquivs2;
+    Vec_Int_t * vRoots = Vec_IntAlloc( 10000 );
+    Vec_Int_t * vVec0 = Vec_IntAlloc( 10000 );
+    Vec_Int_t * vVec1 = Vec_IntAlloc( 10000 );
+    Vec_Int_t * vMap0 = Vec_IntStart( Gia_ManObjNum(p) );
+    Vec_Int_t * vMap1 = Vec_IntStart( Gia_ManObjNum(p) );
+    Vec_Int_t * vClass, * vClass2, * vNewClass;
+    int i;
+    vNewClass = Vec_IntAlloc( 100 );
+    vEquivs2 = Vec_WecAlloc( 2 * Vec_WecSize(vEquivs) );
+    Vec_WecForEachLevel( vEquivs, vClass, i )
+    {
+        if ( i % 100 == 0 )
+            printf( "%8d finished...\r", i );
+        // split this class
+        Gia_Iso2ManCheckIsoClassOne( p, vClass, vRoots, vVec0, vVec1, vMap0, vMap1, vNewClass );
+        assert( Vec_IntSize(vClass) > 0 );
+        // add remaining class
+        vClass2 = Vec_WecPushLevel( vEquivs2 );
+        *vClass2 = *vClass;
+        vClass->pArray = NULL;
+        vClass->nSize = vClass->nCap = 0;
+        // add new class
+        if ( Vec_IntSize(vNewClass) == 0 )
+            continue;
+        vClass = Vec_WecPushLevel( vEquivs );
+        Vec_IntAppend( vClass, vNewClass );
+    }
+    Vec_IntFree( vNewClass );   
+    Vec_IntFree( vRoots );
+    Vec_IntFree( vVec0 );
+    Vec_IntFree( vVec1 );
+    Vec_IntFree( vMap0 );
+    Vec_IntFree( vMap1 );
+    return vEquivs2;
+}
+
 
 
 /**Function*************************************************************
@@ -646,7 +714,7 @@ Vec_Wec_t * Gia_Iso2ManPerform( Gia_Man_t * pGia, int fVerbose )
   SeeAlso     []
 
 ***********************************************************************/
-Gia_Man_t * Gia_ManIsoReduce2( Gia_Man_t * pGia, Vec_Ptr_t ** pvPosEquivs, Vec_Ptr_t ** pvPiPerms, int fEstimate, int fDualOut, int fVerbose, int fVeryVerbose )
+Gia_Man_t * Gia_ManIsoReduce2( Gia_Man_t * pGia, Vec_Ptr_t ** pvPosEquivs, Vec_Ptr_t ** pvPiPerms, int fEstimate, int fBetterQual, int fDualOut, int fVerbose, int fVeryVerbose )
 {
     Gia_Man_t * pPart;
     Vec_Wec_t * vEquivs, * vEquivs2;
@@ -665,7 +733,10 @@ Gia_Man_t * Gia_ManIsoReduce2( Gia_Man_t * pGia, Vec_Ptr_t ** pvPosEquivs, Vec_P
         return Gia_ManDup(pGia);
     }
     // verify classes
-    vEquivs2 = Gia_Iso2ManCheckIsoClasses( pGia, vEquivs );
+    if ( fBetterQual )
+        vEquivs2 = Gia_Iso2ManCheckIsoClasses( pGia, vEquivs );
+    else
+        vEquivs2 = Gia_Iso2ManCheckIsoClassesSkip( pGia, vEquivs );
     Vec_WecFree( vEquivs );
     vEquivs = vEquivs2;
     // sort equiv classes by the first integer

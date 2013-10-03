@@ -31542,9 +31542,9 @@ int Abc_CommandAbc9Iso( Abc_Frame_t * pAbc, int argc, char ** argv )
     Gia_Man_t * pAig;
     Vec_Ptr_t * vPosEquivs;
 //    Vec_Ptr_t * vPiPerms;
-    int c, fNewAlgo = 1, fEstimate = 0, fDualOut = 0, fVerbose = 0, fVeryVerbose = 0;
+    int c, fNewAlgo = 1, fEstimate = 0, fBetterQual = 0, fDualOut = 0, fVerbose = 0, fVeryVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "nedvwh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "neqdvwh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -31553,6 +31553,9 @@ int Abc_CommandAbc9Iso( Abc_Frame_t * pAbc, int argc, char ** argv )
             break;
         case 'e':
             fEstimate ^= 1;
+            break;
+        case 'q':
+            fBetterQual ^= 1;
             break;
         case 'd':
             fDualOut ^= 1;
@@ -31580,7 +31583,7 @@ int Abc_CommandAbc9Iso( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
     if ( fNewAlgo )
-        pAig = Gia_ManIsoReduce2( pAbc->pGia, &vPosEquivs, NULL, fEstimate, fDualOut, fVerbose, fVeryVerbose );
+        pAig = Gia_ManIsoReduce2( pAbc->pGia, &vPosEquivs, NULL, fEstimate, fBetterQual, fDualOut, fVerbose, fVeryVerbose );
     else
         pAig = Gia_ManIsoReduce( pAbc->pGia, &vPosEquivs, NULL, fEstimate, fDualOut, fVerbose, fVeryVerbose );
 //    pAig = Gia_ManIsoReduce( pAbc->pGia, &vPosEquivs, &vPiPerms, 0, fDualOut, fVerbose, fVeryVerbose );
@@ -31597,10 +31600,11 @@ int Abc_CommandAbc9Iso( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &iso [-nedvwh]\n" );
+    Abc_Print( -2, "usage: &iso [-neqdvwh]\n" );
     Abc_Print( -2, "\t         removes POs with isomorphic sequential COI\n" );
     Abc_Print( -2, "\t-n     : toggle using new fast algorithm [default = %s]\n", fNewAlgo? "yes": "no" );
     Abc_Print( -2, "\t-e     : toggle computing lower bound on equivalence classes [default = %s]\n", fEstimate? "yes": "no" );
+    Abc_Print( -2, "\t-q     : toggle improving quality at the expense of runtime [default = %s]\n", fBetterQual? "yes": "no" );
     Abc_Print( -2, "\t-d     : toggle treating the current AIG as a dual-output miter [default = %s]\n", fDualOut? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-w     : toggle printing very verbose information [default = %s]\n", fVeryVerbose? "yes": "no" );
