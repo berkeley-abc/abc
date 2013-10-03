@@ -202,6 +202,59 @@ void Gia_ManSetRefsMapped( Gia_Man_t * p )
 
 /**Function*************************************************************
 
+  Synopsis    [Calculate mapping overlap.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Gia_ManComputeOverlapOne_rec( Gia_Man_t * p, int iObj, Vec_Str_t * vLabel, Vec_Int_t * vVisit )
+{
+    Gia_Obj_t * pObj;
+    int Counter;
+    if ( Vec_StrEntry(vLabel, iObj) )
+        return 0;
+    Vec_StrWriteEntry( vLabel, iObj, 1 );
+    pObj = Gia_ManObj( p, iObj );
+    assert( Gia_ObjIsAnd(pObj) );
+    Counter  = Gia_ManComputeOverlapOne_rec( p, Gia_ObjFaninId0(pObj, iObj), vLabel, vVisit );
+    Counter += Gia_ManComputeOverlapOne_rec( p, Gia_ObjFaninId1(pObj, iObj), vLabel, vVisit );
+    Vec_IntPush( vVisit, iObj );
+    return Counter + 1;
+}
+int Gia_ManComputeOverlapOne( Gia_Man_t * p, int iObj, Vec_Str_t * vLabel, Vec_Int_t * vVisit )
+{
+    int iFan, k, Counter;
+    Vec_IntClear( vVisit );
+    Gia_LutForEachFanin( p, iObj, iFan, k )
+        Vec_StrWriteEntry( vLabel, iFan, 1 );
+    Counter = Gia_ManComputeOverlapOne_rec( p, iObj, vLabel, vVisit );
+    Gia_LutForEachFanin( p, iObj, iFan, k )
+        Vec_StrWriteEntry( vLabel, iFan, 0 );
+    Vec_IntForEachEntry( vVisit, iFan, k )
+        Vec_StrWriteEntry( vLabel, iFan, 0 );
+    return Counter;
+}
+int Gia_ManComputeOverlap( Gia_Man_t * p )
+{
+    Vec_Int_t * vVisit;
+    Vec_Str_t * vLabel;
+    int i, Count = 0;
+    assert( Gia_ManHasMapping(p) );
+    vVisit = Vec_IntAlloc( 100 );
+    vLabel = Vec_StrStart( Gia_ManObjNum(p) );
+    Gia_ManForEachLut( p, i )
+        Count += Gia_ManComputeOverlapOne( p, i, vLabel, vVisit );
+    Vec_StrFree( vLabel );
+    Vec_IntFree( vVisit );
+    return Count;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Prints mapping statistics.]
 
   Description []
@@ -233,6 +286,7 @@ void Gia_ManPrintMappingStats( Gia_Man_t * p )
     Abc_Print( 1, "lut =%7d  ", nLuts );
     Abc_Print( 1, "edge =%8d  ", nFanins );
     Abc_Print( 1, "lev =%5d  ", LevelMax );
+    Abc_Print( 1, "over =%5.1f %%  ", 100.0 * Gia_ManComputeOverlap(p) / Gia_ManAndNum(p) - 100.0 );
     Abc_Print( 1, "mem =%5.2f MB", 4.0*(Gia_ManObjNum(p) + 2*nLuts + nFanins)/(1<<20) );
     Abc_Print( 1, "\n" );
 /*
