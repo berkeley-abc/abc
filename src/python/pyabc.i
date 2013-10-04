@@ -237,7 +237,7 @@ Abc_Cex_t* _cex_get_vec(int i)
         return NULL;
     }
 
-    Abc_Cex_t* pCex = Vec_PtrEntry( vCexVec, i );
+    Abc_Cex_t* pCex = (Abc_Cex_t*)Vec_PtrEntry( vCexVec, i );
 
     if ( ! pCex )
     {
@@ -430,7 +430,7 @@ void pyabc_internal_register_command( char * sGroup, char * sName, int fChanges 
 {
     Abc_Frame_t* pAbc = Abc_FrameGetGlobalFrame();
 
-    Cmd_CommandAdd( pAbc, sGroup, sName, (void*)pyabc_internal_abc_command_callback, fChanges);
+    Cmd_CommandAdd( pAbc, sGroup, sName, ((*)(Abc_Frame_t*, int, char**))pyabc_internal_abc_command_callback, fChanges);
 }
 
 static int sigchld_pipe_fd = -1;
