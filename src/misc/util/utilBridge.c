@@ -34,15 +34,19 @@ ABC_NAMESPACE_IMPL_START
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-#define BRIDGE_TEXT_MESSAGE   999996
-#define BRIDGE_RESULTS           101
-//#define BRIDGE_NETLIST           106
-//#define BRIDGE_ABS_NETLIST       107
-#define BRIDGE_BAD_ABS           105
+#define BRIDGE_TEXT_MESSAGE 999996
 
-#define BRIDGE_VALUE_X             0
-#define BRIDGE_VALUE_0             2
-#define BRIDGE_VALUE_1             3
+#define BRIDGE_ABORT        5
+#define BRIDGE_PROGRESS     3
+#define BRIDGE_RESULTS      101
+#define BRIDGE_BAD_ABS      105
+//#define BRIDGE_NETLIST      106
+//#define BRIDGE_ABS_NETLIST  107
+
+#define BRIDGE_VALUE_X 0
+#define BRIDGE_VALUE_0 2
+#define BRIDGE_VALUE_1 3
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -166,6 +170,22 @@ int Gia_ManToBridgeText( FILE * pFile, int Size, unsigned char * pBuffer )
     Gia_CreateHeader( pFile, BRIDGE_TEXT_MESSAGE, Size, pBuffer );
     return 1;
 }
+
+
+int Gia_ManToBridgeAbort( FILE * pFile, int Size, unsigned char * pBuffer )
+{
+    Gia_CreateHeader( pFile, BRIDGE_ABORT, Size, pBuffer );
+    return 1;
+}
+
+
+int Gia_ManToBridgeProgress( FILE * pFile, int Size, unsigned char * pBuffer )
+{
+    Gia_CreateHeader( pFile, BRIDGE_PROGRESS, Size, pBuffer );
+    return 1;
+}
+
+
 int Gia_ManToBridgeAbsNetlist( FILE * pFile, void * p, int pkg_type )
 {
     Vec_Str_t * vBuffer;
@@ -174,6 +194,8 @@ int Gia_ManToBridgeAbsNetlist( FILE * pFile, void * p, int pkg_type )
     Vec_StrFree( vBuffer );
     return 1;
 }
+
+
 int Gia_ManToBridgeBadAbs( FILE * pFile )
 {
     Gia_CreateHeader( pFile, BRIDGE_BAD_ABS, 0, NULL );

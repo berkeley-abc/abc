@@ -28,6 +28,7 @@ ABC_NAMESPACE_IMPL_START
 ////////////////////////////////////////////////////////////////////////
 
 extern int Gia_ManToBridgeResult( FILE * pFile, int Result, Abc_Cex_t * pCex, int iPoProved );
+extern int Gia_ManToBridgeAbort( FILE * pFile, int Size, char * pBuffer );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -138,8 +139,11 @@ int Pdr_ManPushClauses( Pdr_Man_t * p )
     int i, j, k, m, RetValue = 0, RetValue2, kMax = Vec_PtrSize(p->vSolvers)-1;
     int Counter = 0;
     abctime clk = Abc_Clock();
+
     assert( p->iUseFrame > 0 );
+
     Vec_VecForEachLevelStartStop( p->vClauses, vArrayK, k, 1, kMax )
+
     {
         Vec_PtrSort( vArrayK, (int (*)(void))Pdr_SetCompare );
         vArrayK1 = Vec_VecEntry( p->vClauses, k+1 );
@@ -275,8 +279,8 @@ int * Pdr_ManSortByPriority( Pdr_Man_t * p, Pdr_Set_t * pCube )
 //            if ( pArray[j] < pArray[best_i] )
             if ( pPrios[pCube->Lits[pArray[j]]>>1] < pPrios[pCube->Lits[pArray[best_i]]>>1] )
                 best_i = j;
-        temp = pArray[i]; 
-        pArray[i] = pArray[best_i]; 
+        temp = pArray[i];
+        pArray[i] = pArray[best_i];
         pArray[best_i] = temp;
     }
 /*
@@ -339,7 +343,7 @@ int Pdr_ManGeneralize( Pdr_Man_t * p, int k, Pdr_Set_t * pCube, Pdr_Set_t ** ppP
             if ( Pdr_SetIsInit(pCubeMin, i) )
                 continue;
             // try removing this literal
-            Lit = pCubeMin->Lits[i]; pCubeMin->Lits[i] = -1; 
+            Lit = pCubeMin->Lits[i]; pCubeMin->Lits[i] = -1;
             RetValue = Pdr_ManCheckCube( p, k, pCubeMin, NULL, p->pPars->nConfLimit );
             if ( RetValue == -1 )
             {
@@ -377,7 +381,7 @@ int Pdr_ManGeneralize( Pdr_Man_t * p, int k, Pdr_Set_t * pCube, Pdr_Set_t ** ppP
             if ( Pdr_SetIsInit(pCubeMin, i) )
                 continue;
             // try removing this literal
-            Lit = pCubeMin->Lits[i]; pCubeMin->Lits[i] = -1; 
+            Lit = pCubeMin->Lits[i]; pCubeMin->Lits[i] = -1;
             RetValue = Pdr_ManCheckCube( p, k, pCubeMin, NULL, p->pPars->nConfLimit );
             if ( RetValue == -1 )
             {
@@ -440,7 +444,9 @@ int Pdr_ManBlockCube( Pdr_Man_t * p, Pdr_Set_t * pCube )
         pThis = Pdr_QueueHead( p );
         if ( pThis->iFrame == 0 )
             return 0; // SAT
+
         if ( pThis->iFrame > kMax ) // finished this level
+
             return 1;
         if ( p->nQueLim && p->nQueCur >= p->nQueLim )
         {
@@ -451,6 +457,7 @@ int Pdr_ManBlockCube( Pdr_Man_t * p, Pdr_Set_t * pCube )
         pThis = Pdr_QueuePop( p );
         assert( pThis->iFrame > 0 );
         assert( !Pdr_SetIsInit(pThis->pState, -1) );
+
         p->iUseFrame = Abc_MinInt( p->iUseFrame, pThis->iFrame );
 
         clk = Abc_Clock();
@@ -493,15 +500,23 @@ int Pdr_ManBlockCube( Pdr_Man_t * p, Pdr_Set_t * pCube )
             // check other frames
             assert( pPred == NULL );
             for ( k = pThis->iFrame; k < kMax; k++ )
+
             {
+
                 RetValue = Pdr_ManCheckCube( p, k, pCubeMin, NULL, 0 );
+
                 if ( RetValue == -1 )
+
                 {
+
                     Pdr_OblDeref( pThis );
+
                     return -1;
+
                 }
                 if ( !RetValue )
                     break;
+
             }
 
             // add new clause
@@ -526,6 +541,7 @@ int Pdr_ManBlockCube( Pdr_Man_t * p, Pdr_Set_t * pCube )
                 Pdr_ManSolverAddClause( p, i, pCubeMin );
             // schedule proof obligation
             if ( (k < kMax || p->pPars->fReuseProofOblig) && !p->pPars->fShortest )
+
             {
                 pThis->iFrame = k+1;
                 pThis->prio   = Prio--;
@@ -576,6 +592,7 @@ int Pdr_ManSolveInt( Pdr_Man_t * p )
     int fPrintClauses = 0;
     Pdr_Set_t * pCube = NULL;
     Aig_Obj_t * pObj;
+
     Abc_Cex_t * pCexNew;
     int k, RetValue = -1;
     int nOutDigits = Abc_Base10Log( Saig_ManPoNum(p->pAig) );
@@ -587,9 +604,11 @@ int Pdr_ManSolveInt( Pdr_Man_t * p )
     Pdr_ManCreateSolver( p, (k = 0) );
     while ( 1 )
     {
+
         p->nFrames = k;
         assert( k == Vec_PtrSize(p->vSolvers)-1 );
         p->iUseFrame = ABC_INFINITY;
+
         Saig_ManForEachPo( p->pAig, pObj, p->iOutCur )
         {
             // skip disproved outputs
@@ -607,21 +626,27 @@ int Pdr_ManSolveInt( Pdr_Man_t * p )
                 if ( !p->pPars->fSolveAll )
                 {
                     pCexNew = Abc_CexMakeTriv( Aig_ManRegNum(p->pAig), Saig_ManPiNum(p->pAig), Saig_ManPoNum(p->pAig), k*Saig_ManPoNum(p->pAig)+p->iOutCur );
+
                     p->pAig->pSeqModel = pCexNew;
                     return 0; // SAT
                 }
                 pCexNew = (p->pPars->fUseBridge || p->pPars->fStoreCex) ? Abc_CexMakeTriv( Aig_ManRegNum(p->pAig), Saig_ManPiNum(p->pAig), Saig_ManPoNum(p->pAig), k*Saig_ManPoNum(p->pAig)+p->iOutCur ) : (Abc_Cex_t *)(ABC_PTRINT_T)1;
+
                 p->pPars->nFailOuts++;
                 if ( p->pPars->vOutMap ) Vec_IntWriteEntry( p->pPars->vOutMap, p->iOutCur, 0 );
-                Abc_Print( 1, "Output %*d was trivially asserted in frame %2d (solved %*d out of %*d outputs).\n",  
+                Abc_Print( 1, "Output %*d was trivially asserted in frame %2d (solved %*d out of %*d outputs).\n",
                     nOutDigits, p->iOutCur, k, nOutDigits, p->pPars->nFailOuts, nOutDigits, Saig_ManPoNum(p->pAig) );
                 assert( Vec_PtrEntry(p->vCexes, p->iOutCur) == NULL );
+
                 if ( p->pPars->fUseBridge )
+
                     Gia_ManToBridgeResult( stdout, 0, pCexNew, pCexNew->iPo );
+
                 Vec_PtrWriteEntry( p->vCexes, p->iOutCur, pCexNew );
+
                 if ( p->pPars->pFuncOnFail && p->pPars->pFuncOnFail(p->iOutCur, p->pPars->fStoreCex ? (Abc_Cex_t *)Vec_PtrEntry(p->vCexes, p->iOutCur) : NULL) )
                 {
-                    if ( p->pPars->fVerbose ) 
+                    if ( p->pPars->fVerbose )
                         Pdr_ManPrintProgress( p, 1, Abc_Clock() - clkStart );
                     if ( !p->pPars->fSilent )
                         Abc_Print( 1, "Quitting due to callback on fail.\n" );
@@ -632,7 +657,7 @@ int Pdr_ManSolveInt( Pdr_Man_t * p )
                     return p->pPars->nFailOuts ? 0 : -1; // SAT or UNDEC
                 p->pPars->timeLastSolved = Abc_Clock();
                 continue;
-            } 
+            }
             // try to solve this output
             if ( p->pTime4Outs )
             {
@@ -644,7 +669,7 @@ int Pdr_ManSolveInt( Pdr_Man_t * p )
             {
                 if ( p->pPars->nTimeOutGap && p->pPars->timeLastSolved && Abc_Clock() > p->pPars->timeLastSolved + p->pPars->nTimeOutGap * CLOCKS_PER_SEC )
                 {
-                    if ( p->pPars->fVerbose ) 
+                    if ( p->pPars->fVerbose )
                         Pdr_ManPrintProgress( p, 1, Abc_Clock() - clkStart );
                     if ( !p->pPars->fSilent )
                         Abc_Print( 1, "Reached gap timeout (%d seconds).\n",  p->pPars->nTimeOutGap );
@@ -656,21 +681,33 @@ int Pdr_ManSolveInt( Pdr_Man_t * p )
                     break;
                 if ( RetValue == -1 )
                 {
-                    if ( p->pPars->fVerbose ) 
+                    if ( p->pPars->fVerbose )
                         Pdr_ManPrintProgress( p, 1, Abc_Clock() - clkStart );
                     if ( p->timeToStop && Abc_Clock() > p->timeToStop )
+
                         Abc_Print( 1, "Reached timeout (%d seconds).\n",  p->pPars->nTimeOut );
+
                     else if ( p->pPars->nTimeOutGap && p->pPars->timeLastSolved && Abc_Clock() > p->pPars->timeLastSolved + p->pPars->nTimeOutGap * CLOCKS_PER_SEC )
+
                         Abc_Print( 1, "Reached gap timeout (%d seconds).\n",  p->pPars->nTimeOutGap );
+
                     else if ( p->timeToStopOne && Abc_Clock() > p->timeToStopOne )
+
                     {
+
                         Pdr_QueueClean( p );
+
                         pCube = NULL;
+
                         break; // keep solving
+
                     }
+
                     else if ( p->pPars->nConfLimit )
+
                         Abc_Print( 1, "Reached conflict limit (%d).\n",  p->pPars->nConfLimit );
-                    else if ( p->pPars->fVerbose ) 
+
+                    else if ( p->pPars->fVerbose )
                         Abc_Print( 1, "Computation cancelled by the callback.\n" );
                     p->pPars->iFrame = k;
                     return -1;
@@ -680,7 +717,7 @@ int Pdr_ManSolveInt( Pdr_Man_t * p )
                     RetValue = Pdr_ManBlockCube( p, pCube );
                     if ( RetValue == -1 )
                     {
-                        if ( p->pPars->fVerbose ) 
+                        if ( p->pPars->fVerbose )
                             Pdr_ManPrintProgress( p, 1, Abc_Clock() - clkStart );
                         if ( p->timeToStop && Abc_Clock() > p->timeToStop )
                             Abc_Print( 1, "Reached timeout (%d seconds).\n",  p->pPars->nTimeOut );
@@ -693,8 +730,10 @@ int Pdr_ManSolveInt( Pdr_Man_t * p )
                             break; // keep solving
                         }
                         else if ( p->pPars->nConfLimit )
+
                             Abc_Print( 1, "Reached conflict limit (%d).\n",  p->pPars->nConfLimit );
-                        else if ( p->pPars->fVerbose ) 
+
+                        else if ( p->pPars->fVerbose )
                             Abc_Print( 1, "Computation cancelled by the callback.\n" );
                         p->pPars->iFrame = k;
                         return -1;
@@ -706,7 +745,7 @@ int Pdr_ManSolveInt( Pdr_Man_t * p )
                             Abc_Print( 1, "*** Clauses after frame %d:\n", k );
                             Pdr_ManPrintClauses( p, 0 );
                         }
-                        if ( p->pPars->fVerbose ) 
+                        if ( p->pPars->fVerbose )
                             Pdr_ManPrintProgress( p, !p->pPars->fSolveAll, Abc_Clock() - clkStart );
                         p->pPars->iFrame = k;
 
@@ -716,15 +755,20 @@ int Pdr_ManSolveInt( Pdr_Man_t * p )
                             return 0; // SAT
                         }
                         p->pPars->nFailOuts++;
+
                         pCexNew = (p->pPars->fUseBridge || p->pPars->fStoreCex) ? Pdr_ManDeriveCex(p) : (Abc_Cex_t *)(ABC_PTRINT_T)1;
+
                         if ( p->pPars->vOutMap ) Vec_IntWriteEntry( p->pPars->vOutMap, p->iOutCur, 0 );
                         assert( Vec_PtrEntry(p->vCexes, p->iOutCur) == NULL );
+
                         if ( p->pPars->fUseBridge )
+
                             Gia_ManToBridgeResult( stdout, 0, pCexNew, pCexNew->iPo );
+
                         Vec_PtrWriteEntry( p->vCexes, p->iOutCur, pCexNew );
                         if ( p->pPars->pFuncOnFail && p->pPars->pFuncOnFail(p->iOutCur, p->pPars->fStoreCex ? (Abc_Cex_t *)Vec_PtrEntry(p->vCexes, p->iOutCur) : NULL) )
                         {
-                            if ( p->pPars->fVerbose ) 
+                            if ( p->pPars->fVerbose )
                                 Pdr_ManPrintProgress( p, 1, Abc_Clock() - clkStart );
                             if ( !p->pPars->fSilent )
                                 Abc_Print( 1, "Quitting due to callback on fail.\n" );
@@ -732,7 +776,7 @@ int Pdr_ManSolveInt( Pdr_Man_t * p )
                             return -1;
                         }
                         if ( !p->pPars->fNotVerbose )
-                            Abc_Print( 1, "Output %*d was asserted in frame %2d (%2d) (solved %*d out of %*d outputs).\n",  
+                            Abc_Print( 1, "Output %*d was asserted in frame %2d (%2d) (solved %*d out of %*d outputs).\n",
                                 nOutDigits, p->iOutCur, k, k, nOutDigits, p->pPars->nFailOuts, nOutDigits, Saig_ManPoNum(p->pAig) );
                         if ( p->pPars->nFailOuts == Saig_ManPoNum(p->pAig) )
                             return 0; // all SAT
@@ -740,10 +784,10 @@ int Pdr_ManSolveInt( Pdr_Man_t * p )
                         pCube = NULL;
                         break; // keep solving
                     }
-                    if ( p->pPars->fVerbose ) 
+                    if ( p->pPars->fVerbose )
                         Pdr_ManPrintProgress( p, 0, Abc_Clock() - clkStart );
                 }
-            } 
+            }
             if ( p->pTime4Outs )
             {
                 abctime timeSince = Abc_Clock() - clkOne;
@@ -753,15 +797,18 @@ int Pdr_ManSolveInt( Pdr_Man_t * p )
                 {
                     p->pPars->nDropOuts++;
                     if ( p->pPars->vOutMap ) 
+
                         Vec_IntWriteEntry( p->pPars->vOutMap, p->iOutCur, -1 );
                     if ( !p->pPars->fNotVerbose ) 
+
                         Abc_Print( 1, "Timing out on output %*d.\n", nOutDigits, p->iOutCur );
                 }
+
                 p->timeToStopOne = 0;
             }
         }
 
-        if ( p->pPars->fVerbose ) 
+        if ( p->pPars->fVerbose )
             Pdr_ManPrintProgress( p, 1, Abc_Clock() - clkStart );
         // open a new timeframe
         p->nQueLim = p->pPars->nRestLimit;
@@ -777,7 +824,7 @@ int Pdr_ManSolveInt( Pdr_Man_t * p )
         RetValue = Pdr_ManPushClauses( p );
         if ( RetValue == -1 )
         {
-            if ( p->pPars->fVerbose ) 
+            if ( p->pPars->fVerbose )
                 Pdr_ManPrintProgress( p, 1, Abc_Clock() - clkStart );
             if ( !p->pPars->fSilent )
             {
@@ -791,7 +838,7 @@ int Pdr_ManSolveInt( Pdr_Man_t * p )
         }
         if ( RetValue )
         {
-            if ( p->pPars->fVerbose ) 
+            if ( p->pPars->fVerbose )
                 Pdr_ManPrintProgress( p, 1, Abc_Clock() - clkStart );
             if ( !p->pPars->fSilent )
                 Pdr_ManReportInvariant( p );
@@ -804,18 +851,27 @@ int Pdr_ManSolveInt( Pdr_Man_t * p )
             if ( p->pPars->vOutMap )
                 for ( k = 0; k < Saig_ManPoNum(p->pAig); k++ )
                     if ( Vec_IntEntry(p->pPars->vOutMap, k) == -2 ) // unknown
+
                     {
                         Vec_IntWriteEntry( p->pPars->vOutMap, k, 1 ); // unsat
+
                         if ( p->pPars->fUseBridge )
+
                             Gia_ManToBridgeResult( stdout, 1, NULL, k );
+
                     }
+
             if ( p->pPars->nProveOuts == Saig_ManPoNum(p->pAig) )
+
                 return 1; // UNSAT
+
             if ( p->pPars->nFailOuts > 0 )
+
                 return 0; // SAT
-            return -1; 
+
+            return -1;
         }
-        if ( p->pPars->fVerbose ) 
+        if ( p->pPars->fVerbose )
             Pdr_ManPrintProgress( p, 0, Abc_Clock() - clkStart );
 
         // check termination
@@ -831,7 +887,7 @@ int Pdr_ManSolveInt( Pdr_Man_t * p )
                 Abc_Print( 1, "*** Clauses after frame %d:\n", k );
                 Pdr_ManPrintClauses( p, 0 );
             }
-            if ( p->pPars->fVerbose ) 
+            if ( p->pPars->fVerbose )
                 Pdr_ManPrintProgress( p, 1, Abc_Clock() - clkStart );
             if ( !p->pPars->fSilent )
                 Abc_Print( 1, "Reached timeout (%d seconds).\n",  p->pPars->nTimeOut );
@@ -845,7 +901,7 @@ int Pdr_ManSolveInt( Pdr_Man_t * p )
                 Abc_Print( 1, "*** Clauses after frame %d:\n", k );
                 Pdr_ManPrintClauses( p, 0 );
             }
-            if ( p->pPars->fVerbose ) 
+            if ( p->pPars->fVerbose )
                 Pdr_ManPrintProgress( p, 1, Abc_Clock() - clkStart );
             if ( !p->pPars->fSilent )
                 Abc_Print( 1, "Reached gap timeout (%d seconds).\n",  p->pPars->nTimeOutGap );
@@ -854,13 +910,13 @@ int Pdr_ManSolveInt( Pdr_Man_t * p )
         }
         if ( p->pPars->nFrameMax && k >= p->pPars->nFrameMax )
         {
-            if ( p->pPars->fVerbose ) 
+            if ( p->pPars->fVerbose )
                 Pdr_ManPrintProgress( p, 1, Abc_Clock() - clkStart );
             if ( !p->pPars->fSilent )
                 Abc_Print( 1, "Reached limit on the number of timeframes (%d).\n", p->pPars->nFrameMax );
             p->pPars->iFrame = k;
             return -1;
-        } 
+        }
     }
     assert( 0 );
     return -1;
@@ -883,20 +939,22 @@ int Pdr_ManSolve( Aig_Man_t * pAig, Pdr_Par_t * pPars )
     int k, RetValue;
     abctime clk = Abc_Clock();
     if ( pPars->nTimeOutOne && !pPars->fSolveAll )
+
         pPars->nTimeOutOne = 0;
+
     if ( pPars->nTimeOutOne )
         pPars->nTimeOut = pPars->nTimeOutOne * Saig_ManPoNum(pAig) / 1000 + (int)((pPars->nTimeOutOne * Saig_ManPoNum(pAig) % 1000) > 0);
     if ( pPars->fVerbose )
     {
 //    Abc_Print( 1, "Running PDR by Niklas Een (aka IC3 by Aaron Bradley) with these parameters:\n" );
-        Abc_Print( 1, "VarMax = %d. FrameMax = %d. QueMax = %d. TimeMax = %d. ", 
-            pPars->nRecycle, 
-            pPars->nFrameMax, 
-            pPars->nRestLimit, 
+        Abc_Print( 1, "VarMax = %d. FrameMax = %d. QueMax = %d. TimeMax = %d. ",
+            pPars->nRecycle,
+            pPars->nFrameMax,
+            pPars->nRestLimit,
             pPars->nTimeOut );
-        Abc_Print( 1, "MonoCNF = %s. SkipGen = %s. SolveAll = %s.\n", 
-            pPars->fMonoCnf ?     "yes" : "no", 
-            pPars->fSkipGeneral ? "yes" : "no", 
+        Abc_Print( 1, "MonoCNF = %s. SkipGen = %s. SolveAll = %s.\n",
+            pPars->fMonoCnf ?     "yes" : "no",
+            pPars->fSkipGeneral ? "yes" : "no",
             pPars->fSolveAll ?    "yes" : "no" );
     }
     ABC_FREE( pAig->pSeqModel );
@@ -920,6 +978,10 @@ int Pdr_ManSolve( Aig_Man_t * pAig, Pdr_Par_t * pPars )
         for ( k = 0; k < Saig_ManPoNum(pAig); k++ )
             if ( Vec_IntEntry(pPars->vOutMap, k) == -2 ) // unknown
                 Vec_IntWriteEntry( pPars->vOutMap, k, -1 ); // undec
+
+    if ( pPars->fUseBridge ){
+        Gia_ManToBridgeAbort( stdout, 7, "timeout" ); }
+
     return RetValue;
 }
 
@@ -929,4 +991,3 @@ int Pdr_ManSolve( Aig_Man_t * pAig, Pdr_Par_t * pPars )
 
 
 ABC_NAMESPACE_IMPL_END
-
