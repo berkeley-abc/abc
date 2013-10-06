@@ -139,11 +139,8 @@ int Pdr_ManPushClauses( Pdr_Man_t * p )
     int i, j, k, m, RetValue = 0, RetValue2, kMax = Vec_PtrSize(p->vSolvers)-1;
     int Counter = 0;
     abctime clk = Abc_Clock();
-
     assert( p->iUseFrame > 0 );
-
     Vec_VecForEachLevelStartStop( p->vClauses, vArrayK, k, 1, kMax )
-
     {
         Vec_PtrSort( vArrayK, (int (*)(void))Pdr_SetCompare );
         vArrayK1 = Vec_VecEntry( p->vClauses, k+1 );
@@ -457,9 +454,7 @@ int Pdr_ManBlockCube( Pdr_Man_t * p, Pdr_Set_t * pCube )
         pThis = Pdr_QueuePop( p );
         assert( pThis->iFrame > 0 );
         assert( !Pdr_SetIsInit(pThis->pState, -1) );
-
         p->iUseFrame = Abc_MinInt( p->iUseFrame, pThis->iFrame );
-
         clk = Abc_Clock();
         if ( Pdr_ManCheckContainment( p, pThis->iFrame, pThis->pState ) )
         {
@@ -493,38 +488,27 @@ int Pdr_ManBlockCube( Pdr_Man_t * p, Pdr_Set_t * pCube )
         if ( RetValue ) // cube is blocked inductively in this frame
         {
             assert( pCubeMin != NULL );
-
             // k is the last frame where pCubeMin holds
             k = pThis->iFrame;
-
             // check other frames
             assert( pPred == NULL );
             for ( k = pThis->iFrame; k < kMax; k++ )
-
             {
-
                 RetValue = Pdr_ManCheckCube( p, k, pCubeMin, NULL, 0 );
-
                 if ( RetValue == -1 )
-
                 {
-
                     Pdr_OblDeref( pThis );
-
                     return -1;
-
                 }
                 if ( !RetValue )
                     break;
-
             }
-
             // add new clause
             if ( p->pPars->fVeryVerbose )
             {
-            Abc_Print( 1, "Adding cube " );
-            Pdr_SetPrint( stdout, pCubeMin, Aig_ManRegNum(p->pAig), NULL );
-            Abc_Print( 1, " to frame %d.\n", k );
+                Abc_Print( 1, "Adding cube " );
+                Pdr_SetPrint( stdout, pCubeMin, Aig_ManRegNum(p->pAig), NULL );
+                Abc_Print( 1, " to frame %d.\n", k );
             }
             // set priority flops
             for ( i = 0; i < pCubeMin->nLits; i++ )
@@ -533,7 +517,6 @@ int Pdr_ManBlockCube( Pdr_Man_t * p, Pdr_Set_t * pCube )
                 assert( (pCubeMin->Lits[i] / 2) < Aig_ManRegNum(p->pAig) );
                 Vec_IntAddToEntry( p->vPrio, pCubeMin->Lits[i] / 2, 1 );
             }
-
             Vec_VecPush( p->vClauses, k, pCubeMin );   // consume ref
             p->nCubes++;
             // add clause
@@ -541,7 +524,6 @@ int Pdr_ManBlockCube( Pdr_Man_t * p, Pdr_Set_t * pCube )
                 Pdr_ManSolverAddClause( p, i, pCubeMin );
             // schedule proof obligation
             if ( (k < kMax || p->pPars->fReuseProofOblig) && !p->pPars->fShortest )
-
             {
                 pThis->iFrame = k+1;
                 pThis->prio   = Prio--;
@@ -558,7 +540,6 @@ int Pdr_ManBlockCube( Pdr_Man_t * p, Pdr_Set_t * pCube )
             assert( pPred != NULL );
             pThis->prio = Prio--;
             Pdr_QueuePush( p, pThis );
-
             pThis = Pdr_OblStart( pThis->iFrame-1, Prio--, pPred, Pdr_OblRef(pThis) );
             Pdr_QueuePush( p, pThis );
         }
@@ -592,7 +573,6 @@ int Pdr_ManSolveInt( Pdr_Man_t * p )
     int fPrintClauses = 0;
     Pdr_Set_t * pCube = NULL;
     Aig_Obj_t * pObj;
-
     Abc_Cex_t * pCexNew;
     int k, RetValue = -1;
     int nOutDigits = Abc_Base10Log( Saig_ManPoNum(p->pAig) );
@@ -604,11 +584,9 @@ int Pdr_ManSolveInt( Pdr_Man_t * p )
     Pdr_ManCreateSolver( p, (k = 0) );
     while ( 1 )
     {
-
         p->nFrames = k;
         assert( k == Vec_PtrSize(p->vSolvers)-1 );
         p->iUseFrame = ABC_INFINITY;
-
         Saig_ManForEachPo( p->pAig, pObj, p->iOutCur )
         {
             // skip disproved outputs
@@ -626,24 +604,18 @@ int Pdr_ManSolveInt( Pdr_Man_t * p )
                 if ( !p->pPars->fSolveAll )
                 {
                     pCexNew = Abc_CexMakeTriv( Aig_ManRegNum(p->pAig), Saig_ManPiNum(p->pAig), Saig_ManPoNum(p->pAig), k*Saig_ManPoNum(p->pAig)+p->iOutCur );
-
                     p->pAig->pSeqModel = pCexNew;
                     return 0; // SAT
                 }
                 pCexNew = (p->pPars->fUseBridge || p->pPars->fStoreCex) ? Abc_CexMakeTriv( Aig_ManRegNum(p->pAig), Saig_ManPiNum(p->pAig), Saig_ManPoNum(p->pAig), k*Saig_ManPoNum(p->pAig)+p->iOutCur ) : (Abc_Cex_t *)(ABC_PTRINT_T)1;
-
                 p->pPars->nFailOuts++;
                 if ( p->pPars->vOutMap ) Vec_IntWriteEntry( p->pPars->vOutMap, p->iOutCur, 0 );
                 Abc_Print( 1, "Output %*d was trivially asserted in frame %2d (solved %*d out of %*d outputs).\n",
                     nOutDigits, p->iOutCur, k, nOutDigits, p->pPars->nFailOuts, nOutDigits, Saig_ManPoNum(p->pAig) );
                 assert( Vec_PtrEntry(p->vCexes, p->iOutCur) == NULL );
-
                 if ( p->pPars->fUseBridge )
-
                     Gia_ManToBridgeResult( stdout, 0, pCexNew, pCexNew->iPo );
-
                 Vec_PtrWriteEntry( p->vCexes, p->iOutCur, pCexNew );
-
                 if ( p->pPars->pFuncOnFail && p->pPars->pFuncOnFail(p->iOutCur, p->pPars->fStoreCex ? (Abc_Cex_t *)Vec_PtrEntry(p->vCexes, p->iOutCur) : NULL) )
                 {
                     if ( p->pPars->fVerbose )
@@ -684,29 +656,17 @@ int Pdr_ManSolveInt( Pdr_Man_t * p )
                     if ( p->pPars->fVerbose )
                         Pdr_ManPrintProgress( p, 1, Abc_Clock() - clkStart );
                     if ( p->timeToStop && Abc_Clock() > p->timeToStop )
-
                         Abc_Print( 1, "Reached timeout (%d seconds).\n",  p->pPars->nTimeOut );
-
                     else if ( p->pPars->nTimeOutGap && p->pPars->timeLastSolved && Abc_Clock() > p->pPars->timeLastSolved + p->pPars->nTimeOutGap * CLOCKS_PER_SEC )
-
                         Abc_Print( 1, "Reached gap timeout (%d seconds).\n",  p->pPars->nTimeOutGap );
-
                     else if ( p->timeToStopOne && Abc_Clock() > p->timeToStopOne )
-
                     {
-
                         Pdr_QueueClean( p );
-
                         pCube = NULL;
-
                         break; // keep solving
-
                     }
-
                     else if ( p->pPars->nConfLimit )
-
                         Abc_Print( 1, "Reached conflict limit (%d).\n",  p->pPars->nConfLimit );
-
                     else if ( p->pPars->fVerbose )
                         Abc_Print( 1, "Computation cancelled by the callback.\n" );
                     p->pPars->iFrame = k;
@@ -730,9 +690,7 @@ int Pdr_ManSolveInt( Pdr_Man_t * p )
                             break; // keep solving
                         }
                         else if ( p->pPars->nConfLimit )
-
                             Abc_Print( 1, "Reached conflict limit (%d).\n",  p->pPars->nConfLimit );
-
                         else if ( p->pPars->fVerbose )
                             Abc_Print( 1, "Computation cancelled by the callback.\n" );
                         p->pPars->iFrame = k;
@@ -748,23 +706,17 @@ int Pdr_ManSolveInt( Pdr_Man_t * p )
                         if ( p->pPars->fVerbose )
                             Pdr_ManPrintProgress( p, !p->pPars->fSolveAll, Abc_Clock() - clkStart );
                         p->pPars->iFrame = k;
-
                         if ( !p->pPars->fSolveAll )
                         {
                             p->pAig->pSeqModel = Pdr_ManDeriveCex(p);
                             return 0; // SAT
                         }
                         p->pPars->nFailOuts++;
-
                         pCexNew = (p->pPars->fUseBridge || p->pPars->fStoreCex) ? Pdr_ManDeriveCex(p) : (Abc_Cex_t *)(ABC_PTRINT_T)1;
-
                         if ( p->pPars->vOutMap ) Vec_IntWriteEntry( p->pPars->vOutMap, p->iOutCur, 0 );
                         assert( Vec_PtrEntry(p->vCexes, p->iOutCur) == NULL );
-
                         if ( p->pPars->fUseBridge )
-
                             Gia_ManToBridgeResult( stdout, 0, pCexNew, pCexNew->iPo );
-
                         Vec_PtrWriteEntry( p->vCexes, p->iOutCur, pCexNew );
                         if ( p->pPars->pFuncOnFail && p->pPars->pFuncOnFail(p->iOutCur, p->pPars->fStoreCex ? (Abc_Cex_t *)Vec_PtrEntry(p->vCexes, p->iOutCur) : NULL) )
                         {
@@ -797,13 +749,10 @@ int Pdr_ManSolveInt( Pdr_Man_t * p )
                 {
                     p->pPars->nDropOuts++;
                     if ( p->pPars->vOutMap ) 
-
                         Vec_IntWriteEntry( p->pPars->vOutMap, p->iOutCur, -1 );
                     if ( !p->pPars->fNotVerbose ) 
-
                         Abc_Print( 1, "Timing out on output %*d.\n", nOutDigits, p->iOutCur );
                 }
-
                 p->timeToStopOne = 0;
             }
         }
@@ -851,24 +800,15 @@ int Pdr_ManSolveInt( Pdr_Man_t * p )
             if ( p->pPars->vOutMap )
                 for ( k = 0; k < Saig_ManPoNum(p->pAig); k++ )
                     if ( Vec_IntEntry(p->pPars->vOutMap, k) == -2 ) // unknown
-
                     {
                         Vec_IntWriteEntry( p->pPars->vOutMap, k, 1 ); // unsat
-
                         if ( p->pPars->fUseBridge )
-
                             Gia_ManToBridgeResult( stdout, 1, NULL, k );
-
                     }
-
             if ( p->pPars->nProveOuts == Saig_ManPoNum(p->pAig) )
-
                 return 1; // UNSAT
-
             if ( p->pPars->nFailOuts > 0 )
-
                 return 0; // SAT
-
             return -1;
         }
         if ( p->pPars->fVerbose )
@@ -939,9 +879,7 @@ int Pdr_ManSolve( Aig_Man_t * pAig, Pdr_Par_t * pPars )
     int k, RetValue;
     abctime clk = Abc_Clock();
     if ( pPars->nTimeOutOne && !pPars->fSolveAll )
-
         pPars->nTimeOutOne = 0;
-
     if ( pPars->nTimeOutOne )
         pPars->nTimeOut = pPars->nTimeOutOne * Saig_ManPoNum(pAig) / 1000 + (int)((pPars->nTimeOutOne * Saig_ManPoNum(pAig) % 1000) > 0);
     if ( pPars->fVerbose )
@@ -978,10 +916,8 @@ int Pdr_ManSolve( Aig_Man_t * pAig, Pdr_Par_t * pPars )
         for ( k = 0; k < Saig_ManPoNum(pAig); k++ )
             if ( Vec_IntEntry(pPars->vOutMap, k) == -2 ) // unknown
                 Vec_IntWriteEntry( pPars->vOutMap, k, -1 ); // undec
-
-    if ( pPars->fUseBridge ){
-        Gia_ManToBridgeAbort( stdout, 7, "timeout" ); }
-
+    if ( pPars->fUseBridge )
+        Gia_ManToBridgeAbort( stdout, 7, (unsigned char *)"timeout" );
     return RetValue;
 }
 
