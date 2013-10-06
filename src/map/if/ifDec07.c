@@ -1097,8 +1097,8 @@ int If_CutPerformCheck07( If_Man_t * p, unsigned * pTruth, int nVars, int nLeave
 //            If_DecPrintConfig( z );
             If_Dec6Verify( t, z );
         }
-        if ( z == 0 )
-            Extra_PrintHex(stdout, (unsigned *)&t, 6), printf( "  " ), Kit_DsdPrintFromTruth( (unsigned *)&t, 6 ), printf( "\n" );
+//        if ( z == 0 )
+//            Extra_PrintHex(stdout, (unsigned *)&t, 6), printf( "  " ), Kit_DsdPrintFromTruth( (unsigned *)&t, 6 ), printf( "\n" );
         return z != 0;
     }
     if ( nLeaves == 7 )
