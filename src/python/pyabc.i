@@ -430,7 +430,7 @@ void pyabc_internal_register_command( char * sGroup, char * sName, int fChanges 
 {
     Abc_Frame_t* pAbc = Abc_FrameGetGlobalFrame();
 
-    Cmd_CommandAdd( pAbc, sGroup, sName, ((*)(Abc_Frame_t*, int, char**))pyabc_internal_abc_command_callback, fChanges);
+    Cmd_CommandAdd( pAbc, sGroup, sName, (int(*)(Abc_Frame_t*, int, char**))pyabc_internal_abc_command_callback, fChanges);
 }
 
 static int sigchld_pipe_fd = -1;
