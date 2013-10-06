@@ -27,19 +27,6 @@ ABC_NAMESPACE_IMPL_START
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-// the bit count for the first 256 integer numbers
-static int BitCount8[256] = {
-    0,1,1,2,1,2,2,3,1,2,2,3,2,3,3,4,1,2,2,3,2,3,3,4,2,3,3,4,3,4,4,5,
-    1,2,2,3,2,3,3,4,2,3,3,4,3,4,4,5,2,3,3,4,3,4,4,5,3,4,4,5,4,5,5,6,
-    1,2,2,3,2,3,3,4,2,3,3,4,3,4,4,5,2,3,3,4,3,4,4,5,3,4,4,5,4,5,5,6,
-    2,3,3,4,3,4,4,5,3,4,4,5,4,5,5,6,3,4,4,5,4,5,5,6,4,5,5,6,5,6,6,7,
-    1,2,2,3,2,3,3,4,2,3,3,4,3,4,4,5,2,3,3,4,3,4,4,5,3,4,4,5,4,5,5,6,
-    2,3,3,4,3,4,4,5,3,4,4,5,4,5,5,6,3,4,4,5,4,5,5,6,4,5,5,6,5,6,6,7,
-    2,3,3,4,3,4,4,5,3,4,4,5,4,5,5,6,3,4,4,5,4,5,5,6,4,5,5,6,5,6,6,7,
-    3,4,4,5,4,5,5,6,4,5,5,6,5,6,6,7,4,5,5,6,5,6,6,7,5,6,6,7,6,7,7,8
-};
-static inline BitCount16( int i ) { return BitCount8[i & 0xFF] + BitCount8[i >> 8]; }
-
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
@@ -323,7 +310,7 @@ Vec_Int_t * Dau_DecFindSets( word * p, int nVars )
     // iterate through bound sets of each size in increasing order
     for ( sizeB = 2; sizeB < nVars; sizeB++ ) // bound set size
     for ( maskB = 0; maskB < Limit; maskB++ ) // bound set
-    if ( BitCount16(maskB) == sizeB )
+    if ( Abc_TtBitCount16(maskB) == sizeB )
     {
         // permute variables to have bound set on top
         Dau_DecMoveFreeToLSB( p, nVars, V2P, P2V, maskB, sizeB );
@@ -342,7 +329,7 @@ Vec_Int_t * Dau_DecFindSets( word * p, int nVars )
         for ( sizeS = 1; sizeS <= sizeB - 2; sizeS++ )   // shared set size
 //        sizeS = 1; 
         for ( maskS = 0; maskS < (1 << sizeB); maskS++ ) // shared set
-        if ( BitCount16(maskS) == sizeS )
+        if ( Abc_TtBitCount16(maskS) == sizeS )
         {
             setMixed = Dau_DecCreateSet( pVarsB, sizeB, maskS );
 //            printf( "Considering %10d ", setMixed );

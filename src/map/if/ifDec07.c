@@ -988,13 +988,13 @@ word If_Dec5PerformEx()
 {
     word z;
     // find one
-    z = 0x17ac & 0xFFFF;
+    z = (word)(0x17ac & 0xFFFF);
     z |= (((word)3) << (16 + 4*0));
     z |= (((word)4) << (16 + 4*1));
     z |= (((word)1) << (16 + 4*2));
     z |= (((word)2) << (16 + 4*3));
     // second one
-    z |= ((0x179a & 0xFFFF) << 32);
+    z |= (((word)(0x179a & 0xFFFF)) << 32);
     z |= (((word)0) << (48 + 4*0));
     z |= (((word)7) << (48 + 4*1));
     z |= (((word)1) << (48 + 4*2));
