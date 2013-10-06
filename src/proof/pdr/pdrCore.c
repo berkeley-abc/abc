@@ -28,7 +28,7 @@ ABC_NAMESPACE_IMPL_START
 ////////////////////////////////////////////////////////////////////////
 
 extern int Gia_ManToBridgeResult( FILE * pFile, int Result, Abc_Cex_t * pCex, int iPoProved );
-extern int Gia_ManToBridgeAbort( FILE * pFile, int Size, char * pBuffer );
+extern int Gia_ManToBridgeAbort( FILE * pFile, int Size, unsigned char * pBuffer );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
