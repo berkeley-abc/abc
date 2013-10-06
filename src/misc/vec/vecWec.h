@@ -399,7 +399,7 @@ static inline Vec_Wec_t * Vec_WecDup( Vec_Wec_t * p )
 
 /**Function*************************************************************
 
-  Synopsis    [Comparison procedure for two arrays.]
+  Synopsis    [Sorting by array size.]
 
   Description []
                
@@ -424,18 +424,6 @@ static int Vec_WecSortCompare2( Vec_Int_t * p1, Vec_Int_t * p2 )
         return 1;
     return 0; 
 }
-
-/**Function*************************************************************
-
-  Synopsis    [Sorting the entries by their integer value.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
 static inline void Vec_WecSort( Vec_Wec_t * p, int fReverse )
 {
     if ( fReverse ) 
@@ -446,9 +434,10 @@ static inline void Vec_WecSort( Vec_Wec_t * p, int fReverse )
                 (int (*)(const void *, const void *)) Vec_WecSortCompare1 );
 }
 
+
 /**Function*************************************************************
 
-  Synopsis    [Comparison procedure for two integers.]
+  Synopsis    [Sorting by the first entry.]
 
   Description []
                
@@ -473,18 +462,6 @@ static int Vec_WecSortCompare4( Vec_Int_t * p1, Vec_Int_t * p2 )
         return 1;
     return 0; 
 }
-
-/**Function*************************************************************
-
-  Synopsis    [Sorting the entries by their integer value.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
 static inline void Vec_WecSortByFirstInt( Vec_Wec_t * p, int fReverse )
 {
     if ( fReverse ) 
@@ -493,6 +470,43 @@ static inline void Vec_WecSortByFirstInt( Vec_Wec_t * p, int fReverse )
     else
         qsort( (void *)p->pArray, p->nSize, sizeof(Vec_Int_t), 
                 (int (*)(const void *, const void *)) Vec_WecSortCompare3 );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Sorting by the last entry.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static int Vec_WecSortCompare5( Vec_Int_t * p1, Vec_Int_t * p2 )
+{
+    if ( Vec_IntEntryLast(p1) < Vec_IntEntryLast(p2) )
+        return -1;
+    if ( Vec_IntEntryLast(p1) > Vec_IntEntryLast(p2) ) 
+        return 1;
+    return 0; 
+}
+static int Vec_WecSortCompare6( Vec_Int_t * p1, Vec_Int_t * p2 )
+{
+    if ( Vec_IntEntryLast(p1) > Vec_IntEntryLast(p2) )
+        return -1;
+    if ( Vec_IntEntryLast(p1) < Vec_IntEntryLast(p2) ) 
+        return 1;
+    return 0; 
+}
+static inline void Vec_WecSortByLastInt( Vec_Wec_t * p, int fReverse )
+{
+    if ( fReverse ) 
+        qsort( (void *)p->pArray, p->nSize, sizeof(Vec_Int_t), 
+                (int (*)(const void *, const void *)) Vec_WecSortCompare6 );
+    else
+        qsort( (void *)p->pArray, p->nSize, sizeof(Vec_Int_t), 
+                (int (*)(const void *, const void *)) Vec_WecSortCompare5 );
 }
 
 /**Function*************************************************************

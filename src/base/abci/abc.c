@@ -33707,6 +33707,7 @@ int Abc_CommandAbc9Test( Abc_Frame_t * pAbc, int argc, char ** argv )
 //    Abc_FrameUpdateGia( pAbc, pTemp );
 //    Unm_ManTest( pAbc->pGia );
 //    Agi_ManTest( pAbc->pGia );
+//    Gia_ManResubTest( pAbc->pGia );
     return 0;
 usage:
     Abc_Print( -2, "usage: &test [-F num] [-svh]\n" );

@@ -1473,9 +1473,8 @@ static inline int Vec_IntTwoRemove( Vec_Int_t * vArr1, Vec_Int_t * vArr2 )
   SeeAlso     []
 
 ***********************************************************************/
-static inline Vec_Int_t * Vec_IntTwoMerge( Vec_Int_t * vArr1, Vec_Int_t * vArr2 )
+static inline void Vec_IntTwoMerge2Int( Vec_Int_t * vArr1, Vec_Int_t * vArr2, Vec_Int_t * vArr )
 {
-    Vec_Int_t * vArr = Vec_IntAlloc( vArr1->nSize + vArr2->nSize ); 
     int * pBeg  = vArr->pArray;
     int * pBeg1 = vArr1->pArray;
     int * pBeg2 = vArr2->pArray;
@@ -1498,7 +1497,17 @@ static inline Vec_Int_t * Vec_IntTwoMerge( Vec_Int_t * vArr1, Vec_Int_t * vArr2 
     assert( vArr->nSize <= vArr->nCap );
     assert( vArr->nSize >= vArr1->nSize );
     assert( vArr->nSize >= vArr2->nSize );
+}
+static inline Vec_Int_t * Vec_IntTwoMerge( Vec_Int_t * vArr1, Vec_Int_t * vArr2 )
+{
+    Vec_Int_t * vArr = Vec_IntAlloc( vArr1->nSize + vArr2->nSize ); 
+    Vec_IntTwoMerge2Int( vArr1, vArr2, vArr );
     return vArr;
+}
+static inline void Vec_IntTwoMerge2( Vec_Int_t * vArr1, Vec_Int_t * vArr2, Vec_Int_t * vArr )
+{
+    Vec_IntGrow( vArr, Vec_IntSize(vArr1) + Vec_IntSize(vArr2) );
+    Vec_IntTwoMerge2Int( vArr1, vArr2, vArr );
 }
 
 /**Function*************************************************************
