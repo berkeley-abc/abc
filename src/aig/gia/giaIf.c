@@ -303,7 +303,7 @@ int Gia_ManComputeOverlap( Gia_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-void Gia_ManPrintMappingStats( Gia_Man_t * p )
+void Gia_ManPrintMappingStats( Gia_Man_t * p, int fDumpFile )
 {
     int * pLevels;
     int i, k, iFan, nLutSize = 0, nLuts = 0, nFanins = 0, LevelMax = 0;
@@ -328,7 +328,8 @@ void Gia_ManPrintMappingStats( Gia_Man_t * p )
     Abc_Print( 1, "over =%5.1f %%  ", 100.0 * Gia_ManComputeOverlap(p) / Gia_ManAndNum(p) );
     Abc_Print( 1, "mem =%5.2f MB", 4.0*(Gia_ManObjNum(p) + 2*nLuts + nFanins)/(1<<20) );
     Abc_Print( 1, "\n" );
-/*
+
+    if ( fDumpFile )
     {
         char * pFileName = "stats_map.txt";
         static char FileNameOld[1000] = {0};
@@ -355,7 +356,7 @@ void Gia_ManPrintMappingStats( Gia_Man_t * p )
         }
         fclose( pTable );
     }
-*/
+
 }
 
 /**Function*************************************************************
@@ -782,6 +783,8 @@ int Gia_ManFromIfLogicCreateLutSpecial( Gia_Man_t * pNew, word * pRes, Vec_Int_t
     for ( i = 0; i < 4; i++ )
     {
         int v = (int)((z >> (16+(i<<2))) & 7);
+        if ( v == 6 && Vec_IntSize(vLeaves) == 5 )
+            continue;
         Vec_IntPush( vLeavesTemp, Vec_IntEntry(vLeaves, v) );
     }
     Truth = (z & 0xffff);
@@ -793,6 +796,8 @@ int Gia_ManFromIfLogicCreateLutSpecial( Gia_Man_t * pNew, word * pRes, Vec_Int_t
     for ( i = 0; i < 4; i++ )
     {
         int v =  (int)((z >> (48+(i<<2))) & 7);
+        if ( v == 6 && Vec_IntSize(vLeaves) == 5 )
+            continue;
         if ( v == 7 )
             Vec_IntPush( vLeavesTemp, iObjLit1 );
         else
@@ -1204,8 +1209,8 @@ Gia_Man_t * Gia_ManFromIfLogic( If_Man_t * pIfMan )
     word Truth = 0, * pTruthTable;
     int i, k, Entry;
     assert( !pIfMan->pPars->fDeriveLuts || pIfMan->pPars->fTruth );
-    if ( pIfMan->pPars->fEnableCheck07 )
-        pIfMan->pPars->fDeriveLuts = 0;
+//    if ( pIfMan->pPars->fEnableCheck07 )
+//        pIfMan->pPars->fDeriveLuts = 0;
     // start mapping and packing
     vMapping  = Vec_IntStart( If_ManObjNum(pIfMan) );
     vMapping2 = Vec_IntStart( 1 );

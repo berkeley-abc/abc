@@ -1900,7 +1900,9 @@ int Dau_DsdDecompose( word * pTruth, int nVarsInit, int fSplitPrime, int fWriteT
 void Dau_DsdPrintFromTruth( FILE * pFile, word * pTruth, int nVarsInit )
 {
     char pRes[DAU_MAX_STR];
-    Dau_DsdDecompose( pTruth, nVarsInit, 0, 1, pRes );
+    word pTemp[DAU_MAX_WORD];
+    Abc_TtCopy( pTemp, pTruth, Abc_TtWordNum(nVarsInit), 0 );
+    Dau_DsdDecompose( pTemp, nVarsInit, 0, 1, pRes );
     fprintf( pFile, "%s\n", pRes );
 }
 

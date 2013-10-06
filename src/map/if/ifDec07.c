@@ -21,6 +21,7 @@
 #include "if.h"
 #include "misc/extra/extra.h"
 #include "bool/kit/kit.h"
+#include "misc/util/utilTruth.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -115,7 +116,7 @@ static word If_Dec6ComposeLut4( int t, word f[4] )
     }
     return r;
 }
-void If_Dec6Verify( word t, word z )
+word If_Dec6Truth( word z )
 {
     word r, q, f[4];
     int i, v;
@@ -124,20 +125,29 @@ void If_Dec6Verify( word t, word z )
     {
         v = (z >> (16+(i<<2))) & 7;
         assert( v != 7 );
+        if ( v == 6 )
+            continue;
         f[i] = Truth6[v];
     }
     q = If_Dec6ComposeLut4( (int)(z & 0xffff), f );
     for ( i = 0; i < 4; i++ )
     {
         v = (z >> (48+(i<<2))) & 7;
+        if ( v == 6 )
+            continue;
         f[i] = (v == 7) ? q : Truth6[v];
     }
     r = If_Dec6ComposeLut4( (int)((z >> 32) & 0xffff), f );
+    return r;
+}
+void If_Dec6Verify( word t, word z )
+{
+    word r = If_Dec6Truth( z );
     if ( r != t )
     {
         If_DecPrintConfig( z );
         Kit_DsdPrintFromTruth( (unsigned*)&t, 6 ); printf( "\n" );
-        Kit_DsdPrintFromTruth( (unsigned*)&q, 6 ); printf( "\n" );
+//        Kit_DsdPrintFromTruth( (unsigned*)&q, 6 ); printf( "\n" );
         Kit_DsdPrintFromTruth( (unsigned*)&r, 6 ); printf( "\n" );
         printf( "Verification failed!\n" );
     }
@@ -677,43 +687,191 @@ int If_Dec7PickBestMux( word t[2], word c0r[2], word c1r[2] )
 
 ***********************************************************************/
 // count the number of unique cofactors
-static inline int If_Dec5CofCount2( word t, int x, int y )
+static inline word If_Dec5CofCount2( word t, int x, int y, int * Pla2Var, word t0, int fDerive )
 {
-    int i, Mask;
+    int m, i, Mask;
     assert( x >= 0 && x < 4 );
     assert( y >= 0 && y < 4 );
+    for ( m = 0; m < 4; m++ )
+    {
+        for ( Mask = i = 0; i < 16; i++ )
+            if ( ((i >> x) & 1) == ((m >> 0) & 1) && ((i >> y) & 1) == ((m >> 1) & 1) )
+                Mask |= (1 << ((t >> (i<<1)) & 3));
+        if ( BitCount8[Mask & 0xF] > 2 )
+            return 0;
+    }
+//    Kit_DsdPrintFromTruth( (unsigned *)&t, 5 ); printf( "\n" );
+    if ( !fDerive )
+        return 1;
+    else
+    {
+        int fHas2, fHas3;
+        // composition function C depends on {x, y, Out, v[0]}
+        // decomposed function D depends on {x, y, z1, z2}
+        word F[4] = { 0, ABC_CONST(0x5555555555555555), ABC_CONST(0xAAAAAAAAAAAAAAAA), ~((word)0) };
+        word C2[4], D2[4] = {0}, C1[2], D1[2], C, D, z;
+        int v, zz1 = -1, zz2 = -1;
+        // find two variables
+        for ( v = 0; v < 4; v++ )
+            if ( v != x && v != y )
+                {  zz1 = v; break; }
+        for ( v = 1; v < 4; v++ )
+            if ( v != x && v != y && v != zz1 )
+                {  zz2 = v; break; }
+        assert( zz1 != -1 && zz2 != -1 );
+        // find the cofactors
+        for ( m = 0; m < 4; m++ )
+        {
+            // for each cofactor, derive C2 and D2
+            for ( Mask = i = 0; i < 16; i++ )
+                if ( ((i >> x) & 1) == ((m >> 0) & 1) && ((i >> y) & 1) == ((m >> 1) & 1) )
+                    Mask |= (1 << ((t >> (i<<1)) & 3));
+            // find the values
+            if ( BitCount8[Mask & 0xF] == 1 )
+            {
+                C2[m] = F[Abc_Tt6FirstBit( Mask )];
+                D2[m] = ~(word)0;
+            }
+            else if ( BitCount8[Mask & 0xF] == 2 )
+            {
+                int Bit0 = Abc_Tt6FirstBit( Mask );
+                int Bit1 = Abc_Tt6FirstBit( Mask ^ (((word)1)<<Bit0) );
+                C2[m] = (F[Bit1] & Truth6[1]) | (F[Bit0] & ~Truth6[1]);
+                // find Bit1 appears
+                for ( Mask = i = 0; i < 16; i++ )
+                    if ( ((i >> x) & 1) == ((m >> 0) & 1) && ((i >> y) & 1) == ((m >> 1) & 1) )
+                        if ( Bit1 == ((t >> (i<<1)) & 3) )
+                            D2[m] |= (((word)1) << ( (((i >> zz2) & 1) << 1) | ((i >> zz1) & 1) ));
+            }
+            else assert( 0 );
+            D2[m] = Abc_Tt6Stretch( D2[m], 2 );
+        }
 
-    for ( Mask = i = 0; i < 16; i++ )
-        if ( !((i >> x) & 1) && !((i >> y) & 1) )
-            Mask |= (1 << ((t >> (i<<1)) & 3));
-    if ( BitCount8[Mask & 0xF] > 2 )
-        return 0;
+        // combine
+        C1[0] = (C2[1] & Truth6[2]) | (C2[0] & ~Truth6[2]);
+        C1[1] = (C2[3] & Truth6[2]) | (C2[2] & ~Truth6[2]);
+        C     = (C1[1] & Truth6[3]) | (C1[0] & ~Truth6[3]);
 
-    for ( Mask = i = 0; i < 16; i++ )
-        if ( ((i >> x) & 1) && !((i >> y) & 1) )
-            Mask |= (1 << ((t >> (i<<1)) & 3));
-    if ( BitCount8[Mask & 0xF] > 2 )
-        return 0;
+        // combine
+        D1[0] = (D2[1] & Truth6[2]) | (D2[0] & ~Truth6[2]);
+        D1[1] = (D2[3] & Truth6[2]) | (D2[2] & ~Truth6[2]);
+        D     = (D1[1] & Truth6[3]) | (D1[0] & ~Truth6[3]);
 
-    for ( Mask = i = 0; i < 16; i++ )
-        if ( !((i >> x) & 1) && ((i >> y) & 1) )
-            Mask |= (1 << ((t >> (i<<1)) & 3));
-    if ( BitCount8[Mask & 0xF] > 2 )
-        return 0;
+//        printf( "\n" );
+//        Kit_DsdPrintFromTruth( (unsigned *)&C, 5 ); printf("\n");
+//        Kit_DsdPrintFromTruth( (unsigned *)&D, 5 ); printf("\n");
 
-    for ( Mask = i = 0; i < 16; i++ )
-        if ( ((i >> x) & 1) && ((i >> y) & 1) )
-            Mask |= (1 << ((t >> (i<<1)) & 3));
-    if ( BitCount8[Mask & 0xF] > 2 )
-        return 0;
+        // create configuration
+        // find one
+        fHas2 = Abc_TtHasVar(&D, 5, 2);
+        fHas3 = Abc_TtHasVar(&D, 5, 3);
+        if ( fHas2 && fHas3 )
+        {
+            z = D & 0xFFFF;
+            z |= (((word)Pla2Var[zz1+1]) << (16 + 4*0));
+            z |= (((word)Pla2Var[zz2+1]) << (16 + 4*1));
+            z |= (((word)Pla2Var[x+1])   << (16 + 4*2));
+            z |= (((word)Pla2Var[y+1])   << (16 + 4*3));
+        }
+        else if ( fHas2 && !fHas3 )
+        {
+            z = D & 0xFFFF;
+            z |= (((word)Pla2Var[zz1+1]) << (16 + 4*0));
+            z |= (((word)Pla2Var[zz2+1]) << (16 + 4*1));
+            z |= (((word)Pla2Var[x+1])   << (16 + 4*2));
+            z |= (((word)6)              << (16 + 4*3));
+        }
+        else if ( !fHas2 && fHas3 )
+        {
+            Abc_TtSwapVars( &D, 5, 2, 3 );
+            z = D & 0xFFFF;
+            z |= (((word)Pla2Var[zz1+1]) << (16 + 4*0));
+            z |= (((word)Pla2Var[zz2+1]) << (16 + 4*1));
+            z |= (((word)Pla2Var[y+1])   << (16 + 4*2));
+            z |= (((word)6)              << (16 + 4*3));
+        }
+        else 
+        {
+            z = D & 0xFFFF;
+            z |= (((word)Pla2Var[zz1+1]) << (16 + 4*0));
+            z |= (((word)Pla2Var[zz2+1]) << (16 + 4*1));
+            z |= (((word)6)              << (16 + 4*2));
+            z |= (((word)6)              << (16 + 4*3));
+        }
 
-    return 1;
+        // second one
+        fHas2 = Abc_TtHasVar(&C, 5, 2);
+        fHas3 = Abc_TtHasVar(&C, 5, 3);
+        if ( fHas2 && fHas3 )
+        {
+            z |= ((C & 0xFFFF) << 32);
+            z |= (((word)Pla2Var[0])     << (48 + 4*0));
+            z |= (((word)7)              << (48 + 4*1));
+            z |= (((word)Pla2Var[x+1])   << (48 + 4*2));
+            z |= (((word)Pla2Var[y+1])   << (48 + 4*3));
+        }
+        else if ( fHas2 && !fHas3 )
+        {
+            z |= ((C & 0xFFFF) << 32);
+            z |= (((word)Pla2Var[0])     << (48 + 4*0));
+            z |= (((word)7)              << (48 + 4*1));
+            z |= (((word)Pla2Var[x+1])   << (48 + 4*2));
+            z |= (((word)6)              << (48 + 4*3));
+        }
+        else if ( !fHas2 && fHas3 )
+        {
+            Abc_TtSwapVars( &C, 5, 2, 3 );
+            z |= ((C & 0xFFFF) << 32);
+            z |= (((word)Pla2Var[0])     << (48 + 4*0));
+            z |= (((word)7)              << (48 + 4*1));
+            z |= (((word)Pla2Var[y+1])   << (48 + 4*2));
+            z |= (((word)6)              << (48 + 4*3));
+        }
+        else 
+        {
+            z |= ((C & 0xFFFF) << 32);
+            z |= (((word)Pla2Var[0])     << (48 + 4*0));
+            z |= (((word)7)              << (48 + 4*1));
+            z |= (((word)6)              << (48 + 4*2));
+            z |= (((word)6)              << (48 + 4*3));
+        }
+
+        // verify
+        {
+            word t1 = If_Dec6Truth( z );
+            if ( t1 != t0 )
+            {
+                printf( "\n" );
+                Kit_DsdPrintFromTruth( (unsigned *)&C2[0], 5 ); printf("\n");
+                Kit_DsdPrintFromTruth( (unsigned *)&C2[1], 5 ); printf("\n");
+                Kit_DsdPrintFromTruth( (unsigned *)&C2[2], 5 ); printf("\n");
+                Kit_DsdPrintFromTruth( (unsigned *)&C2[3], 5 ); printf("\n");
+
+                printf( "\n" );
+                Kit_DsdPrintFromTruth( (unsigned *)&D2[0], 5 ); printf("\n");
+                Kit_DsdPrintFromTruth( (unsigned *)&D2[1], 5 ); printf("\n");
+                Kit_DsdPrintFromTruth( (unsigned *)&D2[2], 5 ); printf("\n");
+                Kit_DsdPrintFromTruth( (unsigned *)&D2[3], 5 ); printf("\n");
+
+                printf( "\n" );
+                Kit_DsdPrintFromTruth( (unsigned *)&C, 5 ); printf("\n");
+                Kit_DsdPrintFromTruth( (unsigned *)&D, 5 ); printf("\n");
+
+                printf( "\n" );
+                Kit_DsdPrintFromTruth( (unsigned *)&t1, 5 ); printf("\n");
+                Kit_DsdPrintFromTruth( (unsigned *)&t0, 5 ); printf("\n");
+            }
+            assert( t1 == t0 );
+        }
+        return z;
+    }
 }
 word If_Dec5Perform( word t, int fDerive )
 {
     int Pla2Var[7], Var2Pla[7];
     int i, j, v;
-//    word t0 = t;
+    word t0 = t;
+/*
     word c0, c1, c00, c01, c10, c11;
     for ( i = 0; i < 5; i++ )
     {
@@ -752,6 +910,7 @@ word If_Dec5Perform( word t, int fDerive )
                 return 1;
         }
     }
+*/
     // start arrays
     for ( i = 0; i < 7; i++ )
         Pla2Var[i] = Var2Pla[i] = i;
@@ -762,9 +921,21 @@ word If_Dec5Perform( word t, int fDerive )
         If_DecVerifyPerm( Pla2Var, Var2Pla );
         for ( i = 0; i < 4; i++ )
             for ( j = i + 1; j < 4; j++ )
-                if ( If_Dec5CofCount2( t, i, j ) )
-                    return 1;
+            {
+                word z = If_Dec5CofCount2( t, i, j, Pla2Var, t0, fDerive );
+                if ( z )
+                {
+/*
+                    if ( v == 0 && i == 1 && j == 2 )
+                    {
+                          Kit_DsdPrintFromTruth( (unsigned *)&t, 5 ); printf( "\n" );
+                    }
+*/
+                    return z;
+                }
+            }
     }
+
 /*
     // start arrays
     for ( i = 0; i < 7; i++ )
@@ -808,8 +979,40 @@ word If_Dec5Perform( word t, int fDerive )
         }
     }
 */
+
 //    Kit_DsdPrintFromTruth( (unsigned *)&t, 5 ); printf( "\n" );
     return 0;
+}
+
+word If_Dec5PerformEx()
+{
+    word z;
+    // find one
+    z = 0x17ac & 0xFFFF;
+    z |= (((word)3) << (16 + 4*0));
+    z |= (((word)4) << (16 + 4*1));
+    z |= (((word)1) << (16 + 4*2));
+    z |= (((word)2) << (16 + 4*3));
+    // second one
+    z |= ((0x179a & 0xFFFF) << 32);
+    z |= (((word)0) << (48 + 4*0));
+    z |= (((word)7) << (48 + 4*1));
+    z |= (((word)1) << (48 + 4*2));
+    z |= (((word)2) << (48 + 4*3));
+    return z;
+}
+void If_Dec5PerformTest()
+{
+    word z, t, t1;
+//    s = If_Dec5PerformEx();
+//    t = If_Dec6Truth( s );
+    t = 0xB0F3B0FFB0F3B0FF;
+
+    Kit_DsdPrintFromTruth( (unsigned *)&t, 5 ); printf("\n");
+
+    z = If_Dec5Perform( t, 1 );
+    t1 = If_Dec6Truth( z );
+    assert( t == t1 );
 }
 
 
@@ -830,18 +1033,14 @@ word If_CutPerformDerive07( If_Man_t * p, unsigned * pTruth, int nVars, int nLea
         return 1;
     if ( nLeaves == 5 )
     {
-        word z, t = ((word *)pTruth)[0];
-//        if ( If_Dec6CheckMux(t) >= 0 )
-//            return 1;
-        z = If_Dec6Perform( t, 1 );
+        word z, t = ((word)pTruth[0] << 32) | (word)pTruth[0];
+        z = If_Dec5Perform( t, 1 );
         If_Dec6Verify( t, z );
         return z;
     }
     if ( nLeaves == 6 )
     {
         word z, t = ((word *)pTruth)[0];
-//        if ( If_Dec6CheckMux(t) >= 0 )
-//            return 1;
         z = If_Dec6Perform( t, 1 );
         If_Dec6Verify( t, z );
         return z;
@@ -851,8 +1050,6 @@ word If_CutPerformDerive07( If_Man_t * p, unsigned * pTruth, int nVars, int nLea
         word z, t[2];
         t[0] = ((word *)pTruth)[0];
         t[1] = ((word *)pTruth)[1];
-        if ( If_Dec7CheckMux(t) >= 0 )
-            return 1;
         z = If_Dec7Perform( t, 1 );
         If_Dec7Verify( t, z );
         return z;
@@ -875,26 +1072,33 @@ word If_CutPerformDerive07( If_Man_t * p, unsigned * pTruth, int nVars, int nLea
 int If_CutPerformCheck07( If_Man_t * p, unsigned * pTruth, int nVars, int nLeaves, char * pStr )
 {
     int fDerive = 0;
+    int v;
+    // skip non-support minimal
+    for ( v = 0; v < nLeaves; v++ )
+        if ( !Abc_TtHasVar( (word *)pTruth, nVars, v ) )
+            return 0;
+    // check
     if ( nLeaves < 5 )
         return 1;
     if ( nLeaves == 5 )
     {
-        word t = ((word)pTruth[0] << 32) | (word)pTruth[0];
-        if ( If_Dec5Perform( t, fDerive ) )
-            return 1;
-        return 0;
+        word z, t = ((word)pTruth[0] << 32) | (word)pTruth[0];
+        z = If_Dec5Perform( t, fDerive );
+        if ( fDerive && z )
+            If_Dec6Verify( t, z );
+        return z != 0;
     }
     if ( nLeaves == 6 )
     {
         word z, t = ((word *)pTruth)[0];
-        if ( If_Dec6CheckMux(t) >= 0 )
-            return 1;
         z = If_Dec6Perform( t, fDerive );
         if ( fDerive && z )
         {
 //            If_DecPrintConfig( z );
             If_Dec6Verify( t, z );
         }
+        if ( z == 0 )
+            Extra_PrintHex(stdout, (unsigned *)&t, 6), printf( "  " ), Kit_DsdPrintFromTruth( (unsigned *)&t, 6 ), printf( "\n" );
         return z != 0;
     }
     if ( nLeaves == 7 )
@@ -902,8 +1106,8 @@ int If_CutPerformCheck07( If_Man_t * p, unsigned * pTruth, int nVars, int nLeave
         word z, t[2];
         t[0] = ((word *)pTruth)[0];
         t[1] = ((word *)pTruth)[1];
-        if ( If_Dec7CheckMux(t) >= 0 )
-            return 1;
+//        if ( If_Dec7CheckMux(t) >= 0 )
+//            return 1;
         z = If_Dec7Perform( t, fDerive );
         if ( fDerive && z )
             If_Dec7Verify( t, z );

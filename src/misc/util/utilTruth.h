@@ -1064,6 +1064,19 @@ static inline void Abc_TtSwapVars( word * pTruth, int nVars, int iVar, int jVar 
         return;
     }    
 }
+// moves one var (v) to the given position (p)
+static inline void Abc_TtMoveVar( word * pF, int nVars, int * V2P, int * P2V, int v, int p )
+{
+    int iVar = V2P[v], jVar = p;
+    if ( iVar == jVar )
+        return;
+    Abc_TtSwapVars( pF, nVars, iVar, jVar );
+    V2P[P2V[iVar]] = jVar;
+    V2P[P2V[jVar]] = iVar;
+    P2V[iVar] ^= P2V[jVar];
+    P2V[jVar] ^= P2V[iVar];
+    P2V[iVar] ^= P2V[jVar];
+}
 
 /**Function*************************************************************
 
