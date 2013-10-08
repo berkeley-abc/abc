@@ -5,6 +5,7 @@ import zipfile
 import tarfile
 import tempfile
 import time
+import py_compile
 
 def zip_library(f, extra_files = []):
     lib = "%s/lib/python%s/"%(sys.prefix,sys.version[:3])
@@ -15,13 +16,25 @@ def zip_library(f, extra_files = []):
         arcroot = os.path.relpath(root, lib)
         for f in files:
             _, ext = os.path.splitext(f)
-            if ext in ['.py', '.pyo', '.pyc']:
+            if ext in ['.py']:
                 zf.write(os.path.join(root,f), os.path.join(arcroot, f))
 
     for s, r in extra_files:
         zf.write( s, r )
 
     zf.close()
+    
+def add_python_lib(tf, lib_dir, lib, mtime):
+    
+    for root, _, files in os.walk(lib):
+        
+        arcroot = os.path.join( lib_dir, os.path.relpath(root, lib) )
+        add_dir(tf, arcroot, mtime)
+        
+        for f in files:
+            _, ext = os.path.splitext(f)
+            if ext in ['.py']:
+                add_file( tf, os.path.join(root,f), os.path.join(arcroot, f), 0666, mtime)
 
 def add_dir(tf, dir, mtime):
     ti = tarfile.TarInfo(dir)
@@ -43,21 +56,23 @@ def add_fileobj(tf, f, arcname, mode, mtime):
     tf.addfile(ti, f)
     
 def add_file(tf, fname, arcname, mode, mtime):
-    f = open(fname, "rb")
-    add_fileobj(tf, f, arcname, mode, mtime)
-    f.close()
+    print "\t adding %s as %s"%(fname, arcname)
+    
+    with open(fname, "rb") as f:
+        add_fileobj(tf, f, arcname, mode, mtime)
 
-def package(abc_exe, abc_sh, pyabc, ofname, scripts_dir, use_sys):
+def package(pyabc_dir, extra_bin, extra_lib, abc_exe, abc_sh, pyabc, ofname, scripts_dir, use_sys):
+    
     mtime = time.time()
     
     tf = tarfile.open(ofname, "w:gz")
     
-    add_dir(tf, "pyabc", mtime)
+    add_dir(tf, "%s"%pyabc_dir, mtime)
     
-    add_dir(tf, "pyabc/bin", mtime)
+    add_dir(tf, "%s/bin"%pyabc_dir, mtime)
     
-    add_file(tf, abc_exe, "pyabc/bin/abc_exe", 0777, mtime)
-    add_file(tf, abc_sh, "pyabc/bin/abc", 0777, mtime)
+    add_file(tf, abc_exe, "%s/bin/abc_exe"%pyabc_dir, 0777, mtime)
+    add_file(tf, abc_sh, "%s/bin/abc"%pyabc_dir, 0777, mtime)
 
     if scripts_dir:
         for fn in os.listdir(scripts_dir):
@@ -65,15 +80,23 @@ def package(abc_exe, abc_sh, pyabc, ofname, scripts_dir, use_sys):
             if os.path.isfile(fullname):
                 fnroot, fnext = os.path.splitext(fn)
                 if fnext==".sh":
-                    add_file( tf, fullname, os.path.join("pyabc/bin", fnroot), 0777, mtime)
-                else:
-                    add_file( tf, fullname, os.path.join("pyabc/scripts", fn), 0666, mtime)
+                    add_file( tf, fullname, os.path.join("%s/bin"%pyabc_dir, fnroot), 0777, mtime)
+                elif fnext not in ( '.pyc', '.pyo'):
+                    add_file( tf, fullname, os.path.join("%s/scripts"%pyabc_dir, fn), 0666, mtime)
     
-    add_dir(tf, "pyabc/lib", mtime)
+    for bin in extra_bin:
+        add_file( tf, bin, os.path.join("%s/bin"%pyabc_dir, os.path.basename(bin)), 0777, mtime)
+        
+    lib_dir = "%s/lib"%pyabc_dir
+
+    add_dir(tf, lib_dir, mtime)
+
+    for lib in extra_lib:
+        add_python_lib( tf, lib_dir, lib, mtime)
     
     for entry in os.listdir(pyabc):
         if entry.endswith('.py'):
-            add_file( tf, os.path.join(pyabc, entry), os.path.join("pyabc/lib", entry), 0666, mtime)
+            add_file( tf, os.path.join(pyabc, entry), os.path.join("%s/lib"%pyabc_dir, entry), 0666, mtime)
     
     if not use_sys:
         # ZIP standard library    
@@ -82,7 +105,7 @@ def package(abc_exe, abc_sh, pyabc, ofname, scripts_dir, use_sys):
         zip_library(zf, [])
         zf.flush()
         
-        add_fileobj(tf, zf, "pyabc/lib/python_library.zip", 0666, mtime)
+        add_fileobj(tf, zf, "%s/lib/python_library.zip"%pyabc_dir, 0666, mtime)
         
         zf.close()
     
@@ -93,7 +116,7 @@ def package(abc_exe, abc_sh, pyabc, ofname, scripts_dir, use_sys):
         for fn in os.listdir(lib_dynload):
             fullname = os.path.join(lib_dynload, fn)
             if os.path.isfile(fullname):
-                add_file( tf, fullname, os.path.join("pyabc/lib", fn), 0666, mtime)
+                add_file( tf, fullname, os.path.join("%s/lib"%pyabc_dir, fn), 0666, mtime)
     
     tf.close()
 
@@ -104,6 +127,9 @@ def main(args):
 
     parser = optparse.OptionParser(usage)
 
+    parser.add_option("-d", "--pyabc_dir", dest="pyabc_dir", help="name of generated directory" )
+    parser.add_option("-b", "--extra_bin", dest="extra_bin", help="extra binaries to pack" )
+    parser.add_option("-l", "--extra_lib", dest="extra_lib", help="extra directories in lib to pack" )
     parser.add_option("-a", "--abc", dest="abc", help="location of the ABC exeutable")
     parser.add_option("-s", "--abc_sh", dest="abc_sh", help="location of the ABC setup script")
     parser.add_option("-p", "--pyabc", dest="pyabc", help="location of pyabc.py")
@@ -117,11 +143,14 @@ def main(args):
         parser.print_help()
         return 1
         
-    if not options.abc or not options.abc_sh or not options.pyabc or not options.out:
+    if not options.pyabc_dir or not options.abc or not options.abc_sh or not options.pyabc or not options.out:
         parser.print_help()
         return 1
 
-    return package(options.abc, options.abc_sh, options.pyabc, options.out, options.scripts, options.sys)
+    extra_bin = options.extra_bin.split(',') if options.extra_bin else []
+    extra_lib = options.extra_lib.split(',') if options.extra_lib else []
+
+    return package(options.pyabc_dir, extra_bin, extra_lib, options.abc, options.abc_sh, options.pyabc, options.out, options.scripts, options.sys)
 
 if __name__=="__main__":
     main(sys.argv)

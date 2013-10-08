@@ -430,7 +430,7 @@ void pyabc_internal_register_command( char * sGroup, char * sName, int fChanges 
 {
     Abc_Frame_t* pAbc = Abc_FrameGetGlobalFrame();
 
-    Cmd_CommandAdd( pAbc, sGroup, sName, (int(*)(Abc_Frame_t*, int, char**))pyabc_internal_abc_command_callback, fChanges);
+    Cmd_CommandAdd( pAbc, sGroup, sName, (Cmd_CommandFuncType)pyabc_internal_abc_command_callback, fChanges);
 }
 
 static int sigchld_pipe_fd = -1;
@@ -637,7 +637,14 @@ int _posix_kill(int pid, int signum)
 
 void _set_death_signal()
 {
+    // send SIGINT if parent process is dead
     prctl(PR_SET_PDEATHSIG, SIGINT);
+    
+    // if parent process is already dead (and adopted by init)
+    if ( getppid() == 1)
+    {
+        raise(SIGINT);
+    }
 }
 
 %}

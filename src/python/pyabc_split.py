@@ -90,6 +90,8 @@ import cPickle as pickle
 import signal
 import cStringIO
 
+import traceback
+
 from contextlib import contextmanager
 
 import pyabc
@@ -107,8 +109,7 @@ def _retry_select(rlist):
 
 class _splitter(object):
     
-    def __init__(self, funcs):
-        self.funcs = funcs
+    def __init__(self):
         self.pids = []
         self.fds = {}
         self.buffers = {}
@@ -117,27 +118,49 @@ class _splitter(object):
     def is_done(self):
         return len(self.fds) == 0
     
-    def cleanup(self):
+    def _kill(self, pids):
+
         # close pipes and kill child processes
-        for pid,(i,fd) in self.fds.iteritems():
+        for pid in pids:
+
+            if pid == -1:
+                continue
+
+            i, fd = self.fds[pid]
+            
+            del self.buffers[fd]
+            del self.fds[pid]
+
+            self.pids[i] = -1
+            self.results[pid] = None
+            
             os.close(fd)
+            
             try:
-                os.kill( pid, signal.SIGINT )
+                os.kill( pid, signal.SIGINT)
             except Exception as e:
                 print >>sys.stderr, 'exception while trying to kill pid=%d: '%pid, e
                 raise
-        
-            # wait for termination and update result
-        for pid, _ in self.fds.iteritems():
+
+        # wait for termination and update result
+        for pid in pids:
             os.waitpid( pid, 0 )
-            self.results[pid] = None
+
+    def kill(self, ids):
+        
+        self._kill( [ self.pids[i] for i in ids ] )
             
-        self.fds = {}
-        self.buffers = {}
+    def cleanup(self):
+        self._kill( self.fds.keys() )
 
     def child( self, fdw, f):
+
         # call function
-        res = f()
+        try:
+            res = f()
+        except:
+            traceback.print_exc()
+            raise
         
         # write return value into pipe
         with os.fdopen( fdw, "w" ) as fout:
@@ -145,7 +168,7 @@ class _splitter(object):
             
         return 0
 
-    def fork_one(self, f):
+    def _fork_one(self, f):
         
         # create a pipe to communicate with the child process
         pr,pw = os.pipe()
@@ -177,13 +200,17 @@ class _splitter(object):
             if os.getpid() != parentpid:
                 os._exit(rc)
 
-    def fork_all(self):
-        for i,f in enumerate(self.funcs):
-            pid, fd = self.fork_one(f)
-            self.pids.append(pid)
-            self.fds[pid] = (i,fd)
-            self.buffers[fd] = cStringIO.StringIO()
+    def fork_one(self, func):
+        pid, fd = self._fork_one(func)
+        i = len(self.pids)
+        self.pids.append(pid)
+        self.fds[pid] = (i, fd)
+        self.buffers[fd] = cStringIO.StringIO()
+        return i
     
+    def fork_all(self, funcs):
+        return [ self.fork_one(f) for f in funcs ]
+
     def communicate(self):
         
         rlist = [ fd for _, (_,fd) in self.fds.iteritems() ]
@@ -216,6 +243,9 @@ class _splitter(object):
         i, fd = self.fds[pid]
         del self.fds[pid]
 
+        # remove the pid
+        self.pids[i] = -1
+
         # retrieve the buffer
         buffer = self.buffers[fd]
         del self.buffers[fd]
@@ -226,29 +256,37 @@ class _splitter(object):
             if not s:
                 break
             buffer.write(s)
+            
+        os.close(fd)
 
         try:
             return (i, pickle.loads(buffer.getvalue()))
         except EOFError, pickle.UnpicklingError:
             return (i, None)
+            
+    def __iter__(self):
+        def iterator():
+            while not self.is_done():
+                yield self.get_next_result()
+        return iterator()
 
 @contextmanager
-def _splitter_wrapper(funcs):
+def make_splitter():
     # ensure cleanup of child processes
-    s = _splitter(funcs)
+    s = _splitter()
     try:
         yield s
     finally:
         s.cleanup()
-
+        
 def split_all_full(funcs):
     # provide an iterator for child process result
-    with _splitter_wrapper(funcs) as s:
+    with make_splitter() as s:
         
-        s.fork_all()
+        s.fork_all(funcs)
         
-        while not s.is_done():
-            yield s.get_next_result()
+        for res in s:
+            yield res
 
 def defer(f):
     return lambda *args, **kwargs: lambda : f(*args,**kwargs)

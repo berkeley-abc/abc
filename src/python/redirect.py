@@ -25,6 +25,23 @@ def _dup( f ):
     os.close(fd)
     
 @contextmanager
+def save_stdout( src = sys.stdout ):
+    """
+    Redirect 
+    """
+    fd = os.dup( src.fileno() )
+    own = True
+    
+    try:
+        with os.fdopen( fd, "w", 0) as f:
+            own = False
+            yield f
+    except:
+        if own:
+            os.close(fd)
+        raise
+    
+@contextmanager
 def redirect(dst = null_file, src = sys.stdout):
     
     """

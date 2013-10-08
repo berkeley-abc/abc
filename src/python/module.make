@@ -34,6 +34,12 @@ ifdef ABC_PYTHON
         $(ABC_PYTHON_FILES_PREFIX)/dist \
         pyabc.tgz
 
+    ABC_PYABC_DIR ?= pyabc
+    ABC_PYABC_TGZ ?= pyabc.tgz
+    ABC_PYABC_EXTRA_BIN ?=
+    ABC_PYABC_EXTRA_LIB ?=
+
+
 %_wrap.c %.py : %.i
     $(ABC_SWIG) -python -outdir $(<D) $<
 
@@ -53,11 +59,18 @@ pyabc_extension_install : pyabc_extension_build
 pyabc_extension_bdist : pyabc_extension_build    
     ( cd $(ABC_PYTHON_FILES_PREFIX) && python setup.py bdist )
     
-pyabc.tgz : $(PROG) $(ABC_PYTHON_SRC:_wrap.c=.py) $(ABC_PYTHON_FILES_PREFIX)/abc.sh $(ABC_PYTHON_FILES_PREFIX)/package.py
+.PHONY: pyabc_tgz
+
+pyabc_tgz : $(ABC_PYABC_TGZ)
+    
+$(ABC_PYABC_TGZ) : $(PROG) $(ABC_PYTHON_SRC:_wrap.c=.py) $(ABC_PYTHON_FILES_PREFIX)/abc.sh $(ABC_PYTHON_FILES_PREFIX)/package.py
     $(ABC_PYTHON) $(ABC_PYTHON_FILES_PREFIX)/package.py \
+            --pyabc_dir=$(ABC_PYABC_DIR) \
         --abc=$(PROG) \
         --abc_sh=$(ABC_PYTHON_FILES_PREFIX)/abc.sh \
         --pyabc=$(ABC_PYTHON_FILES_PREFIX) \
+        --extra_bin="$(ABC_PYABC_EXTRA_BIN)" \
+        --extra_lib="$(ABC_PYABC_EXTRA_LIB)" \
         --out=$@ \
         $(ABC_PYTHON_OPTIONS)
 
