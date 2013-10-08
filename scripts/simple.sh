@@ -10,6 +10,5 @@ abc_root()
 
 abc_dir=$(abc_root "$0")
 bin_dir="${abc_dir}"/bin
-aig_file="$1"
 
-exec "${bin_dir}"/abc -c "/rf ${aig_file} ; /pushredirect ; /pushdtemp ; bmc3 ; /popdtemp ; /popredirect ; /print_aiger_result"
+exec ${bin_dir}/abc -c "/simple_aiger $*"

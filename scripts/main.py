@@ -1,4 +1,6 @@
 import os
+import time
+from datetime import *
 ##import par
 ##from abc_common import *
 import abc_common
@@ -16,26 +18,6 @@ from  pyabc_split import *
 
 #x('source ../../abc.rc')
 #abc_common.x('source ../../abc.rc')
-
-
-#IBM directories
-# directories = ['ibmhard']
-ibmhard = (33,34,36,37,28,40,42,44,48,5,49,50,52,53,58,59,6,64,66,67,68,\
-           69,70,71,72,73,74,75,76,78,79,80,81,82,83,84,86,9,87,89,90,0,10,\
-           11,12,14,15,16,2,19,20,29,31,32)
-
-
-#directories = ['IBM_converted']
-#ibm_convert = (3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,\
-#               27,28,29,30,31,32,33,34,35,36,37,38,39,40,41)
-#IBM_converted = range(42)[3:]
-
-#the smaller files in ascending order
-#IBM_converted = (26,38,21,15,22,23,20,27,16,19,24,28,18,9,8,7,6,25,17,3,4)
-
-#the larger file in order (skipping 39)
-#IBM_converted = (39,5,40,41,13,12,10,14,11,31,33,36,29,34,35,37,30)
-IBM_converted = (5,40,41,13,12,10,14,11,31,33,36,29,34,35,37,30)
 
 def scorriter():
     """ apply scorr with increasing conflicts up to 100"""
@@ -159,6 +141,48 @@ def list_aig(s=''):
         result = result + [name]
     return result
 
+def list_original():
+    list_dir = os.listdir('.')
+    list_dir.sort()
+    out = []
+    for i in range(len(list_dir)):
+        name = '%s/original.aig'%list_dir[i]
+        if os.access('%s'%name,os.R_OK):
+            abc('r %s;&ps'%name)
+            if n_latches() > 0 and n_pos() > 1:
+                size = str(sizeof())
+                print list_dir[i],
+                ps()
+                out = out + ['%s: %s'%(list_dir[i],size)]
+    return out
+
+def list_size(s=''):
+    """ prnts out the sizes of aig files. Leaves .aig as part of name"""
+    #os.chdir('../ibm-web')
+    list_all = os.listdir('.')
+    dir = lst(list_all,'.aig')
+    dir.sort()
+    result = []
+    for j in range(len(dir)):
+##        name = dir[j][:-4]
+        name = dir[j] #leaves .aig as part of name
+        if not s_in_s(s,name):
+            continue
+        print '%s '%name,
+##        abc('r %s.aig'%name)
+        abc('r %s'%name)
+        ps()
+        result = result + [name[:-4]] #takes .aig off of name
+    return result
+
+def rename(l=[]):
+    for j in range(len(l)):
+        name = l[j]
+        name1 = name +'.aig'
+        name2 = name[:-4]+'simp.aig' #take off _smp and put on simp
+        os.rename(name1,name2)
+    
+
 def list_blif(s=''):
     """ prnts out the sizes of aig files"""
     #os.chdir('../ibm-web')
@@ -222,11 +246,15 @@ def cleanup():
             (s_in_s('_bip', name)) or (s_in_s('sm0', name)) or (s_in_s('gabs', name)) 
             or (s_in_s('temp', name)) or (s_in_s('__', name)) or (s_in_s('greg', name)) or (s_in_s('tf2', name))
             or (s_in_s('gsrm', name)) or (s_in_s('_rpm', name )) or (s_in_s('gsyn', name)) or (s_in_s('beforerpm', name))
-            or (s_in_s('afterrpm', name)) or (s_in_s('initabs', name)) or (s_in_s('.status', name)) or (s_in_s('_init', name))
+            or (s_in_s('afterrpm', name)) or (s_in_s('initabs', name)) or (s_in_s('_init', name))
             or (s_in_s('_osave', name)) or (s_in_s('tt_', name)) or (s_in_s('_before', name)) or (s_in_s('_after', name))
-            or (s_in_s('_and', name)) or (s_in_s('_final', name)) or (s_in_s('_spec', name)) or (s_in_s('temp.a', name))
+            or (s_in_s('_and', name)) or (s_in_s('_spec', name)) or (s_in_s('temp.a', name))
             or (s_in_s('_sync', name)) or (s_in_s('_old', name)) or (s_in_s('_cone_', name)) or (s_in_s('_abs', name))
-            or (s_in_s('_vabs', name))
+            or (s_in_s('_vabs', name)) or (s_in_s('_gla', name)) or (s_in_s('vabs', name)) or (s_in_s('_mp2', name))
+            or (s_in_s('_sc1', name)) or (s_in_s('_sc2', name)) or (s_in_s('_after', name))
+            or (s_in_s('_before', name)) or (s_in_s('_aigs_', name)) or (s_in_s('_cex.', name))
+            or (s_in_s('_bmc1', name)) or (s_in_s('_p0_', name)) or (s_in_s('_p1_', name))
+            or (s_in_s('_unsolv', name)) or (s_in_s('_iso1', name))
             ):
             os.remove(name)
         
@@ -296,7 +324,33 @@ def absn(a,c,s):
     write_file('absn')
     return "Done"
 
-        
+def time_stamp():
+    d=datetime.today()
+    s = d.strftime('%m.%d.%y-%X')
+    return s
+
+def apply_sp(list):
+    global m_trace
+    s = time_stamp()
+    out_name = "%s-traces.txt"%s
+    print out_name
+    if os.access(out_name,os.R_OK):
+        os.remove(out_name)
+    f = open(out_name,'w')
+    print f
+    for j in range(len(list)):
+        name = list[j]
+        print '\n\n**** %s ****\n'%name
+        f.write('\n\n****%s ****'%name)
+        read_file_quiet(name)
+        result = super_prove()
+        trace = result[1]
+        s = str(trace)
+        f.write('\n\n')
+        f.write(s)
+        f.flush()
+    f.close()
+         
 def xfiles():
     global f_name
     #output = sys.stdout
