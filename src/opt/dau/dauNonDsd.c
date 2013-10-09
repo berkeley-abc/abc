@@ -396,7 +396,7 @@ void Dau_DecVarReplace( char * pStr, int * pPerm, int nVars )
   SeeAlso     []
 
 ***********************************************************************/
-int Dau_DecDecomposeSet( word * pInit, int nVars, unsigned uSet, word * pComp, word * pDec, int * pPermC, int * pPermD, int * pnVarsC, int * pnVarsD )
+int Dau_DecDecomposeSet( word * pInit, int nVars, unsigned uSet, word * pComp, word * pDec, int * pPermC, int * pPermD, int * pnVarsC, int * pnVarsD, int * pnVarsS )
 {
     word p[1<<13], Cof[64], Cof0[64], Cof1[64], Decs[64];
     word * pCof0[64], * pCof1[64], * pDecs[64], MintC, MintD;
@@ -487,6 +487,8 @@ int Dau_DecDecomposeSet( word * pInit, int nVars, unsigned uSet, word * pComp, w
         *pnVarsC = nVarsF + nVarsS + 1;
     if ( pnVarsD )
         *pnVarsD = nVarsU + nVarsS;
+    if ( pnVarsS )
+        *pnVarsS = nVarsS;
     return 1;
 }
 
@@ -532,11 +534,12 @@ int Dau_DecVerify( word * pInit, int nVars, char * pDsdC, char * pDsdD )
 }
 int Dau_DecPerform( word * p, int nVars, unsigned uSet )
 {
-    word tComp = 0, tDec = 0;
+    Vec_Wrd_t * vUnique = Vec_WrdAlloc( 10 );
+    word tComp = 0, tDec = 0, tDec0, tComp0, tComp1, MintC, MintD;
     char pDsdC[1000], pDsdD[1000];
-    int pPermC[16], pPermD[16], nVarsC, nVarsD;
-    int status, ResC, ResD;
-    status = Dau_DecDecomposeSet( p, nVars, uSet, &tComp, &tDec, pPermC, pPermD, &nVarsC, &nVarsD );
+    int pPermC[16], pPermD[16], nVarsC, nVarsD, nVarsS, nVarsU, nVarsF, nPairs;
+    int i, m, v, status, ResC, ResD;
+    status = Dau_DecDecomposeSet( p, nVars, uSet, &tComp, &tDec0, pPermC, pPermD, &nVarsC, &nVarsD, &nVarsS );
 //    Dau_DecPrintSet( uSet, nVars );    
 //    printf( "Decomposition %s\n", status ? "exists" : "does not exist" );
     if ( !status )
@@ -544,12 +547,6 @@ int Dau_DecPerform( word * p, int nVars, unsigned uSet )
         printf( "  Decomposition does not exist\n" );
         return 0;
     }
-//    Dau_DsdPrintFromTruth( stdout, p, nVars );     //printf( "\n" );
-//    Dau_DsdPrintFromTruth( stdout, &tComp, nVars ); //printf( "\n" );
-//    Dau_DsdPrintFromTruth( stdout, &tDec, nVars );  //printf( "\n" );
-    // decompose
-    ResC = Dau_DsdDecompose( &tComp, nVarsC, 0, 1, pDsdC );
-    ResD = Dau_DsdDecompose( &tDec, nVarsD, 0, 1, pDsdD );
 /*
     printf( "%s\n", pDsdC );
     printf( "%s\n", pDsdD );
@@ -560,12 +557,50 @@ int Dau_DecPerform( word * p, int nVars, unsigned uSet )
         printf( "%d ", pPermD[v] );
     printf( "\n" );
 */
-    // replace variables
-    Dau_DecVarReplace( pDsdD, pPermD, nVarsD );
-    Dau_DecVarReplace( pDsdC, pPermC, nVarsC );
-    printf( "%24s  ", pDsdD );
-    printf( "%24s  ", pDsdC );
-    Dau_DecVerify( p, nVars, pDsdC, pDsdD );
+//    Dau_DsdPrintFromTruth( stdout, p, nVars );     //printf( "\n" );
+//    Dau_DsdPrintFromTruth( stdout, &tComp, nVars ); //printf( "\n" );
+//    Dau_DsdPrintFromTruth( stdout, &tDec, nVars );  //printf( "\n" );
+    printf( "\n" );
+    nVarsU = nVarsD - nVarsS;
+    nVarsF = nVarsC - nVarsS - 1;
+    tComp0 = Abc_Tt6Cofactor0( tComp, nVarsF + nVarsS );
+    tComp1 = Abc_Tt6Cofactor1( tComp, nVarsF + nVarsS );
+    nPairs = 1 << (1 << nVarsS); 
+    for ( i = 0; i < nPairs; i++ )
+    {
+        if ( i & 1 )
+            continue;
+        // create miterms with this polarity
+        MintC = MintD = ~(word)0;
+        for ( m = 0; m < (1 << nVarsS); m++ )
+        {
+            if ( !((i >> m) & 1) )
+                continue;
+            for ( v = 0; v < nVarsS; v++ )
+            {
+                MintC &= ((m >> v) & 1) ? s_Truths6[nVarsF+v] : ~s_Truths6[nVarsF+v];
+                MintD &= ((m >> v) & 1) ? s_Truths6[nVarsU+v] : ~s_Truths6[nVarsU+v];
+            }
+        }
+        // uncomplement given variables
+        tComp = (~s_Truths6[nVarsF + nVarsS] & ((tComp0 & ~MintC) | (tComp1 & MintC))) | (s_Truths6[nVarsF + nVarsS] & ((tComp1 & ~MintC) | (tComp0 & MintC)));
+        tDec = tDec0 ^ MintD;
+        // skip this variables
+        if ( Vec_WrdFind( vUnique, tDec ) >= 0 )
+            continue;
+        Vec_WrdPush( vUnique, tDec );
+        // decompose
+        ResC = Dau_DsdDecompose( &tComp, nVarsC, 0, 1, pDsdC );
+        ResD = Dau_DsdDecompose( &tDec, nVarsD, 0, 1, pDsdD );
+        // replace variables
+        Dau_DecVarReplace( pDsdD, pPermD, nVarsD );
+        Dau_DecVarReplace( pDsdC, pPermC, nVarsC );
+        printf( "   " );
+        printf( "%24s  ", pDsdD );
+        printf( "%24s  ", pDsdC );
+        Dau_DecVerify( p, nVars, pDsdC, pDsdD );
+    }
+    Vec_WrdFree( vUnique );
     return 1;
 }
 void Dau_DecTrySets( word * p, int nVars )
@@ -579,6 +614,7 @@ void Dau_DecTrySets( word * p, int nVars )
     Vec_IntForEachEntry( vSets, Entry, i )
     {
         unsigned uSet = (unsigned)Entry;
+        printf( "Set %2d : ", i );
         Dau_DecPrintSet( uSet, nVars, 0 );
         Dau_DecPerform( &t0, nVars, uSet );
     }
