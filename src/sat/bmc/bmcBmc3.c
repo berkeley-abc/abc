@@ -1321,6 +1321,8 @@ int Saig_ManBmcScalable( Aig_Man_t * pAig, Saig_ParBmc_t * pPars )
     p->pSat->nLearntDelta = p->pPars->nLearnedDelta;
     p->pSat->nLearntRatio = p->pPars->nLearnedPerce;
     p->pSat->nLearntMax   = p->pSat->nLearntStart;
+    if ( pPars->fSolveAll && p->vCexes == NULL )
+        p->vCexes = Vec_PtrStart( Saig_ManPoNum(pAig) );
     if ( pPars->fVerbose )
     {
         Abc_Print( 1, "Running \"bmc3\". PI/PO/Reg = %d/%d/%d. And =%7d. Lev =%6d. ObjNums =%6d. Sect =%3d.\n", 
