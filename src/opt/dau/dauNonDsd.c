@@ -535,7 +535,7 @@ int Dau_DecVerify( word * pInit, int nVars, char * pDsdC, char * pDsdD )
 int Dau_DecPerform( word * p, int nVars, unsigned uSet )
 {
     Vec_Wrd_t * vUnique = Vec_WrdAlloc( 10 );
-    word tComp = 0, tDec = 0, tDec0, tComp0, tComp1, MintC, MintD;
+    word tComp = 0, tDec = 0, tDec0, tComp0, tComp1, FuncC, FuncD;
     char pDsdC[1000], pDsdD[1000];
     int pPermC[16], pPermD[16], nVarsC, nVarsD, nVarsS, nVarsU, nVarsF, nPairs;
     int i, m, v, status, ResC, ResD;
@@ -571,20 +571,24 @@ int Dau_DecPerform( word * p, int nVars, unsigned uSet )
         if ( i & 1 )
             continue;
         // create miterms with this polarity
-        MintC = MintD = ~(word)0;
+        FuncC = FuncD = 0;
         for ( m = 0; m < (1 << nVarsS); m++ )
         {
+            word MintC, MintD;
             if ( !((i >> m) & 1) )
                 continue;
+            MintC = MintD = ~(word)0;
             for ( v = 0; v < nVarsS; v++ )
             {
                 MintC &= ((m >> v) & 1) ? s_Truths6[nVarsF+v] : ~s_Truths6[nVarsF+v];
                 MintD &= ((m >> v) & 1) ? s_Truths6[nVarsU+v] : ~s_Truths6[nVarsU+v];
             }
+            FuncC |= MintC;
+            FuncD |= MintD;
         }
         // uncomplement given variables
-        tComp = (~s_Truths6[nVarsF + nVarsS] & ((tComp0 & ~MintC) | (tComp1 & MintC))) | (s_Truths6[nVarsF + nVarsS] & ((tComp1 & ~MintC) | (tComp0 & MintC)));
-        tDec = tDec0 ^ MintD;
+        tComp = (~s_Truths6[nVarsF + nVarsS] & ((tComp0 & ~FuncC) | (tComp1 & FuncC))) | (s_Truths6[nVarsF + nVarsS] & ((tComp1 & ~FuncC) | (tComp0 & FuncC)));
+        tDec = tDec0 ^ FuncD;
         // skip this variables
         if ( Vec_WrdFind( vUnique, tDec ) >= 0 )
             continue;
@@ -595,7 +599,9 @@ int Dau_DecPerform( word * p, int nVars, unsigned uSet )
         // replace variables
         Dau_DecVarReplace( pDsdD, pPermD, nVarsD );
         Dau_DecVarReplace( pDsdC, pPermC, nVarsC );
-        printf( "   " );
+        // report
+        printf( "     " );
+        printf( "%3d : ", Vec_WrdSize(vUnique) );
         printf( "%24s  ", pDsdD );
         printf( "%24s  ", pDsdC );
         Dau_DecVerify( p, nVars, pDsdC, pDsdD );
