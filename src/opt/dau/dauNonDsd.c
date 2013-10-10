@@ -52,7 +52,6 @@ int Dau_DecCheckSetTop5( word * p, int nVars, int nVarsF, int nVarsB, int nVarsS
     int nMints  = (1 << nVarsB);
     int nMintsB = (1 <<(nVarsB-nVarsS));
     int nMintsS = (1 << nVarsS);
-    int nMintsF = (1 << nVarsF);
     int s, b, v, m, Mint, MintB, MintS;
     assert( nVars == nVarsB + nVarsF );
     assert( nVars <= 16 );
@@ -122,7 +121,6 @@ int Dau_DecCheckSetTop6( word * p, int nVars, int nVarsF, int nVarsB, int nVarsS
     int nMints  = (1 << nVarsB);
     int nMintsB = (1 <<(nVarsB-nVarsS));
     int nMintsS = (1 << nVarsS);
-    int nMintsF = (1 << nVarsF);
     int s, b, v, m, Mint, MintB, MintS;
     assert( nVars == nVarsB + nVarsF );
     assert( nVars <= 16 );
