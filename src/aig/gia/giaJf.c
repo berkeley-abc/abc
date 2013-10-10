@@ -357,6 +357,16 @@ Jf_Man_t * Jf_ManAlloc( Gia_Man_t * pGia, Jf_Par_t * pPars )
     p->clkStart  = Abc_Clock();
     return p;
 }
+void Jf_ManDumpTruthTables( Jf_Man_t * p )
+{
+    char * pFileName = "truths.txt";
+    FILE * pFile = fopen( pFileName, "wb" );
+    Vec_MemDump( pFile, p->vTtMem );
+    fclose( pFile );
+    printf( "Dumped %d %d-var truth tables into file \"%s\" (%.2f MB).\n", 
+        Vec_MemEntryNum(p->vTtMem), p->pPars->nLutSize, pFileName,
+        17.0 * Vec_MemEntryNum(p->vTtMem) / (1 << 20) );
+}
 void Jf_ManFree( Jf_Man_t * p )
 {
     if ( p->pPars->fVerbose && p->pDsd )
@@ -365,16 +375,6 @@ void Jf_ManFree( Jf_Man_t * p )
         printf( "Unique truth tables = %d. Memory = %.2f MB\n", Vec_MemEntryNum(p->vTtMem), Vec_MemMemory(p->vTtMem) / (1<<20) ); 
     if ( p->pPars->fVeryVerbose && p->pPars->fCutMin && p->pPars->fFuncDsd )
         Jf_ManProfileClasses( p );
-    if ( p->pPars->fVeryVerbose && p->pPars->fCutMin && !p->pPars->fFuncDsd )
-    {
-        char * pFileName = "truths.txt";
-        FILE * pFile = fopen( pFileName, "wb" );
-        Vec_MemDump( pFile, p->vTtMem );
-        fclose( pFile );
-        printf( "Dumped %d %d-var truth tables into file \"%s\" (%.2f MB).\n", 
-            Vec_MemEntryNum(p->vTtMem), p->pPars->nLutSize, pFileName,
-            17.0 * Vec_MemEntryNum(p->vTtMem) / (1 << 20) );
-    }
     if ( p->pPars->fCoarsen )
         Gia_ManCleanMark0( p->pGia );
     ABC_FREE( p->pGia->pRefs );
@@ -1689,6 +1689,8 @@ Gia_Man_t * Jf_ManPerformMapping( Gia_Man_t * pGia, Jf_Par_t * pPars )
         Jf_ManPropagateEla( p, 0 );                 Jf_ManPrintStats( p, "Area " );
         Jf_ManPropagateEla( p, 1 );                 Jf_ManPrintStats( p, "Edge " );
     }
+    if ( p->pPars->fVeryVerbose && p->pPars->fCutMin && !p->pPars->fFuncDsd )
+        Jf_ManDumpTruthTables( p );
     if ( p->pPars->fPureAig )
         pNew = Jf_ManDeriveGia(p);
     else if ( p->pPars->fCutMin )

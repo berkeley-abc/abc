@@ -941,6 +941,105 @@ unsigned Abc_TtCanonicize( word * pTruth, int nVars, char * pCanonPerm )
     return uCanonPhase;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Semi-canonical form computation.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline int Abc_TtCanonicizePhaseVar6( word * pTruth, int nVars, int v )
+{
+    int w, nWords = Abc_TtWordNum( nVars );
+    int s, nStep = 1 << (v-6);
+    assert( v >= 6 );
+    for ( w = nWords - 1, s = nWords - nStep; w > 0; w-- )
+    {
+        if ( pTruth[w-nStep] == pTruth[w] )
+        {
+            if ( w == s ) { w = s - nStep; s = w - nStep; }
+            continue;
+        }
+        if ( pTruth[w-nStep] > pTruth[w] )
+            return -1;
+        for ( ; w > 0; w-- )
+        {
+            ABC_SWAP( word, pTruth[w-nStep], pTruth[w] );
+            if ( w == s ) { w = s - nStep; s = w - nStep; }
+        }
+        assert( w == -1 );
+        return 1;
+    }
+    return 0;
+}
+static inline int Abc_TtCanonicizePhaseVar5( word * pTruth, int nVars, int v )
+{
+    int w, nWords = Abc_TtWordNum( nVars );
+    int Shift = 1 << v;
+    word Mask = s_Truths6[v];
+    assert( v < 6 );
+    for ( w = nWords - 1; w >= 0; w-- )
+    {
+        if ( ((pTruth[w] << Shift) & Mask) == (pTruth[w] & Mask) )
+            continue;
+        if ( ((pTruth[w] << Shift) & Mask) > (pTruth[w] & Mask) )
+            return -1;
+//        Extra_PrintHex( stdout, (unsigned *)pTruth, nVars ); printf("\n" );
+        for ( ; w >= 0; w-- )
+            pTruth[w] = ((pTruth[w] << Shift) & Mask) | ((pTruth[w] & Mask) >> Shift);
+//        Extra_PrintHex( stdout, (unsigned *)pTruth, nVars ); printf( " changed %d", v ), printf("\n" );
+        return 1;
+    }
+    return 0;
+}
+unsigned Abc_TtCanonicizePhase( word * pTruth, int nVars )
+{
+    unsigned uCanonPhase = 0;
+    int v, nWords = Abc_TtWordNum( nVars );
+//    static int Counter = 0;
+//    Counter++;
+
+#ifdef CANON_VERIFY
+    static word pCopy1[1024];
+    static word pCopy2[1024];
+    Abc_TtCopy( pCopy1, pTruth, nWords, 0 );
+#endif
+
+    if ( (pTruth[nWords-1] >> 63) & 1 )
+    {
+        Abc_TtNot( pTruth, nWords );
+        uCanonPhase ^= (1 << nVars);
+    }
+
+//    while ( 1 )
+//    {
+//        unsigned uCanonPhase2 = uCanonPhase;
+        for ( v = nVars - 1; v >= 6; v-- )
+            if ( Abc_TtCanonicizePhaseVar6( pTruth, nVars, v ) == 1 )
+                uCanonPhase ^= 1 << v;
+        for ( ; v >= 0; v-- )
+            if ( Abc_TtCanonicizePhaseVar5( pTruth, nVars, v ) == 1 )
+                uCanonPhase ^= 1 << v;
+//        if ( uCanonPhase2 == uCanonPhase )
+//            break;
+//    }
+
+//    for ( v = 5; v >= 0; v-- )
+//        assert( Abc_TtCanonicizePhaseVar5( pTruth, nVars, v ) != 1 );
+
+#ifdef CANON_VERIFY
+    Abc_TtCopy( pCopy2, pTruth, nWords, 0 );
+    Abc_TtImplementNpnConfig( pCopy2, nVars, NULL, uCanonPhase );
+    if ( !Abc_TtEqual( pCopy1, pCopy2, nWords ) )
+        printf( "Canonical form verification failed!\n" );
+#endif
+    return uCanonPhase;
+}
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

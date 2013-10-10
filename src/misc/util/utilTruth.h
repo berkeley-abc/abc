@@ -1200,6 +1200,7 @@ static inline void Abc_TtImplementNpnConfig( word * pTruth, int nVars, char * pC
     for ( i = 0; i < nVars; i++ )
         if ( (uCanonPhase >> i) & 1 )
             Abc_TtFlip( pTruth, nWords, i );
+    if ( pCanonPerm )
     for ( i = 0; i < nVars; i++ )
     {
         for ( k = i; k < nVars; k++ )
