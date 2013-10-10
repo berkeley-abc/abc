@@ -2293,7 +2293,7 @@ int Abc_CommandPrintDsd( Abc_Frame_t * pAbc, int argc, char ** argv )
             Extra_TruthNot( pTruth, pTruth, Abc_ObjFaninNum(pObj) );
 //        Extra_PrintBinary( stdout, pTruth, 1 << Abc_ObjFaninNum(pObj) );
 //        Abc_Print( -1, "\n" );
-        if ( fPrintDec && Abc_ObjFaninNum(pObj) <= 6 )
+        if ( fPrintDec )//&&Abc_ObjFaninNum(pObj) <= 6 )
             Dau_DecTrySets( (word *)pTruth, Abc_ObjFaninNum(pObj) );
         if ( fProfile )
             Kit_TruthPrintProfile( pTruth, Abc_ObjFaninNum(pObj) );

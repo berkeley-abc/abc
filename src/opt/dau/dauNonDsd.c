@@ -20,6 +20,7 @@
 
 #include "dauInt.h"
 #include "misc/util/utilTruth.h"
+#include "misc/extra/extra.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -31,6 +32,162 @@ ABC_NAMESPACE_IMPL_START
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
  
+/**Function*************************************************************
+
+  Synopsis    [Checks decomposability with given variable set.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Dau_DecCheckSetTop5( word * p, int nVars, int nVarsF, int nVarsB, int nVarsS, int uMaskS, int * pSched, word * pDec, word * pComp )
+{
+    word Cof[2][64], Value;
+    word MaskFF = (((word)1) << (1 << nVarsF)) - 1;
+    int ShiftF = 6 - nVarsF, MaskF = (1 << ShiftF) - 1;
+    int pVarsS[16], pVarsB[16];
+    int nMints  = (1 << nVarsB);
+    int nMintsB = (1 <<(nVarsB-nVarsS));
+    int nMintsS = (1 << nVarsS);
+    int nMintsF = (1 << nVarsF);
+    int s, b, v, m, Mint, MintB, MintS;
+    assert( nVars == nVarsB + nVarsF );
+    assert( nVars <= 16 );
+    assert( nVarsS <= 6 );
+    assert( nVarsF >= 1 && nVarsF <= 5 );
+    // collect bound/shared variables
+    for ( s = b = v = 0; v < nVarsB; v++ )
+        if ( (uMaskS >> v) & 1 )
+            pVarsB[v] = -1, pVarsS[v] = s++;
+        else
+            pVarsS[v] = -1, pVarsB[v] = b++;
+    assert( s == nVarsS );
+    assert( b == nVarsB-nVarsS );
+    // clean minterm storage
+    for ( s = 0; s < nMintsS; s++ )
+        Cof[0][s] = Cof[1][s] = ~(word)0;
+    // iterate through bound set minters
+    for ( MintS = MintB = Mint = m = 0; m < nMints; m++ )
+    {
+        // find minterm value
+        Value = (p[Mint>>ShiftF] >> ((Mint&MaskF)<<nVarsF)) & MaskFF;
+        // check if this cof already appeared 
+        if ( !~Cof[0][MintS] || Cof[0][MintS] == Value )
+            Cof[0][MintS] = Value;
+        else if ( !~Cof[1][MintS] || Cof[1][MintS] == Value )
+        {
+            Cof[1][MintS] = Value;
+            if ( pDec ) 
+            {
+                int iMintB = MintS * nMintsB + MintB;
+                pDec[iMintB>>6] |= (((word)1)<<(iMintB & 63));     
+            }
+        }
+        else
+            return 0;            
+        // find next minterm
+        v = pSched[m];
+        Mint ^= (1 << v);
+        if ( (uMaskS >> v) & 1 ) // shared variable
+            MintS ^= (1 << pVarsS[v]);
+        else
+            MintB ^= (1 << pVarsB[v]);
+    }
+    // create composition function
+    if ( pComp )
+    {
+        for ( s = 0; s < nMintsS; s++ )
+        {
+            pComp[s>>ShiftF] |= (Cof[0][s] << ((s&MaskF) << nVarsF));
+            if ( ~Cof[1][s] ) 
+                pComp[(s+nMintsS)>>ShiftF] |= (Cof[1][s] << (((s+nMintsS)&MaskF) << nVarsF));
+            else
+                pComp[(s+nMintsS)>>ShiftF] |= (Cof[0][s] << (((s+nMintsS)&MaskF) << nVarsF));
+        }
+        if ( nVarsF + nVarsS + 1 < 6 )
+            pComp[0] = Abc_Tt6Stretch( pComp[0], nVarsF + nVarsS + 1 );
+    }
+    if ( pDec && nVarsB < 6 )
+        pDec[0] = Abc_Tt6Stretch( pDec[0], nVarsB );
+    return 1;
+}
+int Dau_DecCheckSetTop6( word * p, int nVars, int nVarsF, int nVarsB, int nVarsS, int uMaskS, int * pSched, word * pDec, word * pComp )
+{
+    word * Cof[2][64];
+    int nWordsF = Abc_TtWordNum(nVarsF); 
+    int pVarsS[16], pVarsB[16];
+    int nMints  = (1 << nVarsB);
+    int nMintsB = (1 <<(nVarsB-nVarsS));
+    int nMintsS = (1 << nVarsS);
+    int nMintsF = (1 << nVarsF);
+    int s, b, v, m, Mint, MintB, MintS;
+    assert( nVars == nVarsB + nVarsF );
+    assert( nVars <= 16 );
+    assert( nVarsS <= 6 );
+    assert( nVarsF >= 6 );
+    // collect bound/shared variables
+    for ( s = b = v = 0; v < nVarsB; v++ )
+        if ( (uMaskS >> v) & 1 )
+            pVarsB[v] = -1, pVarsS[v] = s++;
+        else
+            pVarsS[v] = -1, pVarsB[v] = b++;
+    assert( s == nVarsS );
+    assert( b == nVarsB-nVarsS );
+    // clean minterm storage
+    for ( s = 0; s < nMintsS; s++ )
+        Cof[0][s] = Cof[1][s] = NULL;
+    // iterate through bound set minters
+    for ( MintS = MintB = Mint = m = 0; m < nMints; m++ )
+    {
+        // check if this cof already appeared 
+        if ( !Cof[0][MintS] || !memcmp(Cof[0][MintS], p + Mint * nWordsF, sizeof(word) * nWordsF) )
+            Cof[0][MintS] = p + Mint * nWordsF;
+        else if ( !Cof[1][MintS] || !memcmp(Cof[1][MintS], p + Mint * nWordsF, sizeof(word) * nWordsF) )
+        {
+            Cof[1][MintS] = p + Mint * nWordsF;
+            if ( pDec ) 
+            {
+                int iMintB = MintS * nMintsB + MintB;
+                pDec[iMintB>>6] |= (((word)1)<<(iMintB & 63));     
+            }
+        }
+        else
+            return 0;            
+        // find next minterm
+        v = pSched[m];
+        Mint ^= (1 << v);
+        if ( (uMaskS >> v) & 1 ) // shared variable
+            MintS ^= (1 << pVarsS[v]);
+        else
+            MintB ^= (1 << pVarsB[v]);
+    }
+    // create composition function
+    if ( pComp )
+    {
+        for ( s = 0; s < nMintsS; s++ )
+        {
+            memcpy( pComp + s * nWordsF, Cof[0][s], sizeof(word) * nWordsF );
+            if ( Cof[1][s] ) 
+                memcpy( pComp + (s+nMintsS) * nWordsF, Cof[1][s], sizeof(word) * nWordsF );
+            else
+                memcpy( pComp + (s+nMintsS) * nWordsF, Cof[0][s], sizeof(word) * nWordsF );
+        }
+    }
+    if ( pDec && nVarsB < 6 )
+        pDec[0] = Abc_Tt6Stretch( pDec[0], nVarsB );
+    return 1;
+}
+static inline int Dau_DecCheckSetTop( word * p, int nVars, int nVarsF, int nVarsB, int nVarsS, int uMaskS, int * pSched, word * pDec, word * pComp )
+{
+    if ( nVarsF < 6 )
+        return Dau_DecCheckSetTop5( p, nVars, nVarsF, nVarsB, nVarsS, uMaskS, pSched, pDec, pComp );
+    else
+        return Dau_DecCheckSetTop6( p, nVars, nVarsF, nVarsB, nVarsS, uMaskS, pSched, pDec, pComp );
+}
+
 /**Function*************************************************************
 
   Synopsis    [Checks decomposability with given BS variables.]
@@ -139,7 +296,7 @@ static inline int Dau_DecCheckSetAny( word * p, int nVars, int nVarsF, int uMask
     else
         return Dau_DecCheckSet6( p, nVars, nVarsF, uMaskAll, uMaskValue, pCof0, pCof1, pDec );
 }
-int Dau_DecCheckSetTop( word * p, int nVars, int nVarsF, int nVarsB, int nVarsS, int maskS, word ** pCof0, word ** pCof1, word ** pDec )
+int Dau_DecCheckSetTopOld( word * p, int nVars, int nVarsF, int nVarsB, int nVarsS, int maskS, word ** pCof0, word ** pCof1, word ** pDec )
 {
     int i, pVarsS[16];
     int v, m, mMax = (1 << nVarsS), uMaskValue;
@@ -213,9 +370,9 @@ static inline int Dau_DecSetIsContained( Vec_Int_t * vSets, unsigned New )
     }
     return 0;
 }
-void Dau_DecPrintSet( unsigned set, int nVars, int fNewLine )
+void Dau_DecSortSet( unsigned set, int nVars, int * pnUnique, int * pnShared, int * pnFree )
 {
-    int v, Counter = 0;
+    int v;
     int nUnique = 0, nShared = 0, nFree = 0;
     for ( v = 0; v < nVars; v++ )
     {
@@ -228,6 +385,15 @@ void Dau_DecPrintSet( unsigned set, int nVars, int fNewLine )
             nFree++;
         else assert( 0 );
     }
+    *pnUnique = nUnique;
+    *pnShared = nShared;
+    *pnFree   = nFree;
+}
+void Dau_DecPrintSet( unsigned set, int nVars, int fNewLine )
+{
+    int v, Counter = 0;
+    int nUnique = 0, nShared = 0, nFree = 0;
+    Dau_DecSortSet( set, nVars, &nUnique, &nShared, &nFree );
     printf( "S =%2d  D =%2d  C =%2d   ", nShared, nUnique+nShared, nShared+nFree+1 );
 
     printf( "x=" );
@@ -301,9 +467,12 @@ Vec_Int_t * Dau_DecFindSets( word * p, int nVars )
     int V2P[16], P2V[16], pVarsB[16];
     int Limit = (1 << nVars);
     int c, v, sizeB, sizeS, maskB, maskS;
+    int * pSched[16] = {NULL};
     unsigned setMixed;
     for ( v = 0; v < nVars; v++ )
         assert( Abc_TtHasVar( p, nVars, v ) );
+    for ( v = 2; v < nVars; v++ )
+        pSched[v] = Extra_GreyCodeSchedule( v );
     // initialize permutation
     for ( v = 0; v < nVars; v++ )
         V2P[v] = P2V[v] = v;
@@ -318,7 +487,8 @@ Vec_Int_t * Dau_DecFindSets( word * p, int nVars )
         for ( c = 0; c < sizeB; c++ )
             pVarsB[c] = P2V[nVars-sizeB+c];
         // check disjoint
-        if ( Dau_DecCheckSetTop(p, nVars, nVars-sizeB, sizeB, 0, 0, NULL, NULL, NULL) )
+//        if ( Dau_DecCheckSetTopOld(p, nVars, nVars-sizeB, sizeB, 0, 0, NULL, NULL, NULL) )
+        if ( Dau_DecCheckSetTop(p, nVars, nVars-sizeB, sizeB, 0, 0, pSched[sizeB], NULL, NULL) )
         {
             Vec_IntPush( vSets, Dau_DecCreateSet(pVarsB, sizeB, 0) );
             continue;
@@ -327,6 +497,7 @@ Vec_Int_t * Dau_DecFindSets( word * p, int nVars )
             continue;
         // iterate through shared sets of each size in the increasing order
         for ( sizeS = 1; sizeS <= sizeB - 2; sizeS++ )   // shared set size
+        if ( sizeS <= 3 )
 //        sizeS = 1; 
         for ( maskS = 0; maskS < (1 << sizeB); maskS++ ) // shared set
         if ( Abc_TtBitCount16(maskS) == sizeS )
@@ -338,10 +509,13 @@ Vec_Int_t * Dau_DecFindSets( word * p, int nVars )
             if ( Dau_DecSetIsContained(vSets, setMixed) )
                 continue;
             // check if it can be added
-            if ( Dau_DecCheckSetTop(p, nVars, nVars-sizeB, sizeB, sizeS, maskS, NULL, NULL, NULL) )
+//            if ( Dau_DecCheckSetTopOld(p, nVars, nVars-sizeB, sizeB, sizeS, maskS, NULL, NULL, NULL) )
+            if ( Dau_DecCheckSetTop(p, nVars, nVars-sizeB, sizeB, sizeS, maskS, pSched[sizeB], NULL, NULL) )
                 Vec_IntPush( vSets, setMixed );
         }
     }
+    for ( v = 2; v < nVars; v++ )
+        ABC_FREE( pSched[v] );
     return vSets;
 }
 void Dau_DecFindSetsTest2()
@@ -441,7 +615,7 @@ int Dau_DecDecomposeSet( word * pInit, int nVars, unsigned uSet, word * pComp, w
        Abc_TtMoveVar( p, nVars, V2P, P2V, pVarsU[v], c++ );
     assert( c == nVars );
     // check decomposition
-    Status = Dau_DecCheckSetTop( p, nVars, nVarsF, nVarsS+nVarsU, nVarsS, Abc_InfoMask(nVarsS), pCof0, pCof1, pDecs );
+    Status = Dau_DecCheckSetTopOld( p, nVars, nVarsF, nVarsS+nVarsU, nVarsS, Abc_InfoMask(nVarsS), pCof0, pCof1, pDecs );
     if ( !Status )
         return 0;
     // compute cofactors
@@ -512,8 +686,6 @@ int Dau_DecVerify( word * pInit, int nVars, char * pDsdC, char * pDsdD )
     assert( nVars < 16 );
     memcpy( pC, Dau_DsdToTruth(pDsdC, nVars+1), sizeof(word) * nWordsC );
     memcpy( pD, Dau_DsdToTruth(pDsdD, nVars), sizeof(word) * nWordsD );
-//    Dau_DsdPrintFromTruth( stdout, pC, nVars+1 ); //printf( "\n" );
-//    Dau_DsdPrintFromTruth( stdout, pD, nVars ); //printf( "\n" );
     if ( nVars >= 6 )
     {
         assert( nWordsD >= 1 );
@@ -526,41 +698,26 @@ int Dau_DecVerify( word * pInit, int nVars, char * pDsdC, char * pDsdD )
         word pC1 = Abc_Tt6Stretch( (pC[0] >> (1 << nVars)), nVars );
         Abc_TtMux( pRes, pD, &pC1, &pC0, nWordsD );
     }
-    if ( Abc_TtEqual(pInit, pRes, nWordsD) )
-        printf( "      Verification successful\n" );
-    else
-        printf( "      Verification failed\n" );
+    if ( !Abc_TtEqual(pInit, pRes, nWordsD) )
+        printf( "      Verification failed" );
+//    else
+//        printf( "      Verification successful" );
+    printf( "\n" );
     return 1;
 }
 int Dau_DecPerform( word * p, int nVars, unsigned uSet )
 {
-    Vec_Wrd_t * vUnique = Vec_WrdAlloc( 10 );
     word tComp = 0, tDec = 0, tDec0, tComp0, tComp1, FuncC, FuncD;
     char pDsdC[1000], pDsdD[1000];
-    int pPermC[16], pPermD[16], nVarsC, nVarsD, nVarsS, nVarsU, nVarsF, nPairs;
-    int i, m, v, status, ResC, ResD;
+    int pPermC[16], pPermD[16];
+    int nVarsC, nVarsD, nVarsS, nVarsU, nVarsF, nPairs;
+    int i, m, v, status, ResC, ResD, Counter = 0;
     status = Dau_DecDecomposeSet( p, nVars, uSet, &tComp, &tDec0, pPermC, pPermD, &nVarsC, &nVarsD, &nVarsS );
-//    Dau_DecPrintSet( uSet, nVars );    
-//    printf( "Decomposition %s\n", status ? "exists" : "does not exist" );
     if ( !status )
     {
         printf( "  Decomposition does not exist\n" );
         return 0;
     }
-/*
-    printf( "%s\n", pDsdC );
-    printf( "%s\n", pDsdD );
-    for ( v = 0; v < nVarsC; v++ )
-        printf( "%d ", pPermC[v] );
-    printf( "\n" );
-    for ( v = 0; v < nVarsD; v++ )
-        printf( "%d ", pPermD[v] );
-    printf( "\n" );
-*/
-//    Dau_DsdPrintFromTruth( stdout, p, nVars );     //printf( "\n" );
-//    Dau_DsdPrintFromTruth( stdout, &tComp, nVars ); //printf( "\n" );
-//    Dau_DsdPrintFromTruth( stdout, &tDec, nVars );  //printf( "\n" );
-    printf( "\n" );
     nVarsU = nVarsD - nVarsS;
     nVarsF = nVarsC - nVarsS - 1;
     tComp0 = Abc_Tt6Cofactor0( tComp, nVarsF + nVarsS );
@@ -589,10 +746,6 @@ int Dau_DecPerform( word * p, int nVars, unsigned uSet )
         // uncomplement given variables
         tComp = (~s_Truths6[nVarsF + nVarsS] & ((tComp0 & ~FuncC) | (tComp1 & FuncC))) | (s_Truths6[nVarsF + nVarsS] & ((tComp1 & ~FuncC) | (tComp0 & FuncC)));
         tDec = tDec0 ^ FuncD;
-        // skip this variables
-        if ( Vec_WrdFind( vUnique, tDec ) >= 0 )
-            continue;
-        Vec_WrdPush( vUnique, tDec );
         // decompose
         ResC = Dau_DsdDecompose( &tComp, nVarsC, 0, 1, pDsdC );
         ResD = Dau_DsdDecompose( &tDec, nVarsD, 0, 1, pDsdD );
@@ -600,32 +753,102 @@ int Dau_DecPerform( word * p, int nVars, unsigned uSet )
         Dau_DecVarReplace( pDsdD, pPermD, nVarsD );
         Dau_DecVarReplace( pDsdC, pPermC, nVarsC );
         // report
-        printf( "     " );
-        printf( "%3d : ", Vec_WrdSize(vUnique) );
+//        printf( "  " );
+        printf( "%3d : ", Counter++ );
         printf( "%24s  ", pDsdD );
         printf( "%24s  ", pDsdC );
         Dau_DecVerify( p, nVars, pDsdC, pDsdD );
     }
-    Vec_WrdFree( vUnique );
     return 1;
 }
-void Dau_DecTrySets( word * p, int nVars )
+
+int Dau_DecPerform2( word * pInit, int nVars, unsigned uSet )
 {
+    word p[1<<10], pDec[1<<10], pComp[1<<10]; // at most 2^10 words
+    char pDsdC[5000], pDsdD[5000];  // at most 2^12 hex digits
+    int nVarsU, nVarsS, nVarsF, nVarsC = 0, nVarsD = 0;
+    int V2P[16], P2V[16], pPermC[16], pPermD[16], * pSched;
+    int v, i, status, ResC, ResD;
+    int nWords = Abc_TtWordNum(nVars);
+    assert( nVars <= 16 );
+    // backup the function
+    memcpy( p, pInit, sizeof(word) * nWords );
+    // get variable numbers
+    Dau_DecSortSet( uSet, nVars, &nVarsU, &nVarsS, &nVarsF );
+    // permute function and order variables
+    for ( v = 0; v < nVars; v++ )
+        V2P[v] = P2V[v] = v;
+    for ( i = v = 0; v < nVars; v++ )
+        if ( ((uSet >> (v<<1)) & 3) == 0 ) // free first
+           Abc_TtMoveVar( p, nVars, V2P, P2V, v, i++ ), pPermC[nVarsC++] = v;
+    for ( v = 0; v < nVars; v++ )
+        if ( ((uSet >> (v<<1)) & 3) == 3 ) // share second
+           Abc_TtMoveVar( p, nVars, V2P, P2V, v, i++ ), pPermC[nVarsC++] = v;
+    pPermC[nVarsC++] = nVars;
+    for ( v = 0; v < nVars; v++ )
+        if ( ((uSet >> (v<<1)) & 3) == 1 ) // unique last
+           Abc_TtMoveVar( p, nVars, V2P, P2V, v, i++ ), pPermD[nVarsD++] = v;
+    for ( v = 0; v < nVarsS; v++ )
+        pPermD[nVarsD++] = pPermC[nVarsF+v];
+    assert( nVarsD == nVarsU + nVarsS );
+    assert( nVarsC == nVarsF + nVarsS + 1 );
+    assert( i == nVars );
+    // decompose
+    pSched = Extra_GreyCodeSchedule( nVarsU + nVarsS );
+    memset( pDec, 0, sizeof(word) * Abc_TtWordNum(nVarsD) );
+    memset( pComp, 0, sizeof(word) * Abc_TtWordNum(nVarsC) );
+    status = Dau_DecCheckSetTop( p, nVars, nVarsF, nVarsU + nVarsS, nVarsS, nVarsS ? Abc_InfoMask(nVarsS) : 0, pSched, pDec, pComp );
+    ABC_FREE( pSched );
+    if ( !status )
+    {
+        printf( "  Decomposition does not exist\n" );
+        return 0;
+    }
+//    Dau_DsdPrintFromTruth( stdout, pC, nVars+1 ); //printf( "\n" );
+//    Dau_DsdPrintFromTruth( stdout, pD, nVars ); //printf( "\n" );
+//    Kit_DsdPrintFromTruth( (unsigned *)pComp, 6 ); printf( "\n" );
+//    Kit_DsdPrintFromTruth( (unsigned *)pDec, 6 );  printf( "\n" );
+    // decompose
+    ResC = Dau_DsdDecompose( pComp, nVarsC, 0, 1, pDsdC );
+    ResD = Dau_DsdDecompose( pDec, nVarsD, 0, 1, pDsdD );
+    // replace variables
+    Dau_DecVarReplace( pDsdD, pPermD, nVarsD );
+    Dau_DecVarReplace( pDsdC, pPermC, nVarsC );
+    // report
+    printf( "     " );
+    printf( "%3d : ", 0 );
+    printf( "%24s  ", pDsdD );
+    printf( "%24s  ", pDsdC );
+    Dau_DecVerify( pInit, nVars, pDsdC, pDsdD );
+    return 1;
+}
+void Dau_DecTrySets( word * pInit, int nVars )
+{
+    word p[1<<10]; 
     Vec_Int_t * vSets;
-    word t0 = *p;
     int i, Entry;
+    assert( nVars <= 16 );
+    memcpy( p, pInit, sizeof(word) * Abc_TtWordNum(nVars) );
     vSets = Dau_DecFindSets( p, nVars );
-    Dau_DsdPrintFromTruth( stdout, &t0, nVars ); 
-    printf( "There are %d support-reducing decompositions:\n", Vec_IntSize(vSets) );
+    Dau_DsdPrintFromTruth( stdout, p, nVars ); 
+    printf( "This %d-variable function has %d decomposable variable sets:\n", nVars, Vec_IntSize(vSets) );
     Vec_IntForEachEntry( vSets, Entry, i )
     {
         unsigned uSet = (unsigned)Entry;
-        printf( "Set %2d : ", i );
-        Dau_DecPrintSet( uSet, nVars, 0 );
-        Dau_DecPerform( &t0, nVars, uSet );
+        printf( "Set %4d : ", i );
+        if ( nVars > 6 )
+        {
+            Dau_DecPrintSet( uSet, nVars, 0 );
+            Dau_DecPerform2( pInit, nVars, uSet );
+        }
+        else
+        {
+            Dau_DecPrintSet( uSet, nVars, 1 );
+            Dau_DecPerform( pInit, nVars, uSet );
+        }
     }
-//    printf( "\n" );
     Vec_IntFree( vSets );
+//    printf( "\n" );
 }
 
 void Dau_DecFindSetsTest3()
