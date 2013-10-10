@@ -1908,7 +1908,7 @@ int If_CutPerformCheck54( If_Man_t * p, unsigned * pTruth, int nVars, int nLeave
 If_Grp_t If_CluCheck3( If_Man_t * p, word * pTruth0, int nVars, int nLutLeaf, int nLutLeaf2, int nLutRoot, 
                       If_Grp_t * pR, If_Grp_t * pG2, word * pFunc0, word * pFunc1, word * pFunc2 )
 {
-    int fEnableHashing = 1;
+    int fEnableHashing = 0;
     static int Counter = 0;
     unsigned * pHashed = NULL;
     word pLeftOver[CLU_WRD_MAX], Func0, Func1, Func2;
