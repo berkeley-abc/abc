@@ -481,6 +481,8 @@ void Abc_TruthDecPerform( Abc_TtStore_t * p, int DecType, int fVerbose )
         pAlgoName = "DSD";
     else if ( DecType == 4 )
         pAlgoName = "fast DSD";
+    else if ( DecType == 5 )
+        pAlgoName = "analysis";
 
     if ( pAlgoName )
         printf( "Applying %-10s to %8d func%s of %2d vars...  ",  
@@ -558,6 +560,17 @@ void Abc_TruthDecPerform( Abc_TtStore_t * p, int DecType, int fVerbose )
             nNodes += Dau_DsdCountAnds( pDsd );
         }
     }
+    else if ( DecType == 5 )
+    {
+        for ( i = 0; i < p->nFuncs; i++ )
+        {
+            extern void Dau_DecTrySets( word * pInit, int nVars );
+            if ( fVerbose )
+                printf( "%7d :      ", i );
+            Dau_DecTrySets( p->pFuncs[i], p->nVars );
+            printf( "\n" );
+        }
+    }
     else assert( 0 );
 
     printf( "AIG nodes =%9d  ", nNodes );
@@ -608,7 +621,7 @@ int Abc_DecTest( char * pFileName, int DecType, int nVarNum, int fVerbose )
         printf( "Using truth tables from file \"%s\"...\n", pFileName );
     if ( DecType == 0 )
         { if ( nVarNum < 0 ) Abc_TtStoreTest( pFileName ); }
-    else if ( DecType >= 1 && DecType <= 4 )
+    else if ( DecType >= 1 && DecType <= 5 )
         Abc_TruthDecTest( pFileName, DecType, nVarNum, fVerbose );
     else
         printf( "Unknown decomposition type value (%d).\n", DecType );
