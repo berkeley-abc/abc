@@ -134,7 +134,7 @@ Sfm_Ntk_t * Abc_NtkExtractMfs( Abc_Ntk_t * pNtk, int nFirstFixed )
 //    for ( i = Abc_NtkCiNum(pNtk); i + Abc_NtkCoNum(pNtk) < Abc_NtkObjNum(pNtk); i++ )
 //        if ( rand() % 10 == 0 )
 //            Vec_StrWriteEntry( vFixed, i, (char)1 );
-    return Sfm_NtkConstruct( vFanins, Abc_NtkCiNum(pNtk), Abc_NtkCoNum(pNtk), vFixed, vTruths );
+    return Sfm_NtkConstruct( vFanins, Abc_NtkCiNum(pNtk), Abc_NtkCoNum(pNtk), vFixed, NULL, vTruths );
 }
 
 /**Function*************************************************************

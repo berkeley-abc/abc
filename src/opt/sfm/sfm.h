@@ -69,7 +69,7 @@ struct Sfm_Par_t_
 extern void         Sfm_ParSetDefault( Sfm_Par_t * pPars );
 extern int          Sfm_NtkPerform( Sfm_Ntk_t * p, Sfm_Par_t * pPars );
 /*=== sfmNtk.c ==========================================================*/
-extern Sfm_Ntk_t *  Sfm_NtkConstruct( Vec_Wec_t * vFanins, int nPis, int nPos, Vec_Str_t * vFixed, Vec_Wrd_t * vTruths );
+extern Sfm_Ntk_t *  Sfm_NtkConstruct( Vec_Wec_t * vFanins, int nPis, int nPos, Vec_Str_t * vFixed, Vec_Str_t * vEmpty, Vec_Wrd_t * vTruths );
 extern void         Sfm_NtkFree( Sfm_Ntk_t * p );
 extern Vec_Int_t *  Sfm_NodeReadFanins( Sfm_Ntk_t * p, int i );
 extern word *       Sfm_NodeReadTruth( Sfm_Ntk_t * p, int i );

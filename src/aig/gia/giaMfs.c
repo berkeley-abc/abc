@@ -247,7 +247,7 @@ Sfm_Ntk_t * Gia_ManExtractMfs( Gia_Man_t * p, Gia_Man_t * pBoxes, Vec_Int_t ** p
     Vec_IntFree( vPoNodes );
     Vec_WrdFree( vTruthsTemp );
     *pvId2Mfs = vId2Mfs;
-    return Sfm_NtkConstruct( vFanins, nPiNum, nPoNum, vFixed, vTruths );
+    return Sfm_NtkConstruct( vFanins, nPiNum, nPoNum, vFixed, NULL, vTruths );
 }
 
 /**Function*************************************************************
