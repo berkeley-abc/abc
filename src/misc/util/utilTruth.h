@@ -1146,17 +1146,18 @@ static inline int Abc_TtMinimumBase( word * t, int * pSupp, int nVarsAll, int * 
   SeeAlso     []
 
 ***********************************************************************/
-static inline int Abc_TtMinBase( word * pTruth, int * pVars, int nVars ) 
+static inline int Abc_TtMinBase( word * pTruth, int * pVars, int nVars, int nVarsAll ) 
 {
     int i, k;
+    assert( nVars <= nVarsAll );
     for ( i = k = 0; i < nVars; i++ )
     {
-        if ( !Abc_TtHasVar( pTruth, nVars, i ) )
+        if ( !Abc_TtHasVar( pTruth, nVarsAll, i ) )
             continue;
         if ( k < i )
         {
             pVars[k] = pVars[i];
-            Abc_TtSwapVars( pTruth, nVars, k, i );
+            Abc_TtSwapVars( pTruth, nVarsAll, k, i );
         }
         k++;
     }

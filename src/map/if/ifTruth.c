@@ -704,7 +704,7 @@ int If_CutComputeTruth3( If_Man_t * p, If_Cut_t * pCut, If_Cut_t * pCut0, If_Cut
     Abc_TtStretch( pTruth1, pCut->nLimit, pCut1->pLeaves, pCut1->nLeaves, pCut->pLeaves, pCut->nLeaves );
     fCompl         = (pTruth0[0] & pTruth1[0] & 1);
     Abc_TtAnd( pTruth, pTruth0, pTruth1, nWords, fCompl );
-    pCut->nLeaves  = Abc_TtMinBase( pTruth, pCut->pLeaves, pCut->nLeaves );
+    pCut->nLeaves  = Abc_TtMinBase( pTruth, pCut->pLeaves, pCut->nLeaves, pCut->nLimit );
     truthId        = Vec_MemHashInsert( p->vTtMem, pTruth );
     pCut->iDsd     = Abc_Var2Lit( truthId, fCompl );
     assert( (pTruth[0] & 1) == 0 );

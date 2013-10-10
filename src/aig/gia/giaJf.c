@@ -34,6 +34,7 @@ ABC_NAMESPACE_IMPL_START
 ////////////////////////////////////////////////////////////////////////
 
 #define JF_LEAF_MAX   8
+#define JF_WORD_MAX  ((JF_LEAF_MAX > 6) ? 1 << (JF_LEAF_MAX-6) : 1)
 #define JF_CUT_MAX   16
 
 typedef struct Jf_Cut_t_ Jf_Cut_t; 
@@ -331,11 +332,14 @@ Jf_Man_t * Jf_ManAlloc( Gia_Man_t * pGia, Jf_Par_t * pPars )
     p->pPars     = pPars;
     if ( pPars->fCutMin && !pPars->fFuncDsd )
     {
-        word uTruth; int Value;
-        p->vTtMem    = Vec_MemAlloc( 1, 12 ); // 32 KB/page for 6-var functions
+        word uTruth[JF_WORD_MAX]; 
+        int Value, nWords = Abc_Truth6WordNum(pPars->nLutSize);
+        p->vTtMem = Vec_MemAlloc( nWords, 12 ); // 32 KB/page for 6-var functions
         Vec_MemHashAlloc( p->vTtMem, 10000 );
-        uTruth = ABC_CONST(0x0000000000000000); Value = Vec_MemHashInsert( p->vTtMem, &uTruth ); assert( Value == 0 );
-        uTruth = ABC_CONST(0xAAAAAAAAAAAAAAAA); Value = Vec_MemHashInsert( p->vTtMem, &uTruth ); assert( Value == 1 );
+        memset( uTruth, 0x00, sizeof(word) * nWords );
+        Value = Vec_MemHashInsert( p->vTtMem, uTruth ); assert( Value == 0 );
+        memset( uTruth, 0xAA, sizeof(word) * nWords );
+        Value = Vec_MemHashInsert( p->vTtMem, uTruth ); assert( Value == 1 );
     }
     else if ( pPars->fCutMin && pPars->fFuncDsd )
     {
@@ -359,8 +363,10 @@ Jf_Man_t * Jf_ManAlloc( Gia_Man_t * pGia, Jf_Par_t * pPars )
 }
 void Jf_ManDumpTruthTables( Jf_Man_t * p )
 {
-    char * pFileName = "truths.txt";
-    FILE * pFile = fopen( pFileName, "wb" );
+    char pFileName[1000];
+    FILE * pFile;
+    sprintf( pFileName, "tt_%s_%02d.txt", Gia_ManName(p->pGia), p->pPars->nLutSize );
+    pFile = fopen( pFileName, "wb" );
     Vec_MemDump( pFile, p->vTtMem );
     fclose( pFile );
     printf( "Dumped %d %d-var truth tables into file \"%s\" (%.2f MB).\n", 
@@ -1037,19 +1043,21 @@ static inline void Jf_ObjCheckStore( Jf_Man_t * p, Jf_Cut_t ** pSto, int c, int 
 ***********************************************************************/
 int Jf_TtComputeForCut( Jf_Man_t * p, int iFuncLit0, int iFuncLit1, int * pCut0, int * pCut1, int * pCutOut )
 {
-    word uTruth; int fCompl, truthId;
+    word uTruth[JF_WORD_MAX], uTruth0[JF_WORD_MAX], uTruth1[JF_WORD_MAX];
+    int fCompl, truthId;
     int LutSize    = p->pPars->nLutSize;
+    int nWords     = Abc_Truth6WordNum(p->pPars->nLutSize);
     word * pTruth0 = Vec_MemReadEntry(p->vTtMem, Abc_Lit2Var(iFuncLit0));
     word * pTruth1 = Vec_MemReadEntry(p->vTtMem, Abc_Lit2Var(iFuncLit1));
-    word uTruth0   = Abc_LitIsCompl(iFuncLit0) ? ~*pTruth0 : *pTruth0;
-    word uTruth1   = Abc_LitIsCompl(iFuncLit1) ? ~*pTruth1 : *pTruth1;
-    Abc_TtStretch( &uTruth0, LutSize, pCut0 + 1, Jf_CutSize(pCut0), pCutOut + 1, Jf_CutSize(pCutOut) );
-    Abc_TtStretch( &uTruth1, LutSize, pCut1 + 1, Jf_CutSize(pCut1), pCutOut + 1, Jf_CutSize(pCutOut) );
-    Abc_TtAnd( &uTruth, &uTruth0, &uTruth1, Abc_TtWordNum(LutSize), 0 );
-    pCutOut[0]     = Abc_TtMinBase( &uTruth, pCutOut + 1, pCutOut[0] );
-    fCompl         = (uTruth & 1);
-    uTruth         = fCompl ? ~uTruth : uTruth;
-    truthId        = Vec_MemHashInsert(p->vTtMem, &uTruth);
+    Abc_TtCopy( uTruth0, pTruth0, nWords, Abc_LitIsCompl(iFuncLit0) );
+    Abc_TtCopy( uTruth1, pTruth1, nWords, Abc_LitIsCompl(iFuncLit1) );
+    Abc_TtStretch( uTruth0, LutSize, pCut0 + 1, Jf_CutSize(pCut0), pCutOut + 1, Jf_CutSize(pCutOut) );
+    Abc_TtStretch( uTruth1, LutSize, pCut1 + 1, Jf_CutSize(pCut1), pCutOut + 1, Jf_CutSize(pCutOut) );
+    fCompl         = (int)(uTruth0[0] & uTruth1[0] & 1);
+    Abc_TtAnd( uTruth, uTruth0, uTruth1, nWords, fCompl );
+    pCutOut[0]     = Abc_TtMinBase( uTruth, pCutOut + 1, pCutOut[0], LutSize );
+    assert( (uTruth[0] & 1) == 0 );
+    truthId        = Vec_MemHashInsert(p->vTtMem, uTruth);
     return Abc_Var2Lit( truthId, fCompl );
 }
 
@@ -1195,7 +1203,6 @@ void Jf_ObjComputeCuts( Jf_Man_t * p, Gia_Obj_t * pObj, int fEdge )
     Vec_IntPush( p->vTemp, c );
     for ( i = 0; i < c; i++ )
     {
-        assert( !p->pPars->fCutMin || pSto[i]->pCut[0] <= 6 );
         pSto[i]->Cost = p->pPars->fGenCnf ? Jf_CutCnfSizeF(p, Abc_Lit2Var(pSto[i]->iFunc)) : 1;
         Vec_IntPush( p->vTemp, Jf_CutSetAll(pSto[i]->iFunc, pSto[i]->Cost, pSto[i]->pCut[0]) );
         for ( k = 1; k <= pSto[i]->pCut[0]; k++ )
@@ -1406,7 +1413,7 @@ Gia_Man_t * Jf_ManDeriveMappingGia( Jf_Man_t * p )
     Vec_Int_t * vLeaves   = Vec_IntAlloc( 16 );
     Vec_Int_t * vLits = NULL, * vClas = NULL;
     int i, k, iLit, Class, * pCut;
-    word uTruth;
+    word uTruth = 0, * pTruth = &uTruth;
     assert( p->pPars->fCutMin );
     if ( p->pPars->fGenCnf )
     {
@@ -1431,8 +1438,6 @@ Gia_Man_t * Jf_ManDeriveMappingGia( Jf_Man_t * p )
         pCut = Jf_ObjCutBest( p, i );
 //        printf( "Best cut of node %d:  ", i );  Jf_CutPrint(pCut);
         Class = Jf_CutFuncClass( pCut );
-        uTruth = p->pPars->fFuncDsd ? Sdm_ManReadDsdTruth(p->pDsd, Class) : *Vec_MemReadEntry(p->vTtMem, Class);
-        assert( p->pDsd == NULL || Sdm_ManReadDsdVarNum(p->pDsd, Class) == Jf_CutSize(pCut) );
         if ( Jf_CutSize(pCut) == 0 )
         {
             assert( Class == 0 );
@@ -1447,12 +1452,17 @@ Gia_Man_t * Jf_ManDeriveMappingGia( Jf_Man_t * p )
             Vec_IntWriteEntry( vCopies, i, iLit );
             continue;
         }
+        if ( p->pPars->fFuncDsd )
+            uTruth = Sdm_ManReadDsdTruth(p->pDsd, Class);
+        else
+            pTruth = Vec_MemReadEntry(p->vTtMem, Class);
+        assert( p->pDsd == NULL || Sdm_ManReadDsdVarNum(p->pDsd, Class) == Jf_CutSize(pCut) );
         // collect leaves
         Vec_IntClear( vLeaves );
         Jf_CutForEachLit( pCut, iLit, k )
             Vec_IntPush( vLeaves, Abc_Lit2LitL(Vec_IntArray(vCopies), iLit) );
         // create GIA
-        iLit = Kit_TruthToGia( pNew, (unsigned *)&uTruth, Vec_IntSize(vLeaves), vCover, vLeaves, 0 );
+        iLit = Kit_TruthToGia( pNew, (unsigned *)pTruth, Vec_IntSize(vLeaves), vCover, vLeaves, 0 );
         iLit = Abc_LitNotCond( iLit, Jf_CutFuncCompl(pCut) );
         Vec_IntWriteEntry( vCopies, i, iLit );
         if ( p->pPars->fGenCnf )
@@ -1544,7 +1554,8 @@ Gia_Man_t * Jf_ManDeriveGia( Jf_Man_t * p )
     Vec_Int_t * vCover    = Vec_IntAlloc( 1 << 16 );
     Vec_Int_t * vLeaves   = Vec_IntAlloc( 16 );
     int i, k, iLit, Class, * pCut;
-    word * pTruth, uTruth = 0;
+    int nWords = Abc_Truth6WordNum(p->pPars->nLutSize);
+    word uTruth = 0, * pTruth = &uTruth, Truth[JF_WORD_MAX];
     // create new manager
     pNew = Gia_ManStart( Gia_ManObjNum(p->pGia) );
     pNew->pName = Abc_UtilStrsav( p->pGia->pName );
@@ -1567,8 +1578,6 @@ Gia_Man_t * Jf_ManDeriveGia( Jf_Man_t * p )
         if ( p->pPars->fCutMin )
         {
             Class = Jf_CutFuncClass( pCut );
-            uTruth = p->pPars->fFuncDsd ? Sdm_ManReadDsdTruth(p->pDsd, Class) : *Vec_MemReadEntry(p->vTtMem, Class);
-            assert( p->pDsd == NULL || Sdm_ManReadDsdVarNum(p->pDsd, Class) == Jf_CutSize(pCut) );
             if ( Jf_CutSize(pCut) == 0 )
             {
                 assert( Class == 0 );
@@ -1583,7 +1592,11 @@ Gia_Man_t * Jf_ManDeriveGia( Jf_Man_t * p )
                 Vec_IntWriteEntry( vCopies, i, iLit );
                 continue;
             }
-            pTruth = &uTruth;
+            if ( p->pPars->fFuncDsd )
+                uTruth = Sdm_ManReadDsdTruth(p->pDsd, Class);
+            else
+                Abc_TtCopy( (pTruth = Truth), Vec_MemReadEntry(p->vTtMem, Class), nWords, 0 );
+            assert( p->pDsd == NULL || Sdm_ManReadDsdVarNum(p->pDsd, Class) == Jf_CutSize(pCut) );
         }
         else
         {
@@ -1671,7 +1684,7 @@ Gia_Man_t * Jf_ManPerformMapping( Gia_Man_t * pGia, Jf_Par_t * pPars )
 {
     Gia_Man_t * pNew = pGia;
     Jf_Man_t * p; int i;
-    assert( !pPars->fCutMin || pPars->nLutSize <= 6 );
+    assert( !pPars->fCutMin || !pPars->fFuncDsd || pPars->nLutSize <= 6 );
     if ( pPars->fGenCnf )
         pPars->fCutMin = 1, pPars->fFuncDsd = 1, pPars->fOptEdge = 0;
     if ( pPars->fCutMin && !pPars->fFuncDsd )
