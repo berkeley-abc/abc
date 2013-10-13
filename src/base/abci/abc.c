@@ -988,12 +988,12 @@ void Abc_Init( Abc_Frame_t * pAbc )
         Dar_LibStart();
     }
     {
-        extern void Dau_DsdTest();
-        Dau_DsdTest();
+//        extern void Dau_DsdTest();
+//        Dau_DsdTest();
     }
 
-    if ( Sdm_ManCanRead() )
-        Sdm_ManRead();
+//    if ( Sdm_ManCanRead() )
+//        Sdm_ManRead();
 }
 
 /**Function*************************************************************

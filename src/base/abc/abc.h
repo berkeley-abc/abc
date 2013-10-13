@@ -442,6 +442,9 @@ static inline void        Abc_ObjSetMvVar( Abc_Obj_t * pObj, void * pV) { Vec_At
 #define Abc_NtkForEachObj( pNtk, pObj, i )                                                         \
     for ( i = 0; (i < Vec_PtrSize((pNtk)->vObjs)) && (((pObj) = Abc_NtkObj(pNtk, i)), 1); i++ )    \
         if ( (pObj) == NULL ) {} else
+#define Abc_NtkForEachObjReverse( pNtk, pNode, i )                                                 \
+    for ( i = Vec_PtrSize((pNtk)->vObjs) - 1; (i >= 0) && (((pNode) = Abc_NtkObj(pNtk, i)), 1); i-- ) \
+        if ( (pNode) == NULL ) {} else
 #define Abc_NtkForEachObjVec( vIds, pNtk, pObj, i )                                                \
     for ( i = 0; i < Vec_IntSize(vIds) && (((pObj) = Abc_NtkObj(pNtk, Vec_IntEntry(vIds,i))), 1); i++ ) \
         if ( (pObj) == NULL ) {} else
@@ -460,7 +463,7 @@ static inline void        Abc_ObjSetMvVar( Abc_Obj_t * pObj, void * pV) { Vec_At
 #define Abc_NtkForEachNodeReverse( pNtk, pNode, i )                                                \
     for ( i = Vec_PtrSize((pNtk)->vObjs) - 1; (i >= 0) && (((pNode) = Abc_NtkObj(pNtk, i)), 1); i-- ) \
         if ( (pNode) == NULL || !Abc_ObjIsNode(pNode) ) {} else
-#define Abc_NtkForEachNodeReverse1( pNtk, pNode, i )                                                \
+#define Abc_NtkForEachNodeReverse1( pNtk, pNode, i )                                               \
     for ( i = Vec_PtrSize((pNtk)->vObjs) - 1; (i >= 0) && (((pNode) = Abc_NtkObj(pNtk, i)), 1); i-- ) \
         if ( (pNode) == NULL || !Abc_ObjIsNode(pNode) || !Abc_ObjFaninNum(pNode) ) {} else
 #define Abc_NtkForEachGate( pNtk, pNode, i )                                                       \

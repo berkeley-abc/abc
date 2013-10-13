@@ -946,11 +946,11 @@ int Scl_CommandBufSize( Abc_Frame_t * pAbc, int argc, char ** argv )
     Abc_Ntk_t * pNtkRes, * pNtk = Abc_FrameReadNtk(pAbc);
     int c;
     memset( pPars, 0, sizeof(SC_BusPars) );
-    pPars->GainRatio     =  200;
+    pPars->GainRatio     = 1000;
     pPars->Slew          =  100;
-    pPars->nDegree       =    8;
+    pPars->nDegree       =   10;
     pPars->fSizeOnly     =    0;
-    pPars->fAddBufs      =    0;
+    pPars->fAddBufs      =    1;
     pPars->fBufPis       =    0;
     pPars->fUseWireLoads =    1;
     pPars->fVerbose      =    0;
