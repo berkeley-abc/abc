@@ -14448,8 +14448,8 @@ int Abc_CommandMap( Abc_Frame_t * pAbc, int argc, char ** argv )
     double AreaMulti;
     double DelayMulti;
     float LogFan = 0;
-    float Slew = 200;
-    float Gain = 100;
+    float Slew = 0; // choose based on the library
+    float Gain = 200;
     int nGatesMin = 4;
     int fAreaOnly;
     int fRecovery;

@@ -280,6 +280,30 @@ SC_WireLoad * Abc_SclFindWireLoadModel( SC_Lib * p, float Area )
 
 /**Function*************************************************************
 
+  Synopsis    [Returns "average" slew.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+float Abc_SclComputeAverageSlew( SC_Lib * p )
+{
+    SC_Cell * pCell;
+    SC_Timing * pTime;
+    Vec_Flt_t * vIndex;
+    pCell = Abc_SclFindInvertor(p, 0);
+    if ( pCell == NULL )
+        return 0;
+    pTime = Scl_CellPinTime( pCell, 0 );
+    vIndex = pTime->pCellRise->vIndex0; // slew
+    return Vec_FltEntry( vIndex, Vec_FltSize(vIndex)/3 );
+}
+
+/**Function*************************************************************
+
   Synopsis    [Compute delay parameters of pin/cell/class.]
 
   Description []
@@ -437,18 +461,19 @@ void Abc_SclMarkSkippedCells( SC_Lib * p )
     fclose( pFile );
     printf( "Marked %d cells for skipping in the library \"%s\".\n", nSkipped, p->pName );
 }
-void Abc_SclPrintCells( SC_Lib * p, float Slew, float Gain, int fInvOnly, int fShort )
+void Abc_SclPrintCells( SC_Lib * p, float SlewInit, float Gain, int fInvOnly, int fShort )
 {
     SC_Cell * pCell, * pRepr;
     SC_Pin * pPin;
     int i, j, k, nLength = 0;
+    float Slew = (SlewInit == 0) ? Abc_SclComputeAverageSlew(p) : SlewInit;
     float LD = 0, PD = 0;
     assert( Vec_PtrSize(p->vCellClasses) > 0 );
     printf( "Library \"%s\" ", p->pName );
     printf( "has %d cells in %d classes.  ", 
         Vec_PtrSize(p->vCells), Vec_PtrSize(p->vCellClasses) );
     if ( !fShort )
-        printf( "Delay estimate is based on slew %.2f and gain %.2f.", Slew, Gain );
+        printf( "Delay estimate is based on slew %.2f ps and gain %.2f.", Slew, Gain );
     printf( "\n" );
     Abc_SclMarkSkippedCells( p );
     // find the longest name
@@ -628,7 +653,7 @@ Mio_Library_t * Abc_SclDeriveGenlibSimple( void * pScl )
     Mio_Library_t * pLib = Mio_LibraryRead( p->pFileName, Vec_StrArray(vStr), NULL, 0 );  
     Vec_StrFree( vStr );
     if ( pLib )
-        printf( "Internally derived GENLIB library \"%s\" with %d gates.\n", p->pName, SC_LibCellNum(p) );
+        printf( "Derived GENLIB library \"%s\" with %d gates.\n", p->pName, SC_LibCellNum(p) );
     else
         printf( "Reading library has filed.\n" );
     return pLib;
@@ -706,10 +731,11 @@ Vec_Str_t * Abc_SclProduceGenlibStr( SC_Lib * p, float Slew, float Gain, int nGa
         *pnCellCount = Count;
     return vStr;
 }
-void Abc_SclDumpGenlib( char * pFileName, SC_Lib * p, float Slew, float Gain, int nGatesMin )
+void Abc_SclDumpGenlib( char * pFileName, SC_Lib * p, float SlewInit, float Gain, int nGatesMin )
 {
     int nCellCount = 0;
     char FileName[1000];
+    float Slew = (SlewInit == 0) ? Abc_SclComputeAverageSlew(p) : SlewInit;
     Vec_Str_t * vStr;
     FILE * pFile;
     if ( pFileName == NULL )
@@ -728,17 +754,18 @@ void Abc_SclDumpGenlib( char * pFileName, SC_Lib * p, float Slew, float Gain, in
     fclose( pFile );
     printf( "Written GENLIB library with %d gates into file \"%s\".\n", nCellCount, FileName );
 }
-Mio_Library_t * Abc_SclDeriveGenlib( void * pScl, float Slew, float Gain, int nGatesMin )
+Mio_Library_t * Abc_SclDeriveGenlib( void * pScl, float SlewInit, float Gain, int nGatesMin, int fVerbose )
 {
     int nCellCount = 0;
     SC_Lib * p = (SC_Lib *)pScl;
+    float Slew = (SlewInit == 0) ? Abc_SclComputeAverageSlew(p) : SlewInit;
     Vec_Str_t * vStr = Abc_SclProduceGenlibStr( p, Slew, Gain, nGatesMin, &nCellCount );
     Mio_Library_t * pLib = Mio_LibraryRead( p->pFileName, Vec_StrArray(vStr), NULL, 0 );  
     Vec_StrFree( vStr );
-    if ( pLib )
-        printf( "Internally derived GENLIB library \"%s\" with %d gates.\n", p->pName, nCellCount );
-    else
+    if ( !pLib )
         printf( "Reading library has filed.\n" );
+    else if ( fVerbose )
+        printf( "Derived GENLIB library \"%s\" with %d gates using slew %.2f ps and gain %.2f.\n", p->pName, nCellCount, Slew, Gain );
     return pLib;
 }
 
@@ -753,10 +780,11 @@ Mio_Library_t * Abc_SclDeriveGenlib( void * pScl, float Slew, float Gain, int nG
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_SclInstallGenlib( void * pScl, float Slew, float Gain, int nGatesMin )
+void Abc_SclInstallGenlib( void * pScl, float SlewInit, float Gain, int nGatesMin )
 {
     SC_Lib * p = (SC_Lib *)pScl;
     Vec_Str_t * vStr, * vStr2;
+    float Slew = (SlewInit == 0) ? Abc_SclComputeAverageSlew(p) : SlewInit;
     int RetValue, nGateCount = SC_LibCellNum(p);
     if ( Gain == 0 )
         vStr = Abc_SclProduceGenlibStrSimple(p);
@@ -766,10 +794,12 @@ void Abc_SclInstallGenlib( void * pScl, float Slew, float Gain, int nGatesMin )
     RetValue = Mio_UpdateGenlib2( vStr, vStr2, p->pName, 0 );
     Vec_StrFree( vStr );
     Vec_StrFree( vStr2 );
-    if ( RetValue )
-        printf( "Internally derived GENLIB library \"%s\" with %d gates.\n", p->pName, nGateCount );
-    else
+    if ( !RetValue )
         printf( "Reading library has filed.\n" );
+    else if ( Gain != 0 )
+        printf( "Derived GENLIB library \"%s\" with %d gates using slew %.2f ps and gain %.2f.\n", p->pName, nGateCount, Slew, Gain );
+//    else
+//        printf( "Derived unit-delay GENLIB library \"%s\" with %d gates.\n", p->pName, nGateCount );
 }
 
 ////////////////////////////////////////////////////////////////////////

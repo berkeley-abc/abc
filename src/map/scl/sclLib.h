@@ -610,6 +610,7 @@ extern SC_Cell *     Abc_SclFindInvertor( SC_Lib * p, int fFindBuff );
 extern SC_Cell *     Abc_SclFindSmallestGate( SC_Cell * p, float CinMin );
 extern SC_WireLoad * Abc_SclFindWireLoadModel( SC_Lib * p, float Area );
 extern SC_WireLoad * Abc_SclFetchWireLoadModel( SC_Lib * p, char * pName );
+extern float         Abc_SclComputeAverageSlew( SC_Lib * p );
 extern void          Abc_SclDumpGenlib( char * pFileName, SC_Lib * p, float Slew, float Gain, int nGatesMin );
 extern void          Abc_SclInstallGenlib( void * pScl, float Slew, float Gain, int nGatesMin );
 

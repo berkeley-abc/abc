@@ -394,7 +394,6 @@ void Abc_SclBufSize( Bus_Man_t * p )
     float GainGate = (float)1.0 * GainInv;
     float Load, LoadNew, Cin, DeptMax = 0;
     int i, k, nObjOld = Abc_NtkObjNumMax(p->pNtk);
-    Abc_SclMioGates2SclGates( p->pLib, p->pNtk );
     Abc_NtkForEachObjReverse( p->pNtk, pObj, i )
     {
         if ( !((Abc_ObjIsNode(pObj) && Abc_ObjFaninNum(pObj) > 0) || (Abc_ObjIsCi(pObj) && p->pPiDrive)) )
@@ -470,26 +469,30 @@ void Abc_SclBufSize( Bus_Man_t * p )
         }       
         DeptMax = Abc_MaxFloat( DeptMax, DeptCur );
     }
-    Abc_SclSclGates2MioGates( p->pLib, p->pNtk );
     if ( p->pPars->fVerbose )
     {
-        printf( "WireLoads = %d. Degree = %d.  Target gain =%5d  Slew =%5d   Buf = %6d  Delay =%7.0f ps   ", 
-            p->pPars->fUseWireLoads, p->pPars->nDegree, p->pPars->GainRatio, p->pPars->Slew, 
+        printf( "WireLoads = %d  Degree = %d  Target slew =%4d ps   Gain2 =%5d  Buf = %6d  Delay =%7.0f ps   ", 
+            p->pPars->fUseWireLoads, p->pPars->nDegree, p->pPars->Slew, p->pPars->GainRatio, 
             Abc_NtkObjNumMax(p->pNtk) - nObjOld, DeptMax );
         Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     }
 }
-Abc_Ntk_t * Abc_SclBufSizePerform( Abc_Ntk_t * pNtk, SC_Lib * pLib, SC_BusPars * pPars )
+Abc_Ntk_t * Abc_SclBufferingPerform( Abc_Ntk_t * pNtk, SC_Lib * pLib, SC_BusPars * pPars )
 {
     Abc_Ntk_t * pNtkNew;
     Bus_Man_t * p;
     if ( !Abc_SclCheckNtk( pNtk, 0 ) )
         return NULL;
+    // update gain if buffers are used
+    if ( pPars->fAddBufs )
+        pPars->GainRatio = pPars->GainRatio * pPars->GainRatio / 100;
     Abc_SclReportDupFanins( pNtk );
+    Abc_SclMioGates2SclGates( pLib, pNtk );
     p = Bus_ManStart( pNtk, pLib, pPars );
     Bus_ManReadInOutLoads( p );
     Abc_SclBufSize( p );
     Bus_ManStop( p );
+    Abc_SclSclGates2MioGates( pLib, pNtk );
     if ( pNtk->vPhases )
         Vec_IntFillExtra( pNtk->vPhases, Abc_NtkObjNumMax(pNtk), 0 );
     pNtkNew = Abc_NtkDupDfs( pNtk );

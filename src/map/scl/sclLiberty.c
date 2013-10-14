@@ -1333,6 +1333,7 @@ SC_Lib * Abc_SclReadLiberty( char * pFileName, int fVerbose, int fVeryVerbose )
     pLib->pFileName = Abc_UtilStrsav( pFileName );
     Abc_SclLibNormalize( pLib );
     Vec_StrFree( vStr );
+//    printf( "Average slew = %.2f ps\n", Abc_SclComputeAverageSlew(pLib) );
     return pLib;
 }
 

@@ -309,8 +309,8 @@ int Abc_SclFindBestCell( SC_Man * p, Abc_Obj_t * pObj, Vec_Int_t * vRecalcs, Vec
         }
         else if ( NoChange )
             NoChange++;
-//        if ( NoChange == 4 )
-//            break;
+        if ( NoChange == 4 )
+            break;
 //        printf( "%.2f ", dGain );
     }
 //    printf( "Best = %.2f   ", dGainBest );

@@ -73,7 +73,7 @@ Abc_Ntk_t * Abc_NtkMap( Abc_Ntk_t * pNtk, double DelayTarget, double AreaMulti, 
     // if the library is created here, it will be deleted when pSuperLib is deleted in Map_SuperLibFree()
     if ( Abc_FrameReadLibScl() )
     {
-        pLib = Abc_SclDeriveGenlib( Abc_FrameReadLibScl(), Slew, Gain, nGatesMin );
+        pLib = Abc_SclDeriveGenlib( Abc_FrameReadLibScl(), Slew, Gain, nGatesMin, fVerbose );
         if ( Abc_FrameReadLibGen() )
             Mio_LibraryTransferDelays( (Mio_Library_t *)Abc_FrameReadLibGen(), pLib );
     }
@@ -111,7 +111,7 @@ Abc_Ntk_t * Abc_NtkMap( Abc_Ntk_t * pNtk, double DelayTarget, double AreaMulti, 
         Mio_LibraryMultiDelay( (Mio_Library_t *)Abc_FrameReadLibGen(), -DelayMulti );
 
     // print a warning about choice nodes
-    if ( Abc_NtkGetChoiceNum( pNtk ) )
+    if ( fVerbose && Abc_NtkGetChoiceNum( pNtk ) )
         printf( "Performing mapping with choices.\n" );
 
     // compute switching activity

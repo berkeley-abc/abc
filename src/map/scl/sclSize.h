@@ -532,14 +532,14 @@ static inline void Abc_SclDumpStats( SC_Man * p, char * pFileName, abctime Time 
         fprintf( pTable, "%.1f ", 100.0 * Abc_NtkNodeNum(p->pNtk) / nNodesOld );
         fprintf( pTable, "%.1f ", 100.0 * (int)p->SumArea         / nAreaOld  );
         fprintf( pTable, "%.1f ", 100.0 * (int)p->ReportDelay     / nDelayOld );
-        fprintf( pTable, "%.2f", 1.0*(Abc_Clock() - clk)/CLOCKS_PER_SEC );
+        fprintf( pTable, "%.2f",  1.0*(Abc_Clock() - clk)/CLOCKS_PER_SEC );
     }
     fclose( pTable );
 }
 
-/*=== sclBufSize.c ===============================================================*/
-extern Abc_Ntk_t *   Abc_SclBufSizePerform( Abc_Ntk_t * pNtk, SC_Lib * pLib, SC_BusPars * pPars );
 /*=== sclBuffer.c ===============================================================*/
+extern Abc_Ntk_t *   Abc_SclBufferingPerform( Abc_Ntk_t * pNtk, SC_Lib * pLib, SC_BusPars * pPars );
+/*=== sclBufferOld.c ===============================================================*/
 extern int           Abc_SclIsInv( Abc_Obj_t * pObj );
 extern void          Abc_NodeInvUpdateFanPolarity( Abc_Obj_t * pObj );
 extern void          Abc_NodeInvUpdateObjFanoutPolarity( Abc_Obj_t * pObj, Abc_Obj_t * pFanout );
