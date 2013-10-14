@@ -115,7 +115,7 @@ clk = Abc_Clock();
     Abc_SclLoadStore( p, pObj );
     // try different gate sizes for this node
     gateBest = -1;
-    dGainBest = -SC_LibTimeFromPs(p->pLib, (float)DelayGap);
+    dGainBest = -DelayGap;
     SC_RingForEachCellRev( pCellOld, pCellNew, i )
     {
         if ( pCellNew->area >= pCellOld->area )
@@ -224,7 +224,7 @@ void Abc_SclDnsizePrint( SC_Man * p, int Iter, int nAttempts, int nOverlaps, int
     printf( "%.2f ",         p->SumArea );
     printf( "(%+5.1f %%)  ", 100.0 * (p->SumArea - p->SumArea0)/ p->SumArea0 );
     printf( "D: " );
-    printf( "%.2f ps ",      SC_LibTimePs(p->pLib, p->MaxDelay) );
+    printf( "%.2f ps ",      p->MaxDelay );
     printf( "(%+5.1f %%)  ", 100.0 * (p->MaxDelay - p->MaxDelay0)/ p->MaxDelay0 );
     printf( "%8.2f sec    ", 1.0*(Abc_Clock() - p->timeTotal)/(CLOCKS_PER_SEC) );
     printf( "%c", fVerbose ? '\n' : '\r' );
@@ -262,7 +262,7 @@ void Abc_SclDnsizePerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, SC_SizePars * pPars 
     }
 
     // prepare the manager; collect init stats
-    p = Abc_SclManStart( pLib, pNtk, pPars->fUseWireLoads, pPars->fUseDept, SC_LibTimeFromPs(pLib, pPars->DelayUser), pPars->BuffTreeEst );
+    p = Abc_SclManStart( pLib, pNtk, pPars->fUseWireLoads, pPars->fUseDept, pPars->DelayUser, pPars->BuffTreeEst );
     p->timeTotal  = Abc_Clock();
     assert( p->vGatesBest == NULL );
     p->vGatesBest = Vec_IntDup( p->pNtk->vGates );

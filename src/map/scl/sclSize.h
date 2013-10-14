@@ -124,10 +124,10 @@ static inline void      Abc_SclObjDupFanin( SC_Man * p, Abc_Obj_t * pObj )      
 static inline float     Abc_SclObjInDrive( SC_Man * p, Abc_Obj_t * pObj )           { return Vec_FltEntry( p->vInDrive, pObj->iData );                                    }
 static inline void      Abc_SclObjSetInDrive( SC_Man * p, Abc_Obj_t * pObj, float c){ Vec_FltWriteEntry( p->vInDrive, pObj->iData, c );                                   }
 
-static inline double    Abc_SclObjLoadFf( SC_Man * p, Abc_Obj_t * pObj, int fRise ) { return SC_LibCapFf( p->pLib, fRise ? Abc_SclObjLoad(p, pObj)->rise : Abc_SclObjLoad(p, pObj)->fall); }
-static inline double    Abc_SclObjTimePs( SC_Man * p, Abc_Obj_t * pObj, int fRise ) { return SC_LibTimePs(p->pLib, fRise ? Abc_SclObjTime(p, pObj)->rise : Abc_SclObjTime(p, pObj)->fall); }
-static inline double    Abc_SclObjSlewPs( SC_Man * p, Abc_Obj_t * pObj, int fRise ) { return SC_LibTimePs(p->pLib, fRise ? Abc_SclObjSlew(p, pObj)->rise : Abc_SclObjSlew(p, pObj)->fall); }
-static inline double    Abc_SclObjSlackPs( SC_Man * p, Abc_Obj_t * pObj, float D )  { return SC_LibTimePs(p->pLib, Abc_SclObjGetSlack(p, pObj, D));                       }
+static inline double    Abc_SclObjLoadFf( SC_Man * p, Abc_Obj_t * pObj, int fRise ) { return fRise ? Abc_SclObjLoad(p, pObj)->rise : Abc_SclObjLoad(p, pObj)->fall;       }
+static inline double    Abc_SclObjTimePs( SC_Man * p, Abc_Obj_t * pObj, int fRise ) { return fRise ? Abc_SclObjTime(p, pObj)->rise : Abc_SclObjTime(p, pObj)->fall;       }
+static inline double    Abc_SclObjSlewPs( SC_Man * p, Abc_Obj_t * pObj, int fRise ) { return fRise ? Abc_SclObjSlew(p, pObj)->rise : Abc_SclObjSlew(p, pObj)->fall;       }
+static inline double    Abc_SclObjSlackPs( SC_Man * p, Abc_Obj_t * pObj, float D )  { return Abc_SclObjGetSlack(p, pObj, D);                                              }
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -149,6 +149,8 @@ static inline SC_Man * Abc_SclManAlloc( SC_Lib * pLib, Abc_Ntk_t * pNtk )
     SC_Man * p;
     Abc_Obj_t * pObj;
     int i;
+    assert( pLib->unit_time == 12 );
+    assert( pLib->unit_cap_snd == 15 );
     assert( Abc_NtkHasMapping(pNtk) );
     p = ABC_CALLOC( SC_Man, 1 );
     p->pLib      = pLib;

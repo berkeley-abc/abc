@@ -327,7 +327,7 @@ void Abc_SclOneNodePrint( Bus_Man_t * p, Abc_Obj_t * pObj )
     printf( "%12s ",            pCell->pName );
     printf( "(%2d/%2d)  ",      pCell->Order, pCell->nGates );
     printf( "gain =%5d  ",      (int)(100.0 * Bus_SclObjLoad(pObj) / SC_CellPinCapAve(pCell)) );
-    printf( "dept =%7.0f ps  ", SC_LibTimePs(p->pLib, Bus_SclObjDept(pObj)) );
+    printf( "dept =%7.0f ps  ", Bus_SclObjDept(pObj) );
     printf( "\n" );
 }
 Abc_Obj_t * Abc_SclAddOneInv( Bus_Man_t * p, Abc_Obj_t * pObj, Vec_Ptr_t * vFanouts, float Gain )
@@ -475,7 +475,7 @@ void Abc_SclBufSize( Bus_Man_t * p )
     {
         printf( "WireLoads = %d. Degree = %d.  Target gain =%5d  Slew =%5d   Buf = %6d  Delay =%7.0f ps   ", 
             p->pPars->fUseWireLoads, p->pPars->nDegree, p->pPars->GainRatio, p->pPars->Slew, 
-            Abc_NtkObjNumMax(p->pNtk) - nObjOld, SC_LibTimePs(p->pLib, DeptMax) );
+            Abc_NtkObjNumMax(p->pNtk) - nObjOld, DeptMax );
         Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     }
 }

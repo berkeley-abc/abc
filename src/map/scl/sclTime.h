@@ -96,9 +96,9 @@ static inline void      Scl_ObjDupFanin( SC_Time * p, int i, int iFanin )     { 
 static inline float     Scl_ObjGain( SC_Time * p, int i )                     { return 0.5*((Scl_ObjTime2(p, i)->rise - Scl_ObjTime(p, i)->rise) + (Scl_ObjTime2(p, i)->fall - Scl_ObjTime(p, i)->fall)); }
 static inline int       Scl_ObjLegal( SC_Time * p, int i, float D )           { return Scl_ObjTime(p, i)->rise <= Scl_ObjTime2(p, i)->rise + Scl_ObjGetSlackR(p, i, D) && Scl_ObjTime(p, i)->fall <= Scl_ObjTime2(p, i)->fall + Scl_ObjGetSlackF(p, i, D); }
 
-static inline double    Scl_ObjLoadFf( SC_Time * p, int i, int fRise )        { return SC_LibCapFf( p->pLib, fRise ? Scl_ObjLoad(p, i)->rise : Scl_ObjLoad(p, i)->fall); }
-static inline double    Scl_ObjTimePs( SC_Time * p, int i, int fRise )        { return SC_LibTimePs(p->pLib, fRise ? Scl_ObjTime(p, i)->rise : Scl_ObjTime(p, i)->fall); }
-static inline double    Scl_ObjSlewPs( SC_Time * p, int i, int fRise )        { return SC_LibTimePs(p->pLib, fRise ? Scl_ObjSlew(p, i)->rise : Scl_ObjSlew(p, i)->fall); }
+static inline double    Scl_ObjLoadFf( SC_Time * p, int i, int fRise )        { return fRise ? Scl_ObjLoad(p, i)->rise : Scl_ObjLoad(p, i)->fall; }
+static inline double    Scl_ObjTimePs( SC_Time * p, int i, int fRise )        { return fRise ? Scl_ObjTime(p, i)->rise : Scl_ObjTime(p, i)->fall; }
+static inline double    Scl_ObjSlewPs( SC_Time * p, int i, int fRise )        { return fRise ? Scl_ObjSlew(p, i)->rise : Scl_ObjSlew(p, i)->fall; }
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///

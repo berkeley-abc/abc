@@ -284,7 +284,7 @@ int Abc_SclFindBestCell( SC_Man * p, Abc_Obj_t * pObj, Vec_Int_t * vRecalcs, Vec
     Abc_SclLoadStore( p, pObj );
     // try different gate sizes for this node
     gateBest = -1;
-    dGainBest = -SC_LibTimeFromPs(p->pLib, DelayGap);
+    dGainBest = -DelayGap;
     SC_RingForEachCell( pCellOld, pCellNew, k )
     {
         if ( pCellNew == pCellOld )
@@ -765,19 +765,19 @@ void Abc_SclUpsizePrintDiffs( SC_Man * p, SC_Lib * pLib, Abc_Ntk_t * pNtk )
     Abc_NtkForEachNode( pNtk, pObj, k )
     {
         if ( Abc_AbsFloat(p->pLoads[k].rise - pLoads[k].rise) > fDiff )
-            printf( "%6d : load rise differs %12.6f   %f %f\n", k, SC_LibCapFf(pLib, p->pLoads[k].rise)-SC_LibCapFf(pLib, pLoads[k].rise), SC_LibCapFf(pLib, p->pLoads[k].rise), SC_LibCapFf(pLib, pLoads[k].rise) );
+            printf( "%6d : load rise differs %12.6f   %f %f\n", k, p->pLoads[k].rise-pLoads[k].rise, p->pLoads[k].rise, pLoads[k].rise );
         if ( Abc_AbsFloat(p->pLoads[k].fall - pLoads[k].fall) > fDiff )
-            printf( "%6d : load fall differs %12.6f   %f %f\n", k, SC_LibCapFf(pLib, p->pLoads[k].fall)-SC_LibCapFf(pLib, pLoads[k].fall), SC_LibCapFf(pLib, p->pLoads[k].fall), SC_LibCapFf(pLib, pLoads[k].fall) );
+            printf( "%6d : load fall differs %12.6f   %f %f\n", k, p->pLoads[k].fall-pLoads[k].fall, p->pLoads[k].fall, pLoads[k].fall );
 
         if ( Abc_AbsFloat(p->pSlews[k].rise - pSlews[k].rise) > fDiff )
-            printf( "%6d : slew rise differs %12.6f   %f %f\n", k, SC_LibTimePs(pLib, p->pSlews[k].rise)-SC_LibTimePs(pLib, pSlews[k].rise), SC_LibTimePs(pLib, p->pSlews[k].rise), SC_LibTimePs(pLib, pSlews[k].rise) );
+            printf( "%6d : slew rise differs %12.6f   %f %f\n", k, p->pSlews[k].rise-pSlews[k].rise, p->pSlews[k].rise, pSlews[k].rise );
         if ( Abc_AbsFloat(p->pSlews[k].fall - pSlews[k].fall) > fDiff )
-            printf( "%6d : slew fall differs %12.6f   %f %f\n", k, SC_LibTimePs(pLib, p->pSlews[k].fall)-SC_LibTimePs(pLib, pSlews[k].fall), SC_LibTimePs(pLib, p->pSlews[k].fall), SC_LibTimePs(pLib, pSlews[k].fall) );
+            printf( "%6d : slew fall differs %12.6f   %f %f\n", k, p->pSlews[k].fall-pSlews[k].fall, p->pSlews[k].fall, pSlews[k].fall );
 
         if ( Abc_AbsFloat(p->pTimes[k].rise - pTimes[k].rise) > fDiff )
-            printf( "%6d : time rise differs %12.6f   %f %f\n", k, SC_LibTimePs(pLib, p->pTimes[k].rise)-SC_LibTimePs(pLib, pTimes[k].rise), SC_LibTimePs(pLib, p->pTimes[k].rise), SC_LibTimePs(pLib, pTimes[k].rise) );
+            printf( "%6d : time rise differs %12.6f   %f %f\n", k, p->pTimes[k].rise-pTimes[k].rise, p->pTimes[k].rise, pTimes[k].rise );
         if ( Abc_AbsFloat(p->pTimes[k].fall - pTimes[k].fall) > fDiff )
-            printf( "%6d : time fall differs %12.6f   %f %f\n", k, SC_LibTimePs(pLib, p->pTimes[k].fall)-SC_LibTimePs(pLib, pTimes[k].fall), SC_LibTimePs(pLib, p->pTimes[k].fall), SC_LibTimePs(pLib, pTimes[k].fall) );
+            printf( "%6d : time fall differs %12.6f   %f %f\n", k, p->pTimes[k].fall-pTimes[k].fall, p->pTimes[k].fall, pTimes[k].fall );
     }
 
 /*
@@ -817,10 +817,10 @@ void Abc_SclUpsizePrint( SC_Man * p, int Iter, int win, int nPathPos, int nPathN
     printf( "%.2f ",         p->SumArea );
     printf( "(%+5.1f %%)  ", 100.0 * (p->SumArea - p->SumArea0)/ p->SumArea0 );
     printf( "D: " );
-    printf( "%.2f ps ",      SC_LibTimePs(p->pLib, p->MaxDelay) );
+    printf( "%.2f ps ",      p->MaxDelay );
     printf( "(%+5.1f %%)  ", 100.0 * (p->MaxDelay - p->MaxDelay0)/ p->MaxDelay0 );
     printf( "B: " );
-    printf( "%.2f ps ",      SC_LibTimePs(p->pLib, p->BestDelay) );
+    printf( "%.2f ps ",      p->BestDelay );
     printf( "(%+5.1f %%)",   100.0 * (p->BestDelay - p->MaxDelay0)/ p->MaxDelay0 );
     printf( "%8.2f sec    ", 1.0*(Abc_Clock() - p->timeTotal)/(CLOCKS_PER_SEC) );
     printf( "%c", fVerbose ? '\n' : '\r' );
@@ -895,8 +895,8 @@ void Abc_SclUpsizePerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, SC_SizePars * pPars 
     p->BestDelay  = p->MaxDelay0;
     // perform upsizing
     nAllPos = nAllNodes = nAllTfos = nAllUpsizes = 0;
-    if ( p->BestDelay <= SC_LibTimeFromPs(p->pLib, (float)pPars->DelayUser) )
-        printf( "Current delay (%.2f ps) is better than the target delay (%.2f ps).\n", SC_LibTimePs(p->pLib, p->BestDelay), (float)pPars->DelayUser );
+    if ( p->BestDelay <= pPars->DelayUser )
+        printf( "Current delay (%.2f ps) is better than the target delay (%.2f ps).\n", p->BestDelay, (float)pPars->DelayUser );
     else
     for ( i = 0; i < pPars->nIters; i++ )
     {
@@ -975,7 +975,7 @@ void Abc_SclUpsizePerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, SC_SizePars * pPars 
         if ( nFramesNoChange > pPars->nIterNoChange )
             break;
         // check best delay
-        if ( p->BestDelay <= SC_LibTimeFromPs(p->pLib, (float)pPars->DelayUser) )
+        if ( p->BestDelay <= pPars->DelayUser )
             break;
     }
     // update for best gates and recompute timing

@@ -243,11 +243,6 @@ static inline float       SC_CellPinCapAve( SC_Cell * p )           { int i; flo
 static inline char *      SC_CellPinOutFunc( SC_Cell * p, int i )   { return SC_CellPin(p, p->n_inputs + i)->func_text;               }
 static inline char *      SC_CellPinName( SC_Cell * p, int i )      { return SC_CellPin(p, i)->pName;                                 }
 
-static inline double      SC_LibCapFf( SC_Lib * p, double cap )     { return cap * p->unit_cap_fst * pow(10.0, 15 - p->unit_cap_snd); }
-static inline double      SC_LibCapFromFf( SC_Lib * p, double cap ) { return cap / p->unit_cap_fst / pow(10.0, 15 - p->unit_cap_snd); }
-static inline double      SC_LibTimePs( SC_Lib * p, double time )   { return time * pow(10.0, 12 - p->unit_time);                     }
-static inline double      SC_LibTimeFromPs( SC_Lib * p, double ps ) { return ps / pow(10.0, 12 - p->unit_time);                       }
-
 #define SC_LibForEachCell( p, pCell, i )         Vec_PtrForEachEntry( SC_Cell *, p->vCells, pCell, i )
 #define SC_LibForEachCellClass( p, pCell, i )    Vec_PtrForEachEntry( SC_Cell *, p->vCellClasses, pCell, i )
 #define SC_LibForEachWireLoad( p, pWL, i )       Vec_PtrForEachEntry( SC_WireLoad *, p->vWireLoads, pWL, i )

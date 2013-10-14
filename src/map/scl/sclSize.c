@@ -119,9 +119,9 @@ static inline void Abc_SclTimeNodePrint( SC_Man * p, Abc_Obj_t * pObj, int fRise
     printf( "%6.1f",            Abc_MaxFloat(Abc_SclObjTimePs(p, pObj, 0), Abc_SclObjTimePs(p, pObj, 1)) );
     printf( "%7.1f ps  ",       -Abc_AbsFloat(Abc_SclObjTimePs(p, pObj, 0) - Abc_SclObjTimePs(p, pObj, 1)) );
     printf( "S =%6.1f ps  ",    Abc_SclObjSlewPs(p, pObj, fRise >= 0 ? fRise : 0) );
-    printf( "Cin =%5.1f ff  ",  pCell ? SC_LibCapFf(p->pLib, SC_CellPinCapAve(pCell)) : 0.0 );
+    printf( "Cin =%5.1f ff  ",  pCell ? SC_CellPinCapAve(pCell) : 0.0 );
     printf( "Cout =%6.1f ff  ", Abc_SclObjLoadFf(p, pObj, fRise >= 0 ? fRise : 0) );
-    printf( "Cmax =%6.1f ff  ", pCell ? SC_LibCapFf(p->pLib, SC_CellPin(pCell, pCell->n_inputs)->max_out_cap) : 0.0 );
+    printf( "Cmax =%6.1f ff  ", pCell ? SC_CellPin(pCell, pCell->n_inputs)->max_out_cap : 0.0 );
     printf( "G =%5d  ",         pCell ? (int)(100.0 * Abc_SclObjLoadAve(p, pObj) / SC_CellPinCapAve(pCell)) : 0 );
 //    printf( "SL =%6.1f ps",     Abc_SclObjSlackPs(p, pObj, p->MaxDelay0) );
     printf( "\n" );
@@ -136,7 +136,7 @@ void Abc_SclTimeNtkPrint( SC_Man * p, int fShowAll, int fPrintPath )
     printf( "WireLoad = \"%s\"  ", p->pWLoadUsed ? p->pWLoadUsed->pName : "none" );
     printf( "Gates =%7d ",         Abc_NtkNodeNum(p->pNtk) );
     printf( "(%5.1f %%)   ",       100.0 * Abc_SclGetBufInvCount(p->pNtk) / Abc_NtkNodeNum(p->pNtk) );
-    printf( "Cap =%5.1f ff ",      SC_LibCapFf(p->pLib, p->EstLoadAve) );
+    printf( "Cap =%5.1f ff ",      p->EstLoadAve );
     printf( "(%5.1f %%)   ",       Abc_SclGetAverageSize(p->pNtk) );
     printf( "Area =%12.2f ",       Abc_SclGetTotalArea(p->pNtk) );
     printf( "(%5.1f %%)   ",       100.0 * Abc_SclCountMinSize(p->pLib, p->pNtk, 0) / Abc_NtkNodeNum(p->pNtk) );
@@ -522,18 +522,15 @@ void Abc_SclTimeIncUpdateLevel( Abc_Obj_t * pObj )
 ***********************************************************************/
 void Abc_SclManReadSlewAndLoad( SC_Man * p, Abc_Ntk_t * pNtk )
 {
-    Abc_Time_t * pTime;
-    Abc_Obj_t * pObj;
-    int i;
     if ( Abc_FrameReadMaxLoad() )
     {
+        Abc_Obj_t * pObj;  int i;
         float MaxLoad = Abc_FrameReadMaxLoad();
-//        printf( "Default output load is specified (%f ff).\n", SC_LibCapFf(p->pLib, MaxLoad) );
+//        printf( "Default output load is specified (%.2f ff).\n", MaxLoad );
         Abc_NtkForEachPo( pNtk, pObj, i )
         {
             SC_Pair * pLoad = Abc_SclObjLoad( p, pObj );
-            pLoad->rise = SC_LibCapFromFf( p->pLib, MaxLoad );
-            pLoad->fall = SC_LibCapFromFf( p->pLib, MaxLoad );
+            pLoad->rise = pLoad->fall = MaxLoad;
         }
     }
     if ( Abc_FrameReadDrivingCell() )
@@ -547,76 +544,6 @@ void Abc_SclManReadSlewAndLoad( SC_Man * p, Abc_Ntk_t * pNtk )
             p->pPiDrive = SC_LibCell( p->pLib, iCell );
             assert( p->pPiDrive != NULL );
             assert( p->pPiDrive->n_inputs == 1 );
-        }
-    }
-    if ( pNtk->pManTime == NULL )
-        return;
-/*
-    // read input slew    
-    pTime = Abc_NtkReadDefaultInputDrive( pNtk );
-    if ( Abc_MaxFloat(pTime->Rise, pTime->Fall) != 0 )
-    {
-        printf( "Default input slew is specified (%.2f ps; %.2f ps).\n", pTime->Rise, pTime->Fall );
-        Abc_NtkForEachPi( pNtk, pObj, i )
-        {
-            SC_Pair * pSlew = Abc_SclObjSlew( p, pObj );
-            pSlew->rise = SC_LibTimeFromPs( p->pLib, pTime->Rise );
-            pSlew->fall = SC_LibTimeFromPs( p->pLib, pTime->Fall );
-        }
-    }
-    if ( Abc_NodeReadInputDrive(pNtk, 0) != NULL )
-    {
-        printf( "Input slews for some primary inputs are specified.\n" );
-        Abc_NtkForEachPi( pNtk, pObj, i )
-        {
-            SC_Pair * pSlew = Abc_SclObjSlew( p, pObj );
-            pTime = Abc_NodeReadInputDrive(pNtk, i);
-            pSlew->rise = SC_LibTimeFromPs( p->pLib, pTime->Rise );
-            pSlew->fall = SC_LibTimeFromPs( p->pLib, pTime->Fall );
-        }
-    }
-*/
-    pTime = Abc_NtkReadDefaultInputDrive( pNtk );
-    if ( Abc_MaxFloat(pTime->Rise, pTime->Fall) != 0 )
-    {
-        printf( "Default input drive strength is specified (%.2f ff; %.2f ff).\n", pTime->Rise, pTime->Fall );
-        if ( p->vInDrive == NULL )
-            p->vInDrive = Vec_FltStart( Abc_NtkCiNum(pNtk) );
-        Abc_NtkForEachPi( pNtk, pObj, i )
-            Abc_SclObjSetInDrive( p, pObj, SC_LibCapFromFf( p->pLib, 0.5 * pTime->Rise + 0.5 * pTime->Fall ) );
-    }
-    if ( Abc_NodeReadInputDrive(pNtk, 0) != NULL )
-    {
-        printf( "Input drive strengths for some primary inputs are specified.\n" );
-        if ( p->vInDrive == NULL )
-            p->vInDrive = Vec_FltStart( Abc_NtkCiNum(pNtk) );
-        Abc_NtkForEachPi( pNtk, pObj, i )
-        {
-            pTime = Abc_NodeReadInputDrive(pNtk, i);
-            Abc_SclObjSetInDrive( p, pObj, SC_LibCapFromFf( p->pLib, 0.5 * pTime->Rise + 0.5 * pTime->Fall ) );
-        }
-    }
-    // read output load
-    pTime = Abc_NtkReadDefaultOutputLoad( pNtk );
-    if ( Abc_MaxFloat(pTime->Rise, pTime->Fall) != 0 )
-    {
-        printf( "Default output load is specified (%.2f ff; %.2f ff).\n", pTime->Rise, pTime->Fall );
-        Abc_NtkForEachPo( pNtk, pObj, i )
-        {
-            SC_Pair * pSlew = Abc_SclObjLoad( p, pObj );
-            pSlew->rise = SC_LibCapFromFf( p->pLib, pTime->Rise );
-            pSlew->fall = SC_LibCapFromFf( p->pLib, pTime->Fall );
-        }
-    }
-    if ( Abc_NodeReadOutputLoad(pNtk, 0) != NULL )
-    {
-        printf( "Output loads for some primary outputs are specified.\n" );
-        Abc_NtkForEachPo( pNtk, pObj, i )
-        {
-            SC_Pair * pSlew = Abc_SclObjLoad( p, pObj );
-            pTime = Abc_NodeReadOutputLoad(pNtk, i);
-            pSlew->rise = SC_LibCapFromFf( p->pLib, pTime->Rise );
-            pSlew->fall = SC_LibCapFromFf( p->pLib, pTime->Fall );
         }
     }
 }
@@ -841,7 +768,7 @@ void Abc_SclPrintBuffersOne( SC_Man * p, Abc_Obj_t * pObj, int nOffset )
     printf( "sl =%5.0f ps   ", Abc_SclObjSlackPs(p, pObj, p->MaxDelay0) );
     if ( nOffset == 0 )
     {
-    printf( "L =%5.0f ff   ",  SC_LibCapFf( p->pLib, Abc_SclCountNonBufferLoad(p, pObj) ) );
+    printf( "L =%5.0f ff   ",  Abc_SclCountNonBufferLoad(p, pObj) );
     printf( "Lx =%5.0f ff  ",  100.0*Abc_SclCountNonBufferLoad(p, pObj)/p->EstLoadAve );
     printf( "Dx =%5.0f ps  ",  Abc_SclCountNonBufferDelay(p, pObj)/Abc_SclCountNonBufferFanouts(pObj) - Abc_SclObjTimePs(p, pObj, 1) );
     printf( "Cx =%5.0f ps",    (Abc_SclCountNonBufferDelay(p, pObj)/Abc_SclCountNonBufferFanouts(pObj) - Abc_SclObjTimePs(p, pObj, 1))/log(Abc_SclCountNonBufferLoad(p, pObj)/p->EstLoadAve) );

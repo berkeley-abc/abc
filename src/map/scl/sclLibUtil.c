@@ -492,9 +492,9 @@ void Abc_SclPrintCells( SC_Lib * p, float Slew, float Gain, int fInvOnly, int fS
                     printf( "D =%6.1f ps  ",    0.01 * Gain * LD + PD );
                     printf( "LD =%6.1f ps  ",   LD );
                     printf( "PD =%6.1f ps    ", PD );
-                    printf( "C =%5.1f ff  ",    SC_LibCapFf(p, SC_CellPinCapAve(pCell)) );
-                    printf( "Cm =%5.0f ff    ", SC_LibCapFf(p, SC_CellPin(pCell, pCell->n_inputs)->max_out_cap) );
-                    printf( "Sm =%5.1f ps ",    SC_LibTimePs(p, SC_CellPin(pCell, pCell->n_inputs)->max_out_slew) );
+                    printf( "C =%5.1f ff  ",    SC_CellPinCapAve(pCell) );
+                    printf( "Cm =%5.0f ff    ", SC_CellPin(pCell, pCell->n_inputs)->max_out_cap );
+                    printf( "Sm =%5.1f ps ",    SC_CellPin(pCell, pCell->n_inputs)->max_out_slew );
                 }
                 printf( "\n" );
             }
