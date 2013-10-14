@@ -291,8 +291,6 @@ int Abc_SclFindBestCell( SC_Man * p, Abc_Obj_t * pObj, Vec_Int_t * vRecalcs, Vec
             continue;
         if ( k > Notches )
             break;
-//        if ( p->vInDrive && !Abc_SclInputDriveOk( p, pObj, pCellNew ) )
-//            continue;
         // set new cell
         Abc_SclObjSetCell( pObj, pCellNew );
         Abc_SclUpdateLoad( p, pObj, pCellOld, pCellNew );

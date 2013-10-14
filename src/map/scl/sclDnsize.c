@@ -122,8 +122,6 @@ clk = Abc_Clock();
             continue;
         if ( i > Notches )
             break;
-//        if ( p->vInDrive && !Abc_SclInputDriveOk( p, pObj, pCellNew ) )
-//            continue;
         // set new cell
         Abc_SclObjSetCell( pObj, pCellNew );
         Abc_SclUpdateLoad( p, pObj, pCellOld, pCellNew );

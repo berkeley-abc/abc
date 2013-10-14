@@ -37,14 +37,13 @@ static int Scl_CommandDumpGen    ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Scl_CommandPrintGS    ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Scl_CommandStime      ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Scl_CommandTopo       ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Scl_CommandBuffer     ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Scl_CommandBufSize    ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Scl_CommandUnBuffer   ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Scl_CommandBuffer     ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Scl_CommandBufferOld  ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Scl_CommandMinsize    ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Scl_CommandMaxsize    ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Scl_CommandUpsize     ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Scl_CommandDnsize     ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Scl_CommandBsize      ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Scl_CommandPrintBuf   ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Scl_CommandReadConstr ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Scl_CommandPrintConstr( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -99,14 +98,13 @@ void Scl_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "SCL mapping",  "print_gs",      Scl_CommandPrintGS,     0 ); 
     Cmd_CommandAdd( pAbc, "SCL mapping",  "stime",         Scl_CommandStime,       0 ); 
     Cmd_CommandAdd( pAbc, "SCL mapping",  "topo",          Scl_CommandTopo,        1 ); 
-//    Cmd_CommandAdd( pAbc, "SCL mapping",  "buffer",        Scl_CommandBuffer,      1 ); 
-    Cmd_CommandAdd( pAbc, "SCL mapping",  "bufsize",       Scl_CommandBufSize,     1 ); 
     Cmd_CommandAdd( pAbc, "SCL mapping",  "unbuffer",      Scl_CommandUnBuffer,    1 ); 
+    Cmd_CommandAdd( pAbc, "SCL mapping",  "buffer",        Scl_CommandBuffer,      1 ); 
+//    Cmd_CommandAdd( pAbc, "SCL mapping",  "_buffer",       Scl_CommandBufferOld,   1 ); 
     Cmd_CommandAdd( pAbc, "SCL mapping",  "minsize",       Scl_CommandMinsize,     1 ); 
     Cmd_CommandAdd( pAbc, "SCL mapping",  "maxsize",       Scl_CommandMaxsize,     1 ); 
     Cmd_CommandAdd( pAbc, "SCL mapping",  "upsize",        Scl_CommandUpsize,      1 ); 
     Cmd_CommandAdd( pAbc, "SCL mapping",  "dnsize",        Scl_CommandDnsize,      1 ); 
-//    Cmd_CommandAdd( pAbc, "SCL mapping",  "bsize",         Scl_CommandBsize,       1 ); 
     Cmd_CommandAdd( pAbc, "SCL mapping",  "print_buf",     Scl_CommandPrintBuf,    0 ); 
     Cmd_CommandAdd( pAbc, "SCL mapping",  "read_constr",   Scl_CommandReadConstr,  0 ); 
     Cmd_CommandAdd( pAbc, "SCL mapping",  "print_constr",  Scl_CommandPrintConstr, 0 ); 
@@ -803,7 +801,202 @@ usage:
   SeeAlso     []
 
 ***********************************************************************/
+int Scl_CommandUnBuffer( Abc_Frame_t * pAbc, int argc, char **argv )
+{
+    Abc_Ntk_t * pNtkRes, * pNtk = Abc_FrameReadNtk(pAbc);
+    int c, fRemInv = 0, fVerbose = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "ivh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'i':
+            fRemInv ^= 1;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+
+    if ( pNtk == NULL )
+    {
+        fprintf( pAbc->Err, "There is no current network.\n" );
+        return 1;
+    }
+    if ( !Abc_NtkIsLogic(pNtk) )
+    {
+        fprintf( pAbc->Err, "The current network is not a logic network.\n" );
+        return 1;
+    }
+    if ( fRemInv )
+        pNtkRes = Abc_SclUnBufferPhase( pNtk, fVerbose );
+    else
+        pNtkRes = Abc_SclUnBufferPerform( pNtk, fVerbose );
+    if ( pNtkRes == NULL )
+    {
+        Abc_Print( -1, "The command has failed.\n" );
+        return 1;
+    }
+    Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
+    return 0;
+
+usage:
+    fprintf( pAbc->Err, "usage: unbuffer [-ivh]\n" );
+    fprintf( pAbc->Err, "\t           collapses buffer/inverter trees\n" );
+    fprintf( pAbc->Err, "\t-i       : toggle removing interters [default = %s]\n", fRemInv? "yes": "no" );
+    fprintf( pAbc->Err, "\t-v       : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
+    fprintf( pAbc->Err, "\t-h       : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 int Scl_CommandBuffer( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    SC_BusPars Pars, * pPars = &Pars;
+    Abc_Ntk_t * pNtkRes, * pNtk = Abc_FrameReadNtk(pAbc);
+    int c;
+    memset( pPars, 0, sizeof(SC_BusPars) );
+    pPars->GainRatio     = 1000;
+    pPars->Slew          =  100;
+    pPars->nDegree       =   10;
+    pPars->fSizeOnly     =    0;
+    pPars->fAddBufs      =    1;
+    pPars->fBufPis       =    0;
+    pPars->fUseWireLoads =    1;
+    pPars->fVerbose      =    0;
+    pPars->fVeryVerbose  =    0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "GSDsbpcvwh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'G':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-G\" should be followed by a positive integer.\n" );
+                goto usage;
+            }
+            pPars->GainRatio = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->GainRatio < 0 ) 
+                goto usage;
+            break;
+        case 'S':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-S\" should be followed by a positive integer.\n" );
+                goto usage;
+            }
+            pPars->Slew = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->Slew < 0 ) 
+                goto usage;
+            break;
+        case 'D':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-N\" should be followed by a positive integer.\n" );
+                goto usage;
+            }
+            pPars->nDegree = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nDegree < 0 ) 
+                goto usage;
+            break;
+        case 's':
+            pPars->fSizeOnly ^= 1;
+            break;
+        case 'b':
+            pPars->fAddBufs ^= 1;
+            break;
+        case 'p':
+            pPars->fBufPis ^= 1;
+            break;
+        case 'c':
+            pPars->fUseWireLoads ^= 1;
+            break;
+        case 'v':
+            pPars->fVerbose ^= 1;
+            break;
+        case 'w':
+            pPars->fVeryVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+
+    if ( pNtk == NULL )
+    {
+        Abc_Print( -1, "Empty network.\n" );
+        return 1;
+    }
+    if ( !Abc_NtkIsLogic(pNtk) )
+    {
+        Abc_Print( -1, "This command can only be applied to a logic network.\n" );
+        return 1;
+    }
+    if ( !pPars->fSizeOnly && !pPars->fAddBufs && pNtk->vPhases == NULL )
+    {
+        Abc_Print( -1, "Fanin phase information is not avaiable.\n" );
+        return 1;
+    }
+    // modify the current network
+    pNtkRes = Abc_SclBufSizePerform( pNtk, (SC_Lib *)pAbc->pLibScl, pPars );
+    if ( pNtkRes == NULL )
+    {
+        Abc_Print( -1, "The command has failed.\n" );
+        return 1;
+    }
+    // replace the current network
+    Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
+    return 0;
+
+usage:
+    fprintf( pAbc->Err, "usage: buffer [-GSD num] [-sbpcvwh]\n" );
+    fprintf( pAbc->Err, "\t           performs buffering and sizing and mapped network\n" );
+    fprintf( pAbc->Err, "\t-G <num> : target gain percentage [default = %d]\n", pPars->GainRatio );
+    fprintf( pAbc->Err, "\t-S <num> : target slew in pisoseconds [default = %d]\n", pPars->Slew );
+    fprintf( pAbc->Err, "\t-D <num> : the maximum fanout degree [default = %d]\n", pPars->nDegree );
+    fprintf( pAbc->Err, "\t-s       : toggle performing only sizing [default = %s]\n", pPars->fSizeOnly? "yes": "no" );
+    fprintf( pAbc->Err, "\t-b       : toggle using buffers instead of inverters [default = %s]\n", pPars->fAddBufs? "yes": "no" );
+    fprintf( pAbc->Err, "\t-p       : toggle buffering primary inputs [default = %s]\n", pPars->fBufPis? "yes": "no" );
+    fprintf( pAbc->Err, "\t-c       : toggle using wire-loads if specified [default = %s]\n", pPars->fUseWireLoads? "yes": "no" );
+    fprintf( pAbc->Err, "\t-v       : toggle printing verbose information [default = %s]\n", pPars->fVerbose? "yes": "no" );
+    fprintf( pAbc->Err, "\t-w       : toggle printing more verbose information [default = %s]\n", pPars->fVeryVerbose? "yes": "no" );
+    fprintf( pAbc->Err, "\t-h       : print the command usage\n");
+    return 1;
+} 
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Scl_CommandBufferOld( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
     Abc_Ntk_t * pNtkRes;
@@ -914,7 +1107,7 @@ int Scl_CommandBuffer( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( pAbc->Err, "usage: buffer [-NMR num] [-aixpdvh]\n" );
+    fprintf( pAbc->Err, "usage: _buffer [-NMR num] [-aixpdvh]\n" );
     fprintf( pAbc->Err, "\t           performs buffering of the mapped network\n" );
     fprintf( pAbc->Err, "\t-N <num> : the min fanout considered by the algorithm [default = %d]\n", FanMin );
     fprintf( pAbc->Err, "\t-M <num> : the max allowed fanout count of node/buffer [default = %d]\n", FanMax );
@@ -928,201 +1121,6 @@ usage:
     fprintf( pAbc->Err, "\t-h       : print the command usage\n");
     return 1;
 } 
-
-/**Function*************************************************************
-
-  Synopsis    []
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Scl_CommandBufSize( Abc_Frame_t * pAbc, int argc, char ** argv )
-{
-    SC_BusPars Pars, * pPars = &Pars;
-    Abc_Ntk_t * pNtkRes, * pNtk = Abc_FrameReadNtk(pAbc);
-    int c;
-    memset( pPars, 0, sizeof(SC_BusPars) );
-    pPars->GainRatio     = 1000;
-    pPars->Slew          =  100;
-    pPars->nDegree       =   10;
-    pPars->fSizeOnly     =    0;
-    pPars->fAddBufs      =    1;
-    pPars->fBufPis       =    0;
-    pPars->fUseWireLoads =    1;
-    pPars->fVerbose      =    0;
-    pPars->fVeryVerbose  =    0;
-    Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "GSDsbpcvwh" ) ) != EOF )
-    {
-        switch ( c )
-        {
-        case 'G':
-            if ( globalUtilOptind >= argc )
-            {
-                Abc_Print( -1, "Command line switch \"-G\" should be followed by a positive integer.\n" );
-                goto usage;
-            }
-            pPars->GainRatio = atoi(argv[globalUtilOptind]);
-            globalUtilOptind++;
-            if ( pPars->GainRatio < 0 ) 
-                goto usage;
-            break;
-        case 'S':
-            if ( globalUtilOptind >= argc )
-            {
-                Abc_Print( -1, "Command line switch \"-S\" should be followed by a positive integer.\n" );
-                goto usage;
-            }
-            pPars->Slew = atoi(argv[globalUtilOptind]);
-            globalUtilOptind++;
-            if ( pPars->Slew < 0 ) 
-                goto usage;
-            break;
-        case 'D':
-            if ( globalUtilOptind >= argc )
-            {
-                Abc_Print( -1, "Command line switch \"-N\" should be followed by a positive integer.\n" );
-                goto usage;
-            }
-            pPars->nDegree = atoi(argv[globalUtilOptind]);
-            globalUtilOptind++;
-            if ( pPars->nDegree < 0 ) 
-                goto usage;
-            break;
-        case 's':
-            pPars->fSizeOnly ^= 1;
-            break;
-        case 'b':
-            pPars->fAddBufs ^= 1;
-            break;
-        case 'p':
-            pPars->fBufPis ^= 1;
-            break;
-        case 'c':
-            pPars->fUseWireLoads ^= 1;
-            break;
-        case 'v':
-            pPars->fVerbose ^= 1;
-            break;
-        case 'w':
-            pPars->fVeryVerbose ^= 1;
-            break;
-        case 'h':
-            goto usage;
-        default:
-            goto usage;
-        }
-    }
-
-    if ( pNtk == NULL )
-    {
-        Abc_Print( -1, "Empty network.\n" );
-        return 1;
-    }
-    if ( !Abc_NtkIsLogic(pNtk) )
-    {
-        Abc_Print( -1, "This command can only be applied to a logic network.\n" );
-        return 1;
-    }
-    if ( !pPars->fSizeOnly && !pPars->fAddBufs && pNtk->vPhases == NULL )
-    {
-        Abc_Print( -1, "Fanin phase information is not avaiable.\n" );
-        return 1;
-    }
-    // modify the current network
-    pNtkRes = Abc_SclBufSizePerform( pNtk, (SC_Lib *)pAbc->pLibScl, pPars );
-    if ( pNtkRes == NULL )
-    {
-        Abc_Print( -1, "The command has failed.\n" );
-        return 1;
-    }
-    // replace the current network
-    Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
-    return 0;
-
-usage:
-    fprintf( pAbc->Err, "usage: bufsize [-GSD num] [-sbpcvwh]\n" );
-    fprintf( pAbc->Err, "\t           performs buffering and sizing and mapped network\n" );
-    fprintf( pAbc->Err, "\t-G <num> : target gain percentage [default = %d]\n", pPars->GainRatio );
-    fprintf( pAbc->Err, "\t-S <num> : target slew in pisoseconds [default = %d]\n", pPars->Slew );
-    fprintf( pAbc->Err, "\t-D <num> : the maximum fanout degree [default = %d]\n", pPars->nDegree );
-    fprintf( pAbc->Err, "\t-s       : toggle performing only sizing [default = %s]\n", pPars->fSizeOnly? "yes": "no" );
-    fprintf( pAbc->Err, "\t-b       : toggle using buffers instead of inverters [default = %s]\n", pPars->fAddBufs? "yes": "no" );
-    fprintf( pAbc->Err, "\t-p       : toggle buffering primary inputs [default = %s]\n", pPars->fBufPis? "yes": "no" );
-    fprintf( pAbc->Err, "\t-c       : toggle using wire-loads if specified [default = %s]\n", pPars->fUseWireLoads? "yes": "no" );
-    fprintf( pAbc->Err, "\t-v       : toggle printing verbose information [default = %s]\n", pPars->fVerbose? "yes": "no" );
-    fprintf( pAbc->Err, "\t-w       : toggle printing more verbose information [default = %s]\n", pPars->fVeryVerbose? "yes": "no" );
-    fprintf( pAbc->Err, "\t-h       : print the command usage\n");
-    return 1;
-} 
-
-/**Function*************************************************************
-
-  Synopsis    []
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Scl_CommandUnBuffer( Abc_Frame_t * pAbc, int argc, char **argv )
-{
-    Abc_Ntk_t * pNtkRes, * pNtk = Abc_FrameReadNtk(pAbc);
-    int c, fRemInv = 0, fVerbose = 0;
-    Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "ivh" ) ) != EOF )
-    {
-        switch ( c )
-        {
-        case 'i':
-            fRemInv ^= 1;
-            break;
-        case 'v':
-            fVerbose ^= 1;
-            break;
-        case 'h':
-            goto usage;
-        default:
-            goto usage;
-        }
-    }
-
-    if ( pNtk == NULL )
-    {
-        fprintf( pAbc->Err, "There is no current network.\n" );
-        return 1;
-    }
-    if ( !Abc_NtkIsLogic(pNtk) )
-    {
-        fprintf( pAbc->Err, "The current network is not a logic network.\n" );
-        return 1;
-    }
-    if ( fRemInv )
-        pNtkRes = Abc_SclUnBufferPhase( pNtk, fVerbose );
-    else
-        pNtkRes = Abc_SclUnBufferPerform( pNtk, fVerbose );
-    if ( pNtkRes == NULL )
-    {
-        Abc_Print( -1, "The command has failed.\n" );
-        return 1;
-    }
-    Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
-    return 0;
-
-usage:
-    fprintf( pAbc->Err, "usage: unbuffer [-ivh]\n" );
-    fprintf( pAbc->Err, "\t           collapses buffer/inverter trees\n" );
-    fprintf( pAbc->Err, "\t-i       : toggle removing interters [default = %s]\n", fRemInv? "yes": "no" );
-    fprintf( pAbc->Err, "\t-v       : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
-    fprintf( pAbc->Err, "\t-h       : print the command usage\n");
-    return 1;
-}
 
 /**Function*************************************************************
 
@@ -1632,94 +1630,6 @@ usage:
     fprintf( pAbc->Err, "\t-v       : toggle printing verbose information [default = %s]\n", pPars->fVerbose? "yes": "no" );
     fprintf( pAbc->Err, "\t-w       : toggle printing more verbose information [default = %s]\n", pPars->fVeryVerbose? "yes": "no" );
     fprintf( pAbc->Err, "\t-h       : print the command usage\n");
-    return 1;
-}
-
-/**Function*************************************************************
-
-  Synopsis    []
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Scl_CommandBsize( Abc_Frame_t * pAbc, int argc, char **argv )
-{
-    extern Abc_Ntk_t * Abc_SclBuffSizeStep( SC_Lib * pLib, Abc_Ntk_t * pNtk, int nTreeCRatio, int fUseWireLoads );
-    Abc_Ntk_t * pNtkRes;
-    int c;
-    int fUseWireLoads = 1;
-    int nTreeCRatio   = 0;
-
-    Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "Xch" ) ) != EOF )
-    {
-        switch ( c )
-        {
-            case 'X':
-                if ( globalUtilOptind >= argc )
-                {
-                    Abc_Print( -1, "Command line switch \"-X\" should be followed by a positive integer.\n" );
-                    goto usage;
-                }
-                nTreeCRatio = atoi(argv[globalUtilOptind]);
-                globalUtilOptind++;
-                if ( nTreeCRatio < 0 ) 
-                    goto usage;
-                break;
-            case 'c':
-                fUseWireLoads ^= 1;
-                break;
-           case 'h':
-                goto usage;
-            default:
-                goto usage;
-        }
-    }
-
-    if ( Abc_FrameReadNtk(pAbc) == NULL )
-    {
-        fprintf( pAbc->Err, "There is no current network.\n" );
-        return 1;
-    }
-    if ( !Abc_NtkHasMapping(Abc_FrameReadNtk(pAbc)) )
-    {
-        fprintf( pAbc->Err, "The current network is not mapped.\n" );
-        return 1;
-    }
-    if ( !Abc_SclCheckNtk(Abc_FrameReadNtk(pAbc), 0) )
-    {
-        fprintf( pAbc->Err, "The current network is not in a topo order (run \"topo\").\n" );
-        return 1;
-    }
-    if ( pAbc->pLibScl == NULL )
-    {
-        fprintf( pAbc->Err, "There is no Liberty library available.\n" );
-        return 1;
-    }
-    if ( Abc_FrameReadNtk(pAbc)->vPhases == 0 )
-    {
-        fprintf( pAbc->Err, "There is no phases available.\n" );
-        return 1;
-    }
-    pNtkRes = Abc_SclBuffSizeStep( (SC_Lib *)pAbc->pLibScl, Abc_FrameReadNtk(pAbc), nTreeCRatio, fUseWireLoads );
-    if ( pNtkRes == NULL )
-    {
-        Abc_Print( -1, "The command has failed.\n" );
-        return 1;
-    }
-    Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
-    return 0;
-
-usage:
-    fprintf( pAbc->Err, "usage: bsize [-X num] [-ch]\n" );
-    fprintf( pAbc->Err, "\t         performs STA using Liberty library\n" );
-    fprintf( pAbc->Err, "\t-X     : min Cout/Cave ratio for tree estimations [default = %d]\n", nTreeCRatio );
-    fprintf( pAbc->Err, "\t-c     : toggle using wire-loads if specified [default = %s]\n", fUseWireLoads? "yes": "no" );
-    fprintf( pAbc->Err, "\t-h     : print the help massage\n" );
     return 1;
 }
 
