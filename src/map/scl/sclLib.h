@@ -610,6 +610,7 @@ extern int           Abc_SclClassCellNum( SC_Cell * pClass );
 extern int           Abc_SclLibClassNum( SC_Lib * pLib );
 extern void          Abc_SclLinkCells( SC_Lib * p );
 extern void          Abc_SclPrintCells( SC_Lib * p, float Slew, float Gain, int fInvOnly, int fShort );
+extern void          Abc_SclLibNormalize( SC_Lib * p );
 extern SC_Cell *     Abc_SclFindInvertor( SC_Lib * p, int fFindBuff );
 extern SC_Cell *     Abc_SclFindSmallestGate( SC_Cell * p, float CinMin );
 extern SC_WireLoad * Abc_SclFindWireLoadModel( SC_Lib * p, float Area );

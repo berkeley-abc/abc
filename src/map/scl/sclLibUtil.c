@@ -505,6 +505,66 @@ void Abc_SclPrintCells( SC_Lib * p, float Slew, float Gain, int fInvOnly, int fS
 
 /**Function*************************************************************
 
+  Synopsis    [Print cells]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_SclLibNormalizeSurface( SC_Surface * p, float Time, float Load )
+{
+    Vec_Flt_t * vArray;
+    int i, k; float Entry;
+    Vec_FltForEachEntry( p->vIndex0, Entry, i ) // slew
+        Vec_FltWriteEntry( p->vIndex0, i, Time * Entry );
+    Vec_FltForEachEntry( p->vIndex1, Entry, i ) // load
+        Vec_FltWriteEntry( p->vIndex1, i, Load * Entry );
+    Vec_PtrForEachEntry( Vec_Flt_t *, p->vData, vArray, k )
+        Vec_FltForEachEntry( vArray, Entry, i ) // delay/slew
+            Vec_FltWriteEntry( vArray, i, Time * Entry );
+}
+void Abc_SclLibNormalize( SC_Lib * p )
+{
+    SC_WireLoad * pWL;
+    SC_Cell * pCell;
+    SC_Pin * pPin;
+    SC_Timings * pTimings;
+    SC_Timing * pTiming;
+    int i, k, m, n;
+    float Time = 1.0 * pow(10.0, 12 - p->unit_time);
+    float Load = p->unit_cap_fst * pow(10.0, 15 - p->unit_cap_snd);
+    if ( Time == 1 && Load == 1 )
+        return;
+    p->unit_time = 12;
+    p->unit_cap_fst = 1;
+    p->unit_cap_snd = 15;
+    p->default_max_out_slew *= Time;
+    SC_LibForEachWireLoad( p, pWL, i )
+        pWL->cap *= Load;
+    SC_LibForEachCell( p, pCell, i )
+    SC_CellForEachPin( pCell, pPin, k )
+    {
+        pPin->cap *= Load;
+        pPin->rise_cap *= Load;
+        pPin->fall_cap *= Load;
+        pPin->max_out_cap *= Load;
+        pPin->max_out_slew *= Time;
+        SC_PinForEachRTiming( pPin, pTimings, m )
+        Vec_PtrForEachEntry( SC_Timing *, pTimings->vTimings, pTiming, n )
+        {
+            Abc_SclLibNormalizeSurface( pTiming->pCellRise, Time, Load );
+            Abc_SclLibNormalizeSurface( pTiming->pCellFall, Time, Load );
+            Abc_SclLibNormalizeSurface( pTiming->pRiseTrans, Time, Load );
+            Abc_SclLibNormalizeSurface( pTiming->pFallTrans, Time, Load );
+        }
+    }
+}
+
+/**Function*************************************************************
+
   Synopsis    [Derives simple GENLIB library.]
 
   Description []

@@ -99,14 +99,14 @@ void Scl_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "SCL mapping",  "print_gs",      Scl_CommandPrintGS,     0 ); 
     Cmd_CommandAdd( pAbc, "SCL mapping",  "stime",         Scl_CommandStime,       0 ); 
     Cmd_CommandAdd( pAbc, "SCL mapping",  "topo",          Scl_CommandTopo,        1 ); 
-    Cmd_CommandAdd( pAbc, "SCL mapping",  "buffer",        Scl_CommandBuffer,      1 ); 
+//    Cmd_CommandAdd( pAbc, "SCL mapping",  "buffer",        Scl_CommandBuffer,      1 ); 
     Cmd_CommandAdd( pAbc, "SCL mapping",  "bufsize",       Scl_CommandBufSize,     1 ); 
     Cmd_CommandAdd( pAbc, "SCL mapping",  "unbuffer",      Scl_CommandUnBuffer,    1 ); 
     Cmd_CommandAdd( pAbc, "SCL mapping",  "minsize",       Scl_CommandMinsize,     1 ); 
     Cmd_CommandAdd( pAbc, "SCL mapping",  "maxsize",       Scl_CommandMaxsize,     1 ); 
     Cmd_CommandAdd( pAbc, "SCL mapping",  "upsize",        Scl_CommandUpsize,      1 ); 
     Cmd_CommandAdd( pAbc, "SCL mapping",  "dnsize",        Scl_CommandDnsize,      1 ); 
-    Cmd_CommandAdd( pAbc, "SCL mapping",  "bsize",         Scl_CommandBsize,       1 ); 
+//    Cmd_CommandAdd( pAbc, "SCL mapping",  "bsize",         Scl_CommandBsize,       1 ); 
     Cmd_CommandAdd( pAbc, "SCL mapping",  "print_buf",     Scl_CommandPrintBuf,    0 ); 
     Cmd_CommandAdd( pAbc, "SCL mapping",  "read_constr",   Scl_CommandReadConstr,  0 ); 
     Cmd_CommandAdd( pAbc, "SCL mapping",  "print_constr",  Scl_CommandPrintConstr, 0 ); 

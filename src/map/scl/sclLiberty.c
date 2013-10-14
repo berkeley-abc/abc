@@ -1331,6 +1331,7 @@ SC_Lib * Abc_SclReadLiberty( char * pFileName, int fVerbose, int fVeryVerbose )
     // construct SCL data-structure
     pLib = Abc_SclReadFromStr( vStr );
     pLib->pFileName = Abc_UtilStrsav( pFileName );
+    Abc_SclLibNormalize( pLib );
     Vec_StrFree( vStr );
     return pLib;
 }

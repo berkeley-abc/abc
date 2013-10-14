@@ -274,6 +274,7 @@ SC_Lib * Abc_SclReadFromFile( char * pFileName )
     // read the library
     p = Abc_SclReadFromStr( vOut );
     p->pFileName = Abc_UtilStrsav( pFileName );
+    Abc_SclLibNormalize( p );
     Vec_StrFree( vOut );
     return p;
 }

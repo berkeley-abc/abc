@@ -95,11 +95,15 @@ Bus_Man_t * Bus_ManStart( Abc_Ntk_t * pNtk, SC_Lib * pLib, SC_BusPars * pPars )
     }
     if ( p->pWLoadUsed )
     p->vWireCaps = Abc_SclFindWireCaps( p->pWLoadUsed );
-    p->vCins     = Vec_FltStart( 2*Abc_NtkObjNumMax(pNtk) + 10000 );
-    p->vETimes   = Vec_FltStart( 2*Abc_NtkObjNumMax(pNtk) + 10000 );
-    p->vLoads    = Vec_FltStart( 2*Abc_NtkObjNumMax(pNtk) + 10000 );
-    p->vDepts    = Vec_FltStart( 2*Abc_NtkObjNumMax(pNtk) + 10000 );
     p->vFanouts  = Vec_PtrAlloc( 100 );
+    p->vCins     = Vec_FltAlloc( 2*Abc_NtkObjNumMax(pNtk) + 1000 );
+    p->vETimes   = Vec_FltAlloc( 2*Abc_NtkObjNumMax(pNtk) + 1000 );
+    p->vLoads    = Vec_FltAlloc( 2*Abc_NtkObjNumMax(pNtk) + 1000 );
+    p->vDepts    = Vec_FltAlloc( 2*Abc_NtkObjNumMax(pNtk) + 1000 );
+    Vec_FltFill( p->vCins,   Abc_NtkObjNumMax(pNtk), 0 );
+    Vec_FltFill( p->vETimes, Abc_NtkObjNumMax(pNtk), 0 );
+    Vec_FltFill( p->vLoads,  Abc_NtkObjNumMax(pNtk), 0 );
+    Vec_FltFill( p->vDepts,  Abc_NtkObjNumMax(pNtk), 0 );
     pNtk->pBSMan = p;
     return p;
 }
@@ -131,9 +135,9 @@ void Bus_ManReadInOutLoads( Bus_Man_t * p )
     {
         Abc_Obj_t * pObj; int i;
         float MaxLoad = Abc_FrameReadMaxLoad();
-        Abc_NtkForEachPo( p->pNtk, pObj, i )
+        Abc_NtkForEachCo( p->pNtk, pObj, i )
             Bus_SclObjSetCin( pObj, MaxLoad );
-        printf( "Default output load is specified (%f ff).\n", SC_LibCapFf(p->pLib, MaxLoad) );
+//        printf( "Default output load is specified (%f ff).\n", MaxLoad );
     }
     if ( Abc_FrameReadDrivingCell() )
     {
@@ -146,7 +150,7 @@ void Bus_ManReadInOutLoads( Bus_Man_t * p )
             p->pPiDrive = SC_LibCell( p->pLib, iCell );
             assert( p->pPiDrive != NULL );
             assert( p->pPiDrive->n_inputs == 1 );
-            printf( "Default input driving cell is specified (%s).\n", p->pPiDrive->pName );
+//            printf( "Default input driving cell is specified (%s).\n", p->pPiDrive->pName );
         }
     }
 }
@@ -351,8 +355,12 @@ Abc_Obj_t * Abc_SclAddOneInv( Bus_Man_t * p, Abc_Obj_t * pObj, Vec_Ptr_t * vFano
         pInv = Abc_NtkCreateNodeBuf( p->pNtk, NULL );
     else
         pInv = Abc_NtkCreateNodeInv( p->pNtk, NULL );
-    assert( (int)Abc_ObjId(pInv) < Vec_FltSize(p->vDepts) );
-    Limit = Abc_MinInt( iStop, Vec_PtrSize(vFanouts) );
+    assert( (int)Abc_ObjId(pInv) == Vec_FltSize(p->vCins) );
+    Vec_FltPush( p->vCins,   0 );
+    Vec_FltPush( p->vETimes, 0 );
+    Vec_FltPush( p->vLoads,  0 );
+    Vec_FltPush( p->vDepts,  0 );
+    Limit = Abc_MinInt( Abc_MaxInt(iStop, 2), Vec_PtrSize(vFanouts) );
     Vec_PtrForEachEntryStop( Abc_Obj_t *, vFanouts, pFanout, i, Limit )
     {
         Vec_PtrWriteEntry( vFanouts, i, NULL );
@@ -381,6 +389,7 @@ void Abc_SclBufSize( Bus_Man_t * p )
     SC_Cell * pCell, * pCellNew;
     Abc_Obj_t * pObj, * pFanout;
     abctime clk = Abc_Clock();
+    int nObjsOld = Abc_NtkObjNumMax(p->pNtk);
     float GainInv = 0.01 * p->pPars->GainRatio;
     float GainGate = (float)1.0 * GainInv;
     float Load, LoadNew, Cin, DeptMax = 0;
@@ -390,6 +399,11 @@ void Abc_SclBufSize( Bus_Man_t * p )
     {
         if ( !((Abc_ObjIsNode(pObj) && Abc_ObjFaninNum(pObj) > 0) || (Abc_ObjIsCi(pObj) && p->pPiDrive)) )
             continue;
+        if ( 2 * nObjsOld < Abc_NtkObjNumMax(p->pNtk) )
+        {
+            printf( "Buffering could not be completed because the gain value (%d) is too low.\n", p->pPars->GainRatio );
+            break;
+        }
         // compute load
         Abc_NtkComputeFanoutInfo( pObj, p->pPars->Slew );
         Load = Abc_NtkComputeNodeLoad( p, pObj );
@@ -443,6 +457,7 @@ void Abc_SclBufSize( Bus_Man_t * p )
         assert( p->pPars->fSizeOnly || Abc_ObjFanoutNum(pObj) <= p->pPars->nDegree );
     }
     // compute departure time of the PI
+    if ( i < 0 ) // finished buffering
     Abc_NtkForEachCi( p->pNtk, pObj, i )
     {
         float DeptCur = Abc_NtkComputeNodeDeparture(pObj, p->pPars->Slew);
