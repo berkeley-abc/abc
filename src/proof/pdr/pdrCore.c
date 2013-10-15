@@ -137,10 +137,11 @@ int Pdr_ManPushClauses( Pdr_Man_t * p )
     Pdr_Set_t * pTemp, * pCubeK, * pCubeK1;
     Vec_Ptr_t * vArrayK, * vArrayK1;
     int i, j, k, m, RetValue = 0, RetValue2, kMax = Vec_PtrSize(p->vSolvers)-1;
+    int iStartFrame = p->pPars->fShiftStart ? p->iUseFrame : 1;
     int Counter = 0;
     abctime clk = Abc_Clock();
     assert( p->iUseFrame > 0 );
-    Vec_VecForEachLevelStartStop( p->vClauses, vArrayK, k, 1, kMax )
+    Vec_VecForEachLevelStartStop( p->vClauses, vArrayK, k, iStartFrame, kMax )
     {
         Vec_PtrSort( vArrayK, (int (*)(void))Pdr_SetCompare );
         vArrayK1 = Vec_VecEntry( p->vClauses, k+1 );
@@ -441,9 +442,7 @@ int Pdr_ManBlockCube( Pdr_Man_t * p, Pdr_Set_t * pCube )
         pThis = Pdr_QueueHead( p );
         if ( pThis->iFrame == 0 )
             return 0; // SAT
-
         if ( pThis->iFrame > kMax ) // finished this level
-
             return 1;
         if ( p->nQueLim && p->nQueCur >= p->nQueLim )
         {
@@ -586,7 +585,7 @@ int Pdr_ManSolveInt( Pdr_Man_t * p )
     {
         p->nFrames = k;
         assert( k == Vec_PtrSize(p->vSolvers)-1 );
-        p->iUseFrame = ABC_INFINITY;
+        p->iUseFrame = Abc_MaxInt(k, 1);
         Saig_ManForEachPo( p->pAig, pObj, p->iOutCur )
         {
             // skip disproved outputs
