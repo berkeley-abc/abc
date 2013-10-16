@@ -242,10 +242,12 @@ Abc_Ntk_t * Abc_NtkLogicToNetlist( Abc_Ntk_t * pNtk )
 ***********************************************************************/
 Abc_Ntk_t * Abc_NtkAigToLogicSop( Abc_Ntk_t * pNtk )
 {
+    extern int Abc_NtkLogicMakeSimpleCos2( Abc_Ntk_t * pNtk, int fDuplicate );
+
     Abc_Ntk_t * pNtkNew; 
     Abc_Obj_t * pObj, * pFanin, * pNodeNew;
     Vec_Int_t * vInts;
-    int i, k;
+    int i, k, fChoices = 0;
     assert( Abc_NtkIsStrash(pNtk) );
     // start the network
     pNtkNew = Abc_NtkStartFrom( pNtk, ABC_NTK_LOGIC, ABC_FUNC_SOP );
@@ -278,6 +280,7 @@ Abc_Ntk_t * Abc_NtkAigToLogicSop( Abc_Ntk_t * pNtk )
         // set the new node
         pObj->pCopy->pCopy = pNodeNew;
         Vec_IntFree( vInts );
+        fChoices = 1;
     }
     // connect the internal nodes
     Abc_NtkForEachNode( pNtk, pObj, i )
@@ -299,7 +302,10 @@ Abc_Ntk_t * Abc_NtkAigToLogicSop( Abc_Ntk_t * pNtk )
     }
 
     // fix the problem with complemented and duplicated CO edges
-    Abc_NtkLogicMakeSimpleCos( pNtkNew, 0 );
+    if ( fChoices )
+        Abc_NtkLogicMakeSimpleCos2( pNtkNew, 0 );
+    else
+        Abc_NtkLogicMakeSimpleCos( pNtkNew, 0 );
     // duplicate the EXDC Ntk
     if ( pNtk->pExdc )
     {
