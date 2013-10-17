@@ -338,7 +338,7 @@ int Abc_SclFindBypasses( SC_Man * p, Vec_Int_t * vPathNodes, int Ratio, int Notc
     SC_Cell * pCellOld, * pCellNew;
     Vec_Ptr_t * vFanouts;
     Vec_Int_t * vRecalcs, * vEvals;
-    Abc_Obj_t * pBuf, * pFanin, * pFanout, * pExtra = NULL;
+    Abc_Obj_t * pBuf, * pFanin, * pFanout, * pExtra;
     int i, j, iNode, gateBest, gateBest2, fanBest, Counter = 0;
     float dGainBest, dGainBest2;
 
@@ -355,6 +355,7 @@ int Abc_SclFindBypasses( SC_Man * p, Vec_Int_t * vPathNodes, int Ratio, int Notc
         pFanin = Abc_ObjFanin0(pBuf);
         if ( !Abc_ObjIsNode(pFanin) )
             continue;
+        pExtra = NULL;
         if ( p->pNtk->vPhases == NULL )
         {
             if ( Abc_SclIsInv(pBuf) )
@@ -387,6 +388,9 @@ int Abc_SclFindBypasses( SC_Man * p, Vec_Int_t * vPathNodes, int Ratio, int Notc
                 continue;
             // skip if fanin already has fanout as a fanout
             if ( Abc_NodeFindFanin(pFanout, pFanin) >= 0 )
+                continue;
+            // skip if fanin already has fanout as a fanout
+            if ( pExtra && Abc_NodeFindFanin(pFanout, pExtra) >= 0 )
                 continue;
             // prepare
             Abc_SclLoadStore3( p, pBuf );
