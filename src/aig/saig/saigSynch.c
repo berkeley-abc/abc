@@ -407,7 +407,7 @@ Vec_Str_t * Saig_SynchSequence( Aig_Man_t * pAig, int nWords )
     int fVerify   =   1;  // verify the resulting pattern
     Vec_Str_t * vSequence;
     Vec_Ptr_t * vSimInfo;
-    int nTerPrev, nTerCur, nTerCur2;
+    int nTerPrev, nTerCur = 0, nTerCur2;
     int iPatBest, RetValue, s, t;
     assert( Saig_ManRegNum(pAig) > 0 );
     // reset random numbers

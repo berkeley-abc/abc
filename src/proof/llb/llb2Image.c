@@ -81,7 +81,8 @@ Vec_Ptr_t * Llb_ImgSupports( Aig_Man_t * p, Vec_Ptr_t * vDdMans, Vec_Int_t * vSt
 
     // print supports
     assert( nSize == Aig_ManObjNumMax(p) );
-    if ( fVerbose )
+    if ( !fVerbose )
+        return vSupps;
     Aig_ManForEachObj( p, pObj, i )
     {
         int k, Counter = 0;

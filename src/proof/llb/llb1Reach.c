@@ -46,7 +46,7 @@ DdNode * Llb_ManConstructOutBdd( Aig_Man_t * pAig, Aig_Obj_t * pNode, DdManager 
 {
     DdNode * bBdd0, * bBdd1, * bFunc;
     Vec_Ptr_t * vNodes;
-    Aig_Obj_t * pObj;
+    Aig_Obj_t * pObj = NULL;
     int i;
     abctime TimeStop;
     if ( Aig_ObjFanin0(pNode) == Aig_ManConst1(pAig) )

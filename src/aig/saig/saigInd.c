@@ -149,8 +149,8 @@ int Saig_ManAddUniqueness( sat_solver * pSat, Vec_Int_t * vState, int nRegs, int
 int Saig_ManInduction( Aig_Man_t * p, int nTimeOut, int nFramesMax, int nConfMax, int fUnique, int fUniqueAll, int fGetCex, int fVerbose, int fVeryVerbose )
 {
     sat_solver * pSat;
-    Aig_Man_t * pAigPart;
-    Cnf_Dat_t * pCnfPart;
+    Aig_Man_t * pAigPart = NULL;
+    Cnf_Dat_t * pCnfPart = NULL;
     Vec_Int_t * vTopVarNums, * vState, * vTopVarIds = NULL;
     Vec_Ptr_t * vTop, * vBot;
     Aig_Obj_t * pObjPi, * pObjPiCopy, * pObjPo;

@@ -300,7 +300,7 @@ char If_CutDepthRecComput_rec(Abc_Obj_t* pObj, int iLeaf)
     Depth1 = If_CutDepthRecComput_rec(Abc_ObjFanin1(pObj), iLeaf);
     Depth = Abc_MaxInt(Depth0, Depth1);
     Depth = (Depth == -IF_BIG_CHAR) ? -IF_BIG_CHAR : Depth + 1;
-    assert(Depth <= 127);
+//    assert(Depth <= 127);
     return Depth;
 }
 
@@ -324,7 +324,7 @@ unsigned char Abc_NtkRecAreaAndMark_rec(Abc_Obj_t* pObj)
     Area0 = Abc_NtkRecAreaAndMark_rec(Abc_ObjFanin0(pObj));
     Area1 = Abc_NtkRecAreaAndMark_rec(Abc_ObjFanin1(pObj));
     Area = Area1 + Area0 + 1;
-    assert(Area <= 255);
+//    assert(Area <= 255);
     pObj->fMarkA = 1;
     return Area;
 }
@@ -2642,7 +2642,7 @@ char Abc_NtkRecCurrentDepth_rec(If_Obj_t * pObj, int iLeaf)
     Depth1 = Abc_NtkRecCurrentDepth_rec(If_ObjFanin1(pObj), iLeaf);
     Depth = Abc_MaxInt(Depth0, Depth1);
     Depth = (Depth == -IF_BIG_CHAR) ? -IF_BIG_CHAR : Depth + 1;
-    assert(Depth <= 127);
+//    assert(Depth <= 127);
     return Depth;
 }
 
@@ -3106,4 +3106,5 @@ int If_CutDelayRecCost(If_Man_t* p, If_Cut_t* pCut, If_Obj_t * pObj)
 
 
 ABC_NAMESPACE_IMPL_END
+
 

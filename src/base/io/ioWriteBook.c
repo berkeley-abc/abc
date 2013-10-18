@@ -201,10 +201,12 @@ unsigned Io_NtkWriteNodes( FILE * pFile, Abc_Ntk_t * pNtk )
     Io_NtkWritePiPoNodes( pFile, pNtk );
     // write the latches
     if ( !Abc_NtkIsComb(pNtk) )
-    Abc_NtkForEachLatch( pNtk, pLatch, i )
     {
-        Io_NtkWriteLatchNode( pFile, pLatch, NODES );
-        coreCellArea+=6*coreHeight;
+        Abc_NtkForEachLatch( pNtk, pLatch, i )
+        {
+            Io_NtkWriteLatchNode( pFile, pLatch, NODES );
+            coreCellArea+=6*coreHeight;
+        }
     }
     // write each internal node
     pProgress = Extra_ProgressBarStart( stdout, Abc_NtkNodeNum(pNtk) );
@@ -692,10 +694,12 @@ void Io_NtkWritePl( FILE * pFile, Abc_Ntk_t * pNtk, unsigned numTerms, double la
     }
 
     if( !Abc_NtkIsComb(pNtk) )
+    {
     Abc_NtkForEachLatch( pNtk, pLatch, i )
     {
         Io_NtkWriteLatchNode( pFile, pLatch, PL );
         fprintf( pFile, "\t%d\t\t%d\t: %s\n", 0, 0, "N" );    
+    }
     }
     
     Abc_NtkForEachNode( pNtk, pNode, i )
@@ -724,7 +728,7 @@ Vec_Ptr_t * Io_NtkOrderingPads( Abc_Ntk_t * pNtk, Vec_Ptr_t * vTerms )
     int * pOrdered = ABC_ALLOC(int, numTerms); 
     int newNeighbor=1;
     Vec_Ptr_t * vOrderedTerms = Vec_PtrAlloc ( numTerms );
-    Abc_Obj_t * pNeighbor, * pNextTerm;     
+    Abc_Obj_t * pNeighbor = NULL, * pNextTerm;     
     unsigned i; 
 
     for( i=0 ; i<numTerms ; i++ )

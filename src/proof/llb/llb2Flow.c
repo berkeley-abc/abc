@@ -32,7 +32,7 @@ static inline Aig_Obj_t * Llb_ObjGetPath( Aig_Obj_t * pObj )                    
 static inline Aig_Obj_t * Llb_ObjGetFanoutPath( Aig_Man_t * p, Aig_Obj_t * pObj ) 
 { 
     Aig_Obj_t * pFanout;
-    int i, iFanout;
+    int i, iFanout = -1;
     assert( Llb_ObjGetPath(pObj) ); 
     Aig_ObjForEachFanout( p, pObj, pFanout, iFanout, i )
         if ( Llb_ObjGetPath(pFanout) == pObj )
@@ -191,7 +191,8 @@ Vec_Ptr_t * Llb_ManCutMap( Aig_Man_t * p, Vec_Ptr_t * vResult, Vec_Ptr_t * vSupp
     }
     printf( "\n" );
 
-    if ( fShowMatrix )
+    if ( !fShowMatrix )
+        return vMaps;
     Aig_ManForEachObj( p, pObj, i )
     {
         if ( !Aig_ObjIsCi(pObj) && !Aig_ObjIsNode(pObj) )

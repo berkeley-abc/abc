@@ -1857,7 +1857,7 @@ Vec_Int_t * Abc_NtkReadFlopPerm( char * pFileName, int nFlops )
     char Buffer[1000];
     FILE * pFile;
     Vec_Int_t * vFlops;
-    int iFlop;
+    int iFlop = -1;
     pFile = fopen( pFileName, "rb" );
     if ( pFile == NULL )
     {

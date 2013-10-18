@@ -702,7 +702,7 @@ static unsigned char Abc_NtkRecAreaAndMark_rec(Gia_Obj_t* pObj)
     Area0 = Abc_NtkRecAreaAndMark_rec(Gia_ObjFanin0(pObj));
     Area1 = Abc_NtkRecAreaAndMark_rec(Gia_ObjFanin1(pObj));
     Area = Area1 + Area0 + 1;
-    assert(Area <= 255);
+//    assert(Area <= 255);
     pObj->fMark0 = 1;
     return Area;
 }
@@ -771,7 +771,7 @@ char If_CutDepthRecComput_rec2(Gia_Obj_t* pObj, int iLeaf)
     Depth1 = If_CutDepthRecComput_rec2(Gia_ObjFanin1(pObj), iLeaf);
     Depth = Abc_MaxInt(Depth0, Depth1);
     Depth = (Depth == -IF_BIG_CHAR) ? -IF_BIG_CHAR : Depth + 1;
-    assert(Depth <= 127);
+//    assert(Depth <= 127);
     return Depth;
 }
 

@@ -114,9 +114,11 @@ void Fxu_MatrixPrint( FILE * pFile, Fxu_Matrix * p )
     {
         fprintf( pFile, "Cube #%3d: ", pCube->iCube );
         if ( pCube->pVar->ppPairs )
+        {
             Fxu_CubeForEachPair( pCube, pPair, i )
                 fprintf( pFile, " <%d %d> (d=%d) (b=%d)", 
                     pPair->iCube1, pPair->iCube2, pPair->pDiv->Num, pPair->nBase );
+        }
         fprintf( pFile, "\n" );
     }
     fprintf( pFile, "\n" );
