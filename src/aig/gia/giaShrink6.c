@@ -98,7 +98,7 @@ Shr_Man_t * Shr_ManAlloc( Gia_Man_t * pGia )
     Shr_Man_t * p;
     p = ABC_CALLOC( Shr_Man_t, 1 );
     p->nDivMax     = 64;
-    p->nNewSize    = 3 * Gia_ManObjNum(pGia) / 2;
+    p->nNewSize    = 2 * Gia_ManObjNum(pGia);
     p->pGia        = pGia;
     p->vFanMem     = Vec_WrdAlloc( 1000 );   Vec_WrdPush(p->vFanMem, -1); 
     p->vObj2Fan    = Vec_IntStart( p->nNewSize );
