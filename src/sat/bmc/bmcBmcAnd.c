@@ -769,7 +769,6 @@ Abc_Cex_t * Gia_ManBmcCexGen( Bmc_Mna_t * pMan, Gia_Man_t * p, int iOut )
 ***********************************************************************/
 int Gia_ManBmcPerform( Gia_Man_t * pGia, Bmc_AndPar_t * pPars )
 {
-    extern Gia_Man_t * Dam_ManAigSyn( Gia_Man_t * p, int fVerbose, int fVeryVerbose );
     Bmc_Mna_t * p;
     int nFramesMax, f, i=0, Lit, status, RetValue = -2;
     abctime clk = Abc_Clock();
@@ -784,7 +783,7 @@ int Gia_ManBmcPerform( Gia_Man_t * pGia, Bmc_AndPar_t * pPars )
     if ( pPars->fUseSynth )
     {
         Gia_Man_t * pTemp = p->pFrames;
-        p->pFrames = Dam_ManAigSyn( pTemp, pPars->fVerbose, 0 );
+        p->pFrames = Gia_ManAigSyn2( pTemp, pPars->fVerbose, 0 );
         Gia_ManStop( pTemp );
     }
     else if ( pPars->fVerbose )

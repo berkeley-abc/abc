@@ -965,7 +965,7 @@ Gia_Man_t * Gia_ManAreaBalance( Gia_Man_t * p, int fSimpleAnd, int nNewNodesMax,
     pNew1 = Dam_ManAreaBalanceInt( pNew, vCiLevels, nNewNodesMax, fVerbose, fVeryVerbose );
     if ( fVerbose )     Gia_ManPrintStats( pNew1, NULL );
     Gia_ManStop( pNew );
-    Vec_IntFree( vCiLevels );
+    Vec_IntFreeP( &vCiLevels );
     // derive the final result
     pNew2 = Gia_ManDupNoMuxes( pNew1 );
     if ( fVerbose )     Gia_ManPrintStats( pNew2, NULL );
@@ -984,7 +984,7 @@ Gia_Man_t * Gia_ManAreaBalance( Gia_Man_t * p, int fSimpleAnd, int nNewNodesMax,
   SeeAlso     []
 
 ***********************************************************************/
-Gia_Man_t * Dam_ManAigSyn( Gia_Man_t * p, int fVerbose, int fVeryVerbose )
+Gia_Man_t * Gia_ManAigSyn2( Gia_Man_t * p, int fVerbose, int fVeryVerbose )
 {
     Gia_Man_t * pNew, * pTemp;
     Jf_Par_t Pars, * pPars = &Pars;
@@ -997,6 +997,72 @@ Gia_Man_t * Dam_ManAigSyn( Gia_Man_t * p, int fVerbose, int fVeryVerbose )
     pNew = Jf_ManPerformMapping( pTemp = pNew, pPars );
     if ( fVerbose )     Gia_ManPrintStats( pNew, NULL );
 //    Gia_ManStop( pTemp );
+    // perform balancing
+    pNew = Gia_ManAreaBalance( pTemp = pNew, 0, ABC_INFINITY, fVeryVerbose, 0 );
+    if ( fVerbose )     Gia_ManPrintStats( pNew, NULL );
+    Gia_ManStop( pTemp );
+    return pNew;
+}
+Gia_Man_t * Gia_ManAigSyn3( Gia_Man_t * p, int fVerbose, int fVeryVerbose )
+{
+    Gia_Man_t * pNew, * pTemp;
+    Jf_Par_t Pars, * pPars = &Pars;
+    Jf_ManSetDefaultPars( pPars );
+    if ( fVerbose )     Gia_ManPrintStats( p, NULL );
+    // perform balancing
+    pNew = Gia_ManAreaBalance( p, 0, ABC_INFINITY, fVeryVerbose, 0 );
+    if ( fVerbose )     Gia_ManPrintStats( pNew, NULL );
+    // perform mapping
+    pPars->nLutSize = 6;
+    pNew = Jf_ManPerformMapping( pTemp = pNew, pPars );
+    if ( fVerbose )     Gia_ManPrintStats( pNew, NULL );
+//    Gia_ManStop( pTemp );
+    // perform balancing
+    pNew = Gia_ManAreaBalance( pTemp = pNew, 0, ABC_INFINITY, fVeryVerbose, 0 );
+    if ( fVerbose )     Gia_ManPrintStats( pNew, NULL );
+    Gia_ManStop( pTemp );
+    // perform mapping
+    pPars->nLutSize = 4;
+    pNew = Jf_ManPerformMapping( pTemp = pNew, pPars );
+    if ( fVerbose )     Gia_ManPrintStats( pNew, NULL );
+//    Gia_ManStop( pTemp );
+    // perform balancing
+    pNew = Gia_ManAreaBalance( pTemp = pNew, 0, ABC_INFINITY, fVeryVerbose, 0 );
+    if ( fVerbose )     Gia_ManPrintStats( pNew, NULL );
+    Gia_ManStop( pTemp );
+    return pNew;
+}
+Gia_Man_t * Gia_ManAigSyn4( Gia_Man_t * p, int fVerbose, int fVeryVerbose )
+{
+    Gia_Man_t * pNew, * pTemp;
+    Jf_Par_t Pars, * pPars = &Pars;
+    Jf_ManSetDefaultPars( pPars );
+    if ( fVerbose )     Gia_ManPrintStats( p, NULL );
+    // perform balancing
+    pNew = Gia_ManAreaBalance( p, 0, ABC_INFINITY, fVeryVerbose, 0 );
+    if ( fVerbose )     Gia_ManPrintStats( pNew, NULL );
+    // perform mapping
+    pPars->nLutSize = 7;
+    pNew = Jf_ManPerformMapping( pTemp = pNew, pPars );
+    if ( fVerbose )     Gia_ManPrintStats( pNew, NULL );
+//    Gia_ManStop( pTemp );
+    // perform extraction
+    pNew = Gia_ManPerformFx( pTemp = pNew, ABC_INFINITY, 0, 0, fVeryVerbose, 0 );
+    if ( fVerbose )     Gia_ManPrintStats( pNew, NULL );
+    Gia_ManStop( pTemp );
+    // perform balancing
+    pNew = Gia_ManAreaBalance( pTemp = pNew, 0, ABC_INFINITY, fVeryVerbose, 0 );
+    if ( fVerbose )     Gia_ManPrintStats( pNew, NULL );
+    Gia_ManStop( pTemp );
+    // perform mapping
+    pPars->nLutSize = 5;
+    pNew = Jf_ManPerformMapping( pTemp = pNew, pPars );
+    if ( fVerbose )     Gia_ManPrintStats( pNew, NULL );
+//    Gia_ManStop( pTemp );
+    // perform extraction
+    pNew = Gia_ManPerformFx( pTemp = pNew, ABC_INFINITY, 0, 0, fVeryVerbose, 0 );
+    if ( fVerbose )     Gia_ManPrintStats( pNew, NULL );
+    Gia_ManStop( pTemp );
     // perform balancing
     pNew = Gia_ManAreaBalance( pTemp = pNew, 0, ABC_INFINITY, fVeryVerbose, 0 );
     if ( fVerbose )     Gia_ManPrintStats( pNew, NULL );

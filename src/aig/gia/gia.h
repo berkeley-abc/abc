@@ -937,6 +937,9 @@ extern void                Gia_AigerWriteSimple( Gia_Man_t * pInit, char * pFile
 /*=== giaBalance.c ===========================================================*/
 extern Gia_Man_t *         Gia_ManBalance( Gia_Man_t * p, int fSimpleAnd, int fVerbose );
 extern Gia_Man_t *         Gia_ManAreaBalance( Gia_Man_t * p, int fSimpleAnd, int nNewNodesMax, int fVerbose, int fVeryVerbose );
+extern Gia_Man_t *         Gia_ManAigSyn2( Gia_Man_t * p, int fVerbose, int fVeryVerbose );
+extern Gia_Man_t *         Gia_ManAigSyn3( Gia_Man_t * p, int fVerbose, int fVeryVerbose );
+extern Gia_Man_t *         Gia_ManAigSyn4( Gia_Man_t * p, int fVerbose, int fVeryVerbose );
 /*=== giaBidec.c ===========================================================*/
 extern unsigned *          Gia_ManConvertAigToTruth( Gia_Man_t * p, Gia_Obj_t * pRoot, Vec_Int_t * vLeaves, Vec_Int_t * vTruth, Vec_Int_t * vVisited );
 extern Gia_Man_t *         Gia_ManPerformBidec( Gia_Man_t * p, int fVerbose );
@@ -1062,6 +1065,8 @@ extern Gia_Man_t *         Gia_ManFramesInitSpecial( Gia_Man_t * pAig, int nFram
 /*=== giaFront.c ==========================================================*/
 extern Gia_Man_t *         Gia_ManFront( Gia_Man_t * p );
 extern void                Gia_ManFrontTest( Gia_Man_t * p );
+/*=== giaFx.c ==========================================================*/
+extern Gia_Man_t *         Gia_ManPerformFx( Gia_Man_t * p, int nNewNodesMax, int LitCountMax, int fReverse, int fVerbose, int fVeryVerbose );
 /*=== giaHash.c ===========================================================*/
 extern void                Gia_ManHashAlloc( Gia_Man_t * p ); 
 extern void                Gia_ManHashStart( Gia_Man_t * p ); 

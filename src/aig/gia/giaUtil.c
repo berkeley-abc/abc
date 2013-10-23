@@ -535,6 +535,7 @@ int Gia_ManSetLevels( Gia_Man_t * p, Vec_Int_t * vCiLevels )
     int i;
     if ( vCiLevels == NULL )
         return Gia_ManLevelNum( p );
+    assert( Vec_IntSize(vCiLevels) == Gia_ManCiNum(p) );
     Gia_ManCleanLevels( p, Gia_ManObjNum(p) );
     p->nLevels = 0;
     Gia_ManForEachCi( p, pObj, i )
