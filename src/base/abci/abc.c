@@ -398,6 +398,7 @@ static int Abc_CommandAbc9Cycle              ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandAbc9Cone               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Slice              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9PoPart             ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9GroupProve         ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9MultiProve         ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Bmc                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9SatTest            ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -961,6 +962,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "ABC9",         "&cone",         Abc_CommandAbc9Cone,         0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&slice",        Abc_CommandAbc9Slice,        0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&popart",       Abc_CommandAbc9PoPart,       0 );
+    Cmd_CommandAdd( pAbc, "ABC9",         "&gprove",       Abc_CommandAbc9GroupProve,   0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&mprove",       Abc_CommandAbc9MultiProve,   0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&bmc",          Abc_CommandAbc9Bmc,          0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&sattest",      Abc_CommandAbc9SatTest,      0 );
@@ -32259,9 +32261,9 @@ usage:
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_CommandAbc9MultiProve( Abc_Frame_t * pAbc, int argc, char ** argv )
+int Abc_CommandAbc9GroupProve( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern Vec_Int_t * Gia_ManMultiProve( Gia_Man_t * p, char * pCommLine, int nGroupSize, int fVerbose );
+    extern Vec_Int_t * Gia_ManGroupProve( Gia_Man_t * p, char * pCommLine, int nGroupSize, int fVerbose );
     Vec_Int_t * vStatus;
     char * pCommLine = NULL;
     int c, nGroupSize = 1, fVerbose = 0;
@@ -32300,19 +32302,69 @@ int Abc_CommandAbc9MultiProve( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     if ( pAbc->pGia == NULL )
     {
-        Abc_Print( -1, "Abc_CommandAbc9PoPart(): There is no AIG.\n" );
+        Abc_Print( -1, "Abc_CommandAbc9GroupProve(): There is no AIG.\n" );
         return 1;
     }
-    vStatus = Gia_ManMultiProve( pAbc->pGia, pCommLine, nGroupSize, fVerbose );
+    vStatus = Gia_ManGroupProve( pAbc->pGia, pCommLine, nGroupSize, fVerbose );
     Vec_IntFree( vStatus );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &mprove [-GS num] [-vh]\n" );
+    Abc_Print( -2, "usage: &gprove [-GS num] [-vh]\n" );
     Abc_Print( -2, "\t         proves multi-output testcase by splitting outputs into groups\n" );
     Abc_Print( -2, "\t         (currently, group size more than one works only for \"bmc3\" and \"pdr\")\n" );
     Abc_Print( -2, "\t-G num : the size of one group [default = %d]\n", nGroupSize );
     Abc_Print( -2, "\t-S str : the command line to be executed for each group [default = %s]\n", pCommLine ? pCommLine : "none" );
+    Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc9MultiProve( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern int Gia_ManMultiProve( Gia_Man_t * p, int fVerbose );
+    Vec_Int_t * vStatuses;
+    char * pCommLine = NULL;
+    int c, fVerbose = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pAbc->pGia == NULL )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9PoPart(): There is no AIG.\n" );
+        return 1;
+    }
+    pAbc->Status = Gia_ManMultiProve( pAbc->pGia, fVerbose );
+    vStatuses = Abc_FrameDeriveStatusArray( pAbc->pGia->vSeqModelVec );
+    Abc_FrameReplacePoStatuses( pAbc, &vStatuses );        
+    Abc_FrameReplaceCexVec( pAbc, &pAbc->pGia->vSeqModelVec );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: &mprove [-vh]\n" );
+    Abc_Print( -2, "\t         proves multi-output testcase by applying several engines\n" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;

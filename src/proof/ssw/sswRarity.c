@@ -1051,16 +1051,22 @@ int Ssw_RarSimulate( Aig_Man_t * pAig, Ssw_RarPars_t * pPars )
             // check timeout
             if ( pPars->TimeOut && Abc_Clock() > nTimeToStop )
             {
+                if ( !pPars->fSilent )
+                {
                 if ( pPars->fVerbose && !pPars->fSolveAll ) Abc_Print( 1, "\n" );
                 Abc_Print( 1, "Simulated %d frames for %d rounds with %d restarts.  ", pPars->nFrames, nNumRestart * pPars->nRestart + r, nNumRestart );
                 Abc_Print( 1, "Reached timeout (%d sec).\n",  pPars->TimeOut );
+                }
                 goto finish;
             }
             if ( pPars->TimeOutGap && timeLastSolved && Abc_Clock() > timeLastSolved + pPars->TimeOutGap * CLOCKS_PER_SEC )
             {
+                if ( !pPars->fSilent )
+                {
                 if ( pPars->fVerbose && !pPars->fSolveAll ) Abc_Print( 1, "\n" );
                 Abc_Print( 1, "Simulated %d frames for %d rounds with %d restarts.  ", pPars->nFrames, nNumRestart * pPars->nRestart + r, nNumRestart );
                 Abc_Print( 1, "Reached gap timeout (%d sec).\n",  pPars->TimeOutGap );
+                }
                 goto finish;
             }
             // check if all outputs are solved by now
@@ -1106,15 +1112,21 @@ finish:
     }
     if ( pPars->nSolved )
     {
+        if ( !pPars->fSilent )
+        {
         if ( pPars->fVerbose && !pPars->fSolveAll ) Abc_Print( 1, "\n" );
         Abc_Print( 1, "Simulation of %d frames for %d rounds with %d restarts asserted %d (out of %d) POs.    ", pPars->nFrames, nNumRestart * pPars->nRestart + r, nNumRestart, pPars->nSolved, Saig_ManPoNum(p->pAig) );
         Abc_PrintTime( 1, "Time", Abc_Clock() - clkTotal );
+        }
     }
     else if ( r == pPars->nRounds && f == pPars->nFrames )
     {
+        if ( !pPars->fSilent )
+        {
         if ( pPars->fVerbose ) Abc_Print( 1, "\n" );
         Abc_Print( 1, "Simulation of %d frames for %d rounds with %d restarts did not assert POs.    ", pPars->nFrames, nNumRestart * pPars->nRestart + r, nNumRestart );
         Abc_PrintTime( 1, "Time", Abc_Clock() - clkTotal );
+        }
     }
     // cleanup
     Ssw_RarManStop( p );

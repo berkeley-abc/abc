@@ -1397,7 +1397,8 @@ int Saig_ManBmcScalable( Aig_Man_t * pAig, Saig_ParBmc_t * pPars )
             }
             if ( nTimeToStop && Abc_Clock() > nTimeToStop )
             {
-                Abc_Print( 1, "Reached timeout (%d seconds).\n",  pPars->nTimeOut );
+                if ( !pPars->fSilent )
+                    Abc_Print( 1, "Reached timeout (%d seconds).\n",  pPars->nTimeOut );
                 goto finish;
             }
             // skip solved outputs

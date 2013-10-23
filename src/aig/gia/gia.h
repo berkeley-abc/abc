@@ -133,6 +133,7 @@ struct Gia_Man_t_
     Vec_Int_t *    vLutConfigs;   // LUT configurations
     Abc_Cex_t *    pCexComb;      // combinational counter-example
     Abc_Cex_t *    pCexSeq;       // sequential counter-example
+    Vec_Ptr_t *    vSeqModelVec;  // sequential counter-examples
     int *          pCopies;       // intermediate copies
     Vec_Int_t *    vTruths;       // used for truth table computation
     Vec_Int_t *    vFlopClasses;  // classes of flops for retiming/merging/etc

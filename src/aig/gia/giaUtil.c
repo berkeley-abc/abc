@@ -1716,7 +1716,7 @@ int Gia_ManHasChoices_very_old( Gia_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Int_t * Gia_ManMultiProve( Gia_Man_t * pInit, char * pCommLine, int nGroupSize, int fVerbose )
+Vec_Int_t * Gia_ManGroupProve( Gia_Man_t * pInit, char * pCommLine, int nGroupSize, int fVerbose )
 {
     Abc_Frame_t * pAbc = Abc_FrameReadGlobalFrame();
     Gia_Man_t * p = Gia_ManDup( pInit );

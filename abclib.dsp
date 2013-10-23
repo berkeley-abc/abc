@@ -1447,6 +1447,10 @@ SOURCE=.\src\sat\bmc\bmcLoad.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\sat\bmc\bmcMulti.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\sat\bmc\bmcUnroll.c
 # End Source File
 # End Group

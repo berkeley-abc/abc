@@ -101,6 +101,7 @@ struct Ssw_RarPars_t_
     int              fSetLastState;
     int              fVerbose;
     int              fNotVerbose;
+    int              fSilent;
     int              fDropSatOuts;
     int              fMiter;
     int              fUseCex;

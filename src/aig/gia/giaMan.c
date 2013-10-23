@@ -72,6 +72,8 @@ Gia_Man_t * Gia_ManStart( int nObjsMax )
 ***********************************************************************/
 void Gia_ManStop( Gia_Man_t * p )
 {
+    if ( p->vSeqModelVec )
+        Vec_PtrFreeFree( p->vSeqModelVec );
     Gia_ManStaticFanoutStop( p );
     Tim_ManStopP( (Tim_Man_t **)&p->pManTime );
     assert( p->pManTime == NULL );
