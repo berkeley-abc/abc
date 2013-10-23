@@ -521,9 +521,6 @@ void Dam_ManCreatePairs( Dam_Man_t * p, int fVerbose )
     int nPairsAll = 0, nPairsTried = 0, nPairsUsed = 0, nPairsXor = 0;
     int nDivsAll = 0, nDivsUsed = 0, nDivsXor = 0;
     Dam_ManCollectSets( p );
-    p->nLevelMax = Gia_ManLevelNum( p->pGia );
-    p->vNodLevR = Gia_ManReverseLevel( p->pGia );
-    Vec_IntFillExtra( p->pGia->vLevels, 3*Gia_ManObjNum(p->pGia)/2, 0 );
     vSuper = p->pGia->vSuper;
     vDivs  = Vec_IntAlloc( Gia_ManObjNum(p->pGia) );
     vHash  = Hash_IntManStart( Gia_ManObjNum(p->pGia)/2 );
@@ -711,7 +708,10 @@ Gia_Man_t * Dam_ManMultiAig( Dam_Man_t * pMan )
     Gia_ManFillValue( p );
     Gia_ManConst0(p)->Value = 0;
     Gia_ManForEachCi( p, pObj, i )
+    {
         pObj->Value = Gia_ManAppendCi( pNew );
+        Vec_IntWriteEntry( pNew->vLevels, Abc_Lit2Var(pObj->Value), Gia_ObjLevel(p, pObj) );
+    }
     // create internal nodes
     Gia_ManHashStart( pNew );
     Gia_ManForEachCo( p, pObj, i )
@@ -912,12 +912,15 @@ void Dam_ManUpdate( Dam_Man_t * p, int iDiv )
   SeeAlso     []
 
 ***********************************************************************/
-Gia_Man_t * Dam_ManAreaBalanceInt( Gia_Man_t * pGia, int nNewNodesMax, int fVerbose, int fVeryVerbose )
+Gia_Man_t * Dam_ManAreaBalanceInt( Gia_Man_t * pGia, Vec_Int_t * vCiLevels, int nNewNodesMax, int fVerbose, int fVeryVerbose )
 {
     Gia_Man_t * pNew;
     Dam_Man_t * p;
     int i, iDiv;
     p = Dam_ManAlloc( pGia );
+    p->nLevelMax = Gia_ManSetLevels( p->pGia, vCiLevels );
+    p->vNodLevR = Gia_ManReverseLevel( p->pGia );
+    Vec_IntFillExtra( p->pGia->vLevels, 3*Gia_ManObjNum(p->pGia)/2, 0 );
     Dam_ManCreatePairs( p, fVerbose );
     for ( i = 0; i < nNewNodesMax && Vec_QueTopPriority(p->vQue) >= 2; i++ )
     {
@@ -946,6 +949,11 @@ Gia_Man_t * Dam_ManAreaBalanceInt( Gia_Man_t * pGia, int nNewNodesMax, int fVerb
 Gia_Man_t * Gia_ManAreaBalance( Gia_Man_t * p, int fSimpleAnd, int nNewNodesMax, int fVerbose, int fVeryVerbose )
 {
     Gia_Man_t * pNew0, * pNew, * pNew1, * pNew2;
+    Vec_Int_t * vCiLevels;
+    // determine CI levels
+    if ( p->pManTime && p->vLevels == NULL )
+        Gia_ManLevelWithBoxes( p );
+    vCiLevels = Gia_ManGetCiLevels( p );
     // get the starting manager
     pNew0 = Gia_ManHasMapping(p) ? (Gia_Man_t *)Dsm_ManDeriveGia(p, 0) : p;
     if ( fVerbose )     Gia_ManPrintStats( pNew0, NULL );
@@ -954,9 +962,10 @@ Gia_Man_t * Gia_ManAreaBalance( Gia_Man_t * p, int fSimpleAnd, int nNewNodesMax,
     if ( fVerbose )     Gia_ManPrintStats( pNew, NULL );
     if ( pNew0 != p ) Gia_ManStop( pNew0 );
     // perform the operation
-    pNew1 = Dam_ManAreaBalanceInt( pNew, nNewNodesMax, fVerbose, fVeryVerbose );
+    pNew1 = Dam_ManAreaBalanceInt( pNew, vCiLevels, nNewNodesMax, fVerbose, fVeryVerbose );
     if ( fVerbose )     Gia_ManPrintStats( pNew1, NULL );
     Gia_ManStop( pNew );
+    Vec_IntFree( vCiLevels );
     // derive the final result
     pNew2 = Gia_ManDupNoMuxes( pNew1 );
     if ( fVerbose )     Gia_ManPrintStats( pNew2, NULL );

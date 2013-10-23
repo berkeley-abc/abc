@@ -1229,6 +1229,8 @@ extern void                Gia_ManSetPhase1( Gia_Man_t * p );
 extern void                Gia_ManCleanPhase( Gia_Man_t * p );
 extern int                 Gia_ManCheckCoPhase( Gia_Man_t * p );
 extern int                 Gia_ManLevelNum( Gia_Man_t * p );
+extern Vec_Int_t *         Gia_ManGetCiLevels( Gia_Man_t * p );
+extern int                 Gia_ManSetLevels( Gia_Man_t * p, Vec_Int_t * vCiLevels );
 extern Vec_Int_t *         Gia_ManReverseLevel( Gia_Man_t * p );
 extern Vec_Int_t *         Gia_ManRequiredLevel( Gia_Man_t * p );
 extern void                Gia_ManCreateValueRefs( Gia_Man_t * p );

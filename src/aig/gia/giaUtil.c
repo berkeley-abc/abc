@@ -508,6 +508,54 @@ int Gia_ManLevelNum( Gia_Man_t * p )
 
 /**Function*************************************************************
 
+  Synopsis    [Assigns levels using CI level information.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Int_t * Gia_ManGetCiLevels( Gia_Man_t * p )  
+{
+    Vec_Int_t * vCiLevels;
+    Gia_Obj_t * pObj;
+    int i;
+    if ( p->vLevels == NULL )
+        return NULL;
+    vCiLevels = Vec_IntAlloc( Gia_ManCiNum(p) );
+    Gia_ManForEachCi( p, pObj, i )
+        Vec_IntPush( vCiLevels, Gia_ObjLevel(p, pObj) );
+    return vCiLevels;
+}
+int Gia_ManSetLevels( Gia_Man_t * p, Vec_Int_t * vCiLevels )  
+{
+    Gia_Obj_t * pObj;
+    int i;
+    if ( vCiLevels == NULL )
+        return Gia_ManLevelNum( p );
+    Gia_ManCleanLevels( p, Gia_ManObjNum(p) );
+    p->nLevels = 0;
+    Gia_ManForEachCi( p, pObj, i )
+    {
+        Gia_ObjSetLevel( p, pObj, Vec_IntEntry(vCiLevels, i) );
+        p->nLevels = Abc_MaxInt( p->nLevels, Gia_ObjLevel(p, pObj) );
+    }
+    Gia_ManForEachObj( p, pObj, i )
+    {
+        if ( Gia_ObjIsAnd(pObj) )
+            Gia_ObjSetGateLevel( p, pObj );
+        else if ( Gia_ObjIsCo(pObj) )
+            Gia_ObjSetCoLevel( p, pObj );
+        else continue;
+        p->nLevels = Abc_MaxInt( p->nLevels, Gia_ObjLevel(p, pObj) );
+    }
+    return p->nLevels;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Compute reverse levels.]
 
   Description []
