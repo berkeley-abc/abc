@@ -159,7 +159,7 @@ void Jf_ManGenCnf( word uTruth, int iLitOut, Vec_Int_t * vLeaves, Vec_Int_t * vL
         }
     }
 }
-Cnf_Dat_t * Jf_ManCreateCnf( Gia_Man_t * p, Vec_Int_t * vLits, Vec_Int_t * vClas )
+Cnf_Dat_t * Jf_ManCreateCnfRemap( Gia_Man_t * p, Vec_Int_t * vLits, Vec_Int_t * vClas )
 {
     Cnf_Dat_t * pCnf; 
     Gia_Obj_t * pObj;
@@ -187,6 +187,42 @@ Cnf_Dat_t * Jf_ManCreateCnf( Gia_Man_t * p, Vec_Int_t * vLits, Vec_Int_t * vClas
         pCnf->pClauses[i] = pCnf->pClauses[0] + Entry;
     pCnf->pClauses[i] = pCnf->pClauses[0] + pCnf->nLiterals;
     pCnf->pVarNums = pMap;
+    return pCnf;
+}
+Cnf_Dat_t * Jf_ManCreateCnf( Gia_Man_t * p, Vec_Int_t * vLits, Vec_Int_t * vClas )
+{
+    Cnf_Dat_t * pCnf; 
+    int i, Entry, iOut;
+    // generate CNF
+    pCnf = ABC_CALLOC( Cnf_Dat_t, 1 );
+    pCnf->pMan = (Aig_Man_t *)p;
+    pCnf->nVars = Gia_ManObjNum(p);
+    pCnf->nLiterals = Vec_IntSize(vLits);
+    pCnf->nClauses = Vec_IntSize(vClas);
+    pCnf->pClauses = ABC_ALLOC( int *, pCnf->nClauses+1 );
+    pCnf->pClauses[0] = Vec_IntReleaseArray(vLits);
+    Vec_IntForEachEntry( vClas, Entry, i )
+        pCnf->pClauses[i] = pCnf->pClauses[0] + Entry;
+    pCnf->pClauses[i] = pCnf->pClauses[0] + pCnf->nLiterals;
+    // create mapping of objects into their clauses
+    pCnf->pObj2Clause = ABC_FALLOC( int, Gia_ManObjNum(p) );
+    pCnf->pObj2Count  = ABC_FALLOC( int, Gia_ManObjNum(p) );
+    for ( i = 0; i < pCnf->nClauses; i++ )
+    {
+        iOut = Abc_Lit2Var(pCnf->pClauses[i][0]);
+        if ( pCnf->pObj2Clause[iOut] == -1 )
+        {
+//            printf( "\n" );
+            pCnf->pObj2Clause[iOut] = i;
+            pCnf->pObj2Count[iOut] = 1;
+        }
+        else
+        {
+            assert( pCnf->pObj2Count[iOut] > 0 );
+            pCnf->pObj2Count[iOut]++;
+        }
+//printf( "%d ", iOut );
+    }
     return pCnf;
 }
 
@@ -1713,7 +1749,7 @@ Gia_Man_t * Jf_ManPerformMapping( Gia_Man_t * pGia, Jf_Par_t * pPars )
     Jf_ManFree( p );
     return pNew;
 }
-void Jf_ManTestCnf( Gia_Man_t * p )
+Cnf_Dat_t * Jf_ManDeriveCnf( Gia_Man_t * p )
 {
     Cnf_Dat_t * pCnf; 
     Gia_Man_t * pNew;
@@ -1722,8 +1758,14 @@ void Jf_ManTestCnf( Gia_Man_t * p )
     pPars->fGenCnf = 1;
     pNew = Jf_ManPerformMapping( p, pPars );
     pCnf = (Cnf_Dat_t *)pNew->pData; pNew->pData = NULL;
-    Gia_ManStop( pNew );
+//    Gia_ManStop( pNew );
+    return pCnf;
+}
+void Jf_ManTestCnf( Gia_Man_t * p )
+{
+    Cnf_Dat_t * pCnf = Jf_ManDeriveCnf( p );
     Cnf_DataWriteIntoFile( pCnf, "test.cnf", 0, NULL, NULL );
+    Gia_ManStop( (Gia_Man_t *)pCnf->pMan );
     Cnf_DataFree(pCnf);
 }
 
