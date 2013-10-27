@@ -2447,13 +2447,16 @@ usage:
 ***********************************************************************/
 int Abc_CommandPrintStatus( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    int c;
+    int c, fShort = 1;
     // set defaults
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "sh" ) ) != EOF )
     {
         switch ( c )
         {
+        case 's':
+            fShort ^= 1;
+            break;
         case 'h':
             goto usage;
         default:
@@ -2492,16 +2495,26 @@ int Abc_CommandPrintStatus( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     if ( pAbc->vStatuses )
     {
-        int i, Entry;
-        Vec_IntForEachEntry( pAbc->vStatuses, Entry, i )
-            printf( "%d=%d  ", i, Entry );
+        if ( fShort )
+        {
+            printf( "Status array contains %d SAT, %d UNSAT, and %d UNDEC entries (out of %d).", 
+                Vec_IntCountEntry(pAbc->vStatuses, 0), Vec_IntCountEntry(pAbc->vStatuses, 1), 
+                Vec_IntCountEntry(pAbc->vStatuses, -1), Vec_IntSize(pAbc->vStatuses) );
+        }
+        else
+        {
+            int i, Entry;
+            Vec_IntForEachEntry( pAbc->vStatuses, Entry, i )
+                printf( "%d=%d  ", i, Entry );
+        }
         printf( "\n" );
     }
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: print_status [-h]\n" );
+    Abc_Print( -2, "usage: print_status [-sh]\n" );
     Abc_Print( -2, "\t        prints verification status\n" );
+    Abc_Print( -2, "\t-s    : toggle using short print-out [default = %s]\n", fShort? "yes": "no" );
     Abc_Print( -2, "\t-h    : print the command usage\n");
     return 1;
 }
@@ -32333,17 +32346,60 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9MultiProve( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern int Gia_ManMultiProve( Gia_Man_t * p, int fVerbose );
+    extern int Gia_ManMultiProve( Gia_Man_t * p, int TimeOutGlo, int TimeOutLoc, int TimeOutInc, int fUseSyn, int fVerbose, int fVeryVerbose );
     Vec_Int_t * vStatuses;
-    char * pCommLine = NULL;
+    int TimeOutGlo = 30;
+    int TimeOutLoc =  2;
+    int TimeOutInc =  2;
+    int fUseSyn    =  0;
     int c, fVerbose = 0;
+    int fVeryVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "TLMsvwh" ) ) != EOF )
     {
         switch ( c )
         {
+        case 'T':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-T\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            TimeOutGlo = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( TimeOutGlo < 0 )
+                goto usage;
+            break;
+        case 'L':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-L\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            TimeOutLoc = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( TimeOutLoc <= 0 )
+                goto usage;
+            break;
+        case 'M':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-M\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            TimeOutInc = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( TimeOutInc <= 0 )
+                goto usage;
+            break;
+        case 's':
+            fUseSyn ^= 1;
+            break;
         case 'v':
             fVerbose ^= 1;
+            break;
+        case 'w':
+            fVeryVerbose ^= 1;
             break;
         case 'h':
             goto usage;
@@ -32356,16 +32412,21 @@ int Abc_CommandAbc9MultiProve( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Abc_CommandAbc9PoPart(): There is no AIG.\n" );
         return 1;
     }
-    pAbc->Status = Gia_ManMultiProve( pAbc->pGia, fVerbose );
+    pAbc->Status = Gia_ManMultiProve( pAbc->pGia, TimeOutGlo, TimeOutLoc, TimeOutInc, fUseSyn, fVerbose, fVeryVerbose );
     vStatuses = Abc_FrameDeriveStatusArray( pAbc->pGia->vSeqModelVec );
     Abc_FrameReplacePoStatuses( pAbc, &vStatuses );        
     Abc_FrameReplaceCexVec( pAbc, &pAbc->pGia->vSeqModelVec );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &mprove [-vh]\n" );
+    Abc_Print( -2, "usage: &mprove [-TLM num] [-svwh]\n" );
     Abc_Print( -2, "\t         proves multi-output testcase by applying several engines\n" );
-    Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-T num : approximate global runtime limit in seconds [default = %d]\n",     TimeOutGlo );
+    Abc_Print( -2, "\t-L num : approximate local runtime limit in seconds [default = %d]\n",      TimeOutLoc );
+    Abc_Print( -2, "\t-M num : approximate multiple of the local runtime limit [default = %d]\n", TimeOutInc );
+    Abc_Print( -2, "\t-s     : toggle using combinational synthesis [default = %s]\n",            fUseSyn? "yes": "no" );
+    Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n",             fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-w     : toggle printing additional verbose information [default = %s]\n",  fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
 }

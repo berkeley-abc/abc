@@ -1054,7 +1054,7 @@ int Ssw_RarSimulate( Aig_Man_t * pAig, Ssw_RarPars_t * pPars )
                 if ( !pPars->fSilent )
                 {
                 if ( pPars->fVerbose && !pPars->fSolveAll ) Abc_Print( 1, "\n" );
-                Abc_Print( 1, "Simulated %d frames for %d rounds with %d restarts.  ", pPars->nFrames, nNumRestart * pPars->nRestart + r, nNumRestart );
+                Abc_Print( 1, "Simulated %d frames for %d rounds with %d restarts and solved %d outputs.  ", pPars->nFrames, nNumRestart * pPars->nRestart + r, nNumRestart, pPars->nSolved );
                 Abc_Print( 1, "Reached timeout (%d sec).\n",  pPars->TimeOut );
                 }
                 goto finish;
@@ -1064,7 +1064,7 @@ int Ssw_RarSimulate( Aig_Man_t * pAig, Ssw_RarPars_t * pPars )
                 if ( !pPars->fSilent )
                 {
                 if ( pPars->fVerbose && !pPars->fSolveAll ) Abc_Print( 1, "\n" );
-                Abc_Print( 1, "Simulated %d frames for %d rounds with %d restarts.  ", pPars->nFrames, nNumRestart * pPars->nRestart + r, nNumRestart );
+                Abc_Print( 1, "Simulated %d frames for %d rounds with %d restarts and solved %d outputs.  ", pPars->nFrames, nNumRestart * pPars->nRestart + r, nNumRestart, pPars->nSolved );
                 Abc_Print( 1, "Reached gap timeout (%d sec).\n",  pPars->TimeOutGap );
                 }
                 goto finish;
