@@ -22,6 +22,7 @@
 #include "sat/cnf/cnf.h"
 #include "sat/bsat/satStore.h"
 #include "misc/vec/vecHsh.h"
+#include "misc/vec/vecWec.h"
 #include "bmc.h"
 
 ABC_NAMESPACE_IMPL_START
@@ -40,10 +41,11 @@ struct Gia_ManBmc_t_
     // intermediate data
     Vec_Int_t *       vMapping;    // mapping
     Vec_Int_t *       vMapRefs;    // mapping references
-    Vec_Vec_t *       vSects;      // sections
+//    Vec_Vec_t *       vSects;      // sections
     Vec_Int_t *       vId2Num;     // number of each node 
     Vec_Ptr_t *       vTerInfo;    // ternary information
     Vec_Ptr_t *       vId2Var;     // SAT vars for each object
+    Vec_Wec_t *       vVisited;    // visited nodes
     abctime *         pTime4Outs;  // timeout per output
     // hash table
     Vec_Int_t *       vData;       // storage for cuts
@@ -716,7 +718,7 @@ Gia_ManBmc_t * Saig_Bmc3ManStart( Aig_Man_t * pAig, int nTimeOutOne )
     p->vMapping = Cnf_DeriveMappingArray( pAig );
     p->vMapRefs = Saig_ManBmcComputeMappingRefs( pAig, p->vMapping );
     // create sections
-    p->vSects = Saig_ManBmcSections( pAig );
+//    p->vSects = Saig_ManBmcSections( pAig );
     // map object IDs into their numbers and section numbers
     p->nObjNums = 0;
     p->vId2Num  = Vec_IntStartFull( Aig_ManObjNumMax(pAig) );
@@ -730,6 +732,7 @@ Gia_ManBmc_t * Saig_Bmc3ManStart( Aig_Man_t * pAig, int nTimeOutOne )
         Vec_IntWriteEntry( p->vId2Num,  Aig_ObjId(pObj), p->nObjNums++ );
     p->vId2Var  = Vec_PtrAlloc( 100 );
     p->vTerInfo = Vec_PtrAlloc( 100 );
+    p->vVisited = Vec_WecAlloc( 100 );
     // create solver
     p->nSatVars = 1;
     p->pSat     = sat_solver_new();
@@ -781,9 +784,10 @@ void Saig_Bmc3ManStop( Gia_ManBmc_t * p )
         p->vCexes = NULL;
     }
 //    Vec_PtrFreeFree( p->vCexes );
+    Vec_WecFree( p->vVisited );
     Vec_IntFree( p->vMapping );
     Vec_IntFree( p->vMapRefs );
-    Vec_VecFree( p->vSects );
+//    Vec_VecFree( p->vSects );
     Vec_IntFree( p->vId2Num );
     Vec_VecFree( (Vec_Vec_t *)p->vId2Var );
     Vec_PtrFreeFree( p->vTerInfo );
@@ -1072,6 +1076,46 @@ int Saig_ManBmcCreateCnf_rec( Gia_ManBmc_t * p, Aig_Obj_t * pObj, int iFrame )
 
 /**Function*************************************************************
 
+  Synopsis    [Derives CNF for one node.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Saig_ManBmcCreateCnf_iter( Gia_ManBmc_t * p, Aig_Obj_t * pObj, int iFrame, Vec_Int_t * vVisit )
+{
+    if ( Saig_ManBmcLiteral( p, pObj, iFrame ) != ~0 )
+        return; 
+    if ( Aig_ObjIsTravIdCurrent(p->pAig, pObj) )
+        return;
+    Aig_ObjSetTravIdCurrent(p->pAig, pObj);
+    if ( Aig_ObjIsCi(pObj) )
+    {
+        if ( Saig_ObjIsLo(p->pAig, pObj) )
+            Vec_IntPush( vVisit, Saig_ObjLoToLi(p->pAig, pObj)->Id );
+        return;
+    }
+    if ( Aig_ObjIsCo(pObj) )
+    {
+        Saig_ManBmcCreateCnf_iter( p, Aig_ObjFanin0(pObj), iFrame, vVisit );
+        return;
+    }
+    else
+    {
+        int * pMapping, i;
+        assert( Aig_ObjIsNode(pObj) );
+        pMapping = Saig_ManBmcMapping( p, pObj );
+        for ( i = 0; i < 4; i++ )
+            if ( pMapping[i+1] != -1 )
+                Saig_ManBmcCreateCnf_iter( p, Aig_ManObj(p->pAig, pMapping[i+1]), iFrame, vVisit );
+    }
+}
+
+/**Function*************************************************************
+
   Synopsis    [Recursively performs terminary simulation.]
 
   Description []
@@ -1158,13 +1202,32 @@ int Saig_ManBmcRunTerSim_rec( Gia_ManBmc_t * p, Aig_Obj_t * pObj, int iFrame )
 ***********************************************************************/
 int Saig_ManBmcCreateCnf( Gia_ManBmc_t * p, Aig_Obj_t * pObj, int iFrame )
 {
-    int Lit;
-    // perform terminary simulation
+    Vec_Int_t * vVisit, * vVisit2;
+    Aig_Obj_t * pTemp;
+    int Lit, f, i;
+    // perform ternary simulation
     int Value = Saig_ManBmcRunTerSim_rec( p, pObj, iFrame );
     if ( Value != SAIG_TER_UND )
         return (int)(Value == SAIG_TER_ONE);
     // construct CNF if value is ternary
-    Lit = Saig_ManBmcCreateCnf_rec( p, pObj, iFrame );
+//    Lit = Saig_ManBmcCreateCnf_rec( p, pObj, iFrame );
+    Vec_WecClear( p->vVisited );
+    vVisit = Vec_WecPushLevel( p->vVisited );
+    Vec_IntPush( vVisit, Aig_ObjId(pObj) );
+    for ( f = iFrame; f >= 0; f-- )
+    {
+        Aig_ManIncrementTravId( p->pAig );
+        vVisit2 = Vec_WecPushLevel( p->vVisited );
+        vVisit = Vec_WecEntry( p->vVisited, Vec_WecSize(p->vVisited)-2 );
+        Aig_ManForEachObjVec( vVisit, p->pAig, pTemp, i )
+            Saig_ManBmcCreateCnf_iter( p, pTemp, f, vVisit2 );
+        if ( Vec_IntSize(vVisit2) == 0 )
+            break;
+    }
+    Vec_WecForEachLevelReverse( p->vVisited, vVisit, f )
+        Aig_ManForEachObjVec( vVisit, p->pAig, pTemp, i )
+            Saig_ManBmcCreateCnf_rec( p, pTemp, iFrame-f );
+    Lit = Saig_ManBmcLiteral( p, pObj, iFrame );
     // extend the SAT solver
     if ( p->nSatVars > sat_solver_nvars(p->pSat) )
         sat_solver_setnvars( p->pSat, p->nSatVars );
@@ -1325,9 +1388,9 @@ int Saig_ManBmcScalable( Aig_Man_t * pAig, Saig_ParBmc_t * pPars )
         p->vCexes = Vec_PtrStart( Saig_ManPoNum(pAig) );
     if ( pPars->fVerbose )
     {
-        Abc_Print( 1, "Running \"bmc3\". PI/PO/Reg = %d/%d/%d. And =%7d. Lev =%6d. ObjNums =%6d. Sect =%3d.\n", 
+        Abc_Print( 1, "Running \"bmc3\". PI/PO/Reg = %d/%d/%d. And =%7d. Lev =%6d. ObjNums =%6d.\n",// Sect =%3d.\n", 
             Saig_ManPiNum(pAig), Saig_ManPoNum(pAig), Saig_ManRegNum(pAig),
-            Aig_ManNodeNum(pAig), Aig_ManLevelNum(pAig), p->nObjNums, Vec_VecSize(p->vSects) );
+            Aig_ManNodeNum(pAig), Aig_ManLevelNum(pAig), p->nObjNums );//, Vec_VecSize(p->vSects) );
         Abc_Print( 1, "Params: FramesMax = %d. Start = %d. ConfLimit = %d. TimeOut = %d. SolveAll = %d.\n", 
             pPars->nFramesMax, pPars->nStart, pPars->nConfLimit, pPars->nTimeOut, pPars->fSolveAll );
     } 
