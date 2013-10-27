@@ -32346,16 +32346,15 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9MultiProve( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern int Gia_ManMultiProve( Gia_Man_t * p, int TimeOutGlo, int TimeOutLoc, int TimeOutInc, int fUseSyn, int fVerbose, int fVeryVerbose );
-    Vec_Int_t * vStatuses;
-    int TimeOutGlo = 30;
-    int TimeOutLoc =  2;
-    int TimeOutInc =  2;
-    int fUseSyn    =  0;
-    int c, fVerbose = 0;
-    int fVeryVerbose = 0;
+    extern int Gia_ManMultiProve( Gia_Man_t * p, Bmc_MulPar_t * pPars );
+    Vec_Int_t * vStatuses; int c;
+    Bmc_MulPar_t Pars, * pPars = &Pars;
+    memset( pPars, 0, sizeof(Bmc_MulPar_t) );
+    pPars->TimeOutGlo =  30;
+    pPars->TimeOutLoc =   2;
+    pPars->TimeOutInc = 100;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "TLMsvwh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "TLMsdvwh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -32365,9 +32364,9 @@ int Abc_CommandAbc9MultiProve( Abc_Frame_t * pAbc, int argc, char ** argv )
                 Abc_Print( -1, "Command line switch \"-T\" should be followed by an integer.\n" );
                 goto usage;
             }
-            TimeOutGlo = atoi(argv[globalUtilOptind]);
+            pPars->TimeOutGlo = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( TimeOutGlo < 0 )
+            if ( pPars->TimeOutGlo < 0 )
                 goto usage;
             break;
         case 'L':
@@ -32376,9 +32375,9 @@ int Abc_CommandAbc9MultiProve( Abc_Frame_t * pAbc, int argc, char ** argv )
                 Abc_Print( -1, "Command line switch \"-L\" should be followed by an integer.\n" );
                 goto usage;
             }
-            TimeOutLoc = atoi(argv[globalUtilOptind]);
+            pPars->TimeOutLoc = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( TimeOutLoc <= 0 )
+            if ( pPars->TimeOutLoc <= 0 )
                 goto usage;
             break;
         case 'M':
@@ -32387,19 +32386,22 @@ int Abc_CommandAbc9MultiProve( Abc_Frame_t * pAbc, int argc, char ** argv )
                 Abc_Print( -1, "Command line switch \"-M\" should be followed by an integer.\n" );
                 goto usage;
             }
-            TimeOutInc = atoi(argv[globalUtilOptind]);
+            pPars->TimeOutInc = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( TimeOutInc <= 0 )
+            if ( pPars->TimeOutInc <= 0 )
                 goto usage;
             break;
         case 's':
-            fUseSyn ^= 1;
+            pPars->fUseSyn ^= 1;
+            break;
+        case 'd':
+            pPars->fDumpFinal ^= 1;
             break;
         case 'v':
-            fVerbose ^= 1;
+            pPars->fVerbose ^= 1;
             break;
         case 'w':
-            fVeryVerbose ^= 1;
+            pPars->fVeryVerbose ^= 1;
             break;
         case 'h':
             goto usage;
@@ -32412,21 +32414,22 @@ int Abc_CommandAbc9MultiProve( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Abc_CommandAbc9PoPart(): There is no AIG.\n" );
         return 1;
     }
-    pAbc->Status = Gia_ManMultiProve( pAbc->pGia, TimeOutGlo, TimeOutLoc, TimeOutInc, fUseSyn, fVerbose, fVeryVerbose );
+    pAbc->Status = Gia_ManMultiProve( pAbc->pGia, pPars );
     vStatuses = Abc_FrameDeriveStatusArray( pAbc->pGia->vSeqModelVec );
     Abc_FrameReplacePoStatuses( pAbc, &vStatuses );        
     Abc_FrameReplaceCexVec( pAbc, &pAbc->pGia->vSeqModelVec );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &mprove [-TLM num] [-svwh]\n" );
+    Abc_Print( -2, "usage: &mprove [-TLM num] [-sdvwh]\n" );
     Abc_Print( -2, "\t         proves multi-output testcase by applying several engines\n" );
-    Abc_Print( -2, "\t-T num : approximate global runtime limit in seconds [default = %d]\n",     TimeOutGlo );
-    Abc_Print( -2, "\t-L num : approximate local runtime limit in seconds [default = %d]\n",      TimeOutLoc );
-    Abc_Print( -2, "\t-M num : approximate multiple of the local runtime limit [default = %d]\n", TimeOutInc );
-    Abc_Print( -2, "\t-s     : toggle using combinational synthesis [default = %s]\n",            fUseSyn? "yes": "no" );
-    Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n",             fVerbose? "yes": "no" );
-    Abc_Print( -2, "\t-w     : toggle printing additional verbose information [default = %s]\n",  fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-T num : approximate global runtime limit in seconds [default = %d]\n",     pPars->TimeOutGlo );
+    Abc_Print( -2, "\t-L num : approximate local runtime limit in seconds [default = %d]\n",      pPars->TimeOutLoc );
+    Abc_Print( -2, "\t-M num : percentage of local runtime limit increase [default = %d]\n",      pPars->TimeOutInc );
+    Abc_Print( -2, "\t-s     : toggle using combinational synthesis [default = %s]\n",            pPars->fUseSyn?      "yes": "no" );
+    Abc_Print( -2, "\t-d     : toggle dumping invariant into a file [default = %s]\n",            pPars->fDumpFinal?   "yes": "no" );
+    Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n",             pPars->fVerbose?     "yes": "no" );
+    Abc_Print( -2, "\t-w     : toggle printing additional verbose information [default = %s]\n",  pPars->fVeryVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
 }

@@ -1112,12 +1112,14 @@ finish:
     }
     if ( pPars->nSolved )
     {
+/*
         if ( !pPars->fSilent )
         {
         if ( pPars->fVerbose && !pPars->fSolveAll ) Abc_Print( 1, "\n" );
         Abc_Print( 1, "Simulation of %d frames for %d rounds with %d restarts asserted %d (out of %d) POs.    ", pPars->nFrames, nNumRestart * pPars->nRestart + r, nNumRestart, pPars->nSolved, Saig_ManPoNum(p->pAig) );
         Abc_PrintTime( 1, "Time", Abc_Clock() - clkTotal );
         }
+*/
     }
     else if ( r == pPars->nRounds && f == pPars->nFrames )
     {

@@ -20,7 +20,9 @@
 
 #include "bmc.h"
 #include "proof/ssw/ssw.h"
+#include "misc/extra/extra.h"
 #include "aig/gia/giaAig.h"
+#include "aig/ioa/ioa.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -128,7 +130,7 @@ Aig_Man_t * Gia_ManMultiProveSyn( Aig_Man_t * p, int fVerbose, int fVeryVerbose 
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Ptr_t * Gia_ManMultiProveAig( Aig_Man_t * p, int TimeOutGlo, int TimeOutLoc, int TimeOutInc, int fUseSyn, int fVerbose, int fVeryVerbose )
+Vec_Ptr_t * Gia_ManMultiProveAig( Aig_Man_t * p, Bmc_MulPar_t * pPars )
 {
     Ssw_RarPars_t ParsSim, * pParsSim = &ParsSim;
     Saig_ParBmc_t ParsBmc, * pParsBmc = &ParsBmc;
@@ -136,12 +138,12 @@ Vec_Ptr_t * Gia_ManMultiProveAig( Aig_Man_t * p, int TimeOutGlo, int TimeOutLoc,
     Vec_Ptr_t * vCexes;
     Aig_Man_t * pTemp;
     abctime clkStart = Abc_Clock();
-    int nTimeToStop  = TimeOutGlo ? TimeOutGlo * CLOCKS_PER_SEC + Abc_Clock(): 0;
+    int nTimeToStop  = pPars->TimeOutGlo ? pPars->TimeOutGlo * CLOCKS_PER_SEC + Abc_Clock(): 0;
     int nTotalPo     = Saig_ManPoNum(p);
     int nTotalSize   = Aig_ManObjNum(p);
     int i, RetValue  = -1;
-    if ( fVerbose )
-        printf( "MultiProve parameters: Global timeout = %d sec.  Local timeout = %d sec.  Time increase = %d.\n", TimeOutGlo, TimeOutLoc, TimeOutInc );
+    if ( pPars->fVerbose )
+        printf( "MultiProve parameters: Global timeout = %d sec.  Local timeout = %d sec.  Time increase = %d %%.\n", pPars->TimeOutGlo, pPars->TimeOutLoc, pPars->TimeOutInc );
     // create output map
     vOutMap = Vec_IntStartNatural( Saig_ManPoNum(p) ); // maps current outputs into their original IDs
     vCexes  = Vec_PtrStart( Saig_ManPoNum(p) );        // maps solved outputs into their CEXes (or markers)
@@ -151,8 +153,8 @@ Vec_Ptr_t * Gia_ManMultiProveAig( Aig_Man_t * p, int TimeOutGlo, int TimeOutLoc,
         Ssw_RarSetDefaultParams( pParsSim );
         pParsSim->fSolveAll = 1;
         pParsSim->fNotVerbose = 1;
-        pParsSim->fSilent = !fVeryVerbose;
-        pParsSim->TimeOut = TimeOutLoc;
+        pParsSim->fSilent = !pPars->fVeryVerbose;
+        pParsSim->TimeOut = pPars->TimeOutLoc;
         pParsSim->nRandSeed = (i * 17) % 500;
         RetValue *= Ssw_RarSimulate( p, pParsSim );
         // sort outputs
@@ -166,13 +168,13 @@ Vec_Ptr_t * Gia_ManMultiProveAig( Aig_Man_t * p, int TimeOutGlo, int TimeOutLoc,
             Vec_IntFree( vLeftOver );
             Aig_ManStop( pTemp );
         }
-        if ( fVerbose )
+        if ( pPars->fVerbose )
             Gia_ManMultiReport( p, "SIM", nTotalPo, nTotalSize, clkStart );
 
         // check timeout
-        if ( nTimeToStop && Abc_Clock() > nTimeToStop )
+        if ( nTimeToStop && pPars->TimeOutLoc * CLOCKS_PER_SEC + Abc_Clock() > nTimeToStop )
         {
-            printf( "Global timeout (%d sec) is reached.\n", TimeOutGlo );
+            printf( "Global timeout (%d sec) is reached.\n", pPars->TimeOutGlo );
             break;
         }
 
@@ -180,9 +182,12 @@ Vec_Ptr_t * Gia_ManMultiProveAig( Aig_Man_t * p, int TimeOutGlo, int TimeOutLoc,
         Saig_ParBmcSetDefaultParams( pParsBmc );
         pParsBmc->fSolveAll = 1;
         pParsBmc->fNotVerbose = 1;
-        pParsBmc->fSilent = !fVeryVerbose;
-        pParsBmc->nTimeOut = TimeOutLoc;
+        pParsBmc->fSilent = !pPars->fVeryVerbose;
+        pParsBmc->nTimeOut = pPars->TimeOutLoc;
         RetValue *= Saig_ManBmcScalable( p, pParsBmc );
+        if ( pPars->fVeryVerbose )
+            Abc_Print( 1, "Some outputs are SAT (%d out of %d) after %d frames.\n", 
+                Saig_ManPoNum(p) - Vec_PtrCountZero(p->vSeqModelVec), Saig_ManPoNum(p), pParsBmc->iFrame );
         // sort outputs
         if ( p->vSeqModelVec )
         {
@@ -194,41 +199,46 @@ Vec_Ptr_t * Gia_ManMultiProveAig( Aig_Man_t * p, int TimeOutGlo, int TimeOutLoc,
             Vec_IntFree( vLeftOver );
             Aig_ManStop( pTemp );
         }
-        if ( fVerbose )
+        if ( pPars->fVerbose )
             Gia_ManMultiReport( p, "BMC", nTotalPo, nTotalSize, clkStart );
 
         // check timeout
-        if ( nTimeToStop && Abc_Clock() > nTimeToStop )
+        if ( nTimeToStop && pPars->TimeOutLoc * CLOCKS_PER_SEC + Abc_Clock() > nTimeToStop )
         {
-            printf( "Global timeout (%d sec) is reached.\n", TimeOutGlo );
+            printf( "Global timeout (%d sec) is reached.\n", pPars->TimeOutGlo );
             break;
         }
 
         // synthesize
-        if ( fUseSyn )
+        if ( pPars->fUseSyn )
         {
-            p = Gia_ManMultiProveSyn( pTemp = p, fVerbose, fVeryVerbose );
+            p = Gia_ManMultiProveSyn( pTemp = p, pPars->fVerbose, pPars->fVeryVerbose );
             Aig_ManStop( pTemp );
-            if ( fVerbose )
+            if ( pPars->fVerbose )
                 Gia_ManMultiReport( p, "SYN", nTotalPo, nTotalSize, clkStart );
         }
 
         // increase timeout
-        TimeOutLoc *= TimeOutInc;
+        pPars->TimeOutLoc += pPars->TimeOutLoc * pPars->TimeOutInc / 100;
     }
     Vec_IntFree( vOutMap );
+    if ( pPars->fDumpFinal )
+    {
+        char * pFileName = Extra_FileNameGenericAppend( p->pName, "_out.aig" );
+        Ioa_WriteAiger( p, pFileName, 0, 0 );
+        printf( "Final AIG was dumped into file \"%s\".\n", pFileName );
+    }
     Aig_ManStop( p );
     return vCexes;
 }
-int Gia_ManMultiProve( Gia_Man_t * p, int TimeOutGlo, int TimeOutLoc, int TimeOutInc, int fUseSyn, int fVerbose, int fVeryVerbose )
+int Gia_ManMultiProve( Gia_Man_t * p, Bmc_MulPar_t * pPars )
 {
     Aig_Man_t * pAig;
     if ( p->vSeqModelVec )
         Vec_PtrFreeFree( p->vSeqModelVec ), p->vSeqModelVec = NULL;
     pAig = Gia_ManToAig( p, 0 );
-    p->vSeqModelVec = Gia_ManMultiProveAig( pAig, TimeOutGlo, TimeOutLoc, TimeOutInc, fUseSyn, fVerbose, fVeryVerbose );
+    p->vSeqModelVec = Gia_ManMultiProveAig( pAig, pPars ); // deletes pAig
     assert( Vec_PtrSize(p->vSeqModelVec) == Gia_ManPoNum(p) );
-//    Aig_ManStop( pAig );
     return Vec_PtrCountZero(p->vSeqModelVec) == Vec_PtrSize(p->vSeqModelVec) ? -1 : 0;
 }
 

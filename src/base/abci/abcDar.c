@@ -2174,16 +2174,17 @@ int Abc_NtkDarBmc3( Abc_Ntk_t * pNtk, Saig_ParBmc_t * pPars, int fOrDecomp )
             {
                 int nOutputs = Saig_ManPoNum(pMan) - Saig_ManConstrNum(pMan);
                 if ( pMan->vSeqModelVec == NULL || Vec_PtrCountZero(pMan->vSeqModelVec) == nOutputs )
-                    Abc_Print( 1, "None of the %d outputs is found to be SAT.   ", nOutputs );
+                    Abc_Print( 1, "None of the %d outputs is found to be SAT", nOutputs );
                 else if ( Vec_PtrCountZero(pMan->vSeqModelVec) == 0 )
-                    Abc_Print( 1, "All %d outputs are found to be SAT.   ", nOutputs );
+                    Abc_Print( 1, "All %d outputs are found to be SAT", nOutputs );
                 else
                 {
                     Abc_Print( 1, "Some outputs are SAT (%d out of %d)", nOutputs - Vec_PtrCountZero(pMan->vSeqModelVec), nOutputs );
                     if ( pPars->nDropOuts )
                         Abc_Print( 1, " while others timed out (%d out of %d)", pPars->nDropOuts, nOutputs );
-                    Abc_Print( 1, ".   " );
                 }
+                Abc_Print( 1, " after %d frames", pPars->iFrame );
+                Abc_Print( 1, ".   " );
             }
         }
         ABC_PRT( "Time", Abc_Clock() - clk );

@@ -1353,7 +1353,7 @@ int Saig_ManBmcScalable( Aig_Man_t * pAig, Saig_ParBmc_t * pPars )
             goto finish;
         }
         // consider the next timeframe
-        if ( RetValue == -1 && pPars->nStart == 0 && !nJumpFrame )
+        if ( (RetValue == -1 || pPars->fSolveAll) && pPars->nStart == 0 && !nJumpFrame )
             pPars->iFrame = f-1;
         // map nodes of this section
         Vec_PtrPush( p->vId2Var, Vec_IntStartFull(p->nObjNums) );

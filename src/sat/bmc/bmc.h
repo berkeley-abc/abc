@@ -91,6 +91,18 @@ struct Bmc_AndPar_t_
     int         nFailOuts;      // the number of failed outputs
     int         nDropOuts;      // the number of dropped outputs
 };
+ 
+typedef struct Bmc_MulPar_t_ Bmc_MulPar_t;
+struct Bmc_MulPar_t_
+{
+    int         TimeOutGlo;
+    int         TimeOutLoc;
+    int         TimeOutInc;
+    int         fUseSyn;
+    int         fDumpFinal;
+    int         fVerbose;
+    int         fVeryVerbose;
+};
 
 ////////////////////////////////////////////////////////////////////////
 ///                      MACRO DEFINITIONS                           ///
