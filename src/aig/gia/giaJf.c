@@ -212,7 +212,6 @@ Cnf_Dat_t * Jf_ManCreateCnf( Gia_Man_t * p, Vec_Int_t * vLits, Vec_Int_t * vClas
         iOut = Abc_Lit2Var(pCnf->pClauses[i][0]);
         if ( pCnf->pObj2Clause[iOut] == -1 )
         {
-//            printf( "\n" );
             pCnf->pObj2Clause[iOut] = i;
             pCnf->pObj2Count[iOut] = 1;
         }
@@ -221,7 +220,6 @@ Cnf_Dat_t * Jf_ManCreateCnf( Gia_Man_t * p, Vec_Int_t * vLits, Vec_Int_t * vClas
             assert( pCnf->pObj2Count[iOut] > 0 );
             pCnf->pObj2Count[iOut]++;
         }
-//printf( "%d ", iOut );
     }
     return pCnf;
 }
@@ -1455,8 +1453,6 @@ Gia_Man_t * Jf_ManDeriveMappingGia( Jf_Man_t * p )
     {
         vLits = Vec_IntAlloc( 1000 );
         vClas = Vec_IntAlloc( 1000 );
-        Vec_IntPush( vClas, Vec_IntSize(vLits) );
-        Vec_IntPush( vLits, 1 );
     }
     // create new manager
     pNew = Gia_ManStart( Gia_ManObjNum(p->pGia) );
@@ -1499,10 +1495,10 @@ Gia_Man_t * Jf_ManDeriveMappingGia( Jf_Man_t * p )
             Vec_IntPush( vLeaves, Abc_Lit2LitL(Vec_IntArray(vCopies), iLit) );
         // create GIA
         iLit = Kit_TruthToGia( pNew, (unsigned *)pTruth, Vec_IntSize(vLeaves), vCover, vLeaves, 0 );
-        iLit = Abc_LitNotCond( iLit, Jf_CutFuncCompl(pCut) );
-        Vec_IntWriteEntry( vCopies, i, iLit );
         if ( p->pPars->fGenCnf )
             Jf_ManGenCnf( uTruth, iLit, vLeaves, vLits, vClas, vCover );
+        iLit = Abc_LitNotCond( iLit, Jf_CutFuncCompl(pCut) );
+        Vec_IntWriteEntry( vCopies, i, iLit );
         // create mapping
         Vec_IntSetEntry( vMapping, Abc_Lit2Var(iLit), Vec_IntSize(vMapping2) );
         Vec_IntPush( vMapping2, Vec_IntSize(vLeaves) );
@@ -1541,7 +1537,11 @@ Gia_Man_t * Jf_ManDeriveMappingGia( Jf_Man_t * p )
     Gia_ManSetRegNum( pNew, Gia_ManRegNum(p->pGia) );
     // derive CNF
     if ( p->pPars->fGenCnf )
+    {
+        Vec_IntPush( vClas, Vec_IntSize(vLits) );
+        Vec_IntPush( vLits, 1 );
         pNew->pData = Jf_ManCreateCnf( pNew, vLits, vClas );
+    }
     Vec_IntFreeP( &vLits );
     Vec_IntFreeP( &vClas );
     return pNew;
@@ -1749,23 +1749,25 @@ Gia_Man_t * Jf_ManPerformMapping( Gia_Man_t * pGia, Jf_Par_t * pPars )
     Jf_ManFree( p );
     return pNew;
 }
-Cnf_Dat_t * Jf_ManDeriveCnf( Gia_Man_t * p )
+Gia_Man_t * Jf_ManDeriveCnf( Gia_Man_t * p )
 {
-    Cnf_Dat_t * pCnf; 
-    Gia_Man_t * pNew;
     Jf_Par_t Pars, * pPars = &Pars;
     Jf_ManSetDefaultPars( pPars );
     pPars->fGenCnf = 1;
-    pNew = Jf_ManPerformMapping( p, pPars );
-    pCnf = (Cnf_Dat_t *)pNew->pData; pNew->pData = NULL;
-//    Gia_ManStop( pNew );
-    return pCnf;
+    return Jf_ManPerformMapping( p, pPars );
 }
 void Jf_ManTestCnf( Gia_Man_t * p )
 {
-    Cnf_Dat_t * pCnf = Jf_ManDeriveCnf( p );
+    Gia_Man_t * pNew;
+    Cnf_Dat_t * pCnf;
+    int i;
+//    Cnf_Dat_t * pCnf = Cnf_DeriveGia( p );
+    pNew = Jf_ManDeriveCnf( p );
+    pCnf = (Cnf_Dat_t *)pNew->pData; pNew->pData = NULL;
     Cnf_DataWriteIntoFile( pCnf, "test.cnf", 0, NULL, NULL );
-    Gia_ManStop( (Gia_Man_t *)pCnf->pMan );
+    for ( i = 0; i < pCnf->nVars; i++ )
+        printf( "%d : %d %d\n", i, pCnf->pObj2Count[i], pCnf->pObj2Clause[i] );
+    Gia_ManStop( pNew );
     Cnf_DataFree(pCnf);
 }
 

@@ -1097,6 +1097,7 @@ extern Gia_Man_t *         Gia_ManPerformMapping( Gia_Man_t * p, void * pIfPars,
 /*=== giaJf.c ===========================================================*/
 extern void                Jf_ManSetDefaultPars( Jf_Par_t * pPars );
 extern Gia_Man_t *         Jf_ManPerformMapping( Gia_Man_t * pGia, Jf_Par_t * pPars );
+extern Gia_Man_t *         Jf_ManDeriveCnf( Gia_Man_t * p );
 /*=== giaIso.c ===========================================================*/
 extern Gia_Man_t *         Gia_ManIsoCanonicize( Gia_Man_t * p, int fVerbose );
 extern Gia_Man_t *         Gia_ManIsoReduce( Gia_Man_t * p, Vec_Ptr_t ** pvPosEquivs, Vec_Ptr_t ** pvPiPerms, int fEstimate, int fDualOut, int fVerbose, int fVeryVerbose );

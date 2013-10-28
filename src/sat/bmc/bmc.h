@@ -84,6 +84,7 @@ struct Bmc_AndPar_t_
     int         fLoadCnf;       // dynamic CNF loading
     int         fDumpFrames;    // dump unrolled timeframes
     int         fUseSynth;      // use synthesis
+    int         fUseOldCnf;     // use old CNF construction
     int         fVerbose;       // verbose 
     int         fVeryVerbose;   // very verbose 
     int         fNotVerbose;    // skip line-by-line print-out 

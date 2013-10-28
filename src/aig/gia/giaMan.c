@@ -368,7 +368,7 @@ void Gia_ManPrintStats( Gia_Man_t * p, Gps_Par_t * pPars )
     if ( p->pSibls )
         Gia_ManPrintChoiceStats( p );
     if ( Gia_ManHasMapping(p) )
-        Gia_ManPrintMappingStats( p, pPars->fDumpFile );
+        Gia_ManPrintMappingStats( p, pPars && pPars->fDumpFile );
     if ( pPars && pPars->fNpn && Gia_ManHasMapping(p) && Gia_ManLutSizeMax(p) <= 4 )
         Gia_ManPrintNpnClasses( p );
     if ( p->vPacking )

@@ -865,36 +865,17 @@ int Gia_ManBmcPerform_old_cnf( Gia_Man_t * pGia, Bmc_AndPar_t * pPars )
   SeeAlso     []
 
 ***********************************************************************/
-Cnf_Dat_t * Cnf_DeriveGia( Gia_Man_t * p )
-{
-    Aig_Man_t * pAig = Gia_ManToAigSimple( p );
-    Cnf_Dat_t * pCnf = Cnf_DeriveOther( pAig, 1 );
-    Aig_ManStop( pAig );
-    return pCnf;
-}
-
-/**Function*************************************************************
-
-  Synopsis    []
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
 void Gia_ManBmcAddCnfNew_rec( Bmc_Mna_t * p, Gia_Obj_t * pObj )
 {
     int iObj = Gia_ObjId( p->pFrames, pObj );
+    if ( Vec_IntEntry(p->vId2Var, iObj) > 0 )
+        return;
     if ( Gia_ObjIsAnd(pObj) && p->pCnf->pObj2Count[iObj] == -1 )
     {
         Gia_ManBmcAddCnfNew_rec( p, Gia_ObjFanin0(pObj) );
         Gia_ManBmcAddCnfNew_rec( p, Gia_ObjFanin1(pObj) );
         return;
     }
-    if ( Vec_IntEntry(p->vId2Var, iObj) > 0 )
-        return;
     Vec_IntWriteEntry(p->vId2Var, iObj, p->nSatVars++);
     if ( Gia_ObjIsAnd(pObj) || Gia_ObjIsPo(p->pFrames, pObj) )
     {
@@ -915,6 +896,8 @@ void Gia_ManBmcAddCnfNew_rec( Bmc_Mna_t * p, Gia_Obj_t * pObj )
             int * pClauseNext = p->pCnf->pClauses[iCla+i+1];
             for ( nLits = 0; pClauseThis + nLits < pClauseNext; nLits++ )
             {
+                if ( pClauseThis[nLits] < 2 )
+                    printf( "\n\n\nError in CNF generation:  Constant literal!\n\n\n" );
                 assert( pClauseThis[nLits] > 1 && pClauseThis[nLits] < 2*Gia_ManObjNum(p->pFrames) );
                 pLits[nLits] = Abc_Lit2LitV( Vec_IntArray(p->vId2Var), pClauseThis[nLits] );
             }
@@ -951,11 +934,30 @@ void Gia_ManBmcAddCnfNew( Bmc_Mna_t * p, int iStart, int iStop )
   SeeAlso     []
 
 ***********************************************************************/
+Cnf_Dat_t * Cnf_DeriveGia( Gia_Man_t * p )
+{
+    Aig_Man_t * pAig = Gia_ManToAigSimple( p );
+    Cnf_Dat_t * pCnf = Cnf_DeriveOther( pAig, 1 );
+    Aig_ManStop( pAig );
+    return pCnf;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 int Gia_ManBmcPerform( Gia_Man_t * pGia, Bmc_AndPar_t * pPars )
 {
-    extern Cnf_Dat_t * Jf_ManDeriveCnf( Gia_Man_t * p );
     Bmc_Mna_t * p;
-    int nFramesMax, f, i=0, Lit, status, RetValue = -2;
+    Gia_Man_t * pTemp;
+    int nFramesMax, f, i=0, Lit = 1, status, RetValue = -2;
     abctime clk = Abc_Clock();
     p = Bmc_MnaAlloc();
     p->pFrames = Gia_ManBmcUnroll( pGia, pPars->nFramesMax, pPars->nFramesAdd, pPars->fVeryVerbose, &p->vPiMap );
@@ -967,9 +969,7 @@ int Gia_ManBmcPerform( Gia_Man_t * pGia, Bmc_AndPar_t * pPars )
     }
     if ( pPars->fUseSynth )
     {
-        Gia_Man_t * pTemp = p->pFrames;
-        p->pFrames = Gia_ManAigSyn2( pTemp, pPars->fVerbose, 0 );
-        Gia_ManStop( pTemp );
+        p->pFrames = Gia_ManAigSyn2( pTemp = p->pFrames, pPars->fVerbose, 0 );  Gia_ManStop( pTemp );
     }
     else if ( pPars->fVerbose )
         Gia_ManPrintStats( p->pFrames, NULL );
@@ -978,19 +978,21 @@ int Gia_ManBmcPerform( Gia_Man_t * pGia, Bmc_AndPar_t * pPars )
         Gia_AigerWrite( p->pFrames, "frames.aig", 0, 0 );
         printf( "Dumped unfolded frames into file \"frames.aig\".\n" );
     }
-//    p->pCnf = Jf_ManDeriveCnf( p->pFrames );
-//    Gia_ManStop( p->pFrames );
-//    p->pFrames = (Gia_Man_t *)p->pCnf->pMan; p->pCnf->pMan = NULL;
-    p->pCnf = Cnf_DeriveGia( p->pFrames );
+    if ( pPars->fUseOldCnf )
+        p->pCnf = Cnf_DeriveGia( p->pFrames );
+    else
+    {
+        p->pFrames = Jf_ManDeriveCnf( pTemp = p->pFrames );  Gia_ManStop( pTemp );
+        p->pCnf = (Cnf_Dat_t *)p->pFrames->pData; p->pFrames->pData = NULL;
+    }
     Vec_IntFillExtra( p->vId2Var, Gia_ManObjNum(p->pFrames), 0 );
+    // create clauses for constant node
+//    sat_solver_addclause( p->pSat, &Lit, &Lit + 1 );
     for ( f = 0; f < nFramesMax; f++ )
     {
         if ( !Gia_ManBmcCheckOutputs( p->pFrames, f * Gia_ManPoNum(pGia), (f+1) * Gia_ManPoNum(pGia) ) )
         {
             // create another slice
-//            Gia_ManBmcAddCone( p, f * Gia_ManPoNum(pGia), (f+1) * Gia_ManPoNum(pGia) );
-            // create CNF in the SAT solver
-//            Gia_ManBmcAddCnf( p, p->pFrames, p->vInputs, p->vNodes, p->vOutputs );
             Gia_ManBmcAddCnfNew( p, f * Gia_ManPoNum(pGia), (f+1) * Gia_ManPoNum(pGia) );
             // try solving the outputs
             for ( i = f * Gia_ManPoNum(pGia); i < (f+1) * Gia_ManPoNum(pGia); i++ )
