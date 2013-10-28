@@ -1453,6 +1453,8 @@ Gia_Man_t * Jf_ManDeriveMappingGia( Jf_Man_t * p )
     {
         vLits = Vec_IntAlloc( 1000 );
         vClas = Vec_IntAlloc( 1000 );
+        Vec_IntPush( vClas, Vec_IntSize(vLits) );
+        Vec_IntPush( vLits, 1 );
     }
     // create new manager
     pNew = Gia_ManStart( Gia_ManObjNum(p->pGia) );
@@ -1538,8 +1540,6 @@ Gia_Man_t * Jf_ManDeriveMappingGia( Jf_Man_t * p )
     // derive CNF
     if ( p->pPars->fGenCnf )
     {
-        Vec_IntPush( vClas, Vec_IntSize(vLits) );
-        Vec_IntPush( vLits, 1 );
         pNew->pData = Jf_ManCreateCnf( pNew, vLits, vClas );
     }
     Vec_IntFreeP( &vLits );

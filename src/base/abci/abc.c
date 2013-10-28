@@ -32454,6 +32454,7 @@ int Abc_CommandAbc9Bmc( Abc_Frame_t * pAbc, int argc, char ** argv )
     pPars->nFramesMax    =    0;  // maximum number of timeframes 
     pPars->nFramesAdd    =   50;  // the number of additional frames
     pPars->nConfLimit    =    0;  // maximum number of conflicts at a node
+    pPars->nTimeOut      =    0;  // timeout in seconds
     pPars->fLoadCnf      =    0;  // dynamic CNF loading
     pPars->fDumpFrames   =    0;  // dump unrolled timeframes
     pPars->fUseSynth     =    0;  // use synthesis
@@ -32465,7 +32466,7 @@ int Abc_CommandAbc9Bmc( Abc_Frame_t * pAbc, int argc, char ** argv )
     pPars->nFailOuts     =    0;  // the number of failed outputs
     pPars->nDropOuts     =    0;  // the number of dropped outputs
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "SFAdscvwh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "SFATdscvwh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -32502,6 +32503,17 @@ int Abc_CommandAbc9Bmc( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( pPars->nFramesAdd < 0 )
                 goto usage;
             break;
+        case 'T':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-T\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nTimeOut = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nTimeOut < 0 )
+                goto usage;
+            break;
         case 'd':
             pPars->fDumpFrames ^= 1;
             break;
@@ -32534,11 +32546,12 @@ int Abc_CommandAbc9Bmc( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &bmc [-SFA num] [-dscvwh]\n" );
+    Abc_Print( -2, "usage: &bmc [-SFAT num] [-dscvwh]\n" );
     Abc_Print( -2, "\t         performs bounded model checking\n" );
     Abc_Print( -2, "\t-S num : the starting timeframe [default = %d]\n",                      pPars->nStart );
     Abc_Print( -2, "\t-F num : the maximum number of timeframes [default = %d]\n",            pPars->nFramesMax );
     Abc_Print( -2, "\t-A num : the number of additional frames to unroll [default = %d]\n",   pPars->nFramesAdd );
+    Abc_Print( -2, "\t-T num : approximate timeout in seconds [default = %d]\n",              pPars->nTimeOut );
     Abc_Print( -2, "\t-d     : toggle dumping unfolded timeframes [default = %s]\n",          pPars->fDumpFrames?  "yes": "no" );
     Abc_Print( -2, "\t-s     : toggle synthesizing unrolled timeframes [default = %s]\n",     pPars->fUseSynth?    "yes": "no" );
     Abc_Print( -2, "\t-c     : toggle using old CNF computation [default = %s]\n",            pPars->fUseOldCnf?   "yes": "no" );

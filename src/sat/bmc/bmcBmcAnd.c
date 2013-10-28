@@ -868,14 +868,14 @@ int Gia_ManBmcPerform_old_cnf( Gia_Man_t * pGia, Bmc_AndPar_t * pPars )
 void Gia_ManBmcAddCnfNew_rec( Bmc_Mna_t * p, Gia_Obj_t * pObj )
 {
     int iObj = Gia_ObjId( p->pFrames, pObj );
-    if ( Vec_IntEntry(p->vId2Var, iObj) > 0 )
-        return;
     if ( Gia_ObjIsAnd(pObj) && p->pCnf->pObj2Count[iObj] == -1 )
     {
         Gia_ManBmcAddCnfNew_rec( p, Gia_ObjFanin0(pObj) );
         Gia_ManBmcAddCnfNew_rec( p, Gia_ObjFanin1(pObj) );
         return;
     }
+    if ( Vec_IntEntry(p->vId2Var, iObj) > 0 )
+        return;
     Vec_IntWriteEntry(p->vId2Var, iObj, p->nSatVars++);
     if ( Gia_ObjIsAnd(pObj) || Gia_ObjIsPo(p->pFrames, pObj) )
     {
@@ -960,6 +960,7 @@ int Gia_ManBmcPerform( Gia_Man_t * pGia, Bmc_AndPar_t * pPars )
     int nFramesMax, f, i=0, Lit = 1, status, RetValue = -2;
     abctime clk = Abc_Clock();
     p = Bmc_MnaAlloc();
+    sat_solver_set_runtime_limit( p->pSat, pPars->nTimeOut ? pPars->nTimeOut * CLOCKS_PER_SEC + Abc_Clock(): 0 );
     p->pFrames = Gia_ManBmcUnroll( pGia, pPars->nFramesMax, pPars->nFramesAdd, pPars->fVeryVerbose, &p->vPiMap );
     nFramesMax = Gia_ManPoNum(p->pFrames) / Gia_ManPoNum(pGia);
     if ( pPars->fVerbose )
