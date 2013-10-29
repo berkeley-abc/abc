@@ -953,7 +953,7 @@ Cnf_Dat_t * Cnf_DeriveGia( Gia_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-int Gia_ManBmcPerform( Gia_Man_t * pGia, Bmc_AndPar_t * pPars )
+int Gia_ManBmcPerformInt( Gia_Man_t * pGia, Bmc_AndPar_t * pPars )
 {
     Bmc_Mna_t * p;
     Gia_Man_t * pTemp;
@@ -1048,6 +1048,43 @@ int Gia_ManBmcPerform( Gia_Man_t * pGia, Bmc_AndPar_t * pPars )
     Gia_ManStop( p->pFrames );
     Bmc_MnaFree( p );
     return RetValue;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Gia_ManBmcPerform( Gia_Man_t * pGia, Bmc_AndPar_t * pPars )
+{
+    abctime TimeToStop = pPars->nTimeOut ? pPars->nTimeOut * CLOCKS_PER_SEC + Abc_Clock() : 0;
+    if ( pPars->nFramesAdd == 0 )
+        return Gia_ManBmcPerformInt( pGia, pPars );
+    // iterate over the engine until we read the global timeout
+    assert( pPars->nTimeOut >= 0 );
+    while ( 1 )
+    {
+        if ( TimeToStop && TimeToStop < Abc_Clock() )
+            return -1;
+        if ( Gia_ManBmcPerformInt( pGia, pPars ) == 0 )
+            return 0;
+        // set the new runtime limit
+        if ( pPars->nTimeOut )
+        {
+            pPars->nTimeOut = Abc_MinInt( pPars->nTimeOut-1, (int)((TimeToStop - Abc_Clock()) / CLOCKS_PER_SEC) );
+            if ( pPars->nTimeOut <= 0 )
+                return -1;
+        }
+        // set the new frames limit
+        pPars->nFramesAdd *= 2;
+    }
+    return -1;
 }
 
 ////////////////////////////////////////////////////////////////////////
