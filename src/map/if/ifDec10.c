@@ -280,7 +280,6 @@ static inline int If_Dec10DeriveCount2( word * pF, word * pRes, int nVars )
     *pRes = ((iCof1 << nShift) | iCof0);
     return MaskDec;
 }
-*/
 static inline word If_DecTruthStretch( word t, int nVars )
 {
     assert( nVars > 1 );
@@ -296,6 +295,7 @@ static inline word If_DecTruthStretch( word t, int nVars )
         nVars++, t = (t & 0xFFFFFFFF) | ((t & 0xFFFFFFFF) << 32);
     assert( nVars >= 6 );
 }
+*/
 
 // support minimization
 static inline int If_DecSuppIsMinBase( int Supp )
