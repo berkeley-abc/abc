@@ -881,8 +881,9 @@ void Abc_NtkPrintMiniMapping( int * pArray )
   SeeAlso     []
 
 ***********************************************************************/
-int * Abc_NtkOutputMiniMapping( Abc_Frame_t * pAbc )
+int * Abc_NtkOutputMiniMapping( void * pAbc0 )
 {
+    Abc_Frame_t * pAbc = (Abc_Frame_t *)pAbc0;
     Abc_Ntk_t * pNtk;
     Vec_Int_t * vMapping;
     int * pArray;

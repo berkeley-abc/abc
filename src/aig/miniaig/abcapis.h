@@ -54,7 +54,7 @@ extern void   Abc_NtkInputMiniAig( void * pAbc, void * pMiniAig );
 extern void * Abc_NtkOutputMiniAig( void * pAbc );
 
 // procedures to return the mapped network
-extern int *  Abc_NtkOutputMiniMapping( Abc_Frame_t * pAbc );
+extern int *  Abc_NtkOutputMiniMapping( void * pAbc );
 extern void   Abc_NtkPrintMiniMapping( int * pArray );
 
 // procedures to access verifization status and a counter-example
