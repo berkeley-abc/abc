@@ -120,8 +120,8 @@ static inline int          Hop_TruthWordNum( int nVars )          { return nVars
 static inline int          Hop_InfoHasBit( unsigned * p, int i )  { return (p[(i)>>5] & (1<<((i) & 31))) > 0;       }
 static inline void         Hop_InfoSetBit( unsigned * p, int i )  { p[(i)>>5] |= (1<<((i) & 31));                   }
 static inline void         Hop_InfoXorBit( unsigned * p, int i )  { p[(i)>>5] ^= (1<<((i) & 31));                   }
-static inline int          Hop_Base2Log( unsigned n )             { int r; if ( n < 2 ) return n; for ( r = 0, n--; n; n >>= 1, r++ ); return r; }
-static inline int          Hop_Base10Log( unsigned n )            { int r; if ( n < 2 ) return n; for ( r = 0, n--; n; n /= 10, r++ ); return r; }
+static inline int          Hop_Base2Log( unsigned n )             { int r; if ( n < 2 ) return n; for ( r = 0, n--; n; n >>= 1, r++ ) {}; return r; }
+static inline int          Hop_Base10Log( unsigned n )            { int r; if ( n < 2 ) return n; for ( r = 0, n--; n; n /= 10, r++ ) {}; return r; }
 
 static inline Hop_Obj_t *  Hop_Regular( Hop_Obj_t * p )           { return (Hop_Obj_t *)((ABC_PTRUINT_T)(p) & ~01); }
 static inline Hop_Obj_t *  Hop_Not( Hop_Obj_t * p )               { return (Hop_Obj_t *)((ABC_PTRUINT_T)(p) ^  01); }

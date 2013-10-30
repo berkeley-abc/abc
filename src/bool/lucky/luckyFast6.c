@@ -70,7 +70,7 @@ unsigned adjustInfoAfterSwap(char* pCanonPerm, unsigned uCanonPhase, int iVar, u
 
 }
 
-inline word Extra_Truth6SwapAdjacent( word t, int iVar )
+word Extra_Truth6SwapAdjacent( word t, int iVar )
 {
     // variable swapping code
     static word PMasks[5][3] = {
@@ -83,7 +83,7 @@ inline word Extra_Truth6SwapAdjacent( word t, int iVar )
     assert( iVar < 5 );
     return (t & PMasks[iVar][0]) | ((t & PMasks[iVar][1]) << (1 << iVar)) | ((t & PMasks[iVar][2]) >> (1 << iVar));
 }
-inline word Extra_Truth6ChangePhase( word t, int iVar)
+word Extra_Truth6ChangePhase( word t, int iVar)
 {
     // elementary truth tables
     static word Truth6[6] = {
@@ -98,7 +98,7 @@ inline word Extra_Truth6ChangePhase( word t, int iVar)
     return ((t & ~Truth6[iVar]) << (1 << iVar)) | ((t & Truth6[iVar]) >> (1 << iVar));
 }
 
-inline word Extra_Truth6MinimumRoundOne( word t, int iVar, char* pCanonPerm, unsigned* pCanonPhase )
+word Extra_Truth6MinimumRoundOne( word t, int iVar, char* pCanonPerm, unsigned* pCanonPhase )
 {
     word tCur, tMin = t; // ab 
     unsigned info =0;
@@ -155,7 +155,7 @@ inline word Extra_Truth6MinimumRoundOne( word t, int iVar, char* pCanonPerm, uns
     }
 }
 
-inline word Extra_Truth6MinimumRoundOne_noEBFC( word t, int iVar,  char* pCanonPerm, unsigned* pCanonPhase)
+word Extra_Truth6MinimumRoundOne_noEBFC( word t, int iVar,  char* pCanonPerm, unsigned* pCanonPhase)
 {
     word tMin;     
     assert( iVar >= 0 && iVar < 5 );  
@@ -173,7 +173,7 @@ inline word Extra_Truth6MinimumRoundOne_noEBFC( word t, int iVar,  char* pCanonP
 
 // this function finds minimal for all TIED(and tied only) iVars 
 //it finds tied vars based on rearranged  Store info - group of tied vars has the same bit count in Store
-inline word Extra_Truth6MinimumRoundMany( word t, int* pStore, char* pCanonPerm, unsigned* pCanonPhase )
+word Extra_Truth6MinimumRoundMany( word t, int* pStore, char* pCanonPerm, unsigned* pCanonPhase )
 {
     int i, bitInfoTemp;
     word tMin0, tMin=t;
@@ -192,7 +192,7 @@ inline word Extra_Truth6MinimumRoundMany( word t, int* pStore, char* pCanonPerm,
     return tMin;
 }
 
-inline word Extra_Truth6MinimumRoundMany_noEBFC( word t, int* pStore, char* pCanonPerm, unsigned* pCanonPhase )
+word Extra_Truth6MinimumRoundMany_noEBFC( word t, int* pStore, char* pCanonPerm, unsigned* pCanonPhase )
 {
     int i, bitInfoTemp;
     word tMin0, tMin=t;
@@ -210,7 +210,7 @@ inline word Extra_Truth6MinimumRoundMany_noEBFC( word t, int* pStore, char* pCan
     }while ( tMin0 != tMin );
     return tMin;
 }
-inline word Extra_Truth6MinimumRoundMany1( word t, int* pStore, char* pCanonPerm, unsigned* pCanonPhase )
+word Extra_Truth6MinimumRoundMany1( word t, int* pStore, char* pCanonPerm, unsigned* pCanonPhase )
 {
     word tMin0, tMin=t;
     char pCanonPerm1[16];

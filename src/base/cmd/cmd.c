@@ -1912,7 +1912,7 @@ void Gia_ManGnuplotShow( char * pPlotFileName )
     void * pAbc;
     char * pProgNameGnuplotWin  = "wgnuplot.exe";
     char * pProgNameGnuplotUnix = "gnuplot";
-    char * pProgNameGnuplot;
+    char * pProgNameGnuplot = NULL;
 
     // read in the Capo plotting output
     if ( (pFile = fopen( pPlotFileName, "r" )) == NULL )

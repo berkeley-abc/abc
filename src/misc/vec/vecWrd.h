@@ -971,8 +971,7 @@ static inline int Vec_WrdEqual( Vec_Wrd_t * p1, Vec_Wrd_t * p2 )
 
   Synopsis    [Counts the number of common entries.]
 
-  Description [Assumes that the entries are non-negative integers that
-  are not very large, so inversion of the array can be performed.]
+  Description []
                
   SideEffects []
 
@@ -988,9 +987,9 @@ static inline int Vec_WrdCountCommon( Vec_Wrd_t * p1, Vec_Wrd_t * p2 )
         vTemp = p1, p1 = p2, p2 = vTemp;
     assert( Vec_WrdSize(p1) >= Vec_WrdSize(p2) );
     vTemp = Vec_WrdInvert( p2, -1 );
-    Vec_WrdFillExtra( vTemp, Vec_WrdFindMax(p1) + 1, -1 );
+    Vec_WrdFillExtra( vTemp, Vec_WrdFindMax(p1) + 1, ~((word)0) );
     Vec_WrdForEachEntry( p1, Entry, i )
-        if ( Vec_WrdEntry(vTemp, Entry) >= 0 )
+        if ( Vec_WrdEntry(vTemp, Entry) != ~((word)0) )
             Counter++;
     Vec_WrdFree( vTemp );
     return Counter;
