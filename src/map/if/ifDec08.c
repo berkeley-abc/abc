@@ -259,7 +259,7 @@ static inline void If_Dec08MoveTo( word * pF, int nVars, int v, int p, int Pla2V
         If_Dec08Copy( pF, pIn, nVars );
     assert( Pla2Var[p] == v );
 }
-
+/*
 // derive binary function
 static inline int If_Dec08DeriveCount2( word * pF, word * pRes, int nVars )
 {
@@ -283,7 +283,7 @@ static inline int If_Dec08DeriveCount2( word * pF, word * pRes, int nVars )
     *pRes = ((iCof1 << nShift) | iCof0);
     return MaskDec;
 }
-
+*/
 static inline word If_DecTruthStretch( word t, int nVars )
 {
     assert( nVars > 1 );

@@ -2156,9 +2156,9 @@ float If_CutDelayLutStruct( If_Man_t * p, If_Cut_t * pCut, char * pStr, float Wi
         return ABC_INFINITY;
 
     // compute the delay
-    Delays[nLeaves] = If_CluDelayMax( &G1, Delays ) + (WireDelay == 0.0)?1.0:WireDelay;
+    Delays[nLeaves] = If_CluDelayMax( &G1, Delays ) + ((WireDelay == 0.0)?1.0:WireDelay);
     if ( G2.nVars )
-        Delays[nLeaves+1] = If_CluDelayMax( &G2, Delays ) + (WireDelay == 0.0)?1.0:WireDelay;
+        Delays[nLeaves+1] = If_CluDelayMax( &G2, Delays ) + ((WireDelay == 0.0)?1.0:WireDelay);
 
     // mark used groups
     for ( i = 0; i < G1.nVars; i++ )

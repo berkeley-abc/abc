@@ -186,7 +186,7 @@ static inline int          Au_ObjCopy( Au_Obj_t * p )                    { retur
 static inline void         Au_ObjSetCopy( Au_Obj_t * p, int c )          { Vec_IntWriteEntry( &Au_ObjNtk(p)->vCopies, Au_ObjId(p), c );                                }
 
 static inline int          Au_ObjFanout( Au_Obj_t * p, int i )           { assert(p->Type == AU_OBJ_BOX && i >= 0 && i < p->Fanins[p->nFanins] && p->Fanins[i]); return p->Fanins[p->nFanins + 1 + i];             }
-static inline int          Au_ObjSetFanout( Au_Obj_t * p, int i, int f ) { assert(p->Type == AU_OBJ_BOX && i >= 0 && i < p->Fanins[p->nFanins] && p->Fanins[i] == 0 && f > 0); p->Fanins[p->nFanins + 1 + i] = f;  }
+static inline void         Au_ObjSetFanout( Au_Obj_t * p, int i, int f ) { assert(p->Type == AU_OBJ_BOX && i >= 0 && i < p->Fanins[p->nFanins] && p->Fanins[i] == 0 && f > 0); p->Fanins[p->nFanins + 1 + i] = f;  }
 
 static inline void         Au_NtkIncrementTravId( Au_Ntk_t * p )            { if (p->vTravIds.pArray == NULL) Vec_IntFill(&p->vTravIds, Au_NtkObjNumMax(p)+500, 0); p->nTravIds++; assert(p->nTravIds < (1<<30));  }
 static inline void         Au_ObjSetTravIdCurrent( Au_Obj_t * p )           { Vec_IntSetEntry(&Au_ObjNtk(p)->vTravIds, Au_ObjId(p), Au_ObjNtk(p)->nTravIds );                        }

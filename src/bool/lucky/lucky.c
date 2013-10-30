@@ -283,7 +283,7 @@ void printCCtrInfo(cycleCtr* cCtr, int nFuncs)
 
 // if highest bit in F ( all ones min term ) is one => inverse 
 // returns: if pInOnt changed(minimized) by function return 1 if not 0
-inline int minimalInitialFlip1(word* pInOut, int  nVars)
+int minimalInitialFlip1(word* pInOut, int  nVars)
 {
     word oneWord=1;
     if(  (pInOut[Kit_TruthWordNum_64bit( nVars ) -1]>>63) & oneWord )
@@ -298,7 +298,7 @@ inline int minimalInitialFlip1(word* pInOut, int  nVars)
 // keeps smaller.
 // same for all vars in F.
 // returns: if pInOnt changed(minimized) by function return 1 if not 0
-inline int minimalFlip1(word* pInOut, word* pMinimal, word* PDuplicat, int  nVars) 
+int minimalFlip1(word* pInOut, word* pMinimal, word* PDuplicat, int  nVars) 
 {
     int i;
     int blockSize = Kit_TruthWordNum_64bit( nVars )*sizeof(word);
@@ -329,7 +329,7 @@ inline int minimalFlip1(word* pInOut, word* pMinimal, word* PDuplicat, int  nVar
 // keeps smaller.
 // same for all vars in F.
 // returns: if pInOnt changed(minimized) by function return 1 if not 0
-inline int minimalSwap1(word* pInOut, word* pMinimal, word* PDuplicat, int  nVars) 
+int minimalSwap1(word* pInOut, word* pMinimal, word* PDuplicat, int  nVars) 
 {
     int i;
     int blockSize = Kit_TruthWordNum_64bit( nVars )*sizeof(word);
@@ -359,7 +359,7 @@ inline int minimalSwap1(word* pInOut, word* pMinimal, word* PDuplicat, int  nVar
 
 // if highest bit in F ( all ones min term ) is one => inverse 
 // returns: if pInOnt changed(minimized) by function return 1 if not 0
-inline int minimalInitialFlip(word* pInOut, int  nVars, unsigned* p_uCanonPhase)
+int minimalInitialFlip(word* pInOut, int  nVars, unsigned* p_uCanonPhase)
 {
     word oneWord=1;
     if(  (pInOut[Kit_TruthWordNum_64bit( nVars ) -1]>>63) & oneWord )
@@ -375,7 +375,7 @@ inline int minimalInitialFlip(word* pInOut, int  nVars, unsigned* p_uCanonPhase)
 // keeps smaller.
 // same for all vars in F.
 // returns: if pInOnt changed(minimized) by function return 1 if not 0
-inline int minimalFlip(word* pInOut, word* pMinimal, word* PDuplicat, int  nVars, unsigned* p_uCanonPhase)
+int minimalFlip(word* pInOut, word* pMinimal, word* PDuplicat, int  nVars, unsigned* p_uCanonPhase)
 {
     int i;
     unsigned minTemp = *p_uCanonPhase;
@@ -411,7 +411,7 @@ inline int minimalFlip(word* pInOut, word* pMinimal, word* PDuplicat, int  nVars
 }
 
 // swaps iVar and iVar+1 elements in pCanonPerm ant p_uCanonPhase
-inline void swapInfoAdjacentVars(int iVar, char * pCanonPerm, unsigned* p_uCanonPhase)
+void swapInfoAdjacentVars(int iVar, char * pCanonPerm, unsigned* p_uCanonPhase)
 {
     char Temp = pCanonPerm[iVar];
     pCanonPerm[iVar] = pCanonPerm[iVar+1];
@@ -435,7 +435,7 @@ inline void swapInfoAdjacentVars(int iVar, char * pCanonPerm, unsigned* p_uCanon
 
 /*
 // this version is buggy and is fixed below
-inline int minimalSwap(word* pInOut, word* pMinimal, word* PDuplicat, int  nVars, char * pCanonPerm, char * tempArray, unsigned* p_uCanonPhase) 
+int minimalSwap(word* pInOut, word* pMinimal, word* PDuplicat, int  nVars, char * pCanonPerm, char * tempArray, unsigned* p_uCanonPhase) 
 {
     int i;  
     int blockSizeWord = Kit_TruthWordNum_64bit( nVars )*sizeof(word);
@@ -472,7 +472,7 @@ inline int minimalSwap(word* pInOut, word* pMinimal, word* PDuplicat, int  nVars
 }
 */
 
-inline int minimalSwap(word* pInOut, word* pMinimal, word* PDuplicat, int  nVars, char * pCanonPerm, char * tempArray, unsigned* p_uCanonPhase) 
+int minimalSwap(word* pInOut, word* pMinimal, word* PDuplicat, int  nVars, char * pCanonPerm, char * tempArray, unsigned* p_uCanonPhase) 
 {
     int i;  
     int blockSizeWord = Kit_TruthWordNum_64bit( nVars )*sizeof(word);

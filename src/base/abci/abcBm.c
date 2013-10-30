@@ -1506,8 +1506,8 @@ int match1by1(Abc_Ntk_t * pNtk1, Vec_Ptr_t ** nodesInLevel1, Vec_Int_t ** iMatch
                 vSupp  = Abc_NtkNodeSupport( FpNtk2, &pObj, 1 );                        
                 
                 for(n = 0; n < vSupp->nSize; n++)
-                    if( Abc_ObjId((Abc_Obj_t *)vSupp->pArray[n])-1 < (unsigned)(Vec_IntSize(iMatch2[i]))-idx+1 &&
-                        Abc_ObjId((Abc_Obj_t *)vSupp->pArray[n])-1 >= 0)
+                    if( (int)Abc_ObjId((Abc_Obj_t *)vSupp->pArray[n])-1 < (Vec_IntSize(iMatch2[i]))-idx+1 &&
+                        (int)Abc_ObjId((Abc_Obj_t *)vSupp->pArray[n])-1 >= 0)
                         suppNum2[Abc_ObjId((Abc_Obj_t *)vSupp->pArray[n])-1] += Vec_IntFind( matchedOutputs2, m) + 1;                
                         
                 Vec_PtrFree( vSupp );

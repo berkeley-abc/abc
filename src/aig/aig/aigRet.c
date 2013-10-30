@@ -93,8 +93,8 @@ static inline Rtm_Init_t  Rtm_ObjGetLast1( Rtm_Edg_t * pEdge )           { retur
 static inline Rtm_Init_t  Rtm_ObjGetOne1( Rtm_Edg_t * pEdge, int i )     { assert( i < (int)pEdge->nLats ); return (Rtm_Init_t)((pEdge->LData >> (i << 1)) & 3);  }
 static inline Rtm_Init_t  Rtm_ObjRemFirst1( Rtm_Edg_t * pEdge )          { int Val = pEdge->LData & 3; pEdge->LData >>= 2; assert(pEdge->nLats > 0); pEdge->nLats--; return (Rtm_Init_t)Val;  }
 static inline Rtm_Init_t  Rtm_ObjRemLast1( Rtm_Edg_t * pEdge )           { int Val = (pEdge->LData >> ((pEdge->nLats-1)<<1)) & 3; pEdge->LData ^= Val << ((pEdge->nLats-1)<<1); assert(pEdge->nLats > 0); pEdge->nLats--; return (Rtm_Init_t)Val;  }
-static inline void        Rtm_ObjAddFirst1( Rtm_Edg_t * pEdge, Rtm_Init_t Val ) { assert( Val > 0 && Val < 4 ); pEdge->LData = (pEdge->LData << 2) | Val;  pEdge->nLats++;   }
-static inline void        Rtm_ObjAddLast1( Rtm_Edg_t * pEdge, Rtm_Init_t Val )  { assert( Val > 0 && Val < 4 ); pEdge->LData |= Val << (pEdge->nLats<<1);  pEdge->nLats++;   }
+static inline void        Rtm_ObjAddFirst1( Rtm_Edg_t * pEdge, Rtm_Init_t Val ) { assert( Val > 0 ); pEdge->LData = (pEdge->LData << 2) | Val;  pEdge->nLats++;   }
+static inline void        Rtm_ObjAddLast1( Rtm_Edg_t * pEdge, Rtm_Init_t Val )  { assert( Val > 0 ); pEdge->LData |= Val << (pEdge->nLats<<1);  pEdge->nLats++;   }
 
 static inline Rtm_Init_t  Rtm_ObjGetFirst2( Rtm_Man_t * p, Rtm_Edg_t * pEdge )                 { return (Rtm_Init_t)Rtm_InitGetTwo( p->pExtra + pEdge->LData, 0 );                }
 static inline Rtm_Init_t  Rtm_ObjGetLast2( Rtm_Man_t * p, Rtm_Edg_t * pEdge )                  { return (Rtm_Init_t)Rtm_InitGetTwo( p->pExtra + pEdge->LData, pEdge->nLats - 1 ); }
