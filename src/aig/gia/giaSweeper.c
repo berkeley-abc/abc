@@ -60,9 +60,6 @@ struct Swp_Man_t_
     int            nConfMax;    // conflict limit in seconds
     int            nTimeOut;    // runtime limit in seconds
     Vec_Int_t *    vProbes;     // probes
-    Vec_Int_t *    vProbRefs;   // probe reference counters
-    Vec_Int_t *    vLit2Prob;   // mapping of literal into its probe
-//    Vec_Int_t *    vFreeProb;   // recycled probe IDs
     Vec_Int_t *    vCondProbes; // conditions as probes
     Vec_Int_t *    vCondAssump; // conditions as SAT solver literals
     // equivalence checking
@@ -116,8 +113,6 @@ static inline Swp_Man_t * Swp_ManStart( Gia_Man_t * pGia )
     p->pGia         = pGia;
     p->nConfMax     = 1000;
     p->vProbes      = Vec_IntAlloc( 100 );
-    p->vProbRefs    = Vec_IntAlloc( 100 );
-    p->vLit2Prob    = Vec_IntStartFull( 10000 );
     p->vCondProbes  = Vec_IntAlloc( 100 );
     p->vCondAssump  = Vec_IntAlloc( 100 );
     p->vId2Lit      = Vec_IntAlloc( 10000 );
@@ -142,8 +137,6 @@ static inline void Swp_ManStop( Gia_Man_t * pGia )
     Vec_IntFree( p->vId2Lit );
     Vec_IntFree( p->vFront );
     Vec_IntFree( p->vProbes );
-    Vec_IntFree( p->vProbRefs );
-    Vec_IntFree( p->vLit2Prob );
     Vec_IntFree( p->vCondProbes );
     Vec_IntFree( p->vCondAssump );
     ABC_FREE( p );
@@ -177,8 +170,6 @@ double Gia_SweeperMemUsage( Gia_Man_t * pGia )
     Swp_Man_t * p = (Swp_Man_t *)pGia->pData;
     double nMem = sizeof(Swp_Man_t);
     nMem += Vec_IntCap(p->vProbes);
-    nMem += Vec_IntCap(p->vProbRefs);
-    nMem += Vec_IntCap(p->vLit2Prob);
     nMem += Vec_IntCap(p->vCondProbes);
     nMem += Vec_IntCap(p->vCondAssump);
     nMem += Vec_IntCap(p->vId2Lit);
@@ -441,14 +432,12 @@ Gia_Man_t * Gia_SweeperCleanup( Gia_Man_t * p, char * pCommLime )
         pObj->Value = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
     Gia_ManHashStop( pNew );
     // create outputs
-    Vec_IntFill( pSwp->vLit2Prob, 2*Gia_ManObjNum(pNew), -1 );
     Vec_IntForEachEntry( pSwp->vProbes, iLit, ProbeId )
     {
         if ( iLit < 0 ) continue;
         pObj = Gia_Lit2Obj( p, iLit );
         iLit = Gia_Regular(pObj)->Value ^ Gia_IsComplement(pObj);
         Vec_IntWriteEntry( pSwp->vProbes, ProbeId, iLit );
-        Vec_IntSetEntryFull( pSwp->vLit2Prob, iLit, ProbeId ); // consider hash table in the future
     }
     Vec_IntFree( vObjIds );
     // duplicated if needed
@@ -925,7 +914,7 @@ p->timeSatUndec += Abc_Clock() - clk;
 
   Synopsis    [Performs grafting from another manager.]
 
-  Description []
+  Description [Returns the array of resulting literals in the destination manager.]
                
   SideEffects []
 
@@ -1000,8 +989,9 @@ Gia_Man_t * Gia_SweeperSweep( Gia_Man_t * p, Vec_Int_t * vProbeOuts, int nWords,
   the array of probe IDs pointing to the user's logic cones to be SAT swept.
   Finally, the optional command line (pCommLine) is an ABC command line
   to be applied to the resulting GIA after SAT sweeping before it is 
-  grafted back into the original GIA manager. The return value is the array
-  of literals in the original GIA manager, corresponding to the user's
+  grafted back into the original GIA manager. The return value is the status
+  (success/failure) and the array of original probes possibly pointing to the
+  new literals in the original GIA manager, corresponding to the user's
   logic cones after sweeping, synthesis and grafting.]
                
   SideEffects []
@@ -1009,14 +999,17 @@ Gia_Man_t * Gia_SweeperSweep( Gia_Man_t * p, Vec_Int_t * vProbeOuts, int nWords,
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Int_t * Gia_SweeperFraig( Gia_Man_t * p, Vec_Int_t * vProbeIds, char * pCommLime, int nWords, int nConfs, int fVerbose )
+int Gia_SweeperFraig( Gia_Man_t * p, Vec_Int_t * vProbeIds, char * pCommLime, int nWords, int nConfs, int fVerbose )
 {
     Gia_Man_t * pNew;
     Vec_Int_t * vLits;
+    int ProbeId, i;
     // sweeper is running
     assert( Gia_SweeperIsRunning(p) );
     // sweep the logic
     pNew = Gia_SweeperSweep( p, vProbeIds, nWords, nConfs, fVerbose );
+    if ( pNew == NULL )
+        return 0;
     // execute command line
     if ( pCommLime )
     {
@@ -1027,9 +1020,14 @@ Vec_Int_t * Gia_SweeperFraig( Gia_Man_t * p, Vec_Int_t * vProbeIds, char * pComm
         // get pNew to be current GIA in ABC     
         pNew = Abc_FrameGetGia( Abc_FrameGetGlobalFrame() );
     }
+    // return logic back into the main manager
     vLits = Gia_SweeperGraft( p, NULL, pNew );
     Gia_ManStop( pNew );
-    return vLits;
+    // update the array of probes
+    Vec_IntForEachEntry( vProbeIds, ProbeId, i )
+        Gia_SweeperProbeUpdate( p, ProbeId, Vec_IntEntry(vLits, i) );
+    Vec_IntFree( vLits );        
+    return 1;
 }
 
 /**Function*************************************************************
