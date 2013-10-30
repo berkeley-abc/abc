@@ -1179,8 +1179,8 @@ extern void                Gia_SweeperSetConflictLimit( Gia_Man_t * p, int nConf
 extern void                Gia_SweeperSetRuntimeLimit( Gia_Man_t * p, int nSeconds );
 extern Vec_Int_t *         Gia_SweeperGetCex( Gia_Man_t * p );
 extern int                 Gia_SweeperProbeCreate( Gia_Man_t * p, int iLit );
-extern int                 Gia_SweeperProbeFind( Gia_Man_t * p, int iLit );
-extern void                Gia_SweeperProbeDeref( Gia_Man_t * p, int ProbeId );
+extern int                 Gia_SweeperProbeDelete( Gia_Man_t * p, int ProbeId );
+extern int                 Gia_SweeperProbeUpdate( Gia_Man_t * p, int ProbeId, int iLitNew );
 extern int                 Gia_SweeperProbeLit( Gia_Man_t * p, int ProbeId );
 extern int                 Gia_SweeperCondPop( Gia_Man_t * p );
 extern void                Gia_SweeperCondPush( Gia_Man_t * p, int ProbeId );

@@ -33,13 +33,9 @@ SAT sweeping/equivalence checking requires the following steps:
       - nodes representing conditions to be used as constraints
       - nodes representing functions to be equivalence checked
       - nodes representing functions needed by the user at the end of SAT sweeping
-  Creating new probe using  Gia_SweeperProbeCreate(): int Gia_SweeperProbeCreate( Gia_Man_t * p, int iLit );
-  Find existing probe using Gia_SweeperProbeFind():   int Gia_SweeperProbeFind( Gia_Man_t * p, int iLit );
-      If probe with this literal (iLit) exists, this procedure increments its reference counter and returns it.
-      If probe with this literal does not exist, it creates new probe and sets is reference counter to 1.
-  Dereference probe using Gia_SweeperProbeDeref():    void Gia_SweeperProbeDeref( Gia_Man_t * p, int ProbeId );
-      Dereferences probe with the given ID. If ref counter become 0, recycles the logic cone of the given probe.
-      Recycling of probe IDs can be added later.
+  Creating new probe using  Gia_SweeperProbeCreate():   int Gia_SweeperProbeCreate( Gia_Man_t * p, int iLit );
+  Delete existing probe using Gia_SweeperProbeDelete(): int Gia_SweeperProbeDelete( Gia_Man_t * p, int ProbeId );
+  Update existing probe using Gia_SweeperProbeUpdate(): int Gia_SweeperProbeUpdate( Gia_Man_t * p, int ProbeId, int iLit );
   Comments:
       - a probe is identified by its 0-based ID, which is returned by above procedures
       - GIA literal of the probe is returned by       int Gia_SweeperProbeLit( Gia_Man_t * p, int ProbeId )
@@ -265,37 +261,25 @@ int Gia_SweeperProbeCreate( Gia_Man_t * p, int iLit )
     Swp_Man_t * pSwp = (Swp_Man_t *)p->pData;
     int ProbeId = Vec_IntSize(pSwp->vProbes);
     Vec_IntPush( pSwp->vProbes, iLit );
-    Vec_IntPush( pSwp->vProbRefs, 1 );
-    Vec_IntSetEntryFull( pSwp->vLit2Prob, iLit, ProbeId ); // consider hash table in the future
-//printf( "Creating probe %d with literal %d.\n", ProbeId, iLit );
     return ProbeId;
 }
-// if probe with this literal (iLit) exists, this procedure increments its reference counter and returns it.
-// if probe with this literal does not exist, it creates new probe and sets is reference counter to 1.
-int Gia_SweeperProbeFind( Gia_Man_t * p, int iLit )
+// delete existing probe
+int Gia_SweeperProbeDelete( Gia_Man_t * p, int ProbeId )
 {
     Swp_Man_t * pSwp = (Swp_Man_t *)p->pData;
-    int ProbeId = -1;
-    if ( iLit < Vec_IntSize(pSwp->vLit2Prob) && (ProbeId = Vec_IntEntry(pSwp->vLit2Prob, iLit)) >= 0 )
-    {
-        Vec_IntAddToEntry( pSwp->vProbRefs, ProbeId, 1 );
-        return ProbeId;
-    }
-    return Gia_SweeperProbeCreate( p, iLit );
+    int iLit = Vec_IntEntry(pSwp->vProbes, ProbeId);
+    assert( iLit >= 0 );
+    Vec_IntWriteEntry(pSwp->vProbes, ProbeId, -1);
+    return iLit;
 }
-// dereferences the probe
-void Gia_SweeperProbeDeref( Gia_Man_t * p, int ProbeId )
+// update existing probe
+int Gia_SweeperProbeUpdate( Gia_Man_t * p, int ProbeId, int iLitNew )
 {
     Swp_Man_t * pSwp = (Swp_Man_t *)p->pData;
-    assert( Vec_IntEntry(pSwp->vProbRefs, ProbeId) > 0 );
-    if ( Vec_IntAddToEntry( pSwp->vProbRefs, ProbeId, -1 ) == 0 )
-    {
-        int iLit = Gia_SweeperProbeLit( p, ProbeId );
-        Vec_IntWriteEntry( pSwp->vLit2Prob, iLit, -1 );
-        Vec_IntWriteEntry( pSwp->vProbes, ProbeId, 0 );
-        // TODO: recycle probe ID
-//printf( "Deleteing probe %d with literal %d.\n", ProbeId, iLit );
-    }
+    int iLit = Vec_IntEntry(pSwp->vProbes, ProbeId);
+    assert( iLit >= 0 );
+    Vec_IntWriteEntry(pSwp->vProbes, ProbeId, iLitNew);
+    return iLit;
 }
 // returns literal associated with the probe
 int Gia_SweeperProbeLit( Gia_Man_t * p, int ProbeId )
@@ -1008,7 +992,7 @@ Gia_Man_t * Gia_SweeperSweep( Gia_Man_t * p, Vec_Int_t * vProbeOuts, int nWords,
 
 /**Function*************************************************************
 
-  Synopsis    [Procedure to perform conditional fraig sweeping on separate logic cones..]
+  Synopsis    [Procedure to perform conditional fraig sweeping on separate logic cones.]
 
   Description [The procedure takes GIA with the sweeper defined. The sweeper
   is assumed to have some conditions currently pushed, which will be used
