@@ -923,7 +923,6 @@ int Scl_LibertyReadTimingSense( Scl_Tree_t * p, Scl_Item_t * pPin )
     }
     return sc_ts_Non;
 }
-
 Vec_Flt_t * Scl_LibertyReadFloatVec( char * pName )
 {
     char * pToken;
@@ -932,7 +931,8 @@ Vec_Flt_t * Scl_LibertyReadFloatVec( char * pName )
         Vec_FltPush( vValues, atof(pToken) );
     return vValues;
 }
-void Scl_LibertyDumpTable( Vec_Str_t * vOut, Vec_Flt_t * vInd1, Vec_Flt_t * vInd2, Vec_Flt_t * vValues )
+
+void Scl_LibertyDumpTables( Vec_Str_t * vOut, Vec_Flt_t * vInd1, Vec_Flt_t * vInd2, Vec_Flt_t * vValues )
 {
     int i; float Entry;
     // write entries
@@ -954,6 +954,7 @@ void Scl_LibertyDumpTable( Vec_Str_t * vOut, Vec_Flt_t * vInd1, Vec_Flt_t * vInd
         if ( i % Vec_FltSize(vInd2) == Vec_FltSize(vInd2)-1 )
             Vec_StrPut_( vOut );
     }
+    // dump approximations
     Vec_StrPut_( vOut );
     for ( i = 0; i < 3; i++ ) 
         Vec_StrPutF_( vOut, 0 );
@@ -964,7 +965,6 @@ void Scl_LibertyDumpTable( Vec_Str_t * vOut, Vec_Flt_t * vInd1, Vec_Flt_t * vInd
     Vec_StrPut_( vOut );
     Vec_StrPut_( vOut );
 }
-/*
 int Scl_LibertyScanTable( Scl_Tree_t * p, Vec_Ptr_t * vOut, Scl_Item_t * pTiming, char * pName, Vec_Ptr_t * vTemples )
 {
     Vec_Flt_t * vIndex1 = NULL;
@@ -1036,27 +1036,17 @@ int Scl_LibertyScanTable( Scl_Tree_t * p, Vec_Ptr_t * vOut, Scl_Item_t * pTiming
             vInd1 = vIndex1 ? vIndex1 : vInd1;
             vInd2 = vIndex2 ? vIndex2 : vInd2;
             // write entries
-            Vec_PtrPush( vOut, vInd1 );
-            Vec_PtrPush( vOut, vInd2 );
-            Vec_PtrPush( vOut, vValues );
+            Vec_PtrPush( vOut, Vec_FltDup(vInd1) );
+            Vec_PtrPush( vOut, Vec_FltDup(vInd2) );
+            Vec_PtrPush( vOut, Vec_FltDup(vValues) );
         }
         else  // reverse order (vIndex2 is slew; vIndex1 is load)
         {
+            Vec_Flt_t * vValues2 = Vec_FltAlloc( Vec_FltSize(vValues) );
             assert( !vIndex2 || Vec_FltSize(vIndex2) == Vec_FltSize(vInd1) );
             assert( !vIndex1 || Vec_FltSize(vIndex1) == Vec_FltSize(vInd2) );
             vInd1 = vIndex2 ? vIndex2 : vInd1;
             vInd2 = vIndex1 ? vIndex1 : vInd2;
-            // write entries
-            Vec_StrPutI_( vOut, Vec_FltSize(vInd1) );
-            Vec_FltForEachEntry( vInd1, Entry, i )
-                Vec_StrPutF_( vOut, Entry );
-            Vec_StrPut_( vOut );
-            // write entries
-            Vec_StrPutI_( vOut, Vec_FltSize(vInd2) );
-            Vec_FltForEachEntry( vInd2, Entry, i )
-                Vec_StrPutF_( vOut, Entry );
-            Vec_StrPut_( vOut );
-            Vec_StrPut_( vOut );
             // write entries -- transpose
             assert( Vec_FltSize(vInd1) * Vec_FltSize(vInd2) == Vec_FltSize(vValues) );
             Vec_FltForEachEntry( vValues, Entry, i )
@@ -1064,27 +1054,63 @@ int Scl_LibertyScanTable( Scl_Tree_t * p, Vec_Ptr_t * vOut, Scl_Item_t * pTiming
                 int x = i % Vec_FltSize(vInd2);
                 int y = i / Vec_FltSize(vInd2);
                 Entry = Vec_FltEntry( vValues, x * Vec_FltSize(vInd1) + y );
-                Vec_StrPutF_( vOut, Entry );
-                if ( i % Vec_FltSize(vInd2) == Vec_FltSize(vInd2)-1 )
-                    Vec_StrPut_( vOut );
+                Vec_FltPush( vValues2, Entry );
             }
+            assert( Vec_FltSize(vValues) == Vec_FltSize(vValues2) );
+            // write entries
+            Vec_PtrPush( vOut, Vec_FltDup(vInd1) );
+            Vec_PtrPush( vOut, Vec_FltDup(vInd2) );
+            Vec_PtrPush( vOut, vValues2 );
         }
+        Vec_FltFreeP( &vIndex1 );
+        Vec_FltFreeP( &vIndex2 );
+        Vec_FltFreeP( &vValues );
     }
-    Vec_StrPut_( vOut );
-    for ( i = 0; i < 3; i++ ) 
-        Vec_StrPutF_( vOut, 0 );
-    for ( i = 0; i < 4; i++ ) 
-        Vec_StrPutF_( vOut, 0 );
-    for ( i = 0; i < 6; i++ ) 
-        Vec_StrPutF_( vOut, 0 );
-    Vec_FltFreeP( &vIndex1 );
-    Vec_FltFreeP( &vIndex2 );
-    Vec_FltFreeP( &vValues );
-    Vec_StrPut_( vOut );
-    Vec_StrPut_( vOut );
     return 1;
 }
-*/
+int Scl_LibertyComputeWorstCase( Vec_Ptr_t * vTables, Vec_Flt_t ** pvInd0, Vec_Flt_t ** pvInd1, Vec_Flt_t ** pvValues )
+{
+    Vec_Flt_t * vInd0, * vInd1, * vValues;
+    Vec_Flt_t * vind0, * vind1, * vvalues;
+    int i, k, nTriples = Vec_PtrSize(vTables) / 3;
+    float Entry;
+    assert( Vec_PtrSize(vTables) > 0 && Vec_PtrSize(vTables) % 3 == 0 );
+    if ( nTriples == 1 )
+    {
+        *pvInd0   = (Vec_Flt_t *)Vec_PtrEntry(vTables, 0);
+        *pvInd1   = (Vec_Flt_t *)Vec_PtrEntry(vTables, 1);
+        *pvValues = (Vec_Flt_t *)Vec_PtrEntry(vTables, 2);
+        Vec_PtrShrink( vTables, 0 );
+        return 1;
+    }
+    vInd0   = Vec_FltDup( (Vec_Flt_t *)Vec_PtrEntry(vTables, 0) );
+    vInd1   = Vec_FltDup( (Vec_Flt_t *)Vec_PtrEntry(vTables, 1) );
+    vValues = Vec_FltDup( (Vec_Flt_t *)Vec_PtrEntry(vTables, 2) );
+    for ( i = 1; i < nTriples; i++ )
+    {
+        vind0   = (Vec_Flt_t *)Vec_PtrEntry(vTables, i*3+0);
+        vind1   = (Vec_Flt_t *)Vec_PtrEntry(vTables, i*3+1);
+        vvalues = (Vec_Flt_t *)Vec_PtrEntry(vTables, i*3+2);
+        // check equality of indexes
+        if ( !Vec_FltEqual(vind0, vInd0) )
+            return 0;
+        if ( !Vec_FltEqual(vind1, vInd1) )
+            return 0;
+//        Vec_FltForEachEntry( vvalues, Entry, k )
+//            Vec_FltAddToEntry( vValues, k, Entry );
+        Vec_FltForEachEntry( vvalues, Entry, k )
+            if ( Vec_FltEntry(vValues, k) < Entry )
+                Vec_FltWriteEntry( vValues, k, Entry );
+    }
+//    Vec_FltForEachEntry( vValues, Entry, k )
+//        Vec_FltWriteEntry( vValues, k, Entry/nTriples );
+    // return the result
+    *pvInd0 = vInd0;
+    *pvInd1 = vInd1;
+    *pvValues = vValues;
+    return 1;
+}
+
 int Scl_LibertyReadTable( Scl_Tree_t * p, Vec_Str_t * vOut, Scl_Item_t * pTiming, char * pName, Vec_Ptr_t * vTemples )
 {
     Vec_Flt_t * vIndex1 = NULL;
@@ -1307,12 +1333,13 @@ Vec_Ptr_t * Scl_LibertyReadTemplates( Scl_Tree_t * p )
 }
 Vec_Str_t * Scl_LibertyReadSclStr( Scl_Tree_t * p, int fVerbose, int fVeryVerbose )
 {
+    int fUseFirstTable = 0;
     Vec_Str_t * vOut;
-    Vec_Ptr_t * vNameIns, * vTimings, * vTemples = NULL;
+    Vec_Ptr_t * vNameIns, * vTemples = NULL;
     Scl_Item_t * pCell, * pPin, * pTiming;
     Vec_Wrd_t * vTruth;
     char * pFormula, * pName;
-    int i, Counter, nOutputs, nCells;
+    int i, k, Counter, nOutputs, nCells;
     int nSkipped[3] = {0};
 
     // read delay-table templates
@@ -1430,32 +1457,83 @@ Vec_Str_t * Scl_LibertyReadSclStr( Scl_Tree_t * p, int fVerbose, int fVeryVerbos
             Vec_StrPut_( vOut );
 
             // write the delay tables
+            if ( fUseFirstTable )
+            {
+                Vec_PtrForEachEntry( char *, vNameIns, pName, i )
+                {
+                    pTiming = Scl_LibertyReadPinTiming( p, pPin, pName );
+                    Vec_StrPutS_( vOut, pName );
+                    Vec_StrPutI_( vOut, (int)(pTiming != NULL) );
+                    if ( pTiming == NULL ) // output does not depend on input
+                        continue;
+                    Vec_StrPutI_( vOut, Scl_LibertyReadTimingSense(p, pTiming) );
+                    Vec_StrPut_( vOut );
+                    Vec_StrPut_( vOut );
+                    // some cells only have 'rise' or 'fall' but not both - here we work around this
+                    if ( !Scl_LibertyReadTable( p, vOut, pTiming, "cell_rise",           vTemples ) )
+                        if ( !Scl_LibertyReadTable( p, vOut, pTiming, "cell_fall",       vTemples ) )
+                                { printf( "Table cannot be found\n" ); return NULL; }                              
+                    if ( !Scl_LibertyReadTable( p, vOut, pTiming, "cell_fall",           vTemples ) )
+                        if ( !Scl_LibertyReadTable( p, vOut, pTiming, "cell_rise",       vTemples ) )
+                                { printf( "Table cannot be found\n" ); return NULL; }                              
+                    if ( !Scl_LibertyReadTable( p, vOut, pTiming, "rise_transition",     vTemples ) )
+                        if ( !Scl_LibertyReadTable( p, vOut, pTiming, "fall_transition", vTemples ) )
+                                { printf( "Table cannot be found\n" ); return NULL; }                              
+                    if ( !Scl_LibertyReadTable( p, vOut, pTiming, "fall_transition",     vTemples ) )
+                        if ( !Scl_LibertyReadTable( p, vOut, pTiming, "rise_transition", vTemples ) )
+                                { printf( "Table cannot be found\n" ); return NULL; }  
+                }
+                continue;
+            }
+
+            // write the timing tables
             Vec_PtrForEachEntry( char *, vNameIns, pName, i )
             {
+                Vec_Ptr_t * vTables[4];
+                Vec_Ptr_t * vTimings;
                 vTimings = Scl_LibertyReadPinTimingAll( p, pPin, pName );
-                pTiming = Vec_PtrSize(vTimings) ? (Scl_Item_t *)Vec_PtrEntry(vTimings, 0) : NULL;
-//                printf( "%d ", Vec_PtrSize(vTimings) );
-                Vec_PtrFree( vTimings );
                 Vec_StrPutS_( vOut, pName );
-                Vec_StrPutI_( vOut, (int)(pTiming != NULL) );
-                if ( pTiming == NULL ) // output does not depend on input
+                Vec_StrPutI_( vOut, (int)(Vec_PtrSize(vTimings) != 0) );
+                if ( Vec_PtrSize(vTimings) == 0 ) // output does not depend on input
+                {
+                    Vec_PtrFree( vTimings );
                     continue;
-                Vec_StrPutI_( vOut, Scl_LibertyReadTimingSense(p, pTiming) );
+                }
+                Vec_StrPutI_( vOut, Scl_LibertyReadTimingSense(p, (Scl_Item_t *)Vec_PtrEntry(vTimings, 0)) );
                 Vec_StrPut_( vOut );
                 Vec_StrPut_( vOut );
-                // some cells only have 'rise' or 'fall' but not both - here we work around this
-                if ( !Scl_LibertyReadTable( p, vOut, pTiming, "cell_rise",           vTemples ) )
-                    if ( !Scl_LibertyReadTable( p, vOut, pTiming, "cell_fall",       vTemples ) )
-                            { printf( "Table cannot be found\n" ); return NULL; }                              
-                if ( !Scl_LibertyReadTable( p, vOut, pTiming, "cell_fall",           vTemples ) )
-                    if ( !Scl_LibertyReadTable( p, vOut, pTiming, "cell_rise",       vTemples ) )
-                            { printf( "Table cannot be found\n" ); return NULL; }                              
-                if ( !Scl_LibertyReadTable( p, vOut, pTiming, "rise_transition",     vTemples ) )
-                    if ( !Scl_LibertyReadTable( p, vOut, pTiming, "fall_transition", vTemples ) )
-                            { printf( "Table cannot be found\n" ); return NULL; }                              
-                if ( !Scl_LibertyReadTable( p, vOut, pTiming, "fall_transition",     vTemples ) )
-                    if ( !Scl_LibertyReadTable( p, vOut, pTiming, "rise_transition", vTemples ) )
-                            { printf( "Table cannot be found\n" ); return NULL; }          
+                // collect the timing tables
+                for ( k = 0; k < 4; k++ )
+                    vTables[k] = Vec_PtrAlloc( 16 );
+                Vec_PtrForEachEntry( Scl_Item_t *, vTimings, pTiming, k )
+                {
+                    // some cells only have 'rise' or 'fall' but not both - here we work around this
+                    if ( !Scl_LibertyScanTable( p, vTables[0], pTiming, "cell_rise",           vTemples ) )
+                        if ( !Scl_LibertyScanTable( p, vTables[0], pTiming, "cell_fall",       vTemples ) )
+                                { printf( "Table cannot be found\n" ); return NULL; }                              
+                    if ( !Scl_LibertyScanTable( p, vTables[1], pTiming, "cell_fall",           vTemples ) )
+                        if ( !Scl_LibertyScanTable( p, vTables[1], pTiming, "cell_rise",       vTemples ) )
+                                { printf( "Table cannot be found\n" ); return NULL; }                              
+                    if ( !Scl_LibertyScanTable( p, vTables[2], pTiming, "rise_transition",     vTemples ) )
+                        if ( !Scl_LibertyScanTable( p, vTables[2], pTiming, "fall_transition", vTemples ) )
+                                { printf( "Table cannot be found\n" ); return NULL; }                              
+                    if ( !Scl_LibertyScanTable( p, vTables[3], pTiming, "fall_transition",     vTemples ) )
+                        if ( !Scl_LibertyScanTable( p, vTables[3], pTiming, "rise_transition", vTemples ) )
+                                { printf( "Table cannot be found\n" ); return NULL; }  
+                }
+                Vec_PtrFree( vTimings );
+                // compute worse case of the tables
+                for ( k = 0; k < 4; k++ )
+                {
+                    Vec_Flt_t * vInd0, * vInd1, * vValues;
+                    if ( !Scl_LibertyComputeWorstCase( vTables[k], &vInd0, &vInd1, &vValues ) )
+                        { printf( "Table indexes have different values\n" ); return NULL; }  
+                    Vec_VecFree( (Vec_Vec_t *)vTables[k] );
+                    Scl_LibertyDumpTables( vOut, vInd0, vInd1, vValues );
+                    Vec_FltFree( vInd0 );
+                    Vec_FltFree( vInd1 );
+                    Vec_FltFree( vValues );
+                }
             }
         }
         Vec_StrPut_( vOut );
