@@ -241,6 +241,7 @@ Aig_Man_t * Saig_ManTempor( Aig_Man_t * pAig, int nFrames, int TimeOut, int nCon
             }
             assert( iLastBefore < nFramesFinished );
             printf( "BMC succeeded to frame %d. Adjusting frame count to be (%d) based on the last transient signal.\n", nFramesFinished, iLastBefore );
+            nFrames = iLastBefore;
         }
     }
     Vec_IntFreeP( &vTransSigs );
