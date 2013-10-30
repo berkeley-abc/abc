@@ -896,6 +896,17 @@ Scl_Item_t * Scl_LibertyReadPinTiming( Scl_Tree_t * p, Scl_Item_t * pPinOut, cha
                 return pTiming;
     return NULL;
 }
+Vec_Ptr_t * Scl_LibertyReadPinTimingAll( Scl_Tree_t * p, Scl_Item_t * pPinOut, char * pNameIn )
+{
+    Vec_Ptr_t * vTimings;
+    Scl_Item_t * pTiming, * pPinIn;
+    vTimings = Vec_PtrAlloc( 16 );
+    Scl_ItemForEachChildName( p, pPinOut, pTiming, "timing" )
+        Scl_ItemForEachChildName( p, pTiming, pPinIn, "related_pin" )
+            if ( !strcmp(Scl_LibertyReadString(p, pPinIn->Head), pNameIn) )
+                Vec_PtrPush( vTimings, pTiming );
+    return vTimings;
+}
 int Scl_LibertyReadTimingSense( Scl_Tree_t * p, Scl_Item_t * pPin )
 {
     Scl_Item_t * pItem;
@@ -921,6 +932,159 @@ Vec_Flt_t * Scl_LibertyReadFloatVec( char * pName )
         Vec_FltPush( vValues, atof(pToken) );
     return vValues;
 }
+void Scl_LibertyDumpTable( Vec_Str_t * vOut, Vec_Flt_t * vInd1, Vec_Flt_t * vInd2, Vec_Flt_t * vValues )
+{
+    int i; float Entry;
+    // write entries
+    Vec_StrPutI_( vOut, Vec_FltSize(vInd1) );
+    Vec_FltForEachEntry( vInd1, Entry, i )
+        Vec_StrPutF_( vOut, Entry );
+    Vec_StrPut_( vOut );
+    // write entries
+    Vec_StrPutI_( vOut, Vec_FltSize(vInd2) );
+    Vec_FltForEachEntry( vInd2, Entry, i )
+        Vec_StrPutF_( vOut, Entry );
+    Vec_StrPut_( vOut );
+    Vec_StrPut_( vOut );
+    // write entries
+    assert( Vec_FltSize(vInd1) * Vec_FltSize(vInd2) == Vec_FltSize(vValues) );
+    Vec_FltForEachEntry( vValues, Entry, i )
+    {
+        Vec_StrPutF_( vOut, Entry );
+        if ( i % Vec_FltSize(vInd2) == Vec_FltSize(vInd2)-1 )
+            Vec_StrPut_( vOut );
+    }
+    Vec_StrPut_( vOut );
+    for ( i = 0; i < 3; i++ ) 
+        Vec_StrPutF_( vOut, 0 );
+    for ( i = 0; i < 4; i++ ) 
+        Vec_StrPutF_( vOut, 0 );
+    for ( i = 0; i < 6; i++ ) 
+        Vec_StrPutF_( vOut, 0 );
+    Vec_StrPut_( vOut );
+    Vec_StrPut_( vOut );
+}
+/*
+int Scl_LibertyScanTable( Scl_Tree_t * p, Vec_Ptr_t * vOut, Scl_Item_t * pTiming, char * pName, Vec_Ptr_t * vTemples )
+{
+    Vec_Flt_t * vIndex1 = NULL;
+    Vec_Flt_t * vIndex2 = NULL;
+    Vec_Flt_t * vValues = NULL;
+    Vec_Flt_t * vInd1, * vInd2;
+    Scl_Item_t * pItem, * pTable = NULL;
+    char * pThis, * pTempl = NULL;
+    int iPlace, i;
+    float Entry;
+    // find the table
+    Scl_ItemForEachChildName( p, pTiming, pTable, pName )
+        break;
+    if ( pTable == NULL )
+        return 0;
+    // find the template
+    pTempl = Scl_LibertyReadString(p, pTable->Head);
+    if ( pTempl == NULL || pTempl[0] == 0 )
+    {
+        // read the numbers
+        Scl_ItemForEachChild( p, pTable, pItem )
+        {
+            if ( !Scl_LibertyCompare(p, pItem->Key, "index_1") )
+                assert(vIndex1 == NULL), vIndex1 = Scl_LibertyReadFloatVec( Scl_LibertyReadString(p, pItem->Head) );
+            else if ( !Scl_LibertyCompare(p, pItem->Key, "index_2") )
+                assert(vIndex2 == NULL), vIndex2 = Scl_LibertyReadFloatVec( Scl_LibertyReadString(p, pItem->Head) );
+            else if ( !Scl_LibertyCompare(p, pItem->Key, "values") )
+                assert(vValues == NULL), vValues = Scl_LibertyReadFloatVec( Scl_LibertyReadString(p, pItem->Head) );
+        }
+        if ( vIndex1 == NULL || vIndex2 == NULL || vValues == NULL )
+            { printf( "Incomplete table specification\n" ); return 0; }
+        // dump the table
+        vInd1 = vIndex1;
+        vInd2 = vIndex2;
+        // write entries
+        Vec_PtrPush( vOut, vInd1 );
+        Vec_PtrPush( vOut, vInd2 );
+        Vec_PtrPush( vOut, vValues );
+    }
+    else
+    {
+        // fetch the template
+        iPlace = -1;
+        Vec_PtrForEachEntry( char *, vTemples, pThis, i )
+            if ( i % 4 == 0 && !strcmp(pTempl, pThis) )
+            {  
+                iPlace = i;
+                break;
+            }
+        if ( iPlace == -1 )
+            { printf( "Template cannot be found in the template library\n" ); return 0; }
+        // read the numbers
+        Scl_ItemForEachChild( p, pTable, pItem )
+        {
+            if ( !Scl_LibertyCompare(p, pItem->Key, "index_1") )
+                assert(vIndex1 == NULL), vIndex1 = Scl_LibertyReadFloatVec( Scl_LibertyReadString(p, pItem->Head) );
+            else if ( !Scl_LibertyCompare(p, pItem->Key, "index_2") )
+                assert(vIndex2 == NULL), vIndex2 = Scl_LibertyReadFloatVec( Scl_LibertyReadString(p, pItem->Head) );
+            else if ( !Scl_LibertyCompare(p, pItem->Key, "values") )
+                assert(vValues == NULL), vValues = Scl_LibertyReadFloatVec( Scl_LibertyReadString(p, pItem->Head) );
+        }
+        // check the template style
+        vInd1 = (Vec_Flt_t *)Vec_PtrEntry( vTemples, iPlace + 2 ); // slew
+        vInd2 = (Vec_Flt_t *)Vec_PtrEntry( vTemples, iPlace + 3 ); // load
+        if ( Vec_PtrEntry(vTemples, iPlace + 1) == NULL ) // normal order (vIndex1 is slew; vIndex2 is load)
+        {
+            assert( !vIndex1 || Vec_FltSize(vIndex1) == Vec_FltSize(vInd1) );
+            assert( !vIndex2 || Vec_FltSize(vIndex2) == Vec_FltSize(vInd2) );
+            vInd1 = vIndex1 ? vIndex1 : vInd1;
+            vInd2 = vIndex2 ? vIndex2 : vInd2;
+            // write entries
+            Vec_PtrPush( vOut, vInd1 );
+            Vec_PtrPush( vOut, vInd2 );
+            Vec_PtrPush( vOut, vValues );
+        }
+        else  // reverse order (vIndex2 is slew; vIndex1 is load)
+        {
+            assert( !vIndex2 || Vec_FltSize(vIndex2) == Vec_FltSize(vInd1) );
+            assert( !vIndex1 || Vec_FltSize(vIndex1) == Vec_FltSize(vInd2) );
+            vInd1 = vIndex2 ? vIndex2 : vInd1;
+            vInd2 = vIndex1 ? vIndex1 : vInd2;
+            // write entries
+            Vec_StrPutI_( vOut, Vec_FltSize(vInd1) );
+            Vec_FltForEachEntry( vInd1, Entry, i )
+                Vec_StrPutF_( vOut, Entry );
+            Vec_StrPut_( vOut );
+            // write entries
+            Vec_StrPutI_( vOut, Vec_FltSize(vInd2) );
+            Vec_FltForEachEntry( vInd2, Entry, i )
+                Vec_StrPutF_( vOut, Entry );
+            Vec_StrPut_( vOut );
+            Vec_StrPut_( vOut );
+            // write entries -- transpose
+            assert( Vec_FltSize(vInd1) * Vec_FltSize(vInd2) == Vec_FltSize(vValues) );
+            Vec_FltForEachEntry( vValues, Entry, i )
+            {
+                int x = i % Vec_FltSize(vInd2);
+                int y = i / Vec_FltSize(vInd2);
+                Entry = Vec_FltEntry( vValues, x * Vec_FltSize(vInd1) + y );
+                Vec_StrPutF_( vOut, Entry );
+                if ( i % Vec_FltSize(vInd2) == Vec_FltSize(vInd2)-1 )
+                    Vec_StrPut_( vOut );
+            }
+        }
+    }
+    Vec_StrPut_( vOut );
+    for ( i = 0; i < 3; i++ ) 
+        Vec_StrPutF_( vOut, 0 );
+    for ( i = 0; i < 4; i++ ) 
+        Vec_StrPutF_( vOut, 0 );
+    for ( i = 0; i < 6; i++ ) 
+        Vec_StrPutF_( vOut, 0 );
+    Vec_FltFreeP( &vIndex1 );
+    Vec_FltFreeP( &vIndex2 );
+    Vec_FltFreeP( &vValues );
+    Vec_StrPut_( vOut );
+    Vec_StrPut_( vOut );
+    return 1;
+}
+*/
 int Scl_LibertyReadTable( Scl_Tree_t * p, Vec_Str_t * vOut, Scl_Item_t * pTiming, char * pName, Vec_Ptr_t * vTemples )
 {
     Vec_Flt_t * vIndex1 = NULL;
@@ -1144,7 +1308,7 @@ Vec_Ptr_t * Scl_LibertyReadTemplates( Scl_Tree_t * p )
 Vec_Str_t * Scl_LibertyReadSclStr( Scl_Tree_t * p, int fVerbose, int fVeryVerbose )
 {
     Vec_Str_t * vOut;
-    Vec_Ptr_t * vNameIns, * vTemples = NULL;
+    Vec_Ptr_t * vNameIns, * vTimings, * vTemples = NULL;
     Scl_Item_t * pCell, * pPin, * pTiming;
     Vec_Wrd_t * vTruth;
     char * pFormula, * pName;
@@ -1268,7 +1432,10 @@ Vec_Str_t * Scl_LibertyReadSclStr( Scl_Tree_t * p, int fVerbose, int fVeryVerbos
             // write the delay tables
             Vec_PtrForEachEntry( char *, vNameIns, pName, i )
             {
-                pTiming = Scl_LibertyReadPinTiming( p, pPin, pName );
+                vTimings = Scl_LibertyReadPinTimingAll( p, pPin, pName );
+                pTiming = Vec_PtrSize(vTimings) ? (Scl_Item_t *)Vec_PtrEntry(vTimings, 0) : NULL;
+//                printf( "%d ", Vec_PtrSize(vTimings) );
+                Vec_PtrFree( vTimings );
                 Vec_StrPutS_( vOut, pName );
                 Vec_StrPutI_( vOut, (int)(pTiming != NULL) );
                 if ( pTiming == NULL ) // output does not depend on input
