@@ -283,6 +283,30 @@ int Gia_SweeperProbeLit( Gia_Man_t * p, int ProbeId )
 
 /**Function*************************************************************
 
+  Synopsis    [This procedure returns indexes of all currently defined valid probes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Int_t * Gia_SweeperCollectValidProbeIds( Gia_Man_t * p )
+{
+    Swp_Man_t * pSwp = (Swp_Man_t *)p->pData;
+    Vec_Int_t * vProbeIds = Vec_IntAlloc( 1000 );
+    int iLit, ProbeId;
+    Vec_IntForEachEntry( pSwp->vProbes, iLit, ProbeId )
+    {
+        if ( iLit < 0 ) continue;
+        Vec_IntPush( vProbeIds, ProbeId );
+    }
+    return vProbeIds;
+}
+
+/**Function*************************************************************
+
   Synopsis    []
 
   Description []
@@ -1021,6 +1045,52 @@ int Gia_SweeperFraig( Gia_Man_t * p, Vec_Int_t * vProbeIds, char * pCommLime, in
         Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), pCommLime );
         // get pNew to be current GIA in ABC     
         pNew = Abc_FrameGetGia( Abc_FrameGetGlobalFrame() );
+    }
+    // return logic back into the main manager
+    vLits = Gia_SweeperGraft( p, NULL, pNew );
+    Gia_ManStop( pNew );
+    // update the array of probes
+    Vec_IntForEachEntry( vProbeIds, ProbeId, i )
+        Gia_SweeperProbeUpdate( p, ProbeId, Vec_IntEntry(vLits, i) );
+    Vec_IntFree( vLits );        
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Executes given command line for the logic defined by the probes.]
+
+  Description [ ]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Gia_SweeperRun( Gia_Man_t * p, Vec_Int_t * vProbeIds, char * pCommLime, int fVerbose )
+{
+    Gia_Man_t * pNew;
+    Vec_Int_t * vLits;
+    int ProbeId, i;
+    // sweeper is running
+    assert( Gia_SweeperIsRunning(p) );
+    // sweep the logic
+    pNew = Gia_SweeperExtractUserLogic( p, vProbeIds, NULL, NULL );
+    // execute command line
+    if ( pCommLime )
+    {
+        if ( fVerbose )
+            printf( "GIA manager statistics before and after applying \"%s\":\n", pCommLine );
+        if ( fVerbose )
+            Gia_ManPrintStats( pNew, NULL );
+        // set pNew to be current GIA in ABC
+        Abc_FrameUpdateGia( Abc_FrameGetGlobalFrame(), pNew );
+        // execute command line pCommLine using Abc_CmdCommandExecute()
+        Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), pCommLime );
+        // get pNew to be current GIA in ABC     
+        pNew = Abc_FrameGetGia( Abc_FrameGetGlobalFrame() );
+        if ( fVerbose )
+            Gia_ManPrintStats( pNew, NULL );
     }
     // return logic back into the main manager
     vLits = Gia_SweeperGraft( p, NULL, pNew );
