@@ -128,6 +128,7 @@ static inline void Abc_SclTimeNodePrint( SC_Man * p, Abc_Obj_t * pObj, int fRise
 }
 void Abc_SclTimeNtkPrint( SC_Man * p, int fShowAll, int fPrintPath )
 {
+    int fReversePath = 1;
     int i, nLength = 0, fRise = 0;
     Abc_Obj_t * pObj, * pPivot = Abc_SclFindCriticalCo( p, &fRise ); 
     float maxDelay = Abc_SclObjTimePs(p, pPivot, fRise);
@@ -157,7 +158,10 @@ void Abc_SclTimeNtkPrint( SC_Man * p, int fShowAll, int fPrintPath )
     }
     if ( fPrintPath )
     {
-//        printf( "Critical path: \n" );
+        Abc_Obj_t * pTemp, * pPrev = NULL;
+        int iStart = -1, iEnd = -1;
+        Vec_Ptr_t * vPath;
+//        printf( "Critical path: \n" );        
         // find the longest cell name
         pObj = Abc_ObjFanin0(pPivot);
         i = 0;
@@ -167,14 +171,51 @@ void Abc_SclTimeNtkPrint( SC_Man * p, int fShowAll, int fPrintPath )
             nLength = Abc_MaxInt( nLength, strlen(Abc_SclObjCell(pObj)->pName) );
             pObj = Abc_SclFindMostCriticalFanin( p, &fRise, pObj );
         }
+
         // print timing
-        pObj = Abc_ObjFanin0(pPivot);
-        while ( pObj )//&& Abc_ObjIsNode(pObj) )
+        if ( !fReversePath )
         {
-            printf( "Path%3d --", i-- );
-            Abc_SclTimeNodePrint( p, pObj, fRise, nLength, maxDelay );
-            pObj = Abc_SclFindMostCriticalFanin( p, &fRise, pObj );
+            // print timing
+            pObj = Abc_ObjFanin0(pPivot);
+            while ( pObj )//&& Abc_ObjIsNode(pObj) )
+            {
+                printf( "Path%3d --", i-- );
+                Abc_SclTimeNodePrint( p, pObj, fRise, nLength, maxDelay );
+                pPrev = pObj;
+                pObj = Abc_SclFindMostCriticalFanin( p, &fRise, pObj );
+            }
         }
+        else
+        {
+            // collect path nodes
+            vPath = Vec_PtrAlloc( 100 );
+            Vec_PtrPush( vPath, pPivot );
+            pObj = Abc_ObjFanin0(pPivot);
+            while ( pObj )//&& Abc_ObjIsNode(pObj) )
+            {
+                Vec_PtrPush( vPath, pObj );
+                pPrev = pObj;
+                pObj = Abc_SclFindMostCriticalFanin( p, &fRise, pObj );
+            }
+            Vec_PtrForEachEntryReverse( Abc_Obj_t *, vPath, pObj, i )
+            {
+                printf( "Path%3d --", Vec_PtrSize(vPath)-1-i );
+                Abc_SclTimeNodePrint( p, pObj, fRise, nLength, maxDelay );
+                if ( i == 1 )
+                    break;
+            }
+            Vec_PtrFree( vPath );
+        }
+        // print start-point and end-point
+        Abc_NtkForEachPi( p->pNtk, pTemp, iStart )
+            if ( pTemp == pPrev )
+                break;
+        Abc_NtkForEachPo( p->pNtk, pTemp, iEnd )
+            if ( pTemp == pPivot )
+                break;
+        printf( "Start-point = pi%0*d.  End-point = po%0*d.\n", 
+            Abc_Base10Log( Abc_NtkPiNum(p->pNtk) ), iStart, 
+            Abc_Base10Log( Abc_NtkPoNum(p->pNtk) ), iEnd );
     }
 }
 
