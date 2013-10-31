@@ -222,7 +222,6 @@ void Gia_SweeperSetConflictLimit( Gia_Man_t * p, int nConfMax )
     Swp_Man_t * pSwp = (Swp_Man_t *)p->pData;
     pSwp->nConfMax = nConfMax;
 }
-
 void Gia_SweeperSetRuntimeLimit( Gia_Man_t * p, int nSeconds )
 {
     Swp_Man_t * pSwp = (Swp_Man_t *)p->pData;
@@ -251,6 +250,7 @@ int Gia_SweeperProbeCreate( Gia_Man_t * p, int iLit )
 {
     Swp_Man_t * pSwp = (Swp_Man_t *)p->pData;
     int ProbeId = Vec_IntSize(pSwp->vProbes);
+    assert( iLit >= 0 );
     Vec_IntPush( pSwp->vProbes, iLit );
     return ProbeId;
 }
@@ -276,7 +276,9 @@ int Gia_SweeperProbeUpdate( Gia_Man_t * p, int ProbeId, int iLitNew )
 int Gia_SweeperProbeLit( Gia_Man_t * p, int ProbeId )
 {
     Swp_Man_t * pSwp = (Swp_Man_t *)p->pData;
-    return Vec_IntEntry( pSwp->vProbes, ProbeId );
+    int iLit = Vec_IntEntry(pSwp->vProbes, ProbeId);
+    assert( iLit >= 0 );
+    return iLit;
 }
 
 /**Function*************************************************************
@@ -374,7 +376,7 @@ Gia_Man_t * Gia_SweeperExtractUserLogic( Gia_Man_t * p, Vec_Int_t * vProbeIds, V
         pObj->Value = Vec_IntEntry( vValues, i );
     Vec_IntFree( vObjIds );
     Vec_IntFree( vValues );
-    // duplicated if needed
+    // duplicate if needed
     if ( Gia_ManHasDangling(pNew) )
     {
         pNew = Gia_ManCleanup( pTemp = pNew );
@@ -440,7 +442,7 @@ Gia_Man_t * Gia_SweeperCleanup( Gia_Man_t * p, char * pCommLime )
         Vec_IntWriteEntry( pSwp->vProbes, ProbeId, iLit );
     }
     Vec_IntFree( vObjIds );
-    // duplicated if needed
+    // duplicate if needed
     if ( Gia_ManHasDangling(pNew) )
     {
         pNew = Gia_ManCleanup( pTemp = pNew );
