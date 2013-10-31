@@ -1080,7 +1080,7 @@ int Gia_SweeperRun( Gia_Man_t * p, Vec_Int_t * vProbeIds, char * pCommLime, int 
     if ( pCommLime )
     {
         if ( fVerbose )
-            printf( "GIA manager statistics before and after applying \"%s\":\n", pCommLine );
+            printf( "GIA manager statistics before and after applying \"%s\":\n", pCommLime );
         if ( fVerbose )
             Gia_ManPrintStats( pNew, NULL );
         // set pNew to be current GIA in ABC
