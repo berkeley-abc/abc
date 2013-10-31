@@ -170,6 +170,8 @@ void Bmc_PerformICheck( Gia_Man_t * p, int nFramesMax, int nTimeOut, int fVerbos
         {
             iVar0 = pCnf->pVarNums[Gia_ObjId(pMiter, pObj)];
             iVar1 = Vec_IntEntry( vLits, i );
+            if ( iVar1 == -1 )
+                continue;
             sat_solver_add_buffer( pSat, iVar0, iVar1, 0 );
         }
         // add equality clauses for the COs
@@ -204,6 +206,7 @@ void Bmc_PerformICheck( Gia_Man_t * p, int nFramesMax, int nTimeOut, int fVerbos
     sat_solver_compress( pSat );
     while ( 1 )
     {
+//        sat_solver_bookmark( pSat );
         status = sat_solver_solve( pSat, Vec_IntArray(vLits), Vec_IntArray(vLits) + Vec_IntSize(vLits), (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
         if ( status == l_Undef )
         {
@@ -226,6 +229,7 @@ void Bmc_PerformICheck( Gia_Man_t * p, int nFramesMax, int nTimeOut, int fVerbos
         if ( nLits == Vec_IntSize(vLits) )
             break;
         break;
+//        sat_solver_rollback( pSat );
 
         // add another large OR clause
         Vec_IntClear( vLits );
@@ -235,7 +239,7 @@ void Bmc_PerformICheck( Gia_Man_t * p, int nFramesMax, int nTimeOut, int fVerbos
         // create new literals
         Vec_IntClear( vLits );
         for ( i = 0; i < nLits; i++ )
-            Vec_IntPush( vLits, pLits[i] );
+            Vec_IntPush( vLits, Abc_LitNot(pLits[i]) );
     }
 
     sat_solver_delete( pSat );
