@@ -21,6 +21,7 @@
 #include "bmc.h"
 #include "sat/cnf/cnf.h"
 #include "sat/bsat/satStore.h"
+#include "aig/gia/giaAig.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -44,8 +45,52 @@ ABC_NAMESPACE_IMPL_START
   SeeAlso     []
 
 ***********************************************************************/
+static inline Cnf_Dat_t * Cnf_DeriveGiaRemapped( Gia_Man_t * p )
+{
+    Cnf_Dat_t * pCnf;
+    Aig_Man_t * pAig = Gia_ManToAigSimple( p );
+    pAig->nRegs = 0;
+    pCnf = Cnf_Derive( pAig, Aig_ManCoNum(pAig) );
+    Aig_ManStop( pAig );
+    return pCnf;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline void Cnf_DataLiftGia( Cnf_Dat_t * p, Gia_Man_t * pGia, int nVarsPlus )
+{
+    Gia_Obj_t * pObj;
+    int v;
+    Gia_ManForEachObj( pGia, pObj, v )
+        if ( p->pVarNums[Gia_ObjId(pGia, pObj)] >= 0 )
+            p->pVarNums[Gia_ObjId(pGia, pObj)] += nVarsPlus;
+    for ( v = 0; v < p->nLiterals; v++ )
+        p->pClauses[0][v] += 2*nVarsPlus;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 void Bmc_PerformICheck( Gia_Man_t * p, int nFramesMax, int nTimeOut, int fVerbose )
 {
+    int fUseOldCnf = 0;
     Gia_Man_t * pMiter, * pTemp;
     Cnf_Dat_t * pCnf;
     sat_solver * pSat;
@@ -64,9 +109,14 @@ void Bmc_PerformICheck( Gia_Man_t * p, int nFramesMax, int nTimeOut, int fVerbos
     assert( Gia_ManPoNum(pMiter)  == 2 * Gia_ManPoNum(p) );
     assert( Gia_ManRegNum(pMiter) == 2 * Gia_ManRegNum(p) );
     // derive CNF
-    pMiter = Jf_ManDeriveCnf( pTemp = pMiter, 0 );
-    Gia_ManStop( pTemp );
-    pCnf = (Cnf_Dat_t *)pMiter->pData; pMiter->pData = NULL;
+    if ( fUseOldCnf )
+        pCnf = Cnf_DeriveGiaRemapped( pMiter );
+    else
+    {
+        pMiter = Jf_ManDeriveCnf( pTemp = pMiter, 0 );
+        Gia_ManStop( pTemp );
+        pCnf = (Cnf_Dat_t *)pMiter->pData; pMiter->pData = NULL;
+    }
 
     // start the SAT solver
     pSat = sat_solver_new();
@@ -74,7 +124,7 @@ void Bmc_PerformICheck( Gia_Man_t * p, int nFramesMax, int nTimeOut, int fVerbos
     sat_solver_set_runtime_limit( pSat, nTimeOut ? nTimeOut * CLOCKS_PER_SEC + Abc_Clock(): 0 );
 
     // load the last timeframe
-    Cnf_DataLift( pCnf, Gia_ManRegNum(p) + Gia_ManCoNum(p) );
+    Cnf_DataLiftGia( pCnf, pMiter, Gia_ManRegNum(p) + Gia_ManCoNum(p) );
     // add one large OR clause
     vLits = Vec_IntAlloc( Gia_ManCoNum(p) );
     Gia_ManForEachCo( p, pObj, i )
@@ -114,7 +164,7 @@ void Bmc_PerformICheck( Gia_Man_t * p, int nFramesMax, int nTimeOut, int fVerbos
         Gia_ManForEachRo( pMiter, pObj, i )
             Vec_IntPush( vLits, pCnf->pVarNums[Gia_ObjId(pMiter, pObj)] );
         // lift CNF again
-        Cnf_DataLift( pCnf, pCnf->nVars );
+        Cnf_DataLiftGia( pCnf, pMiter, pCnf->nVars );
         // stitch the clauses
         Gia_ManForEachRi( pMiter, pObj, i )
         {
@@ -143,24 +193,49 @@ void Bmc_PerformICheck( Gia_Man_t * p, int nFramesMax, int nTimeOut, int fVerbos
         for ( i = 0; i < pCnf->nClauses; i++ )
             if ( !sat_solver_addclause( pSat, pCnf->pClauses[i], pCnf->pClauses[i+1] ) )
                 assert( 0 );
+    }
 
-        // collect literals
-        Vec_IntClear( vLits );
-        for ( i = 0; i < Gia_ManRegNum(p); i++ )
-            Vec_IntPush( vLits, Abc_Var2Lit(i, 0) );
+    // collect literals
+    Vec_IntClear( vLits );
+    for ( i = 0; i < Gia_ManRegNum(p); i++ )
+        Vec_IntPush( vLits, Abc_Var2Lit(i, 0) );
 
-        // call the SAT solver
-    //    sat_solver_compress( pSat );
+    // call the SAT solver
+    sat_solver_compress( pSat );
+    while ( 1 )
+    {
         status = sat_solver_solve( pSat, Vec_IntArray(vLits), Vec_IntArray(vLits) + Vec_IntSize(vLits), (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
+        if ( status == l_Undef )
+        {
+            printf( "Timeout reached after %d seconds.\n", nTimeOut );
+            break;
+        }
+        if ( status == l_True )
+        {
+            printf( "The problem is satisfiable (this is an error).\n" );
+            break;
+        }
         assert( status == l_False );
-
         // call analize_final
         nLits = sat_solver_final( pSat, &pLits );
-        printf( "M = %d.  AIG =%8d.  SAT vars =%8d.  SAT conf =%8d.  S =%6d. (%6.2f %%)  ",
-            k+1, (k+1) * Gia_ManAndNum(pMiter), 
-            sat_solver_nvars(pSat), sat_solver_nconflicts(pSat),
-            nLits, 100.0 * nLits / Gia_ManRegNum(p) );
+        printf( "M =%4d :  AIG =%8d.  SAT vars =%8d.  SAT conf =%8d.  S =%6d. (%6.2f %%)  ",
+            nFramesMax, (nFramesMax+1) * Gia_ManAndNum(pMiter), 
+            Gia_ManRegNum(p) + Gia_ManCoNum(p) + pCnf->nVars * (nFramesMax + 1), 
+            sat_solver_nconflicts(pSat), nLits, 100.0 * nLits / Gia_ManRegNum(p) );
         Abc_PrintTime( 1, "Time", Abc_Clock() - clkStart );
+        if ( nLits == Vec_IntSize(vLits) )
+            break;
+        break;
+
+        // add another large OR clause
+        Vec_IntClear( vLits );
+        for ( i = 0; i < nLits; i++ )
+            Vec_IntPush( vLits, Abc_Var2Lit(Gia_ManRegNum(p) + Abc_Lit2Var(pLits[i]), 0) );
+        sat_solver_addclause( pSat, Vec_IntArray(vLits), Vec_IntArray(vLits) + Vec_IntSize(vLits) );
+        // create new literals
+        Vec_IntClear( vLits );
+        for ( i = 0; i < nLits; i++ )
+            Vec_IntPush( vLits, pLits[i] );
     }
 
     sat_solver_delete( pSat );

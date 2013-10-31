@@ -32590,7 +32590,7 @@ int Abc_CommandAbc9ICheck( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nFramesMax = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nFramesMax < 0 )
+            if ( nFramesMax <= 0 )
                 goto usage;
             break;
         case 'T':
@@ -32628,8 +32628,8 @@ int Abc_CommandAbc9ICheck( Abc_Frame_t * pAbc, int argc, char ** argv )
 
 usage:
     Abc_Print( -2, "usage: &icheck [-MT num] [-cvh]\n" );
-    Abc_Print( -2, "\t         performs specialized inductiveness check\n" );
-    Abc_Print( -2, "\t-M num : the number of timeframes used for inductiion [default = %d]\n", nFramesMax );
+    Abc_Print( -2, "\t         performs specialized induction check\n" );
+    Abc_Print( -2, "\t-M num : the number of timeframes used for induction [default = %d]\n", nFramesMax );
     Abc_Print( -2, "\t-T num : approximate global runtime limit in seconds [default = %d]\n",  nTimeOut );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n",          fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");

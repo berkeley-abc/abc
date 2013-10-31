@@ -934,7 +934,7 @@ void Gia_ManBmcAddCnfNew( Bmc_Mna_t * p, int iStart, int iStop )
   SeeAlso     []
 
 ***********************************************************************/
-Cnf_Dat_t * Cnf_DeriveGia( Gia_Man_t * p )
+static inline Cnf_Dat_t * Cnf_DeriveGia( Gia_Man_t * p )
 {
     Aig_Man_t * pAig = Gia_ManToAigSimple( p );
     Cnf_Dat_t * pCnf = Cnf_DeriveOther( pAig, 1 );
