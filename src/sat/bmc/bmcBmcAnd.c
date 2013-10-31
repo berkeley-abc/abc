@@ -983,7 +983,7 @@ int Gia_ManBmcPerformInt( Gia_Man_t * pGia, Bmc_AndPar_t * pPars )
         p->pCnf = Cnf_DeriveGia( p->pFrames );
     else
     {
-        p->pFrames = Jf_ManDeriveCnf( pTemp = p->pFrames );  Gia_ManStop( pTemp );
+        p->pFrames = Jf_ManDeriveCnf( pTemp = p->pFrames, 1 );  Gia_ManStop( pTemp );
         p->pCnf = (Cnf_Dat_t *)p->pFrames->pData; p->pFrames->pData = NULL;
     }
     Vec_IntFillExtra( p->vId2Var, Gia_ManObjNum(p->pFrames), 0 );

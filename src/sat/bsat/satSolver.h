@@ -296,6 +296,25 @@ static inline int sat_solver_add_buffer( sat_solver * pSat, int iVarA, int iVarB
     assert( Cid );
     return 2;
 }
+static inline int sat_solver_add_buffer_enable( sat_solver * pSat, int iVarA, int iVarB, int iVarEn, int fCompl )
+{
+    lit Lits[3];
+    int Cid;
+    assert( iVarA >= 0 && iVarB >= 0 && iVarEn >= 0 );
+
+    Lits[0] = toLitCond( iVarA, 0 );
+    Lits[1] = toLitCond( iVarB, !fCompl );
+    Lits[2] = toLitCond( iVarEn, 1 );
+    Cid = sat_solver_addclause( pSat, Lits, Lits + 3 );
+    assert( Cid );
+
+    Lits[0] = toLitCond( iVarA, 1 );
+    Lits[1] = toLitCond( iVarB, fCompl );
+    Lits[2] = toLitCond( iVarEn, 1 );
+    Cid = sat_solver_addclause( pSat, Lits, Lits + 3 );
+    assert( Cid );
+    return 2;
+}
 static inline int sat_solver_add_and( sat_solver * pSat, int iVar, int iVar0, int iVar1, int fCompl0, int fCompl1 )
 {
     lit Lits[3];

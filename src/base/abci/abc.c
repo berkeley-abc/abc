@@ -401,6 +401,7 @@ static int Abc_CommandAbc9PoPart             ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandAbc9GroupProve         ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9MultiProve         ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Bmc                ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9ICheck             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9SatTest            ( Abc_Frame_t * pAbc, int argc, char ** argv );
 //static int Abc_CommandAbc9PoPart2            ( Abc_Frame_t * pAbc, int argc, char ** argv );
 //static int Abc_CommandAbc9CexCut             ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -965,6 +966,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "ABC9",         "&gprove",       Abc_CommandAbc9GroupProve,   0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&mprove",       Abc_CommandAbc9MultiProve,   0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&bmc",          Abc_CommandAbc9Bmc,          0 );
+    Cmd_CommandAdd( pAbc, "ABC9",         "&icheck",       Abc_CommandAbc9ICheck,       0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&sattest",      Abc_CommandAbc9SatTest,      0 );
 //    Cmd_CommandAdd( pAbc, "ABC9",         "&popart2",      Abc_CommandAbc9PoPart2,      0 );
 //    Cmd_CommandAdd( pAbc, "ABC9",         "&cexcut",       Abc_CommandAbc9CexCut,       0 );
@@ -32557,6 +32559,79 @@ usage:
     Abc_Print( -2, "\t-c     : toggle using old CNF computation [default = %s]\n",            pPars->fUseOldCnf?   "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n",         pPars->fVerbose?     "yes": "no" );
     Abc_Print( -2, "\t-w     : toggle printing information about unfolding [default = %s]\n", pPars->fVeryVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc9ICheck( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    int c, nFramesMax = 1, nTimeOut = 0, fVerbose = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "MTvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'M':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-M\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nFramesMax = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nFramesMax < 0 )
+                goto usage;
+            break;
+        case 'T':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-T\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nTimeOut = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nTimeOut < 0 )
+                goto usage;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pAbc->pGia == NULL )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9ICheck(): There is no AIG.\n" );
+        return 0;
+    }
+    if ( Gia_ManRegNum(pAbc->pGia) == 0 )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9ICheck(): The AIG is combinational.\n" );
+        return 0;
+    }
+    Bmc_PerformICheck( pAbc->pGia, nFramesMax, nTimeOut, fVerbose );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: &icheck [-MT num] [-cvh]\n" );
+    Abc_Print( -2, "\t         performs specialized inductiveness check\n" );
+    Abc_Print( -2, "\t-M num : the number of timeframes used for inductiion [default = %d]\n", nFramesMax );
+    Abc_Print( -2, "\t-T num : approximate global runtime limit in seconds [default = %d]\n",  nTimeOut );
+    Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n",          fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
 }

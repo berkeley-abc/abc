@@ -1443,6 +1443,10 @@ SOURCE=.\src\sat\bmc\bmcCexTools.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\sat\bmc\bmcICheck.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\sat\bmc\bmcLoad.c
 # End Source File
 # Begin Source File
