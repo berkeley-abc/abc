@@ -18,6 +18,7 @@ SRC +=    src/aig/gia/giaAig.c \
     src/aig/gia/giaEquiv.c \
     src/aig/gia/giaEra.c \
     src/aig/gia/giaEra2.c \
+    src/aig/gia/giaFalse.c \
     src/aig/gia/giaFanout.c \
     src/aig/gia/giaForce.c \
     src/aig/gia/giaFrames.c \

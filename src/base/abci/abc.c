@@ -33977,7 +33977,7 @@ int Abc_CommandAbc9Test( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
 //    Gia_Man_t * pTemp = NULL;
     int c, fVerbose = 0;
-    int nFrames = 10;
+    int nFrames = 0;
     int fSwitch = 0;
 //    extern Gia_Man_t * Gia_VtaTest( Gia_Man_t * p );
 //    extern int Gia_ManSuppSizeTest( Gia_Man_t * p );
@@ -33998,7 +33998,8 @@ int Abc_CommandAbc9Test( Abc_Frame_t * pAbc, int argc, char ** argv )
 //    extern Gia_Man_t * Gia_ManInterTest( Gia_Man_t * p );
 //    extern Gia_Man_t * Llb_ReachableStatesGia( Gia_Man_t * p );
 //    extern Gia_Man_t * Unm_ManTest( Gia_Man_t * pGia );
-    extern void Agi_ManTest( Gia_Man_t * pGia );
+//    extern void Agi_ManTest( Gia_Man_t * pGia );
+    extern void Gia_ManCheckFalseTest( Gia_Man_t * p, int nSlackMax );
 
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "Fsvh" ) ) != EOF )
@@ -34078,6 +34079,7 @@ int Abc_CommandAbc9Test( Abc_Frame_t * pAbc, int argc, char ** argv )
 //    Agi_ManTest( pAbc->pGia );
 //    Gia_ManResubTest( pAbc->pGia );
 //    Jf_ManTestCnf( pAbc->pGia );
+    Gia_ManCheckFalseTest( pAbc->pGia, nFrames );
     return 0;
 usage:
     Abc_Print( -2, "usage: &test [-F num] [-svh]\n" );
