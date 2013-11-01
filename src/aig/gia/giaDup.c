@@ -558,6 +558,30 @@ Gia_Man_t * Gia_ManDup( Gia_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
+Gia_Man_t * Gia_ManDupZero( Gia_Man_t * p )
+{
+    Gia_Man_t * pNew; int i;
+    pNew = Gia_ManStart( 1 + Gia_ManCiNum(p) + Gia_ManCoNum(p) );
+    pNew->pName = Abc_UtilStrsav( p->pName );
+    for ( i = 0; i < Gia_ManCiNum(p); i++ )
+        Gia_ManAppendCi( pNew );
+    for ( i = 0; i < Gia_ManCoNum(p); i++ )
+        Gia_ManAppendCo( pNew, 0 );
+    Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
+    return pNew;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Duplicates AIG without any changes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 Gia_Man_t * Gia_ManDupPerm( Gia_Man_t * p, Vec_Int_t * vPiPerm )
 {
 //    Vec_Int_t * vPiPermInv;

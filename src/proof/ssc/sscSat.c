@@ -323,10 +323,12 @@ void Ssc_ManCollectSatPattern( Ssc_Man_t * p, Vec_Int_t * vPattern )
 Vec_Int_t * Ssc_ManFindPivotSat( Ssc_Man_t * p )
 {
     Vec_Int_t * vInit;
-    int status;
-    status = sat_solver_solve( p->pSat, NULL, NULL, p->pPars->nBTLimit, 0, 0, 0 );
-    if ( status != l_True ) // unsat or undec
+    int status = sat_solver_solve( p->pSat, NULL, NULL, p->pPars->nBTLimit, 0, 0, 0 );
+    if ( status == l_False )
+        return (Vec_Int_t *)(ABC_PTRINT_T)1;
+    if ( status == l_Undef )
         return NULL;
+    assert( status == l_True );
     vInit = Vec_IntAlloc( Gia_ManCiNum(p->pFraig) );
     Ssc_ManCollectSatPattern( p, vInit );
     return vInit;

@@ -984,6 +984,7 @@ extern Gia_Man_t *         Gia_ManDupLastPis( Gia_Man_t * p, int nLastPis );
 extern Gia_Man_t *         Gia_ManDupFlip( Gia_Man_t * p, int * pInitState );
 extern Gia_Man_t *         Gia_ManDupCycled( Gia_Man_t * pAig, Abc_Cex_t * pCex, int nFrames );
 extern Gia_Man_t *         Gia_ManDup( Gia_Man_t * p );  
+extern Gia_Man_t *         Gia_ManDupZero( Gia_Man_t * p );
 extern Gia_Man_t *         Gia_ManDupPerm( Gia_Man_t * p, Vec_Int_t * vPiPerm );
 extern Gia_Man_t *         Gia_ManDupPermFlop( Gia_Man_t * p, Vec_Int_t * vFfPerm );
 extern Gia_Man_t *         Gia_ManDupPermFlopGap( Gia_Man_t * p, Vec_Int_t * vFfPerm );

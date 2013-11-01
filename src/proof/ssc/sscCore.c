@@ -90,16 +90,22 @@ Ssc_Man_t * Ssc_ManStart( Gia_Man_t * pAig, Gia_Man_t * pCare, Ssc_Pars_t * pPar
     Ssc_ManStartSolver( p );
     if ( p->pSat == NULL )
     {
-        printf( "Constraints are UNSAT after propagation (likely a bug!).\n" );
+        printf( "Constraints are UNSAT after propagation.\n" );
         Ssc_ManStop( p );
-        return NULL;
+        return (Ssc_Man_t *)(ABC_PTRINT_T)1;
     }
 //    p->vPivot = Ssc_GiaFindPivotSim( p->pFraig );
 //    Vec_IntFreeP( &p->vPivot  );
     p->vPivot = Ssc_ManFindPivotSat( p );
+    if ( p->vPivot == (Vec_Int_t *)(ABC_PTRINT_T)1 )
+    {
+        printf( "Constraints are UNSAT.\n" );
+        Ssc_ManStop( p );
+        return (Ssc_Man_t *)(ABC_PTRINT_T)1;
+    }
     if ( p->vPivot == NULL )
     {
-        printf( "Constraints are UNSAT or conflict limit is too low.\n" );
+        printf( "Conflict limit is reached while trying to find one SAT assignment.\n" );
         Ssc_ManStop( p );
         return NULL;
     }
@@ -229,7 +235,9 @@ clk = Abc_Clock();
     Gia_ManRandom( 1 );
     // sweeping manager
     p = Ssc_ManStart( pAig, pCare, pPars );
-    if ( p == NULL )
+    if ( p == (Ssc_Man_t *)(ABC_PTRINT_T)1 ) // UNSAT
+        return Gia_ManDupZero( pAig );
+    if ( p == NULL ) // timeout
         return Gia_ManDup( pAig );
     if ( p->pPars->fVerbose )
         printf( "Care set produced %d hits out of %d.\n", Ssc_GiaEstimateCare(p->pFraig, 5), 640 );
