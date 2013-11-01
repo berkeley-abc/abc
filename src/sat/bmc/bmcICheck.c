@@ -206,7 +206,7 @@ void Bmc_PerformICheck( Gia_Man_t * p, int nFramesMax, int nTimeOut, int fEmpty,
 
     // create miter
     pTemp = Gia_ManDup( p );
-    pMiter = Gia_ManMiter( p, pTemp, 0, 1, 1, 0 );
+    pMiter = Gia_ManMiter( p, pTemp, 0, 1, 1, 0, 0 );
     Gia_ManStop( pTemp );
     assert( Gia_ManPoNum(pMiter)  == 2 * Gia_ManPoNum(p) );
     assert( Gia_ManRegNum(pMiter) == 2 * Gia_ManRegNum(p) );

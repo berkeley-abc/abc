@@ -27966,7 +27966,7 @@ int Abc_CommandAbc9Miter( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 0;
     }
     // compute the miter
-    pAux = Gia_ManMiter( pAbc->pGia, pSecond, nInsDup, fDualOut, fSeq, fVerbose );
+    pAux = Gia_ManMiter( pAbc->pGia, pSecond, nInsDup, fDualOut, fSeq, 0, fVerbose );
     Gia_ManStop( pSecond );
     Abc_FrameUpdateGia( pAbc, pAux );
     return 0;
@@ -29352,7 +29352,7 @@ int Abc_CommandAbc9Cec( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 0;
     }
     // compute the miter
-    pMiter = Gia_ManMiter( pAbc->pGia, pSecond, 0, 1, 0, pPars->fVerbose );
+    pMiter = Gia_ManMiter( pAbc->pGia, pSecond, 0, 1, 0, 0, pPars->fVerbose );
     if ( pMiter )
     {
         if ( fDumpMiter )

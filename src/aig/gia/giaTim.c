@@ -554,7 +554,7 @@ int Gia_ManVerifyWithBoxes( Gia_Man_t * pGia, void * pParsInit )
     pGia1 = Gia_ManDupCollapse( pGia,  pGia->pAigExtra,  NULL  );
     Vec_IntFreeP( &vBoxPres );
     // compute the miter
-    pMiter = Gia_ManMiter( pGia0, pGia1, 0, 1, 0, fVerbose );
+    pMiter = Gia_ManMiter( pGia0, pGia1, 0, 1, 0, 0, fVerbose );
     if ( pMiter )
     {
         Cec_ParCec_t ParsCec, * pPars = &ParsCec;

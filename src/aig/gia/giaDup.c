@@ -1880,7 +1880,7 @@ int Gia_ManMiter_rec( Gia_Man_t * pNew, Gia_Man_t * p, Gia_Obj_t * pObj )
   SeeAlso     []
 
 ***********************************************************************/
-Gia_Man_t * Gia_ManMiter( Gia_Man_t * p0, Gia_Man_t * p1, int nInsDup, int fDualOut, int fSeq, int fVerbose )
+Gia_Man_t * Gia_ManMiter( Gia_Man_t * p0, Gia_Man_t * p1, int nInsDup, int fDualOut, int fSeq, int fImplic, int fVerbose )
 {
     Gia_Man_t * pNew, * pTemp;
     Gia_Obj_t * pObj;
@@ -1951,7 +1951,12 @@ Gia_Man_t * Gia_ManMiter( Gia_Man_t * p0, Gia_Man_t * p1, int nInsDup, int fDual
                 Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
                 Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(Gia_ManPo(p1,i)) );
             }
-            else
+            else if ( fImplic )
+            {
+                iLit = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pObj), Abc_LitNot(Gia_ObjFanin0Copy(Gia_ManPo(p1,i))) );
+                Gia_ManAppendCo( pNew, iLit );
+            }
+            else 
             {
                 iLit = Gia_ManHashXor( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin0Copy(Gia_ManPo(p1,i)) );
                 Gia_ManAppendCo( pNew, iLit );
@@ -1990,6 +1995,11 @@ Gia_Man_t * Gia_ManMiter( Gia_Man_t * p0, Gia_Man_t * p1, int nInsDup, int fDual
                 Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
                 Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(Gia_ManCo(p1,i)) );
             }
+            else if ( fImplic )
+            {
+                iLit = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pObj), Abc_LitNot(Gia_ObjFanin0Copy(Gia_ManPo(p1,i))) );
+                Gia_ManAppendCo( pNew, iLit );
+            }
             else
             {
                 iLit = Gia_ManHashXor( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin0Copy(Gia_ManCo(p1,i)) );
@@ -2004,6 +2014,22 @@ Gia_Man_t * Gia_ManMiter( Gia_Man_t * p0, Gia_Man_t * p1, int nInsDup, int fDual
     pNew = Gia_ManDupNormalize( pTemp = pNew );
     Gia_ManStop( pTemp );
     return pNew;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Computes the AND of all POs.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Gia_Man_t * Gia_ManDupAnd( Gia_Man_t * p, int fCompl )
+{
+    return NULL;
 }
 
 /**Function*************************************************************
