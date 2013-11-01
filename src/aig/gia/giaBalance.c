@@ -990,6 +990,8 @@ Gia_Man_t * Gia_ManAigSyn2( Gia_Man_t * p, int fVerbose, int fVeryVerbose )
     Jf_Par_t Pars, * pPars = &Pars;
     Jf_ManSetDefaultPars( pPars );
     if ( fVerbose )     Gia_ManPrintStats( p, NULL );
+    if ( Gia_ManAndNum(p) == 0 )
+        return Gia_ManDup(p);
     // perform balancing
     pNew = Gia_ManAreaBalance( p, 0, ABC_INFINITY, fVeryVerbose, 0 );
     if ( fVerbose )     Gia_ManPrintStats( pNew, NULL );
@@ -1009,6 +1011,8 @@ Gia_Man_t * Gia_ManAigSyn3( Gia_Man_t * p, int fVerbose, int fVeryVerbose )
     Jf_Par_t Pars, * pPars = &Pars;
     Jf_ManSetDefaultPars( pPars );
     if ( fVerbose )     Gia_ManPrintStats( p, NULL );
+    if ( Gia_ManAndNum(p) == 0 )
+        return Gia_ManDup(p);
     // perform balancing
     pNew = Gia_ManAreaBalance( p, 0, ABC_INFINITY, fVeryVerbose, 0 );
     if ( fVerbose )     Gia_ManPrintStats( pNew, NULL );
@@ -1038,6 +1042,8 @@ Gia_Man_t * Gia_ManAigSyn4( Gia_Man_t * p, int fVerbose, int fVeryVerbose )
     Jf_Par_t Pars, * pPars = &Pars;
     Jf_ManSetDefaultPars( pPars );
     if ( fVerbose )     Gia_ManPrintStats( p, NULL );
+    if ( Gia_ManAndNum(p) == 0 )
+        return Gia_ManDup(p);
     // perform balancing
     pNew = Gia_ManAreaBalance( p, 0, ABC_INFINITY, fVeryVerbose, 0 );
     if ( fVerbose )     Gia_ManPrintStats( pNew, NULL );
