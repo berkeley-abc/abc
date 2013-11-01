@@ -349,6 +349,7 @@ int Ssc_ManCheckEquivalence( Ssc_Man_t * p, int iRepr, int iNode, int fCompl )
 {
     int pLitsSat[2], RetValue;
     abctime clk;
+    assert( iRepr != iNode );
     assert( iRepr < iNode );
 //    if ( p->nTimeOut )
 //        sat_solver_set_runtime_limit( p->pSat, p->nTimeOut * CLOCKS_PER_SEC + Abc_Clock() );
