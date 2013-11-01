@@ -427,22 +427,20 @@ Gia_Man_t * Gia_SweeperExtractUserLogic( Gia_Man_t * p, Vec_Int_t * vProbeIds, V
 ***********************************************************************/
 void Gia_SweeperLogicDump( Gia_Man_t * p, Vec_Int_t * vProbeIds, int fDumpConds, char * pFileName )
 {
-    Gia_Man_t * pGiaOuts;
-    pGiaOuts = Gia_SweeperExtractUserLogic( p, vProbeIds, NULL, NULL );
-    if ( fDumpConds )
+    Gia_Man_t * pGiaOuts = Gia_SweeperExtractUserLogic( p, vProbeIds, NULL, NULL );
+    Vec_Int_t * vProbeConds = Gia_SweeperCondVector( p );
+    printf( "Dumping logic cones" );
+    if ( fDumpConds && Vec_IntSize(vProbeConds) > 0 )
     {
-        Vec_Int_t * vProbeConds = Gia_SweeperCondVector( p );
         Gia_Man_t * pGiaCond = Gia_SweeperExtractUserLogic( p, vProbeConds, NULL, NULL );
         Gia_ManDupAppendShare( pGiaOuts, pGiaCond );
         pGiaOuts->nConstrs = Gia_ManPoNum(pGiaCond);
         Gia_ManHashStop( pGiaOuts );
         Gia_ManStop( pGiaCond );
+        printf( " and conditions" );
     }
     Gia_AigerWrite( pGiaOuts, pFileName, 0, 0 );
     Gia_ManStop( pGiaOuts );
-    printf( "Dumped logic cones" );
-    if ( fDumpConds )
-        printf( " and conditions" );
     printf( " into file \"%s\".\n", pFileName );
 }
 
