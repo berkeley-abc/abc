@@ -416,6 +416,38 @@ Gia_Man_t * Gia_SweeperExtractUserLogic( Gia_Man_t * p, Vec_Int_t * vProbeIds, V
 
 /**Function*************************************************************
 
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_SweeperLogicDump( Gia_Man_t * p, Vec_Int_t * vProbeIds, int fDumpConds, char * pFileName )
+{
+    Gia_Man_t * pGiaOuts;
+    pGiaOuts = Gia_SweeperExtractUserLogic( p, vProbeIds, NULL, NULL );
+    if ( fDumpConds )
+    {
+        Vec_Int_t * vProbeConds = Gia_SweeperCondVector( p );
+        Gia_Man_t * pGiaCond = Gia_SweeperExtractUserLogic( p, vProbeConds, NULL, NULL );
+        Gia_ManDupAppendShare( pGiaOuts, pGiaCond );
+        pGiaOuts->nConstrs = Gia_ManPoNum(pGiaCond);
+        Gia_ManHashStop( pGiaOuts );
+        Gia_ManStop( pGiaCond );
+    }
+    Gia_AigerWrite( pGiaOuts, pFileName, 0, 0 );
+    Gia_ManStop( pGiaOuts );
+    printf( "Dumped logic cones" );
+    if ( fDumpConds )
+        printf( " and conditions" );
+    printf( " into file \"%s\".\n", pFileName );
+}
+
+/**Function*************************************************************
+
   Synopsis    [Sweeper cleanup.]
 
   Description [Returns new GIA with sweeper defined, which is the same
