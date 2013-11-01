@@ -2027,9 +2027,40 @@ Gia_Man_t * Gia_ManMiter( Gia_Man_t * p0, Gia_Man_t * p1, int nInsDup, int fDual
   SeeAlso     []
 
 ***********************************************************************/
-Gia_Man_t * Gia_ManDupAnd( Gia_Man_t * p, int fCompl )
+Gia_Man_t * Gia_ManDupAndOr( Gia_Man_t * p, int fUseOr, int fCompl )
 {
-    return NULL;
+    Gia_Man_t * pNew, * pTemp;
+    Gia_Obj_t * pObj;
+    int i, iResult;
+    assert( Gia_ManRegNum(p) == 0 );
+    pNew = Gia_ManStart( Gia_ManObjNum(p) );
+    pNew->pName = Abc_UtilStrsav( p->pName );
+    Gia_ManConst0(p)->Value = 0;
+    Gia_ManHashAlloc( pNew );
+    Gia_ManForEachPi( p, pObj, i )
+        pObj->Value = Gia_ManAppendCi( pNew );
+    Gia_ManForEachAnd( p, pObj, i )
+        pObj->Value = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+    if ( fUseOr ) // construct OR of all POs
+    {
+        iResult = 0;
+        Gia_ManForEachPo( p, pObj, i )
+            iResult = Gia_ManHashOr( pNew, iResult, Gia_ObjFanin0Copy(pObj) );
+    }
+    else // construct AND of all POs
+    {
+        iResult = 1;
+        Gia_ManForEachPo( p, pObj, i )
+            iResult = Gia_ManHashAnd( pNew, iResult, Gia_ObjFanin0Copy(pObj) );
+    }
+    iResult = Abc_LitNotCond( iResult, (int)(fCompl > 0) );
+    Gia_ManForEachPo( p, pObj, i )
+        pObj->Value = Gia_ManAppendCo( pNew, iResult );
+    Gia_ManHashStop( pNew );
+    Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
+    pNew = Gia_ManCleanup( pTemp = pNew );
+    Gia_ManStop( pTemp );
+    return pNew;
 }
 
 /**Function*************************************************************

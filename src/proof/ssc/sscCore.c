@@ -19,6 +19,7 @@
 ***********************************************************************/
 
 #include "sscInt.h"
+#include "proof/cec/cec.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -206,6 +207,47 @@ int Ssc_GiaResimulateOneClass( Ssc_Man_t * p, int iRepr, int iObj )
     // check that the candidate equivalence is indeed refined
     assert( iRepr != Gia_ObjRepr(p->pAig, iObj) );
     return RetValue;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Perform verification of conditional sweeping.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Ssc_PerformVerification( Gia_Man_t * p0, Gia_Man_t * p1, Gia_Man_t * pC )
+{
+    int Status;
+    Cec_ParCec_t ParsCec, * pPars = &ParsCec;
+    // derive the OR of constraint outputs
+    Gia_Man_t * pCond = Gia_ManDupAndOr( pC, 1, 0 );
+    // derive F = F & !OR(c0, c1, c2, ...)
+    Gia_Man_t * p0c = Gia_ManMiter( p0, pCond, 0, 0, 0, 1, 0 );
+    // derive F = F & !OR(c0, c1, c2, ...)
+    Gia_Man_t * p1c = Gia_ManMiter( p1, pCond, 0, 0, 0, 1, 0 );
+    // derive dual-output miter
+    Gia_Man_t * pMiter = Gia_ManMiter( p0c, p1c, 0, 1, 0, 0, 0 );
+    Gia_ManStop( p0c );
+    Gia_ManStop( p1c );
+    Gia_ManStop( pCond );
+    // run equivalence checking
+    Cec_ManCecSetDefaultParams( pPars );
+    Status = Cec_ManVerify( pMiter, pPars );
+    Gia_ManStop( pMiter );
+    // report the results
+    if ( Status == 1 )
+        printf( "Verification succeeded.\n" );
+    else if ( Status == 0 )
+        printf( "Verification failed.\n" );
+    else if ( Status == -1 )
+        printf( "Verification undecided.\n" );
+    else assert( 0 );
+    return Status;
 }
 
 /**Function*************************************************************
@@ -401,6 +443,7 @@ Gia_Man_t * Ssc_PerformSweepingConstr( Gia_Man_t * p, Ssc_Pars_t * pPars )
     pAig = Gia_ManDupLevelized( pResult = pAig );
     Gia_ManStop( pResult );
     pResult = Ssc_PerformSweeping( pAig, pCare, pPars );
+    Ssc_PerformVerification( pAig, pResult, pCare );
     if ( pPars->fAppend )
     {
         Gia_ManDupAppendShare( pResult, pCare );

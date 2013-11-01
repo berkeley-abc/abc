@@ -969,27 +969,6 @@ Vec_Int_t * Gia_SweeperGraft( Gia_Man_t * pDst, Vec_Int_t * vProbes, Gia_Man_t *
 
 /**Function*************************************************************
 
-  Synopsis    [Verification of the sweeper.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Gia_SweeperVerify( Gia_Man_t * p0, Gia_Man_t * p1, Gia_Man_t * pC )
-{
-    Gia_Man_t * pMiter = Gia_ManMiter( p0, p1, 0, 0, 0, 0, 0 );
-    Gia_Man_t * pConstr = Gia_ManDupAnd( pC, 0 );
-
-    Gia_ManStop( pConstr );
-    Gia_ManStop( pMiter );
-    return 1;
-}
-
-/**Function*************************************************************
-
   Synopsis    [Performs conditional sweeping of the cone.]
 
   Description [Returns the result as a new GIA manager with as many inputs 
