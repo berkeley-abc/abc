@@ -355,6 +355,7 @@ static int Abc_CommandAbc9Balance            ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandAbc9Syn2               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Syn3               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Syn4               ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9False              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Miter              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Miter2             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Append             ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -920,6 +921,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "ABC9",         "&syn2",         Abc_CommandAbc9Syn2,         0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&syn3",         Abc_CommandAbc9Syn3,         0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&syn4",         Abc_CommandAbc9Syn4,         0 );
+    Cmd_CommandAdd( pAbc, "ABC9",         "&false",        Abc_CommandAbc9False,        0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&miter",        Abc_CommandAbc9Miter,        0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&miter2",       Abc_CommandAbc9Miter2,       0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&append",       Abc_CommandAbc9Append,       0 );
@@ -27790,6 +27792,84 @@ usage:
   SeeAlso     []
 
 ***********************************************************************/
+int Abc_CommandAbc9False( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern Gia_Man_t * Gia_ManCheckFalse( Gia_Man_t * p, int nSlackMax, int nTimeOut, int fVerbose, int fVeryVerbose );
+    Gia_Man_t * pTemp;
+    int nSlackMax = 0;
+    int nTimeOut = 0;
+    int c, fVerbose = 0;
+    int fVeryVerbose = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "STvwh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'S':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-S\" should be followed by a char string.\n" );
+                goto usage;
+            }
+            nSlackMax = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nSlackMax < 0 )
+                goto usage;
+            break;
+        case 'T':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-T\" should be followed by a char string.\n" );
+                goto usage;
+            }
+            nTimeOut = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nTimeOut < 0 )
+                goto usage;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'w':
+            fVeryVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pAbc->pGia == NULL )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9False(): There is no AIG.\n" );
+        return 1;
+    }
+    pTemp = Gia_ManCheckFalse( pAbc->pGia, nSlackMax, nTimeOut, fVerbose, fVeryVerbose );
+    Abc_FrameUpdateGia( pAbc, pTemp );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: &false [-ST num] [-vwh]\n" );
+    Abc_Print( -2, "\t         detecting and elimintation false paths\n" );
+    Abc_Print( -2, "\t-S num : maximum slack to idetify false paths [default = %d]\n",   nSlackMax );
+    Abc_Print( -2, "\t-T num : approximate runtime limit in seconds [default = %d]\n",   nTimeOut );
+    Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n",    fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-w     : toggle printing additional information [default = %s]\n", fVeryVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 int Abc_CommandAbc9Miter( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     FILE * pFile;
@@ -34003,7 +34083,7 @@ int Abc_CommandAbc9Test( Abc_Frame_t * pAbc, int argc, char ** argv )
 //    extern Gia_Man_t * Llb_ReachableStatesGia( Gia_Man_t * p );
 //    extern Gia_Man_t * Unm_ManTest( Gia_Man_t * pGia );
 //    extern void Agi_ManTest( Gia_Man_t * pGia );
-    extern void Gia_ManCheckFalseTest( Gia_Man_t * p, int nSlackMax );
+//    extern void Gia_ManCheckFalseTest( Gia_Man_t * p, int nSlackMax );
 
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "Fsvh" ) ) != EOF )
@@ -34083,7 +34163,7 @@ int Abc_CommandAbc9Test( Abc_Frame_t * pAbc, int argc, char ** argv )
 //    Agi_ManTest( pAbc->pGia );
 //    Gia_ManResubTest( pAbc->pGia );
 //    Jf_ManTestCnf( pAbc->pGia );
-    Gia_ManCheckFalseTest( pAbc->pGia, nFrames );
+//    Gia_ManCheckFalseTest( pAbc->pGia, nFrames );
     return 0;
 usage:
     Abc_Print( -2, "usage: &test [-F num] [-svh]\n" );

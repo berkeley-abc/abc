@@ -20,6 +20,7 @@
 
 #include "gia.h"
 #include "misc/vec/vecQue.h"
+#include "misc/vec/vecWec.h"
 #include "sat/bsat/satStore.h"
 
 ABC_NAMESPACE_IMPL_START
@@ -35,7 +36,7 @@ ABC_NAMESPACE_IMPL_START
 
 /**Function*************************************************************
 
-  Synopsis    [Compute slacks measured using the number of AIG levels.]
+  Synopsis    [Reconstruct the AIG after detecting false paths.]
 
   Description []
                
@@ -44,17 +45,60 @@ ABC_NAMESPACE_IMPL_START
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Int_t * Gia_ManComputeSlacks( Gia_Man_t * p )
+void Gia_ManFalseRebuildOne( Gia_Man_t * pNew, Gia_Man_t * p, Vec_Int_t * vHook, int fVerbose, int fVeryVerbose )
 {
+    Gia_Obj_t * pObj, * pPrev = NULL; 
+    int i, iObjValue, iPrevValue = -1;
+    if ( fVerbose )
+    {
+        printf( "Eliminating path: " );
+        Vec_IntPrint( vHook );
+    }
+    Gia_ManForEachObjVec( vHook, p, pObj, i )
+    {
+        if ( fVeryVerbose )
+            Gia_ObjPrint( p, pObj );
+        iObjValue = pObj->Value;
+        pObj->Value = i ? Gia_ManHashAnd(pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj)) : 0;
+        if ( pPrev )
+            pPrev->Value = iPrevValue;
+        iPrevValue = iObjValue;
+        pPrev = pObj;
+    }
+}
+Gia_Man_t * Gia_ManFalseRebuild( Gia_Man_t * p, Vec_Wec_t * vHooks, int fVerbose, int fVeryVerbose )
+{
+    Gia_Man_t * pNew, * pTemp;
     Gia_Obj_t * pObj;
-    int i, nLevels = Gia_ManLevelNum( p );
-    Vec_Int_t * vLevelR = Gia_ManReverseLevel( p );
-    Vec_Int_t * vSlacks = Vec_IntAlloc( Gia_ManObjNum(p) );
-    Gia_ManForEachObj( p, pObj, i )
-        Vec_IntPush( vSlacks, nLevels - Gia_ObjLevelId(p, i) - Vec_IntEntry(vLevelR, i) );
-    assert( Vec_IntSize(vSlacks) == Gia_ManObjNum(p) );
-    Vec_IntFree( vLevelR );
-    return vSlacks;
+    int i, Counter = 0;
+    pNew = Gia_ManStart( 4 * Gia_ManObjNum(p) / 3 );
+    pNew->pName = Abc_UtilStrsav( p->pName );
+    pNew->pSpec = Abc_UtilStrsav( p->pSpec );
+    Gia_ManConst0(p)->Value = 0;
+    Gia_ManHashAlloc( pNew );
+    Gia_ManForEachObj1( p, pObj, i )
+    {
+        if ( Gia_ObjIsAnd(pObj) )
+        {
+            if ( Vec_WecLevelSize(vHooks, i) > 0 )
+            {
+                if ( fVerbose )
+                    printf( "Path %d : ", Counter++ );
+                Gia_ManFalseRebuildOne( pNew, p, Vec_WecEntry(vHooks, i), fVerbose, fVeryVerbose );
+            }
+            else
+                pObj->Value = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+        }
+        else if ( Gia_ObjIsCi(pObj) )
+            pObj->Value = Gia_ManAppendCi( pNew );
+        else if ( Gia_ObjIsCo(pObj) )
+            pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
+    }
+    Gia_ManHashStop( pNew );
+    Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
+    pNew = Gia_ManCleanup( pTemp = pNew );
+    Gia_ManStop( pTemp );
+    return pNew;
 }
 
 /**Function*************************************************************
@@ -68,26 +112,25 @@ Vec_Int_t * Gia_ManComputeSlacks( Gia_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-void Gia_ManCollectPath_rec( Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Int_t * vSlacks, Vec_Int_t * vPath )
+void Gia_ManCollectPath_rec( Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Int_t * vPath )
 {
     if ( Gia_ObjIsAnd(pObj) )
     {
-        int Slack = Vec_IntEntry(vSlacks, Gia_ObjId(p, pObj));
-        int Slack0 = Vec_IntEntry(vSlacks, Gia_ObjFaninId0p(p, pObj));
-        int Slack1 = Vec_IntEntry(vSlacks, Gia_ObjFaninId1p(p, pObj));
-        assert( Slack == Slack0 || Slack == Slack1 );
-        if ( Slack == Slack0 )
-            Gia_ManCollectPath_rec( p, Gia_ObjFanin0(pObj), vSlacks, vPath );
-        else 
-            Gia_ManCollectPath_rec( p, Gia_ObjFanin1(pObj), vSlacks, vPath );
+        if ( Gia_ObjLevel(p, Gia_ObjFanin0(pObj)) > Gia_ObjLevel(p, Gia_ObjFanin1(pObj)) )
+            Gia_ManCollectPath_rec( p, Gia_ObjFanin0(pObj), vPath );
+        else if ( Gia_ObjLevel(p, Gia_ObjFanin0(pObj)) < Gia_ObjLevel(p, Gia_ObjFanin1(pObj)) )
+            Gia_ManCollectPath_rec( p, Gia_ObjFanin1(pObj), vPath );
+//        else if ( rand() & 1 )
+//            Gia_ManCollectPath_rec( p, Gia_ObjFanin0(pObj), vPath );
+        else
+            Gia_ManCollectPath_rec( p, Gia_ObjFanin1(pObj), vPath );
     }
     Vec_IntPush( vPath, Gia_ObjId(p, pObj) );
 }
-Vec_Int_t * Gia_ManCollectPath( Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Int_t * vSlacks )
+Vec_Int_t * Gia_ManCollectPath( Gia_Man_t * p, Gia_Obj_t * pObj )
 {
     Vec_Int_t * vPath = Vec_IntAlloc( p->nLevels );
-    assert( Gia_ObjIsCo(pObj) );
-    Gia_ManCollectPath_rec( p, Gia_ObjFanin0(pObj), vSlacks, vPath );
+    Gia_ManCollectPath_rec( p, Gia_ObjFanin0(pObj), vPath );
     return vPath;
 }
 
@@ -102,19 +145,22 @@ Vec_Int_t * Gia_ManCollectPath( Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Int_t * vSl
   SeeAlso     []
 
 ***********************************************************************/
-void Gia_ManCheckFalseOne( Gia_Man_t * p, int iOut, int nTimeOut, Vec_Int_t * vSlacks )
+void Gia_ManCheckFalseOne( Gia_Man_t * p, int iOut, int nTimeOut, Vec_Wec_t * vHooks, int fVerbose, int fVeryVerbose )
 {
     sat_solver * pSat;
-    Gia_Obj_t * pObj = Gia_ManCo( p, iOut );
+    Gia_Obj_t * pObj;
+    Gia_Obj_t * pPivot = Gia_ManCo( p, iOut );
     Vec_Int_t * vLits = Vec_IntAlloc( p->nLevels );
-    Vec_Int_t * vPath = Gia_ManCollectPath( p, pObj, vSlacks );
-    int i, Shift[2], status, nLits, * pLits;
+    Vec_Int_t * vPath = Gia_ManCollectPath( p, pPivot );
+    int nLits = 0, * pLits = NULL;
+    int i, Shift[2], status;
     abctime clkStart = Abc_Clock();
     // collect objects and assign SAT variables
-    int iFanin = Gia_ObjFaninId0p( p, pObj );
+    int iFanin = Gia_ObjFaninId0p( p, pPivot );
     Vec_Int_t * vObjs = Gia_ManCollectNodesCis( p, &iFanin, 1 );
     Gia_ManForEachObjVec( vObjs, p, pObj, i )
         pObj->Value = Vec_IntSize(vObjs) - 1 - i;
+    assert( Gia_ObjIsCo(pPivot) );
     // create SAT solver
     pSat = sat_solver_new();
     sat_solver_set_runtime_limit( pSat, nTimeOut ? nTimeOut * CLOCKS_PER_SEC + Abc_Clock(): 0 );
@@ -139,73 +185,84 @@ void Gia_ManCheckFalseOne( Gia_Man_t * p, int iOut, int nTimeOut, Vec_Int_t * vS
             Gia_ObjFanin0(pObj)->Value + Shift[1], Gia_ObjFanin1(pObj)->Value + Shift[1], 
             Gia_ObjFaninC0(pObj), Gia_ObjFaninC1(pObj) ); 
     }
-    printf( "PO %6d : ", iOut );
     // call the SAT solver
     status = sat_solver_solve( pSat, Vec_IntArray(vLits), Vec_IntArray(vLits) + Vec_IntSize(vLits), (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
-    if ( status == l_Undef )
-        printf( "Timeout reached after %d seconds. ", nTimeOut );
-    else if ( status == l_True )
-        printf( "There is no false path. " );
-    else
+    if ( status == l_False )
     {
-        assert( status == l_False );
-        // call analize_final
+        int iBeg, iEnd;
         nLits = sat_solver_final( pSat, &pLits );
-        printf( "False path contains %d nodes (out of %d):  ", nLits, Vec_IntSize(vLits) );
-        printf( "top = %d  ", Vec_IntEntry(vPath, Abc_Lit2Var(pLits[0])) );
-        for ( i = 0; i < nLits; i++ )
-            printf( "%d ", Abc_Lit2Var(pLits[i]) );
-        printf( "  " );
+        iBeg  = Abc_Lit2Var(pLits[nLits-1]);
+        iEnd  = Abc_Lit2Var(pLits[0]);
+        if ( iEnd - iBeg < 20 )
+        {
+            // check if nodes on the path are already used
+            for ( i = iBeg; i <= iEnd; i++ )
+                if ( Vec_WecLevelSize(vHooks, Vec_IntEntry(vPath, i)) > 0 )
+                    break;
+            if ( i > iEnd )
+            {
+                Vec_Int_t * vHook = Vec_WecEntry(vHooks, Vec_IntEntry(vPath, iEnd));
+                for ( i = iBeg; i <= iEnd; i++ )
+                    Vec_IntPush( vHook, Vec_IntEntry(vPath, i) );
+            }
+        }
     }
-    Abc_PrintTime( 1, "Time", Abc_Clock() - clkStart );
+    if ( fVerbose )
+    {
+        printf( "PO %6d : Level = %3d  ", iOut, Gia_ObjLevel(p, pPivot) );
+        if ( status == l_Undef )
+            printf( "Timeout reached after %d seconds. ", nTimeOut );
+        else if ( status == l_True )
+            printf( "There is no false path. " );
+        else
+        {
+            printf( "False path contains %d nodes (out of %d):  ", nLits, Vec_IntSize(vLits) );
+            printf( "top = %d  ", Vec_IntEntry(vPath, Abc_Lit2Var(pLits[0])) );
+            if ( fVeryVerbose )
+                for ( i = 0; i < nLits; i++ )
+                    printf( "%d ", Abc_Lit2Var(pLits[i]) );
+            printf( "  " );
+        }
+        Abc_PrintTime( 1, "Time", Abc_Clock() - clkStart );
+    }
     sat_solver_delete( pSat );
     Vec_IntFree( vObjs );
     Vec_IntFree( vPath );
     Vec_IntFree( vLits );
 }
-void Gia_ManCheckFalse( Gia_Man_t * p, int nSlackMax, int nTimeOut )
+Gia_Man_t * Gia_ManCheckFalse( Gia_Man_t * p, int nSlackMax, int nTimeOut, int fVerbose, int fVeryVerbose )
 {
+    Gia_Man_t * pNew;
+    Vec_Wec_t * vHooks;
     Vec_Que_t * vPrio;
     Vec_Flt_t * vWeights;
-    Vec_Int_t * vSlacks;
     Gia_Obj_t * pObj;
     int i;
-    vSlacks = Gia_ManComputeSlacks(p);
-//Vec_IntPrint( vSlacks );
+    srand( 111 );
+    Gia_ManLevelNum( p );
     // create PO weights
     vWeights = Vec_FltAlloc( Gia_ManCoNum(p) );
     Gia_ManForEachCo( p, pObj, i )
-        Vec_FltPush( vWeights, p->nLevels - Vec_IntEntry(vSlacks, Gia_ObjId(p, pObj)) );
+        Vec_FltPush( vWeights, Gia_ObjLevel(p, pObj) );
     // put POs into the queue
     vPrio = Vec_QueAlloc( Gia_ManCoNum(p) );
     Vec_QueSetPriority( vPrio, Vec_FltArrayP(vWeights) );
     Gia_ManForEachCo( p, pObj, i )
         Vec_QuePush( vPrio, i );
     // work on each PO in the queue
+    vHooks = Vec_WecStart( Gia_ManObjNum(p) );
     while ( Vec_QueTopPriority(vPrio) >= p->nLevels - nSlackMax )
-        Gia_ManCheckFalseOne( p, Vec_QuePop(vPrio), nTimeOut, vSlacks );
+        Gia_ManCheckFalseOne( p, Vec_QuePop(vPrio), nTimeOut, vHooks, fVerbose, fVeryVerbose );
+    if ( fVerbose )
+    printf( "Collected %d non-overlapping false paths.\n", Vec_WecSizeUsed(vHooks) );
+    // reconstruct the AIG
+    pNew = Gia_ManFalseRebuild( p, vHooks, fVerbose, fVeryVerbose );
     // cleanup
-    Vec_IntFree( vSlacks );
+    Vec_WecFree( vHooks );
     Vec_FltFree( vWeights );
     Vec_QueFree( vPrio );
+    return pNew;
 }
-
-/**Function*************************************************************
-
-  Synopsis    []
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Gia_ManCheckFalseTest( Gia_Man_t * p, int nSlackMax )
-{
-    Gia_ManCheckFalse( p, nSlackMax, 0 );
-}
-
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

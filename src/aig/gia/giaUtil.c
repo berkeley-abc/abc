@@ -621,6 +621,30 @@ Vec_Int_t * Gia_ManRequiredLevel( Gia_Man_t * p )
 
 /**Function*************************************************************
 
+  Synopsis    [Compute slacks measured using the number of AIG levels.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Int_t * Gia_ManComputeSlacks( Gia_Man_t * p )
+{
+    Gia_Obj_t * pObj;
+    int i, nLevels = Gia_ManLevelNum( p );
+    Vec_Int_t * vLevelR = Gia_ManReverseLevel( p );
+    Vec_Int_t * vSlacks = Vec_IntAlloc( Gia_ManObjNum(p) );
+    Gia_ManForEachObj( p, pObj, i )
+        Vec_IntPush( vSlacks, nLevels - Gia_ObjLevelId(p, i) - Vec_IntEntry(vLevelR, i) );
+    assert( Vec_IntSize(vSlacks) == Gia_ManObjNum(p) );
+    Vec_IntFree( vLevelR );
+    return vSlacks;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Assigns levels.]
 
   Description []
