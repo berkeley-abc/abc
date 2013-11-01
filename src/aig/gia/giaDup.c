@@ -2027,7 +2027,7 @@ Gia_Man_t * Gia_ManMiter( Gia_Man_t * p0, Gia_Man_t * p1, int nInsDup, int fDual
   SeeAlso     []
 
 ***********************************************************************/
-Gia_Man_t * Gia_ManDupAndOr( Gia_Man_t * p, int fUseOr, int fCompl )
+Gia_Man_t * Gia_ManDupAndOr( Gia_Man_t * p, int nOuts, int fUseOr, int fCompl )
 {
     Gia_Man_t * pNew, * pTemp;
     Gia_Obj_t * pObj;
@@ -2054,8 +2054,10 @@ Gia_Man_t * Gia_ManDupAndOr( Gia_Man_t * p, int fUseOr, int fCompl )
             iResult = Gia_ManHashAnd( pNew, iResult, Gia_ObjFanin0Copy(pObj) );
     }
     iResult = Abc_LitNotCond( iResult, (int)(fCompl > 0) );
-    Gia_ManForEachPo( p, pObj, i )
-        pObj->Value = Gia_ManAppendCo( pNew, iResult );
+//    Gia_ManForEachPo( p, pObj, i )
+//        pObj->Value = Gia_ManAppendCo( pNew, iResult );
+    for ( i = 0; i < nOuts; i++ )
+        Gia_ManAppendCo( pNew, iResult );
     Gia_ManHashStop( pNew );
     Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
     pNew = Gia_ManCleanup( pTemp = pNew );

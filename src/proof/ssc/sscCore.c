@@ -225,7 +225,7 @@ int Ssc_PerformVerification( Gia_Man_t * p0, Gia_Man_t * p1, Gia_Man_t * pC )
     int Status;
     Cec_ParCec_t ParsCec, * pPars = &ParsCec;
     // derive the OR of constraint outputs
-    Gia_Man_t * pCond = Gia_ManDupAndOr( pC, 1, 0 );
+    Gia_Man_t * pCond = Gia_ManDupAndOr( pC, Gia_ManPoNum(p0), 1, 0 );
     // derive F = F & !OR(c0, c1, c2, ...)
     Gia_Man_t * p0c = Gia_ManMiter( p0, pCond, 0, 0, 0, 1, 0 );
     // derive F = F & !OR(c0, c1, c2, ...)
