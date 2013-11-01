@@ -32576,9 +32576,9 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9ICheck( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    int c, nFramesMax = 1, nTimeOut = 0, fVerbose = 0;
+    int c, nFramesMax = 1, nTimeOut = 0, fEmpty = 0, fVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "MTvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "MTevh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -32604,6 +32604,9 @@ int Abc_CommandAbc9ICheck( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( nTimeOut < 0 )
                 goto usage;
             break;
+        case 'e':
+            fEmpty ^= 1;
+            break;
         case 'v':
             fVerbose ^= 1;
             break;
@@ -32623,15 +32626,16 @@ int Abc_CommandAbc9ICheck( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Abc_CommandAbc9ICheck(): The AIG is combinational.\n" );
         return 0;
     }
-    Bmc_PerformICheck( pAbc->pGia, nFramesMax, nTimeOut, fVerbose );
+    Bmc_PerformICheck( pAbc->pGia, nFramesMax, nTimeOut, fEmpty, fVerbose );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &icheck [-MT num] [-cvh]\n" );
+    Abc_Print( -2, "usage: &icheck [-MT num] [-evh]\n" );
     Abc_Print( -2, "\t         performs specialized induction check\n" );
-    Abc_Print( -2, "\t-M num : the number of timeframes used for induction [default = %d]\n", nFramesMax );
-    Abc_Print( -2, "\t-T num : approximate global runtime limit in seconds [default = %d]\n",  nTimeOut );
-    Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n",          fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-M num : the number of timeframes used for induction [default = %d]\n",    nFramesMax );
+    Abc_Print( -2, "\t-T num : approximate global runtime limit in seconds [default = %d]\n",    nTimeOut );
+    Abc_Print( -2, "\t-e     : toggle using empty set of next-state functions [default = %s]\n", fEmpty? "yes": "no" );
+    Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n",            fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
 }

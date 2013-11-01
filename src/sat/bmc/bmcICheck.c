@@ -88,48 +88,26 @@ static inline void Cnf_DataLiftGia( Cnf_Dat_t * p, Gia_Man_t * pGia, int nVarsPl
   SeeAlso     []
 
 ***********************************************************************/
-void Bmc_PerformICheck( Gia_Man_t * p, int nFramesMax, int nTimeOut, int fVerbose )
+sat_solver * Bmc_DeriveSolver( Gia_Man_t * p, Gia_Man_t * pMiter, Cnf_Dat_t * pCnf, int nFramesMax, int nTimeOut, int fVerbose )
 {
-    int fUseOldCnf = 0;
-    Gia_Man_t * pMiter, * pTemp;
-    Cnf_Dat_t * pCnf;
     sat_solver * pSat;
     Vec_Int_t * vLits;
     Gia_Obj_t * pObj, * pObj0, * pObj1;
-    int i, k, status, iVar0, iVar1, iVarOut;
-    int nLits, * pLits;
-    abctime clkStart = Abc_Clock();
-    assert( nFramesMax > 0 );
-    assert( Gia_ManRegNum(p) > 0 );
-
-    // create miter
-    pTemp = Gia_ManDup( p );
-    pMiter = Gia_ManMiter( p, pTemp, 0, 1, 1, 0 );
-    Gia_ManStop( pTemp );
-    assert( Gia_ManPoNum(pMiter)  == 2 * Gia_ManPoNum(p) );
-    assert( Gia_ManRegNum(pMiter) == 2 * Gia_ManRegNum(p) );
-    // derive CNF
-    if ( fUseOldCnf )
-        pCnf = Cnf_DeriveGiaRemapped( pMiter );
-    else
-    {
-        pMiter = Jf_ManDeriveCnf( pTemp = pMiter, 0 );
-        Gia_ManStop( pTemp );
-        pCnf = (Cnf_Dat_t *)pMiter->pData; pMiter->pData = NULL;
-    }
+    int i, k, iVar0, iVar1, iVarOut;
 
     // start the SAT solver
     pSat = sat_solver_new();
     sat_solver_setnvars( pSat, Gia_ManRegNum(p) + Gia_ManCoNum(p) + pCnf->nVars * (nFramesMax + 1) );
     sat_solver_set_runtime_limit( pSat, nTimeOut ? nTimeOut * CLOCKS_PER_SEC + Abc_Clock(): 0 );
 
-    // load the last timeframe
-    Cnf_DataLiftGia( pCnf, pMiter, Gia_ManRegNum(p) + Gia_ManCoNum(p) );
     // add one large OR clause
     vLits = Vec_IntAlloc( Gia_ManCoNum(p) );
     Gia_ManForEachCo( p, pObj, i )
         Vec_IntPush( vLits, Abc_Var2Lit(Gia_ManRegNum(p) + i, 0) );
     sat_solver_addclause( pSat, Vec_IntArray(vLits), Vec_IntArray(vLits) + Vec_IntSize(vLits) );
+
+    // load the last timeframe
+    Cnf_DataLiftGia( pCnf, pMiter, Gia_ManRegNum(p) + Gia_ManCoNum(p) );
     // add XOR clauses
     Gia_ManForEachPo( p, pObj, i )
     {
@@ -147,7 +125,7 @@ void Bmc_PerformICheck( Gia_Man_t * p, int nFramesMax, int nTimeOut, int fVerbos
         iVar0 = pCnf->pVarNums[Gia_ObjId(pMiter, pObj0)];
         iVar1 = pCnf->pVarNums[Gia_ObjId(pMiter, pObj1)];
         iVarOut = Gia_ManRegNum(p) + Gia_ManPoNum(p) + i;
-        sat_solver_add_xor( pSat, iVar0, iVar1, iVarOut, 0 );
+        sat_solver_add_xor_and( pSat, iVarOut, iVar0, iVar1, i );
     }
     // add timeframe clauses
     for ( i = 0; i < pCnf->nClauses; i++ )
@@ -155,8 +133,6 @@ void Bmc_PerformICheck( Gia_Man_t * p, int nFramesMax, int nTimeOut, int fVerbos
             assert( 0 );
 
     // add other timeframes
-    printf( "Solving M-inductiveness for design %s with %d AND nodes and %d flip-flops:\n",
-        Gia_ManName(p), Gia_ManAndNum(p), Gia_ManRegNum(p) );
     for ( k = 0; k < nFramesMax; k++ )
     {
         // collect variables of the RO nodes
@@ -196,18 +172,72 @@ void Bmc_PerformICheck( Gia_Man_t * p, int nFramesMax, int nTimeOut, int fVerbos
             if ( !sat_solver_addclause( pSat, pCnf->pClauses[i], pCnf->pClauses[i+1] ) )
                 assert( 0 );
     }
+//    sat_solver_compress( pSat );
+    Vec_IntFree( vLits );
+    return pSat;
+}
 
-    // collect literals
-    Vec_IntClear( vLits );
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Bmc_PerformICheck( Gia_Man_t * p, int nFramesMax, int nTimeOut, int fEmpty, int fVerbose )
+{
+    int fUseOldCnf = 0;
+    Gia_Man_t * pMiter, * pTemp;
+    Cnf_Dat_t * pCnf;
+    sat_solver * pSat;
+    Vec_Int_t * vLits, * vUsed;
+    int i, status, Lit;
+    int nLitsUsed, nLits, * pLits;
+    abctime clkStart = Abc_Clock();
+    assert( nFramesMax > 0 );
+    assert( Gia_ManRegNum(p) > 0 );
+
+    printf( "Solving M-inductiveness for design %s with %d AND nodes and %d flip-flops:\n",
+        Gia_ManName(p), Gia_ManAndNum(p), Gia_ManRegNum(p) );
+
+    // create miter
+    pTemp = Gia_ManDup( p );
+    pMiter = Gia_ManMiter( p, pTemp, 0, 1, 1, 0 );
+    Gia_ManStop( pTemp );
+    assert( Gia_ManPoNum(pMiter)  == 2 * Gia_ManPoNum(p) );
+    assert( Gia_ManRegNum(pMiter) == 2 * Gia_ManRegNum(p) );
+    // derive CNF
+    if ( fUseOldCnf )
+        pCnf = Cnf_DeriveGiaRemapped( pMiter );
+    else
+    {
+        pMiter = Jf_ManDeriveCnf( pTemp = pMiter, 0 );
+        Gia_ManStop( pTemp );
+        pCnf = (Cnf_Dat_t *)pMiter->pData; pMiter->pData = NULL;
+    }
+
+    // collect positive literals
+    vLits = Vec_IntAlloc( Gia_ManCoNum(p) );
     for ( i = 0; i < Gia_ManRegNum(p); i++ )
         Vec_IntPush( vLits, Abc_Var2Lit(i, 0) );
 
-    // call the SAT solver
-    sat_solver_compress( pSat );
+    // iteratively compute a minimal M-inductive set of next-state functions
+    nLitsUsed = Vec_IntSize(vLits);
+    vUsed = Vec_IntAlloc( Vec_IntSize(vLits) );
     while ( 1 )
     {
+        int fChanges = 0;
+        // derive SAT solver        
+        pSat = Bmc_DeriveSolver( p, pMiter, pCnf, nFramesMax, nTimeOut, fVerbose );
 //        sat_solver_bookmark( pSat );
-        status = sat_solver_solve( pSat, Vec_IntArray(vLits), Vec_IntArray(vLits) + Vec_IntSize(vLits), (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
+        if ( fEmpty )
+            status = sat_solver_solve( pSat, NULL, NULL, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
+        else
+            status = sat_solver_solve( pSat, Vec_IntArray(vLits), Vec_IntArray(vLits) + Vec_IntSize(vLits), (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
         if ( status == l_Undef )
         {
             printf( "Timeout reached after %d seconds.\n", nTimeOut );
@@ -215,37 +245,47 @@ void Bmc_PerformICheck( Gia_Man_t * p, int nFramesMax, int nTimeOut, int fVerbos
         }
         if ( status == l_True )
         {
-            printf( "The problem is satisfiable (this is an error).\n" );
+            printf( "The problem is satisfiable (the current set is not M-inductive).\n" );
             break;
         }
         assert( status == l_False );
         // call analize_final
         nLits = sat_solver_final( pSat, &pLits );
+        // mark used literals
+        Vec_IntFill( vUsed, Vec_IntSize(vLits), 0 );
+        for ( i = 0; i < nLits; i++ )
+            Vec_IntWriteEntry( vUsed, Abc_Lit2Var(pLits[i]), 1 );
+
+        // check if there are any positive unused
+        Vec_IntForEachEntry( vLits, Lit, i )
+        {
+            assert( i == Abc_Lit2Var(Lit) );
+            if ( Abc_LitIsCompl(Lit) )
+                continue;
+            if ( Vec_IntEntry(vUsed, i) )
+                continue;
+            // positive literal became unused
+            Vec_IntWriteEntry( vLits, i, Abc_LitNot(Lit) );
+            nLitsUsed--;
+            fChanges = 1;
+        }
+        // report the results
         printf( "M =%4d :  AIG =%8d.  SAT vars =%8d.  SAT conf =%8d.  S =%6d. (%6.2f %%)  ",
             nFramesMax, (nFramesMax+1) * Gia_ManAndNum(pMiter), 
-            Gia_ManRegNum(p) + Gia_ManCoNum(p) + pCnf->nVars * (nFramesMax + 1), 
-            sat_solver_nconflicts(pSat), nLits, 100.0 * nLits / Gia_ManRegNum(p) );
+            Gia_ManRegNum(p) + Gia_ManCoNum(p) + sat_solver_nvars(pSat), 
+            sat_solver_nconflicts(pSat), nLitsUsed, 100.0 * nLitsUsed / Gia_ManRegNum(p) );
         Abc_PrintTime( 1, "Time", Abc_Clock() - clkStart );
-        if ( nLits == Vec_IntSize(vLits) )
+        // count the number of negative literals
+        sat_solver_delete( pSat );
+        if ( !fChanges || fEmpty )
             break;
-        break;
+//        break;
 //        sat_solver_rollback( pSat );
-
-        // add another large OR clause
-        Vec_IntClear( vLits );
-        for ( i = 0; i < nLits; i++ )
-            Vec_IntPush( vLits, Abc_Var2Lit(Gia_ManRegNum(p) + Abc_Lit2Var(pLits[i]), 0) );
-        sat_solver_addclause( pSat, Vec_IntArray(vLits), Vec_IntArray(vLits) + Vec_IntSize(vLits) );
-        // create new literals
-        Vec_IntClear( vLits );
-        for ( i = 0; i < nLits; i++ )
-            Vec_IntPush( vLits, Abc_LitNot(pLits[i]) );
     }
-
-    sat_solver_delete( pSat );
     Cnf_DataFree( pCnf );
     Gia_ManStop( pMiter );
     Vec_IntFree( vLits );
+    Vec_IntFree( vUsed );
 }
 
 ////////////////////////////////////////////////////////////////////////

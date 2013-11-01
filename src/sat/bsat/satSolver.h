@@ -368,6 +368,45 @@ static inline int sat_solver_add_xor( sat_solver * pSat, int iVarA, int iVarB, i
     assert( Cid );
     return 4;
 }
+static inline int sat_solver_add_xor_and( sat_solver * pSat, int iVarF, int iVarA, int iVarB, int iVarC )
+{
+    // F = (a (+) b) * c
+    lit Lits[4];
+    int Cid;
+    assert( iVarF >= 0 && iVarA >= 0 && iVarB >= 0 && iVarC >= 0 );
+
+    Lits[0] = toLitCond( iVarF, 1 );
+    Lits[1] = toLitCond( iVarA, 1 );
+    Lits[2] = toLitCond( iVarB, 1 );
+    Cid = sat_solver_addclause( pSat, Lits, Lits + 3 );
+    assert( Cid );
+
+    Lits[0] = toLitCond( iVarF, 1 );
+    Lits[1] = toLitCond( iVarA, 0 );
+    Lits[2] = toLitCond( iVarB, 0 );
+    Cid = sat_solver_addclause( pSat, Lits, Lits + 3 );
+    assert( Cid );
+
+    Lits[0] = toLitCond( iVarF, 1 );
+    Lits[1] = toLitCond( iVarC, 0 );
+    Cid = sat_solver_addclause( pSat, Lits, Lits + 2 );
+    assert( Cid );
+
+    Lits[0] = toLitCond( iVarF, 0 );
+    Lits[1] = toLitCond( iVarA, 1 );
+    Lits[2] = toLitCond( iVarB, 0 );
+    Lits[3] = toLitCond( iVarC, 1 );
+    Cid = sat_solver_addclause( pSat, Lits, Lits + 4 );
+    assert( Cid );
+
+    Lits[0] = toLitCond( iVarF, 0 );
+    Lits[1] = toLitCond( iVarA, 0 );
+    Lits[2] = toLitCond( iVarB, 1 );
+    Lits[3] = toLitCond( iVarC, 1 );
+    Cid = sat_solver_addclause( pSat, Lits, Lits + 4 );
+    assert( Cid );
+    return 5;
+}
 static inline int sat_solver_add_constraint( sat_solver * pSat, int iVar, int iVar2, int fCompl )
 {
     lit Lits[2];
