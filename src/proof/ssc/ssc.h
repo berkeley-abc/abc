@@ -49,6 +49,7 @@ struct Ssc_Pars_t_
     int              nCallsRecycle; // calls to perform before recycling SAT solver
     int              fAppend;       // append constraints to the resulting AIG
     int              fVerbose;      // verbose stats
+    int              fVerify;       // enable internal verification
 };
 
 ////////////////////////////////////////////////////////////////////////

@@ -261,7 +261,7 @@ int Ssc_PerformVerification( Gia_Man_t * p0, Gia_Man_t * p1, Gia_Man_t * pC )
   SeeAlso     []
 
 ***********************************************************************/
-Gia_Man_t * Ssc_PerformSweeping( Gia_Man_t * pAig, Gia_Man_t * pCare, Ssc_Pars_t * pPars )
+Gia_Man_t * Ssc_PerformSweepingInt( Gia_Man_t * pAig, Gia_Man_t * pCare, Ssc_Pars_t * pPars )
 {
     Ssc_Man_t * p;
     Gia_Man_t * pResult, * pTemp;
@@ -410,6 +410,13 @@ p->timeSimSat += Abc_Clock() - clk;
     }
     return pResult;
 }
+Gia_Man_t * Ssc_PerformSweeping( Gia_Man_t * pAig, Gia_Man_t * pCare, Ssc_Pars_t * pPars )
+{
+    Gia_Man_t * pResult = Ssc_PerformSweepingInt( pAig, pCare, pPars );
+    if ( pPars->fVerify )
+        Ssc_PerformVerification( pAig, pResult, pCare );
+    return pResult;
+}
 Gia_Man_t * Ssc_PerformSweepingConstr( Gia_Man_t * p, Ssc_Pars_t * pPars )
 {
     Gia_Man_t * pAig, * pCare, * pResult;
@@ -443,7 +450,6 @@ Gia_Man_t * Ssc_PerformSweepingConstr( Gia_Man_t * p, Ssc_Pars_t * pPars )
     pAig = Gia_ManDupLevelized( pResult = pAig );
     Gia_ManStop( pResult );
     pResult = Ssc_PerformSweeping( pAig, pCare, pPars );
-    Ssc_PerformVerification( pAig, pResult, pCare );
     if ( pPars->fAppend )
     {
         Gia_ManDupAppendShare( pResult, pCare );

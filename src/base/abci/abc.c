@@ -28733,7 +28733,7 @@ int Abc_CommandAbc9CFraig( Abc_Frame_t * pAbc, int argc, char ** argv )
     Ssc_Pars_t Pars, * pPars = &Pars;
     Ssc_ManSetDefaultParams( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "WCavh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "WCacvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -28762,6 +28762,9 @@ int Abc_CommandAbc9CFraig( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'a':
             pPars->fAppend ^= 1;
             break;
+        case 'c':
+            pPars->fVerify ^= 1;
+            break;
         case 'v':
             pPars->fVerbose ^= 1;
             break;
@@ -28779,13 +28782,14 @@ int Abc_CommandAbc9CFraig( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &cfraig [-WC <num>] [-avh]\n" );
+    Abc_Print( -2, "usage: &cfraig [-WC <num>] [-acvh]\n" );
     Abc_Print( -2, "\t         performs combinational SAT sweeping under constraints\n" );
     Abc_Print( -2, "\t         which are present in the AIG or set manually using \"constr\"\n" );
     Abc_Print( -2, "\t         (constraints are listed as last POs and true when they are 0)\n" );
     Abc_Print( -2, "\t-W num : the number of simulation words [default = %d]\n", pPars->nWords );
     Abc_Print( -2, "\t-C num : the max number of conflicts at a node [default = %d]\n", pPars->nBTLimit );
     Abc_Print( -2, "\t-a     : toggle appending constraints to the result [default = %s]\n", pPars->fAppend? "yes": "no" );
+    Abc_Print( -2, "\t-c     : toggle performing internal verification [default = %s]\n", pPars->fVerify? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", pPars->fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;

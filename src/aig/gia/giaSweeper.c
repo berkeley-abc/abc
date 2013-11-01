@@ -979,7 +979,7 @@ Vec_Int_t * Gia_SweeperGraft( Gia_Man_t * pDst, Vec_Int_t * vProbes, Gia_Man_t *
   SeeAlso     []
 
 ***********************************************************************/
-Gia_Man_t * Gia_SweeperSweep( Gia_Man_t * p, Vec_Int_t * vProbeOuts, int nWords, int nConfs, int fVerbose )
+Gia_Man_t * Gia_SweeperSweep( Gia_Man_t * p, Vec_Int_t * vProbeOuts, int nWords, int nConfs, int fVerify, int fVerbose )
 {
     Vec_Int_t * vProbeConds;
     Gia_Man_t * pGiaCond, * pGiaOuts, * pGiaRes;
@@ -987,6 +987,7 @@ Gia_Man_t * Gia_SweeperSweep( Gia_Man_t * p, Vec_Int_t * vProbeOuts, int nWords,
     Ssc_ManSetDefaultParams( pPars );
     pPars->nWords   = nWords;
     pPars->nBTLimit = nConfs;
+    pPars->fVerify  = fVerify;
     pPars->fVerbose = fVerbose;
     // sweeper is running
     assert( Gia_SweeperIsRunning(p) );
@@ -1025,7 +1026,7 @@ Gia_Man_t * Gia_SweeperSweep( Gia_Man_t * p, Vec_Int_t * vProbeOuts, int nWords,
   SeeAlso     []
 
 ***********************************************************************/
-int Gia_SweeperFraig( Gia_Man_t * p, Vec_Int_t * vProbeIds, char * pCommLime, int nWords, int nConfs, int fVerbose )
+int Gia_SweeperFraig( Gia_Man_t * p, Vec_Int_t * vProbeIds, char * pCommLime, int nWords, int nConfs, int fVerify, int fVerbose )
 {
     Gia_Man_t * pNew;
     Vec_Int_t * vLits;
@@ -1033,7 +1034,7 @@ int Gia_SweeperFraig( Gia_Man_t * p, Vec_Int_t * vProbeIds, char * pCommLime, in
     // sweeper is running
     assert( Gia_SweeperIsRunning(p) );
     // sweep the logic
-    pNew = Gia_SweeperSweep( p, vProbeIds, nWords, nConfs, fVerbose );
+    pNew = Gia_SweeperSweep( p, vProbeIds, nWords, nConfs, fVerify, fVerbose );
     if ( pNew == NULL )
         return 0;
     // execute command line
@@ -1131,7 +1132,7 @@ Gia_Man_t * Gia_SweeperFraigTest( Gia_Man_t * pInit, int nWords, int nConfs, int
         else // this is a constraint
             Gia_SweeperCondPush( p, Gia_SweeperProbeCreate( p, Gia_ObjFaninLit0p(p, pObj) ) );
     // perform the sweeping
-    pGia = Gia_SweeperSweep( p, vOuts, nWords, nConfs, fVerbose );
+    pGia = Gia_SweeperSweep( p, vOuts, nWords, nConfs, fVerbose, 0 );
 //    pGia = Gia_ManDup( p );
     Vec_IntFree( vOuts );
     // sop the sweeper
