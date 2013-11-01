@@ -901,7 +901,7 @@ int Gia_SweeperCondCheckUnsat( Gia_Man_t * pGia )
     {
         iLitAig = Gia_SweeperProbeLit( pGia, ProbeId );
         Gia_ManCnfNodeAddToSolver( p, Abc_Lit2Var(iLitAig) );
-        Vec_IntPush( p->vCondAssump, Swp_ManLit2Lit(p, iLitAig) );
+        Vec_IntPush( p->vCondAssump, Abc_LitNot(Swp_ManLit2Lit(p, iLitAig)) );
     }
     sat_solver_compress( p->pSat );
 
