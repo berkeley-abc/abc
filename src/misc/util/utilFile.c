@@ -25,7 +25,7 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 
-#if defined(_MSC_VER)
+#if defined(_MSC_VER) || defined(__MINGW32__)
 #include <Windows.h>
 #include <process.h>
 #include <io.h>
@@ -88,7 +88,7 @@ static ABC_UINT64_T realTimeAbs()  // -- absolute time in nano-seconds
 ***********************************************************************/
 int tmpFile(const char* prefix, const char* suffix, char** out_name)
 {
-#if defined(_MSC_VER)
+#if defined(_MSC_VER) || defined(__MINGW32__)
     int i, fd;
     *out_name = (char*)malloc(strlen(prefix) + strlen(suffix) + 27);
     for (i = 0; i < 10; i++){
@@ -174,7 +174,7 @@ char* vnsprintf(const char* format, va_list args)
     static FILE* dummy_file = NULL;
     if (!dummy_file)
     {
-#if !defined(_MSC_VER)
+#if !defined(_MSC_VER) && !defined(__MINGW32)
         dummy_file = fopen("/dev/null", "wb");
 #else
         dummy_file = fopen("NUL", "wb");
