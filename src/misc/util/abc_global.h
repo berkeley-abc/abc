@@ -26,6 +26,7 @@
 ////////////////////////////////////////////////////////////////////////
 
 #ifdef _WIN32
+#ifndef __MINGW32__
 #define inline __inline // compatible with MS VS 6.0
 #pragma warning(disable : 4152) // warning C4152: nonstandard extension, function/data pointer conversion in expression
 #pragma warning(disable : 4200) // warning C4200: nonstandard extension used : zero-sized array in struct/union
@@ -33,6 +34,7 @@
 #pragma warning(disable : 4514) // warning C4514: 'Vec_StrPop' : unreferenced inline function has been removed
 #pragma warning(disable : 4710) // warning C4710: function 'Vec_PtrGrow' not inlined
 //#pragma warning( disable : 4273 )
+#endif
 #endif
 
 #ifdef WIN32
