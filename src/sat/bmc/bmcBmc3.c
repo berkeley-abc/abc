@@ -1350,6 +1350,26 @@ Abc_Cex_t * Saig_ManGenerateCex( Gia_ManBmc_t * p, int f, int i )
 
 /**Function*************************************************************
 
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Saig_ManCallSolver( Gia_ManBmc_t * p, int Lit )
+{
+    if ( Lit == 0 )
+        return l_False;
+    if ( Lit == 1 )
+        return l_True;
+    return sat_solver_solve( p->pSat, &Lit, &Lit + 1, (ABC_INT64_T)p->pPars->nConfLimit, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
+}
+
+/**Function*************************************************************
+
   Synopsis    [Bounded model checking engine.]
 
   Description []
@@ -1363,7 +1383,7 @@ int Saig_ManBmcScalable( Aig_Man_t * pAig, Saig_ParBmc_t * pPars )
 {
     Gia_ManBmc_t * p;
     Aig_Obj_t * pObj;
-    Abc_Cex_t * pCexNew;
+    Abc_Cex_t * pCexNew, * pCexNew0;
     unsigned * pInfo;
     int RetValue = -1, fFirst = 1, nJumpFrame = 0, fUnfinished = 0;
     int nOutDigits = Abc_Base10Log( Saig_ManPoNum(pAig) );
@@ -1446,6 +1466,37 @@ int Saig_ManBmcScalable( Aig_Man_t * pAig, Saig_ParBmc_t * pPars )
         }
         if ( (pPars->nStart && f < pPars->nStart) || (nJumpFrame && f < nJumpFrame) )
             continue;
+        // create CNF upfront
+        if ( pPars->fSolveAll )
+        {
+            Saig_ManForEachPo( pAig, pObj, i )
+            {
+                if ( i >= Saig_ManPoNum(pAig) )
+                    break;
+                // check for timeout
+                if ( pPars->nTimeOutGap && pPars->timeLastSolved && Abc_Clock() > pPars->timeLastSolved + pPars->nTimeOutGap * CLOCKS_PER_SEC )
+                {
+                    Abc_Print( 1, "Reached gap timeout (%d seconds).\n",  pPars->nTimeOutGap );
+                    goto finish;
+                }
+                if ( nTimeToStop && Abc_Clock() > nTimeToStop )
+                {
+                    if ( !pPars->fSilent )
+                        Abc_Print( 1, "Reached timeout (%d seconds).\n",  pPars->nTimeOut );
+                    goto finish;
+                }
+                // skip solved outputs
+                if ( p->vCexes && Vec_PtrEntry(p->vCexes, i) )
+                    continue;
+                // skip output whose time has run out
+                if ( p->pTime4Outs && p->pTime4Outs[i] == 0 )
+                    continue;
+                // add constraints for this output
+clk2 = Abc_Clock();
+                Saig_ManBmcCreateCnf( p, pObj, f );
+clkOther += Abc_Clock() - clk2;
+            }
+        }
         // solve SAT
         clk = Abc_Clock(); 
         Saig_ManForEachPo( pAig, pObj, i )
@@ -1474,45 +1525,6 @@ int Saig_ManBmcScalable( Aig_Man_t * pAig, Saig_ParBmc_t * pPars )
 clk2 = Abc_Clock();
             Lit = Saig_ManBmcCreateCnf( p, pObj, f );
 clkOther += Abc_Clock() - clk2;
-            if ( Lit == 0 )
-                continue;
-            if ( Lit == 1 )
-            {
-                RetValue = 0;
-                if ( !pPars->fSolveAll )
-                {
-                    Abc_Cex_t * pCex = Abc_CexMakeTriv( Aig_ManRegNum(pAig), Saig_ManPiNum(pAig), Saig_ManPoNum(pAig), f*Saig_ManPoNum(pAig)+i );
-                    Abc_Print( 1, "Output %d is trivially SAT in frame %d.\n", i, f );
-                    ABC_FREE( pAig->pSeqModel );
-                    pAig->pSeqModel = pCex;
-                    goto finish;
-                }
-                pPars->nFailOuts++;
-                if ( !pPars->fNotVerbose )
-                    Abc_Print( 1, "Output %*d was asserted in frame %2d (solved %*d out of %*d outputs).\n",  
-                        nOutDigits, i, f, nOutDigits, pPars->nFailOuts, nOutDigits, Saig_ManPoNum(pAig) );
-                if ( p->vCexes == NULL )
-                    p->vCexes = Vec_PtrStart( Saig_ManPoNum(pAig) );
-                pCexNew = (p->pPars->fUseBridge || pPars->fStoreCex) ? Abc_CexMakeTriv( Aig_ManRegNum(pAig), Saig_ManPiNum(pAig), Saig_ManPoNum(pAig), f*Saig_ManPoNum(pAig)+i ) : (Abc_Cex_t *)(ABC_PTRINT_T)1;
-                if ( p->pPars->fUseBridge )
-                {
-                    Gia_ManToBridgeResult( stdout, 0, pCexNew, pCexNew->iPo );
-                    Abc_CexFree( pCexNew );
-                    pCexNew = (Abc_Cex_t *)(ABC_PTRINT_T)1;
-                }
-                Vec_PtrWriteEntry( p->vCexes, i, pCexNew );
-                if ( pPars->pFuncOnFail && pPars->pFuncOnFail(i, pPars->fStoreCex ? (Abc_Cex_t *)Vec_PtrEntry(p->vCexes, i) : NULL) )
-                {
-                    Abc_Print( 1, "Quitting due to callback on fail.\n" );
-                    goto finish;
-                }
-                // reset the timeout
-                pPars->timeLastSolved = Abc_Clock();
-                nTimeToStop = Saig_ManBmcTimeToStop( pPars, nTimeToStopNG );
-                if ( nTimeToStop )
-                    sat_solver_set_runtime_limit( p->pSat, nTimeToStop );
-                continue;
-            }
             // solve this output
             fUnfinished = 0;
             sat_solver_compress( p->pSat );
@@ -1523,7 +1535,8 @@ clk2 = Abc_Clock();
                 clkOne = Abc_Clock();
                 sat_solver_set_runtime_limit( p->pSat, p->pTime4Outs[i] + Abc_Clock() );
             }
-            status = sat_solver_solve( p->pSat, &Lit, &Lit + 1, (ABC_INT64_T)pPars->nConfLimit, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
+//            status = sat_solver_solve( p->pSat, &Lit, &Lit + 1, (ABC_INT64_T)pPars->nConfLimit, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
+            status = Saig_ManCallSolver( p, Lit );
             if ( p->pTime4Outs )
             {
                 abctime timeSince = Abc_Clock() - clkOne;
@@ -1535,7 +1548,7 @@ clk2 = Abc_Clock();
             if ( status == l_False )
             {
 nTimeUnsat += Abc_Clock() - clk2;
-                if ( 1 )
+                if ( Lit != 0 )
                 {
                     // add final unit clause
                     Lit = lit_neg( Lit );
@@ -1591,15 +1604,18 @@ nTimeSat += Abc_Clock() - clk2;
                 if ( p->vCexes == NULL )
                     p->vCexes = Vec_PtrStart( Saig_ManPoNum(pAig) );
                 pCexNew = (p->pPars->fUseBridge || pPars->fStoreCex) ? Saig_ManGenerateCex( p, f, i ) : (Abc_Cex_t *)(ABC_PTRINT_T)1;
+                pCexNew0 = NULL;
                 if ( p->pPars->fUseBridge )
                 {
                     Gia_ManToBridgeResult( stdout, 0, pCexNew, pCexNew->iPo );
-                    Abc_CexFree( pCexNew );
+                    //Abc_CexFree( pCexNew );
+                    pCexNew0 = pCexNew; 
                     pCexNew = (Abc_Cex_t *)(ABC_PTRINT_T)1;
                 }
                 Vec_PtrWriteEntry( p->vCexes, i, pCexNew );
                 if ( pPars->pFuncOnFail && pPars->pFuncOnFail(i, pPars->fStoreCex ? (Abc_Cex_t *)Vec_PtrEntry(p->vCexes, i) : NULL) )
                 {
+                    Abc_CexFreeP( &pCexNew0 );
                     Abc_Print( 1, "Quitting due to callback on fail.\n" );
                     goto finish;
                 }
@@ -1608,6 +1624,31 @@ nTimeSat += Abc_Clock() - clk2;
                 nTimeToStop = Saig_ManBmcTimeToStop( pPars, nTimeToStopNG );
                 if ( nTimeToStop )
                     sat_solver_set_runtime_limit( p->pSat, nTimeToStop );
+
+                // check if other outputs failed under the same counter-example
+                Saig_ManForEachPo( pAig, pObj, k )
+                {
+                    if ( k >= Saig_ManPoNum(pAig) )
+                        break;
+                    // skip solved outputs
+                    if ( p->vCexes && Vec_PtrEntry(p->vCexes, k) )
+                        continue;
+                    // check if this output is solved
+                    Lit = Saig_ManBmcCreateCnf( p, pObj, f );
+                    if ( sat_solver_var_value(p->pSat, lit_var(Lit)) == Abc_LitIsCompl(Lit) )
+                        continue;
+                    // write entry
+                    pPars->nFailOuts++;
+                    if ( !pPars->fNotVerbose )
+                        Abc_Print( 1, "Output %*d was asserted in frame %2d (solved %*d out of %*d outputs).\n",  
+                            nOutDigits, k, f, nOutDigits, pPars->nFailOuts, nOutDigits, Saig_ManPoNum(pAig) );
+                    // report to the bridge
+                    if ( p->pPars->fUseBridge )
+                        Gia_ManToBridgeResult( stdout, 0, pCexNew0, pCexNew0->iPo );
+                    // remember solved output
+                    Vec_PtrWriteEntry( p->vCexes, k, pCexNew );
+                }
+                Abc_CexFreeP( &pCexNew0 );
             }
             else 
             {
