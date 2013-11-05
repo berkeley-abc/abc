@@ -747,6 +747,7 @@ Gia_ManBmc_t * Saig_Bmc3ManStart( Aig_Man_t * pAig, int nTimeOutOne )
     // time spent on each outputs
     if ( nTimeOutOne )
     {
+        printf( "Timeout = %d (%d)\n", nTimeOutOne * CLOCKS_PER_SEC / 1000, CLOCKS_PER_SEC );
         p->pTime4Outs = ABC_ALLOC( abctime, Saig_ManPoNum(pAig) );
         for ( i = 0; i < Saig_ManPoNum(pAig); i++ )
             p->pTime4Outs[i] = nTimeOutOne * CLOCKS_PER_SEC / 1000 + 1;

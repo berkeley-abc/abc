@@ -32481,7 +32481,7 @@ int Abc_CommandAbc9MultiProve( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'H':
             if ( globalUtilOptind >= argc )
             {
-                Abc_Print( -1, "Command line switch \"-M\" should be followed by an integer.\n" );
+                Abc_Print( -1, "Command line switch \"-H\" should be followed by an integer.\n" );
                 goto usage;
             }
             pPars->TimePerOut = atoi(argv[globalUtilOptind]);
@@ -32519,7 +32519,7 @@ int Abc_CommandAbc9MultiProve( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &mprove [-TLM num] [-sdvwh]\n" );
+    Abc_Print( -2, "usage: &mprove [-TLMH num] [-sdvwh]\n" );
     Abc_Print( -2, "\t         proves multi-output testcase by applying several engines\n" );
     Abc_Print( -2, "\t-T num : approximate global runtime limit in seconds [default = %d]\n",     pPars->TimeOutGlo );
     Abc_Print( -2, "\t-L num : approximate local runtime limit in seconds [default = %d]\n",      pPars->TimeOutLoc );
