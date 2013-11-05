@@ -172,12 +172,17 @@ Vec_Ptr_t * Gia_ManMultiProveAig( Aig_Man_t * p, Bmc_MulPar_t * pPars )
     int TimeOutLoc   = pPars->TimeOutLoc;
     int i, RetValue  = -1;
     if ( pPars->fVerbose )
-        printf( "MultiProve parameters: Global timeout = %d sec.  Local timeout = %d sec.  Time increase = %d %%.\n", pPars->TimeOutGlo, pPars->TimeOutLoc, pPars->TimeOutInc );
+        printf( "MultiProve parameters: Global timeout = %d sec.  Local timeout = %d sec.  Time increase = %d %%.\n", 
+            pPars->TimeOutGlo, pPars->TimeOutLoc, pPars->TimeOutInc );
+    if ( pPars->fVerbose )
+        printf( "Gap timout = %d sec. Per-output timeout = %d msec. Use synthesis = %d. Dump final = %d. Verbose = %d.\n", 
+            pPars->TimeOutGap, pPars->TimePerOut, pPars->fUseSyn, pPars->fDumpFinal, pPars->fVerbose );
     // create output map
     vOutMap = Vec_IntStartNatural( Saig_ManPoNum(p) ); // maps current outputs into their original IDs
     vCexes  = Vec_PtrStart( Saig_ManPoNum(p) );        // maps solved outputs into their CEXes (or markers)
     for ( i = 0; i < 1000; i++ )
     {
+        int nSolved = Vec_PtrCountZero(vCexes);
         // perform SIM3
         Ssw_RarSetDefaultParams( pParsSim );
         pParsSim->fSolveAll = 1;
@@ -240,6 +245,13 @@ Vec_Ptr_t * Gia_ManMultiProveAig( Aig_Man_t * p, Bmc_MulPar_t * pPars )
             break;
         }
 
+        // check gap timeout
+        if ( pPars->TimeOutGap && pPars->TimeOutGap <= TimeOutLoc && nSolved == Vec_PtrCountZero(vCexes) )
+        {
+            printf( "Gap timeout (%d sec) is reached.\n", pPars->TimeOutGap );
+            break;
+        }
+
         // synthesize
         if ( pPars->fUseSyn )
         {
@@ -254,7 +266,7 @@ Vec_Ptr_t * Gia_ManMultiProveAig( Aig_Man_t * p, Bmc_MulPar_t * pPars )
     }
     Vec_IntFree( vOutMap );
     if ( pPars->fVerbose )
-        printf( "The number of const0 POs = %d.\n", Gia_ManCountConst0Pos(p) );
+        printf( "The number of POs proved UNSAT by synthesis = %d.\n", Gia_ManCountConst0Pos(p) );
     if ( pPars->fDumpFinal )
     {
         char * pFileName = Extra_FileNameGenericAppend( p->pName, "_out.aig" );
