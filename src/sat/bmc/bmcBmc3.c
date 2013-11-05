@@ -1646,9 +1646,10 @@ nTimeSat += Abc_Clock() - clk2;
                     if ( p->pPars->fUseBridge )
                         Gia_ManToBridgeResult( stdout, 0, pCexNew0, pCexNew0->iPo );
                     // remember solved output
-                    Vec_PtrWriteEntry( p->vCexes, k, pCexNew );
+                    Vec_PtrWriteEntry( p->vCexes, k, Abc_CexDup(pCexNew, pCexNew->nRegs) );
                 }
                 Abc_CexFreeP( &pCexNew0 );
+                Abc_CexFreeP( &pCexNew );
             }
             else 
             {
