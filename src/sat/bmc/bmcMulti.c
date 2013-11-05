@@ -157,6 +157,7 @@ Vec_Ptr_t * Gia_ManMultiProveAig( Aig_Man_t * p, Bmc_MulPar_t * pPars )
         pParsSim->fSilent = !pPars->fVeryVerbose;
         pParsSim->TimeOut = TimeOutLoc;
         pParsSim->nRandSeed = (i * 17) % 500;
+        pParsSim->nWords = 5;
         RetValue *= Ssw_RarSimulate( p, pParsSim );
         // sort outputs
         if ( p->vSeqModelVec )
@@ -185,6 +186,7 @@ Vec_Ptr_t * Gia_ManMultiProveAig( Aig_Man_t * p, Bmc_MulPar_t * pPars )
         pParsBmc->fNotVerbose = 1;
         pParsBmc->fSilent = !pPars->fVeryVerbose;
         pParsBmc->nTimeOut = TimeOutLoc;
+        pParsBmc->nTimeOutOne = 100;
         RetValue *= Saig_ManBmcScalable( p, pParsBmc );
         if ( pPars->fVeryVerbose )
             Abc_Print( 1, "Some outputs are SAT (%d out of %d) after %d frames.\n", 
