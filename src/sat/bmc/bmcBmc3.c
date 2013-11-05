@@ -747,7 +747,6 @@ Gia_ManBmc_t * Saig_Bmc3ManStart( Aig_Man_t * pAig, int nTimeOutOne )
     // time spent on each outputs
     if ( nTimeOutOne )
     {
-        printf( "Timeout = %d (%d)\n", nTimeOutOne * CLOCKS_PER_SEC / 1000, CLOCKS_PER_SEC );
         p->pTime4Outs = ABC_ALLOC( abctime, Saig_ManPoNum(pAig) );
         for ( i = 0; i < Saig_ManPoNum(pAig); i++ )
             p->pTime4Outs[i] = nTimeOutOne * CLOCKS_PER_SEC / 1000 + 1;
@@ -1541,16 +1540,10 @@ clk2 = Abc_Clock();
             if ( p->pTime4Outs )
             {
                 abctime timeSince = Abc_Clock() - clkOne;
-                if ( timeSince )
-                    printf( "%d (%d) ", (int)timeSince, (int)p->pTime4Outs[i] );
                 assert( p->pTime4Outs[i] > 0 );
                 p->pTime4Outs[i] = (p->pTime4Outs[i] > timeSince) ? p->pTime4Outs[i] - timeSince : 0;
-                if ( timeSince )
-                    printf( "((%d)) ", p->pTime4Outs[i] );
                 if ( p->pTime4Outs[i] == 0 && status != l_True )
                     pPars->nDropOuts++;
-                if ( timeSince )
-                    printf( "%d %d    ", status == l_True, pPars->nDropOuts );
             }
             if ( status == l_False )
             {
