@@ -1542,11 +1542,15 @@ clk2 = Abc_Clock();
             {
                 abctime timeSince = Abc_Clock() - clkOne;
                 if ( timeSince )
-                    printf( "%d (%d)   ", (int)timeSince, (int)p->pTime4Outs[i] );
+                    printf( "%d (%d) ", (int)timeSince, (int)p->pTime4Outs[i] );
                 assert( p->pTime4Outs[i] > 0 );
                 p->pTime4Outs[i] = (p->pTime4Outs[i] > timeSince) ? p->pTime4Outs[i] - timeSince : 0;
+                if ( timeSince )
+                    printf( "((%d)) ", p->pTime4Outs[i] );
                 if ( p->pTime4Outs[i] == 0 && status != l_True )
                     pPars->nDropOuts++;
+                if ( timeSince )
+                    printf( "%d    ", pPars->nDropOuts );
             }
             if ( status == l_False )
             {
