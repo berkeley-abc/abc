@@ -166,7 +166,7 @@ Vec_Ptr_t * Gia_ManMultiProveAig( Aig_Man_t * p, Bmc_MulPar_t * pPars )
     Vec_Ptr_t * vCexes;
     Aig_Man_t * pTemp;
     abctime clkStart = Abc_Clock();
-    int nTimeToStop  = pPars->TimeOutGlo ? pPars->TimeOutGlo * CLOCKS_PER_SEC + Abc_Clock(): 0;
+    abctime nTimeToStop = pPars->TimeOutGlo ? Abc_Clock() + pPars->TimeOutGlo * CLOCKS_PER_SEC : 0;
     int nTotalPo     = Saig_ManPoNum(p);
     int nTotalSize   = Aig_ManObjNum(p);
     int TimeOutLoc   = pPars->TimeOutLoc;
@@ -202,7 +202,7 @@ Vec_Ptr_t * Gia_ManMultiProveAig( Aig_Man_t * p, Bmc_MulPar_t * pPars )
             Gia_ManMultiReport( p, "SIM", nTotalPo, nTotalSize, clkStart );
 
         // check timeout
-        if ( nTimeToStop && TimeOutLoc * CLOCKS_PER_SEC + Abc_Clock() > nTimeToStop )
+        if ( nTimeToStop && Abc_Clock() + TimeOutLoc * CLOCKS_PER_SEC > nTimeToStop )
         {
             printf( "Global timeout (%d sec) is reached.\n", pPars->TimeOutGlo );
             break;
@@ -234,7 +234,7 @@ Vec_Ptr_t * Gia_ManMultiProveAig( Aig_Man_t * p, Bmc_MulPar_t * pPars )
             Gia_ManMultiReport( p, "BMC", nTotalPo, nTotalSize, clkStart );
 
         // check timeout
-        if ( nTimeToStop && TimeOutLoc * CLOCKS_PER_SEC + Abc_Clock() > nTimeToStop )
+        if ( nTimeToStop && Abc_Clock() + TimeOutLoc * CLOCKS_PER_SEC > nTimeToStop )
         {
             printf( "Global timeout (%d sec) is reached.\n", pPars->TimeOutGlo );
             break;
