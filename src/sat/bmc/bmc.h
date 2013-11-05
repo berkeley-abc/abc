@@ -100,6 +100,7 @@ struct Bmc_MulPar_t_
     int         TimeOutGlo;
     int         TimeOutLoc;
     int         TimeOutInc;
+    int         TimePerOut;
     int         fUseSyn;
     int         fDumpFinal;
     int         fVerbose;

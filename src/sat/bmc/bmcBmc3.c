@@ -1649,7 +1649,7 @@ nTimeSat += Abc_Clock() - clk2;
                     Vec_PtrWriteEntry( p->vCexes, k, Abc_CexDup(pCexNew, Saig_ManRegNum(pAig)) );
                 }
                 Abc_CexFreeP( &pCexNew0 );
-                Abc_CexFreeP( &pCexNew );
+                Abc_CexFree( pCexNew );
             }
             else 
             {

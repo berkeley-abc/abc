@@ -75,6 +75,34 @@ Vec_Int_t * Gia_ManProcessOutputs( Vec_Ptr_t * vCexesIn, Vec_Ptr_t * vCexesOut, 
 
 /**Function*************************************************************
 
+  Synopsis    [Counts the number of constant 0 POs.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Gia_ManCountConst0PosGia( Gia_Man_t * p )
+{
+    Gia_Obj_t * pObj;
+    int i, Counter = 0;
+    Gia_ManForEachPo( p, pObj, i )
+        Counter += (Gia_ObjFaninLit0p(p, pObj) == 0);
+    return Counter;
+}
+int Gia_ManCountConst0Pos( Aig_Man_t * p )
+{
+    Aig_Obj_t * pObj;
+    int i, Counter = 0;
+    Saig_ManForEachPo( p, pObj, i )
+        Counter += (Aig_ObjChild0(pObj) == Aig_ManConst0(p));
+    return Counter;
+}
+
+/**Function*************************************************************
+
   Synopsis    []
 
   Description []
@@ -186,7 +214,7 @@ Vec_Ptr_t * Gia_ManMultiProveAig( Aig_Man_t * p, Bmc_MulPar_t * pPars )
         pParsBmc->fNotVerbose = 1;
         pParsBmc->fSilent = !pPars->fVeryVerbose;
         pParsBmc->nTimeOut = TimeOutLoc;
-        pParsBmc->nTimeOutOne = 100;
+        pParsBmc->nTimeOutOne = pPars->TimePerOut;
         RetValue *= Saig_ManBmcScalable( p, pParsBmc );
         if ( pPars->fVeryVerbose )
             Abc_Print( 1, "Some outputs are SAT (%d out of %d) after %d frames.\n", 
@@ -225,6 +253,8 @@ Vec_Ptr_t * Gia_ManMultiProveAig( Aig_Man_t * p, Bmc_MulPar_t * pPars )
         TimeOutLoc += TimeOutLoc * pPars->TimeOutInc / 100;
     }
     Vec_IntFree( vOutMap );
+    if ( pPars->fVerbose )
+        printf( "The number of const0 POs = %d.\n", Gia_ManCountConst0Pos(p) );
     if ( pPars->fDumpFinal )
     {
         char * pFileName = Extra_FileNameGenericAppend( p->pName, "_out.aig" );

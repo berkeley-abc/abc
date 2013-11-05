@@ -351,7 +351,10 @@ void Abc_CexFreeP( Abc_Cex_t ** p )
 {
     if ( *p == NULL )
         return;
-    ABC_FREE( *p );
+    if ( *p == (Abc_Cex_t *)(ABC_PTRINT_T)1 )
+        *p = NULL;
+    else
+        ABC_FREE( *p );
 }
 
 /**Function*************************************************************

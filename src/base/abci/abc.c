@@ -32439,8 +32439,9 @@ int Abc_CommandAbc9MultiProve( Abc_Frame_t * pAbc, int argc, char ** argv )
     pPars->TimeOutGlo =  30;
     pPars->TimeOutLoc =   2;
     pPars->TimeOutInc = 100;
+    pPars->TimePerOut =   0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "TLMsdvwh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "TLMHsdvwh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -32475,6 +32476,17 @@ int Abc_CommandAbc9MultiProve( Abc_Frame_t * pAbc, int argc, char ** argv )
             pPars->TimeOutInc = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
             if ( pPars->TimeOutInc <= 0 )
+                goto usage;
+            break;
+        case 'H':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-M\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->TimePerOut = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->TimePerOut <= 0 )
                 goto usage;
             break;
         case 's':
@@ -32512,6 +32524,7 @@ usage:
     Abc_Print( -2, "\t-T num : approximate global runtime limit in seconds [default = %d]\n",     pPars->TimeOutGlo );
     Abc_Print( -2, "\t-L num : approximate local runtime limit in seconds [default = %d]\n",      pPars->TimeOutLoc );
     Abc_Print( -2, "\t-M num : percentage of local runtime limit increase [default = %d]\n",      pPars->TimeOutInc );
+    Abc_Print( -2, "\t-H num : timeout per output in miliseconds [default = %d]\n",               pPars->TimePerOut );
     Abc_Print( -2, "\t-s     : toggle using combinational synthesis [default = %s]\n",            pPars->fUseSyn?      "yes": "no" );
     Abc_Print( -2, "\t-d     : toggle dumping invariant into a file [default = %s]\n",            pPars->fDumpFinal?   "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n",             pPars->fVerbose?     "yes": "no" );
