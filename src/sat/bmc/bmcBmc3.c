@@ -1541,6 +1541,8 @@ clk2 = Abc_Clock();
             if ( p->pTime4Outs )
             {
                 abctime timeSince = Abc_Clock() - clkOne;
+                if ( timeSince )
+                    printf( "%d (%d)   ", (int)timeSince, (int)p->pTime4Outs[i] );
                 assert( p->pTime4Outs[i] > 0 );
                 p->pTime4Outs[i] = (p->pTime4Outs[i] > timeSince) ? p->pTime4Outs[i] - timeSince : 0;
                 if ( p->pTime4Outs[i] == 0 && status != l_True )
