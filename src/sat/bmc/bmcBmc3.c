@@ -1391,7 +1391,7 @@ int Saig_ManBmcScalable( Aig_Man_t * pAig, Saig_ParBmc_t * pPars )
     abctime clk, clk2, clkOther = 0, clkTotal = Abc_Clock();
     abctime nTimeUnsat = 0, nTimeSat = 0, nTimeUndec = 0, clkOne = 0;
     abctime nTimeToStopNG, nTimeToStop;
-    if ( pPars->nTimeOutOne )
+    if ( pPars->nTimeOutOne && pPars->nTimeOut == 0 )
         pPars->nTimeOut = pPars->nTimeOutOne * Saig_ManPoNum(pAig) / 1000 + 1;
     if ( pPars->nTimeOutOne && !pPars->fSolveAll )
         pPars->nTimeOutOne = 0;
@@ -1646,7 +1646,7 @@ nTimeSat += Abc_Clock() - clk2;
                     if ( p->pPars->fUseBridge )
                         Gia_ManToBridgeResult( stdout, 0, pCexNew0, pCexNew0->iPo );
                     // remember solved output
-                    Vec_PtrWriteEntry( p->vCexes, k, Abc_CexDup(pCexNew, pCexNew->nRegs) );
+                    Vec_PtrWriteEntry( p->vCexes, k, Abc_CexDup(pCexNew, Saig_ManRegNum(pAig)) );
                 }
                 Abc_CexFreeP( &pCexNew0 );
                 Abc_CexFreeP( &pCexNew );
