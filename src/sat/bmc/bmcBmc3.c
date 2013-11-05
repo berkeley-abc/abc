@@ -1550,7 +1550,7 @@ clk2 = Abc_Clock();
                 if ( p->pTime4Outs[i] == 0 && status != l_True )
                     pPars->nDropOuts++;
                 if ( timeSince )
-                    printf( "%d    ", pPars->nDropOuts );
+                    printf( "%d %d    ", status == l_True, pPars->nDropOuts );
             }
             if ( status == l_False )
             {
