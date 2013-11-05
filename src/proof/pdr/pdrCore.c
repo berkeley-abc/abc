@@ -879,7 +879,7 @@ int Pdr_ManSolve( Aig_Man_t * pAig, Pdr_Par_t * pPars )
     abctime clk = Abc_Clock();
     if ( pPars->nTimeOutOne && !pPars->fSolveAll )
         pPars->nTimeOutOne = 0;
-    if ( pPars->nTimeOutOne )
+    if ( pPars->nTimeOutOne && pPars->nTimeOut == 0 )
         pPars->nTimeOut = pPars->nTimeOutOne * Saig_ManPoNum(pAig) / 1000 + (int)((pPars->nTimeOutOne * Saig_ManPoNum(pAig) % 1000) > 0);
     if ( pPars->fVerbose )
     {
