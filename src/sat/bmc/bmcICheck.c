@@ -94,6 +94,7 @@ sat_solver * Bmc_DeriveSolver( Gia_Man_t * p, Gia_Man_t * pMiter, Cnf_Dat_t * pC
     Vec_Int_t * vLits;
     Gia_Obj_t * pObj, * pObj0, * pObj1;
     int i, k, iVar0, iVar1, iVarOut;
+    int VarShift = 0;
 
     // start the SAT solver
     pSat = sat_solver_new();
@@ -108,6 +109,8 @@ sat_solver * Bmc_DeriveSolver( Gia_Man_t * p, Gia_Man_t * pMiter, Cnf_Dat_t * pC
 
     // load the last timeframe
     Cnf_DataLiftGia( pCnf, pMiter, Gia_ManRegNum(p) + Gia_ManCoNum(p) );
+    VarShift += Gia_ManRegNum(p) + Gia_ManCoNum(p);
+
     // add XOR clauses
     Gia_ManForEachPo( p, pObj, i )
     {
@@ -141,6 +144,7 @@ sat_solver * Bmc_DeriveSolver( Gia_Man_t * p, Gia_Man_t * pMiter, Cnf_Dat_t * pC
             Vec_IntPush( vLits, pCnf->pVarNums[Gia_ObjId(pMiter, pObj)] );
         // lift CNF again
         Cnf_DataLiftGia( pCnf, pMiter, pCnf->nVars );
+        VarShift += pCnf->nVars;
         // stitch the clauses
         Gia_ManForEachRi( pMiter, pObj, i )
         {
@@ -173,6 +177,7 @@ sat_solver * Bmc_DeriveSolver( Gia_Man_t * p, Gia_Man_t * pMiter, Cnf_Dat_t * pC
                 assert( 0 );
     }
 //    sat_solver_compress( pSat );
+    Cnf_DataLiftGia( pCnf, pMiter, -VarShift );
     Vec_IntFree( vLits );
     return pSat;
 }
