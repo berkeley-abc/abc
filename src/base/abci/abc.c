@@ -32686,9 +32686,9 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9ICheck( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    int c, nFramesMax = 1, nTimeOut = 0, fEmpty = 0, fVerbose = 0;
+    int c, nFramesMax = 1, nTimeOut = 0, fEmpty = 0, fSearch = 1, fReverse = 0, fDump = 0, fVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "MTevh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "MTesrdvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -32717,6 +32717,15 @@ int Abc_CommandAbc9ICheck( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'e':
             fEmpty ^= 1;
             break;
+        case 's':
+            fSearch ^= 1;
+            break;
+        case 'r':
+            fReverse ^= 1;
+            break;
+        case 'd':
+            fDump ^= 1;
+            break;
         case 'v':
             fVerbose ^= 1;
             break;
@@ -32736,15 +32745,21 @@ int Abc_CommandAbc9ICheck( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Abc_CommandAbc9ICheck(): The AIG is combinational.\n" );
         return 0;
     }
-    Bmc_PerformICheck( pAbc->pGia, nFramesMax, nTimeOut, fEmpty, fVerbose );
+    if ( fSearch )
+        Bmc_PerformISearch( pAbc->pGia, nFramesMax, nTimeOut, fReverse, fDump, fVerbose );
+    else
+        Bmc_PerformICheck( pAbc->pGia, nFramesMax, nTimeOut, fEmpty, fVerbose );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &icheck [-MT num] [-evh]\n" );
+    Abc_Print( -2, "usage: &icheck [-MT num] [-esrdvh]\n" );
     Abc_Print( -2, "\t         performs specialized induction check\n" );
     Abc_Print( -2, "\t-M num : the number of timeframes used for induction [default = %d]\n",    nFramesMax );
     Abc_Print( -2, "\t-T num : approximate global runtime limit in seconds [default = %d]\n",    nTimeOut );
     Abc_Print( -2, "\t-e     : toggle using empty set of next-state functions [default = %s]\n", fEmpty? "yes": "no" );
+    Abc_Print( -2, "\t-s     : toggle searching for a minimal subset [default = %s]\n",          fSearch? "yes": "no" );
+    Abc_Print( -2, "\t-r     : toggle searching in the reverse order [default = %s]\n",          fReverse? "yes": "no" );
+    Abc_Print( -2, "\t-d     : toggle printing out the resulting set [default = %s]\n",          fDump? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n",            fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
