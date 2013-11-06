@@ -228,10 +228,10 @@ void Bmc_PerformICheck( Gia_Man_t * p, int nFramesMax, int nTimeOut, int fEmpty,
     // collect positive literals
     vLits = Vec_IntAlloc( Gia_ManCoNum(p) );
     for ( i = 0; i < Gia_ManRegNum(p); i++ )
-        Vec_IntPush( vLits, Abc_Var2Lit(i, 0) );
+        Vec_IntPush( vLits, Abc_Var2Lit(i, fEmpty) );
 
     // iteratively compute a minimal M-inductive set of next-state functions
-    nLitsUsed = Vec_IntSize(vLits);
+    nLitsUsed = fEmpty ? 0 : Vec_IntSize(vLits);
     vUsed = Vec_IntAlloc( Vec_IntSize(vLits) );
     while ( 1 )
     {
@@ -239,10 +239,7 @@ void Bmc_PerformICheck( Gia_Man_t * p, int nFramesMax, int nTimeOut, int fEmpty,
         // derive SAT solver        
         pSat = Bmc_DeriveSolver( p, pMiter, pCnf, nFramesMax, nTimeOut, fVerbose );
 //        sat_solver_bookmark( pSat );
-        if ( fEmpty )
-            status = sat_solver_solve( pSat, NULL, NULL, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
-        else
-            status = sat_solver_solve( pSat, Vec_IntArray(vLits), Vec_IntArray(vLits) + Vec_IntSize(vLits), (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
+        status = sat_solver_solve( pSat, Vec_IntArray(vLits), Vec_IntArray(vLits) + Vec_IntSize(vLits), (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
         if ( status == l_Undef )
         {
             printf( "Timeout reached after %d seconds.\n", nTimeOut );
