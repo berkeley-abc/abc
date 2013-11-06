@@ -413,7 +413,7 @@ void Bmc_PerformISearch( Gia_Man_t * p, int nFramesMax, int nTimeOut, int fRever
     for ( i = 0; i < Gia_ManRegNum(p); i++ )
         Vec_IntPush( vLits, Abc_Var2Lit(i, 0) );
 
-    for ( f = 1; f < nFramesMax; f++ )
+    for ( f = 1; f <= nFramesMax; f++ )
         Bmc_PerformISearchOne( p, f, nTimeOut, fReverse, fVerbose, vLits );
 
     // dump the numbers of the flops
