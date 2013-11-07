@@ -116,14 +116,14 @@ static inline void Abc_SclTimeNodePrint( SC_Man * p, Abc_Obj_t * pObj, int fRise
     printf( "%-*s ",            Length, pCell ? pCell->pName : "pi" );
     printf( "A =%7.2f  ",       pCell ? pCell->area : 0.0 );
     printf( "D%s =",            fRise ? "r" : "f" );
-    printf( "%6.1f",            Abc_MaxFloat(Abc_SclObjTimePs(p, pObj, 0), Abc_SclObjTimePs(p, pObj, 1)) );
-    printf( "%7.1f ps  ",       -Abc_AbsFloat(Abc_SclObjTimePs(p, pObj, 0) - Abc_SclObjTimePs(p, pObj, 1)) );
-    printf( "S =%6.1f ps  ",    Abc_SclObjSlewPs(p, pObj, fRise >= 0 ? fRise : 0) );
+    printf( "%6.1f",            Abc_SclObjTimeMax(p, pObj) );
+    printf( "%7.1f ps  ",       -Abc_AbsFloat(Abc_SclObjTimeOne(p, pObj, 0) - Abc_SclObjTimeOne(p, pObj, 1)) );
+    printf( "S =%6.1f ps  ",    Abc_SclObjSlewMax(p, pObj) );
     printf( "Cin =%5.1f ff  ",  pCell ? SC_CellPinCapAve(pCell) : 0.0 );
-    printf( "Cout =%6.1f ff  ", Abc_SclObjLoadFf(p, pObj, fRise >= 0 ? fRise : 0) );
+    printf( "Cout =%6.1f ff  ", Abc_SclObjLoadMax(p, pObj) );
     printf( "Cmax =%6.1f ff  ", pCell ? SC_CellPin(pCell, pCell->n_inputs)->max_out_cap : 0.0 );
     printf( "G =%5d  ",         pCell ? (int)(100.0 * Abc_SclObjLoadAve(p, pObj) / SC_CellPinCapAve(pCell)) : 0 );
-//    printf( "SL =%6.1f ps",     Abc_SclObjSlackPs(p, pObj, p->MaxDelay0) );
+//    printf( "SL =%6.1f ps",     Abc_SclObjSlackMax(p, pObj, p->MaxDelay0) );
     printf( "\n" );
 }
 void Abc_SclTimeNtkPrint( SC_Man * p, int fShowAll, int fPrintPath )
@@ -131,7 +131,7 @@ void Abc_SclTimeNtkPrint( SC_Man * p, int fShowAll, int fPrintPath )
     int fReversePath = 1;
     int i, nLength = 0, fRise = 0;
     Abc_Obj_t * pObj, * pPivot = Abc_SclFindCriticalCo( p, &fRise ); 
-    float maxDelay = Abc_SclObjTimePs(p, pPivot, fRise);
+    float maxDelay = Abc_SclObjTimeOne( p, pPivot, fRise );
     p->ReportDelay = maxDelay;
 
     printf( "WireLoad = \"%s\"  ", p->pWLoadUsed ? p->pWLoadUsed->pName : "none" );
@@ -362,10 +362,10 @@ void Abc_SclTimeCone( SC_Man * p, Vec_Int_t * vCone )
         if ( fVerbose && Abc_ObjIsNode(pObj) )
         printf( "  Updating node %d with gate %s\n", Abc_ObjId(pObj), Abc_SclObjCell(pObj)->pName );
         if ( fVerbose && Abc_ObjIsNode(pObj) )
-        printf( "    before (%6.1f ps  %6.1f ps)   ", Abc_SclObjTimePs(p, pObj, 1), Abc_SclObjTimePs(p, pObj, 0) );
+        printf( "    before (%6.1f ps  %6.1f ps)   ", Abc_SclObjTimeOne(p, pObj, 1), Abc_SclObjTimeOne(p, pObj, 0) );
         Abc_SclTimeNode( p, pObj, 0 );
         if ( fVerbose && Abc_ObjIsNode(pObj) )
-        printf( "after (%6.1f ps  %6.1f ps)\n", Abc_SclObjTimePs(p, pObj, 1), Abc_SclObjTimePs(p, pObj, 0) );
+        printf( "after (%6.1f ps  %6.1f ps)\n", Abc_SclObjTimeOne(p, pObj, 1), Abc_SclObjTimeOne(p, pObj, 0) );
     }
 }
 void Abc_SclTimeNtkRecompute( SC_Man * p, float * pArea, float * pDelay, int fReverse, float DUser )
@@ -750,7 +750,7 @@ float Abc_SclCountNonBufferDelayInt( SC_Man * p, Abc_Obj_t * pObj )
     float Delay = 0;
     int i; 
     if ( !Abc_ObjIsBuffer(pObj) )
-        return Abc_SclObjTimePs(p, pObj, 1);
+        return Abc_SclObjTimeMax(p, pObj);
     Abc_ObjForEachFanout( pObj, pFanout, i )
         Delay += Abc_SclCountNonBufferDelayInt( p, pFanout );
     return Delay;
@@ -802,17 +802,17 @@ void Abc_SclPrintBuffersOne( SC_Man * p, Abc_Obj_t * pObj, int nOffset )
         printf( "    " );
     printf( "a =%5.2f  ",      Abc_ObjIsPi(pObj) ? 0 : Abc_SclObjCell(pObj)->area );
     printf( "d = (" );
-    printf( "%6.0f ps; ",      Abc_SclObjTimePs(p, pObj, 1) );
-    printf( "%6.0f ps)  ",     Abc_SclObjTimePs(p, pObj, 0) );
-    printf( "l =%5.0f ff  ",   Abc_SclObjLoadFf(p, pObj, 0 ) );
-    printf( "s =%5.0f ps   ",  Abc_SclObjSlewPs(p, pObj, 0 ) );
-    printf( "sl =%5.0f ps   ", Abc_SclObjSlackPs(p, pObj, p->MaxDelay0) );
+    printf( "%6.0f ps; ",      Abc_SclObjTimeOne(p, pObj, 1) );
+    printf( "%6.0f ps)  ",     Abc_SclObjTimeOne(p, pObj, 0) );
+    printf( "l =%5.0f ff  ",   Abc_SclObjLoadMax(p, pObj) );
+    printf( "s =%5.0f ps   ",  Abc_SclObjSlewMax(p, pObj) );
+    printf( "sl =%5.0f ps   ", Abc_SclObjSlackMax(p, pObj, p->MaxDelay0) );
     if ( nOffset == 0 )
     {
     printf( "L =%5.0f ff   ",  Abc_SclCountNonBufferLoad(p, pObj) );
     printf( "Lx =%5.0f ff  ",  100.0*Abc_SclCountNonBufferLoad(p, pObj)/p->EstLoadAve );
-    printf( "Dx =%5.0f ps  ",  Abc_SclCountNonBufferDelay(p, pObj)/Abc_SclCountNonBufferFanouts(pObj) - Abc_SclObjTimePs(p, pObj, 1) );
-    printf( "Cx =%5.0f ps",    (Abc_SclCountNonBufferDelay(p, pObj)/Abc_SclCountNonBufferFanouts(pObj) - Abc_SclObjTimePs(p, pObj, 1))/log(Abc_SclCountNonBufferLoad(p, pObj)/p->EstLoadAve) );
+    printf( "Dx =%5.0f ps  ",  Abc_SclCountNonBufferDelay(p, pObj)/Abc_SclCountNonBufferFanouts(pObj) - Abc_SclObjTimeOne(p, pObj, 1) );
+    printf( "Cx =%5.0f ps",    (Abc_SclCountNonBufferDelay(p, pObj)/Abc_SclCountNonBufferFanouts(pObj) - Abc_SclObjTimeOne(p, pObj, 1))/log(Abc_SclCountNonBufferLoad(p, pObj)/p->EstLoadAve) );
     }
     printf( "\n" );
 }
