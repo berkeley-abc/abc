@@ -40,7 +40,7 @@ ABC_NAMESPACE_HEADER_START
 ///                         PARAMETERS                               ///
 ////////////////////////////////////////////////////////////////////////
 
-#define ABC_SCL_CUR_VERSION 6
+#define ABC_SCL_CUR_VERSION 7
 
 typedef enum  
 {
@@ -117,8 +117,8 @@ typedef struct SC_Lib_         SC_Lib;
 struct SC_WireLoad_ 
 {
     char *         pName;
-    float          res;            // (currently not used)
     float          cap;            // }- multiply estimation in 'fanout_len[].snd' with this value
+    float          slope;          // used to extrapolate wireload for large fanout count
     Vec_Int_t *    vFanout;        // Vec<Pair<uint,float> > -- pairs '(#fanouts, est-wire-len)'
     Vec_Flt_t *    vLen;
 };

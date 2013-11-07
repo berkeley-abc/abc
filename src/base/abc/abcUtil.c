@@ -459,6 +459,17 @@ int Abc_NtkGetFaninMax( Abc_Ntk_t * pNtk )
     }
     return nFaninsMax;
 }
+int Abc_NtkGetFanoutMax( Abc_Ntk_t * pNtk )
+{
+    Abc_Obj_t * pNode;
+    int i, nFaninsMax = 0;
+    Abc_NtkForEachNode( pNtk, pNode, i )
+    {
+        if ( nFaninsMax < Abc_ObjFanoutNum(pNode) )
+            nFaninsMax = Abc_ObjFanoutNum(pNode);
+    }
+    return nFaninsMax;
+}
 
 /**Function*************************************************************
 

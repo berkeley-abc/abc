@@ -553,7 +553,7 @@ extern Abc_Ntk_t *   Abc_SclBufPerform( Abc_Ntk_t * pNtk, int FanMin, int FanMax
 /*=== sclDnsize.c ===============================================================*/
 extern void          Abc_SclDnsizePerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, SC_SizePars * pPars );
 /*=== sclLoad.c ===============================================================*/
-extern Vec_Flt_t *   Abc_SclFindWireCaps( SC_WireLoad * pWL );
+extern Vec_Flt_t *   Abc_SclFindWireCaps( SC_WireLoad * pWL, int nFanoutMax );
 extern float         Abc_SclFindWireLoad( Vec_Flt_t * vWireCaps, int nFans );
 extern void          Abc_SclAddWireLoad( SC_Man * p, Abc_Obj_t * pObj, int fSubtr );
 extern void          Abc_SclComputeLoad( SC_Man * p );

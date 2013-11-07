@@ -71,11 +71,16 @@ static void Abc_SclReadSurface( Vec_Str_t * vOut, int * pPos, SC_Surface * p )
     for ( i = 0; i < 6; i++ ) 
         p->approx[2][i] = Vec_StrGetF( vOut, pPos );
 }
-static void Abc_SclReadLibrary( Vec_Str_t * vOut, int * pPos, SC_Lib * p )
+static int Abc_SclReadLibrary( Vec_Str_t * vOut, int * pPos, SC_Lib * p )
 {
     int i, j, k, n;
     int version = Vec_StrGetI( vOut, pPos );
-    assert( version == 5 || version == ABC_SCL_CUR_VERSION ); // wrong version of the file
+    if ( version != ABC_SCL_CUR_VERSION )
+    { 
+        Abc_Print( -1, "Wrong version of the SCL file.\n" ); 
+        return 0; 
+    }
+    assert( version == ABC_SCL_CUR_VERSION ); // wrong version of the file
 
     // Read non-composite fields:
     p->pName                 = Vec_StrGetS(vOut, pPos);
@@ -94,8 +99,8 @@ static void Abc_SclReadLibrary( Vec_Str_t * vOut, int * pPos, SC_Lib * p )
         Vec_PtrPush( p->vWireLoads, pWL );
 
         pWL->pName = Vec_StrGetS(vOut, pPos);
-        pWL->res  = Vec_StrGetF(vOut, pPos);
-        pWL->cap  = Vec_StrGetF(vOut, pPos);
+        pWL->cap   = Vec_StrGetF(vOut, pPos);
+        pWL->slope = Vec_StrGetF(vOut, pPos);
 
         for ( j = Vec_StrGetI(vOut, pPos); j != 0; j-- )
         {
@@ -163,9 +168,14 @@ static void Abc_SclReadLibrary( Vec_Str_t * vOut, int * pPos, SC_Lib * p )
             assert( k == pCell->n_inputs );
 
             // read function
-            if ( version == 5 )
-            { 
-                // formula is not given
+            // (possibly empty) formula is always given
+            assert( version == ABC_SCL_CUR_VERSION );
+            assert( pPin->func_text == NULL );
+            pPin->func_text = Vec_StrGetS(vOut, pPos); 
+            if ( pPin->func_text[0] == 0 )
+            {
+                // formula is not given - read truth table
+                ABC_FREE( pPin->func_text );
                 assert( Vec_WrdSize(pPin->vFunc) == 0 );
                 Vec_WrdGrow( pPin->vFunc, Abc_Truth6WordNum(pCell->n_inputs) );
                 for ( k = 0; k < Vec_WrdCap(pPin->vFunc); k++ )
@@ -173,40 +183,24 @@ static void Abc_SclReadLibrary( Vec_Str_t * vOut, int * pPos, SC_Lib * p )
             }
             else
             {
-                // (possibly empty) formula is always given
-                assert( version == ABC_SCL_CUR_VERSION );
-                assert( pPin->func_text == NULL );
-                pPin->func_text = Vec_StrGetS(vOut, pPos); 
-                if ( pPin->func_text[0] == 0 )
+                // formula is given - derive truth table
+                SC_Pin * pPin2;
+                Vec_Ptr_t * vNames;
+                // collect input names
+                vNames = Vec_PtrAlloc( pCell->n_inputs );
+                SC_CellForEachPinIn( pCell, pPin2, n )
+                    Vec_PtrPush( vNames, pPin2->pName );
+                // derive truth table
+                assert( Vec_WrdSize(pPin->vFunc) == 0 );
+                Vec_WrdFree( pPin->vFunc );
+                pPin->vFunc = Mio_ParseFormulaTruth( pPin->func_text, (char **)Vec_PtrArray(vNames), pCell->n_inputs );
+                Vec_PtrFree( vNames );
+                // skip truth table
+                assert( Vec_WrdSize(pPin->vFunc) == Abc_Truth6WordNum(pCell->n_inputs) );
+                for ( k = 0; k < Vec_WrdSize(pPin->vFunc); k++ )
                 {
-                    // formula is not given - read truth table
-                    ABC_FREE( pPin->func_text );
-                    assert( Vec_WrdSize(pPin->vFunc) == 0 );
-                    Vec_WrdGrow( pPin->vFunc, Abc_Truth6WordNum(pCell->n_inputs) );
-                    for ( k = 0; k < Vec_WrdCap(pPin->vFunc); k++ )
-                        Vec_WrdPush( pPin->vFunc, Vec_StrGetW(vOut, pPos) );
-                }
-                else
-                {
-                    // formula is given - derive truth table
-                    SC_Pin * pPin2;
-                    Vec_Ptr_t * vNames;
-                    // collect input names
-                    vNames = Vec_PtrAlloc( pCell->n_inputs );
-                    SC_CellForEachPinIn( pCell, pPin2, n )
-                        Vec_PtrPush( vNames, pPin2->pName );
-                    // derive truth table
-                    assert( Vec_WrdSize(pPin->vFunc) == 0 );
-                    Vec_WrdFree( pPin->vFunc );
-                    pPin->vFunc = Mio_ParseFormulaTruth( pPin->func_text, (char **)Vec_PtrArray(vNames), pCell->n_inputs );
-                    Vec_PtrFree( vNames );
-                    // skip truth table
-                    assert( Vec_WrdSize(pPin->vFunc) == Abc_Truth6WordNum(pCell->n_inputs) );
-                    for ( k = 0; k < Vec_WrdSize(pPin->vFunc); k++ )
-                    {
-                        word Value = Vec_StrGetW(vOut, pPos);
-                        assert( Value == Vec_WrdEntry(pPin->vFunc, k) );
-                    }
+                    word Value = Vec_StrGetW(vOut, pPos);
+                    assert( Value == Vec_WrdEntry(pPin->vFunc, k) );
                 }
             }
 
@@ -234,6 +228,7 @@ static void Abc_SclReadLibrary( Vec_Str_t * vOut, int * pPos, SC_Lib * p )
             }
         }
     }
+    return 1;
 }
 SC_Lib * Abc_SclReadFromStr( Vec_Str_t * vOut )
 {
@@ -241,7 +236,8 @@ SC_Lib * Abc_SclReadFromStr( Vec_Str_t * vOut )
     int Pos = 0;
     // read the library
     p = Abc_SclLibAlloc();
-    Abc_SclReadLibrary( vOut, &Pos, p );
+    if ( !Abc_SclReadLibrary( vOut, &Pos, p ) )
+        return NULL;
     assert( Pos == Vec_StrSize(vOut) );
     // hash gates by name
     Abc_SclHashCells( p );
@@ -273,8 +269,10 @@ SC_Lib * Abc_SclReadFromFile( char * pFileName )
     fclose( pFile );
     // read the library
     p = Abc_SclReadFromStr( vOut );
-    p->pFileName = Abc_UtilStrsav( pFileName );
-    Abc_SclLibNormalize( p );
+    if ( p != NULL )
+        p->pFileName = Abc_UtilStrsav( pFileName );
+    if ( p != NULL )
+        Abc_SclLibNormalize( p );
     Vec_StrFree( vOut );
     return p;
 }
@@ -343,8 +341,8 @@ static void Abc_SclWriteLibrary( Vec_Str_t * vOut, SC_Lib * p )
     SC_LibForEachWireLoad( p, pWL, i )
     {
         Vec_StrPutS( vOut, pWL->pName );
-        Vec_StrPutF( vOut, pWL->res );
         Vec_StrPutF( vOut, pWL->cap );
+        Vec_StrPutF( vOut, pWL->slope );
 
         Vec_StrPutI( vOut, Vec_IntSize(pWL->vFanout) );
         for ( j = 0; j < Vec_IntSize(pWL->vFanout); j++ )
@@ -553,8 +551,8 @@ static void Abc_SclWriteLibraryText( FILE * s, SC_Lib * p )
     SC_LibForEachWireLoad( p, pWL, i )
     {
         fprintf( s, "  wire_load(\"%s\") {\n", pWL->pName );
-        fprintf( s, "    resistance : %f;\n", pWL->res );
         fprintf( s, "    capacitance : %f;\n", pWL->cap );
+        fprintf( s, "    slope : %f;\n", pWL->slope );
         for ( j = 0; j < Vec_IntSize(pWL->vFanout); j++ )
             fprintf( s, "    fanout_length( %d, %f );\n", Vec_IntEntry(pWL->vFanout, j), Vec_FltEntry(pWL->vLen, j) );
         fprintf( s, "  }\n\n" );

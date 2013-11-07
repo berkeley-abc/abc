@@ -965,6 +965,7 @@ extern ABC_DLL int                Abc_NtkGetMuxNum( Abc_Ntk_t * pNtk );
 extern ABC_DLL int                Abc_NtkGetBufNum( Abc_Ntk_t * pNtk );
 extern ABC_DLL int                Abc_NtkGetChoiceNum( Abc_Ntk_t * pNtk );
 extern ABC_DLL int                Abc_NtkGetFaninMax( Abc_Ntk_t * pNtk );
+extern ABC_DLL int                Abc_NtkGetFanoutMax( Abc_Ntk_t * pNtk );
 extern ABC_DLL int                Abc_NtkGetTotalFanins( Abc_Ntk_t * pNtk );
 extern ABC_DLL void               Abc_NtkCleanCopy( Abc_Ntk_t * pNtk );
 extern ABC_DLL void               Abc_NtkCleanData( Abc_Ntk_t * pNtk );

@@ -811,9 +811,9 @@ void Scl_LibertyReadWireLoad( Scl_Tree_t * p, Vec_Str_t * vOut )
     Scl_ItemForEachChildName( p, Scl_LibertyRoot(p), pItem, "wire_load" )
     {
         Vec_StrPutS_( vOut, Scl_LibertyReadString(p, pItem->Head) );
-        Scl_ItemForEachChildName( p, pItem, pChild, "resistance" )
-            Vec_StrPutF_( vOut, atof(Scl_LibertyReadString(p, pChild->Head)) );
         Scl_ItemForEachChildName( p, pItem, pChild, "capacitance" )
+            Vec_StrPutF_( vOut, atof(Scl_LibertyReadString(p, pChild->Head)) );
+        Scl_ItemForEachChildName( p, pItem, pChild, "slope" )
             Vec_StrPutF_( vOut, atof(Scl_LibertyReadString(p, pChild->Head)) );
         Vec_StrPut_( vOut );
         Vec_StrPutI_( vOut, Scl_LibertyItemNum(p, pItem, "fanout_length") );
@@ -1575,6 +1575,8 @@ SC_Lib * Abc_SclReadLiberty( char * pFileName, int fVerbose, int fVeryVerbose )
     Scl_LibertyStop( p, fVeryVerbose );
     // construct SCL data-structure
     pLib = Abc_SclReadFromStr( vStr );
+    if ( pLib == NULL )
+        return NULL;
     pLib->pFileName = Abc_UtilStrsav( pFileName );
     Abc_SclLibNormalize( pLib );
     Vec_StrFree( vStr );

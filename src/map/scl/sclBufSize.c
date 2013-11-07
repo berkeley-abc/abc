@@ -94,7 +94,7 @@ Bus_Man_t * Bus_ManStart( Abc_Ntk_t * pNtk, SC_Lib * pLib, SC_BusPars * pPars )
             p->pWLoadUsed = Abc_SclFetchWireLoadModel( pLib, pNtk->pWLoadUsed );
     }
     if ( p->pWLoadUsed )
-    p->vWireCaps = Abc_SclFindWireCaps( p->pWLoadUsed );
+    p->vWireCaps = Abc_SclFindWireCaps( p->pWLoadUsed, Abc_NtkGetFanoutMax(pNtk) );
     p->vFanouts  = Vec_PtrAlloc( 100 );
     p->vCins     = Vec_FltAlloc( 2*Abc_NtkObjNumMax(pNtk) + 1000 );
     p->vETimes   = Vec_FltAlloc( 2*Abc_NtkObjNumMax(pNtk) + 1000 );

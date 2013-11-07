@@ -42,29 +42,41 @@ ABC_NAMESPACE_IMPL_START
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Flt_t * Abc_SclFindWireCaps( SC_WireLoad * pWL )
+Vec_Flt_t * Abc_SclFindWireCaps( SC_WireLoad * pWL, int nFanoutMax )
 {
     Vec_Flt_t * vCaps = NULL;
-    float EntryPrev, EntryCur;
-    int i, Entry, EntryMax;
+    float EntryPrev, EntryCur, Slope;
+    int i, iPrev, k, Entry, EntryMax;
     assert( pWL != NULL );
-    // find the biggest fanout
+    // find the biggest fanout count
     EntryMax = 0;
     Vec_IntForEachEntry( pWL->vFanout, Entry, i )
         EntryMax = Abc_MaxInt( EntryMax, Entry );
     // create the array
-    vCaps = Vec_FltStart( EntryMax + 1 );
+    vCaps = Vec_FltStart( Abc_MaxInt(nFanoutMax, EntryMax) + 1 );
     Vec_IntForEachEntry( pWL->vFanout, Entry, i )
         Vec_FltWriteEntry( vCaps, Entry, Vec_FltEntry(pWL->vLen, i) * pWL->cap );
-    // reformat
-    EntryPrev = 0;
-    Vec_FltForEachEntry( vCaps, EntryCur, i )
+    // interpolate between the values
+    assert( Vec_FltEntry(vCaps, 1) != 0 );
+    iPrev = 1;
+    EntryPrev = Vec_FltEntry(vCaps, 1);
+    Vec_FltForEachEntryStart( vCaps, EntryCur, i, 2 )
     {
-        if ( EntryCur )
-            EntryPrev = EntryCur;
-        else
-            Vec_FltWriteEntry( vCaps, i, EntryPrev );
+        if ( EntryCur == 0 )
+            continue;
+        Slope = (EntryCur - EntryPrev) / (i - iPrev);
+        for ( k = iPrev + 1; k < i; k++ )
+            Vec_FltWriteEntry( vCaps, k, EntryPrev + Slope * (k - iPrev) );
+        EntryPrev = EntryCur;
+        iPrev = i;
     }
+    // extrapolate after the largest value
+    Slope = pWL->cap * pWL->slope;
+    for ( k = iPrev + 1; k < i; k++ )
+        Vec_FltWriteEntry( vCaps, k, EntryPrev + Slope * (k - iPrev) );
+    // show
+//    Vec_FltForEachEntry( vCaps, EntryCur, i )
+//        printf( "%3d : %f\n", i, EntryCur );
     return vCaps;
 }
 
@@ -126,7 +138,7 @@ void Abc_SclComputeLoad( SC_Man * p )
     if ( p->pWLoadUsed != NULL )
     {
         if ( p->vWireCaps == NULL )
-            p->vWireCaps = Abc_SclFindWireCaps( p->pWLoadUsed );
+            p->vWireCaps = Abc_SclFindWireCaps( p->pWLoadUsed, Abc_NtkGetFanoutMax(p->pNtk) );
         Abc_NtkForEachNode1( p->pNtk, pObj, i )
             Abc_SclAddWireLoad( p, pObj, 0 );
         Abc_NtkForEachPi( p->pNtk, pObj, i )
