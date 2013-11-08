@@ -517,7 +517,7 @@ static inline void Abc_SclDumpStats( SC_Man * p, char * pFileName, abctime Time 
     {
         sprintf( FileNameOld, "%s", p->pNtk->pName );
         fprintf( pTable, "\n" );
-        fprintf( pTable, "%s ", p->pNtk->pName );
+        fprintf( pTable, "%s ", Extra_FileNameWithoutPath(p->pNtk->pName) );
         fprintf( pTable, "%d ", Abc_NtkPiNum(p->pNtk) );
         fprintf( pTable, "%d ", Abc_NtkPoNum(p->pNtk) );
         fprintf( pTable, "%d ", (nNodesOld = Abc_NtkNodeNum(p->pNtk)) );

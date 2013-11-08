@@ -196,6 +196,26 @@ char * Extra_FileNameGenericAppend( char * pBase, char * pSuffix )
 
 /**Function*************************************************************
 
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+char * Extra_FileNameWithoutPath( char * FileName )
+{
+    char * pRes;
+    for ( pRes = FileName + strlen(FileName) - 1; pRes >= FileName; pRes-- )
+        if ( *pRes == '\\' || *pRes == '/' )
+            return pRes + 1;
+    return FileName;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Returns the file size.]
 
   Description [The file should be closed.]

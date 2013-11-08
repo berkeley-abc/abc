@@ -103,6 +103,7 @@ extern char *       Extra_FileNameExtension( char * FileName );
 extern char *       Extra_FileNameAppend( char * pBase, char * pSuffix );
 extern char *       Extra_FileNameGeneric( char * FileName );
 extern char *       Extra_FileNameGenericAppend( char * pBase, char * pSuffix );
+extern char *       Extra_FileNameWithoutPath( char * FileName );
 extern int          Extra_FileCheck( char * pFileName );
 extern int          Extra_FileSize( char * pFileName );
 extern char *       Extra_FileRead( FILE * pFile );

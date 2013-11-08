@@ -384,16 +384,15 @@ Abc_Obj_t * Abc_SclAddOneInv( Bus_Man_t * p, Abc_Obj_t * pObj, Vec_Ptr_t * vFano
         Abc_NodeInvUpdateFanPolarity( pInv );
     return pInv;
 }
-void Abc_SclBufSize( Bus_Man_t * p )
+void Abc_SclBufSize( Bus_Man_t * p, float Gain )
 {
     SC_Cell * pCell, * pCellNew;
     Abc_Obj_t * pObj, * pFanout;
     abctime clk = Abc_Clock();
-    int nObjsOld = Abc_NtkObjNumMax(p->pNtk);
-    float GainInv = 0.01 * p->pPars->GainRatio;
-    float GainGate = (float)1.0 * GainInv;
-    float Load, LoadNew, Cin, DeptMax = 0;
-    int i, k, nObjOld = Abc_NtkObjNumMax(p->pNtk);
+    int i, k, nObjsOld = Abc_NtkObjNumMax(p->pNtk);
+    float GainGate, GainInv, Load, LoadNew, Cin, DeptMax = 0;
+    GainGate = p->pPars->fAddBufs ? pow( Gain, 2.0 ) : Gain;
+    GainInv  = p->pPars->fAddBufs ? pow( Gain, 2.0 ) : Gain;
     Abc_NtkForEachObjReverse( p->pNtk, pObj, i )
     {
         if ( !((Abc_ObjIsNode(pObj) && Abc_ObjFaninNum(pObj) > 0) || (Abc_ObjIsCi(pObj) && p->pPiDrive)) )
@@ -473,7 +472,7 @@ void Abc_SclBufSize( Bus_Man_t * p )
     {
         printf( "WireLoads = %d  Degree = %d  Target slew =%4d ps   Gain2 =%5d  Buf = %6d  Delay =%7.0f ps   ", 
             p->pPars->fUseWireLoads, p->pPars->nDegree, p->pPars->Slew, p->pPars->GainRatio, 
-            Abc_NtkObjNumMax(p->pNtk) - nObjOld, DeptMax );
+            Abc_NtkObjNumMax(p->pNtk) - nObjsOld, DeptMax );
         Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     }
 }
@@ -483,14 +482,11 @@ Abc_Ntk_t * Abc_SclBufferingPerform( Abc_Ntk_t * pNtk, SC_Lib * pLib, SC_BusPars
     Bus_Man_t * p;
     if ( !Abc_SclCheckNtk( pNtk, 0 ) )
         return NULL;
-    // update gain if buffers are used
-    if ( pPars->fAddBufs )
-        pPars->GainRatio = pPars->GainRatio * pPars->GainRatio / 100;
     Abc_SclReportDupFanins( pNtk );
     Abc_SclMioGates2SclGates( pLib, pNtk );
     p = Bus_ManStart( pNtk, pLib, pPars );
     Bus_ManReadInOutLoads( p );
-    Abc_SclBufSize( p );
+    Abc_SclBufSize( p, 0.01 * pPars->GainRatio );
     Bus_ManStop( p );
     Abc_SclSclGates2MioGates( pLib, pNtk );
     if ( pNtk->vPhases )

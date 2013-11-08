@@ -871,7 +871,7 @@ int Scl_CommandBuffer( Abc_Frame_t * pAbc, int argc, char ** argv )
     Abc_Ntk_t * pNtkRes, * pNtk = Abc_FrameReadNtk(pAbc);
     int c;
     memset( pPars, 0, sizeof(SC_BusPars) );
-    pPars->GainRatio     =  250;
+    pPars->GainRatio     =  300;
     pPars->Slew          = pAbc->pLibScl ? Abc_SclComputeAverageSlew((SC_Lib *)pAbc->pLibScl) : 100;
     pPars->nDegree       =   10;
     pPars->fSizeOnly     =    0;

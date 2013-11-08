@@ -76,6 +76,9 @@ Abc_Ntk_t * Abc_NtkMap( Abc_Ntk_t * pNtk, double DelayTarget, double AreaMulti, 
         pLib = Abc_SclDeriveGenlib( Abc_FrameReadLibScl(), Slew, Gain, nGatesMin, fVerbose );
         if ( Abc_FrameReadLibGen() )
             Mio_LibraryTransferDelays( (Mio_Library_t *)Abc_FrameReadLibGen(), pLib );
+        // remove supergate library
+        Map_SuperLibFree( (Map_SuperLib_t *)Abc_FrameReadLibSuper() );
+        Abc_FrameSetLibSuper( NULL );
     }
     // quit if there is no library
     if ( pLib == NULL )
