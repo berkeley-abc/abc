@@ -38,10 +38,10 @@ default: $(PROG)
 arch_flags : arch_flags.c
 	$(CC) arch_flags.c -o arch_flags
 
-ARCHFLAGS := $(shell $(CC) arch_flags.c -o arch_flags && ./arch_flags)
-OPTFLAGS  := -g -O #-DABC_NAMESPACE=xxx
+ARCHFLAGS ?= $(shell $(CC) arch_flags.c -o arch_flags && ./arch_flags)
+OPTFLAGS  ?= -g -O #-DABC_NAMESPACE=xxx
 
-CFLAGS   += -Wall -Wno-unused-function -Wno-write-strings -Wno-sign-compare $(OPTFLAGS) $(ARCHFLAGS) -I$(PWD)/src
+CFLAGS   += -Wall -Wno-unused-function -Wno-write-strings -Wno-sign-compare $(OPTFLAGS) $(ARCHFLAGS) -Isrc
 
 # Set -Wno-unused-bug-set-variable for GCC 4.6.0 and greater only
 ifneq ($(or $(findstring gcc,$(CC)),$(findstring g++,$(CC))),)
