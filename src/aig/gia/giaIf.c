@@ -1461,6 +1461,7 @@ void Gia_ManTransferPacking( Gia_Man_t * pGia, Gia_Man_t * p )
 ***********************************************************************/
 Gia_Man_t * Gia_ManPerformMapping( Gia_Man_t * p, void * pp, int fNormalized )
 {
+    extern void Gia_ManIffTest( Gia_Man_t * pGia, If_LibLut_t * pLib, int fVerbose );
     Gia_Man_t * pNew;
     If_Man_t * pIfMan;
     If_Par_t * pPars = (If_Par_t *)pp;
@@ -1529,6 +1530,8 @@ Gia_Man_t * Gia_ManPerformMapping( Gia_Man_t * p, void * pp, int fNormalized )
     Gia_ManStop( p );
 //    printf( "PERFORMING VERIFICATION:\n" );
 //    Gia_ManVerifyWithBoxes( pNew, NULL );
+    if ( pPars->fRepack )
+        Gia_ManIffTest( pNew, pPars->pLutLib, pPars->fVerbose );
     return pNew;
 }
 

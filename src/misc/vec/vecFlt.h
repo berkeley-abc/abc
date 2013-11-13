@@ -106,6 +106,14 @@ static inline Vec_Flt_t * Vec_FltStart( int nSize )
     memset( p->pArray, 0, sizeof(float) * nSize );
     return p;
 }
+static inline Vec_Flt_t * Vec_FltStartFull( int nSize )
+{
+    Vec_Flt_t * p;
+    p = Vec_FltAlloc( nSize );
+    p->nSize = nSize;
+    memset( p->pArray, 0xFF, sizeof(float) * nSize );
+    return p;
+}
 
 /**Function*************************************************************
 

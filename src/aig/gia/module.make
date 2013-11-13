@@ -27,6 +27,7 @@ SRC +=    src/aig/gia/giaAig.c \
     src/aig/gia/giaGlitch.c \
     src/aig/gia/giaHash.c \
     src/aig/gia/giaIf.c \
+    src/aig/gia/giaIff.c \
     src/aig/gia/giaIso.c \
     src/aig/gia/giaIso2.c \
     src/aig/gia/giaJf.c \

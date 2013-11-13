@@ -123,6 +123,7 @@ struct If_Par_t_
     int                fEnableCheck75u;// enable additional checking
     int                fUseDsd;       // compute DSD of the cut functions
     int                fDeriveLuts;   // enables deriving LUT structures
+    int                fRepack;       // repack after mapping
     int                fVerbose;      // the verbosity flag
     char *             pLutStruct;    // LUT structure
     float              WireDelay;     // wire delay
