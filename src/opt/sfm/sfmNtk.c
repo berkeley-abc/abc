@@ -213,7 +213,7 @@ void Sfm_NtkFree( Sfm_Ntk_t * p )
 {
     // user data
     Vec_StrFree( p->vFixed );
-    Vec_StrFree( p->vEmpty );
+    Vec_StrFreeP( &p->vEmpty );
     Vec_WrdFree( p->vTruths );
     Vec_WecErase( &p->vFanins );
     // attributes

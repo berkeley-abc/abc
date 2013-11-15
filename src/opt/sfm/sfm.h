@@ -48,6 +48,7 @@ struct Sfm_Par_t_
     int             nWinSizeMax;   // the maximum window size
     int             nGrowthLevel;  // the maximum allowed growth in level
     int             nBTLimit;      // the maximum number of conflicts in one SAT run
+    int             nNodesMax;     // the maximum number of nodes to try
     int             nFirstFixed;   // the number of first nodes to be treated as fixed
     int             fRrOnly;       // perform redundance removal
     int             fArea;         // performs optimization for area
