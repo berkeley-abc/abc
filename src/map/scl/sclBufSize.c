@@ -88,6 +88,7 @@ Bus_Man_t * Bus_ManStart( Abc_Ntk_t * pNtk, SC_Lib * pLib, SC_BusPars * pPars )
         if ( pNtk->pWLoadUsed == NULL )
         {            
             p->pWLoadUsed = Abc_SclFindWireLoadModel( pLib, Abc_SclGetTotalArea(pNtk) );
+            if ( p->pWLoadUsed )
             pNtk->pWLoadUsed = Abc_UtilStrsav( p->pWLoadUsed->pName );
         }
         else

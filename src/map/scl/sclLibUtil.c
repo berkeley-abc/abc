@@ -272,7 +272,7 @@ SC_WireLoad * Abc_SclFindWireLoadModel( SC_Lib * p, float Area )
         pWLoadUsed = p->default_wire_load;
     else
     {
-        Abc_Print( 0, "No wire model given.\n" );
+//        Abc_Print( 0, "No wire model given.\n" );
         return NULL;
     }
     return Abc_SclFetchWireLoadModel( p, pWLoadUsed );

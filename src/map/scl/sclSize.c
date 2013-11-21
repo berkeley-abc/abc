@@ -615,6 +615,7 @@ SC_Man * Abc_SclManStart( SC_Lib * pLib, Abc_Ntk_t * pNtk, int fUseWireLoads, in
         if ( pNtk->pWLoadUsed == NULL )
         {            
             p->pWLoadUsed = Abc_SclFindWireLoadModel( pLib, Abc_SclGetTotalArea(p->pNtk) );
+            if ( p->pWLoadUsed )
             pNtk->pWLoadUsed = Abc_UtilStrsav( p->pWLoadUsed->pName );
         }
         else
