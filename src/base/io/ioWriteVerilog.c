@@ -523,7 +523,7 @@ void Io_WriteVerilogObjects( FILE * pFile, Abc_Ntk_t * pNtk )
         {
             Mio_Gate_t * pGate = (Mio_Gate_t *)pObj->pData;
             Mio_Pin_t * pGatePin;
-            if ( Abc_ObjFaninNum(pObj) == 0 )
+            if ( Abc_ObjFaninNum(pObj) == 0 && (!strcmp(Mio_GateReadName(pGate), "_const0_") || !strcmp(Mio_GateReadName(pGate), "_const1_")) )
             {
                 fprintf( pFile, "  %-*s %s = 1\'b%d;\n", Length, "assign", Io_WriteVerilogGetName(Abc_ObjName( Abc_ObjFanout0(pObj) )), !strcmp(Mio_GateReadName(pGate), "_const1_") );
                 continue;
