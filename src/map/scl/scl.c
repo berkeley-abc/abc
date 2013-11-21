@@ -958,6 +958,11 @@ int Scl_CommandBuffer( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Fanin phase information is not avaiable.\n" );
         return 1;
     }
+    if ( !pAbc->pLibScl || !Abc_SclHasDelayInfo(pAbc->pLibScl) )
+    {
+        Abc_Print( -1, "Library delay info is not available.\n" );
+        return 1;
+    }
     // modify the current network
     pNtkRes = Abc_SclBufferingPerform( pNtk, (SC_Lib *)pAbc->pLibScl, pPars );
     if ( pNtkRes == NULL )
@@ -1087,6 +1092,11 @@ int Scl_CommandBufferOld( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( fAddInvs && pNtk->vPhases == NULL )
     {
         Abc_Print( -1, "Fanin phase information is not avaiable.\n" );
+        return 1;
+    }
+    if ( !pAbc->pLibScl || !Abc_SclHasDelayInfo(pAbc->pLibScl) )
+    {
+        Abc_Print( -1, "Library delay info is not available.\n" );
         return 1;
     }
 
@@ -1428,9 +1438,9 @@ int Scl_CommandUpsize( Abc_Frame_t * pAbc, int argc, char **argv )
         fprintf( pAbc->Err, "The current network is not in a topo order (run \"topo\").\n" );
         return 1;
     }
-    if ( pAbc->pLibScl == NULL )
+    if ( !pAbc->pLibScl || !Abc_SclHasDelayInfo(pAbc->pLibScl) )
     {
-        fprintf( pAbc->Err, "There is no Liberty library available.\n" );
+        Abc_Print( -1, "Library delay info is not available.\n" );
         return 1;
     }
 
@@ -1605,9 +1615,9 @@ int Scl_CommandDnsize( Abc_Frame_t * pAbc, int argc, char **argv )
         fprintf( pAbc->Err, "The current network is not in a topo order (run \"topo\").\n" );
         return 1;
     }
-    if ( pAbc->pLibScl == NULL )
+    if ( !pAbc->pLibScl || !Abc_SclHasDelayInfo(pAbc->pLibScl) )
     {
-        fprintf( pAbc->Err, "There is no Liberty library available.\n" );
+        Abc_Print( -1, "Library delay info is not available.\n" );
         return 1;
     }
 
@@ -1678,9 +1688,9 @@ int Scl_CommandPrintBuf( Abc_Frame_t * pAbc, int argc, char **argv )
         fprintf( pAbc->Err, "The current network is not in a topo order (run \"topo\").\n" );
         return 1;
     }
-    if ( pAbc->pLibScl == NULL )
+    if ( !pAbc->pLibScl || !Abc_SclHasDelayInfo(pAbc->pLibScl) )
     {
-        fprintf( pAbc->Err, "There is no Liberty library available.\n" );
+        Abc_Print( -1, "Library delay info is not available.\n" );
         return 1;
     }
 

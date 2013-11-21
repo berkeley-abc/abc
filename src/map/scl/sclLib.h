@@ -559,6 +559,8 @@ static inline SC_Timing * Scl_CellPinTime( SC_Cell * pCell, int iPin )
     pPin = SC_CellPin( pCell, pCell->n_inputs );
     assert( Vec_PtrSize(pPin->vRTimings) == pCell->n_inputs );
     pRTime = (SC_Timings *)Vec_PtrEntry( pPin->vRTimings, iPin );
+    if ( Vec_PtrSize(pRTime->vTimings) == 0 )
+        return NULL;
     assert( Vec_PtrSize(pRTime->vTimings) == 1 );
     return (SC_Timing *)Vec_PtrEntry( pRTime->vTimings, 0 );
 }
@@ -610,6 +612,7 @@ extern SC_Cell *     Abc_SclFindInvertor( SC_Lib * p, int fFindBuff );
 extern SC_Cell *     Abc_SclFindSmallestGate( SC_Cell * p, float CinMin );
 extern SC_WireLoad * Abc_SclFindWireLoadModel( SC_Lib * p, float Area );
 extern SC_WireLoad * Abc_SclFetchWireLoadModel( SC_Lib * p, char * pName );
+extern int           Abc_SclHasDelayInfo( void * pScl );
 extern float         Abc_SclComputeAverageSlew( SC_Lib * p );
 extern void          Abc_SclDumpGenlib( char * pFileName, SC_Lib * p, float Slew, float Gain, int nGatesMin );
 extern void          Abc_SclInstallGenlib( void * pScl, float Slew, float Gain, int nGatesMin );

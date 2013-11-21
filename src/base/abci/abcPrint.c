@@ -1034,7 +1034,7 @@ void Abc_NtkPrintGates( Abc_Ntk_t * pNtk, int fUseLibrary )
         }
 
         // determine the longest gate name
-        nGateNameLen = 0;
+        nGateNameLen = 5;
         for ( i = 0; i < nGates; i++ )
         {
             Counter = Mio_GateReadValue( ppGates[i] );

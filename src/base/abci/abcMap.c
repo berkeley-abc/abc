@@ -71,7 +71,7 @@ Abc_Ntk_t * Abc_NtkMap( Abc_Ntk_t * pNtk, double DelayTarget, double AreaMulti, 
     assert( Abc_NtkIsStrash(pNtk) );
     // derive library from SCL
     // if the library is created here, it will be deleted when pSuperLib is deleted in Map_SuperLibFree()
-    if ( Abc_FrameReadLibScl() )
+    if ( Abc_FrameReadLibScl() && Abc_SclHasDelayInfo( Abc_FrameReadLibScl() ) )
     {
         pLib = Abc_SclDeriveGenlib( Abc_FrameReadLibScl(), Slew, Gain, nGatesMin, fVerbose );
         if ( Abc_FrameReadLibGen() )

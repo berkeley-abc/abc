@@ -165,6 +165,7 @@ extern void              Mio_LibraryTransferDelays( Mio_Library_t * pLibD, Mio_L
 /*=== sclUtil.c =========================================================*/
 extern Mio_Library_t *   Abc_SclDeriveGenlibSimple( void * pScl );
 extern Mio_Library_t *   Abc_SclDeriveGenlib( void * pScl, float Slew, float Gain, int nGatesMin, int fVerbose );
+extern int               Abc_SclHasDelayInfo( void * pScl );
 
 ABC_NAMESPACE_HEADER_END
 
