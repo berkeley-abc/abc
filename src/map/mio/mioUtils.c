@@ -729,10 +729,19 @@ void Mio_LibraryTransferDelays( Mio_Library_t * pLibD, Mio_Library_t * pLibS )
             pPinS = Mio_GateReadPins( pGateS );
             Mio_GateForEachPin( pGateD, pPinD )
             {
-                pPinD->dDelayBlockRise = pPinS->dDelayBlockRise;
-                pPinD->dDelayBlockFall = pPinS->dDelayBlockFall;
-                pPinD->dDelayBlockMax  = pPinS->dDelayBlockMax;
-                pPinS = Mio_PinReadNext(pPinS);
+                if (pPinS)
+                {
+                    pPinD->dDelayBlockRise = pPinS->dDelayBlockRise;
+                    pPinD->dDelayBlockFall = pPinS->dDelayBlockFall;
+                    pPinD->dDelayBlockMax  = pPinS->dDelayBlockMax;
+                    pPinS = Mio_PinReadNext(pPinS);
+                }
+                else
+                {
+                    pPinD->dDelayBlockRise = 0;
+                    pPinD->dDelayBlockFall = 0;
+                    pPinD->dDelayBlockMax  = 0;
+                }
             }
         }
     }
