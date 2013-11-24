@@ -148,6 +148,7 @@ static int Abc_CommandBidec                  ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandOrder                  ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandMuxes                  ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandCubes                  ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandSplitSop               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandExtSeqDcs              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandReach                  ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandCone                   ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -718,6 +719,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Various",      "order",         Abc_CommandOrder,            0 );
     Cmd_CommandAdd( pAbc, "Various",      "muxes",         Abc_CommandMuxes,            1 );
     Cmd_CommandAdd( pAbc, "Various",      "cubes",         Abc_CommandCubes,            1 );
+    Cmd_CommandAdd( pAbc, "Various",      "splitsop",      Abc_CommandSplitSop,         1 );
     Cmd_CommandAdd( pAbc, "Various",      "ext_seq_dcs",   Abc_CommandExtSeqDcs,        0 );
     Cmd_CommandAdd( pAbc, "Various",      "reach",         Abc_CommandReach,            0 );
     Cmd_CommandAdd( pAbc, "Various",      "cone",          Abc_CommandCone,             1 );
@@ -8033,6 +8035,82 @@ usage:
     Abc_Print( -2, "\t        converts the current network into a network derived by creating\n" );
     Abc_Print( -2, "\t        a separate node for each product and sum in the local SOPs\n" );
     Abc_Print( -2, "\t-h    : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandSplitSop( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern Abc_Ntk_t * Abc_NtkSplitSop( Abc_Ntk_t * pNtk, int nCubesMax, int fVerbose );
+    Abc_Ntk_t * pNtk, * pNtkRes;
+    int c, fVerbose = 0, nCubesMax = 100;
+    pNtk = Abc_FrameReadNtk(pAbc);
+    // set defaults
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Nvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'N':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-N\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nCubesMax = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nCubesMax < 0 )
+                goto usage;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+
+    if ( pNtk == NULL )
+    {
+        Abc_Print( -1, "Empty network.\n" );
+        return 1;
+    }
+
+    if ( !Abc_NtkIsSopLogic(pNtk) )
+    {
+        Abc_Print( -1, "Only a SOP logic network can be transformed into cubes.\n" );
+        return 1;
+    }
+
+    // get the new network
+    pNtkRes = Abc_NtkSplitSop( pNtk, nCubesMax, fVerbose );
+    if ( pNtkRes == NULL )
+    {
+        Abc_Print( -1, "Converting to cubes has failed.\n" );
+        return 1;
+    }
+    // replace the current network
+    Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: splitsop [-N num] [-vh]\n" );
+    Abc_Print( -2, "\t         splits nodes whose SOP size is larger than the given one\n" );
+    Abc_Print( -2, "\t-N num : the maximum number of cubes after splitting [default = %d]\n", nCubesMax );
+    Abc_Print( -2, "\t-v     : prints verbose information [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
 }
 

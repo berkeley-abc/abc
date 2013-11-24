@@ -2704,6 +2704,80 @@ void Abc_NtkFromPlaTest()
   SeeAlso     []
 
 ***********************************************************************/
+Abc_Ntk_t * Abc_NtkSplitSop( Abc_Ntk_t * pNtk, int nCubesMax, int fVerbose )
+{
+    Vec_Ptr_t * vNodes;
+    Abc_Ntk_t * pNtkNew; 
+    Abc_Obj_t * pObj, * pFanin, * pObjNew, * pObjNewRoot;
+    int i, k, j, nCubes, nCubesThis, nSplits;
+    char * pSopStr, * pSopStr2, * pTempSop, Symb;
+    if ( pNtk == NULL )
+        return NULL;
+    assert( !Abc_NtkIsStrash(pNtk) && !Abc_NtkIsNetlist(pNtk) );
+    // start the network
+    pNtkNew = Abc_NtkStartFrom( pNtk, pNtk->ntkType, pNtk->ntkFunc );
+    // copy the internal nodes
+    vNodes = Abc_NtkDfs( pNtk, 0 );
+    Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pObj, i )
+    {
+        assert( Abc_ObjIsNode(pObj) );
+        pObjNewRoot = Abc_NtkDupObj( pNtkNew, pObj, 0 );
+        nCubes = Abc_SopGetCubeNum( (char *)pObj->pData );
+        if ( nCubes <= nCubesMax )
+        {            
+            Abc_ObjForEachFanin( pObj, pFanin, k )
+                Abc_ObjAddFanin( pObj->pCopy, pFanin->pCopy );
+            continue;
+        }
+        nSplits = (nCubes / nCubesMax) + (int)(nCubes % nCubesMax > 0);
+        pSopStr = ((char *)pObjNewRoot->pData);
+        pObjNewRoot->pData = Abc_SopCreateOr(pNtkNew->pManFunc, nSplits, NULL);
+        if ( Abc_SopIsComplement(pSopStr) )
+        {
+            Abc_SopComplement( pSopStr );
+            Abc_SopComplement( (char *)pObjNewRoot->pData );
+        }
+        pTempSop = pObj->pData; pObj->pData = "?";
+        for ( j = 0; j < nSplits; j++ )
+        {
+            // clone the node
+            pObjNew = Abc_NtkDupObj( pNtkNew, pObj, 0 );
+            Abc_ObjAddFanin( pObjNewRoot, pObjNew );
+            // get its cubes
+            Abc_ObjForEachFanin( pObj, pFanin, k )
+                Abc_ObjAddFanin( pObj->pCopy, pFanin->pCopy );
+            // create SOP for this node
+            nCubesThis = (j < nCubes / nCubesMax) ? nCubesMax : nCubes % nCubesMax;
+            pSopStr2 = pSopStr + (Abc_ObjFaninNum(pObj) + 3) * nCubesThis;
+            Symb = *pSopStr2; *pSopStr2 = 0;
+            pObjNew->pData = Abc_SopRegister( pNtkNew->pManFunc, pSopStr );
+            *pSopStr2 = Symb;
+            pSopStr = pSopStr2;
+        }
+        // update 
+        pObj->pData = pTempSop;
+        pObj->pCopy = pObjNewRoot;
+    }
+    Vec_PtrFree( vNodes );
+    Abc_NtkFinalize( pNtk, pNtkNew );
+    // check correctness
+    if ( !Abc_NtkCheck( pNtkNew ) )
+        fprintf( stdout, "Abc_NtkDup(): Network check has failed.\n" );
+    pNtk->pCopy = pNtkNew;
+    return pNtkNew;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Checks if the logic network is in the topological order.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 int Abc_NtkIsTopo( Abc_Ntk_t * pNtk )
 {
     Abc_Obj_t * pObj, * pFanin;
