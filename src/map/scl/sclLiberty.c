@@ -1093,9 +1093,9 @@ int Scl_LibertyComputeWorstCase( Vec_Ptr_t * vTables, Vec_Flt_t ** pvInd0, Vec_F
         vvalues = (Vec_Flt_t *)Vec_PtrEntry(vTables, i*3+2);
         // check equality of indexes
         if ( !Vec_FltEqual(vind0, vInd0) )
-            return 0;
+            continue;//return 0;
         if ( !Vec_FltEqual(vind1, vInd1) )
-            return 0;
+            continue;//return 0;
 //        Vec_FltForEachEntry( vvalues, Entry, k )
 //            Vec_FltAddToEntry( vValues, k, Entry );
         Vec_FltForEachEntry( vvalues, Entry, k )
@@ -1573,6 +1573,8 @@ SC_Lib * Abc_SclReadLiberty( char * pFileName, int fVerbose, int fVeryVerbose )
     // collect relevant data
     vStr = Scl_LibertyReadSclStr( p, fVerbose, fVeryVerbose );
     Scl_LibertyStop( p, fVeryVerbose );
+    if ( vStr == NULL )
+        return NULL;
     // construct SCL data-structure
     pLib = Abc_SclReadFromStr( vStr );
     if ( pLib == NULL )
