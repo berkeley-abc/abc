@@ -1530,8 +1530,8 @@ Gia_Man_t * Gia_ManPerformMapping( Gia_Man_t * p, void * pp, int fNormalized )
     Gia_ManStop( p );
 //    printf( "PERFORMING VERIFICATION:\n" );
 //    Gia_ManVerifyWithBoxes( pNew, NULL );
-    if ( pPars->fRepack )
-        Gia_ManIffTest( pNew, pPars->pLutLib, pPars->fVerbose );
+//    if ( pPars->fRepack )
+//        Gia_ManIffTest( pNew, pPars->pLutLib, pPars->fVerbose );
     return pNew;
 }
 

@@ -30,23 +30,23 @@ ABC_NAMESPACE_IMPL_START
 typedef struct Iff_Man_t_ Iff_Man_t;
 struct Iff_Man_t_
 {
-    Gia_Man_t *   pGia;          // mapped GIA
-    If_LibLut_t * pLib;          // LUT library
-    int           nLutSize;      // LUT size
-    int           nDegree;       // degree 
-    Vec_Flt_t *   vTimes;        // arrival times
-    Vec_Int_t *   vMatch[4];     // matches
+    Gia_Man_t *     pGia;       // mapped GIA
+    If_LibLut_t *   pLib;       // LUT library
+    int             nLutSize;   // LUT size
+    int             nDegree;    // degree 
+    Vec_Flt_t *     vTimes;     // arrival times
+    Vec_Int_t *     vMatch[4];  // matches
 };
 
-static inline float Iff_ObjTimeId( Iff_Man_t * p, int iObj, int Type )                      { return Vec_FltEntry( p->vTimes, iObj );                      }
-static inline float Iff_ObjTime( Iff_Man_t * p, Gia_Obj_t * pObj, int Type )                { return Iff_ObjTimeId( p, Gia_ObjId(p->pGia, pObj), Type );   }
-static inline void  Iff_ObjSetTimeId( Iff_Man_t * p, int iObj, int Type, float Time )       { Vec_FltWriteEntry( p->vTimes, iObj, Time );                  }
-static inline void  Iff_ObjSetTime( Iff_Man_t * p, Gia_Obj_t * pObj, int Type, float Time ) { Iff_ObjSetTimeId( p, Gia_ObjId(p->pGia, pObj), Type, Time ); }
+static inline float Iff_ObjTimeId( Iff_Man_t * p, int iObj )                                { return Vec_FltEntry( p->vTimes, iObj );                       }
+static inline float Iff_ObjTime( Iff_Man_t * p, Gia_Obj_t * pObj )                          { return Iff_ObjTimeId( p, Gia_ObjId(p->pGia, pObj) );          }
+static inline void  Iff_ObjSetTimeId( Iff_Man_t * p, int iObj, float Time )                 { Vec_FltWriteEntry( p->vTimes, iObj, Time );                   }
+static inline void  Iff_ObjSetTime( Iff_Man_t * p, Gia_Obj_t * pObj, float Time )           { Iff_ObjSetTimeId( p, Gia_ObjId(p->pGia, pObj), Time );        }
 
-static inline int   Iff_ObjMatchId( Iff_Man_t * p, int iObj, int Type )                     { return Vec_IntEntry( p->vMatch[Type], iObj );                }
-static inline int   Iff_ObjMatch( Iff_Man_t * p, Gia_Obj_t * pObj, int Type )               { return Iff_ObjTimeId( p, Gia_ObjId(p->pGia, pObj), Type );   }
-static inline void  Iff_ObjSetMatchId( Iff_Man_t * p, int iObj, int Type, int Match )       { Vec_IntWriteEntry( p->vMatch[Type], iObj, Match );           }
-static inline void  Iff_ObjSetMatch( Iff_Man_t * p, Gia_Obj_t * pObj, int Type, int Match ) { Iff_ObjSetTimeId( p, Gia_ObjId(p->pGia, pObj), Type, Match );}
+static inline int   Iff_ObjMatchId( Iff_Man_t * p, int iObj, int Type )                     { return Vec_IntEntry( p->vMatch[Type], iObj );                 }
+static inline int   Iff_ObjMatch( Iff_Man_t * p, Gia_Obj_t * pObj, int Type )               { return Iff_ObjMatchId( p, Gia_ObjId(p->pGia, pObj), Type );   }
+static inline void  Iff_ObjSetMatchId( Iff_Man_t * p, int iObj, int Type, int Match )       { Vec_IntWriteEntry( p->vMatch[Type], iObj, Match );            }
+static inline void  Iff_ObjSetMatch( Iff_Man_t * p, Gia_Obj_t * pObj, int Type, int Match ) { Iff_ObjSetMatchId( p, Gia_ObjId(p->pGia, pObj), Type, Match );}
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -77,22 +77,6 @@ void Gia_ManIffStop( Iff_Man_t * p )
     Vec_IntFree( p->vMatch[2] );
     Vec_IntFree( p->vMatch[3] );
     ABC_FREE( p );
-}
-
-/**Function*************************************************************
-
-  Synopsis    []
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-float Gia_IffObjTimeBest( Iff_Man_t * p, int iObj )
-{
-    return Abc_MinFloat( Iff_ObjTimeId(p, iObj, 1), Iff_ObjTimeId(p, iObj, 2) );
 }
 
 /**Function*************************************************************
@@ -135,6 +119,8 @@ int Gia_IffObjCount( Gia_Man_t * pGia, int iObj, int iFaninSkip, int iFaninSkip2
     {
         Gia_LutForEachFanin( pGia, iFaninSkip2, iFanin, i )
         {
+            if ( iFanin == iFaninSkip )
+                continue;
             if ( Gia_ObjIsTravIdCurrentId( pGia, iFanin ) )
                 continue;
             Gia_ObjSetTravIdCurrentId( pGia, iFanin );
@@ -158,41 +144,66 @@ int Gia_IffObjCount( Gia_Man_t * pGia, int iObj, int iFaninSkip, int iFaninSkip2
 float Gia_IffObjTimeOne( Iff_Man_t * p, int iObj, int iFaninSkip, int iFaninSkip2 )
 {
     int i, iFanin;
-    float Best = -ABC_INFINITY;
+    float DelayMax = -ABC_INFINITY;
     Gia_LutForEachFanin( p->pGia, iObj, iFanin, i )
-        if ( iFanin != iFaninSkip && iFanin != iFaninSkip2 && Best < Iff_ObjTimeId(p, iFanin, 1) )
-            Best = Iff_ObjTimeId(p, iFanin, 1);
+        if ( iFanin != iFaninSkip && iFanin != iFaninSkip2 && DelayMax < Iff_ObjTimeId(p, iFanin) )
+            DelayMax = Iff_ObjTimeId(p, iFanin);
     assert( i == Gia_ObjLutSize(p->pGia, iObj) );
     if ( iFaninSkip == -1 )
-        return Best + p->pLib->pLutDelays[i][0];
+        return DelayMax;
     Gia_LutForEachFanin( p->pGia, iFaninSkip, iFanin, i )
-        if ( Best < Iff_ObjTimeId(p, iFanin, 1) )
-            Best = Iff_ObjTimeId(p, iFanin, 1);
+        if ( iFanin != iFaninSkip2 && DelayMax < Iff_ObjTimeId(p, iFanin) )
+            DelayMax = Iff_ObjTimeId(p, iFanin);
     if ( iFaninSkip2 == -1 )
-        return Best;
+        return DelayMax;
     Gia_LutForEachFanin( p->pGia, iFaninSkip2, iFanin, i )
-        if ( Best < Iff_ObjTimeId(p, iFanin, 1) )
-            Best = Iff_ObjTimeId(p, iFanin, 1);
-    assert( Best >= 0 );
-    return Best;
+        if ( iFanin != iFaninSkip && DelayMax < Iff_ObjTimeId(p, iFanin) )
+            DelayMax = Iff_ObjTimeId(p, iFanin);
+    assert( DelayMax >= 0 );
+    return DelayMax;
 }
-float Gia_IffObjTimeTwo( Iff_Man_t * p, int iObj, int * piFanin )
+float Gia_IffObjTimeTwo( Iff_Man_t * p, int iObj, int * piFanin, float DelayMin )
 {
     int i, iFanin, nSize;
-    float This, Best = -ABC_INFINITY;
+    float This;
     *piFanin = -1;
     Gia_LutForEachFanin( p->pGia, iObj, iFanin, i )
     {
         This = Gia_IffObjTimeOne( p, iObj, iFanin, -1 );
-        nSize = Abc_MinInt( Gia_ObjLutSize(p->pGia, iObj) + Gia_ObjLutSize(p->pGia, iFanin) - 1, p->pLib->LutMax );
+        nSize = Gia_IffObjCount( p->pGia, iObj, iFanin, -1 );
+        assert( nSize <= p->pLib->LutMax );
         This += p->pLib->pLutDelays[nSize][0];
-        if ( Best < This )
+        if ( DelayMin > This )
         {
-            Best = This;
+            DelayMin = This;
             *piFanin = iFanin;
         }
     }
-    return Best;
+    return DelayMin;
+}
+float Gia_IffObjTimeThree( Iff_Man_t * p, int iObj, int * piFanin, int * piFanin2, float DelayMin )
+{
+    int i, k, iFanin, iFanin2, nSize;
+    float This;
+    *piFanin = -1;
+    *piFanin2 = -1;
+    Gia_LutForEachFanin( p->pGia, iObj, iFanin, i )
+    Gia_LutForEachFanin( p->pGia, iObj, iFanin2, k )
+    {
+        if ( iFanin == iFanin2 )
+            continue;
+        This  = Gia_IffObjTimeOne( p, iObj, iFanin, iFanin2 );
+        nSize = Gia_IffObjCount( p->pGia, iObj, iFanin, iFanin2 );
+        assert( nSize <= p->pLib->LutMax );
+        This += p->pLib->pLutDelays[nSize][0];
+        if ( DelayMin > This )
+        {
+            DelayMin  = This;
+            *piFanin  = iFanin;
+            *piFanin2 = iFanin2;
+        }
+    }
+    return DelayMin;
 }
 
 /**Function*************************************************************
@@ -210,9 +221,10 @@ Iff_Man_t * Gia_ManIffPerform( Gia_Man_t * pGia, If_LibLut_t * pLib, Tim_Man_t *
 {
     Iff_Man_t * p;
     Gia_Obj_t * pObj;
-    float arrTime1, arrTime2; 
-    int iObj, iFanin;
-    assert( nDegree == 2 );//|| nDegree == 3 );
+    int iObj, iFanin, iFanin1, iFanin2;
+    int CountAll = 0, Count2 = 0, Count3 = 0;
+    float arrTime1, arrTime2, arrTime3, arrBest = -ABC_INFINITY; 
+    assert( nDegree == 2 || nDegree == 3 );
     // start the mapping manager and set its parameters
     p = Gia_ManIffStart( pGia );
     p->pGia     = pGia;
@@ -220,9 +232,7 @@ Iff_Man_t * Gia_ManIffPerform( Gia_Man_t * pGia, If_LibLut_t * pLib, Tim_Man_t *
     p->nLutSize = nLutSize;
     p->nDegree  = nDegree;
     // compute arrival times of each node
-    Iff_ObjSetTimeId( p, 0, 1, 0 );
-    Iff_ObjSetTimeId( p, 0, 2, 0 );
-    Iff_ObjSetTimeId( p, 0, 3, 0 );
+    Iff_ObjSetTimeId( p, 0, 0 );
     Tim_ManIncrementTravId( pTime );
     Gia_ManForEachObj1( pGia, pObj, iObj )
     {
@@ -230,33 +240,53 @@ Iff_Man_t * Gia_ManIffPerform( Gia_Man_t * pGia, If_LibLut_t * pLib, Tim_Man_t *
         {
             if ( !Gia_ObjIsLut(pGia, iObj) )
                 continue;
+            CountAll++;
             // compute arrival times of LUT inputs
             arrTime1 = Gia_IffObjTimeOne( p, iObj, -1, -1 );
+            arrTime1 += p->pLib->pLutDelays[Gia_ObjLutSize(pGia, iObj)][0];
             // compute arrival times of LUT pairs
-            arrTime2 = Gia_IffObjTimeTwo( p, iObj, &iFanin );
-            // check arrival times
-            Iff_ObjSetTimeId( p, iObj, 1, arrTime2 );
-            if ( arrTime2 < arrTime1 )
-                Iff_ObjSetMatchId( p, iObj, 2, iFanin );
-            // compute arrival times of LUT triples
+            arrTime2 = Gia_IffObjTimeTwo( p, iObj, &iFanin, arrTime1 );
+            if ( nDegree == 2 )
+            {
+                // set arrival times
+                Iff_ObjSetTimeId( p, iObj, arrTime2 );
+                if ( arrTime2 < arrTime1 )
+                    Iff_ObjSetMatchId( p, iObj, 2, iFanin ), Count2++;                
+            }
+            else if ( nDegree == 3 )
+            {                
+                // compute arrival times of LUT triples
+                arrTime3 = Gia_IffObjTimeThree( p, iObj, &iFanin1, &iFanin2, arrTime2 );
+                // set arrival times
+                Iff_ObjSetTimeId( p, iObj, arrTime3 );
+                if ( arrTime3 == arrTime1 )
+                    continue;
+                if ( arrTime3 == arrTime2 )
+                    Iff_ObjSetMatchId( p, iObj, 2, iFanin ), Count2++;
+                else
+                {
+                    Iff_ObjSetMatchId( p, iObj, 2, iFanin1 );
+                    Iff_ObjSetMatchId( p, iObj, 3, iFanin2 ), Count3++;
+                }
+            }
+            else assert( 0 );
         }
         else if ( Gia_ObjIsCi(pObj) )
         {
             arrTime1 = Tim_ManGetCiArrival( pTime, Gia_ObjCioId(pObj) );
-            Iff_ObjSetTime( p, pObj, 1, arrTime1 );
-            Iff_ObjSetTime( p, pObj, 2, arrTime1 );
-            Iff_ObjSetTime( p, pObj, 3, arrTime1 );
+            Iff_ObjSetTime( p, pObj, arrTime1 );
         }
         else if ( Gia_ObjIsCo(pObj) )
         {
-            arrTime1 = Gia_IffObjTimeBest( p, Gia_ObjFaninId0p(pGia, pObj) );
+            arrTime1 = Iff_ObjTimeId( p, Gia_ObjFaninId0p(pGia, pObj) );
             Tim_ManSetCoArrival( pTime, Gia_ObjCioId(pObj), arrTime1 );
-            Iff_ObjSetTime( p, pObj, 1, arrTime1 );
-            Iff_ObjSetTime( p, pObj, 2, arrTime1 );
-            Iff_ObjSetTime( p, pObj, 3, arrTime1 );
+            Iff_ObjSetTime( p, pObj, arrTime1 );
+            arrBest = Abc_MaxFloat( arrBest, arrTime1 );
         }
         else assert( 0 );
     }
+    printf( "Max delay = %.2f.  Count1 = %d.  Count2 = %d.  Count3 = %d.\n", 
+        arrBest, CountAll - Count2 - Count3, Count2, Count3 );
     return p;
 }
 
@@ -273,28 +303,48 @@ Iff_Man_t * Gia_ManIffPerform( Gia_Man_t * pGia, If_LibLut_t * pLib, Tim_Man_t *
 ***********************************************************************/
 void Gia_ManIffSelect_rec( Iff_Man_t * p, int iObj, Vec_Int_t * vPacking )
 {
-    int i, iFanin, iFaninSkip;
+    int i, iFanin, iFaninSkip, iFaninSkip2;
     if ( Gia_ObjIsTravIdCurrentId( p->pGia, iObj ) )
         return;
     Gia_ObjSetTravIdCurrentId( p->pGia, iObj );
     assert( Gia_ObjIsLut(p->pGia, iObj) );
     iFaninSkip = Iff_ObjMatchId(p, iObj, 2);
+    iFaninSkip2 = Iff_ObjMatchId(p, iObj, 3);
     if ( iFaninSkip == -1 )
     {
+        assert( iFaninSkip2 == -1 );
         Gia_LutForEachFanin( p->pGia, iObj, iFanin, i )
             Gia_ManIffSelect_rec( p, iFanin, vPacking );
         Vec_IntPush( vPacking, 1 );
         Vec_IntPush( vPacking, iObj );
     }
-    else
+    else if ( iFaninSkip2 == -1 )
     {
-        Gia_LutForEachFanin( p->pGia, iFaninSkip, iFanin, i )
-                Gia_ManIffSelect_rec( p, iFanin, vPacking );
+        assert( iFaninSkip > 0 );
         Gia_LutForEachFanin( p->pGia, iObj, iFanin, i )
             if ( iFanin != iFaninSkip )
                 Gia_ManIffSelect_rec( p, iFanin, vPacking );
+        Gia_LutForEachFanin( p->pGia, iFaninSkip, iFanin, i )
+            Gia_ManIffSelect_rec( p, iFanin, vPacking );
         Vec_IntPush( vPacking, 2 );
         Vec_IntPush( vPacking, iFaninSkip );
+        Vec_IntPush( vPacking, iObj );
+    }
+    else
+    {
+        assert( iFaninSkip > 0 && iFaninSkip2 > 0 );
+        Gia_LutForEachFanin( p->pGia, iObj, iFanin, i )
+            if ( iFanin != iFaninSkip && iFanin != iFaninSkip2 )
+                Gia_ManIffSelect_rec( p, iFanin, vPacking );
+        Gia_LutForEachFanin( p->pGia, iFaninSkip, iFanin, i )
+            if ( iFanin != iFaninSkip2 )
+                Gia_ManIffSelect_rec( p, iFanin, vPacking );
+        Gia_LutForEachFanin( p->pGia, iFaninSkip2, iFanin, i )
+            if ( iFanin != iFaninSkip )
+                Gia_ManIffSelect_rec( p, iFanin, vPacking );
+        Vec_IntPush( vPacking, 3 );
+        Vec_IntPush( vPacking, iFaninSkip );
+        Vec_IntPush( vPacking, iFaninSkip2 );
         Vec_IntPush( vPacking, iObj );
     }
     Vec_IntAddToEntry( vPacking, 0, 1 );
@@ -335,22 +385,22 @@ void Gia_ManIffTest( Gia_Man_t * pGia, If_LibLut_t * pLib, int fVerbose )
     if ( nLutSize <= 4 )
     {
         nLutSize = 4;
-        if ( pLib->LutMax <= 7 )
+        if ( pLib->LutMax == 7 )
             nDegree = 2;
-        else if ( pLib->LutMax <= 10 )
+        else if ( pLib->LutMax == 10 )
             nDegree = 3;
         else
-            { printf( "Degree is more than 3.\n" ); return; }
+            { printf( "LUT library for packing 4-LUTs should have 7 or 10 inputs.\n" ); return; }
     }
     else if ( nLutSize <= 6 )
     {
         nLutSize = 6;
-        if ( pLib->LutMax <= 11 )
+        if ( pLib->LutMax == 11 )
             nDegree = 2;
-        else if ( pLib->LutMax <= 16 )
+        else if ( pLib->LutMax == 16 )
             nDegree = 3;
         else
-            { printf( "Degree is more than 3.\n" ); return; }
+            { printf( "LUT library for packing 6-LUTs should have 11 or 16 inputs.\n" ); return; }
     }
     else
     {
@@ -364,6 +414,7 @@ void Gia_ManIffTest( Gia_Man_t * pGia, If_LibLut_t * pLib, int fVerbose )
         pGia->pManTime = Tim_ManStart( Gia_ManCiNum(pGia), Gia_ManCoNum(pGia) );
     // perform timing computation
     p = Gia_ManIffPerform( pGia, pLib, pGia->pManTime, nLutSize, nDegree );
+    Tim_ManStopP( (Tim_Man_t **)&pGia->pManTime );
     // derive clustering
     Vec_IntFreeP( &pGia->vPacking );
     pGia->vPacking = Gia_ManIffSelect( p );

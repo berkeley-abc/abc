@@ -379,6 +379,7 @@ static int Abc_CommandAbc9Sweep              ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandAbc9Force              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Embed              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9If                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9Iff                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9If2                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Jf                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Struct             ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -946,6 +947,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "ABC9",         "&force",        Abc_CommandAbc9Force,        0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&embed",        Abc_CommandAbc9Embed,        0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&if",           Abc_CommandAbc9If,           0 );
+    Cmd_CommandAdd( pAbc, "ABC9",         "&iff",          Abc_CommandAbc9Iff,          0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&if2",          Abc_CommandAbc9If2,          0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&jf",           Abc_CommandAbc9Jf,           0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&struct",       Abc_CommandAbc9Struct,       0 );
@@ -30025,6 +30027,12 @@ int Abc_CommandAbc9If( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
 
+    if ( pPars->pLutLib == NULL && pPars->fRepack )
+    {
+        Abc_Print( 0, "Cannot perform repacking because LUT library is not given.\n" );
+        pPars->fRepack = 0;
+    }
+
     if ( pPars->nLutSize == -1 )
     {
         if ( pPars->pLutLib == NULL )
@@ -30238,6 +30246,61 @@ usage:
     Abc_Print( -2, "\t-t       : toggles repacking LUTs into new structures [default = %s]\n", pPars->fRepack? "yes": "no" );
     Abc_Print( -2, "\t-v       : toggles verbose output [default = %s]\n", pPars->fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h       : prints the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc9Iff( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern void Gia_ManIffTest( Gia_Man_t * pGia, If_LibLut_t * pLib, int fVerbose );
+    int c, fVerbose = 1;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pAbc->pGia == NULL )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9Iff(): There is no AIG to map.\n" );
+        return 1;
+    }
+    if ( !Gia_ManHasMapping(pAbc->pGia) )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9Iff(): Mapping of the AIG is not defined.\n" );
+        return 1;
+    }
+    if ( pAbc->pLibLut == NULL )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9Iff(): LUT library is not defined.\n" );
+        return 1;
+    }
+    Gia_ManIffTest( pAbc->pGia, (If_LibLut_t *)pAbc->pLibLut, fVerbose );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: &iff [-vh]\n" );
+    Abc_Print( -2, "\t           performs structural mapping into LUT structures\n" );
+    Abc_Print( -2, "\t-v       : toggle printing optimization summary [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h       : print the command usage\n");
     return 1;
 }
 
@@ -30605,9 +30668,7 @@ usage:
 int Abc_CommandAbc9Struct( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     extern void Gia_ManTestStruct( Gia_Man_t * p );
-    Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
     int c, fVerbose;
-    pNtk = Abc_FrameReadNtk(pAbc);
     // set defaults
     fVerbose   = 0;
     Extra_UtilGetoptReset();
@@ -30664,11 +30725,9 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9Trace( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
     int c;
     int fUseLutLib;
     int fVerbose;
-    pNtk = Abc_FrameReadNtk(pAbc);
     // set defaults
     fUseLutLib = 0;
     fVerbose   = 0;
