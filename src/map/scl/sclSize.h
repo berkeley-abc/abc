@@ -177,7 +177,7 @@ static inline SC_Man * Abc_SclManAlloc( SC_Lib * pLib, Abc_Ntk_t * pNtk )
     p->vNodeByGain = Vec_QueAlloc( p->nObjs );
     Vec_QueSetPriority( p->vNodeByGain, Vec_FltArrayP(p->vNode2Gain) );
     p->vNodeIter   = Vec_IntStartFull( p->nObjs );
-    p->vLevels     = Vec_WecStart( 2 * Abc_NtkLevel(pNtk) );
+    p->vLevels     = Vec_WecStart( 2 * Abc_NtkLevel(pNtk) + 1 );
     p->vChanged    = Vec_IntAlloc( 100 );
     Abc_NtkForEachCo( pNtk, pObj, i )
         pObj->Level = Abc_ObjFanin0(pObj)->Level + 1;
