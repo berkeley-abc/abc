@@ -23370,7 +23370,7 @@ usage:
     Abc_Print( -2, "\t        The paper describing the method: H. Katebi and I. L. Markov.\n" );
     Abc_Print( -2, "\t        \"Large-scale Boolean matching\". Proc. DATE 2010. \n" );
     Abc_Print( -2, "\t        http://www.eecs.umich.edu/~imarkov/pubs/conf/date10-match.pdf\n" );
-    Abc_Print( -2, "\t        \n" );
+//    Abc_Print( -2, "\t        \n" );
 
     return 1;
 }
@@ -23480,7 +23480,7 @@ usage:
     Abc_Print( -2, "\t        \"Generalized Boolean Symmetries Through Nested Partition\n");
     Abc_Print( -2, "\t        Refinement\". Proc. ICCAD 2013. \n" );
     //Abc_Print( -2, "\t        http://www.eecs.umich.edu/~imarkov/pubs/conf/date10-match.pdf\n" );
-    Abc_Print( -2, "\t        \n" );
+//    Abc_Print( -2, "\t        \n" );
 
     return 1;
 }
