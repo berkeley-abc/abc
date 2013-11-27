@@ -222,7 +222,7 @@ If_LibBox_t * If_LibBoxRead2( char * pFileName )
             while ( pToken == NULL )
             {
                 if ( fgets( pBuffer, nSize, pFile ) == NULL )
-                    assert( 0 );
+                { printf( "The table does not have enough entries.\n" ); fflush(stdout); assert( 0 ); }
                 pToken = strtok( pBuffer, " \n\r\t" );
             }
             pBox->pDelays[i] = (pToken[0] == '-') ? -1 : atoi(pToken);
