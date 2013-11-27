@@ -1,3 +1,4 @@
+
 CC   := gcc
 CXX  := g++
 LD   := $(CXX)
@@ -40,6 +41,7 @@ arch_flags : arch_flags.c
 
 ARCHFLAGS ?= $(shell $(CC) arch_flags.c -o arch_flags && ./arch_flags)
 OPTFLAGS  ?= -g -O #-DABC_NAMESPACE=xxx
+MSG_PREFIX ?=
 
 CFLAGS   += -Wall -Wno-unused-function -Wno-write-strings -Wno-sign-compare $(OPTFLAGS) $(ARCHFLAGS) -Isrc
 
@@ -99,19 +101,19 @@ DEP := $(OBJ:.o=.d)
 # implicit rules
 
 %.o: %.c
-	@echo "\`\` Compiling:" $(LOCAL_PATH)/$<
+	@echo "$(MSG_PREFIX)\`\` Compiling:" $(LOCAL_PATH)/$<
 	@$(CC) -c $(CFLAGS) $< -o $@
 
 %.o: %.cc
-	@echo "\`\` Compiling:" $(LOCAL_PATH)/$<
+	@echo "$(MSG_PREFIX)\`\` Compiling:" $(LOCAL_PATH)/$<
 	@$(CXX) -c $(CXXFLAGS) $< -o $@
 
 %.d: %.c
-	@echo "\`\` Dependency:" $(LOCAL_PATH)/$<
+	@echo "$(MSG_PREFIX)\`\` Dependency:" $(LOCAL_PATH)/$<
 	@./depends.sh $(CC) `dirname $*.c` $(CFLAGS) $*.c > $@
 
 %.d: %.cc
-	@echo "\`\` Generating dependency:" $(LOCAL_PATH)/$<
+	@echo "$(MSG_PREFIX)\`\` Generating dependency:" $(LOCAL_PATH)/$<
 	@./depends.sh $(CXX) `dirname $*.cc` $(CXXFLAGS) $*.cc > $@
 
 -include $(DEP)
@@ -121,21 +123,21 @@ DEP := $(OBJ:.o=.d)
 depend: $(DEP)
 
 clean: 
-	@echo "\`\` Cleaning up..."
+	@echo "$(MSG_PREFIX)\`\` Cleaning up..."
 	@rm -rvf $(PROG) lib$(PROG).a $(OBJ) $(GARBAGE) $(OBJ:.o=.d) 
 
 tags:
 	etags `find . -type f -regex '.*\.\(c\|h\)'`
 
 $(PROG): $(OBJ)
-	@echo "\`\` Building binary:" $(notdir $@)
+	@echo "$(MSG_PREFIX)\`\` Building binary:" $(notdir $@)
 	@$(LD) -o $@ $^ $(LIBS)
 
 lib$(PROG).a: $(OBJ)
-	@echo "\`\` Linking:" $(notdir $@)
+	@echo "$(MSG_PREFIX)\`\` Linking:" $(notdir $@)
 	@ar rv $@ $?
 	@ranlib $@
 
 docs:
-	@echo "\`\` Building documentation." $(notdir $@)
+	@echo "$(MSG_PREFIX)\`\` Building documentation." $(notdir $@)
 	@doxygen doxygen.conf

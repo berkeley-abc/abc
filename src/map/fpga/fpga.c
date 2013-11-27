@@ -161,7 +161,7 @@ int Fpga_CommandReadLibrary( Abc_Frame_t * pAbc, int argc, char **argv )
     return 0;
 
 usage:
-    fprintf( pErr, "\nusage: read_lut [-vh]\n");
+    fprintf( pErr, "usage: read_lut [-vh]\n");
     fprintf( pErr, "\t          read the LUT library from the file\n" );  
     fprintf( pErr, "\t-v      : toggles enabling of verbose output [default = %s]\n", (fVerbose? "yes" : "no") );
     fprintf( pErr, "\t-h      : print the command usage\n");
@@ -231,7 +231,7 @@ int Fpga_CommandPrintLibrary( Abc_Frame_t * pAbc, int argc, char **argv )
     return 0;
 
 usage:
-    fprintf( pErr, "\nusage: print_lut [-vh]\n");
+    fprintf( pErr, "usage: print_lut [-vh]\n");
     fprintf( pErr, "\t          print the current LUT library\n" );  
     fprintf( pErr, "\t-v      : toggles enabling of verbose output [default = %s]\n", (fVerbose? "yes" : "no") );
     fprintf( pErr, "\t-h      : print the command usage\n");

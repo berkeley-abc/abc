@@ -543,16 +543,17 @@ void CmdCommandFree( Abc_Command * pCommand )
   SeeAlso     []
 
 ***********************************************************************/
-void CmdCommandPrint( Abc_Frame_t * pAbc, int fPrintAll )
+void CmdCommandPrint( Abc_Frame_t * pAbc, int fPrintAll, int fDetails )
 {
     const char *key;
     char *value;
     st__generator * gen;
     Abc_Command ** ppCommands;
     Abc_Command * pCommands;
-    int nCommands, i;
+    int nCommands, iGroupStart, i, j;
     char * sGroupCur;
     int LenghtMax, nColumns, iCom = 0;
+    FILE *backupErr = pAbc->Err;
 
     // put all commands into one array
     nCommands = st__count( pAbc->tCommands );
@@ -584,6 +585,8 @@ void CmdCommandPrint( Abc_Frame_t * pAbc, int fPrintAll )
 
     // print the command by group
     sGroupCur = NULL;
+    iGroupStart = 0;
+    pAbc->Err = pAbc->Out;
     for ( i = 0; i < nCommands; i++ )
         if ( sGroupCur && strcmp( sGroupCur, ppCommands[i]->sGroup ) == 0 )
         { // this command belongs to the same group as the previous one
@@ -595,6 +598,22 @@ void CmdCommandPrint( Abc_Frame_t * pAbc, int fPrintAll )
         else
         { // this command starts the new group of commands
             // start the new group
+            if ( fDetails && i != iGroupStart )
+            { // print help messages for all commands in the previous groups
+                fprintf( pAbc->Out, "\n" );
+                for ( j = iGroupStart; j < i; j++ )
+                {
+                    fprintf( pAbc->Out, "\n" );
+                    // fprintf( pAbc->Out, "--- %s ---\n", ppCommands[j]->sName );
+                    char *tmp_cmd = ABC_ALLOC(char, strlen(ppCommands[j]->sName)+4);
+                    (void) sprintf(tmp_cmd, "%s -h", ppCommands[j]->sName);
+                    (void) Cmd_CommandExecute( pAbc, tmp_cmd );
+                    ABC_FREE(tmp_cmd);
+                }
+                fprintf( pAbc->Out, "\n" );
+                fprintf( pAbc->Out, "   ----------------------------------------------------------------------" );
+                iGroupStart = i;
+            }
             fprintf( pAbc->Out, "\n" );
             fprintf( pAbc->Out, "\n" );
             fprintf( pAbc->Out, "%s commands:\n", ppCommands[i]->sGroup );
@@ -605,6 +624,20 @@ void CmdCommandPrint( Abc_Frame_t * pAbc, int fPrintAll )
             // reset the command counter
             iCom = 1;
         }
+    if ( fDetails && i != iGroupStart )
+    { // print help messages for all commands in the previous groups
+        fprintf( pAbc->Out, "\n" );
+        for ( j = iGroupStart; j < i; j++ )
+        {
+            fprintf( pAbc->Out, "\n" );
+            // fprintf( pAbc->Out, "--- %s ---\n", ppCommands[j]->sName );
+            char *tmp_cmd = ABC_ALLOC(char, strlen(ppCommands[j]->sName)+4);
+            (void) sprintf(tmp_cmd, "%s -h", ppCommands[j]->sName);
+            (void) Cmd_CommandExecute( pAbc, tmp_cmd );
+            ABC_FREE(tmp_cmd);
+        }
+    }
+    pAbc->Err = backupErr;
     fprintf( pAbc->Out, "\n" );
     ABC_FREE( ppCommands );
 }

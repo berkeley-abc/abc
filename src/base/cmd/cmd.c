@@ -498,12 +498,13 @@ int CmdCommandUnalias( Abc_Frame_t * pAbc, int argc, char **argv )
 ******************************************************************************/
 int CmdCommandHelp( Abc_Frame_t * pAbc, int argc, char **argv )
 {
-    int fPrintAll;
+    int fPrintAll, fDetails;
     int c;
 
     fPrintAll = 0;
+    fDetails = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "ah" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "adh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -511,6 +512,9 @@ int CmdCommandHelp( Abc_Frame_t * pAbc, int argc, char **argv )
             case 'v':
                 fPrintAll ^= 1;
                 break;
+            break;
+        case 'd':
+            fDetails ^= 1;
             break;
         case 'h':
             goto usage;
@@ -523,13 +527,14 @@ int CmdCommandHelp( Abc_Frame_t * pAbc, int argc, char **argv )
     if ( argc != globalUtilOptind )
         goto usage;
 
-    CmdCommandPrint( pAbc, fPrintAll );
+    CmdCommandPrint( pAbc, fPrintAll, fDetails );
     return 0;
 
 usage:
-    fprintf( pAbc->Err, "usage: help [-a] [-h]\n" );
+    fprintf( pAbc->Err, "usage: help [-a] [-d] [-h]\n" );
     fprintf( pAbc->Err, "       prints the list of available commands by group\n" );
     fprintf( pAbc->Err, " -a       toggle printing hidden commands [default = %s]\n", fPrintAll? "yes": "no" );
+    fprintf( pAbc->Err, " -d       print usage details to all commands [default = %s]\n", fDetails? "yes": "no" );
     fprintf( pAbc->Err, " -h       print the command usage\n" );
     return 1;
 }
@@ -885,6 +890,9 @@ int CmdCommandUnsetVariable( Abc_Frame_t * pAbc, int argc, char **argv )
 ******************************************************************************/
 int CmdCommandUndo( Abc_Frame_t * pAbc, int argc, char **argv )
 {
+    if ( argc == 2 && !strcmp(argv[1], "-h") )
+        goto usage;
+
     if ( pAbc->pNtkCur == NULL )
     {
         fprintf( pAbc->Out, "Empty network.\n" );
@@ -896,6 +904,7 @@ int CmdCommandUndo( Abc_Frame_t * pAbc, int argc, char **argv )
     if ( argc == 1 )
         return CmdCommandRecall( pAbc, argc, argv );
 
+usage:
     fprintf( pAbc->Err, "usage: undo\n" );
     fprintf( pAbc->Err, "         sets the current network to be the previously saved network\n" );
     return 1;
@@ -921,13 +930,6 @@ int CmdCommandRecall( Abc_Frame_t * pAbc, int argc, char **argv )
     char * pValue;
     int iStepStart, iStepStop;
 
-    if ( pAbc->pNtkCur == NULL )
-    {
-        fprintf( pAbc->Out, "Empty network.\n" );
-        return 0;
-    }
-
-
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
     {
@@ -938,6 +940,12 @@ int CmdCommandRecall( Abc_Frame_t * pAbc, int argc, char **argv )
             default:
                 goto usage;
         }
+    }
+
+    if ( pAbc->pNtkCur == NULL )
+    {
+        fprintf( pAbc->Out, "Empty network.\n" );
+        return 0;
     }
 
     // get the number of networks to save
@@ -1034,12 +1042,6 @@ int CmdCommandEmpty( Abc_Frame_t * pAbc, int argc, char **argv )
 {
     int c;
 
-    if ( pAbc->pNtkCur == NULL )
-    {
-        fprintf( pAbc->Out, "Empty network.\n" );
-        return 0;
-    }
-
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
     {
@@ -1050,6 +1052,12 @@ int CmdCommandEmpty( Abc_Frame_t * pAbc, int argc, char **argv )
             default:
                 goto usage;
         }
+    }
+
+    if ( pAbc->pNtkCur == NULL )
+    {
+        fprintf( pAbc->Out, "Empty network.\n" );
+        return 0;
     }
 
     Abc_FrameDeleteAllNetworks( pAbc );
@@ -1635,6 +1643,13 @@ int CmdCommandSis( Abc_Frame_t * pAbc, int argc, char **argv )
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
+    if ( argc == 1 )
+        goto usage;
+    if ( strcmp( argv[1], "-h" ) == 0 )
+        goto usage;
+    if ( strcmp( argv[1], "-?" ) == 0 )
+        goto usage;
+
     if ( pNtk == NULL )
     {
         fprintf( pErr, "Empty network.\n" );
@@ -1646,13 +1661,6 @@ int CmdCommandSis( Abc_Frame_t * pAbc, int argc, char **argv )
         fprintf( pErr, "Wrong command: \"%s\".\n", argv[0] );
         goto usage;
     }
-
-    if ( argc == 1 )
-        goto usage;
-    if ( strcmp( argv[1], "-h" ) == 0 )
-        goto usage;
-    if ( strcmp( argv[1], "-?" ) == 0 )
-        goto usage;
 
     // get the names from the resource file
     if ( Cmd_FlagReadByName(pAbc, "siswin") )
@@ -1739,7 +1747,6 @@ int CmdCommandSis( Abc_Frame_t * pAbc, int argc, char **argv )
     return 0;
 
 usage:
-    fprintf( pErr, "\n" );
     fprintf( pErr, "Usage: sis [-h] <com>\n");
     fprintf( pErr, "         invokes SIS command for the current ABC network\n" );
     fprintf( pErr, "         (the executable of SIS should be in the same directory)\n" );
@@ -1778,6 +1785,13 @@ int CmdCommandMvsis( Abc_Frame_t * pAbc, int argc, char **argv )
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
+    if ( argc == 1 )
+        goto usage;
+    if ( strcmp( argv[1], "-h" ) == 0 )
+        goto usage;
+    if ( strcmp( argv[1], "-?" ) == 0 )
+        goto usage;
+
     if ( pNtk == NULL )
     {
         fprintf( pErr, "Empty network.\n" );
@@ -1789,13 +1803,6 @@ int CmdCommandMvsis( Abc_Frame_t * pAbc, int argc, char **argv )
         fprintf( pErr, "Wrong command: \"%s\".\n", argv[0] );
         goto usage;
     }
-
-    if ( argc == 1 )
-        goto usage;
-    if ( strcmp( argv[1], "-h" ) == 0 )
-        goto usage;
-    if ( strcmp( argv[1], "-?" ) == 0 )
-        goto usage;
 
     // get the names from the resource file
     if ( Cmd_FlagReadByName(pAbc, "mvsiswin") )
@@ -1882,7 +1889,6 @@ int CmdCommandMvsis( Abc_Frame_t * pAbc, int argc, char **argv )
     return 0;
 
 usage:
-    fprintf( pErr, "\n" );
     fprintf( pErr, "Usage: mvsis [-h] <com>\n");
     fprintf( pErr, "         invokes MVSIS command for the current ABC network\n" );
     fprintf( pErr, "         (the executable of MVSIS should be in the same directory)\n" );
@@ -1992,6 +1998,14 @@ int CmdCommandCapo( Abc_Frame_t * pAbc, int argc, char **argv )
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
+    if ( argc > 1 )
+    {
+        if ( strcmp( argv[1], "-h" ) == 0 )
+            goto usage;
+        if ( strcmp( argv[1], "-?" ) == 0 )
+            goto usage;
+    }
+
     if ( pNtk == NULL )
     {
         fprintf( pErr, "Empty network.\n" );
@@ -2002,14 +2016,6 @@ int CmdCommandCapo( Abc_Frame_t * pAbc, int argc, char **argv )
     {
         fprintf( pErr, "Wrong command: \"%s\".\n", argv[0] );
         goto usage;
-    }
-
-    if ( argc > 1 )
-    {
-        if ( strcmp( argv[1], "-h" ) == 0 )
-            goto usage;
-        if ( strcmp( argv[1], "-?" ) == 0 )
-            goto usage;
     }
 
     // get the names from the resource file
@@ -2125,7 +2131,6 @@ int CmdCommandCapo( Abc_Frame_t * pAbc, int argc, char **argv )
     return 0;
 
 usage:
-    fprintf( pErr, "\n" );
     fprintf( pErr, "Usage: capo [-h] <com>\n");
     fprintf( pErr, "         peforms placement of the current network using Capo\n" );
     fprintf( pErr, "         a Capo binary should be present in the same directory\n" );
@@ -2244,8 +2249,28 @@ usage:
 ******************************************************************************/
 int CmdCommandVersion( Abc_Frame_t * pAbc, int argc, char **argv )
 {
+    int c;
+
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
+    {
+        switch ( c )
+        {
+            case 'h':
+                goto usage;
+            default:
+                goto usage;
+        }
+    }
+
     printf("%s\n", Abc_UtilsGetVersion(pAbc));
     return 0;
+
+usage:
+    fprintf( pAbc->Err, "usage: version [-h]\n" );
+    fprintf( pAbc->Err, "         print the version string\n" );
+    fprintf( pAbc->Err, "   -h :  print the command usage\n");
+    return 1;
 }
 
 

@@ -6162,7 +6162,6 @@ usage:
     Abc_Print( -2, "  Professor Tsutomu Sasao (sasao@cse.kyutech.ac.jp) at Kyushu Institute\n");
     Abc_Print( -2, "  of Technology. This work received Takeda Techno-Entrepreneurship Award:\n");
     Abc_Print( -2, "  http://www.lsi-cad.com/sasao/photo/takeda.html\n");
-    Abc_Print( -2, "\t         \n");
     return 1;
 }
 
@@ -6244,7 +6243,6 @@ usage:
     Abc_Print( -2, "\t-a       : toggle multi-input XOR vs multi-input AND [default = %s]\n", fAnd? "AND": "XOR" );
     Abc_Print( -2, "\t-v       : toggle verbose printout [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h       : print the command usage\n");
-    Abc_Print( -2, "\t         \n");
     return 1;
 }
 
@@ -9390,6 +9388,12 @@ int Abc_CommandEspresso( Abc_Frame_t * pAbc, int argc, char ** argv )
     int fVerbose;
     extern void Abc_NtkEspresso( Abc_Ntk_t * pNtk, int fVerbose );
 
+    if ( argc == 2 && !strcmp(argv[1], "-h") )
+    {
+        Abc_Print( -2, "The espresso command is currently disabled.\n" );
+        return 1;
+    }
+
     Abc_Print( -1, "This command is currently disabled.\n" );
     return 0;
 
@@ -12525,7 +12529,7 @@ int Abc_CommandNpnLoad( Abc_Frame_t * pAbc, int argc, char ** argv )
     char * pFileName;
     int c;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
     {
         switch ( c )
         {
@@ -12565,7 +12569,7 @@ int Abc_CommandNpnSave( Abc_Frame_t * pAbc, int argc, char ** argv )
     char * pFileName;
     int c;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
     {
         switch ( c )
         {
@@ -12607,7 +12611,7 @@ int Abc_CommandSendAig( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     int c, fAndSpace = 1, fAbsNetlist = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "a" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "ah" ) ) != EOF )
     {
         switch ( c )
         {
@@ -12617,6 +12621,8 @@ int Abc_CommandSendAig( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'b':
             fAbsNetlist ^= 1;
             break;
+        case 'h':
+            goto usage;
         default:
             goto usage;
         }
@@ -12682,7 +12688,7 @@ int Abc_CommandSendStatus( Abc_Frame_t * pAbc, int argc, char ** argv )
     extern int Gia_ManToBridgeResult( FILE * pFile, int Result, Abc_Cex_t * pCex, int iPoProved );
     int c;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
     {
         switch ( c )
         {
@@ -13947,12 +13953,6 @@ int Abc_CommandRecDump2( Abc_Frame_t * pAbc, int argc, char ** argv )
     //pNtk = Abc_FrameReadNtk(pAbc);
     // set defaults
     Extra_UtilGetoptReset();
-
-    if ( !Abc_NtkRecIsRunning2() )
-    {
-        Abc_Print( -1, "The AIG subgraph recording is not started.\n" );
-        return 1;
-    }
     while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
     {
         switch ( c )
@@ -13962,6 +13962,12 @@ int Abc_CommandRecDump2( Abc_Frame_t * pAbc, int argc, char ** argv )
         default:
             goto usage;
         }
+    }
+
+    if ( !Abc_NtkRecIsRunning2() )
+    {
+        Abc_Print( -1, "The AIG subgraph recording is not started.\n" );
+        return 1;
     }
     pGia = Abc_NtkRecGetGia();
     pArgvNew = argv + globalUtilOptind;
@@ -16990,6 +16996,12 @@ int Abc_CommandFlowRetime( Abc_Frame_t * pAbc, int argc, char ** argv )
     int fComputeInit, fGuaranteeInit, fBlockConst;
     int fFastButConservative;
     int maxDelay;
+
+    if ( argc == 2 && !strcmp(argv[1], "-h") )
+    {
+        Abc_Print( -2, "The fretime command is temporarily disabled.\n" );
+        return 1;
+    }
 
     Abc_Print( -1, "This command is temporarily disabled.\n" );
     return 0;
