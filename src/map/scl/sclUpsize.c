@@ -137,7 +137,7 @@ void Abc_SclFindCriticalNodeWindow_rec( SC_Man * p, Abc_Obj_t * pObj, Vec_Int_t 
         fArrMax = Abc_SclObjGetSlack(p, pObj, p->MaxDelay);
     else
         fArrMax = Abc_SclGetMaxDelayNodeFanins( p, pObj );
-    assert( fArrMax >= -1 );
+//    assert( fArrMax >= -1 );
     fArrMax = Abc_MaxFloat( fArrMax, 0 );
     // traverse all fanins whose arrival times are within a window
     Abc_ObjForEachFanin( pObj, pNext, i )
