@@ -10738,7 +10738,7 @@ int Abc_CommandSenseInput( Abc_Frame_t * pAbc, int argc, char ** argv )
 usage:
     Abc_Print( -2, "usage: senseinput [-C num] [-vh]\n" );
     Abc_Print( -2, "\t         computes sensitivity of POs to PIs under constraint\n" );
-    Abc_Print( -2, "\t         constraint should be represented as the last PO" );
+    Abc_Print( -2, "\t         constraint should be represented as the last PO\n" );
     Abc_Print( -2, "\t-C num : the max number of conflicts at a node [default = %d]\n", nConfLim );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
@@ -23627,7 +23627,7 @@ usage:
     Abc_Print( -2, "\t-h        : print the command usage\n"); 
 
     Abc_Print( -2, "\t            \n" );
-    Abc_Print( -2, "\t            This command was contributed by Hadi Katebi from U Michigan." );
+    Abc_Print( -2, "\t            This command was contributed by Hadi Katebi from U Michigan.\n" );
     Abc_Print( -2, "\t            The paper describing the method: H. Katebi, K. Sakallah and\n");
     Abc_Print( -2, "\t            I. L. Markov.\n" );
     Abc_Print( -2, "\t            \"Generalized Boolean Symmetries Through Nested Partition\n");
