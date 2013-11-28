@@ -25012,7 +25012,8 @@ int Abc_CommandAbc9ReadBlif( Abc_Frame_t * pAbc, int argc, char ** argv )
 
 usage:
     Abc_Print( -2, "usage: &read_blif [-vh] <file>\n" );
-    Abc_Print( -2, "\t         reads the current AIG from a hierarchical BLIF file\n" );
+    Abc_Print( -2, "\t         a specialized reader for hierarchical BLIF files\n" );
+    Abc_Print( -2, "\t         (for general-purpose BLIFs, please use \"read_blif\")\n" );
     Abc_Print( -2, "\t-v     : toggles additional verbose output [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     Abc_Print( -2, "\t<file> : the file name\n");
