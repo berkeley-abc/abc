@@ -564,14 +564,20 @@ void Ioa_WriteAiger( Aig_Man_t * pMan, char * pFileName, int fWriteSymbols, int 
     if ( fWriteSymbols )
     {
         // write PIs
-        Aig_ManForEachCi( pMan, pObj, i )
+        Aig_ManForEachPiSeq( pMan, pObj, i )
             fprintf( pFile, "i%d %s\n", i, Aig_ObjName(pObj) );
         // write latches
-        Aig_ManForEachLatch( pMan, pObj, i )
+        Aig_ManForEachLoSeq( pMan, pObj, i )
             fprintf( pFile, "l%d %s\n", i, Aig_ObjName(Aig_ObjFanout0(pObj)) );
         // write POs
-        Aig_ManForEachCo( pMan, pObj, i )
-            fprintf( pFile, "o%d %s\n", i, Aig_ObjName(pObj) );
+        int bads = Aig_ManCoNum(pMan) - Aig_ManRegNum(pMan) - Aig_ManConstrNum(pMan);
+        Aig_ManForEachPoSeq( pMan, pObj, i )
+            if ( !Aig_ManConstrNum(pMan) )
+                fprintf( pFile, "o%d %s\n", i, Aig_ObjName(pObj) );
+            else ( i < bads )
+                fprintf( pFile, "b%d %s\n", i, Aig_ObjName(pObj) );
+            else
+                fprintf( pFile, "c%d %s\n", i - bads, Aig_ObjName(pObj) );
     }
 */
     // write the comment
