@@ -549,11 +549,11 @@ void Io_WriteAigerGz( Abc_Ntk_t * pNtk, char * pFileName, int fWriteSymbols )
         // write POs
         Abc_NtkForEachPo( pNtk, pObj, i )
             if ( !fExtended )
-                gzprintf( pFile, "o%d %s\n", i, Aig_ObjName(pObj) );
-            else ( i < Abc_NtkPoNum(pNtk) - Abc_NtkConstrNum(pNtk) )
-                gzprintf( pFile, "b%d %s\n", i, Aig_ObjName(pObj) );
+                gzprintf( pFile, "o%d %s\n", i, Abc_ObjName(pObj) );
+            else if ( i < Abc_NtkPoNum(pNtk) - Abc_NtkConstrNum(pNtk) )
+                gzprintf( pFile, "b%d %s\n", i, Abc_ObjName(pObj) );
             else
-                gzprintf( pFile, "c%d %s\n", i - (Abc_NtkPoNum(pNtk) - Abc_NtkConstrNum(pNtk)), Aig_ObjName(pObj) );
+                gzprintf( pFile, "c%d %s\n", i - (Abc_NtkPoNum(pNtk) - Abc_NtkConstrNum(pNtk)), Abc_ObjName(pObj) );
     }
 
     // write the comment

@@ -563,6 +563,7 @@ void Ioa_WriteAiger( Aig_Man_t * pMan, char * pFileName, int fWriteSymbols, int 
     // write the symbol table
     if ( fWriteSymbols )
     {
+        int bads;
         // write PIs
         Aig_ManForEachPiSeq( pMan, pObj, i )
             fprintf( pFile, "i%d %s\n", i, Aig_ObjName(pObj) );
@@ -570,11 +571,11 @@ void Ioa_WriteAiger( Aig_Man_t * pMan, char * pFileName, int fWriteSymbols, int 
         Aig_ManForEachLoSeq( pMan, pObj, i )
             fprintf( pFile, "l%d %s\n", i, Aig_ObjName(Aig_ObjFanout0(pObj)) );
         // write POs
-        int bads = Aig_ManCoNum(pMan) - Aig_ManRegNum(pMan) - Aig_ManConstrNum(pMan);
+        bads = Aig_ManCoNum(pMan) - Aig_ManRegNum(pMan) - Aig_ManConstrNum(pMan);
         Aig_ManForEachPoSeq( pMan, pObj, i )
             if ( !Aig_ManConstrNum(pMan) )
                 fprintf( pFile, "o%d %s\n", i, Aig_ObjName(pObj) );
-            else ( i < bads )
+            else if ( i < bads )
                 fprintf( pFile, "b%d %s\n", i, Aig_ObjName(pObj) );
             else
                 fprintf( pFile, "c%d %s\n", i - bads, Aig_ObjName(pObj) );
