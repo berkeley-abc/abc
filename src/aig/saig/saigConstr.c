@@ -283,7 +283,7 @@ Aig_Man_t * Saig_ManDupUnfoldConstrs( Aig_Man_t * pAig )
     vConsAll = Vec_PtrAlloc( Saig_ManPoNum(pAig) );
     Saig_ManForEachPo( pAig, pObj, i )
     {
-        if ( Aig_ObjFanin0(pObj) == Aig_ManConst1(pAig) )
+        if ( Aig_ObjChild0(pObj) == Aig_ManConst0(pAig) )
             continue;
         RetValue = Saig_ManDetectConstr( pAig, i, &vOuts, &vCons );
         if ( RetValue == 0 )
@@ -394,9 +394,10 @@ Aig_Man_t * Saig_ManDupFoldConstrs( Aig_Man_t * pAig, Vec_Int_t * vConstrs )
     // create primary output
     Saig_ManForEachPo( pAig, pObj, i )
     {
-        if ( Aig_ObjFanin0(pObj) == Aig_ManConst1(pAig) )
-            continue;
-        pMiter = Aig_And( pAigNew, Aig_ObjChild0Copy(pObj), Aig_Not(pFlopIn) );
+        if ( Aig_ObjChild0(pObj) == Aig_ManConst0(pAig) ) // the output is a constant 0
+            pMiter = Aig_ObjChild0Copy(pObj);
+        else
+            pMiter = Aig_And( pAigNew, Aig_ObjChild0Copy(pObj), Aig_Not(pFlopIn) );
         Aig_ObjCreateCo( pAigNew, pMiter );
     }
 
