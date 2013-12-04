@@ -1174,18 +1174,27 @@ void Abc_NtkPrintSharing( Abc_Ntk_t * pNtk )
   SeeAlso     []
 
 ***********************************************************************/
+int Abc_NtkCountPis( Vec_Ptr_t * vSupp )
+{
+    Abc_Obj_t * pObj;
+    int i, Counter = 0;
+    Vec_PtrForEachEntry( Abc_Obj_t *, vSupp, pObj, i )
+        Counter += Abc_ObjIsPi(pObj);
+    return Counter;
+}
 void Abc_NtkPrintStrSupports( Abc_Ntk_t * pNtk, int fMatrix )
 {
     Vec_Ptr_t * vSupp, * vNodes;
     Abc_Obj_t * pObj;
-    int i, k;
+    int i, k, nPis;
     printf( "Structural support info:\n" );
     Abc_NtkForEachCo( pNtk, pObj, i )
     {
         vSupp  = Abc_NtkNodeSupport( pNtk, &pObj, 1 );
         vNodes = Abc_NtkDfsNodes( pNtk, &pObj, 1 );
-        printf( "%5d  %20s :  Cone = %5d.  Supp = %5d.\n",
-            i, Abc_ObjName(pObj), vNodes->nSize, vSupp->nSize );
+        nPis   = Abc_NtkCountPis( vSupp );
+        printf( "%5d  %20s :  Cone = %5d.  Supp = %5d. (PIs = %5d. FFs = %5d.)\n",
+            i, Abc_ObjName(pObj), vNodes->nSize, vSupp->nSize, nPis, vSupp->nSize - nPis );
         Vec_PtrFree( vNodes );
         Vec_PtrFree( vSupp );
     }
