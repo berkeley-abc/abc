@@ -164,6 +164,14 @@ int Saig_ManDetectConstr( Aig_Man_t * p, int iOut, Vec_Ptr_t ** pvOuts, Vec_Ptr_
     *pvOuts = NULL;
     *pvCons = NULL;
     pObj = Aig_ObjChild0( Aig_ManCo(p, iOut) );
+    if ( pObj == Aig_ManConst0(p) )
+    {
+        vUnique = Vec_PtrStart( 1 );
+        Vec_PtrWriteEntry( vUnique, 0, Aig_ManConst1(p) );
+        *pvOuts = vUnique;
+        *pvCons = Vec_PtrAlloc( 0 );
+        return -1;
+    }
     if ( Aig_IsComplement(pObj) || !Aig_ObjIsNode(pObj) )
     {
         printf( "The output is not an AND.\n" );
@@ -283,8 +291,6 @@ Aig_Man_t * Saig_ManDupUnfoldConstrs( Aig_Man_t * pAig )
     vConsAll = Vec_PtrAlloc( Saig_ManPoNum(pAig) );
     Saig_ManForEachPo( pAig, pObj, i )
     {
-        if ( Aig_ObjChild0(pObj) == Aig_ManConst0(pAig) )
-            continue;
         RetValue = Saig_ManDetectConstr( pAig, i, &vOuts, &vCons );
         if ( RetValue == 0 )
         {
@@ -302,8 +308,17 @@ Aig_Man_t * Saig_ManDupUnfoldConstrs( Aig_Man_t * pAig )
     // check if constraints are compatible
     vCons0 = (Vec_Ptr_t *)Vec_PtrEntry( vConsAll, 0 );
     Vec_PtrForEachEntry( Vec_Ptr_t *, vConsAll, vCons, i )
+        if ( Vec_PtrSize(vCons) )
+            vCons0 = vCons;
+    Vec_PtrForEachEntry( Vec_Ptr_t *, vConsAll, vCons, i )
+    {
+        // Constant 0 outputs are always compatible (vOuts stores the negation)
+        vOuts = (Vec_Ptr_t *)Vec_PtrEntry( vOutsAll, i );
+        if ( Vec_PtrSize(vOuts) == 1 && (Aig_Obj_t *)Vec_PtrEntry( vOuts, 0 ) == Aig_ManConst1(pAig) )
+            continue;
         if ( !Vec_PtrEqual(vCons0, vCons) )
             break;
+    }
     if ( i < Vec_PtrSize(vConsAll) )
     {
         printf( "Collected constraints are not compatible.\n" );
@@ -394,10 +409,7 @@ Aig_Man_t * Saig_ManDupFoldConstrs( Aig_Man_t * pAig, Vec_Int_t * vConstrs )
     // create primary output
     Saig_ManForEachPo( pAig, pObj, i )
     {
-        if ( Aig_ObjChild0(pObj) == Aig_ManConst0(pAig) ) // the output is a constant 0
-            pMiter = Aig_ObjChild0Copy(pObj);
-        else
-            pMiter = Aig_And( pAigNew, Aig_ObjChild0Copy(pObj), Aig_Not(pFlopIn) );
+        pMiter = Aig_And( pAigNew, Aig_ObjChild0Copy(pObj), Aig_Not(pFlopIn) );
         Aig_ObjCreateCo( pAigNew, pMiter );
     }
 
