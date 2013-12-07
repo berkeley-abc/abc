@@ -78,7 +78,7 @@ cex_list = []
 TERM = 'USL'
 last_gasp_time = 10000
 last_gasp_time = 500
-last_gasp_time = 2001 #set to conform to hwmcc12
+last_gasp_time = 900 #set to conform to hwmcc12
 use_pms = True
 
 #gabs = False #use the gate refinement method after vta
@@ -250,10 +250,10 @@ def initialize():
     cex_list = []
     n_pos_before = n_pos()
     n_pos_proved = 0
-    abs_time = 150 #timeout for abstraction
+    abs_time = 150
     abs_ref_time = 50 #number of sec. allowed for abstraction refinement.
-    total_spec_refine_time = 150 # timeout for speculation refinement
-    abs_ratio = .5 
+    total_spec_refine_time = 150
+    abs_ratio = .5
     hist = []
     skip_spec = False
     t_iter_start = 0
@@ -377,16 +377,14 @@ def set_engines(N=0):
     """
     global reachs,pdrs,sims,intrps,bmcs,n_proc,abs_ratio,ifbip,bmcs1, if_no_bip, allpdrs,allbmcs
     bmcs1 = [9] #BMC3
-##    #for HWMCC we want to set N = 8
-##    N = 8
+    #for HWMCC we want to set N = 8
+    N = 8
     if N == 0:
         N = n_proc = 1+os.sysconf(os.sysconf_names["SC_NPROCESSORS_ONLN"])
 ##        N = n_proc = 8 ### simulate 4 processors for HWMCC - turn this off a hwmcc.
     else:
         n_proc = N
 ##    print 'n_proc = %d'%n_proc
-    #strategy is to use 2x number of processors
-    N = n_proc = -1+2*N
     if N <= 1:
         reachs = [24]
         pdrs = [7]
@@ -735,7 +733,6 @@ def set_max_bmc(b):
         report_bmc_depth(max_bmc)
 
 def report_bmc_depth(m):
-    return #for non hwmcc applications
     print 'u%d'%m
 
 def print_circuit_stats():
@@ -944,7 +941,7 @@ def simplify(M=0,N=0):
                 print '\n'
     return get_status()
             
-def simulate2(t=2001):
+def simulate2(t=900):
     """Does rarity simulation. Simulation is restricted by the amount
     of memory it might use. At first wide but shallow simulation is done, followed by
     successively more narrow but deeper simulation. 
@@ -969,7 +966,7 @@ def simulate2(t=2001):
             if ((time.clock()-btime) > t):
                 return 'UNDECIDED'
 
-def simulate(t=2001):
+def simulate(t=900):
     abc('&get')
     result = eq_simulate(t)
     return result
@@ -2097,7 +2094,7 @@ def speculate(t=0):
         write_file('spec')
         return Undecided_reduction
 
-def simple_sat(t=2001):
+def simple_sat(t=900):
     """
     aimed at trying harder to prove SAT
     """
@@ -2458,7 +2455,7 @@ def dsat_all(t=100,c=100000):
             break
     print 'Total time = %0.2f'%(time.time() - ttt)
             
-def check_sat(t=2001):
+def check_sat(t=900):
     """This is called if all the FF have disappeared, but there is still some logic left. In this case,
     the remaining logic may be UNSAT, which is usually the case, but this has to be proved. The ABC command 'dsat' is used fro combinational problems"""
     global smp_trace
@@ -3662,7 +3659,7 @@ def unmap_cex():
 ##    print 'cex matches original aig'
     
                                   
-def sp(n=0,t=2001,check_trace=False):
+def sp(n=0,t=900,check_trace=False):
     """Alias for super_prove, but also resolves cex to initial aig"""
     global initial_f_name
     print 'Executing super_prove'
@@ -3800,7 +3797,7 @@ def remove_v(ss,v):
             s = s + [ss[i]]
     return s
                  
-def multi_prove(op='simple',tt=2001,n_fast=0, final_map=[]):
+def multi_prove(op='simple',tt=900,n_fast=0, final_map=[]):
     """two phase prove process for multiple output functions"""
     global max_bmc, init_initial_f_name, initial_f_name,win_list, last_verify_time
     global f_name_save,nam_save,_L_last,file_out
@@ -3812,7 +3809,7 @@ def multi_prove(op='simple',tt=2001,n_fast=0, final_map=[]):
     #handle single output case differently
     _L_last = [-1]*n_pos()
     if n_pos() == 1:
-        result = sp(2001)
+        result = sp(2000)
 ##        abc('w %s_unsolved.aig'%init_initial_f_name)
         rs=result[0]
         if rs == 'SAT':
@@ -3828,7 +3825,6 @@ def multi_prove(op='simple',tt=2001,n_fast=0, final_map=[]):
             L = [2]
         res = sumsize(L)
         rr = '\n@@@@ Time =  %d '%(time.time() - t_iter_start) + res
-        rr = '%s: '%init_initial_f_name + rr
         print rr
         file_out.write(rr+ '\n')
         file_out.flush()
@@ -3845,7 +3841,6 @@ def multi_prove(op='simple',tt=2001,n_fast=0, final_map=[]):
     rr = '\n@@@@ Time =  %.2f: '%(time.time() - t_iter_start)
     report_L(lst0,0) ##########
     rr = rr + res
-    rr = '%s: '%init_initial_f_name + rr
     print rr
     file_out.write(rr + '\n')
     file_out.flush()
@@ -3863,14 +3858,14 @@ def multi_prove(op='simple',tt=2001,n_fast=0, final_map=[]):
 ##    print S,lst1
     #put 0 values into lst0
     lst10 = indices(s,0) #new unsat POs in local indices (with lst0 removed)
-##    if not lst10 == []:
-##        print 'lst10 = %s'%str(lst10)
+    if not lst10 == []:
+        print 'lst10 = %s'%str(lst10)
     lst11 = indices(s,1) #local variables
     ss = expand(s,lst0,0) #ss will reflect original indices
     report_s(ss)
     lst0_old = lst0
     lst0 = indices(ss,0) #additional unsat POs added to initial lst0 (in original indices)
-##    print 'lst0 = %s'%str(lst0)
+    print 'lst0 = %s'%str(lst0)
     assert len(lst0) == len(lst0_old)+len(lst10), 'lst0 = %s, lst0_old = %s, lst10 = %s'%(str(lst0),str(lst0_old),str(lst10))
     sss = remove_v(ss,0) #remove the 0's from ss
     assert len(sss) == len(ss)-len(lst0), 'len(sss) = %d, len(ss) = %d, len(lst0) = %d'%(len(sss),len(ss),len(lst0))
@@ -3879,25 +3874,24 @@ def multi_prove(op='simple',tt=2001,n_fast=0, final_map=[]):
                 #done with new code
     assert len(lst1_1) == len(lst1), 'mismatch, lst1 = %d, lst1_1 = %d'%(len(lst1),len(lst1_1))
     lst1 = lst1_1 #lst1 should be in original minus lst0
-##    print 'Found %d SAT POs'%len(lst1)
-##    print 'Found %d UNSAT POs'%len(lst10)
+    print 'Found %d SAT POs'%len(lst1)
+    print 'Found %d UNSAT POs'%len(lst10)
     res = 'SAT = %d, UNSAT = %d, UNDECIDED = %d'%(len(lst1),len(lst0),NNN-(len(lst1)+len(lst0)))
     rr = '\n@@@@ Time =  %.2f: '%(time.time() - t_iter_start)
     rr = rr + res
-    rr = '%s: '%init_initial_f_name + rr
     print rr
     file_out.write(rr + '\n')
     file_out.flush()
     N = n_pos()
-##    print len(lst10),n_pos()
+    print len(lst10),n_pos()
     if not len(lst10) == n_pos() and len(lst10) > 0:
         remove(lst10,1) #remove 0 POs
         print 'Removed %d UNSAT POs'%len(lst10)
         N = n_pos()
     elif len(lst10) == n_pos():
         N = 0 #can't remove all POs. Must proceed as if there are no POs. But all POs are UNSAT.
-##    print len(lst1),N,S #note: have not removed the lst1 POs.
-    if len(lst1) == N or S == 'UNSAT' or N == 0: #all POs are solved
+    print len(lst1),N,S #note: have not removed the lst1 POs.
+    if len(lst1) == N or S == 'UNSAT' or N == 0: #all POs are SAT
         L = [0]*N #could just put L as all 1's. If N = 0, all POs are UNSAT and lst1 = []
         for i in range(len(lst1)): #put 1's in SAT POs
             L[lst1[i]]=1
@@ -3917,7 +3911,7 @@ def multi_prove(op='simple',tt=2001,n_fast=0, final_map=[]):
     else:
         N = 0
     if N == 1: #this was wrong. Need to report in original indices???
-        result = sp(2001)
+        result = sp(2000)
         rs=result[0]
         #need to find out original index of remaining PO
         if rs == 'SAT':
@@ -3934,7 +3928,6 @@ def multi_prove(op='simple',tt=2001,n_fast=0, final_map=[]):
         report_results(L)
         res = sumsize(L)
         rr = '\n@@@@ Time =  %d '%(time.time() - t_iter_start) + res
-        rr = '%s: '%init_initial_f_name + rr
         print rr
         file_out.write(rr+ '\n')
         file_out.flush()
@@ -3952,7 +3945,7 @@ def multi_prove(op='simple',tt=2001,n_fast=0, final_map=[]):
             map1 = create_map(leq,N) #creates map into original
 ##        print map1
             if not count_less(L,0) == N:
-                print 'L = %s'%sumsize(L)
+                print L
             L1 = [-1]*n_pos()
 ##        L1 = pass_down(L,list(L1),map1) # no need to pass down because L will have no values at this point.
         else:
@@ -3993,7 +3986,7 @@ def multi_prove(op='simple',tt=2001,n_fast=0, final_map=[]):
 ##        write_file('1')
 ##        L = output(list(L),list(L1),L2,map1,map2,lst0,lst1,NP)
         L = output2(list(L2),map1,map2,lst0,lst1,NP)
-        result = simple(2001,1)
+        result = simple(2000,1)
         Ss = rs = result[0]
         if rs == 'SAT':
             L2 = [1]
@@ -4037,7 +4030,7 @@ def multi_prove(op='simple',tt=2001,n_fast=0, final_map=[]):
             ttt = 20
         abc('w %s_before_mprove2.aig'%f_name)
         print '%s_before_mprove2.aig written'%f_name
-##        print 'L2 = %s'%str(L2)
+        print 'L2 = %s'%str(L2)
         print 'Entering first mprove2 for %d sec.'%ttt,
         Ss,L2 = mprove2(list(L2),op,ttt,1) #populates L2 with results
 ##        print Ss,L2
@@ -4111,7 +4104,7 @@ def multi_prove(op='simple',tt=2001,n_fast=0, final_map=[]):
                     remove_proved_pos(L2)
                     simplify()
                     write_file('save')
-                    result = simple(2001,1)
+                    result = simple(2000,1)
                     if_found = False
                     if result[0] == 'UNSAT':
                         for i in range(N):
@@ -4154,7 +4147,6 @@ def multi_prove_iter():
     s = count_less(L,2) - (d+u)
     rr =  '\n@@@@@ %s: Final time =  %.2f '%(init_initial_f_name,(time.time() - t_iter_start))
     rr = rr + 'SAT = %d, UNSAT = %d, UNDECIDED = %d '%(s,u,d)
-    rr = '%s: '%init_initial_f_name + rr
     print rr
     file_out.write(rr)
     res = PO_results(L)
@@ -4542,7 +4534,6 @@ def report_results(L,final_map=[],if_final=False):
     print '\n'
 
 def report_result(POn, REn, final_map=[]):
-    return #for non hwmcc application
     if final_map == []:
         print 'PO = %d, Result = %d:  '%(POn, REn),
     else:
@@ -4617,7 +4608,7 @@ def scorr_T(t=10000):
     smp_trace = smp_trace + ['%s'%mtds[m_best]]
     abc('r %s_best_T.aig'%f_name)
 
-def pscorr(t=2001):
+def pscorr(t=900):
     result = par_scorr(t)
     if n_ands() == 0:
         return result
@@ -4747,9 +4738,9 @@ def mprove2(L=0,op='simple',t=100,nn=0):
         v = -1
         skip_spec_old = skip_spec
         skip_spec = True
-        result = simple(2001,1)
+        result = simple(2000,1)
         ff_name == f_name
-        result = sp(0,2001) #warning sp() can change f_name. 0 means simplify
+        result = sp(0,2000) #warning sp() can change f_name. 0 means simplify
         f_name = ff_name
         skip_spec = skip_spec_old
         res = result[0]
@@ -4793,7 +4784,7 @@ def mprove2(L=0,op='simple',t=100,nn=0):
         N = n_pos()
         tb = min(N,50)
 ##        print 'Trying par_multi_sat for %d sec.'%tb
-        S,lst1,s = par_multi_sat(tb,1,1,1) #this gives a list of SAT POs
+        S,lst1,s = par_multi_sat(tb,1,1,0) #this gives a list of SAT POs
         L2 = s10 = s
         n_solved = n_pos() - count_less(s10,0)
         if 1 in s10 or 0 in s10: #something solved 
@@ -4811,16 +4802,14 @@ def mprove2(L=0,op='simple',t=100,nn=0):
                     #iterate here as long as more than 1 PO is found SAT
                     n_solved = n_pos() - count_less(s210,0) 
                     while n_solved > 0:
-                        print 'n_solved = %d'%n_solved
                         gap = int(1+1.2*gap)
                         print 'gap = %.2f'%gap
                         pre_simp(1) #warning this may create const-0 pos
-                        S,lst2,s = par_multi_sat(tb,gap,1,1) #this can find UNSAT POs
+                        S,lst2,s = par_multi_sat(tb,gap,1,0) #this can find UNSAT POs
                         s210 = s
                         n_solved = n_pos() - count_less(s210,0)
                         s10 = put(s210,list(s10)) #put the new values found into s10
                         if count_less(s10,0) == 0 or n_solved == 0: #all solved or nothing solved
-                            print 's210 = %s'%sumsize(s210)
                             break #s10 has the results
                         else:
                             out = '\n@@@@ Time = %.2f: additional POs found SAT = %d'%((time.time()- t_iter_start),len(lst2))
@@ -4832,7 +4821,7 @@ def mprove2(L=0,op='simple',t=100,nn=0):
                             remove(rem,1) #this zeros the l210 and then removes ALL const-1 POs.
                                             #If there are more than lst2 removed, it fires an assertion.
                             continue
-                    L2 = s10 #put results of s10 into L2
+                    L2 = s10 #put results in s10
                 else: #lst1 is empty or S == SAT'
                     print 'no cex found or S = UNSAT'
             else: #all solved
@@ -4844,7 +4833,7 @@ def mprove2(L=0,op='simple',t=100,nn=0):
         if -1 in s10:
             print 'Entering solve_all ',
             ps()
-            S,s210 = solve_all([-1]*n_pos(),2001) #solve_all calls sp() or simple but preserves the aig and f_name
+            S,s210 = solve_all([-1]*n_pos(),900) #solve_all calls sp() or simple but preserves the aig and f_name
 ##            else: zzz
             if -1 in s210: #then no POs were solved by solve_all
 ##                abc('r %s_smp2_2.aig'%f_name)
@@ -4857,7 +4846,7 @@ def mprove2(L=0,op='simple',t=100,nn=0):
                     s210 = [-1]*n_pos()
             print 's210 after mprove and before inject 1 %s:'%sumsize(s210)
             L2 = put(s210,s10) 
-##            print 'L2 after inject 1 %s:'%sumsize(L2)
+            print 'L2 after inject 1 %s:'%sumsize(L2)
         else: #all POs solved
             L2 = s10
         assert NP == 1, 'NP > 1: ERROR'
@@ -4868,7 +4857,7 @@ def mprove2(L=0,op='simple',t=100,nn=0):
             print 'L1 after unmap of map3: ',
             print sumsize(L1)
         else:
-##            print 'L2 = %s'%str(L2)
+            print 'L2 = %s'%str(L2)
             L1 = L2
         L1 = inject(list(L1),Llst0,0)
         print 'L1 after inject of Llst0 0s: %s:'%sumsize(L1)
@@ -4980,10 +4969,10 @@ def solve_all(L2,t):
 ##    ps()
     skip_spec_old = skip_spec
     skip_spec = True
-    tt = max(t,2001)
+    tt = max(t,900)
     print 'Entering simple for %d sec.'%tt
-##    result = simple(tt,1) #### temporary 1 means do not simplify
-    result = sp(0,t) #warning sp() may change f_name. Changed from HWMCC13 submission
+    result = simple(tt,1) #### temporary 1 means do not simplify
+##    result = sp(0,t) #warning sp() may change f_name
     skip_spec = skip_spec_old
 ##    print 'solve_all: result = %s'%result
     if result[0] == 'UNSAT':
@@ -5158,7 +5147,7 @@ def mprove(L,op='simple',tt=1000):
 ##    sec_options = options
 ##    return super_prove(1)
 
-def super_prove(n=0,t=2001):
+def super_prove(n=0,t=900):
     """Main proof technique now. Does original prove and if after speculation there are multiple output left
     if will try to prove each output separately, in reverse order. It will quit at the first output that fails
     to be proved, or any output that is proved SAT
@@ -5369,13 +5358,13 @@ def reachn(t):
     print 'reachm3 done in time = %f'%(time.clock() - x)
     return get_status()
     
-def reachx(t=2001):
+def reachx(t=900):
     x = time.time()
     abc('reachx -t %d'%t)
     print 'reachx  done in time = %f'%(time.time() - x)
     return get_status()
 
-def reachy(t=2001):
+def reachy(t=900):
     x = time.clock()
     abc('&get;&reachy -v -T %d'%t)
 ##    print 'reachy done in time = %f'%(time.clock() - x)
@@ -6044,18 +6033,18 @@ def par_multi_sat(t=10,gap=0,m=1,H=0):
         t = gt
     last_gap = gt
 ##    H = max(100, t/n_pos()+1)
-    if not H == 0: #se timeout peer output
+    if not H == 0:
         H = (gt*1000)/n_pos()
         H = max(min(H,1000*gt),100)
     tme = time.time()
     list0 = listr_0_pos() #reduces POs
     list0.sort()
 ##    print 'list0 = %s'%str(list0)
-##    if len(list0)>0:
-##        print 'removed %d cost-0 POs'%len(list0)
-##    ps()
+    if len(list0)>0:
+        print 'temporarily removed %d cost-0 POs'%len(list0)
+    ps()
     if len(list0)> 0:
-        print 'Found initial %d const-0 POs'%len(list0)
+        print 'Found %d const-0 POs, but not removed'%len(list0)
 ##        print ll
     print 'par_multi_sat entered for %.2f sec. and gap = %.2f  sec., H = %.2f'%(t,gt,H)
     base = m*1000
@@ -6065,10 +6054,10 @@ def par_multi_sat(t=10,gap=0,m=1,H=0):
     mx = 1000000000/max(1,n_latches())
     N = n_pos()
     na = n_ands()
-    F = [eval('(pyabc_split.defer(bmc3az)(t,gt,%d,H))'%(0))]
+    F = [eval('(pyabc_split.defer(bmc3az)(t,gt,%d,H))'%(0*base))]
 ##    if na < 50000:
     F = F + [eval('(pyabc_split.defer(pdraz)(t,gt,H))')] #need pdr in??
-    F = F + [eval('(pyabc_split.defer(sim3az)(t,gt,%d,4,0))'%(0))]
+    F = F + [eval('(pyabc_split.defer(sim3az)(t,gt,%d,4,0))'%(0*base))]
     F = F + [eval('(pyabc_split.defer(sleep)(t))')]
     F = F + [eval('(pyabc_split.defer(sim3az)(t,gt,%d,4,0))'%(100))]
     F = F + [eval('(pyabc_split.defer(bmc3az)(t,gt,%d,0))'%(100))]
@@ -6098,8 +6087,8 @@ def par_multi_sat(t=10,gap=0,m=1,H=0):
     nn = len(F)
     for i,res in pyabc_split.abc_split_all(F):
         ii = ii + [i]
-##        if len(ii) == len(F)-1: #all done but sleep
-##            break
+        if len(ii) == len(F)-1: #all done but sleep
+            break
         if i == 3: #sleep timeout
             print 'sleep timeout'
             break
@@ -6108,15 +6097,15 @@ def par_multi_sat(t=10,gap=0,m=1,H=0):
 ####        print i
         if i == 0:
             zero_done = True # bmc with start at 0 is done
-        if i == 2: #sim3 with start 0 is done
+        if i == 2:
             two_done = True
         if res == None: #this can happen if one of the methods bombs out
             print 'Method %d returned None'%i
             continue
 ##        print res
-        s1 = switch(list(res[1])) #res[1]= s
-        s = merge_s(list(s),s1) 
-##        print sumsize(s)
+        s1 = switch(res[1]) #res[1]= s
+        s = merge_s(list(s),s1)
+        print sumsize(s)
         ss = ss + [s1]
 ##        LL = LL + [res[0]]
 ##        L = L + res[0]
@@ -6138,27 +6127,25 @@ def par_multi_sat(t=10,gap=0,m=1,H=0):
             r = ss2[0]
             if r == ss2[1] and count_less(r,1) < len(r): #at least 1 SAT PO found
                 break
-        if len(ii) == len(F)-1: #all done but sleep
-            break
 ##        if len(LL) > 1 and zero_done and two_done:
 ##            ll2 = LL[-2:] #checking if last 2 results agree
 ##            if ll2[0] == ll2[1] and ll2[0] > 0:
 ##                break
-##    print 'Found %d SAT POs in '%(len(L)),
+    print 'Found %d SAT POs in '%(len(L)),
     print 'time = %.2f'%(time.time()-tme)
-##    print sumsize(s)
+    print sumsize(s)
 ##    L.sort()
 ##    print 'L_before = %s'%(str(L))
 ####    check_None_status(L,s,1) #now 1 in s means sat. s can have 0 in it, meaning it found some POs unsat.
 ##    L = merge(list(list0),list(L),1) #shift L according to list0 but do not include list0.
 ##    print 'L_shifted = %s'%(str(L))
 ##    # Need to return only SAT POs have to do the same for s
-##    print 'len(s) = %d, len(list0) = %d'%(len(s),len(list0))
+    print 'len(s) = %d, len(list0) = %d'%(len(s),len(list0))
     ss = expand(s,list0,0)
 ##    assert list0 == indices(ss,0)
-    print '\n Par_multi_sat result = %s'%sumsize(ss)
+    print sumsize(ss)
 ##    assert check_consistancy(L,ss), 'inconsistant'
-    abc('r %s_save.aig'%f_name) #restore initial aig
+    abc('r %s_save.aig'%f_name)
     return S,[],ss
 
 
@@ -6347,7 +6334,7 @@ def remove_proved_pos(lst):
 
 
         
-def bmc_j(t=2001):
+def bmc_j(t=900):
     """ finds a cex in t seconds starting at 2*N where N is depth of bmc -T 1"""
     x = time.time()
     tt = min(5,max(1,.05*t))
@@ -6367,7 +6354,7 @@ def bmc_j(t=2001):
 ##        print 'cex found in %0.2f sec at frame %d'%((time.time()-x),cex_frame())
     return RESULT[get_status()]
 
-def pdrseed(t=2001):
+def pdrseed(t=900):
     """uses the abstracted version now"""
 ##    abc('&get;,treb -rlim=60 -coi=3 -te=1 -vt=%f -seed=521'%t)
     abc('&get;,treb -rlim=100 -vt=%f -seed=521'%t)
@@ -6377,20 +6364,20 @@ def pdrold(t):
     abc('&get; ,pdr -vt=%f'%t)
     return RESULT[get_status()]
 
-def pdr(t=2001):
+def pdr(t=900):
     abc('&get; ,treb -vt=%f'%t)
     return RESULT[get_status()]
 
-def pdr0(t=2001):
+def pdr0(t=900):
     abc('&get; ,pdr -rlim=100 -vt=%f'%t)
     return RESULT[get_status()]
 
-def pdra(t=2001):
+def pdra(t=900):
 ##    abc('&get; ,treb -rlim=100 -ssize -pre-cubes=3 -vt=%f'%t)
     abc('&get; ,treb -abs -rlim=100 -sat=abc -vt=%f'%t)
     return RESULT[get_status()]
 
-def pdrm(t=2001):
+def pdrm(t=900):
     abc('pdr -C 0 -T %f'%t)
     return RESULT[get_status()]
 
@@ -6402,37 +6389,30 @@ def bmc2(t):
    abc('bmc2 -C 1000000 -T %f'%t)
    return RESULT[get_status()]
 
-def bmc(t=2001):
+def bmc(t=900):
     abc('&get; ,bmc -vt=%d'%t)
     return RESULT[get_status()]
 
-def intrp(t=2001):
+def intrp(t=900):
     abc('&get; ,imc -vt=%d'%t)
     return RESULT[get_status()]
 
-def bmc3az(t=2001,gt=10,C=999,H=0):
+def bmc3az(t=900,gt=10,C=999,H=0):
     t_init = time.time()
-    if  not C == 0:
+    if  C > 999:
         abc('&get; &cycle -F %d; &put'%C) 
-    abc('bmc3 -az -C 1000000 -T %.2f -G %.2f -H %.2f'%(t,gt,H))
+    abc('bmc3 -az -C 1000000 -T %d -G %d -H %.2f'%(t,gt,H))
     cex_list = cex_get_vector()
     L = list_non_None(cex_list)
 ##    check_None_status(L)
-    print '\nbmc3az(%.2f,%.2f,%d,%d): CEXs = %d, time = %.2f'%(t,gt,C,H,len(L),(time.time()-t_init))
-    print 'Length CEXs = %d'%(len(L))
-    s = status_get_vector()
-    if len(s) == 0: #error if this happens check with Alan
-        s = [-1]*n_pos()
-    sss = switch(list(s))
-    print 's_status = %s'%sumsize(sss)
-##    s = [-1]*n_pos()
-##    for j in L:
-##        s[j]=0 #0 here means SAT. It will be switched in par_multi_sat
-##    sss = switch(list(s))
-##    print 's = %s'%sumsize(sss)
+    print 'bmc3az(%.2f,%.2f,%d,%d): CEXs = %d, time = %.2f'%(t,gt,C,H,len(L),(time.time()-t_init))
+##    s = status_get_vector()
+    s = [-1]*n_pos()
+    for j in L:
+        s[j]=0 #0 here means SAT. It will be switched in par_multi_sat
     return L,s
 
-def pdraz(t=2001,gt=10,H=0):
+def pdraz(t=900,gt=10,H=0):
     print 'pdraz entered with t = %.2f, gt = %.2f, H = %.2f'%(t,gt,H)
     t_init = time.time()
     run_command('pdr -az -T %d -G %d -H %.2f'%(t,gt,H))
@@ -6447,10 +6427,10 @@ def pdraz(t=2001,gt=10,H=0):
     print 'pdraz(%.2f,%.2f,%d): CEXs = %d, time = %.2f'%(t,gt,H,len(L),(time.time()-t_init))
     return L,s
 
-def sim3az(t=2001,gt=10,C=1000,W=5,N=0):
+def sim3az(t=900,gt=10,C=1000,W=5,N=0):
     """ N = random seed, gt is gap time, W = # words, F = #frames"""
     t_init = time.time()
-    if  not C == 0:
+    if  C > 1000:
         abc('&get; &cycle -F %d; &put'%C) 
     abc('sim3 -az -T %.2f -G %.2f -F 40 -W %d -N %d'%(t,gt,W,N))
     cex_list = cex_get_vector()
@@ -6462,11 +6442,11 @@ def sim3az(t=2001,gt=10,C=1000,W=5,N=0):
     print 'sim3az(%.2f,%.2f,%d,%d,%d): CEXs=%d, time = %.2f'%(t,gt,C,W,N,len(L),(time.time()-t_init))
     return L,s
     
-def bmc3(t=2001):
+def bmc3(t=900):
     abc('bmc3 -C 1000000 -T %d'%t)
     return RESULT[get_status()]
 
-def intrpm(t=2001):
+def intrpm(t=900):
     abc('int -C 1000000 -F 10000 -K 1 -T %d'%t)
     print 'intrpm: status = %d'%get_status() 
     return RESULT[get_status()]
