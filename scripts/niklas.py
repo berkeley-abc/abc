@@ -47,21 +47,24 @@ def parse_bip_status(status):
 
 def run_bip(args, aiger):
 
-    with temp_file_names(1) as tmpnames:
+    import redirect
+    with redirect.redirect():
 
-        args = [
-            'bip',
-            '-abc',
-            '-input=%s'%aiger,
-            '-output=%s'%tmpnames[0],
-        ] + args;
-        
-        rc = subprocess.call(args, preexec_fn=pyabc._set_death_signal)
-        
-        if rc!=0:
-            return None
+        with temp_file_names(1) as tmpnames:
+
+            args = [
+                'bip',
+                '-abc',
+                '-input=%s'%aiger,
+                '-output=%s'%tmpnames[0],
+            ] + args;
             
-        return parse_bip_status(tmpnames[0])
+            rc = subprocess.call(args, preexec_fn=pyabc._set_death_signal)
+            
+            if rc!=0:
+                return None
+                
+            return parse_bip_status(tmpnames[0])
 
 from pyaig import AIG, read_aiger, write_aiger, utils
 
@@ -95,17 +98,23 @@ def run_niklas_single(aiger, simplify, report_result, timeout=None):
             
             for id, res in splitter:
                 
+                print 'NIKLAS: process %d finished with'%id, res
+                
                 if id == sleep_id:
+                    print 'NIKLAS: timeout'
                     return False
                 
-                if id == simplifier_id:
+                elif id == simplifier_id:
+                    print 'NIKLAS: simplify ended'
                     if not res:
                         continue
+                    print 'NIKLAS: killing'
                     splitter.kill(kill_if_simplified)
                     splitter.fork_all( simplified_funcs )
                     continue
                     
-                if report_result(res):
+                elif report_result(res):
+                    print 'NIKLAS: RESULT'
                     return True
 
     return False

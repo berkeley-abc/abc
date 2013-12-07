@@ -1,4 +1,6 @@
 
+ABC_PYTHON=/usr/bin/python
+
 CC   := gcc
 CXX  := g++
 LD   := $(CXX)

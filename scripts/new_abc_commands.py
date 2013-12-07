@@ -214,23 +214,26 @@ proof_command_wrapper(par.simple_bip,  'HWMCC13', '/simple_bip_aiger',  0)
 proof_command_wrapper(par.simple_sat,  'HWMCC13', '/simple_sat_aiger',  0)
 proof_command_wrapper(par.mp,  'HWMCC13', '/multi_prove_aiger',  0, multi=True)
 
-from niklas import run_niklas_multi
-
 def simple_liveness_prooffunc(aig_filename):
     
+    import niklas
+    from pyaig import utils
+
     def simplify(aiger_in, aiger_out):
         
-        saved = utils.save_po_info(aiger_in, tmp[0])
-        
-        par.read_file_quiet(tmp[0])
-        par.pre_simp()
-        pyabc.run_command( 'write_aiger %s'%tmp[1] )
+        with niklas.temp_file_names(2, suffix='.aig') as tmp:
 
-        #~ pyabc.run_command( 'read_aiger %s'%tmp[0] )
-        #~ pyabc.run_command( 'dc2 ; dc2 ; dc2 ; dc2' )
-        #~ pyabc.run_command( 'write_aiger %s'%tmp[1] )
+            saved = utils.save_po_info(aiger_in, tmp[0])
+            
+            par.read_file_quiet(tmp[0])
+            
+            par.pre_simp()
+            
+            pyabc.run_command( 'write_aiger %s'%tmp[1] )
 
-        utils.restore_po_info( saved, tmp[1], aiger_out )
+            utils.restore_po_info( saved, tmp[1], aiger_out )
+            
+            return True
         
     def report_result(id, res):
         
@@ -246,7 +249,7 @@ def simple_liveness_prooffunc(aig_filename):
         return False
 
     try:
-        run_niklas_multi(aig_filename, simplify=simplify, report_result=report_result)
+        niklas.run_niklas_multi(aig_filename, simplify=simplify, report_result=report_result)
     except:
         import traceback
         traceback.print_exc()
