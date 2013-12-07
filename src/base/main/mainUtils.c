@@ -124,6 +124,8 @@ void Abc_UtilsPrintUsage( Abc_Frame_t * pAbc, char * ProgName )
              "usage: %s [-c cmd] [-f script] [-h] [-o file] [-s] [-t type] [-T type] [-x] [-b] [file]\n", 
              ProgName);
     fprintf( pAbc->Err, "    -c cmd\texecute commands `cmd'\n");
+    fprintf( pAbc->Err, "    -q cmd\texecute commands `cmd' quietly\n");
+    fprintf( pAbc->Err, "    -C cmd\texecute commands `cmd', then continue in interactive mode\n");
     fprintf( pAbc->Err, "    -F script\texecute commands from a script file and echo commands\n");
     fprintf( pAbc->Err, "    -f script\texecute commands from a script file\n");
     fprintf( pAbc->Err, "    -h\t\tprint the command usage\n");

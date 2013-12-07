@@ -89,7 +89,14 @@ int Abc_RealMain( int argc, char * argv[] )
     const char * sOutFile, * sInFile;
     char * sCommand;
     int  fStatus = 0;
-    int c, fBatch, fInitSource, fInitRead, fFinalWrite;
+    int c, fInitSource, fInitRead, fFinalWrite;
+
+    enum {
+        INTERACTIVE, // interactive mode
+        BATCH, // batch mode, run a command and quit
+        BATCH_THEN_INTERACTIVE, // run a command, then back to interactive mode
+        BATCH_QUIET // as in batch mode, but don't echo the command
+    } fBatch;
 
     // added to detect memory leaks
     // watch for {,,msvcrtd.dll}*__p__crtBreakAlloc()
@@ -127,7 +134,7 @@ int Abc_RealMain( int argc, char * argv[] )
 #endif /* ABC_PYTHON_EMBED */
 
     // default options
-    fBatch      = 0;
+    fBatch      = INTERACTIVE;
     fInitSource = 1;
     fInitRead   = 0;
     fFinalWrite = 0;
@@ -136,26 +143,31 @@ int Abc_RealMain( int argc, char * argv[] )
     sprintf( sWriteCmd, "write" );
 
     Extra_UtilGetoptReset();
-    while ((c = Extra_UtilGetopt(argc, argv, "c:C:hf:F:o:st:T:xb")) != EOF) {
+    while ((c = Extra_UtilGetopt(argc, argv, "c:q:C:hf:F:o:st:T:xb")) != EOF) {
         switch(c) {
             case 'c':
                 strcpy( sCommandUsr, globalUtilOptarg );
-                fBatch = 1;
+                fBatch = BATCH;
+                break;
+
+            case 'q':
+                strcpy( sCommandUsr, globalUtilOptarg );
+                fBatch = BATCH_QUIET;
                 break;
 
             case 'C':
                 strcpy( sCommandUsr, globalUtilOptarg );
-                fBatch = 2;
+                fBatch = BATCH_THEN_INTERACTIVE;
                 break;
 
             case 'f':
                 sprintf(sCommandUsr, "source %s", globalUtilOptarg);
-                fBatch = 1;
+                fBatch = BATCH;
                 break;
 
             case 'F':
                 sprintf(sCommandUsr, "source -x %s", globalUtilOptarg);
-                fBatch = 1;
+                fBatch = BATCH;
                 break;
 
             case 'h':
@@ -183,7 +195,7 @@ int Abc_RealMain( int argc, char * argv[] )
                 else {
                     goto usage;
                 }
-                fBatch = 1;
+                fBatch = BATCH;
                 break;
 
             case 'T':
@@ -198,13 +210,13 @@ int Abc_RealMain( int argc, char * argv[] )
                 else {
                     goto usage;
                 }
-                fBatch = 1;
+                fBatch = BATCH;
                 break;
 
             case 'x':
                 fFinalWrite = 0;
                 fInitRead   = 0;
-                fBatch = 1;
+                fBatch = BATCH;
                 break;
 
             case 'b':
@@ -221,10 +233,10 @@ int Abc_RealMain( int argc, char * argv[] )
         extern Gia_Man_t * Gia_ManFromBridge( FILE * pFile, Vec_Int_t ** pvInit );
         pAbc->pGia = Gia_ManFromBridge( stdin, NULL );
     }
-    else if ( fBatch && sCommandUsr[0] )
+    else if ( fBatch!=INTERACTIVE && fBatch!=BATCH_QUIET && sCommandUsr[0] )
         Abc_Print( 1, "ABC command line: \"%s\".\n\n", sCommandUsr );
 
-    if ( fBatch )
+    if ( fBatch!=INTERACTIVE )
     {
         pAbc->fBatchMode = 1;
 
@@ -267,14 +279,14 @@ int Abc_RealMain( int argc, char * argv[] )
             }
         }
 
-        if (fBatch == 2){
-            fBatch = 0;
+        if (fBatch == BATCH_THEN_INTERACTIVE){
+            fBatch = INTERACTIVE;
             pAbc->fBatchMode = 0;
         }
 
     }
 
-    if ( !fBatch )
+    if ( fBatch==INTERACTIVE )
     {
         // start interactive mode
 
