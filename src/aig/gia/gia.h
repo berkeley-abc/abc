@@ -254,6 +254,7 @@ struct Jf_Par_t_
     int            fFuncDsd;
     int            fGenCnf;
     int            fCnfObjIds;
+    int            fAddOrCla;
     int            fPureAig;
     int            fVerbose;
     int            fVeryVerbose;

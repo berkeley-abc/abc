@@ -59,6 +59,7 @@ static int IoCommandWriteBench  ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandWriteBook   ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandWriteCellNet( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandWriteCnf    ( Abc_Frame_t * pAbc, int argc, char **argv );
+static int IoCommandWriteCnf2   ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandWriteCounter( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandWriteDot    ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandWriteEqn    ( Abc_Frame_t * pAbc, int argc, char **argv );
@@ -125,6 +126,7 @@ void Io_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "I/O", "write_cellnet", IoCommandWriteCellNet, 0 );
     Cmd_CommandAdd( pAbc, "I/O", "write_counter", IoCommandWriteCounter, 0 );
     Cmd_CommandAdd( pAbc, "I/O", "write_cnf",     IoCommandWriteCnf,     0 );
+    Cmd_CommandAdd( pAbc, "I/O", "&write_cnf",    IoCommandWriteCnf2,    0 );
     Cmd_CommandAdd( pAbc, "I/O", "write_dot",     IoCommandWriteDot,     0 );
     Cmd_CommandAdd( pAbc, "I/O", "write_eqn",     IoCommandWriteEqn,     0 );
     Cmd_CommandAdd( pAbc, "I/O", "write_gml",     IoCommandWriteGml,     0 );
@@ -2019,6 +2021,70 @@ usage:
     fprintf( pAbc->Err, "\tfile   : the name of the file to write\n" );
     return 1;
 }
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int IoCommandWriteCnf2( Abc_Frame_t * pAbc, int argc, char **argv )
+{
+    extern void Jf_ManDumpCnf( Gia_Man_t * p, char * pFileName );
+    FILE * pFile;
+    char * pFileName;
+    int c, fVerbose = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+            case 'v':
+                fVerbose ^= 1;
+                break;
+            case 'h':
+                goto usage;
+            default:
+                goto usage;
+        }
+    }
+    if ( pAbc->pGia == NULL )
+    {
+        Abc_Print( -1, "IoCommandWriteCnf2(): There is no AIG.\n" );
+        return 1;
+    } 
+    if ( Gia_ManRegNum(pAbc->pGia) > 0 )
+    {
+        Abc_Print( -1, "IoCommandWriteCnf2(): Works only for combinational miters.\n" );
+        return 0;
+    }
+    if ( argc != globalUtilOptind + 1 )
+        goto usage;
+    // get the input file name
+    pFileName = argv[globalUtilOptind];
+    pFile = fopen( pFileName, "wb" );
+    if ( pFile == NULL )
+    {
+        printf( "Cannot open file \"%s\" for writing.\n", pFileName );
+        return 0;
+    }
+    Jf_ManDumpCnf( pAbc->pGia, pFileName );
+    return 0;
+
+usage:
+    fprintf( pAbc->Err, "usage: &write_cnf [-vh] <file>\n" );
+    fprintf( pAbc->Err, "\t         writes CNF produced by new DSD-based generator\n" );
+    fprintf( pAbc->Err, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes" : "no" );
+    fprintf( pAbc->Err, "\t-h     : print the help massage\n" );
+    fprintf( pAbc->Err, "\tfile   : the name of the file to write\n" );
+    return 1;
+}
+
 
 /**Function*************************************************************
 

@@ -159,11 +159,17 @@ void Jf_ManGenCnf( word uTruth, int iLitOut, Vec_Int_t * vLeaves, Vec_Int_t * vL
         }
     }
 }
-Cnf_Dat_t * Jf_ManCreateCnfRemap( Gia_Man_t * p, Vec_Int_t * vLits, Vec_Int_t * vClas )
+Cnf_Dat_t * Jf_ManCreateCnfRemap( Gia_Man_t * p, Vec_Int_t * vLits, Vec_Int_t * vClas, int fAddOrCla )
 {
     Cnf_Dat_t * pCnf; 
     Gia_Obj_t * pObj;
     int i, Entry, * pMap, nVars = 0;
+    if ( fAddOrCla )
+    {
+        Vec_IntPush( vClas, Vec_IntSize(vLits) );
+        Gia_ManForEachPo( p, pObj, i )
+            Vec_IntPush( vLits, Abc_Var2Lit(Gia_ObjId(p, pObj), 0) );
+    }
     // label nodes present in the mapping
     Vec_IntForEachEntry( vLits, Entry, i )
         Gia_ManObj(p, Abc_Lit2Var(Entry))->fMark0 = 1;
@@ -1543,7 +1549,7 @@ Gia_Man_t * Jf_ManDeriveMappingGia( Jf_Man_t * p )
         if ( p->pPars->fCnfObjIds )
             pNew->pData = Jf_ManCreateCnf( pNew, vLits, vClas );
         else
-            pNew->pData = Jf_ManCreateCnfRemap( pNew, vLits, vClas );
+            pNew->pData = Jf_ManCreateCnfRemap( pNew, vLits, vClas, p->pPars->fAddOrCla );
     }
     Vec_IntFreeP( &vLits );
     Vec_IntFreeP( &vClas );
@@ -1760,6 +1766,26 @@ Gia_Man_t * Jf_ManDeriveCnf( Gia_Man_t * p, int fCnfObjIds )
     pPars->fCnfObjIds = fCnfObjIds;
     return Jf_ManPerformMapping( p, pPars );
 }
+Gia_Man_t * Jf_ManDeriveCnfMiter( Gia_Man_t * p )
+{
+    Jf_Par_t Pars, * pPars = &Pars;
+    Jf_ManSetDefaultPars( pPars );
+    pPars->fGenCnf = 1;
+    pPars->fCnfObjIds = 0;
+    pPars->fAddOrCla = 1;
+    return Jf_ManPerformMapping( p, pPars );
+}
+void Jf_ManDumpCnf( Gia_Man_t * p, char * pFileName )
+{
+    Gia_Man_t * pNew;
+    Cnf_Dat_t * pCnf;
+    pNew = Jf_ManDeriveCnfMiter( p );
+    pCnf = (Cnf_Dat_t *)pNew->pData; pNew->pData = NULL;
+    Cnf_DataWriteIntoFile( pCnf, pFileName, 0, NULL, NULL );
+    Gia_ManStop( pNew );
+    Cnf_DataFree(pCnf);
+}
+
 void Jf_ManTestCnf( Gia_Man_t * p )
 {
     Gia_Man_t * pNew;
