@@ -1081,6 +1081,8 @@ int Gia_ManBmcPerform( Gia_Man_t * pGia, Bmc_AndPar_t * pPars )
             if ( pPars->nTimeOut <= 0 )
                 return -1;
         }
+        else
+            return -1;
         // set the new frames limit
         pPars->nFramesAdd *= 2;
     }
