@@ -655,13 +655,9 @@ Vec_Int_t * Gia_ManSwiSimulate( Gia_Man_t * pAig, Gia_ParSwi_t * pPars )
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Int_t * Saig_ManComputeSwitchProbs( Aig_Man_t * pAig, int nFrames, int nPref, int fProbOne )
+Vec_Int_t * Gia_ManComputeSwitchProbs( Gia_Man_t * pGia, int nFrames, int nPref, int fProbOne )
 {
     Gia_ParSwi_t Pars, * pPars = &Pars;
-    Vec_Int_t * vSwitching, * vResult;
-    Gia_Man_t * p;
-    Aig_Obj_t * pObj;
-    int i;
     // set the default parameters
     Gia_ManSetDefaultParamsSwi( pPars ); 
     // override some of the defaults
@@ -682,10 +678,19 @@ Vec_Int_t * Saig_ManComputeSwitchProbs( Aig_Man_t * pAig, int nFrames, int nPref
         pPars->fProbOne   = 0;  // disable computing probabiblity of being one
         pPars->fProbTrans = 1;  // enable computing transition probability 
     }
+    // perform the computation of switching activity
+    return Gia_ManSwiSimulate( pGia, pPars );
+}
+Vec_Int_t * Saig_ManComputeSwitchProbs( Aig_Man_t * pAig, int nFrames, int nPref, int fProbOne )
+{
+    Vec_Int_t * vSwitching, * vResult;
+    Gia_Man_t * p;
+    Aig_Obj_t * pObj;
+    int i;
     // translate AIG into the intermediate form (takes care of choices if present!)
     p = Gia_ManFromAigSwitch( pAig );
     // perform the computation of switching activity
-    vSwitching = Gia_ManSwiSimulate( p, pPars );
+    vSwitching = Gia_ManComputeSwitchProbs( p, nFrames, nPref, fProbOne );
     // transfer the computed result to the original AIG
     vResult = Vec_IntStart( Aig_ManObjNumMax(pAig) );
     Aig_ManForEachObj( pAig, pObj, i )
@@ -742,33 +747,13 @@ float Gia_ManComputeSwitching( Gia_Man_t * p, int nFrames, int nPref, int fProbO
     Vec_Int_t * vSwitching;
     float * pSwitching, Switch, SwitchTotal = 0.0;//, SwitchTotal2 = 0.0;
     int i;
-    Gia_ParSwi_t Pars, * pPars = &Pars;
-    ABC_FREE( p->pSwitching );
-    // set the default parameters
-    Gia_ManSetDefaultParamsSwi( pPars ); 
-    // override some of the defaults
-    pPars->nIters   = nFrames;  // set number of total timeframes
-    pPars->nPref    = nPref;    // set number of first timeframes to skip  
-    // decide what should be computed
-    if ( fProbOne )
-    {
-        // if the user asked to compute propability of 1, we do not need transition information
-        pPars->fProbOne   = 1;  // enable computing probabiblity of being one
-        pPars->fProbTrans = 0;  // disable computing transition probability 
-    }
-    else
-    {
-        // if the user asked for transition propabability, we do not need to compute probability of 1
-        pPars->fProbOne   = 0;  // disable computing probabiblity of being one
-        pPars->fProbTrans = 1;  // enable computing transition probability 
-    }
     // derives the DFS ordered AIG
     Gia_ManCreateRefs( p );
 //    pDfs = Gia_ManDupOrderDfs( p );
     pDfs = Gia_ManDup( p );
     assert( Gia_ManObjNum(pDfs) == Gia_ManObjNum(p) );
     // perform the computation of switching activity
-    vSwitching = Gia_ManSwiSimulate( pDfs, pPars );
+    vSwitching = Gia_ManComputeSwitchProbs( pDfs, nFrames, nPref, fProbOne );
     // transfer the computed result to the original AIG
     p->pSwitching = ABC_CALLOC( unsigned char, Gia_ManObjNum(p) );
     pSwitching = (float *)vSwitching->pArray;

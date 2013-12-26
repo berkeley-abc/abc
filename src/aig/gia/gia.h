@@ -145,6 +145,7 @@ struct Gia_Man_t_
     Gia_Man_t *    pAigExtra;     // combinational logic of holes
     Vec_Flt_t *    vInArrs;       // PI arrival times
     Vec_Flt_t *    vOutReqs;      // PO required times
+    Vec_Int_t *    vSwitching;    // switching activity
     int *          pTravIds;      // separate traversal ID representation
     int            nTravIdsAlloc; // the number of trav IDs allocated
     Vec_Ptr_t *    vNamesIn;      // the input names 
@@ -1201,6 +1202,7 @@ extern int                 Gia_SweeperRun( Gia_Man_t * p, Vec_Int_t * vProbeIds,
 /*=== giaSwitch.c ============================================================*/
 extern float               Gia_ManEvaluateSwitching( Gia_Man_t * p );
 extern float               Gia_ManComputeSwitching( Gia_Man_t * p, int nFrames, int nPref, int fProbOne );
+extern Vec_Int_t *         Gia_ManComputeSwitchProbs( Gia_Man_t * pGia, int nFrames, int nPref, int fProbOne );
 /*=== giaTim.c ===========================================================*/
 extern Gia_Man_t *         Gia_ManDupNormalize( Gia_Man_t * p );
 extern Gia_Man_t *         Gia_ManDupUnnormalize( Gia_Man_t * p );

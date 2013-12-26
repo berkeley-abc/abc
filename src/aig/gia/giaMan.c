@@ -79,6 +79,7 @@ void Gia_ManStop( Gia_Man_t * p )
     assert( p->pManTime == NULL );
     Vec_PtrFreeFree( p->vNamesIn );
     Vec_PtrFreeFree( p->vNamesOut );
+    Vec_IntFreeP( &p->vSwitching );
     Vec_IntFreeP( &p->vSuper );
     Vec_IntFreeP( &p->vStore );
     Vec_IntFreeP( &p->vClassNew );
