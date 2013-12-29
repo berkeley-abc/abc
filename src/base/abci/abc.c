@@ -32830,6 +32830,11 @@ int Abc_CommandAbc9Bmc( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Abc_CommandAbc9Bmc(): There is no AIG.\n" );
         return 0;
     }
+    if ( !pPars->fUseOldCnf && !Sdm_ManCanRead() )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9Bmc(): Cannot input precomputed DSD information.\n" );
+        return 0;
+    }
     pAbc->Status  = Gia_ManBmcPerform( pAbc->pGia, pPars );
     pAbc->nFrames = pPars->iFrame;
     Abc_FrameReplaceCex( pAbc, &pAbc->pGia->pCexSeq );

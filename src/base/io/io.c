@@ -2063,6 +2063,11 @@ int IoCommandWriteCnf2( Abc_Frame_t * pAbc, int argc, char **argv )
         Abc_Print( -1, "IoCommandWriteCnf2(): Works only for combinational miters.\n" );
         return 0;
     }
+    if ( !Sdm_ManCanRead() )
+    {
+        Abc_Print( -1, "IoCommandWriteCnf2(): Cannot input precomputed DSD information.\n" );
+        return 0;
+    }
     if ( argc != globalUtilOptind + 1 )
         goto usage;
     // get the input file name
