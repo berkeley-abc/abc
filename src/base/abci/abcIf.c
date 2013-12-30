@@ -76,13 +76,15 @@ void Abc_NtkIfComputeSwitching( Abc_Ntk_t * pNtk, If_Man_t * pIfMan )
     vSwitching = Saig_ManComputeSwitchProbs( pAig, 48, 16, 0 );
     pSwitching = (float *)vSwitching->pArray;
     Abc_NtkForEachObj( pNtk, pObjAbc, i )
-        if ( (pObjAig = (Aig_Obj_t *)pObjAbc->pTemp) )
+        if ( !Abc_ObjIsCo(pObjAbc) && (pObjAig = (Aig_Obj_t *)pObjAbc->pTemp) )
         {
             pObjAbc->dTemp = pSwitching[pObjAig->Id];
             // J. Anderson and F. N. Najm, “Power-Aware Technology Mapping for LUT-Based FPGAs,
             // IEEE Intl. Conf. on Field-Programmable Technology, 2002.
 //            pObjAbc->dTemp = (1.55 + 1.05 / (float) Abc_ObjFanoutNum(pObjAbc)) * pSwitching[pObjAig->Id];
         }
+        else
+            pObjAbc->dTemp = 0;
     Vec_IntFree( vSwitching );
     Aig_ManStop( pAig );
     // compute switching for the IF objects
