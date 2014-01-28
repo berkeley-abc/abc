@@ -173,6 +173,7 @@ int Scl_LibertyCountItems( char * pBeg, char * pEnd )
     return Counter;
 }
 // removes C-style comments
+/*
 void Scl_LibertyWipeOutComments( char * pBeg, char * pEnd )
 {
     char * pCur, * pStart;
@@ -184,6 +185,31 @@ void Scl_LibertyWipeOutComments( char * pBeg, char * pEnd )
             for ( ; pStart < pCur + 2; pStart++ )
             if ( *pStart != '\n' ) *pStart = ' ';
             break;
+        }
+}
+*/
+void Scl_LibertyWipeOutComments( char * pBeg, char * pEnd )
+{
+    char * pCur, * pStart;
+    for ( pCur = pBeg; pCur < pEnd-1; pCur++ )
+        if ( pCur[0] == '/' && pCur[1] == '*' )
+        {
+            for ( pStart = pCur; pCur < pEnd-1; pCur++ )
+                if ( pCur[0] == '*' && pCur[1] == '/' )
+                {
+                    for ( ; pStart < pCur + 2; pStart++ )
+                    if ( *pStart != '\n' ) *pStart = ' ';
+                    break;
+                }
+        }
+        else if ( pCur[0] == '/' && pCur[1] == '/' )
+        {
+            for ( pStart = pCur; pCur < pEnd; pCur++ )
+                if ( pCur[0] == '\n' || pCur == pEnd-1 )
+                {
+                    for ( ; pStart < pCur; pStart++ ) *pStart = ' ';
+                    break;
+                }
         }
 }
 static inline int Scl_LibertyCharIsSpace( char c )
