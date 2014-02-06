@@ -353,6 +353,13 @@ int Abc_SclComputeParametersPin( SC_Lib * p, SC_Cell * pCell, int iPin, float Sl
     Vec_Flt_t * vIndex = pTime ? pTime->pCellRise->vIndex1 : NULL; // capacitance
     if ( vIndex == NULL )
         return 0;
+    // handle constant table
+    if ( Vec_FltSize(vIndex) == 1 )
+    {
+        *pLD = 0;
+        *pPD = Vec_FltEntry( (Vec_Flt_t *)Vec_PtrEntry(pTime->pCellRise->vData, 0), 0 );
+        return 1;
+    }
     // get load points
     Load0.rise = Load0.fall = 0.0;
     Load1.rise = Load1.fall = Vec_FltEntry( vIndex, 0 );

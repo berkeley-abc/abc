@@ -1030,6 +1030,23 @@ int Scl_LibertyScanTable( Scl_Tree_t * p, Vec_Ptr_t * vOut, Scl_Item_t * pTiming
         Vec_PtrPush( vOut, vInd2 );
         Vec_PtrPush( vOut, vValues );
     }
+    else if ( !strcmp(pTempl, "scalar") )
+    {
+        Scl_ItemForEachChild( p, pTable, pItem )
+            if ( !Scl_LibertyCompare(p, pItem->Key, "values") )
+            {
+                assert(vValues == NULL);
+                vValues = Scl_LibertyReadFloatVec( Scl_LibertyReadString(p, pItem->Head) );
+                assert( Vec_FltSize(vValues) == 1 );
+                // write entries
+                Vec_PtrPush( vOut, Vec_IntStart(1) );
+                Vec_PtrPush( vOut, Vec_IntStart(1) );
+                Vec_PtrPush( vOut, vValues );
+                break;
+            }
+            else
+            { printf( "Cannot read \"scalar\" template\n" ); return 0; }
+    }
     else
     {
         // fetch the template

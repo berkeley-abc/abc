@@ -484,6 +484,15 @@ static inline float Scl_LibLookup( SC_Surface * p, float slew, float load )
     float sfrac, lfrac, p0, p1;
     int s, l;
 
+    // handle constant table
+    if ( Vec_FltSize(p->vIndex0) == 1 && Vec_FltSize(p->vIndex1) == 1 )
+    {
+        Vec_Flt_t * vTemp = (Vec_Flt_t *)Vec_PtrEntry(p->vData, 0);
+        assert( Vec_PtrSize(p->vData) == 1 );
+        assert( Vec_FltSize(vTemp) == 1 );
+        return Vec_FltEntry(vTemp, 0);
+    }
+
     // Find closest sample points in surface:
     pIndex0 = Vec_FltArray(p->vIndex0);
     for ( s = 1; s < Vec_FltSize(p->vIndex0)-1; s++ )
