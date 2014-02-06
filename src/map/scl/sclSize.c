@@ -50,12 +50,15 @@ Abc_Obj_t * Abc_SclFindCriticalCo( SC_Man * p, int * pfRise )
     Abc_Obj_t * pObj, * pPivot = NULL;
     float fMaxArr = 0;
     int i;
+    assert( Abc_NtkPoNum(p->pNtk) > 0 );
     Abc_NtkForEachCo( p->pNtk, pObj, i )
     {
         SC_Pair * pArr = Abc_SclObjTime( p, pObj );
         if ( fMaxArr < pArr->rise )  fMaxArr = pArr->rise, *pfRise = 1, pPivot = pObj;
         if ( fMaxArr < pArr->fall )  fMaxArr = pArr->fall, *pfRise = 0, pPivot = pObj;
     }
+    if ( fMaxArr == 0 )
+        pPivot = Abc_NtkPo(p->pNtk, 0);
     assert( pPivot != NULL );
     return pPivot;
 }

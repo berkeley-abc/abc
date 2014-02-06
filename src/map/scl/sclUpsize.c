@@ -898,7 +898,7 @@ void Abc_SclUpsizePerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, SC_SizePars * pPars 
     // perform upsizing
     nAllPos = nAllNodes = nAllTfos = nAllUpsizes = 0;
     if ( p->BestDelay <= pPars->DelayUser )
-        printf( "Current delay (%.2f ps) is better than the target delay (%.2f ps).\n", p->BestDelay, (float)pPars->DelayUser );
+        printf( "Current delay (%.2f ps) does not exceed the target delay (%.2f ps). Upsizing is not performed.\n", p->BestDelay, (float)pPars->DelayUser );
     else
     for ( i = 0; i < pPars->nIters; i++ )
     {
