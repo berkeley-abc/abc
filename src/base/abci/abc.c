@@ -16770,7 +16770,7 @@ int Abc_CommandRetime( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     if ( !Abc_NtkLatchNum(pNtk) )
     {
-        Abc_Print( -1, "The network has no latches. Retiming is not performed.\n" );
+//        Abc_Print( -1, "The network has no latches. Retiming is not performed.\n" );
         return 0;
     }
 
@@ -16933,7 +16933,7 @@ int Abc_CommandDRetime( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     if ( !Abc_NtkLatchNum(pNtk) )
     {
-        Abc_Print( -1, "The network has no latches. Retiming is not performed.\n" );
+//        Abc_Print( -1, "The network has no latches. Retiming is not performed.\n" );
         return 0;
     }
 
@@ -17096,7 +17096,7 @@ int Abc_CommandFlowRetime( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     if ( !Abc_NtkLatchNum(pNtk) )
     {
-        Abc_Print( -1, "The network has no latches. Retiming is not performed.\n" );
+//        Abc_Print( -1, "The network has no latches. Retiming is not performed.\n" );
         return 0;
     }
 
