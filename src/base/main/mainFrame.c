@@ -202,6 +202,7 @@ void Abc_FrameDeallocate( Abc_Frame_t * p )
             ABC_FREE( pTemp );
         Vec_PtrFree( p->vPlugInComBinPairs );
     }
+    Vec_IntFreeP( &p->vIndFlops );
     Vec_PtrFreeP( &p->vLTLProperties_global );
     Abc_FrameDeleteAllNetworks( p );
     ABC_FREE( p->pDrivingCell );

@@ -96,6 +96,9 @@ struct Abc_Frame_t_
     // timing constraints
     char *          pDrivingCell;  // name of the driving cell
     float           MaxLoad;       // maximum output load
+    // inductive don't-cares
+    Vec_Int_t *     vIndFlops;
+    int             nIndFrames;
 
     // new code
     Gia_Man_t *     pGia;          // alternative current network as a light-weight AIG

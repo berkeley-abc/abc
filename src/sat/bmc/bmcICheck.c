@@ -397,9 +397,9 @@ void Bmc_PerformISearchOne( Gia_Man_t * p, int nFramesMax, int nTimeOut, int fRe
     Gia_ManStop( pMiter );
 //    Vec_IntFree( vLits );
 }
-void Bmc_PerformISearch( Gia_Man_t * p, int nFramesMax, int nTimeOut, int fReverse, int fDump, int fVerbose )
+Vec_Int_t * Bmc_PerformISearch( Gia_Man_t * p, int nFramesMax, int nTimeOut, int fReverse, int fDump, int fVerbose )
 {
-    Vec_Int_t * vLits;
+    Vec_Int_t * vLits, * vFlops;
     int i, f;
     printf( "Solving M-inductiveness for design %s with %d AND nodes and %d flip-flops:\n",
         Gia_ManName(p), Gia_ManAndNum(p), Gia_ManRegNum(p) );
@@ -426,7 +426,15 @@ void Bmc_PerformISearch( Gia_Man_t * p, int nFramesMax, int nTimeOut, int fRever
                 printf( "%d ", i );
         printf( "\n" );
     }       
+    // save flop indexes
+    vFlops = Vec_IntAlloc( Gia_ManRegNum(p) );
+    for ( i = 0; i < Gia_ManRegNum(p); i++ )
+        if ( !Abc_LitIsCompl(Vec_IntEntry(vLits, i)) )
+            Vec_IntPush( vFlops, 1 );
+        else
+            Vec_IntPush( vFlops, 0 );
     Vec_IntFree( vLits );
+    return vFlops;
 }
 
 ////////////////////////////////////////////////////////////////////////

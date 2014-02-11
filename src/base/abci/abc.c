@@ -4585,13 +4585,14 @@ usage:
 int Abc_CommandMfs2( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     extern int Abc_NtkPerformMfs( Abc_Ntk_t * pNtk, Sfm_Par_t * pPars );
+    extern int Abc_NtkMfsAfterICheck( Abc_Ntk_t * p, int nFrames, Vec_Int_t * vFlops, Sfm_Par_t * pPars );
     Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
     Sfm_Par_t Pars, * pPars = &Pars;
-    int c;
+    int c, fIndDCs = 0;
     // set defaults
     Sfm_ParSetDefault( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "WFDMLCZNdaevwh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "WFDMLCZNdaeivwh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -4692,6 +4693,9 @@ int Abc_CommandMfs2( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'e':
             pPars->fMoreEffort ^= 1;
             break;
+        case 'i':
+            fIndDCs ^= 1;
+            break;
         case 'v':
             pPars->fVerbose ^= 1;
             break;
@@ -4714,16 +4718,44 @@ int Abc_CommandMfs2( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "This command can only be applied to a logic network.\n" );
         return 1;
     }
-    // modify the current network
-    if ( !Abc_NtkPerformMfs( pNtk, pPars ) )
+    if ( fIndDCs )
     {
-        Abc_Print( -1, "Resynthesis has failed.\n" );
-        return 1;
+        if ( pAbc->nIndFrames <= 1 )
+        {
+            Abc_Print( -1, "The number of k-inductive frames is not specified.\n" );
+            return 1;
+        }
+        if ( pAbc->vIndFlops == NULL )
+        {
+            Abc_Print( -1, "The set of k-inductive flops is not specified.\n" );
+            return 1;
+        }
+        if ( Vec_IntSize(pAbc->vIndFlops) != Abc_NtkLatchNum(pNtk) )
+        {
+            Abc_Print( -1, "The saved flop count (%d) does not match that of the current network (%d).\n", 
+                Vec_IntSize(pAbc->vIndFlops), Abc_NtkLatchNum(pNtk) );
+            return 1;
+        }
+        // modify the current network
+        if ( !Abc_NtkMfsAfterICheck( pNtk, pAbc->nIndFrames, pAbc->vIndFlops, pPars ) )
+        {
+            Abc_Print( -1, "Resynthesis has failed.\n" );
+            return 1;
+        }
+    }
+    else
+    {
+        // modify the current network
+        if ( !Abc_NtkPerformMfs( pNtk, pPars ) )
+        {
+            Abc_Print( -1, "Resynthesis has failed.\n" );
+            return 1;
+        }
     }
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: mfs2 [-WFDMLCZN <num>] [-daevwh]\n" );
+    Abc_Print( -2, "usage: mfs2 [-WFDMLCZN <num>] [-daeivwh]\n" );
     Abc_Print( -2, "\t           performs don't-care-based optimization of logic networks\n" );
     Abc_Print( -2, "\t-W <num> : the number of levels in the TFO cone (0 <= num) [default = %d]\n",             pPars->nTfoLevMax );
     Abc_Print( -2, "\t-F <num> : the max number of fanouts to skip (1 <= num) [default = %d]\n",                pPars->nFanoutMax );
@@ -4736,6 +4768,7 @@ usage:
     Abc_Print( -2, "\t-d       : toggle performing redundancy removal [default = %s]\n",                        pPars->fRrOnly? "yes": "no" );
     Abc_Print( -2, "\t-a       : toggle minimizing area or area+edges [default = %s]\n",                        pPars->fArea? "area": "area+edges" );
     Abc_Print( -2, "\t-e       : toggle high-effort resubstitution [default = %s]\n",                           pPars->fMoreEffort? "yes": "no" );
+    Abc_Print( -2, "\t-i       : toggle using inductive don't-cares [default = %s]\n",                          fIndDCs? "yes": "no" );
     Abc_Print( -2, "\t-v       : toggle printing optimization summary [default = %s]\n",                        pPars->fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-w       : toggle printing detailed stats for each node [default = %s]\n",                pPars->fVeryVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h       : print the command usage\n");
@@ -32928,10 +32961,12 @@ int Abc_CommandAbc9ICheck( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Abc_CommandAbc9ICheck(): The AIG is combinational.\n" );
         return 0;
     }
+    Vec_IntFreeP( &pAbc->vIndFlops );
     if ( fSearch )
-        Bmc_PerformISearch( pAbc->pGia, nFramesMax, nTimeOut, fReverse, fDump, fVerbose );
+        pAbc->vIndFlops = Bmc_PerformISearch( pAbc->pGia, nFramesMax, nTimeOut, fReverse, fDump, fVerbose );
     else
         Bmc_PerformICheck( pAbc->pGia, nFramesMax, nTimeOut, fEmpty, fVerbose );
+    pAbc->nIndFrames = nFramesMax;
     return 0;
 
 usage:
