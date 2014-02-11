@@ -35,6 +35,69 @@ ABC_NAMESPACE_IMPL_START
 
 /**Function*************************************************************
 
+  Synopsis    [Unrolls logic network while dropping some next-state functions.]
+
+  Description [Returns the unrolled network.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Ntk_t * Abc_NtkUnrollAndDrop( Abc_Ntk_t * p, int nFrames, Vec_Int_t * vFlops, int * piPivot )
+{
+    Abc_Ntk_t * pNew; 
+    Abc_Obj_t * pFanin, * pNode;
+    Vec_Ptr_t * vNodes;
+    int i, k, f, iObj;
+    assert( Abc_NtkIsLogic(pNtk) );
+    assert( Vec_IntSize(vFlops) <= Abc_NtkLatchNum(p) );
+    *piPivot = -1;
+    // start the network
+    pNew = Abc_NtkAlloc( p->ntkType, p->ntkFunc, 1 );
+    pNew->pName = Extra_UtilStrsav(Abc_NtkName(p));
+    // add the PIs corresponding to flop outputs
+    Abc_NtkForEachLatchOutput( p, pNode, i )
+        Abc_ObjFanout0(pNode)->pCopy = Abc_NtkCreatePi( pNew );
+    // iterate unrolling
+    vNodes = Abc_NtkDfs( p, 0 );
+    for ( f = 0; f < nFrames; f++ )
+    {
+        Abc_NtkForEachPi( p, pNode, i )
+            pNode->pCopy = Abc_NtkCreatePi( pNew );
+        Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pNode, i )
+        {
+            Abc_NtkDupObj( pNew, pNode, 0 );
+            Abc_ObjForEachFanin( pNode, pFanin, k )
+                Abc_ObjAddFanin( pNode->pCopy, pFanin->pCopy );
+        }
+        Abc_NtkForEachPo( p, pNode, i )
+            Abc_ObjAddFanin( Abc_NtkCreatePo(pNew), Abc_ObjFanin0(pNode)->pCopy );
+        // transfer to outputs
+        Abc_NtkForEachLatch( p, pNode, i )
+            Abc_ObjFanout0(pNode)->pCopy = Abc_ObjFanin0(pNode)->pCopy;
+        if ( f == 0 )
+            *piPivot = Abc_NtkObjNum(pNew);
+    }
+    Vec_PtrFree( vNodes );
+    // add final POs
+    Vec_IntForEachEntry( vFlops, iObj, i )
+    {
+        assert( iObj >= 0 && iObj < Abc_NtkLatchNum(p) );
+        pNode = Abc_NtkCo( p, Abc_NtkPiNum(p) + iObj );
+        Abc_ObjAddFanin( Abc_NtkCreatePo(pNew), Abc_ObjFanin0(pNode)->pCopy );
+    }
+    Abc_NtkAddDummyPiNames( pNew );
+    Abc_NtkAddDummyPoNames( pNew );
+    // perform combinational cleanup
+    Abc_NtkCleanup( pNew, 0 );
+    if ( !Abc_NtkCheck( pNew ) )
+        fprintf( stdout, "Abc_NtkCreateFromNode(): Network check has failed.\n" );
+    return pNew;
+}
+
+/**Function*************************************************************
+
   Synopsis    []
 
   Description []
@@ -134,6 +197,45 @@ Sfm_Ntk_t * Abc_NtkExtractMfs( Abc_Ntk_t * pNtk, int nFirstFixed )
 //    for ( i = Abc_NtkCiNum(pNtk); i + Abc_NtkCoNum(pNtk) < Abc_NtkObjNum(pNtk); i++ )
 //        if ( rand() % 10 == 0 )
 //            Vec_StrWriteEntry( vFixed, i, (char)1 );
+    return Sfm_NtkConstruct( vFanins, Abc_NtkCiNum(pNtk), Abc_NtkCoNum(pNtk), vFixed, NULL, vTruths );
+}
+Sfm_Ntk_t * Abc_NtkExtractMfs2( Abc_Ntk_t * pNtk, int iPivot )
+{
+    Vec_Ptr_t * vNodes;
+    Vec_Wec_t * vFanins;
+    Vec_Str_t * vFixed;
+    Vec_Wrd_t * vTruths;
+    Vec_Int_t * vArray;
+    Abc_Obj_t * pObj, * pFanin;
+    int i, k, nObjs;
+    vNodes  = Abc_NtkAssignIDs2(pNtk);
+    nObjs   = Abc_NtkCiNum(pNtk) + Vec_PtrSize(vNodes) + Abc_NtkCoNum(pNtk);
+    vFanins = Vec_WecStart( nObjs );
+    vFixed  = Vec_StrStart( nObjs );
+    vTruths = Vec_WrdStart( nObjs );
+    Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pObj, i )
+    {
+        word uTruth = Abc_SopToTruth((char *)pObj->pData, Abc_ObjFaninNum(pObj));
+        Vec_WrdWriteEntry( vTruths, pObj->iTemp, uTruth );
+        if ( uTruth == 0 || ~uTruth == 0 )
+            continue;
+        vArray = Vec_WecEntry( vFanins, pObj->iTemp );
+        Vec_IntGrow( vArray, Abc_ObjFaninNum(pObj) );
+        Abc_ObjForEachFanin( pObj, pFanin, k )
+            Vec_IntPush( vArray, pFanin->iTemp );
+    }
+    Abc_NtkForEachCo( pNtk, pObj, i )
+    {
+        vArray = Vec_WecEntry( vFanins, pObj->iTemp );
+        Vec_IntGrow( vArray, Abc_ObjFaninNum(pObj) );
+        Abc_ObjForEachFanin( pObj, pFanin, k )
+            Vec_IntPush( vArray, pFanin->iTemp );
+    }
+    Vec_PtrFree( vNodes );
+    // set fixed attributes
+    Abc_NtkForEachNode( pNtk, pObj, i )
+        if ( i >= iPivot )
+            Vec_StrWriteEntry( vFixed, i, (char)1 );
     return Sfm_NtkConstruct( vFanins, Abc_NtkCiNum(pNtk), Abc_NtkCoNum(pNtk), vFixed, NULL, vTruths );
 }
 
@@ -244,6 +346,57 @@ int Abc_NtkPerformMfs( Abc_Ntk_t * pNtk, Sfm_Par_t * pPars )
     Sfm_NtkFree( p );
     return 1;
 }
+
+
+/**Function*************************************************************
+
+  Synopsis    [Performs MFS for the unrolled network.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkMfsAfterICheck( Abc_Ntk_t * p, int nFrames, Vec_Int_t * vFlops, Sfm_Par_t * pPars )
+{
+    Sfm_Ntk_t * pp;
+    int nFaninMax, nNodes;
+    Abc_Ntk_t * pNtk;
+    int iPivot;
+    assert( Abc_NtkIsLogic(p) );
+    // count fanouts
+    nFaninMax = Abc_NtkGetFaninMax( p );
+    if ( nFaninMax > 6 )
+    {
+        Abc_Print( 1, "Currently \"mfs\" cannot process the network containing nodes with more than 6 fanins.\n" );
+        return;
+    }
+    // derive unfolded network
+    pNtk = Abc_NtkUnrollAndDrop( p, nFrames, vFlops, &iPivot );
+    if ( !Abc_NtkHasSop(pNtk) )
+        Abc_NtkToSop( pNtk, 0 );
+    // collect information
+    pp = Abc_NtkExtractMfs2( pNtk, iPivot );
+    // perform optimization
+    nNodes = Sfm_NtkPerform( pp, pPars );
+    // call the fast extract procedure
+    if ( nNodes == 0 )
+    {
+//        Abc_Print( 1, "The network is not changed by \"mfs\".\n" );
+    }
+    else
+    {
+        Abc_NtkInsertMfs( pNtk, pp );
+        if( pPars->fVerbose )
+            Abc_Print( 1, "The network has %d nodes changed by \"mfs\".\n", nNodes );
+    }
+    Sfm_NtkFree( pp );
+    return;
+
+}
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
