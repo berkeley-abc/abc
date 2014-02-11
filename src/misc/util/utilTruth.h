@@ -1261,24 +1261,24 @@ static inline int Abc_Tt6FirstBit( word t )
 {
     int n = 0;
     if ( t == 0 ) return -1;
-    if ( (t & 0x00000000FFFFFFFF) == 0 ) { n += 32; t >>= 32; }
-    if ( (t & 0x000000000000FFFF) == 0 ) { n += 16; t >>= 16; }
-    if ( (t & 0x00000000000000FF) == 0 ) { n +=  8; t >>=  8; }
-    if ( (t & 0x000000000000000F) == 0 ) { n +=  4; t >>=  4; }
-    if ( (t & 0x0000000000000003) == 0 ) { n +=  2; t >>=  2; }
-    if ( (t & 0x0000000000000001) == 0 ) { n++; }
+    if ( (t & ABC_CONST(0x00000000FFFFFFFF)) == 0 ) { n += 32; t >>= 32; }
+    if ( (t & ABC_CONST(0x000000000000FFFF)) == 0 ) { n += 16; t >>= 16; }
+    if ( (t & ABC_CONST(0x00000000000000FF)) == 0 ) { n +=  8; t >>=  8; }
+    if ( (t & ABC_CONST(0x000000000000000F)) == 0 ) { n +=  4; t >>=  4; }
+    if ( (t & ABC_CONST(0x0000000000000003)) == 0 ) { n +=  2; t >>=  2; }
+    if ( (t & ABC_CONST(0x0000000000000001)) == 0 ) { n++; }
     return n;
 }
 static inline int Abc_Tt6LastBit( word t )
 {
     int n = 0;
     if ( t == 0 ) return -1;
-    if ( (t & 0xFFFFFFFF00000000) == 0 ) { n += 32; t <<= 32; }
-    if ( (t & 0xFFFF000000000000) == 0 ) { n += 16; t <<= 16; }
-    if ( (t & 0xFF00000000000000) == 0 ) { n +=  8; t <<=  8; }
-    if ( (t & 0xF000000000000000) == 0 ) { n +=  4; t <<=  4; }
-    if ( (t & 0xC000000000000000) == 0 ) { n +=  2; t <<=  2; }
-    if ( (t & 0x8000000000000000) == 0 ) { n++; }
+    if ( (t & ABC_CONST(0xFFFFFFFF00000000)) == 0 ) { n += 32; t <<= 32; }
+    if ( (t & ABC_CONST(0xFFFF000000000000)) == 0 ) { n += 16; t <<= 16; }
+    if ( (t & ABC_CONST(0xFF00000000000000)) == 0 ) { n +=  8; t <<=  8; }
+    if ( (t & ABC_CONST(0xF000000000000000)) == 0 ) { n +=  4; t <<=  4; }
+    if ( (t & ABC_CONST(0xC000000000000000)) == 0 ) { n +=  2; t <<=  2; }
+    if ( (t & ABC_CONST(0x8000000000000000)) == 0 ) { n++; }
     return 63-n;
 }
 static inline int Abc_TtFindFirstBit( word * pIn, int nVars )
