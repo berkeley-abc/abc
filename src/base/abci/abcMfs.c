@@ -464,6 +464,10 @@ int Abc_NtkMfsAfterICheck( Abc_Ntk_t * p, int nFrames, Vec_Int_t * vFlops, Sfm_P
     }
     Abc_NtkDelete( pNtk );
     Sfm_NtkFree( pp );
+    // perform final sweep
+    Abc_NtkSweep( p, 0 );
+    if ( !Abc_NtkHasSop(p) )
+        Abc_NtkToSop( p, 0 );
     return 1;
 
 }
