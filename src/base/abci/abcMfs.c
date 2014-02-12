@@ -298,12 +298,13 @@ int Abc_NtkPerformMfs( Abc_Ntk_t * pNtk, Sfm_Par_t * pPars )
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Ntk_t * Abc_NtkUnrollAndDrop( Abc_Ntk_t * p, int nFrames, Vec_Int_t * vFlops, int * piPivot )
+Abc_Ntk_t * Abc_NtkUnrollAndDrop( Abc_Ntk_t * p, int nFrames, int nFramesAdd, Vec_Int_t * vFlops, int * piPivot )
 {
     Abc_Ntk_t * pNtk; 
     Abc_Obj_t * pFanin, * pNode;
     Vec_Ptr_t * vNodes;
     int i, k, f, Value;
+    assert( nFramesAdd >= 0 );
     assert( Abc_NtkIsLogic(p) );
     assert( Vec_IntSize(vFlops) == Abc_NtkLatchNum(p) );
     *piPivot = -1;
@@ -315,7 +316,7 @@ Abc_Ntk_t * Abc_NtkUnrollAndDrop( Abc_Ntk_t * p, int nFrames, Vec_Int_t * vFlops
         pNode->pCopy = Abc_NtkCreatePi( pNtk );
     // iterate unrolling
     vNodes = Abc_NtkDfs( p, 0 );
-    for ( f = 0; f <= nFrames; f++ )
+    for ( f = 0; f <= nFrames + nFramesAdd; f++ )
     {
         if ( f > 0 )
         {
@@ -343,7 +344,7 @@ Abc_Ntk_t * Abc_NtkUnrollAndDrop( Abc_Ntk_t * p, int nFrames, Vec_Int_t * vFlops
         Abc_NtkForEachLatch( p, pNode, i )
             Abc_ObjFanout0(pNode)->pCopy = Abc_ObjFanin0(pNode)->pCopy;
         // add final POs
-        if ( f > 0 )
+        if ( f > nFramesAdd )
         {
             Vec_IntForEachEntry( vFlops, Value, i )
             {
@@ -427,7 +428,7 @@ void Abc_NtkReinsertNodes( Abc_Ntk_t * p, Abc_Ntk_t * pNtk, int iPivot )
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_NtkMfsAfterICheck( Abc_Ntk_t * p, int nFrames, Vec_Int_t * vFlops, Sfm_Par_t * pPars )
+int Abc_NtkMfsAfterICheck( Abc_Ntk_t * p, int nFrames, int nFramesAdd, Vec_Int_t * vFlops, Sfm_Par_t * pPars )
 {
     Sfm_Ntk_t * pp;
     int nFaninMax, nNodes;
@@ -444,7 +445,7 @@ int Abc_NtkMfsAfterICheck( Abc_Ntk_t * p, int nFrames, Vec_Int_t * vFlops, Sfm_P
     if ( !Abc_NtkHasSop(p) )
         Abc_NtkToSop( p, 0 );
     // derive unfolded network
-    pNtk = Abc_NtkUnrollAndDrop( p, nFrames, vFlops, &iPivot );
+    pNtk = Abc_NtkUnrollAndDrop( p, nFrames, nFramesAdd, vFlops, &iPivot );
     Io_WriteBlifLogic( pNtk, "unroll_dump.blif", 0 );
     // collect information
     pp = Abc_NtkExtractMfs2( pNtk, iPivot );

@@ -4585,14 +4585,14 @@ usage:
 int Abc_CommandMfs2( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     extern int Abc_NtkPerformMfs( Abc_Ntk_t * pNtk, Sfm_Par_t * pPars );
-    extern int Abc_NtkMfsAfterICheck( Abc_Ntk_t * p, int nFrames, Vec_Int_t * vFlops, Sfm_Par_t * pPars );
+    extern int Abc_NtkMfsAfterICheck( Abc_Ntk_t * p, int nFrames, int nFramesAdd, Vec_Int_t * vFlops, Sfm_Par_t * pPars );
     Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
     Sfm_Par_t Pars, * pPars = &Pars;
-    int c, fIndDCs = 0;
+    int c, fIndDCs = 0, nFramesAdd = 0;
     // set defaults
     Sfm_ParSetDefault( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "WFDMLCZNdaeivwh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "WFDMLCZNIdaeivwh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -4684,6 +4684,17 @@ int Abc_CommandMfs2( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( pPars->nNodesMax < 0 )
                 goto usage;
             break;
+        case 'I':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-I\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nFramesAdd = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nFramesAdd < 0 )
+                goto usage;
+            break;
         case 'd':
             pPars->fRrOnly ^= 1;
             break;
@@ -4737,7 +4748,7 @@ int Abc_CommandMfs2( Abc_Frame_t * pAbc, int argc, char ** argv )
             return 1;
         }
         // modify the current network
-        if ( !Abc_NtkMfsAfterICheck( pNtk, pAbc->nIndFrames, pAbc->vIndFlops, pPars ) )
+        if ( !Abc_NtkMfsAfterICheck( pNtk, pAbc->nIndFrames, nFramesAdd, pAbc->vIndFlops, pPars ) )
         {
             Abc_Print( -1, "Resynthesis has failed.\n" );
             return 1;
@@ -4769,6 +4780,7 @@ usage:
     Abc_Print( -2, "\t-a       : toggle minimizing area or area+edges [default = %s]\n",                        pPars->fArea? "area": "area+edges" );
     Abc_Print( -2, "\t-e       : toggle high-effort resubstitution [default = %s]\n",                           pPars->fMoreEffort? "yes": "no" );
     Abc_Print( -2, "\t-i       : toggle using inductive don't-cares [default = %s]\n",                          fIndDCs? "yes": "no" );
+    Abc_Print( -2, "\t-I       : the number of additional frames inserted [default = %d]\n",                    nFramesAdd );
     Abc_Print( -2, "\t-v       : toggle printing optimization summary [default = %s]\n",                        pPars->fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-w       : toggle printing detailed stats for each node [default = %s]\n",                pPars->fVeryVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h       : print the command usage\n");
