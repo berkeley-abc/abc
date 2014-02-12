@@ -21,6 +21,7 @@
 #include "base/abc/abc.h"
 #include "bool/kit/kit.h"
 #include "opt/sfm/sfm.h"
+#include "base/io/ioAbc.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -32,132 +33,6 @@ ABC_NAMESPACE_IMPL_START
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
-
-/**Function*************************************************************
-
-  Synopsis    [Unrolls logic network while dropping some next-state functions.]
-
-  Description [Returns the unrolled network.]
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-Abc_Ntk_t * Abc_NtkUnrollAndDrop( Abc_Ntk_t * p, int nFrames, Vec_Int_t * vFlops, int * piPivot )
-{
-    Abc_Ntk_t * pNew; 
-    Abc_Obj_t * pFanin, * pNode;
-    Vec_Ptr_t * vNodes;
-    int i, k, f, Value;
-    assert( Abc_NtkIsLogic(p) );
-    assert( Vec_IntSize(vFlops) == Abc_NtkLatchNum(p) );
-    *piPivot = -1;
-    // start the network
-    pNew = Abc_NtkAlloc( p->ntkType, p->ntkFunc, 1 );
-    pNew->pName = Extra_UtilStrsav(Abc_NtkName(p));
-    // add CIs for the new network
-    Abc_NtkForEachCi( p, pNode, i )
-        pNode->pCopy = Abc_NtkCreatePi( pNew );
-    // iterate unrolling
-    vNodes = Abc_NtkDfs( p, 0 );
-    for ( f = 0; f < nFrames; f++ )
-    {
-        if ( f > 0 )
-        {
-            Abc_NtkForEachPi( p, pNode, i )
-                pNode->pCopy = Abc_NtkCreatePi( pNew );
-        }
-        Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pNode, i )
-        {
-            Abc_NtkDupObj( pNew, pNode, 0 );
-            Abc_ObjForEachFanin( pNode, pFanin, k )
-                Abc_ObjAddFanin( pNode->pCopy, pFanin->pCopy );
-        }
-        Abc_NtkForEachCo( p, pNode, i )
-            pNode->pCopy = Abc_ObjFanin0(pNode)->pCopy;
-        Abc_NtkForEachPo( p, pNode, i )
-            Abc_ObjAddFanin( Abc_NtkCreatePo(pNew), pNode->pCopy );
-        // add buffers
-        if ( f == 0 )
-        {
-            *piPivot = Abc_NtkObjNum(pNew);
-//            Abc_NtkForEachCo( p, pNode, i )
-//                pNode->pCopy = Abc_NtkCreateNodeBuf( pNew, pNode->pCopy );
-        }
-        // transfer to flop outputs
-        Abc_NtkForEachLatch( p, pNode, i )
-            Abc_ObjFanout0(pNode)->pCopy = Abc_ObjFanin0(pNode)->pCopy;
-    }
-    Vec_PtrFree( vNodes );
-    // add final POs
-    Vec_IntForEachEntry( vFlops, Value, i )
-    {
-        if ( Value == 0 )
-            continue;
-        pNode = Abc_NtkCo( p, Abc_NtkPoNum(p) + i );
-        Abc_ObjAddFanin( Abc_NtkCreatePo(pNew), pNode->pCopy );
-    }
-    Abc_NtkAddDummyPiNames( pNew );
-    Abc_NtkAddDummyPoNames( pNew );
-    // perform combinational cleanup
-    Abc_NtkCleanup( pNew, 0 );
-    if ( !Abc_NtkCheck( pNew ) )
-        fprintf( stdout, "Abc_NtkCreateFromNode(): Network check has failed.\n" );
-    return pNew;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Updates the original network to include optimized nodes.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Abc_NtkReinsertNodes( Abc_Ntk_t * p, Abc_Ntk_t * pNtk, int iPivot )
-{
-    Abc_Obj_t * pNode, * pNodeNew, * pFaninNew;
-    Vec_Ptr_t * vNodes;
-    int i, k;
-    assert( Abc_NtkIsLogic(p) );
-    assert( Abc_NtkCiNum(p) <= Abc_NtkCiNum(pNtk) );
-    vNodes = Abc_NtkDfs( p, 0 );
-    // clean old network
-    Abc_NtkCleanCopy( p );
-    Abc_NtkForEachNode( p, pNode, i )
-    {
-        Abc_ObjRemoveFanins( pNode );
-        pNode->pData = Abc_SopRegister( (Mem_Flex_t *)p->pManFunc, (char *)" 0\n" );
-    }
-    // map CIs
-    Abc_NtkForEachCi( p, pNode, i )
-        Abc_NtkCi(pNtk, i)->pCopy = pNode;
-    // map internal nodes
-    assert( Vec_PtrSize(vNodes) + Abc_NtkCiNum(p) + Abc_NtkPoNum(p) == iPivot );
-    Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pNode, i )
-    {
-        pNodeNew = Abc_NtkObj( pNtk, Abc_NtkCiNum(p) + i );
-        if ( pNodeNew == NULL )
-            continue;
-        pNodeNew->pCopy = pNode;
-    }
-    // connect internal nodes
-    Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pNode, i )
-    {
-        pNodeNew = Abc_NtkObj( pNtk, Abc_NtkCiNum(p) + i );
-        if ( pNodeNew == NULL )
-            continue;
-        assert( pNodeNew->pCopy == pNode );
-        Abc_ObjForEachFanin( pNodeNew, pFaninNew, k )
-            Abc_ObjAddFanin( pNodeNew->pCopy, pFaninNew->pCopy );
-        pNode->pData = Abc_SopRegister( (Mem_Flex_t *)p->pManFunc, (char *)pNodeNew->pData );
-    }
-    Vec_PtrFree( vNodes );
-}
 
 /**Function*************************************************************
 
@@ -411,6 +286,136 @@ int Abc_NtkPerformMfs( Abc_Ntk_t * pNtk, Sfm_Par_t * pPars )
 }
 
 
+
+/**Function*************************************************************
+
+  Synopsis    [Unrolls logic network while dropping some next-state functions.]
+
+  Description [Returns the unrolled network.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Ntk_t * Abc_NtkUnrollAndDrop( Abc_Ntk_t * p, int nFrames, Vec_Int_t * vFlops, int * piPivot )
+{
+    Abc_Ntk_t * pNtk; 
+    Abc_Obj_t * pFanin, * pNode;
+    Vec_Ptr_t * vNodes;
+    int i, k, f, Value;
+    assert( Abc_NtkIsLogic(p) );
+    assert( Vec_IntSize(vFlops) == Abc_NtkLatchNum(p) );
+    *piPivot = -1;
+    // start the network
+    pNtk = Abc_NtkAlloc( p->ntkType, p->ntkFunc, 1 );
+    pNtk->pName = Extra_UtilStrsav(Abc_NtkName(p));
+    // add CIs for the new network
+    Abc_NtkForEachCi( p, pNode, i )
+        pNode->pCopy = Abc_NtkCreatePi( pNtk );
+    // iterate unrolling
+    vNodes = Abc_NtkDfs( p, 0 );
+    for ( f = 0; f <= nFrames; f++ )
+    {
+        if ( f > 0 )
+        {
+            Abc_NtkForEachPi( p, pNode, i )
+                pNode->pCopy = Abc_NtkCreatePi( pNtk );
+        }
+        Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pNode, i )
+        {
+            Abc_NtkDupObj( pNtk, pNode, 0 );
+            Abc_ObjForEachFanin( pNode, pFanin, k )
+                Abc_ObjAddFanin( pNode->pCopy, pFanin->pCopy );
+        }
+        Abc_NtkForEachCo( p, pNode, i )
+            pNode->pCopy = Abc_ObjFanin0(pNode)->pCopy;
+        Abc_NtkForEachPo( p, pNode, i )
+            Abc_ObjAddFanin( Abc_NtkCreatePo(pNtk), pNode->pCopy );
+        // add buffers
+        if ( f == 0 )
+        {
+            *piPivot = Abc_NtkObjNum(pNtk);
+//            Abc_NtkForEachLatchInput( p, pNode, i )
+//                pNode->pCopy = Abc_NtkCreateNodeBuf( pNtk, pNode->pCopy );
+        }
+        // transfer to flop outputs
+        Abc_NtkForEachLatch( p, pNode, i )
+            Abc_ObjFanout0(pNode)->pCopy = Abc_ObjFanin0(pNode)->pCopy;
+        // add final POs
+        if ( f > 0 )
+        {
+            Vec_IntForEachEntry( vFlops, Value, i )
+            {
+                if ( Value == 0 )
+                    continue;
+                pNode = Abc_NtkCo( p, Abc_NtkPoNum(p) + i );
+                Abc_ObjAddFanin( Abc_NtkCreatePo(pNtk), pNode->pCopy );
+            }
+        }
+    }
+    Vec_PtrFree( vNodes );
+    Abc_NtkAddDummyPiNames( pNtk );
+    Abc_NtkAddDummyPoNames( pNtk );
+    // perform combinational cleanup
+    Abc_NtkCleanup( pNtk, 0 );
+    if ( !Abc_NtkCheck( pNtk ) )
+        fprintf( stdout, "Abc_NtkCreateFromNode(): Network check has failed.\n" );
+    return pNtk;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Updates the original network to include optimized nodes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkReinsertNodes( Abc_Ntk_t * p, Abc_Ntk_t * pNtk, int iPivot )
+{
+    Abc_Obj_t * pNode, * pNodeNew, * pFaninNew;
+    Vec_Ptr_t * vNodes;
+    int i, k;
+    assert( Abc_NtkIsLogic(p) );
+    assert( Abc_NtkCiNum(p) <= Abc_NtkCiNum(pNtk) );
+    vNodes = Abc_NtkDfs( p, 0 );
+    // clean old network
+    Abc_NtkCleanCopy( p );
+    Abc_NtkForEachNode( p, pNode, i )
+    {
+        Abc_ObjRemoveFanins( pNode );
+        pNode->pData = Abc_SopRegister( (Mem_Flex_t *)p->pManFunc, (char *)" 0\n" );
+    }
+    // map CIs
+    Abc_NtkForEachCi( p, pNode, i )
+        Abc_NtkCi(pNtk, i)->pCopy = pNode;
+    // map internal nodes
+    assert( Vec_PtrSize(vNodes) + Abc_NtkCiNum(p) + Abc_NtkPoNum(p) == iPivot );
+    Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pNode, i )
+    {
+        pNodeNew = Abc_NtkObj( pNtk, Abc_NtkCiNum(p) + i );
+        if ( pNodeNew == NULL )
+            continue;
+        pNodeNew->pCopy = pNode;
+    }
+    // connect internal nodes
+    Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pNode, i )
+    {
+        pNodeNew = Abc_NtkObj( pNtk, Abc_NtkCiNum(p) + i );
+        if ( pNodeNew == NULL )
+            continue;
+        assert( pNodeNew->pCopy == pNode );
+        Abc_ObjForEachFanin( pNodeNew, pFaninNew, k )
+            Abc_ObjAddFanin( pNodeNew->pCopy, pFaninNew->pCopy );
+        pNode->pData = Abc_SopRegister( (Mem_Flex_t *)p->pManFunc, (char *)pNodeNew->pData );
+    }
+    Vec_PtrFree( vNodes );
+}
+
 /**Function*************************************************************
 
   Synopsis    [Performs MFS for the unrolled network.]
@@ -440,6 +445,7 @@ int Abc_NtkMfsAfterICheck( Abc_Ntk_t * p, int nFrames, Vec_Int_t * vFlops, Sfm_P
         Abc_NtkToSop( p, 0 );
     // derive unfolded network
     pNtk = Abc_NtkUnrollAndDrop( p, nFrames, vFlops, &iPivot );
+    Io_WriteBlifLogic( pNtk, "unroll_dump.blif", 0 );
     // collect information
     pp = Abc_NtkExtractMfs2( pNtk, iPivot );
     // perform optimization

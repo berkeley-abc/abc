@@ -4720,7 +4720,7 @@ int Abc_CommandMfs2( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     if ( fIndDCs )
     {
-        if ( pAbc->nIndFrames <= 1 )
+        if ( pAbc->nIndFrames <= 0 )
         {
             Abc_Print( -1, "The number of k-inductive frames is not specified.\n" );
             return 1;
