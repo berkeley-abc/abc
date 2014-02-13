@@ -258,7 +258,7 @@ static inline void Abc_SclDeptObj( SC_Man * p, Abc_Obj_t * pObj )
     SC_PairClean( Abc_SclObjDept(p, pObj) );
     Abc_ObjForEachFanout( pObj, pFanout, i )
     {
-        if ( Abc_ObjIsCo(pFanout) )
+        if ( Abc_ObjIsCo(pFanout) || Abc_ObjIsLatch(pFanout) )
             continue;
         pTime = Scl_CellPinTime( Abc_SclObjCell(pFanout), Abc_NodeFindFanin(pFanout, pObj) );
         Abc_SclDeptFanin( p, pTime, pFanout, pObj );
@@ -428,6 +428,7 @@ static inline void Abc_SclTimeIncUpdateClean( SC_Man * p )
 }
 static inline void Abc_SclTimeIncAddNode( SC_Man * p, Abc_Obj_t * pObj )
 {
+    assert( !Abc_ObjIsLatch(pObj) );
     assert( pObj->fMarkC == 0 );
     pObj->fMarkC = 1;
     Vec_IntPush( Vec_WecEntry(p->vLevels, Abc_ObjLevel(pObj)), Abc_ObjId(pObj) );
@@ -439,7 +440,7 @@ static inline void Abc_SclTimeIncAddFanins( SC_Man * p, Abc_Obj_t * pObj )
     int i;
     Abc_ObjForEachFanin( pObj, pFanin, i )
 //        if ( !pFanin->fMarkC && Abc_ObjIsNode(pFanin) )
-        if ( !pFanin->fMarkC )
+        if ( !pFanin->fMarkC && !Abc_ObjIsLatch(pFanin) )
             Abc_SclTimeIncAddNode( p, pFanin );
 }
 static inline void Abc_SclTimeIncAddFanouts( SC_Man * p, Abc_Obj_t * pObj )
@@ -447,7 +448,7 @@ static inline void Abc_SclTimeIncAddFanouts( SC_Man * p, Abc_Obj_t * pObj )
     Abc_Obj_t * pFanout;
     int i;
     Abc_ObjForEachFanout( pObj, pFanout, i )
-        if ( !pFanout->fMarkC )
+        if ( !pFanout->fMarkC && !Abc_ObjIsLatch(pFanout) )
             Abc_SclTimeIncAddNode( p, pFanout );
 }
 static inline void Abc_SclTimeIncUpdateArrival( SC_Man * p )
