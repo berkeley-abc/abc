@@ -85,7 +85,7 @@ static int TypeCheck( Abc_Frame_t * pAbc, const char * s);
 int Abc_RealMain( int argc, char * argv[] )
 {
     Abc_Frame_t * pAbc;
-    char sCommandUsr[500] = {0}, sCommandTmp[100], sReadCmd[20], sWriteCmd[20];
+    char sCommandUsr[ABC_MAX_STR] = {0}, sCommandTmp[ABC_MAX_STR], sReadCmd[1000], sWriteCmd[1000];
     const char * sOutFile, * sInFile;
     char * sCommand;
     int  fStatus = 0;
