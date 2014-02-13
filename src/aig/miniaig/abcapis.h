@@ -53,6 +53,10 @@ extern int    Cmd_CommandExecute( void * pAbc, char * pCommandLine );
 extern void   Abc_NtkInputMiniAig( void * pAbc, void * pMiniAig );
 extern void * Abc_NtkOutputMiniAig( void * pAbc );
 
+// procedures to set CI/CO arrival/required times
+extern void   Abc_NtkSetCiArrivalTime( void * pAbc, int iCi, float Rise, float Fall );
+extern void   Abc_NtkSetCoRequiredTime( void * pAbc, int iCo, float Rise, float Fall );
+
 // procedures to return the mapped network
 extern int *  Abc_NtkOutputMiniMapping( void * pAbc );
 extern void   Abc_NtkPrintMiniMapping( int * pArray );
