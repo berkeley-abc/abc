@@ -578,6 +578,16 @@ int Pdr_ManSolveInt( Pdr_Man_t * p )
     abctime clkStart = Abc_Clock(), clkOne = 0;
     p->timeToStop = p->pPars->nTimeOut ? p->pPars->nTimeOut * CLOCKS_PER_SEC + Abc_Clock(): 0;
     assert( Vec_PtrSize(p->vSolvers) == 0 );
+    // in the multi-output mode, mark trivial POs (those fed by const0) as solved 
+    if ( p->pPars->fSolveAll )
+        Saig_ManForEachPo( p->pAig, pObj, k )
+            if ( Aig_ObjChild0(pObj) == Aig_ManConst0(p->pAig) )
+            {
+                Vec_IntWriteEntry( p->pPars->vOutMap, k, 1 ); // unsat
+                p->pPars->nProveOuts++;
+                if ( p->pPars->fUseBridge )
+                    Gia_ManToBridgeResult( stdout, 1, NULL, k );
+            }
     // create the first timeframe
     p->pPars->timeLastSolved = Abc_Clock();
     Pdr_ManCreateSolver( p, (k = 0) );
