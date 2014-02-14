@@ -42,7 +42,7 @@ struct Abc_ManTime_t_
 };
 
 // static functions
-static Abc_ManTime_t *     Abc_ManTimeStart();
+static Abc_ManTime_t *     Abc_ManTimeStart( Abc_Ntk_t * pNtk );
 static void                Abc_ManTimeExpand( Abc_ManTime_t * p, int nSize, int fProgressive );
 
 // accessing the arrival and required times of a node
@@ -157,7 +157,7 @@ void Abc_NtkTimeSetDefaultArrival( Abc_Ntk_t * pNtk, float Rise, float Fall )
     if ( Rise == 0.0 && Fall == 0.0 )
         return;
     if ( pNtk->pManTime == NULL )
-        pNtk->pManTime = Abc_ManTimeStart();
+        pNtk->pManTime = Abc_ManTimeStart(pNtk);
     pNtk->pManTime->tArrDef.Rise  = Rise;
     pNtk->pManTime->tArrDef.Fall  = Fall;
 }
@@ -166,7 +166,7 @@ void Abc_NtkTimeSetDefaultRequired( Abc_Ntk_t * pNtk, float Rise, float Fall )
     if ( Rise == 0.0 && Fall == 0.0 )
         return;
     if ( pNtk->pManTime == NULL )
-        pNtk->pManTime = Abc_ManTimeStart();
+        pNtk->pManTime = Abc_ManTimeStart(pNtk);
     pNtk->pManTime->tReqDef.Rise  = Rise;
     pNtk->pManTime->tReqDef.Fall  = Fall;
 }
@@ -187,7 +187,7 @@ void Abc_NtkTimeSetArrival( Abc_Ntk_t * pNtk, int ObjId, float Rise, float Fall 
     Vec_Ptr_t * vTimes;
     Abc_Time_t * pTime;
     if ( pNtk->pManTime == NULL )
-        pNtk->pManTime = Abc_ManTimeStart();
+        pNtk->pManTime = Abc_ManTimeStart(pNtk);
     if ( pNtk->pManTime->tArrDef.Rise == Rise && pNtk->pManTime->tArrDef.Fall == Fall )
         return;
     Abc_ManTimeExpand( pNtk->pManTime, ObjId + 1, 1 );
@@ -202,7 +202,7 @@ void Abc_NtkTimeSetRequired( Abc_Ntk_t * pNtk, int ObjId, float Rise, float Fall
     Vec_Ptr_t * vTimes;
     Abc_Time_t * pTime;
     if ( pNtk->pManTime == NULL )
-        pNtk->pManTime = Abc_ManTimeStart();
+        pNtk->pManTime = Abc_ManTimeStart(pNtk);
     if ( pNtk->pManTime->tReqDef.Rise == Rise && pNtk->pManTime->tReqDef.Fall == Fall )
         return;
     Abc_ManTimeExpand( pNtk->pManTime, ObjId + 1, 1 );
@@ -229,7 +229,7 @@ void Abc_NtkTimeSetDefaultInputDrive( Abc_Ntk_t * pNtk, float Rise, float Fall )
     if ( Rise == 0.0 && Fall == 0.0 )
         return;
     if ( pNtk->pManTime == NULL )
-        pNtk->pManTime = Abc_ManTimeStart();
+        pNtk->pManTime = Abc_ManTimeStart(pNtk);
     pNtk->pManTime->tInDriveDef.Rise  = Rise;
     pNtk->pManTime->tInDriveDef.Fall  = Fall;
     if ( pNtk->pManTime->tInDrive != NULL )
@@ -245,7 +245,7 @@ void Abc_NtkTimeSetDefaultOutputLoad( Abc_Ntk_t * pNtk, float Rise, float Fall )
     if ( Rise == 0.0 && Fall == 0.0 )
         return;
     if ( pNtk->pManTime == NULL )
-        pNtk->pManTime = Abc_ManTimeStart();
+        pNtk->pManTime = Abc_ManTimeStart(pNtk);
     pNtk->pManTime->tOutLoadDef.Rise  = Rise;
     pNtk->pManTime->tOutLoadDef.Fall  = Fall;
     if ( pNtk->pManTime->tOutLoad != NULL )
@@ -273,7 +273,7 @@ void Abc_NtkTimeSetInputDrive( Abc_Ntk_t * pNtk, int PiNum, float Rise, float Fa
     Abc_Time_t * pTime;
     assert( PiNum >= 0 && PiNum < Abc_NtkCiNum(pNtk) );
     if ( pNtk->pManTime == NULL )
-        pNtk->pManTime = Abc_ManTimeStart();
+        pNtk->pManTime = Abc_ManTimeStart(pNtk);
     if ( pNtk->pManTime->tInDriveDef.Rise == Rise && pNtk->pManTime->tInDriveDef.Fall == Fall )
         return;
     if ( pNtk->pManTime->tInDrive == NULL )
@@ -292,7 +292,7 @@ void Abc_NtkTimeSetOutputLoad( Abc_Ntk_t * pNtk, int PoNum, float Rise, float Fa
     Abc_Time_t * pTime;
     assert( PoNum >= 0 && PoNum < Abc_NtkCoNum(pNtk) );
     if ( pNtk->pManTime == NULL )
-        pNtk->pManTime = Abc_ManTimeStart();
+        pNtk->pManTime = Abc_ManTimeStart(pNtk);
     if ( pNtk->pManTime->tOutLoadDef.Rise == Rise && pNtk->pManTime->tOutLoadDef.Fall == Fall )
         return;
     if ( pNtk->pManTime->tOutLoad == NULL )
@@ -382,7 +382,7 @@ void Abc_NtkTimePrepare( Abc_Ntk_t * pNtk )
     // if there is no timing manager, allocate and initialize
     if ( pNtk->pManTime == NULL )
     {
-        pNtk->pManTime = Abc_ManTimeStart();
+        pNtk->pManTime = Abc_ManTimeStart(pNtk);
         Abc_NtkTimeInitialize( pNtk, NULL );
         return;
     }
@@ -428,7 +428,7 @@ void Abc_NtkTimePrepare( Abc_Ntk_t * pNtk )
   SeeAlso     []
 
 ***********************************************************************/
-Abc_ManTime_t * Abc_ManTimeStart()
+Abc_ManTime_t * Abc_ManTimeStart( Abc_Ntk_t * pNtk )
 {
     Abc_ManTime_t * p;
     p = ABC_ALLOC( Abc_ManTime_t, 1 );
@@ -437,6 +437,7 @@ Abc_ManTime_t * Abc_ManTimeStart()
     p->vReqs = Vec_PtrAlloc( 0 );
     p->tReqDef.Rise = ABC_INFINITY;
     p->tReqDef.Fall = ABC_INFINITY;
+    Abc_ManTimeExpand( p, Abc_NtkObjNumMax(pNtk) + 1, 0 );
     return p;
 }
 
@@ -488,7 +489,7 @@ void Abc_ManTimeDup( Abc_Ntk_t * pNtkOld, Abc_Ntk_t * pNtkNew )
     assert( Abc_NtkCoNum(pNtkOld) == Abc_NtkCoNum(pNtkNew) );
     assert( Abc_NtkLatchNum(pNtkOld) == Abc_NtkLatchNum(pNtkNew) );
     // create the new timing manager
-    pNtkNew->pManTime = Abc_ManTimeStart();
+    pNtkNew->pManTime = Abc_ManTimeStart(pNtkNew);
     Abc_ManTimeExpand( pNtkNew->pManTime, Abc_NtkObjNumMax(pNtkNew), 0 );
     // set the default timing
     pNtkNew->pManTime->tArrDef = pNtkOld->pManTime->tArrDef;
