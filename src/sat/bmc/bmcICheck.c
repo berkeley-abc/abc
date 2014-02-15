@@ -206,6 +206,7 @@ void Bmc_PerformICheck( Gia_Man_t * p, int nFramesMax, int nTimeOut, int fEmpty,
     assert( nFramesMax > 0 );
     assert( Gia_ManRegNum(p) > 0 );
 
+    if ( fVerbose )
     printf( "Solving M-inductiveness for design %s with %d AND nodes and %d flip-flops:\n",
         Gia_ManName(p), Gia_ManAndNum(p), Gia_ManRegNum(p) );
 
@@ -272,10 +273,12 @@ void Bmc_PerformICheck( Gia_Man_t * p, int nFramesMax, int nTimeOut, int fEmpty,
             fChanges = 1;
         }
         // report the results
+        if ( fVerbose )
         printf( "M =%4d :  AIG =%8d.  SAT vars =%8d.  SAT conf =%8d.  S =%6d. (%6.2f %%)  ",
             nFramesMax, (nFramesMax+1) * Gia_ManAndNum(pMiter), 
             Gia_ManRegNum(p) + Gia_ManCoNum(p) + sat_solver_nvars(pSat), 
             sat_solver_nconflicts(pSat), nLitsUsed, 100.0 * nLitsUsed / Gia_ManRegNum(p) );
+        if ( fVerbose )
         Abc_PrintTime( 1, "Time", Abc_Clock() - clkStart );
         // count the number of negative literals
         sat_solver_delete( pSat );
@@ -375,19 +378,23 @@ void Bmc_PerformISearchOne( Gia_Man_t * p, int nFramesMax, int nTimeOut, int fRe
         else assert( 0 );
         // report the results
         //printf( "Round %d:  ", o );
+        if ( fVerbose )
         printf( "I = %4d :  AIG =%8d.  SAT vars =%8d.  SAT conf =%8d.  S =%6d. (%6.2f %%)  ",
             i, (nFramesMax+1) * Gia_ManAndNum(pMiter), 
             Gia_ManRegNum(p) + Gia_ManCoNum(p) + sat_solver_nvars(pSat), 
             sat_solver_nconflicts(pSat), nLitsUsed, 100.0 * nLitsUsed / Gia_ManRegNum(p) );
+        if ( fVerbose )
         ABC_PRTr( "Time", Abc_Clock() - clkStart );
         fflush( stdout );
     }
     // report the results
     //printf( "Round %d:  ", o );
+    if ( fVerbose )
     printf( "M = %4d :  AIG =%8d.  SAT vars =%8d.  SAT conf =%8d.  S =%6d. (%6.2f %%)  ",
         nFramesMax, (nFramesMax+1) * Gia_ManAndNum(pMiter), 
         Gia_ManRegNum(p) + Gia_ManCoNum(p) + sat_solver_nvars(pSat), 
         sat_solver_nconflicts(pSat), nLitsUsed, 100.0 * nLitsUsed / Gia_ManRegNum(p) );
+    if ( fVerbose )
     Abc_PrintTime( 1, "Time", Abc_Clock() - clkStart );
     fflush( stdout );
 
@@ -401,6 +408,7 @@ Vec_Int_t * Bmc_PerformISearch( Gia_Man_t * p, int nFramesMax, int nTimeOut, int
 {
     Vec_Int_t * vLits, * vFlops;
     int i, f;
+    if ( fVerbose )
     printf( "Solving M-inductiveness for design %s with %d AND nodes and %d flip-flops:\n",
         Gia_ManName(p), Gia_ManAndNum(p), Gia_ManRegNum(p) );
     fflush( stdout );
