@@ -4588,11 +4588,11 @@ int Abc_CommandMfs2( Abc_Frame_t * pAbc, int argc, char ** argv )
     extern int Abc_NtkMfsAfterICheck( Abc_Ntk_t * p, int nFrames, int nFramesAdd, Vec_Int_t * vFlops, Sfm_Par_t * pPars );
     Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
     Sfm_Par_t Pars, * pPars = &Pars;
-    int c, fIndDCs = 0, nFramesAdd = 0;
+    int c, fIndDCs = 0, fUseAllFfs = 0, nFramesAdd = 0;
     // set defaults
     Sfm_ParSetDefault( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "WFDMLCZNIdaeivwh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "WFDMLCZNIdaeijvwh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -4707,6 +4707,9 @@ int Abc_CommandMfs2( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'i':
             fIndDCs ^= 1;
             break;
+        case 'j':
+            fUseAllFfs ^= 1;
+            break;
         case 'v':
             pPars->fVerbose ^= 1;
             break;
@@ -4731,6 +4734,13 @@ int Abc_CommandMfs2( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     if ( fIndDCs )
     {
+        if ( fUseAllFfs )
+        {
+            pAbc->nIndFrames = 1;
+            Vec_IntFreeP( &pAbc->vIndFlops );
+            pAbc->vIndFlops = Vec_IntAlloc( Abc_NtkLatchNum(pNtk) );
+            Vec_IntFill( pAbc->vIndFlops, Abc_NtkLatchNum(pNtk), 1 );
+        }
         if ( pAbc->nIndFrames <= 0 )
         {
             Abc_Print( -1, "The number of k-inductive frames is not specified.\n" );
@@ -4780,6 +4790,7 @@ usage:
     Abc_Print( -2, "\t-a       : toggle minimizing area or area+edges [default = %s]\n",                        pPars->fArea? "area": "area+edges" );
     Abc_Print( -2, "\t-e       : toggle high-effort resubstitution [default = %s]\n",                           pPars->fMoreEffort? "yes": "no" );
     Abc_Print( -2, "\t-i       : toggle using inductive don't-cares [default = %s]\n",                          fIndDCs? "yes": "no" );
+    Abc_Print( -2, "\t-j       : toggle using all flops with \"-i\" is enabled [default = %s]\n",               fUseAllFfs? "yes": "no" );
     Abc_Print( -2, "\t-I       : the number of additional frames inserted [default = %d]\n",                    nFramesAdd );
     Abc_Print( -2, "\t-v       : toggle printing optimization summary [default = %s]\n",                        pPars->fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-w       : toggle printing detailed stats for each node [default = %s]\n",                pPars->fVeryVerbose? "yes": "no" );
