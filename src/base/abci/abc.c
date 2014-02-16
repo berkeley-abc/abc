@@ -6482,7 +6482,7 @@ int Abc_CommandMiter( Abc_Frame_t * pAbc, int argc, char ** argv )
     pNtk = Abc_FrameReadNtk(pAbc);
 
     // set defaults
-    fComb  = 1;
+    fComb  = 0;
     fCheck = 1;
     fImplic = 0;
     fMulti = 0;
