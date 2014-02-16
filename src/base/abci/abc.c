@@ -4744,24 +4744,29 @@ int Abc_CommandMfs2( Abc_Frame_t * pAbc, int argc, char ** argv )
         if ( pAbc->nIndFrames <= 0 )
         {
             Abc_Print( -1, "The number of k-inductive frames is not specified.\n" );
-            return 1;
+            return 0;
         }
         if ( pAbc->vIndFlops == NULL )
         {
             Abc_Print( -1, "The set of k-inductive flops is not specified.\n" );
-            return 1;
+            return 0;
         }
         if ( Vec_IntSize(pAbc->vIndFlops) != Abc_NtkLatchNum(pNtk) )
         {
             Abc_Print( -1, "The saved flop count (%d) does not match that of the current network (%d).\n", 
                 Vec_IntSize(pAbc->vIndFlops), Abc_NtkLatchNum(pNtk) );
-            return 1;
+            return 0;
         }
         // modify the current network
         if ( !Abc_NtkMfsAfterICheck( pNtk, pAbc->nIndFrames, nFramesAdd, pAbc->vIndFlops, pPars ) )
         {
             Abc_Print( -1, "Resynthesis has failed.\n" );
             return 1;
+        }
+        if ( fUseAllFfs )
+        {
+            pAbc->nIndFrames = 0;
+            Vec_IntFreeP( &pAbc->vIndFlops );
         }
     }
     else
@@ -32989,7 +32994,7 @@ int Abc_CommandAbc9ICheck( Abc_Frame_t * pAbc, int argc, char ** argv )
         pAbc->vIndFlops = Bmc_PerformISearch( pAbc->pGia, nFramesMax, nTimeOut, fReverse, fDump, fVerbose );
     else
         Bmc_PerformICheck( pAbc->pGia, nFramesMax, nTimeOut, fEmpty, fVerbose );
-    pAbc->nIndFrames = nFramesMax;
+    pAbc->nIndFrames = pAbc->vIndFlops ? nFramesMax : 0;
     return 0;
 
 usage:

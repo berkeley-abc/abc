@@ -304,7 +304,7 @@ void Bmc_PerformICheck( Gia_Man_t * p, int nFramesMax, int nTimeOut, int fEmpty,
   SeeAlso     []
 
 ***********************************************************************/
-void Bmc_PerformISearchOne( Gia_Man_t * p, int nFramesMax, int nTimeOut, int fReverse, int fVerbose, Vec_Int_t * vLits )
+int Bmc_PerformISearchOne( Gia_Man_t * p, int nFramesMax, int nTimeOut, int fReverse, int fVerbose, Vec_Int_t * vLits )
 {
     int fUseOldCnf = 0;
     Gia_Man_t * pMiter, * pTemp;
@@ -312,7 +312,7 @@ void Bmc_PerformISearchOne( Gia_Man_t * p, int nFramesMax, int nTimeOut, int fRe
     sat_solver * pSat;
 //    Vec_Int_t * vLits;
     int i, Iter, status;
-    int nLitsUsed;
+    int nLitsUsed, RetValue = 0;
     abctime clkStart = Abc_Clock();
     assert( nFramesMax > 0 );
     assert( Gia_ManRegNum(p) > 0 );
@@ -348,7 +348,13 @@ void Bmc_PerformISearchOne( Gia_Man_t * p, int nFramesMax, int nTimeOut, int fRe
         sat_solver_delete( pSat );
         Cnf_DataFree( pCnf );
         Gia_ManStop( pMiter );
-        return;
+        return 1;
+    }
+    if ( status == l_Undef )
+    {
+        printf( "ICheck: Timeout reached after %d seconds.                                                                          \n", nTimeOut );
+        RetValue = 1;
+        goto cleanup;
     }
     assert( status == l_False );
 
@@ -368,8 +374,9 @@ void Bmc_PerformISearchOne( Gia_Man_t * p, int nFramesMax, int nTimeOut, int fRe
         status = sat_solver_solve( pSat, Vec_IntArray(vLits), Vec_IntArray(vLits) + Vec_IntSize(vLits), (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
         if ( status == l_Undef )
         {
-            printf( "Timeout reached after %d seconds.\n", nTimeOut );
-            break;
+            printf( "ICheck: Timeout reached after %d seconds.                                                                          \n", nTimeOut );
+            RetValue = 1;
+            goto cleanup;
         }
         if ( status == l_True )
             Vec_IntWriteEntry( vLits, i, Abc_LitNot(Vec_IntEntry(vLits, i)) );
@@ -379,30 +386,33 @@ void Bmc_PerformISearchOne( Gia_Man_t * p, int nFramesMax, int nTimeOut, int fRe
         // report the results
         //printf( "Round %d:  ", o );
         if ( fVerbose )
-        printf( "I = %4d :  AIG =%8d.  SAT vars =%8d.  SAT conf =%8d.  S =%6d. (%6.2f %%)  ",
-            i, (nFramesMax+1) * Gia_ManAndNum(pMiter), 
-            Gia_ManRegNum(p) + Gia_ManCoNum(p) + sat_solver_nvars(pSat), 
-            sat_solver_nconflicts(pSat), nLitsUsed, 100.0 * nLitsUsed / Gia_ManRegNum(p) );
-        if ( fVerbose )
-        ABC_PRTr( "Time", Abc_Clock() - clkStart );
-        fflush( stdout );
+        {
+            printf( "I = %4d :  AIG =%8d.  SAT vars =%8d.  SAT conf =%8d.  S =%6d. (%6.2f %%)  ",
+                i, (nFramesMax+1) * Gia_ManAndNum(pMiter), 
+                Gia_ManRegNum(p) + Gia_ManCoNum(p) + sat_solver_nvars(pSat), 
+                sat_solver_nconflicts(pSat), nLitsUsed, 100.0 * nLitsUsed / Gia_ManRegNum(p) );
+            ABC_PRTr( "Time", Abc_Clock() - clkStart );
+            fflush( stdout );
+        }
     }
     // report the results
     //printf( "Round %d:  ", o );
     if ( fVerbose )
-    printf( "M = %4d :  AIG =%8d.  SAT vars =%8d.  SAT conf =%8d.  S =%6d. (%6.2f %%)  ",
-        nFramesMax, (nFramesMax+1) * Gia_ManAndNum(pMiter), 
-        Gia_ManRegNum(p) + Gia_ManCoNum(p) + sat_solver_nvars(pSat), 
-        sat_solver_nconflicts(pSat), nLitsUsed, 100.0 * nLitsUsed / Gia_ManRegNum(p) );
-    if ( fVerbose )
-    Abc_PrintTime( 1, "Time", Abc_Clock() - clkStart );
-    fflush( stdout );
-
+    {
+        printf( "M = %4d :  AIG =%8d.  SAT vars =%8d.  SAT conf =%8d.  S =%6d. (%6.2f %%)  ",
+            nFramesMax, (nFramesMax+1) * Gia_ManAndNum(pMiter), 
+            Gia_ManRegNum(p) + Gia_ManCoNum(p) + sat_solver_nvars(pSat), 
+            sat_solver_nconflicts(pSat), nLitsUsed, 100.0 * nLitsUsed / Gia_ManRegNum(p) );
+        Abc_PrintTime( 1, "Time", Abc_Clock() - clkStart );
+        fflush( stdout );
+    }
+cleanup:
     // cleanup
     sat_solver_delete( pSat );
     Cnf_DataFree( pCnf );
     Gia_ManStop( pMiter );
 //    Vec_IntFree( vLits );
+    return RetValue;
 }
 Vec_Int_t * Bmc_PerformISearch( Gia_Man_t * p, int nFramesMax, int nTimeOut, int fReverse, int fDump, int fVerbose )
 {
@@ -419,7 +429,11 @@ Vec_Int_t * Bmc_PerformISearch( Gia_Man_t * p, int nFramesMax, int nTimeOut, int
         Vec_IntPush( vLits, Abc_Var2Lit(i, 0) );
 
     for ( f = 1; f <= nFramesMax; f++ )
-        Bmc_PerformISearchOne( p, f, nTimeOut, fReverse, fVerbose, vLits );
+        if ( Bmc_PerformISearchOne( p, f, nTimeOut, fReverse, fVerbose, vLits ) )
+        {
+            Vec_IntFree( vLits );
+            return NULL;
+        }
 
     // dump the numbers of the flops
     if ( fDump )
