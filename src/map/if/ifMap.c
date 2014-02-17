@@ -135,7 +135,7 @@ static inline int * If_CutPerm1( If_Cut_t * pCut, If_Cut_t * pCut1 )
   SeeAlso     []
 
 ***********************************************************************/
-void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPreprocess )
+void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPreprocess, int fFirst )
 {
     If_Set_t * pCutSet;
     If_Cut_t * pCut0, * pCut1, * pCut;
@@ -160,7 +160,7 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
 
     // get the current assigned best cut
     pCut = If_ObjCutBest(pObj);
-    if ( pCut->nLeaves > 0 )
+    if ( !fFirst )
     {
         // recompute the parameters of the best cut
         if ( p->pPars->fUserRecLib )
@@ -209,7 +209,6 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
         assert( If_CutCheck( pCut ) );
         if ( pObj->fSpec && pCut->nLeaves == (unsigned)p->pPars->nLutSize )
             continue;
-        assert( p->pPars->fSeqMap || pCut->nLeaves > 1 );
         p->nCutsMerged++;
         p->nCutsTotal++;
         // check if this cut is contained in any of the available cuts
@@ -218,18 +217,18 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
             continue;
         // compute the truth table
         pCut->fCompl = 0;
+        pCut->iCutFunc = -1;
         if ( p->pPars->fTruth )
         {
 //            abctime clk = Abc_Clock();
-//            int RetValue = If_CutComputeTruth( p, pCut, pCut0, pCut1, pObj->fCompl0, pObj->fCompl1 );
-            int RetValue = If_CutComputeTruth2( p, pCut, pCut0, pCut1, pObj->fCompl0, pObj->fCompl1 );
+            int RetValue = If_CutComputeTruth( p, pCut, pCut0, pCut1, pObj->fCompl0, pObj->fCompl1 );
 //            p->timeTruth += Abc_Clock() - clk;
 
             pCut->fUseless = 0;
             if ( p->pPars->pFuncCell && RetValue < 2 )
             {
                 assert( pCut->nLimit >= 4 && pCut->nLimit <= 16 );
-                pCut->fUseless = !p->pPars->pFuncCell( p, If_CutTruth(pCut), pCut->nLimit, pCut->nLeaves, p->pPars->pLutStruct );
+                pCut->fUseless = !p->pPars->pFuncCell( p, If_CutTruth(p, pCut), pCut->nLimit, pCut->nLeaves, p->pPars->pLutStruct );
                 p->nCutsUselessAll += pCut->fUseless;
                 p->nCutsUseless[pCut->nLeaves] += pCut->fUseless;
                 p->nCutsCountAll++;
@@ -239,7 +238,7 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
                 {
                     extern int If_CluCheckDecInAny( word t, int nVars );
                     extern int If_CluCheckDecOut( word t, int nVars );
-                    unsigned TruthU = *If_CutTruth(pCut);
+                    unsigned TruthU = *If_CutTruth(p, pCut);
                     word Truth = (((word)TruthU << 32) | (word)TruthU);
                     p->nCuts5++;
                     if ( If_CluCheckDecInAny( Truth, 5 ) )
@@ -251,7 +250,7 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
                 {
                     extern int If_CluCheckDecInAny( word t, int nVars );
                     extern int If_CluCheckDecOut( word t, int nVars );
-                    unsigned TruthU = *If_CutTruth(pCut);
+                    unsigned TruthU = *If_CutTruth(p, pCut);
                     word Truth = (((word)TruthU << 32) | (word)TruthU);
                     p->nCuts5++;
                     if ( If_CluCheckDecInAny( Truth, 5 ) || If_CluCheckDecOut( Truth, 5 ) )
@@ -261,11 +260,11 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
         }
         if ( p->pPars->fUseDsd )
         {
-            if ( pCut0->iDsd < 0 || pCut1->iDsd < 0 )
-                pCut->iDsd = -1;
+            if ( pCut0->iCutFunc < 0 || pCut1->iCutFunc < 0 )
+                pCut->iCutFunc = -1;
             else
             {
-                int j, iDsd[2] = { Abc_LitNotCond(pCut0->iDsd, pObj->fCompl0), Abc_LitNotCond(pCut1->iDsd, pObj->fCompl1) };
+                int j, iDsd[2] = { Abc_LitNotCond(pCut0->iCutFunc, pObj->fCompl0), Abc_LitNotCond(pCut1->iCutFunc, pObj->fCompl1) };
                 int nFans[2] = { pCut0->nLeaves, pCut1->nLeaves };
                 int Fans[2][DAU_MAX_VAR], * pFans[2] = { Fans[0], Fans[1] };
                 // create fanins
@@ -281,9 +280,9 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
                     ABC_SWAP( int *, pFans[0], pFans[1] );
                 }
                 // derive new DSD
-                pCut->iDsd = Dss_ManMerge( p->pDsdMan, iDsd, nFans, pFans, p->uSharedMask, pCut->nLimit, (unsigned char *)pCut->pPerm, If_CutTruthW(pCut) );
+                pCut->iCutFunc = Dss_ManMerge( p->pDsdMan, iDsd, nFans, pFans, p->uSharedMask, pCut->nLimit, (unsigned char *)pCut->pPerm, If_CutTruthW(p, pCut) );
             }
-            if ( pCut->iDsd < 0 )
+            if ( pCut->iCutFunc < 0 )
             {
                 pCut->fUseless = 1;
                 p->nCutsUselessAll++;
@@ -295,7 +294,7 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
         
         // compute the application-specific cost and depth
         pCut->fUser = (p->pPars->pFuncCost != NULL);
-        pCut->Cost = p->pPars->pFuncCost? p->pPars->pFuncCost(pCut) : 0;
+        pCut->Cost = p->pPars->pFuncCost? p->pPars->pFuncCost(p, pCut) : 0;
         if ( pCut->Cost == IF_COST_MAX )
             continue;
         // check if the cut satisfies the required times
@@ -333,20 +332,7 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
         If_CutSort( p, pCutSet, pCut );
 //        If_CutTraverse( p, pObj, pCut );
     } 
-/*
-    printf( "Node %d\n", pObj->Id );
-    for ( i = 0; i < pCutSet->nCuts; i++ )
-        If_CutPrint( pCutSet->ppCuts[i] );
-    printf( "\n" );
-*/
     assert( pCutSet->nCuts > 0 );
-
-    // add the trivial cut to the set
-    if ( !pObj->fSkipCut )
-    {
-        If_ManSetupCutTriv( p, pCutSet->ppCuts[pCutSet->nCuts++], pObj->Id );
-        assert( pCutSet->nCuts <= pCutSet->nCutsMax+1 );
-    }
 
     // update the best cut
     if ( !fPreprocess || pCutSet->ppCuts[0]->Delay <= pObj->Required + p->fEpsilon )
@@ -355,19 +341,26 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
         if(p->pPars->fUserRecLib)
             assert(If_ObjCutBest(pObj)->Cost < IF_COST_MAX && If_ObjCutBest(pObj)->Delay < ABC_INFINITY);
     }
-    assert( p->pPars->fSeqMap || If_ObjCutBest(pObj)->nLeaves > 1 );
+    // add the trivial cut to the set
+    if ( !pObj->fSkipCut && If_ObjCutBest(pObj)->nLeaves > 1 )
+    {
+        If_ManSetupCutTriv( p, pCutSet->ppCuts[pCutSet->nCuts++], pObj->Id );
+        assert( pCutSet->nCuts <= pCutSet->nCutsMax+1 );
+    }
+//    if ( If_ObjCutBest(pObj)->nLeaves == 0 )
+//        p->nBestCutSmall[0]++;
+//    else if ( If_ObjCutBest(pObj)->nLeaves == 1 )
+//        p->nBestCutSmall[1]++;
+
     // ref the selected cut
     if ( Mode && pObj->nRefs > 0 )
         If_CutAreaRef( p, If_ObjCutBest(pObj) );
     if ( If_ObjCutBest(pObj)->fUseless )
         Abc_Print( 1, "The best cut is useless.\n" );
-
     // call the user specified function for each cut
     if ( p->pPars->pFuncUser )
         If_ObjForEachCut( pObj, pCut, i )
             p->pPars->pFuncUser( p, pObj, pCut );
-
-
     // free the cuts
     If_ManDerefNodeCutSet( p, pObj );
 }
@@ -445,22 +438,20 @@ void If_ObjPerformMappingChoice( If_Man_t * p, If_Obj_t * pObj, int Mode, int fP
     } 
     assert( pCutSet->nCuts > 0 );
 
+    // update the best cut
+    if ( !fPreprocess || pCutSet->ppCuts[0]->Delay <= pObj->Required + p->fEpsilon )
+        If_CutCopy( p, If_ObjCutBest(pObj), pCutSet->ppCuts[0] );
+    assert( p->pPars->fSeqMap || If_ObjCutBest(pObj)->nLeaves > 1 );
     // add the trivial cut to the set
-    if ( !pObj->fSkipCut )
+    if ( !pObj->fSkipCut && If_ObjCutBest(pObj)->nLeaves > 1 )
     {
         If_ManSetupCutTriv( p, pCutSet->ppCuts[pCutSet->nCuts++], pObj->Id );
         assert( pCutSet->nCuts <= pCutSet->nCutsMax+1 );
     }
 
-    // update the best cut
-    if ( !fPreprocess || pCutSet->ppCuts[0]->Delay <= pObj->Required + p->fEpsilon )
-        If_CutCopy( p, If_ObjCutBest(pObj), pCutSet->ppCuts[0] );
-    assert( p->pPars->fSeqMap || If_ObjCutBest(pObj)->nLeaves > 1 );
-
     // ref the selected cut
     if ( Mode && pObj->nRefs > 0 )
         If_CutAreaRef( p, If_ObjCutBest(pObj) );
-
     // free the cuts
     If_ManDerefChoiceCutSet( p, pObj );
 }
@@ -476,7 +467,7 @@ void If_ObjPerformMappingChoice( If_Man_t * p, If_Obj_t * pObj, int Mode, int fP
   SeeAlso     []
 
 ***********************************************************************/
-int If_ManPerformMappingRound( If_Man_t * p, int nCutsUsed, int Mode, int fPreprocess, char * pLabel )
+int If_ManPerformMappingRound( If_Man_t * p, int nCutsUsed, int Mode, int fPreprocess, int fFirst, char * pLabel )
 {
 //    ProgressBar * pProgress;
     If_Obj_t * pObj;
@@ -484,6 +475,7 @@ int If_ManPerformMappingRound( If_Man_t * p, int nCutsUsed, int Mode, int fPrepr
     abctime clk = Abc_Clock();
     float arrTime;
     assert( Mode >= 0 && Mode <= 2 );
+    p->nBestCutSmall[0] = p->nBestCutSmall[1] = 0;
     // set the sorting function
     if ( Mode || p->pPars->fArea ) // area
         p->SortMode = 1;
@@ -505,7 +497,7 @@ int If_ManPerformMappingRound( If_Man_t * p, int nCutsUsed, int Mode, int fPrepr
         {
             if ( If_ObjIsAnd(pObj) )
             {
-                If_ObjPerformMappingAnd( p, pObj, Mode, fPreprocess );
+                If_ObjPerformMappingAnd( p, pObj, Mode, fPreprocess, fFirst );
                 if ( pObj->fRepr )
                     If_ObjPerformMappingChoice( p, pObj, Mode, fPreprocess );
             }
@@ -534,7 +526,7 @@ int If_ManPerformMappingRound( If_Man_t * p, int nCutsUsed, int Mode, int fPrepr
         If_ManForEachNode( p, pObj, i )
         {
     //        Extra_ProgressBarUpdate( pProgress, i, pLabel );
-            If_ObjPerformMappingAnd( p, pObj, Mode, fPreprocess );
+            If_ObjPerformMappingAnd( p, pObj, Mode, fPreprocess, fFirst );
             if ( pObj->fRepr )
                 If_ObjPerformMappingChoice( p, pObj, Mode, fPreprocess );
         }
@@ -551,6 +543,7 @@ int If_ManPerformMappingRound( If_Man_t * p, int nCutsUsed, int Mode, int fPrepr
         char Symb = fPreprocess? 'P' : ((Mode == 0)? 'D' : ((Mode == 1)? 'F' : 'A'));
         Abc_Print( 1, "%c: Del = %7.2f. Ar = %9.1f. Edge = %8d. Switch = %7.2f. Cut = %8d. ", 
             Symb, p->RequiredGlo, p->AreaGlo, p->nNets, p->dPower, p->nCutsMerged );
+//        printf( "Cut0 =%4d. Cut1 =%4d. ", p->nBestCutSmall[0], p->nBestCutSmall[1] );
         Abc_PrintTime( 1, "T", Abc_Clock() - clk );
 //    Abc_Print( 1, "Max number of cuts = %d. Average number of cuts = %5.2f.\n", 
 //        p->nCutsMax, 1.0 * p->nCutsMerged / If_ManAndNum(p) );

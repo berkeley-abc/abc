@@ -15854,7 +15854,7 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     if ( fLutMux )
     {
-        extern int Abc_NtkCutCostMux( If_Cut_t * pCut );
+        extern int Abc_NtkCutCostMux( If_Man_t * p, If_Cut_t * pCut );
         pPars->fCutMin   = 1;
         pPars->fTruth    = 1;
         pPars->pFuncCost = Abc_NtkCutCostMux;
@@ -30228,6 +30228,8 @@ int Abc_CommandAbc9If( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
         pPars->fTruth = 1;
         pPars->fExpRed = 0;
+        if ( pPars->pLutStruct == NULL )
+            pPars->fDeriveLuts = 1;
     }
     // modify the subgraph recording
     if ( pPars->fUserRecLib )

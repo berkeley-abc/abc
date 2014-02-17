@@ -1156,7 +1156,7 @@ static inline int Abc_TtMinBase( word * pTruth, int * pVars, int nVars, int nVar
             continue;
         if ( k < i )
         {
-            pVars[k] = pVars[i];
+            if ( pVars ) pVars[k] = pVars[i];
             Abc_TtSwapVars( pTruth, nVarsAll, k, i );
         }
         k++;

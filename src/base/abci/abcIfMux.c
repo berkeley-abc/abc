@@ -145,7 +145,7 @@ void Abc_NtkCutCostMuxPrecompute()
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_NtkCutCostMux( If_Cut_t * pCut )
+int Abc_NtkCutCostMux( If_Man_t * p, If_Cut_t * pCut )
 {    
     static char uLookup[256] = {
         1, //   0  0x00
@@ -407,7 +407,7 @@ int Abc_NtkCutCostMux( If_Cut_t * pCut )
     };
     if ( pCut->nLeaves < 3 )
         return 1;
-    if ( pCut->nLeaves == 3 && uLookup[0xff & *If_CutTruth(pCut)] )
+    if ( pCut->nLeaves == 3 && uLookup[0xff & *If_CutTruth(p, pCut)] )
         return 1;
     return (1 << pCut->nLeaves) - 1;
 }

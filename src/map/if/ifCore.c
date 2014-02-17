@@ -94,20 +94,20 @@ int If_ManPerformMappingComb( If_Man_t * p )
     if ( p->pPars->fPreprocess && !p->pPars->fArea )
     {
         // map for delay
-        If_ManPerformMappingRound( p, p->pPars->nCutsMax, 0, 1, "Delay" );
+        If_ManPerformMappingRound( p, p->pPars->nCutsMax, 0, 1, 1, "Delay" );
         // map for delay second option
         p->pPars->fFancy = 1;
         If_ManResetOriginalRefs( p );
-        If_ManPerformMappingRound( p, p->pPars->nCutsMax, 0, 1, "Delay-2" );
+        If_ManPerformMappingRound( p, p->pPars->nCutsMax, 0, 1, 0, "Delay-2" );
         p->pPars->fFancy = 0;
         // map for area
         p->pPars->fArea = 1;
         If_ManResetOriginalRefs( p );
-        If_ManPerformMappingRound( p, p->pPars->nCutsMax, 0, 1, "Area" );
+        If_ManPerformMappingRound( p, p->pPars->nCutsMax, 0, 1, 0, "Area" );
         p->pPars->fArea = 0;
     }
     else
-        If_ManPerformMappingRound( p, p->pPars->nCutsMax, 0, 0, "Delay" );
+        If_ManPerformMappingRound( p, p->pPars->nCutsMax, 0, 0, 1, "Delay" );
 
     // try to improve area by expanding and reducing the cuts
     if ( p->pPars->fExpRed )
@@ -116,7 +116,7 @@ int If_ManPerformMappingComb( If_Man_t * p )
     // area flow oriented mapping
     for ( i = 0; i < p->pPars->nFlowIters; i++ )
     {
-        If_ManPerformMappingRound( p, p->pPars->nCutsMax, 1, 0, "Flow" );
+        If_ManPerformMappingRound( p, p->pPars->nCutsMax, 1, 0, 0, "Flow" );
         if ( p->pPars->fExpRed )
             If_ManImproveMapping( p );
     }
@@ -124,7 +124,7 @@ int If_ManPerformMappingComb( If_Man_t * p )
     // area oriented mapping
     for ( i = 0; i < p->pPars->nAreaIters; i++ )
     {
-        If_ManPerformMappingRound( p, p->pPars->nCutsMax, 2, 0, "Area" );
+        If_ManPerformMappingRound( p, p->pPars->nCutsMax, 2, 0, 0, "Area" );
         if ( p->pPars->fExpRed )
             If_ManImproveMapping( p );
     }

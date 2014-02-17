@@ -705,7 +705,7 @@ int Abc_NtkRecAddCut3( If_Man_t * pIfMan, If_Obj_t * pRoot, If_Cut_t * pCut )
 
     // skip small cuts
     assert( p->nVars == (int)pCut->nLimit );
-    if ( nLeaves < 2 || (nLeaves == 2 && Abc_TtSupportSize(If_CutTruthW(pCut), 2) != 2) )
+    if ( nLeaves < 2 || (nLeaves == 2 && Abc_TtSupportSize(If_CutTruthW(pIfMan, pCut), 2) != 2) )
     {
         p->nFilterSize++;
         return 1;
@@ -716,7 +716,7 @@ int Abc_NtkRecAddCut3( If_Man_t * pIfMan, If_Obj_t * pRoot, If_Cut_t * pCut )
 
     // semi-canonicize truth table
 clk = Abc_Clock();
-    memcpy( p->pTemp1, If_CutTruthW(pCut), p->nWords * sizeof(word) );
+    memcpy( p->pTemp1, If_CutTruthW(pIfMan, pCut), p->nWords * sizeof(word) );
 #ifdef LMS_USE_OLD_FORM
     uCanonPhase = Kit_TruthSemiCanonicize( (unsigned *)p->pTemp1, (unsigned *)p->pTemp2, nLeaves, pCanonPerm );
 #else
@@ -908,10 +908,9 @@ static inline int If_CutFindBestStruct( If_Man_t * pIfMan, If_Cut_t * pCut, char
     int uSupport, nLeaves = If_CutLeaveNum( pCut );
     word DelayProfile;
     abctime clk;
-    assert( nLeaves > 1 );
     pCut->fUser = 1;
     // compute support
-    uSupport = Abc_TtSupport( If_CutTruthW(pCut), nLeaves );
+    uSupport = Abc_TtSupport( If_CutTruthW(pIfMan, pCut), nLeaves );
     if ( uSupport == 0 )
     {
         pCut->Cost = 1;
@@ -932,7 +931,7 @@ static inline int If_CutFindBestStruct( If_Man_t * pIfMan, If_Cut_t * pCut, char
 
     // semicanonicize the function
 clk = Abc_Clock();
-    memcpy( p->pTemp1, If_CutTruthW(pCut), p->nWords * sizeof(word) );
+    memcpy( p->pTemp1, If_CutTruthW(pIfMan, pCut), p->nWords * sizeof(word) );
 #ifdef LMS_USE_OLD_FORM
     *puCanonPhase = Kit_TruthSemiCanonicize( (unsigned *)p->pTemp1, (unsigned *)p->pTemp2, nLeaves, pCanonPerm );
 #else
@@ -1018,16 +1017,15 @@ Hop_Obj_t * Abc_RecToHop3( Hop_Man_t * pMan, If_Man_t * pIfMan, If_Cut_t * pCut,
     Gia_Obj_t * pGiaPo, * pGiaTemp = NULL;
     int i, uSupport, BestPo = -1, nLeaves = If_CutLeaveNum(pCut);
     assert( pIfMan->pPars->fCutMin == 1 );
-    assert( nLeaves > 1 );
 
     // compute support
-    uSupport = Abc_TtSupport( If_CutTruthW(pCut), nLeaves );
+    uSupport = Abc_TtSupport( If_CutTruthW(pIfMan, pCut), nLeaves );
     if ( uSupport == 0 )
-        return Hop_NotCond( Hop_ManConst0(pMan), (int)(*If_CutTruthW(pCut) & 1) );
+        return Hop_NotCond( Hop_ManConst0(pMan), If_CutTruthIsCompl(pCut) );
     if ( !Abc_TtSuppIsMinBase(uSupport) || uSupport == 1 )
     {
         assert( Abc_TtSuppOnlyOne(uSupport) );
-        return Hop_NotCond( Hop_IthVar(pMan, Abc_TtSuppFindFirst(uSupport)), (int)(*If_CutTruthW(pCut) & 1) );
+        return Hop_NotCond( Hop_IthVar(pMan, Abc_TtSuppFindFirst(uSupport)), If_CutTruthIsCompl(pCut) );
     }
     assert( Gia_WordCountOnes(uSupport) == nLeaves );
 
@@ -1035,15 +1033,6 @@ Hop_Obj_t * Abc_RecToHop3( Hop_Man_t * pMan, If_Man_t * pIfMan, If_Cut_t * pCut,
     If_CutFindBestStruct( pIfMan, pCut, pCanonPerm, &uCanonPhase, &BestPo );
     assert( BestPo >= 0 );
     pGiaPo = Gia_ManCo( pGia, BestPo );
-/*
-if ( If_CutLeaveNum(pCut) == 6 )
-{
-printf( "\n" );
-Kit_DsdPrintFromTruth( If_CutTruth(pCut), If_CutLeaveNum(pCut) ); printf( "\n" );
-//Gia_ManPrintCo( pGia, pGiaPo );
-Gia_ManPrintCone2( pGia, pGiaPo );
-}
-*/
     // collect internal nodes into pGia->vTtNodes
     if ( pGia->vTtNodes == NULL )
         pGia->vTtNodes = Vec_IntAlloc( 256 );
@@ -1102,17 +1091,16 @@ int Abc_RecToGia3( Gia_Man_t * pMan, If_Man_t * pIfMan, If_Cut_t * pCut, Vec_Int
     Gia_Obj_t * pGiaPo, * pGiaTemp = NULL;
     int i, uSupport, BestPo = -1, nLeaves = If_CutLeaveNum(pCut);
     assert( pIfMan->pPars->fCutMin == 1 );
-    assert( nLeaves > 1 );
     assert( nLeaves == Vec_IntSize(vLeaves) );
 
     // compute support
-    uSupport = Abc_TtSupport( If_CutTruthW(pCut), nLeaves );
+    uSupport = Abc_TtSupport( If_CutTruthW(pIfMan, pCut), nLeaves );
     if ( uSupport == 0 )
-        return Abc_LitNotCond( 0, (int)(*If_CutTruthW(pCut) & 1) );
+        return Abc_LitNotCond( 0, If_CutTruthIsCompl(pCut) );
     if ( !Abc_TtSuppIsMinBase(uSupport) || uSupport == 1 )
     {
         assert( Abc_TtSuppOnlyOne(uSupport) );
-        return Abc_LitNotCond( Vec_IntEntry(vLeaves, Abc_TtSuppFindFirst(uSupport)), (int)(*If_CutTruthW(pCut) & 1) );
+        return Abc_LitNotCond( Vec_IntEntry(vLeaves, Abc_TtSuppFindFirst(uSupport)), If_CutTruthIsCompl(pCut) );
     }
     assert( Gia_WordCountOnes(uSupport) == nLeaves );
 

@@ -1752,7 +1752,7 @@ If_Grp_t If_CluCheck( If_Man_t * p, word * pTruth0, int nVars, int iVarStart, in
     return G1;
 }
 
-
+/*
 static inline word Abc_Tt6Cofactor0( word t, int iVar )
 {
     assert( iVar >= 0 && iVar < 6 );
@@ -1763,6 +1763,7 @@ static inline word Abc_Tt6Cofactor1( word t, int iVar )
     assert( iVar >= 0 && iVar < 6 );
     return (t & Truth6[iVar]) | ((t & Truth6[iVar]) >> (1<<iVar));
 }
+*/
 int If_CluCheckDecInAny( word t, int nVars )
 {
     int v, u, Cof2[2], Cof4[4];
@@ -2151,7 +2152,7 @@ float If_CutDelayLutStruct( If_Man_t * p, If_Cut_t * pCut, char * pStr, float Wi
     }
 
     // derive the first group
-    G1 = If_CluCheck( p, (word *)If_CutTruth(pCut), nLeaves, 0, 0, nLutLeaf, nLutRoot, NULL, NULL, NULL, NULL, 1 );
+    G1 = If_CluCheck( p, If_CutTruthW(p, pCut), nLeaves, 0, 0, nLutLeaf, nLutRoot, NULL, NULL, NULL, NULL, 1 );
     if ( G1.nVars == 0 )
         return ABC_INFINITY;
 
@@ -2247,23 +2248,9 @@ int If_CutPerformCheck16( If_Man_t * p, unsigned * pTruth, int nVars, int nLeave
     }
 #endif
 
-    // if cutmin is disabled, minimize the cut
-    if ( !p->pPars->fCutMin && If_CluSupportSize((word *)pTruth, nVars) < nLeaves )
-    {
-        If_Cut_t * pCut = p->pCutTemp;
-        pCut->nLimit  = nVars;
-        pCut->nLeaves = nLeaves;
-        pCut->pLeaves = (int *)(pCut + 1);
-        for ( i = 0; i < nLeaves; i++ )
-            pCut->pLeaves[i] = i;
-        pCut->pTruth  = (unsigned *)pCut->pLeaves + pCut->nLimit + p->nPermWords;
-        If_CluCopy( (word *)If_CutTruth(pCut), (word *)pTruth, nVars );
-        if ( If_CutTruthMinimize( p, pCut ) >= 2 )
-            return 0;
-        nLeaves = pCut->nLeaves;
-//        If_CluCopy( (word *)pTruth, (word *)If_CutTruth(pCut), nVars );
-        pTruth = If_CutTruth(pCut);
-    }
+    // if cutmin is disabled, minimize the function
+    if ( !p->pPars->fCutMin )
+        nLeaves = Abc_TtMinBase( (word *)pTruth, NULL, nLeaves, nVars );
 
     // quit if parameters are wrong
     Length = strlen(pStr);

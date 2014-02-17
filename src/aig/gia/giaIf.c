@@ -1206,7 +1206,7 @@ Gia_Man_t * Gia_ManFromIfLogic( If_Man_t * pIfMan )
     If_Obj_t * pIfObj, * pIfLeaf;
     Vec_Int_t * vMapping, * vMapping2, * vPacking = NULL;
     Vec_Int_t * vLeaves, * vLeaves2, * vCover;
-    word Truth = 0, * pTruthTable;
+//    word Truth = 0, * pTruthTable;
     int i, k, Entry;
     assert( !pIfMan->pPars->fDeriveLuts || pIfMan->pPars->fTruth );
 //    if ( pIfMan->pPars->fEnableCheck07 )
@@ -1243,16 +1243,8 @@ Gia_Man_t * Gia_ManFromIfLogic( If_Man_t * pIfMan )
             // perform one of the two types of mapping: with and without structures
             if ( pIfMan->pPars->fDeriveLuts && pIfMan->pPars->fTruth )
             {
-                // adjust the truth table
-                int nSize = pIfMan->pPars->nLutSize;
-                pTruthTable = (word *)If_CutTruth(pCutBest);
-                if ( nSize < 6 )
-                {
-                    Truth = Gia_ManTt6Stretch( *pTruthTable, nSize );
-                    pTruthTable = &Truth;
-                }
                 // perform decomposition of the cut
-                pIfObj->iCopy = Gia_ManFromIfLogicNode( pIfMan, pNew, i, vLeaves, vLeaves2, pTruthTable, pIfMan->pPars->pLutStruct, vCover, vMapping, vMapping2, vPacking, (pIfMan->pPars->fEnableCheck75 || pIfMan->pPars->fEnableCheck75u), pIfMan->pPars->fEnableCheck07 );
+                pIfObj->iCopy = Gia_ManFromIfLogicNode( pIfMan, pNew, i, vLeaves, vLeaves2, If_CutTruthW(pIfMan, pCutBest), pIfMan->pPars->pLutStruct, vCover, vMapping, vMapping2, vPacking, (pIfMan->pPars->fEnableCheck75 || pIfMan->pPars->fEnableCheck75u), pIfMan->pPars->fEnableCheck07 );
                 pIfObj->iCopy = Abc_LitNotCond( pIfObj->iCopy, pCutBest->fCompl );
             }
             else

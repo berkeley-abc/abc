@@ -261,7 +261,7 @@ Vec_Wrd_t * If_CutDelaySopArray( If_Man_t * p, If_Cut_t * pCut )
         p->vAndGate = Vec_WrdAlloc(100);
     if ( p->vOrGate == NULL )
         p->vOrGate  = Vec_WrdAlloc(100);
-    RetValue = Kit_TruthIsop( If_CutTruth(pCut), If_CutLeaveNum(pCut), p->vCover, 1 );
+    RetValue = Kit_TruthIsop( If_CutTruth(p, pCut), If_CutLeaveNum(pCut), p->vCover, 1 );
     if ( RetValue == -1 )
         return NULL;
     assert( RetValue == 0 || RetValue == 1 );
@@ -499,7 +499,7 @@ int If_CutDelaySopArray2( If_Man_t * p, If_Cut_t * pCut, int * pArea )
         p->vAndGate = Vec_WrdAlloc(100);
     if ( p->vOrGate == NULL )
         p->vOrGate = Vec_WrdAlloc(100);
-    RetValue = Kit_TruthIsop( If_CutTruth(pCut), If_CutLeaveNum(pCut), p->vCover, 1 );
+    RetValue = Kit_TruthIsop( If_CutTruth(p, pCut), If_CutLeaveNum(pCut), p->vCover, 1 );
     if ( RetValue == -1 )
         return -1;
     assert( RetValue == 0 || RetValue == 1 );
@@ -581,7 +581,7 @@ int If_CutDelaySop( If_Man_t * p, If_Cut_t * pCut )
     pCut->fUser = 1;
     if ( p->vCover == NULL )
         p->vCover = Vec_IntAlloc(0);
-    RetValue = Kit_TruthIsop( If_CutTruth(pCut), If_CutLeaveNum(pCut), p->vCover, 1 );
+    RetValue = Kit_TruthIsop( If_CutTruth(p, pCut), If_CutLeaveNum(pCut), p->vCover, 1 );
     if ( RetValue == -1 )
         return ABC_INFINITY;
     assert( RetValue == 0 || RetValue == 1 );
@@ -631,7 +631,7 @@ float If_CutDelay( If_Man_t * p, If_Obj_t * pObj, If_Cut_t * pCut )
     float Delay, DelayCur;
     float * pLutDelays;
     int i, Shift, Pin2PinDelay;//, iLeaf;
-    assert( p->pPars->fSeqMap || pCut->nLeaves > 1 );
+//    assert( p->pPars->fSeqMap || pCut->nLeaves > 1 );
     Delay = -IF_FLOAT_LARGE;
     if ( p->pPars->pLutLib )
     {
@@ -810,6 +810,7 @@ void If_CutSortInputPins( If_Man_t * p, If_Cut_t * pCut, int * pPinPerm, float *
   SeeAlso     []
 
 ***********************************************************************/
+/*
 void If_CutRotatePins( If_Man_t * p, If_Cut_t * pCut )
 {
     If_Obj_t * pLeaf;
@@ -819,9 +820,10 @@ void If_CutRotatePins( If_Man_t * p, If_Cut_t * pCut )
 //    assert( p->pPars->pLutLib && p->pPars->pLutLib->fVarPinDelays && p->pPars->fTruth ); 
     If_CutForEachLeaf( p, pCut, pLeaf, i )
         PinDelays[i] = If_ObjCutBest(pLeaf)->Delay;
-    If_CutTruthPermute( p->puTemp[0], If_CutTruth(pCut), If_CutLeaveNum(pCut), PinDelays, If_CutLeaves(pCut) );
+    If_CutTruthPermute( p->puTemp[0], If_CutTruth(p, pCut), If_CutLeaveNum(pCut), PinDelays, If_CutLeaves(pCut) );
 //    If_CutSortInputPins( p, pCut, PinPerm, PinDelays );
 }
+*/
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

@@ -36,6 +36,8 @@
 #include "misc/tim/tim.h"
 #include "misc/util/utilNam.h"
 #include "opt/dau/dau.h"
+#include "misc/vec/vecMem.h"
+#include "misc/util/utilTruth.h"
 
 ABC_NAMESPACE_HEADER_START
 
@@ -149,7 +151,7 @@ struct If_Par_t_
     If_LibLut_t *      pLutLib;       // the LUT library
     float *            pTimesArr;     // arrival times
     float *            pTimesReq;     // required times
-    int (* pFuncCost)  (If_Cut_t *);  // procedure to compute the user's cost of a cut
+    int (* pFuncCost)  (If_Man_t *, If_Cut_t *);  // procedure to compute the user's cost of a cut
     int (* pFuncUser)  (If_Man_t *, If_Obj_t *, If_Cut_t *); //  procedure called for each cut when cut computation is finished
     int (* pFuncCell)  (If_Man_t *, unsigned *, int, int, char *);       //  procedure called for cut functions
     void *             pReoMan;       // reordering manager
@@ -177,7 +179,6 @@ struct If_Man_t_
     Vec_Ptr_t *        vCos;          // the primary outputs
     Vec_Ptr_t *        vObjs;         // all objects
     Vec_Ptr_t *        vObjsRev;      // reverse topological order of objects
-//    Vec_Ptr_t *        vMapped;       // objects used in the mapping
     Vec_Ptr_t *        vTemp;         // temporary array
     int                nObjs[IF_VOID];// the number of objects by type
     // various data
@@ -191,7 +192,7 @@ struct If_Man_t_
     int                nCutsUsed;     // the number of cuts currently used
     int                nCutsMerged;   // the total number of cuts merged
     unsigned *         puTemp[4];     // used for the truth table computation
-    If_Cut_t *         pCutTemp;      // temporary cut
+    word *             puTempW;       // used for the truth table computation
     int                SortMode;      // one of the three sorting modes
     int                fNextRound;    // set to 1 after the first round
     int                nChoices;      // the number of choice nodes
@@ -212,7 +213,7 @@ struct If_Man_t_
     int                nMaxIters;     // the maximum number of iterations
     int                Period;        // the current value of the clock period (for seq mapping)
     // memory management
-    int                nTruthWords;   // the size of the truth table if allocated
+    int                nTruth6Words;  // the size of the truth table if allocated
     int                nPermWords;    // the size of the permutation array (in words)
     int                nObjBytes;     // the size of the object
     int                nCutBytes;     // the size of the cut
@@ -232,6 +233,8 @@ struct If_Man_t_
 //    Abc_Nam_t *        pNamDsd;
     int                iNamVar;
     Dss_Man_t *        pDsdMan;
+    Vec_Mem_t *        vTtMem;        // truth table memory and hash table
+    int                nBestCutSmall[2];
 
     // timing manager
     Tim_Man_t *        pManTim;
@@ -253,7 +256,7 @@ struct If_Cut_t_
     float              Edge;          // the edge flow
     float              Power;         // the power flow
     float              Delay;         // delay of the cut
-    int                iDsd;          // DSD ID of the cut
+    int                iCutFunc;      // DSD ID of the cut
     unsigned           uSign;         // cut signature
     unsigned           Cost    : 13;  // the user's cost of the cut (related to IF_COST_MAX)
     unsigned           fCompl  :  1;  // the complemented attribute 
@@ -263,7 +266,7 @@ struct If_Cut_t_
     unsigned           nLeaves :  8;  // the number of leaves
     int *              pLeaves;       // array of fanins
     char *             pPerm;         // permutation
-    unsigned *         pTruth;        // the truth table
+//    unsigned *         pTruth;        // the truth table
 };
 
 // set of priority cut
@@ -375,8 +378,15 @@ static inline void       If_ObjSetLevel( If_Obj_t * pObj, int Level )        { p
 static inline void       If_ObjSetCopy( If_Obj_t * pObj, void * pCopy )      { pObj->pCopy = pCopy;                  }
 static inline void       If_ObjSetChoice( If_Obj_t * pObj, If_Obj_t * pEqu ) { pObj->pEquiv = pEqu;                  }
 
+static inline int        If_CutLeaveNum( If_Cut_t * pCut )                   { return pCut->nLeaves;                             }
+static inline int *      If_CutLeaves( If_Cut_t * pCut )                     { return pCut->pLeaves;                             }
+static inline unsigned   If_CutSuppMask( If_Cut_t * pCut )                   { return (~(unsigned)0) >> (32-pCut->nLeaves);      }
+static inline int        If_CutTruthWords( int nVarsMax )                    { return nVarsMax <= 5 ? 2 : (1 << (nVarsMax - 5)); }
+static inline int        If_CutPermWords( int nVarsMax )                     { return nVarsMax / sizeof(int) + ((nVarsMax % sizeof(int)) > 0); }
+
 static inline If_Cut_t * If_ObjCutBest( If_Obj_t * pObj )                    { return &pObj->CutBest;                }
 static inline unsigned   If_ObjCutSign( unsigned ObjId )                     { return (1 << (ObjId % 31));           }
+static inline unsigned   If_ObjCutSignCompute( If_Cut_t * p )                { unsigned s = 0; int i; for ( i = 0; i < If_CutLeaveNum(p); i++ ) s |= If_ObjCutSign(p->pLeaves[i]); return s; }
 
 static inline float      If_ObjArrTime( If_Obj_t * pObj )                    { return If_ObjCutBest(pObj)->Delay;    }
 static inline void       If_ObjSetArrTime( If_Obj_t * pObj, float ArrTime )  { If_ObjCutBest(pObj)->Delay = ArrTime; }
@@ -390,13 +400,11 @@ static inline void       If_CutSetData( If_Cut_t * pCut, void * pData )      { *
 static inline int        If_CutDataInt( If_Cut_t * pCut )                    { return *(int *)pCut;                  }
 static inline void       If_CutSetDataInt( If_Cut_t * pCut, int Data )       { *(int *)pCut = Data;                  }
 
-static inline int        If_CutLeaveNum( If_Cut_t * pCut )                   { return pCut->nLeaves;                             }
-static inline int *      If_CutLeaves( If_Cut_t * pCut )                     { return pCut->pLeaves;                             }
-static inline unsigned * If_CutTruth( If_Cut_t * pCut )                      { return pCut->pTruth;                              }
-static inline word *     If_CutTruthW( If_Cut_t * pCut )                     { return (word *)pCut->pTruth;                      }
-static inline unsigned   If_CutSuppMask( If_Cut_t * pCut )                   { return (~(unsigned)0) >> (32-pCut->nLeaves);      }
-static inline int        If_CutTruthWords( int nVarsMax )                    { return nVarsMax <= 5 ? 2 : (1 << (nVarsMax - 5)); }
-static inline int        If_CutPermWords( int nVarsMax )                     { return nVarsMax / sizeof(int) + ((nVarsMax % sizeof(int)) > 0); }
+static inline word *     If_CutTruthWR( If_Man_t * p, If_Cut_t * pCut )      { return p->vTtMem ? Vec_MemReadEntry(p->vTtMem, Abc_Lit2Var(pCut->iCutFunc)) : NULL;  }
+static inline unsigned * If_CutTruthR( If_Man_t * p, If_Cut_t * pCut )       { return (unsigned *)If_CutTruthWR(p, pCut);                        }
+static inline int        If_CutTruthIsCompl( If_Cut_t * pCut )               { assert( pCut->iCutFunc >= 0 ); return Abc_LitIsCompl(pCut->iCutFunc);                            }
+static inline word *     If_CutTruthW( If_Man_t * p, If_Cut_t * pCut )       { if ( p->vTtMem == NULL ) return NULL; assert( pCut->iCutFunc >= 0 ); Abc_TtCopy( p->puTempW, If_CutTruthWR(p, pCut), p->nTruth6Words, If_CutTruthIsCompl(pCut) ); return p->puTempW;  }
+static inline unsigned * If_CutTruth( If_Man_t * p, If_Cut_t * pCut )        { return (unsigned *)If_CutTruthW(p, pCut);                         }
 
 static inline float      If_CutLutArea( If_Man_t * p, If_Cut_t * pCut )      { return pCut->fUser? (float)pCut->Cost : (p->pPars->pLutLib? p->pPars->pLutLib->pLutAreas[pCut->nLeaves] : (float)1.0); }
 static inline float      If_CutLutDelay( If_LibLut_t * p, int Size, int iPin )  { return p ? (p->fVarPinDelays ? p->pLutDelays[Size][iPin] : p->pLutDelays[Size][0]) : 1.0;                              }
@@ -544,9 +552,9 @@ extern void            If_ManDerefNodeCutSet( If_Man_t * p, If_Obj_t * pObj );
 extern void            If_ManDerefChoiceCutSet( If_Man_t * p, If_Obj_t * pObj );
 extern void            If_ManSetupSetAll( If_Man_t * p, int nCrossCut );
 /*=== ifMap.c =============================================================*/
-extern void            If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPreprocess );
+extern void            If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPreprocess, int fFirst );
 extern void            If_ObjPerformMappingChoice( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPreprocess );
-extern int             If_ManPerformMappingRound( If_Man_t * p, int nCutsUsed, int Mode, int fPreprocess, char * pLabel );
+extern int             If_ManPerformMappingRound( If_Man_t * p, int nCutsUsed, int Mode, int fPreprocess, int fFirst, char * pLabel );
 /*=== ifReduce.c ==========================================================*/
 extern void            If_ManImproveMapping( If_Man_t * p );
 /*=== ifSeq.c =============================================================*/
@@ -558,12 +566,9 @@ extern int             If_CutDelaySop( If_Man_t * p, If_Cut_t * pCut );
 extern Vec_Wrd_t *     If_CutDelaySopArray( If_Man_t * p, If_Cut_t * pCut );
 extern float           If_CutDelay( If_Man_t * p, If_Obj_t * pObj, If_Cut_t * pCut );
 extern void            If_CutPropagateRequired( If_Man_t * p, If_Obj_t * pObj, If_Cut_t * pCut, float Required );
-extern void            If_CutRotatePins( If_Man_t * p, If_Cut_t * pCut );
 /*=== ifTruth.c ===========================================================*/
-extern int             If_CutTruthMinimize( If_Man_t * p, If_Cut_t * pCut );
-extern void            If_CutTruthPermute( unsigned * pOut, unsigned * pIn, int nVars, float * pDelays, int * pVars );
+extern void            If_CutRotatePins( If_Man_t * p, If_Cut_t * pCut );
 extern int             If_CutComputeTruth( If_Man_t * p, If_Cut_t * pCut, If_Cut_t * pCut0, If_Cut_t * pCut1, int fCompl0, int fCompl1 );
-extern int             If_CutComputeTruth2( If_Man_t * p, If_Cut_t * pCut, If_Cut_t * pCut0, If_Cut_t * pCut1, int fCompl0, int fCompl1 );
 /*=== ifUtil.c ============================================================*/
 extern void            If_ManCleanNodeCopy( If_Man_t * p );
 extern void            If_ManCleanCutData( If_Man_t * p );

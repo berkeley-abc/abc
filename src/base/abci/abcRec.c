@@ -865,7 +865,7 @@ Hop_Obj_t * Abc_RecToHop( Hop_Man_t * pMan, If_Man_t * pIfMan, If_Cut_t * pCut, 
     nLeaves = If_CutLeaveNum(pCut);
 //  if (nLeaves < 3)
 //      return Abc_NodeTruthToHop(pMan, pIfMan, pCut);
-    Kit_TruthCopy(pInOut, If_CutTruth(pCut), pCut->nLimit);
+    Kit_TruthCopy(pInOut, If_CutTruth(pIfMan, pCut), pCut->nLimit);
     //special cases when cut-minimization return 2, that means there is only one leaf in the cut.
     if ((Kit_TruthIsConst0(pInOut, nLeaves) && pCut->fCompl == 0) || (Kit_TruthIsConst1(pInOut, nLeaves) && pCut->fCompl == 1))
         return Hop_ManConst0(pMan);
@@ -2513,7 +2513,7 @@ void Abc_NtkRecBackUpCut(If_Cut_t* pCut)
     s_pMan->tempNleaves = pCut->nLeaves;
     for (i = 0; i < (int)pCut->nLeaves; i++)
         s_pMan->pTempleaves[i] = pCut->pLeaves[i];
-    Kit_TruthCopy(s_pMan->pTempTruth, pCut->pTruth, s_pMan->nVars);    
+//    Kit_TruthCopy(s_pMan->pTempTruth, pCut->pTruth, s_pMan->nVars);    
 }
 
 /**Function*************************************************************
@@ -2534,7 +2534,7 @@ void Abc_NtkRecRestoreCut(If_Cut_t* pCut)
     pCut->nLeaves = s_pMan->tempNleaves;
     for (i = 0; i < (int)pCut->nLeaves; i++)
         pCut->pLeaves[i] = s_pMan->pTempleaves[i];
-    Kit_TruthCopy(pCut->pTruth ,s_pMan->pTempTruth, s_pMan->nVars);    
+//    Kit_TruthCopy(pCut->pTruth ,s_pMan->pTempTruth, s_pMan->nVars);    
 }
 
 /**Function*************************************************************
@@ -2791,7 +2791,7 @@ int If_CutDelayRecCost(If_Man_t* p, If_Cut_t* pCut, If_Obj_t * pObj)
     nLeaves = If_CutLeaveNum(pCut);
     s_pMan->nFunsTried++;
     assert( nLeaves >= 2 && nLeaves <= nVars );
-    Kit_TruthCopy(pInOut, If_CutTruth(pCut), nLeaves);
+    Kit_TruthCopy(pInOut, If_CutTruth(p, pCut), nLeaves);
     //if not every variables are in the support, skip this cut.
     if ( Kit_TruthSupport(pInOut, nLeaves) != Kit_BitMask(nLeaves) )
     {

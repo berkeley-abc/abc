@@ -31,11 +31,11 @@ ABC_NAMESPACE_IMPL_START
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-static int Abc_NtkRenodeEvalAig( If_Cut_t * pCut );
-static int Abc_NtkRenodeEvalBdd( If_Cut_t * pCut );
-static int Abc_NtkRenodeEvalSop( If_Cut_t * pCut );
-static int Abc_NtkRenodeEvalCnf( If_Cut_t * pCut );
-static int Abc_NtkRenodeEvalMv( If_Cut_t * pCut );
+static int Abc_NtkRenodeEvalAig( If_Man_t * p, If_Cut_t * pCut );
+static int Abc_NtkRenodeEvalBdd( If_Man_t * p, If_Cut_t * pCut );
+static int Abc_NtkRenodeEvalSop( If_Man_t * p, If_Cut_t * pCut );
+static int Abc_NtkRenodeEvalCnf( If_Man_t * p, If_Cut_t * pCut );
+static int Abc_NtkRenodeEvalMv( If_Man_t * p, If_Cut_t * pCut );
 
 static reo_man * s_pReo       = NULL;
 static DdManager * s_pDd      = NULL;
@@ -162,7 +162,7 @@ Abc_Ntk_t * Abc_NtkRenode( Abc_Ntk_t * pNtk, int nFaninMax, int nCubeMax, int nF
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_NtkRenodeEvalAig( If_Cut_t * pCut )
+int Abc_NtkRenodeEvalAig( If_Man_t * p, If_Cut_t * pCut )
 {
     Kit_Graph_t * pGraph;
     int i, nNodes;
@@ -171,10 +171,10 @@ extern void Kit_DsdTest( unsigned * pTruth, int nVars );
 if ( If_CutLeaveNum(pCut) == 8 )
 {
     nDsdCounter++;
-    Kit_DsdTest( If_CutTruth(pCut), If_CutLeaveNum(pCut) );
+    Kit_DsdTest( If_CutTruth(p, pCut), If_CutLeaveNum(pCut) );
 }
 */
-    pGraph = Kit_TruthToGraph( If_CutTruth(pCut), If_CutLeaveNum(pCut), s_vMemory );
+    pGraph = Kit_TruthToGraph( If_CutTruth(p, pCut), If_CutLeaveNum(pCut), s_vMemory );
     if ( pGraph == NULL )
     {
         for ( i = 0; i < If_CutLeaveNum(pCut); i++ )
@@ -199,14 +199,14 @@ if ( If_CutLeaveNum(pCut) == 8 )
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_NtkRenodeEvalBdd( If_Cut_t * pCut )
+int Abc_NtkRenodeEvalBdd( If_Man_t * p, If_Cut_t * pCut )
 {
     int pOrder[IF_MAX_LUTSIZE];
     DdNode * bFunc, * bFuncNew;
     int i, k, nNodes;
     for ( i = 0; i < If_CutLeaveNum(pCut); i++ )
         pCut->pPerm[i] = pOrder[i] = -100;
-    bFunc = Kit_TruthToBdd( s_pDd, If_CutTruth(pCut), If_CutLeaveNum(pCut), 0 );  Cudd_Ref( bFunc );
+    bFunc = Kit_TruthToBdd( s_pDd, If_CutTruth(p, pCut), If_CutLeaveNum(pCut), 0 );  Cudd_Ref( bFunc );
     bFuncNew = Extra_Reorder( s_pReo, s_pDd, bFunc, pOrder );                     Cudd_Ref( bFuncNew );
     for ( i = k = 0; i < If_CutLeaveNum(pCut); i++ )
         if ( pOrder[i] >= 0 )
@@ -228,12 +228,12 @@ int Abc_NtkRenodeEvalBdd( If_Cut_t * pCut )
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_NtkRenodeEvalSop( If_Cut_t * pCut )
+int Abc_NtkRenodeEvalSop( If_Man_t * p, If_Cut_t * pCut )
 {
     int i, RetValue;
     for ( i = 0; i < If_CutLeaveNum(pCut); i++ )
         pCut->pPerm[i] = 1;
-    RetValue = Kit_TruthIsop( If_CutTruth(pCut), If_CutLeaveNum(pCut), s_vMemory, 1 );
+    RetValue = Kit_TruthIsop( If_CutTruth(p, pCut), If_CutLeaveNum(pCut), s_vMemory, 1 );
     if ( RetValue == -1 )
         return IF_COST_MAX;
     assert( RetValue == 0 || RetValue == 1 );
@@ -251,22 +251,22 @@ int Abc_NtkRenodeEvalSop( If_Cut_t * pCut )
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_NtkRenodeEvalCnf( If_Cut_t * pCut )
+int Abc_NtkRenodeEvalCnf( If_Man_t * p, If_Cut_t * pCut )
 {
     int i, RetValue, nClauses;
     // set internal mapper parameters
     for ( i = 0; i < If_CutLeaveNum(pCut); i++ )
         pCut->pPerm[i] = 1;
     // compute ISOP for the positive phase
-    RetValue = Kit_TruthIsop( If_CutTruth(pCut), If_CutLeaveNum(pCut), s_vMemory, 0 );
+    RetValue = Kit_TruthIsop( If_CutTruth(p, pCut), If_CutLeaveNum(pCut), s_vMemory, 0 );
     if ( RetValue == -1 )
         return IF_COST_MAX;
     assert( RetValue == 0 || RetValue == 1 );
     nClauses = Vec_IntSize( s_vMemory );
     // compute ISOP for the negative phase
-    Kit_TruthNot( If_CutTruth(pCut), If_CutTruth(pCut), If_CutLeaveNum(pCut) );
-    RetValue = Kit_TruthIsop( If_CutTruth(pCut), If_CutLeaveNum(pCut), s_vMemory, 0 );
-    Kit_TruthNot( If_CutTruth(pCut), If_CutTruth(pCut), If_CutLeaveNum(pCut) );
+    Kit_TruthNot( If_CutTruth(p, pCut), If_CutTruth(p, pCut), If_CutLeaveNum(pCut) );
+    RetValue = Kit_TruthIsop( If_CutTruth(p, pCut), If_CutLeaveNum(pCut), s_vMemory, 0 );
+    Kit_TruthNot( If_CutTruth(p, pCut), If_CutTruth(p, pCut), If_CutLeaveNum(pCut) );
     if ( RetValue == -1 )
         return IF_COST_MAX;
     assert( RetValue == 0 || RetValue == 1 );
@@ -285,21 +285,21 @@ int Abc_NtkRenodeEvalCnf( If_Cut_t * pCut )
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_NtkRenodeEvalMv( If_Cut_t * pCut )
+int Abc_NtkRenodeEvalMv( If_Man_t * p, If_Cut_t * pCut )
 {
     int i, RetValue;
     // set internal mapper parameters
     for ( i = 0; i < If_CutLeaveNum(pCut); i++ )
         pCut->pPerm[i] = 1;
     // compute ISOP for the positive phase
-    RetValue = Kit_TruthIsop( If_CutTruth(pCut), If_CutLeaveNum(pCut), s_vMemory, 0 );
+    RetValue = Kit_TruthIsop( If_CutTruth(p, pCut), If_CutLeaveNum(pCut), s_vMemory, 0 );
     if ( RetValue == -1 )
         return IF_COST_MAX;
     assert( RetValue == 0 || RetValue == 1 );
     // compute ISOP for the negative phase
-    Kit_TruthNot( If_CutTruth(pCut), If_CutTruth(pCut), If_CutLeaveNum(pCut) );
-    RetValue = Kit_TruthIsop( If_CutTruth(pCut), If_CutLeaveNum(pCut), s_vMemory2, 0 );
-    Kit_TruthNot( If_CutTruth(pCut), If_CutTruth(pCut), If_CutLeaveNum(pCut) );
+    Kit_TruthNot( If_CutTruth(p, pCut), If_CutTruth(p, pCut), If_CutLeaveNum(pCut) );
+    RetValue = Kit_TruthIsop( If_CutTruth(p, pCut), If_CutLeaveNum(pCut), s_vMemory2, 0 );
+    Kit_TruthNot( If_CutTruth(p, pCut), If_CutTruth(p, pCut), If_CutLeaveNum(pCut) );
     if ( RetValue == -1 )
         return IF_COST_MAX;
     assert( RetValue == 0 || RetValue == 1 );

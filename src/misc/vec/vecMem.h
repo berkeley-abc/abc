@@ -310,6 +310,8 @@ static inline void Vec_MemHashAlloc( Vec_Mem_t * p, int nTableSize )
 }
 static inline void Vec_MemHashFree( Vec_Mem_t * p )
 {
+    if ( p == NULL )
+        return;
     Vec_IntFreeP( &p->vTable );
     Vec_IntFreeP( &p->vNexts );
 }
@@ -361,6 +363,43 @@ static int Vec_MemHashInsert( Vec_Mem_t * p, word * pEntry )
     return Vec_IntSize(p->vNexts) - 1;
 }
 
+
+/**Function*************************************************************
+
+  Synopsis    [Allocates memory vector for storing truth tables.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline Vec_Mem_t * Vec_MemAllocForTT( int nVars )
+{
+    int Value, nWords = (nVars <= 6 ? 1 : (1 << (nVars - 6)));
+    word * uTruth = ABC_ALLOC( word, nWords ); 
+    Vec_Mem_t * vTtMem = Vec_MemAlloc( nWords, 12 );
+    Vec_MemHashAlloc( vTtMem, 10000 );
+    memset( uTruth, 0x00, sizeof(word) * nWords );
+    Value = Vec_MemHashInsert( vTtMem, uTruth ); assert( Value == 0 );
+    memset( uTruth, 0xAA, sizeof(word) * nWords );
+    Value = Vec_MemHashInsert( vTtMem, uTruth ); assert( Value == 1 );
+    ABC_FREE( uTruth );
+    return vTtMem;
+}
+static inline void Vec_MemDumpTruthTables( Vec_Mem_t * p, char * pName, int nLutSize )
+{
+    FILE * pFile;
+    char pFileName[1000];
+    sprintf( pFileName, "tt_%s_%02d.txt", pName, nLutSize );
+    pFile = fopen( pFileName, "wb" );
+    Vec_MemDump( pFile, p );
+    fclose( pFile );
+    printf( "Dumped %d %d-var truth tables into file \"%s\" (%.2f MB).\n", 
+        Vec_MemEntryNum(p), nLutSize, pFileName,
+        8.0 * Vec_MemEntryNum(p) * Vec_MemEntrySize(p) / (1 << 20) );
+}
 
 ABC_NAMESPACE_HEADER_END
 

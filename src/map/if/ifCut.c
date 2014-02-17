@@ -421,6 +421,35 @@ int If_CutMerge( If_Man_t * p, If_Cut_t * pC0, If_Cut_t * pC1, If_Cut_t * pC )
         p->uSharedMask = Abc_InfoMask( nLimit );
         return 1;
     }
+    // one cut is empty
+    if ( nSizeC0 == 0 )
+    {
+        assert( pC0->uSign == 0 );
+        for ( i = 0; i < nSizeC1; i++ )
+        {
+            pC->pLeaves[i] = pC1->pLeaves[i];
+            p->pPerm[1][i] = i;
+        }
+        p->nShared = 0;
+        pC->nLeaves = nSizeC1;
+        pC->uSign = pC0->uSign | pC1->uSign;
+        p->uSharedMask = 0;
+        return 1;
+    }
+    if ( nSizeC1 == 0 )
+    {
+        assert( pC1->uSign == 0 );
+        for ( i = 0; i < nSizeC0; i++ )
+        {
+            pC->pLeaves[i] = pC0->pLeaves[i];
+            p->pPerm[0][i] = i;
+        }
+        p->nShared = 0;
+        pC->nLeaves = nSizeC0;
+        pC->uSign = pC0->uSign | pC1->uSign;
+        p->uSharedMask = 0;
+        return 1;
+    }
 
     // compare two cuts with different numbers
     i = k = c = s = 0;
@@ -928,6 +957,8 @@ int If_CutCheck( If_Cut_t * pCut )
 {
     int i;
     assert( pCut->nLeaves <= pCut->nLimit );
+    if ( pCut->nLeaves < 2 )
+        return 1;
     for ( i = 1; i < (int)pCut->nLeaves; i++ )
     {
         if ( pCut->pLeaves[i-1] >= pCut->pLeaves[i] )
@@ -1018,17 +1049,17 @@ void If_CutCopy( If_Man_t * p, If_Cut_t * pCutDest, If_Cut_t * pCutSrc )
 {
     int * pLeaves;
     char * pPerm;
-    unsigned * pTruth;
+//    unsigned * pTruth;
     // save old arrays
     pLeaves = pCutDest->pLeaves;
     pPerm   = pCutDest->pPerm;
-    pTruth  = pCutDest->pTruth;
+//    pTruth  = pCutDest->pTruth;
     // copy the cut info
     memcpy( pCutDest, pCutSrc, p->nCutBytes );
     // restore the arrays
     pCutDest->pLeaves = pLeaves;
     pCutDest->pPerm   = pPerm;
-    pCutDest->pTruth  = pTruth;
+//    pCutDest->pTruth  = pTruth;
 }
 
 
@@ -1048,7 +1079,7 @@ float If_CutAreaFlow( If_Man_t * p, If_Cut_t * pCut )
     If_Obj_t * pLeaf;
     float Flow;
     int i;
-    assert( p->pPars->fSeqMap || pCut->nLeaves > 1 );
+//    assert( p->pPars->fSeqMap || pCut->nLeaves > 1 );
     Flow = If_CutLutArea(p, pCut);
     If_CutForEachLeaf( p, pCut, pLeaf, i )
     {
@@ -1081,7 +1112,7 @@ float If_CutEdgeFlow( If_Man_t * p, If_Cut_t * pCut )
     If_Obj_t * pLeaf;
     float Flow;
     int i;
-    assert( p->pPars->fSeqMap || pCut->nLeaves > 1 );
+//    assert( p->pPars->fSeqMap || pCut->nLeaves > 1 );
     Flow = pCut->nLeaves;
     If_CutForEachLeaf( p, pCut, pLeaf, i )
     {
@@ -1115,7 +1146,7 @@ float If_CutPowerFlow( If_Man_t * p, If_Cut_t * pCut, If_Obj_t * pRoot )
     float * pSwitching = (float *)p->vSwitching->pArray;
     float Power = 0;
     int i;
-    assert( p->pPars->fSeqMap || pCut->nLeaves > 1 );
+//    assert( p->pPars->fSeqMap || pCut->nLeaves > 1 );
     If_CutForEachLeaf( p, pCut, pLeaf, i )
     {
         Power += pSwitching[pLeaf->Id];
@@ -1147,7 +1178,7 @@ float If_CutAverageRefs( If_Man_t * p, If_Cut_t * pCut )
 {
     If_Obj_t * pLeaf;
     int nRefsTotal, i;
-    assert( p->pPars->fSeqMap || pCut->nLeaves > 1 );
+//    assert( p->pPars->fSeqMap || pCut->nLeaves > 1 );
     nRefsTotal = 0;
     If_CutForEachLeaf( p, pCut, pLeaf, i )
         nRefsTotal += pLeaf->nRefs;
@@ -1223,7 +1254,9 @@ float If_CutAreaRef( If_Man_t * p, If_Cut_t * pCut )
 float If_CutAreaDerefed( If_Man_t * p, If_Cut_t * pCut )
 {
     float aResult, aResult2;
-    assert( p->pPars->fSeqMap || pCut->nLeaves > 1 );
+//    assert( p->pPars->fSeqMap || pCut->nLeaves > 1 );
+    if ( pCut->nLeaves < 2 )
+        return 0;
     aResult2 = If_CutAreaRef( p, pCut );
     aResult  = If_CutAreaDeref( p, pCut );
     assert( aResult > aResult2 - p->fEpsilon );
@@ -1245,7 +1278,9 @@ float If_CutAreaDerefed( If_Man_t * p, If_Cut_t * pCut )
 float If_CutAreaRefed( If_Man_t * p, If_Cut_t * pCut )
 {
     float aResult, aResult2;
-    assert( p->pPars->fSeqMap || pCut->nLeaves > 1 );
+//    assert( p->pPars->fSeqMap || pCut->nLeaves > 1 );
+    if ( pCut->nLeaves < 2 )
+        return 0;
     aResult2 = If_CutAreaDeref( p, pCut );
     aResult  = If_CutAreaRef( p, pCut );
     assert( aResult > aResult2 - p->fEpsilon );
@@ -1322,7 +1357,9 @@ float If_CutEdgeRef( If_Man_t * p, If_Cut_t * pCut )
 float If_CutEdgeDerefed( If_Man_t * p, If_Cut_t * pCut )
 {
     float aResult, aResult2;
-    assert( p->pPars->fSeqMap || pCut->nLeaves > 1 );
+//    assert( p->pPars->fSeqMap || pCut->nLeaves > 1 );
+    if ( pCut->nLeaves < 2 )
+        return pCut->nLeaves;
     aResult2 = If_CutEdgeRef( p, pCut );
     aResult  = If_CutEdgeDeref( p, pCut );
     assert( aResult > aResult2 - p->fEpsilon );
@@ -1344,7 +1381,9 @@ float If_CutEdgeDerefed( If_Man_t * p, If_Cut_t * pCut )
 float If_CutEdgeRefed( If_Man_t * p, If_Cut_t * pCut )
 {
     float aResult, aResult2;
-    assert( p->pPars->fSeqMap || pCut->nLeaves > 1 );
+//    assert( p->pPars->fSeqMap || pCut->nLeaves > 1 );
+    if ( pCut->nLeaves < 2 )
+        return pCut->nLeaves;
     aResult2 = If_CutEdgeDeref( p, pCut );
     aResult  = If_CutEdgeRef( p, pCut );
     assert( aResult > aResult2 - p->fEpsilon );
@@ -1423,7 +1462,9 @@ float If_CutPowerRef( If_Man_t * p, If_Cut_t * pCut, If_Obj_t * pRoot )
 float If_CutPowerDerefed( If_Man_t * p, If_Cut_t * pCut, If_Obj_t * pRoot )
 {
     float aResult, aResult2;
-    assert( p->pPars->fSeqMap || pCut->nLeaves > 1 );
+//    assert( p->pPars->fSeqMap || pCut->nLeaves > 1 );
+    if ( pCut->nLeaves < 2 )
+        return 0;
     aResult2 = If_CutPowerRef( p, pCut, pRoot );
     aResult  = If_CutPowerDeref( p, pCut, pRoot );
     assert( aResult > aResult2 - p->fEpsilon );
@@ -1445,7 +1486,9 @@ float If_CutPowerDerefed( If_Man_t * p, If_Cut_t * pCut, If_Obj_t * pRoot )
 float If_CutPowerRefed( If_Man_t * p, If_Cut_t * pCut, If_Obj_t * pRoot )
 {
     float aResult, aResult2;
-    assert( p->pPars->fSeqMap || pCut->nLeaves > 1 );
+//    assert( p->pPars->fSeqMap || pCut->nLeaves > 1 );
+    if ( pCut->nLeaves < 2 )
+        return 0;
     aResult2 = If_CutPowerDeref( p, pCut, pRoot );
     aResult  = If_CutPowerRef( p, pCut, pRoot );
     assert( aResult > aResult2 - p->fEpsilon );
