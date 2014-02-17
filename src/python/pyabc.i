@@ -115,6 +115,19 @@ int n_levels()
     return -1;
 }
 
+double n_area()
+{
+    Abc_Frame_t* pAbc = Abc_FrameGetGlobalFrame();
+    Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
+
+    if ( pNtk && Abc_NtkHasMapping(pNtk) )
+    {        
+        return Abc_NtkGetMappedArea(pNtk);
+    }
+
+    return -1;
+}
+
 int has_comb_model()
 {
     Abc_Frame_t* pAbc = Abc_FrameGetGlobalFrame();
@@ -660,6 +673,7 @@ int n_pis();
 int n_pos();
 int n_latches();
 int n_levels();
+double n_area();
 
 int run_command(char* cmd);
 
