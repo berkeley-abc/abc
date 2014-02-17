@@ -482,16 +482,8 @@ Abc_Obj_t * Abc_NodeFromIf_rec( Abc_Ntk_t * pNtkNew, If_Man_t * pIfMan, If_Obj_t
         }
         else if ( pIfMan->pPars->fUserRecLib )
         {
-            extern Hop_Obj_t * Abc_RecToHop( Hop_Man_t * pMan, If_Man_t * pIfMan, If_Cut_t * pCut, If_Obj_t * pIfObj );
-            extern Hop_Obj_t * Abc_RecToHop2( Hop_Man_t * pMan, If_Man_t * pIfMan, If_Cut_t * pCut, If_Obj_t * pIfObj );
             extern Hop_Obj_t * Abc_RecToHop3( Hop_Man_t * pMan, If_Man_t * pIfMan, If_Cut_t * pCut, If_Obj_t * pIfObj );
-            if(Abc_NtkRecIsRunning3())
-                pNodeNew->pData = Abc_RecToHop3( (Hop_Man_t *)pNtkNew->pManFunc, pIfMan, pCutBest, pIfObj); 
-            else if(Abc_NtkRecIsRunning2())
-                pNodeNew->pData = Abc_RecToHop2( (Hop_Man_t *)pNtkNew->pManFunc, pIfMan, pCutBest, pIfObj); 
-            else
-                pNodeNew->pData = Abc_RecToHop( (Hop_Man_t *)pNtkNew->pManFunc, pIfMan, pCutBest, pIfObj); 
-            
+            pNodeNew->pData = Abc_RecToHop3( (Hop_Man_t *)pNtkNew->pManFunc, pIfMan, pCutBest, pIfObj ); 
         }
         else
         {

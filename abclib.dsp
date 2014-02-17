@@ -387,14 +387,6 @@ SOURCE=.\src\base\abci\abcReach.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\base\abci\abcRec.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\base\abci\abcRec2.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\src\base\abci\abcRec3.c
 # End Source File
 # Begin Source File

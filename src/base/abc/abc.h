@@ -792,29 +792,6 @@ extern ABC_DLL void               Abc_NtkShow6VarFunc( char * pF0, char * pF1 );
 /*=== abcProve.c ==========================================================*/
 extern ABC_DLL int                Abc_NtkMiterProve( Abc_Ntk_t ** ppNtk, void * pParams );
 extern ABC_DLL int                Abc_NtkIvyProve( Abc_Ntk_t ** ppNtk, void * pPars );
-/*=== abcRec.c ==========================================================*/
-extern ABC_DLL void               Abc_NtkRecStart( Abc_Ntk_t * pNtk, int nVars, int nCuts, int fTrim );
-extern ABC_DLL void               Abc_NtkRecStop();
-extern ABC_DLL void               Abc_NtkRecAdd( Abc_Ntk_t * pNtk, int fUseSOPB );
-extern ABC_DLL void               Abc_NtkRecPs(int fPrintLib);
-extern ABC_DLL void               Abc_NtkRecFilter(int nLimit);
-extern ABC_DLL void               Abc_NtkRecLibMerge(Abc_Ntk_t * pNtk);
-extern ABC_DLL Abc_Ntk_t *        Abc_NtkRecUse();
-extern ABC_DLL int                Abc_NtkRecIsRunning();
-extern ABC_DLL int                Abc_NtkRecIsInTrimMode();
-extern ABC_DLL int                Abc_NtkRecVarNum();
-extern ABC_DLL Vec_Int_t *        Abc_NtkRecMemory();
-extern ABC_DLL int                Abc_NtkRecStrashNode( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pObj, unsigned * pTruth, int nVars );
-/*=== abcRec2.c ==========================================================*/
-extern ABC_DLL void               Abc_NtkRecStart2( Gia_Man_t * p, int nVars, int nCuts, int fTrim );
-extern ABC_DLL void               Abc_NtkRecStop2();
-extern ABC_DLL void               Abc_NtkRecAdd2( Abc_Ntk_t * pNtk, int fUseSOPB );
-extern ABC_DLL void               Abc_NtkRecPs2(int fPrintLib);
-extern ABC_DLL Gia_Man_t *        Abc_NtkRecGetGia();
-extern ABC_DLL void               Abc_NtkRecLibMerge2(Gia_Man_t * pGia);
-extern ABC_DLL int                Abc_NtkRecIsRunning2();
-extern ABC_DLL int                Abc_NtkRecIsInTrimMode2();
-extern ABC_DLL void               Abc_NtkRecFilter2(int nLimit);
 /*=== abcRec3.c ==========================================================*/
 extern ABC_DLL void               Abc_NtkRecStart3( Gia_Man_t * p, int nVars, int nCuts, int fFuncOnly, int fVerbose );
 extern ABC_DLL void               Abc_NtkRecStop3();

@@ -28,6 +28,7 @@ ABC_NAMESPACE_IMPL_START
 ////////////////////////////////////////////////////////////////////////
 
 extern char * Dau_DsdMerge( char * pDsd0i, int * pPerm0, char * pDsd1i, int * pPerm1, int fCompl0, int fCompl1, int nVars );
+extern int    If_CutDelayRecCost3(If_Man_t* p, If_Cut_t* pCut, If_Obj_t * pObj);
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -164,15 +165,7 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
     {
         // recompute the parameters of the best cut
         if ( p->pPars->fUserRecLib )
-        {
-            assert( Abc_NtkRecIsRunning() + Abc_NtkRecIsRunning2() + Abc_NtkRecIsRunning3() == 1 );
-            if ( Abc_NtkRecIsRunning3() )
-                pCut->Delay = If_CutDelayRecCost3(p, pCut, pObj); 
-            else if( Abc_NtkRecIsRunning2() )
-                pCut->Delay = If_CutDelayRecCost2(p, pCut, pObj); 
-            else
-                pCut->Delay = If_CutDelayRecCost(p, pCut, pObj);
-        }
+            pCut->Delay = If_CutDelayRecCost3(p, pCut, pObj); 
         else if(p->pPars->fDelayOpt)
             pCut->Delay = If_CutDelaySopCost(p,pCut);
         else if(p->pPars->nGateSize > 0)
@@ -301,15 +294,7 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
 ///        if ( p->pPars->pLutStruct )
 ///            pCut->Delay = If_CutDelayLutStruct( p, pCut, p->pPars->pLutStruct, p->pPars->WireDelay );
         if ( p->pPars->fUserRecLib )
-        {
-            assert( Abc_NtkRecIsRunning() + Abc_NtkRecIsRunning2() + Abc_NtkRecIsRunning3() == 1 );
-            if ( Abc_NtkRecIsRunning3() )
-                pCut->Delay = If_CutDelayRecCost3(p, pCut, pObj); 
-            else if( Abc_NtkRecIsRunning2() )
-                pCut->Delay = If_CutDelayRecCost2(p, pCut, pObj); 
-            else
-                pCut->Delay = If_CutDelayRecCost(p, pCut, pObj);
-        }
+            pCut->Delay = If_CutDelayRecCost3(p, pCut, pObj); 
         else if (p->pPars->fDelayOpt)
             pCut->Delay = If_CutDelaySopCost(p, pCut);  
         else if(p->pPars->nGateSize > 0)
