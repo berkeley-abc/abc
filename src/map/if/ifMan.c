@@ -84,13 +84,7 @@ If_Man_t * If_ManStart( If_Par_t * pPars )
     p->puTemp[3] = p->puTemp[2] + p->nTruth6Words*2;
     p->puTempW   = p->pPars->fTruth? ABC_ALLOC( word, p->nTruth6Words ) : NULL;
     if ( pPars->fUseDsd )
-    {
-//    p->pNamDsd   = Abc_NamStart( 1000, 20 );
-//    p->iNamVar   = Abc_NamStrFindOrAdd( p->pNamDsd, "a", NULL );
         p->pDsdMan = Dss_ManAlloc( pPars->nLutSize, pPars->nNonDecLimit );
-        p->iNamVar = 2;
-    }
-
     // create the constant node
     p->pConst1   = If_ManSetupObj( p );
     p->pConst1->Type   = IF_CONST1;
@@ -436,14 +430,11 @@ void If_ManSetupCutTriv( If_Man_t * p, If_Cut_t * pCut, int ObjId )
     pCut->nLeaves    = 1;
     pCut->pLeaves[0] = p->pPars->fLiftLeaves? (ObjId << 8) : ObjId;
     pCut->uSign      = If_ObjCutSign( pCut->pLeaves[0] );
-    if ( p->pPars->fUseDsd )
-    {
-        pCut->iCutFunc = p->iNamVar;
-        pCut->pPerm[0] = 0;
-    }
-    // set up elementary truth table of the unit cut
-    pCut->iCutFunc = p->pPars->fTruth ? 2 : -1;
+    pCut->iCutFunc   = p->pPars->fTruth ? 2 : -1;
+    pCut->iCutDsd    = p->pPars->fUseDsd ? 2 : -1;
     assert( pCut->pLeaves[0] < p->vObjs->nSize );
+    if ( p->pPars->fUseDsd )
+        pCut->pPerm[0] = 0;
 }
 
 /**Function*************************************************************

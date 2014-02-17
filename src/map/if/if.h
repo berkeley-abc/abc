@@ -230,8 +230,6 @@ struct If_Man_t_
     int                nCutsCountAll;
     int                nCutsUselessAll;
     int                nCuts5, nCuts5a;
-//    Abc_Nam_t *        pNamDsd;
-    int                iNamVar;
     Dss_Man_t *        pDsdMan;
     Vec_Mem_t *        vTtMem;        // truth table memory and hash table
     int                nBestCutSmall[2];
@@ -256,7 +254,8 @@ struct If_Cut_t_
     float              Edge;          // the edge flow
     float              Power;         // the power flow
     float              Delay;         // delay of the cut
-    int                iCutFunc;      // DSD ID of the cut
+    int                iCutFunc;      // TT ID of the cut
+    int                iCutDsd;       // DSD ID of the cut
     unsigned           uSign;         // cut signature
     unsigned           Cost    : 13;  // the user's cost of the cut (related to IF_COST_MAX)
     unsigned           fCompl  :  1;  // the complemented attribute 

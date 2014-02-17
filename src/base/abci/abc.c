@@ -15075,7 +15075,7 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     if ( pPars->fUseDsd )
     {
-        pPars->fTruth      =  1;
+        pPars->fTruth      =  0;
         pPars->fCutMin     =  1;
         pPars->fExpRed     =  0;
         pPars->fUsePerm    =  1;

@@ -981,7 +981,7 @@ Dss_Man_t * Dss_ManAlloc( int nVars, int nNonDecLimit )
     p->vCopies = Vec_IntAlloc( 32 );
     p->pTtElems = Dss_ManTtElems();
     p->pMemEnts = Mem_FlexStart();
-    Dss_ManCacheAlloc( p );
+//    Dss_ManCacheAlloc( p );
     return p;
 }
 void Dss_ManFree( Dss_Man_t * p )

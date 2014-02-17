@@ -186,6 +186,10 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
             If_CutCopy( p, pCutSet->ppCuts[pCutSet->nCuts++], pCut );
     }
 
+    if ( pObj->Id == 153 )
+    {
+        int s = 0;
+    }
     // generate cuts
     If_ObjForEachCut( pObj->pFanin0, pCut0, i )
     If_ObjForEachCut( pObj->pFanin1, pCut1, k )
@@ -211,14 +215,14 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
         // compute the truth table
         pCut->fCompl = 0;
         pCut->iCutFunc = -1;
+        pCut->iCutDsd = -1;
         if ( p->pPars->fTruth )
         {
 //            abctime clk = Abc_Clock();
-            int RetValue = If_CutComputeTruth( p, pCut, pCut0, pCut1, pObj->fCompl0, pObj->fCompl1 );
+            If_CutComputeTruth( p, pCut, pCut0, pCut1, pObj->fCompl0, pObj->fCompl1 );
 //            p->timeTruth += Abc_Clock() - clk;
-
             pCut->fUseless = 0;
-            if ( p->pPars->pFuncCell && RetValue < 2 )
+            if ( p->pPars->pFuncCell )
             {
                 assert( pCut->nLimit >= 4 && pCut->nLimit <= 16 );
                 pCut->fUseless = !p->pPars->pFuncCell( p, If_CutTruth(p, pCut), pCut->nLimit, pCut->nLeaves, p->pPars->pLutStruct );
@@ -253,29 +257,25 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
         }
         if ( p->pPars->fUseDsd )
         {
-            if ( pCut0->iCutFunc < 0 || pCut1->iCutFunc < 0 )
-                pCut->iCutFunc = -1;
-            else
+            int j, iDsd[2] = { Abc_LitNotCond(pCut0->iCutDsd, pObj->fCompl0), Abc_LitNotCond(pCut1->iCutDsd, pObj->fCompl1) };
+            int nFans[2] = { pCut0->nLeaves, pCut1->nLeaves };
+            int Fans[2][DAU_MAX_VAR], * pFans[2] = { Fans[0], Fans[1] };
+            assert( pCut0->iCutDsd >= 0 && pCut1->iCutDsd >= 0 );
+            // create fanins
+            for ( j = 0; j < (int)pCut0->nLeaves; j++ )
+                pFans[0][j] = Abc_Lit2LitV( p->pPerm[0], (int)pCut0->pPerm[j] );
+            for ( j = 0; j < (int)pCut1->nLeaves; j++ )
+                pFans[1][j] = Abc_Lit2LitV( p->pPerm[1], (int)pCut1->pPerm[j] );
+            // canonicize
+            if ( iDsd[0] > iDsd[1] )
             {
-                int j, iDsd[2] = { Abc_LitNotCond(pCut0->iCutFunc, pObj->fCompl0), Abc_LitNotCond(pCut1->iCutFunc, pObj->fCompl1) };
-                int nFans[2] = { pCut0->nLeaves, pCut1->nLeaves };
-                int Fans[2][DAU_MAX_VAR], * pFans[2] = { Fans[0], Fans[1] };
-                // create fanins
-                for ( j = 0; j < (int)pCut0->nLeaves; j++ )
-                    pFans[0][j] = Abc_Lit2LitV( p->pPerm[0], (int)pCut0->pPerm[j] );
-                for ( j = 0; j < (int)pCut1->nLeaves; j++ )
-                    pFans[1][j] = Abc_Lit2LitV( p->pPerm[1], (int)pCut1->pPerm[j] );
-                // canonicize
-                if ( iDsd[0] > iDsd[1] )
-                {
-                    ABC_SWAP( int, iDsd[0], iDsd[1] );
-                    ABC_SWAP( int, nFans[0], nFans[1] );
-                    ABC_SWAP( int *, pFans[0], pFans[1] );
-                }
-                // derive new DSD
-                pCut->iCutFunc = Dss_ManMerge( p->pDsdMan, iDsd, nFans, pFans, p->uSharedMask, pCut->nLimit, (unsigned char *)pCut->pPerm, If_CutTruthW(p, pCut) );
+                ABC_SWAP( int, iDsd[0], iDsd[1] );
+                ABC_SWAP( int, nFans[0], nFans[1] );
+                ABC_SWAP( int *, pFans[0], pFans[1] );
             }
-            if ( pCut->iCutFunc < 0 )
+            // derive new DSD
+            pCut->iCutDsd = Dss_ManMerge( p->pDsdMan, iDsd, nFans, pFans, p->uSharedMask, pCut->nLimit, (unsigned char *)pCut->pPerm, If_CutTruthW(p, pCut) );
+            if ( pCut->iCutDsd < 0 )
             {
                 pCut->fUseless = 1;
                 p->nCutsUselessAll++;
