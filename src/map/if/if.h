@@ -78,6 +78,7 @@ typedef struct If_Cut_t_     If_Cut_t;
 typedef struct If_Set_t_     If_Set_t;
 typedef struct If_LibLut_t_  If_LibLut_t;
 typedef struct If_LibBox_t_  If_LibBox_t;
+typedef struct If_DsdMan_t_  If_DsdMan_t;
 
 typedef struct Ifif_Par_t_   Ifif_Par_t;
 struct Ifif_Par_t_
@@ -230,7 +231,7 @@ struct If_Man_t_
     int                nCutsCountAll;
     int                nCutsUselessAll;
     int                nCuts5, nCuts5a;
-    Dss_Man_t *        pDsdMan;
+    If_DsdMan_t *      pIfDsdMan;
     Vec_Mem_t *        vTtMem;        // truth table memory and hash table
     int                nBestCutSmall[2];
 
@@ -265,7 +266,6 @@ struct If_Cut_t_
     unsigned           nLeaves :  8;  // the number of leaves
     int *              pLeaves;       // array of fanins
     char *             pPerm;         // permutation
-//    unsigned *         pTruth;        // the truth table
 };
 
 // set of priority cut
@@ -513,6 +513,11 @@ extern int             If_CluCheckExt( void * p, word * pTruth, int nVars, int n
                            char * pLut0, char * pLut1, word * pFunc0, word * pFunc1 );
 extern int             If_CluCheckExt3( void * p, word * pTruth, int nVars, int nLutLeaf, int nLutLeaf2, int nLutRoot, 
                            char * pLut0, char * pLut1, char * pLut2, word * pFunc0, word * pFunc1, word * pFunc2 );
+/*=== ifDsd.c =============================================================*/
+extern If_DsdMan_t *   If_DsdManAlloc( int nLutSize );
+extern void            If_DsdManPrint( If_DsdMan_t * p, char * pFileName );
+extern void            If_DsdManFree( If_DsdMan_t * p );
+extern int             If_DsdManCompute( If_DsdMan_t * p, word * pTruth, int nLeaves, unsigned char * pPerm );
 /*=== ifLib.c =============================================================*/
 extern If_LibLut_t *   If_LibLutRead( char * FileName );
 extern If_LibLut_t *   If_LibLutDup( If_LibLut_t * p );

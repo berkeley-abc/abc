@@ -186,10 +186,6 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
             If_CutCopy( p, pCutSet->ppCuts[pCutSet->nCuts++], pCut );
     }
 
-    if ( pObj->Id == 153 )
-    {
-        int s = 0;
-    }
     // generate cuts
     If_ObjForEachCut( pObj->pFanin0, pCut0, i )
     If_ObjForEachCut( pObj->pFanin1, pCut1, k )
@@ -256,34 +252,7 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
             }
         }
         if ( p->pPars->fUseDsd )
-        {
-            int j, iDsd[2] = { Abc_LitNotCond(pCut0->iCutDsd, pObj->fCompl0), Abc_LitNotCond(pCut1->iCutDsd, pObj->fCompl1) };
-            int nFans[2] = { pCut0->nLeaves, pCut1->nLeaves };
-            int Fans[2][DAU_MAX_VAR], * pFans[2] = { Fans[0], Fans[1] };
-            assert( pCut0->iCutDsd >= 0 && pCut1->iCutDsd >= 0 );
-            // create fanins
-            for ( j = 0; j < (int)pCut0->nLeaves; j++ )
-                pFans[0][j] = Abc_Lit2LitV( p->pPerm[0], (int)pCut0->pPerm[j] );
-            for ( j = 0; j < (int)pCut1->nLeaves; j++ )
-                pFans[1][j] = Abc_Lit2LitV( p->pPerm[1], (int)pCut1->pPerm[j] );
-            // canonicize
-            if ( iDsd[0] > iDsd[1] )
-            {
-                ABC_SWAP( int, iDsd[0], iDsd[1] );
-                ABC_SWAP( int, nFans[0], nFans[1] );
-                ABC_SWAP( int *, pFans[0], pFans[1] );
-            }
-            // derive new DSD
-            pCut->iCutDsd = Dss_ManMerge( p->pDsdMan, iDsd, nFans, pFans, p->uSharedMask, pCut->nLimit, (unsigned char *)pCut->pPerm, If_CutTruthW(p, pCut) );
-            if ( pCut->iCutDsd < 0 )
-            {
-                pCut->fUseless = 1;
-                p->nCutsUselessAll++;
-                p->nCutsUseless[pCut->nLeaves]++;
-            }
-            p->nCutsCountAll++;
-            p->nCutsCount[pCut->nLeaves]++;
-        }
+            pCut->iCutDsd = If_DsdManCompute( p->pIfDsdMan, If_CutTruthW(p, pCut), pCut->nLeaves, (unsigned char *)pCut->pPerm );
         
         // compute the application-specific cost and depth
         pCut->fUser = (p->pPars->pFuncCost != NULL);

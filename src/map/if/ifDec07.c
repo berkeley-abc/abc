@@ -21,7 +21,6 @@
 #include "if.h"
 #include "misc/extra/extra.h"
 #include "bool/kit/kit.h"
-#include "misc/util/utilTruth.h"
 
 ABC_NAMESPACE_IMPL_START
 

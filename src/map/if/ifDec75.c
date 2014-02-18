@@ -22,7 +22,6 @@
 #include "misc/extra/extra.h"
 #include "bool/kit/kit.h"
 #include "opt/dau/dau.h"
-#include "misc/util/utilTruth.h"
 
 ABC_NAMESPACE_IMPL_START
 

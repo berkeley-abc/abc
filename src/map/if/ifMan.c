@@ -84,7 +84,7 @@ If_Man_t * If_ManStart( If_Par_t * pPars )
     p->puTemp[3] = p->puTemp[2] + p->nTruth6Words*2;
     p->puTempW   = p->pPars->fTruth? ABC_ALLOC( word, p->nTruth6Words ) : NULL;
     if ( pPars->fUseDsd )
-        p->pDsdMan = Dss_ManAlloc( pPars->nLutSize, pPars->nNonDecLimit );
+        p->pIfDsdMan = If_DsdManAlloc( pPars->nLutSize );
     // create the constant node
     p->pConst1   = If_ManSetupObj( p );
     p->pConst1->Type   = IF_CONST1;
@@ -154,19 +154,8 @@ void If_ManStop( If_Man_t * p )
         Abc_Print( 1, "Statistics about 5-cuts: Total = %d  Non-decomposable = %d (%.2f %%)\n", p->nCuts5, p->nCuts5-p->nCuts5a, 100.0*(p->nCuts5-p->nCuts5a)/p->nCuts5 );
     if ( p->pPars->fUseDsd )
     {
-/*
-        if ( p->pPars->fVerbose )
-            Abc_Print( 1, "Number of unique entries in the DSD table = %d.  Memory = %.1f MB.\n", 
-                Abc_NamObjNumMax(p->pNamDsd), 1.0*Abc_NamMemAlloc(p->pNamDsd)/(1<<20) );
-        Abc_PrintTime( 1, "Time0", s_TimeComp[0] );
-        Abc_PrintTime( 1, "Time1", s_TimeComp[1] );
-        Abc_PrintTime( 1, "Time2", s_TimeComp[2] );
-        Abc_PrintTime( 1, "Time3", s_TimeComp[3] );
-//        Abc_NamPrint( p->pNamDsd );
-        Abc_NamStop( p->pNamDsd );
-*/
-        Dss_ManPrint( NULL, p->pDsdMan );
-        Dss_ManFree( p->pDsdMan );
+        If_DsdManPrint( p->pIfDsdMan, NULL );
+        If_DsdManFree( p->pIfDsdMan );
     }
 //    Abc_PrintTime( 1, "Truth", p->timeTruth );
 //    Abc_Print( 1, "Small support = %d.\n", p->nSmallSupp );

@@ -2319,6 +2319,10 @@ SOURCE=.\src\map\if\ifDec75.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\map\if\ifDsd.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\map\if\ifLibBox.c
 # End Source File
 # Begin Source File

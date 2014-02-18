@@ -19,7 +19,6 @@
 ***********************************************************************/
 
 #include "if.h"
-#include "misc/util/utilTruth.h"
 
 ABC_NAMESPACE_IMPL_START
 
