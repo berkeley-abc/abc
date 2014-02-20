@@ -281,7 +281,7 @@ static inline void Vec_MemDump( FILE * pFile, Vec_Mem_t * pVec )
     word * pEntry;
     int i, w, d;
     if ( pFile == stdout )
-        printf( "Memory vector has %d entries: ", Vec_MemEntryNum(pVec) );
+        printf( "Memory vector has %d entries: \n", Vec_MemEntryNum(pVec) );
     Vec_MemForEachEntry( pVec, pEntry, i )
     {
         for ( w = pVec->nEntrySize - 1; w >= 0; w-- )
@@ -392,12 +392,13 @@ static inline void Vec_MemDumpTruthTables( Vec_Mem_t * p, char * pName, int nLut
 {
     FILE * pFile;
     char pFileName[1000];
-    sprintf( pFileName, "tt_%s_%02d.txt", pName, nLutSize );
-    pFile = fopen( pFileName, "wb" );
+    sprintf( pFileName, "tt_%s_%02d.txt", pName ? pName : NULL, nLutSize );
+    pFile = pName ? fopen( pFileName, "wb" ) : stdout;
     Vec_MemDump( pFile, p );
-    fclose( pFile );
+    if ( pFile != stdout )
+        fclose( pFile );
     printf( "Dumped %d %d-var truth tables into file \"%s\" (%.2f MB).\n", 
-        Vec_MemEntryNum(p), nLutSize, pFileName,
+        Vec_MemEntryNum(p), nLutSize, pName ? pFileName : "stdout",
         8.0 * Vec_MemEntryNum(p) * Vec_MemEntrySize(p) / (1 << 20) );
 }
 

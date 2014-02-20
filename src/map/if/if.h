@@ -515,6 +515,7 @@ extern int             If_CluCheckExt3( void * p, word * pTruth, int nVars, int 
                            char * pLut0, char * pLut1, char * pLut2, word * pFunc0, word * pFunc1, word * pFunc2 );
 /*=== ifDsd.c =============================================================*/
 extern If_DsdMan_t *   If_DsdManAlloc( int nLutSize );
+extern void            If_DsdManDump( If_DsdMan_t * p );
 extern void            If_DsdManPrint( If_DsdMan_t * p, char * pFileName );
 extern void            If_DsdManFree( If_DsdMan_t * p );
 extern int             If_DsdManCompute( If_DsdMan_t * p, word * pTruth, int nLeaves, unsigned char * pPerm );

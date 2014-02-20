@@ -371,16 +371,7 @@ Jf_Man_t * Jf_ManAlloc( Gia_Man_t * pGia, Jf_Par_t * pPars )
     p->pGia      = pGia;
     p->pPars     = pPars;
     if ( pPars->fCutMin && !pPars->fFuncDsd )
-    {
-        word uTruth[JF_WORD_MAX]; 
-        int Value, nWords = Abc_Truth6WordNum(pPars->nLutSize);
-        p->vTtMem = Vec_MemAlloc( nWords, 12 ); // 32 KB/page for 6-var functions
-        Vec_MemHashAlloc( p->vTtMem, 10000 );
-        memset( uTruth, 0x00, sizeof(word) * nWords );
-        Value = Vec_MemHashInsert( p->vTtMem, uTruth ); assert( Value == 0 );
-        memset( uTruth, 0xAA, sizeof(word) * nWords );
-        Value = Vec_MemHashInsert( p->vTtMem, uTruth ); assert( Value == 1 );
-    }
+        p->vTtMem = Vec_MemAllocForTT( pPars->nLutSize );
     else if ( pPars->fCutMin && pPars->fFuncDsd )
     {
         p->pDsd = Sdm_ManRead();
@@ -400,18 +391,6 @@ Jf_Man_t * Jf_ManAlloc( Gia_Man_t * pGia, Jf_Par_t * pPars )
     p->vTemp     = Vec_IntAlloc( 1000 );
     p->clkStart  = Abc_Clock();
     return p;
-}
-void Jf_ManDumpTruthTables( Jf_Man_t * p )
-{
-    char pFileName[1000];
-    FILE * pFile;
-    sprintf( pFileName, "tt_%s_%02d.txt", Gia_ManName(p->pGia), p->pPars->nLutSize );
-    pFile = fopen( pFileName, "wb" );
-    Vec_MemDump( pFile, p->vTtMem );
-    fclose( pFile );
-    printf( "Dumped %d %d-var truth tables into file \"%s\" (%.2f MB).\n", 
-        Vec_MemEntryNum(p->vTtMem), p->pPars->nLutSize, pFileName,
-        17.0 * Vec_MemEntryNum(p->vTtMem) / (1 << 20) );
 }
 void Jf_ManFree( Jf_Man_t * p )
 {
@@ -1748,7 +1727,7 @@ Gia_Man_t * Jf_ManPerformMapping( Gia_Man_t * pGia, Jf_Par_t * pPars )
         Jf_ManPropagateEla( p, 1 );                 Jf_ManPrintStats( p, "Edge " );
     }
     if ( p->pPars->fVeryVerbose && p->pPars->fCutMin && !p->pPars->fFuncDsd )
-        Jf_ManDumpTruthTables( p );
+        Vec_MemDumpTruthTables( p->vTtMem, Gia_ManName(p->pGia), p->pPars->nLutSize );
     if ( p->pPars->fPureAig )
         pNew = Jf_ManDeriveGia(p);
     else if ( p->pPars->fCutMin )
