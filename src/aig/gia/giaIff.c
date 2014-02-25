@@ -421,7 +421,7 @@ void Gia_ManIffTest( Gia_Man_t * pGia, If_LibLut_t * pLib, int fVerbose )
     if ( pGia->pManTime == NULL )
         pGia->pManTime = pTemp = Tim_ManStart( Gia_ManCiNum(pGia), Gia_ManCoNum(pGia) );
     // perform timing computation
-    p = Gia_ManIffPerform( pGia, pLib, pGia->pManTime, nLutSize, nDegree );
+    p = Gia_ManIffPerform( pGia, pLib, (Tim_Man_t *)pGia->pManTime, nLutSize, nDegree );
     // remove timing manager
     if ( pGia->pManTime == pTemp )
         pGia->pManTime = NULL;
