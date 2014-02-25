@@ -251,7 +251,7 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
                 }
             }
         }
-        if ( p->pPars->fUseDsd )
+        if ( p->pPars->fUseDsd && Abc_Lit2Var(pCut->iCutFunc) == Vec_MemEntryNum(p->vTtMem)-1 )
             pCut->iCutDsd = If_DsdManCompute( p->pIfDsdMan, If_CutTruthW(p, pCut), pCut->nLeaves, (unsigned char *)pCut->pPerm );
         
         // compute the application-specific cost and depth

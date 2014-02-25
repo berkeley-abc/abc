@@ -275,8 +275,8 @@ void If_DsdManFree( If_DsdMan_t * p )
 {
     int fVerbose = 0;
 //    If_DsdManDump( p );
-    If_DsdManPrint( p, NULL );
-    Vec_MemDumpTruthTables( p->vTtMem, NULL, p->nVars );
+    If_DsdManPrint( p, NULL, 0 );
+    Vec_MemDumpTruthTables( p->vTtMem, "dumpdsd", p->nVars );
     if ( fVerbose )
     {
         Abc_PrintTime( 1, "Time begin ", p->timeBeg );
@@ -343,7 +343,7 @@ void If_DsdManPrintOne( FILE * pFile, If_DsdMan_t * p, int iObjId, unsigned char
     fprintf( pFile, "\n" );
     assert( nSupp == If_DsdVecObjSuppSize(p->vObjs, iObjId) );
 }
-void If_DsdManPrint( If_DsdMan_t * p, char * pFileName )
+void If_DsdManPrint( If_DsdMan_t * p, char * pFileName, int fVerbose )
 {
     If_DsdObj_t * pObj;
     int CountNonDsd = 0, CountNonDsdStr = 0;
@@ -372,6 +372,8 @@ void If_DsdManPrint( If_DsdMan_t * p, char * pFileName )
 //    If_DsdManHashProfile( p );
 //    If_DsdManDump( p );
 //    return;
+    if ( !fVerbose )
+        return;
     If_DsdVecForEachObj( p->vObjs, pObj, i )
     {
 //        if ( i == 50 )
@@ -844,8 +846,10 @@ int If_DsdManAddDsd( If_DsdMan_t * p, char * pDsd, word * pTruth, unsigned char 
     int iRes = -1, fCompl = 0;
     if ( *pDsd == '!' )
          pDsd++, fCompl = 1;
-    if ( Dau_DsdIsConst(pDsd) )
+    if ( Dau_DsdIsConst0(pDsd) )
         iRes = 0;
+    else if ( Dau_DsdIsConst1(pDsd) )
+        iRes = 1;
     else if ( Dau_DsdIsVar(pDsd) )
     {
         pPerm[(*pnSupp)++] = Dau_DsdReadVar(pDsd);
