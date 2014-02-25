@@ -2730,14 +2730,14 @@ Abc_Ntk_t * Abc_NtkSplitSop( Abc_Ntk_t * pNtk, int nCubesMax, int fVerbose )
             continue;
         }
         nSplits = (nCubes / nCubesMax) + (int)(nCubes % nCubesMax > 0);
-        pSopStr = ((char *)pObjNewRoot->pData);
-        pObjNewRoot->pData = Abc_SopCreateOr(pNtkNew->pManFunc, nSplits, NULL);
+        pSopStr = (char *)pObjNewRoot->pData;
+        pObjNewRoot->pData = Abc_SopCreateOr((Mem_Flex_t *)pNtkNew->pManFunc, nSplits, NULL);
         if ( Abc_SopIsComplement(pSopStr) )
         {
             Abc_SopComplement( pSopStr );
             Abc_SopComplement( (char *)pObjNewRoot->pData );
         }
-        pTempSop = pObj->pData; pObj->pData = "?";
+        pTempSop = (char *)pObj->pData; pObj->pData = (char *)"?";
         for ( j = 0; j < nSplits; j++ )
         {
             // clone the node
@@ -2750,7 +2750,7 @@ Abc_Ntk_t * Abc_NtkSplitSop( Abc_Ntk_t * pNtk, int nCubesMax, int fVerbose )
             nCubesThis = (j < nCubes / nCubesMax) ? nCubesMax : nCubes % nCubesMax;
             pSopStr2 = pSopStr + (Abc_ObjFaninNum(pObj) + 3) * nCubesThis;
             Symb = *pSopStr2; *pSopStr2 = 0;
-            pObjNew->pData = Abc_SopRegister( pNtkNew->pManFunc, pSopStr );
+            pObjNew->pData = Abc_SopRegister( (Mem_Flex_t *)pNtkNew->pManFunc, pSopStr );
             *pSopStr2 = Symb;
             pSopStr = pSopStr2;
         }
