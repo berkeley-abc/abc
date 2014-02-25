@@ -828,7 +828,7 @@ void Dau_DecTrySets( word * pInit, int nVars )
     assert( nVars <= 16 );
     memcpy( p, pInit, sizeof(word) * Abc_TtWordNum(nVars) );
     vSets = Dau_DecFindSets( p, nVars );
-    Dau_DsdPrintFromTruth( stdout, p, nVars ); 
+    Dau_DsdPrintFromTruth( p, nVars ); 
     printf( "This %d-variable function has %d decomposable variable sets:\n", nVars, Vec_IntSize(vSets) );
     Vec_IntForEachEntry( vSets, Entry, i )
     {

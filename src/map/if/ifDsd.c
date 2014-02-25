@@ -105,8 +105,6 @@ static inline If_DsdObj_t * If_DsdObjFanin( Vec_Ptr_t * p, If_DsdObj_t * pObj, i
 #define If_DsdObjForEachFaninLit( vVec, pObj, iLit, i )      \
     for ( i = 0; (i < If_DsdObjFaninNum(pObj)) && ((iLit) = If_DsdObjFaninLit(pObj, i)); i++ )
 
-extern void Kit_DsdPrintFromTruth( unsigned * pTruth, int nVars );
-
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
@@ -404,7 +402,7 @@ void If_DsdManDump( If_DsdMan_t * p )
         Abc_TtPrintHexRev( pFile, If_DsdObjTruth(p, pObj), p->nVars );
         fprintf( pFile, "\n" );
         printf( "    " );
-        Kit_DsdPrintFromTruth( (unsigned *)If_DsdObjTruth(p, pObj), p->nVars );
+        Dau_DsdPrintFromTruth( If_DsdObjTruth(p, pObj), p->nVars );
         printf( "\n" );
     }
     fclose( pFile );
@@ -899,8 +897,8 @@ int If_DsdManCompute( If_DsdMan_t * p, word * pTruth, int nLeaves, unsigned char
 //        If_DsdManPrint( p, NULL );
         printf( "\n" );
         printf( "Verification failed!\n" );
-        Kit_DsdPrintFromTruth( (unsigned *)pTruth, nLeaves ); printf( "\n" );
-        Kit_DsdPrintFromTruth( (unsigned *)pRes, nLeaves ); printf( "\n" );
+        Dau_DsdPrintFromTruth( pTruth, nLeaves ); printf( "\n" );
+        Dau_DsdPrintFromTruth( pRes, nLeaves ); printf( "\n" );
         If_DsdManPrintOne( stdout, p, Abc_Lit2Var(iDsd), pPerm );
         printf( "\n" );
     }

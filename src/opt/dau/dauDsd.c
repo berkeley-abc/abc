@@ -1897,13 +1897,21 @@ int Dau_DsdDecompose( word * pTruth, int nVarsInit, int fSplitPrime, int fWriteT
 //    assert( p->nSizeNonDec == 0 );
     return p->nSizeNonDec;
 }
-void Dau_DsdPrintFromTruth( FILE * pFile, word * pTruth, int nVarsInit )
+void Dau_DsdPrintFromTruthFile( FILE * pFile, word * pTruth, int nVarsInit )
 {
     char pRes[DAU_MAX_STR];
     word pTemp[DAU_MAX_WORD];
     Abc_TtCopy( pTemp, pTruth, Abc_TtWordNum(nVarsInit), 0 );
     Dau_DsdDecompose( pTemp, nVarsInit, 0, 1, pRes );
     fprintf( pFile, "%s\n", pRes );
+}
+void Dau_DsdPrintFromTruth( word * pTruth, int nVarsInit )
+{
+    char pRes[DAU_MAX_STR];
+    word pTemp[DAU_MAX_WORD];
+    Abc_TtCopy( pTemp, pTruth, Abc_TtWordNum(nVarsInit), 0 );
+    Dau_DsdDecompose( pTemp, nVarsInit, 0, 1, pRes );
+    fprintf( stdout, "%s\n", pRes );
 }
 
 void Dau_DsdTest44()

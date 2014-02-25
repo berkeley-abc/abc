@@ -80,7 +80,8 @@ extern unsigned      Abc_TtCanonicizePhase( word * pTruth, int nVars );
 /*=== dauDsd.c  ==========================================================*/
 extern int *         Dau_DsdComputeMatches( char * p );
 extern int           Dau_DsdDecompose( word * pTruth, int nVarsInit, int fSplitPrime, int fWriteTruth, char * pRes );
-extern void          Dau_DsdPrintFromTruth( FILE * pFile, word * pTruth, int nVarsInit );
+extern void          Dau_DsdPrintFromTruthFile( FILE * pFile, word * pTruth, int nVarsInit );
+extern void          Dau_DsdPrintFromTruth( word * pTruth, int nVarsInit );
 extern word *        Dau_DsdToTruth( char * p, int nVars );
 extern word          Dau_Dsd6ToTruth( char * p );
 extern void          Dau_DsdNormalize( char * p );
