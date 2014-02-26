@@ -217,6 +217,7 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
 //            abctime clk = Abc_Clock();
             If_CutComputeTruth( p, pCut, pCut0, pCut1, pObj->fCompl0, pObj->fCompl1 );
 //            p->timeTruth += Abc_Clock() - clk;
+            // run user functions
             pCut->fUseless = 0;
             if ( p->pPars->pFuncCell )
             {
@@ -250,9 +251,26 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
                         p->nCuts5a++;
                 }
             }
+            if ( p->pPars->fUseDsd )
+            {
+                int truthId = Abc_Lit2Var(pCut->iCutFunc);
+                if ( Vec_IntSize(p->vDsds) <= truthId || Vec_IntEntry(p->vDsds, truthId) == -1 )
+                {
+                    pCut->iCutDsd = If_DsdManCompute( p->pIfDsdMan, If_CutTruthW(p, pCut), pCut->nLeaves, (unsigned char *)pCut->pPerm, p->pPars->pLutStruct );
+                    while ( Vec_IntSize(p->vDsds) <= truthId )
+                        Vec_IntPush( p->vDsds, -1 );
+                    Vec_IntWriteEntry( p->vDsds, truthId, Abc_LitNotCond(pCut->iCutDsd, Abc_LitIsCompl(pCut->iCutFunc)) );
+                }
+                else
+                    pCut->iCutDsd = Abc_LitNotCond( Vec_IntEntry(p->vDsds, truthId), Abc_LitIsCompl(pCut->iCutFunc) );
+                if ( p->pPars->pLutStruct )
+                {
+                    int Value = If_DsdManCheckDec( p->pIfDsdMan, pCut->iCutDsd );
+                    if ( Value != (int)pCut->fUseless )
+                        printf( "Difference\n" );
+                }
+            }
         }
-        if ( p->pPars->fUseDsd && Abc_Lit2Var(pCut->iCutFunc) == Vec_MemEntryNum(p->vTtMem)-1 )
-            pCut->iCutDsd = If_DsdManCompute( p->pIfDsdMan, If_CutTruthW(p, pCut), pCut->nLeaves, (unsigned char *)pCut->pPerm );
         
         // compute the application-specific cost and depth
         pCut->fUser = (p->pPars->pFuncCost != NULL);

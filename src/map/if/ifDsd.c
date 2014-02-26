@@ -44,7 +44,8 @@ struct If_DsdObj_t_
     unsigned       Id;             // node ID
     unsigned       Type    :  3;   // node type
     unsigned       nSupp   :  5;   // variable
-    unsigned       Count   : 19;   // variable
+    unsigned       fMark   :  1;   // user mark
+    unsigned       Count   : 18;   // variable
     unsigned       nFans   :  5;   // fanin count
     unsigned       pFans[0];       // fanins
 };
@@ -58,10 +59,10 @@ struct If_DsdMan_t_
     Mem_Flex_t *   pMem;           // memory for nodes
     Vec_Ptr_t *    vObjs;          // objects
     Vec_Int_t *    vNexts;         // next pointers
-    Vec_Int_t *    vLeaves;        // temp
-    Vec_Int_t *    vCopies;        // temp
+    Vec_Int_t *    vNodes;         // temp
     word **        pTtElems;       // elementary TTs
     Vec_Mem_t *    vTtMem;         // truth table memory and hash table
+    Vec_Ptr_t *    vTtDecs;        // truth table decompositions
     int            nUniqueHits;    // statistics
     int            nUniqueMisses;  // statistics
     abctime        timeBeg;        // statistics
@@ -90,13 +91,15 @@ static inline If_DsdObj_t * If_DsdVecVar( Vec_Ptr_t * p, int v )                
 static inline int           If_DsdVecObjSuppSize( Vec_Ptr_t * p, int iObj )            { return If_DsdVecObj( p, iObj )->nSupp;                                             }
 static inline int           If_DsdVecLitSuppSize( Vec_Ptr_t * p, int iLit )            { return If_DsdVecObjSuppSize( p, Abc_Lit2Var(iLit) );                               }
 static inline int           If_DsdVecObjRef( Vec_Ptr_t * p, int iObj )                 { return If_DsdVecObj( p, iObj )->Count;                                             }
-static inline void          If_DsdVecObjIncRef( Vec_Ptr_t * p, int iObj )              { if ( If_DsdVecObjRef(p, iObj) < 0x7FFFF ) If_DsdVecObj( p, iObj )->Count++;        }
+static inline void          If_DsdVecObjIncRef( Vec_Ptr_t * p, int iObj )              { if ( If_DsdVecObjRef(p, iObj) < 0x3FFFF ) If_DsdVecObj( p, iObj )->Count++;        }
 static inline If_DsdObj_t * If_DsdObjFanin( Vec_Ptr_t * p, If_DsdObj_t * pObj, int i ) { assert(i < (int)pObj->nFans); return If_DsdVecObj(p, Abc_Lit2Var(pObj->pFans[i])); }
+static inline int           If_DsdVecObjMark( Vec_Ptr_t * p, int iObj )                { return If_DsdVecObj( p, iObj )->fMark;                                             }
+static inline void          If_DsdVecObjSetMark( Vec_Ptr_t * p, int iObj )             { If_DsdVecObj( p, iObj )->fMark = 1;                                                }
 
 #define If_DsdVecForEachObj( vVec, pObj, i )                \
     Vec_PtrForEachEntry( If_DsdObj_t *, vVec, pObj, i )
-#define If_DsdVecForEachObjVec( vLits, vVec, pObj, i )      \
-    for ( i = 0; (i < Vec_IntSize(vLits)) && ((pObj) = Dss_Lit2Obj(vVec, Vec_IntEntry(vLits,i))); i++ )
+#define If_DsdVecForEachObjVec( vNodes, vVec, pObj, i )      \
+    for ( i = 0; (i < Vec_IntSize(vNodes)) && ((pObj) = If_DsdVecObj(vVec, Vec_IntEntry(vNodes,i))); i++ )
 #define If_DsdVecForEachNode( vVec, pObj, i )               \
     Vec_PtrForEachEntry( If_DsdObj_t *, vVec, pObj, i )     \
         if ( If_DsdObjType(pObj) == IF_DSD_CONST0 || If_DsdObjType(pObj) == IF_DSD_VAR ) {} else
@@ -183,6 +186,7 @@ If_DsdObj_t * If_DsdObjAlloc( If_DsdMan_t * p, int Type, int nFans )
     pObj->Type   = Type;
     pObj->nFans  = nFans;
     pObj->Id     = Vec_PtrSize( p->vObjs );
+    pObj->fMark  = 0;
     pObj->Count  = 0;
     Vec_PtrPush( p->vObjs, pObj );
     Vec_IntPush( p->vNexts, 0 );
@@ -263,10 +267,11 @@ If_DsdMan_t * If_DsdManAlloc( int nVars )
     p->vNexts = Vec_IntAlloc( 10000 );
     If_DsdObjAlloc( p, IF_DSD_CONST0, 0 );
     If_DsdObjAlloc( p, IF_DSD_VAR, 0 )->nSupp = 1;
-    p->vLeaves  = Vec_IntAlloc( 32 );
-    p->vCopies  = Vec_IntAlloc( 32 );
+    p->vNodes   = Vec_IntAlloc( 32 );
     p->pTtElems = If_ManDsdTtElems();
-    p->vTtMem   = Vec_MemAllocForTT( nVars );
+    p->vTtDecs  = Vec_PtrAlloc( 1000 );
+    p->vTtMem   = Vec_MemAlloc( Abc_TtWordNum(nVars), 12 );
+    Vec_MemHashAlloc( p->vTtMem, 10000 );
     return p;
 }
 void If_DsdManFree( If_DsdMan_t * p )
@@ -282,10 +287,10 @@ void If_DsdManFree( If_DsdMan_t * p )
         Abc_PrintTime( 1, "Time lookup", p->timeLook );
         Abc_PrintTime( 1, "Time end   ", p->timeEnd );
     }
+    Vec_VecFree( (Vec_Vec_t *)p->vTtDecs );
     Vec_MemHashFree( p->vTtMem );
     Vec_MemFreeP( &p->vTtMem );
-    Vec_IntFreeP( &p->vCopies );
-    Vec_IntFreeP( &p->vLeaves );
+    Vec_IntFreeP( &p->vNodes );
     Vec_IntFreeP( &p->vNexts );
     Vec_PtrFreeP( &p->vObjs );
     Mem_FlexStop( p->pMem, 0 );
@@ -331,20 +336,21 @@ void If_DsdManPrint_rec( FILE * pFile, If_DsdMan_t * p, int iDsdLit, unsigned ch
         If_DsdManPrint_rec( pFile, p, iFanin, pPermLits, pnSupp );
     fprintf( pFile, "%c", CloseType[If_DsdObjType(pObj)] );
 }
-void If_DsdManPrintOne( FILE * pFile, If_DsdMan_t * p, int iObjId, unsigned char * pPermLits )
+void If_DsdManPrintOne( FILE * pFile, If_DsdMan_t * p, int iObjId, unsigned char * pPermLits, int fNewLine )
 {
     int nSupp = 0;
     fprintf( pFile, "%6d : ", iObjId );
     fprintf( pFile, "%2d ",   If_DsdVecObjSuppSize(p->vObjs, iObjId) );
     fprintf( pFile, "%8d ",   If_DsdVecObjRef(p->vObjs, iObjId) );
     If_DsdManPrint_rec( pFile, p, Abc_Var2Lit(iObjId, 0), pPermLits, &nSupp );
-    fprintf( pFile, "\n" );
+    if ( fNewLine )
+        fprintf( pFile, "\n" );
     assert( nSupp == If_DsdVecObjSuppSize(p->vObjs, iObjId) );
 }
 void If_DsdManPrint( If_DsdMan_t * p, char * pFileName, int fVerbose )
 {
     If_DsdObj_t * pObj;
-    int CountNonDsd = 0, CountNonDsdStr = 0;
+    int DsdMax = 0, CountUsed = 0, CountNonDsdStr = 0;
     int i, clk = Abc_Clock();
     FILE * pFile;
     pFile = pFileName ? fopen( pFileName, "wb" ) : stdout;
@@ -355,17 +361,20 @@ void If_DsdManPrint( If_DsdMan_t * p, char * pFileName, int fVerbose )
     }
     If_DsdVecForEachObj( p->vObjs, pObj, i )
     {
-        CountNonDsd += (If_DsdObjType(pObj) == IF_DSD_PRIME);
+        if ( If_DsdObjType(pObj) == IF_DSD_PRIME )
+            DsdMax = Abc_MaxInt( DsdMax, pObj->nFans ); 
         CountNonDsdStr += If_DsdManCheckNonDec_rec( p, pObj->Id );
+        CountUsed += ( If_DsdVecObjRef(p->vObjs, pObj->Id) > 0 );
     }
     fprintf( pFile, "Total number of objects    = %8d\n", Vec_PtrSize(p->vObjs) );
-    fprintf( pFile, "Non-DSD objects (max =%2d) = %8d\n", Vec_MemEntryNum(p->vTtMem), CountNonDsd );
+    fprintf( pFile, "Externally used objects    = %8d\n", CountUsed );
+    fprintf( pFile, "Non-DSD objects (max =%2d)  = %8d\n", DsdMax, Vec_MemEntryNum(p->vTtMem) );
     fprintf( pFile, "Non-DSD structures         = %8d\n", CountNonDsdStr );
-    fprintf( pFile, "Memory used for objects    = %6.2f MB.\n", 1.0*Mem_FlexReadMemUsage(p->pMem)/(1<<20) );
-    fprintf( pFile, "Memory used for array      = %6.2f MB.\n", 1.0*sizeof(void *)*Vec_PtrCap(p->vObjs)/(1<<20) );
-    fprintf( pFile, "Memory used for hash table = %6.2f MB.\n", 1.0*sizeof(int)*p->nBins/(1<<20) );
     fprintf( pFile, "Unique table hits          = %8d\n", p->nUniqueHits );
     fprintf( pFile, "Unique table misses        = %8d\n", p->nUniqueMisses );
+    fprintf( pFile, "Memory used for objects    = %8.2f MB.\n", 1.0*Mem_FlexReadMemUsage(p->pMem)/(1<<20) );
+    fprintf( pFile, "Memory used for hash table = %8.2f MB.\n", 1.0*sizeof(int)*p->nBins/(1<<20) );
+    fprintf( pFile, "Memory used for array      = %8.2f MB.\n", 1.0*sizeof(void *)*Vec_PtrCap(p->vObjs)/(1<<20) );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
 //    If_DsdManHashProfile( p );
 //    If_DsdManDump( p );
@@ -376,7 +385,7 @@ void If_DsdManPrint( If_DsdMan_t * p, char * pFileName, int fVerbose )
     {
 //        if ( i == 50 )
 //            break;
-        If_DsdManPrintOne( pFile, p, pObj->Id, NULL );
+        If_DsdManPrintOne( pFile, p, pObj->Id, NULL, 1 );
     }
     fprintf( pFile, "\n" );
     if ( pFileName )
@@ -403,9 +412,35 @@ void If_DsdManDump( If_DsdMan_t * p )
         fprintf( pFile, "\n" );
         printf( "    " );
         Dau_DsdPrintFromTruth( If_DsdObjTruth(p, pObj), p->nVars );
-        printf( "\n" );
     }
     fclose( pFile );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Collect nodes of the tree.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void If_DsdManCollect_rec( If_DsdMan_t * p, int Id, Vec_Int_t * vNodes )
+{
+    int i, iFanin;
+    If_DsdObj_t * pObj = If_DsdVecObj( p->vObjs, Id );
+    if ( If_DsdObjType(pObj) == IF_DSD_CONST0 || If_DsdObjType(pObj) == IF_DSD_VAR )
+        return;
+    If_DsdObjForEachFaninLit( p->vObjs, pObj, iFanin, i )
+        If_DsdManCollect_rec( p, Abc_Lit2Var(iFanin), vNodes );
+    Vec_IntPush( vNodes, Id );
+}
+void If_DsdManCollect( If_DsdMan_t * p, int Id, Vec_Int_t * vNodes )
+{
+    Vec_IntClear( vNodes );
+    If_DsdManCollect_rec( p, Id, vNodes );
 }
 
 /**Function*************************************************************
@@ -470,6 +505,12 @@ int If_DsdObjFindOrAdd( If_DsdMan_t * p, int Type, int * pLits, int nLits, word 
     unsigned * pSpot = If_DsdObjHashLookup( p, Type, pLits, nLits, truthId );
     if ( *pSpot )
         return *pSpot;
+    if ( truthId >= 0 && truthId == Vec_MemEntryNum(p->vTtMem)-1 )
+    {
+        Vec_Int_t * vSets = Dau_DecFindSets( pTruth, nLits );
+        Vec_PtrPush( p->vTtDecs, vSets );
+//        Dau_DecPrintSets( vSets, nLits );
+    }
     *pSpot = Vec_PtrSize( p->vObjs );
     return If_DsdObjCreate( p, Type, pLits, nLits, truthId );
 }
@@ -768,6 +809,7 @@ int If_DsdManOperation( If_DsdMan_t * p, int Type, int * pLits, int nLits, unsig
         assert( j == nSSize );
         for ( j = 0; j < nSSize; j++ )
             pPerm[j] = pPermNew[j];
+        Abc_TtStretch6( pTruth, nLits, p->nVars );
     }
     else assert( 0 );
     // create new graph
@@ -864,6 +906,158 @@ int If_DsdManAddDsd( If_DsdMan_t * p, char * pDsd, word * pTruth, unsigned char 
 
 /**Function*************************************************************
 
+  Synopsis    [Returns 1 if XY-decomposability holds to this LUT size.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+// collect supports of the node
+void If_DsdManGetSuppSizes( If_DsdMan_t * p, If_DsdObj_t * pObj, int * pSSizes )
+{
+    If_DsdObj_t * pFanin; int i;
+    If_DsdObjForEachFanin( p->vObjs, pObj, pFanin, i )
+        pSSizes[i] = If_DsdObjSuppSize(pFanin);    
+}
+// checks if there is a way to package some fanins 
+int If_DsdManCheckAndXor( If_DsdMan_t * p, If_DsdObj_t * pObj, int nSuppAll, int LutSize )
+{
+    int i[6], LimitOut, SizeIn, SizeOut, pSSizes[DAU_MAX_VAR];
+    int nFans = If_DsdObjFaninNum(pObj);
+    assert( pObj->nFans > 2 );
+    assert( If_DsdObjSuppSize(pObj) > LutSize );
+    If_DsdManGetSuppSizes( p, pObj, pSSizes );
+    LimitOut = LutSize - (nSuppAll - pObj->nSupp + 1);
+    assert( LimitOut < LutSize );
+    for ( i[0] = 0;      i[0] < nFans; i[0]++ )
+    for ( i[1] = i[0]+1; i[1] < nFans; i[1]++ )
+    {
+        SizeIn = pSSizes[i[0]] + pSSizes[i[1]];
+        SizeOut = pObj->nSupp - SizeIn;
+        if ( SizeIn > LutSize || SizeOut > LimitOut )
+            continue;
+        return (1 << i[0]) | (1 << i[1]);
+    }
+    if ( pObj->nFans == 3 )
+        return 0;
+    for ( i[0] = 0;      i[0] < nFans; i[0]++ )
+    for ( i[1] = i[0]+1; i[1] < nFans; i[1]++ )
+    for ( i[2] = i[1]+1; i[2] < nFans; i[2]++ )
+    {
+        SizeIn = pSSizes[i[0]] + pSSizes[i[1]] + pSSizes[i[2]];
+        SizeOut = pObj->nSupp - SizeIn;
+        if ( SizeIn > LutSize || SizeOut > LimitOut )
+            continue;
+        return (1 << i[0]) | (1 << i[1]) | (1 << i[2]);
+    }
+    return 0;
+}
+// checks if there is a way to package some fanins 
+int If_DsdManCheckPrime( If_DsdMan_t * p, If_DsdObj_t * pObj, int nSuppAll, int LutSize )
+{
+    int fVerbose = 0;
+    int i, v, set, LimitOut, SizeIn, SizeOut, pSSizes[DAU_MAX_VAR];
+    int truthId = If_DsdObjTruthId( p, pObj );
+    int nFans = If_DsdObjFaninNum(pObj);
+    Vec_Int_t * vSets = (Vec_Int_t *)Vec_PtrEntry(p->vTtDecs, truthId);
+if ( fVerbose )
+printf( "\n" );
+if ( fVerbose )
+Dau_DecPrintSets( vSets, nFans );
+    assert( pObj->nFans > 2 );
+    assert( If_DsdObjSuppSize(pObj) > LutSize );
+    If_DsdManGetSuppSizes( p, pObj, pSSizes );
+    LimitOut = LutSize - (nSuppAll - pObj->nSupp + 1);
+    assert( LimitOut < LutSize );
+    Vec_IntForEachEntry( vSets, set, i )
+    {
+        SizeIn = SizeOut = 0;
+        for ( v = 0; v < nFans; v++ )
+        {
+            int Value = ((set >> (v << 1)) & 3);
+            if ( Value == 0 )
+                SizeOut += pSSizes[v];
+            else if ( Value == 1 )
+                SizeIn += pSSizes[v];
+            else if ( Value == 3 )
+            {
+                SizeIn += pSSizes[v];
+                SizeOut += pSSizes[v];
+            }
+            else assert( Value == 0 );
+            if ( SizeIn > LutSize || SizeOut > LimitOut )
+                break;
+        }
+        if ( v == nFans )
+            return set;
+    }
+    return 0;
+}
+int If_DsdManCheckXY( If_DsdMan_t * p, int iDsd, int LutSize )
+{
+    int fVerbose = 0;
+    If_DsdObj_t * pObj, * pTemp; int i, Mask;
+    pObj = If_DsdVecObj( p->vObjs, Abc_Lit2Var(iDsd) );
+    if ( fVerbose )
+    If_DsdManPrintOne( stdout, p, Abc_Lit2Var(iDsd), NULL, 0 );
+    if ( If_DsdObjSuppSize(pObj) <= LutSize )
+    {
+        if ( fVerbose )
+        printf( "    Trivial\n" );
+        return 1;
+    }
+    If_DsdManCollect( p, pObj->Id, p->vNodes );
+    If_DsdVecForEachObjVec( p->vNodes, p->vObjs, pTemp, i )
+        if ( If_DsdObjSuppSize(pTemp) <= LutSize && If_DsdObjSuppSize(pObj) - If_DsdObjSuppSize(pTemp) <= LutSize - 1 )
+        {
+            if ( fVerbose )
+            printf( "    Dec using node " );
+            if ( fVerbose )
+            If_DsdManPrintOne( stdout, p, pTemp->Id, NULL, 1 );
+            return 1;
+        }
+    If_DsdVecForEachObjVec( p->vNodes, p->vObjs, pTemp, i )
+        if ( (If_DsdObjType(pTemp) == IF_DSD_AND || If_DsdObjType(pTemp) == IF_DSD_XOR) && If_DsdObjFaninNum(pTemp) > 2 && If_DsdObjSuppSize(pTemp) > LutSize )
+        {
+            if ( (Mask = If_DsdManCheckAndXor(p, pTemp, If_DsdObjSuppSize(pObj), LutSize)) )
+            {
+                if ( fVerbose )
+                printf( "    " );
+                if ( fVerbose )
+                Abc_TtPrintBinary( (word *)&Mask, 4 ); 
+                if ( fVerbose )
+                printf( "    Using multi-input AND/XOR node\n" );
+                return 1;
+            }
+        }
+    If_DsdVecForEachObjVec( p->vNodes, p->vObjs, pTemp, i )
+        if ( If_DsdObjType(pTemp) == IF_DSD_PRIME )
+        {
+            if ( (Mask = If_DsdManCheckPrime(p, pTemp, If_DsdObjSuppSize(pObj), LutSize)) )
+            {
+                if ( fVerbose )
+                printf( "    " );
+                if ( fVerbose )
+                Dau_DecPrintSet( Mask, If_DsdObjFaninNum(pTemp), 0 );
+                if ( fVerbose )
+                printf( "    Using prime node\n" );
+                return 1;
+            }
+        }
+    if ( fVerbose )
+    printf( "    UNDEC\n" );
+    return 0;
+}
+int If_DsdManCheckXYZ( If_DsdMan_t * p, int iDsd, int LutSize ) 
+{
+    return 1;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Add the function to the DSD manager.]
 
   Description []
@@ -873,7 +1067,7 @@ int If_DsdManAddDsd( If_DsdMan_t * p, char * pDsd, word * pTruth, unsigned char 
   SeeAlso     []
 
 ***********************************************************************/
-int If_DsdManCompute( If_DsdMan_t * p, word * pTruth, int nLeaves, unsigned char * pPerm )
+int If_DsdManCompute( If_DsdMan_t * p, word * pTruth, int nLeaves, unsigned char * pPerm, char * pLutStruct )
 {
     word pCopy[DAU_MAX_WORD], * pRes;
     char pDsd[DAU_MAX_STR];
@@ -897,13 +1091,24 @@ int If_DsdManCompute( If_DsdMan_t * p, word * pTruth, int nLeaves, unsigned char
 //        If_DsdManPrint( p, NULL );
         printf( "\n" );
         printf( "Verification failed!\n" );
-        Dau_DsdPrintFromTruth( pTruth, nLeaves ); printf( "\n" );
-        Dau_DsdPrintFromTruth( pRes, nLeaves ); printf( "\n" );
-        If_DsdManPrintOne( stdout, p, Abc_Lit2Var(iDsd), pPerm );
+        Dau_DsdPrintFromTruth( pTruth, nLeaves );
+        Dau_DsdPrintFromTruth( pRes, nLeaves );
+        If_DsdManPrintOne( stdout, p, Abc_Lit2Var(iDsd), pPerm, 1 );
         printf( "\n" );
     }
     If_DsdVecObjIncRef( p->vObjs, Abc_Lit2Var(iDsd) );
+    if ( pLutStruct )
+    {
+        int LutSize = (int)(pLutStruct[0] - '0');
+        assert( pLutStruct[2] == 0 );
+        if ( If_DsdManCheckXY( p, iDsd, LutSize ) )
+            If_DsdVecObjSetMark( p->vObjs, Abc_Lit2Var(iDsd) );
+    }
     return iDsd;
+}
+int If_DsdManCheckDec( If_DsdMan_t * p, int iDsd )
+{
+    return If_DsdVecObjMark( p->vObjs, Abc_Lit2Var(iDsd) );
 }
 
 ////////////////////////////////////////////////////////////////////////

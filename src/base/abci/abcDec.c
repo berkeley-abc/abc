@@ -25,6 +25,7 @@
 #include "bool/dec/dec.h"
 #include "bool/kit/kit.h"
 #include "opt/dau/dau.h"
+#include "misc/util/utilTruth.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -564,11 +565,13 @@ void Abc_TruthDecPerform( Abc_TtStore_t * p, int DecType, int fVerbose )
     {
         for ( i = 0; i < p->nFuncs; i++ )
         {
-            extern void Dau_DecTrySets( word * pInit, int nVars );
+            extern void Dau_DecTrySets( word * pInit, int nVars, int fVerbose );
+            int nSuppSize = Abc_TtSupportSize( p->pFuncs[i], p->nVars );
             if ( fVerbose )
                 printf( "%7d :      ", i );
-            Dau_DecTrySets( p->pFuncs[i], p->nVars );
-            printf( "\n" );
+            Dau_DecTrySets( p->pFuncs[i], nSuppSize, fVerbose );
+            if ( fVerbose )
+                printf( "\n" );
         }
     }
     else assert( 0 );

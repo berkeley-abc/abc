@@ -84,7 +84,12 @@ If_Man_t * If_ManStart( If_Par_t * pPars )
     p->puTemp[3] = p->puTemp[2] + p->nTruth6Words*2;
     p->puTempW   = p->pPars->fTruth? ABC_ALLOC( word, p->nTruth6Words ) : NULL;
     if ( pPars->fUseDsd )
+    {
         p->pIfDsdMan = If_DsdManAlloc( pPars->nLutSize );
+        p->vDsds = Vec_IntAlloc( 1000 );
+        Vec_IntPush( p->vDsds, 0 );
+        Vec_IntPush( p->vDsds, 2 );
+    }
     // create the constant node
     p->pConst1   = If_ManSetupObj( p );
     p->pConst1->Type   = IF_CONST1;
@@ -165,9 +170,10 @@ void If_ManStop( If_Man_t * p )
     Vec_WrdFreeP( &p->vAnds );
     Vec_WrdFreeP( &p->vAndGate );
     Vec_WrdFreeP( &p->vOrGate );
-    if ( p->vObjsRev )    Vec_PtrFree( p->vObjsRev );
-    if ( p->vLatchOrder ) Vec_PtrFree( p->vLatchOrder );
-    if ( p->vLags )       Vec_IntFree( p->vLags );
+    Vec_PtrFreeP( &p->vObjsRev );
+    Vec_PtrFreeP( &p->vLatchOrder );
+    Vec_IntFreeP( &p->vLags );
+    Vec_IntFreeP( &p->vDsds );
     Vec_MemHashFree( p->vTtMem );
     Vec_MemFreeP( &p->vTtMem );
     Mem_FixedStop( p->pMemObj, 0 );

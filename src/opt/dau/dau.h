@@ -97,6 +97,11 @@ extern void *        Dsm_ManDeriveGia( void * p, int fUseMuxes );
 extern void          Dau_DsdRemoveBraces( char * pDsd, int * pMatches );
 extern char *        Dau_DsdMerge( char * pDsd0i, int * pPerm0, char * pDsd1i, int * pPerm1, int fCompl0, int fCompl1, int nVars );
 
+/*=== dauNonDsd.c  ==========================================================*/
+extern Vec_Int_t *   Dau_DecFindSets( word * pInit, int nVars );
+extern void          Dau_DecPrintSets( Vec_Int_t * vSets, int nVars );
+extern void          Dau_DecPrintSet( unsigned set, int nVars, int fNewLine );
+
 /*=== dauTree.c  ==========================================================*/
 extern Dss_Man_t *   Dss_ManAlloc( int nVars, int nNonDecLimit );
 extern void          Dss_ManFree( Dss_Man_t * p );

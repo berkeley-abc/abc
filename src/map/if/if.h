@@ -35,9 +35,9 @@
 #include "misc/mem/mem.h"
 #include "misc/tim/tim.h"
 #include "misc/util/utilNam.h"
-#include "opt/dau/dau.h"
 #include "misc/vec/vecMem.h"
 #include "misc/util/utilTruth.h"
+#include "opt/dau/dau.h"
 
 ABC_NAMESPACE_HEADER_START
 
@@ -153,8 +153,8 @@ struct If_Par_t_
     float *            pTimesArr;     // arrival times
     float *            pTimesReq;     // required times
     int (* pFuncCost)  (If_Man_t *, If_Cut_t *);  // procedure to compute the user's cost of a cut
-    int (* pFuncUser)  (If_Man_t *, If_Obj_t *, If_Cut_t *); //  procedure called for each cut when cut computation is finished
-    int (* pFuncCell)  (If_Man_t *, unsigned *, int, int, char *);       //  procedure called for cut functions
+    int (* pFuncUser)  (If_Man_t *, If_Obj_t *, If_Cut_t *);        //  procedure called for each cut when cut computation is finished
+    int (* pFuncCell)  (If_Man_t *, unsigned *, int, int, char *);  //  procedure called for cut functions
     void *             pReoMan;       // reordering manager
 };
 
@@ -233,6 +233,7 @@ struct If_Man_t_
     int                nCuts5, nCuts5a;
     If_DsdMan_t *      pIfDsdMan;
     Vec_Mem_t *        vTtMem;        // truth table memory and hash table
+    Vec_Int_t *        vDsds;         // mapping of truth table into DSD
     int                nBestCutSmall[2];
 
     // timing manager
@@ -518,7 +519,8 @@ extern If_DsdMan_t *   If_DsdManAlloc( int nLutSize );
 extern void            If_DsdManDump( If_DsdMan_t * p );
 extern void            If_DsdManPrint( If_DsdMan_t * p, char * pFileName, int fVerbose );
 extern void            If_DsdManFree( If_DsdMan_t * p );
-extern int             If_DsdManCompute( If_DsdMan_t * p, word * pTruth, int nLeaves, unsigned char * pPerm );
+extern int             If_DsdManCompute( If_DsdMan_t * p, word * pTruth, int nLeaves, unsigned char * pPerm, char * pLutStruct );
+extern int             If_DsdManCheckDec( If_DsdMan_t * pIfMan, int iDsd );
 /*=== ifLib.c =============================================================*/
 extern If_LibLut_t *   If_LibLutRead( char * FileName );
 extern If_LibLut_t *   If_LibLutDup( If_LibLut_t * p );

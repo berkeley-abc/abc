@@ -459,7 +459,7 @@ void Dau_DecMoveFreeToLSB( word * p, int nVars, int * V2P, int * P2V, int maskB,
             Abc_TtMoveVar( p, nVars, V2P, P2V, v, c++ );
     assert( c == nVars - sizeB );
 }
-Vec_Int_t * Dau_DecFindSets( word * p, int nVars )
+Vec_Int_t * Dau_DecFindSets( word * pInit, int nVars )
 {
     Vec_Int_t * vSets = Vec_IntAlloc( 32 );
     int V2P[16], P2V[16], pVarsB[16];
@@ -467,6 +467,8 @@ Vec_Int_t * Dau_DecFindSets( word * p, int nVars )
     int c, v, sizeB, sizeS, maskB, maskS;
     int * pSched[16] = {NULL};
     unsigned setMixed;
+    word p[1<<10]; 
+    memcpy( p, pInit, sizeof(word) * Abc_TtWordNum(nVars) );
     for ( v = 0; v < nVars; v++ )
         assert( Abc_TtHasVar( p, nVars, v ) );
     for ( v = 2; v < nVars; v++ )
@@ -703,7 +705,7 @@ int Dau_DecVerify( word * pInit, int nVars, char * pDsdC, char * pDsdD )
     printf( "\n" );
     return 1;
 }
-int Dau_DecPerform( word * p, int nVars, unsigned uSet )
+int Dau_DecPerform6( word * p, int nVars, unsigned uSet )
 {
     word tComp = 0, tDec = 0, tDec0, tComp0, tComp1, FuncC, FuncD;
     char pDsdC[1000], pDsdD[1000];
@@ -760,7 +762,7 @@ int Dau_DecPerform( word * p, int nVars, unsigned uSet )
     return 1;
 }
 
-int Dau_DecPerform2( word * pInit, int nVars, unsigned uSet )
+int Dau_DecPerform( word * pInit, int nVars, unsigned uSet )
 {
     word p[1<<10], pDec[1<<10], pComp[1<<10]; // at most 2^10 words
     char pDsdC[5000], pDsdD[5000];  // at most 2^12 hex digits
@@ -820,15 +822,18 @@ int Dau_DecPerform2( word * pInit, int nVars, unsigned uSet )
     Dau_DecVerify( pInit, nVars, pDsdC, pDsdD );
     return 1;
 }
-void Dau_DecTrySets( word * pInit, int nVars )
+void Dau_DecTrySets( word * pInit, int nVars, int fVerbose )
 {
-    word p[1<<10]; 
     Vec_Int_t * vSets;
     int i, Entry;
     assert( nVars <= 16 );
-    memcpy( p, pInit, sizeof(word) * Abc_TtWordNum(nVars) );
-    vSets = Dau_DecFindSets( p, nVars );
-    Dau_DsdPrintFromTruth( p, nVars ); 
+    vSets = Dau_DecFindSets( pInit, nVars );
+    if ( !fVerbose )
+    {
+        Vec_IntFree( vSets );
+        return;
+    }
+    Dau_DsdPrintFromTruth( pInit, nVars ); 
     printf( "This %d-variable function has %d decomposable variable sets:\n", nVars, Vec_IntSize(vSets) );
     Vec_IntForEachEntry( vSets, Entry, i )
     {
@@ -837,12 +842,12 @@ void Dau_DecTrySets( word * pInit, int nVars )
         if ( nVars > 6 )
         {
             Dau_DecPrintSet( uSet, nVars, 0 );
-            Dau_DecPerform2( pInit, nVars, uSet );
+            Dau_DecPerform( pInit, nVars, uSet );
         }
         else
         {
             Dau_DecPrintSet( uSet, nVars, 1 );
-            Dau_DecPerform( pInit, nVars, uSet );
+            Dau_DecPerform6( pInit, nVars, uSet );
         }
     }
     Vec_IntFree( vSets );
@@ -860,7 +865,7 @@ void Dau_DecFindSetsTest3()
 //    char * pStr = "Abcd";
 //    char * pStr = "ab";
     unsigned uSet = Dau_DecReadSet( pStr );
-    Dau_DecPerform( &t, nVars, uSet );
+    Dau_DecPerform6( &t, nVars, uSet );
 }
 
 void Dau_DecFindSetsTest()
@@ -879,7 +884,7 @@ void Dau_DecFindSetsTest()
 //    word t = ABC_CONST(0x2B0228022B022802); // 5-var non-dec0x0F7700000F770000
 //    word t = ABC_CONST(0x0F7700000F770000); // (!<(ab)cd>e)
 //    word t = ABC_CONST(0x7F00000000000000); // (!(abc)def)
-    Dau_DecTrySets( &t, nVars );
+    Dau_DecTrySets( &t, nVars, 1 );
 }
 
 
