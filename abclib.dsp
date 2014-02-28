@@ -2343,6 +2343,10 @@ SOURCE=.\src\map\if\ifReduce.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\map\if\ifSat.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\map\if\ifSelect.c
 # End Source File
 # Begin Source File

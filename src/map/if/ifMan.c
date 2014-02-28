@@ -86,9 +86,12 @@ If_Man_t * If_ManStart( If_Par_t * pPars )
     if ( pPars->fUseDsd )
     {
         p->pIfDsdMan = If_DsdManAlloc( pPars->nLutSize );
-        p->vDsds = Vec_IntAlloc( 1000 );
-        Vec_IntPush( p->vDsds, 0 );
-        Vec_IntPush( p->vDsds, 2 );
+        p->vTtDsds = Vec_IntAlloc( 1000 );
+        Vec_IntPush( p->vTtDsds, 0 );
+        Vec_IntPush( p->vTtDsds, 2 );
+        p->vTtPerms = Vec_StrAlloc( 10000 );
+        Vec_StrFill( p->vTtPerms, 2 * p->pPars->nLutSize, IF_BIG_CHAR );
+        Vec_StrWriteEntry( p->vTtPerms, p->pPars->nLutSize, 0 );
     }
     // create the constant node
     p->pConst1   = If_ManSetupObj( p );
@@ -173,7 +176,8 @@ void If_ManStop( If_Man_t * p )
     Vec_PtrFreeP( &p->vObjsRev );
     Vec_PtrFreeP( &p->vLatchOrder );
     Vec_IntFreeP( &p->vLags );
-    Vec_IntFreeP( &p->vDsds );
+    Vec_IntFreeP( &p->vTtDsds );
+    Vec_StrFreeP( &p->vTtPerms );
     Vec_MemHashFree( p->vTtMem );
     Vec_MemFreeP( &p->vTtMem );
     Mem_FixedStop( p->pMemObj, 0 );

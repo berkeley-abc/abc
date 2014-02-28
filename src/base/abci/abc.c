@@ -974,6 +974,8 @@ void Abc_Init( Abc_Frame_t * pAbc )
     {
 //        extern void Dau_DsdTest();
 //        Dau_DsdTest();
+//        extern void If_ManSatTest();
+//        If_ManSatTest();
     }
 
     if ( Sdm_ManCanRead() )
@@ -2274,7 +2276,12 @@ int Abc_CommandPrintDsd( Abc_Frame_t * pAbc, int argc, char ** argv )
 //        Extra_PrintBinary( stdout, pTruth, 1 << Abc_ObjFaninNum(pObj) );
 //        Abc_Print( -1, "\n" );
         if ( fPrintDec )//&&Abc_ObjFaninNum(pObj) <= 6 )
+        {
+            word * pTruthW = (word *)pTruth;
+            if ( Abc_ObjFaninNum(pObj) < 6 )
+                pTruthW[0] = Abc_Tt6Stretch( pTruthW[0], Abc_ObjFaninNum(pObj) );
             Dau_DecTrySets( (word *)pTruth, Abc_ObjFaninNum(pObj), 1 );
+        }
         if ( fProfile )
             Kit_TruthPrintProfile( pTruth, Abc_ObjFaninNum(pObj) );
         else if ( fCofactor )

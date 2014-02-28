@@ -99,6 +99,7 @@ extern char *        Dau_DsdMerge( char * pDsd0i, int * pPerm0, char * pDsd1i, i
 
 /*=== dauNonDsd.c  ==========================================================*/
 extern Vec_Int_t *   Dau_DecFindSets( word * pInit, int nVars );
+extern void          Dau_DecSortSet( unsigned set, int nVars, int * pnUnique, int * pnShared, int * pnFree );
 extern void          Dau_DecPrintSets( Vec_Int_t * vSets, int nVars );
 extern void          Dau_DecPrintSet( unsigned set, int nVars, int fNewLine );
 

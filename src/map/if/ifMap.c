@@ -140,7 +140,7 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
 {
     If_Set_t * pCutSet;
     If_Cut_t * pCut0, * pCut1, * pCut;
-    int i, k;
+    int i, k, v;
     assert( p->pPars->fSeqMap || !If_ObjIsAnd(pObj->pFanin0) || pObj->pFanin0->pCutSet->nCuts > 0 );
     assert( p->pPars->fSeqMap || !If_ObjIsAnd(pObj->pFanin1) || pObj->pFanin1->pCutSet->nCuts > 0 );
 
@@ -254,20 +254,32 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
             if ( p->pPars->fUseDsd )
             {
                 int truthId = Abc_Lit2Var(pCut->iCutFunc);
-                if ( Vec_IntSize(p->vDsds) <= truthId || Vec_IntEntry(p->vDsds, truthId) == -1 )
+                if ( Vec_IntSize(p->vTtDsds) <= truthId || Vec_IntEntry(p->vTtDsds, truthId) == -1 )
                 {
                     pCut->iCutDsd = If_DsdManCompute( p->pIfDsdMan, If_CutTruthW(p, pCut), pCut->nLeaves, (unsigned char *)pCut->pPerm, p->pPars->pLutStruct );
-                    while ( Vec_IntSize(p->vDsds) <= truthId )
-                        Vec_IntPush( p->vDsds, -1 );
-                    Vec_IntWriteEntry( p->vDsds, truthId, Abc_LitNotCond(pCut->iCutDsd, Abc_LitIsCompl(pCut->iCutFunc)) );
+//                    printf( "%d(%d) ", pCut->iCutDsd, If_DsdManCheckDec( p->pIfDsdMan, pCut->iCutDsd ) );
+                    while ( Vec_IntSize(p->vTtDsds) <= truthId )
+                    {
+                        Vec_IntPush( p->vTtDsds, -1 );
+                        for ( v = 0; v < p->pPars->nLutSize; v++ )
+                            Vec_StrPush( p->vTtPerms, IF_BIG_CHAR );
+                    }
+                    Vec_IntWriteEntry( p->vTtDsds, truthId, Abc_LitNotCond(pCut->iCutDsd, Abc_LitIsCompl(pCut->iCutFunc)) );
+                    for ( v = 0; v < (int)pCut->nLeaves; v++ )
+                        Vec_StrWriteEntry( p->vTtPerms, truthId * p->pPars->nLutSize + v, (char)pCut->pPerm[v] );
                 }
                 else
-                    pCut->iCutDsd = Abc_LitNotCond( Vec_IntEntry(p->vDsds, truthId), Abc_LitIsCompl(pCut->iCutFunc) );
+                {
+                    pCut->iCutDsd = Abc_LitNotCond( Vec_IntEntry(p->vTtDsds, truthId), Abc_LitIsCompl(pCut->iCutFunc) );
+                    for ( v = 0; v < (int)pCut->nLeaves; v++ )
+                        pCut->pPerm[v] = (unsigned char)Vec_StrEntry( p->vTtPerms, truthId * p->pPars->nLutSize + v );
+                }
                 if ( p->pPars->pLutStruct )
                 {
                     int Value = If_DsdManCheckDec( p->pIfDsdMan, pCut->iCutDsd );
                     if ( Value != (int)pCut->fUseless )
-                        printf( "Difference\n" );
+                    {
+                    }
                 }
             }
         }
