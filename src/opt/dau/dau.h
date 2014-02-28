@@ -98,6 +98,7 @@ extern void          Dau_DsdRemoveBraces( char * pDsd, int * pMatches );
 extern char *        Dau_DsdMerge( char * pDsd0i, int * pPerm0, char * pDsd1i, int * pPerm1, int fCompl0, int fCompl1, int nVars );
 
 /*=== dauNonDsd.c  ==========================================================*/
+extern Vec_Int_t *   Dau_DecFindSets_int( word * pInit, int nVars, int * pSched[16] );
 extern Vec_Int_t *   Dau_DecFindSets( word * pInit, int nVars );
 extern void          Dau_DecSortSet( unsigned set, int nVars, int * pnUnique, int * pnShared, int * pnFree );
 extern void          Dau_DecPrintSets( Vec_Int_t * vSets, int nVars );

@@ -19,6 +19,7 @@
 ***********************************************************************/
 
 #include "if.h"
+#include "misc/extra/extra.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -63,12 +64,13 @@ struct If_DsdMan_t_
     word **        pTtElems;       // elementary TTs
     Vec_Mem_t *    vTtMem;         // truth table memory and hash table
     Vec_Ptr_t *    vTtDecs;        // truth table decompositions
+    int *          pSched[16];     // grey code schedules
     int            nUniqueHits;    // statistics
     int            nUniqueMisses;  // statistics
-    abctime        timeBeg;        // statistics
-    abctime        timeDec;        // statistics
-    abctime        timeLook;       // statistics
-    abctime        timeEnd;        // statistics
+    abctime        timeDsd;        // statistics
+    abctime        timeCanon;      // statistics
+    abctime        timeCheck;      // statistics
+    abctime        timeVerify;     // statistics
 };
 
 static inline int           If_DsdObjWordNum( int nFans )                                    { return sizeof(If_DsdObj_t) / 8 + nFans / 2 + ((nFans & 1) > 0);              }
@@ -212,6 +214,8 @@ int If_DsdObjCreate( If_DsdMan_t * p, int Type, int * pLits, int nLits, int trut
             iPrev = pLits[i];
         }
     }
+    if ( Vec_PtrSize(p->vObjs) % p->nBins == 0 )
+        printf( "Warning: The number of objects in If_DsdObjCreate() is more than the number of bins.\n" );
     // create new node
     pObj = If_DsdObjAlloc( p, Type, nLits );
     if ( Type == DAU_DSD_PRIME )
@@ -256,7 +260,7 @@ static inline word ** If_ManDsdTtElems()
 }
 If_DsdMan_t * If_DsdManAlloc( int nVars )
 {
-    If_DsdMan_t * p;
+    If_DsdMan_t * p; int v;
     p = ABC_CALLOC( If_DsdMan_t, 1 );
     p->nVars  = nVars;
     p->nWords = Abc_TtWordNum( nVars );
@@ -272,21 +276,25 @@ If_DsdMan_t * If_DsdManAlloc( int nVars )
     p->vTtDecs  = Vec_PtrAlloc( 1000 );
     p->vTtMem   = Vec_MemAlloc( Abc_TtWordNum(nVars), 12 );
     Vec_MemHashAlloc( p->vTtMem, 10000 );
+    for ( v = 2; v < nVars; v++ )
+        p->pSched[v] = Extra_GreyCodeSchedule( v );
     return p;
 }
-void If_DsdManFree( If_DsdMan_t * p )
+void If_DsdManFree( If_DsdMan_t * p, int fVerbose )
 {
-    int fVerbose = 0;
+    int v;
 //    If_DsdManDump( p );
     If_DsdManPrint( p, NULL, 0 );
     Vec_MemDumpTruthTables( p->vTtMem, "dumpdsd", p->nVars );
     if ( fVerbose )
     {
-        Abc_PrintTime( 1, "Time begin ", p->timeBeg );
-        Abc_PrintTime( 1, "Time decomp", p->timeDec );
-        Abc_PrintTime( 1, "Time lookup", p->timeLook );
-        Abc_PrintTime( 1, "Time end   ", p->timeEnd );
+        Abc_PrintTime( 1, "Time DSD   ", p->timeDsd    );
+        Abc_PrintTime( 1, "Time canon ", p->timeCanon-p->timeCheck  );
+        Abc_PrintTime( 1, "Time check ", p->timeCheck  );
+        Abc_PrintTime( 1, "Time verify", p->timeVerify );
     }
+    for ( v = 2; v < p->nVars; v++ )
+        ABC_FREE( p->pSched[v] );
     Vec_VecFree( (Vec_Vec_t *)p->vTtDecs );
     Vec_MemHashFree( p->vTtMem );
     Vec_MemFreeP( &p->vTtMem );
@@ -296,6 +304,23 @@ void If_DsdManFree( If_DsdMan_t * p )
     Mem_FlexStop( p->pMem, 0 );
     ABC_FREE( p->pBins );
     ABC_FREE( p );
+}
+void If_DsdManHashProfile( If_DsdMan_t * p )
+{
+    If_DsdObj_t * pObj;
+    unsigned * pSpot;
+    int i, Counter;
+    for ( i = 0; i < p->nBins; i++ )
+    {
+        Counter = 0;
+        for ( pSpot = p->pBins + i; *pSpot; pSpot = (unsigned *)Vec_IntEntryP(p->vNexts, pObj->Id), Counter++ )
+             pObj = If_DsdVecObj( p->vObjs, *pSpot );
+//        if ( Counter > 5 )
+//            printf( "%d ", Counter );
+//        if ( i > 10000 )
+//            break;
+    }
+//    printf( "\n" );
 }
 int If_DsdManCheckNonDec_rec( If_DsdMan_t * p, int Id )
 {
@@ -454,30 +479,18 @@ void If_DsdManCollect( If_DsdMan_t * p, int Id, Vec_Int_t * vNodes )
   SeeAlso     []
 
 ***********************************************************************/
-void If_DsdManHashProfile( If_DsdMan_t * p )
-{
-    If_DsdObj_t * pObj;
-    unsigned * pSpot;
-    int i, Counter;
-    for ( i = 0; i < p->nBins; i++ )
-    {
-        Counter = 0;
-        for ( pSpot = p->pBins + i; *pSpot; pSpot = (unsigned *)Vec_IntEntryP(p->vNexts, pObj->Id), Counter++ )
-             pObj = If_DsdVecObj( p->vObjs, *pSpot );
-        if ( Counter )
-            printf( "%d ", Counter );
-    }
-    printf( "\n" );
-}
 static inline unsigned If_DsdObjHashKey( If_DsdMan_t * p, int Type, int * pLits, int nLits, int truthId )
 {
-    static int s_Primes[8] = { 1699, 4177, 5147, 5647, 6343, 7103, 7873, 8147 };
+//    static int s_Primes[8] = { 1699, 4177, 5147, 5647, 6343, 7103, 7873, 8147 };
+    static int s_Primes[24] = { 1049, 1297, 1559, 1823, 2089, 2371, 2663, 2909, 
+                                3221, 3517, 3779, 4073, 4363, 4663, 4973, 5281, 
+                                5573, 5861, 6199, 6481, 6803, 7109, 7477, 7727 };
     int i;
     unsigned uHash = Type * 7873 + nLits * 8147;
     for ( i = 0; i < nLits; i++ )
-        uHash += pLits[i] * s_Primes[i & 0x7];
+        uHash += pLits[i] * s_Primes[i & 0xF];
     if ( Type == IF_DSD_PRIME )
-        uHash += truthId * s_Primes[i & 0x7];
+        uHash += truthId * s_Primes[i & 0xF];
     return uHash % p->nBins;
 }
 unsigned * If_DsdObjHashLookup( If_DsdMan_t * p, int Type, int * pLits, int nLits, int truthId )
@@ -503,15 +516,19 @@ int If_DsdObjFindOrAdd( If_DsdMan_t * p, int Type, int * pLits, int nLits, word 
 {
     int truthId = (Type == IF_DSD_PRIME) ? Vec_MemHashInsert(p->vTtMem, pTruth) : -1;
     unsigned * pSpot = If_DsdObjHashLookup( p, Type, pLits, nLits, truthId );
+abctime clk;
     if ( *pSpot )
         return *pSpot;
+clk = Abc_Clock();
     if ( truthId >= 0 && truthId == Vec_PtrSize(p->vTtDecs) )
     {
-        Vec_Int_t * vSets = Dau_DecFindSets( pTruth, nLits );
+        Vec_Int_t * vSets = Dau_DecFindSets_int( pTruth, nLits, p->pSched );
+//        printf( "%d ", Vec_IntSize(vSets) );
         assert( truthId == Vec_MemEntryNum(p->vTtMem)-1 );
         Vec_PtrPush( p->vTtDecs, vSets );
 //        Dau_DecPrintSets( vSets, nLits );
     }
+p->timeCheck += Abc_Clock() - clk;
     *pSpot = Vec_PtrSize( p->vObjs );
     return If_DsdObjCreate( p, Type, pLits, nLits, truthId );
 }
@@ -686,6 +703,7 @@ int If_DsdManOperation( If_DsdMan_t * p, int Type, int * pLits, int nLits, unsig
     unsigned char pPermNew[DAU_MAX_VAR];
     int nChildren = 0, pChildren[DAU_MAX_VAR], pBegEnd[DAU_MAX_VAR];
     int i, k, j, Id, iFanin, fComplFan, fCompl = 0, nSSize = 0;
+//    abctime clk;
     if ( Type == IF_DSD_AND )
     {
         for ( k = 0; k < nLits; k++ )
@@ -855,7 +873,7 @@ int If_DsdManAddDsd_rec( char * pStr, char ** p, int * pMatches, If_DsdMan_t * p
         fCompl = 1;
         (*p)++;
     }
-    assert( !((**p >= 'A' && **p <= 'F') || (**p >= '0' && **p <= '9')) );
+//    assert( !((**p >= 'A' && **p <= 'F') || (**p >= '0' && **p <= '9')) );
     if ( **p >= 'a' && **p <= 'z' ) // var
     {
         pPerm[(*pnSupp)++] = Abc_Var2Lit( **p - 'a', fCompl );
@@ -879,6 +897,22 @@ int If_DsdManAddDsd_rec( char * pStr, char ** p, int * pMatches, If_DsdMan_t * p
             pLits[nLits++] = If_DsdManAddDsd_rec( pStr, p, pMatches, pMan, pTruth, pPerm, pnSupp );
         assert( *p == q );
         iRes = If_DsdManOperation( pMan, Type, pLits, nLits, pPermStart, pTruth );
+        return Abc_LitNotCond( iRes, fCompl );
+    }
+    if ( (**p >= 'A' && **p <= 'F') || (**p >= '0' && **p <= '9') )
+    {
+        word pFunc[DAU_MAX_WORD];
+        int nLits = 0, pLits[DAU_MAX_VAR];
+        char * q;
+        int i, nVarsF = Abc_TtReadHex( pFunc, *p );
+        *p += Abc_TtHexDigitNum( nVarsF );
+        q = pStr + pMatches[ *p - pStr ];
+        assert( **p == '{' && *q == '}' );
+        for ( i = 0, (*p)++; *p < q; (*p)++, i++ )
+            pLits[nLits++] = If_DsdManAddDsd_rec( pStr, p, pMatches, pMan, pTruth, pPerm, pnSupp );
+        assert( i == nVarsF );
+        assert( *p == q );
+        iRes = If_DsdManOperation( pMan, DAU_DSD_PRIME, pLits, nLits, pPermStart, pFunc );
         return Abc_LitNotCond( iRes, fCompl );
     }
     assert( 0 );
@@ -1143,9 +1177,23 @@ int If_DsdManCompute( If_DsdMan_t * p, word * pTruth, int nLeaves, unsigned char
     word pCopy[DAU_MAX_WORD], * pRes;
     char pDsd[DAU_MAX_STR];
     int iDsd, nSizeNonDec, nSupp = 0;
+    abctime clk;
     assert( nLeaves <= DAU_MAX_VAR );
     Abc_TtCopy( pCopy, pTruth, p->nWords, 0 );
-    nSizeNonDec = Dau_DsdDecompose( pCopy, nLeaves, 0, 0, pDsd );
+clk = Abc_Clock();
+    nSizeNonDec = Dau_DsdDecompose( pCopy, nLeaves, 0, 1, pDsd );
+p->timeDsd += Abc_Clock() - clk;
+/*
+    if ( nLeaves <= 6 )
+    {
+        word pCopy2[DAU_MAX_WORD], t;
+        char pDsd2[DAU_MAX_STR];
+        Abc_TtCopy( pCopy2, pTruth, p->nWords, 0 );
+        nSizeNonDec = Dau_DsdDecompose( pCopy2, nLeaves, 0, 1, pDsd2 );
+        t = Dau_Dsd6ToTruth( pDsd2 );
+        assert( t == *pTruth );
+    }
+*/
 //    if ( !strcmp(pDsd, "(![(!e!d)c]!(b!a))") )
 //    {
 //        int x = 0;
@@ -1153,17 +1201,24 @@ int If_DsdManCompute( If_DsdMan_t * p, word * pTruth, int nLeaves, unsigned char
     if ( nSizeNonDec > 0 )
         Abc_TtStretch6( pCopy, nSizeNonDec, p->nVars );
     memset( pPerm, 0xFF, nLeaves );
+clk = Abc_Clock();
     iDsd = If_DsdManAddDsd( p, pDsd, pCopy, pPerm, &nSupp );
+p->timeCanon += Abc_Clock() - clk;
     assert( nSupp == nLeaves );
     // verify the result
+clk = Abc_Clock();
     pRes = If_DsdManComputeTruth( p, iDsd, pPerm );
+p->timeVerify += Abc_Clock() - clk;
     if ( !Abc_TtEqual(pRes, pTruth, p->nWords) )
     {
 //        If_DsdManPrint( p, NULL );
         printf( "\n" );
         printf( "Verification failed!\n" );
+        printf( "%s\n", pDsd );
         Dau_DsdPrintFromTruth( pTruth, nLeaves );
         Dau_DsdPrintFromTruth( pRes, nLeaves );
+//        Kit_DsdPrintFromTruth( (unsigned *)pTruth, nLeaves ); printf( "\n" );
+//        Kit_DsdPrintFromTruth( (unsigned *)pRes, nLeaves ); printf( "\n" );
         If_DsdManPrintOne( stdout, p, Abc_Lit2Var(iDsd), pPerm, 1 );
         printf( "\n" );
     }

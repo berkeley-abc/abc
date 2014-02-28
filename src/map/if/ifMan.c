@@ -161,7 +161,9 @@ void If_ManStop( If_Man_t * p )
     if ( p->pPars->fVerbose && p->nCuts5 )
         Abc_Print( 1, "Statistics about 5-cuts: Total = %d  Non-decomposable = %d (%.2f %%)\n", p->nCuts5, p->nCuts5-p->nCuts5a, 100.0*(p->nCuts5-p->nCuts5a)/p->nCuts5 );
     if ( p->pPars->fUseDsd )
-        If_DsdManFree( p->pIfDsdMan );
+        If_DsdManFree( p->pIfDsdMan, p->pPars->fVerbose );
+    if ( p->pPars->fUseDsd )
+        printf( "NonDec0 = %d.  NonDec1 = %d.\n", p->nCountNonDec[0], p->nCountNonDec[1] );
 //    Abc_PrintTime( 1, "Truth", p->timeTruth );
 //    Abc_Print( 1, "Small support = %d.\n", p->nSmallSupp );
     Vec_IntFreeP( &p->vCoAttrs );

@@ -279,6 +279,39 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
                     int Value = If_DsdManCheckDec( p->pIfDsdMan, pCut->iCutDsd );
                     if ( Value != (int)pCut->fUseless )
                     {
+                        if ( pCut->fUseless && !Value )
+                            p->nCountNonDec[0]++;
+                        if ( !pCut->fUseless && Value )
+                            p->nCountNonDec[1]++; 
+/*
+//                        if ( pCut->fUseless && !Value )
+//                            printf( "Old does not work.  New works.\n" );
+                        if ( !pCut->fUseless && Value )
+                            printf( "Old works.  New does not work.  DSD = %d.\n", Abc_Lit2Var(pCut->iCutDsd) );
+                        if ( !pCut->fUseless && Value )
+                        {
+                            extern word If_Dec6Perform( word t, int fDerive );
+                            extern word * If_DsdManComputeTruth( If_DsdMan_t * p, int iDsd, unsigned char * pPermLits );
+                            int s;
+
+//                            word z, t = *If_CutTruthW(p, pCut);
+                            word z, t = *If_DsdManComputeTruth( p->pIfDsdMan, pCut->iCutDsd, NULL );
+
+                            Extra_PrintHex( stdout, (unsigned *)If_CutTruthW(p, pCut), pCut->nLeaves ); printf( "\n" );
+
+                            Dau_DsdPrintFromTruth( &t, pCut->nLeaves );
+//                            Dau_DsdPrintFromTruth( If_CutTruthW(p, pCut), pCut->nLeaves );
+//                            If_DsdManPrintOne( stdout, p->pIfDsdMan, Abc_Lit2Var(pCut->iCutDsd), pCut->pPerm, 1 );
+//                            printf( "Old works.  New does not work.  DSD = %d.\n", Abc_Lit2Var(pCut->iCutDsd) );
+
+                            z = If_Dec6Perform( t, 1 );
+                            If_DecPrintConfig( z );
+
+                            s = If_DsdManCheckXY( p->pIfDsdMan, pCut->iCutDsd, 4, 1 );
+                            printf( "Confirm %d\n", s );
+                            s = 0;
+                        }
+*/
                     }
                 }
             }

@@ -122,12 +122,12 @@ int If_ManSatCheckXY( sat_solver * p, int nLutSize, word * pTruth, int nVars, un
     v = 0;
     Vec_IntForEachEntry( vLits, Value, m )
     {
-        printf( "%d", (Value >= 0) ? Value : 2 );
+//        printf( "%d", (Value >= 0) ? Value : 2 );
         if ( Value >= 0 )
             Vec_IntWriteEntry( vLits, v++, Abc_Var2Lit(2 * nMintsL + m, !Value) );
     }
     Vec_IntShrink( vLits, v );
-    printf( " %d\n", Vec_IntSize(vLits) );
+//    printf( " %d\n", Vec_IntSize(vLits) );
     // run SAT solver
     Value = sat_solver_solve( p, Vec_IntArray(vLits), Vec_IntArray(vLits) + Vec_IntSize(vLits), 0, 0, 0, 0 );
     if ( Value != l_True )
@@ -162,7 +162,7 @@ int If_ManSatCheckXY( sat_solver * p, int nLutSize, word * pTruth, int nVars, un
   SeeAlso     []
 
 ***********************************************************************/
-void If_ManSatTest()
+void If_ManSatTest2()
 {
     int nVars = 6;
     int nLutSize = 4;
@@ -186,6 +186,67 @@ void If_ManSatTest()
     Dau_DsdPrintFromTruth( pTruth, nVars );
     Dau_DsdPrintFromTruth( &uBound, nLutSize );
     Dau_DsdPrintFromTruth( &uFree, nLutSize );
+    sat_solver_delete(p);
+    Vec_IntFree( vLits );
+}
+
+void If_ManSatTest()
+{
+    int nVars = 4;
+    int nLutSize = 3;
+    sat_solver * p = If_ManSatBuildXY( nLutSize );
+    word t = 0x183C, * pTruth = &t;
+    word uBound, uFree;
+    unsigned uSet;
+    int RetValue;
+    Vec_Int_t * vLits = Vec_IntAlloc( 100 );
+
+    
+    uSet = (3 << 0) | (1 << 2) | (1 << 4);
+    RetValue = If_ManSatCheckXY( p, nLutSize, pTruth, nVars, uSet, &uBound, &uFree, vLits );
+    printf( "%d", RetValue );
+    uSet = (1 << 0) | (3 << 2) | (1 << 4);
+    RetValue = If_ManSatCheckXY( p, nLutSize, pTruth, nVars, uSet, &uBound, &uFree, vLits );
+    printf( "%d", RetValue );
+    uSet = (1 << 0) | (1 << 2) | (3 << 4);
+    RetValue = If_ManSatCheckXY( p, nLutSize, pTruth, nVars, uSet, &uBound, &uFree, vLits );
+    printf( "%d", RetValue );
+
+    
+    uSet = (3 << 0) | (1 << 2) | (1 << 6);
+    RetValue = If_ManSatCheckXY( p, nLutSize, pTruth, nVars, uSet, &uBound, &uFree, vLits );
+    printf( "%d", RetValue );
+    uSet = (1 << 0) | (3 << 2) | (1 << 6);
+    RetValue = If_ManSatCheckXY( p, nLutSize, pTruth, nVars, uSet, &uBound, &uFree, vLits );
+    printf( "%d", RetValue );
+    uSet = (1 << 0) | (1 << 2) | (3 << 6);
+    RetValue = If_ManSatCheckXY( p, nLutSize, pTruth, nVars, uSet, &uBound, &uFree, vLits );
+    printf( "%d", RetValue );
+
+    
+    uSet = (3 << 0) | (1 << 4) | (1 << 6);
+    RetValue = If_ManSatCheckXY( p, nLutSize, pTruth, nVars, uSet, &uBound, &uFree, vLits );
+    printf( "%d", RetValue );
+    uSet = (1 << 0) | (3 << 4) | (1 << 6);
+    RetValue = If_ManSatCheckXY( p, nLutSize, pTruth, nVars, uSet, &uBound, &uFree, vLits );
+    printf( "%d", RetValue );
+    uSet = (1 << 0) | (1 << 4) | (3 << 6);
+    RetValue = If_ManSatCheckXY( p, nLutSize, pTruth, nVars, uSet, &uBound, &uFree, vLits );
+    printf( "%d", RetValue );
+
+    
+    uSet = (3 << 2) | (1 << 4) | (1 << 6);
+    RetValue = If_ManSatCheckXY( p, nLutSize, pTruth, nVars, uSet, &uBound, &uFree, vLits );
+    printf( "%d", RetValue );
+    uSet = (1 << 2) | (3 << 4) | (1 << 6);
+    RetValue = If_ManSatCheckXY( p, nLutSize, pTruth, nVars, uSet, &uBound, &uFree, vLits );
+    printf( "%d", RetValue );
+    uSet = (1 << 2) | (1 << 4) | (3 << 6);
+    RetValue = If_ManSatCheckXY( p, nLutSize, pTruth, nVars, uSet, &uBound, &uFree, vLits );
+    printf( "%d", RetValue );
+
+    printf( "\n" );
+
     sat_solver_delete(p);
     Vec_IntFree( vLits );
 }

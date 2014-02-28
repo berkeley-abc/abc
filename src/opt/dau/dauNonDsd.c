@@ -459,20 +459,17 @@ void Dau_DecMoveFreeToLSB( word * p, int nVars, int * V2P, int * P2V, int maskB,
             Abc_TtMoveVar( p, nVars, V2P, P2V, v, c++ );
     assert( c == nVars - sizeB );
 }
-Vec_Int_t * Dau_DecFindSets( word * pInit, int nVars )
+Vec_Int_t * Dau_DecFindSets_int( word * pInit, int nVars, int * pSched[16] )
 {
     Vec_Int_t * vSets = Vec_IntAlloc( 32 );
     int V2P[16], P2V[16], pVarsB[16];
     int Limit = (1 << nVars);
     int c, v, sizeB, sizeS, maskB, maskS;
-    int * pSched[16] = {NULL};
     unsigned setMixed;
     word p[1<<10]; 
     memcpy( p, pInit, sizeof(word) * Abc_TtWordNum(nVars) );
     for ( v = 0; v < nVars; v++ )
         assert( Abc_TtHasVar( p, nVars, v ) );
-    for ( v = 2; v < nVars; v++ )
-        pSched[v] = Extra_GreyCodeSchedule( v );
     // initialize permutation
     for ( v = 0; v < nVars; v++ )
         V2P[v] = P2V[v] = v;
@@ -514,6 +511,15 @@ Vec_Int_t * Dau_DecFindSets( word * pInit, int nVars )
                 Vec_IntPush( vSets, setMixed );
         }
     }
+    return vSets;
+}
+Vec_Int_t * Dau_DecFindSets( word * pInit, int nVars )
+{
+    Vec_Int_t * vSets;
+    int v, * pSched[16] = {NULL};
+    for ( v = 2; v < nVars; v++ )
+        pSched[v] = Extra_GreyCodeSchedule( v );
+    vSets = Dau_DecFindSets_int( pInit, nVars, pSched );
     for ( v = 2; v < nVars; v++ )
         ABC_FREE( pSched[v] );
     return vSets;

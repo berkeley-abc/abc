@@ -236,6 +236,7 @@ struct If_Man_t_
     Vec_Int_t *        vTtDsds;       // mapping of truth table into DSD
     Vec_Str_t *        vTtPerms;      // mapping of truth table into permutations
     int                nBestCutSmall[2];
+    int                nCountNonDec[2];
 
     // timing manager
     Tim_Man_t *        pManTim;
@@ -519,7 +520,7 @@ extern int             If_CluCheckExt3( void * p, word * pTruth, int nVars, int 
 extern If_DsdMan_t *   If_DsdManAlloc( int nLutSize );
 extern void            If_DsdManDump( If_DsdMan_t * p );
 extern void            If_DsdManPrint( If_DsdMan_t * p, char * pFileName, int fVerbose );
-extern void            If_DsdManFree( If_DsdMan_t * p );
+extern void            If_DsdManFree( If_DsdMan_t * p, int fVerbose );
 extern int             If_DsdManCompute( If_DsdMan_t * p, word * pTruth, int nLeaves, unsigned char * pPerm, char * pLutStruct );
 extern int             If_DsdManCheckDec( If_DsdMan_t * p, int iDsd );
 /*=== ifLib.c =============================================================*/
