@@ -596,53 +596,53 @@ If_DsdMan_t * If_DsdManLoad( char * pFileName )
     char pBuffer[10];
     unsigned * pSpot;
     word * pTruth;
-    int i, Num;
+    int i, Num, RetValue;
     FILE * pFile = fopen( pFileName, "rb" );
     if ( pFile == NULL )
     {
         printf( "Reading DSD manager file \"%s\" has failed.\n", pFileName );
         return NULL;
     }
-    fread( pBuffer, 4, 1, pFile );
+    RetValue = fread( pBuffer, 4, 1, pFile );
     if ( pBuffer[0] != 'd' && pBuffer[1] != 's' && pBuffer[2] != 'd' && pBuffer[3] != '0' )
     {
         printf( "Unrecognized format of file \"%s\".\n", pFileName );
         return NULL;
     }
-    fread( &Num, 4, 1, pFile );
+    RetValue = fread( &Num, 4, 1, pFile );
     p = If_DsdManAlloc( Num, 0 );
     ABC_FREE( p->pStore );
     p->pStore = Abc_UtilStrsav( pFileName );
-    fread( &Num, 4, 1, pFile );
+    RetValue = fread( &Num, 4, 1, pFile );
     p->LutSize = Num;
-    fread( &Num, 4, 1, pFile );
+    RetValue = fread( &Num, 4, 1, pFile );
     assert( Num >= 2 );
     Vec_PtrFillExtra( p->vObjs, Num, NULL );
     Vec_IntFill( p->vNexts, Num, 0 );
     for ( i = 2; i < Vec_PtrSize(p->vObjs); i++ )
     {
-        fread( &Num, 4, 1, pFile );
+        RetValue = fread( &Num, 4, 1, pFile );
         pObj = (If_DsdObj_t *)Mem_FlexEntryFetch( p->pMem, sizeof(word) * Num );
-        fread( pObj, sizeof(word)*Num, 1, pFile );
+        RetValue = fread( pObj, sizeof(word)*Num, 1, pFile );
         Vec_PtrWriteEntry( p->vObjs, i, pObj );
         pSpot = If_DsdObjHashLookup( p, pObj->Type, (int *)pObj->pFans, pObj->nFans, If_DsdObjTruthId(p, pObj) );
         assert( *pSpot == 0 );
         *pSpot = pObj->Id;
     }
-    fread( &Num, 4, 1, pFile );
+    RetValue = fread( &Num, 4, 1, pFile );
     pTruth = ABC_ALLOC( word, p->nWords );
     for ( i = 0; i < Num; i++ )
     {
-        fread( pTruth, sizeof(word)*p->nWords, 1, pFile );
+        RetValue = fread( pTruth, sizeof(word)*p->nWords, 1, pFile );
         Vec_MemHashInsert( p->vTtMem, pTruth );
     }
     ABC_FREE( pTruth );
     assert( Num == Vec_MemEntryNum(p->vTtMem) );
     for ( i = 0; i < Vec_MemEntryNum(p->vTtMem); i++ )
     {
-        fread( &Num, 4, 1, pFile );
+        RetValue = fread( &Num, 4, 1, pFile );
         vSets = Vec_IntAlloc( Num );
-        fread( Vec_IntArray(vSets), sizeof(int)*Num, 1, pFile );
+        RetValue = fread( Vec_IntArray(vSets), sizeof(int)*Num, 1, pFile );
         vSets->nSize = Num;
         Vec_PtrPush( p->vTtDecs, vSets );
     }
