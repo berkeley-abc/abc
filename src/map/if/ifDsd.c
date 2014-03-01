@@ -342,8 +342,7 @@ void If_DsdManPrintOne( FILE * pFile, If_DsdMan_t * p, int iObjId, unsigned char
 void If_DsdManPrint( If_DsdMan_t * p, char * pFileName, int fVerbose )
 {
     If_DsdObj_t * pObj;
-    int DsdMax = 0, CountUsed = 0, CountNonDsdStr = 0;
-    int i, clk = Abc_Clock();
+    int i, DsdMax = 0, CountUsed = 0, CountNonDsdStr = 0;
     FILE * pFile;
     pFile = pFileName ? fopen( pFileName, "wb" ) : stdout;
     if ( pFileName && pFile == NULL )
@@ -367,10 +366,8 @@ void If_DsdManPrint( If_DsdMan_t * p, char * pFileName, int fVerbose )
     fprintf( pFile, "Memory used for objects    = %8.2f MB.\n", 1.0*Mem_FlexReadMemUsage(p->pMem)/(1<<20) );
     fprintf( pFile, "Memory used for hash table = %8.2f MB.\n", 1.0*sizeof(int)*p->nBins/(1<<20) );
     fprintf( pFile, "Memory used for array      = %8.2f MB.\n", 1.0*sizeof(void *)*Vec_PtrCap(p->vObjs)/(1<<20) );
-//    Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
 //    If_DsdManHashProfile( p );
 //    If_DsdManDump( p );
-//    return;
     if ( !fVerbose )
         return;
     If_DsdVecForEachObj( p->vObjs, pObj, i )
@@ -628,7 +625,7 @@ If_DsdMan_t * If_DsdManLoad( char * pFileName )
         pObj = (If_DsdObj_t *)Mem_FlexEntryFetch( p->pMem, sizeof(word) * Num );
         fread( pObj, sizeof(word)*Num, 1, pFile );
         Vec_PtrWriteEntry( p->vObjs, i, pObj );
-        pSpot = If_DsdObjHashLookup( p, pObj->Type, pObj->pFans, pObj->nFans, If_DsdObjTruthId(p, pObj) );
+        pSpot = If_DsdObjHashLookup( p, pObj->Type, (int *)pObj->pFans, pObj->nFans, If_DsdObjTruthId(p, pObj) );
         assert( *pSpot == 0 );
         *pSpot = pObj->Id;
     }
@@ -856,7 +853,7 @@ int If_DsdManComputeFirstArray( If_DsdMan_t * p, int * pLits, int nLits, int * p
 }
 int If_DsdManComputeFirst( If_DsdMan_t * p, If_DsdObj_t * pObj, int * pFirsts )
 {
-    return If_DsdManComputeFirstArray( p, pObj->pFans, pObj->nFans, pFirsts );
+    return If_DsdManComputeFirstArray( p, (int *)pObj->pFans, pObj->nFans, pFirsts );
 }
 int If_DsdManOperation( If_DsdMan_t * p, int Type, int * pLits, int nLits, unsigned char * pPerm, word * pTruth )
 {
