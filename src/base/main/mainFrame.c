@@ -87,7 +87,7 @@ void        Abc_FrameSetFlag( char * pFlag, char * pValue )  { Cmd_FlagUpdateVal
 void        Abc_FrameSetCex( Abc_Cex_t * pCex )              { ABC_FREE( s_GlobalFrame->pCex ); s_GlobalFrame->pCex = pCex;       }
 void        Abc_FrameSetNFrames( int nFrames )               { ABC_FREE( s_GlobalFrame->pCex ); s_GlobalFrame->nFrames = nFrames; }
 void        Abc_FrameSetStatus( int Status )                 { ABC_FREE( s_GlobalFrame->pCex ); s_GlobalFrame->Status = Status;   }
-void        Abc_FrameSetManDsd( void * pMan )                { if (s_GlobalFrame->pManDsd) If_DsdManFree((If_DsdMan_t *)s_GlobalFrame->pManDsd, 0); s_GlobalFrame->pManDsd = pMan; }
+void        Abc_FrameSetManDsd( void * pMan )                { if (s_GlobalFrame->pManDsd && s_GlobalFrame->pManDsd != pMan) If_DsdManFree((If_DsdMan_t *)s_GlobalFrame->pManDsd, 0); s_GlobalFrame->pManDsd = pMan; }
 
 int         Abc_FrameIsBatchMode()                           { return s_GlobalFrame ? s_GlobalFrame->fBatchMode : 0;              } 
 

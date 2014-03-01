@@ -383,6 +383,61 @@ void If_DsdManPrint( If_DsdMan_t * p, char * pFileName, int fVerbose )
     if ( pFileName )
         fclose( pFile );
 }
+ 
+/**Function*************************************************************
+
+  Synopsis    [Sorting DSD literals.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int If_DsdObjCompare( Vec_Ptr_t * p, int iLit0, int iLit1 )
+{
+    If_DsdObj_t * p0 = If_DsdVecObj(p, Abc_Lit2Var(iLit0));
+    If_DsdObj_t * p1 = If_DsdVecObj(p, Abc_Lit2Var(iLit1));
+    int i, Res;
+    if ( If_DsdObjType(p0) < If_DsdObjType(p1) )
+        return -1;
+    if ( If_DsdObjType(p0) > If_DsdObjType(p1) )
+        return 1;
+    if ( If_DsdObjType(p0) < IF_DSD_AND )
+        return 0;
+    if ( If_DsdObjFaninNum(p0) < If_DsdObjFaninNum(p1) )
+        return -1;
+    if ( If_DsdObjFaninNum(p0) > If_DsdObjFaninNum(p1) )
+        return 1;
+    for ( i = 0; i < If_DsdObjFaninNum(p0); i++ )
+    {
+        Res = If_DsdObjCompare( p, If_DsdObjFaninLit(p0, i), If_DsdObjFaninLit(p1, i) );
+        if ( Res != 0 )
+            return Res;
+    }
+    if ( Abc_LitIsCompl(iLit0) < Abc_LitIsCompl(iLit1) )
+        return -1;
+    if ( Abc_LitIsCompl(iLit0) > Abc_LitIsCompl(iLit1) )
+        return 1;
+    return 0;
+}
+void If_DsdObjSort( Vec_Ptr_t * p, int * pLits, int nLits, int * pPerm )
+{
+    int i, j, best_i;
+    for ( i = 0; i < nLits-1; i++ )
+    {
+        best_i = i;
+        for ( j = i+1; j < nLits; j++ )
+            if ( If_DsdObjCompare(p, pLits[best_i], pLits[j]) == 1 )
+                best_i = j;
+        if ( i == best_i )
+            continue;
+        ABC_SWAP( int, pLits[i], pLits[best_i] );
+        if ( pPerm )
+            ABC_SWAP( int, pPerm[i], pPerm[best_i] );
+    }
+}
 
 /**Function*************************************************************
 
@@ -470,7 +525,7 @@ int If_DsdObjFindOrAdd( If_DsdMan_t * p, int Type, int * pLits, int nLits, word 
     unsigned * pSpot = If_DsdObjHashLookup( p, Type, pLits, nLits, truthId );
 abctime clk;
     if ( *pSpot )
-        return *pSpot;
+        return (int)*pSpot;
 clk = Abc_Clock();
     if ( truthId >= 0 && truthId == Vec_PtrSize(p->vTtDecs) )
     {
@@ -708,61 +763,6 @@ word * If_DsdManComputeTruth( If_DsdMan_t * p, int iDsd, unsigned char * pPermLi
         If_DsdManComputeTruth_rec( p, iDsd, pRes, pPermLits, &nSupp );
     assert( nSupp == If_DsdVecObjSuppSize(p->vObjs, Abc_Lit2Var(iDsd)) );
     return pRes;
-}
- 
-/**Function*************************************************************
-
-  Synopsis    [Sorting DSD literals.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int If_DsdObjCompare( Vec_Ptr_t * p, int iLit0, int iLit1 )
-{
-    If_DsdObj_t * p0 = If_DsdVecObj(p, Abc_Lit2Var(iLit0));
-    If_DsdObj_t * p1 = If_DsdVecObj(p, Abc_Lit2Var(iLit1));
-    int i, Res;
-    if ( If_DsdObjType(p0) < If_DsdObjType(p1) )
-        return -1;
-    if ( If_DsdObjType(p0) > If_DsdObjType(p1) )
-        return 1;
-    if ( If_DsdObjType(p0) < IF_DSD_AND )
-        return 0;
-    if ( If_DsdObjFaninNum(p0) < If_DsdObjFaninNum(p1) )
-        return -1;
-    if ( If_DsdObjFaninNum(p0) > If_DsdObjFaninNum(p1) )
-        return 1;
-    for ( i = 0; i < If_DsdObjFaninNum(p0); i++ )
-    {
-        Res = If_DsdObjCompare( p, If_DsdObjFaninLit(p0, i), If_DsdObjFaninLit(p1, i) );
-        if ( Res != 0 )
-            return Res;
-    }
-    if ( Abc_LitIsCompl(iLit0) < Abc_LitIsCompl(iLit1) )
-        return -1;
-    if ( Abc_LitIsCompl(iLit0) > Abc_LitIsCompl(iLit1) )
-        return 1;
-    return 0;
-}
-void If_DsdObjSort( Vec_Ptr_t * p, int * pLits, int nLits, int * pPerm )
-{
-    int i, j, best_i;
-    for ( i = 0; i < nLits-1; i++ )
-    {
-        best_i = i;
-        for ( j = i+1; j < nLits; j++ )
-            if ( If_DsdObjCompare(p, pLits[best_i], pLits[j]) == 1 )
-                best_i = j;
-        if ( i == best_i )
-            continue;
-        ABC_SWAP( int, pLits[i], pLits[best_i] );
-        if ( pPerm )
-            ABC_SWAP( int, pPerm[i], pPerm[best_i] );
-    }
 }
 
 /**Function*************************************************************
