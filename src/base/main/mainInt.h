@@ -82,8 +82,9 @@ struct Abc_Frame_t_
     double          TimeTotal;     // the total runtime of all commands
     // temporary storage for structural choices
     Vec_Ptr_t *     vStore;        // networks to be used by choice
-    // decomposition package
+    // decomposition package    
     void *          pManDec;       // decomposition manager
+    void *          pManDsd;       // decomposition manager
     DdManager *     dd;            // temporary BDD package
     // libraries for mapping
     void *          pLibLut;       // the current LUT library

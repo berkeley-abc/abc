@@ -137,6 +137,15 @@ Abc_Ntk_t * Abc_NtkIf( Abc_Ntk_t * pNtk, If_Par_t * pPars )
     if ( pPars->fPower )
         Abc_NtkIfComputeSwitching( pNtk, pIfMan );
 
+    // create DSD manager
+    if ( pPars->fUseDsd )
+    {
+        If_DsdMan_t * p = (If_DsdMan_t *)Abc_FrameReadManDsd();
+        assert( pPars->nLutSize <= If_DsdManVarNum(p) );
+        assert( (pPars->pLutStruct == NULL && If_DsdManLutSize(p) == 0) || (pPars->pLutStruct && pPars->pLutStruct[0] - '0' == If_DsdManLutSize(p)) );
+        pIfMan->pIfDsdMan = (If_DsdMan_t *)Abc_FrameReadManDsd();
+    }
+
     // perform FPGA mapping
     if ( !If_ManPerformMapping( pIfMan ) )
     {

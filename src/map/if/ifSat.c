@@ -204,46 +204,46 @@ void If_ManSatTest()
     
     uSet = (3 << 0) | (1 << 2) | (1 << 4);
     RetValue = If_ManSatCheckXY( p, nLutSize, pTruth, nVars, uSet, &uBound, &uFree, vLits );
-    printf( "%d", RetValue );
+    printf( "%d (%d)", RetValue, sat_solver_nconflicts(p) );
     uSet = (1 << 0) | (3 << 2) | (1 << 4);
     RetValue = If_ManSatCheckXY( p, nLutSize, pTruth, nVars, uSet, &uBound, &uFree, vLits );
-    printf( "%d", RetValue );
+    printf( "%d (%d)", RetValue, sat_solver_nconflicts(p) );
     uSet = (1 << 0) | (1 << 2) | (3 << 4);
     RetValue = If_ManSatCheckXY( p, nLutSize, pTruth, nVars, uSet, &uBound, &uFree, vLits );
-    printf( "%d", RetValue );
+    printf( "%d (%d)", RetValue, sat_solver_nconflicts(p) );
 
     
     uSet = (3 << 0) | (1 << 2) | (1 << 6);
     RetValue = If_ManSatCheckXY( p, nLutSize, pTruth, nVars, uSet, &uBound, &uFree, vLits );
-    printf( "%d", RetValue );
+    printf( "%d (%d)", RetValue, sat_solver_nconflicts(p) );
     uSet = (1 << 0) | (3 << 2) | (1 << 6);
     RetValue = If_ManSatCheckXY( p, nLutSize, pTruth, nVars, uSet, &uBound, &uFree, vLits );
-    printf( "%d", RetValue );
+    printf( "%d (%d)", RetValue, sat_solver_nconflicts(p) );
     uSet = (1 << 0) | (1 << 2) | (3 << 6);
     RetValue = If_ManSatCheckXY( p, nLutSize, pTruth, nVars, uSet, &uBound, &uFree, vLits );
-    printf( "%d", RetValue );
+    printf( "%d (%d)", RetValue, sat_solver_nconflicts(p) );
 
     
     uSet = (3 << 0) | (1 << 4) | (1 << 6);
     RetValue = If_ManSatCheckXY( p, nLutSize, pTruth, nVars, uSet, &uBound, &uFree, vLits );
-    printf( "%d", RetValue );
+    printf( "%d (%d)", RetValue, sat_solver_nconflicts(p) );
     uSet = (1 << 0) | (3 << 4) | (1 << 6);
     RetValue = If_ManSatCheckXY( p, nLutSize, pTruth, nVars, uSet, &uBound, &uFree, vLits );
-    printf( "%d", RetValue );
+    printf( "%d (%d)", RetValue, sat_solver_nconflicts(p) );
     uSet = (1 << 0) | (1 << 4) | (3 << 6);
     RetValue = If_ManSatCheckXY( p, nLutSize, pTruth, nVars, uSet, &uBound, &uFree, vLits );
-    printf( "%d", RetValue );
+    printf( "%d (%d)", RetValue, sat_solver_nconflicts(p) );
 
     
     uSet = (3 << 2) | (1 << 4) | (1 << 6);
     RetValue = If_ManSatCheckXY( p, nLutSize, pTruth, nVars, uSet, &uBound, &uFree, vLits );
-    printf( "%d", RetValue );
+    printf( "%d (%d)", RetValue, sat_solver_nconflicts(p) );
     uSet = (1 << 2) | (3 << 4) | (1 << 6);
     RetValue = If_ManSatCheckXY( p, nLutSize, pTruth, nVars, uSet, &uBound, &uFree, vLits );
-    printf( "%d", RetValue );
+    printf( "%d (%d)", RetValue, sat_solver_nconflicts(p) );
     uSet = (1 << 2) | (1 << 4) | (3 << 6);
     RetValue = If_ManSatCheckXY( p, nLutSize, pTruth, nVars, uSet, &uBound, &uFree, vLits );
-    printf( "%d", RetValue );
+    printf( "%d (%d)", RetValue, sat_solver_nconflicts(p) );
 
     printf( "\n" );
 

@@ -517,12 +517,18 @@ extern int             If_CluCheckExt( void * p, word * pTruth, int nVars, int n
 extern int             If_CluCheckExt3( void * p, word * pTruth, int nVars, int nLutLeaf, int nLutLeaf2, int nLutRoot, 
                            char * pLut0, char * pLut1, char * pLut2, word * pFunc0, word * pFunc1, word * pFunc2 );
 /*=== ifDsd.c =============================================================*/
-extern If_DsdMan_t *   If_DsdManAlloc( int nLutSize );
+extern If_DsdMan_t *   If_DsdManAlloc( int nVars, int nLutSize );
 extern void            If_DsdManDump( If_DsdMan_t * p );
 extern void            If_DsdManPrint( If_DsdMan_t * p, char * pFileName, int fVerbose );
 extern void            If_DsdManFree( If_DsdMan_t * p, int fVerbose );
+extern void            If_DsdManSave( If_DsdMan_t * p, char * pFileName );
+extern If_DsdMan_t *   If_DsdManLoad( char * pFileName );
 extern int             If_DsdManCompute( If_DsdMan_t * p, word * pTruth, int nLeaves, unsigned char * pPerm, char * pLutStruct );
+extern char *          If_DsdManFileName( If_DsdMan_t * p );
+extern int             If_DsdManVarNum( If_DsdMan_t * p );
+extern int             If_DsdManLutSize( If_DsdMan_t * p );
 extern int             If_DsdManCheckDec( If_DsdMan_t * p, int iDsd );
+extern unsigned        If_DsdManCheckXY( If_DsdMan_t * p, int iDsd, int LutSize, int fDerive, int fVerbose );
 /*=== ifLib.c =============================================================*/
 extern If_LibLut_t *   If_LibLutRead( char * FileName );
 extern If_LibLut_t *   If_LibLutDup( If_LibLut_t * p );

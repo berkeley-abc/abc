@@ -217,12 +217,39 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
 //            abctime clk = Abc_Clock();
             If_CutComputeTruth( p, pCut, pCut0, pCut1, pObj->fCompl0, pObj->fCompl1 );
 //            p->timeTruth += Abc_Clock() - clk;
+            if ( p->pPars->fUseDsd )
+            {
+                int truthId = Abc_Lit2Var(pCut->iCutFunc);
+                if ( Vec_IntSize(p->vTtDsds) <= truthId || Vec_IntEntry(p->vTtDsds, truthId) == -1 )
+                {
+                    pCut->iCutDsd = If_DsdManCompute( p->pIfDsdMan, If_CutTruthW(p, pCut), pCut->nLeaves, (unsigned char *)pCut->pPerm, p->pPars->pLutStruct );
+//                    printf( "%d(%d) ", pCut->iCutDsd, If_DsdManCheckDec( p->pIfDsdMan, pCut->iCutDsd ) );
+                    while ( Vec_IntSize(p->vTtDsds) <= truthId )
+                    {
+                        Vec_IntPush( p->vTtDsds, -1 );
+                        for ( v = 0; v < p->pPars->nLutSize; v++ )
+                            Vec_StrPush( p->vTtPerms, IF_BIG_CHAR );
+                    }
+                    Vec_IntWriteEntry( p->vTtDsds, truthId, Abc_LitNotCond(pCut->iCutDsd, Abc_LitIsCompl(pCut->iCutFunc)) );
+                    for ( v = 0; v < (int)pCut->nLeaves; v++ )
+                        Vec_StrWriteEntry( p->vTtPerms, truthId * p->pPars->nLutSize + v, (char)pCut->pPerm[v] );
+                }
+                else
+                {
+                    pCut->iCutDsd = Abc_LitNotCond( Vec_IntEntry(p->vTtDsds, truthId), Abc_LitIsCompl(pCut->iCutFunc) );
+                    for ( v = 0; v < (int)pCut->nLeaves; v++ )
+                        pCut->pPerm[v] = (unsigned char)Vec_StrEntry( p->vTtPerms, truthId * p->pPars->nLutSize + v );
+                }
+            }
             // run user functions
             pCut->fUseless = 0;
             if ( p->pPars->pFuncCell )
             {
                 assert( pCut->nLimit >= 4 && pCut->nLimit <= 16 );
-                pCut->fUseless = !p->pPars->pFuncCell( p, If_CutTruth(p, pCut), pCut->nLimit, pCut->nLeaves, p->pPars->pLutStruct );
+                if ( p->pPars->fUseDsd )
+                    pCut->fUseless = If_DsdManCheckDec( p->pIfDsdMan, pCut->iCutDsd );
+                else
+                    pCut->fUseless = !p->pPars->pFuncCell( p, If_CutTruth(p, pCut), pCut->nLimit, pCut->nLeaves, p->pPars->pLutStruct );
                 p->nCutsUselessAll += pCut->fUseless;
                 p->nCutsUseless[pCut->nLeaves] += pCut->fUseless;
                 p->nCutsCountAll++;
@@ -251,29 +278,9 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
                         p->nCuts5a++;
                 }
             }
+/*
             if ( p->pPars->fUseDsd )
             {
-                int truthId = Abc_Lit2Var(pCut->iCutFunc);
-                if ( Vec_IntSize(p->vTtDsds) <= truthId || Vec_IntEntry(p->vTtDsds, truthId) == -1 )
-                {
-                    pCut->iCutDsd = If_DsdManCompute( p->pIfDsdMan, If_CutTruthW(p, pCut), pCut->nLeaves, (unsigned char *)pCut->pPerm, p->pPars->pLutStruct );
-//                    printf( "%d(%d) ", pCut->iCutDsd, If_DsdManCheckDec( p->pIfDsdMan, pCut->iCutDsd ) );
-                    while ( Vec_IntSize(p->vTtDsds) <= truthId )
-                    {
-                        Vec_IntPush( p->vTtDsds, -1 );
-                        for ( v = 0; v < p->pPars->nLutSize; v++ )
-                            Vec_StrPush( p->vTtPerms, IF_BIG_CHAR );
-                    }
-                    Vec_IntWriteEntry( p->vTtDsds, truthId, Abc_LitNotCond(pCut->iCutDsd, Abc_LitIsCompl(pCut->iCutFunc)) );
-                    for ( v = 0; v < (int)pCut->nLeaves; v++ )
-                        Vec_StrWriteEntry( p->vTtPerms, truthId * p->pPars->nLutSize + v, (char)pCut->pPerm[v] );
-                }
-                else
-                {
-                    pCut->iCutDsd = Abc_LitNotCond( Vec_IntEntry(p->vTtDsds, truthId), Abc_LitIsCompl(pCut->iCutFunc) );
-                    for ( v = 0; v < (int)pCut->nLeaves; v++ )
-                        pCut->pPerm[v] = (unsigned char)Vec_StrEntry( p->vTtPerms, truthId * p->pPars->nLutSize + v );
-                }
                 if ( p->pPars->pLutStruct )
                 {
                     int Value = If_DsdManCheckDec( p->pIfDsdMan, pCut->iCutDsd );
@@ -283,7 +290,7 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
                             p->nCountNonDec[0]++;
                         if ( !pCut->fUseless && Value )
                             p->nCountNonDec[1]++; 
-/*
+
 //                        if ( pCut->fUseless && !Value )
 //                            printf( "Old does not work.  New works.\n" );
                         if ( !pCut->fUseless && Value )
@@ -307,14 +314,14 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
                             z = If_Dec6Perform( t, 1 );
                             If_DecPrintConfig( z );
 
-                            s = If_DsdManCheckXY( p->pIfDsdMan, pCut->iCutDsd, 4, 1 );
+                            s = If_DsdManCheckXY( p->pIfDsdMan, pCut->iCutDsd, 4, 0, 1 );
                             printf( "Confirm %d\n", s );
                             s = 0;
                         }
-*/
                     }
                 }
             }
+*/
         }
         
         // compute the application-specific cost and depth
