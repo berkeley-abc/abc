@@ -29244,7 +29244,7 @@ int Abc_CommandAbc9If( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     pPars->pLutLib = (If_LibLut_t *)pAbc->pLibLut;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "KCFAGRDEWSTqalepmrsdbgyojikfuztvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "KCFAGRDEWSTqalepmrsdbgyojikfuztnvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -29434,6 +29434,9 @@ int Abc_CommandAbc9If( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 't':
             pPars->fRepack ^= 1;
             break;
+        case 'n':
+            pPars->fUseDsd ^= 1;
+            break;
         case 'v':
             pPars->fVerbose ^= 1;
             break;
@@ -29597,12 +29600,36 @@ int Abc_CommandAbc9If( Abc_Frame_t * pAbc, int argc, char ** argv )
         pPars->nLutSize    =  pPars->nGateSize;
     }
 
+
     if ( pPars->fUseDsd )
     {
         pPars->fTruth      =  1;
         pPars->fCutMin     =  1;
         pPars->fExpRed     =  0;
         pPars->fUsePerm    =  1;
+    }
+
+    if ( pPars->fUseDsd )
+    {
+        int LutSize = (pPars->pLutStruct && pPars->pLutStruct[2] == 0)? pPars->pLutStruct[0] - '0' : 0;
+        If_DsdMan_t * p = (If_DsdMan_t *)Abc_FrameReadManDsd();
+        if ( pPars->pLutStruct && pPars->pLutStruct[2] != 0 )
+        {
+            printf( "DSD only works for LUT structures XY.\n" );
+            return 0;
+        }
+        if ( p && pPars->nLutSize > If_DsdManVarNum(p) )
+        {
+            printf( "DSD manager has incompatible number of variables.\n" );
+            return 0;
+        }
+        if ( p && LutSize != If_DsdManLutSize(p) )
+        {
+            printf( "DSD manager has different LUT size.\n" );
+            return 0;
+        }
+        if ( p == NULL )
+            Abc_FrameSetManDsd( If_DsdManAlloc(pPars->nLutSize, LutSize) );
     }
 
     // complain if truth tables are requested but the cut size is too large
@@ -29636,7 +29663,7 @@ usage:
         sprintf(LutSize, "library" );
     else
         sprintf(LutSize, "%d", pPars->nLutSize );
-    Abc_Print( -2, "usage: &if [-KCFAGRT num] [-DEW float] [-S str] [-qarlepmsdbgyojikfucztvh]\n" );
+    Abc_Print( -2, "usage: &if [-KCFAGRT num] [-DEW float] [-S str] [-qarlepmsdbgyojikfucztnvh]\n" );
     Abc_Print( -2, "\t           performs FPGA technology mapping of the network\n" );
     Abc_Print( -2, "\t-K num   : the number of LUT inputs (2 < num < %d) [default = %s]\n", IF_MAX_LUTSIZE+1, LutSize );
     Abc_Print( -2, "\t-C num   : the max number of priority cuts (0 < num < 2^12) [default = %d]\n", pPars->nCutsMax );
@@ -29669,6 +29696,7 @@ usage:
     Abc_Print( -2, "\t-u       : toggles enabling additional check [default = %s]\n", pPars->fEnableCheck75u? "yes": "no" );
     Abc_Print( -2, "\t-z       : toggles deriving LUTs when mapping into LUT structures [default = %s]\n", pPars->fDeriveLuts? "yes": "no" );
     Abc_Print( -2, "\t-t       : toggles repacking LUTs into new structures [default = %s]\n", pPars->fRepack? "yes": "no" );
+    Abc_Print( -2, "\t-n       : toggles computing DSDs of the cut functions [default = %s]\n", pPars->fUseDsd? "yes": "no" );
     Abc_Print( -2, "\t-v       : toggles verbose output [default = %s]\n", pPars->fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h       : prints the command usage\n");
     return 1;

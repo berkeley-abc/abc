@@ -572,6 +572,9 @@ extern void            If_ObjPerformMappingChoice( If_Man_t * p, If_Obj_t * pObj
 extern int             If_ManPerformMappingRound( If_Man_t * p, int nCutsUsed, int Mode, int fPreprocess, int fFirst, char * pLabel );
 /*=== ifReduce.c ==========================================================*/
 extern void            If_ManImproveMapping( If_Man_t * p );
+/*=== ifSat.c ==========================================================*/
+extern void *          If_ManSatBuildXY( int nLutSize );
+extern int             If_ManSatCheckXY( void * pSat, int nLutSize, word * pTruth, int nVars, unsigned uSet, word * pTBound, word * pTFree, Vec_Int_t * vLits );
 /*=== ifSeq.c =============================================================*/
 extern int             If_ManPerformMappingSeq( If_Man_t * p );
 /*=== ifTime.c ============================================================*/

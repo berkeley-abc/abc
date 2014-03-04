@@ -22,6 +22,8 @@
 #include "aig/aig/aig.h"
 #include "map/if/if.h"
 #include "bool/kit/kit.h"
+#include "base/main/main.h"
+#include "sat/bsat/satSolver.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -1169,23 +1171,77 @@ int Gia_ManNodeIfToGia( Gia_Man_t * pNew, If_Man_t * pIfMan, If_Obj_t * pIfObj, 
   SeeAlso     []
 
 ***********************************************************************/
-static inline word Gia_ManTt6Stretch( word t, int nVars )
+int Gia_ManFromIfLogicFindLut( If_Man_t * pIfMan, Gia_Man_t * pNew, If_Cut_t * pCutBest, sat_solver * pSat, Vec_Int_t * vLeaves, Vec_Int_t * vLits, Vec_Int_t * vCover, Vec_Int_t * vMapping, Vec_Int_t * vMapping2, Vec_Int_t * vPacking )
 {
-    assert( nVars >= 0 );
-    if ( nVars == 0 )
-        nVars++, t = (t & 0x1) | ((t & 0x1) << 1);
-    if ( nVars == 1 )
-        nVars++, t = (t & 0x3) | ((t & 0x3) << 2);
-    if ( nVars == 2 )
-        nVars++, t = (t & 0xF) | ((t & 0xF) << 4);
-    if ( nVars == 3 )
-        nVars++, t = (t & 0xFF) | ((t & 0xFF) << 8);
-    if ( nVars == 4 )
-        nVars++, t = (t & 0xFFFF) | ((t & 0xFFFF) << 16);
-    if ( nVars == 5 )
-        nVars++, t = (t & 0xFFFFFFFF) | ((t & 0xFFFFFFFF) << 32);
-    assert( nVars == 6 );
-    return t;
+    word uBound, uFree;
+    int nLutSize = (int)(pIfMan->pPars->pLutStruct[0] - '0');
+    int nVarsF = 0, pVarsF[IF_MAX_FUNC_LUTSIZE];
+    int nVarsB = 0, pVarsB[IF_MAX_FUNC_LUTSIZE];
+    int nVarsS = 0, pVarsS[IF_MAX_FUNC_LUTSIZE];
+    unsigned uSetNew, uSetOld;
+    int RetValue, RetValue2, k;
+    if ( Vec_IntSize(vLeaves) <= nLutSize )
+    {
+        RetValue = Gia_ManFromIfLogicCreateLut( pNew, If_CutTruthW(pIfMan, pCutBest), vLeaves, vCover, vMapping, vMapping2 );
+        // write packing
+        if ( !Gia_ObjIsCi(Gia_ManObj(pNew, Abc_Lit2Var(RetValue))) )
+        {
+            Vec_IntPush( vPacking, 1 );
+            Vec_IntPush( vPacking, Abc_Lit2Var(RetValue) );
+            Vec_IntAddToEntry( vPacking, 0, 1 );
+        }
+        return RetValue;
+    }
+    // find the bound set
+    uSetOld = If_DsdManCheckXY( pIfMan->pIfDsdMan, pCutBest->iCutDsd, nLutSize, 1, 0 );
+    // remap bound set
+    uSetNew = 0;
+    for ( k = 0; k < If_CutLeaveNum(pCutBest); k++ )
+    {
+        int iVar = Abc_Lit2Var((int)pCutBest->pPerm[k]);
+        int Value = ((uSetOld >> (k << 1)) & 3);
+        if ( Value == 1 )
+            uSetNew |= (1 << (2*iVar));
+        else if ( Value == 3 )
+            uSetNew |= (3 << (2*iVar));
+        else assert( Value == 0 );
+    }
+    RetValue = If_ManSatCheckXY( pSat, nLutSize, If_CutTruthW(pIfMan, pCutBest), pCutBest->nLeaves, uSetNew, &uBound, &uFree, vLits );
+    assert( RetValue );
+    // collect variables
+    for ( k = 0; k < If_CutLeaveNum(pCutBest); k++ )
+    {
+        int Value = ((uSetNew >> (k << 1)) & 3);
+        if ( Value == 0 )
+            pVarsF[nVarsF++] = k;
+        else if ( Value == 1 )
+            pVarsB[nVarsB++] = k;
+        else if ( Value == 3 )
+            pVarsS[nVarsS++] = k;
+        else assert( Value == 0 );
+    }
+    // collect bound set variables
+    Vec_IntClear( vLits );
+    for ( k = 0; k < nVarsS; k++ )
+        Vec_IntPush( vLits, Vec_IntEntry(vLeaves, pVarsS[k]) );
+    for ( k = 0; k < nVarsB; k++ )
+        Vec_IntPush( vLits, Vec_IntEntry(vLeaves, pVarsB[k]) );
+    RetValue = Gia_ManFromIfLogicCreateLut( pNew, &uBound, vLits, vCover, vMapping, vMapping2 );
+    // collecct free set variables
+    Vec_IntClear( vLits );
+    Vec_IntPush( vLits, RetValue );
+    for ( k = 0; k < nVarsS; k++ )
+        Vec_IntPush( vLits, Vec_IntEntry(vLeaves, pVarsS[k]) );
+    for ( k = 0; k < nVarsF; k++ )
+        Vec_IntPush( vLits, Vec_IntEntry(vLeaves, pVarsF[k]) );
+    // add packing
+    RetValue2 = Gia_ManFromIfLogicCreateLut( pNew, &uFree, vLits, vCover, vMapping, vMapping2 );
+    // write packing
+    Vec_IntPush( vPacking, 2 );
+    Vec_IntPush( vPacking, Abc_Lit2Var(RetValue) );
+    Vec_IntPush( vPacking, Abc_Lit2Var(RetValue2) );
+    Vec_IntAddToEntry( vPacking, 0, 1 );
+    return RetValue2;
 }
 
 /**Function*************************************************************
@@ -1205,8 +1261,8 @@ Gia_Man_t * Gia_ManFromIfLogic( If_Man_t * pIfMan )
     If_Cut_t * pCutBest;
     If_Obj_t * pIfObj, * pIfLeaf;
     Vec_Int_t * vMapping, * vMapping2, * vPacking = NULL;
-    Vec_Int_t * vLeaves, * vLeaves2, * vCover;
-//    word Truth = 0, * pTruthTable;
+    Vec_Int_t * vLeaves, * vLeaves2, * vCover, * vLits;
+    sat_solver * pSat = NULL;
     int i, k, Entry;
     assert( !pIfMan->pPars->fDeriveLuts || pIfMan->pPars->fTruth );
 //    if ( pIfMan->pPars->fEnableCheck07 )
@@ -1222,6 +1278,7 @@ Gia_Man_t * Gia_ManFromIfLogic( If_Man_t * pIfMan )
     // create new manager
     pNew = Gia_ManStart( If_ManObjNum(pIfMan) );
     // iterate through nodes used in the mapping
+    vLits    = Vec_IntAlloc( 1000 );
     vCover   = Vec_IntAlloc( 1 << 16 );
     vLeaves  = Vec_IntAlloc( 16 );
     vLeaves2 = Vec_IntAlloc( 16 );
@@ -1241,7 +1298,17 @@ Gia_Man_t * Gia_ManFromIfLogic( If_Man_t * pIfMan )
             If_CutForEachLeaf( pIfMan, pCutBest, pIfLeaf, k )
                 Vec_IntPush( vLeaves, pIfLeaf->iCopy );
             // perform one of the two types of mapping: with and without structures
-            if ( pIfMan->pPars->fDeriveLuts && pIfMan->pPars->fTruth )
+            if ( pIfMan->pPars->fUseDsd )
+            {
+                if ( pSat == NULL )
+                    pSat = (sat_solver *)If_ManSatBuildXY( (int)(pIfMan->pPars->pLutStruct[0] - '0') );
+                if ( pIfMan->pPars->pLutStruct && pIfMan->pPars->fDeriveLuts )
+                    pIfObj->iCopy = Gia_ManFromIfLogicFindLut( pIfMan, pNew, pCutBest, pSat, vLeaves, vLits, vCover, vMapping, vMapping2, vPacking );
+                else
+                    pIfObj->iCopy = Gia_ManFromIfLogicCreateLut( pNew, If_CutTruthW(pIfMan, pCutBest), vLeaves, vCover, vMapping, vMapping2 );
+                pIfObj->iCopy = Abc_LitNotCond( pIfObj->iCopy, pCutBest->fCompl );
+            }
+            else if ( pIfMan->pPars->fDeriveLuts && pIfMan->pPars->fTruth )
             {
                 // perform decomposition of the cut
                 pIfObj->iCopy = Gia_ManFromIfLogicNode( pIfMan, pNew, i, vLeaves, vLeaves2, If_CutTruthW(pIfMan, pCutBest), pIfMan->pPars->pLutStruct, vCover, vMapping, vMapping2, vPacking, (pIfMan->pPars->fEnableCheck75 || pIfMan->pPars->fEnableCheck75u), pIfMan->pPars->fEnableCheck07 );
@@ -1274,9 +1341,12 @@ Gia_Man_t * Gia_ManFromIfLogic( If_Man_t * pIfMan )
         }
         else assert( 0 );
     }
+    Vec_IntFree( vLits );
     Vec_IntFree( vCover );
     Vec_IntFree( vLeaves );
     Vec_IntFree( vLeaves2 );
+    if ( pSat != NULL )
+        sat_solver_delete(pSat);
 //    printf( "Mapping array size:  IfMan = %d. Gia = %d. Increase = %.2f\n", 
 //        If_ManObjNum(pIfMan), Gia_ManObjNum(pNew), 1.0 * Gia_ManObjNum(pNew) / If_ManObjNum(pIfMan) );
     // finish mapping 
@@ -1458,8 +1528,10 @@ Gia_Man_t * Gia_ManPerformMapping( Gia_Man_t * p, void * pp, int fNormalized )
     If_Man_t * pIfMan;
     If_Par_t * pPars = (If_Par_t *)pp;
     // disable cut minimization when GIA strucure is needed
-    if ( !pPars->fDelayOpt && !pPars->fUserRecLib && !pPars->fDeriveLuts )
+//    if ( !pPars->fDelayOpt && !pPars->fUserRecLib && !pPars->fDeriveLuts )
+    if ( !pPars->fDelayOpt && !pPars->fUserRecLib && !pPars->pLutStruct )
         pPars->fCutMin = 0;
+
     // reconstruct GIA according to the hierarchy manager
     assert( pPars->pTimesArr == NULL );
     assert( pPars->pTimesReq == NULL );
@@ -1487,6 +1559,14 @@ Gia_Man_t * Gia_ManPerformMapping( Gia_Man_t * p, void * pp, int fNormalized )
     {
         Gia_ManStop( p );
         return NULL;
+    }
+    // create DSD manager
+    if ( pPars->fUseDsd )
+    {
+        If_DsdMan_t * p = (If_DsdMan_t *)Abc_FrameReadManDsd();
+        assert( pPars->nLutSize <= If_DsdManVarNum(p) );
+        assert( (pPars->pLutStruct == NULL && If_DsdManLutSize(p) == 0) || (pPars->pLutStruct && pPars->pLutStruct[0] - '0' == If_DsdManLutSize(p)) );
+        pIfMan->pIfDsdMan = (If_DsdMan_t *)Abc_FrameReadManDsd();
     }
     // compute switching for the IF objects
     if ( pPars->fPower )
