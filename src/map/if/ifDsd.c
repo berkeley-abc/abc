@@ -74,6 +74,7 @@ struct If_DsdMan_t_
     abctime        timeDsd;        // statistics
     abctime        timeCanon;      // statistics
     abctime        timeCheck;      // statistics
+    abctime        timeCheck2;     // statistics
     abctime        timeVerify;     // statistics
 };
 
@@ -219,13 +220,6 @@ void If_DsdManFree( If_DsdMan_t * p, int fVerbose )
     if ( fVerbose )
         If_DsdManPrint( p, NULL, 0 );
     if ( fVerbose )
-    {
-        Abc_PrintTime( 1, "Time DSD   ", p->timeDsd    );
-        Abc_PrintTime( 1, "Time canon ", p->timeCanon-p->timeCheck  );
-        Abc_PrintTime( 1, "Time check ", p->timeCheck  );
-        Abc_PrintTime( 1, "Time verify", p->timeVerify );
-    }
-    if ( fVerbose )
         Vec_MemDumpTruthTables( p->vTtMem, "dumpdsd", p->nVars );
     for ( v = 2; v < p->nVars; v++ )
         ABC_FREE( p->pSched[v] );
@@ -244,7 +238,7 @@ void If_DsdManFree( If_DsdMan_t * p, int fVerbose )
 }
 void If_DsdManDump( If_DsdMan_t * p )
 {
-    char * pFileName = "dss_tts.txt";
+    char * pFileName = "nondsd_tts.txt";
     FILE * pFile;
     If_DsdObj_t * pObj;
     int i;
@@ -261,8 +255,33 @@ void If_DsdManDump( If_DsdMan_t * p )
         fprintf( pFile, "0x" );
         Abc_TtPrintHexRev( pFile, If_DsdObjTruth(p, pObj), p->nVars );
         fprintf( pFile, "\n" );
-        printf( "    " );
-        Dau_DsdPrintFromTruth( If_DsdObjTruth(p, pObj), p->nVars );
+//        printf( "    " );
+//        Dau_DsdPrintFromTruth( If_DsdObjTruth(p, pObj), p->nVars );
+    }
+    fclose( pFile );
+}
+void If_DsdManDumpAll( If_DsdMan_t * p )
+{
+    extern word * If_DsdManComputeTruth( If_DsdMan_t * p, int iDsd, unsigned char * pPermLits );
+    char * pFileName = "dsd_tts.txt";
+    FILE * pFile;
+    If_DsdObj_t * pObj;
+    word * pRes;
+    int i;
+    pFile = fopen( pFileName, "wb" );
+    if ( pFile == NULL )
+    {
+        printf( "Cannot open file \"%s\".\n", pFileName );
+        return;
+    }
+    If_DsdVecForEachObj( p->vObjs, pObj, i )
+    {
+        pRes = If_DsdManComputeTruth( p, Abc_Var2Lit(i, 0), NULL );
+        fprintf( pFile, "0x" );
+        Abc_TtPrintHexRev( pFile, pRes, p->nVars );
+        fprintf( pFile, "\n" );
+//        printf( "    " );
+//        Dau_DsdPrintFromTruth( pRes, p->nVars );
     }
     fclose( pFile );
 }
@@ -373,8 +392,14 @@ void If_DsdManPrint( If_DsdMan_t * p, char * pFileName, int fVerbose )
     fprintf( pFile, "Memory used for objects    = %8.2f MB.\n", 1.0*Mem_FlexReadMemUsage(p->pMem)/(1<<20) );
     fprintf( pFile, "Memory used for hash table = %8.2f MB.\n", 1.0*sizeof(int)*p->nBins/(1<<20) );
     fprintf( pFile, "Memory used for array      = %8.2f MB.\n", 1.0*sizeof(void *)*Vec_PtrCap(p->vObjs)/(1<<20) );
+    Abc_PrintTime( 1, "Time DSD   ", p->timeDsd    );
+    Abc_PrintTime( 1, "Time canon ", p->timeCanon-p->timeCheck  );
+    Abc_PrintTime( 1, "Time check ", p->timeCheck  );
+    Abc_PrintTime( 1, "Time check2", p->timeCheck2 );
+    Abc_PrintTime( 1, "Time verify", p->timeVerify );
 //    If_DsdManHashProfile( p );
 //    If_DsdManDump( p );
+//    If_DsdManDumpAll( p );
     if ( !fVerbose )
         return;
     If_DsdVecForEachObj( p->vObjs, pObj, i )
@@ -644,6 +669,7 @@ If_DsdMan_t * If_DsdManLoad( char * pFileName )
         RetValue = fread( pTruth, sizeof(word)*p->nWords, 1, pFile );
         Vec_MemHashInsert( p->vTtMem, pTruth );
     }
+    p->nUniqueMisses = 0;
     ABC_FREE( pTruth );
     assert( Num == Vec_MemEntryNum(p->vTtMem) );
     for ( i = 0; i < Vec_MemEntryNum(p->vTtMem); i++ )
@@ -1311,7 +1337,7 @@ unsigned If_DsdManCheckXY( If_DsdMan_t * p, int iDsd, int LutSize, int fDerive, 
 /*
     if ( uSet == 0 )
     {
-//        abctime clk = Abc_Clock();
+        abctime clk = Abc_Clock();
         int nVars = If_DsdVecLitSuppSize( p->vObjs, iDsd );
         word * pRes = If_DsdManComputeTruth( p, iDsd, NULL );
         uSet = If_ManSatCheckXYall( p->pSat, LutSize, pRes, nVars, p->vTemp1 );
@@ -1321,6 +1347,7 @@ unsigned If_DsdManCheckXY( If_DsdMan_t * p, int iDsd, int LutSize, int fDerive, 
 //            Dau_DecPrintSet( uSet, nVars, 1 );
         }
 //        Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
+        p->timeCheck2 += Abc_Clock() - clk;
     }
 */
     return uSet;
