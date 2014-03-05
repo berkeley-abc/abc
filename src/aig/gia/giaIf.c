@@ -1528,8 +1528,7 @@ Gia_Man_t * Gia_ManPerformMapping( Gia_Man_t * p, void * pp, int fNormalized )
     If_Man_t * pIfMan;
     If_Par_t * pPars = (If_Par_t *)pp;
     // disable cut minimization when GIA strucure is needed
-//    if ( !pPars->fDelayOpt && !pPars->fUserRecLib && !pPars->fDeriveLuts )
-    if ( !pPars->fDelayOpt && !pPars->fUserRecLib && !pPars->pLutStruct )
+    if ( !pPars->fDelayOpt && !pPars->fUserRecLib && ((!pPars->fDeriveLuts && !pPars->fUseDsd) || !pPars->pLutStruct) )
         pPars->fCutMin = 0;
 
     // reconstruct GIA according to the hierarchy manager

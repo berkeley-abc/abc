@@ -223,7 +223,6 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
                 if ( Vec_IntSize(p->vTtDsds) <= truthId || Vec_IntEntry(p->vTtDsds, truthId) == -1 )
                 {
                     pCut->iCutDsd = If_DsdManCompute( p->pIfDsdMan, If_CutTruthW(p, pCut), pCut->nLeaves, (unsigned char *)pCut->pPerm, p->pPars->pLutStruct );
-//                    printf( "%d(%d) ", pCut->iCutDsd, If_DsdManCheckDec( p->pIfDsdMan, pCut->iCutDsd ) );
                     while ( Vec_IntSize(p->vTtDsds) <= truthId )
                     {
                         Vec_IntPush( p->vTtDsds, -1 );

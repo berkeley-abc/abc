@@ -53,8 +53,60 @@ void * If_ManSatBuildXY( int nLutSize )
     sat_solver * p = sat_solver_new();
     sat_solver_setnvars( p, nVars );
     for ( m = 0; m < nMintsF; m++ )
-        sat_solver_add_mux( p, iVarP0 + m % nMintsL, iVarP1 + 2 * (m / nMintsL) + 1, iVarP1 + 2 * (m / nMintsL), iVarM + m );
+        sat_solver_add_mux( p, 
+            iVarP0 + m % nMintsL, 
+            iVarP1 + 2 * (m / nMintsL) + 1, 
+            iVarP1 + 2 * (m / nMintsL), 
+            iVarM + m );
     return p;
+}
+void * If_ManSatBuildXYZ( int nLutSize )
+{
+    int nMintsL = (1 << nLutSize);
+    int nMintsF = (1 << (3 * nLutSize - 2));
+    int nVars   = 3 * nMintsL + nMintsF;
+    int iVarP0  = 0;           // LUT0 parameters (total nMintsL)
+    int iVarP1  = nMintsL;     // LUT1 parameters (total nMintsL)
+    int iVarP2  = 2 * nMintsL; // LUT2 parameters (total nMintsL)
+    int m,iVarM = 3 * nMintsL; // MUX vars        (total nMintsF)
+    sat_solver * p = sat_solver_new();
+    sat_solver_setnvars( p, nVars );
+    for ( m = 0; m < nMintsF; m++ )
+        sat_solver_add_mux41( p, 
+            iVarP0 + m % nMintsL, 
+            iVarP1 + (m >> nLutSize) % nMintsL, 
+            iVarP2 + 4 * (m >> (2 * nLutSize)) + 0, 
+            iVarP2 + 4 * (m >> (2 * nLutSize)) + 1, 
+            iVarP2 + 4 * (m >> (2 * nLutSize)) + 2, 
+            iVarP2 + 4 * (m >> (2 * nLutSize)) + 3, 
+            iVarM + m );
+    return p;
+}
+void * If_ManSatBuild55()
+{
+    int nMintsL =  16;
+    int nMintsF = 512;
+    int nVars   = 2 * nMintsL + nMintsF;
+    int iVarP0  = 0;           // LUT0 parameters (total nMintsL)
+    int iVarP1  = nMintsL;     // LUT1 parameters (total nMintsL)
+    int m,iVarM = 2 * nMintsL; // MUX vars        (total nMintsF)
+    sat_solver * p = sat_solver_new();
+    sat_solver_setnvars( p, nVars );
+    for ( m = 0; m < nMintsF; m++ )
+    {
+        int iVar0 = (((m >> 2) & 7) << 1) | ((m & 3) == 3);
+        int iVar1 =  ((m >> 6) & 7);
+        if ( (m >> 5) & 1 )
+            sat_solver_add_mux( p, iVarP0 + iVar0, iVarP1 + 2 * iVar1 + 1, iVarP1 + 2 * iVar1, iVarM + m );
+        else
+            sat_solver_add_buffer( p, iVarP1 + 2 * iVar1, iVarM + m, 0 );
+    }
+    return p;
+}
+void If_ManSatUnbuild( void * p )
+{
+    if ( p )
+        sat_solver_delete( (sat_solver *)p );
 }
 
 /**Function*************************************************************
@@ -183,48 +235,269 @@ int If_ManSatCheckXY( void * pSat, int nLutSize, word * pTruth, int nVars, unsig
     Value = sat_solver_solve( p, Vec_IntArray(vLits), Vec_IntArray(vLits) + Vec_IntSize(vLits), 0, 0, 0, 0 );
     if ( Value != l_True )
         return 0;
-    // collect config
-    assert( nSSet + nBSet <= nLutSize );
-    *pTBound = 0;
-    nMintsLNew = (1 << (nSSet + nBSet));
-    for ( m = 0; m < nMintsLNew; m++ )
-        if ( sat_solver_var_value(p, m) )
-            Abc_TtSetBit( pTBound, m );
-    *pTBound = Abc_Tt6Stretch( *pTBound, nSSet + nBSet );
-    // collect configs
-    assert( nSSet + nFSet + 1 <= nLutSize );
-    *pTFree = 0;
-    nMintsLNew = (1 << (1 + nSSet + nFSet));
-    for ( m = 0; m < nMintsLNew; m++ )
-        if ( sat_solver_var_value(p, nMintsL+m) )
-            Abc_TtSetBit( pTFree, m );
-    *pTFree = Abc_Tt6Stretch( *pTFree, 1 + nSSet + nFSet );
-    if ( nVars != 6 )
-        return 1;
-    // verify the result
-    Res = If_ManSat6Truth( *pTBound, *pTFree, pBSet, nBSet, pSSet, nSSet, pFSet, nFSet );
-    if ( pTruth[0] != Res )
+    if ( pTBound && pTFree )
     {
-        Dau_DsdPrintFromTruth( pTruth,  nVars );
-        Dau_DsdPrintFromTruth( &Res,    nVars );
-        Dau_DsdPrintFromTruth( pTBound, nSSet+nBSet );
-        Dau_DsdPrintFromTruth( pTFree,  nSSet+nFSet+1 );
-        printf( "Verification failed!\n" );
+        // collect config
+        assert( nSSet + nBSet <= nLutSize );
+        *pTBound = 0;
+        nMintsLNew = (1 << (nSSet + nBSet));
+        for ( m = 0; m < nMintsLNew; m++ )
+            if ( sat_solver_var_value(p, m) )
+                Abc_TtSetBit( pTBound, m );
+        *pTBound = Abc_Tt6Stretch( *pTBound, nSSet + nBSet );
+        // collect configs
+        assert( nSSet + nFSet + 1 <= nLutSize );
+        *pTFree = 0;
+        nMintsLNew = (1 << (1 + nSSet + nFSet));
+        for ( m = 0; m < nMintsLNew; m++ )
+            if ( sat_solver_var_value(p, nMintsL+m) )
+                Abc_TtSetBit( pTFree, m );
+        *pTFree = Abc_Tt6Stretch( *pTFree, 1 + nSSet + nFSet );
+        if ( nVars != 6 || nLutSize != 4 )
+            return 1;
+        // verify the result
+        Res = If_ManSat6Truth( *pTBound, *pTFree, pBSet, nBSet, pSSet, nSSet, pFSet, nFSet );
+        if ( pTruth[0] != Res )
+        {
+            Dau_DsdPrintFromTruth( pTruth,  nVars );
+            Dau_DsdPrintFromTruth( &Res,    nVars );
+            Dau_DsdPrintFromTruth( pTBound, nSSet+nBSet );
+            Dau_DsdPrintFromTruth( pTFree,  nSSet+nFSet+1 );
+            printf( "Verification failed!\n" );
+        }
     }
-/*
-    else
-    {
-//        Kit_DsdPrintFromTruth( (unsigned*)pTBound, nSSet+nBSet   ); printf( "\n" );
-//        Kit_DsdPrintFromTruth( (unsigned*)pTFree,  nSSet+nFSet+1 ); printf( "\n" );
-
-        Dau_DsdPrintFromTruth( pTruth,  nVars );
-        Dau_DsdPrintFromTruth( &Res,    nVars );
-        Dau_DsdPrintFromTruth( pTBound, nSSet+nBSet   );
-        Dau_DsdPrintFromTruth( pTFree,  nSSet+nFSet+1 );
-        printf( "Verification OK!\n" );
-    }
-*/
     return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Returns config string for the given truth table.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+unsigned If_ManSatCheckXYall_int( void * pSat, int nLutSize, word * pTruth, int nVars, Vec_Int_t * vLits )
+{
+    unsigned uSet = 0;
+    int nTotal = 2 * nLutSize - 1;
+    int nShared = nTotal - nVars;
+    int i[6], s[4];
+    assert( nLutSize >= 2 && nLutSize <= 6 );
+    assert( nLutSize < nVars && nVars <= nTotal );
+    assert( nShared >= 0 && nShared < nLutSize - 1 );
+    if ( nLutSize == 2 )
+    {
+        assert( nShared == 0 );
+        for ( i[0] = 0;      i[0] < nVars; i[0]++ )
+        for ( i[1] = i[0]+1; i[1] < nVars; i[1]++ )
+        {
+            uSet = (1 << (2*i[0])) | (1 << (2*i[1]));
+            if ( If_ManSatCheckXY(pSat, nLutSize, pTruth, nVars, uSet, NULL, NULL, vLits) )
+                return uSet;
+        }
+    }
+    else if ( nLutSize == 3 )
+    {
+        for ( i[0] = 0;      i[0] < nVars; i[0]++ )
+        for ( i[1] = i[0]+1; i[1] < nVars; i[1]++ )
+        for ( i[2] = i[1]+1; i[2] < nVars; i[2]++ )
+        {
+            uSet = (1 << (2*i[0])) | (1 << (2*i[1])) | (1 << (2*i[2]));
+            if ( If_ManSatCheckXY(pSat, nLutSize, pTruth, nVars, uSet, NULL, NULL, vLits) )
+                return uSet;
+        }
+        if ( nShared < 1 )
+            return 0;
+        for ( i[0] = 0;      i[0] < nVars; i[0]++ )
+        for ( i[1] = i[0]+1; i[1] < nVars; i[1]++ )
+        for ( i[2] = i[1]+1; i[2] < nVars; i[2]++ )
+        {
+            uSet = (1 << (2*i[0])) | (1 << (2*i[1])) | (1 << (2*i[2]));
+            for ( s[0] = 0; s[0] < nLutSize; s[0]++ )
+                if ( If_ManSatCheckXY(pSat, nLutSize, pTruth, nVars, uSet | (3 << (2*i[s[0]])), NULL, NULL, vLits) )
+                    return uSet | (3 << (2*i[s[0]]));
+        }
+    }
+    else if ( nLutSize == 4 )
+    {
+        for ( i[0] = 0;      i[0] < nVars; i[0]++ )
+        for ( i[1] = i[0]+1; i[1] < nVars; i[1]++ )
+        for ( i[2] = i[1]+1; i[2] < nVars; i[2]++ )
+        for ( i[3] = i[2]+1; i[3] < nVars; i[3]++ )
+        {
+            uSet = (1 << (2*i[0])) | (1 << (2*i[1])) | (1 << (2*i[2])) | (1 << (2*i[3]));
+            if ( If_ManSatCheckXY(pSat, nLutSize, pTruth, nVars, uSet, NULL, NULL, vLits) )
+                return uSet;
+        }
+        if ( nShared < 1 )
+            return 0;
+        for ( i[0] = 0;      i[0] < nVars; i[0]++ )
+        for ( i[1] = i[0]+1; i[1] < nVars; i[1]++ )
+        for ( i[2] = i[1]+1; i[2] < nVars; i[2]++ )
+        for ( i[3] = i[2]+1; i[3] < nVars; i[3]++ )
+        {
+            uSet = (1 << (2*i[0])) | (1 << (2*i[1])) | (1 << (2*i[2])) | (1 << (2*i[3]));
+            for ( s[0] = 0; s[0] < nLutSize; s[0]++ )
+                if ( If_ManSatCheckXY(pSat, nLutSize, pTruth, nVars, uSet | (3 << (2*i[s[0]])), NULL, NULL, vLits) )
+                    return uSet | (3 << (2*i[s[0]]));
+        }
+        if ( nShared < 2 )
+            return 0;
+        for ( i[0] = 0;      i[0] < nVars; i[0]++ )
+        for ( i[1] = i[0]+1; i[1] < nVars; i[1]++ )
+        for ( i[2] = i[1]+1; i[2] < nVars; i[2]++ )
+        for ( i[3] = i[2]+1; i[3] < nVars; i[3]++ )
+        {
+            uSet = (1 << (2*i[0])) | (1 << (2*i[1])) | (1 << (2*i[2])) | (1 << (2*i[3]));
+            {
+                for ( s[0] = 0;      s[0] < nLutSize; s[0]++ )
+                for ( s[1] = s[0]+1; s[1] < nLutSize; s[1]++ )
+                    if ( If_ManSatCheckXY(pSat, nLutSize, pTruth, nVars, uSet | (3 << (2*i[s[0]])) | (3 << (2*i[s[1]])), NULL, NULL, vLits) )
+                        return uSet | (3 << (2*i[s[0]])) | (3 << (2*i[s[1]]));
+            }
+        }
+    }
+    else if ( nLutSize == 5 )
+    {
+        for ( i[0] = 0;      i[0] < nVars; i[0]++ )
+        for ( i[1] = i[0]+1; i[1] < nVars; i[1]++ )
+        for ( i[2] = i[1]+1; i[2] < nVars; i[2]++ )
+        for ( i[3] = i[2]+1; i[3] < nVars; i[3]++ )
+        for ( i[4] = i[3]+1; i[4] < nVars; i[4]++ )
+        {
+            uSet = (1 << (2*i[0])) | (1 << (2*i[1])) | (1 << (2*i[2])) | (1 << (2*i[3])) | (1 << (2*i[4]));
+            if ( If_ManSatCheckXY(pSat, nLutSize, pTruth, nVars, uSet, NULL, NULL, vLits) )
+                return uSet;
+        }
+        if ( nShared < 1 )
+            return 0;
+        for ( i[0] = 0;      i[0] < nVars; i[0]++ )
+        for ( i[1] = i[0]+1; i[1] < nVars; i[1]++ )
+        for ( i[2] = i[1]+1; i[2] < nVars; i[2]++ )
+        for ( i[3] = i[2]+1; i[3] < nVars; i[3]++ )
+        for ( i[4] = i[3]+1; i[4] < nVars; i[4]++ )
+        {
+            uSet = (1 << (2*i[0])) | (1 << (2*i[1])) | (1 << (2*i[2])) | (1 << (2*i[3])) | (1 << (2*i[4]));
+            for ( s[0] = 0; s[0] < nLutSize; s[0]++ )
+                if ( If_ManSatCheckXY(pSat, nLutSize, pTruth, nVars, uSet | (3 << (2*i[s[0]])), NULL, NULL, vLits) )
+                    return uSet | (3 << (2*i[s[0]]));
+        }
+        if ( nShared < 2 )
+            return 0;
+        for ( i[0] = 0;      i[0] < nVars; i[0]++ )
+        for ( i[1] = i[0]+1; i[1] < nVars; i[1]++ )
+        for ( i[2] = i[1]+1; i[2] < nVars; i[2]++ )
+        for ( i[3] = i[2]+1; i[3] < nVars; i[3]++ )
+        for ( i[4] = i[3]+1; i[4] < nVars; i[4]++ )
+        {
+            uSet = (1 << (2*i[0])) | (1 << (2*i[1])) | (1 << (2*i[2])) | (1 << (2*i[3])) | (1 << (2*i[4]));
+            for ( s[0] = 0;      s[0] < nLutSize; s[0]++ )
+            for ( s[1] = s[0]+1; s[1] < nLutSize; s[1]++ )
+                if ( If_ManSatCheckXY(pSat, nLutSize, pTruth, nVars, uSet | (3 << (2*i[s[0]])) | (3 << (2*i[s[1]])), NULL, NULL, vLits) )
+                    return uSet | (3 << (2*i[s[0]])) | (3 << (2*i[s[1]]));
+        }
+        if ( nShared < 3 )
+            return 0;
+        for ( i[0] = 0;      i[0] < nVars; i[0]++ )
+        for ( i[1] = i[0]+1; i[1] < nVars; i[1]++ )
+        for ( i[2] = i[1]+1; i[2] < nVars; i[2]++ )
+        for ( i[3] = i[2]+1; i[3] < nVars; i[3]++ )
+        for ( i[4] = i[3]+1; i[4] < nVars; i[4]++ )
+        {
+            for ( s[0] = 0;      s[0] < nLutSize; s[0]++ )
+            for ( s[1] = s[0]+1; s[1] < nLutSize; s[1]++ )
+            for ( s[2] = s[1]+1; s[2] < nLutSize; s[2]++ )
+                if ( If_ManSatCheckXY(pSat, nLutSize, pTruth, nVars, uSet | (3 << (2*i[s[0]])) | (3 << (2*i[s[1]])) | (3 << (2*i[s[2]])), NULL, NULL, vLits) )
+                    return uSet | (3 << (2*i[s[0]])) | (3 << (2*i[s[1]])) | (3 << (2*i[s[2]]));
+        }
+    }
+    else if ( nLutSize == 6 )
+    {
+        for ( i[0] = 0;      i[0] < nVars; i[0]++ )
+        for ( i[1] = i[0]+1; i[1] < nVars; i[1]++ )
+        for ( i[2] = i[1]+1; i[2] < nVars; i[2]++ )
+        for ( i[3] = i[2]+1; i[3] < nVars; i[3]++ )
+        for ( i[4] = i[3]+1; i[4] < nVars; i[4]++ )
+        for ( i[5] = i[4]+1; i[5] < nVars; i[5]++ )
+        {
+            uSet = (1 << (2*i[0])) | (1 << (2*i[1])) | (1 << (2*i[2])) | (1 << (2*i[3])) | (1 << (2*i[4])) | (1 << (2*i[5]));
+            if ( If_ManSatCheckXY(pSat, nLutSize, pTruth, nVars, uSet, NULL, NULL, vLits) )
+                return uSet;
+        }
+        if ( nShared < 1 )
+            return 0;
+        for ( i[0] = 0;      i[0] < nVars; i[0]++ )
+        for ( i[1] = i[0]+1; i[1] < nVars; i[1]++ )
+        for ( i[2] = i[1]+1; i[2] < nVars; i[2]++ )
+        for ( i[3] = i[2]+1; i[3] < nVars; i[3]++ )
+        for ( i[4] = i[3]+1; i[4] < nVars; i[4]++ )
+        for ( i[5] = i[4]+1; i[5] < nVars; i[5]++ )
+        {
+            uSet = (1 << (2*i[0])) | (1 << (2*i[1])) | (1 << (2*i[2])) | (1 << (2*i[3])) | (1 << (2*i[4])) | (1 << (2*i[5]));
+            for ( s[0] = 0; s[0] < nLutSize; s[0]++ )
+                if ( If_ManSatCheckXY(pSat, nLutSize, pTruth, nVars, uSet | (3 << (2*i[s[0]])), NULL, NULL, vLits) )
+                    return uSet | (3 << (2*i[s[0]]));
+        }
+        if ( nShared < 2 )
+            return 0;
+        for ( i[0] = 0;      i[0] < nVars; i[0]++ )
+        for ( i[1] = i[0]+1; i[1] < nVars; i[1]++ )
+        for ( i[2] = i[1]+1; i[2] < nVars; i[2]++ )
+        for ( i[3] = i[2]+1; i[3] < nVars; i[3]++ )
+        for ( i[4] = i[3]+1; i[4] < nVars; i[4]++ )
+        for ( i[5] = i[4]+1; i[5] < nVars; i[5]++ )
+        {
+            uSet = (1 << (2*i[0])) | (1 << (2*i[1])) | (1 << (2*i[2])) | (1 << (2*i[3])) | (1 << (2*i[4])) | (1 << (2*i[5]));
+            for ( s[0] = 0;      s[0] < nLutSize; s[0]++ )
+            for ( s[1] = s[0]+1; s[1] < nLutSize; s[1]++ )
+                if ( If_ManSatCheckXY(pSat, nLutSize, pTruth, nVars, uSet | (3 << (2*i[s[0]])) | (3 << (2*i[s[1]])), NULL, NULL, vLits) )
+                    return uSet | (3 << (2*i[s[0]])) | (3 << (2*i[s[1]]));
+        }
+        if ( nShared < 3 )
+            return 0;
+        for ( i[0] = 0;      i[0] < nVars; i[0]++ )
+        for ( i[1] = i[0]+1; i[1] < nVars; i[1]++ )
+        for ( i[2] = i[1]+1; i[2] < nVars; i[2]++ )
+        for ( i[3] = i[2]+1; i[3] < nVars; i[3]++ )
+        for ( i[4] = i[3]+1; i[4] < nVars; i[4]++ )
+        for ( i[5] = i[4]+1; i[5] < nVars; i[5]++ )
+        {
+            uSet = (1 << (2*i[0])) | (1 << (2*i[1])) | (1 << (2*i[2])) | (1 << (2*i[3])) | (1 << (2*i[4])) | (1 << (2*i[5]));
+            for ( s[0] = 0;      s[0] < nLutSize; s[0]++ )
+            for ( s[1] = s[0]+1; s[1] < nLutSize; s[1]++ )
+            for ( s[2] = s[1]+1; s[2] < nLutSize; s[2]++ )
+                if ( If_ManSatCheckXY(pSat, nLutSize, pTruth, nVars, uSet | (3 << (2*i[s[0]])) | (3 << (2*i[s[1]])) | (3 << (2*i[s[2]])), NULL, NULL, vLits) )
+                    return uSet | (3 << (2*i[s[0]])) | (3 << (2*i[s[1]])) | (3 << (2*i[s[2]]));
+        }
+        if ( nShared < 4 )
+            return 0;
+        for ( i[0] = 0;      i[0] < nVars; i[0]++ )
+        for ( i[1] = i[0]+1; i[1] < nVars; i[1]++ )
+        for ( i[2] = i[1]+1; i[2] < nVars; i[2]++ )
+        for ( i[3] = i[2]+1; i[3] < nVars; i[3]++ )
+        for ( i[4] = i[3]+1; i[4] < nVars; i[4]++ )
+        for ( i[5] = i[4]+1; i[5] < nVars; i[5]++ )
+        {
+            uSet = (1 << (2*i[0])) | (1 << (2*i[1])) | (1 << (2*i[2])) | (1 << (2*i[3])) | (1 << (2*i[4])) | (1 << (2*i[5]));
+            for ( s[0] = 0;      s[0] < nLutSize; s[0]++ )
+            for ( s[1] = s[0]+1; s[1] < nLutSize; s[1]++ )
+            for ( s[2] = s[1]+1; s[2] < nLutSize; s[2]++ )
+            for ( s[3] = s[1]+1; s[3] < nLutSize; s[3]++ )
+                if ( If_ManSatCheckXY(pSat, nLutSize, pTruth, nVars, uSet | (3 << (2*i[s[0]])) | (3 << (2*i[s[1]])) | (3 << (2*i[s[2]])) | (3 << (2*i[s[3]])), NULL, NULL, vLits) )
+                    return uSet | (3 << (2*i[s[0]])) | (3 << (2*i[s[1]])) | (3 << (2*i[s[2]])) | (3 << (2*i[s[3]]));
+        }
+    }
+    return 0;
+}
+unsigned If_ManSatCheckXYall( void * pSat, int nLutSize, word * pTruth, int nVars, Vec_Int_t * vLits )
+{
+    unsigned uSet = If_ManSatCheckXYall_int( pSat, nLutSize, pTruth, nVars, vLits );
+//    Dau_DecPrintSet( uSet, nVars, 1 );
+    return uSet;
 }
 
 /**Function*************************************************************
@@ -268,60 +541,19 @@ void If_ManSatTest2()
 
 void If_ManSatTest()
 {
-    int nVars = 4;
-    int nLutSize = 3;
+    int nVars = 6;
+    int nLutSize = 4;
     sat_solver * p = (sat_solver *)If_ManSatBuildXY( nLutSize );
-    word t = 0x183C, * pTruth = &t;
-    word uBound, uFree;
-    unsigned uSet;
-    int RetValue;
+//    char * pDsd = "(abcdefg)";
+//    char * pDsd = "([a!bc]d!e)";
+    char * pDsd = "0123456789ABCDEF{abcdef}";
+    word * pTruth = Dau_DsdToTruth( pDsd, nVars );
     Vec_Int_t * vLits = Vec_IntAlloc( 100 );
-
-    
-    uSet = (3 << 0) | (1 << 2) | (1 << 4);
-    RetValue = If_ManSatCheckXY( p, nLutSize, pTruth, nVars, uSet, &uBound, &uFree, vLits );
-    printf( "%d (%d)", RetValue, sat_solver_nconflicts(p) );
-    uSet = (1 << 0) | (3 << 2) | (1 << 4);
-    RetValue = If_ManSatCheckXY( p, nLutSize, pTruth, nVars, uSet, &uBound, &uFree, vLits );
-    printf( "%d (%d)", RetValue, sat_solver_nconflicts(p) );
-    uSet = (1 << 0) | (1 << 2) | (3 << 4);
-    RetValue = If_ManSatCheckXY( p, nLutSize, pTruth, nVars, uSet, &uBound, &uFree, vLits );
-    printf( "%d (%d)", RetValue, sat_solver_nconflicts(p) );
-
-    
-    uSet = (3 << 0) | (1 << 2) | (1 << 6);
-    RetValue = If_ManSatCheckXY( p, nLutSize, pTruth, nVars, uSet, &uBound, &uFree, vLits );
-    printf( "%d (%d)", RetValue, sat_solver_nconflicts(p) );
-    uSet = (1 << 0) | (3 << 2) | (1 << 6);
-    RetValue = If_ManSatCheckXY( p, nLutSize, pTruth, nVars, uSet, &uBound, &uFree, vLits );
-    printf( "%d (%d)", RetValue, sat_solver_nconflicts(p) );
-    uSet = (1 << 0) | (1 << 2) | (3 << 6);
-    RetValue = If_ManSatCheckXY( p, nLutSize, pTruth, nVars, uSet, &uBound, &uFree, vLits );
-    printf( "%d (%d)", RetValue, sat_solver_nconflicts(p) );
-
-    
-    uSet = (3 << 0) | (1 << 4) | (1 << 6);
-    RetValue = If_ManSatCheckXY( p, nLutSize, pTruth, nVars, uSet, &uBound, &uFree, vLits );
-    printf( "%d (%d)", RetValue, sat_solver_nconflicts(p) );
-    uSet = (1 << 0) | (3 << 4) | (1 << 6);
-    RetValue = If_ManSatCheckXY( p, nLutSize, pTruth, nVars, uSet, &uBound, &uFree, vLits );
-    printf( "%d (%d)", RetValue, sat_solver_nconflicts(p) );
-    uSet = (1 << 0) | (1 << 4) | (3 << 6);
-    RetValue = If_ManSatCheckXY( p, nLutSize, pTruth, nVars, uSet, &uBound, &uFree, vLits );
-    printf( "%d (%d)", RetValue, sat_solver_nconflicts(p) );
-
-    
-    uSet = (3 << 2) | (1 << 4) | (1 << 6);
-    RetValue = If_ManSatCheckXY( p, nLutSize, pTruth, nVars, uSet, &uBound, &uFree, vLits );
-    printf( "%d (%d)", RetValue, sat_solver_nconflicts(p) );
-    uSet = (1 << 2) | (3 << 4) | (1 << 6);
-    RetValue = If_ManSatCheckXY( p, nLutSize, pTruth, nVars, uSet, &uBound, &uFree, vLits );
-    printf( "%d (%d)", RetValue, sat_solver_nconflicts(p) );
-    uSet = (1 << 2) | (1 << 4) | (3 << 6);
-    RetValue = If_ManSatCheckXY( p, nLutSize, pTruth, nVars, uSet, &uBound, &uFree, vLits );
-    printf( "%d (%d)", RetValue, sat_solver_nconflicts(p) );
-
-    printf( "\n" );
+//    unsigned uSet = (1 << 0) | (1 << 2) | (1 << 4) | (1 << 6);
+//    unsigned uSet = (3 << 0) | (1 << 2) | (1 << 8) | (1 << 4);
+    unsigned uSet = (1 << 0) | (3 << 2) | (1 << 4) | (1 << 6);
+    uSet = If_ManSatCheckXYall( p, nLutSize, pTruth, nVars, vLits );
+    Dau_DecPrintSet( uSet, nVars, 1 );
 
     sat_solver_delete(p);
     Vec_IntFree( vLits );

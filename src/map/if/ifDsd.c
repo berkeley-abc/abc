@@ -67,6 +67,7 @@ struct If_DsdMan_t_
     word **        pTtElems;       // elementary TTs
     Vec_Mem_t *    vTtMem;         // truth table memory and hash table
     Vec_Ptr_t *    vTtDecs;        // truth table decompositions
+    void *         pSat;           // SAT solver
     int *          pSched[16];     // grey code schedules
     int            nUniqueHits;    // statistics
     int            nUniqueMisses;  // statistics
@@ -207,6 +208,8 @@ If_DsdMan_t * If_DsdManAlloc( int nVars, int LutSize )
     Vec_MemHashAlloc( p->vTtMem, 10000 );
     for ( v = 2; v < nVars; v++ )
         p->pSched[v] = Extra_GreyCodeSchedule( v );
+    if ( LutSize )
+    p->pSat     = If_ManSatBuildXY( LutSize );
     return p;
 }
 void If_DsdManFree( If_DsdMan_t * p, int fVerbose )
@@ -234,6 +237,7 @@ void If_DsdManFree( If_DsdMan_t * p, int fVerbose )
     Vec_IntFreeP( &p->vNexts );
     Vec_PtrFreeP( &p->vObjs );
     Mem_FlexStop( p->pMem, 0 );
+    If_ManSatUnbuild( p->pSat );
     ABC_FREE( p->pStore );
     ABC_FREE( p->pBins );
     ABC_FREE( p );
@@ -618,6 +622,7 @@ If_DsdMan_t * If_DsdManLoad( char * pFileName )
     p->pStore = Abc_UtilStrsav( pFileName );
     RetValue = fread( &Num, 4, 1, pFile );
     p->LutSize = Num;
+    p->pSat  = If_ManSatBuildXY( p->LutSize );
     RetValue = fread( &Num, 4, 1, pFile );
     assert( Num >= 2 );
     Vec_PtrFillExtra( p->vObjs, Num, NULL );
@@ -770,76 +775,8 @@ word * If_DsdManComputeTruth( If_DsdMan_t * p, int iDsd, unsigned char * pPermLi
     }
     else
         If_DsdManComputeTruth_rec( p, iDsd, pRes, pPermLits, &nSupp );
-    assert( nSupp == If_DsdVecObjSuppSize(p->vObjs, Abc_Lit2Var(iDsd)) );
+    assert( nSupp == If_DsdVecLitSuppSize(p->vObjs, iDsd) );
     return pRes;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Performs DSD operation.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int If_DsdManOperation2( If_DsdMan_t * p, int Type, int * pLits, int nLits )
-{
-    If_DsdObj_t * pObj;
-    int nChildren = 0, pChildren[DAU_MAX_VAR];
-    int i, k, Id, iFanin, fCompl = 0;
-    if ( Type == IF_DSD_AND )
-    {
-        for ( k = 0; k < nLits; k++ )
-        {
-            pObj = If_DsdVecObj( p->vObjs, Abc_Lit2Var(pLits[k]) );
-            if ( Abc_LitIsCompl(pLits[k]) || If_DsdObjType(pObj) != IF_DSD_AND )
-                pChildren[nChildren++] = pLits[k];
-            else
-                If_DsdObjForEachFaninLit( p->vObjs, pObj, iFanin, i )
-                    pChildren[nChildren++] = iFanin;
-        }
-        If_DsdObjSort( p->vObjs, pChildren, nChildren, NULL );
-    }
-    else if ( Type == IF_DSD_XOR )
-    {
-        for ( k = 0; k < nLits; k++ )
-        {
-            fCompl ^= Abc_LitIsCompl(pLits[k]);
-            pObj = If_DsdVecObj( p->vObjs, Abc_LitRegular(pLits[k]) );
-            if ( If_DsdObjType(pObj) != IF_DSD_XOR )
-                pChildren[nChildren++] = pLits[k];
-            else
-                If_DsdObjForEachFaninLit( p->vObjs, pObj, iFanin, i )
-                {
-                    assert( !Abc_LitIsCompl(iFanin) );
-                    pChildren[nChildren++] = iFanin;
-                }
-        }
-        If_DsdObjSort( p->vObjs, pChildren, nChildren, NULL );
-    }
-    else if ( Type == IF_DSD_MUX )
-    {
-        if ( Abc_LitIsCompl(pLits[0]) )
-        {
-            pLits[0] = Abc_LitNot(pLits[0]);
-            ABC_SWAP( int, pLits[1], pLits[2] );
-        }
-        if ( Abc_LitIsCompl(pLits[1]) )
-        {
-            pLits[1] = Abc_LitNot(pLits[1]);
-            pLits[2] = Abc_LitNot(pLits[2]);
-            fCompl ^= 1;
-        }
-        for ( k = 0; k < nLits; k++ )
-            pChildren[nChildren++] = pLits[k];
-    }
-    else assert( 0 );
-    // create new graph
-    Id = If_DsdObjFindOrAdd( p, Type, pChildren, nChildren, NULL );
-    return Abc_Var2Lit( Id, fCompl );
 }
 
 /**Function*************************************************************
@@ -1290,15 +1227,17 @@ Dau_DecPrintSets( vSets, nFans );
     }
     return 0;
 }
-unsigned If_DsdManCheckXY( If_DsdMan_t * p, int iDsd, int LutSize, int fDerive, int fVerbose )
+unsigned If_DsdManCheckXY_int( If_DsdMan_t * p, int iDsd, int LutSize, int fDerive, int fVerbose )
 {
     If_DsdObj_t * pObj, * pTemp; 
     int i, Mask, iFirst;
+/*
     if ( 193 == iDsd )
     {
         int s = 0;
         If_DsdManPrintOne( stdout, p, Abc_Lit2Var(iDsd), NULL, 1 );
     }
+*/
     pObj = If_DsdVecObj( p->vObjs, Abc_Lit2Var(iDsd) );
     if ( fVerbose )
     If_DsdManPrintOne( stdout, p, Abc_Lit2Var(iDsd), NULL, 0 );
@@ -1365,6 +1304,26 @@ unsigned If_DsdManCheckXY( If_DsdMan_t * p, int iDsd, int LutSize, int fDerive, 
     printf( "    UNDEC\n" );
 //    If_DsdManPrintOne( stdout, p, Abc_Lit2Var(iDsd), NULL, 1 );
     return 0;
+}
+unsigned If_DsdManCheckXY( If_DsdMan_t * p, int iDsd, int LutSize, int fDerive, int fVerbose )
+{
+    unsigned uSet = If_DsdManCheckXY_int( p, iDsd, LutSize, fDerive, fVerbose );
+/*
+    if ( uSet == 0 )
+    {
+//        abctime clk = Abc_Clock();
+        int nVars = If_DsdVecLitSuppSize( p->vObjs, iDsd );
+        word * pRes = If_DsdManComputeTruth( p, iDsd, NULL );
+        uSet = If_ManSatCheckXYall( p->pSat, LutSize, pRes, nVars, p->vTemp1 );
+        if ( uSet )
+        {
+//            If_DsdManPrintOne( stdout, p, Abc_Lit2Var(iDsd), NULL, 1 );
+//            Dau_DecPrintSet( uSet, nVars, 1 );
+        }
+//        Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
+    }
+*/
+    return uSet;
 }
 
 /**Function*************************************************************
