@@ -235,6 +235,7 @@ static int Abc_CommandDsdSave                ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandDsdLoad                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandDsdFree                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandDsdPs                  ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandDsdTune                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 static int Abc_CommandScut                   ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandInit                   ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -793,6 +794,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "FPGA mapping", "dsd_load",      Abc_CommandDsdLoad,          0 );
     Cmd_CommandAdd( pAbc, "FPGA mapping", "dsd_free",      Abc_CommandDsdFree,          0 );
     Cmd_CommandAdd( pAbc, "FPGA mapping", "dsd_ps",        Abc_CommandDsdPs,            0 );
+    Cmd_CommandAdd( pAbc, "FPGA mapping", "dsd_tune",      Abc_CommandDsdTune,          0 );
 
 //    Cmd_CommandAdd( pAbc, "Sequential",   "scut",          Abc_CommandScut,             0 );
     Cmd_CommandAdd( pAbc, "Sequential",   "init",          Abc_CommandInit,             1 );
@@ -15556,6 +15558,70 @@ usage:
     Abc_Print( -2, "usage: dsd_ps [-h]\n" );
     Abc_Print( -2, "\t        prints statistics of DSD manager\n" );
     Abc_Print( -2, "\t-h    : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandDsdTune( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    int c, fVerbose = 0, fFast = 0, fSpec = 0, LutSize = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Kfsvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'K':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-K\" should be followed by a floating point number.\n" );
+                goto usage;
+            }
+            LutSize = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( LutSize < 4 || LutSize > 6 )
+                goto usage;
+            break;
+        case 'f':
+            fFast ^= 1;
+            break;
+        case 's':
+            fSpec ^= 1;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( !Abc_FrameReadManDsd() )
+    {
+        Abc_Print( 1, "The DSD manager is not started.\n" );
+        return 0;
+    }
+    If_DsdManTune( (If_DsdMan_t *)Abc_FrameReadManDsd(), LutSize, fFast, fSpec, fVerbose );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: dsd_tune [-K num] [-fsvh]\n" );
+    Abc_Print( -2, "\t         tunes DSD manager for the given LUT size\n" );
+    Abc_Print( -2, "\t-K num : LUT size used for tuning [default = %d]\n",        LutSize );
+    Abc_Print( -2, "\t-f     : toggles using fast check [default = %s]\n",        fFast? "yes": "no" );
+    Abc_Print( -2, "\t-s     : toggles using specialized check [default = %s]\n", fSpec? "yes": "no" );
+    Abc_Print( -2, "\t-v     : toggles verbose output [default = %s]\n",          fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
 }
 

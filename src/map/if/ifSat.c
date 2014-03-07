@@ -268,6 +268,128 @@ int If_ManSatCheckXY( void * pSat, int nLutSize, word * pTruth, int nVars, unsig
     }
     return 1;
 }
+int If_ManSatCheck55( void * pSat, word * pTruth, int nVars, int * pPerm9, word * pTBound, word * pTFree, Vec_Int_t * vLits )
+{
+    sat_solver * p = (sat_solver *)pSat;
+    int v, Value, m, mNew;
+    int nMintsL = 16;
+    // remap minterms
+    Vec_IntFill( vLits, 512, -1 );
+    for ( m = 0; m < (1 << nVars); m++ )
+    {
+        mNew = 0;
+        for ( v = 0; v < 9; v++ )
+        {
+            assert( pPerm9[v] < nVars );
+            if ( ((m >> pPerm9[v]) & 1) )
+                mNew |= (1 << v);
+        }
+        assert( Vec_IntEntry(vLits, mNew) == -1 );
+        Vec_IntWriteEntry( vLits, mNew, Abc_TtGetBit(pTruth, m) );
+    }
+    // find assumptions
+    v = 0;
+    Vec_IntForEachEntry( vLits, Value, m )
+        if ( Value >= 0 )
+            Vec_IntWriteEntry( vLits, v++, Abc_Var2Lit(2 * nMintsL + m, !Value) );
+    Vec_IntShrink( vLits, v );
+    // run SAT solver
+    Value = sat_solver_solve( p, Vec_IntArray(vLits), Vec_IntArray(vLits) + Vec_IntSize(vLits), 0, 0, 0, 0 );
+    if ( Value != l_True )
+        return 0;
+    if ( pTBound && pTFree )
+    {
+        // collect config
+        *pTBound = 0;
+        for ( m = 0; m < nMintsL; m++ )
+            if ( sat_solver_var_value(p, m) )
+                Abc_TtSetBit( pTBound, m );
+        *pTBound = Abc_Tt6Stretch( *pTBound, 4 );
+        // collect configs
+        *pTFree = 0;
+        for ( m = 0; m < nMintsL; m++ )
+            if ( sat_solver_var_value(p, nMintsL+m) )
+                Abc_TtSetBit( pTFree, m );
+        *pTFree = Abc_Tt6Stretch( *pTFree, 4 );
+    }
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Returns config string for the given truth table.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+unsigned If_ManSatCheck55all_int( void * pSat, word * pTruth, int nVars, Vec_Int_t * vLits )
+{
+    int Combs[10][5] = {
+        {0,1,2,3,4}, 
+        {0,2,1,3,4}, 
+        {0,3,1,2,4}, 
+        {0,4,1,2,3}, 
+        {1,2,0,3,4}, 
+        {1,3,0,2,4}, 
+        {1,4,0,2,3}, 
+        {2,3,0,1,4}, 
+        {2,4,0,1,3}, 
+        {3,4,0,1,2}
+    };
+    int pPerm9[9], Mark[9], i[6], k, n, c;
+    assert( nVars == 9 || nVars == 8 || nVars == 7 );
+    for ( i[0] = 0;      i[0] < nVars; i[0]++ )
+    for ( i[1] = i[0]+1; i[1] < nVars; i[1]++ )
+    for ( i[2] = i[1]+1; i[2] < nVars; i[2]++ )
+    for ( i[3] = i[2]+1; i[3] < nVars; i[3]++ )
+    for ( i[4] = i[3]+1; i[4] < nVars; i[4]++ )
+    {
+        // add remaining ones
+        n = 5;
+        for ( k = 0; k < nVars; k++ )
+            Mark[k] = 0;
+        for ( k = 0; k < 5; k++ )
+            Mark[i[k]] = 1;
+        for ( k = 0; k < nVars; k++ )
+            if ( Mark[k] == 0 )
+                pPerm9[n++] = k;
+        assert( n == nVars );
+        for ( ; n < 9; n++ )
+            pPerm9[n] = pPerm9[n-1];
+        assert( n == 9 );
+        // current ones
+        for ( c = 0; c < 10; c++ )
+        {
+            for ( n = 0; n < 5; n++ )
+                pPerm9[n] = i[Combs[c][n]];
+            // try different combinations
+            for ( k = 5; k < nVars; k++ )
+            {
+                ABC_SWAP( int, pPerm9[5], pPerm9[k] );
+                if ( If_ManSatCheck55(pSat, pTruth, nVars, pPerm9, NULL, NULL, vLits) )
+                {
+//                    for ( k = 0; k < 9; k++ )
+//                        printf( "%c", 'a' + pPerm9[k] );
+//                    printf( "\n" );
+                    return 1;
+                }
+                ABC_SWAP( int, pPerm9[5], pPerm9[k] );
+            }
+        }
+    }
+    return 0;
+}
+unsigned If_ManSatCheck55all( void * pSat, word * pTruth, int nVars, Vec_Int_t * vLits )
+{
+//    abctime clk = Abc_Clock();
+    unsigned Value = If_ManSatCheck55all_int( pSat, pTruth, nVars, vLits );
+//    Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
+    return Value;
+}
 
 /**Function*************************************************************
 
@@ -408,6 +530,7 @@ unsigned If_ManSatCheckXYall_int( void * pSat, int nLutSize, word * pTruth, int 
         for ( i[3] = i[2]+1; i[3] < nVars; i[3]++ )
         for ( i[4] = i[3]+1; i[4] < nVars; i[4]++ )
         {
+            uSet = (1 << (2*i[0])) | (1 << (2*i[1])) | (1 << (2*i[2])) | (1 << (2*i[3])) | (1 << (2*i[4]));
             for ( s[0] = 0;      s[0] < nLutSize; s[0]++ )
             for ( s[1] = s[0]+1; s[1] < nLutSize; s[1]++ )
             for ( s[2] = s[1]+1; s[2] < nLutSize; s[2]++ )
@@ -538,8 +661,7 @@ void If_ManSatTest2()
     sat_solver_delete(p);
     Vec_IntFree( vLits );
 }
-
-void If_ManSatTest()
+void If_ManSatTest3()
 {
     int nVars = 6;
     int nLutSize = 4;
@@ -555,6 +677,22 @@ void If_ManSatTest()
     uSet = If_ManSatCheckXYall( p, nLutSize, pTruth, nVars, vLits );
     Dau_DecPrintSet( uSet, nVars, 1 );
 
+    sat_solver_delete(p);
+    Vec_IntFree( vLits );
+}
+void If_ManSatTest()
+{
+    int nVars = 9;
+    sat_solver * p = (sat_solver *)If_ManSatBuild55();
+//    char * pDsd = "[([(ab)cde]f)ghi]";
+//    char * pDsd = "[([(hi)cde]f)gab]";
+    char * pDsd = "[(0123{(hi)cde}f)gab]";
+    word * pTruth = Dau_DsdToTruth( pDsd, nVars );
+    Vec_Int_t * vLits = Vec_IntAlloc( 1000 );
+    if ( If_ManSatCheck55all( p, pTruth, nVars, vLits ) )
+        printf( "Found!\n" );
+    else
+        printf( "Not found!\n" );
     sat_solver_delete(p);
     Vec_IntFree( vLits );
 }

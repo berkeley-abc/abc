@@ -20,6 +20,7 @@
 
 #include "if.h"
 #include "misc/extra/extra.h"
+#include "sat/bsat/satSolver.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -102,6 +103,7 @@ static inline void          If_DsdVecObjIncRef( Vec_Ptr_t * p, int iObj )       
 static inline If_DsdObj_t * If_DsdObjFanin( Vec_Ptr_t * p, If_DsdObj_t * pObj, int i ) { assert(i < (int)pObj->nFans); return If_DsdVecObj(p, Abc_Lit2Var(pObj->pFans[i])); }
 static inline int           If_DsdVecObjMark( Vec_Ptr_t * p, int iObj )                { return If_DsdVecObj( p, iObj )->fMark;                                             }
 static inline void          If_DsdVecObjSetMark( Vec_Ptr_t * p, int iObj )             { If_DsdVecObj( p, iObj )->fMark = 1;                                                }
+static inline void          If_DsdVecObjClearMark( Vec_Ptr_t * p, int iObj )           { If_DsdVecObj( p, iObj )->fMark = 0;                                                }
 
 #define If_DsdVecForEachObj( vVec, pObj, i )                \
     Vec_PtrForEachEntry( If_DsdObj_t *, vVec, pObj, i )
@@ -365,10 +367,39 @@ void If_DsdManPrintOne( FILE * pFile, If_DsdMan_t * p, int iObjId, unsigned char
         fprintf( pFile, "\n" );
     assert( nSupp == If_DsdVecObjSuppSize(p->vObjs, iObjId) );
 }
+void If_DsdManPrintDistrib( If_DsdMan_t * p )
+{
+    If_DsdObj_t * pObj;
+    int CountAll[IF_MAX_FUNC_LUTSIZE] = {0};
+    int CountNon[IF_MAX_FUNC_LUTSIZE] = {0};
+    int i, nVars, CountNonTotal = 0;
+    If_DsdVecForEachObj( p->vObjs, pObj, i )
+    {
+        nVars = If_DsdObjSuppSize(pObj);
+        CountAll[nVars]++;
+        if ( !If_DsdVecObjMark(p->vObjs, i) )
+            continue;
+        CountNon[nVars]++;
+        CountNonTotal++;
+    }
+    for ( i = 0; i <= p->nVars; i++ )
+    {
+        printf( "%3d :  ", i );
+        printf( "All = %8d  ", CountAll[i] );
+        printf( "Non = %8d ",  CountNon[i] );
+        printf( "(%6.2f %%)",  100.0 * CountNon[i] / CountAll[i] );
+        printf( "\n" );
+    }
+    printf( "All :  " );
+    printf( "All = %8d  ", Vec_PtrSize(p->vObjs) );
+    printf( "Non = %8d ",  CountNonTotal );
+    printf( "(%6.2f %%)",  100.0 * CountNonTotal / Vec_PtrSize(p->vObjs) );
+    printf( "\n" );
+}
 void If_DsdManPrint( If_DsdMan_t * p, char * pFileName, int fVerbose )
 {
     If_DsdObj_t * pObj;
-    int i, DsdMax = 0, CountUsed = 0, CountNonDsdStr = 0;
+    int i, DsdMax = 0, CountUsed = 0, CountNonDsdStr = 0, CountMarked = 0;
     FILE * pFile;
     pFile = pFileName ? fopen( pFileName, "wb" ) : stdout;
     if ( pFileName && pFile == NULL )
@@ -382,9 +413,11 @@ void If_DsdManPrint( If_DsdMan_t * p, char * pFileName, int fVerbose )
             DsdMax = Abc_MaxInt( DsdMax, pObj->nFans ); 
         CountNonDsdStr += If_DsdManCheckNonDec_rec( p, pObj->Id );
         CountUsed += ( If_DsdVecObjRef(p->vObjs, pObj->Id) > 0 );
+        CountMarked += If_DsdVecObjMark( p->vObjs, i );
     }
     fprintf( pFile, "Total number of objects    = %8d\n", Vec_PtrSize(p->vObjs) );
     fprintf( pFile, "Externally used objects    = %8d\n", CountUsed );
+    fprintf( pFile, "Marked objects             = %8d\n", CountMarked );
     fprintf( pFile, "Non-DSD objects (max =%2d)  = %8d\n", DsdMax, Vec_MemEntryNum(p->vTtMem) );
     fprintf( pFile, "Non-DSD structures         = %8d\n", CountNonDsdStr );
     fprintf( pFile, "Unique table hits          = %8d\n", p->nUniqueHits );
@@ -392,11 +425,15 @@ void If_DsdManPrint( If_DsdMan_t * p, char * pFileName, int fVerbose )
     fprintf( pFile, "Memory used for objects    = %8.2f MB.\n", 1.0*Mem_FlexReadMemUsage(p->pMem)/(1<<20) );
     fprintf( pFile, "Memory used for hash table = %8.2f MB.\n", 1.0*sizeof(int)*p->nBins/(1<<20) );
     fprintf( pFile, "Memory used for array      = %8.2f MB.\n", 1.0*sizeof(void *)*Vec_PtrCap(p->vObjs)/(1<<20) );
-    Abc_PrintTime( 1, "Time DSD   ", p->timeDsd    );
-    Abc_PrintTime( 1, "Time canon ", p->timeCanon-p->timeCheck  );
-    Abc_PrintTime( 1, "Time check ", p->timeCheck  );
-    Abc_PrintTime( 1, "Time check2", p->timeCheck2 );
-    Abc_PrintTime( 1, "Time verify", p->timeVerify );
+    If_DsdManPrintDistrib( p );
+    if ( p->timeDsd )
+    {
+        Abc_PrintTime( 1, "Time DSD   ", p->timeDsd    );
+        Abc_PrintTime( 1, "Time canon ", p->timeCanon-p->timeCheck  );
+        Abc_PrintTime( 1, "Time check ", p->timeCheck  );
+        Abc_PrintTime( 1, "Time check2", p->timeCheck2 );
+        Abc_PrintTime( 1, "Time verify", p->timeVerify );
+    }
 //    If_DsdManHashProfile( p );
 //    If_DsdManDump( p );
 //    If_DsdManDumpAll( p );
@@ -1441,6 +1478,84 @@ void If_DsdManTest()
     vSets = Dau_DecFindSets( &t, 6 );
     Vec_IntFree( vSets );
 }
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void If_DsdManTune( If_DsdMan_t * p, int LutSize, int fFast, int fSpec, int fVerbose )
+{
+    ProgressBar * pProgress = NULL;
+    If_DsdObj_t * pObj;
+    sat_solver * pSat = NULL;
+    sat_solver * pSat5 = NULL;
+    Vec_Int_t * vLits = Vec_IntAlloc( 1000 );
+    int i, Value, nVars;
+    word * pTruth;
+    pSat = (sat_solver *)If_ManSatBuildXY( LutSize );
+    if ( LutSize == 5 && fSpec )
+        pSat5 = (sat_solver *)If_ManSatBuild55();
+    If_DsdVecForEachObj( p->vObjs, pObj, i )
+        pObj->fMark = 0;
+    pProgress = Extra_ProgressBarStart( stdout, Vec_PtrSize(p->vObjs) );
+    If_DsdVecForEachObj( p->vObjs, pObj, i )
+    {
+        Extra_ProgressBarUpdate( pProgress, i, NULL );
+        nVars = If_DsdObjSuppSize(pObj);
+        if ( nVars <= LutSize )
+            continue;
+        if ( LutSize == 5 && fSpec )
+        {
+            if ( nVars == 9 )
+            {
+                pTruth = If_DsdManComputeTruth( p, Abc_Var2Lit(i, 0), NULL );
+                Value = If_ManSatCheck55all( pSat5, pTruth, nVars, vLits );
+            }
+            else
+            {
+                if ( If_DsdManCheckXY(p, Abc_Var2Lit(i, 0), LutSize, 0, 0) )
+                    continue;
+                if ( fFast )
+                    Value = 0;
+                else
+                {
+                    pTruth = If_DsdManComputeTruth( p, Abc_Var2Lit(i, 0), NULL );
+                    Value = If_ManSatCheckXYall( pSat, LutSize, pTruth, nVars, vLits );
+                }
+            }
+        }
+        else
+        {
+            if ( If_DsdManCheckXY(p, Abc_Var2Lit(i, 0), LutSize, 0, 0) )
+                continue;
+            if ( fFast )
+                Value = 0;
+            else
+            {
+                pTruth = If_DsdManComputeTruth( p, Abc_Var2Lit(i, 0), NULL );
+                Value = If_ManSatCheckXYall( pSat, LutSize, pTruth, nVars, vLits );
+            }
+        }
+        if ( Value )
+            continue;
+        If_DsdVecObjSetMark( p->vObjs, i );
+    }
+    if ( pProgress )
+        Extra_ProgressBarStop( pProgress );
+    If_ManSatUnbuild( pSat5 );
+    If_ManSatUnbuild( pSat );
+    Vec_IntFree( vLits );
+    if ( fVerbose )
+        If_DsdManPrintDistrib( p );
+}
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
