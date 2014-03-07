@@ -15531,14 +15531,25 @@ usage:
 ***********************************************************************/
 int Abc_CommandDsdPs( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    int c, fPrintLib = 0;
+    int c, Number = 0, fVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "ph" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Nvh" ) ) != EOF )
     {
         switch ( c )
         {
-        case 'p':
-            fPrintLib ^= 1;
+        case 'N':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-N\" should be followed by a floating point number.\n" );
+                goto usage;
+            }
+            Number = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( Number < 0 )
+                goto usage;
+            break;
+        case 'v':
+            fVerbose ^= 1;
             break;
         case 'h':
             goto usage;
@@ -15551,12 +15562,13 @@ int Abc_CommandDsdPs( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( 1, "The DSD manager is not started.\n" );
         return 0;
     }
-    If_DsdManPrint( (If_DsdMan_t *)Abc_FrameReadManDsd(), NULL, 0 );
+    If_DsdManPrint( (If_DsdMan_t *)Abc_FrameReadManDsd(), NULL, Number, fVerbose );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: dsd_ps [-h]\n" );
+    Abc_Print( -2, "usage: dsd_ps [-N num] [-vh]\n" );
     Abc_Print( -2, "\t        prints statistics of DSD manager\n" );
+    Abc_Print( -2, "\t-v    : toggles verbose output [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h    : print the command usage\n");
     return 1;
 }

@@ -220,7 +220,7 @@ void If_DsdManFree( If_DsdMan_t * p, int fVerbose )
     int v;
 //    If_DsdManDump( p );
     if ( fVerbose )
-        If_DsdManPrint( p, NULL, 0 );
+        If_DsdManPrint( p, NULL, 0, 0 );
     if ( fVerbose )
         Vec_MemDumpTruthTables( p->vTtMem, "dumpdsd", p->nVars );
     for ( v = 2; v < p->nVars; v++ )
@@ -396,7 +396,7 @@ void If_DsdManPrintDistrib( If_DsdMan_t * p )
     printf( "(%6.2f %%)",  100.0 * CountNonTotal / Vec_PtrSize(p->vObjs) );
     printf( "\n" );
 }
-void If_DsdManPrint( If_DsdMan_t * p, char * pFileName, int fVerbose )
+void If_DsdManPrint( If_DsdMan_t * p, char * pFileName, int Number, int fVerbose )
 {
     If_DsdObj_t * pObj;
     int i, DsdMax = 0, CountUsed = 0, CountNonDsdStr = 0, CountMarked = 0;
@@ -441,8 +441,8 @@ void If_DsdManPrint( If_DsdMan_t * p, char * pFileName, int fVerbose )
         return;
     If_DsdVecForEachObj( p->vObjs, pObj, i )
     {
-//        if ( i == 50 )
-//            break;
+        if ( Number && i % Number )
+            continue;
         If_DsdManPrintOne( pFile, p, pObj->Id, NULL, 1 );
     }
     fprintf( pFile, "\n" );

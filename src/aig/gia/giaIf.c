@@ -1298,7 +1298,7 @@ Gia_Man_t * Gia_ManFromIfLogic( If_Man_t * pIfMan )
             If_CutForEachLeaf( pIfMan, pCutBest, pIfLeaf, k )
                 Vec_IntPush( vLeaves, pIfLeaf->iCopy );
             // perform one of the two types of mapping: with and without structures
-            if ( pIfMan->pPars->fUseDsd )
+            if ( pIfMan->pPars->fUseDsd && pIfMan->pPars->pLutStruct )
             {
                 if ( pSat == NULL )
                     pSat = (sat_solver *)If_ManSatBuildXY( (int)(pIfMan->pPars->pLutStruct[0] - '0') );
@@ -1308,7 +1308,7 @@ Gia_Man_t * Gia_ManFromIfLogic( If_Man_t * pIfMan )
                     pIfObj->iCopy = Gia_ManFromIfLogicCreateLut( pNew, If_CutTruthW(pIfMan, pCutBest), vLeaves, vCover, vMapping, vMapping2 );
                 pIfObj->iCopy = Abc_LitNotCond( pIfObj->iCopy, pCutBest->fCompl );
             }
-            else if ( pIfMan->pPars->fDeriveLuts && pIfMan->pPars->fTruth )
+            else if ( (pIfMan->pPars->fDeriveLuts && pIfMan->pPars->fTruth) || pIfMan->pPars->fUseDsd )
             {
                 // perform decomposition of the cut
                 pIfObj->iCopy = Gia_ManFromIfLogicNode( pIfMan, pNew, i, vLeaves, vLeaves2, If_CutTruthW(pIfMan, pCutBest), pIfMan->pPars->pLutStruct, vCover, vMapping, vMapping2, vPacking, (pIfMan->pPars->fEnableCheck75 || pIfMan->pPars->fEnableCheck75u), pIfMan->pPars->fEnableCheck07 );
@@ -1528,7 +1528,7 @@ Gia_Man_t * Gia_ManPerformMapping( Gia_Man_t * p, void * pp, int fNormalized )
     If_Man_t * pIfMan;
     If_Par_t * pPars = (If_Par_t *)pp;
     // disable cut minimization when GIA strucure is needed
-    if ( !pPars->fDelayOpt && !pPars->fUserRecLib && ((!pPars->fDeriveLuts && !pPars->fUseDsd) || !pPars->pLutStruct) )
+    if ( !pPars->fDelayOpt && !pPars->fUserRecLib && !pPars->fDeriveLuts && !pPars->fUseDsd )
         pPars->fCutMin = 0;
 
     // reconstruct GIA according to the hierarchy manager
