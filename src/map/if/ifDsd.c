@@ -482,10 +482,11 @@ int If_DsdObjCompare( Vec_Ptr_t * p, int iLit0, int iLit1 )
         if ( Res != 0 )
             return Res;
     }
-    if ( Abc_LitIsCompl(iLit0) < Abc_LitIsCompl(iLit1) )
-        return -1;
     if ( Abc_LitIsCompl(iLit0) > Abc_LitIsCompl(iLit1) )
+        return -1;
+    if ( Abc_LitIsCompl(iLit0) < Abc_LitIsCompl(iLit1) )
         return 1;
+    assert( iLit0 == iLit1 );
     return 0;
 }
 void If_DsdObjSort( Vec_Ptr_t * p, int * pLits, int nLits, int * pPerm )
@@ -554,7 +555,7 @@ int If_DsdObjCreate( If_DsdMan_t * p, int Type, int * pLits, int nLits, int trut
     int i, iPrev = -1;
     // check structural canonicity
     assert( Type != DAU_DSD_MUX || nLits == 3 );
-    assert( Type != DAU_DSD_MUX || !Abc_LitIsCompl(pLits[0]) );
+//    assert( Type != DAU_DSD_MUX || !Abc_LitIsCompl(pLits[0]) );
     assert( Type != DAU_DSD_MUX || !Abc_LitIsCompl(pLits[1]) || !Abc_LitIsCompl(pLits[2]) );
     // check that leaves are in good order
     if ( Type == DAU_DSD_AND || Type == DAU_DSD_XOR )
@@ -844,6 +845,117 @@ word * If_DsdManComputeTruth( If_DsdMan_t * p, int iDsd, unsigned char * pPermLi
 
 /**Function*************************************************************
 
+  Synopsis    [Procedures to propagate the invertor.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int If_DsdManCheckInv_rec( If_DsdMan_t * p, int iLit )
+{
+    If_DsdObj_t * pObj;
+    int i, iFanin;
+    pObj = If_DsdVecObj( p->vObjs, Abc_Lit2Var(iLit) );
+    if ( If_DsdObjType(pObj) == IF_DSD_VAR )
+        return 1;
+    if ( If_DsdObjType(pObj) == IF_DSD_AND || If_DsdObjType(pObj) == IF_DSD_PRIME )
+        return 0;
+    if ( If_DsdObjType(pObj) == IF_DSD_XOR )
+    {
+        If_DsdObjForEachFaninLit( p->vObjs, pObj, iFanin, i )
+            if ( If_DsdManCheckInv_rec(p, iFanin) )
+                return 1;
+        return 0;
+    }
+    if ( If_DsdObjType(pObj) == IF_DSD_MUX )
+        return If_DsdManCheckInv_rec(p, pObj->pFans[1]) && If_DsdManCheckInv_rec(p, pObj->pFans[2]);
+    assert( 0 );
+    return 0;
+}
+/*
+int If_DsdManPushInv_rec( If_DsdMan_t * p, int iLit, unsigned char * pPerm )
+{
+    If_DsdObj_t * pObj;
+    int i, iFanin, RetValue;
+    pObj = If_DsdVecObj( p->vObjs, Abc_Lit2Var(iLit) );
+    if ( If_DsdObjType(pObj) == IF_DSD_VAR )
+    {
+        pPerm[0] = (unsigned char)Abc_LitNot((int)pPerm[0]);
+        return 1;
+    }
+    if ( If_DsdObjType(pObj) == IF_DSD_AND || If_DsdObjType(pObj) == IF_DSD_PRIME )
+        return 0;
+    if ( If_DsdObjType(pObj) == IF_DSD_XOR )
+    {
+        If_DsdObjForEachFaninLit( p->vObjs, pObj, iFanin, i )
+        {
+            if ( If_DsdManCheckInv_rec(p, iFanin) )
+            {
+                RetValue = If_DsdManPushInv_rec(p, iFanin, pPerm);  assert( RetValue );
+                return 1;
+            }
+            pPerm += If_DsdVecLitSuppSize(p->vObjs, iFanin);
+        }
+        return 0;
+    }
+    if ( If_DsdObjType(pObj) == IF_DSD_MUX )
+    {
+        if ( If_DsdManCheckInv_rec(p, pObj->pFans[1]) && If_DsdManCheckInv_rec(p, pObj->pFans[2]) )
+        {
+            pPerm += If_DsdVecLitSuppSize(p->vObjs, pObj->pFans[0]);
+            RetValue = If_DsdManPushInv_rec(p, pObj->pFans[1], pPerm);  assert( RetValue );
+            pPerm += If_DsdVecLitSuppSize(p->vObjs, pObj->pFans[1]);
+            RetValue = If_DsdManPushInv_rec(p, pObj->pFans[2], pPerm);  assert( RetValue );
+            return 1;
+        }
+        return 0;
+    }
+    assert( 0 );
+    return 0;
+}
+*/
+int If_DsdManPushInv_rec( If_DsdMan_t * p, int iLit, unsigned char * pPerm )
+{
+    If_DsdObj_t * pObj;
+    int i, iFanin;
+    pObj = If_DsdVecObj( p->vObjs, Abc_Lit2Var(iLit) );
+    if ( If_DsdObjType(pObj) == IF_DSD_VAR )
+        pPerm[0] = (unsigned char)Abc_LitNot((int)pPerm[0]);
+    else if ( If_DsdObjType(pObj) == IF_DSD_XOR )
+    {
+        If_DsdObjForEachFaninLit( p->vObjs, pObj, iFanin, i )
+        {
+            if ( If_DsdManCheckInv_rec(p, iFanin) )
+            {
+                If_DsdManPushInv_rec( p, iFanin, pPerm );
+                break;
+            }
+            pPerm += If_DsdVecLitSuppSize(p->vObjs, iFanin);
+        }
+    }
+    else if ( If_DsdObjType(pObj) == IF_DSD_MUX )
+    {
+        assert( If_DsdManCheckInv_rec(p, pObj->pFans[1]) && If_DsdManCheckInv_rec(p, pObj->pFans[2]) );
+        pPerm += If_DsdVecLitSuppSize(p->vObjs, pObj->pFans[0]);
+        If_DsdManPushInv_rec(p, pObj->pFans[1], pPerm);
+        pPerm += If_DsdVecLitSuppSize(p->vObjs, pObj->pFans[1]);
+        If_DsdManPushInv_rec(p, pObj->pFans[2], pPerm);
+    }
+    else assert( 0 );
+    return 1;
+}
+int If_DsdManPushInv( If_DsdMan_t * p, int iLit, unsigned char * pPerm )
+{
+    if ( Abc_LitIsCompl(iLit) && If_DsdManCheckInv_rec(p, iLit) )
+        return If_DsdManPushInv_rec( p, iLit, pPerm );
+    return 0;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Performs DSD operation.]
 
   Description []
@@ -870,110 +982,85 @@ int If_DsdManComputeFirst( If_DsdMan_t * p, If_DsdObj_t * pObj, int * pFirsts )
 int If_DsdManOperation( If_DsdMan_t * p, int Type, int * pLits, int nLits, unsigned char * pPerm, word * pTruth )
 {
     If_DsdObj_t * pObj, * pFanin;
-    unsigned char pPermNew[DAU_MAX_VAR];
+    unsigned char pPermNew[DAU_MAX_VAR], * pPermStart = pPerm;
     int nChildren = 0, pChildren[DAU_MAX_VAR], pBegEnd[DAU_MAX_VAR];
-    int i, k, j, Id, iFanin, fComplFan, fCompl = 0, nSSize = 0;
-    if ( Type == IF_DSD_AND )
+    int i, k, j, Id, iFanin, fCompl = 0, nSSize = 0;
+    if ( Type == IF_DSD_AND || Type == IF_DSD_XOR )
     {
         for ( k = 0; k < nLits; k++ )
         {
-            pObj = If_DsdVecObj( p->vObjs, Abc_Lit2Var(pLits[k]) );
-            if ( Abc_LitIsCompl(pLits[k]) || If_DsdObjType(pObj) != IF_DSD_AND )
+            if ( Type == IF_DSD_XOR && Abc_LitIsCompl(pLits[k]) )
             {
-                fComplFan = If_DsdObjIsVar(pObj) && Abc_LitIsCompl(pLits[k]);
-                pBegEnd[nChildren] = (nSSize << 16) | (fComplFan << 8) | (nSSize + pObj->nSupp);
-                nSSize += pObj->nSupp;
-                pChildren[nChildren++] = Abc_LitNotCond( pLits[k], fComplFan );
+                pLits[k] = Abc_LitNot(pLits[k]);
+                fCompl ^= 1;
             }
-            else
+            pObj = If_DsdVecObj( p->vObjs, Abc_Lit2Var(pLits[k]) );
+            if ( Type == If_DsdObjType(pObj) && (Type == IF_DSD_XOR || !Abc_LitIsCompl(pLits[k])) )
             {
                 If_DsdObjForEachFaninLit( p->vObjs, pObj, iFanin, i )
                 {
-                    pFanin = If_DsdVecObj( p->vObjs, Abc_Lit2Var(iFanin) );
-                    fComplFan = If_DsdObjIsVar(pFanin) && Abc_LitIsCompl(iFanin);
-                    pBegEnd[nChildren] = (nSSize << 16) | (fComplFan << 8) | (nSSize + pFanin->nSupp);
-                    pChildren[nChildren++] = Abc_LitNotCond( iFanin, fComplFan );
-                    nSSize += pFanin->nSupp;
+                    assert( Type == IF_DSD_AND || !Abc_LitIsCompl(iFanin) );
+                    pChildren[nChildren] = iFanin;
+                    pBegEnd[nChildren++] = (nSSize << 16) | (nSSize + If_DsdVecLitSuppSize(p->vObjs, iFanin));
+                    nSSize += If_DsdVecLitSuppSize(p->vObjs, iFanin);
                 }
             }
+            else
+            {
+                pChildren[nChildren] = Abc_LitNotCond( pLits[k], If_DsdManPushInv(p, pLits[k], pPermStart) );
+                pBegEnd[nChildren++] = (nSSize << 16) | (nSSize + If_DsdObjSuppSize(pObj));
+                nSSize += If_DsdObjSuppSize(pObj);
+            }
+            pPermStart += If_DsdObjSuppSize(pObj);
         }
         If_DsdObjSort( p->vObjs, pChildren, nChildren, pBegEnd );
         // create permutation
         for ( j = i = 0; i < nChildren; i++ )
             for ( k = (pBegEnd[i] >> 16); k < (pBegEnd[i] & 0xFF); k++ )
-                pPermNew[j++] = (unsigned char)Abc_LitNotCond( pPerm[k], (pBegEnd[i] >> 8) & 1 );
-        assert( j == nSSize );
-        for ( j = 0; j < nSSize; j++ )
-            pPerm[j] = pPermNew[j];
-    }
-    else if ( Type == IF_DSD_XOR )
-    {
-        fComplFan = 0;
-        for ( k = 0; k < nLits; k++ )
-        {
-            fCompl ^= Abc_LitIsCompl(pLits[k]);
-            pObj = If_DsdVecObj( p->vObjs, Abc_Lit2Var(pLits[k]) );
-            if ( If_DsdObjType(pObj) != IF_DSD_XOR )
-            {
-                pBegEnd[nChildren] = (nSSize << 16) | (fComplFan << 8) | (nSSize + pObj->nSupp);
-                pChildren[nChildren++] = Abc_LitRegular(pLits[k]);
-                nSSize += pObj->nSupp;
-            }
-            else
-            {
-                If_DsdObjForEachFaninLit( p->vObjs, pObj, iFanin, i )
-                {
-                    assert( !Abc_LitIsCompl(iFanin) );
-                    pFanin = If_DsdVecObj( p->vObjs, Abc_Lit2Var(iFanin) );
-                    pBegEnd[nChildren] = (nSSize << 16) | (fComplFan << 8) | (nSSize + pFanin->nSupp);
-                    pChildren[nChildren++] = Abc_LitRegular(iFanin);
-                    nSSize += pFanin->nSupp;
-                }
-            }
-        }
-        If_DsdObjSort( p->vObjs, pChildren, nChildren, pBegEnd );
-        // create permutation
-        for ( j = i = 0; i < nChildren; i++ )
-            for ( k = (pBegEnd[i] >> 16); k < (pBegEnd[i] & 0xFF); k++ )
-                pPermNew[j++] = (unsigned char)Abc_LitNotCond( pPerm[k], (pBegEnd[i] >> 8) & 1 );
+                pPermNew[j++] = pPerm[k];
         assert( j == nSSize );
         for ( j = 0; j < nSSize; j++ )
             pPerm[j] = pPermNew[j];
     }
     else if ( Type == IF_DSD_MUX )
     {
+        int RetValue;
+        assert( nLits == 3 );
         for ( k = 0; k < nLits; k++ )
         {
             pFanin = If_DsdVecObj( p->vObjs, Abc_Lit2Var(pLits[k]) );
-            fComplFan = If_DsdObjIsVar(pFanin) && Abc_LitIsCompl(pLits[k]);
-            pChildren[nChildren++] = Abc_LitNotCond( pLits[k], fComplFan );
-            pPerm[k] = (unsigned char)Abc_LitNotCond( (int)pPerm[k], fComplFan );
-            nSSize += pFanin->nSupp;
+            pLits[k] = Abc_LitNotCond( pLits[k], If_DsdManPushInv(p, pLits[k], pPermStart) );
+            pPermStart += pFanin->nSupp;
         }
-        if ( Abc_LitIsCompl(pChildren[0]) )
+        RetValue = If_DsdObjCompare( p->vObjs, pLits[1], pLits[2] );
+        if ( RetValue == 1 || (RetValue == 0 && Abc_LitIsCompl(pLits[0])) )
         {
-            If_DsdObj_t * pFans[3];
-            pChildren[0] = Abc_LitNot(pChildren[0]);
-            ABC_SWAP( int, pChildren[1], pChildren[2] );
-            pFans[0] = If_DsdVecObj( p->vObjs, Abc_Lit2Var(pChildren[0]) );
-            pFans[1] = If_DsdVecObj( p->vObjs, Abc_Lit2Var(pChildren[1]) );
-            pFans[2] = If_DsdVecObj( p->vObjs, Abc_Lit2Var(pChildren[2]) );
-            nSSize = pFans[0]->nSupp + pFans[1]->nSupp + pFans[2]->nSupp;
-            for ( j = k = 0; k < If_DsdObjSuppSize(pFans[0]); k++ )
+            int nSupp0 = If_DsdVecLitSuppSize( p->vObjs, pLits[0] );
+            int nSupp1 = If_DsdVecLitSuppSize( p->vObjs, pLits[1] );
+            int nSupp2 = If_DsdVecLitSuppSize( p->vObjs, pLits[2] );
+            pLits[0] = Abc_LitNot(pLits[0]);
+            ABC_SWAP( int, pLits[1], pLits[2] );
+            for ( j = k = 0; k < nSupp0; k++ )
                 pPermNew[j++] = pPerm[k];
-            for ( k = 0; k < If_DsdObjSuppSize(pFans[2]); k++ )
-                pPermNew[j++] = pPerm[pFans[0]->nSupp + pFans[1]->nSupp + k];
-            for ( k = 0; k < If_DsdObjSuppSize(pFans[1]); k++ )
-                pPermNew[j++] = pPerm[pFans[0]->nSupp + k];
-            assert( j == nSSize );
-            for ( j = 0; j < nSSize; j++ )
+            for ( k = 0; k < nSupp2; k++ )
+                pPermNew[j++] = pPerm[nSupp0 + nSupp1 + k];
+            for ( k = 0; k < nSupp1; k++ )
+                pPermNew[j++] = pPerm[nSupp0 + k];
+            for ( j = 0; j < nSupp0 + nSupp1 + nSupp2; j++ )
                 pPerm[j] = pPermNew[j];
         }
-        if ( Abc_LitIsCompl(pChildren[1]) )
+        if ( Abc_LitIsCompl(pLits[1]) )
         {
-            pChildren[1] = Abc_LitNot(pChildren[1]);
-            pChildren[2] = Abc_LitNot(pChildren[2]);
+            pLits[1] = Abc_LitNot(pLits[1]);
+            pLits[2] = Abc_LitNot(pLits[2]);
             fCompl ^= 1;
+        }
+        pPermStart = pPerm;
+        for ( k = 0; k < nLits; k++ )
+        {
+            pFanin = If_DsdVecObj( p->vObjs, Abc_Lit2Var(pLits[k]) );
+            pChildren[nChildren++] = Abc_LitNotCond( pLits[k], If_DsdManPushInv(p, pLits[k], pPermStart) );
+            pPermStart += pFanin->nSupp;
         }
     }
     else if ( Type == IF_DSD_PRIME )
@@ -987,10 +1074,10 @@ int If_DsdManOperation( If_DsdMan_t * p, int Type, int * pLits, int nLits, unsig
         {
             int iLitNew = Abc_LitNotCond( pLits[(int)pCanonPerm[i]], ((uCanonPhase>>i)&1) );
             pFanin = If_DsdVecObj( p->vObjs, Abc_Lit2Var(iLitNew) );
-            fComplFan = If_DsdObjIsVar(pFanin) && Abc_LitIsCompl(iLitNew);
-            pChildren[nChildren++] = Abc_LitNotCond( iLitNew, fComplFan );
+            pPermStart = pPerm + pFirsts[(int)pCanonPerm[i]];
+            pChildren[nChildren++] = Abc_LitNotCond( iLitNew, If_DsdManPushInv(p, iLitNew, pPermStart) );
             for ( k = 0; k < (int)pFanin->nSupp; k++ )            
-                pPermNew[j++] = (unsigned char)Abc_LitNotCond( (int)pPerm[pFirsts[(int)pCanonPerm[i]] + k], fComplFan );
+                pPermNew[j++] = pPermStart[k];
         }
         assert( j == nSSize );
         for ( j = 0; j < nSSize; j++ )
