@@ -486,7 +486,7 @@ int If_DsdObjCompare( Vec_Ptr_t * p, int iLit0, int iLit1 )
         return -1;
     if ( Abc_LitIsCompl(iLit0) < Abc_LitIsCompl(iLit1) )
         return 1;
-    assert( iLit0 == iLit1 );
+//    assert( iLit0 == iLit1 );
     return 0;
 }
 void If_DsdObjSort( Vec_Ptr_t * p, int * pLits, int nLits, int * pPerm )

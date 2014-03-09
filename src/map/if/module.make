@@ -17,4 +17,5 @@ SRC +=  src/map/if/ifCom.c \
     src/map/if/ifSeq.c \
     src/map/if/ifTime.c \
     src/map/if/ifTruth.c \
+    src/map/if/ifTune.c \
     src/map/if/ifUtil.c 

@@ -4,7 +4,7 @@ set check         # checks intermediate networks
 #unset checkread   # does not check new networks after reading from file
 #set backup        # saves backup networks retrived by "undo" and "recall"
 #set savesteps 1   # sets the maximum number of backup networks to save 
-set progressbar   # display the progress bar
+#set progressbar   # display the progress bar
 
 # program names for internal calls
 set dotwin dot.exe
