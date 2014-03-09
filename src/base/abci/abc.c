@@ -15535,9 +15535,9 @@ usage:
 ***********************************************************************/
 int Abc_CommandDsdPs( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    int c, Number = 0, fOccurs = 0, fVerbose = 0;
+    int c, Number = 0, Support = 0, fOccurs = 0, fTtDump = 0, fVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "Novh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "NSotvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -15552,8 +15552,22 @@ int Abc_CommandDsdPs( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( Number < 0 )
                 goto usage;
             break;
+        case 'S':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-S\" should be followed by a floating point number.\n" );
+                goto usage;
+            }
+            Support = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( Support < 0 )
+                goto usage;
+            break;
         case 'o':
             fOccurs ^= 1;
+            break;
+        case 't':
+            fTtDump ^= 1;
             break;
         case 'v':
             fVerbose ^= 1;
@@ -15569,15 +15583,17 @@ int Abc_CommandDsdPs( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( 1, "The DSD manager is not started.\n" );
         return 0;
     }
-    If_DsdManPrint( (If_DsdMan_t *)Abc_FrameReadManDsd(), NULL, Number, fOccurs, fVerbose );
+    If_DsdManPrint( (If_DsdMan_t *)Abc_FrameReadManDsd(), NULL, Number, Support, fOccurs, fTtDump, fVerbose );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: dsd_ps [-N num] [-ovh]\n" );
+    Abc_Print( -2, "usage: dsd_ps [-NS num] [-ovh]\n" );
     Abc_Print( -2, "\t         prints statistics of DSD manager\n" );
-    Abc_Print( -2, "\t-N num : show structures whose ID divides by N [default = %d]\n",    Number );
+    Abc_Print( -2, "\t-N num : show structures whose ID divides by N [default = %d]\n",   Number );
+    Abc_Print( -2, "\t-S num : show structures whose support size is S [default = %d]\n", Support );
     Abc_Print( -2, "\t-o     : toggles printing occurence distribution [default = %s]\n", fOccurs? "yes": "no" );
-    Abc_Print( -2, "\t-v     : toggles verbose output [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-t     : toggles dumping truth tables [default = %s]\n",            fTtDump? "yes": "no" );
+    Abc_Print( -2, "\t-v     : toggles verbose output [default = %s]\n",                  fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
 }
@@ -15715,7 +15731,7 @@ int Abc_CommandDsdMerge( Abc_Frame_t * pAbc, int argc, char ** argv )
 
 usage:
     Abc_Print( -2, "usage: dsd_merge [-h] <file>\n" );
-    Abc_Print( -2, "\t         mermges DSD manager from file with the current one\n");
+    Abc_Print( -2, "\t         merges DSD manager from file with the current one\n");
     Abc_Print( -2, "\t-h     : print the command usage\n");
     Abc_Print( -2, "\t<file> : file name to read\n");
     return 1;

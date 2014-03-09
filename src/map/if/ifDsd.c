@@ -219,9 +219,9 @@ If_DsdMan_t * If_DsdManAlloc( int nVars, int LutSize )
 void If_DsdManFree( If_DsdMan_t * p, int fVerbose )
 {
     int v;
-//    If_DsdManDump( p );
+//    If_DsdManDumpDsd( p );
     if ( fVerbose )
-        If_DsdManPrint( p, NULL, 0, 0, 0 );
+        If_DsdManPrint( p, NULL, 0, 0, 0, 0, 0 );
     if ( fVerbose )
         Vec_MemDumpTruthTables( p->vTtMem, "dumpdsd", p->nVars );
     for ( v = 2; v < p->nVars; v++ )
@@ -239,39 +239,43 @@ void If_DsdManFree( If_DsdMan_t * p, int fVerbose )
     ABC_FREE( p->pBins );
     ABC_FREE( p );
 }
-void If_DsdManDump( If_DsdMan_t * p )
+void If_DsdManDumpDsd( If_DsdMan_t * p, int Support )
 {
-    char * pFileName = "nondsd_tts.txt";
-    FILE * pFile;
-    If_DsdObj_t * pObj;
-    int i;
-    pFile = fopen( pFileName, "wb" );
+    char * pFileName = "tts_nondsd.txt";
+    If_DsdObj_t * pObj; int i;
+    Vec_Int_t * vMap;
+    FILE * pFile = fopen( pFileName, "wb" );
     if ( pFile == NULL )
     {
         printf( "Cannot open file \"%s\".\n", pFileName );
         return;
     }
+    vMap = Vec_IntStart( Vec_MemEntryNum(p->vTtMem) );
     If_DsdVecForEachObj( p->vObjs, pObj, i )
     {
+        if ( Support && Support != If_DsdObjSuppSize(pObj) )
+            continue;
         if ( If_DsdObjType(pObj) != IF_DSD_PRIME )
             continue;
+        if ( Vec_IntEntry(vMap, If_DsdObjTruthId(pObj)) )
+            continue;
+        Vec_IntWriteEntry(vMap, If_DsdObjTruthId(pObj), 1);
         fprintf( pFile, "0x" );
-        Abc_TtPrintHexRev( pFile, If_DsdObjTruth(p, pObj), p->nVars );
+        Abc_TtPrintHexRev( pFile, If_DsdObjTruth(p, pObj), Support ? Abc_MaxInt(Support, 6) : p->nVars );
         fprintf( pFile, "\n" );
 //        printf( "    " );
 //        Dau_DsdPrintFromTruth( If_DsdObjTruth(p, pObj), p->nVars );
     }
+    Vec_IntFree( vMap );
     fclose( pFile );
 }
-void If_DsdManDumpAll( If_DsdMan_t * p )
+void If_DsdManDumpAll( If_DsdMan_t * p, int Support )
 {
     extern word * If_DsdManComputeTruth( If_DsdMan_t * p, int iDsd, unsigned char * pPermLits );
-    char * pFileName = "dsd_tts.txt";
-    FILE * pFile;
+    char * pFileName = "tts_all.txt";
     If_DsdObj_t * pObj;
-    word * pRes;
-    int i;
-    pFile = fopen( pFileName, "wb" );
+    word * pRes; int i;
+    FILE * pFile = fopen( pFileName, "wb" );
     if ( pFile == NULL )
     {
         printf( "Cannot open file \"%s\".\n", pFileName );
@@ -279,9 +283,11 @@ void If_DsdManDumpAll( If_DsdMan_t * p )
     }
     If_DsdVecForEachObj( p->vObjs, pObj, i )
     {
+        if ( Support && Support != If_DsdObjSuppSize(pObj) )
+            continue;
         pRes = If_DsdManComputeTruth( p, Abc_Var2Lit(i, 0), NULL );
         fprintf( pFile, "0x" );
-        Abc_TtPrintHexRev( pFile, pRes, p->nVars );
+        Abc_TtPrintHexRev( pFile, pRes, Support ? Abc_MaxInt(Support, 6) : p->nVars );
         fprintf( pFile, "\n" );
 //        printf( "    " );
 //        Dau_DsdPrintFromTruth( pRes, p->nVars );
@@ -455,7 +461,7 @@ void If_DsdManPrintDistrib( If_DsdMan_t * p )
     printf( "(%6.2f %%)",  100.0 * CountNonTotal / Vec_PtrSize(p->vObjs) );
     printf( "\n" );
 }
-void If_DsdManPrint( If_DsdMan_t * p, char * pFileName, int Number, int fOccurs, int fVerbose )
+void If_DsdManPrint( If_DsdMan_t * p, char * pFileName, int Number, int Support, int fOccurs, int fTtDump, int fVerbose )
 {
     If_DsdObj_t * pObj;
     int i, DsdMax = 0, CountUsed = 0, CountNonDsdStr = 0, CountMarked = 0;
@@ -497,13 +503,17 @@ void If_DsdManPrint( If_DsdMan_t * p, char * pFileName, int Number, int fOccurs,
         Abc_PrintTime( 1, "Time verify", p->timeVerify );
     }
 //    If_DsdManHashProfile( p );
-//    If_DsdManDump( p );
-//    If_DsdManDumpAll( p );
+    if ( fTtDump )
+        If_DsdManDumpDsd( p, Support );
+    if ( fTtDump )
+        If_DsdManDumpAll( p, Support );
     if ( !fVerbose )
         return;
     If_DsdVecForEachObj( p->vObjs, pObj, i )
     {
         if ( Number && i % Number )
+            continue;
+        if ( Support && Support != If_DsdObjSuppSize(pObj) )
             continue;
         If_DsdManPrintOne( pFile, p, pObj->Id, NULL, 1 );
     }
