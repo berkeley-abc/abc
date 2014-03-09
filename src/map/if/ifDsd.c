@@ -80,8 +80,8 @@ struct If_DsdMan_t_
 };
 
 static inline int           If_DsdObjWordNum( int nFans )                                    { return sizeof(If_DsdObj_t) / 8 + nFans / 2 + ((nFans & 1) > 0);              }
-static inline int           If_DsdObjTruthId( If_DsdMan_t * p, If_DsdObj_t * pObj )          { return pObj->Type == IF_DSD_PRIME ? pObj->pFans[pObj->nFans] : -1;           }
-static inline word *        If_DsdObjTruth( If_DsdMan_t * p, If_DsdObj_t * pObj )            { return Vec_MemReadEntry(p->vTtMem, If_DsdObjTruthId(p, pObj));               }
+static inline int           If_DsdObjTruthId( If_DsdObj_t * pObj )                           { return pObj->Type == IF_DSD_PRIME ? pObj->pFans[pObj->nFans] : -1;           }
+static inline word *        If_DsdObjTruth( If_DsdMan_t * p, If_DsdObj_t * pObj )            { return Vec_MemReadEntry(p->vTtMem, If_DsdObjTruthId(pObj));                  }
 static inline void          If_DsdObjSetTruth( If_DsdMan_t * p, If_DsdObj_t * pObj, int Id ) { assert( pObj->Type == IF_DSD_PRIME && pObj->nFans > 2 ); pObj->pFans[pObj->nFans] = Id;                    }
 
 static inline void          If_DsdObjClean( If_DsdObj_t * pObj )                       { memset( pObj, 0, sizeof(If_DsdObj_t) );                                            }
@@ -476,6 +476,13 @@ int If_DsdObjCompare( Vec_Ptr_t * p, int iLit0, int iLit1 )
         return -1;
     if ( If_DsdObjFaninNum(p0) > If_DsdObjFaninNum(p1) )
         return 1;
+    if ( If_DsdObjType(p0) == IF_DSD_PRIME )
+    {
+        if ( If_DsdObjTruthId(p0) < If_DsdObjTruthId(p1) )
+            return -1;
+        if ( If_DsdObjTruthId(p0) > If_DsdObjTruthId(p1) )
+            return 1;
+    }
     for ( i = 0; i < If_DsdObjFaninNum(p0); i++ )
     {
         Res = If_DsdObjCompare( p, If_DsdObjFaninLit(p0, i), If_DsdObjFaninLit(p1, i) );
@@ -486,7 +493,7 @@ int If_DsdObjCompare( Vec_Ptr_t * p, int iLit0, int iLit1 )
         return -1;
     if ( Abc_LitIsCompl(iLit0) < Abc_LitIsCompl(iLit1) )
         return 1;
-//    assert( iLit0 == iLit1 );
+    assert( iLit0 == iLit1 );
     return 0;
 }
 void If_DsdObjSort( Vec_Ptr_t * p, int * pLits, int nLits, int * pPerm )
@@ -540,7 +547,7 @@ unsigned * If_DsdObjHashLookup( If_DsdMan_t * p, int Type, int * pLits, int nLit
         if ( If_DsdObjType(pObj) == Type && 
              If_DsdObjFaninNum(pObj) == nLits && 
              !memcmp(pObj->pFans, pLits, sizeof(int)*If_DsdObjFaninNum(pObj)) &&
-             truthId == If_DsdObjTruthId(p, pObj) )
+             truthId == If_DsdObjTruthId(pObj) )
         {
             p->nUniqueHits++;
             return pSpot;
@@ -581,6 +588,12 @@ int If_DsdObjCreate( If_DsdMan_t * p, int Type, int * pLits, int nLits, int trut
         pObj->pFans[i] = pLits[i];
         pObj->nSupp += If_DsdVecLitSuppSize(p->vObjs, pLits[i]);
     }
+/*
+    if ( Abc_Var2Lit(pObj->Id, 0) == 3274 || Abc_Var2Lit(pObj->Id, 0) == 1806 )
+    {
+        If_DsdManPrintOne( stdout, p, pObj->Id, NULL, 1 );
+    }
+*/
     // check decomposability
     if ( p->LutSize && !If_DsdManCheckXY(p, Abc_Var2Lit(pObj->Id, 0), p->LutSize, 0, 0) )
         If_DsdVecObjSetMark( p->vObjs, pObj->Id );
@@ -696,7 +709,7 @@ If_DsdMan_t * If_DsdManLoad( char * pFileName )
         pObj = (If_DsdObj_t *)Mem_FlexEntryFetch( p->pMem, sizeof(word) * Num );
         RetValue = fread( pObj, sizeof(word)*Num, 1, pFile );
         Vec_PtrWriteEntry( p->vObjs, i, pObj );
-        pSpot = If_DsdObjHashLookup( p, pObj->Type, (int *)pObj->pFans, pObj->nFans, If_DsdObjTruthId(p, pObj) );
+        pSpot = If_DsdObjHashLookup( p, pObj->Type, (int *)pObj->pFans, pObj->nFans, If_DsdObjTruthId(pObj) );
         assert( *pSpot == 0 );
         *pSpot = pObj->Id;
     }
@@ -1281,7 +1294,7 @@ unsigned If_DsdManCheckMux( If_DsdMan_t * p, int iFirst, If_DsdObj_t * pObj, int
 unsigned If_DsdManCheckPrime( If_DsdMan_t * p, int iFirst, If_DsdObj_t * pObj, int nSuppAll, int LutSize, int fDerive, int fVerbose )
 {
     int i, v, set, LimitOut, SizeIn, SizeOut, pSSizes[DAU_MAX_VAR], pFirsts[DAU_MAX_VAR];
-    int truthId = If_DsdObjTruthId( p, pObj );
+    int truthId = If_DsdObjTruthId(pObj);
     int nFans = If_DsdObjFaninNum(pObj);
     Vec_Int_t * vSets = (Vec_Int_t *)Vec_PtrEntry(p->vTtDecs, truthId);
 if ( fVerbose )
