@@ -135,14 +135,14 @@ Vec_Int_t * Gia_ManOrderWithBoxes( Gia_Man_t * p )
             {
                 int iCiNum  = p->iData2;
                 int iBoxNum = Tim_ManBoxFindFromCiNum( pManTime, iCiNum );
-                printf( "Boxes are not in a topological order. The command has to terminate.\n" );
+                printf( "The command has to terminate. Boxes are not in a topological order.\n" );
                 printf( "The following information may help debugging (numbers are 0-based):\n" );
                 printf( "Input %d of BoxA %d (1stCI = %d; 1stCO = %d) has TFI with CI %d,\n", 
                     k, i, Tim_ManBoxOutputFirst(pManTime, i), Tim_ManBoxInputFirst(pManTime, i), iCiNum );
                 printf( "which corresponds to output %d of BoxB %d (1stCI = %d; 1stCO = %d).\n", 
                     iCiNum - Tim_ManBoxOutputFirst(pManTime, iBoxNum), iBoxNum, 
                     Tim_ManBoxOutputFirst(pManTime, iBoxNum), Tim_ManBoxInputFirst(pManTime, iBoxNum) );
-                printf( "In a correct topological order, BoxB should preceed BoxA.\n" );
+                printf( "In a correct topological order, BoxB should precede BoxA.\n" );
                 Vec_IntFree( vNodes );
                 p->iData2 = 0;
                 return NULL;

@@ -520,7 +520,7 @@ extern int             If_CluCheckExt3( void * p, word * pTruth, int nVars, int 
 extern If_DsdMan_t *   If_DsdManAlloc( int nVars, int nLutSize );
 extern void            If_DsdManDump( If_DsdMan_t * p );
 extern void            If_DsdManPrint( If_DsdMan_t * p, char * pFileName, int Number, int fVerbose );
-extern void            If_DsdManTune( If_DsdMan_t * p, int LutSize, int fFast, int fSpec, int fVerbose );
+extern void            If_DsdManTune( If_DsdMan_t * p, int LutSize, int fFast, int fAdd, int fSpec, int fVerbose );
 extern void            If_DsdManFree( If_DsdMan_t * p, int fVerbose );
 extern void            If_DsdManSave( If_DsdMan_t * p, char * pFileName );
 extern If_DsdMan_t *   If_DsdManLoad( char * pFileName );
@@ -575,12 +575,10 @@ extern int             If_ManPerformMappingRound( If_Man_t * p, int nCutsUsed, i
 extern void            If_ManImproveMapping( If_Man_t * p );
 /*=== ifSat.c ==========================================================*/
 extern void *          If_ManSatBuildXY( int nLutSize );
-extern void *          If_ManSatBuild55();
 extern void *          If_ManSatBuildXYZ( int nLutSize );
 extern void            If_ManSatUnbuild( void * p );
 extern int             If_ManSatCheckXY( void * pSat, int nLutSize, word * pTruth, int nVars, unsigned uSet, word * pTBound, word * pTFree, Vec_Int_t * vLits );
 extern unsigned        If_ManSatCheckXYall( void * pSat, int nLutSize, word * pTruth, int nVars, Vec_Int_t * vLits );
-extern unsigned        If_ManSatCheck55all( void * pSat, word * pTruth, int nVars, Vec_Int_t * vLits );
 /*=== ifSeq.c =============================================================*/
 extern int             If_ManPerformMappingSeq( If_Man_t * p );
 /*=== ifTime.c ============================================================*/

@@ -875,48 +875,6 @@ int If_DsdManCheckInv_rec( If_DsdMan_t * p, int iLit )
     assert( 0 );
     return 0;
 }
-/*
-int If_DsdManPushInv_rec( If_DsdMan_t * p, int iLit, unsigned char * pPerm )
-{
-    If_DsdObj_t * pObj;
-    int i, iFanin, RetValue;
-    pObj = If_DsdVecObj( p->vObjs, Abc_Lit2Var(iLit) );
-    if ( If_DsdObjType(pObj) == IF_DSD_VAR )
-    {
-        pPerm[0] = (unsigned char)Abc_LitNot((int)pPerm[0]);
-        return 1;
-    }
-    if ( If_DsdObjType(pObj) == IF_DSD_AND || If_DsdObjType(pObj) == IF_DSD_PRIME )
-        return 0;
-    if ( If_DsdObjType(pObj) == IF_DSD_XOR )
-    {
-        If_DsdObjForEachFaninLit( p->vObjs, pObj, iFanin, i )
-        {
-            if ( If_DsdManCheckInv_rec(p, iFanin) )
-            {
-                RetValue = If_DsdManPushInv_rec(p, iFanin, pPerm);  assert( RetValue );
-                return 1;
-            }
-            pPerm += If_DsdVecLitSuppSize(p->vObjs, iFanin);
-        }
-        return 0;
-    }
-    if ( If_DsdObjType(pObj) == IF_DSD_MUX )
-    {
-        if ( If_DsdManCheckInv_rec(p, pObj->pFans[1]) && If_DsdManCheckInv_rec(p, pObj->pFans[2]) )
-        {
-            pPerm += If_DsdVecLitSuppSize(p->vObjs, pObj->pFans[0]);
-            RetValue = If_DsdManPushInv_rec(p, pObj->pFans[1], pPerm);  assert( RetValue );
-            pPerm += If_DsdVecLitSuppSize(p->vObjs, pObj->pFans[1]);
-            RetValue = If_DsdManPushInv_rec(p, pObj->pFans[2], pPerm);  assert( RetValue );
-            return 1;
-        }
-        return 0;
-    }
-    assert( 0 );
-    return 0;
-}
-*/
 int If_DsdManPushInv_rec( If_DsdMan_t * p, int iLit, unsigned char * pPerm )
 {
     If_DsdObj_t * pObj;
@@ -1577,20 +1535,18 @@ void If_DsdManTest()
   SeeAlso     []
 
 ***********************************************************************/
-void If_DsdManTune( If_DsdMan_t * p, int LutSize, int fFast, int fSpec, int fVerbose )
+void If_DsdManTune( If_DsdMan_t * p, int LutSize, int fFast, int fAdd, int fSpec, int fVerbose )
 {
     ProgressBar * pProgress = NULL;
     If_DsdObj_t * pObj;
     sat_solver * pSat = NULL;
-    sat_solver * pSat5 = NULL;
     Vec_Int_t * vLits = Vec_IntAlloc( 1000 );
     int i, Value, nVars;
     word * pTruth;
     pSat = (sat_solver *)If_ManSatBuildXY( LutSize );
-    if ( LutSize == 5 && fSpec )
-        pSat5 = (sat_solver *)If_ManSatBuild55();
-    If_DsdVecForEachObj( p->vObjs, pObj, i )
-        pObj->fMark = 0;
+    if ( !fAdd )
+        If_DsdVecForEachObj( p->vObjs, pObj, i )
+            pObj->fMark = 0;
     pProgress = Extra_ProgressBarStart( stdout, Vec_PtrSize(p->vObjs) );
     If_DsdVecForEachObj( p->vObjs, pObj, i )
     {
@@ -1598,37 +1554,17 @@ void If_DsdManTune( If_DsdMan_t * p, int LutSize, int fFast, int fSpec, int fVer
         nVars = If_DsdObjSuppSize(pObj);
         if ( nVars <= LutSize )
             continue;
-        if ( LutSize == 5 && fSpec )
-        {
-            if ( nVars == 9 )
-            {
-                pTruth = If_DsdManComputeTruth( p, Abc_Var2Lit(i, 0), NULL );
-                Value = If_ManSatCheck55all( pSat5, pTruth, nVars, vLits );
-            }
-            else
-            {
-                if ( If_DsdManCheckXY(p, Abc_Var2Lit(i, 0), LutSize, 0, 0) )
-                    continue;
-                if ( fFast )
-                    Value = 0;
-                else
-                {
-                    pTruth = If_DsdManComputeTruth( p, Abc_Var2Lit(i, 0), NULL );
-                    Value = If_ManSatCheckXYall( pSat, LutSize, pTruth, nVars, vLits );
-                }
-            }
-        }
+        if ( fAdd && !pObj->fMark )
+            continue;
+        pObj->fMark = 0;
+        if ( If_DsdManCheckXY(p, Abc_Var2Lit(i, 0), LutSize, 0, 0) )
+            continue;
+        if ( fFast )
+            Value = 0;
         else
         {
-            if ( If_DsdManCheckXY(p, Abc_Var2Lit(i, 0), LutSize, 0, 0) )
-                continue;
-            if ( fFast )
-                Value = 0;
-            else
-            {
-                pTruth = If_DsdManComputeTruth( p, Abc_Var2Lit(i, 0), NULL );
-                Value = If_ManSatCheckXYall( pSat, LutSize, pTruth, nVars, vLits );
-            }
+            pTruth = If_DsdManComputeTruth( p, Abc_Var2Lit(i, 0), NULL );
+            Value = If_ManSatCheckXYall( pSat, LutSize, pTruth, nVars, vLits );
         }
         if ( Value )
             continue;
@@ -1636,7 +1572,6 @@ void If_DsdManTune( If_DsdMan_t * p, int LutSize, int fFast, int fSpec, int fVer
     }
     if ( pProgress )
         Extra_ProgressBarStop( pProgress );
-    If_ManSatUnbuild( pSat5 );
     If_ManSatUnbuild( pSat );
     Vec_IntFree( vLits );
     if ( fVerbose )

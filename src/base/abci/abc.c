@@ -231,6 +231,7 @@ static int Abc_CommandSuperChoiceLut         ( Abc_Frame_t * pAbc, int argc, cha
 //static int Abc_CommandFpgaFast               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandIf                     ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandIfif                   ( Abc_Frame_t * pAbc, int argc, char ** argv );
+
 static int Abc_CommandDsdSave                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandDsdLoad                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandDsdFree                ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -790,11 +791,12 @@ void Abc_Init( Abc_Frame_t * pAbc )
 //    Cmd_CommandAdd( pAbc, "FPGA mapping", "ffpga",         Abc_CommandFpgaFast,         1 );
     Cmd_CommandAdd( pAbc, "FPGA mapping", "if",            Abc_CommandIf,               1 );
     Cmd_CommandAdd( pAbc, "FPGA mapping", "ifif",          Abc_CommandIfif,             1 );
-    Cmd_CommandAdd( pAbc, "FPGA mapping", "dsd_save",      Abc_CommandDsdSave,          0 );
-    Cmd_CommandAdd( pAbc, "FPGA mapping", "dsd_load",      Abc_CommandDsdLoad,          0 );
-    Cmd_CommandAdd( pAbc, "FPGA mapping", "dsd_free",      Abc_CommandDsdFree,          0 );
-    Cmd_CommandAdd( pAbc, "FPGA mapping", "dsd_ps",        Abc_CommandDsdPs,            0 );
-    Cmd_CommandAdd( pAbc, "FPGA mapping", "dsd_tune",      Abc_CommandDsdTune,          0 );
+
+    Cmd_CommandAdd( pAbc, "DSD manager",  "dsd_save",      Abc_CommandDsdSave,          0 );
+    Cmd_CommandAdd( pAbc, "DSD manager",  "dsd_load",      Abc_CommandDsdLoad,          0 );
+    Cmd_CommandAdd( pAbc, "DSD manager",  "dsd_free",      Abc_CommandDsdFree,          0 );
+    Cmd_CommandAdd( pAbc, "DSD manager",  "dsd_ps",        Abc_CommandDsdPs,            0 );
+    Cmd_CommandAdd( pAbc, "DSD manager",  "dsd_tune",      Abc_CommandDsdTune,          0 );
 
 //    Cmd_CommandAdd( pAbc, "Sequential",   "scut",          Abc_CommandScut,             0 );
     Cmd_CommandAdd( pAbc, "Sequential",   "init",          Abc_CommandInit,             1 );
@@ -15586,9 +15588,9 @@ usage:
 ***********************************************************************/
 int Abc_CommandDsdTune( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    int c, fVerbose = 0, fFast = 0, fSpec = 0, LutSize = 0;
+    int c, fVerbose = 0, fFast = 0, fAdd = 0, fSpec = 0, LutSize = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "Kfsvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Kfasvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -15605,6 +15607,9 @@ int Abc_CommandDsdTune( Abc_Frame_t * pAbc, int argc, char ** argv )
             break;
         case 'f':
             fFast ^= 1;
+            break;
+        case 'a':
+            fAdd ^= 1;
             break;
         case 's':
             fSpec ^= 1;
@@ -15623,14 +15628,15 @@ int Abc_CommandDsdTune( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( 1, "The DSD manager is not started.\n" );
         return 0;
     }
-    If_DsdManTune( (If_DsdMan_t *)Abc_FrameReadManDsd(), LutSize, fFast, fSpec, fVerbose );
+    If_DsdManTune( (If_DsdMan_t *)Abc_FrameReadManDsd(), LutSize, fFast, fAdd, fSpec, fVerbose );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: dsd_tune [-K num] [-fsvh]\n" );
+    Abc_Print( -2, "usage: dsd_tune [-K num] [-fasvh]\n" );
     Abc_Print( -2, "\t         tunes DSD manager for the given LUT size\n" );
     Abc_Print( -2, "\t-K num : LUT size used for tuning [default = %d]\n",        LutSize );
     Abc_Print( -2, "\t-f     : toggles using fast check [default = %s]\n",        fFast? "yes": "no" );
+    Abc_Print( -2, "\t-a     : toggles adding tuning to the current one [default = %s]\n",    fAdd? "yes": "no" );
     Abc_Print( -2, "\t-s     : toggles using specialized check [default = %s]\n", fSpec? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggles verbose output [default = %s]\n",          fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
