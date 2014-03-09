@@ -15725,7 +15725,7 @@ int Abc_CommandDsdMerge( Abc_Frame_t * pAbc, int argc, char ** argv )
     pDsdMan = If_DsdManLoad(FileName);
     if ( pDsdMan == NULL )
         return 1;
-    If_DsdManMerge( Abc_FrameReadManDsd(), pDsdMan );
+    If_DsdManMerge( (If_DsdMan_t *)Abc_FrameReadManDsd(), pDsdMan );
     If_DsdManFree( pDsdMan, 0 );
     return 0;
 
