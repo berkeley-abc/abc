@@ -110,8 +110,7 @@ static inline void          If_DsdVecObjClearMark( Vec_Ptr_t * p, int iObj )    
 #define If_DsdVecForEachObjVec( vNodes, vVec, pObj, i )      \
     for ( i = 0; (i < Vec_IntSize(vNodes)) && ((pObj) = If_DsdVecObj(vVec, Vec_IntEntry(vNodes,i))); i++ )
 #define If_DsdVecForEachNode( vVec, pObj, i )               \
-    Vec_PtrForEachEntry( If_DsdObj_t *, vVec, pObj, i )     \
-        if ( If_DsdObjType(pObj) == IF_DSD_CONST0 || If_DsdObjType(pObj) == IF_DSD_VAR ) {} else
+    Vec_PtrForEachEntryStart( If_DsdObj_t *, vVec, pObj, i, 2 )
 #define If_DsdObjForEachFanin( vVec, pObj, pFanin, i )      \
     for ( i = 0; (i < If_DsdObjFaninNum(pObj)) && ((pFanin) = If_DsdObjFanin(vVec, pObj, i)); i++ )
 #define If_DsdObjForEachFaninLit( vVec, pObj, iLit, i )      \
@@ -184,6 +183,7 @@ If_DsdObj_t * If_DsdObjAlloc( If_DsdMan_t * p, int Type, int nFans )
     pObj->Count  = 0;
     Vec_PtrPush( p->vObjs, pObj );
     Vec_IntPush( p->vNexts, 0 );
+    assert( Vec_IntSize(p->vNexts) == Vec_PtrSize(p->vObjs) );
     return pObj;
 }
 If_DsdMan_t * If_DsdManAlloc( int nVars, int LutSize )
@@ -196,7 +196,7 @@ If_DsdMan_t * If_DsdManAlloc( int nVars, int LutSize )
     p->nVars   = nVars;
     p->LutSize = LutSize;
     p->nWords  = Abc_TtWordNum( nVars );
-    p->nBins   = Abc_PrimeCudd( 1000000 );
+    p->nBins   = Abc_PrimeCudd( 100000 );
     p->pBins   = ABC_CALLOC( unsigned, p->nBins );
     p->pMem    = Mem_FlexStart();
     p->vObjs   = Vec_PtrAlloc( 10000 );
@@ -417,9 +417,9 @@ void If_DsdManPrint( If_DsdMan_t * p, char * pFileName, int Number, int fVerbose
     }
     fprintf( pFile, "Total number of objects    = %8d\n", Vec_PtrSize(p->vObjs) );
     fprintf( pFile, "Externally used objects    = %8d\n", CountUsed );
-    fprintf( pFile, "Marked objects             = %8d\n", CountMarked );
     fprintf( pFile, "Non-DSD objects (max =%2d)  = %8d\n", DsdMax, Vec_MemEntryNum(p->vTtMem) );
     fprintf( pFile, "Non-DSD structures         = %8d\n", CountNonDsdStr );
+    fprintf( pFile, "Marked objects             = %8d\n", CountMarked );
     fprintf( pFile, "Unique table hits          = %8d\n", p->nUniqueHits );
     fprintf( pFile, "Unique table misses        = %8d\n", p->nUniqueMisses );
     fprintf( pFile, "Memory used for objects    = %8.2f MB.\n", 1.0*Mem_FlexReadMemUsage(p->pMem)/(1<<20) );
@@ -556,6 +556,25 @@ unsigned * If_DsdObjHashLookup( If_DsdMan_t * p, int Type, int * pLits, int nLit
     p->nUniqueMisses++;
     return pSpot;
 }
+static void If_DsdObjHashResize( If_DsdMan_t * p )
+{
+    If_DsdObj_t * pObj;
+    unsigned * pSpot;
+    int i, Prev = p->nUniqueMisses;
+    p->nBins = Abc_PrimeCudd( 2 * p->nBins );
+    p->pBins = ABC_REALLOC( unsigned, p->pBins, p->nBins );
+    memset( p->pBins, 0, sizeof(unsigned) * p->nBins );
+    Vec_IntFill( p->vNexts, Vec_PtrSize(p->vObjs), 0 );
+    If_DsdVecForEachNode( p->vObjs, pObj, i )
+    {
+        pSpot = If_DsdObjHashLookup( p, pObj->Type, (int *)pObj->pFans, pObj->nFans, If_DsdObjTruthId(pObj) );
+        assert( *pSpot == 0 );
+        *pSpot = pObj->Id;
+    }
+    assert( p->nUniqueMisses - Prev == Vec_PtrSize(p->vObjs) - 2 );
+    p->nUniqueMisses = Prev;
+}
+
 int If_DsdObjCreate( If_DsdMan_t * p, int Type, int * pLits, int nLits, int truthId )
 {
     If_DsdObj_t * pObj, * pFanin;
@@ -576,8 +595,6 @@ int If_DsdObjCreate( If_DsdMan_t * p, int Type, int * pLits, int nLits, int trut
             iPrev = pLits[i];
         }
     }
-    if ( Vec_PtrSize(p->vObjs) % p->nBins == 0 )
-        printf( "Warning: The number of objects in If_DsdObjCreate() is more than the number of bins.\n" );
     // create new node
     pObj = If_DsdObjAlloc( p, Type, nLits );
     if ( Type == DAU_DSD_PRIME )
@@ -601,7 +618,7 @@ int If_DsdObjCreate( If_DsdMan_t * p, int Type, int * pLits, int nLits, int trut
 }
 int If_DsdObjFindOrAdd( If_DsdMan_t * p, int Type, int * pLits, int nLits, word * pTruth )
 {
-    int truthId = (Type == IF_DSD_PRIME) ? Vec_MemHashInsert(p->vTtMem, pTruth) : -1;
+    int objId, truthId = (Type == IF_DSD_PRIME) ? Vec_MemHashInsert(p->vTtMem, pTruth) : -1;
     unsigned * pSpot = If_DsdObjHashLookup( p, Type, pLits, nLits, truthId );
 abctime clk;
     if ( *pSpot )
@@ -617,7 +634,10 @@ clk = Abc_Clock();
     }
 p->timeCheck += Abc_Clock() - clk;
     *pSpot = Vec_PtrSize( p->vObjs );
-    return If_DsdObjCreate( p, Type, pLits, nLits, truthId );
+    objId = If_DsdObjCreate( p, Type, pLits, nLits, truthId );
+    if ( Vec_PtrSize(p->vObjs) > p->nBins )
+        If_DsdObjHashResize( p );
+    return objId;
 }
 
 
@@ -703,6 +723,9 @@ If_DsdMan_t * If_DsdManLoad( char * pFileName )
     assert( Num >= 2 );
     Vec_PtrFillExtra( p->vObjs, Num, NULL );
     Vec_IntFill( p->vNexts, Num, 0 );
+    p->nBins = Abc_PrimeCudd( 2*Num );
+    p->pBins = ABC_REALLOC( unsigned, p->pBins, p->nBins );
+    memset( p->pBins, 0, sizeof(unsigned) * p->nBins );
     for ( i = 2; i < Vec_PtrSize(p->vObjs); i++ )
     {
         RetValue = fread( &Num, 4, 1, pFile );
@@ -713,6 +736,8 @@ If_DsdMan_t * If_DsdManLoad( char * pFileName )
         assert( *pSpot == 0 );
         *pSpot = pObj->Id;
     }
+    assert( p->nUniqueMisses == Vec_PtrSize(p->vObjs) - 2 );
+    p->nUniqueMisses = 0;
     RetValue = fread( &Num, 4, 1, pFile );
     pTruth = ABC_ALLOC( word, p->nWords );
     for ( i = 0; i < Num; i++ )
@@ -720,7 +745,6 @@ If_DsdMan_t * If_DsdManLoad( char * pFileName )
         RetValue = fread( pTruth, sizeof(word)*p->nWords, 1, pFile );
         Vec_MemHashInsert( p->vTtMem, pTruth );
     }
-    p->nUniqueMisses = 0;
     ABC_FREE( pTruth );
     assert( Num == Vec_MemEntryNum(p->vTtMem) );
     for ( i = 0; i < Vec_MemEntryNum(p->vTtMem); i++ )
