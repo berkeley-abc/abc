@@ -445,13 +445,13 @@ void If_DsdManPrintDistrib( If_DsdMan_t * p )
     {
         printf( "%3d :  ", i );
         printf( "All = %8d  ", CountAll[i] );
-        printf( "Non = %8d ",  CountNon[i] );
+        printf( "Non = %8d  ", CountNon[i] );
         printf( "(%6.2f %%)",  100.0 * CountNon[i] / CountAll[i] );
         printf( "\n" );
     }
     printf( "All :  " );
     printf( "All = %8d  ", Vec_PtrSize(p->vObjs) );
-    printf( "Non = %8d ",  CountNonTotal );
+    printf( "Non = %8d  ", CountNonTotal );
     printf( "(%6.2f %%)",  100.0 * CountNonTotal / Vec_PtrSize(p->vObjs) );
     printf( "\n" );
 }
@@ -482,7 +482,8 @@ void If_DsdManPrint( If_DsdMan_t * p, char * pFileName, int Number, int fOccurs,
     fprintf( pFile, "Unique table hits          = %8d\n", p->nUniqueHits );
     fprintf( pFile, "Unique table misses        = %8d\n", p->nUniqueMisses );
     fprintf( pFile, "Memory used for objects    = %8.2f MB.\n", 1.0*Mem_FlexReadMemUsage(p->pMem)/(1<<20) );
-    fprintf( pFile, "Memory used for hash table = %8.2f MB.\n", 1.0*sizeof(int)*p->nBins/(1<<20) );
+    fprintf( pFile, "Memory used for functions  = %8.2f MB.\n", 8.0*(Vec_MemEntrySize(p->vTtMem)+1)*Vec_MemEntryNum(p->vTtMem)/(1<<20) );
+    fprintf( pFile, "Memory used for hash table = %8.2f MB.\n", 1.0*sizeof(int)*(p->nBins+Vec_IntCap(p->vNexts))/(1<<20) );
     fprintf( pFile, "Memory used for array      = %8.2f MB.\n", 1.0*sizeof(void *)*Vec_PtrCap(p->vObjs)/(1<<20) );
     If_DsdManPrintDistrib( p );
     if ( fOccurs )
@@ -819,6 +820,35 @@ If_DsdMan_t * If_DsdManLoad( char * pFileName )
     assert( Vec_MemEntryNum(p->vTtMem) == Vec_PtrSize(p->vTtDecs) ); 
     fclose( pFile );
     return p;
+}
+void If_DsdManMerge( If_DsdMan_t * p, If_DsdMan_t * pNew )
+{
+    If_DsdObj_t * pObj; 
+    Vec_Int_t * vMap;
+    int pFanins[DAU_MAX_VAR];
+    int i, k, iFanin, Id;
+    if ( p->nVars < pNew->nVars )
+    {
+        printf( "The number of variables should be the same or smaller.\n" );
+        return;
+    }
+    if ( p->LutSize != pNew->LutSize )
+    {
+        printf( "LUT size should be the same.\n" );
+        return;
+    }
+    vMap = Vec_IntAlloc( Vec_PtrSize(pNew->vObjs) );
+    Vec_IntPush( vMap, 0 );
+    Vec_IntPush( vMap, 1 );
+    If_DsdVecForEachNode( pNew->vObjs, pObj, i )
+    {
+        If_DsdObjForEachFaninLit( pNew->vObjs, pObj, iFanin, k )
+            pFanins[k] = Abc_Lit2LitV( Vec_IntArray(vMap), iFanin );
+        Id = If_DsdObjFindOrAdd( p, pObj->Type, pFanins, pObj->nFans, pObj->Type == IF_DSD_PRIME ? If_DsdObjTruth(pNew, pObj) : NULL );
+        Vec_IntPush( vMap, Id );
+    }
+    assert( Vec_IntSize(vMap) == Vec_PtrSize(pNew->vObjs) );
+    Vec_IntFree( vMap );
 }
 
 /**Function*************************************************************
@@ -1636,15 +1666,18 @@ void If_DsdManTest()
 void If_DsdManTune( If_DsdMan_t * p, int LutSize, int fFast, int fAdd, int fSpec, int fVerbose )
 {
     ProgressBar * pProgress = NULL;
-    If_DsdObj_t * pObj;
     sat_solver * pSat = NULL;
-    Vec_Int_t * vLits = Vec_IntAlloc( 1000 );
+    If_DsdObj_t * pObj;
+    Vec_Int_t * vLits;
     int i, Value, nVars;
     word * pTruth;
-    pSat = (sat_solver *)If_ManSatBuildXY( LutSize );
-    if ( !fAdd )
+    if ( !fAdd || !LutSize )
         If_DsdVecForEachObj( p->vObjs, pObj, i )
             pObj->fMark = 0;
+    if ( LutSize == 0 )
+        return;
+    vLits = Vec_IntAlloc( 1000 );
+    pSat = (sat_solver *)If_ManSatBuildXY( LutSize );
     pProgress = Extra_ProgressBarStart( stdout, Vec_PtrSize(p->vObjs) );
     If_DsdVecForEachObj( p->vObjs, pObj, i )
     {

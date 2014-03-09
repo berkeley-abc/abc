@@ -237,6 +237,7 @@ static int Abc_CommandDsdLoad                ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandDsdFree                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandDsdPs                  ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandDsdTune                ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandDsdMerge               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 static int Abc_CommandScut                   ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandInit                   ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -797,6 +798,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "DSD manager",  "dsd_free",      Abc_CommandDsdFree,          0 );
     Cmd_CommandAdd( pAbc, "DSD manager",  "dsd_ps",        Abc_CommandDsdPs,            0 );
     Cmd_CommandAdd( pAbc, "DSD manager",  "dsd_tune",      Abc_CommandDsdTune,          0 );
+    Cmd_CommandAdd( pAbc, "DSD manager",  "dsd_merge",     Abc_CommandDsdMerge,         0 );
 
 //    Cmd_CommandAdd( pAbc, "Sequential",   "scut",          Abc_CommandScut,             0 );
     Cmd_CommandAdd( pAbc, "Sequential",   "init",          Abc_CommandInit,             1 );
@@ -15645,6 +15647,77 @@ usage:
     Abc_Print( -2, "\t-s     : toggles using specialized check [default = %s]\n", fSpec? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggles verbose output [default = %s]\n",          fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandDsdMerge( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    char * FileName, * pTemp;
+    char ** pArgvNew;
+    int c, nArgcNew;
+    FILE * pFile;
+    If_DsdMan_t * pDsdMan;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( !Abc_FrameReadManDsd() )
+    {
+        Abc_Print( 1, "The DSD manager is not started.\n" );
+        return 0;
+    }
+    pArgvNew = argv + globalUtilOptind;
+    nArgcNew = argc - globalUtilOptind;
+    if ( nArgcNew != 1 )
+    {
+        Abc_Print( -1, "File name is not given on the command line.\n" );
+        return 1;
+    }
+    // get the input file name
+    FileName = pArgvNew[0];
+    // fix the wrong symbol
+    for ( pTemp = FileName; *pTemp; pTemp++ )
+        if ( *pTemp == '>' )
+            *pTemp = '\\';
+    if ( (pFile = fopen( FileName, "r" )) == NULL )
+    {
+        Abc_Print( -1, "Cannot open input file \"%s\". ", FileName );
+        if ( (FileName = Extra_FileGetSimilarName( FileName, ".aig", NULL, NULL, NULL, NULL )) )
+            Abc_Print( 1, "Did you mean \"%s\"?", FileName );
+        Abc_Print( 1, "\n" );
+        return 1;
+    }
+    fclose( pFile );
+    pDsdMan = If_DsdManLoad(FileName);
+    if ( pDsdMan == NULL )
+        return 1;
+    If_DsdManMerge( Abc_FrameReadManDsd(), pDsdMan );
+    If_DsdManFree( pDsdMan, 0 );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: dsd_merge [-h] <file>\n" );
+    Abc_Print( -2, "\t         mermges DSD manager from file with the current one\n");
+    Abc_Print( -2, "\t-h     : print the command usage\n");
+    Abc_Print( -2, "\t<file> : file name to read\n");
     return 1;
 }
 
