@@ -18,6 +18,7 @@
 
 ***********************************************************************/
 
+#include <math.h>
 #include "if.h"
 #include "misc/extra/extra.h"
 #include "sat/bsat/satSolver.h"
@@ -220,7 +221,7 @@ void If_DsdManFree( If_DsdMan_t * p, int fVerbose )
     int v;
 //    If_DsdManDump( p );
     if ( fVerbose )
-        If_DsdManPrint( p, NULL, 0, 0 );
+        If_DsdManPrint( p, NULL, 0, 0, 0 );
     if ( fVerbose )
         Vec_MemDumpTruthTables( p->vTtMem, "dumpdsd", p->nVars );
     for ( v = 2; v < p->nVars; v++ )
@@ -367,6 +368,64 @@ void If_DsdManPrintOne( FILE * pFile, If_DsdMan_t * p, int iObjId, unsigned char
         fprintf( pFile, "\n" );
     assert( nSupp == If_DsdVecObjSuppSize(p->vObjs, iObjId) );
 }
+void If_DsdManPrintOccurs( FILE * pFile, If_DsdMan_t * p )
+{
+    char Buffer[100];
+    If_DsdObj_t * pObj;
+    Vec_Int_t * vOccurs;
+    int nOccurs, nOccursMax, nOccursAll;
+    int i, k, nSizeMax, Counter = 0;
+    // determine the largest fanin and fanout
+    nOccursMax = nOccursAll = 0;
+    If_DsdVecForEachNode( p->vObjs, pObj, i )
+    {
+        nOccurs = pObj->Count;
+        nOccursAll += nOccurs;
+        nOccursMax  = Abc_MaxInt( nOccursMax, nOccurs );
+    }
+    // allocate storage for fanin/fanout numbers
+    nSizeMax = 10 * (Abc_Base10Log(nOccursMax) + 1);
+    vOccurs  = Vec_IntStart( nSizeMax );
+    // count the number of fanins and fanouts
+    If_DsdVecForEachNode( p->vObjs, pObj, i )
+    {
+        nOccurs = pObj->Count;
+        if ( nOccurs < 10 )
+            Vec_IntAddToEntry( vOccurs, nOccurs, 1 );
+        else if ( nOccurs < 100 )
+            Vec_IntAddToEntry( vOccurs, 10 + nOccurs/10, 1 );
+        else if ( nOccurs < 1000 )
+            Vec_IntAddToEntry( vOccurs, 20 + nOccurs/100, 1 );
+        else if ( nOccurs < 10000 )
+            Vec_IntAddToEntry( vOccurs, 30 + nOccurs/1000, 1 );
+        else if ( nOccurs < 100000 )
+            Vec_IntAddToEntry( vOccurs, 40 + nOccurs/10000, 1 );
+        else if ( nOccurs < 1000000 )
+            Vec_IntAddToEntry( vOccurs, 50 + nOccurs/100000, 1 );
+        else if ( nOccurs < 10000000 )
+            Vec_IntAddToEntry( vOccurs, 60 + nOccurs/1000000, 1 );
+    }
+    fprintf( pFile, "The distribution of object occurrences:\n" );
+    for ( k = 0; k < nSizeMax; k++ )
+    {
+        if ( Vec_IntEntry(vOccurs, k) == 0 )
+            continue;
+        if ( k < 10 )
+            fprintf( pFile, "%15d : ", k );
+        else
+        {
+            sprintf( Buffer, "%d - %d", (int)pow((double)10, k/10) * (k%10), (int)pow((double)10, k/10) * (k%10+1) - 1 );
+            fprintf( pFile, "%15s : ", Buffer );
+        }
+        fprintf( pFile, "%12d   ", Vec_IntEntry(vOccurs, k) );
+        Counter += Vec_IntEntry(vOccurs, k);
+        fprintf( pFile, "(%6.2f %%)", 100.0*Counter/Vec_PtrSize(p->vObjs) );
+        fprintf( pFile, "\n" );
+    }
+    Vec_IntFree( vOccurs );
+    fprintf( pFile, "Fanins: Max = %d. Ave = %.2f.\n", nOccursMax,  1.0*nOccursAll/Vec_PtrSize(p->vObjs) );
+}
+
 void If_DsdManPrintDistrib( If_DsdMan_t * p )
 {
     If_DsdObj_t * pObj;
@@ -396,7 +455,7 @@ void If_DsdManPrintDistrib( If_DsdMan_t * p )
     printf( "(%6.2f %%)",  100.0 * CountNonTotal / Vec_PtrSize(p->vObjs) );
     printf( "\n" );
 }
-void If_DsdManPrint( If_DsdMan_t * p, char * pFileName, int Number, int fVerbose )
+void If_DsdManPrint( If_DsdMan_t * p, char * pFileName, int Number, int fOccurs, int fVerbose )
 {
     If_DsdObj_t * pObj;
     int i, DsdMax = 0, CountUsed = 0, CountNonDsdStr = 0, CountMarked = 0;
@@ -426,6 +485,8 @@ void If_DsdManPrint( If_DsdMan_t * p, char * pFileName, int Number, int fVerbose
     fprintf( pFile, "Memory used for hash table = %8.2f MB.\n", 1.0*sizeof(int)*p->nBins/(1<<20) );
     fprintf( pFile, "Memory used for array      = %8.2f MB.\n", 1.0*sizeof(void *)*Vec_PtrCap(p->vObjs)/(1<<20) );
     If_DsdManPrintDistrib( p );
+    if ( fOccurs )
+        If_DsdManPrintOccurs( stdout, p );
     if ( p->timeDsd )
     {
         Abc_PrintTime( 1, "Time DSD   ", p->timeDsd    );

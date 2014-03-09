@@ -15533,9 +15533,9 @@ usage:
 ***********************************************************************/
 int Abc_CommandDsdPs( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    int c, Number = 0, fVerbose = 0;
+    int c, Number = 0, fOccurs = 0, fVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "Nvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Novh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -15549,6 +15549,9 @@ int Abc_CommandDsdPs( Abc_Frame_t * pAbc, int argc, char ** argv )
             globalUtilOptind++;
             if ( Number < 0 )
                 goto usage;
+            break;
+        case 'o':
+            fOccurs ^= 1;
             break;
         case 'v':
             fVerbose ^= 1;
@@ -15564,14 +15567,16 @@ int Abc_CommandDsdPs( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( 1, "The DSD manager is not started.\n" );
         return 0;
     }
-    If_DsdManPrint( (If_DsdMan_t *)Abc_FrameReadManDsd(), NULL, Number, fVerbose );
+    If_DsdManPrint( (If_DsdMan_t *)Abc_FrameReadManDsd(), NULL, Number, fOccurs, fVerbose );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: dsd_ps [-N num] [-vh]\n" );
-    Abc_Print( -2, "\t        prints statistics of DSD manager\n" );
-    Abc_Print( -2, "\t-v    : toggles verbose output [default = %s]\n", fVerbose? "yes": "no" );
-    Abc_Print( -2, "\t-h    : print the command usage\n");
+    Abc_Print( -2, "usage: dsd_ps [-N num] [-ovh]\n" );
+    Abc_Print( -2, "\t         prints statistics of DSD manager\n" );
+    Abc_Print( -2, "\t-N num : show structures whose ID divides by N [default = %d]\n",    Number );
+    Abc_Print( -2, "\t-o     : toggles printing occurence distribution [default = %s]\n", fOccurs? "yes": "no" );
+    Abc_Print( -2, "\t-v     : toggles verbose output [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
 }
 
