@@ -32620,10 +32620,10 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9FunFaTest( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern void Gia_ManFaultTest( Gia_Man_t * p, int nTimeOut, int fDump, int fVerbose );
-    int c, nTimeOut = 0, fDump = 0, fVerbose = 0;
+    extern void Gia_ManFaultTest( Gia_Man_t * p, int fStuckAt, int fComplVars, int nTimeOut, int fDump, int fVerbose );
+    int c, fStuckAt = 0, fComplVars = 0, nTimeOut = 0, fDump = 0, fVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "Tdvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Tscdvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -32637,6 +32637,12 @@ int Abc_CommandAbc9FunFaTest( Abc_Frame_t * pAbc, int argc, char ** argv )
             globalUtilOptind++;
             if ( nTimeOut < 0 )
                 goto usage;
+            break;
+        case 's':
+            fStuckAt ^= 1;
+            break;
+        case 'c':
+            fComplVars ^= 1;
             break;
         case 'd':
             fDump ^= 1;
@@ -32660,15 +32666,17 @@ int Abc_CommandAbc9FunFaTest( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Abc_CommandAbc9FunFaTest(): AIG is combinational.\n" );
         return 0;
     }
-    Gia_ManFaultTest( pAbc->pGia, nTimeOut, fDump, fVerbose );
+    Gia_ManFaultTest( pAbc->pGia, fStuckAt, fComplVars, nTimeOut, fDump, fVerbose );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &funfatest [-T num] [-dvh]\n" );
+    Abc_Print( -2, "usage: &funfatest [-T num] [-scdvh]\n" );
     Abc_Print( -2, "\t         performs functional fault test generation\n" );
     Abc_Print( -2, "\t-T num : approximate global runtime limit in seconds [default = %d]\n",           nTimeOut );
-    Abc_Print( -2, "\t-d     : toggles dumping test patterns into file \"tests.txt\" [default = %s]\n", fDump? "yes": "no" );
-    Abc_Print( -2, "\t-v     : toggles printing verbose information [default = %s]\n",                  fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-s     : toggles generating tests for stuck-at faults [default = %s]\n",          fStuckAt?   "yes": "no" );
+    Abc_Print( -2, "\t-c     : toggles complementing control variables [default = %s]\n",               fComplVars? "yes": "no" );
+    Abc_Print( -2, "\t-d     : toggles dumping test patterns into file \"tests.txt\" [default = %s]\n", fDump?      "yes": "no" );
+    Abc_Print( -2, "\t-v     : toggles printing verbose information [default = %s]\n",                  fVerbose?   "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
 }
