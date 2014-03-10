@@ -354,6 +354,7 @@ void Gia_ManPrintMappingStats( Gia_Man_t * p, char * pDumpFile )
             fprintf( pTable, "%d ", nLuts           );
             fprintf( pTable, "%d ", LevelMax        );
             fprintf( pTable, "%.2f", 1.0*(Abc_Clock() - clk)/CLOCKS_PER_SEC );
+            clk = Abc_Clock();
         }
         fclose( pTable );
     }
