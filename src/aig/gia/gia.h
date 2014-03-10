@@ -195,7 +195,7 @@ struct Gps_Par_t_
     int            fCut;
     int            fNpn;
     int            fLutProf;
-    int            fDumpFile;
+    char *         pDumpFile;
 };
 
 typedef struct Emb_Par_t_ Emb_Par_t;
@@ -1089,7 +1089,7 @@ extern void                Gia_ManHashProfile( Gia_Man_t * p );
 extern int                 Gia_ManHashLookup( Gia_Man_t * p, Gia_Obj_t * p0, Gia_Obj_t * p1 );
 extern int                 Gia_ManHashAndMulti( Gia_Man_t * p, Vec_Int_t * vLits );
 /*=== giaIf.c ===========================================================*/
-extern void                Gia_ManPrintMappingStats( Gia_Man_t * p, int fDumpFile );
+extern void                Gia_ManPrintMappingStats( Gia_Man_t * p, char * pDumpFile );
 extern void                Gia_ManPrintPackingStats( Gia_Man_t * p );
 extern void                Gia_ManPrintLutStats( Gia_Man_t * p );
 extern int                 Gia_ManLutFaninCount( Gia_Man_t * p );

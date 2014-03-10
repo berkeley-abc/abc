@@ -25083,7 +25083,7 @@ int Abc_CommandAbc9Ps( Abc_Frame_t * pAbc, int argc, char ** argv )
     int c;
     memset( pPars, 0, sizeof(Gps_Par_t) );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "tpcnldh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Dtpcnlh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -25102,8 +25102,14 @@ int Abc_CommandAbc9Ps( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'l':
             pPars->fLutProf ^= 1;
             break;
-        case 'd':
-            pPars->fDumpFile ^= 1;
+        case 'D':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-D\" should be followed by a file name.\n" );
+                goto usage;
+            }
+            pPars->pDumpFile = argv[globalUtilOptind];
+            globalUtilOptind++;
             break;
         case 'h':
             goto usage;
@@ -25120,15 +25126,15 @@ int Abc_CommandAbc9Ps( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &ps [-tpcnldh]\n" );
-    Abc_Print( -2, "\t        prints stats of the current AIG\n" );
-    Abc_Print( -2, "\t-t    : toggle printing BMC tents [default = %s]\n",                pPars->fTents? "yes": "no" );
-    Abc_Print( -2, "\t-p    : toggle printing switching activity [default = %s]\n",       pPars->fSwitch? "yes": "no" );
-    Abc_Print( -2, "\t-c    : toggle printing the size of frontier cut [default = %s]\n", pPars->fCut? "yes": "no" );
-    Abc_Print( -2, "\t-n    : toggle printing NPN classes of functions [default = %s]\n", pPars->fNpn? "yes": "no" );
-    Abc_Print( -2, "\t-l    : toggle printing LUT size profile [default = %s]\n",         pPars->fLutProf? "yes": "no" );
-    Abc_Print( -2, "\t-d    : toggle dumping statistics into a file [default = %s]\n",    pPars->fDumpFile? "yes": "no" );
-    Abc_Print( -2, "\t-h    : print the command usage\n");
+    Abc_Print( -2, "usage: &ps [-tpcnlh] [-D file]\n" );
+    Abc_Print( -2, "\t          prints stats of the current AIG\n" );
+    Abc_Print( -2, "\t-t      : toggle printing BMC tents [default = %s]\n",                pPars->fTents? "yes": "no" );
+    Abc_Print( -2, "\t-p      : toggle printing switching activity [default = %s]\n",       pPars->fSwitch? "yes": "no" );
+    Abc_Print( -2, "\t-c      : toggle printing the size of frontier cut [default = %s]\n", pPars->fCut? "yes": "no" );
+    Abc_Print( -2, "\t-n      : toggle printing NPN classes of functions [default = %s]\n", pPars->fNpn? "yes": "no" );
+    Abc_Print( -2, "\t-l      : toggle printing LUT size profile [default = %s]\n",         pPars->fLutProf? "yes": "no" );
+    Abc_Print( -2, "\t-D file : file name to dump statistics [default = none]\n" );
+    Abc_Print( -2, "\t-h      : print the command usage\n");
     return 1;
 }
 

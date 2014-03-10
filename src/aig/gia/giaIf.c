@@ -305,7 +305,7 @@ int Gia_ManComputeOverlap( Gia_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-void Gia_ManPrintMappingStats( Gia_Man_t * p, int fDumpFile )
+void Gia_ManPrintMappingStats( Gia_Man_t * p, char * pDumpFile )
 {
     int * pLevels;
     int i, k, iFan, nLutSize = 0, nLuts = 0, nFanins = 0, LevelMax = 0;
@@ -331,12 +331,11 @@ void Gia_ManPrintMappingStats( Gia_Man_t * p, int fDumpFile )
     Abc_Print( 1, "mem =%5.2f MB", 4.0*(Gia_ManObjNum(p) + 2*nLuts + nFanins)/(1<<20) );
     Abc_Print( 1, "\n" );
 
-    if ( fDumpFile )
+    if ( pDumpFile )
     {
-        char * pFileName = "stats_map.txt";
         static char FileNameOld[1000] = {0};
         static abctime clk = 0;
-        FILE * pTable = fopen( pFileName, "a+" );
+        FILE * pTable = fopen( pDumpFile, "a+" );
         if ( strcmp( FileNameOld, p->pName ) )
         {
             sprintf( FileNameOld, "%s", p->pName );
