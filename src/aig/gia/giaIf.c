@@ -843,7 +843,7 @@ int Gia_ManFromIfLogicNode( void * pIfMan, Gia_Man_t * pNew, int iObj, Vec_Int_t
             // create mapping
             iObjLit1 = Gia_ManFromIfLogicCreateLut( pNew, pRes, vLeaves, vCover, vMapping, vMapping2 );
             // write packing
-            if ( !Gia_ObjIsCi(Gia_ManObj(pNew, Abc_Lit2Var(iObjLit1))) )
+            if ( !Gia_ObjIsCi(Gia_ManObj(pNew, Abc_Lit2Var(iObjLit1))) && iObjLit1 > 1 )
             {
                 Vec_IntPush( vPacking, 1 );
                 Vec_IntPush( vPacking, Abc_Lit2Var(iObjLit1) );
@@ -885,7 +885,7 @@ int Gia_ManFromIfLogicNode( void * pIfMan, Gia_Man_t * pNew, int iObj, Vec_Int_t
         // create mapping
         iObjLit1 = Gia_ManFromIfLogicCreateLut( pNew, pRes, vLeaves, vCover, vMapping, vMapping2 );
         // write packing
-        if ( !Gia_ObjIsCi(Gia_ManObj(pNew, Abc_Lit2Var(iObjLit1))) )
+        if ( !Gia_ObjIsCi(Gia_ManObj(pNew, Abc_Lit2Var(iObjLit1))) && iObjLit1 > 1 )
         {
             Vec_IntPush( vPacking, 1 );
             Vec_IntPush( vPacking, Abc_Lit2Var(iObjLit1) );
@@ -1183,7 +1183,7 @@ int Gia_ManFromIfLogicFindLut( If_Man_t * pIfMan, Gia_Man_t * pNew, If_Cut_t * p
     {
         RetValue = Gia_ManFromIfLogicCreateLut( pNew, If_CutTruthW(pIfMan, pCutBest), vLeaves, vCover, vMapping, vMapping2 );
         // write packing
-        if ( !Gia_ObjIsCi(Gia_ManObj(pNew, Abc_Lit2Var(RetValue))) )
+        if ( !Gia_ObjIsCi(Gia_ManObj(pNew, Abc_Lit2Var(RetValue))) && RetValue > 1 )
         {
             Vec_IntPush( vPacking, 1 );
             Vec_IntPush( vPacking, Abc_Lit2Var(RetValue) );
