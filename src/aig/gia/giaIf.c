@@ -1193,7 +1193,7 @@ int Gia_ManFromIfLogicFindLut( If_Man_t * pIfMan, Gia_Man_t * pNew, If_Cut_t * p
         return RetValue;
     }
     // find the bound set
-    uSetOld = If_DsdManCheckXY( pIfMan->pIfDsdMan, pCutBest->iCutDsd, nLutSize, 1, 0 );
+    uSetOld = If_DsdManCheckXY( pIfMan->pIfDsdMan, pCutBest->iCutDsd, nLutSize, 1, 1, 0 );
     // remap bound set
     uSetNew = 0;
     for ( k = 0; k < If_CutLeaveNum(pCutBest); k++ )

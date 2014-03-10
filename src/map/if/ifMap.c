@@ -313,7 +313,7 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
                             z = If_Dec6Perform( t, 1 );
                             If_DecPrintConfig( z );
 
-                            s = If_DsdManCheckXY( p->pIfDsdMan, pCut->iCutDsd, 4, 0, 1 );
+                            s = If_DsdManCheckXY( p->pIfDsdMan, pCut->iCutDsd, 4, 0, 0, 1 );
                             printf( "Confirm %d\n", s );
                             s = 0;
                         }

@@ -684,7 +684,7 @@ int If_DsdObjCreate( If_DsdMan_t * p, int Type, int * pLits, int nLits, int trut
     }
 */
     // check decomposability
-    if ( p->LutSize && !If_DsdManCheckXY(p, Abc_Var2Lit(pObj->Id, 0), p->LutSize, 0, 0) )
+    if ( p->LutSize && !If_DsdManCheckXY(p, Abc_Var2Lit(pObj->Id, 0), p->LutSize, 0, 0, 0) )
         If_DsdVecObjSetMark( p->vObjs, pObj->Id );
     return pObj->Id;
 }
@@ -1551,11 +1551,10 @@ unsigned If_DsdManCheckXY_int( If_DsdMan_t * p, int iDsd, int LutSize, int fDeri
 //    If_DsdManPrintOne( stdout, p, Abc_Lit2Var(iDsd), NULL, 1 );
     return 0;
 }
-unsigned If_DsdManCheckXY( If_DsdMan_t * p, int iDsd, int LutSize, int fDerive, int fVerbose )
+unsigned If_DsdManCheckXY( If_DsdMan_t * p, int iDsd, int LutSize, int fDerive, int fHighEffort, int fVerbose )
 {
     unsigned uSet = If_DsdManCheckXY_int( p, iDsd, LutSize, fDerive, fVerbose );
-/*
-    if ( uSet == 0 )
+    if ( uSet == 0 && fHighEffort )
     {
         abctime clk = Abc_Clock();
         int nVars = If_DsdVecLitSuppSize( p->vObjs, iDsd );
@@ -1569,7 +1568,6 @@ unsigned If_DsdManCheckXY( If_DsdMan_t * p, int iDsd, int LutSize, int fDerive, 
 //        Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
         p->timeCheck2 += Abc_Clock() - clk;
     }
-*/
     return uSet;
 }
 
@@ -1698,7 +1696,7 @@ void If_DsdManTune( If_DsdMan_t * p, int LutSize, int fFast, int fAdd, int fSpec
         if ( fAdd && !pObj->fMark )
             continue;
         pObj->fMark = 0;
-        if ( If_DsdManCheckXY(p, Abc_Var2Lit(i, 0), LutSize, 0, 0) )
+        if ( If_DsdManCheckXY(p, Abc_Var2Lit(i, 0), LutSize, 0, 0, 0) )
             continue;
         if ( fFast )
             Value = 0;

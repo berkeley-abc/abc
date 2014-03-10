@@ -529,7 +529,7 @@ extern char *          If_DsdManFileName( If_DsdMan_t * p );
 extern int             If_DsdManVarNum( If_DsdMan_t * p );
 extern int             If_DsdManLutSize( If_DsdMan_t * p );
 extern int             If_DsdManCheckDec( If_DsdMan_t * p, int iDsd );
-extern unsigned        If_DsdManCheckXY( If_DsdMan_t * p, int iDsd, int LutSize, int fDerive, int fVerbose );
+extern unsigned        If_DsdManCheckXY( If_DsdMan_t * p, int iDsd, int LutSize, int fDerive, int fHighEffort, int fVerbose );
 /*=== ifLib.c =============================================================*/
 extern If_LibLut_t *   If_LibLutRead( char * FileName );
 extern If_LibLut_t *   If_LibLutDup( If_LibLut_t * p );
