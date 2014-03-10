@@ -15470,6 +15470,7 @@ int Abc_CommandDsdLoad( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
     fclose( pFile );
+    Abc_FrameSetManDsd( NULL );
     pDsdMan = If_DsdManLoad(FileName);
     if ( pDsdMan == NULL )
         return 1;

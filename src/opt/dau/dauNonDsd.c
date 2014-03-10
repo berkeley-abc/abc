@@ -434,7 +434,7 @@ unsigned Dau_DecReadSet( char * pStr )
 void Dau_DecPrintSets( Vec_Int_t * vSets, int nVars )
 {
     int i, Entry;
-    printf( "The set contains %d entries:\n", Vec_IntSize(vSets) );
+    printf( "The %d-variable set family contains %d sets:\n", nVars, Vec_IntSize(vSets) );
     Vec_IntForEachEntry( vSets, Entry, i )
         Dau_DecPrintSet( (unsigned)Entry, nVars, 1 );
     printf( "\n" );

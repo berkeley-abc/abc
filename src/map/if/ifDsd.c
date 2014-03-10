@@ -374,6 +374,71 @@ void If_DsdManPrintOne( FILE * pFile, If_DsdMan_t * p, int iObjId, unsigned char
         fprintf( pFile, "\n" );
     assert( nSupp == If_DsdVecObjSuppSize(p->vObjs, iObjId) );
 }
+#define DSD_ARRAY_LIMIT 16
+void If_DsdManPrintDecs( FILE * pFile, If_DsdMan_t * p )
+{
+    Vec_Int_t * vDecs;
+    int i, k, nSuppSize, nDecMax = 0;
+    int pDecMax[IF_MAX_FUNC_LUTSIZE] = {0};
+    int pCountsAll[IF_MAX_FUNC_LUTSIZE] = {0};
+    int pCountsSSizes[IF_MAX_FUNC_LUTSIZE] = {0};
+    int pCounts[IF_MAX_FUNC_LUTSIZE][DSD_ARRAY_LIMIT+2] = {{0}};
+    word * pTruth;
+    assert( Vec_MemEntryNum(p->vTtMem) == Vec_PtrSize(p->vTtDecs) );
+    // find max number of decompositions
+    Vec_PtrForEachEntry( Vec_Int_t *, p->vTtDecs, vDecs, i )
+    {
+        pTruth = Vec_MemReadEntry( p->vTtMem, i );
+        nSuppSize = Abc_TtSupportSize( pTruth, p->nVars );
+        pDecMax[nSuppSize] = Abc_MaxInt( pDecMax[nSuppSize], Vec_IntSize(vDecs) );
+        nDecMax = Abc_MaxInt( nDecMax, Vec_IntSize(vDecs) );
+    }
+    // fill up
+    Vec_PtrForEachEntry( Vec_Int_t *, p->vTtDecs, vDecs, i )
+    {
+        pTruth = Vec_MemReadEntry( p->vTtMem, i );
+        nSuppSize = Abc_TtSupportSize( pTruth, p->nVars );
+        pCountsAll[nSuppSize]++;
+        pCountsSSizes[nSuppSize] += Vec_IntSize(vDecs);
+        pCounts[nSuppSize][Abc_MinInt(DSD_ARRAY_LIMIT+1,Vec_IntSize(vDecs))]++;
+//        pCounts[nSuppSize][Abc_MinInt(DSD_ARRAY_LIMIT+1,Vec_IntSize(vDecs)?1+(Vec_IntSize(vDecs)/10):0)]++;
+/*
+        if ( nSuppSize == 6 && Vec_IntSize(vDecs) == pDecMax[6] )
+        {
+            fprintf( pFile, "0x" );
+            Abc_TtPrintHex( pTruth, nSuppSize );
+            Dau_DecPrintSets( vDecs, nSuppSize );
+        }
+*/
+    }
+    // print header
+    fprintf( pFile, " N :  " );
+    fprintf( pFile, " Total  " );
+    for ( k = 0; k <= DSD_ARRAY_LIMIT; k++ )
+        fprintf( pFile, "%6d", k );
+    fprintf( pFile, "  " );
+    fprintf( pFile, "  More" );
+    fprintf( pFile, "     Ave" );
+    fprintf( pFile, "     Max" );
+    fprintf( pFile, "\n" );
+    // print rows
+    for ( i = 0; i <= p->nVars; i++ )
+    {
+        fprintf( pFile, "%2d :  ", i );
+        fprintf( pFile, "%6d  ", pCountsAll[i] );
+        for ( k = 0; k <= DSD_ARRAY_LIMIT; k++ )
+//            fprintf( pFile, "%6d", pCounts[i][k] );
+            fprintf( pFile, "%6.1f", 100.0*pCounts[i][k]/Abc_MaxInt(1,pCountsAll[i]) );
+        fprintf( pFile, "  " );
+//        fprintf( pFile, "%6d", pCounts[i][k] );
+        fprintf( pFile, "%6.1f", 100.0*pCounts[i][k]/Abc_MaxInt(1,pCountsAll[i]) );
+        fprintf( pFile, "  " );
+        fprintf( pFile, "%6.1f", 1.0*pCountsSSizes[i]/Abc_MaxInt(1,pCountsAll[i]) );
+        fprintf( pFile, "  " );
+        fprintf( pFile, "%6d", pDecMax[i] );
+        fprintf( pFile, "\n" );
+    }
+}
 void If_DsdManPrintOccurs( FILE * pFile, If_DsdMan_t * p )
 {
     char Buffer[100];
@@ -507,6 +572,7 @@ void If_DsdManPrint( If_DsdMan_t * p, char * pFileName, int Number, int Support,
         If_DsdManDumpDsd( p, Support );
     if ( fTtDump )
         If_DsdManDumpAll( p, Support );
+//    If_DsdManPrintDecs( stdout, p );
     if ( !fVerbose )
         return;
     If_DsdVecForEachObj( p->vObjs, pObj, i )
