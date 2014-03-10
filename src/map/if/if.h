@@ -524,6 +524,7 @@ extern void            If_DsdManFree( If_DsdMan_t * p, int fVerbose );
 extern void            If_DsdManSave( If_DsdMan_t * p, char * pFileName );
 extern If_DsdMan_t *   If_DsdManLoad( char * pFileName );
 extern void            If_DsdManMerge( If_DsdMan_t * p, If_DsdMan_t * pNew );
+extern void            If_DsdManClean( If_DsdMan_t * p, int fVerbose );
 extern int             If_DsdManCompute( If_DsdMan_t * p, word * pTruth, int nLeaves, unsigned char * pPerm, char * pLutStruct );
 extern char *          If_DsdManFileName( If_DsdMan_t * p );
 extern int             If_DsdManVarNum( If_DsdMan_t * p );

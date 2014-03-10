@@ -860,6 +860,13 @@ void If_DsdManMerge( If_DsdMan_t * p, If_DsdMan_t * pNew )
     assert( Vec_IntSize(vMap) == Vec_PtrSize(pNew->vObjs) );
     Vec_IntFree( vMap );
 }
+void If_DsdManClean( If_DsdMan_t * p, int fVerbose )
+{
+    If_DsdObj_t * pObj; 
+    int i;
+    If_DsdVecForEachObj( p->vObjs, pObj, i )
+        pObj->Count = 0;
+}
 
 /**Function*************************************************************
 

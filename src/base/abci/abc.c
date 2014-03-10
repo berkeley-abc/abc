@@ -238,6 +238,7 @@ static int Abc_CommandDsdFree                ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandDsdPs                  ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandDsdTune                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandDsdMerge               ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandDsdClean               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 static int Abc_CommandScut                   ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandInit                   ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -799,6 +800,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "DSD manager",  "dsd_ps",        Abc_CommandDsdPs,            0 );
     Cmd_CommandAdd( pAbc, "DSD manager",  "dsd_tune",      Abc_CommandDsdTune,          0 );
     Cmd_CommandAdd( pAbc, "DSD manager",  "dsd_merge",     Abc_CommandDsdMerge,         0 );
+    Cmd_CommandAdd( pAbc, "DSD manager",  "dsd_clean",     Abc_CommandDsdClean,         0 );
 
 //    Cmd_CommandAdd( pAbc, "Sequential",   "scut",          Abc_CommandScut,             0 );
     Cmd_CommandAdd( pAbc, "Sequential",   "init",          Abc_CommandInit,             1 );
@@ -15734,6 +15736,50 @@ usage:
     Abc_Print( -2, "\t         merges DSD manager from file with the current one\n");
     Abc_Print( -2, "\t-h     : print the command usage\n");
     Abc_Print( -2, "\t<file> : file name to read\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandDsdClean( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    int c, fVerbose = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( !Abc_FrameReadManDsd() )
+    {
+        Abc_Print( 1, "The DSD manager is not started.\n" );
+        return 0;
+    }
+    If_DsdManClean( (If_DsdMan_t *)Abc_FrameReadManDsd(), fVerbose );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: dsd_clean [-K num] [-vh]\n" );
+    Abc_Print( -2, "\t         cleans the occurrence counters\n" );
+    Abc_Print( -2, "\t-v     : toggles verbose output [default = %s]\n",          fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
 }
 
