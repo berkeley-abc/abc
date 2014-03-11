@@ -1642,6 +1642,8 @@ nTimeSat += Abc_Clock() - clk2;
                     if ( !pPars->fNotVerbose )
                         Abc_Print( 1, "Output %*d was asserted in frame %2d (solved %*d out of %*d outputs).\n",  
                             nOutDigits, k, f, nOutDigits, pPars->nFailOuts, nOutDigits, Saig_ManPoNum(pAig) );
+                    // set the output number
+                    pCexNew0->iPo = k;
                     // report to the bridge
                     if ( p->pPars->fUseBridge )
                         Gia_ManToBridgeResult( stdout, 0, pCexNew0, pCexNew0->iPo );
