@@ -575,6 +575,8 @@ void Abc_FrameUpdateGia( Abc_Frame_t * pAbc, Gia_Man_t * pNew )
         Abc_Print( -1, "Abc_FrameUpdateGia(): Tranformation has failed.\n" );
         return;
     }
+    if ( Gia_ManPoNum(pNew) == 0 )
+        Abc_Print( 0, "The current GIA has no primary outputs. Some commands may not work correctly.\n" );
     if ( pNew == pAbc->pGia )
         return;
     // transfer names

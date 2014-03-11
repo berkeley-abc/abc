@@ -494,6 +494,9 @@ void Abc_FrameReplaceCurrentNetwork( Abc_Frame_t * p, Abc_Ntk_t * pNtk )
     if ( pNtk == NULL )
         return;
 
+    if ( Abc_NtkPoNum(pNtk) == 0 )
+        Abc_Print( 0, "The current network has no primary outputs. Some commands may not work correctly.\n" );
+
     // transfer the parameters to the new network
     if ( p->pNtkCur && Abc_FrameIsFlagEnabled( "backup" ) )
     {
