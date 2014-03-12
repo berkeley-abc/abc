@@ -529,7 +529,9 @@ void If_DsdManPrintDistrib( If_DsdMan_t * p )
 void If_DsdManPrint( If_DsdMan_t * p, char * pFileName, int Number, int Support, int fOccurs, int fTtDump, int fVerbose )
 {
     If_DsdObj_t * pObj;
-    int i, DsdMax = 0, CountUsed = 0, CountNonDsdStr = 0, CountMarked = 0;
+    Vec_Int_t * vStructs, * vCounts;
+    int CountUsed = 0, CountNonDsdStr = 0, CountMarked = 0;
+    int i, * pPerm, DsdMax = 0;
     FILE * pFile;
     pFile = pFileName ? fopen( pFileName, "wb" ) : stdout;
     if ( pFileName && pFile == NULL )
@@ -555,6 +557,7 @@ void If_DsdManPrint( If_DsdMan_t * p, char * pFileName, int Number, int Support,
     fprintf( pFile, "Memory used for objects    = %8.2f MB.\n", 1.0*Mem_FlexReadMemUsage(p->pMem)/(1<<20) );
     fprintf( pFile, "Memory used for functions  = %8.2f MB.\n", 8.0*(Vec_MemEntrySize(p->vTtMem)+1)*Vec_MemEntryNum(p->vTtMem)/(1<<20) );
     fprintf( pFile, "Memory used for hash table = %8.2f MB.\n", 1.0*sizeof(int)*(p->nBins+Vec_IntCap(p->vNexts))/(1<<20) );
+    fprintf( pFile, "Memory used for bound sets = %8.2f MB.\n", (float)Vec_VecMemoryInt((Vec_Vec_t *)p->vTtDecs)/(1<<20) );
     fprintf( pFile, "Memory used for array      = %8.2f MB.\n", 1.0*sizeof(void *)*Vec_PtrCap(p->vObjs)/(1<<20) );
     If_DsdManPrintDistrib( p );
     if ( fOccurs )
@@ -575,15 +578,29 @@ void If_DsdManPrint( If_DsdMan_t * p, char * pFileName, int Number, int Support,
 //    If_DsdManPrintDecs( stdout, p );
     if ( !fVerbose )
         return;
+    vStructs = Vec_IntAlloc( 1000 );
+    vCounts  = Vec_IntAlloc( 1000 );
     If_DsdVecForEachObj( p->vObjs, pObj, i )
     {
         if ( Number && i % Number )
             continue;
         if ( Support && Support != If_DsdObjSuppSize(pObj) )
             continue;
+        Vec_IntPush( vStructs, i );
+        Vec_IntPush( vCounts, -(int)pObj->Count );
+//        If_DsdManPrintOne( pFile, p, pObj->Id, NULL, 1 );
+    }
+//    fprintf( pFile, "\n" );
+    pPerm = Abc_MergeSortCost( Vec_IntArray(vCounts), Vec_IntSize(vCounts) );
+    for ( i = 0; i < Abc_MinInt(Vec_IntSize(vCounts), 20); i++ )
+    {
+        printf( "%2d : ", i+1 );
+        pObj = If_DsdVecObj( p->vObjs, Vec_IntEntry(vStructs, pPerm[i]) );
         If_DsdManPrintOne( pFile, p, pObj->Id, NULL, 1 );
     }
-    fprintf( pFile, "\n" );
+    ABC_FREE( pPerm );
+    Vec_IntFree( vStructs );
+    Vec_IntFree( vCounts );
     if ( pFileName )
         fclose( pFile );
 }
