@@ -530,7 +530,7 @@ void If_DsdManPrint( If_DsdMan_t * p, char * pFileName, int Number, int Support,
 {
     If_DsdObj_t * pObj;
     Vec_Int_t * vStructs, * vCounts;
-    int CountUsed = 0, CountNonDsdStr = 0, CountMarked = 0;
+    int CountUsed = 0, CountNonDsdStr = 0, CountMarked = 0, CountPrime = 0;
     int i, * pPerm, DsdMax = 0;
     FILE * pFile;
     pFile = pFileName ? fopen( pFileName, "wb" ) : stdout;
@@ -543,6 +543,7 @@ void If_DsdManPrint( If_DsdMan_t * p, char * pFileName, int Number, int Support,
     {
         if ( If_DsdObjType(pObj) == IF_DSD_PRIME )
             DsdMax = Abc_MaxInt( DsdMax, pObj->nFans ); 
+        CountPrime += If_DsdObjType(pObj) == IF_DSD_PRIME;
         CountNonDsdStr += If_DsdManCheckNonDec_rec( p, pObj->Id );
         CountUsed += ( If_DsdVecObjRef(p->vObjs, pObj->Id) > 0 );
         CountMarked += If_DsdVecObjMark( p->vObjs, i );
@@ -551,6 +552,7 @@ void If_DsdManPrint( If_DsdMan_t * p, char * pFileName, int Number, int Support,
     fprintf( pFile, "Externally used objects    = %8d\n", CountUsed );
     fprintf( pFile, "Non-DSD objects (max =%2d)  = %8d\n", DsdMax, Vec_MemEntryNum(p->vTtMem) );
     fprintf( pFile, "Non-DSD structures         = %8d\n", CountNonDsdStr );
+    fprintf( pFile, "Prime objects              = %8d\n", CountPrime );
     fprintf( pFile, "Marked objects             = %8d\n", CountMarked );
     fprintf( pFile, "Unique table hits          = %8d\n", p->nUniqueHits );
     fprintf( pFile, "Unique table misses        = %8d\n", p->nUniqueMisses );
