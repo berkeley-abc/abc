@@ -213,7 +213,7 @@ void * Gia_ParWorkerThread( void * pArg )
     unsigned Counter = 0;
     while ( 1 )
     {
-        while ( pThData->Status == 0 );
+        while ( pThData->Status == 0 )
             printf( "" );
         assert( pThData->Status == 1 );
         if ( pThData->Id == -1 )
