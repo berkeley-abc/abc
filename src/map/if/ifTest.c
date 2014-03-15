@@ -239,6 +239,7 @@ void Gia_ParTestSimulate2( Gia_Man_t * p, int nWords, int nProcs )
                     assert( nCountFanins > 0 );
                     nCountFanins--;
                 }
+                ThData[i].Id = -1;
             }
             if ( Vec_IntSize(vStack) > 0 )
             {
