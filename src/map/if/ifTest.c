@@ -154,7 +154,7 @@ void Gia_ParTestSimulate( Gia_Man_t * p, int nWords )
     Gia_ParTestSimulateInit( p );
     Gia_ManForEachObj( p, pObj, i )
         Gia_ParTestSimulateObj( p, i );
-    Gia_ParComputeSignature( p, nWords ); printf( "   " );
+//    Gia_ParComputeSignature( p, nWords ); printf( "   " );
     Gia_ParTestFree( p );
 }
   
@@ -229,7 +229,7 @@ void * Gia_ParWorkerThread( void * pArg )
     }
     assert( Counter != 0 );
     assert( 0 );
-    return (void *)Counter;
+    return NULL;
 }
 void Gia_ParTestSimulate2( Gia_Man_t * p, int nWords, int nProcs )
 {
@@ -237,6 +237,7 @@ void Gia_ParTestSimulate2( Gia_Man_t * p, int nWords, int nProcs )
     Par_ThData_t ThData[PAR_THR_MAX];
     Vec_Int_t * vStack, * vFanins;
     int i, k, iFan, status, nCountFanins;
+    assert( nProcs <= PAR_THR_MAX );
     Gia_ManRandom( 1 );
     Gia_ParTestAlloc( p, nWords );
     Gia_ParTestSimulateInit( p );
@@ -249,7 +250,6 @@ void Gia_ParTestSimulate2( Gia_Man_t * p, int nWords, int nProcs )
     vFanins = Gia_ManCreateFaninCounts( p );
     nCountFanins = Vec_IntSum(vFanins);
     // start the threads
-    assert( nProcs <= PAR_THR_MAX );
     for ( i = 0; i < nProcs; i++ )
     {
         ThData[i].p = p;
@@ -310,7 +310,7 @@ void Gia_ParTestSimulate2( Gia_Man_t * p, int nWords, int nProcs )
     Gia_ManStaticFanoutStop( p );
     Vec_IntFree( vStack );
     Vec_IntFree( vFanins );
-    Gia_ParComputeSignature( p, nWords ); printf( "   " );
+//    Gia_ParComputeSignature( p, nWords ); printf( "   " );
     Gia_ParTestFree( p );
 }
 
@@ -328,11 +328,14 @@ void Gia_ParTestSimulate2( Gia_Man_t * p, int nWords, int nProcs )
 ***********************************************************************/
 void Gia_ParTest( Gia_Man_t * p, int nWords, int nProcs )
 {
-    abctime clk = Abc_Clock();
-    printf( "Trying with %d words and %d procs.\n", nWords, nProcs );
+    abctime clk;
+    printf( "Trying with %d words and %d threads.\n", nWords, nProcs );
     printf( "Memory usage = %.2f MB\n", (8.0*nWords*Gia_ManObjNum(p))/(1<<20) );
+
+    clk = Abc_Clock();
     Gia_ParTestSimulate2( p, nWords, nProcs );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
+    
     clk = Abc_Clock();
     Gia_ParTestSimulate( p, nWords );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
