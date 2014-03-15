@@ -59,6 +59,11 @@ unsigned Gia_ManRandom( int fReset )
     m_w = 18000 * (m_w & 65535) + (m_w >> 16);
     return (m_z << 16) + m_w;
 }
+word Gia_ManRandomW( int fReset )
+{ 
+    return ((word)Gia_ManRandom(fReset) << 32) | ((word)Gia_ManRandom(fReset) << 0);
+}
+
 
 
 /**Function*************************************************************

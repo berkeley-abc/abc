@@ -34030,6 +34030,8 @@ int Abc_CommandAbc9Test( Abc_Frame_t * pAbc, int argc, char ** argv )
     int c, fVerbose = 0;
     int nFrames = 0;
     int fSwitch = 0;
+    int nWords = 1000;
+    int nProcs = 2;
 //    extern Gia_Man_t * Gia_VtaTest( Gia_Man_t * p );
 //    extern int Gia_ManSuppSizeTest( Gia_Man_t * p );
 //    extern void Gia_VtaTest( Gia_Man_t * p, int nFramesStart, int nFramesMax, int nConfMax, int nTimeMax, int fVerbose );
@@ -34051,12 +34053,35 @@ int Abc_CommandAbc9Test( Abc_Frame_t * pAbc, int argc, char ** argv )
 //    extern Gia_Man_t * Unm_ManTest( Gia_Man_t * pGia );
 //    extern void Agi_ManTest( Gia_Man_t * pGia );
 //    extern void Gia_ManCheckFalseTest( Gia_Man_t * p, int nSlackMax );
+    extern void Gia_ParTest( Gia_Man_t * p, int nWords, int nProcs );
 
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "Fsvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "WPFsvh" ) ) != EOF )
     {
         switch ( c )
         {
+        case 'W':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-W\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nWords = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nWords < 0 )
+                goto usage;
+            break;
+        case 'P':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-P\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nProcs = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nProcs < 0 )
+                goto usage;
+            break;
         case 'F':
             if ( globalUtilOptind >= argc )
             {
@@ -34131,6 +34156,7 @@ int Abc_CommandAbc9Test( Abc_Frame_t * pAbc, int argc, char ** argv )
 //    Gia_ManResubTest( pAbc->pGia );
 //    Jf_ManTestCnf( pAbc->pGia );
 //    Gia_ManCheckFalseTest( pAbc->pGia, nFrames );
+    Gia_ParTest( pAbc->pGia, nWords, nProcs );
     return 0;
 usage:
     Abc_Print( -2, "usage: &test [-F num] [-svh]\n" );
