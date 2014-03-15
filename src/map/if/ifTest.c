@@ -57,6 +57,43 @@ static inline void   Gia_ParTestFree( Gia_Man_t * p )                { ABC_FREE(
   SeeAlso     []
 
 ***********************************************************************/
+void Gia_ParComputeSignature( Gia_Man_t * p, int nWords )
+{
+    Gia_Obj_t * pObj;
+    word * pData, Sign = 0;
+    int i, k;
+    Gia_ManForEachCo( p, pObj, k )
+    {
+        pData = Gia_ParTestObj( p, Gia_ObjId(p, pObj) );
+        for ( i = 0; i < p->iData; i++ )
+            Sign ^= pData[i];
+    }
+    Abc_TtPrintHexRev( stdout, &Sign, 6 );
+}
+ 
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_ParTestSimulateInit( Gia_Man_t * p )
+{
+    Gia_Obj_t * pObj;
+    word * pData;
+    int i, k;
+    Gia_ManForEachCi( p, pObj, k )
+    {
+        pData = Gia_ParTestObj( p, Gia_ObjId(p, pObj) );
+        for ( i = 0; i < p->iData; i++ )
+            pData[i] = Gia_ManRandomW( 0 );
+    }
+}
 void Gia_ParTestSimulateObj( Gia_Man_t * p, int Id )
 {
     Gia_Obj_t * pObj = Gia_ManObj( p, Id );
@@ -99,9 +136,6 @@ void Gia_ParTestSimulateObj( Gia_Man_t * p, int Id )
     }
     else if ( Gia_ObjIsCi(pObj) )
     {
-        pData = Gia_ParTestObj( p, Id );
-        for ( i = 0; i < p->iData; i++ )
-            pData[i] = Gia_ManRandomW( 0 );
     }
     else if ( Gia_ObjIsConst0(pObj) )
     {
@@ -117,8 +151,10 @@ void Gia_ParTestSimulate( Gia_Man_t * p, int nWords )
     int i;
     Gia_ManRandom( 1 );
     Gia_ParTestAlloc( p, nWords );
+    Gia_ParTestSimulateInit( p );
     Gia_ManForEachObj( p, pObj, i )
         Gia_ParTestSimulateObj( p, i );
+    Gia_ParComputeSignature( p, nWords ); printf( "   " );
     Gia_ParTestFree( p );
 }
   
@@ -189,7 +225,6 @@ void * Gia_ParWorkerThread( void * pArg )
         }
         assert( pThData->Id >= 0 );
         Gia_ParTestSimulateObj( pThData->p, pThData->Id );
-//        printf( "Simulated %d \n", pThData->Id ); fflush( stdout );
         pThData->Status = 0;
     }
     assert( Counter != 0 );
@@ -204,10 +239,11 @@ void Gia_ParTestSimulate2( Gia_Man_t * p, int nWords, int nProcs )
     int i, k, iFan, status, nCountFanins;
     Gia_ManRandom( 1 );
     Gia_ParTestAlloc( p, nWords );
+    Gia_ParTestSimulateInit( p );
     // start the stack
     vStack = Vec_IntAlloc( 1000 );
-    for ( i = Vec_IntSize(p->vCis) - 1; i >= 0; i-- )
-        Vec_IntPush( vStack, Vec_IntEntry(p->vCis, i) );
+    Vec_IntForEachEntryReverse( p->vCis, iFan, i )
+        Vec_IntPush( vStack, iFan );
     Vec_IntPush( vStack, 0 );
     Gia_ManStaticFanoutStart( p );
     vFanins = Gia_ManCreateFaninCounts( p );
@@ -266,6 +302,7 @@ void Gia_ParTestSimulate2( Gia_Man_t * p, int nWords, int nProcs )
     }
     for ( i = 0; i < nProcs; i++ )
     {
+        assert( ThData[i].Status == 0 );
 //        printf( "Stopping %d\n", i ); fflush( stdout );
         ThData[i].Id = -1;
         ThData[i].Status = 1;
@@ -273,6 +310,7 @@ void Gia_ParTestSimulate2( Gia_Man_t * p, int nWords, int nProcs )
     Gia_ManStaticFanoutStop( p );
     Vec_IntFree( vStack );
     Vec_IntFree( vFanins );
+    Gia_ParComputeSignature( p, nWords ); printf( "   " );
     Gia_ParTestFree( p );
 }
 
@@ -293,10 +331,10 @@ void Gia_ParTest( Gia_Man_t * p, int nWords, int nProcs )
     abctime clk = Abc_Clock();
     printf( "Trying with %d words and %d procs.\n", nWords, nProcs );
     printf( "Memory usage = %.2f MB\n", (8.0*nWords*Gia_ManObjNum(p))/(1<<20) );
-    Gia_ParTestSimulate( p, nWords );
+    Gia_ParTestSimulate2( p, nWords, nProcs );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     clk = Abc_Clock();
-    Gia_ParTestSimulate2( p, nWords, nProcs );
+    Gia_ParTestSimulate( p, nWords );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
 }
 
