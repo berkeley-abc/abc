@@ -42,17 +42,17 @@ ABC_NAMESPACE_IMPL_START
   SeeAlso     []
 
 ***********************************************************************/
-void Cgt_ManDetectCandidates_rec( Aig_Man_t * pAig, Aig_Obj_t * pObj, int nLevelMax, Vec_Ptr_t * vCands )
+void Cgt_ManDetectCandidates_rec( Aig_Man_t * pAig, Vec_Int_t * vUseful, Aig_Obj_t * pObj, int nLevelMax, Vec_Ptr_t * vCands )
 {
     if ( Aig_ObjIsTravIdCurrent(pAig, pObj) )
         return;
     Aig_ObjSetTravIdCurrent(pAig, pObj);
     if ( Aig_ObjIsNode(pObj) )
     {
-        Cgt_ManDetectCandidates_rec( pAig, Aig_ObjFanin0(pObj), nLevelMax, vCands );
-        Cgt_ManDetectCandidates_rec( pAig, Aig_ObjFanin1(pObj), nLevelMax, vCands );
+        Cgt_ManDetectCandidates_rec( pAig, vUseful, Aig_ObjFanin0(pObj), nLevelMax, vCands );
+        Cgt_ManDetectCandidates_rec( pAig, vUseful, Aig_ObjFanin1(pObj), nLevelMax, vCands );
     }
-    if ( Aig_ObjLevel(pObj) <= nLevelMax )
+    if ( Aig_ObjLevel(pObj) <= nLevelMax && (vUseful == NULL || Vec_IntEntry(vUseful, Aig_ObjId(pObj))) )
         Vec_PtrPush( vCands, pObj );
 }
 
@@ -67,13 +67,13 @@ void Cgt_ManDetectCandidates_rec( Aig_Man_t * pAig, Aig_Obj_t * pObj, int nLevel
   SeeAlso     []
 
 ***********************************************************************/
-void Cgt_ManDetectCandidates( Aig_Man_t * pAig, Aig_Obj_t * pObj, int nLevelMax, Vec_Ptr_t * vCands )
+void Cgt_ManDetectCandidates( Aig_Man_t * pAig, Vec_Int_t * vUseful, Aig_Obj_t * pObj, int nLevelMax, Vec_Ptr_t * vCands )
 {
     Vec_PtrClear( vCands );
     if ( !Aig_ObjIsNode(pObj) )
         return;
     Aig_ManIncrementTravId( pAig );
-    Cgt_ManDetectCandidates_rec( pAig, pObj, nLevelMax, vCands );
+    Cgt_ManDetectCandidates_rec( pAig, vUseful, pObj, nLevelMax, vCands );
 }
 
 /**Function*************************************************************

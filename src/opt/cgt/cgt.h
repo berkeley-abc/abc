@@ -69,7 +69,8 @@ struct Cgt_Par_t_
 
 /*=== cgtCore.c ==========================================================*/
 extern void            Cgt_SetDefaultParams( Cgt_Par_t * p );
-extern Vec_Vec_t *     Cgt_ClockGatingCandidates( Aig_Man_t * pAig, Aig_Man_t * pCare, Cgt_Par_t * pPars );
+extern Vec_Vec_t *     Cgt_ClockGatingCandidates( Aig_Man_t * pAig, Aig_Man_t * pCare, Cgt_Par_t * pPars, Vec_Int_t * vUseful );
+extern Vec_Vec_t *     Cgt_ClockGatingInt( Aig_Man_t * pAig, Aig_Man_t * pCare, Cgt_Par_t * pPars, Vec_Int_t * vUseful );
 extern Aig_Man_t *     Cgt_ClockGating( Aig_Man_t * pAig, Aig_Man_t * pCare, Cgt_Par_t * pPars );
 
 

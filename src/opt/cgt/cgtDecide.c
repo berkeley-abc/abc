@@ -161,15 +161,12 @@ float Cgt_ManComputeCoverage( Aig_Man_t * pAig, Vec_Vec_t * vGates )
     int nWords  =  1;
     Ssw_Sml_t * pSml;
     Vec_Ptr_t * vOne;
-    int i, nTransTotal = 0, nTransSaved = 0;
+    int i, nTransSaved = 0;
     pSml = Ssw_SmlSimulateSeq( pAig, 0, nFrames, nWords );
     Vec_VecForEachLevel( vGates, vOne, i )
-    {
         nTransSaved += Ssw_SmlNodeCountOnesRealVec( pSml, vOne );
-        nTransTotal += 32 * nFrames * nWords;
-    }
     Ssw_SmlStop( pSml );
-    return (float)100.0*nTransSaved/nTransTotal;
+    return (float)100.0*nTransSaved/32/nFrames/nWords/Vec_VecSize(vGates);
 }
 
 /**Function*************************************************************

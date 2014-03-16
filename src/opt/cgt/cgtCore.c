@@ -53,7 +53,7 @@ void Cgt_SetDefaultParams( Cgt_Par_t * p )
     p->nVarsMin   =  1000;   // the min number of vars to recycle the SAT solver
     p->nFlopsMin  =     5;   // the min number of flops to recycle the SAT solver
     p->fAreaOnly  =     0;   // derive clock-gating to minimize area
-    p->fVerbose   =     1;   // verbosity flag
+    p->fVerbose   =     0;   // verbosity flag
 }
 
 /**Function*************************************************************
@@ -138,7 +138,7 @@ void Cgt_ClockGatingRangeCheck( Cgt_Man_t * p, int iStart, int nOutputs )
     {
         nCalls = p->nCalls;
         pMiter = Saig_ManLi( p->pAig, i );
-        Cgt_ManDetectCandidates( p->pAig, Aig_ObjFanin0(pMiter), p->pPars->nLevelMax, vNodes );
+        Cgt_ManDetectCandidates( p->pAig, p->vUseful, Aig_ObjFanin0(pMiter), p->pPars->nLevelMax, vNodes );
         // go through the candidates of this PO
         Vec_PtrForEachEntry( Aig_Obj_t *, vNodes, pCand, k )
         {
@@ -242,7 +242,7 @@ p->timePrepare += Abc_Clock() - clk;
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Vec_t * Cgt_ClockGatingCandidates( Aig_Man_t * pAig, Aig_Man_t * pCare, Cgt_Par_t * pPars )
+Vec_Vec_t * Cgt_ClockGatingCandidates( Aig_Man_t * pAig, Aig_Man_t * pCare, Cgt_Par_t * pPars, Vec_Int_t * vUseful )
 {
     Bar_Progress_t * pProgress = NULL;
     Cgt_Par_t Pars; 
@@ -255,6 +255,7 @@ Vec_Vec_t * Cgt_ClockGatingCandidates( Aig_Man_t * pAig, Aig_Man_t * pCare, Cgt_
     if ( pPars == NULL )
         Cgt_SetDefaultParams( pPars = &Pars );    
     p = Cgt_ManCreate( pAig, pCare, pPars );
+    p->vUseful = vUseful;
     p->pFrame = Cgt_ManDeriveAigForGating( p );
 p->timeAig += Abc_Clock() - clk;
     assert( Aig_ManCoNum(p->pFrame) == Saig_ManRegNum(p->pAig) );
@@ -283,17 +284,22 @@ p->timeTotal = Abc_Clock() - clkTotal;
   SeeAlso     []
 
 ***********************************************************************/
-Aig_Man_t * Cgt_ClockGating( Aig_Man_t * pAig, Aig_Man_t * pCare, Cgt_Par_t * pPars )
+Vec_Vec_t * Cgt_ClockGatingInt( Aig_Man_t * pAig, Aig_Man_t * pCare, Cgt_Par_t * pPars, Vec_Int_t * vUseful )
 {
-    Aig_Man_t * pGated;
-    Vec_Vec_t * vGatesAll;
-    Vec_Vec_t * vGates;
-    int nNodesUsed;//, clk = Abc_Clock();
-    vGatesAll = Cgt_ClockGatingCandidates( pAig, pCare, pPars );
+    Vec_Vec_t * vGatesAll, * vGates;
+    vGatesAll = Cgt_ClockGatingCandidates( pAig, pCare, pPars, vUseful );
     if ( pPars->fAreaOnly )
         vGates = Cgt_ManDecideArea( pAig, vGatesAll, pPars->nOdcMax, pPars->fVerbose );
     else
         vGates = Cgt_ManDecideSimple( pAig, vGatesAll, pPars->nOdcMax, pPars->fVerbose );
+    Vec_VecFree( vGatesAll );
+    return vGates;
+}
+Aig_Man_t * Cgt_ClockGating( Aig_Man_t * pAig, Aig_Man_t * pCare, Cgt_Par_t * pPars )
+{
+    Aig_Man_t * pGated;
+    Vec_Vec_t * vGates = Cgt_ClockGatingInt( pAig, pCare, pPars, NULL );
+    int nNodesUsed;
     if ( pPars->fVerbose )
     {
 //        printf( "Before CG: " );
@@ -310,7 +316,6 @@ Aig_Man_t * Cgt_ClockGating( Aig_Man_t * pAig, Aig_Man_t * pCare, Cgt_Par_t * pP
             Aig_ManNodeNum(pGated) );
     }
     Vec_VecFree( vGates );
-    Vec_VecFree( vGatesAll );
     return pGated;
 }
 

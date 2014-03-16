@@ -321,7 +321,7 @@ int Ssw_SmlNodeIsZeroFrame( Ssw_Sml_t * p, Aig_Obj_t * pObj, int f )
 
 /**Function*************************************************************
 
-  Synopsis    [Counts the number of one's in the patten the object.]
+  Synopsis    [Counts the number of one's in the pattern of the object.]
 
   Description []
 
@@ -350,7 +350,7 @@ int Ssw_SmlNodeCountOnesReal( Ssw_Sml_t * p, Aig_Obj_t * pObj )
 
 /**Function*************************************************************
 
-  Synopsis    [Counts the number of one's in the patten the object.]
+  Synopsis    [Counts the number of one's in the pattern of the objects.]
 
   Description []
 

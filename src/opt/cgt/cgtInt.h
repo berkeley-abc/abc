@@ -50,6 +50,7 @@ struct Cgt_Man_t_
     // user's data
     Cgt_Par_t *  pPars;          // user's parameters
     Aig_Man_t *  pAig;           // user's AIG manager
+    Vec_Int_t *  vUseful;        // user's candidate nodes
     // user's constraints
     Aig_Man_t *  pCare;          // constraint cones
     Vec_Vec_t *  vSuppsInv;      // inverse support of the constraints
@@ -94,7 +95,7 @@ struct Cgt_Man_t_
 ////////////////////////////////////////////////////////////////////////
 
 /*=== cgtAig.c ==========================================================*/
-extern void             Cgt_ManDetectCandidates( Aig_Man_t * pAig, Aig_Obj_t * pObj, int nLevelMax, Vec_Ptr_t * vCands );
+extern void             Cgt_ManDetectCandidates( Aig_Man_t * pAig, Vec_Int_t * vUseful, Aig_Obj_t * pObj, int nLevelMax, Vec_Ptr_t * vCands );
 extern Aig_Man_t *      Cgt_ManDeriveAigForGating( Cgt_Man_t * p );
 extern Aig_Man_t *      Cgt_ManDupPartition( Aig_Man_t * pAig, int nVarsMin, int nFlopsMin, int iStart, Aig_Man_t * pCare, Vec_Vec_t * vSuppsInv, int * pnOutputs );
 extern Aig_Man_t *      Cgt_ManDeriveGatedAig( Aig_Man_t * pAig, Vec_Vec_t * vGates, int fReduce, int * pnUsedNodes );
