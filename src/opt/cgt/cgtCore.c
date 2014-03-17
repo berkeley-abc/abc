@@ -51,7 +51,7 @@ void Cgt_SetDefaultParams( Cgt_Par_t * p )
     p->nOdcMax    =     0;   // the max number of ODC levels to consider
     p->nConfMax   =    10;   // the max number of conflicts at a node
     p->nVarsMin   =  1000;   // the min number of vars to recycle the SAT solver
-    p->nFlopsMin  =     5;   // the min number of flops to recycle the SAT solver
+    p->nFlopsMin  =    10;   // the min number of flops to recycle the SAT solver
     p->fAreaOnly  =     0;   // derive clock-gating to minimize area
     p->fVerbose   =     0;   // verbosity flag
 }
