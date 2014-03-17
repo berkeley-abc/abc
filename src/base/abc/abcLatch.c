@@ -267,6 +267,7 @@ Abc_Obj_t * Abc_NtkAddLatch( Abc_Ntk_t * pNtk, Abc_Obj_t * pDriver, Abc_InitType
     Abc_ObjAssignName( pLatchIn,  Abc_ObjName(pLatch), "_li" );
     Abc_ObjAddFanin( pLatchOut, pLatch );
     Abc_ObjAddFanin( pLatch, pLatchIn );
+    if ( pDriver )
     Abc_ObjAddFanin( pLatchIn, pDriver );
     pLatch->pData = (void *)Init;
     return pLatchOut;
