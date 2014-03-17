@@ -271,8 +271,6 @@ Abc_Ntk_t * Abc_NtkFromBarBufsInt( Abc_Ntk_t * pNtkBase, Abc_Ntk_t * pNtk, int f
             Abc_ObjFanout0(Abc_ObjFanout0(pLatch))->pCopy = pNet->pCopy;
         }
     }
-    Abc_NtkForEachLatch( pNtk, pObj, i )
-        assert( Abc_ObjFanout0(Abc_ObjFanout0(pLatch))->pCopy != NULL );
     // build PO cones
     if ( fRoot )
     {

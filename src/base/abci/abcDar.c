@@ -417,6 +417,7 @@ Abc_Ntk_t * Abc_NtkFromDar( Abc_Ntk_t * pNtkOld, Aig_Man_t * pMan )
     // perform strashing
     pNtkNew = Abc_NtkStartFrom( pNtkOld, ABC_NTK_STRASH, ABC_FUNC_AIG );
     pNtkNew->nConstrs = pMan->nConstrs;
+    pNtkNew->nBarBufs = pNtkOld->nBarBufs;
     // transfer the pointers to the basic nodes
     Aig_ManConst1(pMan)->pData = Abc_AigConst1(pNtkNew);
     Aig_ManForEachCi( pMan, pObj, i )
@@ -467,6 +468,7 @@ Abc_Ntk_t * Abc_NtkFromDarSeqSweep( Abc_Ntk_t * pNtkOld, Aig_Man_t * pMan )
     Aig_Obj_t * pObj, * pObjLo, * pObjLi;
     int i, iNodeId, nDigits; 
     assert( pMan->nAsserts == 0 );
+    assert( pNtkOld->nBarBufs == 0 );
 //    assert( Aig_ManRegNum(pMan) != Abc_NtkLatchNum(pNtkOld) );
     // perform strashing
     pNtkNew = Abc_NtkStartFromNoLatches( pNtkOld, ABC_NTK_STRASH, ABC_FUNC_AIG );
@@ -811,6 +813,7 @@ Abc_Ntk_t * Abc_NtkAfterTrim( Aig_Man_t * pMan, Abc_Ntk_t * pNtkOld )
     Aig_Obj_t * pObj, * pObjLo, * pObjLi;
     int i; 
     assert( pMan->nAsserts == 0 );
+    assert( pNtkOld->nBarBufs == 0 );
     assert( Aig_ManRegNum(pMan) <= Abc_NtkLatchNum(pNtkOld) );
     assert( Saig_ManPiNum(pMan) <= Abc_NtkCiNum(pNtkOld) );
     assert( Saig_ManPoNum(pMan) == Abc_NtkPoNum(pNtkOld) );
@@ -899,6 +902,7 @@ Abc_Ntk_t * Abc_NtkFromDarChoices( Abc_Ntk_t * pNtkOld, Aig_Man_t * pMan )
     // perform strashing
     pNtkNew = Abc_NtkStartFrom( pNtkOld, ABC_NTK_STRASH, ABC_FUNC_AIG );
     pNtkNew->nConstrs = pMan->nConstrs;
+    pNtkNew->nBarBufs = pNtkOld->nBarBufs;
     // transfer the pointers to the basic nodes
     Aig_ManCleanData( pMan );
     Aig_ManConst1(pMan)->pData = Abc_AigConst1(pNtkNew);
@@ -956,6 +960,7 @@ Abc_Ntk_t * Abc_NtkFromDarSeq( Abc_Ntk_t * pNtkOld, Aig_Man_t * pMan )
     Aig_Obj_t * pObj;
     int i;
 //    assert( Aig_ManLatchNum(pMan) > 0 );
+    assert( pNtkOld->nBarBufs == 0 );
     // perform strashing
     pNtkNew = Abc_NtkStartFromNoLatches( pNtkOld, ABC_NTK_STRASH, ABC_FUNC_AIG );
     pNtkNew->nConstrs = pMan->nConstrs;
