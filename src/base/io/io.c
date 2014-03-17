@@ -172,12 +172,13 @@ int IoCommandRead( Abc_Frame_t * pAbc, int argc, char ** argv )
     char Command[1000];
     Abc_Ntk_t * pNtk;
     char * pFileName, * pTemp;
-    int c, fCheck;
+    int c, fCheck, fBarBufs;
 
     fCheck = 1;
+    fBarBufs = 0;
     glo_fMapped = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "mch" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "mcbh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -186,6 +187,9 @@ int IoCommandRead( Abc_Frame_t * pAbc, int argc, char ** argv )
                 break;
             case 'c':
                 fCheck ^= 1;
+                break;
+            case 'b':
+                fBarBufs ^= 1;
                 break;
             case 'h':
                 goto usage;
@@ -230,7 +234,7 @@ int IoCommandRead( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 0;
     }
     // read the file using the corresponding file reader
-    pNtk = Io_Read( pFileName, Io_ReadFileType(pFileName), fCheck );
+    pNtk = Io_Read( pFileName, Io_ReadFileType(pFileName), fCheck, fBarBufs );
     if ( pNtk == NULL )
         return 0;
     if ( Abc_NtkPiNum(pNtk) == 0 )
@@ -245,12 +249,13 @@ int IoCommandRead( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( pAbc->Err, "usage: read [-mch] <file>\n" );
+    fprintf( pAbc->Err, "usage: read [-mcbh] <file>\n" );
     fprintf( pAbc->Err, "\t         replaces the current network by the network read from <file>\n" );
     fprintf( pAbc->Err, "\t         by calling the parser that matches the extension of <file>\n" );
     fprintf( pAbc->Err, "\t         (to read a hierarchical design, use \"read_hie\")\n" );
     fprintf( pAbc->Err, "\t-m     : toggle reading mapped Verilog [default = %s]\n", glo_fMapped? "yes":"no" );
     fprintf( pAbc->Err, "\t-c     : toggle network check after reading [default = %s]\n", fCheck? "yes":"no" );
+    fprintf( pAbc->Err, "\t-b     : toggle reading barrier buffers [default = %s]\n", fBarBufs? "yes":"no" );
     fprintf( pAbc->Err, "\t-h     : prints the command summary\n" );
     fprintf( pAbc->Err, "\tfile   : the name of a file to read\n" );
     return 1;
@@ -294,7 +299,7 @@ int IoCommandReadAiger( Abc_Frame_t * pAbc, int argc, char ** argv )
     // get the input file name
     pFileName = argv[globalUtilOptind];
     // read the file using the corresponding file reader
-    pNtk = Io_Read( pFileName, IO_FILE_AIGER, fCheck );
+    pNtk = Io_Read( pFileName, IO_FILE_AIGER, fCheck, 0 );
     if ( pNtk == NULL )
         return 1;
     // replace the current network
@@ -349,7 +354,7 @@ int IoCommandReadBaf( Abc_Frame_t * pAbc, int argc, char ** argv )
     // get the input file name
     pFileName = argv[globalUtilOptind];
     // read the file using the corresponding file reader
-    pNtk = Io_Read( pFileName, IO_FILE_BAF, fCheck );
+    pNtk = Io_Read( pFileName, IO_FILE_BAF, fCheck, 0 );
     if ( pNtk == NULL )
         return 1;
     // replace the current network
@@ -404,7 +409,7 @@ int IoCommandReadBblif( Abc_Frame_t * pAbc, int argc, char ** argv )
     // get the input file name
     pFileName = argv[globalUtilOptind];
     // read the file using the corresponding file reader
-    pNtk = Io_Read( pFileName, IO_FILE_BBLIF, fCheck );
+    pNtk = Io_Read( pFileName, IO_FILE_BBLIF, fCheck, 0 );
     if ( pNtk == NULL )
         return 1;
     // replace the current network
@@ -473,7 +478,7 @@ int IoCommandReadBlif( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( fReadAsAig )
         pNtk = Io_ReadBlifAsAig( pFileName, fCheck );
     else if ( fUseNewParser )
-        pNtk = Io_Read( pFileName, IO_FILE_BLIF, fCheck );
+        pNtk = Io_Read( pFileName, IO_FILE_BLIF, fCheck, 0 );
     else
     {
         Abc_Ntk_t * pTemp;
@@ -541,7 +546,7 @@ int IoCommandReadBlifMv( Abc_Frame_t * pAbc, int argc, char ** argv )
     // get the input file name
     pFileName = argv[globalUtilOptind];
     // read the file using the corresponding file reader
-    pNtk = Io_Read( pFileName, IO_FILE_BLIFMV, fCheck );
+    pNtk = Io_Read( pFileName, IO_FILE_BLIFMV, fCheck, 0 );
     if ( pNtk == NULL )
         return 1;
     // replace the current network
@@ -597,7 +602,7 @@ int IoCommandReadBench( Abc_Frame_t * pAbc, int argc, char ** argv )
     // get the input file name
     pFileName = argv[globalUtilOptind];
     // read the file using the corresponding file reader
-    pNtk = Io_Read( pFileName, IO_FILE_BENCH, fCheck );
+    pNtk = Io_Read( pFileName, IO_FILE_BENCH, fCheck, 0 );
     if ( pNtk == NULL )
         return 1;
     // replace the current network
@@ -714,7 +719,7 @@ int IoCommandReadEdif( Abc_Frame_t * pAbc, int argc, char ** argv )
     // get the input file name
     pFileName = argv[globalUtilOptind];
     // read the file using the corresponding file reader
-    pNtk = Io_Read( pFileName, IO_FILE_EDIF, fCheck );
+    pNtk = Io_Read( pFileName, IO_FILE_EDIF, fCheck, 0 );
     if ( pNtk == NULL )
         return 1;
     // replace the current network
@@ -769,7 +774,7 @@ int IoCommandReadEqn( Abc_Frame_t * pAbc, int argc, char ** argv )
     // get the input file name
     pFileName = argv[globalUtilOptind];
     // read the file using the corresponding file reader
-    pNtk = Io_Read( pFileName, IO_FILE_EQN, fCheck );
+    pNtk = Io_Read( pFileName, IO_FILE_EQN, fCheck, 0 );
     if ( pNtk == NULL )
         return 1;
     // replace the current network
@@ -910,7 +915,7 @@ int IoCommandReadPla( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_NtkDelete( pTemp );
     }
     else
-        pNtk = Io_Read( pFileName, IO_FILE_PLA, fCheck );
+        pNtk = Io_Read( pFileName, IO_FILE_PLA, fCheck, 0 );
     if ( pNtk == NULL )
         return 1;
     // replace the current network
@@ -1015,13 +1020,14 @@ int IoCommandReadVerilog( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Abc_Ntk_t * pNtk;
     char * pFileName;
-    int fCheck;
+    int fCheck, fBarBufs;
     int c;
 
     fCheck = 1;
+    fBarBufs = 0;
     glo_fMapped = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "mch" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "mcbh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -1030,6 +1036,9 @@ int IoCommandReadVerilog( Abc_Frame_t * pAbc, int argc, char ** argv )
                 break;
             case 'c':
                 fCheck ^= 1;
+                break;
+            case 'b':
+                fBarBufs ^= 1;
                 break;
             case 'h':
                 goto usage;
@@ -1042,7 +1051,7 @@ int IoCommandReadVerilog( Abc_Frame_t * pAbc, int argc, char ** argv )
     // get the input file name
     pFileName = argv[globalUtilOptind];
     // read the file using the corresponding file reader
-    pNtk = Io_Read( pFileName, IO_FILE_VERILOG, fCheck );
+    pNtk = Io_Read( pFileName, IO_FILE_VERILOG, fCheck, fBarBufs );
     if ( pNtk == NULL )
         return 1;
     // replace the current network
@@ -1051,10 +1060,11 @@ int IoCommandReadVerilog( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( pAbc->Err, "usage: read_verilog [-mch] <file>\n" );
+    fprintf( pAbc->Err, "usage: read_verilog [-mcbh] <file>\n" );
     fprintf( pAbc->Err, "\t         reads the network in Verilog (IWLS 2002/2005 subset)\n" );
     fprintf( pAbc->Err, "\t-m     : toggle reading mapped Verilog [default = %s]\n", glo_fMapped? "yes":"no" );
     fprintf( pAbc->Err, "\t-c     : toggle network check after reading [default = %s]\n", fCheck? "yes":"no" );
+    fprintf( pAbc->Err, "\t-b     : toggle reading barrier buffers [default = %s]\n", fBarBufs? "yes":"no" );
     fprintf( pAbc->Err, "\t-h     : prints the command summary\n" );
     fprintf( pAbc->Err, "\tfile   : the name of a file to read\n" );
     return 1;

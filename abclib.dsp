@@ -99,6 +99,10 @@ SOURCE=.\src\base\abc\abcAig.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\base\abc\abcBarBuf.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\base\abc\abcBlifMv.c
 # End Source File
 # Begin Source File

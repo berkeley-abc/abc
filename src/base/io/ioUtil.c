@@ -223,7 +223,7 @@ void updateLtlStoreOfNtk( Abc_Ntk_t *pNtk, Vec_Ptr_t *tempLtlStore )
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Ntk_t * Io_Read( char * pFileName, Io_FileType_t FileType, int fCheck )
+Abc_Ntk_t * Io_Read( char * pFileName, Io_FileType_t FileType, int fCheck, int fBarBufs )
 {
     Abc_Ntk_t * pNtk, * pTemp;
     Vec_Ptr_t * vLtl;
@@ -234,6 +234,14 @@ Abc_Ntk_t * Io_Read( char * pFileName, Io_FileType_t FileType, int fCheck )
     vLtl = temporaryLtlStore( pNtk );
     if ( !Abc_NtkIsNetlist(pNtk) )
         return pNtk;
+    // derive barbufs
+    if ( fBarBufs )
+    {
+        pNtk = Abc_NtkToBarBufs( pTemp = pNtk );
+        Abc_NtkDelete( pTemp );
+        assert( Abc_NtkIsLogic(pNtk) );
+        return pNtk;
+    }
     // flatten logic hierarchy
     assert( Abc_NtkIsNetlist(pNtk) );
     if ( Abc_NtkWhiteboxNum(pNtk) > 0 )
@@ -481,13 +489,22 @@ void Io_WriteHie( Abc_Ntk_t * pNtk, char * pBaseName, char * pFileName )
     if ( Abc_NtkWhiteboxNum(pNtkBase) > 0 )
     {
         pNtkBase = Abc_NtkFlattenLogicHierarchy( pNtkTemp = pNtkBase );
+        Abc_NtkDelete( pNtkTemp );
         if ( pNtkBase == NULL )
             return;
-        Abc_NtkDelete( pNtkTemp );
     }
 
     // reintroduce the boxes into the netlist
-    if ( Io_ReadFileType(pBaseName) == IO_FILE_BLIFMV ) 
+    if ( pNtk->nBarBufs > 0 )
+    {
+        // derive the netlist
+        pNtkResult = Abc_NtkToNetlist( pNtk );
+        pNtkResult = Abc_NtkFromBarBufs( pNtkBase, pNtkTemp = pNtkResult );
+        Abc_NtkDelete( pNtkTemp );
+        if ( pNtkResult )
+            printf( "Hierarchy writer reintroduced %d barbufs.\n", pNtk->nBarBufs );
+    }
+    else if ( Io_ReadFileType(pBaseName) == IO_FILE_BLIFMV ) 
     {
         if ( Abc_NtkBlackboxNum(pNtkBase) > 0 )
         {
@@ -499,7 +516,10 @@ void Io_WriteHie( Abc_Ntk_t * pNtk, char * pBaseName, char * pFileName )
         assert( !Abc_NtkIsNetlist(pNtk) );
         pNtkResult = Abc_NtkToNetlist( pNtk );
         if ( !Abc_NtkConvertToBlifMv( pNtkResult ) )
+        {
+            Abc_NtkDelete( pNtkBase );
             return;
+        }
         // reintroduce the network
         pNtkResult = Abc_NtkInsertBlifMv( pNtkBase, pNtkTemp = pNtkResult );
         Abc_NtkDelete( pNtkTemp );

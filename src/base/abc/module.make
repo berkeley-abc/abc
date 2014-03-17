@@ -1,4 +1,5 @@
 SRC +=    src/base/abc/abcAig.c \
+    src/base/abc/abcBarBuf.c \
     src/base/abc/abcBlifMv.c \
     src/base/abc/abcCheck.c \
     src/base/abc/abcDfs.c \

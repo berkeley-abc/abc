@@ -136,7 +136,7 @@ extern void               Io_WriteVerilog( Abc_Ntk_t * pNtk, char * FileName );
 extern Io_FileType_t      Io_ReadFileType( char * pFileName );
 extern Io_FileType_t      Io_ReadLibType( char * pFileName );
 extern Abc_Ntk_t *        Io_ReadNetlist( char * pFileName, Io_FileType_t FileType, int fCheck );
-extern Abc_Ntk_t *        Io_Read( char * pFileName, Io_FileType_t FileType, int fCheck );
+extern Abc_Ntk_t *        Io_Read( char * pFileName, Io_FileType_t FileType, int fCheck, int fBarBufs );
 extern void               Io_Write( Abc_Ntk_t * pNtk, char * pFileName, Io_FileType_t FileType );
 extern void               Io_WriteHie( Abc_Ntk_t * pNtk, char * pBaseName, char * pFileName );
 extern Abc_Obj_t *        Io_ReadCreatePi( Abc_Ntk_t * pNtk, char * pName );

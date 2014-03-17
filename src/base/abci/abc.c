@@ -7268,7 +7268,7 @@ int Abc_CommandAppend( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     // read the second network
     FileName = argv[globalUtilOptind];
-    pNtk2 = Io_Read( FileName, Io_ReadFileType(FileName), 1 );
+    pNtk2 = Io_Read( FileName, Io_ReadFileType(FileName), 1, 0 );
     if ( pNtk2 == NULL )
         return 1;
 
@@ -7360,7 +7360,7 @@ int Abc_CommandPutOnTop( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     // read the second network
     FileName = argv[globalUtilOptind];
-    pNtk2 = Io_Read( FileName, Io_ReadFileType(FileName), 1 );
+    pNtk2 = Io_Read( FileName, Io_ReadFileType(FileName), 1, 0 );
     if ( pNtk2 == NULL )
         return 1;
 
@@ -9031,7 +9031,7 @@ int Abc_CommandExdcSet( Abc_Frame_t * pAbc, int argc, char ** argv )
     fclose( pFile );
 
     // set the new network
-    pNtkNew = Io_Read( FileName, Io_ReadFileType(FileName), 1 );
+    pNtkNew = Io_Read( FileName, Io_ReadFileType(FileName), 1, 0 );
     if ( pNtkNew == NULL )
     {
         Abc_Print( -1, "Reading network from file has failed.\n" );
@@ -9115,7 +9115,7 @@ int Abc_CommandCareSet( Abc_Frame_t * pAbc, int argc, char ** argv )
     fclose( pFile );
 
     // set the new network
-    pNtkNew = Io_Read( FileName, Io_ReadFileType(FileName), 1 );
+    pNtkNew = Io_Read( FileName, Io_ReadFileType(FileName), 1, 0 );
     if ( pNtkNew == NULL )
     {
         Abc_Print( -1, "Reading network from file has failed.\n" );
@@ -13321,7 +13321,7 @@ int Abc_CommandFraigDress( Abc_Frame_t * pAbc, int argc, char ** argv )
     pFileName = (argc == globalUtilOptind + 1) ? argv[globalUtilOptind] : Abc_NtkSpec(pNtk);
     // modify the current network
 //    Abc_NtkDress( pNtk, pFileName, fVerbose );
-    pNtk2 = Io_Read( pFileName, Io_ReadFileType(pFileName), 1 );
+    pNtk2 = Io_Read( pFileName, Io_ReadFileType(pFileName), 1, 0 );
     Abc_NtkDress2( pNtk, pNtk2, nConfs, fVerbose );
     Abc_NtkDelete( pNtk2 );
     return 0;
@@ -18949,7 +18949,7 @@ int Abc_CommandClockGate( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     if ( argc == globalUtilOptind + 1 )
     {
-        pNtkCare = Io_Read( argv[globalUtilOptind], Io_ReadFileType(argv[globalUtilOptind]), 1 );
+        pNtkCare = Io_Read( argv[globalUtilOptind], Io_ReadFileType(argv[globalUtilOptind]), 1, 0 );
         if ( pNtkCare == NULL )
         {
             Abc_Print( -1, "Reading care network has failed.\n" );
@@ -19171,7 +19171,7 @@ int Abc_CommandInsWin( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Not enough command-line arguments.\n" );
         return 1;
     }
-    pNtkCare = Io_Read( argv[globalUtilOptind], Io_ReadFileType(argv[globalUtilOptind]), 1 );
+    pNtkCare = Io_Read( argv[globalUtilOptind], Io_ReadFileType(argv[globalUtilOptind]), 1, 0 );
     if ( pNtkCare == NULL )
     {
         Abc_Print( -1, "Reading care network has failed.\n" );
@@ -20032,7 +20032,7 @@ int Abc_CommandDProve( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
         char FileName[100];
         sprintf(FileName, "sm%02d.aig", pSecPar->nSMnumber );
-        pNtk = Io_Read( FileName, Io_ReadFileType(FileName), 1 );
+        pNtk = Io_Read( FileName, Io_ReadFileType(FileName), 1, 0 );
         if ( pNtk == NULL )
             Abc_Print( -1, "Cannot read back unsolved reduced sequential miter \"%s\",\n", FileName );
         else
@@ -20128,7 +20128,7 @@ int Abc_CommandAbSec( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     if ( fMiter )
     {
-//        pNtk = Io_Read( argv[globalUtilOptind], Io_ReadFileType(argv[globalUtilOptind]), 1 );
+//        pNtk = Io_Read( argv[globalUtilOptind], Io_ReadFileType(argv[globalUtilOptind]), 1, 0 );
         if ( argc == globalUtilOptind + 1 )
         {
             Abc_Print( -1, "The miter cannot be given on the command line. Use \"read\".\n" );
@@ -23627,10 +23627,10 @@ int Abc_CommandReconcile( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( argc == globalUtilOptind + 2 )
     {
         // derive networks
-        pNtk1 = Io_Read( argv[globalUtilOptind], Io_ReadFileType(argv[globalUtilOptind]), 1 );
+        pNtk1 = Io_Read( argv[globalUtilOptind], Io_ReadFileType(argv[globalUtilOptind]), 1, 0 );
         if ( pNtk1 == NULL )
             return 1;
-        pNtk2 = Io_Read( argv[globalUtilOptind+1], Io_ReadFileType(argv[globalUtilOptind+1]), 1 );
+        pNtk2 = Io_Read( argv[globalUtilOptind+1], Io_ReadFileType(argv[globalUtilOptind+1]), 1, 0 );
         if ( pNtk2 == NULL )
         {
             Abc_NtkDelete( pNtk1 );

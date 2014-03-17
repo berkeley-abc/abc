@@ -171,6 +171,7 @@ struct Abc_Ntk_t_
     int nObjCounts[ABC_OBJ_NUMBER];  // the number of objects by type
     int               nObjs;         // the number of live objs
     int               nConstrs;      // the number of constraints
+    int               nBarBufs;      // the number of barrier buffers
     // the backup network and the step number
     Abc_Ntk_t *       pNetBackup;    // the pointer to the previous backup network
     int               iStep;         // the generation number for the given network
@@ -330,6 +331,7 @@ static inline Vec_Int_t * Abc_ObjFaninVec( Abc_Obj_t * pObj )        { return &p
 static inline Vec_Int_t * Abc_ObjFanoutVec( Abc_Obj_t * pObj )       { return &pObj->vFanouts;          }
 static inline Abc_Obj_t * Abc_ObjCopy( Abc_Obj_t * pObj )            { return pObj->pCopy;              }
 static inline Abc_Ntk_t * Abc_ObjNtk( Abc_Obj_t * pObj )             { return pObj->pNtk;               }
+static inline Abc_Ntk_t * Abc_ObjModel( Abc_Obj_t * pObj )           { assert( pObj->Type == ABC_OBJ_WHITEBOX ); return (Abc_Ntk_t *)pObj->pData;   }
 static inline void *      Abc_ObjData( Abc_Obj_t * pObj )            { return pObj->pData;              }
 static inline Abc_Obj_t * Abc_ObjEquiv( Abc_Obj_t * pObj )           { return (Abc_Obj_t *)pObj->pData; }
 static inline Abc_Obj_t * Abc_ObjCopyCond( Abc_Obj_t * pObj )        { return Abc_ObjRegular(pObj)->pCopy? Abc_ObjNotCond(Abc_ObjRegular(pObj)->pCopy, Abc_ObjIsComplement(pObj)) : NULL;  }
@@ -552,6 +554,9 @@ extern ABC_DLL void               Abc_AigUpdateStop( Abc_Aig_t * pMan );
 extern ABC_DLL void               Abc_AigUpdateReset( Abc_Aig_t * pMan );
 /*=== abcAttach.c ==========================================================*/
 extern ABC_DLL int                Abc_NtkAttach( Abc_Ntk_t * pNtk );
+/*=== abcBarBuf.c ==========================================================*/
+extern ABC_DLL Abc_Ntk_t *        Abc_NtkToBarBufs( Abc_Ntk_t * pNtk );
+extern ABC_DLL Abc_Ntk_t *        Abc_NtkFromBarBufs( Abc_Ntk_t * pNtkBase, Abc_Ntk_t * pNtk );
 /*=== abcBlifMv.c ==========================================================*/
 extern ABC_DLL void               Abc_NtkStartMvVars( Abc_Ntk_t * pNtk );
 extern ABC_DLL void               Abc_NtkFreeMvVars( Abc_Ntk_t * pNtk );
@@ -945,12 +950,14 @@ extern ABC_DLL int                Abc_NtkGetFaninMax( Abc_Ntk_t * pNtk );
 extern ABC_DLL int                Abc_NtkGetFanoutMax( Abc_Ntk_t * pNtk );
 extern ABC_DLL int                Abc_NtkGetTotalFanins( Abc_Ntk_t * pNtk );
 extern ABC_DLL void               Abc_NtkCleanCopy( Abc_Ntk_t * pNtk );
+extern ABC_DLL void               Abc_NtkCleanCopy_rec( Abc_Ntk_t * pNtk );
 extern ABC_DLL void               Abc_NtkCleanData( Abc_Ntk_t * pNtk );
 extern ABC_DLL void               Abc_NtkFillTemp( Abc_Ntk_t * pNtk );
 extern ABC_DLL int                Abc_NtkCountCopy( Abc_Ntk_t * pNtk );
 extern ABC_DLL Vec_Ptr_t *        Abc_NtkSaveCopy( Abc_Ntk_t * pNtk );
 extern ABC_DLL void               Abc_NtkLoadCopy( Abc_Ntk_t * pNtk, Vec_Ptr_t * vCopies );
 extern ABC_DLL void               Abc_NtkCleanNext( Abc_Ntk_t * pNtk );
+extern ABC_DLL void               Abc_NtkCleanNext_rec( Abc_Ntk_t * pNtk );
 extern ABC_DLL void               Abc_NtkCleanMarkA( Abc_Ntk_t * pNtk );
 extern ABC_DLL void               Abc_NtkCleanMarkB( Abc_Ntk_t * pNtk );
 extern ABC_DLL void               Abc_NtkCleanMarkC( Abc_Ntk_t * pNtk );

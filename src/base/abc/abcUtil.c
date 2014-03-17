@@ -509,6 +509,14 @@ void Abc_NtkCleanCopy( Abc_Ntk_t * pNtk )
     Abc_NtkForEachObj( pNtk, pObj, i )
         pObj->pCopy = NULL;
 }
+void Abc_NtkCleanCopy_rec( Abc_Ntk_t * pNtk )
+{
+    Abc_Obj_t * pObj; 
+    int i;
+    Abc_NtkCleanCopy( pNtk );
+    Abc_NtkForEachBox( pNtk, pObj, i )
+        Abc_NtkCleanCopy_rec( Abc_ObjModel(pObj) );
+}
 
 /**Function*************************************************************
 
@@ -629,6 +637,14 @@ void Abc_NtkCleanNext( Abc_Ntk_t * pNtk )
     int i;
     Abc_NtkForEachObj( pNtk, pObj, i )
         pObj->pNext = NULL;
+}
+void Abc_NtkCleanNext_rec( Abc_Ntk_t * pNtk )
+{
+    Abc_Obj_t * pObj; 
+    int i;
+    Abc_NtkCleanNext( pNtk );
+    Abc_NtkForEachBox( pNtk, pObj, i )
+        Abc_NtkCleanNext_rec( Abc_ObjModel(pObj) );
 }
 
 /**Function*************************************************************
@@ -1451,7 +1467,7 @@ int Abc_NtkPrepareTwoNtks( FILE * pErr, Abc_Ntk_t * pNtk, char ** argv, int argc
         else
             fclose( pFile );
         pNtk1 = Abc_NtkDup(pNtk);
-        pNtk2 = Io_Read( pNtk->pSpec, Io_ReadFileType(pNtk->pSpec), fCheck );
+        pNtk2 = Io_Read( pNtk->pSpec, Io_ReadFileType(pNtk->pSpec), fCheck, 0 );
         if ( pNtk2 == NULL )
             return 0;
         *pfDelete1 = 1;
@@ -1465,7 +1481,7 @@ int Abc_NtkPrepareTwoNtks( FILE * pErr, Abc_Ntk_t * pNtk, char ** argv, int argc
             return 0;
         }
         pNtk1 = Abc_NtkDup(pNtk);
-        pNtk2 = Io_Read( argv[util_optind], Io_ReadFileType(argv[util_optind]), fCheck );
+        pNtk2 = Io_Read( argv[util_optind], Io_ReadFileType(argv[util_optind]), fCheck, 0 );
         if ( pNtk2 == NULL )
             return 0;
         *pfDelete1 = 1;
@@ -1473,10 +1489,10 @@ int Abc_NtkPrepareTwoNtks( FILE * pErr, Abc_Ntk_t * pNtk, char ** argv, int argc
     }
     else if ( argc == util_optind + 2 ) 
     {
-        pNtk1 = Io_Read( argv[util_optind], Io_ReadFileType(argv[util_optind]), fCheck );
+        pNtk1 = Io_Read( argv[util_optind], Io_ReadFileType(argv[util_optind]), fCheck, 0 );
         if ( pNtk1 == NULL )
             return 0;
-        pNtk2 = Io_Read( argv[util_optind+1], Io_ReadFileType(argv[util_optind+1]), fCheck );
+        pNtk2 = Io_Read( argv[util_optind+1], Io_ReadFileType(argv[util_optind+1]), fCheck, 0 );
         if ( pNtk2 == NULL )
         {
             Abc_NtkDelete( pNtk1 );

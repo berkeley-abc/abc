@@ -1731,7 +1731,7 @@ int CmdCommandSis( Abc_Frame_t * pAbc, int argc, char **argv )
     fclose( pFile );
 
     // set the new network
-    pNtkNew = Io_Read( "_sis_out.blif", IO_FILE_BLIF, 1 );
+    pNtkNew = Io_Read( "_sis_out.blif", IO_FILE_BLIF, 1, 0 );
     // set the original spec of the new network
     if ( pNtk->pSpec )
     {
@@ -1873,7 +1873,7 @@ int CmdCommandMvsis( Abc_Frame_t * pAbc, int argc, char **argv )
     fclose( pFile );
 
     // set the new network
-    pNtkNew = Io_Read( "_mvsis_out.blif", IO_FILE_BLIF, 1 );
+    pNtkNew = Io_Read( "_mvsis_out.blif", IO_FILE_BLIF, 1, 0 );
     // set the original spec of the new network
     if ( pNtk->pSpec )
     {
