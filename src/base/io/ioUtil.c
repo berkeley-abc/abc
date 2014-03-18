@@ -465,6 +465,7 @@ void Io_Write( Abc_Ntk_t * pNtk, char * pFileName, Io_FileType_t FileType )
 void Io_WriteHie( Abc_Ntk_t * pNtk, char * pBaseName, char * pFileName )
 {
     Abc_Ntk_t * pNtkTemp, * pNtkResult, * pNtkBase = NULL;
+    int i;
     // check if the current network is available
     if ( pNtk == NULL )
     {
@@ -486,7 +487,7 @@ void Io_WriteHie( Abc_Ntk_t * pNtk, char * pBaseName, char * pFileName )
         return;
 
     // flatten logic hierarchy if present
-    if ( Abc_NtkWhiteboxNum(pNtkBase) > 0 )
+    if ( Abc_NtkWhiteboxNum(pNtkBase) > 0 && pNtk->nBarBufs == 0 )
     {
         pNtkBase = Abc_NtkFlattenLogicHierarchy( pNtkTemp = pNtkBase );
         Abc_NtkDelete( pNtkTemp );
@@ -502,7 +503,7 @@ void Io_WriteHie( Abc_Ntk_t * pNtk, char * pBaseName, char * pFileName )
         pNtkResult = Abc_NtkFromBarBufs( pNtkBase, pNtkTemp = pNtkResult );
         Abc_NtkDelete( pNtkTemp );
         if ( pNtkResult )
-            printf( "Hierarchy writer reintroduced %d barbufs.\n", pNtk->nBarBufs );
+            printf( "Hierarchy writer replaced %d barbufs by hierarchy boundaries.\n", pNtk->nBarBufs );
     }
     else if ( Io_ReadFileType(pBaseName) == IO_FILE_BLIFMV ) 
     {
@@ -545,14 +546,32 @@ void Io_WriteHie( Abc_Ntk_t * pNtk, char * pBaseName, char * pFileName )
     // write the resulting network
     if ( Io_ReadFileType(pFileName) == IO_FILE_BLIF )
     {
-        if ( !Abc_NtkHasSop(pNtkResult) && !Abc_NtkHasMapping(pNtkResult) )
-            Abc_NtkToSop( pNtkResult, 0 );
+        if ( pNtkResult->pDesign )
+        {
+            Vec_PtrForEachEntry( Abc_Ntk_t *, pNtkResult->pDesign->vModules, pNtkTemp, i )
+                if ( !Abc_NtkHasSop(pNtkTemp) && !Abc_NtkHasMapping(pNtkTemp) )
+                    Abc_NtkToSop( pNtkTemp, 0 );
+        }
+        else
+        {
+            if ( !Abc_NtkHasSop(pNtkResult) && !Abc_NtkHasMapping(pNtkResult) )
+                Abc_NtkToSop( pNtkResult, 0 );
+        }
         Io_WriteBlif( pNtkResult, pFileName, 1, 0, 0 );
     }
     else if ( Io_ReadFileType(pFileName) == IO_FILE_VERILOG )
     {
-        if ( !Abc_NtkHasAig(pNtkResult) && !Abc_NtkHasMapping(pNtkResult) )
-            Abc_NtkToAig( pNtkResult );
+        if ( pNtkResult->pDesign )
+        {
+            Vec_PtrForEachEntry( Abc_Ntk_t *, pNtkResult->pDesign->vModules, pNtkTemp, i )
+                if ( !Abc_NtkHasAig(pNtkTemp) && !Abc_NtkHasMapping(pNtkTemp) )
+                    Abc_NtkToAig( pNtkTemp );
+        }
+        else
+        {
+            if ( !Abc_NtkHasAig(pNtkResult) && !Abc_NtkHasMapping(pNtkResult) )
+                Abc_NtkToAig( pNtkResult );
+        }
         Io_WriteVerilog( pNtkResult, pFileName );
     }
     else if ( Io_ReadFileType(pFileName) == IO_FILE_BLIFMV )

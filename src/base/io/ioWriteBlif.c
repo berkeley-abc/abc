@@ -98,9 +98,9 @@ void Io_WriteBlif( Abc_Ntk_t * pNtk, char * FileName, int fWriteLatches, int fBb
     // write the master network
     Io_NtkWrite( pFile, pNtk, fWriteLatches, fBb2Wb, fSeq );
     // make sure there is no logic hierarchy
-    assert( Abc_NtkWhiteboxNum(pNtk) == 0 );
+//    assert( Abc_NtkWhiteboxNum(pNtk) == 0 );
     // write the hierarchy if present
-    if ( Abc_NtkBlackboxNum(pNtk) > 0 )
+    if ( Abc_NtkBlackboxNum(pNtk) > 0 || Abc_NtkWhiteboxNum(pNtk) > 0 )
     {
         Vec_PtrForEachEntry( Abc_Ntk_t *, pNtk->pDesign->vModules, pNtkTemp, i )
         {
@@ -235,11 +235,14 @@ void Io_NtkWriteOne( FILE * pFile, Abc_Ntk_t * pNtk, int fWriteLatches, int fBb2
     }
 
     // write the subcircuits
-    assert( Abc_NtkWhiteboxNum(pNtk) == 0 );
-    if ( Abc_NtkBlackboxNum(pNtk) > 0 )
+//    assert( Abc_NtkWhiteboxNum(pNtk) == 0 );
+    if ( Abc_NtkBlackboxNum(pNtk) > 0 || Abc_NtkWhiteboxNum(pNtk) > 0 )
     {
         fprintf( pFile, "\n" );
         Abc_NtkForEachBlackbox( pNtk, pNode, i )
+            Io_NtkWriteSubckt( pFile, pNode );
+        fprintf( pFile, "\n" );
+        Abc_NtkForEachWhitebox( pNtk, pNode, i )
             Io_NtkWriteSubckt( pFile, pNode );
         fprintf( pFile, "\n" );
     }

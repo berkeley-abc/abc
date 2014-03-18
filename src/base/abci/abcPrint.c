@@ -228,6 +228,8 @@ void Abc_NtkPrintStats( Abc_Ntk_t * pNtk, int fFactored, int fSaveBest, int fDum
     if ( Abc_NtkConstrNum(pNtk) )
         Abc_Print( 1,"(c=%d)", Abc_NtkConstrNum(pNtk) );
     Abc_Print( 1,"  lat =%5d", Abc_NtkLatchNum(pNtk) );
+    if ( pNtk->nBarBufs )
+        Abc_Print( 1,"(b=%d)", pNtk->nBarBufs );
     if ( Abc_NtkIsNetlist(pNtk) )
     {
         Abc_Print( 1,"  net =%5d", Abc_NtkNetNum(pNtk) );

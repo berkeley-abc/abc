@@ -88,7 +88,7 @@ Abc_Ntk_t * Io_ReadVerilog( char * pFileName, int fCheck )
     }
 
 //Io_WriteVerilog( pNtk, "_temp.v" );
-    Abc_NtkPrintBoxInfo( pNtk );
+//    Abc_NtkPrintBoxInfo( pNtk );
     return pNtk;
 }
 
