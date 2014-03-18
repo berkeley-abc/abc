@@ -1434,12 +1434,18 @@ int Saig_ManBmcScalable( Aig_Man_t * pAig, Saig_ParBmc_t * pPars )
         // stop BMC after exploring all reachable states
         if ( !pPars->nFramesJump && Aig_ManRegNum(pAig) < 30 && f == (1 << Aig_ManRegNum(pAig)) )
         {
+            Abc_Print( 1, "Stopping BMC because all 2^%d reachable states are visited.\n", Aig_ManRegNum(pAig) );
+            if ( p->pPars->fUseBridge )
+                Saig_ManForEachPo( pAig, pObj, i )
+                    if ( !(p->vCexes && Vec_PtrEntry(p->vCexes, i)) && !(p->pTime4Outs && p->pTime4Outs[i] == 0) ) // not SAT and not timed out
+                        Gia_ManToBridgeResult( stdout, 1, NULL, i );
             RetValue = pPars->nFailOuts ? 0 : 1;
             goto finish;
         }
         // stop BMC if all targets are solved
         if ( pPars->fSolveAll && pPars->nFailOuts + pPars->nDropOuts >= Saig_ManPoNum(pAig) )
         {
+            Abc_Print( 1, "Stopping BMC because all targets are disproved.\n" );
             RetValue = pPars->nFailOuts ? 0 : 1;
             goto finish;
         }
