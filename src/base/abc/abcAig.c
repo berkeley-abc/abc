@@ -294,6 +294,8 @@ int Abc_AigLevel( Abc_Ntk_t * pNtk )
     Abc_Obj_t * pNode;
     int i, LevelsMax;
     assert( Abc_NtkIsStrash(pNtk) );
+    if ( pNtk->nBarBufs )
+        return Abc_NtkLevel( pNtk );
     // perform the traversal
     LevelsMax = 0;
     Abc_NtkForEachCo( pNtk, pNode, i )

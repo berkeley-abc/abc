@@ -185,6 +185,7 @@ void Abc_NtkShow( Abc_Ntk_t * pNtk0, int fGateNames, int fSeq, int fUseReverse )
     Abc_Ntk_t * pNtk;
     Abc_Obj_t * pNode;
     Vec_Ptr_t * vNodes;
+    int nBarBufs;
     char FileNameDot[200];
     int i;
 
@@ -215,10 +216,13 @@ void Abc_NtkShow( Abc_Ntk_t * pNtk0, int fGateNames, int fSeq, int fUseReverse )
     Abc_NtkForEachObj( pNtk, pNode, i )
         Vec_PtrPush( vNodes, pNode );
     // write the DOT file
+    nBarBufs = pNtk->nBarBufs;
+    pNtk->nBarBufs = 0;
     if ( fSeq )
         Io_WriteDotSeq( pNtk, vNodes, NULL, FileNameDot, fGateNames, fUseReverse );
     else
         Io_WriteDotNtk( pNtk, vNodes, NULL, FileNameDot, fGateNames, fUseReverse );
+    pNtk->nBarBufs = nBarBufs;
     Vec_PtrFree( vNodes );
 
     // visualize the file 

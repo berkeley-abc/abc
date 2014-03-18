@@ -1139,11 +1139,27 @@ int Abc_NtkLevel( Abc_Ntk_t * pNtk )
     // perform the traversal
     LevelsMax = 0;
     Abc_NtkIncrementTravId( pNtk );
-    Abc_NtkForEachNode( pNtk, pNode, i )
+    if ( pNtk->nBarBufs == 0 )
     {
-        Abc_NtkLevel_rec( pNode );
-        if ( LevelsMax < (int)pNode->Level )
-            LevelsMax = (int)pNode->Level;
+        Abc_NtkForEachNode( pNtk, pNode, i )
+        {
+            Abc_NtkLevel_rec( pNode );
+            if ( LevelsMax < (int)pNode->Level )
+                LevelsMax = (int)pNode->Level;
+        }
+    }
+    else
+    {
+        Abc_NtkForEachLiPo( pNtk, pNode, i )
+        {
+            Abc_Obj_t * pDriver = Abc_ObjFanin0(pNode);
+            Abc_NtkLevel_rec( pDriver );
+            if ( LevelsMax < (int)pDriver->Level )
+                LevelsMax = (int)pDriver->Level;
+            // transfer the delay
+            if ( i < pNtk->nBarBufs )
+                Abc_ObjFanout0(Abc_ObjFanout0(pNode))->Level = pDriver->Level;
+        }
     }
     return LevelsMax;
 }

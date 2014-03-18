@@ -103,7 +103,7 @@ void Abc_NtkBalancePerform( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkAig, int fDuplicat
 {
     ProgressBar * pProgress;
     Vec_Vec_t * vStorage;
-    Abc_Obj_t * pNode, * pDriver;
+    Abc_Obj_t * pNode;
     int i;
     // transfer level
     Abc_NtkForEachCi( pNtk, pNode, i )
@@ -114,12 +114,23 @@ void Abc_NtkBalancePerform( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkAig, int fDuplicat
     vStorage = Vec_VecStart( 10 );
     // perform balancing of POs
     pProgress = Extra_ProgressBarStart( stdout, Abc_NtkCoNum(pNtk) );
-    Abc_NtkForEachCo( pNtk, pNode, i )
+    if ( pNtk->nBarBufs == 0 )
     {
-        Extra_ProgressBarUpdate( pProgress, i, NULL );
-        // strash the driver node
-        pDriver = Abc_ObjFanin0(pNode);
-        Abc_NodeBalance_rec( pNtkAig, pDriver, vStorage, 0, fDuplicate, fSelective, fUpdateLevel );
+        Abc_NtkForEachCo( pNtk, pNode, i )
+        {
+            Extra_ProgressBarUpdate( pProgress, i, NULL );
+            Abc_NodeBalance_rec( pNtkAig, Abc_ObjFanin0(pNode), vStorage, 0, fDuplicate, fSelective, fUpdateLevel );
+        }
+    }
+    else
+    {
+        Abc_NtkForEachLiPo( pNtk, pNode, i )
+        {
+            Extra_ProgressBarUpdate( pProgress, i, NULL );
+            Abc_NodeBalance_rec( pNtkAig, Abc_ObjFanin0(pNode), vStorage, 0, fDuplicate, fSelective, fUpdateLevel );
+            if ( i < pNtk->nBarBufs )
+                Abc_ObjFanout0(Abc_ObjFanout0(pNode))->Level = Abc_ObjFanin0(pNode)->Level;
+        }
     }
     Extra_ProgressBarStop( pProgress );
     Vec_VecFree( vStorage );
