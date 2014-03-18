@@ -62,6 +62,8 @@ struct Vec_Ptr_t_
     for ( i = Start; (i < Stop) && (((pEntry) = (Type)Vec_PtrEntry(vVec, i)), 1); i++ )
 #define Vec_PtrForEachEntryReverse( Type, vVec, pEntry, i )                                        \
     for ( i = Vec_PtrSize(vVec) - 1; (i >= 0) && (((pEntry) = (Type)Vec_PtrEntry(vVec, i)), 1); i-- )
+#define Vec_PtrForEachEntryTwo( Type1, vVec1, Type2, vVec2, pEntry1, pEntry2, i )                  \
+    for ( i = 0; (i < Vec_PtrSize(vVec1)) && (((pEntry1) = (Type1)Vec_PtrEntry(vVec1, i)), 1) && (((pEntry2) = (Type2)Vec_PtrEntry(vVec2, i)), 1); i++ )
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///

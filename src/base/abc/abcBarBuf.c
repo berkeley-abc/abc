@@ -89,9 +89,9 @@ int Abc_NtkCheckSingleInstance( Abc_Ntk_t * pNtk )
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_NtkCollectPiPos_rec( Abc_Obj_t * pNet, Vec_Ptr_t * vBiBos, Vec_Ptr_t * vPiPos )
+void Abc_NtkCollectPiPos_rec( Abc_Obj_t * pNet, Vec_Ptr_t * vLiMaps, Vec_Ptr_t * vLoMaps )
 {
-    extern void Abc_NtkCollectPiPos_int( Abc_Obj_t * pBox, Abc_Ntk_t * pNtk, Vec_Ptr_t * vBiBos, Vec_Ptr_t * vPiPos );
+    extern void Abc_NtkCollectPiPos_int( Abc_Obj_t * pBox, Abc_Ntk_t * pNtk, Vec_Ptr_t * vLiMaps, Vec_Ptr_t * vLoMaps );
     Abc_Obj_t * pObj, * pFanin; int i;
     assert( Abc_ObjIsNet(pNet) );
     if ( Abc_NodeIsTravIdCurrent( pNet ) )
@@ -102,14 +102,11 @@ void Abc_NtkCollectPiPos_rec( Abc_Obj_t * pNet, Vec_Ptr_t * vBiBos, Vec_Ptr_t * 
         pObj = Abc_ObjFanin0(pObj);
     assert( Abc_ObjIsNode(pObj) || Abc_ObjIsBox(pObj) );
     Abc_ObjForEachFanin( pObj, pFanin, i )
-        Abc_NtkCollectPiPos_rec( Abc_ObjIsNode(pObj) ? pFanin : Abc_ObjFanin0(pFanin), vBiBos, vPiPos );
-    if ( Abc_ObjIsNode(pObj) )
-        return;
-    Abc_ObjForEachFanin( pObj, pFanin, i )
-        Abc_NtkCollectPiPos_rec( Abc_ObjFanin0(pFanin), vBiBos, vPiPos );
-    Abc_NtkCollectPiPos_int( pObj, Abc_ObjModel(pObj), vBiBos, vPiPos );
+        Abc_NtkCollectPiPos_rec( Abc_ObjIsNode(pObj) ? pFanin : Abc_ObjFanin0(pFanin), vLiMaps, vLoMaps );
+    if ( Abc_ObjIsBox(pObj) )
+        Abc_NtkCollectPiPos_int( pObj, Abc_ObjModel(pObj), vLiMaps, vLoMaps );
 }
-void Abc_NtkCollectPiPos_int( Abc_Obj_t * pBox, Abc_Ntk_t * pNtk, Vec_Ptr_t * vBiBos, Vec_Ptr_t * vPiPos )
+void Abc_NtkCollectPiPos_int( Abc_Obj_t * pBox, Abc_Ntk_t * pNtk, Vec_Ptr_t * vLiMaps, Vec_Ptr_t * vLoMaps )
 {
     Abc_Obj_t * pObj; int i;
     // mark primary inputs
@@ -120,33 +117,33 @@ void Abc_NtkCollectPiPos_int( Abc_Obj_t * pBox, Abc_Ntk_t * pNtk, Vec_Ptr_t * vB
     if ( pBox )
     {
         Abc_ObjForEachFanin( pBox, pObj, i )
-            Vec_PtrPush( vBiBos, pObj );
+            Vec_PtrPush( vLiMaps, pObj );
         Abc_NtkForEachPi( pNtk, pObj, i )
-            Vec_PtrPush( vPiPos, pObj );
+            Vec_PtrPush( vLoMaps, pObj );
     }
     // visit primary outputs
     Abc_NtkForEachPo( pNtk, pObj, i )
-        Abc_NtkCollectPiPos_rec( Abc_ObjFanin0(pObj), vBiBos, vPiPos );
+        Abc_NtkCollectPiPos_rec( Abc_ObjFanin0(pObj), vLiMaps, vLoMaps );
     // add primary outputs
     if ( pBox )
     {
-        Abc_ObjForEachFanout( pBox, pObj, i )
-            Vec_PtrPush( vBiBos, pObj );
         Abc_NtkForEachPo( pNtk, pObj, i )
-            Vec_PtrPush( vPiPos, pObj );
+            Vec_PtrPush( vLiMaps, pObj );
+        Abc_ObjForEachFanout( pBox, pObj, i )
+            Vec_PtrPush( vLoMaps, pObj );
     }
 }
-void Abc_NtkCollectPiPos( Abc_Ntk_t * pNtk, Vec_Ptr_t ** pvBiBos, Vec_Ptr_t ** pvPiPos )
+void Abc_NtkCollectPiPos( Abc_Ntk_t * pNtk, Vec_Ptr_t ** pvLiMaps, Vec_Ptr_t ** pvLoMaps )
 {
     assert( Abc_NtkIsNetlist(pNtk) );
-    *pvBiBos = Vec_PtrAlloc( 1000 );
-    *pvPiPos = Vec_PtrAlloc( 1000 );
-    Abc_NtkCollectPiPos_int( NULL, pNtk, *pvBiBos, *pvPiPos );
+    *pvLiMaps = Vec_PtrAlloc( 1000 );
+    *pvLoMaps = Vec_PtrAlloc( 1000 );
+    Abc_NtkCollectPiPos_int( NULL, pNtk, *pvLiMaps, *pvLoMaps );
 }
 
 /**Function*************************************************************
 
-  Synopsis    [Derives logic network while introducing barbufs.]
+  Synopsis    [Derives logic network with barbufs from the netlist.]
 
   Description []
                
@@ -155,69 +152,62 @@ void Abc_NtkCollectPiPos( Abc_Ntk_t * pNtk, Vec_Ptr_t ** pvBiBos, Vec_Ptr_t ** p
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_NtkToBarBufs_rec( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pNet )
+Abc_Obj_t * Abc_NtkToBarBufs_rec( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pNet )
 {
-    Abc_Ntk_t * pModel;
-    Abc_Obj_t * pObj, * pFanin, * pFanout, * pLatch;
+    Abc_Obj_t * pObj, * pFanin; 
     int i;
     assert( Abc_ObjIsNet(pNet) );
     if ( pNet->pCopy )
-        return;
-    pNet->pCopy = ABC_OBJ_VOID;
+        return pNet->pCopy;
     pObj = Abc_ObjFanin0(pNet);
-    if ( Abc_ObjIsBo(pObj) )
-        pObj = Abc_ObjFanin0(pObj);
-    assert( Abc_ObjIsNode(pObj) || Abc_ObjIsBox(pObj) );
+    assert( Abc_ObjIsNode(pObj) );
+    pNet->pCopy = Abc_NtkDupObj( pNtkNew, pObj, 0 );
     Abc_ObjForEachFanin( pObj, pFanin, i )
-        Abc_NtkToBarBufs_rec( pNtkNew, Abc_ObjIsNode(pObj) ? pFanin : Abc_ObjFanin0(pFanin) );
-    // create and connect object
-    if ( Abc_ObjIsNode(pObj) )
-    {
-        pNet->pCopy = Abc_NtkDupObj( pNtkNew, pObj, 0 );
-        Abc_ObjForEachFanin( pObj, pFanin, i )
-            Abc_ObjAddFanin( pObj->pCopy, pFanin->pCopy );
-        return;
-    }
-    pModel = Abc_ObjModel(pObj);
-    Abc_NtkCleanCopy( pModel );
-    Abc_ObjForEachFanin( pObj, pFanin, i )
-    {
-        pLatch = Abc_NtkAddLatch( pNtkNew, Abc_ObjFanin0(pFanin)->pCopy, ABC_INIT_ZERO );
-        Abc_ObjFanout0(Abc_NtkPi(pModel, i))->pCopy = Abc_ObjFanout0(pLatch);
-    }
-    Abc_NtkForEachPo( pModel, pObj, i )
-        Abc_NtkToBarBufs_rec( pNtkNew, Abc_ObjFanin0(pObj) );
-    Abc_ObjForEachFanout( pObj, pFanout, i )
-    {
-        pLatch = Abc_NtkAddLatch( pNtkNew, Abc_ObjFanin0(Abc_NtkPo(pModel, i))->pCopy, ABC_INIT_ZERO );
-        Abc_ObjFanout0(pFanout)->pCopy = Abc_ObjFanout0(pLatch);
-    }
-    assert( pNet->pCopy != ABC_OBJ_VOID );
+        Abc_ObjAddFanin( pObj->pCopy, Abc_NtkToBarBufs_rec(pNtkNew, pFanin) );
+    return pNet->pCopy;
 }
 Abc_Ntk_t * Abc_NtkToBarBufs( Abc_Ntk_t * pNtk )
 {
-    Abc_Ntk_t * pNtkNew;
-    Abc_Obj_t * pObj;
-    int i;
+    Vec_Ptr_t * vLiMaps, * vLoMaps;
+    Abc_Ntk_t * pNtkNew, * pTemp;
+    Abc_Obj_t * pLatch, * pObjLi, * pObjLo;
+    Abc_Obj_t * pObj, * pLiMap, * pLoMap;
+    int i, k;
     assert( Abc_NtkIsNetlist(pNtk) );
     if ( !Abc_NtkCheckSingleInstance(pNtk) )
         return NULL;
+    assert( pNtk->pDesign != NULL );
     // start the network
     pNtkNew = Abc_NtkAlloc( ABC_NTK_LOGIC, pNtk->ntkFunc, 1 );
     pNtkNew->pName = Extra_UtilStrsav(pNtk->pName);
     pNtkNew->pSpec = Extra_UtilStrsav(pNtk->pSpec);
     // clone CIs/CIs/boxes
-    Abc_NtkCleanCopy( pNtk );
+    Abc_NtkCleanCopy_rec( pNtk );
     Abc_NtkForEachPi( pNtk, pObj, i )
-        Abc_ObjFanout0(pObj)->pCopy = Abc_NtkDupObj( pNtkNew, pObj, 1 );
+        Abc_NtkDupObj( pNtkNew, pObj, 1 );
     Abc_NtkForEachPo( pNtk, pObj, i )
         Abc_NtkDupObj( pNtkNew, pObj, 1 );
-    // create logic 
-    Abc_NtkForEachPo( pNtk, pObj, i )
+    // transfer labels
+    Abc_NtkCollectPiPos( pNtk, &vLiMaps, &vLoMaps );
+    Vec_PtrForEachEntryTwo( Abc_Obj_t *, vLiMaps, Abc_Obj_t *, vLoMaps, pLiMap, pLoMap, i )
     {
-        Abc_NtkToBarBufs_rec( pNtkNew, Abc_ObjFanin0(pObj) );
-        Abc_ObjAddFanin( pObj->pCopy, Abc_ObjFanin0(pObj)->pCopy );
+        pObjLi = Abc_NtkCreateBi(pNtkNew);
+        pLatch = Abc_NtkCreateLatch(pNtkNew);
+        pObjLo = Abc_NtkCreateBo(pNtkNew);
+        Abc_ObjAddFanin( pLatch, pObjLi );
+        Abc_ObjAddFanin( pObjLo, pLatch );
+        pLatch->pData = (void *)ABC_INIT_ZERO;
+        Abc_ObjAssignName( pObjLi, Abc_ObjName(pLiMap), "_li" );
+        Abc_ObjAssignName( pObjLo, Abc_ObjName(pLoMap), "_lo" );
+        pObjLi->pCopy = pLiMap;
+        pObjLo->pCopy = pLoMap;
     }
+    Vec_PtrFree( vLiMaps );
+    Vec_PtrFree( vLoMaps );
+    // rebuild networks
+    Vec_PtrForEachEntry( Abc_Ntk_t *, pNtk->pDesign->vModules, pTemp, i )
+        Abc_NtkForEachCo( pTemp, pObj, k )
+            Abc_ObjAddFanin( pObj->pCopy, Abc_NtkToBarBufs_rec(pNtkNew, Abc_ObjFanin0(pObj)) );
     pNtkNew->nBarBufs = Abc_NtkLatchNum(pNtkNew);
     return pNtkNew;
 }
@@ -239,7 +229,8 @@ Abc_Ntk_t * Abc_NtkToBarBufs( Abc_Ntk_t * pNtk )
 ***********************************************************************/
 Abc_Obj_t * Abc_NtkFromBarBufs_rec( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pObj )
 {
-    Abc_Obj_t * pFanin; int i;
+    Abc_Obj_t * pFanin; 
+    int i;
     if ( pObj->pCopy )
         return pObj->pCopy;
     Abc_NtkDupObj( pNtkNew, pObj, 0 );
@@ -247,28 +238,11 @@ Abc_Obj_t * Abc_NtkFromBarBufs_rec( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pObj )
         Abc_ObjAddFanin( pObj->pCopy, Abc_NtkFromBarBufs_rec(pNtkNew, pFanin) );
     return pObj->pCopy;
 }
-Abc_Ntk_t * Abc_NtkFromBarBufsInt( Abc_Ntk_t * pNtkBase, Abc_Ntk_t * pNtk )
-{
-    Abc_Ntk_t * pNtkNew;
-    Abc_Obj_t * pObj;  
-    int i;
-    // start the network
-    pNtkNew = Abc_NtkStartFrom( pNtkBase, pNtk->ntkType, pNtk->ntkFunc );
-    // move copy pointers
-    Abc_NtkForEachCi( pNtkBase, pObj, i )
-        pObj->pNext->pCopy = pObj->pCopy;
-    Abc_NtkForEachCo( pNtkBase, pObj, i )
-        pObj->pNext->pCopy = pObj->pCopy;
-    // construct the network
-    Abc_NtkForEachCo( pNtkBase, pObj, i )
-        Abc_ObjAddFanin( pObj->pCopy, Abc_NtkFromBarBufs_rec(pNtkNew, Abc_ObjFanin0(pObj->pNext)) );
-    return (pNtkBase->pCopy = pNtkNew);
-}
 Abc_Ntk_t * Abc_NtkFromBarBufs( Abc_Ntk_t * pNtkBase, Abc_Ntk_t * pNtk )
 {
     Abc_Ntk_t * pNtkNew, * pTemp;
-    Vec_Ptr_t * vBiBos, * vPiPos;
-    Abc_Obj_t * pObj;
+    Vec_Ptr_t * vLiMaps, * vLoMaps;
+    Abc_Obj_t * pObj, * pLiMap, * pLoMap;
     int i, k;
     assert( pNtkBase->pDesign != NULL );
     assert( Abc_NtkIsNetlist(pNtk) );
@@ -279,39 +253,31 @@ Abc_Ntk_t * Abc_NtkFromBarBufs( Abc_Ntk_t * pNtkBase, Abc_Ntk_t * pNtk )
     assert( Abc_NtkPoNum(pNtk) == Abc_NtkPoNum(pNtkBase) );
     assert( Abc_NtkCiNum(pNtk) == Abc_NtkCiNum(pNtkBase) );
     assert( Abc_NtkCoNum(pNtk) == Abc_NtkCoNum(pNtkBase) );
-    // annotate PIs/POs of base with flops from optimized network
-    Abc_NtkCollectPiPos( pNtkBase, &vBiBos, &vPiPos );
-    assert( Vec_PtrSize(vBiBos) == Abc_NtkLatchNum(pNtk) );
-    assert( Vec_PtrSize(vPiPos) == Abc_NtkLatchNum(pNtk) );
+    // start networks
     Abc_NtkCleanCopy_rec( pNtkBase );
-    Abc_NtkCleanNext_rec( pNtkBase );
-    Abc_NtkForEachPi( pNtk, pObj, i )
-        Abc_NtkPi(pNtkBase, i)->pNext = pObj;
-    Abc_NtkForEachPo( pNtk, pObj, i )
-        Abc_NtkPo(pNtkBase, i)->pNext = pObj;
-    Abc_NtkForEachLatch( pNtk, pObj, i )
-    {
-        ((Abc_Obj_t *)Vec_PtrEntry(vBiBos, i))->pNext = Abc_ObjFanin0(pObj);
-        ((Abc_Obj_t *)Vec_PtrEntry(vPiPos, i))->pNext = Abc_ObjFanout0(pObj);
-    }
-    Vec_PtrFree( vBiBos );
-    Vec_PtrFree( vPiPos );
-    // duplicate the networks
-    pNtkNew = Abc_NtkFromBarBufsInt( pNtkBase, pNtk );
-    // finalize the design
+    Vec_PtrForEachEntry( Abc_Ntk_t *, pNtkBase->pDesign->vModules, pTemp, i )
+        pTemp->pCopy = Abc_NtkStartFrom( pTemp, pNtk->ntkType, pNtk->ntkFunc );
+    pNtkNew = pNtkBase->pCopy;
+    // create the design
     pNtkNew->pDesign = Abc_LibCreate( pNtkBase->pDesign->pName );
-    Abc_LibAddModel( pNtkNew->pDesign, pNtkNew );
     Vec_PtrPush( pNtkNew->pDesign->vTops, pNtkNew );
     Vec_PtrForEachEntry( Abc_Ntk_t *, pNtkBase->pDesign->vModules, pTemp, i )
-        if ( pTemp != pNtkBase )
-        {
-            pTemp = Abc_NtkFromBarBufsInt( pTemp, pNtk );
-            Abc_LibAddModel( pNtkNew->pDesign, pTemp );
-        }
-    // set node models
-    Vec_PtrForEachEntry( Abc_Ntk_t *, pNtkBase->pDesign->vModules, pTemp, i )
-        Abc_NtkForEachBox( pTemp, pObj, k )
-            pObj->pCopy->pData = Abc_ObjModel(pObj)->pCopy;
+        Abc_LibAddModel( pNtkNew->pDesign, pTemp->pCopy );
+    // annotate PIs/POs of base with flops from optimized network
+    Abc_NtkCollectPiPos( pNtkBase, &vLiMaps, &vLoMaps );
+    assert( Vec_PtrSize(vLiMaps) == Abc_NtkLatchNum(pNtk) );
+    assert( Vec_PtrSize(vLoMaps) == Abc_NtkLatchNum(pNtk) );
+    Vec_PtrForEachEntryTwo( Abc_Obj_t *, vLiMaps, Abc_Obj_t *, vLoMaps, pLiMap, pLoMap, i )
+    {
+        pObj = Abc_NtkBox( pNtk, i );
+        Abc_ObjFanin0(pObj)->pCopy = pLiMap->pCopy; 
+        Abc_ObjFanout0(pObj)->pCopy = pLoMap->pCopy; 
+    }
+    Vec_PtrFree( vLiMaps );
+    Vec_PtrFree( vLoMaps );
+    // create internal nodes
+    Abc_NtkForEachCo( pNtk, pObj, k )
+        Abc_ObjAddFanin( pObj->pCopy, Abc_NtkFromBarBufs_rec(pNtkNew, Abc_ObjFanin0(pObj)) );
     return pNtkNew;
 }
 
