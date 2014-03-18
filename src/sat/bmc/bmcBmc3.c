@@ -68,6 +68,14 @@ struct Gia_ManBmc_t_
 
 extern int Gia_ManToBridgeResult( FILE * pFile, int Result, Abc_Cex_t * pCex, int iPoProved );
 
+void Gia_ManReportProgress( FILE * pFile, int prop_no, int depth )
+{
+    extern int Gia_ManToBridgeProgress( FILE * pFile, int Size, unsigned char * pBuffer );
+    char buf[100];
+    sprintf(buf, "property: safe<%d>\nbug-free-depth: %d\n", prop_no, depth);
+    Gia_ManToBridgeProgress(pFile, strlen(buf), buf);
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
@@ -1565,6 +1573,8 @@ nTimeUnsat += Abc_Clock() - clk2;
                     // propagate units
                     sat_solver_compress( p->pSat );
                 }
+                if ( p->pPars->fUseBridge )
+                    Gia_ManReportProgress( stdout, i, f );
             }
             else if ( status == l_True )
             {
