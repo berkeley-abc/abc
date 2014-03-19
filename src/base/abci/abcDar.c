@@ -158,6 +158,7 @@ Aig_Man_t * Abc_NtkToDarBmc( Abc_Ntk_t * pNtk, Vec_Int_t ** pvMap )
     // create network
     pMan = Aig_ManStart( Abc_NtkNodeNum(pNtk) + 100 );
     pMan->nConstrs = pNtk->nConstrs;
+    pMan->nBarBufs = pNtk->nBarBufs;
     pMan->pName = Extra_UtilStrsav( pNtk->pName );
 
     // transfer the pointers to the basic nodes
@@ -277,6 +278,7 @@ Aig_Man_t * Abc_NtkToDar( Abc_Ntk_t * pNtk, int fExors, int fRegisters )
     pMan = Aig_ManStart( Abc_NtkNodeNum(pNtk) + 100 );
     pMan->fCatchExor = fExors;
     pMan->nConstrs = pNtk->nConstrs;
+    pMan->nBarBufs = pNtk->nBarBufs;
 
     pMan->pName = Extra_UtilStrsav( pNtk->pName );
     // transfer the pointers to the basic nodes
@@ -359,6 +361,7 @@ Aig_Man_t * Abc_NtkToDarChoices( Abc_Ntk_t * pNtk )
     pMan = Aig_ManStart( Abc_NtkNodeNum(pNtk) + 100 );
     pMan->pName = Extra_UtilStrsav( pNtk->pName );
     pMan->nConstrs = pNtk->nConstrs;
+    pMan->nBarBufs = pNtk->nBarBufs;
     if ( Abc_NtkGetChoiceNum(pNtk) )
     {
         pMan->pEquivs = ABC_ALLOC( Aig_Obj_t *, Abc_NtkObjNum(pNtk) );
@@ -473,6 +476,7 @@ Abc_Ntk_t * Abc_NtkFromDarSeqSweep( Abc_Ntk_t * pNtkOld, Aig_Man_t * pMan )
     // perform strashing
     pNtkNew = Abc_NtkStartFromNoLatches( pNtkOld, ABC_NTK_STRASH, ABC_FUNC_AIG );
     pNtkNew->nConstrs = pMan->nConstrs;
+    pNtkNew->nBarBufs = pMan->nBarBufs;
     // consider the case of target enlargement
     if ( Abc_NtkCiNum(pNtkNew) < Aig_ManCiNum(pMan) - Aig_ManRegNum(pMan) )
     {
@@ -592,6 +596,7 @@ Abc_Ntk_t * Abc_NtkFromAigPhase( Aig_Man_t * pMan )
     // perform strashing
     pNtkNew = Abc_NtkAlloc( ABC_NTK_STRASH, ABC_FUNC_AIG, 1 );
     pNtkNew->nConstrs = pMan->nConstrs;
+    pNtkNew->nBarBufs = pMan->nBarBufs;
     // duplicate the name and the spec
 //    pNtkNew->pName = Extra_UtilStrsav(pMan->pName);
 //    pNtkNew->pSpec = Extra_UtilStrsav(pMan->pSpec);
@@ -821,6 +826,7 @@ Abc_Ntk_t * Abc_NtkAfterTrim( Aig_Man_t * pMan, Abc_Ntk_t * pNtkOld )
     // perform strashing
     pNtkNew = Abc_NtkAlloc( ABC_NTK_STRASH, ABC_FUNC_AIG, 1 );
     pNtkNew->nConstrs = pMan->nConstrs;
+    pNtkNew->nBarBufs = pMan->nBarBufs;
     // duplicate the name and the spec
 //    pNtkNew->pName = Extra_UtilStrsav(pMan->pName);
 //    pNtkNew->pSpec = Extra_UtilStrsav(pMan->pSpec);
@@ -964,6 +970,7 @@ Abc_Ntk_t * Abc_NtkFromDarSeq( Abc_Ntk_t * pNtkOld, Aig_Man_t * pMan )
     // perform strashing
     pNtkNew = Abc_NtkStartFromNoLatches( pNtkOld, ABC_NTK_STRASH, ABC_FUNC_AIG );
     pNtkNew->nConstrs = pMan->nConstrs;
+    pNtkNew->nBarBufs = pMan->nBarBufs;
     // transfer the pointers to the basic nodes
     Aig_ManConst1(pMan)->pData = Abc_AigConst1(pNtkNew);
     Aig_ManForEachCi( pMan, pObj, i )

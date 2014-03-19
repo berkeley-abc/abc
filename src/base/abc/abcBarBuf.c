@@ -256,7 +256,7 @@ Abc_Ntk_t * Abc_NtkFromBarBufs( Abc_Ntk_t * pNtkBase, Abc_Ntk_t * pNtk )
     Abc_Ntk_t * pNtkNew, * pTemp;
     Vec_Ptr_t * vLiMaps, * vLoMaps;
     Abc_Obj_t * pObj, * pLiMap, * pLoMap;
-    int i;
+    int i, k;
     assert( pNtkBase->pDesign != NULL );
     assert( Abc_NtkIsNetlist(pNtk) );
     assert( Abc_NtkIsNetlist(pNtkBase) );
@@ -271,8 +271,8 @@ Abc_Ntk_t * Abc_NtkFromBarBufs( Abc_Ntk_t * pNtkBase, Abc_Ntk_t * pNtk )
     Vec_PtrForEachEntry( Abc_Ntk_t *, pNtkBase->pDesign->vModules, pTemp, i )
         pTemp->pCopy = Abc_NtkStartFrom( pTemp, pNtk->ntkType, pNtk->ntkFunc );
     // update box models
-    Vec_PtrForEachEntry( Abc_Ntk_t *, pNtkBase->pDesign->vTops, pTemp, i )
-        Abc_NtkForEachBox( pTemp, pObj, i )
+    Vec_PtrForEachEntry( Abc_Ntk_t *, pNtkBase->pDesign->vModules, pTemp, i )
+        Abc_NtkForEachBox( pTemp, pObj, k )
             if ( Abc_ObjIsWhitebox(pObj) || Abc_ObjIsBlackbox(pObj) )
                 pObj->pCopy->pData = Abc_ObjModel(pObj)->pCopy;
     // create the design

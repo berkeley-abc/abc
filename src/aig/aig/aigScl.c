@@ -54,6 +54,7 @@ Aig_Man_t * Aig_ManRemap( Aig_Man_t * p, Vec_Ptr_t * vMap )
     pNew->pSpec = Abc_UtilStrsav( p->pSpec );
     pNew->nAsserts = p->nAsserts;
     pNew->nConstrs = p->nConstrs;
+    pNew->nBarBufs = p->nBarBufs;
     assert( p->vFlopNums == NULL || Vec_IntSize(p->vFlopNums) == p->nRegs );
     if ( p->vFlopNums )
         pNew->vFlopNums = Vec_IntDup( p->vFlopNums );

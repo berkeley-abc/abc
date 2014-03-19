@@ -508,7 +508,7 @@ static inline void        Abc_ObjSetMvVar( Abc_Obj_t * pObj, void * pV) { Vec_At
 #define Abc_NtkForEachCo( pNtk, pCo, i )                                                           \
     for ( i = 0; (i < Abc_NtkCoNum(pNtk)) && (((pCo) = Abc_NtkCo(pNtk, i)), 1); i++ )
 #define Abc_NtkForEachLiPo( pNtk, pCo, i )                                                         \
-for ( i = 0; (i < Abc_NtkCoNum(pNtk)) && (((pCo) = Abc_NtkCo(pNtk, i < pNtk->nBarBufs ? Abc_NtkCoNum(pNtk) - pNtk->nBarBufs + i : i - pNtk->nBarBufs)), 1); i++ )
+    for ( i = 0; (i < Abc_NtkCoNum(pNtk)) && (((pCo) = Abc_NtkCo(pNtk, i < pNtk->nBarBufs ? Abc_NtkCoNum(pNtk) - pNtk->nBarBufs + i : i - pNtk->nBarBufs)), 1); i++ )
 // fanin and fanouts
 #define Abc_ObjForEachFanin( pObj, pFanin, i )                                                     \
     for ( i = 0; (i < Abc_ObjFaninNum(pObj)) && (((pFanin) = Abc_ObjFanin(pObj, i)), 1); i++ )

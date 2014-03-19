@@ -55,6 +55,7 @@ Aig_Man_t * Aig_ManDupSimple( Aig_Man_t * p )
     pNew->pSpec = Abc_UtilStrsav( p->pSpec );
     pNew->nAsserts = p->nAsserts;
     pNew->nConstrs = p->nConstrs;
+    pNew->nBarBufs = p->nBarBufs;
     if ( p->vFlopNums )
         pNew->vFlopNums = Vec_IntDup( p->vFlopNums );
     // create the PIs
@@ -192,6 +193,7 @@ Aig_Man_t * Aig_ManDupSimpleDfs( Aig_Man_t * p )
     pNew->pSpec = Abc_UtilStrsav( p->pSpec );
     pNew->nAsserts = p->nAsserts;
     pNew->nConstrs = p->nConstrs;
+    pNew->nBarBufs = p->nBarBufs;
     if ( p->vFlopNums )
         pNew->vFlopNums = Vec_IntDup( p->vFlopNums );
     // create the PIs
@@ -283,6 +285,7 @@ Aig_Man_t * Aig_ManDupOrdered( Aig_Man_t * p )
     pNew->pSpec = Abc_UtilStrsav( p->pSpec );
     pNew->nAsserts = p->nAsserts;
     pNew->nConstrs = p->nConstrs;
+    pNew->nBarBufs = p->nBarBufs;
     if ( p->vFlopNums )
         pNew->vFlopNums = Vec_IntDup( p->vFlopNums );
     // create the PIs
@@ -351,6 +354,7 @@ Aig_Man_t * Aig_ManDupCof( Aig_Man_t * p, int iInput, int Value )
     pNew->pSpec = Abc_UtilStrsav( p->pSpec );
     pNew->nAsserts = p->nAsserts;
     pNew->nConstrs = p->nConstrs;
+    pNew->nBarBufs = p->nBarBufs;
     if ( p->vFlopNums )
         pNew->vFlopNums = Vec_IntDup( p->vFlopNums );
     // create the PIs
@@ -416,6 +420,7 @@ Aig_Man_t * Aig_ManDupTrim( Aig_Man_t * p )
     pNew->pName = Abc_UtilStrsav( p->pName );
     pNew->pSpec = Abc_UtilStrsav( p->pSpec );
     pNew->nConstrs = p->nConstrs;
+    pNew->nBarBufs = p->nBarBufs;
     // create the PIs
     Aig_ManCleanData( p );
     // duplicate internal nodes
@@ -466,6 +471,7 @@ Aig_Man_t * Aig_ManDupExor( Aig_Man_t * p )
     pNew->pSpec = Abc_UtilStrsav( p->pSpec );
     pNew->nAsserts = p->nAsserts;
     pNew->nConstrs = p->nConstrs;
+    pNew->nBarBufs = p->nBarBufs;
     if ( p->vFlopNums )
         pNew->vFlopNums = Vec_IntDup( p->vFlopNums );
     // create the PIs
@@ -565,6 +571,7 @@ Aig_Man_t * Aig_ManDupDfs( Aig_Man_t * p )
     pNew->pSpec = Abc_UtilStrsav( p->pSpec );
     pNew->nAsserts = p->nAsserts;
     pNew->nConstrs = p->nConstrs;
+    pNew->nBarBufs = p->nBarBufs;
     if ( p->vFlopNums )
         pNew->vFlopNums = Vec_IntDup( p->vFlopNums );
     // duplicate representation of choice nodes
@@ -695,6 +702,7 @@ Aig_Man_t * Aig_ManDupDfsGuided( Aig_Man_t * p, Vec_Ptr_t * vPios )
     pNew->pSpec = Abc_UtilStrsav( p->pSpec );
     pNew->nAsserts = p->nAsserts;
     pNew->nConstrs = p->nConstrs;
+    pNew->nBarBufs = p->nBarBufs;
     if ( p->vFlopNums )
         pNew->vFlopNums = Vec_IntDup( p->vFlopNums );
     // duplicate representation of choice nodes
@@ -764,6 +772,7 @@ Aig_Man_t * Aig_ManDupLevelized( Aig_Man_t * p )
     pNew->pSpec = Abc_UtilStrsav( p->pSpec );
     pNew->nAsserts = p->nAsserts;
     pNew->nConstrs = p->nConstrs;
+    pNew->nBarBufs = p->nBarBufs;
     if ( p->vFlopNums )
         pNew->vFlopNums = Vec_IntDup( p->vFlopNums );
     // duplicate representation of choice nodes
@@ -918,6 +927,7 @@ Aig_Man_t * Aig_ManDupRepres( Aig_Man_t * p )
     pNew->pName = Abc_UtilStrsav( p->pName );
     pNew->pSpec = Abc_UtilStrsav( p->pSpec );
     pNew->nConstrs = p->nConstrs;
+    pNew->nBarBufs = p->nBarBufs;
     if ( p->vFlopNums )
         pNew->vFlopNums = Vec_IntDup( p->vFlopNums );
     // map the const and primary inputs
@@ -992,6 +1002,7 @@ Aig_Man_t * Aig_ManDupRepresDfs( Aig_Man_t * p )
     pNew->pName = Abc_UtilStrsav( p->pName );
     pNew->pSpec = Abc_UtilStrsav( p->pSpec );
     pNew->nConstrs = p->nConstrs;
+    pNew->nBarBufs = p->nBarBufs;
     if ( p->vFlopNums )
         pNew->vFlopNums = Vec_IntDup( p->vFlopNums );
     // map the const and primary inputs

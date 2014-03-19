@@ -562,6 +562,7 @@ Aig_Man_t * Dar_ManBalance( Aig_Man_t * p, int fUpdateLevel )
     pNew->pSpec = Abc_UtilStrsav( p->pSpec );
     pNew->nAsserts = p->nAsserts;
     pNew->nConstrs = p->nConstrs;
+    pNew->nBarBufs = p->nBarBufs;
     pNew->Time2Quit = p->Time2Quit;
     if ( p->vFlopNums )
         pNew->vFlopNums = Vec_IntDup( p->vFlopNums );
@@ -619,18 +620,45 @@ Aig_Man_t * Dar_ManBalance( Aig_Man_t * p, int fUpdateLevel )
             pObjNew->Level = pObj->Level;
             pObj->pData = pObjNew;
         }
-        Aig_ManForEachCo( p, pObj, i )
+        if ( p->nBarBufs == 0 )
         {
-            pDriver = Aig_ObjReal_rec( Aig_ObjChild0(pObj) );
-            pObjNew = Dar_Balance_rec( pNew, Aig_Regular(pDriver), vStore, 0, fUpdateLevel );
-            if ( pObjNew == NULL )
+            Aig_ManForEachCo( p, pObj, i )
             {
-                Vec_VecFree( vStore );
-                Aig_ManStop( pNew );
-                return NULL;
+                pDriver = Aig_ObjReal_rec( Aig_ObjChild0(pObj) );
+                pObjNew = Dar_Balance_rec( pNew, Aig_Regular(pDriver), vStore, 0, fUpdateLevel );
+                if ( pObjNew == NULL )
+                {
+                    Vec_VecFree( vStore );
+                    Aig_ManStop( pNew );
+                    return NULL;
+                }
+                pObjNew = Aig_NotCond( pObjNew, Aig_IsComplement(pDriver) );
+                pObjNew = Aig_ObjCreateCo( pNew, pObjNew );
             }
-            pObjNew = Aig_NotCond( pObjNew, Aig_IsComplement(pDriver) );
-            pObjNew = Aig_ObjCreateCo( pNew, pObjNew );
+        }
+        else
+        {
+            Vec_Ptr_t * vLits = Vec_PtrStart( Aig_ManCoNum(p) );
+            Aig_ManForEachCo( p, pObj, i )
+            {
+                int k = i < p->nBarBufs ? Aig_ManCoNum(p) - p->nBarBufs + i : i - p->nBarBufs;
+                pObj = Aig_ManCo( p, k );
+                pDriver = Aig_ObjReal_rec( Aig_ObjChild0(pObj) );
+                pObjNew = Dar_Balance_rec( pNew, Aig_Regular(pDriver), vStore, 0, fUpdateLevel );
+                if ( pObjNew == NULL )
+                {
+                    Vec_VecFree( vStore );
+                    Aig_ManStop( pNew );
+                    return NULL;
+                }
+                pObjNew = Aig_NotCond( pObjNew, Aig_IsComplement(pDriver) );
+                Vec_PtrWriteEntry( vLits, k, pObjNew );
+                if ( i < p->nBarBufs )
+                    Aig_ManCi(pNew, Aig_ManCiNum(p) - p->nBarBufs + i)->Level = Aig_Regular(pObjNew)->Level;
+            }
+            Aig_ManForEachCo( p, pObj, i )
+                Aig_ObjCreateCo( pNew, (Aig_Obj_t *)Vec_PtrEntry(vLits, i) );
+            Vec_PtrFree(vLits);
         }
     }
     Vec_VecFree( vStore );

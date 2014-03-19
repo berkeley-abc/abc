@@ -107,6 +107,7 @@ struct Aig_Man_t_
     int              nTruePos;       // the number of true primary outputs
     int              nAsserts;       // the number of asserts among POs (asserts are first POs)
     int              nConstrs;       // the number of constraints (model checking only)
+    int              nBarBufs;       // the number of barrier buffers
     // AIG node counters
     int              nObjs[AIG_OBJ_VOID];// the number of objects by type
     int              nDeleted;       // the number of deleted objects
