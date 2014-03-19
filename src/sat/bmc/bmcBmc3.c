@@ -73,7 +73,7 @@ void Gia_ManReportProgress( FILE * pFile, int prop_no, int depth )
     extern int Gia_ManToBridgeProgress( FILE * pFile, int Size, unsigned char * pBuffer );
     char buf[100];
     sprintf(buf, "property: safe<%d>\nbug-free-depth: %d\n", prop_no, depth);
-    Gia_ManToBridgeProgress(pFile, strlen(buf), buf);
+    Gia_ManToBridgeProgress(pFile, strlen(buf), (unsigned char *)buf);
 }
 
 ////////////////////////////////////////////////////////////////////////
