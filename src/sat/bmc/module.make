@@ -9,6 +9,7 @@ SRC +=    src/sat/bmc/bmcBmc.c \
     src/sat/bmc/bmcCexTools.c \
     src/sat/bmc/bmcFault.c \
     src/sat/bmc/bmcICheck.c \
+    src/sat/bmc/bmcLilac.c \
     src/sat/bmc/bmcLoad.c \
     src/sat/bmc/bmcMulti.c \
     src/sat/bmc/bmcTulip.c \

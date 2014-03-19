@@ -30,6 +30,10 @@ ABC_NAMESPACE_IMPL_START
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
+static inline void   Gia_ParTestAlloc( Gia_Man_t * p, int nWords ) { assert( !p->pData ); p->pData = (unsigned *)ABC_ALLOC(word, 2*nWords*Gia_ManObjNum(p)); p->iData = nWords; }
+static inline void   Gia_ParTestFree( Gia_Man_t * p )              { ABC_FREE( p->pData ); p->iData = 0;             }
+static inline word * Gia_ParTestObj( Gia_Man_t * p, int Id )       { return (word *)p->pData + Id*(p->iData << 1);   }
+
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
@@ -198,7 +202,7 @@ Vec_Int_t * Gia_ManTulip( Gia_Man_t * p, int nFrames, int nTimeOut, int fVerbose
         {
 //            if ( fVerbose )
 //                printf( "\n" );
-            printf( "Reached fixed point with %d entries after %d iterations.\n", Vec_IntSize(vLits), Iter+1 );
+            printf( "Reached fixed point with %d entries after %d iterations.  ", Vec_IntSize(vLits), Iter+1 );
             break;
         }
         // collect used literals
@@ -227,6 +231,7 @@ Vec_Int_t * Gia_ManTulip( Gia_Man_t * p, int nFrames, int nTimeOut, int fVerbose
     return vLits;
 }
 
+
 /**Function*************************************************************
 
   Synopsis    []
@@ -238,12 +243,258 @@ Vec_Int_t * Gia_ManTulip( Gia_Man_t * p, int nFrames, int nTimeOut, int fVerbose
   SeeAlso     []
 
 ***********************************************************************/
-void Gia_ManTulipTest( Gia_Man_t * p, int nFrames, int nTimeOut, int fVerbose )
+void Bmc_RoseSimulateInit( Gia_Man_t * p, Vec_Int_t * vInit )
+{
+    Gia_Obj_t * pObj;
+    word * pData1, * pData0;
+    int i, k;
+    Gia_ManForEachRi( p, pObj, k )
+    {
+        pData0 = Gia_ParTestObj( p, Gia_ObjId(p, pObj) );
+        pData1 = pData0 + p->iData;
+        if ( vInit == NULL ) // both X
+            for ( i = 0; i < p->iData; i++ )
+                pData0[i] = pData1[i] = 0;
+        else if ( Vec_IntEntry(vInit, k) == 0 ) // 0
+            for ( i = 0; i < p->iData; i++ )
+                pData0[i] = ~(word)0, pData1[i] = 0;
+        else if ( Vec_IntEntry(vInit, k) == 1 ) // 1
+            for ( i = 0; i < p->iData; i++ )
+                pData0[i] = 0, pData1[i] = ~(word)0;
+        else // if ( Vec_IntEntry(vInit, k) == 2 )
+            for ( i = 0; i < p->iData; i++ )
+                pData0[i] = pData1[i] = 0;
+    }
+}
+void Bmc_RoseSimulateObj( Gia_Man_t * p, int Id )
+{
+    Gia_Obj_t * pObj = Gia_ManObj( p, Id );
+    word * pData0, * pDataA0, * pDataB0;
+    word * pData1, * pDataA1, * pDataB1;
+    int i;
+    if ( Gia_ObjIsAnd(pObj) )
+    {
+        pData0  = Gia_ParTestObj( p, Id );
+        pData1  = pData0 + p->iData;
+        if ( Gia_ObjFaninC0(pObj) )
+        {
+            pDataA1 = Gia_ParTestObj( p, Gia_ObjFaninId0(pObj, Id) );
+            pDataA0 = pDataA1 + p->iData;
+            if ( Gia_ObjFaninC1(pObj) )
+            {
+                pDataB1 = Gia_ParTestObj( p, Gia_ObjFaninId1(pObj, Id) );
+                pDataB0 = pDataB1 + p->iData;
+            }
+            else 
+            {
+                pDataB0 = Gia_ParTestObj( p, Gia_ObjFaninId1(pObj, Id) );
+                pDataB1 = pDataB0 + p->iData;
+            }
+        }
+        else 
+        {
+            pDataA0 = Gia_ParTestObj( p, Gia_ObjFaninId0(pObj, Id) );
+            pDataA1 = pDataA0 + p->iData;
+            if ( Gia_ObjFaninC1(pObj) )
+            {
+                pDataB1 = Gia_ParTestObj( p, Gia_ObjFaninId1(pObj, Id) );
+                pDataB0 = pDataB1 + p->iData;
+            }
+            else 
+            {
+                pDataB0 = Gia_ParTestObj( p, Gia_ObjFaninId1(pObj, Id) );
+                pDataB1 = pDataB0 + p->iData;
+            }
+        }
+        for ( i = 0; i < p->iData; i++ )
+            pData0[i] = pDataA0[i] | pDataB0[i], pData1[i] = pDataA1[i] & pDataB1[i];
+    }
+    else if ( Gia_ObjIsCo(pObj) )
+    {
+        pData0  = Gia_ParTestObj( p, Id );
+        pData1  = pData0 + p->iData;
+        if ( Gia_ObjFaninC0(pObj) )
+        {
+            pDataA1 = Gia_ParTestObj( p, Gia_ObjFaninId0(pObj, Id) );
+            pDataA0 = pDataA1 + p->iData;
+        }
+        else 
+        {
+            pDataA0 = Gia_ParTestObj( p, Gia_ObjFaninId0(pObj, Id) );
+            pDataA1 = pDataA0 + p->iData;
+        }
+        for ( i = 0; i < p->iData; i++ )
+            pData0[i] = pDataA0[i], pData1[i] = pDataA1[i];
+    }
+    else if ( Gia_ObjIsCi(pObj) )
+    {
+        if ( Gia_ObjIsPi(p, pObj) )
+        {
+            pData0  = Gia_ParTestObj( p, Id );
+            pData1  = pData0 + p->iData;
+            for ( i = 0; i < p->iData; i++ )
+                pData0[i] = Gia_ManRandomW(0), pData1[i] = ~pData0[i];
+        }
+        else
+        {
+            int Id2 = Gia_ObjId(p, Gia_ObjRoToRi(p, pObj));
+            pData0  = Gia_ParTestObj( p, Id );
+            pData1  = pData0 + p->iData;
+            pDataA0 = Gia_ParTestObj( p, Id2 );
+            pDataA1 = pDataA0 + p->iData;
+            for ( i = 0; i < p->iData; i++ )
+                pData0[i] = pDataA0[i], pData1[i] = pDataA1[i];
+        }
+    }
+    else if ( Gia_ObjIsConst0(pObj) )
+    {
+        pData0  = Gia_ParTestObj( p, Id );
+        pData1  = pData0 + p->iData;
+        for ( i = 0; i < p->iData; i++ )
+            pData0[i] = ~(word)0, pData1[i] = 0;
+    }
+    else assert( 0 );
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Bmc_RoseHighestScore( Gia_Man_t * p, int * pCost )
+{
+    Gia_Obj_t * pObj;
+    word * pData0, * pData1;
+    int * pCounts, CountBest;
+    int i, k, b, nPats, iPat;
+    nPats = 64 * p->iData;
+    pCounts = ABC_CALLOC( int, nPats );
+    Gia_ManForEachRi( p, pObj, k )
+    {
+        pData0 = Gia_ParTestObj( p, Gia_ObjId(p, pObj) );
+        pData1 = pData0 + p->iData;
+        for ( i = 0; i < p->iData; i++ )
+            for ( b = 0; b < 64; b++ )
+                pCounts[64*i+b] += (((pData0[i] >> b) & 1) || ((pData1[i] >> b) & 1)); // binary
+    }
+    iPat = 0;
+    CountBest = pCounts[0]; 
+    for ( k = 1; k < nPats; k++ )
+        if ( CountBest < pCounts[k] )
+            CountBest = pCounts[k], iPat = k;
+    *pCost = Gia_ManRegNum(p) - CountBest; // ternary
+    ABC_FREE( pCounts );
+    return iPat;
+}
+void Bmc_RoseFindStarting( Gia_Man_t * p, Vec_Int_t * vInit, int iPat )
+{
+    Gia_Obj_t * pObj;
+    word * pData0, * pData1;
+    int i, k;
+    Vec_IntClear( vInit );
+    Gia_ManForEachRi( p, pObj, k )
+    {
+        pData0 = Gia_ParTestObj( p, Gia_ObjId(p, pObj) );
+        pData1 = pData0 + p->iData;
+        for ( i = 0; i < p->iData; i++ )
+            assert( (pData0[i] & pData1[i]) == 0 );
+        if ( Abc_InfoHasBit( (unsigned *)pData0, iPat ) )
+            Vec_IntPush( vInit, 0 );
+        else if ( Abc_InfoHasBit( (unsigned *)pData1, iPat ) )
+            Vec_IntPush( vInit, 1 );
+        else 
+            Vec_IntPush( vInit, 2 );
+    }
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Int_t * Bmc_RosePerform( Gia_Man_t * p, Vec_Int_t * vInit0, int nFrames, int nWords, int fVerbose )
+{
+    Vec_Int_t * vInit;
+    Gia_Obj_t * pObj;
+    int i, f, iPat, Cost;
+    abctime clk, clkTotal = Abc_Clock();
+    Gia_ManRandomW( 1 );
+    if ( fVerbose )
+        printf( "Running with %d frames, %d words, and %sgiven init state.\n", nFrames, nWords, vInit0 ? "":"no " );
+    vInit = Vec_IntAlloc( Gia_ManRegNum(p) );
+    Gia_ParTestAlloc( p, nWords );
+    Bmc_RoseSimulateInit( p, vInit0 );
+    if ( fVerbose )
+        printf( "Frame =%6d : Values =%6d (out of %6d)\n", 0, Gia_ManRegNum(p), Gia_ManRegNum(p) );
+    for ( f = 0; f < nFrames; f++ )
+    {
+        clk = Abc_Clock();
+        Gia_ManForEachObj( p, pObj, i )
+            Bmc_RoseSimulateObj( p, i );
+        iPat = Bmc_RoseHighestScore( p, &Cost );
+        Bmc_RoseFindStarting( p, vInit, iPat );
+        Bmc_RoseSimulateInit( p, vInit );
+        if ( fVerbose )
+            printf( "Frame =%6d : Values =%6d (out of %6d)   ", f+1, Cost, Gia_ManRegNum(p) );
+        if ( fVerbose )
+            Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
+    }
+    Gia_ParTestFree( p );
+    printf( "After %d frames, found a sequence to produce %d x-values (out of %d).  ", f, Cost, Gia_ManRegNum(p) );
+    Abc_PrintTime( 1, "Total runtime", Abc_Clock() - clkTotal );
+//    Vec_IntFreeP( &vInit );
+    return vInit;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Bmc_RoseTest( Gia_Man_t * p, int nFrames, int nWords, int fVerbose )
+{
+    Bmc_RosePerform( p, NULL, nFrames, nWords, fVerbose );
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_ManTulipTest( Gia_Man_t * p, int nFrames, int nWords, int nTimeOut, int fSim, int fVerbose )
 {
     Vec_Int_t * vRes;
-    vRes = Gia_ManTulip( p, nFrames, nTimeOut, fVerbose );
-    Vec_IntFree( vRes );
+    if ( fSim )
+        vRes = Bmc_RosePerform( p, NULL, nFrames, nWords, fVerbose );
+    else
+        vRes = Gia_ManTulip( p, nFrames, nTimeOut, fVerbose );
+    Vec_IntFreeP( &vRes );
 }
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

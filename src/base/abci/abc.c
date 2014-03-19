@@ -34054,7 +34054,7 @@ int Abc_CommandAbc9Test( Abc_Frame_t * pAbc, int argc, char ** argv )
 //    extern void Agi_ManTest( Gia_Man_t * pGia );
 //    extern void Gia_ManCheckFalseTest( Gia_Man_t * p, int nSlackMax );
 //    extern void Gia_ParTest( Gia_Man_t * p, int nWords, int nProcs );
-    extern void Gia_ManTulipTest( Gia_Man_t * p, int nFrames, int nTimeOut, int fVerbose );
+    extern void Gia_ManTulipTest( Gia_Man_t * p, int nFrames, int nWords, int nTimeOut, int fSim, int fVerbose );
 
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "WPFsvh" ) ) != EOF )
@@ -34158,12 +34158,14 @@ int Abc_CommandAbc9Test( Abc_Frame_t * pAbc, int argc, char ** argv )
 //    Jf_ManTestCnf( pAbc->pGia );
 //    Gia_ManCheckFalseTest( pAbc->pGia, nFrames );
 //    Gia_ParTest( pAbc->pGia, nWords, nProcs );
-    Gia_ManTulipTest( pAbc->pGia, nFrames, 0, fVerbose );
+    Gia_ManTulipTest( pAbc->pGia, nFrames, nWords, 0, fSwitch, fVerbose );
+
     return 0;
 usage:
-    Abc_Print( -2, "usage: &test [-F num] [-svh]\n" );
+    Abc_Print( -2, "usage: &test [-FW num] [-svh]\n" );
     Abc_Print( -2, "\t        testing various procedures\n" );
     Abc_Print( -2, "\t-F num: the number of timeframes [default = %d]\n", nFrames );
+    Abc_Print( -2, "\t-W num: the number of machine words [default = %d]\n", nWords );
     Abc_Print( -2, "\t-s    : toggle enable (yes) vs. disable (no) [default = %s]\n", fSwitch? "yes": "no" );
     Abc_Print( -2, "\t-v    : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h    : print the command usage\n");
