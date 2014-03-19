@@ -11,4 +11,5 @@ SRC +=    src/sat/bmc/bmcBmc.c \
     src/sat/bmc/bmcICheck.c \
     src/sat/bmc/bmcLoad.c \
     src/sat/bmc/bmcMulti.c \
+    src/sat/bmc/bmcTulip.c \
     src/sat/bmc/bmcUnroll.c

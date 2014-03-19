@@ -34028,7 +34028,7 @@ int Abc_CommandAbc9Test( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
 //    Gia_Man_t * pTemp = NULL;
     int c, fVerbose = 0;
-    int nFrames = 0;
+    int nFrames = 5;
     int fSwitch = 0;
     int nWords = 1000;
     int nProcs = 2;
@@ -34053,7 +34053,8 @@ int Abc_CommandAbc9Test( Abc_Frame_t * pAbc, int argc, char ** argv )
 //    extern Gia_Man_t * Unm_ManTest( Gia_Man_t * pGia );
 //    extern void Agi_ManTest( Gia_Man_t * pGia );
 //    extern void Gia_ManCheckFalseTest( Gia_Man_t * p, int nSlackMax );
-    extern void Gia_ParTest( Gia_Man_t * p, int nWords, int nProcs );
+//    extern void Gia_ParTest( Gia_Man_t * p, int nWords, int nProcs );
+    extern void Gia_ManTulipTest( Gia_Man_t * p, int nFrames, int nTimeOut, int fVerbose );
 
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "WPFsvh" ) ) != EOF )
@@ -34156,7 +34157,8 @@ int Abc_CommandAbc9Test( Abc_Frame_t * pAbc, int argc, char ** argv )
 //    Gia_ManResubTest( pAbc->pGia );
 //    Jf_ManTestCnf( pAbc->pGia );
 //    Gia_ManCheckFalseTest( pAbc->pGia, nFrames );
-    Gia_ParTest( pAbc->pGia, nWords, nProcs );
+//    Gia_ParTest( pAbc->pGia, nWords, nProcs );
+    Gia_ManTulipTest( pAbc->pGia, nFrames, 0, fVerbose );
     return 0;
 usage:
     Abc_Print( -2, "usage: &test [-F num] [-svh]\n" );
