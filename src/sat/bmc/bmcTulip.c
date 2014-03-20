@@ -239,7 +239,7 @@ Vec_Int_t * Gia_ManTulipPerform( Gia_Man_t * p, Vec_Int_t * vInit, int nFrames, 
     Gia_ManForEachPi( pM, pObj, i )
         if ( i == Gia_ManRegNum(p) )
             break;
-        else if ( (Vec_IntEntry(vLits, i) & 2) && !Vec_IntEntry( vMap, pCnf->pVarNums[Gia_ObjId(pM, pObj)] ) )
+        else if ( (Vec_IntEntry(vLits, i) & 2) && Vec_IntEntry( vMap, pCnf->pVarNums[Gia_ObjId(pM, pObj)] ) )
             Vec_IntWriteEntry( vLits, i, (Vec_IntEntry(vLits, i) & 1) );
     Vec_IntFree( vMap );
 

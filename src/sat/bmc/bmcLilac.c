@@ -219,13 +219,11 @@ int Bmc_LilacPerform( Gia_Man_t * p, Vec_Int_t * vInit0, Vec_Int_t * vInit1, int
             else
                 Vec_IntPush( vMiters, -1 );
         assert( Vec_IntSize(vMiters) == Gia_ManRegNum(p) );
-        if ( fVerbose )
-            printf( "Frame %4d : ", f );
         if ( Vec_IntSum(vMiters) + Vec_IntSize(vLits1) == 0 )
         {
             if ( fVerbose )
-                printf( "Trivial\n" );
-            continue;
+                printf( "Reached a fixed point after %d frames.  \n", f+1 );
+            break;
         }
         // create new part
         pPart = Bmc_LilacPart( pNew, vSatMap, vMiters, vPartMap, vCopies );
@@ -288,6 +286,7 @@ int Bmc_LilacPerform( Gia_Man_t * p, Vec_Int_t * vInit0, Vec_Int_t * vInit1, int
         }
         if ( fVerbose )
         {
+            printf( "Frame %4d : ",     f+1 );
             printf( "Vars =%7d  ",      nSatVars );
             printf( "Clause =%10d  ",   sat_solver_nclauses(pSat) );
             printf( "Conflict =%10d  ", sat_solver_nconflicts(pSat) );
