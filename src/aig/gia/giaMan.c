@@ -293,6 +293,43 @@ void Gia_ManPrintTents( Gia_Man_t * p )
 
 /**Function*************************************************************
 
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_ManPrintInitClasses( Vec_Int_t * vInits )
+{
+    int i, Value;
+    int Counts[4] = {0};
+    Vec_IntForEachEntry( vInits, Value, i )
+        Counts[Value]++;
+    for ( i = 0; i < 4; i++ )
+        printf( "%d = %d  ", i, Counts[i] );
+    printf( "X = %d\n", Counts[2] + Counts[3] );
+    Vec_IntForEachEntry( vInits, Value, i )
+    {
+        Counts[Value]++;
+        if ( Value == 0 )
+            printf( "0" );
+        else if ( Value == 1 )
+            printf( "1" );
+        else if ( Value == 2 )
+            printf( "x" );
+        else if ( Value == 3 )
+            printf( "X" );
+        else assert( 0 );
+    }
+    printf( "\n" );
+    
+}
+
+/**Function*************************************************************
+
   Synopsis    [Prints stats for the AIG.]
 
   Description []
@@ -385,6 +422,8 @@ void Gia_ManPrintStats( Gia_Man_t * p, Gps_Par_t * pPars )
     Gia_ManPrintFlopClasses( p );
     Gia_ManPrintGateClasses( p );
     Gia_ManPrintObjClasses( p );
+    if ( p->vInitClasses )
+        Gia_ManPrintInitClasses( p->vInitClasses );
     if ( pPars && pPars->fTents )
     {
 /*

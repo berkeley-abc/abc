@@ -115,40 +115,47 @@ void Bmc_LilacUnfold( Gia_Man_t * pNew, Gia_Man_t * p, Vec_Int_t * vFFLits, int 
   SeeAlso     []
 
 ***********************************************************************/
-int Bmc_LilacPart_rec( Gia_Man_t * pNew, Vec_Int_t * vSatMap, int iIdNew, Gia_Man_t * pPart, Vec_Int_t * vPartMap )
+int Bmc_LilacPart_rec( Gia_Man_t * pNew, Vec_Int_t * vSatMap, int iIdNew, Gia_Man_t * pPart, Vec_Int_t * vPartMap, Vec_Int_t * vCopies )
 {
     Gia_Obj_t * pObj = Gia_ManObj( pNew, iIdNew ); 
-    int iLitPart0, iLitPart1;
-    if ( pObj->Value )
-        return pObj->Value;
-    if ( Vec_IntEntry(vSatMap, iIdNew) )
+    int iLitPart0, iLitPart1, iRes;
+    if ( Vec_IntEntry(vCopies, iIdNew) )
+        return Vec_IntEntry(vCopies, iIdNew);
+    if ( Vec_IntEntry(vSatMap, iIdNew) >= 0 || Gia_ObjIsCi(pObj) )
     {
         Vec_IntPush( vPartMap, iIdNew );
-        return (pObj->Value = Gia_ManAppendCi(pPart));
+        iRes = Gia_ManAppendCi(pPart);
+        Vec_IntWriteEntry( vCopies, iIdNew, iRes );
+        return iRes;
     }
-    iLitPart0 = Bmc_LilacPart_rec( pNew, vSatMap, Gia_ObjFaninId0(pObj, iIdNew), pPart, vPartMap );
-    iLitPart1 = Bmc_LilacPart_rec( pNew, vSatMap, Gia_ObjFaninId1(pObj, iIdNew), pPart, vPartMap );
+    assert( Gia_ObjIsAnd(pObj) );
+    iLitPart0 = Bmc_LilacPart_rec( pNew, vSatMap, Gia_ObjFaninId0(pObj, iIdNew), pPart, vPartMap, vCopies );
+    iLitPart1 = Bmc_LilacPart_rec( pNew, vSatMap, Gia_ObjFaninId1(pObj, iIdNew), pPart, vPartMap, vCopies );
     iLitPart0 = Abc_LitNotCond( iLitPart0, Gia_ObjFaninC0(pObj) );
     iLitPart1 = Abc_LitNotCond( iLitPart1, Gia_ObjFaninC1(pObj) );
     Vec_IntPush( vPartMap, iIdNew );
-    return (pObj->Value = Gia_ManAppendAnd( pPart, iLitPart0, iLitPart1 ));
+    iRes = Gia_ManAppendAnd( pPart, iLitPart0, iLitPart1 );
+    Vec_IntWriteEntry( vCopies, iIdNew, iRes );
+    return iRes;
 }
-Gia_Man_t * Bmc_LilacPart( Gia_Man_t * pNew, Vec_Int_t * vSatMap, Vec_Int_t * vMiters, Vec_Int_t * vPartMap )
+Gia_Man_t * Bmc_LilacPart( Gia_Man_t * pNew, Vec_Int_t * vSatMap, Vec_Int_t * vMiters, Vec_Int_t * vPartMap, Vec_Int_t * vCopies )
 {
     Gia_Man_t * pPart;
     int i, iLit, iLitPart;
-    Gia_ManCleanValue( pNew );
+    Vec_IntFill( vCopies, Gia_ManObjNum(pNew), 0 );
     Vec_IntFillExtra( vSatMap, Gia_ManObjNum(pNew), -1 );
     pPart = Gia_ManStart( 1000 );
     pPart->pName = Abc_UtilStrsav( pNew->pName );
-    Gia_ManConst0(pNew)->Value = 0;
     Vec_IntClear( vPartMap );
+    Vec_IntPush( vPartMap, 0 );
     Vec_IntForEachEntry( vMiters, iLit, i )
     {
         if ( iLit == -1 )
             continue;
-        iLitPart = Bmc_LilacPart_rec( pNew, vSatMap, Abc_Lit2Var(iLit), pPart, vPartMap );
+        assert( iLit >= 2 );
+        iLitPart = Bmc_LilacPart_rec( pNew, vSatMap, Abc_Lit2Var(iLit), pPart, vPartMap, vCopies );
         Gia_ManAppendCo( pPart, Abc_LitNotCond(iLitPart, Abc_LitIsCompl(iLit)) );
+        Vec_IntPush( vPartMap, -1 );
     }
     assert( Gia_ManPoNum(pPart) > 0 );
     assert( Vec_IntSize(vPartMap) == Gia_ManObjNum(pPart) );
@@ -166,17 +173,16 @@ Gia_Man_t * Bmc_LilacPart( Gia_Man_t * pNew, Vec_Int_t * vSatMap, Vec_Int_t * vM
   SeeAlso     []
 
 ***********************************************************************/
-int Bmc_LilacPerform( Gia_Man_t * p, Vec_Int_t * vInit0, Vec_Int_t * vInit1, int nFrames, int fVerbose )
+int Bmc_LilacPerform( Gia_Man_t * p, Vec_Int_t * vInit0, Vec_Int_t * vInit1, int nFrames, int nWords, int nTimeOut, int fVerbose )
 {
     int nSatVars = 1;
-    int nTimeOut = 0;
-    Vec_Int_t * vLits0, * vLits1, * vMiters, * vSatMap, * vPartMap;
+    Vec_Int_t * vLits0, * vLits1, * vMiters, * vSatMap, * vPartMap, * vCopies;
     Gia_Man_t * pNew, * pPart;
     Gia_Obj_t * pObj;
     Cnf_Dat_t * pCnf;
     sat_solver * pSat;
-    int i, f, status, iVar0, iVar1, iLit, iLit0, iLit1;
-    int fChanges, RetValue = 1;
+    int iVar0, iVar1, iLit, iLit0, iLit1;
+    int i, f, status, nChanges, nMiters, RetValue = 1;
 
     // start the SAT solver
     pSat = sat_solver_new();
@@ -198,21 +204,31 @@ int Bmc_LilacPerform( Gia_Man_t * p, Vec_Int_t * vInit0, Vec_Int_t * vInit1, int
     vMiters  = Vec_IntAlloc( 1000 );
     vSatMap  = Vec_IntAlloc( 1000 );
     vPartMap = Vec_IntAlloc( 1000 );
+    vCopies  = Vec_IntAlloc( 1000 );
     for ( f = 0; f < nFrames; f++ )
     {
+        abctime clk = Abc_Clock();
         Bmc_LilacUnfold( pNew, p, vLits0, 0 );
         Bmc_LilacUnfold( pNew, p, vLits1, 1 );
         assert( Vec_IntSize(vLits0) == Vec_IntSize(vLits1) );
+        nMiters  = 0;
         Vec_IntClear( vMiters );
         Vec_IntForEachEntryTwo( vLits0, vLits1, iLit0, iLit1, i )
-            if ( (iLit0 > 2 || iLit1 > 2) && iLit0 != iLit1 )
-                Vec_IntPush( vMiters, Gia_ManHashXor(pNew, iLit0, iLit1) );
+            if ( (iLit0 >= 2 || iLit1 >= 2) && iLit0 != iLit1 )
+                Vec_IntPush( vMiters, Gia_ManHashXor(pNew, iLit0, iLit1) ), nMiters++;
             else
                 Vec_IntPush( vMiters, -1 );
+        assert( Vec_IntSize(vMiters) == Gia_ManRegNum(p) );
+        if ( fVerbose )
+            printf( "Frame %4d : ", f );
         if ( Vec_IntSum(vMiters) + Vec_IntSize(vLits1) == 0 )
+        {
+            if ( fVerbose )
+                printf( "Trivial\n" );
             continue;
+        }
         // create new part
-        pPart = Bmc_LilacPart( pNew, vSatMap, vMiters, vPartMap );
+        pPart = Bmc_LilacPart( pNew, vSatMap, vMiters, vPartMap, vCopies );
         pCnf = Cnf_DeriveGiaRemapped( pPart );
         Cnf_DataLiftGia( pCnf, pPart, nSatVars );
         nSatVars += pCnf->nVars;
@@ -223,28 +239,35 @@ int Bmc_LilacPerform( Gia_Man_t * p, Vec_Int_t * vInit0, Vec_Int_t * vInit1, int
         // stitch the clauses
         Gia_ManForEachPi( pPart, pObj, i )
         {
-            int iIdPart = Gia_ObjId(pPart, pObj);
-            iVar0 = pCnf->pVarNums[iIdPart];
-            iVar1 = Vec_IntEntry( vSatMap, Vec_IntEntry(vPartMap, iIdPart) );
+            iVar0 = pCnf->pVarNums[Gia_ObjId(pPart, pObj)];
+            iVar1 = Vec_IntEntry( vSatMap, Vec_IntEntry(vPartMap, Gia_ObjId(pPart, pObj)) );
             if ( iVar1 == -1 )
                 continue;
             sat_solver_add_buffer( pSat, iVar0, iVar1, 0 );
         }
         // transfer variables
-        Gia_ManForEachAnd( pPart, pObj, i )
+        Gia_ManForEachCand( pPart, pObj, i )
             if ( pCnf->pVarNums[i] >= 0 )
+            {
+                assert( Gia_ObjIsCi(pObj) || Vec_IntEntry( vSatMap, Vec_IntEntry(vPartMap, i) ) == -1 );
                 Vec_IntWriteEntry( vSatMap, Vec_IntEntry(vPartMap, i), pCnf->pVarNums[i] );
+            }
         Cnf_DataFree( pCnf );
         Gia_ManStop( pPart );
         // perform runs
-        fChanges = 0;
+        nChanges = 0;
         Vec_IntForEachEntry( vMiters, iLit, i )
         {
             if ( iLit == -1 )
                 continue;
+            assert( Vec_IntEntry(vSatMap, Abc_Lit2Var(iLit)) > 0 );
+            iLit = Abc_Lit2LitV( Vec_IntArray(vSatMap), iLit );
             status = sat_solver_solve( pSat, &iLit, &iLit + 1, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
             if ( status == l_True )
+            {
+                nChanges++;
                 continue;
+            }
             if ( status == l_Undef )
             {
                 printf( "Timeout reached after %d seconds.  \n", nTimeOut );
@@ -254,17 +277,26 @@ int Bmc_LilacPerform( Gia_Man_t * p, Vec_Int_t * vInit0, Vec_Int_t * vInit1, int
             assert( status == l_False );
             iLit0 = Vec_IntEntry( vLits0, i );
             iLit1 = Vec_IntEntry( vLits1, i );
-            assert( (iLit0 > 2 || iLit1 > 2) && iLit0 != iLit1 );
-            if ( iLit1 > 2 )
+            assert( (iLit0 >= 2 || iLit1 >= 2) && iLit0 != iLit1 );
+            if ( iLit1 >= 2 )
                 Vec_IntWriteEntry( vLits1, i, iLit0 );
             else
                 Vec_IntWriteEntry( vLits0, i, iLit1 );
             iLit0 = Vec_IntEntry( vLits0, i );
             iLit1 = Vec_IntEntry( vLits1, i );
             assert( iLit0 == iLit1 );
-            fChanges = 1;
         }
-        if ( !fChanges )
+        if ( fVerbose )
+        {
+            printf( "Vars =%7d  ",      nSatVars );
+            printf( "Clause =%10d  ",   sat_solver_nclauses(pSat) );
+            printf( "Conflict =%10d  ", sat_solver_nconflicts(pSat) );
+            printf( "AIG =%7d  ",       Gia_ManAndNum(pNew) );
+            printf( "Miters =%5d  ",    nMiters );
+            printf( "SAT =%5d  ",       nChanges );
+            Abc_PrintTime( 1, "Time",   Abc_Clock() - clk );
+        }
+        if ( nChanges == 0 )
         {
             printf( "Reached a fixed point after %d frames.  \n", f+1 );
             break;
@@ -279,6 +311,7 @@ cleanup:
     Vec_IntFree( vMiters );
     Vec_IntFree( vSatMap );
     Vec_IntFree( vPartMap );
+    Vec_IntFree( vCopies );
     return RetValue;
 }
 
@@ -293,9 +326,11 @@ cleanup:
   SeeAlso     []
 
 ***********************************************************************/
-void Bmc_LilacTest( Gia_Man_t * p, Vec_Int_t * vInit, int nFrames, int fVerbose )
+void Gia_ManLilacTest( Gia_Man_t * p, Vec_Int_t * vInit, int nFrames, int nWords, int nTimeOut, int fSim, int fVerbose )
 {
-    Bmc_LilacPerform( p, vInit, vInit, nFrames, fVerbose );
+    Vec_Int_t * vInit0 = Vec_IntStart( Gia_ManRegNum(p) );
+    Bmc_LilacPerform( p, vInit, vInit0, nFrames, nWords, nTimeOut, fVerbose );
+    Vec_IntFree( vInit0 );
 }
 
 ////////////////////////////////////////////////////////////////////////

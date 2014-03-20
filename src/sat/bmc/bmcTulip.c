@@ -481,9 +481,9 @@ Vec_Int_t * Gia_ManRosePerform( Gia_Man_t * p, Vec_Int_t * vInit0, int nFrames, 
     Gia_ParTestFree( p );
     printf( "After %d frames, found a sequence to produce %d x-values (out of %d).  ", f, Cost, Gia_ManRegNum(p) );
     Abc_PrintTime( 1, "Total runtime", Abc_Clock() - clkTotal );
-//    Vec_IntFreeP( &vInit );
     Vec_IntFill(vInit, Vec_IntSize(vInit), 2);
 //    printf( "The resulting init state is invalid.\n" );
+    Vec_IntFreeP( &vInit );
     return vInit;
 }
 
@@ -505,7 +505,6 @@ Vec_Int_t * Gia_ManTulipTest( Gia_Man_t * p, Vec_Int_t * vInit, int nFrames, int
         vRes = Gia_ManRosePerform( p, vInit, nFrames, nWords, fVerbose );
     else
         vRes = Gia_ManTulipPerform( p, vInit, nFrames, nTimeOut, fVerbose );
-    Vec_IntFreeP( &vRes );
     return vRes;
 }
 
