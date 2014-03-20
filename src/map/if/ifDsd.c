@@ -781,7 +781,7 @@ abctime clk;
     if ( *pSpot )
         return (int)*pSpot;
 clk = Abc_Clock();
-    if ( truthId >= 0 && truthId == Vec_PtrSize(p->vTtDecs) )
+    if ( p->LutSize && truthId >= 0 && truthId == Vec_PtrSize(p->vTtDecs) )
     {
         Vec_Int_t * vSets = Dau_DecFindSets_int( pTruth, nLits, p->pSched );
 //        printf( "%d ", Vec_IntSize(vSets) );

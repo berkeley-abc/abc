@@ -2303,6 +2303,10 @@ SOURCE=.\src\map\if\if.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\map\if\ifCache.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\map\if\ifCom.c
 # End Source File
 # Begin Source File

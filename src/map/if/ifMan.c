@@ -141,6 +141,9 @@ void If_ManRestart( If_Man_t * p )
 ***********************************************************************/
 void If_ManStop( If_Man_t * p )
 {
+    extern void If_ManCacheAnalize( If_Man_t * p );
+    if ( p->pPars->fVerbose && p->vCutData )
+        If_ManCacheAnalize( p );
 /*
     if ( p->pIfDsdMan )
     {
@@ -190,6 +193,7 @@ void If_ManStop( If_Man_t * p )
     Vec_IntFreeP( &p->vLags );
     Vec_IntFreeP( &p->vTtDsds );
     Vec_StrFreeP( &p->vTtPerms );
+    Vec_IntFreeP( &p->vCutData );
     Vec_MemHashFree( p->vTtMem );
     Vec_MemFreeP( &p->vTtMem );
     Mem_FixedStop( p->pMemObj, 0 );

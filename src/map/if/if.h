@@ -237,6 +237,7 @@ struct If_Man_t_
     Vec_Str_t *        vTtPerms;      // mapping of truth table into permutations
     int                nBestCutSmall[2];
     int                nCountNonDec[2];
+    Vec_Int_t *        vCutData;      // cut data storage
 
     // timing manager
     Tim_Man_t *        pManTim;

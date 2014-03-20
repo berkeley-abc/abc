@@ -1,4 +1,5 @@
 SRC +=  src/map/if/ifCom.c \
+    src/map/if/ifCache.c \
     src/map/if/ifCore.c \
     src/map/if/ifCut.c \
     src/map/if/ifDec07.c \
