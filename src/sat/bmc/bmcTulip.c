@@ -70,7 +70,7 @@ static inline Cnf_Dat_t * Cnf_DeriveGiaRemapped( Gia_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-Gia_Man_t * Gia_ManTulipUnfold( Gia_Man_t * p, int nFrames, int fUseVars )
+Gia_Man_t * Gia_ManTulipUnfold( Gia_Man_t * p, int nFrames, int fUseVars, Vec_Int_t * vInit )
 {
     Gia_Man_t * pNew, * pTemp;
     Gia_Obj_t * pObj;
@@ -85,8 +85,21 @@ Gia_Man_t * Gia_ManTulipUnfold( Gia_Man_t * p, int nFrames, int fUseVars )
     Gia_ManForEachRo( p, pObj, i )
         Gia_ManAppendCi( pNew );
     // build timeframes
+    assert( !vInit || Vec_IntSize(vInit) == Gia_ManRegNum(p) );
     Gia_ManForEachRo( p, pObj, i )
-        pObj->Value = fUseVars ? Gia_ManHashAnd(pNew, Gia_ManCiLit(pNew, i), Gia_ManCiLit(pNew, Gia_ManRegNum(p)+i)) : 0;
+    {
+        if ( vInit == NULL ) // assume 2
+            pObj->Value = fUseVars ? Gia_ManHashAnd(pNew, Gia_ManCiLit(pNew, i), Gia_ManCiLit(pNew, Gia_ManRegNum(p)+i)) : 0;
+        else if ( Vec_IntEntry(vInit, i) == 0 )
+            pObj->Value = 0;
+        else if ( Vec_IntEntry(vInit, i) == 1 )
+            pObj->Value = 1;
+        else if ( Vec_IntEntry(vInit, i) == 2 )
+            pObj->Value = fUseVars ? Gia_ManHashAnd(pNew, Gia_ManCiLit(pNew, i), Gia_ManCiLit(pNew, Gia_ManRegNum(p)+i)) : 0;
+        else if ( Vec_IntEntry(vInit, i) == 3 )
+            pObj->Value = fUseVars ? Gia_ManHashAnd(pNew, Gia_ManCiLit(pNew, i), Gia_ManCiLit(pNew, Gia_ManRegNum(p)+i)) : 1;
+        else assert( 0 );
+    }
     for ( f = 0; f < nFrames; f++ )
     {
         Gia_ManForEachPi( p, pObj, i )
@@ -118,7 +131,7 @@ Gia_Man_t * Gia_ManTulipUnfold( Gia_Man_t * p, int nFrames, int fUseVars )
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Int_t * Gia_ManTulip( Gia_Man_t * p, int nFrames, int nTimeOut, int fVerbose )
+Vec_Int_t * Gia_ManTulipPerform( Gia_Man_t * p, Vec_Int_t * vInit, int nFrames, int nTimeOut, int fVerbose )
 {
     int nIterMax = 1000000;
     int i, iLit, Iter, status;
@@ -128,13 +141,15 @@ Vec_Int_t * Gia_ManTulip( Gia_Man_t * p, int nFrames, int nTimeOut, int fVerbose
     Vec_Int_t * vLits, * vMap;
     sat_solver * pSat;
     Gia_Obj_t * pObj;
-    Gia_Man_t * p0 = Gia_ManTulipUnfold( p, nFrames, 0 );
-    Gia_Man_t * p1 = Gia_ManTulipUnfold( p, nFrames, 1 );
+    Gia_Man_t * p0 = Gia_ManTulipUnfold( p, nFrames, 0, vInit );
+    Gia_Man_t * p1 = Gia_ManTulipUnfold( p, nFrames, 1, vInit );
     Gia_Man_t * pM = Gia_ManMiter( p0, p1, 0, 0, 0, 0, 0 );
     Cnf_Dat_t * pCnf = Cnf_DeriveGiaRemapped( pM );
     Gia_ManStop( p0 );
     Gia_ManStop( p1 );
     assert( Gia_ManRegNum(p) > 0 );
+    if ( fVerbose )
+        printf( "Running with %d frames and %sgiven init state.\n", nFrames, vInit ? "":"no " );
 
     pSat = sat_solver_new();
     sat_solver_setnvars( pSat, pCnf->nVars );
@@ -154,7 +169,7 @@ Vec_Int_t * Gia_ManTulip( Gia_Man_t * p, int nFrames, int nTimeOut, int fVerbose
     Gia_ManForEachPi( pM, pObj, i )
         if ( i == Gia_ManRegNum(p) )
             break;
-        else
+        else if ( vInit == NULL || (Vec_IntEntry(vInit, i) & 2) )
             Vec_IntPush( vLits, Abc_Var2Lit(pCnf->pVarNums[Gia_ObjId(pM, pObj)], 1) );
 
     if ( fVerbose )
@@ -163,7 +178,7 @@ Vec_Int_t * Gia_ManTulip( Gia_Man_t * p, int nFrames, int nTimeOut, int fVerbose
         printf( "Var =%10d  ",      sat_solver_nvars(pSat) );
         printf( "Clause =%10d  ",   sat_solver_nclauses(pSat) );
         printf( "Conflict =%10d  ", sat_solver_nconflicts(pSat) );
-        printf( "Subset =%6d  ",    Gia_ManRegNum(p) );
+        printf( "Subset =%6d  ",    Vec_IntSize(vLits) );
         Abc_PrintTime( 1, "Time", clkSat );
 //      ABC_PRTr( "Solver time", clkSat );
     }
@@ -214,13 +229,18 @@ Vec_Int_t * Gia_ManTulip( Gia_Man_t * p, int nFrames, int nTimeOut, int fVerbose
     vMap = Vec_IntStart( pCnf->nVars );
     Vec_IntForEachEntry( vLits, iLit, i )
         Vec_IntWriteEntry( vMap, Abc_Lit2Var(iLit), 1 );
+
     // create output
-    Vec_IntClear( vLits );
+    Vec_IntFree( vLits );
+    if ( vInit )
+        vLits = Vec_IntDup(vInit);
+    else
+        vLits = Vec_IntAlloc(Gia_ManRegNum(p)), Vec_IntFill(vLits, Gia_ManRegNum(p), 2);
     Gia_ManForEachPi( pM, pObj, i )
         if ( i == Gia_ManRegNum(p) )
             break;
-        else if ( Vec_IntEntry( vMap, pCnf->pVarNums[Gia_ObjId(pM, pObj)] ) )
-            Vec_IntPush( vLits, i );
+        else if ( (Vec_IntEntry(vLits, i) & 2) && !Vec_IntEntry( vMap, pCnf->pVarNums[Gia_ObjId(pM, pObj)] ) )
+            Vec_IntWriteEntry( vLits, i, (Vec_IntEntry(vLits, i) & 1) );
     Vec_IntFree( vMap );
 
     // cleanup
@@ -243,7 +263,7 @@ Vec_Int_t * Gia_ManTulip( Gia_Man_t * p, int nFrames, int nTimeOut, int fVerbose
   SeeAlso     []
 
 ***********************************************************************/
-void Bmc_RoseSimulateInit( Gia_Man_t * p, Vec_Int_t * vInit )
+void Gia_ManRoseInit( Gia_Man_t * p, Vec_Int_t * vInit )
 {
     Gia_Obj_t * pObj;
     word * pData1, * pData0;
@@ -252,7 +272,7 @@ void Bmc_RoseSimulateInit( Gia_Man_t * p, Vec_Int_t * vInit )
     {
         pData0 = Gia_ParTestObj( p, Gia_ObjId(p, pObj) );
         pData1 = pData0 + p->iData;
-        if ( vInit == NULL ) // both X
+        if ( vInit == NULL ) // X
             for ( i = 0; i < p->iData; i++ )
                 pData0[i] = pData1[i] = 0;
         else if ( Vec_IntEntry(vInit, k) == 0 ) // 0
@@ -261,12 +281,12 @@ void Bmc_RoseSimulateInit( Gia_Man_t * p, Vec_Int_t * vInit )
         else if ( Vec_IntEntry(vInit, k) == 1 ) // 1
             for ( i = 0; i < p->iData; i++ )
                 pData0[i] = 0, pData1[i] = ~(word)0;
-        else // if ( Vec_IntEntry(vInit, k) == 2 )
+        else // if ( Vec_IntEntry(vInit, k) > 1 ) // X
             for ( i = 0; i < p->iData; i++ )
                 pData0[i] = pData1[i] = 0;
     }
 }
-void Bmc_RoseSimulateObj( Gia_Man_t * p, int Id )
+void Gia_ManRoseSimulateObj( Gia_Man_t * p, int Id )
 {
     Gia_Obj_t * pObj = Gia_ManObj( p, Id );
     word * pData0, * pDataA0, * pDataB0;
@@ -367,7 +387,7 @@ void Bmc_RoseSimulateObj( Gia_Man_t * p, int Id )
   SeeAlso     []
 
 ***********************************************************************/
-int Bmc_RoseHighestScore( Gia_Man_t * p, int * pCost )
+int Gia_ManRoseHighestScore( Gia_Man_t * p, int * pCost )
 {
     Gia_Obj_t * pObj;
     word * pData0, * pData1;
@@ -392,7 +412,7 @@ int Bmc_RoseHighestScore( Gia_Man_t * p, int * pCost )
     ABC_FREE( pCounts );
     return iPat;
 }
-void Bmc_RoseFindStarting( Gia_Man_t * p, Vec_Int_t * vInit, int iPat )
+void Gia_ManRoseFindStarting( Gia_Man_t * p, Vec_Int_t * vInit, int iPat )
 {
     Gia_Obj_t * pObj;
     word * pData0, * pData1;
@@ -424,30 +444,37 @@ void Bmc_RoseFindStarting( Gia_Man_t * p, Vec_Int_t * vInit, int iPat )
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Int_t * Bmc_RosePerform( Gia_Man_t * p, Vec_Int_t * vInit0, int nFrames, int nWords, int fVerbose )
+Vec_Int_t * Gia_ManRosePerform( Gia_Man_t * p, Vec_Int_t * vInit0, int nFrames, int nWords, int fVerbose )
 {
     Vec_Int_t * vInit;
     Gia_Obj_t * pObj;
-    int i, f, iPat, Cost;
+    int i, f, iPat, Cost, Cost0;
     abctime clk, clkTotal = Abc_Clock();
     Gia_ManRandomW( 1 );
     if ( fVerbose )
         printf( "Running with %d frames, %d words, and %sgiven init state.\n", nFrames, nWords, vInit0 ? "":"no " );
-    vInit = Vec_IntAlloc( Gia_ManRegNum(p) );
+    if ( vInit0 )
+        vInit = Vec_IntDup(vInit0);
+    else
+        vInit = Vec_IntAlloc(Gia_ManRegNum(p)), Vec_IntFill(vInit, Gia_ManRegNum(p), 2);
+    assert( Vec_IntSize(vInit) == Gia_ManRegNum(p) );
     Gia_ParTestAlloc( p, nWords );
-    Bmc_RoseSimulateInit( p, vInit0 );
+    Gia_ManRoseInit( p, vInit );
+    Cost0 = 0;
+    Vec_IntForEachEntry( vInit, iPat, i )
+        Cost0 += ((iPat >> 1) & 1);
     if ( fVerbose )
-        printf( "Frame =%6d : Values =%6d (out of %6d)\n", 0, Gia_ManRegNum(p), Gia_ManRegNum(p) );
+        printf( "Frame =%6d : Values =%6d (out of %6d)\n", 0, Cost0, Cost0 );
     for ( f = 0; f < nFrames; f++ )
     {
         clk = Abc_Clock();
         Gia_ManForEachObj( p, pObj, i )
-            Bmc_RoseSimulateObj( p, i );
-        iPat = Bmc_RoseHighestScore( p, &Cost );
-        Bmc_RoseFindStarting( p, vInit, iPat );
-        Bmc_RoseSimulateInit( p, vInit );
+            Gia_ManRoseSimulateObj( p, i );
+        iPat = Gia_ManRoseHighestScore( p, &Cost );
+        Gia_ManRoseFindStarting( p, vInit, iPat );
+        Gia_ManRoseInit( p, vInit );
         if ( fVerbose )
-            printf( "Frame =%6d : Values =%6d (out of %6d)   ", f+1, Cost, Gia_ManRegNum(p) );
+            printf( "Frame =%6d : Values =%6d (out of %6d)   ", f+1, Cost, Cost0 );
         if ( fVerbose )
             Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     }
@@ -455,6 +482,8 @@ Vec_Int_t * Bmc_RosePerform( Gia_Man_t * p, Vec_Int_t * vInit0, int nFrames, int
     printf( "After %d frames, found a sequence to produce %d x-values (out of %d).  ", f, Cost, Gia_ManRegNum(p) );
     Abc_PrintTime( 1, "Total runtime", Abc_Clock() - clkTotal );
 //    Vec_IntFreeP( &vInit );
+    Vec_IntFill(vInit, Vec_IntSize(vInit), 2);
+//    printf( "The resulting init state is invalid.\n" );
     return vInit;
 }
 
@@ -469,30 +498,15 @@ Vec_Int_t * Bmc_RosePerform( Gia_Man_t * p, Vec_Int_t * vInit0, int nFrames, int
   SeeAlso     []
 
 ***********************************************************************/
-void Bmc_RoseTest( Gia_Man_t * p, int nFrames, int nWords, int fVerbose )
-{
-    Bmc_RosePerform( p, NULL, nFrames, nWords, fVerbose );
-}
-
-/**Function*************************************************************
-
-  Synopsis    []
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Gia_ManTulipTest( Gia_Man_t * p, int nFrames, int nWords, int nTimeOut, int fSim, int fVerbose )
+Vec_Int_t * Gia_ManTulipTest( Gia_Man_t * p, Vec_Int_t * vInit, int nFrames, int nWords, int nTimeOut, int fSim, int fVerbose )
 {
     Vec_Int_t * vRes;
     if ( fSim )
-        vRes = Bmc_RosePerform( p, NULL, nFrames, nWords, fVerbose );
+        vRes = Gia_ManRosePerform( p, vInit, nFrames, nWords, fVerbose );
     else
-        vRes = Gia_ManTulip( p, nFrames, nTimeOut, fVerbose );
+        vRes = Gia_ManTulipPerform( p, vInit, nFrames, nTimeOut, fVerbose );
     Vec_IntFreeP( &vRes );
+    return vRes;
 }
 
 

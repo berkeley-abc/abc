@@ -139,6 +139,7 @@ struct Gia_Man_t_
     Vec_Int_t *    vFlopClasses;  // classes of flops for retiming/merging/etc
     Vec_Int_t *    vGateClasses;  // classes of gates for abstraction
     Vec_Int_t *    vObjClasses;   // classes of objects for abstraction
+    Vec_Int_t *    vInitClasses;  // classes of flops for retiming/merging/etc
     Vec_Int_t *    vDoms;         // dominators
     unsigned char* pSwitching;    // switching activity for each object
     Gia_Plc_t *    pPlacement;    // placement of the objects
