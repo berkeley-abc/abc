@@ -32845,8 +32845,7 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9Lilac( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern Vec_Int_t * Gia_ManLilacTest( Gia_Man_t * p, Vec_Int_t * vInit, int nFrames, int nWords, int nTimeOut, int fSim, int fVerbose );
-    Vec_Int_t * vTemp;
+    extern int Gia_ManLilacTest( Gia_Man_t * p, Vec_Int_t * vInit, int nFrames, int nWords, int nTimeOut, int fSim, int fVerbose );
     int c, nFrames = 1000, nWords = 1000, nTimeOut = 0, fSim = 0, fVerbose = 0;
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "FWTsvh" ) ) != EOF )
@@ -32908,8 +32907,12 @@ int Abc_CommandAbc9Lilac( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Abc_CommandAbc9Lilac(): AIG is combinational.\n" );
         return 0;
     }
-    pAbc->pGia->vInitClasses = Gia_ManLilacTest( pAbc->pGia, vTemp = pAbc->pGia->vInitClasses, nFrames, nWords, nTimeOut, fSim, fVerbose );
-    Vec_IntFreeP( &vTemp );
+    if ( pAbc->pGia->vInitClasses == NULL )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9Lilac(): Init array is not given.\n" );
+        return 0;
+    }
+    Gia_ManLilacTest( pAbc->pGia, pAbc->pGia->vInitClasses, nFrames, nWords, nTimeOut, fSim, fVerbose );
     return 0;
 
 usage:

@@ -183,6 +183,8 @@ int Bmc_LilacPerform( Gia_Man_t * p, Vec_Int_t * vInit0, Vec_Int_t * vInit1, int
     sat_solver * pSat;
     int iVar0, iVar1, iLit, iLit0, iLit1;
     int i, f, status, nChanges, nMiters, RetValue = 1;
+    assert( Vec_IntSize(vInit0) == Gia_ManRegNum(p) );
+    assert( Vec_IntSize(vInit1) == Gia_ManRegNum(p) );
 
     // start the SAT solver
     pSat = sat_solver_new();
@@ -325,11 +327,12 @@ cleanup:
   SeeAlso     []
 
 ***********************************************************************/
-void Gia_ManLilacTest( Gia_Man_t * p, Vec_Int_t * vInit, int nFrames, int nWords, int nTimeOut, int fSim, int fVerbose )
+int Gia_ManLilacTest( Gia_Man_t * p, Vec_Int_t * vInit, int nFrames, int nWords, int nTimeOut, int fSim, int fVerbose )
 {
     Vec_Int_t * vInit0 = Vec_IntStart( Gia_ManRegNum(p) );
     Bmc_LilacPerform( p, vInit, vInit0, nFrames, nWords, nTimeOut, fVerbose );
     Vec_IntFree( vInit0 );
+    return 1;
 }
 
 ////////////////////////////////////////////////////////////////////////
