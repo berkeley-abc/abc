@@ -32819,7 +32819,7 @@ int Abc_CommandAbc9Tulip( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &tulip [-FWT num] [-scdvh]\n" );
+    Abc_Print( -2, "usage: &tulip [-FWT num] [-svh]\n" );
     Abc_Print( -2, "\t         experimental prcedure for testing new ideas\n" );
     Abc_Print( -2, "\t-F num : the number of timeframes [default = %d]\n",                    nFrames );
     Abc_Print( -2, "\t-W num : the number of machine words [default = %d]\n",                 nWords );
