@@ -399,8 +399,9 @@ static int Abc_CommandAbc9Bmc                ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandAbc9ICheck             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9SatTest            ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9FunFaTest          ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandAbc9Tulip              ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandAbc9Lilac              ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9Inse               ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9Maxi               ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9Bmci               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 //static int Abc_CommandAbc9PoPart2            ( Abc_Frame_t * pAbc, int argc, char ** argv );
 //static int Abc_CommandAbc9CexCut             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 //static int Abc_CommandAbc9CexMerge           ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -964,8 +965,9 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "ABC9",         "&icheck",       Abc_CommandAbc9ICheck,       0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&sattest",      Abc_CommandAbc9SatTest,      0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&funfatest",    Abc_CommandAbc9FunFaTest,    0 );
-    Cmd_CommandAdd( pAbc, "ABC9",         "&tulip",        Abc_CommandAbc9Tulip,        0 );
-    Cmd_CommandAdd( pAbc, "ABC9",         "&lilac",        Abc_CommandAbc9Lilac,        0 );
+    Cmd_CommandAdd( pAbc, "ABC9",         "&inse",         Abc_CommandAbc9Inse,         0 );
+    Cmd_CommandAdd( pAbc, "ABC9",         "&maxi",        Abc_CommandAbc9Maxi,        0 );
+    Cmd_CommandAdd( pAbc, "ABC9",         "&bmci",        Abc_CommandAbc9Bmci,        0 );
 //    Cmd_CommandAdd( pAbc, "ABC9",         "&popart2",      Abc_CommandAbc9PoPart2,      0 );
 //    Cmd_CommandAdd( pAbc, "ABC9",         "&cexcut",       Abc_CommandAbc9CexCut,       0 );
 //    Cmd_CommandAdd( pAbc, "ABC9",         "&cexmerge",     Abc_CommandAbc9CexMerge,     0 );
@@ -32751,9 +32753,104 @@ usage:
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_CommandAbc9Tulip( Abc_Frame_t * pAbc, int argc, char ** argv )
+int Abc_CommandAbc9Inse( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern Vec_Int_t * Gia_ManTulipTest( Gia_Man_t * p, Vec_Int_t * vInit, int nFrames, int nWords, int nTimeOut, int fSim, int fVerbose );
+    extern Vec_Int_t * Gia_ManInseTest( Gia_Man_t * p, Vec_Int_t * vInit, int nFrames, int nWords, int nTimeOut, int fSim, int fVerbose );
+    int c, nFrames = 10, nWords = 1000, nTimeOut = 0, fSim = 0, fVerbose = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "FWTsvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'F':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-F\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nFrames = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nFrames < 0 )
+                goto usage;
+            break;
+        case 'W':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-W\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nWords = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nWords < 0 )
+                goto usage;
+            break;
+        case 'T':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-T\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nTimeOut = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nTimeOut < 0 )
+                goto usage;
+            break;
+        case 's':
+            fSim ^= 1;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pAbc->pGia == NULL )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9Inse(): There is no AIG.\n" );
+        return 0;
+    }
+    if ( Gia_ManRegNum(pAbc->pGia) == 0 )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9Inse(): AIG is combinational.\n" );
+        return 0;
+    }
+    if ( pAbc->pGia->vInitClasses != NULL )
+    {
+        Abc_Print( 1, "Abc_CommandAbc9Inse(): All-0 initial state is assumed.\n" );
+        Vec_IntFreeP( &pAbc->pGia->vInitClasses );
+    }
+    pAbc->pGia->vInitClasses = Gia_ManInseTest( pAbc->pGia, NULL, nFrames, nWords, nTimeOut, fSim, fVerbose );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: &inse [-FWT num] [-svh]\n" );
+    Abc_Print( -2, "\t         experimental procedure\n" );
+    Abc_Print( -2, "\t-F num : the number of timeframes [default = %d]\n",                    nFrames );
+    Abc_Print( -2, "\t-W num : the number of machine words [default = %d]\n",                 nWords );
+    Abc_Print( -2, "\t-T num : approximate global runtime limit in seconds [default = %d]\n", nTimeOut );
+    Abc_Print( -2, "\t-s     : toggles using ternary simulation [default = %s]\n",            fSim?     "yes": "no" );
+    Abc_Print( -2, "\t-v     : toggles printing verbose information [default = %s]\n",        fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc9Maxi( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern Vec_Int_t * Gia_ManMaxiTest( Gia_Man_t * p, Vec_Int_t * vInit, int nFrames, int nWords, int nTimeOut, int fSim, int fVerbose );
     Vec_Int_t * vTemp;
     int c, nFrames = 5, nWords = 1000, nTimeOut = 0, fSim = 0, fVerbose = 0;
     Extra_UtilGetoptReset();
@@ -32808,20 +32905,20 @@ int Abc_CommandAbc9Tulip( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     if ( pAbc->pGia == NULL )
     {
-        Abc_Print( -1, "Abc_CommandAbc9Tulip(): There is no AIG.\n" );
+        Abc_Print( -1, "Abc_CommandAbc9Maxi(): There is no AIG.\n" );
         return 0;
     }
     if ( Gia_ManRegNum(pAbc->pGia) == 0 )
     {
-        Abc_Print( -1, "Abc_CommandAbc9Tulip(): AIG is combinational.\n" );
+        Abc_Print( -1, "Abc_CommandAbc9Maxi(): AIG is combinational.\n" );
         return 0;
     }
-    pAbc->pGia->vInitClasses = Gia_ManTulipTest( pAbc->pGia, vTemp = pAbc->pGia->vInitClasses, nFrames, nWords, nTimeOut, fSim, fVerbose );
+    pAbc->pGia->vInitClasses = Gia_ManMaxiTest( pAbc->pGia, vTemp = pAbc->pGia->vInitClasses, nFrames, nWords, nTimeOut, fSim, fVerbose );
     Vec_IntFreeP( &vTemp );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &tulip [-FWT num] [-svh]\n" );
+    Abc_Print( -2, "usage: &maxi [-FWT num] [-svh]\n" );
     Abc_Print( -2, "\t         experimental procedure\n" );
     Abc_Print( -2, "\t-F num : the number of timeframes [default = %d]\n",                    nFrames );
     Abc_Print( -2, "\t-W num : the number of machine words [default = %d]\n",                 nWords );
@@ -32843,9 +32940,9 @@ usage:
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_CommandAbc9Lilac( Abc_Frame_t * pAbc, int argc, char ** argv )
+int Abc_CommandAbc9Bmci( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern int Gia_ManLilacTest( Gia_Man_t * p, Vec_Int_t * vInit, int nFrames, int nWords, int nTimeOut, int fSim, int fVerbose );
+    extern int Gia_ManBmciTest( Gia_Man_t * p, Vec_Int_t * vInit, int nFrames, int nWords, int nTimeOut, int fSim, int fVerbose );
     int c, nFrames = 1000, nWords = 1000, nTimeOut = 0, fSim = 0, fVerbose = 0;
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "FWTsvh" ) ) != EOF )
@@ -32899,24 +32996,24 @@ int Abc_CommandAbc9Lilac( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     if ( pAbc->pGia == NULL )
     {
-        Abc_Print( -1, "Abc_CommandAbc9Lilac(): There is no AIG.\n" );
+        Abc_Print( -1, "Abc_CommandAbc9Bmci(): There is no AIG.\n" );
         return 0;
     }
     if ( Gia_ManRegNum(pAbc->pGia) == 0 )
     {
-        Abc_Print( -1, "Abc_CommandAbc9Lilac(): AIG is combinational.\n" );
+        Abc_Print( -1, "Abc_CommandAbc9Bmci(): AIG is combinational.\n" );
         return 0;
     }
     if ( pAbc->pGia->vInitClasses == NULL )
     {
-        Abc_Print( -1, "Abc_CommandAbc9Lilac(): Init array is not given.\n" );
+        Abc_Print( -1, "Abc_CommandAbc9Bmci(): Init array is not given.\n" );
         return 0;
     }
-    Gia_ManLilacTest( pAbc->pGia, pAbc->pGia->vInitClasses, nFrames, nWords, nTimeOut, fSim, fVerbose );
+    Gia_ManBmciTest( pAbc->pGia, pAbc->pGia->vInitClasses, nFrames, nWords, nTimeOut, fSim, fVerbose );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &lilac [-FWT num] [-svh]\n" );
+    Abc_Print( -2, "usage: &bmci [-FWT num] [-svh]\n" );
     Abc_Print( -2, "\t         experimental procedure\n" );
     Abc_Print( -2, "\t-F num : the number of timeframes [default = %d]\n",                    nFrames );
     Abc_Print( -2, "\t-W num : the number of machine words [default = %d]\n",                 nWords );

@@ -305,12 +305,16 @@ void Gia_ManPrintTents( Gia_Man_t * p )
 void Gia_ManPrintInitClasses( Vec_Int_t * vInits )
 {
     int i, Value;
-    int Counts[4] = {0};
+    int Counts[6] = {0};
     Vec_IntForEachEntry( vInits, Value, i )
         Counts[Value]++;
-    for ( i = 0; i < 4; i++ )
-        printf( "%d = %d  ", i, Counts[i] );
-    printf( "X = %d\n", Counts[2] + Counts[3] );
+    for ( i = 0; i < 6; i++ )
+        if ( Counts[i] )
+            printf( "%d = %d  ", i, Counts[i] );
+    printf( "  " );
+    printf( "B = %d  ", Counts[0] + Counts[1] );
+    printf( "X = %d  ", Counts[2] + Counts[3] );
+    printf( "Q = %d\n", Counts[4] + Counts[5] );
     Vec_IntForEachEntry( vInits, Value, i )
     {
         Counts[Value]++;
@@ -319,9 +323,13 @@ void Gia_ManPrintInitClasses( Vec_Int_t * vInits )
         else if ( Value == 1 )
             printf( "1" );
         else if ( Value == 2 )
-            printf( "x" );
+            printf( "2" );
         else if ( Value == 3 )
-            printf( "X" );
+            printf( "3" );
+        else if ( Value == 4 )
+            printf( "4" );
+        else if ( Value == 5 )
+            printf( "5" );
         else assert( 0 );
     }
     printf( "\n" );

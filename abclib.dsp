@@ -1419,6 +1419,10 @@ SOURCE=.\src\sat\bmc\bmcBmcAnd.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\sat\bmc\bmcBmci.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\sat\bmc\bmcCexCut.c
 # End Source File
 # Begin Source File
@@ -1447,7 +1451,7 @@ SOURCE=.\src\sat\bmc\bmcICheck.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\sat\bmc\bmcLilac.c
+SOURCE=.\src\sat\bmc\bmcInse.c
 # End Source File
 # Begin Source File
 
@@ -1455,11 +1459,11 @@ SOURCE=.\src\sat\bmc\bmcLoad.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\sat\bmc\bmcMulti.c
+SOURCE=.\src\sat\bmc\bmcMaxi.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\sat\bmc\bmcTulip.c
+SOURCE=.\src\sat\bmc\bmcMulti.c
 # End Source File
 # Begin Source File
 

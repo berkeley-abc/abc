@@ -1,6 +1,6 @@
 /**CFile****************************************************************
 
-  FileName    [bmcLilac.c]
+  FileName    [bmcBmci.c]
 
   SystemName  [ABC: Logic synthesis and verification system.]
 
@@ -14,7 +14,7 @@
 
   Date        [Ver. 1.0. Started - June 20, 2005.]
 
-  Revision    [$Id: bmcLilac.c,v 1.00 2005/06/20 00:00:00 alanmi Exp $]
+  Revision    [$Id: bmcBmci.c,v 1.00 2005/06/20 00:00:00 alanmi Exp $]
 
 ***********************************************************************/
 
@@ -88,7 +88,7 @@ static inline void Cnf_DataLiftGia( Cnf_Dat_t * p, Gia_Man_t * pGia, int nVarsPl
   SeeAlso     []
 
 ***********************************************************************/
-void Bmc_LilacUnfold( Gia_Man_t * pNew, Gia_Man_t * p, Vec_Int_t * vFFLits, int fPiReuse )
+void Bmc_BmciUnfold( Gia_Man_t * pNew, Gia_Man_t * p, Vec_Int_t * vFFLits, int fPiReuse )
 {
     Gia_Obj_t * pObj;
     int i;
@@ -115,7 +115,7 @@ void Bmc_LilacUnfold( Gia_Man_t * pNew, Gia_Man_t * p, Vec_Int_t * vFFLits, int 
   SeeAlso     []
 
 ***********************************************************************/
-int Bmc_LilacPart_rec( Gia_Man_t * pNew, Vec_Int_t * vSatMap, int iIdNew, Gia_Man_t * pPart, Vec_Int_t * vPartMap, Vec_Int_t * vCopies )
+int Bmc_BmciPart_rec( Gia_Man_t * pNew, Vec_Int_t * vSatMap, int iIdNew, Gia_Man_t * pPart, Vec_Int_t * vPartMap, Vec_Int_t * vCopies )
 {
     Gia_Obj_t * pObj = Gia_ManObj( pNew, iIdNew ); 
     int iLitPart0, iLitPart1, iRes;
@@ -129,8 +129,8 @@ int Bmc_LilacPart_rec( Gia_Man_t * pNew, Vec_Int_t * vSatMap, int iIdNew, Gia_Ma
         return iRes;
     }
     assert( Gia_ObjIsAnd(pObj) );
-    iLitPart0 = Bmc_LilacPart_rec( pNew, vSatMap, Gia_ObjFaninId0(pObj, iIdNew), pPart, vPartMap, vCopies );
-    iLitPart1 = Bmc_LilacPart_rec( pNew, vSatMap, Gia_ObjFaninId1(pObj, iIdNew), pPart, vPartMap, vCopies );
+    iLitPart0 = Bmc_BmciPart_rec( pNew, vSatMap, Gia_ObjFaninId0(pObj, iIdNew), pPart, vPartMap, vCopies );
+    iLitPart1 = Bmc_BmciPart_rec( pNew, vSatMap, Gia_ObjFaninId1(pObj, iIdNew), pPart, vPartMap, vCopies );
     iLitPart0 = Abc_LitNotCond( iLitPart0, Gia_ObjFaninC0(pObj) );
     iLitPart1 = Abc_LitNotCond( iLitPart1, Gia_ObjFaninC1(pObj) );
     Vec_IntPush( vPartMap, iIdNew );
@@ -138,7 +138,7 @@ int Bmc_LilacPart_rec( Gia_Man_t * pNew, Vec_Int_t * vSatMap, int iIdNew, Gia_Ma
     Vec_IntWriteEntry( vCopies, iIdNew, iRes );
     return iRes;
 }
-Gia_Man_t * Bmc_LilacPart( Gia_Man_t * pNew, Vec_Int_t * vSatMap, Vec_Int_t * vMiters, Vec_Int_t * vPartMap, Vec_Int_t * vCopies )
+Gia_Man_t * Bmc_BmciPart( Gia_Man_t * pNew, Vec_Int_t * vSatMap, Vec_Int_t * vMiters, Vec_Int_t * vPartMap, Vec_Int_t * vCopies )
 {
     Gia_Man_t * pPart;
     int i, iLit, iLitPart;
@@ -153,7 +153,7 @@ Gia_Man_t * Bmc_LilacPart( Gia_Man_t * pNew, Vec_Int_t * vSatMap, Vec_Int_t * vM
         if ( iLit == -1 )
             continue;
         assert( iLit >= 2 );
-        iLitPart = Bmc_LilacPart_rec( pNew, vSatMap, Abc_Lit2Var(iLit), pPart, vPartMap, vCopies );
+        iLitPart = Bmc_BmciPart_rec( pNew, vSatMap, Abc_Lit2Var(iLit), pPart, vPartMap, vCopies );
         Gia_ManAppendCo( pPart, Abc_LitNotCond(iLitPart, Abc_LitIsCompl(iLit)) );
         Vec_IntPush( vPartMap, -1 );
     }
@@ -173,7 +173,7 @@ Gia_Man_t * Bmc_LilacPart( Gia_Man_t * pNew, Vec_Int_t * vSatMap, Vec_Int_t * vM
   SeeAlso     []
 
 ***********************************************************************/
-int Bmc_LilacPerform( Gia_Man_t * p, Vec_Int_t * vInit0, Vec_Int_t * vInit1, int nFrames, int nWords, int nTimeOut, int fVerbose )
+int Bmc_BmciPerform( Gia_Man_t * p, Vec_Int_t * vInit0, Vec_Int_t * vInit1, int nFrames, int nWords, int nTimeOut, int fVerbose )
 {
     int nSatVars = 1;
     Vec_Int_t * vLits0, * vLits1, * vMiters, * vSatMap, * vPartMap, * vCopies;
@@ -210,8 +210,8 @@ int Bmc_LilacPerform( Gia_Man_t * p, Vec_Int_t * vInit0, Vec_Int_t * vInit1, int
     for ( f = 0; f < nFrames; f++ )
     {
         abctime clk = Abc_Clock();
-        Bmc_LilacUnfold( pNew, p, vLits0, 0 );
-        Bmc_LilacUnfold( pNew, p, vLits1, 1 );
+        Bmc_BmciUnfold( pNew, p, vLits0, 0 );
+        Bmc_BmciUnfold( pNew, p, vLits1, 1 );
         assert( Vec_IntSize(vLits0) == Vec_IntSize(vLits1) );
         nMiters  = 0;
         Vec_IntClear( vMiters );
@@ -228,7 +228,7 @@ int Bmc_LilacPerform( Gia_Man_t * p, Vec_Int_t * vInit0, Vec_Int_t * vInit1, int
             break;
         }
         // create new part
-        pPart = Bmc_LilacPart( pNew, vSatMap, vMiters, vPartMap, vCopies );
+        pPart = Bmc_BmciPart( pNew, vSatMap, vMiters, vPartMap, vCopies );
         pCnf = Cnf_DeriveGiaRemapped( pPart );
         Cnf_DataLiftGia( pCnf, pPart, nSatVars );
         nSatVars += pCnf->nVars;
@@ -327,10 +327,10 @@ cleanup:
   SeeAlso     []
 
 ***********************************************************************/
-int Gia_ManLilacTest( Gia_Man_t * p, Vec_Int_t * vInit, int nFrames, int nWords, int nTimeOut, int fSim, int fVerbose )
+int Gia_ManBmciTest( Gia_Man_t * p, Vec_Int_t * vInit, int nFrames, int nWords, int nTimeOut, int fSim, int fVerbose )
 {
     Vec_Int_t * vInit0 = Vec_IntStart( Gia_ManRegNum(p) );
-    Bmc_LilacPerform( p, vInit, vInit0, nFrames, nWords, nTimeOut, fVerbose );
+    Bmc_BmciPerform( p, vInit, vInit0, nFrames, nWords, nTimeOut, fVerbose );
     Vec_IntFree( vInit0 );
     return 1;
 }
