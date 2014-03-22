@@ -695,6 +695,12 @@ static inline void Vec_IntPush( Vec_Int_t * p, int Entry )
     }
     p->pArray[p->nSize++] = Entry;
 }
+static inline void Vec_IntPushArray( Vec_Int_t * p, int * pEntries, int nEntries )
+{
+    int i;
+    for ( i = 0; i < nEntries; i++ )
+        Vec_IntPush( p, pEntries[i] );
+}
 
 /**Function*************************************************************
 
@@ -1292,6 +1298,16 @@ static inline int Vec_IntCheckUniqueSmall( Vec_Int_t * p )
             if ( p->pArray[i] == p->pArray[k] )
                 return 0;
     return 1;
+}
+static inline int Vec_IntCountUnique( Vec_Int_t * p )
+{
+    int i, Count = 0, Max = Vec_IntFindMax(p);
+    unsigned char * pPres = ABC_CALLOC( unsigned char, Max+1 );
+    for ( i = 0; i < p->nSize; i++ )
+        if ( pPres[p->pArray[i]] == 0 )
+            pPres[p->pArray[i]] = 1, Count++;
+    ABC_FREE( pPres );
+    return Count;
 }
 
 /**Function*************************************************************

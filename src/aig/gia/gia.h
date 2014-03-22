@@ -262,6 +262,7 @@ struct Jf_Par_t_
     int            fVeryVerbose;
     int            nLutSizeMax;
     int            nCutNumMax;
+    int            nProcNumMax;
     word           Delay;
     word           Area;
     word           Edge;

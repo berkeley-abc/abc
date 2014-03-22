@@ -54,28 +54,6 @@ void If_ManCacheRecord( If_Man_t * p, int iDsd0, int iDsd1, int nShared, int iDs
     Vec_IntPush( p->vCutData, iDsd );
 //    printf( "%6d %6d %6d %6d\n", iDsd0, iDsd1, nShared, iDsd );
 }
-  
-/**Function*************************************************************
-
-  Synopsis    []
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-static inline int Vec_IntCountUnique( Vec_Int_t * p )
-{
-    int i, Count = 0, Max = Vec_IntFindMax(p);
-    unsigned char * pPres = ABC_CALLOC( unsigned char, Max+1 );
-    for ( i = 0; i < p->nSize; i++ )
-        if ( pPres[p->pArray[i]] == 0 )
-            pPres[p->pArray[i]] = 1, Count++;
-    ABC_FREE( pPres );
-    return Count;
-}
 
 /**Function*************************************************************
 

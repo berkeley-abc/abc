@@ -395,6 +395,23 @@ static inline void Vec_FltAddToEntry( Vec_Flt_t * p, int i, float Addition )
   SeeAlso     []
 
 ***********************************************************************/
+static inline void Vec_FltUpdateEntry( Vec_Flt_t * p, int i, float Value )
+{
+    if ( Vec_FltEntry( p, i ) < Value )
+        Vec_FltWriteEntry( p, i, Value );
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 static inline float Vec_FltEntryLast( Vec_Flt_t * p )
 {
     return p->pArray[p->nSize-1];
