@@ -768,6 +768,7 @@ typedef struct Kf_ThData_t_
     Kf_Set_t *  pSett;
     int         Id;
     int         Status;
+    abctime     clkUsed;
 } Kf_ThData_t;
 void * Kf_WorkerThread( void * pArg )
 {
@@ -776,6 +777,7 @@ void * Kf_WorkerThread( void * pArg )
     int fAreaOnly = pThData->pSett->pMan->pPars->fAreaOnly;
     int fCutMin = pThData->pSett->pMan->pPars->fCutMin;
     volatile int * pPlace = &pThData->Status;
+    abctime clk;
     while ( 1 )
     {
         while ( *pPlace == 0 );
@@ -787,7 +789,9 @@ void * Kf_WorkerThread( void * pArg )
             return NULL;
         }
         assert( pThData->Id >= 0 );
+        clk = Abc_Clock();
         Kf_SetMerge2( pThData->pSett, Kf_ObjCuts0(pMan, pThData->Id), Kf_ObjCuts1(pMan, pThData->Id), fAreaOnly, fCutMin );
+        pThData->clkUsed += Abc_Clock() - clk;
         pThData->Status = 0;
 //        printf( "Finished object %d\n", pThData->Id );
     }
@@ -817,6 +821,7 @@ void Kf_ManComputeCuts( Kf_Man_t * p )
     Gia_Obj_t * pObj;
     int nProcs = p->pPars->nProcNumMax;
     int i, k, iFan, status, nCountFanins, fRunning;
+    abctime clk, clkUsed = 0;
     assert( nProcs <= PAR_THR_MAX );
     // start fanins
     vFanins = Kf_ManCreateFaninCounts( p->pGia );
@@ -832,6 +837,7 @@ void Kf_ManComputeCuts( Kf_Man_t * p )
         ThData[i].pSett = p->pSett + i;
         ThData[i].Id = -1;
         ThData[i].Status = 0;
+        ThData[i].clkUsed = 0;
         status = pthread_create( WorkerThread + i, NULL, Kf_WorkerThread, (void *)(ThData + i) );  assert( status == 0 );
     }
     nCountFanins = Vec_IntSum(vFanins);
@@ -848,6 +854,7 @@ void Kf_ManComputeCuts( Kf_Man_t * p )
                 int iObj = ThData[i].Id;
                 Kf_Set_t * pSett = p->pSett + i;
                 //printf( "Closing obj %d with Thread %d:\n", iObj, i );
+                clk = Abc_Clock();
                 // finalize the results
                 Kf_ManSaveResults( pSett->ppCuts, pSett->nCuts, pSett->pCutBest, p->vTemp );
                 Vec_IntWriteEntry( &p->vTime, iObj, pSett->pCutBest->Delay + 1 );
@@ -856,6 +863,7 @@ void Kf_ManComputeCuts( Kf_Man_t * p )
                     Kf_ManStoreAddUnit( p->vTemp, iObj, Kf_ObjTime(p, iObj), Kf_ObjArea(p, iObj) );
                 Kf_ObjSetCuts( p, iObj, p->vTemp );
                 //Gia_CutSetPrint( Kf_ObjCuts(p, iObj) );
+                clkUsed += Abc_Clock() - clk;
                 // schedule other nodes
                 Gia_ObjForEachFanoutStaticId( p->pGia, iObj, iFan, k )
                 {
@@ -899,6 +907,15 @@ void Kf_ManComputeCuts( Kf_Man_t * p )
     Gia_ManStaticFanoutStop( p->pGia );
     Vec_IntFree( vStack );
     Vec_IntFree( vFanins );
+    // print runtime statistics
+    printf( "Main     : " );
+    Abc_PrintTime( 1, "Time", clkUsed );
+    for ( i = 0; i < nProcs; i++ )
+    {
+        printf( "Thread %d : ", i );
+        Abc_PrintTime( 1, "Time", ThData[i].clkUsed );
+    }
+
 }
 
 /**Function*************************************************************
