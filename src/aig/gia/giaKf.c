@@ -359,6 +359,20 @@ static inline void Kf_HashCleanup( Kf_Set_t * p, int iStart )
   SeeAlso     []
 
 ***********************************************************************/
+static inline int Kf_SetCountBits( word i )
+{
+    i = i - ((i >> 1) & 0x5555555555555555);
+    i = (i & 0x3333333333333333) + ((i >> 2) & 0x3333333333333333);
+    i = ((i + (i >> 4)) & 0x0F0F0F0F0F0F0F0F);
+    return (i*(0x0101010101010101))>>56;
+}
+static inline word Kf_SetCutGetSign( Kf_Cut_t * p )
+{
+    word Sign = 0; int i; 
+    for ( i = 0; i < p->nLeaves; i++ )
+        Sign |= ((word)1) << (p->pLeaves[i] & 0x3F);
+    return Sign;
+}
 // returns 1 if the cut in hash table is dominated by the given one
 static inline int Kf_SetCutDominatedByThis( Kf_Set_t * p, Kf_Cut_t * pCut )
 {
@@ -403,6 +417,8 @@ static inline void Kf_SetMergePairs( Kf_Set_t * p, Kf_Cut_t * pCut0, Kf_Cut_t * 
     Kf_HashPopulate( p, pCut0 );
     for ( pCut1 = pCuts; pCut1 < pCuts + nCuts; pCut1++ )
     {
+        if ( pCut0->nLeaves + pCut1->nLeaves > p->nLutSize && Kf_SetCountBits(pCut0->Sign | pCut1->Sign) > p->nLutSize )
+            continue;
         Kf_HashCleanup( p, pCut0->nLeaves );
         for ( i = 0; i < pCut1->nLeaves; i++ )
             if ( Kf_HashFindOrAdd(p, pCut1->pLeaves[i]) )
@@ -430,6 +446,8 @@ static inline void Kf_SetMerge( Kf_Set_t * p, int * pCuts0, int * pCuts1, int fA
     int c0, c1;
     Kf_SetPrepare( p, pCuts0, pCuts1 );
     p->CutCount[0] += p->nCuts0 * p->nCuts1;
+//    for ( c0 = 1; c0 < p->nCuts0; c0++ )
+//        assert( p->pCuts0[c0-1].nLeaves >= p->pCuts0[c0].nLeaves );
     for ( c0 = c1 = 0; c0 < p->nCuts0 && c1 < p->nCuts1; )
     {
         if ( p->pCuts0[c0].nLeaves >= p->pCuts1[c1].nLeaves )
@@ -454,20 +472,6 @@ static inline void Kf_SetMerge( Kf_Set_t * p, int * pCuts0, int * pCuts1, int fA
   SeeAlso     []
 
 ***********************************************************************/
-static inline int Kf_SetCountBits( word i )
-{
-    i = i - ((i >> 1) & 0x5555555555555555);
-    i = (i & 0x3333333333333333) + ((i >> 2) & 0x3333333333333333);
-    i = ((i + (i >> 4)) & 0x0F0F0F0F0F0F0F0F);
-    return (i*(0x0101010101010101))>>56;
-}
-static inline word Kf_SetCutGetSign( Kf_Cut_t * p )
-{
-    word Sign = 0; int i; 
-    for ( i = 0; i < p->nLeaves; i++ )
-        Sign |= ((word)1) << (p->pLeaves[i] & 0x3F);
-    return Sign;
-}
 static inline int Kf_SetCutIsContainedOrder( Kf_Cut_t * pBase, Kf_Cut_t * pCut ) // check if pCut is contained in pBase
 {
     int nSizeB = pBase->nLeaves;
@@ -605,7 +609,7 @@ static inline void Kf_SetMerge2( Kf_Set_t * p, int * pCuts0, int * pCuts1, int f
     for ( pCut0 = p->pCuts0; pCut0 < p->pCuts0 + p->nCuts0; pCut0++ )
     for ( pCut1 = p->pCuts1; pCut1 < p->pCuts1 + p->nCuts1; pCut1++ )
     {
-        if ( Kf_SetCountBits(pCut0->Sign | pCut1->Sign) > p->nLutSize )
+        if ( pCut0->nLeaves + pCut1->nLeaves > p->nLutSize && Kf_SetCountBits(pCut0->Sign | pCut1->Sign) > p->nLutSize )
             continue;
         p->CutCount[1]++;        
         pCutR = p->pCutsR + p->nCuts;
@@ -907,6 +911,8 @@ void Kf_ManComputeCuts( Kf_Man_t * p )
     Gia_ManStaticFanoutStop( p->pGia );
     Vec_IntFree( vStack );
     Vec_IntFree( vFanins );
+    if ( !p->pPars->fVerbose )
+        return;
     // print runtime statistics
     printf( "Main     : " );
     Abc_PrintTime( 1, "Time", clkUsed );
