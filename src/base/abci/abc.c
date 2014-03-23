@@ -30369,7 +30369,7 @@ int Abc_CommandAbc9Kf( Abc_Frame_t * pAbc, int argc, char ** argv )
     Gia_Man_t * pNew; int c;
     Kf_ManSetDefaultPars( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "KCRDWPaekmdcgvwh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "KCRDWPaekmdcgtvwh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -30466,6 +30466,9 @@ int Abc_CommandAbc9Kf( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'g':
             pPars->fPureAig ^= 1;
             break;
+        case 't':
+            pPars->fCutHashing ^= 1;
+            break;
         case 'v':
             pPars->fVerbose ^= 1;
             break;
@@ -30498,7 +30501,7 @@ usage:
         sprintf(Buffer, "best possible" );
     else
         sprintf(Buffer, "%d", pPars->DelayTarget );
-    Abc_Print( -2, "usage: &kf [-KCRDWP num] [-akmdcgvwh]\n" );
+    Abc_Print( -2, "usage: &kf [-KCRDWP num] [-akmdcgtvwh]\n" );
     Abc_Print( -2, "\t           performs technology mapping of the network\n" );
     Abc_Print( -2, "\t-K num   : LUT size for the mapping (2 <= K <= %d) [default = %d]\n", pPars->nLutSizeMax, pPars->nLutSize );
     Abc_Print( -2, "\t-C num   : the max number of priority cuts (1 <= C <= %d) [default = %d]\n", pPars->nCutNumMax, pPars->nCutNum );
@@ -30513,6 +30516,7 @@ usage:
     Abc_Print( -2, "\t-d       : toggles using DSD to represent cut functions [default = %s]\n", pPars->fFuncDsd? "yes": "no" );
     Abc_Print( -2, "\t-c       : toggles mapping for CNF generation [default = %s]\n", pPars->fGenCnf? "yes": "no" );
     Abc_Print( -2, "\t-g       : toggles generating AIG without mapping [default = %s]\n", pPars->fPureAig? "yes": "no" );
+    Abc_Print( -2, "\t-t       : toggles cut computation using hash table [default = %s]\n", pPars->fCutHashing? "yes": "no" );
     Abc_Print( -2, "\t-v       : toggles verbose output [default = %s]\n", pPars->fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-w       : toggles very verbose output [default = %s]\n", pPars->fVeryVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h       : prints the command usage\n");

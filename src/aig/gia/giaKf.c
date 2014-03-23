@@ -144,8 +144,8 @@ static inline void Kf_SetPrepare( Kf_Set_t * p, int * pCuts0, int * pCuts1 )
 {
     int i;
     // prepare hash table
-    for ( i = 0; i <= p->TableMask; i++ )
-        assert( p->pTable[i] == 0 );
+//    for ( i = 0; i <= p->TableMask; i++ )
+//        assert( p->pTable[i] == 0 );
     // prepare cut storage
     for ( i = 0; i <= p->nLutSize; i++ )
         p->pList[i] = -1;
@@ -333,7 +333,7 @@ static inline void Kf_HashCleanup( Kf_Set_t * p, int iStart )
 {
     int i;
     for ( i = iStart; i < p->nTEntries; i++ )
-        p->pPlace[i] = 0;
+        p->pTable[p->pPlace[i]] = 0;
     p->nTEntries = iStart;
 }
 
@@ -398,6 +398,7 @@ static inline void Kf_SetMergePairs( Kf_Set_t * p, Kf_Cut_t * pCut0, Kf_Cut_t * 
                 break;
         if ( i < pCut1->nLeaves )
             continue;
+        p->CutCount[1]++;        
         if ( Kf_SetRemoveDuplicates(p, p->nTEntries, pCut0->Sign | pCut1->Sign) )
             continue;
         // create new cut
@@ -417,6 +418,7 @@ static inline Kf_Cut_t * Kf_SetMerge( Kf_Set_t * p, int * pCuts0, int * pCuts1, 
 {
     int c0, c1;
     Kf_SetPrepare( p, pCuts0, pCuts1 );
+    p->CutCount[0] += p->nCuts0 * p->nCuts1;
     for ( c0 = c1 = 0; c0 < p->nCuts0 && c1 < p->nCuts1; )
     {
         if ( p->pCuts0[c0].nLeaves >= p->pCuts1[c1].nLeaves )
@@ -424,8 +426,9 @@ static inline Kf_Cut_t * Kf_SetMerge( Kf_Set_t * p, int * pCuts0, int * pCuts1, 
         else 
             Kf_SetMergePairs( p, p->pCuts1 + c1++, p->pCuts0 + c0, p->nCuts0 - c0, fArea );
     }
+    p->CutCount[2] += p->nCuts;        
     Kf_SetFilter( p );
-    p->CutCount[3] += Abc_MinInt( p->nCuts, p->nCutNum );
+    p->CutCount[3] += Abc_MinInt( p->nCuts, p->nCutNum-1 );
     return Kf_SetSelectBest( p, fArea, 1 );
 }
 
@@ -619,7 +622,7 @@ static inline Kf_Cut_t * Kf_SetMerge2( Kf_Set_t * p, int * pCuts0, int * pCuts1,
     }
     Kf_SetFilter2( p );
     p->CutCount[3] += Abc_MinInt( p->nCuts, p->nCutNum-1 );
-    return Kf_SetSelectBest( p, fArea, 0 );
+    return Kf_SetSelectBest( p, fArea, 1 );
 }
 
 
@@ -766,7 +769,7 @@ void Kf_ManComputeMapping( Kf_Man_t * p )
     if ( p->pPars->fVerbose )
     {
         printf( "Aig: CI = %d  CO = %d  AND = %d    ", Gia_ManCiNum(p->pGia), Gia_ManCoNum(p->pGia), Gia_ManAndNum(p->pGia) );
-        printf( "LutSize = %d  CutMax = %d  Rounds = %d\n", p->pPars->nLutSize, p->pPars->nCutNum, p->pPars->nRounds );
+        printf( "LutSize = %d  CutMax = %d  Hash = %d\n", p->pPars->nLutSize, p->pPars->nCutNum, p->pPars->fCutHashing );
         printf( "Computing cuts...\r" );
         fflush( stdout );
     }
@@ -781,8 +784,10 @@ void Kf_ManComputeMapping( Kf_Man_t * p )
         }
         else if ( Gia_ObjIsAnd(pObj) )
         {
-            pCutBest = Kf_SetMerge2( p->pSett, Kf_ObjCuts0(p, i), Kf_ObjCuts1(p, i), p->pPars->fAreaOnly, p->pPars->fCutMin );
-//            pCutBest = Kf_SetMerge( p->pSett, Kf_ObjCuts0(p, i), Kf_ObjCuts1(p, i), p->pPars->fAreaOnly, p->pPars->fCutMin );
+            if ( p->pPars->fCutHashing )
+                pCutBest = Kf_SetMerge( p->pSett, Kf_ObjCuts0(p, i), Kf_ObjCuts1(p, i), p->pPars->fAreaOnly, p->pPars->fCutMin );
+            else
+                pCutBest = Kf_SetMerge2( p->pSett, Kf_ObjCuts0(p, i), Kf_ObjCuts1(p, i), p->pPars->fAreaOnly, p->pPars->fCutMin );
             Kf_ManSaveResults( p->pSett->ppCuts, p->pSett->nCuts, pCutBest, p->vTemp );
             Vec_IntWriteEntry( &p->vTime, i, pCutBest->Delay + 1 );
             Vec_FltWriteEntry( &p->vArea, i, (pCutBest->Area + 1)/Kf_ObjRefs(p, i) );
@@ -926,13 +931,14 @@ void Kf_ManSetDefaultPars( Jf_Par_t * pPars )
     pPars->nRounds      =  1;
     pPars->nVerbLimit   =  5;
     pPars->DelayTarget  = -1;
-    pPars->fAreaOnly    =  1;
+    pPars->fAreaOnly    =  0;
     pPars->fOptEdge     =  1; 
     pPars->fCoarsen     =  0;
     pPars->fCutMin      =  0;
     pPars->fFuncDsd     =  0;
     pPars->fGenCnf      =  0;
     pPars->fPureAig     =  0;
+    pPars->fCutHashing  =  0;
     pPars->fVerbose     =  0;
     pPars->fVeryVerbose =  0;
     pPars->nLutSizeMax  =  KF_LEAF_MAX;
