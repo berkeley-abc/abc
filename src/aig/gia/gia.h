@@ -246,6 +246,7 @@ struct Jf_Par_t_
 {
     int            nLutSize;
     int            nCutNum;
+    int            nProcNum;
     int            nRounds;
     int            nVerbLimit;
     int            DelayTarget;

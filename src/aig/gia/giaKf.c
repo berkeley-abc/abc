@@ -38,11 +38,11 @@ ABC_NAMESPACE_IMPL_START
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-#define KF_PROC_MAX   8
-#define KF_LEAF_MAX   8
+#define KF_LEAF_MAX  16
+#define KF_CUT_MAX   32
+#define KF_PROC_MAX  32
 #define KF_WORD_MAX  ((KF_LEAF_MAX > 6) ? 1 << (KF_LEAF_MAX-6) : 1)
 #define KF_LOG_TABLE  8
-#define KF_NUM_MAX   16
 
 #define KF_ADD_ON1    2  // offset in cut storage for each node (cut count; best cut)
 #define KF_ADD_ON2    4  // offset in cut storage for each cut (leaf count; function, cut delay; cut area)
@@ -76,10 +76,10 @@ struct Kf_Set_t_
     int             pValue[1 << KF_LOG_TABLE];
     int             pPlace[KF_LEAF_MAX];
     int             pList [KF_LEAF_MAX+1];
-    Kf_Cut_t        pCuts0[KF_NUM_MAX];
-    Kf_Cut_t        pCuts1[KF_NUM_MAX];
-    Kf_Cut_t        pCutsR[KF_NUM_MAX*KF_NUM_MAX];
-    Kf_Cut_t *      ppCuts[KF_NUM_MAX];
+    Kf_Cut_t        pCuts0[KF_CUT_MAX];
+    Kf_Cut_t        pCuts1[KF_CUT_MAX];
+    Kf_Cut_t        pCutsR[KF_CUT_MAX*KF_CUT_MAX];
+    Kf_Cut_t *      ppCuts[KF_CUT_MAX];
     Kf_Cut_t *      pCutBest;
     word            CutCount[4]; // statistics
 };
@@ -196,7 +196,7 @@ static inline void Kf_ManStoreAddUnit( Vec_Int_t * vTemp, int iObj, int Time, fl
 static inline void Kf_ManSaveResults( Kf_Cut_t ** ppCuts, int nCuts, Kf_Cut_t * pCutBest, Vec_Int_t * vTemp )
 {
     int i, k;
-    assert( nCuts > 0 && nCuts < KF_NUM_MAX );
+    assert( nCuts > 0 && nCuts < KF_CUT_MAX );
     Kf_ManStoreStart( vTemp, nCuts );
     for ( i = 0; i < nCuts; i++ )
     {
@@ -823,7 +823,7 @@ void Kf_ManComputeCuts( Kf_Man_t * p )
     Kf_ThData_t ThData[PAR_THR_MAX];
     Vec_Int_t * vStack, * vFanins;
     Gia_Obj_t * pObj;
-    int nProcs = p->pPars->nProcNumMax;
+    int nProcs = p->pPars->nProcNum;
     int i, k, iFan, status, nCountFanins, fRunning;
     abctime clk, clkUsed = 0;
     assert( nProcs <= PAR_THR_MAX );
@@ -964,7 +964,7 @@ void Kf_ManComputeMapping( Kf_Man_t * p )
         assert( Vec_IntSize(p->vTemp) == 1 + KF_ADD_ON1 + KF_ADD_ON2 );
         Kf_ObjSetCuts( p, i, p->vTemp );
     }
-    if ( p->pPars->nProcNumMax > 0 )
+    if ( p->pPars->nProcNum > 0 )
         Kf_ManComputeCuts( p );
     else
     {
@@ -1037,9 +1037,9 @@ void Kf_ManSetInitRefs( Gia_Man_t * p, Vec_Flt_t * vRefs )
 Kf_Man_t * Kf_ManAlloc( Gia_Man_t * pGia, Jf_Par_t * pPars )
 {
     Kf_Man_t * p; int i;
-    assert( pPars->nLutSizeMax <= KF_LEAF_MAX );
-    assert( pPars->nCutNumMax  <= KF_NUM_MAX  );
-    assert( pPars->nProcNumMax <= KF_PROC_MAX );
+    assert( pPars->nLutSize <= KF_LEAF_MAX );
+    assert( pPars->nCutNum  <= KF_CUT_MAX  );
+    assert( pPars->nProcNum <= KF_PROC_MAX );
     Vec_IntFreeP( &pGia->vMapping );
     p = ABC_CALLOC( Kf_Man_t, 1 );
     p->clkStart  = Abc_Clock();
@@ -1053,7 +1053,7 @@ Kf_Man_t * Kf_ManAlloc( Gia_Man_t * pGia, Jf_Par_t * pPars )
     p->vTemp     = Vec_IntAlloc( 1000 );
     pGia->pRefs  = ABC_CALLOC( int, Gia_ManObjNum(pGia) );
     // prepare cut sets
-    for ( i = 0; i < Abc_MaxInt(1, pPars->nProcNumMax); i++ )
+    for ( i = 0; i < Abc_MaxInt(1, pPars->nProcNum); i++ )
     {
         (p->pSett + i)->pMan      = p;
         (p->pSett + i)->nLutSize  = (unsigned short)pPars->nLutSize;
@@ -1114,6 +1114,7 @@ void Kf_ManSetDefaultPars( Jf_Par_t * pPars )
     memset( pPars, 0, sizeof(Jf_Par_t) );
     pPars->nLutSize     =  6;
     pPars->nCutNum      =  8;
+    pPars->nProcNum     =  0;
     pPars->nRounds      =  1;
     pPars->nVerbLimit   =  5;
     pPars->DelayTarget  = -1;
@@ -1128,8 +1129,8 @@ void Kf_ManSetDefaultPars( Jf_Par_t * pPars )
     pPars->fVerbose     =  0;
     pPars->fVeryVerbose =  0;
     pPars->nLutSizeMax  =  KF_LEAF_MAX;
-    pPars->nCutNumMax   =  KF_NUM_MAX;
-    pPars->nProcNumMax  =  0;
+    pPars->nCutNumMax   =  KF_CUT_MAX;
+    pPars->nProcNumMax  =  KF_PROC_MAX;
 }
 Gia_Man_t * Kf_ManPerformMapping( Gia_Man_t * pGia, Jf_Par_t * pPars )
 {
