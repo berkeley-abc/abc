@@ -1,6 +1,6 @@
 /**CFile****************************************************************
 
-  FileName    [giaCutt.c]
+  FileName    [giaKf.c]
 
   SystemName  [ABC: Logic synthesis and verification system.]
 
@@ -14,7 +14,7 @@
 
   Date        [Ver. 1.0. Started - June 20, 2005.]
 
-  Revision    [$Id: giaCutt.c,v 1.00 2005/06/20 00:00:00 alanmi Exp $]
+  Revision    [$Id: giaKf.c,v 1.00 2005/06/20 00:00:00 alanmi Exp $]
 
 ***********************************************************************/
 
@@ -64,7 +64,7 @@ struct Kf_Set_t_
     int             pTable[1 << KF_LOG_TABLE];
     int             pValue[1 << KF_LOG_TABLE];
     int             pPlace[KF_LEAF_MAX];
-    int             pList [KF_LEAF_MAX];
+    int             pList [KF_LEAF_MAX+1];
     Kf_Cut_t        pCuts0[KF_NUM_MAX];
     Kf_Cut_t        pCuts1[KF_NUM_MAX];
     Kf_Cut_t        pCutsR[KF_NUM_MAX*KF_NUM_MAX];
@@ -98,9 +98,9 @@ static inline int * Kf_ObjCuts0( Kf_Man_t * p, int i )                     { ret
 static inline int * Kf_ObjCuts1( Kf_Man_t * p, int i )                     { return Kf_ObjCuts(p, Gia_ObjFaninId1(Gia_ManObj(p->pGia, i), i));    }
 static inline int * Kf_ObjCutBest( Kf_Man_t * p, int i )                   { int * pCuts = Kf_ObjCuts(p, i); return pCuts + pCuts[1];             }
 
-#define Kf_ObjForEachCutInt( pList, pCut, i )         for ( i = 0, pCut = pList + KF_ADD_ON1; i < pList[0]; i++, pCut += pCut[0] + KF_ADD_ON2 )
-#define Kf_ListForEachCutt( p, iList, pCut )          for ( pCut = Kf_SetCut(p, p->pList[iList]); pCut; pCut = Kf_SetCut(p, pCut->iNext) )
-#define Kf_ListForEachCuttP( p, iList, pCut, pPlace ) for ( pPlace = p->pList+iList, pCut = Kf_SetCut(p, *pPlace); pCut; pCut = Kf_SetCut(p, *pPlace) )
+#define Kf_ObjForEachCutInt( pList, pCut, i )        for ( i = 0, pCut = pList + KF_ADD_ON1; i < pList[0]; i++, pCut += pCut[0] + KF_ADD_ON2 )
+#define Kf_ListForEachCut( p, iList, pCut )          for ( pCut = Kf_SetCut(p, p->pList[iList]); pCut; pCut = Kf_SetCut(p, pCut->iNext) )
+#define Kf_ListForEachCutP( p, iList, pCut, pPlace ) for ( pPlace = p->pList+iList, pCut = Kf_SetCut(p, *pPlace); pCut; pCut = Kf_SetCut(p, *pPlace) )
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -217,7 +217,7 @@ static inline void Kf_SetAddToList( Kf_Set_t * p, Kf_Cut_t * pCut, int fSort )
         int Value, * pPlace;
         Kf_Cut_t * pTemp;
         Vec_IntSelectSort( pCut->pLeaves, pCut->nLeaves );
-        Kf_ListForEachCuttP( p, pCut->nLeaves, pTemp, pPlace )
+        Kf_ListForEachCutP( p, pCut->nLeaves, pTemp, pPlace )
         {
             if ( (Value = Kf_SetCompareCuts(pTemp, pCut)) > 0 )
                 break;
@@ -268,7 +268,7 @@ static inline Kf_Cut_t * Kf_SetSelectBest( Kf_Set_t * p, int fArea, int fSort )
     Kf_Cut_t * pCut, * pCutBest;
     int i, nCuts = 0;
     for ( i = 0; i <= p->nLutSize; i++ )
-        Kf_ListForEachCutt( p, i, pCut )
+        Kf_ListForEachCut( p, i, pCut )
             nCuts = Kf_SetStoreAddOne( p, nCuts, p->nCutNum-1, pCut, fArea );
     assert( nCuts > 0 && nCuts < p->nCutNum );
     p->nCuts = nCuts;
@@ -282,7 +282,7 @@ static inline Kf_Cut_t * Kf_SetSelectBest( Kf_Set_t * p, int fArea, int fSort )
         Kf_SetAddToList( p, p->ppCuts[i], 0 );
     p->nCuts = 0;
     for ( i = p->nLutSize; i >= 0; i-- )
-        Kf_ListForEachCutt( p, i, pCut )
+        Kf_ListForEachCut( p, i, pCut )
             p->ppCuts[p->nCuts++] = pCut;
     assert( p->nCuts == nCuts );
     return pCutBest;
@@ -360,7 +360,7 @@ static inline int Kf_SetCutDominatedByThis( Kf_Set_t * p, Kf_Cut_t * pCut )
 static inline int Kf_SetRemoveDuplicates( Kf_Set_t * p, int nLeaves, word Sign )
 {
     Kf_Cut_t * pCut; 
-    Kf_ListForEachCutt( p, nLeaves, pCut )
+    Kf_ListForEachCut( p, nLeaves, pCut )
         if ( pCut->Sign == Sign && Kf_SetCutDominatedByThis(p, pCut) )
             return 1;
     return 0;
@@ -371,11 +371,11 @@ static inline void Kf_SetFilter( Kf_Set_t * p )
     int i, k, * pPlace;
     assert( p->nCuts > 0 );
     for ( i = 0; i <= p->nLutSize; i++ )
-        Kf_ListForEachCuttP( p, i, pCut0, pPlace )
+        Kf_ListForEachCutP( p, i, pCut0, pPlace )
         {
             Kf_HashPopulate( p, pCut0 );
             for ( k = 0; k < pCut0->nLeaves; k++ )
-                Kf_ListForEachCutt( p, k, pCut1 )
+                Kf_ListForEachCut( p, k, pCut1 )
                     if ( (pCut0->Sign & pCut1->Sign) == pCut1->Sign && Kf_SetCutDominatedByThis(p, pCut1) )
                         { k = pCut0->nLeaves + 1; p->nCuts--; break; }
             if ( k == pCut0->nLeaves + 1 ) // remove pCut0
@@ -541,7 +541,7 @@ FlushCut1:
 static inline int Kf_SetRemoveDuplicates2( Kf_Set_t * p, Kf_Cut_t * pCutNew )
 {
     Kf_Cut_t * pCut;
-    Kf_ListForEachCutt( p, pCutNew->nLeaves, pCut )
+    Kf_ListForEachCut( p, pCutNew->nLeaves, pCut )
         if ( pCut->Sign == pCutNew->Sign && Kf_SetCutIsContainedOrder(pCut, pCutNew) )
             return 1;
     return 0;
@@ -552,10 +552,10 @@ static inline void Kf_SetFilter2( Kf_Set_t * p )
     int i, k, * pPlace;
     assert( p->nCuts > 0 );
     for ( i = 0; i <= p->nLutSize; i++ )
-        Kf_ListForEachCuttP( p, i, pCut0, pPlace )
+        Kf_ListForEachCutP( p, i, pCut0, pPlace )
         {
             for ( k = 0; k < pCut0->nLeaves; k++ )
-                Kf_ListForEachCutt( p, k, pCut1 )
+                Kf_ListForEachCut( p, k, pCut1 )
                     if ( (pCut0->Sign & pCut1->Sign) == pCut1->Sign && Kf_SetCutIsContainedOrder(pCut0, pCut1) )
                         { k = pCut0->nLeaves + 1; p->nCuts--; break; }
             if ( k == pCut0->nLeaves + 1 ) // remove pCut0
