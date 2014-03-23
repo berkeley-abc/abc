@@ -946,6 +946,50 @@ Vec_Ptr_t * Abc_AigDfs( Abc_Ntk_t * pNtk, int fCollectAll, int fCollectCos )
     return vNodes;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Returns the DFS ordered array of logic nodes.]
+
+  Description [Collects only the internal nodes, leaving out CIs/COs.
+  However it marks both CIs and COs with the current TravId.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Ptr_t * Abc_AigDfsMap( Abc_Ntk_t * pNtk )
+{
+    Vec_Ptr_t * vNodes;
+    Abc_Obj_t * pNode;
+    int i;
+    assert( Abc_NtkIsStrash(pNtk) );
+    // set the traversal ID
+    Abc_NtkIncrementTravId( pNtk );
+    // start the array of nodes
+    vNodes = Vec_PtrAlloc( 100 );
+    // collect cones of barbufs
+    Abc_NtkForEachCo( pNtk, pNode, i )
+    {
+        if ( i < Abc_NtkCoNum(pNtk) - pNtk->nBarBufs )
+            continue;
+        Abc_AigDfs_rec( Abc_ObjFanin0(pNode), vNodes );
+        Abc_NodeSetTravIdCurrent( pNode );
+        // collect latch as a placeholder
+        assert( Abc_ObjIsLatch(Abc_ObjFanout0(pNode)) );
+        Vec_PtrPush( vNodes, Abc_ObjFanout0(pNode) );
+    }
+    // collect nodes of real POs
+    Abc_NtkForEachCo( pNtk, pNode, i )
+    {
+        if ( i >= Abc_NtkCoNum(pNtk) - pNtk->nBarBufs )
+            break;
+        Abc_AigDfs_rec( Abc_ObjFanin0(pNode), vNodes );
+        assert( Abc_ObjIsPo(pNode) );
+        Abc_NodeSetTravIdCurrent( pNode );
+    }
+    return vNodes;
+}
 
 /**Function*************************************************************
 

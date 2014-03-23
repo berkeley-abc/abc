@@ -51,11 +51,11 @@ void Map_MappingTruths( Map_Man_t * pMan )
     Map_Cut_t * pCut;
     int nNodes, i;
     // compute the cuts for the POs
-    nNodes = pMan->vAnds->nSize;
+    nNodes = pMan->vMapObjs->nSize;
     pProgress = Extra_ProgressBarStart( stdout, nNodes );
     for ( i = 0; i < nNodes; i++ )
     {
-        pNode = pMan->vAnds->pArray[i];
+        pNode = pMan->vMapObjs->pArray[i];
         if ( !Map_NodeIsAnd( pNode ) )
             continue;
         assert( pNode->pCuts );

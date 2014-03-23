@@ -88,6 +88,51 @@ static unsigned         Map_CutComputeTruth( Map_Man_t * p, Map_Cut_t * pCut, Ma
 
 /**Function*************************************************************
 
+  Synopsis    [Counts all the cuts.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Map_MappingCountAllCuts( Map_Man_t * pMan )
+{
+    Map_Node_t * pNode;
+    Map_Cut_t * pCut;
+    int i, nCuts;
+//    int nCuts55 = 0, nCuts5x = 0, nCuts4x = 0, nCuts3x = 0;
+//    int pCounts[7] = {0};
+    nCuts = 0;
+    for ( i = 0; i < pMan->nBins; i++ )
+        for ( pNode = pMan->pBins[i]; pNode; pNode = pNode->pNext )
+            for ( pCut = pNode->pCuts; pCut; pCut = pCut->pNext )
+                if ( pCut->nLeaves > 1 ) // skip the elementary cuts
+                {
+                    nCuts++;
+/*
+                    if ( Map_CutRegular(pCut->pOne)->nLeaves == 5 && Map_CutRegular(pCut->pTwo)->nLeaves == 5 )
+                        nCuts55++;
+                    if ( Map_CutRegular(pCut->pOne)->nLeaves == 5 || Map_CutRegular(pCut->pTwo)->nLeaves == 5 )
+                        nCuts5x++;
+                    else if ( Map_CutRegular(pCut->pOne)->nLeaves == 4 || Map_CutRegular(pCut->pTwo)->nLeaves == 4 )
+                        nCuts4x++;
+                    else if ( Map_CutRegular(pCut->pOne)->nLeaves == 3 || Map_CutRegular(pCut->pTwo)->nLeaves == 3 )
+                        nCuts3x++;
+*/                  
+//                    pCounts[ Map_CutRegular(pCut->pOne)->nLeaves ]++;
+//                    pCounts[ Map_CutRegular(pCut->pTwo)->nLeaves ]++;
+                }
+//    printf( "Total cuts = %6d. 55 = %6d. 5x = %6d. 4x = %6d. 3x = %6d.\n", nCuts, nCuts55, nCuts5x, nCuts4x, nCuts3x );
+
+//    printf( "Total cuts = %6d. 6= %6d. 5= %6d. 4= %6d. 3= %6d. 2= %6d. 1= %6d.\n", 
+//        nCuts, pCounts[6], pCounts[5], pCounts[4], pCounts[3], pCounts[2], pCounts[1] );
+    return nCuts;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Computes the cuts for each node in the object graph.]
 
   Description [The cuts are computed in one sweep over the mapping graph. 
@@ -110,39 +155,44 @@ static unsigned         Map_CutComputeTruth( Map_Man_t * p, Map_Cut_t * pCut, Ma
   SeeAlso     []
 
 ***********************************************************************/
+void Map_MappingCutsInput( Map_Man_t * p, Map_Node_t * pNode )
+{
+    Map_Cut_t * pCut;
+    assert( Map_NodeIsVar(pNode) || Map_NodeIsBuf(pNode) );
+    pCut = Map_CutAlloc( p );
+    pCut->nLeaves = 1;
+    pCut->ppLeaves[0] = pNode;
+    pNode->pCuts   = pCut;
+    pNode->pCutBest[0] = NULL; // negative polarity is not mapped
+    pNode->pCutBest[1] = pCut; // positive polarity is a trivial cut
+    pCut->uTruth = 0xAAAAAAAA; // the first variable "1010"
+    pCut->M[0].AreaFlow = 0.0;
+    pCut->M[1].AreaFlow = 0.0;
+}
 void Map_MappingCuts( Map_Man_t * p )
 {
     ProgressBar * pProgress;
     Map_CutTable_t * pTable;
     Map_Node_t * pNode;
-    Map_Cut_t * pCut;
     int nCuts, nNodes, i;
     abctime clk = Abc_Clock();
     // set the elementary cuts for the PI variables
     assert( p->nVarsMax > 1 && p->nVarsMax < 7 );
     for ( i = 0; i < p->nInputs; i++ )
-    {
-        pCut = Map_CutAlloc( p );
-        pCut->nLeaves = 1;
-        pCut->ppLeaves[0] = p->pInputs[i];
-        p->pInputs[i]->pCuts   = pCut;
-        p->pInputs[i]->pCutBest[0] = NULL; // negative polarity is not mapped
-        p->pInputs[i]->pCutBest[1] = pCut; // positive polarity is a trivial cut
-        pCut->uTruth = 0xAAAAAAAA;         // the first variable "10101010"
-        pCut->M[0].AreaFlow = 0.0;
-        pCut->M[1].AreaFlow = 0.0;
-    }
+        Map_MappingCutsInput( p, p->pInputs[i] );
 
     // compute the cuts for the internal nodes
-    nNodes = p->vAnds->nSize;
+    nNodes = p->vMapObjs->nSize;
     pProgress = Extra_ProgressBarStart( stdout, nNodes );
     pTable = Map_CutTableStart( p );
     for ( i = 0; i < nNodes; i++ )
     {
-        pNode = p->vAnds->pArray[i];
-        if ( !Map_NodeIsAnd( pNode ) )
-            continue;
-        Map_CutCompute( p, pTable, pNode );
+        pNode = p->vMapObjs->pArray[i];
+        if ( Map_NodeIsBuf(pNode) )
+            Map_MappingCutsInput( p, pNode );
+        else if ( Map_NodeIsAnd(pNode) )
+            Map_CutCompute( p, pTable, pNode );
+        else continue;
         Extra_ProgressBarUpdate( pProgress, i, "Cuts ..." );
     }
     Extra_ProgressBarStop( pProgress );
@@ -677,51 +727,6 @@ int Map_CutBelongsToList( Map_Cut_t * pList, Map_Node_t * ppNodes[], int nNodes 
             return 1;
     }
     return 0;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Counts all the cuts.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Map_MappingCountAllCuts( Map_Man_t * pMan )
-{
-    Map_Node_t * pNode;
-    Map_Cut_t * pCut;
-    int i, nCuts;
-//    int nCuts55 = 0, nCuts5x = 0, nCuts4x = 0, nCuts3x = 0;
-//    int pCounts[7] = {0};
-    nCuts = 0;
-    for ( i = 0; i < pMan->nBins; i++ )
-        for ( pNode = pMan->pBins[i]; pNode; pNode = pNode->pNext )
-            for ( pCut = pNode->pCuts; pCut; pCut = pCut->pNext )
-                if ( pCut->nLeaves > 1 ) // skip the elementary cuts
-                {
-                    nCuts++;
-/*
-                    if ( Map_CutRegular(pCut->pOne)->nLeaves == 5 && Map_CutRegular(pCut->pTwo)->nLeaves == 5 )
-                        nCuts55++;
-                    if ( Map_CutRegular(pCut->pOne)->nLeaves == 5 || Map_CutRegular(pCut->pTwo)->nLeaves == 5 )
-                        nCuts5x++;
-                    else if ( Map_CutRegular(pCut->pOne)->nLeaves == 4 || Map_CutRegular(pCut->pTwo)->nLeaves == 4 )
-                        nCuts4x++;
-                    else if ( Map_CutRegular(pCut->pOne)->nLeaves == 3 || Map_CutRegular(pCut->pTwo)->nLeaves == 3 )
-                        nCuts3x++;
-*/                  
-//                    pCounts[ Map_CutRegular(pCut->pOne)->nLeaves ]++;
-//                    pCounts[ Map_CutRegular(pCut->pTwo)->nLeaves ]++;
-                }
-//    printf( "Total cuts = %6d. 55 = %6d. 5x = %6d. 4x = %6d. 3x = %6d.\n", nCuts, nCuts55, nCuts5x, nCuts4x, nCuts3x );
-
-//    printf( "Total cuts = %6d. 6= %6d. 5= %6d. 4= %6d. 3= %6d. 2= %6d. 1= %6d.\n", 
-//        nCuts, pCounts[6], pCounts[5], pCounts[4], pCounts[3], pCounts[2], pCounts[1] );
-    return nCuts;
 }
 
 

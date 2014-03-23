@@ -27,7 +27,6 @@ ABC_NAMESPACE_IMPL_START
 
 static void            Map_TableCreate( Map_Man_t * p );
 static void            Map_TableResize( Map_Man_t * p );
-static Map_Node_t *    Map_TableLookup( Map_Man_t * p, Map_Node_t * p1, Map_Node_t * p2 );
 
 // hash key for the structural hash table
 static inline unsigned Map_HashKey2( Map_Node_t * p0, Map_Node_t * p1, int TableSize ) { return (unsigned)(((ABC_PTRUINT_T)(p0) + (ABC_PTRUINT_T)(p1) * 12582917) % TableSize); }
@@ -49,8 +48,11 @@ static inline unsigned Map_HashKey2( Map_Node_t * p0, Map_Node_t * p1, int Table
 ***********************************************************************/
 int             Map_ManReadInputNum( Map_Man_t * p )                    { return p->nInputs;    }
 int             Map_ManReadOutputNum( Map_Man_t * p )                   { return p->nOutputs;   }
+int             Map_ManReadBufNum( Map_Man_t * p )                      { return Map_NodeVecReadSize(p->vMapBufs);   }
 Map_Node_t **   Map_ManReadInputs ( Map_Man_t * p )                     { return p->pInputs;    }
 Map_Node_t **   Map_ManReadOutputs( Map_Man_t * p )                     { return p->pOutputs;   }
+Map_Node_t **   Map_ManReadBufs( Map_Man_t * p )                        { return Map_NodeVecReadArray(p->vMapBufs);  }
+Map_Node_t *    Map_ManReadBufDriver( Map_Man_t * p, int i )            { return Map_ManReadBufs(p)[i]->p1;           }
 Map_Node_t *    Map_ManReadConst1 ( Map_Man_t * p )                     { return p->pConst1;    }
 Map_Time_t *    Map_ManReadInputArrivals( Map_Man_t * p )               { return p->pInputArrivals; }
 Map_Time_t *    Map_ManReadOutputRequireds( Map_Man_t * p )             { return p->pOutputRequireds; }
@@ -109,7 +111,8 @@ void            Map_NodeSetSwitching( Map_Node_t * p, float Switching )     { p-
 ***********************************************************************/
 int             Map_NodeIsConst( Map_Node_t * p )    {  return (Map_Regular(p))->Num == -1;    }
 int             Map_NodeIsVar( Map_Node_t * p )      {  return (Map_Regular(p))->p1 == NULL && (Map_Regular(p))->Num >= 0; }
-int             Map_NodeIsAnd( Map_Node_t * p )      {  return (Map_Regular(p))->p1 != NULL;  }
+int             Map_NodeIsBuf( Map_Node_t * p )      {  return (Map_Regular(p))->p1 != NULL && (Map_Regular(p))->p2 == NULL;  }
+int             Map_NodeIsAnd( Map_Node_t * p )      {  return (Map_Regular(p))->p1 != NULL && (Map_Regular(p))->p2 != NULL;  }
 int             Map_NodeComparePhase( Map_Node_t * p1, Map_Node_t * p2 ) { assert( !Map_IsComplement(p1) ); assert( !Map_IsComplement(p2) ); return p1->fInv ^ p2->fInv; }
 
 /**Function*************************************************************
@@ -214,9 +217,8 @@ Map_Man_t * Map_ManCreate( int nInputs, int nOutputs, int fVerbose )
     p->nNodes = -1;
     // create the constant node
     p->pConst1    = Map_NodeCreate( p, NULL, NULL );
-    p->vNodesAll  = Map_NodeVecAlloc( 100 );
-    p->vNodesTemp = Map_NodeVecAlloc( 100 );
-    p->vMapping   = Map_NodeVecAlloc( 100 );
+    p->vMapObjs   = Map_NodeVecAlloc( 100 );
+    p->vMapBufs   = Map_NodeVecAlloc( 100 );
     p->vVisited   = Map_NodeVecAlloc( 100 );
 
     // create the PI nodes
@@ -246,19 +248,12 @@ Map_Man_t * Map_ManCreate( int nInputs, int nOutputs, int fVerbose )
 void Map_ManFree( Map_Man_t * p )
 {
 //    int i;
-//    for ( i = 0; i < p->vNodesAll->nSize; i++ )
-//        Map_NodeVecFree( p->vNodesAll->pArray[i]->vFanouts );
+//    for ( i = 0; i < p->vMapObjs->nSize; i++ )
+//        Map_NodeVecFree( p->vMapObjs->pArray[i]->vFanouts );
 //    Map_NodeVecFree( p->pConst1->vFanouts );
-    if ( p->vAnds )    
-        Map_NodeVecFree( p->vAnds );
-    if ( p->vNodesAll )    
-        Map_NodeVecFree( p->vNodesAll );
-    if ( p->vNodesTemp )    
-        Map_NodeVecFree( p->vNodesTemp );
-    if ( p->vMapping )    
-        Map_NodeVecFree( p->vMapping );
-    if ( p->vVisited )    
-        Map_NodeVecFree( p->vVisited );
+    Map_NodeVecFree( p->vMapObjs );
+    Map_NodeVecFree( p->vMapBufs );
+    Map_NodeVecFree( p->vVisited );
     if ( p->uCanons )   ABC_FREE( p->uCanons );
     if ( p->uPhases )   ABC_FREE( p->uPhases );
     if ( p->pCounters ) ABC_FREE( p->pCounters );
@@ -291,10 +286,10 @@ void Map_ManCreateNodeDelays( Map_Man_t * p, int LogFan )
     Map_Node_t * pNode;
     int k;
     assert( p->pNodeDelays == NULL );
-    p->pNodeDelays = ABC_CALLOC( float, p->vNodesAll->nSize );
-    for ( k = 0; k < p->vNodesAll->nSize; k++ )
+    p->pNodeDelays = ABC_CALLOC( float, p->vMapObjs->nSize );
+    for ( k = 0; k < p->vMapObjs->nSize; k++ )
     {
-        pNode = p->vNodesAll->pArray[k];
+        pNode = p->vMapObjs->pArray[k];
         if ( pNode->nRefs == 0 )
             continue;
         p->pNodeDelays[k] = 0.014426 * LogFan * p->pSuperLib->tDelayInv.Worst * log( (double)pNode->nRefs ); // 1.4426 = 1/ln(2)
@@ -383,7 +378,7 @@ Map_Node_t * Map_NodeCreate( Map_Man_t * p, Map_Node_t * p1, Map_Node_t * p2 )
 //    pNode->vFanouts = Map_NodeVecAlloc( 5 );
     // store this node in the internal array
     if ( pNode->Num >= 0 )
-        Map_NodeVecPush( p->vNodesAll, pNode );
+        Map_NodeVecPush( p->vMapObjs, pNode );
     else
         pNode->fInv = 1;
     // set the level of this node
@@ -392,10 +387,20 @@ Map_Node_t * Map_NodeCreate( Map_Man_t * p, Map_Node_t * p1, Map_Node_t * p2 )
 #ifdef MAP_ALLOCATE_FANOUT
         // create the fanout info
         Map_NodeAddFaninFanout( Map_Regular(p1), pNode );
+        if ( p2 )
         Map_NodeAddFaninFanout( Map_Regular(p2), pNode );
 #endif
-        pNode->Level = 1 + MAP_MAX(Map_Regular(pNode->p1)->Level, Map_Regular(pNode->p2)->Level);
-        pNode->fInv  = Map_NodeIsSimComplement(p1) & Map_NodeIsSimComplement(p2);
+
+        if ( p2 )
+        {
+            pNode->Level = 1 + MAP_MAX(Map_Regular(pNode->p1)->Level, Map_Regular(pNode->p2)->Level);
+            pNode->fInv  = Map_NodeIsSimComplement(p1) & Map_NodeIsSimComplement(p2);
+        }
+        else
+        {
+            pNode->Level = Map_Regular(pNode->p1)->Level;
+            pNode->fInv  = Map_NodeIsSimComplement(p1);
+        }
     }
     // reference the inputs (will be used to compute the number of fanouts)
     if ( p1 ) Map_NodeRef(p1);
@@ -439,7 +444,7 @@ void Map_TableCreate( Map_Man_t * pMan )
   SeeAlso     []
 
 ***********************************************************************/
-Map_Node_t * Map_TableLookup( Map_Man_t * pMan, Map_Node_t * p1, Map_Node_t * p2 )
+Map_Node_t * Map_NodeAnd( Map_Man_t * pMan, Map_Node_t * p1, Map_Node_t * p2 )
 {
     Map_Node_t * pEnt;
     unsigned Key;
@@ -544,67 +549,12 @@ clk = Abc_Clock();
   SeeAlso     []
 
 ***********************************************************************/
-Map_Node_t * Map_NodeAnd( Map_Man_t * p, Map_Node_t * p1, Map_Node_t * p2 )
+Map_Node_t * Map_NodeBuf( Map_Man_t * p, Map_Node_t * p1 )
 {
-    Map_Node_t * pNode;
-    pNode = Map_TableLookup( p, p1, p2 );    
+    Map_Node_t * pNode = Map_NodeCreate( p, p1, NULL );
+    Map_NodeVecPush( p->vMapBufs, pNode );
     return pNode;
 }
-
-/**Function*************************************************************
-
-  Synopsis    []
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-Map_Node_t * Map_NodeOr( Map_Man_t * p, Map_Node_t * p1, Map_Node_t * p2 )
-{
-    Map_Node_t * pNode;
-    pNode = Map_Not( Map_TableLookup( p, Map_Not(p1), Map_Not(p2) ) ); 
-    return pNode;
-}
-
-/**Function*************************************************************
-
-  Synopsis    []
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-Map_Node_t * Map_NodeExor( Map_Man_t * p, Map_Node_t * p1, Map_Node_t * p2 )
-{
-    return Map_NodeMux( p, p1, Map_Not(p2), p2 );
-}
-
-/**Function*************************************************************
-
-  Synopsis    []
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-Map_Node_t * Map_NodeMux( Map_Man_t * p, Map_Node_t * pC, Map_Node_t * pT, Map_Node_t * pE )
-{
-    Map_Node_t * pAnd1, * pAnd2, * pRes;
-    pAnd1 = Map_TableLookup( p, pC,          pT ); 
-    pAnd2 = Map_TableLookup( p, Map_Not(pC), pE ); 
-    pRes  = Map_NodeOr( p, pAnd1, pAnd2 );                 
-    return pRes;
-}
-
 
 /**Function*************************************************************
 

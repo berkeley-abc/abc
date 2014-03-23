@@ -610,6 +610,7 @@ extern ABC_DLL int                Abc_NtkIsDfsOrdered( Abc_Ntk_t * pNtk );
 extern ABC_DLL Vec_Ptr_t *        Abc_NtkSupport( Abc_Ntk_t * pNtk );
 extern ABC_DLL Vec_Ptr_t *        Abc_NtkNodeSupport( Abc_Ntk_t * pNtk, Abc_Obj_t ** ppNodes, int nNodes );
 extern ABC_DLL Vec_Ptr_t *        Abc_AigDfs( Abc_Ntk_t * pNtk, int fCollectAll, int fCollectCos );
+extern ABC_DLL Vec_Ptr_t *        Abc_AigDfsMap( Abc_Ntk_t * pNtk );
 extern ABC_DLL Vec_Vec_t *        Abc_DfsLevelized( Abc_Obj_t * pNode, int  fTfi );
 extern ABC_DLL Vec_Vec_t *        Abc_NtkLevelize( Abc_Ntk_t * pNtk );
 extern ABC_DLL int                Abc_NtkLevel( Abc_Ntk_t * pNtk );

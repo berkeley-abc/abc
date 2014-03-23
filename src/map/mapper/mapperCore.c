@@ -57,8 +57,6 @@ int Map_Mapping( Map_Man_t * p )
 
     //////////////////////////////////////////////////////////////////////
     // perform pre-mapping computations
-    // collect the nodes reachable from POs in the DFS order (including the choices)
-    p->vAnds = Map_MappingDfs( p, 1 );
     if ( p->fVerbose )
         Map_MappingReportChoices( p ); 
     Map_MappingSetChoiceLevels( p ); // should always be called before mapping!
@@ -84,12 +82,12 @@ int Map_Mapping( Map_Man_t * p )
     p->timeMatch = Abc_Clock() - clk;
     // compute the references and collect the nodes used in the mapping
     Map_MappingSetRefs( p );
-    p->AreaBase = Map_MappingGetArea( p, p->vMapping );
+    p->AreaBase = Map_MappingGetArea( p );
 if ( p->fVerbose )
 {
 printf( "Delay    : %s = %8.2f  Flow = %11.1f  Area = %11.1f  %4.1f %%   ", 
                     fShowSwitching? "Switch" : "Delay", 
-                    fShowSwitching? Map_MappingGetSwitching(p,p->vMapping) : p->fRequiredGlo, 
+                    fShowSwitching? Map_MappingGetSwitching(p) : p->fRequiredGlo, 
                     Map_MappingGetAreaFlow(p), p->AreaBase, 0.0 );
 ABC_PRT( "Time", p->timeMatch );
 }
@@ -114,12 +112,12 @@ ABC_PRT( "Time", p->timeMatch );
         Map_MappingMatches( p );
         // compute the references and collect the nodes used in the mapping
         Map_MappingSetRefs( p );
-        p->AreaFinal = Map_MappingGetArea( p, p->vMapping );
+        p->AreaFinal = Map_MappingGetArea( p );
 if ( p->fVerbose )
 {
 printf( "AreaFlow : %s = %8.2f  Flow = %11.1f  Area = %11.1f  %4.1f %%   ", 
                     fShowSwitching? "Switch" : "Delay", 
-                    fShowSwitching? Map_MappingGetSwitching(p,p->vMapping) : p->fRequiredGlo, 
+                    fShowSwitching? Map_MappingGetSwitching(p) : p->fRequiredGlo, 
                     Map_MappingGetAreaFlow(p), p->AreaFinal, 
                     100.0*(p->AreaBase-p->AreaFinal)/p->AreaBase );
 ABC_PRT( "Time", Abc_Clock() - clk );
@@ -140,12 +138,12 @@ ABC_PRT( "Time", Abc_Clock() - clk );
         Map_MappingMatches( p );
         // compute the references and collect the nodes used in the mapping
         Map_MappingSetRefs( p );
-        p->AreaFinal = Map_MappingGetArea( p, p->vMapping );
+        p->AreaFinal = Map_MappingGetArea( p );
 if ( p->fVerbose )
 {
 printf( "Area     : %s = %8.2f  Flow = %11.1f  Area = %11.1f  %4.1f %%   ", 
                     fShowSwitching? "Switch" : "Delay", 
-                    fShowSwitching? Map_MappingGetSwitching(p,p->vMapping) : p->fRequiredGlo, 
+                    fShowSwitching? Map_MappingGetSwitching(p) : p->fRequiredGlo, 
                     0.0, p->AreaFinal, 
                     100.0*(p->AreaBase-p->AreaFinal)/p->AreaBase );
 ABC_PRT( "Time", Abc_Clock() - clk );
@@ -166,12 +164,12 @@ ABC_PRT( "Time", Abc_Clock() - clk );
         Map_MappingMatches( p );
         // compute the references and collect the nodes used in the mapping
         Map_MappingSetRefs( p );
-        p->AreaFinal = Map_MappingGetArea( p, p->vMapping );
+        p->AreaFinal = Map_MappingGetArea( p );
 if ( p->fVerbose )
 {
 printf( "Area     : %s = %8.2f  Flow = %11.1f  Area = %11.1f  %4.1f %%   ", 
                     fShowSwitching? "Switch" : "Delay", 
-                    fShowSwitching? Map_MappingGetSwitching(p,p->vMapping) : p->fRequiredGlo, 
+                    fShowSwitching? Map_MappingGetSwitching(p) : p->fRequiredGlo, 
                     0.0, p->AreaFinal, 
                     100.0*(p->AreaBase-p->AreaFinal)/p->AreaBase );
 ABC_PRT( "Time", Abc_Clock() - clk );
@@ -192,12 +190,12 @@ ABC_PRT( "Time", Abc_Clock() - clk );
         Map_MappingMatches( p );
         // compute the references and collect the nodes used in the mapping
         Map_MappingSetRefs( p );
-        p->AreaFinal = Map_MappingGetArea( p, p->vMapping );
+        p->AreaFinal = Map_MappingGetArea( p );
 if ( p->fVerbose )
 {
 printf( "Switching: %s = %8.2f  Flow = %11.1f  Area = %11.1f  %4.1f %%   ", 
                     fShowSwitching? "Switch" : "Delay", 
-                    fShowSwitching? Map_MappingGetSwitching(p,p->vMapping) : p->fRequiredGlo, 
+                    fShowSwitching? Map_MappingGetSwitching(p) : p->fRequiredGlo, 
                     0.0, p->AreaFinal, 
                     100.0*(p->AreaBase-p->AreaFinal)/p->AreaBase );
 ABC_PRT( "Time", Abc_Clock() - clk );
@@ -210,12 +208,12 @@ ABC_PRT( "Time", Abc_Clock() - clk );
         Map_MappingMatches( p );
         // compute the references and collect the nodes used in the mapping
         Map_MappingSetRefs( p );
-        p->AreaFinal = Map_MappingGetArea( p, p->vMapping );
+        p->AreaFinal = Map_MappingGetArea( p );
 if ( p->fVerbose )
 {
 printf( "Switching: %s = %8.2f  Flow = %11.1f  Area = %11.1f  %4.1f %%   ", 
                     fShowSwitching? "Switch" : "Delay", 
-                    fShowSwitching? Map_MappingGetSwitching(p,p->vMapping) : p->fRequiredGlo, 
+                    fShowSwitching? Map_MappingGetSwitching(p) : p->fRequiredGlo, 
                     0.0, p->AreaFinal, 
                     100.0*(p->AreaBase-p->AreaFinal)/p->AreaBase );
 ABC_PRT( "Time", Abc_Clock() - clk );

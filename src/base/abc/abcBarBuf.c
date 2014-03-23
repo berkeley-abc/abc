@@ -311,6 +311,70 @@ Abc_Ntk_t * Abc_NtkFromBarBufs( Abc_Ntk_t * pNtkBase, Abc_Ntk_t * pNtk )
     return pNtkNew;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Collect nodes in the barbuf-friendly order.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkToBarBufsCollect_rec( Abc_Obj_t * pObj, Vec_Ptr_t * vNodes )
+{
+    Abc_Obj_t * pFanin; 
+    int i;
+    if ( Abc_NodeIsTravIdCurrent( pObj ) )
+        return;
+    Abc_NodeSetTravIdCurrent( pObj );
+    assert( Abc_ObjIsNode(pObj) );
+    Abc_ObjForEachFanin( pObj, pFanin, i )
+        Abc_NtkToBarBufsCollect_rec( pFanin, vNodes );
+    Vec_PtrPush( vNodes, pObj );
+}
+Vec_Ptr_t * Abc_NtkToBarBufsCollect( Abc_Ntk_t * pNtk )
+{
+    Vec_Ptr_t * vNodes;
+    Abc_Obj_t * pObj;
+    int i;
+    assert( Abc_NtkIsLogic(pNtk) );
+    assert( pNtk->nBarBufs > 0 );
+    assert( pNtk->nBarBufs == Abc_NtkLatchNum(pNtk) );
+    vNodes = Vec_PtrAlloc( Abc_NtkObjNum(pNtk) );
+    Abc_NtkIncrementTravId( pNtk );
+    Abc_NtkForEachCi( pNtk, pObj, i )
+    {
+        if ( i >= Abc_NtkCiNum(pNtk) - pNtk->nBarBufs )
+            break;
+        Vec_PtrPush( vNodes, pObj );
+        Abc_NodeSetTravIdCurrent( pObj );
+    }
+    Abc_NtkForEachCo( pNtk, pObj, i )
+    {
+        if ( i < Abc_NtkCoNum(pNtk) - pNtk->nBarBufs )
+            continue;
+        Abc_NtkToBarBufsCollect_rec( Abc_ObjFanin0(pObj), vNodes );
+        Vec_PtrPush( vNodes, pObj );
+        Vec_PtrPush( vNodes, Abc_ObjFanout0(pObj) );
+        Vec_PtrPush( vNodes, Abc_ObjFanout0(Abc_ObjFanout0(pObj)) );
+        Abc_NodeSetTravIdCurrent( pObj );
+        Abc_NodeSetTravIdCurrent( Abc_ObjFanout0(pObj) );
+        Abc_NodeSetTravIdCurrent( Abc_ObjFanout0(Abc_ObjFanout0(pObj)) );
+    }
+    Abc_NtkForEachCo( pNtk, pObj, i )
+    {
+        if ( i >= Abc_NtkCoNum(pNtk) - pNtk->nBarBufs )
+            break;
+        Abc_NtkToBarBufsCollect_rec( Abc_ObjFanin0(pObj), vNodes );
+        Vec_PtrPush( vNodes, pObj );
+        Abc_NodeSetTravIdCurrent( pObj );
+    }
+    assert( Vec_PtrSize(vNodes) == Abc_NtkObjNum(pNtk) );
+    return vNodes;
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

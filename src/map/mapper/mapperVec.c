@@ -67,8 +67,29 @@ Map_NodeVec_t * Map_NodeVecAlloc( int nCap )
 ***********************************************************************/
 void Map_NodeVecFree( Map_NodeVec_t * p )
 {
+    if ( p == NULL )
+        return;
     ABC_FREE( p->pArray );
     ABC_FREE( p );
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Map_NodeVec_t * Map_NodeVecDup( Map_NodeVec_t * p )
+{
+    Map_NodeVec_t * pNew = Map_NodeVecAlloc( p->nSize );
+    memcpy( pNew->pArray, p->pArray, sizeof(int) * p->nSize );
+    pNew->nSize = p->nSize;
+    return pNew;
 }
 
 /**Function*************************************************************

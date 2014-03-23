@@ -34,7 +34,6 @@ static Map_Man_t *  Abc_NtkToMap( Abc_Ntk_t * pNtk, double DelayTarget, int fRec
 static Abc_Ntk_t *  Abc_NtkFromMap( Map_Man_t * pMan, Abc_Ntk_t * pNtk );
 static Abc_Obj_t *  Abc_NodeFromMap_rec( Abc_Ntk_t * pNtkNew, Map_Node_t * pNodeMap, int fPhase );
 static Abc_Obj_t *  Abc_NodeFromMapPhase_rec( Abc_Ntk_t * pNtkNew, Map_Node_t * pNodeMap, int fPhase );
-static Abc_Obj_t *  Abc_NodeFromMapSuper_rec( Abc_Ntk_t * pNtkNew, Map_Node_t * pNodeMap, Map_Super_t * pSuper, Abc_Obj_t * pNodePis[], int nNodePis );
 
 static Abc_Ntk_t *  Abc_NtkFromMapSuperChoice( Map_Man_t * pMan, Abc_Ntk_t * pNtk );
 static void         Abc_NodeSuperChoice( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pNode );
@@ -219,7 +218,6 @@ Map_Time_t * Abc_NtkMapCopyCoRequired( Abc_Ntk_t * pNtk, Abc_Time_t * ppTimes )
 Map_Man_t * Abc_NtkToMap( Abc_Ntk_t * pNtk, double DelayTarget, int fRecovery, float * pSwitching, int fVerbose )
 {
     Map_Man_t * pMan;
-    ProgressBar * pProgress;
     Map_Node_t * pNodeMap;
     Vec_Ptr_t * vNodes;
     Abc_Obj_t * pNode, * pFanin, * pPrev;
@@ -228,7 +226,7 @@ Map_Man_t * Abc_NtkToMap( Abc_Ntk_t * pNtk, double DelayTarget, int fRecovery, f
     assert( Abc_NtkIsStrash(pNtk) );
 
     // start the mapping manager and set its parameters
-    pMan = Map_ManCreate( Abc_NtkPiNum(pNtk) + Abc_NtkLatchNum(pNtk), Abc_NtkPoNum(pNtk) + Abc_NtkLatchNum(pNtk), fVerbose );
+    pMan = Map_ManCreate( Abc_NtkPiNum(pNtk) + Abc_NtkLatchNum(pNtk) - pNtk->nBarBufs, Abc_NtkPoNum(pNtk) + Abc_NtkLatchNum(pNtk) - pNtk->nBarBufs, fVerbose );
     if ( pMan == NULL )
         return NULL;
     Map_ManSetAreaRecovery( pMan, fRecovery );
@@ -242,6 +240,8 @@ Map_Man_t * Abc_NtkToMap( Abc_Ntk_t * pNtk, double DelayTarget, int fRecovery, f
     Abc_AigConst1(pNtk)->pCopy = (Abc_Obj_t *)Map_ManReadConst1(pMan);
     Abc_NtkForEachCi( pNtk, pNode, i )
     {
+        if ( i == Abc_NtkCiNum(pNtk) - pNtk->nBarBufs )
+            break;
         pNodeMap = Map_ManReadInputs(pMan)[i];
         pNode->pCopy = (Abc_Obj_t *)pNodeMap;
         if ( pSwitching )
@@ -249,11 +249,17 @@ Map_Man_t * Abc_NtkToMap( Abc_Ntk_t * pNtk, double DelayTarget, int fRecovery, f
     }
 
     // load the AIG into the mapper
-    vNodes = Abc_AigDfs( pNtk, 0, 0 );
-    pProgress = Extra_ProgressBarStart( stdout, vNodes->nSize );
+    vNodes = Abc_AigDfsMap( pNtk );
     Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pNode, i )
     {
-        Extra_ProgressBarUpdate( pProgress, i, NULL );
+        if ( Abc_ObjIsLatch(pNode) )
+        {
+            pFanin = Abc_ObjFanin0(pNode);
+            pNodeMap = Map_NodeBuf( pMan, Map_NotCond( Abc_ObjFanin0(pFanin)->pCopy, (int)Abc_ObjFaninC0(pFanin) ) );
+            Abc_ObjFanout0(pNode)->pCopy = (Abc_Obj_t *)pNodeMap;
+            continue;
+        }
+        assert( Abc_ObjIsNode(pNode) );
         // add the node to the mapper
         pNodeMap = Map_NodeAnd( pMan, 
             Map_NotCond( Abc_ObjFanin0(pNode)->pCopy, (int)Abc_ObjFaninC0(pNode) ),
@@ -271,156 +277,22 @@ Map_Man_t * Abc_NtkToMap( Abc_Ntk_t * pNtk, double DelayTarget, int fRecovery, f
                 Map_NodeSetRepr( (Map_Node_t *)pFanin->pCopy, (Map_Node_t *)pNode->pCopy );
             }
     }
-    Extra_ProgressBarStop( pProgress );
+    assert( Map_ManReadBufNum(pMan) == pNtk->nBarBufs );
     Vec_PtrFree( vNodes );
 
     // set the primary outputs in the required phase
     Abc_NtkForEachCo( pNtk, pNode, i )
+    {
+        if ( i == Abc_NtkCoNum(pNtk) - pNtk->nBarBufs )
+            break;
         Map_ManReadOutputs(pMan)[i] = Map_NotCond( (Map_Node_t *)Abc_ObjFanin0(pNode)->pCopy, (int)Abc_ObjFaninC0(pNode) );
+    }
     return pMan;
 }
 
 /**Function*************************************************************
 
   Synopsis    [Creates the mapped network.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-Abc_Ntk_t * Abc_NtkFromMap( Map_Man_t * pMan, Abc_Ntk_t * pNtk )
-{
-    ProgressBar * pProgress;
-    Abc_Ntk_t * pNtkNew;
-    Map_Node_t * pNodeMap;
-    Abc_Obj_t * pNode, * pNodeNew;
-    int i, nDupGates;
-    // create the new network
-    pNtkNew = Abc_NtkStartFrom( pNtk, ABC_NTK_LOGIC, ABC_FUNC_MAP );
-    // make the mapper point to the new network
-    Map_ManCleanData( pMan );
-    Abc_NtkForEachCi( pNtk, pNode, i )
-        Map_NodeSetData( Map_ManReadInputs(pMan)[i], 1, (char *)pNode->pCopy );
-    // assign the mapping of the required phase to the POs
-    pProgress = Extra_ProgressBarStart( stdout, Abc_NtkCoNum(pNtk) );
-    Abc_NtkForEachCo( pNtk, pNode, i )
-    {
-        Extra_ProgressBarUpdate( pProgress, i, NULL );
-        pNodeMap = Map_ManReadOutputs(pMan)[i];
-        pNodeNew = Abc_NodeFromMap_rec( pNtkNew, Map_Regular(pNodeMap), !Map_IsComplement(pNodeMap) );
-        assert( !Abc_ObjIsComplement(pNodeNew) );
-        Abc_ObjAddFanin( pNode->pCopy, pNodeNew );
-    }
-    Extra_ProgressBarStop( pProgress );
-    // decouple the PO driver nodes to reduce the number of levels
-    nDupGates = Abc_NtkLogicMakeSimpleCos( pNtkNew, 1 );
-//    if ( nDupGates && Map_ManReadVerbose(pMan) )
-//        printf( "Duplicated %d gates to decouple the CO drivers.\n", nDupGates );
-    return pNtkNew;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Constructs the nodes corrresponding to one node.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-Abc_Obj_t * Abc_NodeFromMap_rec( Abc_Ntk_t * pNtkNew, Map_Node_t * pNodeMap, int fPhase )
-{
-    Abc_Obj_t * pNodeNew, * pNodeInv;
-
-    // check the case of constant node
-    if ( Map_NodeIsConst(pNodeMap) )
-    {
-        pNodeNew = fPhase? Abc_NtkCreateNodeConst1(pNtkNew) : Abc_NtkCreateNodeConst0(pNtkNew);
-        if ( pNodeNew->pData == NULL )
-            printf( "Error creating mapped network: Library does not have a constant %d gate.\n", fPhase );
-        return pNodeNew;
-    }
-
-    // check if the phase is already implemented
-    pNodeNew = (Abc_Obj_t *)Map_NodeReadData( pNodeMap, fPhase );
-    if ( pNodeNew )
-        return pNodeNew;
-
-    // implement the node if the best cut is assigned
-    if ( Map_NodeReadCutBest(pNodeMap, fPhase) != NULL )
-        return Abc_NodeFromMapPhase_rec( pNtkNew, pNodeMap, fPhase );
-
-    // if the cut is not assigned, implement the node
-    assert( Map_NodeReadCutBest(pNodeMap, !fPhase) != NULL || Map_NodeIsConst(pNodeMap) );
-    pNodeNew = Abc_NodeFromMapPhase_rec( pNtkNew, pNodeMap, !fPhase );
-
-    // add the inverter
-    pNodeInv = Abc_NtkCreateNode( pNtkNew );
-    Abc_ObjAddFanin( pNodeInv, pNodeNew );
-    pNodeInv->pData = Mio_LibraryReadInv(Map_ManReadGenLib(Map_NodeReadMan(pNodeMap)));
-
-    // set the inverter
-    Map_NodeSetData( pNodeMap, fPhase, (char *)pNodeInv );
-    return pNodeInv;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Constructs the nodes corrresponding to one node.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-Abc_Obj_t * Abc_NodeFromMapPhase_rec( Abc_Ntk_t * pNtkNew, Map_Node_t * pNodeMap, int fPhase )
-{
-    Abc_Obj_t * pNodePIs[10];
-    Abc_Obj_t * pNodeNew;
-    Map_Node_t ** ppLeaves;
-    Map_Cut_t * pCutBest;
-    Map_Super_t * pSuperBest;
-    unsigned uPhaseBest;
-    int i, fInvPin, nLeaves;
-
-    // make sure the node can be implemented in this phase
-    assert( Map_NodeReadCutBest(pNodeMap, fPhase) != NULL || Map_NodeIsConst(pNodeMap) );
-    // check if the phase is already implemented
-    pNodeNew = (Abc_Obj_t *)Map_NodeReadData( pNodeMap, fPhase );
-    if ( pNodeNew )
-        return pNodeNew;
-
-    // get the information about the best cut 
-    pCutBest   = Map_NodeReadCutBest( pNodeMap, fPhase );
-    pSuperBest = Map_CutReadSuperBest( pCutBest, fPhase );
-    uPhaseBest = Map_CutReadPhaseBest( pCutBest, fPhase );
-    nLeaves    = Map_CutReadLeavesNum( pCutBest );
-    ppLeaves   = Map_CutReadLeaves( pCutBest );
-
-    // collect the PI nodes
-    for ( i = 0; i < nLeaves; i++ )
-    {
-        fInvPin = ((uPhaseBest & (1 << i)) > 0);
-        pNodePIs[i] = Abc_NodeFromMap_rec( pNtkNew, ppLeaves[i], !fInvPin );
-        assert( pNodePIs[i] != NULL );
-    }
-
-    // implement the supergate
-    pNodeNew = Abc_NodeFromMapSuper_rec( pNtkNew, pNodeMap, pSuperBest, pNodePIs, nLeaves );
-    Map_NodeSetData( pNodeMap, fPhase, (char *)pNodeNew );
-    return pNodeNew;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Constructs the nodes corrresponding to one supergate.]
 
   Description []
                
@@ -473,10 +345,126 @@ Abc_Obj_t * Abc_NodeFromMapSuper_rec( Abc_Ntk_t * pNtkNew, Map_Node_t * pNodeMap
     pNodeNew->pData = pRoot;
     return pNodeNew;
 }
+Abc_Obj_t * Abc_NodeFromMapPhase_rec( Abc_Ntk_t * pNtkNew, Map_Node_t * pNodeMap, int fPhase )
+{
+    Abc_Obj_t * pNodePIs[10];
+    Abc_Obj_t * pNodeNew;
+    Map_Node_t ** ppLeaves;
+    Map_Cut_t * pCutBest;
+    Map_Super_t * pSuperBest;
+    unsigned uPhaseBest;
+    int i, fInvPin, nLeaves;
 
+    // make sure the node can be implemented in this phase
+    assert( Map_NodeReadCutBest(pNodeMap, fPhase) != NULL || Map_NodeIsConst(pNodeMap) );
+    // check if the phase is already implemented
+    pNodeNew = (Abc_Obj_t *)Map_NodeReadData( pNodeMap, fPhase );
+    if ( pNodeNew )
+        return pNodeNew;
 
+    // get the information about the best cut 
+    pCutBest   = Map_NodeReadCutBest( pNodeMap, fPhase );
+    pSuperBest = Map_CutReadSuperBest( pCutBest, fPhase );
+    uPhaseBest = Map_CutReadPhaseBest( pCutBest, fPhase );
+    nLeaves    = Map_CutReadLeavesNum( pCutBest );
+    ppLeaves   = Map_CutReadLeaves( pCutBest );
 
+    // collect the PI nodes
+    for ( i = 0; i < nLeaves; i++ )
+    {
+        fInvPin = ((uPhaseBest & (1 << i)) > 0);
+        pNodePIs[i] = Abc_NodeFromMap_rec( pNtkNew, ppLeaves[i], !fInvPin );
+        assert( pNodePIs[i] != NULL );
+    }
 
+    // implement the supergate
+    pNodeNew = Abc_NodeFromMapSuper_rec( pNtkNew, pNodeMap, pSuperBest, pNodePIs, nLeaves );
+    Map_NodeSetData( pNodeMap, fPhase, (char *)pNodeNew );
+    return pNodeNew;
+}
+Abc_Obj_t * Abc_NodeFromMap_rec( Abc_Ntk_t * pNtkNew, Map_Node_t * pNodeMap, int fPhase )
+{
+    Abc_Obj_t * pNodeNew, * pNodeInv;
+
+    // check the case of constant node
+    if ( Map_NodeIsConst(pNodeMap) )
+    {
+        pNodeNew = fPhase? Abc_NtkCreateNodeConst1(pNtkNew) : Abc_NtkCreateNodeConst0(pNtkNew);
+        if ( pNodeNew->pData == NULL )
+            printf( "Error creating mapped network: Library does not have a constant %d gate.\n", fPhase );
+        return pNodeNew;
+    }
+
+    // check if the phase is already implemented
+    pNodeNew = (Abc_Obj_t *)Map_NodeReadData( pNodeMap, fPhase );
+    if ( pNodeNew )
+        return pNodeNew;
+
+    // implement the node if the best cut is assigned
+    if ( Map_NodeReadCutBest(pNodeMap, fPhase) != NULL )
+        return Abc_NodeFromMapPhase_rec( pNtkNew, pNodeMap, fPhase );
+
+    // if the cut is not assigned, implement the node
+    assert( Map_NodeReadCutBest(pNodeMap, !fPhase) != NULL || Map_NodeIsConst(pNodeMap) );
+    pNodeNew = Abc_NodeFromMapPhase_rec( pNtkNew, pNodeMap, !fPhase );
+
+    // add the inverter
+    pNodeInv = Abc_NtkCreateNode( pNtkNew );
+    Abc_ObjAddFanin( pNodeInv, pNodeNew );
+    pNodeInv->pData = Mio_LibraryReadInv(Map_ManReadGenLib(Map_NodeReadMan(pNodeMap)));
+
+    // set the inverter
+    Map_NodeSetData( pNodeMap, fPhase, (char *)pNodeInv );
+    return pNodeInv;
+}
+Abc_Ntk_t * Abc_NtkFromMap( Map_Man_t * pMan, Abc_Ntk_t * pNtk )
+{
+    Abc_Ntk_t * pNtkNew;
+    Map_Node_t * pNodeMap;
+    Abc_Obj_t * pNode, * pNodeNew;
+    int i, nDupGates;
+    assert( Map_ManReadBufNum(pMan) == pNtk->nBarBufs );
+    // create the new network
+    pNtkNew = Abc_NtkStartFrom( pNtk, ABC_NTK_LOGIC, ABC_FUNC_MAP );
+    // make the mapper point to the new network
+    Map_ManCleanData( pMan );
+    Abc_NtkForEachCi( pNtk, pNode, i )
+    {
+        if ( i >= Abc_NtkCiNum(pNtk) - pNtk->nBarBufs )
+            break;
+        Map_NodeSetData( Map_ManReadInputs(pMan)[i], 1, (char *)pNode->pCopy );
+    }
+    Abc_NtkForEachCi( pNtk, pNode, i )
+    {
+        if ( i < Abc_NtkCiNum(pNtk) - pNtk->nBarBufs )
+            continue;
+        Map_NodeSetData( Map_ManReadBufs(pMan)[i - (Abc_NtkCiNum(pNtk) - pNtk->nBarBufs)], 1, (char *)pNode->pCopy );
+    }
+    // assign the mapping of the required phase to the POs
+    Abc_NtkForEachCo( pNtk, pNode, i )
+    {
+        if ( i < Abc_NtkCoNum(pNtk) - pNtk->nBarBufs )
+            continue;
+        pNodeMap = Map_ManReadBufDriver( pMan, i - (Abc_NtkCoNum(pNtk) - pNtk->nBarBufs) );
+        pNodeNew = Abc_NodeFromMap_rec( pNtkNew, Map_Regular(pNodeMap), !Map_IsComplement(pNodeMap) );
+        assert( !Abc_ObjIsComplement(pNodeNew) );
+        Abc_ObjAddFanin( pNode->pCopy, pNodeNew );
+    }
+    Abc_NtkForEachCo( pNtk, pNode, i )
+    {
+        if ( i >= Abc_NtkCoNum(pNtk) - pNtk->nBarBufs )
+            break;
+        pNodeMap = Map_ManReadOutputs(pMan)[i];
+        pNodeNew = Abc_NodeFromMap_rec( pNtkNew, Map_Regular(pNodeMap), !Map_IsComplement(pNodeMap) );
+        assert( !Abc_ObjIsComplement(pNodeNew) );
+        Abc_ObjAddFanin( pNode->pCopy, pNodeNew );
+    }
+    // decouple the PO driver nodes to reduce the number of levels
+    nDupGates = Abc_NtkLogicMakeSimpleCos( pNtkNew, 1 );
+//    if ( nDupGates && Map_ManReadVerbose(pMan) )
+//        printf( "Duplicated %d gates to decouple the CO drivers.\n", nDupGates );
+    return pNtkNew;
+}
 
 /**Function*************************************************************
 

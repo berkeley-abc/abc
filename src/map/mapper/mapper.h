@@ -82,8 +82,11 @@ extern void            Map_ManPrintTimeStats( Map_Man_t * p );
 extern void            Map_ManPrintStatsToFile( char * pName, float Area, float Delay, abctime Time );
 extern int             Map_ManReadInputNum( Map_Man_t * p );
 extern int             Map_ManReadOutputNum( Map_Man_t * p );
+extern int             Map_ManReadBufNum( Map_Man_t * p );
 extern Map_Node_t **   Map_ManReadInputs ( Map_Man_t * p );
 extern Map_Node_t **   Map_ManReadOutputs( Map_Man_t * p );
+extern Map_Node_t **   Map_ManReadBufs( Map_Man_t * p );
+extern Map_Node_t *    Map_ManReadBufDriver( Map_Man_t * p, int i );
 extern Map_Node_t *    Map_ManReadConst1 ( Map_Man_t * p );
 extern Map_Time_t *    Map_ManReadInputArrivals( Map_Man_t * p );
 extern Mio_Library_t * Map_ManReadGenLib ( Map_Man_t * p );
@@ -121,6 +124,7 @@ extern void            Map_NodeSetSwitching( Map_Node_t * p, float Switching );
 
 extern int             Map_NodeIsConst( Map_Node_t * p );
 extern int             Map_NodeIsVar( Map_Node_t * p );
+extern int             Map_NodeIsBuf( Map_Node_t * p );
 extern int             Map_NodeIsAnd( Map_Node_t * p );
 extern int             Map_NodeComparePhase( Map_Node_t * p1, Map_Node_t * p2 );
 
@@ -150,9 +154,7 @@ extern Map_Time_t      Map_SuperLibReadDelayInv( Map_SuperLib_t * p );
 extern int             Map_SuperLibReadVarsMax( Map_SuperLib_t * p );
 
 extern Map_Node_t *    Map_NodeAnd( Map_Man_t * p, Map_Node_t * p1, Map_Node_t * p2 );
-extern Map_Node_t *    Map_NodeOr( Map_Man_t * p, Map_Node_t * p1, Map_Node_t * p2 );
-extern Map_Node_t *    Map_NodeExor( Map_Man_t * p, Map_Node_t * p1, Map_Node_t * p2 );
-extern Map_Node_t *    Map_NodeMux( Map_Man_t * p, Map_Node_t * pNode, Map_Node_t * pNodeT, Map_Node_t * pNodeE );
+extern Map_Node_t *    Map_NodeBuf( Map_Man_t * p, Map_Node_t * p1 );
 extern void            Map_NodeSetChoice( Map_Man_t * pMan, Map_Node_t * pNodeOld, Map_Node_t * pNodeNew );
 
 /*=== resmCanon.c =============================================================*/
