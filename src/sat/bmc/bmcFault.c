@@ -116,7 +116,7 @@ Gia_Man_t * Gia_ManFaultUnfold( Gia_Man_t * p, int fUseMuxes, int fComplVars )
         iCtrl = Abc_LitNotCond( Gia_ManAppendCi(pNew), fComplVars );
         iThis = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
         if ( fUseMuxes )
-            pObj->Value = Gia_ManHashMux( pNew, iCtrl, iThis, pObj->Value );
+            pObj->Value = Gia_ManHashMux( pNew, iCtrl, pObj->Value, iThis );
         else
             pObj->Value = iThis;
     }
@@ -157,8 +157,8 @@ Gia_Man_t * Gia_ManStuckAtUnfold( Gia_Man_t * p, int fUseFaults, int fComplVars 
         iCtrl1 = Abc_LitNotCond( Gia_ManAppendCi(pNew), fComplVars );
         if ( fUseFaults )
         {
-            pObj->Value = Gia_ManHashAnd( pNew, iCtrl0, pObj->Value );
-            pObj->Value = Gia_ManHashOr( pNew, Abc_LitNot(iCtrl1), pObj->Value );
+            pObj->Value = Gia_ManHashAnd( pNew, Abc_LitNot(iCtrl0), pObj->Value );
+            pObj->Value = Gia_ManHashOr( pNew, iCtrl1, pObj->Value );
         }
     }
     Gia_ManForEachCo( p, pObj, i )
@@ -166,6 +166,43 @@ Gia_Man_t * Gia_ManStuckAtUnfold( Gia_Man_t * p, int fUseFaults, int fComplVars 
     pNew = Gia_ManCleanup( pTemp = pNew );
     Gia_ManStop( pTemp );
     assert( Gia_ManPiNum(pNew) == Gia_ManCiNum(p) + 2 * Gia_ManAndNum(p) );
+    return pNew;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Gia_Man_t * Gia_ManFlipUnfold( Gia_Man_t * p, int fUseFaults, int fComplVars )
+{
+    Gia_Man_t * pNew, * pTemp;
+    Gia_Obj_t * pObj;
+    int i, iCtrl0;
+    pNew = Gia_ManStart( 3 * Gia_ManObjNum(p) );
+    pNew->pName = Abc_UtilStrsav( p->pName );
+    Gia_ManHashAlloc( pNew );
+    Gia_ManConst0(p)->Value = 0;
+    Gia_ManForEachCi( p, pObj, i )
+        pObj->Value = Gia_ManAppendCi( pNew );
+    Gia_ManForEachAnd( p, pObj, i )
+    {
+        pObj->Value = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+        iCtrl0 = Abc_LitNotCond( Gia_ManAppendCi(pNew), fComplVars );
+        if ( fUseFaults )
+            pObj->Value = Gia_ManHashXor( pNew, iCtrl0, pObj->Value );
+    }
+    Gia_ManForEachCo( p, pObj, i )
+        pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
+    pNew = Gia_ManCleanup( pTemp = pNew );
+    Gia_ManStop( pTemp );
+    assert( Gia_ManPiNum(pNew) == Gia_ManCiNum(p) + Gia_ManAndNum(p) );
     return pNew;
 }
 
@@ -270,24 +307,49 @@ void Gia_ManPrintResults( Gia_Man_t * p, sat_solver * pSat, int nIter, abctime c
   SeeAlso     []
 
 ***********************************************************************/
-void Gia_ManFaultTest( Gia_Man_t * p, int fStuckAt, int fComplVars, int nTimeOut, int fDump, int fVerbose )
+void Gia_ManFaultTest( Gia_Man_t * p, int Algo, int fComplVars, int nTimeOut, int fDump, int fVerbose )
 {
     int nIterMax = 1000000;
-    int i, Iter, status;
+    int i, Iter, status, nFuncVars = -1;
     abctime clkTotal = Abc_Clock();
     abctime clkSat = 0;
-    int nFuncVars = fStuckAt ? Gia_ManCiNum(p) : Gia_ManRegNum(p) + 2 * Gia_ManPiNum(p);
     Vec_Int_t * vLits, * vTests;
     sat_solver * pSat;
     Gia_Obj_t * pObj;
-    Gia_Man_t * pC;
-    Gia_Man_t * p0 = fStuckAt ? Gia_ManStuckAtUnfold(p, 0, fComplVars) : Gia_ManFaultUnfold(p, 0, fComplVars);
-    Gia_Man_t * p1 = fStuckAt ? Gia_ManStuckAtUnfold(p, 1, fComplVars) : Gia_ManFaultUnfold(p, 1, fComplVars);
-    Gia_Man_t * pM = Gia_ManMiter( p0, p1, 0, 0, 0, 0, 0 );
-    Cnf_Dat_t * pCnf = Cnf_DeriveGiaRemapped( pM ), * pCnf2;
+    Gia_Man_t * pC, * p0, * p1, * pM;
+    Cnf_Dat_t * pCnf, * pCnf2;
+
+    // select algorithm
+    if ( Algo == 1 )
+    {
+        assert( Gia_ManRegNum(p) > 0 );
+        nFuncVars = Gia_ManRegNum(p) + 2 * Gia_ManPiNum(p);
+        p0 = Gia_ManFaultUnfold( p, 0, fComplVars );
+        p1 = Gia_ManFaultUnfold( p, 1, fComplVars );
+    }
+    else if ( Algo == 2 )
+    {
+        nFuncVars = Gia_ManCiNum(p);
+        p0 = Gia_ManStuckAtUnfold( p, 0, fComplVars );
+        p1 = Gia_ManStuckAtUnfold( p, 1, fComplVars );
+    }
+    else if ( Algo == 3 )
+    {
+        nFuncVars = Gia_ManCiNum(p);
+        p0 = Gia_ManFlipUnfold( p, 0, fComplVars );
+        p1 = Gia_ManFlipUnfold( p, 1, fComplVars );
+    }
+    else
+    {
+        printf( "Unregnized algorithm (%d).\n", Algo );
+        return;
+    }
+
+    // create miter
+    pM = Gia_ManMiter( p0, p1, 0, 0, 0, 0, 0 );
+    pCnf = Cnf_DeriveGiaRemapped( pM );
     Gia_ManStop( p0 );
     Gia_ManStop( p1 );
-    assert( Gia_ManRegNum(p) > 0 );
 
     // start the SAT solver
     pSat = sat_solver_new();
