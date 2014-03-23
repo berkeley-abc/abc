@@ -21,6 +21,17 @@
 #include "gia.h"
 #include "misc/vec/vecSet.h"
 
+//#ifdef ABC_USE_PTHREADS
+
+#ifdef _WIN32
+#include "../lib/pthread.h"
+#else
+#include <pthread.h>
+#include <unistd.h>
+#endif
+
+//#endif
+
 ABC_NAMESPACE_IMPL_START
 
 ////////////////////////////////////////////////////////////////////////
@@ -69,6 +80,7 @@ struct Kf_Set_t_
     Kf_Cut_t        pCuts1[KF_NUM_MAX];
     Kf_Cut_t        pCutsR[KF_NUM_MAX*KF_NUM_MAX];
     Kf_Cut_t *      ppCuts[KF_NUM_MAX];
+    Kf_Cut_t *      pCutBest;
     word            CutCount[4]; // statistics
 };
 struct Kf_Man_t_
@@ -262,20 +274,20 @@ static inline int Kf_SetStoreAddOne( Kf_Set_t * p, int nCuts, int nCutNum, Kf_Cu
             break;
     return Abc_MinInt( nCuts+1, nCutNum );
 }
-static inline Kf_Cut_t * Kf_SetSelectBest( Kf_Set_t * p, int fArea, int fSort )
+static inline void Kf_SetSelectBest( Kf_Set_t * p, int fArea, int fSort )
 {
 //    int fArea = p->pMan->pPars->fArea;
-    Kf_Cut_t * pCut, * pCutBest;
+    Kf_Cut_t * pCut;
     int i, nCuts = 0;
     for ( i = 0; i <= p->nLutSize; i++ )
         Kf_ListForEachCut( p, i, pCut )
             nCuts = Kf_SetStoreAddOne( p, nCuts, p->nCutNum-1, pCut, fArea );
     assert( nCuts > 0 && nCuts < p->nCutNum );
     p->nCuts = nCuts;
+    p->pCutBest = p->ppCuts[0];
     if ( !fSort )
-        return p->ppCuts[0];
+        return;
     // sort by size in the reverse order
-    pCutBest = p->ppCuts[0];
     for ( i = 0; i <= p->nLutSize; i++ )
         p->pList[i] = -1;
     for ( i = 0; i < nCuts; i++ )
@@ -285,7 +297,6 @@ static inline Kf_Cut_t * Kf_SetSelectBest( Kf_Set_t * p, int fArea, int fSort )
         Kf_ListForEachCut( p, i, pCut )
             p->ppCuts[p->nCuts++] = pCut;
     assert( p->nCuts == nCuts );
-    return pCutBest;
 }
 
 /**Function*************************************************************
@@ -414,7 +425,7 @@ static inline void Kf_SetMergePairs( Kf_Set_t * p, Kf_Cut_t * pCut0, Kf_Cut_t * 
     }
     Kf_HashCleanup( p, 0 );
 }
-static inline Kf_Cut_t * Kf_SetMerge( Kf_Set_t * p, int * pCuts0, int * pCuts1, int fArea, int fCutMin )
+static inline void Kf_SetMerge( Kf_Set_t * p, int * pCuts0, int * pCuts1, int fArea, int fCutMin )
 {
     int c0, c1;
     Kf_SetPrepare( p, pCuts0, pCuts1 );
@@ -429,7 +440,7 @@ static inline Kf_Cut_t * Kf_SetMerge( Kf_Set_t * p, int * pCuts0, int * pCuts1, 
     p->CutCount[2] += p->nCuts;        
     Kf_SetFilter( p );
     p->CutCount[3] += Abc_MinInt( p->nCuts, p->nCutNum-1 );
-    return Kf_SetSelectBest( p, fArea, 1 );
+    Kf_SetSelectBest( p, fArea, 1 );
 }
 
 /**Function*************************************************************
@@ -586,7 +597,7 @@ int Kf_SetComputeTruth( Kf_Man_t * p, int iFuncLit0, int iFuncLit1, int * pCut0,
     return Abc_Var2Lit( truthId, fCompl );
 }
 */
-static inline Kf_Cut_t * Kf_SetMerge2( Kf_Set_t * p, int * pCuts0, int * pCuts1, int fArea, int fCutMin )
+static inline void Kf_SetMerge2( Kf_Set_t * p, int * pCuts0, int * pCuts1, int fArea, int fCutMin )
 {
     Kf_Cut_t * pCut0, * pCut1, * pCutR;
     Kf_SetPrepare( p, pCuts0, pCuts1 );
@@ -622,7 +633,7 @@ static inline Kf_Cut_t * Kf_SetMerge2( Kf_Set_t * p, int * pCuts0, int * pCuts1,
     }
     Kf_SetFilter2( p );
     p->CutCount[3] += Abc_MinInt( p->nCuts, p->nCutNum-1 );
-    return Kf_SetSelectBest( p, fArea, 1 );
+    Kf_SetSelectBest( p, fArea, 1 );
 }
 
 
@@ -667,7 +678,7 @@ static inline void Kf_CutPrint( int * pCut )
         printf( " %d", Kf_CutLeaf(pCut, i) );
     printf( " } Func = %d\n", Kf_CutFunc(pCut) );
 }
-static inline void Gia_CutPrintSetPrint( int * pCuts )
+static inline void Gia_CutSetPrint( int * pCuts )
 {
     int i, * pCut; 
     Kf_ObjForEachCutInt( pCuts, pCut, i )
@@ -751,6 +762,156 @@ int Kf_ManComputeRefs( Kf_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
+#define PAR_THR_MAX 100
+typedef struct Kf_ThData_t_
+{
+    Kf_Set_t *  pSett;
+    int         Id;
+    int         Status;
+} Kf_ThData_t;
+void * Kf_WorkerThread( void * pArg )
+{
+    Kf_ThData_t * pThData = (Kf_ThData_t *)pArg;
+    Kf_Man_t * pMan = pThData->pSett->pMan;
+    int fAreaOnly = pThData->pSett->pMan->pPars->fAreaOnly;
+    int fCutMin = pThData->pSett->pMan->pPars->fCutMin;
+    volatile int * pPlace = &pThData->Status;
+    while ( 1 )
+    {
+        while ( *pPlace == 0 );
+        assert( pThData->Status == 1 );
+        if ( pThData->Id == -1 )
+        {
+            pthread_exit( NULL );
+            assert( 0 );
+            return NULL;
+        }
+        assert( pThData->Id >= 0 );
+        Kf_SetMerge2( pThData->pSett, Kf_ObjCuts0(pMan, pThData->Id), Kf_ObjCuts1(pMan, pThData->Id), fAreaOnly, fCutMin );
+        pThData->Status = 0;
+//        printf( "Finished object %d\n", pThData->Id );
+    }
+    assert( 0 );
+    return NULL;
+}
+Vec_Int_t * Kf_ManCreateFaninCounts( Gia_Man_t * p )  
+{
+    Vec_Int_t * vCounts;
+    Gia_Obj_t * pObj; int i;
+    vCounts = Vec_IntAlloc( Gia_ManObjNum(p) );
+    Gia_ManForEachObj( p, pObj, i )
+    {
+        if ( Gia_ObjIsAnd(pObj) )
+            Vec_IntPush( vCounts, 2 - Gia_ObjIsCi(Gia_ObjFanin0(pObj)) - Gia_ObjIsCi(Gia_ObjFanin1(pObj)) );
+        else
+            Vec_IntPush( vCounts, 0 );
+    }
+    assert( Vec_IntSize(vCounts) == Gia_ManObjNum(p) );
+    return vCounts;
+}
+void Kf_ManComputeCuts( Kf_Man_t * p )
+{
+    pthread_t WorkerThread[PAR_THR_MAX];
+    Kf_ThData_t ThData[PAR_THR_MAX];
+    Vec_Int_t * vStack, * vFanins;
+    Gia_Obj_t * pObj;
+    int nProcs = p->pPars->nProcNumMax;
+    int i, k, iFan, status, nCountFanins, fRunning;
+    assert( nProcs <= PAR_THR_MAX );
+    // start fanins
+    vFanins = Kf_ManCreateFaninCounts( p->pGia );
+    Gia_ManStaticFanoutStart( p->pGia );
+    // start the stack
+    vStack = Vec_IntAlloc( 1000 );
+    Gia_ManForEachObjReverse( p->pGia, pObj, k )
+        if ( Gia_ObjIsAnd(pObj) && Vec_IntEntry(vFanins, k) == 0 )
+            Vec_IntPush( vStack, k );
+    // start the threads
+    for ( i = 0; i < nProcs; i++ )
+    {
+        ThData[i].pSett = p->pSett + i;
+        ThData[i].Id = -1;
+        ThData[i].Status = 0;
+        status = pthread_create( WorkerThread + i, NULL, Kf_WorkerThread, (void *)(ThData + i) );  assert( status == 0 );
+    }
+    nCountFanins = Vec_IntSum(vFanins);
+    fRunning = 1;
+    while ( nCountFanins > 0 || Vec_IntSize(vStack) > 0 || fRunning )
+    {
+        for ( i = 0; i < nProcs; i++ )
+        {
+            if ( ThData[i].Status )
+                continue;
+            assert( ThData[i].Status == 0 );
+            if ( ThData[i].Id >= 0 )
+            {
+                int iObj = ThData[i].Id;
+                Kf_Set_t * pSett = p->pSett + i;
+                //printf( "Closing obj %d with Thread %d:\n", iObj, i );
+                // finalize the results
+                Kf_ManSaveResults( pSett->ppCuts, pSett->nCuts, pSett->pCutBest, p->vTemp );
+                Vec_IntWriteEntry( &p->vTime, iObj, pSett->pCutBest->Delay + 1 );
+                Vec_FltWriteEntry( &p->vArea, iObj, (pSett->pCutBest->Area + 1)/Kf_ObjRefs(p, iObj) );
+                if ( pSett->pCutBest->nLeaves > 1 )
+                    Kf_ManStoreAddUnit( p->vTemp, iObj, Kf_ObjTime(p, iObj), Kf_ObjArea(p, iObj) );
+                Kf_ObjSetCuts( p, iObj, p->vTemp );
+                //Gia_CutSetPrint( Kf_ObjCuts(p, iObj) );
+                // schedule other nodes
+                Gia_ObjForEachFanoutStaticId( p->pGia, iObj, iFan, k )
+                {
+                    if ( !Gia_ObjIsAnd(Gia_ManObj(p->pGia, iFan)) )
+                        continue;
+                    assert( Vec_IntEntry(vFanins, iFan) > 0 );
+                    if ( Vec_IntAddToEntry(vFanins, iFan, -1) == 0 )
+                        Vec_IntPush( vStack, iFan );
+                    assert( nCountFanins > 0 );
+                    nCountFanins--;
+                }
+                ThData[i].Id = -1;
+            }
+            if ( Vec_IntSize(vStack) > 0 )
+            {
+                ThData[i].Id = Vec_IntPop( vStack );
+                ThData[i].Status = 1;
+                //printf( "Scheduling %d for Thread %d\n", ThData[i].Id, i );
+            }
+        }
+        fRunning = 0;
+        for ( i = 0; i < nProcs; i++ )
+            if ( ThData[i].Status == 1 || (ThData[i].Status == 0 && ThData[i].Id >= 0) )
+                fRunning = 1;
+//        printf( "fRunning %d\n", fRunning );
+    }
+    Vec_IntForEachEntry( vFanins, iFan, k )
+        if ( iFan != 0 )
+        {
+            printf( "%d -> %d    ", k, iFan );
+            Gia_ObjPrint( p->pGia, Gia_ManObj(p->pGia, k) );
+        }
+    assert( Vec_IntSum(vFanins) == 0 );
+    // stop the threads
+    for ( i = 0; i < nProcs; i++ )
+    {
+        assert( ThData[i].Status == 0 );
+        ThData[i].Id = -1;
+        ThData[i].Status = 1;
+    }
+    Gia_ManStaticFanoutStop( p->pGia );
+    Vec_IntFree( vStack );
+    Vec_IntFree( vFanins );
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 void Kf_ManPrintStats( Kf_Man_t * p, char * pTitle )
 {
     if ( !p->pPars->fVerbose )
@@ -764,8 +925,7 @@ void Kf_ManPrintStats( Kf_Man_t * p, char * pTitle )
 }
 void Kf_ManComputeMapping( Kf_Man_t * p )
 {
-    Kf_Cut_t * pCutBest;
-    Gia_Obj_t * pObj; int i;
+    Gia_Obj_t * pObj; int i, iPi;
     if ( p->pPars->fVerbose )
     {
         printf( "Aig: CI = %d  CO = %d  AND = %d    ", Gia_ManCiNum(p->pGia), Gia_ManCoNum(p->pGia), Gia_ManAndNum(p->pGia) );
@@ -773,28 +933,31 @@ void Kf_ManComputeMapping( Kf_Man_t * p )
         printf( "Computing cuts...\r" );
         fflush( stdout );
     }
-    Gia_ManForEachObj( p->pGia, pObj, i )
+    Gia_ManForEachCi( p->pGia, pObj, iPi )
     {
-        if ( Gia_ObjIsCi(pObj) )
-        {
-            Kf_ManStoreStart( p->vTemp, 0 );
-            Kf_ManStoreAddUnit( p->vTemp, i, 0, 0 );
-            assert( Vec_IntSize(p->vTemp) == 1 + KF_ADD_ON1 + KF_ADD_ON2 );
-            Kf_ObjSetCuts( p, i, p->vTemp );
-        }
-        else if ( Gia_ObjIsAnd(pObj) )
+        i = Gia_ObjId(p->pGia, pObj);
+        Kf_ManStoreStart( p->vTemp, 0 );
+        Kf_ManStoreAddUnit( p->vTemp, i, 0, 0 );
+        assert( Vec_IntSize(p->vTemp) == 1 + KF_ADD_ON1 + KF_ADD_ON2 );
+        Kf_ObjSetCuts( p, i, p->vTemp );
+    }
+    if ( p->pPars->nProcNumMax > 0 )
+        Kf_ManComputeCuts( p );
+    else
+    {
+        Gia_ManForEachAnd( p->pGia, pObj, i )
         {
             if ( p->pPars->fCutHashing )
-                pCutBest = Kf_SetMerge( p->pSett, Kf_ObjCuts0(p, i), Kf_ObjCuts1(p, i), p->pPars->fAreaOnly, p->pPars->fCutMin );
+                Kf_SetMerge( p->pSett, Kf_ObjCuts0(p, i), Kf_ObjCuts1(p, i), p->pPars->fAreaOnly, p->pPars->fCutMin );
             else
-                pCutBest = Kf_SetMerge2( p->pSett, Kf_ObjCuts0(p, i), Kf_ObjCuts1(p, i), p->pPars->fAreaOnly, p->pPars->fCutMin );
-            Kf_ManSaveResults( p->pSett->ppCuts, p->pSett->nCuts, pCutBest, p->vTemp );
-            Vec_IntWriteEntry( &p->vTime, i, pCutBest->Delay + 1 );
-            Vec_FltWriteEntry( &p->vArea, i, (pCutBest->Area + 1)/Kf_ObjRefs(p, i) );
-            if ( pCutBest->nLeaves > 1 )
+                Kf_SetMerge2( p->pSett, Kf_ObjCuts0(p, i), Kf_ObjCuts1(p, i), p->pPars->fAreaOnly, p->pPars->fCutMin );
+            Kf_ManSaveResults( p->pSett->ppCuts, p->pSett->nCuts, p->pSett->pCutBest, p->vTemp );
+            Vec_IntWriteEntry( &p->vTime, i, p->pSett->pCutBest->Delay + 1 );
+            Vec_FltWriteEntry( &p->vArea, i, (p->pSett->pCutBest->Area + 1)/Kf_ObjRefs(p, i) );
+            if ( p->pSett->pCutBest->nLeaves > 1 )
                 Kf_ManStoreAddUnit( p->vTemp, i, Kf_ObjTime(p, i), Kf_ObjArea(p, i) );
             Kf_ObjSetCuts( p, i, p->vTemp );
-//            Gia_CutPrintSetPrint( Kf_ObjCuts(p, i) );
+            //Gia_CutSetPrint( Kf_ObjCuts(p, i) );
         }
     }
     Kf_ManComputeRefs( p );
@@ -867,7 +1030,7 @@ Kf_Man_t * Kf_ManAlloc( Gia_Man_t * pGia, Jf_Par_t * pPars )
     p->vTemp     = Vec_IntAlloc( 1000 );
     pGia->pRefs  = ABC_CALLOC( int, Gia_ManObjNum(pGia) );
     // prepare cut sets
-    for ( i = 0; i < pPars->nProcNumMax; i++ )
+    for ( i = 0; i < Abc_MaxInt(1, pPars->nProcNumMax); i++ )
     {
         (p->pSett + i)->pMan      = p;
         (p->pSett + i)->nLutSize  = (unsigned short)pPars->nLutSize;
@@ -943,7 +1106,7 @@ void Kf_ManSetDefaultPars( Jf_Par_t * pPars )
     pPars->fVeryVerbose =  0;
     pPars->nLutSizeMax  =  KF_LEAF_MAX;
     pPars->nCutNumMax   =  KF_NUM_MAX;
-    pPars->nProcNumMax  =  1;
+    pPars->nProcNumMax  =  0;
 }
 Gia_Man_t * Kf_ManPerformMapping( Gia_Man_t * pGia, Jf_Par_t * pPars )
 {
