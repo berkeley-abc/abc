@@ -30407,9 +30407,9 @@ int Abc_CommandAbc9Kf( Abc_Frame_t * pAbc, int argc, char ** argv )
                 Abc_Print( -1, "Command line switch \"-P\" should be followed by a positive integer.\n" );
                 goto usage;
             }
-            pPars->nProcNumMax = atoi(argv[globalUtilOptind]);
+            pPars->nProcNum = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nProcNumMax < 0 )
+            if ( pPars->nProcNum < 0 )
                 goto usage;
             break;
         case 'R':

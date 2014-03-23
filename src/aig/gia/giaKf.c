@@ -952,7 +952,7 @@ void Kf_ManComputeMapping( Kf_Man_t * p )
     if ( p->pPars->fVerbose )
     {
         printf( "Aig: CI = %d  CO = %d  AND = %d    ", Gia_ManCiNum(p->pGia), Gia_ManCoNum(p->pGia), Gia_ManAndNum(p->pGia) );
-        printf( "LutSize = %d  CutMax = %d  Hash = %d\n", p->pPars->nLutSize, p->pPars->nCutNum, p->pPars->fCutHashing );
+        printf( "LutSize = %d  CutMax = %d  Threads = %d\n", p->pPars->nLutSize, p->pPars->nCutNum, p->pPars->nProcNum );
         printf( "Computing cuts...\r" );
         fflush( stdout );
     }
