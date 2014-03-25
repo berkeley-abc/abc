@@ -32857,8 +32857,9 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9FFTest( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern void Gia_ManFaultTest( Gia_Man_t * p, int Algo, int fComplVars, int nTimeOut, int fDump, int fVerbose );
+    extern void Gia_ManFaultTest( Gia_Man_t * p, char * pFileName, int Algo, int fComplVars, int nTimeOut, int fDump, int fVerbose );
     int c, Algo = 0, fComplVars = 0, nTimeOut = 0, fDump = 0, fVerbose = 0;
+    char * pFileName = NULL;
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "ATcdvh" ) ) != EOF )
     {
@@ -32901,6 +32902,20 @@ int Abc_CommandAbc9FFTest( Abc_Frame_t * pAbc, int argc, char ** argv )
             goto usage;
         }
     }
+    // get the file name
+    if ( argc == globalUtilOptind + 1 )
+    {
+        FILE * pFile;
+        pFileName = argv[globalUtilOptind];
+        pFile = fopen( pFileName, "r" );
+        if ( pFile == NULL )
+        {
+            Abc_Print( -1, "Cannot open file \"%s\" with the input test patterns.\n", pFileName );
+            return 0;
+        }
+        fclose( pFile );
+    }
+    // check other conditions
     if ( pAbc->pGia == NULL )
     {
         Abc_Print( -1, "Abc_CommandAbc9FFTest(): There is no AIG.\n" );
@@ -32911,11 +32926,11 @@ int Abc_CommandAbc9FFTest( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Abc_CommandAbc9FFTest(): For delay testing, AIG should be sequential.\n" );
         return 0;
     }
-    Gia_ManFaultTest( pAbc->pGia, Algo, fComplVars, nTimeOut, fDump, fVerbose );
+    Gia_ManFaultTest( pAbc->pGia, pFileName, Algo, fComplVars, nTimeOut, fDump, fVerbose );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &fftest [-AT num] [-cdvh]\n" );
+    Abc_Print( -2, "usage: &fftest [-AT num] [-cdvh] <file>\n" );
     Abc_Print( -2, "\t         performs functional fault test generation\n" );
     Abc_Print( -2, "\t-A num : selects test generation algorithm [default = %d]\n", Algo );
     Abc_Print( -2, "\t               0: algorithm is not selected\n" );
@@ -32927,6 +32942,7 @@ usage:
     Abc_Print( -2, "\t-d     : toggles dumping test patterns into file \"tests.txt\" [default = %s]\n", fDump?      "yes": "no" );
     Abc_Print( -2, "\t-v     : toggles printing verbose information [default = %s]\n",                  fVerbose?   "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
+    Abc_Print( -2, "\t<file> : (optional) file name with input test patterns\n");
     return 1;
 }
 
