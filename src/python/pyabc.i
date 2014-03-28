@@ -373,6 +373,15 @@ void _pyabc_array_push(int i)
     Vec_IntPush( vObjIds, i );
 }
 
+int pyabc_array_read_entry(int i)
+{
+    Abc_Frame_t* pAbc = Abc_FrameGetGlobalFrame();
+    Vec_Int_t *vObjIds = Abc_FrameReadObjIds(pAbc);
+    if( !vObjIds )
+        return -1;
+    return Vec_IntEntry( vObjIds, i );
+}
+
 static PyObject* pyabc_internal_python_command_callback = 0;
 
 void pyabc_internal_set_command_callback( PyObject* callback )
@@ -709,6 +718,7 @@ PyObject* eq_classes();
 
 void _pyabc_array_clear();
 void _pyabc_array_push(int i);
+int pyabc_array_read_entry(int i);
 
 void pyabc_internal_set_command_callback( PyObject* callback );
 void pyabc_internal_register_command( char * sGroup, char * sName, int fChanges );
