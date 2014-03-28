@@ -47,7 +47,7 @@ void Aig_WriteDotAig( Aig_Man_t * pMan, char * pFileName, int fHaig, Vec_Ptr_t *
 {
     FILE * pFile;
     Aig_Obj_t * pNode;//, * pTemp, * pPrev;
-    int LevelMax, Level, i;
+    int LevelMax, Prev, Level, i;
 
     if ( Aig_ManNodeNum(pMan) > 200 )
     {
@@ -252,6 +252,14 @@ void Aig_WriteDotAig( Aig_Man_t * pMan, char * pFileName, int fHaig, Vec_Ptr_t *
     fprintf( pFile, "title1 -> title2 [style = invis];\n" );
     Aig_ManForEachCo( pMan, pNode, i )
         fprintf( pFile, "title2 -> Node%d [style = invis];\n", pNode->Id );
+    // generate invisible edges among the COs
+    Prev = -1;
+    Aig_ManForEachCo( pMan, pNode, i )
+    {
+        if ( i > 0 )
+            fprintf( pFile, "Node%d -> Node%d [style = invis];\n", Prev, pNode->Id );
+        Prev = pNode->Id;
+    }
 
     // generate edges
     Aig_ManForEachObj( pMan, pNode, i )

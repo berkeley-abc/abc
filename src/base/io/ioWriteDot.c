@@ -73,7 +73,7 @@ void Io_WriteDotNtk( Abc_Ntk_t * pNtk, Vec_Ptr_t * vNodes, Vec_Ptr_t * vNodesSho
     FILE * pFile;
     Abc_Obj_t * pNode, * pFanin;
     char * pSopString;
-    int LevelMin, LevelMax, fHasCos, Level, i, k, fHasBdds, fCompl;
+    int LevelMin, LevelMax, fHasCos, Level, i, k, fHasBdds, fCompl, Prev;
     int Limit = 300;
 
     assert( Abc_NtkIsStrash(pNtk) || Abc_NtkIsLogic(pNtk) );
@@ -365,6 +365,18 @@ void Io_WriteDotNtk( Abc_Ntk_t * pNtk, Vec_Ptr_t * vNodes, Vec_Ptr_t * vNodesSho
             continue;
         fprintf( pFile, "title2 -> Node%d [style = invis];\n", pNode->Id );
     }
+    // generate invisible edges among the COs
+    Prev = -1;
+    Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pNode, i )
+    {
+        if ( (int)pNode->Level != LevelMax )
+            continue;
+        if ( !Abc_ObjIsPo(pNode) )
+            continue;
+        if ( Prev >= 0 )
+            fprintf( pFile, "Node%d -> Node%d [style = invis];\n", Prev, pNode->Id );
+        Prev = pNode->Id;
+    }
 
     // generate edges
     Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pNode, i )
@@ -424,7 +436,7 @@ void Io_WriteDotSeq( Abc_Ntk_t * pNtk, Vec_Ptr_t * vNodes, Vec_Ptr_t * vNodesSho
     FILE * pFile;
     Abc_Obj_t * pNode, * pFanin;
     char * pSopString;
-    int LevelMin, LevelMax, fHasCos, Level, i, k, fHasBdds, fCompl;
+    int LevelMin, LevelMax, fHasCos, Level, i, k, fHasBdds, fCompl, Prev;
     int Limit = 300;
 
     assert( Abc_NtkIsStrash(pNtk) || Abc_NtkIsLogic(pNtk) );
@@ -712,6 +724,18 @@ void Io_WriteDotSeq( Abc_Ntk_t * pNtk, Vec_Ptr_t * vNodes, Vec_Ptr_t * vNodesSho
         if ( !Abc_ObjIsPo(pNode) )
             continue;
         fprintf( pFile, "title2 -> Node%d [style = invis];\n", pNode->Id );
+    }
+    // generate invisible edges among the COs
+    Prev = -1;
+    Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pNode, i )
+    {
+        if ( (int)pNode->Level != LevelMax )
+            continue;
+        if ( !Abc_ObjIsPo(pNode) )
+            continue;
+        if ( Prev >= 0 )
+            fprintf( pFile, "Node%d -> Node%d [style = invis];\n", Prev, pNode->Id );
+        Prev = pNode->Id;
     }
 
     // generate edges
