@@ -32859,11 +32859,11 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9FFTest( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern void Gia_ManFaultTest( Gia_Man_t * p, char * pFileName, int Algo, int fComplVars, int nTimeOut, int fDump, int fVerbose );
-    int c, Algo = 0, fComplVars = 0, nTimeOut = 0, fDump = 0, fVerbose = 0;
+    extern void Gia_ManFaultTest( Gia_Man_t * p, char * pFileName, int Algo, int fComplVars, int fStartPats, int nTimeOut, int fDump, int fDumpUntest, int fVerbose );
+    int c, Algo = 0, fComplVars = 0, fStartPats = 0, nTimeOut = 0, fDump = 0, fDumpUntest = 0, fVerbose = 0;
     char * pFileName = NULL;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "ATcdvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "ATcsduvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -32892,8 +32892,14 @@ int Abc_CommandAbc9FFTest( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'c':
             fComplVars ^= 1;
             break;
+        case 's':
+            fStartPats ^= 1;
+            break;
         case 'd':
             fDump ^= 1;
+            break;
+        case 'u':
+            fDumpUntest ^= 1;
             break;
         case 'v':
             fVerbose ^= 1;
@@ -32928,11 +32934,11 @@ int Abc_CommandAbc9FFTest( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Abc_CommandAbc9FFTest(): For delay testing, AIG should be sequential.\n" );
         return 0;
     }
-    Gia_ManFaultTest( pAbc->pGia, pFileName, Algo, fComplVars, nTimeOut, fDump, fVerbose );
+    Gia_ManFaultTest( pAbc->pGia, pFileName, Algo, fComplVars, fStartPats, nTimeOut, fDump, fDumpUntest, fVerbose );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &fftest [-AT num] [-cdvh] <file>\n" );
+    Abc_Print( -2, "usage: &fftest [-AT num] [-csduvh] <file>\n" );
     Abc_Print( -2, "\t         performs functional fault test generation\n" );
     Abc_Print( -2, "\t-A num : selects test generation algorithm [default = %d]\n", Algo );
     Abc_Print( -2, "\t               0: algorithm is not selected\n" );
@@ -32940,9 +32946,11 @@ usage:
     Abc_Print( -2, "\t               2: traditional stuck-at testing\n" );
     Abc_Print( -2, "\t               3: complement fault testing\n" );
     Abc_Print( -2, "\t-T num : specifies approximate runtime limit in seconds [default = %d]\n",        nTimeOut );
-    Abc_Print( -2, "\t-c     : toggles complementing control variables [default = %s]\n",               fComplVars? "active-high": "active-low" );
-    Abc_Print( -2, "\t-d     : toggles dumping test patterns into file \"tests.txt\" [default = %s]\n", fDump?      "yes": "no" );
-    Abc_Print( -2, "\t-v     : toggles printing verbose information [default = %s]\n",                  fVerbose?   "yes": "no" );
+    Abc_Print( -2, "\t-c     : toggles complementing control variables [default = %s]\n",               fComplVars?  "active-high": "active-low" );
+    Abc_Print( -2, "\t-s     : toggles starting with the all-0 and all-1 patterns [default = %s]\n",    fStartPats?  "yes": "no" );
+    Abc_Print( -2, "\t-d     : toggles dumping test patterns into file \"tests.txt\" [default = %s]\n", fDump?       "yes": "no" );
+    Abc_Print( -2, "\t-u     : toggles dumping untestable faults into \"untest.txt\" [default = %s]\n", fDumpUntest? "yes": "no" );
+    Abc_Print( -2, "\t-v     : toggles printing verbose information [default = %s]\n",                  fVerbose?    "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     Abc_Print( -2, "\t<file> : (optional) file name with input test patterns\n");
     return 1;

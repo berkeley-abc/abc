@@ -337,6 +337,69 @@ void Gia_ManFaultAddOne( Gia_Man_t * pM, Cnf_Dat_t * pCnf, sat_solver * pSat, Ve
     Gia_ManStop( pC );
 }
 
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Gia_ManDumpUntests( Gia_Man_t * pM, Cnf_Dat_t * pCnf, sat_solver * pSat, int nFuncVars, int LitRoot, char * pFileName, int fVerbose )
+{
+    FILE * pFile = fopen( pFileName, "wb" );
+    Vec_Int_t * vLits;
+    Gia_Obj_t * pObj;
+    int nItersMax = 10000;
+    int i, nIters, status, Value, Count = 0;
+    assert( LitRoot > 1 );
+    vLits = Vec_IntAlloc( Gia_ManPiNum(pM) - nFuncVars );
+    for ( nIters = 0; nIters < nItersMax; nIters++ )
+    {
+        status = sat_solver_solve( pSat, &LitRoot, &LitRoot+1, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
+        if ( status == l_Undef )
+        {
+            printf( "Timeout reached after dumping %d untestable faults.\n", nIters );
+            break;
+        }
+        if ( status == l_False )
+            break;
+        // collect literals
+        Vec_IntClear( vLits );
+        Gia_ManForEachPi( pM, pObj, i )
+            if ( i >= nFuncVars )
+                Vec_IntPush( vLits, Abc_Var2Lit(pCnf->pVarNums[Gia_ObjId(pM, pObj)], sat_solver_var_value(pSat, pCnf->pVarNums[Gia_ObjId(pM, pObj)])) );
+        // dump the fault
+        Vec_IntForEachEntry( vLits, Value, i )
+            if ( Abc_LitIsCompl(Value) )
+                break;
+        if ( i < Vec_IntSize(vLits) )
+        {
+            if ( fVerbose )
+            {
+                printf( "Untestable fault %4d : ", ++Count );
+                Vec_IntForEachEntry( vLits, Value, i )
+                    if ( Abc_LitIsCompl(Value) )
+                        printf( "%d ", i );
+                printf( "\n" );
+            }
+            Vec_IntForEachEntry( vLits, Value, i )
+                if ( Abc_LitIsCompl(Value) )
+                    fprintf( pFile, "%d ", i );
+            fprintf( pFile, "\n" );
+        }
+        // add this clause
+        sat_solver_addclause( pSat, Vec_IntArray(vLits), Vec_IntArray(vLits) + Vec_IntSize(vLits) );
+    }
+    Vec_IntFree( vLits );
+    fclose( pFile );
+    return nIters-1;
+}
+
 /**Function*************************************************************
 
   Synopsis    []
@@ -385,10 +448,10 @@ Vec_Int_t * Gia_ManGetTestPatterns( char * pFileName )
   SeeAlso     []
 
 ***********************************************************************/
-void Gia_ManFaultTest( Gia_Man_t * p, char * pFileName, int Algo, int fComplVars, int nTimeOut, int fDump, int fVerbose )
+void Gia_ManFaultTest( Gia_Man_t * p, char * pFileName, int Algo, int fComplVars, int fStartPats, int nTimeOut, int fDump, int fDumpUntest, int fVerbose )
 {
     int nIterMax = 1000000;
-    int i, Iter, status, nFuncVars = -1;
+    int i, Iter, LitRoot, status, nFuncVars = -1;
     abctime clkSat = 0, clkTotal = Abc_Clock();
     Vec_Int_t * vLits, * vTests;
     Gia_Man_t * p0, * p1, * pM;
@@ -454,8 +517,9 @@ void Gia_ManFaultTest( Gia_Man_t * p, char * pFileName, int Algo, int fComplVars
 
     // start the SAT solver
     pSat = sat_solver_new();
-    sat_solver_setnvars( pSat, pCnf->nVars );
+    sat_solver_setnvars( pSat, pCnf->nVars + (fDumpUntest ? 1 : 0) );
     sat_solver_set_runtime_limit( pSat, nTimeOut ? nTimeOut * CLOCKS_PER_SEC + Abc_Clock(): 0 );
+    LitRoot = fDumpUntest ? Abc_Var2Lit( pCnf->nVars, 1 ) : 0;
     // add timeframe clauses
     for ( i = 0; i < pCnf->nClauses; i++ )
         if ( !sat_solver_addclause( pSat, pCnf->pClauses[i], pCnf->pClauses[i+1] ) )
@@ -463,6 +527,8 @@ void Gia_ManFaultTest( Gia_Man_t * p, char * pFileName, int Algo, int fComplVars
 
     // add one large OR clause
     vLits = Vec_IntAlloc( Gia_ManCoNum(p) );
+    if ( LitRoot )
+        Vec_IntPush( vLits, Abc_LitNot(LitRoot) );
     Gia_ManForEachCo( pM, pObj, i )
         Vec_IntPush( vLits, Abc_Var2Lit(pCnf->pVarNums[Gia_ObjId(pM, pObj)], 0) );
     sat_solver_addclause( pSat, Vec_IntArray(vLits), Vec_IntArray(vLits) + Vec_IntSize(vLits) );
@@ -476,7 +542,7 @@ void Gia_ManFaultTest( Gia_Man_t * p, char * pFileName, int Algo, int fComplVars
         for ( Iter = 0; Iter < nTests; Iter++ )
         {
             abctime clk = Abc_Clock();
-            status = sat_solver_solve( pSat, NULL, NULL, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
+            status = sat_solver_solve( pSat, LitRoot ? &LitRoot : NULL, LitRoot ? &LitRoot+1 : NULL, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
             clkSat += Abc_Clock() - clk;
             // get pattern
             Vec_IntClear( vLits );
@@ -494,12 +560,37 @@ void Gia_ManFaultTest( Gia_Man_t * p, char * pFileName, int Algo, int fComplVars
             }
         }
     }
+    else if ( fStartPats )
+    {
+        for ( Iter = 0; Iter < 2; Iter++ )
+        {
+            status = sat_solver_solve( pSat, LitRoot ? &LitRoot : NULL, LitRoot ? &LitRoot+1 : NULL, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
+            if ( status == l_Undef )
+            {
+                if ( fVerbose )
+                    printf( "\n" );
+                printf( "Timeout reached after %d seconds and %d iterations.  ", nTimeOut, Iter );
+                break;
+            }
+            if ( status == l_False )
+            {
+                if ( fVerbose )
+                    printf( "\n" );
+                printf( "The problem is UNSAT after %d iterations.  ", Iter );
+                break;
+            }
+            // initialize simple pattern
+            Vec_IntFill( vLits, nFuncVars, Iter );
+            Vec_IntAppend( vTests, vLits );
+            Gia_ManFaultAddOne( pM, pCnf, pSat, vLits, nFuncVars );
+        }
+    }
 
     // iterate through the test vectors
-    for ( Iter = Vec_IntSize(vTests) / nFuncVars; Iter < nIterMax; Iter++ )
+    for ( Iter = fStartPats ? 2 : Vec_IntSize(vTests) / nFuncVars; Iter < nIterMax; Iter++ )
     {
         abctime clk = Abc_Clock();
-        status = sat_solver_solve( pSat, NULL, NULL, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
+        status = sat_solver_solve( pSat, LitRoot ? &LitRoot : NULL, LitRoot ? &LitRoot+1 : NULL, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
         clkSat += Abc_Clock() - clk;
         if ( fVerbose )
         {
@@ -538,11 +629,20 @@ void Gia_ManFaultTest( Gia_Man_t * p, char * pFileName, int Algo, int fComplVars
 //    if ( status == l_False )
 //        Gia_ManPrintResults( p, pSat, Iter, Abc_Clock() - clkTotal );
     // cleanup
+    Abc_PrintTime( 1, "Total runtime", Abc_Clock() - clkTotal );
+    // dump untestable faults
+    if ( fDumpUntest )
+    {
+        abctime clk = Abc_Clock();
+        char * pFileName = "untest.txt";
+        int nUntests = Gia_ManDumpUntests( pM, pCnf, pSat, nFuncVars, Abc_LitNot(LitRoot), pFileName, fVerbose );
+        printf( "Dumping %d untestable multiple faults into file \"%s\".  ", nUntests, pFileName );
+        Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
+    }
     Vec_IntFree( vLits );
-    sat_solver_delete( pSat );
     Cnf_DataFree( pCnf );
     Gia_ManStop( pM );
-    Abc_PrintTime( 1, "Total runtime", Abc_Clock() - clkTotal );
+    sat_solver_delete( pSat );
     // dump the test suite
     if ( fDump )
     {
