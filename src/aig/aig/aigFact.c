@@ -288,15 +288,13 @@ Vec_Ptr_t * Aig_SuppMinPerform( Aig_Man_t * p, Vec_Ptr_t * vOrGate, Vec_Ptr_t * 
 {
     Aig_Obj_t * pObj;
     Vec_Ptr_t * vTrSupp, * vTrNode, * vCofs;
-    unsigned * uFunc, * uCare, * uFunc0, * uFunc1, * uCof;
+    unsigned * uFunc = NULL, * uCare, * uFunc0, * uFunc1;
+    unsigned * uCof0, * uCof1, * uCare0, * uCare1;
     int i, nWords = Abc_TruthWordNum( Vec_PtrSize(vSupp) );
     // assign support nodes
     vTrSupp = Vec_PtrAllocTruthTables( Vec_PtrSize(vSupp) );
     Vec_PtrForEachEntry( Aig_Obj_t *, vSupp, pObj, i )
-    {
-        printf( "%d %d\n", Aig_ObjId(pObj), i );
         pObj->pData = Vec_PtrEntry( vTrSupp, i );
-    }
     // compute internal nodes
     vTrNode = Vec_PtrAllocSimInfo( Vec_PtrSize(vNodes) + 5, nWords );
     Vec_PtrForEachEntry( Aig_Obj_t *, vNodes, pObj, i )
@@ -311,37 +309,29 @@ Vec_Ptr_t * Aig_SuppMinPerform( Aig_Man_t * p, Vec_Ptr_t * vOrGate, Vec_Ptr_t * 
     uCare = (unsigned *)Vec_PtrEntry( vTrNode, Vec_PtrSize(vNodes) );
     Kit_TruthClear( uCare, Vec_PtrSize(vSupp) );
     Vec_PtrForEachEntry( Aig_Obj_t *, vOrGate, pObj, i )
-    {
-        printf( "%d %d %d - or gate\n", Aig_ObjId(Aig_Regular(pObj)), Aig_IsComplement(pObj), i );
         Kit_TruthOrPhase( uCare, uCare, (unsigned *)Aig_Regular(pObj)->pData, Vec_PtrSize(vSupp), 0, Aig_IsComplement(pObj) );
-    }
     // try cofactoring each variable in both polarities
     vCofs = Vec_PtrAlloc( 10 );
-    uCof  = (unsigned *)Vec_PtrEntry( vTrNode, Vec_PtrSize(vNodes)+1 );
+    uCof0  = (unsigned *)Vec_PtrEntry( vTrNode, Vec_PtrSize(vNodes)+1 );
+    uCof1  = (unsigned *)Vec_PtrEntry( vTrNode, Vec_PtrSize(vNodes)+2 );
+    uCare0 = (unsigned *)Vec_PtrEntry( vTrNode, Vec_PtrSize(vNodes)+3 );
+    uCare1 = (unsigned *)Vec_PtrEntry( vTrNode, Vec_PtrSize(vNodes)+4 );
     Vec_PtrForEachEntry( Aig_Obj_t *, vSupp, pObj, i )
     {
-        // consider negative cofactor
-        Kit_TruthCofactor0New( uCof, uFunc, Vec_PtrSize(vSupp), i );
-        if ( Kit_TruthIsEqualWithCare( uFunc, uCof, uCare, Vec_PtrSize(vSupp) ) )
-        {
+        Kit_TruthCofactor0New( uCof0, uFunc, Vec_PtrSize(vSupp), i );
+        Kit_TruthCofactor1New( uCof1, uFunc, Vec_PtrSize(vSupp), i );
+        Kit_TruthCofactor0New( uCare0, uCare, Vec_PtrSize(vSupp), i );
+        Kit_TruthCofactor1New( uCare1, uCare, Vec_PtrSize(vSupp), i );
+        if ( Kit_TruthIsEqualWithCare( uCof0, uCof1, uCare1, Vec_PtrSize(vSupp) ) )
             Vec_PtrPush( vCofs, Aig_Not(pObj) );
-            Kit_TruthCopy( uFunc, uCof, Vec_PtrSize(vSupp) );
-            Kit_TruthCofactor0( uCare, Vec_PtrSize(vSupp), i );
-            continue;
-        }
-        // consider positive cofactor
-        Kit_TruthCofactor1New( uCof, uFunc, Vec_PtrSize(vSupp), i );
-        if ( Kit_TruthIsEqualWithCare( uFunc, uCof, uCare, Vec_PtrSize(vSupp) ) )
-        {
+        else if ( Kit_TruthIsEqualWithCare( uCof0, uCof1, uCare0, Vec_PtrSize(vSupp) ) )
             Vec_PtrPush( vCofs, pObj );
-            Kit_TruthCopy( uFunc, uCof, Vec_PtrSize(vSupp) );
-            Kit_TruthCofactor1( uCare, Vec_PtrSize(vSupp), i );
-        }
     }
     Vec_PtrFree( vTrNode );
     Vec_PtrFree( vTrSupp );
     return vCofs;
 }
+
 
 
 /**Function*************************************************************
@@ -708,7 +698,35 @@ void Aig_ManSupportMinimizationTest()
 
     Aig_ManStop( p );
 }
+void Aig_ManSupportMinimizationTest2()
+{
+    Aig_Man_t * p;
+    Aig_Obj_t * node09, * node10, * node11, * node12, * node13, * pRes;
+    int i, Status;
+    p = Aig_ManStart( 100 );
+    for ( i = 0; i < 3; i++ )
+        Aig_IthVar(p,i);
 
+    node09 = Aig_And( p, Aig_IthVar(p,0), Aig_Not(Aig_IthVar(p,1)) );
+    node10 = Aig_And( p, Aig_Not(node09), Aig_Not(Aig_IthVar(p,2)) );
+    node11 = Aig_And( p, node10, Aig_IthVar(p,1) );
+
+    node12 = Aig_Or( p, Aig_IthVar(p,1), Aig_IthVar(p,2) );
+    node13 = Aig_Or( p, node12, Aig_IthVar(p,0) );
+
+    pRes  = Aig_ManSupportMinimization( p, node13, node11, &Status );
+    assert( Status == 0 );
+
+    printf( "Compl = %d  ", Aig_IsComplement(pRes) );
+    Aig_ObjPrint( p, Aig_Regular(pRes) );                printf( "\n" );
+    if ( Aig_ObjIsNode(Aig_Regular(pRes)) )
+    {
+        Aig_ObjPrint( p, Aig_ObjFanin0(Aig_Regular(pRes)) ); printf( "\n" );
+        Aig_ObjPrint( p, Aig_ObjFanin1(Aig_Regular(pRes)) ); printf( "\n" );
+    }
+
+    Aig_ManStop( p );
+}
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
