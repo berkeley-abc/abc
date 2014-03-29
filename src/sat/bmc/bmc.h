@@ -65,6 +65,7 @@ struct Saig_ParBmc_t_
     int         nLearnedPerce;  // ratio of learned clause limit
     int         fVerbose;       // verbose 
     int         fNotVerbose;    // skip line-by-line print-out 
+    char *      pLogFileName;   // log file name
     int         fSilent;        // completely silent
     int         iFrame;         // explored up to this frame
     int         nFailOuts;      // the number of failed outputs

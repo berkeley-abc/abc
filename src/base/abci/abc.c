@@ -21505,7 +21505,7 @@ int Abc_CommandBmc3( Abc_Frame_t * pAbc, int argc, char ** argv )
     int c;
     Saig_ParBmcSetDefaultParams( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "SFTHGCDJIPQRLaxdruvzh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "SFTHGCDJIPQRLWaxdruvzh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -21650,6 +21650,15 @@ int Abc_CommandBmc3( Abc_Frame_t * pAbc, int argc, char ** argv )
             pLogFileName = argv[globalUtilOptind];
             globalUtilOptind++;
             break;
+        case 'W':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-W\" should be followed by a file name.\n" );
+                goto usage;
+            }
+            pPars->pLogFileName = argv[globalUtilOptind];
+            globalUtilOptind++;
+            break;
         case 'a':
             pPars->fSolveAll ^= 1;
             break;
@@ -21728,7 +21737,7 @@ int Abc_CommandBmc3( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: bmc3 [-SFTHGCDJIPQR num] [-L file] [-axduvzh]\n" );
+    Abc_Print( -2, "usage: bmc3 [-SFTHGCDJIPQR num] [-LW file] [-axduvzh]\n" );
     Abc_Print( -2, "\t         performs bounded model checking with dynamic unrolling\n" );
     Abc_Print( -2, "\t-S num : the starting time frame [default = %d]\n", pPars->nStart );
     Abc_Print( -2, "\t-F num : the max number of time frames (0 = unused) [default = %d]\n",      pPars->nFramesMax );
@@ -21740,9 +21749,10 @@ usage:
     Abc_Print( -2, "\t-J num : the number of timeframes to jump (0 = not used) [default = %d]\n", pPars->nFramesJump );
     Abc_Print( -2, "\t-I num : the number of PIs to abstract [default = %d]\n",                   pPars->nPisAbstract );
     Abc_Print( -2, "\t-P num : the max number of learned clauses to keep (0=unused) [default = %d]\n", pPars->nLearnedStart );
-    Abc_Print( -2, "\t-Q num : delta value for learned clause removal [default = %d]\n",               pPars->nLearnedDelta );
-    Abc_Print( -2, "\t-R num : percentage to keep for learned clause removal [default = %d]\n",          pPars->nLearnedPerce );
+    Abc_Print( -2, "\t-Q num : delta value for learned clause removal [default = %d]\n",          pPars->nLearnedDelta );
+    Abc_Print( -2, "\t-R num : percentage to keep for learned clause removal [default = %d]\n",   pPars->nLearnedPerce );
     Abc_Print( -2, "\t-L file: the log file name [default = %s]\n",                               pLogFileName ? pLogFileName : "no logging" );
+    Abc_Print( -2, "\t-W file: the log file name with per-output details [default = %s]\n",       pPars->pLogFileName ? pPars->pLogFileName : "no logging" );
     Abc_Print( -2, "\t-a     : solve all outputs (do not stop when one is SAT) [default = %s]\n", pPars->fSolveAll? "yes": "no" );
     Abc_Print( -2, "\t-x     : toggle storing CEXes when solving all outputs [default = %s]\n",   pPars->fStoreCex? "yes": "no" );
     Abc_Print( -2, "\t-d     : toggle dropping (replacing by 0) SAT outputs [default = %s]\n",    pPars->fDropSatOuts? "yes": "no" );

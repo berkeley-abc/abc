@@ -1392,13 +1392,16 @@ int Saig_ManBmcScalable( Aig_Man_t * pAig, Saig_ParBmc_t * pPars )
     Gia_ManBmc_t * p;
     Aig_Obj_t * pObj;
     Abc_Cex_t * pCexNew, * pCexNew0;
+    FILE * pLogFile = NULL;
     unsigned * pInfo;
     int RetValue = -1, fFirst = 1, nJumpFrame = 0, fUnfinished = 0;
     int nOutDigits = Abc_Base10Log( Saig_ManPoNum(pAig) );
     int i, f, k, Lit, status;
-    abctime clk, clk2, clkOther = 0, clkTotal = Abc_Clock();
+    abctime clk, clk2, clkSatRun, clkOther = 0, clkTotal = Abc_Clock();
     abctime nTimeUnsat = 0, nTimeSat = 0, nTimeUndec = 0, clkOne = 0;
     abctime nTimeToStopNG, nTimeToStop;
+    if ( pPars->pLogFileName )
+        pLogFile = fopen( pPars->pLogFileName, "wb" );
     if ( pPars->nTimeOutOne && pPars->nTimeOut == 0 )
         pPars->nTimeOut = pPars->nTimeOutOne * Saig_ManPoNum(pAig) / 1000 + 1;
     if ( pPars->nTimeOutOne && !pPars->fSolveAll )
@@ -1542,15 +1545,17 @@ clkOther += Abc_Clock() - clk2;
             // solve this output
             fUnfinished = 0;
             sat_solver_compress( p->pSat );
-clk2 = Abc_Clock();
             if ( p->pTime4Outs )
             {
                 assert( p->pTime4Outs[i] > 0 );
                 clkOne = Abc_Clock();
                 sat_solver_set_runtime_limit( p->pSat, p->pTime4Outs[i] + Abc_Clock() );
             }
-//            status = sat_solver_solve( p->pSat, &Lit, &Lit + 1, (ABC_INT64_T)pPars->nConfLimit, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
+clk2 = Abc_Clock();
             status = Saig_ManCallSolver( p, Lit );
+clkSatRun = Abc_Clock() - clk2;
+            if ( pLogFile )
+                fprintf( pLogFile, "Frame %5d  Output %5d  Time(ms) %8d\n", f, i, Lit < 2 ? 0 : clkSatRun );
             if ( p->pTime4Outs )
             {
                 abctime timeSince = Abc_Clock() - clkOne;
@@ -1561,7 +1566,7 @@ clk2 = Abc_Clock();
             }
             if ( status == l_False )
             {
-nTimeUnsat += Abc_Clock() - clk2;
+nTimeUnsat += clkSatRun;
                 if ( Lit != 0 )
                 {
                     // add final unit clause
@@ -1584,7 +1589,7 @@ nTimeUnsat += Abc_Clock() - clk2;
             }
             else if ( status == l_True )
             {
-nTimeSat += Abc_Clock() - clk2;
+nTimeSat += clkSatRun;
                 RetValue = 0;
                 fFirst = 0;
                 if ( !pPars->fSolveAll )
@@ -1671,7 +1676,7 @@ nTimeSat += Abc_Clock() - clk2;
             }
             else 
             {
-nTimeUndec += Abc_Clock() - clk2;
+nTimeUndec += clkSatRun;
                 assert( status == l_Undef );
                 if ( pPars->nFramesJump )
                 {
@@ -1735,6 +1740,8 @@ finish:
     }
     Saig_Bmc3ManStop( p );
     fflush( stdout );
+    if ( pLogFile )
+        fclose( pLogFile );
     return RetValue;
 }
 
