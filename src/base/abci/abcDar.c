@@ -2080,7 +2080,7 @@ int Abc_NtkDarBmc( Abc_Ntk_t * pNtk, int nStart, int nFrames, int nSizeMax, int 
             Abc_Print( 1, "Incorrect return value.  " );
         else if ( RetValue == -1 )
         {
-            Abc_Print( 1, "No output asserted in %d frames. Resource limit reached ", Abc_MaxInt(iFrame,0) );
+            Abc_Print( 1, "No output asserted in %d frames. Resource limit reached ", Abc_MaxInt(iFrame+1,0) );
             if ( nTimeLimit && Abc_Clock() > nTimeLimit )
                 Abc_Print( 1, "(timeout %d sec). ", nTimeLimit );
             else
@@ -2160,7 +2160,7 @@ int Abc_NtkDarBmc3( Abc_Ntk_t * pNtk, Saig_ParBmc_t * pPars, int fOrDecomp )
         {
             if ( pPars->nFailOuts == 0 )
             {
-                Abc_Print( 1, "No output asserted in %d frames. Resource limit reached ", Abc_MaxInt(pPars->iFrame,0) );
+                Abc_Print( 1, "No output asserted in %d frames. Resource limit reached ", Abc_MaxInt(pPars->iFrame+1,0) );
                 if ( nTimeOut && Abc_Clock() > nTimeOut )
                     Abc_Print( 1, "(timeout %d sec). ", pPars->nTimeOut );
                 else
