@@ -260,6 +260,7 @@ struct Jf_Par_t_
     int            fAddOrCla;
     int            fPureAig;
     int            fCutHashing;
+    int            fCutSimple;
     int            fVerbose;
     int            fVeryVerbose;
     int            nLutSizeMax;

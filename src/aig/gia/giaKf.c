@@ -301,6 +301,60 @@ static inline void Kf_SetSelectBest( Kf_Set_t * p, int fArea, int fSort )
 
 /**Function*************************************************************
 
+  Synopsis    [Check correctness of cuts.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline int Kf_CheckCut( Kf_Cut_t * pBase, Kf_Cut_t * pCut ) // check if pCut is contained in pBase
+{
+    int nSizeB = pBase->nLeaves;
+    int nSizeC = pCut->nLeaves;
+    int * pB = pBase->pLeaves;
+    int * pC = pCut->pLeaves;
+    int i, k;
+    for ( i = 0; i < nSizeC; i++ )
+    {
+        for ( k = 0; k < nSizeB; k++ )
+            if ( pC[i] == pB[k] )
+                break;
+        if ( k == nSizeB )
+            return 0;
+    }
+    return 1;
+}
+static inline int Kf_CheckCuts( Kf_Set_t * p )
+{
+    Kf_Cut_t * pCut0, * pCut1; 
+    int i, k, m, n, Value;
+    assert( p->nCuts > 0 );
+    for ( i = 0; i <= p->nLutSize; i++ )
+    Kf_ListForEachCut( p, i, pCut0 )
+    {
+        // check duplicates
+        for ( m = 0; m < pCut0->nLeaves; m++ )
+        for ( n = m+1; n < pCut0->nLeaves; n++ )
+            assert( pCut0->pLeaves[m] != pCut0->pLeaves[n] );
+        // check pairs
+        for ( k = 0; k <= p->nLutSize; k++ )
+        Kf_ListForEachCut( p, k, pCut1 )
+        {
+            if ( pCut0 == pCut1 )
+                continue;
+            // check containments
+            Value = Kf_CheckCut( pCut0, pCut1 );
+            assert( Value == 0 );
+        }
+    }
+    return 1;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Hash table.]
 
   Description []
@@ -402,7 +456,7 @@ static inline void Kf_SetFilter( Kf_Set_t * p )
             for ( k = 0; k < pCut0->nLeaves; k++ )
                 Kf_ListForEachCut( p, k, pCut1 )
                     if ( (pCut0->Sign & pCut1->Sign) == pCut1->Sign && Kf_SetCutDominatedByThis(p, pCut1) )
-                        { k = pCut0->nLeaves + 1; p->nCuts--; break; }
+                        { k = pCut0->nLeaves; p->nCuts--; break; }
             if ( k == pCut0->nLeaves + 1 ) // remove pCut0
                 *pPlace = pCut0->iNext;
             else
@@ -457,6 +511,147 @@ static inline void Kf_SetMerge( Kf_Set_t * p, int * pCuts0, int * pCuts1, int fA
     }
     p->CutCount[2] += p->nCuts;        
     Kf_SetFilter( p );
+//    Kf_CheckCuts( p );
+    p->CutCount[3] += Abc_MinInt( p->nCuts, p->nCutNum-1 );
+    Kf_SetSelectBest( p, fArea, 1 );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Cut merging with fixed order.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline int Kf_SetCutIsContainedSimple( Kf_Cut_t * pBase, Kf_Cut_t * pCut ) // check if pCut is contained in pBase
+{
+    int nSizeB = pBase->nLeaves;
+    int nSizeC = pCut->nLeaves;
+    int * pB = pBase->pLeaves;
+    int * pC = pCut->pLeaves;
+    int i, k;
+    if ( nSizeB == nSizeC )
+    {
+        for ( i = 0; i < nSizeB; i++ )
+            if ( pBase->pLeaves[i] != pCut->pLeaves[i] )
+                return 0;
+        return 1;
+    }
+    assert( nSizeB > nSizeC ); 
+    for ( i = 0; i < nSizeC; i++ )
+    {
+        for ( k = 0; k < nSizeB; k++ )
+            if ( pC[i] == pB[k] )
+                break;
+        if ( k == nSizeB )
+            return 0;
+    }
+    return 1;
+}
+static inline int Kf_SetMergeSimpleOne( Kf_Cut_t * pCut0, Kf_Cut_t * pCut1, Kf_Cut_t * pCut, int nLutSize )
+{ 
+    int nSize0 = pCut0->nLeaves;
+    int nSize1 = pCut1->nLeaves;
+    int * pC0 = pCut0->pLeaves;
+    int * pC1 = pCut1->pLeaves;
+    int * pC = pCut->pLeaves;
+    int i, k, c;
+    // the case of the largest cut sizes
+    if ( nSize0 == nLutSize && nSize1 == nLutSize )
+    {
+        for ( i = 0; i < nSize0; i++ )
+        {
+            if ( pC0[i] != pC1[i] )  return 0;
+            pC[i] = pC0[i];
+        }
+        pCut->nLeaves = nLutSize;
+        return 1;
+    }
+    // compare two cuts with different numbers
+    c = nSize0;
+    for ( i = 0; i < nSize1; i++ )
+    {
+        for ( k = 0; k < nSize0; k++ )
+            if ( pC1[i] == pC0[k] )
+                break;
+        if ( k < nSize0 )
+            continue;
+        if ( c == nLutSize )
+            return 0;
+        pC[c++] = pC1[i];
+    }
+    for ( i = 0; i < nSize0; i++ )
+        pC[i] = pC0[i];
+    pCut->nLeaves = c;
+    return 1;
+}
+static inline int Kf_SetRemoveDuplicatesSimple( Kf_Set_t * p, Kf_Cut_t * pCutNew )
+{
+    Kf_Cut_t * pCut;
+    Kf_ListForEachCut( p, pCutNew->nLeaves, pCut )
+        if ( pCut->Sign == pCutNew->Sign && Kf_SetCutIsContainedSimple(pCut, pCutNew) )
+            return 1;
+    return 0;
+}
+static inline void Kf_SetFilterSimple( Kf_Set_t * p )
+{
+    Kf_Cut_t * pCut0, * pCut1; 
+    int i, k, * pPlace;
+    assert( p->nCuts > 0 );
+    for ( i = 0; i <= p->nLutSize; i++ )
+        Kf_ListForEachCutP( p, i, pCut0, pPlace )
+        {
+            for ( k = 0; k < pCut0->nLeaves; k++ )
+                Kf_ListForEachCut( p, k, pCut1 )
+                    if ( (pCut0->Sign & pCut1->Sign) == pCut1->Sign && Kf_SetCutIsContainedSimple(pCut0, pCut1) )
+                        { k = pCut0->nLeaves; p->nCuts--; break; }
+            if ( k == pCut0->nLeaves + 1 ) // remove pCut0
+                *pPlace = pCut0->iNext;
+            else
+                pPlace = &pCut0->iNext;
+        }
+    assert( p->nCuts > 0 );
+}
+static inline void Kf_SetMergeSimple( Kf_Set_t * p, int * pCuts0, int * pCuts1, int fArea, int fCutMin )
+{
+    Kf_Cut_t * pCut0, * pCut1, * pCutR;
+    Kf_SetPrepare( p, pCuts0, pCuts1 );
+    p->CutCount[0] += p->nCuts0 * p->nCuts1;
+    for ( pCut0 = p->pCuts0; pCut0 < p->pCuts0 + p->nCuts0; pCut0++ )
+    for ( pCut1 = p->pCuts1; pCut1 < p->pCuts1 + p->nCuts1; pCut1++ )
+    {
+        if ( pCut0->nLeaves + pCut1->nLeaves > p->nLutSize && Kf_SetCountBits(pCut0->Sign | pCut1->Sign) > p->nLutSize )
+            continue;
+        p->CutCount[1]++;        
+        pCutR = p->pCutsR + p->nCuts;
+        if ( !Kf_SetMergeSimpleOne(pCut0, pCut1, pCutR, p->nLutSize) )
+            continue;
+        p->CutCount[2]++;        
+        pCutR->Sign = pCut0->Sign | pCut1->Sign;
+        if ( Kf_SetRemoveDuplicatesSimple(p, pCutR) )
+            continue;
+        p->nCuts++;
+        if ( fCutMin )
+        {
+            int nOldSupp = pCutR->nLeaves;
+//            pCutR->iFunc = Kf_SetComputeTruth( p, pCut0->iFunc, pCut1->iFunc, pCut0, pCut1, pCutR );
+            assert( pCutR->nLeaves <= nOldSupp );
+            if ( pCutR->nLeaves < nOldSupp )
+                pCutR->Sign = Kf_SetCutGetSign( pCutR );
+            // delay and area are inaccurate
+        }
+        assert( pCutR->nLeaves > 1 );
+        pCutR->Delay = Abc_MaxInt(pCut0->Delay, pCut1->Delay);
+        pCutR->Area  = pCut0->Area + pCut1->Area;
+        // add new cut
+        Kf_SetAddToList( p, pCutR, 0 );
+    }
+    Kf_SetFilterSimple( p );
+//    Kf_CheckCuts( p );
     p->CutCount[3] += Abc_MinInt( p->nCuts, p->nCutNum-1 );
     Kf_SetSelectBest( p, fArea, 1 );
 }
@@ -491,13 +686,13 @@ static inline int Kf_SetCutIsContainedOrder( Kf_Cut_t * pBase, Kf_Cut_t * pCut )
             return 0;
         if ( pBase->pLeaves[i] == pCut->pLeaves[k] )
         {
-            if ( k++ == nSizeC )
+            if ( ++k == nSizeC )
                 return 1;
         }
     }
     return 0;
 }
-static inline int Kf_SetMergeOrder( Kf_Cut_t * pCut0, Kf_Cut_t * pCut1, Kf_Cut_t * pCut, int nLutSize )
+static inline int Kf_SetMergeOrderOne( Kf_Cut_t * pCut0, Kf_Cut_t * pCut1, Kf_Cut_t * pCut, int nLutSize )
 { 
     int nSize0 = pCut0->nLeaves;
     int nSize1 = pCut1->nLeaves;
@@ -553,7 +748,7 @@ FlushCut1:
     pCut->nLeaves = c;
     return 1;
 }
-static inline int Kf_SetRemoveDuplicates2( Kf_Set_t * p, Kf_Cut_t * pCutNew )
+static inline int Kf_SetRemoveDuplicatesOrder( Kf_Set_t * p, Kf_Cut_t * pCutNew )
 {
     Kf_Cut_t * pCut;
     Kf_ListForEachCut( p, pCutNew->nLeaves, pCut )
@@ -561,7 +756,7 @@ static inline int Kf_SetRemoveDuplicates2( Kf_Set_t * p, Kf_Cut_t * pCutNew )
             return 1;
     return 0;
 }
-static inline void Kf_SetFilter2( Kf_Set_t * p )
+static inline void Kf_SetFilterOrder( Kf_Set_t * p )
 {
     Kf_Cut_t * pCut0, * pCut1; 
     int i, k, * pPlace;
@@ -572,7 +767,7 @@ static inline void Kf_SetFilter2( Kf_Set_t * p )
             for ( k = 0; k < pCut0->nLeaves; k++ )
                 Kf_ListForEachCut( p, k, pCut1 )
                     if ( (pCut0->Sign & pCut1->Sign) == pCut1->Sign && Kf_SetCutIsContainedOrder(pCut0, pCut1) )
-                        { k = pCut0->nLeaves + 1; p->nCuts--; break; }
+                        { k = pCut0->nLeaves; p->nCuts--; break; }
             if ( k == pCut0->nLeaves + 1 ) // remove pCut0
                 *pPlace = pCut0->iNext;
             else
@@ -601,7 +796,7 @@ int Kf_SetComputeTruth( Kf_Man_t * p, int iFuncLit0, int iFuncLit1, int * pCut0,
     return Abc_Var2Lit( truthId, fCompl );
 }
 */
-static inline void Kf_SetMerge2( Kf_Set_t * p, int * pCuts0, int * pCuts1, int fArea, int fCutMin )
+static inline void Kf_SetMergeOrder( Kf_Set_t * p, int * pCuts0, int * pCuts1, int fArea, int fCutMin )
 {
     Kf_Cut_t * pCut0, * pCut1, * pCutR;
     Kf_SetPrepare( p, pCuts0, pCuts1 );
@@ -613,11 +808,11 @@ static inline void Kf_SetMerge2( Kf_Set_t * p, int * pCuts0, int * pCuts1, int f
             continue;
         p->CutCount[1]++;        
         pCutR = p->pCutsR + p->nCuts;
-        if ( !Kf_SetMergeOrder(pCut0, pCut1, pCutR, p->nLutSize) )
+        if ( !Kf_SetMergeOrderOne(pCut0, pCut1, pCutR, p->nLutSize) )
             continue;
         p->CutCount[2]++;        
         pCutR->Sign = pCut0->Sign | pCut1->Sign;
-        if ( Kf_SetRemoveDuplicates2(p, pCutR) )
+        if ( Kf_SetRemoveDuplicatesOrder(p, pCutR) )
             continue;
         p->nCuts++;
         if ( fCutMin )
@@ -635,7 +830,8 @@ static inline void Kf_SetMerge2( Kf_Set_t * p, int * pCuts0, int * pCuts1, int f
         // add new cut
         Kf_SetAddToList( p, pCutR, 0 );
     }
-    Kf_SetFilter2( p );
+    Kf_SetFilterOrder( p );
+//    Kf_CheckCuts( p );
     p->CutCount[3] += Abc_MinInt( p->nCuts, p->nCutNum-1 );
     Kf_SetSelectBest( p, fArea, 1 );
 }
@@ -794,7 +990,7 @@ void * Kf_WorkerThread( void * pArg )
         }
         assert( pThData->Id >= 0 );
         clk = Abc_Clock();
-        Kf_SetMerge2( pThData->pSett, Kf_ObjCuts0(pMan, pThData->Id), Kf_ObjCuts1(pMan, pThData->Id), fAreaOnly, fCutMin );
+        Kf_SetMergeOrder( pThData->pSett, Kf_ObjCuts0(pMan, pThData->Id), Kf_ObjCuts1(pMan, pThData->Id), fAreaOnly, fCutMin );
         pThData->clkUsed += Abc_Clock() - clk;
         pThData->Status = 0;
 //        printf( "Finished object %d\n", pThData->Id );
@@ -972,8 +1168,10 @@ void Kf_ManComputeMapping( Kf_Man_t * p )
         {
             if ( p->pPars->fCutHashing )
                 Kf_SetMerge( p->pSett, Kf_ObjCuts0(p, i), Kf_ObjCuts1(p, i), p->pPars->fAreaOnly, p->pPars->fCutMin );
-            else
-                Kf_SetMerge2( p->pSett, Kf_ObjCuts0(p, i), Kf_ObjCuts1(p, i), p->pPars->fAreaOnly, p->pPars->fCutMin );
+            else if ( p->pPars->fCutSimple )
+                Kf_SetMergeSimple( p->pSett, Kf_ObjCuts0(p, i), Kf_ObjCuts1(p, i), p->pPars->fAreaOnly, p->pPars->fCutMin );
+            else 
+                Kf_SetMergeOrder( p->pSett, Kf_ObjCuts0(p, i), Kf_ObjCuts1(p, i), p->pPars->fAreaOnly, p->pPars->fCutMin );
             Kf_ManSaveResults( p->pSett->ppCuts, p->pSett->nCuts, p->pSett->pCutBest, p->vTemp );
             Vec_IntWriteEntry( &p->vTime, i, p->pSett->pCutBest->Delay + 1 );
             Vec_FltWriteEntry( &p->vArea, i, (p->pSett->pCutBest->Area + 1)/Kf_ObjRefs(p, i) );
@@ -1126,6 +1324,7 @@ void Kf_ManSetDefaultPars( Jf_Par_t * pPars )
     pPars->fGenCnf      =  0;
     pPars->fPureAig     =  0;
     pPars->fCutHashing  =  0;
+    pPars->fCutSimple   =  0;
     pPars->fVerbose     =  0;
     pPars->fVeryVerbose =  0;
     pPars->nLutSizeMax  =  KF_LEAF_MAX;
