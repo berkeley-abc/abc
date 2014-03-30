@@ -14762,7 +14762,7 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     fLutMux = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "KCFAGNDEWSTqaflepmrsdbugyojiknvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "KCFAGNDEWSTqaflepmrsdbugyojikncvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -14949,6 +14949,9 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'n':
             pPars->fUseDsd ^= 1;
             break;
+        case 'c':
+            pPars->fUseTtPerm ^= 1;
+            break;
         case 'v':
             pPars->fVerbose ^= 1;
             break;
@@ -15110,7 +15113,7 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
         pPars->nLutSize    =  pPars->nGateSize;
     }
 
-    if ( pPars->fUseDsd )
+    if ( pPars->fUseDsd || pPars->fUseTtPerm )
     {
         pPars->fTruth      =  1;
         pPars->fCutMin     =  1;
@@ -15213,7 +15216,7 @@ usage:
         sprintf(LutSize, "library" );
     else
         sprintf(LutSize, "%d", pPars->nLutSize );
-    Abc_Print( -2, "usage: if [-KCFANGT num] [-DEW float] [-S str] [-qarlepmsdbugyojikcnvh]\n" );
+    Abc_Print( -2, "usage: if [-KCFANGT num] [-DEW float] [-S str] [-qarlepmsdbugyojikncvh]\n" );
     Abc_Print( -2, "\t           performs FPGA technology mapping of the network\n" );
     Abc_Print( -2, "\t-K num   : the number of LUT inputs (2 < num < %d) [default = %s]\n", IF_MAX_LUTSIZE+1, LutSize );
     Abc_Print( -2, "\t-C num   : the max number of priority cuts (0 < num < 2^12) [default = %d]\n", pPars->nCutsMax );
@@ -15245,6 +15248,7 @@ usage:
     Abc_Print( -2, "\t-i       : toggles enabling additional check [default = %s]\n", pPars->fEnableCheck08? "yes": "no" );
     Abc_Print( -2, "\t-k       : toggles enabling additional check [default = %s]\n", pPars->fEnableCheck10? "yes": "no" );
     Abc_Print( -2, "\t-n       : toggles computing DSDs of the cut functions [default = %s]\n", pPars->fUseDsd? "yes": "no" );
+    Abc_Print( -2, "\t-c       : toggles computing truth tables in a new way [default = %s]\n", pPars->fUseTtPerm? "yes": "no" );
     Abc_Print( -2, "\t-v       : toggles verbose output [default = %s]\n", pPars->fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h       : prints the command usage\n");
     return 1;
@@ -29499,7 +29503,7 @@ int Abc_CommandAbc9If( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     pPars->pLutLib = (If_LibLut_t *)pAbc->pLibLut;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "KCFAGRDEWSTqalepmrsdbgyojikfuztnvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "KCFAGRDEWSTqalepmrsdbgyojikfuztncvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -29692,6 +29696,9 @@ int Abc_CommandAbc9If( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'n':
             pPars->fUseDsd ^= 1;
             break;
+        case 'c':
+            pPars->fUseTtPerm ^= 1;
+            break;
         case 'v':
             pPars->fVerbose ^= 1;
             break;
@@ -29855,8 +29862,7 @@ int Abc_CommandAbc9If( Abc_Frame_t * pAbc, int argc, char ** argv )
         pPars->nLutSize    =  pPars->nGateSize;
     }
 
-
-    if ( pPars->fUseDsd )
+    if ( pPars->fUseDsd || pPars->fUseTtPerm )
     {
         pPars->fTruth      =  1;
         pPars->fCutMin     =  1;
@@ -29918,7 +29924,7 @@ usage:
         sprintf(LutSize, "library" );
     else
         sprintf(LutSize, "%d", pPars->nLutSize );
-    Abc_Print( -2, "usage: &if [-KCFAGRT num] [-DEW float] [-S str] [-qarlepmsdbgyojikfucztnvh]\n" );
+    Abc_Print( -2, "usage: &if [-KCFAGRT num] [-DEW float] [-S str] [-qarlepmsdbgyojikfucztncvh]\n" );
     Abc_Print( -2, "\t           performs FPGA technology mapping of the network\n" );
     Abc_Print( -2, "\t-K num   : the number of LUT inputs (2 < num < %d) [default = %s]\n", IF_MAX_LUTSIZE+1, LutSize );
     Abc_Print( -2, "\t-C num   : the max number of priority cuts (0 < num < 2^12) [default = %d]\n", pPars->nCutsMax );
@@ -29952,6 +29958,7 @@ usage:
     Abc_Print( -2, "\t-z       : toggles deriving LUTs when mapping into LUT structures [default = %s]\n", pPars->fDeriveLuts? "yes": "no" );
     Abc_Print( -2, "\t-t       : toggles repacking LUTs into new structures [default = %s]\n", pPars->fRepack? "yes": "no" );
     Abc_Print( -2, "\t-n       : toggles computing DSDs of the cut functions [default = %s]\n", pPars->fUseDsd? "yes": "no" );
+    Abc_Print( -2, "\t-c       : toggles computing truth tables in a new way [default = %s]\n", pPars->fUseTtPerm? "yes": "no" );
     Abc_Print( -2, "\t-v       : toggles verbose output [default = %s]\n", pPars->fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h       : prints the command usage\n");
     return 1;

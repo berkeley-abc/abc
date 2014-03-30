@@ -44,7 +44,7 @@ ABC_NAMESPACE_IMPL_START
   SeeAlso     []
 
 ***********************************************************************/
-void If_CutTruthPermute( word * pTruth, int nLeaves, int nVars, int nWords, float * pDelays, int * pVars )
+void If_CutTruthPermute( word * pTruth, int nLeaves, int nVars, int nWords, float * pDelays, int * pVars, char * pPerm )
 {
     while ( 1 )
     {
@@ -55,6 +55,8 @@ void If_CutTruthPermute( word * pTruth, int nLeaves, int nVars, int nWords, floa
                 continue;
             ABC_SWAP( float, pDelays[i], pDelays[i+1] );
             ABC_SWAP( int, pVars[i], pVars[i+1] );
+            if ( pPerm )
+                ABC_SWAP( char, pPerm[i], pPerm[i+1] );
             if ( pTruth )
                 Abc_TtSwapAdjacent( pTruth, nWords, i );
             fChange = 1;
@@ -72,11 +74,16 @@ void If_CutRotatePins( If_Man_t * p, If_Cut_t * pCut )
         PinDelays[i] = If_ObjCutBest(pLeaf)->Delay;
     if ( p->vTtMem == NULL )
     {
-        If_CutTruthPermute( NULL, If_CutLeaveNum(pCut), pCut->nLimit, p->nTruth6Words, PinDelays, If_CutLeaves(pCut) );
+        If_CutTruthPermute( NULL, If_CutLeaveNum(pCut), pCut->nLimit, p->nTruth6Words, PinDelays, If_CutLeaves(pCut), NULL );
+        return;
+    }
+    if ( p->pPars->fUseTtPerm )
+    {
+        If_CutTruthPermute( NULL, If_CutLeaveNum(pCut), pCut->nLimit, p->nTruth6Words, PinDelays, If_CutLeaves(pCut), pCut->pPerm );
         return;
     }
     Abc_TtCopy( p->puTempW, If_CutTruthWR(p, pCut), p->nTruth6Words, 0 );
-    If_CutTruthPermute( p->puTempW, If_CutLeaveNum(pCut), pCut->nLimit, p->nTruth6Words, PinDelays, If_CutLeaves(pCut) );
+    If_CutTruthPermute( p->puTempW, If_CutLeaveNum(pCut), pCut->nLimit, p->nTruth6Words, PinDelays, If_CutLeaves(pCut), NULL );
     truthId        = Vec_MemHashInsert( p->vTtMem, p->puTempW );
     pCut->iCutFunc = Abc_Var2Lit( truthId, If_CutTruthIsCompl(pCut) );
     assert( (p->puTempW[0] & 1) == 0 );
@@ -133,6 +140,24 @@ int If_CutComputeTruth( If_Man_t * p, If_Cut_t * pCut, If_Cut_t * pCut0, If_Cut_
     return 1;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Truth table computation.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int If_CutComputeTruthPerm( If_Man_t * p, If_Cut_t * pCut, If_Cut_t * pCut0, If_Cut_t * pCut1, int fCompl0, int fCompl1 )
+{
+    int i;
+    for ( i = 0; i < (int)pCut->nLeaves; i++ )
+        pCut->pPerm[i] = (char)i;
+    return 0;
+}
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

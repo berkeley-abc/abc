@@ -215,7 +215,10 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
         if ( p->pPars->fTruth )
         {
 //            abctime clk = Abc_Clock();
-            If_CutComputeTruth( p, pCut, pCut0, pCut1, pObj->fCompl0, pObj->fCompl1 );
+            if ( p->pPars->fUseTtPerm )
+                If_CutComputeTruthPerm( p, pCut, pCut0, pCut1, pObj->fCompl0, pObj->fCompl1 );
+            else
+                If_CutComputeTruth( p, pCut, pCut0, pCut1, pObj->fCompl0, pObj->fCompl1 );
 //            p->timeTruth += Abc_Clock() - clk;
             if ( p->pPars->fUseDsd )
             {
@@ -246,6 +249,7 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
             pCut->fUseless = 0;
             if ( p->pPars->pFuncCell )
             {
+                assert( p->pPars->fUseTtPerm == 0 );
                 assert( pCut->nLimit >= 4 && pCut->nLimit <= 16 );
                 if ( p->pPars->fUseDsd )
                     pCut->fUseless = If_DsdManCheckDec( p->pIfDsdMan, pCut->iCutDsd );

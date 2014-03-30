@@ -1555,7 +1555,7 @@ clk2 = Abc_Clock();
             status = Saig_ManCallSolver( p, Lit );
 clkSatRun = Abc_Clock() - clk2;
             if ( pLogFile )
-                fprintf( pLogFile, "Frame %5d  Output %5d  Time(ms) %8d\n", f, i, Lit < 2 ? 0 : clkSatRun );
+                fprintf( pLogFile, "Frame %5d  Output %5d  Time(ms) %8d\n", f, i, Lit < 2 ? 0 : (int)clkSatRun );
             if ( p->pTime4Outs )
             {
                 abctime timeSince = Abc_Clock() - clkOne;

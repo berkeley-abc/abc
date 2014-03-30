@@ -38,6 +38,7 @@
 #include "misc/vec/vecMem.h"
 #include "misc/util/utilTruth.h"
 #include "opt/dau/dau.h"
+#include "misc/vec/vecHash.h"
 
 ABC_NAMESPACE_HEADER_START
 
@@ -125,6 +126,7 @@ struct If_Par_t_
     int                fEnableCheck75;// enable additional checking
     int                fEnableCheck75u;// enable additional checking
     int                fUseDsd;       // compute DSD of the cut functions
+    int                fUseTtPerm;    // compute truth tables of the cut functions
     int                fDeriveLuts;   // enables deriving LUT structures
     int                fRepack;       // repack after mapping
     int                fVerbose;      // the verbosity flag
@@ -235,6 +237,7 @@ struct If_Man_t_
     Vec_Mem_t *        vTtMem;        // truth table memory and hash table
     Vec_Int_t *        vTtDsds;       // mapping of truth table into DSD
     Vec_Str_t *        vTtPerms;      // mapping of truth table into permutations
+    Hash_IntMan_t *    vPairHash;     // hashing pairs of truth tables
     int                nBestCutSmall[2];
     int                nCountNonDec[2];
     Vec_Int_t *        vCutData;      // cut data storage
@@ -593,6 +596,7 @@ extern void            If_CutPropagateRequired( If_Man_t * p, If_Obj_t * pObj, I
 /*=== ifTruth.c ===========================================================*/
 extern void            If_CutRotatePins( If_Man_t * p, If_Cut_t * pCut );
 extern int             If_CutComputeTruth( If_Man_t * p, If_Cut_t * pCut, If_Cut_t * pCut0, If_Cut_t * pCut1, int fCompl0, int fCompl1 );
+extern int             If_CutComputeTruthPerm( If_Man_t * p, If_Cut_t * pCut, If_Cut_t * pCut0, If_Cut_t * pCut1, int fCompl0, int fCompl1 );
 /*=== ifUtil.c ============================================================*/
 extern void            If_ManCleanNodeCopy( If_Man_t * p );
 extern void            If_ManCleanCutData( If_Man_t * p );

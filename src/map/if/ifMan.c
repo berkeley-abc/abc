@@ -52,6 +52,7 @@ extern abctime s_TimeComp[4];
 If_Man_t * If_ManStart( If_Par_t * pPars )
 {
     If_Man_t * p;
+    assert( !pPars->fUseDsd || !pPars->fUseTtPerm );
     // start the manager
     p = ABC_ALLOC( If_Man_t, 1 );
     memset( p, 0, sizeof(If_Man_t) );
@@ -91,6 +92,15 @@ If_Man_t * If_ManStart( If_Par_t * pPars )
         p->vTtPerms = Vec_StrAlloc( 10000 );
         Vec_StrFill( p->vTtPerms, 2 * p->pPars->nLutSize, IF_BIG_CHAR );
         Vec_StrWriteEntry( p->vTtPerms, p->pPars->nLutSize, 0 );
+    }
+    if ( pPars->fUseTtPerm )
+    {
+        word uTruth = 0;
+        Vec_MemHashInsert( p->vTtMem, &uTruth );
+        uTruth = ABC_CONST(0xAAAAAAAAAAAAAAAA);
+        Vec_MemHashInsert( p->vTtMem, &uTruth );
+        p->vPairHash = Hash_IntManStart( 10000 );
+        p->vTtPerms = Vec_StrAlloc( 10000 );
     }
     // create the constant node
     p->pConst1   = If_ManSetupObj( p );
@@ -171,8 +181,6 @@ void If_ManStop( If_Man_t * p )
     }
 //    if ( p->pPars->fVerbose && p->nCuts5 )
 //        Abc_Print( 1, "Statistics about 5-cuts: Total = %d  Non-decomposable = %d (%.2f %%)\n", p->nCuts5, p->nCuts5-p->nCuts5a, 100.0*(p->nCuts5-p->nCuts5a)/p->nCuts5 );
-//    if ( p->pPars->fUseDsd )
-//        If_DsdManFree( p->pIfDsdMan, p->pPars->fVerbose );
     if ( p->pIfDsdMan )
         p->pIfDsdMan = NULL;
     if ( p->pPars->fUseDsd && (p->nCountNonDec[0] || p->nCountNonDec[1]) )
@@ -194,6 +202,8 @@ void If_ManStop( If_Man_t * p )
     Vec_IntFreeP( &p->vTtDsds );
     Vec_StrFreeP( &p->vTtPerms );
     Vec_IntFreeP( &p->vCutData );
+    if ( p->vPairHash )
+        Hash_IntManStop( p->vPairHash );
     Vec_MemHashFree( p->vTtMem );
     Vec_MemFreeP( &p->vTtMem );
     Mem_FixedStop( p->pMemObj, 0 );
@@ -443,9 +453,9 @@ void If_ManSetupCutTriv( If_Man_t * p, If_Cut_t * pCut, int ObjId )
     pCut->pLeaves[0] = p->pPars->fLiftLeaves? (ObjId << 8) : ObjId;
     pCut->uSign      = If_ObjCutSign( pCut->pLeaves[0] );
     pCut->iCutFunc   = p->pPars->fTruth ? 2 : -1;
-    pCut->iCutDsd    = p->pPars->fUseDsd ? 2 : -1;
+    pCut->iCutDsd    = (p->pPars->fUseDsd || p->pPars->fUseTtPerm) ? 2 : -1;
     assert( pCut->pLeaves[0] < p->vObjs->nSize );
-    if ( p->pPars->fUseDsd )
+    if ( p->pPars->fUseDsd || p->pPars->fUseTtPerm )
         pCut->pPerm[0] = 0;
 }
 
