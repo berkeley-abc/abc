@@ -154,21 +154,6 @@ void If_ManStop( If_Man_t * p )
     extern void If_ManCacheAnalize( If_Man_t * p );
     if ( p->pPars->fVerbose && p->vCutData )
         If_ManCacheAnalize( p );
-/*
-    if ( p->pIfDsdMan )
-    {
-        If_DsdMan_t * pNew;
-        If_DsdManSave( p->pIfDsdMan, NULL );
-        pNew = If_DsdManLoad( If_DsdManFileName(p->pIfDsdMan) );
-        If_DsdManFree( pNew, 1 );
-    }
-*/
-    {
-//        extern void If_CluHashFindMedian( If_Man_t * p );
-//        extern void If_CluHashTableCheck( If_Man_t * p );
-//        If_CluHashFindMedian( p );
-//        If_CluHashTableCheck( p );
-    }
     if ( p->pPars->fVerbose && p->vTtMem )
         printf( "Unique truth tables = %d. Memory = %.2f MB\n", Vec_MemEntryNum(p->vTtMem), Vec_MemMemory(p->vTtMem) / (1<<20) ); 
     if ( p->pPars->fVerbose && p->nCutsUselessAll )
@@ -452,10 +437,10 @@ void If_ManSetupCutTriv( If_Man_t * p, If_Cut_t * pCut, int ObjId )
     pCut->nLeaves    = 1;
     pCut->pLeaves[0] = p->pPars->fLiftLeaves? (ObjId << 8) : ObjId;
     pCut->uSign      = If_ObjCutSign( pCut->pLeaves[0] );
-    pCut->iCutFunc   = p->pPars->fTruth ? 2 : -1;
-    pCut->iCutDsd    = (p->pPars->fUseDsd || p->pPars->fUseTtPerm) ? 2 : -1;
+    pCut->iCutFunc   = (p->pPars->fTruth || p->pPars->fUseTtPerm) ? 2 : -1;
+    pCut->iCutDsd    = p->pPars->fUseDsd ? 2 : (p->pPars->fUseTtPerm ? 0: -1);
     assert( pCut->pLeaves[0] < p->vObjs->nSize );
-    if ( p->pPars->fUseDsd || p->pPars->fUseTtPerm )
+    if ( p->pPars->fUseDsd )
         pCut->pPerm[0] = 0;
 }
 

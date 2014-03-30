@@ -140,7 +140,7 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
 {
     If_Set_t * pCutSet;
     If_Cut_t * pCut0, * pCut1, * pCut;
-    int i, k, v;
+    int i, k, v, fChange;
     assert( p->pPars->fSeqMap || !If_ObjIsAnd(pObj->pFanin0) || pObj->pFanin0->pCutSet->nCuts > 0 );
     assert( p->pPars->fSeqMap || !If_ObjIsAnd(pObj->pFanin1) || pObj->pFanin1->pCutSet->nCuts > 0 );
 
@@ -197,28 +197,36 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
         if ( If_WordCountOnes(pCut0->uSign | pCut1->uSign) > p->pPars->nLutSize )
             continue;
         // merge the cuts
-        if ( !If_CutMerge( p, pCut0, pCut1, pCut ) )
-            continue;
-        assert( If_CutCheck( pCut ) );
+        if ( p->pPars->fUseTtPerm )
+        {
+            if ( !If_CutMerge( p, pCut0, pCut1, pCut ) )
+                continue;
+        }
+        else
+        {
+            if ( !If_CutMergeOrdered( p, pCut0, pCut1, pCut ) )
+                continue;
+        }
         if ( pObj->fSpec && pCut->nLeaves == (unsigned)p->pPars->nLutSize )
             continue;
         p->nCutsMerged++;
         p->nCutsTotal++;
         // check if this cut is contained in any of the available cuts
-//        if ( p->pPars->pFuncCost == NULL && If_CutFilter( p, pCut ) ) // do not filter functionality cuts
         if ( !p->pPars->fSkipCutFilter && If_CutFilter( pCutSet, pCut ) )
             continue;
         // compute the truth table
         pCut->fCompl = 0;
         pCut->iCutFunc = -1;
         pCut->iCutDsd = -1;
-        if ( p->pPars->fTruth )
+        if ( p->pPars->fTruth && !p->pPars->fUseTtPerm )
         {
 //            abctime clk = Abc_Clock();
             if ( p->pPars->fUseTtPerm )
-                If_CutComputeTruthPerm( p, pCut, pCut0, pCut1, pObj->fCompl0, pObj->fCompl1 );
+                fChange = If_CutComputeTruthPerm( p, pCut, pCut0, pCut1, pObj->fCompl0, pObj->fCompl1 );
             else
-                If_CutComputeTruth( p, pCut, pCut0, pCut1, pObj->fCompl0, pObj->fCompl1 );
+                fChange = If_CutComputeTruth( p, pCut, pCut0, pCut1, pObj->fCompl0, pObj->fCompl1 );
+            if ( !p->pPars->fSkipCutFilter && fChange && If_CutFilter( pCutSet, pCut ) )
+                continue;
 //            p->timeTruth += Abc_Clock() - clk;
             if ( p->pPars->fUseDsd )
             {
@@ -283,50 +291,6 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
                         p->nCuts5a++;
                 }
             }
-/*
-            if ( p->pPars->fUseDsd )
-            {
-                if ( p->pPars->pLutStruct )
-                {
-                    int Value = If_DsdManCheckDec( p->pIfDsdMan, pCut->iCutDsd );
-                    if ( Value != (int)pCut->fUseless )
-                    {
-                        if ( pCut->fUseless && !Value )
-                            p->nCountNonDec[0]++;
-                        if ( !pCut->fUseless && Value )
-                            p->nCountNonDec[1]++; 
-
-//                        if ( pCut->fUseless && !Value )
-//                            printf( "Old does not work.  New works.\n" );
-                        if ( !pCut->fUseless && Value )
-                            printf( "Old works.  New does not work.  DSD = %d.\n", Abc_Lit2Var(pCut->iCutDsd) );
-                        if ( !pCut->fUseless && Value )
-                        {
-                            extern word If_Dec6Perform( word t, int fDerive );
-                            extern word * If_DsdManComputeTruth( If_DsdMan_t * p, int iDsd, unsigned char * pPermLits );
-                            int s;
-
-//                            word z, t = *If_CutTruthW(p, pCut);
-                            word z, t = *If_DsdManComputeTruth( p->pIfDsdMan, pCut->iCutDsd, NULL );
-
-                            Extra_PrintHex( stdout, (unsigned *)If_CutTruthW(p, pCut), pCut->nLeaves ); printf( "\n" );
-
-                            Dau_DsdPrintFromTruth( &t, pCut->nLeaves );
-//                            Dau_DsdPrintFromTruth( If_CutTruthW(p, pCut), pCut->nLeaves );
-//                            If_DsdManPrintOne( stdout, p->pIfDsdMan, Abc_Lit2Var(pCut->iCutDsd), pCut->pPerm, 1 );
-//                            printf( "Old works.  New does not work.  DSD = %d.\n", Abc_Lit2Var(pCut->iCutDsd) );
-
-                            z = If_Dec6Perform( t, 1 );
-                            If_DecPrintConfig( z );
-
-                            s = If_DsdManCheckXY( p->pIfDsdMan, pCut->iCutDsd, 4, 0, 0, 1 );
-                            printf( "Confirm %d\n", s );
-                            s = 0;
-                        }
-                    }
-                }
-            }
-*/
         }
         
         // compute the application-specific cost and depth
@@ -362,6 +326,7 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
 //        If_CutTraverse( p, pObj, pCut );
     } 
     assert( pCutSet->nCuts > 0 );
+//    If_CutVerifyCuts( pCutSet, !p->pPars->fUseTtPerm );
 
     // update the best cut
     if ( !fPreprocess || pCutSet->ppCuts[0]->Delay <= pObj->Required + p->fEpsilon )

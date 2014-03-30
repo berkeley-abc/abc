@@ -79,14 +79,14 @@ void If_ManCacheAnalize( If_Man_t * p )
     {
         uUnique = Vec_IntCountUnique(vTest[i]);
         printf( "%2d-var entries = %8d. (%6.2f %%)  Unique entries = %8d. (%6.2f %%)\n", 
-            i, Vec_IntSize(vTest[i]), 100.0*Vec_IntSize(vTest[i])/Vec_IntSize(vRes), 
-            uUnique, 100.0*uUnique/Vec_IntSize(vTest[i]) );
+            i, Vec_IntSize(vTest[i]), 100.0*Vec_IntSize(vTest[i])/Abc_MaxInt(1, Vec_IntSize(vRes)), 
+            uUnique, 100.0*uUnique/Abc_MaxInt(1, Vec_IntSize(vTest[i])) );
     }
     for ( i = 0; i <= p->pPars->nLutSize; i++ )
         Vec_IntFree( vTest[i] );
     uUnique = Vec_IntCountUnique(vRes);
     printf( "Total  entries = %8d. (%6.2f %%)  Unique entries = %8d. (%6.2f %%)\n", 
-        Vec_IntSize(p->vCutData)/4, 100.0, uUnique, 100.0*uUnique/(Vec_IntSize(p->vCutData)/4) );
+        Vec_IntSize(p->vCutData)/4, 100.0, uUnique, 100.0*uUnique/Abc_MaxInt(1, Vec_IntSize(p->vCutData)/4) );
     Vec_IntFree( vRes );
 }
 

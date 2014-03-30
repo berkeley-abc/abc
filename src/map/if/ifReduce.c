@@ -27,7 +27,6 @@ ABC_NAMESPACE_IMPL_START
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-static void If_ManImproveReduce( If_Man_t * p, int nLimit );
 static void If_ManImproveExpand( If_Man_t * p, int nLimit );
 static void If_ManImproveNodeExpand( If_Man_t * p, If_Obj_t * pObj, int nLimit, Vec_Ptr_t * vFront, Vec_Ptr_t * vFrontOld, Vec_Ptr_t * vVisited );
 static void If_ManImproveNodePrepare( If_Man_t * p, If_Obj_t * pObj, int nLimit, Vec_Ptr_t * vFront, Vec_Ptr_t * vFrontOld, Vec_Ptr_t * vVisited );
@@ -62,29 +61,6 @@ void If_ManImproveMapping( If_Man_t * p )
             p->RequiredGlo, p->AreaGlo, p->nNets, p->dPower, p->nCutsMerged );
         Abc_PrintTime( 1, "T", Abc_Clock() - clk );
     }
- 
-/*
-    clk = Abc_Clock();
-    If_ManImproveReduce( p, p->pPars->nLutSize );
-    If_ManComputeRequired( p, 0 );
-    if ( p->pPars->fVerbose )
-    {
-        Abc_Print( 1, "R:  Del = %6.2f. Area = %8.2f. Nets = %6d. Cuts = %8d. Lim = %2d. Ave = %5.2f. ", 
-            p->RequiredGlo, p->AreaGlo, p->nNets, p->nCutsMerged, p->nCutsUsed, 1.0 * p->nCutsMerged / If_ManAndNum(p) );
-        Abc_PrintTime( 1, "T", Abc_Clock() - clk );
-    }
-*/
-/*
-    clk = Abc_Clock();
-    If_ManImproveExpand( p, p->pPars->nLutSize );
-    If_ManComputeRequired( p, 0 );
-    if ( p->pPars->fVerbose )
-    {
-        Abc_Print( 1, "E:  Del = %6.2f. Area = %8.2f. Nets = %6d. Cuts = %8d. Lim = %2d. Ave = %5.2f. ", 
-            p->RequiredGlo, p->AreaGlo, p->nNets, p->nCutsMerged, p->nCutsUsed, 1.0 * p->nCutsMerged / If_ManAndNum(p) );
-        Abc_PrintTime( 1, "T", Abc_Clock() - clk );
-    }
-*/
 }
 
 /**Function*************************************************************
@@ -267,6 +243,7 @@ void If_ManImproveNodeUpdate( If_Man_t * p, If_Obj_t * pObj, Vec_Ptr_t * vFront 
     Vec_PtrForEachEntry( If_Obj_t *, vFront, pFanin, i )
         pCut->pLeaves[i] = pFanin->Id;
     If_CutOrder( pCut );
+    pCut->uSign = If_ObjCutSignCompute(pCut);
     // ref the new cut
     If_CutAreaRef( p, pCut );
 }
@@ -476,101 +453,6 @@ void If_ManImproveNodeFaninCompact( If_Man_t * p, If_Obj_t * pObj, int nLimit, V
     while ( If_ManImproveNodeFaninCompact_int( p, pObj, nLimit, vFront, vVisited ) );
 }
 
-
-
-
-
-/**Function*************************************************************
-
-  Synopsis    [Performs fast mapping for one node.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void If_ManImproveNodeReduce( If_Man_t * p, If_Obj_t * pObj, int nLimit )
-{
-/*
-    If_Cut_t * pCut, * pCut0, * pCut1, * pCutR;
-    If_Obj_t * pFanin0, * pFanin1;
-    float AreaBef, AreaAft;
-    int RetValue;
-
-    assert( nLimit <= 32 );
-    assert( If_ObjIsAnd(pObj) );
-    // get the fanins
-    pFanin0 = If_ObjFanin0(pObj);
-    pFanin1 = If_ObjFanin1(pObj);
-    // get the cuts
-    pCut  = If_ObjCutBest(pObj);
-    pCut0 = If_ObjIsCi(pFanin0) ? If_ObjCutTriv(pFanin0) : If_ObjCutBest(pFanin0);
-    pCut1 = If_ObjIsCi(pFanin1) ? If_ObjCutTriv(pFanin1) : If_ObjCutBest(pFanin1);
-    assert( pCut->Delay <= pObj->Required + p->fEpsilon );
-
-    // deref the cut if the node is refed
-    if ( pObj->nRefs > 0 )
-        If_CutAreaDeref( p, pCut );
-    // get the area
-    AreaBef = If_CutAreaDerefed( p, pCut );
-    // get the fanin support
-    if ( pFanin0->nRefs > 2 && pCut0->Delay < pObj->Required + p->fEpsilon )
-//    if ( pSupp0->nRefs > 0 && pSupp0->Delay < pSupp->DelayR ) // this leads to 2% worse results
-    {
-        pCut0 = If_ObjCutTriv(pFanin0);
-    }
-    // get the fanin support
-    if ( pFanin1->nRefs > 2 && pCut1->Delay < pObj->Required + p->fEpsilon )
-//    if ( pSupp1->nRefs > 0 && pSupp1->Delay < pSupp->DelayR )
-    {
-        pCut1 = If_ObjCutTriv(pFanin1);
-    }
-
-    // merge the cuts
-    pCutR = p->ppCuts[0];
-    RetValue = If_CutMerge( pCut0, pCut1, pCutR );
-    // try very simple cut
-    if ( !RetValue )
-    {
-        RetValue = If_CutMerge( If_ObjCutTriv(pFanin0), If_ObjCutTriv(pFanin1), pCutR );
-        assert( RetValue == 1 );
-    }
-    if ( RetValue )
-    {
-        pCutR->Delay = If_CutDelay( p, pObj, pCutR );
-        AreaAft = If_CutAreaDerefed( p, pCutR );
-        // update the best cut
-        if ( AreaAft < AreaBef - p->fEpsilon && pCutR->Delay < pObj->Required + p->fEpsilon )
-            If_CutCopy( p, pCut, pCutR );
-    }
-    // recompute the delay of the best cut
-    pCut->Delay = If_CutDelay( p, pObj, pCut );
-    // ref the cut if the node is refed
-    if ( pObj->nRefs > 0 )
-        If_CutRef( p, pCut );
-*/
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Performs area recovery for each node.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void If_ManImproveReduce( If_Man_t * p, int nLimit )
-{
-    If_Obj_t * pObj;
-    int i;
-    If_ManForEachNode( p, pObj, i )
-        If_ManImproveNodeReduce( p, pObj, nLimit );
-}
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

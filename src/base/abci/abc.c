@@ -15118,7 +15118,7 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
         pPars->fTruth      =  1;
         pPars->fCutMin     =  1;
         pPars->fExpRed     =  0;
-        pPars->fUsePerm    =  1;
+        pPars->fUsePerm    =  pPars->fUseDsd;
     }
 
     if ( pPars->fUseDsd )
@@ -29867,7 +29867,7 @@ int Abc_CommandAbc9If( Abc_Frame_t * pAbc, int argc, char ** argv )
         pPars->fTruth      =  1;
         pPars->fCutMin     =  1;
         pPars->fExpRed     =  0;
-        pPars->fUsePerm    =  1;
+        pPars->fUsePerm    =  pPars->fUseDsd;
     }
 
     if ( pPars->fUseDsd )
@@ -29924,7 +29924,7 @@ usage:
         sprintf(LutSize, "library" );
     else
         sprintf(LutSize, "%d", pPars->nLutSize );
-    Abc_Print( -2, "usage: &if [-KCFAGRT num] [-DEW float] [-S str] [-qarlepmsdbgyojikfucztncvh]\n" );
+    Abc_Print( -2, "usage: &if [-KCFAGRT num] [-DEW float] [-S str] [-qarlepmsdbgyojikfuztncvh]\n" );
     Abc_Print( -2, "\t           performs FPGA technology mapping of the network\n" );
     Abc_Print( -2, "\t-K num   : the number of LUT inputs (2 < num < %d) [default = %s]\n", IF_MAX_LUTSIZE+1, LutSize );
     Abc_Print( -2, "\t-C num   : the max number of priority cuts (0 < num < 2^12) [default = %d]\n", pPars->nCutsMax );

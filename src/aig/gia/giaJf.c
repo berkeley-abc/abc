@@ -594,6 +594,8 @@ static inline int Jf_CutMergeOrder( int * pCut0, int * pCut1, int * pCut, int Lu
     }
     // compare two cuts with different numbers
     i = k = c = s = 0;
+    if ( nSize0 == 0 ) goto FlushCut1;
+    if ( nSize1 == 0 ) goto FlushCut0;
     while ( 1 )
     {
         if ( c == LutSize ) return 0;

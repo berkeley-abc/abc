@@ -33,6 +33,79 @@ ABC_NAMESPACE_IMPL_START
 
 /**Function*************************************************************
 
+  Synopsis    [Check correctness of cuts.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline int If_CutVerifyCut( If_Cut_t * pBase, If_Cut_t * pCut ) // check if pCut is contained in pBase
+{
+    int nSizeB = pBase->nLeaves;
+    int nSizeC = pCut->nLeaves;
+    int * pB = pBase->pLeaves;
+    int * pC = pCut->pLeaves;
+    int i, k;
+    for ( i = 0; i < nSizeC; i++ )
+    {
+        for ( k = 0; k < nSizeB; k++ )
+            if ( pC[i] == pB[k] )
+                break;
+        if ( k == nSizeB )
+            return 0;
+    }
+    return 1;
+}
+int If_CutVerifyCuts( If_Set_t * pCutSet, int fOrdered )
+{
+    static int Count = 0;
+    If_Cut_t * pCut0, * pCut1; 
+    int i, k, m, n, Value;
+    assert( pCutSet->nCuts > 0 );
+    for ( i = 0; i < pCutSet->nCuts; i++ )
+    {
+        pCut0 = pCutSet->ppCuts[i];
+        if ( fOrdered )
+        {
+            // check duplicates
+            for ( m = 1; m < (int)pCut0->nLeaves; m++ )
+                assert( pCut0->pLeaves[m-1] < pCut0->pLeaves[m] );
+        }
+        else
+        {
+            // check duplicates
+            for ( m = 0; m < (int)pCut0->nLeaves; m++ )
+            for ( n = m+1; n < (int)pCut0->nLeaves; n++ )
+            assert( pCut0->pLeaves[m] != pCut0->pLeaves[n] );
+        }
+        // check pairs
+        for ( k = 0; k < pCutSet->nCuts; k++ )
+        {
+            pCut1 = pCutSet->ppCuts[k];
+            if ( pCut0 == pCut1 )
+                continue;
+            Count++;
+            // check containments
+            Value = If_CutVerifyCut( pCut0, pCut1 );
+//            assert( Value == 0 );
+            if ( Value )
+            {
+                assert( pCut0->uSign == If_ObjCutSignCompute(pCut0) );
+                assert( pCut1->uSign == If_ObjCutSignCompute(pCut1) );
+                If_CutPrint( pCut0 );
+                If_CutPrint( pCut1 );
+                assert( 0 );
+            }
+        }
+    }
+    return 1;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Returns 1 if pDom is contained in pCut.]
 
   Description []
@@ -45,6 +118,7 @@ ABC_NAMESPACE_IMPL_START
 static inline int If_CutCheckDominance( If_Cut_t * pDom, If_Cut_t * pCut )
 {
     int i, k;
+    assert( pDom->nLeaves <= pCut->nLeaves );
     for ( i = 0; i < (int)pDom->nLeaves; i++ )
     {
         for ( k = 0; k < (int)pCut->nLeaves; k++ )
@@ -54,28 +128,6 @@ static inline int If_CutCheckDominance( If_Cut_t * pDom, If_Cut_t * pCut )
             return 0;
     }
     // every node in pDom is contained in pCut
-    return 1;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Returns 1 if pDom is equal to pCut.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-static inline int If_CutCheckEquality( If_Cut_t * pDom, If_Cut_t * pCut )
-{
-    int i;
-    if ( (int)pDom->nLeaves != (int)pCut->nLeaves )
-        return 0;
-    for ( i = 0; i < (int)pDom->nLeaves; i++ )
-        if ( pDom->pLeaves[i] != pCut->pLeaves[i] )
-            return 0;
     return 1;
 }
 
@@ -101,7 +153,7 @@ int If_CutFilter( If_Set_t * pCutSet, If_Cut_t * pCut )
         if ( pTemp->nLeaves > pCut->nLeaves )
         {
             // do not fiter the first cut
-            if ( i == 0 )
+            if ( i == 0 && pCutSet->nCuts > 1 && pCutSet->ppCuts[1]->fUseless )
                 continue;
             // skip the non-contained cuts
             if ( (pTemp->uSign & pCut->uSign) != pCut->uSign )
@@ -136,229 +188,6 @@ int If_CutFilter( If_Set_t * pCutSet, If_Cut_t * pCut )
 
 /**Function*************************************************************
 
-  Synopsis    [Merges two cuts.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-static inline int If_CutMergeOrderedOld( If_Cut_t * pC0, If_Cut_t * pC1, If_Cut_t * pC )
-{ 
-    int i, k, c;
-    assert( pC0->nLeaves >= pC1->nLeaves );
-    // the case of the largest cut sizes
-    if ( pC0->nLeaves == pC->nLimit && pC1->nLeaves == pC->nLimit )
-    {
-        for ( i = 0; i < (int)pC0->nLeaves; i++ )
-            if ( pC0->pLeaves[i] != pC1->pLeaves[i] )
-                return 0;
-        for ( i = 0; i < (int)pC0->nLeaves; i++ )
-            pC->pLeaves[i] = pC0->pLeaves[i];
-        pC->nLeaves = pC0->nLeaves;
-        return 1;
-    }
-    // the case when one of the cuts is the largest
-    if ( pC0->nLeaves == pC->nLimit )
-    {
-        for ( i = 0; i < (int)pC1->nLeaves; i++ )
-        {
-            for ( k = (int)pC0->nLeaves - 1; k >= 0; k-- )
-                if ( pC0->pLeaves[k] == pC1->pLeaves[i] )
-                    break;
-            if ( k == -1 ) // did not find
-                return 0;
-        }
-        for ( i = 0; i < (int)pC0->nLeaves; i++ )
-            pC->pLeaves[i] = pC0->pLeaves[i];
-        pC->nLeaves = pC0->nLeaves;
-        return 1;
-    }
-
-    // compare two cuts with different numbers
-    i = k = 0;
-    for ( c = 0; c < (int)pC->nLimit; c++ )
-    {
-        if ( k == (int)pC1->nLeaves )
-        {
-            if ( i == (int)pC0->nLeaves )
-            {
-                pC->nLeaves = c;
-                return 1;
-            }
-            pC->pLeaves[c] = pC0->pLeaves[i++];
-            continue;
-        }
-        if ( i == (int)pC0->nLeaves )
-        {
-            if ( k == (int)pC1->nLeaves )
-            {
-                pC->nLeaves = c;
-                return 1;
-            }
-            pC->pLeaves[c] = pC1->pLeaves[k++];
-            continue;
-        }
-        if ( pC0->pLeaves[i] < pC1->pLeaves[k] )
-        {
-            pC->pLeaves[c] = pC0->pLeaves[i++];
-            continue;
-        }
-        if ( pC0->pLeaves[i] > pC1->pLeaves[k] )
-        {
-            pC->pLeaves[c] = pC1->pLeaves[k++];
-            continue;
-        }
-        pC->pLeaves[c] = pC0->pLeaves[i++]; 
-        k++;
-    }
-    if ( i < (int)pC0->nLeaves || k < (int)pC1->nLeaves )
-        return 0;
-    pC->nLeaves = c;
-    return 1;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Merges two cuts.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-static inline int If_CutMergeOrdered( If_Man_t * p, If_Cut_t * pC0, If_Cut_t * pC1, If_Cut_t * pC )
-{ 
-    int nSizeC0 = pC0->nLeaves;
-    int nSizeC1 = pC1->nLeaves;
-    int nLimit  = pC0->nLimit;
-    int i, k, c, s;
-
-    // the case when one of the cuts is the largest
-    if ( nSizeC0 == nLimit )
-    {
-        // the case of the largest cut sizes
-        if ( nSizeC1 == nLimit )
-        {
-            for ( i = 0; i < nSizeC0; i++ )
-            {
-                if ( pC0->pLeaves[i] != pC1->pLeaves[i] )
-                    return 0;
-                p->pPerm[0][i] = p->pPerm[1][i] = p->pPerm[2][i] = i;
-                pC->pLeaves[i] = pC0->pLeaves[i];
-            }
-            pC->nLeaves = nLimit;
-            return 1;
-        }
-    }
-
-    // compare two cuts with different numbers
-    i = k = c = s = 0;
-    while ( 1 )
-    {
-        if ( c == nLimit ) return 0;
-        if ( pC0->pLeaves[i] < pC1->pLeaves[k] )
-        {
-            p->pPerm[0][i] = c;
-            pC->pLeaves[c++] = pC0->pLeaves[i++];
-            if ( i >= nSizeC0 ) goto FlushCut1;
-        }
-        else if ( pC0->pLeaves[i] > pC1->pLeaves[k] )
-        {
-            p->pPerm[1][k] = c;
-            pC->pLeaves[c++] = pC1->pLeaves[k++];
-            if ( k >= nSizeC1 ) goto FlushCut0;
-        }
-        else
-        {
-            p->pPerm[0][i] = p->pPerm[1][k] = p->pPerm[2][s++] = c;
-            pC->pLeaves[c++] = pC0->pLeaves[i++]; k++;
-            if ( i >= nSizeC0 ) goto FlushCut1;
-            if ( k >= nSizeC1 ) goto FlushCut0;
-        }
-    }
-
-FlushCut0:
-    if ( c + nSizeC0 > nLimit + i ) return 0;
-    while ( i < nSizeC0 )
-    {
-        p->pPerm[0][i] = c;
-        pC->pLeaves[c++] = pC0->pLeaves[i++];
-    }
-    pC->nLeaves = c;
-    return 1;
-
-FlushCut1:
-    if ( c + nSizeC1 > nLimit + k ) return 0;
-    while ( k < nSizeC1 )
-    {
-        p->pPerm[1][k] = c;
-        pC->pLeaves[c++] = pC1->pLeaves[k++];
-    }
-    pC->nLeaves = c;
-    return 1;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Merges two cuts.]
-
-  Description [Special case when the cut is known to exist.]
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-static inline int If_CutMergeOrdered2( If_Cut_t * pC0, If_Cut_t * pC1, If_Cut_t * pC )
-{ 
-    int i, k, c;
-    assert( pC0->nLeaves >= pC1->nLeaves );
-    // copy the first cut
-    for ( i = 0; i < (int)pC0->nLeaves; i++ )
-        pC->pLeaves[i] = pC0->pLeaves[i];
-    pC->nLeaves = pC0->nLeaves;
-    // the case when one of the cuts is the largest
-    if ( pC0->nLeaves == pC->nLimit )
-        return 1;
-    // add nodes of the second cut
-    k = 0;
-    for ( i = 0; i < (int)pC1->nLeaves; i++ )
-    {
-        // find k-th node before which i-th node should be added
-        for ( ; k < (int)pC->nLeaves; k++ )
-            if ( pC->pLeaves[k] >= pC1->pLeaves[i] )
-                break;
-        // check the case when this should be the last node
-        if ( k == (int)pC->nLeaves )
-        {
-            pC->pLeaves[k++] = pC1->pLeaves[i];
-            pC->nLeaves++;
-            continue;
-        }
-        // check the case when equal node is found
-        if ( pC1->pLeaves[i] == pC->pLeaves[k] )
-            continue;
-        // add the node
-        for ( c = (int)pC->nLeaves; c > k; c-- )
-            pC->pLeaves[c] = pC->pLeaves[c-1];
-        pC->pLeaves[k++] = pC1->pLeaves[i];
-        pC->nLeaves++;
-    }
-/*
-    assert( pC->nLeaves <= pC->nLimit );
-    for ( i = 1; i < (int)pC->nLeaves; i++ )
-        assert( pC->pLeaves[i-1] < pC->pLeaves[i] );
-*/
-    return 1;
-}
-
-/**Function*************************************************************
-
   Synopsis    [Prepares the object for FPGA mapping.]
 
   Description []
@@ -368,37 +197,7 @@ static inline int If_CutMergeOrdered2( If_Cut_t * pC0, If_Cut_t * pC1, If_Cut_t 
   SeeAlso     []
 
 ***********************************************************************/
-int If_CutMerge2( If_Man_t * p, If_Cut_t * pCut0, If_Cut_t * pCut1, If_Cut_t * pCut )
-{ 
-    assert( pCut->nLimit > 0 );
-    // merge the nodes
-    if ( pCut0->nLeaves < pCut1->nLeaves )
-    {
-        if ( !If_CutMergeOrdered( p, pCut1, pCut0, pCut ) )
-            return 0;
-    }
-    else
-    {
-        if ( !If_CutMergeOrdered( p, pCut0, pCut1, pCut ) )
-            return 0;
-    }
-    pCut->uSign = pCut0->uSign | pCut1->uSign;
-    assert( If_CutCheck( pCut ) );
-    return 1;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Prepares the object for FPGA mapping.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int If_CutMerge( If_Man_t * p, If_Cut_t * pC0, If_Cut_t * pC1, If_Cut_t * pC )
+int If_CutMergeOrdered_( If_Man_t * p, If_Cut_t * pC0, If_Cut_t * pC1, If_Cut_t * pC )
 { 
     int nSizeC0 = pC0->nLeaves;
     int nSizeC1 = pC1->nLeaves;
@@ -421,39 +220,12 @@ int If_CutMerge( If_Man_t * p, If_Cut_t * pC0, If_Cut_t * pC1, If_Cut_t * pC )
         p->uSharedMask = Abc_InfoMask( nLimit );
         return 1;
     }
-    // one cut is empty
-    if ( nSizeC0 == 0 )
-    {
-        assert( pC0->uSign == 0 );
-        for ( i = 0; i < nSizeC1; i++ )
-        {
-            pC->pLeaves[i] = pC1->pLeaves[i];
-            p->pPerm[1][i] = i;
-        }
-        p->nShared = 0;
-        pC->nLeaves = nSizeC1;
-        pC->uSign = pC0->uSign | pC1->uSign;
-        p->uSharedMask = 0;
-        return 1;
-    }
-    if ( nSizeC1 == 0 )
-    {
-        assert( pC1->uSign == 0 );
-        for ( i = 0; i < nSizeC0; i++ )
-        {
-            pC->pLeaves[i] = pC0->pLeaves[i];
-            p->pPerm[0][i] = i;
-        }
-        p->nShared = 0;
-        pC->nLeaves = nSizeC0;
-        pC->uSign = pC0->uSign | pC1->uSign;
-        p->uSharedMask = 0;
-        return 1;
-    }
 
     // compare two cuts with different numbers
     i = k = c = s = 0;
     p->uSharedMask = 0;
+    if ( nSizeC0 == 0 ) goto FlushCut1;
+    if ( nSizeC1 == 0 ) goto FlushCut0;
     while ( 1 )
     {
         if ( c == nLimit ) return 0;
@@ -489,6 +261,7 @@ FlushCut0:
     p->nShared = s;
     pC->nLeaves = c;
     pC->uSign = pC0->uSign | pC1->uSign;
+    assert( c > 0 );
     return 1;
 
 FlushCut1:
@@ -501,6 +274,126 @@ FlushCut1:
     p->nShared = s;
     pC->nLeaves = c;
     pC->uSign = pC0->uSign | pC1->uSign;
+    assert( c > 0 );
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Prepares the object for FPGA mapping.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int If_CutMergeOrdered( If_Man_t * p, If_Cut_t * pC0, If_Cut_t * pC1, If_Cut_t * pC )
+{ 
+    int nSizeC0 = pC0->nLeaves;
+    int nSizeC1 = pC1->nLeaves;
+    int nLimit  = pC0->nLimit;
+    int i, k, c, s;
+
+    // both cuts are the largest
+    if ( nSizeC0 == nLimit && nSizeC1 == nLimit )
+    {
+        for ( i = 0; i < nSizeC0; i++ )
+        {
+            if ( pC0->pLeaves[i] != pC1->pLeaves[i] )
+                return 0;
+            pC->pLeaves[i] = pC0->pLeaves[i];
+        }
+        pC->nLeaves = nLimit;
+        pC->uSign = pC0->uSign | pC1->uSign;
+        return 1;
+    }
+
+    // compare two cuts with different numbers
+    i = k = c = s = 0; p->nShared = 0;
+    if ( nSizeC0 == 0 ) goto FlushCut1;
+    if ( nSizeC1 == 0 ) goto FlushCut0;
+    while ( 1 )
+    {
+        if ( c == nLimit ) return 0;
+        if ( pC0->pLeaves[i] < pC1->pLeaves[k] )
+        {
+            pC->pLeaves[c++] = pC0->pLeaves[i++];
+            if ( i == nSizeC0 ) goto FlushCut1;
+        }
+        else if ( pC0->pLeaves[i] > pC1->pLeaves[k] )
+        {
+            pC->pLeaves[c++] = pC1->pLeaves[k++];
+            if ( k == nSizeC1 ) goto FlushCut0;
+        }
+        else
+        {
+            pC->pLeaves[c++] = pC0->pLeaves[i++]; k++; p->nShared++;
+            if ( i == nSizeC0 ) goto FlushCut1;
+            if ( k == nSizeC1 ) goto FlushCut0;
+        }
+    }
+
+FlushCut0:
+    if ( c + nSizeC0 > nLimit + i ) return 0;
+    while ( i < nSizeC0 )
+        pC->pLeaves[c++] = pC0->pLeaves[i++];
+    pC->nLeaves = c;
+    pC->uSign = pC0->uSign | pC1->uSign;
+    return 1;
+
+FlushCut1:
+    if ( c + nSizeC1 > nLimit + k ) return 0;
+    while ( k < nSizeC1 )
+        pC->pLeaves[c++] = pC1->pLeaves[k++];
+    pC->nLeaves = c;
+    pC->uSign = pC0->uSign | pC1->uSign;
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Prepares the object for FPGA mapping.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int If_CutMerge( If_Man_t * p, If_Cut_t * pCut0, If_Cut_t * pCut1, If_Cut_t * pCut )
+{ 
+    int nLutSize = pCut0->nLimit;
+    int nSize0 = pCut0->nLeaves;
+    int nSize1 = pCut1->nLeaves;
+    int * pC0 = pCut0->pLeaves;
+    int * pC1 = pCut1->pLeaves;
+    int * pC = pCut->pLeaves;
+    int i, k, c;
+    // compare two cuts with different numbers
+    c = nSize0; p->nShared = 0;
+    for ( i = 0; i < nSize1; i++ )
+    {
+        for ( k = 0; k < nSize0; k++ )
+            if ( pC1[i] == pC0[k] )
+                break;
+        if ( k < nSize0 )
+        {
+            p->pPerm[1][i] = k;
+            p->nShared++;
+            continue;
+        }
+        if ( c == nLutSize )
+            return 0;
+        p->pPerm[1][i] = c;
+        pC[c++] = pC1[i];
+    }
+    for ( i = 0; i < nSize0; i++ )
+        pC[i] = pC0[i];
+    pCut->nLeaves = c;
+    pCut->uSign = pCut0->uSign | pCut1->uSign;
     return 1;
 }
 
@@ -596,30 +489,6 @@ int If_CutCompareArea( If_Man_t * p, If_Cut_t ** ppC0, If_Cut_t ** ppC1 )
     if ( pC0->Delay > pC1->Delay + p->fEpsilon )
         return 1;
     return 0;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Sorts the cuts.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void If_ManSortCuts( If_Man_t * p, int Mode )
-{
-/*
-    // sort the cuts
-    if ( Mode || p->pPars->fArea ) // area
-        qsort( p->ppCuts, p->nCuts, sizeof(If_Cut_t *), (int (*)(const void *, const void *))If_CutCompareArea );
-    else if ( p->pPars->fFancy )
-        qsort( p->ppCuts, p->nCuts, sizeof(If_Cut_t *), (int (*)(const void *, const void *))If_CutCompareDelayOld );
-    else
-        qsort( p->ppCuts, p->nCuts, sizeof(If_Cut_t *), (int (*)(const void *, const void *))If_CutCompareDelay );
-*/
 }
 
 /**Function*************************************************************

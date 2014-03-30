@@ -534,14 +534,7 @@ static inline int Kf_SetCutIsContainedSimple( Kf_Cut_t * pBase, Kf_Cut_t * pCut 
     int * pB = pBase->pLeaves;
     int * pC = pCut->pLeaves;
     int i, k;
-    if ( nSizeB == nSizeC )
-    {
-        for ( i = 0; i < nSizeB; i++ )
-            if ( pBase->pLeaves[i] != pCut->pLeaves[i] )
-                return 0;
-        return 1;
-    }
-    assert( nSizeB > nSizeC ); 
+    assert( nSizeB >= nSizeC ); 
     for ( i = 0; i < nSizeC; i++ )
     {
         for ( k = 0; k < nSizeB; k++ )
@@ -560,17 +553,6 @@ static inline int Kf_SetMergeSimpleOne( Kf_Cut_t * pCut0, Kf_Cut_t * pCut1, Kf_C
     int * pC1 = pCut1->pLeaves;
     int * pC = pCut->pLeaves;
     int i, k, c;
-    // the case of the largest cut sizes
-    if ( nSize0 == nLutSize && nSize1 == nLutSize )
-    {
-        for ( i = 0; i < nSize0; i++ )
-        {
-            if ( pC0[i] != pC1[i] )  return 0;
-            pC[i] = pC0[i];
-        }
-        pCut->nLeaves = nLutSize;
-        return 1;
-    }
     // compare two cuts with different numbers
     c = nSize0;
     for ( i = 0; i < nSize1; i++ )
