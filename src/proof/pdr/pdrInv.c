@@ -229,6 +229,87 @@ void Pdr_ManPrintClauses( Pdr_Man_t * p, int kStart )
   SeeAlso     [] 
 
 ***********************************************************************/
+void Pdr_SetPrintOne( Pdr_Set_t * p )
+{
+    int i;
+    printf( "Clause: {" );
+    for ( i = 0; i < p->nLits; i++ )
+        printf( " %s%d", Abc_LitIsCompl(p->Lits[i])? "!":"", Abc_Lit2Var(p->Lits[i]) );
+    printf( " }\n" );
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     [] 
+
+***********************************************************************/
+Aig_Man_t * Pdr_ManDupAigWithClauses( Aig_Man_t * p, Vec_Ptr_t * vCubes )
+{
+    Aig_Man_t * pNew;
+    Aig_Obj_t * pObj, * pObjNew, * pLit;
+    Pdr_Set_t * pCube;
+    int i, n;
+    // create the new manager
+    pNew = Aig_ManStart( Aig_ManObjNumMax(p) );
+    pNew->pName = Abc_UtilStrsav( p->pName );
+    pNew->pSpec = Abc_UtilStrsav( p->pSpec );
+    // create the PIs
+    Aig_ManCleanData( p );
+    Aig_ManConst1(p)->pData = Aig_ManConst1(pNew);
+    Aig_ManForEachCi( p, pObj, i )
+        pObj->pData = Aig_ObjCreateCi( pNew );
+    // create outputs for each cube
+    Vec_PtrForEachEntry( Pdr_Set_t *, vCubes, pCube, i )
+    {
+//        Pdr_SetPrintOne( pCube );
+        pObjNew = Aig_ManConst1(pNew);
+        for ( n = 0; n < pCube->nLits; n++ )
+        {
+            assert( Abc_Lit2Var(pCube->Lits[n]) < Saig_ManRegNum(p) );
+            pLit = Aig_NotCond( Aig_ManCi(pNew, Saig_ManPiNum(p) + Abc_Lit2Var(pCube->Lits[n])), Abc_LitIsCompl(pCube->Lits[n]) );
+            pObjNew = Aig_And( pNew, pObjNew, pLit );
+        }
+        Aig_ObjCreateCo( pNew, pObjNew );
+    }
+    // duplicate internal nodes
+    Aig_ManForEachNode( p, pObj, i )
+        pObj->pData = Aig_And( pNew, Aig_ObjChild0Copy(pObj), Aig_ObjChild1Copy(pObj) );
+    // add the POs
+    Saig_ManForEachLi( p, pObj, i )
+        Aig_ObjCreateCo( pNew, Aig_ObjChild0Copy(pObj) );
+    Aig_ManCleanup( pNew );
+    Aig_ManSetRegNum( pNew, Aig_ManRegNum(p) );
+    // check the resulting network
+    if ( !Aig_ManCheck(pNew) )
+        printf( "Aig_ManDupSimple(): The check has failed.\n" );
+    return pNew;
+}
+void Pdr_ManDumpAig( Aig_Man_t * p, Vec_Ptr_t * vCubes )
+{
+    extern void Ioa_WriteAiger( Aig_Man_t * pMan, char * pFileName, int fWriteSymbols, int fCompact );
+    Aig_Man_t * pNew = Pdr_ManDupAigWithClauses( p, vCubes );
+    Ioa_WriteAiger( pNew, "aig_with_clauses.aig", 0, 0 );
+    Aig_ManStop( pNew );
+    printf( "Dumped modified AIG into file \"aig_with_clauses.aig\".\n" );
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     [] 
+
+***********************************************************************/
 void Pdr_ManDumpClauses( Pdr_Man_t * p, char * pFileName, int fProved )
 {
     int fUseSupp = 1;
@@ -249,6 +330,7 @@ void Pdr_ManDumpClauses( Pdr_Man_t * p, char * pFileName, int fProved )
     kStart = Pdr_ManFindInvariantStart( p );
     vCubes = Pdr_ManCollectCubes( p, kStart );
     Vec_PtrSort( vCubes, (int (*)(void))Pdr_SetCompare );
+//    Pdr_ManDumpAig( p->pAig, vCubes );
     // collect variable appearances
     vFlopCounts = fUseSupp ? Pdr_ManCountFlops( p, vCubes ) : NULL; 
     // output the header

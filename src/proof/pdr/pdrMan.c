@@ -54,7 +54,7 @@ Pdr_Man_t * Pdr_ManStart( Aig_Man_t * pAig, Pdr_Par_t * pPars, Vec_Int_t * vPrio
     p->pOrder   = ABC_ALLOC( int, Aig_ManRegNum(pAig) );
     p->vActVars = Vec_IntAlloc( 256 );
     if ( !p->pPars->fMonoCnf )
-        p->vVLits   = Vec_WecStart( Abc_MaxInt(1, Aig_ManLevels(pAig)) );
+        p->vVLits   = Vec_WecStart( 1+Abc_MaxInt(1, Aig_ManLevels(pAig)) );
     // internal use
     p->vPrio    = vPrioInit ? vPrioInit : Vec_IntStart( Aig_ManRegNum(pAig) );  // priority flops
     p->vLits    = Vec_IntAlloc( 100 );  // array of literals
