@@ -218,7 +218,7 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
         pCut->fCompl = 0;
         pCut->iCutFunc = -1;
         pCut->iCutDsd = -1;
-        if ( p->pPars->fTruth && !p->pPars->fUseTtPerm )
+        if ( p->pPars->fTruth )//&& !p->pPars->fUseTtPerm )
         {
 //            abctime clk = Abc_Clock();
             if ( p->pPars->fUseTtPerm )

@@ -97,16 +97,14 @@ void If_CutRotatePins( If_Man_t * p, If_Cut_t * pCut )
 int If_CutComputeTruth( If_Man_t * p, If_Cut_t * pCut, If_Cut_t * pCut0, If_Cut_t * pCut1, int fCompl0, int fCompl1 )
 {
     int fCompl, truthId, nLeavesNew, RetValue = 0;
-    int iFuncLit0   = pCut0->iCutFunc;
-    int iFuncLit1   = pCut1->iCutFunc;
     int nWords      = Abc_TtWordNum( pCut->nLimit );
-    word * pTruth0s = Vec_MemReadEntry( p->vTtMem, Abc_Lit2Var(iFuncLit0) );
-    word * pTruth1s = Vec_MemReadEntry( p->vTtMem, Abc_Lit2Var(iFuncLit1) );
+    word * pTruth0s = Vec_MemReadEntry( p->vTtMem, Abc_Lit2Var(pCut0->iCutFunc) );
+    word * pTruth1s = Vec_MemReadEntry( p->vTtMem, Abc_Lit2Var(pCut1->iCutFunc) );
     word * pTruth0  = (word *)p->puTemp[0];
     word * pTruth1  = (word *)p->puTemp[1];
     word * pTruth   = (word *)p->puTemp[2];
-    Abc_TtCopy( pTruth0, pTruth0s, nWords, fCompl0 ^ pCut0->fCompl ^ Abc_LitIsCompl(iFuncLit0) );
-    Abc_TtCopy( pTruth1, pTruth1s, nWords, fCompl1 ^ pCut1->fCompl ^ Abc_LitIsCompl(iFuncLit1) );
+    Abc_TtCopy( pTruth0, pTruth0s, nWords, fCompl0 ^ pCut0->fCompl ^ Abc_LitIsCompl(pCut0->iCutFunc) );
+    Abc_TtCopy( pTruth1, pTruth1s, nWords, fCompl1 ^ pCut1->fCompl ^ Abc_LitIsCompl(pCut1->iCutFunc) );
     Abc_TtStretch( pTruth0, pCut->nLimit, pCut0->pLeaves, pCut0->nLeaves, pCut->pLeaves, pCut->nLeaves );
     Abc_TtStretch( pTruth1, pCut->nLimit, pCut1->pLeaves, pCut1->nLeaves, pCut->pLeaves, pCut->nLeaves );
     fCompl         = (pTruth0[0] & pTruth1[0] & 1);
@@ -148,10 +146,99 @@ int If_CutComputeTruth( If_Man_t * p, If_Cut_t * pCut, If_Cut_t * pCut0, If_Cut_
 ***********************************************************************/
 int If_CutComputeTruthPerm( If_Man_t * p, If_Cut_t * pCut, If_Cut_t * pCut0, If_Cut_t * pCut1, int fCompl0, int fCompl1 )
 {
-    int i;
-    for ( i = 0; i < (int)pCut->nLeaves; i++ )
-        pCut->pPerm[i] = (char)i;
-    return 0;
+    int fVerbose = 0;
+    int pPerm[IF_MAX_LUTSIZE];
+    char pCanonPerm[IF_MAX_LUTSIZE];
+    int v, Place, fCompl, truthId, nLeavesNew, uCanonPhase, RetValue = 0;
+    int nWords      = Abc_TtWordNum( pCut->nLimit );
+    word * pTruth0s = Vec_MemReadEntry( p->vTtMem, Abc_Lit2Var(pCut0->iCutFunc) );
+    word * pTruth1s = Vec_MemReadEntry( p->vTtMem, Abc_Lit2Var(pCut1->iCutFunc) );
+    word * pTruth0  = (word *)p->puTemp[0];
+    word * pTruth1  = (word *)p->puTemp[1];
+    word * pTruth   = (word *)p->puTemp[2];
+    assert( pCut0->iCutDsd >= 0 );
+    assert( pCut1->iCutDsd >= 0 );
+    Abc_TtCopy( pTruth0, pTruth0s, nWords, fCompl0 ^ pCut0->fCompl ^ Abc_LitIsCompl(pCut0->iCutFunc) );
+    Abc_TtCopy( pTruth1, pTruth1s, nWords, fCompl1 ^ pCut1->fCompl ^ Abc_LitIsCompl(pCut1->iCutFunc) );
+
+
+if ( fVerbose )
+{
+Kit_DsdPrintFromTruth( pTruth0, pCut0->nLeaves ); printf( "\n" );
+Kit_DsdPrintFromTruth( pTruth1, pCut1->nLeaves ); printf( "\n" );
+}
+    // create literals
+    for ( v = 0; v < (int)pCut0->nLeaves; v++ )
+        pCut->pLeaves[v] = Abc_Var2Lit( pCut0->pLeaves[v], ((pCut0->iCutDsd >> v) & 1) );
+    for ( v = 0; v < (int)pCut1->nLeaves; v++ )
+        if ( p->pPerm[1][v] >= (int)pCut0->nLeaves )
+            pCut->pLeaves[p->pPerm[1][v]] = Abc_Var2Lit( pCut1->pLeaves[v], ((pCut1->iCutDsd >> v) & 1) );
+        else if ( ((pCut0->iCutDsd >> p->pPerm[1][v]) & 1) != ((pCut1->iCutDsd >> v) & 1) )
+            Abc_TtFlip( pTruth1, nWords, v );  
+    // permute variables
+    for ( v = (int)pCut1->nLeaves; v < (int)pCut->nLeaves; v++ )
+        p->pPerm[1][v] = -1;
+    for ( v = 0; v < (int)pCut1->nLeaves; v++ )
+    {
+        Place = p->pPerm[1][v];
+        if ( Place == v || Place == -1 )
+            continue;
+        Abc_TtSwapVars( pTruth1, pCut->nLimit, v, Place );
+        p->pPerm[1][v] = p->pPerm[1][Place];
+        p->pPerm[1][Place] = Place;
+        v--;
+    }
+
+if ( fVerbose )
+{
+Kit_DsdPrintFromTruth( pTruth0, pCut0->nLeaves ); printf( "\n" );
+Kit_DsdPrintFromTruth( pTruth1, pCut->nLeaves ); printf( "\n" );
+}
+
+    // perform operation
+    Abc_TtAnd( pTruth, pTruth0, pTruth1, nWords, 0 );
+    // minimize support
+    if ( p->pPars->fCutMin )
+    {
+        nLeavesNew = Abc_TtMinBase( pTruth, pCut->pLeaves, pCut->nLeaves, pCut->nLimit );
+        if ( nLeavesNew < If_CutLeaveNum(pCut) )
+        {
+            pCut->nLeaves = nLeavesNew;
+            RetValue      = 1;
+        }
+    }
+    // compute canonical form
+    uCanonPhase = Abc_TtCanonicize( pTruth, pCut->nLeaves, pCanonPerm );
+    for ( v = 0; v < (int)pCut->nLeaves; v++ )
+        pPerm[v] = Abc_LitNotCond( pCut->pLeaves[(int)pCanonPerm[v]], ((uCanonPhase>>v)&1) );
+    pCut->iCutDsd = 0;
+    for ( v = 0; v < (int)pCut->nLeaves; v++ )
+    {
+        pCut->pLeaves[v] = Abc_Lit2Var(pPerm[v]);
+        if ( Abc_LitIsCompl(pPerm[v]) )
+            pCut->iCutDsd |= (1 << v);
+    }
+    // create signature after lowering literals
+    if ( RetValue )
+        pCut->uSign = If_ObjCutSignCompute( pCut );
+    else
+        assert( pCut->uSign == If_ObjCutSignCompute( pCut ) );
+
+    // hash function
+    fCompl         = ((uCanonPhase >> pCut->nLeaves) & 1);
+    truthId        = Vec_MemHashInsert( p->vTtMem, pTruth );
+    pCut->iCutFunc = Abc_Var2Lit( truthId, fCompl );
+
+if ( fVerbose )
+{
+Kit_DsdPrintFromTruth( pTruth, pCut->nLeaves ); printf( "\n" );
+If_CutPrint( pCut0 );
+If_CutPrint( pCut1 );
+If_CutPrint( pCut );
+printf( "%d\n\n", pCut->iCutFunc );
+}
+
+    return RetValue;
 }
 
 ////////////////////////////////////////////////////////////////////////

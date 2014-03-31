@@ -68,6 +68,7 @@ int If_CutVerifyCuts( If_Set_t * pCutSet, int fOrdered )
     for ( i = 0; i < pCutSet->nCuts; i++ )
     {
         pCut0 = pCutSet->ppCuts[i];
+        assert( pCut0->uSign == If_ObjCutSignCompute(pCut0) );
         if ( fOrdered )
         {
             // check duplicates
@@ -862,7 +863,7 @@ void If_CutPrint( If_Cut_t * pCut )
     unsigned i;
     Abc_Print( 1, "{" );
     for ( i = 0; i < pCut->nLeaves; i++ )
-        Abc_Print( 1, " %d", pCut->pLeaves[i] );
+        Abc_Print( 1, " %s%d", ((pCut->iCutDsd >> i) & 1) ? "!":"", pCut->pLeaves[i] );
     Abc_Print( 1, " }\n" );
 }
 
