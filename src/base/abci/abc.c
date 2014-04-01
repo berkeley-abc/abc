@@ -32896,7 +32896,7 @@ int Abc_CommandAbc9FFTest( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             Algo = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( Algo < 1 || Algo > 3 )
+            if ( Algo < 1 || Algo > 4 )
                 goto usage;
             break;
         case 'T':
@@ -32966,6 +32966,7 @@ usage:
     Abc_Print( -2, "\t               1: delay fault testing for sequential circuits\n" );
     Abc_Print( -2, "\t               2: traditional stuck-at testing\n" );
     Abc_Print( -2, "\t               3: complement fault testing\n" );
+    Abc_Print( -2, "\t               4: functionally observable fault testing\n" );
     Abc_Print( -2, "\t-T num : specifies approximate runtime limit in seconds [default = %d]\n",        nTimeOut );
     Abc_Print( -2, "\t-c     : toggles complementing control variables [default = %s]\n",               fComplVars?  "active-high": "active-low" );
     Abc_Print( -2, "\t-s     : toggles starting with the all-0 and all-1 patterns [default = %s]\n",    fStartPats?  "yes": "no" );

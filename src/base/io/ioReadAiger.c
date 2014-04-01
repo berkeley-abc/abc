@@ -559,8 +559,11 @@ Abc_Ntk_t * Io_ReadAiger( char * pFileName, int fCheck )
         {
             pCur++;
             // read model name
-            ABC_FREE( pNtkNew->pName );
-            pNtkNew->pName = Extra_UtilStrsav( pCur );
+            if ( strlen(pCur) > 0 )
+            {
+                ABC_FREE( pNtkNew->pName );
+                pNtkNew->pName = Extra_UtilStrsav( pCur );
+            }
         }
     }
 

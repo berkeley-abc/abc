@@ -144,7 +144,7 @@ Gia_Man_t * Gia_ManStuckAtUnfold( Gia_Man_t * p, int fUseFaults, int fComplVars 
     Gia_Man_t * pNew, * pTemp;
     Gia_Obj_t * pObj;
     int i, iCtrl0, iCtrl1;
-    pNew = Gia_ManStart( 3 * Gia_ManObjNum(p) );
+    pNew = Gia_ManStart( (1 + 2 * fUseFaults) * Gia_ManObjNum(p) );
     pNew->pName = Abc_UtilStrsav( p->pName );
     Gia_ManHashAlloc( pNew );
     Gia_ManConst0(p)->Value = 0;
@@ -185,7 +185,7 @@ Gia_Man_t * Gia_ManFlipUnfold( Gia_Man_t * p, int fUseFaults, int fComplVars )
     Gia_Man_t * pNew, * pTemp;
     Gia_Obj_t * pObj;
     int i, iCtrl0;
-    pNew = Gia_ManStart( 3 * Gia_ManObjNum(p) );
+    pNew = Gia_ManStart( (1 + 3 * fUseFaults) * Gia_ManObjNum(p) );
     pNew->pName = Abc_UtilStrsav( p->pName );
     Gia_ManHashAlloc( pNew );
     Gia_ManConst0(p)->Value = 0;
@@ -203,6 +203,61 @@ Gia_Man_t * Gia_ManFlipUnfold( Gia_Man_t * p, int fUseFaults, int fComplVars )
     pNew = Gia_ManCleanup( pTemp = pNew );
     Gia_ManStop( pTemp );
     assert( Gia_ManPiNum(pNew) == Gia_ManCiNum(p) + Gia_ManAndNum(p) );
+    return pNew;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Gia_Man_t * Gia_ManFOFUnfold( Gia_Man_t * p, int fUseFaults, int fComplVars )
+{
+    Gia_Man_t * pNew, * pTemp;
+    Gia_Obj_t * pObj;
+    int i, iCtrl0, iCtrl1, iCtrl2, iCtrl3, iMuxA, iMuxB;
+    pNew = Gia_ManStart( (1 + 8 * fUseFaults) * Gia_ManObjNum(p) );
+    pNew->pName = Abc_UtilStrsav( p->pName );
+    Gia_ManHashAlloc( pNew );
+    Gia_ManConst0(p)->Value = 0;
+    Gia_ManForEachCi( p, pObj, i )
+        pObj->Value = Gia_ManAppendCi( pNew );
+    Gia_ManForEachAnd( p, pObj, i )
+    {
+        iCtrl0 = Abc_LitNotCond( Gia_ManAppendCi(pNew), fComplVars );
+        iCtrl1 = Abc_LitNotCond( Gia_ManAppendCi(pNew), fComplVars );
+        iCtrl2 = Abc_LitNotCond( Gia_ManAppendCi(pNew), fComplVars );
+        iCtrl3 = Abc_LitNotCond( Gia_ManAppendCi(pNew), fComplVars );
+        if ( fUseFaults )
+        {
+            if ( Gia_ObjFaninC0(pObj) && Gia_ObjFaninC1(pObj) )
+                iCtrl0 = Abc_LitNot(iCtrl0);
+            else if ( !Gia_ObjFaninC0(pObj) && Gia_ObjFaninC1(pObj) )
+                iCtrl1 = Abc_LitNot(iCtrl1);
+            else if ( Gia_ObjFaninC0(pObj) && !Gia_ObjFaninC1(pObj) )
+                iCtrl2 = Abc_LitNot(iCtrl2);
+            else //if ( !Gia_ObjFaninC0(pObj) && !Gia_ObjFaninC1(pObj) )
+                iCtrl3 = Abc_LitNot(iCtrl3);
+            iMuxA       = Gia_ManHashMux( pNew, Gia_ObjFanin0(pObj)->Value, iCtrl1, iCtrl0 );
+            iMuxB       = Gia_ManHashMux( pNew, Gia_ObjFanin0(pObj)->Value, iCtrl3, iCtrl2 );
+            pObj->Value = Gia_ManHashMux( pNew, Gia_ObjFanin1(pObj)->Value, iMuxB,  iMuxA );
+        }
+        else
+            pObj->Value = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+    }
+    Gia_ManForEachCo( p, pObj, i )
+        pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
+    pNew = Gia_ManCleanup( pTemp = pNew );
+    Gia_ManStop( pTemp );
+    assert( Gia_ManPiNum(pNew) == Gia_ManCiNum(p) + 4 * Gia_ManAndNum(p) );
+    if ( fUseFaults )
+        Gia_AigerWrite( pNew, "newfault.aig", 0, 0 );
     return pNew;
 }
 
@@ -466,6 +521,8 @@ void Gia_ManFaultTest( Gia_Man_t * p, char * pFileName, int Algo, int fComplVars
         nFuncVars = Gia_ManCiNum(p);
     else if ( Algo == 3 )
         nFuncVars = Gia_ManCiNum(p);
+    else if ( Algo == 4 )
+        nFuncVars = Gia_ManCiNum(p);
     else
     {
         printf( "Unregnized algorithm (%d).\n", Algo );
@@ -502,6 +559,11 @@ void Gia_ManFaultTest( Gia_Man_t * p, char * pFileName, int Algo, int fComplVars
     {
         p0 = Gia_ManFlipUnfold( p, 0, fComplVars );
         p1 = Gia_ManFlipUnfold( p, 1, fComplVars );
+    }
+    else if ( Algo == 4 )
+    {
+        p0 = Gia_ManFOFUnfold( p, 0, fComplVars );
+        p1 = Gia_ManFOFUnfold( p, 1, fComplVars );
     }
     else
     {
