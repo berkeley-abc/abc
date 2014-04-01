@@ -36,6 +36,67 @@ ABC_NAMESPACE_IMPL_START
 
 /**Function*************************************************************
 
+  Synopsis    [Add constraint that no more than 1 variable is 1.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline int Cnf_AddCardinConstr( sat_solver * p, Vec_Int_t * vVars )
+{
+    int i, k, pLits[2], iVar, nVars = sat_solver_nvars(p);
+    Vec_IntForEachEntry( vVars, iVar, i )
+        assert( iVar >= 0 && iVar < nVars );
+    iVar = nVars;
+    sat_solver_setnvars( p, nVars + Vec_IntSize(vVars) - 1 );
+    while ( Vec_IntSize(vVars) > 1 )
+    {
+        for ( k = i = 0; i < Vec_IntSize(vVars)/2; i++ )
+        {
+            pLits[0] = Abc_Var2Lit( Vec_IntEntry(vVars, 2*i), 1 );
+            pLits[1] = Abc_Var2Lit( Vec_IntEntry(vVars, 2*i+1), 1 );
+            sat_solver_addclause( p, pLits, pLits + 2 );
+            sat_solver_add_and( p, iVar, Vec_IntEntry(vVars, 2*i), Vec_IntEntry(vVars, 2*i+1), 1, 1, 1 );
+            Vec_IntWriteEntry( vVars, k++, iVar++ );
+        }
+        if ( Vec_IntSize(vVars) & 1 )
+            Vec_IntWriteEntry( vVars, k++, Vec_IntEntryLast(vVars) );
+        Vec_IntShrink( vVars, k );
+    }
+    return iVar;
+}
+void Cnf_AddCardinConstrTest()
+{
+    int i, status, nVars = 7;
+    Vec_Int_t * vVars = Vec_IntStartNatural( nVars );
+    sat_solver * pSat = sat_solver_new();
+    sat_solver_setnvars( pSat, nVars );
+    Cnf_AddCardinConstr( pSat, vVars );
+    while ( 1 )
+    {
+        status = sat_solver_solve( pSat, NULL, NULL, 0, 0, 0, 0 );
+        if ( status != l_True )
+            break;
+        Vec_IntClear( vVars );
+        for ( i = 0; i < nVars; i++ )
+        {
+            Vec_IntPush( vVars, Abc_Var2Lit(i, sat_solver_var_value(pSat, i)) );
+            printf( "%d", sat_solver_var_value(pSat, i) );
+        }
+        printf( "\n" );
+        status = sat_solver_addclause( pSat, Vec_IntArray(vVars), Vec_IntArray(vVars) + Vec_IntSize(vVars) );
+        if ( status == 0 )
+            break;
+    }
+    sat_solver_delete( pSat );
+    Vec_IntFree( vVars );
+}
+
+/**Function*************************************************************
+
   Synopsis    []
 
   Description []
@@ -503,7 +564,7 @@ Vec_Int_t * Gia_ManGetTestPatterns( char * pFileName )
   SeeAlso     []
 
 ***********************************************************************/
-void Gia_ManFaultTest( Gia_Man_t * p, char * pFileName, int Algo, int fComplVars, int fStartPats, int nTimeOut, int fDump, int fDumpUntest, int fVerbose )
+void Gia_ManFaultTest( Gia_Man_t * p, char * pFileName, int Algo, int fComplVars, int fStartPats, int nTimeOut, int fBasic, int fDump, int fDumpUntest, int fVerbose )
 {
     int nIterMax = 1000000;
     int i, Iter, LitRoot, status, nFuncVars = -1;
@@ -516,6 +577,21 @@ void Gia_ManFaultTest( Gia_Man_t * p, char * pFileName, int Algo, int fComplVars
 
     // select algorithm
     if ( Algo == 1 )
+        printf( "FFTEST is computing test patterns for %sdelay faults...\n", fBasic ? "single " : "" );
+    else if ( Algo == 2 )
+        printf( "FFTEST is computing test patterns for %sstuck-at faults...\n", fBasic ? "single " : "" );
+    else if ( Algo == 3 )
+        printf( "FFTEST is computing test patterns for %scomplement faults...\n", fBasic ? "single " : "" );
+    else if ( Algo == 4 )
+        printf( "FFTEST is computing test patterns for %sfunctionally observable faults...\n", fBasic ? "single " : "" );
+    else
+    {
+        printf( "Unregnized algorithm (%d).\n", Algo );
+        return;
+    }
+
+    // select algorithm
+    if ( Algo == 1 )
         nFuncVars = Gia_ManRegNum(p) + 2 * Gia_ManPiNum(p);
     else if ( Algo == 2 )
         nFuncVars = Gia_ManCiNum(p);
@@ -523,11 +599,6 @@ void Gia_ManFaultTest( Gia_Man_t * p, char * pFileName, int Algo, int fComplVars
         nFuncVars = Gia_ManCiNum(p);
     else if ( Algo == 4 )
         nFuncVars = Gia_ManCiNum(p);
-    else
-    {
-        printf( "Unregnized algorithm (%d).\n", Algo );
-        return;
-    }
 
     // collect test patterns from file
     if ( pFileName )
@@ -565,11 +636,6 @@ void Gia_ManFaultTest( Gia_Man_t * p, char * pFileName, int Algo, int fComplVars
         p0 = Gia_ManFOFUnfold( p, 0, fComplVars );
         p1 = Gia_ManFOFUnfold( p, 1, fComplVars );
     }
-    else
-    {
-        printf( "Unregnized algorithm (%d).\n", Algo );
-        return;
-    }
 
     // create miter
     pM = Gia_ManMiter( p0, p1, 0, 0, 0, 0, 0 );
@@ -594,6 +660,16 @@ void Gia_ManFaultTest( Gia_Man_t * p, char * pFileName, int Algo, int fComplVars
     Gia_ManForEachCo( pM, pObj, i )
         Vec_IntPush( vLits, Abc_Var2Lit(pCnf->pVarNums[Gia_ObjId(pM, pObj)], 0) );
     sat_solver_addclause( pSat, Vec_IntArray(vLits), Vec_IntArray(vLits) + Vec_IntSize(vLits) );
+
+    // add cadinality constraint
+    if ( fBasic )
+    {
+        Vec_IntClear( vLits );
+        Gia_ManForEachPi( pM, pObj, i )
+            if ( i >= nFuncVars )
+                Vec_IntPush( vLits, pCnf->pVarNums[Gia_ObjId(pM, pObj)] );
+        Cnf_AddCardinConstr( pSat, vLits );
+    }
 
     // add available test-patterns
     if ( Vec_IntSize(vTests) > 0 )

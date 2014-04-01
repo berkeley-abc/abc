@@ -180,10 +180,10 @@ void Gia_ManCheckFalseOne( Gia_Man_t * p, int iOut, int nTimeOut, Vec_Wec_t * vH
             continue;
         sat_solver_add_and( pSat, pObj->Value + Shift[0], 
             Gia_ObjFanin0(pObj)->Value + Shift[0], Gia_ObjFanin1(pObj)->Value + Shift[0], 
-            Gia_ObjFaninC0(pObj), Gia_ObjFaninC1(pObj) ); 
+            Gia_ObjFaninC0(pObj), Gia_ObjFaninC1(pObj), 0 ); 
         sat_solver_add_and( pSat, pObj->Value + Shift[1], 
             Gia_ObjFanin0(pObj)->Value + Shift[1], Gia_ObjFanin1(pObj)->Value + Shift[1], 
-            Gia_ObjFaninC0(pObj), Gia_ObjFaninC1(pObj) ); 
+            Gia_ObjFaninC0(pObj), Gia_ObjFaninC1(pObj), 0 ); 
     }
     // call the SAT solver
     status = sat_solver_solve( pSat, Vec_IntArray(vLits), Vec_IntArray(vLits) + Vec_IntSize(vLits), (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );

@@ -128,7 +128,7 @@ void Gia_ManCofExtendSolver( Ccf_Man_t * p )
                 Gia_ObjFaninId0(pObj, i), 
                 Gia_ObjFaninId1(pObj, i), 
                 Gia_ObjFaninC0(pObj), 
-                Gia_ObjFaninC1(pObj) ); 
+                Gia_ObjFaninC1(pObj), 0 ); 
     }
     sat_solver_setnvars( p->pSat, Gia_ManObjNum(p->pFrames) );
 }

@@ -293,7 +293,7 @@ void Int2_ManCreateFrames( Int2_Man_t * p, int iFrame, Vec_Int_t * vPrefCos )
                 if ( Entry < Gia_ManObjNum(pFrames) )
                 {
                     assert( !Abc_LitIsCompl(iLit) );
-                    sat_solver_add_and( p->pGiaPref, Abc_Lit2Var(iLit), Abc_Lit2Var(iLit0), Abc_Lit2Var(iLit1), Abc_LitIsCompl(iLit0), Abc_LitIsCompl(iLit1) ); 
+                    sat_solver_add_and( p->pGiaPref, Abc_Lit2Var(iLit), Abc_Lit2Var(iLit0), Abc_Lit2Var(iLit1), Abc_LitIsCompl(iLit0), Abc_LitIsCompl(iLit1), 0 ); 
                 }
             }
             else

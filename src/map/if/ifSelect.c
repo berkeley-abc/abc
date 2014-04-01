@@ -455,7 +455,7 @@ int If_ManNodeShapeSat( If_Man_t * pIfMan, If_Obj_t * pIfObj, Vec_Int_t * vShape
         assert( Vec_IntSize(vFanins) > 0 );
         sat_solver_add_choice( pSat, If_ObjSatVar(pObj), vFanins ); // external
         assert( If_ObjSatVar(pObj) > 0 );
-//        sat_solver_add_and( pSat, If_ObjSatVar(pObj)+1, If_ObjSatVar(pObj->pFanin0), If_ObjSatVar(pObj->pFanin1), 0, 0 );
+//        sat_solver_add_and( pSat, If_ObjSatVar(pObj)+1, If_ObjSatVar(pObj->pFanin0), If_ObjSatVar(pObj->pFanin1), 0, 0, 0 );
         if ( If_ObjSatVar(pObj->pFanin0) > 0 && If_ObjSatVar(pObj->pFanin1) > 0 )
         {
             int Lits[2];
