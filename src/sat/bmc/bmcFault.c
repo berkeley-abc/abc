@@ -256,8 +256,8 @@ Gia_Man_t * Gia_ManFOFUnfold( Gia_Man_t * p, int fUseFaults, int fComplVars )
     pNew = Gia_ManCleanup( pTemp = pNew );
     Gia_ManStop( pTemp );
     assert( Gia_ManPiNum(pNew) == Gia_ManCiNum(p) + 4 * Gia_ManAndNum(p) );
-    if ( fUseFaults )
-        Gia_AigerWrite( pNew, "newfault.aig", 0, 0 );
+//    if ( fUseFaults )
+//        Gia_AigerWrite( pNew, "newfault.aig", 0, 0 );
     return pNew;
 }
 
