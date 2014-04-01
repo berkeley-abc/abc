@@ -757,7 +757,7 @@ Gia_ManBmc_t * Saig_Bmc3ManStart( Aig_Man_t * pAig, int nTimeOutOne )
     {
         p->pTime4Outs = ABC_ALLOC( abctime, Saig_ManPoNum(pAig) );
         for ( i = 0; i < Saig_ManPoNum(pAig); i++ )
-            p->pTime4Outs[i] = nTimeOutOne * CLOCKS_PER_SEC / 1000 + 1;
+            p->pTime4Outs[i] = nTimeOutOne;
     }
     return p;
 }
@@ -1448,7 +1448,7 @@ int Saig_ManBmcScalable( Aig_Man_t * pAig, Saig_ParBmc_t * pPars )
         // stop BMC if all targets are solved
         if ( pPars->fSolveAll && pPars->nFailOuts + pPars->nDropOuts >= Saig_ManPoNum(pAig) )
         {
-            Abc_Print( 1, "Stopping BMC because all targets are disproved.\n" );
+            Abc_Print( 1, "Stopping BMC because all targets are disproved or timed out.\n" );
             RetValue = pPars->nFailOuts ? 0 : 1;
             goto finish;
         }
