@@ -164,8 +164,8 @@ int If_CutComputeTruthPerm( If_Man_t * p, If_Cut_t * pCut, If_Cut_t * pCut0, If_
 
 if ( fVerbose )
 {
-Kit_DsdPrintFromTruth( pTruth0, pCut0->nLeaves ); printf( "\n" );
-Kit_DsdPrintFromTruth( pTruth1, pCut1->nLeaves ); printf( "\n" );
+//Kit_DsdPrintFromTruth( pTruth0, pCut0->nLeaves ); printf( "\n" );
+//Kit_DsdPrintFromTruth( pTruth1, pCut1->nLeaves ); printf( "\n" );
 }
     // create literals
     for ( v = 0; v < (int)pCut0->nLeaves; v++ )
@@ -191,8 +191,8 @@ Kit_DsdPrintFromTruth( pTruth1, pCut1->nLeaves ); printf( "\n" );
 
 if ( fVerbose )
 {
-Kit_DsdPrintFromTruth( pTruth0, pCut0->nLeaves ); printf( "\n" );
-Kit_DsdPrintFromTruth( pTruth1, pCut->nLeaves ); printf( "\n" );
+//Kit_DsdPrintFromTruth( pTruth0, pCut0->nLeaves ); printf( "\n" );
+//Kit_DsdPrintFromTruth( pTruth1, pCut->nLeaves ); printf( "\n" );
 }
 
     // perform operation
@@ -231,11 +231,11 @@ Kit_DsdPrintFromTruth( pTruth1, pCut->nLeaves ); printf( "\n" );
 
 if ( fVerbose )
 {
-Kit_DsdPrintFromTruth( pTruth, pCut->nLeaves ); printf( "\n" );
-If_CutPrint( pCut0 );
-If_CutPrint( pCut1 );
-If_CutPrint( pCut );
-printf( "%d\n\n", pCut->iCutFunc );
+//Kit_DsdPrintFromTruth( pTruth, pCut->nLeaves ); printf( "\n" );
+//If_CutPrint( pCut0 );
+//If_CutPrint( pCut1 );
+//If_CutPrint( pCut );
+//printf( "%d\n\n", pCut->iCutFunc );
 }
 
     return RetValue;
