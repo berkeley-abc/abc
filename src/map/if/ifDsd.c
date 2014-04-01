@@ -835,11 +835,12 @@ void If_DsdManSave( If_DsdMan_t * p, char * pFileName )
         fwrite( &Num, 4, 1, pFile );
         fwrite( pObj, sizeof(word)*Num, 1, pFile );
     }
-    assert( Vec_MemEntryNum(p->vTtMem) == Vec_PtrSize(p->vTtDecs) ); 
     Num = Vec_MemEntryNum(p->vTtMem);
     fwrite( &Num, 4, 1, pFile );
     Vec_MemForEachEntry( p->vTtMem, pTruth, i )
         fwrite( pTruth, sizeof(word)*p->nWords, 1, pFile );
+    Num = Vec_PtrSize(p->vTtDecs);
+    fwrite( &Num, 4, 1, pFile );
     Vec_PtrForEachEntry( Vec_Int_t *, p->vTtDecs, vSets, i )
     {
         Num = Vec_IntSize(vSets);
@@ -856,7 +857,7 @@ If_DsdMan_t * If_DsdManLoad( char * pFileName )
     char pBuffer[10];
     unsigned * pSpot;
     word * pTruth;
-    int i, Num, RetValue;
+    int i, Num, Num2, RetValue;
     FILE * pFile = fopen( pFileName, "rb" );
     if ( pFile == NULL )
     {
@@ -904,7 +905,8 @@ If_DsdMan_t * If_DsdManLoad( char * pFileName )
     }
     ABC_FREE( pTruth );
     assert( Num == Vec_MemEntryNum(p->vTtMem) );
-    for ( i = 0; i < Vec_MemEntryNum(p->vTtMem); i++ )
+    RetValue = fread( &Num2, 4, 1, pFile );
+    for ( i = 0; i < Num2; i++ )
     {
         RetValue = fread( &Num, 4, 1, pFile );
         vSets = Vec_IntAlloc( Num );
@@ -912,7 +914,7 @@ If_DsdMan_t * If_DsdManLoad( char * pFileName )
         vSets->nSize = Num;
         Vec_PtrPush( p->vTtDecs, vSets );
     }
-    assert( Vec_MemEntryNum(p->vTtMem) == Vec_PtrSize(p->vTtDecs) ); 
+    assert( Num2 == Vec_PtrSize(p->vTtDecs) ); 
     fclose( pFile );
     return p;
 }
