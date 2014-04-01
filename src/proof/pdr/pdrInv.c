@@ -21,6 +21,7 @@
 #include "pdrInt.h"
 #include "base/abc/abc.h"      // for Abc_NtkCollectCioNames()
 #include "base/main/main.h"    // for Abc_FrameReadGlobalFrame()
+#include "aig/ioa/ioa.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -292,7 +293,6 @@ Aig_Man_t * Pdr_ManDupAigWithClauses( Aig_Man_t * p, Vec_Ptr_t * vCubes )
 }
 void Pdr_ManDumpAig( Aig_Man_t * p, Vec_Ptr_t * vCubes )
 {
-    extern void Ioa_WriteAiger( Aig_Man_t * pMan, char * pFileName, int fWriteSymbols, int fCompact );
     Aig_Man_t * pNew = Pdr_ManDupAigWithClauses( p, vCubes );
     Ioa_WriteAiger( pNew, "aig_with_clauses.aig", 0, 0 );
     Aig_ManStop( pNew );
