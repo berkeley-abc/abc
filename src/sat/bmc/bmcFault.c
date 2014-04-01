@@ -570,7 +570,7 @@ void Gia_ManFaultTest( Gia_Man_t * p, char * pFileName, int Algo, int fComplVars
     int i, Iter, LitRoot, status, nFuncVars = -1;
     abctime clkSat = 0, clkTotal = Abc_Clock();
     Vec_Int_t * vLits, * vTests;
-    Gia_Man_t * p0, * p1, * pM;
+    Gia_Man_t * p0 = NULL, * p1 = NULL, * pM;
     Gia_Obj_t * pObj;
     Cnf_Dat_t * pCnf;
     sat_solver * pSat;
