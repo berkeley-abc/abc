@@ -757,7 +757,7 @@ Gia_ManBmc_t * Saig_Bmc3ManStart( Aig_Man_t * pAig, int nTimeOutOne )
     {
         p->pTime4Outs = ABC_ALLOC( abctime, Saig_ManPoNum(pAig) );
         for ( i = 0; i < Saig_ManPoNum(pAig); i++ )
-            p->pTime4Outs[i] = nTimeOutOne;
+            p->pTime4Outs[i] = nTimeOutOne * CLOCKS_PER_SEC / 1000 + 1;
     }
     return p;
 }
@@ -1555,7 +1555,7 @@ clk2 = Abc_Clock();
             status = Saig_ManCallSolver( p, Lit );
 clkSatRun = Abc_Clock() - clk2;
             if ( pLogFile )
-                fprintf( pLogFile, "Frame %5d  Output %5d  Time(ms) %8d\n", f, i, Lit < 2 ? 0 : (int)clkSatRun );
+                fprintf( pLogFile, "Frame %5d  Output %5d  Time(ms) %8d\n", f, i, Lit < 2 ? 0 : (int)(clkSatRun * 1000 / CLOCKS_PER_SEC) );
             if ( p->pTime4Outs )
             {
                 abctime timeSince = Abc_Clock() - clkOne;
