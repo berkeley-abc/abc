@@ -1787,9 +1787,10 @@ int If_DsdManCompute( If_DsdMan_t * p, word * pTruth, int nLeaves, unsigned char
     word pCopy[DAU_MAX_WORD], * pRes;
     char pDsd[DAU_MAX_STR];
     int iDsd, nSizeNonDec, nSupp = 0;
+    int nWords = Abc_TtWordNum(nLeaves);
     abctime clk;
     assert( nLeaves <= DAU_MAX_VAR );
-    Abc_TtCopy( pCopy, pTruth, p->nWords, 0 );
+    Abc_TtCopy( pCopy, pTruth, nWords, 0 );
 clk = Abc_Clock();
     nSizeNonDec = Dau_DsdDecompose( pCopy, nLeaves, 0, 1, pDsd );
 p->timeDsd += Abc_Clock() - clk;
@@ -1808,7 +1809,7 @@ p->timeCanon += Abc_Clock() - clk;
 clk = Abc_Clock();
     pRes = If_DsdManComputeTruth( p, iDsd, pPerm );
 p->timeVerify += Abc_Clock() - clk;
-    if ( !Abc_TtEqual(pRes, pTruth, p->nWords) )
+    if ( !Abc_TtEqual(pRes, pTruth, nWords) )
     {
 //        If_DsdManPrint( p, NULL );
         printf( "\n" );
