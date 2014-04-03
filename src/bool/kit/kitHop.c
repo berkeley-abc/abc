@@ -73,7 +73,7 @@ int Kit_GraphToGia( Gia_Man_t * pMan, Kit_Graph_t * pGraph, Vec_Int_t * vLeaves,
     int i;
     // collect the fanins
     Kit_GraphForEachLeaf( pGraph, pNode, i )
-        pNode->iFunc = Vec_IntEntry( vLeaves, i );
+        pNode->iFunc = vLeaves ? Vec_IntEntry(vLeaves, i) : Gia_Obj2Lit(pMan, Gia_ManPi(pMan, i));
     // perform strashing
     return Kit_GraphToGiaInternal( pMan, pGraph, fHash );
 }
