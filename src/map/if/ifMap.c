@@ -176,7 +176,7 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
         }
         else
         {
-            if ( !If_CutMergeOrdered( p, pCut0R, pCut1R, pCut ) )
+            if ( !If_CutMergeOrdered( p, pCut0, pCut1, pCut ) )
                 continue;
         }
         if ( pObj->fSpec && pCut->nLeaves == (unsigned)p->pPars->nLutSize )
@@ -187,19 +187,20 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
         if ( !p->pPars->fSkipCutFilter && If_CutFilter( pCutSet, pCut ) )
             continue;
         // compute the truth table
-        pCut->fCompl = 0;
         pCut->iCutFunc = -1;
         pCut->iCutDsd = -1;
+        pCut->fCompl = 0;
         if ( p->pPars->fTruth )
         {
-//            abctime clk = Abc_Clock();
+//            int nShared = pCut0->nLeaves + pCut1->nLeaves - pCut->nLeaves;
+            abctime clk = Abc_Clock();
             if ( p->pPars->fUseTtPerm )
                 fChange = If_CutComputeTruthPerm( p, pCut, pCut0R, pCut1R, fFunc0R, fFunc1R );
             else
                 fChange = If_CutComputeTruth( p, pCut, pCut0, pCut1, pObj->fCompl0, pObj->fCompl1 );
+            p->timeCache[4] += Abc_Clock() - clk;
             if ( !p->pPars->fSkipCutFilter && fChange && If_CutFilter( pCutSet, pCut ) )
                 continue;
-//            p->timeTruth += Abc_Clock() - clk;
             if ( p->pPars->fUseDsd )
             {
                 extern void If_ManCacheRecord( If_Man_t * p, int iDsd0, int iDsd1, int nShared, int iDsd );
@@ -223,7 +224,7 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
                     for ( v = 0; v < (int)pCut->nLeaves; v++ )
                         pCut->pPerm[v] = (unsigned char)Vec_StrEntry( p->vTtPerms, truthId * p->pPars->nLutSize + v );
                 }
-                If_ManCacheRecord( p, pCut0R->iCutDsd, pCut1R->iCutDsd, p->nShared, pCut->iCutDsd );
+//                If_ManCacheRecord( p, pCut0->iCutDsd, pCut1->iCutDsd, nShared, pCut->iCutDsd );
             }
             // run user functions
             pCut->fUseless = 0;

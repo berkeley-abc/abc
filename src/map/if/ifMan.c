@@ -167,7 +167,8 @@ void If_ManStop( If_Man_t * p )
             nUnique += Vec_MemEntryNum(p->vTtMem[i]);
         for ( i = 6; i <= p->pPars->nLutSize; i++ )
             nMemTotal += (int)Vec_MemMemory(p->vTtMem[i]);
-        printf( "Unique truth tables = %d. Memory = %.2f MB\n", nUnique, 1.0 * nMemTotal / (1<<20) ); 
+        printf( "Unique truth tables = %d   Memory = %.2f MB   ", nUnique, 1.0 * nMemTotal / (1<<20) ); 
+        Abc_PrintTime( 1, "Time", p->timeCache[4] );
         if ( p->nCacheMisses )
         {
             printf( "Cache hits = %d. Cache misses = %d  (%.2f %%)\n", p->nCacheHits, p->nCacheMisses, 100.0 * p->nCacheMisses / (p->nCacheHits + p->nCacheMisses) ); 
@@ -191,8 +192,6 @@ void If_ManStop( If_Man_t * p )
         p->pIfDsdMan = NULL;
     if ( p->pPars->fUseDsd && (p->nCountNonDec[0] || p->nCountNonDec[1]) )
         printf( "NonDec0 = %d.  NonDec1 = %d.\n", p->nCountNonDec[0], p->nCountNonDec[1] );
-//    Abc_PrintTime( 1, "Truth", p->timeTruth );
-//    Abc_Print( 1, "Small support = %d.\n", p->nSmallSupp );
     Vec_IntFreeP( &p->vCoAttrs );
     Vec_PtrFree( p->vCis );
     Vec_PtrFree( p->vCos );

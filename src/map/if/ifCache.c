@@ -44,6 +44,7 @@ ABC_NAMESPACE_IMPL_START
 ***********************************************************************/
 void If_ManCacheRecord( If_Man_t * p, int iDsd0, int iDsd1, int nShared, int iDsd )
 {
+    assert( nShared >= 0 && nShared <= p->pPars->nLutSize );
     if ( p->vCutData == NULL )
         p->vCutData = Vec_IntAlloc( 10000 );
     if ( iDsd0 > iDsd1 )
