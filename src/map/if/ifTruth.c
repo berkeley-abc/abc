@@ -111,7 +111,7 @@ int If_CutComputeTruth( If_Man_t * p, If_Cut_t * pCut, If_Cut_t * pCut0, If_Cut_
     Abc_TtStretch( pTruth1, pCut->nLeaves, pCut1->pLeaves, pCut1->nLeaves, pCut->pLeaves, pCut->nLeaves );
     fCompl         = (pTruth0[0] & pTruth1[0] & 1);
     Abc_TtAnd( pTruth, pTruth0, pTruth1, nWords, fCompl );
-    if ( p->pPars->fCutMin )
+    if ( p->pPars->fCutMin && (pCut0->nLeaves + pCut1->nLeaves > pCut->nLeaves || pCut0->nLeaves == 0 || pCut1->nLeaves == 0) )
     {
         nLeavesNew = Abc_TtMinBase( pTruth, pCut->pLeaves, pCut->nLeaves, pCut->nLeaves );
         if ( nLeavesNew < If_CutLeaveNum(pCut) )
@@ -149,7 +149,7 @@ int If_CutComputeTruth( If_Man_t * p, If_Cut_t * pCut, If_Cut_t * pCut0, If_Cut_
 int If_CutComputeTruthPerm_int( If_Man_t * p, If_Cut_t * pCut, If_Cut_t * pCut0, If_Cut_t * pCut1, int iCutFunc0, int iCutFunc1 )
 {
     int fVerbose = 0;
-    abctime clk;
+    abctime clk = 0;
     int pPerm[IF_MAX_LUTSIZE];
     int v, Place, fCompl, truthId, nLeavesNew, RetValue = 0;
     int nWords      = Abc_TtWordNum( pCut->nLeaves );
@@ -211,8 +211,10 @@ if ( fVerbose )
         }
     }
     // compute canonical form
+if ( p->pPars->fVerbose )
 clk = Abc_Clock();
     p->uCanonPhase = Abc_TtCanonicize( pTruth, pCut->nLeaves, p->pCanonPerm );
+if ( p->pPars->fVerbose )
 p->timeCache[3] += Abc_Clock() - clk;
     for ( v = 0; v < (int)pCut->nLeaves; v++ )
         pPerm[v] = Abc_LitNotCond( pCut->pLeaves[(int)p->pCanonPerm[v]], ((p->uCanonPhase>>v)&1) );
@@ -247,11 +249,14 @@ if ( fVerbose )
 }
 int If_CutComputeTruthPerm( If_Man_t * p, If_Cut_t * pCut, If_Cut_t * pCut0, If_Cut_t * pCut1, int iCutFunc0, int iCutFunc1 )
 {
-    abctime clk = Abc_Clock();
+    abctime clk = 0;
     int i, Num, nEntriesOld, RetValue;
     if ( pCut0->nLeaves + pCut1->nLeaves > pCut->nLeaves || iCutFunc0 < 2 || iCutFunc1 < 2 )
     {
+if ( p->pPars->fVerbose )
+clk = Abc_Clock();
         RetValue = If_CutComputeTruthPerm_int( p, pCut, pCut0, pCut1, iCutFunc0, iCutFunc1 );
+if ( p->pPars->fVerbose )
 p->timeCache[0] += Abc_Clock() - clk;
         return RetValue;
     }
@@ -284,9 +289,11 @@ p->timeCache[0] += Abc_Clock() - clk;
         }
 //        printf( "Found: %d(%d) %d(%d) -> %d(%d)\n", iCutFunc0, pCut0->nLeaves, iCutFunc1, pCut0->nLeaves, pCut->iCutFunc, pCut->nLeaves );
         p->nCacheHits++;
-p->timeCache[1] += Abc_Clock() - clk;
+//p->timeCache[1] += Abc_Clock() - clk;
         return 0;
     }
+if ( p->pPars->fVerbose )
+clk = Abc_Clock();
     p->nCacheMisses++;
     RetValue = If_CutComputeTruthPerm_int( p, pCut, pCut0, pCut1, iCutFunc0, iCutFunc1 );
     assert( RetValue == 0 );
@@ -300,6 +307,7 @@ p->timeCache[1] += Abc_Clock() - clk;
         Vec_StrPush( p->vPairPerms, (char)Abc_Var2Lit((int)p->pCanonPerm[i], ((p->uCanonPhase>>i)&1)) );
     for ( i = (int)pCut0->nLeaves + (int)pCut1->nLeaves; i < (int)pCut->nLimit; i++ )
         Vec_StrPush( p->vPairPerms, (char)-1 );
+if ( p->pPars->fVerbose )
 p->timeCache[2] += Abc_Clock() - clk;
     return 0;
 }

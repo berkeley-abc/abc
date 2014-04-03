@@ -193,12 +193,15 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
         if ( p->pPars->fTruth )
         {
 //            int nShared = pCut0->nLeaves + pCut1->nLeaves - pCut->nLeaves;
-            abctime clk = Abc_Clock();
+            abctime clk = 0;
+            if ( p->pPars->fVerbose )
+                clk = Abc_Clock();
             if ( p->pPars->fUseTtPerm )
                 fChange = If_CutComputeTruthPerm( p, pCut, pCut0R, pCut1R, fFunc0R, fFunc1R );
             else
                 fChange = If_CutComputeTruth( p, pCut, pCut0, pCut1, pObj->fCompl0, pObj->fCompl1 );
-            p->timeCache[4] += Abc_Clock() - clk;
+            if ( p->pPars->fVerbose )
+                p->timeCache[4] += Abc_Clock() - clk;
             if ( !p->pPars->fSkipCutFilter && fChange && If_CutFilter( pCutSet, pCut ) )
                 continue;
             if ( p->pPars->fUseDsd )
