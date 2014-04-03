@@ -375,7 +375,7 @@ static int Vec_MemHashInsert( Vec_Mem_t * p, word * pEntry )
   SeeAlso     []
 
 ***********************************************************************/
-static inline Vec_Mem_t * Vec_MemAllocForTT( int nVars )
+static inline Vec_Mem_t * Vec_MemAllocForTT( int nVars, int fCompl )
 {
     int Value, nWords = (nVars <= 6 ? 1 : (1 << (nVars - 6)));
     word * uTruth = ABC_ALLOC( word, nWords ); 
@@ -383,7 +383,10 @@ static inline Vec_Mem_t * Vec_MemAllocForTT( int nVars )
     Vec_MemHashAlloc( vTtMem, 10000 );
     memset( uTruth, 0x00, sizeof(word) * nWords );
     Value = Vec_MemHashInsert( vTtMem, uTruth ); assert( Value == 0 );
-    memset( uTruth, 0xAA, sizeof(word) * nWords );
+    if ( fCompl )
+        memset( uTruth, 0x55, sizeof(word) * nWords );
+    else
+        memset( uTruth, 0xAA, sizeof(word) * nWords );
     Value = Vec_MemHashInsert( vTtMem, uTruth ); assert( Value == 1 );
     ABC_FREE( uTruth );
     return vTtMem;

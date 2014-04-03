@@ -1308,10 +1308,15 @@ Gia_Man_t * Gia_ManFromIfLogic( If_Man_t * pIfMan )
                     pIfObj->iCopy = Gia_ManFromIfLogicCreateLut( pNew, If_CutTruthW(pIfMan, pCutBest), vLeaves, vCover, vMapping, vMapping2 );
                 pIfObj->iCopy = Abc_LitNotCond( pIfObj->iCopy, pCutBest->fCompl );
             }
-            else if ( (pIfMan->pPars->fDeriveLuts && pIfMan->pPars->fTruth) || pIfMan->pPars->fUseDsd )
+            else if ( (pIfMan->pPars->fDeriveLuts && pIfMan->pPars->fTruth) || pIfMan->pPars->fUseDsd || pIfMan->pPars->fUseTtPerm )
             {
+                word * pTruth = If_CutTruthW(pIfMan, pCutBest);
+                if ( pIfMan->pPars->fUseTtPerm )
+                    for ( k = 0; k < (int)pCutBest->nLeaves; k++ )
+                        if ( (pCutBest->iCutDsd >> k) & 1 )
+                            Abc_TtFlip( pTruth, Abc_TtWordNum(pCutBest->nLimit), k );
                 // perform decomposition of the cut
-                pIfObj->iCopy = Gia_ManFromIfLogicNode( pIfMan, pNew, i, vLeaves, vLeaves2, If_CutTruthW(pIfMan, pCutBest), pIfMan->pPars->pLutStruct, vCover, vMapping, vMapping2, vPacking, (pIfMan->pPars->fEnableCheck75 || pIfMan->pPars->fEnableCheck75u), pIfMan->pPars->fEnableCheck07 );
+                pIfObj->iCopy = Gia_ManFromIfLogicNode( pIfMan, pNew, i, vLeaves, vLeaves2, pTruth, pIfMan->pPars->pLutStruct, vCover, vMapping, vMapping2, vPacking, (pIfMan->pPars->fEnableCheck75 || pIfMan->pPars->fEnableCheck75u), pIfMan->pPars->fEnableCheck07 );
                 pIfObj->iCopy = Abc_LitNotCond( pIfObj->iCopy, pCutBest->fCompl );
             }
             else
@@ -1528,7 +1533,7 @@ Gia_Man_t * Gia_ManPerformMapping( Gia_Man_t * p, void * pp, int fNormalized )
     If_Man_t * pIfMan;
     If_Par_t * pPars = (If_Par_t *)pp;
     // disable cut minimization when GIA strucure is needed
-    if ( !pPars->fDelayOpt && !pPars->fUserRecLib && !pPars->fDeriveLuts && !pPars->fUseDsd )
+    if ( !pPars->fDelayOpt && !pPars->fUserRecLib && !pPars->fDeriveLuts && !pPars->fUseDsd && !pPars->fUseTtPerm )
         pPars->fCutMin = 0;
 
     // reconstruct GIA according to the hierarchy manager

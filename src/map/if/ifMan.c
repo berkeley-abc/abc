@@ -70,7 +70,7 @@ If_Man_t * If_ManStart( If_Par_t * pPars )
         for ( v = 0; v <= p->pPars->nLutSize; v++ )
             p->nTruth6Words[v] = Abc_Truth6WordNum( v );
         for ( v = 6; v <= p->pPars->nLutSize; v++ )
-            p->vTtMem[v] = Vec_MemAllocForTT( v );
+            p->vTtMem[v] = Vec_MemAllocForTT( v, pPars->fUseTtPerm );
         for ( v = 0; v < 6; v++ )
             p->vTtMem[v] = p->vTtMem[6];
     }
@@ -448,8 +448,8 @@ void If_ManSetupCutTriv( If_Man_t * p, If_Cut_t * pCut, int ObjId )
     pCut->nLeaves    = 1;
     pCut->pLeaves[0] = p->pPars->fLiftLeaves? (ObjId << 8) : ObjId;
     pCut->uSign      = If_ObjCutSign( pCut->pLeaves[0] );
-    pCut->iCutFunc   = (p->pPars->fTruth || p->pPars->fUseTtPerm) ? 2 : -1;
-    pCut->iCutDsd    = p->pPars->fUseDsd ? 2 : (p->pPars->fUseTtPerm ? 0: -1);
+    pCut->iCutFunc   = p->pPars->fUseTtPerm ? 3 : (p->pPars->fTruth ? 2: -1);
+    pCut->iCutDsd    = p->pPars->fUseTtPerm ? 0 : (p->pPars->fUseDsd ? 2: -1);
     assert( pCut->pLeaves[0] < p->vObjs->nSize );
     if ( p->pPars->fUseDsd )
         pCut->pPerm[0] = 0;

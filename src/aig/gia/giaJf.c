@@ -371,7 +371,7 @@ Jf_Man_t * Jf_ManAlloc( Gia_Man_t * pGia, Jf_Par_t * pPars )
     p->pGia      = pGia;
     p->pPars     = pPars;
     if ( pPars->fCutMin && !pPars->fFuncDsd )
-        p->vTtMem = Vec_MemAllocForTT( pPars->nLutSize );
+        p->vTtMem = Vec_MemAllocForTT( pPars->nLutSize, 0 );
     else if ( pPars->fCutMin && pPars->fFuncDsd )
     {
         p->pDsd = Sdm_ManRead();
