@@ -174,6 +174,7 @@ void If_ManStop( If_Man_t * p )
             Abc_PrintTime( 1, "Non-DSD   ", p->timeCache[0] );
             Abc_PrintTime( 1, "DSD hits  ", p->timeCache[1] );
             Abc_PrintTime( 1, "DSD misses", p->timeCache[2] );
+            Abc_PrintTime( 1, "TOTAL     ", p->timeCache[0] + p->timeCache[1] + p->timeCache[2] );
             Abc_PrintTime( 1, "Canon     ", p->timeCache[3] );
         }
     }
