@@ -168,6 +168,14 @@ void If_ManStop( If_Man_t * p )
         for ( i = 6; i <= p->pPars->nLutSize; i++ )
             nMemTotal += (int)Vec_MemMemory(p->vTtMem[i]);
         printf( "Unique truth tables = %d. Memory = %.2f MB\n", nUnique, 1.0 * nMemTotal / (1<<20) ); 
+        if ( p->nCacheMisses )
+        {
+            printf( "Cache hits = %d. Cache misses = %d  (%.2f %%)\n", p->nCacheHits, p->nCacheMisses, 100.0 * p->nCacheMisses / (p->nCacheHits + p->nCacheMisses) ); 
+            Abc_PrintTime( 1, "Non-DSD   ", p->timeCache[0] );
+            Abc_PrintTime( 1, "DSD hits  ", p->timeCache[1] );
+            Abc_PrintTime( 1, "DSD misses", p->timeCache[2] );
+            Abc_PrintTime( 1, "Canon     ", p->timeCache[3] );
+        }
     }
     if ( p->pPars->fVerbose && p->nCutsUselessAll )
     {

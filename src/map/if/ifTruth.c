@@ -149,9 +149,9 @@ int If_CutComputeTruth( If_Man_t * p, If_Cut_t * pCut, If_Cut_t * pCut0, If_Cut_
 int If_CutComputeTruthPerm_int( If_Man_t * p, If_Cut_t * pCut, If_Cut_t * pCut0, If_Cut_t * pCut1, int iCutFunc0, int iCutFunc1 )
 {
     int fVerbose = 0;
+    abctime clk;
     int pPerm[IF_MAX_LUTSIZE];
-    char pCanonPerm[IF_MAX_LUTSIZE];
-    int v, Place, fCompl, truthId, nLeavesNew, uCanonPhase, RetValue = 0;
+    int v, Place, fCompl, truthId, nLeavesNew, RetValue = 0;
     int nWords      = Abc_TtWordNum( pCut->nLeaves );
     word * pTruth0s = Vec_MemReadEntry( p->vTtMem[pCut0->nLeaves], Abc_Lit2Var(iCutFunc0) );
     word * pTruth1s = Vec_MemReadEntry( p->vTtMem[pCut1->nLeaves], Abc_Lit2Var(iCutFunc1) );
@@ -201,7 +201,7 @@ if ( fVerbose )
     // perform operation
     Abc_TtAnd( pTruth, pTruth0, pTruth1, nWords, 0 );
     // minimize support
-    if ( p->pPars->fCutMin )
+    if ( p->pPars->fCutMin && (pCut0->nLeaves + pCut1->nLeaves > pCut->nLeaves || pCut0->nLeaves == 0 || pCut1->nLeaves == 0) )
     {
         nLeavesNew = Abc_TtMinBase( pTruth, pCut->pLeaves, pCut->nLeaves, pCut->nLeaves );
         if ( nLeavesNew < If_CutLeaveNum(pCut) )
@@ -211,9 +211,11 @@ if ( fVerbose )
         }
     }
     // compute canonical form
-    uCanonPhase = Abc_TtCanonicize( pTruth, pCut->nLeaves, pCanonPerm );
+clk = Abc_Clock();
+    p->uCanonPhase = Abc_TtCanonicize( pTruth, pCut->nLeaves, p->pCanonPerm );
+p->timeCache[3] += Abc_Clock() - clk;
     for ( v = 0; v < (int)pCut->nLeaves; v++ )
-        pPerm[v] = Abc_LitNotCond( pCut->pLeaves[(int)pCanonPerm[v]], ((uCanonPhase>>v)&1) );
+        pPerm[v] = Abc_LitNotCond( pCut->pLeaves[(int)p->pCanonPerm[v]], ((p->uCanonPhase>>v)&1) );
     pCut->iCutDsd = 0;
     for ( v = 0; v < (int)pCut->nLeaves; v++ )
     {
@@ -228,7 +230,7 @@ if ( fVerbose )
         assert( pCut->uSign == If_ObjCutSignCompute( pCut ) );
 
     // hash function
-    fCompl         = ((uCanonPhase >> pCut->nLeaves) & 1);
+    fCompl         = ((p->uCanonPhase >> pCut->nLeaves) & 1);
     truthId        = Vec_MemHashInsert( p->vTtMem[pCut->nLeaves], pTruth );
     pCut->iCutFunc = Abc_Var2Lit( truthId, fCompl );
 
@@ -245,36 +247,33 @@ if ( fVerbose )
 }
 int If_CutComputeTruthPerm( If_Man_t * p, If_Cut_t * pCut, If_Cut_t * pCut0, If_Cut_t * pCut1, int iCutFunc0, int iCutFunc1 )
 {
-    int i, k, Num, nEntriesOld, RetValue;
-//    if ( pCut0->nLeaves + pCut1->nLeaves > pCut->nLeaves || iCutFunc0 < 2 || iCutFunc1 < 2 )
-        return If_CutComputeTruthPerm_int( p, pCut, pCut0, pCut1, iCutFunc0, iCutFunc1 );
+    abctime clk = Abc_Clock();
+    int i, Num, nEntriesOld, RetValue;
+    if ( pCut0->nLeaves + pCut1->nLeaves > pCut->nLeaves || iCutFunc0 < 2 || iCutFunc1 < 2 )
+    {
+        RetValue = If_CutComputeTruthPerm_int( p, pCut, pCut0, pCut1, iCutFunc0, iCutFunc1 );
+p->timeCache[0] += Abc_Clock() - clk;
+        return RetValue;
+    }
     assert( pCut0->nLeaves + pCut1->nLeaves == pCut->nLeaves );
     nEntriesOld = Hash_IntManEntryNum(p->vPairHash);
     Num = Hash_Int2ManInsert( p->vPairHash, (iCutFunc0 << 5)|pCut0->nLeaves, (iCutFunc1 << 5)|pCut1->nLeaves, -1 );
     assert( Num > 0 );
     if ( nEntriesOld == Hash_IntManEntryNum(p->vPairHash) )
     {
+        char * pCanonPerm;
         int v, pPerm[IF_MAX_LUTSIZE];
-        char * pCanonPerm = Vec_StrEntryP( p->vPairPerms, Num * pCut->nLimit );
         pCut->iCutFunc = Vec_IntEntry( p->vPairRes, Num );
         // move complements from the fanin cuts
         for ( v = 0; v < (int)pCut->nLeaves; v++ )
             if ( v < (int)pCut0->nLeaves )
-            {
-                assert( pCut->pLeaves[v] == pCut0->pLeaves[v] );
                 pCut->pLeaves[v] = Abc_Var2Lit( pCut->pLeaves[v], If_CutLeafBit(pCut0, v) );
-            }
             else
-            {
-                assert( pCut->pLeaves[v] == pCut1->pLeaves[v-(int)pCut0->nLeaves] );
                 pCut->pLeaves[v] = Abc_Var2Lit( pCut->pLeaves[v], If_CutLeafBit(pCut1, v-(int)pCut0->nLeaves) );
-            }
         // reorder the cut
+        pCanonPerm = Vec_StrEntryP( p->vPairPerms, Num * pCut->nLimit );
         for ( v = 0; v < (int)pCut->nLeaves; v++ )
-        {
-            assert( pCanonPerm[v] >= 0 );
             pPerm[v] = Abc_LitNotCond( pCut->pLeaves[Abc_Lit2Var((int)pCanonPerm[v])], Abc_LitIsCompl((int)pCanonPerm[v]) );
-        }
         // generate the result
         pCut->iCutDsd = 0;
         for ( v = 0; v < (int)pCut->nLeaves; v++ )
@@ -284,8 +283,11 @@ int If_CutComputeTruthPerm( If_Man_t * p, If_Cut_t * pCut, If_Cut_t * pCut0, If_
                 pCut->iCutDsd |= (1 << v);
         }
 //        printf( "Found: %d(%d) %d(%d) -> %d(%d)\n", iCutFunc0, pCut0->nLeaves, iCutFunc1, pCut0->nLeaves, pCut->iCutFunc, pCut->nLeaves );
+        p->nCacheHits++;
+p->timeCache[1] += Abc_Clock() - clk;
         return 0;
     }
+    p->nCacheMisses++;
     RetValue = If_CutComputeTruthPerm_int( p, pCut, pCut0, pCut1, iCutFunc0, iCutFunc1 );
     assert( RetValue == 0 );
 //    printf( "Added: %d(%d) %d(%d) -> %d(%d)\n", iCutFunc0, pCut0->nLeaves, iCutFunc1, pCut0->nLeaves, pCut->iCutFunc, pCut->nLeaves );
@@ -294,16 +296,11 @@ int If_CutComputeTruthPerm( If_Man_t * p, If_Cut_t * pCut, If_Cut_t * pCut0, If_
     Vec_IntPush( p->vPairRes, pCut->iCutFunc );
     // save the permutation
     assert( Num * (int)pCut->nLimit == Vec_StrSize(p->vPairPerms) );
-    for ( i = 0; i < (int)pCut0->nLeaves; i++ )
-        for ( k = 0; k < (int)pCut->nLeaves; k++ )
-            if ( pCut0->pLeaves[i] == pCut->pLeaves[k] )
-                { Vec_StrPush( p->vPairPerms, (char)Abc_Var2Lit(k, If_CutLeafBit(pCut0, i) != If_CutLeafBit(pCut, k)) ); break; }
-    for ( i = 0; i < (int)pCut1->nLeaves; i++ )
-        for ( k = 0; k < (int)pCut->nLeaves; k++ )
-            if ( pCut1->pLeaves[i] == pCut->pLeaves[k] )
-                { Vec_StrPush( p->vPairPerms, (char)Abc_Var2Lit(k, If_CutLeafBit(pCut1, i) != If_CutLeafBit(pCut, k)) ); break; }
+    for ( i = 0; i < (int)pCut->nLeaves; i++ )
+        Vec_StrPush( p->vPairPerms, (char)Abc_Var2Lit((int)p->pCanonPerm[i], ((p->uCanonPhase>>i)&1)) );
     for ( i = (int)pCut0->nLeaves + (int)pCut1->nLeaves; i < (int)pCut->nLimit; i++ )
         Vec_StrPush( p->vPairPerms, (char)-1 );
+p->timeCache[2] += Abc_Clock() - clk;
     return 0;
 }
 

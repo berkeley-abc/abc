@@ -240,6 +240,11 @@ struct If_Man_t_
     Hash_IntMan_t *    vPairHash;     // hashing pairs of truth tables
     Vec_Int_t *        vPairRes;      // resulting truth table
     Vec_Str_t *        vPairPerms;    // resulting permutation
+    char               pCanonPerm[IF_MAX_LUTSIZE];
+    unsigned           uCanonPhase;
+    int                nCacheHits;
+    int                nCacheMisses;
+    abctime            timeCache[6];
     int                nBestCutSmall[2];
     int                nCountNonDec[2];
     Vec_Int_t *        vCutData;      // cut data storage
