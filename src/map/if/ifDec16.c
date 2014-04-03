@@ -2212,10 +2212,15 @@ int If_TtMemCutNum2() { return Vec_MemEntryNum(s_vTtMem2); }
   SeeAlso     []
 
 ***********************************************************************/
-int If_CutPerformCheck16( If_Man_t * p, unsigned * pTruth, int nVars, int nLeaves, char * pStr )
+int If_CutPerformCheck16( If_Man_t * p, unsigned * pTruth0, int nVars, int nLeaves, char * pStr )
 {
+    unsigned pTruth[IF_MAX_FUNC_LUTSIZE > 5 ? 1 << (IF_MAX_FUNC_LUTSIZE - 5) : 1];
     If_Grp_t G1 = {0};//, G3 = {0};
     int i, nLutLeaf, nLutLeaf2, nLutRoot, Length;
+    // stretch the truth table
+    assert( nVars >= 6 );
+    memcpy( pTruth, pTruth0, sizeof(word) * Abc_TtWordNum(nVars) );
+    Abc_TtStretch6( (word *)pTruth, nLeaves, p->pPars->nLutSize );
 
 #ifdef IF_TRY_NEW
     {
