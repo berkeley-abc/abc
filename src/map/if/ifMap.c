@@ -83,50 +83,6 @@ float If_CutDelaySpecial( If_Man_t * p, If_Cut_t * pCut, int fCarry )
 
 /**Function*************************************************************
 
-  Synopsis    []
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-static inline int * If_CutPerm0( If_Cut_t * pCut, If_Cut_t * pCut0 )
-{
-    static int pPerm[IF_MAX_LUTSIZE];
-    int i, k;
-    for ( i = k = 0; i < (int)pCut->nLeaves; i++ )
-    {
-        if ( k == (int)pCut0->nLeaves )
-            break;
-        if ( pCut->pLeaves[i] < pCut0->pLeaves[k] )
-            continue;
-        assert( pCut->pLeaves[i] == pCut0->pLeaves[k] );
-        pPerm[k++] = i;
-    }
-    return pPerm;
-}
-static inline int * If_CutPerm1( If_Cut_t * pCut, If_Cut_t * pCut1 )
-{
-    static int pPerm[IF_MAX_LUTSIZE];
-    int i, k;
-    for ( i = k = 0; i < (int)pCut->nLeaves; i++ )
-    {
-        if ( k == (int)pCut1->nLeaves )
-            break;
-        if ( pCut->pLeaves[i] < pCut1->pLeaves[k] )
-            continue;
-        assert( pCut->pLeaves[i] == pCut1->pLeaves[k] );
-        pPerm[k++] = i;
-    }
-    return pPerm;
-}
-
-
-
-/**Function*************************************************************
-
   Synopsis    [Finds the best cut for the given node.]
 
   Description [Mapping modes: delay (0), area flow (1), area (2).]
@@ -140,6 +96,8 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
 {
     If_Set_t * pCutSet;
     If_Cut_t * pCut0, * pCut1, * pCut;
+    If_Cut_t * pCut0R, * pCut1R;
+    int fFunc0R, fFunc1R;
     int i, k, v, fChange;
     assert( p->pPars->fSeqMap || !If_ObjIsAnd(pObj->pFanin0) || pObj->pFanin0->pCutSet->nCuts > 0 );
     assert( p->pPars->fSeqMap || !If_ObjIsAnd(pObj->pFanin1) || pObj->pFanin1->pCutSet->nCuts > 0 );
@@ -196,15 +154,29 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
         // make sure K-feasible cut exists
         if ( If_WordCountOnes(pCut0->uSign | pCut1->uSign) > p->pPars->nLutSize )
             continue;
+
+        pCut0R = pCut0;
+        pCut1R = pCut1;
+        fFunc0R = pCut0->iCutFunc ^ pCut0->fCompl ^ pObj->fCompl0;
+        fFunc1R = pCut1->iCutFunc ^ pCut1->fCompl ^ pObj->fCompl1;
+        if ( !p->pPars->fUseTtPerm || pCut0->nLeaves > pCut1->nLeaves || (pCut0->nLeaves == pCut1->nLeaves && fFunc0R > fFunc1R) )
+        {
+        }
+        else
+        {
+            ABC_SWAP( If_Cut_t *, pCut0R, pCut1R );
+            ABC_SWAP( int, fFunc0R, fFunc1R );
+        }        
+
         // merge the cuts
         if ( p->pPars->fUseTtPerm )
         {
-            if ( !If_CutMerge( p, pCut0, pCut1, pCut ) )
+            if ( !If_CutMerge( p, pCut0R, pCut1R, pCut ) )
                 continue;
         }
         else
         {
-            if ( !If_CutMergeOrdered( p, pCut0, pCut1, pCut ) )
+            if ( !If_CutMergeOrdered( p, pCut0R, pCut1R, pCut ) )
                 continue;
         }
         if ( pObj->fSpec && pCut->nLeaves == (unsigned)p->pPars->nLutSize )
@@ -218,13 +190,13 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
         pCut->fCompl = 0;
         pCut->iCutFunc = -1;
         pCut->iCutDsd = -1;
-        if ( p->pPars->fTruth )//&& !p->pPars->fUseTtPerm )
+        if ( p->pPars->fTruth )
         {
 //            abctime clk = Abc_Clock();
             if ( p->pPars->fUseTtPerm )
-                fChange = If_CutComputeTruthPerm( p, pCut, pCut0, pCut1, pObj->fCompl0, pObj->fCompl1 );
+                fChange = If_CutComputeTruthPerm( p, pCut, pCut0R, pCut1R, fFunc0R, fFunc1R );
             else
-                fChange = If_CutComputeTruth( p, pCut, pCut0, pCut1, pObj->fCompl0, pObj->fCompl1 );
+                fChange = If_CutComputeTruth( p, pCut, pCut0R, pCut1R, pObj->fCompl0, pObj->fCompl1 );
             if ( !p->pPars->fSkipCutFilter && fChange && If_CutFilter( pCutSet, pCut ) )
                 continue;
 //            p->timeTruth += Abc_Clock() - clk;
@@ -251,7 +223,7 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
                     for ( v = 0; v < (int)pCut->nLeaves; v++ )
                         pCut->pPerm[v] = (unsigned char)Vec_StrEntry( p->vTtPerms, truthId * p->pPars->nLutSize + v );
                 }
-                If_ManCacheRecord( p, pCut0->iCutDsd, pCut1->iCutDsd, p->nShared, pCut->iCutDsd );
+                If_ManCacheRecord( p, pCut0R->iCutDsd, pCut1R->iCutDsd, p->nShared, pCut->iCutDsd );
             }
             // run user functions
             pCut->fUseless = 0;

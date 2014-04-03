@@ -102,7 +102,10 @@ If_Man_t * If_ManStart( If_Par_t * pPars )
     if ( pPars->fUseTtPerm )
     {
         p->vPairHash = Hash_IntManStart( 10000 );
-        p->vTtPerms = Vec_StrAlloc( 10000 );
+        p->vPairPerms = Vec_StrAlloc( 10000 );
+        Vec_StrFill( p->vPairPerms, p->pPars->nLutSize, 0 );
+        p->vPairRes = Vec_IntAlloc( 1000 );
+        Vec_IntPush( p->vPairRes, -1 );
     }
     // create the constant node
     p->pConst1   = If_ManSetupObj( p );
@@ -196,6 +199,8 @@ void If_ManStop( If_Man_t * p )
     Vec_IntFreeP( &p->vTtDsds );
     Vec_StrFreeP( &p->vTtPerms );
     Vec_IntFreeP( &p->vCutData );
+    Vec_IntFreeP( &p->vPairRes );
+    Vec_StrFreeP( &p->vPairPerms );
     if ( p->vPairHash )
         Hash_IntManStop( p->vPairHash );
     for ( i = 6; i <= p->pPars->nLutSize; i++ )

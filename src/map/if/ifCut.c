@@ -215,7 +215,6 @@ int If_CutMergeOrdered_( If_Man_t * p, If_Cut_t * pC0, If_Cut_t * pC1, If_Cut_t 
             p->pPerm[0][i] = p->pPerm[1][i] = p->pPerm[2][i] = i;
             pC->pLeaves[i] = pC0->pLeaves[i];
         }
-        p->nShared = nLimit;
         pC->nLeaves = nLimit;
         pC->uSign = pC0->uSign | pC1->uSign;
         p->uSharedMask = Abc_InfoMask( nLimit );
@@ -259,7 +258,6 @@ FlushCut0:
         p->pPerm[0][i] = c;
         pC->pLeaves[c++] = pC0->pLeaves[i++];
     }
-    p->nShared = s;
     pC->nLeaves = c;
     pC->uSign = pC0->uSign | pC1->uSign;
     assert( c > 0 );
@@ -272,7 +270,6 @@ FlushCut1:
         p->pPerm[1][k] = c;
         pC->pLeaves[c++] = pC1->pLeaves[k++];
     }
-    p->nShared = s;
     pC->nLeaves = c;
     pC->uSign = pC0->uSign | pC1->uSign;
     assert( c > 0 );
@@ -312,7 +309,7 @@ int If_CutMergeOrdered( If_Man_t * p, If_Cut_t * pC0, If_Cut_t * pC1, If_Cut_t *
     }
 
     // compare two cuts with different numbers
-    i = k = c = s = 0; p->nShared = 0;
+    i = k = c = s = 0; 
     if ( nSizeC0 == 0 ) goto FlushCut1;
     if ( nSizeC1 == 0 ) goto FlushCut0;
     while ( 1 )
@@ -330,7 +327,7 @@ int If_CutMergeOrdered( If_Man_t * p, If_Cut_t * pC0, If_Cut_t * pC1, If_Cut_t *
         }
         else
         {
-            pC->pLeaves[c++] = pC0->pLeaves[i++]; k++; p->nShared++;
+            pC->pLeaves[c++] = pC0->pLeaves[i++]; k++;
             if ( i == nSizeC0 ) goto FlushCut1;
             if ( k == nSizeC1 ) goto FlushCut0;
         }
@@ -374,7 +371,7 @@ int If_CutMerge( If_Man_t * p, If_Cut_t * pCut0, If_Cut_t * pCut1, If_Cut_t * pC
     int * pC = pCut->pLeaves;
     int i, k, c;
     // compare two cuts with different numbers
-    c = nSize0; p->nShared = 0;
+    c = nSize0; 
     for ( i = 0; i < nSize1; i++ )
     {
         for ( k = 0; k < nSize0; k++ )
@@ -383,7 +380,6 @@ int If_CutMerge( If_Man_t * p, If_Cut_t * pCut0, If_Cut_t * pCut1, If_Cut_t * pC
         if ( k < nSize0 )
         {
             p->pPerm[1][i] = k;
-            p->nShared++;
             continue;
         }
         if ( c == nLutSize )

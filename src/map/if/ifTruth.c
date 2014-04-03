@@ -146,22 +146,22 @@ int If_CutComputeTruth( If_Man_t * p, If_Cut_t * pCut, If_Cut_t * pCut0, If_Cut_
   SeeAlso     []
 
 ***********************************************************************/
-int If_CutComputeTruthPerm( If_Man_t * p, If_Cut_t * pCut, If_Cut_t * pCut0, If_Cut_t * pCut1, int fCompl0, int fCompl1 )
+int If_CutComputeTruthPerm_int( If_Man_t * p, If_Cut_t * pCut, If_Cut_t * pCut0, If_Cut_t * pCut1, int iCutFunc0, int iCutFunc1 )
 {
     int fVerbose = 0;
     int pPerm[IF_MAX_LUTSIZE];
     char pCanonPerm[IF_MAX_LUTSIZE];
     int v, Place, fCompl, truthId, nLeavesNew, uCanonPhase, RetValue = 0;
     int nWords      = Abc_TtWordNum( pCut->nLeaves );
-    word * pTruth0s = Vec_MemReadEntry( p->vTtMem[pCut0->nLeaves], Abc_Lit2Var(pCut0->iCutFunc) );
-    word * pTruth1s = Vec_MemReadEntry( p->vTtMem[pCut1->nLeaves], Abc_Lit2Var(pCut1->iCutFunc) );
+    word * pTruth0s = Vec_MemReadEntry( p->vTtMem[pCut0->nLeaves], Abc_Lit2Var(iCutFunc0) );
+    word * pTruth1s = Vec_MemReadEntry( p->vTtMem[pCut1->nLeaves], Abc_Lit2Var(iCutFunc1) );
     word * pTruth0  = (word *)p->puTemp[0];
     word * pTruth1  = (word *)p->puTemp[1];
     word * pTruth   = (word *)p->puTemp[2];
     assert( pCut0->iCutDsd >= 0 );
     assert( pCut1->iCutDsd >= 0 );
-    Abc_TtCopy( pTruth0, pTruth0s, nWords, fCompl0 ^ pCut0->fCompl ^ Abc_LitIsCompl(pCut0->iCutFunc) );
-    Abc_TtCopy( pTruth1, pTruth1s, nWords, fCompl1 ^ pCut1->fCompl ^ Abc_LitIsCompl(pCut1->iCutFunc) );
+    Abc_TtCopy( pTruth0, pTruth0s, nWords, Abc_LitIsCompl(iCutFunc0) );
+    Abc_TtCopy( pTruth1, pTruth1s, nWords, Abc_LitIsCompl(iCutFunc1) );
     Abc_TtStretch6( pTruth0, pCut0->nLeaves, pCut->nLeaves );
     Abc_TtStretch6( pTruth1, pCut1->nLeaves, pCut->nLeaves );
 
@@ -172,11 +172,11 @@ if ( fVerbose )
 }
     // create literals
     for ( v = 0; v < (int)pCut0->nLeaves; v++ )
-        pCut->pLeaves[v] = Abc_Var2Lit( pCut0->pLeaves[v], ((pCut0->iCutDsd >> v) & 1) );
+        pCut->pLeaves[v] = Abc_Var2Lit( pCut0->pLeaves[v], If_CutLeafBit(pCut0, v) );
     for ( v = 0; v < (int)pCut1->nLeaves; v++ )
         if ( p->pPerm[1][v] >= (int)pCut0->nLeaves )
-            pCut->pLeaves[p->pPerm[1][v]] = Abc_Var2Lit( pCut1->pLeaves[v], ((pCut1->iCutDsd >> v) & 1) );
-        else if ( ((pCut0->iCutDsd >> p->pPerm[1][v]) & 1) != ((pCut1->iCutDsd >> v) & 1) )
+            pCut->pLeaves[p->pPerm[1][v]] = Abc_Var2Lit( pCut1->pLeaves[v], If_CutLeafBit(pCut1, v) );
+        else if ( If_CutLeafBit(pCut0, p->pPerm[1][v]) != If_CutLeafBit(pCut1, v) )
             Abc_TtFlip( pTruth1, nWords, v );  
     // permute variables
     for ( v = (int)pCut1->nLeaves; v < (int)pCut->nLeaves; v++ )
@@ -242,6 +242,69 @@ if ( fVerbose )
 }
 
     return RetValue;
+}
+int If_CutComputeTruthPerm( If_Man_t * p, If_Cut_t * pCut, If_Cut_t * pCut0, If_Cut_t * pCut1, int iCutFunc0, int iCutFunc1 )
+{
+    int i, k, Num, nEntriesOld, RetValue;
+//    if ( pCut0->nLeaves + pCut1->nLeaves > pCut->nLeaves || iCutFunc0 < 2 || iCutFunc1 < 2 )
+        return If_CutComputeTruthPerm_int( p, pCut, pCut0, pCut1, iCutFunc0, iCutFunc1 );
+    assert( pCut0->nLeaves + pCut1->nLeaves == pCut->nLeaves );
+    nEntriesOld = Hash_IntManEntryNum(p->vPairHash);
+    Num = Hash_Int2ManInsert( p->vPairHash, (iCutFunc0 << 5)|pCut0->nLeaves, (iCutFunc1 << 5)|pCut1->nLeaves, -1 );
+    assert( Num > 0 );
+    if ( nEntriesOld == Hash_IntManEntryNum(p->vPairHash) )
+    {
+        int v, pPerm[IF_MAX_LUTSIZE];
+        char * pCanonPerm = Vec_StrEntryP( p->vPairPerms, Num * pCut->nLimit );
+        pCut->iCutFunc = Vec_IntEntry( p->vPairRes, Num );
+        // move complements from the fanin cuts
+        for ( v = 0; v < (int)pCut->nLeaves; v++ )
+            if ( v < (int)pCut0->nLeaves )
+            {
+                assert( pCut->pLeaves[v] == pCut0->pLeaves[v] );
+                pCut->pLeaves[v] = Abc_Var2Lit( pCut->pLeaves[v], If_CutLeafBit(pCut0, v) );
+            }
+            else
+            {
+                assert( pCut->pLeaves[v] == pCut1->pLeaves[v-(int)pCut0->nLeaves] );
+                pCut->pLeaves[v] = Abc_Var2Lit( pCut->pLeaves[v], If_CutLeafBit(pCut1, v-(int)pCut0->nLeaves) );
+            }
+        // reorder the cut
+        for ( v = 0; v < (int)pCut->nLeaves; v++ )
+        {
+            assert( pCanonPerm[v] >= 0 );
+            pPerm[v] = Abc_LitNotCond( pCut->pLeaves[Abc_Lit2Var((int)pCanonPerm[v])], Abc_LitIsCompl((int)pCanonPerm[v]) );
+        }
+        // generate the result
+        pCut->iCutDsd = 0;
+        for ( v = 0; v < (int)pCut->nLeaves; v++ )
+        {
+            pCut->pLeaves[v] = Abc_Lit2Var(pPerm[v]);
+            if ( Abc_LitIsCompl(pPerm[v]) )
+                pCut->iCutDsd |= (1 << v);
+        }
+//        printf( "Found: %d(%d) %d(%d) -> %d(%d)\n", iCutFunc0, pCut0->nLeaves, iCutFunc1, pCut0->nLeaves, pCut->iCutFunc, pCut->nLeaves );
+        return 0;
+    }
+    RetValue = If_CutComputeTruthPerm_int( p, pCut, pCut0, pCut1, iCutFunc0, iCutFunc1 );
+    assert( RetValue == 0 );
+//    printf( "Added: %d(%d) %d(%d) -> %d(%d)\n", iCutFunc0, pCut0->nLeaves, iCutFunc1, pCut0->nLeaves, pCut->iCutFunc, pCut->nLeaves );
+    // save the result
+    assert( Num == Vec_IntSize(p->vPairRes) );
+    Vec_IntPush( p->vPairRes, pCut->iCutFunc );
+    // save the permutation
+    assert( Num * (int)pCut->nLimit == Vec_StrSize(p->vPairPerms) );
+    for ( i = 0; i < (int)pCut0->nLeaves; i++ )
+        for ( k = 0; k < (int)pCut->nLeaves; k++ )
+            if ( pCut0->pLeaves[i] == pCut->pLeaves[k] )
+                { Vec_StrPush( p->vPairPerms, (char)Abc_Var2Lit(k, If_CutLeafBit(pCut0, i) != If_CutLeafBit(pCut, k)) ); break; }
+    for ( i = 0; i < (int)pCut1->nLeaves; i++ )
+        for ( k = 0; k < (int)pCut->nLeaves; k++ )
+            if ( pCut1->pLeaves[i] == pCut->pLeaves[k] )
+                { Vec_StrPush( p->vPairPerms, (char)Abc_Var2Lit(k, If_CutLeafBit(pCut1, i) != If_CutLeafBit(pCut, k)) ); break; }
+    for ( i = (int)pCut0->nLeaves + (int)pCut1->nLeaves; i < (int)pCut->nLimit; i++ )
+        Vec_StrPush( p->vPairPerms, (char)-1 );
+    return 0;
 }
 
 ////////////////////////////////////////////////////////////////////////

@@ -233,11 +233,13 @@ struct If_Man_t_
     int                nCutsCountAll;
     int                nCutsUselessAll;
     int                nCuts5, nCuts5a;
-    If_DsdMan_t *      pIfDsdMan;
     Vec_Mem_t *        vTtMem[IF_MAX_FUNC_LUTSIZE+1]; // truth table memory and hash table
+    If_DsdMan_t *      pIfDsdMan;     // DSD manager
     Vec_Int_t *        vTtDsds;       // mapping of truth table into DSD
     Vec_Str_t *        vTtPerms;      // mapping of truth table into permutations
     Hash_IntMan_t *    vPairHash;     // hashing pairs of truth tables
+    Vec_Int_t *        vPairRes;      // resulting truth table
+    Vec_Str_t *        vPairPerms;    // resulting permutation
     int                nBestCutSmall[2];
     int                nCountNonDec[2];
     Vec_Int_t *        vCutData;      // cut data storage
@@ -389,6 +391,7 @@ static inline int *      If_CutLeaves( If_Cut_t * pCut )                     { r
 static inline unsigned   If_CutSuppMask( If_Cut_t * pCut )                   { return (~(unsigned)0) >> (32-pCut->nLeaves);      }
 static inline int        If_CutTruthWords( int nVarsMax )                    { return nVarsMax <= 5 ? 2 : (1 << (nVarsMax - 5)); }
 static inline int        If_CutPermWords( int nVarsMax )                     { return nVarsMax / sizeof(int) + ((nVarsMax % sizeof(int)) > 0); }
+static inline int        If_CutLeafBit( If_Cut_t * pCut, int i )             { return (pCut->iCutDsd >> i) & 1;                  }
 
 static inline If_Cut_t * If_ObjCutBest( If_Obj_t * pObj )                    { return &pObj->CutBest;                }
 static inline unsigned   If_ObjCutSign( unsigned ObjId )                     { return (1 << (ObjId % 31));           }
