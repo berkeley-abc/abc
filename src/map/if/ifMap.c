@@ -208,24 +208,25 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
             {
                 extern void If_ManCacheRecord( If_Man_t * p, int iDsd0, int iDsd1, int nShared, int iDsd );
                 int truthId = Abc_Lit2Var(pCut->iCutFunc);
-                if ( Vec_IntSize(p->vTtDsds) <= truthId || Vec_IntEntry(p->vTtDsds, truthId) == -1 )
+                if ( Vec_IntSize(p->vTtDsds[pCut->nLeaves]) <= truthId || Vec_IntEntry(p->vTtDsds[pCut->nLeaves], truthId) == -1 )
                 {
                     pCut->iCutDsd = If_DsdManCompute( p->pIfDsdMan, If_CutTruthW(p, pCut), pCut->nLeaves, (unsigned char *)pCut->pPerm, p->pPars->pLutStruct );
-                    while ( Vec_IntSize(p->vTtDsds) <= truthId )
+                    while ( Vec_IntSize(p->vTtDsds[pCut->nLeaves]) <= truthId )
                     {
-                        Vec_IntPush( p->vTtDsds, -1 );
-                        for ( v = 0; v < p->pPars->nLutSize; v++ )
-                            Vec_StrPush( p->vTtPerms, IF_BIG_CHAR );
+                        Vec_IntPush( p->vTtDsds[pCut->nLeaves], -1 );
+                        for ( v = 0; v < Abc_MaxInt(6, pCut->nLeaves); v++ )
+                            Vec_StrPush( p->vTtPerms[pCut->nLeaves], IF_BIG_CHAR );
                     }
-                    Vec_IntWriteEntry( p->vTtDsds, truthId, Abc_LitNotCond(pCut->iCutDsd, Abc_LitIsCompl(pCut->iCutFunc)) );
+                    Vec_IntWriteEntry( p->vTtDsds[pCut->nLeaves], truthId, Abc_LitNotCond(pCut->iCutDsd, Abc_LitIsCompl(pCut->iCutFunc)) );
                     for ( v = 0; v < (int)pCut->nLeaves; v++ )
-                        Vec_StrWriteEntry( p->vTtPerms, truthId * p->pPars->nLutSize + v, (char)pCut->pPerm[v] );
+                        Vec_StrWriteEntry( p->vTtPerms[pCut->nLeaves], truthId * Abc_MaxInt(6, pCut->nLeaves) + v, (char)pCut->pPerm[v] );
                 }
                 else
                 {
-                    pCut->iCutDsd = Abc_LitNotCond( Vec_IntEntry(p->vTtDsds, truthId), Abc_LitIsCompl(pCut->iCutFunc) );
+                    pCut->iCutDsd = Abc_LitNotCond( Vec_IntEntry(p->vTtDsds[pCut->nLeaves], truthId), Abc_LitIsCompl(pCut->iCutFunc) );
                     for ( v = 0; v < (int)pCut->nLeaves; v++ )
-                        pCut->pPerm[v] = (unsigned char)Vec_StrEntry( p->vTtPerms, truthId * p->pPars->nLutSize + v );
+                        pCut->pPerm[v] = (unsigned char)Vec_StrEntry( p->vTtPerms[pCut->nLeaves], truthId * Abc_MaxInt(6, pCut->nLeaves) + v );
+//                    assert( If_DsdManSuppSize(p->pIfDsdMan, pCut->iCutDsd) == (int)pCut->nLeaves );
                 }
 //                If_ManCacheRecord( p, pCut0->iCutDsd, pCut1->iCutDsd, nShared, pCut->iCutDsd );
             }

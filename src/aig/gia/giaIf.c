@@ -1192,6 +1192,7 @@ int Gia_ManFromIfLogicFindLut( If_Man_t * pIfMan, Gia_Man_t * pNew, If_Cut_t * p
         }
         return RetValue;
     }
+    assert( If_DsdManSuppSize(pIfMan->pIfDsdMan, pCutBest->iCutDsd) == (int)pCutBest->nLeaves );
     // find the bound set
     uSetOld = If_DsdManCheckXY( pIfMan->pIfDsdMan, pCutBest->iCutDsd, nLutSize, 1, 1, 0 );
     // remap bound set
@@ -1313,7 +1314,7 @@ Gia_Man_t * Gia_ManFromIfLogic( If_Man_t * pIfMan )
                 word * pTruth = If_CutTruthW(pIfMan, pCutBest);
                 if ( pIfMan->pPars->fUseTtPerm )
                     for ( k = 0; k < (int)pCutBest->nLeaves; k++ )
-                        if ( (pCutBest->iCutDsd >> k) & 1 )
+                        if ( If_CutLeafBit(pCutBest, k) )
                             Abc_TtFlip( pTruth, Abc_TtWordNum(pCutBest->nLimit), k );
                 // perform decomposition of the cut
                 pIfObj->iCopy = Gia_ManFromIfLogicNode( pIfMan, pNew, i, vLeaves, vLeaves2, pTruth, pIfMan->pPars->pLutStruct, vCover, vMapping, vMapping2, vPacking, (pIfMan->pPars->fEnableCheck75 || pIfMan->pPars->fEnableCheck75u), pIfMan->pPars->fEnableCheck07 );

@@ -233,10 +233,10 @@ struct If_Man_t_
     int                nCutsCountAll;
     int                nCutsUselessAll;
     int                nCuts5, nCuts5a;
-    Vec_Mem_t *        vTtMem[IF_MAX_FUNC_LUTSIZE+1]; // truth table memory and hash table
     If_DsdMan_t *      pIfDsdMan;     // DSD manager
-    Vec_Int_t *        vTtDsds;       // mapping of truth table into DSD
-    Vec_Str_t *        vTtPerms;      // mapping of truth table into permutations
+    Vec_Mem_t *        vTtMem[IF_MAX_FUNC_LUTSIZE+1];   // truth table memory and hash table
+    Vec_Int_t *        vTtDsds[IF_MAX_FUNC_LUTSIZE+1];  // mapping of truth table into DSD
+    Vec_Str_t *        vTtPerms[IF_MAX_FUNC_LUTSIZE+1]; // mapping of truth table into permutations
     Hash_IntMan_t *    vPairHash;     // hashing pairs of truth tables
     Vec_Int_t *        vPairRes;      // resulting truth table
     Vec_Str_t *        vPairPerms;    // resulting permutation
@@ -543,6 +543,7 @@ extern int             If_DsdManCompute( If_DsdMan_t * p, word * pTruth, int nLe
 extern char *          If_DsdManFileName( If_DsdMan_t * p );
 extern int             If_DsdManVarNum( If_DsdMan_t * p );
 extern int             If_DsdManLutSize( If_DsdMan_t * p );
+extern int             If_DsdManSuppSize( If_DsdMan_t * p, int iDsd );
 extern int             If_DsdManCheckDec( If_DsdMan_t * p, int iDsd );
 extern unsigned        If_DsdManCheckXY( If_DsdMan_t * p, int iDsd, int LutSize, int fDerive, int fHighEffort, int fVerbose );
 /*=== ifLib.c =============================================================*/

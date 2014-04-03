@@ -859,7 +859,7 @@ void If_CutPrint( If_Cut_t * pCut )
     unsigned i;
     Abc_Print( 1, "{" );
     for ( i = 0; i < pCut->nLeaves; i++ )
-        Abc_Print( 1, " %s%d", ((pCut->iCutDsd >> i) & 1) ? "!":"", pCut->pLeaves[i] );
+        Abc_Print( 1, " %s%d", If_CutLeafBit(pCut, i) ? "!":"", pCut->pLeaves[i] );
     Abc_Print( 1, " }\n" );
 }
 

@@ -150,6 +150,10 @@ int If_DsdManLutSize( If_DsdMan_t * p )
 {
     return p->LutSize;
 }
+int If_DsdManSuppSize( If_DsdMan_t * p, int iDsd )
+{
+    return If_DsdVecLitSuppSize( &p->vObjs, iDsd );
+}
 int If_DsdManCheckDec( If_DsdMan_t * p, int iDsd )
 {
     return If_DsdVecObjMark( &p->vObjs, Abc_Lit2Var(iDsd) );
@@ -845,10 +849,10 @@ int If_DsdObjFindOrAdd( If_DsdMan_t * p, int Type, int * pLits, int nLits, word 
 {
     int objId, truthId = (Type == IF_DSD_PRIME) ? Vec_MemHashInsert(p->vTtMem[nLits], pTruth) : -1;
     unsigned * pSpot = If_DsdObjHashLookup( p, Type, pLits, nLits, truthId );
-abctime clk;
+//abctime clk;
     if ( *pSpot )
         return (int)*pSpot;
-clk = Abc_Clock();
+//clk = Abc_Clock();
     if ( p->LutSize && truthId >= 0 && truthId == Vec_PtrSize(p->vTtDecs[nLits]) )
     {
         Vec_Int_t * vSets = Dau_DecFindSets_int( pTruth, nLits, p->pSched );
@@ -863,7 +867,7 @@ clk = Abc_Clock();
 //        printf( "%d ", Gia_ManAndNum(p->pTtGia)-nObjOld );
         Gia_ManAppendCo( p->pTtGia, Lit );
     }
-p->timeCheck += Abc_Clock() - clk;
+//p->timeCheck += Abc_Clock() - clk;
     *pSpot = Vec_PtrSize( &p->vObjs );
     objId = If_DsdObjCreate( p, Type, pLits, nLits, truthId );
     if ( Vec_PtrSize(&p->vObjs) > p->nBins )
@@ -1661,13 +1665,6 @@ unsigned If_DsdManCheckXY_int( If_DsdMan_t * p, int iDsd, int LutSize, int fDeri
 {
     If_DsdObj_t * pObj, * pTemp; 
     int i, Mask, iFirst;
-/*
-    if ( 193 == iDsd )
-    {
-        int s = 0;
-        If_DsdManPrintOne( stdout, p, Abc_Lit2Var(iDsd), NULL, 1 );
-    }
-*/
     pObj = If_DsdVecObj( &p->vObjs, Abc_Lit2Var(iDsd) );
     if ( fVerbose )
     If_DsdManPrintOne( stdout, p, Abc_Lit2Var(iDsd), NULL, 0 );
@@ -1740,7 +1737,7 @@ unsigned If_DsdManCheckXY( If_DsdMan_t * p, int iDsd, int LutSize, int fDerive, 
     unsigned uSet = If_DsdManCheckXY_int( p, iDsd, LutSize, fDerive, fVerbose );
     if ( uSet == 0 && fHighEffort )
     {
-        abctime clk = Abc_Clock();
+//        abctime clk = Abc_Clock();
         int nVars = If_DsdVecLitSuppSize( &p->vObjs, iDsd );
         word * pRes = If_DsdManComputeTruth( p, iDsd, NULL );
         uSet = If_ManSatCheckXYall( p->pSat, LutSize, pRes, nVars, p->vTemp1 );
@@ -1749,8 +1746,7 @@ unsigned If_DsdManCheckXY( If_DsdMan_t * p, int iDsd, int LutSize, int fDerive, 
 //            If_DsdManPrintOne( stdout, p, Abc_Lit2Var(iDsd), NULL, 1 );
 //            Dau_DecPrintSet( uSet, nVars, 1 );
         }
-//        Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
-        p->timeCheck2 += Abc_Clock() - clk;
+//        p->timeCheck2 += Abc_Clock() - clk;
     }
     return uSet;
 }
@@ -1788,27 +1784,23 @@ int If_DsdManCompute( If_DsdMan_t * p, word * pTruth, int nLeaves, unsigned char
     char pDsd[DAU_MAX_STR];
     int iDsd, nSizeNonDec, nSupp = 0;
     int nWords = Abc_TtWordNum(nLeaves);
-    abctime clk;
+    abctime clk = 0;
     assert( nLeaves <= DAU_MAX_VAR );
     Abc_TtCopy( pCopy, pTruth, nWords, 0 );
-clk = Abc_Clock();
+//clk = Abc_Clock();
     nSizeNonDec = Dau_DsdDecompose( pCopy, nLeaves, 0, 1, pDsd );
-p->timeDsd += Abc_Clock() - clk;
-//    if ( !strcmp(pDsd, "(![(!e!d)c]!(b!a))") )
-//    {
-//        int x = 0;
-//    }
+//p->timeDsd += Abc_Clock() - clk;
     if ( nSizeNonDec > 0 )
         Abc_TtStretch6( pCopy, nSizeNonDec, p->nVars );
     memset( pPerm, 0xFF, nLeaves );
-clk = Abc_Clock();
+//clk = Abc_Clock();
     iDsd = If_DsdManAddDsd( p, pDsd, pCopy, pPerm, &nSupp );
-p->timeCanon += Abc_Clock() - clk;
+//p->timeCanon += Abc_Clock() - clk;
     assert( nSupp == nLeaves );
     // verify the result
-clk = Abc_Clock();
+//clk = Abc_Clock();
     pRes = If_DsdManComputeTruth( p, iDsd, pPerm );
-p->timeVerify += Abc_Clock() - clk;
+//p->timeVerify += Abc_Clock() - clk;
     if ( !Abc_TtEqual(pRes, pTruth, nWords) )
     {
 //        If_DsdManPrint( p, NULL );
@@ -1821,6 +1813,7 @@ p->timeVerify += Abc_Clock() - clk;
         printf( "\n" );
     }
     If_DsdVecObjIncRef( &p->vObjs, Abc_Lit2Var(iDsd) );
+    assert( If_DsdVecLitSuppSize(&p->vObjs, iDsd) == nLeaves );
     return iDsd;
 }
 

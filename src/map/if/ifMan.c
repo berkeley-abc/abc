@@ -92,12 +92,20 @@ If_Man_t * If_ManStart( If_Par_t * pPars )
     p->puTempW   = p->pPars->fTruth? ABC_ALLOC( word, p->nTruth6Words[p->pPars->nLutSize] ) : NULL;
     if ( pPars->fUseDsd )
     {
-        p->vTtDsds = Vec_IntAlloc( 1000 );
-        Vec_IntPush( p->vTtDsds, 0 );
-        Vec_IntPush( p->vTtDsds, 2 );
-        p->vTtPerms = Vec_StrAlloc( 10000 );
-        Vec_StrFill( p->vTtPerms, 2 * p->pPars->nLutSize, IF_BIG_CHAR );
-        Vec_StrWriteEntry( p->vTtPerms, p->pPars->nLutSize, 0 );
+        for ( v = 6; v <= p->pPars->nLutSize; v++ )
+        {
+            p->vTtDsds[v] = Vec_IntAlloc( 1000 );
+            Vec_IntPush( p->vTtDsds[v], 0 );
+            Vec_IntPush( p->vTtDsds[v], 2 );
+            p->vTtPerms[v] = Vec_StrAlloc( 10000 );
+            Vec_StrFill( p->vTtPerms[v], 2 * v, IF_BIG_CHAR );
+            Vec_StrWriteEntry( p->vTtPerms[v], v, 0 );
+        }
+        for ( v = 0; v < 6; v++ )
+        {
+            p->vTtDsds[v]  = p->vTtDsds[6];
+            p->vTtPerms[v] = p->vTtPerms[6];
+        }
     }
     if ( pPars->fUseTtPerm )
     {
@@ -204,8 +212,10 @@ void If_ManStop( If_Man_t * p )
     Vec_PtrFreeP( &p->vObjsRev );
     Vec_PtrFreeP( &p->vLatchOrder );
     Vec_IntFreeP( &p->vLags );
-    Vec_IntFreeP( &p->vTtDsds );
-    Vec_StrFreeP( &p->vTtPerms );
+    for ( i = 6; i <= p->pPars->nLutSize; i++ )
+        Vec_IntFreeP( &p->vTtDsds[i] );
+    for ( i = 6; i <= p->pPars->nLutSize; i++ )
+        Vec_StrFreeP( &p->vTtPerms[i] );
     Vec_IntFreeP( &p->vCutData );
     Vec_IntFreeP( &p->vPairRes );
     Vec_StrFreeP( &p->vPairPerms );
