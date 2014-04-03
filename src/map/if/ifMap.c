@@ -239,7 +239,7 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
                 if ( p->pPars->fUseDsd )
                     pCut->fUseless = If_DsdManCheckDec( p->pIfDsdMan, pCut->iCutDsd );
                 else
-                    pCut->fUseless = !p->pPars->pFuncCell( p, If_CutTruth(p, pCut), pCut->nLimit, pCut->nLeaves, p->pPars->pLutStruct );
+                    pCut->fUseless = !p->pPars->pFuncCell( p, If_CutTruth(p, pCut), pCut->nLeaves, pCut->nLeaves, p->pPars->pLutStruct );
                 p->nCutsUselessAll += pCut->fUseless;
                 p->nCutsUseless[pCut->nLeaves] += pCut->fUseless;
                 p->nCutsCountAll++;
