@@ -216,7 +216,7 @@ struct If_Man_t_
     int                nMaxIters;     // the maximum number of iterations
     int                Period;        // the current value of the clock period (for seq mapping)
     // memory management
-    int                nTruth6Words;  // the size of the truth table if allocated
+    int                nTruth6Words[IF_MAX_FUNC_LUTSIZE+1];  // the size of the truth table if allocated
     int                nPermWords;    // the size of the permutation array (in words)
     int                nObjBytes;     // the size of the object
     int                nCutBytes;     // the size of the cut
@@ -234,7 +234,7 @@ struct If_Man_t_
     int                nCutsUselessAll;
     int                nCuts5, nCuts5a;
     If_DsdMan_t *      pIfDsdMan;
-    Vec_Mem_t *        vTtMem;        // truth table memory and hash table
+    Vec_Mem_t *        vTtMem[IF_MAX_FUNC_LUTSIZE+1]; // truth table memory and hash table
     Vec_Int_t *        vTtDsds;       // mapping of truth table into DSD
     Vec_Str_t *        vTtPerms;      // mapping of truth table into permutations
     Hash_IntMan_t *    vPairHash;     // hashing pairs of truth tables
@@ -406,10 +406,10 @@ static inline void       If_CutSetData( If_Cut_t * pCut, void * pData )      { *
 static inline int        If_CutDataInt( If_Cut_t * pCut )                    { return *(int *)pCut;                  }
 static inline void       If_CutSetDataInt( If_Cut_t * pCut, int Data )       { *(int *)pCut = Data;                  }
 
-static inline word *     If_CutTruthWR( If_Man_t * p, If_Cut_t * pCut )      { return p->vTtMem ? Vec_MemReadEntry(p->vTtMem, Abc_Lit2Var(pCut->iCutFunc)) : NULL;  }
+static inline word *     If_CutTruthWR( If_Man_t * p, If_Cut_t * pCut )      { return p->vTtMem ? Vec_MemReadEntry(p->vTtMem[pCut->nLeaves], Abc_Lit2Var(pCut->iCutFunc)) : NULL;  }
 static inline unsigned * If_CutTruthR( If_Man_t * p, If_Cut_t * pCut )       { return (unsigned *)If_CutTruthWR(p, pCut);                        }
 static inline int        If_CutTruthIsCompl( If_Cut_t * pCut )               { assert( pCut->iCutFunc >= 0 ); return Abc_LitIsCompl(pCut->iCutFunc);                            }
-static inline word *     If_CutTruthW( If_Man_t * p, If_Cut_t * pCut )       { if ( p->vTtMem == NULL ) return NULL; assert( pCut->iCutFunc >= 0 ); Abc_TtCopy( p->puTempW, If_CutTruthWR(p, pCut), p->nTruth6Words, If_CutTruthIsCompl(pCut) ); return p->puTempW;  }
+static inline word *     If_CutTruthW( If_Man_t * p, If_Cut_t * pCut )       { if ( p->vTtMem == NULL ) return NULL; assert( pCut->iCutFunc >= 0 ); Abc_TtCopy( p->puTempW, If_CutTruthWR(p, pCut), p->nTruth6Words[pCut->nLeaves], If_CutTruthIsCompl(pCut) ); return p->puTempW;  }
 static inline unsigned * If_CutTruth( If_Man_t * p, If_Cut_t * pCut )        { return (unsigned *)If_CutTruthW(p, pCut);                         }
 
 static inline float      If_CutLutArea( If_Man_t * p, If_Cut_t * pCut )      { return pCut->fUser? (float)pCut->Cost : (p->pPars->pLutLib? p->pPars->pLutLib->pLutAreas[pCut->nLeaves] : (float)1.0); }

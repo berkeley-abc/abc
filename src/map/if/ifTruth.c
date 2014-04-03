@@ -71,14 +71,14 @@ void If_CutRotatePins( If_Man_t * p, If_Cut_t * pCut )
     assert( !p->pPars->fUseTtPerm );
     If_CutForEachLeaf( p, pCut, pLeaf, i )
         PinDelays[i] = If_ObjCutBest(pLeaf)->Delay;
-    if ( p->vTtMem == NULL )
+    if ( p->vTtMem[pCut->nLeaves] == NULL )
     {
-        If_CutTruthPermute( NULL, If_CutLeaveNum(pCut), pCut->nLimit, p->nTruth6Words, PinDelays, If_CutLeaves(pCut) );
+        If_CutTruthPermute( NULL, If_CutLeaveNum(pCut), pCut->nLeaves, p->nTruth6Words[pCut->nLeaves], PinDelays, If_CutLeaves(pCut) );
         return;
     }
-    Abc_TtCopy( p->puTempW, If_CutTruthWR(p, pCut), p->nTruth6Words, 0 );
-    If_CutTruthPermute( p->puTempW, If_CutLeaveNum(pCut), pCut->nLimit, p->nTruth6Words, PinDelays, If_CutLeaves(pCut) );
-    truthId        = Vec_MemHashInsert( p->vTtMem, p->puTempW );
+    Abc_TtCopy( p->puTempW, If_CutTruthWR(p, pCut), p->nTruth6Words[pCut->nLeaves], 0 );
+    If_CutTruthPermute( p->puTempW, If_CutLeaveNum(pCut), pCut->nLeaves, p->nTruth6Words[pCut->nLeaves], PinDelays, If_CutLeaves(pCut) );
+    truthId        = Vec_MemHashInsert( p->vTtMem[pCut->nLeaves], p->puTempW );
     pCut->iCutFunc = Abc_Var2Lit( truthId, If_CutTruthIsCompl(pCut) );
     assert( (p->puTempW[0] & 1) == 0 );
 }
@@ -97,21 +97,23 @@ void If_CutRotatePins( If_Man_t * p, If_Cut_t * pCut )
 int If_CutComputeTruth( If_Man_t * p, If_Cut_t * pCut, If_Cut_t * pCut0, If_Cut_t * pCut1, int fCompl0, int fCompl1 )
 {
     int fCompl, truthId, nLeavesNew, RetValue = 0;
-    int nWords      = Abc_TtWordNum( pCut->nLimit );
-    word * pTruth0s = Vec_MemReadEntry( p->vTtMem, Abc_Lit2Var(pCut0->iCutFunc) );
-    word * pTruth1s = Vec_MemReadEntry( p->vTtMem, Abc_Lit2Var(pCut1->iCutFunc) );
+    int nWords      = Abc_TtWordNum( pCut->nLeaves );
+    word * pTruth0s = Vec_MemReadEntry( p->vTtMem[pCut0->nLeaves], Abc_Lit2Var(pCut0->iCutFunc) );
+    word * pTruth1s = Vec_MemReadEntry( p->vTtMem[pCut1->nLeaves], Abc_Lit2Var(pCut1->iCutFunc) );
     word * pTruth0  = (word *)p->puTemp[0];
     word * pTruth1  = (word *)p->puTemp[1];
     word * pTruth   = (word *)p->puTemp[2];
     Abc_TtCopy( pTruth0, pTruth0s, nWords, fCompl0 ^ pCut0->fCompl ^ Abc_LitIsCompl(pCut0->iCutFunc) );
     Abc_TtCopy( pTruth1, pTruth1s, nWords, fCompl1 ^ pCut1->fCompl ^ Abc_LitIsCompl(pCut1->iCutFunc) );
-    Abc_TtStretch( pTruth0, pCut->nLimit, pCut0->pLeaves, pCut0->nLeaves, pCut->pLeaves, pCut->nLeaves );
-    Abc_TtStretch( pTruth1, pCut->nLimit, pCut1->pLeaves, pCut1->nLeaves, pCut->pLeaves, pCut->nLeaves );
+    Abc_TtStretch6( pTruth0, pCut0->nLeaves, pCut->nLeaves );
+    Abc_TtStretch6( pTruth1, pCut1->nLeaves, pCut->nLeaves );
+    Abc_TtStretch( pTruth0, pCut->nLeaves, pCut0->pLeaves, pCut0->nLeaves, pCut->pLeaves, pCut->nLeaves );
+    Abc_TtStretch( pTruth1, pCut->nLeaves, pCut1->pLeaves, pCut1->nLeaves, pCut->pLeaves, pCut->nLeaves );
     fCompl         = (pTruth0[0] & pTruth1[0] & 1);
     Abc_TtAnd( pTruth, pTruth0, pTruth1, nWords, fCompl );
     if ( p->pPars->fCutMin )
     {
-        nLeavesNew = Abc_TtMinBase( pTruth, pCut->pLeaves, pCut->nLeaves, pCut->nLimit );
+        nLeavesNew = Abc_TtMinBase( pTruth, pCut->pLeaves, pCut->nLeaves, pCut->nLeaves );
         if ( nLeavesNew < If_CutLeaveNum(pCut) )
         {
             pCut->nLeaves = nLeavesNew;
@@ -119,7 +121,7 @@ int If_CutComputeTruth( If_Man_t * p, If_Cut_t * pCut, If_Cut_t * pCut0, If_Cut_
             RetValue      = 1;
         }
     }
-    truthId        = Vec_MemHashInsert( p->vTtMem, pTruth );
+    truthId        = Vec_MemHashInsert( p->vTtMem[pCut->nLeaves], pTruth );
     pCut->iCutFunc = Abc_Var2Lit( truthId, fCompl );
     assert( (pTruth[0] & 1) == 0 );
 #ifdef IF_TRY_NEW
@@ -127,7 +129,7 @@ int If_CutComputeTruth( If_Man_t * p, If_Cut_t * pCut, If_Cut_t * pCut0, If_Cut_
         word pCopy[1024];
         char pCanonPerm[16];
         memcpy( pCopy, If_CutTruthW(pCut), sizeof(word) * nWords );
-        Abc_TtCanonicize( pCopy, pCut->nLimit, pCanonPerm );
+        Abc_TtCanonicize( pCopy, pCut->nLeaves, pCanonPerm );
     }
 #endif
     return RetValue;
@@ -150,9 +152,9 @@ int If_CutComputeTruthPerm( If_Man_t * p, If_Cut_t * pCut, If_Cut_t * pCut0, If_
     int pPerm[IF_MAX_LUTSIZE];
     char pCanonPerm[IF_MAX_LUTSIZE];
     int v, Place, fCompl, truthId, nLeavesNew, uCanonPhase, RetValue = 0;
-    int nWords      = Abc_TtWordNum( pCut->nLimit );
-    word * pTruth0s = Vec_MemReadEntry( p->vTtMem, Abc_Lit2Var(pCut0->iCutFunc) );
-    word * pTruth1s = Vec_MemReadEntry( p->vTtMem, Abc_Lit2Var(pCut1->iCutFunc) );
+    int nWords      = Abc_TtWordNum( pCut->nLeaves );
+    word * pTruth0s = Vec_MemReadEntry( p->vTtMem[pCut0->nLeaves], Abc_Lit2Var(pCut0->iCutFunc) );
+    word * pTruth1s = Vec_MemReadEntry( p->vTtMem[pCut1->nLeaves], Abc_Lit2Var(pCut1->iCutFunc) );
     word * pTruth0  = (word *)p->puTemp[0];
     word * pTruth1  = (word *)p->puTemp[1];
     word * pTruth   = (word *)p->puTemp[2];
@@ -160,7 +162,8 @@ int If_CutComputeTruthPerm( If_Man_t * p, If_Cut_t * pCut, If_Cut_t * pCut0, If_
     assert( pCut1->iCutDsd >= 0 );
     Abc_TtCopy( pTruth0, pTruth0s, nWords, fCompl0 ^ pCut0->fCompl ^ Abc_LitIsCompl(pCut0->iCutFunc) );
     Abc_TtCopy( pTruth1, pTruth1s, nWords, fCompl1 ^ pCut1->fCompl ^ Abc_LitIsCompl(pCut1->iCutFunc) );
-
+    Abc_TtStretch6( pTruth0, pCut0->nLeaves, pCut->nLeaves );
+    Abc_TtStretch6( pTruth1, pCut1->nLeaves, pCut->nLeaves );
 
 if ( fVerbose )
 {
@@ -183,7 +186,7 @@ if ( fVerbose )
         Place = p->pPerm[1][v];
         if ( Place == v || Place == -1 )
             continue;
-        Abc_TtSwapVars( pTruth1, pCut->nLimit, v, Place );
+        Abc_TtSwapVars( pTruth1, pCut->nLeaves, v, Place );
         p->pPerm[1][v] = p->pPerm[1][Place];
         p->pPerm[1][Place] = Place;
         v--;
@@ -200,7 +203,7 @@ if ( fVerbose )
     // minimize support
     if ( p->pPars->fCutMin )
     {
-        nLeavesNew = Abc_TtMinBase( pTruth, pCut->pLeaves, pCut->nLeaves, pCut->nLimit );
+        nLeavesNew = Abc_TtMinBase( pTruth, pCut->pLeaves, pCut->nLeaves, pCut->nLeaves );
         if ( nLeavesNew < If_CutLeaveNum(pCut) )
         {
             pCut->nLeaves = nLeavesNew;
@@ -226,7 +229,7 @@ if ( fVerbose )
 
     // hash function
     fCompl         = ((uCanonPhase >> pCut->nLeaves) & 1);
-    truthId        = Vec_MemHashInsert( p->vTtMem, pTruth );
+    truthId        = Vec_MemHashInsert( p->vTtMem[pCut->nLeaves], pTruth );
     pCut->iCutFunc = Abc_Var2Lit( truthId, fCompl );
 
 if ( fVerbose )
