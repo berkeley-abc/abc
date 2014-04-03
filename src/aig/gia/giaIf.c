@@ -1315,7 +1315,7 @@ Gia_Man_t * Gia_ManFromIfLogic( If_Man_t * pIfMan )
                 if ( pIfMan->pPars->fUseTtPerm )
                     for ( k = 0; k < (int)pCutBest->nLeaves; k++ )
                         if ( If_CutLeafBit(pCutBest, k) )
-                            Abc_TtFlip( pTruth, Abc_TtWordNum(pCutBest->nLimit), k );
+                            Abc_TtFlip( pTruth, Abc_TtWordNum(pCutBest->nLeaves), k );
                 // perform decomposition of the cut
                 pIfObj->iCopy = Gia_ManFromIfLogicNode( pIfMan, pNew, i, vLeaves, vLeaves2, pTruth, pIfMan->pPars->pLutStruct, vCover, vMapping, vMapping2, vPacking, (pIfMan->pPars->fEnableCheck75 || pIfMan->pPars->fEnableCheck75u), pIfMan->pPars->fEnableCheck07 );
                 pIfObj->iCopy = Abc_LitNotCond( pIfObj->iCopy, pCutBest->fCompl );

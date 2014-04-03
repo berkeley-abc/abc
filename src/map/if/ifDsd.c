@@ -1784,7 +1784,7 @@ int If_DsdManCompute( If_DsdMan_t * p, word * pTruth, int nLeaves, unsigned char
     char pDsd[DAU_MAX_STR];
     int iDsd, nSizeNonDec, nSupp = 0;
     int nWords = Abc_TtWordNum(nLeaves);
-    abctime clk = 0;
+//    abctime clk = 0;
     assert( nLeaves <= DAU_MAX_VAR );
     Abc_TtCopy( pCopy, pTruth, nWords, 0 );
 //clk = Abc_Clock();
