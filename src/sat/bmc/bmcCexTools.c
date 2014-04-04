@@ -348,7 +348,7 @@ int Bmc_CexVerify( Gia_Man_t * p, Abc_Cex_t * pCex, Abc_Cex_t * pCexCare )
     Gia_Obj_t * pObj;
     int i, k;
     assert( pCex->nRegs > 0 );
-    assert( pCexCare->nRegs == 0 );
+//    assert( pCexCare->nRegs == 0 );
     Gia_ObjTerSimSet0( Gia_ManConst0(p) );
     Gia_ManForEachRi( p, pObj, k )
         Gia_ObjTerSimSet0( pObj );
@@ -356,7 +356,7 @@ int Bmc_CexVerify( Gia_Man_t * p, Abc_Cex_t * pCex, Abc_Cex_t * pCexCare )
     {
         Gia_ManForEachPi( p, pObj, k )
         {
-            if ( !Abc_InfoHasBit( pCexCare->pData, i * pCexCare->nPis + k ) )
+            if ( !Abc_InfoHasBit( pCexCare->pData, pCexCare->nRegs + i * pCexCare->nPis + k ) )
                 Gia_ObjTerSimSetX( pObj );
             else if ( Abc_InfoHasBit( pCex->pData, pCex->nRegs + i * pCex->nPis + k ) )
                 Gia_ObjTerSimSet1( pObj );

@@ -3,6 +3,7 @@ SRC +=    src/sat/bmc/bmcBmc.c \
     src/sat/bmc/bmcBmc3.c \
     src/sat/bmc/bmcBmcAnd.c \
     src/sat/bmc/bmcBmci.c \
+    src/sat/bmc/bmcCexCare.c \
     src/sat/bmc/bmcCexCut.c \
     src/sat/bmc/bmcCexDepth.c \
     src/sat/bmc/bmcCexMin1.c \

@@ -72,6 +72,7 @@ extern Abc_Cex_t *   Abc_CexTransformPhase( Abc_Cex_t * p, int nPisOld, int nPos
 extern Abc_Cex_t *   Abc_CexTransformTempor( Abc_Cex_t * p, int nPisOld, int nPosOld, int nRegsOld );
 extern Abc_Cex_t *   Abc_CexPermute( Abc_Cex_t * p, Vec_Int_t * vMapOld2New );
 extern Abc_Cex_t *   Abc_CexPermuteTwo( Abc_Cex_t * p, Vec_Int_t * vPermOld, Vec_Int_t * vPermNew );
+extern int           Abc_CexCountOnes( Abc_Cex_t * p );
 
 ABC_NAMESPACE_HEADER_END
 

@@ -22,6 +22,7 @@
 #include "base/main/mainInt.h"
 #include "aig/saig/saig.h"
 #include "proof/abs/abs.h"
+#include "sat/bmc/bmc.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -60,7 +61,7 @@ static int IoCommandWriteBook   ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandWriteCellNet( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandWriteCnf    ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandWriteCnf2   ( Abc_Frame_t * pAbc, int argc, char **argv );
-static int IoCommandWriteCounter( Abc_Frame_t * pAbc, int argc, char **argv );
+static int IoCommandWriteCex    ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandWriteDot    ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandWriteEqn    ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandWriteGml    ( Abc_Frame_t * pAbc, int argc, char **argv );
@@ -124,7 +125,7 @@ void Io_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "I/O", "write_bench",   IoCommandWriteBench,   0 );
     Cmd_CommandAdd( pAbc, "I/O", "write_book",    IoCommandWriteBook,    0 );
     Cmd_CommandAdd( pAbc, "I/O", "write_cellnet", IoCommandWriteCellNet, 0 );
-    Cmd_CommandAdd( pAbc, "I/O", "write_counter", IoCommandWriteCounter, 0 );
+    Cmd_CommandAdd( pAbc, "I/O", "write_cex",     IoCommandWriteCex,     0 );
     Cmd_CommandAdd( pAbc, "I/O", "write_cnf",     IoCommandWriteCnf,     0 );
     Cmd_CommandAdd( pAbc, "I/O", "&write_cnf",    IoCommandWriteCnf2,    0 );
     Cmd_CommandAdd( pAbc, "I/O", "write_dot",     IoCommandWriteDot,     0 );
@@ -2171,18 +2172,20 @@ ABC_NAMESPACE_IMPL_START
   SeeAlso     []
 
 ***********************************************************************/
-int IoCommandWriteCounter( Abc_Frame_t * pAbc, int argc, char **argv )
+int IoCommandWriteCex( Abc_Frame_t * pAbc, int argc, char **argv )
 {
     Abc_Ntk_t * pNtk;
     char * pFileName;
     int c, fNames  = 0;
     int fMinimize  = 0;
+    int fUseOldMin = 0;
+    int fCheckCex  = 0;
     int forceSeq   = 0;
     int fPrintFull = 0;
     int fVerbose   = 0;
 
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "snmfvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "snmocfvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -2194,6 +2197,12 @@ int IoCommandWriteCounter( Abc_Frame_t * pAbc, int argc, char **argv )
                 break;
             case 'm':
                 fMinimize ^= 1;
+                break;
+            case 'o':
+                fUseOldMin ^= 1;
+                break;
+            case 'c':
+                fCheckCex ^= 1;
                 break;
             case 'f':
                 fPrintFull ^= 1;
@@ -2236,7 +2245,7 @@ int IoCommandWriteCounter( Abc_Frame_t * pAbc, int argc, char **argv )
         Abc_NtkForEachLatch( pNtk, pObj, i )
             if ( !Abc_LatchIsInit0(pObj) )
             {
-                fprintf( stdout, "IoCommandWriteCounter(): The init-state should be all-0 for counter-example to work.\n" );
+                fprintf( stdout, "IoCommandWriteCex(): The init-state should be all-0 for counter-example to work.\n" );
                 fprintf( stdout, "Run commands \"undc\" and \"zero\" and then rerun the equivalence check.\n" );
                 return 1;
             }
@@ -2244,7 +2253,7 @@ int IoCommandWriteCounter( Abc_Frame_t * pAbc, int argc, char **argv )
         pFile = fopen( pFileName, "w" );
         if ( pFile == NULL )
         {
-            fprintf( stdout, "IoCommandWriteCounter(): Cannot open the output file \"%s\".\n", pFileName );
+            fprintf( stdout, "IoCommandWriteCex(): Cannot open the output file \"%s\".\n", pFileName );
             return 1;
         }
         if ( fPrintFull )
@@ -2267,9 +2276,14 @@ int IoCommandWriteCounter( Abc_Frame_t * pAbc, int argc, char **argv )
             {
                 extern Aig_Man_t * Abc_NtkToDar( Abc_Ntk_t * pNtk, int fExors, int fRegisters );
                 Aig_Man_t * pAig = Abc_NtkToDar( pNtk, 0, 1 );
-                pCare = Saig_ManCbaFindCexCareBits( pAig, pCex, 0, fVerbose );
-                if ( pCare == NULL )
-                    printf( "Counter-example minimization has failed.\n" );
+                if ( fUseOldMin )
+                {
+                    pCare = Saig_ManCbaFindCexCareBits( pAig, pCex, 0, fVerbose );
+                    if ( fCheckCex )
+                        Bmc_CexCareVerify( pAig, pCex, pCare, fVerbose );
+                }
+                else
+                    pCare = Bmc_CexCareMinimize( pAig, pCex, fCheckCex, fVerbose );
                 Aig_ManStop( pAig );
             }
             // output flop values (unaffected by the minimization)
@@ -2299,7 +2313,7 @@ int IoCommandWriteCounter( Abc_Frame_t * pAbc, int argc, char **argv )
         int i;
         if ( pFile == NULL )
         {
-            fprintf( stdout, "IoCommandWriteCounter(): Cannot open the output file \"%s\".\n", pFileName );
+            fprintf( stdout, "IoCommandWriteCex(): Cannot open the output file \"%s\".\n", pFileName );
             return 1;
         }
         if ( fNames )
@@ -2321,19 +2335,20 @@ int IoCommandWriteCounter( Abc_Frame_t * pAbc, int argc, char **argv )
     return 0;
 
 usage:
-    fprintf( pAbc->Err, "usage: write_counter [-snmfvh] <file>\n" );
+    fprintf( pAbc->Err, "usage: write_cex [-snmocfvh] <file>\n" );
     fprintf( pAbc->Err, "\t         saves counter-example derived by \"sat\", \"iprove\", or \"dprove\"\n" );
     fprintf( pAbc->Err, "\t         the file contains values for each PI in the natural order\n" );
     fprintf( pAbc->Err, "\t-s     : always report a sequential ctrex (cycle 0 for comb) [default = %s]\n", forceSeq? "yes": "no" );
     fprintf( pAbc->Err, "\t-n     : write input names into the file [default = %s]\n", fNames? "yes": "no" );
     fprintf( pAbc->Err, "\t-m     : minimize counter-example by dropping don't-care values [default = %s]\n", fMinimize? "yes": "no" );
+    fprintf( pAbc->Err, "\t-o     : use old counter-example minimization algorithm [default = %s]\n", fUseOldMin? "yes": "no" );
+    fprintf( pAbc->Err, "\t-c     : check generated counter-example using ternary simulation [default = %s]\n", fCheckCex? "yes": "no" );
     fprintf( pAbc->Err, "\t-f     : enable printing flop values in each timeframe [default = %s].\n", fPrintFull? "yes": "no" );  
     fprintf( pAbc->Err, "\t-v     : enable verbose output [default = %s].\n", fVerbose? "yes": "no" );  
     fprintf( pAbc->Err, "\t-h     : print the help massage\n" );
     fprintf( pAbc->Err, "\tfile   : the name of the file to write\n" );
     return 1;
 }
-
 
 /**Function*************************************************************
 

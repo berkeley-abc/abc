@@ -488,6 +488,33 @@ Abc_Cex_t * Abc_CexPermuteTwo( Abc_Cex_t * p, Vec_Int_t * vPermOld, Vec_Int_t * 
     return pCex;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Count the number of 1s in the CEX.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline int Abc_CexOnes32( unsigned i )
+{
+    i = i - ((i >> 1) & 0x55555555);
+    i = (i & 0x33333333) + ((i >> 2) & 0x33333333);
+    i = ((i + (i >> 4)) & 0x0F0F0F0F);
+    return (i*(0x01010101))>>24;
+}
+int Abc_CexCountOnes( Abc_Cex_t * p )
+{
+    int nWords = Abc_BitWordNum( p->nBits );
+    int i, Count = 0;
+    for ( i = 0; i < nWords; i++ )
+        Count += Abc_CexOnes32( p->pData[i] );
+    return Count;
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

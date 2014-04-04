@@ -1423,6 +1423,10 @@ SOURCE=.\src\sat\bmc\bmcBmci.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\sat\bmc\bmcCexCare.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\sat\bmc\bmcCexCut.c
 # End Source File
 # Begin Source File
