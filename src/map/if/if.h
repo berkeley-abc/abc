@@ -490,7 +490,7 @@ extern int             If_ManPerformMapping( If_Man_t * p );
 extern int             If_ManPerformMappingComb( If_Man_t * p );
 /*=== ifCut.c ============================================================*/
 extern int             If_CutVerifyCuts( If_Set_t * pCutSet, int fOrdered );
-extern int             If_CutFilter( If_Set_t * pCutSet, If_Cut_t * pCut );
+extern int             If_CutFilter( If_Set_t * pCutSet, If_Cut_t * pCut, int fSaveCut0 );
 extern void            If_CutSort( If_Man_t * p, If_Set_t * pCutSet, If_Cut_t * pCut );
 extern void            If_CutOrder( If_Cut_t * pCut );
 extern int             If_CutMergeOrdered( If_Man_t * p, If_Cut_t * pCut0, If_Cut_t * pCut1, If_Cut_t * pCut );

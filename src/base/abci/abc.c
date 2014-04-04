@@ -15017,8 +15017,8 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
     // enable truth table computation if choices are selected
     if ( (c = Abc_NtkGetChoiceNum( pNtk )) )
     {
-        if ( !Abc_FrameReadFlag("silentmode") )
-            Abc_Print( 0, "Performing LUT mapping with %d choices.\n", c );
+//        if ( !Abc_FrameReadFlag("silentmode") )
+//            Abc_Print( 0, "Performing LUT mapping with %d choices.\n", c );
         pPars->fExpRed = 0;
     }
 
@@ -29749,8 +29749,8 @@ int Abc_CommandAbc9If( Abc_Frame_t * pAbc, int argc, char ** argv )
     // enable truth table computation if choices are selected
     if ( Gia_ManHasChoices(pAbc->pGia) )
     {
-        if ( !Abc_FrameReadFlag("silentmode") )
-            Abc_Print( 0, "Performing LUT mapping with choices.\n" );
+//        if ( !Abc_FrameReadFlag("silentmode") )
+//            Abc_Print( 0, "Performing LUT mapping with choices.\n" );
         pPars->fExpRed = 0;
     }
 

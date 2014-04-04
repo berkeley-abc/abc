@@ -378,12 +378,17 @@ int If_CutDelaySopCost( If_Man_t * p, If_Cut_t * pCut )
     }
     // get the cost
     If_AndClear( &Leaf );
-    if ( Vec_WrdSize(vAnds) )
+    if ( Vec_WrdSize(vAnds) > 0 )
         Leaf = If_WrdToAnd( Vec_WrdEntryLast(vAnds) );
-    if ( pCut->nLeaves > 2 && Vec_WrdSize(vAnds) > (int)pCut->nLeaves )
-        pCut->Cost = Vec_WrdSize(vAnds) - pCut->nLeaves;
     else
+        Leaf.Delay = 0;
+    if ( Vec_WrdSize(vAnds) > (int)pCut->nLeaves )
+        pCut->Cost = Vec_WrdSize(vAnds) - pCut->nLeaves;
+    else if ( pCut->nLeaves == 1 )
         pCut->Cost = 1;
+    else if ( pCut->nLeaves == 0 )
+        pCut->Cost = 0;
+    else assert( 0 );
     // get the permutation
     for ( i = 0; i < (int)pCut->nLeaves; i++ )
     {

@@ -184,7 +184,7 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
         p->nCutsMerged++;
         p->nCutsTotal++;
         // check if this cut is contained in any of the available cuts
-        if ( !p->pPars->fSkipCutFilter && If_CutFilter( pCutSet, pCut ) )
+        if ( !p->pPars->fSkipCutFilter && If_CutFilter( pCutSet, pCut, p->pPars->fUserRecLib || p->pPars->fDelayOpt ) )
             continue;
         // compute the truth table
         pCut->iCutFunc = -1;
@@ -202,7 +202,7 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
                 fChange = If_CutComputeTruth( p, pCut, pCut0, pCut1, pObj->fCompl0, pObj->fCompl1 );
             if ( p->pPars->fVerbose )
                 p->timeCache[4] += Abc_Clock() - clk;
-            if ( !p->pPars->fSkipCutFilter && fChange && If_CutFilter( pCutSet, pCut ) )
+            if ( !p->pPars->fSkipCutFilter && fChange && If_CutFilter( pCutSet, pCut, p->pPars->fUserRecLib || p->pPars->fDelayOpt ) )
                 continue;
             if ( p->pPars->fUseDsd )
             {
@@ -385,7 +385,7 @@ void If_ObjPerformMappingChoice( If_Man_t * p, If_Obj_t * pObj, int Mode, int fP
             // copy the cut into storage
             If_CutCopy( p, pCut, pCutTemp );
             // check if this cut is contained in any of the available cuts
-            if ( If_CutFilter( pCutSet, pCut ) )
+            if ( If_CutFilter( pCutSet, pCut, p->pPars->fUserRecLib || p->pPars->fDelayOpt ) )
                 continue;
             // check if the cut satisfies the required times
             assert( pCut->Delay == If_CutDelay( p, pTemp, pCut ) );

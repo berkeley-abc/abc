@@ -101,7 +101,10 @@ int Abc_NtkCompareAndSaveBest( Abc_Ntk_t * pNtk )
         ParsBest.nPis  = ParsNew.nPis;
         ParsBest.nPos  = ParsNew.nPos;
         // writ the network
-        pFileNameOut = Extra_FileNameGenericAppend( pNtk->pSpec, "_best.blif" );
+        if ( strcmp(pNtk->pSpec + strlen(pNtk->pSpec) - strlen("_best.blif"), "_best.blif") )
+            pFileNameOut = Extra_FileNameGenericAppend( pNtk->pSpec, "_best.blif" );
+        else
+            pFileNameOut = pNtk->pSpec;
         Io_Write( pNtk, pFileNameOut, IO_FILE_BLIF );
         return 1;
     }

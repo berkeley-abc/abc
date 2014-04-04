@@ -143,7 +143,7 @@ static inline int If_CutCheckDominance( If_Cut_t * pDom, If_Cut_t * pCut )
   SeeAlso     []
 
 ***********************************************************************/
-int If_CutFilter( If_Set_t * pCutSet, If_Cut_t * pCut )
+int If_CutFilter( If_Set_t * pCutSet, If_Cut_t * pCut, int fSaveCut0 )
 { 
     If_Cut_t * pTemp;
     int i, k;
@@ -154,7 +154,7 @@ int If_CutFilter( If_Set_t * pCutSet, If_Cut_t * pCut )
         if ( pTemp->nLeaves > pCut->nLeaves )
         {
             // do not fiter the first cut
-            if ( i == 0 && pCutSet->nCuts > 1 && pCutSet->ppCuts[1]->fUseless )
+            if ( i == 0 && ((pCutSet->nCuts > 1 && pCutSet->ppCuts[1]->fUseless) || (fSaveCut0 && pCutSet->nCuts == 1)) )
                 continue;
             // skip the non-contained cuts
             if ( (pTemp->uSign & pCut->uSign) != pCut->uSign )
