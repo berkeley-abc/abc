@@ -1849,6 +1849,28 @@ void If_DsdManTest()
   SeeAlso     []
 
 ***********************************************************************/
+int If_DsdCutBalanceCost( If_Man_t * pIfMan, If_Cut_t * pCut )
+{
+    return 0;
+}
+int If_DsdCutBalance( void * pGia, If_Man_t * pIfMan, If_Cut_t * pCut, Vec_Int_t * vLeaves, int fHash )
+{
+    Gia_Man_t * p = (Gia_Man_t *)pGia;
+    return 0;
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 void If_DsdManTune( If_DsdMan_t * p, int LutSize, int fFast, int fAdd, int fSpec, int fVerbose )
 {
     ProgressBar * pProgress = NULL;

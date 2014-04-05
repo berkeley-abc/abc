@@ -99,6 +99,7 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
     If_Cut_t * pCut0R, * pCut1R;
     int fFunc0R, fFunc1R;
     int i, k, v, fChange;
+    int fSave0 = p->pPars->fDelayOpt || p->pPars->fDsdBalance || p->pPars->fUserRecLib;
     assert( p->pPars->fSeqMap || !If_ObjIsAnd(pObj->pFanin0) || pObj->pFanin0->pCutSet->nCuts > 0 );
     assert( p->pPars->fSeqMap || !If_ObjIsAnd(pObj->pFanin1) || pObj->pFanin1->pCutSet->nCuts > 0 );
 
@@ -122,12 +123,14 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
     if ( !fFirst )
     {
         // recompute the parameters of the best cut
-        if ( p->pPars->fUserRecLib )
-            pCut->Delay = If_CutDelayRecCost3(p, pCut, pObj); 
-        else if(p->pPars->fDelayOpt)
-            pCut->Delay = If_CutDelaySopCost(p,pCut);
-        else if(p->pPars->nGateSize > 0)
-            pCut->Delay = If_CutDelaySop(p,pCut);
+        if ( p->pPars->fDelayOpt )
+            pCut->Delay = If_CutDelaySopCost( p, pCut );
+        else if ( p->pPars->fDsdBalance )
+            pCut->Delay = If_DsdCutBalanceCost( p, pCut );
+        else if ( p->pPars->fUserRecLib )
+            pCut->Delay = If_CutDelayRecCost3( p, pCut, pObj ); 
+        else if( p->pPars->nGateSize > 0 )
+            pCut->Delay = If_CutDelaySop( p, pCut );
         else
             pCut->Delay = If_CutDelay( p, pObj, pCut );
 //        assert( pCut->Delay <= pObj->Required + p->fEpsilon );
@@ -184,7 +187,7 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
         p->nCutsMerged++;
         p->nCutsTotal++;
         // check if this cut is contained in any of the available cuts
-        if ( !p->pPars->fSkipCutFilter && If_CutFilter( pCutSet, pCut, p->pPars->fUserRecLib || p->pPars->fDelayOpt ) )
+        if ( !p->pPars->fSkipCutFilter && If_CutFilter( pCutSet, pCut, fSave0 ) )
             continue;
         // compute the truth table
         pCut->iCutFunc = -1;
@@ -202,7 +205,7 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
                 fChange = If_CutComputeTruth( p, pCut, pCut0, pCut1, pObj->fCompl0, pObj->fCompl1 );
             if ( p->pPars->fVerbose )
                 p->timeCache[4] += Abc_Clock() - clk;
-            if ( !p->pPars->fSkipCutFilter && fChange && If_CutFilter( pCutSet, pCut, p->pPars->fUserRecLib || p->pPars->fDelayOpt ) )
+            if ( !p->pPars->fSkipCutFilter && fChange && If_CutFilter( pCutSet, pCut, fSave0 ) )
                 continue;
             if ( p->pPars->fUseDsd )
             {
@@ -276,19 +279,16 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
         if ( pCut->Cost == IF_COST_MAX )
             continue;
         // check if the cut satisfies the required times
-///        if ( p->pPars->pLutStruct )
-///            pCut->Delay = If_CutDelayLutStruct( p, pCut, p->pPars->pLutStruct, p->pPars->WireDelay );
-        if ( p->pPars->fUserRecLib )
-            pCut->Delay = If_CutDelayRecCost3(p, pCut, pObj); 
-        else if (p->pPars->fDelayOpt)
-            pCut->Delay = If_CutDelaySopCost(p, pCut);  
-        else if(p->pPars->nGateSize > 0)
-            pCut->Delay = If_CutDelaySop(p,pCut);
-        else
+        if ( p->pPars->fDelayOpt )
+            pCut->Delay = If_CutDelaySopCost( p, pCut );  
+        else if ( p->pPars->fDsdBalance )
+            pCut->Delay = If_DsdCutBalanceCost( p, pCut );
+        else if ( p->pPars->fUserRecLib )
+            pCut->Delay = If_CutDelayRecCost3( p, pCut, pObj ); 
+        else if( p->pPars->nGateSize > 0 )
+            pCut->Delay = If_CutDelaySop( p, pCut );
+        else 
             pCut->Delay = If_CutDelay( p, pObj, pCut );
-        //if ( pCut->Cost == IF_COST_MAX )
-       //     continue;
-//        Abc_Print( 1, "%.2f ", pCut->Delay );
         if ( Mode && pCut->Delay > pObj->Required + p->fEpsilon )
             continue;
         // compute area of the cut (this area may depend on the application specific cost)
@@ -352,7 +352,7 @@ void If_ObjPerformMappingChoice( If_Man_t * p, If_Obj_t * pObj, int Mode, int fP
     If_Set_t * pCutSet;
     If_Obj_t * pTemp;
     If_Cut_t * pCutTemp, * pCut;
-    int i;
+    int i, fSave0 = p->pPars->fDelayOpt || p->pPars->fDsdBalance || p->pPars->fUserRecLib;
     assert( pObj->pEquiv != NULL );
 
     // prepare
@@ -369,8 +369,6 @@ void If_ObjPerformMappingChoice( If_Man_t * p, If_Obj_t * pObj, int Mode, int fP
     // generate cuts
     for ( pTemp = pObj->pEquiv; pTemp; pTemp = pTemp->pEquiv )
     {
-//        assert( pTemp->nRefs == 0 );
-//        assert( p->pPars->fSeqMap || pTemp->pCutSet->nCuts > 0 ); // June 9, 2009
         if ( pTemp->pCutSet->nCuts == 0 )
             continue;
         // go through the cuts of this node
@@ -385,10 +383,10 @@ void If_ObjPerformMappingChoice( If_Man_t * p, If_Obj_t * pObj, int Mode, int fP
             // copy the cut into storage
             If_CutCopy( p, pCut, pCutTemp );
             // check if this cut is contained in any of the available cuts
-            if ( If_CutFilter( pCutSet, pCut, p->pPars->fUserRecLib || p->pPars->fDelayOpt ) )
+            if ( If_CutFilter( pCutSet, pCut, fSave0 ) )
                 continue;
             // check if the cut satisfies the required times
-            assert( pCut->Delay == If_CutDelay( p, pTemp, pCut ) );
+//            assert( pCut->Delay == If_CutDelay( p, pTemp, pCut ) );
             if ( Mode && pCut->Delay > pObj->Required + p->fEpsilon )
                 continue;
             // set the phase attribute

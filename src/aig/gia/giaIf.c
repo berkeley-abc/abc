@@ -691,7 +691,7 @@ Gia_Man_t * Gia_ManFromIfAig( If_Man_t * pIfMan )
     Vec_Int_t * vCover;
     int i, k;
     assert( pIfMan->pPars->pLutStruct == NULL );
-    assert( pIfMan->pPars->fDelayOpt || pIfMan->pPars->fUserRecLib );
+    assert( pIfMan->pPars->fDelayOpt || pIfMan->pPars->fDsdBalance || pIfMan->pPars->fUserRecLib );
     // create new manager
     pNew = Gia_ManStart( If_ManObjNum(pIfMan) );
     Gia_ManHashAlloc( pNew );
@@ -713,6 +713,8 @@ Gia_Man_t * Gia_ManFromIfAig( If_Man_t * pIfMan )
             // get the functionality
             if ( pIfMan->pPars->fDelayOpt )
                 pIfObj->iCopy = Gia_ManNodeIfSopToGia( pNew, pIfMan, pCutBest, vLeaves, fHash );
+            else if ( pIfMan->pPars->fDsdBalance )
+                pIfObj->iCopy = If_DsdCutBalance( pNew, pIfMan, pCutBest, vLeaves, fHash );
             else if ( pIfMan->pPars->fUserRecLib )
                 pIfObj->iCopy = Abc_RecToGia3( pNew, pIfMan, pCutBest, vLeaves, fHash );
             else assert( 0 );
@@ -1292,7 +1294,7 @@ Gia_Man_t * Gia_ManFromIfLogic( If_Man_t * pIfMan )
         {
             pCutBest = If_ObjCutBest( pIfObj );
             // perform sorting of cut leaves by delay, so that the slowest pin drives the fastest input of the LUT
-            if ( !pIfMan->pPars->fUseTtPerm && !pIfMan->pPars->fDelayOpt && !pIfMan->pPars->pLutStruct && !pIfMan->pPars->fUserRecLib && !pIfMan->pPars->nGateSize && !pIfMan->pPars->fEnableCheck75 && !pIfMan->pPars->fEnableCheck75u && !pIfMan->pPars->fEnableCheck07 )
+            if ( !pIfMan->pPars->fUseTtPerm && !pIfMan->pPars->fDelayOpt && !pIfMan->pPars->fDsdBalance && !pIfMan->pPars->pLutStruct && !pIfMan->pPars->fUserRecLib && !pIfMan->pPars->nGateSize && !pIfMan->pPars->fEnableCheck75 && !pIfMan->pPars->fEnableCheck75u && !pIfMan->pPars->fEnableCheck07 )
                 If_CutRotatePins( pIfMan, pCutBest );
             // collect leaves of the best cut
             Vec_IntClear( vLeaves );
@@ -1534,7 +1536,7 @@ Gia_Man_t * Gia_ManPerformMapping( Gia_Man_t * p, void * pp, int fNormalized )
     If_Man_t * pIfMan;
     If_Par_t * pPars = (If_Par_t *)pp;
     // disable cut minimization when GIA strucure is needed
-    if ( !pPars->fDelayOpt && !pPars->fUserRecLib && !pPars->fDeriveLuts && !pPars->fUseDsd && !pPars->fUseTtPerm )
+    if ( !pPars->fDelayOpt && !pPars->fDsdBalance && !pPars->fUserRecLib && !pPars->fDeriveLuts && !pPars->fUseDsd && !pPars->fUseTtPerm )
         pPars->fCutMin = 0;
 
     // reconstruct GIA according to the hierarchy manager
@@ -1593,7 +1595,7 @@ Gia_Man_t * Gia_ManPerformMapping( Gia_Man_t * p, void * pp, int fNormalized )
         return NULL;
     }
     // transform the result of mapping into the new network
-    if ( pIfMan->pPars->fDelayOpt || pIfMan->pPars->fUserRecLib )
+    if ( pIfMan->pPars->fDelayOpt || pIfMan->pPars->fDsdBalance || pIfMan->pPars->fUserRecLib )
         pNew = Gia_ManFromIfAig( pIfMan );
     else
         pNew = Gia_ManFromIfLogic( pIfMan );

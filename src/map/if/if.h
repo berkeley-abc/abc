@@ -134,6 +134,7 @@ struct If_Par_t_
     float              WireDelay;     // wire delay
     // internal parameters
     int                fDelayOpt;     // special delay optimization
+    int                fDsdBalance;   // special delay optimization
     int                fUserRecLib;   // use recorded library
     int                fSkipCutFilter;// skip cut filter
     int                fAreaOnly;     // area only mode
@@ -546,6 +547,8 @@ extern int             If_DsdManLutSize( If_DsdMan_t * p );
 extern int             If_DsdManSuppSize( If_DsdMan_t * p, int iDsd );
 extern int             If_DsdManCheckDec( If_DsdMan_t * p, int iDsd );
 extern unsigned        If_DsdManCheckXY( If_DsdMan_t * p, int iDsd, int LutSize, int fDerive, int fHighEffort, int fVerbose );
+extern int             If_DsdCutBalanceCost( If_Man_t * pIfMan, If_Cut_t * pCut );
+extern int             If_DsdCutBalance( void * pGia, If_Man_t * pIfMan, If_Cut_t * pCut, Vec_Int_t * vLeaves, int fHash );
 /*=== ifLib.c =============================================================*/
 extern If_LibLut_t *   If_LibLutRead( char * FileName );
 extern If_LibLut_t *   If_LibLutDup( If_LibLut_t * p );
