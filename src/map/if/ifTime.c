@@ -267,33 +267,8 @@ Vec_Wrd_t * If_CutDelaySopArray( If_Man_t * p, If_Cut_t * pCut )
     assert( RetValue == 0 || RetValue == 1 );
 
     clk = Abc_Clock();
-    vAnds = If_CutDelaySopAnds( p, pCut, p->vCover, RetValue ^ pCut->fCompl );
+    vAnds = If_CutDelaySopAnds( p, pCut, p->vCover, RetValue );
     s_timeOld += Abc_Clock() - clk;
-/*
-    if ( pCut->nLeaves <= 5 )
-    {
-        if ( *If_CutTruth(pCut) != (unsigned)If_AndVerifyArray(vAnds, pCut->nLeaves) )
-        {
-            unsigned Truth0 = *If_CutTruth(pCut);
-            unsigned Truth1 = (unsigned)If_AndVerifyArray(vAnds, pCut->nLeaves);
-
-            printf( "\n" );
-            Extra_PrintBinary( stdout, &Truth0, 32 ); printf( "\n" );
-            Extra_PrintBinary( stdout, &Truth1, 32 ); printf( "\n" );
-
-            printf( "Verification failed for %d vars.\n", pCut->nLeaves );
-        }
-//        else
-//            printf( "Verification passed for %d vars.\n", pCut->nLeaves );
-    }
-    else if ( pCut->nLeaves == 6 )
-    {
-        if ( *((word *)If_CutTruth(pCut)) != If_AndVerifyArray(vAnds, pCut->nLeaves) )
-            printf( "Verification failed for %d vars.\n", pCut->nLeaves );
-//        else
-//            printf( "Verification passed for %d vars.\n", pCut->nLeaves );
-    }
-*/
     return vAnds;
 }
 

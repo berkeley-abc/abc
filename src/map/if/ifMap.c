@@ -392,10 +392,7 @@ void If_ObjPerformMappingChoice( If_Man_t * p, If_Obj_t * pObj, int Mode, int fP
             if ( Mode && pCut->Delay > pObj->Required + p->fEpsilon )
                 continue;
             // set the phase attribute
-            assert( pCut->fCompl == 0 );
-            pCut->fCompl ^= (pObj->fPhase ^ pTemp->fPhase); // why ^= ?
-            if ( p->pPars->fDelayOpt && pCut->fCompl )
-                continue;
+            pCut->fCompl = pObj->fPhase ^ pTemp->fPhase;
             // compute area of the cut (this area may depend on the application specific cost)
             pCut->Area = (Mode == 2)? If_CutAreaDerefed( p, pCut ) : If_CutAreaFlow( p, pCut );
             if ( p->pPars->fEdge )
