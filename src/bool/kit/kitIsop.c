@@ -87,7 +87,7 @@ int Kit_TruthIsop( unsigned * puTruth, int nVars, Vec_Int_t * vMemory, int fTryB
         if ( pcRes2->nCubes >= 0 )
         {
             assert( Kit_TruthIsEqual( puTruth, pResult, nVars ) );
-            if ( pcRes->nCubes > pcRes2->nCubes )
+            if ( pcRes->nCubes > pcRes2->nCubes || (pcRes->nCubes == pcRes2->nCubes && pcRes->nLits > pcRes2->nLits) )
             {
                 RetValue = 1;
                 pcRes = pcRes2;
@@ -157,6 +157,7 @@ unsigned * Kit_TruthIsop_rec( unsigned * puOn, unsigned * puOnDc, int nVars, Kit
     // check for constants
     if ( Kit_TruthIsConst0( puOn, nVars ) )
     {
+        pcRes->nLits  = 0;
         pcRes->nCubes = 0;
         pcRes->pCubes = NULL;
         Kit_TruthClear( pTemp, nVars );
@@ -164,6 +165,7 @@ unsigned * Kit_TruthIsop_rec( unsigned * puOn, unsigned * puOnDc, int nVars, Kit
     }
     if ( Kit_TruthIsConst1( puOnDc, nVars ) )
     {
+        pcRes->nLits  = 0;
         pcRes->nCubes = 1;
         pcRes->pCubes = Vec_IntFetch( vStore, 1 );
         if ( pcRes->pCubes == NULL )
@@ -222,6 +224,7 @@ unsigned * Kit_TruthIsop_rec( unsigned * puOn, unsigned * puOnDc, int nVars, Kit
         return NULL;
     }
     // create the resulting cover
+    pcRes->nLits  = pcRes0->nLits  + pcRes1->nLits  + pcRes2->nLits + pcRes0->nCubes + pcRes1->nCubes;
     pcRes->nCubes = pcRes0->nCubes + pcRes1->nCubes + pcRes2->nCubes;
     pcRes->pCubes = Vec_IntFetch( vStore, pcRes->nCubes );
     if ( pcRes->pCubes == NULL )
@@ -273,12 +276,14 @@ unsigned Kit_TruthIsop5_rec( unsigned uOn, unsigned uOnDc, int nVars, Kit_Sop_t 
     assert( (uOn & ~uOnDc) == 0 );
     if ( uOn == 0 )
     {
+        pcRes->nLits  = 0;
         pcRes->nCubes = 0;
         pcRes->pCubes = NULL;
         return 0;
     }
     if ( uOnDc == 0xFFFFFFFF )
     {
+        pcRes->nLits  = 0;
         pcRes->nCubes = 1;
         pcRes->pCubes = Vec_IntFetch( vStore, 1 );
         if ( pcRes->pCubes == NULL )
@@ -323,6 +328,7 @@ unsigned Kit_TruthIsop5_rec( unsigned uOn, unsigned uOnDc, int nVars, Kit_Sop_t 
         return 0;
     }
     // create the resulting cover
+    pcRes->nLits  = pcRes0->nLits  + pcRes1->nLits  + pcRes2->nLits + pcRes0->nCubes + pcRes1->nCubes;
     pcRes->nCubes = pcRes0->nCubes + pcRes1->nCubes + pcRes2->nCubes;
     pcRes->pCubes = Vec_IntFetch( vStore, pcRes->nCubes );
     if ( pcRes->pCubes == NULL )

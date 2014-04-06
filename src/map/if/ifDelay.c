@@ -245,7 +245,7 @@ word If_AigVerifyArray( Vec_Int_t * vAig, int nLeaves, int fCompl )
     }
     else
     {
-        word Truth0, Truth1, TruthR;
+        word Truth0 = 0, Truth1 = 0, TruthR;
         int i, iVar0, iVar1, iLit0, iLit1;
         assert( Vec_IntSize(vAig) & 1 );
         Vec_IntForEachEntryDouble( vAig, iLit0, iLit1, i )

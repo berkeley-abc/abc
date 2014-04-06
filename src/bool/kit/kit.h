@@ -51,6 +51,7 @@ ABC_NAMESPACE_HEADER_START
 typedef struct Kit_Sop_t_ Kit_Sop_t;
 struct Kit_Sop_t_
 {
+    int               nLits;          // the number of literals
     int               nCubes;         // the number of cubes
     unsigned *        pCubes;         // the storage for cubes
 };
