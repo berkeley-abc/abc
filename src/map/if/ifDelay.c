@@ -26,6 +26,8 @@ ABC_NAMESPACE_IMPL_START
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
+#define IF_MAX_CUBES 70
+
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
@@ -525,12 +527,12 @@ static inline word If_LogPinDelaysMulti( word * pPinDels, int nFanins, int nSupp
 }
 int If_CutSopBalancePinDelaysInt( Vec_Int_t * vCover, int * pTimes, int nSuppAll, char * pPerm )
 {
-    word pPinDelsAnd[IF_MAX_FUNC_LUTSIZE], pPinDelsOr[32];
+    word pPinDelsAnd[IF_MAX_FUNC_LUTSIZE], pPinDelsOr[IF_MAX_CUBES];
     int nCounterAnd, pCounterAnd[IF_MAX_FUNC_LUTSIZE];
-    int nCounterOr,  pCounterOr[32];
+    int nCounterOr,  pCounterOr[IF_MAX_CUBES];
     int i, k, Entry, Literal, Delay = 0;
     word ResAnd, ResOr;
-    if ( Vec_IntSize(vCover) > 32 )
+    if ( Vec_IntSize(vCover) > IF_MAX_CUBES )
         return -1;
     nCounterOr = 0;
     Vec_IntForEachEntry( vCover, Entry, i )
@@ -589,9 +591,9 @@ int If_CutSopBalancePinDelays( If_Man_t * p, If_Cut_t * pCut, char * pPerm )
 int If_CutSopBalanceEvalIntInt( Vec_Int_t * vCover, int * pTimes, Vec_Int_t * vAig, int * piRes, int nSuppAll, int * pArea )
 {
     int nCounterAnd, pCounterAnd[IF_MAX_FUNC_LUTSIZE], pFaninLitsAnd[IF_MAX_FUNC_LUTSIZE];
-    int nCounterOr,  pCounterOr[32],  pFaninLitsOr[32];
+    int nCounterOr,  pCounterOr[IF_MAX_CUBES],  pFaninLitsOr[IF_MAX_CUBES];
     int i, k, Entry, Literal, nLits, Delay = 0, iRes = 0;
-    if ( Vec_IntSize(vCover) > 32 )
+    if ( Vec_IntSize(vCover) > IF_MAX_CUBES )
         return -1;
     nCounterOr = 0;
     Vec_IntForEachEntry( vCover, Entry, i )
@@ -628,6 +630,8 @@ int If_CutSopBalanceEvalInt( Vec_Int_t * vCover, int nLeaves, int * pTimes, Vec_
     if ( Vec_IntSize(vCover) == 0 )
         return -1;
     Res = If_CutSopBalanceEvalIntInt( vCover, pTimes, vAig, &iRes, nLeaves, pArea );
+    if ( Res == -1 )
+        return -1;
     assert( vAig == NULL || Abc_Lit2Var(iRes) == nLeaves + Abc_Lit2Var(Vec_IntSize(vAig)) - 1 );
     if ( vAig )
         Vec_IntPush( vAig, Abc_LitIsCompl(iRes) ^ fCompl );

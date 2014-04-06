@@ -393,10 +393,12 @@ Hop_Obj_t * Abc_NodeBuildFromMiniInt( Hop_Man_t * pMan, Vec_Int_t * vAig, int nL
 }
 Hop_Obj_t * Abc_NodeBuildFromMini( Hop_Man_t * pMan, If_Man_t * p, If_Cut_t * pCut, int fUseDsd )
 {
+    int Delay;
     if ( fUseDsd )
-        If_CutDsdBalanceEval( p, pCut, p->vArray );
+        Delay = If_CutDsdBalanceEval( p, pCut, p->vArray );
     else
-        If_CutSopBalanceEval( p, pCut, p->vArray );
+        Delay = If_CutSopBalanceEval( p, pCut, p->vArray );
+    assert( Delay >= 0 );
     return Abc_NodeBuildFromMiniInt( pMan, p->vArray, If_CutLeaveNum(pCut) );
 }
 

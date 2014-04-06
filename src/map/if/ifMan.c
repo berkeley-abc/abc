@@ -32,8 +32,6 @@ static If_Obj_t * If_ManSetupObj( If_Man_t * p );
 static void       If_ManCutSetRecycle( If_Man_t * p, If_Set_t * pSet ) { pSet->pNext = p->pFreeList; p->pFreeList = pSet;                            }
 static If_Set_t * If_ManCutSetFetch( If_Man_t * p )                    { If_Set_t * pTemp = p->pFreeList; p->pFreeList = p->pFreeList->pNext; return pTemp; }
 
-extern abctime s_TimeComp[4];
-
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
@@ -62,14 +60,13 @@ If_Man_t * If_ManStart( If_Par_t * pPars )
     p->vCis     = Vec_PtrAlloc( 100 );
     p->vCos     = Vec_PtrAlloc( 100 );
     p->vObjs    = Vec_PtrAlloc( 100 );
-//    p->vMapped = Vec_PtrAlloc( 100 );
     p->vTemp    = Vec_PtrAlloc( 100 );
     // prepare the memory manager
     if ( p->pPars->fTruth )
     {
         for ( v = 0; v <= p->pPars->nLutSize; v++ )
             p->nTruth6Words[v] = Abc_Truth6WordNum( v );
-        for ( v = 6; v <= p->pPars->nLutSize; v++ )
+        for ( v = 6; v <= Abc_MaxInt(6,p->pPars->nLutSize); v++ )
             p->vTtMem[v] = Vec_MemAllocForTT( v, pPars->fUseTtPerm );
         for ( v = 0; v < 6; v++ )
             p->vTtMem[v] = p->vTtMem[6];
@@ -77,20 +74,19 @@ If_Man_t * If_ManStart( If_Par_t * pPars )
         {
             p->vCover = Vec_IntAlloc( 0 );
             p->vArray = Vec_IntAlloc( 1000 );
-            for ( v = 6; v <= p->pPars->nLutSize; v++ )
+            for ( v = 6; v <= Abc_MaxInt(6,p->pPars->nLutSize); v++ )
                 p->vTtIsops[v] = Vec_WecAlloc( 1000 );
-            for ( v = 6; v <= p->pPars->nLutSize; v++ )
+            for ( v = 6; v <= Abc_MaxInt(6,p->pPars->nLutSize); v++ )
                 Vec_WecInit( p->vTtIsops[v], 2 );
             for ( v = 0; v < 6; v++ )
                 p->vTtIsops[v] = p->vTtIsops[6];
         }
     }
     p->nPermWords  = p->pPars->fUsePerm? If_CutPermWords( p->pPars->nLutSize ) : 0;
-    p->nObjBytes   = sizeof(If_Obj_t) + sizeof(int) * (p->pPars->nLutSize + p->nPermWords/* + p->nTruthWords*/);
-    p->nCutBytes   = sizeof(If_Cut_t) + sizeof(int) * (p->pPars->nLutSize + p->nPermWords/* + p->nTruthWords*/);
+    p->nObjBytes   = sizeof(If_Obj_t) + sizeof(int) * (p->pPars->nLutSize + p->nPermWords);
+    p->nCutBytes   = sizeof(If_Cut_t) + sizeof(int) * (p->pPars->nLutSize + p->nPermWords);
     p->nSetBytes   = sizeof(If_Set_t) + (sizeof(If_Cut_t *) + p->nCutBytes) * (p->pPars->nCutsMax + 1);
     p->pMemObj     = Mem_FixedStart( p->nObjBytes );
-//    p->pMemSet     = Mem_FixedStart( p->nSetBytes );
     // report expected memory usage
     if ( p->pPars->fVerbose )
         Abc_Print( 1, "K = %d. Memory (bytes): Truth = %4d. Cut = %4d. Obj = %4d. Set = %4d. CutMin = %s\n", 
@@ -103,7 +99,7 @@ If_Man_t * If_ManStart( If_Par_t * pPars )
     p->puTempW   = p->pPars->fTruth? ABC_ALLOC( word, p->nTruth6Words[p->pPars->nLutSize] ) : NULL;
     if ( pPars->fUseDsd )
     {
-        for ( v = 6; v <= p->pPars->nLutSize; v++ )
+        for ( v = 6; v <= Abc_MaxInt(6,p->pPars->nLutSize); v++ )
         {
             p->vTtDsds[v] = Vec_IntAlloc( 1000 );
             Vec_IntPush( p->vTtDsds[v], 0 );
@@ -151,7 +147,6 @@ void If_ManRestart( If_Man_t * p )
     Vec_PtrClear( p->vCis );
     Vec_PtrClear( p->vCos );
     Vec_PtrClear( p->vObjs );
-//    Vec_PtrClear( p->vMapped );
     Vec_PtrClear( p->vTemp );
     Mem_FixedRestart( p->pMemObj );
     // create the constant node
@@ -182,9 +177,9 @@ void If_ManStop( If_Man_t * p )
     if ( p->pPars->fVerbose && p->pPars->fTruth )
     {
         int nUnique = 0, nMemTotal = 0;
-        for ( i = 6; i <= p->pPars->nLutSize; i++ )
+        for ( i = 6; i <= Abc_MaxInt(6,p->pPars->nLutSize); i++ )
             nUnique += Vec_MemEntryNum(p->vTtMem[i]);
-        for ( i = 6; i <= p->pPars->nLutSize; i++ )
+        for ( i = 6; i <= Abc_MaxInt(6,p->pPars->nLutSize); i++ )
             nMemTotal += (int)Vec_MemMemory(p->vTtMem[i]);
         printf( "Unique truth tables = %d   Memory = %.2f MB   ", nUnique, 1.0 * nMemTotal / (1<<20) ); 
         Abc_PrintTime( 1, "Time", p->timeCache[4] );
@@ -233,11 +228,11 @@ void If_ManStop( If_Man_t * p )
     Vec_StrFreeP( &p->vPairPerms );
     if ( p->vPairHash )
         Hash_IntManStop( p->vPairHash );
-    for ( i = 6; i <= p->pPars->nLutSize; i++ )
+    for ( i = 6; i <= Abc_MaxInt(6,p->pPars->nLutSize); i++ )
         Vec_MemHashFree( p->vTtMem[i] );
-    for ( i = 6; i <= p->pPars->nLutSize; i++ )
+    for ( i = 6; i <= Abc_MaxInt(6,p->pPars->nLutSize); i++ )
         Vec_MemFreeP( &p->vTtMem[i] );
-    for ( i = 6; i <= p->pPars->nLutSize; i++ )
+    for ( i = 6; i <= Abc_MaxInt(6,p->pPars->nLutSize); i++ )
         Vec_WecFreeP( &p->vTtIsops[i] );
     Mem_FixedStop( p->pMemObj, 0 );
     ABC_FREE( p->pMemCi );
