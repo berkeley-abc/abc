@@ -1849,14 +1849,271 @@ void If_DsdManTest()
   SeeAlso     []
 
 ***********************************************************************/
+static inline int If_LogCounterAdd( int * pTimes, int * pnTimes, int Num, int fXor )
+{
+    int nTimes = *pnTimes;
+    pTimes[nTimes++] = Num;
+    if ( nTimes > 1 )
+    {
+        int i, k;
+        for ( k = nTimes-1; k > 0; k-- )
+        {
+            if ( pTimes[k] < pTimes[k-1] )
+                break;
+            if ( pTimes[k] > pTimes[k-1] )
+            { 
+                ABC_SWAP( int, pTimes[k], pTimes[k-1] ); 
+                continue; 
+            }
+            pTimes[k-1] += 1 + fXor;
+            for ( nTimes--, i = k; i < nTimes; i++ )
+                pTimes[i] = pTimes[i+1];
+        }
+    }
+    assert( nTimes > 0 );
+    *pnTimes = nTimes;
+    return pTimes[0] + (nTimes > 1 ? 1 + fXor : 0);
+}
+int If_DsdCutBalanceCost_rec( If_DsdMan_t * p, int Id, int * pTimes, int * pArea, int * pnSupp )
+{
+    If_DsdObj_t * pObj = If_DsdVecObj( &p->vObjs, Id );
+    if ( If_DsdObjType(pObj) == IF_DSD_PRIME )
+        return -1;
+    if ( If_DsdObjType(pObj) == IF_DSD_VAR )
+        return pTimes[(*pnSupp)++];
+    if ( If_DsdObjType(pObj) == IF_DSD_MUX )
+    {
+        int i, iFanin, Delay[3];
+        If_DsdObjForEachFaninLit( &p->vObjs, pObj, iFanin, i )
+        {
+            Delay[i] = If_DsdCutBalanceCost_rec( p, Abc_Lit2Var(iFanin), pTimes, pArea, pnSupp );
+            if ( Delay[i] == -1 )
+                return -1;
+        }
+        *pArea += 3;
+        return 2 + Abc_MaxInt(Delay[0], Abc_MaxInt(Delay[1], Delay[2]));
+    }
+    else
+    {
+        int i, iFanin, Delay, Result = 0;
+        int nCounter = 0, pCounter[IF_MAX_FUNC_LUTSIZE];
+        assert( If_DsdObjType(pObj) == IF_DSD_AND || If_DsdObjType(pObj) == IF_DSD_XOR );
+        If_DsdObjForEachFaninLit( &p->vObjs, pObj, iFanin, i )
+        {
+            Delay = If_DsdCutBalanceCost_rec( p, Abc_Lit2Var(iFanin), pTimes, pArea, pnSupp );
+            if ( Delay == -1 )
+                return -1;
+            Result = If_LogCounterAdd( pCounter, &nCounter, Delay, If_DsdObjType(pObj) == IF_DSD_XOR );
+        }
+        *pArea += (If_DsdObjType(pObj) == IF_DSD_XOR ? 3 : 1);
+        return Result;
+    }
+}
+int If_DsdCutBalanceCostInt( If_DsdMan_t * p, int iDsd, int * pTimes, int * pArea )
+{
+    int nSupp = 0;
+    int Res = If_DsdCutBalanceCost_rec( p, Abc_Lit2Var(iDsd), pTimes, pArea, &nSupp );
+    assert( nSupp == If_DsdVecLitSuppSize( &p->vObjs, iDsd ) );
+    return Res;
+}
 int If_DsdCutBalanceCost( If_Man_t * pIfMan, If_Cut_t * pCut )
 {
-    return 0;
+    pCut->fUser = 1;
+    pCut->Cost = 0;
+    if ( pCut->nLeaves == 0 )
+        return 0;
+    if ( pCut->nLeaves == 1 )
+        return (int)If_ObjCutBest(If_CutLeaf(pIfMan, pCut, 0))->Delay; 
+    else
+    {
+        If_Obj_t * pLeaf;
+        int i, Delay, Area = 0, pTimes[IF_MAX_FUNC_LUTSIZE];
+        If_CutForEachLeaf( pIfMan, pCut, pLeaf, i )
+            pTimes[i] = (int)If_ObjCutBest(pLeaf)->Delay; 
+        Delay = If_DsdCutBalanceCostInt( pIfMan->pIfDsdMan, If_CutDsdLit(pCut), pTimes, &Area );
+        pCut->Cost = Area;
+        return Delay;
+    }
 }
-int If_DsdCutBalance( void * pGia, If_Man_t * pIfMan, If_Cut_t * pCut, Vec_Int_t * vLeaves, int fHash )
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline int If_LogCreateAnd( Vec_Int_t * vAig, int iLit0, int iLit1, int nSuppAll )
 {
-    Gia_Man_t * p = (Gia_Man_t *)pGia;
-    return 0;
+    int iObjId = Vec_IntSize(vAig)/2 + nSuppAll;
+    Vec_IntPush( vAig, iLit0 );
+    Vec_IntPush( vAig, iLit1 );
+    return Abc_Var2Lit( iObjId, 0 );
+}
+static inline int If_LogCreateMux( Vec_Int_t * vAig, int iLitC, int iLit1, int iLit0, int nSuppAll )
+{
+    int iFanLit0 = If_LogCreateAnd( vAig, iLitC, iLit1, nSuppAll );
+    int iFanLit1 = If_LogCreateAnd( vAig, Abc_LitNot(iLitC), iLit0, nSuppAll );
+    int iResLit  = If_LogCreateAnd( vAig, Abc_LitNot(iFanLit0), Abc_LitNot(iFanLit1), nSuppAll );
+    return Abc_LitNot(iResLit);
+}
+static inline int If_LogCreateXor( Vec_Int_t * vAig, int iLit0, int iLit1, int nSuppAll )
+{
+    return If_LogCreateMux( vAig, iLit0, Abc_LitNot(iLit1), iLit1, nSuppAll );
+}
+static inline int If_LogCreateAndXor( Vec_Int_t * vAig, int iLit0, int iLit1, int nSuppAll, int fXor )
+{
+    return fXor ? If_LogCreateXor(vAig, iLit0, iLit1, nSuppAll) : If_LogCreateAnd(vAig, iLit0, iLit1, nSuppAll);
+}
+static inline int If_LogCreateAndXorMulti( Vec_Int_t * vAig, int * pFaninLits, int nFanins, int nSuppAll, int fXor )
+{
+    int i;
+    assert( nFanins > 0 );
+    for ( i = nFanins - 1; i > 0; i-- )
+        pFaninLits[i-1] = If_LogCreateAndXor( vAig, pFaninLits[i], pFaninLits[i-1], nSuppAll, fXor );
+    return pFaninLits[0];
+}
+
+static inline int If_LogCounterAddAig( int * pTimes, int * pnTimes, int * pFaninLits, int Num, int iLit, Vec_Int_t * vAig, int nSuppAll, int fXor )
+{
+    int nTimes = *pnTimes;
+    if ( vAig )
+        pFaninLits[nTimes] = iLit;
+    pTimes[nTimes++] = Num;
+    if ( nTimes > 1 )
+    {
+        int i, k;
+        for ( k = nTimes-1; k > 0; k-- )
+        {
+            if ( pTimes[k] < pTimes[k-1] )
+                break;
+            if ( pTimes[k] > pTimes[k-1] )
+            { 
+                ABC_SWAP( int, pTimes[k], pTimes[k-1] ); 
+                if ( vAig )
+                    ABC_SWAP( int, pFaninLits[k], pFaninLits[k-1] ); 
+                continue; 
+            }
+            pTimes[k-1] += 1 + fXor;
+            if ( vAig )
+                pFaninLits[k-1] = If_LogCreateAndXor( vAig, pFaninLits[k], pFaninLits[k-1], nSuppAll, fXor );
+            for ( nTimes--, i = k; i < nTimes; i++ )
+            {
+                pTimes[i] = pTimes[i+1];
+                if ( vAig )
+                    pFaninLits[i] = pFaninLits[i+1];
+            }
+        }
+    }
+    assert( nTimes > 0 );
+    *pnTimes = nTimes;
+    return pTimes[0] + (nTimes > 1 ? 1 + fXor : 0);
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int If_DsdCutBalanceAig_rec( If_DsdMan_t * p, int Id, int * pTimes, int * pnSupp, Vec_Int_t * vAig, int * piLit, int nSuppAll, int * pArea )
+{
+    If_DsdObj_t * pObj = If_DsdVecObj( &p->vObjs, Id );
+    if ( If_DsdObjType(pObj) == IF_DSD_PRIME )
+        return -1;
+    if ( If_DsdObjType(pObj) == IF_DSD_VAR )
+    {
+        if ( vAig )
+            *piLit = Abc_Var2Lit( *pnSupp, 0 );
+        return pTimes[(*pnSupp)++];
+    }
+    if ( If_DsdObjType(pObj) == IF_DSD_MUX )
+    {
+        int i, iFanin, Delay[3], pFaninLits[3];
+        If_DsdObjForEachFaninLit( &p->vObjs, pObj, iFanin, i )
+        {
+            Delay[i] = If_DsdCutBalanceAig_rec( p, Abc_Lit2Var(iFanin), pTimes, pnSupp, vAig, pFaninLits+i, nSuppAll, pArea );
+            if ( Delay[i] == -1 )
+                return -1;
+        }
+        if ( vAig )
+            *piLit = If_LogCreateMux( vAig, pFaninLits[0], pFaninLits[1], pFaninLits[2], nSuppAll );
+        else
+            *pArea += 3;
+        return 2 + Abc_MaxInt(Delay[0], Abc_MaxInt(Delay[1], Delay[2]));
+    }
+    assert( If_DsdObjType(pObj) == IF_DSD_AND || If_DsdObjType(pObj) == IF_DSD_XOR );
+    {
+        int i, iFanin, Delay, Result = 0;
+        int fXor = (If_DsdObjType(pObj) == IF_DSD_XOR);
+        int nCounter = 0, pCounter[IF_MAX_FUNC_LUTSIZE], pFaninLits[IF_MAX_FUNC_LUTSIZE];
+        If_DsdObjForEachFaninLit( &p->vObjs, pObj, iFanin, i )
+        {
+            Delay = If_DsdCutBalanceAig_rec( p, Abc_Lit2Var(iFanin), pTimes, pnSupp, vAig, pFaninLits+i, nSuppAll, pArea );
+            if ( Delay == -1 )
+                return -1;
+            Result = If_LogCounterAddAig( pCounter, &nCounter, pFaninLits, Delay, pFaninLits[i], vAig, nSuppAll, fXor );
+        }
+        if ( vAig )
+            *piLit = If_LogCreateAndXorMulti( vAig, pFaninLits, nCounter, nSuppAll, fXor );
+        else
+            *pArea += (pObj->nFans - 1) * (1 + 2 * fXor);
+        return Result;
+    }
+}
+int If_DsdCutBalanceAigInt( If_DsdMan_t * p, int iDsd, int * pTimes, Vec_Int_t * vAig, int * pArea )
+{
+    int nSupp = 0, iLit = 0;
+    int nSuppAll = If_DsdVecLitSuppSize( &p->vObjs, iDsd );
+    int Res = If_DsdCutBalanceAig_rec( p, Abc_Lit2Var(iDsd), pTimes, &nSupp, vAig, &iLit, nSuppAll, pArea );
+    assert( nSupp == nSuppAll );
+    assert( vAig == NULL || Abc_Lit2Var(iLit) == nSupp + Abc_Lit2Var(Vec_IntSize(vAig)) - 1 );
+    if ( vAig )
+        Vec_IntPush( vAig, Abc_LitIsCompl(iLit) );
+    assert( vAig == NULL || (Vec_IntSize(vAig) & 1) );
+    return Res;
+}
+int If_DsdCutBalanceAig( If_Man_t * pIfMan, If_Cut_t * pCut, Vec_Int_t * vAig )
+{
+    pCut->fUser = 1;
+    if ( vAig )
+        Vec_IntClear( vAig );
+    if ( pCut->nLeaves == 0 ) // const
+    {
+        assert( Abc_Lit2Var(If_CutDsdLit(pCut)) == 0 );
+        if ( vAig )
+            Vec_IntPush( vAig, Abc_LitIsCompl(If_CutDsdLit(pCut)) );
+        return 0;
+    }
+    if ( pCut->nLeaves == 1 ) // variable
+    {
+        assert( Abc_Lit2Var(If_CutDsdLit(pCut)) == 1 );
+        if ( vAig )
+            Vec_IntPush( vAig, 0 );
+        if ( vAig )
+            Vec_IntPush( vAig, Abc_LitIsCompl(If_CutDsdLit(pCut)) );
+        return (int)If_ObjCutBest(If_CutLeaf(pIfMan, pCut, 0))->Delay;
+    }
+    else
+    {
+        If_Obj_t * pLeaf;
+        int i, pTimes[IF_MAX_FUNC_LUTSIZE];
+        int Delay, Area = 0;
+        If_CutForEachLeaf( pIfMan, pCut, pLeaf, i )
+            pTimes[i] = (int)If_ObjCutBest(pLeaf)->Delay; 
+        Delay = If_DsdCutBalanceAigInt( pIfMan->pIfDsdMan, If_CutDsdLit(pCut), pTimes, vAig, &Area );
+        pCut->Cost = Area;
+        return Delay;
+    }
 }
 
 

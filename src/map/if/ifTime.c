@@ -249,7 +249,7 @@ Vec_Wrd_t * If_CutDelaySopAnds( If_Man_t * p, If_Cut_t * pCut, Vec_Int_t * vCove
 
 ***********************************************************************/
 Vec_Wrd_t * If_CutDelaySopArray( If_Man_t * p, If_Cut_t * pCut )
-{
+{ 
     abctime clk;
     Vec_Wrd_t * vAnds;
     int RetValue;
@@ -265,7 +265,6 @@ Vec_Wrd_t * If_CutDelaySopArray( If_Man_t * p, If_Cut_t * pCut )
     if ( RetValue == -1 )
         return NULL;
     assert( RetValue == 0 || RetValue == 1 );
-
     clk = Abc_Clock();
     vAnds = If_CutDelaySopAnds( p, pCut, p->vCover, RetValue );
     s_timeOld += Abc_Clock() - clk;
@@ -343,6 +342,8 @@ int If_CutDelaySopCost( If_Man_t * p, If_Cut_t * pCut )
     If_And_t Leaf;
     Vec_Wrd_t * vAnds;
     int i, Delay;
+//    char pPerm[16];
+//    int Delay2, TestArea;
     // mark cut as a user cut
     pCut->fUser = 1;
     vAnds = If_CutDelaySopArray( p, pCut );
@@ -357,12 +358,12 @@ int If_CutDelaySopCost( If_Man_t * p, If_Cut_t * pCut )
         Leaf = If_WrdToAnd( Vec_WrdEntryLast(vAnds) );
     else
         Leaf.Delay = 0;
-    if ( Vec_WrdSize(vAnds) > (int)pCut->nLeaves )
-        pCut->Cost = Vec_WrdSize(vAnds) - pCut->nLeaves;
-    else if ( pCut->nLeaves == 1 )
-        pCut->Cost = 1;
-    else if ( pCut->nLeaves == 0 )
+    if ( pCut->nLeaves == 0 )
         pCut->Cost = 0;
+    else if ( pCut->nLeaves == 1 )
+        pCut->Cost = 0;
+    else if ( Vec_WrdSize(vAnds) > (int)pCut->nLeaves )
+        pCut->Cost = Vec_WrdSize(vAnds) - pCut->nLeaves;
     else assert( 0 );
     // get the permutation
     for ( i = 0; i < (int)pCut->nLeaves; i++ )
@@ -375,6 +376,30 @@ int If_CutDelaySopCost( If_Man_t * p, If_Cut_t * pCut )
     // verify the delay
 //    Delay = If_CutDelay( p, pObj, pCut );
 //    assert( (int)Leaf.Delay == Delay );
+/*
+    TestArea = pCut->Cost;
+    Delay = If_CutDelaySopArray3( p, pCut, NULL );
+    if ( Delay != (int)Leaf.Delay || (int)pCut->Cost != TestArea )
+    {
+        int s = 0;
+        Kit_DsdPrintFromTruth( If_CutTruth(p, pCut), pCut->nLeaves );  printf( "\n" );
+        Delay = If_CutDelaySopArray3( p, pCut, NULL );
+    }
+    Delay2 = If_CutPinDelaysSopArray3( p, pCut, pPerm );
+    assert( Delay == Delay2 );
+    for ( i = 0; i < (int)pCut->nLeaves; i++ )
+    {
+        if ( pPerm[i] != pCut->pPerm[i] )
+        {
+            int s = 0;
+            Kit_DsdPrintFromTruth( If_CutTruth(p, pCut), pCut->nLeaves );  printf( "\n" );
+            Delay2 = If_CutPinDelaysSopArray3( p, pCut, pPerm );
+        }
+        assert( pPerm[i] == pCut->pPerm[i] );
+    }
+    printf( "Corrrect\n" );
+//    printf( "%d ", Delay );
+*/
     return Leaf.Delay;
 }
 
@@ -717,6 +742,13 @@ void If_CutPropagateRequired( If_Man_t * p, If_Obj_t * pObj, If_Cut_t * pCut, fl
     {
         if ( pCut->fUser )
         {
+/*
+            if ( p->pPars->fDelayOpt )
+            {
+                int Del = If_CutPinDelaysSopArray3( p, pCut, pCut->pPerm );
+                assert( Del == pCut->Delay );
+            }
+*/
             If_CutForEachLeaf( p, pCut, pLeaf, i )
             {
                 Pin2PinDelay = pCut->pPerm ? (pCut->pPerm[i] == IF_BIG_CHAR ? -IF_BIG_CHAR : pCut->pPerm[i]) : 1;

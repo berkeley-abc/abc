@@ -206,6 +206,7 @@ void If_ManStop( If_Man_t * p )
     Vec_PtrFree( p->vObjs );
     Vec_PtrFree( p->vTemp );
     Vec_IntFreeP( &p->vCover );
+    Vec_IntFreeP( &p->vArray );
     Vec_WrdFreeP( &p->vAnds );
     Vec_WrdFreeP( &p->vAndGate );
     Vec_WrdFreeP( &p->vOrGate );

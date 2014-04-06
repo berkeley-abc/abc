@@ -672,6 +672,56 @@ int Gia_ManNodeIfSopToGia( Gia_Man_t * pNew, If_Man_t * p, If_Cut_t * pCut, Vec_
 
 /**Function*************************************************************
 
+  Synopsis    [Rebuilds GIA from mini AIG.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Gia_ManBuildFromMini( Gia_Man_t * pNew, Vec_Int_t * vLeaves, Vec_Int_t * vAig, int fHash )
+{
+    assert( Vec_IntSize(vAig) > 0 );
+    assert( Vec_IntEntryLast(vAig) < 2 );
+    if ( Vec_IntSize(vAig) == 1 ) // const
+        return Vec_IntEntry(vAig, 0);
+    if ( Vec_IntSize(vAig) == 2 ) // variable
+    {
+        assert( Vec_IntEntry(vAig, 0) == 0 );
+        assert( Vec_IntSize(vLeaves) == 1 );
+        return Abc_LitNotCond( Vec_IntEntry(vLeaves, 0), Vec_IntEntry(vAig, 1) );
+    }
+    else
+    {
+        int nLeaves = Vec_IntSize(vLeaves);
+        int i, iVar0, iVar1, iLit0, iLit1, iLit = 0;
+        assert( Vec_IntSize(vAig) & 1 );
+        Vec_IntForEachEntryDouble( vAig, iLit0, iLit1, i )
+        {
+            iVar0 = Abc_Lit2Var( iLit0 );
+            iVar1 = Abc_Lit2Var( iLit1 );
+            iLit0 = Abc_LitNotCond( iVar0 < nLeaves ? Vec_IntEntry(vLeaves, iVar0) : Vec_IntEntry(vAig, iVar0 - nLeaves), Abc_LitIsCompl(iLit0) );
+            iLit1 = Abc_LitNotCond( iVar1 < nLeaves ? Vec_IntEntry(vLeaves, iVar1) : Vec_IntEntry(vAig, iVar1 - nLeaves), Abc_LitIsCompl(iLit1) );
+            if ( fHash )
+                iLit = Gia_ManHashAnd( pNew, iLit0, iLit1 );
+            else if ( iLit0 == iLit1 )
+                iLit = iLit0;
+            else
+                iLit = Gia_ManAppendAnd( pNew, iLit0, iLit1 );
+            assert( (i & 1) == 0 );
+            Vec_IntWriteEntry( vAig, Abc_Lit2Var(i), iLit );  // overwriting entries
+        }
+        assert( i == Vec_IntSize(vAig) - 1 );
+        iLit = Abc_LitNotCond( iLit, Vec_IntEntry(vAig, i) );
+        Vec_IntClear( vAig ); // useless
+        return iLit;
+    }
+}
+
+/**Function*************************************************************
+
   Synopsis    [Converts IF into GIA manager.]
 
   Description []
@@ -688,7 +738,7 @@ Gia_Man_t * Gia_ManFromIfAig( If_Man_t * pIfMan )
     If_Obj_t * pIfObj, * pIfLeaf;
     If_Cut_t * pCutBest;
     Vec_Int_t * vLeaves;
-    Vec_Int_t * vCover;
+    Vec_Int_t * vAig;
     int i, k;
     assert( pIfMan->pPars->pLutStruct == NULL );
     assert( pIfMan->pPars->fDelayOpt || pIfMan->pPars->fDsdBalance || pIfMan->pPars->fUserRecLib );
@@ -696,7 +746,7 @@ Gia_Man_t * Gia_ManFromIfAig( If_Man_t * pIfMan )
     pNew = Gia_ManStart( If_ManObjNum(pIfMan) );
     Gia_ManHashAlloc( pNew );
     // iterate through nodes used in the mapping
-    vCover = Vec_IntAlloc( 1 << 16 );
+    vAig = Vec_IntAlloc( 1 << 16 );
     vLeaves = Vec_IntAlloc( 16 );
     If_ManCleanCutData( pIfMan );
     If_ManForEachObj( pIfMan, pIfObj, i )
@@ -714,7 +764,10 @@ Gia_Man_t * Gia_ManFromIfAig( If_Man_t * pIfMan )
             if ( pIfMan->pPars->fDelayOpt )
                 pIfObj->iCopy = Gia_ManNodeIfSopToGia( pNew, pIfMan, pCutBest, vLeaves, fHash );
             else if ( pIfMan->pPars->fDsdBalance )
-                pIfObj->iCopy = If_DsdCutBalance( pNew, pIfMan, pCutBest, vLeaves, fHash );
+            {
+                If_DsdCutBalanceAig( pIfMan, pCutBest, vAig );
+                pIfObj->iCopy = Gia_ManBuildFromMini( pNew, vLeaves, vAig, fHash );
+            }
             else if ( pIfMan->pPars->fUserRecLib )
                 pIfObj->iCopy = Abc_RecToGia3( pNew, pIfMan, pCutBest, vLeaves, fHash );
             else assert( 0 );
@@ -727,7 +780,7 @@ Gia_Man_t * Gia_ManFromIfAig( If_Man_t * pIfMan )
             pIfObj->iCopy = 1;
         else assert( 0 );
     }
-    Vec_IntFree( vCover );
+    Vec_IntFree( vAig );
     Vec_IntFree( vLeaves );
     Gia_ManHashStop( pNew );
     return pNew;

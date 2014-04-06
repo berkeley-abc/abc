@@ -207,6 +207,7 @@ struct If_Man_t_
     int                fReqTimeWarn;  // warning about exceeding required times was printed
     // SOP balancing
     Vec_Int_t *        vCover;        // used to compute ISOP
+    Vec_Int_t *        vArray;        // intermediate storage
     Vec_Wrd_t *        vAnds;         // intermediate storage
     Vec_Wrd_t *        vOrGate;       // intermediate storage
     Vec_Wrd_t *        vAndGate;      // intermediate storage
@@ -415,13 +416,16 @@ static inline void       If_CutSetData( If_Cut_t * pCut, void * pData )      { *
 static inline int        If_CutDataInt( If_Cut_t * pCut )                    { return *(int *)pCut;                  }
 static inline void       If_CutSetDataInt( If_Cut_t * pCut, int Data )       { *(int *)pCut = Data;                  }
 
+static inline int        If_CutTruthLit( If_Cut_t * pCut )                   { assert( pCut->iCutFunc >= 0 ); return pCut->iCutFunc;             }
+static inline int        If_CutTruthIsCompl( If_Cut_t * pCut )               { assert( pCut->iCutFunc >= 0 ); return Abc_LitIsCompl(pCut->iCutFunc);                               }
 static inline word *     If_CutTruthWR( If_Man_t * p, If_Cut_t * pCut )      { return p->vTtMem ? Vec_MemReadEntry(p->vTtMem[pCut->nLeaves], Abc_Lit2Var(pCut->iCutFunc)) : NULL;  }
-static inline unsigned * If_CutTruthR( If_Man_t * p, If_Cut_t * pCut )       { return (unsigned *)If_CutTruthWR(p, pCut);                        }
-static inline int        If_CutTruthIsCompl( If_Cut_t * pCut )               { assert( pCut->iCutFunc >= 0 ); return Abc_LitIsCompl(pCut->iCutFunc);                            }
+static inline unsigned * If_CutTruthUR( If_Man_t * p, If_Cut_t * pCut)       { return (unsigned *)If_CutTruthWR(p, pCut);                        }
 static inline word *     If_CutTruthW( If_Man_t * p, If_Cut_t * pCut )       { if ( p->vTtMem == NULL ) return NULL; assert( pCut->iCutFunc >= 0 ); Abc_TtCopy( p->puTempW, If_CutTruthWR(p, pCut), p->nTruth6Words[pCut->nLeaves], If_CutTruthIsCompl(pCut) ); return p->puTempW;  }
 static inline unsigned * If_CutTruth( If_Man_t * p, If_Cut_t * pCut )        { return (unsigned *)If_CutTruthW(p, pCut);                         }
+static inline int        If_CutDsdLit( If_Cut_t * pCut )                     { assert( pCut->iCutDsd >= 0 ); return pCut->iCutDsd;               }
+static inline If_Obj_t * If_CutLeaf( If_Man_t * p, If_Cut_t * pCut, int i )  { assert(i >= 0 && i < (int)pCut->nLeaves); return If_ManObj(p, pCut->pLeaves[i]);                         }
 
-static inline float      If_CutLutArea( If_Man_t * p, If_Cut_t * pCut )      { return pCut->fUser? (float)pCut->Cost : (p->pPars->pLutLib? p->pPars->pLutLib->pLutAreas[pCut->nLeaves] : (float)1.0); }
+static inline float      If_CutLutArea( If_Man_t * p, If_Cut_t * pCut )      { return pCut->fUser? (float)pCut->Cost : (p->pPars->pLutLib? p->pPars->pLutLib->pLutAreas[pCut->nLeaves] : (float)1.0);    }
 static inline float      If_CutLutDelay( If_LibLut_t * p, int Size, int iPin )  { return p ? (p->fVarPinDelays ? p->pLutDelays[Size][iPin] : p->pLutDelays[Size][0]) : 1.0;                              }
 
 static inline word       If_AndToWrd( If_And_t m )                           { union { If_And_t x; word y; } v; v.x = m; return v.y;  }
@@ -531,6 +535,9 @@ extern int             If_CluCheckExt( void * p, word * pTruth, int nVars, int n
                            char * pLut0, char * pLut1, word * pFunc0, word * pFunc1 );
 extern int             If_CluCheckExt3( void * p, word * pTruth, int nVars, int nLutLeaf, int nLutLeaf2, int nLutRoot, 
                            char * pLut0, char * pLut1, char * pLut2, word * pFunc0, word * pFunc1, word * pFunc2 );
+/*=== ifDelay.c =============================================================*/
+extern int             If_CutDelaySopArray3( If_Man_t * p, If_Cut_t * pCut, Vec_Int_t * vAig );
+extern int             If_CutPinDelaysSopArray3( If_Man_t * p, If_Cut_t * pCut, char * pPerm );
 /*=== ifDsd.c =============================================================*/
 extern If_DsdMan_t *   If_DsdManAlloc( int nVars, int nLutSize );
 extern void            If_DsdManPrint( If_DsdMan_t * p, char * pFileName, int Number, int Support, int fOccurs, int fTtDump, int fVerbose );
@@ -548,7 +555,7 @@ extern int             If_DsdManSuppSize( If_DsdMan_t * p, int iDsd );
 extern int             If_DsdManCheckDec( If_DsdMan_t * p, int iDsd );
 extern unsigned        If_DsdManCheckXY( If_DsdMan_t * p, int iDsd, int LutSize, int fDerive, int fHighEffort, int fVerbose );
 extern int             If_DsdCutBalanceCost( If_Man_t * pIfMan, If_Cut_t * pCut );
-extern int             If_DsdCutBalance( void * pGia, If_Man_t * pIfMan, If_Cut_t * pCut, Vec_Int_t * vLeaves, int fHash );
+extern int             If_DsdCutBalanceAig( If_Man_t * pIfMan, If_Cut_t * pCut, Vec_Int_t * vAig );
 /*=== ifLib.c =============================================================*/
 extern If_LibLut_t *   If_LibLutRead( char * FileName );
 extern If_LibLut_t *   If_LibLutDup( If_LibLut_t * p );

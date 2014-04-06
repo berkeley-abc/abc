@@ -451,6 +451,63 @@ Hop_Obj_t * Abc_NodeFromDsdBalance( Hop_Man_t * pMan, If_Man_t * p, If_Cut_t * p
 
 /**Function*************************************************************
 
+  Synopsis    [Rebuilds GIA from mini AIG.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Hop_Obj_t * Abc_NodeBuildFromMiniInt( Hop_Man_t * pMan, Vec_Int_t * vAig, int nLeaves )
+{
+    assert( Vec_IntSize(vAig) > 0 );
+    assert( Vec_IntEntryLast(vAig) < 2 );
+    if ( Vec_IntSize(vAig) == 1 ) // const
+    {
+        assert( nLeaves == 0 );
+        return Hop_NotCond( Hop_ManConst1(pMan), Vec_IntEntry(vAig, 0) );
+    }
+    if ( Vec_IntSize(vAig) == 2 ) // variable
+    {
+        assert( Vec_IntEntry(vAig, 0) == 0 );
+        assert( nLeaves == 1 );
+        return Hop_NotCond( Hop_IthVar(pMan, 0), Vec_IntEntry(vAig, 1) );
+    }
+    else
+    {
+        int i, iVar0, iVar1, iLit0, iLit1;
+        Hop_Obj_t * piLit0, * piLit1, * piLit = NULL;
+        assert( Vec_IntSize(vAig) & 1 );
+        Vec_IntForEachEntryDouble( vAig, iLit0, iLit1, i )
+        {
+            iVar0 = Abc_Lit2Var( iLit0 );
+            iVar1 = Abc_Lit2Var( iLit1 );
+            piLit0 = Hop_NotCond( iVar0 < nLeaves ? Hop_IthVar(pMan, iVar0) : (Hop_Obj_t *)Vec_PtrEntry((Vec_Ptr_t *)vAig, iVar0 - nLeaves), Abc_LitIsCompl(iLit0) );
+            piLit1 = Hop_NotCond( iVar1 < nLeaves ? Hop_IthVar(pMan, iVar1) : (Hop_Obj_t *)Vec_PtrEntry((Vec_Ptr_t *)vAig, iVar1 - nLeaves), Abc_LitIsCompl(iLit1) );
+            piLit  = Hop_And( pMan, piLit0, piLit1 );
+            assert( (i & 1) == 0 );
+            Vec_PtrWriteEntry( (Vec_Ptr_t *)vAig, Abc_Lit2Var(i), piLit );  // overwriting entries
+        }
+        assert( i == Vec_IntSize(vAig) - 1 );
+        piLit = Hop_NotCond( piLit, Vec_IntEntry(vAig, i) );
+        Vec_IntClear( vAig ); // useless
+        return piLit;
+    }
+}
+Hop_Obj_t * Abc_NodeBuildFromMini( Hop_Man_t * pMan, If_Man_t * p, If_Cut_t * pCut )
+{
+    Hop_Obj_t * pResult;
+    if ( p->vArray == NULL )
+        p->vArray = Vec_IntAlloc(100);
+    If_CutDelaySopArray3( p, pCut, p->vArray );
+    pResult = Abc_NodeBuildFromMiniInt( pMan, p->vArray, If_CutLeaveNum(pCut) );
+    return pResult;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Derive one node after FPGA mapping.]
 
   Description []
