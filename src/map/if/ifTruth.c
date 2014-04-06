@@ -19,6 +19,7 @@
 ***********************************************************************/
 
 #include "if.h"
+#include "bool/kit/kit.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -97,7 +98,7 @@ void If_CutRotatePins( If_Man_t * p, If_Cut_t * pCut )
 int If_CutComputeTruth( If_Man_t * p, If_Cut_t * pCut, If_Cut_t * pCut0, If_Cut_t * pCut1, int fCompl0, int fCompl1 )
 {
     int fCompl, truthId, nLeavesNew, RetValue = 0;
-    int nWords      = Abc_TtWordNum( pCut->nLeaves );
+    int PrevSize, nWords = Abc_TtWordNum( pCut->nLeaves );
     word * pTruth0s = Vec_MemReadEntry( p->vTtMem[pCut0->nLeaves], Abc_Lit2Var(pCut0->iCutFunc) );
     word * pTruth1s = Vec_MemReadEntry( p->vTtMem[pCut1->nLeaves], Abc_Lit2Var(pCut1->iCutFunc) );
     word * pTruth0  = (word *)p->puTemp[0];
@@ -121,6 +122,7 @@ int If_CutComputeTruth( If_Man_t * p, If_Cut_t * pCut, If_Cut_t * pCut0, If_Cut_
             RetValue      = 1;
         }
     }
+    PrevSize       = Vec_MemEntryNum( p->vTtMem[pCut->nLeaves] );   
     truthId        = Vec_MemHashInsert( p->vTtMem[pCut->nLeaves], pTruth );
     pCut->iCutFunc = Abc_Var2Lit( truthId, fCompl );
     assert( (pTruth[0] & 1) == 0 );
@@ -132,6 +134,19 @@ int If_CutComputeTruth( If_Man_t * p, If_Cut_t * pCut, If_Cut_t * pCut0, If_Cut_
         Abc_TtCanonicize( pCopy, pCut->nLeaves, pCanonPerm );
     }
 #endif
+    if ( p->vTtIsops[pCut->nLeaves] && PrevSize != Vec_MemEntryNum(p->vTtMem[pCut->nLeaves]) )
+    {
+        Vec_Int_t * vLevel = Vec_WecPushLevel( p->vTtIsops[pCut->nLeaves] );
+        fCompl = Kit_TruthIsop( (unsigned *)pTruth, pCut->nLeaves, p->vCover, 1 );
+        if ( fCompl >= 0 )
+        {
+            Vec_IntGrow( vLevel, Vec_IntSize(p->vCover) );
+            Vec_IntAppend( vLevel, p->vCover );
+            if ( fCompl )
+                vLevel->nCap ^= (1<<16); // hack to remember complemented attribute
+        }
+        assert( Vec_WecSize(p->vTtIsops[pCut->nLeaves]) == Vec_MemEntryNum(p->vTtMem[pCut->nLeaves]) );
+    }
     return RetValue;
 }
 

@@ -19,7 +19,6 @@
 ***********************************************************************/
 
 #include "if.h"
-#include "bool/kit/kit.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -31,6 +30,77 @@ ABC_NAMESPACE_IMPL_START
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
  
+/**Function*************************************************************
+
+  Synopsis    [Computes the SOP delay using balanced AND decomposition.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline int If_CutMaxCubeSize( Vec_Int_t * vCover, int nVars )
+{
+    int i, k, Entry, Literal, Count, CountMax = 0;
+    Vec_IntForEachEntry( vCover, Entry, i )
+    {
+        Count = 0;
+        for ( k = 0; k < nVars; k++ )
+        {
+            Literal = (3 & (Entry >> (k << 1)));
+            if ( Literal == 1 || Literal == 2 )
+                Count++;
+        }
+        CountMax = Abc_MaxInt( CountMax, Count );
+    }
+    return CountMax;
+}
+int If_CutDelaySop( If_Man_t * p, If_Cut_t * pCut )
+{
+    // delay is calculated using 1+log2(NumFanins)
+    static double GateDelays[20] = { 1.00, 1.00, 2.00, 2.58, 3.00, 3.32, 3.58, 3.81, 4.00, 4.17, 4.32, 4.46, 4.58, 4.70, 4.81, 4.91, 5.00, 5.09, 5.17, 5.25 };
+    Vec_Int_t * vCover;
+    If_Obj_t * pLeaf;
+    int i, nLitMax, Delay, DelayMax;
+    // mark cut as a user cut
+    pCut->fUser = 1;
+    if ( pCut->nLeaves == 0 )
+        return 0;
+    if ( pCut->nLeaves == 1 )
+        return (int)If_ObjCutBest(If_CutLeaf(p, pCut, 0))->Delay;
+    vCover = Vec_WecEntry( p->vTtIsops[pCut->nLeaves], Abc_Lit2Var(If_CutTruthLit(pCut)) );
+    if ( Vec_IntSize(vCover) == 0 )
+        return -1;
+    // mark the output as complemented
+//    vAnds = If_CutDelaySopAnds( p, pCut, p->vCover, RetValue ^ pCut->fCompl );
+    if ( Vec_IntSize(p->vCover) > p->pPars->nGateSize )
+        return ABC_INFINITY;
+    // set the area cost
+    assert( If_CutLeaveNum(pCut) >= 0 && If_CutLeaveNum(pCut) <= 16 );
+    // compute the gate delay
+    nLitMax = If_CutMaxCubeSize( p->vCover, If_CutLeaveNum(pCut) );
+    if ( Vec_IntSize(p->vCover) < 2 )
+    {
+        pCut->Cost = Vec_IntSize(p->vCover);
+        Delay = (int)(GateDelays[If_CutLeaveNum(pCut)] + 0.5);
+        DelayMax = 0;
+        If_CutForEachLeaf( p, pCut, pLeaf, i )
+            DelayMax = Abc_MaxInt( DelayMax, If_ObjCutBest(pLeaf)->Delay + (pCut->pPerm[i] = (char)Delay) );
+    }
+    else
+    {
+        pCut->Cost = Vec_IntSize(p->vCover) + 1;
+        Delay = (int)(GateDelays[If_CutLeaveNum(pCut)] + GateDelays[nLitMax] + 0.5);
+        DelayMax = 0;
+        If_CutForEachLeaf( p, pCut, pLeaf, i )
+            DelayMax = Abc_MaxInt( DelayMax, If_ObjCutBest(pLeaf)->Delay + (pCut->pPerm[i] = (char)Delay) );
+    }
+    return DelayMax;
+}
+
+
 /**Function*************************************************************
 
   Synopsis    [Naive implementation of log-counter.]
@@ -453,7 +523,7 @@ static inline word If_LogPinDelaysMulti( word * pPinDels, int nFanins, int nSupp
         pPinDels[i-1] = If_CutPinDelayMax( pPinDels[i], pPinDels[i-1], nSuppAll, 1 + fXor );
     return pPinDels[0];
 }
-int If_CutPinDelaysSopArray3IntInt( Vec_Int_t * vCover, int * pTimes, int nSuppAll, char * pPerm )
+int If_CutSopBalancePinDelaysInt( Vec_Int_t * vCover, int * pTimes, int nSuppAll, char * pPerm )
 {
     word pPinDelsAnd[IF_MAX_FUNC_LUTSIZE], pPinDelsOr[32];
     int nCounterAnd, pCounterAnd[IF_MAX_FUNC_LUTSIZE];
@@ -483,18 +553,8 @@ int If_CutPinDelaysSopArray3IntInt( Vec_Int_t * vCover, int * pTimes, int nSuppA
     If_CutPinDelayTranslate( ResOr, nSuppAll, pPerm );
     return Delay;
 }
-int If_CutPinDelaysSopArray3Int( unsigned * pTruth, int nLeaves, int * pTimes, Vec_Int_t * vCover, char * pPerm ) 
+int If_CutSopBalancePinDelays( If_Man_t * p, If_Cut_t * pCut, char * pPerm )
 {
-    int RetValue = Kit_TruthIsop( pTruth, nLeaves, vCover, 1 );
-    if ( RetValue == -1 )
-        return -1;
-//    Kit_TruthIsopPrint( pTruth, nLeaves, vCover, 1 );
-    return If_CutPinDelaysSopArray3IntInt( vCover, pTimes, nLeaves, pPerm );
-}
-int If_CutPinDelaysSopArray3( If_Man_t * p, If_Cut_t * pCut, char * pPerm )
-{
-    if ( p->vCover == NULL )
-        p->vCover = Vec_IntAlloc(0);
     if ( pCut->nLeaves == 0 ) // const
         return 0;
     if ( pCut->nLeaves == 1 ) // variable
@@ -504,10 +564,14 @@ int If_CutPinDelaysSopArray3( If_Man_t * p, If_Cut_t * pCut, char * pPerm )
     }
     else
     {
+        Vec_Int_t * vCover;
         int i, pTimes[IF_MAX_FUNC_LUTSIZE];
+        vCover = Vec_WecEntry( p->vTtIsops[pCut->nLeaves], Abc_Lit2Var(If_CutTruthLit(pCut)) );
+        if ( Vec_IntSize(vCover) == 0 )
+            return -1;
         for ( i = 0; i < If_CutLeaveNum(pCut); i++ )
             pTimes[i] = (int)If_ObjCutBest(If_CutLeaf(p, pCut, i))->Delay; 
-        return If_CutPinDelaysSopArray3Int( If_CutTruth(p, pCut), If_CutLeaveNum(pCut), pTimes, p->vCover, pPerm );
+        return If_CutSopBalancePinDelaysInt( vCover, pTimes, If_CutLeaveNum(pCut), pPerm );
     }
 }
 
@@ -522,7 +586,7 @@ int If_CutPinDelaysSopArray3( If_Man_t * p, If_Cut_t * pCut, char * pPerm )
   SeeAlso     []
 
 ***********************************************************************/
-int If_CutDelaySopArray3IntInt( Vec_Int_t * vCover, int * pTimes, Vec_Int_t * vAig, int * piRes, int nSuppAll, int * pArea )
+int If_CutSopBalanceEvalIntInt( Vec_Int_t * vCover, int * pTimes, Vec_Int_t * vAig, int * piRes, int nSuppAll, int * pArea )
 {
     int nCounterAnd, pCounterAnd[IF_MAX_FUNC_LUTSIZE], pFaninLitsAnd[IF_MAX_FUNC_LUTSIZE];
     int nCounterOr,  pCounterOr[32],  pFaninLitsOr[32];
@@ -558,24 +622,21 @@ int If_CutDelaySopArray3IntInt( Vec_Int_t * vCover, int * pTimes, Vec_Int_t * vA
         *pArea += Vec_IntSize(vCover) == 1 ? 0 : Vec_IntSize(vCover) - 1;
     return Delay;
 }
-int If_CutDelaySopArray3Int( unsigned * pTruth, int nLeaves, int * pTimes, Vec_Int_t * vCover, Vec_Int_t * vAig, int fCompl, int * pArea ) 
+int If_CutSopBalanceEvalInt( Vec_Int_t * vCover, int nLeaves, int * pTimes, Vec_Int_t * vAig, int fCompl, int * pArea ) 
 {
     int iRes = 0, Res;
-    int RetValue = Kit_TruthIsop( pTruth, nLeaves, vCover, 1 );
-    if ( RetValue == -1 )
+    if ( Vec_IntSize(vCover) == 0 )
         return -1;
-    Res = If_CutDelaySopArray3IntInt( vCover, pTimes, vAig, &iRes, nLeaves, pArea );
+    Res = If_CutSopBalanceEvalIntInt( vCover, pTimes, vAig, &iRes, nLeaves, pArea );
     assert( vAig == NULL || Abc_Lit2Var(iRes) == nLeaves + Abc_Lit2Var(Vec_IntSize(vAig)) - 1 );
     if ( vAig )
-        Vec_IntPush( vAig, RetValue ^ Abc_LitIsCompl(iRes) ^ fCompl );
+        Vec_IntPush( vAig, Abc_LitIsCompl(iRes) ^ fCompl );
     assert( vAig == NULL || (Vec_IntSize(vAig) & 1) );
     return Res;
 }
-int If_CutDelaySopArray3( If_Man_t * p, If_Cut_t * pCut, Vec_Int_t * vAig )
+int If_CutSopBalanceEval( If_Man_t * p, If_Cut_t * pCut, Vec_Int_t * vAig )
 {
     pCut->fUser = 1;
-    if ( p->vCover == NULL )
-        p->vCover = Vec_IntAlloc(0);
     if ( vAig )
         Vec_IntClear( vAig );
     if ( pCut->nLeaves == 0 ) // const
@@ -596,11 +657,13 @@ int If_CutDelaySopArray3( If_Man_t * p, If_Cut_t * pCut, Vec_Int_t * vAig )
     }
     else
     {
+        Vec_Int_t * vCover = Vec_WecEntry( p->vTtIsops[pCut->nLeaves], Abc_Lit2Var(If_CutTruthLit(pCut)) );
+        int fCompl = Abc_LitIsCompl(If_CutTruthLit(pCut)) ^ ((vCover->nCap >> 16) & 1); // hack to remember complemented attribute
         int Delay, Area = 0;
         int i, pTimes[IF_MAX_FUNC_LUTSIZE];
         for ( i = 0; i < If_CutLeaveNum(pCut); i++ )
             pTimes[i] = (int)If_ObjCutBest(If_CutLeaf(p, pCut, i))->Delay; 
-        Delay = If_CutDelaySopArray3Int( If_CutTruth(p, pCut), If_CutLeaveNum(pCut), pTimes, p->vCover, vAig, 0, &Area );
+        Delay = If_CutSopBalanceEvalInt( vCover, If_CutLeaveNum(pCut), pTimes, vAig, fCompl, &Area );
         pCut->Cost = Area;
         return Delay;
     }

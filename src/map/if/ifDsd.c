@@ -2025,7 +2025,7 @@ static inline int If_LogCounterAddAig( int * pTimes, int * pnTimes, int * pFanin
   SeeAlso     []
 
 ***********************************************************************/
-int If_DsdCutBalanceAig_rec( If_DsdMan_t * p, int Id, int * pTimes, int * pnSupp, Vec_Int_t * vAig, int * piLit, int nSuppAll, int * pArea )
+int If_CutDsdBalanceEval_rec( If_DsdMan_t * p, int Id, int * pTimes, int * pnSupp, Vec_Int_t * vAig, int * piLit, int nSuppAll, int * pArea )
 {
     If_DsdObj_t * pObj = If_DsdVecObj( &p->vObjs, Id );
     if ( If_DsdObjType(pObj) == IF_DSD_PRIME )
@@ -2041,7 +2041,7 @@ int If_DsdCutBalanceAig_rec( If_DsdMan_t * p, int Id, int * pTimes, int * pnSupp
         int i, iFanin, Delay[3], pFaninLits[3];
         If_DsdObjForEachFaninLit( &p->vObjs, pObj, iFanin, i )
         {
-            Delay[i] = If_DsdCutBalanceAig_rec( p, Abc_Lit2Var(iFanin), pTimes, pnSupp, vAig, pFaninLits+i, nSuppAll, pArea );
+            Delay[i] = If_CutDsdBalanceEval_rec( p, Abc_Lit2Var(iFanin), pTimes, pnSupp, vAig, pFaninLits+i, nSuppAll, pArea );
             if ( Delay[i] == -1 )
                 return -1;
         }
@@ -2058,7 +2058,7 @@ int If_DsdCutBalanceAig_rec( If_DsdMan_t * p, int Id, int * pTimes, int * pnSupp
         int nCounter = 0, pCounter[IF_MAX_FUNC_LUTSIZE], pFaninLits[IF_MAX_FUNC_LUTSIZE];
         If_DsdObjForEachFaninLit( &p->vObjs, pObj, iFanin, i )
         {
-            Delay = If_DsdCutBalanceAig_rec( p, Abc_Lit2Var(iFanin), pTimes, pnSupp, vAig, pFaninLits+i, nSuppAll, pArea );
+            Delay = If_CutDsdBalanceEval_rec( p, Abc_Lit2Var(iFanin), pTimes, pnSupp, vAig, pFaninLits+i, nSuppAll, pArea );
             if ( Delay == -1 )
                 return -1;
             Result = If_LogCounterAddAig( pCounter, &nCounter, pFaninLits, Delay, pFaninLits[i], vAig, nSuppAll, fXor );
@@ -2070,11 +2070,11 @@ int If_DsdCutBalanceAig_rec( If_DsdMan_t * p, int Id, int * pTimes, int * pnSupp
         return Result;
     }
 }
-int If_DsdCutBalanceAigInt( If_DsdMan_t * p, int iDsd, int * pTimes, Vec_Int_t * vAig, int * pArea )
+int If_CutDsdBalanceEvalInt( If_DsdMan_t * p, int iDsd, int * pTimes, Vec_Int_t * vAig, int * pArea )
 {
     int nSupp = 0, iLit = 0;
     int nSuppAll = If_DsdVecLitSuppSize( &p->vObjs, iDsd );
-    int Res = If_DsdCutBalanceAig_rec( p, Abc_Lit2Var(iDsd), pTimes, &nSupp, vAig, &iLit, nSuppAll, pArea );
+    int Res = If_CutDsdBalanceEval_rec( p, Abc_Lit2Var(iDsd), pTimes, &nSupp, vAig, &iLit, nSuppAll, pArea );
     assert( nSupp == nSuppAll );
     assert( vAig == NULL || Abc_Lit2Var(iLit) == nSupp + Abc_Lit2Var(Vec_IntSize(vAig)) - 1 );
     if ( vAig )
@@ -2082,7 +2082,7 @@ int If_DsdCutBalanceAigInt( If_DsdMan_t * p, int iDsd, int * pTimes, Vec_Int_t *
     assert( vAig == NULL || (Vec_IntSize(vAig) & 1) );
     return Res;
 }
-int If_DsdCutBalanceAig( If_Man_t * pIfMan, If_Cut_t * pCut, Vec_Int_t * vAig )
+int If_CutDsdBalanceEval( If_Man_t * pIfMan, If_Cut_t * pCut, Vec_Int_t * vAig )
 {
     pCut->fUser = 1;
     if ( vAig )
@@ -2110,10 +2110,15 @@ int If_DsdCutBalanceAig( If_Man_t * pIfMan, If_Cut_t * pCut, Vec_Int_t * vAig )
         int Delay, Area = 0;
         If_CutForEachLeaf( pIfMan, pCut, pLeaf, i )
             pTimes[i] = (int)If_ObjCutBest(pLeaf)->Delay; 
-        Delay = If_DsdCutBalanceAigInt( pIfMan->pIfDsdMan, If_CutDsdLit(pCut), pTimes, vAig, &Area );
+        Delay = If_CutDsdBalanceEvalInt( pIfMan->pIfDsdMan, If_CutDsdLit(pCut), pTimes, vAig, &Area );
         pCut->Cost = Area;
         return Delay;
     }
+}
+
+int If_CutDsdBalancePinDelays( If_Man_t * p, If_Cut_t * pCut, char * pPerm )
+{
+    return 0;
 }
 
 

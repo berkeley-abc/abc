@@ -391,14 +391,13 @@ Hop_Obj_t * Abc_NodeBuildFromMiniInt( Hop_Man_t * pMan, Vec_Int_t * vAig, int nL
         return piLit;
     }
 }
-Hop_Obj_t * Abc_NodeBuildFromMini( Hop_Man_t * pMan, If_Man_t * p, If_Cut_t * pCut )
+Hop_Obj_t * Abc_NodeBuildFromMini( Hop_Man_t * pMan, If_Man_t * p, If_Cut_t * pCut, int fUseDsd )
 {
-    Hop_Obj_t * pResult;
-    if ( p->vArray == NULL )
-        p->vArray = Vec_IntAlloc(1000);
-    If_CutDelaySopArray3( p, pCut, p->vArray );
-    pResult = Abc_NodeBuildFromMiniInt( pMan, p->vArray, If_CutLeaveNum(pCut) );
-    return pResult;
+    if ( fUseDsd )
+        If_CutDsdBalanceEval( p, pCut, p->vArray );
+    else
+        If_CutSopBalanceEval( p, pCut, p->vArray );
+    return Abc_NodeBuildFromMiniInt( pMan, p->vArray, If_CutLeaveNum(pCut) );
 }
 
 /**Function*************************************************************
@@ -477,9 +476,9 @@ Abc_Obj_t * Abc_NodeFromIf_rec( Abc_Ntk_t * pNtkNew, If_Man_t * pIfMan, If_Obj_t
             }
         }
         else if ( pIfMan->pPars->fDelayOpt )
-            pNodeNew->pData = Abc_NodeBuildFromMini( (Hop_Man_t *)pNtkNew->pManFunc, pIfMan, pCutBest );
+            pNodeNew->pData = Abc_NodeBuildFromMini( (Hop_Man_t *)pNtkNew->pManFunc, pIfMan, pCutBest, 0 );
         else if ( pIfMan->pPars->fDsdBalance )
-            pNodeNew->pData = Abc_NodeBuildFromMini( (Hop_Man_t *)pNtkNew->pManFunc, pIfMan, pCutBest );
+            pNodeNew->pData = Abc_NodeBuildFromMini( (Hop_Man_t *)pNtkNew->pManFunc, pIfMan, pCutBest, 1 );
         else if ( pIfMan->pPars->fUserRecLib )
         {
             extern Hop_Obj_t * Abc_RecToHop3( Hop_Man_t * pMan, If_Man_t * pIfMan, If_Cut_t * pCut, If_Obj_t * pIfObj );

@@ -39,6 +39,7 @@
 #include "misc/util/utilTruth.h"
 #include "opt/dau/dau.h"
 #include "misc/vec/vecHash.h"
+#include "misc/vec/vecWec.h"
 
 ABC_NAMESPACE_HEADER_START
 
@@ -237,6 +238,7 @@ struct If_Man_t_
     int                nCuts5, nCuts5a;
     If_DsdMan_t *      pIfDsdMan;     // DSD manager
     Vec_Mem_t *        vTtMem[IF_MAX_FUNC_LUTSIZE+1];   // truth table memory and hash table
+    Vec_Wec_t *        vTtIsops[IF_MAX_FUNC_LUTSIZE+1]; // mapping of truth table into DSD
     Vec_Int_t *        vTtDsds[IF_MAX_FUNC_LUTSIZE+1];  // mapping of truth table into DSD
     Vec_Str_t *        vTtPerms[IF_MAX_FUNC_LUTSIZE+1]; // mapping of truth table into permutations
     Hash_IntMan_t *    vPairHash;     // hashing pairs of truth tables
@@ -327,18 +329,6 @@ struct If_Obj_t_
     If_Cut_t           CutBest;       // the best cut selected 
 };
 
-typedef struct If_And_t_ If_And_t;
-struct If_And_t_
-{
-    unsigned           iFan0   : 15;  // fanin0
-    unsigned           fCompl0 :  1;  // compl fanin0
-    unsigned           iFan1   : 15;  // fanin1
-    unsigned           fCompl1 :  1;  // compl fanin1
-    unsigned           Id      : 15;  // Id
-    unsigned           fCompl  :  1;  // compl output
-    unsigned           Delay   : 16;  // delay 
-};
-
 typedef struct If_Box_t_ If_Box_t;
 struct If_Box_t_
 {
@@ -427,11 +417,6 @@ static inline If_Obj_t * If_CutLeaf( If_Man_t * p, If_Cut_t * pCut, int i )  { a
 
 static inline float      If_CutLutArea( If_Man_t * p, If_Cut_t * pCut )      { return pCut->fUser? (float)pCut->Cost : (p->pPars->pLutLib? p->pPars->pLutLib->pLutAreas[pCut->nLeaves] : (float)1.0);    }
 static inline float      If_CutLutDelay( If_LibLut_t * p, int Size, int iPin )  { return p ? (p->fVarPinDelays ? p->pLutDelays[Size][iPin] : p->pLutDelays[Size][0]) : 1.0;                              }
-
-static inline word       If_AndToWrd( If_And_t m )                           { union { If_And_t x; word y; } v; v.x = m; return v.y;  }
-static inline If_And_t   If_WrdToAnd( word m )                               { union { If_And_t x; word y; } v; v.y = m; return v.x;  }
-static inline void       If_AndClear( If_And_t * pNode )                     { *pNode = If_WrdToAnd(0);                               }
-
 
 
 ////////////////////////////////////////////////////////////////////////
@@ -536,8 +521,9 @@ extern int             If_CluCheckExt( void * p, word * pTruth, int nVars, int n
 extern int             If_CluCheckExt3( void * p, word * pTruth, int nVars, int nLutLeaf, int nLutLeaf2, int nLutRoot, 
                            char * pLut0, char * pLut1, char * pLut2, word * pFunc0, word * pFunc1, word * pFunc2 );
 /*=== ifDelay.c =============================================================*/
-extern int             If_CutDelaySopArray3( If_Man_t * p, If_Cut_t * pCut, Vec_Int_t * vAig );
-extern int             If_CutPinDelaysSopArray3( If_Man_t * p, If_Cut_t * pCut, char * pPerm );
+extern int             If_CutDelaySop( If_Man_t * p, If_Cut_t * pCut );
+extern int             If_CutSopBalanceEval( If_Man_t * p, If_Cut_t * pCut, Vec_Int_t * vAig );
+extern int             If_CutSopBalancePinDelays( If_Man_t * p, If_Cut_t * pCut, char * pPerm );
 /*=== ifDsd.c =============================================================*/
 extern If_DsdMan_t *   If_DsdManAlloc( int nVars, int nLutSize );
 extern void            If_DsdManPrint( If_DsdMan_t * p, char * pFileName, int Number, int Support, int fOccurs, int fTtDump, int fVerbose );
@@ -554,8 +540,8 @@ extern int             If_DsdManLutSize( If_DsdMan_t * p );
 extern int             If_DsdManSuppSize( If_DsdMan_t * p, int iDsd );
 extern int             If_DsdManCheckDec( If_DsdMan_t * p, int iDsd );
 extern unsigned        If_DsdManCheckXY( If_DsdMan_t * p, int iDsd, int LutSize, int fDerive, int fHighEffort, int fVerbose );
-extern int             If_DsdCutBalanceCost( If_Man_t * pIfMan, If_Cut_t * pCut );
-extern int             If_DsdCutBalanceAig( If_Man_t * pIfMan, If_Cut_t * pCut, Vec_Int_t * vAig );
+extern int             If_CutDsdBalanceEval( If_Man_t * pIfMan, If_Cut_t * pCut, Vec_Int_t * vAig );
+extern int             If_CutDsdBalancePinDelays( If_Man_t * p, If_Cut_t * pCut, char * pPerm );
 /*=== ifLib.c =============================================================*/
 extern If_LibLut_t *   If_LibLutRead( char * FileName );
 extern If_LibLut_t *   If_LibLutDup( If_LibLut_t * p );
@@ -608,10 +594,6 @@ extern unsigned        If_ManSatCheckXYall( void * pSat, int nLutSize, word * pT
 /*=== ifSeq.c =============================================================*/
 extern int             If_ManPerformMappingSeq( If_Man_t * p );
 /*=== ifTime.c ============================================================*/
-extern int             If_CutDelaySopCost( If_Man_t * p, If_Cut_t * pCut );
-extern int             If_CutDelaySopCost2( If_Man_t * p, If_Cut_t * pCut );
-extern int             If_CutDelaySop( If_Man_t * p, If_Cut_t * pCut );
-extern Vec_Wrd_t *     If_CutDelaySopArray( If_Man_t * p, If_Cut_t * pCut );
 extern float           If_CutDelay( If_Man_t * p, If_Obj_t * pObj, If_Cut_t * pCut );
 extern void            If_CutPropagateRequired( If_Man_t * p, If_Obj_t * pObj, If_Cut_t * pCut, float Required );
 /*=== ifTruth.c ===========================================================*/

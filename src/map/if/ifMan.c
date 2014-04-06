@@ -73,6 +73,17 @@ If_Man_t * If_ManStart( If_Par_t * pPars )
             p->vTtMem[v] = Vec_MemAllocForTT( v, pPars->fUseTtPerm );
         for ( v = 0; v < 6; v++ )
             p->vTtMem[v] = p->vTtMem[6];
+        if ( p->pPars->fDelayOpt )
+        {
+            p->vCover = Vec_IntAlloc( 0 );
+            p->vArray = Vec_IntAlloc( 1000 );
+            for ( v = 6; v <= p->pPars->nLutSize; v++ )
+                p->vTtIsops[v] = Vec_WecAlloc( 1000 );
+            for ( v = 6; v <= p->pPars->nLutSize; v++ )
+                Vec_WecInit( p->vTtIsops[v], 2 );
+            for ( v = 0; v < 6; v++ )
+                p->vTtIsops[v] = p->vTtIsops[6];
+        }
     }
     p->nPermWords  = p->pPars->fUsePerm? If_CutPermWords( p->pPars->nLutSize ) : 0;
     p->nObjBytes   = sizeof(If_Obj_t) + sizeof(int) * (p->pPars->nLutSize + p->nPermWords/* + p->nTruthWords*/);
@@ -226,6 +237,8 @@ void If_ManStop( If_Man_t * p )
         Vec_MemHashFree( p->vTtMem[i] );
     for ( i = 6; i <= p->pPars->nLutSize; i++ )
         Vec_MemFreeP( &p->vTtMem[i] );
+    for ( i = 6; i <= p->pPars->nLutSize; i++ )
+        Vec_WecFreeP( &p->vTtIsops[i] );
     Mem_FixedStop( p->pMemObj, 0 );
     ABC_FREE( p->pMemCi );
     ABC_FREE( p->pMemAnd );

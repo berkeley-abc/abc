@@ -618,58 +618,6 @@ If_Man_t * Gia_ManToIf( Gia_Man_t * p, If_Par_t * pPars )
     return pIfMan;
 }
 
-
-/**Function*************************************************************
-
-  Synopsis    [Derives node's AIG after SOP balancing]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Gia_ManNodeIfSopToGiaInt( Gia_Man_t * pNew, Vec_Wrd_t * vAnds, int nVars, Vec_Int_t * vLeaves, int fHash )
-{
-    Vec_Int_t * vResults;
-    int iRes0, iRes1, iRes = -1;
-    If_And_t This;
-    word Entry;
-    int i;
-    if ( Vec_WrdSize(vAnds) == 0 )
-        return 0;
-    if ( Vec_WrdSize(vAnds) == 1 && Vec_WrdEntry(vAnds,0) == 0 )
-        return 1;
-    vResults = Vec_IntAlloc( Vec_WrdSize(vAnds) );
-    for ( i = 0; i < nVars; i++ )
-        Vec_IntPush( vResults, Vec_IntEntry(vLeaves, i) );
-    Vec_WrdForEachEntryStart( vAnds, Entry, i, nVars )
-    {
-        This  = If_WrdToAnd( Entry );
-        iRes0 = Abc_LitNotCond( Vec_IntEntry(vResults, This.iFan0), This.fCompl0 ); 
-        iRes1 = Abc_LitNotCond( Vec_IntEntry(vResults, This.iFan1), This.fCompl1 ); 
-        if ( fHash )
-            iRes  = Gia_ManHashAnd( pNew, iRes0, iRes1 );
-        else if ( iRes0 == iRes1 )
-            iRes = iRes0;
-        else
-            iRes  = Gia_ManAppendAnd( pNew, iRes0, iRes1 );
-        Vec_IntPush( vResults, iRes );
-    }
-    Vec_IntFree( vResults );
-    return Abc_LitNotCond( iRes, This.fCompl );
-}
-int Gia_ManNodeIfSopToGia( Gia_Man_t * pNew, If_Man_t * p, If_Cut_t * pCut, Vec_Int_t * vLeaves, int fHash )
-{
-    int iResult;
-    Vec_Wrd_t * vArray;
-    vArray  = If_CutDelaySopArray( p, pCut );
-    iResult = Gia_ManNodeIfSopToGiaInt( pNew, vArray, If_CutLeaveNum(pCut), vLeaves, fHash );
-//    Vec_WrdFree( vArray );
-    return iResult;
-}
-
 /**Function*************************************************************
 
   Synopsis    [Rebuilds GIA from mini AIG.]
@@ -722,9 +670,9 @@ int Gia_ManBuildFromMiniInt( Gia_Man_t * pNew, Vec_Int_t * vLeaves, Vec_Int_t * 
 int Gia_ManBuildFromMini( Gia_Man_t * pNew, If_Man_t * pIfMan, If_Cut_t * pCut, Vec_Int_t * vLeaves, Vec_Int_t * vAig, int fHash, int fUseDsd )
 {
     if ( fUseDsd )
-        If_DsdCutBalanceAig( pIfMan, pCut, vAig );
+        If_CutDsdBalanceEval( pIfMan, pCut, vAig );
     else
-        If_CutDelaySopArray3( pIfMan, pCut, vAig );
+        If_CutSopBalanceEval( pIfMan, pCut, vAig );
     return Gia_ManBuildFromMiniInt( pNew, vLeaves, vAig, fHash );
 }
 
