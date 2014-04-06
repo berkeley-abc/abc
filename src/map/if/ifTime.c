@@ -253,6 +253,7 @@ Vec_Wrd_t * If_CutDelaySopArray( If_Man_t * p, If_Cut_t * pCut )
     abctime clk;
     Vec_Wrd_t * vAnds;
     int RetValue;
+    printf( "Running old code!!!\n" );
     if ( p->vCover == NULL )
         p->vCover   = Vec_IntAlloc(0);
     if ( p->vAnds == NULL )
@@ -742,13 +743,11 @@ void If_CutPropagateRequired( If_Man_t * p, If_Obj_t * pObj, If_Cut_t * pCut, fl
     {
         if ( pCut->fUser )
         {
-/*
             if ( p->pPars->fDelayOpt )
             {
                 int Del = If_CutPinDelaysSopArray3( p, pCut, pCut->pPerm );
                 assert( Del == pCut->Delay );
             }
-*/
             If_CutForEachLeaf( p, pCut, pLeaf, i )
             {
                 Pin2PinDelay = pCut->pPerm ? (pCut->pPerm[i] == IF_BIG_CHAR ? -IF_BIG_CHAR : pCut->pPerm[i]) : 1;

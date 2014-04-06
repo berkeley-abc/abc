@@ -124,8 +124,8 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
     {
         // recompute the parameters of the best cut
         if ( p->pPars->fDelayOpt )
-            pCut->Delay = If_CutDelaySopCost( p, pCut );
-//            pCut->Delay = If_CutDelaySopArray3( p, pCut, NULL );
+//            pCut->Delay = If_CutDelaySopCost( p, pCut );
+            pCut->Delay = If_CutDelaySopArray3( p, pCut, NULL );
         else if ( p->pPars->fDsdBalance )
             pCut->Delay = If_DsdCutBalanceCost( p, pCut );
         else if ( p->pPars->fUserRecLib )
@@ -281,8 +281,8 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
             continue;
         // check if the cut satisfies the required times
         if ( p->pPars->fDelayOpt )
-            pCut->Delay = If_CutDelaySopCost( p, pCut );  
-//            pCut->Delay = If_CutDelaySopArray3( p, pCut, NULL );
+//            pCut->Delay = If_CutDelaySopCost( p, pCut );  
+            pCut->Delay = If_CutDelaySopArray3( p, pCut, NULL );
         else if ( p->pPars->fDsdBalance )
             pCut->Delay = If_DsdCutBalanceCost( p, pCut );
         else if ( p->pPars->fUserRecLib )

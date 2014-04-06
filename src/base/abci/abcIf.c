@@ -344,111 +344,6 @@ Abc_Ntk_t * Abc_NtkFromIf( If_Man_t * pIfMan, Abc_Ntk_t * pNtk )
     return pNtkNew;
 }
 
-
-/**Function*************************************************************
-
-  Synopsis    [Inserts the entry while sorting them by delay.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-Hop_Obj_t * Abc_NodeFromSopBalanceInt( Hop_Man_t * pMan, Vec_Wrd_t * vAnds, int nVars )
-{
-    Vec_Ptr_t * vResults;
-    Hop_Obj_t * pRes0, * pRes1, * pRes = NULL;
-    If_And_t This;
-    word Entry;
-    int i;
-    if ( Vec_WrdSize(vAnds) == 0 )
-        return Hop_ManConst0(pMan);
-    if ( Vec_WrdSize(vAnds) == 1 && Vec_WrdEntry(vAnds,0) == 0 )
-        return Hop_ManConst1(pMan);
-    vResults = Vec_PtrAlloc( Vec_WrdSize(vAnds) );
-    for ( i = 0; i < nVars; i++ )
-        Vec_PtrPush( vResults, Hop_IthVar(pMan, i) );
-    Vec_WrdForEachEntryStart( vAnds, Entry, i, nVars )
-    {
-        This  = If_WrdToAnd( Entry );
-        pRes0 = Hop_NotCond( (Hop_Obj_t *)Vec_PtrEntry(vResults, This.iFan0), This.fCompl0 ); 
-        pRes1 = Hop_NotCond( (Hop_Obj_t *)Vec_PtrEntry(vResults, This.iFan1), This.fCompl1 ); 
-        pRes  = Hop_And( pMan, pRes0, pRes1 );
-        Vec_PtrPush( vResults, pRes );
-/*
-        printf( "fan0 = %c%d  fan1 = %c%d  Del = %d\n", 
-            This.fCompl0? '-':'+', This.iFan0, 
-            This.fCompl1? '-':'+', This.iFan1, 
-            This.Delay );
-*/
-    }
-    Vec_PtrFree( vResults );
-    return Hop_NotCond( pRes, This.fCompl );
-}
-Hop_Obj_t * Abc_NodeFromSopBalance( Hop_Man_t * pMan, If_Man_t * p, If_Cut_t * pCut )
-{
-    Hop_Obj_t * pResult;
-    Vec_Wrd_t * vArray;
-    vArray  = If_CutDelaySopArray( p, pCut );
-    pResult = Abc_NodeFromSopBalanceInt( pMan, vArray, If_CutLeaveNum(pCut) );
-//    Vec_WrdFree( vArray );
-    return pResult;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Inserts the entry while sorting them by delay.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-Hop_Obj_t * Abc_NodeFromDsdBalanceInt( Hop_Man_t * pMan, Vec_Wrd_t * vAnds, int nVars )
-{
-    Vec_Ptr_t * vResults;
-    Hop_Obj_t * pRes0, * pRes1, * pRes = NULL;
-    If_And_t This;
-    word Entry;
-    int i;
-    if ( Vec_WrdSize(vAnds) == 0 )
-        return Hop_ManConst0(pMan);
-    if ( Vec_WrdSize(vAnds) == 1 && Vec_WrdEntry(vAnds,0) == 0 )
-        return Hop_ManConst1(pMan);
-    vResults = Vec_PtrAlloc( Vec_WrdSize(vAnds) );
-    for ( i = 0; i < nVars; i++ )
-        Vec_PtrPush( vResults, Hop_IthVar(pMan, i) );
-    Vec_WrdForEachEntryStart( vAnds, Entry, i, nVars )
-    {
-        This  = If_WrdToAnd( Entry );
-        pRes0 = Hop_NotCond( (Hop_Obj_t *)Vec_PtrEntry(vResults, This.iFan0), This.fCompl0 ); 
-        pRes1 = Hop_NotCond( (Hop_Obj_t *)Vec_PtrEntry(vResults, This.iFan1), This.fCompl1 ); 
-        pRes  = Hop_And( pMan, pRes0, pRes1 );
-        Vec_PtrPush( vResults, pRes );
-/*
-        printf( "fan0 = %c%d  fan1 = %c%d  Del = %d\n", 
-            This.fCompl0? '-':'+', This.iFan0, 
-            This.fCompl1? '-':'+', This.iFan1, 
-            This.Delay );
-*/
-    }
-    Vec_PtrFree( vResults );
-    return Hop_NotCond( pRes, This.fCompl );
-}
-Hop_Obj_t * Abc_NodeFromDsdBalance( Hop_Man_t * pMan, If_Man_t * p, If_Cut_t * pCut )
-{
-    Hop_Obj_t * pResult;
-    Vec_Wrd_t * vArray;
-    vArray  = If_CutDelaySopArray( p, pCut );
-    pResult = Abc_NodeFromDsdBalanceInt( pMan, vArray, If_CutLeaveNum(pCut) );
-//    Vec_WrdFree( vArray );
-    return pResult;
-}
-
 /**Function*************************************************************
 
   Synopsis    [Rebuilds GIA from mini AIG.]
@@ -467,7 +362,7 @@ Hop_Obj_t * Abc_NodeBuildFromMiniInt( Hop_Man_t * pMan, Vec_Int_t * vAig, int nL
     if ( Vec_IntSize(vAig) == 1 ) // const
     {
         assert( nLeaves == 0 );
-        return Hop_NotCond( Hop_ManConst1(pMan), Vec_IntEntry(vAig, 0) );
+        return Hop_NotCond( Hop_ManConst0(pMan), Vec_IntEntry(vAig, 0) );
     }
     if ( Vec_IntSize(vAig) == 2 ) // variable
     {
@@ -500,7 +395,7 @@ Hop_Obj_t * Abc_NodeBuildFromMini( Hop_Man_t * pMan, If_Man_t * p, If_Cut_t * pC
 {
     Hop_Obj_t * pResult;
     if ( p->vArray == NULL )
-        p->vArray = Vec_IntAlloc(100);
+        p->vArray = Vec_IntAlloc(1000);
     If_CutDelaySopArray3( p, pCut, p->vArray );
     pResult = Abc_NodeBuildFromMiniInt( pMan, p->vArray, If_CutLeaveNum(pCut) );
     return pResult;
@@ -582,15 +477,9 @@ Abc_Obj_t * Abc_NodeFromIf_rec( Abc_Ntk_t * pNtkNew, If_Man_t * pIfMan, If_Obj_t
             }
         }
         else if ( pIfMan->pPars->fDelayOpt )
-        {
-            extern Hop_Obj_t * Abc_NodeFromSopBalance( Hop_Man_t * pMan, If_Man_t * pIfMan, If_Cut_t * pCut );
-            pNodeNew->pData = Abc_NodeFromSopBalance( (Hop_Man_t *)pNtkNew->pManFunc, pIfMan, pCutBest );
-        }
+            pNodeNew->pData = Abc_NodeBuildFromMini( (Hop_Man_t *)pNtkNew->pManFunc, pIfMan, pCutBest );
         else if ( pIfMan->pPars->fDsdBalance )
-        {
-            extern Hop_Obj_t * Abc_NodeFromDsdBalance( Hop_Man_t * pMan, If_Man_t * pIfMan, If_Cut_t * pCut );
-            pNodeNew->pData = Abc_NodeFromDsdBalance( (Hop_Man_t *)pNtkNew->pManFunc, pIfMan, pCutBest );
-        }
+            pNodeNew->pData = Abc_NodeBuildFromMini( (Hop_Man_t *)pNtkNew->pManFunc, pIfMan, pCutBest );
         else if ( pIfMan->pPars->fUserRecLib )
         {
             extern Hop_Obj_t * Abc_RecToHop3( Hop_Man_t * pMan, If_Man_t * pIfMan, If_Cut_t * pCut, If_Obj_t * pIfObj );
