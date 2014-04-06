@@ -466,8 +466,7 @@ int If_CutPinDelaysSopArray3IntInt( Vec_Int_t * vCover, int * pTimes, int nSuppA
     Vec_IntForEachEntry( vCover, Entry, i )
     { 
         nCounterAnd = 0;
-//        for ( k = 0; k < nSuppAll; k++ )
-        for ( k = nSuppAll-1; k >= 0; k-- )
+        for ( k = 0; k < nSuppAll; k++ )
         {
             Literal = 3 & (Entry >> (k << 1));
             if ( Literal == 1 || Literal == 2 ) // neg or pos literal

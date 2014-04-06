@@ -681,7 +681,7 @@ int Gia_ManNodeIfSopToGia( Gia_Man_t * pNew, If_Man_t * p, If_Cut_t * pCut, Vec_
   SeeAlso     []
 
 ***********************************************************************/
-int Gia_ManBuildFromMini( Gia_Man_t * pNew, Vec_Int_t * vLeaves, Vec_Int_t * vAig, int fHash )
+int Gia_ManBuildFromMiniInt( Gia_Man_t * pNew, Vec_Int_t * vLeaves, Vec_Int_t * vAig, int fHash )
 {
     assert( Vec_IntSize(vAig) > 0 );
     assert( Vec_IntEntryLast(vAig) < 2 );
@@ -718,6 +718,14 @@ int Gia_ManBuildFromMini( Gia_Man_t * pNew, Vec_Int_t * vLeaves, Vec_Int_t * vAi
         Vec_IntClear( vAig ); // useless
         return iLit;
     }
+}
+int Gia_ManBuildFromMini( Gia_Man_t * pNew, If_Man_t * pIfMan, If_Cut_t * pCut, Vec_Int_t * vLeaves, Vec_Int_t * vAig, int fHash, int fUseDsd )
+{
+    if ( fUseDsd )
+        If_DsdCutBalanceAig( pIfMan, pCut, vAig );
+    else
+        If_CutDelaySopArray3( pIfMan, pCut, vAig );
+    return Gia_ManBuildFromMiniInt( pNew, vLeaves, vAig, fHash );
 }
 
 /**Function*************************************************************
@@ -762,12 +770,9 @@ Gia_Man_t * Gia_ManFromIfAig( If_Man_t * pIfMan )
                 Vec_IntPush( vLeaves, pIfLeaf->iCopy );
             // get the functionality
             if ( pIfMan->pPars->fDelayOpt )
-                pIfObj->iCopy = Gia_ManNodeIfSopToGia( pNew, pIfMan, pCutBest, vLeaves, fHash );
+                pIfObj->iCopy = Gia_ManBuildFromMini( pNew, pIfMan, pCutBest, vLeaves, vAig, fHash, 0 );
             else if ( pIfMan->pPars->fDsdBalance )
-            {
-                If_DsdCutBalanceAig( pIfMan, pCutBest, vAig );
-                pIfObj->iCopy = Gia_ManBuildFromMini( pNew, vLeaves, vAig, fHash );
-            }
+                pIfObj->iCopy = Gia_ManBuildFromMini( pNew, pIfMan, pCutBest, vLeaves, vAig, fHash, 1 );
             else if ( pIfMan->pPars->fUserRecLib )
                 pIfObj->iCopy = Abc_RecToGia3( pNew, pIfMan, pCutBest, vLeaves, fHash );
             else assert( 0 );
