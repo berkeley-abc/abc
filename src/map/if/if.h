@@ -540,7 +540,7 @@ extern int             If_DsdManLutSize( If_DsdMan_t * p );
 extern int             If_DsdManSuppSize( If_DsdMan_t * p, int iDsd );
 extern int             If_DsdManCheckDec( If_DsdMan_t * p, int iDsd );
 extern unsigned        If_DsdManCheckXY( If_DsdMan_t * p, int iDsd, int LutSize, int fDerive, int fHighEffort, int fVerbose );
-extern int             If_CutDsdBalanceEval( If_Man_t * pIfMan, If_Cut_t * pCut, Vec_Int_t * vAig );
+extern int             If_CutDsdBalanceEval( If_Man_t * p, If_Cut_t * pCut, Vec_Int_t * vAig );
 extern int             If_CutDsdBalancePinDelays( If_Man_t * p, If_Cut_t * pCut, char * pPerm );
 /*=== ifLib.c =============================================================*/
 extern If_LibLut_t *   If_LibLutRead( char * FileName );

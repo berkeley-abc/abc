@@ -72,14 +72,17 @@ If_Man_t * If_ManStart( If_Par_t * pPars )
             p->vTtMem[v] = p->vTtMem[6];
         if ( p->pPars->fDelayOpt )
         {
-            p->vCover = Vec_IntAlloc( 0 );
-            p->vArray = Vec_IntAlloc( 1000 );
             for ( v = 6; v <= Abc_MaxInt(6,p->pPars->nLutSize); v++ )
                 p->vTtIsops[v] = Vec_WecAlloc( 1000 );
             for ( v = 6; v <= Abc_MaxInt(6,p->pPars->nLutSize); v++ )
                 Vec_WecInit( p->vTtIsops[v], 2 );
             for ( v = 0; v < 6; v++ )
                 p->vTtIsops[v] = p->vTtIsops[6];
+        }
+        if ( p->pPars->fDelayOpt || p->pPars->fDsdBalance );
+        {
+            p->vCover = Vec_IntAlloc( 0 );
+            p->vArray = Vec_IntAlloc( 1000 );
         }
     }
     p->nPermWords  = p->pPars->fUsePerm? If_CutPermWords( p->pPars->nLutSize ) : 0;

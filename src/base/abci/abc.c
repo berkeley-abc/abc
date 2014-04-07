@@ -15102,7 +15102,8 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
         pPars->fTruth      =  1;
         pPars->fCutMin     =  1;
         pPars->fExpRed     =  0;
-        pPars->fUsePerm    =  0;
+        pPars->fUsePerm    =  pPars->fDsdBalance;
+        pPars->fUseDsd     =  pPars->fDsdBalance;
         pPars->pLutLib     =  NULL;
     }
     // modify for delay optimization
@@ -29855,7 +29856,8 @@ int Abc_CommandAbc9If( Abc_Frame_t * pAbc, int argc, char ** argv )
         pPars->fTruth      =  1;
         pPars->fCutMin     =  1;
         pPars->fExpRed     =  0;
-        pPars->fUsePerm    =  0;
+        pPars->fUsePerm    =  pPars->fDsdBalance;
+        pPars->fUseDsd     =  pPars->fDsdBalance;
         pPars->pLutLib     =  NULL;
     }
     // modify for delay optimization

@@ -202,10 +202,19 @@ void If_CutPropagateRequired( If_Man_t * p, If_Obj_t * pObj, If_Cut_t * pCut, fl
     {
         if ( pCut->fUser )
         {
-            char Perm[IF_MAX_FUNC_LUTSIZE];
-            char * pPerm = p->pPars->fDelayOpt ? Perm : pCut->pPerm;
+            char Perm[IF_MAX_FUNC_LUTSIZE], * pPerm = Perm;
             if ( p->pPars->fDelayOpt )
-                If_CutSopBalancePinDelays( p, pCut, pPerm );
+            {
+                int Delay = If_CutSopBalancePinDelays( p, pCut, pPerm );
+                assert( Delay == pCut->Delay );
+            }
+            else if ( p->pPars->fDsdBalance )
+            {
+                int Delay = If_CutDsdBalancePinDelays( p, pCut, pPerm );
+                assert( Delay == pCut->Delay );
+            }
+            else 
+                pPerm = pCut->pPerm;
             If_CutForEachLeaf( p, pCut, pLeaf, i )
             {
                 Pin2PinDelay = pPerm ? (pPerm[i] == IF_BIG_CHAR ? -IF_BIG_CHAR : pPerm[i]) : 1;

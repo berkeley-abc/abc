@@ -2323,6 +2323,10 @@ SOURCE=.\src\map\if\ifCore.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\map\if\ifCount.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\map\if\ifCut.c
 # End Source File
 # Begin Source File
