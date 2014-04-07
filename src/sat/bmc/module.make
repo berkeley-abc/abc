@@ -1,4 +1,5 @@
-SRC +=    src/sat/bmc/bmcBmc.c \
+SRC +=    src/sat/bmc/bmcBCore.c \
+    src/sat/bmc/bmcBmc.c \
     src/sat/bmc/bmcBmc2.c \
     src/sat/bmc/bmcBmc3.c \
     src/sat/bmc/bmcBmcAnd.c \

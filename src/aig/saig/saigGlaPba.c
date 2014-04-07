@@ -429,7 +429,7 @@ Vec_Int_t * Saig_AbsSolverUnsatCore( sat_solver * pSat, int nConfMax, int fVerbo
     // derive the UNSAT core
     clk = clock();
     pManProof = Intp_ManAlloc();
-    vCore = (Vec_Int_t *)Intp_ManUnsatCore( pManProof, (Sto_Man_t *)pSatCnf, 0 );
+    vCore = (Vec_Int_t *)Intp_ManUnsatCore( pManProof, (Sto_Man_t *)pSatCnf, 0, 0 );
     Intp_ManFree( pManProof );
     if ( fVerbose )
     {

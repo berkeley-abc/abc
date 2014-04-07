@@ -142,8 +142,8 @@ extern void *       Intb_ManInterpolate( Intb_Man_t * p, Sto_Man_t * pCnf, void 
 typedef struct Intp_Man_t_ Intp_Man_t;
 extern Intp_Man_t * Intp_ManAlloc();
 extern void         Intp_ManFree( Intp_Man_t * p );
-extern void *       Intp_ManUnsatCore( Intp_Man_t * p, Sto_Man_t * pCnf, int fVerbose );
-
+extern void *       Intp_ManUnsatCore( Intp_Man_t * p, Sto_Man_t * pCnf, int fLearned, int fVerbose );
+extern void         Intp_ManUnsatCorePrintForBmc( FILE * pFile, Sto_Man_t * pCnf, void * vCore, void * vVarMap );
 
 
 ABC_NAMESPACE_HEADER_END

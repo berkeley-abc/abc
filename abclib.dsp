@@ -1403,6 +1403,10 @@ SOURCE=.\src\sat\bmc\bmc.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\sat\bmc\bmcBCore.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\sat\bmc\bmcBmc.c
 # End Source File
 # Begin Source File

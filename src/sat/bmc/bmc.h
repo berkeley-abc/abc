@@ -94,7 +94,18 @@ struct Bmc_AndPar_t_
     int         nFailOuts;      // the number of failed outputs
     int         nDropOuts;      // the number of dropped outputs
 };
- 
+  
+typedef struct Bmc_BCorePar_t_ Bmc_BCorePar_t;
+struct Bmc_BCorePar_t_
+{
+    int         iFrame;         // timeframe
+    int         iOutput;        // property output
+    int         nTimeOut;       // timeout in seconds
+    char *      pFilePivots;    // file name with AIG IDs of pivot objects
+    char *      pFileProof;     // file name to write the resulting proof
+    int         fVerbose;       // verbose output
+};
+
 typedef struct Bmc_MulPar_t_ Bmc_MulPar_t;
 struct Bmc_MulPar_t_
 {
@@ -117,6 +128,8 @@ struct Bmc_MulPar_t_
 ///                    FUNCTION DECLARATIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
+/*=== bmcBCore.c ==========================================================*/
+extern void              Bmc_ManBCorePerform( Gia_Man_t * pGia, Bmc_BCorePar_t * pPars );
 /*=== bmcBmc.c ==========================================================*/
 extern int               Saig_ManBmcSimple( Aig_Man_t * pAig, int nFrames, int nSizeMax, int nBTLimit, int fRewrite, int fVerbose, int * piFrame, int nCofFanLit );
 /*=== bmcBmc2.c ==========================================================*/

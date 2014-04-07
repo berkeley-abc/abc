@@ -397,6 +397,7 @@ static int Abc_CommandAbc9PoPart             ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandAbc9GroupProve         ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9MultiProve         ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Bmc                ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9BCore              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9ICheck             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9SatTest            ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9FFTest             ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -965,6 +966,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "ABC9",         "&gprove",       Abc_CommandAbc9GroupProve,   0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&mprove",       Abc_CommandAbc9MultiProve,   0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&bmc",          Abc_CommandAbc9Bmc,          0 );
+    Cmd_CommandAdd( pAbc, "ABC9",         "&bcore",        Abc_CommandAbc9BCore,        0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&icheck",       Abc_CommandAbc9ICheck,       0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&sattest",      Abc_CommandAbc9SatTest,      0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&fftest",       Abc_CommandAbc9FFTest,       0 );
@@ -32731,6 +32733,135 @@ usage:
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n",         pPars->fVerbose?     "yes": "no" );
     Abc_Print( -2, "\t-w     : toggle printing information about unfolding [default = %s]\n", pPars->fVeryVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc9BCore( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    int c;
+    Bmc_BCorePar_t Pars, * pPars = &Pars;
+    memset( pPars, 0, sizeof(Bmc_BCorePar_t) );
+    pPars->iFrame        =   10;  // timeframe
+    pPars->iOutput       =    0;  // property output
+    pPars->nTimeOut      =    0;  // timeout in seconds
+    pPars->pFilePivots   = NULL;  // file name with AIG IDs of pivot objects
+    pPars->pFileProof    = NULL;  // file name to write the resulting proof
+    pPars->fVerbose      =    0;  // verbose output
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "FOTVvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'F':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-F\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->iFrame = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->iFrame < 0 )
+                goto usage;
+            break;
+        case 'O':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-O\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->iOutput = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->iOutput < 0 )
+                goto usage;
+            break;
+        case 'T':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-T\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nTimeOut = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nTimeOut < 0 )
+                goto usage;
+            break;
+        case 'V':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-V\" should be followed by a file name.\n" );
+                goto usage;
+            }
+            pPars->pFilePivots = argv[globalUtilOptind];
+            globalUtilOptind++;
+            break;
+        case 'v':
+            pPars->fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pAbc->pGia == NULL )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9BCore(): There is no AIG.\n" );
+        return 0;
+    }
+    if ( Gia_ManRegNum(pAbc->pGia) == 0 )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9BCore(): AIG has no registers.\n" );
+        return 0;
+    }
+    // get the file name
+    if ( pPars->pFilePivots != NULL )
+    {
+        FILE * pFile;
+        pFile = fopen( pPars->pFilePivots, "r" );
+        if ( pFile == NULL )
+        {
+            Abc_Print( -1, "Abc_CommandAbc9BCore(): Cannot open file \"%s\" with pivot node IDs.\n", pPars->pFilePivots );
+            return 0;
+        }
+        fclose( pFile );
+    }
+    // get the file name
+    if ( argc == globalUtilOptind + 1 )
+    {
+        FILE * pFile;
+        pPars->pFileProof = argv[globalUtilOptind];
+        pFile = fopen( pPars->pFileProof, "wb" );
+        if ( pFile == NULL )
+        {
+            Abc_Print( -1, "Abc_CommandAbc9BCore(): Cannot open file \"%s\" for writing the proof.\n", pPars->pFileProof );
+            return 0;
+        }
+        fclose( pFile );
+    }
+    Bmc_ManBCorePerform( pAbc->pGia, pPars );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: &bcore [-FOTV num] [-vh] <file>\n" );
+    Abc_Print( -2, "\t         records UNSAT core of the BMC instance\n" );
+    Abc_Print( -2, "\t-F num : the zero-based index of a timeframe [default = %d]\n",         pPars->iFrame );
+    Abc_Print( -2, "\t-O num : the zero-based index of a primary output [default = %d]\n",    pPars->iOutput );
+    Abc_Print( -2, "\t-T num : approximate timeout in seconds [default = %d]\n",              pPars->nTimeOut );
+    Abc_Print( -2, "\t-V file: file name with AIG IDs of pivot variables [default = no pivots]\n" );
+    Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n",         pPars->fVerbose?     "yes": "no" );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
+    Abc_Print( -2, "\t<file> : file name to write the resulting proof [default = stdout]\n");
     return 1;
 }
 

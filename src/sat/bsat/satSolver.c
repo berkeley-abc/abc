@@ -1153,6 +1153,7 @@ void sat_solver_delete(sat_solver* s)
 //    veci_delete(&s->model);
     veci_delete(&s->act_vars);
     veci_delete(&s->unit_lits);
+    veci_delete(&s->pivot_vars);
     veci_delete(&s->temp_clause);
     veci_delete(&s->conf_final);
 
@@ -1490,10 +1491,17 @@ void sat_solver_rollback( sat_solver* s )
 
 int sat_solver_addclause(sat_solver* s, lit* begin, lit* end)
 {
+    int fVerbose = 0;
     lit *i,*j;
     int maxvar;
     lit last;
     assert( begin < end );
+    if ( fVerbose )
+    {
+        for ( i = begin; i < end; i++ )
+            printf( "%s%d ", (*i)&1 ? "!":"", (*i)>>1 );
+        printf( "\n" );
+    }
 
     veci_resize( &s->temp_clause, 0 );
     for ( i = begin; i < end; i++ )

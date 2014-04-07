@@ -916,19 +916,20 @@ void Intp_ManUnsatCoreVerify( Sto_Man_t * pCnf, Vec_Int_t * vCore )
   SeeAlso     []
 
 ***********************************************************************/
-void Intp_ManUnsatCore_rec( Vec_Ptr_t * vAntClas, int iThis, Vec_Int_t * vCore, int nRoots, Vec_Int_t * vVisited )
+void Intp_ManUnsatCore_rec( Vec_Ptr_t * vAntClas, int iThis, Vec_Int_t * vCore, int nRoots, Vec_Str_t * vVisited, int fLearned )
 {
 //    int i, iStop, iStart;
     Vec_Int_t * vAnt;
     int i, Entry;
     // skip visited clauses
-    if ( Vec_IntEntry( vVisited, iThis ) )
+    if ( Vec_StrEntry( vVisited, iThis ) )
         return;
-    Vec_IntWriteEntry( vVisited, iThis, 1 );
+    Vec_StrWriteEntry( vVisited, iThis, 1 );
     // add a root clause to the core
     if ( iThis < nRoots )
     {
-        Vec_IntPush( vCore, iThis );
+        if ( !fLearned )
+            Vec_IntPush( vCore, iThis );
         return; 
     }
     // iterate through the clauses
@@ -939,7 +940,10 @@ void Intp_ManUnsatCore_rec( Vec_Ptr_t * vAntClas, int iThis, Vec_Int_t * vCore, 
     vAnt = (Vec_Int_t *)Vec_PtrEntry( vAntClas, iThis - nRoots );
     Vec_IntForEachEntry( vAnt, Entry, i )
 //        Intp_ManUnsatCore_rec( vAntClas, Vec_IntEntry(vAnties, i), vCore, nRoots, vVisited );
-        Intp_ManUnsatCore_rec( vAntClas, Entry, vCore, nRoots, vVisited );
+        Intp_ManUnsatCore_rec( vAntClas, Entry, vCore, nRoots, vVisited, fLearned );
+    // collect learned clause
+    if ( fLearned )
+        Vec_IntPush( vCore, iThis );
 }
 
 /**Function*************************************************************
@@ -956,10 +960,10 @@ void Intp_ManUnsatCore_rec( Vec_Ptr_t * vAntClas, int iThis, Vec_Int_t * vCore, 
   SeeAlso     []
 
 ***********************************************************************/
-void * Intp_ManUnsatCore( Intp_Man_t * p, Sto_Man_t * pCnf, int fVerbose )
+void * Intp_ManUnsatCore( Intp_Man_t * p, Sto_Man_t * pCnf, int fLearned, int fVerbose )
 {
     Vec_Int_t * vCore;
-    Vec_Int_t * vVisited;
+    Vec_Str_t * vVisited;
     Sto_Cls_t * pClause;
     int RetValue = 1;
     abctime clkTotal = Abc_Clock();
@@ -1021,7 +1025,7 @@ void * Intp_ManUnsatCore( Intp_Man_t * p, Sto_Man_t * pCnf, int fVerbose )
 
     if ( fVerbose )
     {
-        ABC_PRT( "Core", Abc_Clock() - clkTotal );
+//        ABC_PRT( "Core", Abc_Clock() - clkTotal );
     printf( "Vars = %d. Roots = %d. Learned = %d. Resol steps = %d.  Ave = %.2f.  Mem = %.2f MB\n", 
         p->pCnf->nVars, p->pCnf->nRoots, p->pCnf->nClauses-p->pCnf->nRoots, p->Counter,  
         1.0*(p->Counter-p->pCnf->nRoots)/(p->pCnf->nClauses-p->pCnf->nRoots), 
@@ -1031,14 +1035,56 @@ p->timeTotal += Abc_Clock() - clkTotal;
 
     // derive the UNSAT core
     vCore = Vec_IntAlloc( 1000 );
-    vVisited = Vec_IntStart( p->pCnf->pEmpty->Id+1 );
-    Intp_ManUnsatCore_rec( p->vAntClas, p->pCnf->pEmpty->Id, vCore, p->pCnf->nRoots, vVisited );
-    Vec_IntFree( vVisited );
+    vVisited = Vec_StrStart( p->pCnf->pEmpty->Id+1 );
+    Intp_ManUnsatCore_rec( p->vAntClas, p->pCnf->pEmpty->Id, vCore, p->pCnf->nRoots, vVisited, fLearned );
+    Vec_StrFree( vVisited );
     if ( fVerbose )
         printf( "Root clauses = %d. Learned clauses = %d. UNSAT core size = %d.\n", 
             p->pCnf->nRoots, p->pCnf->nClauses-p->pCnf->nRoots, Vec_IntSize(vCore) );
 //    Intp_ManUnsatCoreVerify( p->pCnf, vCore );
     return vCore;   
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Prints learned clauses in terms of original problem varibles.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Intp_ManUnsatCorePrintForBmc( FILE * pFile, Sto_Man_t * pCnf, void * vCore0, void * vVarMap0 )
+{
+    Vec_Int_t * vCore   = (Vec_Int_t *)vCore0;
+    Vec_Int_t * vVarMap = (Vec_Int_t *)vVarMap0;
+    Vec_Ptr_t * vClaMap;
+    Sto_Cls_t * pClause;
+    int v, i, iClause, fCompl, iObj, iFrame;
+    // create map of clause
+    vClaMap = Vec_PtrAlloc( pCnf->nClauses );
+    Sto_ManForEachClause( pCnf, pClause )
+        Vec_PtrPush( vClaMap, pClause );
+    // print clauses
+    fprintf( pFile, "UNSAT contains %d learned clauses:\n", Vec_IntSize(vCore) );
+    Vec_IntForEachEntry( vCore, iClause, i )
+    {
+        pClause = (Sto_Cls_t *)Vec_PtrEntry(vClaMap, iClause);
+        fprintf( pFile, "%6d : %6d : ", i, iClause - pCnf->nRoots );
+        for ( v = 0; v < (int)pClause->nLits; v++ )
+        {
+            fCompl = Abc_LitIsCompl(pClause->pLits[v]);
+            iObj   = Vec_IntEntry(vVarMap, 2*Abc_Lit2Var(pClause->pLits[v]));
+            iFrame = Vec_IntEntry(vVarMap, 2*Abc_Lit2Var(pClause->pLits[v])+1);
+            fprintf( pFile, "%s%d(%d) ", fCompl ? "!":"", iObj, iFrame );
+        }
+        if ( pClause->nLits == 0 )
+            fprintf( pFile, "Empty" );
+        fprintf( pFile, "\n" );
+    }
+    Vec_PtrFree( vClaMap );
 }
 
 ////////////////////////////////////////////////////////////////////////

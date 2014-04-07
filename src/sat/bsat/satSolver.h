@@ -170,6 +170,7 @@ struct sat_solver_t
     int         nCalls;        // the number of local restarts
     int         nCalls2;       // the number of local restarts
     veci        unit_lits;     // variables whose activity has changed
+    veci        pivot_vars;    // pivot variables
 
     int         fSkipSimplify; // set to one to skip simplification of the clause database
     int         fNotUseRandom; // do not allow random decisions with a fixed probability
@@ -255,7 +256,12 @@ static inline void sat_solver_bookmark(sat_solver* s)
         memcpy( s->activity2, s->activity, sizeof(unsigned) * s->iVarPivot );
     }
 }
-
+static inline void sat_solver_set_pivot_variables( sat_solver* s, int * pPivots, int nPivots )
+{
+    s->pivot_vars.cap = nPivots;
+    s->pivot_vars.size = nPivots;
+    s->pivot_vars.ptr = pPivots;
+}
 static inline int sat_solver_count_usedvars(sat_solver* s)
 {
     int i, nVars = 0;

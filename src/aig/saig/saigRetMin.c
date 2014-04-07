@@ -128,7 +128,7 @@ int Saig_ManRetimeUnsatCore( Aig_Man_t * p, int fVerbose )
     sat_solver_delete( pSat );
     // derive the UNSAT core
     pManProof = Intp_ManAlloc();
-    vCore = (Vec_Int_t *)Intp_ManUnsatCore( pManProof, (Sto_Man_t *)pSatCnf, fVeryVerbose );
+    vCore = (Vec_Int_t *)Intp_ManUnsatCore( pManProof, (Sto_Man_t *)pSatCnf, 0, fVeryVerbose );
     Intp_ManFree( pManProof );
     Sto_ManFree( (Sto_Man_t *)pSatCnf );
     // derive the set of variables on which the core depends
