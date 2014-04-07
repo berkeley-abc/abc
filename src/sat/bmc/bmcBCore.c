@@ -240,7 +240,7 @@ void Bmc_ManBCorePerform( Gia_Man_t * p, Bmc_BCorePar_t * pPars )
     }
     assert( RetValue == l_False );
     pSatCnf = sat_solver_store_release( pSat ); 
-    Sto_ManDumpClauses( (Sto_Man_t *)pSatCnf, "cnf_store.txt" );
+//    Sto_ManDumpClauses( (Sto_Man_t *)pSatCnf, "cnf_store.txt" );
     // derive the UNSAT core
     clk = clock();
     pManProof = Intp_ManAlloc();
@@ -248,7 +248,7 @@ void Bmc_ManBCorePerform( Gia_Man_t * p, Bmc_BCorePar_t * pPars )
     Intp_ManFree( pManProof );
     if ( pPars->fVerbose )
     {
-        printf( "UNSAT core contains %8d (out of %8d) learned clauses.   ", Vec_IntSize(vCore), sat_solver_nconflicts(pSat) );
+        printf( "UNSAT core contains %d (out of %d) learned clauses.   ", Vec_IntSize(vCore), sat_solver_nconflicts(pSat) );
         Abc_PrintTime( 1, "Time", clock() - clk );
     }
     // write the problem
