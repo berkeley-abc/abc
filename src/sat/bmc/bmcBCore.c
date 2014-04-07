@@ -252,6 +252,7 @@ void Bmc_ManBCorePerform( Gia_Man_t * p, Bmc_BCorePar_t * pPars )
         Abc_PrintTime( 1, "Time", clock() - clk );
     }
     // write the problem
+    Vec_IntSort( vCore, 0 );
     pFile = pPars->pFileProof ? fopen( pPars->pFileProof, "wb" ) : stdout;
     Intp_ManUnsatCorePrintForBmc( pFile, (Sto_Man_t *)pSatCnf, vCore, vVarMap );
     if ( pFile != stdout )
