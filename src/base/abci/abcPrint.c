@@ -67,6 +67,7 @@ int Abc_NtkCompareAndSaveBest( Abc_Ntk_t * pNtk )
         int    Depth;  // depth of the best saved network
         int    Flops;  // flops in the best saved network 
         int    Nodes;  // nodes in the best saved network
+        int    Edges;  // edges in the best saved network
         int    nPis;   // the number of primary inputs
         int    nPos;   // the number of primary outputs
     } ParsNew, ParsBest = { 0 };
@@ -84,6 +85,7 @@ int Abc_NtkCompareAndSaveBest( Abc_Ntk_t * pNtk )
     ParsNew.Depth = Abc_NtkLevel( pNtk );
     ParsNew.Flops = Abc_NtkLatchNum( pNtk );
     ParsNew.Nodes = Abc_NtkNodeNum( pNtk );
+    ParsNew.Edges = Abc_NtkGetTotalFanins( pNtk );
     ParsNew.nPis  = Abc_NtkPiNum( pNtk );
     ParsNew.nPos  = Abc_NtkPoNum( pNtk );
     // reset the parameters if the network has the same name
@@ -91,13 +93,14 @@ int Abc_NtkCompareAndSaveBest( Abc_Ntk_t * pNtk )
           strcmp(ParsBest.pName, pNtk->pName) ||
           ParsBest.Depth >  ParsNew.Depth ||
          (ParsBest.Depth == ParsNew.Depth && ParsBest.Flops >  ParsNew.Flops) ||
-         (ParsBest.Depth == ParsNew.Depth && ParsBest.Flops == ParsNew.Flops && ParsBest.Nodes >  ParsNew.Nodes) )
+         (ParsBest.Depth == ParsNew.Depth && ParsBest.Flops == ParsNew.Flops && ParsBest.Edges >  ParsNew.Edges) )
     {
         ABC_FREE( ParsBest.pName );
         ParsBest.pName = Extra_UtilStrsav( pNtk->pName );
         ParsBest.Depth = ParsNew.Depth;
         ParsBest.Flops = ParsNew.Flops;
         ParsBest.Nodes = ParsNew.Nodes;
+        ParsBest.Edges = ParsNew.Edges;
         ParsBest.nPis  = ParsNew.nPis;
         ParsBest.nPos  = ParsNew.nPos;
         // writ the network
