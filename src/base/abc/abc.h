@@ -111,7 +111,7 @@ typedef enum {
 ///                         BASIC TYPES                              ///
 ////////////////////////////////////////////////////////////////////////
 
-typedef struct Abc_Lib_t_       Abc_Lib_t;
+typedef struct Abc_Des_t_       Abc_Des_t;
 typedef struct Abc_Ntk_t_       Abc_Ntk_t;
 typedef struct Abc_Obj_t_       Abc_Obj_t;
 typedef struct Abc_Aig_t_       Abc_Aig_t;
@@ -176,7 +176,8 @@ struct Abc_Ntk_t_
     Abc_Ntk_t *       pNetBackup;    // the pointer to the previous backup network
     int               iStep;         // the generation number for the given network
     // hierarchy
-    Abc_Lib_t *       pDesign;
+    Abc_Des_t *       pDesign;       // design (hierarchical networks only)     
+    Abc_Ntk_t *       pAltView;      // alternative structural view of the network
     int               fHieVisited;   // flag to mark the visited network
     int               fHiePath;      // flag to mark the network on the path
     int               Id;            // model ID
@@ -187,7 +188,6 @@ struct Abc_Ntk_t_
     Mem_Fixed_t *     pMmObj;        // memory manager for objects
     Mem_Step_t *      pMmStep;       // memory manager for arrays
     void *            pManFunc;      // functionality manager (AIG manager, BDD manager, or memory manager for SOPs)
-//    Abc_Lib_t *       pVerLib;       // for structural verilog designs
     Abc_ManTime_t *   pManTime;      // the timing manager (for mapped networks) stores arrival/required times for all nodes
     void *            pManCut;       // the cut manager (for AIGs) stores information about the cuts computed for the nodes
     float             AndGateDelay;  // an average estimated delay of one AND gate
@@ -214,14 +214,14 @@ struct Abc_Ntk_t_
     Vec_Ptr_t *       vAttrs;        // managers of various node attributes (node functionality, global BDDs, etc)
 };
 
-struct Abc_Lib_t_ 
+struct Abc_Des_t_ 
 {
     char *            pName;         // the name of the library
     void *            pManFunc;      // functionality manager for the nodes
     Vec_Ptr_t *       vTops;         // the array of top-level modules
     Vec_Ptr_t *       vModules;      // the array of modules
     st__table *        tModules;      // the table hashing module names into their networks
-    Abc_Lib_t *       pLibrary;      // the library used to map this design
+    Abc_Des_t *       pLibrary;      // the library used to map this design
     void *            pGenlib;       // the genlib library used to map this design
 };
 
@@ -667,13 +667,13 @@ extern ABC_DLL Abc_Obj_t *        Abc_NtkAddLatch( Abc_Ntk_t * pNtk, Abc_Obj_t *
 extern ABC_DLL void               Abc_NtkConvertDcLatches( Abc_Ntk_t * pNtk );
 extern ABC_DLL Vec_Ptr_t *        Abc_NtkConverLatchNamesIntoNumbers( Abc_Ntk_t * pNtk );
  /*=== abcLib.c ==========================================================*/
-extern ABC_DLL Abc_Lib_t *        Abc_LibCreate( char * pName );
-extern ABC_DLL void               Abc_LibFree( Abc_Lib_t * pLib, Abc_Ntk_t * pNtk );
-extern ABC_DLL void               Abc_LibPrint( Abc_Lib_t * pLib );
-extern ABC_DLL int                Abc_LibAddModel( Abc_Lib_t * pLib, Abc_Ntk_t * pNtk );
-extern ABC_DLL Abc_Ntk_t *        Abc_LibFindModelByName( Abc_Lib_t * pLib, char * pName );
-extern ABC_DLL int                Abc_LibFindTopLevelModels( Abc_Lib_t * pLib );
-extern ABC_DLL Abc_Ntk_t *        Abc_LibDeriveRoot( Abc_Lib_t * pLib );
+extern ABC_DLL Abc_Des_t *        Abc_DesCreate( char * pName );
+extern ABC_DLL void               Abc_DesFree( Abc_Des_t * p, Abc_Ntk_t * pNtk );
+extern ABC_DLL void               Abc_DesPrint( Abc_Des_t * p );
+extern ABC_DLL int                Abc_DesAddModel( Abc_Des_t * p, Abc_Ntk_t * pNtk );
+extern ABC_DLL Abc_Ntk_t *        Abc_DesFindModelByName( Abc_Des_t * p, char * pName );
+extern ABC_DLL int                Abc_DesFindTopLevelModels( Abc_Des_t * p );
+extern ABC_DLL Abc_Ntk_t *        Abc_DesDeriveRoot( Abc_Des_t * p );
 /*=== abcLog.c ==========================================================*/
 extern ABC_DLL void               Abc_NtkWriteLogFile( char * pFileName, Abc_Cex_t * pSeqCex, int Status, int nFrames, char * pCommand );
 /*=== abcMap.c ==========================================================*/

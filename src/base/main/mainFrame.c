@@ -189,7 +189,7 @@ void Abc_FrameDeallocate( Abc_Frame_t * p )
     if ( p->vCexVec   )  Vec_PtrFreeFree( p->vCexVec );
     if ( p->vPoEquivs )  Vec_VecFree( (Vec_Vec_t *)p->vPoEquivs );
     if ( p->vStatuses )  Vec_IntFree( p->vStatuses );
-    if ( p->pLibVer   )  Abc_LibFree( (Abc_Lib_t *)p->pLibVer, NULL );
+    if ( p->pLibVer   )  Abc_DesFree( (Abc_Des_t *)p->pLibVer, NULL );
     if ( p->pManDec   )  Dec_ManStop( (Dec_Man_t *)p->pManDec );
     if ( p->dd        )  Extra_StopManager( p->dd );
     if ( p->vStore    )  Vec_PtrFree( p->vStore );

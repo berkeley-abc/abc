@@ -76,7 +76,7 @@ struct Io_MvMan_t_
     char *               pBuffer;      // the contents of the file
     Vec_Ptr_t *          vLines;       // the line beginnings
     // the results of reading
-    Abc_Lib_t *          pDesign;      // the design under construction
+    Abc_Des_t *          pDesign;      // the design under construction
     int                  nNDnodes;     // the counter of ND nodes
     // intermediate storage for models
     Vec_Ptr_t *          vModels;      // vector of models
@@ -100,7 +100,7 @@ static void              Io_MvModFree( Io_MvMod_t * p );
 static char *            Io_MvLoadFile( char * pFileName );
 static void              Io_MvReadPreparse( Io_MvMan_t * p );
 static int               Io_MvReadInterfaces( Io_MvMan_t * p );
-static Abc_Lib_t *       Io_MvParse( Io_MvMan_t * p );
+static Abc_Des_t *       Io_MvParse( Io_MvMan_t * p );
 static int               Io_MvParseLineModel( Io_MvMod_t * p, char * pLine );
 static int               Io_MvParseLineInputs( Io_MvMod_t * p, char * pLine );
 static int               Io_MvParseLineOutputs( Io_MvMod_t * p, char * pLine );
@@ -142,7 +142,7 @@ Abc_Ntk_t * Io_ReadBlifMv( char * pFileName, int fBlifMv, int fCheck )
     FILE * pFile;
     Io_MvMan_t * p;
     Abc_Ntk_t * pNtk, * pExdc;
-    Abc_Lib_t * pDesign = NULL; 
+    Abc_Des_t * pDesign = NULL; 
     char * pDesignName;
     int RetValue, i;
     char * pLtlProp;
@@ -169,7 +169,7 @@ Abc_Ntk_t * Io_ReadBlifMv( char * pFileName, int fBlifMv, int fCheck )
     }
     // set the design name
     pDesignName  = Extra_FileNameGeneric( pFileName );
-    p->pDesign   = Abc_LibCreate( pDesignName );
+    p->pDesign   = Abc_DesCreate( pDesignName );
     ABC_FREE( pDesignName );
     // free the HOP manager
     Hop_ManStop( (Hop_Man_t *)p->pDesign->pManFunc );
@@ -194,13 +194,13 @@ Abc_Ntk_t * Io_ReadBlifMv( char * pFileName, int fBlifMv, int fCheck )
             if ( !Abc_NtkCheckRead( pNtk ) )
             {
                 printf( "Io_ReadBlifMv: The network check has failed for model %s.\n", pNtk->pName );
-                Abc_LibFree( pDesign, NULL );
+                Abc_DesFree( pDesign, NULL );
                 return NULL;
             }
         }
     }
 
-//Abc_LibPrint( pDesign );
+//Abc_DesPrint( pDesign );
 
     // check if there is an EXDC network
     if ( Vec_PtrSize(pDesign->vModules) > 1 )
@@ -220,7 +220,7 @@ Abc_Ntk_t * Io_ReadBlifMv( char * pFileName, int fBlifMv, int fCheck )
     }
 
     // detect top-level model
-    RetValue = Abc_LibFindTopLevelModels( pDesign );
+    RetValue = Abc_DesFindTopLevelModels( pDesign );
     pNtk = (Abc_Ntk_t *)Vec_PtrEntry( pDesign->vTops, 0 );
     if ( RetValue > 1 )
         printf( "Warning: The design has %d root-level modules. The first one (%s) will be used.\n",
@@ -235,7 +235,7 @@ Abc_Ntk_t * Io_ReadBlifMv( char * pFileName, int fBlifMv, int fCheck )
     if ( Vec_PtrSize(pDesign->vModules) == 1 )
     {
 //        printf( "Warning: The design is not hierarchical.\n" );
-        Abc_LibFree( pDesign, pNtk );
+        Abc_DesFree( pDesign, pNtk );
         pNtk->pDesign = NULL;
         pNtk->pSpec = Extra_UtilStrsav( pFileName );
     }
@@ -293,7 +293,7 @@ static void Io_MvFree( Io_MvMan_t * p )
     Io_MvMod_t * pMod;
     int i;
     if ( p->pDesign )
-        Abc_LibFree( p->pDesign, NULL );
+        Abc_DesFree( p->pDesign, NULL );
     if ( p->pBuffer )  
         ABC_FREE( p->pBuffer );
     if ( p->vLines )
@@ -729,7 +729,7 @@ static int Io_MvReadInterfaces( Io_MvMan_t * p )
         if ( !Io_MvParseLineModel( pMod, pMod->pName ) )
             return 0;
         // add model to the design
-        if ( !Abc_LibAddModel( p->pDesign, pMod->pNtk ) )
+        if ( !Abc_DesAddModel( p->pDesign, pMod->pNtk ) )
         {
             sprintf( p->sError, "Line %d: Model %s is defined twice.", Io_MvGetLine(p, pMod->pName), pMod->pName );
             return 0;
@@ -774,9 +774,9 @@ static int Io_MvReadInterfaces( Io_MvMan_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-static Abc_Lib_t * Io_MvParse( Io_MvMan_t * p )
+static Abc_Des_t * Io_MvParse( Io_MvMan_t * p )
 {
-    Abc_Lib_t * pDesign;
+    Abc_Des_t * pDesign;
     Io_MvMod_t * pMod;
     char * pLine;
     int i, k;
@@ -1244,7 +1244,7 @@ static int Io_MvParseLineSubckt( Io_MvMod_t * p, char * pLine )
             break;
         }
     // find the model
-    pModel = Abc_LibFindModelByName( p->pMan->pDesign, pName );
+    pModel = Abc_DesFindModelByName( p->pMan->pDesign, pName );
     if ( pModel == NULL )
     {
         sprintf( p->pMan->sError, "Line %d: Cannot find the model for subcircuit %s.", Io_MvGetLine(p->pMan, pToken), pName );

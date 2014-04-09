@@ -57,7 +57,7 @@ struct Ver_Man_t_
     int             fNameLast;
     ProgressBar *   pProgress;
     // current design
-    Abc_Lib_t *     pDesign;
+    Abc_Des_t *     pDesign;
     st__table *      tName2Suffix;
     // error handling
     FILE *          Output;
@@ -85,7 +85,7 @@ struct Ver_Man_t_
 ////////////////////////////////////////////////////////////////////////
 
 /*=== verCore.c ========================================================*/
-extern Abc_Lib_t *    Ver_ParseFile( char * pFileName, Abc_Lib_t * pGateLib, int fCheck, int fUseMemMan );
+extern Abc_Des_t *    Ver_ParseFile( char * pFileName, Abc_Des_t * pGateLib, int fCheck, int fUseMemMan );
 extern void           Ver_ParsePrintErrorMessage( Ver_Man_t * p );
 /*=== verFormula.c ========================================================*/
 extern void *         Ver_FormulaParser( char * pFormula, void * pMan, Vec_Ptr_t * vNames, Vec_Ptr_t * vStackFn, Vec_Int_t * vStackOp, char * pErrorMessage );

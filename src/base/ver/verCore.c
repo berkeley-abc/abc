@@ -51,7 +51,7 @@ typedef enum {
     VER_GATE_NOT
 } Ver_GateType_t;
 
-static Ver_Man_t * Ver_ParseStart( char * pFileName, Abc_Lib_t * pGateLib );
+static Ver_Man_t * Ver_ParseStart( char * pFileName, Abc_Des_t * pGateLib );
 static void Ver_ParseStop( Ver_Man_t * p );
 static void Ver_ParseFreeData( Ver_Man_t * p );
 static void Ver_ParseInternal( Ver_Man_t * p );
@@ -101,7 +101,7 @@ struct Ver_Bundle_t_
   SeeAlso     []
 
 ***********************************************************************/
-Ver_Man_t * Ver_ParseStart( char * pFileName, Abc_Lib_t * pGateLib )
+Ver_Man_t * Ver_ParseStart( char * pFileName, Abc_Des_t * pGateLib )
 {
     Ver_Man_t * p;
     p = ABC_ALLOC( Ver_Man_t, 1 );
@@ -119,7 +119,7 @@ Ver_Man_t * Ver_ParseStart( char * pFileName, Abc_Lib_t * pGateLib )
     p->vStackOp  = Vec_IntAlloc( 100 );
     p->vPerm     = Vec_IntAlloc( 100 );
     // create the design library and assign the technology library
-    p->pDesign   = Abc_LibCreate( pFileName );
+    p->pDesign   = Abc_DesCreate( pFileName );
     p->pDesign->pLibrary = pGateLib;
     // derive library from SCL
 //    if ( Abc_FrameReadLibScl() )
@@ -162,10 +162,10 @@ void Ver_ParseStop( Ver_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Lib_t * Ver_ParseFile( char * pFileName, Abc_Lib_t * pGateLib, int fCheck, int fUseMemMan )
+Abc_Des_t * Ver_ParseFile( char * pFileName, Abc_Des_t * pGateLib, int fCheck, int fUseMemMan )
 {
     Ver_Man_t * p;
-    Abc_Lib_t * pDesign;
+    Abc_Des_t * pDesign;
     // start the parser
     p = Ver_ParseStart( pFileName, pGateLib );
     p->fMapped    = glo_fMapped;
@@ -259,7 +259,7 @@ void Ver_ParseFreeData( Ver_Man_t * p )
 {
     if ( p->pDesign )
     {
-        Abc_LibFree( p->pDesign, NULL );
+        Abc_DesFree( p->pDesign, NULL );
         p->pDesign = NULL;
     }
 }
@@ -302,7 +302,7 @@ Abc_Ntk_t * Ver_ParseFindOrCreateNetwork( Ver_Man_t * pMan, char * pName )
 {
     Abc_Ntk_t * pNtkNew;
     // check if the network exists
-    if ( (pNtkNew = Abc_LibFindModelByName( pMan->pDesign, pName )) )
+    if ( (pNtkNew = Abc_DesFindModelByName( pMan->pDesign, pName )) )
         return pNtkNew;
 //printf( "Creating network %s.\n", pName );
     // create new network
@@ -310,7 +310,7 @@ Abc_Ntk_t * Ver_ParseFindOrCreateNetwork( Ver_Man_t * pMan, char * pName )
     pNtkNew->pName = Extra_UtilStrsav( pName );
     pNtkNew->pSpec = NULL;
     // add module to the design
-    Abc_LibAddModel( pMan->pDesign, pNtkNew );
+    Abc_DesAddModel( pMan->pDesign, pNtkNew );
     return pNtkNew;
 }
 

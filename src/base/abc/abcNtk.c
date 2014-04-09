@@ -1319,7 +1319,7 @@ void Abc_NtkDelete( Abc_Ntk_t * pNtk )
     // free the hierarchy
     if ( pNtk->pDesign )
     {
-        Abc_LibFree( pNtk->pDesign, pNtk );
+        Abc_DesFree( pNtk->pDesign, pNtk );
         pNtk->pDesign = NULL;
     }
 //    if ( pNtk->pBlackBoxes ) 

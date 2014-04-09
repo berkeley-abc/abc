@@ -179,6 +179,7 @@ Abc_Obj_t * Abc_NtkToBarBufs_rec( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pNet )
 }
 Abc_Ntk_t * Abc_NtkToBarBufs( Abc_Ntk_t * pNtk )
 {
+    char Buffer[1000];
     Vec_Ptr_t * vLiMaps, * vLoMaps;
     Abc_Ntk_t * pNtkNew, * pTemp;
     Abc_Obj_t * pLatch, * pObjLi, * pObjLo;
@@ -208,8 +209,10 @@ Abc_Ntk_t * Abc_NtkToBarBufs( Abc_Ntk_t * pNtk )
         Abc_ObjAddFanin( pLatch, pObjLi );
         Abc_ObjAddFanin( pObjLo, pLatch );
         pLatch->pData = (void *)ABC_INIT_ZERO;
-        Abc_ObjAssignName( pObjLi, Abc_ObjName(Abc_ObjFanin0(pLiMap)), "_li" );
-        Abc_ObjAssignName( pObjLo, Abc_ObjName(Abc_ObjFanout0(pLoMap)), "_lo" );
+        sprintf( Buffer, "_%s_in", Abc_NtkName(Abc_ObjFanin0(pLiMap)->pNtk) );
+        Abc_ObjAssignName( pObjLi, Abc_ObjName(Abc_ObjFanin0(pLiMap)), Buffer );
+        sprintf( Buffer, "_%s_out", Abc_NtkName(Abc_ObjFanout0(pLoMap)->pNtk) );
+        Abc_ObjAssignName( pObjLo, Abc_ObjName(Abc_ObjFanout0(pLoMap)), Buffer );
         pLiMap->pCopy = pObjLi;
         Abc_ObjFanout0(pLoMap)->pCopy = pObjLo;
         assert( Abc_ObjIsNet(Abc_ObjFanout0(pLoMap)) );
@@ -277,9 +280,9 @@ Abc_Ntk_t * Abc_NtkFromBarBufs( Abc_Ntk_t * pNtkBase, Abc_Ntk_t * pNtk )
                 pObj->pCopy->pData = Abc_ObjModel(pObj)->pCopy;
     // create the design
     pNtkNew = pNtkBase->pCopy;
-    pNtkNew->pDesign = Abc_LibCreate( pNtkBase->pDesign->pName );
+    pNtkNew->pDesign = Abc_DesCreate( pNtkBase->pDesign->pName );
     Vec_PtrForEachEntry( Abc_Ntk_t *, pNtkBase->pDesign->vModules, pTemp, i )
-        Abc_LibAddModel( pNtkNew->pDesign, pTemp->pCopy );
+        Abc_DesAddModel( pNtkNew->pDesign, pTemp->pCopy );
     Vec_PtrForEachEntry( Abc_Ntk_t *, pNtkBase->pDesign->vTops, pTemp, i )
         Vec_PtrPush( pNtkNew->pDesign->vTops, pTemp->pCopy );
     assert( Vec_PtrEntry(pNtkNew->pDesign->vTops, 0) == pNtkNew );

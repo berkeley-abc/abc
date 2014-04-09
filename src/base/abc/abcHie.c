@@ -187,7 +187,7 @@ Abc_Ntk_t * Abc_NtkFlattenLogicHierarchy2( Abc_Ntk_t * pNtk )
     Abc_Ntk_t * pNtkNew; 
     Abc_Obj_t * pTerm, * pNet;
     int i, Counter;
-    extern Abc_Lib_t * Abc_LibDupBlackboxes( Abc_Lib_t * pLib, Abc_Ntk_t * pNtkSave );
+    extern Abc_Des_t * Abc_DesDupBlackboxes( Abc_Des_t * p, Abc_Ntk_t * pNtkSave );
 
     assert( Abc_NtkIsNetlist(pNtk) );
     // start the network
@@ -225,7 +225,7 @@ Abc_Ntk_t * Abc_NtkFlattenLogicHierarchy2( Abc_Ntk_t * pNtk )
     {
         // pass on the design
         assert( Vec_PtrEntry(pNtk->pDesign->vTops, 0) == pNtk );
-        pNtkNew->pDesign = Abc_LibDupBlackboxes( pNtk->pDesign, pNtkNew );
+        pNtkNew->pDesign = Abc_DesDupBlackboxes( pNtk->pDesign, pNtkNew );
         // update the pointers
         Abc_NtkForEachBlackbox( pNtkNew, pTerm, i )
             pTerm->pData = ((Abc_Ntk_t *)pTerm->pData)->pCopy;
@@ -512,7 +512,7 @@ void Abc_NtkPrintBoxInfo( Abc_Ntk_t * pNtk )
 ***********************************************************************/
 Abc_Ntk_t * Abc_NtkFlattenLogicHierarchy( Abc_Ntk_t * pNtk )
 {
-    extern Abc_Lib_t * Abc_LibDupBlackboxes( Abc_Lib_t * pLib, Abc_Ntk_t * pNtkSave );
+    extern Abc_Des_t * Abc_DesDupBlackboxes( Abc_Des_t * p, Abc_Ntk_t * pNtkSave );
     Vec_Str_t * vPref;
     Abc_Ntk_t * pNtkNew; 
     Abc_Obj_t * pTerm, * pNet;
@@ -558,7 +558,7 @@ Abc_Ntk_t * Abc_NtkFlattenLogicHierarchy( Abc_Ntk_t * pNtk )
     {
         // pass on the design
         assert( Vec_PtrEntry(pNtk->pDesign->vTops, 0) == pNtk );
-        pNtkNew->pDesign = Abc_LibDupBlackboxes( pNtk->pDesign, pNtkNew );
+        pNtkNew->pDesign = Abc_DesDupBlackboxes( pNtk->pDesign, pNtkNew );
         // update the pointers
         Abc_NtkForEachBlackbox( pNtkNew, pTerm, i )
             pTerm->pData = ((Abc_Ntk_t *)pTerm->pData)->pCopy;
@@ -689,7 +689,7 @@ Abc_Ntk_t * Abc_NtkConvertBlackboxes( Abc_Ntk_t * pNtk )
 ***********************************************************************/
 Abc_Ntk_t * Abc_NtkInsertNewLogic( Abc_Ntk_t * pNtkH, Abc_Ntk_t * pNtkL )
 {
-    Abc_Lib_t * pDesign;
+    Abc_Des_t * pDesign;
     Abc_Ntk_t * pNtkNew;
     Abc_Obj_t * pObjH, * pObjL, * pNetH, * pNetL, * pTermH;
     int i, k;

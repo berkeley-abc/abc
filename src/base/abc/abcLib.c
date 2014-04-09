@@ -42,11 +42,11 @@ ABC_NAMESPACE_IMPL_START
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Lib_t * Abc_LibCreate( char * pName )
+Abc_Des_t * Abc_DesCreate( char * pName )
 {
-    Abc_Lib_t * p;
-    p = ABC_ALLOC( Abc_Lib_t, 1 );
-    memset( p, 0, sizeof(Abc_Lib_t) );
+    Abc_Des_t * p;
+    p = ABC_ALLOC( Abc_Des_t, 1 );
+    memset( p, 0, sizeof(Abc_Des_t) );
     p->pName    = Abc_UtilStrsav( pName );
     p->tModules = st__init_table( strcmp, st__strhash );
     p->vTops    = Vec_PtrAlloc( 100 );
@@ -67,19 +67,19 @@ Abc_Lib_t * Abc_LibCreate( char * pName )
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_LibFree( Abc_Lib_t * pLib, Abc_Ntk_t * pNtkSave )
+void Abc_DesFree( Abc_Des_t * p, Abc_Ntk_t * pNtkSave )
 {
     Abc_Ntk_t * pNtk;
     int i;
-    if ( pLib->pName )
-        ABC_FREE( pLib->pName );
-    if ( pLib->pManFunc )
-        Hop_ManStop( (Hop_Man_t *)pLib->pManFunc );
-    if ( pLib->tModules )
-        st__free_table( pLib->tModules );
-    if ( pLib->vModules )
+    if ( p->pName )
+        ABC_FREE( p->pName );
+    if ( p->pManFunc )
+        Hop_ManStop( (Hop_Man_t *)p->pManFunc );
+    if ( p->tModules )
+        st__free_table( p->tModules );
+    if ( p->vModules )
     {
-        Vec_PtrForEachEntry( Abc_Ntk_t *, pLib->vModules, pNtk, i )
+        Vec_PtrForEachEntry( Abc_Ntk_t *, p->vModules, pNtk, i )
         {
             if ( pNtk == pNtkSave )
                 continue;
@@ -89,11 +89,11 @@ void Abc_LibFree( Abc_Lib_t * pLib, Abc_Ntk_t * pNtkSave )
                 pNtk->pManFunc = NULL;
             Abc_NtkDelete( pNtk );
         }
-        Vec_PtrFree( pLib->vModules );
+        Vec_PtrFree( p->vModules );
     }
-    if ( pLib->vTops )
-        Vec_PtrFree( pLib->vTops );
-    ABC_FREE( pLib );
+    if ( p->vTops )
+        Vec_PtrFree( p->vTops );
+    ABC_FREE( p );
 }
 
 /**Function*************************************************************
@@ -107,21 +107,21 @@ void Abc_LibFree( Abc_Lib_t * pLib, Abc_Ntk_t * pNtkSave )
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Lib_t * Abc_LibDupBlackboxes( Abc_Lib_t * pLib, Abc_Ntk_t * pNtkSave )
+Abc_Des_t * Abc_DesDupBlackboxes( Abc_Des_t * p, Abc_Ntk_t * pNtkSave )
 {
-    Abc_Lib_t * pLibNew;
+    Abc_Des_t * pNew;
     Abc_Ntk_t * pNtkTemp;
     int i;
-    assert( Vec_PtrSize(pLib->vTops) > 0 );
-    assert( Vec_PtrSize(pLib->vModules) > 1 );
-    pLibNew = Abc_LibCreate( pLib->pName );
-//    pLibNew->pManFunc = pNtkSave->pManFunc;
-    Vec_PtrPush( pLibNew->vTops, pNtkSave );
-    Vec_PtrPush( pLibNew->vModules, pNtkSave );
-    Vec_PtrForEachEntry( Abc_Ntk_t *, pLib->vModules, pNtkTemp, i )
+    assert( Vec_PtrSize(p->vTops) > 0 );
+    assert( Vec_PtrSize(p->vModules) > 1 );
+    pNew = Abc_DesCreate( p->pName );
+//    pNew->pManFunc = pNtkSave->pManFunc;
+    Vec_PtrPush( pNew->vTops, pNtkSave );
+    Vec_PtrPush( pNew->vModules, pNtkSave );
+    Vec_PtrForEachEntry( Abc_Ntk_t *, p->vModules, pNtkTemp, i )
         if ( Abc_NtkHasBlackbox( pNtkTemp ) )
-            Vec_PtrPush( pLibNew->vModules, Abc_NtkDup(pNtkTemp) );
-    return pLibNew;
+            Vec_PtrPush( pNew->vModules, Abc_NtkDup(pNtkTemp) );
+    return pNew;
 }
 
 
@@ -136,13 +136,13 @@ Abc_Lib_t * Abc_LibDupBlackboxes( Abc_Lib_t * pLib, Abc_Ntk_t * pNtkSave )
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_LibPrint( Abc_Lib_t * pLib )
+void Abc_DesPrint( Abc_Des_t * p )
 {
     Abc_Ntk_t * pNtk;
     Abc_Obj_t * pObj;
     int i, k;
-    printf( "Models of design %s:\n", pLib->pName );
-    Vec_PtrForEachEntry( Abc_Ntk_t *, pLib->vModules, pNtk, i )
+    printf( "Models of design %s:\n", p->pName );
+    Vec_PtrForEachEntry( Abc_Ntk_t *, p->vModules, pNtk, i )
     {
         printf( "%2d : %20s   ", i+1, pNtk->pName );
         printf( "nd = %6d   lat = %6d   whitebox = %3d   blackbox = %3d\n", 
@@ -168,15 +168,15 @@ void Abc_LibPrint( Abc_Lib_t * pLib )
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_LibAddModel( Abc_Lib_t * pLib, Abc_Ntk_t * pNtk )
+int Abc_DesAddModel( Abc_Des_t * p, Abc_Ntk_t * pNtk )
 {
-    if ( st__is_member( pLib->tModules, (char *)pNtk->pName ) )
+    if ( st__is_member( p->tModules, (char *)pNtk->pName ) )
         return 0;
-    st__insert( pLib->tModules, (char *)pNtk->pName, (char *)pNtk );
+    st__insert( p->tModules, (char *)pNtk->pName, (char *)pNtk );
     assert( pNtk->Id == 0 );
-    pNtk->Id = Vec_PtrSize(pLib->vModules);
-    Vec_PtrPush( pLib->vModules, pNtk );
-    pNtk->pDesign = pLib;
+    pNtk->Id = Vec_PtrSize(p->vModules);
+    Vec_PtrPush( p->vModules, pNtk );
+    pNtk->pDesign = p;
     return 1;
 }
 
@@ -191,12 +191,12 @@ int Abc_LibAddModel( Abc_Lib_t * pLib, Abc_Ntk_t * pNtk )
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Ntk_t * Abc_LibFindModelByName( Abc_Lib_t * pLib, char * pName )
+Abc_Ntk_t * Abc_DesFindModelByName( Abc_Des_t * p, char * pName )
 {
     Abc_Ntk_t * pNtk;
-    if ( ! st__is_member( pLib->tModules, (char *)pName ) )
+    if ( ! st__is_member( p->tModules, (char *)pName ) )
         return NULL;
-    st__lookup( pLib->tModules, (char *)pName, (char **)&pNtk );
+    st__lookup( p->tModules, (char *)pName, (char **)&pNtk );
     return pNtk;
 }
 
@@ -211,16 +211,16 @@ Abc_Ntk_t * Abc_LibFindModelByName( Abc_Lib_t * pLib, char * pName )
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Ntk_t * Abc_LibDeriveRoot( Abc_Lib_t * pLib )
+Abc_Ntk_t * Abc_DesDeriveRoot( Abc_Des_t * p )
 {
     Abc_Ntk_t * pNtk;
-    if ( Vec_PtrSize(pLib->vModules) > 1 )
+    if ( Vec_PtrSize(p->vModules) > 1 )
     {
         printf( "The design includes more than one module and is currently not used.\n" );
         return NULL;
     }
-    pNtk = (Abc_Ntk_t *)Vec_PtrEntry( pLib->vModules, 0 );  Vec_PtrClear( pLib->vModules );
-    pNtk->pManFunc = pLib->pManFunc;           pLib->pManFunc = NULL;
+    pNtk = (Abc_Ntk_t *)Vec_PtrEntry( p->vModules, 0 );  Vec_PtrClear( p->vModules );
+    pNtk->pManFunc = p->pManFunc;           p->pManFunc = NULL;
     return pNtk;
 }
 
@@ -235,17 +235,17 @@ Abc_Ntk_t * Abc_LibDeriveRoot( Abc_Lib_t * pLib )
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_LibFindTopLevelModels( Abc_Lib_t * pLib )
+int Abc_DesFindTopLevelModels( Abc_Des_t * p )
 {
     Abc_Ntk_t * pNtk, * pNtkBox;
     Abc_Obj_t * pObj;
     int i, k;
-    assert( Vec_PtrSize( pLib->vModules ) > 0 );
+    assert( Vec_PtrSize( p->vModules ) > 0 );
     // clear the models
-    Vec_PtrForEachEntry( Abc_Ntk_t *, pLib->vModules, pNtk, i )
+    Vec_PtrForEachEntry( Abc_Ntk_t *, p->vModules, pNtk, i )
         pNtk->fHieVisited = 0;
     // mark all the models reachable from other models
-    Vec_PtrForEachEntry( Abc_Ntk_t *, pLib->vModules, pNtk, i )
+    Vec_PtrForEachEntry( Abc_Ntk_t *, p->vModules, pNtk, i )
     {
         Abc_NtkForEachBox( pNtk, pObj, k )
         {
@@ -258,71 +258,17 @@ int Abc_LibFindTopLevelModels( Abc_Lib_t * pLib )
         }
     }
     // collect the models that are not marked
-    Vec_PtrClear( pLib->vTops );
-    Vec_PtrForEachEntry( Abc_Ntk_t *, pLib->vModules, pNtk, i )
+    Vec_PtrClear( p->vTops );
+    Vec_PtrForEachEntry( Abc_Ntk_t *, p->vModules, pNtk, i )
     {
         if ( pNtk->fHieVisited == 0 )
-            Vec_PtrPush( pLib->vTops, pNtk );
+            Vec_PtrPush( p->vTops, pNtk );
         else
             pNtk->fHieVisited = 0;
     }
-    return Vec_PtrSize( pLib->vTops );
+    return Vec_PtrSize( p->vTops );
 }
 
-
-/**Function*************************************************************
-
-  Synopsis    [Surround boxes without content (black boxes) with BIs/BOs.]
-
-  Description [Returns the number of black boxes converted.]
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Abc_LibDeriveBlackBoxes( Abc_Ntk_t * pNtk, Abc_Lib_t * pLib )
-{
-/*
-    Abc_Obj_t * pObj, * pFanin, * pFanout;
-    int i, k;
-    assert( Abc_NtkIsNetlist(pNtk) );
-    // collect blackbox nodes
-    assert( Vec_PtrSize(pNtk->vBoxes) == 0 );
-    Vec_PtrClear( pNtk->vBoxes );
-    Abc_NtkForEachBox( pNtk, pObj, i )
-        if ( Abc_NtkNodeNum(pObj->pData) == 0 )
-            Vec_PtrPush( pNtk->vBoxes, pObj );
-    // return if there is no black boxes without content
-    if ( Vec_PtrSize(pNtk->vBoxes) == 0 )
-        return 0;
-    // print the boxes
-    printf( "Black boxes are: " );
-    Abc_NtkForEachBox( pNtk, pObj, i )
-        printf( " %s", ((Abc_Ntk_t *)pObj->pData)->pName );
-    printf( "\n" );
-    // iterate through the boxes and add BIs/BOs
-    Abc_NtkForEachBox( pNtk, pObj, i )
-    {
-        // go through the fanin nets
-        Abc_ObjForEachFanin( pObj, pFanin, k )
-            Abc_ObjInsertBetween( pFanin, pObj, ABC_OBJ_BI );
-        // go through the fanout nets
-        Abc_ObjForEachFanout( pObj, pFanout, k )
-        {
-            Abc_ObjInsertBetween( pObj, pFanout, ABC_OBJ_BO );
-            // if the name is not given assign name
-            if ( pFanout->pData == NULL )
-            {
-                pFanout->pData = Abc_ObjName( pFanout );
-                Nm_ManStoreIdName( pNtk->pManName, pFanout->Id, pFanout->pData, NULL );
-            }
-        }
-    }
-    return Vec_PtrSize(pNtk->vBoxes);
-*/
-    return 0;
-}
 
 /**Function*************************************************************
 
@@ -388,70 +334,6 @@ void Abc_NodeStrashUsingNetwork( Abc_Ntk_t * pNtkAig, Abc_Obj_t * pBox )
         Abc_ObjFanout(pBox,i)->pCopy = Abc_ObjFanin0(pObj)->pCopy;
     }
 //printf( "processing %d\n", pBox->Id );
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Derive the AIG of the logic in the netlist.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-Abc_Ntk_t * Abc_LibDeriveAig( Abc_Ntk_t * pNtk, Abc_Lib_t * pLib )
-{
-    ProgressBar * pProgress;
-    Vec_Ptr_t * vNodes;
-    Abc_Ntk_t * pNtkAig;
-    Abc_Obj_t * pObj;
-    int i, nBoxes;
-    // explicitly derive black boxes
-    assert( Abc_NtkIsNetlist(pNtk) );
-    nBoxes = Abc_LibDeriveBlackBoxes( pNtk, pLib );
-    if ( nBoxes )
-        printf( "Detected and transformed %d black boxes.\n", nBoxes );
-    // create the new network with black boxes in place
-    pNtkAig = Abc_NtkStartFrom( pNtk, ABC_NTK_STRASH, ABC_FUNC_AIG );
-    // transer to the nets
-    Abc_NtkForEachCi( pNtk, pObj, i )
-        Abc_ObjFanout0(pObj)->pCopy = pObj->pCopy;
-    // build the AIG for the remaining logic in the netlist
-    vNodes = Abc_NtkDfs( pNtk, 0 );
-    pProgress = Extra_ProgressBarStart( stdout, Vec_PtrSize(vNodes) );
-    Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pObj, i )
-    {
-        Extra_ProgressBarUpdate( pProgress, i, NULL );
-        if ( Abc_ObjIsNode(pObj) )
-        {
-            pObj->pCopy = Abc_NodeStrash( pNtkAig, pObj, 0 );
-            Abc_ObjFanout0(pObj)->pCopy = pObj->pCopy;
-            continue;
-        }
-        Abc_NodeStrashUsingNetwork( pNtkAig, pObj );
-    }
-    Extra_ProgressBarStop( pProgress );
-    Vec_PtrFree( vNodes );
-    // deallocate memory manager, which remembers the phase
-    if ( pNtk->pData )
-    {
-        Mem_FlexStop( (Mem_Flex_t *)pNtk->pData, 0 );
-        pNtk->pData = NULL;
-    }
-    // set the COs
-//    Abc_NtkFinalize( pNtk, pNtkAig );
-    Abc_NtkForEachCo( pNtk, pObj, i )
-        Abc_ObjAddFanin( pObj->pCopy, Abc_ObjFanin0(pObj)->pCopy );
-    Abc_AigCleanup( (Abc_Aig_t *)pNtkAig->pManFunc );
-    // make sure that everything is okay
-    if ( !Abc_NtkCheck( pNtkAig ) )
-    {
-        printf( "Abc_LibDeriveAig: The network check has failed.\n" );
-        return 0;
-    }
-    return pNtkAig;
 }
 
 ////////////////////////////////////////////////////////////////////////

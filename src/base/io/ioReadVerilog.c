@@ -28,7 +28,7 @@ ABC_NAMESPACE_IMPL_START
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-//extern Abc_Lib_t * Ver_ParseFile( char * pFileName, Abc_Lib_t * pGateLib, int fCheck, int fUseMemMan );
+//extern Abc_Des_t * Ver_ParseFile( char * pFileName, Abc_Des_t * pGateLib, int fCheck, int fUseMemMan );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -48,7 +48,7 @@ ABC_NAMESPACE_IMPL_START
 Abc_Ntk_t * Io_ReadVerilog( char * pFileName, int fCheck )
 {
     Abc_Ntk_t * pNtk, * pTemp;
-    Abc_Lib_t * pDesign;
+    Abc_Des_t * pDesign;
     int i, RetValue;
 
     // parse the verilog file
@@ -57,7 +57,7 @@ Abc_Ntk_t * Io_ReadVerilog( char * pFileName, int fCheck )
         return NULL;
 
     // detect top-level model
-    RetValue = Abc_LibFindTopLevelModels( pDesign );
+    RetValue = Abc_DesFindTopLevelModels( pDesign );
     pNtk = (Abc_Ntk_t *)Vec_PtrEntry( pDesign->vTops, 0 );
     if ( RetValue > 1 )
     {
@@ -77,7 +77,7 @@ Abc_Ntk_t * Io_ReadVerilog( char * pFileName, int fCheck )
     if ( Vec_PtrSize(pDesign->vModules) == 1 )
     {
 //        printf( "Warning: The design is not hierarchical.\n" );
-        Abc_LibFree( pDesign, pNtk );
+        Abc_DesFree( pDesign, pNtk );
         pNtk->pDesign = NULL;
         pNtk->pSpec = Extra_UtilStrsav( pFileName );
     }

@@ -44,8 +44,6 @@ static int IoCommandReadInit    ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandReadPla     ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandReadTruth   ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandReadVerilog ( Abc_Frame_t * pAbc, int argc, char **argv );
-static int IoCommandReadVer     ( Abc_Frame_t * pAbc, int argc, char **argv );
-static int IoCommandReadVerLib  ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandReadStatus  ( Abc_Frame_t * pAbc, int argc, char **argv );
 
 static int IoCommandWrite       ( Abc_Frame_t * pAbc, int argc, char **argv );
@@ -68,7 +66,6 @@ static int IoCommandWriteGml    ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandWriteList   ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandWritePla    ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandWriteVerilog( Abc_Frame_t * pAbc, int argc, char **argv );
-static int IoCommandWriteVerLib ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandWriteSortCnf( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandWriteTruth  ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandWriteTruths ( Abc_Frame_t * pAbc, int argc, char **argv );
@@ -110,8 +107,6 @@ void Io_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "I/O", "read_pla",      IoCommandReadPla,      1 );
     Cmd_CommandAdd( pAbc, "I/O", "read_truth",    IoCommandReadTruth,    1 );
     Cmd_CommandAdd( pAbc, "I/O", "read_verilog",  IoCommandReadVerilog,  1 );
-//    Cmd_CommandAdd( pAbc, "I/O", "read_ver",      IoCommandReadVer,      1 );
-//    Cmd_CommandAdd( pAbc, "I/O", "read_verlib",   IoCommandReadVerLib,   0 );
     Cmd_CommandAdd( pAbc, "I/O", "read_status",   IoCommandReadStatus,   0 );
 
     Cmd_CommandAdd( pAbc, "I/O", "write",         IoCommandWrite,        0 );
@@ -1070,182 +1065,6 @@ usage:
     fprintf( pAbc->Err, "\tfile   : the name of a file to read\n" );
     return 1;
 }
-
-/**Function*************************************************************
-
-  Synopsis    []
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int IoCommandReadVer( Abc_Frame_t * pAbc, int argc, char ** argv )
-{
-    Abc_Ntk_t * pNtk, * pNtkNew;
-    Abc_Lib_t * pDesign;
-    char * pFileName;
-    FILE * pFile;
-    int fCheck;
-    int c;
-    extern Abc_Ntk_t * Abc_LibDeriveAig( Abc_Ntk_t * pNtk, Abc_Lib_t * pLib );
-    extern Abc_Lib_t * Ver_ParseFile( char * pFileName, Abc_Lib_t * pGateLib, int fCheck, int fUseMemMan );
-
-    printf( "Stand-alone structural Verilog reader is available as command \"read_verilog\".\n" );
-    return 0;
-
-    fCheck = 1;
-    Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "ch" ) ) != EOF )
-    {
-        switch ( c )
-        {
-            case 'c':
-                fCheck ^= 1;
-                break;
-            case 'h':
-                goto usage;
-            default:
-                goto usage;
-        }
-    }
-
-    if ( argc != globalUtilOptind + 1 )
-    {
-        goto usage;
-    }
-
-    // get the input file name
-    pFileName = argv[globalUtilOptind];
-    if ( (pFile = fopen( pFileName, "r" )) == NULL )
-    {
-        fprintf( pAbc->Err, "Cannot open input file \"%s\". ", pFileName );
-        if ( (pFileName = Extra_FileGetSimilarName( pFileName, ".blif", ".bench", ".pla", ".baf", ".aig" )) )
-            fprintf( pAbc->Err, "Did you mean \"%s\"?", pFileName );
-        fprintf( pAbc->Err, "\n" );
-        return 1;
-    }
-    fclose( pFile );
-
-    // set the new network
-    pDesign = Ver_ParseFile( pFileName, (Abc_Lib_t *)Abc_FrameReadLibVer(), fCheck, 1 );
-    if ( pDesign == NULL )
-    {
-        fprintf( pAbc->Err, "Reading network from the verilog file has failed.\n" );
-        return 1;
-    }
-
-    // derive root design
-    pNtk = Abc_LibDeriveRoot( pDesign );
-    Abc_LibFree( pDesign, NULL );
-    if ( pNtk == NULL )
-    {
-        fprintf( pAbc->Err, "Deriving root module has failed.\n" );
-        return 1;
-    }
-
-    // derive the AIG network from this design
-    pNtkNew = Abc_LibDeriveAig( pNtk, (Abc_Lib_t *)Abc_FrameReadLibVer() );
-    Abc_NtkDelete( pNtk );
-    if ( pNtkNew == NULL )
-    {
-        fprintf( pAbc->Err, "Converting root module to AIG has failed.\n" );
-        return 1;
-    }
-    // replace the current network
-    Abc_FrameReplaceCurrentNetwork( pAbc, pNtkNew );
-    Abc_FrameClearVerifStatus( pAbc );
-    return 0;
-
-usage:
-    fprintf( pAbc->Err, "usage: read_ver [-ch] <file>\n" );
-    fprintf( pAbc->Err, "\t         reads a network in structural verilog (using current library)\n" );
-    fprintf( pAbc->Err, "\t-c     : toggle network check after reading [default = %s]\n", fCheck? "yes":"no" );
-    fprintf( pAbc->Err, "\t-h     : prints the command summary\n" );
-    fprintf( pAbc->Err, "\tfile   : the name of a file to read\n" );
-    return 1;
-}
-
-/**Function*************************************************************
-
-  Synopsis    []
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int IoCommandReadVerLib( Abc_Frame_t * pAbc, int argc, char ** argv )
-{
-    Abc_Lib_t * pLibrary;
-    char * pFileName;
-    FILE * pFile;
-    int fCheck;
-    int c;
-    extern Abc_Lib_t * Ver_ParseFile( char * pFileName, Abc_Lib_t * pGateLib, int fCheck, int fUseMemMan );
-
-    fCheck = 1;
-    Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "ch" ) ) != EOF )
-    {
-        switch ( c )
-        {
-            case 'c':
-                fCheck ^= 1;
-                break;
-            case 'h':
-                goto usage;
-            default:
-                goto usage;
-        }
-    }
-
-    if ( argc != globalUtilOptind + 1 )
-    {
-        goto usage;
-    }
-
-    // get the input file name
-    pFileName = argv[globalUtilOptind];
-    if ( (pFile = fopen( pFileName, "r" )) == NULL )
-    {
-        fprintf( pAbc->Err, "Cannot open input file \"%s\". ", pFileName );
-        if ( (pFileName = Extra_FileGetSimilarName( pFileName, ".blif", ".bench", ".pla", ".baf", ".aig" )) )
-            fprintf( pAbc->Err, "Did you mean \"%s\"?", pFileName );
-        fprintf( pAbc->Err, "\n" );
-        return 1;
-    }
-    fclose( pFile );
-
-    // set the new network
-    pLibrary = Ver_ParseFile( pFileName, NULL, fCheck, 0 );
-    if ( pLibrary == NULL )
-    {
-        fprintf( pAbc->Err, "Reading library from the verilog file has failed.\n" );
-        return 1;
-    }
-    printf( "The library contains %d gates.\n", st__count(pLibrary->tModules) );
-    // free old library
-    if ( Abc_FrameReadLibVer() )
-        Abc_LibFree( (Abc_Lib_t *)Abc_FrameReadLibVer(), NULL );
-    // read new library
-    Abc_FrameSetLibVer( pLibrary );
-    Abc_FrameClearVerifStatus( pAbc );
-    return 0;
-
-usage:
-    fprintf( pAbc->Err, "usage: read_verlib [-ch] <file>\n" );
-    fprintf( pAbc->Err, "\t         reads a gate library in structural verilog\n" );
-    fprintf( pAbc->Err, "\t-c     : toggle network check after reading [default = %s]\n", fCheck? "yes":"no" );
-    fprintf( pAbc->Err, "\t-h     : prints the command summary\n" );
-    fprintf( pAbc->Err, "\tfile   : the name of a file to read\n" );
-    return 1;
-}
-
 
 /**Function*************************************************************
 
@@ -2601,57 +2420,6 @@ int IoCommandWriteVerilog( Abc_Frame_t * pAbc, int argc, char **argv )
 usage:
     fprintf( pAbc->Err, "usage: write_verilog [-h] <file>\n" );
     fprintf( pAbc->Err, "\t         writes the current network in Verilog format\n" );
-    fprintf( pAbc->Err, "\t-h     : print the help massage\n" );
-    fprintf( pAbc->Err, "\tfile   : the name of the file to write\n" );
-    return 1;
-}
-
-/**Function*************************************************************
-
-  Synopsis    []
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int IoCommandWriteVerLib( Abc_Frame_t * pAbc, int argc, char **argv )
-{
-    Abc_Lib_t * pLibrary;
-    char * pFileName;
-    int c;
-    extern void Io_WriteVerilogLibrary( Abc_Lib_t * pLibrary, char * pFileName );
-
-    Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
-    {
-        switch ( c )
-        {
-            case 'h':
-                goto usage;
-            default:
-                goto usage;
-        }
-    }
-    if ( argc != globalUtilOptind + 1 )
-        goto usage;
-    // get the input file name
-    pFileName = argv[globalUtilOptind];
-    // derive the netlist
-    pLibrary = (Abc_Lib_t *)Abc_FrameReadLibVer();
-    if ( pLibrary == NULL )
-    {
-        fprintf( pAbc->Out, "Verilog library is not specified.\n" );
-        return 0;
-    }
-//    Io_WriteVerilogLibrary( pLibrary, pFileName );
-    return 0;
-
-usage:
-    fprintf( pAbc->Err, "usage: write_verlib [-h] <file>\n" );
-    fprintf( pAbc->Err, "\t         writes the current verilog library\n" );
     fprintf( pAbc->Err, "\t-h     : print the help massage\n" );
     fprintf( pAbc->Err, "\tfile   : the name of the file to write\n" );
     return 1;
