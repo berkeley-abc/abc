@@ -218,7 +218,28 @@ int Amap_ManCountInverters( Amap_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-static inline int Amap_CutCompare( Amap_Man_t * p, Amap_Mat_t * pM0, Amap_Mat_t * pM1 )
+static inline int Amap_CutCompareDelay( Amap_Man_t * p, Amap_Mat_t * pM0, Amap_Mat_t * pM1 )
+{
+    // compare delay
+    if ( pM0->Delay < pM1->Delay - p->pPars->fEpsilon )
+        return -1;
+    if ( pM0->Delay > pM1->Delay + p->pPars->fEpsilon )
+        return 1;
+
+    // compare area flows
+    if ( pM0->Area < pM1->Area - p->pPars->fEpsilon )
+        return -1;
+    if ( pM0->Area > pM1->Area + p->pPars->fEpsilon )
+        return 1;
+
+    // compare average fanouts
+    if ( pM0->AveFan > pM1->AveFan - p->pPars->fEpsilon )
+        return -1;
+    if ( pM0->AveFan < pM1->AveFan + p->pPars->fEpsilon )
+        return 1;
+    return 1;
+}
+static inline int Amap_CutCompareArea( Amap_Man_t * p, Amap_Mat_t * pM0, Amap_Mat_t * pM1 )
 {
     // compare area flows
     if ( pM0->Area < pM1->Area - p->pPars->fEpsilon )
@@ -433,18 +454,27 @@ static inline void Amap_ManMatchGetExacts( Amap_Man_t * p, Amap_Obj_t * pNode, A
 ***********************************************************************/
 void Amap_ManMatchNode( Amap_Man_t * p, Amap_Obj_t * pNode, int fFlow, int fRefs )
 {
-    Amap_Mat_t M1 = {0}, M2 = {0}, * pMBest = &M1, * pMThis = &M2;
+    int fVerbose = 0; //(pNode->Level == 2 || pNode->Level == 4);
+    int fVeryVerbose = fVerbose;
+
+    Amap_Mat_t MA = {0}, MD = {0}, M = {0};
+    Amap_Mat_t * pMBestA = &MA, * pMBestD = &MD, * pMThis = &M, * pMBest;
     Amap_Cut_t * pCut;
     Amap_Set_t * pSet;
     Amap_Nod_t * pNod;
     int i;
+
     if ( fRefs )
         pNode->EstRefs = (float)((2.0 * pNode->EstRefs + Amap_ObjRefsTotal(pNode)) / 3.0);
     else
         pNode->EstRefs = (float)pNode->nRefs;
     if ( fRefs && Amap_ObjRefsTotal(pNode) > 0 )
         Amap_CutAreaDeref( p, &pNode->Best );
-    pMBest->pCut = NULL;
+
+    if ( fVerbose )
+        printf( "\nNode %d (%d)\n", pNode->Id, pNode->Level );
+
+    pMBestA->pCut = pMBestD->pCut = NULL;
     Amap_NodeForEachCut( pNode, pCut, i )
     {
         if ( pCut->iMat == 0 )
@@ -457,10 +487,52 @@ void Amap_ManMatchNode( Amap_Man_t * p, Amap_Obj_t * pNode, int fFlow, int fRefs
                 Amap_ManMatchGetFlows( p, pMThis );
             else
                 Amap_ManMatchGetExacts( p, pNode, pMThis );
-            if ( pMBest->pCut == NULL || Amap_CutCompare(p, pMBest, pMThis) == 1 )
-                *pMBest = *pMThis;
+            if ( pMBestD->pCut == NULL || Amap_CutCompareDelay(p, pMBestD, pMThis) == 1 )
+                *pMBestD = *pMThis;
+            if ( pMBestA->pCut == NULL || Amap_CutCompareArea(p, pMBestA, pMThis) == 1 )
+                *pMBestA = *pMThis;
+
+            if ( fVeryVerbose ) 
+            {
+                printf( "Cut %2d (%d) :  ", i, pCut->nFans );
+                printf( "Gate %10s  ",      Amap_LibGate(p->pLib, pMThis->pSet->iGate)->pName );
+                printf( "%s  ",             pMThis->pSet->fInv ? "inv" : "   " );
+                printf( "Delay %5.2f  ",    pMThis->Delay );
+                printf( "Area %5.2f  ",     pMThis->Area );
+                printf( "\n" );
+            }
         }
     }
+
+    if ( Abc_AbsFloat(pMBestA->Area - pMBestD->Area) / pMBestD->Area >= p->pPars->fADratio * Abc_AbsFloat(pMBestA->Delay - pMBestD->Delay) / pMBestA->Delay )
+        pMBest = pMBestA;
+    else
+        pMBest = pMBestD;
+
+    if ( fVerbose )
+    {
+        printf( "BEST MATCHA:  " );
+        printf( "Gate %10s  ",    Amap_LibGate(p->pLib, pMBestA->pSet->iGate)->pName );
+        printf( "%s  ",           pMBestA->pSet->fInv ? "inv" : "   " );
+        printf( "Delay %5.2f  ",  pMBestA->Delay );
+        printf( "Area %5.2f  ",   pMBestA->Area );
+        printf( "\n" ); 
+
+        printf( "BEST MATCHD:  " );
+        printf( "Gate %10s  ",    Amap_LibGate(p->pLib, pMBestD->pSet->iGate)->pName );
+        printf( "%s  ",           pMBestD->pSet->fInv ? "inv" : "   " );
+        printf( "Delay %5.2f  ",  pMBestD->Delay );
+        printf( "Area %5.2f  ",   pMBestD->Area );
+        printf( "\n" ); 
+
+        printf( "BEST MATCH :  " );
+        printf( "Gate %10s  ",    Amap_LibGate(p->pLib, pMBest->pSet->iGate)->pName );
+        printf( "%s  ",           pMBest->pSet->fInv ? "inv" : "   " );
+        printf( "Delay %5.2f  ",  pMBest->Delay );
+        printf( "Area %5.2f  ",   pMBest->Area );
+        printf( "\n" ); 
+    }
+
     pNode->fPolar = pMBest->pCut->fInv ^ pMBest->pSet->fInv;
     pNode->Best = *pMBest;
     pNode->Best.pCut = Amap_ManDupCut( p, pNode->Best.pCut );

@@ -14015,7 +14015,7 @@ int Abc_CommandAmap( Abc_Frame_t * pAbc, int argc, char ** argv )
     fSweep = 0;
     Amap_ManSetDefaultParams( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "FAEmxisvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "FAEQmxisvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -14050,6 +14050,17 @@ int Abc_CommandAmap( Abc_Frame_t * pAbc, int argc, char ** argv )
             pPars->fEpsilon = (float)atof(argv[globalUtilOptind]);
             globalUtilOptind++;
             if ( pPars->fEpsilon < 0.0 || pPars->fEpsilon > 1.0 )
+                goto usage;
+            break;
+        case 'Q':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-Q\" should be followed by a floating point number.\n" );
+                goto usage;
+            }
+            pPars->fADratio = (float)atof(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->fADratio < 0.0 )
                 goto usage;
             break;
         case 'm':
@@ -14131,11 +14142,12 @@ int Abc_CommandAmap( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: amap [-FA <num>] [-E <float>] [-mxisvh]\n" );
+    Abc_Print( -2, "usage: amap [-FA <num>] [-EQ <float>] [-mxisvh]\n" );
     Abc_Print( -2, "\t           performs standard cell mapping of the current network\n" );
     Abc_Print( -2, "\t-F num   : the number of iterations of area flow [default = %d]\n", pPars->nIterFlow );
     Abc_Print( -2, "\t-A num   : the number of iterations of exact area [default = %d]\n", pPars->nIterArea );
     Abc_Print( -2, "\t-E float : sets epsilon used for tie-breaking [default = %f]\n", pPars->fEpsilon );
+    Abc_Print( -2, "\t-Q float : area/delay preference ratio [default = %.2f (area-only)] \n", pPars->fEpsilon );
     Abc_Print( -2, "\t-m       : toggles using MUX matching [default = %s]\n", pPars->fUseMuxes? "yes": "no" );
     Abc_Print( -2, "\t-x       : toggles using XOR matching [default = %s]\n", pPars->fUseXors? "yes": "no" );
     Abc_Print( -2, "\t-i       : toggles assuming inverters are free [default = %s]\n", pPars->fFreeInvs? "yes": "no" );

@@ -50,6 +50,7 @@ struct Amap_Par_t_
     int    fUseXors;    // enables the use of XORs
     int    fFreeInvs;   // assume inverters are free (area = 0)
     float  fEpsilon;    // used to compare floating point numbers
+    float  fADratio;    // ratio of area/delay improvement
     int    fVerbose;    // verbosity flag
 };
 
