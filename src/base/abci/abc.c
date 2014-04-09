@@ -14147,7 +14147,7 @@ usage:
     Abc_Print( -2, "\t-F num   : the number of iterations of area flow [default = %d]\n", pPars->nIterFlow );
     Abc_Print( -2, "\t-A num   : the number of iterations of exact area [default = %d]\n", pPars->nIterArea );
     Abc_Print( -2, "\t-E float : sets epsilon used for tie-breaking [default = %f]\n", pPars->fEpsilon );
-    Abc_Print( -2, "\t-Q float : area/delay preference ratio [default = %.2f (area-only)] \n", pPars->fEpsilon );
+    Abc_Print( -2, "\t-Q float : area/delay preference ratio [default = %.2f (area-only)] \n", pPars->fADratio );
     Abc_Print( -2, "\t-m       : toggles using MUX matching [default = %s]\n", pPars->fUseMuxes? "yes": "no" );
     Abc_Print( -2, "\t-x       : toggles using XOR matching [default = %s]\n", pPars->fUseXors? "yes": "no" );
     Abc_Print( -2, "\t-i       : toggles assuming inverters are free [default = %s]\n", pPars->fFreeInvs? "yes": "no" );
