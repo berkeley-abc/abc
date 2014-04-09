@@ -1327,10 +1327,7 @@ void Abc_NtkDelete( Abc_Ntk_t * pNtk )
     // free node attributes
     Vec_PtrForEachEntry( Abc_Obj_t *, pNtk->vAttrs, pAttrMan, i )
         if ( pAttrMan )
-        {
-//printf( "deleting attr\n" );
             Vec_AttFree( (Vec_Att_t *)pAttrMan, 1 );
-        }
     assert( pNtk->pSCLib == NULL );
     Vec_IntFreeP( &pNtk->vGates );
     Vec_PtrFree( pNtk->vAttrs );

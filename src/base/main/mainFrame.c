@@ -56,7 +56,6 @@ void *      Abc_FrameReadLibBox()                            { return s_GlobalFr
 void *      Abc_FrameReadLibGen()                            { return s_GlobalFrame->pLibGen;      } 
 void *      Abc_FrameReadLibGen2()                           { return s_GlobalFrame->pLibGen2;     } 
 void *      Abc_FrameReadLibSuper()                          { return s_GlobalFrame->pLibSuper;    } 
-void *      Abc_FrameReadLibVer()                            { return s_GlobalFrame->pLibVer;      } 
 void *      Abc_FrameReadLibScl()                            { return s_GlobalFrame->pLibScl;      } 
 void *      Abc_FrameReadManDd()                             { if ( s_GlobalFrame->dd == NULL )      s_GlobalFrame->dd = Cudd_Init( 0, 0, CUDD_UNIQUE_SLOTS, CUDD_CACHE_SLOTS, 0 );  return s_GlobalFrame->dd;      } 
 void *      Abc_FrameReadManDec()                            { if ( s_GlobalFrame->pManDec == NULL ) s_GlobalFrame->pManDec = Dec_ManStart();                                        return s_GlobalFrame->pManDec; } 
@@ -82,7 +81,6 @@ void        Abc_FrameSetLibBox( void * pLib )                { s_GlobalFrame->pL
 void        Abc_FrameSetLibGen( void * pLib )                { s_GlobalFrame->pLibGen   = pLib;    } 
 void        Abc_FrameSetLibGen2( void * pLib )               { s_GlobalFrame->pLibGen2  = pLib;    } 
 void        Abc_FrameSetLibSuper( void * pLib )              { s_GlobalFrame->pLibSuper = pLib;    } 
-void        Abc_FrameSetLibVer( void * pLib )                { s_GlobalFrame->pLibVer   = pLib;    } 
 void        Abc_FrameSetFlag( char * pFlag, char * pValue )  { Cmd_FlagUpdateValue( s_GlobalFrame, pFlag, pValue );               } 
 void        Abc_FrameSetCex( Abc_Cex_t * pCex )              { ABC_FREE( s_GlobalFrame->pCex ); s_GlobalFrame->pCex = pCex;       }
 void        Abc_FrameSetNFrames( int nFrames )               { ABC_FREE( s_GlobalFrame->pCex ); s_GlobalFrame->nFrames = nFrames; }
@@ -189,7 +187,6 @@ void Abc_FrameDeallocate( Abc_Frame_t * p )
     if ( p->vCexVec   )  Vec_PtrFreeFree( p->vCexVec );
     if ( p->vPoEquivs )  Vec_VecFree( (Vec_Vec_t *)p->vPoEquivs );
     if ( p->vStatuses )  Vec_IntFree( p->vStatuses );
-    if ( p->pLibVer   )  Abc_DesFree( (Abc_Des_t *)p->pLibVer, NULL );
     if ( p->pManDec   )  Dec_ManStop( (Dec_Man_t *)p->pManDec );
     if ( p->dd        )  Extra_StopManager( p->dd );
     if ( p->vStore    )  Vec_PtrFree( p->vStore );

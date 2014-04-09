@@ -58,6 +58,30 @@ Abc_Des_t * Abc_DesCreate( char * pName )
 
 /**Function*************************************************************
 
+  Synopsis    [Removes all pointers to the manager.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_DesCleanManPointer( Abc_Des_t * p, void * pMan )
+{
+    Abc_Ntk_t * pTemp;
+    int i;
+    if ( p == NULL )
+        return;
+    if ( p->pManFunc == pMan )
+        p->pManFunc = NULL;
+    Vec_PtrForEachEntry( Abc_Ntk_t *, p->vModules, pTemp, i )
+        if ( pTemp->pManFunc == pMan )
+            pTemp->pManFunc = NULL;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Frees the library.]
 
   Description []
@@ -83,9 +107,8 @@ void Abc_DesFree( Abc_Des_t * p, Abc_Ntk_t * pNtkSave )
         {
             if ( pNtk == pNtkSave )
                 continue;
-//            pNtk->pManFunc = NULL;
             pNtk->pDesign = NULL;
-            if ( pNtkSave && pNtk->pManFunc == pNtkSave->pManFunc )
+            if ( (pNtkSave && pNtk->pManFunc == pNtkSave->pManFunc) || (pNtk->pManFunc == p->pManFunc) )
                 pNtk->pManFunc = NULL;
             Abc_NtkDelete( pNtk );
         }

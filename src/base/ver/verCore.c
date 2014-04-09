@@ -1743,12 +1743,6 @@ int Ver_ParseBox( Ver_Man_t * pMan, Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkBox )
     pNode->pCopy = (Abc_Obj_t *)vBundles;
     while ( 1 )
     {
-/*
-        if ( Ver_StreamGetLineNumber(pMan->pReader) == 5967 )
-        {
-           int x = 0;
-        }
-*/
         // allocate the bundle (formal name + array of actual nets)
         pBundle = ABC_ALLOC( Ver_Bundle_t, 1 );
         pBundle->pNameFormal = NULL;
@@ -2073,6 +2067,21 @@ int Ver_ParseConnectBox( Ver_Man_t * pMan, Abc_Obj_t * pBox )
     Abc_NtkForEachPo( pNtkBox, pTerm, i )
         Abc_ObjFanin0(pTerm)->pCopy = NULL;
 */
+
+    // check the number of actual nets is the same as the number of formal nets
+    if ( Vec_PtrSize(vBundles) > Abc_NtkPiNum(pNtkBox) + Abc_NtkPoNum(pNtkBox) )
+    {
+        sprintf( pMan->sError, "The number of actual IOs (%d) is bigger than the number of formal IOs (%d) when instantiating network %s in box %s.", 
+            Vec_PtrSize(vBundles), Abc_NtkPiNum(pNtkBox) + Abc_NtkPoNum(pNtkBox), pNtkBox->pName, Abc_ObjName(pBox) );
+        // free the bundling
+        Vec_PtrForEachEntry( Ver_Bundle_t *, vBundles, pBundle, k )
+            Ver_ParseFreeBundle( pBundle );
+        Vec_PtrFree( vBundles );
+        pBox->pCopy = NULL;
+        Ver_ParsePrintErrorMessage( pMan );
+        return 0;
+    }
+
     // check if some of them do not have formal names
     Vec_PtrForEachEntry( Ver_Bundle_t *, vBundles, pBundle, k )
         if ( pBundle->pNameFormal == NULL )
@@ -2090,6 +2099,11 @@ int Ver_ParseConnectBox( Ver_Man_t * pMan, Abc_Obj_t * pBox )
         {
             sprintf( pMan->sError, "The number of actual IOs (%d) is different from the number of formal IOs (%d) when instantiating network %s in box %s.", 
                 Vec_PtrSize(vBundles), Abc_NtkPiNum(pNtkBox) + Abc_NtkPoNum(pNtkBox), pNtkBox->pName, Abc_ObjName(pBox) );
+            // free the bundling
+            Vec_PtrForEachEntry( Ver_Bundle_t *, vBundles, pBundle, k )
+                Ver_ParseFreeBundle( pBundle );
+            Vec_PtrFree( vBundles );
+            pBox->pCopy = NULL;
             Ver_ParsePrintErrorMessage( pMan );
             return 0;
         }
@@ -2235,6 +2249,11 @@ int Ver_ParseConnectBox( Ver_Man_t * pMan, Abc_Obj_t * pBox )
             {
                 sprintf( pMan->sError, "It looks like formal output %s is driving a constant net (%s) when instantiating network %s in box %s.", 
                     pBundle->pNameFormal, Abc_ObjName(pNetAct), pNtkBox->pName, Abc_ObjName(pBox) );
+                // free the bundling
+                Vec_PtrForEachEntry( Ver_Bundle_t *, vBundles, pBundle, k )
+                    Ver_ParseFreeBundle( pBundle );
+                Vec_PtrFree( vBundles );
+                pBox->pCopy = NULL;
                 Ver_ParsePrintErrorMessage( pMan );
                 return 0;
             }
@@ -2826,13 +2845,14 @@ void Ver_ParsePrintLog( Ver_Man_t * pMan )
 ***********************************************************************/
 int Ver_ParseAttachBoxes( Ver_Man_t * pMan )
 {
+    int fPrintLog = 0;
     Abc_Ntk_t * pNtk = NULL;
     Ver_Bundle_t * pBundle;
     Vec_Ptr_t * vUndefs;
     int i, RetValue, Counter, nMaxBoxSize;
 
     // print the log file
-    if ( pMan->pDesign->vModules && Vec_PtrSize(pMan->pDesign->vModules) > 1 )
+    if ( fPrintLog && pMan->pDesign->vModules && Vec_PtrSize(pMan->pDesign->vModules) > 1 )
         Ver_ParsePrintLog( pMan );
 
     // connect defined boxes

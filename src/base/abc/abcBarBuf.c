@@ -308,7 +308,11 @@ Abc_Ntk_t * Abc_NtkFromBarBufs( Abc_Ntk_t * pNtkBase, Abc_Ntk_t * pNtk )
         Abc_ObjAddFanin( pObj->pCopy, Abc_NtkFromBarBufs_rec(pObj->pCopy->pNtk, Abc_ObjFanin0(pObj)) );
     // transfer net names
     Abc_NtkForEachCi( pNtk, pObj, i )
+    {
+        if ( Abc_ObjFanoutNum(pObj->pCopy) == 0 ) // handle PI without fanout
+            Abc_ObjAddFanin( Abc_NtkCreateNet(pObj->pCopy->pNtk), pObj->pCopy );
         Nm_ManStoreIdName( pObj->pCopy->pNtk->pManName, Abc_ObjFanout0(pObj->pCopy)->Id, Abc_ObjFanout0(pObj->pCopy)->Type, Abc_ObjName(Abc_ObjFanout0(pObj)), NULL );
+    }
     Abc_NtkForEachCo( pNtk, pObj, i )
         Nm_ManStoreIdName( pObj->pCopy->pNtk->pManName, Abc_ObjFanin0(pObj->pCopy)->Id, Abc_ObjFanin0(pObj->pCopy)->Type, Abc_ObjName(Abc_ObjFanin0(pObj)), NULL );
     return pNtkNew;

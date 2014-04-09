@@ -92,7 +92,6 @@ struct Abc_Frame_t_
     void *          pLibGen;       // the current genlib
     void *          pLibGen2;      // the current genlib
     void *          pLibSuper;     // the current supergate library
-    void *          pLibVer;       // the current Verilog library
     void *          pLibScl;       // the current Liberty library
     // timing constraints
     char *          pDrivingCell;  // name of the driving cell
