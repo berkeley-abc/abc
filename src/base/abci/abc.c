@@ -10295,7 +10295,7 @@ usage:
 ***********************************************************************/
 int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-//    Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
+    Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
     int nCutMax      =  1;
     int nLeafMax     = 10;
     int nDivMax      = 50;
@@ -10424,8 +10424,19 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
 //    if ( pNtk )
 //        Abc_NtkMakeLegit( pNtk ); 
     {
-        extern void Ifd_ManDsdTest();
-        Ifd_ManDsdTest();
+//        extern void Ifd_ManDsdTest();
+//        Ifd_ManDsdTest();
+    }
+    if ( pNtk )
+    {
+        extern Abc_Ntk_t * Abc_NtkBarBufsOnOffTest( Abc_Ntk_t * pNtk );
+        Abc_Ntk_t * pNtkRes = Abc_NtkBarBufsOnOffTest( pNtk );
+        if ( pNtkRes == NULL )
+        {
+            Abc_Print( -1, "Command has failed.\n" );
+            return 1;
+        }
+        Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
     }
     return 0;
 usage:

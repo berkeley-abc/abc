@@ -273,6 +273,8 @@ Abc_Ntk_t * Abc_NtkFromBarBufs( Abc_Ntk_t * pNtkBase, Abc_Ntk_t * pNtk )
     Abc_NtkCleanCopy_rec( pNtkBase );
     Vec_PtrForEachEntry( Abc_Ntk_t *, pNtkBase->pDesign->vModules, pTemp, i )
         pTemp->pCopy = Abc_NtkStartFrom( pTemp, pNtk->ntkType, pNtk->ntkFunc );
+    Vec_PtrForEachEntry( Abc_Ntk_t *, pNtkBase->pDesign->vModules, pTemp, i )
+        pTemp->pCopy->pAltView = pTemp->pAltView ? pTemp->pAltView->pCopy : NULL;
     // update box models
     Vec_PtrForEachEntry( Abc_Ntk_t *, pNtkBase->pDesign->vModules, pTemp, i )
         Abc_NtkForEachBox( pTemp, pObj, k )
@@ -380,6 +382,120 @@ Vec_Ptr_t * Abc_NtkToBarBufsCollect( Abc_Ntk_t * pNtk )
     }
     assert( Vec_PtrSize(vNodes) == Abc_NtkObjNum(pNtk) );
     return vNodes;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Count barrier buffers.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_NtkCountBarBufs( Abc_Ntk_t * pNtk )
+{
+    Abc_Obj_t * pObj;
+    int i, Counter = 0;
+    Abc_NtkForEachNode( pNtk, pObj, i )
+        Counter += Abc_ObjIsBarBuf( pObj );
+    return Counter;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Converts the network to dedicated barbufs and back.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Ntk_t * Abc_NtkBarBufsToBuffers( Abc_Ntk_t * pNtk )
+{
+    Vec_Ptr_t * vNodes;
+    Abc_Ntk_t * pNtkNew;
+    Abc_Obj_t * pObj, * pFanin;
+    int i, k;
+    assert( Abc_NtkIsLogic(pNtk) );
+    assert( pNtk->pDesign == NULL );
+    assert( pNtk->nBarBufs > 0 );
+    assert( pNtk->nBarBufs == Abc_NtkLatchNum(pNtk) );
+    vNodes = Abc_NtkToBarBufsCollect( pNtk );
+    // start the network
+    pNtkNew = Abc_NtkAlloc( ABC_NTK_LOGIC, pNtk->ntkFunc, 1 );
+    pNtkNew->pName = Extra_UtilStrsav(pNtk->pName);
+    pNtkNew->pSpec = Extra_UtilStrsav(pNtk->pSpec);
+    // create objects
+    Abc_NtkCleanCopy( pNtk );
+    Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pObj, i )
+    {
+        if ( Abc_ObjIsPi(pObj) )
+            Abc_NtkDupObj( pNtkNew, pObj, 1 );
+        else if ( Abc_ObjIsPo( pObj) )
+            Abc_ObjAddFanin( Abc_NtkDupObj(pNtkNew, pObj, 1), Abc_ObjFanin0(pObj)->pCopy );
+        else if ( Abc_ObjIsBi(pObj) || Abc_ObjIsBo(pObj) )
+            pObj->pCopy = Abc_ObjFanin0(pObj)->pCopy;
+        else if ( Abc_ObjIsLatch(pObj) )
+            Abc_ObjAddFanin( (pObj->pCopy = Abc_NtkCreateNode(pNtkNew)), Abc_ObjFanin0(pObj)->pCopy );
+        else if ( Abc_ObjIsNode(pObj) )
+        {
+            Abc_NtkDupObj( pNtkNew, pObj, 1 );
+            Abc_ObjForEachFanin( pObj, pFanin, k )
+                Abc_ObjAddFanin( pObj->pCopy, pFanin->pCopy );
+        }
+        else assert( 0 );
+    }
+    Vec_PtrFree( vNodes );
+    return pNtkNew;
+}
+Abc_Ntk_t * Abc_NtkBarBufsFromBuffers( Abc_Ntk_t * pNtkBase, Abc_Ntk_t * pNtk )
+{
+    Abc_Ntk_t * pNtkNew;
+    Abc_Obj_t * pObj, * pFanin, * pLatch;
+    int i, k, nBarBufs;
+    assert( Abc_NtkIsLogic(pNtkBase) );
+    assert( Abc_NtkIsLogic(pNtk) );
+    assert( pNtkBase->nBarBufs == Abc_NtkLatchNum(pNtkBase) );
+    // start the network
+    pNtkNew = Abc_NtkStartFrom( pNtkBase, pNtk->ntkType, pNtk->ntkFunc );
+    // transfer PI pointers
+    Abc_NtkForEachPi( pNtk, pObj, i )
+        pObj->pCopy = Abc_NtkPi(pNtkNew, i);
+    // assuming that the order/number of barbufs remains the same
+    nBarBufs = 0;
+    Abc_NtkForEachNode( pNtk, pObj, i )
+    {
+        if ( Abc_ObjIsBarBuf(pObj) )
+        {
+            pLatch = Abc_NtkBox(pNtkNew, nBarBufs++);
+            Abc_ObjAddFanin( Abc_ObjFanin0(pLatch), Abc_ObjFanin0(pObj)->pCopy );
+            pObj->pCopy = Abc_ObjFanout0(pLatch);
+        }
+        else
+        {
+            Abc_NtkDupObj( pNtkNew, pObj, 1 );
+            Abc_ObjForEachFanin( pObj, pFanin, k )
+                Abc_ObjAddFanin( pObj->pCopy, pFanin->pCopy );
+        }
+    }
+    assert( nBarBufs == pNtkBase->nBarBufs );
+    // connect POs
+    Abc_NtkForEachPo( pNtk, pObj, i )
+        Abc_ObjAddFanin( Abc_NtkPo(pNtkNew, i), Abc_ObjFanin0(pObj)->pCopy );
+    return pNtkNew;
+}
+Abc_Ntk_t * Abc_NtkBarBufsOnOffTest( Abc_Ntk_t * pNtk )
+{
+    Abc_Ntk_t * pNtkNew, * pNtkNew2;
+    pNtkNew  = Abc_NtkBarBufsToBuffers( pNtk );
+    pNtkNew2 = Abc_NtkBarBufsFromBuffers( pNtk, pNtkNew );
+    Abc_NtkDelete( pNtkNew );
+    return pNtkNew2;
 }
 
 ////////////////////////////////////////////////////////////////////////

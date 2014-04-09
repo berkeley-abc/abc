@@ -356,6 +356,7 @@ static inline int         Abc_ObjIsLatch( Abc_Obj_t * pObj )         { return pO
 static inline int         Abc_ObjIsBox( Abc_Obj_t * pObj )           { return pObj->Type == ABC_OBJ_LATCH || pObj->Type == ABC_OBJ_WHITEBOX || pObj->Type == ABC_OBJ_BLACKBOX; }
 static inline int         Abc_ObjIsWhitebox( Abc_Obj_t * pObj )      { return pObj->Type == ABC_OBJ_WHITEBOX;}
 static inline int         Abc_ObjIsBlackbox( Abc_Obj_t * pObj )      { return pObj->Type == ABC_OBJ_BLACKBOX;}
+static inline int         Abc_ObjIsBarBuf( Abc_Obj_t * pObj )        { assert( Abc_NtkIsMappedLogic(pObj->pNtk) ); return Vec_IntSize(&pObj->vFanins) == 1 && pObj->pData == NULL;  }
 static inline void        Abc_ObjBlackboxToWhitebox( Abc_Obj_t * pObj ) { assert( Abc_ObjIsBlackbox(pObj) ); pObj->Type = ABC_OBJ_WHITEBOX; pObj->pNtk->nObjCounts[ABC_OBJ_BLACKBOX]--; pObj->pNtk->nObjCounts[ABC_OBJ_WHITEBOX]++; }
 
 // working with fanin/fanout edges
@@ -559,6 +560,8 @@ extern ABC_DLL int                Abc_NtkAttach( Abc_Ntk_t * pNtk );
 /*=== abcBarBuf.c ==========================================================*/
 extern ABC_DLL Abc_Ntk_t *        Abc_NtkToBarBufs( Abc_Ntk_t * pNtk );
 extern ABC_DLL Abc_Ntk_t *        Abc_NtkFromBarBufs( Abc_Ntk_t * pNtkBase, Abc_Ntk_t * pNtk );
+extern ABC_DLL Abc_Ntk_t *        Abc_NtkBarBufsToBuffers( Abc_Ntk_t * pNtk );
+extern ABC_DLL Abc_Ntk_t *        Abc_NtkBarBufsFromBuffers( Abc_Ntk_t * pNtkBase, Abc_Ntk_t * pNtk );
 /*=== abcBlifMv.c ==========================================================*/
 extern ABC_DLL void               Abc_NtkStartMvVars( Abc_Ntk_t * pNtk );
 extern ABC_DLL void               Abc_NtkFreeMvVars( Abc_Ntk_t * pNtk );
