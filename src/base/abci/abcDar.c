@@ -160,7 +160,7 @@ Aig_Man_t * Abc_NtkToDarBmc( Abc_Ntk_t * pNtk, Vec_Int_t ** pvMap )
     pMan->nConstrs = pNtk->nConstrs;
     pMan->nBarBufs = pNtk->nBarBufs;
     pMan->pName = Extra_UtilStrsav( pNtk->pName );
-
+    pMan->pSpec = Extra_UtilStrsav( pNtk->pSpec );
     // transfer the pointers to the basic nodes
     Abc_AigConst1(pNtk)->pCopy = (Abc_Obj_t *)Aig_ManConst1(pMan);
     Abc_NtkForEachCi( pNtk, pObj, i )
@@ -279,8 +279,8 @@ Aig_Man_t * Abc_NtkToDar( Abc_Ntk_t * pNtk, int fExors, int fRegisters )
     pMan->fCatchExor = fExors;
     pMan->nConstrs = pNtk->nConstrs;
     pMan->nBarBufs = pNtk->nBarBufs;
-
     pMan->pName = Extra_UtilStrsav( pNtk->pName );
+    pMan->pSpec = Extra_UtilStrsav( pNtk->pSpec );
     // transfer the pointers to the basic nodes
     Abc_AigConst1(pNtk)->pCopy = (Abc_Obj_t *)Aig_ManConst1(pMan);
     Abc_NtkForEachCi( pNtk, pObj, i )
@@ -359,9 +359,10 @@ Aig_Man_t * Abc_NtkToDarChoices( Abc_Ntk_t * pNtk )
     vNodes = Abc_AigDfs( pNtk, 0, 0 );
     // create the manager
     pMan = Aig_ManStart( Abc_NtkNodeNum(pNtk) + 100 );
-    pMan->pName = Extra_UtilStrsav( pNtk->pName );
     pMan->nConstrs = pNtk->nConstrs;
     pMan->nBarBufs = pNtk->nBarBufs;
+    pMan->pName = Extra_UtilStrsav( pNtk->pName );
+    pMan->pSpec = Extra_UtilStrsav( pNtk->pSpec );
     if ( Abc_NtkGetChoiceNum(pNtk) )
     {
         pMan->pEquivs = ABC_ALLOC( Aig_Obj_t *, Abc_NtkObjNum(pNtk) );
