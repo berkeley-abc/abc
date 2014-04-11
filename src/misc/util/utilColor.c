@@ -54,16 +54,16 @@ void Abc_ColorTest()
 #ifdef WIN32
     int x, y;
     HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
-    printf( "Background color    00 01 02 03 04 05 06 07 08 09 10 11 12 13 14 15\n" );
-    printf( "                    -----------------------------------------------\n" );
+    printf( "Background color     00   01   02   03   04   05   06   07   08   09   10   11   12   13   14   15\n" );
+    printf( "                    ------------------------------------------------------------------------------\n" );
     for ( y = 0; y < 16; y++ )
     {
         printf( "Foreground color %02d", y );
         for ( x = 0; x < 16; x++ )
         {
             printf( " " );
-            SetConsoleTextAttribute( hConsole, (WORD)(16 * y + x) );
-            printf( "Hi" );
+            SetConsoleTextAttribute( hConsole, (WORD)(16 * x + y) );
+            printf( " Hi " );
             SetConsoleTextAttribute( hConsole, 7 );
         }
         printf( "\n" );
