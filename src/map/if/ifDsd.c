@@ -1529,7 +1529,7 @@ unsigned If_DsdManCheckAndXor( If_DsdMan_t * p, int iFirst, unsigned uMaskNot, I
         If_DsdManComputeFirst( p, pObj, pFirsts );
         uRes = If_DsdSign(p, pObj, i[0], iFirst + pFirsts[i[0]], 0) | 
                If_DsdSign(p, pObj, i[1], iFirst + pFirsts[i[1]], 0);
-        if ( uRes & ~(uRes >> 1) & uMaskNot )
+        if ( uRes & uMaskNot )
             continue;
         return uRes;
     }
@@ -1549,7 +1549,7 @@ unsigned If_DsdManCheckAndXor( If_DsdMan_t * p, int iFirst, unsigned uMaskNot, I
         uRes = If_DsdSign(p, pObj, i[0], iFirst + pFirsts[i[0]], 0) | 
                If_DsdSign(p, pObj, i[1], iFirst + pFirsts[i[1]], 0) | 
                If_DsdSign(p, pObj, i[2], iFirst + pFirsts[i[2]], 0);
-        if ( uRes & ~(uRes >> 1) & uMaskNot )
+        if ( uRes & uMaskNot )
             continue;
         return uRes;
     }
@@ -1571,7 +1571,7 @@ unsigned If_DsdManCheckAndXor( If_DsdMan_t * p, int iFirst, unsigned uMaskNot, I
                If_DsdSign(p, pObj, i[1], iFirst + pFirsts[i[1]], 0) | 
                If_DsdSign(p, pObj, i[2], iFirst + pFirsts[i[2]], 0) | 
                If_DsdSign(p, pObj, i[3], iFirst + pFirsts[i[3]], 0);
-        if ( uRes & ~(uRes >> 1) & uMaskNot )
+        if ( uRes & uMaskNot )
             continue;
         return uRes;
     }
@@ -1596,7 +1596,7 @@ unsigned If_DsdManCheckMux( If_DsdMan_t * p, int iFirst, unsigned uMaskNot, If_D
             return ~0;
         If_DsdManComputeFirst( p, pObj, pFirsts );
         uRes = If_DsdSign(p, pObj, 0, iFirst + pFirsts[0], 1) | If_DsdSign(p, pObj, 1, iFirst + pFirsts[1], 0);
-        if ( (uRes & ~(uRes >> 1) & uMaskNot) == 0 )
+        if ( (uRes & uMaskNot) == 0 )
             return uRes;
     }
     // second input
@@ -1608,7 +1608,7 @@ unsigned If_DsdManCheckMux( If_DsdMan_t * p, int iFirst, unsigned uMaskNot, If_D
             return ~0;
         If_DsdManComputeFirst( p, pObj, pFirsts );
         uRes = If_DsdSign(p, pObj, 0, iFirst + pFirsts[0], 1) | If_DsdSign(p, pObj, 2, iFirst + pFirsts[2], 0);
-        if ( (uRes & ~(uRes >> 1) & uMaskNot) == 0 )
+        if ( (uRes & uMaskNot) == 0 )
             return uRes;
     }
     return 0;
@@ -1665,7 +1665,7 @@ Dau_DecPrintSets( vSets, nFans );
                     uRes |= If_DsdSign(p, pObj, v, iFirst + pFirsts[v], 1);
                 else assert( 0 );
             }
-            if ( uRes & ~(uRes >> 1) & uMaskNot )
+            if ( uRes & uMaskNot )
                 continue;
             return uRes;
         }
@@ -2010,6 +2010,7 @@ int If_CutDsdBalanceEval( If_Man_t * p, If_Cut_t * pCut, Vec_Int_t * vAig )
         assert( Abc_Lit2Var(If_CutDsdLit(p, pCut)) == 0 );
         if ( vAig )
             Vec_IntPush( vAig, Abc_LitIsCompl(If_CutDsdLit(p, pCut)) );
+        pCut->Cost = 0;
         return 0;
     }
     if ( pCut->nLeaves == 1 ) // variable
@@ -2019,6 +2020,7 @@ int If_CutDsdBalanceEval( If_Man_t * p, If_Cut_t * pCut, Vec_Int_t * vAig )
             Vec_IntPush( vAig, 0 );
         if ( vAig )
             Vec_IntPush( vAig, Abc_LitIsCompl(If_CutDsdLit(p, pCut)) );
+        pCut->Cost = 0;
         return (int)If_ObjCutBest(If_CutLeaf(p, pCut, 0))->Delay;
     }
     else

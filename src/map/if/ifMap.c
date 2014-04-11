@@ -99,7 +99,7 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
     If_Cut_t * pCut0R, * pCut1R;
     int fFunc0R, fFunc1R;
     int i, k, v, fChange;
-    int fSave0 = p->pPars->fDelayOpt || p->pPars->fDsdBalance || p->pPars->fUserRecLib;
+    int fSave0 = p->pPars->fDelayOpt || p->pPars->fDelayOptLut || p->pPars->fDsdBalance || p->pPars->fUserRecLib;
     assert( !If_ObjIsAnd(pObj->pFanin0) || pObj->pFanin0->pCutSet->nCuts > 0 );
     assert( !If_ObjIsAnd(pObj->pFanin1) || pObj->pFanin1->pCutSet->nCuts > 0 );
 
@@ -122,6 +122,8 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
         // recompute the parameters of the best cut
         if ( p->pPars->fDelayOpt )
             pCut->Delay = If_CutSopBalanceEval( p, pCut, NULL );
+        else if ( p->pPars->fDelayOptLut )
+            pCut->Delay = If_CutLutBalanceEval( p, pCut );
         else if ( p->pPars->fDsdBalance )
             pCut->Delay = If_CutDsdBalanceEval( p, pCut, NULL );
         else if ( p->pPars->fUserRecLib )
@@ -278,6 +280,8 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
         // check if the cut satisfies the required times
         if ( p->pPars->fDelayOpt )
             pCut->Delay = If_CutSopBalanceEval( p, pCut, NULL );
+        else if ( p->pPars->fDelayOptLut )
+            pCut->Delay = If_CutLutBalanceEval( p, pCut );
         else if ( p->pPars->fDsdBalance )
             pCut->Delay = If_CutDsdBalanceEval( p, pCut, NULL );
         else if ( p->pPars->fUserRecLib )
@@ -351,7 +355,7 @@ void If_ObjPerformMappingChoice( If_Man_t * p, If_Obj_t * pObj, int Mode, int fP
     If_Set_t * pCutSet;
     If_Obj_t * pTemp;
     If_Cut_t * pCutTemp, * pCut;
-    int i, fSave0 = p->pPars->fDelayOpt || p->pPars->fDsdBalance || p->pPars->fUserRecLib;
+    int i, fSave0 = p->pPars->fDelayOpt || p->pPars->fDelayOptLut || p->pPars->fDsdBalance || p->pPars->fUserRecLib;
     assert( pObj->pEquiv != NULL );
 
     // prepare

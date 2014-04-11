@@ -207,6 +207,11 @@ void If_CutPropagateRequired( If_Man_t * p, If_Obj_t * pObj, If_Cut_t * pCut, fl
                 int Delay = If_CutSopBalancePinDelays( p, pCut, pPerm );
                 assert( Delay == pCut->Delay );
             }
+            else if ( p->pPars->fDelayOptLut )
+            {
+                int Delay = If_CutLutBalancePinDelays( p, pCut, pPerm );
+                assert( Delay == pCut->Delay );
+            }
             else if ( p->pPars->fDsdBalance )
             {
                 int Delay = If_CutDsdBalancePinDelays( p, pCut, pPerm );

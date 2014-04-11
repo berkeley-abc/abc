@@ -1201,8 +1201,10 @@ int Gia_ManFromIfLogicFindLut( If_Man_t * pIfMan, Gia_Man_t * pNew, If_Cut_t * p
     }
     assert( If_DsdManSuppSize(pIfMan->pIfDsdMan, If_CutDsdLit(pIfMan, pCutBest)) == (int)pCutBest->nLeaves );
     // find the bound set
-//    uSetOld = If_DsdManCheckXY( pIfMan->pIfDsdMan, If_CutDsdLit(pIfMan, pCutBest), nLutSize, 1, 0, 1, 0 );
-    uSetOld = pCutBest->uMaskFunc;
+    if ( pIfMan->pPars->fDelayOptLut )
+        uSetOld = pCutBest->uMaskFunc;
+    else
+        uSetOld = If_DsdManCheckXY( pIfMan->pIfDsdMan, If_CutDsdLit(pIfMan, pCutBest), nLutSize, 1, 0, 1, 0 );
     // remap bound set
     uSetNew = 0;
     for ( k = 0; k < If_CutLeaveNum(pCutBest); k++ )
@@ -1300,7 +1302,7 @@ Gia_Man_t * Gia_ManFromIfLogic( If_Man_t * pIfMan )
         {
             pCutBest = If_ObjCutBest( pIfObj );
             // perform sorting of cut leaves by delay, so that the slowest pin drives the fastest input of the LUT
-            if ( !pIfMan->pPars->fUseTtPerm && !pIfMan->pPars->fDelayOpt && !pIfMan->pPars->fDsdBalance && !pIfMan->pPars->pLutStruct && !pIfMan->pPars->fUserRecLib && !pIfMan->pPars->nGateSize && !pIfMan->pPars->fEnableCheck75 && !pIfMan->pPars->fEnableCheck75u && !pIfMan->pPars->fEnableCheck07 )
+            if ( !pIfMan->pPars->fUseTtPerm && !pIfMan->pPars->fDelayOpt && !pIfMan->pPars->fDelayOptLut && !pIfMan->pPars->fDsdBalance && !pIfMan->pPars->pLutStruct && !pIfMan->pPars->fUserRecLib && !pIfMan->pPars->nGateSize && !pIfMan->pPars->fEnableCheck75 && !pIfMan->pPars->fEnableCheck75u && !pIfMan->pPars->fEnableCheck07 )
                 If_CutRotatePins( pIfMan, pCutBest );
             // collect leaves of the best cut
             Vec_IntClear( vLeaves );
@@ -1542,7 +1544,7 @@ Gia_Man_t * Gia_ManPerformMapping( Gia_Man_t * p, void * pp, int fNormalized )
     If_Man_t * pIfMan;
     If_Par_t * pPars = (If_Par_t *)pp;
     // disable cut minimization when GIA strucure is needed
-    if ( !pPars->fDelayOpt && !pPars->fDsdBalance && !pPars->fUserRecLib && !pPars->fDeriveLuts && !pPars->fUseDsd && !pPars->fUseTtPerm )
+    if ( !pPars->fDelayOpt && !pPars->fDelayOptLut && !pPars->fDsdBalance && !pPars->fUserRecLib && !pPars->fDeriveLuts && !pPars->fUseDsd && !pPars->fUseTtPerm )
         pPars->fCutMin = 0;
 
     // reconstruct GIA according to the hierarchy manager

@@ -15102,7 +15102,7 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
             Abc_Print( -1, "This feature only works for [6;16]-LUTs.\n" );
             return 1;
         }
-        pPars->pFuncCell = If_CutPerformCheck16;
+        pPars->pFuncCell = pPars->fDelayOptLut ? NULL : If_CutPerformCheck16;
         pPars->fCutMin = 1;
     }
 
@@ -29854,7 +29854,7 @@ int Abc_CommandAbc9If( Abc_Frame_t * pAbc, int argc, char ** argv )
             Abc_Print( -1, "This feature only works for [6;16]-LUTs.\n" );
             return 1;
         }
-        pPars->pFuncCell = If_CutPerformCheck16;
+        pPars->pFuncCell = pPars->fDelayOptLut ? NULL : If_CutPerformCheck16;
         pPars->fCutMin = 1;
     }
 

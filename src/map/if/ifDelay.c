@@ -238,6 +238,7 @@ int If_CutSopBalanceEval( If_Man_t * p, If_Cut_t * pCut, Vec_Int_t * vAig )
         assert( Abc_Lit2Var(If_CutTruthLit(pCut)) == 0 );
         if ( vAig )
             Vec_IntPush( vAig, Abc_LitIsCompl(If_CutTruthLit(pCut)) );
+        pCut->Cost = 0;
         return 0;
     }
     if ( pCut->nLeaves == 1 ) // variable
@@ -247,6 +248,7 @@ int If_CutSopBalanceEval( If_Man_t * p, If_Cut_t * pCut, Vec_Int_t * vAig )
             Vec_IntPush( vAig, 0 );
         if ( vAig )
             Vec_IntPush( vAig, Abc_LitIsCompl(If_CutTruthLit(pCut)) );
+        pCut->Cost = 0;
         return (int)If_ObjCutBest(If_CutLeaf(p, pCut, 0))->Delay;
     }
     else
@@ -260,6 +262,98 @@ int If_CutSopBalanceEval( If_Man_t * p, If_Cut_t * pCut, Vec_Int_t * vAig )
         Delay = If_CutSopBalanceEvalInt( vCover, If_CutLeaveNum(pCut), pTimes, vAig, fCompl, &Area );
         pCut->Cost = Area;
         return Delay;
+    }
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Evaluate delay using SOP balancing.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int If_CutLutBalancePinDelays( If_Man_t * p, If_Cut_t * pCut, char * pPerm )
+{
+    if ( pCut->nLeaves == 0 ) // const
+        return 0;
+    if ( pCut->nLeaves == 1 ) // variable
+    {
+        pPerm[0] = 0;
+        return (int)If_ObjCutBest(If_CutLeaf(p, pCut, 0))->Delay;
+    }
+    else
+    {
+        int LutSize = p->pPars->pLutStruct[0] - '0';
+        int i, Delay, DelayMax;
+        assert( (If_CutLeaveNum(pCut) > LutSize) == (pCut->uMaskFunc > 0) );
+        for ( i = 0; i < If_CutLeaveNum(pCut); i++ )
+        {
+            if ( If_CutLeaveNum(pCut) > LutSize && ((pCut->uMaskFunc >> (i << 2)) & 1) )
+                pPerm[i] = 2;
+            else
+                pPerm[i] = 1;
+            Delay = (int)If_ObjCutBest(If_CutLeaf(p, pCut, i))->Delay;
+            DelayMax = Abc_MaxInt( DelayMax, Delay + (int)pPerm[i] );
+        }
+        return DelayMax;
+    }
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Evaluate delay using SOP balancing.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int If_CutLutBalanceEval( If_Man_t * p, If_Cut_t * pCut )
+{
+    pCut->fUser = 1;
+    pCut->Cost = pCut->nLeaves > 1 ? 1 : 0;
+    if ( pCut->nLeaves == 0 ) // const
+    {
+        assert( Abc_Lit2Var(If_CutTruthLit(pCut)) == 0 );
+        return 0;
+    }
+    if ( pCut->nLeaves == 1 ) // variable
+    {
+        assert( Abc_Lit2Var(If_CutTruthLit(pCut)) == 1 );
+        return (int)If_ObjCutBest(If_CutLeaf(p, pCut, 0))->Delay;
+    }
+    else
+    {
+        int LutSize = p->pPars->pLutStruct[0] - '0';
+        int i, pTimes[IF_MAX_FUNC_LUTSIZE];
+        int DelayMax = 0, nLeafMax = 0;
+        unsigned uLeafMask = 0;
+        for ( i = 0; i < If_CutLeaveNum(pCut); i++ )
+        {
+            pTimes[i] = (int)If_ObjCutBest(If_CutLeaf(p, pCut, i))->Delay; 
+            assert( DelayMax <= pTimes[i] );
+            if ( DelayMax < pTimes[i] )
+                DelayMax = pTimes[i], nLeafMax = 1, uLeafMask = (1 << (i << 2));
+            else
+                nLeafMax++, uLeafMask |= (1 << (i << 2));
+        }
+        if ( If_CutLeaveNum(pCut) <= LutSize )
+            return DelayMax + 1;
+        pCut->Cost = 2;
+        if ( nLeafMax <= LutSize - 1 )
+        {
+            pCut->uMaskFunc = If_DsdManCheckXY( p->pIfDsdMan, If_CutDsdLit(p, pCut), LutSize, 1, uLeafMask, 0, 0 );
+            if ( pCut->uMaskFunc > 0 )
+                return DelayMax + 1;
+        }
+        pCut->uMaskFunc = If_DsdManCheckXY( p->pIfDsdMan, If_CutDsdLit(p, pCut), LutSize, 1, 0, 0, 0 );
+        return DelayMax + 2;
     }
 }
 
