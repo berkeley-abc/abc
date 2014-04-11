@@ -73,7 +73,6 @@ void Gia_ManSetIfParsDefault( void * pp )
     p->fEdge       =  1;
     p->fPower      =  0;
     p->fCutMin     =  0;
-    p->fSeqMap     =  0;
     p->fVerbose    =  0;
     p->pLutStruct  =  NULL;
     // internal parameters

@@ -96,7 +96,6 @@ float If_CutDelay( If_Man_t * p, If_Obj_t * pObj, If_Cut_t * pCut )
     float Delay, DelayCur;
     float * pLutDelays;
     int i, Shift, Pin2PinDelay;//, iLeaf;
-//    assert( p->pPars->fSeqMap || pCut->nLeaves > 1 );
     Delay = -IF_FLOAT_LARGE;
     if ( p->pPars->pLutLib )
     {

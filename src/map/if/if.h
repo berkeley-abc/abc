@@ -117,7 +117,10 @@ struct If_Par_t_
     int                fEdge;         // uses edge-based cut selection heuristics
     int                fPower;        // uses power-aware cut selection heuristics
     int                fCutMin;       // performs cut minimization by removing functionally reducdant variables
-    int                fSeqMap;       // sequential mapping
+    int                fDelayOpt;     // special delay optimization
+    int                fDelayOptLut;  // delay optimization for LUTs
+    int                fDsdBalance;   // special delay optimization
+    int                fUserRecLib;   // use recorded library
     int                fBidec;        // use bi-decomposition
     int                fUseBat;       // use one specialized feature
     int                fUseBuffs;     // use buffers to decouple outputs
@@ -134,9 +137,6 @@ struct If_Par_t_
     char *             pLutStruct;    // LUT structure
     float              WireDelay;     // wire delay
     // internal parameters
-    int                fDelayOpt;     // special delay optimization
-    int                fDsdBalance;   // special delay optimization
-    int                fUserRecLib;   // use recorded library
     int                fSkipCutFilter;// skip cut filter
     int                fAreaOnly;     // area only mode
     int                fTruth;        // truth table computation enabled

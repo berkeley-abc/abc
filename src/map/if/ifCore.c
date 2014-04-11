@@ -47,21 +47,12 @@ extern abctime s_MappingTime;
 int If_ManPerformMapping( If_Man_t * p )
 {
     p->pPars->fAreaOnly = p->pPars->fArea; // temporary
-
     // create the CI cutsets
     If_ManSetupCiCutSets( p );
     // allocate memory for other cutsets
     If_ManSetupSetAll( p, If_ManCrossCut(p) );
     // derive reverse top order
     p->vObjsRev = If_ManReverseOrder( p );
-
-    // try sequential mapping
-    if ( p->pPars->fSeqMap )
-    {
-//        if ( p->pPars->fVerbose )
-            Abc_Print( 1, "Performing sequential mapping without retiming.\n" );
-        return If_ManPerformMappingSeq( p );
-    }
     return If_ManPerformMappingComb( p );
 }
 

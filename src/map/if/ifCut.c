@@ -950,14 +950,11 @@ float If_CutAreaFlow( If_Man_t * p, If_Cut_t * pCut )
     If_Obj_t * pLeaf;
     float Flow;
     int i;
-//    assert( p->pPars->fSeqMap || pCut->nLeaves > 1 );
     Flow = If_CutLutArea(p, pCut);
     If_CutForEachLeaf( p, pCut, pLeaf, i )
     {
         if ( pLeaf->nRefs == 0 || If_ObjIsConst1(pLeaf) )
             Flow += If_ObjCutBest(pLeaf)->Area;
-        else if ( p->pPars->fSeqMap ) // seq
-            Flow += If_ObjCutBest(pLeaf)->Area / pLeaf->nRefs;
         else 
         {
             assert( pLeaf->EstRefs > p->fEpsilon );
@@ -983,14 +980,11 @@ float If_CutEdgeFlow( If_Man_t * p, If_Cut_t * pCut )
     If_Obj_t * pLeaf;
     float Flow;
     int i;
-//    assert( p->pPars->fSeqMap || pCut->nLeaves > 1 );
     Flow = pCut->nLeaves;
     If_CutForEachLeaf( p, pCut, pLeaf, i )
     {
         if ( pLeaf->nRefs == 0 || If_ObjIsConst1(pLeaf) )
             Flow += If_ObjCutBest(pLeaf)->Edge;
-        else if ( p->pPars->fSeqMap ) // seq
-            Flow += If_ObjCutBest(pLeaf)->Edge / pLeaf->nRefs;
         else 
         {
             assert( pLeaf->EstRefs > p->fEpsilon );
@@ -1017,14 +1011,11 @@ float If_CutPowerFlow( If_Man_t * p, If_Cut_t * pCut, If_Obj_t * pRoot )
     float * pSwitching = (float *)p->vSwitching->pArray;
     float Power = 0;
     int i;
-//    assert( p->pPars->fSeqMap || pCut->nLeaves > 1 );
     If_CutForEachLeaf( p, pCut, pLeaf, i )
     {
         Power += pSwitching[pLeaf->Id];
         if ( pLeaf->nRefs == 0 || If_ObjIsConst1(pLeaf) )
             Power += If_ObjCutBest(pLeaf)->Power;
-        else if ( p->pPars->fSeqMap ) // seq
-            Power += If_ObjCutBest(pLeaf)->Power / pLeaf->nRefs;
         else 
         {
             assert( pLeaf->EstRefs > p->fEpsilon );
@@ -1049,7 +1040,6 @@ float If_CutAverageRefs( If_Man_t * p, If_Cut_t * pCut )
 {
     If_Obj_t * pLeaf;
     int nRefsTotal, i;
-//    assert( p->pPars->fSeqMap || pCut->nLeaves > 1 );
     nRefsTotal = 0;
     If_CutForEachLeaf( p, pCut, pLeaf, i )
         nRefsTotal += pLeaf->nRefs;
@@ -1125,7 +1115,6 @@ float If_CutAreaRef( If_Man_t * p, If_Cut_t * pCut )
 float If_CutAreaDerefed( If_Man_t * p, If_Cut_t * pCut )
 {
     float aResult, aResult2;
-//    assert( p->pPars->fSeqMap || pCut->nLeaves > 1 );
     if ( pCut->nLeaves < 2 )
         return 0;
     aResult2 = If_CutAreaRef( p, pCut );
@@ -1149,7 +1138,6 @@ float If_CutAreaDerefed( If_Man_t * p, If_Cut_t * pCut )
 float If_CutAreaRefed( If_Man_t * p, If_Cut_t * pCut )
 {
     float aResult, aResult2;
-//    assert( p->pPars->fSeqMap || pCut->nLeaves > 1 );
     if ( pCut->nLeaves < 2 )
         return 0;
     aResult2 = If_CutAreaDeref( p, pCut );
@@ -1228,7 +1216,6 @@ float If_CutEdgeRef( If_Man_t * p, If_Cut_t * pCut )
 float If_CutEdgeDerefed( If_Man_t * p, If_Cut_t * pCut )
 {
     float aResult, aResult2;
-//    assert( p->pPars->fSeqMap || pCut->nLeaves > 1 );
     if ( pCut->nLeaves < 2 )
         return pCut->nLeaves;
     aResult2 = If_CutEdgeRef( p, pCut );
@@ -1252,7 +1239,6 @@ float If_CutEdgeDerefed( If_Man_t * p, If_Cut_t * pCut )
 float If_CutEdgeRefed( If_Man_t * p, If_Cut_t * pCut )
 {
     float aResult, aResult2;
-//    assert( p->pPars->fSeqMap || pCut->nLeaves > 1 );
     if ( pCut->nLeaves < 2 )
         return pCut->nLeaves;
     aResult2 = If_CutEdgeDeref( p, pCut );
@@ -1333,7 +1319,6 @@ float If_CutPowerRef( If_Man_t * p, If_Cut_t * pCut, If_Obj_t * pRoot )
 float If_CutPowerDerefed( If_Man_t * p, If_Cut_t * pCut, If_Obj_t * pRoot )
 {
     float aResult, aResult2;
-//    assert( p->pPars->fSeqMap || pCut->nLeaves > 1 );
     if ( pCut->nLeaves < 2 )
         return 0;
     aResult2 = If_CutPowerRef( p, pCut, pRoot );
@@ -1357,7 +1342,6 @@ float If_CutPowerDerefed( If_Man_t * p, If_Cut_t * pCut, If_Obj_t * pRoot )
 float If_CutPowerRefed( If_Man_t * p, If_Cut_t * pCut, If_Obj_t * pRoot )
 {
     float aResult, aResult2;
-//    assert( p->pPars->fSeqMap || pCut->nLeaves > 1 );
     if ( pCut->nLeaves < 2 )
         return 0;
     aResult2 = If_CutPowerDeref( p, pCut, pRoot );

@@ -64,7 +64,6 @@ void Nwk_ManSetIfParsDefault( If_Par_t * pPars )
     pPars->fEdge       =  1;
     pPars->fPower      =  0;
     pPars->fCutMin     =  0;
-    pPars->fSeqMap     =  0;
     pPars->fVerbose    =  0;
     // internal parameters
     pPars->fTruth      =  0;

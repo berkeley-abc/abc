@@ -14791,7 +14791,6 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
     pPars->fEdge       =  1;
     pPars->fPower      =  0;
     pPars->fCutMin     =  0;
-    pPars->fSeqMap     =  0;
     pPars->fBidec      =  0;
     pPars->fVerbose    =  0;
     pPars->pLutStruct  =  NULL;
@@ -14962,7 +14961,7 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
             pPars->fCutMin ^= 1;
             break;
         case 's':
-            pPars->fSeqMap ^= 1;
+            pPars->fDelayOptLut ^= 1;
             break;
         case 'd':
             pPars->fBidec ^= 1;
@@ -15008,26 +15007,11 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
             goto usage;
         }
     }
-
     if ( pNtk == NULL )
     {
         Abc_Print( -1, "Empty network.\n" );
         return 1;
     }
-/*
-    if ( pPars->fSeqMap )
-    {
-        Abc_Print( -1, "Sequential mapping is currently disabled.\n" );
-        return 1;
-    }
-*/
-
-    if ( pPars->fSeqMap && (pPars->nLatchesCi == 0 || pPars->nLatchesCo == 0) )
-    {
-        Abc_Print( -1, "The network has no latches. Use combinational mapping instead of sequential.\n" );
-        return 1;
-    }
-
     if ( pPars->nLutSize == -1 )
     {
         if ( pPars->pLutLib == NULL )
@@ -15035,11 +15019,7 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
             Abc_Print( -1, "The LUT library is not given.\n" );
             return 1;
         }
-        // get LUT size from the library
         pPars->nLutSize = pPars->pLutLib->LutMax;
-        // if variable pin delay, force truth table computation
-//        if ( pPars->pLutLib->fVarPinDelays )
-//            pPars->fTruth = 1;
     }
 
     if ( pPars->nLutSize < 2 || pPars->nLutSize > IF_MAX_LUTSIZE )
@@ -15286,7 +15266,7 @@ usage:
     Abc_Print( -2, "\t-e       : uses edge-based cut selection heuristics [default = %s]\n", pPars->fEdge? "yes": "no" );
     Abc_Print( -2, "\t-p       : uses power-aware cut selection heuristics [default = %s]\n", pPars->fPower? "yes": "no" );
     Abc_Print( -2, "\t-m       : enables cut minimization by removing vacuous variables [default = %s]\n", pPars->fCutMin? "yes": "no" );
-    Abc_Print( -2, "\t-s       : toggles sequential mapping [default = %s]\n", pPars->fSeqMap? "yes": "no" );
+    Abc_Print( -2, "\t-s       : toggles sequential mapping [default = %s]\n", pPars->fDelayOptLut? "yes": "no" );
     Abc_Print( -2, "\t-d       : toggles deriving local AIGs using bi-decomposition [default = %s]\n", pPars->fBidec? "yes": "no" );
     Abc_Print( -2, "\t-b       : toggles the use of one special feature [default = %s]\n", pPars->fUseBat? "yes": "no" );
     Abc_Print( -2, "\t-u       : toggles the use of MUXes along with LUTs [default = %s]\n", fLutMux? "yes": "no" );
@@ -29705,7 +29685,7 @@ int Abc_CommandAbc9If( Abc_Frame_t * pAbc, int argc, char ** argv )
             pPars->fCutMin ^= 1;
             break;
         case 's':
-            pPars->fSeqMap ^= 1;
+            pPars->fDelayOptLut ^= 1;
             break;
         case 'd':
             pPars->fBidec ^= 1;
@@ -29998,7 +29978,7 @@ usage:
     Abc_Print( -2, "\t-e       : uses edge-based cut selection heuristics [default = %s]\n", pPars->fEdge? "yes": "no" );
     Abc_Print( -2, "\t-p       : uses power-aware cut selection heuristics [default = %s]\n", pPars->fPower? "yes": "no" );
     Abc_Print( -2, "\t-m       : enables cut minimization by removing vacuous variables [default = %s]\n", pPars->fCutMin? "yes": "no" );
-    Abc_Print( -2, "\t-s       : toggles sequential mapping [default = %s]\n", pPars->fSeqMap? "yes": "no" );
+    Abc_Print( -2, "\t-s       : toggles sequential mapping [default = %s]\n", pPars->fDelayOptLut? "yes": "no" );
     Abc_Print( -2, "\t-d       : toggles deriving local AIGs using bi-decomposition [default = %s]\n", pPars->fBidec? "yes": "no" );
     Abc_Print( -2, "\t-b       : toggles the use of one special feature [default = %s]\n", pPars->fUseBat? "yes": "no" );
     Abc_Print( -2, "\t-g       : toggles delay optimization by SOP balancing [default = %s]\n", pPars->fDelayOpt? "yes": "no" );

@@ -63,7 +63,6 @@ void Lpk_IfManStart( Lpk_Man_t * p )
     pPars->fFancy      =  0;
     pPars->fExpRed     =  0; //
     pPars->fLatchPaths =  0;
-    pPars->fSeqMap     =  0;
     pPars->fVerbose    =  0;
     // internal parameters
     pPars->fTruth      =  1;

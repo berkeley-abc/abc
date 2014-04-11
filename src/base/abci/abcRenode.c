@@ -84,7 +84,6 @@ Abc_Ntk_t * Abc_NtkRenode( Abc_Ntk_t * pNtk, int nFaninMax, int nCubeMax, int nF
     pPars->fFancy      =  0;
     pPars->fExpRed     =  0; //
     pPars->fLatchPaths =  0;
-    pPars->fSeqMap     =  0;
     pPars->fVerbose    =  fVerbose;
     // internal parameters
     pPars->fTruth      =  1;

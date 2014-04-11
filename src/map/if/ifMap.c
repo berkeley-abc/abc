@@ -100,17 +100,14 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
     int fFunc0R, fFunc1R;
     int i, k, v, fChange;
     int fSave0 = p->pPars->fDelayOpt || p->pPars->fDsdBalance || p->pPars->fUserRecLib;
-    assert( p->pPars->fSeqMap || !If_ObjIsAnd(pObj->pFanin0) || pObj->pFanin0->pCutSet->nCuts > 0 );
-    assert( p->pPars->fSeqMap || !If_ObjIsAnd(pObj->pFanin1) || pObj->pFanin1->pCutSet->nCuts > 0 );
+    assert( !If_ObjIsAnd(pObj->pFanin0) || pObj->pFanin0->pCutSet->nCuts > 0 );
+    assert( !If_ObjIsAnd(pObj->pFanin1) || pObj->pFanin1->pCutSet->nCuts > 0 );
 
     // prepare
-    if ( !p->pPars->fSeqMap )
-    {
-        if ( Mode == 0 )
-            pObj->EstRefs = (float)pObj->nRefs;
-        else if ( Mode == 1 )
-            pObj->EstRefs = (float)((2.0 * pObj->EstRefs + pObj->nRefs) / 3.0);
-    }
+    if ( Mode == 0 )
+        pObj->EstRefs = (float)pObj->nRefs;
+    else if ( Mode == 1 )
+        pObj->EstRefs = (float)((2.0 * pObj->EstRefs + pObj->nRefs) / 3.0);
     // deref the selected cut
     if ( Mode && pObj->nRefs > 0 )
         If_CutAreaDeref( p, If_ObjCutBest(pObj) );
@@ -376,7 +373,6 @@ void If_ObjPerformMappingChoice( If_Man_t * p, If_Obj_t * pObj, int Mode, int fP
         // go through the cuts of this node
         If_ObjForEachCut( pTemp, pCutTemp, i )
         {
-            assert( p->pPars->fSeqMap || pCutTemp->nLeaves > 1 );
             if ( pCutTemp->fUseless )
                 continue;
             // get the next free cut
@@ -409,7 +405,6 @@ void If_ObjPerformMappingChoice( If_Man_t * p, If_Obj_t * pObj, int Mode, int fP
     // update the best cut
     if ( !fPreprocess || pCutSet->ppCuts[0]->Delay <= pObj->Required + p->fEpsilon )
         If_CutCopy( p, If_ObjCutBest(pObj), pCutSet->ppCuts[0] );
-    assert( p->pPars->fSeqMap || If_ObjCutBest(pObj)->nLeaves > 1 );
     // add the trivial cut to the set
     if ( !pObj->fSkipCut && If_ObjCutBest(pObj)->nLeaves > 1 )
     {
