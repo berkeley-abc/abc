@@ -22,6 +22,10 @@
 
 #include "extraBdd.h"
 
+#ifdef WIN32
+#include <windows.h>
+#endif
+
 ABC_NAMESPACE_IMPL_START
 
 
@@ -119,7 +123,11 @@ ABC_NAMESPACE_IMPL_START
 #define UNDERSCORE          (char)95
 //#define SYMBOL_ZERO       (char)248   // degree sign
 //#define SYMBOL_ZERO         (char)'o'
+#ifdef WIN32
+#define SYMBOL_ZERO         (char)'0'
+#else
 #define SYMBOL_ZERO         (char)' '
+#endif
 #define SYMBOL_ONE          (char)'1'
 #define SYMBOL_DC           (char)'-'
 #define SYMBOL_OVERLAP      (char)'?'
@@ -418,6 +426,26 @@ void Extra_PrintKMap(
             ValueOffSet = Cudd_Cofactor( dd, OffSet, Prod );                    Cudd_Ref( ValueOffSet );
             Cudd_RecursiveDeref( dd, Prod );
 
+#ifdef WIN32
+            {
+            HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
+            char Symb = 0, Color = 0;
+            if ( ValueOnSet == b1 && ValueOffSet == b0 )
+                Symb = SYMBOL_ONE,     Color = 14;  // yellow
+            else if ( ValueOnSet == b0 && ValueOffSet == b1 )
+                Symb = SYMBOL_ZERO,    Color = 11;  // blue
+            else if ( ValueOnSet == b0 && ValueOffSet == b0 ) 
+                Symb = SYMBOL_DC,      Color = 10;  // green
+            else if ( ValueOnSet == b1 && ValueOffSet == b1 ) 
+                Symb = SYMBOL_OVERLAP, Color = 12;  // red
+            else
+                assert(0);
+            SetConsoleTextAttribute( hConsole, Color );
+            fprintf( Output, "%c", Symb );
+            SetConsoleTextAttribute( hConsole, 7 );
+            }
+#else
+            {
             if ( ValueOnSet == b1 && ValueOffSet == b0 )
                 fprintf( Output, "%c", SYMBOL_ONE );
             else if ( ValueOnSet == b0 && ValueOffSet == b1 )
@@ -428,6 +456,8 @@ void Extra_PrintKMap(
                 fprintf( Output, "%c", SYMBOL_OVERLAP );
             else
                 assert(0);
+            }
+#endif
 
             Cudd_RecursiveDeref( dd, ValueOnSet );
             Cudd_RecursiveDeref( dd, ValueOffSet );
