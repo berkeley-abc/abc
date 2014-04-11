@@ -54,11 +54,10 @@ void Abc_ColorTest()
 #ifdef WIN32
     int x, y;
     HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
-    printf( "Background color     00   01   02   03   04   05   06   07   08   09   10   11   12   13   14   15\n" );
-    printf( "                    ------------------------------------------------------------------------------\n" );
+    printf( "Background     00   01   02   03   04   05   06   07   08   09   10   11   12   13   14   15\n" );
     for ( y = 0; y < 16; y++ )
     {
-        printf( "Foreground color %02d", y );
+        printf( "Foreground %02d", y );
         for ( x = 0; x < 16; x++ )
         {
             printf( " " );
@@ -91,20 +90,20 @@ void Abc_ColorTest()
   bg[LightGray] = '[0;47m'
 */
     int x, y;
-    printf( "Background color       " );
+    printf( "Background       " );
     for ( x = 0; x < 8; x++ )
         printf( "  [1;4%dm", x );
     printf( "\n" );
     for ( y = 0; y < 2; y++ )
     {
-        printf( "Foreground color [%dm   ", y );
+        printf( "Foreground [%dm   ", y );
         for ( x = 0; x < 8; x++ )
             printf( "  \033[%d;3%dm\033[%dm  Hi  \033[0m", y&1, y>>1, x );
         printf( "\n" );
     }
     for ( y = 0; y < 16; y++ )
     {
-        printf( "Foreground color [%d;3%dm", y&1, y>>1 );
+        printf( "Foreground [%d;3%dm", y&1, y>>1 );
         for ( x = 0; x < 8; x++ )
             printf( "  \033[%d;3%dm\033[1;4%dm  Hi  \033[0m", y&1, y>>1, x );
         printf( "\n" );
