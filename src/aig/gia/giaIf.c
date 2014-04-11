@@ -1187,7 +1187,7 @@ int Gia_ManFromIfLogicFindLut( If_Man_t * pIfMan, Gia_Man_t * pNew, If_Cut_t * p
     int nVarsS = 0, pVarsS[IF_MAX_FUNC_LUTSIZE];
     unsigned uSetNew, uSetOld;
     int RetValue, RetValue2, k;
-    char * pPerm = If_CutDsdPerm( pIfMan, pCutBest );
+    char * pPerm;
     if ( Vec_IntSize(vLeaves) <= nLutSize )
     {
         RetValue = Gia_ManFromIfLogicCreateLut( pNew, If_CutTruthW(pIfMan, pCutBest), vLeaves, vCover, vMapping, vMapping2 );
@@ -1208,6 +1208,7 @@ int Gia_ManFromIfLogicFindLut( If_Man_t * pIfMan, Gia_Man_t * pNew, If_Cut_t * p
         uSetOld = If_DsdManCheckXY( pIfMan->pIfDsdMan, If_CutDsdLit(pIfMan, pCutBest), nLutSize, 1, 0, 1, 0 );
     // remap bound set
     uSetNew = 0;
+    pPerm = If_CutDsdPerm( pIfMan, pCutBest );
     for ( k = 0; k < If_CutLeaveNum(pCutBest); k++ )
     {
         int iVar = Abc_Lit2Var((int)pPerm[k]);
