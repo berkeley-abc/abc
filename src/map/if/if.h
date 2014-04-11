@@ -385,6 +385,7 @@ static inline void       If_ObjSetChoice( If_Obj_t * pObj, If_Obj_t * pEqu ) { p
 
 static inline int        If_CutLeaveNum( If_Cut_t * pCut )                   { return pCut->nLeaves;                             }
 static inline int *      If_CutLeaves( If_Cut_t * pCut )                     { return pCut->pLeaves;                             }
+static inline If_Obj_t * If_CutLeaf( If_Man_t * p, If_Cut_t * pCut, int i )  { assert(i >= 0 && i < (int)pCut->nLeaves); return If_ManObj(p, pCut->pLeaves[i]);                         }
 static inline unsigned   If_CutSuppMask( If_Cut_t * pCut )                   { return (~(unsigned)0) >> (32-pCut->nLeaves);      }
 static inline int        If_CutTruthWords( int nVarsMax )                    { return nVarsMax <= 5 ? 2 : (1 << (nVarsMax - 5)); }
 static inline int        If_CutPermWords( int nVarsMax )                     { return nVarsMax / sizeof(int) + ((nVarsMax % sizeof(int)) > 0); }
@@ -413,8 +414,8 @@ static inline unsigned * If_CutTruthUR( If_Man_t * p, If_Cut_t * pCut)       { r
 static inline word *     If_CutTruthW( If_Man_t * p, If_Cut_t * pCut )       { if ( p->vTtMem == NULL ) return NULL; assert( pCut->iCutFunc >= 0 ); Abc_TtCopy( p->puTempW, If_CutTruthWR(p, pCut), p->nTruth6Words[pCut->nLeaves], If_CutTruthIsCompl(pCut) ); return p->puTempW;  }
 static inline unsigned * If_CutTruth( If_Man_t * p, If_Cut_t * pCut )        { return (unsigned *)If_CutTruthW(p, pCut);                         }
 static inline int        If_CutDsdLit( If_Man_t * p, If_Cut_t * pCut )       { return Abc_Lit2LitL( Vec_IntArray(p->vTtDsds[pCut->nLeaves]), If_CutTruthLit(pCut) );               }
-static inline int        If_CutDsdIsCompl( If_Man_t * p, If_Cut_t * pCut )   { return Abc_LitIsCompl( If_CutDsdLit(p, pCut) );                                                        }
-static inline If_Obj_t * If_CutLeaf( If_Man_t * p, If_Cut_t * pCut, int i )  { assert(i >= 0 && i < (int)pCut->nLeaves); return If_ManObj(p, pCut->pLeaves[i]);                         }
+static inline int        If_CutDsdIsCompl( If_Man_t * p, If_Cut_t * pCut )   { return Abc_LitIsCompl( If_CutDsdLit(p, pCut) );                                                     }
+static inline char *     If_CutDsdPerm( If_Man_t * p, If_Cut_t * pCut )      { return Vec_StrEntryP( p->vTtPerms[pCut->nLeaves], Abc_Lit2Var(pCut->iCutFunc) * Abc_MaxInt(6, pCut->nLeaves) );           }
 
 static inline float      If_CutLutArea( If_Man_t * p, If_Cut_t * pCut )      { return pCut->fUser? (float)pCut->Cost : (p->pPars->pLutLib? p->pPars->pLutLib->pLutAreas[pCut->nLeaves] : (float)1.0);    }
 static inline float      If_CutLutDelay( If_LibLut_t * p, int Size, int iPin )  { return p ? (p->fVarPinDelays ? p->pLutDelays[Size][iPin] : p->pLutDelays[Size][0]) : 1.0;                              }

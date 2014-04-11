@@ -1187,6 +1187,7 @@ int Gia_ManFromIfLogicFindLut( If_Man_t * pIfMan, Gia_Man_t * pNew, If_Cut_t * p
     int nVarsS = 0, pVarsS[IF_MAX_FUNC_LUTSIZE];
     unsigned uSetNew, uSetOld;
     int RetValue, RetValue2, k;
+    char * pPerm = If_CutDsdPerm( pIfMan, pCutBest );
     if ( Vec_IntSize(vLeaves) <= nLutSize )
     {
         RetValue = Gia_ManFromIfLogicCreateLut( pNew, If_CutTruthW(pIfMan, pCutBest), vLeaves, vCover, vMapping, vMapping2 );
@@ -1209,7 +1210,7 @@ int Gia_ManFromIfLogicFindLut( If_Man_t * pIfMan, Gia_Man_t * pNew, If_Cut_t * p
     uSetNew = 0;
     for ( k = 0; k < If_CutLeaveNum(pCutBest); k++ )
     {
-        int iVar = Abc_Lit2Var((int)pCutBest->pPerm[k]);
+        int iVar = Abc_Lit2Var((int)pPerm[k]);
         int Value = ((uSetOld >> (k << 1)) & 3);
         if ( Value == 1 )
             uSetNew |= (1 << (2*iVar));
