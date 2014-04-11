@@ -1905,7 +1905,7 @@ int If_CutDsdBalancePinDelays( If_Man_t * p, If_Cut_t * pCut, char * pPerm )
         int i, Delay, nSupp = 0, pTimes[IF_MAX_FUNC_LUTSIZE];
         for ( i = 0; i < If_CutLeaveNum(pCut); i++ )
             pTimes[i] = (int)If_ObjCutBest(If_CutLeaf(p, pCut, i))->Delay; 
-        Delay = If_CutDsdBalancePinDelays_rec( p->pIfDsdMan, Abc_Lit2Var(If_CutDsdLit(pCut)), pTimes, &Result, &nSupp, If_CutLeaveNum(pCut), pCut->pPerm );
+        Delay = If_CutDsdBalancePinDelays_rec( p->pIfDsdMan, Abc_Lit2Var(If_CutDsdLit(p, pCut)), pTimes, &Result, &nSupp, If_CutLeaveNum(pCut), pCut->pPerm );
         assert( nSupp == If_CutLeaveNum(pCut) );
         If_CutPinDelayTranslate( Result, If_CutLeaveNum(pCut), pPerm );
         return Delay;
@@ -1997,18 +1997,18 @@ int If_CutDsdBalanceEval( If_Man_t * p, If_Cut_t * pCut, Vec_Int_t * vAig )
         Vec_IntClear( vAig );
     if ( pCut->nLeaves == 0 ) // const
     {
-        assert( Abc_Lit2Var(If_CutDsdLit(pCut)) == 0 );
+        assert( Abc_Lit2Var(If_CutDsdLit(p, pCut)) == 0 );
         if ( vAig )
-            Vec_IntPush( vAig, Abc_LitIsCompl(If_CutDsdLit(pCut)) );
+            Vec_IntPush( vAig, Abc_LitIsCompl(If_CutDsdLit(p, pCut)) );
         return 0;
     }
     if ( pCut->nLeaves == 1 ) // variable
     {
-        assert( Abc_Lit2Var(If_CutDsdLit(pCut)) == 1 );
+        assert( Abc_Lit2Var(If_CutDsdLit(p, pCut)) == 1 );
         if ( vAig )
             Vec_IntPush( vAig, 0 );
         if ( vAig )
-            Vec_IntPush( vAig, Abc_LitIsCompl(If_CutDsdLit(pCut)) );
+            Vec_IntPush( vAig, Abc_LitIsCompl(If_CutDsdLit(p, pCut)) );
         return (int)If_ObjCutBest(If_CutLeaf(p, pCut, 0))->Delay;
     }
     else
@@ -2017,7 +2017,7 @@ int If_CutDsdBalanceEval( If_Man_t * p, If_Cut_t * pCut, Vec_Int_t * vAig )
         int Delay, Area = 0;
         for ( i = 0; i < If_CutLeaveNum(pCut); i++ )
             pTimes[i] = (int)If_ObjCutBest(If_CutLeaf(p, pCut, i))->Delay; 
-        Delay = If_CutDsdBalanceEvalInt( p->pIfDsdMan, If_CutDsdLit(pCut), pTimes, vAig, &Area, pCut->pPerm );
+        Delay = If_CutDsdBalanceEvalInt( p->pIfDsdMan, If_CutDsdLit(p, pCut), pTimes, vAig, &Area, pCut->pPerm );
         pCut->Cost = Area;
         return Delay;
     }

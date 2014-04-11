@@ -173,8 +173,8 @@ int If_CutComputeTruthPerm_int( If_Man_t * p, If_Cut_t * pCut, If_Cut_t * pCut0,
     word * pTruth0  = (word *)p->puTemp[0];
     word * pTruth1  = (word *)p->puTemp[1];
     word * pTruth   = (word *)p->puTemp[2];
-    assert( pCut0->iCutDsd >= 0 );
-    assert( pCut1->iCutDsd >= 0 );
+    assert( pCut0->uMaskFunc >= 0 );
+    assert( pCut1->uMaskFunc >= 0 );
     Abc_TtCopy( pTruth0, pTruth0s, nWords, Abc_LitIsCompl(iCutFunc0) );
     Abc_TtCopy( pTruth1, pTruth1s, nWords, Abc_LitIsCompl(iCutFunc1) );
     Abc_TtStretch6( pTruth0, pCut0->nLeaves, pCut->nLeaves );
@@ -233,12 +233,12 @@ if ( p->pPars->fVerbose )
 p->timeCache[3] += Abc_Clock() - clk;
     for ( v = 0; v < (int)pCut->nLeaves; v++ )
         pPerm[v] = Abc_LitNotCond( pCut->pLeaves[(int)p->pCanonPerm[v]], ((p->uCanonPhase>>v)&1) );
-    pCut->iCutDsd = 0;
+    pCut->uMaskFunc = 0;
     for ( v = 0; v < (int)pCut->nLeaves; v++ )
     {
         pCut->pLeaves[v] = Abc_Lit2Var(pPerm[v]);
         if ( Abc_LitIsCompl(pPerm[v]) )
-            pCut->iCutDsd |= (1 << v);
+            pCut->uMaskFunc |= (1 << v);
     }
     // create signature after lowering literals
     if ( RetValue )
@@ -295,12 +295,12 @@ p->timeCache[0] += Abc_Clock() - clk;
         for ( v = 0; v < (int)pCut->nLeaves; v++ )
             pPerm[v] = Abc_LitNotCond( pCut->pLeaves[Abc_Lit2Var((int)pCanonPerm[v])], Abc_LitIsCompl((int)pCanonPerm[v]) );
         // generate the result
-        pCut->iCutDsd = 0;
+        pCut->uMaskFunc = 0;
         for ( v = 0; v < (int)pCut->nLeaves; v++ )
         {
             pCut->pLeaves[v] = Abc_Lit2Var(pPerm[v]);
             if ( Abc_LitIsCompl(pPerm[v]) )
-                pCut->iCutDsd |= (1 << v);
+                pCut->uMaskFunc |= (1 << v);
         }
 //        printf( "Found: %d(%d) %d(%d) -> %d(%d)\n", iCutFunc0, pCut0->nLeaves, iCutFunc1, pCut0->nLeaves, pCut->iCutFunc, pCut->nLeaves );
         p->nCacheHits++;

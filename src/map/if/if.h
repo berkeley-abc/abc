@@ -274,7 +274,7 @@ struct If_Cut_t_
     float              Power;         // the power flow
     float              Delay;         // delay of the cut
     int                iCutFunc;      // TT ID of the cut
-    int                iCutDsd;       // DSD ID of the cut
+    int                uMaskFunc;     // polarity bitmask
     unsigned           uSign;         // cut signature
     unsigned           Cost    : 13;  // the user's cost of the cut (related to IF_COST_MAX)
     unsigned           fCompl  :  1;  // the complemented attribute 
@@ -388,7 +388,7 @@ static inline int *      If_CutLeaves( If_Cut_t * pCut )                     { r
 static inline unsigned   If_CutSuppMask( If_Cut_t * pCut )                   { return (~(unsigned)0) >> (32-pCut->nLeaves);      }
 static inline int        If_CutTruthWords( int nVarsMax )                    { return nVarsMax <= 5 ? 2 : (1 << (nVarsMax - 5)); }
 static inline int        If_CutPermWords( int nVarsMax )                     { return nVarsMax / sizeof(int) + ((nVarsMax % sizeof(int)) > 0); }
-static inline int        If_CutLeafBit( If_Cut_t * pCut, int i )             { return (pCut->iCutDsd >> i) & 1;                  }
+static inline int        If_CutLeafBit( If_Cut_t * pCut, int i )             { return (pCut->uMaskFunc >> i) & 1;                }
 
 static inline If_Cut_t * If_ObjCutBest( If_Obj_t * pObj )                    { return &pObj->CutBest;                }
 static inline unsigned   If_ObjCutSign( unsigned ObjId )                     { return (1 << (ObjId % 31));           }
@@ -412,7 +412,8 @@ static inline word *     If_CutTruthWR( If_Man_t * p, If_Cut_t * pCut )      { r
 static inline unsigned * If_CutTruthUR( If_Man_t * p, If_Cut_t * pCut)       { return (unsigned *)If_CutTruthWR(p, pCut);                        }
 static inline word *     If_CutTruthW( If_Man_t * p, If_Cut_t * pCut )       { if ( p->vTtMem == NULL ) return NULL; assert( pCut->iCutFunc >= 0 ); Abc_TtCopy( p->puTempW, If_CutTruthWR(p, pCut), p->nTruth6Words[pCut->nLeaves], If_CutTruthIsCompl(pCut) ); return p->puTempW;  }
 static inline unsigned * If_CutTruth( If_Man_t * p, If_Cut_t * pCut )        { return (unsigned *)If_CutTruthW(p, pCut);                         }
-static inline int        If_CutDsdLit( If_Cut_t * pCut )                     { assert( pCut->iCutDsd >= 0 ); return pCut->iCutDsd;               }
+static inline int        If_CutDsdLit( If_Man_t * p, If_Cut_t * pCut )       { return Abc_Lit2LitL( Vec_IntArray(p->vTtDsds[pCut->nLeaves]), If_CutTruthLit(pCut) );               }
+static inline int        If_CutDsdIsCompl( If_Man_t * p, If_Cut_t * pCut )   { return Abc_LitIsCompl( If_CutDsdLit(p, pCut) );                                                        }
 static inline If_Obj_t * If_CutLeaf( If_Man_t * p, If_Cut_t * pCut, int i )  { assert(i >= 0 && i < (int)pCut->nLeaves); return If_ManObj(p, pCut->pLeaves[i]);                         }
 
 static inline float      If_CutLutArea( If_Man_t * p, If_Cut_t * pCut )      { return pCut->fUser? (float)pCut->Cost : (p->pPars->pLutLib? p->pPars->pLutLib->pLutAreas[pCut->nLeaves] : (float)1.0);    }
