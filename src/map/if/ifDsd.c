@@ -835,14 +835,8 @@ int If_DsdObjCreate( If_DsdMan_t * p, int Type, int * pLits, int nLits, int trut
         pObj->pFans[i] = pLits[i];
         pObj->nSupp += If_DsdVecLitSuppSize(&p->vObjs, pLits[i]);
     }
-/*
-    if ( Abc_Var2Lit(pObj->Id, 0) == 3274 || Abc_Var2Lit(pObj->Id, 0) == 1806 )
-    {
-        If_DsdManPrintOne( stdout, p, pObj->Id, NULL, 1 );
-    }
-*/
     // check decomposability
-    if ( p->LutSize && !If_DsdManCheckXY(p, Abc_Var2Lit(pObj->Id, 0), p->LutSize, 0, 0, 0) )
+    if ( p->LutSize && !If_DsdManCheckXY(p, Abc_Var2Lit(pObj->Id, 0), p->LutSize, 0, 0, 0, 0) )
         If_DsdVecObjSetMark( &p->vObjs, pObj->Id );
     return pObj->Id;
 }
@@ -1513,10 +1507,11 @@ void If_DsdManGetSuppSizes( If_DsdMan_t * p, If_DsdObj_t * pObj, int * pSSizes )
         pSSizes[i] = If_DsdObjSuppSize(pFanin);    
 }
 // checks if there is a way to package some fanins 
-unsigned If_DsdManCheckAndXor( If_DsdMan_t * p, int iFirst, If_DsdObj_t * pObj, int nSuppAll, int LutSize, int fDerive, int fVerbose )
+unsigned If_DsdManCheckAndXor( If_DsdMan_t * p, int iFirst, unsigned uMaskNot, If_DsdObj_t * pObj, int nSuppAll, int LutSize, int fDerive, int fVerbose )
 {
     int i[6], LimitOut, SizeIn, SizeOut, pSSizes[DAU_MAX_VAR];
     int nFans = If_DsdObjFaninNum(pObj), pFirsts[DAU_MAX_VAR];
+    unsigned uRes;
     assert( pObj->nFans > 2 );
     assert( If_DsdObjSuppSize(pObj) > LutSize );
     If_DsdManGetSuppSizes( p, pObj, pSSizes );
@@ -1532,8 +1527,11 @@ unsigned If_DsdManCheckAndXor( If_DsdMan_t * p, int iFirst, If_DsdObj_t * pObj, 
         if ( !fDerive )
             return ~0;
         If_DsdManComputeFirst( p, pObj, pFirsts );
-        return If_DsdSign(p, pObj, i[0], iFirst + pFirsts[i[0]], 0) | 
+        uRes = If_DsdSign(p, pObj, i[0], iFirst + pFirsts[i[0]], 0) | 
                If_DsdSign(p, pObj, i[1], iFirst + pFirsts[i[1]], 0);
+        if ( uRes & ~(uRes >> 1) & uMaskNot )
+            continue;
+        return uRes;
     }
     if ( pObj->nFans == 3 )
         return 0;
@@ -1548,9 +1546,12 @@ unsigned If_DsdManCheckAndXor( If_DsdMan_t * p, int iFirst, If_DsdObj_t * pObj, 
         if ( !fDerive )
             return ~0;
         If_DsdManComputeFirst( p, pObj, pFirsts );
-        return If_DsdSign(p, pObj, i[0], iFirst + pFirsts[i[0]], 0) | 
+        uRes = If_DsdSign(p, pObj, i[0], iFirst + pFirsts[i[0]], 0) | 
                If_DsdSign(p, pObj, i[1], iFirst + pFirsts[i[1]], 0) | 
                If_DsdSign(p, pObj, i[2], iFirst + pFirsts[i[2]], 0);
+        if ( uRes & ~(uRes >> 1) & uMaskNot )
+            continue;
+        return uRes;
     }
     if ( pObj->nFans == 4 )
         return 0;
@@ -1566,17 +1567,21 @@ unsigned If_DsdManCheckAndXor( If_DsdMan_t * p, int iFirst, If_DsdObj_t * pObj, 
         if ( !fDerive )
             return ~0;
         If_DsdManComputeFirst( p, pObj, pFirsts );
-        return If_DsdSign(p, pObj, i[0], iFirst + pFirsts[i[0]], 0) | 
+        uRes = If_DsdSign(p, pObj, i[0], iFirst + pFirsts[i[0]], 0) | 
                If_DsdSign(p, pObj, i[1], iFirst + pFirsts[i[1]], 0) | 
                If_DsdSign(p, pObj, i[2], iFirst + pFirsts[i[2]], 0) | 
                If_DsdSign(p, pObj, i[3], iFirst + pFirsts[i[3]], 0);
+        if ( uRes & ~(uRes >> 1) & uMaskNot )
+            continue;
+        return uRes;
     }
     return 0;
 }
 // checks if there is a way to package some fanins 
-unsigned If_DsdManCheckMux( If_DsdMan_t * p, int iFirst, If_DsdObj_t * pObj, int nSuppAll, int LutSize, int fDerive, int fVerbose )
+unsigned If_DsdManCheckMux( If_DsdMan_t * p, int iFirst, unsigned uMaskNot, If_DsdObj_t * pObj, int nSuppAll, int LutSize, int fDerive, int fVerbose )
 {
     int LimitOut, SizeIn, SizeOut, pSSizes[DAU_MAX_VAR], pFirsts[DAU_MAX_VAR];
+    unsigned uRes;
     assert( If_DsdObjFaninNum(pObj) == 3 );
     assert( If_DsdObjSuppSize(pObj) > LutSize );
     If_DsdManGetSuppSizes( p, pObj, pSSizes );
@@ -1590,7 +1595,9 @@ unsigned If_DsdManCheckMux( If_DsdMan_t * p, int iFirst, If_DsdObj_t * pObj, int
         if ( !fDerive )
             return ~0;
         If_DsdManComputeFirst( p, pObj, pFirsts );
-        return If_DsdSign(p, pObj, 0, iFirst + pFirsts[0], 1) | If_DsdSign(p, pObj, 1, iFirst + pFirsts[1], 0);
+        uRes = If_DsdSign(p, pObj, 0, iFirst + pFirsts[0], 1) | If_DsdSign(p, pObj, 1, iFirst + pFirsts[1], 0);
+        if ( (uRes & ~(uRes >> 1) & uMaskNot) == 0 )
+            return uRes;
     }
     // second input
     SizeIn = pSSizes[0] + pSSizes[2];
@@ -1600,12 +1607,14 @@ unsigned If_DsdManCheckMux( If_DsdMan_t * p, int iFirst, If_DsdObj_t * pObj, int
         if ( !fDerive )
             return ~0;
         If_DsdManComputeFirst( p, pObj, pFirsts );
-        return If_DsdSign(p, pObj, 0, iFirst + pFirsts[0], 1) | If_DsdSign(p, pObj, 2, iFirst + pFirsts[2], 0);
+        uRes = If_DsdSign(p, pObj, 0, iFirst + pFirsts[0], 1) | If_DsdSign(p, pObj, 2, iFirst + pFirsts[2], 0);
+        if ( (uRes & ~(uRes >> 1) & uMaskNot) == 0 )
+            return uRes;
     }
     return 0;
 }
 // checks if there is a way to package some fanins 
-unsigned If_DsdManCheckPrime( If_DsdMan_t * p, int iFirst, If_DsdObj_t * pObj, int nSuppAll, int LutSize, int fDerive, int fVerbose )
+unsigned If_DsdManCheckPrime( If_DsdMan_t * p, int iFirst, unsigned uMaskNot, If_DsdObj_t * pObj, int nSuppAll, int LutSize, int fDerive, int fVerbose )
 {
     int i, v, set, LimitOut, SizeIn, SizeOut, pSSizes[DAU_MAX_VAR], pFirsts[DAU_MAX_VAR];
     int truthId = If_DsdObjTruthId(p, pObj);
@@ -1641,10 +1650,9 @@ Dau_DecPrintSets( vSets, nFans );
         }
         if ( v == nFans )
         {
-            unsigned uSign;
+            unsigned uRes = 0;
             if ( !fDerive )
                 return ~0;
-            uSign = 0;
             If_DsdManComputeFirst( p, pObj, pFirsts );
             for ( v = 0; v < nFans; v++ )
             {
@@ -1652,17 +1660,19 @@ Dau_DecPrintSets( vSets, nFans );
                 if ( Value == 0 )
                 {}
                 else if ( Value == 1 )
-                    uSign |= If_DsdSign(p, pObj, v, iFirst + pFirsts[v], 0);
+                    uRes |= If_DsdSign(p, pObj, v, iFirst + pFirsts[v], 0);
                 else if ( Value == 3 )
-                    uSign |= If_DsdSign(p, pObj, v, iFirst + pFirsts[v], 1);
+                    uRes |= If_DsdSign(p, pObj, v, iFirst + pFirsts[v], 1);
                 else assert( 0 );
             }
-            return uSign;
+            if ( uRes & ~(uRes >> 1) & uMaskNot )
+                continue;
+            return uRes;
         }
     }
     return 0;
 }
-unsigned If_DsdManCheckXY_int( If_DsdMan_t * p, int iDsd, int LutSize, int fDerive, int fVerbose )
+unsigned If_DsdManCheckXY_int( If_DsdMan_t * p, int iDsd, int LutSize, int fDerive, unsigned uMaskNot, int fVerbose )
 {
     If_DsdObj_t * pObj, * pTemp; 
     int i, Mask, iFirst;
@@ -1689,7 +1699,7 @@ unsigned If_DsdManCheckXY_int( If_DsdMan_t * p, int iDsd, int LutSize, int fDeri
     If_DsdVecForEachObjVec( p->vTemp1, &p->vObjs, pTemp, i )
         if ( (If_DsdObjType(pTemp) == IF_DSD_AND || If_DsdObjType(pTemp) == IF_DSD_XOR) && If_DsdObjFaninNum(pTemp) > 2 && If_DsdObjSuppSize(pTemp) > LutSize )
         {
-            if ( (Mask = If_DsdManCheckAndXor(p, Vec_IntEntry(p->vTemp2, i), pTemp, If_DsdObjSuppSize(pObj), LutSize, fDerive, fVerbose)) )
+            if ( (Mask = If_DsdManCheckAndXor(p, Vec_IntEntry(p->vTemp2, i), uMaskNot, pTemp, If_DsdObjSuppSize(pObj), LutSize, fDerive, fVerbose)) )
             {
                 if ( fVerbose )
                 printf( "    " );
@@ -1703,7 +1713,7 @@ unsigned If_DsdManCheckXY_int( If_DsdMan_t * p, int iDsd, int LutSize, int fDeri
     If_DsdVecForEachObjVec( p->vTemp1, &p->vObjs, pTemp, i )
         if ( If_DsdObjType(pTemp) == IF_DSD_MUX && If_DsdObjSuppSize(pTemp) > LutSize )
         {
-            if ( (Mask = If_DsdManCheckMux(p, Vec_IntEntry(p->vTemp2, i), pTemp, If_DsdObjSuppSize(pObj), LutSize, fDerive, fVerbose)) )
+            if ( (Mask = If_DsdManCheckMux(p, Vec_IntEntry(p->vTemp2, i), uMaskNot, pTemp, If_DsdObjSuppSize(pObj), LutSize, fDerive, fVerbose)) )
             {
                 if ( fVerbose )
                 printf( "    " );
@@ -1717,7 +1727,7 @@ unsigned If_DsdManCheckXY_int( If_DsdMan_t * p, int iDsd, int LutSize, int fDeri
     If_DsdVecForEachObjVec( p->vTemp1, &p->vObjs, pTemp, i )
         if ( If_DsdObjType(pTemp) == IF_DSD_PRIME && If_DsdObjSuppSize(pTemp) > LutSize )
         {
-            if ( (Mask = If_DsdManCheckPrime(p, Vec_IntEntry(p->vTemp2, i), pTemp, If_DsdObjSuppSize(pObj), LutSize, fDerive, fVerbose)) )
+            if ( (Mask = If_DsdManCheckPrime(p, Vec_IntEntry(p->vTemp2, i), uMaskNot, pTemp, If_DsdObjSuppSize(pObj), LutSize, fDerive, fVerbose)) )
             {
                 if ( fVerbose )
                 printf( "    " );
@@ -1733,9 +1743,9 @@ unsigned If_DsdManCheckXY_int( If_DsdMan_t * p, int iDsd, int LutSize, int fDeri
 //    If_DsdManPrintOne( stdout, p, Abc_Lit2Var(iDsd), NULL, 1 );
     return 0;
 }
-unsigned If_DsdManCheckXY( If_DsdMan_t * p, int iDsd, int LutSize, int fDerive, int fHighEffort, int fVerbose )
+unsigned If_DsdManCheckXY( If_DsdMan_t * p, int iDsd, int LutSize, int fDerive, unsigned uMaskNot, int fHighEffort, int fVerbose )
 {
-    unsigned uSet = If_DsdManCheckXY_int( p, iDsd, LutSize, fDerive, fVerbose );
+    unsigned uSet = If_DsdManCheckXY_int( p, iDsd, LutSize, fDerive, uMaskNot, fVerbose );
     if ( uSet == 0 && fHighEffort )
     {
 //        abctime clk = Abc_Clock();
@@ -2059,7 +2069,7 @@ void If_DsdManTune( If_DsdMan_t * p, int LutSize, int fFast, int fAdd, int fSpec
         if ( fAdd && !pObj->fMark )
             continue;
         pObj->fMark = 0;
-        if ( If_DsdManCheckXY(p, Abc_Var2Lit(i, 0), LutSize, 0, 0, 0) )
+        if ( If_DsdManCheckXY(p, Abc_Var2Lit(i, 0), LutSize, 0, 0, 0, 0) )
             continue;
         if ( fFast )
             Value = 0;
@@ -2072,8 +2082,7 @@ void If_DsdManTune( If_DsdMan_t * p, int LutSize, int fFast, int fAdd, int fSpec
             continue;
         If_DsdVecObjSetMark( &p->vObjs, i );
     }
-    if ( pProgress )
-        Extra_ProgressBarStop( pProgress );
+    Extra_ProgressBarStop( pProgress );
     If_ManSatUnbuild( pSat );
     Vec_IntFree( vLits );
     if ( fVerbose )
