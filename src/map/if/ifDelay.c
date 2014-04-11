@@ -297,7 +297,7 @@ int If_CutLutBalancePinDelays( If_Man_t * p, If_Cut_t * pCut, char * pPerm )
                 pPerm[i] = 2;
             else
                 pPerm[i] = 1;
-            Delay = (int)If_ObjCutBest(If_CutLeaf(p, pCut, pCutPerm[i]))->Delay;
+            Delay = (int)If_ObjCutBest(If_CutLeaf(p, pCut, Abc_Lit2Var(pCutPerm[i])))->Delay;
             DelayMax = Abc_MaxInt( DelayMax, Delay + (int)pPerm[i] );
         }
         return DelayMax;
@@ -319,6 +319,7 @@ int If_CutLutBalanceEval( If_Man_t * p, If_Cut_t * pCut )
 {
     pCut->fUser = 1;
     pCut->Cost = pCut->nLeaves > 1 ? 1 : 0;
+    pCut->uMaskFunc = 0;
     if ( pCut->nLeaves == 0 ) // const
     {
         assert( Abc_Lit2Var(If_CutTruthLit(pCut)) == 0 );
@@ -338,7 +339,7 @@ int If_CutLutBalanceEval( If_Man_t * p, If_Cut_t * pCut )
         unsigned uLeafMask = 0;
         for ( i = 0; i < If_CutLeaveNum(pCut); i++ )
         {
-            pTimes[i] = (int)If_ObjCutBest(If_CutLeaf(p, pCut, pCutPerm[i]))->Delay; 
+            pTimes[i] = (int)If_ObjCutBest(If_CutLeaf(p, pCut, Abc_Lit2Var(pCutPerm[i])))->Delay; 
             if ( DelayMax < pTimes[i] )
                 DelayMax = pTimes[i], nLeafMax = 1, uLeafMask = (1 << (i << 2));
             else if ( DelayMax == pTimes[i] )

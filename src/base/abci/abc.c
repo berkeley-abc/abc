@@ -15127,7 +15127,6 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
         pPars->fTruth      =  1;
         pPars->fCutMin     =  1;
         pPars->fExpRed     =  0;
-        pPars->fUsePerm    =  0;
         pPars->fUseDsd     =  pPars->fDsdBalance;
         pPars->pLutLib     =  NULL;
     }
@@ -15147,7 +15146,6 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
         pPars->fTruth      =  1;
         pPars->fCutMin     =  1;
         pPars->fExpRed     =  0;
-        pPars->fUsePerm    =  0;
     }
 
     if ( pPars->fUseDsd )
@@ -15266,7 +15264,7 @@ usage:
     Abc_Print( -2, "\t-e       : uses edge-based cut selection heuristics [default = %s]\n", pPars->fEdge? "yes": "no" );
     Abc_Print( -2, "\t-p       : uses power-aware cut selection heuristics [default = %s]\n", pPars->fPower? "yes": "no" );
     Abc_Print( -2, "\t-m       : enables cut minimization by removing vacuous variables [default = %s]\n", pPars->fCutMin? "yes": "no" );
-    Abc_Print( -2, "\t-s       : toggles sequential mapping [default = %s]\n", pPars->fDelayOptLut? "yes": "no" );
+    Abc_Print( -2, "\t-s       : toggles delay-oriented mapping used with -S <NN> [default = %s]\n", pPars->fDelayOptLut? "yes": "no" );
     Abc_Print( -2, "\t-d       : toggles deriving local AIGs using bi-decomposition [default = %s]\n", pPars->fBidec? "yes": "no" );
     Abc_Print( -2, "\t-b       : toggles the use of one special feature [default = %s]\n", pPars->fUseBat? "yes": "no" );
     Abc_Print( -2, "\t-u       : toggles the use of MUXes along with LUTs [default = %s]\n", fLutMux? "yes": "no" );
@@ -29881,8 +29879,7 @@ int Abc_CommandAbc9If( Abc_Frame_t * pAbc, int argc, char ** argv )
         pPars->fTruth      =  1;
         pPars->fCutMin     =  1;
         pPars->fExpRed     =  0;
-        pPars->fUsePerm    =  pPars->fDsdBalance;
-        pPars->fUseDsd     =  0;
+        pPars->fUseDsd     =  pPars->fDsdBalance;
         pPars->pLutLib     =  NULL;
     }
     // modify for delay optimization
@@ -29901,7 +29898,6 @@ int Abc_CommandAbc9If( Abc_Frame_t * pAbc, int argc, char ** argv )
         pPars->fTruth      =  1;
         pPars->fCutMin     =  1;
         pPars->fExpRed     =  0;
-        pPars->fUsePerm    =  0;
     }
 
     if ( pPars->fUseDsd )
@@ -29978,7 +29974,7 @@ usage:
     Abc_Print( -2, "\t-e       : uses edge-based cut selection heuristics [default = %s]\n", pPars->fEdge? "yes": "no" );
     Abc_Print( -2, "\t-p       : uses power-aware cut selection heuristics [default = %s]\n", pPars->fPower? "yes": "no" );
     Abc_Print( -2, "\t-m       : enables cut minimization by removing vacuous variables [default = %s]\n", pPars->fCutMin? "yes": "no" );
-    Abc_Print( -2, "\t-s       : toggles sequential mapping [default = %s]\n", pPars->fDelayOptLut? "yes": "no" );
+    Abc_Print( -2, "\t-s       : toggles delay-oriented mapping used with -S <NN> [default = %s]\n", pPars->fDelayOptLut? "yes": "no" );
     Abc_Print( -2, "\t-d       : toggles deriving local AIGs using bi-decomposition [default = %s]\n", pPars->fBidec? "yes": "no" );
     Abc_Print( -2, "\t-b       : toggles the use of one special feature [default = %s]\n", pPars->fUseBat? "yes": "no" );
     Abc_Print( -2, "\t-g       : toggles delay optimization by SOP balancing [default = %s]\n", pPars->fDelayOpt? "yes": "no" );
