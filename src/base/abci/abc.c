@@ -171,6 +171,7 @@ static int Abc_CommandInter                  ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandBb2Wb                  ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandOutdec                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandNodeDup                ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandTestColor              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandTest                   ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 static int Abc_CommandQuaVar                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -744,6 +745,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Various",      "bb2wb",         Abc_CommandBb2Wb,            0 );
     Cmd_CommandAdd( pAbc, "Various",      "outdec",        Abc_CommandOutdec,           1 );
     Cmd_CommandAdd( pAbc, "Various",      "nodedup",       Abc_CommandNodeDup,          1 );
+    Cmd_CommandAdd( pAbc, "Various",      "testcolor",     Abc_CommandTestColor,        0 );
     Cmd_CommandAdd( pAbc, "Various",      "test",          Abc_CommandTest,             0 );
 //    Cmd_CommandAdd( pAbc, "Various",      "qbf_solve",     Abc_CommandTest,               0 );
 
@@ -10279,6 +10281,24 @@ usage:
     Abc_Print( -2, "\t-N num : the number of fanouts to start duplication [default = %d]\n", nLimit );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandTestColor( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern void Abc_ColorTest();
+    Abc_ColorTest();
     return 1;
 }
 

@@ -2915,6 +2915,10 @@ SOURCE=.\src\misc\util\utilCex.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\misc\util\utilColor.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\misc\util\utilFile.c
 # End Source File
 # Begin Source File
