@@ -1676,6 +1676,7 @@ unsigned If_DsdManCheckXY_int( If_DsdMan_t * p, int iDsd, int LutSize, int fDeri
 {
     If_DsdObj_t * pObj, * pTemp; 
     int i, Mask, iFirst;
+    unsigned uRes;
     pObj = If_DsdVecObj( &p->vObjs, Abc_Lit2Var(iDsd) );
     if ( fVerbose )
     If_DsdManPrintOne( stdout, p, Abc_Lit2Var(iDsd), NULL, 0 );
@@ -1694,7 +1695,10 @@ unsigned If_DsdManCheckXY_int( If_DsdMan_t * p, int iDsd, int LutSize, int fDeri
             if ( fVerbose )
             If_DsdManPrintOne( stdout, p, pTemp->Id, NULL, 1 );
             iFirst = Vec_IntEntry(p->vTemp2, i);
-            return If_DsdSign_rec(p, pTemp, &iFirst);
+            uRes = If_DsdSign_rec(p, pTemp, &iFirst);
+            if ( uRes & uMaskNot )
+                continue;
+            return uRes;
         }
     If_DsdVecForEachObjVec( p->vTemp1, &p->vObjs, pTemp, i )
         if ( (If_DsdObjType(pTemp) == IF_DSD_AND || If_DsdObjType(pTemp) == IF_DSD_XOR) && If_DsdObjFaninNum(pTemp) > 2 && If_DsdObjSuppSize(pTemp) > LutSize )
