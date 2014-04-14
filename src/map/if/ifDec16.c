@@ -2141,10 +2141,11 @@ float If_CutDelayLutStruct( If_Man_t * p, If_Cut_t * pCut, char * pStr, float Wi
     // consider easy case
     if ( nLeaves <= Abc_MaxInt( nLutLeaf, nLutRoot ) )
     {
+        char * pPerm = If_CutPerm( pCut );
         assert( nLeaves <= 6 );
         for ( i = 0; i < nLeaves; i++ )
         {
-            pCut->pPerm[i] = 1;
+            pPerm[i] = 1;
             G1.pVars[i] = i;
         }
         G1.nVars = nLeaves;

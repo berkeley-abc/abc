@@ -62,6 +62,7 @@ static inline int If_CutMaxCubeSize( Vec_Int_t * vCover, int nVars )
 }
 int If_CutDelaySop( If_Man_t * p, If_Cut_t * pCut )
 {
+    char * pPerm = If_CutPerm( pCut );
     // delay is calculated using 1+log2(NumFanins)
     static double GateDelays[20] = { 1.00, 1.00, 2.00, 2.58, 3.00, 3.32, 3.58, 3.81, 4.00, 4.17, 4.32, 4.46, 4.58, 4.70, 4.81, 4.91, 5.00, 5.09, 5.17, 5.25 };
     Vec_Int_t * vCover;
@@ -90,7 +91,7 @@ int If_CutDelaySop( If_Man_t * p, If_Cut_t * pCut )
         Delay = (int)(GateDelays[If_CutLeaveNum(pCut)] + 0.5);
         DelayMax = 0;
         If_CutForEachLeaf( p, pCut, pLeaf, i )
-            DelayMax = Abc_MaxInt( DelayMax, If_ObjCutBest(pLeaf)->Delay + (pCut->pPerm[i] = (char)Delay) );
+            DelayMax = Abc_MaxInt( DelayMax, If_ObjCutBest(pLeaf)->Delay + (pPerm[i] = (char)Delay) );
     }
     else
     {
@@ -98,7 +99,7 @@ int If_CutDelaySop( If_Man_t * p, If_Cut_t * pCut )
         Delay = (int)(GateDelays[If_CutLeaveNum(pCut)] + GateDelays[nLitMax] + 0.5);
         DelayMax = 0;
         If_CutForEachLeaf( p, pCut, pLeaf, i )
-            DelayMax = Abc_MaxInt( DelayMax, If_ObjCutBest(pLeaf)->Delay + (pCut->pPerm[i] = (char)Delay) );
+            DelayMax = Abc_MaxInt( DelayMax, If_ObjCutBest(pLeaf)->Delay + (pPerm[i] = (char)Delay) );
     }
     return DelayMax;
 }

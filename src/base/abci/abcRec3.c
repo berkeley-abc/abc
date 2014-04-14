@@ -906,6 +906,7 @@ static inline int If_CutFindBestStruct( If_Man_t * pIfMan, If_Cut_t * pCut, char
     int i, * pTruthId, iFirstPo, iFirstPoNext, iBestPo;
     int BestDelay = ABC_INFINITY, BestArea = ABC_INFINITY, Delay, Area;
     int uSupport, nLeaves = If_CutLeaveNum( pCut );
+    char * pPerm = If_CutPerm( pCut );
     word DelayProfile;
     abctime clk;
     pCut->fUser = 1;
@@ -915,7 +916,7 @@ static inline int If_CutFindBestStruct( If_Man_t * pIfMan, If_Cut_t * pCut, char
     {
         pCut->Cost = 1;
         for ( i = 0; i < nLeaves; i++ )
-            pCut->pPerm[i] = IF_BIG_CHAR;
+            pPerm[i] = IF_BIG_CHAR;
         return 0;
     }
     if ( !Abc_TtSuppIsMinBase(uSupport) || uSupport == 1 )
@@ -923,8 +924,8 @@ static inline int If_CutFindBestStruct( If_Man_t * pIfMan, If_Cut_t * pCut, char
         assert( Abc_TtSuppOnlyOne(uSupport) );
         pCut->Cost = 1;
         for ( i = 0; i < nLeaves; i++ )
-            pCut->pPerm[i] = IF_BIG_CHAR;
-        pCut->pPerm[Abc_TtSuppFindFirst(uSupport)] = 0;
+            pPerm[i] = IF_BIG_CHAR;
+        pPerm[Abc_TtSuppFindFirst(uSupport)] = 0;
         return If_ObjCutBest(If_ManObj(pIfMan, pCut->pLeaves[Abc_TtSuppFindFirst(uSupport)]))->Delay;
     }
     assert( Gia_WordCountOnes(uSupport) == nLeaves );
@@ -977,7 +978,7 @@ p->timeCanon += Abc_Clock() - clk;
     DelayProfile = Vec_WrdEntry(p->vDelays, iBestPo);
     pCut->Cost = Vec_StrEntry(p->vAreas, iBestPo);
     for ( i = 0; i < nLeaves; i++ )
-        pCut->pPerm[(int)pCanonPerm[i]] = Lms_DelayGet(DelayProfile, i);
+        pPerm[(int)pCanonPerm[i]] = Lms_DelayGet(DelayProfile, i);
     return BestDelay; 
 }
 int If_CutDelayRecCost3( If_Man_t * pIfMan, If_Cut_t * pCut, If_Obj_t * pObj )

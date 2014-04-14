@@ -419,26 +419,6 @@ void If_ManCreateChoice( If_Man_t * p, If_Obj_t * pObj )
 
 /**Function*************************************************************
 
-  Synopsis    [Prepares memory for one cut.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void If_ManSetupCut( If_Man_t * p, If_Cut_t * pCut )
-{
-    memset( pCut, 0, sizeof(If_Cut_t) );
-    pCut->nLimit  = p->pPars->nLutSize;
-    pCut->pLeaves = (int *)(pCut + 1);
-    if ( p->pPars->fUsePerm )
-        pCut->pPerm  = (char *)(pCut->pLeaves + p->pPars->nLutSize);
-}
-
-/**Function*************************************************************
-
   Synopsis    [Prepares memory for one cutset.]
 
   Description []
@@ -459,7 +439,7 @@ void If_ManSetupSet( If_Man_t * p, If_Set_t * pSet )
     for ( i = 0; i <= pSet->nCutsMax; i++ )
     {
         pSet->ppCuts[i] = (If_Cut_t *)(pArray + i * p->nCutBytes); 
-        If_ManSetupCut( p, pSet->ppCuts[i] );
+        If_CutSetup( p, pSet->ppCuts[i] );
     }
 //    pArray += (pSet->nCutsMax + 1) * p->nCutBytes;
 //    assert( ((char *)pArray) - ((char *)pSet) == p->nSetBytes );
@@ -505,7 +485,7 @@ If_Obj_t * If_ManSetupObj( If_Man_t * p )
     // get memory for the object
     pObj = (If_Obj_t *)Mem_FixedEntryFetch( p->pMemObj );
     memset( pObj, 0, sizeof(If_Obj_t) );
-    If_ManSetupCut( p, &pObj->CutBest );
+    If_CutSetup( p, &pObj->CutBest );
     // assign ID and save 
     pObj->Id = Vec_PtrSize(p->vObjs);
     Vec_PtrPush( p->vObjs, pObj );

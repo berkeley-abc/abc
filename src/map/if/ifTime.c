@@ -92,6 +92,7 @@ float If_CutDelay( If_Man_t * p, If_Obj_t * pObj, If_Cut_t * pCut )
 {
     static int pPinPerm[IF_MAX_LUTSIZE];
     static float pPinDelays[IF_MAX_LUTSIZE];
+    char * pPerm = If_CutPerm( pCut );
     If_Obj_t * pLeaf;
     float Delay, DelayCur;
     float * pLutDelays;
@@ -127,7 +128,7 @@ float If_CutDelay( If_Man_t * p, If_Obj_t * pObj, If_Cut_t * pCut )
             assert( !p->pPars->fLiftLeaves );
             If_CutForEachLeaf( p, pCut, pLeaf, i )
             {
-                Pin2PinDelay = pCut->pPerm ? (pCut->pPerm[i] == IF_BIG_CHAR ? -IF_BIG_CHAR : pCut->pPerm[i]) : 1;
+                Pin2PinDelay = pPerm ? (pPerm[i] == IF_BIG_CHAR ? -IF_BIG_CHAR : pPerm[i]) : 1;
                 DelayCur = If_ObjCutBest(pLeaf)->Delay + (float)Pin2PinDelay;
                 Delay = IF_MAX( Delay, DelayCur );
             }
@@ -218,7 +219,7 @@ void If_CutPropagateRequired( If_Man_t * p, If_Obj_t * pObj, If_Cut_t * pCut, fl
                 assert( Delay == (int)pCut->Delay );
             }
             else 
-                pPerm = pCut->pPerm;
+                pPerm = If_CutPerm(pCut);
             If_CutForEachLeaf( p, pCut, pLeaf, i )
             {
                 Pin2PinDelay = pPerm ? (pPerm[i] == IF_BIG_CHAR ? -IF_BIG_CHAR : pPerm[i]) : 1;

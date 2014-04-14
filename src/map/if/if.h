@@ -282,8 +282,7 @@ struct If_Cut_t_
     unsigned           fUseless:  1;  // using the user's area and delay
     unsigned           nLimit  :  8;  // the maximum number of leaves
     unsigned           nLeaves :  8;  // the number of leaves
-    int *              pLeaves;       // array of fanins
-    char *             pPerm;         // permutation
+    int                pLeaves[0];
 };
 
 // set of priority cut
@@ -390,6 +389,9 @@ static inline unsigned   If_CutSuppMask( If_Cut_t * pCut )                   { r
 static inline int        If_CutTruthWords( int nVarsMax )                    { return nVarsMax <= 5 ? 2 : (1 << (nVarsMax - 5)); }
 static inline int        If_CutPermWords( int nVarsMax )                     { return nVarsMax / sizeof(int) + ((nVarsMax % sizeof(int)) > 0); }
 static inline int        If_CutLeafBit( If_Cut_t * pCut, int i )             { return (pCut->uMaskFunc >> i) & 1;                }
+static inline char *     If_CutPerm( If_Cut_t * pCut )                       { return (char *)(pCut->pLeaves + pCut->nLeaves);   }
+static inline void       If_CutCopy( If_Man_t * p, If_Cut_t * pDst, If_Cut_t * pSrc ) { memcpy( pDst, pSrc, p->nCutBytes );      }
+static inline void       If_CutSetup( If_Man_t * p, If_Cut_t * pCut        ) { memset(pCut, 0, p->nCutBytes); pCut->nLimit = p->pPars->nLutSize; }
 
 static inline If_Cut_t * If_ObjCutBest( If_Obj_t * pObj )                    { return &pObj->CutBest;                }
 static inline unsigned   If_ObjCutSign( unsigned ObjId )                     { return (1 << (ObjId % 31));           }

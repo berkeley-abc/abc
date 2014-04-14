@@ -905,34 +905,6 @@ void If_CutLift( If_Cut_t * pCut )
     }
 }
 
-/**Function*************************************************************
-
-  Synopsis    [Computes area of the first level.]
-
-  Description [The cut need to be derefed.]
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void If_CutCopy( If_Man_t * p, If_Cut_t * pCutDest, If_Cut_t * pCutSrc )
-{
-    int * pLeaves;
-    char * pPerm;
-//    unsigned * pTruth;
-    // save old arrays
-    pLeaves = pCutDest->pLeaves;
-    pPerm   = pCutDest->pPerm;
-//    pTruth  = pCutDest->pTruth;
-    // copy the cut info
-    memcpy( pCutDest, pCutSrc, p->nCutBytes );
-    // restore the arrays
-    pCutDest->pLeaves = pLeaves;
-    pCutDest->pPerm   = pPerm;
-//    pCutDest->pTruth  = pTruth;
-}
-
 
 /**Function*************************************************************
 
