@@ -473,10 +473,10 @@ int If_CutCompareArea( If_Man_t * p, If_Cut_t ** ppC0, If_Cut_t ** ppC1 )
         return -1;
     if ( pC0->Area > pC1->Area + p->fEpsilon )
         return 1;
-    if ( pC0->AveRefs > pC1->AveRefs )
-        return -1;
-    if ( pC0->AveRefs < pC1->AveRefs )
-        return 1;
+//    if ( pC0->AveRefs > pC1->AveRefs )
+//        return -1;
+//    if ( pC0->AveRefs < pC1->AveRefs )
+//        return 1;
     if ( pC0->nLeaves < pC1->nLeaves )
         return -1;
     if ( pC0->nLeaves > pC1->nLeaves )
@@ -519,10 +519,10 @@ static inline int If_ManSortCompare( If_Man_t * p, If_Cut_t * pC0, If_Cut_t * pC
                 return -1;
             if ( pC0->Edge > pC1->Edge + p->fEpsilon )
                 return 1;
-            if ( pC0->AveRefs > pC1->AveRefs )
-                return -1;
-            if ( pC0->AveRefs < pC1->AveRefs )
-                return 1;
+//            if ( pC0->AveRefs > pC1->AveRefs )
+//                return -1;
+//            if ( pC0->AveRefs < pC1->AveRefs )
+//                return 1;
             if ( pC0->nLeaves < pC1->nLeaves )
                 return -1;
             if ( pC0->nLeaves > pC1->nLeaves )
@@ -596,10 +596,10 @@ static inline int If_ManSortCompare( If_Man_t * p, If_Cut_t * pC0, If_Cut_t * pC
                 return -1;
             if ( pC0->Power > pC1->Power + p->fEpsilon )
                 return 1;
-            if ( pC0->AveRefs > pC1->AveRefs )
-                return -1;
-            if ( pC0->AveRefs < pC1->AveRefs )
-                return 1;
+//            if ( pC0->AveRefs > pC1->AveRefs )
+//                return -1;
+//            if ( pC0->AveRefs < pC1->AveRefs )
+//                return 1;
             if ( pC0->nLeaves < pC1->nLeaves )
                 return -1;
             if ( pC0->nLeaves > pC1->nLeaves )
@@ -678,10 +678,10 @@ static inline int If_ManSortCompare_old( If_Man_t * p, If_Cut_t * pC0, If_Cut_t 
             return -1;
         if ( pC0->Area > pC1->Area + p->fEpsilon )
             return 1;
-        if ( pC0->AveRefs > pC1->AveRefs )
-            return -1;
-        if ( pC0->AveRefs < pC1->AveRefs )
-            return 1;
+//        if ( pC0->AveRefs > pC1->AveRefs )
+//            return -1;
+//        if ( pC0->AveRefs < pC1->AveRefs )
+//            return 1;
         if ( pC0->nLeaves < pC1->nLeaves )
             return -1;
         if ( pC0->nLeaves > pC1->nLeaves )

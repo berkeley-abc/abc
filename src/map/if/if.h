@@ -268,11 +268,10 @@ struct If_Man_t_
 // priority cut
 struct If_Cut_t_
 {
+    float              Delay;         // delay of the cut
     float              Area;          // area (or area-flow) of the cut
-    float              AveRefs;       // the average number of leaf references
     float              Edge;          // the edge flow
     float              Power;         // the power flow
-    float              Delay;         // delay of the cut
     int                iCutFunc;      // TT ID of the cut
     int                uMaskFunc;     // polarity bitmask
     unsigned           uSign;         // cut signature
