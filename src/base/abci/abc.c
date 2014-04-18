@@ -25030,6 +25030,18 @@ int Abc_CommandAbc9Put( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
         }
     }
+    // transfer PO names to pNtk
+    if ( pAbc->pGia->vNamesOut )
+    {
+        Abc_Obj_t * pObj;
+        int i;
+        Abc_NtkForEachCo( pNtk, pObj, i ) {
+            if (i < Vec_PtrSize(pAbc->pGia->vNamesOut)) {
+                Nm_ManDeleteIdName(pNtk->pManName, pObj->Id);
+                Abc_ObjAssignName( pObj, (char *)Vec_PtrEntry(pAbc->pGia->vNamesOut, i), NULL );
+            }
+        }
+    }
     // replace the current network
     Abc_FrameReplaceCurrentNetwork( pAbc, pNtk );
     if ( fStatusClear )
