@@ -379,6 +379,7 @@ void Gia_ManPrintChoiceStats( Gia_Man_t * p )
 ***********************************************************************/
 void Gia_ManPrintStats( Gia_Man_t * p, Gps_Par_t * pPars )
 {
+    extern float Gia_ManLevelAve( Gia_Man_t * p );
     if ( p->pName )
         Abc_Print( 1, "%-8s : ", p->pName );
     Abc_Print( 1, "i/o =%7d/%7d", Gia_ManPiNum(p), Gia_ManPoNum(p) );
@@ -387,7 +388,9 @@ void Gia_ManPrintStats( Gia_Man_t * p, Gps_Par_t * pPars )
     if ( Gia_ManRegNum(p) )
         Abc_Print( 1, "  ff =%7d", Gia_ManRegNum(p) );
     Abc_Print( 1, "  %s =%8d", p->pMuxes? "nod" : "and", Gia_ManAndNum(p) );
-    Abc_Print( 1, "  lev =%5d", Gia_ManLevelNum(p) ); Vec_IntFreeP( &p->vLevels );
+    Abc_Print( 1, "  lev =%5d", Gia_ManLevelNum(p) ); 
+    Abc_Print( 1, " (%.2f)", Gia_ManLevelAve(p) ); 
+    Vec_IntFreeP( &p->vLevels );
     if ( pPars && pPars->fCut )
         Abc_Print( 1, "  cut = %d(%d)", Gia_ManCrossCut(p, 0), Gia_ManCrossCut(p, 1) );
     Abc_Print( 1, "  mem =%5.2f MB", Gia_ManMemory(p)/(1<<20) );

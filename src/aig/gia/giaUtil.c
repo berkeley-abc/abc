@@ -510,6 +510,15 @@ int Gia_ManLevelNum( Gia_Man_t * p )
     }
     return p->nLevels;
 }
+float Gia_ManLevelAve( Gia_Man_t * p )  
+{
+    Gia_Obj_t * pObj;
+    int i, Ave = 0;
+    assert( p->vLevels );
+    Gia_ManForEachCo( p, pObj, i )
+        Ave += Gia_ObjLevel(p, pObj);
+    return (float)Ave / Gia_ManCoNum(p);
+}
 
 /**Function*************************************************************
 

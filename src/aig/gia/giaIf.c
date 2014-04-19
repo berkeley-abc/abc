@@ -306,8 +306,9 @@ int Gia_ManComputeOverlap( Gia_Man_t * p )
 ***********************************************************************/
 void Gia_ManPrintMappingStats( Gia_Man_t * p, char * pDumpFile )
 {
+    Gia_Obj_t * pObj;
     int * pLevels;
-    int i, k, iFan, nLutSize = 0, nLuts = 0, nFanins = 0, LevelMax = 0;
+    int i, k, iFan, nLutSize = 0, nLuts = 0, nFanins = 0, LevelMax = 0, Ave = 0;
     if ( !Gia_ManHasMapping(p) )
         return;
     pLevels = ABC_CALLOC( int, Gia_ManObjNum(p) );
@@ -321,11 +322,14 @@ void Gia_ManPrintMappingStats( Gia_Man_t * p, char * pDumpFile )
         pLevels[i]++;
         LevelMax = Abc_MaxInt( LevelMax, pLevels[i] );
     }
+    Gia_ManForEachCo( p, pObj, i )
+        Ave += pLevels[Gia_ObjFaninId0p(p, pObj)];
     ABC_FREE( pLevels );
     Abc_Print( 1, "Mapping (K=%d)  :  ", nLutSize );
     Abc_Print( 1, "lut =%7d  ", nLuts );
     Abc_Print( 1, "edge =%8d  ", nFanins );
-    Abc_Print( 1, "lev =%5d  ", LevelMax );
+    Abc_Print( 1, "lev =%5d ", LevelMax );
+    Abc_Print( 1, "(%.2f)  ", (float)Ave / Gia_ManCoNum(p) );
     Abc_Print( 1, "over =%5.1f %%  ", 100.0 * Gia_ManComputeOverlap(p) / Gia_ManAndNum(p) );
     Abc_Print( 1, "mem =%5.2f MB", 4.0*(Gia_ManObjNum(p) + 2*nLuts + nFanins)/(1<<20) );
     Abc_Print( 1, "\n" );
