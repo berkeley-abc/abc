@@ -222,9 +222,9 @@ void If_ManStop( If_Man_t * p )
     Vec_PtrFreeP( &p->vObjsRev );
     Vec_PtrFreeP( &p->vLatchOrder );
     Vec_IntFreeP( &p->vLags );
-    for ( i = 6; i <= p->pPars->nLutSize; i++ )
+    for ( i = 6; i <= Abc_MaxInt(6,p->pPars->nLutSize); i++ )
         Vec_IntFreeP( &p->vTtDsds[i] );
-    for ( i = 6; i <= p->pPars->nLutSize; i++ )
+    for ( i = 6; i <= Abc_MaxInt(6,p->pPars->nLutSize); i++ )
         Vec_StrFreeP( &p->vTtPerms[i] );
     Vec_IntFreeP( &p->vCutData );
     Vec_IntFreeP( &p->vPairRes );

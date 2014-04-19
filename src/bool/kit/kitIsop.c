@@ -101,10 +101,9 @@ int Kit_TruthIsop( unsigned * puTruth, int nVars, Vec_Int_t * vMemory, int fTryB
     Vec_IntShrink( vMemory, pcRes->nCubes );
     return RetValue;
 }
-void Kit_TruthIsopPrint( unsigned * puTruth, int nVars, Vec_Int_t * vCover, int fTryBoth )
+void Kit_TruthIsopPrintCover( Vec_Int_t * vCover, int nVars, int fCompl )
 {
     int i, k, Entry, Literal;
-    int RetValue = Kit_TruthIsop( puTruth, nVars, vCover, fTryBoth );
     if ( Vec_IntSize(vCover) == 0 || (Vec_IntSize(vCover) == 1 && Vec_IntEntry(vCover, 0) == 0) )
     {
         printf( "Constant %d\n", Vec_IntSize(vCover) );
@@ -123,8 +122,13 @@ void Kit_TruthIsopPrint( unsigned * puTruth, int nVars, Vec_Int_t * vCover, int 
                 printf( "-" );
             else assert( 0 );
         }
-        printf( " %d\n", !RetValue );
+        printf( " %d\n", !fCompl );
     }
+}
+void Kit_TruthIsopPrint( unsigned * puTruth, int nVars, Vec_Int_t * vCover, int fTryBoth )
+{
+    int fCompl = Kit_TruthIsop( puTruth, nVars, vCover, fTryBoth );
+    Kit_TruthIsopPrintCover( vCover, nVars, fCompl );
 }
 
 /**Function*************************************************************

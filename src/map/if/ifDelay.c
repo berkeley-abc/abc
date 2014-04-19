@@ -116,13 +116,13 @@ int If_CutDelaySop( If_Man_t * p, If_Cut_t * pCut )
   SeeAlso     []
 
 ***********************************************************************/
-int If_CutSopBalancePinDelaysInt( Vec_Int_t * vCover, int * pTimes, int nSuppAll, char * pPerm )
+int If_CutSopBalancePinDelaysInt( Vec_Int_t * vCover, int * pTimes, word * pFaninRes, int nSuppAll, word * pRes )
 {
     word pPinDelsAnd[IF_MAX_FUNC_LUTSIZE], pPinDelsOr[IF_MAX_CUBES];
     int nCounterAnd, pCounterAnd[IF_MAX_FUNC_LUTSIZE];
     int nCounterOr,  pCounterOr[IF_MAX_CUBES];
     int i, k, Entry, Literal, Delay = 0;
-    word ResAnd, ResOr;
+    word ResAnd;
     if ( Vec_IntSize(vCover) > IF_MAX_CUBES )
         return -1;
     nCounterOr = 0;
@@ -133,7 +133,7 @@ int If_CutSopBalancePinDelaysInt( Vec_Int_t * vCover, int * pTimes, int nSuppAll
         {
             Literal = 3 & (Entry >> (k << 1));
             if ( Literal == 1 || Literal == 2 ) // neg or pos literal
-                Delay = If_LogCounterPinDelays( pCounterAnd, &nCounterAnd, pPinDelsAnd, pTimes[k], If_CutPinDelayInit(k), nSuppAll, 0 );
+                Delay = If_LogCounterPinDelays( pCounterAnd, &nCounterAnd, pPinDelsAnd, pTimes[k], pFaninRes[k], nSuppAll, 0 );
             else if ( Literal != 0 ) 
                 assert( 0 );
         }
@@ -142,8 +142,17 @@ int If_CutSopBalancePinDelaysInt( Vec_Int_t * vCover, int * pTimes, int nSuppAll
         Delay = If_LogCounterPinDelays( pCounterOr, &nCounterOr, pPinDelsOr, Delay, ResAnd, nSuppAll, 0 );
     }
     assert( nCounterOr > 0 );
-    ResOr = If_LogPinDelaysMulti( pPinDelsOr, nCounterOr, nSuppAll, 0 );
-    If_CutPinDelayTranslate( ResOr, nSuppAll, pPerm );
+    *pRes = If_LogPinDelaysMulti( pPinDelsOr, nCounterOr, nSuppAll, 0 );
+    return Delay;
+}
+int If_CutSopBalancePinDelaysIntInt( Vec_Int_t * vCover, int * pTimes, int nSuppAll, char * pPerm )
+{
+    int i, Delay;
+    word Res, FaninRes[IF_MAX_FUNC_LUTSIZE];
+    for ( i = 0; i < nSuppAll; i++ )
+        FaninRes[i] = If_CutPinDelayInit(i);
+    Delay = If_CutSopBalancePinDelaysInt( vCover, pTimes, FaninRes, nSuppAll, &Res );
+    If_CutPinDelayTranslate( Res, nSuppAll, pPerm );
     return Delay;
 }
 int If_CutSopBalancePinDelays( If_Man_t * p, If_Cut_t * pCut, char * pPerm )
@@ -164,7 +173,7 @@ int If_CutSopBalancePinDelays( If_Man_t * p, If_Cut_t * pCut, char * pPerm )
             return -1;
         for ( i = 0; i < If_CutLeaveNum(pCut); i++ )
             pTimes[i] = (int)If_ObjCutBest(If_CutLeaf(p, pCut, i))->Delay; 
-        return If_CutSopBalancePinDelaysInt( vCover, pTimes, If_CutLeaveNum(pCut), pPerm );
+        return If_CutSopBalancePinDelaysIntInt( vCover, pTimes, If_CutLeaveNum(pCut), pPerm );
     }
 }
 
@@ -179,7 +188,7 @@ int If_CutSopBalancePinDelays( If_Man_t * p, If_Cut_t * pCut, char * pPerm )
   SeeAlso     []
 
 ***********************************************************************/
-int If_CutSopBalanceEvalIntInt( Vec_Int_t * vCover, int * pTimes, Vec_Int_t * vAig, int * piRes, int nSuppAll, int * pArea )
+int If_CutSopBalanceEvalInt( Vec_Int_t * vCover, int * pTimes, int * pFaninLits, Vec_Int_t * vAig, int * piRes, int nSuppAll, int * pArea )
 {
     int nCounterAnd, pCounterAnd[IF_MAX_FUNC_LUTSIZE], pFaninLitsAnd[IF_MAX_FUNC_LUTSIZE];
     int nCounterOr,  pCounterOr[IF_MAX_CUBES],  pFaninLitsOr[IF_MAX_CUBES];
@@ -194,9 +203,9 @@ int If_CutSopBalanceEvalIntInt( Vec_Int_t * vCover, int * pTimes, Vec_Int_t * vA
         {
             Literal = 3 & (Entry >> (k << 1));
             if ( Literal == 1 ) // neg literal
-                nLits++, Delay = If_LogCounterAddAig( pCounterAnd, &nCounterAnd, pFaninLitsAnd, pTimes[k], Abc_Var2Lit(k, 1), vAig, nSuppAll, 0 );
+                nLits++, Delay = If_LogCounterAddAig( pCounterAnd, &nCounterAnd, pFaninLitsAnd, pTimes[k], Abc_LitNot(pFaninLits[k]), vAig, nSuppAll, 0 );
             else if ( Literal == 2 ) // pos literal
-                nLits++, Delay = If_LogCounterAddAig( pCounterAnd, &nCounterAnd, pFaninLitsAnd, pTimes[k], Abc_Var2Lit(k, 0), vAig, nSuppAll, 0 );
+                nLits++, Delay = If_LogCounterAddAig( pCounterAnd, &nCounterAnd, pFaninLitsAnd, pTimes[k], pFaninLits[k], vAig, nSuppAll, 0 );
             else if ( Literal != 0 ) 
                 assert( 0 );
         }
@@ -210,17 +219,23 @@ int If_CutSopBalanceEvalIntInt( Vec_Int_t * vCover, int * pTimes, Vec_Int_t * vA
     }
     assert( nCounterOr > 0 );
     if ( vAig )
+    {
         *piRes = Abc_LitNot( If_LogCreateAndXorMulti( vAig, pFaninLitsOr, nCounterOr, nSuppAll, 0 ) );
+        if ( ((vCover->nCap >> 16) & 1) )  // hack to remember complemented attribute
+            *piRes = Abc_LitNot( *piRes );
+    }
     else       
         *pArea += Vec_IntSize(vCover) == 1 ? 0 : Vec_IntSize(vCover) - 1;
     return Delay;
 }
-int If_CutSopBalanceEvalInt( Vec_Int_t * vCover, int nLeaves, int * pTimes, Vec_Int_t * vAig, int fCompl, int * pArea ) 
+int If_CutSopBalanceEvalIntInt( Vec_Int_t * vCover, int nLeaves, int * pTimes, Vec_Int_t * vAig, int fCompl, int * pArea ) 
 {
-    int iRes = 0, Res;
-    if ( Vec_IntSize(vCover) == 0 )
-        return -1;
-    Res = If_CutSopBalanceEvalIntInt( vCover, pTimes, vAig, &iRes, nLeaves, pArea );
+    int pFaninLits[IF_MAX_FUNC_LUTSIZE];
+    int iRes = 0, Res, k;
+    if ( vAig )
+        for ( k = 0; k < nLeaves; k++ )
+            pFaninLits[k] = Abc_Var2Lit(k, 0);
+    Res = If_CutSopBalanceEvalInt( vCover, pTimes, pFaninLits, vAig, &iRes, nLeaves, pArea );
     if ( Res == -1 )
         return -1;
     assert( vAig == NULL || Abc_Lit2Var(iRes) == nLeaves + Abc_Lit2Var(Vec_IntSize(vAig)) - 1 );
@@ -255,12 +270,14 @@ int If_CutSopBalanceEval( If_Man_t * p, If_Cut_t * pCut, Vec_Int_t * vAig )
     else
     {
         Vec_Int_t * vCover = Vec_WecEntry( p->vTtIsops[pCut->nLeaves], Abc_Lit2Var(If_CutTruthLit(pCut)) );
-        int fCompl = Abc_LitIsCompl(If_CutTruthLit(pCut)) ^ ((vCover->nCap >> 16) & 1); // hack to remember complemented attribute
         int Delay, Area = 0;
         int i, pTimes[IF_MAX_FUNC_LUTSIZE];
+        if ( vCover == NULL )
+            return -1;
+        assert( Vec_IntSize(vCover) > 0 );
         for ( i = 0; i < If_CutLeaveNum(pCut); i++ )
             pTimes[i] = (int)If_ObjCutBest(If_CutLeaf(p, pCut, i))->Delay; 
-        Delay = If_CutSopBalanceEvalInt( vCover, If_CutLeaveNum(pCut), pTimes, vAig, fCompl, &Area );
+        Delay = If_CutSopBalanceEvalIntInt( vCover, If_CutLeaveNum(pCut), pTimes, vAig, Abc_LitIsCompl(If_CutTruthLit(pCut)), &Area );
         pCut->Cost = Area;
         return Delay;
     }

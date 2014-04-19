@@ -24,6 +24,7 @@
 #include "misc/extra/extra.h"
 #include "sat/bsat/satSolver.h"
 #include "aig/gia/gia.h"
+#include "bool/kit/kit.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -72,6 +73,7 @@ struct If_DsdMan_t_
     word **        pTtElems;       // elementary TTs
     Vec_Mem_t *    vTtMem[IF_MAX_FUNC_LUTSIZE+1];  // truth table memory and hash table
     Vec_Ptr_t *    vTtDecs[IF_MAX_FUNC_LUTSIZE+1]; // truth table decompositions
+    Vec_Wec_t *    vIsops[IF_MAX_FUNC_LUTSIZE+1];  // ISOP for each function
     int *          pSched[IF_MAX_FUNC_LUTSIZE];    // grey code schedules
     Gia_Man_t *    pTtGia;         // GIA to represent truth tables
     Vec_Int_t *    vCover;         // temporary memory
@@ -232,13 +234,40 @@ If_DsdMan_t * If_DsdManAlloc( int nVars, int LutSize )
     Gia_ManHashAlloc( p->pTtGia );
     for ( v = 0; v < nVars; v++ )
         Gia_ManAppendCi( p->pTtGia );
-    p->vCover   = Vec_IntAlloc( 0 );
 */
     for ( v = 2; v < nVars; v++ )
         p->pSched[v] = Extra_GreyCodeSchedule( v );
     if ( LutSize )
     p->pSat     = If_ManSatBuildXY( LutSize );
+    p->vCover   = Vec_IntAlloc( 0 );
     return p;
+}
+void If_DsdManAllocIsops( If_DsdMan_t * p, int nLutSize )
+{
+    Vec_Int_t * vLevel;
+    int v, i, fCompl;
+    word * pTruth;
+    if ( p->vIsops[3] != NULL )
+        return;
+    if ( Vec_PtrSize(&p->vObjs) > 2 )
+        printf( "Warning: DSD manager is already started without ISOPs.\n" );
+    for ( v = 3; v <= nLutSize; v++ )
+    {
+        p->vIsops[v] = Vec_WecAlloc( 100 );
+        Vec_MemForEachEntry( p->vTtMem[v], pTruth, i )
+        {
+            vLevel = Vec_WecPushLevel( p->vIsops[v] );
+            fCompl = Kit_TruthIsop( (unsigned *)pTruth, v, p->vCover, 1 );
+            if ( fCompl >= 0 && Vec_IntSize(p->vCover) <= 8 )
+            {
+                Vec_IntGrow( vLevel, Vec_IntSize(p->vCover) );
+                Vec_IntAppend( vLevel, p->vCover );
+                if ( fCompl )
+                    vLevel->nCap ^= (1<<16); // hack to remember complemented attribute
+            }
+        }
+        assert( Vec_WecSize(p->vIsops[v]) == Vec_MemEntryNum(p->vTtMem[v]) );
+    }
 }
 void If_DsdManFree( If_DsdMan_t * p, int fVerbose )
 {
@@ -262,6 +291,8 @@ void If_DsdManFree( If_DsdMan_t * p, int fVerbose )
         Vec_MemHashFree( p->vTtMem[v] );
         Vec_MemFree( p->vTtMem[v] );
         Vec_VecFree( (Vec_Vec_t *)(p->vTtDecs[v]) );
+        if ( p->vIsops[v] )
+            Vec_WecFree( p->vIsops[v] );
     }
     Vec_IntFreeP( &p->vTemp1 );
     Vec_IntFreeP( &p->vTemp2 );
@@ -842,6 +873,7 @@ int If_DsdObjCreate( If_DsdMan_t * p, int Type, int * pLits, int nLits, int trut
 }
 int If_DsdObjFindOrAdd( If_DsdMan_t * p, int Type, int * pLits, int nLits, word * pTruth )
 {
+    int PrevSize       = (Type == IF_DSD_PRIME) ? Vec_MemEntryNum( p->vTtMem[nLits] ) : -1;   
     int objId, truthId = (Type == IF_DSD_PRIME) ? Vec_MemHashInsert(p->vTtMem[nLits], pTruth) : -1;
     unsigned * pSpot = If_DsdObjHashLookup( p, Type, pLits, nLits, truthId );
 //abctime clk;
@@ -854,6 +886,19 @@ int If_DsdObjFindOrAdd( If_DsdMan_t * p, int Type, int * pLits, int nLits, word 
         assert( truthId == Vec_MemEntryNum(p->vTtMem[nLits])-1 );
         Vec_PtrPush( p->vTtDecs[nLits], vSets );
 //        Dau_DecPrintSets( vSets, nLits );
+    }
+    if ( p->vIsops[nLits] && truthId >= 0 && PrevSize != Vec_MemEntryNum(p->vTtMem[nLits]) )
+    {
+        Vec_Int_t * vLevel = Vec_WecPushLevel( p->vIsops[nLits] );
+        int fCompl = Kit_TruthIsop( (unsigned *)pTruth, nLits, p->vCover, 1 );
+        if ( fCompl >= 0 && Vec_IntSize(p->vCover) <= 8 )
+        {
+            Vec_IntGrow( vLevel, Vec_IntSize(p->vCover) );
+            Vec_IntAppend( vLevel, p->vCover );
+            if ( fCompl )
+                vLevel->nCap ^= (1<<16); // hack to remember complemented attribute
+        }
+        assert( Vec_WecSize(p->vIsops[nLits]) == Vec_MemEntryNum(p->vTtMem[nLits]) );
     }
     if ( p->pTtGia && truthId >= 0 && truthId == Vec_MemEntryNum(p->vTtMem[nLits])-1 )
     {
@@ -1868,7 +1913,6 @@ void If_DsdManTest()
 int If_CutDsdBalancePinDelays_rec( If_DsdMan_t * p, int Id, int * pTimes, word * pRes, int * pnSupp, int nSuppAll, char * pPermLits )
 {
     If_DsdObj_t * pObj = If_DsdVecObj( &p->vObjs, Id );
-    assert( If_DsdObjType(pObj) != IF_DSD_PRIME );
     if ( If_DsdObjType(pObj) == IF_DSD_VAR )
     {
         int iCutVar = Abc_Lit2Var(pPermLits[(*pnSupp)++]);
@@ -1878,13 +1922,23 @@ int If_CutDsdBalancePinDelays_rec( If_DsdMan_t * p, int Id, int * pTimes, word *
     if ( If_DsdObjType(pObj) == IF_DSD_MUX )
     {
         word pFaninRes[3], Res0, Res1;
-        int i, iFanin, Delay[3];
+        int i, iFanin, Delays[3];
         If_DsdObjForEachFaninLit( &p->vObjs, pObj, iFanin, i )
-            Delay[i] = If_CutDsdBalancePinDelays_rec( p, Abc_Lit2Var(iFanin), pTimes, pFaninRes+i, pnSupp, nSuppAll, pPermLits );
+            Delays[i] = If_CutDsdBalancePinDelays_rec( p, Abc_Lit2Var(iFanin), pTimes, pFaninRes+i, pnSupp, nSuppAll, pPermLits );
         Res0 = If_CutPinDelayMax( pFaninRes[0], pFaninRes[1], nSuppAll, 1 );
         Res1 = If_CutPinDelayMax( pFaninRes[0], pFaninRes[2], nSuppAll, 1 );
         *pRes = If_CutPinDelayMax( Res0, Res1, nSuppAll, 1 );
-        return 2 + Abc_MaxInt(Delay[0], Abc_MaxInt(Delay[1], Delay[2]));
+        return 2 + Abc_MaxInt(Delays[0], Abc_MaxInt(Delays[1], Delays[2]));
+    }
+    if ( If_DsdObjType(pObj) == IF_DSD_PRIME )
+    {
+        word pFaninRes[IF_MAX_FUNC_LUTSIZE];
+        int i, iFanin, Delays[IF_MAX_FUNC_LUTSIZE];
+        Vec_Int_t * vCover = Vec_WecEntry( p->vIsops[pObj->nFans], If_DsdObjTruthId(p, pObj) );
+        assert( Vec_IntSize(vCover) > 0 );
+        If_DsdObjForEachFaninLit( &p->vObjs, pObj, iFanin, i )
+            Delays[i] = If_CutDsdBalancePinDelays_rec( p, Abc_Lit2Var(iFanin), pTimes, pFaninRes+i, pnSupp, nSuppAll, pPermLits );
+        return If_CutSopBalancePinDelaysInt( vCover, Delays, pFaninRes, nSuppAll, pRes );
     }
     assert( If_DsdObjType(pObj) == IF_DSD_AND || If_DsdObjType(pObj) == IF_DSD_XOR );
     {
@@ -1941,8 +1995,6 @@ int If_CutDsdBalancePinDelays( If_Man_t * p, If_Cut_t * pCut, char * pPerm )
 int If_CutDsdBalanceEval_rec( If_DsdMan_t * p, int Id, int * pTimes, int * pnSupp, Vec_Int_t * vAig, int * piLit, int nSuppAll, int * pArea, char * pPermLits )
 {
     If_DsdObj_t * pObj = If_DsdVecObj( &p->vObjs, Id );
-    if ( If_DsdObjType(pObj) == IF_DSD_PRIME )
-        return -1;
     if ( If_DsdObjType(pObj) == IF_DSD_VAR )
     {
         int iCutVar = Abc_Lit2Var( pPermLits[*pnSupp] );
@@ -1953,11 +2005,11 @@ int If_CutDsdBalanceEval_rec( If_DsdMan_t * p, int Id, int * pTimes, int * pnSup
     }
     if ( If_DsdObjType(pObj) == IF_DSD_MUX )
     {
-        int i, iFanin, Delay[3], pFaninLits[3];
+        int i, iFanin, Delays[3], pFaninLits[3];
         If_DsdObjForEachFaninLit( &p->vObjs, pObj, iFanin, i )
         {
-            Delay[i] = If_CutDsdBalanceEval_rec( p, Abc_Lit2Var(iFanin), pTimes, pnSupp, vAig, pFaninLits+i, nSuppAll, pArea, pPermLits );
-            if ( Delay[i] == -1 )
+            Delays[i] = If_CutDsdBalanceEval_rec( p, Abc_Lit2Var(iFanin), pTimes, pnSupp, vAig, pFaninLits+i, nSuppAll, pArea, pPermLits );
+            if ( Delays[i] == -1 )
                 return -1;
             pFaninLits[i] = Abc_LitNotCond( pFaninLits[i], Abc_LitIsCompl(iFanin) );
         }
@@ -1965,7 +2017,22 @@ int If_CutDsdBalanceEval_rec( If_DsdMan_t * p, int Id, int * pTimes, int * pnSup
             *piLit = If_LogCreateMux( vAig, pFaninLits[0], pFaninLits[1], pFaninLits[2], nSuppAll );
         else
             *pArea += 3;
-        return 2 + Abc_MaxInt(Delay[0], Abc_MaxInt(Delay[1], Delay[2]));
+        return 2 + Abc_MaxInt(Delays[0], Abc_MaxInt(Delays[1], Delays[2]));
+    }
+    if ( If_DsdObjType(pObj) == IF_DSD_PRIME )
+    {
+        int i, iFanin, Delays[IF_MAX_FUNC_LUTSIZE], pFaninLits[IF_MAX_FUNC_LUTSIZE];
+        Vec_Int_t * vCover = Vec_WecEntry( p->vIsops[pObj->nFans], If_DsdObjTruthId(p, pObj) );
+        if ( Vec_IntSize(vCover) == 0 )
+            return -1;
+        If_DsdObjForEachFaninLit( &p->vObjs, pObj, iFanin, i )
+        {
+            Delays[i] = If_CutDsdBalanceEval_rec( p, Abc_Lit2Var(iFanin), pTimes, pnSupp, vAig, pFaninLits+i, nSuppAll, pArea, pPermLits );
+            if ( Delays[i] == -1 )
+                return -1;
+            pFaninLits[i] = Abc_LitNotCond( pFaninLits[i], Abc_LitIsCompl(iFanin) );
+        }
+        return If_CutSopBalanceEvalInt( vCover, Delays, pFaninLits, vAig, piLit, nSuppAll, pArea );
     }
     assert( If_DsdObjType(pObj) == IF_DSD_AND || If_DsdObjType(pObj) == IF_DSD_XOR );
     {

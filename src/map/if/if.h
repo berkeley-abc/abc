@@ -526,12 +526,15 @@ extern int             If_CluCheckExt3( void * p, word * pTruth, int nVars, int 
                            char * pLut0, char * pLut1, char * pLut2, word * pFunc0, word * pFunc1, word * pFunc2 );
 /*=== ifDelay.c =============================================================*/
 extern int             If_CutDelaySop( If_Man_t * p, If_Cut_t * pCut );
+extern int             If_CutSopBalanceEvalInt( Vec_Int_t * vCover, int * pTimes, int * pFaninLits, Vec_Int_t * vAig, int * piRes, int nSuppAll, int * pArea );
 extern int             If_CutSopBalanceEval( If_Man_t * p, If_Cut_t * pCut, Vec_Int_t * vAig );
+extern int             If_CutSopBalancePinDelaysInt( Vec_Int_t * vCover, int * pTimes, word * pFaninRes, int nSuppAll, word * pRes );
 extern int             If_CutSopBalancePinDelays( If_Man_t * p, If_Cut_t * pCut, char * pPerm );
 extern int             If_CutLutBalanceEval( If_Man_t * p, If_Cut_t * pCut );
 extern int             If_CutLutBalancePinDelays( If_Man_t * p, If_Cut_t * pCut, char * pPerm );
 /*=== ifDsd.c =============================================================*/
 extern If_DsdMan_t *   If_DsdManAlloc( int nVars, int nLutSize );
+extern void            If_DsdManAllocIsops( If_DsdMan_t * p, int nLutSize );
 extern void            If_DsdManPrint( If_DsdMan_t * p, char * pFileName, int Number, int Support, int fOccurs, int fTtDump, int fVerbose );
 extern void            If_DsdManTune( If_DsdMan_t * p, int LutSize, int fFast, int fAdd, int fSpec, int fVerbose );
 extern void            If_DsdManFree( If_DsdMan_t * p, int fVerbose );

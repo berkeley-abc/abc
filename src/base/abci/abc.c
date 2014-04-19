@@ -15097,6 +15097,11 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     if ( pPars->pLutStruct )
     {
+        if ( pPars->fDsdBalance )
+        {
+            Abc_Print( -1, "Incompatible options (-S and -x).\n" );
+            return 1;
+        }
         if ( pPars->nLutSize < 6 || pPars->nLutSize > 16 )
         {
             Abc_Print( -1, "This feature only works for [6;16]-LUTs.\n" );
@@ -15122,12 +15127,12 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
         pPars->pLutLib     =  NULL;
     }
     // modify for delay optimization
-    if ( pPars->fDelayOpt || pPars->fDsdBalance )
+    if ( pPars->fDelayOpt || pPars->fDsdBalance || pPars->fDelayOptLut )
     {
         pPars->fTruth      =  1;
         pPars->fCutMin     =  1;
         pPars->fExpRed     =  0;
-        pPars->fUseDsd     =  pPars->fDsdBalance;
+        pPars->fUseDsd     =  pPars->fDsdBalance || pPars->fDelayOptLut;
         pPars->pLutLib     =  NULL;
     }
     // modify for delay optimization
@@ -15162,7 +15167,7 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
             printf( "DSD manager has incompatible number of variables.\n" );
             return 0;
         }
-        if ( p && LutSize != If_DsdManLutSize(p) )
+        if ( p && LutSize != If_DsdManLutSize(p) && !pPars->fDsdBalance )
         {
             printf( "DSD manager has different LUT size.\n" );
             return 0;
@@ -29859,6 +29864,11 @@ int Abc_CommandAbc9If( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     if ( pPars->pLutStruct )
     {
+        if ( pPars->fDsdBalance )
+        {
+            Abc_Print( -1, "Incompatible options (-S and -x).\n" );
+            return 1;
+        }
         if ( pPars->nLutSize < 6 || pPars->nLutSize > 16 )
         {
             Abc_Print( -1, "This feature only works for [6;16]-LUTs.\n" );
@@ -29886,12 +29896,12 @@ int Abc_CommandAbc9If( Abc_Frame_t * pAbc, int argc, char ** argv )
         pPars->pLutLib     =  NULL;
     }
     // modify for delay optimization
-    if ( pPars->fDelayOpt || pPars->fDsdBalance )
+    if ( pPars->fDelayOpt || pPars->fDsdBalance || pPars->fDelayOptLut )
     {
         pPars->fTruth      =  1;
         pPars->fCutMin     =  1;
         pPars->fExpRed     =  0;
-        pPars->fUseDsd     =  pPars->fDsdBalance;
+        pPars->fUseDsd     =  pPars->fDsdBalance || pPars->fDelayOptLut;
         pPars->pLutLib     =  NULL;
     }
     // modify for delay optimization
@@ -29926,7 +29936,7 @@ int Abc_CommandAbc9If( Abc_Frame_t * pAbc, int argc, char ** argv )
             printf( "DSD manager has incompatible number of variables.\n" );
             return 0;
         }
-        if ( p && LutSize != If_DsdManLutSize(p) )
+        if ( p && LutSize != If_DsdManLutSize(p) && !pPars->fDsdBalance )
         {
             printf( "DSD manager has different LUT size.\n" );
             return 0;

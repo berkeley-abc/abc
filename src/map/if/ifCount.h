@@ -57,6 +57,7 @@ ABC_NAMESPACE_HEADER_START
 static inline int If_LogCreateAnd( Vec_Int_t * vAig, int iLit0, int iLit1, int nSuppAll )
 {
     int iObjId = Vec_IntSize(vAig)/2 + nSuppAll;
+    assert( Abc_Lit2Var(iLit0) != Abc_Lit2Var(iLit1) );
     Vec_IntPush( vAig, iLit0 );
     Vec_IntPush( vAig, iLit1 );
     return Abc_Var2Lit( iObjId, 0 );
@@ -282,6 +283,36 @@ static inline word If_AigVerifyArray( Vec_Int_t * vAig, int nLeaves )
             TruthR = ~TruthR;
         Vec_IntClear( vAig ); // useless
         return TruthR;
+    }
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline void If_AigPrintArray( Vec_Int_t * vAig, int nLeaves )
+{
+    assert( Vec_IntSize(vAig) > 0 );
+    assert( Vec_IntEntryLast(vAig) < 2 );
+    if ( Vec_IntSize(vAig) == 1 ) // const
+        printf( "Const %d\n", Vec_IntEntry(vAig, 0) );
+    else if ( Vec_IntSize(vAig) == 2 ) // variable
+        printf( "Variable %s\n", Vec_IntEntry(vAig, 1) ? "Compl" : "" );
+    else
+    {
+        int i, iLit0, iLit1;
+        assert( Vec_IntSize(vAig) & 1 );
+        Vec_IntForEachEntryDouble( vAig, iLit0, iLit1, i )
+            printf( "%d %d\n", iLit0, iLit1 );
+        assert( i == Vec_IntSize(vAig) - 1 );
+        printf( "%s\n", Vec_IntEntry(vAig, i) ? "Compl" : "" );
     }
 }
 

@@ -1588,6 +1588,8 @@ Gia_Man_t * Gia_ManPerformMapping( Gia_Man_t * p, void * pp, int fNormalized )
         assert( pPars->nLutSize <= If_DsdManVarNum(p) );
         assert( (pPars->pLutStruct == NULL && If_DsdManLutSize(p) == 0) || (pPars->pLutStruct && pPars->pLutStruct[0] - '0' == If_DsdManLutSize(p)) );
         pIfMan->pIfDsdMan = (If_DsdMan_t *)Abc_FrameReadManDsd();
+        if ( pPars->fDsdBalance )
+            If_DsdManAllocIsops( pIfMan->pIfDsdMan, pPars->nLutSize );
     }
     // compute switching for the IF objects
     if ( pPars->fPower )
