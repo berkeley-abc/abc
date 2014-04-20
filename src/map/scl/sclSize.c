@@ -23,6 +23,10 @@
 #include "misc/vec/vecWec.h"
 #include "base/main/main.h"
 
+#ifdef WIN32
+#include <windows.h>
+#endif
+
 ABC_NAMESPACE_IMPL_START
 
 
@@ -137,16 +141,38 @@ void Abc_SclTimeNtkPrint( SC_Man * p, int fShowAll, int fPrintPath )
     float maxDelay = Abc_SclObjTimeOne( p, pPivot, fRise );
     p->ReportDelay = maxDelay;
 
+#ifdef WIN32
     printf( "WireLoad = \"%s\"  ", p->pWLoadUsed ? p->pWLoadUsed->pName : "none" );
+    SetConsoleTextAttribute( GetStdHandle(STD_OUTPUT_HANDLE), 14 ); // yellow
     printf( "Gates =%7d ",         Abc_NtkNodeNum(p->pNtk) );
+    SetConsoleTextAttribute( GetStdHandle(STD_OUTPUT_HANDLE), 7 );  // normal
     printf( "(%5.1f %%)   ",       100.0 * Abc_SclGetBufInvCount(p->pNtk) / Abc_NtkNodeNum(p->pNtk) );
+    SetConsoleTextAttribute( GetStdHandle(STD_OUTPUT_HANDLE), 10 ); // green
     printf( "Cap =%5.1f ff ",      p->EstLoadAve );
+    SetConsoleTextAttribute( GetStdHandle(STD_OUTPUT_HANDLE), 7 );  // normal
     printf( "(%5.1f %%)   ",       Abc_SclGetAverageSize(p->pNtk) );
+    SetConsoleTextAttribute( GetStdHandle(STD_OUTPUT_HANDLE), 11 ); // blue
     printf( "Area =%12.2f ",       Abc_SclGetTotalArea(p->pNtk) );
+    SetConsoleTextAttribute( GetStdHandle(STD_OUTPUT_HANDLE), 7 );  // normal
     printf( "(%5.1f %%)   ",       100.0 * Abc_SclCountMinSize(p->pLib, p->pNtk, 0) / Abc_NtkNodeNum(p->pNtk) );
+    SetConsoleTextAttribute( GetStdHandle(STD_OUTPUT_HANDLE), 13 ); // magenta
     printf( "Delay =%9.2f ps  ",   maxDelay );
+    SetConsoleTextAttribute( GetStdHandle(STD_OUTPUT_HANDLE), 7 );  // normal
     printf( "(%5.1f %%)   ",       100.0 * Abc_SclCountNearCriticalNodes(p) / Abc_NtkNodeNum(p->pNtk) );
     printf( "            \n" );
+#else
+    Abc_Print( 1, "WireLoad = \"%s\"  ",   p->pWLoadUsed ? p->pWLoadUsed->pName : "none" );
+    Abc_Print( 1, "%sGates =%7d%s ",       "\033[1;33m", Abc_NtkNodeNum(p->pNtk), "\033[1;36m" );      // yellow
+    Abc_Print( 1, "(%5.1f %%)   ",         100.0 * Abc_SclGetBufInvCount(p->pNtk) / Abc_NtkNodeNum(p->pNtk) );
+    Abc_Print( 1, "%sCap =%5.1f ff%s ",    "\033[1;32m", p->EstLoadAve, "\033[1;36m" );                // green
+    Abc_Print( 1, "(%5.1f %%)   ",         Abc_SclGetAverageSize(p->pNtk) );
+    Abc_Print( 1, "%sArea =%12.2f%s ",     "\033[1;36m", Abc_SclGetTotalArea(p->pNtk), "\033[1;35m" ); // blue
+    Abc_Print( 1, "(%5.1f %%)   ",         100.0 * Abc_SclCountMinSize(p->pLib, p->pNtk, 0) / Abc_NtkNodeNum(p->pNtk) );
+    Abc_Print( 1, "%sDelay =%9.2f ps%s  ", "\033[1;35m", maxDelay, "\033[1;35m" );                     // magenta
+    Abc_Print( 1, "(%5.1f %%)   ",         100.0 * Abc_SclCountNearCriticalNodes(p) / Abc_NtkNodeNum(p->pNtk) );
+    Abc_Print( 1, "            \n" );
+#endif
+
     if ( fShowAll )
     {
 //        printf( "Timing information for all nodes: \n" );
