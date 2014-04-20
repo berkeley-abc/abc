@@ -717,7 +717,7 @@ int Gia_ManBuildFromMini( Gia_Man_t * pNew, If_Man_t * pIfMan, If_Cut_t * pCut, 
 Gia_Man_t * Gia_ManFromIfAig( If_Man_t * pIfMan )
 {
     int fHash = 0;
-    Gia_Man_t * pNew;
+    Gia_Man_t * pNew, * pTemp;
     If_Obj_t * pIfObj, * pIfLeaf;
     If_Cut_t * pCutBest;
     Vec_Int_t * vLeaves;
@@ -762,7 +762,8 @@ Gia_Man_t * Gia_ManFromIfAig( If_Man_t * pIfMan )
     }
     Vec_IntFree( vAig );
     Vec_IntFree( vLeaves );
-    Gia_ManHashStop( pNew );
+    pNew = Gia_ManRehash( pTemp = pNew, 0 );
+    Gia_ManStop( pTemp );
     return pNew;
 }
 

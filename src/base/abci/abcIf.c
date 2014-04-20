@@ -113,7 +113,7 @@ if ( pIfMan->pPars->fVerbose )
 ***********************************************************************/
 Abc_Ntk_t * Abc_NtkIf( Abc_Ntk_t * pNtk, If_Par_t * pPars )
 {
-    Abc_Ntk_t * pNtkNew;
+    Abc_Ntk_t * pNtkNew, * pTemp;
     If_Man_t * pIfMan;
 
     assert( Abc_NtkIsStrash(pNtk) );
@@ -160,7 +160,12 @@ Abc_Ntk_t * Abc_NtkIf( Abc_Ntk_t * pNtk, If_Par_t * pPars )
     if ( pNtkNew == NULL )
         return NULL;
     If_ManStop( pIfMan );
-    if ( pPars->fBidec && pPars->nLutSize <= 8 )
+    if ( pPars->fDelayOpt || pPars->fDsdBalance || pPars->fUserRecLib )
+    {
+        pNtkNew = Abc_NtkStrash( pTemp = pNtkNew, 0, 0, 0 );
+        Abc_NtkDelete( pTemp );
+    }
+    else if ( pPars->fBidec && pPars->nLutSize <= 8 )
         Abc_NtkBidecResyn( pNtkNew, 0 );
 
     // duplicate EXDC
