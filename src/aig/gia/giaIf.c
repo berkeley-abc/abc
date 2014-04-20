@@ -338,7 +338,7 @@ void Gia_ManPrintMappingStats( Gia_Man_t * p, char * pDumpFile )
     Abc_Print( 1, "lut =%7d  ",  nLuts );
     SetConsoleTextAttribute( hConsole, 10 ); // green
     Abc_Print( 1, "edge =%8d  ", nFanins );
-    SetConsoleTextAttribute( hConsole, 11 ); // blue
+    SetConsoleTextAttribute( hConsole, 12 ); // red
     Abc_Print( 1, "lev =%5d ",   LevelMax );
     Abc_Print( 1, "(%.2f)  ",    (float)Ave / Gia_ManCoNum(p) );
     SetConsoleTextAttribute( hConsole, 7 );  // normal
@@ -350,8 +350,8 @@ void Gia_ManPrintMappingStats( Gia_Man_t * p, char * pDumpFile )
     Abc_Print( 1, "Mapping (K=%d)  :  ", nLutSize );
     Abc_Print( 1, "%slut =%7d%s  ",  "\033[1;33m", nLuts,    "\033[0m" );  // yellow
     Abc_Print( 1, "%sedge =%8d%s  ", "\033[1;32m", nFanins,  "\033[0m" );  // green
-    Abc_Print( 1, "%slev =%5d%s ",   "\033[1;36m", LevelMax, "\033[0m" );  // blue
-    Abc_Print( 1, "%s(%.2f)%s  ",    "\033[1;36m", (float)Ave / Gia_ManCoNum(p), "\033[0m" );
+    Abc_Print( 1, "%slev =%5d%s ",   "\033[1;31m", LevelMax, "\033[0m" );  // red
+    Abc_Print( 1, "%s(%.2f)%s  ",    "\033[1;31m", (float)Ave / Gia_ManCoNum(p), "\033[0m" );
     Abc_Print( 1, "over =%5.1f %%  ", 100.0 * Gia_ManComputeOverlap(p) / Gia_ManAndNum(p) );
     Abc_Print( 1, "mem =%5.2f MB", 4.0*(Gia_ManObjNum(p) + 2*nLuts + nFanins)/(1<<20) );
     Abc_Print( 1, "\n" );

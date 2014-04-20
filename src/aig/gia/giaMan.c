@@ -23,6 +23,10 @@
 #include "proof/abs/abs.h"
 #include "opt/dar/dar.h"
 
+#ifdef WIN32
+#include <windows.h>
+#endif
+
 ABC_NAMESPACE_IMPL_START
 
 
@@ -387,9 +391,22 @@ void Gia_ManPrintStats( Gia_Man_t * p, Gps_Par_t * pPars )
         Abc_Print( 1, "(c=%d)", Gia_ManConstrNum(p) );
     if ( Gia_ManRegNum(p) )
         Abc_Print( 1, "  ff =%7d", Gia_ManRegNum(p) );
+
+#ifdef WIN32
+    {
+    HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
+    SetConsoleTextAttribute( hConsole, 11 ); // blue
     Abc_Print( 1, "  %s =%8d", p->pMuxes? "nod" : "and", Gia_ManAndNum(p) );
+    SetConsoleTextAttribute( hConsole, 13 ); // magenta
     Abc_Print( 1, "  lev =%5d", Gia_ManLevelNum(p) ); 
     Abc_Print( 1, " (%.2f)", Gia_ManLevelAve(p) ); 
+    SetConsoleTextAttribute( hConsole, 7 ); // normal
+    }
+#else
+    Abc_Print( 1, "  %s%s =%8d%s",  "\033[1;36m", p->pMuxes? "nod" : "and", Gia_ManAndNum(p), "\033[0m" ); // blue
+    Abc_Print( 1, "  %slev =%5d%s", "\033[1;35m", Gia_ManLevelNum(p), "\033[0m" ); // magenta
+    Abc_Print( 1, " %s(%.2f)%s",    "\033[1;35m", Gia_ManLevelAve(p), "\033[0m" ); 
+#endif
     Vec_IntFreeP( &p->vLevels );
     if ( pPars && pPars->fCut )
         Abc_Print( 1, "  cut = %d(%d)", Gia_ManCrossCut(p, 0), Gia_ManCrossCut(p, 1) );
