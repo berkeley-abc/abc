@@ -14770,7 +14770,7 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
     char LutSize[100];
     Abc_Ntk_t * pNtk, * pNtkRes;
     If_Par_t Pars, * pPars = &Pars;
-    int c, fLutMux;
+    int c;
     extern Abc_Ntk_t * Abc_NtkIf( Abc_Ntk_t * pNtk, If_Par_t * pPars );
 
     pNtk = Abc_FrameReadNtk(pAbc);
@@ -14804,9 +14804,8 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
     pPars->pTimesArr   =  NULL;
     pPars->pFuncCost   =  NULL;
 
-    fLutMux = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "KCFAGNDEWSTqaflepmrsdbugxyojikncvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "KCFAGNDEWSTqaflepmrsdbgxyojiktncvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -14969,9 +14968,6 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'b':
             pPars->fUseBat ^= 1;
             break;
-        case 'u':
-            fLutMux ^= 1;
-            break;
         case 'g':
             pPars->fDelayOpt ^= 1;
             break;
@@ -14992,6 +14988,9 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
             break;
         case 'k':
             pPars->fEnableCheck10 ^= 1;
+            break;
+        case 't':
+            pPars->fDoAverage ^= 1;
             break;
         case 'n':
             pPars->fUseDsd ^= 1;
@@ -15032,14 +15031,6 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
         Abc_Print( -1, "Incorrect number of cuts.\n" );
         return 1;
-    }
-
-    if ( fLutMux )
-    {
-        extern int Abc_NtkCutCostMux( If_Man_t * p, If_Cut_t * pCut );
-        pPars->fCutMin   = 1;
-        pPars->fTruth    = 1;
-        pPars->pFuncCost = Abc_NtkCutCostMux;
     }
 
     // enable truth table computation if choices are selected
@@ -15252,7 +15243,7 @@ usage:
         sprintf(LutSize, "library" );
     else
         sprintf(LutSize, "%d", pPars->nLutSize );
-    Abc_Print( -2, "usage: if [-KCFANGT num] [-DEW float] [-S str] [-qarlepmsdbugxyojikncvh]\n" );
+    Abc_Print( -2, "usage: if [-KCFANGT num] [-DEW float] [-S str] [-qarlepmsdbgxyojiktncvh]\n" );
     Abc_Print( -2, "\t           performs FPGA technology mapping of the network\n" );
     Abc_Print( -2, "\t-K num   : the number of LUT inputs (2 < num < %d) [default = %s]\n", IF_MAX_LUTSIZE+1, LutSize );
     Abc_Print( -2, "\t-C num   : the max number of priority cuts (0 < num < 2^12) [default = %d]\n", pPars->nCutsMax );
@@ -15267,7 +15258,6 @@ usage:
     Abc_Print( -2, "\t-T num   : the type of LUT structures [default = any]\n", pPars->nStructType );
     Abc_Print( -2, "\t-q       : toggles preprocessing using several starting points [default = %s]\n", pPars->fPreprocess? "yes": "no" );
     Abc_Print( -2, "\t-a       : toggles area-oriented mapping [default = %s]\n", pPars->fArea? "yes": "no" );
-//    Abc_Print( -2, "\t-f       : toggles one fancy feature [default = %s]\n", pPars->fFancy? "yes": "no" );
     Abc_Print( -2, "\t-r       : enables expansion/reduction of the best cuts [default = %s]\n", pPars->fExpRed? "yes": "no" );
     Abc_Print( -2, "\t-l       : optimizes latch paths for delay, other paths for area [default = %s]\n", pPars->fLatchPaths? "yes": "no" );
     Abc_Print( -2, "\t-e       : uses edge-based cut selection heuristics [default = %s]\n", pPars->fEdge? "yes": "no" );
@@ -15276,7 +15266,6 @@ usage:
     Abc_Print( -2, "\t-s       : toggles delay-oriented mapping used with -S <NN> [default = %s]\n", pPars->fDelayOptLut? "yes": "no" );
     Abc_Print( -2, "\t-d       : toggles deriving local AIGs using bi-decomposition [default = %s]\n", pPars->fBidec? "yes": "no" );
     Abc_Print( -2, "\t-b       : toggles the use of one special feature [default = %s]\n", pPars->fUseBat? "yes": "no" );
-    Abc_Print( -2, "\t-u       : toggles the use of MUXes along with LUTs [default = %s]\n", fLutMux? "yes": "no" );
     Abc_Print( -2, "\t-g       : toggles delay optimization by SOP balancing [default = %s]\n", pPars->fDelayOpt? "yes": "no" );
     Abc_Print( -2, "\t-x       : toggles delay optimization by DSD balancing [default = %s]\n", pPars->fDsdBalance? "yes": "no" );
     Abc_Print( -2, "\t-y       : toggles delay optimization with recorded library [default = %s]\n", pPars->fUserRecLib? "yes": "no" );
@@ -15284,6 +15273,7 @@ usage:
     Abc_Print( -2, "\t-j       : toggles enabling additional check [default = %s]\n", pPars->fEnableCheck07? "yes": "no" );
     Abc_Print( -2, "\t-i       : toggles enabling additional check [default = %s]\n", pPars->fEnableCheck08? "yes": "no" );
     Abc_Print( -2, "\t-k       : toggles enabling additional check [default = %s]\n", pPars->fEnableCheck10? "yes": "no" );
+    Abc_Print( -2, "\t-t       : toggles optimizing average rather than maximum level [default = %s]\n", pPars->fDoAverage? "yes": "no" );
     Abc_Print( -2, "\t-n       : toggles computing DSDs of the cut functions [default = %s]\n", pPars->fUseDsd? "yes": "no" );
     Abc_Print( -2, "\t-c       : toggles computing truth tables in a new way [default = %s]\n", pPars->fUseTtPerm? "yes": "no" );
     Abc_Print( -2, "\t-v       : toggles verbose output [default = %s]\n", pPars->fVerbose? "yes": "no" );
@@ -29743,7 +29733,7 @@ int Abc_CommandAbc9If( Abc_Frame_t * pAbc, int argc, char ** argv )
             pPars->fDeriveLuts ^= 1;
             break;
         case 't':
-            pPars->fRepack ^= 1;
+            pPars->fDoAverage ^= 1;
             break;
         case 'n':
             pPars->fUseDsd ^= 1;
@@ -29764,12 +29754,6 @@ int Abc_CommandAbc9If( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
         Abc_Print( -1, "Empty GIA network.\n" );
         return 1;
-    }
-
-    if ( pPars->pLutLib == NULL && pPars->fRepack )
-    {
-        Abc_Print( 0, "Cannot perform repacking because LUT library is not given.\n" );
-        pPars->fRepack = 0;
     }
 
     if ( pPars->nLutSize == -1 )
@@ -30027,7 +30011,7 @@ usage:
     Abc_Print( -2, "\t-f       : toggles enabling additional check [default = %s]\n", pPars->fEnableCheck75? "yes": "no" );
     Abc_Print( -2, "\t-u       : toggles enabling additional check [default = %s]\n", pPars->fEnableCheck75u? "yes": "no" );
     Abc_Print( -2, "\t-z       : toggles deriving LUTs when mapping into LUT structures [default = %s]\n", pPars->fDeriveLuts? "yes": "no" );
-    Abc_Print( -2, "\t-t       : toggles repacking LUTs into new structures [default = %s]\n", pPars->fRepack? "yes": "no" );
+    Abc_Print( -2, "\t-t       : toggles optimizing average rather than maximum level [default = %s]\n", pPars->fDoAverage? "yes": "no" );
     Abc_Print( -2, "\t-n       : toggles computing DSDs of the cut functions [default = %s]\n", pPars->fUseDsd? "yes": "no" );
     Abc_Print( -2, "\t-c       : toggles computing truth tables in a new way [default = %s]\n", pPars->fUseTtPerm? "yes": "no" );
     Abc_Print( -2, "\t-v       : toggles verbose output [default = %s]\n", pPars->fVerbose? "yes": "no" );

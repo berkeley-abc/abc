@@ -1659,10 +1659,6 @@ Gia_Man_t * Gia_ManPerformMapping( Gia_Man_t * p, void * pp, int fNormalized )
     pNew->pAigExtra  = p->pAigExtra;  p->pAigExtra  = NULL;
     pNew->nAnd2Delay = p->nAnd2Delay; p->nAnd2Delay = 0;
     Gia_ManStop( p );
-//    printf( "PERFORMING VERIFICATION:\n" );
-//    Gia_ManVerifyWithBoxes( pNew, NULL );
-//    if ( pPars->fRepack )
-//        Gia_ManIffTest( pNew, pPars->pLutLib, pPars->fVerbose );
     return pNew;
 }
 

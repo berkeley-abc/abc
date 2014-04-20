@@ -132,7 +132,7 @@ struct If_Par_t_
     int                fUseDsd;       // compute DSD of the cut functions
     int                fUseTtPerm;    // compute truth tables of the cut functions
     int                fDeriveLuts;   // enables deriving LUT structures
-    int                fRepack;       // repack after mapping
+    int                fDoAverage;    // optimize average rather than maximum level
     int                fVerbose;      // the verbosity flag
     char *             pLutStruct;    // LUT structure
     float              WireDelay;     // wire delay
@@ -605,6 +605,8 @@ extern int             If_ManPerformMappingSeq( If_Man_t * p );
 /*=== ifTime.c ============================================================*/
 extern float           If_CutDelay( If_Man_t * p, If_Obj_t * pObj, If_Cut_t * pCut );
 extern void            If_CutPropagateRequired( If_Man_t * p, If_Obj_t * pObj, If_Cut_t * pCut, float Required );
+extern float           If_ManDelayMax( If_Man_t * p, int fSeq );
+extern void            If_ManComputeRequired( If_Man_t * p );
 /*=== ifTruth.c ===========================================================*/
 extern void            If_CutRotatePins( If_Man_t * p, If_Cut_t * pCut );
 extern int             If_CutComputeTruth( If_Man_t * p, If_Cut_t * pCut, If_Cut_t * pCut0, If_Cut_t * pCut1, int fCompl0, int fCompl1 );
@@ -613,8 +615,6 @@ extern int             If_CutComputeTruthPerm( If_Man_t * p, If_Cut_t * pCut, If
 extern void            If_ManCleanNodeCopy( If_Man_t * p );
 extern void            If_ManCleanCutData( If_Man_t * p );
 extern void            If_ManCleanMarkV( If_Man_t * p );
-extern float           If_ManDelayMax( If_Man_t * p, int fSeq );
-extern void            If_ManComputeRequired( If_Man_t * p );
 extern float           If_ManScanMapping( If_Man_t * p );
 extern float           If_ManScanMappingDirect( If_Man_t * p );
 extern float           If_ManScanMappingSeq( If_Man_t * p );

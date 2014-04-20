@@ -236,6 +236,257 @@ void If_CutPropagateRequired( If_Man_t * p, If_Obj_t * pObj, If_Cut_t * pCut, fl
     }
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Returns the max delay of the POs.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+float If_ManDelayMax( If_Man_t * p, int fSeq )
+{
+    If_Obj_t * pObj;
+    float DelayBest;
+    int i;
+    if ( p->pPars->fLatchPaths && (p->pPars->nLatchesCi == 0 || p->pPars->nLatchesCo == 0) )
+    {
+        Abc_Print( 0, "Delay optimization of latch path is not performed because there is no latches.\n" );
+        p->pPars->fLatchPaths = 0;
+    }
+    DelayBest = -IF_FLOAT_LARGE;
+    if ( fSeq )
+    {
+        assert( p->pPars->nLatchesCi > 0 );
+        If_ManForEachPo( p, pObj, i )
+            if ( DelayBest < If_ObjArrTime(If_ObjFanin0(pObj)) )
+                 DelayBest = If_ObjArrTime(If_ObjFanin0(pObj));
+    }
+    else if ( p->pPars->fLatchPaths )
+    {
+        If_ManForEachLatchInput( p, pObj, i )
+            if ( DelayBest < If_ObjArrTime(If_ObjFanin0(pObj)) )
+                 DelayBest = If_ObjArrTime(If_ObjFanin0(pObj));
+    }
+    else 
+    {
+        If_ManForEachCo( p, pObj, i )
+            if ( DelayBest < If_ObjArrTime(If_ObjFanin0(pObj)) )
+                 DelayBest = If_ObjArrTime(If_ObjFanin0(pObj));
+    }
+    return DelayBest;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Computes the required times of all nodes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void If_ManComputeRequired( If_Man_t * p )
+{
+    If_Obj_t * pObj;
+    int i, Counter;
+    float reqTime;
+
+    // compute area, clean required times, collect nodes used in the mapping
+//    p->AreaGlo = If_ManScanMapping( p );
+    If_ManMarkMapping( p );
+    if ( p->pManTim == NULL )
+    {
+        // consider the case when the required times are given
+        if ( p->pPars->pTimesReq && !p->pPars->fAreaOnly )
+        {
+            // make sure that the required time hold
+            Counter = 0;
+            If_ManForEachCo( p, pObj, i )
+            {
+                if ( If_ObjArrTime(If_ObjFanin0(pObj)) > p->pPars->pTimesReq[i] + p->fEpsilon )
+                {
+                    If_ObjFanin0(pObj)->Required = If_ObjArrTime(If_ObjFanin0(pObj));
+                    Counter++;
+    //                Abc_Print( 0, "Required times are violated for output %d (arr = %d; req = %d).\n", 
+    //                    i, (int)If_ObjArrTime(If_ObjFanin0(pObj)), (int)p->pPars->pTimesReq[i] );
+                }
+                else
+                    If_ObjFanin0(pObj)->Required = p->pPars->pTimesReq[i];
+            }
+            if ( Counter && !p->fReqTimeWarn )
+            {
+                Abc_Print( 0, "Required times are exceeded at %d output%s. The earliest arrival times are used.\n", Counter, Counter > 1 ? "s":"" );
+                p->fReqTimeWarn = 1;
+            }
+        }
+        else
+        {
+            // get the global required times
+            p->RequiredGlo = If_ManDelayMax( p, 0 );
+
+            // find new delay target
+            if ( p->pPars->nRelaxRatio && p->pPars->DelayTargetNew == 0 )
+                p->pPars->DelayTargetNew = p->RequiredGlo * (100.0 + p->pPars->nRelaxRatio) / 100.0; 
+
+            // update the required times according to the target
+            if ( p->pPars->DelayTarget != -1 )
+            {
+                if ( p->RequiredGlo > p->pPars->DelayTarget + p->fEpsilon )
+                {
+                    if ( p->fNextRound == 0 )
+                    {
+                        p->fNextRound = 1;
+                        Abc_Print( 0, "Cannot meet the target required times (%4.2f). Mapping continues anyway.\n", p->pPars->DelayTarget );
+                    }
+                }
+                else if ( p->RequiredGlo < p->pPars->DelayTarget - p->fEpsilon )
+                {
+                    if ( p->fNextRound == 0 )
+                    {
+                        p->fNextRound = 1;
+//                        Abc_Print( 0, "Relaxing the required times from (%4.2f) to the target (%4.2f).\n", p->RequiredGlo, p->pPars->DelayTarget );
+                    }
+                    p->RequiredGlo = p->pPars->DelayTarget;
+                }
+            }
+            else if ( p->pPars->DelayTargetNew > 0 ) // relax the required times 
+                p->RequiredGlo = p->pPars->DelayTargetNew;
+            // do not propagate required times if area minimization is requested
+            if ( p->pPars->fAreaOnly ) 
+                return;
+            // set the required times for the POs
+            if ( p->pPars->fDoAverage )
+            {
+                If_ManForEachCo( p, pObj, i )
+                    If_ObjFanin0(pObj)->Required = If_ObjArrTime(If_ObjFanin0(pObj));
+            }
+            else if ( p->pPars->fLatchPaths )
+            {
+                If_ManForEachLatchInput( p, pObj, i )
+                    If_ObjFanin0(pObj)->Required = p->RequiredGlo;
+            }
+            else 
+            {
+                If_ManForEachCo( p, pObj, i )
+                    If_ObjFanin0(pObj)->Required = p->RequiredGlo;
+            }
+        }
+        // go through the nodes in the reverse topological order
+    //    Vec_PtrForEachEntry( If_Obj_t *, p->vMapped, pObj, i )
+    //        If_CutPropagateRequired( p, pObj, If_ObjCutBest(pObj), pObj->Required );
+        If_ManForEachObjReverse( p, pObj, i )
+        {
+            if ( pObj->nRefs == 0 )
+                continue;
+            If_CutPropagateRequired( p, pObj, If_ObjCutBest(pObj), pObj->Required );
+        }
+    }
+    else
+    {
+        // get the global required times
+        p->RequiredGlo = If_ManDelayMax( p, 0 );
+
+        // find new delay target
+        if ( p->pPars->nRelaxRatio && p->pPars->DelayTargetNew == 0 )
+            p->pPars->DelayTargetNew = p->RequiredGlo * (100.0 + p->pPars->nRelaxRatio) / 100.0; 
+
+        // update the required times according to the target
+        if ( p->pPars->DelayTarget != -1 )
+        {
+            if ( p->RequiredGlo > p->pPars->DelayTarget + p->fEpsilon )
+            {
+                if ( p->fNextRound == 0 )
+                {
+                    p->fNextRound = 1;
+                    Abc_Print( 0, "Cannot meet the target required times (%4.2f). Mapping continues anyway.\n", p->pPars->DelayTarget );
+                }
+            }
+            else if ( p->RequiredGlo < p->pPars->DelayTarget - p->fEpsilon )
+            {
+                if ( p->fNextRound == 0 )
+                {
+                    p->fNextRound = 1;
+//                    Abc_Print( 0, "Relaxing the required times from (%4.2f) to the target (%4.2f).\n", p->RequiredGlo, p->pPars->DelayTarget );
+                }
+                p->RequiredGlo = p->pPars->DelayTarget;
+            }
+        }
+        else if ( p->pPars->DelayTargetNew > 0 ) // relax the required times 
+            p->RequiredGlo = p->pPars->DelayTargetNew;
+
+        // do not propagate required times if area minimization is requested
+        if ( p->pPars->fAreaOnly ) 
+            return;
+        // set the required times for the POs
+        Tim_ManIncrementTravId( p->pManTim );
+        if ( p->vCoAttrs )
+        {
+            assert( If_ManCoNum(p) == Vec_IntSize(p->vCoAttrs) );
+            If_ManForEachCo( p, pObj, i )
+            { 
+                if ( Vec_IntEntry(p->vCoAttrs, i) == -1 )       // -1=internal
+                    continue;
+                if ( Vec_IntEntry(p->vCoAttrs, i) == 0 )        //  0=optimize
+                    Tim_ManSetCoRequired( p->pManTim, i, p->RequiredGlo );
+                else if ( Vec_IntEntry(p->vCoAttrs, i) == 1 )   //  1=keep
+                    Tim_ManSetCoRequired( p->pManTim, i, If_ObjArrTime(If_ObjFanin0(pObj)) );
+                else if ( Vec_IntEntry(p->vCoAttrs, i) == 2 )   //  2=relax
+                    Tim_ManSetCoRequired( p->pManTim, i, IF_FLOAT_LARGE );
+                else assert( 0 );
+            }
+        }
+        else if ( p->pPars->fDoAverage )
+        {
+            If_ManForEachCo( p, pObj, i )
+                Tim_ManSetCoRequired( p->pManTim, i, If_ObjArrTime(If_ObjFanin0(pObj)) );
+        }
+        else if ( p->pPars->fLatchPaths )
+        {
+            If_ManForEachPo( p, pObj, i )
+                Tim_ManSetCoRequired( p->pManTim, i, IF_FLOAT_LARGE );
+            If_ManForEachLatchInput( p, pObj, i )
+                Tim_ManSetCoRequired( p->pManTim, i, p->RequiredGlo );
+        }
+        else  
+        {
+            Tim_ManInitPoRequiredAll( p->pManTim, p->RequiredGlo );
+//            If_ManForEachCo( p, pObj, i )
+//                Tim_ManSetCoRequired( p->pManTim, pObj->IdPio, p->RequiredGlo );
+        }
+        // go through the nodes in the reverse topological order
+        If_ManForEachObjReverse( p, pObj, i )
+        {
+            if ( If_ObjIsAnd(pObj) )
+            {
+                if ( pObj->nRefs == 0 )
+                    continue;
+                If_CutPropagateRequired( p, pObj, If_ObjCutBest(pObj), pObj->Required );
+            }
+            else if ( If_ObjIsCi(pObj) )
+            {
+                reqTime = pObj->Required;
+                Tim_ManSetCiRequired( p->pManTim, pObj->IdPio, reqTime );
+            }
+            else if ( If_ObjIsCo(pObj) )
+            {
+                reqTime = Tim_ManGetCoRequired( p->pManTim, pObj->IdPio );
+                If_ObjFanin0(pObj)->Required = IF_MIN( reqTime, If_ObjFanin0(pObj)->Required );
+            }
+            else if ( If_ObjIsConst1(pObj) )
+            {
+            }
+            else // add the node to the mapper
+                assert( 0 );
+        }
+    }
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
