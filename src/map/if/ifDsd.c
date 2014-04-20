@@ -2100,7 +2100,7 @@ int If_CutDsdBalanceEval( If_Man_t * p, If_Cut_t * pCut, Vec_Int_t * vAig )
         int Delay, Area = 0;
         for ( i = 0; i < If_CutLeaveNum(pCut); i++ )
             pTimes[i] = (int)If_ObjCutBest(If_CutLeaf(p, pCut, i))->Delay; 
-        Delay = If_CutDsdBalanceEvalInt( p->pIfDsdMan, If_CutDsdLit(p, pCut), pTimes, vAig, &Area, If_CutDsdPerm(p, pCut) );
+        Delay = If_CutDsdBalanceEvalInt( p->pIfDsdMan, Abc_LitNotCond(If_CutDsdLit(p, pCut), pCut->fCompl), pTimes, vAig, &Area, If_CutDsdPerm(p, pCut) );
         pCut->Cost = Area;
         return Delay;
     }

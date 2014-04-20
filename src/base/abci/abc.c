@@ -15178,7 +15178,11 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     if ( pPars->fUserRecLib )
     {
-        assert( Abc_NtkRecIsRunning3() );
+        if ( !Abc_NtkRecIsRunning3() )
+        {
+            printf( "LMS manager is not running (use \"rec_start3\").\n" );
+            return 0;
+        }
         if ( Abc_NtkRecInputNum3() != pPars->nLutSize )
         {
             printf( "The number of library inputs (%d) different from the K parameters (%d).\n", Abc_NtkRecInputNum3(), pPars->nLutSize );
@@ -29943,6 +29947,20 @@ int Abc_CommandAbc9If( Abc_Frame_t * pAbc, int argc, char ** argv )
         }
         if ( p == NULL )
             Abc_FrameSetManDsd( If_DsdManAlloc(pPars->nLutSize, LutSize) );
+    }
+
+    if ( pPars->fUserRecLib )
+    {
+        if ( !Abc_NtkRecIsRunning3() )
+        {
+            printf( "LMS manager is not running (use \"rec_start3\").\n" );
+            return 0;
+        }
+        if ( Abc_NtkRecInputNum3() != pPars->nLutSize )
+        {
+            printf( "The number of library inputs (%d) different from the K parameters (%d).\n", Abc_NtkRecInputNum3(), pPars->nLutSize );
+            return 0;
+        }
     }
 
     // complain if truth tables are requested but the cut size is too large
