@@ -162,13 +162,13 @@ void Abc_SclTimeNtkPrint( SC_Man * p, int fShowAll, int fPrintPath )
     printf( "            \n" );
 #else
     Abc_Print( 1, "WireLoad = \"%s\"  ",   p->pWLoadUsed ? p->pWLoadUsed->pName : "none" );
-    Abc_Print( 1, "%sGates =%7d%s ",       "\033[1;33m", Abc_NtkNodeNum(p->pNtk), "\033[1;36m" );      // yellow
+    Abc_Print( 1, "%sGates =%7d%s ",       "\033[1;33m", Abc_NtkNodeNum(p->pNtk),      "\033[0m" ); // yellow
     Abc_Print( 1, "(%5.1f %%)   ",         100.0 * Abc_SclGetBufInvCount(p->pNtk) / Abc_NtkNodeNum(p->pNtk) );
-    Abc_Print( 1, "%sCap =%5.1f ff%s ",    "\033[1;32m", p->EstLoadAve, "\033[1;36m" );                // green
+    Abc_Print( 1, "%sCap =%5.1f ff%s ",    "\033[1;32m", p->EstLoadAve,                "\033[0m" ); // green
     Abc_Print( 1, "(%5.1f %%)   ",         Abc_SclGetAverageSize(p->pNtk) );
-    Abc_Print( 1, "%sArea =%12.2f%s ",     "\033[1;36m", Abc_SclGetTotalArea(p->pNtk), "\033[1;35m" ); // blue
+    Abc_Print( 1, "%sArea =%12.2f%s ",     "\033[1;36m", Abc_SclGetTotalArea(p->pNtk), "\033[0m" ); // blue
     Abc_Print( 1, "(%5.1f %%)   ",         100.0 * Abc_SclCountMinSize(p->pLib, p->pNtk, 0) / Abc_NtkNodeNum(p->pNtk) );
-    Abc_Print( 1, "%sDelay =%9.2f ps%s  ", "\033[1;35m", maxDelay, "\033[1;35m" );                     // magenta
+    Abc_Print( 1, "%sDelay =%9.2f ps%s  ", "\033[1;35m", maxDelay,                     "\033[0m" ); // magenta
     Abc_Print( 1, "(%5.1f %%)   ",         100.0 * Abc_SclCountNearCriticalNodes(p) / Abc_NtkNodeNum(p->pNtk) );
     Abc_Print( 1, "            \n" );
 #endif

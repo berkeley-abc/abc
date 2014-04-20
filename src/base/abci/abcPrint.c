@@ -27,6 +27,10 @@
 #include "map/if/if.h"
 #include "misc/extra/extraBdd.h"
 
+#ifdef WIN32
+#include <windows.h>
+#endif
+
 ABC_NAMESPACE_IMPL_START
 
 
@@ -229,7 +233,13 @@ void Abc_NtkPrintStats( Abc_Ntk_t * pNtk, int fFactored, int fSaveBest, int fDum
 //    if ( Abc_NtkIsStrash(pNtk) )
 //        Abc_AigCountNext( pNtk->pManFunc );
 
-    Abc_Print( 1,"%-13s:",       pNtk->pName );
+#ifdef WIN32
+    SetConsoleTextAttribute( GetStdHandle(STD_OUTPUT_HANDLE), 15 ); // bright
+    Abc_Print( 1,"%-13s:", pNtk->pName );
+    SetConsoleTextAttribute( GetStdHandle(STD_OUTPUT_HANDLE), 7 );  // normal
+#else
+    Abc_Print( 1,"%s%-13s:%s", "\033[1;37m", pNtk->pName, "\033[0m" );  // bright
+#endif
     Abc_Print( 1," i/o =%5d/%5d", Abc_NtkPiNum(pNtk), Abc_NtkPoNum(pNtk) );
     if ( Abc_NtkConstrNum(pNtk) )
         Abc_Print( 1,"(c=%d)", Abc_NtkConstrNum(pNtk) );

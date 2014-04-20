@@ -384,8 +384,15 @@ void Gia_ManPrintChoiceStats( Gia_Man_t * p )
 void Gia_ManPrintStats( Gia_Man_t * p, Gps_Par_t * pPars )
 {
     extern float Gia_ManLevelAve( Gia_Man_t * p );
+#ifdef WIN32
+    SetConsoleTextAttribute( GetStdHandle(STD_OUTPUT_HANDLE), 15 ); // bright
     if ( p->pName )
         Abc_Print( 1, "%-8s : ", p->pName );
+    SetConsoleTextAttribute( GetStdHandle(STD_OUTPUT_HANDLE), 7 );  // normal
+#else
+    if ( p->pName )
+        Abc_Print( 1, "%s%-8s%s : ", "\033[1;37m", p->pName, "\033[0m" );  // bright
+#endif
     Abc_Print( 1, "i/o =%7d/%7d", Gia_ManPiNum(p), Gia_ManPoNum(p) );
     if ( Gia_ManConstrNum(p) )
         Abc_Print( 1, "(c=%d)", Gia_ManConstrNum(p) );
