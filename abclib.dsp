@@ -2703,6 +2703,10 @@ SOURCE=.\src\misc\extra\extraUtilCanon.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\misc\extra\extraUtilCube.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\misc\extra\extraUtilDsd.c
 # End Source File
 # Begin Source File
@@ -2716,6 +2720,10 @@ SOURCE=.\src\misc\extra\extraUtilMemory.c
 # Begin Source File
 
 SOURCE=.\src\misc\extra\extraUtilMisc.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\extra\extraUtilPerm.c
 # End Source File
 # Begin Source File
 

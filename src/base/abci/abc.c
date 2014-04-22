@@ -10447,6 +10447,11 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
 //        extern void Ifd_ManDsdTest();
 //        Ifd_ManDsdTest();
     }
+    {
+        extern void Abc_EnumerateCubeStates();
+        Abc_EnumerateCubeStates();
+        return 0;
+    }
     if ( pNtk )
     {
         extern Abc_Ntk_t * Abc_NtkBarBufsOnOffTest( Abc_Ntk_t * pNtk );
