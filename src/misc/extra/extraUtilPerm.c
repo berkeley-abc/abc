@@ -85,7 +85,7 @@ struct Abc_ZddMan_
     Abc_ZddObj * pObjs;
     int          nCacheLookups;
     int          nCacheMisses;
-    int          nMemory;
+    word         nMemory;
     int *        pV2TI;
     int *        pV2TJ;
     int *        pT2V;
@@ -229,7 +229,7 @@ void Abc_ZddManFree( Abc_ZddMan * p )
 {
     printf( "ZDD stats: Var = %d  Obj = %d  All = %d  Hits = %d  Miss = %d  ", 
         p->nVars, p->nObjs, p->nObjsAlloc, p->nCacheLookups-p->nCacheMisses, p->nCacheMisses );
-    printf( "Mem = %.2f MB\n", 4.0*p->nMemory/(1<<20) );
+    printf( "Mem = %.2f MB\n", 4.0*(int)(p->nMemory/(1<<20)) );
     ABC_FREE( p->pT2V );
     ABC_FREE( p->pV2TI );
     ABC_FREE( p->pV2TJ );
@@ -866,7 +866,7 @@ void Abc_EnumerateCubeStatesZdd()
     int ZddTurn1, ZddTurn2, ZddTurn3, ZddTurns9, ZddAll, ZddReached, ZddNew;
     abctime clk = Abc_Clock();
     printf( "Enumerating states of 2x2x2 cube.\n" );
-    p = Abc_ZddManAlloc( 24 * 23 / 2, 1 << 28 );
+    p = Abc_ZddManAlloc( 24 * 23 / 2, 1 << 27 );
     Abc_ZddManCreatePerms( p, 24 );
     // init state
     printf( "Iter %2d -> %8d   ", 0, 1 );
