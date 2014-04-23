@@ -587,10 +587,9 @@ int Abc_ZddPerm( Abc_ZddMan * p, int a, int Var )
     }
     return Abc_ZddCacheInsert( p, a, Var, ABC_ZDD_OPER_PERM, r );
 }
-
 int Abc_ZddPermProduct( Abc_ZddMan * p, int a, int b )
 {
-    Abc_ZddObj * A, * B; 
+    Abc_ZddObj * B; 
     int r0, r1, r;
     if ( a == 0 ) return 0;
     if ( a == 1 ) return b;
@@ -598,17 +597,11 @@ int Abc_ZddPermProduct( Abc_ZddMan * p, int a, int b )
     if ( b == 1 ) return a;
     if ( (r = Abc_ZddCacheLookup(p, a, b, ABC_ZDD_OPER_PERM_PROD)) >= 0 )
         return r;
-    A  = Abc_ZddNode( p, a );
     B  = Abc_ZddNode( p, b );
-    if ( p->pV2TJ[A->Var] < p->pV2TI[B->Var] ) // Aj < Bi
-        r0 = Abc_ZddPermProduct( p, A->False, b ), 
-        r1 = Abc_ZddPermProduct( p, A->True, b ), 
-        r = Abc_ZddUniqueCreate( p, A->Var, r1, r0 );
-    else
-        r0 = Abc_ZddPermProduct( p, a, B->False ), 
-        r1 = Abc_ZddPermProduct( p, a, B->True ), 
-        r1 = Abc_ZddPerm( p, r1, B->Var ),
-        r  = Abc_ZddUnion( p, r0, r1 );
+    r0 = Abc_ZddPermProduct( p, a, B->False ); 
+    r1 = Abc_ZddPermProduct( p, a, B->True ); 
+    r1 = Abc_ZddPerm( p, r1, B->Var );
+    r  = Abc_ZddUnion( p, r0, r1 );
     return Abc_ZddCacheInsert( p, a, b, ABC_ZDD_OPER_PERM_PROD, r );
 }
 
