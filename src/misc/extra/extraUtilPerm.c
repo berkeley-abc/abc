@@ -590,7 +590,7 @@ int Abc_ZddPerm( Abc_ZddMan * p, int a, int Var )
 
 int Abc_ZddPermProduct( Abc_ZddMan * p, int a, int b )
 {
-    Abc_ZddObj * B; 
+    Abc_ZddObj * A, * B; 
     int r0, r1, r;
     if ( a == 0 ) return 0;
     if ( a == 1 ) return b;
@@ -598,11 +598,17 @@ int Abc_ZddPermProduct( Abc_ZddMan * p, int a, int b )
     if ( b == 1 ) return a;
     if ( (r = Abc_ZddCacheLookup(p, a, b, ABC_ZDD_OPER_PERM_PROD)) >= 0 )
         return r;
+    A  = Abc_ZddNode( p, a );
     B  = Abc_ZddNode( p, b );
-    r0 = Abc_ZddPermProduct( p, a, B->False ); 
-    r1 = Abc_ZddPermProduct( p, a, B->True ); 
-    r1 = Abc_ZddPerm( p, r1, B->Var );
-    r  = Abc_ZddUnion( p, r0, r1 );
+    if ( p->pV2TJ[A->Var] < p->pV2TI[B->Var] ) // Aj < Bi
+        r0 = Abc_ZddPermProduct( p, A->False, b ), 
+        r1 = Abc_ZddPermProduct( p, A->True, b ), 
+        r = Abc_ZddUniqueCreate( p, A->Var, r1, r0 );
+    else
+        r0 = Abc_ZddPermProduct( p, a, B->False ), 
+        r1 = Abc_ZddPermProduct( p, a, B->True ), 
+        r1 = Abc_ZddPerm( p, r1, B->Var ),
+        r  = Abc_ZddUnion( p, r0, r1 );
     return Abc_ZddCacheInsert( p, a, b, ABC_ZDD_OPER_PERM_PROD, r );
 }
 
@@ -849,12 +855,17 @@ void Abc_EnumerateCubeStatesZdd()
         { {3, 5}, {3,17}, {3,15}, {1, 6}, {1,16}, {1,14}, {2, 4}, {2,18}, {2,13} },
         { {2,14}, {2,24}, {2,12}, {3,13}, {3,23}, {3,10}, {1,15}, {1,22}, {1,11} },
         { {1,10}, {1, 7}, {1, 4}, {3,12}, {3, 9}, {3, 6}, {2,11}, {2, 8}, {2, 5} }  };
+#ifdef WIN32
+    int LogObj = 24;
+#else
+    int LogObj = 27;
+#endif
     Abc_ZddMan * p;
     int i, k, pComb[9], pPerm[24], nSize;
     int ZddTurn1, ZddTurn2, ZddTurn3, ZddTurns, ZddAll;
     abctime clk = Abc_Clock();
     printf( "Enumerating states of 2x2x2 cube.\n" );
-    p = Abc_ZddManAlloc( 24 * 23 / 2, 1 << 27 ); // finished with 2^27 (4 GB)
+    p = Abc_ZddManAlloc( 24 * 23 / 2, 1 << LogObj ); // finished with 2^27 (4 GB)
     Abc_ZddManCreatePerms( p, 24 );
     // init state
     printf( "Iter %2d -> %8d  Nodes = %7d  Used = %10d  ", 0, 1, 0, 2 );
