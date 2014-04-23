@@ -128,6 +128,7 @@ static inline int Abc_ZddCacheInsert( Abc_ZddMan * p, int Arg0, int Arg1, int Ar
     Abc_ZddEnt * pEnt = p->pCache + (Abc_ZddHash(Arg0, Arg1, Arg2) & p->nCacheMask);
     pEnt->Arg0 = Arg0;  pEnt->Arg1 = Arg1;  pEnt->Arg2 = Arg2;  pEnt->Res = Res;
     p->nCacheMisses++;
+    assert( Res >= 0 );
     return Res;
 }
 static inline int Abc_ZddUniqueLookup( Abc_ZddMan * p, int Var, int True, int False )
@@ -394,12 +395,11 @@ int Abc_ZddMultiply( Abc_ZddMan * p, int a, int Var )
     if ( (int)A->Var > Var )
         r = Abc_ZddUniqueCreate( p, Var, a, 0 );
     else if ( (int)A->Var < Var )
-    {
         r0 = Abc_ZddMultiply( p, A->False, Var ),
-        r1 = Abc_ZddMultiply( p, A->True, Var );
+        r1 = Abc_ZddMultiply( p, A->True, Var ),
         r  = Abc_ZddUniqueCreate( p, A->Var, r1, r0 );
-    }
-    else assert( 0 );
+    else
+        r  = Abc_ZddUniqueCreate( p, A->Var, A->False, A->True );
     return Abc_ZddCacheInsert( p, a, Var, ABC_ZDD_OPER_MULTIPLY, r );
 }
 int Abc_ZddCountPaths( Abc_ZddMan * p, int a )
@@ -555,55 +555,54 @@ int Abc_ZddDotMinProduct6( Abc_ZddMan * p, int a, int b )
 int Abc_ZddPerm( Abc_ZddMan * p, int a, int Var )
 {
     Abc_ZddObj * A; 
-    int r;
+    int r0, r1, r;
     assert( Var < p->nVars );
     if ( a == 0 )  return 0;
     if ( a == 1 )  return Abc_ZddIthVar(Var);
     if ( (r = Abc_ZddCacheLookup(p, a, Var, ABC_ZDD_OPER_PERM)) >= 0 )
         return r;
     A = Abc_ZddNode( p, a );
-    if ( (int)A->Var == Var )
-        r = Abc_ZddUniqueCreate( p, A->Var, A->False, A->True );
-    else if ( p->pV2TI[A->Var] > p->pV2TJ[Var] )
+    if ( p->pV2TI[A->Var] > p->pV2TI[Var] ) // Ai > Bi
         r = Abc_ZddUniqueCreate( p, Var, a, 0 );
+    else if ( (int)A->Var == Var ) // Ai == Bi && Aj == Bj
+        r0 = Abc_ZddPerm( p, A->False, Var ), 
+        r  = Abc_ZddUnion( p, r0, A->True );
     else 
     {
-        int r0, r1, VarTop, VarPerm;
+        int VarPerm, VarTop;
         int Ai = p->pV2TI[A->Var];
         int Aj = p->pV2TJ[A->Var];
         int Bi = p->pV2TI[Var];
         int Bj = p->pV2TJ[Var];
-        assert( Ai < Aj && Bi < Bj );
-        if ( Ai == Bj || (Ai == Bi && Aj > Bj) || (Aj == Bj && Ai > Bi) )
-            VarTop  = Var, 
-            VarPerm = A->Var;
-        else if ( Ai == Bi )
-            VarTop  = A->Var, 
-            VarPerm = Abc_ZddVarIJ(p, Aj, Bj);
+        assert( Ai < Aj && Bi < Bj && Ai <= Bi );
+        if ( Aj == Bi )
+            VarPerm = Var,
+            VarTop  = Abc_ZddVarIJ(p, Ai, Bj);
         else if ( Aj == Bj )
-            VarTop  = Abc_ZddVarIJ(p, Ai, Bi), 
-            VarPerm = Abc_ZddVarIJ(p, Bi, Bj);
-        else if ( Aj == Bi )
-            VarTop  = A->Var,                  
-            VarPerm = Abc_ZddVarIJ(p, Ai, Bj);
+            VarPerm = Var,
+            VarTop  = Abc_ZddVarIJ(p, Ai, Bi);
+        else if ( Ai == Bi )
+            VarPerm = Abc_ZddVarIJ(p, Abc_MinInt(Aj, Bj), Abc_MaxInt(Aj, Bj)),
+            VarTop  = A->Var;
         else // no clash
-            VarTop  = A->Var, 
-            VarPerm = Var;
+            VarPerm = Var, 
+            VarTop  = A->Var;
+        assert( p->pV2TI[VarPerm] > p->pV2TI[VarTop] );
         r0 = Abc_ZddPerm( p, A->False, Var ); 
         r1 = Abc_ZddPerm( p, A->True, VarPerm );
-        if ( VarTop < Abc_ZddObjVar(p, r0) && VarTop < Abc_ZddObjVar(p, r1) )
+        assert( Abc_ZddObjVar(p, r1) > VarTop );
+        if ( Abc_ZddObjVar(p, r0) > VarTop )
             r = Abc_ZddUniqueCreate( p, VarTop, r1, r0 );
         else
-        {
-            r1 = Abc_ZddMultiply( p, r1, VarTop );
+            r1 = Abc_ZddUniqueCreate( p, VarTop, r1, 0 ),
             r = Abc_ZddUnion( p, r0, r1 );
-        }
     }
     return Abc_ZddCacheInsert( p, a, Var, ABC_ZDD_OPER_PERM, r );
 }
+
 int Abc_ZddPermProduct( Abc_ZddMan * p, int a, int b )
 {
-    Abc_ZddObj * A, * B; 
+    Abc_ZddObj * B; 
     int r0, r1, r;
     if ( a == 0 ) return 0;
     if ( a == 1 ) return b;
@@ -611,27 +610,11 @@ int Abc_ZddPermProduct( Abc_ZddMan * p, int a, int b )
     if ( b == 1 ) return a;
     if ( (r = Abc_ZddCacheLookup(p, a, b, ABC_ZDD_OPER_PERM_PROD)) >= 0 )
         return r;
-    A = Abc_ZddNode( p, a );
-    B = Abc_ZddNode( p, b );
-    if ( Abc_ZddVarsClash(p, A->Var, B->Var) )
-    {
-        r0 = Abc_ZddPermProduct( p, a, B->False ); 
-        r1 = Abc_ZddPermProduct( p, a, B->True ); 
-        r1 = Abc_ZddPerm( p, r1, B->Var );
-        r  = Abc_ZddUnion( p, r1, r0 );
-        assert( Abc_MinInt(A->Var, B->Var) <= (int)Abc_ZddObjVar(p, r) );
-    }
-    else
-    {
-        if ( A->Var < B->Var )
-            r0 = Abc_ZddPermProduct( p, A->False, b ), 
-            r1 = Abc_ZddPermProduct( p, A->True, b );
-        else if ( A->Var > B->Var )
-            r0 = Abc_ZddPermProduct( p, a, B->False ), 
-            r1 = Abc_ZddPermProduct( p, a, B->True ); 
-        else assert( 0 );
-        r = Abc_ZddUniqueCreate( p, Abc_MinInt(A->Var, B->Var), r1, r0 );
-    }
+    B  = Abc_ZddNode( p, b );
+    r0 = Abc_ZddPermProduct( p, a, B->False ); 
+    r1 = Abc_ZddPermProduct( p, a, B->True ); 
+    r1 = Abc_ZddPerm( p, r1, B->Var );
+    r  = Abc_ZddUnion( p, r0, r1 );
     return Abc_ZddCacheInsert( p, a, b, ABC_ZDD_OPER_PERM_PROD, r );
 }
 
@@ -651,12 +634,14 @@ void Abc_ZddPermPrint( int * pPerm, int Size )
     int i;
     printf( "{" );
     for ( i = 0; i < Size; i++ )
-        printf( " %d", pPerm[i] );
+        printf( " %2d", pPerm[i] );
     printf( " }\n" );
 }
 void Abc_ZddCombPrint( int * pComb, int nTrans )
 {
     int i;
+    if ( nTrans == 0 )
+        printf( "Empty set" );
     for ( i = 0; i < nTrans; i++ )
         printf( "(%d %d)", pComb[i] >> 16, pComb[i] & 0xffff );
     printf( "\n" );
@@ -715,11 +700,11 @@ void Abc_ZddPrint_rec( Abc_ZddMan * p, int a, int * pPath, int Size )
 //    if ( a == 1 ) { Abc_ZddPermPrint( pPath, Size ); return; }
     if ( a == 1 )
     { 
-        int pPerm[10], pComb[10], i;
-        assert( p->nPermSize <= 10 );
+        int pPerm[24], pComb[24], i;
+        assert( p->nPermSize <= 24 );
         for ( i = 0; i < Size; i++ )
             pComb[i] = (p->pV2TI[pPath[i]] << 16) | p->pV2TJ[pPath[i]];
-//        Abc_ZddCombPrint( pComb, Size ); 
+        Abc_ZddCombPrint( pComb, Size ); 
         Abc_ZddComb2Perm( pComb, Size, pPerm, p->nPermSize );
         Abc_ZddPermPrint( pPerm, p->nPermSize );
         return; 
@@ -858,6 +843,78 @@ void Abc_ZddPermTest()
     Abc_ZddManFree( p );
 }
 
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_EnumerateCubeStatesZdd()
+{
+    int pXYZ[3][9][2] = {
+        { {3, 5}, {3,17}, {3,15}, {1, 6}, {1,16}, {1,14}, {2, 4}, {2,18}, {2,13} },
+        { {2,14}, {2,24}, {2,12}, {3,13}, {3,23}, {3,10}, {1,15}, {1,22}, {1,11} },
+        { {1,10}, {1, 7}, {1, 4}, {3,12}, {3, 9}, {3, 6}, {2,11}, {2, 8}, {2, 5} }  };
+    Abc_ZddMan * p;
+    int i, k, pComb[9], pPerm[24], nSize;
+    int ZddTurn1, ZddTurn2, ZddTurn3, ZddTurns9, ZddAll, ZddReached, ZddNew;
+    abctime clk = Abc_Clock();
+    printf( "Enumerating states of 2x2x2 cube.\n" );
+    p = Abc_ZddManAlloc( 24 * 23 / 2, 1 << 28 );
+    Abc_ZddManCreatePerms( p, 24 );
+    // init state
+    printf( "Iter %2d -> %8d   ", 0, 1 );
+    Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
+    // first 9 states
+    ZddTurns9 = 0;
+    for ( i = 0; i < 3; i++ )
+    {
+        for ( k = 0; k < 24; k++ )
+            pPerm[k] = k;
+        for ( k = 0; k < 9; k++ )
+            ABC_SWAP( int, pPerm[pXYZ[i][k][0]-1], pPerm[pXYZ[i][k][1]-1] );
+        nSize = Abc_ZddPerm2Comb( pPerm, 24, pComb );
+        assert( nSize == 9 );
+        for ( k = 0; k < 9; k++ )
+            pComb[k] = Abc_ZddVarIJ( p, pComb[k] >> 16, pComb[k] & 0xffff );
+        // add first turn
+        ZddTurn1  = Abc_ZddBuildSet( p, pComb, 9 );
+        ZddTurns9 = Abc_ZddUnion( p, ZddTurns9, ZddTurn1 );
+        //Abc_ZddPrint( p, ZddTurn1 );
+        // add second turn
+        ZddTurn2 = Abc_ZddPermProduct( p, ZddTurn1, ZddTurn1 );
+        ZddTurns9 = Abc_ZddUnion( p, ZddTurns9, ZddTurn2 );
+        //Abc_ZddPrint( p, ZddTurn2 );
+        // add third turn
+        ZddTurn3 = Abc_ZddPermProduct( p, ZddTurn2, ZddTurn1 );
+        ZddTurns9 = Abc_ZddUnion( p, ZddTurns9, ZddTurn3 );
+        //Abc_ZddPrint( p, ZddTurn3 );
+        //printf( "\n" );
+    }
+    //Abc_ZddPrint( p, ZddTurns9 );
+    printf( "Iter %2d -> %8d   ", 1, Abc_ZddCountPaths(p, ZddTurns9) );
+    Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
+    // other states
+    ZddNew = ZddTurns9;
+    ZddAll = Abc_ZddUnion( p, 1, ZddTurns9 );
+    for ( i = 2; i <= 100; i++ )
+    {
+        ZddReached = Abc_ZddPermProduct( p, ZddNew, ZddTurns9 );
+        ZddNew = Abc_ZddDiff( p, ZddReached, ZddAll );
+        ZddAll = Abc_ZddUnion( p, ZddAll, ZddNew );
+        printf( "Iter %2d -> %8d   ", i, Abc_ZddCountPaths(p, ZddNew) );
+        Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
+        if ( ZddNew == 0 )
+            break;
+    }
+    Abc_ZddManFree( p );
+}
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

@@ -10449,7 +10449,11 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     {
         extern void Abc_EnumerateCubeStates();
-        Abc_EnumerateCubeStates();
+        extern void Abc_EnumerateCubeStatesZdd();
+        if ( fNewAlgo )
+            Abc_EnumerateCubeStatesZdd();
+        else
+            Abc_EnumerateCubeStates();
         return 0;
     }
     if ( pNtk )
