@@ -857,7 +857,7 @@ void Abc_EnumerateCubeStatesZdd()
     p = Abc_ZddManAlloc( 24 * 23 / 2, 1 << 27 ); // finished with 2^27 (4 GB)
     Abc_ZddManCreatePerms( p, 24 );
     // init state
-    printf( "Iter %2d -> %8d   ", 0, 1 );
+    printf( "Iter %2d -> %8d  Nodes = %7d  Used = %10d  ", 0, 1, 0, 2 );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     // first 9 states
     ZddTurns = 1;
@@ -886,7 +886,7 @@ void Abc_EnumerateCubeStatesZdd()
         //printf( "\n" );
     }
     //Abc_ZddPrint( p, ZddTurns );
-    printf( "Iter %2d -> %8d   ", 1, Abc_ZddCountPaths(p, ZddTurns) );
+    printf( "Iter %2d -> %8d  Nodes = %7d  Used = %10d  ", 1, Abc_ZddCountPaths(p, ZddTurns), Abc_ZddCountNodes(p, ZddTurns), p->nObjs );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     // other states
     ZddAll = ZddTurns;
@@ -894,7 +894,7 @@ void Abc_EnumerateCubeStatesZdd()
     {
         int ZddAllPrev = ZddAll;
         ZddAll = Abc_ZddPermProduct( p, ZddAll, ZddTurns );
-        printf( "Iter %2d -> %8d  Nodes = %8d  ", i, Abc_ZddCountPaths(p, ZddAll), Abc_ZddCountNodes(p, ZddAll) );
+        printf( "Iter %2d -> %8d  Nodes = %7d  Used = %10d  ", i, Abc_ZddCountPaths(p, ZddAll), Abc_ZddCountNodes(p, ZddAll), p->nObjs );
         Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
         if ( ZddAllPrev == ZddAll )
             break;
