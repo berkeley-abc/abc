@@ -32,7 +32,7 @@ ABC_NAMESPACE_IMPL_START
 ////////////////////////////////////////////////////////////////////////
 
 static inline void Abc_StatePush( Vec_Int_t * vData, char * pState, int k )  { int i; for ( i = 0; i < 6; i++ ) Vec_IntWriteEntry(vData, 6*k+i, ((int*)pState)[i]);  }
-static inline void Abc_StatePerm( char * pState, char * pPerm, char * pRes ) { int i; for ( i = 0; i < 24; i++ ) pRes[i] = pState[pPerm[i]];                         }
+static inline void Abc_StatePerm( char * pState, char * pPerm, char * pRes ) { int i; for ( i = 0; i < 24; i++ ) pRes[i] = pState[(int)pPerm[i]];                    }
 static inline void Abc_StatePrint( char * pState )                           { int i; for ( i = 0; i < 24; i++ ) printf(" %2d", pState[i]); printf( "\n" );          }
 
 ////////////////////////////////////////////////////////////////////////
