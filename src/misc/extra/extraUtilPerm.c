@@ -901,6 +901,25 @@ void Abc_EnumerateCubeStatesZdd()
     }
     Abc_ZddManFree( p );
 }
+
+/*
+Enumerating states of 2x2x2 cube.
+Iter  0 ->        1  Nodes =       0  Used =          2  Time =     0.00 sec
+Iter  1 ->       10  Nodes =      63  Used =        577  Time =     0.00 sec
+Iter  2 ->       64  Nodes =     443  Used =       4349  Time =     0.03 sec
+Iter  3 ->      385  Nodes =    2018  Used =      26654  Time =     0.14 sec
+Iter  4 ->     2232  Nodes =    7451  Used =     119442  Time =     0.45 sec
+Iter  5 ->    12224  Nodes =   25178  Used =     490038  Time =     1.10 sec
+Iter  6 ->    62360  Nodes =   83955  Used =    1919750  Time =     1.79 sec
+Iter  7 ->   289896  Nodes =  290863  Used =    7182932  Time =     3.15 sec
+Iter  8 ->  1159968  Nodes =  614845  Used =   25301123  Time =     8.03 sec
+Iter  9 ->  3047716  Nodes =  585664  Used =   66228369  Time =    20.22 sec
+Iter 10 ->  3671516  Nodes =   19430  Used =  102292452  Time =    33.41 sec
+Iter 11 ->  3674160  Nodes =     511  Used =  103545878  Time =    33.92 sec
+Iter 12 ->  3674160  Nodes =     511  Used =  103566266  Time =    33.93 sec
+ZDD stats: Var = 276  Obj = 103566266  Alloc = 134217728  Hit = 63996630  Miss = 141768893  Mem = 4608.00 MB
+*/
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

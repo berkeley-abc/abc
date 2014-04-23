@@ -131,6 +131,23 @@ void Abc_EnumerateCubeStates()
     Vec_IntFree( vData );
 }
 
+/*
+Enumerating states of 2x2x2 cube.
+Iter  0 ->        1   Time =     0.00 sec
+Iter  1 ->       10   Time =     0.00 sec
+Iter  2 ->       64   Time =     0.00 sec
+Iter  3 ->      385   Time =     0.00 sec
+Iter  4 ->     2232   Time =     0.00 sec
+Iter  5 ->    12224   Time =     0.00 sec
+Iter  6 ->    62360   Time =     0.02 sec
+Iter  7 ->   289896   Time =     0.09 sec
+Iter  8 ->  1159968   Time =     0.90 sec
+Iter  9 ->  3047716   Time =    11.62 sec
+Iter 10 ->  3671516   Time =    52.00 sec
+Iter 11 ->  3674160   Time =    70.38 sec
+Iter 12 ->  3674160   Time =    70.48 sec 
+*/
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
