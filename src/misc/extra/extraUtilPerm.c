@@ -863,16 +863,16 @@ void Abc_EnumerateCubeStatesZdd()
         { {1,10}, {1, 7}, {1, 4}, {3,12}, {3, 9}, {3, 6}, {2,11}, {2, 8}, {2, 5} }  };
     Abc_ZddMan * p;
     int i, k, pComb[9], pPerm[24], nSize;
-    int ZddTurn1, ZddTurn2, ZddTurn3, ZddTurns9, ZddAll, ZddReached, ZddNew;
+    int ZddTurn1, ZddTurn2, ZddTurn3, ZddTurns, ZddAll;
     abctime clk = Abc_Clock();
     printf( "Enumerating states of 2x2x2 cube.\n" );
-    p = Abc_ZddManAlloc( 24 * 23 / 2, 1 << 27 );
+    p = Abc_ZddManAlloc( 24 * 23 / 2, 1 << 27 ); // finished with 2^27 (4 GB)
     Abc_ZddManCreatePerms( p, 24 );
     // init state
     printf( "Iter %2d -> %8d   ", 0, 1 );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     // first 9 states
-    ZddTurns9 = 0;
+    ZddTurns = 1;
     for ( i = 0; i < 3; i++ )
     {
         for ( k = 0; k < 24; k++ )
@@ -885,32 +885,30 @@ void Abc_EnumerateCubeStatesZdd()
             pComb[k] = Abc_ZddVarIJ( p, pComb[k] >> 16, pComb[k] & 0xffff );
         // add first turn
         ZddTurn1  = Abc_ZddBuildSet( p, pComb, 9 );
-        ZddTurns9 = Abc_ZddUnion( p, ZddTurns9, ZddTurn1 );
+        ZddTurns = Abc_ZddUnion( p, ZddTurns, ZddTurn1 );
         //Abc_ZddPrint( p, ZddTurn1 );
         // add second turn
         ZddTurn2 = Abc_ZddPermProduct( p, ZddTurn1, ZddTurn1 );
-        ZddTurns9 = Abc_ZddUnion( p, ZddTurns9, ZddTurn2 );
+        ZddTurns = Abc_ZddUnion( p, ZddTurns, ZddTurn2 );
         //Abc_ZddPrint( p, ZddTurn2 );
         // add third turn
         ZddTurn3 = Abc_ZddPermProduct( p, ZddTurn2, ZddTurn1 );
-        ZddTurns9 = Abc_ZddUnion( p, ZddTurns9, ZddTurn3 );
+        ZddTurns = Abc_ZddUnion( p, ZddTurns, ZddTurn3 );
         //Abc_ZddPrint( p, ZddTurn3 );
         //printf( "\n" );
     }
-    //Abc_ZddPrint( p, ZddTurns9 );
-    printf( "Iter %2d -> %8d   ", 1, Abc_ZddCountPaths(p, ZddTurns9) );
+    //Abc_ZddPrint( p, ZddTurns );
+    printf( "Iter %2d -> %8d   ", 1, Abc_ZddCountPaths(p, ZddTurns) );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     // other states
-    ZddNew = ZddTurns9;
-    ZddAll = Abc_ZddUnion( p, 1, ZddTurns9 );
+    ZddAll = ZddTurns;
     for ( i = 2; i <= 100; i++ )
     {
-        ZddReached = Abc_ZddPermProduct( p, ZddNew, ZddTurns9 );
-        ZddNew = Abc_ZddDiff( p, ZddReached, ZddAll );
-        ZddAll = Abc_ZddUnion( p, ZddAll, ZddNew );
-        printf( "Iter %2d -> %8d   ", i, Abc_ZddCountPaths(p, ZddNew) );
+        int ZddAllPrev = ZddAll;
+        ZddAll = Abc_ZddPermProduct( p, ZddAll, ZddTurns );
+        printf( "Iter %2d -> %8d   ", i, Abc_ZddCountPaths(p, ZddAll) );
         Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
-        if ( ZddNew == 0 )
+        if ( ZddAllPrev == ZddAll )
             break;
     }
     Abc_ZddManFree( p );
