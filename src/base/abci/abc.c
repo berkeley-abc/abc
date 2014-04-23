@@ -272,6 +272,7 @@ static int Abc_CommandExtWin                 ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandInsWin                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandPermute                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandUnpermute              ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandCubeEnum               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 static int Abc_CommandCec                    ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandDCec                   ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -841,6 +842,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Sequential",   "inswin",        Abc_CommandInsWin,           1 );
     Cmd_CommandAdd( pAbc, "Sequential",   "permute",       Abc_CommandPermute,          1 );
     Cmd_CommandAdd( pAbc, "Sequential",   "unpermute",     Abc_CommandUnpermute,        1 );
+    Cmd_CommandAdd( pAbc, "Sequential",   "cubeenum",      Abc_CommandCubeEnum,         0 );
 
     Cmd_CommandAdd( pAbc, "Verification", "cec",           Abc_CommandCec,              0 );
     Cmd_CommandAdd( pAbc, "Verification", "dcec",          Abc_CommandDCec,             0 );
@@ -19394,6 +19396,57 @@ usage:
     Abc_Print( -2, "\t-h    : print the command usage\n");
     return 1;
 }
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandCubeEnum( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern void Abc_EnumerateCubeStates();
+    extern void Abc_EnumerateCubeStatesZdd();
+    int c, fZddAlgo = 0, fVerbose = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "zvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'z':
+            fZddAlgo ^= 1;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            Abc_Print( -2, "Unknown switch.\n");
+            goto usage;
+        }
+    }
+    if ( fZddAlgo )
+        Abc_EnumerateCubeStatesZdd();
+    else
+        Abc_EnumerateCubeStates();
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: cubeenum [-vh]\n" );
+    Abc_Print( -2, "\t         enumerates reachable states of 2x2x2x cube\n" );
+    Abc_Print( -2, "\t         (http://en.wikipedia.org/wiki/Pocket_Cube)\n" );
+    Abc_Print( -2, "\t-z     : toggle using ZDD-based algorithm [default = %s]\n", fZddAlgo? "yes": "no" );
+    Abc_Print( -2, "\t-v     : toggle verbose output [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
+    return 1;
+}
+
 
 
 /**Function*************************************************************
