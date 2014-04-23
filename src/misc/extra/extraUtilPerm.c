@@ -42,7 +42,6 @@ typedef enum
     ABC_ZDD_OPER_PERM_PROD,
     ABC_ZDD_OPER_COF0,
     ABC_ZDD_OPER_COF1,
-    ABC_ZDD_OPER_MULTIPLY,
     ABC_ZDD_OPER_THRESH,
     ABC_ZDD_OPER_DOT_PROD,
     ABC_ZDD_OPER_DOT_PROD_6,
@@ -227,7 +226,7 @@ void Abc_ZddManCreatePerms( Abc_ZddMan * p, int nPermSize )
 }
 void Abc_ZddManFree( Abc_ZddMan * p )
 {
-    printf( "ZDD stats: Var = %d  Obj = %d  All = %d  Hits = %d  Miss = %d  ", 
+    printf( "ZDD stats: Var = %d  Obj = %d  Alloc = %d  Hit = %d  Miss = %d  ", 
         p->nVars, p->nObjs, p->nObjsAlloc, p->nCacheLookups-p->nCacheMisses, p->nCacheMisses );
     printf( "Mem = %.2f MB\n", 4.0*(int)(p->nMemory/(1<<20)) );
     ABC_FREE( p->pT2V );
@@ -383,25 +382,6 @@ int Abc_ZddCof1( Abc_ZddMan * p, int a, int Var )
     r = Abc_ZddUniqueCreate( p, A->Var, r1, r0 );
     return Abc_ZddCacheInsert( p, a, Var, ABC_ZDD_OPER_COF1, r );
 }
-int Abc_ZddMultiply( Abc_ZddMan * p, int a, int Var )
-{
-    Abc_ZddObj * A; 
-    int r0, r1, r;
-    if ( a == 0 )  return 0;
-    if ( a == 1 )  return Abc_ZddIthVar(Var);
-    if ( (r = Abc_ZddCacheLookup(p, a, Var, ABC_ZDD_OPER_MULTIPLY)) >= 0 )
-        return r;
-    A = Abc_ZddNode( p, a );
-    if ( (int)A->Var > Var )
-        r = Abc_ZddUniqueCreate( p, Var, a, 0 );
-    else if ( (int)A->Var < Var )
-        r0 = Abc_ZddMultiply( p, A->False, Var ),
-        r1 = Abc_ZddMultiply( p, A->True, Var ),
-        r  = Abc_ZddUniqueCreate( p, A->Var, r1, r0 );
-    else
-        r  = Abc_ZddUniqueCreate( p, A->Var, A->False, A->True );
-    return Abc_ZddCacheInsert( p, a, Var, ABC_ZDD_OPER_MULTIPLY, r );
-}
 int Abc_ZddCountPaths( Abc_ZddMan * p, int a )
 {
     Abc_ZddObj * A;  
@@ -413,6 +393,7 @@ int Abc_ZddCountPaths( Abc_ZddMan * p, int a )
     r = Abc_ZddCountPaths( p, A->False ) + Abc_ZddCountPaths( p, A->True );
     return Abc_ZddCacheInsert( p, a, 0, ABC_ZDD_OPER_PATHS, r );
 }
+/*
 int Abc_ZddCountNodes( Abc_ZddMan * p, int a )
 {
     Abc_ZddObj * A;  
@@ -424,6 +405,7 @@ int Abc_ZddCountNodes( Abc_ZddMan * p, int a )
     r = 1 + Abc_ZddCountNodes( p, A->False ) + Abc_ZddCountNodes( p, A->True );
     return Abc_ZddCacheInsert( p, a, 0, ABC_ZDD_OPER_NODES, r );
 }
+*/
 int Abc_ZddCount_rec( Abc_ZddMan * p, int i )
 {
     Abc_ZddObj * A;
@@ -446,6 +428,12 @@ void Abc_ZddUnmark_rec( Abc_ZddMan * p, int i )
     A->Mark = 0;
     Abc_ZddUnmark_rec( p, A->False );
     Abc_ZddUnmark_rec( p, A->True );
+}
+int Abc_ZddCountNodes( Abc_ZddMan * p, int i )
+{
+    int Count = Abc_ZddCount_rec( p, i );
+    Abc_ZddUnmark_rec( p, i );
+    return Count;
 }
 int Abc_ZddCountNodesArray( Abc_ZddMan * p, Vec_Int_t * vNodes )
 {
@@ -906,7 +894,7 @@ void Abc_EnumerateCubeStatesZdd()
     {
         int ZddAllPrev = ZddAll;
         ZddAll = Abc_ZddPermProduct( p, ZddAll, ZddTurns );
-        printf( "Iter %2d -> %8d   ", i, Abc_ZddCountPaths(p, ZddAll) );
+        printf( "Iter %2d -> %8d  Nodes = %8d  ", i, Abc_ZddCountPaths(p, ZddAll), Abc_ZddCountNodes(p, ZddAll) );
         Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
         if ( ZddAllPrev == ZddAll )
             break;
