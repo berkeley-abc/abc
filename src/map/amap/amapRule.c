@@ -230,18 +230,6 @@ Vec_Int_t * Amap_CreateRulesFromDsd_rec( Amap_Lib_t * pLib, Kit_DsdNtk_t * p, in
     Vec_PtrFree( vVecNods );
     return vRes;
 }
-
-/**Function*************************************************************
-
-  Synopsis    []
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
 Vec_Int_t * Amap_CreateRulesFromDsd( Amap_Lib_t * pLib, Kit_DsdNtk_t * p )
 {
     Vec_Int_t * vNods;
@@ -260,6 +248,76 @@ Vec_Int_t * Amap_CreateRulesFromDsd( Amap_Lib_t * pLib, Kit_DsdNtk_t * p )
 
 /**Function*************************************************************
 
+  Synopsis    [Returns 1 if DSD network contains asymentry due to complements.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Amap_CreateCheckEqual_rec( Kit_DsdNtk_t * p, int iLit0, int iLit1 )
+{
+    Kit_DsdObj_t * pObj0, * pObj1; 
+    int i;
+    assert( !Abc_LitIsCompl(iLit0) );
+    assert( !Abc_LitIsCompl(iLit1) );
+    pObj0 = Kit_DsdNtkObj( p, Abc_Lit2Var(iLit0) );
+    pObj1 = Kit_DsdNtkObj( p, Abc_Lit2Var(iLit1) );
+    if ( pObj0 == NULL && pObj1 == NULL )
+        return 1;
+    if ( pObj0 == NULL || pObj1 == NULL )
+        return 0;
+    if ( pObj0->Type != pObj1->Type )
+        return 0;
+    if ( pObj0->nFans != pObj1->nFans )
+        return 0;
+    if ( pObj0->Type == KIT_DSD_PRIME )
+        return 0;
+    assert( pObj0->Type == KIT_DSD_AND || pObj0->Type == KIT_DSD_XOR );
+    for ( i = 0; i < (int)pObj0->nFans; i++ )
+    {
+        if ( Abc_LitIsCompl(pObj0->pFans[i]) != Abc_LitIsCompl(pObj1->pFans[i]) )
+            return 0;
+        if ( !Amap_CreateCheckEqual_rec( p, Abc_LitRegular(pObj0->pFans[i]), Abc_LitRegular(pObj1->pFans[i]) ) )
+            return 0;
+    }
+    return 1;
+}
+void Amap_CreateCheckAsym_rec( Kit_DsdNtk_t * p, int iLit, Vec_Int_t ** pvSyms )
+{
+    Kit_DsdObj_t * pObj; 
+    int i, k, iFanin;
+    assert( !Abc_LitIsCompl(iLit) );
+    pObj = Kit_DsdNtkObj( p, Abc_Lit2Var(iLit) );
+    if ( pObj == NULL )
+        return;
+    Kit_DsdObjForEachFanin( p, pObj, iFanin, i )
+        Amap_CreateCheckAsym_rec( p, Abc_LitRegular(iFanin), pvSyms );
+    if ( pObj->Type == KIT_DSD_PRIME )
+        return;
+    assert( pObj->Type == KIT_DSD_AND || pObj->Type == KIT_DSD_XOR );
+    for ( i = 0; i < (int)pObj->nFans; i++ )
+    for ( k = i+1; k < (int)pObj->nFans; k++ )
+    {
+        if ( Abc_LitIsCompl(pObj->pFans[i]) != Abc_LitIsCompl(pObj->pFans[k]) && 
+             Kit_DsdNtkObj(p, Abc_Lit2Var(pObj->pFans[i])) == NULL && 
+             Kit_DsdNtkObj(p, Abc_Lit2Var(pObj->pFans[k])) == NULL )
+        {
+            if ( *pvSyms == NULL )
+                *pvSyms = Vec_IntAlloc( 16 );
+            Vec_IntPush( *pvSyms, (Abc_Lit2Var(pObj->pFans[i]) << 8) | Abc_Lit2Var(pObj->pFans[k]) );
+        }
+    }
+}
+void Amap_CreateCheckAsym( Kit_DsdNtk_t * p, Vec_Int_t ** pvSyms )
+{
+    Amap_CreateCheckAsym_rec( p, Abc_LitRegular(p->Root), pvSyms );
+}
+
+/**Function*************************************************************
+
   Synopsis    [Creates rules for the given gate]
 
   Description []
@@ -272,10 +330,11 @@ Vec_Int_t * Amap_CreateRulesFromDsd( Amap_Lib_t * pLib, Kit_DsdNtk_t * p )
 void Amap_CreateRulesForGate( Amap_Lib_t * pLib, Amap_Gat_t * pGate )
 { 
     Kit_DsdNtk_t * pNtk, * pTemp;
+    Vec_Int_t * vSyms = NULL;
     Vec_Int_t * vNods;
     Amap_Nod_t * pNod;
-    Amap_Set_t * pSet;
-    int iNod, i;
+    Amap_Set_t * pSet, * pSet2;
+    int iNod, i, k, Entry;
 //    if ( pGate->nPins > 4 )
 //        return;
     pNtk = Kit_DsdDecomposeMux( pGate->pFunc, pGate->nPins, 2 );
@@ -286,6 +345,11 @@ void Amap_CreateRulesForGate( Amap_Lib_t * pLib, Amap_Gat_t * pGate )
     pNtk = Kit_DsdExpand( pTemp = pNtk );
     Kit_DsdNtkFree( pTemp );
     Kit_DsdVerify( pNtk, pGate->pFunc, pGate->nPins ); 
+    // check symmetries
+    Amap_CreateCheckAsym( pNtk, &vSyms );
+//    if ( vSyms )
+//        Kit_DsdPrint( stdout, pNtk ), printf( "\n" );
+
 if ( pLib->fVerbose )
 //if ( pGate->fMux )
 {
@@ -317,10 +381,35 @@ if ( pLib->fVerbose )
             pSet->pNext = pNod->pSets;
             pNod->pSets = pSet;
             pLib->nSets++;
+            if ( vSyms == NULL )
+                continue;
+//            continue;
+            // add sets equivalent due to symmetry
+            Vec_IntForEachEntry( vSyms, Entry, k )
+            {
+                int iThis = Entry & 0xff;
+                int iThat = Entry >> 8;
+//                printf( "%d %d\n", iThis, iThat );
+                // create new set
+                pSet2 = (Amap_Set_t *)Aig_MmFlexEntryFetch( pLib->pMemSet, sizeof(Amap_Set_t) );
+                memset( pSet2, 0, sizeof(Amap_Set_t) );
+                pSet2->iGate = pGate->Id;
+                pSet2->fInv  = Abc_LitIsCompl(iNod);
+                pSet2->nIns  = pGate->nPins;
+                memcpy( pSet2->Ins, pSet->Ins, pGate->nPins );
+                // update inputs
+                pSet2->Ins[iThis] = Abc_Var2Lit( Abc_Lit2Var(pSet->Ins[iThat]), Abc_LitIsCompl(pSet->Ins[iThis]) );
+                pSet2->Ins[iThat] = Abc_Var2Lit( Abc_Lit2Var(pSet->Ins[iThis]), Abc_LitIsCompl(pSet->Ins[iThat]) );
+                // add set to collection
+                pSet2->pNext = pNod->pSets;
+                pNod->pSets  = pSet2;
+                pLib->nSets++;
+            }
         }
         Vec_IntFree( vNods );
     }
     Kit_DsdNtkFree( pNtk );
+    Vec_IntFreeP( &vSyms );
 }
 
 /**Function*************************************************************
