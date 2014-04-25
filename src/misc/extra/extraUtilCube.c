@@ -50,7 +50,7 @@ static inline void Abc_StatePrint( char * pState )                           { i
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_EnumerateCubeStates()
+void Abc_EnumerateCubeStates2()
 {
     int pXYZ[3][9][2] = {
         { {3, 5}, {3,17}, {3,15}, {1, 6}, {1,16}, {1,14}, {2, 4}, {2,18}, {2,13} },
@@ -147,6 +147,85 @@ Iter 10 ->  3671516   Time =    52.00 sec
 Iter 11 ->  3674160   Time =    70.38 sec
 Iter 12 ->  3674160   Time =    70.48 sec 
 */
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline int  Abc_DataHasBit( word * p, word i )  { return (p[(i)>>6] & (1<<((i) & 63))) > 0; }
+static inline void Abc_DataSetBit( word * p, word i )  { p[(i)>>6] |= (1<<((i) & 63));             }
+static inline void Abc_DataXorBit( word * p, word i )  { p[(i)>>6] ^= (1<<((i) & 63));             }
+static inline int  Abc_DataGetCube( word w, int i )         { return (w >> (5*i)) & 31;            }
+static inline word Abc_DataXorCube( word w, int i, int c )  { return w ^ (((word)c) << (5*i));     }
+void Abc_EnumerateCubeStates()
+{
+    extern word Aig_ManRandom64( int fReset );
+
+    int pXYZ[3][4][3] = {
+        { {0, 4, 0}, {4, 6, 0}, {6, 3, 1}, {3, 0,-1} }, 
+        { {1, 3, 1}, {3, 6, 0}, {6, 5, 0}, {5, 1,-1} }, 
+        { {2, 5, 0}, {5, 6,-1}, {6, 4, 1}, {4, 2, 0} } 
+    }; 
+    int pPerms[9][4][3] = {0};
+    int i, k, v, u, Beg, End, Cube0, Cube1;
+    Vec_Wrd_t * vStates = Vec_WrdAlloc( 1 << 22 ); // 16 MB
+    word * pHash = ABC_CALLOC( word, 1 << 29 );    //  4 GB
+    word New, Init = 0;
+
+    // estimate
+    int Counter = 0;    
+    abctime clk = Abc_Clock();
+    Aig_ManRandom64( 1 );
+    for ( i = 0; i < 3674160; i++ )
+        for ( v = 0; v < 9; v++ )
+        {
+            Init = Aig_ManRandom64( 0 ) & ABC_CONST(0x7FFFFFFFF);
+            if ( Abc_DataHasBit(pHash, Init) )
+                Counter++;
+            else
+                Abc_DataSetBit(pHash, Init);
+        }
+    printf( "Counter = %d   ", Counter );
+    Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
+
+    if ( Counter == -1 )
+    {
+    for ( i = 0; i < 7; i++ )
+        Init = Abc_DataXorCube( Init, i, i << 2 );
+    Vec_WrdPush( vStates, Init );
+    Abc_DataSetBit( pHash, Init );
+    Beg = 0; End = 1;
+    for ( i = 1; i <= 100; i++ )
+    {
+        if ( Beg == End )
+            break;
+        Vec_WrdForEachEntryStartStop( vStates, Init, k, Beg, End )
+            for ( v = 0; v < 9; v++ )
+            {
+                New = Init;
+                for ( u = 0; u < 4; u++ )
+                {
+                    Cube0 = Abc_DataGetCube( Init, pPerms[v][u][0] );
+                    Cube1 = Abc_DataGetCube( Init, pPerms[v][u][1] );
+                    New = Abc_DataXorCube( New, pPerms[v][u][1], Cube0 - pPerms[v][u][2] );
+                    New = Abc_DataXorCube( New, pPerms[v][u][0], Cube1 + pPerms[v][u][2] );
+                }
+                if ( !Abc_DataHasBit( pHash, New ) )
+                    Vec_WrdPush( vStates, New );
+            }
+    }
+    }
+
+    Vec_WrdFree( vStates );
+    ABC_FREE( pHash );
+}
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
