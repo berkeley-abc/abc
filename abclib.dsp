@@ -3883,6 +3883,10 @@ SOURCE=.\src\aig\gia\giaTim.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\aig\gia\giaTis.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\aig\gia\giaTruth.c
 # End Source File
 # Begin Source File

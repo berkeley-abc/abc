@@ -54,6 +54,7 @@ SRC +=    src/aig/gia/giaAig.c \
     src/aig/gia/giaSweeper.c \
     src/aig/gia/giaSwitch.c \
     src/aig/gia/giaTim.c \
+    src/aig/gia/giaTis.c \
     src/aig/gia/giaTruth.c \
     src/aig/gia/giaTsim.c \
     src/aig/gia/giaUtil.c
