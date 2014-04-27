@@ -249,7 +249,7 @@ static inline void Abc_DataXorBit( word * p, word i )  { p[(i)>>6] ^= (1<<((i) &
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_EnumerateFunctions()
+void Abc_EnumerateFunctions( int nDecMax )
 {
     int nVars;
     int nMints;
@@ -258,7 +258,7 @@ void Abc_EnumerateFunctions()
     unsigned pMints[100] = {0};
     unsigned pFuncs[100] = {0};
     unsigned Truth;
-    int FuncDone[100] = {0};
+    int FuncDone[100] = {0}, nFuncDone = 0;
     int GateCount[100] = {0};
     int i, k, n, a, b, v;
     abctime clk = Abc_Clock();
@@ -289,7 +289,7 @@ void Abc_EnumerateFunctions()
     GateCount[0] = 0;
     GateCount[1] = nVars;
     assert( Vec_IntSize(vTruths) == nVars );
-    for ( n = 0; n < 10; n++ )
+    for ( n = 0; n < nDecMax && nFuncDone < nFuncs; n++ )
     {
         for ( a = 0; a <= n; a++ )
         for ( b = a; b <= n; b++ )
@@ -316,6 +316,7 @@ void Abc_EnumerateFunctions()
                         printf( "Found function %d with %d gates: ", v, n+1 );
                         Abc_EnumPrint( vGates, Vec_IntSize(vTruths)-1, nVars );
                         FuncDone[v] = 1;
+                        nFuncDone++;
                     }
                 }
                 Truth = Vec_IntEntry(vTruths, i) | Vec_IntEntry(vTruths, k);
@@ -334,6 +335,7 @@ void Abc_EnumerateFunctions()
                         printf( "Found function %d with %d gates: ", v, n+1 );
                         Abc_EnumPrint( vGates, Vec_IntSize(vTruths)-1, nVars );
                         FuncDone[v] = 1;
+                        nFuncDone++;
                     }
                 }
             }

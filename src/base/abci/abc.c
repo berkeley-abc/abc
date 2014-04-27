@@ -10321,7 +10321,7 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     int nCutMax      =  1;
     int nLeafMax     = 10;
     int nDivMax      = 50;
-    int nDecMax      =  3;
+    int nDecMax      = 20;
     int fNewAlgo     =  0;
     int fNewOrder    =  0;
     int fVerbose     =  0;
@@ -10461,8 +10461,8 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
 */
     {
-        extern void Abc_EnumerateFunctions();
-        Abc_EnumerateFunctions();
+        extern void Abc_EnumerateFunctions( int nVars );
+        Abc_EnumerateFunctions( nDecMax );
     }
     if ( pNtk )
     {
