@@ -10449,6 +10449,7 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
 //        extern void Ifd_ManDsdTest();
 //        Ifd_ManDsdTest();
     }
+/*
     {
         extern void Abc_EnumerateCubeStates();
         extern void Abc_EnumerateCubeStatesZdd();
@@ -10457,6 +10458,11 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
         else
             Abc_EnumerateCubeStates();
         return 0;
+    }
+*/
+    {
+        extern void Abc_EnumerateFunctions();
+        Abc_EnumerateFunctions();
     }
     if ( pNtk )
     {
