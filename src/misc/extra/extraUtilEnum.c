@@ -48,7 +48,7 @@ ABC_NAMESPACE_IMPL_START
 ***********************************************************************/
 void Abc_GetFirst( int * pnVars, int * pnMints, int * pnFuncs, unsigned * pVars, unsigned * pMints, unsigned * pFuncs )
 {
-    int nVars = 8;
+    int nVars  = 8;
     int nMints = 16;
     int nFuncs = 8;
     char * pMintStrs[16] = { 
@@ -111,7 +111,7 @@ void Abc_GetFirst( int * pnVars, int * pnMints, int * pnFuncs, unsigned * pVars,
 ***********************************************************************/
 void Abc_GetSecond( int * pnVars, int * pnMints, int * pnFuncs, unsigned * pVars, unsigned * pMints, unsigned * pFuncs )
 {
-    int nVars = 10;
+    int nVars  = 10;
     int nMints = 32;
     int nFuncs = 7;
     char * pMintStrs[32] = { 
@@ -164,6 +164,68 @@ void Abc_GetSecond( int * pnVars, int * pnMints, int * pnFuncs, unsigned * pVars
         "00100100100000010100100000010010",
         "00010010010010000010010010000001",
         "11111111111111111111000000000000"
+    };
+    int i, k;
+    *pnVars  = nVars;
+    *pnMints = nMints;
+    *pnFuncs = nFuncs;
+    // extract mints
+    for ( i = 0; i < nMints; i++ )
+        for ( k = 0; k < nVars; k++ )
+            if ( pMintStrs[i][k] == '1' )
+                pMints[i] |= (1 << k), pVars[k] |= (1 << i);
+    // extract funcs
+    for ( i = 0; i < nFuncs; i++ )
+        for ( k = 0; k < nMints; k++ )
+            if ( pFuncStrs[i][k] == '1' )
+                pFuncs[i] |= (1 << k);
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_GetThird( int * pnVars, int * pnMints, int * pnFuncs, unsigned * pVars, unsigned * pMints, unsigned * pFuncs )
+{
+    int nVars  = 8;
+    int nMints = 16;
+    int nFuncs = 7;
+    char * pMintStrs[16] = { 
+        "1---1---",
+        "1----1--",
+        "1-----1-",
+        "1------1",
+
+        "-1--1---",
+        "-1---1--",
+        "-1----1-",
+        "-1-----1",
+
+        "--1-1---",
+        "--1--1--",
+        "--1---1-",
+        "--1----1",
+
+        "---11---",
+        "---1-1--",
+        "---1--1-",
+        "---1---1"
+    };
+    char * pFuncStrs[7] = { 
+        "1111111011001000",
+        "0000000100110111",
+        "1000000100100100",
+        "0100100000010010",
+        "0010010010000001",
+        "0001001001001000",
+        "1111111111111111"
     };
     int i, k;
     *pnVars  = nVars;
@@ -270,6 +332,7 @@ void Abc_EnumerateFunctions( int nDecMax )
     // extract data
 //    Abc_GetFirst( &nVars, &nMints, &nFuncs, pVars, pMints, pFuncs );
     Abc_GetSecond( &nVars, &nMints, &nFuncs, pVars, pMints, pFuncs );
+//    Abc_GetThird( &nVars, &nMints, &nFuncs, pVars, pMints, pFuncs );
 
     // create hash table
     assert( nMints == 16 || nMints == 32 );
