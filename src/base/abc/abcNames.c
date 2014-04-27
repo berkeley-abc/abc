@@ -496,6 +496,140 @@ void Abc_NtkShortNames( Abc_Ntk_t * pNtk )
     Abc_NtkAddDummyBoxNames( pNtk );
 }
 
+
+/**Function*************************************************************
+
+  Synopsis    [Saves name IDs into a file.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkStartNameIds( Abc_Ntk_t * p )
+{
+    char pFileName[1000];
+    FILE * pFile;
+    Abc_Obj_t * pObj, * pFanin;
+    Vec_Ptr_t * vNodes;
+    int i, Counter = 1;
+    assert( Abc_NtkIsNetlist(p) );
+    assert( p->vNameIds == NULL );
+    assert( strlen(p->pSpec) < 1000 );
+    sprintf( pFileName, "%s_%s_names.txt", Extra_FileNameGenericAppend(p->pSpec,""), Extra_FileNameExtension(p->pSpec) );
+    pFile = fopen( pFileName, "wb" );
+    p->vNameIds = Vec_IntStart( Abc_NtkObjNumMax(p) );
+    // add inputs
+    Abc_NtkForEachCi( p, pObj, i )
+        fprintf( pFile, "%s            \n", Abc_ObjName(Abc_ObjFanout0(pObj)) ), Vec_IntWriteEntry(p->vNameIds, Abc_ObjId(pObj), 2*Counter++);
+    // add outputs
+    Abc_NtkForEachCo( p, pObj, i )
+    {
+        pFanin = Abc_ObjFanin0(Abc_ObjFanin0(pObj));
+        if ( !Vec_IntEntry(p->vNameIds, Abc_ObjId(pFanin)) )
+            fprintf( pFile, "%s            \n", Abc_ObjName(Abc_ObjFanout0(pFanin)) ), Vec_IntWriteEntry(p->vNameIds, Abc_ObjId(pFanin), 2*Counter++);
+    }
+    // add nodes in a topo order
+    vNodes = Abc_NtkDfs( p, 1 );
+    Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pObj, i )
+        if ( !Vec_IntEntry(p->vNameIds, Abc_ObjId(pObj)) )
+            fprintf( pFile, "%s            \n", Abc_ObjName(Abc_ObjFanout0(pObj)) ), Vec_IntWriteEntry(p->vNameIds, Abc_ObjId(pObj), 2*Counter++);
+    Vec_PtrFree( vNodes );
+    fclose( pFile );
+    // transfer driver node names to COs
+    Abc_NtkForEachCo( p, pObj, i )
+    {
+        pFanin = Abc_ObjFanin0(Abc_ObjFanin0(pObj));
+        Vec_IntWriteEntry( p->vNameIds, Abc_ObjId(pObj), Vec_IntEntry(p->vNameIds, Abc_ObjId(pFanin)) );
+        Vec_IntWriteEntry( p->vNameIds, Abc_ObjId(pFanin), 0 );
+    }
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Remaps the AIG from the old manager into the new manager.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkTransferNameIds( Abc_Ntk_t * p, Abc_Ntk_t * pNew )
+{
+    Abc_Obj_t * pObj, * pObjNew;
+    int i;
+    assert( p->vNameIds != NULL );
+    assert( pNew->vNameIds == NULL );
+    pNew->vNameIds = Vec_IntStart( Abc_NtkObjNumMax(pNew) );
+//    Abc_NtkForEachCi( p, pObj, i )
+//        printf( "%d ", Vec_IntEntry(p->vNameIds, Abc_ObjId(pObj)) );
+//    printf( "\n" );
+    Abc_NtkForEachObj( p, pObj, i )
+        if ( pObj->pCopy && Vec_IntEntry(p->vNameIds, i) )
+        {
+            pObjNew = Abc_ObjRegular(pObj->pCopy);
+            assert( Abc_ObjNtk(pObjNew) == pNew );
+            if ( Abc_ObjIsCi(pObjNew) && !Abc_ObjIsCi(pObj) ) // do not overwrite CI name by internal node name
+                continue;
+            Vec_IntWriteEntry( pNew->vNameIds, Abc_ObjId(pObjNew), Vec_IntEntry(p->vNameIds, i) ^ Abc_ObjIsComplement(pObj->pCopy) );
+        }
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Updates file with name IDs.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkUpdateNameIds( Abc_Ntk_t * p )
+{
+    char pFileName[1000];
+    Vec_Int_t * vStarts;
+    Abc_Obj_t * pObj;
+    FILE * pFile;
+    int i, c, iVar, fCompl, fSeenSpace, Counter = 0;
+    assert( !Abc_NtkIsNetlist(p) );
+    assert( strlen(p->pSpec) < 1000 );
+    assert( p->vNameIds != NULL );
+    sprintf( pFileName, "%s_%s_names.txt", Extra_FileNameGenericAppend(p->pSpec,""), Extra_FileNameExtension(p->pSpec) );
+    pFile = fopen( pFileName, "r+" );
+    // collect info about lines
+    fSeenSpace = 0;
+    vStarts = Vec_IntAlloc( 1000 );
+    Vec_IntPush( vStarts, -1 );
+    while ( (c = fgetc(pFile)) != EOF && ++Counter )
+        if ( c == ' ' && !fSeenSpace )
+            Vec_IntPush(vStarts, Counter), fSeenSpace = 1;
+        else if ( c == '\n' )
+            fSeenSpace = 0;
+    // add info about names
+    Abc_NtkForEachObj( p, pObj, i )
+    {
+        if ( !Vec_IntEntry(p->vNameIds, i) )
+            continue;
+        iVar = Abc_Lit2Var( Vec_IntEntry(p->vNameIds, i) );
+        fCompl = Abc_LitIsCompl( Vec_IntEntry(p->vNameIds, i) );
+        assert( iVar < Vec_IntSize(vStarts) );
+        fseek( pFile, Vec_IntEntry(vStarts, iVar), SEEK_SET );
+        fprintf( pFile, "%s%d", fCompl? "-":"", i );
+    }
+    printf( "Saved %d names into file \"%s\".\n", Vec_IntSize(vStarts)-1, pFileName );
+    fclose( pFile );
+    Vec_IntFree( vStarts );
+    Vec_IntFreeP( &p->vNameIds );
+//    Abc_NtkForEachObj( p, pObj, i )
+//        Abc_ObjPrint( stdout, pObj );
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

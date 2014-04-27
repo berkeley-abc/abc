@@ -1331,6 +1331,7 @@ void Abc_NtkDelete( Abc_Ntk_t * pNtk )
     assert( pNtk->pSCLib == NULL );
     Vec_IntFreeP( &pNtk->vGates );
     Vec_PtrFree( pNtk->vAttrs );
+    Vec_IntFreeP( &pNtk->vNameIds );
     ABC_FREE( pNtk->pWLoadUsed );
     ABC_FREE( pNtk->pName );
     ABC_FREE( pNtk->pSpec );

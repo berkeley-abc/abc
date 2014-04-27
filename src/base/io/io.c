@@ -440,19 +440,24 @@ int IoCommandReadBlif( Abc_Frame_t * pAbc, int argc, char ** argv )
     int fReadAsAig;
     int fCheck;
     int fUseNewParser;
+    int fSaveNames;
     int c;
     extern Abc_Ntk_t * Io_ReadBlifAsAig( char * pFileName, int fCheck );
 
     fCheck = 1;
     fReadAsAig = 0;
     fUseNewParser = 1;
+    fSaveNames = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "nach" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "nmach" ) ) != EOF )
     {
         switch ( c )
         {
             case 'n':
                 fUseNewParser ^= 1;
+                break;
+            case 'm':
+                fSaveNames ^= 1;
                 break;
             case 'a':
                 fReadAsAig ^= 1;
@@ -481,7 +486,11 @@ int IoCommandReadBlif( Abc_Frame_t * pAbc, int argc, char ** argv )
         pNtk = Io_ReadBlif( pFileName, fCheck );
         if ( pNtk == NULL )
             return 1;
+        if ( fSaveNames )
+            Abc_NtkStartNameIds( pNtk );
         pNtk = Abc_NtkToLogic( pTemp = pNtk );
+        if ( fSaveNames )
+            Abc_NtkTransferNameIds( pTemp, pNtk );
         Abc_NtkDelete( pTemp );
     }
 
@@ -493,10 +502,11 @@ int IoCommandReadBlif( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( pAbc->Err, "usage: read_blif [-nach] <file>\n" );
+    fprintf( pAbc->Err, "usage: read_blif [-nmach] <file>\n" );
     fprintf( pAbc->Err, "\t         reads the network in binary BLIF format\n" );
     fprintf( pAbc->Err, "\t         (if this command does not work, try \"read\")\n" );
     fprintf( pAbc->Err, "\t-n     : toggle using old BLIF parser without hierarchy support [default = %s]\n", !fUseNewParser? "yes":"no" );
+    fprintf( pAbc->Err, "\t-m     : toggle saving original circuit names into a file [default = %s]\n", fSaveNames? "yes":"no" );
     fprintf( pAbc->Err, "\t-a     : toggle creating AIG while reading the file [default = %s]\n", fReadAsAig? "yes":"no" );
     fprintf( pAbc->Err, "\t-c     : toggle network check after reading [default = %s]\n", fCheck? "yes":"no" );
     fprintf( pAbc->Err, "\t-h     : prints the command summary\n" );

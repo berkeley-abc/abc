@@ -210,8 +210,8 @@ struct Abc_Ntk_t_
     Vec_Ptr_t *       vOnehots;      // names of one-hot-encoded registers
     Vec_Int_t *       vObjPerm;      // permutation saved
     Vec_Int_t *       vTopo;
-    // node attributes
     Vec_Ptr_t *       vAttrs;        // managers of various node attributes (node functionality, global BDDs, etc)
+    Vec_Int_t *       vNameIds;      // name IDs
 };
 
 struct Abc_Des_t_ 
@@ -717,6 +717,9 @@ extern ABC_DLL void               Abc_NtkAddDummyPiNames( Abc_Ntk_t * pNtk );
 extern ABC_DLL void               Abc_NtkAddDummyPoNames( Abc_Ntk_t * pNtk );
 extern ABC_DLL void               Abc_NtkAddDummyBoxNames( Abc_Ntk_t * pNtk );
 extern ABC_DLL void               Abc_NtkShortNames( Abc_Ntk_t * pNtk );
+extern ABC_DLL void               Abc_NtkStartNameIds( Abc_Ntk_t * p );
+extern ABC_DLL void               Abc_NtkTransferNameIds( Abc_Ntk_t * p, Abc_Ntk_t * pNew );
+extern ABC_DLL void               Abc_NtkUpdateNameIds( Abc_Ntk_t * p );
 /*=== abcNetlist.c ==========================================================*/
 extern ABC_DLL Abc_Ntk_t *        Abc_NtkToLogic( Abc_Ntk_t * pNtk );
 extern ABC_DLL Abc_Ntk_t *        Abc_NtkToNetlist( Abc_Ntk_t * pNtk );

@@ -232,6 +232,11 @@ Abc_Ntk_t * Abc_NtkRestrashZero( Abc_Ntk_t * pNtk, int fCleanup )
     // duplicate EXDC 
     if ( pNtk->pExdc )
         pNtkAig->pExdc = Abc_NtkDup( pNtk->pExdc );
+    // transfer name IDs
+    if ( pNtk->vNameIds )
+        Abc_NtkTransferNameIds( pNtk, pNtkAig );
+    if ( pNtk->vNameIds )
+        Abc_NtkUpdateNameIds( pNtkAig );
     // make sure everything is okay
     if ( !Abc_NtkCheck( pNtkAig ) )
     {
@@ -276,6 +281,9 @@ Abc_Ntk_t * Abc_NtkStrash( Abc_Ntk_t * pNtk, int fAllNodes, int fCleanup, int fR
     pNtkAig = Abc_NtkStartFrom( pNtk, ABC_NTK_STRASH, ABC_FUNC_AIG );
     Abc_NtkStrashPerform( pNtk, pNtkAig, fAllNodes, fRecord );
     Abc_NtkFinalize( pNtk, pNtkAig );
+    // transfer name IDs
+    if ( pNtk->vNameIds )
+        Abc_NtkTransferNameIds( pNtk, pNtkAig );
     // print warning about self-feed latches
 //    if ( Abc_NtkCountSelfFeedLatches(pNtkAig) )
 //        printf( "Warning: The network has %d self-feeding latches.\n", Abc_NtkCountSelfFeedLatches(pNtkAig) );
