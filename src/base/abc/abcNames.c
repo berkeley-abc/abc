@@ -569,7 +569,7 @@ void Abc_NtkTransferNameIds( Abc_Ntk_t * p, Abc_Ntk_t * pNew )
 //        printf( "%d ", Vec_IntEntry(p->vNameIds, Abc_ObjId(pObj)) );
 //    printf( "\n" );
     Abc_NtkForEachObj( p, pObj, i )
-        if ( pObj->pCopy && Vec_IntEntry(p->vNameIds, i) )
+        if ( pObj->pCopy && i < Vec_IntSize(p->vNameIds) && Vec_IntEntry(p->vNameIds, i) )
         {
             pObjNew = Abc_ObjRegular(pObj->pCopy);
             assert( Abc_ObjNtk(pObjNew) == pNew );
@@ -614,7 +614,7 @@ void Abc_NtkUpdateNameIds( Abc_Ntk_t * p )
     // add info about names
     Abc_NtkForEachObj( p, pObj, i )
     {
-        if ( !Vec_IntEntry(p->vNameIds, i) )
+        if ( i == 0 || i >= Vec_IntSize(p->vNameIds) || !Vec_IntEntry(p->vNameIds, i) )
             continue;
         iVar = Abc_Lit2Var( Vec_IntEntry(p->vNameIds, i) );
         fCompl = Abc_LitIsCompl( Vec_IntEntry(p->vNameIds, i) );
