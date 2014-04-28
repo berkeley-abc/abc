@@ -10320,8 +10320,8 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
     int nCutMax      =  1;
     int nLeafMax     = 10;
-    int nDivMax      = 50;
-    int nDecMax      = 20;
+    int nDivMax      =  2;
+    int nDecMax      =  3;
     int fNewAlgo     =  0;
     int fNewOrder    =  0;
     int fVerbose     =  0;
@@ -10461,8 +10461,8 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
 */
     {
-        extern void Abc_EnumerateFunctions( int nVars );
-        Abc_EnumerateFunctions( nDecMax );
+        extern void Abc_EnumerateFuncs( int nDecMax, int nDivMax, int fVerbose );
+        Abc_EnumerateFuncs( nDecMax, nDivMax, fVerbose );
     }
     if ( pNtk )
     {
