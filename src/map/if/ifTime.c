@@ -363,8 +363,16 @@ void If_ManComputeRequired( If_Man_t * p )
             // set the required times for the POs
             if ( p->pPars->fDoAverage )
             {
-                If_ManForEachCo( p, pObj, i )
-                    If_ObjFanin0(pObj)->Required = If_ObjArrTime(If_ObjFanin0(pObj));
+                if ( p->pPars->nRelaxRatio )
+                {
+                    If_ManForEachCo( p, pObj, i )
+                        If_ObjFanin0(pObj)->Required = If_ObjArrTime(If_ObjFanin0(pObj)) * (100.0 + p->pPars->nRelaxRatio) / 100.0;
+                }
+                else
+                {
+                    If_ManForEachCo( p, pObj, i )
+                        If_ObjFanin0(pObj)->Required = If_ObjArrTime(If_ObjFanin0(pObj));
+                }
             }
             else if ( p->pPars->fLatchPaths )
             {
@@ -443,8 +451,16 @@ void If_ManComputeRequired( If_Man_t * p )
         }
         else if ( p->pPars->fDoAverage )
         {
-            If_ManForEachCo( p, pObj, i )
-                Tim_ManSetCoRequired( p->pManTim, i, If_ObjArrTime(If_ObjFanin0(pObj)) );
+            if ( p->pPars->nRelaxRatio )
+            {
+                If_ManForEachCo( p, pObj, i )
+                    Tim_ManSetCoRequired( p->pManTim, i, If_ObjArrTime(If_ObjFanin0(pObj)) * (100.0 + p->pPars->nRelaxRatio) / 100.0 );
+            }
+            else
+            {
+                If_ManForEachCo( p, pObj, i )
+                    Tim_ManSetCoRequired( p->pManTim, i, If_ObjArrTime(If_ObjFanin0(pObj)) );
+            }
         }
         else if ( p->pPars->fLatchPaths )
         {
