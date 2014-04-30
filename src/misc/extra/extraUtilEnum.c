@@ -454,6 +454,10 @@ struct Abc_EnuMan_t_
     word             nBuilds;      // actually built gates
     word             nFinished;    // finished structures
 };
+static inline int Abc_EnumEquiv( word a, word b )
+{
+    return a == b || a == ~b;
+}
 static inline void Abc_EnumRef( Abc_EnuMan_t * p, int i )
 {
     assert( p->pRefs[i] >= 0 );
@@ -492,7 +496,7 @@ static inline void Abc_EnumPrintOne( Abc_EnuMan_t * p )
 }
 void Abc_EnumerateFuncs_rec( Abc_EnuMan_t * p )
 {
-    word uTruth, uTemp;
+    word uTruth;
     word * pTruth = p->pTruths;
     int f = p->nVarsFree;
     int n = p->nNodes;
@@ -551,15 +555,32 @@ void Abc_EnumerateFuncs_rec( Abc_EnuMan_t * p )
     for ( c1 = 0; c1 < 2; c1++ )
     {
         uTruth = (c0 ? ~pTruth[i] : pTruth[i]) & (c1 ? ~pTruth[k] : pTruth[k]);
+        // skip constants
         if ( uTruth == 0 || ~uTruth == 0 )
             continue;
+        // skip equal ones
         for ( t = f; t < n; t++ )
             if ( uTruth == p->pTruths[t] || ~uTruth == p->pTruths[t] )
                 break;
         if ( t < n )
             continue;
+        // skip those that can be derived by fanin and any other one in the cone
+        for ( a = f; a < i; a++ )
+            if ( Abc_EnumEquiv(uTruth, p->pTruths[a] & p->pTruths[k]) || Abc_EnumEquiv(uTruth, ~p->pTruths[a] & p->pTruths[k]) )
+                break;
+        if ( a < i )
+            continue;
+        for ( b = f; b < k; b++ )
+            if ( Abc_EnumEquiv(uTruth, p->pTruths[b] & p->pTruths[i]) || Abc_EnumEquiv(uTruth, ~p->pTruths[b] & p->pTruths[i]) )
+                break;
+        if ( b < k )
+            continue;
+
+/*
+        // skip those that can be derived by any two in the cone, except the top ones
         for ( a = f; a <= i; a++ )
         {
+            word uTemp;
             for ( b = a + 1; b <= k; b++ )
             {
                 if ( a == i && b == k )
@@ -582,6 +603,8 @@ void Abc_EnumerateFuncs_rec( Abc_EnuMan_t * p )
         }
         if ( a <= i )
             continue;
+*/
+
         p->pFans0[n] = i;
         p->pFans1[n] = k;
         p->fCompl0[n] = c0;
