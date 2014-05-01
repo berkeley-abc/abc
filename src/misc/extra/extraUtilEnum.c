@@ -426,7 +426,7 @@ void Abc_EnumerateFunctions( int nDecMax )
   SeeAlso     []
 
 ***********************************************************************/
-#define ABC_ENUM_MAX 32
+#define ABC_ENUM_MAX 16
 static word s_Truths6[6] = {
     ABC_CONST(0xAAAAAAAAAAAAAAAA),
     ABC_CONST(0xCCCCCCCCCCCCCCCC),
@@ -441,6 +441,7 @@ struct Abc_EnuMan_t_
     int              nVars;        // support size
     int              nVarsFree;    // number of PIs used
     int              fVerbose;     // verbose flag
+    int              fUseXor;      // using XOR gate
     int              nNodeMax;     // the max number of nodes
     int              nNodes;       // current number of gates
     int              nTops;        // the number of fanoutless gates
@@ -448,16 +449,14 @@ struct Abc_EnuMan_t_
     int              pFans1[ABC_ENUM_MAX];   // fanins 
     int              fCompl0[ABC_ENUM_MAX];  // complements
     int              fCompl1[ABC_ENUM_MAX];  // complements
+    int              Polar[ABC_ENUM_MAX];    // polarity
     int              pRefs[ABC_ENUM_MAX];    // references
+    int              pLevel[ABC_ENUM_MAX];   // level 
     word             pTruths[ABC_ENUM_MAX];  // truth tables
     word             nTries;       // attempts to build a gate
     word             nBuilds;      // actually built gates
     word             nFinished;    // finished structures
 };
-static inline int Abc_EnumEquiv( word a, word b )
-{
-    return a == b || a == ~b;
-}
 static inline void Abc_EnumRef( Abc_EnuMan_t * p, int i )
 {
     assert( p->pRefs[i] >= 0 );
@@ -491,151 +490,182 @@ static inline void Abc_EnumPrintOne( Abc_EnuMan_t * p )
     int i;
     Kit_DsdPrintFromTruth( (unsigned *)(p->pTruths + p->nNodes - 1), p->nVars ); 
     for ( i = p->nVars; i < p->nNodes; i++ )
-        printf( "  %c=%s%c%s%c", 'a'+i, p->fCompl0[i]?"!":"", 'a'+p->pFans0[i], p->fCompl1[i]?"!":"", 'a'+p->pFans1[i] );
+        if ( p->Polar[i] == 4 )
+            printf( "  %c=%c+%c", 'a'+i, 'a'+p->pFans0[i], 'a'+p->pFans1[i] );
+        else
+            printf( "  %c=%s%c%s%c", 'a'+i, p->fCompl0[i]?"!":"", 'a'+p->pFans0[i], p->fCompl1[i]?"!":"", 'a'+p->pFans1[i] );
     printf( "\n" );
 }
-void Abc_EnumerateFuncs_rec( Abc_EnuMan_t * p )
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline int Abc_EnumEquiv( word a, word b )
 {
-    word uTruth;
-    word * pTruth = p->pTruths;
-    int f = p->nVarsFree;
+    return a == b || a == ~b;
+}
+static inline int Abc_EnumerateFilter( Abc_EnuMan_t * p )
+{
+    int fUseFull = 1;
     int n = p->nNodes;
-    int i, k, c0, c1, t, a, b;
-    p->nBuilds++;
-    // terminate when enough and no new tops
-    if ( n == p->nNodeMax && p->nTops == 1 )
+    int i = p->pFans0[n];
+    int k = p->pFans1[n], t;
+    word * pTruths = p->pTruths;
+    word uTruth = pTruths[n];
+    assert( i < k );
+    // skip constants
+    if ( Abc_EnumEquiv(uTruth, 0) )
+        return 1;
+    // skip equal ones
+    for ( t = 0; t < n; t++ )
+        if ( Abc_EnumEquiv(uTruth, pTruths[t]) )
+            return 1;
+    if ( fUseFull )
     {
+        // skip those that can be derived by any pair
+        int a, b; 
+        for ( a = 0; a <= i; a++ )
+        for ( b = a + 1; b <= k; b++ )
+        {
+            if ( a == i && b == k )
+                continue;
+            if ( Abc_EnumEquiv(uTruth,  pTruths[a] &  pTruths[b]) )
+                return 1;
+            if ( Abc_EnumEquiv(uTruth,  pTruths[a] & ~pTruths[b]) )
+                return 1;
+            if ( Abc_EnumEquiv(uTruth, ~pTruths[a] &  pTruths[b]) )
+                return 1;
+            if ( Abc_EnumEquiv(uTruth, ~pTruths[a] & ~pTruths[b]) )
+                return 1;
+            if ( p->fUseXor && Abc_EnumEquiv(uTruth,  pTruths[a] ^ pTruths[b]) )
+                return 1;
+        }
+    }
+    else
+    {
+        // skip those that can be derived by fanin and any other one in the cone
+        int uTruthI = p->fCompl0[n] ? ~pTruths[i] : pTruths[i];
+        int uTruthK = p->fCompl1[n] ? ~pTruths[k] : pTruths[k];
+        assert( p->fUseXor == 0 );
+        for ( t = 0; t < k; t++ )
+            if ( Abc_EnumEquiv(uTruth, pTruths[t] & uTruthI) || Abc_EnumEquiv(uTruth, ~pTruths[t] & uTruthI) )
+                return 1;
+        for ( t = 0; t < i; t++ )
+            if ( Abc_EnumEquiv(uTruth, pTruths[t] & uTruthK) || Abc_EnumEquiv(uTruth, ~pTruths[t] & uTruthK) )
+                return 1;
+    }
+    return 0;
+}
+void Abc_EnumerateFuncs_rec( Abc_EnuMan_t * p, int fNew, int iNode1st ) // the first node on the last level
+{
+    if ( p->nNodes == p->nNodeMax )
+    {
+        assert( p->nTops == 1 );
         if ( p->fVerbose )
             Abc_EnumPrintOne( p );
         p->nFinished++;
         return;
     }
-    if ( p->nTops > p->nNodeMax - n + 1 )
-        return;
-    assert( n < p->nNodeMax );
-    // try new gates with two inputs
-    if ( f >= 2 )
     {
-        p->pFans0[n]  = f - 2;
-        p->pFans1[n]  = f - 1;
-        p->fCompl0[n] = 0;
-        p->fCompl1[n] = 0;
-        p->pTruths[n] = pTruth[f - 2] & pTruth[f - 1];
-        p->nVarsFree -= 2;
-        Abc_EnumRefNode( p, n );
-        Abc_EnumerateFuncs_rec( p );
-        Abc_EnumDerefNode( p, n );
-        p->nVarsFree += 2;
-        return;
-    }
-    // try new gates with one input
-    if ( f > 0 )
+    int i, k, c, cLim = 4 + p->fUseXor, n = p->nNodes;
+    int nRefedFans = p->nNodeMax - n + 1 - p->nTops;
+    int high0 = fNew ? iNode1st : p->pFans1[n-1];
+    int high1 = fNew ? n        : iNode1st;
+    int low0  = fNew ? 0        : p->pFans0[n-1];
+    int c0    = fNew ? 0        : p->Polar[n-1];
+    int Level = p->pLevel[high0];
+    assert( p->nTops > 0 && p->nTops <= p->nNodeMax - n + 1 );
+    // go through nodes 
+    for ( k = high0; k < high1; k++ )
     {
-        for ( i = f; i < n; i++ )
-        for ( c0 = 0; c0 < 2; c0++ )
+        if ( nRefedFans == 0 && p->pRefs[k] > 0 )
+            continue;
+        if ( p->pRefs[k] > 0 )
+            nRefedFans--;
+        assert( nRefedFans >= 0 );
+        // try second fanin
+        for ( i = (k == high0) ? low0 : 0; i < k; i++ )
         {
-            uTruth = pTruth[f - 1] & (c0 ? ~pTruth[i] : pTruth[i]);
-            p->pFans0[n]  = f - 1;
-            p->pFans1[n]  = i;
-            p->fCompl0[n] = 0;
-            p->fCompl1[n] = c0;
-            p->pTruths[n] = uTruth;
-            p->nVarsFree--;
-            Abc_EnumRefNode( p, n );
-            Abc_EnumerateFuncs_rec( p );
-            Abc_EnumDerefNode( p, n );
-            p->nVarsFree++;
-        }
-        return;
-    }
-    // try new gates without inputs
-    for ( i = f; i < n; i++ )
-    for ( k = i+1; k < n; k++ )
-    for ( c0 = 0; c0 < 2; c0++ )
-    for ( c1 = 0; c1 < 2; c1++ )
-    {
-        uTruth = (c0 ? ~pTruth[i] : pTruth[i]) & (c1 ? ~pTruth[k] : pTruth[k]);
-        // skip constants
-        if ( uTruth == 0 || ~uTruth == 0 )
-            continue;
-        // skip equal ones
-        for ( t = f; t < n; t++ )
-            if ( uTruth == p->pTruths[t] || ~uTruth == p->pTruths[t] )
-                break;
-        if ( t < n )
-            continue;
-        // skip those that can be derived by fanin and any other one in the cone
-        for ( a = f; a < i; a++ )
-            if ( Abc_EnumEquiv(uTruth, p->pTruths[a] & p->pTruths[k]) || Abc_EnumEquiv(uTruth, ~p->pTruths[a] & p->pTruths[k]) )
-                break;
-        if ( a < i )
-            continue;
-        for ( b = f; b < k; b++ )
-            if ( Abc_EnumEquiv(uTruth, p->pTruths[b] & p->pTruths[i]) || Abc_EnumEquiv(uTruth, ~p->pTruths[b] & p->pTruths[i]) )
-                break;
-        if ( b < k )
-            continue;
-
-/*
-        // skip those that can be derived by any two in the cone, except the top ones
-        for ( a = f; a <= i; a++ )
-        {
-            word uTemp;
-            for ( b = a + 1; b <= k; b++ )
+            if ( nRefedFans == 0 && p->pRefs[i] > 0 )
+                continue;
+            if ( Level == 0 && p->pRefs[i] == 0 && p->pRefs[k] == 0 && (i+1 != k || (i > 0 && p->pRefs[i-1] == 0)) ) // NPN
+                continue;
+            if ( p->pLevel[k] == 0 && p->pRefs[k] == 0 && p->pRefs[i] != 0 && k > 0 && p->pRefs[k-1] == 0 ) // NPN
+                continue;
+//            if ( p->pLevel[i] == 0 && p->pRefs[i] == 0 && p->pRefs[k] != 0 && i > 0 && p->pRefs[i-1] == 0 ) // NPN
+//                continue;
+            // try four polarities
+            for ( c = (k == high0 && i == low0 && !fNew) ? c0 + 1 : 0; c < cLim; c++ )
             {
-                if ( a == i && b == k )
+                if ( p->pLevel[i] == 0 && p->pRefs[i] == 0 && (c & 1) == 1 ) // NPN
                     continue;
-                uTemp = p->pTruths[a] & p->pTruths[b];
-                if ( uTruth == uTemp || ~uTruth == uTemp )
-                    break;
-                uTemp = p->pTruths[a] & ~p->pTruths[b];
-                if ( uTruth == uTemp || ~uTruth == uTemp )
-                    break;
-                uTemp = ~p->pTruths[a] & p->pTruths[b];
-                if ( uTruth == uTemp || ~uTruth == uTemp )
-                    break;
-                uTemp = ~p->pTruths[a] & ~p->pTruths[b];
-                if ( uTruth == uTemp || ~uTruth == uTemp )
-                    break;
+                if ( p->pLevel[k] == 0 && p->pRefs[k] == 0 && (c & 2) == 2 ) // NPN
+                    continue;
+                p->nTries++;
+                // create node
+                assert( i < k );
+                p->pFans0[n]  = i;
+                p->pFans1[n]  = k;
+                p->fCompl0[n] = c & 1;
+                p->fCompl1[n] = (c >> 1) & 1;
+                p->Polar[n]   = c;
+                if ( c == 4 )
+                    p->pTruths[n] = p->pTruths[i] ^ p->pTruths[k];
+                else
+                    p->pTruths[n] = ((c & 1) ? ~p->pTruths[i] : p->pTruths[i]) & ((c & 2) ? ~p->pTruths[k] : p->pTruths[k]);
+                if ( Abc_EnumerateFilter(p) )
+                    continue;
+                p->nBuilds++;
+                assert( Level == Abc_MaxInt(p->pLevel[i], p->pLevel[k]) );
+                p->pLevel[n]  = Level + 1;
+                Abc_EnumRefNode( p, n );
+                Abc_EnumerateFuncs_rec( p, 0, fNew ? n : iNode1st );
+                Abc_EnumDerefNode( p, n );
+                assert( n == p->nNodes );
             }
-            if ( b <= k )
-                break;
         }
-        if ( a <= i )
-            continue;
-*/
-
-        p->pFans0[n] = i;
-        p->pFans1[n] = k;
-        p->fCompl0[n] = c0;
-        p->fCompl1[n] = c1;
-        p->pTruths[n] = uTruth;
-        Abc_EnumRefNode( p, n );
-        Abc_EnumerateFuncs_rec( p );
-        Abc_EnumDerefNode( p, n );
+        if ( p->pRefs[k] > 0 )
+            nRefedFans++;
+    }
+    if ( fNew )
+        return;
+    // start a new level
+    Abc_EnumerateFuncs_rec( p, 1, iNode1st );
     }
 }
 void Abc_EnumerateFuncs( int nVars, int nGates, int fVerbose )
 {
     abctime clk = Abc_Clock();
-    Abc_EnuMan_t P, * p = &P; int i;
+    Abc_EnuMan_t P, * p = &P; 
+    int i, n = nVars;
     if ( nVars > nGates + 1 )
     {
         printf( "The gate count %d is not enough to have functions with %d inputs.\n", nGates, nVars );
         return;
     }
-    assert( nVars >= 3 && nVars <= 6 );
-    assert( nGates > 0 && nVars + nGates < 16 );
+    assert( nVars >= 2 && nVars <= 6 );
+    assert( nGates > 0 && nVars + nGates < ABC_ENUM_MAX );
     memset( p, 0, sizeof(Abc_EnuMan_t) );
     p->fVerbose  = fVerbose;
+    p->fUseXor   = 1;
     p->nVars     = nVars;
-    p->nVarsFree = nVars;
     p->nNodeMax  = nVars + nGates;
     p->nNodes    = nVars;
     p->nTops     = nVars;
     for ( i = 0; i < nVars; i++ )
         p->pTruths[i] = s_Truths6[i];
-    Abc_EnumerateFuncs_rec( p );
+    Abc_EnumerateFuncs_rec( p, 1, 0 );
+    assert( p->nNodes == nVars );
+    assert( p->nTops == nVars );
+    // report statistics
     printf( "Vars = %d.  Gates = %d.  Tries = %u. Builds = %u.  Finished = %d. ", 
         nVars, nGates, (unsigned)p->nTries, (unsigned)p->nBuilds, (unsigned)p->nFinished );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
