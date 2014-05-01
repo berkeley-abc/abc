@@ -655,7 +655,7 @@ void Abc_EnumerateFuncs( int nVars, int nGates, int fVerbose )
     assert( nGates > 0 && nVars + nGates < ABC_ENUM_MAX );
     memset( p, 0, sizeof(Abc_EnuMan_t) );
     p->fVerbose  = fVerbose;
-    p->fUseXor   = 1;
+    p->fUseXor   = 0;
     p->nVars     = nVars;
     p->nNodeMax  = nVars + nGates;
     p->nNodes    = nVars;
