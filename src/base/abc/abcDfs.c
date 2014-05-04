@@ -985,7 +985,7 @@ Vec_Ptr_t * Abc_AigDfsMap( Abc_Ntk_t * pNtk )
         if ( i >= Abc_NtkCoNum(pNtk) - pNtk->nBarBufs )
             break;
         Abc_AigDfs_rec( Abc_ObjFanin0(pNode), vNodes );
-        assert( Abc_ObjIsPo(pNode) );
+        assert( Abc_ObjIsCo(pNode) );
         Abc_NodeSetTravIdCurrent( pNode );
     }
     return vNodes;
