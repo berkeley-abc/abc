@@ -757,6 +757,8 @@ static Vec_Int_t * Gia_ManGetCex( Gia_Man_t * pGia, Vec_Int_t * vId2Lit, sat_sol
     Vec_IntClear( vCex );
     Gia_ManForEachPi( pGia, pObj, i )
     {
+        if ( Gia_ObjId(pGia, pObj) >= Vec_IntSize(vId2Lit) )
+            continue;
         LitSat = Vec_IntEntry( vId2Lit, Gia_ObjId(pGia, pObj) );
         if ( LitSat == 0 )
         {
