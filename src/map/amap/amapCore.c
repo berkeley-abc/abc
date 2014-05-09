@@ -48,6 +48,7 @@ void Amap_ManSetDefaultParams( Amap_Par_t * p )
     memset( p, 0, sizeof(Amap_Par_t) );
     p->nIterFlow = 1;            // iterations of area flow
     p->nIterArea = 4;            // iteratoins of exact area
+    p->nCutsMax  = 500;          // the maximum number of cuts at a node
     p->fUseMuxes = 0;            // enables the use of MUXes
     p->fUseXors  = 1;            // enables the use of XORs
     p->fFreeInvs = 0;            // assume inverters are free (area = 0)

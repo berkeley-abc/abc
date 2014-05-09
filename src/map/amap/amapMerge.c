@@ -173,7 +173,7 @@ Amap_Cut_t * Amap_ManCutCreate3( Amap_Man_t * p,
 ***********************************************************************/
 void Amap_ManCutSaveStored( Amap_Man_t * p, Amap_Obj_t * pNode )
 {
-    int nMaxCuts = 500;
+    int nMaxCuts = p->pPars->nCutsMax;
     int * pBuffer;
     Amap_Cut_t * pNext, * pCut;
     int i, nWords, Entry, nCuts, nCuts2;
@@ -522,8 +522,8 @@ void Amap_ManMerge( Amap_Man_t * p )
     if ( p->pPars->fVerbose )
     {
         printf( "AIG object is %d bytes.  ", (int)sizeof(Amap_Obj_t) );
-        printf( "Internal AIG = %5.2f MB.  Cuts = %5.2f MB.\n", 
-            1.0*Amap_ManObjNum(p)*sizeof(Amap_Obj_t)/(1<<20), 1.0*p->nBytesUsed/(1<<20) );
+        printf( "Internal AIG = %5.2f MB.  Cuts = %5.2f MB.  CutsMax = %d.\n", 
+            1.0*Amap_ManObjNum(p)*sizeof(Amap_Obj_t)/(1<<20), 1.0*p->nBytesUsed/(1<<20), p->pPars->nCutsMax );
         printf( "Node =%6d. Try =%9d. Try3 =%10d. Used =%7d. R =%6.2f.  ", 
             Amap_ManNodeNum(p), p->nCutsTried, p->nCutsTried3, p->nCutsUsed, 
             1.0*p->nCutsUsed/Amap_ManNodeNum(p) );

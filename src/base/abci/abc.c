@@ -14063,7 +14063,7 @@ int Abc_CommandAmap( Abc_Frame_t * pAbc, int argc, char ** argv )
     fSweep = 0;
     Amap_ManSetDefaultParams( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "FAEQmxisvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "FACEQmxisvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -14087,6 +14087,17 @@ int Abc_CommandAmap( Abc_Frame_t * pAbc, int argc, char ** argv )
             pPars->nIterArea = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
             if ( pPars->nIterArea < 0 )
+                goto usage;
+            break;
+        case 'C':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-C\" should be followed by a floating point number.\n" );
+                goto usage;
+            }
+            pPars->nCutsMax = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nCutsMax < 0 )
                 goto usage;
             break;
         case 'E':
@@ -14190,10 +14201,11 @@ int Abc_CommandAmap( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: amap [-FA <num>] [-EQ <float>] [-mxisvh]\n" );
+    Abc_Print( -2, "usage: amap [-FAC <num>] [-EQ <float>] [-mxisvh]\n" );
     Abc_Print( -2, "\t           performs standard cell mapping of the current network\n" );
     Abc_Print( -2, "\t-F num   : the number of iterations of area flow [default = %d]\n", pPars->nIterFlow );
     Abc_Print( -2, "\t-A num   : the number of iterations of exact area [default = %d]\n", pPars->nIterArea );
+    Abc_Print( -2, "\t-C num   : the maximum number of cuts at a node [default = %d]\n", pPars->nCutsMax );
     Abc_Print( -2, "\t-E float : sets epsilon used for tie-breaking [default = %f]\n", pPars->fEpsilon );
     Abc_Print( -2, "\t-Q float : area/delay preference ratio [default = %.2f (area-only)] \n", pPars->fADratio );
     Abc_Print( -2, "\t-m       : toggles using MUX matching [default = %s]\n", pPars->fUseMuxes? "yes": "no" );

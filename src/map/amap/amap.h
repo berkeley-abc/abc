@@ -46,6 +46,7 @@ struct Amap_Par_t_
 {
     int    nIterFlow;   // iterations of area flow
     int    nIterArea;   // iteratoins of exact area
+    int    nCutsMax;    // the maximum number of cuts at a node
     int    fUseMuxes;   // enables the use of MUXes
     int    fUseXors;    // enables the use of XORs
     int    fFreeInvs;   // assume inverters are free (area = 0)
