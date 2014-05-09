@@ -121,6 +121,30 @@ void Abc_DesFree( Abc_Des_t * p, Abc_Ntk_t * pNtkSave )
 
 /**Function*************************************************************
 
+  Synopsis    [Duplicated the library.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Des_t * Abc_DesDup( Abc_Des_t * p )
+{
+    Abc_Des_t * pNew;
+    Abc_Ntk_t * pTemp;
+    int i;
+    pNew = Abc_DesCreate( p->pName );
+    Vec_PtrForEachEntry( Abc_Ntk_t *, p->vModules, pTemp, i )
+        Abc_DesAddModel( pNew, Abc_NtkDup(pTemp) );
+    Vec_PtrForEachEntry( Abc_Ntk_t *, p->vTops, pTemp, i )
+        Vec_PtrPush( pNew->vTops, pTemp->pCopy );
+    return pNew;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Frees the library.]
 
   Description []
