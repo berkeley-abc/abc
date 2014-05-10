@@ -210,8 +210,8 @@ void Map_TimePropagateRequiredPhase( Map_Man_t * p, Map_Node_t * pNode, int fPha
     }
 
     // compare the required times with the arrival times
-    assert( pNode->tArrival[fPhase].Rise < ptReqOut->Rise + p->fEpsilon );
-    assert( pNode->tArrival[fPhase].Fall < ptReqOut->Fall + p->fEpsilon );
+//    assert( pNode->tArrival[fPhase].Rise < ptReqOut->Rise + p->fEpsilon );
+//    assert( pNode->tArrival[fPhase].Fall < ptReqOut->Fall + p->fEpsilon );
 }
 float Map_MatchComputeReqTimes( Map_Cut_t * pCut, int fPhase, Map_Time_t * ptArrRes )
 {
