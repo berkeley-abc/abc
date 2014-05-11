@@ -209,9 +209,15 @@ Abc_Ntk_t * Abc_NtkToBarBufs( Abc_Ntk_t * pNtk )
         Abc_ObjAddFanin( pLatch, pObjLi );
         Abc_ObjAddFanin( pObjLo, pLatch );
         pLatch->pData = (void *)ABC_INIT_ZERO;
-        sprintf( Buffer, "_%s_in", Abc_NtkName(Abc_ObjFanin0(pLiMap)->pNtk) );
+        pTemp = NULL;
+        if ( Abc_ObjFanin0(pLiMap)->pNtk != pNtk )
+            pTemp = Abc_ObjFanin0(pLiMap)->pNtk;
+        else if ( Abc_ObjFanout0(pLoMap)->pNtk != pNtk )
+            pTemp = Abc_ObjFanout0(pLoMap)->pNtk;
+        else assert( 0 );
+        sprintf( Buffer, "_%s_in", Abc_NtkName(pTemp) );
         Abc_ObjAssignName( pObjLi, Abc_ObjName(Abc_ObjFanin0(pLiMap)), Buffer );
-        sprintf( Buffer, "_%s_out", Abc_NtkName(Abc_ObjFanout0(pLoMap)->pNtk) );
+        sprintf( Buffer, "_%s_out", Abc_NtkName(pTemp) );
         Abc_ObjAssignName( pObjLo, Abc_ObjName(Abc_ObjFanout0(pLoMap)), Buffer );
         pLiMap->pCopy = pObjLi;
         Abc_ObjFanout0(pLoMap)->pCopy = pObjLo;
