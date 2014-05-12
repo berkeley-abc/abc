@@ -2010,11 +2010,12 @@ int IoCommandWriteCex( Abc_Frame_t * pAbc, int argc, char **argv )
     int fUseOldMin = 0;
     int fCheckCex  = 0;
     int forceSeq   = 0;
+    int fAiger     = 0;
     int fPrintFull = 0;
     int fVerbose   = 0;
 
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "snmocfvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "snmocafvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -2032,6 +2033,9 @@ int IoCommandWriteCex( Abc_Frame_t * pAbc, int argc, char **argv )
                 break;
             case 'c':
                 fCheckCex ^= 1;
+                break;
+            case 'a':
+                fAiger ^= 1;
                 break;
             case 'f':
                 fPrintFull ^= 1;
@@ -2129,8 +2133,13 @@ int IoCommandWriteCex( Abc_Frame_t * pAbc, int argc, char **argv )
         {
             Abc_NtkForEachLatch( pNtk, pObj, i )
                 fprintf( pFile, "%c", '0'+!Abc_LatchIsInit0(pObj) );
+
             for ( i = pCex->nRegs; i < pCex->nBits; i++ )
+            {
+                if ( fAiger && (i-pCex->nRegs)%pCex->nPis == 0)
+                    fprintf( pFile, "\n");
                 fprintf( pFile, "%c", '0'+Abc_InfoHasBit(pCex->pData, i) );
+            }
         }
         fprintf( pFile, "\n" );
         fclose( pFile );
@@ -2172,6 +2181,7 @@ usage:
     fprintf( pAbc->Err, "\t-m     : minimize counter-example by dropping don't-care values [default = %s]\n", fMinimize? "yes": "no" );
     fprintf( pAbc->Err, "\t-o     : use old counter-example minimization algorithm [default = %s]\n", fUseOldMin? "yes": "no" );
     fprintf( pAbc->Err, "\t-c     : check generated counter-example using ternary simulation [default = %s]\n", fCheckCex? "yes": "no" );
+    fprintf( pAbc->Err, "\t-a     : print cex in AIGER 1.9 format [default = %s].\n", fAiger? "yes": "no" );
     fprintf( pAbc->Err, "\t-f     : enable printing flop values in each timeframe [default = %s].\n", fPrintFull? "yes": "no" );  
     fprintf( pAbc->Err, "\t-v     : enable verbose output [default = %s].\n", fVerbose? "yes": "no" );  
     fprintf( pAbc->Err, "\t-h     : print the help massage\n" );
