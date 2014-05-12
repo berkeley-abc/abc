@@ -134,12 +134,20 @@ Abc_Des_t * Abc_DesDup( Abc_Des_t * p )
 {
     Abc_Des_t * pNew;
     Abc_Ntk_t * pTemp;
-    int i;
+    Abc_Obj_t * pObj;
+    int i, k;
     pNew = Abc_DesCreate( p->pName );
     Vec_PtrForEachEntry( Abc_Ntk_t *, p->vModules, pTemp, i )
         Abc_DesAddModel( pNew, Abc_NtkDup(pTemp) );
     Vec_PtrForEachEntry( Abc_Ntk_t *, p->vTops, pTemp, i )
         Vec_PtrPush( pNew->vTops, pTemp->pCopy );
+    Vec_PtrForEachEntry( Abc_Ntk_t *, p->vModules, pTemp, i )
+        pTemp->pCopy->pAltView = pTemp->pAltView ? pTemp->pAltView->pCopy : NULL;
+    // update box models
+    Vec_PtrForEachEntry( Abc_Ntk_t *, p->vModules, pTemp, i )
+        Abc_NtkForEachBox( pTemp, pObj, k )
+            if ( Abc_ObjIsWhitebox(pObj) || Abc_ObjIsBlackbox(pObj) )
+                pObj->pCopy->pData = Abc_ObjModel(pObj)->pCopy;
     return pNew;
 }
 
