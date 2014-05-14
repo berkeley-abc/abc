@@ -120,6 +120,21 @@ struct Bmc_MulPar_t_
     int         fVeryVerbose;
 };
 
+typedef struct Bmc_ParFf_t_ Bmc_ParFf_t;
+struct Bmc_ParFf_t_
+{
+    char *     pFileName;
+    char *     pFormStr;
+    int        Algo;
+    int        fComplVars;
+    int        fStartPats;
+    int        nTimeOut;
+    int        fBasic;
+    int        fDump;
+    int        fDumpUntest;
+    int        fVerbose;
+};
+
 ////////////////////////////////////////////////////////////////////////
 ///                      MACRO DEFINITIONS                           ///
 ////////////////////////////////////////////////////////////////////////

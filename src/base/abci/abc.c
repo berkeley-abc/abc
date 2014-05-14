@@ -33144,11 +33144,13 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9FFTest( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern void Gia_ManFaultTest( Gia_Man_t * p, char * pFileName, int Algo, int fComplVars, int fStartPats, int nTimeOut, int fBasic, int fDump, int fDumpUntest, int fVerbose );
-    int c, Algo = 0, fComplVars = 0, fStartPats = 0, nTimeOut = 0, fBasic = 0, fDump = 0, fDumpUntest = 0, fVerbose = 0;
-    char * pFileName = NULL;
+    extern void Gia_ParFfSetDefault( Bmc_ParFf_t * p );
+    extern void Gia_ManFaultTest( Gia_Man_t * p, Bmc_ParFf_t * pPars );
+    Bmc_ParFf_t Pars, * pPars = &Pars;
+    int c;
+    Gia_ParFfSetDefault( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "ATcsbduvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "ATScsbduvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -33158,9 +33160,9 @@ int Abc_CommandAbc9FFTest( Abc_Frame_t * pAbc, int argc, char ** argv )
                 Abc_Print( -1, "Command line switch \"-A\" should be followed by an integer.\n" );
                 goto usage;
             }
-            Algo = atoi(argv[globalUtilOptind]);
+            pPars->Algo = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( Algo < 1 || Algo > 4 )
+            if ( pPars->Algo < 0 || pPars->Algo > 4 )
                 goto usage;
             break;
         case 'T':
@@ -33169,28 +33171,37 @@ int Abc_CommandAbc9FFTest( Abc_Frame_t * pAbc, int argc, char ** argv )
                 Abc_Print( -1, "Command line switch \"-T\" should be followed by an integer.\n" );
                 goto usage;
             }
-            nTimeOut = atoi(argv[globalUtilOptind]);
+            pPars->nTimeOut = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nTimeOut < 0 )
+            if ( pPars->nTimeOut < 0 )
                 goto usage;
             break;
+        case 'S':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-S\" should be followed by string.\n" );
+                goto usage;
+            }
+            pPars->pFormStr = argv[globalUtilOptind];
+            globalUtilOptind++;
+            break;
         case 'c':
-            fComplVars ^= 1;
+            pPars->fComplVars ^= 1;
             break;
         case 's':
-            fStartPats ^= 1;
+            pPars->fStartPats ^= 1;
             break;
         case 'b':
-            fBasic ^= 1;
+            pPars->fBasic ^= 1;
             break;
         case 'd':
-            fDump ^= 1;
+            pPars->fDump ^= 1;
             break;
         case 'u':
-            fDumpUntest ^= 1;
+            pPars->fDumpUntest ^= 1;
             break;
         case 'v':
-            fVerbose ^= 1;
+            pPars->fVerbose ^= 1;
             break;
         case 'h':
             goto usage;
@@ -33198,15 +33209,25 @@ int Abc_CommandAbc9FFTest( Abc_Frame_t * pAbc, int argc, char ** argv )
             goto usage;
         }
     }
+    if ( pPars->Algo == 0 && pPars->pFormStr == NULL )
+    {
+        Abc_Print( -1, "Formula string (-S <str>) should be selected when algorithm is 0 (-A 0).\n" );
+        return 0;
+    }
+    if ( pPars->Algo != 0 && pPars->pFormStr != NULL )
+    {
+        Abc_Print( -1, "Algorithm should be 0 (-A 0) when formula string is selected (-S <str>).\n" );
+        return 0;
+    }
     // get the file name
     if ( argc == globalUtilOptind + 1 )
     {
         FILE * pFile;
-        pFileName = argv[globalUtilOptind];
-        pFile = fopen( pFileName, "r" );
+        pPars->pFileName = argv[globalUtilOptind];
+        pFile = fopen( pPars->pFileName, "r" );
         if ( pFile == NULL )
         {
-            Abc_Print( -1, "Cannot open file \"%s\" with the input test patterns.\n", pFileName );
+            Abc_Print( -1, "Cannot open file \"%s\" with the input test patterns.\n", pPars->pFileName );
             return 0;
         }
         fclose( pFile );
@@ -33217,32 +33238,44 @@ int Abc_CommandAbc9FFTest( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Abc_CommandAbc9FFTest(): There is no AIG.\n" );
         return 0;
     }
-    if ( Gia_ManRegNum(pAbc->pGia) == 0 && Algo == 1 )
+    if ( Gia_ManRegNum(pAbc->pGia) == 0 && pPars->Algo == 1 )
     {
         Abc_Print( -1, "Abc_CommandAbc9FFTest(): For delay testing, AIG should be sequential.\n" );
         return 0;
     }
-    Gia_ManFaultTest( pAbc->pGia, pFileName, Algo, fComplVars, fStartPats, nTimeOut, fBasic, fDump, fDumpUntest, fVerbose );
+    Gia_ManFaultTest( pAbc->pGia, pPars );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &fftest [-AT num] [-csbduvh] <file>\n" );
+    Abc_Print( -2, "usage: &fftest [-AT num] [-csbduvh] <file> [-S str]\n" );
     Abc_Print( -2, "\t         performs functional fault test generation\n" );
-    Abc_Print( -2, "\t-A num : selects test generation algorithm [default = %d]\n", Algo );
+    Abc_Print( -2, "\t-A num : selects test generation algorithm [default = %d]\n", pPars->Algo );
     Abc_Print( -2, "\t               0: algorithm is not selected\n" );
     Abc_Print( -2, "\t               1: delay fault testing for sequential circuits\n" );
     Abc_Print( -2, "\t               2: traditional stuck-at testing\n" );
     Abc_Print( -2, "\t               3: complement fault testing\n" );
     Abc_Print( -2, "\t               4: functionally observable fault testing\n" );
-    Abc_Print( -2, "\t-T num : specifies approximate runtime limit in seconds [default = %d]\n",        nTimeOut );
-    Abc_Print( -2, "\t-c     : toggles complementing control variables [default = %s]\n",               fComplVars?  "active-high": "active-low" );
-    Abc_Print( -2, "\t-s     : toggles starting with the all-0 and all-1 patterns [default = %s]\n",    fStartPats?  "yes": "no" );
-    Abc_Print( -2, "\t-b     : toggles testing for single faults only [default = %s]\n",                fBasic?      "yes": "no" );
-    Abc_Print( -2, "\t-d     : toggles dumping test patterns into file \"tests.txt\" [default = %s]\n", fDump?       "yes": "no" );
-    Abc_Print( -2, "\t-u     : toggles dumping untestable faults into \"untest.txt\" [default = %s]\n", fDumpUntest? "yes": "no" );
-    Abc_Print( -2, "\t-v     : toggles printing verbose information [default = %s]\n",                  fVerbose?    "yes": "no" );
+    Abc_Print( -2, "\t-T num : specifies approximate runtime limit in seconds [default = %d]\n",        pPars->nTimeOut );
+    Abc_Print( -2, "\t-c     : toggles complementing control variables [default = %s]\n",               pPars->fComplVars?  "active-high": "active-low" );
+    Abc_Print( -2, "\t-s     : toggles starting with the all-0 and all-1 patterns [default = %s]\n",    pPars->fStartPats?  "yes": "no" );
+    Abc_Print( -2, "\t-b     : toggles testing for single faults only [default = %s]\n",                pPars->fBasic?      "yes": "no" );
+    Abc_Print( -2, "\t-d     : toggles dumping test patterns into file \"tests.txt\" [default = %s]\n", pPars->fDump?       "yes": "no" );
+    Abc_Print( -2, "\t-u     : toggles dumping untestable faults into \"untest.txt\" [default = %s]\n", pPars->fDumpUntest? "yes": "no" );
+    Abc_Print( -2, "\t-v     : toggles printing verbose information [default = %s]\n",                  pPars->fVerbose?    "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
-    Abc_Print( -2, "\t<file> : (optional) file name with input test patterns\n");
+    Abc_Print( -2, "\t<file> : (optional) file name with input test patterns\n\n");
+    Abc_Print( -2, "\t-S str : (optional) string representing the fault model\n");
+    Abc_Print( -2, "\t         The following notations are used:\n");
+    Abc_Print( -2, "\t           Functional variables: {a} or {a,b}\n");
+    Abc_Print( -2, "\t           Parameter variables: {p,q,r,s,...}\n");
+    Abc_Print( -2, "\t           Boolean operators: AND(&), OR(|), XOR(^), MUX(?:), NOT(~)\n");
+    Abc_Print( -2, "\t           Parantheses should be used around each operator. Spaces are not allowed.\n");
+    Abc_Print( -2, "\t           Examples:\n");
+    Abc_Print( -2, "\t             ((a&~p)|q)            stuck-at-0/1 model\n");
+    Abc_Print( -2, "\t             (a^p)                 complement model\n");
+    Abc_Print( -2, "\t             (a?(b?~s:r):(b?q:p))  functional observability fault model\n");
+    Abc_Print( -2, "\t             (p^((q^a)&(r^b))      complement at the inputs/output\n");
+    Abc_Print( -2, "\t             (p?(a|b):(a&b))       replace AND by OR\n");    
     return 1;
 }
 
