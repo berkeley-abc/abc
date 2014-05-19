@@ -19457,7 +19457,7 @@ int Abc_CommandCubeEnum( Abc_Frame_t * pAbc, int argc, char ** argv )
 
 usage:
     Abc_Print( -2, "usage: cubeenum [-vh]\n" );
-    Abc_Print( -2, "\t         enumerates reachable states of 2x2x2x cube\n" );
+    Abc_Print( -2, "\t         enumerates reachable states of 2x2x2 cube\n" );
     Abc_Print( -2, "\t         (http://en.wikipedia.org/wiki/Pocket_Cube)\n" );
     Abc_Print( -2, "\t-z     : toggle using ZDD-based algorithm [default = %s]\n", fZddAlgo? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle verbose output [default = %s]\n", fVerbose? "yes": "no" );
@@ -33250,7 +33250,7 @@ usage:
     Abc_Print( -2, "usage: &fftest [-AT num] [-csbduvh] <file> [-S str]\n" );
     Abc_Print( -2, "\t         performs functional fault test generation\n" );
     Abc_Print( -2, "\t-A num : selects test generation algorithm [default = %d]\n", pPars->Algo );
-    Abc_Print( -2, "\t               0: algorithm is not selected\n" );
+    Abc_Print( -2, "\t               0: algorithm is not selected (use -S str)\n" );
     Abc_Print( -2, "\t               1: delay fault testing for sequential circuits\n" );
     Abc_Print( -2, "\t               2: traditional stuck-at testing\n" );
     Abc_Print( -2, "\t               3: complement fault testing\n" );
@@ -33266,15 +33266,18 @@ usage:
     Abc_Print( -2, "\t<file> : (optional) file name with input test patterns\n\n");
     Abc_Print( -2, "\t-S str : (optional) string representing the fault model\n");
     Abc_Print( -2, "\t         The following notations are used:\n");
-    Abc_Print( -2, "\t           Functional variables: {a} or {a,b}\n");
-    Abc_Print( -2, "\t           Parameter variables: {p,q,r,s,...}\n");
+    Abc_Print( -2, "\t           Functional variables: {a,b} (both a and b are always present)\n");
+    Abc_Print( -2, "\t           Parameter variables: {p,q,r,s,t,u,v,w} (any number from 1 to 8)\n");
     Abc_Print( -2, "\t           Boolean operators: AND(&), OR(|), XOR(^), MUX(?:), NOT(~)\n");
-    Abc_Print( -2, "\t           Parantheses should be used around each operator. Spaces are not allowed.\n");
+    Abc_Print( -2, "\t           Parantheses should be used around each operator. Spaces not allowed.\n");
+    Abc_Print( -2, "\t           Complement (~) is only allowed before variables (use DeMorgan law).\n");
     Abc_Print( -2, "\t           Examples:\n");
-    Abc_Print( -2, "\t             ((a&~p)|q)            stuck-at-0/1 model\n");
-    Abc_Print( -2, "\t             (a^p)                 complement model\n");
-    Abc_Print( -2, "\t             (a?(b?~s:r):(b?q:p))  functional observability fault model\n");
-    Abc_Print( -2, "\t             (p^((q^a)&(r^b))      complement at the inputs/output\n");
+    Abc_Print( -2, "\t             (((a&b)&~p)|q)        stuck-at-0/1 at the output\n");
+    Abc_Print( -2, "\t             (((a&~p)|q)&b)        stuck-at-0/1 at input a\n");
+    Abc_Print( -2, "\t             (((a|p)&(b|q))&~r)    stuck-at-1 at the inputs and stuck-at-0 at the output\n");
+    Abc_Print( -2, "\t             ((a&b)^p)             complement at the output\n");
+    Abc_Print( -2, "\t             (((a^p)&(b^q))^r)     complement at the inputs/output\n");
+    Abc_Print( -2, "\t             (a?(b?~s:r):(b?q:p))  functional observability fault at the output\n");
     Abc_Print( -2, "\t             (p?(a|b):(a&b))       replace AND by OR\n");    
     return 1;
 }

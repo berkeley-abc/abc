@@ -394,10 +394,10 @@ int Gia_FormStrCount( char * pStr, int * pnVars, int * pnPars )
             return 1;
         }
     }
-    if ( *pnVars < 1 && *pnVars > FFTEST_MAX_VARS )
-        { printf( "Illigal number of primary inputs (%d)\n", *pnVars ); return 1; }
+    if ( *pnVars != FFTEST_MAX_VARS )
+        { printf( "The number of primary inputs (%d) should be 2\n", *pnVars ); return 1; }
     if ( *pnPars < 1 && *pnPars > FFTEST_MAX_PARS )
-        { printf( "Illigal number of primary inputs (%d)\n", *pnPars ); return 1; }
+        { printf( "The number of parameters should be between 1 and %d\n", *pnPars ); return 1; }
     return 0;
 }
 
@@ -430,17 +430,17 @@ char * Gia_ManFormulaEndToken( char * pForm )
     assert( 0 );
     return NULL;
 }
-int Gia_ManRealizeFormula_rec( Gia_Man_t * p, int * pVars, int * pPars, char * pBeg, char * pEnd, int nVars, int nPars )
+int Gia_ManRealizeFormula_rec( Gia_Man_t * p, int * pVars, int * pPars, char * pBeg, char * pEnd, int nPars )
 {
     int iFans[3], Oper = -1;
     char * pEndNew;
     if ( pBeg[0] == '~' )
-        return Abc_LitNot( Gia_ManRealizeFormula_rec( p, pVars, pPars, pBeg + 1, pEnd, nVars, nPars ) );
+        return Abc_LitNot( Gia_ManRealizeFormula_rec( p, pVars, pPars, pBeg + 1, pEnd, nPars ) );
     if ( pBeg + 1 == pEnd )
     {
         if ( pBeg[0] >= 'a' && pBeg[0] <= 'b' )
             return pVars[pBeg[0] - 'a'];
-        if ( pBeg[0] >= 'p' && pBeg[0] <= 's' )
+        if ( pBeg[0] >= 'p' && pBeg[0] <= 'w' ) // pqrstuvw
             return pPars[pBeg[0] - 'p'];
         assert( 0 );
         return -1;
@@ -452,17 +452,17 @@ int Gia_ManRealizeFormula_rec( Gia_Man_t * p, int * pVars, int * pPars, char * p
         {
             assert( pBeg[0] == '(' );
             assert( pBeg[pEnd-pBeg-1] == ')' );
-            return Gia_ManRealizeFormula_rec( p, pVars, pPars, pBeg + 1, pEnd - 1, nVars, nPars );
+            return Gia_ManRealizeFormula_rec( p, pVars, pPars, pBeg + 1, pEnd - 1, nPars );
         }
     }
     // get first part
     pEndNew  = Gia_ManFormulaEndToken( pBeg );
-    iFans[0] = Gia_ManRealizeFormula_rec( p, pVars, pPars, pBeg, pEndNew, nVars, nPars );
+    iFans[0] = Gia_ManRealizeFormula_rec( p, pVars, pPars, pBeg, pEndNew, nPars );
     Oper     = pEndNew[0];
     // get second part
     pBeg     = pEndNew + 1;
     pEndNew  = Gia_ManFormulaEndToken( pBeg );
-    iFans[1] = Gia_ManRealizeFormula_rec( p, pVars, pPars, pBeg, pEndNew, nVars, nPars );
+    iFans[1] = Gia_ManRealizeFormula_rec( p, pVars, pPars, pBeg, pEndNew, nPars );
     // derive the formula
     if ( Oper == '&' )
         return Gia_ManHashAnd( p, iFans[0], iFans[1] );
@@ -475,12 +475,12 @@ int Gia_ManRealizeFormula_rec( Gia_Man_t * p, int * pVars, int * pPars, char * p
     assert( pEndNew[0] == ':' );
     pBeg     = pEndNew + 1;
     pEndNew  = Gia_ManFormulaEndToken( pBeg );
-    iFans[2] = Gia_ManRealizeFormula_rec( p, pVars, pPars, pBeg, pEndNew, nVars, nPars );
+    iFans[2] = Gia_ManRealizeFormula_rec( p, pVars, pPars, pBeg, pEndNew, nPars );
     return Gia_ManHashMux( p, iFans[0], iFans[1], iFans[2] );
 }
-int Gia_ManRealizeFormula( Gia_Man_t * p, int * pVars, int * pPars, char * pForm, int nVars, int nPars )
+int Gia_ManRealizeFormula( Gia_Man_t * p, int * pVars, int * pPars, char * pForm, int nPars )
 {
-    return Gia_ManRealizeFormula_rec( p, pVars, pPars, pForm, pForm + strlen(pForm), nVars, nPars );
+    return Gia_ManRealizeFormula_rec( p, pVars, pPars, pForm, pForm + strlen(pForm), nPars );
 }
 Gia_Man_t * Gia_ManFormulaUnfold( Gia_Man_t * p, int fUseFaults, int fComplVars, char * pForm )
 {
@@ -489,6 +489,7 @@ Gia_Man_t * Gia_ManFormulaUnfold( Gia_Man_t * p, int fUseFaults, int fComplVars,
     int i, k, iCtrl[FFTEST_MAX_PARS], iFans[FFTEST_MAX_VARS];
     int nVars, nPars;
     Gia_FormStrCount( pForm, &nVars, &nPars );
+    assert( nVars == 2 );
     pNew = Gia_ManStart( 5 * Gia_ManObjNum(p) );
     pNew->pName = Abc_UtilStrsav( p->pName );
     Gia_ManHashAlloc( pNew );
@@ -501,18 +502,9 @@ Gia_Man_t * Gia_ManFormulaUnfold( Gia_Man_t * p, int fUseFaults, int fComplVars,
             iCtrl[k] = Abc_LitNotCond( Gia_ManAppendCi(pNew), fComplVars );
         if ( fUseFaults )
         {
-            if ( nVars == 1 )
-            {
-                iFans[0] = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
-                pObj->Value = Gia_ManRealizeFormula( pNew, iFans, iCtrl, pForm, 1, nPars );
-            }
-            else if ( nVars == 2 )
-            {
-                iFans[0] = Gia_ObjFanin0Copy(pObj);
-                iFans[1] = Gia_ObjFanin1Copy(pObj);
-                pObj->Value = Gia_ManRealizeFormula( pNew, iFans, iCtrl, pForm, 2, nPars );
-            }
-            else assert( 0 );
+            iFans[0] = Gia_ObjFanin0Copy(pObj);
+            iFans[1] = Gia_ObjFanin1Copy(pObj);
+            pObj->Value = Gia_ManRealizeFormula( pNew, iFans, iCtrl, pForm, nPars );
         }
         else
             pObj->Value = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
@@ -796,7 +788,7 @@ void Gia_ManFaultTest( Gia_Man_t * p, Bmc_ParFf_t * pPars )
         printf( "FFTEST is computing test patterns for %sfunctionally observable faults...\n", pPars->fBasic ? "single " : "" );
     else
     {
-        printf( "Unregnized algorithm (%d).\n", pPars->Algo );
+        printf( "Unrecognized algorithm (%d).\n", pPars->Algo );
         return;
     }
 
