@@ -23704,7 +23704,7 @@ usage:
     Abc_Print( -2, "\t-s     : toggle creating only shortest counter-examples [default = %s]\n",             pPars->fShortest? "yes": "no" );
     Abc_Print( -2, "\t-i     : toggle clause pushing from an intermediate timeframe [default = %s]\n",       pPars->fShiftStart? "yes": "no" );
     Abc_Print( -2, "\t-p     : toggle reusing proof-obligations in the last timeframe [default = %s]\n",     pPars->fReuseProofOblig? "yes": "no" );
-    Abc_Print( -2, "\t-d     : toggle dumping inductive invariant [default = %s]\n",                         pPars->fDumpInv? "yes": "no" );
+    Abc_Print( -2, "\t-d     : toggle dumping invariant (valid if init state is all-0) [default = %s]\n",    pPars->fDumpInv? "yes": "no" );
     Abc_Print( -2, "\t-g     : toggle skipping expensive generalization step [default = %s]\n",              pPars->fSkipGeneral? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing optimization summary [default = %s]\n",                       pPars->fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-w     : toggle printing detailed stats default = %s]\n",                              pPars->fVeryVerbose? "yes": "no" );
