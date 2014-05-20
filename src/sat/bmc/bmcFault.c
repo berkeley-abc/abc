@@ -363,7 +363,7 @@ Gia_Man_t * Gia_ManFOFUnfold( Gia_Man_t * p, int fUseFaults, int fComplVars )
 ***********************************************************************/
 int Gia_FormStrCount( char * pStr, int * pnVars, int * pnPars )
 {
-    int i;
+    int i, Counter = 0;
     if ( pStr[0] != '(' )
     {
         printf( "The first symbol should be the opening paranthesis \"(\".\n" );
@@ -372,6 +372,16 @@ int Gia_FormStrCount( char * pStr, int * pnVars, int * pnPars )
     if ( pStr[strlen(pStr)-1] != ')' )
     {
         printf( "The last symbol should be the closing paranthesis \")\".\n" );
+        return 1;
+    }
+    for ( i = 0; pStr[i]; i++ )
+        if (  pStr[i] == '(' )
+            Counter++;
+        else if (  pStr[i] == ')' )
+            Counter--;
+    if ( Counter != 0 )
+    {
+        printf( "The number of opening and closing parantheses is not equal.\n" );
         return 1;
     }
     *pnVars = 0;
@@ -386,8 +396,16 @@ int Gia_FormStrCount( char * pStr, int * pnVars, int * pnPars )
         {}
         else if ( pStr[i] == '&' || pStr[i] == '|' || pStr[i] == '^' )
         {}
-        else if ( pStr[i] == '?' || pStr[i] == ':' || pStr[i] == '~' )
+        else if ( pStr[i] == '?' || pStr[i] == ':' )
         {}
+        else if ( pStr[i] == '~' )
+        {
+            if ( pStr[i+1] < 'a' || pStr[i+1] > 'z' )
+            {
+                printf( "Expecting alphabetic symbol (instead of \"%c\") after negation (~)\n",  pStr[i+1] );
+                return 1;
+            }
+        }
         else 
         {
             printf( "Unknown symbol (%c) in the formula (%s)\n", pStr[i], pStr );
@@ -395,7 +413,7 @@ int Gia_FormStrCount( char * pStr, int * pnVars, int * pnPars )
         }
     }
     if ( *pnVars != FFTEST_MAX_VARS )
-        { printf( "The number of primary inputs (%d) should be 2\n", *pnVars ); return 1; }
+        { printf( "The number of input variables (%d) should be 2\n", *pnVars ); return 1; }
     if ( *pnPars < 1 && *pnPars > FFTEST_MAX_PARS )
         { printf( "The number of parameters should be between 1 and %d\n", *pnPars ); return 1; }
     return 0;
@@ -418,8 +436,7 @@ char * Gia_ManFormulaEndToken( char * pForm )
     char * pThis;
     for ( pThis = pForm; *pThis; pThis++ )
     {
-        if ( *pThis == '~' )
-            continue;
+        assert( *pThis != '~' );
         if ( *pThis == '(' )
             Counter++;
         else if ( *pThis == ')' )
@@ -434,14 +451,16 @@ int Gia_ManRealizeFormula_rec( Gia_Man_t * p, int * pVars, int * pPars, char * p
 {
     int iFans[3], Oper = -1;
     char * pEndNew;
-    if ( pBeg[0] == '~' )
-        return Abc_LitNot( Gia_ManRealizeFormula_rec( p, pVars, pPars, pBeg + 1, pEnd, nPars ) );
     if ( pBeg + 1 == pEnd )
     {
         if ( pBeg[0] >= 'a' && pBeg[0] <= 'b' )
             return pVars[pBeg[0] - 'a'];
+        if ( pBeg[0] >= 'A' && pBeg[0] <= 'B' )
+            return Abc_LitNot( pVars[pBeg[0] - 'A'] );
         if ( pBeg[0] >= 'p' && pBeg[0] <= 'w' ) // pqrstuvw
             return pPars[pBeg[0] - 'p'];
+        if ( pBeg[0] >= 'P' && pBeg[0] <= 'W' )
+            return Abc_LitNot( pPars[pBeg[0] - 'P'] );
         assert( 0 );
         return -1;
     }
@@ -480,7 +499,20 @@ int Gia_ManRealizeFormula_rec( Gia_Man_t * p, int * pVars, int * pPars, char * p
 }
 int Gia_ManRealizeFormula( Gia_Man_t * p, int * pVars, int * pPars, char * pForm, int nPars )
 {
-    return Gia_ManRealizeFormula_rec( p, pVars, pPars, pForm, pForm + strlen(pForm), nPars );
+    char pStr[100];  int i, k;
+    for ( k = i = 0; pForm[i]; i++ )
+    {
+        if ( pForm[i] == '~' )
+        {
+            i++;
+            assert( pForm[i] >= 'a' && pForm[i] <= 'z' );
+            pStr[k++] = 'A' + pForm[i] - 'a';
+        }
+        else
+            pStr[k++] = pForm[i];
+    }
+    pStr[k] = 0;   
+    return Gia_ManRealizeFormula_rec( p, pVars, pPars, pStr, pStr + strlen(pStr), nPars );
 }
 Gia_Man_t * Gia_ManFormulaUnfold( Gia_Man_t * p, int fUseFaults, int fComplVars, char * pForm )
 {
