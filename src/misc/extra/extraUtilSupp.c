@@ -220,7 +220,7 @@ void Abc_SuppTest( int nOnes, int nVars, int fUseSimple, int fVerbose )
     Vec_Int_t * vPairs = fUseSimple ? Abc_SuppGenPairs2( nOnes, nVars ) : Abc_SuppGenPairs( vRes, nVars );
     printf( "M = %2d  N = %2d : ", nOnes, nVars );
     printf( "K = %6d   ",  Vec_IntSize(vRes) );
-    printf( "Total = %12u   ", (word)Vec_IntSize(vRes) * (word)(Vec_IntSize(vRes) - 1) / 2 );
+    printf( "Total = %12.0f  ", 0.5 * Vec_IntSize(vRes) * (Vec_IntSize(vRes) - 1) );
     printf( "Distinct = %8d  ",  Vec_IntSize(vPairs) );
     Abc_PrintTime( 1, "Reduction time", Abc_Clock() - clk );
     // solve the problem
