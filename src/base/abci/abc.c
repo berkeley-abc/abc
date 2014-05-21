@@ -10479,8 +10479,8 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     if ( fNewAlgo )
     {
-        extern void Abc_SuppTest( int nOnes, int nVars, int fVerbose );
-        Abc_SuppTest( nNumOnes, nDecMax, fVerbose );
+        extern void Abc_SuppTest( int nOnes, int nVars, int fUseSimple, int fVerbose );
+        Abc_SuppTest( nNumOnes, nDecMax, fNewOrder, fVerbose );
     }
     else
     {

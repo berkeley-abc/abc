@@ -92,6 +92,21 @@ Vec_Int_t * Abc_SuppGenPairs( Vec_Int_t * p, int nBits )
     ABC_FREE( pMap );
     return vRes;
 }
+Vec_Int_t * Abc_SuppGenPairs2( int nOnes, int nBits )
+{
+    Vec_Int_t * vRes = Vec_IntAlloc( 1000 );
+    int i, k, Size = (1 << nBits), Value;
+    for ( i = 0; i < Size; i++ )
+    {
+        Value = Abc_SuppCountOnes(i);
+        for ( k = 1; k <= nOnes; k++ )
+            if ( Value == 2*k )
+                break;
+        if ( k <= nOnes )
+            Vec_IntPush( vRes, i );
+    }
+    return vRes;
+}
 
 /**Function*************************************************************
 
@@ -196,17 +211,17 @@ int Abc_SuppMinimize( Vec_Int_t * p, int nBits, int fVerbose )
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_SuppTest( int nOnes, int nVars, int fVerbose )
+void Abc_SuppTest( int nOnes, int nVars, int fUseSimple, int fVerbose )
 {
     int nVarsMin;
     abctime clk = Abc_Clock();
     // create the problem
     Vec_Int_t * vRes = Abc_SuppGen( nOnes, nVars );
-    Vec_Int_t * vPairs = Abc_SuppGenPairs( vRes, nVars );
+    Vec_Int_t * vPairs = fUseSimple ? Abc_SuppGenPairs2( nOnes, nVars ) : Abc_SuppGenPairs( vRes, nVars );
     printf( "M = %2d  N = %2d : ", nOnes, nVars );
     printf( "K = %6d   ",  Vec_IntSize(vRes) );
-    printf( "Total = %10d   ", Vec_IntSize(vRes) * (Vec_IntSize(vRes) - 1) /2 );
-    printf( "Distinct = %8d   ",  Vec_IntSize(vPairs) );
+    printf( "Total = %12u   ", (word)Vec_IntSize(vRes) * (word)(Vec_IntSize(vRes) - 1) / 2 );
+    printf( "Distinct = %8d  ",  Vec_IntSize(vPairs) );
     Abc_PrintTime( 1, "Reduction time", Abc_Clock() - clk );
     // solve the problem
     clk = Abc_Clock();
