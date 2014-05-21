@@ -1451,6 +1451,10 @@ SOURCE=.\src\sat\bmc\bmcCexTools.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\sat\bmc\bmcEco.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\sat\bmc\bmcFault.c
 # End Source File
 # Begin Source File
@@ -2739,6 +2743,10 @@ SOURCE=.\src\misc\extra\extraUtilReader.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\misc\extra\extraUtilSupp.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\misc\extra\extraUtilTruth.c
 # End Source File
 # Begin Source File
@@ -3788,6 +3796,10 @@ SOURCE=.\src\aig\gia\giaIso.c
 # Begin Source File
 
 SOURCE=.\src\aig\gia\giaIso2.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\gia\giaIso3.c
 # End Source File
 # Begin Source File
 

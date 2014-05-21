@@ -264,12 +264,33 @@ int Bmc_EcoPatch( Gia_Man_t * p, int nIns, int nOuts )
 ***********************************************************************/
 void Bmc_EcoMiterTest()
 {
+    char * pFileGold = "eco_gold.aig";
+    char * pFileOld =  "eco_old.aig";
     Vec_Int_t * vFans;
+    FILE * pFile;
     Gia_Man_t * pMiter;
     Gia_Obj_t * pObj;
-    Gia_Man_t * pGold = Gia_AigerRead( "eco_gold.aig", 0, 0 );
-    Gia_Man_t * pOld  = Gia_AigerRead( "eco_old.aig", 0, 0 );
+    Gia_Man_t * pGold;
+    Gia_Man_t * pOld;
     int i, RetValue;
+    // check that the files exist
+    pFile = fopen( pFileGold, "r" );
+    if ( pFile == NULL )
+    {
+        printf( "File \"%s\" does not exist.\n", pFileGold );
+        return;
+    }
+    fclose( pFile );
+    pFile = fopen( pFileOld, "r" );
+    if ( pFile == NULL )
+    {
+        printf( "File \"%s\" does not exist.\n", pFileOld );
+        return;
+    }
+    fclose( pFile );
+    // read files
+    pGold = Gia_AigerRead( pFileGold, 0, 0 );
+    pOld  = Gia_AigerRead( pFileOld, 0, 0 );
     // create ECO miter
     vFans = Vec_IntAlloc( Gia_ManCiNum(pOld) );
     Gia_ManForEachCi( pOld, pObj, i )

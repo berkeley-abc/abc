@@ -10317,18 +10317,19 @@ int Abc_CommandTestColor( Abc_Frame_t * pAbc, int argc, char ** argv )
 ***********************************************************************/
 int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
+//    Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
     int nCutMax      =  1;
-    int nLeafMax     = 10;
+    int nLeafMax     =  4;
     int nDivMax      =  2;
-    int nDecMax      =  3;
+    int nDecMax      = 20;
+    int nNumOnes     =  4;
     int fNewAlgo     =  0;
     int fNewOrder    =  0;
     int fVerbose     =  0;
     int fVeryVerbose =  0;
     int c;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "CKDNaovwh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "CKDNMaovwh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -10374,6 +10375,17 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
             nDecMax = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
             if ( nDecMax < 0 )
+                goto usage;
+            break;
+        case 'M':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-M\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nNumOnes = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nNumOnes < 0 )
                 goto usage;
             break;
         case 'a':
@@ -10464,6 +10476,13 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
 //        extern void Abc_EnumerateFuncs( int nDecMax, int nDivMax, int fVerbose );
 //        Abc_EnumerateFuncs( nDecMax, nDivMax, fVerbose );
     }
+
+    if ( fNewAlgo )
+    {
+        extern void Abc_SuppTest( int nOnes, int nVars, int fVerbose );
+        Abc_SuppTest( nNumOnes, nDecMax, fVerbose );
+    }
+    else
     {
         extern void Bmc_EcoMiterTest();
         Bmc_EcoMiterTest();
@@ -10483,12 +10502,13 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
 */
     return 0;
 usage:
-    Abc_Print( -2, "usage: test [-CKDN] [-aovwh] <file_name>\n" );
+    Abc_Print( -2, "usage: test [-CKDNM] [-aovwh] <file_name>\n" );
     Abc_Print( -2, "\t         testbench for new procedures\n" );
     Abc_Print( -2, "\t-C num : the max number of cuts [default = %d]\n", nCutMax );
     Abc_Print( -2, "\t-K num : the max number of leaves [default = %d]\n", nLeafMax );
     Abc_Print( -2, "\t-D num : the max number of divisors [default = %d]\n", nDivMax );
     Abc_Print( -2, "\t-N num : the max number of node inputs [default = %d]\n", nDecMax );
+    Abc_Print( -2, "\t-M num : the max number of ones in the vector [default = %d]\n", nNumOnes );
     Abc_Print( -2, "\t-a     : toggle using new algorithm [default = %s]\n", fNewAlgo? "yes": "no" );
     Abc_Print( -2, "\t-o     : toggle using new ordering [default = %s]\n", fNewOrder? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
