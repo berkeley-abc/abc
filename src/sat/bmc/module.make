@@ -10,6 +10,7 @@ SRC +=    src/sat/bmc/bmcBCore.c \
     src/sat/bmc/bmcCexMin1.c \
     src/sat/bmc/bmcCexMin2.c \
     src/sat/bmc/bmcCexTools.c \
+    src/sat/bmc/bmcEco.c \
     src/sat/bmc/bmcFault.c \
     src/sat/bmc/bmcICheck.c \
     src/sat/bmc/bmcInse.c \

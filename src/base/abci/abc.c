@@ -10461,9 +10461,14 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
 */
     {
-        extern void Abc_EnumerateFuncs( int nDecMax, int nDivMax, int fVerbose );
-        Abc_EnumerateFuncs( nDecMax, nDivMax, fVerbose );
+//        extern void Abc_EnumerateFuncs( int nDecMax, int nDivMax, int fVerbose );
+//        Abc_EnumerateFuncs( nDecMax, nDivMax, fVerbose );
     }
+    {
+        extern void Bmc_EcoMiterTest();
+        Bmc_EcoMiterTest();
+    }
+/*
     if ( pNtk )
     {
         extern Abc_Ntk_t * Abc_NtkBarBufsOnOffTest( Abc_Ntk_t * pNtk );
@@ -10475,6 +10480,7 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
         }
         Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
     }
+*/
     return 0;
 usage:
     Abc_Print( -2, "usage: test [-CKDN] [-aovwh] <file_name>\n" );
