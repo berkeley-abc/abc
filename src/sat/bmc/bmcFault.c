@@ -345,8 +345,6 @@ Gia_Man_t * Gia_ManFOFUnfold( Gia_Man_t * p, int fUseFaults, int fComplVars )
     pNew = Gia_ManCleanup( pTemp = pNew );
     Gia_ManStop( pTemp );
     assert( Gia_ManPiNum(pNew) == Gia_ManCiNum(p) + 4 * Gia_ManAndNum(p) );
-//    if ( fUseFaults )
-//        Gia_AigerWrite( pNew, "newfault.aig", 0, 0 );
     return pNew;
 }
 
@@ -418,6 +416,23 @@ int Gia_FormStrCount( char * pStr, int * pnVars, int * pnPars )
         { printf( "The number of parameters should be between 1 and %d\n", *pnPars ); return 1; }
     return 0;
 }
+void Gia_FormStrTransform( char * pStr, char * pForm )
+{
+    int i, k;
+    for ( k = i = 0; pForm[i]; i++ )
+    {
+        if ( pForm[i] == '~' )
+        {
+            i++;
+            assert( pForm[i] >= 'a' && pForm[i] <= 'z' );
+            pStr[k++] = 'A' + pForm[i] - 'a';
+        }
+        else
+            pStr[k++] = pForm[i];
+    }
+    pStr[k] = 0; 
+}   
+
 
 /**Function*************************************************************
 
@@ -497,31 +512,21 @@ int Gia_ManRealizeFormula_rec( Gia_Man_t * p, int * pVars, int * pPars, char * p
     iFans[2] = Gia_ManRealizeFormula_rec( p, pVars, pPars, pBeg, pEndNew, nPars );
     return Gia_ManHashMux( p, iFans[0], iFans[1], iFans[2] );
 }
-int Gia_ManRealizeFormula( Gia_Man_t * p, int * pVars, int * pPars, char * pForm, int nPars )
+int Gia_ManRealizeFormula( Gia_Man_t * p, int * pVars, int * pPars, char * pStr, int nPars )
 {
-    char pStr[100];  int i, k;
-    for ( k = i = 0; pForm[i]; i++ )
-    {
-        if ( pForm[i] == '~' )
-        {
-            i++;
-            assert( pForm[i] >= 'a' && pForm[i] <= 'z' );
-            pStr[k++] = 'A' + pForm[i] - 'a';
-        }
-        else
-            pStr[k++] = pForm[i];
-    }
-    pStr[k] = 0;   
     return Gia_ManRealizeFormula_rec( p, pVars, pPars, pStr, pStr + strlen(pStr), nPars );
 }
 Gia_Man_t * Gia_ManFormulaUnfold( Gia_Man_t * p, int fUseFaults, int fComplVars, char * pForm )
 {
+    char pStr[100];
     Gia_Man_t * pNew, * pTemp;
     Gia_Obj_t * pObj;
     int i, k, iCtrl[FFTEST_MAX_PARS], iFans[FFTEST_MAX_VARS];
     int nVars, nPars;
+    assert( strlen(pForm) < 100 );
     Gia_FormStrCount( pForm, &nVars, &nPars );
     assert( nVars == 2 );
+    Gia_FormStrTransform( pStr, pForm );
     pNew = Gia_ManStart( 5 * Gia_ManObjNum(p) );
     pNew->pName = Abc_UtilStrsav( p->pName );
     Gia_ManHashAlloc( pNew );
@@ -536,7 +541,7 @@ Gia_Man_t * Gia_ManFormulaUnfold( Gia_Man_t * p, int fUseFaults, int fComplVars,
         {
             iFans[0] = Gia_ObjFanin0Copy(pObj);
             iFans[1] = Gia_ObjFanin1Copy(pObj);
-            pObj->Value = Gia_ManRealizeFormula( pNew, iFans, iCtrl, pForm, nPars );
+            pObj->Value = Gia_ManRealizeFormula( pNew, iFans, iCtrl, pStr, nPars );
         }
         else
             pObj->Value = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
@@ -660,6 +665,8 @@ void Gia_ManFaultAddOne( Gia_Man_t * pM, Cnf_Dat_t * pCnf, sat_solver * pSat, Ve
     int i, Lit;
     // derive the cofactor
     pC = Gia_ManFaultCofactor( pM, vLits );
+//Gia_AigerWrite( pC, "fftest_cof.aig", 0, 0 );
+//printf( "Dumped cofactor circuit into file \"%s\".\n", "fftest_cof.aig" );
     // derive new CNF
     pCnf2 = Cnf_DeriveGiaRemapped( pC );
     Cnf_DataLiftGia( pCnf2, pC, sat_solver_nvars(pSat) );
@@ -877,6 +884,8 @@ void Gia_ManFaultTest( Gia_Man_t * p, Bmc_ParFf_t * pPars )
         p0 = Gia_ManFOFUnfold( p, 0, pPars->fComplVars );
         p1 = Gia_ManFOFUnfold( p, 1, pPars->fComplVars );
     }
+//    Gia_AigerWrite( p1, "newfault.aig", 0, 0 );
+//    printf( "Dumped circuit with fault parameters into file \"newfault.aig\".\n" );
 
     // create miter
     pM = Gia_ManMiter( p0, p1, 0, 0, 0, 0, 0 );

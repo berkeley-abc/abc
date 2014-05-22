@@ -33275,12 +33275,12 @@ int Abc_CommandAbc9FFTest( Abc_Frame_t * pAbc, int argc, char ** argv )
 usage:
     Abc_Print( -2, "usage: &fftest [-AT num] [-csbduvh] <file> [-S str]\n" );
     Abc_Print( -2, "\t         performs functional fault test generation\n" );
-    Abc_Print( -2, "\t-A num : selects test generation algorithm [default = %d]\n", pPars->Algo );
-    Abc_Print( -2, "\t               0: algorithm is not selected (use -S str)\n" );
+    Abc_Print( -2, "\t-A num : selects fault model for all gates [default = %d]\n", pPars->Algo );
+    Abc_Print( -2, "\t               0: fault model is not selected (use -S str)\n" );
     Abc_Print( -2, "\t               1: delay fault testing for sequential circuits\n" );
-    Abc_Print( -2, "\t               2: traditional stuck-at testing\n" );
-    Abc_Print( -2, "\t               3: complement fault testing\n" );
-    Abc_Print( -2, "\t               4: functionally observable fault testing\n" );
+    Abc_Print( -2, "\t               2: traditional stuck-at fault: -S (((a&b)&~p)|q)\n" );
+    Abc_Print( -2, "\t               3: complement fault: -S ((a&b)^p)\n" );
+    Abc_Print( -2, "\t               4: functionally observable fault\n" );
     Abc_Print( -2, "\t-T num : specifies approximate runtime limit in seconds [default = %d]\n",        pPars->nTimeOut );
     Abc_Print( -2, "\t-c     : toggles complementing control variables [default = %s]\n",               pPars->fComplVars?  "active-high": "active-low" );
     Abc_Print( -2, "\t-s     : toggles starting with the all-0 and all-1 patterns [default = %s]\n",    pPars->fStartPats?  "yes": "no" );
@@ -33301,9 +33301,10 @@ usage:
     Abc_Print( -2, "\t             (((a&b)&~p)|q)        stuck-at-0/1 at the output\n");
     Abc_Print( -2, "\t             (((a&~p)|q)&b)        stuck-at-0/1 at input a\n");
     Abc_Print( -2, "\t             (((a|p)&(b|q))&~r)    stuck-at-1 at the inputs and stuck-at-0 at the output\n");
+    Abc_Print( -2, "\t             (((a&~p)&(b&~q))|r)   stuck-at-0 at the inputs and stuck-at-1 at the output\n");
     Abc_Print( -2, "\t             ((a&b)^p)             complement at the output\n");
-    Abc_Print( -2, "\t             (((a^p)&(b^q))^r)     complement at the inputs/output\n");
-    Abc_Print( -2, "\t             (a?(b?~s:r):(b?q:p))  functional observability fault at the output\n");
+    Abc_Print( -2, "\t             (((a^p)&(b^q))^r)     complement at the inputs and at the output\n");
+    Abc_Print( -2, "\t             (a?(b?~s:r):(b?q:p))  functionally observable fault at the output\n");
     Abc_Print( -2, "\t             (p?(a|b):(a&b))       replace AND by OR\n");    
     return 1;
 }
