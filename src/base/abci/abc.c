@@ -33250,12 +33250,14 @@ usage:
 int Abc_CommandAbc9FFTest( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     extern void Gia_ParFfSetDefault( Bmc_ParFf_t * p );
-    extern void Gia_ManFaultTest( Gia_Man_t * p, Bmc_ParFf_t * pPars );
+    extern void Gia_ManFaultTest( Gia_Man_t * p, Gia_Man_t * pG, Bmc_ParFf_t * pPars );
     Bmc_ParFf_t Pars, * pPars = &Pars;
+    char * pFileName = NULL;
+    Gia_Man_t * pGold = NULL;
     int c;
     Gia_ParFfSetDefault( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "ATScsbduvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "ATSGsbduvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -33290,8 +33292,14 @@ int Abc_CommandAbc9FFTest( Abc_Frame_t * pAbc, int argc, char ** argv )
             pPars->pFormStr = argv[globalUtilOptind];
             globalUtilOptind++;
             break;
-        case 'c':
-            pPars->fComplVars ^= 1;
+        case 'G':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-G\" should be followed by string.\n" );
+                goto usage;
+            }
+            pFileName = argv[globalUtilOptind];
+            globalUtilOptind++;
             break;
         case 's':
             pPars->fStartPats ^= 1;
@@ -33348,43 +33356,74 @@ int Abc_CommandAbc9FFTest( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Abc_CommandAbc9FFTest(): For delay testing, AIG should be sequential.\n" );
         return 0;
     }
-    Gia_ManFaultTest( pAbc->pGia, pPars );
+    // check if the file is valid
+    if ( pFileName )
+    {
+        FILE * pFile = fopen( pFileName, "r" );
+        if ( pFile == NULL )
+        {
+            Abc_Print( -1, "Abc_CommandAbc9FFTest(): File name \"%s\" with golden model is invalid.\n", pFileName );
+            return 0;
+        }
+        fclose( pFile );
+        pGold = Gia_AigerRead( pFileName, 0, 0 );
+        if ( pGold == NULL )
+        {
+            Abc_Print( -1, "Abc_CommandAbc9FFTest(): Cannot read file \"%s\" with golden model.\n", pFileName );
+            return 0;
+        }
+        if ( Gia_ManPiNum(pAbc->pGia) != Gia_ManPiNum(pGold) )
+        {
+            Gia_ManStop( pGold );
+            Abc_Print( -1, "Abc_CommandAbc9FFTest(): Old model and gold model have different number of PIs.\n" );
+            return 0;
+        }
+        if ( Gia_ManPoNum(pAbc->pGia) != Gia_ManPoNum(pGold) )
+        {
+            Gia_ManStop( pGold );
+            Abc_Print( -1, "Abc_CommandAbc9FFTest(): Old model and gold model have different number of POs.\n" );
+            return 0;
+        }
+        printf( "Entered spec AIG from file \"%s\".\n", pFileName );
+    }
+    Gia_ManFaultTest( pAbc->pGia, pGold ? pGold : pAbc->pGia, pPars );
+    Gia_ManStopP( &pGold );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &fftest [-AT num] [-csbduvh] <file> [-S str]\n" );
-    Abc_Print( -2, "\t         performs functional fault test generation\n" );
-    Abc_Print( -2, "\t-A num : selects fault model for all gates [default = %d]\n", pPars->Algo );
-    Abc_Print( -2, "\t               0: fault model is not selected (use -S str)\n" );
-    Abc_Print( -2, "\t               1: delay fault testing for sequential circuits\n" );
-    Abc_Print( -2, "\t               2: traditional stuck-at fault: -S (((a&b)&~p)|q)\n" );
-    Abc_Print( -2, "\t               3: complement fault: -S ((a&b)^p)\n" );
-    Abc_Print( -2, "\t               4: functionally observable fault\n" );
-    Abc_Print( -2, "\t-T num : specifies approximate runtime limit in seconds [default = %d]\n",        pPars->nTimeOut );
-    Abc_Print( -2, "\t-c     : toggles complementing control variables [default = %s]\n",               pPars->fComplVars?  "active-high": "active-low" );
-    Abc_Print( -2, "\t-s     : toggles starting with the all-0 and all-1 patterns [default = %s]\n",    pPars->fStartPats?  "yes": "no" );
-    Abc_Print( -2, "\t-b     : toggles testing for single faults only [default = %s]\n",                pPars->fBasic?      "yes": "no" );
-    Abc_Print( -2, "\t-d     : toggles dumping test patterns into file \"tests.txt\" [default = %s]\n", pPars->fDump?       "yes": "no" );
-    Abc_Print( -2, "\t-u     : toggles dumping untestable faults into \"untest.txt\" [default = %s]\n", pPars->fDumpUntest? "yes": "no" );
-    Abc_Print( -2, "\t-v     : toggles printing verbose information [default = %s]\n",                  pPars->fVerbose?    "yes": "no" );
-    Abc_Print( -2, "\t-h     : print the command usage\n");
-    Abc_Print( -2, "\t<file> : (optional) file name with input test patterns\n\n");
-    Abc_Print( -2, "\t-S str : (optional) string representing the fault model\n");
-    Abc_Print( -2, "\t         The following notations are used:\n");
-    Abc_Print( -2, "\t           Functional variables: {a,b} (both a and b are always present)\n");
-    Abc_Print( -2, "\t           Parameter variables: {p,q,r,s,t,u,v,w} (any number from 1 to 8)\n");
-    Abc_Print( -2, "\t           Boolean operators: AND(&), OR(|), XOR(^), MUX(?:), NOT(~)\n");
-    Abc_Print( -2, "\t           Parantheses should be used around each operator. Spaces not allowed.\n");
-    Abc_Print( -2, "\t           Complement (~) is only allowed before variables (use DeMorgan law).\n");
-    Abc_Print( -2, "\t           Examples:\n");
-    Abc_Print( -2, "\t             (((a&b)&~p)|q)        stuck-at-0/1 at the output\n");
-    Abc_Print( -2, "\t             (((a&~p)|q)&b)        stuck-at-0/1 at input a\n");
-    Abc_Print( -2, "\t             (((a|p)&(b|q))&~r)    stuck-at-1 at the inputs and stuck-at-0 at the output\n");
-    Abc_Print( -2, "\t             (((a&~p)&(b&~q))|r)   stuck-at-0 at the inputs and stuck-at-1 at the output\n");
-    Abc_Print( -2, "\t             ((a&b)^p)             complement at the output\n");
-    Abc_Print( -2, "\t             (((a^p)&(b^q))^r)     complement at the inputs and at the output\n");
-    Abc_Print( -2, "\t             (a?(b?~s:r):(b?q:p))  functionally observable fault at the output\n");
-    Abc_Print( -2, "\t             (p?(a|b):(a&b))       replace AND by OR\n");    
+    Abc_Print( -2, "usage: &fftest [-AT num] [-sbduvh] <file> [-G file] [-S str]\n" );
+    Abc_Print( -2, "\t          performs functional fault test generation\n" );
+    Abc_Print( -2, "\t-A num  : selects fault model for all gates [default = %d]\n", pPars->Algo );
+    Abc_Print( -2, "\t                0: fault model is not selected (use -S str)\n" );
+    Abc_Print( -2, "\t                1: delay fault testing for sequential circuits\n" );
+    Abc_Print( -2, "\t                2: traditional stuck-at fault: -S (((a&b)&~p)|q)\n" );
+    Abc_Print( -2, "\t                3: complement fault: -S ((a&b)^p)\n" );
+    Abc_Print( -2, "\t                4: functionally observable fault\n" );
+    Abc_Print( -2, "\t-T num  : specifies approximate runtime limit in seconds [default = %d]\n",        pPars->nTimeOut );
+    Abc_Print( -2, "\t-s      : toggles starting with the all-0 and all-1 patterns [default = %s]\n",    pPars->fStartPats?  "yes": "no" );
+    Abc_Print( -2, "\t-b      : toggles testing for single faults only [default = %s]\n",                pPars->fBasic?      "yes": "no" );
+    Abc_Print( -2, "\t-d      : toggles dumping test patterns into file \"tests.txt\" [default = %s]\n", pPars->fDump?       "yes": "no" );
+    Abc_Print( -2, "\t-u      : toggles dumping untestable faults into \"untest.txt\" [default = %s]\n", pPars->fDumpUntest? "yes": "no" );
+    Abc_Print( -2, "\t-v      : toggles printing verbose information [default = %s]\n",                  pPars->fVerbose?    "yes": "no" );
+    Abc_Print( -2, "\t-h      : print the command usage\n");
+    Abc_Print( -2, "\t<file>  : (optional) file name with input test patterns\n\n");
+    Abc_Print( -2, "\t-G file : (optional) file name with the golden model\n\n");
+    Abc_Print( -2, "\t-S str  : (optional) string representing the fault model\n");
+    Abc_Print( -2, "\t          The following notations are used:\n");
+    Abc_Print( -2, "\t            Functional variables: {a,b} (both a and b are always present)\n");
+    Abc_Print( -2, "\t            Parameter variables: {p,q,r,s,t,u,v,w} (any number from 1 to 8)\n");
+    Abc_Print( -2, "\t            Boolean operators: AND(&), OR(|), XOR(^), MUX(?:), NOT(~)\n");
+    Abc_Print( -2, "\t            Parantheses should be used around each operator. Spaces not allowed.\n");
+    Abc_Print( -2, "\t            Complement (~) is only allowed before variables (use DeMorgan law).\n");
+    Abc_Print( -2, "\t            Examples:\n");
+    Abc_Print( -2, "\t              (((a&b)&~p)|q)        stuck-at-0/1 at the output\n");
+    Abc_Print( -2, "\t              (((a&~p)|q)&b)        stuck-at-0/1 at input a\n");
+    Abc_Print( -2, "\t              (((a|p)&(b|q))&~r)    stuck-at-1 at the inputs and stuck-at-0 at the output\n");
+    Abc_Print( -2, "\t              (((a&~p)&(b&~q))|r)   stuck-at-0 at the inputs and stuck-at-1 at the output\n");
+    Abc_Print( -2, "\t              ((a&b)^p)             complement at the output\n");
+    Abc_Print( -2, "\t              (((a^p)&(b^q))^r)     complement at the inputs and at the output\n");
+    Abc_Print( -2, "\t              (a?(b?~s:r):(b?q:p))  functionally observable fault at the output\n");
+    Abc_Print( -2, "\t              (p?(a|b):(a&b))       replace AND by OR\n");    
     return 1;
 }
 
