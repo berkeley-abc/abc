@@ -256,7 +256,7 @@ int Abc_SuppMinimize( unsigned * pMatrix, Vec_Int_t * p, int nBits, int fVerbose
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_SuppTest( int nOnes, int nVars, int fUseSimple, int fVerbose )
+void Abc_SuppTest( int nOnes, int nVars, int fUseSimple, int fCheck, int fVerbose )
 {
     int nVarsMin;
     unsigned Matrix[100];
@@ -275,7 +275,8 @@ void Abc_SuppTest( int nOnes, int nVars, int fUseSimple, int fVerbose )
     nVarsMin = Abc_SuppMinimize( Matrix, vPairs, nVars, fVerbose );
     printf( "Solution with %d variables found.  ", nVarsMin );
     Abc_PrintTime( 1, "Covering time", Abc_Clock() - clk );
-    Abc_SuppVerify( vRes, Matrix, nVars, nVarsMin );
+    if ( fCheck )
+        Abc_SuppVerify( vRes, Matrix, nVars, nVarsMin );
     Vec_IntFree( vPairs );
     Vec_IntFree( vRes );
 }

@@ -124,6 +124,7 @@ static int Abc_CommandResubstitute           ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandRr                     ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandCascade                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandExtract                ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandVarMin                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 static int Abc_CommandLogic                  ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandComb                   ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -699,6 +700,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
 //    Cmd_CommandAdd( pAbc, "Synthesis",    "rr",            Abc_CommandRr,               1 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "cascade",       Abc_CommandCascade,          1 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "extract",       Abc_CommandExtract,          1 );
+    Cmd_CommandAdd( pAbc, "Synthesis",    "varmin",        Abc_CommandVarMin,           0 );
 
     Cmd_CommandAdd( pAbc, "Various",      "logic",         Abc_CommandLogic,            1 );
     Cmd_CommandAdd( pAbc, "Various",      "comb",          Abc_CommandComb,             1 );
@@ -6314,6 +6316,83 @@ usage:
     return 1;
 }
 
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandVarMin( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern void Abc_SuppTest( int nOnes, int nVars, int fUseSimple, int fCheck, int fVerbose );
+    int nOnes      =  4;
+    int nVars      = 20;
+    int fUseSimple =  0;
+    int fCheck     =  0;
+    int fVerbose   =  0;
+    int c;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "MNocvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'M':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-M\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nOnes = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nOnes < 0 )
+                goto usage;
+            break;
+        case 'N':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-N\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nVars = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nVars < 0 )
+                goto usage;
+            break;
+        case 'o':
+            fUseSimple ^= 1;
+            break;
+        case 'c':
+            fCheck ^= 1;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    Abc_SuppTest( nOnes, nVars, fUseSimple, fCheck, fVerbose );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: varmin [-MN <num>] [-ocvh]\n" );
+    Abc_Print( -2, "\t           performs support minimization\n" );
+    Abc_Print( -2, "\t-M <num> : the number of ones in the combination [default = %d]\n", nOnes );
+    Abc_Print( -2, "\t-N <num> : the number of variables in the problem [default = %d]\n", nVars );
+    Abc_Print( -2, "\t-o       : toggle computing reduced difference matrix [default = %s]\n", fUseSimple? "yes": "no" );
+    Abc_Print( -2, "\t-c       : toggle verifying the final result [default = %s]\n", fCheck? "yes": "no" );
+    Abc_Print( -2, "\t-v       : toggle verbose printout [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h       : print the command usage\n");
+    return 1;
+}
+
 
 /**Function*************************************************************
 
@@ -10479,8 +10558,8 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     if ( fNewAlgo )
     {
-        extern void Abc_SuppTest( int nOnes, int nVars, int fUseSimple, int fVerbose );
-        Abc_SuppTest( nNumOnes, nDecMax, fNewOrder, fVerbose );
+        extern void Abc_SuppTest( int nOnes, int nVars, int fUseSimple, int fCheck, int fVerbose );
+        Abc_SuppTest( nNumOnes, nDecMax, fNewOrder, 0, fVerbose );
     }
     else
     {
