@@ -64,6 +64,51 @@ Vec_Int_t * Abc_SuppGen( int m, int n )
 
 /**Function*************************************************************
 
+  Synopsis    [Perform verification.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_SuppVerify( Vec_Int_t * p, unsigned * pMatrix, int nVars, int nVarsMin )
+{
+    Vec_Int_t * pNew;
+    int * pLimit, * pEntry1, * pEntry2;
+    int i, k, v, Entry, EntryNew, Value, Counter = 0;
+    pNew = Vec_IntAlloc( Vec_IntSize(p) );
+    Vec_IntForEachEntry( p, Entry, i )
+    {
+        EntryNew = 0;
+        for ( v = 0; v < nVarsMin; v++ )
+        {
+            Value = 0;
+            for ( k = 0; k < nVars; k++ )
+                if ( ((pMatrix[v] >> k) & 1) && ((Entry >> k) & 1) )
+                    Value ^= 1;
+            if ( Value )
+                EntryNew |= (1 << v);            
+        }
+        Vec_IntPush( pNew, EntryNew );
+    }
+    // check that they are disjoint
+    pLimit  = Vec_IntLimit(pNew);
+    pEntry1 = Vec_IntArray(pNew);
+    for ( ; pEntry1 < pLimit; pEntry1++ )
+    for ( pEntry2 = pEntry1 + 1; pEntry2 < pLimit; pEntry2++ )
+        if ( *pEntry1 == *pEntry2 )
+            Counter++;
+    if ( Counter )
+        printf( "The total of %d pairs fail verification.\n", Counter );
+    else
+        printf( "Verification successful.\n" );
+    Vec_IntFree( pNew );
+}
+
+/**Function*************************************************************
+
   Synopsis    [Generate pairs.]
 
   Description []
@@ -181,20 +226,20 @@ unsigned Abc_SuppFindOne( Vec_Int_t * p, int nBits )
     }
     return uMask;
 }
-int Abc_SuppMinimize( Vec_Int_t * p, int nBits, int fVerbose )
+int Abc_SuppMinimize( unsigned * pMatrix, Vec_Int_t * p, int nBits, int fVerbose )
 {
-    unsigned uMask; int i;
+    int i;
     for ( i = 0; Vec_IntSize(p) > 0; i++ )
     {
 //        Abc_SuppPrintProfile( p, nBits );
-        uMask = Abc_SuppFindOne( p, nBits );
+        pMatrix[i] = Abc_SuppFindOne( p, nBits );
         Abc_SuppGenFilter( p, nBits );   
         if ( !fVerbose )
             continue;
         // print stats
         printf( "%2d : ", i );
         printf( "%6d  ", Vec_IntSize(p) );
-        Abc_SuppPrintMask( uMask, nBits );
+        Abc_SuppPrintMask( pMatrix[i], nBits );
 //        printf( "\n" );
     }
     return i;
@@ -214,10 +259,12 @@ int Abc_SuppMinimize( Vec_Int_t * p, int nBits, int fVerbose )
 void Abc_SuppTest( int nOnes, int nVars, int fUseSimple, int fVerbose )
 {
     int nVarsMin;
+    unsigned Matrix[100];
     abctime clk = Abc_Clock();
     // create the problem
     Vec_Int_t * vRes = Abc_SuppGen( nOnes, nVars );
     Vec_Int_t * vPairs = fUseSimple ? Abc_SuppGenPairs2( nOnes, nVars ) : Abc_SuppGenPairs( vRes, nVars );
+    assert( nVars < 100 );
     printf( "M = %2d  N = %2d : ", nOnes, nVars );
     printf( "K = %6d   ",  Vec_IntSize(vRes) );
     printf( "Total = %12.0f  ", 0.5 * Vec_IntSize(vRes) * (Vec_IntSize(vRes) - 1) );
@@ -225,9 +272,10 @@ void Abc_SuppTest( int nOnes, int nVars, int fUseSimple, int fVerbose )
     Abc_PrintTime( 1, "Reduction time", Abc_Clock() - clk );
     // solve the problem
     clk = Abc_Clock();
-    nVarsMin = Abc_SuppMinimize( vPairs, nVars, fVerbose );
+    nVarsMin = Abc_SuppMinimize( Matrix, vPairs, nVars, fVerbose );
     printf( "Solution with %d variables found.  ", nVarsMin );
     Abc_PrintTime( 1, "Covering time", Abc_Clock() - clk );
+    Abc_SuppVerify( vRes, Matrix, nVars, nVarsMin );
     Vec_IntFree( vPairs );
     Vec_IntFree( vRes );
 }
