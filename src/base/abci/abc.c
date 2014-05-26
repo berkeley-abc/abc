@@ -6330,6 +6330,7 @@ usage:
 int Abc_CommandVarMin( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     extern void Abc_SuppTest( int nOnes, int nVars, int fUseSimple, int fCheck, int fVerbose );
+    extern void Abc_SuppReadMinTest( char * pFileName );
     int nOnes      =  4;
     int nVars      = 20;
     int fUseSimple =  0;
@@ -6377,6 +6378,12 @@ int Abc_CommandVarMin( Abc_Frame_t * pAbc, int argc, char ** argv )
         default:
             goto usage;
         }
+    }
+    // get the file name
+    if ( argc == globalUtilOptind + 1 )
+    {
+        Abc_SuppReadMinTest( argv[globalUtilOptind] );
+        return 0;
     }
     Abc_SuppTest( nOnes, nVars, fUseSimple, fCheck, fVerbose );
     return 0;
