@@ -396,9 +396,9 @@ Abc_Cex_t * Abc_CexTransformPhase( Abc_Cex_t * p, int nPisOld, int nPosOld, int 
     assert( p->iPo < nPosNew );
     pCex = Abc_CexDup( p, nRegsOld );
     pCex->nPis   = nPisOld;
-    pCex->iPo    = p->iPo % nPosOld;
-    pCex->iFrame = p->iFrame * nFrames + p->iPo / nPosOld;
-    pCex->nBits  = pCex->nRegs + pCex->nPis * (pCex->iFrame + 1);
+    pCex->iPo    = -1;
+    pCex->iFrame = (p->iFrame + 1) * nFrames - 1;
+    pCex->nBits  = p->nBits;
     return pCex;
 }
 

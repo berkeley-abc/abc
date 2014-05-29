@@ -121,6 +121,53 @@ int Gia_ManFindFailedPoCex( Gia_Man_t * pAig, Abc_Cex_t * p, int nOutputs )
     return RetValue;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Determines the failed PO when its exact frame is not known.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Gia_ManSetFailedPoCex( Gia_Man_t * pAig, Abc_Cex_t * p )
+{
+    Gia_Obj_t * pObj, * pObjRi, * pObjRo;
+    int i, k, iBit = 0;
+    assert( Gia_ManPiNum(pAig) == p->nPis );
+    Gia_ManCleanMark0(pAig);
+    p->iPo = -1;
+//    Gia_ManForEachRo( pAig, pObj, i )
+//       pObj->fMark0 = Abc_InfoHasBit(p->pData, iBit++);
+    iBit = p->nRegs;
+    for ( i = 0; i <= p->iFrame; i++ )
+    {
+        Gia_ManForEachPi( pAig, pObj, k )
+            pObj->fMark0 = Abc_InfoHasBit(p->pData, iBit++);
+        Gia_ManForEachAnd( pAig, pObj, k )
+            pObj->fMark0 = (Gia_ObjFanin0(pObj)->fMark0 ^ Gia_ObjFaninC0(pObj)) & 
+                           (Gia_ObjFanin1(pObj)->fMark0 ^ Gia_ObjFaninC1(pObj));
+        Gia_ManForEachCo( pAig, pObj, k )
+            pObj->fMark0 = Gia_ObjFanin0(pObj)->fMark0 ^ Gia_ObjFaninC0(pObj);
+        Gia_ManForEachRiRo( pAig, pObjRi, pObjRo, k )
+            pObjRo->fMark0 = pObjRi->fMark0;
+        // check the POs
+        Gia_ManForEachPo( pAig, pObj, k )
+        {
+            if ( !pObj->fMark0 )
+                continue;
+            p->iPo = k;
+            p->iFrame = i;
+            p->nBits = iBit;
+            break;
+        }
+    }
+    Gia_ManCleanMark0(pAig);
+    return p->iPo;
+}
+
 
 /**Function*************************************************************
 

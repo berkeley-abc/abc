@@ -963,6 +963,7 @@ extern Gia_Man_t *         Gia_ManPerformBidec( Gia_Man_t * p, int fVerbose );
 /*=== giaCex.c ============================================================*/
 extern int                 Gia_ManVerifyCex( Gia_Man_t * pAig, Abc_Cex_t * p, int fDualOut );
 extern int                 Gia_ManFindFailedPoCex( Gia_Man_t * pAig, Abc_Cex_t * p, int nOutputs );
+extern int                 Gia_ManSetFailedPoCex( Gia_Man_t * pAig, Abc_Cex_t * p );
 extern void                Gia_ManCounterExampleValueStart( Gia_Man_t * pGia, Abc_Cex_t * pCex );
 extern void                Gia_ManCounterExampleValueStop( Gia_Man_t * pGia );
 extern int                 Gia_ManCounterExampleValueLookup( Gia_Man_t * pGia, int Id, int iFrame );

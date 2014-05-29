@@ -648,7 +648,7 @@ void Abc_SuppReadMinTest( char * pFileName )
 {
     int fVerbose = 0;
     abctime clk = Abc_Clock();
-    word Matrix[64];
+//    word Matrix[64];
     int nVars, nVarsMin;
     Vec_Wrd_t * vPairs, * vCubes;
     vCubes = Abc_SuppReadMin( pFileName, &nVars );

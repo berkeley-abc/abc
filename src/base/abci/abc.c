@@ -18864,6 +18864,18 @@ int Abc_CommandDarPhase( Abc_Frame_t * pAbc, int argc, char ** argv )
             return 1;
         }
         pCexNew = Abc_CexTransformPhase( pAbc->pCex, Abc_NtkPiNum(pNtk), Abc_NtkPoNum(pNtk), Abc_NtkLatchNum(pNtk) );
+        {
+            Aig_Man_t * pAig = Abc_NtkToDar( pNtk, 0, 1 );
+            Gia_Man_t * pGia = Gia_ManFromAig( pAig );
+            int iPo = Gia_ManSetFailedPoCex( pGia, pCexNew );
+            Gia_ManStop( pGia );
+            Aig_ManStop( pAig );
+            if ( iPo == -1 )
+            {
+                Abc_Print( -1, "The counter-example does not fail any of the outputs of the original AIG.\n" );
+                return 1;
+            }
+        }
         Abc_FrameReplaceCex( pAbc, &pCexNew );
         return 0;
     }
