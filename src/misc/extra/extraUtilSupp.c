@@ -77,7 +77,7 @@ void Vec_IntUniqueProfile( Vec_Int_t * vData, int * pTable, int * pNexts, int Ta
         printf( "%d\n", Counter );
         for ( Key = pTable[i]; Key != -1; Key = pNexts[Key] )
         {
-            Extra_PrintBinary( stdout, Vec_IntEntryP(vData, Key*nIntSize), 40 ), printf( "\n" );
+            Extra_PrintBinary( stdout, (unsigned *)Vec_IntEntryP(vData, Key*nIntSize), 40 ), printf( "\n" );
 //            Vec_IntUniqueHashKeyDebug( (unsigned char *)Vec_IntEntryP(vData, Key*nIntSize), 4*nIntSize, TableMask );
         }
     }
@@ -316,7 +316,7 @@ void Abc_SuppPrintMask( word uMask, int nBits )
 {
     int i;
     for ( i = 0; i < nBits; i++ )
-        printf( "%d", (uMask >> i) & 1 );
+        printf( "%d", (int)((uMask >> i) & 1) );
     printf( "\n" );
 }
 void Abc_SuppGenProfile( Vec_Wrd_t * p, int nBits, int * pCounts )
@@ -646,7 +646,7 @@ int Abc_SuppSolve( Vec_Wrd_t * p, int nVars )
 ***********************************************************************/
 void Abc_SuppReadMinTest( char * pFileName )
 {
-    int fVerbose = 0;
+//    int fVerbose = 0;
     abctime clk = Abc_Clock();
 //    word Matrix[64];
     int nVars, nVarsMin;
