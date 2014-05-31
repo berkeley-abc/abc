@@ -4657,7 +4657,7 @@ int Abc_CommandMfs2( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nGrowthLevel = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nGrowthLevel < 0 || pPars->nGrowthLevel > ABC_INFINITY )
+            if ( pPars->nGrowthLevel < -ABC_INFINITY || pPars->nGrowthLevel > ABC_INFINITY )
                 goto usage;
             break;
         case 'C':
