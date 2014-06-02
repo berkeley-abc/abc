@@ -207,7 +207,7 @@ static inline sat_solver * Cec_GiaDeriveSolver( Gia_Man_t * p, int nTimeOut )
     Cnf_DataFree( pCnf );
     return pSat;
 }
-static inline int Cnf_GiaSolveOne( Gia_Man_t * p, int nTimeOut, int fVerbose )
+static inline int Cnf_GiaSolveOne( Gia_Man_t * p, int nTimeOut, int nSize, int fVerbose )
 {
     static int Counter = 0;
     abctime clk = Abc_Clock();
@@ -216,6 +216,7 @@ static inline int Cnf_GiaSolveOne( Gia_Man_t * p, int nTimeOut, int fVerbose )
     if ( fVerbose )
     {
         printf( "Iter%6d : ",       Counter++ );
+        printf( "Size =%7d  ",      nSize );
         printf( "Input = %3d  ",    Gia_ManPiNum(p) );
         printf( "Var =%10d  ",      sat_solver_nvars(pSat) );
         printf( "Clause =%10d  ",   sat_solver_nclauses(pSat) );
@@ -252,9 +253,9 @@ static inline int Cnf_GiaSolveOne( Gia_Man_t * p, int nTimeOut, int fVerbose )
     }
 */
 }
-static inline int Cnf_GiaCheckOne( Vec_Ptr_t * vStack, Gia_Man_t * p, int nTimeOut, int fVerbose )
+static inline int Cnf_GiaCheckOne( Vec_Ptr_t * vStack, Gia_Man_t * p, int nTimeOut, int nSize, int fVerbose )
 {
-    int status = Cnf_GiaSolveOne( p, nTimeOut, fVerbose );
+    int status = Cnf_GiaSolveOne( p, nTimeOut, nSize, fVerbose );
     if ( status == -1 )
     {
         Vec_PtrPush( vStack, p );
@@ -304,7 +305,7 @@ int Cec_GiaSplitTest( Gia_Man_t * p, int nTimeOut, int fVerbose )
     }
     // start with the current problem
     vStack = Vec_PtrAlloc( 1000 );
-    if ( !Cnf_GiaCheckOne(vStack, pNew, nTimeOut, fVerbose) )
+    if ( !Cnf_GiaCheckOne(vStack, pNew, nTimeOut, Vec_PtrSize(vStack), fVerbose) )
         RetValue = 0;
     else
     {
@@ -313,7 +314,7 @@ int Cec_GiaSplitTest( Gia_Man_t * p, int nTimeOut, int fVerbose )
             pNew = (Gia_Man_t *)Vec_PtrPop( vStack );
             // cofactor
             pPart0 = Gia_ManDupDfsRehash( pNew, 1, 0 );
-            if ( !Cnf_GiaCheckOne(vStack, pPart0, nTimeOut, fVerbose) )
+            if ( !Cnf_GiaCheckOne(vStack, pPart0, nTimeOut, Vec_PtrSize(vStack), fVerbose) )
             {
                 Gia_ManStop( pNew );
                 RetValue = 0;
@@ -322,13 +323,13 @@ int Cec_GiaSplitTest( Gia_Man_t * p, int nTimeOut, int fVerbose )
             // cofactor
             pPart1 = Gia_ManDupDfsRehash( pNew, 1, 1 );
             Gia_ManStop( pNew );
-            if ( !Cnf_GiaCheckOne(vStack, pPart1, nTimeOut, fVerbose) )
+            if ( !Cnf_GiaCheckOne(vStack, pPart1, nTimeOut, Vec_PtrSize(vStack), fVerbose) )
             {
                 RetValue = 0;
                 break;
             }
-            if ( Vec_PtrSize(vStack) > 2 )
-                break;
+//            if ( Vec_PtrSize(vStack) > 2 )
+//                break;
         }
         if ( Vec_PtrSize(vStack) == 0 )
             RetValue = 1;
