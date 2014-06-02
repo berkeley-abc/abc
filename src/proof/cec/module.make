@@ -8,5 +8,6 @@ SRC +=    src/proof/cec/cecCec.c \
     src/proof/cec/cecPat.c \
     src/proof/cec/cecSeq.c \
     src/proof/cec/cecSolve.c \
+    src/proof/cec/cecSplit.c \
     src/proof/cec/cecSynth.c \
     src/proof/cec/cecSweep.c
