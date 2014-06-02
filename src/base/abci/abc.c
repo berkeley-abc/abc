@@ -32709,6 +32709,11 @@ int Abc_CommandAbc9GroupProve( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Abc_CommandAbc9GroupProve(): There is no AIG.\n" );
         return 1;
     }
+    if ( pCommLine == NULL )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9GroupProve(): Command line is not given.\n" );
+        return 1;
+    }
     vStatus = Gia_ManGroupProve( pAbc->pGia, pCommLine, nGroupSize, fVerbose );
     Vec_IntFree( vStatus );
     return 0;
@@ -32826,7 +32831,12 @@ int Abc_CommandAbc9MultiProve( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     if ( pAbc->pGia == NULL )
     {
-        Abc_Print( -1, "Abc_CommandAbc9PoPart(): There is no AIG.\n" );
+        Abc_Print( -1, "Abc_CommandAbc9MultiProve(): There is no AIG.\n" );
+        return 1;
+    }
+    if ( Gia_ManRegNum(pAbc->pGia) == 0 )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9MultiProve(): The problem is combinational.\n" );
         return 1;
     }
     pAbc->Status = Gia_ManMultiProve( pAbc->pGia, pPars );
