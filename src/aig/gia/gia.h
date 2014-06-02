@@ -1013,7 +1013,7 @@ extern Gia_Man_t *         Gia_ManDupFlopClass( Gia_Man_t * p, int iClass );
 extern Gia_Man_t *         Gia_ManDupMarked( Gia_Man_t * p );
 extern Gia_Man_t *         Gia_ManDupTimes( Gia_Man_t * p, int nTimes );  
 extern Gia_Man_t *         Gia_ManDupDfs( Gia_Man_t * p );  
-extern Gia_Man_t *         Gia_ManDupDfsRehash( Gia_Man_t * p );  
+extern Gia_Man_t *         Gia_ManDupDfsRehash( Gia_Man_t * p, int nSteps );  
 extern Gia_Man_t *         Gia_ManDupDfsSkip( Gia_Man_t * p );
 extern Gia_Man_t *         Gia_ManDupDfsCone( Gia_Man_t * p, Gia_Obj_t * pObj );
 extern Gia_Man_t *         Gia_ManDupDfsLitArray( Gia_Man_t * p, Vec_Int_t * vLits );

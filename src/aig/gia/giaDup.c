@@ -1210,9 +1210,9 @@ void Gia_ManDupDfsRehash_rec( Gia_Man_t * pNew, Gia_Man_t * p, Gia_Obj_t * pObj 
     Gia_ManDupDfsRehash_rec( pNew, p, Gia_ObjFanin1(pObj) );
     pObj->Value = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
 }
-Gia_Man_t * Gia_ManDupDfsRehash( Gia_Man_t * p )
+Gia_Man_t * Gia_ManDupDfsRehash( Gia_Man_t * p, int nSteps )
 {
-    Gia_Man_t * pNew;
+    Gia_Man_t * pNew, * pTemp;
     Gia_Obj_t * pObj;
     int i;
     pNew = Gia_ManStart( Gia_ManObjNum(p) );
@@ -1221,7 +1221,7 @@ Gia_Man_t * Gia_ManDupDfsRehash( Gia_Man_t * p )
     Gia_ManFillValue( p );
     Gia_ManConst0(p)->Value = 0;
     Gia_ManForEachCi( p, pObj, i )
-        pObj->Value = Gia_ManAppendCi(pNew);
+        pObj->Value = i < nSteps ? 1 : Gia_ManAppendCi(pNew);
     Gia_ManHashAlloc( pNew );
     Gia_ManForEachCo( p, pObj, i )
         Gia_ManDupDfsRehash_rec( pNew, p, Gia_ObjFanin0(pObj) );
@@ -1229,8 +1229,8 @@ Gia_Man_t * Gia_ManDupDfsRehash( Gia_Man_t * p )
         Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
     Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
     pNew->nConstrs = p->nConstrs;
-    if ( p->pCexSeq )
-        pNew->pCexSeq = Abc_CexDup( p->pCexSeq, Gia_ManRegNum(p) );
+    pNew = Gia_ManCleanup( pTemp = pNew );
+    Gia_ManStop( pTemp );
     return pNew;
 }
 
