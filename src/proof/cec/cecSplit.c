@@ -19,7 +19,10 @@
 ***********************************************************************/
 
 #include "aig/gia/gia.h"
+#include "aig/gia/giaAig.h"
 #include "bdd/cudd/cuddInt.h"
+#include "sat/cnf/cnf.h"
+#include "sat/bsat/satStore.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -167,6 +170,8 @@ void Cec_GiaSplitExplore( Gia_Man_t * p )
     }
 }
 
+
+
 /**Function*************************************************************
 
   Synopsis    []
@@ -178,30 +183,165 @@ void Cec_GiaSplitExplore( Gia_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-Gia_Man_t * Cec_GiaSplitTest( Gia_Man_t * p )
+static inline Cnf_Dat_t * Cec_GiaDeriveGiaRemapped( Gia_Man_t * p )
+{
+    Cnf_Dat_t * pCnf;
+    Aig_Man_t * pAig = Gia_ManToAigSimple( p );
+    pAig->nRegs = 0;
+    pCnf = Cnf_Derive( pAig, 0 );//Aig_ManCoNum(pAig) );
+    Aig_ManStop( pAig );
+    return pCnf;
+}
+static inline sat_solver * Cec_GiaDeriveSolver( Gia_Man_t * p, int nTimeOut )
+{
+    sat_solver * pSat;
+    Cnf_Dat_t * pCnf;
+    int i;
+    pCnf = Cec_GiaDeriveGiaRemapped( p );
+    pSat = sat_solver_new();
+    sat_solver_setnvars( pSat, pCnf->nVars );
+    for ( i = 0; i < pCnf->nClauses; i++ )
+        if ( !sat_solver_addclause( pSat, pCnf->pClauses[i], pCnf->pClauses[i+1] ) )
+            assert( 0 );
+    sat_solver_set_runtime_limit( pSat, nTimeOut ? nTimeOut * CLOCKS_PER_SEC + Abc_Clock(): 0 );
+    Cnf_DataFree( pCnf );
+    return pSat;
+}
+static inline int Cnf_GiaSolveOne( Gia_Man_t * p, int nTimeOut, int fVerbose )
+{
+    static int Counter = 0;
+    abctime clk = Abc_Clock();
+    sat_solver * pSat = Cec_GiaDeriveSolver( p, nTimeOut );
+    int status = sat_solver_solve( pSat, NULL, NULL, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
+    if ( fVerbose )
+    {
+        printf( "Iter%6d : ",       Counter++ );
+        printf( "Input = %3d  ",    Gia_ManPiNum(p) );
+        printf( "Var =%10d  ",      sat_solver_nvars(pSat) );
+        printf( "Clause =%10d  ",   sat_solver_nclauses(pSat) );
+        printf( "Conflict =%10d  ", sat_solver_nconflicts(pSat) );
+        if ( status == l_Undef )
+            printf( "UNDECIDED  " );
+        else if ( status == l_False )
+            printf( "UNSAT      " );
+        else
+            printf( "SAT        " );
+        Abc_PrintTime( 1, "Time", Abc_Clock()-clk );
+        //ABC_PRTr( "Time", Abc_Clock()-clk );
+    }
+    sat_solver_delete( pSat );
+    if ( status == l_Undef )
+        return -1;
+    if ( status == l_False )
+        return 1;
+    return 0;
+/*
+    // get pattern
+    Vec_IntClear( vLits );
+    for ( i = 0; i < nFuncVars; i++ )
+        Vec_IntPush( vLits, Vec_IntEntry(vTests, Iter*nFuncVars + i) );
+    Gia_ManFaultAddOne( pM, pCnf, pSat, vLits, nFuncVars );
+    if ( pPars->fVerbose )
+    {
+        printf( "Iter%6d : ",       Iter );
+        printf( "Var =%10d  ",      sat_solver_nvars(pSat) );
+        printf( "Clause =%10d  ",   sat_solver_nclauses(pSat) );
+        printf( "Conflict =%10d  ", sat_solver_nconflicts(pSat) );
+        //Abc_PrintTime( 1, "Time", clkSat );
+        ABC_PRTr( "Solver time", clkSat );
+    }
+*/
+}
+static inline int Cnf_GiaCheckOne( Vec_Ptr_t * vStack, Gia_Man_t * p, int nTimeOut, int fVerbose )
+{
+    int status = Cnf_GiaSolveOne( p, nTimeOut, fVerbose );
+    if ( status == -1 )
+    {
+        Vec_PtrPush( vStack, p );
+        return 1;
+    }
+    Gia_ManStop( p );
+    if ( status == 1 )
+        return 1;
+    // satisfiable
+    return 0;
+}
+static inline void Cec_GiaSplitClean( Vec_Ptr_t * vStack )
 {
     Gia_Man_t * pNew;
-//    Gia_Man_t * pMuxes;
-    Gia_Man_t * pCof;
-    Gia_Obj_t * pObj;
     int i;
+    Vec_PtrForEachEntry( Gia_Man_t *, vStack, pNew, i )
+        Gia_ManStop( pNew );
+    Vec_PtrFree( vStack );
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Cec_GiaSplitTest( Gia_Man_t * p, int nTimeOut, int fVerbose )
+{
+    Gia_Man_t * pNew;
+    Vec_Ptr_t * vStack;
+    Gia_Man_t * pPart0, * pPart1;
+    Gia_Obj_t * pObj;
+    int i, RetValue = -1;
+    // reorder variables
     pNew = Gia_PermuteSpecial( p );
-    Gia_ManCreateRefs( pNew );
-    Gia_ManForEachPi( pNew, pObj, i )
-        printf( "%d ", Gia_ObjRefNum(pNew, pObj) );
-    printf( "\n" );
-//    Cec_GiaSplitExplore( pNew );
-//    Gia_ManBuildBddTest( p );
-/*
-    // derive muxes
-    pMuxes = Gia_ManDupMuxes( pNew );
-    printf( "GIA manager has %d ANDs, %d XORs, %d MUXes.\n", 
-        Gia_ManAndNum(pMuxes) - Gia_ManXorNum(pMuxes) - Gia_ManMuxNum(pMuxes), Gia_ManXorNum(pMuxes), Gia_ManMuxNum(pMuxes) ); 
-    Gia_ManStop( pMuxes );
-*/
-    pCof = Gia_ManDupDfsRehash( pNew, 20 );
-    Gia_ManStop( pNew );
-    return pCof;
+    if ( fVerbose )
+    {
+        Gia_ManCreateRefs( pNew );
+        Gia_ManForEachPi( pNew, pObj, i )
+            printf( "%d ", Gia_ObjRefNum(pNew, pObj) );
+        printf( "\n" );
+    }
+    // start with the current problem
+    vStack = Vec_PtrAlloc( 1000 );
+    if ( !Cnf_GiaCheckOne(vStack, pNew, nTimeOut, fVerbose) )
+        RetValue = 0;
+    else
+    {
+        while ( Vec_PtrSize(vStack) > 0 )
+        {
+            pNew = (Gia_Man_t *)Vec_PtrPop( vStack );
+            // cofactor
+            pPart0 = Gia_ManDupDfsRehash( pNew, 1, 0 );
+            if ( !Cnf_GiaCheckOne(vStack, pPart0, nTimeOut, fVerbose) )
+            {
+                Gia_ManStop( pNew );
+                RetValue = 0;
+                break;
+            }
+            // cofactor
+            pPart1 = Gia_ManDupDfsRehash( pNew, 1, 1 );
+            Gia_ManStop( pNew );
+            if ( !Cnf_GiaCheckOne(vStack, pPart1, nTimeOut, fVerbose) )
+            {
+                RetValue = 0;
+                break;
+            }
+            if ( Vec_PtrSize(vStack) > 2 )
+                break;
+        }
+        if ( Vec_PtrSize(vStack) == 0 )
+            RetValue = 1;
+    }
+    Cec_GiaSplitClean( vStack );
+    if ( RetValue == 0 )
+        printf( "Problem is SAT\n" );
+    else if ( RetValue == 1 )
+        printf( "Problem is UNSAT\n" );
+    else if ( RetValue == -1 )
+        printf( "Problem is UNDECIDED\n" );
+    else assert( 0 );
+    return RetValue;
 }
 
 ////////////////////////////////////////////////////////////////////////
