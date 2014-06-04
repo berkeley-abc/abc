@@ -99,9 +99,10 @@ Abc_Ntk_t * Io_ReadPlaNetwork( Extra_FileReader_t * p, int fZeros )
     // go through the lines of the file
     nCubes = 0;
     pProgress = Extra_ProgressBarStart( stdout, Extra_FileReaderGetFileSize(p) );
-    for ( iLine = 0; (vTokens = (Vec_Ptr_t *)Extra_FileReaderGetTokens(p)); iLine++ )
+    while ( (vTokens = (Vec_Ptr_t *)Extra_FileReaderGetTokens(p)) )
     {
         Extra_ProgressBarUpdate( pProgress, Extra_FileReaderGetCurPosition(p), NULL );
+        iLine = Extra_FileReaderGetLineNumber( p, 0 );
 
         // if it is the end of file, quit the loop
         if ( strncmp( (char *)vTokens->pArray[0], ".e", 2 ) == 0 )
@@ -118,7 +119,7 @@ Abc_Ntk_t * Io_ReadPlaNetwork( Extra_FileReader_t * p, int fZeros )
         if ( vTokens->nSize == 1 )
         {
             printf( "%s (line %d): Wrong number of token.\n", 
-                Extra_FileReaderGetFileName(p), iLine+1 );
+                Extra_FileReaderGetFileName(p), iLine );
             Abc_NtkDelete( pNtk );
             Extra_ProgressBarStop( pProgress );
             ABC_FREE( ppSops );
@@ -203,7 +204,7 @@ Abc_Ntk_t * Io_ReadPlaNetwork( Extra_FileReader_t * p, int fZeros )
             if ( vTokens->nSize != 2 )
             {
                 printf( "%s (line %d): Input and output cubes are not specified.\n", 
-                    Extra_FileReaderGetFileName(p), iLine+1 );
+                    Extra_FileReaderGetFileName(p), iLine );
                 Abc_NtkDelete( pNtk );
                 Extra_ProgressBarStop( pProgress );
                 ABC_FREE( ppSops );
@@ -214,14 +215,14 @@ Abc_Ntk_t * Io_ReadPlaNetwork( Extra_FileReader_t * p, int fZeros )
             if ( strlen(pCubeIn) != (unsigned)nInputs )
             {
                 printf( "%s (line %d): Input cube length (%zu) differs from the number of inputs (%d).\n",
-                    Extra_FileReaderGetFileName(p), iLine+1, strlen(pCubeIn), nInputs );
+                    Extra_FileReaderGetFileName(p), iLine, strlen(pCubeIn), nInputs );
                 Abc_NtkDelete( pNtk );
                 return NULL;
             }
             if ( strlen(pCubeOut) != (unsigned)nOutputs )
             {
                 printf( "%s (line %d): Output cube length (%zu) differs from the number of outputs (%d).\n",
-                    Extra_FileReaderGetFileName(p), iLine+1, strlen(pCubeOut), nOutputs );
+                    Extra_FileReaderGetFileName(p), iLine, strlen(pCubeOut), nOutputs );
                 Abc_NtkDelete( pNtk );
                 Extra_ProgressBarStop( pProgress );
                 ABC_FREE( ppSops );
