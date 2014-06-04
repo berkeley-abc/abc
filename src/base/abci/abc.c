@@ -32876,7 +32876,7 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9SplitProve( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern Gia_Man_t * Cec_GiaSplitTest( Gia_Man_t * p, int nProcs, int nTimeOut, int nIterMax, int LookAhead, int fVerbose );
+    extern int Cec_GiaSplitTest( Gia_Man_t * p, int nProcs, int nTimeOut, int nIterMax, int LookAhead, int fVerbose );
     int c, nProcs = 1, nTimeOut = 1, nIterMax = 0, LookAhead = 1, fVerbose = 0;
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "PTILvh" ) ) != EOF )
@@ -32949,7 +32949,8 @@ int Abc_CommandAbc9SplitProve( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Abc_CommandAbc9SplitProve(): The problem is sequential.\n" );
         return 1;
     }
-    Cec_GiaSplitTest( pAbc->pGia, nProcs, nTimeOut, nIterMax, LookAhead, fVerbose );
+    pAbc->Status = Cec_GiaSplitTest( pAbc->pGia, nProcs, nTimeOut, nIterMax, LookAhead, fVerbose );
+    pAbc->pCex = pAbc->pGia->pCexComb;  pAbc->pGia->pCexComb = NULL;
     return 0;
 
 usage:

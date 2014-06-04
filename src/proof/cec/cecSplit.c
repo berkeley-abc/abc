@@ -168,18 +168,6 @@ void Cec_GiaSplitExplore( Gia_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-int Gia_SplitCofVar( Gia_Man_t * p )
-{
-    Gia_Obj_t * pObj;
-    int i, iBest = -1, CostBest = -1;
-    if ( p->pRefs == NULL )
-        Gia_ManCreateRefs( p );
-    Gia_ManForEachPi( p, pObj, i )
-        if ( CostBest < Gia_ObjRefNum(p, pObj) )
-            iBest = i, CostBest = Gia_ObjRefNum(p, pObj);
-    assert( iBest >= 0 );
-    return iBest;
-}
 int * Gia_PermuteSpecialOrder( Gia_Man_t * p )
 {
     Vec_Int_t * vPerm;
@@ -215,12 +203,26 @@ Gia_Man_t * Gia_PermuteSpecial( Gia_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-int Gia_SplitCofVar2( Gia_Man_t * p, int LookAhead )
+int Gia_SplitCofVar2( Gia_Man_t * p )
+{
+    Gia_Obj_t * pObj;
+    int i, iBest = -1, CostBest = -1;
+    if ( p->pRefs == NULL )
+        Gia_ManCreateRefs( p );
+    Gia_ManForEachPi( p, pObj, i )
+        if ( CostBest < Gia_ObjRefNum(p, pObj) )
+            iBest = i, CostBest = Gia_ObjRefNum(p, pObj);
+    assert( iBest >= 0 );
+    return iBest;
+}
+int Gia_SplitCofVar( Gia_Man_t * p, int LookAhead )
 {
     Gia_Man_t * pPart;
-    int * pOrder = Gia_PermuteSpecialOrder( p );
     int Cost0, Cost1, CostBest = ABC_INFINITY;
-    int i, iBest = -1;
+    int * pOrder, i, iBest = -1;
+    if ( LookAhead == 1 )
+        return Gia_SplitCofVar2( p );
+    pOrder = Gia_PermuteSpecialOrder( p );
     LookAhead = Abc_MinInt( LookAhead, Gia_ManPiNum(p) );
     for ( i = 0; i < LookAhead; i++ )
     {
@@ -232,24 +234,51 @@ int Gia_SplitCofVar2( Gia_Man_t * p, int LookAhead )
         Cost1 = Gia_ManAndNum(pPart);
         Gia_ManStop( pPart );
 
+        if ( CostBest > Cost0 + Cost1 )
+            CostBest = Cost0 + Cost1, iBest = pOrder[i];
+
 /*
         pPart = Gia_ManDupExist( p, pOrder[i] );
         printf( "%2d : Var = %4d  Refs = %3d  %6d %6d -> %6d    %6d -> %6d\n", 
             i, pOrder[i], Gia_ObjRefNum(p, Gia_ManPi(p, pOrder[i])), 
             Cost0, Cost1, Cost0+Cost1, Gia_ManAndNum(p), Gia_ManAndNum(pPart) );
         Gia_ManStop( pPart );
+
+        printf( "%2d : Var = %4d  Refs = %3d  %6d %6d -> %6d\n", 
+            i, pOrder[i], Gia_ObjRefNum(p, Gia_ManPi(p, pOrder[i])), 
+            Cost0, Cost1, Cost0+Cost1 );
 */
-
-//        printf( "%2d : Var = %4d  Refs = %3d  %6d %6d -> %6d\n", 
-//            i, pOrder[i], Gia_ObjRefNum(p, Gia_ManPi(p, pOrder[i])), 
-//            Cost0, Cost1, Cost0+Cost1 );
-
-        if ( CostBest > Cost0 + Cost1 )
-            CostBest = Cost0 + Cost1, iBest = pOrder[i];
     }
     ABC_FREE( pOrder );
     assert( iBest >= 0 );
     return iBest;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Cex_t * Cec_SplitDeriveModel( Gia_Man_t * p, Cnf_Dat_t * pCnf, sat_solver * pSat )
+{
+    Abc_Cex_t * pCex;
+    Gia_Obj_t * pObj;
+    int i, iLit, * pModel;
+    pModel = ABC_CALLOC( int, Gia_ManPiNum(p) );
+    Gia_ManForEachPi( p, pObj, i )
+        pModel[i] = sat_solver_var_value(pSat, pCnf->pVarNums[Gia_ObjId(p, pObj)]);
+    if ( p->vCofVars )
+        Vec_IntForEachEntry( p->vCofVars, iLit, i )
+            pModel[Abc_Lit2Var(iLit)] = !Abc_LitIsCompl(iLit);
+    pCex = Abc_CexCreate( 0, Gia_ManPiNum(p), pModel, 0, 0, 0 );
+    ABC_FREE( pModel );
+    return pCex;
 }
 
 /**Function*************************************************************
@@ -275,9 +304,7 @@ static inline Cnf_Dat_t * Cec_GiaDeriveGiaRemapped( Gia_Man_t * p )
 static inline sat_solver * Cec_GiaDeriveSolver( Gia_Man_t * p, Cnf_Dat_t * pCnf, int nTimeOut )
 {
     sat_solver * pSat;
-    int i, fDerive = (pCnf == NULL);
-    if ( pCnf == NULL )
-        pCnf = Cec_GiaDeriveGiaRemapped( p );
+    int i;
     pSat = sat_solver_new();
     sat_solver_setnvars( pSat, pCnf->nVars );
     for ( i = 0; i < pCnf->nClauses; i++ )
@@ -285,12 +312,9 @@ static inline sat_solver * Cec_GiaDeriveSolver( Gia_Man_t * p, Cnf_Dat_t * pCnf,
         {
             // the problem is UNSAT
             sat_solver_delete( pSat );
-            Cnf_DataFree( pCnf );
             return NULL;
         }
     sat_solver_set_runtime_limit( pSat, nTimeOut ? nTimeOut * CLOCKS_PER_SEC + Abc_Clock(): 0 );
-    if ( fDerive )
-        Cnf_DataFree( pCnf );
     return pSat;
 }
 static inline int Cnf_GiaSolveOne( Gia_Man_t * p, Cnf_Dat_t * pCnf, int nTimeOut, int * pnVars, int * pnConfs )
@@ -306,41 +330,13 @@ static inline int Cnf_GiaSolveOne( Gia_Man_t * p, Cnf_Dat_t * pCnf, int nTimeOut
     status   = sat_solver_solve( pSat, NULL, NULL, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
     *pnVars  = sat_solver_nvars( pSat );
     *pnConfs = sat_solver_nconflicts( pSat );
+    if ( status == l_True )
+        p->pCexComb = Cec_SplitDeriveModel( p, pCnf, pSat );
     sat_solver_delete( pSat );
     if ( status == l_Undef )
         return -1;
     if ( status == l_False )
         return 1;
-    return 0;
-/*
-    // get pattern
-    Vec_IntClear( vLits );
-    for ( i = 0; i < nFuncVars; i++ )
-        Vec_IntPush( vLits, Vec_IntEntry(vTests, Iter*nFuncVars + i) );
-    Gia_ManFaultAddOne( pM, pCnf, pSat, vLits, nFuncVars );
-    if ( pPars->fVerbose )
-    {
-        printf( "Iter%6d : ",       Iter );
-        printf( "Var =%10d  ",      sat_solver_nvars(pSat) );
-        printf( "Clause =%10d  ",   sat_solver_nclauses(pSat) );
-        printf( "Conflict =%10d  ", sat_solver_nconflicts(pSat) );
-        //Abc_PrintTime( 1, "Time", clkSat );
-        ABC_PRTr( "Solver time", clkSat );
-    }
-*/
-}
-static inline int Cnf_GiaCheckOne( Vec_Ptr_t * vStack, Gia_Man_t * p, Cnf_Dat_t * pCnf, int nTimeOut, int * pnVars, int * pnConfs )
-{
-    int status = Cnf_GiaSolveOne( p, pCnf, nTimeOut, pnVars, pnConfs );
-    if ( status == -1 )
-    {
-        Vec_PtrPush( vStack, p );
-        return 1;
-    }
-    Gia_ManStop( p );
-    if ( status == 1 )
-        return 1;
-    // satisfiable
     return 0;
 }
 static inline void Cec_GiaSplitClean( Vec_Ptr_t * vStack )
@@ -365,12 +361,12 @@ static inline void Cec_GiaSplitClean( Vec_Ptr_t * vStack )
 ***********************************************************************/
 void Cec_GiaSplitPrint( int nIter, int Depth, int nVars, int nConfs, int fStatus, double Prog, abctime clk )
 {
-    printf( "%6d : ",            nIter );
-    printf( "Depth =%3d  ",      Depth );
-    printf( "SatVar =%7d  ",     nVars );
-    printf( "SatConf =%7d   ",   nConfs );
-    printf( "%s   ",             fStatus ? (fStatus == 1 ? "UNSAT    " : "UNDECIDED") : "SAT      " );
-    printf( "Progress = %.10f   ", Prog );
+    printf( "%6d : ",             nIter );
+    printf( "Depth =%3d  ",       Depth );
+    printf( "SatVar =%7d  ",      nVars );
+    printf( "SatConf =%7d   ",    nConfs );
+    printf( "%s   ",              fStatus ? (fStatus == 1 ? "UNSAT    " : "UNDECIDED") : "SAT      " );
+    printf( "Solved %8.4f %%   ", 100*Prog );
     Abc_PrintTime( 1, "Time", clk );
     //ABC_PRTr( "Time", Abc_Clock()-clk );
 }
@@ -399,75 +395,99 @@ void Cec_GiaSplitPrintRefs( Gia_Man_t * p )
 int Cec_GiaSplitTest2( Gia_Man_t * p, int nProcs, int nTimeOut, int nIterMax, int LookAhead, int fVerbose )
 {
     abctime clkTotal = Abc_Clock();
-    Gia_Man_t * pPart0, * pPart1, * pLast;
     Vec_Ptr_t * vStack;
-    int nSatVars, nSatConfs, fSatUnsat;
-    int nIter, iVar, Depth, RetValue = -1;
+    Cnf_Dat_t * pCnf;
+    int nSatVars, nSatConfs;
+    int nIter, status, RetValue = -1;
     double Progress = 0;
-    // create local copy
-    p = Gia_ManDup( p );
-    // start cofactored variables
-    assert( p->vCofVars == NULL );
-    p->vCofVars = Vec_IntAlloc( 100 );
-    // start with the current problem
-    vStack = Vec_PtrAlloc( 1000 );
-    if ( !Cnf_GiaCheckOne(vStack, p, NULL, nTimeOut, &nSatVars, &nSatConfs) )
-        RetValue = 0;
-    else
+    // check the problem
+    pCnf = Cec_GiaDeriveGiaRemapped( p );
+    status = Cnf_GiaSolveOne( p, pCnf, nTimeOut, &nSatVars, &nSatConfs );
+    Cnf_DataFree( pCnf );
+    if ( fVerbose )
+        Cec_GiaSplitPrint( 0, 0, nSatVars, nSatConfs, status, Progress, Abc_Clock() - clkTotal );
+    if ( status == 0 )
     {
-        if ( fVerbose )
-            Cec_GiaSplitPrint( 0, 0, nSatVars, nSatConfs, -1, Progress, Abc_Clock() - clkTotal );
-        for ( nIter = 1; Vec_PtrSize(vStack) > 0; nIter++ )
-        {
-            // get the last AIG
-            pLast = (Gia_Man_t *)Vec_PtrPop( vStack );
-            // determine cofactoring variable
-            Depth = Vec_IntSize(pLast->vCofVars);
-            iVar = Gia_SplitCofVar2( pLast, LookAhead );
-            // cofactor
-            pPart0 = Gia_ManDupCofactor( pLast, iVar, 0 );
-            // create variable
-            pPart0->vCofVars = Vec_IntAlloc( Vec_IntSize(pLast->vCofVars) + 1 );
-            Vec_IntAppend( pPart0->vCofVars, pLast->vCofVars );
-            Vec_IntPush( pPart0->vCofVars, Abc_Var2Lit(iVar, 1) );
-            // check this AIG
-            fSatUnsat = Vec_PtrSize(vStack);
-            if ( !Cnf_GiaCheckOne(vStack, pPart0, NULL, nTimeOut, &nSatVars, &nSatConfs) )
-            {
-                Gia_ManStop( pLast );
-                RetValue = 0;
-                break;
-            }
-            fSatUnsat = (fSatUnsat == Vec_PtrSize(vStack));
-            if ( fSatUnsat )
-                Progress += 1.0 / pow(2, Depth + 1);
-            if ( fVerbose ) 
-                Cec_GiaSplitPrint( nIter, Depth, nSatVars, nSatConfs, fSatUnsat?1:-1, Progress, Abc_Clock() - clkTotal );
-            // cofactor
-            pPart1 = Gia_ManDupCofactor( pLast, iVar, 1 );
-            // create variable
-            pPart1->vCofVars = Vec_IntAlloc( Vec_IntSize(pLast->vCofVars) + 1 );
-            Vec_IntAppend( pPart1->vCofVars, pLast->vCofVars );
-            Vec_IntPush( pPart1->vCofVars, Abc_Var2Lit(iVar, 0) );
-            Gia_ManStop( pLast );
-            // check this AIG
-            fSatUnsat = Vec_PtrSize(vStack);
-            if ( !Cnf_GiaCheckOne(vStack, pPart1, NULL, nTimeOut, &nSatVars, &nSatConfs) )
-            {
-                RetValue = 0;
-                break;
-            }
-            fSatUnsat = (fSatUnsat == Vec_PtrSize(vStack));
-            if ( fSatUnsat )
-                Progress += 1.0 / pow(2, Depth + 1);
-            if ( fVerbose )
-                Cec_GiaSplitPrint( nIter, Depth, nSatVars, nSatConfs, fSatUnsat?1:-1, Progress, Abc_Clock() - clkTotal );
-            if ( nIterMax && Vec_PtrSize(vStack) >= nIterMax )
-                break;
-        }
-        if ( Vec_PtrSize(vStack) == 0 )
-            RetValue = 1;
+        printf( "The problem is SAT without cofactoring.\n" );
+        return 0;
     }
+    if ( status == 1 )
+    {
+        printf( "The problem is UNSAT without cofactoring.\n" );
+        return 1;
+    }
+    assert( status == -1 );
+    // create local copy
+    vStack = Vec_PtrAlloc( 1000 );
+    Vec_PtrPush( vStack, Gia_ManDup(p) );
+    // start with the current problem
+    for ( nIter = 1; Vec_PtrSize(vStack) > 0; nIter++ )
+    {
+        // get the last AIG
+        Gia_Man_t * pLast = (Gia_Man_t *)Vec_PtrPop( vStack );
+        // determine cofactoring variable
+        int Depth = pLast->vCofVars ? Vec_IntSize(pLast->vCofVars) : 0;
+        int iVar  = Gia_SplitCofVar( pLast, LookAhead );
+        // cofactor
+        Gia_Man_t * pPart = Gia_ManDupCofactor( pLast, iVar, 0 );
+        if ( pLast->vCofVars == NULL )
+            pLast->vCofVars = Vec_IntAlloc( 100 );
+        // create variable
+        pPart->vCofVars = Vec_IntAlloc( Vec_IntSize(pLast->vCofVars) + 1 );
+        Vec_IntAppend( pPart->vCofVars, pLast->vCofVars );
+        Vec_IntPush( pPart->vCofVars, Abc_Var2Lit(iVar, 1) );
+        // solve the problem
+        pCnf = Cec_GiaDeriveGiaRemapped( pPart );
+        status = Cnf_GiaSolveOne( pPart, pCnf, nTimeOut, &nSatVars, &nSatConfs );
+        Cnf_DataFree( pCnf );
+        if ( status == 1 )
+            Progress += 1.0 / pow(2, Depth + 1);
+        if ( fVerbose ) 
+            Cec_GiaSplitPrint( nIter, Depth, nSatVars, nSatConfs, status, Progress, Abc_Clock() - clkTotal );
+        if ( status == 0 ) // SAT
+        {
+            p->pCexComb = pPart->pCexComb;  pPart->pCexComb = NULL;
+            Gia_ManStop( pLast );
+            Gia_ManStop( pPart );
+            RetValue = 0;
+            break;
+        }
+        if ( status == 1 ) // UNSAT
+            Gia_ManStop( pPart );
+        else               // UNDEC
+            Vec_PtrPush( vStack, pPart );
+        // cofactor
+        pPart = Gia_ManDupCofactor( pLast, iVar, 1 );
+        // create variable
+        pPart->vCofVars = Vec_IntAlloc( Vec_IntSize(pLast->vCofVars) + 1 );
+        Vec_IntAppend( pPart->vCofVars, pLast->vCofVars );
+        Vec_IntPush( pPart->vCofVars, Abc_Var2Lit(iVar, 0) );
+        Gia_ManStop( pLast );
+        // solve the problem
+        pCnf = Cec_GiaDeriveGiaRemapped( pPart );
+        status = Cnf_GiaSolveOne( pPart, pCnf, nTimeOut, &nSatVars, &nSatConfs );
+        Cnf_DataFree( pCnf );
+        if ( status == 1 )
+            Progress += 1.0 / pow(2, Depth + 1);
+        if ( fVerbose )
+            Cec_GiaSplitPrint( nIter, Depth, nSatVars, nSatConfs, status, Progress, Abc_Clock() - clkTotal );
+        if ( status == 0 ) // SAT
+        {
+            p->pCexComb = pPart->pCexComb;  pPart->pCexComb = NULL;
+            Gia_ManStop( pPart );
+            RetValue = 0;
+            break;
+        }
+        if ( status == 1 ) // UNSAT
+            Gia_ManStop( pPart );
+        else               // UNDEC
+            Vec_PtrPush( vStack, pPart );
+        if ( nIterMax && Vec_PtrSize(vStack) >= nIterMax )
+            break;
+    }
+    if ( Vec_PtrSize(vStack) == 0 )
+        RetValue = 1;
+    // finish
     Cec_GiaSplitClean( vStack );
     if ( RetValue == 0 )
         printf( "Problem is SAT " );
@@ -530,9 +550,11 @@ int Cec_GiaSplitTest( Gia_Man_t * p, int nProcs, int nTimeOut, int nIterMax, int
     Par_ThData_t ThData[PAR_THR_MAX];
     pthread_t WorkerThread[PAR_THR_MAX];
     Vec_Ptr_t * vStack;
+    Cnf_Dat_t * pCnf;
     double Progress = 0;
     int i, status, nSatVars, nSatConfs;
     int nIter = 0, RetValue = -1, fWorkToDo = 1;
+    Abc_CexFreeP( &p->pCexComb );
     if ( fVerbose )
         printf( "Solving CEC problem by cofactoring with the following parameters:\n" );
     if ( fVerbose )
@@ -543,7 +565,9 @@ int Cec_GiaSplitTest( Gia_Man_t * p, int nProcs, int nTimeOut, int nIterMax, int
     nProcs--;
     assert( nProcs >= 1 && nProcs <= PAR_THR_MAX );
     // check the problem
-    status = Cnf_GiaSolveOne( p, NULL, nTimeOut, &nSatVars, &nSatConfs );
+    pCnf = Cec_GiaDeriveGiaRemapped( p );
+    status = Cnf_GiaSolveOne( p, pCnf, nTimeOut, &nSatVars, &nSatConfs );
+    Cnf_DataFree( pCnf );
     if ( fVerbose )
         Cec_GiaSplitPrint( 0, 0, nSatVars, nSatConfs, status, Progress, Abc_Clock() - clkTotal );
     if ( status == 0 )
@@ -558,12 +582,8 @@ int Cec_GiaSplitTest( Gia_Man_t * p, int nProcs, int nTimeOut, int nIterMax, int
     }
     assert( status == -1 );
     // create local copy
-    p = Gia_ManDup( p );
     vStack = Vec_PtrAlloc( 1000 );
-    Vec_PtrPush( vStack, p );
-    // start cofactored variables
-    assert( p->vCofVars == NULL );
-    p->vCofVars = Vec_IntAlloc( 100 );
+    Vec_PtrPush( vStack, Gia_ManDup(p) );
     // start threads
     for ( i = 0; i < nProcs; i++ )
     {
@@ -593,18 +613,21 @@ int Cec_GiaSplitTest( Gia_Man_t * p, int nProcs, int nTimeOut, int nIterMax, int
             if ( ThData[i].p != NULL )
             {
                 Gia_Man_t * pLast = ThData[i].p;
-                int Depth = Vec_IntSize(pLast->vCofVars);
+                int Depth = pLast->vCofVars ? Vec_IntSize(pLast->vCofVars) : 0;
+                if ( pLast->vCofVars == NULL )
+                    pLast->vCofVars = Vec_IntAlloc( 100 );
                 if ( fVerbose )
                     Cec_GiaSplitPrint( i, Depth, ThData[i].nVars, ThData[i].nConfs, ThData[i].Result, Progress, Abc_Clock() - clkTotal );
                 if ( ThData[i].Result == 0 ) // SAT
                 {
+                    p->pCexComb = pLast->pCexComb;  pLast->pCexComb = NULL;
                     RetValue = 0;
                     goto finish;
                 }
                 if ( ThData[i].Result == -1 ) // UNDEC
                 {
                     // determine cofactoring variable
-                    int iVar = Gia_SplitCofVar2( pLast, LookAhead );
+                    int iVar = Gia_SplitCofVar( pLast, LookAhead );
                     // cofactor
                     Gia_Man_t * pPart = Gia_ManDupCofactor( pLast, iVar, 0 );
                     pPart->vCofVars = Vec_IntAlloc( Vec_IntSize(pLast->vCofVars) + 1 );
