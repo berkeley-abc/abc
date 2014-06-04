@@ -35,54 +35,6 @@ extern int Bmc_CexVerify( Gia_Man_t * p, Abc_Cex_t * pCex, Abc_Cex_t * pCexCare 
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
-
-/**Function*************************************************************
-
-  Synopsis    [Existentially quantified given variable.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-Gia_Man_t * Gia_ManDupExist( Gia_Man_t * p, int iVar )
-{
-    Gia_Man_t * pNew, * pTemp;
-    Gia_Obj_t * pObj;
-    int i;
-    assert( iVar >= 0 && iVar < Gia_ManPiNum(p) );
-    assert( Gia_ManPoNum(p) == 1 );
-    assert( Gia_ManRegNum(p) == 0 );
-    Gia_ManFillValue( p );
-    // find the cofactoring variable
-    pNew = Gia_ManStart( Gia_ManObjNum(p) );
-    pNew->pName = Abc_UtilStrsav( p->pName );
-    pNew->pSpec = Abc_UtilStrsav( p->pSpec );
-    Gia_ManHashAlloc( pNew );
-    // compute negative cofactor
-    Gia_ManConst0(p)->Value = 0;
-    Gia_ManForEachCi( p, pObj, i )
-        pObj->Value = Gia_ManAppendCi(pNew);
-    Gia_ManPi( p, iVar )->Value = Abc_Var2Lit( 0, 1 );
-    Gia_ManForEachAnd( p, pObj, i )
-        pObj->Value = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
-    Gia_ManForEachPo( p, pObj, i )
-        pObj->Value = Gia_ObjFanin0Copy(pObj);
-    // compute the positive cofactor
-    Gia_ManPi( p, iVar )->Value = Abc_Var2Lit( 0, 0 );
-    Gia_ManForEachAnd( p, pObj, i )
-        pObj->Value = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
-    // create OR gate
-    Gia_ManForEachPo( p, pObj, i )
-        pObj->Value = Gia_ManAppendCo( pNew, Gia_ManHashOr(pNew, pObj->Value, Gia_ObjFanin0Copy(pObj)) );
-    Gia_ManHashStop( pNew );
-    pNew = Gia_ManCleanup( pTemp = pNew );
-    Gia_ManStop( pTemp );
-    return pNew;
-}
-
 /**Function*************************************************************
 
   Synopsis    [Performs targe enlargement of the given size.]
