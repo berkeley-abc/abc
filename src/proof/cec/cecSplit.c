@@ -217,7 +217,6 @@ Gia_Man_t * Gia_PermuteSpecial( Gia_Man_t * p )
 ***********************************************************************/
 int Gia_SplitCofVar2( Gia_Man_t * p, int LookAhead )
 {
-    abctime clk = Abc_Clock();
     Gia_Man_t * pPart;
     int * pOrder = Gia_PermuteSpecialOrder( p );
     int Cost0, Cost1, CostBest = ABC_INFINITY;
@@ -250,7 +249,6 @@ int Gia_SplitCofVar2( Gia_Man_t * p, int LookAhead )
     }
     ABC_FREE( pOrder );
     assert( iBest >= 0 );
-//    Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     return iBest;
 }
 
@@ -499,6 +497,7 @@ typedef struct Par_ThData_t_
 {
     Gia_Man_t * p;
     Cnf_Dat_t * pCnf;
+    int         iThread;
     int         nTimeOut;
     int         fWorking;
     int         Result;
@@ -549,12 +548,12 @@ int Cec_GiaSplitTest( Gia_Man_t * p, int nProcs, int nTimeOut, int nIterMax, int
         Cec_GiaSplitPrint( 0, 0, nSatVars, nSatConfs, status, Progress, Abc_Clock() - clkTotal );
     if ( status == 0 )
     {
-        printf( "The problem is SAT.\n" );
+        printf( "The problem is SAT without cofactoring.\n" );
         return 0;
     }
     if ( status == 1 )
     {
-        printf( "The problem is UNSAT.\n" );
+        printf( "The problem is UNSAT without cofactoring.\n" );
         return 1;
     }
     assert( status == -1 );
@@ -570,6 +569,7 @@ int Cec_GiaSplitTest( Gia_Man_t * p, int nProcs, int nTimeOut, int nIterMax, int
     {
         ThData[i].p        = NULL;
         ThData[i].pCnf     = NULL;
+        ThData[i].iThread  = i;
         ThData[i].nTimeOut = nTimeOut;
         ThData[i].fWorking = 0;
         ThData[i].Result   = -1;
@@ -595,7 +595,7 @@ int Cec_GiaSplitTest( Gia_Man_t * p, int nProcs, int nTimeOut, int nIterMax, int
                 Gia_Man_t * pLast = ThData[i].p;
                 int Depth = Vec_IntSize(pLast->vCofVars);
                 if ( fVerbose )
-                    Cec_GiaSplitPrint( nIter, Depth, ThData[i].nVars, ThData[i].nConfs, ThData[i].Result, Progress, Abc_Clock() - clkTotal );
+                    Cec_GiaSplitPrint( i, Depth, ThData[i].nVars, ThData[i].nConfs, ThData[i].Result, Progress, Abc_Clock() - clkTotal );
                 if ( ThData[i].Result == 0 ) // SAT
                 {
                     RetValue = 0;
