@@ -365,7 +365,7 @@ int Cec_GiaSplitTest( Gia_Man_t * p, int nTimeOut, int fVerbose )
             }
             fSatUnsat = (fSatUnsat == Vec_PtrSize(vStack));
             if ( fSatUnsat )
-                Progress += 1.0 / pow(0.5, Depth + 1);
+                Progress += 1.0 / pow(2, Depth + 1);
             if ( fVerbose ) 
                 Cec_GiaSplitPrint( nIter, Depth, nSatVars, nSatConfs, fSatUnsat, Progress, Abc_Clock() - clk );
             // cofactor
