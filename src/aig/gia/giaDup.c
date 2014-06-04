@@ -1201,30 +1201,33 @@ Gia_Man_t * Gia_ManDupDfs( Gia_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-void Gia_ManDupDfsRehash_rec( Gia_Man_t * pNew, Gia_Man_t * p, Gia_Obj_t * pObj )
+void Gia_ManDupCofactor_rec( Gia_Man_t * pNew, Gia_Man_t * p, Gia_Obj_t * pObj )
 {
     if ( ~pObj->Value )
         return;
     assert( Gia_ObjIsAnd(pObj) );
-    Gia_ManDupDfsRehash_rec( pNew, p, Gia_ObjFanin0(pObj) );
-    Gia_ManDupDfsRehash_rec( pNew, p, Gia_ObjFanin1(pObj) );
+    Gia_ManDupCofactor_rec( pNew, p, Gia_ObjFanin0(pObj) );
+    Gia_ManDupCofactor_rec( pNew, p, Gia_ObjFanin1(pObj) );
     pObj->Value = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
 }
-Gia_Man_t * Gia_ManDupDfsRehash( Gia_Man_t * p, int nSteps, int Value )
+Gia_Man_t * Gia_ManDupCofactor( Gia_Man_t * p, int iVar, int Value )
 {
     Gia_Man_t * pNew, * pTemp;
     Gia_Obj_t * pObj;
     int i;
+    assert( iVar >= 0 && iVar < Gia_ManPiNum(p) );
+    assert( Value == 0 || Value == 1 );
     pNew = Gia_ManStart( Gia_ManObjNum(p) );
     pNew->pName = Abc_UtilStrsav( p->pName );
     pNew->pSpec = Abc_UtilStrsav( p->pSpec );
     Gia_ManFillValue( p );
     Gia_ManConst0(p)->Value = 0;
     Gia_ManForEachCi( p, pObj, i )
-        pObj->Value = i < nSteps ? Value : Gia_ManAppendCi(pNew);
+        pObj->Value = Gia_ManAppendCi(pNew);
+    Gia_ManPi( p, iVar )->Value = Value; // modification!
     Gia_ManHashAlloc( pNew );
     Gia_ManForEachCo( p, pObj, i )
-        Gia_ManDupDfsRehash_rec( pNew, p, Gia_ObjFanin0(pObj) );
+        Gia_ManDupCofactor_rec( pNew, p, Gia_ObjFanin0(pObj) );
     Gia_ManForEachCo( p, pObj, i )
         Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
     Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );

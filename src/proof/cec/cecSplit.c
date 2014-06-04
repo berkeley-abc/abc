@@ -18,11 +18,13 @@
 
 ***********************************************************************/
 
+#include <math.h>
 #include "aig/gia/gia.h"
 #include "aig/gia/giaAig.h"
-#include "bdd/cudd/cuddInt.h"
+//#include "bdd/cudd/cuddInt.h"
 #include "sat/cnf/cnf.h"
-#include "sat/bsat/satStore.h"
+#include "sat/bsat/satSolver.h"
+#include "misc/util/utilTruth.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -34,6 +36,8 @@ ABC_NAMESPACE_IMPL_START
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
+
+#if 0 // BDD code
 
 /**Function*************************************************************
 
@@ -109,6 +113,8 @@ void Gia_ManBuildBddTest( Gia_Man_t * p )
     Gia_ManDerefBdd( dd, vNodes );
 }
 
+#endif // BDD code
+
 /**Function*************************************************************
 
   Synopsis    [Permute primary inputs.]
@@ -120,10 +126,9 @@ void Gia_ManBuildBddTest( Gia_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-Gia_Man_t * Gia_PermuteSpecial( Gia_Man_t * p )
+int * Gia_PermuteSpecialOrder( Gia_Man_t * p )
 {
     Vec_Int_t * vPerm;
-    Gia_Man_t * pNew;
     Gia_Obj_t * pObj;
     int i, * pOrder;
     Gia_ManCreateRefs( p );
@@ -132,6 +137,13 @@ Gia_Man_t * Gia_PermuteSpecial( Gia_Man_t * p )
         Vec_IntPush( vPerm, Gia_ObjRefNum(p, pObj) );
     pOrder = Abc_QuickSortCost( Vec_IntArray(vPerm), Vec_IntSize(vPerm), 1 );
     Vec_IntFree( vPerm );
+    return pOrder;
+}
+Gia_Man_t * Gia_PermuteSpecial( Gia_Man_t * p )
+{
+    Gia_Man_t * pNew;
+    Vec_Int_t * vPerm;
+    int * pOrder = Gia_PermuteSpecialOrder( p );
     vPerm = Vec_IntAllocArray( pOrder, Gia_ManPiNum(p) );
     pNew = Gia_ManDupPerm( p, vPerm );
     Vec_IntFree( vPerm );
@@ -207,29 +219,13 @@ static inline sat_solver * Cec_GiaDeriveSolver( Gia_Man_t * p, int nTimeOut )
     Cnf_DataFree( pCnf );
     return pSat;
 }
-static inline int Cnf_GiaSolveOne( Gia_Man_t * p, int nTimeOut, int nSize, int fVerbose )
+static inline int Cnf_GiaSolveOne( Gia_Man_t * p, int nTimeOut, int fVerbose, int * pnVars, int * pnConfs )
 {
     static int Counter = 0;
-    abctime clk = Abc_Clock();
     sat_solver * pSat = Cec_GiaDeriveSolver( p, nTimeOut );
     int status = sat_solver_solve( pSat, NULL, NULL, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
-    if ( fVerbose )
-    {
-        printf( "Iter%6d : ",       Counter++ );
-        printf( "Size =%7d  ",      nSize );
-        printf( "Input = %3d  ",    Gia_ManPiNum(p) );
-        printf( "Var =%10d  ",      sat_solver_nvars(pSat) );
-        printf( "Clause =%10d  ",   sat_solver_nclauses(pSat) );
-        printf( "Conflict =%10d  ", sat_solver_nconflicts(pSat) );
-        if ( status == l_Undef )
-            printf( "UNDECIDED  " );
-        else if ( status == l_False )
-            printf( "UNSAT      " );
-        else
-            printf( "SAT        " );
-        Abc_PrintTime( 1, "Time", Abc_Clock()-clk );
-        //ABC_PRTr( "Time", Abc_Clock()-clk );
-    }
+    *pnVars    = sat_solver_nvars( pSat );
+    *pnConfs   = sat_solver_nconflicts( pSat );
     sat_solver_delete( pSat );
     if ( status == l_Undef )
         return -1;
@@ -253,9 +249,9 @@ static inline int Cnf_GiaSolveOne( Gia_Man_t * p, int nTimeOut, int nSize, int f
     }
 */
 }
-static inline int Cnf_GiaCheckOne( Vec_Ptr_t * vStack, Gia_Man_t * p, int nTimeOut, int nSize, int fVerbose )
+static inline int Cnf_GiaCheckOne( Vec_Ptr_t * vStack, Gia_Man_t * p, int nTimeOut, int fVerbose, int * pnVars, int * pnConfs )
 {
-    int status = Cnf_GiaSolveOne( p, nTimeOut, nSize, fVerbose );
+    int status = Cnf_GiaSolveOne( p, nTimeOut, fVerbose, pnVars, pnConfs );
     if ( status == -1 )
     {
         Vec_PtrPush( vStack, p );
@@ -287,47 +283,111 @@ static inline void Cec_GiaSplitClean( Vec_Ptr_t * vStack )
   SeeAlso     []
 
 ***********************************************************************/
+void Cec_GiaSplitPrint( int nIter, int Depth, int nVars, int nConfs, int fSatUnsat, double Prog, abctime clk )
+{
+    printf( "%6d : ",            nIter );
+    printf( "Depth =%3d  ",      Depth );
+    printf( "SatVar =%10d  ",    nVars );
+    printf( "SatConf =%7d  ",    nConfs );
+    printf( "%s  ",              fSatUnsat ? "UNSAT    " : "UNDECIDED" );
+    printf( "Progress = %.9f  ", Prog );
+    Abc_PrintTime( 1, "Time", clk );
+    //ABC_PRTr( "Time", Abc_Clock()-clk );
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 int Cec_GiaSplitTest( Gia_Man_t * p, int nTimeOut, int fVerbose )
 {
-    Gia_Man_t * pNew;
-    Vec_Ptr_t * vStack;
-    Gia_Man_t * pPart0, * pPart1;
+    abctime clk, clkTotal = Abc_Clock();
+    Gia_Man_t * pPart0, * pPart1, * pLast;
     Gia_Obj_t * pObj;
-    int i, RetValue = -1;
+    Vec_Ptr_t * vStack;
+    int * pOrder, RetValue = -1;
+    int nSatVars, nSatConfs, fSatUnsat;
+    int i, nIter, iVar, Depth;
+    double Progress = 0;
+    // create local copy
+    p = Gia_ManDup( p );
     // reorder variables
-    pNew = Gia_PermuteSpecial( p );
-    if ( fVerbose )
+    pOrder = Gia_PermuteSpecialOrder( p );
+    if ( fVerbose ) 
     {
-        Gia_ManCreateRefs( pNew );
-        Gia_ManForEachPi( pNew, pObj, i )
-            printf( "%d ", Gia_ObjRefNum(pNew, pObj) );
+        Gia_ManForEachPi( p, pObj, i )
+            printf( "%d ", Gia_ObjRefNum(p, pObj) );
+        printf( "\n" );
+        Gia_ManForEachPi( p, pObj, i )
+            printf( "%d ", Gia_ObjRefNum(p, Gia_ManPi(p, pOrder[i])) );
         printf( "\n" );
     }
+    // start cofactored variables
+    assert( p->vCofVars == NULL );
+    p->vCofVars = Vec_IntAlloc( 100 );
     // start with the current problem
     vStack = Vec_PtrAlloc( 1000 );
-    if ( !Cnf_GiaCheckOne(vStack, pNew, nTimeOut, Vec_PtrSize(vStack), fVerbose) )
+    clk = Abc_Clock();
+    if ( !Cnf_GiaCheckOne(vStack, p, nTimeOut, fVerbose, &nSatVars, &nSatConfs) )
         RetValue = 0;
     else
     {
-        while ( Vec_PtrSize(vStack) > 0 )
+        if ( fVerbose )
+            Cec_GiaSplitPrint( 0, 0, nSatVars, nSatConfs, 0, 0, Abc_Clock() - clk );
+        for ( nIter = 1; Vec_PtrSize(vStack) > 0; nIter++ )
         {
-            pNew = (Gia_Man_t *)Vec_PtrPop( vStack );
+            // get the last AIG
+            pLast = (Gia_Man_t *)Vec_PtrPop( vStack );
+            // determine cofactoring variable
+            Depth = Vec_IntSize(pLast->vCofVars);
+            iVar = pOrder[Depth];
             // cofactor
-            pPart0 = Gia_ManDupDfsRehash( pNew, 1, 0 );
-            if ( !Cnf_GiaCheckOne(vStack, pPart0, nTimeOut, Vec_PtrSize(vStack), fVerbose) )
+            pPart0 = Gia_ManDupCofactor( pLast, iVar, 0 );
+            // create variable
+            pPart0->vCofVars = Vec_IntAlloc( Vec_IntSize(pLast->vCofVars) + 1 );
+            Vec_IntAppend( pPart0->vCofVars, pLast->vCofVars );
+            Vec_IntPush( pPart0->vCofVars, Abc_Var2Lit(iVar, 1) );
+            // check this AIG
+            fSatUnsat = Vec_PtrSize(vStack);
+            clk = Abc_Clock();
+            if ( !Cnf_GiaCheckOne(vStack, pPart0, nTimeOut, fVerbose, &nSatVars, &nSatConfs) )
             {
-                Gia_ManStop( pNew );
+                Gia_ManStop( pLast );
                 RetValue = 0;
                 break;
             }
+            fSatUnsat = (fSatUnsat == Vec_PtrSize(vStack));
+            if ( fSatUnsat )
+                Progress += 1.0 / pow(0.5, Depth + 1);
+            if ( fVerbose ) 
+                Cec_GiaSplitPrint( nIter, Depth, nSatVars, nSatConfs, fSatUnsat, Progress, Abc_Clock() - clk );
             // cofactor
-            pPart1 = Gia_ManDupDfsRehash( pNew, 1, 1 );
-            Gia_ManStop( pNew );
-            if ( !Cnf_GiaCheckOne(vStack, pPart1, nTimeOut, Vec_PtrSize(vStack), fVerbose) )
+            pPart1 = Gia_ManDupCofactor( pLast, iVar, 1 );
+            // create variable
+            pPart1->vCofVars = Vec_IntAlloc( Vec_IntSize(pLast->vCofVars) + 1 );
+            Vec_IntAppend( pPart1->vCofVars, pLast->vCofVars );
+            Vec_IntPush( pPart1->vCofVars, Abc_Var2Lit(iVar, 0) );
+            Gia_ManStop( pLast );
+            // check this AIG
+            fSatUnsat = Vec_PtrSize(vStack);
+            clk = Abc_Clock();
+            if ( !Cnf_GiaCheckOne(vStack, pPart1, nTimeOut, fVerbose, &nSatVars, &nSatConfs) )
             {
                 RetValue = 0;
                 break;
             }
+            fSatUnsat = (fSatUnsat == Vec_PtrSize(vStack));
+            if ( fSatUnsat )
+                Progress += 1.0 / (Depth + 1);
+            if ( fVerbose )
+                Cec_GiaSplitPrint( nIter, Depth, nSatVars, nSatConfs, fSatUnsat, Progress, Abc_Clock() - clk );
 //            if ( Vec_PtrSize(vStack) > 2 )
 //                break;
         }
@@ -336,12 +396,14 @@ int Cec_GiaSplitTest( Gia_Man_t * p, int nTimeOut, int fVerbose )
     }
     Cec_GiaSplitClean( vStack );
     if ( RetValue == 0 )
-        printf( "Problem is SAT\n" );
+        printf( "Problem is SAT  " );
     else if ( RetValue == 1 )
-        printf( "Problem is UNSAT\n" );
+        printf( "Problem is UNSAT  " );
     else if ( RetValue == -1 )
-        printf( "Problem is UNDECIDED\n" );
+        printf( "Problem is UNDECIDED  " );
     else assert( 0 );
+    ABC_FREE( pOrder );
+    Abc_PrintTime( 1, "Time", Abc_Clock() - clkTotal );
     return RetValue;
 }
 

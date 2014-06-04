@@ -92,6 +92,7 @@ void Gia_ManStop( Gia_Man_t * p )
     Vec_WrdFreeP( &p->vSimsPi );
     Vec_FltFreeP( &p->vTiming );
     Vec_VecFreeP( &p->vClockDoms );
+    Vec_IntFreeP( &p->vCofVars );
     Vec_IntFreeP( &p->vLutConfigs );
     Vec_IntFreeP( &p->vUserPiIds );
     Vec_IntFreeP( &p->vUserPoIds );
