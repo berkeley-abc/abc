@@ -148,7 +148,7 @@ void Cec_GiaSplitExplore( Gia_Man_t * p )
 
 /**Function*************************************************************
 
-  Synopsis    [Permute primary inputs.]
+  Synopsis    [Find cofactoring variable.]
 
   Description []
                
@@ -191,6 +191,41 @@ Gia_Man_t * Gia_PermuteSpecial( Gia_Man_t * p )
     pNew = Gia_ManDupPerm( p, vPerm );
     Vec_IntFree( vPerm );
     return pNew;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Find cofactoring variable.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Gia_SplitCofVar2( Gia_Man_t * p )
+{
+    Gia_Man_t * pPart;
+    int * pOrder = Gia_PermuteSpecialOrder( p );
+    int Cost0, Cost1, CostBest = ABC_INFINITY;
+    int i, iBest = -1, LookAhead = 10;
+    for ( i = 0; i < LookAhead; i++ )
+    {
+        pPart = Gia_ManDupCofactor( p, pOrder[i], 0 );
+        Cost0 = Gia_ManAndNum(pPart);
+        Gia_ManStop( pPart );
+
+        pPart = Gia_ManDupCofactor( p, pOrder[i], 1 );
+        Cost1 = Gia_ManAndNum(pPart);
+        Gia_ManStop( pPart );
+
+        if ( CostBest > Cost0 + Cost1 )
+            CostBest = Cost0 + Cost1, iBest = pOrder[i];
+    }
+    ABC_FREE( pOrder );
+    assert( iBest >= 0 );
+    return iBest;
 }
 
 /**Function*************************************************************
@@ -295,10 +330,10 @@ void Cec_GiaSplitPrint( int nIter, int Depth, int nVars, int nConfs, int fSatUns
 {
     printf( "%6d : ",            nIter );
     printf( "Depth =%3d  ",      Depth );
-    printf( "SatVar =%10d  ",    nVars );
+    printf( "SatVar =%7d  ",     nVars );
     printf( "SatConf =%7d  ",    nConfs );
-    printf( "%s  ",              fSatUnsat ? "UNSAT    " : "UNDECIDED" );
-    printf( "Progress = %.10f  ", Prog );
+    printf( "%s   ",             fSatUnsat ? "UNSAT    " : "UNDECIDED" );
+    printf( "Progress = %.10f   ", Prog );
     Abc_PrintTime( 1, "Time", clk );
     //ABC_PRTr( "Time", Abc_Clock()-clk );
 }
@@ -351,8 +386,8 @@ int Cec_GiaSplitTest( Gia_Man_t * p, int nTimeOut, int fVerbose )
             // get the last AIG
             pLast = (Gia_Man_t *)Vec_PtrPop( vStack );
             // determine cofactoring variable
-            iVar = Gia_SplitCofVar( pLast );
             Depth = Vec_IntSize(pLast->vCofVars);
+            iVar = Gia_SplitCofVar2( pLast );
             // cofactor
             pPart0 = Gia_ManDupCofactor( pLast, iVar, 0 );
             // create variable
@@ -371,8 +406,6 @@ int Cec_GiaSplitTest( Gia_Man_t * p, int nTimeOut, int fVerbose )
             fSatUnsat = (fSatUnsat == Vec_PtrSize(vStack));
             if ( fSatUnsat )
                 Progress += 1.0 / pow(2, Depth + 1);
-            else
-                Cec_GiaSplitPrintRefs( pPart0 );
             if ( fVerbose ) 
                 Cec_GiaSplitPrint( nIter, Depth, nSatVars, nSatConfs, fSatUnsat, Progress, Abc_Clock() - clk );
             // cofactor
@@ -395,8 +428,8 @@ int Cec_GiaSplitTest( Gia_Man_t * p, int nTimeOut, int fVerbose )
                 Progress += 1.0 / pow(2, Depth + 1);
             if ( fVerbose )
                 Cec_GiaSplitPrint( nIter, Depth, nSatVars, nSatConfs, fSatUnsat, Progress, Abc_Clock() - clk );
-//            if ( Vec_PtrSize(vStack) > 5 )
-//                break;
+            if ( Vec_PtrSize(vStack) > 3 )
+                break;
         }
         if ( Vec_PtrSize(vStack) == 0 )
             RetValue = 1;
