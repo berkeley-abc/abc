@@ -117,42 +117,6 @@ void Gia_ManBuildBddTest( Gia_Man_t * p )
 
 /**Function*************************************************************
 
-  Synopsis    [Permute primary inputs.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int * Gia_PermuteSpecialOrder( Gia_Man_t * p )
-{
-    Vec_Int_t * vPerm;
-    Gia_Obj_t * pObj;
-    int i, * pOrder;
-    Gia_ManCreateRefs( p );
-    vPerm = Vec_IntAlloc( Gia_ManPiNum(p) );
-    Gia_ManForEachPi( p, pObj, i )
-        Vec_IntPush( vPerm, Gia_ObjRefNum(p, pObj) );
-    pOrder = Abc_QuickSortCost( Vec_IntArray(vPerm), Vec_IntSize(vPerm), 1 );
-    Vec_IntFree( vPerm );
-    return pOrder;
-}
-Gia_Man_t * Gia_PermuteSpecial( Gia_Man_t * p )
-{
-    Gia_Man_t * pNew;
-    Vec_Int_t * vPerm;
-    int * pOrder = Gia_PermuteSpecialOrder( p );
-    vPerm = Vec_IntAllocArray( pOrder, Gia_ManPiNum(p) );
-    pNew = Gia_ManDupPerm( p, vPerm );
-    Vec_IntFree( vPerm );
-    return pNew;
-}
-
-
-/**Function*************************************************************
-
   Synopsis    []
 
   Description []
@@ -182,7 +146,52 @@ void Cec_GiaSplitExplore( Gia_Man_t * p )
     }
 }
 
+/**Function*************************************************************
 
+  Synopsis    [Permute primary inputs.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Gia_SplitCofVar( Gia_Man_t * p )
+{
+    Gia_Obj_t * pObj;
+    int i, iBest = -1, CostBest = -1;
+    if ( p->pRefs == NULL )
+        Gia_ManCreateRefs( p );
+    Gia_ManForEachPi( p, pObj, i )
+        if ( CostBest < Gia_ObjRefNum(p, pObj) )
+            iBest = i, CostBest = Gia_ObjRefNum(p, pObj);
+    assert( iBest >= 0 );
+    return iBest;
+}
+int * Gia_PermuteSpecialOrder( Gia_Man_t * p )
+{
+    Vec_Int_t * vPerm;
+    Gia_Obj_t * pObj;
+    int i, * pOrder;
+    Gia_ManCreateRefs( p );
+    vPerm = Vec_IntAlloc( Gia_ManPiNum(p) );
+    Gia_ManForEachPi( p, pObj, i )
+        Vec_IntPush( vPerm, Gia_ObjRefNum(p, pObj) );
+    pOrder = Abc_QuickSortCost( Vec_IntArray(vPerm), Vec_IntSize(vPerm), 1 );
+    Vec_IntFree( vPerm );
+    return pOrder;
+}
+Gia_Man_t * Gia_PermuteSpecial( Gia_Man_t * p )
+{
+    Gia_Man_t * pNew;
+    Vec_Int_t * vPerm;
+    int * pOrder = Gia_PermuteSpecialOrder( p );
+    vPerm = Vec_IntAllocArray( pOrder, Gia_ManPiNum(p) );
+    pNew = Gia_ManDupPerm( p, vPerm );
+    Vec_IntFree( vPerm );
+    return pNew;
+}
 
 /**Function*************************************************************
 
@@ -289,9 +298,19 @@ void Cec_GiaSplitPrint( int nIter, int Depth, int nVars, int nConfs, int fSatUns
     printf( "SatVar =%10d  ",    nVars );
     printf( "SatConf =%7d  ",    nConfs );
     printf( "%s  ",              fSatUnsat ? "UNSAT    " : "UNDECIDED" );
-    printf( "Progress = %.9f  ", Prog );
+    printf( "Progress = %.10f  ", Prog );
     Abc_PrintTime( 1, "Time", clk );
     //ABC_PRTr( "Time", Abc_Clock()-clk );
+}
+void Cec_GiaSplitPrintRefs( Gia_Man_t * p )
+{
+    Gia_Obj_t * pObj;
+    int i;
+    if ( p->pRefs == NULL )
+        Gia_ManCreateRefs( p ); 
+    Gia_ManForEachPi( p, pObj, i )
+        printf( "%d ", Gia_ObjRefNum(p, pObj) );
+    printf( "\n" );
 }
 
 /**Function*************************************************************
@@ -309,25 +328,12 @@ int Cec_GiaSplitTest( Gia_Man_t * p, int nTimeOut, int fVerbose )
 {
     abctime clk, clkTotal = Abc_Clock();
     Gia_Man_t * pPart0, * pPart1, * pLast;
-    Gia_Obj_t * pObj;
     Vec_Ptr_t * vStack;
-    int * pOrder, RetValue = -1;
     int nSatVars, nSatConfs, fSatUnsat;
-    int i, nIter, iVar, Depth;
+    int nIter, iVar, Depth, RetValue = -1;
     double Progress = 0;
     // create local copy
     p = Gia_ManDup( p );
-    // reorder variables
-    pOrder = Gia_PermuteSpecialOrder( p );
-    if ( fVerbose ) 
-    {
-        Gia_ManForEachPi( p, pObj, i )
-            printf( "%d ", Gia_ObjRefNum(p, pObj) );
-        printf( "\n" );
-        Gia_ManForEachPi( p, pObj, i )
-            printf( "%d ", Gia_ObjRefNum(p, Gia_ManPi(p, pOrder[i])) );
-        printf( "\n" );
-    }
     // start cofactored variables
     assert( p->vCofVars == NULL );
     p->vCofVars = Vec_IntAlloc( 100 );
@@ -345,8 +351,8 @@ int Cec_GiaSplitTest( Gia_Man_t * p, int nTimeOut, int fVerbose )
             // get the last AIG
             pLast = (Gia_Man_t *)Vec_PtrPop( vStack );
             // determine cofactoring variable
+            iVar = Gia_SplitCofVar( pLast );
             Depth = Vec_IntSize(pLast->vCofVars);
-            iVar = pOrder[Depth];
             // cofactor
             pPart0 = Gia_ManDupCofactor( pLast, iVar, 0 );
             // create variable
@@ -365,6 +371,8 @@ int Cec_GiaSplitTest( Gia_Man_t * p, int nTimeOut, int fVerbose )
             fSatUnsat = (fSatUnsat == Vec_PtrSize(vStack));
             if ( fSatUnsat )
                 Progress += 1.0 / pow(2, Depth + 1);
+            else
+                Cec_GiaSplitPrintRefs( pPart0 );
             if ( fVerbose ) 
                 Cec_GiaSplitPrint( nIter, Depth, nSatVars, nSatConfs, fSatUnsat, Progress, Abc_Clock() - clk );
             // cofactor
@@ -387,7 +395,7 @@ int Cec_GiaSplitTest( Gia_Man_t * p, int nTimeOut, int fVerbose )
                 Progress += 1.0 / pow(2, Depth + 1);
             if ( fVerbose )
                 Cec_GiaSplitPrint( nIter, Depth, nSatVars, nSatConfs, fSatUnsat, Progress, Abc_Clock() - clk );
-//            if ( Vec_PtrSize(vStack) > 2 )
+//            if ( Vec_PtrSize(vStack) > 5 )
 //                break;
         }
         if ( Vec_PtrSize(vStack) == 0 )
@@ -401,7 +409,6 @@ int Cec_GiaSplitTest( Gia_Man_t * p, int nTimeOut, int fVerbose )
     else if ( RetValue == -1 )
         printf( "Problem is UNDECIDED  " );
     else assert( 0 );
-    ABC_FREE( pOrder );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clkTotal );
     return RetValue;
 }
