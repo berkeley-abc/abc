@@ -221,7 +221,6 @@ static inline sat_solver * Cec_GiaDeriveSolver( Gia_Man_t * p, int nTimeOut )
 }
 static inline int Cnf_GiaSolveOne( Gia_Man_t * p, int nTimeOut, int fVerbose, int * pnVars, int * pnConfs )
 {
-    static int Counter = 0;
     sat_solver * pSat = Cec_GiaDeriveSolver( p, nTimeOut );
     int status = sat_solver_solve( pSat, NULL, NULL, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
     *pnVars    = sat_solver_nvars( pSat );
@@ -385,7 +384,7 @@ int Cec_GiaSplitTest( Gia_Man_t * p, int nTimeOut, int fVerbose )
             }
             fSatUnsat = (fSatUnsat == Vec_PtrSize(vStack));
             if ( fSatUnsat )
-                Progress += 1.0 / (Depth + 1);
+                Progress += 1.0 / pow(2, Depth + 1);
             if ( fVerbose )
                 Cec_GiaSplitPrint( nIter, Depth, nSatVars, nSatConfs, fSatUnsat, Progress, Abc_Clock() - clk );
 //            if ( Vec_PtrSize(vStack) > 2 )
