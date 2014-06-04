@@ -32876,10 +32876,10 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9SplitProve( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern Gia_Man_t * Cec_GiaSplitTest( Gia_Man_t * p, int nTimeOut, int nIterMax, int fVerbose );
-    int c, nTimeOut = 1, nIterMax = 0, fVerbose = 0;
+    extern Gia_Man_t * Cec_GiaSplitTest( Gia_Man_t * p, int nTimeOut, int nIterMax, int LookAhead, int fVerbose );
+    int c, nTimeOut = 1, nIterMax = 0, LookAhead = 1, fVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "TIvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "TILvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -32905,6 +32905,20 @@ int Abc_CommandAbc9SplitProve( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( nIterMax < 0 )
                 goto usage;
             break;
+        case 'L':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-L\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            LookAhead = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( LookAhead <= 0 || LookAhead > 100 )
+            {
+                Abc_Print( -1, "Look-ahead value (\"-L <num>\") should be between 1 and 100.\n", LookAhead );
+                goto usage;
+            }
+            break;
         case 'v':
             fVerbose ^= 1;
             break;
@@ -32924,14 +32938,15 @@ int Abc_CommandAbc9SplitProve( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Abc_CommandAbc9SplitProve(): The problem is sequential.\n" );
         return 1;
     }
-    Cec_GiaSplitTest( pAbc->pGia, nTimeOut, nIterMax, fVerbose );
+    Cec_GiaSplitTest( pAbc->pGia, nTimeOut, nIterMax, LookAhead, fVerbose );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &splitprove [-TI num] [-vh]\n" );
+    Abc_Print( -2, "usage: &splitprove [-TIL num] [-vh]\n" );
     Abc_Print( -2, "\t         proves CEC problem by case-splitting\n" );
     Abc_Print( -2, "\t-T num : runtime limit in seconds per subproblem [default = %d]\n",     nTimeOut );
     Abc_Print( -2, "\t-I num : the max number of iterations (0 = infinity) [default = %d]\n", nIterMax );
+    Abc_Print( -2, "\t-L num : maximum look-ahead during cofactoring [default = %d]\n",       LookAhead );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n",         fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
