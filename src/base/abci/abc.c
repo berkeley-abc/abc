@@ -32876,10 +32876,10 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9SplitProve( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern Gia_Man_t * Cec_GiaSplitTest( Gia_Man_t * p, int nTimeOut, int fVerbose );
-    int c, nTimeOut = 1, fVerbose = 0;
+    extern Gia_Man_t * Cec_GiaSplitTest( Gia_Man_t * p, int nTimeOut, int nIterMax, int fVerbose );
+    int c, nTimeOut = 1, nIterMax = 0, fVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "Tvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "TIvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -32892,6 +32892,17 @@ int Abc_CommandAbc9SplitProve( Abc_Frame_t * pAbc, int argc, char ** argv )
             nTimeOut = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
             if ( nTimeOut <= 0 )
+                goto usage;
+            break;
+        case 'I':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-I\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nIterMax = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nIterMax < 0 )
                 goto usage;
             break;
         case 'v':
@@ -32913,14 +32924,15 @@ int Abc_CommandAbc9SplitProve( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Abc_CommandAbc9SplitProve(): The problem is sequential.\n" );
         return 1;
     }
-    Cec_GiaSplitTest( pAbc->pGia, nTimeOut, fVerbose );
+    Cec_GiaSplitTest( pAbc->pGia, nTimeOut, nIterMax, fVerbose );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &splitprove [-T num] [-vh]\n" );
+    Abc_Print( -2, "usage: &splitprove [-TI num] [-vh]\n" );
     Abc_Print( -2, "\t         proves CEC problem by case-splitting\n" );
-    Abc_Print( -2, "\t-T num : runtime limit in seconds per subproblem [default = %d]\n", nTimeOut );
-    Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-T num : runtime limit in seconds per subproblem [default = %d]\n",     nTimeOut );
+    Abc_Print( -2, "\t-I num : the max number of iterations (0 = infinity) [default = %d]\n", nIterMax );
+    Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n",         fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
 }

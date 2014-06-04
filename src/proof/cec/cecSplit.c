@@ -331,7 +331,7 @@ void Cec_GiaSplitPrint( int nIter, int Depth, int nVars, int nConfs, int fSatUns
     printf( "%6d : ",            nIter );
     printf( "Depth =%3d  ",      Depth );
     printf( "SatVar =%7d  ",     nVars );
-    printf( "SatConf =%7d  ",    nConfs );
+    printf( "SatConf =%7d   ",   nConfs );
     printf( "%s   ",             fSatUnsat ? "UNSAT    " : "UNDECIDED" );
     printf( "Progress = %.10f   ", Prog );
     Abc_PrintTime( 1, "Time", clk );
@@ -359,7 +359,7 @@ void Cec_GiaSplitPrintRefs( Gia_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-int Cec_GiaSplitTest( Gia_Man_t * p, int nTimeOut, int fVerbose )
+int Cec_GiaSplitTest( Gia_Man_t * p, int nTimeOut, int nIterMax, int fVerbose )
 {
     abctime clk, clkTotal = Abc_Clock();
     Gia_Man_t * pPart0, * pPart1, * pLast;
@@ -428,7 +428,7 @@ int Cec_GiaSplitTest( Gia_Man_t * p, int nTimeOut, int fVerbose )
                 Progress += 1.0 / pow(2, Depth + 1);
             if ( fVerbose )
                 Cec_GiaSplitPrint( nIter, Depth, nSatVars, nSatConfs, fSatUnsat, Progress, Abc_Clock() - clk );
-            if ( Vec_PtrSize(vStack) > 3 )
+            if ( nIterMax && Vec_PtrSize(vStack) >= nIterMax )
                 break;
         }
         if ( Vec_PtrSize(vStack) == 0 )
@@ -436,12 +436,13 @@ int Cec_GiaSplitTest( Gia_Man_t * p, int nTimeOut, int fVerbose )
     }
     Cec_GiaSplitClean( vStack );
     if ( RetValue == 0 )
-        printf( "Problem is SAT  " );
+        printf( "Problem is SAT " );
     else if ( RetValue == 1 )
-        printf( "Problem is UNSAT  " );
+        printf( "Problem is UNSAT " );
     else if ( RetValue == -1 )
-        printf( "Problem is UNDECIDED  " );
+        printf( "Problem is UNDECIDED " );
     else assert( 0 );
+    printf( "after %d case-splits.  ", nIter );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clkTotal );
     return RetValue;
 }
