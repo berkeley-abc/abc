@@ -426,7 +426,7 @@ int Cec_GiaSplitTest2( Gia_Man_t * p, int nProcs, int nTimeOut, int nIterMax, in
         // get the last AIG
         Gia_Man_t * pLast = (Gia_Man_t *)Vec_PtrPop( vStack );
         // determine cofactoring variable
-        int Depth = pLast->vCofVars ? Vec_IntSize(pLast->vCofVars) : 0;
+        int Depth = 1 + (pLast->vCofVars ? Vec_IntSize(pLast->vCofVars) : 0);
         int iVar  = Gia_SplitCofVar( pLast, LookAhead );
         // cofactor
         Gia_Man_t * pPart = Gia_ManDupCofactor( pLast, iVar, 0 );
@@ -441,7 +441,7 @@ int Cec_GiaSplitTest2( Gia_Man_t * p, int nProcs, int nTimeOut, int nIterMax, in
         status = Cnf_GiaSolveOne( pPart, pCnf, nTimeOut, &nSatVars, &nSatConfs );
         Cnf_DataFree( pCnf );
         if ( status == 1 )
-            Progress += 1.0 / pow(2, Depth + 1);
+            Progress += 1.0 / pow(2, Depth);
         if ( fVerbose ) 
             Cec_GiaSplitPrint( nIter, Depth, nSatVars, nSatConfs, status, Progress, Abc_Clock() - clkTotal );
         if ( status == 0 ) // SAT
@@ -468,7 +468,7 @@ int Cec_GiaSplitTest2( Gia_Man_t * p, int nProcs, int nTimeOut, int nIterMax, in
         status = Cnf_GiaSolveOne( pPart, pCnf, nTimeOut, &nSatVars, &nSatConfs );
         Cnf_DataFree( pCnf );
         if ( status == 1 )
-            Progress += 1.0 / pow(2, Depth + 1);
+            Progress += 1.0 / pow(2, Depth);
         if ( fVerbose )
             Cec_GiaSplitPrint( nIter, Depth, nSatVars, nSatConfs, status, Progress, Abc_Clock() - clkTotal );
         if ( status == 0 ) // SAT
@@ -568,7 +568,7 @@ int Cec_GiaSplitTest( Gia_Man_t * p, int nProcs, int nTimeOut, int nIterMax, int
     pCnf = Cec_GiaDeriveGiaRemapped( p );
     status = Cnf_GiaSolveOne( p, pCnf, nTimeOut, &nSatVars, &nSatConfs );
     Cnf_DataFree( pCnf );
-    if ( fVerbose )
+    if ( fVerbose && status != -1 )
         Cec_GiaSplitPrint( 0, 0, nSatVars, nSatConfs, status, Progress, Abc_Clock() - clkTotal );
     if ( status == 0 )
     {
