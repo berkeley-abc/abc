@@ -2761,7 +2761,7 @@ void Ver_ParsePrintLog( Ver_Man_t * pMan )
     }
     Vec_PtrForEachEntry( Abc_Ntk_t *, pMan->pDesign->vModules, pNtk, i )
         pNtk->fHieVisited = 0;
-    printf( "The number of modules with one output = %d (%.2f %%).\n", Count1, 100.0 * Count1/Vec_PtrSize(pMan->pDesign->vModules) ); 
+    fprintf( pFile, "The number of modules with one output = %d (%.2f %%).\n", Count1, 100.0 * Count1/Vec_PtrSize(pMan->pDesign->vModules) ); 
 
     // report instances with dangling outputs
     if ( Vec_PtrSize(pMan->pDesign->vModules) > 1 )
