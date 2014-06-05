@@ -60,6 +60,10 @@ Aig_Man_t * Aig_ManStart( int nNodesMax )
     p->vCos  = Vec_PtrAlloc( 100 );
     p->vObjs = Vec_PtrAlloc( 1000 );
     p->vBufs = Vec_PtrAlloc( 100 );
+    //--jlong -- begin
+       p->unfold2_type_I = Vec_PtrAlloc( 4);
+       p->unfold2_type_II = Vec_PtrAlloc( 4);
+       //--jlong -- end
     // prepare the internal memory manager
     p->pMemObjs = Aig_MmFixedStart( sizeof(Aig_Obj_t), nNodesMax );
     // create the constant node
@@ -200,6 +204,10 @@ void Aig_ManStop( Aig_Man_t * p )
     Vec_PtrFreeP( &p->vCos );
     Vec_PtrFreeP( &p->vObjs );
     Vec_PtrFreeP( &p->vBufs );
+    //--jlong -- begin
+    Vec_PtrFreeP( &p->unfold2_type_I );
+    Vec_PtrFreeP( &p->unfold2_type_II );
+    //--jlong -- end
     Vec_IntFreeP( &p->vLevelR );
     Vec_VecFreeP( &p->vLevels );
     Vec_IntFreeP( &p->vFlopNums );

@@ -1008,6 +1008,6 @@ Aig_Man_t * Saig_ManDupFoldConstrsFunc( Aig_Man_t * pAig, int fCompl, int fVerbo
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
-
+#include "saigUnfold2.c"
 ABC_NAMESPACE_IMPL_END
 
