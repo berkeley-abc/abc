@@ -4560,6 +4560,6 @@ Abc_Ntk_t * Abc_NtkDarTestNtk( Abc_Ntk_t * pNtk )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
-
+#include "abcDarUnfold2.c"
 ABC_NAMESPACE_IMPL_END
 

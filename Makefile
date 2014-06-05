@@ -131,7 +131,7 @@ tags:
 
 $(PROG): $(OBJ)
 	@echo "$(MSG_PREFIX)\`\` Building binary:" $(notdir $@)
-	@$(LD) -o $@ $^ $(LIBS)
+	$(LD) -o $@ $^ $(LIBS)
 
 lib$(PROG).a: $(OBJ)
 	@echo "$(MSG_PREFIX)\`\` Linking:" $(notdir $@)

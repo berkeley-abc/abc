@@ -165,6 +165,10 @@ struct Aig_Man_t_
     // timing statistics
     abctime          time1;
     abctime          time2;
+  //-- jlong -- begin
+  Vec_Ptr_t *      unfold2_type_I;
+  Vec_Ptr_t *      unfold2_type_II;
+  //-- jlong -- end
 };
 
 // cut computation
