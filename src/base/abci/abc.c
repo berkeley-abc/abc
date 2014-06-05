@@ -294,8 +294,9 @@ static int Abc_CommandTempor                 ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandInduction              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandConstr                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandUnfold                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandUnfold2                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandFold                   ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandUnfold2                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandFold2                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandBm                     ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandBm2                    ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandSaucy                  ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -871,9 +872,9 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Verification", "ind",           Abc_CommandInduction,        0 );
     Cmd_CommandAdd( pAbc, "Verification", "constr",        Abc_CommandConstr,           0 );
     Cmd_CommandAdd( pAbc, "Verification", "unfold",        Abc_CommandUnfold,           1 );
-
-    Cmd_CommandAdd( pAbc, "Verification", "unfold2",        Abc_CommandUnfold2,           1 );    // jlong 
     Cmd_CommandAdd( pAbc, "Verification", "fold",          Abc_CommandFold,             1 );
+    Cmd_CommandAdd( pAbc, "Verification", "unfold2",        Abc_CommandUnfold2,           1 );    // jlong 
+    Cmd_CommandAdd( pAbc, "Verification", "fold2",        Abc_CommandFold2,           1 );    // jlong 
     Cmd_CommandAdd( pAbc, "Verification", "bm",            Abc_CommandBm,               1 );
     Cmd_CommandAdd( pAbc, "Verification", "bm2",           Abc_CommandBm2,              1 );
     Cmd_CommandAdd( pAbc, "Verification", "saucy3",        Abc_CommandSaucy,            1 );
@@ -35350,5 +35351,5 @@ usage:
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
-#include "abciUnfold2.c"
+
 ABC_NAMESPACE_IMPL_END

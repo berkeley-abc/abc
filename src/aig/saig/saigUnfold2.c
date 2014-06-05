@@ -292,9 +292,10 @@ Vec_Vec_t * Ssw_ManFindDirectImplications2( Aig_Man_t * p, int nFrames, int nCon
 Aig_Man_t * Saig_ManDupUnfoldConstrsFunc2( Aig_Man_t * pAig, int nFrames, int nConfs, int nProps, int fOldAlgo, int fVerbose , int * typeII_cnt){
   Aig_Man_t * pNew;
   Vec_Vec_t * vCands;
-  Vec_Ptr_t * vNodes, * vNewFlops;
+  Vec_Ptr_t  * vNewFlops;
   Aig_Obj_t * pObj;
-  int i, j, k, nNewFlops;
+  int i,  k, nNewFlops;
+  const int fCompl = 0 ;
   if ( fOldAlgo )
     vCands = Saig_ManDetectConstrFunc( pAig, nFrames, nConfs, nProps, fVerbose );
   else
@@ -305,134 +306,56 @@ Aig_Man_t * Saig_ManDupUnfoldConstrsFunc2( Aig_Man_t * pAig, int nFrames, int nC
       return Aig_ManDupDfs( pAig );
     }
   // create new manager
-  pNew = Aig_ManDupWithoutPos( pAig );
+  pNew = Aig_ManDupWithoutPos( pAig ); /* good */
   pNew->nConstrs = pAig->nConstrs + Vec_VecSizeSize(vCands);
+  pNew->nConstrs = pAig->nConstrs + Vec_PtrSize(pAig->unfold2_type_II)
+    + Vec_PtrSize(pAig->unfold2_type_I);
   //  pNew->nConstrsTypeII  = Vec_PtrSize(pAig->unfold2_type_II);
   *typeII_cnt = Vec_PtrSize(pAig->unfold2_type_II);
+
+  /* new set of registers */
+  
   // add normal POs
   Saig_ManForEachPo( pAig, pObj, i )
     Aig_ObjCreateCo( pNew, Aig_ObjChild0Copy(pObj) );
   // create constraint outputs
   vNewFlops = Vec_PtrAlloc( 100 );
 
-  
+
   Vec_PtrForEachEntry(Aig_Obj_t * , pAig->unfold2_type_I, pObj, k){
     Aig_Obj_t * x = Aig_ObjRealCopy(pObj);
     Aig_ObjCreateCo(pNew, x);
   }
    
   Vec_PtrForEachEntry(Aig_Obj_t * , pAig->unfold2_type_II, pObj, k){
+    Aig_Obj_t * type_II_latch
+      = Aig_ObjCreateCi(pNew); /* will get connected later; */
+    Aig_Obj_t * x = Aig_ObjRealCopy(pObj);
+    
+    Aig_Obj_t * n = Aig_And(pNew, 
+                            Aig_NotCond(type_II_latch, fCompl),
+                            Aig_NotCond(x, fCompl));
+    Aig_ObjCreateCo(pNew, n);//Aig_Not(n));
+  }                   
+  
+  // add latch outputs
+  Saig_ManForEachLi( pAig, pObj, i )
+    Aig_ObjCreateCo( pNew, Aig_ObjChild0Copy(pObj) );
+  
+  Vec_PtrForEachEntry(Aig_Obj_t * , pAig->unfold2_type_II, pObj, k){
     Aig_Obj_t * x = Aig_ObjRealCopy(pObj);
     Aig_ObjCreateCo(pNew, x);
   }                   
 
-
-  if(0)  Vec_VecForEachLevel( vCands, vNodes, i )
-    {
-      assert(i==0);
-      Vec_PtrForEachEntry( Aig_Obj_t *, vNodes, pObj, k )
-        {
-          Vec_PtrPush( vNewFlops, Aig_ObjRealCopy(pObj) );
-          for ( j = 0; j < i; j++ )
-            Vec_PtrPush( vNewFlops, Aig_ObjCreateCi(pNew) );
-          Aig_ObjCreateCo( pNew, (Aig_Obj_t *)Vec_PtrPop(vNewFlops) );
-        }
-    }
-  // add latch outputs
-  Saig_ManForEachLi( pAig, pObj, i )
-    Aig_ObjCreateCo( pNew, Aig_ObjChild0Copy(pObj) );
   // add new latch outputs
-  nNewFlops = 0;//Vec_VecSizeSize(vCands);
-  
-  if(0)Vec_VecForEachLevel( vCands, vNodes, i )
-         {
-           Vec_PtrForEachEntry( Aig_Obj_t *, vNodes, pObj, k )
-             {
-               for ( j = 0; j < i; j++ )
-                 Aig_ObjCreateCo( pNew, (Aig_Obj_t *)Vec_PtrEntry(vNewFlops, nNewFlops++) );
-             }
-         }
+  nNewFlops = Vec_PtrSize(pAig->unfold2_type_II);
   //assert( nNewFlops == Vec_PtrSize(vNewFlops) );
   Aig_ManSetRegNum( pNew, Aig_ManRegNum(pAig) + nNewFlops );
+  printf("#reg after unfold2: %d\n", Aig_ManRegNum(pAig) + nNewFlops );
   Vec_VecFreeP( &vCands );
   Vec_PtrFree( vNewFlops );
   return pNew;
 
-}
-Aig_Man_t * Saig_ManDupUnfoldConstrsFunc2_( Aig_Man_t * pAig, int nFrames, int nConfs, int nProps, int fOldAlgo, int fVerbose )
-{
-  Aig_Man_t * pNew;
-  Vec_Vec_t * vCands;
-  //  Vec_Ptr_t * vNodes, * vNewFlops;
-  Aig_Obj_t * pObj;
-  int i,  k;
-  Aig_Obj_t * pMiter = NULL;
-  const int fCompl = 0;
-
-
-  if ( fOldAlgo )
-    vCands = Saig_ManDetectConstrFunc( pAig, nFrames, nConfs, nProps, fVerbose );
-  else
-    vCands = Ssw_ManFindDirectImplications2( pAig, nFrames, nConfs, nProps, fVerbose );
-  if ( vCands == NULL || Vec_VecSizeSize(vCands) == 0 )
-    {
-      Vec_VecFreeP( &vCands );
-      return Aig_ManDupDfs( pAig );
-    }
-  // create new manager
-  pNew = Aig_ManDupWithoutPos( pAig );
-  
-  pMiter = Aig_ManConst0( pNew );
-  
-  Vec_PtrForEachEntry(Aig_Obj_t * , pAig->unfold2_type_I, pObj, k){
-    
-    pMiter = Aig_Or( pNew, pMiter, 
-                     Aig_NotCond( Aig_ObjRealCopy(pObj), fCompl ) );
-    printf("new id: %d\n", Aig_ObjId(pMiter));
-  }
-
-  Vec_PtrForEachEntry(Aig_Obj_t * , pAig->unfold2_type_II, pObj, k){
-    Aig_Obj_t * type_II_latch 
-      = Aig_ObjCreateCi(pNew); /* will get connected later; */
-    Aig_Obj_t *kk =   Aig_And(pNew, 
-                            Aig_NotCond(type_II_latch, fCompl),
-                            Aig_NotCond(Aig_ObjRealCopy(pObj), fCompl)
-                            );
-                  
-    pMiter = Aig_Or(pNew, pMiter, kk
-                    );
-  }
-  {
-    Aig_Obj_t * pObjLi, *pObjLo;
-    Aig_Obj_t * pFlopOut = Aig_ObjCreateCi(pNew);
-    Aig_Obj_t * pFlopIn  = Aig_Or(pNew, pMiter, pFlopOut);
-    
-    Saig_ManForEachPo(pAig, pObj, i){
-      Aig_Obj_t *p = Aig_And( pNew, Aig_ObjChild0(pObj), Aig_Not(pFlopIn) );      
-      printf("new id: %d\n", Aig_ObjId(p));
-      Aig_ObjCreateCo(pNew, p);
-    }
-
-    // add latch outputs
-    
-    Saig_ManForEachLiLo(pAig, pObjLi, pObjLo, i){
-      Aig_Obj_t *c = Aig_Mux(pNew, Aig_Not(pFlopIn), 
-                             Aig_ObjChild0Copy(pObjLi) ,
-                             Aig_ObjRealCopy(pObjLo));//->pData);
-      Aig_ObjCreateCo(pNew, c);
-      printf("new id: %d\n", Aig_ObjId(c));
-    }
-
- 
-    
-    Vec_PtrForEachEntry(Aig_Obj_t * , pAig->unfold2_type_II, pObj, k){
-      Aig_ObjCreateCo( pNew, Aig_ObjRealCopy(pObj));
-    }
-    Aig_ObjCreateCo(pNew, pFlopIn);
-  }
-  Aig_ManSetRegNum( pNew, Aig_ManRegNum(pAig) + Vec_PtrSize(pAig->unfold2_type_II) + 1);
-  Vec_VecFreeP( &vCands );
-  return pNew;
 }
 
 /**Function*************************************************************
@@ -470,7 +393,9 @@ Aig_Man_t * Saig_ManDupFoldConstrsFunc2( Aig_Man_t * pAig, int fCompl, int fVerb
 
   // OR the constraint outputs
   pMiter = Aig_ManConst0( pAigNew );
-
+  int typeII_cc = 0;//typeII_cnt;
+  typeII_cnt = 0;
+  
   int  type_II = 0;
     
   Saig_ManForEachPo( pAig, pObj, i )
@@ -483,7 +408,7 @@ Aig_Man_t * Saig_ManDupFoldConstrsFunc2( Aig_Man_t * pAig, int fCompl, int fVerb
       }
       /*  now we got the constraint */
       if (type_II) {
-        printf("modeling typeII \n");
+
         Aig_Obj_t * type_II_latch
           = Aig_ObjCreateCi(pAigNew); /* will get connected later; */
         pMiter = Aig_Or(pAigNew, pMiter, 
@@ -491,6 +416,7 @@ Aig_Man_t * Saig_ManDupFoldConstrsFunc2( Aig_Man_t * pAig, int fCompl, int fVerb
                                 Aig_NotCond(type_II_latch, fCompl),
                                 Aig_NotCond( Aig_ObjChild0Copy(pObj), fCompl ) )
                         );
+        printf( "modeling typeII : %d:%s%d \n", i, Aig_IsComplement(pObj)? "!":"", Aig_ObjId(Aig_Regular(pObj)) );
       } else 
         pMiter = Aig_Or( pAigNew, pMiter, Aig_NotCond( Aig_ObjChild0Copy(pObj), fCompl ) );
     }
@@ -517,11 +443,17 @@ Aig_Man_t * Saig_ManDupFoldConstrsFunc2( Aig_Man_t * pAig, int fCompl, int fVerb
   {
     /* the same for type I and type II */
     Aig_Obj_t * pObjLi, *pObjLo;
+
     Saig_ManForEachLiLo( pAig, pObjLi, pObjLo, i )    {
-      Aig_Obj_t *c = Aig_Mux(pAigNew, Aig_Not(pFlopIn), 
-                             Aig_ObjChild0Copy(pObjLi) ,
-                             pObjLo->pData);
-      Aig_ObjCreateCo( pAigNew, c);
+      if( i + typeII_cc < Aig_ManRegNum(pAig)) {
+        Aig_Obj_t *c = Aig_Mux(pAigNew, Aig_Not(pFlopIn), 
+                               Aig_ObjChild0Copy(pObjLi) ,
+                               pObjLo->pData);
+        Aig_ObjCreateCo( pAigNew, c);
+      } else {
+        printf ( "skipping: reg%d\n", i);
+        Aig_ObjCreateCo( pAigNew,Aig_ObjChild0Copy(pObjLi));
+      }
     }
 
   }
@@ -530,19 +462,24 @@ Aig_Man_t * Saig_ManDupFoldConstrsFunc2( Aig_Man_t * pAig, int fCompl, int fVerb
     }
   Aig_ManSetRegNum( pAigNew, Aig_ManRegNum(pAig) );
     
+  type_II = 0;
   Saig_ManForEachPo( pAig, pObj, i )
     {
     
       if ( i < Saig_ManPoNum(pAig)-Aig_ManConstrNum(pAig) )
         continue;
+      if (i + typeII_cnt >= Saig_ManPoNum(pAig) ) {
+        type_II = 1;
+      }
       /*  now we got the constraint */
       if (type_II) {
         Aig_ObjCreateCo( pAigNew, Aig_ObjChild0Copy(pObj));
         Aig_ManSetRegNum( pAigNew, Aig_ManRegNum(pAigNew)+1 );
+        printf( "Latch for typeII : %d:%s%d \n", i, Aig_IsComplement(pObj)? "!":"", Aig_ObjId(Aig_Regular(pObj)) );
       }
     }
 
-    
+     
   // create additional flop 
 
   if ( Saig_ManRegNum(pAig) > 0 )
@@ -550,7 +487,7 @@ Aig_Man_t * Saig_ManDupFoldConstrsFunc2( Aig_Man_t * pAig, int fCompl, int fVerb
       Aig_ObjCreateCo( pAigNew, pFlopIn );
       Aig_ManSetRegNum( pAigNew, Aig_ManRegNum(pAigNew)+1 );
     }
-
+  printf("#reg after fold2: %d\n", Aig_ManRegNum(pAigNew));
   // perform cleanup
   Aig_ManCleanup( pAigNew );
   Aig_ManSeqCleanup( pAigNew );

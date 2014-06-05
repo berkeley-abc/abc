@@ -32,7 +32,7 @@ Abc_Ntk_t * Abc_NtkDarUnfold2( Abc_Ntk_t * pNtk, int nFrames, int nConfs, int nP
     pNtkAig->pSpec = Extra_UtilStrsav(pMan->pSpec);
     Aig_ManStop( pMan );
 
-    return Abc_NtkDarFold2(pNtkAig, 0, fVerbose, typeII_cnt);
+    return pNtkAig;//Abc_NtkDarFold2(pNtkAig, 0, fVerbose, typeII_cnt);
     
     //return pNtkAig;
 }
