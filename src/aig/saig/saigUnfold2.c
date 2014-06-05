@@ -79,9 +79,12 @@ Aig_Man_t * Saig_ManCreateIndMiter2( Aig_Man_t * pAig, Vec_Vec_t * vCands )
           Aig_ObjCreateCo( pFrames, pMiter );
         
         /* need to check p & Xp is satisfiable */
-                    /* jlong -- begin */
+        /* jlong -- begin */
+          {
           Aig_Obj_t * pMiter2 = Aig_And( pFrames, pFan0, Aig_Not(pFan1));
-          Aig_ObjCreateCo( pFrames, pMiter2 ); /* jlong -- end  */
+          Aig_ObjCreateCo( pFrames, pMiter2 ); 
+          }
+        /* jlong -- end  */
         }
 
         {            /* jlong -- begin */
@@ -374,7 +377,7 @@ Aig_Man_t * Saig_ManDupFoldConstrsFunc2( Aig_Man_t * pAig, int fCompl, int fVerb
 {
   Aig_Man_t * pAigNew;
   Aig_Obj_t * pMiter, * pFlopOut, * pFlopIn, * pObj;
-  int i;
+  int i, typeII_cc, type_II;
   if ( Aig_ManConstrNum(pAig) == 0 )
     return Aig_ManDupDfs( pAig );
   assert( Aig_ManConstrNum(pAig) < Saig_ManPoNum(pAig) );
@@ -393,10 +396,9 @@ Aig_Man_t * Saig_ManDupFoldConstrsFunc2( Aig_Man_t * pAig, int fCompl, int fVerb
 
   // OR the constraint outputs
   pMiter = Aig_ManConst0( pAigNew );
-  int typeII_cc = 0;//typeII_cnt;
-  typeII_cnt = 0;
-  
-  int  type_II = 0;
+  typeII_cc = 0;//typeII_cnt;
+  typeII_cnt = 0;  
+  type_II = 0;
     
   Saig_ManForEachPo( pAig, pObj, i )
     {
