@@ -369,6 +369,7 @@ void Cec_GiaSplitPrint( int nIter, int Depth, int nVars, int nConfs, int fStatus
     printf( "Solved %8.4f %%   ", 100*Prog );
     Abc_PrintTime( 1, "Time", clk );
     //ABC_PRTr( "Time", Abc_Clock()-clk );
+    fflush( stdout );
 }
 void Cec_GiaSplitPrintRefs( Gia_Man_t * p )
 {
@@ -498,6 +499,7 @@ int Cec_GiaSplitTest2( Gia_Man_t * p, int nProcs, int nTimeOut, int nIterMax, in
     else assert( 0 );
     printf( "after %d case-splits.  ", nIter );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clkTotal );
+    fflush( stdout );
     return RetValue;
 }
 
@@ -559,6 +561,7 @@ int Cec_GiaSplitTest( Gia_Man_t * p, int nProcs, int nTimeOut, int nIterMax, int
         printf( "Solving CEC problem by cofactoring with the following parameters:\n" );
     if ( fVerbose )
         printf( "Processes = %d   TimeOut = %d sec   MaxIter = %d   LookAhead = %d   Verbose = %d.\n", nProcs, nTimeOut, nIterMax, LookAhead, fVerbose );
+    fflush( stdout );
     if ( nProcs == 1 )
         return Cec_GiaSplitTest2( p, nProcs, nTimeOut, nIterMax, LookAhead, fVerbose );
     // subtract manager thread
@@ -695,6 +698,7 @@ finish:
     else assert( 0 );
     printf( "after %d case-splits.  ", nIter );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clkTotal );
+    fflush( stdout );
     return RetValue;
 }
 
