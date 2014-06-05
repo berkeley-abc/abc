@@ -361,7 +361,7 @@ static inline void Cec_GiaSplitClean( Vec_Ptr_t * vStack )
 ***********************************************************************/
 void Cec_GiaSplitPrint( int nIter, int Depth, int nVars, int nConfs, int fStatus, double Prog, abctime clk )
 {
-    printf( "%6d : ",             nIter );
+    printf( "%4d : ",             nIter );
     printf( "Depth =%3d  ",       Depth );
     printf( "SatVar =%7d  ",      nVars );
     printf( "SatConf =%7d   ",    nConfs );

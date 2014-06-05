@@ -32877,7 +32877,7 @@ usage:
 int Abc_CommandAbc9SplitProve( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     extern int Cec_GiaSplitTest( Gia_Man_t * p, int nProcs, int nTimeOut, int nIterMax, int LookAhead, int fVerbose );
-    int c, nProcs = 1, nTimeOut = 1, nIterMax = 0, LookAhead = 1, fVerbose = 0;
+    int c, nProcs = 1, nTimeOut = 10, nIterMax = 0, LookAhead = 1, fVerbose = 0;
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "PTILvh" ) ) != EOF )
     {
