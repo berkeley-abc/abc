@@ -2752,7 +2752,7 @@ void Ver_ParsePrintLog( Ver_Man_t * pMan )
         fprintf( pFile, " instantiated %6d times ", pNtk->fHieVisited );
 //        fprintf( pFile, "\n   " );
         fprintf( pFile, " pi = %4d", Abc_NtkPiNum(pNtk) );
-        fprintf( pFile, " po = %4d", Abc_NtkPiNum(pNtk) );
+        fprintf( pFile, " po = %4d", Abc_NtkPoNum(pNtk) );
         fprintf( pFile, " nd = %8d",  Abc_NtkNodeNum(pNtk) );
         fprintf( pFile, " lat = %6d",  Abc_NtkLatchNum(pNtk) );
         fprintf( pFile, " box = %6d", Abc_NtkBoxNum(pNtk)-Abc_NtkLatchNum(pNtk) );
