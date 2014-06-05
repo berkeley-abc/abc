@@ -617,7 +617,7 @@ int Cec_GiaSplitTest( Gia_Man_t * p, int nProcs, int nTimeOut, int nIterMax, int
                 if ( pLast->vCofVars == NULL )
                     pLast->vCofVars = Vec_IntAlloc( 100 );
                 if ( fVerbose )
-                    Cec_GiaSplitPrint( i, Depth, ThData[i].nVars, ThData[i].nConfs, ThData[i].Result, Progress, Abc_Clock() - clkTotal );
+                    Cec_GiaSplitPrint( i+1, Depth, ThData[i].nVars, ThData[i].nConfs, ThData[i].Result, Progress, Abc_Clock() - clkTotal );
                 if ( ThData[i].Result == 0 ) // SAT
                 {
                     p->pCexComb = pLast->pCexComb;  pLast->pCexComb = NULL;
