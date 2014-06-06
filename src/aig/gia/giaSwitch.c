@@ -745,10 +745,13 @@ float Gia_ManComputeSwitching( Gia_Man_t * p, int nFrames, int nPref, int fProbO
     Gia_Man_t * pDfs;
     Gia_Obj_t * pObj, * pObjDfs;
     Vec_Int_t * vSwitching;
-    float * pSwitching, Switch, SwitchTotal = 0.0;//, SwitchTotal2 = 0.0;
+    float * pSwitching, Switch, SwitchTotal = 0.0;
     int i;
     // derives the DFS ordered AIG
-    Gia_ManCreateRefs( p );
+    if ( Gia_ManHasMapping(p) )
+        Gia_ManSetRefsMapped(p);
+    else
+        Gia_ManCreateRefs( p );
 //    pDfs = Gia_ManDupOrderDfs( p );
     pDfs = Gia_ManDup( p );
     assert( Gia_ManObjNum(pDfs) == Gia_ManObjNum(p) );
@@ -762,11 +765,12 @@ float Gia_ManComputeSwitching( Gia_Man_t * p, int nFrames, int nPref, int fProbO
         pObjDfs = Gia_ObjFromLit( pDfs, pObj->Value );
         Switch = pSwitching[ Gia_ObjId(pDfs, pObjDfs) ];
         p->pSwitching[i] = (char)((Switch >= 1.0) ? 255 : (int)((0.002 + Switch) * 255)); // 0.00196 = (1/255)/2
-        SwitchTotal += (float)Gia_ObjRefNum(p, pObj) * p->pSwitching[i] / 255;
-//        SwitchTotal2 += Gia_ObjRefNum(p, pObj) * Switch;
-//        printf( "%d = %.2f\n", i, Gia_ObjRefNum(p, pObj) * Switch );
+        if ( Gia_ObjIsCi(pObj) || (Gia_ObjIsAnd(pObj) && (!Gia_ManHasMapping(p) || Gia_ObjIsLut(p, i))) )
+        {
+            SwitchTotal += (float)Gia_ObjRefNum(p, pObj) * p->pSwitching[i] / 255;
+//            printf( "%d = %.2f\n", i, (float)Gia_ObjRefNum(p, pObj) * p->pSwitching[i] / 255 );            
+        }
     }
-//    printf( "\nSwitch float = %f. Switch char = %f.\n", SwitchTotal2, SwitchTotal );
     Vec_IntFree( vSwitching );
     Gia_ManStop( pDfs );
     return SwitchTotal;

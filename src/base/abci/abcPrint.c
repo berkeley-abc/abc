@@ -155,6 +155,7 @@ float Abc_NtkMfsTotalSwitching( Abc_Ntk_t * pNtk )
         if ( (pObjAbc2 = Abc_ObjRegular((Abc_Obj_t *)pObjAbc->pTemp)) && (pObjAig = Aig_Regular((Aig_Obj_t *)pObjAbc2->pTemp)) )
         {
             Result += Abc_ObjFanoutNum(pObjAbc) * pSwitching[pObjAig->Id];
+//            Abc_ObjPrint( stdout, pObjAbc );
 //            printf( "%d = %.2f\n", i, Abc_ObjFanoutNum(pObjAbc) * pSwitching[pObjAig->Id] );
         }
     }

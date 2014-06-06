@@ -482,6 +482,7 @@ static inline float      If_CutLutDelay( If_LibLut_t * p, int Size, int iPin )  
 /*=== ifCore.c ===========================================================*/
 extern int             If_ManPerformMapping( If_Man_t * p );
 extern int             If_ManPerformMappingComb( If_Man_t * p );
+extern void            If_ManComputeSwitching( If_Man_t * p );
 /*=== ifCut.c ============================================================*/
 extern int             If_CutVerifyCuts( If_Set_t * pCutSet, int fOrdered );
 extern int             If_CutFilter( If_Set_t * pCutSet, If_Cut_t * pCut, int fSaveCut0 );
