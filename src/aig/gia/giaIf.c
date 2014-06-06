@@ -1618,7 +1618,12 @@ Gia_Man_t * Gia_ManPerformMapping( Gia_Man_t * p, void * pp, int fNormalized )
     }
     // compute switching for the IF objects
     if ( pPars->fPower )
-        If_ManComputeSwitching( pIfMan );
+    {
+        if ( p->pManTime == NULL )
+            If_ManComputeSwitching( pIfMan );
+        else
+            Abc_Print( 0, "Switching activity computation for designs with boxes is disabled.\n" );
+    }
     if ( p->pManTime )
         pIfMan->pManTim = Tim_ManDup( (Tim_Man_t *)p->pManTime, 0 );
     if ( !If_ManPerformMapping( pIfMan ) )
