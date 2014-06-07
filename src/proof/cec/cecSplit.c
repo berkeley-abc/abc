@@ -397,7 +397,7 @@ void Cec_GiaSplitPrintRefs( Gia_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-int Cec_GiaSplitTest2( Gia_Man_t * p, int nProcs, int nTimeOut, int nIterMax, int LookAhead, int fVerbose )
+int Cec_GiaSplitTest2( Gia_Man_t * p, int nProcs, int nTimeOut, int nIterMax, int LookAhead, int fVerbose, int fVeryVerbose )
 {
     abctime clkTotal = Abc_Clock();
     Vec_Ptr_t * vStack;
@@ -438,7 +438,7 @@ int Cec_GiaSplitTest2( Gia_Man_t * p, int nProcs, int nTimeOut, int nIterMax, in
         if ( pLast->vCofVars == NULL )
             pLast->vCofVars = Vec_IntAlloc( 100 );
         // print results
-        if ( fVerbose )
+        if ( fVeryVerbose )
         {
 //            Cec_GiaSplitPrintRefs( pLast );
             printf( "Var = %5d. Fanouts = %5d. Cost = %8d.  AndBefore = %6d.  AndAfter = %6d.\n", 
@@ -558,7 +558,7 @@ void * Cec_GiaSplitWorkerThread( void * pArg )
     assert( 0 );
     return NULL;
 }
-int Cec_GiaSplitTest( Gia_Man_t * p, int nProcs, int nTimeOut, int nIterMax, int LookAhead, int fVerbose )
+int Cec_GiaSplitTest( Gia_Man_t * p, int nProcs, int nTimeOut, int nIterMax, int LookAhead, int fVerbose, int fVeryVerbose )
 {
     abctime clkTotal = Abc_Clock();
     Par_ThData_t ThData[PAR_THR_MAX];
@@ -575,7 +575,7 @@ int Cec_GiaSplitTest( Gia_Man_t * p, int nProcs, int nTimeOut, int nIterMax, int
         printf( "Processes = %d   TimeOut = %d sec   MaxIter = %d   LookAhead = %d   Verbose = %d.\n", nProcs, nTimeOut, nIterMax, LookAhead, fVerbose );
     fflush( stdout );
     if ( nProcs == 1 )
-        return Cec_GiaSplitTest2( p, nProcs, nTimeOut, nIterMax, LookAhead, fVerbose );
+        return Cec_GiaSplitTest2( p, nProcs, nTimeOut, nIterMax, LookAhead, fVerbose, fVeryVerbose );
     // subtract manager thread
     nProcs--;
     assert( nProcs >= 1 && nProcs <= PAR_THR_MAX );
@@ -650,7 +650,7 @@ int Cec_GiaSplitTest( Gia_Man_t * p, int nProcs, int nTimeOut, int nIterMax, int
                     Vec_IntPush( pPart->vCofVars, Abc_Var2Lit(iVar, 1) );
                     Vec_PtrPush( vStack, pPart );
                     // print results
-                    if ( fVerbose )
+                    if ( fVeryVerbose )
                     {
 //                        Cec_GiaSplitPrintRefs( pLast );
                         printf( "Var = %5d. Fanouts = %5d. Cost = %8d.  AndBefore = %6d.  AndAfter = %6d.\n", 
