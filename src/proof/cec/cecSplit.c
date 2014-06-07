@@ -203,7 +203,7 @@ Gia_Man_t * Gia_PermuteSpecial( Gia_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-int Gia_SplitCofVar2( Gia_Man_t * p )
+int Gia_SplitCofVar2( Gia_Man_t * p, int * pnFanouts, int * pnCost )
 {
     Gia_Obj_t * pObj;
     int i, iBest = -1, CostBest = -1;
@@ -213,15 +213,17 @@ int Gia_SplitCofVar2( Gia_Man_t * p )
         if ( CostBest < Gia_ObjRefNum(p, pObj) )
             iBest = i, CostBest = Gia_ObjRefNum(p, pObj);
     assert( iBest >= 0 );
+    *pnFanouts = Gia_ObjRefNum(p, Gia_ManPi(p, iBest));
+    *pnCost = -1;
     return iBest;
 }
-int Gia_SplitCofVar( Gia_Man_t * p, int LookAhead )
+int Gia_SplitCofVar( Gia_Man_t * p, int LookAhead, int * pnFanouts, int * pnCost )
 {
     Gia_Man_t * pPart;
     int Cost0, Cost1, CostBest = ABC_INFINITY;
     int * pOrder, i, iBest = -1;
     if ( LookAhead == 1 )
-        return Gia_SplitCofVar2( p );
+        return Gia_SplitCofVar2( p, pnFanouts, pnCost );
     pOrder = Gia_PermuteSpecialOrder( p );
     LookAhead = Abc_MinInt( LookAhead, Gia_ManPiNum(p) );
     for ( i = 0; i < LookAhead; i++ )
@@ -251,6 +253,8 @@ int Gia_SplitCofVar( Gia_Man_t * p, int LookAhead )
     }
     ABC_FREE( pOrder );
     assert( iBest >= 0 );
+    *pnFanouts = Gia_ObjRefNum(p, Gia_ManPi(p, iBest));
+    *pnCost = CostBest;
     return iBest;
 }
 
@@ -428,11 +432,19 @@ int Cec_GiaSplitTest2( Gia_Man_t * p, int nProcs, int nTimeOut, int nIterMax, in
         Gia_Man_t * pLast = (Gia_Man_t *)Vec_PtrPop( vStack );
         // determine cofactoring variable
         int Depth = 1 + (pLast->vCofVars ? Vec_IntSize(pLast->vCofVars) : 0);
-        int iVar  = Gia_SplitCofVar( pLast, LookAhead );
+        int nFanouts, Cost, iVar  = Gia_SplitCofVar( pLast, LookAhead, &nFanouts, &Cost );
         // cofactor
         Gia_Man_t * pPart = Gia_ManDupCofactor( pLast, iVar, 0 );
         if ( pLast->vCofVars == NULL )
             pLast->vCofVars = Vec_IntAlloc( 100 );
+        // print results
+        if ( fVerbose )
+        {
+//            Cec_GiaSplitPrintRefs( pLast );
+            printf( "Var = %5d. Fanouts = %5d. Cost = %8d.  AndBefore = %6d.  AndAfter = %6d.\n", 
+                iVar, nFanouts, Cost, Gia_ManAndNum(pLast), Gia_ManAndNum(pPart) );
+//            Cec_GiaSplitPrintRefs( pPart );
+        }
         // create variable
         pPart->vCofVars = Vec_IntAlloc( Vec_IntSize(pLast->vCofVars) + 1 );
         Vec_IntAppend( pPart->vCofVars, pLast->vCofVars );
@@ -630,13 +642,21 @@ int Cec_GiaSplitTest( Gia_Man_t * p, int nProcs, int nTimeOut, int nIterMax, int
                 if ( ThData[i].Result == -1 ) // UNDEC
                 {
                     // determine cofactoring variable
-                    int iVar = Gia_SplitCofVar( pLast, LookAhead );
+                    int nFanouts, Cost, iVar = Gia_SplitCofVar( pLast, LookAhead, &nFanouts, &Cost );
                     // cofactor
                     Gia_Man_t * pPart = Gia_ManDupCofactor( pLast, iVar, 0 );
                     pPart->vCofVars = Vec_IntAlloc( Vec_IntSize(pLast->vCofVars) + 1 );
                     Vec_IntAppend( pPart->vCofVars, pLast->vCofVars );
                     Vec_IntPush( pPart->vCofVars, Abc_Var2Lit(iVar, 1) );
                     Vec_PtrPush( vStack, pPart );
+                    // print results
+                    if ( fVerbose )
+                    {
+//                        Cec_GiaSplitPrintRefs( pLast );
+                        printf( "Var = %5d. Fanouts = %5d. Cost = %8d.  AndBefore = %6d.  AndAfter = %6d.\n", 
+                            iVar, nFanouts, Cost, Gia_ManAndNum(pLast), Gia_ManAndNum(pPart) );
+//                        Cec_GiaSplitPrintRefs( pPart );
+                    }
                     // cofactor
                     pPart = Gia_ManDupCofactor( pLast, iVar, 1 );
                     pPart->vCofVars = Vec_IntAlloc( Vec_IntSize(pLast->vCofVars) + 1 );

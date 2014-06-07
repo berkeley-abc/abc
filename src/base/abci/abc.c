@@ -1407,17 +1407,17 @@ int Abc_CommandPrintFanio( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
     int c;
-    int fMffc;
-    int fVerbose;
-
-    // set defaults
-    fMffc    = 0;
-    fVerbose = 0;
+    int fUsePis   = 0;
+    int fMffc     = 0;
+    int fVerbose  = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "mvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "imvh" ) ) != EOF )
     {
         switch ( c )
         {
+        case 'i':
+            fUsePis ^= 1;
+            break;
         case 'm':
             fMffc ^= 1;
             break;
@@ -1430,23 +1430,22 @@ int Abc_CommandPrintFanio( Abc_Frame_t * pAbc, int argc, char ** argv )
             goto usage;
         }
     }
-
     if ( pNtk == NULL )
     {
         Abc_Print( -1, "Empty network.\n" );
         return 1;
     }
-
     // print the nodes
     if ( fVerbose )
-        Abc_NtkPrintFanio( stdout, pNtk );
+        Abc_NtkPrintFanio( stdout, pNtk, fUsePis );
     else
         Abc_NtkPrintFanioNew( stdout, pNtk, fMffc );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: print_fanio [-mvh]\n" );
+    Abc_Print( -2, "usage: print_fanio [-imvh]\n" );
     Abc_Print( -2, "\t        prints the statistics about fanins/fanouts of all nodes\n" );
+    Abc_Print( -2, "\t-i    : toggles considering fanouts of primary inputs only [default = %s]\n", fUsePis? "yes": "no" );
     Abc_Print( -2, "\t-m    : toggles printing MFFC sizes instead of fanouts [default = %s]\n", fMffc? "yes": "no" );
     Abc_Print( -2, "\t-v    : toggles verbose way of printing the stats [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h    : print the command usage\n");
