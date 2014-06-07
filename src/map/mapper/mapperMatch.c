@@ -251,8 +251,8 @@ int Map_MatchNodePhase( Map_Man_t * p, Map_Node_t * pNode, int fPhase )
     {
         Map_TimeCutComputeArrival( pNode, pCutBest, fPhase, MAP_FLOAT_LARGE );
         // make sure that the required times are met
-        assert( pCutBest->M[fPhase].tArrive.Rise < pNode->tRequired[fPhase].Rise + p->fEpsilon );
-        assert( pCutBest->M[fPhase].tArrive.Fall < pNode->tRequired[fPhase].Fall + p->fEpsilon );
+//        assert( pCutBest->M[fPhase].tArrive.Rise < pNode->tRequired[fPhase].Rise + p->fEpsilon );
+//        assert( pCutBest->M[fPhase].tArrive.Fall < pNode->tRequired[fPhase].Fall + p->fEpsilon );
     }
 
     // recompute the exact area of the current best match
@@ -332,8 +332,8 @@ int Map_MatchNodePhase( Map_Man_t * p, Map_Node_t * pNode, int fPhase )
     }
 
     // make sure that the requited times are met
-    assert( MatchBest.tArrive.Rise < pNode->tRequired[fPhase].Rise + p->fEpsilon );
-    assert( MatchBest.tArrive.Fall < pNode->tRequired[fPhase].Fall + p->fEpsilon );
+//    assert( MatchBest.tArrive.Rise < pNode->tRequired[fPhase].Rise + p->fEpsilon );
+//    assert( MatchBest.tArrive.Fall < pNode->tRequired[fPhase].Fall + p->fEpsilon );
     return 1;
 }
 
@@ -528,11 +528,11 @@ void Map_NodeTransferArrivalTimes( Map_Man_t * p, Map_Node_t * pNode )
         assert( 0 );
     }
 
-    assert( pNode->tArrival[0].Rise < pNode->tRequired[0].Rise + p->fEpsilon );
-    assert( pNode->tArrival[0].Fall < pNode->tRequired[0].Fall + p->fEpsilon );
+//    assert( pNode->tArrival[0].Rise < pNode->tRequired[0].Rise + p->fEpsilon );
+//    assert( pNode->tArrival[0].Fall < pNode->tRequired[0].Fall + p->fEpsilon );
 
-    assert( pNode->tArrival[1].Rise < pNode->tRequired[1].Rise + p->fEpsilon );
-    assert( pNode->tArrival[1].Fall < pNode->tRequired[1].Fall + p->fEpsilon );
+//    assert( pNode->tArrival[1].Rise < pNode->tRequired[1].Rise + p->fEpsilon );
+//    assert( pNode->tArrival[1].Fall < pNode->tRequired[1].Fall + p->fEpsilon );
 }
 
 /**Function*************************************************************
