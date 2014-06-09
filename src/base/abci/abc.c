@@ -17658,6 +17658,12 @@ int Abc_CommandSeqSweep2( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 0;
     }
 
+    if ( Abc_NtkPiNum(pNtk) == 0 )
+    {
+        Abc_Print( 0, "This command works only for designs with primary inputs.\n" );
+        return 0;
+    }
+
     // if constraints are to be used, network should have no constraints
     if ( nConstrs > 0 )
     {
