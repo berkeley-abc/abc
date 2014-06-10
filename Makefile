@@ -1,3 +1,5 @@
+ABC_PYTHON=/usr/bin/python
+READLINE=0
 
 CC   := gcc
 CXX  := g++
@@ -40,7 +42,7 @@ arch_flags : arch_flags.c
 	$(CC) arch_flags.c -o arch_flags
 
 ARCHFLAGS ?= $(shell $(CC) arch_flags.c -o arch_flags && ./arch_flags)
-OPTFLAGS  ?= -g -O #-DABC_NAMESPACE=xxx
+OPTFLAGS  ?= -g -O3 #-DABC_NAMESPACE=xxx
 MSG_PREFIX ?=
 
 CFLAGS   += -Wall -Wno-unused-function -Wno-write-strings -Wno-sign-compare $(OPTFLAGS) $(ARCHFLAGS) -Isrc
