@@ -25,10 +25,20 @@ def zip_library(f, extra_files = []):
     zf.close()
     
 def add_python_lib(tf, lib_dir, lib, mtime):
+
+    _, prefix = os.path.split(lib)
     
     for root, _, files in os.walk(lib):
-        
-        arcroot = os.path.join( lib_dir, os.path.relpath(root, lib) )
+
+        relpath = os.path.relpath(root, lib)
+
+        if relpath=='.':
+            arcroot = lib_dir
+        else:
+            arcroot = os.path.join( lib_dir, os.path.relpath(root, lib) )
+
+        arcroot = os.path.join(arcroot, prefix)
+
         add_dir(tf, arcroot, mtime)
         
         for f in files:
@@ -76,6 +86,8 @@ def package(pyabc_dir, extra_bin, extra_lib, abc_exe, abc_sh, pyabc, ofname, scr
 
     if scripts_dir:
         for fn in os.listdir(scripts_dir):
+            if fn.startswith('.'):
+                continue
             fullname = os.path.join(scripts_dir, fn)
             if os.path.isfile(fullname):
                 fnroot, fnext = os.path.splitext(fn)
