@@ -645,7 +645,7 @@ void Abc_EnumerateFuncs( int nVars, int nGates, int fVerbose )
 {
     abctime clk = Abc_Clock();
     Abc_EnuMan_t P, * p = &P; 
-    int i, n = nVars;
+    int i;
     if ( nVars > nGates + 1 )
     {
         printf( "The gate count %d is not enough to have functions with %d inputs.\n", nGates, nVars );
