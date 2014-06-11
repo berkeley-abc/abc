@@ -33,6 +33,7 @@ SRC +=    src/aig/gia/giaAig.c \
     src/aig/gia/giaIso3.c \
     src/aig/gia/giaJf.c \
     src/aig/gia/giaKf.c \
+    src/aig/gia/giaLf.c \
     src/aig/gia/giaMan.c \
     src/aig/gia/giaMem.c \
     src/aig/gia/giaMfs.c \

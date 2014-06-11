@@ -480,6 +480,11 @@ static inline void Vec_IntUpdateEntry( Vec_Int_t * p, int i, int Value )
     if ( Vec_IntEntry( p, i ) < Value )
         Vec_IntWriteEntry( p, i, Value );
 }
+static inline void Vec_IntDowndateEntry( Vec_Int_t * p, int i, int Value )
+{
+    if ( Vec_IntEntry( p, i ) > Value )
+        Vec_IntWriteEntry( p, i, Value );
+}
 
 /**Function*************************************************************
 

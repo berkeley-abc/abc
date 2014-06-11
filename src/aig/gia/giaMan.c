@@ -423,9 +423,24 @@ void Gia_ManPrintStats( Gia_Man_t * p, Gps_Par_t * pPars )
         Abc_Print( 1, "  ch =%5d", Gia_ManEquivCountClasses(p) );
     if ( p->pMuxes )
     {
-        Abc_Print( 1, "  and =%5d", Gia_ManAndNum(p)-Gia_ManXorNum(p)-Gia_ManMuxNum(p) );
-        Abc_Print( 1, "  xor =%5d", Gia_ManXorNum(p) );
-        Abc_Print( 1, "  mux =%5d", Gia_ManMuxNum(p) );
+        int nAnds = Gia_ManAndNum(p)-Gia_ManXorNum(p)-Gia_ManMuxNum(p);
+        int nXors = Gia_ManXorNum(p);
+        int nMuxes = Gia_ManMuxNum(p);
+        int nTotal = nAnds + 3*nXors + 3*nMuxes;
+        Abc_Print( 1, "\nXOR/MUX stats:" );
+        Abc_Print( 1, "  xor =%8d (%6.2f %%)  ", nXors,  300.0*nXors/nTotal );
+        Abc_Print( 1, "  mux =%8d (%6.2f %%)  ", nMuxes, 300.0*nMuxes/nTotal );
+        Abc_Print( 1, "  and =%8d (%6.2f %%)  ", nAnds,  100.0*nAnds/nTotal );
+    }
+    else if ( pPars->fMuxXor )
+    {
+        int nAnds, nMuxes, nXors, nTotal = Gia_ManAndNum(p);
+        Gia_ManCountMuxXor( p, &nMuxes, &nXors );
+        nAnds = Gia_ManAndNum(p)-3*nMuxes-3*nXors;
+        Abc_Print( 1, "\nXOR/MUX stats:" );
+        Abc_Print( 1, "  xor =%8d (%6.2f %%)  ", nXors,  300.0*nXors/nTotal );
+        Abc_Print( 1, "  mux =%8d (%6.2f %%)  ", nMuxes, 300.0*nMuxes/nTotal );
+        Abc_Print( 1, "  and =%8d (%6.2f %%)  ", nAnds,  100.0*nAnds/nTotal );
     }
     if ( pPars && pPars->fSwitch )
     {

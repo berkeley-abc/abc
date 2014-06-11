@@ -558,14 +558,18 @@ static inline void Vec_PtrClear( Vec_Ptr_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-static inline void Vec_PtrFreeFree( Vec_Ptr_t * p )
+static inline void Vec_PtrFreeData( Vec_Ptr_t * p )
 {
-    void * pTemp;
-    int i;
+    void * pTemp; int i;
     if ( p == NULL ) return;
     Vec_PtrForEachEntry( void *, p, pTemp, i )
         if ( pTemp != (void *)(ABC_PTRINT_T)1 && pTemp != (void *)(ABC_PTRINT_T)2 )
             ABC_FREE( pTemp );
+}
+static inline void Vec_PtrFreeFree( Vec_Ptr_t * p )
+{
+    if ( p == NULL ) return;
+    Vec_PtrFreeData( p );
     Vec_PtrFree( p );
 }
 

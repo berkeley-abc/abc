@@ -3811,6 +3811,10 @@ SOURCE=.\src\aig\gia\giaKf.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\aig\gia\giaLf.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\aig\gia\giaMan.c
 # End Source File
 # Begin Source File

@@ -197,6 +197,7 @@ struct Gps_Par_t_
     int            fCut;
     int            fNpn;
     int            fLutProf;
+    int            fMuxXor;
     char *         pDumpFile;
 };
 
@@ -912,10 +913,14 @@ static inline int         Gia_ObjLutFanin( Gia_Man_t * p, int Id, int i )   { re
     for ( i = p->nObjs - 1; (i > 0) && ((pObj) = Gia_ManObj(p, i)); i-- )
 #define Gia_ManForEachAnd( p, pObj, i )                                 \
     for ( i = 0; (i < p->nObjs) && ((pObj) = Gia_ManObj(p, i)); i++ )      if ( !Gia_ObjIsAnd(pObj) ) {} else
+#define Gia_ManForEachAndId( p, i )                                     \
+    for ( i = 0; (i < p->nObjs); i++ )                                     if ( !Gia_ObjIsAnd(Gia_ManObj(p, i)) ) {} else
 #define Gia_ManForEachCand( p, pObj, i )                                 \
     for ( i = 0; (i < p->nObjs) && ((pObj) = Gia_ManObj(p, i)); i++ )      if ( !Gia_ObjIsCand(pObj) ) {} else
 #define Gia_ManForEachAndReverse( p, pObj, i )                          \
     for ( i = p->nObjs - 1; (i > 0) && ((pObj) = Gia_ManObj(p, i)); i-- )  if ( !Gia_ObjIsAnd(pObj) ) {} else
+#define Gia_ManForEachAndReverseId( p, i )                              \
+    for ( i = p->nObjs - 1; (i > 0); i-- )                                 if ( !Gia_ObjIsAnd(Gia_ManObj(p, i)) ) {} else
 #define Gia_ManForEachMux( p, pObj, i )                                 \
     for ( i = 0; (i < p->nObjs) && ((pObj) = Gia_ManObj(p, i)); i++ )      if ( !Gia_ObjIsMuxId(p, i) ) {} else
 #define Gia_ManForEachCi( p, pObj, i )                                  \
@@ -928,6 +933,8 @@ static inline int         Gia_ObjLutFanin( Gia_Man_t * p, int Id, int i )   { re
     for ( i = Vec_IntSize(p->vCos) - 1; (i >= 0) && ((pObj) = Gia_ManCo(p, i)); i-- )
 #define Gia_ManForEachCoDriver( p, pObj, i )                            \
     for ( i = 0; (i < Vec_IntSize(p->vCos)) && ((pObj) = Gia_ObjFanin0(Gia_ManCo(p, i))); i++ )
+#define Gia_ManForEachCoDriverId( p, DriverId, i )                            \
+    for ( i = 0; (i < Vec_IntSize(p->vCos)) && (((DriverId) = Gia_ObjFaninId0p(p, Gia_ManCo(p, i))), 1); i++ )
 #define Gia_ManForEachPi( p, pObj, i )                                  \
     for ( i = 0; (i < Gia_ManPiNum(p)) && ((pObj) = Gia_ManCi(p, i)); i++ )
 #define Gia_ManForEachPo( p, pObj, i )                                  \
@@ -1114,6 +1121,7 @@ extern int                 Gia_ManLutNum( Gia_Man_t * p );
 extern int                 Gia_ManLutLevel( Gia_Man_t * p );
 extern void                Gia_ManSetRefsMapped( Gia_Man_t * p );
 extern void                Gia_ManSetIfParsDefault( void * pIfPars );
+extern void                Gia_ManMappingVerify( Gia_Man_t * p );
 extern Gia_Man_t *         Gia_ManPerformMapping( Gia_Man_t * p, void * pIfPars, int fNormalized );
 /*=== giaJf.c ===========================================================*/
 extern void                Jf_ManSetDefaultPars( Jf_Par_t * pPars );
@@ -1269,6 +1277,7 @@ extern Vec_Int_t *         Gia_ManRequiredLevel( Gia_Man_t * p );
 extern void                Gia_ManCreateValueRefs( Gia_Man_t * p );
 extern void                Gia_ManCreateRefs( Gia_Man_t * p );
 extern int *               Gia_ManCreateMuxRefs( Gia_Man_t * p );
+extern void                Gia_ManCountMuxXor( Gia_Man_t * p, int * pnMuxes, int * pnXors );
 extern int                 Gia_ManCrossCut( Gia_Man_t * p, int fReverse );
 extern int                 Gia_ManIsNormalized( Gia_Man_t * p );
 extern Vec_Int_t *         Gia_ManCollectPoIds( Gia_Man_t * p );
