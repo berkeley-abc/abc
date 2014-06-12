@@ -25625,10 +25625,11 @@ usage:
 int Abc_CommandAbc9Hash( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Gia_Man_t * pTemp;
-    int c, fCollapse = 0;
-    int fAddStrash = 0;
+    int c, fAddStrash = 0;
+    int fCollapse = 0;
+    int fAddMuxes = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "ach" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "acmh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -25637,6 +25638,9 @@ int Abc_CommandAbc9Hash( Abc_Frame_t * pAbc, int argc, char ** argv )
             break;
         case 'c':
             fCollapse ^= 1;
+            break;
+        case 'm':
+            fAddMuxes ^= 1;
             break;
         case 'h':
             goto usage;
@@ -25649,7 +25653,9 @@ int Abc_CommandAbc9Hash( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Abc_CommandAbc9Hash(): There is no AIG.\n" );
         return 1;
     }
-    if ( fCollapse && pAbc->pGia->pAigExtra )
+    if ( fAddMuxes )
+        pTemp = Gia_ManDupMuxes( pAbc->pGia );
+    else if ( fCollapse && pAbc->pGia->pAigExtra )
     {
         Gia_Man_t * pNew = Gia_ManDupUnnormalize( pAbc->pGia );
         pNew->pManTime = pAbc->pGia->pManTime;
@@ -25663,10 +25669,11 @@ int Abc_CommandAbc9Hash( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &st [-ach]\n" );
+    Abc_Print( -2, "usage: &st [-acmh]\n" );
     Abc_Print( -2, "\t        performs structural hashing\n" );
     Abc_Print( -2, "\t-a    : toggle additional hashing [default = %s]\n", fAddStrash? "yes": "no" );
     Abc_Print( -2, "\t-c    : toggle collapsing hierarchical AIG [default = %s]\n", fCollapse? "yes": "no" );
+    Abc_Print( -2, "\t-m    : toggle converting to larger gates [default = %s]\n", fAddMuxes? "yes": "no" );
     Abc_Print( -2, "\t-h    : print the command usage\n");
     return 1;
 }
