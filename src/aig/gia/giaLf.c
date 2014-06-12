@@ -46,10 +46,11 @@ ABC_NAMESPACE_IMPL_START
 ***********************************************************************/
 void Lf_ManSetDefaultPars( Jf_Par_t * pPars )
 {
+    Jf_ManSetDefaultPars( pPars );
 }
 Gia_Man_t * Lf_ManPerformMapping( Gia_Man_t * pGia, Jf_Par_t * pPars )
 {
-    return NULL;
+    return Jf_ManPerformMapping( pGia, pPars );
 }
 
 ////////////////////////////////////////////////////////////////////////

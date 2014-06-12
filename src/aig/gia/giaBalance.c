@@ -1021,7 +1021,9 @@ Gia_Man_t * Gia_ManAigSyn2( Gia_Man_t * p, int fVerbose, int fVeryVerbose )
 {
     Gia_Man_t * pNew, * pTemp;
     Jf_Par_t Pars, * pPars = &Pars;
-    Jf_ManSetDefaultPars( pPars );
+    Lf_ManSetDefaultPars( pPars );
+//    pPars->fVerbose = 1;
+    pPars->nRelaxRatio = 40;
     if ( fVerbose )     Gia_ManPrintStats( p, NULL );
     if ( Gia_ManAndNum(p) == 0 )
         return Gia_ManDup(p);
@@ -1030,7 +1032,7 @@ Gia_Man_t * Gia_ManAigSyn2( Gia_Man_t * p, int fVerbose, int fVeryVerbose )
     if ( fVerbose )     Gia_ManPrintStats( pNew, NULL );
     Gia_ManAigTransferPiLevels( pNew, p );
     // perform mapping
-    pNew = Jf_ManPerformMapping( pTemp = pNew, pPars );
+    pNew = Lf_ManPerformMapping( pTemp = pNew, pPars );
     if ( fVerbose )     Gia_ManPrintStats( pNew, NULL );
 //    Gia_ManStop( pTemp );
     // perform balancing
@@ -1044,7 +1046,8 @@ Gia_Man_t * Gia_ManAigSyn3( Gia_Man_t * p, int fVerbose, int fVeryVerbose )
 {
     Gia_Man_t * pNew, * pTemp;
     Jf_Par_t Pars, * pPars = &Pars;
-    Jf_ManSetDefaultPars( pPars );
+    Lf_ManSetDefaultPars( pPars );
+    pPars->nRelaxRatio = 40;
     if ( fVerbose )     Gia_ManPrintStats( p, NULL );
     if ( Gia_ManAndNum(p) == 0 )
         return Gia_ManDup(p);
@@ -1054,7 +1057,7 @@ Gia_Man_t * Gia_ManAigSyn3( Gia_Man_t * p, int fVerbose, int fVeryVerbose )
     Gia_ManAigTransferPiLevels( pNew, p );
     // perform mapping
     pPars->nLutSize = 6;
-    pNew = Jf_ManPerformMapping( pTemp = pNew, pPars );
+    pNew = Lf_ManPerformMapping( pTemp = pNew, pPars );
     if ( fVerbose )     Gia_ManPrintStats( pNew, NULL );
 //    Gia_ManStop( pTemp );
     // perform balancing
@@ -1064,7 +1067,7 @@ Gia_Man_t * Gia_ManAigSyn3( Gia_Man_t * p, int fVerbose, int fVeryVerbose )
     Gia_ManStop( pTemp );
     // perform mapping
     pPars->nLutSize = 4;
-    pNew = Jf_ManPerformMapping( pTemp = pNew, pPars );
+    pNew = Lf_ManPerformMapping( pTemp = pNew, pPars );
     if ( fVerbose )     Gia_ManPrintStats( pNew, NULL );
 //    Gia_ManStop( pTemp );
     // perform balancing
@@ -1078,7 +1081,8 @@ Gia_Man_t * Gia_ManAigSyn4( Gia_Man_t * p, int fVerbose, int fVeryVerbose )
 {
     Gia_Man_t * pNew, * pTemp;
     Jf_Par_t Pars, * pPars = &Pars;
-    Jf_ManSetDefaultPars( pPars );
+    Lf_ManSetDefaultPars( pPars );
+    pPars->nRelaxRatio = 40;
     if ( fVerbose )     Gia_ManPrintStats( p, NULL );
     if ( Gia_ManAndNum(p) == 0 )
         return Gia_ManDup(p);
@@ -1089,7 +1093,7 @@ Gia_Man_t * Gia_ManAigSyn4( Gia_Man_t * p, int fVerbose, int fVeryVerbose )
     Gia_ManAigTransferPiLevels( pNew, p );
     // perform mapping
     pPars->nLutSize = 7;
-    pNew = Jf_ManPerformMapping( pTemp = pNew, pPars );
+    pNew = Lf_ManPerformMapping( pTemp = pNew, pPars );
     if ( fVerbose )     Gia_ManPrintStats( pNew, NULL );
 //    Gia_ManStop( pTemp );
     // perform extraction
@@ -1104,7 +1108,7 @@ Gia_Man_t * Gia_ManAigSyn4( Gia_Man_t * p, int fVerbose, int fVeryVerbose )
     Gia_ManStop( pTemp );
     // perform mapping
     pPars->nLutSize = 5;
-    pNew = Jf_ManPerformMapping( pTemp = pNew, pPars );
+    pNew = Lf_ManPerformMapping( pTemp = pNew, pPars );
     if ( fVerbose )     Gia_ManPrintStats( pNew, NULL );
 //    Gia_ManStop( pTemp );
     // perform extraction

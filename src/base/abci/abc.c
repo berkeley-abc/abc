@@ -29850,7 +29850,7 @@ int Abc_CommandAbc9If( Abc_Frame_t * pAbc, int argc, char ** argv )
                 Abc_Print( 1, "Command line switch \"-R\" should be followed by a floating point number.\n" );
                 return 0;
             }
-            pPars->nRelaxRatio = (float)atof(argv[globalUtilOptind]);
+            pPars->nRelaxRatio = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
             if ( pPars->nRelaxRatio < 0 ) 
                 goto usage;
@@ -30514,7 +30514,7 @@ int Abc_CommandAbc9Jf( Abc_Frame_t * pAbc, int argc, char ** argv )
     Gia_Man_t * pNew; int c;
     Jf_ManSetDefaultPars( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "KCRDWaekmdcgvwh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "KCDWaekmdcgvwh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -30545,17 +30545,6 @@ int Abc_CommandAbc9Jf( Abc_Frame_t * pAbc, int argc, char ** argv )
                 Abc_Print( -1, "This number of cuts (%d) is not supported.\n", pPars->nCutNum );
                 goto usage;
             }
-            break;
-        case 'R':
-            if ( globalUtilOptind >= argc )
-            {
-                Abc_Print( -1, "Command line switch \"-R\" should be followed by a positive integer.\n" );
-                goto usage;
-            }
-            pPars->nRounds = atoi(argv[globalUtilOptind]);
-            globalUtilOptind++;
-            if ( pPars->nRounds < 0 )
-                goto usage;
             break;
         case 'D':
             if ( globalUtilOptind >= argc )
@@ -30644,11 +30633,10 @@ usage:
         sprintf(Buffer, "best possible" );
     else
         sprintf(Buffer, "%d", pPars->DelayTarget );
-    Abc_Print( -2, "usage: &jf [-KCRDW num] [-akmdcgvwh]\n" );
+    Abc_Print( -2, "usage: &jf [-KCDW num] [-akmdcgvwh]\n" );
     Abc_Print( -2, "\t           performs technology mapping of the network\n" );
     Abc_Print( -2, "\t-K num   : LUT size for the mapping (2 <= K <= %d) [default = %d]\n", pPars->nLutSizeMax, pPars->nLutSize );
     Abc_Print( -2, "\t-C num   : the max number of priority cuts (1 <= C <= %d) [default = %d]\n", pPars->nCutNumMax, pPars->nCutNum );
-    Abc_Print( -2, "\t-R num   : the number of mapping rounds [default = %d]\n", pPars->nRounds );
     Abc_Print( -2, "\t-D num   : sets the delay constraint for the mapping [default = %s]\n", Buffer );
     Abc_Print( -2, "\t-W num   : min frequency when printing functions with \"-w\" [default = %d]\n", pPars->nVerbLimit );
     Abc_Print( -2, "\t-a       : toggles area-oriented mapping [default = %s]\n", pPars->fAreaOnly? "yes": "no" );
@@ -30684,7 +30672,7 @@ int Abc_CommandAbc9Kf( Abc_Frame_t * pAbc, int argc, char ** argv )
     Gia_Man_t * pNew; int c;
     Kf_ManSetDefaultPars( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "KCPRDWaekmdcgtsvwh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "KCPDWaekmdcgtsvwh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -30725,17 +30713,6 @@ int Abc_CommandAbc9Kf( Abc_Frame_t * pAbc, int argc, char ** argv )
             pPars->nProcNum = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
             if ( pPars->nProcNum < 0 )
-                goto usage;
-            break;
-        case 'R':
-            if ( globalUtilOptind >= argc )
-            {
-                Abc_Print( -1, "Command line switch \"-R\" should be followed by a positive integer.\n" );
-                goto usage;
-            }
-            pPars->nRounds = atoi(argv[globalUtilOptind]);
-            globalUtilOptind++;
-            if ( pPars->nRounds < 0 )
                 goto usage;
             break;
         case 'D':
@@ -30819,12 +30796,11 @@ usage:
         sprintf(Buffer, "best possible" );
     else
         sprintf(Buffer, "%d", pPars->DelayTarget );
-    Abc_Print( -2, "usage: &kf [-KCPRDW num] [-akmdcgtsvwh]\n" );
+    Abc_Print( -2, "usage: &kf [-KCPDW num] [-akmdcgtsvwh]\n" );
     Abc_Print( -2, "\t           performs technology mapping of the network\n" );
     Abc_Print( -2, "\t-K num   : LUT size for the mapping (2 <= K <= %d) [default = %d]\n", pPars->nLutSizeMax, pPars->nLutSize );
     Abc_Print( -2, "\t-C num   : the max number of priority cuts (1 <= C <= %d) [default = %d]\n", pPars->nCutNumMax, pPars->nCutNum );
     Abc_Print( -2, "\t-P num   : the number of cut computation processes (0 <= P <= %d) [default = %d]\n", pPars->nProcNumMax, pPars->nProcNum );
-    Abc_Print( -2, "\t-R num   : the number of mapping rounds [default = %d]\n", pPars->nRounds );
     Abc_Print( -2, "\t-D num   : sets the delay constraint for the mapping [default = %s]\n", Buffer );
     Abc_Print( -2, "\t-W num   : min frequency when printing functions with \"-w\" [default = %d]\n", pPars->nVerbLimit );
     Abc_Print( -2, "\t-a       : toggles area-oriented mapping [default = %s]\n", pPars->fAreaOnly? "yes": "no" );
@@ -30855,14 +30831,12 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9Lf( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern void Lf_ManSetDefaultPars( Jf_Par_t * pPars );
-    extern Gia_Man_t * Lf_ManPerformMapping( Gia_Man_t * pGia, Jf_Par_t * pPars );
     char Buffer[200];
     Jf_Par_t Pars, * pPars = &Pars;
     Gia_Man_t * pNew; int c;
     Lf_ManSetDefaultPars( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "KCRDWaekmdcgtsvwh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "KCFRDWaekmdcgtsvwh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -30894,15 +30868,26 @@ int Abc_CommandAbc9Lf( Abc_Frame_t * pAbc, int argc, char ** argv )
                 goto usage;
             }
             break;
-        case 'R':
+        case 'F':
             if ( globalUtilOptind >= argc )
             {
-                Abc_Print( -1, "Command line switch \"-R\" should be followed by a positive integer.\n" );
+                Abc_Print( -1, "Command line switch \"-F\" should be followed by a positive integer.\n" );
                 goto usage;
             }
             pPars->nRounds = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
             if ( pPars->nRounds < 0 )
+                goto usage;
+            break;
+        case 'R':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( 1, "Command line switch \"-R\" should be followed by a floating point number.\n" );
+                return 0;
+            }
+            pPars->nRelaxRatio = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nRelaxRatio < 0 ) 
                 goto usage;
             break;
         case 'D':
@@ -30986,11 +30971,12 @@ usage:
         sprintf(Buffer, "best possible" );
     else
         sprintf(Buffer, "%d", pPars->DelayTarget );
-    Abc_Print( -2, "usage: &lf [-KCRDW num] [-akmdcgtsvwh]\n" );
+    Abc_Print( -2, "usage: &lf [-KCFRDW num] [-akmdcgtsvwh]\n" );
     Abc_Print( -2, "\t           performs technology mapping of the network\n" );
     Abc_Print( -2, "\t-K num   : LUT size for the mapping (2 <= K <= %d) [default = %d]\n", pPars->nLutSizeMax, pPars->nLutSize );
     Abc_Print( -2, "\t-C num   : the max number of priority cuts (1 <= C <= %d) [default = %d]\n", pPars->nCutNumMax, pPars->nCutNum );
-    Abc_Print( -2, "\t-R num   : the number of mapping rounds [default = %d]\n", pPars->nRounds );
+    Abc_Print( -2, "\t-F num   : the number of mapping rounds [default = %d]\n", pPars->nRounds );
+    Abc_Print( -2, "\t-R num   : the delay relaxation ratio (num >= 0) [default = %d]\n", pPars->nRelaxRatio );
     Abc_Print( -2, "\t-D num   : sets the delay constraint for the mapping [default = %s]\n", Buffer );
     Abc_Print( -2, "\t-W num   : min frequency when printing functions with \"-w\" [default = %d]\n", pPars->nVerbLimit );
     Abc_Print( -2, "\t-a       : toggles area-oriented mapping [default = %s]\n", pPars->fAreaOnly? "yes": "no" );
