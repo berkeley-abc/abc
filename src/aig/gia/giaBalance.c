@@ -1023,7 +1023,8 @@ Gia_Man_t * Gia_ManAigSyn2( Gia_Man_t * p, int fVerbose, int fVeryVerbose )
     Jf_Par_t Pars, * pPars = &Pars;
     Lf_ManSetDefaultPars( pPars );
 //    pPars->fVerbose = 1;
-    pPars->nRelaxRatio = 40;
+    pPars->fCoarsen = 1;
+    pPars->nRelaxRatio = 20;
     if ( fVerbose )     Gia_ManPrintStats( p, NULL );
     if ( Gia_ManAndNum(p) == 0 )
         return Gia_ManDup(p);
