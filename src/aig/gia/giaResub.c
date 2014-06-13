@@ -261,7 +261,7 @@ void Gia_ManAddDivisors( Gia_Man_t * p, Vec_Wec_t * vMffcs )
 void Gia_ManResubTest( Gia_Man_t * p )
 {
     Vec_Wec_t * vMffcs;
-    Gia_Man_t * pNew = Gia_ManDupMuxes( p );
+    Gia_Man_t * pNew = Gia_ManDupMuxes( p, 2 );
 abctime clkStart = Abc_Clock();
     vMffcs = Gia_ManComputeMffcs( pNew, 4, 100, 8, 100 );
     Gia_ManAddDivisors( pNew, vMffcs );

@@ -758,6 +758,7 @@ float Gia_ManComputeSwitching( Gia_Man_t * p, int nFrames, int nPref, int fProbO
     // perform the computation of switching activity
     vSwitching = Gia_ManComputeSwitchProbs( pDfs, nFrames, nPref, fProbOne );
     // transfer the computed result to the original AIG
+    ABC_FREE( p->pSwitching );
     p->pSwitching = ABC_CALLOC( unsigned char, Gia_ManObjNum(p) );
     pSwitching = (float *)vSwitching->pArray;
     Gia_ManForEachObj( p, pObj, i )

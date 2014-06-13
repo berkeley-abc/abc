@@ -57,8 +57,11 @@ void If_ManImproveMapping( If_Man_t * p )
     If_ManComputeRequired( p );
     if ( p->pPars->fVerbose )
     {
-        Abc_Print( 1, "E: Del = %7.2f. Ar = %9.1f. Edge = %8d. Switch = %7.2f. Cut = %8d. ", 
-            p->RequiredGlo, p->AreaGlo, p->nNets, p->dPower, p->nCutsMerged );
+        Abc_Print( 1, "E:  Del = %7.2f.  Ar = %9.1f.  Edge = %8d.  ", 
+            p->RequiredGlo, p->AreaGlo, p->nNets );
+        if ( p->dPower )
+        Abc_Print( 1, "Switch = %7.2f.  ", p->dPower );
+        Abc_Print( 1, "Cut = %8d.  ", p->nCutsMerged );
         Abc_PrintTime( 1, "T", Abc_Clock() - clk );
     }
 }

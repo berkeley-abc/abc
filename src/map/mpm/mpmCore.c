@@ -95,7 +95,7 @@ Gia_Man_t * Mpm_ManLutMapping( Gia_Man_t * pGia, Mpm_Par_t * pPars )
     assert( pPars->nNumCuts <= MPM_CUT_MAX );
     if ( pPars->fUseGates )
     {
-        pGia = Gia_ManDupMuxes( pGia );
+        pGia = Gia_ManDupMuxes( pGia, 2 );
         p = Mig_ManCreate( pGia );
         Gia_ManStop( pGia );
     }

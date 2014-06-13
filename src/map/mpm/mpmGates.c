@@ -287,7 +287,7 @@ Abc_Ntk_t * Mpm_ManCellMapping( Gia_Man_t * pGia, Mpm_Par_t * pPars, void * pMio
     assert( pPars->nNumCuts <= MPM_CUT_MAX );
     if ( pPars->fUseGates )
     {
-        pGia = Gia_ManDupMuxes( pGia );
+        pGia = Gia_ManDupMuxes( pGia, 2 );
         p = Mig_ManCreate( pGia );
         Gia_ManStop( pGia );
     }

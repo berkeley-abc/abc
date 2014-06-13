@@ -746,34 +746,6 @@ int * Gia_ManCreateMuxRefs( Gia_Man_t * p )
 
 /**Function*************************************************************
 
-  Synopsis    [Assigns references.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Gia_ManCountMuxXor( Gia_Man_t * p, int * pnMuxes, int * pnXors )
-{
-    Gia_Obj_t * pObj, * pFan0, * pFan1; 
-    int i;
-    *pnMuxes = 0;
-    *pnXors = 0;
-    Gia_ManForEachAnd( p, pObj, i )
-    {
-        if ( !Gia_ObjIsMuxType(pObj) )
-            continue;
-        if ( Gia_ObjRecognizeExor(pObj, &pFan0, &pFan1) )
-            (*pnXors)++;
-        else
-            (*pnMuxes)++;
-    }
-}
-
-/**Function*************************************************************
-
   Synopsis    [Computes the maximum frontier size.]
 
   Description []

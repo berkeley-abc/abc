@@ -66,14 +66,13 @@ void Cec_ManTransformPattern( Gia_Man_t * p, int iOut, int * pValues )
   SeeAlso     []
 
 ***********************************************************************/
-int Cec_ManVerifyOld( Gia_Man_t * pMiter, int fVerbose, int * piOutFail )
+int Cec_ManVerifyOld( Gia_Man_t * pMiter, int fVerbose, int * piOutFail, abctime clkTotal )
 {
 //    extern int Fra_FraigCec( Aig_Man_t ** ppAig, int nConfLimit, int fVerbose );
     extern int Ssw_SecCexResimulate( Aig_Man_t * p, int * pModel, int * pnOutputs );
     Gia_Man_t * pTemp = Gia_ManTransformMiter( pMiter );
     Aig_Man_t * pMiterCec = Gia_ManToAig( pTemp, 0 );
     int RetValue, iOut, nOuts;
-    abctime clkTotal = Abc_Clock();
     if ( piOutFail )
         *piOutFail = -1;
     Gia_ManStop( pTemp );
@@ -83,12 +82,12 @@ int Cec_ManVerifyOld( Gia_Man_t * pMiter, int fVerbose, int * piOutFail )
     if ( RetValue == 1 )
     {
         Abc_Print( 1, "Networks are equivalent.   " );
-Abc_PrintTime( 1, "Time", Abc_Clock() - clkTotal );
+        Abc_PrintTime( 1, "Time", Abc_Clock() - clkTotal );
     }
     else if ( RetValue == 0 )
     {
         Abc_Print( 1, "Networks are NOT EQUIVALENT.   " );
-Abc_PrintTime( 1, "Time", Abc_Clock() - clkTotal );
+        Abc_PrintTime( 1, "Time", Abc_Clock() - clkTotal );
         if ( pMiterCec->pData == NULL )
             Abc_Print( 1, "Counter-example is not available.\n" );
         else
@@ -113,7 +112,7 @@ Abc_PrintTime( 1, "Time", Abc_Clock() - clkTotal );
     else
     {
         Abc_Print( 1, "Networks are UNDECIDED.   " );
-Abc_PrintTime( 1, "Time", Abc_Clock() - clkTotal );
+        Abc_PrintTime( 1, "Time", Abc_Clock() - clkTotal );
     }
     fflush( stdout );
     Aig_ManStop( pMiterCec );
@@ -275,7 +274,7 @@ int Cec_ManVerify( Gia_Man_t * pInit, Cec_ParCec_t * pPars )
     if ( pPars->fVerbose )
         Abc_Print( 1, "Calling the old CEC engine.\n" );
     fflush( stdout );
-    RetValue = Cec_ManVerifyOld( pNew, pPars->fVerbose, &pPars->iOutFail );
+    RetValue = Cec_ManVerifyOld( pNew, pPars->fVerbose, &pPars->iOutFail, clkTotal );
     p->pCexComb = pNew->pCexComb; pNew->pCexComb = NULL;
     if ( p->pCexComb && !Gia_ManVerifyCex( p, p->pCexComb, 1 ) )
         Abc_Print( 1, "Counter-example simulation has failed.\n" );

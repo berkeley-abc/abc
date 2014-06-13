@@ -33,7 +33,7 @@ ABC_NAMESPACE_IMPL_START
 
 /**Function*************************************************************
 
-  Synopsis    [Derives GIA with MUXes.]
+  Synopsis    [Counts XORs and MUXes.]
 
   Description []
                
@@ -42,7 +42,56 @@ ABC_NAMESPACE_IMPL_START
   SeeAlso     []
 
 ***********************************************************************/
-Gia_Man_t * Gia_ManDupMuxes( Gia_Man_t * p )
+void Gia_ManCountMuxXor( Gia_Man_t * p, int * pnMuxes, int * pnXors )
+{
+    Gia_Obj_t * pObj, * pFan0, * pFan1; int i;
+    *pnMuxes = *pnXors = 0;
+    Gia_ManForEachAnd( p, pObj, i )
+    {
+        if ( !Gia_ObjIsMuxType(pObj) )
+            continue;
+        if ( Gia_ObjRecognizeExor(pObj, &pFan0, &pFan1) )
+            (*pnXors)++;
+        else
+            (*pnMuxes)++;
+    }
+}
+void Gia_ManPrintMuxStats( Gia_Man_t * p )
+{
+    int nAnds, nMuxes, nXors, nTotal;
+    if ( p->pMuxes )
+    {
+        nAnds  = Gia_ManAndNum(p)-Gia_ManXorNum(p)-Gia_ManMuxNum(p);
+        nXors  = Gia_ManXorNum(p);
+        nMuxes = Gia_ManMuxNum(p);
+        nTotal = nAnds + 3*nXors + 3*nMuxes;
+    }
+    else 
+    {
+        Gia_ManCountMuxXor( p, &nMuxes, &nXors );
+        nAnds  = Gia_ManAndNum(p) - 3*nMuxes - 3*nXors;
+        nTotal = Gia_ManAndNum(p);
+    }
+    Abc_Print( 1, "stats:  " );
+    Abc_Print( 1, "xor =%8d %6.2f %%   ", nXors,  300.0*nXors/nTotal );
+    Abc_Print( 1, "mux =%8d %6.2f %%   ", nMuxes, 300.0*nMuxes/nTotal );
+    Abc_Print( 1, "and =%8d %6.2f %%   ", nAnds,  100.0*nAnds/nTotal );
+    Abc_Print( 1, "obj =%8d  ", Gia_ManAndNum(p) );
+    fflush( stdout );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Derives GIA with MUXes.]
+
+  Description [Create MUX if the sum of fanin references does not exceed limit.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Gia_Man_t * Gia_ManDupMuxes( Gia_Man_t * p, int Limit )
 {
     Gia_Man_t * pNew, * pTemp;
     Gia_Obj_t * pObj, * pFan0, * pFan1, * pFanC;
@@ -51,7 +100,7 @@ Gia_Man_t * Gia_ManDupMuxes( Gia_Man_t * p )
     ABC_FREE( p->pRefs );
     Gia_ManCreateRefs( p ); 
     // start the new manager
-    pNew = Gia_ManStart( 5000 );
+    pNew = Gia_ManStart( Gia_ManObjNum(p) );
     pNew->pName = Abc_UtilStrsav( p->pName );
     pNew->pSpec = Abc_UtilStrsav( p->pSpec );
     pNew->pMuxes = ABC_CALLOC( unsigned, pNew->nObjsAlloc );
@@ -64,7 +113,7 @@ Gia_Man_t * Gia_ManDupMuxes( Gia_Man_t * p )
     Gia_ManHashStart( pNew );
     Gia_ManForEachAnd( p, pObj, i )
     {
-        if ( !Gia_ObjIsMuxType(pObj) || (Gia_ObjRefNum(p, Gia_ObjFanin0(pObj)) > 1 || Gia_ObjRefNum(p, Gia_ObjFanin1(pObj)) > 1) )
+        if ( !Gia_ObjIsMuxType(pObj) || Gia_ObjRefNum(p, Gia_ObjFanin0(pObj)) + Gia_ObjRefNum(p, Gia_ObjFanin1(pObj)) > Limit )
             pObj->Value = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
         else if ( Gia_ObjRecognizeExor(pObj, &pFan0, &pFan1) )
             pObj->Value = Gia_ManHashXorReal( pNew, Gia_ObjLitCopy(p, Gia_ObjToLit(p, pFan0)), Gia_ObjLitCopy(p, Gia_ObjToLit(p, pFan1)) );
@@ -147,7 +196,7 @@ Gia_Man_t * Gia_ManDupNoMuxes( Gia_Man_t * p )
 Gia_Man_t * Gia_ManDupMuxesTest( Gia_Man_t * p )
 {
     Gia_Man_t * pNew, * pNew2;
-    pNew = Gia_ManDupMuxes( p );
+    pNew = Gia_ManDupMuxes( p, 2 );
     pNew2 = Gia_ManDupNoMuxes( pNew );
     Gia_ManPrintStats( p, NULL );
     Gia_ManPrintStats( pNew, NULL );
@@ -277,7 +326,7 @@ void Gia_ManMuxProfiling( Gia_Man_t * p )
     Vec_Int_t * vCounts;
     int i, nRefs, Size, Count, Total = 0, Roots = 0;
 
-    pNew = Gia_ManDupMuxes( p );
+    pNew = Gia_ManDupMuxes( p, 2 );
     Gia_ManCreateRefs( pNew );
     Gia_ManForEachCo( pNew, pObj, i )
         Gia_ObjRefFanin0Inc( pNew, pObj );

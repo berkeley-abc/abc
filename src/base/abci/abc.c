@@ -295,8 +295,8 @@ static int Abc_CommandInduction              ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandConstr                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandUnfold                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandFold                   ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandUnfold2                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandFold2                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandUnfold2                ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandFold2                  ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandBm                     ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandBm2                    ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandSaucy                  ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -327,7 +327,7 @@ static int Abc_CommandAbc9PFan               ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandAbc9PSig               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Status             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Show               ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandAbc9Hash               ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9Strash             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Topand             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Add1Hot            ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Cof                ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -874,8 +874,8 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Verification", "constr",        Abc_CommandConstr,           0 );
     Cmd_CommandAdd( pAbc, "Verification", "unfold",        Abc_CommandUnfold,           1 );
     Cmd_CommandAdd( pAbc, "Verification", "fold",          Abc_CommandFold,             1 );
-    Cmd_CommandAdd( pAbc, "Verification", "unfold2",        Abc_CommandUnfold2,           1 );    // jlong 
-    Cmd_CommandAdd( pAbc, "Verification", "fold2",        Abc_CommandFold2,           1 );    // jlong 
+    Cmd_CommandAdd( pAbc, "Verification", "unfold2",       Abc_CommandUnfold2,          1 );    // jlong 
+    Cmd_CommandAdd( pAbc, "Verification", "fold2",         Abc_CommandFold2,            1 );    // jlong 
     Cmd_CommandAdd( pAbc, "Verification", "bm",            Abc_CommandBm,               1 );
     Cmd_CommandAdd( pAbc, "Verification", "bm2",           Abc_CommandBm2,              1 );
     Cmd_CommandAdd( pAbc, "Verification", "saucy3",        Abc_CommandSaucy,            1 );
@@ -903,7 +903,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "ABC9",         "&psig",         Abc_CommandAbc9PSig,         0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&status",       Abc_CommandAbc9Status,       0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&show",         Abc_CommandAbc9Show,         0 );
-    Cmd_CommandAdd( pAbc, "ABC9",         "&st",           Abc_CommandAbc9Hash,         0 );
+    Cmd_CommandAdd( pAbc, "ABC9",         "&st",           Abc_CommandAbc9Strash,       0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&topand",       Abc_CommandAbc9Topand,       0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&add1hot",      Abc_CommandAbc9Add1Hot,      0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&cof",          Abc_CommandAbc9Cof,          0 );
@@ -25622,17 +25622,29 @@ usage:
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_CommandAbc9Hash( Abc_Frame_t * pAbc, int argc, char ** argv )
+int Abc_CommandAbc9Strash( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Gia_Man_t * pTemp;
-    int c, fAddStrash = 0;
+    int c, Limit = 2;
+    int fAddStrash = 0;
     int fCollapse = 0;
     int fAddMuxes = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "acmh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Lacmh" ) ) != EOF )
     {
         switch ( c )
         {
+        case 'L':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-L\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            Limit = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( Limit < 0 )
+                goto usage;
+            break;
         case 'a':
             fAddStrash ^= 1;
             break;
@@ -25650,11 +25662,18 @@ int Abc_CommandAbc9Hash( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     if ( pAbc->pGia == NULL )
     {
-        Abc_Print( -1, "Abc_CommandAbc9Hash(): There is no AIG.\n" );
+        Abc_Print( -1, "Abc_CommandAbc9Strash(): There is no AIG.\n" );
         return 1;
     }
     if ( fAddMuxes )
-        pTemp = Gia_ManDupMuxes( pAbc->pGia );
+    {
+        if ( pAbc->pGia->pMuxes )
+        {
+            Abc_Print( -1, "Abc_CommandAbc9Strash(): The AIG already has MUXes.\n" );
+            return 1;
+        }
+        pTemp = Gia_ManDupMuxes( pAbc->pGia, Limit );
+    }
     else if ( fCollapse && pAbc->pGia->pAigExtra )
     {
         Gia_Man_t * pNew = Gia_ManDupUnnormalize( pAbc->pGia );
@@ -25663,18 +25682,21 @@ int Abc_CommandAbc9Hash( Abc_Frame_t * pAbc, int argc, char ** argv )
         pNew->pManTime = NULL;
         Gia_ManStop( pNew );
     }
+    else if ( pAbc->pGia->pMuxes )
+        pTemp = Gia_ManDupNoMuxes( pAbc->pGia );
     else
         pTemp = Gia_ManRehash( pAbc->pGia, fAddStrash );
     Abc_FrameUpdateGia( pAbc, pTemp );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &st [-acmh]\n" );
-    Abc_Print( -2, "\t        performs structural hashing\n" );
-    Abc_Print( -2, "\t-a    : toggle additional hashing [default = %s]\n", fAddStrash? "yes": "no" );
-    Abc_Print( -2, "\t-c    : toggle collapsing hierarchical AIG [default = %s]\n", fCollapse? "yes": "no" );
-    Abc_Print( -2, "\t-m    : toggle converting to larger gates [default = %s]\n", fAddMuxes? "yes": "no" );
-    Abc_Print( -2, "\t-h    : print the command usage\n");
+    Abc_Print( -2, "usage: &st [-L num] [-acmh]\n" );
+    Abc_Print( -2, "\t         performs structural hashing\n" );
+    Abc_Print( -2, "\t-a     : toggle additional hashing [default = %s]\n", fAddStrash? "yes": "no" );
+    Abc_Print( -2, "\t-c     : toggle collapsing hierarchical AIG [default = %s]\n", fCollapse? "yes": "no" );
+    Abc_Print( -2, "\t-m     : toggle converting to larger gates [default = %s]\n", fAddMuxes? "yes": "no" );
+    Abc_Print( -2, "\t-L num : create MUX when sum of refs does not exceed this limit [default = %d]\n", Limit );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
 }
 
@@ -29372,12 +29394,15 @@ int Abc_CommandAbc9Cec( Abc_Frame_t * pAbc, int argc, char ** argv )
     nArgcNew = argc - globalUtilOptind;
     if ( nArgcNew != 1 )
     {
-        Abc_Print( -1, "File name is not given on the command line.\n" );
-        return 1;
+        if ( pAbc->pGia->pSpec == NULL )
+        {
+            Abc_Print( -1, "File name is not given on the command line.\n" );
+            return 1;
+        }
+        FileName = pAbc->pGia->pSpec;
     }
-
-    // get the input file name
-    FileName = pArgvNew[0];
+    else
+        FileName = pArgvNew[0];
     // fix the wrong symbol
     for ( pTemp = FileName; *pTemp; pTemp++ )
         if ( *pTemp == '>' )
