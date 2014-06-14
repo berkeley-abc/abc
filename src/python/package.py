@@ -43,7 +43,7 @@ def add_python_lib(tf, lib_dir, lib, mtime):
         
         for f in files:
             _, ext = os.path.splitext(f)
-            if ext in ['.py']:
+            if ext in ['.py', '.so']:
                 add_file( tf, os.path.join(root,f), os.path.join(arcroot, f), 0666, mtime)
 
 def add_dir(tf, dir, mtime):
