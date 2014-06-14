@@ -32,6 +32,9 @@ def add_python_lib(tf, lib_dir, lib, mtime):
 
         relpath = os.path.relpath(root, lib)
 
+        if '.hg' in relpath.split('/'):
+            continue
+
         if relpath=='.':
             arcroot = lib_dir
         else:
