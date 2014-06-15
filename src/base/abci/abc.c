@@ -27707,12 +27707,36 @@ int Abc_CommandAbc9Syn2( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Gia_Man_t * pTemp;
     int c, fVerbose = 0;
+    int fOldAlgo = 0;
+    int fCoarsen = 1;
+    int fCutMin = 0;
+    int nRelaxRatio = 20;
     int fVeryVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "vwh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Rakmvwh" ) ) != EOF )
     {
         switch ( c )
         {
+        case 'R':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( 1, "Command line switch \"-R\" should be followed by a floating point number.\n" );
+                return 0;
+            }
+            nRelaxRatio = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nRelaxRatio < 0 ) 
+                goto usage;
+            break;
+        case 'a':
+            fOldAlgo ^= 1;
+            break;
+        case 'k':
+            fCoarsen ^= 1;
+            break;
+        case 'm':
+            fCutMin ^= 1;
+            break;
         case 'v':
             fVerbose ^= 1;
             break;
@@ -27730,16 +27754,20 @@ int Abc_CommandAbc9Syn2( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Abc_CommandAbc9Syn2(): There is no AIG.\n" );
         return 1;
     }
-    pTemp = Gia_ManAigSyn2( pAbc->pGia, fVerbose, fVeryVerbose );
+    pTemp = Gia_ManAigSyn2( pAbc->pGia, fOldAlgo, fCoarsen, fCutMin, nRelaxRatio, fVerbose, fVeryVerbose );
     Abc_FrameUpdateGia( pAbc, pTemp );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &syn2 [-lvh]\n" );
-    Abc_Print( -2, "\t         performs AIG optimization\n" );
-    Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
-    Abc_Print( -2, "\t-w     : toggle printing additional information [default = %s]\n", fVeryVerbose? "yes": "no" );
-    Abc_Print( -2, "\t-h     : print the command usage\n");
+    Abc_Print( -2, "usage: &syn2 [-R num] [-akmlvh]\n" );
+    Abc_Print( -2, "\t           performs AIG optimization\n" );
+    Abc_Print( -2, "\t-R num   : the delay relaxation ratio (num >= 0) [default = %d]\n",  nRelaxRatio );
+    Abc_Print( -2, "\t-a       : toggles using the old algorithm [default = %s]\n",        fOldAlgo? "yes": "no" );
+    Abc_Print( -2, "\t-k       : toggles coarsening the subject graph [default = %s]\n",   fCoarsen? "yes": "no" );
+    Abc_Print( -2, "\t-m       : toggles cut minimization [default = %s]\n",               fCutMin? "yes": "no" );
+    Abc_Print( -2, "\t-v       : toggle printing verbose information [default = %s]\n",    fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-w       : toggle printing additional information [default = %s]\n", fVeryVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h       : print the command usage\n");
     return 1;
 }
 
