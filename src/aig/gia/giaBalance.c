@@ -1046,7 +1046,11 @@ Gia_Man_t * Gia_ManAigSyn2( Gia_Man_t * p, int fOldAlgo, int fCoarsen, int fCutM
     else
         pNew = Lf_ManPerformMapping( pTemp = pNew, pPars );
     if ( fVerbose )     Gia_ManPrintStats( pNew, NULL );
-//    Gia_ManStop( pTemp );
+    if ( pTemp != pNew )
+    {
+        Gia_ManAigTransferPiLevels( pNew, pTemp );
+        Gia_ManStop( pTemp );
+    }
     // perform balancing
     pNew = Gia_ManAreaBalance( pTemp = pNew, 0, ABC_INFINITY, fVeryVerbose, 0 );
     if ( fVerbose )     Gia_ManPrintStats( pNew, NULL );

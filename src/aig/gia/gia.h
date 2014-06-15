@@ -252,6 +252,7 @@ struct Jf_Par_t_
     int            nRounds;
     int            nRoundsEla;
     int            nRelaxRatio;
+    int            nCoarseLimit;
     int            nVerbLimit;
     int            DelayTarget;
     int            fAreaOnly;

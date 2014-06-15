@@ -97,6 +97,7 @@ Gia_Man_t * Gia_ManDupMuxes( Gia_Man_t * p, int Limit )
     Gia_Obj_t * pObj, * pFan0, * pFan1, * pFanC;
     int i;
     assert( p->pMuxes == NULL );
+    assert( Limit >= 2 );
     ABC_FREE( p->pRefs );
     Gia_ManCreateRefs( p ); 
     // start the new manager
