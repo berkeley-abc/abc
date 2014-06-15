@@ -768,8 +768,8 @@ int Kf_SetComputeTruth( Kf_Man_t * p, int iFuncLit0, int iFuncLit1, int * pCut0,
     word * pTruth1 = Vec_MemReadEntry(p->vTtMem, Abc_Lit2Var(iFuncLit1));
     Abc_TtCopy( uTruth0, pTruth0, nWords, Abc_LitIsCompl(iFuncLit0) );
     Abc_TtCopy( uTruth1, pTruth1, nWords, Abc_LitIsCompl(iFuncLit1) );
-    Abc_TtStretch( uTruth0, LutSize, pCut0 + 1, Kf_CutSize(pCut0), pCutOut + 1, Kf_CutSize(pCutOut) );
-    Abc_TtStretch( uTruth1, LutSize, pCut1 + 1, Kf_CutSize(pCut1), pCutOut + 1, Kf_CutSize(pCutOut) );
+    Abc_TtExpand( uTruth0, LutSize, pCut0 + 1, Kf_CutSize(pCut0), pCutOut + 1, Kf_CutSize(pCutOut) );
+    Abc_TtExpand( uTruth1, LutSize, pCut1 + 1, Kf_CutSize(pCut1), pCutOut + 1, Kf_CutSize(pCutOut) );
     fCompl         = (int)(uTruth0[0] & uTruth1[0] & 1);
     Abc_TtAnd( uTruth, uTruth0, uTruth1, nWords, fCompl );
     pCutOut[0]     = Abc_TtMinBase( uTruth, pCutOut + 1, pCutOut[0], LutSize );

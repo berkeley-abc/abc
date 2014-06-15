@@ -250,6 +250,7 @@ struct Jf_Par_t_
     int            nCutNum;
     int            nProcNum;
     int            nRounds;
+    int            nRoundsEla;
     int            nRelaxRatio;
     int            nVerbLimit;
     int            DelayTarget;

@@ -61,6 +61,49 @@ static word s_PMasks[5][3] = {
     { ABC_CONST(0xFFFF00000000FFFF), ABC_CONST(0x00000000FFFF0000), ABC_CONST(0x0000FFFF00000000) }
 };
 
+static word Ps_PMasks[5][6][3] = {
+    { 
+        { ABC_CONST(0x0000000000000000), ABC_CONST(0x0000000000000000), ABC_CONST(0x0000000000000000) }, // 0 0  
+        { ABC_CONST(0x9999999999999999), ABC_CONST(0x2222222222222222), ABC_CONST(0x4444444444444444) }, // 0 1  
+        { ABC_CONST(0xA5A5A5A5A5A5A5A5), ABC_CONST(0x0A0A0A0A0A0A0A0A), ABC_CONST(0x5050505050505050) }, // 0 2 
+        { ABC_CONST(0xAA55AA55AA55AA55), ABC_CONST(0x00AA00AA00AA00AA), ABC_CONST(0x5500550055005500) }, // 0 3 
+        { ABC_CONST(0xAAAA5555AAAA5555), ABC_CONST(0x0000AAAA0000AAAA), ABC_CONST(0x5555000055550000) }, // 0 4 
+        { ABC_CONST(0xAAAAAAAA55555555), ABC_CONST(0x00000000AAAAAAAA), ABC_CONST(0x5555555500000000) }  // 0 5 
+    },
+    { 
+        { ABC_CONST(0x0000000000000000), ABC_CONST(0x0000000000000000), ABC_CONST(0x0000000000000000) }, // 1 0  
+        { ABC_CONST(0x0000000000000000), ABC_CONST(0x0000000000000000), ABC_CONST(0x0000000000000000) }, // 1 1  
+        { ABC_CONST(0xC3C3C3C3C3C3C3C3), ABC_CONST(0x0C0C0C0C0C0C0C0C), ABC_CONST(0x3030303030303030) }, // 1 2 
+        { ABC_CONST(0xCC33CC33CC33CC33), ABC_CONST(0x00CC00CC00CC00CC), ABC_CONST(0x3300330033003300) }, // 1 3 
+        { ABC_CONST(0xCCCC3333CCCC3333), ABC_CONST(0x0000CCCC0000CCCC), ABC_CONST(0x3333000033330000) }, // 1 4 
+        { ABC_CONST(0xCCCCCCCC33333333), ABC_CONST(0x00000000CCCCCCCC), ABC_CONST(0x3333333300000000) }  // 1 5 
+    },
+    { 
+        { ABC_CONST(0x0000000000000000), ABC_CONST(0x0000000000000000), ABC_CONST(0x0000000000000000) }, // 2 0  
+        { ABC_CONST(0x0000000000000000), ABC_CONST(0x0000000000000000), ABC_CONST(0x0000000000000000) }, // 2 1  
+        { ABC_CONST(0x0000000000000000), ABC_CONST(0x0000000000000000), ABC_CONST(0x0000000000000000) }, // 2 2 
+        { ABC_CONST(0xF00FF00FF00FF00F), ABC_CONST(0x00F000F000F000F0), ABC_CONST(0x0F000F000F000F00) }, // 2 3 
+        { ABC_CONST(0xF0F00F0FF0F00F0F), ABC_CONST(0x0000F0F00000F0F0), ABC_CONST(0x0F0F00000F0F0000) }, // 2 4 
+        { ABC_CONST(0xF0F0F0F00F0F0F0F), ABC_CONST(0x00000000F0F0F0F0), ABC_CONST(0x0F0F0F0F00000000) }  // 2 5 
+    },
+    { 
+        { ABC_CONST(0x0000000000000000), ABC_CONST(0x0000000000000000), ABC_CONST(0x0000000000000000) }, // 3 0  
+        { ABC_CONST(0x0000000000000000), ABC_CONST(0x0000000000000000), ABC_CONST(0x0000000000000000) }, // 3 1  
+        { ABC_CONST(0x0000000000000000), ABC_CONST(0x0000000000000000), ABC_CONST(0x0000000000000000) }, // 3 2 
+        { ABC_CONST(0x0000000000000000), ABC_CONST(0x0000000000000000), ABC_CONST(0x0000000000000000) }, // 3 3 
+        { ABC_CONST(0xFF0000FFFF0000FF), ABC_CONST(0x0000FF000000FF00), ABC_CONST(0x00FF000000FF0000) }, // 3 4 
+        { ABC_CONST(0xFF00FF0000FF00FF), ABC_CONST(0x00000000FF00FF00), ABC_CONST(0x00FF00FF00000000) }  // 3 5 
+    },
+    { 
+        { ABC_CONST(0x0000000000000000), ABC_CONST(0x0000000000000000), ABC_CONST(0x0000000000000000) }, // 4 0  
+        { ABC_CONST(0x0000000000000000), ABC_CONST(0x0000000000000000), ABC_CONST(0x0000000000000000) }, // 4 1  
+        { ABC_CONST(0x0000000000000000), ABC_CONST(0x0000000000000000), ABC_CONST(0x0000000000000000) }, // 4 2 
+        { ABC_CONST(0x0000000000000000), ABC_CONST(0x0000000000000000), ABC_CONST(0x0000000000000000) }, // 4 3 
+        { ABC_CONST(0x0000000000000000), ABC_CONST(0x0000000000000000), ABC_CONST(0x0000000000000000) }, // 4 4 
+        { ABC_CONST(0xFFFF00000000FFFF), ABC_CONST(0x00000000FFFF0000), ABC_CONST(0x0000FFFF00000000) }  // 4 5 
+    }
+};
+
 // the bit count for the first 256 integer numbers
 static int Abc_TtBitCount8[256] = {
     0,1,1,2,1,2,2,3,1,2,2,3,2,3,3,4,1,2,2,3,2,3,3,4,2,3,3,4,3,4,4,5,
@@ -985,50 +1028,15 @@ static inline void Abc_TtSwapAdjacent( word * pTruth, int nWords, int iVar )
                 ABC_SWAP( word, pTruth[i + iStep], pTruth[i + 2*iStep] );
     }
 }
+static inline word Abc_Tt6SwapVars( word t, int iVar, int jVar )
+{
+    word * s_PMasks = Ps_PMasks[iVar][jVar];
+    int shift = (1 << jVar) - (1 << iVar);
+    assert( iVar < jVar );
+    return (t & s_PMasks[0]) | ((t & s_PMasks[1]) << shift) | ((t & s_PMasks[2]) >> shift);
+}
 static inline void Abc_TtSwapVars( word * pTruth, int nVars, int iVar, int jVar )
 {
-    static word Ps_PMasks[5][6][3] = {
-        { 
-            { ABC_CONST(0x0000000000000000), ABC_CONST(0x0000000000000000), ABC_CONST(0x0000000000000000) }, // 0 0  
-            { ABC_CONST(0x9999999999999999), ABC_CONST(0x2222222222222222), ABC_CONST(0x4444444444444444) }, // 0 1  
-            { ABC_CONST(0xA5A5A5A5A5A5A5A5), ABC_CONST(0x0A0A0A0A0A0A0A0A), ABC_CONST(0x5050505050505050) }, // 0 2 
-            { ABC_CONST(0xAA55AA55AA55AA55), ABC_CONST(0x00AA00AA00AA00AA), ABC_CONST(0x5500550055005500) }, // 0 3 
-            { ABC_CONST(0xAAAA5555AAAA5555), ABC_CONST(0x0000AAAA0000AAAA), ABC_CONST(0x5555000055550000) }, // 0 4 
-            { ABC_CONST(0xAAAAAAAA55555555), ABC_CONST(0x00000000AAAAAAAA), ABC_CONST(0x5555555500000000) }  // 0 5 
-        },
-        { 
-            { ABC_CONST(0x0000000000000000), ABC_CONST(0x0000000000000000), ABC_CONST(0x0000000000000000) }, // 1 0  
-            { ABC_CONST(0x0000000000000000), ABC_CONST(0x0000000000000000), ABC_CONST(0x0000000000000000) }, // 1 1  
-            { ABC_CONST(0xC3C3C3C3C3C3C3C3), ABC_CONST(0x0C0C0C0C0C0C0C0C), ABC_CONST(0x3030303030303030) }, // 1 2 
-            { ABC_CONST(0xCC33CC33CC33CC33), ABC_CONST(0x00CC00CC00CC00CC), ABC_CONST(0x3300330033003300) }, // 1 3 
-            { ABC_CONST(0xCCCC3333CCCC3333), ABC_CONST(0x0000CCCC0000CCCC), ABC_CONST(0x3333000033330000) }, // 1 4 
-            { ABC_CONST(0xCCCCCCCC33333333), ABC_CONST(0x00000000CCCCCCCC), ABC_CONST(0x3333333300000000) }  // 1 5 
-        },
-        { 
-            { ABC_CONST(0x0000000000000000), ABC_CONST(0x0000000000000000), ABC_CONST(0x0000000000000000) }, // 2 0  
-            { ABC_CONST(0x0000000000000000), ABC_CONST(0x0000000000000000), ABC_CONST(0x0000000000000000) }, // 2 1  
-            { ABC_CONST(0x0000000000000000), ABC_CONST(0x0000000000000000), ABC_CONST(0x0000000000000000) }, // 2 2 
-            { ABC_CONST(0xF00FF00FF00FF00F), ABC_CONST(0x00F000F000F000F0), ABC_CONST(0x0F000F000F000F00) }, // 2 3 
-            { ABC_CONST(0xF0F00F0FF0F00F0F), ABC_CONST(0x0000F0F00000F0F0), ABC_CONST(0x0F0F00000F0F0000) }, // 2 4 
-            { ABC_CONST(0xF0F0F0F00F0F0F0F), ABC_CONST(0x00000000F0F0F0F0), ABC_CONST(0x0F0F0F0F00000000) }  // 2 5 
-        },
-        { 
-            { ABC_CONST(0x0000000000000000), ABC_CONST(0x0000000000000000), ABC_CONST(0x0000000000000000) }, // 3 0  
-            { ABC_CONST(0x0000000000000000), ABC_CONST(0x0000000000000000), ABC_CONST(0x0000000000000000) }, // 3 1  
-            { ABC_CONST(0x0000000000000000), ABC_CONST(0x0000000000000000), ABC_CONST(0x0000000000000000) }, // 3 2 
-            { ABC_CONST(0x0000000000000000), ABC_CONST(0x0000000000000000), ABC_CONST(0x0000000000000000) }, // 3 3 
-            { ABC_CONST(0xFF0000FFFF0000FF), ABC_CONST(0x0000FF000000FF00), ABC_CONST(0x00FF000000FF0000) }, // 3 4 
-            { ABC_CONST(0xFF00FF0000FF00FF), ABC_CONST(0x00000000FF00FF00), ABC_CONST(0x00FF00FF00000000) }  // 3 5 
-        },
-        { 
-            { ABC_CONST(0x0000000000000000), ABC_CONST(0x0000000000000000), ABC_CONST(0x0000000000000000) }, // 4 0  
-            { ABC_CONST(0x0000000000000000), ABC_CONST(0x0000000000000000), ABC_CONST(0x0000000000000000) }, // 4 1  
-            { ABC_CONST(0x0000000000000000), ABC_CONST(0x0000000000000000), ABC_CONST(0x0000000000000000) }, // 4 2 
-            { ABC_CONST(0x0000000000000000), ABC_CONST(0x0000000000000000), ABC_CONST(0x0000000000000000) }, // 4 3 
-            { ABC_CONST(0x0000000000000000), ABC_CONST(0x0000000000000000), ABC_CONST(0x0000000000000000) }, // 4 4 
-            { ABC_CONST(0xFFFF00000000FFFF), ABC_CONST(0x00000000FFFF0000), ABC_CONST(0x0000FFFF00000000) }  // 4 5 
-        }
-    };
     if ( iVar == jVar )
         return;
     if ( jVar < iVar )
@@ -1036,9 +1044,7 @@ static inline void Abc_TtSwapVars( word * pTruth, int nVars, int iVar, int jVar 
     assert( iVar < jVar && jVar < nVars );
     if ( nVars <= 6 )
     {
-        word * s_PMasks = Ps_PMasks[iVar][jVar];
-        int shift = (1 << jVar) - (1 << iVar);
-        pTruth[0] = (pTruth[0] & s_PMasks[0]) | ((pTruth[0] & s_PMasks[1]) << shift) | ((pTruth[0] & s_PMasks[2]) >> shift);
+        pTruth[0] = Abc_Tt6SwapVars( pTruth[0], iVar, jVar );
         return;
     }
     if ( jVar <= 5 )
@@ -1146,6 +1152,56 @@ static inline int Abc_TtMinimumBase( word * t, int * pSupp, int nVarsAll, int * 
   SeeAlso     []
 
 ***********************************************************************/
+static inline word Abc_Tt6Expand( word t, int * pCut0, int nCutSize0, int * pCut, int nCutSize )
+{
+    int i, k;
+    for ( i = nCutSize - 1, k = nCutSize0 - 1; i >= 0 && k >= 0; i-- )
+    {
+        if ( pCut[i] > pCut0[k] )
+            continue;
+        assert( pCut[i] == pCut0[k] );
+        if ( k < i )
+            t = Abc_Tt6SwapVars( t, k, i );
+        k--;
+    }
+    assert( k == -1 );
+    return t;
+}
+static inline void Abc_TtExpand( word * pTruth0, int nVars, int * pCut0, int nCutSize0, int * pCut, int nCutSize )
+{
+    int i, k;
+    for ( i = nCutSize - 1, k = nCutSize0 - 1; i >= 0 && k >= 0; i-- )
+    {
+        if ( pCut[i] > pCut0[k] )
+            continue;
+        assert( pCut[i] == pCut0[k] );
+        if ( k < i )
+            Abc_TtSwapVars( pTruth0, nVars, k, i );
+        k--;
+    }
+    assert( k == -1 );
+}
+static inline int Abc_Tt6MinBase( word * pTruth, int * pVars, int nVars ) 
+{
+    word t = *pTruth;
+    int i, k;
+    for ( i = k = 0; i < nVars; i++ )
+    {
+        if ( !Abc_Tt6HasVar( t, i ) )
+            continue;
+        if ( k < i )
+        {
+            if ( pVars ) pVars[k] = pVars[i];
+            t = Abc_Tt6SwapVars( t, k, i );
+        }
+        k++;
+    }
+    if ( k == nVars )
+        return k;
+    assert( k < nVars );
+    *pTruth = t;
+    return k;
+}
 static inline int Abc_TtMinBase( word * pTruth, int * pVars, int nVars, int nVarsAll ) 
 {
     int i, k;
@@ -1166,20 +1222,6 @@ static inline int Abc_TtMinBase( word * pTruth, int * pVars, int nVars, int nVar
     assert( k < nVars );
 //    assert( k == Abc_TtSupportSize(pTruth, nVars) );
     return k;
-}
-static inline void Abc_TtStretch( word * pTruth0, int nVars, int * pCut0, int nCutSize0, int * pCut, int nCutSize )
-{
-    int i, k;
-    for ( i = nCutSize - 1, k = nCutSize0 - 1; i >= 0 && k >= 0; i-- )
-    {
-        if ( pCut[i] > pCut0[k] )
-            continue;
-        assert( pCut[i] == pCut0[k] );
-        if ( k < i )
-            Abc_TtSwapVars( pTruth0, nVars, k, i );
-        k--;
-    }
-    assert( k == -1 );
 }
 
 /**Function*************************************************************

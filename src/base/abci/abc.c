@@ -30861,7 +30861,7 @@ int Abc_CommandAbc9Lf( Abc_Frame_t * pAbc, int argc, char ** argv )
     Gia_Man_t * pNew; int c;
     Lf_ManSetDefaultPars( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "KCFRDWaekmdcgtspvwh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "KCFARDWaekmgpvwh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -30902,6 +30902,17 @@ int Abc_CommandAbc9Lf( Abc_Frame_t * pAbc, int argc, char ** argv )
             pPars->nRounds = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
             if ( pPars->nRounds < 0 )
+                goto usage;
+            break;
+        case 'A':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-A\" should be followed by a positive integer.\n" );
+                goto usage;
+            }
+            pPars->nRoundsEla = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nRoundsEla < 0 )
                 goto usage;
             break;
         case 'R':
@@ -30949,20 +30960,8 @@ int Abc_CommandAbc9Lf( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'm':
             pPars->fCutMin ^= 1;
             break;
-        case 'd':
-            pPars->fFuncDsd ^= 1;
-            break;
-        case 'c':
-            pPars->fGenCnf ^= 1;
-            break;
         case 'g':
             pPars->fPureAig ^= 1;
-            break;
-        case 't':
-            pPars->fCutHashing ^= 1;
-            break;
-        case 's':
-            pPars->fCutSimple ^= 1;
             break;
         case 'p':
             pPars->fPower ^= 1;
@@ -30999,23 +30998,19 @@ usage:
         sprintf(Buffer, "best possible" );
     else
         sprintf(Buffer, "%d", pPars->DelayTarget );
-    Abc_Print( -2, "usage: &lf [-KCFRDW num] [-akmdcgtspvwh]\n" );
+    Abc_Print( -2, "usage: &lf [-KCFARD num] [-akmgpvwh]\n" );
     Abc_Print( -2, "\t           performs technology mapping of the network\n" );
     Abc_Print( -2, "\t-K num   : LUT size for the mapping (2 <= K <= %d) [default = %d]\n", pPars->nLutSizeMax, pPars->nLutSize );
     Abc_Print( -2, "\t-C num   : the max number of priority cuts (1 <= C <= %d) [default = %d]\n", pPars->nCutNumMax, pPars->nCutNum );
-    Abc_Print( -2, "\t-F num   : the number of mapping rounds [default = %d]\n", pPars->nRounds );
+    Abc_Print( -2, "\t-F num   : the number of area flow rounds [default = %d]\n", pPars->nRounds );
+    Abc_Print( -2, "\t-A num   : the number of exact area rounds [default = %d]\n", pPars->nRoundsEla );
     Abc_Print( -2, "\t-R num   : the delay relaxation ratio (num >= 0) [default = %d]\n", pPars->nRelaxRatio );
     Abc_Print( -2, "\t-D num   : sets the delay constraint for the mapping [default = %s]\n", Buffer );
-    Abc_Print( -2, "\t-W num   : min frequency when printing functions with \"-w\" [default = %d]\n", pPars->nVerbLimit );
     Abc_Print( -2, "\t-a       : toggles area-oriented mapping [default = %s]\n", pPars->fAreaOnly? "yes": "no" );
     Abc_Print( -2, "\t-e       : toggles edge vs node minimization [default = %s]\n", pPars->fOptEdge? "yes": "no" );
     Abc_Print( -2, "\t-k       : toggles coarsening the subject graph [default = %s]\n", pPars->fCoarsen? "yes": "no" );
     Abc_Print( -2, "\t-m       : toggles cut minimization [default = %s]\n", pPars->fCutMin? "yes": "no" );
-    Abc_Print( -2, "\t-d       : toggles using DSD to represent cut functions [default = %s]\n", pPars->fFuncDsd? "yes": "no" );
-    Abc_Print( -2, "\t-c       : toggles mapping for CNF generation [default = %s]\n", pPars->fGenCnf? "yes": "no" );
     Abc_Print( -2, "\t-g       : toggles generating AIG without mapping [default = %s]\n", pPars->fPureAig? "yes": "no" );
-    Abc_Print( -2, "\t-t       : toggles cut computation using hash table [default = %s]\n", pPars->fCutHashing? "yes": "no" );
-    Abc_Print( -2, "\t-s       : toggles cut computation using a simple method [default = %s]\n", pPars->fCutSimple? "yes": "no" );
     Abc_Print( -2, "\t-p       : uses power-aware cut selection heuristics [default = %s]\n", pPars->fPower? "yes": "no" );
     Abc_Print( -2, "\t-v       : toggles verbose output [default = %s]\n", pPars->fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-w       : toggles very verbose output [default = %s]\n", pPars->fVeryVerbose? "yes": "no" );

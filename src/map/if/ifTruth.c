@@ -108,8 +108,8 @@ int If_CutComputeTruth( If_Man_t * p, If_Cut_t * pCut, If_Cut_t * pCut0, If_Cut_
     Abc_TtCopy( pTruth1, pTruth1s, nWords, fCompl1 ^ pCut1->fCompl ^ Abc_LitIsCompl(pCut1->iCutFunc) );
     Abc_TtStretch6( pTruth0, pCut0->nLeaves, pCut->nLeaves );
     Abc_TtStretch6( pTruth1, pCut1->nLeaves, pCut->nLeaves );
-    Abc_TtStretch( pTruth0, pCut->nLeaves, pCut0->pLeaves, pCut0->nLeaves, pCut->pLeaves, pCut->nLeaves );
-    Abc_TtStretch( pTruth1, pCut->nLeaves, pCut1->pLeaves, pCut1->nLeaves, pCut->pLeaves, pCut->nLeaves );
+    Abc_TtExpand( pTruth0, pCut->nLeaves, pCut0->pLeaves, pCut0->nLeaves, pCut->pLeaves, pCut->nLeaves );
+    Abc_TtExpand( pTruth1, pCut->nLeaves, pCut1->pLeaves, pCut1->nLeaves, pCut->pLeaves, pCut->nLeaves );
     fCompl         = (pTruth0[0] & pTruth1[0] & 1);
     Abc_TtAnd( pTruth, pTruth0, pTruth1, nWords, fCompl );
     if ( p->pPars->fCutMin && (pCut0->nLeaves + pCut1->nLeaves > pCut->nLeaves || pCut0->nLeaves == 0 || pCut1->nLeaves == 0) )
