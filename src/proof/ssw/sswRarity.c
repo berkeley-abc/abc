@@ -569,7 +569,7 @@ unsigned Ssw_RarManObjHashWord( void * pMan, Aig_Obj_t * pObj )
 int Ssw_RarManObjWhichOne( Ssw_RarMan_t * p, Aig_Obj_t * pObj )
 {
     word * pSim = Ssw_RarObjSim( p, Aig_ObjId(pObj) );
-    word Flip = pObj->fPhase ? ~(word)0 : 0;
+    word Flip = 0;//pObj->fPhase ? ~(word)0 : 0; // bug fix!
     int w, i;
     for ( w = 0; w < p->pPars->nWords; w++ )
         if ( pSim[w] ^ Flip )

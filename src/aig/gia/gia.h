@@ -257,6 +257,7 @@ struct Jf_Par_t_
     int            DelayTarget;
     int            fAreaOnly;
     int            fOptEdge;
+    int            fUseMux7;
     int            fPower;
     int            fCoarsen;
     int            fCutMin;
