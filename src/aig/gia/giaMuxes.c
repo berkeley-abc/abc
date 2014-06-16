@@ -114,10 +114,23 @@ Gia_Man_t * Gia_ManDupMuxes( Gia_Man_t * p, int Limit )
     Gia_ManHashStart( pNew );
     Gia_ManForEachAnd( p, pObj, i )
     {
+/*
         if ( !Gia_ObjIsMuxType(pObj) || Gia_ObjRefNum(p, Gia_ObjFanin0(pObj)) + Gia_ObjRefNum(p, Gia_ObjFanin1(pObj)) > Limit )
             pObj->Value = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
         else if ( Gia_ObjRecognizeExor(pObj, &pFan0, &pFan1) )
             pObj->Value = Gia_ManHashXorReal( pNew, Gia_ObjLitCopy(p, Gia_ObjToLit(p, pFan0)), Gia_ObjLitCopy(p, Gia_ObjToLit(p, pFan1)) );
+        else
+        {
+            pFanC = Gia_ObjRecognizeMux( pObj, &pFan1, &pFan0 );
+            pObj->Value = Gia_ManHashMuxReal( pNew, Gia_ObjLitCopy(p, Gia_ObjToLit(p, pFanC)), Gia_ObjLitCopy(p, Gia_ObjToLit(p, pFan1)), Gia_ObjLitCopy(p, Gia_ObjToLit(p, pFan0)) );
+        }
+*/
+        if ( !Gia_ObjIsMuxType(pObj) )
+            pObj->Value = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+        else if ( Gia_ObjRecognizeExor(pObj, &pFan0, &pFan1) )
+            pObj->Value = Gia_ManHashXorReal( pNew, Gia_ObjLitCopy(p, Gia_ObjToLit(p, pFan0)), Gia_ObjLitCopy(p, Gia_ObjToLit(p, pFan1)) );
+        else if ( Gia_ObjRefNum(p, Gia_ObjFanin0(pObj)) + Gia_ObjRefNum(p, Gia_ObjFanin1(pObj)) > Limit )
+            pObj->Value = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
         else
         {
             pFanC = Gia_ObjRecognizeMux( pObj, &pFan1, &pFan0 );
