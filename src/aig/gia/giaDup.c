@@ -2749,6 +2749,87 @@ Gia_Man_t * Gia_ManDupSliced( Gia_Man_t * p, int nSuppMax )
 }
 
 
+/**Function*************************************************************
+
+  Synopsis    [Extract constraints.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_ManDupWithConstrCollectAnd_rec( Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Int_t * vSuper )
+{
+    if ( Gia_IsComplement(pObj) || !Gia_ObjIsAnd(pObj) )
+    {
+        Vec_IntPushUnique( vSuper, Gia_ObjToLit(p, pObj) );
+        return;
+    }
+    Gia_ManDupWithConstrCollectAnd_rec( p, Gia_ObjChild0(pObj), vSuper );
+    Gia_ManDupWithConstrCollectAnd_rec( p, Gia_ObjChild1(pObj), vSuper );
+}
+Gia_Man_t * Gia_ManDupWithConstr( Gia_Man_t * p )
+{
+    Vec_Int_t * vSuper;
+    Gia_Man_t * pNew, * pTemp;
+    Gia_Obj_t * pObj;
+    int i, iDriver, iLit, iLitBest = -1, LevelBest = -1;
+    assert( Gia_ManPoNum(p) == 1 );
+    assert( Gia_ManRegNum(p) == 0 );
+    pObj = Gia_ManPo( p, 0 );
+    if ( Gia_ObjFaninC0(pObj) )
+    {
+        printf( "The miter's output is not AND-decomposable.\n" );
+        return NULL;
+    }
+    vSuper = Vec_IntAlloc( 100 );
+    Gia_ManDupWithConstrCollectAnd_rec( p, Gia_ObjChild0(pObj), vSuper );
+    assert( Vec_IntSize(vSuper) > 1 );
+    // find the highest level
+    Gia_ManLevelNum( p );
+    Vec_IntForEachEntry( vSuper, iLit, i )
+        if ( LevelBest < Gia_ObjLevelId(p, Abc_Lit2Var(iLit)) )
+            LevelBest = Gia_ObjLevelId(p, Abc_Lit2Var(iLit)), iLitBest = iLit;
+    assert( iLitBest != -1 );
+    // create new manager
+    pNew = Gia_ManStart( Gia_ManObjNum(p) );
+    pNew->pName = Abc_UtilStrsav( p->pName );
+    pNew->pSpec = Abc_UtilStrsav( p->pSpec );
+    Gia_ManConst0(p)->Value = 0;
+    Gia_ManHashAlloc( pNew );
+    Gia_ManForEachObj1( p, pObj, i )
+    {
+        if ( Gia_ObjIsAnd(pObj) )
+            pObj->Value = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+        else if ( Gia_ObjIsCi(pObj) )
+            pObj->Value = Gia_ManAppendCi( pNew );
+    }
+    // create AND of nodes
+    iDriver = -1;
+    Vec_IntForEachEntry( vSuper, iLit, i )
+    {
+        if ( iLit == iLitBest )
+            continue;
+        if ( iDriver == -1 )
+            iDriver = Gia_ObjLitCopy(p, iLit);
+        else
+            iDriver = Gia_ManHashAnd( pNew, iDriver, Gia_ObjLitCopy(p, iLit) );
+    }
+    // create the main PO
+    Gia_ManAppendCo( pNew, Gia_ObjLitCopy(p, iLitBest) );
+    // create the constraint PO
+    Gia_ManAppendCo( pNew, Abc_LitNot(iDriver) );
+    pNew->nConstrs = 1;
+    // rehash
+    pNew = Gia_ManCleanup( pTemp = pNew );
+    Gia_ManStop( pTemp );
+    Vec_IntFree( vSuper );
+    return pNew;
+
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

@@ -558,7 +558,7 @@ void * Cec_GiaSplitWorkerThread( void * pArg )
     assert( 0 );
     return NULL;
 }
-int Cec_GiaSplitTest( Gia_Man_t * p, int nProcs, int nTimeOut, int nIterMax, int LookAhead, int fVerbose, int fVeryVerbose )
+int Cec_GiaSplitTestInt( Gia_Man_t * p, int nProcs, int nTimeOut, int nIterMax, int LookAhead, int fVerbose, int fVeryVerbose )
 {
     abctime clkTotal = Abc_Clock();
     Par_ThData_t ThData[PAR_THR_MAX];
@@ -719,6 +719,36 @@ finish:
     printf( "after %d case-splits.  ", nIter );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clkTotal );
     fflush( stdout );
+    return RetValue;
+}
+int Cec_GiaSplitTest( Gia_Man_t * p, int nProcs, int nTimeOut, int nIterMax, int LookAhead, int fVerbose, int fVeryVerbose )
+{
+    Abc_Cex_t * pCex = NULL;
+    Gia_Man_t * pOne;
+    Gia_Obj_t * pObj;
+    int i, RetValue1, fOneUndef = 0, RetValue = -1;
+    Abc_CexFreeP( &p->pCexComb );
+    Gia_ManForEachPo( p, pObj, i )
+    {
+        pOne = Gia_ManDupOutputGroup( p, i, i+1 );
+        if ( fVerbose )
+            printf( "\nSolving output %d:\n", i );
+        RetValue1 = Cec_GiaSplitTestInt( pOne, nProcs, nTimeOut, nIterMax, LookAhead,  fVerbose, fVeryVerbose );
+        Gia_ManStop( pOne );
+        // collect the result
+        if ( RetValue1 == 0 && RetValue == -1 )
+        {
+            pCex = pOne->pCexComb; pOne->pCexComb = NULL;
+            pCex->iPo = i;
+            RetValue = 0;
+        }
+        if ( RetValue1 == -1 )
+            fOneUndef = 1;
+    }
+    if ( RetValue == -1 )
+        RetValue = fOneUndef ? -1 : 1;
+    else
+        p->pCexComb = pCex;
     return RetValue;
 }
 

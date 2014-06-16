@@ -23072,9 +23072,33 @@ int Abc_CommandUnfold( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Empty network.\n" );
         return 1;
     }
+    if ( Abc_NtkIsComb(pNtk) && Abc_NtkPoNum(pNtk) > 1 )
+    {
+        Abc_Print( -1, "Combinational miter has more than one PO.\n" );
+        return 0;
+    }
     if ( Abc_NtkIsComb(pNtk) )
     {
-        Abc_Print( -1, "The network is combinational.\n" );
+        extern Gia_Man_t * Gia_ManDupWithConstr( Gia_Man_t * p );
+        Gia_Man_t * pNew;
+        Aig_Man_t * pAig = Abc_NtkToDar( pNtk, 0, 0 );
+        Gia_Man_t * pGia = Gia_ManFromAigSimple( pAig );
+        Aig_ManStop( pAig );
+        pNew = Gia_ManDupWithConstr( pGia );
+        if ( pNew == NULL )
+        {
+            Abc_Print( -1, "Cannot extract constrains from the miter.\n" );
+            return 0;
+        }
+        Gia_ManStop( pGia );
+        pAig = Gia_ManToAigSimple( pNew );
+        Gia_ManStop( pNew );
+        pNtkRes = Abc_NtkFromAigPhase( pAig );
+        Aig_ManStop( pAig );
+        ABC_FREE( pNtkRes->pName );
+        pNtkRes->pName = Extra_UtilStrsav( pNtk->pName );
+        // replace the current network
+        Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
         return 0;
     }
     if ( !Abc_NtkIsStrash(pNtk) )
