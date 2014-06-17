@@ -340,7 +340,7 @@ void Io_WriteAiger_old( Abc_Ntk_t * pNtk, char * pFileName, int fWriteSymbols, i
             {
                 // Both None and DC are written as 'uninitialized' e.g. a free boolean value
                 assert( Abc_LatchIsInitNone(pLatch) || Abc_LatchIsInitDc(pLatch) );
-                fprintf( pFile, "%u %u\n", uLit, Io_ObjMakeLit( Io_ObjAigerNum(pLatch), 0 ) );
+                fprintf( pFile, "%u %u\n", uLit, Io_ObjMakeLit( Io_ObjAigerNum(Abc_ObjFanout0(pLatch)), 0 ) );
             }
         }
         // write PO drivers
@@ -492,7 +492,7 @@ void Io_WriteAigerGz( Abc_Ntk_t * pNtk, char * pFileName, int fWriteSymbols )
         {
             // Both None and DC are written as 'uninitialized' e.g. a free boolean value
             assert( Abc_LatchIsInitNone(pLatch) || Abc_LatchIsInitDc(pLatch) );
-            gzprintf( pFile, "%u %u\n", uLit, Io_ObjMakeLit( Io_ObjAigerNum(pLatch), 0 ) );
+            gzprintf( pFile, "%u %u\n", uLit, Io_ObjMakeLit( Io_ObjAigerNum(Abc_ObjFanout0(pLatch)), 0 ) );
         }
     }
     // write PO drivers
@@ -737,7 +737,7 @@ void Io_WriteAiger( Abc_Ntk_t * pNtk, char * pFileName, int fWriteSymbols, int f
             {
                 // Both None and DC are written as 'uninitialized' e.g. a free boolean value
                 assert( Abc_LatchIsInitNone(pLatch) || Abc_LatchIsInitDc(pLatch) );
-                fprintfBz2Aig( &b, "%u %u\n", uLit, Io_ObjMakeLit( Io_ObjAigerNum(pLatch), 0 ) );
+                fprintfBz2Aig( &b, "%u %u\n", uLit, Io_ObjMakeLit( Io_ObjAigerNum(Abc_ObjFanout0(pLatch)), 0 ) );
             }
         }
         // write PO drivers
