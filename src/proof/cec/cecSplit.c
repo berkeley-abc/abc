@@ -495,7 +495,7 @@ int Cec_GiaSplitTest2( Gia_Man_t * p, int nProcs, int nTimeOut, int nIterMax, in
             Gia_ManStop( pPart );
         else               // UNDEC
             Vec_PtrPush( vStack, pPart );
-        if ( nIterMax && Vec_PtrSize(vStack) >= nIterMax )
+        if ( nIterMax && nIter >= nIterMax )
             break;
     }
     if ( Vec_PtrSize(vStack) == 0 )
