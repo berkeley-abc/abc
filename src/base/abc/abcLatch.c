@@ -712,6 +712,57 @@ Abc_Ntk_t * Abc_NtkCRetime( Abc_Ntk_t * pNtk, int fVerbose )
     return pNtkNew;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Resimulates CEX and return the ID of the PO that failed.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_NtkVerifyCex( Abc_Ntk_t * pNtk, Abc_Cex_t * p )
+{
+    Abc_Obj_t * pObj;
+    int RetValue, i, k, iBit = 0;
+    assert( Abc_NtkIsStrash(pNtk) );
+    assert( p->nPis  == Abc_NtkPiNum(pNtk) );
+    assert( p->nRegs == Abc_NtkLatchNum(pNtk) );
+    Abc_NtkCleanMarkC( pNtk );
+    Abc_AigConst1(pNtk)->fMarkC = 1;
+    // initialize flops
+    Abc_NtkForEachLatch( pNtk, pObj, i )
+        Abc_ObjFanout0(pObj)->fMarkC = Abc_InfoHasBit(p->pData, iBit++);
+    // simulate timeframes
+    for ( i = 0; i <= p->iFrame; i++ )
+    {
+        Abc_NtkForEachPi( pNtk, pObj, k )
+            pObj->fMarkC = Abc_InfoHasBit(p->pData, iBit++);
+        Abc_NtkForEachNode( pNtk, pObj, k )
+            pObj->fMarkC = (Abc_ObjFanin0(pObj)->fMarkC ^ Abc_ObjFaninC0(pObj)) & 
+                           (Abc_ObjFanin1(pObj)->fMarkC ^ Abc_ObjFaninC1(pObj));
+        Abc_NtkForEachCo( pNtk, pObj, k )
+            pObj->fMarkC = Abc_ObjFanin0(pObj)->fMarkC ^ Abc_ObjFaninC0(pObj);
+        Abc_NtkForEachLatch( pNtk, pObj, k )
+            Abc_ObjFanout0(pObj)->fMarkC = Abc_ObjFanin0(pObj)->fMarkC;
+    }
+    assert( iBit == p->nBits );
+    // figure out the number of failed output
+    RetValue = -1;
+    Abc_NtkForEachPo( pNtk, pObj, i )
+    {
+        if ( pObj->fMarkC )
+        {
+            RetValue = i;
+            break;
+        }
+    }
+    Abc_NtkCleanMarkC( pNtk );
+    return RetValue;
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

@@ -436,6 +436,45 @@ Abc_Cex_t * Abc_CexTransformTempor( Abc_Cex_t * p, int nPisOld, int nPosOld, int
 
 /**Function*************************************************************
 
+  Synopsis    [Transform CEX after "logic; undc; st; zero".]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Cex_t * Abc_CexTransformUndc( Abc_Cex_t * p, char * pInit )
+{
+    Abc_Cex_t * pCex;
+    int nFlops = strlen(pInit);
+    int i, f, iBit, iAddPi = 0, nAddPis = 0;
+    // count how many flops got a new PI
+    for ( i = 0; i < nFlops; i++ )
+        nAddPis += (int)(pInit[i] == 'x');
+    // create new CEX
+    pCex = Abc_CexAlloc( nFlops, p->nPis - nAddPis, p->iFrame + 1 );
+    pCex->iPo    = p->iPo;
+    pCex->iFrame = p->iFrame;
+    for ( iBit = 0; iBit < nFlops; iBit++ )
+    {
+        if ( pInit[iBit] == '1' || (pInit[iBit] == 'x' && Abc_InfoHasBit(p->pData, p->nRegs + p->nPis - nAddPis + iAddPi)) )
+            Abc_InfoSetBit( pCex->pData, iBit );
+        iAddPi += (int)(pInit[iBit] == 'x');
+    }
+    assert( iAddPi == nAddPis );
+    // add timeframes
+    for ( f = 0; f <= p->iFrame; f++ )
+        for ( i = 0; i < pCex->nPis; i++, iBit++ )
+            if ( Abc_InfoHasBit(p->pData, p->nRegs + p->nPis * f + i) )
+                Abc_InfoSetBit( pCex->pData, iBit );
+    assert( iBit == pCex->nBits );
+    return pCex;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Derives permuted CEX using permutation of its inputs.]
 
   Description []
