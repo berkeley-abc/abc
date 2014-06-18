@@ -629,6 +629,28 @@ static Mpm_Dsd_t s_DsdClass6[595] = {
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Wrd_t * Mpm_ManGetTruthWithCnf( int Limit )
+{
+    Vec_Wrd_t * vRes = Vec_WrdAlloc( 1000 );
+    int i;
+    for ( i = 0; i < 595; i++ )
+        if ( s_DsdClass6[i].nClauses <= Limit )
+            Vec_WrdPush( vRes, s_DsdClass6[i].uTruth );
+    return vRes;
+}
+
 /**Function*************************************************************
 
   Synopsis    []

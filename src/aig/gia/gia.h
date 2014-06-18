@@ -1175,6 +1175,9 @@ extern void                Gia_MmStepStop( Gia_MmStep_t * p, int fVerbose );
 extern char *              Gia_MmStepEntryFetch( Gia_MmStep_t * p, int nBytes );
 extern void                Gia_MmStepEntryRecycle( Gia_MmStep_t * p, char * pEntry, int nBytes );
 extern int                 Gia_MmStepReadMemUsage( Gia_MmStep_t * p );
+/*=== giaMf.c ===========================================================*/
+extern void                Mf_ManSetDefaultPars( Jf_Par_t * pPars );
+extern Gia_Man_t *         Mf_ManPerformMapping( Gia_Man_t * pGia, Jf_Par_t * pPars );
 /*=== giaMini.c ===========================================================*/
 extern Gia_Man_t *         Gia_ManReadMiniAig( char * pFileName );
 extern void                Gia_ManWriteMiniAig( Gia_Man_t * pGia, char * pFileName );

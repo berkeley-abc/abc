@@ -3823,6 +3823,10 @@ SOURCE=.\src\aig\gia\giaMem.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\aig\gia\giaMf.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\aig\gia\giaMfs.c
 # End Source File
 # Begin Source File

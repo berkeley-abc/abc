@@ -317,6 +317,10 @@ static inline word * Vec_WrdArray( Vec_Wrd_t * p )
 {
     return p->pArray;
 }
+static inline word * Vec_WrdLimit( Vec_Wrd_t * p )
+{
+    return p->pArray + p->nSize;
+}
 
 /**Function*************************************************************
 
@@ -1079,6 +1083,19 @@ static inline void Vec_WrdUniqify( Vec_Wrd_t * p )
         if ( p->pArray[i] != p->pArray[i-1] )
             p->pArray[k++] = p->pArray[i];
     p->nSize = k;
+}
+static inline Vec_Wrd_t * Vec_WrdUniqifyHash( Vec_Wrd_t * vData, int nWordSize )
+{
+    Vec_Int_t * vResInt;
+    Vec_Int_t * vDataInt = (Vec_Int_t *)vData;
+    vDataInt->nSize *= 2;
+    vDataInt->nCap *= 2;
+    vResInt = Vec_IntUniqifyHash( vDataInt, 2 * nWordSize );
+    vDataInt->nSize /= 2;
+    vDataInt->nCap /= 2;
+    vResInt->nSize /= 2;
+    vResInt->nCap /= 2;
+    return (Vec_Wrd_t *)vResInt;
 }
 
 /**Function*************************************************************
