@@ -100,7 +100,7 @@ https://www.dropbox.com/s/qrl9svlf0ylxy8p/ABC_GettingStarted.pdf
 
 Unfortunately, there is no comprehensive regression test. Good luck!                                
 
-This system is maintained by Alan Mishchenko <alanmi@eecs.berkeley.edu>. Consider also 
+This system is maintained by Alan Mishchenko <alanmi@berkeley.edu>. Consider also 
 using ZZ framework developed by Niklas Een: https://bitbucket.org/niklaseen/abc-zz
 
-This file was last modified on April 25, 2013
+This file was last modified on June 18, 2014
