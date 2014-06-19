@@ -1416,16 +1416,19 @@ static inline void Abc_TtReverseBits( word * pTruth, int nVars )
   SeeAlso     []
 
 ***********************************************************************/
-static inline word Abc_Tt6Isop( word uOn, word uOnDc, int nVars )
+static inline word Abc_Tt6Isop( word uOn, word uOnDc, int nVars, int * pnCubes )
 {
     word uOn0, uOn1, uOnDc0, uOnDc1, uRes0, uRes1, uRes2;
     int Var;
-    assert( nVars <= 5 );
+    assert( nVars <= 6 );
     assert( (uOn & ~uOnDc) == 0 );
     if ( uOn == 0 )
         return 0;
     if ( uOnDc == ~(word)0 )
+    {
+        (*pnCubes)++;
         return ~(word)0;
+    }
     assert( nVars > 0 );
     // find the topmost var
     for ( Var = nVars-1; Var >= 0; Var-- )
@@ -1438,9 +1441,9 @@ static inline word Abc_Tt6Isop( word uOn, word uOnDc, int nVars )
     uOnDc0 = Abc_Tt6Cofactor0( uOnDc, Var );
     uOnDc1 = Abc_Tt6Cofactor1( uOnDc, Var );
     // solve for cofactors
-    uRes0 = Abc_Tt6Isop( uOn0 & ~uOnDc1, uOnDc0, Var );
-    uRes1 = Abc_Tt6Isop( uOn1 & ~uOnDc0, uOnDc1, Var );
-    uRes2 = Abc_Tt6Isop( (uOn0 & ~uRes0) | (uOn1 & ~uRes1), uOnDc0 & uOnDc1, Var );
+    uRes0 = Abc_Tt6Isop( uOn0 & ~uOnDc1, uOnDc0, Var, pnCubes );
+    uRes1 = Abc_Tt6Isop( uOn1 & ~uOnDc0, uOnDc1, Var, pnCubes );
+    uRes2 = Abc_Tt6Isop( (uOn0 & ~uRes0) | (uOn1 & ~uRes1), uOnDc0 & uOnDc1, Var, pnCubes );
     // derive the final truth table
     uRes2 |= (uRes0 & s_Truths6Neg[Var]) | (uRes1 & s_Truths6[Var]);
     assert( (uOn & ~uRes2) == 0 );

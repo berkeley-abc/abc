@@ -519,7 +519,7 @@ void Rsb_DecPrintFunc( Rsb_Man_t * p, unsigned Truth4, word * f, word ** ppGs, i
     word Copy  =  Truth4;
     word wOn   =  Abc_Tt6Stretch( Copy >> (1 << nVars), nVars );
     word wOnDc = ~Abc_Tt6Stretch( Copy, nVars );
-    word wIsop =  Abc_Tt6Isop( wOn, wOnDc, nVars );
+    word wIsop =  Abc_Tt6Isop( wOn, wOnDc, nVars, NULL );
     int i;
 
     printf( "Offset : " );

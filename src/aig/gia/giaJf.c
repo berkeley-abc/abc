@@ -397,7 +397,10 @@ void Jf_ManFree( Jf_Man_t * p )
     if ( p->pPars->fVerbose && p->pDsd )
         Sdm_ManPrintDsdStats( p->pDsd, 0 );
     if ( p->pPars->fVerbose && p->vTtMem )
-        printf( "Unique truth tables = %d. Memory = %.2f MB\n", Vec_MemEntryNum(p->vTtMem), Vec_MemMemory(p->vTtMem) / (1<<20) ); 
+    {
+        printf( "Unique truth tables = %d. Memory = %.2f MB   ", Vec_MemEntryNum(p->vTtMem), Vec_MemMemory(p->vTtMem) / (1<<20) ); 
+        Abc_PrintTime( 1, "Time", Abc_Clock() - p->clkStart );
+    }
     if ( p->pPars->fVeryVerbose && p->pPars->fCutMin && p->pPars->fFuncDsd )
         Jf_ManProfileClasses( p );
     if ( p->pPars->fCoarsen )
