@@ -575,9 +575,30 @@ static inline void Vec_StrPrintNum( Vec_Str_t * p, int Num )
         Num = -Num;
     }
     for ( i = 0; Num; Num /= 10,  i++ )
-        Digits[i] = (char)('0' + Num % 10);
+        Digits[i] = Num % 10;
     for ( i--; i >= 0; i-- )
-        Vec_StrPush( p, Digits[i] );
+        Vec_StrPush( p, (char)('0' + Digits[i]) );
+}
+static inline void Vec_StrPrintNumStar( Vec_Str_t * p, int Num, int nDigits )
+{
+    int i;
+    char Digits[16] = {0};
+    if ( Num == 0 )
+    {
+        for ( i = 0; i < nDigits; i++ )
+            Vec_StrPush( p, '0' );
+        return;
+    }
+    if ( Num < 0 )
+    {
+        Vec_StrPush( p, '-' );
+        Num = -Num;
+        nDigits--;
+    }
+    for ( i = 0; Num; Num /= 10,  i++ )
+        Digits[i] = Num % 10;
+    for ( i = Abc_MaxInt(i, nDigits)-1; i >= 0; i-- )
+        Vec_StrPush( p, (char)('0' + Digits[i]) );
 }
 
 /**Function*************************************************************

@@ -297,18 +297,30 @@ int Gia_MuxMffcSize( Gia_Man_t * p, int iObj )
 void Gia_MuxStructPrint_rec( Gia_Man_t * p, int iObj, int fFirst )
 {
     Gia_Obj_t * pObj = Gia_ManObj( p, iObj );
+    int iCtrl;
     if ( !fFirst && (!Gia_ObjIsMuxId(p, iObj) || Gia_ObjRefNumId(p, iObj) > 0) )
         return;
-    printf( " [(%s", Gia_ObjFaninC2(p, pObj)? "!": "" );
-    if ( !Gia_ObjIsMuxId(p, Gia_ObjFaninId2p(p, pObj)) )
-        printf( "%d", Gia_ObjFaninId2p(p, pObj) );
+    iCtrl = Gia_ObjFaninId2p(p, pObj);
+    printf( " [(" );
+    if ( Gia_ObjIsMuxId(p, iCtrl) && Gia_ObjRefNumId(p, iCtrl) == 0 )
+        Gia_MuxStructPrint_rec( p, iCtrl, 0 );
     else
-        Gia_MuxStructPrint_rec( p, Gia_ObjFaninId2p(p, pObj), 0 );
+        printf( "%d", iCtrl );
     printf( ")" );
-    Gia_MuxStructPrint_rec( p, Gia_ObjFaninId0p(p, pObj), 0 );
-    printf( "|" );
-    Gia_MuxStructPrint_rec( p, Gia_ObjFaninId1p(p, pObj), 0 );
-    printf( "] " );
+    if ( Gia_ObjFaninC2(p, pObj) )
+    {
+        Gia_MuxStructPrint_rec( p, Gia_ObjFaninId0p(p, pObj), 0 );
+        printf( "|" );
+        Gia_MuxStructPrint_rec( p, Gia_ObjFaninId1p(p, pObj), 0 );
+        printf( "] " );
+    }
+    else
+    {
+        Gia_MuxStructPrint_rec( p, Gia_ObjFaninId1p(p, pObj), 0 );
+        printf( "|" );
+        Gia_MuxStructPrint_rec( p, Gia_ObjFaninId0p(p, pObj), 0 );
+        printf( "] " );
+    }
 }
 void Gia_MuxStructPrint( Gia_Man_t * p, int iObj )
 {
@@ -332,21 +344,106 @@ void Gia_MuxStructPrint( Gia_Man_t * p, int iObj )
   SeeAlso     []
 
 ***********************************************************************/
+void Gia_MuxStructDump_rec( Gia_Man_t * p, int iObj, int fFirst, Vec_Str_t * vStr, int nDigitsId )
+{
+    Gia_Obj_t * pObj = Gia_ManObj( p, iObj );
+    int iCtrl;
+    if ( !fFirst && (!Gia_ObjIsMuxId(p, iObj) || Gia_ObjRefNumId(p, iObj) > 0) )
+        return;
+    iCtrl = Gia_ObjFaninId2p(p, pObj);
+    Vec_StrPush( vStr, '[' );
+    Vec_StrPush( vStr, '(' );
+    if ( Gia_ObjIsMuxId(p, iCtrl) && Gia_ObjRefNumId(p, iCtrl) == 0 )
+        Gia_MuxStructDump_rec( p, iCtrl, 0, vStr, nDigitsId );
+    else
+        Vec_StrPrintNumStar( vStr, iCtrl, nDigitsId );
+    Vec_StrPush( vStr, ')' );
+    if ( Gia_ObjFaninC2(p, pObj) )
+    {
+        Gia_MuxStructDump_rec( p, Gia_ObjFaninId0p(p, pObj), 0, vStr, nDigitsId );
+        Vec_StrPush( vStr, '|' );
+        Gia_MuxStructDump_rec( p, Gia_ObjFaninId1p(p, pObj), 0, vStr, nDigitsId );
+        Vec_StrPush( vStr, ']' );
+    }
+    else
+    {
+        Gia_MuxStructDump_rec( p, Gia_ObjFaninId1p(p, pObj), 0, vStr, nDigitsId );
+        Vec_StrPush( vStr, '|' );
+        Gia_MuxStructDump_rec( p, Gia_ObjFaninId0p(p, pObj), 0, vStr, nDigitsId );
+        Vec_StrPush( vStr, ']' );
+    }
+}
+void Gia_MuxStructDump( Gia_Man_t * p, int iObj, Vec_Str_t * vStr, int Num, int nDigitsNum, int nDigitsId )
+{
+    int Count1, Count2;
+    assert( Gia_ObjIsMuxId(p, iObj) );
+    Count1 = Gia_MuxDeref( p, iObj );
+    Vec_StrClear( vStr );
+    Vec_StrPrintNumStar( vStr, Num, nDigitsNum );
+    Gia_MuxStructDump_rec( p, iObj, 1, vStr, nDigitsId );
+    Vec_StrPush( vStr, '\0' );
+    Count2 = Gia_MuxRef( p, iObj );
+    assert( Count1 == Count2 );
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Gia_ManMuxCompare( char ** pp1, char ** pp2 )
+{
+    int Diff = strcmp( *pp1, *pp2 );
+    if ( Diff < 0 )
+        return 1;
+    if ( Diff > 0) 
+        return -1;
+    return 0; 
+}
+int Gia_ManMuxCountOne( char * p )
+{
+    int Count = 0;
+    for ( ; *p; p++ )
+        Count += (*p == '[');
+    return Count;
+}
+void Gia_ManMuxProfile( Vec_Ptr_t * p, Vec_Int_t * vCounts )
+{
+    int i; char * pTemp;
+    Vec_IntFill( vCounts, 1000, 0 );
+    Vec_PtrForEachEntry( char *, p, pTemp, i )
+        Vec_IntAddToEntry( vCounts, Abc_MinInt(Gia_ManMuxCountOne(pTemp), 999), 1 );
+}
+
 void Gia_ManMuxProfiling( Gia_Man_t * p )
 {
     Gia_Man_t * pNew;
     Gia_Obj_t * pObj;
     Vec_Int_t * vFans;
-    Vec_Int_t * vCounts;
+    Vec_Int_t * vCounts = Vec_IntAlloc( 100 );
+    Vec_Ptr_t * vTrees  = Vec_PtrAlloc( 1000 );
+    Vec_Str_t * vStr    = Vec_StrAlloc( 1000 );
+    Vec_Int_t * vDegree = Vec_IntAlloc( 1000 );
     int i, nRefs, Size, Count, Total = 0, Roots = 0;
+    int nDigitsId, nMemory = 0;
+    char * pTemp;
+    abctime clk = Abc_Clock();
 
     pNew = Gia_ManDupMuxes( p, 2 );
+    nDigitsId = Abc_Base10Log( Gia_ManObjNum(pNew) );
+
     Gia_ManCreateRefs( pNew );
     Gia_ManForEachCo( pNew, pObj, i )
         Gia_ObjRefFanin0Inc( pNew, pObj );
 
+    Vec_IntFill( vCounts, 1000, 0 );
     vFans = Gia_ManFirstFanouts( pNew );
-    vCounts = Vec_IntStart( 100 );
     Gia_ManForEachMux( pNew, pObj, i )
     {
         Total++;
@@ -356,22 +453,50 @@ void Gia_ManMuxProfiling( Gia_Man_t * p )
         {
             Roots++;
             Size = Gia_MuxMffcSize(pNew, i);
-            Vec_IntAddToEntry( vCounts, Abc_MinInt(Size, 99), 1 );
-
-            if ( Size > 3 )
+            Vec_IntAddToEntry( vCounts, Abc_MinInt(Size, 999), 1 );
+            if ( Size >= 2 )
             {
-                printf( "%d ", Size );
-                Gia_MuxStructPrint( pNew, i );
+                Gia_MuxStructDump( pNew, i, vStr, Size, 3, nDigitsId );
+                Vec_PtrPush( vTrees, Abc_UtilStrsav(Vec_StrArray(vStr)) );
+                nMemory += Vec_StrSize(vStr);
             }
         }
     }
-    printf( "MUXes: Total = %d. Roots = %d.\n", Total, Roots );
-
+    printf( "MUXes: Total = %d. Roots = %d. Trees = %d.  Memory = %.2f MB\n", Total, Roots, Vec_PtrSize(vTrees), 1.0*nMemory/(1<<20) );
     Vec_IntForEachEntry( vCounts, Count, i )
         if ( Count )
             printf( "%d=%d ", i, Count );
     printf( "\n" );
 
+//    Vec_PtrForEachEntryStop( char *, vTrees, pTemp, i, Abc_MinInt(Vec_PtrSize(vTrees), 40) )
+//        printf( "%6d : %3d %3d  %s\n", i, -1, Gia_ManMuxCountOne(pTemp), pTemp );
+
+    // uniqify
+    Vec_PtrUniqify2( vTrees, (int (*)(void))Gia_ManMuxCompare, (void (*)(void))free, vDegree );
+    Gia_ManMuxProfile( vTrees, vCounts );
+
+    nMemory = 0;
+    Vec_PtrForEachEntry( char *, vTrees, pTemp, i )
+        nMemory += strlen(pTemp);
+
+    printf( "MUXes: Trees = %d.  Memory = %.2f MB\n", Vec_PtrSize(vTrees), 1.0*nMemory/(1<<20) );
+    Vec_IntForEachEntry( vCounts, Count, i )
+        if ( Count )
+            printf( "%d=%d ", i, Count );
+    printf( "\n" );
+
+//    Vec_PtrForEachEntryStop( char *, vTrees, pTemp, i, Abc_MinInt(Vec_PtrSize(vTrees), 40) )
+//        printf( "%6d : %3d %3d  %s\n", i, Vec_IntEntry(vDegree, i), Gia_ManMuxCountOne(pTemp), pTemp );
+
+    Vec_PtrForEachEntryStop( char *, vTrees, pTemp, i, Abc_MinInt(Vec_PtrSize(vTrees), 5000) )
+        if ( Vec_IntEntry(vDegree, i) > 10 )
+            printf( "%6d : %3d %3d  %s\n", i, Vec_IntEntry(vDegree, i), Gia_ManMuxCountOne(pTemp), pTemp );
+
+    Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
+
+    Vec_PtrFreeFree( vTrees );
+    Vec_StrFree( vStr );
+    Vec_IntFree( vDegree );
     Vec_IntFree( vCounts );
     Vec_IntFree( vFans );
     Gia_ManStop( pNew );
