@@ -29,7 +29,7 @@ ABC_NAMESPACE_IMPL_START
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-typedef enum { 
+enum { 
     GIG_NONE   =  0,
     GIG_RESET  =  1,
     GIG_PI     =  2,
