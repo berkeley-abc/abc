@@ -3775,6 +3775,10 @@ SOURCE=.\src\aig\gia\giaFx.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\aig\gia\giaGig.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\aig\gia\giaGlitch.c
 # End Source File
 # Begin Source File

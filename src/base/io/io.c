@@ -45,6 +45,7 @@ static int IoCommandReadPla     ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandReadTruth   ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandReadVerilog ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandReadStatus  ( Abc_Frame_t * pAbc, int argc, char **argv );
+static int IoCommandReadGig     ( Abc_Frame_t * pAbc, int argc, char **argv );
 
 static int IoCommandWrite       ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandWriteHie    ( Abc_Frame_t * pAbc, int argc, char **argv );
@@ -108,6 +109,7 @@ void Io_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "I/O", "read_truth",    IoCommandReadTruth,    1 );
     Cmd_CommandAdd( pAbc, "I/O", "read_verilog",  IoCommandReadVerilog,  1 );
     Cmd_CommandAdd( pAbc, "I/O", "read_status",   IoCommandReadStatus,   0 );
+    Cmd_CommandAdd( pAbc, "I/O", "&read_gig",     IoCommandReadGig,      0 );
 
     Cmd_CommandAdd( pAbc, "I/O", "write",         IoCommandWrite,        0 );
     Cmd_CommandAdd( pAbc, "I/O", "write_hie",     IoCommandWriteHie,     0 );
@@ -1127,6 +1129,63 @@ int IoCommandReadStatus( Abc_Frame_t * pAbc, int argc, char ** argv )
 usage:
     fprintf( pAbc->Err, "usage: read_status [-ch] <file>\n" );
     fprintf( pAbc->Err, "\t         reads verification log file\n" );
+    fprintf( pAbc->Err, "\t-h     : prints the command summary\n" );
+    fprintf( pAbc->Err, "\tfile   : the name of a file to read\n" );
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int IoCommandReadGig( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern Gia_Man_t * Gia_ManReadGig( char * pFileName );
+    Gia_Man_t * pAig;
+    char * pFileName;
+    FILE * pFile;
+    int c;
+
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
+    {
+        switch ( c )
+        {
+            case 'h':
+                goto usage;
+            default:
+                goto usage;
+        }
+    }
+    if ( argc != globalUtilOptind + 1 )
+    {
+        goto usage;
+    }
+
+    // get the input file name
+    pFileName = argv[globalUtilOptind];
+    if ( (pFile = fopen( pFileName, "r" )) == NULL )
+    {
+        fprintf( pAbc->Err, "Cannot open input file \"%s\". \n", pFileName );
+        return 1;
+    }
+    fclose( pFile );
+
+    // set the new network
+    pAig = Gia_ManReadGig( pFileName );
+    //Abc_FrameUpdateGia( pAbc, pAig );
+    return 0;
+
+usage:
+    fprintf( pAbc->Err, "usage: &read_gig [-h] <file>\n" );
+    fprintf( pAbc->Err, "\t         reads design in GIG format\n" );
     fprintf( pAbc->Err, "\t-h     : prints the command summary\n" );
     fprintf( pAbc->Err, "\tfile   : the name of a file to read\n" );
     return 1;
