@@ -25709,7 +25709,12 @@ int Abc_CommandAbc9Strash( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Abc_CommandAbc9Strash(): There is no AIG.\n" );
         return 1;
     }
-    if ( fAddMuxes )
+    if ( Gia_ManHasMapping(pAbc->pGia) )
+    {
+        pTemp = (Gia_Man_t *)Dsm_ManDeriveGia( pAbc->pGia, fAddMuxes );
+        printf( "Performed delay-oriented unmapping.\n" );
+    }
+    else if ( fAddMuxes )
     {
         if ( pAbc->pGia->pMuxes )
         {
@@ -25717,6 +25722,7 @@ int Abc_CommandAbc9Strash( Abc_Frame_t * pAbc, int argc, char ** argv )
             return 1;
         }
         pTemp = Gia_ManDupMuxes( pAbc->pGia, Limit );
+        printf( "Generated AND/XOR/MUX graph.\n" );
     }
     else if ( fCollapse && pAbc->pGia->pAigExtra )
     {
@@ -25725,11 +25731,18 @@ int Abc_CommandAbc9Strash( Abc_Frame_t * pAbc, int argc, char ** argv )
         pTemp = Gia_ManDupCollapse( pNew, pAbc->pGia->pAigExtra, NULL );
         pNew->pManTime = NULL;
         Gia_ManStop( pNew );
+        printf( "Collapsed AIG with boxes with logic of the boxes.\n" );
     }
     else if ( pAbc->pGia->pMuxes )
+    {
         pTemp = Gia_ManDupNoMuxes( pAbc->pGia );
+        printf( "Generated AIG from AND/XOR/MUX graph.\n" );
+    }
     else
+    {
         pTemp = Gia_ManRehash( pAbc->pGia, fAddStrash );
+        printf( "Rehashed the current AIG.\n" );
+    }
     Abc_FrameUpdateGia( pAbc, pTemp );
     return 0;
 

@@ -85,7 +85,7 @@ int Dau_DsdToGiaCompose_rec( Gia_Man_t * pGia, word Func, int * pFanins, int nVa
   SeeAlso     []
 
 ***********************************************************************/
-int Dau_DsdToGia_rec( Gia_Man_t * pGia, char * pStr, char ** p, int * pMatches, int * pLits, Vec_Int_t * vCover )
+int Dau_DsdToGia2_rec( Gia_Man_t * pGia, char * pStr, char ** p, int * pMatches, int * pLits, Vec_Int_t * vCover )
 {
     int fCompl = 0;
     if ( **p == '!' )
@@ -99,7 +99,7 @@ int Dau_DsdToGia_rec( Gia_Man_t * pGia, char * pStr, char ** p, int * pMatches, 
         assert( **p == '(' && *q == ')' );
         for ( (*p)++; *p < q; (*p)++ )
         {
-            Lit = Dau_DsdToGia_rec( pGia, pStr, p, pMatches, pLits, vCover );
+            Lit = Dau_DsdToGia2_rec( pGia, pStr, p, pMatches, pLits, vCover );
             Res = Gia_ManHashAnd( pGia, Res, Lit );
         }
         assert( *p == q );
@@ -112,7 +112,7 @@ int Dau_DsdToGia_rec( Gia_Man_t * pGia, char * pStr, char ** p, int * pMatches, 
         assert( **p == '[' && *q == ']' );
         for ( (*p)++; *p < q; (*p)++ )
         {
-            Lit = Dau_DsdToGia_rec( pGia, pStr, p, pMatches, pLits, vCover );
+            Lit = Dau_DsdToGia2_rec( pGia, pStr, p, pMatches, pLits, vCover );
             if ( pGia->pMuxes )
                 Res = Gia_ManHashXorReal( pGia, Res, Lit );
             else
@@ -123,6 +123,184 @@ int Dau_DsdToGia_rec( Gia_Man_t * pGia, char * pStr, char ** p, int * pMatches, 
     }
     if ( **p == '<' ) // mux
     {
+        int nVars = 0;
+        int Temp[3], * pTemp = Temp, Res;
+        int Fanins[DAU_DSD_MAX_VAR], * pLits2;
+        char * pOld = *p;
+        char * q = pStr + pMatches[ *p - pStr ];
+        // read fanins
+        if ( *(q+1) == '{' )
+        {
+            char * q2;
+            *p = q+1;
+            q2 = pStr + pMatches[ *p - pStr ];
+            assert( **p == '{' && *q2 == '}' );
+            for ( nVars = 0, (*p)++; *p < q2; (*p)++, nVars++ )
+                Fanins[nVars] = Dau_DsdToGia2_rec( pGia, pStr, p, pMatches, pLits, vCover );
+            assert( *p == q2 );
+            pLits2 = Fanins;
+        }
+        else
+            pLits2 = pLits;
+        // read MUX
+        *p = pOld;
+        q = pStr + pMatches[ *p - pStr ];
+        assert( **p == '<' && *q == '>' );
+        // verify internal variables
+        if ( nVars )
+            for ( ; pOld < q; pOld++ )
+                if ( *pOld >= 'a' && *pOld <= 'z' )
+                    assert( *pOld - 'a' < nVars );
+        // derive MUX components
+        for ( (*p)++; *p < q; (*p)++ )
+            *pTemp++ = Dau_DsdToGia2_rec( pGia, pStr, p, pMatches, pLits2, vCover );
+        assert( pTemp == Temp + 3 );
+        assert( *p == q );
+        if ( *(q+1) == '{' ) // and/or
+        {
+            char * q = pStr + pMatches[ ++(*p) - pStr ];
+            assert( **p == '{' && *q == '}' );
+            *p = q;
+        }
+        if ( pGia->pMuxes )
+            Res = Gia_ManHashMuxReal( pGia, Temp[0], Temp[1], Temp[2] );
+        else
+            Res = Gia_ManHashMux( pGia, Temp[0], Temp[1], Temp[2] );
+        return Abc_LitNotCond( Res, fCompl );
+    }
+    if ( (**p >= 'A' && **p <= 'F') || (**p >= '0' && **p <= '9') )
+    {
+        Vec_Int_t vLeaves;  char * q;
+        word pFunc[DAU_DSD_MAX_VAR > 6 ? (1 << (DAU_DSD_MAX_VAR-6)) : 1];
+        int Fanins[DAU_DSD_MAX_VAR], Res; 
+        int i, nVars = Abc_TtReadHex( pFunc, *p );
+        *p += Abc_TtHexDigitNum( nVars );
+        q = pStr + pMatches[ *p - pStr ];
+        assert( **p == '{' && *q == '}' );
+        for ( i = 0, (*p)++; *p < q; (*p)++, i++ )
+            Fanins[i] = Dau_DsdToGia2_rec( pGia, pStr, p, pMatches, pLits, vCover );
+        assert( i == nVars );
+        assert( *p == q );
+//        Res = Dau_DsdToGia2Compose_rec( pGia, Func, Fanins, nVars );
+        vLeaves.nCap = nVars;
+        vLeaves.nSize = nVars;
+        vLeaves.pArray = Fanins;        
+        Res = Kit_TruthToGia( pGia, (unsigned *)pFunc, nVars, vCover, &vLeaves, 1 );
+        m_Non1Step++;
+        return Abc_LitNotCond( Res, fCompl );
+    }
+    assert( 0 );
+    return 0;
+}
+int Dau_DsdToGia2( Gia_Man_t * pGia, char * p, int * pLits, Vec_Int_t * vCover )
+{
+    int Res;
+    if ( *p == '0' && *(p+1) == 0 )
+        Res = 0;
+    else if ( *p == '1' && *(p+1) == 0 )
+        Res = 1;
+    else
+        Res = Dau_DsdToGia2_rec( pGia, p, &p, Dau_DsdComputeMatches(p), pLits, vCover );
+    assert( *++p == 0 );
+    return Res;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Derives GIA for the DSD formula.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Dau_DsdAddToArray( Gia_Man_t * pGia, int * pFans, int nFans, int iFan )
+{
+    int i;
+    pFans[nFans] = iFan;
+    if ( nFans == 0 )
+        return;
+    for ( i = nFans; i > 0; i-- )
+    {
+        if ( Gia_ObjLevelId(pGia, Abc_Lit2Var(pFans[i])) <= Gia_ObjLevelId(pGia, Abc_Lit2Var(pFans[i-1])) )
+            return;
+        ABC_SWAP( int, pFans[i], pFans[i-1] );
+    }
+}
+int Dau_DsdBalance( Gia_Man_t * pGia, int * pFans, int nFans, int fAnd )
+{
+    Gia_Obj_t * pObj;
+    int iFan0, iFan1, iFan;
+    if ( nFans == 1 )
+        return pFans[0];
+    assert( nFans > 1 );
+    iFan0 = pFans[--nFans];
+    iFan1 = pFans[--nFans];
+    if ( fAnd )
+        iFan = Gia_ManHashAnd( pGia, iFan0, iFan1 );
+    else if ( pGia->pMuxes )
+        iFan = Gia_ManHashXorReal( pGia, iFan0, iFan1 );
+    else 
+        iFan = Gia_ManHashXor( pGia, iFan0, iFan1 );
+    pObj = Gia_ManObj(pGia, Abc_Lit2Var(iFan));
+    if ( Gia_ObjIsAnd(pObj) )
+    {
+        if ( fAnd )
+            Gia_ObjSetAndLevel( pGia, pObj );
+        else if ( pGia->pMuxes )
+            Gia_ObjSetXorLevel( pGia, pObj );
+        else 
+        {
+            if ( Gia_ObjIsAnd(Gia_ObjFanin0(pObj)) )
+                Gia_ObjSetAndLevel( pGia, Gia_ObjFanin0(pObj) );
+            if ( Gia_ObjIsAnd(Gia_ObjFanin1(pObj)) )
+                Gia_ObjSetAndLevel( pGia, Gia_ObjFanin1(pObj) );
+            Gia_ObjSetAndLevel( pGia, pObj );
+        }
+    }
+    Dau_DsdAddToArray( pGia, pFans, nFans++, iFan );
+    return Dau_DsdBalance( pGia, pFans, nFans, fAnd );
+}
+int Dau_DsdToGia_rec( Gia_Man_t * pGia, char * pStr, char ** p, int * pMatches, int * pLits, Vec_Int_t * vCover )
+{
+    int fCompl = 0;
+    if ( **p == '!' )
+        (*p)++, fCompl = 1;
+    if ( **p >= 'a' && **p < 'a' + DAU_DSD_MAX_VAR ) // var
+        return Abc_LitNotCond( pLits[**p - 'a'], fCompl );
+    if ( **p == '(' ) // and/or
+    {
+        char * q = pStr + pMatches[ *p - pStr ];
+        int pFans[DAU_DSD_MAX_VAR], nFans = 0, Fan;
+        assert( **p == '(' && *q == ')' );
+        for ( (*p)++; *p < q; (*p)++ )
+        {
+            Fan = Dau_DsdToGia_rec( pGia, pStr, p, pMatches, pLits, vCover );
+            Dau_DsdAddToArray( pGia, pFans, nFans++, Fan );
+        }
+        Fan = Dau_DsdBalance( pGia, pFans, nFans, 1 );
+        assert( *p == q );
+        return Abc_LitNotCond( Fan, fCompl );
+    }
+    if ( **p == '[' ) // xor
+    {
+        char * q = pStr + pMatches[ *p - pStr ];
+        int pFans[DAU_DSD_MAX_VAR], nFans = 0, Fan;
+        assert( **p == '[' && *q == ']' );
+        for ( (*p)++; *p < q; (*p)++ )
+        {
+            Fan = Dau_DsdToGia_rec( pGia, pStr, p, pMatches, pLits, vCover );
+            Dau_DsdAddToArray( pGia, pFans, nFans++, Fan );
+        }
+        Fan = Dau_DsdBalance( pGia, pFans, nFans, 0 );
+        assert( *p == q );
+        return Abc_LitNotCond( Fan, fCompl );
+    }
+    if ( **p == '<' ) // mux
+    {
+        Gia_Obj_t * pObj;
         int nVars = 0;
         int Temp[3], * pTemp = Temp, Res;
         int Fanins[DAU_DSD_MAX_VAR], * pLits2;
@@ -166,13 +344,27 @@ int Dau_DsdToGia_rec( Gia_Man_t * pGia, char * pStr, char ** p, int * pMatches, 
             Res = Gia_ManHashMuxReal( pGia, Temp[0], Temp[1], Temp[2] );
         else
             Res = Gia_ManHashMux( pGia, Temp[0], Temp[1], Temp[2] );
+        pObj = Gia_ManObj(pGia, Abc_Lit2Var(Res));
+        if ( Gia_ObjIsAnd(pObj) )
+        {
+            if ( pGia->pMuxes )
+                Gia_ObjSetMuxLevel( pGia, pObj );
+            else 
+            {
+                if ( Gia_ObjIsAnd(Gia_ObjFanin0(pObj)) )
+                    Gia_ObjSetAndLevel( pGia, Gia_ObjFanin0(pObj) );
+                if ( Gia_ObjIsAnd(Gia_ObjFanin1(pObj)) )
+                    Gia_ObjSetAndLevel( pGia, Gia_ObjFanin1(pObj) );
+                Gia_ObjSetAndLevel( pGia, pObj );
+            }
+        }
         return Abc_LitNotCond( Res, fCompl );
     }
     if ( (**p >= 'A' && **p <= 'F') || (**p >= '0' && **p <= '9') )
     {
         Vec_Int_t vLeaves;  char * q;
         word pFunc[DAU_DSD_MAX_VAR > 6 ? (1 << (DAU_DSD_MAX_VAR-6)) : 1];
-        int Fanins[DAU_DSD_MAX_VAR], Res; 
+        int Fanins[DAU_DSD_MAX_VAR], Res, nObjOld; 
         int i, nVars = Abc_TtReadHex( pFunc, *p );
         *p += Abc_TtHexDigitNum( nVars );
         q = pStr + pMatches[ *p - pStr ];
@@ -184,8 +376,11 @@ int Dau_DsdToGia_rec( Gia_Man_t * pGia, char * pStr, char ** p, int * pMatches, 
 //        Res = Dau_DsdToGiaCompose_rec( pGia, Func, Fanins, nVars );
         vLeaves.nCap = nVars;
         vLeaves.nSize = nVars;
-        vLeaves.pArray = Fanins;        
+        vLeaves.pArray = Fanins;      
+        nObjOld = Gia_ManObjNum(pGia);
         Res = Kit_TruthToGia( pGia, (unsigned *)pFunc, nVars, vCover, &vLeaves, 1 );
+        for ( i = nObjOld; i < Gia_ManObjNum(pGia); i++ )
+            Gia_ObjSetGateLevel( pGia, Gia_ManObj(pGia, i) );
         m_Non1Step++;
         return Abc_LitNotCond( Res, fCompl );
     }
@@ -218,6 +413,7 @@ int Dau_DsdToGia( Gia_Man_t * pGia, char * p, int * pLits, Vec_Int_t * vCover )
 ***********************************************************************/
 int Dsm_ManTruthToGia( void * p, word * pTruth, Vec_Int_t * vLeaves, Vec_Int_t * vCover )
 {
+    int fDelayBalance = 1;
     Gia_Man_t * pGia = (Gia_Man_t *)p;
     char pDsd[1000];
     int nSizeNonDec;
@@ -228,7 +424,10 @@ int Dsm_ManTruthToGia( void * p, word * pTruth, Vec_Int_t * vLeaves, Vec_Int_t *
     if ( nSizeNonDec )
         m_NonDsd++;
 //    printf( "%s\n", pDsd );
-    return Dau_DsdToGia( pGia, pDsd, Vec_IntArray(vLeaves), vCover );
+    if ( fDelayBalance )
+        return Dau_DsdToGia( pGia, pDsd, Vec_IntArray(vLeaves), vCover );
+    else
+        return Dau_DsdToGia2( pGia, pDsd, Vec_IntArray(vLeaves), vCover );
 }
 
 /**Function*************************************************************
@@ -269,9 +468,10 @@ void * Dsm_ManDeriveGia( void * pGia, int fUseMuxes )
     word * pTruth;
     assert( Gia_ManHasMapping(p) );   
     // create new manager
-    pNew = Gia_ManStart( Gia_ManObjNum(p) );
+    pNew = Gia_ManStart( 6*Gia_ManObjNum(p)/5 + 100 );
     pNew->pName = Abc_UtilStrsav( p->pName );
     pNew->pSpec = Abc_UtilStrsav( p->pSpec );
+    pNew->vLevels = Vec_IntStart( 6*Gia_ManObjNum(p)/5 + 100 );
     if ( fUseMuxes )
         pNew->pMuxes = ABC_CALLOC( unsigned, pNew->nObjsAlloc );
     // map primary inputs
