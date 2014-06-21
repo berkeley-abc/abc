@@ -385,6 +385,11 @@ void Gia_ManPrintChoiceStats( Gia_Man_t * p )
 void Gia_ManPrintStats( Gia_Man_t * p, Gps_Par_t * pPars )
 {
     extern float Gia_ManLevelAve( Gia_Man_t * p );
+    if ( pPars->fMiter )
+    {
+        Gia_ManPrintStatsMiter( p, 0 );
+        return;
+    }
 #ifdef WIN32
     SetConsoleTextAttribute( GetStdHandle(STD_OUTPUT_HANDLE), 15 ); // bright
     if ( p->pName )
@@ -544,6 +549,40 @@ void Gia_ManPrintMiterStatus( Gia_Man_t * p )
     }
     Abc_Print( 1, "Outputs = %7d.  Unsat = %7d.  Sat = %7d.  Undec = %7d.\n",
         Gia_ManPoNum(p), nUnsat, nSat, nUndec );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Statistics of the miter.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_ManPrintStatsMiter( Gia_Man_t * p, int fVerbose )
+{
+    Gia_Obj_t * pObj;
+    Vec_Flt_t * vProb;
+    int i, iObjId;
+    Gia_ManLevelNum( p );
+    Gia_ManCreateRefs( p );
+    vProb = Gia_ManPrintOutputProb( p );
+    printf( "Statistics for each outputs of the miter:\n" );
+    Gia_ManForEachPo( p, pObj, i )
+    {
+        iObjId = Gia_ObjId(p, pObj);
+        printf( "%4d : ", i );
+        printf( "Level = %5d  ",  Gia_ObjLevelId(p, iObjId) );
+        printf( "Supp = %5d  ",   Gia_ManSuppSize(p, &iObjId, 1) );
+        printf( "Cone = %5d  ",   Gia_ManConeSize(p, &iObjId, 1) );
+        printf( "Mffc = %5d  ",   Gia_NodeMffcSize(p, Gia_ObjFanin0(pObj)) );
+        printf( "Prob = %8.4f  ", Vec_FltEntry(vProb, iObjId) );
+        printf( "\n" );
+    }
+    Vec_FltFree( vProb );
 }
 
 /**Function*************************************************************

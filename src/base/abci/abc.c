@@ -413,6 +413,7 @@ static int Abc_CommandAbc9Inse               ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandAbc9Maxi               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Bmci               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9PoXsim             ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9Demiter            ( Abc_Frame_t * pAbc, int argc, char ** argv );
 //static int Abc_CommandAbc9PoPart2            ( Abc_Frame_t * pAbc, int argc, char ** argv );
 //static int Abc_CommandAbc9CexCut             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 //static int Abc_CommandAbc9CexMerge           ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -990,6 +991,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "ABC9",         "&maxi",         Abc_CommandAbc9Maxi,         0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&bmci",         Abc_CommandAbc9Bmci,         0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&poxsim",       Abc_CommandAbc9PoXsim,       0 );
+    Cmd_CommandAdd( pAbc, "ABC9",         "&demiter",      Abc_CommandAbc9Demiter,      0 );
 //    Cmd_CommandAdd( pAbc, "ABC9",         "&popart2",      Abc_CommandAbc9PoPart2,      0 );
 //    Cmd_CommandAdd( pAbc, "ABC9",         "&cexcut",       Abc_CommandAbc9CexCut,       0 );
 //    Cmd_CommandAdd( pAbc, "ABC9",         "&cexmerge",     Abc_CommandAbc9CexMerge,     0 );
@@ -25410,7 +25412,7 @@ int Abc_CommandAbc9Ps( Abc_Frame_t * pAbc, int argc, char ** argv )
     int c;
     memset( pPars, 0, sizeof(Gps_Par_t) );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "Dtpcnlmh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Dtpcnlmah" ) ) != EOF )
     {
         switch ( c )
         {
@@ -25431,6 +25433,9 @@ int Abc_CommandAbc9Ps( Abc_Frame_t * pAbc, int argc, char ** argv )
             break;
         case 'm':
             pPars->fMuxXor ^= 1;
+            break;
+        case 'a':
+            pPars->fMiter ^= 1;
             break;
         case 'D':
             if ( globalUtilOptind >= argc )
@@ -25456,7 +25461,7 @@ int Abc_CommandAbc9Ps( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &ps [-tpcnlmh] [-D file]\n" );
+    Abc_Print( -2, "usage: &ps [-tpcnlmah] [-D file]\n" );
     Abc_Print( -2, "\t          prints stats of the current AIG\n" );
     Abc_Print( -2, "\t-t      : toggle printing BMC tents [default = %s]\n",                pPars->fTents? "yes": "no" );
     Abc_Print( -2, "\t-p      : toggle printing switching activity [default = %s]\n",       pPars->fSwitch? "yes": "no" );
@@ -25464,6 +25469,7 @@ usage:
     Abc_Print( -2, "\t-n      : toggle printing NPN classes of functions [default = %s]\n", pPars->fNpn? "yes": "no" );
     Abc_Print( -2, "\t-l      : toggle printing LUT size profile [default = %s]\n",         pPars->fLutProf? "yes": "no" );
     Abc_Print( -2, "\t-m      : toggle printing MUX/XOR statistics [default = %s]\n",       pPars->fMuxXor? "yes": "no" );
+    Abc_Print( -2, "\t-a      : toggle printing miter statistics [default = %s]\n",         pPars->fMiter? "yes": "no" );
     Abc_Print( -2, "\t-D file : file name to dump statistics [default = none]\n" );
     Abc_Print( -2, "\t-h      : print the command usage\n");
     return 1;
@@ -34404,6 +34410,60 @@ usage:
     Abc_Print( -2, "\t         X-valued simulation of the multi-output sequential miter\n" );
     Abc_Print( -2, "\t-F num : the number of timeframes [default = %d]\n",                    nFrames );
     Abc_Print( -2, "\t-v     : toggles printing verbose information [default = %s]\n",        fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc9Demiter( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern Gia_Man_t * Gia_ManDupDemiter( Gia_Man_t * p, int fVerbose );
+    Gia_Man_t * pTemp;
+    int c, fVerbose = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pAbc->pGia == NULL )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9Demiter(): There is no AIG.\n" );
+        return 0;
+    }
+    if ( Gia_ManPoNum(pAbc->pGia) != 1 )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9Demiter(): Miter should have one output.\n" );
+        return 0;
+    }
+    pTemp = Gia_ManDupDemiter( pAbc->pGia, fVerbose );
+    Abc_FrameUpdateGia( pAbc, pTemp );
+    if ( fVerbose )
+        Gia_ManPrintStatsMiter( pTemp, 0 );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: &demiter [-vh]\n" );
+    Abc_Print( -2, "\t         decomposes a single-output miter\n" );
+    Abc_Print( -2, "\t-v     : toggles printing verbose information [default = %s]\n",  fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
 }

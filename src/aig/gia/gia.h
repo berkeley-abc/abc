@@ -198,6 +198,7 @@ struct Gps_Par_t_
     int            fNpn;
     int            fLutProf;
     int            fMuxXor;
+    int            fMiter;
     char *         pDumpFile;
 };
 
@@ -1154,6 +1155,7 @@ extern double              Gia_ManMemory( Gia_Man_t * p );
 extern void                Gia_ManPrintStats( Gia_Man_t * p, Gps_Par_t * pPars ); 
 extern void                Gia_ManPrintStatsShort( Gia_Man_t * p ); 
 extern void                Gia_ManPrintMiterStatus( Gia_Man_t * p ); 
+extern void                Gia_ManPrintStatsMiter( Gia_Man_t * p, int fVerbose );
 extern void                Gia_ManSetRegNum( Gia_Man_t * p, int nRegs );
 extern void                Gia_ManReportImprovement( Gia_Man_t * p, Gia_Man_t * pNew );
 extern void                Gia_ManPrintNpnClasses( Gia_Man_t * p );
@@ -1244,6 +1246,7 @@ extern int                 Gia_SweeperRun( Gia_Man_t * p, Vec_Int_t * vProbeIds,
 extern float               Gia_ManEvaluateSwitching( Gia_Man_t * p );
 extern float               Gia_ManComputeSwitching( Gia_Man_t * p, int nFrames, int nPref, int fProbOne );
 extern Vec_Int_t *         Gia_ManComputeSwitchProbs( Gia_Man_t * pGia, int nFrames, int nPref, int fProbOne );
+extern Vec_Flt_t *         Gia_ManPrintOutputProb( Gia_Man_t * p );
 /*=== giaTim.c ===========================================================*/
 extern Gia_Man_t *         Gia_ManDupNormalize( Gia_Man_t * p );
 extern Gia_Man_t *         Gia_ManDupUnnormalize( Gia_Man_t * p );

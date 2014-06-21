@@ -2760,15 +2760,15 @@ Gia_Man_t * Gia_ManDupSliced( Gia_Man_t * p, int nSuppMax )
   SeeAlso     []
 
 ***********************************************************************/
-void Gia_ManDupWithConstrCollectAnd_rec( Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Int_t * vSuper )
+void Gia_ManDupWithConstrCollectAnd_rec( Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Int_t * vSuper, int fFirst )
 {
-    if ( Gia_IsComplement(pObj) || !Gia_ObjIsAnd(pObj) )
+    if ( (Gia_IsComplement(pObj) || !Gia_ObjIsAnd(pObj)) && !fFirst )
     {
         Vec_IntPushUnique( vSuper, Gia_ObjToLit(p, pObj) );
         return;
     }
-    Gia_ManDupWithConstrCollectAnd_rec( p, Gia_ObjChild0(pObj), vSuper );
-    Gia_ManDupWithConstrCollectAnd_rec( p, Gia_ObjChild1(pObj), vSuper );
+    Gia_ManDupWithConstrCollectAnd_rec( p, Gia_ObjChild0(pObj), vSuper, 0 );
+    Gia_ManDupWithConstrCollectAnd_rec( p, Gia_ObjChild1(pObj), vSuper, 0 );
 }
 Gia_Man_t * Gia_ManDupWithConstr( Gia_Man_t * p )
 {
@@ -2785,7 +2785,7 @@ Gia_Man_t * Gia_ManDupWithConstr( Gia_Man_t * p )
         return NULL;
     }
     vSuper = Vec_IntAlloc( 100 );
-    Gia_ManDupWithConstrCollectAnd_rec( p, Gia_ObjChild0(pObj), vSuper );
+    Gia_ManDupWithConstrCollectAnd_rec( p, Gia_ObjChild0(pObj), vSuper, 1 );
     assert( Vec_IntSize(vSuper) > 1 );
     // find the highest level
     Gia_ManLevelNum( p );
@@ -2828,6 +2828,86 @@ Gia_Man_t * Gia_ManDupWithConstr( Gia_Man_t * p )
     Vec_IntFree( vSuper );
     return pNew;
 
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Compares two objects by their distance.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Gia_ManSortByValue( Gia_Obj_t ** pp1, Gia_Obj_t ** pp2 )
+{
+    int Diff = Gia_Regular(*pp1)->Value - Gia_Regular(*pp2)->Value;
+    if ( Diff < 0 )
+        return -1;
+    if ( Diff > 0 ) 
+        return 1;
+    return 0; 
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Decomposes the miter outputs.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Gia_Man_t * Gia_ManDupDemiter( Gia_Man_t * p, int fVerbose )
+{
+    Vec_Int_t * vSuper;
+    Vec_Ptr_t * vSuperPtr;
+    Gia_Man_t * pNew, * pTemp;
+    Gia_Obj_t * pObj, * pObjPo;
+    int i, iLit;
+    assert( Gia_ManPoNum(p) == 1 );
+    // decompose
+    pObjPo = Gia_ManPo( p, 0 );
+    vSuper = Vec_IntAlloc( 100 );
+    Gia_ManDupWithConstrCollectAnd_rec( p, Gia_ObjFanin0(pObjPo), vSuper, 1 );
+    assert( Vec_IntSize(vSuper) > 1 );
+    // report the result
+    printf( "The miter is %s-decomposable into %d parts.\n", Gia_ObjFaninC0(pObjPo) ? "OR":"AND", Vec_IntSize(vSuper) );
+    // create levels
+    Gia_ManLevelNum( p );
+    Vec_IntForEachEntry( vSuper, iLit, i )
+        Gia_ManObj(p, Abc_Lit2Var(iLit))->Value = Gia_ObjLevelId(p, Abc_Lit2Var(iLit));
+    // create pointer array
+    vSuperPtr = Vec_PtrAlloc( Vec_IntSize(vSuper) );
+    Vec_IntForEachEntry( vSuper, iLit, i )
+        Vec_PtrPush( vSuperPtr, Gia_Lit2Obj(p, iLit) );
+    Vec_PtrSort( vSuperPtr, (int (*)(void))Gia_ManSortByValue );
+    // create new manager
+    pNew = Gia_ManStart( Gia_ManObjNum(p) );
+    pNew->pName = Abc_UtilStrsav( p->pName );
+    pNew->pSpec = Abc_UtilStrsav( p->pSpec );
+    Gia_ManConst0(p)->Value = 0;
+    Gia_ManHashAlloc( pNew );
+    Gia_ManForEachCi( p, pObj, i )
+        pObj->Value = Gia_ManAppendCi( pNew );
+    Gia_ManForEachAnd( p, pObj, i )
+        pObj->Value = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+    // create the outputs
+    Vec_PtrForEachEntry( Gia_Obj_t *, vSuperPtr, pObj, i )
+        Gia_ManAppendCo( pNew, Gia_ObjLitCopy(p, Gia_Obj2Lit(p, pObj)) ^ Gia_ObjFaninC0(pObjPo) );
+    Gia_ManForEachRi( p, pObj, i )
+        Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
+    Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
+    // rehash
+    pNew = Gia_ManCleanup( pTemp = pNew );
+    Gia_ManStop( pTemp );
+    Vec_IntFree( vSuper );
+    Vec_PtrFree( vSuperPtr );
+    return pNew;
 }
 
 ////////////////////////////////////////////////////////////////////////

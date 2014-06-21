@@ -777,6 +777,27 @@ float Gia_ManComputeSwitching( Gia_Man_t * p, int nFrames, int nPref, int fProbO
     return SwitchTotal;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Determine probability of being 1 at the outputs.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Flt_t * Gia_ManPrintOutputProb( Gia_Man_t * p )
+{
+    Vec_Flt_t * vSimData;
+    Gia_Man_t * pDfs = Gia_ManDup( p );
+    assert( Gia_ManObjNum(pDfs) == Gia_ManObjNum(p) );
+    vSimData = (Vec_Flt_t *)Gia_ManComputeSwitchProbs( pDfs, (Gia_ManRegNum(p) ? 16 : 1), 0, 1 );
+    Gia_ManStop( pDfs );
+    return vSimData;
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
