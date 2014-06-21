@@ -72,19 +72,121 @@ static char * s_GigNames[GIG_UNUSED] =
   SeeAlso     []
 
 ***********************************************************************/
-Gia_Man_t * Gia_ManBuildGig( Vec_Int_t * vObjs, Vec_Int_t * vStore )
+int * Gia_ManGigCount( Vec_Int_t * vObjs, Vec_Int_t * vStore )
 {
-    int i, Type, nObjs[GIG_UNUSED] = {0};
-    printf( "Parsed %d objects and %d tokens.\n", Vec_IntSize(vObjs), Vec_IntSize(vStore) );
+    static int nObjs[GIG_UNUSED]; int i;
+    for ( i = 0; i < GIG_UNUSED; i++ )
+        nObjs[i] = 0;
     for ( i = 0; i < Vec_IntSize(vObjs); i++ )
-    {
-        Type = Vec_IntEntry( vStore, Vec_IntEntry(vObjs,i) + 1 );
-        nObjs[Type]++;
-    }
+        nObjs[Vec_IntEntry(vStore, Vec_IntEntry(vObjs,i) + 1)]++;
+    return nObjs;
+}
+void Gia_ManGigPrint( int * nObjs )
+{
+    int i;
     printf( "Statistics:  " );
     for ( i = 1; i < GIG_UNUSED; i++ )
         printf( "%s = %d   ", s_GigNames[i], nObjs[i] );
     printf( "\n" );
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_ManPrintDelays( Vec_Int_t * vObjs, Vec_Int_t * vStore )
+{
+    Vec_Int_t * vFanCount = Vec_IntStart( Vec_IntSize(vObjs) + 100 );
+    int i, * pEntry;//, Counter = 0;
+    for ( i = 0; i < Vec_IntSize(vObjs); i++ )
+    {
+        pEntry = Vec_IntEntryP( vStore, Vec_IntEntry(vObjs,i) );
+        if ( pEntry[1] != GIG_SEL )
+            continue;
+        assert( pEntry[2] == 1 );
+        Vec_IntAddToEntry( vFanCount, pEntry[3], 1 );
+    }
+    for ( i = 0; i < Vec_IntSize(vObjs); i++ )
+    {
+        pEntry = Vec_IntEntryP( vStore, Vec_IntEntry(vObjs,i) );
+        if ( pEntry[1] != GIG_DELAY )
+            continue;
+        printf( "(%d,%d,%d)  ", pEntry[2], Vec_IntEntry(vFanCount, pEntry[0]), pEntry[3+pEntry[2]] );
+    }
+    printf( "\n" );
+    Vec_IntFree( vFanCount );
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Gia_Man_t * Gia_ManBuildGig2( Vec_Int_t * vObjs, Vec_Int_t * vStore, char * pFileName )
+{
+    Gia_Man_t * pNew, * pTemp;
+    int * nObjs = Gia_ManGigCount( vObjs, vStore );
+    Vec_Int_t * vNets = Vec_IntAlloc( Vec_IntSize(vObjs) );
+    Vec_Int_t * vTypes = Vec_IntAlloc( Vec_IntSize(vObjs) );
+    Vec_Int_t * vMap;
+    int i, Type;
+    // connect net IDs
+    for ( i = 0; i < Vec_IntSize(vObjs); i++ )
+    {
+        Vec_IntPush( vNets, Vec_IntEntry(vStore, Vec_IntEntry(vObjs,i)) );
+        Vec_IntPush( vTypes, Vec_IntEntry(vStore, Vec_IntEntry(vObjs,i) + 1) );
+    }
+    // create mapping for net IDs into GIA IDs
+    vMap = Vec_IntStartFull( Vec_IntFindMax(vNets) + 1 ); 
+    Vec_IntWriteEntry( vMap, 0, 0 );
+    Vec_IntWriteEntry( vMap, 1, 1 );
+    // create new manager
+    pNew = Gia_ManStart( Vec_IntSize(vObjs) );
+    pNew->pName = Abc_UtilStrsav( pFileName );
+    pNew->pSpec = Abc_UtilStrsav( pFileName );
+    // create primary inputs
+    for ( i = 0; i < Vec_IntSize(vObjs); i++ )
+        if ( Vec_IntEntry(vTypes, i) == GIG_PI )
+            Vec_IntWriteEntry( vMap, Vec_IntEntry(vNets, i), Gia_ManAppendCi(pNew) );
+    // create box outputs
+    for ( i = 0; i < Vec_IntSize(vObjs); i++ )
+        if ( Vec_IntEntry(vTypes, i) == GIG_BOX )
+            Vec_IntWriteEntry( vMap, Vec_IntEntry(vNets, i), Gia_ManAppendCi(pNew) );
+    // create internal nodes
+    Gia_ManHashAlloc( pNew );
+    for ( i = 0; i < Vec_IntSize(vObjs); i++ )
+    {
+        Type = Vec_IntEntry(vTypes, i);
+        if ( Type != GIG_LUT && Type != GIG_DELAY && Type != GIG_BAR )
+            continue;
+
+    }
+    Vec_IntFree( vMap );
+    Vec_IntFree( vNets );
+    Vec_IntFree( vTypes );
+    // rehash
+    pNew = Gia_ManCleanup( pTemp = pNew );
+    Gia_ManStop( pTemp );
+    return pNew;
+}
+Gia_Man_t * Gia_ManBuildGig( Vec_Int_t * vObjs, Vec_Int_t * vStore, char * pFileName )
+{
+    printf( "Parsed %d objects and %d tokens.\n", Vec_IntSize(vObjs), Vec_IntSize(vStore) );
+    Gia_ManGigPrint( Gia_ManGigCount(vObjs, vStore) );
+    Gia_ManPrintDelays( vObjs, vStore );
     return NULL;
 }
 
@@ -183,7 +285,7 @@ Gia_Man_t * Gia_ManReadGig( char * pFileName )
     }
     ABC_FREE( pBuffer );
     // create AIG
-    pNew = Gia_ManBuildGig( vObjs, vStore );
+    pNew = Gia_ManBuildGig( vObjs, vStore, pFileName );
     // cleanup
     Vec_IntFree( vObjs );
     Vec_IntFree( vStore );
