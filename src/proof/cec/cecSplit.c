@@ -228,11 +228,11 @@ int Gia_SplitCofVar( Gia_Man_t * p, int LookAhead, int * pnFanouts, int * pnCost
     LookAhead = Abc_MinInt( LookAhead, Gia_ManPiNum(p) );
     for ( i = 0; i < LookAhead; i++ )
     {
-        pPart = Gia_ManDupCofactor( p, pOrder[i], 0 );
+        pPart = Gia_ManDupCofactorVar( p, pOrder[i], 0 );
         Cost0 = Gia_ManAndNum(pPart);
         Gia_ManStop( pPart );
 
-        pPart = Gia_ManDupCofactor( p, pOrder[i], 1 );
+        pPart = Gia_ManDupCofactorVar( p, pOrder[i], 1 );
         Cost1 = Gia_ManAndNum(pPart);
         Gia_ManStop( pPart );
 
@@ -434,7 +434,7 @@ int Cec_GiaSplitTest2( Gia_Man_t * p, int nProcs, int nTimeOut, int nIterMax, in
         int Depth = 1 + (pLast->vCofVars ? Vec_IntSize(pLast->vCofVars) : 0);
         int nFanouts, Cost, iVar  = Gia_SplitCofVar( pLast, LookAhead, &nFanouts, &Cost );
         // cofactor
-        Gia_Man_t * pPart = Gia_ManDupCofactor( pLast, iVar, 0 );
+        Gia_Man_t * pPart = Gia_ManDupCofactorVar( pLast, iVar, 0 );
         if ( pLast->vCofVars == NULL )
             pLast->vCofVars = Vec_IntAlloc( 100 );
         // print results
@@ -470,7 +470,7 @@ int Cec_GiaSplitTest2( Gia_Man_t * p, int nProcs, int nTimeOut, int nIterMax, in
         else               // UNDEC
             Vec_PtrPush( vStack, pPart );
         // cofactor
-        pPart = Gia_ManDupCofactor( pLast, iVar, 1 );
+        pPart = Gia_ManDupCofactorVar( pLast, iVar, 1 );
         // create variable
         pPart->vCofVars = Vec_IntAlloc( Vec_IntSize(pLast->vCofVars) + 1 );
         Vec_IntAppend( pPart->vCofVars, pLast->vCofVars );
@@ -644,7 +644,7 @@ int Cec_GiaSplitTestInt( Gia_Man_t * p, int nProcs, int nTimeOut, int nIterMax, 
                     // determine cofactoring variable
                     int nFanouts, Cost, iVar = Gia_SplitCofVar( pLast, LookAhead, &nFanouts, &Cost );
                     // cofactor
-                    Gia_Man_t * pPart = Gia_ManDupCofactor( pLast, iVar, 0 );
+                    Gia_Man_t * pPart = Gia_ManDupCofactorVar( pLast, iVar, 0 );
                     pPart->vCofVars = Vec_IntAlloc( Vec_IntSize(pLast->vCofVars) + 1 );
                     Vec_IntAppend( pPart->vCofVars, pLast->vCofVars );
                     Vec_IntPush( pPart->vCofVars, Abc_Var2Lit(iVar, 1) );
@@ -658,7 +658,7 @@ int Cec_GiaSplitTestInt( Gia_Man_t * p, int nProcs, int nTimeOut, int nIterMax, 
 //                        Cec_GiaSplitPrintRefs( pPart );
                     }
                     // cofactor
-                    pPart = Gia_ManDupCofactor( pLast, iVar, 1 );
+                    pPart = Gia_ManDupCofactorVar( pLast, iVar, 1 );
                     pPart->vCofVars = Vec_IntAlloc( Vec_IntSize(pLast->vCofVars) + 1 );
                     Vec_IntAppend( pPart->vCofVars, pLast->vCofVars );
                     Vec_IntPush( pPart->vCofVars, Abc_Var2Lit(iVar, 1) );
@@ -750,6 +750,76 @@ int Cec_GiaSplitTest( Gia_Man_t * p, int nProcs, int nTimeOut, int nIterMax, int
     else
         p->pCexComb = pCex;
     return RetValue;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Print stats about cofactoring variables.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Cec_GiaPrintCofStats( Gia_Man_t * p )
+{
+    Gia_Man_t * pCof0, * pCof1;
+    Gia_Obj_t * pObj, * pFan0, * pFan1, * pCtrl;
+    Vec_Int_t * vMarks;
+    int i, Count = 0;
+    vMarks = Vec_IntStart( Gia_ManObjNum(p) );
+    Gia_ManForEachAnd( p, pObj, i )
+    {
+        if ( !Gia_ObjIsMuxType(pObj) )
+            continue;
+        if ( Gia_ObjRecognizeExor(pObj, &pFan0, &pFan1) )
+            continue;
+        pCtrl = Gia_ObjRecognizeMux( pObj, &pFan1, &pFan0 );
+        pCtrl = Gia_Regular(pCtrl);
+        Vec_IntAddToEntry( vMarks, Gia_ObjId(p, pCtrl), 1 );
+    }
+    printf( "The AIG with %d candidate nodes (PI+AND) has %d unique MUX control drivers:\n", 
+        Gia_ManCandNum(p), Vec_IntCountPositive(vMarks) );
+    Gia_ManLevelNum( p );
+    Gia_ManForEachCand( p, pObj, i )
+    {
+        if ( !Vec_IntEntry(vMarks, i) )
+            continue;
+        pCof0 = Gia_ManDupCofactorObj( p, i, 0 );
+        pCof1 = Gia_ManDupCofactorObj( p, i, 1 );
+        printf( "%6d :   ",          Count++ );
+        printf( "Obj = %6d   ",      i );
+        printf( "MUX refs = %5d   ", Vec_IntEntry(vMarks, i) );
+        printf( "Level = %5d   ",    Gia_ObjLevelId(p, i) );
+        printf( "Cof0 = %7d   ",     Gia_ManAndNum(pCof0) );
+        printf( "Cof1 = %7d   ",     Gia_ManAndNum(pCof1) );
+        printf( "\n" );
+        Gia_ManStop( pCof0 );
+        Gia_ManStop( pCof1 );
+    }
+    Vec_IntFree( vMarks );
+}
+void Cec_GiaPrintCofStats2( Gia_Man_t * p )
+{
+    Gia_Man_t * pCof0, * pCof1;
+    Gia_Obj_t * pObj;
+    int i;
+    Gia_ManLevelNum( p );
+    Gia_ManCreateRefs( p );
+    Gia_ManForEachPi( p, pObj, i )
+    {
+        pCof0 = Gia_ManDupCofactorVar( p, i, 0 );
+        pCof1 = Gia_ManDupCofactorVar( p, i, 1 );
+        printf( "PI %5d :   ",   i );
+        printf( "Refs = %5d   ", Gia_ObjRefNum(p, pObj) );
+        printf( "Cof0 = %7d   ", Gia_ManAndNum(pCof0) );
+        printf( "Cof1 = %7d   ", Gia_ManAndNum(pCof1) );
+        printf( "\n" );
+        Gia_ManStop( pCof0 );
+        Gia_ManStop( pCof1 );
+    }
 }
 
 ////////////////////////////////////////////////////////////////////////
