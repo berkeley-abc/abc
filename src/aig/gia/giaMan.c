@@ -385,7 +385,7 @@ void Gia_ManPrintChoiceStats( Gia_Man_t * p )
 void Gia_ManPrintStats( Gia_Man_t * p, Gps_Par_t * pPars )
 {
     extern float Gia_ManLevelAve( Gia_Man_t * p );
-    if ( pPars->fMiter )
+    if ( pPars && pPars->fMiter )
     {
         Gia_ManPrintStatsMiter( p, 0 );
         return;

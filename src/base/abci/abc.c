@@ -350,6 +350,7 @@ static int Abc_CommandAbc9Bidec              ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandAbc9Shrink             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Fx                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Balance            ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9BalanceLut         ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Syn2               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Syn3               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Syn4               ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -928,6 +929,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "ABC9",         "&shrink",       Abc_CommandAbc9Shrink,       0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&fx",           Abc_CommandAbc9Fx,           0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&b",            Abc_CommandAbc9Balance,      0 );
+    Cmd_CommandAdd( pAbc, "ABC9",         "&blut",         Abc_CommandAbc9BalanceLut,   0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&syn2",         Abc_CommandAbc9Syn2,         0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&syn3",         Abc_CommandAbc9Syn3,         0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&syn4",         Abc_CommandAbc9Syn4,         0 );
@@ -27752,6 +27754,84 @@ usage:
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-w     : toggle printing additional information [default = %s]\n", fVeryVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc9BalanceLut( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern Gia_Man_t * Gia_ManBalanceLut( Gia_Man_t * p, int nLutSize, int nCutNum, int fVerbose );
+    Gia_Man_t * pTemp = NULL;
+    int nLutSize     = 6;
+    int nCutNum      = 8;
+    int c, fVerbose  = 0;
+    int fVeryVerbose = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "KCvwh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'K':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-K\" should be followed by a char string.\n" );
+                goto usage;
+            }
+            nLutSize = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nLutSize < 0 )
+                goto usage;
+            break;
+        case 'C':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-C\" should be followed by a char string.\n" );
+                goto usage;
+            }
+            nCutNum = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nCutNum < 0 )
+                goto usage;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'w':
+            fVeryVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pAbc->pGia == NULL )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9BalanceLut(): There is no AIG.\n" );
+        return 1;
+    }
+    pTemp = Gia_ManBalanceLut( pAbc->pGia, nLutSize, nCutNum, fVerbose );
+    Abc_FrameUpdateGia( pAbc, pTemp );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: &blut [-KC num] [-vh]\n" );
+    Abc_Print( -2, "\t           performs AIG balancing for the given LUT size\n" );
+    Abc_Print( -2, "\t-K num   : LUT size for the mapping (2 <= K <= %d) [default = %d]\n", 6, nLutSize );
+    Abc_Print( -2, "\t-C num   : the max number of priority cuts (1 <= C <= %d) [default = %d]\n", 8, nCutNum );
+    Abc_Print( -2, "\t-v       : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
+//    Abc_Print( -2, "\t-w       : toggle printing additional information [default = %s]\n", fVeryVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h       : print the command usage\n");
     return 1;
 }
 
