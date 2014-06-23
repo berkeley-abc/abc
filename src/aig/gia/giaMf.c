@@ -455,6 +455,15 @@ Cnf_Dat_t * Mf_ManDeriveCnf( Mf_Man_t * p, int fCnfObjIds, int fAddOrCla )
                 pCnf->pVarNums[Id] = pCnfIds[Gia_ManCiIdToId(p->pGia, i)];
             Gia_ManForEachCoId( p->pGia0, Id, i )
                 pCnf->pVarNums[Id] = pCnfIds[Gia_ManCoIdToId(p->pGia, i)];
+/*
+            // transform polarity of the internal nodes
+            Gia_ManSetPhase( p->pGia );
+            Gia_ManForEachCo( p->pGia, pObj, i )
+                pObj->fPhase = 0;
+            for ( i = 0; i < pCnf->nLiterals; i++ )
+                if ( Gia_ManObj(p->pGia, Abc_Lit2Var(pCnf->pClauses[0][i]))->fPhase )
+                    pCnf->pClauses[0][i] = Abc_LitNot( pCnf->pClauses[0][i] );
+*/
         }
         else
             pCnf->pVarNums = Vec_IntReleaseArray(vCnfIds);

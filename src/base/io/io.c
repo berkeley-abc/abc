@@ -1914,7 +1914,7 @@ int IoCommandWriteCnf( Abc_Frame_t * pAbc, int argc, char **argv )
 
 usage:
     fprintf( pAbc->Err, "usage: write_cnf [-nfpcvh] <file>\n" );
-    fprintf( pAbc->Err, "\t         writes the miter cone into a CNF file\n" );
+    fprintf( pAbc->Err, "\t         generated CNF for the miter (see also \"&write_cnf\")\n" );
     fprintf( pAbc->Err, "\t-n     : toggle using new algorithm [default = %s]\n", fNewAlgo? "yes" : "no" );
     fprintf( pAbc->Err, "\t-f     : toggle using fast algorithm [default = %s]\n", fFastAlgo? "yes" : "no" );
     fprintf( pAbc->Err, "\t-p     : toggle using all primes to enhance implicativity [default = %s]\n", fAllPrimes? "yes" : "no" );
