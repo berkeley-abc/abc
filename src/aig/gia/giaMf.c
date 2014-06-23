@@ -1032,7 +1032,7 @@ void Mf_ObjMergeOrder( Mf_Man_t * p, int iObj )
     pBest->iCutSet = Mf_ManSaveCuts( p, pCutsR, nCutsR );
     // verify
     assert( nCutsR > 0 && nCutsR < nCutNum );
-    assert( Mf_SetCheckArray(pCutsR, nCutsR) );
+//    assert( Mf_SetCheckArray(pCutsR, nCutsR) );
     p->nCutCounts[pCutsR[0]->nLeaves]++;
     p->CutCount[3] += nCutsR;
 }
