@@ -19,6 +19,8 @@
 ***********************************************************************/
 
 #include "gia.h"
+#include "misc/util/utilNam.h"
+#include "misc/vec/vecWec.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -299,27 +301,34 @@ void Gia_MuxStructPrint_rec( Gia_Man_t * p, int iObj, int fFirst )
     Gia_Obj_t * pObj = Gia_ManObj( p, iObj );
     int iCtrl;
     if ( !fFirst && (!Gia_ObjIsMuxId(p, iObj) || Gia_ObjRefNumId(p, iObj) > 0) )
+    {
+//        printf( "%d", iObj );
+        printf( "<%02d>", Gia_ObjLevelId(p, iObj) );
         return;
+    }
     iCtrl = Gia_ObjFaninId2p(p, pObj);
     printf( " [(" );
     if ( Gia_ObjIsMuxId(p, iCtrl) && Gia_ObjRefNumId(p, iCtrl) == 0 )
         Gia_MuxStructPrint_rec( p, iCtrl, 0 );
     else
+    {
         printf( "%d", iCtrl );
+        printf( "<%d>", Gia_ObjLevelId(p, iCtrl) );
+    }
     printf( ")" );
     if ( Gia_ObjFaninC2(p, pObj) )
     {
         Gia_MuxStructPrint_rec( p, Gia_ObjFaninId0p(p, pObj), 0 );
         printf( "|" );
         Gia_MuxStructPrint_rec( p, Gia_ObjFaninId1p(p, pObj), 0 );
-        printf( "] " );
+        printf( "]" );
     }
     else
     {
         Gia_MuxStructPrint_rec( p, Gia_ObjFaninId1p(p, pObj), 0 );
         printf( "|" );
         Gia_MuxStructPrint_rec( p, Gia_ObjFaninId0p(p, pObj), 0 );
-        printf( "] " );
+        printf( "]" );
     }
 }
 void Gia_MuxStructPrint( Gia_Man_t * p, int iObj )
@@ -373,13 +382,13 @@ void Gia_MuxStructDump_rec( Gia_Man_t * p, int iObj, int fFirst, Vec_Str_t * vSt
         Vec_StrPush( vStr, ']' );
     }
 }
-void Gia_MuxStructDump( Gia_Man_t * p, int iObj, Vec_Str_t * vStr, int Num, int nDigitsNum, int nDigitsId )
+void Gia_MuxStructDump( Gia_Man_t * p, int iObj, Vec_Str_t * vStr, int nDigitsNum, int nDigitsId )
 {
     int Count1, Count2;
     assert( Gia_ObjIsMuxId(p, iObj) );
     Count1 = Gia_MuxDeref( p, iObj );
     Vec_StrClear( vStr );
-    Vec_StrPrintNumStar( vStr, Num, nDigitsNum );
+    Vec_StrPrintNumStar( vStr, Count1, nDigitsNum );
     Gia_MuxStructDump_rec( p, iObj, 1, vStr, nDigitsId );
     Vec_StrPush( vStr, '\0' );
     Count2 = Gia_MuxRef( p, iObj );
@@ -413,92 +422,172 @@ int Gia_ManMuxCountOne( char * p )
         Count += (*p == '[');
     return Count;
 }
-void Gia_ManMuxProfile( Vec_Ptr_t * p, Vec_Int_t * vCounts )
+
+typedef struct Mux_Man_t_ Mux_Man_t; 
+struct Mux_Man_t_
 {
-    int i; char * pTemp;
-    Vec_IntFill( vCounts, 1000, 0 );
-    Vec_PtrForEachEntry( char *, p, pTemp, i )
-        Vec_IntAddToEntry( vCounts, Abc_MinInt(Gia_ManMuxCountOne(pTemp), 999), 1 );
+    Gia_Man_t *     pGia;      // manager
+    Abc_Nam_t *     pNames;    // hashing name into ID
+    Vec_Wec_t *     vTops;     // top nodes for each struct
+};
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Mux_Man_t * Mux_ManAlloc( Gia_Man_t * pGia )
+{
+    Mux_Man_t * p;
+    p = ABC_CALLOC( Mux_Man_t, 1 );
+    p->pGia   = pGia;
+    p->pNames = Abc_NamStart( 10000, 50 );
+    p->vTops  = Vec_WecAlloc( 1000 );
+    Vec_WecPushLevel( p->vTops );
+    return p;
+}
+void Mux_ManFree( Mux_Man_t * p )
+{
+    Abc_NamStop( p->pNames );
+    Vec_WecFree( p->vTops );
+    ABC_FREE( p );
 }
 
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_ManMuxProfile( Mux_Man_t * p, int fWidth )
+{
+    int i, Entry, Counter;
+    Vec_Int_t * vVec, * vCounts;
+    vCounts = Vec_IntStart( 1000 );
+    if ( fWidth )
+    {
+        Vec_WecForEachLevelStart( p->vTops, vVec, i, 1 )
+            Vec_IntAddToEntry( vCounts, Abc_MinInt(Vec_IntSize(vVec), 999), 1 );
+        printf( "The distribution of MUX tree widths:\n" );
+    }
+    else
+    {
+        for ( i = 1; i < Vec_WecSize(p->vTops); i++ )
+            Vec_IntAddToEntry( vCounts, Abc_MinInt(atoi(Abc_NamStr(p->pNames, i)), 999), 1 );
+        printf( "The distribution of MUX tree sizes:\n" );
+    }
+    Counter = 0;
+    Vec_IntForEachEntry( vCounts, Entry, i )
+    {
+        if ( !Entry ) continue;
+        if ( ++Counter == 12 )
+            printf( "\n" ), Counter = 0;
+        printf( "  %d=%d", i, Entry );
+    }
+    printf( "\nSummary: " );
+    printf( "Max = %d  ", Vec_IntFindMax(vCounts) );
+    printf( "Ave = %.2f", 1.0*Vec_IntSum(vCounts)/Vec_IntCountPositive(vCounts) );
+    printf( "\n" );
+    Vec_IntFree( vCounts );
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 void Gia_ManMuxProfiling( Gia_Man_t * p )
 {
+    Mux_Man_t * pMan;
     Gia_Man_t * pNew;
     Gia_Obj_t * pObj;
-    Vec_Int_t * vFans;
-    Vec_Int_t * vCounts = Vec_IntAlloc( 100 );
-    Vec_Ptr_t * vTrees  = Vec_PtrAlloc( 1000 );
-    Vec_Str_t * vStr    = Vec_StrAlloc( 1000 );
-    Vec_Int_t * vDegree = Vec_IntAlloc( 1000 );
-    int i, nRefs, Size, Count, Total = 0, Roots = 0;
-    int nDigitsId, nMemory = 0;
-    char * pTemp;
+    Vec_Str_t * vStr;
+    Vec_Int_t * vFans, * vVec;
+    int i, Counter, fFound, iStructId, nDigitsId;
     abctime clk = Abc_Clock();
 
     pNew = Gia_ManDupMuxes( p, 2 );
     nDigitsId = Abc_Base10Log( Gia_ManObjNum(pNew) );
 
+    pMan = Mux_ManAlloc( pNew );
+     
+    Gia_ManLevelNum( pNew );
     Gia_ManCreateRefs( pNew );
     Gia_ManForEachCo( pNew, pObj, i )
         Gia_ObjRefFanin0Inc( pNew, pObj );
 
-    Vec_IntFill( vCounts, 1000, 0 );
+    vStr = Vec_StrAlloc( 1000 );
     vFans = Gia_ManFirstFanouts( pNew );
     Gia_ManForEachMux( pNew, pObj, i )
     {
-        Total++;
-        nRefs = Gia_ObjRefNumId(pNew, i);
-        assert( nRefs > 0 );
-        if ( nRefs > 1 || !Gia_ObjIsMuxId(pNew, Vec_IntEntry(vFans, i)) )
-        {
-            Roots++;
-            Size = Gia_MuxMffcSize(pNew, i);
-            Vec_IntAddToEntry( vCounts, Abc_MinInt(Size, 999), 1 );
-            if ( Size >= 2 )
-            {
-                Gia_MuxStructDump( pNew, i, vStr, Size, 3, nDigitsId );
-                Vec_PtrPush( vTrees, Abc_UtilStrsav(Vec_StrArray(vStr)) );
-                nMemory += Vec_StrSize(vStr);
-            }
-        }
+        // skip MUXes in the middle of the tree (which have only one MUX fanout)
+        if ( Gia_ObjRefNumId(pNew, i) == 1 && Gia_ObjIsMuxId(pNew, Vec_IntEntry(vFans, i)) )
+            continue;
+        // this node is the root of the MUX structure - create hash key
+        Gia_MuxStructDump( pNew, i, vStr, 3, nDigitsId );
+        iStructId = Abc_NamStrFindOrAdd( pMan->pNames, Vec_StrArray(vStr), &fFound );
+        if ( !fFound )
+            Vec_WecPushLevel( pMan->vTops );
+        assert( Abc_NamObjNumMax(pMan->pNames) == Vec_WecSize(pMan->vTops) );
+        Vec_IntPush( Vec_WecEntry(pMan->vTops, iStructId), i );
     }
-    printf( "MUXes: Total = %d. Roots = %d. Trees = %d.  Memory = %.2f MB\n", Total, Roots, Vec_PtrSize(vTrees), 1.0*nMemory/(1<<20) );
-    Vec_IntForEachEntry( vCounts, Count, i )
-        if ( Count )
-            printf( "%d=%d ", i, Count );
-    printf( "\n" );
+    Vec_StrFree( vStr );
+    Vec_IntFree( vFans );
 
-//    Vec_PtrForEachEntryStop( char *, vTrees, pTemp, i, Abc_MinInt(Vec_PtrSize(vTrees), 40) )
-//        printf( "%6d : %3d %3d  %s\n", i, -1, Gia_ManMuxCountOne(pTemp), pTemp );
-
-    // uniqify
-    Vec_PtrUniqify2( vTrees, (int (*)(void))Gia_ManMuxCompare, (void (*)(void))free, vDegree );
-    Gia_ManMuxProfile( vTrees, vCounts );
-
-    nMemory = 0;
-    Vec_PtrForEachEntry( char *, vTrees, pTemp, i )
-        nMemory += strlen(pTemp);
-
-    printf( "MUXes: Trees = %d.  Memory = %.2f MB\n", Vec_PtrSize(vTrees), 1.0*nMemory/(1<<20) );
-    Vec_IntForEachEntry( vCounts, Count, i )
-        if ( Count )
-            printf( "%d=%d ", i, Count );
-    printf( "\n" );
-
-//    Vec_PtrForEachEntryStop( char *, vTrees, pTemp, i, Abc_MinInt(Vec_PtrSize(vTrees), 40) )
-//        printf( "%6d : %3d %3d  %s\n", i, Vec_IntEntry(vDegree, i), Gia_ManMuxCountOne(pTemp), pTemp );
-
-    Vec_PtrForEachEntryStop( char *, vTrees, pTemp, i, Abc_MinInt(Vec_PtrSize(vTrees), 5000) )
-        if ( Vec_IntEntry(vDegree, i) > 10 )
-            printf( "%6d : %3d %3d  %s\n", i, Vec_IntEntry(vDegree, i), Gia_ManMuxCountOne(pTemp), pTemp );
-
+    printf( "MUX structure profile for AIG \"%s\":\n", p->pName );
+    printf( "Total MUXes = %d.  Total trees = %d.  Unique trees = %d.  Memory = %.2f MB   ", 
+        Gia_ManMuxNum(pNew), Vec_WecSizeSize(pMan->vTops), Vec_WecSize(pMan->vTops), 
+        1.0*Abc_NamMemUsed(pMan->pNames)/(1<<20) );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
 
-    Vec_PtrFreeFree( vTrees );
-    Vec_StrFree( vStr );
-    Vec_IntFree( vDegree );
-    Vec_IntFree( vCounts );
-    Vec_IntFree( vFans );
+    Gia_ManMuxProfile( pMan, 0 );
+    Gia_ManMuxProfile( pMan, 1 );
+
+    // short the first ones
+    printf( "The first %d structures: \n", 10 );
+    Vec_WecForEachLevelStartStop( pMan->vTops, vVec, i, 1, 10 )
+    {
+        char * pTemp = Abc_NamStr(pMan->pNames, i);
+        printf( "%5d : ", i );
+        printf( "Occur = %4d   ", Vec_IntSize(vVec) );
+        printf( "Size = %4d   ", atoi(pTemp) );
+        printf( "%s\n", pTemp );
+    }
+
+    // print trees for the first one
+    Counter = 0;
+    Vec_WecForEachLevelStart( pMan->vTops, vVec, i, 1 )
+    {
+        char * pTemp = Abc_NamStr(pMan->pNames, i);
+        if ( Vec_IntSize(vVec) > 5 && atoi(pTemp) > 5 )
+        {
+            int k, Entry;
+            printf( "For example, structure %d has %d MUXes and bit-width %d:\n", i, atoi(pTemp), Vec_IntSize(vVec) );
+            Vec_IntForEachEntry( vVec, Entry, k )
+                Gia_MuxStructPrint( pNew, Entry );
+            if ( ++Counter == 5 )
+                break;
+        }
+    }
+
+    Mux_ManFree( pMan );
     Gia_ManStop( pNew );
 }
 
