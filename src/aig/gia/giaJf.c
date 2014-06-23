@@ -1750,23 +1750,30 @@ Gia_Man_t * Jf_ManDeriveCnf( Gia_Man_t * p, int fCnfObjIds )
     pPars->fCnfObjIds = fCnfObjIds;
     return Jf_ManPerformMapping( p, pPars );
 }
-Gia_Man_t * Jf_ManDeriveCnfMiter( Gia_Man_t * p )
+Gia_Man_t * Jf_ManDeriveCnfMiter( Gia_Man_t * p, int fVerbose )
 {
     Jf_Par_t Pars, * pPars = &Pars;
     Jf_ManSetDefaultPars( pPars );
     pPars->fGenCnf = 1;
     pPars->fCnfObjIds = 0;
     pPars->fAddOrCla = 1;
+    pPars->fVerbose = fVerbose;
     return Jf_ManPerformMapping( p, pPars );
 }
-void Jf_ManDumpCnf( Gia_Man_t * p, char * pFileName )
+void Jf_ManDumpCnf( Gia_Man_t * p, char * pFileName, int fVerbose )
 {
+    abctime clk = Abc_Clock();
     Gia_Man_t * pNew;
     Cnf_Dat_t * pCnf;
-    pNew = Jf_ManDeriveCnfMiter( p );
+    pNew = Jf_ManDeriveCnfMiter( p, fVerbose );
     pCnf = (Cnf_Dat_t *)pNew->pData; pNew->pData = NULL;
     Cnf_DataWriteIntoFile( pCnf, pFileName, 0, NULL, NULL );
     Gia_ManStop( pNew );
+//    if ( fVerbose )
+    {
+        printf( "CNF stats: Vars = %6d. Clauses = %7d. Literals = %8d. ", pCnf->nVars, pCnf->nClauses, pCnf->nLiterals );
+        Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
+    }
     Cnf_DataFree(pCnf);
 }
 

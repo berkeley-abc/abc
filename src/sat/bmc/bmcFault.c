@@ -141,6 +141,7 @@ static inline Cnf_Dat_t * Cnf_DeriveGiaRemapped( Gia_Man_t * p )
     pCnf = Cnf_Derive( pAig, Aig_ManCoNum(pAig) );
     Aig_ManStop( pAig );
     return pCnf;
+//    return Mf_ManGenerateCnf( p, 8, 0, 0, 0 );
 }
 
 /**Function*************************************************************

@@ -1561,9 +1561,9 @@ Abc_Ntk_t * Abc_NtkDarToCnf( Abc_Ntk_t * pNtk, char * pFileName, int fFastAlgo, 
         Cnf_DataTranformPolarity( pCnf, 0 );
 
     // print stats
-    if ( fVerbose )
+//    if ( fVerbose )
     {
-        Abc_Print( 1, "Vars = %6d. Clauses = %7d. Literals = %8d.   ", pCnf->nVars, pCnf->nClauses, pCnf->nLiterals );
+        Abc_Print( 1, "CNF stats: Vars = %6d. Clauses = %7d. Literals = %8d.   ", pCnf->nVars, pCnf->nClauses, pCnf->nLiterals );
         Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     }
 

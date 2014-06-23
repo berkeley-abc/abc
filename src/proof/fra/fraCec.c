@@ -67,6 +67,12 @@ int Fra_FraigSat( Aig_Man_t * pMan, ABC_INT64_T nConfLimit, ABC_INT64_T nInsLimi
         if ( fFlipBits ) 
             Cnf_DataTranformPolarity( pCnf, 0 );
 
+        if ( fVerbose )
+        {
+            printf( "CNF stats: Vars = %6d. Clauses = %7d. Literals = %8d. ", pCnf->nVars, pCnf->nClauses, pCnf->nLiterals );
+            Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
+        }
+
         // convert into SAT solver
         pSat = (sat_solver2 *)Cnf_DataWriteIntoSolver2( pCnf, 1, 0 );
         if ( pSat == NULL )
@@ -172,6 +178,12 @@ int Fra_FraigSat( Aig_Man_t * pMan, ABC_INT64_T nConfLimit, ABC_INT64_T nInsLimi
 
         if ( fFlipBits ) 
             Cnf_DataTranformPolarity( pCnf, 0 );
+
+        if ( fVerbose )
+        {
+            printf( "CNF stats: Vars = %6d. Clauses = %7d. Literals = %8d. ", pCnf->nVars, pCnf->nClauses, pCnf->nLiterals );
+            Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
+        }
 
         // convert into SAT solver
         pSat = (sat_solver *)Cnf_DataWriteIntoSolver( pCnf, 1, 0 );

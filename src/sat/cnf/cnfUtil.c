@@ -19,6 +19,7 @@
 ***********************************************************************/
 
 #include "cnf.h"
+#include "sat/bsat/satSolver.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -288,6 +289,163 @@ unsigned char * Cnf_DataDeriveLitPolarities( Cnf_Dat_t * p )
 */
     return pPres;
 }
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Cnf_Dat_t * Cnf_DataReadFromFile( char * pFileName )
+{
+    int MaxLine = 1000000;
+    int Var, Lit, nVars = -1, nClas = -1, i, Entry, iLine = 0;
+    Cnf_Dat_t * pCnf = NULL;
+    Vec_Int_t * vClas = NULL;
+    Vec_Int_t * vLits = NULL;
+    char * pBuffer, * pToken;
+    FILE * pFile = fopen( pFileName, "rb" );
+    if ( pFile == NULL )
+    {
+        printf( "Cannot open file \"%s\" for writing.\n", pFileName );
+        return NULL;
+    }
+    pBuffer = ABC_ALLOC( char, MaxLine );
+    while ( fgets(pBuffer, MaxLine, pFile) != NULL )
+    {
+        iLine++;
+        if ( pBuffer[0] == 'c' )
+            continue;
+        if ( pBuffer[0] == 'p' )
+        {
+            pToken = strtok( pBuffer+1, " \t" );
+            if ( strcmp(pToken, "cnf") )
+            {
+                printf( "Incorrect input file.\n" );
+                goto finish;
+            }
+            pToken = strtok( NULL, " \t" );
+            nVars = atoi( pToken );
+            pToken = strtok( NULL, " \t" );
+            nClas = atoi( pToken );
+            if ( nVars <= 0 || nClas <= 0 )
+            {
+                printf( "Incorrect parameters.\n" );
+                goto finish;
+            }
+            // temp storage
+            vClas = Vec_IntAlloc( nClas+1 );
+            vLits = Vec_IntAlloc( nClas*8 );
+            continue;
+        }
+        pToken = strtok( pBuffer, " \t\r\n" );
+        if ( pToken == NULL )
+            continue;
+        Vec_IntPush( vClas, Vec_IntSize(vLits) );
+        while ( pToken )
+        {
+            Var = atoi( pToken );
+            if ( Var == 0 )
+                break;
+            Lit = (Var > 0) ? Abc_Var2Lit(Var-1, 0) : Abc_Var2Lit(-Var-1, 1);
+            if ( Lit >= 2*nVars )
+            {
+                printf( "Literal %d is out-of-bound for %d variables.\n", Lit, nVars );
+                goto finish;
+            }
+            Vec_IntPush( vLits, Lit );
+            pToken = strtok( NULL, " \t\r\n" );
+        }
+        if ( Var != 0 )
+        {
+            printf( "There is no zero-terminator in line %d.\n", iLine );
+            goto finish;
+        }
+    }
+    // finalize
+    if ( Vec_IntSize(vClas) != nClas )
+        printf( "Warning! The number of clauses (%d) is different from declaration (%d).\n", Vec_IntSize(vClas), nClas );
+    Vec_IntPush( vClas, Vec_IntSize(vLits) );
+    // create
+    pCnf = ABC_CALLOC( Cnf_Dat_t, 1 );
+    pCnf->nVars     = nVars;
+    pCnf->nClauses  = nClas;
+    pCnf->nLiterals = Vec_IntSize(vLits);
+    pCnf->pClauses  = ABC_ALLOC( int *, Vec_IntSize(vClas) );
+    pCnf->pClauses[0] = Vec_IntReleaseArray(vLits);
+    Vec_IntForEachEntry( vClas, Entry, i )
+        pCnf->pClauses[i] = pCnf->pClauses[0] + Entry;
+finish:
+    fclose( pFile );
+    Vec_IntFreeP( &vClas );
+    Vec_IntFreeP( &vLits );
+    ABC_FREE( pBuffer );
+    return pCnf;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Cnf_DataSolveFromFile( char * pFileName, int nConfLimit, int fVerbose )
+{
+    abctime clk = Abc_Clock();
+    Cnf_Dat_t * pCnf = Cnf_DataReadFromFile( pFileName );
+    sat_solver * pSat;
+    int status, RetValue = -1;
+    if ( pCnf == NULL )
+        return -1;
+    if ( fVerbose )
+    {
+        printf( "CNF stats: Vars = %6d. Clauses = %7d. Literals = %8d. ", pCnf->nVars, pCnf->nClauses, pCnf->nLiterals );
+        Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
+    }
+    // convert into SAT solver
+    pSat = (sat_solver *)Cnf_DataWriteIntoSolver( pCnf, 1, 0 );
+    Cnf_DataFree( pCnf );
+    if ( pSat == NULL )
+    {
+        printf( "The problem is trivially UNSAT.\n" );
+        return 1;
+    }
+    // solve the miter
+//    if ( fVerbose )
+//        pSat->verbosity = 1;
+    status = sat_solver_solve( pSat, NULL, NULL, (ABC_INT64_T)nConfLimit, 0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
+    if ( status == l_Undef )
+        RetValue = -1;
+    else if ( status == l_True )
+        RetValue = 0;
+    else if ( status == l_False )
+        RetValue = 1;
+    else
+        assert( 0 );
+    if ( fVerbose )
+        Sat_SolverPrintStats( stdout, pSat );
+    sat_solver_delete( pSat );
+    if ( RetValue == -1 )
+        Abc_Print( 1, "UNDECIDED      " );
+    else if ( RetValue == 0 )
+        Abc_Print( 1, "SATISFIABLE    " );
+    else
+        Abc_Print( 1, "UNSATISFIABLE  " );
+    //Abc_Print( -1, "\n" );
+    Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
+    return RetValue;
+}
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

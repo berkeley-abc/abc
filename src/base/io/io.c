@@ -1938,15 +1938,30 @@ usage:
 ***********************************************************************/
 int IoCommandWriteCnf2( Abc_Frame_t * pAbc, int argc, char **argv )
 {
-    extern void Jf_ManDumpCnf( Gia_Man_t * p, char * pFileName );
+    extern void Jf_ManDumpCnf( Gia_Man_t * p, char * pFileName, int fVerbose );
+    extern void Mf_ManDumpCnf( Gia_Man_t * p, char * pFileName, int nLutSize, int fVerbose );
     FILE * pFile;
     char * pFileName;
+    int nLutSize = 6;
+    int fNewAlgo = 1;
     int c, fVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Kavh" ) ) != EOF )
     {
         switch ( c )
         {
+            case 'K':
+                if ( globalUtilOptind >= argc )
+                {
+                    Abc_Print( -1, "Command line switch \"-K\" should be followed by an integer.\n" );
+                    goto usage;
+                }
+                nLutSize = atoi(argv[globalUtilOptind]);
+                globalUtilOptind++;
+                break;
+            case 'a':
+                fNewAlgo ^= 1;
+                break;
             case 'v':
                 fVerbose ^= 1;
                 break;
@@ -1966,7 +1981,12 @@ int IoCommandWriteCnf2( Abc_Frame_t * pAbc, int argc, char **argv )
         Abc_Print( -1, "IoCommandWriteCnf2(): Works only for combinational miters.\n" );
         return 0;
     }
-    if ( !Sdm_ManCanRead() )
+    if ( nLutSize < 3 || nLutSize > 8 )
+    {
+        Abc_Print( -1, "IoCommandWriteCnf2(): Invalid LUT size (%d).\n", nLutSize );
+        return 0;
+    }
+    if ( !fNewAlgo && !Sdm_ManCanRead() )
     {
         Abc_Print( -1, "IoCommandWriteCnf2(): Cannot input precomputed DSD information.\n" );
         return 0;
@@ -1981,15 +2001,21 @@ int IoCommandWriteCnf2( Abc_Frame_t * pAbc, int argc, char **argv )
         printf( "Cannot open file \"%s\" for writing.\n", pFileName );
         return 0;
     }
-    Jf_ManDumpCnf( pAbc->pGia, pFileName );
+    fclose( pFile );
+    if ( fNewAlgo )
+        Mf_ManDumpCnf( pAbc->pGia, pFileName, nLutSize, fVerbose );
+    else
+        Jf_ManDumpCnf( pAbc->pGia, pFileName, fVerbose );
     return 0;
 
 usage:
-    fprintf( pAbc->Err, "usage: &write_cnf [-vh] <file>\n" );
-    fprintf( pAbc->Err, "\t         writes CNF produced by new DSD-based generator\n" );
-    fprintf( pAbc->Err, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes" : "no" );
-    fprintf( pAbc->Err, "\t-h     : print the help massage\n" );
-    fprintf( pAbc->Err, "\tfile   : the name of the file to write\n" );
+    fprintf( pAbc->Err, "usage: &write_cnf [-Kavh] <file>\n" );
+    fprintf( pAbc->Err, "\t           writes CNF produced by a new generator\n" );
+    fprintf( pAbc->Err, "\t-K <num> : the LUT size (3 <= num <= 8) [default = %d]\n", nLutSize );
+    fprintf( pAbc->Err, "\t-a       : toggle using new algorithm [default = %s]\n", fNewAlgo? "yes" : "no" );
+    fprintf( pAbc->Err, "\t-v       : toggle printing verbose information [default = %s]\n", fVerbose? "yes" : "no" );
+    fprintf( pAbc->Err, "\t-h       : print the help massage\n" );
+    fprintf( pAbc->Err, "\tfile     : the name of the file to write\n" );
     return 1;
 }
 

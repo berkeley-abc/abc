@@ -20965,6 +20965,22 @@ int Abc_CommandDSat( Abc_Frame_t * pAbc, int argc, char ** argv )
         }
     }
 
+    if ( argc == globalUtilOptind + 1 )
+    {
+        extern int Cnf_DataSolveFromFile( char * pFileName, int nConfLimit, int fVerbose );
+        // get the input file name
+        char * pFileName = argv[globalUtilOptind];
+        FILE * pFile = fopen( pFileName, "rb" );
+        if ( pFile == NULL )
+        {
+            printf( "Cannot open file \"%s\" for writing.\n", pFileName );
+            return 0;
+        }
+        fclose( pFile );
+        Cnf_DataSolveFromFile( pFileName, nConfLimit, fVerbose );
+        return 0;
+    }
+
     if ( pNtk == NULL )
     {
         Abc_Print( -1, "Empty network.\n" );
@@ -20987,7 +21003,6 @@ int Abc_CommandDSat( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Currently only works for structurally hashed circuits.\n" );
         return 0;
     }
-
     clk = Abc_Clock();
     RetValue = Abc_NtkDSat( pNtk, (ABC_INT64_T)nConfLimit, (ABC_INT64_T)nInsLimit, nLearnedStart, nLearnedDelta, nLearnedPerce, fAlignPol, fAndOuts, fNewSolver, fVerbose );
     // verify that the pattern is correct
@@ -31406,6 +31421,8 @@ int Abc_CommandAbc9Mf( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Abc_CommandAbc9Lf(): Mapping into LUTs has failed.\n" );
         return 1;
     }
+    if ( pPars->fGenCnf )
+        Cnf_DataFree( pAbc->pGia->pData ), pAbc->pGia->pData = NULL;
     Abc_FrameUpdateGia( pAbc, pNew );
     return 0;
 

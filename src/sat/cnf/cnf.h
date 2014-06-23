@@ -178,6 +178,7 @@ extern Vec_Ptr_t *     Cnf_ManScanMapping( Cnf_Man_t * p, int fCollect, int fPre
 extern Vec_Int_t *     Cnf_DataCollectCiSatNums( Cnf_Dat_t * pCnf, Aig_Man_t * p );
 extern Vec_Int_t *     Cnf_DataCollectCoSatNums( Cnf_Dat_t * pCnf, Aig_Man_t * p );
 extern unsigned char * Cnf_DataDeriveLitPolarities( Cnf_Dat_t * p );
+extern Cnf_Dat_t *     Cnf_DataReadFromFile( char * pFileName );
 /*=== cnfWrite.c ========================================================*/
 extern Vec_Int_t *     Cnf_ManWriteCnfMapping( Cnf_Man_t * p, Vec_Ptr_t * vMapped );
 extern void            Cnf_SopConvertToVector( char * pSop, int nCubes, Vec_Int_t * vCover );

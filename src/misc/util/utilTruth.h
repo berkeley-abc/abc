@@ -1450,6 +1450,256 @@ static inline word Abc_Tt6Isop( word uOn, word uOnDc, int nVars, int * pnCubes )
     assert( (uRes2 & ~uOnDc) == 0 );
     return uRes2;
 }
+static inline int Abc_Tt7Isop( word uOn[2], word uOnDc[2], int nVars, word uRes[2] )
+{
+    int nCubes = 0;
+    if ( nVars <= 6 || (uOn[0] == uOn[1] && uOnDc[0] == uOnDc[1]) )
+        uRes[0] = uRes[1] = Abc_Tt6Isop( uOn[0], uOnDc[0], Abc_MinInt(nVars, 6), &nCubes );
+    else
+    {
+        word uRes0, uRes1, uRes2;
+        assert( nVars == 7 );
+        // solve for cofactors
+        uRes0 = Abc_Tt6Isop( uOn[0] & ~uOnDc[1], uOnDc[0], 6, &nCubes );
+        uRes1 = Abc_Tt6Isop( uOn[1] & ~uOnDc[0], uOnDc[1], 6, &nCubes );
+        uRes2 = Abc_Tt6Isop( (uOn[0] & ~uRes0) | (uOn[1] & ~uRes1), uOnDc[0] & uOnDc[1], 6, &nCubes );
+        // derive the final truth table
+        uRes[0] = uRes2 | uRes0;
+        uRes[1] = uRes2 | uRes1;
+        assert( (uOn[0] & ~uRes[0]) == 0 && (uOn[1] & ~uRes[1]) == 0 );
+        assert( (uRes[0] & ~uOnDc[0])==0 && (uRes[1] & ~uOnDc[1])==0 );
+    }
+    return nCubes;
+}
+static inline int Abc_Tt8Isop( word uOn[4], word uOnDc[4], int nVars, word uRes[4] )
+{
+    int nCubes = 0;
+    if ( nVars <= 6 )
+        uRes[0] = uRes[1] = uRes[2] = uRes[3] = Abc_Tt6Isop( uOn[0], uOnDc[0], nVars, &nCubes );
+    else if ( nVars == 7 || (uOn[0] == uOn[2] && uOn[1] == uOn[3] && uOnDc[0] == uOnDc[2] && uOnDc[1] == uOnDc[3]) )
+    {
+        nCubes = Abc_Tt7Isop( uOn, uOnDc, 7, uRes );
+        uRes[2] = uRes[0];
+        uRes[3] = uRes[1];
+    }
+    else 
+    {
+        word uOn0[2], uOn1[2], uOn2[2], uOnDc2[2], uRes0[2], uRes1[2], uRes2[2];
+        assert( nVars == 8 );
+        // cofactor
+        uOn0[0] = uOn[0] & ~uOnDc[2];
+        uOn0[1] = uOn[1] & ~uOnDc[3];
+        uOn1[0] = uOn[2] & ~uOnDc[0];
+        uOn1[1] = uOn[3] & ~uOnDc[1];
+        uOnDc2[0] = uOnDc[0] & uOnDc[2];
+        uOnDc2[1] = uOnDc[1] & uOnDc[3];
+        // solve for cofactors
+        nCubes += Abc_Tt7Isop( uOn0, uOnDc+0, 7, uRes0 );
+        nCubes += Abc_Tt7Isop( uOn1, uOnDc+2, 7, uRes1 );
+        uOn2[0] = (uOn[0] & ~uRes0[0]) | (uOn[2] & ~uRes1[0]);
+        uOn2[1] = (uOn[1] & ~uRes0[1]) | (uOn[3] & ~uRes1[1]);
+        nCubes += Abc_Tt7Isop( uOn2, uOnDc2, 7, uRes2 );
+        // derive the final truth table
+        uRes[0] = uRes2[0] | uRes0[0];
+        uRes[1] = uRes2[1] | uRes0[1];
+        uRes[2] = uRes2[0] | uRes1[0];
+        uRes[3] = uRes2[1] | uRes1[1];
+        assert( (uOn[0] & ~uRes[0]) == 0 && (uOn[1] & ~uRes[1]) == 0 && (uOn[2] & ~uRes[2]) == 0 && (uOn[3] & ~uRes[3]) == 0 );
+        assert( (uRes[0] & ~uOnDc[0])==0 && (uRes[1] & ~uOnDc[1])==0 && (uRes[2] & ~uOnDc[2])==0 && (uRes[3] & ~uOnDc[3])==0 );
+    }
+    return nCubes;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Computes CNF size.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline int Abc_Tt6CnfSize( word t, int nVars )
+{
+    int nCubes = 0;
+    Abc_Tt6Isop(  t,  t, nVars, &nCubes );
+    Abc_Tt6Isop( ~t, ~t, nVars, &nCubes );
+    assert( nCubes <= 64 );
+    return nCubes;
+}
+static inline int Abc_Tt8CnfSize( word t[4], int nVars )
+{
+    word uRes[4], tc[4] = {~t[0], ~t[1], ~t[2], ~t[3]};
+    int nCubes = 0;
+    nCubes += Abc_Tt8Isop( t,  t,  nVars, uRes );
+    nCubes += Abc_Tt8Isop( tc, tc, nVars, uRes );
+    assert( nCubes <= 256 );
+    return nCubes;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Derives ISOP cover for the function.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline word Abc_Tt6IsopCover( word uOn, word uOnDc, int nVars, int * pCover, int * pnCubes )
+{
+    word uOn0, uOn1, uOnDc0, uOnDc1, uRes0, uRes1, uRes2;
+    int c, Var, nBeg0, nEnd0, nEnd1;
+    assert( nVars <= 6 );
+    assert( (uOn & ~uOnDc) == 0 );
+    if ( uOn == 0 )
+        return 0;
+    if ( uOnDc == ~(word)0 )
+    {
+        pCover[(*pnCubes)++] = 0;
+        return ~(word)0;
+    }
+    assert( nVars > 0 );
+    // find the topmost var
+    for ( Var = nVars-1; Var >= 0; Var-- )
+        if ( Abc_Tt6HasVar( uOn, Var ) || Abc_Tt6HasVar( uOnDc, Var ) )
+             break;
+    assert( Var >= 0 );
+    // cofactor
+    uOn0   = Abc_Tt6Cofactor0( uOn,   Var );
+    uOn1   = Abc_Tt6Cofactor1( uOn  , Var );
+    uOnDc0 = Abc_Tt6Cofactor0( uOnDc, Var );
+    uOnDc1 = Abc_Tt6Cofactor1( uOnDc, Var );
+    // solve for cofactors
+    nBeg0 = *pnCubes; 
+    uRes0 = Abc_Tt6IsopCover( uOn0 & ~uOnDc1, uOnDc0, Var, pCover, pnCubes );
+    nEnd0 = *pnCubes;
+    uRes1 = Abc_Tt6IsopCover( uOn1 & ~uOnDc0, uOnDc1, Var, pCover, pnCubes );
+    nEnd1 = *pnCubes;
+    uRes2 = Abc_Tt6IsopCover( (uOn0 & ~uRes0) | (uOn1 & ~uRes1), uOnDc0 & uOnDc1, Var, pCover, pnCubes );
+    // derive the final truth table
+    uRes2 |= (uRes0 & s_Truths6Neg[Var]) | (uRes1 & s_Truths6[Var]);
+    for ( c = nBeg0; c < nEnd0; c++ )
+        pCover[c] |= (1 << (2*Var+0));
+    for ( c = nEnd0; c < nEnd1; c++ )
+        pCover[c] |= (1 << (2*Var+1));
+    assert( (uOn & ~uRes2) == 0 );
+    assert( (uRes2 & ~uOnDc) == 0 );
+    return uRes2;
+}
+static inline void Abc_Tt7IsopCover( word uOn[2], word uOnDc[2], int nVars, word uRes[2], int * pCover, int * pnCubes )
+{
+    if ( nVars <= 6 || (uOn[0] == uOn[1] && uOnDc[0] == uOnDc[1]) )
+        uRes[0] = uRes[1] = Abc_Tt6IsopCover( uOn[0], uOnDc[0], Abc_MinInt(nVars, 6), pCover, pnCubes );
+    else
+    {
+        word uRes0, uRes1, uRes2;
+        int c, nBeg0, nEnd0, nEnd1;
+        assert( nVars == 7 );
+        // solve for cofactors
+        nBeg0 = *pnCubes; 
+        uRes0 = Abc_Tt6IsopCover( uOn[0] & ~uOnDc[1], uOnDc[0], 6, pCover, pnCubes );   
+        nEnd0 = *pnCubes;
+        uRes1 = Abc_Tt6IsopCover( uOn[1] & ~uOnDc[0], uOnDc[1], 6, pCover, pnCubes );   
+        nEnd1 = *pnCubes;
+        uRes2 = Abc_Tt6IsopCover( (uOn[0] & ~uRes0) | (uOn[1] & ~uRes1), uOnDc[0] & uOnDc[1], 6, pCover, pnCubes );
+        // derive the final truth table
+        uRes[0] = uRes2 | uRes0;
+        uRes[1] = uRes2 | uRes1;
+        for ( c = nBeg0; c < nEnd0; c++ )
+            pCover[c] |= (1 << (2*6+0));
+        for ( c = nEnd0; c < nEnd1; c++ )
+            pCover[c] |= (1 << (2*6+1));
+        assert( (uOn[0] & ~uRes[0]) == 0 && (uOn[1] & ~uRes[1]) == 0 );
+        assert( (uRes[0] & ~uOnDc[0])==0 && (uRes[1] & ~uOnDc[1])==0 );
+    }
+}
+static inline void Abc_Tt8IsopCover( word uOn[4], word uOnDc[4], int nVars, word uRes[4], int * pCover, int * pnCubes )
+{
+    int nCubes = 0;
+    if ( nVars <= 6 )
+        uRes[0] = uRes[1] = uRes[2] = uRes[3] = Abc_Tt6IsopCover( uOn[0], uOnDc[0], nVars, pCover, pnCubes );
+    else if ( nVars == 7 || (uOn[0] == uOn[2] && uOn[1] == uOn[3] && uOnDc[0] == uOnDc[2] && uOnDc[1] == uOnDc[3]) )
+    {
+        Abc_Tt7IsopCover( uOn, uOnDc, 7, uRes, pCover, pnCubes );
+        uRes[2] = uRes[0];
+        uRes[3] = uRes[1];
+    }
+    else 
+    {
+        word uOn0[2], uOn1[2], uOn2[2], uOnDc2[2], uRes0[2], uRes1[2], uRes2[2];
+        int c, nBeg0, nEnd0, nEnd1;
+        assert( nVars == 8 );
+        // cofactor
+        uOn0[0] = uOn[0] & ~uOnDc[2];
+        uOn0[1] = uOn[1] & ~uOnDc[3];
+        uOn1[0] = uOn[2] & ~uOnDc[0];
+        uOn1[1] = uOn[3] & ~uOnDc[1];
+        uOnDc2[0] = uOnDc[0] & uOnDc[2];
+        uOnDc2[1] = uOnDc[1] & uOnDc[3];
+        // solve for cofactors
+        nBeg0 = *pnCubes; 
+        Abc_Tt7IsopCover( uOn0, uOnDc+0, 7, uRes0, pCover, pnCubes );
+        nEnd0 = *pnCubes;
+        Abc_Tt7IsopCover( uOn1, uOnDc+2, 7, uRes1, pCover, pnCubes );
+        nEnd1 = *pnCubes;
+        uOn2[0] = (uOn[0] & ~uRes0[0]) | (uOn[2] & ~uRes1[0]);
+        uOn2[1] = (uOn[1] & ~uRes0[1]) | (uOn[3] & ~uRes1[1]);
+        Abc_Tt7IsopCover( uOn2, uOnDc2, 7, uRes2, pCover, pnCubes );
+        // derive the final truth table
+        uRes[0] = uRes2[0] | uRes0[0];
+        uRes[1] = uRes2[1] | uRes0[1];
+        uRes[2] = uRes2[0] | uRes1[0];
+        uRes[3] = uRes2[1] | uRes1[1];
+        for ( c = nBeg0; c < nEnd0; c++ )
+            pCover[c] |= (1 << (2*7+0));
+        for ( c = nEnd0; c < nEnd1; c++ )
+            pCover[c] |= (1 << (2*7+1));
+        assert( (uOn[0] & ~uRes[0]) == 0 && (uOn[1] & ~uRes[1]) == 0 && (uOn[2] & ~uRes[2]) == 0 && (uOn[3] & ~uRes[3]) == 0 );
+        assert( (uRes[0] & ~uOnDc[0])==0 && (uRes[1] & ~uOnDc[1])==0 && (uRes[2] & ~uOnDc[2])==0 && (uRes[3] & ~uOnDc[3])==0 );
+    }
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Computes CNF for the function.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline int Abc_Tt6Cnf( word t, int nVars, int * pCover )
+{
+    int c, nCubes = 0;
+    Abc_Tt6IsopCover( t, t, nVars, pCover, &nCubes );
+    for ( c = 0; c < nCubes; c++ )
+        pCover[c] |= (1 << (2*nVars+0));
+    Abc_Tt6IsopCover( ~t, ~t, nVars, pCover, &nCubes );
+    for ( ; c < nCubes; c++ )
+        pCover[c] |= (1 << (2*nVars+1));
+    assert( nCubes <= 64 );
+    return nCubes;
+}
+static inline int Abc_Tt8Cnf( word t[4], int nVars, int * pCover )
+{
+    word uRes[4], tc[4] = {~t[0], ~t[1], ~t[2], ~t[3]};
+    int c, nCubes = 0;
+    Abc_Tt8IsopCover( t,  t,  nVars, uRes, pCover, &nCubes );
+    for ( c = 0; c < nCubes; c++ )
+        pCover[c] |= (1 << (2*nVars+0));
+    Abc_Tt8IsopCover( tc, tc, nVars, uRes, pCover, &nCubes );
+    for ( ; c < nCubes; c++ )
+        pCover[c] |= (1 << (2*nVars+1));
+    assert( nCubes <= 256 );
+    return nCubes;
+}
 
 
 /**Function*************************************************************

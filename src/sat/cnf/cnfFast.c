@@ -681,7 +681,7 @@ Cnf_Dat_t * Cnf_DeriveFast( Aig_Man_t * p, int nOutputs )
     Aig_ManCleanMarkA( p );
 //    Abc_PrintTime( 1, "TOTAL  ", Abc_Clock() - clkTotal );
 
-//    printf( "Vars = %6d. Clauses = %7d. Literals = %8d.   \n", pCnf->nVars, pCnf->nClauses, pCnf->nLiterals );
+//    printf( "CNF stats: Vars = %6d. Clauses = %7d. Literals = %8d.   \n", pCnf->nVars, pCnf->nClauses, pCnf->nLiterals );
 
 //    Cnf_DataFree( pCnf );
 //    pCnf = NULL;
