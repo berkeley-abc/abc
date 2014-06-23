@@ -1620,7 +1620,6 @@ static inline void Abc_Tt7IsopCover( word uOn[2], word uOnDc[2], int nVars, word
 }
 static inline void Abc_Tt8IsopCover( word uOn[4], word uOnDc[4], int nVars, word uRes[4], int * pCover, int * pnCubes )
 {
-    int nCubes = 0;
     if ( nVars <= 6 )
         uRes[0] = uRes[1] = uRes[2] = uRes[3] = Abc_Tt6IsopCover( uOn[0], uOnDc[0], nVars, pCover, pnCubes );
     else if ( nVars == 7 || (uOn[0] == uOn[2] && uOn[1] == uOn[3] && uOnDc[0] == uOnDc[2] && uOnDc[1] == uOnDc[3]) )
