@@ -138,7 +138,7 @@ void Gia_ManPrintDelays( Vec_Int_t * vObjs, Vec_Int_t * vStore )
 Gia_Man_t * Gia_ManBuildGig2( Vec_Int_t * vObjs, Vec_Int_t * vStore, char * pFileName )
 {
     Gia_Man_t * pNew, * pTemp;
-    int * nObjs = Gia_ManGigCount( vObjs, vStore );
+    //int * nObjs = Gia_ManGigCount( vObjs, vStore );
     Vec_Int_t * vNets = Vec_IntAlloc( Vec_IntSize(vObjs) );
     Vec_Int_t * vTypes = Vec_IntAlloc( Vec_IntSize(vObjs) );
     Vec_Int_t * vMap;

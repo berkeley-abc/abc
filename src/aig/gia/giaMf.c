@@ -339,7 +339,6 @@ Cnf_Dat_t * Mf_ManDeriveCnf( Mf_Man_t * p, int fCnfObjIds, int fAddOrCla )
     // create CNF IDs
     if ( fCnfObjIds )
     {
-        int iVar = 1;
         iVar += 1 + Gia_ManCiNum(p->pGia) + Gia_ManCoNum(p->pGia);
         Gia_ManForEachCoId( p->pGia, Id, i )
             Vec_IntWriteEntry( vCnfIds, Id, Id );
@@ -353,7 +352,6 @@ Cnf_Dat_t * Mf_ManDeriveCnf( Mf_Man_t * p, int fCnfObjIds, int fAddOrCla )
     }
     else
     {
-        int iVar = 1;
         Gia_ManForEachCoId( p->pGia, Id, i )
             Vec_IntWriteEntry( vCnfIds, Id, iVar++ );
         Gia_ManForEachAndReverseId( p->pGia, Id )
@@ -479,7 +477,7 @@ Cnf_Dat_t * Mf_ManDeriveCnf( Mf_Man_t * p, int fCnfObjIds, int fAddOrCla )
 static inline int Mf_CutComputeTruth6( Mf_Man_t * p, Mf_Cut_t * pCut0, Mf_Cut_t * pCut1, int fCompl0, int fCompl1, Mf_Cut_t * pCutR, int fIsXor )
 {
 //    extern int Mf_ManTruthCanonicize( word * t, int nVars );
-    int nOldSupp = pCutR->nLeaves, nCubes = 0, truthId, fCompl; word t;
+    int nOldSupp = pCutR->nLeaves, truthId, fCompl; word t;
     word t0 = *Vec_MemReadEntry(p->vTtMem, Abc_Lit2Var(pCut0->iFunc));
     word t1 = *Vec_MemReadEntry(p->vTtMem, Abc_Lit2Var(pCut1->iFunc));
     if ( Abc_LitIsCompl(pCut0->iFunc) ^ fCompl0 ) t0 = ~t0;
@@ -531,7 +529,7 @@ static inline int Mf_CutComputeTruth( Mf_Man_t * p, Mf_Cut_t * pCut0, Mf_Cut_t *
 }
 static inline int Mf_CutComputeTruthMux6( Mf_Man_t * p, Mf_Cut_t * pCut0, Mf_Cut_t * pCut1, Mf_Cut_t * pCutC, int fCompl0, int fCompl1, int fComplC, Mf_Cut_t * pCutR )
 {
-    int nOldSupp = pCutR->nLeaves, nCubes = 0, truthId, fCompl; word t;
+    int nOldSupp = pCutR->nLeaves, truthId, fCompl; word t;
     word t0 = *Vec_MemReadEntry(p->vTtMem, Abc_Lit2Var(pCut0->iFunc));
     word t1 = *Vec_MemReadEntry(p->vTtMem, Abc_Lit2Var(pCut1->iFunc));
     word tC = *Vec_MemReadEntry(p->vTtMem, Abc_Lit2Var(pCutC->iFunc));
