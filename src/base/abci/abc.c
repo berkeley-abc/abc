@@ -25431,7 +25431,7 @@ int Abc_CommandAbc9Ps( Abc_Frame_t * pAbc, int argc, char ** argv )
     int c;
     memset( pPars, 0, sizeof(Gps_Par_t) );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "Dtpcnlmah" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Dtpcnlmash" ) ) != EOF )
     {
         switch ( c )
         {
@@ -25455,6 +25455,9 @@ int Abc_CommandAbc9Ps( Abc_Frame_t * pAbc, int argc, char ** argv )
             break;
         case 'a':
             pPars->fMiter ^= 1;
+            break;
+        case 's':
+            pPars->fSkipMap ^= 1;
             break;
         case 'D':
             if ( globalUtilOptind >= argc )
@@ -25480,7 +25483,7 @@ int Abc_CommandAbc9Ps( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &ps [-tpcnlmah] [-D file]\n" );
+    Abc_Print( -2, "usage: &ps [-tpcnlmash] [-D file]\n" );
     Abc_Print( -2, "\t          prints stats of the current AIG\n" );
     Abc_Print( -2, "\t-t      : toggle printing BMC tents [default = %s]\n",                pPars->fTents? "yes": "no" );
     Abc_Print( -2, "\t-p      : toggle printing switching activity [default = %s]\n",       pPars->fSwitch? "yes": "no" );
@@ -25489,6 +25492,7 @@ usage:
     Abc_Print( -2, "\t-l      : toggle printing LUT size profile [default = %s]\n",         pPars->fLutProf? "yes": "no" );
     Abc_Print( -2, "\t-m      : toggle printing MUX/XOR statistics [default = %s]\n",       pPars->fMuxXor? "yes": "no" );
     Abc_Print( -2, "\t-a      : toggle printing miter statistics [default = %s]\n",         pPars->fMiter? "yes": "no" );
+    Abc_Print( -2, "\t-s      : skip mapping statistics even if mapped [default = %s]\n",   pPars->fSkipMap? "yes": "no" );
     Abc_Print( -2, "\t-D file : file name to dump statistics [default = none]\n" );
     Abc_Print( -2, "\t-h      : print the command usage\n");
     return 1;
@@ -25778,7 +25782,8 @@ int Abc_CommandAbc9Strash( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( Gia_ManHasMapping(pAbc->pGia) )
     {
         pTemp = (Gia_Man_t *)Dsm_ManDeriveGia( pAbc->pGia, fAddMuxes );
-        printf( "Performed delay-oriented unmapping.\n" );
+        if ( !Abc_FrameReadFlag("silentmode") )
+            printf( "Performed delay-oriented unmapping.\n" );
     }
     else if ( fAddMuxes )
     {
@@ -25788,7 +25793,8 @@ int Abc_CommandAbc9Strash( Abc_Frame_t * pAbc, int argc, char ** argv )
             return 1;
         }
         pTemp = Gia_ManDupMuxes( pAbc->pGia, Limit );
-        printf( "Generated AND/XOR/MUX graph.\n" );
+        if ( !Abc_FrameReadFlag("silentmode") )
+            printf( "Generated AND/XOR/MUX graph.\n" );
     }
     else if ( fCollapse && pAbc->pGia->pAigExtra )
     {
@@ -25797,17 +25803,20 @@ int Abc_CommandAbc9Strash( Abc_Frame_t * pAbc, int argc, char ** argv )
         pTemp = Gia_ManDupCollapse( pNew, pAbc->pGia->pAigExtra, NULL );
         pNew->pManTime = NULL;
         Gia_ManStop( pNew );
-        printf( "Collapsed AIG with boxes with logic of the boxes.\n" );
+        if ( !Abc_FrameReadFlag("silentmode") )
+            printf( "Collapsed AIG with boxes with logic of the boxes.\n" );
     }
     else if ( pAbc->pGia->pMuxes )
     {
         pTemp = Gia_ManDupNoMuxes( pAbc->pGia );
-        printf( "Generated AIG from AND/XOR/MUX graph.\n" );
+        if ( !Abc_FrameReadFlag("silentmode") )
+            printf( "Generated AIG from AND/XOR/MUX graph.\n" );
     }
     else
     {
         pTemp = Gia_ManRehash( pAbc->pGia, fAddStrash );
-        printf( "Rehashed the current AIG.\n" );
+        if ( !Abc_FrameReadFlag("silentmode") )
+            printf( "Rehashed the current AIG.\n" );
     }
     Abc_FrameUpdateGia( pAbc, pTemp );
     return 0;

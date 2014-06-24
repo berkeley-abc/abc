@@ -199,6 +199,7 @@ struct Gps_Par_t_
     int            fLutProf;
     int            fMuxXor;
     int            fMiter;
+    int            fSkipMap;
     char *         pDumpFile;
 };
 

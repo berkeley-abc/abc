@@ -562,7 +562,7 @@ void Gia_ManMuxProfiling( Gia_Man_t * p )
 
     // short the first ones
     printf( "The first %d structures: \n", 10 );
-    Vec_WecForEachLevelStartStop( pMan->vTops, vVec, i, 1, 10 )
+    Vec_WecForEachLevelStartStop( pMan->vTops, vVec, i, 1, Abc_MinInt(Vec_WecSize(pMan->vTops), 10) )
     {
         char * pTemp = Abc_NamStr(pMan->pNames, i);
         printf( "%5d : ", i );

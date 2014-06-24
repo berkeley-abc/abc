@@ -430,10 +430,14 @@ void Gia_ManPrintStats( Gia_Man_t * p, Gps_Par_t * pPars )
         printf( "\nXOR/MUX " ), Gia_ManPrintMuxStats( p );
     if ( pPars && pPars->fSwitch )
     {
-//        if ( p->pSwitching )
-//            Abc_Print( 1, "  power =%7.2f", Gia_ManEvaluateSwitching(p) );
-//        else
-            Abc_Print( 1, "  power =%7.2f", Gia_ManComputeSwitching(p, 48, 16, 0) );
+        static int nPiPo = 0;
+        static float PrevSwiTotal = 0;
+        float SwiTotal = Gia_ManComputeSwitching( p, 48, 16, 0 );
+        Abc_Print( 1, "  power =%8.1f", SwiTotal );
+        if ( PrevSwiTotal > 0 && nPiPo == Gia_ManCiNum(p) + Gia_ManCoNum(p) )
+            Abc_Print( 1, " %6.2f %%", 100.0*(PrevSwiTotal-SwiTotal)/PrevSwiTotal );
+        else if ( PrevSwiTotal == 0 || nPiPo != Gia_ManCiNum(p) + Gia_ManCoNum(p) )
+            PrevSwiTotal = SwiTotal, nPiPo = Gia_ManCiNum(p) + Gia_ManCoNum(p);
     }
 //    Abc_Print( 1, "obj =%5d  ", Gia_ManObjNum(p) );
     Abc_Print( 1, "\n" );
@@ -443,7 +447,7 @@ void Gia_ManPrintStats( Gia_Man_t * p, Gps_Par_t * pPars )
         Gia_ManEquivPrintClasses( p, 0, 0.0 );
     if ( p->pSibls )
         Gia_ManPrintChoiceStats( p );
-    if ( Gia_ManHasMapping(p) )
+    if ( Gia_ManHasMapping(p) && (pPars == NULL || !pPars->fSkipMap) )
         Gia_ManPrintMappingStats( p, pPars ? pPars->pDumpFile : NULL );
     if ( pPars && pPars->fNpn && Gia_ManHasMapping(p) && Gia_ManLutSizeMax(p) <= 4 )
         Gia_ManPrintNpnClasses( p );
