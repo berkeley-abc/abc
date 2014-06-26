@@ -35937,6 +35937,7 @@ int Abc_CommandAbc9Test( Abc_Frame_t * pAbc, int argc, char ** argv )
 //    extern void Gia_ParTest( Gia_Man_t * p, int nWords, int nProcs );
 //    extern void Gia_ManTisTest( Gia_Man_t * pInit );
     extern void Gia_Iso3Test( Gia_Man_t * p );
+//    extern Gia_Man_t * Str_NormalizeTest( Gia_Man_t * p );
 
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "WPFsvh" ) ) != EOF )
@@ -36041,6 +36042,8 @@ int Abc_CommandAbc9Test( Abc_Frame_t * pAbc, int argc, char ** argv )
 //    Gia_ManCheckFalseTest( pAbc->pGia, nFrames );
 //    Gia_ParTest( pAbc->pGia, nWords, nProcs );
     Gia_Iso3Test( pAbc->pGia );
+//    pTemp = Str_NormalizeTest( pAbc->pGia );
+//    Abc_FrameUpdateGia( pAbc, pTemp );
 //    printf( "\nThis command is currently disabled.\n\n" );
 
     return 0;

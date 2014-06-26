@@ -42,6 +42,9 @@ typedef struct Abc_Nam_t_           Abc_Nam_t;
 ///                      MACRO DEFINITIONS                           ///
 ////////////////////////////////////////////////////////////////////////
 
+#define Abc_NamManForEachObj( p, pStr, i )  \
+    for ( i = 1; (i < Abc_NamObjNumMax(p)) && ((pStr) = Abc_NamStr(p, i)); i++ )
+
 ////////////////////////////////////////////////////////////////////////
 ///                    FUNCTION DECLARATIONS                         ///
 ////////////////////////////////////////////////////////////////////////

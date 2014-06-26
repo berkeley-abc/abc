@@ -609,11 +609,20 @@ static inline int Gia_ManAppendXorReal( Gia_Man_t * p, int iLit0, int iLit1 )
     assert( Abc_Lit2Var(iLit0) != Abc_Lit2Var(iLit1) );
     assert( !Abc_LitIsCompl(iLit0) );
     assert( !Abc_LitIsCompl(iLit1) );
-    assert( Abc_Lit2Var(iLit0) > Abc_Lit2Var(iLit1) );
-    pObj->iDiff0  = Gia_ObjId(p, pObj) - Abc_Lit2Var(iLit0);
-    pObj->fCompl0 = Abc_LitIsCompl(iLit0);
-    pObj->iDiff1  = Gia_ObjId(p, pObj) - Abc_Lit2Var(iLit1);
-    pObj->fCompl1 = Abc_LitIsCompl(iLit1);
+    if ( Abc_Lit2Var(iLit0) > Abc_Lit2Var(iLit1) )
+    {
+        pObj->iDiff0  = Gia_ObjId(p, pObj) - Abc_Lit2Var(iLit0);
+        pObj->fCompl0 = Abc_LitIsCompl(iLit0);
+        pObj->iDiff1  = Gia_ObjId(p, pObj) - Abc_Lit2Var(iLit1);
+        pObj->fCompl1 = Abc_LitIsCompl(iLit1);
+    }
+    else
+    {
+        pObj->iDiff1  = Gia_ObjId(p, pObj) - Abc_Lit2Var(iLit0);
+        pObj->fCompl1 = Abc_LitIsCompl(iLit0);
+        pObj->iDiff0  = Gia_ObjId(p, pObj) - Abc_Lit2Var(iLit1);
+        pObj->fCompl0 = Abc_LitIsCompl(iLit1);
+    }
     p->nXors++;
     return Gia_ObjId( p, pObj ) << 1;
 }
@@ -627,13 +636,23 @@ static inline int Gia_ManAppendMuxReal( Gia_Man_t * p, int iLitC, int iLit1, int
     assert( Abc_Lit2Var(iLit0) != Abc_Lit2Var(iLit1) );
     assert( Abc_Lit2Var(iLitC) != Abc_Lit2Var(iLit0) );
     assert( Abc_Lit2Var(iLitC) != Abc_Lit2Var(iLit1) );
-    assert( Abc_Lit2Var(iLit0) < Abc_Lit2Var(iLit1) );
-    assert( !Abc_LitIsCompl(iLit1) );
-    pObj->iDiff0  = Gia_ObjId(p, pObj) - Abc_Lit2Var(iLit0);
-    pObj->fCompl0 = Abc_LitIsCompl(iLit0);
-    pObj->iDiff1  = Gia_ObjId(p, pObj) - Abc_Lit2Var(iLit1);
-    pObj->fCompl1 = Abc_LitIsCompl(iLit1);
-    p->pMuxes[Gia_ObjId(p, pObj)] = iLitC;
+    assert( !p->pHTable || !Abc_LitIsCompl(iLit1) );
+    if ( Abc_Lit2Var(iLit0) < Abc_Lit2Var(iLit1) )
+    {
+        pObj->iDiff0  = Gia_ObjId(p, pObj) - Abc_Lit2Var(iLit0);
+        pObj->fCompl0 = Abc_LitIsCompl(iLit0);
+        pObj->iDiff1  = Gia_ObjId(p, pObj) - Abc_Lit2Var(iLit1);
+        pObj->fCompl1 = Abc_LitIsCompl(iLit1);
+        p->pMuxes[Gia_ObjId(p, pObj)] = iLitC;
+    }
+    else
+    {
+        pObj->iDiff1  = Gia_ObjId(p, pObj) - Abc_Lit2Var(iLit0);
+        pObj->fCompl1 = Abc_LitIsCompl(iLit0);
+        pObj->iDiff0  = Gia_ObjId(p, pObj) - Abc_Lit2Var(iLit1);
+        pObj->fCompl0 = Abc_LitIsCompl(iLit1);
+        p->pMuxes[Gia_ObjId(p, pObj)] = Abc_LitNot(iLitC);
+    }
     p->nMuxes++;
     return Gia_ObjId( p, pObj ) << 1;
 }
@@ -916,13 +935,15 @@ static inline int         Gia_ObjLutFanin( Gia_Man_t * p, int Id, int i )   { re
     for ( i = 0; (i < Vec_IntSize(vVec)) && ((pObj) = Gia_ManObj(p, Abc_Lit2Var(Vec_IntEntry(vVec,i)))) && (((fCompl) = Abc_LitIsCompl(Vec_IntEntry(vVec,i))),1); i++ )
 #define Gia_ManForEachObjReverse( p, pObj, i )                          \
     for ( i = p->nObjs - 1; (i >= 0) && ((pObj) = Gia_ManObj(p, i)); i-- )
-#define Gia_ManForEachObjReverse1( p, pObj, i )                          \
+#define Gia_ManForEachObjReverse1( p, pObj, i )                         \
     for ( i = p->nObjs - 1; (i > 0) && ((pObj) = Gia_ManObj(p, i)); i-- )
 #define Gia_ManForEachAnd( p, pObj, i )                                 \
     for ( i = 0; (i < p->nObjs) && ((pObj) = Gia_ManObj(p, i)); i++ )      if ( !Gia_ObjIsAnd(pObj) ) {} else
 #define Gia_ManForEachAndId( p, i )                                     \
     for ( i = 0; (i < p->nObjs); i++ )                                     if ( !Gia_ObjIsAnd(Gia_ManObj(p, i)) ) {} else
-#define Gia_ManForEachCand( p, pObj, i )                                 \
+#define Gia_ManForEachMuxId( p, i )                                     \
+    for ( i = 0; (i < p->nObjs); i++ )                                     if ( !Gia_ObjIsMuxId(p, i) ) {} else
+#define Gia_ManForEachCand( p, pObj, i )                                \
     for ( i = 0; (i < p->nObjs) && ((pObj) = Gia_ManObj(p, i)); i++ )      if ( !Gia_ObjIsCand(pObj) ) {} else
 #define Gia_ManForEachAndReverse( p, pObj, i )                          \
     for ( i = p->nObjs - 1; (i > 0) && ((pObj) = Gia_ManObj(p, i)); i-- )  if ( !Gia_ObjIsAnd(pObj) ) {} else
