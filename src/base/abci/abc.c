@@ -27843,7 +27843,7 @@ int Abc_CommandAbc9BalanceLut( Abc_Frame_t * pAbc, int argc, char ** argv )
     int fUseOld      = 0;
     int nLutSize     = 6;
     int nCutNum      = 8;
-    int fUseMuxes    = 0;
+    int fUseMuxes    = 1;
     int c, fVerbose  = 0;
     int fVeryVerbose = 0;
     Extra_UtilGetoptReset();
