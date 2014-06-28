@@ -27838,13 +27838,16 @@ usage:
 int Abc_CommandAbc9BalanceLut( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     extern Gia_Man_t * Gia_ManBalanceLut( Gia_Man_t * p, int nLutSize, int nCutNum, int fVerbose );
+    extern Gia_Man_t * Str_NormalizeTest( Gia_Man_t * p, int nLutSize, int fUseMuxes, int fVerbose );
     Gia_Man_t * pTemp = NULL;
+    int fUseOld      = 0;
     int nLutSize     = 6;
     int nCutNum      = 8;
+    int fUseMuxes    = 0;
     int c, fVerbose  = 0;
     int fVeryVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "KCvwh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "KCamvwh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -27870,6 +27873,12 @@ int Abc_CommandAbc9BalanceLut( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( nCutNum < 0 )
                 goto usage;
             break;
+        case 'a':
+            fUseOld ^= 1;
+            break;
+        case 'm':
+            fUseMuxes ^= 1;
+            break;
         case 'v':
             fVerbose ^= 1;
             break;
@@ -27887,15 +27896,19 @@ int Abc_CommandAbc9BalanceLut( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Abc_CommandAbc9BalanceLut(): There is no AIG.\n" );
         return 1;
     }
-    pTemp = Gia_ManBalanceLut( pAbc->pGia, nLutSize, nCutNum, fVerbose );
+    if ( fUseOld )
+        pTemp = Gia_ManBalanceLut( pAbc->pGia, nLutSize, nCutNum, fVerbose );
+    else
+        pTemp = Str_NormalizeTest( pAbc->pGia, nLutSize, fUseMuxes, fVerbose );
     Abc_FrameUpdateGia( pAbc, pTemp );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &blut [-KC num] [-vh]\n" );
+    Abc_Print( -2, "usage: &blut [-KC num] [-mvh]\n" );
     Abc_Print( -2, "\t           performs AIG balancing for the given LUT size\n" );
     Abc_Print( -2, "\t-K num   : LUT size for the mapping (2 <= K <= %d) [default = %d]\n", 6, nLutSize );
     Abc_Print( -2, "\t-C num   : the max number of priority cuts (1 <= C <= %d) [default = %d]\n", 8, nCutNum );
+    Abc_Print( -2, "\t-m       : toggle performing MUX restructuring [default = %s]\n", fUseMuxes? "yes": "no" );
     Abc_Print( -2, "\t-v       : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
 //    Abc_Print( -2, "\t-w       : toggle printing additional information [default = %s]\n", fVeryVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h       : print the command usage\n");
@@ -35937,7 +35950,6 @@ int Abc_CommandAbc9Test( Abc_Frame_t * pAbc, int argc, char ** argv )
 //    extern void Gia_ParTest( Gia_Man_t * p, int nWords, int nProcs );
 //    extern void Gia_ManTisTest( Gia_Man_t * pInit );
     extern void Gia_Iso3Test( Gia_Man_t * p );
-//    extern Gia_Man_t * Str_NormalizeTest( Gia_Man_t * p );
 
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "WPFsvh" ) ) != EOF )
@@ -36042,8 +36054,6 @@ int Abc_CommandAbc9Test( Abc_Frame_t * pAbc, int argc, char ** argv )
 //    Gia_ManCheckFalseTest( pAbc->pGia, nFrames );
 //    Gia_ParTest( pAbc->pGia, nWords, nProcs );
     Gia_Iso3Test( pAbc->pGia );
-//    pTemp = Str_NormalizeTest( pAbc->pGia );
-//    Abc_FrameUpdateGia( pAbc, pTemp );
 //    printf( "\nThis command is currently disabled.\n\n" );
 
     return 0;

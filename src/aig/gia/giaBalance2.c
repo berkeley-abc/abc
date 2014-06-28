@@ -934,7 +934,7 @@ static inline Gia_Man_t * Gia_ManBalanceInt( Gia_Man_t * p, int nLutSize, int nC
         Gia_ManBalance_rec( pNew, p, Gia_ObjFanin0(pObj) );
     Gia_ManForEachCo( p, pObj, i )
         pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
-    if ( fVerbose )
+//    if ( fVerbose )
     {
         int nLevelMax = 0;
         Gia_ManForEachCo( pNew, pObj, i )
