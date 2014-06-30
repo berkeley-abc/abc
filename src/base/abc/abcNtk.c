@@ -69,22 +69,20 @@ Abc_Ntk_t * Abc_NtkAlloc( Abc_NtkType_t Type, Abc_NtkFunc_t Func, int fUseMemMan
     // get ready to assign the first Obj ID
     pNtk->nTravIds    = 1;
     // start the functionality manager
+    if ( !Abc_NtkIsStrash(pNtk) )
+        Vec_PtrPush( pNtk->vObjs, NULL );
     if ( Abc_NtkIsStrash(pNtk) )
         pNtk->pManFunc = Abc_AigAlloc( pNtk );
-    else
-    {
-        Vec_PtrPush( pNtk->vObjs, NULL );
-        if ( Abc_NtkHasSop(pNtk) || Abc_NtkHasBlifMv(pNtk) )
-            pNtk->pManFunc = Mem_FlexStart();
-        else if ( Abc_NtkHasBdd(pNtk) )
-            pNtk->pManFunc = Cudd_Init( 20, 0, CUDD_UNIQUE_SLOTS, CUDD_CACHE_SLOTS, 0 );
-        else if ( Abc_NtkHasAig(pNtk) )
-            pNtk->pManFunc = Hop_ManStart();
-        else if ( Abc_NtkHasMapping(pNtk) )
-            pNtk->pManFunc = Abc_FrameReadLibGen();
-        else if ( !Abc_NtkHasBlackbox(pNtk) )
-            assert( 0 );
-    }
+    else if ( Abc_NtkHasSop(pNtk) || Abc_NtkHasBlifMv(pNtk) )
+        pNtk->pManFunc = Mem_FlexStart();
+    else if ( Abc_NtkHasBdd(pNtk) )
+        pNtk->pManFunc = Cudd_Init( 20, 0, CUDD_UNIQUE_SLOTS, CUDD_CACHE_SLOTS, 0 );
+    else if ( Abc_NtkHasAig(pNtk) )
+        pNtk->pManFunc = Hop_ManStart();
+    else if ( Abc_NtkHasMapping(pNtk) )
+        pNtk->pManFunc = Abc_FrameReadLibGen();
+    else if ( !Abc_NtkHasBlackbox(pNtk) )
+        assert( 0 );
     // name manager
     pNtk->pManName = Nm_ManCreate( 200 );
     // attribute manager
