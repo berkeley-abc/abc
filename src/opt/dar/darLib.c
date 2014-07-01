@@ -1288,7 +1288,7 @@ int Dar2_LibBuildBest_rec( Gia_Man_t * p, Dar_LibObj_t * pObj )
     pNode = Gia_ManObj( p, Abc_Lit2Var(pData->iGunc) );
     if ( Gia_ObjIsAnd( pNode ) )
         Gia_ObjSetAndLevel( p, pNode );
-    Gia_ObjSetPhase( pNode );
+    Gia_ObjSetPhase( p, pNode );
     return pData->iGunc;
 }
 

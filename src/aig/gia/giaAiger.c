@@ -656,7 +656,7 @@ Gia_Man_t * Gia_AigerReadFromMemory( char * pContents, int nFileSize, int fSkipS
             else if ( *pCur == 'q' )
             {
                 int i, nPairs, iRepr, iNode;
-                assert( pNew->pSibls == NULL );
+                assert( !Gia_ManHasChoices(pNew) );
                 pNew->pSibls = ABC_CALLOC( int, Gia_ManObjNum(pNew) );
                 pCur++;
                 pCurTemp = pCur + Gia_AigerReadInt(pCur) + 4;           pCur += 4;
@@ -1239,7 +1239,7 @@ void Gia_AigerWrite( Gia_Man_t * pInit, char * pFileName, int fWriteSymbols, int
         fwrite( p->pPlacement, 1, 4*Gia_ManObjNum(p), pFile );
     }
     // write choices
-    if ( p->pSibls )
+    if ( Gia_ManHasChoices(p) )
     {
         int i, nPairs = 0;
         fprintf( pFile, "q" );

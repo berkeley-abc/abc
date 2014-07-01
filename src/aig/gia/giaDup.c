@@ -525,7 +525,7 @@ Gia_Man_t * Gia_ManDup( Gia_Man_t * p )
     pNew = Gia_ManStart( Gia_ManObjNum(p) );
     pNew->pName = Abc_UtilStrsav( p->pName );
     pNew->pSpec = Abc_UtilStrsav( p->pSpec );
-    if ( p->pSibls )
+    if ( Gia_ManHasChoices(p) )
         pNew->pSibls = ABC_CALLOC( int, Gia_ManObjNum(p) );
     Gia_ManConst0(p)->Value = 0;
     Gia_ManForEachObj1( p, pObj, i )
@@ -975,7 +975,7 @@ Gia_Man_t * Gia_ManDupMarked( Gia_Man_t * p )
     if ( p->pReprs && p->pNexts )
     {
         Gia_Obj_t * pRepr;
-        pNew->pReprs = ABC_CALLOC( Gia_Rpr_t, Gia_ManObjNum(p) );
+        pNew->pReprs = ABC_CALLOC( Gia_Rpr_t, Gia_ManObjNum(pNew) );
         for ( i = 0; i < Gia_ManObjNum(p); i++ )
             Gia_ObjSetRepr( pNew, i, GIA_VOID );
         Gia_ManForEachObj1( p, pObj, i )
@@ -985,13 +985,29 @@ Gia_Man_t * Gia_ManDupMarked( Gia_Man_t * p )
             pRepr = Gia_ObjReprObj( p, i );
             if ( pRepr == NULL )
                 continue;
-//            assert( ~pRepr->Value );
             if ( !~pRepr->Value )
                 continue;
             if ( Abc_Lit2Var(pObj->Value) != Abc_Lit2Var(pRepr->Value) )
                 Gia_ObjSetRepr( pNew, Abc_Lit2Var(pObj->Value), Abc_Lit2Var(pRepr->Value) ); 
         }
         pNew->pNexts = Gia_ManDeriveNexts( pNew );
+    }
+    if ( Gia_ManHasChoices(p) )
+    {
+        Gia_Obj_t * pSibl;
+        pNew->pSibls = ABC_CALLOC( int, Gia_ManObjNum(pNew) );
+        Gia_ManForEachObj1( p, pObj, i )
+        {
+            if ( !~pObj->Value )
+                continue;
+            pSibl = Gia_ObjSiblObj( p, i );
+            if ( pSibl == NULL )
+                continue;
+            if ( !~pSibl->Value )
+                continue;
+            assert( Abc_Lit2Var(pObj->Value) > Abc_Lit2Var(pSibl->Value) );
+            pNew->pSibls[Abc_Lit2Var(pObj->Value)] = Abc_Lit2Var(pSibl->Value);
+        }
     }
     return pNew;
 }

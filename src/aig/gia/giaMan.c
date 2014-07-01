@@ -424,8 +424,8 @@ void Gia_ManPrintStats( Gia_Man_t * p, Gps_Par_t * pPars )
     if ( pPars && pPars->fCut )
         Abc_Print( 1, "  cut = %d(%d)", Gia_ManCrossCut(p, 0), Gia_ManCrossCut(p, 1) );
     Abc_Print( 1, "  mem =%5.2f MB", Gia_ManMemory(p)/(1<<20) );
-    if ( Gia_ManHasDangling(p) )
-        Abc_Print( 1, "  ch =%5d", Gia_ManEquivCountClasses(p) );
+    if ( Gia_ManHasChoices(p) )
+        Abc_Print( 1, "  ch =%5d", Gia_ManChoiceNum(p) );
     if ( pPars && pPars->fMuxXor )
         printf( "\nXOR/MUX " ), Gia_ManPrintMuxStats( p );
     if ( pPars && pPars->fSwitch )
@@ -445,8 +445,6 @@ void Gia_ManPrintStats( Gia_Man_t * p, Gps_Par_t * pPars )
 //    Gia_ManSatExperiment( p );
     if ( p->pReprs && p->pNexts )
         Gia_ManEquivPrintClasses( p, 0, 0.0 );
-    if ( p->pSibls )
-        Gia_ManPrintChoiceStats( p );
     if ( Gia_ManHasMapping(p) && (pPars == NULL || !pPars->fSkipMap) )
         Gia_ManPrintMappingStats( p, pPars ? pPars->pDumpFile : NULL );
     if ( pPars && pPars->fNpn && Gia_ManHasMapping(p) && Gia_ManLutSizeMax(p) <= 4 )

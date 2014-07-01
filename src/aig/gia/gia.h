@@ -268,6 +268,7 @@ struct Jf_Par_t_
     int            fCnfObjIds;
     int            fAddOrCla;
     int            fPureAig;
+    int            fDoAverage;
     int            fCutHashing;
     int            fCutSimple;
     int            fVerbose;
@@ -279,6 +280,8 @@ struct Jf_Par_t_
     word           Area;
     word           Edge;
     word           Clause;
+    float *        pTimesArr;
+    float *        pTimesReq;
 };
 
 static inline unsigned     Gia_ObjCutSign( unsigned ObjId )       { return (1 << (ObjId & 31));                                 }
@@ -368,6 +371,7 @@ static inline int          Gia_ManCandNum( Gia_Man_t * p )     { return Gia_ManC
 static inline int          Gia_ManConstrNum( Gia_Man_t * p )   { return p->nConstrs;                                                       }
 static inline void         Gia_ManFlipVerbose( Gia_Man_t * p ) { p->fVerbose ^= 1;                                                         } 
 static inline int          Gia_ManHasChoices( Gia_Man_t * p )  { return p->pSibls != NULL;                                                 } 
+static inline int          Gia_ManChoiceNum( Gia_Man_t * p )   { int c = 0; if (p->pSibls) { int i; for (i = 0; i < p->nObjs; i++) c += (int)(p->pSibls[i] > 0); } return c; } 
 
 static inline Gia_Obj_t *  Gia_ManConst0( Gia_Man_t * p )      { return p->pObjs;                                                          }
 static inline Gia_Obj_t *  Gia_ManConst1( Gia_Man_t * p )      { return Gia_Not(Gia_ManConst0(p));                                         }
@@ -1155,6 +1159,7 @@ extern int                 Gia_ManLutLevel( Gia_Man_t * p );
 extern void                Gia_ManSetRefsMapped( Gia_Man_t * p );
 extern void                Gia_ManSetIfParsDefault( void * pIfPars );
 extern void                Gia_ManMappingVerify( Gia_Man_t * p );
+extern void                Gia_ManTransferMapping( Gia_Man_t * pGia, Gia_Man_t * p );
 extern Gia_Man_t *         Gia_ManPerformMapping( Gia_Man_t * p, void * pIfPars, int fNormalized );
 /*=== giaJf.c ===========================================================*/
 extern void                Jf_ManSetDefaultPars( Jf_Par_t * pPars );
@@ -1167,6 +1172,7 @@ extern Gia_Man_t *         Gia_ManIsoReduce2( Gia_Man_t * p, Vec_Ptr_t ** pvPosE
 /*=== giaLf.c ===========================================================*/
 extern void                Lf_ManSetDefaultPars( Jf_Par_t * pPars );
 extern Gia_Man_t *         Lf_ManPerformMapping( Gia_Man_t * pGia, Jf_Par_t * pPars );
+extern Gia_Man_t *         Gia_ManPerformLfMapping( Gia_Man_t * p, Jf_Par_t * pPars, int fNormalized );
 /*=== giaLogic.c ===========================================================*/
 extern void                Gia_ManTestDistance( Gia_Man_t * p );
 extern void                Gia_ManSolveProblem( Gia_Man_t * pGia, Emb_Par_t * pPars );
@@ -1306,7 +1312,7 @@ extern void                Gia_ManCleanValue( Gia_Man_t * p );
 extern void                Gia_ManCleanLevels( Gia_Man_t * p, int Size );
 extern void                Gia_ManCleanTruth( Gia_Man_t * p );
 extern void                Gia_ManFillValue( Gia_Man_t * p );
-extern void                Gia_ObjSetPhase( Gia_Obj_t * pObj );
+extern void                Gia_ObjSetPhase( Gia_Man_t * p, Gia_Obj_t * pObj );
 extern void                Gia_ManSetPhase( Gia_Man_t * p );
 extern void                Gia_ManSetPhasePattern( Gia_Man_t * p, Vec_Int_t * vCiValues );
 extern void                Gia_ManSetPhase1( Gia_Man_t * p );

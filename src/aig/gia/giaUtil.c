@@ -343,12 +343,22 @@ void Gia_ManFillValue( Gia_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-void Gia_ObjSetPhase( Gia_Obj_t * pObj )  
+void Gia_ObjSetPhase( Gia_Man_t * p, Gia_Obj_t * pObj )  
 {
-    assert( !Gia_ObjIsXor(pObj) );
     if ( Gia_ObjIsAnd(pObj) )
-        pObj->fPhase = (Gia_ObjPhase(Gia_ObjFanin0(pObj)) ^ Gia_ObjFaninC0(pObj)) & 
-                       (Gia_ObjPhase(Gia_ObjFanin1(pObj)) ^ Gia_ObjFaninC1(pObj));
+    {
+        int fPhase0 = Gia_ObjPhase(Gia_ObjFanin0(pObj)) ^ Gia_ObjFaninC0(pObj);
+        int fPhase1 = Gia_ObjPhase(Gia_ObjFanin1(pObj)) ^ Gia_ObjFaninC1(pObj);
+        if ( Gia_ObjIsMux(p, pObj) )
+        {
+            int fPhase2 = Gia_ObjPhase(Gia_ObjFanin2(p, pObj)) ^ Gia_ObjFaninC2(p, pObj);
+            pObj->fPhase = (fPhase2 & fPhase1) | (!fPhase2 & fPhase0);
+        }
+        else if ( Gia_ObjIsXor(pObj) )
+            pObj->fPhase = fPhase0 ^ fPhase1;
+        else
+            pObj->fPhase = fPhase0 & fPhase1;
+    }
     else if ( Gia_ObjIsCo(pObj) )
         pObj->fPhase = (Gia_ObjPhase(Gia_ObjFanin0(pObj)) ^ Gia_ObjFaninC0(pObj));
     else
@@ -371,7 +381,7 @@ void Gia_ManSetPhase( Gia_Man_t * p )
     Gia_Obj_t * pObj;
     int i;
     Gia_ManForEachObj( p, pObj, i )
-        Gia_ObjSetPhase( pObj );
+        Gia_ObjSetPhase( p, pObj );
 }
 void Gia_ManSetPhasePattern( Gia_Man_t * p, Vec_Int_t * vCiValues )  
 {
@@ -382,7 +392,7 @@ void Gia_ManSetPhasePattern( Gia_Man_t * p, Vec_Int_t * vCiValues )
         if ( Gia_ObjIsCi(pObj) )
             pObj->fPhase = Vec_IntEntry( vCiValues, Gia_ObjCioId(pObj) );
         else
-            Gia_ObjSetPhase( pObj );
+            Gia_ObjSetPhase( p, pObj );
 }
 
 /**Function*************************************************************
@@ -404,7 +414,7 @@ void Gia_ManSetPhase1( Gia_Man_t * p )
         pObj->fPhase = 1;
     Gia_ManForEachObj( p, pObj, i )
         if ( !Gia_ObjIsCi(pObj) )
-            Gia_ObjSetPhase( pObj );
+            Gia_ObjSetPhase( p, pObj );
 }
 
 /**Function*************************************************************

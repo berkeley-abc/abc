@@ -646,7 +646,7 @@ static inline void Mf_CutPrint( Mf_Man_t * p, Mf_Cut_t * pCut )
     else
         printf( "\n" );
 }
-static inline int Mf_ManPrepareCuts( Mf_Cut_t * pCuts, Mf_Man_t * p, int iObj )
+static inline int Mf_ManPrepareCuts( Mf_Cut_t * pCuts, Mf_Man_t * p, int iObj, int fAddUnit )
 {
     if ( Mf_ManObj(p, iObj)->iCutSet )
     {
@@ -662,7 +662,7 @@ static inline int Mf_ManPrepareCuts( Mf_Cut_t * pCuts, Mf_Man_t * p, int iObj )
             memcpy( pMfCut->pLeaves, pCut+1, sizeof(int) * Mf_CutSize(pCut) );
             pMfCut++;
         }
-        if ( pCuts->nLeaves > 1 )
+        if ( fAddUnit && pCuts->nLeaves > 1 )
             return pList[0] + Mf_CutCreateUnit( pMfCut, iObj );
         return pList[0];
     }
@@ -969,18 +969,35 @@ void Mf_ObjMergeOrder( Mf_Man_t * p, int iObj )
     Mf_Obj_t * pBest = Mf_ManObj(p, iObj);
     int nLutSize = p->pPars->nLutSize;
     int nCutNum  = p->pPars->nCutNum;
-    int nCuts0   = Mf_ManPrepareCuts(pCuts0, p, Gia_ObjFaninId0(pObj, iObj));
-    int nCuts1   = Mf_ManPrepareCuts(pCuts1, p, Gia_ObjFaninId1(pObj, iObj));
+    int nCuts0   = Mf_ManPrepareCuts(pCuts0, p, Gia_ObjFaninId0(pObj, iObj), 1);
+    int nCuts1   = Mf_ManPrepareCuts(pCuts1, p, Gia_ObjFaninId1(pObj, iObj), 1);
     int fComp0   = Gia_ObjFaninC0(pObj);
     int fComp1   = Gia_ObjFaninC1(pObj);
+    int iSibl    = Gia_ObjSibl(p->pGia, iObj);
     Mf_Cut_t * pCut0, * pCut1, * pCut0Lim = pCuts0 + nCuts0, * pCut1Lim = pCuts1 + nCuts1;
     int i, nCutsR = 0;
     for ( i = 0; i < nCutNum; i++ )
         pCutsR[i] = pCuts + i;
+    if ( iSibl )
+    {
+        Mf_Cut_t pCuts2[MF_CUT_MAX];
+        Gia_Obj_t * pObjE = Gia_ObjSiblObj(p->pGia, iObj);
+        int fCompE = Gia_ObjPhase(pObj) ^ Gia_ObjPhase(pObjE);
+        int nCuts2 = Mf_ManPrepareCuts(pCuts2, p, iSibl, 0);
+        Mf_Cut_t * pCut2, * pCut2Lim = pCuts2 + nCuts2;
+        for ( pCut2 = pCuts2; pCut2 < pCut2Lim; pCut2++ )
+        {
+            *pCutsR[nCutsR] = *pCut2;
+            if ( pCutsR[nCutsR]->iFunc >= 0 )
+                pCutsR[nCutsR]->iFunc = Abc_LitNotCond( pCutsR[nCutsR]->iFunc, fCompE );
+            Mf_CutParams( p, pCutsR[nCutsR], pBest->nFlowRefs );
+            nCutsR = Mf_SetAddCut( pCutsR, nCutsR, nCutNum );
+        }
+    }
     if ( Gia_ObjIsMuxId(p->pGia, iObj) )
     {
         Mf_Cut_t pCuts2[MF_CUT_MAX];
-        int nCuts2  = Mf_ManPrepareCuts(pCuts2, p, Gia_ObjFaninId2(p->pGia, iObj));
+        int nCuts2  = Mf_ManPrepareCuts(pCuts2, p, Gia_ObjFaninId2(p->pGia, iObj), 1);
         int fComp2  = Gia_ObjFaninC2(p->pGia, pObj);
         Mf_Cut_t * pCut2, * pCut2Lim = pCuts2 + nCuts2;
         p->CutCount[0] += nCuts0 * nCuts1 * nCuts2;
@@ -1309,6 +1326,8 @@ Mf_Man_t * Mf_ManAlloc( Gia_Man_t * pGia, Jf_Par_t * pPars )
     assert( pPars->nLutSize > 1 && pPars->nLutSize <= MF_LEAF_MAX );
     ABC_FREE( pGia->pRefs );
     Vec_IntFreeP( &pGia->vMapping );
+    if ( Gia_ManHasChoices(pGia) )
+        Gia_ManSetPhase(pGia);
     p = ABC_CALLOC( Mf_Man_t, 1 );
     p->clkStart  = Abc_Clock();
     p->pGia      = pGia;
@@ -1557,6 +1576,8 @@ Gia_Man_t * Mf_ManPerformMapping( Gia_Man_t * pGia, Jf_Par_t * pPars )
     Gia_Man_t * pNew, * pCls;
     if ( pPars->fGenCnf )
         pPars->fCutMin = 1;
+    if ( Gia_ManHasChoices(pGia) )
+        pPars->fCutMin = 1, pPars->fCoarsen = 0; 
     pCls = pPars->fCoarsen ? Gia_ManDupMuxes(pGia, pPars->nCoarseLimit) : pGia;
     p = Mf_ManAlloc( pCls, pPars );
     p->pGia0 = pGia;

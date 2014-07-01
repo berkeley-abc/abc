@@ -96,7 +96,7 @@ void Gia_ManPrintMuxStats( Gia_Man_t * p )
 Gia_Man_t * Gia_ManDupMuxes( Gia_Man_t * p, int Limit )
 {
     Gia_Man_t * pNew, * pTemp;
-    Gia_Obj_t * pObj, * pFan0, * pFan1, * pFanC;
+    Gia_Obj_t * pObj, * pFan0, * pFan1, * pFanC, * pSiblNew, * pObjNew;
     int i;
     assert( p->pMuxes == NULL );
     assert( Limit >= 2 );
@@ -107,27 +107,17 @@ Gia_Man_t * Gia_ManDupMuxes( Gia_Man_t * p, int Limit )
     pNew->pName = Abc_UtilStrsav( p->pName );
     pNew->pSpec = Abc_UtilStrsav( p->pSpec );
     pNew->pMuxes = ABC_CALLOC( unsigned, pNew->nObjsAlloc );
-    // create constant
+    if ( Gia_ManHasChoices(p) )
+        pNew->pSibls = ABC_CALLOC( int, pNew->nObjsAlloc );
     Gia_ManConst0(p)->Value = 0;
-    // create PIs
-    Gia_ManForEachCi( p, pObj, i )
-        pObj->Value = Gia_ManAppendCi( pNew );
-    // create internal nodes
     Gia_ManHashStart( pNew );
-    Gia_ManForEachAnd( p, pObj, i )
+    Gia_ManForEachObj1( p, pObj, i )
     {
-/*
-        if ( !Gia_ObjIsMuxType(pObj) || Gia_ObjRefNum(p, Gia_ObjFanin0(pObj)) + Gia_ObjRefNum(p, Gia_ObjFanin1(pObj)) > Limit )
-            pObj->Value = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
-        else if ( Gia_ObjRecognizeExor(pObj, &pFan0, &pFan1) )
-            pObj->Value = Gia_ManHashXorReal( pNew, Gia_ObjLitCopy(p, Gia_ObjToLit(p, pFan0)), Gia_ObjLitCopy(p, Gia_ObjToLit(p, pFan1)) );
-        else
-        {
-            pFanC = Gia_ObjRecognizeMux( pObj, &pFan1, &pFan0 );
-            pObj->Value = Gia_ManHashMuxReal( pNew, Gia_ObjLitCopy(p, Gia_ObjToLit(p, pFanC)), Gia_ObjLitCopy(p, Gia_ObjToLit(p, pFan1)), Gia_ObjLitCopy(p, Gia_ObjToLit(p, pFan0)) );
-        }
-*/
-        if ( !Gia_ObjIsMuxType(pObj) )
+        if ( Gia_ObjIsCi(pObj) )
+            pObj->Value = Gia_ManAppendCi( pNew );
+        else if ( Gia_ObjIsCo(pObj) )
+            pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
+        else if ( !Gia_ObjIsMuxType(pObj) || Gia_ObjSibl(p, Gia_ObjFaninId0(pObj, i)) || Gia_ObjSibl(p, Gia_ObjFaninId1(pObj, i)) )
             pObj->Value = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
         else if ( Gia_ObjRecognizeExor(pObj, &pFan0, &pFan1) )
             pObj->Value = Gia_ManHashXorReal( pNew, Gia_ObjLitCopy(p, Gia_ObjToLit(p, pFan0)), Gia_ObjLitCopy(p, Gia_ObjToLit(p, pFan1)) );
@@ -138,11 +128,14 @@ Gia_Man_t * Gia_ManDupMuxes( Gia_Man_t * p, int Limit )
             pFanC = Gia_ObjRecognizeMux( pObj, &pFan1, &pFan0 );
             pObj->Value = Gia_ManHashMuxReal( pNew, Gia_ObjLitCopy(p, Gia_ObjToLit(p, pFanC)), Gia_ObjLitCopy(p, Gia_ObjToLit(p, pFan1)), Gia_ObjLitCopy(p, Gia_ObjToLit(p, pFan0)) );
         }
+        if ( !Gia_ObjSibl(p, i) )
+            continue;
+        pObjNew  = Gia_ManObj( pNew, Abc_Lit2Var(pObj->Value) );
+        pSiblNew = Gia_ManObj( pNew, Abc_Lit2Var(Gia_ObjSiblObj(p, i)->Value) );
+        if ( Gia_ObjIsAnd(pObjNew) && Gia_ObjIsAnd(pSiblNew) && Gia_ObjId(pNew, pObjNew) > Gia_ObjId(pNew, pSiblNew) )
+            pNew->pSibls[Gia_ObjId(pNew, pObjNew)] = Gia_ObjId(pNew, pSiblNew);
     }
     Gia_ManHashStop( pNew );
-    // create ROs
-    Gia_ManForEachCo( p, pObj, i )
-        pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
     Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
     // perform cleanup
     pNew = Gia_ManCleanup( pTemp = pNew );
@@ -171,16 +164,15 @@ Gia_Man_t * Gia_ManDupNoMuxes( Gia_Man_t * p )
     pNew = Gia_ManStart( 5000 );
     pNew->pName = Abc_UtilStrsav( p->pName );
     pNew->pSpec = Abc_UtilStrsav( p->pSpec );
-    // create constant
     Gia_ManConst0(p)->Value = 0;
-    // create PIs
-    Gia_ManForEachCi( p, pObj, i )
-        pObj->Value = Gia_ManAppendCi( pNew );
-    // create internal nodes
     Gia_ManHashStart( pNew );
-    Gia_ManForEachAnd( p, pObj, i )
+    Gia_ManForEachObj1( p, pObj, i )
     {
-        if ( Gia_ObjIsMuxId(p, i) )
+        if ( Gia_ObjIsCi(pObj) )
+            pObj->Value = Gia_ManAppendCi( pNew );
+        else if ( Gia_ObjIsCo(pObj) )
+            pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
+        else if ( Gia_ObjIsMuxId(p, i) )
             pObj->Value = Gia_ManHashMux( pNew, Gia_ObjFanin2Copy(p, pObj), Gia_ObjFanin1Copy(pObj), Gia_ObjFanin0Copy(pObj) );
         else if ( Gia_ObjIsXor(pObj) )
             pObj->Value = Gia_ManHashXor( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
@@ -188,9 +180,6 @@ Gia_Man_t * Gia_ManDupNoMuxes( Gia_Man_t * p )
             pObj->Value = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
     }
     Gia_ManHashStop( pNew );
-    // create ROs
-    Gia_ManForEachCo( p, pObj, i )
-        pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
     Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
     // perform cleanup
     pNew = Gia_ManCleanup( pTemp = pNew );

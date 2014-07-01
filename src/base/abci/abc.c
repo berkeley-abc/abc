@@ -31112,7 +31112,7 @@ int Abc_CommandAbc9Lf( Abc_Frame_t * pAbc, int argc, char ** argv )
     Gia_Man_t * pNew; int c;
     Lf_ManSetDefaultPars( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "KCFARLDWaekmupgvwh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "KCFARLDWaekmupgtvwh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -31231,6 +31231,9 @@ int Abc_CommandAbc9Lf( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'g':
             pPars->fPureAig ^= 1;
             break;
+        case 't':
+            pPars->fDoAverage ^= 1;
+            break;
         case 'v':
             pPars->fVerbose ^= 1;
             break;
@@ -31263,7 +31266,7 @@ usage:
         sprintf(Buffer, "best possible" );
     else
         sprintf(Buffer, "%d", pPars->DelayTarget );
-    Abc_Print( -2, "usage: &lf [-KCFARLD num] [-akmupgvwh]\n" );
+    Abc_Print( -2, "usage: &lf [-KCFARLD num] [-kmupgtvwh]\n" );
     Abc_Print( -2, "\t           performs technology mapping of the network\n" );
     Abc_Print( -2, "\t-K num   : LUT size for the mapping (2 <= K <= %d) [default = %d]\n", pPars->nLutSizeMax, pPars->nLutSize );
     Abc_Print( -2, "\t-C num   : the max number of priority cuts (1 <= C <= %d) [default = %d]\n", pPars->nCutNumMax, pPars->nCutNum );
@@ -31272,13 +31275,14 @@ usage:
     Abc_Print( -2, "\t-R num   : the delay relaxation ratio (num >= 0) [default = %d]\n", pPars->nRelaxRatio );
     Abc_Print( -2, "\t-L num   : the fanout limit for coarsening XOR/MUX (num >= 2) [default = %d]\n", pPars->nCoarseLimit );
     Abc_Print( -2, "\t-D num   : sets the delay constraint for the mapping [default = %s]\n", Buffer );
-    Abc_Print( -2, "\t-a       : toggles area-oriented mapping [default = %s]\n", pPars->fAreaOnly? "yes": "no" );
+//    Abc_Print( -2, "\t-a       : toggles area-oriented mapping [default = %s]\n", pPars->fAreaOnly? "yes": "no" );
     Abc_Print( -2, "\t-e       : toggles edge vs node minimization [default = %s]\n", pPars->fOptEdge? "yes": "no" );
     Abc_Print( -2, "\t-k       : toggles coarsening the subject graph [default = %s]\n", pPars->fCoarsen? "yes": "no" );
     Abc_Print( -2, "\t-m       : toggles cut minimization [default = %s]\n", pPars->fCutMin? "yes": "no" );
     Abc_Print( -2, "\t-u       : toggles using additional MUXes [default = %s]\n", pPars->fUseMux7? "yes": "no" );
     Abc_Print( -2, "\t-p       : toggles power-aware cut selection heuristics [default = %s]\n", pPars->fPower? "yes": "no" );
     Abc_Print( -2, "\t-g       : toggles generating AIG without mapping [default = %s]\n", pPars->fPureAig? "yes": "no" );
+    Abc_Print( -2, "\t-t       : toggles optimizing average rather than maximum level [default = %s]\n", pPars->fDoAverage? "yes": "no" );
     Abc_Print( -2, "\t-v       : toggles verbose output [default = %s]\n", pPars->fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-w       : toggles very verbose output [default = %s]\n", pPars->fVeryVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h       : prints the command usage\n");

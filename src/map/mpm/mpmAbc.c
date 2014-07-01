@@ -53,7 +53,7 @@ void Mig_ManCreateChoices( Mig_Man_t * pMig, Gia_Man_t * p )
     Gia_ManMarkFanoutDrivers( p );
     Gia_ManForEachObj( p, pObj, i )
     {
-        Gia_ObjSetPhase( pObj );
+        Gia_ObjSetPhase( p, pObj );
         assert( Abc_Lit2Var(pObj->Value) == i );
         Mig_ObjSetPhase( Mig_ManObj(pMig, i), pObj->fPhase );
         if ( Gia_ObjSibl(p, i) && pObj->fMark0 )
@@ -104,7 +104,7 @@ Mig_Man_t * Mig_ManCreate( void * pGia )
         else assert( 0 );
     }
     Mig_ManSetRegNum( pNew, Gia_ManRegNum(p) );
-    if ( p->pSibls )
+    if ( Gia_ManHasChoices(p) )
         Mig_ManCreateChoices( pNew, p );
     return pNew;
 }

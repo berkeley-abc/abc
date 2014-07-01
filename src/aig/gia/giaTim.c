@@ -208,7 +208,7 @@ Gia_Man_t * Gia_ManDupUnnormalize( Gia_Man_t * p )
     pNew = Gia_ManStart( Gia_ManObjNum(p) );
     pNew->pName = Abc_UtilStrsav( p->pName );
     pNew->pSpec = Abc_UtilStrsav( p->pSpec );
-    if ( p->pSibls )
+    if ( Gia_ManHasChoices(p) )
         pNew->pSibls = ABC_CALLOC( int, Gia_ManObjNum(p) );
     Gia_ManForEachObjVec( vNodes, p, pObj, i )
     {
@@ -297,7 +297,7 @@ Gia_Man_t * Gia_ManDupCollapse( Gia_Man_t * p, Gia_Man_t * pBoxes, Vec_Int_t * v
     pNew = Gia_ManStart( Gia_ManObjNum(p) );
     pNew->pName = Abc_UtilStrsav( p->pName );
     pNew->pSpec = Abc_UtilStrsav( p->pSpec );
-    if ( p->pSibls )
+    if ( Gia_ManHasChoices(p) )
         pNew->pSibls = ABC_CALLOC( int, Gia_ManObjNum(p) );
     Gia_ManHashAlloc( pNew );
     // copy const and real PIs
