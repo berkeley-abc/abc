@@ -714,6 +714,18 @@ int Gia_ManBuildFromMini( Gia_Man_t * pNew, If_Man_t * pIfMan, If_Cut_t * pCut, 
   SeeAlso     []
 
 ***********************************************************************/
+int Gia_ManFromIfAig_rec( Gia_Man_t * pNew, If_Man_t * pIfMan, If_Obj_t * pIfObj )
+{
+    int iLit0, iLit1;
+    if ( pIfObj->iCopy )
+        return pIfObj->iCopy;
+    iLit0 = Gia_ManFromIfAig_rec( pNew, pIfMan, pIfObj->pFanin0 );
+    iLit1 = Gia_ManFromIfAig_rec( pNew, pIfMan, pIfObj->pFanin1 );
+    iLit0 = Abc_LitNotCond( iLit0, pIfObj->fCompl0 );
+    iLit1 = Abc_LitNotCond( iLit1, pIfObj->fCompl1 );
+    pIfObj->iCopy = Gia_ManHashAnd( pNew, iLit0, iLit1 );
+    return pIfObj->iCopy;
+}
 Gia_Man_t * Gia_ManFromIfAig( If_Man_t * pIfMan )
 {
     int fHash = 0;
@@ -731,7 +743,8 @@ Gia_Man_t * Gia_ManFromIfAig( If_Man_t * pIfMan )
     // iterate through nodes used in the mapping
     vAig = Vec_IntAlloc( 1 << 16 );
     vLeaves = Vec_IntAlloc( 16 );
-    If_ManCleanCutData( pIfMan );
+//    If_ManForEachObj( pIfMan, pIfObj, i )
+//        pIfObj->iCopy = 0;
     If_ManForEachObj( pIfMan, pIfObj, i )
     {
         if ( pIfObj->nRefs == 0 && !If_ObjIsTerm(pIfObj) )
@@ -739,6 +752,12 @@ Gia_Man_t * Gia_ManFromIfAig( If_Man_t * pIfMan )
         if ( If_ObjIsAnd(pIfObj) )
         {
             pCutBest = If_ObjCutBest( pIfObj );
+            // if the cut does not offer delay improvement
+//            if ( (int)pIfObj->Level <= (int)pCutBest->Delay )
+//            {
+//                Gia_ManFromIfAig_rec( pNew, pIfMan, pIfObj );
+//                continue;
+//            }
             // collect leaves of the best cut
             Vec_IntClear( vLeaves );
             If_CutForEachLeaf( pIfMan, pCutBest, pIfLeaf, k )
