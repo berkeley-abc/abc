@@ -352,7 +352,7 @@ void Gia_ObjSetPhase( Gia_Man_t * p, Gia_Obj_t * pObj )
         if ( Gia_ObjIsMux(p, pObj) )
         {
             int fPhase2 = Gia_ObjPhase(Gia_ObjFanin2(p, pObj)) ^ Gia_ObjFaninC2(p, pObj);
-            pObj->fPhase = (fPhase2 & fPhase1) | (!fPhase2 & fPhase0);
+            pObj->fPhase = (fPhase2 && fPhase1) || (!fPhase2 && fPhase0);
         }
         else if ( Gia_ObjIsXor(pObj) )
             pObj->fPhase = fPhase0 ^ fPhase1;
