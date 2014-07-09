@@ -28166,7 +28166,7 @@ int Abc_CommandAbc9False( Abc_Frame_t * pAbc, int argc, char ** argv )
 usage:
     Abc_Print( -2, "usage: &false [-ST num] [-vwh]\n" );
     Abc_Print( -2, "\t         detecting and elimintation false paths\n" );
-    Abc_Print( -2, "\t-S num : maximum slack to idetify false paths [default = %d]\n",   nSlackMax );
+    Abc_Print( -2, "\t-S num : maximum slack to identify false paths [default = %d]\n",  nSlackMax );
     Abc_Print( -2, "\t-T num : approximate runtime limit in seconds [default = %d]\n",   nTimeOut );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n",    fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-w     : toggle printing additional information [default = %s]\n", fVeryVerbose? "yes": "no" );

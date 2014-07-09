@@ -1459,6 +1459,45 @@ Gia_Man_t * Gia_ManDupDfsCone( Gia_Man_t * p, Gia_Obj_t * pRoot )
   SeeAlso     []
 
 ***********************************************************************/
+void Gia_ManDupDfs3_rec( Gia_Man_t * pNew, Gia_Man_t * p, Gia_Obj_t * pObj )
+{
+    if ( ~pObj->Value )
+        return;
+    if ( Gia_ObjIsCi(pObj) )
+    {
+        pObj->Value = Gia_ManAppendCi(pNew);
+        return;
+    }
+    assert( Gia_ObjIsAnd(pObj) );
+    Gia_ManDupDfs3_rec( pNew, p, Gia_ObjFanin0(pObj) );
+    Gia_ManDupDfs3_rec( pNew, p, Gia_ObjFanin1(pObj) );
+    pObj->Value = Gia_ManAppendAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+}
+Gia_Man_t * Gia_ManDupDfsNode( Gia_Man_t * p, Gia_Obj_t * pRoot )
+{
+    Gia_Man_t * pNew;
+    assert( Gia_ObjIsAnd(pRoot) );
+    Gia_ManFillValue( p );
+    pNew = Gia_ManStart( Gia_ManObjNum(p) );
+    pNew->pName = Abc_UtilStrsav( p->pName );
+    pNew->pSpec = Abc_UtilStrsav( p->pSpec );
+    Gia_ManConst0(p)->Value = 0;
+    Gia_ManDupDfs3_rec( pNew, p, pRoot );
+    Gia_ManAppendCo( pNew, pRoot->Value );
+    return pNew;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Duplicates AIG in the DFS order while putting CIs first.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 Gia_Man_t * Gia_ManDupDfsLitArray( Gia_Man_t * p, Vec_Int_t * vLits )
 {
     Gia_Man_t * pNew;
