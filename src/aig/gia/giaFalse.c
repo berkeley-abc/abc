@@ -390,34 +390,30 @@ Gia_Man_t * Gia_ManCheckOne( Gia_Man_t * p, int iOut, int iObj, int nTimeOut, in
     // add CNF for the path
     Gia_ManForEachObjVec( vPath, p, pObj, i )
     {
-        if ( Gia_ObjIsAnd(pObj) )
+        if ( !Gia_ObjIsAnd(pObj) )
+            continue;
+        assert( i > 0 );
+        pFanin = Gia_ManObj( p, Vec_IntEntry(vPath, i-1) );
+        if ( pFanin == Gia_ObjFanin0(pObj) )
         {
-            assert( i > 0 );
-            pFanin = Gia_ManObj( p, Vec_IntEntry(vPath, i-1) );
-            if ( pFanin == Gia_ObjFanin0(pObj) )
-            {
-                sat_solver_add_and( pSat, i + 1*Vec_IntSize(vPath), 
-                    i-1 + 1*Vec_IntSize(vPath), Gia_ObjFanin1(pObj)->Value + Shift[0], 
-                    Gia_ObjFaninC0(pObj), Gia_ObjFaninC1(pObj), 0 ); 
-                sat_solver_add_and( pSat, i + 2*Vec_IntSize(vPath), 
-                    i-1 + 2*Vec_IntSize(vPath), Gia_ObjFanin1(pObj)->Value + Shift[1], 
-                    Gia_ObjFaninC0(pObj), Gia_ObjFaninC1(pObj), 0 ); 
-            }
-            else if ( pFanin == Gia_ObjFanin1(pObj) )
-            {
-                sat_solver_add_and( pSat, i + 1*Vec_IntSize(vPath), 
-                    Gia_ObjFanin0(pObj)->Value + Shift[0], i-1 + 1*Vec_IntSize(vPath), 
-                    Gia_ObjFaninC0(pObj), Gia_ObjFaninC1(pObj), 0 ); 
-                sat_solver_add_and( pSat, i + 2*Vec_IntSize(vPath), 
-                    Gia_ObjFanin0(pObj)->Value + Shift[1], i-1 + 2*Vec_IntSize(vPath), 
-                    Gia_ObjFaninC0(pObj), Gia_ObjFaninC1(pObj), 0 ); 
-            }
-            else assert( 0 );
-            sat_solver_add_xor( pSat, i, i + 1*Vec_IntSize(vPath), i + 2*Vec_IntSize(vPath), 0 );
+            sat_solver_add_and( pSat, i + 1*Vec_IntSize(vPath), 
+                i-1 + 1*Vec_IntSize(vPath), Gia_ObjFanin1(pObj)->Value + Shift[0], 
+                Gia_ObjFaninC0(pObj), Gia_ObjFaninC1(pObj), 0 ); 
+            sat_solver_add_and( pSat, i + 2*Vec_IntSize(vPath), 
+                i-1 + 2*Vec_IntSize(vPath), Gia_ObjFanin1(pObj)->Value + Shift[1], 
+                Gia_ObjFaninC0(pObj), Gia_ObjFaninC1(pObj), 0 ); 
         }
-        else if ( Gia_ObjIsCi(pObj) )
-            sat_solver_add_xor( pSat, i, pObj->Value + Shift[0], pObj->Value + Shift[1], 0 );
+        else if ( pFanin == Gia_ObjFanin1(pObj) )
+        {
+            sat_solver_add_and( pSat, i + 1*Vec_IntSize(vPath), 
+                Gia_ObjFanin0(pObj)->Value + Shift[0], i-1 + 1*Vec_IntSize(vPath), 
+                Gia_ObjFaninC0(pObj), Gia_ObjFaninC1(pObj), 0 ); 
+            sat_solver_add_and( pSat, i + 2*Vec_IntSize(vPath), 
+                Gia_ObjFanin0(pObj)->Value + Shift[1], i-1 + 2*Vec_IntSize(vPath), 
+                Gia_ObjFaninC0(pObj), Gia_ObjFaninC1(pObj), 0 ); 
+        }
         else assert( 0 );
+        sat_solver_add_xor( pSat, i, i + 1*Vec_IntSize(vPath), i + 2*Vec_IntSize(vPath), 0 );
         Vec_IntPush( vLits, Abc_Var2Lit(i, 0) );
     }
     // call the SAT solver
