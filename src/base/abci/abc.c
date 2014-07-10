@@ -25512,7 +25512,7 @@ usage:
 int Abc_CommandAbc9PFan( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     int c;
-    int nNodes = 40;
+    int nNodes = 0;
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "Nh" ) ) != EOF )
     {
@@ -27838,16 +27838,18 @@ usage:
 int Abc_CommandAbc9BalanceLut( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     extern Gia_Man_t * Gia_ManBalanceLut( Gia_Man_t * p, int nLutSize, int nCutNum, int fVerbose );
-    extern Gia_Man_t * Str_NormalizeTest( Gia_Man_t * p, int nLutSize, int fUseMuxes, int fVerbose );
+    extern Gia_Man_t * Str_NormalizeTest( Gia_Man_t * p, int nLutSize, int fUseMuxes, int fRecursive, int fOptArea, int fVerbose );
     Gia_Man_t * pTemp = NULL;
     int fUseOld      = 0;
     int nLutSize     = 6;
     int nCutNum      = 8;
     int fUseMuxes    = 1;
+    int fRecursive   = 1;
+    int fOptArea     = 0;
     int c, fVerbose  = 0;
     int fVeryVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "KCamvwh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "KCnmravwh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -27873,11 +27875,17 @@ int Abc_CommandAbc9BalanceLut( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( nCutNum < 0 )
                 goto usage;
             break;
-        case 'a':
+        case 'n':
             fUseOld ^= 1;
             break;
         case 'm':
             fUseMuxes ^= 1;
+            break;
+        case 'r':
+            fRecursive ^= 1;
+            break;
+        case 'a':
+            fOptArea ^= 1;
             break;
         case 'v':
             fVerbose ^= 1;
@@ -27899,16 +27907,18 @@ int Abc_CommandAbc9BalanceLut( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( fUseOld )
         pTemp = Gia_ManBalanceLut( pAbc->pGia, nLutSize, nCutNum, fVerbose );
     else
-        pTemp = Str_NormalizeTest( pAbc->pGia, nLutSize, fUseMuxes, fVerbose );
+        pTemp = Str_NormalizeTest( pAbc->pGia, nLutSize, fUseMuxes, fRecursive, fOptArea, fVerbose );
     Abc_FrameUpdateGia( pAbc, pTemp );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &blut [-KC num] [-mvh]\n" );
+    Abc_Print( -2, "usage: &blut [-KC num] [-mravh]\n" );
     Abc_Print( -2, "\t           performs AIG balancing for the given LUT size\n" );
     Abc_Print( -2, "\t-K num   : LUT size for the mapping (2 <= K <= %d) [default = %d]\n", 6, nLutSize );
     Abc_Print( -2, "\t-C num   : the max number of priority cuts (1 <= C <= %d) [default = %d]\n", 8, nCutNum );
     Abc_Print( -2, "\t-m       : toggle performing MUX restructuring [default = %s]\n", fUseMuxes? "yes": "no" );
+    Abc_Print( -2, "\t-r       : toggle performing recursive restructuring [default = %s]\n", fRecursive? "yes": "no" );
+    Abc_Print( -2, "\t-a       : toggle performing area-oriented restructuring [default = %s]\n", fOptArea? "yes": "no" );
     Abc_Print( -2, "\t-v       : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
 //    Abc_Print( -2, "\t-w       : toggle printing additional information [default = %s]\n", fVeryVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h       : print the command usage\n");

@@ -549,6 +549,48 @@ void Cof_ManPrintHighFanout( Cof_Man_t * p, int nNodes )
     Vec_PtrFree( vNodes );
 }
 
+
+/**Function*************************************************************
+
+  Synopsis    [Compute MFFC size of the node.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Cof_NodeDeref_rec( Cof_Obj_t * pNode )
+{
+    if ( pNode->nFanins == 0 )
+        return 0;
+    if ( --pNode->nFanouts > 0 )
+        return 0;
+    return 1 + Cof_NodeDeref_rec( Cof_ObjFanin(pNode, 0) )
+             + Cof_NodeDeref_rec( Cof_ObjFanin(pNode, 1) );
+}
+int Cof_NodeRef_rec( Cof_Obj_t * pNode )
+{
+    if ( pNode->nFanins == 0 )
+        return 0;
+    if ( pNode->nFanouts++ > 0 )
+        return 0;
+    return 1 + Cof_NodeRef_rec( Cof_ObjFanin(pNode, 0) )
+             + Cof_NodeRef_rec( Cof_ObjFanin(pNode, 1) );
+}
+static inline int Cof_ObjMffcSize( Cof_Obj_t * pNode )
+{
+    int Count1, Count2, nFanout;
+    nFanout = pNode->nFanouts;
+    pNode->nFanouts = 1;
+    Count1 = Cof_NodeDeref_rec( pNode );
+    Count2 = Cof_NodeRef_rec( pNode );
+    pNode->nFanouts = nFanout;
+    assert( Count1 == Count2 );
+    return Count1;
+}
+
 /**Function*************************************************************
 
   Synopsis    [Prints the distribution of fanins/fanouts in the network.]
@@ -564,28 +606,33 @@ void Cof_ManPrintFanio( Cof_Man_t * p )
 {
     char Buffer[100];
     Cof_Obj_t * pNode;
-    Vec_Int_t * vFanins, * vFanouts;
-    int nFanins, nFanouts, nFaninsMax, nFanoutsMax, nFaninsAll, nFanoutsAll;
-    int i, k, nSizeMax;
+    Vec_Int_t * vFanins, * vFanouts, * vMffcs;
+    int nFanins, nFanouts, nMffcs, nFaninsMax, nFanoutsMax, nMffcsMax, nFaninsAll, nFanoutsAll, nMffcsAll;
+    int i, k, nSizeMax, nMffcNodes = 0;
 
     // determine the largest fanin and fanout
-    nFaninsMax = nFanoutsMax = 0;
-    nFaninsAll = nFanoutsAll = 0;
+    nFaninsMax = nFanoutsMax = nMffcsMax = 0;
+    nFaninsAll = nFanoutsAll = nMffcsAll = 0;
     Cof_ManForEachNode( p, pNode, i )
     {
         if ( i == 0 ) continue;
         nFanins  = Cof_ObjFaninNum(pNode);
         nFanouts = Cof_ObjFanoutNum(pNode);
+        nMffcs   = pNode->nFanouts > 1 ? Cof_ObjMffcSize(pNode) : 0;
         nFaninsAll  += nFanins;
         nFanoutsAll += nFanouts;
-        nFaninsMax   = Abc_MaxInt( nFaninsMax, nFanins );
+        nMffcsAll   += nMffcs;
+        nFaninsMax   = Abc_MaxInt( nFaninsMax,  nFanins );
         nFanoutsMax  = Abc_MaxInt( nFanoutsMax, nFanouts );
+        nMffcsMax    = Abc_MaxInt( nMffcsMax,   nMffcs );
     }
 
     // allocate storage for fanin/fanout numbers
     nSizeMax = Abc_MaxInt( 10 * (Abc_Base10Log(nFaninsMax) + 1), 10 * (Abc_Base10Log(nFanoutsMax) + 1) );
+    nSizeMax = Abc_MaxInt( 10 * (Abc_Base10Log(nMffcsMax) + 1),  nSizeMax );
     vFanins  = Vec_IntStart( nSizeMax );
     vFanouts = Vec_IntStart( nSizeMax );
+    vMffcs   = Vec_IntStart( nSizeMax );
 
     // count the number of fanins and fanouts
     Cof_ManForEachNode( p, pNode, i )
@@ -593,7 +640,7 @@ void Cof_ManPrintFanio( Cof_Man_t * p )
         if ( i == 0 ) continue;
         nFanins  = Cof_ObjFaninNum(pNode);
         nFanouts = Cof_ObjFanoutNum(pNode);
-//            nFanouts = Cof_NodeMffcSize(pNode);
+        nMffcs   = pNode->nFanouts > 1 ? Cof_ObjMffcSize(pNode) : 0;
 
         if ( nFanins < 10 )
             Vec_IntAddToEntry( vFanins, nFanins, 1 );
@@ -624,13 +671,33 @@ void Cof_ManPrintFanio( Cof_Man_t * p )
             Vec_IntAddToEntry( vFanouts, 50 + nFanouts/100000, 1 );
         else if ( nFanouts < 10000000 )
             Vec_IntAddToEntry( vFanouts, 60 + nFanouts/1000000, 1 );
+       
+        if ( nMffcs == 0 )
+            continue;
+        nMffcNodes++;
+
+        if ( nMffcs < 10 )
+            Vec_IntAddToEntry( vMffcs, nMffcs, 1 );
+        else if ( nMffcs < 100 )
+            Vec_IntAddToEntry( vMffcs, 10 + nMffcs/10, 1 );
+        else if ( nMffcs < 1000 )
+            Vec_IntAddToEntry( vMffcs, 20 + nMffcs/100, 1 );
+        else if ( nMffcs < 10000 )
+            Vec_IntAddToEntry( vMffcs, 30 + nMffcs/1000, 1 );
+        else if ( nMffcs < 100000 )
+            Vec_IntAddToEntry( vMffcs, 40 + nMffcs/10000, 1 );
+        else if ( nMffcs < 1000000 )
+            Vec_IntAddToEntry( vMffcs, 50 + nMffcs/100000, 1 );
+        else if ( nMffcs < 10000000 )
+            Vec_IntAddToEntry( vMffcs, 60 + nMffcs/1000000, 1 );
     }
 
-    printf( "The distribution of fanins and fanouts in the network:\n" );
-    printf( "         Number   Nodes with fanin  Nodes with fanout\n" );
+    printf( "The distribution of fanins, fanouts. and MFFCs in the network:\n" );
+    printf( "         Number    Nodes with fanin   Nodes with fanout   Nodes with MFFC\n" );
+
     for ( k = 0; k < nSizeMax; k++ )
     {
-        if ( vFanins->pArray[k] == 0 && vFanouts->pArray[k] == 0 )
+        if ( vFanins->pArray[k] == 0 && vFanouts->pArray[k] == 0 && vMffcs->pArray[k] == 0 )
             continue;
         if ( k < 10 )
             printf( "%15d : ", k );
@@ -642,20 +709,27 @@ void Cof_ManPrintFanio( Cof_Man_t * p )
         if ( vFanins->pArray[k] == 0 )
             printf( "              " );
         else
-            printf( "%12d  ", vFanins->pArray[k] );
+            printf( "%11d   ", vFanins->pArray[k] );
         printf( "    " );
         if ( vFanouts->pArray[k] == 0 )
             printf( "              " );
         else
             printf( "%12d  ", vFanouts->pArray[k] );
+        printf( "    " );
+        if ( vMffcs->pArray[k] == 0 )
+            printf( "               " );
+        else
+            printf( "  %12d  ", vMffcs->pArray[k] );
         printf( "\n" );
     }
     Vec_IntFree( vFanins );
     Vec_IntFree( vFanouts );
+    Vec_IntFree( vMffcs );
 
-    printf( "Fanins: Max = %d. Ave = %.2f.  Fanouts: Max = %d. Ave =  %.2f.\n", 
-        nFaninsMax,  1.0*nFaninsAll/Cof_ManNodeNum(p), 
-        nFanoutsMax, 1.0*nFanoutsAll/Cof_ManNodeNum(p)  );
+    printf( "Fanins: Max = %d. Ave = %.2f.  Fanouts: Max = %d. Ave =  %.2f.  MFFCs: Max = %d. Ave =  %.2f.\n", 
+        nFaninsMax,  1.0*nFaninsAll /Cof_ManNodeNum(p), 
+        nFanoutsMax, 1.0*nFanoutsAll/Cof_ManNodeNum(p), 
+        nMffcsMax,   1.0*nMffcsAll  /nMffcNodes  );
 }
 
 /**Function*************************************************************
@@ -678,12 +752,16 @@ void Gia_ManPrintFanio( Gia_Man_t * pGia, int nNodes )
     p->pLevels = ABC_CALLOC( int, p->nLevels );
     Cof_ManPrintFanio( p );
 
+    if ( nNodes > 0 )
+    {
     Cof_ManResetTravId( p );
     Gia_ManHashStart( pGia );
     Cof_ManPrintHighFanout( p, nNodes );
     Gia_ManHashStop( pGia );
 ABC_PRMn( "Memory for logic network", 4*p->nObjData );
 ABC_PRT( "Time", Abc_Clock() - clk );
+    }
+
     Cof_ManStop( p );
 }
 

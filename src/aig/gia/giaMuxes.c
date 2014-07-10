@@ -371,7 +371,7 @@ void Gia_MuxStructDump_rec( Gia_Man_t * p, int iObj, int fFirst, Vec_Str_t * vSt
         Vec_StrPush( vStr, ']' );
     }
 }
-void Gia_MuxStructDump( Gia_Man_t * p, int iObj, Vec_Str_t * vStr, int nDigitsNum, int nDigitsId )
+int Gia_MuxStructDump( Gia_Man_t * p, int iObj, Vec_Str_t * vStr, int nDigitsNum, int nDigitsId )
 {
     int Count1, Count2;
     assert( Gia_ObjIsMuxId(p, iObj) );
@@ -382,6 +382,7 @@ void Gia_MuxStructDump( Gia_Man_t * p, int iObj, Vec_Str_t * vStr, int nDigitsNu
     Vec_StrPush( vStr, '\0' );
     Count2 = Gia_MuxRef( p, iObj );
     assert( Count1 == Count2 );
+    return Count1;
 }
 
 /**Function*************************************************************
@@ -530,7 +531,9 @@ void Gia_ManMuxProfiling( Gia_Man_t * p )
         if ( Gia_ObjRefNumId(pNew, i) == 1 && Gia_ObjIsMuxId(pNew, Vec_IntEntry(vFans, i)) )
             continue;
         // this node is the root of the MUX structure - create hash key
-        Gia_MuxStructDump( pNew, i, vStr, 3, nDigitsId );
+        Counter = Gia_MuxStructDump( pNew, i, vStr, 3, nDigitsId );
+        if ( Counter == 1 )
+            continue;
         iStructId = Abc_NamStrFindOrAdd( pMan->pNames, Vec_StrArray(vStr), &fFound );
         if ( !fFound )
             Vec_WecPushLevel( pMan->vTops );
@@ -542,7 +545,7 @@ void Gia_ManMuxProfiling( Gia_Man_t * p )
 
     printf( "MUX structure profile for AIG \"%s\":\n", p->pName );
     printf( "Total MUXes = %d.  Total trees = %d.  Unique trees = %d.  Memory = %.2f MB   ", 
-        Gia_ManMuxNum(pNew), Vec_WecSizeSize(pMan->vTops), Vec_WecSize(pMan->vTops), 
+        Gia_ManMuxNum(pNew), Vec_WecSizeSize(pMan->vTops), Vec_WecSize(pMan->vTops)-1, 
         1.0*Abc_NamMemUsed(pMan->pNames)/(1<<20) );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
 
