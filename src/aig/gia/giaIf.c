@@ -363,6 +363,7 @@ void Gia_ManPrintMappingStats( Gia_Man_t * p, char * pDumpFile )
             pLevels[i] = Abc_MaxInt( pLevels[i], pLevels[pFanins[2]] );
             LevelMax = Abc_MaxInt( LevelMax, pLevels[i] );
             nMuxF7++;
+            nFanins++;
             continue;
         }
         nLuts++;
@@ -406,8 +407,8 @@ void Gia_ManPrintMappingStats( Gia_Man_t * p, char * pDumpFile )
     Abc_Print( 1, "\n" );
 #endif
 
-    Gia_ManCountDupLut6( p );
-
+    if ( nMuxF7 )
+        Gia_ManCountDupLut6( p );
 
     if ( pDumpFile )
     {

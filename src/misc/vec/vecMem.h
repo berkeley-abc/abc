@@ -391,6 +391,14 @@ static inline Vec_Mem_t * Vec_MemAllocForTT( int nVars, int fCompl )
     ABC_FREE( uTruth );
     return vTtMem;
 }
+static inline void Vec_MemAddMuxTT( Vec_Mem_t * p, int nVars )
+{
+    int Value, nWords = (nVars <= 6 ? 1 : (1 << (nVars - 6)));
+    word * uTruth = ABC_ALLOC( word, nWords ); 
+    memset( uTruth, 0xCA, sizeof(word) * nWords );
+    Value = Vec_MemHashInsert( p, uTruth ); assert( Value == 2 );
+    ABC_FREE( uTruth );
+}
 static inline void Vec_MemDumpTruthTables( Vec_Mem_t * p, char * pName, int nLutSize )
 {
     FILE * pFile;
