@@ -27845,7 +27845,7 @@ int Abc_CommandAbc9BalanceLut( Abc_Frame_t * pAbc, int argc, char ** argv )
     int nCutNum      = 8;
     int fUseMuxes    = 1;
     int fRecursive   = 1;
-    int fOptArea     = 0;
+    int fOptArea     = 1;
     int c, fVerbose  = 0;
     int fVeryVerbose = 0;
     Extra_UtilGetoptReset();

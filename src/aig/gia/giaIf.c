@@ -308,16 +308,63 @@ int Gia_ManComputeOverlap( Gia_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
+void Gia_ManPrintGetMuxFanins( Gia_Man_t * p, Gia_Obj_t * pObj, int * pFanins )
+{
+    Gia_Obj_t * pData0, * pData1;
+    Gia_Obj_t * pCtrl = Gia_ObjRecognizeMux( pObj, &pData1, &pData0 );
+    pFanins[0] = Gia_ObjId(p, Gia_Regular(pCtrl));
+    pFanins[1] = Gia_ObjId(p, Gia_Regular(pData1));
+    pFanins[2] = Gia_ObjId(p, Gia_Regular(pData0));
+}
+int Gia_ManCountDupLut6( Gia_Man_t * p )
+{
+    int i, nCountDup = 0, nCountPis = 0;
+    Gia_ManCleanMark0( p );
+    Gia_ManForEachLut( p, i )
+        if ( Gia_ObjLutSize(p, i) == 3 && Gia_ObjLutFanins(p, i)[3] == -i )
+        {
+            Gia_Obj_t * pFanin;
+            int pFanins[3];
+            Gia_ManPrintGetMuxFanins( p, Gia_ManObj(p, i), pFanins );
+
+            pFanin = Gia_ManObj(p, pFanins[1]);
+            nCountPis += Gia_ObjIsCi(pFanin);
+            nCountDup += pFanin->fMark0;
+            pFanin->fMark0 = 1;
+
+            pFanin = Gia_ManObj(p, pFanins[2]);
+            nCountPis += Gia_ObjIsCi(pFanin);
+            nCountDup += pFanin->fMark0;
+            pFanin->fMark0 = 1;
+        }
+    Gia_ManCleanMark0( p );
+    if ( nCountDup + nCountDup )
+        printf( "Dup fanins = %d.  CI fanins = %d.  Total = %d.  (%.2f %%)\n", 
+            nCountDup, nCountPis, nCountDup + nCountPis, 100.0 * (nCountDup + nCountPis) / Gia_ManLutNum(p) );
+    return nCountDup + nCountPis;
+}
+
 void Gia_ManPrintMappingStats( Gia_Man_t * p, char * pDumpFile )
 {
     Gia_Obj_t * pObj;
     int * pLevels;
-    int i, k, iFan, nLutSize = 0, nLuts = 0, nFanins = 0, LevelMax = 0, Ave = 0;
+    int i, k, iFan, nLutSize = 0, nLuts = 0, nFanins = 0, LevelMax = 0, Ave = 0, nMuxF7 = 0;
     if ( !Gia_ManHasMapping(p) )
         return;
     pLevels = ABC_CALLOC( int, Gia_ManObjNum(p) );
     Gia_ManForEachLut( p, i )
     {
+        if ( Gia_ObjLutSize(p, i) == 3 && Gia_ObjLutFanins(p, i)[3] == -i )
+        {
+            int pFanins[3];
+            Gia_ManPrintGetMuxFanins( p, Gia_ManObj(p, i), pFanins );
+            pLevels[i] = Abc_MaxInt( pLevels[i], pLevels[pFanins[0]]+1 );
+            pLevels[i] = Abc_MaxInt( pLevels[i], pLevels[pFanins[1]] );
+            pLevels[i] = Abc_MaxInt( pLevels[i], pLevels[pFanins[2]] );
+            LevelMax = Abc_MaxInt( LevelMax, pLevels[i] );
+            nMuxF7++;
+            continue;
+        }
         nLuts++;
         nFanins += Gia_ObjLutSize(p, i);
         nLutSize = Abc_MaxInt( nLutSize, Gia_ObjLutSize(p, i) );
@@ -336,6 +383,8 @@ void Gia_ManPrintMappingStats( Gia_Man_t * p, char * pDumpFile )
     Abc_Print( 1, "Mapping (K=%d)  :  ", nLutSize );
     SetConsoleTextAttribute( hConsole, 14 ); // yellow
     Abc_Print( 1, "lut =%7d  ",  nLuts );
+    if ( nMuxF7 )
+    Abc_Print( 1, "mux =%7d  ",  nMuxF7 );
     SetConsoleTextAttribute( hConsole, 10 ); // green
     Abc_Print( 1, "edge =%8d  ", nFanins );
     SetConsoleTextAttribute( hConsole, 12 ); // red
@@ -356,6 +405,8 @@ void Gia_ManPrintMappingStats( Gia_Man_t * p, char * pDumpFile )
     Abc_Print( 1, "mem =%5.2f MB", 4.0*(Gia_ManObjNum(p) + 2*nLuts + nFanins)/(1<<20) );
     Abc_Print( 1, "\n" );
 #endif
+
+    Gia_ManCountDupLut6( p );
 
 
     if ( pDumpFile )

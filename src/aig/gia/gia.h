@@ -280,6 +280,7 @@ struct Jf_Par_t_
     word           Area;
     word           Edge;
     word           Clause;
+    word           Mux7;
     float *        pTimesArr;
     float *        pTimesReq;
 };

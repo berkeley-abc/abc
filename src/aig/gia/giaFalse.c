@@ -327,8 +327,7 @@ Gia_Man_t * Gia_ManFalseRebuildPath( Gia_Man_t * p, Vec_Int_t * vHooks, int fVer
 {
     Gia_Man_t * pNew, * pTemp;
     Gia_Obj_t * pObj;
-    int i, Counter = 0;
-    int iPathEnd = Vec_IntEntryLast(vHooks);
+    int i, iPathEnd = Vec_IntEntryLast(vHooks);
     pNew = Gia_ManStart( 4 * Gia_ManObjNum(p) / 3 );
     pNew->pName = Abc_UtilStrsav( p->pName );
     pNew->pSpec = Abc_UtilStrsav( p->pSpec );
