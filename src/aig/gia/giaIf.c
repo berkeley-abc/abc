@@ -338,7 +338,7 @@ int Gia_ManCountDupLut6( Gia_Man_t * p )
             pFanin->fMark0 = 1;
         }
     Gia_ManCleanMark0( p );
-    if ( nCountDup + nCountDup )
+    if ( nCountDup + nCountPis )
         printf( "Dup fanins = %d.  CI fanins = %d.  Total = %d.  (%.2f %%)\n", 
             nCountDup, nCountPis, nCountDup + nCountPis, 100.0 * (nCountDup + nCountPis) / Gia_ManLutNum(p) );
     return nCountDup + nCountPis;

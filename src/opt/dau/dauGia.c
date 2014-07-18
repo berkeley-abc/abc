@@ -373,12 +373,13 @@ int Dau_DsdToGia_rec( Gia_Man_t * pGia, char * pStr, char ** p, int * pMatches, 
             Fanins[i] = Dau_DsdToGia_rec( pGia, pStr, p, pMatches, pLits, vCover );
         assert( i == nVars );
         assert( *p == q );
-//        Res = Dau_DsdToGiaCompose_rec( pGia, Func, Fanins, nVars );
         vLeaves.nCap = nVars;
         vLeaves.nSize = nVars;
         vLeaves.pArray = Fanins;      
         nObjOld = Gia_ManObjNum(pGia);
         Res = Kit_TruthToGia( pGia, (unsigned *)pFunc, nVars, vCover, &vLeaves, 1 );
+//        assert( nVars <= 6 );
+//        Res = Dau_DsdToGiaCompose_rec( pGia, pFunc[0], Fanins, nVars );
         for ( i = nObjOld; i < Gia_ManObjNum(pGia); i++ )
             Gia_ObjSetGateLevel( pGia, Gia_ManObj(pGia, i) );
         m_Non1Step++;
