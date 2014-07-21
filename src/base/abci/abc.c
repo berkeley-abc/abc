@@ -377,6 +377,7 @@ static int Abc_CommandAbc9Verify             ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandAbc9Sweep              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Force              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Embed              ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9Sopb               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9If                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Iff                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9If2                ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -957,6 +958,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "ABC9",         "&sweep",        Abc_CommandAbc9Sweep,        0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&force",        Abc_CommandAbc9Force,        0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&embed",        Abc_CommandAbc9Embed,        0 );
+    Cmd_CommandAdd( pAbc, "ABC9",         "&sopb",         Abc_CommandAbc9Sopb,         0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&if",           Abc_CommandAbc9If,           0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&iff",          Abc_CommandAbc9Iff,          0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&if2",          Abc_CommandAbc9If2,          0 );
@@ -14932,44 +14934,14 @@ usage:
 ***********************************************************************/
 int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    char Buffer[100];
-    char LutSize[100];
+    extern Abc_Ntk_t * Abc_NtkIf( Abc_Ntk_t * pNtk, If_Par_t * pPars );
+    char Buffer[100], LutSize[100];
     Abc_Ntk_t * pNtk, * pNtkRes;
     If_Par_t Pars, * pPars = &Pars;
     int c;
-    extern Abc_Ntk_t * Abc_NtkIf( Abc_Ntk_t * pNtk, If_Par_t * pPars );
-
     pNtk = Abc_FrameReadNtk(pAbc);
-    // set defaults
-    memset( pPars, 0, sizeof(If_Par_t) );
-    // user-controlable paramters
-    pPars->nLutSize    = -1;
-    pPars->nCutsMax    =  8;
-    pPars->nFlowIters  =  1;
-    pPars->nAreaIters  =  2;
-    pPars->DelayTarget = -1;
-    pPars->Epsilon     =  (float)0.005;
-    pPars->fPreprocess =  1;
-    pPars->fArea       =  0;
-    pPars->fFancy      =  0;
-    pPars->fExpRed     =  1;
-    pPars->fLatchPaths =  0;
-    pPars->fEdge       =  1;
-    pPars->fPower      =  0;
-    pPars->fCutMin     =  0;
-    pPars->fBidec      =  0;
-    pPars->fVerbose    =  0;
-    pPars->pLutStruct  =  NULL;
-    // internal parameters
-    pPars->fTruth      =  0;
-    pPars->nLatchesCi  =  pNtk? Abc_NtkLatchNum(pNtk) : 0;
-    pPars->nLatchesCo  =  pNtk? Abc_NtkLatchNum(pNtk) : 0;
-    pPars->fLiftLeaves =  0;
-    pPars->pLutLib     =  (If_LibLut_t *)Abc_FrameReadLibLut();
-    pPars->pTimesArr   =  NULL;
-    pPars->pTimesArr   =  NULL;
-    pPars->pFuncCost   =  NULL;
-
+    If_ManSetDefaultPars( pPars );
+    pPars->pLutLib = (If_LibLut_t *)Abc_FrameReadLibLut();
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "KCFAGNDEWSTqaflepmrsdbgxyojiktncvh" ) ) != EOF )
     {
@@ -30044,6 +30016,107 @@ usage:
     Abc_Print( -2, "\t-l     : toggle dumping Gnuplot for large placement [default = %s]\n", pPars->fDumpLarge? "yes":"no");
     Abc_Print( -2, "\t-s     : toggle showing image if Gnuplot is installed [default = %s]\n", pPars->fShowImage? "yes":"no");
     Abc_Print( -2, "\t-v     : toggle verbose output [default = %s]\n", pPars->fVerbose? "yes":"no");
+    Abc_Print( -2, "\t-h     : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc9Sopb( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    Gia_Man_t * pTemp;
+    int nLevelMax   = 0;
+    int nLevelRatio = 0;
+    int nCutNum     = 8;
+    int nRelaxRatio = 0;
+    int c, fVerbose = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "LQCRvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'L':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-L\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nLevelMax = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nLevelMax < 0 )
+                goto usage;
+            break;
+        case 'Q':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-Q\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nLevelRatio = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nLevelRatio < 0 )
+                goto usage;
+            break;
+        case 'C':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-C\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nCutNum = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nCutNum < 0 )
+                goto usage;
+            break;
+        case 'R':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-R\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nRelaxRatio = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nRelaxRatio < 0 )
+                goto usage;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pAbc->pGia == NULL )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9Sopb(): There is no AIG.\n" );
+        return 1;
+    }
+    if ( nLevelMax || nLevelRatio )
+        pTemp = Gia_ManPerformSopBalanceWin( pAbc->pGia, nLevelMax, nLevelRatio, nCutNum, nRelaxRatio, fVerbose );
+    else
+        pTemp = Gia_ManPerformSopBalance( pAbc->pGia, nCutNum, nRelaxRatio, fVerbose );
+    Abc_FrameUpdateGia( pAbc, pTemp );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: &sopb [-LQCR num] [-vh]\n" );
+    Abc_Print( -2, "\t         performs SOP balancing\n" );
+    Abc_Print( -2, "\t-L num : optimize paths above this level [default = %d]\n", nLevelMax );
+    Abc_Print( -2, "\t-Q num : optimize paths falling into this window [default = %d]\n", nLevelRatio );
+    Abc_Print( -2, "\t-C num : the number of cuts at a node [default = %d]\n", nCutNum );
+    Abc_Print( -2, "\t-R num : the delay relaxation ratio (num >= 0) [default = %d]\n", nRelaxRatio );
+    Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
 }

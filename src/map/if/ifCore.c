@@ -44,6 +44,39 @@ extern abctime s_MappingTime;
   SeeAlso     []
 
 ***********************************************************************/
+void If_ManSetDefaultPars( If_Par_t * pPars )
+{
+    memset( pPars, 0, sizeof(If_Par_t) );
+    pPars->nLutSize    = -1;
+    pPars->nCutsMax    =  8;
+    pPars->nFlowIters  =  1;
+    pPars->nAreaIters  =  2;
+    pPars->DelayTarget = -1;
+    pPars->Epsilon     =  (float)0.005;
+    pPars->fPreprocess =  1;
+    pPars->fArea       =  0;
+    pPars->fFancy      =  0;
+    pPars->fExpRed     =  1;
+    pPars->fLatchPaths =  0;
+    pPars->fEdge       =  1;
+    pPars->fPower      =  0;
+    pPars->fCutMin     =  0;
+    pPars->fBidec      =  0;
+    pPars->fVerbose    =  0;
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 int If_ManPerformMapping( If_Man_t * p )
 {
     p->pPars->fAreaOnly = p->pPars->fArea; // temporary

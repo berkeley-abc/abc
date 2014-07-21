@@ -966,13 +966,15 @@ static inline int         Gia_ObjLutIsMux( Gia_Man_t * p, int Id )          { re
     for ( i = Vec_IntSize(p->vCis) - 1; (i >= 0) && ((pObj) = Gia_ManCi(p, i)); i-- )
 #define Gia_ManForEachCo( p, pObj, i )                                  \
     for ( i = 0; (i < Vec_IntSize(p->vCos)) && ((pObj) = Gia_ManCo(p, i)); i++ )
+#define Gia_ManForEachCoVec( vVec, p, pObj, i )                         \
+    for ( i = 0; (i < Vec_IntSize(vVec)) && ((pObj) = Gia_ManCo(p, Vec_IntEntry(vVec,i))); i++ )
 #define Gia_ManForEachCoId( p, Id, i )                                  \
     for ( i = 0; (i < Vec_IntSize(p->vCos)) && ((Id) = Gia_ObjId(p, Gia_ManCo(p, i))); i++ )
 #define Gia_ManForEachCoReverse( p, pObj, i )                           \
     for ( i = Vec_IntSize(p->vCos) - 1; (i >= 0) && ((pObj) = Gia_ManCo(p, i)); i-- )
 #define Gia_ManForEachCoDriver( p, pObj, i )                            \
     for ( i = 0; (i < Vec_IntSize(p->vCos)) && ((pObj) = Gia_ObjFanin0(Gia_ManCo(p, i))); i++ )
-#define Gia_ManForEachCoDriverId( p, DriverId, i )                            \
+#define Gia_ManForEachCoDriverId( p, DriverId, i )                      \
     for ( i = 0; (i < Vec_IntSize(p->vCos)) && (((DriverId) = Gia_ObjFaninId0p(p, Gia_ManCo(p, i))), 1); i++ )
 #define Gia_ManForEachPi( p, pObj, i )                                  \
     for ( i = 0; (i < Gia_ManPiNum(p)) && ((pObj) = Gia_ManCi(p, i)); i++ )
@@ -1165,6 +1167,7 @@ extern void                Gia_ManSetIfParsDefault( void * pIfPars );
 extern void                Gia_ManMappingVerify( Gia_Man_t * p );
 extern void                Gia_ManTransferMapping( Gia_Man_t * pGia, Gia_Man_t * p );
 extern Gia_Man_t *         Gia_ManPerformMapping( Gia_Man_t * p, void * pIfPars, int fNormalized );
+extern Gia_Man_t *         Gia_ManPerformSopBalance( Gia_Man_t * p, int nCutNum, int nRelaxRatio, int fVerbose );
 /*=== giaJf.c ===========================================================*/
 extern void                Jf_ManSetDefaultPars( Jf_Par_t * pPars );
 extern Gia_Man_t *         Jf_ManPerformMapping( Gia_Man_t * pGia, Jf_Par_t * pPars );
@@ -1237,6 +1240,8 @@ extern Gia_Man_t *         Gia_ManSeqStructSweep( Gia_Man_t * p, int fConst, int
 /*=== giaShrink.c ===========================================================*/
 extern Gia_Man_t *         Gia_ManMapShrink4( Gia_Man_t * p, int fKeepLevel, int fVerbose );
 extern Gia_Man_t *         Gia_ManMapShrink6( Gia_Man_t * p, int nFanoutMax, int fKeepLevel, int fVerbose );
+/*=== giaSopb.c ============================================================*/
+extern Gia_Man_t *         Gia_ManPerformSopBalanceWin( Gia_Man_t * p, int LevelMax, int nLevelRatio, int nCutNum, int nRelaxRatio, int fVerbose );
 /*=== giaSort.c ============================================================*/
 extern int *               Gia_SortFloats( float * pArray, int * pPerm, int nSize );
 /*=== giaSim.c ============================================================*/

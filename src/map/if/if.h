@@ -480,6 +480,7 @@ static inline float      If_CutLutDelay( If_LibLut_t * p, int Size, int iPin )  
 ////////////////////////////////////////////////////////////////////////
 
 /*=== ifCore.c ===========================================================*/
+extern void            If_ManSetDefaultPars( If_Par_t * pPars );
 extern int             If_ManPerformMapping( If_Man_t * p );
 extern int             If_ManPerformMappingComb( If_Man_t * p );
 extern void            If_ManComputeSwitching( If_Man_t * p );
