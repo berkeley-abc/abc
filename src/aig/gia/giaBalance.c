@@ -1032,6 +1032,7 @@ Gia_Man_t * Gia_ManAigSyn2( Gia_Man_t * p, int fOldAlgo, int fCoarsen, int fCutM
         pPars->fCoarsen    = fCoarsen;
         pPars->fCutMin     = fCutMin;
         pPars->nRelaxRatio = nRelaxRatio;
+        pPars->nAreaTuner  = 1;
     }
     if ( fVerbose )     Gia_ManPrintStats( p, NULL );
     if ( Gia_ManAndNum(p) == 0 )

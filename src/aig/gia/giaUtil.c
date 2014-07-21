@@ -1052,6 +1052,15 @@ Gia_Obj_t * Gia_ObjRecognizeMux( Gia_Obj_t * pNode, Gia_Obj_t ** ppNodeT, Gia_Ob
     assert( 0 ); // this is not MUX
     return NULL;
 }
+int Gia_ObjRecognizeMuxLits( Gia_Man_t * p, Gia_Obj_t * pNode, int * iLitT, int * iLitE )
+{
+    Gia_Obj_t * pNodeT, * pNodeE;
+    Gia_Obj_t * pCtrl = Gia_ObjRecognizeMux( pNode, &pNodeT, &pNodeE );
+    assert( pCtrl != NULL );
+    *iLitT = Gia_Obj2Lit( p, pNodeT );
+    *iLitE = Gia_Obj2Lit( p, pNodeE );
+    return Gia_Obj2Lit( p, pCtrl );
+}
 
 
 /**Function*************************************************************

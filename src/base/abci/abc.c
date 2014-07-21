@@ -10422,7 +10422,7 @@ int Abc_CommandTestColor( Abc_Frame_t * pAbc, int argc, char ** argv )
 ***********************************************************************/
 int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-//    Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
+    Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
     int nCutMax      =  1;
     int nLeafMax     =  4;
     int nDivMax      =  2;
@@ -10581,7 +10581,7 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
 //        extern void Abc_EnumerateFuncs( int nDecMax, int nDivMax, int fVerbose );
 //        Abc_EnumerateFuncs( nDecMax, nDivMax, fVerbose );
     }
-
+/*
     if ( fNewAlgo )
     {
         extern void Abc_SuppTest( int nOnes, int nVars, int fUseSimple, int fCheck, int fVerbose );
@@ -10592,11 +10592,18 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
         extern void Bmc_EcoMiterTest();
         Bmc_EcoMiterTest();
     }
-/*
+*/
     if ( pNtk )
     {
         extern Abc_Ntk_t * Abc_NtkBarBufsOnOffTest( Abc_Ntk_t * pNtk );
         Abc_Ntk_t * pNtkRes = Abc_NtkBarBufsOnOffTest( pNtk );
+//        extern Abc_Ntk_t * Abc_NtkPcmTest( Abc_Ntk_t * pNtk, int fVerbose );
+//        extern Abc_Ntk_t * Abc_NtkPcmTestAig( Abc_Ntk_t * pNtk, int fVerbose );
+//        Abc_Ntk_t * pNtkRes;
+//        if ( Abc_NtkIsLogic(pNtk) )
+//            pNtkRes = Abc_NtkPcmTest( pNtk, fVerbose );
+//        else
+//            pNtkRes = Abc_NtkPcmTestAig( pNtk, fVerbose );
         if ( pNtkRes == NULL )
         {
             Abc_Print( -1, "Command has failed.\n" );
@@ -10604,7 +10611,6 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
         }
         Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
     }
-*/
     return 0;
 usage:
     Abc_Print( -2, "usage: test [-CKDNM] [-aovwh] <file_name>\n" );
@@ -27838,7 +27844,7 @@ usage:
 int Abc_CommandAbc9BalanceLut( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     extern Gia_Man_t * Gia_ManBalanceLut( Gia_Man_t * p, int nLutSize, int nCutNum, int fVerbose );
-    extern Gia_Man_t * Str_NormalizeTest( Gia_Man_t * p, int nLutSize, int fUseMuxes, int fRecursive, int fOptArea, int fVerbose );
+    extern Gia_Man_t * Gia_ManLutBalance( Gia_Man_t * p, int nLutSize, int fUseMuxes, int fRecursive, int fOptArea, int fVerbose );
     Gia_Man_t * pTemp = NULL;
     int fUseOld      = 0;
     int nLutSize     = 6;
@@ -27907,7 +27913,7 @@ int Abc_CommandAbc9BalanceLut( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( fUseOld )
         pTemp = Gia_ManBalanceLut( pAbc->pGia, nLutSize, nCutNum, fVerbose );
     else
-        pTemp = Str_NormalizeTest( pAbc->pGia, nLutSize, fUseMuxes, fRecursive, fOptArea, fVerbose );
+        pTemp = Gia_ManLutBalance( pAbc->pGia, nLutSize, fUseMuxes, fRecursive, fOptArea, fVerbose );
     Abc_FrameUpdateGia( pAbc, pTemp );
     return 0;
 
@@ -31122,7 +31128,7 @@ int Abc_CommandAbc9Lf( Abc_Frame_t * pAbc, int argc, char ** argv )
     Gia_Man_t * pNew; int c;
     Lf_ManSetDefaultPars( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "KCFARLDWaekmupgtvwh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "KCFARLEDWaekmupgtvwh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -31196,6 +31202,17 @@ int Abc_CommandAbc9Lf( Abc_Frame_t * pAbc, int argc, char ** argv )
             pPars->nCoarseLimit = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
             if ( pPars->nCoarseLimit < 0 ) 
+                goto usage;
+            break;
+        case 'E':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( 1, "Command line switch \"-E\" should be followed by a floating point number.\n" );
+                return 0;
+            }
+            pPars->nAreaTuner = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nAreaTuner < 0 ) 
                 goto usage;
             break;
         case 'D':
@@ -31276,7 +31293,7 @@ usage:
         sprintf(Buffer, "best possible" );
     else
         sprintf(Buffer, "%d", pPars->DelayTarget );
-    Abc_Print( -2, "usage: &lf [-KCFARLD num] [-kmupgtvwh]\n" );
+    Abc_Print( -2, "usage: &lf [-KCFARLED num] [-kmupgtvwh]\n" );
     Abc_Print( -2, "\t           performs technology mapping of the network\n" );
     Abc_Print( -2, "\t-K num   : LUT size for the mapping (2 <= K <= %d) [default = %d]\n", pPars->nLutSizeMax, pPars->nLutSize );
     Abc_Print( -2, "\t-C num   : the max number of priority cuts (1 <= C <= %d) [default = %d]\n", pPars->nCutNumMax, pPars->nCutNum );
@@ -31284,6 +31301,7 @@ usage:
     Abc_Print( -2, "\t-A num   : the number of exact area rounds [default = %d]\n", pPars->nRoundsEla );
     Abc_Print( -2, "\t-R num   : the delay relaxation ratio (num >= 0) [default = %d]\n", pPars->nRelaxRatio );
     Abc_Print( -2, "\t-L num   : the fanout limit for coarsening XOR/MUX (num >= 2) [default = %d]\n", pPars->nCoarseLimit );
+    Abc_Print( -2, "\t-E num   : the area/edge tradeoff parameter (0 <= num <= 100) [default = %d]\n", pPars->nAreaTuner );
     Abc_Print( -2, "\t-D num   : sets the delay constraint for the mapping [default = %s]\n", Buffer );
 //    Abc_Print( -2, "\t-a       : toggles area-oriented mapping [default = %s]\n", pPars->fAreaOnly? "yes": "no" );
     Abc_Print( -2, "\t-e       : toggles edge vs node minimization [default = %s]\n", pPars->fOptEdge? "yes": "no" );
@@ -31317,7 +31335,7 @@ int Abc_CommandAbc9Mf( Abc_Frame_t * pAbc, int argc, char ** argv )
     Gia_Man_t * pNew; int c;
     Mf_ManSetDefaultPars( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "KCFARLDWaekmcgvwh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "KCFARLEDWaekmcgvwh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -31391,6 +31409,17 @@ int Abc_CommandAbc9Mf( Abc_Frame_t * pAbc, int argc, char ** argv )
             pPars->nCoarseLimit = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
             if ( pPars->nCoarseLimit < 0 ) 
+                goto usage;
+            break;
+        case 'E':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( 1, "Command line switch \"-E\" should be followed by a floating point number.\n" );
+                return 0;
+            }
+            pPars->nAreaTuner = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nAreaTuner < 0 ) 
                 goto usage;
             break;
         case 'D':
@@ -31467,7 +31496,7 @@ usage:
         sprintf(Buffer, "best possible" );
     else
         sprintf(Buffer, "%d", pPars->DelayTarget );
-    Abc_Print( -2, "usage: &mf [-KCFARLD num] [-akmcgvwh]\n" );
+    Abc_Print( -2, "usage: &mf [-KCFARLED num] [-akmcgvwh]\n" );
     Abc_Print( -2, "\t           performs technology mapping of the network\n" );
     Abc_Print( -2, "\t-K num   : LUT size for the mapping (2 <= K <= %d) [default = %d]\n", pPars->nLutSizeMax, pPars->nLutSize );
     Abc_Print( -2, "\t-C num   : the max number of priority cuts (1 <= C <= %d) [default = %d]\n", pPars->nCutNumMax, pPars->nCutNum );
@@ -31475,6 +31504,7 @@ usage:
     Abc_Print( -2, "\t-A num   : the number of exact area rounds [default = %d]\n", pPars->nRoundsEla );
     Abc_Print( -2, "\t-R num   : the delay relaxation ratio (num >= 0) [default = %d]\n", pPars->nRelaxRatio );
     Abc_Print( -2, "\t-L num   : the fanout limit for coarsening XOR/MUX (num >= 2) [default = %d]\n", pPars->nCoarseLimit );
+    Abc_Print( -2, "\t-E num   : the area/edge tradeoff parameter (0 <= num <= 100) [default = %d]\n", pPars->nAreaTuner );
     Abc_Print( -2, "\t-D num   : sets the delay constraint for the mapping [default = %s]\n", Buffer );
     Abc_Print( -2, "\t-a       : toggles area-oriented mapping [default = %s]\n", pPars->fAreaOnly? "yes": "no" );
     Abc_Print( -2, "\t-e       : toggles edge vs node minimization [default = %s]\n", pPars->fOptEdge? "yes": "no" );

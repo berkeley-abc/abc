@@ -943,7 +943,7 @@ static inline int Mf_CutArea( Mf_Man_t * p, int nLeaves, int iFunc )
     if ( p->pPars->fGenCnf )
         return Vec_IntEntry(&p->vCnfSizes, Abc_Lit2Var(iFunc));
     if ( p->pPars->fOptEdge )
-        return nLeaves + 1;
+        return nLeaves + p->pPars->nAreaTuner;
     return 1;
 }
 static inline void Mf_CutParams( Mf_Man_t * p, Mf_Cut_t * pCut, float FlowRefs )
@@ -1386,6 +1386,7 @@ void Mf_ManSetDefaultPars( Jf_Par_t * pPars )
     pPars->nRoundsEla   =  1;
     pPars->nRelaxRatio  =  0;
     pPars->nCoarseLimit =  3;
+    pPars->nAreaTuner   =  1;
     pPars->nVerbLimit   =  5;
     pPars->DelayTarget  = -1;
     pPars->fAreaOnly    =  0;

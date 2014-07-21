@@ -414,14 +414,23 @@ int Dau_DsdToGia( Gia_Man_t * pGia, char * p, int * pLits, Vec_Int_t * vCover )
 ***********************************************************************/
 int Dsm_ManTruthToGia( void * p, word * pTruth, Vec_Int_t * vLeaves, Vec_Int_t * vCover )
 {
+    int fUseMuxes = 0;
     int fDelayBalance = 1;
     Gia_Man_t * pGia = (Gia_Man_t *)p;
-    char pDsd[1000];
     int nSizeNonDec;
+    char pDsd[1000];
     m_Calls++;
     assert( Vec_IntSize(vLeaves) <= DAU_DSD_MAX_VAR );
-//    static int Counter = 0; Counter++;
-    nSizeNonDec = Dau_DsdDecompose( pTruth, Vec_IntSize(vLeaves), 0, 1, pDsd );
+    // collect delay information
+    if ( fDelayBalance && fUseMuxes )
+    {
+        int i, iLit, pVarLevels[DAU_DSD_MAX_VAR];
+        Vec_IntForEachEntry( vLeaves, iLit, i )
+            pVarLevels[i] = Gia_ObjLevelId( pGia, Abc_Lit2Var(iLit) );
+        nSizeNonDec = Dau_DsdDecomposeLevel( pTruth, Vec_IntSize(vLeaves), fUseMuxes, 1, pDsd, pVarLevels );
+    }
+    else
+        nSizeNonDec = Dau_DsdDecompose( pTruth, Vec_IntSize(vLeaves), fUseMuxes, 1, pDsd );
     if ( nSizeNonDec )
         m_NonDsd++;
 //    printf( "%s\n", pDsd );
@@ -505,6 +514,15 @@ void * Dsm_ManDeriveGia( void * pGia, int fUseMuxes )
     Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
     Vec_IntFree( vLeaves );
     Vec_IntFree( vCover );
+/*
+    Gia_ManForEachAnd( pNew, pObj, i )
+    {
+        int iLev  = Gia_ObjLevelId(pNew, i);
+        int iLev0 = Gia_ObjLevelId(pNew, Gia_ObjFaninId0(pObj, i));
+        int iLev1 = Gia_ObjLevelId(pNew, Gia_ObjFaninId1(pObj, i));
+        assert( iLev == 1 + Abc_MaxInt(iLev0, iLev1) );
+    }
+*/
     // perform cleanup
     pNew = Gia_ManCleanup( pTemp = pNew );
     Gia_ManStop( pTemp );

@@ -43,7 +43,7 @@ ABC_NAMESPACE_IMPL_START
   SeeAlso     []
 
 ***********************************************************************/
-Gia_Man_t * Str_NormalizeTest( Gia_Man_t * p, int nLutSize, int fUseMuxes, int fVerbose )
+Gia_Man_t * Gia_ManLutBalance( Gia_Man_t * p, int nLutSize, int fUseMuxes, int fRecursive, int fOptArea, int fVerbose )
 {
     return Gia_ManDup(p);
 }

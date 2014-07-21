@@ -890,24 +890,43 @@ void Dau_DsdTest3()
   SeeAlso     []
 
 ***********************************************************************/
-int Dau_DsdCheck1Step( word * pTruth, int nVarsInit )
+int Dau_DsdCheck1Step( void * p, word * pTruth, int nVarsInit, int * pVarLevels )
 {
     word pCofTemp[DAU_MAX_WORD];
+    int pVarPrios[DAU_MAX_VAR];
     int nWords = Abc_TtWordNum(nVarsInit);
     int nSizeNonDec, nSizeNonDec0, nSizeNonDec1;
-    int v, vBest = -2, nSumCofsBest = ABC_INFINITY, nSumCofs;
+    int i, vBest = -2, nSumCofsBest = ABC_INFINITY, nSumCofs;
     nSizeNonDec = Dau_DsdDecompose( pTruth, nVarsInit, 0, 0, NULL );
     if ( nSizeNonDec == 0 )
         return -1;
     assert( nSizeNonDec > 0 );
-    for ( v = 0; v < nVarsInit; v++ )
+    // find variable priority
+    for ( i = 0; i < nVarsInit; i++ )
+        pVarPrios[i] = i;
+    if ( pVarLevels )
     {
+        extern int Dau_DsdLevelVar( void * pMan, int iVar );
+        int pVarLevels[DAU_MAX_VAR];
+        for ( i = 0; i < nVarsInit; i++ )
+            pVarLevels[i] = -Dau_DsdLevelVar( p, i );
+//        for ( i = 0; i < nVarsInit; i++ )
+//            printf( "%d ", -pVarLevels[i] );
+//        printf( "\n" );
+        Vec_IntSelectSortCost2( pVarPrios, nVarsInit, pVarLevels );
+//        for ( i = 0; i < nVarsInit; i++ )
+//            printf( "%d ", pVarPrios[i] );
+//        printf( "\n\n" );
+    }
+    for ( i = 0; i < nVarsInit; i++ )
+    {
+        assert( pVarPrios[i] >= 0 && pVarPrios[i] < nVarsInit );
         // try first cofactor
-        Abc_TtCofactor0p( pCofTemp, pTruth, nWords, v );
+        Abc_TtCofactor0p( pCofTemp, pTruth, nWords, pVarPrios[i] );
         nSumCofs = Abc_TtSupportSize( pCofTemp, nVarsInit );
         nSizeNonDec0 = Dau_DsdDecompose( pCofTemp, nVarsInit, 0, 0, NULL );
         // try second cofactor
-        Abc_TtCofactor1p( pCofTemp, pTruth, nWords, v );
+        Abc_TtCofactor1p( pCofTemp, pTruth, nWords, pVarPrios[i] );
         nSumCofs += Abc_TtSupportSize( pCofTemp, nVarsInit );
         nSizeNonDec1 = Dau_DsdDecompose( pCofTemp, nVarsInit, 0, 0, NULL );
         // compare cofactors
@@ -915,7 +934,7 @@ int Dau_DsdCheck1Step( word * pTruth, int nVarsInit )
             continue;
         if ( nSumCofsBest > nSumCofs )
         {
-            vBest = v;
+            vBest = pVarPrios[i];
             nSumCofsBest = nSumCofs;
         }
     }
@@ -944,6 +963,7 @@ struct Dau_Dsd_t_
     int      uConstMask;           // constant decomposition mask
     int      fSplitPrime;          // represent prime function as 1-step DSD
     int      fWriteTruth;          // writing truth table as a hex string
+    int *    pVarLevels;           // variable levels
     char     pVarDefs[32][8];      // variable definitions
     char     Cache[32][32];        // variable cache
     char     pOutput[DAU_MAX_STR]; // output stream
@@ -995,6 +1015,21 @@ static inline void Dau_DsdWriteVar( Dau_Dsd_t * p, int iVar, int fInv )
         else
             p->pOutput[ p->nPos++ ] = *pStr;
 }
+int Dau_DsdLevelVar( void * pMan, int iVar )
+{
+    Dau_Dsd_t * p = (Dau_Dsd_t *)pMan;
+    char * pStr;
+    int LevelMax = 0, Level;
+    for ( pStr = p->pVarDefs[iVar]; *pStr; pStr++ )
+    {
+        if ( *pStr >= 'a' + p->nVarsInit && *pStr < 'a' + p->nVarsUsed )
+            Level = 1 + Dau_DsdLevelVar( p, *pStr - 'a' );
+        else
+            Level = p->pVarLevels[*pStr - 'a'];
+        LevelMax = Abc_MaxInt( LevelMax, Level );
+    }
+    return LevelMax;
+}
 static inline void Dau_DsdTranslate( Dau_Dsd_t * p, int * pVars, int nVars, char * pStr )
 {
     for ( ; *pStr; pStr++ )
@@ -1011,7 +1046,7 @@ static inline int Dau_DsdWritePrime( Dau_Dsd_t * p, word * pTruth, int * pVars, 
     {
         word pCofTemp[DAU_MAX_WORD];
         int nWords = Abc_TtWordNum(nVars);
-        int vBest = Dau_DsdCheck1Step( pTruth, nVars );
+        int vBest = Dau_DsdCheck1Step( p, pTruth, nVars, p->pVarLevels );
         assert( vBest != -1 );
         if ( vBest == -2 ) // non-dec
             p->nPos += Abc_TtWriteHexRev( p->pOutput + p->nPos, pTruth, nVars );
@@ -1879,6 +1914,31 @@ int Dau_DsdDecompose( word * pTruth, int nVarsInit, int fSplitPrime, int fWriteT
     Dau_Dsd_t P, * p = &P;
     p->fSplitPrime = fSplitPrime;
     p->fWriteTruth = fWriteTruth;
+    p->pVarLevels  = NULL;
+    p->nSizeNonDec = 0;
+    if ( (pTruth[0] & 1) == 0 && Abc_TtIsConst0(pTruth, Abc_TtWordNum(nVarsInit)) )
+        { if ( pRes ) pRes[0] = '0', pRes[1] = 0; }
+    else if ( (pTruth[0] & 1) && Abc_TtIsConst1(pTruth, Abc_TtWordNum(nVarsInit)) )
+        { if ( pRes ) pRes[0] = '1', pRes[1] = 0; }
+    else 
+    {
+        int Status = Dau_DsdDecomposeInt( p, pTruth, nVarsInit );
+        Dau_DsdRemoveBraces( p->pOutput, Dau_DsdComputeMatches(p->pOutput) );
+        if ( pRes )
+            strcpy( pRes, p->pOutput );
+        assert( fSplitPrime || Status != 1 );
+        if ( fSplitPrime && Status == 2 )
+            return -1;
+    }
+//    assert( p->nSizeNonDec == 0 );
+    return p->nSizeNonDec;
+}
+int Dau_DsdDecomposeLevel( word * pTruth, int nVarsInit, int fSplitPrime, int fWriteTruth, char * pRes, int * pVarLevels )
+{
+    Dau_Dsd_t P, * p = &P;
+    p->fSplitPrime = fSplitPrime;
+    p->fWriteTruth = fWriteTruth;
+    p->pVarLevels  = pVarLevels;
     p->nSizeNonDec = 0;
     if ( (pTruth[0] & 1) == 0 && Abc_TtIsConst0(pTruth, Abc_TtWordNum(nVarsInit)) )
         { if ( pRes ) pRes[0] = '0', pRes[1] = 0; }

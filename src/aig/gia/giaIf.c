@@ -318,29 +318,32 @@ void Gia_ManPrintGetMuxFanins( Gia_Man_t * p, Gia_Obj_t * pObj, int * pFanins )
 }
 int Gia_ManCountDupLut6( Gia_Man_t * p )
 {
-    int i, nCountDup = 0, nCountPis = 0;
-    Gia_ManCleanMark0( p );
+    int i, nCountDup = 0, nCountPis = 0, nCountMux = 0;
+    Gia_ManCleanMark01( p );
     Gia_ManForEachLut( p, i )
-        if ( Gia_ObjLutSize(p, i) == 3 && Gia_ObjLutFanins(p, i)[3] == -i )
+        if ( Gia_ObjLutSize(p, i) == 3 && Gia_ObjLutIsMux(p, i) )
         {
             Gia_Obj_t * pFanin;
             int pFanins[3];
             Gia_ManPrintGetMuxFanins( p, Gia_ManObj(p, i), pFanins );
+            Gia_ManObj(p, i)->fMark1 = 1;
 
             pFanin = Gia_ManObj(p, pFanins[1]);
             nCountPis += Gia_ObjIsCi(pFanin);
             nCountDup += pFanin->fMark0;
+            nCountMux += pFanin->fMark1;
             pFanin->fMark0 = 1;
 
             pFanin = Gia_ManObj(p, pFanins[2]);
             nCountPis += Gia_ObjIsCi(pFanin);
             nCountDup += pFanin->fMark0;
+            nCountMux += pFanin->fMark1;
             pFanin->fMark0 = 1;
         }
-    Gia_ManCleanMark0( p );
-    if ( nCountDup + nCountPis )
-        printf( "Dup fanins = %d.  CI fanins = %d.  Total = %d.  (%.2f %%)\n", 
-            nCountDup, nCountPis, nCountDup + nCountPis, 100.0 * (nCountDup + nCountPis) / Gia_ManLutNum(p) );
+    Gia_ManCleanMark01( p );
+    if ( nCountDup + nCountPis + nCountMux )
+        printf( "Dup fanins = %d.  CI fanins = %d.  MUX fanins = %d.  Total = %d.  (%.2f %%)\n", 
+            nCountDup, nCountPis, nCountMux, nCountDup + nCountPis, 100.0 * (nCountDup + nCountPis + nCountMux) / Gia_ManLutNum(p) );
     return nCountDup + nCountPis;
 }
 
@@ -354,7 +357,7 @@ void Gia_ManPrintMappingStats( Gia_Man_t * p, char * pDumpFile )
     pLevels = ABC_CALLOC( int, Gia_ManObjNum(p) );
     Gia_ManForEachLut( p, i )
     {
-        if ( Gia_ObjLutSize(p, i) == 3 && Gia_ObjLutFanins(p, i)[3] == -i )
+        if ( Gia_ObjLutSize(p, i) == 3 && Gia_ObjLutIsMux(p, i) )
         {
             int pFanins[3];
             Gia_ManPrintGetMuxFanins( p, Gia_ManObj(p, i), pFanins );
@@ -1576,7 +1579,7 @@ void Gia_ManTransferMapping( Gia_Man_t * pGia, Gia_Man_t * p )
         Vec_IntPush( p->vMapping, Gia_ObjLutSize(pGia, i) );
         Gia_LutForEachFanin( pGia, i, iFan, k )
             Vec_IntPush( p->vMapping, Abc_Lit2Var(Gia_ObjValue(Gia_ManObj(pGia, iFan))) );
-        Vec_IntPush( p->vMapping, Gia_ObjId(p, pObj) );
+        Vec_IntPush( p->vMapping, Gia_ObjLutIsMux(pGia, i) ? -Gia_ObjId(p, pObj) : Gia_ObjId(p, pObj) );
     }
     Gia_ManMappingVerify( p );
 }

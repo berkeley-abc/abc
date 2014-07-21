@@ -80,6 +80,7 @@ extern unsigned      Abc_TtCanonicizePhase( word * pTruth, int nVars );
 /*=== dauDsd.c  ==========================================================*/
 extern int *         Dau_DsdComputeMatches( char * p );
 extern int           Dau_DsdDecompose( word * pTruth, int nVarsInit, int fSplitPrime, int fWriteTruth, char * pRes );
+extern int           Dau_DsdDecomposeLevel( word * pTruth, int nVarsInit, int fSplitPrime, int fWriteTruth, char * pRes, int * pVarLevels );
 extern void          Dau_DsdPrintFromTruthFile( FILE * pFile, word * pTruth, int nVarsInit );
 extern void          Dau_DsdPrintFromTruth( word * pTruth, int nVarsInit );
 extern word *        Dau_DsdToTruth( char * p, int nVars );
@@ -87,7 +88,7 @@ extern word          Dau_Dsd6ToTruth( char * p );
 extern void          Dau_DsdNormalize( char * p );
 extern int           Dau_DsdCountAnds( char * pDsd );
 extern void          Dau_DsdTruthCompose_rec( word * pFunc, word pFanins[DAU_MAX_VAR][DAU_MAX_WORD], word * pRes, int nVars, int nWordsR );
-extern int           Dau_DsdCheck1Step( word * pTruth, int nVarsInit );
+extern int           Dau_DsdCheck1Step( void * p, word * pTruth, int nVarsInit, int * pVarLevels );
 
 /*=== dauGia.c  ==========================================================*/
 extern int           Dsm_ManTruthToGia( void * p, word * pTruth, Vec_Int_t * vLeaves, Vec_Int_t * vCover );

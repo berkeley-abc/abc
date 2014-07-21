@@ -478,7 +478,7 @@ void Lms_ManPrintFreqStats( Lms_Man_t * p )
         }
 
         // check the non dec core
-        Status = Dau_DsdCheck1Step( pTruth, nNonDecSize );
+        Status = Dau_DsdCheck1Step( NULL, pTruth, nNonDecSize, NULL );
         if ( Status >= 0 )
         {
             CountStepNpn[1]++;
