@@ -460,23 +460,25 @@ void Mux_ManFree( Mux_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-void Gia_ManMuxProfile( Mux_Man_t * p, int fWidth )
+int Gia_ManMuxProfile( Mux_Man_t * p, int fWidth )
 {
-    int i, Entry, Counter;
+    int i, Entry, Counter, Total;
     Vec_Int_t * vVec, * vCounts;
     vCounts = Vec_IntStart( 1000 );
     if ( fWidth )
     {
         Vec_WecForEachLevelStart( p->vTops, vVec, i, 1 )
             Vec_IntAddToEntry( vCounts, Abc_MinInt(Vec_IntSize(vVec), 999), 1 );
-        printf( "The distribution of MUX tree widths:\n" );
     }
     else
     {
         for ( i = 1; i < Vec_WecSize(p->vTops); i++ )
             Vec_IntAddToEntry( vCounts, Abc_MinInt(atoi(Abc_NamStr(p->pNames, i)), 999), 1 );
-        printf( "The distribution of MUX tree sizes:\n" );
     }
+    Total = Vec_IntCountPositive(vCounts);
+    if ( Total == 0 )
+        return 0;
+    printf( "The distribution of MUX tree %s:\n", fWidth ? "widths" : "sizes"  );
     Counter = 0;
     Vec_IntForEachEntry( vCounts, Entry, i )
     {
@@ -487,9 +489,10 @@ void Gia_ManMuxProfile( Mux_Man_t * p, int fWidth )
     }
     printf( "\nSummary: " );
     printf( "Max = %d  ", Vec_IntFindMax(vCounts) );
-    printf( "Ave = %.2f", 1.0*Vec_IntSum(vCounts)/Vec_IntCountPositive(vCounts) );
+    printf( "Ave = %.2f", 1.0*Vec_IntSum(vCounts)/Total );
     printf( "\n" );
     Vec_IntFree( vCounts );
+    return 1;
 }
 
 /**Function*************************************************************
@@ -549,33 +552,35 @@ void Gia_ManMuxProfiling( Gia_Man_t * p )
         1.0*Abc_NamMemUsed(pMan->pNames)/(1<<20) );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
 
-    Gia_ManMuxProfile( pMan, 0 );
-    Gia_ManMuxProfile( pMan, 1 );
-
-    // short the first ones
-    printf( "The first %d structures: \n", 10 );
-    Vec_WecForEachLevelStartStop( pMan->vTops, vVec, i, 1, Abc_MinInt(Vec_WecSize(pMan->vTops), 10) )
+    if ( Gia_ManMuxProfile(pMan, 0) )
     {
-        char * pTemp = Abc_NamStr(pMan->pNames, i);
-        printf( "%5d : ", i );
-        printf( "Occur = %4d   ", Vec_IntSize(vVec) );
-        printf( "Size = %4d   ", atoi(pTemp) );
-        printf( "%s\n", pTemp );
-    }
+        Gia_ManMuxProfile( pMan, 1 );
 
-    // print trees for the first one
-    Counter = 0;
-    Vec_WecForEachLevelStart( pMan->vTops, vVec, i, 1 )
-    {
-        char * pTemp = Abc_NamStr(pMan->pNames, i);
-        if ( Vec_IntSize(vVec) > 5 && atoi(pTemp) > 5 )
+        // short the first ones
+        printf( "The first %d structures: \n", 10 );
+        Vec_WecForEachLevelStartStop( pMan->vTops, vVec, i, 1, Abc_MinInt(Vec_WecSize(pMan->vTops), 10) )
         {
-            int k, Entry;
-            printf( "For example, structure %d has %d MUXes and bit-width %d:\n", i, atoi(pTemp), Vec_IntSize(vVec) );
-            Vec_IntForEachEntry( vVec, Entry, k )
-                Gia_MuxStructPrint( pNew, Entry );
-            if ( ++Counter == 5 )
-                break;
+            char * pTemp = Abc_NamStr(pMan->pNames, i);
+            printf( "%5d : ", i );
+            printf( "Occur = %4d   ", Vec_IntSize(vVec) );
+            printf( "Size = %4d   ", atoi(pTemp) );
+            printf( "%s\n", pTemp );
+        }
+
+        // print trees for the first one
+        Counter = 0;
+        Vec_WecForEachLevelStart( pMan->vTops, vVec, i, 1 )
+        {
+            char * pTemp = Abc_NamStr(pMan->pNames, i);
+            if ( Vec_IntSize(vVec) > 5 && atoi(pTemp) > 5 )
+            {
+                int k, Entry;
+                printf( "For example, structure %d has %d MUXes and bit-width %d:\n", i, atoi(pTemp), Vec_IntSize(vVec) );
+                Vec_IntForEachEntry( vVec, Entry, k )
+                    Gia_MuxStructPrint( pNew, Entry );
+                if ( ++Counter == 5 )
+                    break;
+            }
         }
     }
 

@@ -10599,13 +10599,15 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
         extern Abc_Ntk_t * Abc_NtkBarBufsOnOffTest( Abc_Ntk_t * pNtk );
         Abc_Ntk_t * pNtkRes = Abc_NtkBarBufsOnOffTest( pNtk );
-//        extern Abc_Ntk_t * Abc_NtkPcmTest( Abc_Ntk_t * pNtk, int fVerbose );
-//        extern Abc_Ntk_t * Abc_NtkPcmTestAig( Abc_Ntk_t * pNtk, int fVerbose );
-//        Abc_Ntk_t * pNtkRes;
-//        if ( Abc_NtkIsLogic(pNtk) )
-//            pNtkRes = Abc_NtkPcmTest( pNtk, fVerbose );
-//        else
-//            pNtkRes = Abc_NtkPcmTestAig( pNtk, fVerbose );
+/*
+        extern Abc_Ntk_t * Abc_NtkPcmTest( Abc_Ntk_t * pNtk, int fNewAlgo, int fVerbose );
+        extern Abc_Ntk_t * Abc_NtkPcmTestAig( Abc_Ntk_t * pNtk, int fVerbose );
+        Abc_Ntk_t * pNtkRes;
+        if ( Abc_NtkIsLogic(pNtk) )
+            pNtkRes = Abc_NtkPcmTest( pNtk, fNewAlgo, fVerbose );
+        else
+            pNtkRes = Abc_NtkPcmTestAig( pNtk, fVerbose );
+*/
         if ( pNtkRes == NULL )
         {
             Abc_Print( -1, "Command has failed.\n" );
