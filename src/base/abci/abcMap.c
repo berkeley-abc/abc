@@ -411,7 +411,7 @@ Abc_Obj_t * Abc_NodeFromMap_rec( Abc_Ntk_t * pNtkNew, Map_Node_t * pNodeMap, int
     // add the inverter
     pNodeInv = Abc_NtkCreateNode( pNtkNew );
     Abc_ObjAddFanin( pNodeInv, pNodeNew );
-    pNodeInv->pData = Mio_LibraryReadInv(Map_ManReadGenLib(Map_NodeReadMan(pNodeMap)));
+    pNodeInv->pData = Mio_LibraryReadInv((Mio_Library_t *)Abc_FrameReadLibGen());
 
     // set the inverter
     Map_NodeSetData( pNodeMap, fPhase, (char *)pNodeInv );
