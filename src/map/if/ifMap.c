@@ -273,20 +273,20 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
         if ( p->pPars->fDelayOpt )
         {
             pCut->Delay = If_CutSopBalanceEval( p, pCut, NULL );
-            if ( pCut->Delay >= pObj->Level && pCut->nLeaves > 2 )
-                pCut->Delay += 1;
+//            if ( pCut->Delay >= pObj->Level && pCut->nLeaves > 2 )
+//                pCut->Delay += 1;
         }
         else if ( p->pPars->fDsdBalance )
         {
             pCut->Delay = If_CutDsdBalanceEval( p, pCut, NULL );
-            if ( pCut->Delay >= pObj->Level && pCut->nLeaves > 2 )
-                pCut->Delay += 1;
+//            if ( pCut->Delay >= pObj->Level && pCut->nLeaves > 2 )
+//                pCut->Delay += 1;
         }
         else if ( p->pPars->fUserRecLib )
         {
             pCut->Delay = If_CutDelayRecCost3( p, pCut, pObj ); 
-            if ( pCut->Delay >= pObj->Level && pCut->nLeaves > 2 )
-                pCut->Delay += 1;
+//            if ( pCut->Delay >= pObj->Level && pCut->nLeaves > 2 )
+//                pCut->Delay += 1;
         }
         else if ( p->pPars->fDelayOptLut )
             pCut->Delay = If_CutLutBalanceEval( p, pCut );
