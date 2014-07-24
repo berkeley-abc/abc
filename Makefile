@@ -3,9 +3,11 @@ CC   := gcc
 CXX  := g++
 LD   := $(CXX)
 
-$(info Using CC=$(CC))
-$(info Using CXX=$(CXX))
-$(info Using LD=$(LD))
+MSG_PREFIX ?=
+
+$(info $(MSG_PREFIX)Using CC=$(CC))
+$(info $(MSG_PREFIX)Using CXX=$(CXX))
+$(info $(MSG_PREFIX)Using LD=$(LD))
 
 PROG := abc
 
@@ -41,7 +43,6 @@ arch_flags : arch_flags.c
 
 ARCHFLAGS ?= $(shell $(CC) arch_flags.c -o arch_flags && ./arch_flags)
 OPTFLAGS  ?= -g -O #-DABC_NAMESPACE=xxx
-MSG_PREFIX ?=
 
 CFLAGS   += -Wall -Wno-unused-function -Wno-write-strings -Wno-sign-compare $(OPTFLAGS) $(ARCHFLAGS) -Isrc
 
@@ -54,11 +55,11 @@ GCC_VERSION=$(shell $(CC) -dumpversion)
 GCC_MAJOR=$(word 1,$(subst .,$(space),$(GCC_VERSION)))
 GCC_MINOR=$(word 2,$(subst .,$(space),$(GCC_VERSION)))
 
-$(info Found GCC_VERSION $(GCC_VERSION))
+$(info $(MSG_PREFIX)Found GCC_VERSION $(GCC_VERSION))
 ifeq ($(findstring $(GCC_MAJOR),0 1 2 3),)
-$(info Found GCC_MAJOR>=4)
+$(info $(MSG_PREFIX)Found GCC_MAJOR>=4)
 ifeq ($(findstring $(GCC_MINOR),0 1 2 3 4 5),)
-$(info Found GCC_MINOR>=6)
+$(info $(MSG_PREFIX)Found GCC_MINOR>=6)
 CFLAGS += -Wno-unused-but-set-variable
 endif
 endif
@@ -81,7 +82,7 @@ CFLAGS += -DABC_USE_PTHREADS
 LIBS += -lpthread
 endif
 
-$(info Using CFLAGS=$(CFLAGS))
+$(info $(MSG_PREFIX)Using CFLAGS=$(CFLAGS))
 CXXFLAGS += $(CFLAGS) 
 
 SRC  := 
