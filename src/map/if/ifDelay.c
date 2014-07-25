@@ -78,16 +78,16 @@ int If_CutDelaySop( If_Man_t * p, If_Cut_t * pCut )
     if ( Vec_IntSize(vCover) == 0 )
         return -1;
     // mark the output as complemented
-//    vAnds = If_CutDelaySopAnds( p, pCut, p->vCover, RetValue ^ pCut->fCompl );
-    if ( Vec_IntSize(p->vCover) > p->pPars->nGateSize )
-        return ABC_INFINITY;
+//    vAnds = If_CutDelaySopAnds( p, pCut, vCover, RetValue ^ pCut->fCompl );
+    if ( Vec_IntSize(vCover) > p->pPars->nGateSize )
+        return -1;
     // set the area cost
     assert( If_CutLeaveNum(pCut) >= 0 && If_CutLeaveNum(pCut) <= 16 );
     // compute the gate delay
-    nLitMax = If_CutMaxCubeSize( p->vCover, If_CutLeaveNum(pCut) );
-    if ( Vec_IntSize(p->vCover) < 2 )
+    nLitMax = If_CutMaxCubeSize( vCover, If_CutLeaveNum(pCut) );
+    if ( Vec_IntSize(vCover) < 2 )
     {
-        pCut->Cost = Vec_IntSize(p->vCover);
+        pCut->Cost = Vec_IntSize(vCover);
         Delay = (int)(GateDelays[If_CutLeaveNum(pCut)] + 0.5);
         DelayMax = 0;
         If_CutForEachLeaf( p, pCut, pLeaf, i )
@@ -95,7 +95,7 @@ int If_CutDelaySop( If_Man_t * p, If_Cut_t * pCut )
     }
     else
     {
-        pCut->Cost = Vec_IntSize(p->vCover) + 1;
+        pCut->Cost = Vec_IntSize(vCover) + 1;
         Delay = (int)(GateDelays[If_CutLeaveNum(pCut)] + GateDelays[nLitMax] + 0.5);
         DelayMax = 0;
         If_CutForEachLeaf( p, pCut, pLeaf, i )

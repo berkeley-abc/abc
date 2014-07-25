@@ -70,7 +70,7 @@ If_Man_t * If_ManStart( If_Par_t * pPars )
             p->vTtMem[v] = Vec_MemAllocForTT( v, pPars->fUseTtPerm );
         for ( v = 0; v < 6; v++ )
             p->vTtMem[v] = p->vTtMem[6];
-        if ( p->pPars->fDelayOpt )
+        if ( p->pPars->fDelayOpt || pPars->nGateSize > 0 )
         {
             for ( v = 6; v <= Abc_MaxInt(6,p->pPars->nLutSize); v++ )
                 p->vTtIsops[v] = Vec_WecAlloc( 1000 );
@@ -79,7 +79,7 @@ If_Man_t * If_ManStart( If_Par_t * pPars )
             for ( v = 0; v < 6; v++ )
                 p->vTtIsops[v] = p->vTtIsops[6];
         }
-        if ( p->pPars->fDelayOpt || p->pPars->fDsdBalance );
+        if ( p->pPars->fDelayOpt || pPars->nGateSize > 0 || p->pPars->fDsdBalance );
         {
             p->vCover = Vec_IntAlloc( 0 );
             p->vArray = Vec_IntAlloc( 1000 );

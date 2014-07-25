@@ -218,7 +218,7 @@ void If_CutPropagateRequired( If_Man_t * p, If_Obj_t * pObj, If_Cut_t * pCut, fl
                 int Delay = If_CutDsdBalancePinDelays( p, pCut, pPerm );
                 assert( Delay == (int)pCut->Delay );
             }
-            else 
+            else
                 pPerm = If_CutPerm(pCut);
             If_CutForEachLeaf( p, pCut, pLeaf, i )
             {
