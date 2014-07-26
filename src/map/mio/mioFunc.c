@@ -101,7 +101,7 @@ int Mio_GateCollectNames( char * pFormula, char * pPinNames[] )
                 break;
         if ( i == nPins )
         { // cannot find this name; save it
-            pPinNames[nPins++] = Mio_UtilStrsav(pTemp);
+            pPinNames[nPins++] = Abc_UtilStrsav(pTemp);
         }
         // get the next name
         pTemp = strtok( NULL, " " );
@@ -147,6 +147,7 @@ int Mio_GateParseFormula( Mio_Gate_t * pGate )
 //            pGate->bFunc = b0;
             pGate->vExpr = Exp_Const0();
             pGate->pSop = Mio_SopRegister( (Mem_Flex_t *)pGate->pLib->pMmFlex, " 0\n" );
+            pGate->uTruth = 0;
             pGate->pLib->pGate0 = pGate;
         }
         else if ( strcmp( pGate->pForm, MIO_STRING_CONST1 ) == 0 )
@@ -154,6 +155,7 @@ int Mio_GateParseFormula( Mio_Gate_t * pGate )
 //            pGate->bFunc = b1;
             pGate->vExpr = Exp_Const1();
             pGate->pSop = Mio_SopRegister( (Mem_Flex_t *)pGate->pLib->pMmFlex, " 1\n" );
+            pGate->uTruth = ~(word)0;
             pGate->pLib->pGate1 = pGate;
         }
         else

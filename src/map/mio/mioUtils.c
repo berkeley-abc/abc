@@ -126,7 +126,7 @@ Mio_Pin_t * Mio_PinDup( Mio_Pin_t * pPin )
 
     pPinNew = ABC_ALLOC( Mio_Pin_t, 1 );
     *pPinNew = *pPin;
-    pPinNew->pName = (pPinNew->pName ? Mio_UtilStrsav(pPinNew->pName) : NULL);
+    pPinNew->pName = (pPinNew->pName ? Abc_UtilStrsav(pPinNew->pName) : NULL);
     pPinNew->pNext = NULL;
 
     return pPinNew;
@@ -313,7 +313,7 @@ Mio_Gate_t ** Mio_CollectRoots( Mio_Library_t * pLib, int nInputs, float tDelay,
             continue;
         if ( tDelay > 0.0 && pGate->dDelayMax > (double)tDelay )
             continue;
-        if ( pGate->uTruth == 0 || pGate->uTruth == ~0 )
+        if ( pGate->uTruth == 0 || pGate->uTruth == ~(word)0 )
             continue;
         if ( pGate->uTruth == ABC_CONST(0xAAAAAAAAAAAAAAAA) )
             continue;
@@ -348,6 +348,146 @@ Mio_Gate_t ** Mio_CollectRoots( Mio_Library_t * pLib, int nInputs, float tDelay,
     if ( pnGates )
         *pnGates = iGate;
     return ppGates;
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    [Compares the max delay of two gates.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Mio_DelayCompareNew( Mio_Cell_t * pG1, Mio_Cell_t * pG2 )
+{
+    if ( (pG1)->nFanins < (pG2)->nFanins )
+        return -1;
+    if ( (pG1)->nFanins > (pG2)->nFanins )
+        return 1;
+    if ( (pG1)->Area < (pG2)->Area )
+        return -1;
+    if ( (pG1)->Area > (pG2)->Area )
+        return 1;
+    return 0;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Collects the set of root gates.]
+
+  Description [Only collects the gates with unique functionality, 
+  which have fewer inputs and shorter delay than the given limits.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Mio_CollectCopy( Mio_Cell_t * pCell, Mio_Gate_t * pGate )
+{
+    Mio_Pin_t * pPin;
+    int k;
+    pCell->pName   = pGate->pName;
+    pCell->uTruth  = pGate->uTruth;
+    pCell->Area    = (float)pGate->dArea;
+    pCell->nFanins = pGate->nInputs;
+    for ( k = 0, pPin = pGate->pPins; pPin; pPin = pPin->pNext, k++ )
+        pCell->Delays[k] = (float)(0.5 * pPin->dDelayBlockRise + 0.5 * pPin->dDelayBlockFall);
+}
+
+Mio_Cell_t * Mio_CollectRootsNew( Mio_Library_t * pLib, int nInputs, int * pnGates, int fVerbose )
+{
+    Mio_Gate_t * pGate;
+    Mio_Cell_t * ppCells;
+    int i, nGates, iCell = 4;
+    nGates = Mio_LibraryReadGateNum( pLib );
+    ppCells = ABC_CALLOC( Mio_Cell_t, nGates + 4 );
+    // for each functionality, select gate with the smallest area
+    // if equal areas, select gate with lexicographically smaller name
+    Mio_LibraryForEachGate( pLib, pGate )
+    {
+        if ( pGate->nInputs > nInputs || pGate->pTwin ) // skip large and multi-output
+            continue;
+        // check if the gate with this functionality already exists
+        for ( i = 0; i < iCell; i++ )
+            if ( ppCells[i].pName && ppCells[i].uTruth == pGate->uTruth )
+            {
+                if ( ppCells[i].Area > pGate->dArea || 
+                    (ppCells[i].Area == pGate->dArea && strcmp(ppCells[i].pName, pGate->pName) > 0) )
+                {
+                    Mio_CollectCopy( ppCells + i, pGate );
+                }
+                break;
+            }
+        if ( i < iCell )
+            continue;
+        if ( pGate->uTruth == 0 || pGate->uTruth == ~(word)0 )
+        {
+            int Idx = (int)(pGate->uTruth == ~(word)0);
+            assert( pGate->nInputs == 0 );
+            Mio_CollectCopy( ppCells + Idx, pGate );
+            continue;
+        }
+        if ( pGate->uTruth == ABC_CONST(0xAAAAAAAAAAAAAAAA) || pGate->uTruth == ~ABC_CONST(0xAAAAAAAAAAAAAAAA) )
+        {
+            int Idx = 2 + (int)(pGate->uTruth == ~ABC_CONST(0xAAAAAAAAAAAAAAAA));
+            assert( pGate->nInputs == 1 );
+            Mio_CollectCopy( ppCells + Idx, pGate );
+            continue;
+        }
+        Mio_CollectCopy( ppCells + iCell++, pGate );
+    }
+    // sort by delay
+    if ( iCell > 1 ) 
+    {
+        qsort( (void *)(ppCells + 4), iCell - 4, sizeof(Mio_Cell_t), 
+                (int (*)(const void *, const void *)) Mio_DelayCompareNew );
+        assert( Mio_DelayCompareNew( ppCells + 4, ppCells + iCell - 1 ) <= 0 );
+    }
+    // assign IDs
+    for ( i = 0; i < iCell; i++ )
+        ppCells[i].Id = ppCells[i].pName ? i : -1;
+
+    // report
+    if ( fVerbose )
+    {
+        // count gates
+        int * pCounts = ABC_CALLOC( int, nGates + 4 );
+        Mio_LibraryForEachGate( pLib, pGate )
+        {
+            if ( pGate->nInputs > nInputs || pGate->pTwin ) // skip large and multi-output
+                continue;
+            for ( i = 0; i < iCell; i++ )
+                if ( ppCells[i].pName && ppCells[i].uTruth == pGate->uTruth )
+                {
+                    pCounts[i]++;
+                    break;
+                }
+            assert( i < iCell );
+        }
+        for ( i = 0; i < iCell; i++ )
+        {
+            Mio_Cell_t * pCell = ppCells + i;
+            printf( "%4d : ", i );
+            if ( pCell->pName == NULL )
+                printf( "None\n" );
+            else
+                printf( "%-20s   In = %d   N = %3d   A = %7.2f   D = %7.2f\n", 
+                    pCell->pName, pCell->nFanins, pCounts[i], pCell->Area, pCell->Delays[0] );
+        }
+        ABC_FREE( pCounts );
+    }
+    if ( pnGates )
+        *pnGates = iCell;
+    return ppCells;
+}
+Mio_Cell_t * Mio_CollectRootsNewDefault( int nInputs, int * pnGates, int fVerbose )
+{
+    return Mio_CollectRootsNew( (Mio_Library_t *)Abc_FrameReadLibGen(), nInputs, pnGates, fVerbose );
 }
 
 /**Function*************************************************************

@@ -207,7 +207,7 @@ Mio_Library_t * Mio_LibraryReadOne( char * FileName, int fExtendedFormat, st__ta
     pLib = Mio_LibraryReadBuffer( pBuffer, fExtendedFormat, tExcludeGate, fVerbose );
     ABC_FREE( pBuffer );
     if ( pLib )
-        pLib->pName = Mio_UtilStrsav( FileName );
+        pLib->pName = Abc_UtilStrsav( FileName );
     return pLib;
 }
 
@@ -340,7 +340,7 @@ Mio_Gate_t * Mio_LibraryReadGate( char ** ppToken, int fExtendedFormat )
 
     // read the name
     pToken = strtok( NULL, " \t\r\n" );
-    pGate->pName = Mio_UtilStrsav( pToken );
+    pGate->pName = Abc_UtilStrsav( pToken );
 
     // read the area
     pToken = strtok( NULL, " \t\r\n" );
@@ -407,7 +407,7 @@ Mio_Pin_t * Mio_LibraryReadPin( char ** ppToken, int fExtendedFormat )
 
     // read the name
     pToken = strtok( NULL, " \t\r\n" );
-    pPin->pName = Mio_UtilStrsav( pToken );
+    pPin->pName = Abc_UtilStrsav( pToken );
 
     // read the pin phase
     pToken = strtok( NULL, " \t\r\n" );
@@ -672,7 +672,7 @@ int Mio_LibraryReadExclude( char * ExcludeFile, st__table * tExcludeGate )
         while (1 == fscanf( pEx, "%127s", buffer ))
         {
             //printf ("Read: '%s'\n", buffer );
-            st__insert( tExcludeGate, Mio_UtilStrsav( buffer ), (char *)0 );
+            st__insert( tExcludeGate, Abc_UtilStrsav( buffer ), (char *)0 );
             nDel++;
         }
 

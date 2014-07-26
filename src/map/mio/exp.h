@@ -175,7 +175,7 @@ static inline word Exp_Truth6Lit( int nVars, int Lit, word * puFanins, word * pu
     if ( Lit == EXP_CONST0 )
         return 0;
     if ( Lit == EXP_CONST1 )
-        return ~0;
+        return ~(word)0;
     if ( Lit < 2 * nVars )
         return  (Lit&1) ? ~puFanins[Lit/2] : puFanins[Lit/2];
     return (Lit&1) ? ~puNodes[Lit/2-nVars] : puNodes[Lit/2-nVars];

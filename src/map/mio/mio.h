@@ -43,7 +43,16 @@ typedef struct  Mio_LibraryStruct_t_      Mio_Library_t;
 typedef struct  Mio_GateStruct_t_         Mio_Gate_t;
 typedef struct  Mio_PinStruct_t_          Mio_Pin_t;
 
-static inline char *    Mio_UtilStrsav( char * s )     { return s ? strcpy(ABC_ALLOC(char, strlen(s)+1), s) : NULL;   }
+typedef struct Mio_Cell_t_ Mio_Cell_t; 
+struct Mio_Cell_t_
+{
+    char *          pName;          // name
+    word            uTruth;         // truth table
+    float           Area;           // area
+    unsigned        Id       : 28;  // gate ID
+    unsigned        nFanins  :  4;  // gate fanins
+    float           Delays[6];      // delay
+};
 
 ////////////////////////////////////////////////////////////////////////
 ///                       GLOBAL VARIABLES                           ///
@@ -151,6 +160,8 @@ extern void              Mio_PinDelete( Mio_Pin_t * pPin );
 extern Mio_Pin_t *       Mio_PinDup( Mio_Pin_t * pPin );
 extern void              Mio_WriteLibrary( FILE * pFile, Mio_Library_t * pLib, int fPrintSops );
 extern Mio_Gate_t **     Mio_CollectRoots( Mio_Library_t * pLib, int nInputs, float tDelay, int fSkipInv, int * pnGates, int fVerbose );
+extern Mio_Cell_t *      Mio_CollectRootsNew( Mio_Library_t * pLib, int nInputs, int * pnGates, int fVerbose );
+extern Mio_Cell_t *      Mio_CollectRootsNewDefault( int nInputs, int * pnGates, int fVerbose );
 extern word              Mio_DeriveTruthTable6( Mio_Gate_t * pGate );
 extern void              Mio_DeriveTruthTable( Mio_Gate_t * pGate, unsigned uTruthsIn[][2], int nSigns, int nInputs, unsigned uTruthRes[] );
 extern void              Mio_DeriveGateDelays( Mio_Gate_t * pGate, 

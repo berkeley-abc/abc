@@ -52,6 +52,10 @@ Gia_Man_t * Lf_ManPerformMapping( Gia_Man_t * pGia, Jf_Par_t * pPars )
 {
     return Jf_ManPerformMapping( pGia, pPars );
 }
+Gia_Man_t * Gia_ManPerformLfMapping( Gia_Man_t * p, Jf_Par_t * pPars, int fNormalized )
+{
+    return NULL;
+}
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
