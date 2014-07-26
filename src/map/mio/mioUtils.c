@@ -20,6 +20,7 @@
 #include "mioInt.h"
 #include "base/main/main.h"
 #include "exp.h"
+#include "misc/util/utilTruth.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -886,6 +887,150 @@ void Mio_LibraryTransferDelays( Mio_Library_t * pLibD, Mio_Library_t * pLibS )
         }
     }
 }
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Nf_ManPrepareGate( int nVars, word uTruth, int * pComp, int * pPerm, Vec_Wrd_t * vResult )
+{
+    int nPerms = Extra_Factorial( nVars );
+    int nMints = (1 << nVars);
+    word tCur, tTemp1, tTemp2;
+    int i, p, c;
+    Vec_WrdClear( vResult );
+    for ( i = 0; i < 2; i++ )
+    {
+        tCur = i ? ~uTruth : uTruth;
+        tTemp1 = tCur;
+        for ( p = 0; p < nPerms; p++ )
+        {
+            tTemp2 = tCur;
+            for ( c = 0; c < nMints; c++ )
+            {
+                Vec_WrdPush( vResult, tCur );
+                tCur = Abc_Tt6Flip( tCur, pComp[c] );
+            }
+            assert( tTemp2 == tCur );
+            tCur = Abc_Tt6SwapAdjacent( tCur, pPerm[p] );
+        }
+        assert( tTemp1 == tCur );
+    }
+}
+void Nf_ManPreparePrint( int nVars, int * pComp, int * pPerm, char Line[2*720*64][8] )
+{
+    int nPerms = Extra_Factorial( nVars );
+    int nMints = (1 << nVars);
+    char * pChar, * pChar2;
+    int i, p, c, n = 0;
+    for ( i = 0; i < nVars; i++ )
+        Line[0][i] = 'A' + nVars - 1 - i;
+    Line[0][nVars] = '+';
+    Line[0][nVars+1] = 0;
+    for ( i = 0; i < 2; i++ )
+    {
+        Line[n][nVars] = i ? '-' : '+';
+        for ( p = 0; p < nPerms; p++ )
+        {
+            for ( c = 0; c < nMints; c++ )
+            {
+                strcpy( Line[n+1], Line[n] ); n++;
+                pChar = &Line[n][pComp[c]];
+                if ( *pChar >= 'A' && *pChar <= 'Z' )
+                    *pChar += 'a' - 'A';
+                else if ( *pChar >= 'a' && *pChar <= 'z' )
+                    *pChar -= 'a' - 'A';
+            }
+            pChar  = &Line[n][pPerm[p]];
+            pChar2 = pChar + 1;
+            ABC_SWAP( char, *pChar, *pChar2 );
+        }
+    }
+    assert( n == 2*nPerms*nMints );
+    n = 0;
+    for ( i = 0; i < 2; i++ )
+        for ( p = 0; p < nPerms; p++ )
+            for ( c = 0; c < nMints; c++ )
+                printf( "%8d : %d %3d %2d : %s\n", n, i, p, c, Line[n++] );
+}
+
+void Nf_ManPrepareLibrary( Mio_Library_t * pLib )
+{
+    extern void Dau_DsdPrintFromTruth( word * pTruth, int nVarsInit );
+//    char Lines[2*720*64][8];
+//    Nf_ManPreparePrint( 6, pComp, pPerm, Lines );
+    int * pComp[7];
+    int * pPerm[7];
+    Mio_Gate_t ** ppGates;
+    Vec_Wrd_t * vResult;
+    word * pTruths;
+    int * pSizes;
+    int nGates, i, nClasses = 0, nTotal;
+    abctime clk = Abc_Clock();
+
+    for ( i = 2; i <= 6; i++ )
+        pComp[i] = Extra_GreyCodeSchedule( i );
+    for ( i = 2; i <= 6; i++ )
+        pPerm[i] = Extra_PermSchedule( i );
+
+    // collect truth tables
+    ppGates = Mio_CollectRoots( pLib, 6, (float)1.0e+20, 1, &nGates, 0 );
+    pSizes  = ABC_CALLOC( int, nGates );
+    pTruths = ABC_CALLOC( word, nGates );
+    vResult = Vec_WrdAlloc( 2 * 720 * 64 );
+    for ( i = 0; i < nGates; i++ )
+    {
+        pSizes[i] = Mio_GateReadPinNum( ppGates[i] );
+        assert( pSizes[i] > 1 && pSizes[i] <= 6 );
+        pTruths[i] = Mio_GateReadTruth( ppGates[i] );
+
+        Nf_ManPrepareGate( pSizes[i], pTruths[i], pComp[pSizes[i]], pPerm[pSizes[i]], vResult );
+        Vec_WrdUniqify(vResult);
+        nClasses += Vec_WrdSize(vResult);
+        nTotal = (1 << (pSizes[i]+1)) * Extra_Factorial(pSizes[i]);
+
+        printf( "%6d : ", i );
+        printf( "%16s : ", Mio_GateReadName( ppGates[i] ) );
+        printf( "%48s : ", Mio_GateReadForm( ppGates[i] ) );
+        printf( "Inputs = %2d   ", pSizes[i] );
+        printf( "Total = %6d  ", nTotal );
+        printf( "Classes = %6d ", Vec_WrdSize(vResult) );
+        printf( "Configs = %8.2f ", 1.0*nTotal/Vec_WrdSize(vResult) );
+        printf( "%6.2f %%  ", 100.0*Vec_WrdSize(vResult)/nTotal );
+        Dau_DsdPrintFromTruth( &pTruths[i], pSizes[i] );
+//        printf( "\n" );
+    }
+    Vec_WrdFree( vResult );
+    ABC_FREE( ppGates );
+    ABC_FREE( pSizes );
+    ABC_FREE( pTruths );
+
+    for ( i = 2; i <= 6; i++ )
+        ABC_FREE( pComp[i] );
+    for ( i = 2; i <= 6; i++ )
+        ABC_FREE( pPerm[i] );
+
+    printf( "Classes = %d.  ", nClasses );
+    Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
+}
+
+void Nf_ManPrepareLibraryTest2()
+{
+    Mio_Library_t * pLib = (Mio_Library_t *)Abc_FrameReadLibGen();
+    if ( pLib != NULL )
+        Nf_ManPrepareLibrary( pLib );
+    else
+        printf( "Standard cell library is not available.\n" );
+
+}
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
