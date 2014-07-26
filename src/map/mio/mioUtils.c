@@ -958,7 +958,7 @@ void Nf_ManPreparePrint( int nVars, int * pComp, int * pPerm, char Line[2*720*64
     for ( i = 0; i < 2; i++ )
         for ( p = 0; p < nPerms; p++ )
             for ( c = 0; c < nMints; c++ )
-                printf( "%8d : %d %3d %2d : %s\n", n, i, p, c, Line[n++] );
+                printf("%8d : %d %3d %2d : %s\n", n, i, p, c, Line[n]), n++;
 }
 
 void Nf_ManPrepareLibrary( Mio_Library_t * pLib )
