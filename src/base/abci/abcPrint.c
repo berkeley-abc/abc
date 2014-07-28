@@ -287,6 +287,9 @@ void Abc_NtkPrintStats( Abc_Ntk_t * pNtk, int fFactored, int fSaveBest, int fDum
         assert( pNtk->pManFunc == Abc_FrameReadLibGen() );
         Abc_Print( 1,"  area =%5.2f", Abc_NtkGetMappedArea(pNtk) );
         Abc_Print( 1,"  delay =%5.2f", Abc_NtkDelayTrace(pNtk, NULL, NULL, 0) );
+        if ( pNtk->pManTime )
+            Abc_ManTimeStop( pNtk->pManTime );
+        pNtk->pManTime = NULL;
     }
     else if ( !Abc_NtkHasBlackbox(pNtk) )
     {

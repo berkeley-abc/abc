@@ -25264,6 +25264,11 @@ int Abc_CommandAbc9Put( Abc_Frame_t * pAbc, int argc, char ** argv )
         extern Abc_Ntk_t * Abc_NtkFromMappedGia( Gia_Man_t * p );
         pNtk = Abc_NtkFromMappedGia( pAbc->pGia );
     }
+    else if ( Gia_ManHasCellMapping(pAbc->pGia) )
+    {
+        extern Abc_Ntk_t * Abc_NtkFromCellMappedGia( Gia_Man_t * p );
+        pNtk = Abc_NtkFromCellMappedGia( pAbc->pGia );
+    }
     else if ( Gia_ManHasDangling(pAbc->pGia) == 0 )
     {
         pMan = Gia_ManToAig( pAbc->pGia, 0 );

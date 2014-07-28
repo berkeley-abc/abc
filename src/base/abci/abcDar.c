@@ -35,6 +35,7 @@
 #include "opt/csw/csw.h"
 #include "proof/pdr/pdr.h"
 #include "sat/bmc/bmc.h"
+#include "map/mio/mio.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -791,6 +792,116 @@ Abc_Ntk_t * Abc_NtkFromMappedGia( Gia_Man_t * p )
     assert( Gia_ManPiNum(p) == Abc_NtkPiNum(pNtkNew) );
     assert( Gia_ManPoNum(p) == Abc_NtkPoNum(pNtkNew) );
     assert( Gia_ManRegNum(p) == Abc_NtkLatchNum(pNtkNew) );
+
+    // check the resulting AIG
+    if ( !Abc_NtkCheck( pNtkNew ) )
+        Abc_Print( 1, "Abc_NtkFromMappedGia(): Network check has failed.\n" );
+    return pNtkNew;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Converts the network from the mapped GIA manager.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline void Abc_NtkFromCellWrite( Vec_Int_t * vCopyLits, int i, int c, int Id )
+{
+    Vec_IntWriteEntry( vCopyLits, Abc_Var2Lit(i, c), Id );
+}
+static inline Abc_Obj_t * Abc_NtkFromCellRead( Abc_Ntk_t * p, Vec_Int_t * vCopyLits, int i, int c )
+{
+    Abc_Obj_t * pObjNew;
+    int iObjNew = Vec_IntEntry( vCopyLits, Abc_Var2Lit(i, c) );
+    if ( iObjNew >= 0 )
+        return Abc_NtkObj(p, iObjNew);
+    if ( i == 0 )
+        pObjNew = c ? Abc_NtkCreateNodeConst1(p) : Abc_NtkCreateNodeConst0(p);
+    else
+    {
+        iObjNew = Vec_IntEntry( vCopyLits, Abc_Var2Lit(i, !c) );   assert( iObjNew >= 0 );
+        pObjNew = Abc_NtkCreateNodeInv( p, Abc_NtkObj(p, iObjNew) );
+    }
+    Abc_NtkFromCellWrite( vCopyLits, i, c, Abc_ObjId(pObjNew) );
+    return pObjNew;
+}
+Abc_Ntk_t * Abc_NtkFromCellMappedGia( Gia_Man_t * p )
+{
+    int fVerbose = 0;
+    int fDuplicate = 1;
+    Abc_Ntk_t * pNtkNew;
+    Vec_Int_t * vCopyLits;
+    Abc_Obj_t * pObjNew, * pObjNewLi, * pObjNewLo;
+    Gia_Obj_t * pObj, * pObjLi, * pObjLo;
+    int i, k, iLit, iFanLit, nDupGates, nCells; 
+    Mio_Cell_t * pCells = Mio_CollectRootsNewDefault( 6, &nCells, 0 );
+    assert( Gia_ManHasCellMapping(p) );
+    // start network
+    pNtkNew = Abc_NtkAlloc( ABC_NTK_LOGIC, ABC_FUNC_MAP, 1 );
+    pNtkNew->pName = Extra_UtilStrsav(p->pName);
+    pNtkNew->pSpec = Extra_UtilStrsav(p->pSpec);
+    assert( pNtkNew->pManFunc == Abc_FrameReadLibGen() );
+    vCopyLits = Vec_IntStartFull( 2*Gia_ManObjNum(p) );
+    // create PIs
+    Gia_ManForEachPi( p, pObj, i )
+        Abc_NtkFromCellWrite( vCopyLits, Gia_ObjId(p, pObj), 0, Abc_ObjId( Abc_NtkCreatePi( pNtkNew ) ) );
+    // create POs
+    Gia_ManForEachPo( p, pObj, i )
+        Abc_NtkFromCellWrite( vCopyLits, Gia_ObjId(p, pObj), 0, Abc_ObjId( Abc_NtkCreatePo( pNtkNew ) ) );
+    // create as many latches as there are registers in the manager
+    Gia_ManForEachRiRo( p, pObjLi, pObjLo, i )
+    {
+        pObjNew = Abc_NtkCreateLatch( pNtkNew );
+        pObjNewLi = Abc_NtkCreateBi( pNtkNew );
+        pObjNewLo = Abc_NtkCreateBo( pNtkNew );
+        Abc_ObjAddFanin( pObjNew, pObjNewLi );
+        Abc_ObjAddFanin( pObjNewLo, pObjNew );
+//        pObjLi->Value = Abc_ObjId( pObjNewLi );
+//        pObjLo->Value = Abc_ObjId( pObjNewLo );
+        Abc_NtkFromCellWrite( vCopyLits, Gia_ObjId(p, pObjLi), 0, Abc_ObjId( pObjNewLi ) );
+        Abc_NtkFromCellWrite( vCopyLits, Gia_ObjId(p, pObjLo), 0, Abc_ObjId( pObjNewLo ) );
+        Abc_LatchSetInit0( pObjNew );
+    }
+    // rebuild the AIG
+    Gia_ManForEachCell( p, iLit )
+    {
+        assert( Vec_IntEntry(vCopyLits, iLit) == -1 );
+        pObjNew = Abc_NtkCreateNode( pNtkNew );
+        Gia_CellForEachFanin( p, iLit, iFanLit, k )
+            Abc_ObjAddFanin( pObjNew, Abc_NtkFromCellRead(pNtkNew, vCopyLits, Abc_Lit2Var(iFanLit), Abc_LitIsCompl(iFanLit)) );
+        pObjNew->pData = Mio_LibraryReadGateByName( (Mio_Library_t *)pNtkNew->pManFunc, pCells[Gia_ObjCellId(p, iLit)].pName, NULL );
+        Abc_NtkFromCellWrite( vCopyLits, Abc_Lit2Var(iLit), Abc_LitIsCompl(iLit), Abc_ObjId(pObjNew) );
+    }
+    // connect the PO nodes
+    Gia_ManForEachCo( p, pObj, i )
+    {
+        pObjNew = Abc_NtkFromCellRead( pNtkNew, vCopyLits, Gia_ObjFaninId0p(p, pObj), Gia_ObjFaninC0(pObj) );
+        Abc_ObjAddFanin( Abc_NtkCo(pNtkNew, i), pObjNew );
+    }
+    // create names
+    Abc_NtkAddDummyPiNames( pNtkNew );
+    Abc_NtkAddDummyPoNames( pNtkNew );
+    Abc_NtkAddDummyBoxNames( pNtkNew );
+
+    // decouple the PO driver nodes to reduce the number of levels
+    nDupGates = Abc_NtkLogicMakeSimpleCos( pNtkNew, fDuplicate );
+    if ( fVerbose && nDupGates && !Abc_FrameReadFlag("silentmode") )
+    {
+        if ( !fDuplicate )
+            printf( "Added %d buffers/inverters to decouple the CO drivers.\n", nDupGates );
+        else
+            printf( "Duplicated %d gates to decouple the CO drivers.\n", nDupGates );
+    }
+    assert( Gia_ManPiNum(p) == Abc_NtkPiNum(pNtkNew) );
+    assert( Gia_ManPoNum(p) == Abc_NtkPoNum(pNtkNew) );
+    assert( Gia_ManRegNum(p) == Abc_NtkLatchNum(pNtkNew) );
+    Vec_IntFree( vCopyLits );
+    ABC_FREE( pCells );
 
     // check the resulting AIG
     if ( !Abc_NtkCheck( pNtkNew ) )
