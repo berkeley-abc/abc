@@ -347,7 +347,7 @@ Vec_Ptr_t * Aig_SuppMinPerform( Aig_Man_t * p, Vec_Ptr_t * vOrGate, Vec_Ptr_t * 
 ***********************************************************************/
 Aig_Obj_t * Aig_SuppMinReconstruct( Aig_Man_t * p, Vec_Ptr_t * vCofs, Vec_Ptr_t * vNodes, Vec_Ptr_t * vSupp )
 {
-    Aig_Obj_t * pObj;
+    Aig_Obj_t * pObj = NULL;
     int i;
     // set the value of the support variables
     Vec_PtrForEachEntry( Aig_Obj_t *, vSupp, pObj, i )
