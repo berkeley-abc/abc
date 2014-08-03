@@ -1728,6 +1728,93 @@ static inline int Abc_Tt8Cnf( word t[4], int nVars, int * pCover )
 
 /**Function*************************************************************
 
+  Synopsis    [Computes ISOP for 6 variables or less.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline int Abc_Tt6Esop( word t, int nVars, int * pCover )
+{
+    word c0, c1;
+    int Var, r0, r1, r2, Max, i;
+    assert( nVars <= 6 );
+    if ( t == 0 )
+        return 0;
+    if ( t == ~(word)0 )
+    {
+        if ( pCover ) *pCover = 0;
+        return 1;
+    }
+    assert( nVars > 0 );
+    // find the topmost var
+    for ( Var = nVars-1; Var >= 0; Var-- )
+        if ( Abc_Tt6HasVar( t, Var ) )
+             break;
+    assert( Var >= 0 );
+    // cofactor
+    c0 = Abc_Tt6Cofactor0( t, Var );
+    c1 = Abc_Tt6Cofactor1( t, Var );
+    // call recursively
+    r0 = Abc_Tt6Esop( c0,      Var, pCover ? pCover : NULL );
+    r1 = Abc_Tt6Esop( c1,      Var, pCover ? pCover + r0 : NULL );
+    r2 = Abc_Tt6Esop( c0 ^ c1, Var, pCover ? pCover + r0 + r1 : NULL );
+    Max = Abc_MaxInt( r0, Abc_MaxInt(r1, r2) );
+    // add literals
+    if ( pCover )
+    {
+        if ( Max == r0 )
+        {
+            for ( i = 0; i < r1; i++ )
+                pCover[i] = pCover[r0+i];
+            for ( i = 0; i < r2; i++ )
+                pCover[r1+i] = pCover[r0+r1+i] | (1 << (2*Var+0));
+        }
+        else if ( Max == r1 )
+        {
+            for ( i = 0; i < r2; i++ )
+                pCover[r0+i] = pCover[r0+r1+i] | (1 << (2*Var+1));
+        }
+        else
+        {
+            for ( i = 0; i < r0; i++ )
+                pCover[i] |= (1 << (2*Var+0));
+            for ( i = 0; i < r1; i++ )
+                pCover[r0+i] |= (1 << (2*Var+1));
+        }
+    }
+    return r0 + r1 + r2 - Max;
+}
+static inline word Abc_Tt6EsopBuild( int nVars, int * pCover, int nCubes )
+{
+    word p, t = 0; int c, v;
+    for ( c = 0; c < nCubes; c++ )
+    {
+        p = ~(word)0;
+        for ( v = 0; v < nVars; v++ )
+            if ( ((pCover[c] >> (v << 1)) & 3) == 1 )
+                p &= ~s_Truths6[v];
+            else if ( ((pCover[c] >> (v << 1)) & 3) == 2 )
+                p &= s_Truths6[v];
+        t ^= p;
+    }
+    return t;
+}
+static inline int Abc_Tt6EsopVerify( word t, int nVars )
+{
+    int pCover[64];
+    int nCubes = Abc_Tt6Esop( t, nVars, pCover );
+    word t2 = Abc_Tt6EsopBuild( nVars, pCover, nCubes );
+    if ( t != t2 )
+        printf( "Verification failed.\n" );
+    return nCubes;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Check if the function is decomposable with the given pair.]
 
   Description []

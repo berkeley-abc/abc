@@ -2096,12 +2096,33 @@ int If_CutDsdBalanceEval( If_Man_t * p, If_Cut_t * pCut, Vec_Int_t * vAig )
     }
     else
     {
+        int fVerbose = 0;
         int i, pTimes[IF_MAX_FUNC_LUTSIZE];
         int Delay, Area = 0;
+        char * pPermLits = If_CutDsdPerm(p, pCut);
         for ( i = 0; i < If_CutLeaveNum(pCut); i++ )
             pTimes[i] = (int)If_ObjCutBest(If_CutLeaf(p, pCut, i))->Delay; 
         Delay = If_CutDsdBalanceEvalInt( p->pIfDsdMan, Abc_LitNotCond(If_CutDsdLit(p, pCut), pCut->fCompl), pTimes, vAig, &Area, If_CutDsdPerm(p, pCut) );
         pCut->Cost = Area;
+        if ( fVerbose )
+        {
+            int Max = 0, Two = 0;
+            for ( i = 0; i < If_CutLeaveNum(pCut); i++ )
+                Max = Abc_MaxInt( Max, pTimes[i] );
+            for ( i = 0; i < If_CutLeaveNum(pCut); i++ )
+                if ( pTimes[i] != Max )
+                    Two = Abc_MaxInt( Two, pTimes[i] );
+            if ( Two + 2 < Max && Max + 3 < Delay )
+            {
+                for ( i = 0; i < If_CutLeaveNum(pCut); i++ )
+                    printf( "%3d ", pTimes[Abc_Lit2Var(pPermLits[i])] );
+                for ( ; i < p->pPars->nLutSize; i++ )
+                    printf( "    " );
+                printf( "-> %3d   ", Delay );
+                If_DsdManPrintOne( stdout, p->pIfDsdMan, Abc_Lit2Var(If_CutDsdLit(p, pCut)), NULL, 0 );
+                printf( "\n" );
+            }
+        }
         return Delay;
     }
 }

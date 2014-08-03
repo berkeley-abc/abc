@@ -979,6 +979,26 @@ p->timeCanon += Abc_Clock() - clk;
     pCut->Cost = Vec_StrEntry(p->vAreas, iBestPo);
     for ( i = 0; i < nLeaves; i++ )
         pPerm[(int)pCanonPerm[i]] = Lms_DelayGet(DelayProfile, i);
+    if ( 0 )
+    {
+        int Max = 0, Two = 0, pTimes[16];
+        for ( i = 0; i < nLeaves; i++ )
+            pTimes[i] = (int)If_ObjCutBest(If_CutLeaf(pIfMan, pCut, i))->Delay;
+        for ( i = 0; i < If_CutLeaveNum(pCut); i++ )
+            Max = Abc_MaxInt( Max, pTimes[i] );
+        for ( i = 0; i < If_CutLeaveNum(pCut); i++ )
+            if ( pTimes[i] != Max )
+                Two = Abc_MaxInt( Two, pTimes[i] );
+        if ( Two + 2 < Max && Max + 3 < BestDelay )
+        {
+            for ( i = 0; i < If_CutLeaveNum(pCut); i++ )
+                printf( "%3d ", pTimes[i] );
+            for ( ; i < pIfMan->pPars->nLutSize; i++ )
+                printf( "    " );
+            printf( "-> %3d   ", BestDelay );
+            Dau_DsdPrintFromTruth( If_CutTruthW(pIfMan, pCut), If_CutLeaveNum(pCut) );
+        }
+    }
     return BestDelay; 
 }
 int If_CutDelayRecCost3( If_Man_t * pIfMan, If_Cut_t * pCut, If_Obj_t * pObj )
