@@ -497,6 +497,8 @@ int Ver_ParseModule( Ver_Man_t * pMan )
             RetValue = Ver_ParseGate( pMan, pNtk, pGate );
 //        else if ( pMan->pDesign->pLibrary && st__lookup(pMan->pDesign->pLibrary->tModules, pWord, (char**)&pNtkTemp) ) // gate library
 //            RetValue = Ver_ParseGate( pMan, pNtkTemp );
+        else if ( !strcmp( pWord, "wire" ) )
+            RetValue = Ver_ParseSignal( pMan, pNtk, VER_SIG_WIRE );
         else // assume this is the box used in the current design
         {
             pNtkTemp = Ver_ParseFindOrCreateNetwork( pMan, pWord );
@@ -813,6 +815,9 @@ int Ver_ParseSignal( Ver_Man_t * pMan, Abc_Ntk_t * pNtk, Ver_SignalType_t SigTyp
         if ( pWord == NULL )
             return 0;
 
+        if ( !strcmp(pWord, "wire") )
+            continue;
+
         // check if the range is specified
         if ( pWord[0] == '[' && !pMan->fNameLast )
         {
@@ -847,7 +852,11 @@ int Ver_ParseSignal( Ver_Man_t * pMan, Abc_Ntk_t * pNtk, Ver_SignalType_t SigTyp
             Limit = nMsb > nLsb? nMsb - nLsb + 1: nLsb - nMsb + 1;
             for ( i = 0, Bit = nLsb; i < Limit; i++, Bit = nMsb > nLsb ? Bit + 1: Bit - 1  )
             {
-                sprintf( Buffer, "%s[%d]", pWord, Bit );
+//                sprintf( Buffer, "%s[%d]", pWord, Bit );
+                if ( Limit > 1 )
+                    sprintf( Buffer, "%s[%d]", pWord, Bit );
+                else
+                    sprintf( Buffer, "%s", pWord );
                 if ( SigType == VER_SIG_INPUT || SigType == VER_SIG_INOUT )
                     Ver_ParseCreatePi( pNtk, Buffer );
                 if ( SigType == VER_SIG_OUTPUT || SigType == VER_SIG_INOUT )
@@ -1107,10 +1116,16 @@ int Ver_ParseAssign( Ver_Man_t * pMan, Abc_Ntk_t * pNtk )
         if ( !Ver_ParseLookupSuffix( pMan, pWord, &nMsb, &nLsb ) )
             return 0;
         // handle special case of constant assignment
-        if ( nMsb >= 0 && nLsb >= 0 )
+        Limit = nMsb > nLsb? nMsb - nLsb + 1: nLsb - nMsb + 1;
+        if ( nMsb >= 0 && nLsb >= 0 && Limit > 1 )
         {
             // save the fanout name
-            strcpy( Buffer, pWord );
+            if ( !strcmp(pWord, "1\'h0") )
+                strcpy( Buffer, "1\'b0" );
+            else if ( !strcmp(pWord, "1\'h1") )
+                strcpy( Buffer, "1\'b1" );
+            else
+                strcpy( Buffer, pWord );
             // get the equality sign
             if ( Ver_StreamPopChar(p) != '=' )
             {
@@ -1273,8 +1288,15 @@ int Ver_ParseAssign( Ver_Man_t * pMan, Abc_Ntk_t * pNtk )
                 Length = (int)(ABC_PTRUINT_T)Vec_PtrEntry( pMan->vNames, 2*i );
                 pName  = (char *)Vec_PtrEntry( pMan->vNames, 2*i + 1 );
                 pName[Length] = 0;
+                // try name
+//                pNet = Ver_ParseFindNet( pNtk, pName );
+                if ( !strcmp(pName, "1\'h0") )
+                    pNet = Ver_ParseFindNet( pNtk, "1\'b0" );
+                else if ( !strcmp(pName, "1\'h1") )
+                    pNet = Ver_ParseFindNet( pNtk, "1\'b1" );
+                else
+                    pNet = Ver_ParseFindNet( pNtk, pName );
                 // find the corresponding net
-                pNet = Ver_ParseFindNet( pNtk, pName );
                 if ( pNet == NULL )
                 {
                     sprintf( pMan->sError, "Cannot read the assign statement for %s (input wire %s is not defined).", pWord, pName );
