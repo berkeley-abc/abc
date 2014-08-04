@@ -293,7 +293,7 @@ Abc_Ntk_t * Abc_NtkStrash( Abc_Ntk_t * pNtk, int fAllNodes, int fCleanup, int fR
 //        printf( "Warning: AIG cleanup removed %d nodes (this is not a bug).\n", nNodes );
     // duplicate EXDC 
     if ( pNtk->pExdc )
-        pNtkAig->pExdc = Abc_NtkDup( pNtk->pExdc );
+        pNtkAig->pExdc = Abc_NtkStrash( pNtk->pExdc, fAllNodes, fCleanup, fRecord );
     // make sure everything is okay
     if ( !Abc_NtkCheck( pNtkAig ) )
     {

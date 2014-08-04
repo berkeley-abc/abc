@@ -117,6 +117,40 @@ Abc_Ntk_t * Abc_NtkFromGlobalBdds( Abc_Ntk_t * pNtk )
     DdManager * dd = (DdManager *)Abc_NtkGlobalBddMan( pNtk );
     int i;
 
+    // extract don't-care and compute ISOP
+    if ( pNtk->pExdc )
+    {
+        DdManager * ddExdc = NULL;
+        DdNode * bBddMin, * bBddDc, * bBddL, * bBddU;
+        assert( Abc_NtkIsStrash(pNtk->pExdc) );
+        assert( Abc_NtkCoNum(pNtk->pExdc) == 1 );
+        // compute the global BDDs
+        if ( Abc_NtkBuildGlobalBdds(pNtk->pExdc, 10000000, 1, 1, 0) == NULL )
+            return NULL;
+        // transfer tot the same manager
+        ddExdc = (DdManager *)Abc_NtkGlobalBddMan( pNtk->pExdc );
+        bBddDc = (DdNode *)Abc_ObjGlobalBdd(Abc_NtkCo(pNtk->pExdc, 0));
+        bBddDc = Cudd_bddTransfer( ddExdc, dd, bBddDc );  Cudd_Ref( bBddDc );
+        Abc_NtkFreeGlobalBdds( pNtk->pExdc, 1 );
+        // minimize the output
+        Abc_NtkForEachCo( pNtk, pNode, i )
+        {
+            bBddMin = (DdNode *)Abc_ObjGlobalBdd(pNode);
+            // derive lower and uppwer bound
+            bBddL = Cudd_bddAnd( dd, bBddMin,           Cudd_Not(bBddDc) );  Cudd_Ref( bBddL );
+            bBddU = Cudd_bddAnd( dd, Cudd_Not(bBddMin), Cudd_Not(bBddDc) );  Cudd_Ref( bBddU );
+            Cudd_RecursiveDeref( dd, bBddMin );
+            // compute new one
+            bBddMin = Cudd_bddIsop( dd, bBddL, Cudd_Not(bBddU) );            Cudd_Ref( bBddMin );
+            Cudd_RecursiveDeref( dd, bBddL );
+            Cudd_RecursiveDeref( dd, bBddU );
+            // update global BDD
+            Abc_ObjSetGlobalBdd( pNode, bBddMin );
+            //Extra_bddPrint( dd, bBddMin ); printf( "\n" );
+        }
+        Cudd_RecursiveDeref( dd, bBddDc );
+    }
+
 //    pReo = Extra_ReorderInit( Abc_NtkCiNum(pNtk), 1000 );
 //    runtime1 = runtime2 = 0;
 
@@ -175,7 +209,6 @@ Abc_Obj_t * Abc_NodeFromGlobalBdds( Abc_Ntk_t * pNtkNew, DdManager * dd, DdNode 
     pNodeNew->pData = Extra_TransferLevelByLevel( dd, (DdManager *)pNtkNew->pManFunc, bFunc );  Cudd_Ref( (DdNode *)pNodeNew->pData );
     return pNodeNew;
 }
-
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
