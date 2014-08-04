@@ -20,6 +20,7 @@
 
 #include "if.h"
 #include "ifCount.h"
+#include "bool/kit/kit.h"
 
 ABC_NAMESPACE_IMPL_START
 

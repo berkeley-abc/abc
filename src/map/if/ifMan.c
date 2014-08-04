@@ -79,7 +79,7 @@ If_Man_t * If_ManStart( If_Par_t * pPars )
             for ( v = 0; v < 6; v++ )
                 p->vTtIsops[v] = p->vTtIsops[6];
         }
-        if ( p->pPars->fDelayOpt || pPars->nGateSize > 0 || p->pPars->fDsdBalance );
+        if ( pPars->fDelayOpt || pPars->nGateSize > 0 || pPars->fDsdBalance )
         {
             p->vCover = Vec_IntAlloc( 0 );
             p->vArray = Vec_IntAlloc( 1000 );

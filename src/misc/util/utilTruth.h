@@ -53,6 +53,15 @@ static word s_Truths6Neg[6] = {
     ABC_CONST(0x00000000FFFFFFFF)
 };
 
+static word s_TruthXors[6] = {
+    ABC_CONST(0x0000000000000000),
+    ABC_CONST(0x6666666666666666),
+    ABC_CONST(0x6969696969696969),
+    ABC_CONST(0x6996699669966996),
+    ABC_CONST(0x6996966969969669),
+    ABC_CONST(0x6996966996696996)
+};
+
 static word s_PMasks[5][3] = {
     { ABC_CONST(0x9999999999999999), ABC_CONST(0x2222222222222222), ABC_CONST(0x4444444444444444) },
     { ABC_CONST(0xC3C3C3C3C3C3C3C3), ABC_CONST(0x0C0C0C0C0C0C0C0C), ABC_CONST(0x3030303030303030) },
@@ -160,6 +169,19 @@ static inline void    Abc_TtXorHex( word * p, int k, int d )  { p[k>>4] ^= (((wo
 static inline int  Abc_TtWordNum( int nVars )     { return nVars <= 6 ? 1 : 1 << (nVars-6); }
 static inline int  Abc_TtByteNum( int nVars )     { return nVars <= 3 ? 1 : 1 << (nVars-3); }
 static inline int  Abc_TtHexDigitNum( int nVars ) { return nVars <= 2 ? 1 : 1 << (nVars-2); }
+
+/**Function*************************************************************
+
+  Synopsis    [Bit mask.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline word Abc_Tt6Mask( int nBits )       { assert( nBits >= 0 && nBits <= 64 ); return (~(word)0) >> (64-nBits);        }
 
 /**Function*************************************************************
 
@@ -944,6 +966,37 @@ static inline int Abc_Tt6SupportAndSize( word t, int nVars, int * pSuppSize )
         if ( Abc_Tt6HasVar( t, v ) )
             Supp |= (1 << v), (*pSuppSize)++;
     return Supp;
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    [Detecting elementary functions.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline int Abc_TtOnlyOneOne( word t )
+{
+    if ( t == 0 )
+        return 0;
+    return (t & (t-1)) == 0;
+}
+static inline int Gia_ManTtIsAndType( word t, int nVars )
+{
+    return Abc_TtOnlyOneOne( t & Abc_Tt6Mask(1 << nVars) );
+}
+static inline int Gia_ManTtIsOrType( word t, int nVars )
+{
+    return Abc_TtOnlyOneOne( ~t & Abc_Tt6Mask(1 << nVars) );
+}
+static inline int Gia_ManTtIsXorType( word t, int nVars )
+{
+    return ((((t & 1) ? ~t : t) ^ s_TruthXors[nVars]) & Abc_Tt6Mask(1 << nVars)) == 0;
 }
 
 

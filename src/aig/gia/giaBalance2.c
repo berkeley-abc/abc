@@ -34,13 +34,14 @@ ABC_NAMESPACE_IMPL_START
 #define BAL_CUT_MAX     8
 #define BAL_SUPER      50
 #define BAL_NO_LEAF    31
+#define BAL_NO_FUNC    134217727     // (1<<27)-1
 
 typedef struct Bal_Cut_t_ Bal_Cut_t; 
 struct Bal_Cut_t_
 {
     word             Sign;           // signature
     int              Delay;          // delay
-    unsigned         iFunc   : 27;   // function
+    unsigned         iFunc   : 27;   // function (BAL_NO_FUNC)
     unsigned         nLeaves :  5;   // leaf number (Bal_NO_LEAF)
     int              pLeaves[BAL_LEAF_MAX]; // leaves
 };
@@ -235,7 +236,7 @@ static inline int Bal_CutMergeOrder( Bal_Cut_t * pCut0, Bal_Cut_t * pCut1, Bal_C
             pC[i] = pC0[i];
         }
         pCut->nLeaves = nLutSize;
-        pCut->iFunc = -1;
+        pCut->iFunc = BAL_NO_FUNC;
         pCut->Sign = pCut0->Sign | pCut1->Sign;
         pCut->Delay = Abc_MaxInt( pCut0->Delay, pCut1->Delay );
         return 1;
@@ -268,7 +269,7 @@ FlushCut0:
     while ( i < nSize0 )
         pC[c++] = pC0[i++];
     pCut->nLeaves = c;
-    pCut->iFunc = -1;
+    pCut->iFunc = BAL_NO_FUNC;
     pCut->Sign = pCut0->Sign | pCut1->Sign;
     pCut->Delay = Abc_MaxInt( pCut0->Delay, pCut1->Delay );
     return 1;
@@ -278,7 +279,7 @@ FlushCut1:
     while ( k < nSize1 )
         pC[c++] = pC1[k++];
     pCut->nLeaves = c;
-    pCut->iFunc = -1;
+    pCut->iFunc = BAL_NO_FUNC;
     pCut->Sign = pCut0->Sign | pCut1->Sign;
     pCut->Delay = Abc_MaxInt( pCut0->Delay, pCut1->Delay );
     return 1;
@@ -303,7 +304,7 @@ static inline int Bal_CutMergeOrderMux( Bal_Cut_t * pCut0, Bal_Cut_t * pCut1, Ba
         if (x2 == xMin) i2++;
     }
     pCut->nLeaves = c;
-    pCut->iFunc = -1;
+    pCut->iFunc = BAL_NO_FUNC;
     pCut->Sign = pCut0->Sign | pCut1->Sign | pCut2->Sign;
     pCut->Delay = Abc_MaxInt( pCut0->Delay, Abc_MaxInt(pCut1->Delay, pCut2->Delay) );
     return 1;
