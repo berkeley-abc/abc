@@ -713,6 +713,31 @@ void If_DsdManPrint( If_DsdMan_t * p, char * pFileName, int Number, int Support,
  
 /**Function*************************************************************
 
+  Synopsis    [Check if the function is non-trivial.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int If_DsdManCheckNonTriv( If_DsdMan_t * p, int Id, int nVars, int iVarMax )
+{
+    If_DsdObj_t * pObj; int i, iFanin;
+    pObj = If_DsdVecObj( &p->vObjs, Id );
+    if ( If_DsdObjType(pObj) == IF_DSD_PRIME )
+        return 1;
+    if ( If_DsdObjFaninNum(pObj) == nVars )
+        return 0;
+    If_DsdObjForEachFaninLit( &p->vObjs, pObj, iFanin, i )
+        if ( Abc_Lit2Var(iFanin) == 1 && i == iVarMax )
+            return 0;
+    return 1;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Sorting DSD literals.]
 
   Description []
@@ -1983,6 +2008,28 @@ int If_CutDsdBalancePinDelays( If_Man_t * p, If_Cut_t * pCut, char * pPerm )
 
 /**Function*************************************************************
 
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int If_CutDsdPermLitMax( char * pPermLits, int nVars, int iVar )
+{
+    int i;
+    assert( iVar >= 0 && iVar < nVars );
+    for ( i = 0; i < nVars; i++ )
+        if ( iVar == Abc_Lit2Var((int)pPermLits[i]) )
+            return i;
+    assert( 0 );
+    return -1;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Evaluate delay using DSD balancing.]
 
   Description []
@@ -2073,6 +2120,7 @@ int If_CutDsdBalanceEvalInt( If_DsdMan_t * p, int iDsd, int * pTimes, Vec_Int_t 
 }
 int If_CutDsdBalanceEval( If_Man_t * p, If_Cut_t * pCut, Vec_Int_t * vAig )
 {
+    int fUseCofs = 0;
     pCut->fUser = 1;
     if ( vAig )
         Vec_IntClear( vAig );
@@ -2104,8 +2152,28 @@ int If_CutDsdBalanceEval( If_Man_t * p, If_Cut_t * pCut, Vec_Int_t * vAig )
             pTimes[i] = (int)If_ObjCutBest(If_CutLeaf(p, pCut, i))->Delay; 
         Delay = If_CutDsdBalanceEvalInt( p->pIfDsdMan, Abc_LitNotCond(If_CutDsdLit(p, pCut), pCut->fCompl), pTimes, vAig, &Area, If_CutDsdPerm(p, pCut) );
         pCut->Cost = Area;
+        // try cofactoring 
+        if ( fUseCofs )
+        {
+            // count how many times the max one appears
+            int iMax = 0, nCountMax = 1;
+            for ( i = 1; i < If_CutLeaveNum(pCut); i++ )
+                if ( pTimes[i] > pTimes[iMax] )
+                    iMax = i, nCountMax = 1;
+                else if ( pTimes[i] == pTimes[iMax] )
+                    nCountMax++;
+            // decide when to try the decomposition
+            if ( nCountMax == 1 && pTimes[iMax] + 2 < Delay && If_DsdManCheckNonTriv( p->pIfDsdMan, Abc_Lit2Var(If_CutDsdLit(p, pCut)), 
+                 If_CutLeaveNum(pCut), If_CutDsdPermLitMax(pPermLits, If_CutLeaveNum(pCut), iMax)) )
+            {
+//                fVerbose = 1;
+                Delay = pTimes[iMax] + 2;
+            }
+        }
+        // report the result
         if ( fVerbose )
         {
+/*
             int Max = 0, Two = 0;
             for ( i = 0; i < If_CutLeaveNum(pCut); i++ )
                 Max = Abc_MaxInt( Max, pTimes[i] );
@@ -2113,6 +2181,7 @@ int If_CutDsdBalanceEval( If_Man_t * p, If_Cut_t * pCut, Vec_Int_t * vAig )
                 if ( pTimes[i] != Max )
                     Two = Abc_MaxInt( Two, pTimes[i] );
             if ( Two + 2 < Max && Max + 3 < Delay )
+*/
             {
                 for ( i = 0; i < If_CutLeaveNum(pCut); i++ )
                     printf( "%3d ", pTimes[Abc_Lit2Var(pPermLits[i])] );
