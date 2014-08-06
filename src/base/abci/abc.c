@@ -31215,7 +31215,7 @@ int Abc_CommandAbc9Lf( Abc_Frame_t * pAbc, int argc, char ** argv )
     Gia_Man_t * pNew; int c;
     Lf_ManSetDefaultPars( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "KCFARLEDWaekmupgtvwh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "KCFARLEDWMaekmupgtvwh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -31324,6 +31324,20 @@ int Abc_CommandAbc9Lf( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( pPars->nVerbLimit < 0 )
                 goto usage;
             break;
+        case 'M':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-M\" should be followed by a positive integer.\n" );
+                goto usage;
+            }
+            pPars->nLutSizeMux = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nLutSizeMux < 2 || pPars->nLutSizeMux > pPars->nLutSizeMax )
+            {
+                Abc_Print( -1, "LUT size %d is not supported.\n", pPars->nLutSizeMux );
+                goto usage;
+            }
+            break;
         case 'a':
             pPars->fAreaOnly ^= 1;
             break;
@@ -31365,6 +31379,11 @@ int Abc_CommandAbc9Lf( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Empty GIA network.\n" );
         return 1;
     }
+    if ( pPars->nLutSizeMux && pPars->fUseMux7 )
+    {
+        Abc_Print( -1, "Flags \"-M\" and \"-u\" are incompatible.\n" );
+        return 1;
+    }
 
     pNew = Lf_ManPerformMapping( pAbc->pGia, pPars );
     if ( pNew == NULL )
@@ -31380,7 +31399,7 @@ usage:
         sprintf(Buffer, "best possible" );
     else
         sprintf(Buffer, "%d", pPars->DelayTarget );
-    Abc_Print( -2, "usage: &lf [-KCFARLED num] [-kmupgtvwh]\n" );
+    Abc_Print( -2, "usage: &lf [-KCFARLEDM num] [-kmupgtvwh]\n" );
     Abc_Print( -2, "\t           performs technology mapping of the network\n" );
     Abc_Print( -2, "\t-K num   : LUT size for the mapping (2 <= K <= %d) [default = %d]\n", pPars->nLutSizeMax, pPars->nLutSize );
     Abc_Print( -2, "\t-C num   : the max number of priority cuts (1 <= C <= %d) [default = %d]\n", pPars->nCutNumMax, pPars->nCutNum );
@@ -31390,6 +31409,7 @@ usage:
     Abc_Print( -2, "\t-L num   : the fanout limit for coarsening XOR/MUX (num >= 2) [default = %d]\n", pPars->nCoarseLimit );
     Abc_Print( -2, "\t-E num   : the area/edge tradeoff parameter (0 <= num <= 100) [default = %d]\n", pPars->nAreaTuner );
     Abc_Print( -2, "\t-D num   : sets the delay constraint for the mapping [default = %s]\n", Buffer );
+    Abc_Print( -2, "\t-M num   : LUT size for the cofactoring (0 <= num <= 100) [default = %d]\n", pPars->nLutSizeMux );
 //    Abc_Print( -2, "\t-a       : toggles area-oriented mapping [default = %s]\n", pPars->fAreaOnly? "yes": "no" );
     Abc_Print( -2, "\t-e       : toggles edge vs node minimization [default = %s]\n", pPars->fOptEdge? "yes": "no" );
     Abc_Print( -2, "\t-k       : toggles coarsening the subject graph [default = %s]\n", pPars->fCoarsen? "yes": "no" );
