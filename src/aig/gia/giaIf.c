@@ -1758,6 +1758,38 @@ Gia_Man_t * Gia_ManPerformSopBalance( Gia_Man_t * p, int nCutNum, int nRelaxRati
     Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
     return pNew;
 }
+Gia_Man_t * Gia_ManPerformDsdBalance( Gia_Man_t * p, int nCutNum, int nRelaxRatio, int fVerbose )
+{
+    Gia_Man_t * pNew;
+    If_Man_t * pIfMan;
+    If_Par_t Pars, * pPars = &Pars;
+    If_ManSetDefaultPars( pPars );
+    pPars->nCutsMax    = nCutNum;
+    pPars->nRelaxRatio = nRelaxRatio;
+    pPars->fVerbose    = fVerbose;
+    pPars->nLutSize    = 6;
+    pPars->fDsdBalance = 1;
+    pPars->fUseDsd     = 1;
+    pPars->fCutMin     = 1;
+    pPars->fTruth      = 1;
+    pPars->fExpRed     = 0;
+    if ( Abc_FrameReadManDsd() == NULL )
+        Abc_FrameSetManDsd( If_DsdManAlloc(pPars->nLutSize, 0) );
+    // perform mapping
+    pIfMan = Gia_ManToIf( p, pPars );
+    pIfMan->pIfDsdMan = (If_DsdMan_t *)Abc_FrameReadManDsd();
+    if ( pPars->fDsdBalance )
+        If_DsdManAllocIsops( pIfMan->pIfDsdMan, pPars->nLutSize );
+    If_ManPerformMapping( pIfMan );
+    pNew = Gia_ManFromIfAig( pIfMan );
+    If_ManStop( pIfMan );
+    // transfer name
+    assert( pNew->pName == NULL );
+    pNew->pName = Abc_UtilStrsav( p->pName );
+    pNew->pSpec = Abc_UtilStrsav( p->pSpec );
+    Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
+    return pNew;
+}
 
 /**Function*************************************************************
 

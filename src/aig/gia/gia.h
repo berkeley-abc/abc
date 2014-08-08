@@ -1021,7 +1021,7 @@ extern void                Gia_AigerWriteSimple( Gia_Man_t * pInit, char * pFile
 /*=== giaBalance.c ===========================================================*/
 extern Gia_Man_t *         Gia_ManBalance( Gia_Man_t * p, int fSimpleAnd, int fVerbose );
 extern Gia_Man_t *         Gia_ManAreaBalance( Gia_Man_t * p, int fSimpleAnd, int nNewNodesMax, int fVerbose, int fVeryVerbose );
-extern Gia_Man_t *         Gia_ManAigSyn2( Gia_Man_t * p, int fOldAlgo, int fCoarsen, int fCutMin, int nRelaxRatio, int fVerbose, int fVeryVerbose );
+extern Gia_Man_t *         Gia_ManAigSyn2( Gia_Man_t * p, int fOldAlgo, int fCoarsen, int fCutMin, int nRelaxRatio, int fDelayMin, int fVerbose, int fVeryVerbose );
 extern Gia_Man_t *         Gia_ManAigSyn3( Gia_Man_t * p, int fVerbose, int fVeryVerbose );
 extern Gia_Man_t *         Gia_ManAigSyn4( Gia_Man_t * p, int fVerbose, int fVeryVerbose );
 /*=== giaBidec.c ===========================================================*/
@@ -1186,6 +1186,7 @@ extern void                Gia_ManMappingVerify( Gia_Man_t * p );
 extern void                Gia_ManTransferMapping( Gia_Man_t * pGia, Gia_Man_t * p );
 extern Gia_Man_t *         Gia_ManPerformMapping( Gia_Man_t * p, void * pIfPars, int fNormalized );
 extern Gia_Man_t *         Gia_ManPerformSopBalance( Gia_Man_t * p, int nCutNum, int nRelaxRatio, int fVerbose );
+extern Gia_Man_t *         Gia_ManPerformDsdBalance( Gia_Man_t * p, int nCutNum, int nRelaxRatio, int fVerbose );
 /*=== giaJf.c ===========================================================*/
 extern void                Jf_ManSetDefaultPars( Jf_Par_t * pPars );
 extern Gia_Man_t *         Jf_ManPerformMapping( Gia_Man_t * pGia, Jf_Par_t * pPars );

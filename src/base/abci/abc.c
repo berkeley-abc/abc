@@ -10603,16 +10603,16 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
 //        Nf_ManPrepareLibraryTest();
 //        return 0;
     }
-
+/*
     if ( pNtk )
     {
-        extern Abc_Ntk_t * Abc_NtkBarBufsOnOffTest( Abc_Ntk_t * pNtk );
-        Abc_Ntk_t * pNtkRes = Abc_NtkBarBufsOnOffTest( pNtk );
-//        extern Abc_Ntk_t * Abc_NtkPcmTest( Abc_Ntk_t * pNtk, int fNewAlgo, int fVerbose );
+//        extern Abc_Ntk_t * Abc_NtkBarBufsOnOffTest( Abc_Ntk_t * pNtk );
+//        Abc_Ntk_t * pNtkRes = Abc_NtkBarBufsOnOffTest( pNtk );
+        extern Abc_Ntk_t * Abc_NtkPcmTest( Abc_Ntk_t * pNtk, int fNewAlgo, int fVerbose );
 //        extern Abc_Ntk_t * Abc_NtkPcmTestAig( Abc_Ntk_t * pNtk, int fVerbose );
-//        Abc_Ntk_t * pNtkRes;
+        Abc_Ntk_t * pNtkRes;
 //        if ( Abc_NtkIsLogic(pNtk) )
-//            pNtkRes = Abc_NtkPcmTest( pNtk, fNewAlgo, fVerbose );
+            pNtkRes = Abc_NtkPcmTest( pNtk, fNewAlgo, fVerbose );
 //        else
 //            pNtkRes = Abc_NtkPcmTestAig( pNtk, fVerbose );
         if ( pNtkRes == NULL )
@@ -10622,6 +10622,7 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
         }
         Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
     }
+*/
     return 0;
 usage:
     Abc_Print( -2, "usage: test [-CKDNM] [-aovwh] <file_name>\n" );
@@ -27936,9 +27937,10 @@ int Abc_CommandAbc9Syn2( Abc_Frame_t * pAbc, int argc, char ** argv )
     int fCoarsen = 1;
     int fCutMin = 0;
     int nRelaxRatio = 20;
+    int fDelayMin = 1;
     int fVeryVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "Rakmvwh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Rakmdvwh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -27962,6 +27964,9 @@ int Abc_CommandAbc9Syn2( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'm':
             fCutMin ^= 1;
             break;
+        case 'd':
+            fDelayMin ^= 1;
+            break;
         case 'v':
             fVerbose ^= 1;
             break;
@@ -27979,19 +27984,29 @@ int Abc_CommandAbc9Syn2( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Abc_CommandAbc9Syn2(): There is no AIG.\n" );
         return 1;
     }
-    pTemp = Gia_ManAigSyn2( pAbc->pGia, fOldAlgo, fCoarsen, fCutMin, nRelaxRatio, fVerbose, fVeryVerbose );
+    if ( fDelayMin )
+    {
+        If_DsdMan_t * p = (If_DsdMan_t *)Abc_FrameReadManDsd();
+        if ( p && If_DsdManVarNum(p) < 6 )
+        {
+            printf( "DSD manager has incompatible number of variables. Delay minimization is not performed.\n" );
+            fDelayMin = 0;
+        }
+    } 
+    pTemp = Gia_ManAigSyn2( pAbc->pGia, fOldAlgo, fCoarsen, fCutMin, nRelaxRatio, fDelayMin, fVerbose, fVeryVerbose );
     Abc_FrameUpdateGia( pAbc, pTemp );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &syn2 [-R num] [-akmlvh]\n" );
+    Abc_Print( -2, "usage: &syn2 [-R num] [-akmdvh]\n" );
     Abc_Print( -2, "\t           performs AIG optimization\n" );
-    Abc_Print( -2, "\t-R num   : the delay relaxation ratio (num >= 0) [default = %d]\n",  nRelaxRatio );
-    Abc_Print( -2, "\t-a       : toggles using the old algorithm [default = %s]\n",        fOldAlgo? "yes": "no" );
-    Abc_Print( -2, "\t-k       : toggles coarsening the subject graph [default = %s]\n",   fCoarsen? "yes": "no" );
-    Abc_Print( -2, "\t-m       : toggles cut minimization [default = %s]\n",               fCutMin? "yes": "no" );
-    Abc_Print( -2, "\t-v       : toggle printing verbose information [default = %s]\n",    fVerbose? "yes": "no" );
-    Abc_Print( -2, "\t-w       : toggle printing additional information [default = %s]\n", fVeryVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-R num   : the delay relaxation ratio (num >= 0) [default = %d]\n",   nRelaxRatio );
+    Abc_Print( -2, "\t-a       : toggles using the old algorithm [default = %s]\n",         fOldAlgo? "yes": "no" );
+    Abc_Print( -2, "\t-k       : toggles coarsening the subject graph [default = %s]\n",    fCoarsen? "yes": "no" );
+    Abc_Print( -2, "\t-m       : toggles cut minimization [default = %s]\n",                fCutMin? "yes": "no" );
+    Abc_Print( -2, "\t-d       : toggles additional delay optimization [default = %s]\n",   fDelayMin? "yes": "no" );
+    Abc_Print( -2, "\t-v       : toggles printing verbose information [default = %s]\n",    fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-w       : toggles printing additional information [default = %s]\n", fVeryVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h       : print the command usage\n");
     return 1;
 }

@@ -140,7 +140,7 @@ Aig_Man_t * Gia_ManMultiProveSyn( Aig_Man_t * p, int fVerbose, int fVeryVerbose 
     Aig_Man_t * pAig;
     Gia_Man_t * pGia, * pTemp;
     pGia = Gia_ManFromAig( p );
-    pGia = Gia_ManAigSyn2( pTemp = pGia, 1, 0, 0, 0, 0, 0 );
+    pGia = Gia_ManAigSyn2( pTemp = pGia, 1, 0, 0, 0, 0, 0, 0 );
     Gia_ManStop( pTemp );
     pAig = Gia_ManToAig( pGia, 0 );
     Gia_ManStop( pGia );

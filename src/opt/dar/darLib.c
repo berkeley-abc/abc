@@ -593,6 +593,8 @@ Dar_Lib_t * Dar_LibRead()
 void Dar_LibStart()
 {
 //    abctime clk = Abc_Clock();
+    if ( s_DarLib != NULL )
+        return;
     assert( s_DarLib == NULL );
     s_DarLib = Dar_LibRead();
 //    printf( "The 4-input library started with %d nodes and %d subgraphs. ", s_DarLib->nObjs - 4, s_DarLib->nSubgrTotal );

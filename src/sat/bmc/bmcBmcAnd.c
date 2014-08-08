@@ -786,7 +786,7 @@ int Gia_ManBmcPerform_old_cnf( Gia_Man_t * pGia, Bmc_AndPar_t * pPars )
     if ( pPars->fUseSynth )
     {
         Gia_Man_t * pTemp = p->pFrames;
-        p->pFrames = Gia_ManAigSyn2( pTemp, 1, 0, 0, 0, pPars->fVerbose, 0 );
+        p->pFrames = Gia_ManAigSyn2( pTemp, 1, 0, 0, 0, 0, pPars->fVerbose, 0 );
         Gia_ManStop( pTemp );
     }
     else if ( pPars->fVerbose )
@@ -970,7 +970,7 @@ int Gia_ManBmcPerformInt( Gia_Man_t * pGia, Bmc_AndPar_t * pPars )
     }
     if ( pPars->fUseSynth )
     {
-        p->pFrames = Gia_ManAigSyn2( pTemp = p->pFrames, 1, 0, 0, 0, pPars->fVerbose, 0 );  Gia_ManStop( pTemp );
+        p->pFrames = Gia_ManAigSyn2( pTemp = p->pFrames, 1, 0, 0, 0, 0, pPars->fVerbose, 0 );  Gia_ManStop( pTemp );
     }
     else if ( pPars->fVerbose )
         Gia_ManPrintStats( p->pFrames, NULL );
