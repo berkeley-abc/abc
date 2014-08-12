@@ -699,7 +699,7 @@ Gia_Man_t * Dam_ManMultiAig( Dam_Man_t * pMan )
     Gia_Obj_t * pObj;
     int i;
     // start the new manager
-    pNew = Gia_ManStart( Gia_ManObjNum(p) );
+    pNew = Gia_ManStart( 2*Gia_ManObjNum(p) );
     pNew->pName = Abc_UtilStrsav( p->pName );
     pNew->pSpec = Abc_UtilStrsav( p->pSpec );
     pNew->pMuxes = ABC_CALLOC( unsigned, pNew->nObjsAlloc );
