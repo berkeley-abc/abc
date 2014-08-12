@@ -23,6 +23,9 @@ src/aig/ddb/
 src/base/abc2/
 src/base/abc2d/
 
+src/base/pcm/
+src/base/ply/
+
 *~
 *.orig
 

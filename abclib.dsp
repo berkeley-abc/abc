@@ -737,94 +737,10 @@ SOURCE=.\src\base\test\test.c
 # Begin Group "pcm"
 
 # PROP Default_Filter ""
-# Begin Source File
-
-SOURCE=.\src\base\pcm\pcmCore.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\base\pcm\pcmCut.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\base\pcm\pcmInt.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\base\pcm\pcmMan.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\base\pcm\pcmMap.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\base\pcm\pcmReduce.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\base\pcm\pcmTime.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\base\pcm\pcmTruth.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\base\pcm\pcmUtil.c
-# End Source File
 # End Group
 # Begin Group "ply"
 
 # PROP Default_Filter ""
-# Begin Source File
-
-SOURCE=.\src\base\ply\ply.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\base\ply\plyAbc.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\base\ply\plyAig.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\base\ply\plyFake.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\base\ply\plyInt.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\base\ply\plyIter.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\base\ply\plyLib.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\base\ply\plyMan.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\base\ply\plyMap.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\base\ply\plyNtk.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\base\ply\plyPair.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\base\ply\plyPar.c
-# End Source File
 # End Group
 # End Group
 # Begin Group "bdd"
