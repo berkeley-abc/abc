@@ -1084,6 +1084,17 @@ static inline void Vec_WrdUniqify( Vec_Wrd_t * p )
             p->pArray[k++] = p->pArray[i];
     p->nSize = k;
 }
+static inline int Vec_WrdUniqueCount( Vec_Wrd_t * vData, int nWordSize, Vec_Int_t ** pvMap )
+{
+    int Result;
+    Vec_Int_t * vDataInt = (Vec_Int_t *)vData;
+    vDataInt->nSize *= 2;
+    vDataInt->nCap *= 2;
+    Result = Vec_IntUniqueCount( vDataInt, 2 * nWordSize, pvMap );
+    vDataInt->nSize /= 2;
+    vDataInt->nCap /= 2;
+    return Result;
+}
 static inline Vec_Wrd_t * Vec_WrdUniqifyHash( Vec_Wrd_t * vData, int nWordSize )
 {
     Vec_Int_t * vResInt;

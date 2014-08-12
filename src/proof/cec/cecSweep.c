@@ -84,8 +84,8 @@ Gia_Man_t * Cec_ManFraSpecReduction( Cec_ManFra_t * p )
         if ( Abc_LitRegular(iNode) == Abc_LitRegular(iRepr) )
             continue;
         if ( p->pPars->nLevelMax && 
-            (Gia_ObjLevel(p->pAig, pObj)  > p->pPars->nLevelMax || 
-             Gia_ObjLevel(p->pAig, pRepr) > p->pPars->nLevelMax) )
+            (Gia_ObjLevelId(p->pAig, i)  > p->pPars->nLevelMax || 
+             Gia_ObjLevelId(p->pAig, Abc_Lit2Var(iRepr)) > p->pPars->nLevelMax) )
             continue;
         if ( p->pPars->fDualOut )
         {

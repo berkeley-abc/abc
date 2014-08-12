@@ -10603,7 +10603,7 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
 //        Nf_ManPrepareLibraryTest();
 //        return 0;
     }
-/*
+
     if ( pNtk )
     {
 //        extern Abc_Ntk_t * Abc_NtkBarBufsOnOffTest( Abc_Ntk_t * pNtk );
@@ -10622,7 +10622,7 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
         }
         Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
     }
-*/
+
     return 0;
 usage:
     Abc_Print( -2, "usage: test [-CKDNM] [-aovwh] <file_name>\n" );
