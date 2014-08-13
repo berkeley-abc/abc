@@ -107,6 +107,7 @@ struct Cec_ParFra_t_
     int              fDualOut;      // miter with separate outputs
     int              fColorDiff;    // miter with separate outputs
     int              fSatSweeping;  // enable SAT sweeping
+    int              fRunCSat;      // enable another solver
     int              fVeryVerbose;  // verbose stats
     int              fVerbose;      // verbose stats
     int              iOutFail;      // the failed output

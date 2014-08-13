@@ -426,7 +426,10 @@ p->timeSim += Abc_Clock() - clk;
             break;
         }
 clk = Abc_Clock();
-        Cec_ManSatSolve( pPat, pSrm, pParsSat ); 
+        if ( pPars->fRunCSat )
+            Cec_ManSatSolveCSat( pPat, pSrm, pParsSat ); 
+        else
+            Cec_ManSatSolve( pPat, pSrm, pParsSat ); 
 p->timeSat += Abc_Clock() - clk;
         if ( Cec_ManFraClassesUpdate( p, pSim, pPat, pSrm ) )
         {

@@ -735,6 +735,75 @@ clk2 = Abc_Clock();
     Cec_ManSatStop( p );
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Performs one round of solving for the POs of the AIG.]
+
+  Description [Labels the nodes that have been proved (pObj->fMark1) 
+  and returns the set of satisfying assignments.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Cec_ManSatSolveExractPattern( Vec_Int_t * vCexStore, int iStart, Vec_Int_t * vPat )
+{
+    int k, nSize;
+    Vec_IntClear( vPat );
+    // skip the output number
+    iStart++;
+    // get the number of items
+    nSize = Vec_IntEntry( vCexStore, iStart++ );
+    if ( nSize <= 0 )
+        return iStart;
+    // extract pattern
+    for ( k = 0; k < nSize; k++ )
+        Vec_IntPush( vPat, Vec_IntEntry( vCexStore, iStart++ ) );
+    return iStart;
+}
+void Cec_ManSatSolveCSat( Cec_ManPat_t * pPat, Gia_Man_t * pAig, Cec_ParSat_t * pPars )
+{
+    Vec_Str_t * vStatus;
+    Vec_Int_t * vPat = Vec_IntAlloc( 1000 );
+    Vec_Int_t * vCexStore = Cbs_ManSolveMiterNc( pAig, pPars->nBTLimit, &vStatus, 0 );
+    Gia_Obj_t * pObj;
+    int i, status, iStart = 0;
+    assert( Vec_StrSize(vStatus) == Gia_ManCoNum(pAig) );
+    // reset the manager
+    if ( pPat )
+    {
+        pPat->iStart = Vec_StrSize(pPat->vStorage);
+        pPat->nPats = 0;
+        pPat->nPatLits = 0;
+        pPat->nPatLitsMin = 0;
+    } 
+    Gia_ManForEachCo( pAig, pObj, i )
+    {
+        status = (int)Vec_StrEntry(vStatus, i);
+        pObj->fMark0 = (status == 0);
+        pObj->fMark1 = (status == 1);
+        if ( Vec_IntSize(vCexStore) > 0 && status != 1 )
+            iStart = Cec_ManSatSolveExractPattern( vCexStore, iStart, vPat );
+        if ( status != 0 )
+            continue;
+        // save the pattern
+        if ( pPat && Vec_IntSize(vPat) > 0 )
+        {
+            abctime clk3 = Abc_Clock();
+            Cec_ManPatSavePatternCSat( pPat, vPat );
+            pPat->timeTotalSave += Abc_Clock() - clk3;
+        }
+        // quit if one of them is solved
+        if ( pPars->fCheckMiter )
+            break;
+    }
+    assert( iStart == Vec_IntSize(vCexStore) );
+    Vec_IntFree( vPat );
+    Vec_StrFree( vStatus );
+    Vec_IntFree( vCexStore );
+}
+
 
 
 /**Function*************************************************************

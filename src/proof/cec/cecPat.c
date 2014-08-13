@@ -360,20 +360,21 @@ void Cec_ManPatSavePattern( Cec_ManPat_t * pMan, Cec_ManSat_t *  p, Gia_Obj_t * 
 {
     Vec_Int_t * vPat;
     int nPatLits;
-    abctime clk, clkTotal = Abc_Clock();
+    abctime clkTotal = Abc_Clock();
+//    abctime clk;
     assert( Gia_ObjIsCo(pObj) );
     pMan->nPats++;
     pMan->nPatsAll++;
     // compute values in the cone of influence
-clk = Abc_Clock();
+//clk = Abc_Clock();
     Gia_ManIncrementTravId( p->pAig );
     nPatLits = Cec_ManPatComputePattern_rec( p, p->pAig, Gia_ObjFanin0(pObj) );
     assert( (Gia_ObjFanin0(pObj)->fMark1 ^ Gia_ObjFaninC0(pObj)) == 1 );
     pMan->nPatLits += nPatLits;
     pMan->nPatLitsAll += nPatLits;
-pMan->timeFind += Abc_Clock() - clk;
+//pMan->timeFind += Abc_Clock() - clk;
     // compute sensitizing path
-clk = Abc_Clock();
+//clk = Abc_Clock();
     Vec_IntClear( pMan->vPattern1 );
     Gia_ManIncrementTravId( p->pAig );
     Cec_ManPatComputePattern1_rec( p->pAig, Gia_ObjFanin0(pObj), pMan->vPattern1 );
@@ -385,18 +386,25 @@ clk = Abc_Clock();
     vPat = Vec_IntSize(pMan->vPattern1) < Vec_IntSize(pMan->vPattern2) ? pMan->vPattern1 : pMan->vPattern2;
     pMan->nPatLitsMin += Vec_IntSize(vPat);
     pMan->nPatLitsMinAll += Vec_IntSize(vPat);
-pMan->timeShrink += Abc_Clock() - clk;
+//pMan->timeShrink += Abc_Clock() - clk;
     // verify pattern using ternary simulation
-clk = Abc_Clock();
-    Cec_ManPatVerifyPattern( p->pAig, pObj, vPat );
-pMan->timeVerify += Abc_Clock() - clk;
+//clk = Abc_Clock();
+//    Cec_ManPatVerifyPattern( p->pAig, pObj, vPat );
+//pMan->timeVerify += Abc_Clock() - clk;
     // sort pattern
-clk = Abc_Clock();
+//clk = Abc_Clock();
     Vec_IntSort( vPat, 0 );
-pMan->timeSort += Abc_Clock() - clk;
+//pMan->timeSort += Abc_Clock() - clk;
     // save pattern
     Cec_ManPatStore( pMan, vPat );
     pMan->timeTotal += Abc_Clock() - clkTotal;
+}
+void Cec_ManPatSavePatternCSat( Cec_ManPat_t * pMan, Vec_Int_t * vPat )
+{
+    // sort pattern
+    Vec_IntSort( vPat, 0 );
+    // save pattern
+    Cec_ManPatStore( pMan, vPat );
 }
 
 /**Function*************************************************************
