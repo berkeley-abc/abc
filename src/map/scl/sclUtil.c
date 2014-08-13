@@ -218,6 +218,8 @@ void Abc_SclReadTimingConstr( Abc_Frame_t * pAbc, char * pFileName, int fVerbose
     while ( fgets( Buffer, 1000, pFile ) )
     {
         pToken = strtok( Buffer, " \t\r\n" );
+        if ( pToken == NULL )
+            continue;
         if ( !strcmp(pToken, "set_driving_cell") )
         {
             Abc_FrameSetDrivingCell( Abc_UtilStrsav(strtok(NULL, " \t\r\n")) );
