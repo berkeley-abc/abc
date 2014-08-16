@@ -32,7 +32,7 @@ ABC_NAMESPACE_IMPL_START
 
 #define ABC_MUX_CUBES   100000
 
-static int Abc_ConvertZddToSop( DdManager * dd, DdNode * zCover, char * pSop, int nFanins, Vec_Str_t * vCube, int fPhase );
+int Abc_ConvertZddToSop( DdManager * dd, DdNode * zCover, char * pSop, int nFanins, Vec_Str_t * vCube, int fPhase );
 static DdNode * Abc_ConvertAigToBdd( DdManager * dd, Hop_Obj_t * pRoot);
 static Hop_Obj_t * Abc_ConvertSopToAig( Hop_Man_t * pMan, char * pSop );
 

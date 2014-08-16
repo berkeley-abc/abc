@@ -3715,6 +3715,10 @@ SOURCE=.\src\aig\gia\giaCex.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\aig\gia\giaClp.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\aig\gia\giaCof.c
 # End Source File
 # Begin Source File

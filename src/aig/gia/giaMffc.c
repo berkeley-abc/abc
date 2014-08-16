@@ -207,7 +207,7 @@ Gia_Man_t * Gia_ManDomDerive( Gia_Man_t * p, Gia_Obj_t * pRoot, Vec_Int_t * vSup
     Gia_Man_t * pNew, * pTemp;
     int nMints = 1 << nVars;
     int i, m, iResLit;
-    assert( nVars > 0 && nVars <= 5 );
+    assert( nVars >= 0 && nVars <= 5 );
     pNew = Gia_ManStart( Gia_ManObjNum(p) );
     pNew->pName = Abc_UtilStrsav( p->pName );
     pNew->pSpec = Abc_UtilStrsav( p->pSpec );
@@ -249,6 +249,8 @@ Gia_Man_t * Gia_ManDomDerive( Gia_Man_t * p, Gia_Obj_t * pRoot, Vec_Int_t * vSup
 ***********************************************************************/
 void Gia_ManComputeDomsTry( Gia_Man_t * p )
 {
+    extern void Gia_ManCollapseTestTest( Gia_Man_t * p );
+
     Vec_Int_t * vSupp, * vSuppRefs;
     Gia_Man_t * pNew;
     Gia_Obj_t * pObj;
@@ -272,7 +274,7 @@ void Gia_ManComputeDomsTry( Gia_Man_t * p )
         if ( !Gia_ObjIsAnd(pObj) )
             continue;
         nSize = Gia_NodeMffcSizeSupp( p, pObj, vSupp, vSuppRefs );
-        if ( nSize < 30 || nSize > 100 )
+        if ( nSize < 10 )//|| nSize > 100 )
             continue;
         // sort by cost
         Vec_IntSelectSortCost2( Vec_IntArray(vSupp), Vec_IntSize(vSupp), Vec_IntArray(vSuppRefs) );
@@ -280,8 +282,8 @@ void Gia_ManComputeDomsTry( Gia_Man_t * p )
         printf( "Obj %6d : ", i );
         printf( "Cone = %4d  ", nSize );
         printf( "Supp = %4d  ", Vec_IntSize(vSupp) );
-        Vec_IntForEachEntry( vSuppRefs, Entry, k )
-            printf( "%d(%d) ", -Entry, Gia_ObjLevelId(p, Vec_IntEntry(vSupp, k)) );
+//        Vec_IntForEachEntry( vSuppRefs, Entry, k )
+//            printf( "%d(%d) ", -Entry, Gia_ObjLevelId(p, Vec_IntEntry(vSupp, k)) );
         printf( "\n" );
 
         // selected k
@@ -289,10 +291,13 @@ void Gia_ManComputeDomsTry( Gia_Man_t * p )
             if ( Vec_IntEntry(vSuppRefs, k) == 1 )
                 break;
         k = Abc_MinInt( k, 3 );
+        k = 0;
 
         // dump
         pNew = Gia_ManDomDerive( p, pObj, vSupp, k );
         Gia_DumpAiger( pNew, "mffc", i, 6 );
+        Gia_ManCollapseTestTest( pNew );
+
         Gia_ManStop( pNew );
     }
     Vec_IntFree( vSuppRefs );
