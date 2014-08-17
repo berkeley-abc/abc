@@ -7,6 +7,7 @@ SRC +=    src/aig/gia/giaAig.c \
     src/aig/gia/giaBidec.c \
     src/aig/gia/giaCCof.c \
     src/aig/gia/giaCex.c \
+    src/aig/gia/giaClp.c \
     src/aig/gia/giaCof.c \
     src/aig/gia/giaCone.c \
     src/aig/gia/giaCSatOld.c \
