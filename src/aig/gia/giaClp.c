@@ -111,7 +111,7 @@ int Gia_ManRebuildNode( Dsd_Manager_t * pManDsd, Dsd_Node_t * pNodeDsd, Gia_Man_
     DdNode * bLocal, * bTemp;
     Dsd_Node_t * pFaninDsd;
     Dsd_Type_t Type;
-    int i, iLit, nDecs;
+    int i, nDecs, iLit = -1;
 
     // add the fanins
     Type  = Dsd_NodeReadType( pNodeDsd );
@@ -328,10 +328,11 @@ Gia_Man_t * Gia_ManCollapseTest( Gia_Man_t * p, int fVerbose )
     ddNew = Cudd_Init( Gia_ManCiNum(p), 0, CUDD_UNIQUE_SLOTS, CUDD_CACHE_SLOTS, 0 );
     Cudd_zddVarsFromBddVars( ddNew, 2 );
 //    Cudd_ReduceHeap( dd, CUDD_REORDER_SYMM_SIFT, 100 );
+    if ( fVerbose )
     printf( "Ins = %d. Outs = %d.  Shared BDD nodes = %d.  Peak live nodes = %d. Peak nodes = %d.\n", 
         Gia_ManCiNum(p), Gia_ManCoNum(p), 
         Cudd_SharingSize( (DdNode **)Vec_PtrArray(vFuncs), Vec_PtrSize(vFuncs) ),
-        Cudd_ReadPeakLiveNodeCount(dd), Cudd_ReadNodeCount(dd) );
+        Cudd_ReadPeakLiveNodeCount(dd), (int)Cudd_ReadNodeCount(dd) );
     // perform decomposition
     pManDsd = Dsd_ManagerStart( dd, Gia_ManCiNum(p), 0 );
     Dsd_Decompose( pManDsd, (DdNode **)Vec_PtrArray(vFuncs), Vec_PtrSize(vFuncs) );
