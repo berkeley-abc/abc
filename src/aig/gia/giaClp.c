@@ -173,7 +173,7 @@ Gia_Man_t * Gia_ManRebuild( Gia_Man_t * p, Dsd_Manager_t * pManDsd, DdManager * 
     Gia_Man_t * pNew;
     Dsd_Node_t ** ppNodesDsd;
     Dsd_Node_t * pNodeDsd;
-    int i, iLit, nNodesDsd;
+    int i, nNodesDsd, iLit = -1;
     Vec_Str_t * vSop, * vCube;
     Vec_Int_t * vFanins;
 
