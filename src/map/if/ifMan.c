@@ -130,7 +130,7 @@ If_Man_t * If_ManStart( If_Par_t * pPars )
 //        abctime clk = Abc_Clock();
         extern int Bat_ManCellFuncLookup( void * pMan, unsigned * pTruth, int nVars, int nLeaves, char * pStr );
         extern void Bat_ManFuncSetupTable();
-        pPars->pFuncCell = Bat_ManCellFuncLookup;
+        pPars->pFuncCell = (int (*)  (If_Man_t *, unsigned *, int, int, char *))Bat_ManCellFuncLookup;
         Bat_ManFuncSetupTable();
 //        Abc_PrintTime( 1, "Setup time", Abc_Clock() - clk );
     }
