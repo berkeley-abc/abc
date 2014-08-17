@@ -494,6 +494,8 @@ Abc_Obj_t * Abc_NodeFromIf_rec( Abc_Ntk_t * pNtkNew, If_Man_t * pIfMan, If_Obj_t
                     if ( If_CutLeafBit(pCutBest, i) )
                         Abc_TtFlip( pTruth, Abc_TtWordNum(pCutBest->nLeaves), i );
             pNodeNew->pData = Kit_TruthToHop( (Hop_Man_t *)pNtkNew->pManFunc, (unsigned *)pTruth, If_CutLeaveNum(pCutBest), vCover );
+//            if ( pIfMan->pPars->fUseBat )
+//                Bat_ManFuncPrintCell( *pTruth );
         }
         // complement the node if the cut was complemented
         if ( pCutBest->fCompl && !pIfMan->pPars->fDelayOpt && !pIfMan->pPars->fDsdBalance )

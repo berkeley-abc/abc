@@ -2347,6 +2347,10 @@ SOURCE=.\src\map\if\ifCut.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\map\if\ifData2.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\map\if\ifDec07.c
 # End Source File
 # Begin Source File
@@ -2388,6 +2392,10 @@ SOURCE=.\src\map\if\ifMan.c
 # Begin Source File
 
 SOURCE=.\src\map\if\ifMap.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\map\if\ifMatch2.c
 # End Source File
 # Begin Source File
 

@@ -125,6 +125,15 @@ If_Man_t * If_ManStart( If_Par_t * pPars )
         p->vPairRes = Vec_IntAlloc( 1000 );
         Vec_IntPush( p->vPairRes, -1 );
     }
+    if ( pPars->fUseBat )
+    {
+//        abctime clk = Abc_Clock();
+        extern int Bat_ManCellFuncLookup( void * pMan, unsigned * pTruth, int nVars, int nLeaves, char * pStr );
+        extern void Bat_ManFuncSetupTable();
+        pPars->pFuncCell = Bat_ManCellFuncLookup;
+        Bat_ManFuncSetupTable();
+//        Abc_PrintTime( 1, "Setup time", Abc_Clock() - clk );
+    }
     // create the constant node
     p->pConst1   = If_ManSetupObj( p );
     p->pConst1->Type   = IF_CONST1;
@@ -249,6 +258,11 @@ void If_ManStop( If_Man_t * p )
         Tim_ManStop( p->pManTim );
     if ( p->vSwitching )
         Vec_IntFree( p->vSwitching );
+    if ( p->pPars->fUseBat )
+    {
+        extern void Bat_ManFuncSetdownTable();
+        Bat_ManFuncSetdownTable();
+    }
     // hash table
 //    if ( p->pPars->fVerbose && p->nTableEntries[0] )
 //        printf( "Hash table 2:  Entries = %7d.  Size = %7d.\n", p->nTableEntries[0], p->nTableSize[0] );

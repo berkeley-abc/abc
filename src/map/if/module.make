@@ -2,6 +2,7 @@ SRC +=  src/map/if/ifCom.c \
     src/map/if/ifCache.c \
     src/map/if/ifCore.c \
     src/map/if/ifCut.c \
+    src/map/if/ifData2.c \
     src/map/if/ifDec07.c \
     src/map/if/ifDec08.c \
     src/map/if/ifDec10.c \
@@ -13,6 +14,7 @@ SRC +=  src/map/if/ifCom.c \
     src/map/if/ifLibLut.c \
     src/map/if/ifMan.c \
     src/map/if/ifMap.c \
+    src/map/if/ifMatch2.c \
     src/map/if/ifReduce.c \
     src/map/if/ifSat.c \
     src/map/if/ifSelect.c \
