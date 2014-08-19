@@ -554,6 +554,136 @@ int Abc_NodeFindMuxVar( DdManager * dd, DdNode * bFunc, int nVars )
 }
 
 
+/**Function********************************************************************
+
+  Synopsis    [Computes the positive polarty cube composed of the first vars in the array.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+******************************************************************************/
+DdNode * Extra_bddComputeSum( DdManager * dd, DdNode ** pbCubes, int nCubes )
+{
+    DdNode * bRes, * bTemp;
+    int i;
+    bRes = b0; Cudd_Ref( bRes );
+    for ( i = 0; i < nCubes; i++ )
+    {
+        bRes = Cudd_bddOr( dd, bTemp = bRes, pbCubes[i] );  Cudd_Ref( bRes );
+        Cudd_RecursiveDeref( dd, bTemp );
+    }
+    Cudd_Deref( bRes );
+    return bRes;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Derives network with the given percentage of on-set and off-set minterms.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+DdNode * Abc_NtkSparsifyInternalOne( DdManager * ddNew, DdNode * bFunc, int nFanins, int nPerc )
+{
+    int nSpace = (int)Cudd_CountMinterm( ddNew, bFunc, nFanins );
+    int i, nMints = Abc_MaxInt( 1, (int)(0.01 * nPerc * nSpace) );
+    DdNode ** pbMints = Cudd_bddPickArbitraryMinterms( ddNew, bFunc, ddNew->vars, nFanins, nMints );
+    DdNode * bRes;
+    for ( i = 0; i < nMints; i++ )
+        Cudd_Ref( pbMints[i] );
+    bRes = Extra_bddComputeSum( ddNew, pbMints, nMints ); Cudd_Ref( bRes );
+    for ( i = 0; i < nMints; i++ )
+        Cudd_RecursiveDeref( ddNew, pbMints[i] );
+    Cudd_Deref( bRes );
+    ABC_FREE( pbMints );
+    return bRes;
+}
+Abc_Ntk_t * Abc_NtkSparsifyInternal( Abc_Ntk_t * pNtk, int nPerc, int fVerbose )
+{
+    Abc_Ntk_t * pNtkNew;
+    Abc_Obj_t * pObj, * pDriver, * pFanin;
+    DdNode * bFunc, * bFuncOld;
+    DdManager * ddNew;
+    int i, k, c;
+    // start the new network
+    pNtkNew = Abc_NtkAlloc( ABC_NTK_LOGIC, ABC_FUNC_BDD, 1 );
+    Abc_NtkForEachCi( pNtk, pObj, i )
+        Abc_NtkDupObj( pNtkNew, pObj, 1 );
+    // duplicate the name and the spec
+    pNtkNew->pName = Extra_UtilStrsav(pNtk->pName);
+    pNtkNew->pSpec = Extra_UtilStrsav(pNtk->pSpec);
+    // make sure the new manager has enough inputs
+    ddNew = (DdManager *)pNtkNew->pManFunc;
+    Cudd_bddIthVar( ddNew, Abc_NtkCiNum(pNtk)-1 );
+    // go through the outputs
+    Abc_NtkForEachCo( pNtk, pObj, i )
+    {
+        pDriver = Abc_ObjFanin0( pObj );
+        if ( Abc_ObjIsCi(pDriver) )
+        {
+            Abc_NtkDupObj( pNtkNew, pObj, 0 );
+            Abc_ObjAddFanin( pObj->pCopy, Abc_ObjNotCond(pDriver->pCopy, Abc_ObjFaninC0(pObj)) );
+            Abc_ObjAssignName( pObj->pCopy, Abc_ObjName(pObj), "_on" );
+
+            Abc_NtkDupObj( pNtkNew, pObj, 0 );
+            Abc_ObjAddFanin( pObj->pCopy, Abc_ObjNotCond(pDriver->pCopy, !Abc_ObjFaninC0(pObj)) );
+            Abc_ObjAssignName( pObj->pCopy, Abc_ObjName(pObj), "_off" );
+            continue;
+        }
+        if ( Abc_ObjFaninNum(pDriver) == 0 )
+        {
+            Abc_NtkDupObj( pNtkNew, pObj, 0 );
+            Abc_ObjAddFanin( pObj->pCopy, Abc_ObjFaninC0(pObj) ? Abc_NtkCreateNodeConst0(pNtkNew) : Abc_NtkCreateNodeConst1(pNtkNew) );
+            Abc_ObjAssignName( pObj->pCopy, Abc_ObjName(pObj), "_on" );
+
+            Abc_NtkDupObj( pNtkNew, pObj, 0 );
+            Abc_ObjAddFanin( pObj->pCopy, Abc_ObjFaninC0(pObj) ? Abc_NtkCreateNodeConst1(pNtkNew) : Abc_NtkCreateNodeConst0(pNtkNew) );
+            Abc_ObjAssignName( pObj->pCopy, Abc_ObjName(pObj), "_off" );
+            continue;
+        }
+        assert( Abc_ObjFaninNum(pObj) > 0 );
+        // onset/offset
+        for ( c = 0; c < 2; c++ )
+        {
+            Abc_NtkDupObj( pNtkNew, pDriver, 0 );
+            Abc_ObjForEachFanin( pDriver, pFanin, k )
+                Abc_ObjAddFanin( pDriver->pCopy, pFanin->pCopy );
+            bFuncOld = Cudd_NotCond( (DdNode *)pDriver->pCopy->pData, c );
+            bFunc = Abc_NtkSparsifyInternalOne( ddNew, bFuncOld, Abc_ObjFaninNum(pDriver), nPerc );  Cudd_Ref( bFunc );
+            Cudd_RecursiveDeref( ddNew, bFuncOld );
+            pDriver->pCopy->pData = bFunc;
+            Abc_NtkDupObj( pNtkNew, pObj, 0 );
+            Abc_ObjAddFanin( pObj->pCopy, pDriver->pCopy );
+            Abc_ObjAssignName( pObj->pCopy, Abc_ObjName(pObj), c ? "_off" : "_on" );
+        }
+    }
+    Abc_NtkLogicMakeSimpleCos( pNtkNew, 0 );
+    return pNtkNew;
+}
+Abc_Ntk_t * Abc_NtkSparsify( Abc_Ntk_t * pNtk, int nPerc, int fVerbose )
+{
+    Abc_Ntk_t * pNtkNew;
+    assert( Abc_NtkIsComb(pNtk) );
+    assert( Abc_NtkIsBddLogic(pNtk) );
+    pNtkNew = Abc_NtkSparsifyInternal( pNtk, nPerc, fVerbose );
+    if ( pNtkNew == NULL )
+        return NULL;
+    if ( !Abc_NtkCheck( pNtkNew ) )
+    {
+        printf( "Abc_NtkSparsify: The network check has failed.\n" );
+        Abc_NtkDelete( pNtkNew );
+        return NULL;
+    }
+    return pNtkNew;
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

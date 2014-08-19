@@ -103,6 +103,7 @@ static int Abc_CommandSweep                  ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandFastExtract            ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandEliminate              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandDisjoint               ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandSparsify               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandLutpack                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandLutmin                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
 //static int Abc_CommandImfs                   ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -690,6 +691,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Synthesis",    "fx",            Abc_CommandFastExtract,      1 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "eliminate",     Abc_CommandEliminate,        1 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "dsd",           Abc_CommandDisjoint,         1 );
+    Cmd_CommandAdd( pAbc, "Synthesis",    "sparsify",      Abc_CommandSparsify,         1 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "lutpack",       Abc_CommandLutpack,          1 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "lutmin",        Abc_CommandLutmin,           1 );
 //    Cmd_CommandAdd( pAbc, "Synthesis",    "imfs",          Abc_CommandImfs,             1 );
@@ -4085,6 +4087,86 @@ usage:
     Abc_Print( -2, "\t-p     : prints DSD structure to the standard output [default = %s]\n", fPrint? "yes": "no" );
     Abc_Print( -2, "\t-s     : use short PI names when printing DSD structure [default = %s]\n", fShort? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandSparsify( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern Abc_Ntk_t * Abc_NtkSparsify( Abc_Ntk_t * pNtk, int nPerc, int fVerbose );
+    Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc), * pNtkNew;
+    int nPerc, fVerbose, c;
+    // set defaults
+    nPerc      = 10;
+    fVerbose   =  0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Nvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+            case 'N':
+                if ( globalUtilOptind >= argc )
+                {
+                    Abc_Print( -1, "Command line switch \"-N\" should be followed by an integer.\n" );
+                    goto usage;
+                }
+                nPerc = atoi(argv[globalUtilOptind]);
+                globalUtilOptind++;
+                if ( nPerc < 1 || nPerc > 100 )
+                    goto usage;
+                break;
+            case 'v':
+                fVerbose ^= 1;
+                break;
+            case 'h':
+                goto usage;
+                break;
+            default:
+                goto usage;
+        }
+    }
+
+    if ( pNtk == NULL )
+    {
+        Abc_Print( -1, "Empty network.\n" );
+        return 1;
+    }
+    if ( !Abc_NtkIsBddLogic( pNtk ) )
+    {
+        Abc_Print( -1, "This command is only applicable to logic BDD networks (run \"bdd\").\n" );
+        return 1;
+    }
+    if ( Abc_NtkCiNum(pNtk) > 16 )
+    {
+        Abc_Print( -1, "The number of primary inputs is more than 16.\n" );
+        return 1;
+    }
+    pNtkNew = Abc_NtkSparsify( pNtk, nPerc, fVerbose );
+    if ( pNtkNew == NULL )
+    {
+        Abc_Print( -1, "Command has failed.\n" );
+        return 1;
+    }
+    // replace the current network
+    Abc_FrameReplaceCurrentNetwork( pAbc, pNtkNew );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: sparsify [-N num] [-vh]\n" );
+    Abc_Print( -2, "\t           creates incompletely-specified function\n" );
+    Abc_Print( -2, "\t-N <num> : the percentage of on-set and off-set minterms (1 <= num <= 100) [default = %d]\n", nPerc );
+    Abc_Print( -2, "\t-v       : prints verbose information [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h       : print the command usage\n");
     return 1;
 }
 
