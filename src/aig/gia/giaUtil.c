@@ -1360,6 +1360,8 @@ void Gia_ManPrintCo_rec( Gia_Man_t * p, Gia_Obj_t * pObj )
     {
         Gia_ManPrintCo_rec( p, Gia_ObjFanin0(pObj) );
         Gia_ManPrintCo_rec( p, Gia_ObjFanin1(pObj) );
+        if ( Gia_ObjIsMux(p, pObj) )
+            Gia_ManPrintCo_rec( p, Gia_ObjFanin2(p, pObj) );
     }
     Gia_ObjPrint( p, pObj );
 }
@@ -1378,6 +1380,8 @@ void Gia_ManPrintCollect_rec( Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Int_t * vNode
     assert( Gia_ObjIsAnd(pObj) );
     Gia_ManPrintCollect_rec( p, Gia_ObjFanin0(pObj), vNodes );
     Gia_ManPrintCollect_rec( p, Gia_ObjFanin1(pObj), vNodes );
+    if ( Gia_ObjIsMux(p, pObj) )
+        Gia_ManPrintCollect_rec( p, Gia_ObjFanin2(p, pObj), vNodes );
     Vec_IntPush( vNodes, Gia_ObjId(p, pObj) );
 }
 void Gia_ManPrintCone( Gia_Man_t * p, Gia_Obj_t * pObj, int * pLeaves, int nLeaves, Vec_Int_t * vNodes )
@@ -1400,6 +1404,8 @@ void Gia_ManPrintCollect2_rec( Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Int_t * vNod
         Gia_ManPrintCollect2_rec( p, Gia_ObjFanin0(pObj), vNodes );
     if ( Gia_ObjIsAnd(pObj) )
         Gia_ManPrintCollect2_rec( p, Gia_ObjFanin1(pObj), vNodes );
+    if ( Gia_ObjIsMux(p, pObj) )
+        Gia_ManPrintCollect2_rec( p, Gia_ObjFanin2(p, pObj), vNodes );
     Vec_IntPush( vNodes, Gia_ObjId(p, pObj) );
 }
 void Gia_ManPrintCone2( Gia_Man_t * p, Gia_Obj_t * pObj )

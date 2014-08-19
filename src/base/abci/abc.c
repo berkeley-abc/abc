@@ -34071,7 +34071,7 @@ int Abc_CommandAbc9Bmc( Abc_Frame_t * pAbc, int argc, char ** argv )
     pPars->fLoadCnf      =    0;  // dynamic CNF loading
     pPars->fDumpFrames   =    0;  // dump unrolled timeframes
     pPars->fUseSynth     =    0;  // use synthesis
-    pPars->fUseOldCnf    =    0;  // use old CNF construction
+    pPars->fUseOldCnf    =    1;  // use old CNF construction
     pPars->fVerbose      =    0;  // verbose 
     pPars->fVeryVerbose  =    0;  // very verbose 
     pPars->fNotVerbose   =    0;  // skip line-by-line print-out 
