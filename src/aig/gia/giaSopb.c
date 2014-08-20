@@ -54,7 +54,7 @@ void Gia_ManHighlight_rec( Gia_Man_t * p, int iObj )
     if ( Gia_ObjIsAnd(pObj) )
         Gia_ManHighlight_rec( p, Gia_ObjFaninId1(pObj, iObj) );
 }
-void Gia_ManPrepareWin( Gia_Man_t * p, Vec_Int_t * vOuts, Vec_Int_t ** pvPis, Vec_Int_t ** pvPos, Vec_Int_t ** pvAnds )
+void Gia_ManPrepareWin( Gia_Man_t * p, Vec_Int_t * vOuts, Vec_Int_t ** pvPis, Vec_Int_t ** pvPos, Vec_Int_t ** pvAnds, int fPoOnly )
 {
     Gia_Obj_t * pObj;
     int i;
@@ -64,15 +64,23 @@ void Gia_ManPrepareWin( Gia_Man_t * p, Vec_Int_t * vOuts, Vec_Int_t ** pvPis, Ve
         Gia_ManHighlight_rec( p, Gia_ObjFaninId0p(p, pObj) );
     // mark fanins of the outside area
     Gia_ManCleanMark0( p );
-    Gia_ManForEachObj1( p, pObj, i )
+    if ( fPoOnly )
     {
-        if ( Gia_ObjIsCi(pObj) )
-            continue;
-        if ( Gia_ObjIsAnd(pObj) && !Gia_ObjIsTravIdCurrentId(p, i) )
-            continue;
-        Gia_ObjFanin0(pObj)->fMark0 = 1;
-        if ( Gia_ObjIsAnd(pObj) )
-            Gia_ObjFanin1(pObj)->fMark0 = 1;
+        Gia_ManForEachCoVec( vOuts, p, pObj, i )
+            Gia_ObjFanin0(pObj)->fMark0 = 1;
+    }
+    else
+    {
+        Gia_ManForEachObj1( p, pObj, i )
+        {
+            if ( Gia_ObjIsCi(pObj) )
+                continue;
+            if ( Gia_ObjIsAnd(pObj) && !Gia_ObjIsTravIdCurrentId(p, i) )
+                continue;
+            Gia_ObjFanin0(pObj)->fMark0 = 1;
+            if ( Gia_ObjIsAnd(pObj) )
+                Gia_ObjFanin1(pObj)->fMark0 = 1;
+        }
     }
     // collect pointed nodes
     *pvPis  = Vec_IntAlloc( 1000 );
@@ -103,13 +111,13 @@ void Gia_ManPrepareWin( Gia_Man_t * p, Vec_Int_t * vOuts, Vec_Int_t ** pvPis, Ve
   SeeAlso     []
 
 ***********************************************************************/
-Gia_Man_t * Gia_ManExtractWin( Gia_Man_t * p, Vec_Int_t * vOuts )
+Gia_Man_t * Gia_ManExtractWin( Gia_Man_t * p, Vec_Int_t * vOuts, int fPoOnly )
 {
     Vec_Int_t * vPis, * vPos, * vAnds;
     Gia_Man_t * pNew;
     Gia_Obj_t * pObj;
     int i;
-    Gia_ManPrepareWin( p, vOuts, &vPis, &vPos, &vAnds );
+    Gia_ManPrepareWin( p, vOuts, &vPis, &vPos, &vAnds, fPoOnly );
     // create AIG
     pNew = Gia_ManStart( Vec_IntSize(vPis) + Vec_IntSize(vPos) + Vec_IntSize(vAnds) + 1 );
     pNew->pName = Abc_UtilStrsav( p->pName );
@@ -131,7 +139,7 @@ Gia_Man_t * Gia_ManInsertWin( Gia_Man_t * p, Vec_Int_t * vOuts, Gia_Man_t * pWin
     Gia_Man_t * pNew, * pTemp;
     Gia_Obj_t * pObj;
     int i;
-    Gia_ManPrepareWin( p, vOuts, &vPis, &vPos, &vAnds );
+    Gia_ManPrepareWin( p, vOuts, &vPis, &vPos, &vAnds, 0 );
     // create AIG
     pNew = Gia_ManStart( Gia_ManObjNum(p) - Vec_IntSize(vAnds) + Gia_ManAndNum(pWin) );
     pNew->pName = Abc_UtilStrsav( p->pName );
@@ -175,15 +183,42 @@ Gia_Man_t * Gia_ManInsertWin( Gia_Man_t * p, Vec_Int_t * vOuts, Gia_Man_t * pWin
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Int_t * Gia_ManFindLatest( Gia_Man_t * p, int LevelMax )
+Vec_Int_t * Gia_ManFindLatest( Gia_Man_t * p, int LevelMax, int nTimeWindow )
 {
-    Vec_Int_t * vOuts;
     Gia_Obj_t * pObj;
-    int i;
+    Vec_Int_t * vOuts;
     vOuts = Vec_IntAlloc( 1000 );
-    Gia_ManForEachCo( p, pObj, i )
-        if ( Gia_ObjLevel(p, pObj) > LevelMax )
-            Vec_IntPush( vOuts, i );
+    if ( Gia_ManHasMapping(p) )
+    {
+        int i, k, iFan, nLevels = 0;
+        int * pLevels = ABC_CALLOC( int, Gia_ManObjNum(p) );
+        Gia_ManForEachLut( p, i )
+        {
+            Gia_LutForEachFanin( p, i, iFan, k )
+                pLevels[i] = Abc_MaxInt( pLevels[i], pLevels[iFan] );
+            pLevels[i]++;
+            nLevels = Abc_MaxInt( nLevels, pLevels[i] );
+        }
+        if ( nTimeWindow )
+            LevelMax = (int)((1.0 - 0.01 * nTimeWindow) * nLevels);
+        if ( nLevels < LevelMax )
+            printf( "The maximum mapped level (%d) is less than the target level (%d).\n", nLevels, LevelMax );
+        Gia_ManForEachCo( p, pObj, i )
+            if ( pLevels[Gia_ObjFaninId0p(p, pObj)] >= LevelMax )
+                Vec_IntPush( vOuts, i );
+        ABC_FREE( pLevels );
+    }
+    else
+    {
+        int i, nLevels = Gia_ManLevelNum( p );
+        if ( nTimeWindow )
+            LevelMax = (int)((1.0 - 0.01 * nTimeWindow) * nLevels);
+        if ( nLevels < LevelMax )
+            printf( "The maximum AIG level (%d) is less than the target level (%d).\n", nLevels, LevelMax );
+        Gia_ManForEachCo( p, pObj, i )
+            if ( Gia_ObjLevel(p, pObj) >= LevelMax )
+                Vec_IntPush( vOuts, i );
+    }
     return vOuts;
 }
 
@@ -198,27 +233,55 @@ Vec_Int_t * Gia_ManFindLatest( Gia_Man_t * p, int LevelMax )
   SeeAlso     []
 
 ***********************************************************************/
-Gia_Man_t * Gia_ManPerformSopBalanceWin( Gia_Man_t * p, int LevelMax, int nLevelRatio, int nCutNum, int nRelaxRatio, int fVerbose )
+Gia_Man_t * Gia_ManPerformSopBalanceWin( Gia_Man_t * p, int LevelMax, int nTimeWindow, int nCutNum, int nRelaxRatio, int fVerbose )
 {
     Vec_Int_t * vOuts;
     Gia_Man_t * pNew, * pWin, * pWinNew;
-    int nLevels = Gia_ManLevelNum( p );
-    if ( nLevelRatio )
-        LevelMax = (int)((1.0 - 0.01 * nLevelRatio) * nLevels);
-//printf( "Using LevelMax = %d.\n", LevelMax );
-    vOuts = Gia_ManFindLatest( p, LevelMax );
+    assert( !LevelMax != !nTimeWindow );
+    vOuts = Gia_ManFindLatest( p, LevelMax, nTimeWindow );
+    if ( fVerbose )
+        printf( "Collected %d outputs to extract.\n", Vec_IntSize(vOuts) );
     if ( Vec_IntSize(vOuts) == 0 )
     {
         Vec_IntFree( vOuts );
         return Gia_ManDup( p );
     }
-    pWin = Gia_ManExtractWin( p, vOuts );
+    pWin = Gia_ManExtractWin( p, vOuts, 0 );
     pWinNew = Gia_ManPerformSopBalance( pWin, nCutNum, nRelaxRatio, fVerbose );
     Gia_ManStop( pWin );
     pNew = Gia_ManInsertWin( p, vOuts, pWinNew );
     Gia_ManStop( pWinNew );
     Vec_IntFree( vOuts );
     return pNew;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Gia_Man_t * Gia_ManExtractWindow( Gia_Man_t * p, int LevelMax, int nTimeWindow, int fVerbose )
+{
+    Vec_Int_t * vOuts;
+    Gia_Man_t * pWin;
+    assert( !LevelMax != !nTimeWindow );
+    vOuts = Gia_ManFindLatest( p, LevelMax, nTimeWindow );
+    if ( fVerbose )
+        printf( "Collected %d outputs to extract.\n", Vec_IntSize(vOuts) );
+    if ( Vec_IntSize(vOuts) == 0 )
+    {
+        Vec_IntFree( vOuts );
+        return Gia_ManDup( p );
+    }
+    pWin = Gia_ManExtractWin( p, vOuts, 1 );
+    Vec_IntFree( vOuts );
+    return pWin;
 }
 
 ////////////////////////////////////////////////////////////////////////

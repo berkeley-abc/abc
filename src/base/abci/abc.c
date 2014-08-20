@@ -30204,12 +30204,12 @@ int Abc_CommandAbc9Sopb( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Gia_Man_t * pTemp;
     int nLevelMax   = 0;
-    int nLevelRatio = 0;
+    int nTimeWindow = 0;
     int nCutNum     = 8;
     int nRelaxRatio = 0;
     int c, fVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "LQCRvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "LWCRvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -30224,15 +30224,15 @@ int Abc_CommandAbc9Sopb( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( nLevelMax < 0 )
                 goto usage;
             break;
-        case 'Q':
+        case 'W':
             if ( globalUtilOptind >= argc )
             {
-                Abc_Print( -1, "Command line switch \"-Q\" should be followed by an integer.\n" );
+                Abc_Print( -1, "Command line switch \"-W\" should be followed by an integer.\n" );
                 goto usage;
             }
-            nLevelRatio = atoi(argv[globalUtilOptind]);
+            nTimeWindow = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nLevelRatio < 0 )
+            if ( nTimeWindow < 0 )
                 goto usage;
             break;
         case 'C':
@@ -30271,18 +30271,18 @@ int Abc_CommandAbc9Sopb( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Abc_CommandAbc9Sopb(): There is no AIG.\n" );
         return 1;
     }
-    if ( nLevelMax || nLevelRatio )
-        pTemp = Gia_ManPerformSopBalanceWin( pAbc->pGia, nLevelMax, nLevelRatio, nCutNum, nRelaxRatio, fVerbose );
+    if ( nLevelMax || nTimeWindow )
+        pTemp = Gia_ManPerformSopBalanceWin( pAbc->pGia, nLevelMax, nTimeWindow, nCutNum, nRelaxRatio, fVerbose );
     else
         pTemp = Gia_ManPerformSopBalance( pAbc->pGia, nCutNum, nRelaxRatio, fVerbose );
     Abc_FrameUpdateGia( pAbc, pTemp );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &sopb [-LQCR num] [-vh]\n" );
+    Abc_Print( -2, "usage: &sopb [-LWCR num] [-vh]\n" );
     Abc_Print( -2, "\t         performs SOP balancing\n" );
     Abc_Print( -2, "\t-L num : optimize paths above this level [default = %d]\n", nLevelMax );
-    Abc_Print( -2, "\t-Q num : optimize paths falling into this window [default = %d]\n", nLevelRatio );
+    Abc_Print( -2, "\t-W num : optimize paths falling into this window [default = %d]\n", nTimeWindow );
     Abc_Print( -2, "\t-C num : the number of cuts at a node [default = %d]\n", nCutNum );
     Abc_Print( -2, "\t-R num : the delay relaxation ratio (num >= 0) [default = %d]\n", nRelaxRatio );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
@@ -33485,9 +33485,9 @@ int Abc_CommandAbc9Cone( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Gia_Man_t * pTemp;
     Vec_Int_t * vPos;
-    int c, iOutNum = -1, nOutRange = 1, iPartNum = -1, fUseAllCis = 0, fVerbose = 0;
+    int c, iOutNum = -1, nOutRange = 1, iPartNum = -1, nLevelMax = 0, nTimeWindow = 0, fUseAllCis = 0, fVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "ORPavh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "ORPLWavh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -33524,6 +33524,28 @@ int Abc_CommandAbc9Cone( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( iPartNum < 0 )
                 goto usage;
             break;
+        case 'L':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-L\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nLevelMax = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nLevelMax < 0 )
+                goto usage;
+            break;
+        case 'W':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-W\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nTimeWindow = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nTimeWindow < 0 )
+                goto usage;
+            break;
         case 'a':
             fUseAllCis ^= 1;
             break;
@@ -33540,6 +33562,20 @@ int Abc_CommandAbc9Cone( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
         Abc_Print( -1, "Abc_CommandAbc9Cone(): There is no AIG.\n" );
         return 1;
+    }
+    if ( nLevelMax || nTimeWindow )
+    {
+        if ( nLevelMax && nTimeWindow )
+        {
+            Abc_Print( -1, "Abc_CommandAbc9Cone(): Parameters -L (max level) and -W (timing window) cannot be specified at the same time.\n" );
+            return 1;
+        }
+        else
+        {
+            pTemp = Gia_ManExtractWindow( pAbc->pGia, nLevelMax, nTimeWindow, fVerbose );
+            Abc_FrameUpdateGia( pAbc, pTemp );
+            return 0;
+        }
     }
     if ( iPartNum >= 0 )
     {
@@ -33574,11 +33610,13 @@ int Abc_CommandAbc9Cone( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &cone [-ORP num] [-avh]\n" );
+    Abc_Print( -2, "usage: &cone [-ORPLW num] [-avh]\n" );
     Abc_Print( -2, "\t         extracting multi-output sequential logic cones\n" );
     Abc_Print( -2, "\t-O num : the index of first PO to extract [default = %d]\n", iOutNum );
     Abc_Print( -2, "\t-R num : (optional) the number of outputs to extract [default = %d]\n", nOutRange );
     Abc_Print( -2, "\t-P num : (optional) the partition number to extract [default = %d]\n", iPartNum );
+    Abc_Print( -2, "\t-L num : (optional) extract cones with higher level [default = %d]\n", nLevelMax );
+    Abc_Print( -2, "\t-W num : (optional) extract cones falling into this window [default = %d]\n", nTimeWindow );
     Abc_Print( -2, "\t-a     : toggle keeping all CIs or structral support only [default = %s]\n", fUseAllCis? "all": "structural" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
