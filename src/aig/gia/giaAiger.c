@@ -785,7 +785,10 @@ Gia_Man_t * Gia_AigerReadFromMemory( char * pContents, int nFileSize, int fSkipS
     }
     Vec_IntFreeP( &vInits );
     if ( !fSkipStrash && pNew->vMapping )
-        Abc_Print( 0, "Structural hashing enabled while reading AIGER may have invalidated the mapping.  Consider using \"&r -s\".\n" );
+    {
+        Abc_Print( 0, "Structural hashing enabled while reading AIGER invalidated the mapping.  Consider using \"&r -s\".\n" );
+        Vec_IntFreeP( &pNew->vMapping );
+    }
     return pNew;
 }
 
@@ -1035,11 +1038,9 @@ void Gia_AigerWrite( Gia_Man_t * pInit, char * pFileName, int fWriteSymbols, int
     {
 //        printf( "Gia_AigerWrite(): Normalizing AIG for writing.\n" );
         p = Gia_ManDupNormalize( pInit );
-        p->pManTime   = pInit->pManTime;   pInit->pManTime   = NULL;
+        Gia_ManTransferTiming( pInit, p );
         p->vNamesIn   = pInit->vNamesIn;   pInit->vNamesIn   = NULL;
         p->vNamesOut  = pInit->vNamesOut;  pInit->vNamesOut  = NULL;
-        p->pAigExtra  = pInit->pAigExtra;  pInit->pAigExtra  = NULL;
-        p->nAnd2Delay = pInit->nAnd2Delay; pInit->nAnd2Delay = 0;
         p->nConstrs   = pInit->nConstrs;   pInit->nConstrs   = 0;
     }
     else

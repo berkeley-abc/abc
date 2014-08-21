@@ -1583,18 +1583,6 @@ void Gia_ManTransferMapping( Gia_Man_t * pGia, Gia_Man_t * p )
     }
     Gia_ManMappingVerify( p );
 }
-
-/**Function*************************************************************
-
-  Synopsis    [Transfers packing from hie GIA to normalized GIA.]
-
-  Description [Hie GIA (pGia) points to normalized GIA (p).]
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
 void Gia_ManTransferPacking( Gia_Man_t * pGia, Gia_Man_t * p )
 {
     Vec_Int_t * vPackingNew;
@@ -1628,6 +1616,12 @@ void Gia_ManTransferPacking( Gia_Man_t * pGia, Gia_Man_t * p )
     // attach packing info
     assert( p->vPacking == NULL );
     p->vPacking = vPackingNew;
+}
+void Gia_ManTransferTiming( Gia_Man_t * pGia, Gia_Man_t * p )
+{
+    p->pManTime   = pGia->pManTime;   pGia->pManTime   = NULL;
+    p->pAigExtra  = pGia->pAigExtra;  pGia->pAigExtra  = NULL;
+    p->nAnd2Delay = pGia->nAnd2Delay; pGia->nAnd2Delay = 0;
 }
 
 
@@ -1699,7 +1693,7 @@ Gia_Man_t * Gia_ManPerformMapping( Gia_Man_t * p, void * pp, int fNormalized )
             Abc_Print( 0, "Switching activity computation for designs with boxes is disabled.\n" );
     }
     if ( p->pManTime )
-        pIfMan->pManTim = Tim_ManDup( (Tim_Man_t *)p->pManTime, 0 );
+        pIfMan->pManTim = Tim_ManDup( (Tim_Man_t *)p->pManTime, pPars->fDelayOpt || pPars->fDelayOptLut || pPars->fDsdBalance || pPars->fUserRecLib );
     if ( !If_ManPerformMapping( pIfMan ) )
     {
         If_ManStop( pIfMan );
@@ -1718,17 +1712,13 @@ Gia_Man_t * Gia_ManPerformMapping( Gia_Man_t * p, void * pp, int fNormalized )
     pNew->pSpec = Abc_UtilStrsav( p->pSpec );
     Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
     // return the original (unmodified by the mapper) timing manager
-    pNew->pManTime   = p->pManTime;   p->pManTime   = NULL;
-    pNew->pAigExtra  = p->pAigExtra;  p->pAigExtra  = NULL;
-    pNew->nAnd2Delay = p->nAnd2Delay; p->nAnd2Delay = 0;
+    Gia_ManTransferTiming( p, pNew );
     Gia_ManStop( p );
     // normalize and transfer mapping
     pNew = Gia_ManDupNormalize( p = pNew );
     Gia_ManTransferMapping( p, pNew );
     Gia_ManTransferPacking( p, pNew );
-    pNew->pManTime   = p->pManTime;   p->pManTime   = NULL;
-    pNew->pAigExtra  = p->pAigExtra;  p->pAigExtra  = NULL;
-    pNew->nAnd2Delay = p->nAnd2Delay; p->nAnd2Delay = 0;
+    Gia_ManTransferTiming( p, pNew );
     Gia_ManStop( p );
     return pNew;
 }

@@ -1184,6 +1184,8 @@ extern void                Gia_ManSetRefsMapped( Gia_Man_t * p );
 extern void                Gia_ManSetIfParsDefault( void * pIfPars );
 extern void                Gia_ManMappingVerify( Gia_Man_t * p );
 extern void                Gia_ManTransferMapping( Gia_Man_t * pGia, Gia_Man_t * p );
+extern void                Gia_ManTransferPacking( Gia_Man_t * pGia, Gia_Man_t * p );
+extern void                Gia_ManTransferTiming( Gia_Man_t * pGia, Gia_Man_t * p );
 extern Gia_Man_t *         Gia_ManPerformMapping( Gia_Man_t * p, void * pIfPars, int fNormalized );
 extern Gia_Man_t *         Gia_ManPerformSopBalance( Gia_Man_t * p, int nCutNum, int nRelaxRatio, int fVerbose );
 extern Gia_Man_t *         Gia_ManPerformDsdBalance( Gia_Man_t * p, int nCutNum, int nRelaxRatio, int fVerbose );

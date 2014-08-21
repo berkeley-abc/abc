@@ -154,7 +154,7 @@ void Tim_ManSetCiRequired( Tim_Man_t * p, int iCi, float Delay )
 void Tim_ManSetCoRequired( Tim_Man_t * p, int iCo, float Delay )
 {
     assert( iCo < p->nCos );
-    assert( !p->fUseTravId || p->pCos[iCo].TravId != p->nTravIds );
+    assert( !p->fUseTravId || !p->nTravIds || p->pCos[iCo].TravId != p->nTravIds );
     p->pCos[iCo].timeReq = Delay;
     p->pCos[iCo].TravId = p->nTravIds;
 }

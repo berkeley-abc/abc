@@ -128,7 +128,7 @@ Tim_Man_t * Tim_ManDup( Tim_Man_t * p, int fUnitDelay )
             pDelayTableNew[1] = (int)pDelayTable[1];
             pDelayTableNew[2] = (int)pDelayTable[2];
             for ( k = 0; k < nInputs * nOutputs; k++ )
-                pDelayTableNew[3+k] = fUnitDelay ? 1.0 : pDelayTable[3+k];
+                pDelayTableNew[3+k] = fUnitDelay ? (float)fUnitDelay : pDelayTable[3+k];
 //            assert( (int)pDelayTableNew[0] == Vec_PtrSize(pNew->vDelayTables) );
             assert( Vec_PtrEntry(pNew->vDelayTables, i) == NULL );
             Vec_PtrWriteEntry( pNew->vDelayTables, i, pDelayTableNew );

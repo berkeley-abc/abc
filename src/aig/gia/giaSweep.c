@@ -328,9 +328,7 @@ Gia_Man_t * Gia_ManFraigSweep( Gia_Man_t * p, void * pPars )
     Gia_ManStop( pTemp );
     // normalize the result
     pNew = Gia_ManDupNormalize( pTemp = pNew );
-    pNew->pManTime   = pTemp->pManTime;   pTemp->pManTime   = NULL;
-    pNew->pAigExtra  = pTemp->pAigExtra;  pTemp->pAigExtra  = NULL;
-    pNew->nAnd2Delay = pTemp->nAnd2Delay; pTemp->nAnd2Delay = 0;
+    Gia_ManTransferTiming( pTemp, pNew );
     Gia_ManStop( pTemp );
     // return the result
     assert( pNew->pManTime  != NULL );

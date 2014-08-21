@@ -970,6 +970,12 @@ Gia_Man_t * Gia_ManAreaBalance( Gia_Man_t * p, int fSimpleAnd, int nNewNodesMax,
     pNew2 = Gia_ManDupNoMuxes( pNew1 );
     if ( fVerbose )     Gia_ManPrintStats( pNew2, NULL );
     Gia_ManStop( pNew1 );
+    // normalize if needed
+    if ( !Gia_ManIsNormalized(pNew2) )
+    {
+        pNew2 = Gia_ManDupNormalize( pNew1 = pNew2 );
+        Gia_ManStop( pNew1 );
+    }
     return pNew2;
 }
 

@@ -28068,13 +28068,13 @@ usage:
 int Abc_CommandAbc9Syn2( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Gia_Man_t * pTemp;
-    int c, fVerbose = 0;
-    int fOldAlgo = 0;
-    int fCoarsen = 1;
-    int fCutMin = 0;
-    int nRelaxRatio = 20;
-    int fDelayMin = 1;
-    int fVeryVerbose = 0;
+    int c, fVerbose  =  0;
+    int fOldAlgo     =  0;
+    int fCoarsen     =  1;
+    int fCutMin      =  0;
+    int nRelaxRatio  = 20;
+    int fDelayMin    =  0;
+    int fVeryVerbose =  0;
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "Rakmdvwh" ) ) != EOF )
     {
