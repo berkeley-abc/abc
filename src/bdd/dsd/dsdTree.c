@@ -17,6 +17,7 @@
 ***********************************************************************/
 
 #include "dsdInt.h"
+#include "misc/util/utilTruth.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -819,6 +820,119 @@ void Dsd_TreePrint_rec( FILE * pFile, Dsd_Node_t * pNode, int fComp, char * pInp
             }
     }
     ABC_FREE( pInputNums );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Prints the decompostion tree into file.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+word Dsd_TreeFunc2Truth_rec( DdManager * dd, DdNode * bFunc )
+{
+    word Cof0, Cof1;
+    int Level;
+    if ( bFunc == b0 )
+        return 0;
+    if ( bFunc == b1 )
+        return ~(word)0;
+    if ( Cudd_IsComplement(bFunc) )
+        return ~Dsd_TreeFunc2Truth_rec( dd, Cudd_Not(bFunc) );
+    Level = dd->perm[bFunc->index];
+    assert( Level >= 0 && Level < 6 );
+    Cof0 = Dsd_TreeFunc2Truth_rec( dd, cuddE(bFunc) );
+    Cof1 = Dsd_TreeFunc2Truth_rec( dd, cuddT(bFunc) );
+    return (s_Truths6[Level] & Cof1) | (~s_Truths6[Level] & Cof0);
+}
+void Dsd_TreePrint2_rec( FILE * pFile, DdManager * dd, Dsd_Node_t * pNode, int fComp, char * pInputNames[] )
+{
+    int i;
+    if ( pNode->Type == DSD_NODE_CONST1 )
+    {
+        fprintf( pFile, "Const%d", !fComp );
+        return;
+    }
+    assert( pNode->Type == DSD_NODE_BUF || pNode->Type == DSD_NODE_PRIME || pNode->Type == DSD_NODE_OR || pNode->Type == DSD_NODE_EXOR ); 
+//    fprintf( pFile, "%s", (fComp ^ (pNode->Type == DSD_NODE_OR))? "!" : "" );
+    if ( pNode->Type == DSD_NODE_BUF )
+    {
+        fprintf( pFile, "%s", fComp? "!" : "" );
+        fprintf( pFile, "%s", pInputNames[pNode->S->index] );
+    }
+    else if ( pNode->Type == DSD_NODE_PRIME )
+    {
+        fprintf( pFile, " " );
+        if ( pNode->nDecs <= 6 )
+        {
+            extern unsigned Abc_TtCanonicize( word * pTruth, int nVars, char * pCanonPerm );
+            char pCanonPerm[6]; int uCanonPhase;
+            // compute truth table
+            DdNode * bFunc = Dsd_TreeGetPrimeFunction( dd, pNode );  
+            word uTruth = Dsd_TreeFunc2Truth_rec( dd, bFunc );
+            Cudd_Ref( bFunc );
+            Cudd_RecursiveDeref( dd, bFunc );
+            // canonicize truth table
+            uCanonPhase = Abc_TtCanonicize( &uTruth, pNode->nDecs, pCanonPerm );
+            fprintf( pFile, "%s", (fComp ^ ((uCanonPhase >> pNode->nDecs) & 1)) ? "!" : "" );
+            Abc_TtPrintHexRev( pFile, &uTruth, pNode->nDecs );
+            fprintf( pFile, "{" );
+            for ( i = 0; i < pNode->nDecs; i++ )
+            {
+                Dsd_Node_t * pInput = pNode->pDecs[(int)pCanonPerm[i]];
+                Dsd_TreePrint2_rec( pFile, dd, Dsd_Regular(pInput), Dsd_IsComplement(pInput) ^ ((uCanonPhase>>i)&1), pInputNames );
+            }
+            fprintf( pFile, "} " );
+        }
+        else
+        {
+            fprintf( pFile, "|%d|", pNode->nDecs );
+            fprintf( pFile, "{" );
+            for ( i = 0; i < pNode->nDecs; i++ )
+                Dsd_TreePrint2_rec( pFile, dd, Dsd_Regular(pNode->pDecs[i]), Dsd_IsComplement(pNode->pDecs[i]), pInputNames );
+            fprintf( pFile, "} " );
+        }
+    }
+    else if ( pNode->Type == DSD_NODE_OR )
+    {
+        fprintf( pFile, "%s", !fComp? "!" : "" );
+        fprintf( pFile, "(" );
+        for ( i = 0; i < pNode->nDecs; i++ )
+            Dsd_TreePrint2_rec( pFile, dd, Dsd_Regular(pNode->pDecs[i]), !Dsd_IsComplement(pNode->pDecs[i]), pInputNames );
+        fprintf( pFile, ")" );
+    }
+    else if ( pNode->Type == DSD_NODE_EXOR )
+    {
+        fprintf( pFile, "%s", fComp? "!" : "" );
+        fprintf( pFile, "[" );
+        for ( i = 0; i < pNode->nDecs; i++ )
+            Dsd_TreePrint2_rec( pFile, dd, Dsd_Regular(pNode->pDecs[i]), Dsd_IsComplement(pNode->pDecs[i]), pInputNames );
+        fprintf( pFile, "]" );
+    }
+}
+void Dsd_TreePrint2( FILE * pFile, Dsd_Manager_t * pDsdMan, char * pInputNames[], char * pOutputNames[], int Output )
+{
+    if ( Output == -1 )
+    {
+        int i;
+        for ( i = 0; i < pDsdMan->nRoots; i++ )
+        {
+            fprintf( pFile, "%8s = ", pOutputNames[i] );
+            Dsd_TreePrint2_rec( pFile, pDsdMan->dd, Dsd_Regular(pDsdMan->pRoots[i]), Dsd_IsComplement(pDsdMan->pRoots[i]), pInputNames );
+            fprintf( pFile, "\n" );
+        }
+    }
+    else
+    {
+        assert( Output >= 0 && Output < pDsdMan->nRoots );
+        fprintf( pFile, "%8s = ", pOutputNames[Output] );
+        Dsd_TreePrint2_rec( pFile, pDsdMan->dd, Dsd_Regular(pDsdMan->pRoots[Output]), Dsd_IsComplement(pDsdMan->pRoots[Output]), pInputNames );
+        fprintf( pFile, "\n" );
+    }
 }
 
 /**Function*************************************************************

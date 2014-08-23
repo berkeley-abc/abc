@@ -137,7 +137,10 @@ Abc_Ntk_t * Abc_NtkDsdInternal( Abc_Ntk_t * pNtk, int fVerbose, int fPrint, int 
     {
         ppNamesCi = Abc_NtkCollectCioNames( pNtk, 0 );
         ppNamesCo = Abc_NtkCollectCioNames( pNtk, 1 );
-        Dsd_TreePrint( stdout, pManDsd, ppNamesCi, ppNamesCo, fShort, -1 );
+        if ( fVerbose )
+            Dsd_TreePrint( stdout, pManDsd, ppNamesCi, ppNamesCo, fShort, -1 );
+        else
+            Dsd_TreePrint2( stdout, pManDsd, ppNamesCi, ppNamesCo, -1 );
         ABC_FREE( ppNamesCi );
         ABC_FREE( ppNamesCo );
     }

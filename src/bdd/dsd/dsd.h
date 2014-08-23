@@ -116,6 +116,7 @@ extern int             Dsd_TreeCollectDecomposableVars( Dsd_Manager_t * dMan, in
 extern Dsd_Node_t **   Dsd_TreeCollectNodesDfs( Dsd_Manager_t * dMan, int * pnNodes );
 extern Dsd_Node_t **   Dsd_TreeCollectNodesDfsOne( Dsd_Manager_t * pDsdMan, Dsd_Node_t * pNode, int * pnNodes );
 extern void            Dsd_TreePrint( FILE * pFile, Dsd_Manager_t * dMan, char * pInputNames[], char * pOutputNames[], int fShortNames, int Output );
+extern void            Dsd_TreePrint2( FILE * pFile, Dsd_Manager_t * dMan, char * pInputNames[], char * pOutputNames[], int Output );
 extern void            Dsd_NodePrint( FILE * pFile, Dsd_Node_t * pNode );
 /*=== dsdLocal.c =======================================================*/
 extern DdNode *        Dsd_TreeGetPrimeFunction( DdManager * dd, Dsd_Node_t * pNode );
