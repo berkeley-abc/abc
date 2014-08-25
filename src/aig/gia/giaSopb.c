@@ -233,6 +233,35 @@ Vec_Int_t * Gia_ManFindLatest( Gia_Man_t * p, int LevelMax, int nTimeWindow )
   SeeAlso     []
 
 ***********************************************************************/
+Gia_Man_t * Gia_ManExtractWindow( Gia_Man_t * p, int LevelMax, int nTimeWindow, int fVerbose )
+{
+    Vec_Int_t * vOuts;
+    Gia_Man_t * pWin;
+    assert( !LevelMax != !nTimeWindow );
+    vOuts = Gia_ManFindLatest( p, LevelMax, nTimeWindow );
+    if ( fVerbose )
+        printf( "Collected %d outputs to extract.\n", Vec_IntSize(vOuts) );
+    if ( Vec_IntSize(vOuts) == 0 )
+    {
+        Vec_IntFree( vOuts );
+        return Gia_ManDup( p );
+    }
+    pWin = Gia_ManExtractWin( p, vOuts, 1 );
+    Vec_IntFree( vOuts );
+    return pWin;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 Gia_Man_t * Gia_ManPerformSopBalanceWin( Gia_Man_t * p, int LevelMax, int nTimeWindow, int nCutNum, int nRelaxRatio, int fVerbose )
 {
     Vec_Int_t * vOuts;
@@ -266,10 +295,10 @@ Gia_Man_t * Gia_ManPerformSopBalanceWin( Gia_Man_t * p, int LevelMax, int nTimeW
   SeeAlso     []
 
 ***********************************************************************/
-Gia_Man_t * Gia_ManExtractWindow( Gia_Man_t * p, int LevelMax, int nTimeWindow, int fVerbose )
+Gia_Man_t * Gia_ManPerformDsdBalanceWin( Gia_Man_t * p, int LevelMax, int nTimeWindow, int nLutSize, int nCutNum, int nRelaxRatio, int fVerbose )
 {
     Vec_Int_t * vOuts;
-    Gia_Man_t * pWin;
+    Gia_Man_t * pNew, * pWin, * pWinNew;
     assert( !LevelMax != !nTimeWindow );
     vOuts = Gia_ManFindLatest( p, LevelMax, nTimeWindow );
     if ( fVerbose )
@@ -279,9 +308,13 @@ Gia_Man_t * Gia_ManExtractWindow( Gia_Man_t * p, int LevelMax, int nTimeWindow, 
         Vec_IntFree( vOuts );
         return Gia_ManDup( p );
     }
-    pWin = Gia_ManExtractWin( p, vOuts, 1 );
+    pWin = Gia_ManExtractWin( p, vOuts, 0 );
+    pWinNew = Gia_ManPerformDsdBalance( pWin, nLutSize, nCutNum, nRelaxRatio, fVerbose );
+    Gia_ManStop( pWin );
+    pNew = Gia_ManInsertWin( p, vOuts, pWinNew );
+    Gia_ManStop( pWinNew );
     Vec_IntFree( vOuts );
-    return pWin;
+    return pNew;
 }
 
 ////////////////////////////////////////////////////////////////////////

@@ -976,6 +976,7 @@ Gia_Man_t * Gia_ManAreaBalance( Gia_Man_t * p, int fSimpleAnd, int nNewNodesMax,
         pNew2 = Gia_ManDupNormalize( pNew1 = pNew2 );
         Gia_ManStop( pNew1 );
     }
+    Gia_ManTransferTiming( p, pNew2 );
     return pNew2;
 }
 
@@ -998,19 +999,6 @@ void Gia_ManAigPrintPiLevels( Gia_Man_t * p )
         printf( "%d ", Gia_ObjLevel(p, pObj) );
     printf( "\n" );
 }
-void Gia_ManAigTransferPiLevels( Gia_Man_t * pNew, Gia_Man_t * p )
-{
-/*
-    Gia_Obj_t * pObj;
-    int i;
-    if ( p->vLevels == NULL )
-        return;
-    Gia_ManCleanLevels( pNew, Gia_ManObjNum(pNew) );
-    Gia_ManForEachCi( pNew, pObj, i )
-        Gia_ObjSetLevel( pNew, pObj, Gia_ObjLevel(p, Gia_ManCi(p, i)) );
-*/
-    if ( p->pManTime ) pNew->pManTime = p->pManTime, p->pManTime = NULL;
-}
 
 /**Function*************************************************************
 
@@ -1023,9 +1011,9 @@ void Gia_ManAigTransferPiLevels( Gia_Man_t * pNew, Gia_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-Gia_Man_t * Gia_ManAigSyn2( Gia_Man_t * p, int fOldAlgo, int fCoarsen, int fCutMin, int nRelaxRatio, int fDelayMin, int fVerbose, int fVeryVerbose )
+Gia_Man_t * Gia_ManAigSyn2( Gia_Man_t * pInit, int fOldAlgo, int fCoarsen, int fCutMin, int nRelaxRatio, int fDelayMin, int fVerbose, int fVeryVerbose )
 {
-    Gia_Man_t * pNew, * pTemp;
+    Gia_Man_t * p, * pNew, * pTemp;
     Jf_Par_t Pars, * pPars = &Pars;
     if ( fOldAlgo )
     {
@@ -1041,13 +1029,13 @@ Gia_Man_t * Gia_ManAigSyn2( Gia_Man_t * p, int fOldAlgo, int fCoarsen, int fCutM
         pPars->nAreaTuner  = 1;
         pPars->nCutNum     = 4;
     }
-    if ( fVerbose )     Gia_ManPrintStats( p, NULL );
-    p = Gia_ManDup( pTemp = p );
-    Gia_ManAigTransferPiLevels( p, pTemp );
+    if ( fVerbose )  Gia_ManPrintStats( pInit, NULL );
+    p = Gia_ManDup( pInit );
+    Gia_ManTransferTiming( pInit, p );
     if ( Gia_ManAndNum(p) == 0 )
         return p;
     // delay optimization
-    if ( fDelayMin )
+    if ( fDelayMin && p->pManTime == NULL )
     {
         int Area0, Area1, Delay0, Delay1;
         int fCutMin = pPars->fCutMin;
@@ -1064,7 +1052,7 @@ Gia_Man_t * Gia_ManAigSyn2( Gia_Man_t * p, int fOldAlgo, int fCoarsen, int fCutM
         Area0  = (int)pPars->Area;
         Delay0 = (int)pPars->Delay;
         // perform balancing
-        pNew = Gia_ManPerformDsdBalance( p, 4, 0, 0 );
+        pNew = Gia_ManPerformDsdBalance( p, 6, 4, 0, 0 );
         // perform mapping again
         if ( fOldAlgo )
             Jf_ManPerformMapping( pNew, pPars );
@@ -1075,7 +1063,6 @@ Gia_Man_t * Gia_ManAigSyn2( Gia_Man_t * p, int fOldAlgo, int fCoarsen, int fCutM
         // choose the best result
         if ( Delay1 < Delay0 - 1 || (Delay1 == Delay0 + 1 && 100.0 * (Area1 - Area0) / Area1 < 3.0) )
         {
-            Gia_ManAigTransferPiLevels( pNew, p );
             Gia_ManStop( p );
             p = pNew;
         }
@@ -1092,7 +1079,6 @@ Gia_Man_t * Gia_ManAigSyn2( Gia_Man_t * p, int fOldAlgo, int fCoarsen, int fCutM
     // perform balancing
     pNew = Gia_ManAreaBalance( p, 0, ABC_INFINITY, fVeryVerbose, 0 );
     if ( fVerbose )     Gia_ManPrintStats( pNew, NULL );
-    Gia_ManAigTransferPiLevels( pNew, p );
     Gia_ManStop( p );
     // perform mapping
     if ( fOldAlgo )
@@ -1101,14 +1087,10 @@ Gia_Man_t * Gia_ManAigSyn2( Gia_Man_t * p, int fOldAlgo, int fCoarsen, int fCutM
         pNew = Lf_ManPerformMapping( pTemp = pNew, pPars );
     if ( fVerbose )     Gia_ManPrintStats( pNew, NULL );
     if ( pTemp != pNew )
-    {
-        Gia_ManAigTransferPiLevels( pNew, pTemp );
         Gia_ManStop( pTemp );
-    }
     // perform balancing
     pNew = Gia_ManAreaBalance( pTemp = pNew, 0, ABC_INFINITY, fVeryVerbose, 0 );
     if ( fVerbose )     Gia_ManPrintStats( pNew, NULL );
-    Gia_ManAigTransferPiLevels( pNew, pTemp );
     Gia_ManStop( pTemp );
     return pNew;
 }
@@ -1124,7 +1106,6 @@ Gia_Man_t * Gia_ManAigSyn3( Gia_Man_t * p, int fVerbose, int fVeryVerbose )
     // perform balancing
     pNew = Gia_ManAreaBalance( p, 0, ABC_INFINITY, fVeryVerbose, 0 );
     if ( fVerbose )     Gia_ManPrintStats( pNew, NULL );
-    Gia_ManAigTransferPiLevels( pNew, p );
     // perform mapping
     pPars->nLutSize = 6;
     pNew = Jf_ManPerformMapping( pTemp = pNew, pPars );
@@ -1133,7 +1114,6 @@ Gia_Man_t * Gia_ManAigSyn3( Gia_Man_t * p, int fVerbose, int fVeryVerbose )
     // perform balancing
     pNew = Gia_ManAreaBalance( pTemp = pNew, 0, ABC_INFINITY, fVeryVerbose, 0 );
     if ( fVerbose )     Gia_ManPrintStats( pNew, NULL );
-    Gia_ManAigTransferPiLevels( pNew, pTemp );
     Gia_ManStop( pTemp );
     // perform mapping
     pPars->nLutSize = 4;
@@ -1143,7 +1123,6 @@ Gia_Man_t * Gia_ManAigSyn3( Gia_Man_t * p, int fVerbose, int fVeryVerbose )
     // perform balancing
     pNew = Gia_ManAreaBalance( pTemp = pNew, 0, ABC_INFINITY, fVeryVerbose, 0 );
     if ( fVerbose )     Gia_ManPrintStats( pNew, NULL );
-    Gia_ManAigTransferPiLevels( pNew, pTemp );
     Gia_ManStop( pTemp );
     return pNew;
 }
@@ -1160,7 +1139,6 @@ Gia_Man_t * Gia_ManAigSyn4( Gia_Man_t * p, int fVerbose, int fVeryVerbose )
     // perform balancing
     pNew = Gia_ManAreaBalance( p, 0, ABC_INFINITY, fVeryVerbose, 0 );
     if ( fVerbose )     Gia_ManPrintStats( pNew, NULL );
-    Gia_ManAigTransferPiLevels( pNew, p );
     // perform mapping
     pPars->nLutSize = 7;
     pNew = Jf_ManPerformMapping( pTemp = pNew, pPars );
@@ -1169,12 +1147,10 @@ Gia_Man_t * Gia_ManAigSyn4( Gia_Man_t * p, int fVerbose, int fVeryVerbose )
     // perform extraction
     pNew = Gia_ManPerformFx( pTemp = pNew, ABC_INFINITY, 0, 0, fVeryVerbose, 0 );
     if ( fVerbose )     Gia_ManPrintStats( pNew, NULL );
-    Gia_ManAigTransferPiLevels( pNew, pTemp );
     Gia_ManStop( pTemp );
     // perform balancing
     pNew = Gia_ManAreaBalance( pTemp = pNew, 0, ABC_INFINITY, fVeryVerbose, 0 );
     if ( fVerbose )     Gia_ManPrintStats( pNew, NULL );
-    Gia_ManAigTransferPiLevels( pNew, pTemp );
     Gia_ManStop( pTemp );
     // perform mapping
     pPars->nLutSize = 5;
@@ -1184,12 +1160,10 @@ Gia_Man_t * Gia_ManAigSyn4( Gia_Man_t * p, int fVerbose, int fVeryVerbose )
     // perform extraction
     pNew = Gia_ManPerformFx( pTemp = pNew, ABC_INFINITY, 0, 0, fVeryVerbose, 0 );
     if ( fVerbose )     Gia_ManPrintStats( pNew, NULL );
-    Gia_ManAigTransferPiLevels( pNew, pTemp );
     Gia_ManStop( pTemp );
     // perform balancing
     pNew = Gia_ManAreaBalance( pTemp = pNew, 0, ABC_INFINITY, fVeryVerbose, 0 );
     if ( fVerbose )     Gia_ManPrintStats( pNew, NULL );
-    Gia_ManAigTransferPiLevels( pNew, pTemp );
     Gia_ManStop( pTemp );
 //Gia_ManAigPrintPiLevels( pNew );
     return pNew;

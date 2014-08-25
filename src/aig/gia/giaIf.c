@@ -1619,11 +1619,12 @@ void Gia_ManTransferPacking( Gia_Man_t * pGia, Gia_Man_t * p )
 }
 void Gia_ManTransferTiming( Gia_Man_t * pGia, Gia_Man_t * p )
 {
+    if ( pGia->pManTime == NULL )
+        return;
     p->pManTime   = pGia->pManTime;   pGia->pManTime   = NULL;
     p->pAigExtra  = pGia->pAigExtra;  pGia->pAigExtra  = NULL;
     p->nAnd2Delay = pGia->nAnd2Delay; pGia->nAnd2Delay = 0;
 }
-
 
 /**Function*************************************************************
 
@@ -1741,6 +1742,7 @@ Gia_Man_t * Gia_ManPerformSopBalance( Gia_Man_t * p, int nCutNum, int nRelaxRati
     If_ManPerformMapping( pIfMan );
     pNew = Gia_ManFromIfAig( pIfMan );
     If_ManStop( pIfMan );
+    Gia_ManTransferTiming( p, pNew );
     // transfer name
     assert( pNew->pName == NULL );
     pNew->pName = Abc_UtilStrsav( p->pName );
@@ -1748,7 +1750,7 @@ Gia_Man_t * Gia_ManPerformSopBalance( Gia_Man_t * p, int nCutNum, int nRelaxRati
     Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
     return pNew;
 }
-Gia_Man_t * Gia_ManPerformDsdBalance( Gia_Man_t * p, int nCutNum, int nRelaxRatio, int fVerbose )
+Gia_Man_t * Gia_ManPerformDsdBalance( Gia_Man_t * p, int nLutSize, int nCutNum, int nRelaxRatio, int fVerbose )
 {
     Gia_Man_t * pNew;
     If_Man_t * pIfMan;
@@ -1757,7 +1759,7 @@ Gia_Man_t * Gia_ManPerformDsdBalance( Gia_Man_t * p, int nCutNum, int nRelaxRati
     pPars->nCutsMax    = nCutNum;
     pPars->nRelaxRatio = nRelaxRatio;
     pPars->fVerbose    = fVerbose;
-    pPars->nLutSize    = 6;
+    pPars->nLutSize    = nLutSize;
     pPars->fDsdBalance = 1;
     pPars->fUseDsd     = 1;
     pPars->fCutMin     = 1;
@@ -1773,6 +1775,7 @@ Gia_Man_t * Gia_ManPerformDsdBalance( Gia_Man_t * p, int nCutNum, int nRelaxRati
     If_ManPerformMapping( pIfMan );
     pNew = Gia_ManFromIfAig( pIfMan );
     If_ManStop( pIfMan );
+    Gia_ManTransferTiming( p, pNew );
     // transfer name
     assert( pNew->pName == NULL );
     pNew->pName = Abc_UtilStrsav( p->pName );

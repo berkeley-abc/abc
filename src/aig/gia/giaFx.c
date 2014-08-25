@@ -464,6 +464,7 @@ Gia_Man_t * Gia_ManPerformFx( Gia_Man_t * p, int nNewNodesMax, int LitCountMax, 
 //    Abc_PrintTime( 1, "Fx runtime", Abc_Clock() - clk );
     // insert information
     pNew = Gia_ManFxInsert( p, vCubes, vCompl );
+    Gia_ManTransferTiming( p, pNew );
     // cleanup
     Vec_WecFree( vCubes );
     Vec_StrFree( vCompl );
