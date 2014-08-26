@@ -323,7 +323,7 @@ If_LibBox_t * If_LibBoxRead( char * pFileName )
         for ( i = 0; i < nPis * nPos; i++ )
         {
             pToken = If_LibBoxGetToken( pFile );
-            pBox->pDelays[i] = (pToken[0] == '-') ? -1 : atoi(pToken);
+            pBox->pDelays[i] = (pToken[0] == '-') ? -ABC_INFINITY : atoi(pToken);
         }
         // extract next name
         pToken = If_LibBoxGetToken( pFile );
@@ -342,7 +342,7 @@ void If_LibBoxPrint( FILE * pFile, If_LibBox_t * p )
         fprintf( pFile, "%s %d %d %d %d\n", pBox->pName, pBox->Id, !pBox->fBlack, pBox->nPis, pBox->nPos );
         for ( j = 0; j < pBox->nPos; j++, printf("\n") )
             for ( k = 0; k < pBox->nPis; k++ )
-                if ( pBox->pDelays[j * pBox->nPis + k] == -1 )
+                if ( pBox->pDelays[j * pBox->nPis + k] == -ABC_INFINITY )
                     fprintf( pFile, "    - " );
                 else
                     fprintf( pFile, "%5d ", pBox->pDelays[j * pBox->nPis + k] );

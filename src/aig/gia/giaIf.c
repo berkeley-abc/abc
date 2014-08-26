@@ -1671,6 +1671,7 @@ Gia_Man_t * Gia_ManPerformMappingInt( Gia_Man_t * p, If_Par_t * pPars )
     }
     if ( p->pManTime )
         pIfMan->pManTim = Tim_ManDup( (Tim_Man_t *)p->pManTime, pPars->fDelayOpt || pPars->fDelayOptLut || pPars->fDsdBalance || pPars->fUserRecLib );
+//    Tim_ManPrint( pIfMan->pManTim );
     if ( !If_ManPerformMapping( pIfMan ) )
     {
         If_ManStop( pIfMan );
@@ -1694,8 +1695,6 @@ Gia_Man_t * Gia_ManPerformMapping( Gia_Man_t * p, void * pp )
     Gia_Man_t * pNew;
     if ( p->pManTime && Tim_ManBoxNum(p->pManTime) && Gia_ManIsNormalized(p) )
     {
-        Tim_Man_t * pTimOld = (Tim_Man_t *)p->pManTime;
-        p->pManTime = Tim_ManDup( pTimOld, 1 );
         pNew = Gia_ManDupUnnormalize( p );
         if ( pNew == NULL )
             return NULL;
@@ -1714,9 +1713,6 @@ Gia_Man_t * Gia_ManPerformMapping( Gia_Man_t * p, void * pp )
         Gia_ManTransferPacking( pNew, p );
         Gia_ManTransferTiming( pNew, p );
         Gia_ManStop( p );
-        // cleanup
-        Tim_ManStop( (Tim_Man_t *)pNew->pManTime );
-        pNew->pManTime = pTimOld;
         assert( Gia_ManIsNormalized(pNew) );
     }
     else 

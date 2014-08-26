@@ -200,7 +200,8 @@ float Tim_ManGetCiArrival( Tim_Man_t * p, int iCi )
         pDelays = pTable + 3 + i * pBox->nInputs;
         DelayBest = -TIM_ETERNITY;
         Tim_ManBoxForEachInput( p, pBox, pObj, k )
-            DelayBest = Abc_MaxInt( DelayBest, pObj->timeArr + pDelays[k] );
+            if ( pDelays[k] != -ABC_INFINITY )
+                DelayBest = Abc_MaxInt( DelayBest, pObj->timeArr + pDelays[k] );
         pObjRes->timeArr = DelayBest;
         pObjRes->TravId = p->nTravIds;
     }
@@ -248,7 +249,8 @@ float Tim_ManGetCoRequired( Tim_Man_t * p, int iCo )
         Tim_ManBoxForEachOutput( p, pBox, pObj, k )
         {
             pDelays = pTable + 3 + k * pBox->nInputs;
-            DelayBest = Abc_MinFloat( DelayBest, pObj->timeReq - pDelays[i] );
+            if ( pDelays[k] != -ABC_INFINITY )
+                DelayBest = Abc_MinFloat( DelayBest, pObj->timeReq - pDelays[i] );
         }
         pObjRes->timeReq = DelayBest;
         pObjRes->TravId = p->nTravIds;
