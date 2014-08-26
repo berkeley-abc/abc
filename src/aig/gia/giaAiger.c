@@ -1038,7 +1038,7 @@ void Gia_AigerWrite( Gia_Man_t * pInit, char * pFileName, int fWriteSymbols, int
     {
 //        printf( "Gia_AigerWrite(): Normalizing AIG for writing.\n" );
         p = Gia_ManDupNormalize( pInit );
-        Gia_ManTransferTiming( pInit, p );
+        Gia_ManTransferTiming( p, pInit );
         p->vNamesIn   = pInit->vNamesIn;   pInit->vNamesIn   = NULL;
         p->vNamesOut  = pInit->vNamesOut;  pInit->vNamesOut  = NULL;
         p->nConstrs   = pInit->nConstrs;   pInit->nConstrs   = 0;

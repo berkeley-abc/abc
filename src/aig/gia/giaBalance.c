@@ -976,7 +976,7 @@ Gia_Man_t * Gia_ManAreaBalance( Gia_Man_t * p, int fSimpleAnd, int nNewNodesMax,
         pNew2 = Gia_ManDupNormalize( pNew1 = pNew2 );
         Gia_ManStop( pNew1 );
     }
-    Gia_ManTransferTiming( p, pNew2 );
+    Gia_ManTransferTiming( pNew2, p );
     return pNew2;
 }
 
@@ -1031,7 +1031,7 @@ Gia_Man_t * Gia_ManAigSyn2( Gia_Man_t * pInit, int fOldAlgo, int fCoarsen, int f
     }
     if ( fVerbose )  Gia_ManPrintStats( pInit, NULL );
     p = Gia_ManDup( pInit );
-    Gia_ManTransferTiming( pInit, p );
+    Gia_ManTransferTiming( p, pInit );
     if ( Gia_ManAndNum(p) == 0 )
         return p;
     // delay optimization

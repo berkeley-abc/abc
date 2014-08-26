@@ -30851,7 +30851,7 @@ int Abc_CommandAbc9If( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
 
     // perform mapping
-    pNew = Gia_ManPerformMapping( pAbc->pGia, pPars, 1 );
+    pNew = Gia_ManPerformMapping( pAbc->pGia, pPars );
     if ( pNew == NULL )
     {
         Abc_Print( -1, "Abc_CommandAbc9If(): Mapping of GIA has failed.\n" );

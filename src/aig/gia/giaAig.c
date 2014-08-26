@@ -559,7 +559,7 @@ Gia_Man_t * Gia_ManCompress2( Gia_Man_t * p, int fUpdateLevel, int fVerbose )
     Aig_ManStop( pTemp );
     pGia = Gia_ManFromAig( pNew );
     Aig_ManStop( pNew );
-    Gia_ManTransferTiming( p, pGia );
+    Gia_ManTransferTiming( pGia, p );
     return pGia;
 }
 
@@ -585,7 +585,7 @@ Gia_Man_t * Gia_ManPerformDch( Gia_Man_t * p, void * pPars )
 //    pGia = Gia_ManFromAig( pNew );
     pGia = Gia_ManFromAigChoices( pNew );
     Aig_ManStop( pNew );
-    Gia_ManTransferTiming( p, pGia );
+    Gia_ManTransferTiming( pGia, p );
     return pGia;
 }
 

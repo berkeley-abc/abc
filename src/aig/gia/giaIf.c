@@ -1561,7 +1561,7 @@ void Gia_ManMappingVerify( Gia_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-void Gia_ManTransferMapping( Gia_Man_t * pGia, Gia_Man_t * p )
+void Gia_ManTransferMapping( Gia_Man_t * p, Gia_Man_t * pGia )
 {
     Gia_Obj_t * pObj;
     int i, k, iFan;
@@ -1583,7 +1583,7 @@ void Gia_ManTransferMapping( Gia_Man_t * pGia, Gia_Man_t * p )
     }
     Gia_ManMappingVerify( p );
 }
-void Gia_ManTransferPacking( Gia_Man_t * pGia, Gia_Man_t * p )
+void Gia_ManTransferPacking( Gia_Man_t * p, Gia_Man_t * pGia )
 {
     Vec_Int_t * vPackingNew;
     Gia_Obj_t * pObj, * pObjNew;
@@ -1617,7 +1617,7 @@ void Gia_ManTransferPacking( Gia_Man_t * pGia, Gia_Man_t * p )
     assert( p->vPacking == NULL );
     p->vPacking = vPackingNew;
 }
-void Gia_ManTransferTiming( Gia_Man_t * pGia, Gia_Man_t * p )
+void Gia_ManTransferTiming( Gia_Man_t * p, Gia_Man_t * pGia )
 {
     if ( pGia->pManTime == NULL )
         return;
@@ -1637,44 +1637,20 @@ void Gia_ManTransferTiming( Gia_Man_t * pGia, Gia_Man_t * p )
   SeeAlso     [] 
 
 ***********************************************************************/
-Gia_Man_t * Gia_ManPerformMapping( Gia_Man_t * p, void * pp, int fNormalized )
+Gia_Man_t * Gia_ManPerformMappingInt( Gia_Man_t * p, If_Par_t * pPars )
 {
     extern void Gia_ManIffTest( Gia_Man_t * pGia, If_LibLut_t * pLib, int fVerbose );
     Gia_Man_t * pNew;
     If_Man_t * pIfMan;
-    If_Par_t * pPars = (If_Par_t *)pp;
+    assert( pPars->pTimesArr == NULL );
+    assert( pPars->pTimesReq == NULL );
     // disable cut minimization when GIA strucure is needed
     if ( !pPars->fDelayOpt && !pPars->fDelayOptLut && !pPars->fDsdBalance && !pPars->fUserRecLib && !pPars->fDeriveLuts && !pPars->fUseDsd && !pPars->fUseTtPerm )
         pPars->fCutMin = 0;
-
-    // reconstruct GIA according to the hierarchy manager
-    assert( pPars->pTimesArr == NULL );
-    assert( pPars->pTimesReq == NULL );
-    if ( p->pManTime )
-    {
-        if ( fNormalized )
-        {
-            pNew = Gia_ManDupUnnormalize( p );
-            if ( pNew == NULL )
-                return NULL;
-            pNew->pManTime   = p->pManTime;   p->pManTime  = NULL;
-            pNew->pAigExtra  = p->pAigExtra;  p->pAigExtra = NULL;
-            pNew->nAnd2Delay = p->nAnd2Delay; p->nAnd2Delay = 0;
-            p = pNew;
-            // set arrival and required times
-            pPars->pTimesArr = Tim_ManGetArrTimes( (Tim_Man_t *)p->pManTime );
-            pPars->pTimesReq = Tim_ManGetReqTimes( (Tim_Man_t *)p->pManTime );
-        }
-    }
-    else 
-        p = Gia_ManDup( p );
     // translate into the mapper
     pIfMan = Gia_ManToIf( p, pPars );    
     if ( pIfMan == NULL )
-    {
-        Gia_ManStop( p );
         return NULL;
-    }
     // create DSD manager
     if ( pPars->fUseDsd )
     {
@@ -1698,7 +1674,6 @@ Gia_Man_t * Gia_ManPerformMapping( Gia_Man_t * p, void * pp, int fNormalized )
     if ( !If_ManPerformMapping( pIfMan ) )
     {
         If_ManStop( pIfMan );
-        Gia_ManStop( p );
         return NULL;
     }
     // transform the result of mapping into the new network
@@ -1712,17 +1687,58 @@ Gia_Man_t * Gia_ManPerformMapping( Gia_Man_t * p, void * pp, int fNormalized )
     pNew->pName = Abc_UtilStrsav( p->pName );
     pNew->pSpec = Abc_UtilStrsav( p->pSpec );
     Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
-    // return the original (unmodified by the mapper) timing manager
-    Gia_ManTransferTiming( p, pNew );
-    Gia_ManStop( p );
-    // normalize and transfer mapping
-    pNew = Gia_ManDupNormalize( p = pNew );
-    Gia_ManTransferMapping( p, pNew );
-    Gia_ManTransferPacking( p, pNew );
-    Gia_ManTransferTiming( p, pNew );
-    Gia_ManStop( p );
     return pNew;
 }
+Gia_Man_t * Gia_ManPerformMapping( Gia_Man_t * p, void * pp )
+{
+    Gia_Man_t * pNew;
+    if ( p->pManTime && Tim_ManBoxNum(p->pManTime) && Gia_ManIsNormalized(p) )
+    {
+        Tim_Man_t * pTimOld = (Tim_Man_t *)p->pManTime;
+        p->pManTime = Tim_ManDup( pTimOld, 1 );
+        pNew = Gia_ManDupUnnormalize( p );
+        if ( pNew == NULL )
+            return NULL;
+        Gia_ManTransferTiming( pNew, p );
+        p = pNew;
+        // mapping
+        pNew = Gia_ManPerformMappingInt( p, (If_Par_t *)pp );
+        if ( pNew != p )
+        {
+            Gia_ManTransferTiming( pNew, p );
+            Gia_ManStop( p );
+        }
+        // normalize
+        pNew = Gia_ManDupNormalize( p = pNew );
+        Gia_ManTransferMapping( pNew, p );
+        Gia_ManTransferPacking( pNew, p );
+        Gia_ManTransferTiming( pNew, p );
+        Gia_ManStop( p );
+        // cleanup
+        Tim_ManStop( (Tim_Man_t *)pNew->pManTime );
+        pNew->pManTime = pTimOld;
+        assert( Gia_ManIsNormalized(pNew) );
+    }
+    else 
+    {
+        // mapping
+        pNew = Gia_ManPerformMappingInt( p, (If_Par_t *)pp );
+        Gia_ManTransferTiming( pNew, p );
+    }
+    return pNew;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Interface of other mapping-based procedures.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     [] 
+
+***********************************************************************/
 Gia_Man_t * Gia_ManPerformSopBalance( Gia_Man_t * p, int nCutNum, int nRelaxRatio, int fVerbose )
 {
     Gia_Man_t * pNew;
@@ -1742,7 +1758,7 @@ Gia_Man_t * Gia_ManPerformSopBalance( Gia_Man_t * p, int nCutNum, int nRelaxRati
     If_ManPerformMapping( pIfMan );
     pNew = Gia_ManFromIfAig( pIfMan );
     If_ManStop( pIfMan );
-    Gia_ManTransferTiming( p, pNew );
+    Gia_ManTransferTiming( pNew, p );
     // transfer name
     assert( pNew->pName == NULL );
     pNew->pName = Abc_UtilStrsav( p->pName );
@@ -1775,7 +1791,7 @@ Gia_Man_t * Gia_ManPerformDsdBalance( Gia_Man_t * p, int nLutSize, int nCutNum, 
     If_ManPerformMapping( pIfMan );
     pNew = Gia_ManFromIfAig( pIfMan );
     If_ManStop( pIfMan );
-    Gia_ManTransferTiming( p, pNew );
+    Gia_ManTransferTiming( pNew, p );
     // transfer name
     assert( pNew->pName == NULL );
     pNew->pName = Abc_UtilStrsav( p->pName );

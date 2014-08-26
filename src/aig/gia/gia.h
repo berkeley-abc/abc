@@ -1183,10 +1183,10 @@ extern int                 Gia_ManLutLevel( Gia_Man_t * p );
 extern void                Gia_ManSetRefsMapped( Gia_Man_t * p );
 extern void                Gia_ManSetIfParsDefault( void * pIfPars );
 extern void                Gia_ManMappingVerify( Gia_Man_t * p );
-extern void                Gia_ManTransferMapping( Gia_Man_t * pGia, Gia_Man_t * p );
-extern void                Gia_ManTransferPacking( Gia_Man_t * pGia, Gia_Man_t * p );
-extern void                Gia_ManTransferTiming( Gia_Man_t * pGia, Gia_Man_t * p );
-extern Gia_Man_t *         Gia_ManPerformMapping( Gia_Man_t * p, void * pIfPars, int fNormalized );
+extern void                Gia_ManTransferMapping( Gia_Man_t * p, Gia_Man_t * pGia );
+extern void                Gia_ManTransferPacking( Gia_Man_t * p, Gia_Man_t * pGia );
+extern void                Gia_ManTransferTiming( Gia_Man_t * p, Gia_Man_t * pGia );
+extern Gia_Man_t *         Gia_ManPerformMapping( Gia_Man_t * p, void * pIfPars );
 extern Gia_Man_t *         Gia_ManPerformSopBalance( Gia_Man_t * p, int nCutNum, int nRelaxRatio, int fVerbose );
 extern Gia_Man_t *         Gia_ManPerformDsdBalance( Gia_Man_t * p, int nLutSize, int nCutNum, int nRelaxRatio, int fVerbose );
 /*=== giaJf.c ===========================================================*/
