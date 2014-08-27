@@ -546,6 +546,19 @@ Gia_Man_t * Gia_ManDup( Gia_Man_t * p )
         pNew->pCexSeq = Abc_CexDup( p->pCexSeq, Gia_ManRegNum(p) );
     return pNew;
 }
+Gia_Man_t * Gia_ManDupWithAttributes( Gia_Man_t * p )
+{
+    Gia_Man_t * pNew = Gia_ManDup(p);
+    Gia_ManTransferMapping( pNew, p );
+    Gia_ManTransferPacking( pNew, p );
+    if ( p->pManTime )
+        pNew->pManTime = Tim_ManDup( (Tim_Man_t *)p->pManTime, 0 );
+    if ( p->pAigExtra )
+        pNew->pAigExtra = Gia_ManDup( p->pAigExtra );
+    if ( p->nAnd2Delay )
+        pNew->nAnd2Delay = p->nAnd2Delay;
+    return pNew;
+}
 
 /**Function*************************************************************
 

@@ -486,6 +486,110 @@ int Gia_ManLevelWithBoxes( Gia_Man_t * p )
 
 /**Function*************************************************************
 
+  Synopsis    [Computes level with boxes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Gia_ManLutLevelWithBoxes_rec( Gia_Man_t * p, Gia_Obj_t * pObj )
+{
+    int iObj, k, iFan, Level = 0;
+    if ( Gia_ObjIsTravIdCurrent(p, pObj) )
+        return 0;
+    Gia_ObjSetTravIdCurrent(p, pObj);
+    if ( Gia_ObjIsCi(pObj) )
+        return 1;
+    assert( Gia_ObjIsAnd(pObj) );
+    iObj = Gia_ObjId( p, pObj );
+    Gia_LutForEachFanin( p, iObj, iFan, k )
+    {
+        if ( Gia_ManLutLevelWithBoxes_rec( p, Gia_ManObj(p, iFan) ) )
+            return 1;
+        Level = Abc_MaxInt( Level, Gia_ObjLevelId(p, iFan) );
+    }
+    Gia_ObjSetLevelId( p, iObj, Level + 1 );
+    return 0;
+}
+int Gia_ManLutLevelWithBoxes( Gia_Man_t * p )
+{
+//    int nAnd2Delay = p->nAnd2Delay ? p->nAnd2Delay : 1;
+    Tim_Man_t * pManTime = (Tim_Man_t *)p->pManTime;
+    Gia_Obj_t * pObj, * pObjIn;
+    int i, k, j, curCi, curCo, LevelMax;
+    assert( Gia_ManRegNum(p) == 0 );
+    // copy const and real PIs
+    Gia_ManCleanLevels( p, Gia_ManObjNum(p) );
+    Gia_ObjSetLevel( p, Gia_ManConst0(p), 0 );
+    Gia_ManIncrementTravId( p );
+    Gia_ObjSetTravIdCurrent( p, Gia_ManConst0(p) );
+    for ( i = 0; i < Tim_ManPiNum(pManTime); i++ )
+    {
+        pObj = Gia_ManPi( p, i );
+//        Gia_ObjSetLevel( p, pObj, Tim_ManGetCiArrival(pManTime, i) / nAnd2Delay );
+        Gia_ObjSetLevel( p, pObj, 0 );
+        Gia_ObjSetTravIdCurrent( p, pObj );
+    }
+    // create logic for each box
+    curCi = Tim_ManPiNum(pManTime);
+    curCo = 0;
+    for ( i = 0; i < Tim_ManBoxNum(pManTime); i++ )
+    {
+        int nBoxInputs  = Tim_ManBoxInputNum( pManTime, i );
+        int nBoxOutputs = Tim_ManBoxOutputNum( pManTime, i );
+        float * pDelayTable = Tim_ManBoxDelayTable( pManTime, i );
+        // compute level for TFI of box inputs
+        for ( k = 0; k < nBoxInputs; k++ )
+        {
+            pObj = Gia_ManPo( p, curCo + k );
+            if ( Gia_ManLutLevelWithBoxes_rec( p, Gia_ObjFanin0(pObj) ) )
+            {
+                printf( "Boxes are not in a topological order. Switching to level computation without boxes.\n" );
+                return Gia_ManLevelNum( p );
+            }
+            // set box input level
+            Gia_ObjSetCoLevel( p, pObj );
+        }
+        // compute level for box outputs
+        for ( k = 0; k < nBoxOutputs; k++ )
+        {
+            pObj = Gia_ManPi( p, curCi + k );
+            Gia_ObjSetTravIdCurrent( p, pObj );
+            // evaluate delay of this output
+            LevelMax = 0;
+            assert( nBoxInputs == (int)pDelayTable[1] );
+            for ( j = 0; j < nBoxInputs && (pObjIn = Gia_ManPo(p, curCo + j)); j++ )
+                if ( (int)pDelayTable[3+k*nBoxInputs+j] != -ABC_INFINITY )
+//                    LevelMax = Abc_MaxInt( LevelMax, Gia_ObjLevel(p, pObjIn) + ((int)pDelayTable[3+k*nBoxInputs+j] / nAnd2Delay) );
+                    LevelMax = Abc_MaxInt( LevelMax, Gia_ObjLevel(p, pObjIn) + 1 );
+            // set box output level
+            Gia_ObjSetLevel( p, pObj, LevelMax );
+        }
+        curCo += nBoxInputs;
+        curCi += nBoxOutputs;
+    }
+    // add remaining nodes
+    p->nLevels = 0;
+    for ( i = Tim_ManCoNum(pManTime) - Tim_ManPoNum(pManTime); i < Tim_ManCoNum(pManTime); i++ )
+    {
+        pObj = Gia_ManPo( p, i );
+        Gia_ManLutLevelWithBoxes_rec( p, Gia_ObjFanin0(pObj) );
+        Gia_ObjSetCoLevel( p, pObj );
+        p->nLevels = Abc_MaxInt( p->nLevels, Gia_ObjLevel(p, pObj) );
+    }
+    curCo += Tim_ManPoNum(pManTime);
+    // verify counts
+    assert( curCi == Gia_ManPiNum(p) );
+    assert( curCo == Gia_ManPoNum(p) );
+//    printf( "Max level is %d.\n", p->nLevels );
+    return p->nLevels;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Verify XAIG against its spec.]
 
   Description []

@@ -318,6 +318,8 @@ static int Abc_CommandTraceCheck             ( Abc_Frame_t * pAbc, int argc, cha
 
 static int Abc_CommandAbc9Get                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Put                ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9Save               ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9Load               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Read               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9ReadBlif           ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9ReadCBlif          ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -903,6 +905,8 @@ void Abc_Init( Abc_Frame_t * pAbc )
 
     Cmd_CommandAdd( pAbc, "ABC9",         "&get",          Abc_CommandAbc9Get,          0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&put",          Abc_CommandAbc9Put,          0 );
+    Cmd_CommandAdd( pAbc, "ABC9",         "&save",         Abc_CommandAbc9Save,         0 );
+    Cmd_CommandAdd( pAbc, "ABC9",         "&load",         Abc_CommandAbc9Load,         0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&r",            Abc_CommandAbc9Read,         0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&read_blif",    Abc_CommandAbc9ReadBlif,     0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&read_cblif",   Abc_CommandAbc9ReadCBlif,    0 );
@@ -1091,6 +1095,8 @@ void Abc_End( Abc_Frame_t * pAbc )
         Gia_ManStop( Abc_FrameGetGlobalFrame()->pGia );
     if ( Abc_FrameGetGlobalFrame()->pGia2 )
         Gia_ManStop( Abc_FrameGetGlobalFrame()->pGia2 );
+    if ( Abc_FrameGetGlobalFrame()->pGiaBest )
+        Gia_ManStop( Abc_FrameGetGlobalFrame()->pGiaBest );
     if ( Abc_NtkRecIsRunning3() )
         Abc_NtkRecStop3();
 }
@@ -25420,6 +25426,129 @@ usage:
 
 /**Function*************************************************************
 
+  Synopsis    [Compares to versions of the design and finds the best.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline int Gia_ManCompareWithBest( Gia_Man_t * pBest, Gia_Man_t * p, int * pnBestLuts, int * pnBestEdges, int * pnBestLevels )
+{
+    int nCurLuts, nCurEdges, nCurLevels;
+    Gia_ManLutParams( p, &nCurLuts, &nCurEdges, &nCurLevels );
+    if ( pBest == NULL ||
+         Gia_ManPiNum(pBest) != Gia_ManPiNum(p) || 
+         Gia_ManPoNum(pBest) != Gia_ManPoNum(p) || 
+         Gia_ManRegNum(pBest) != Gia_ManRegNum(p) ||
+         strcmp(Gia_ManName(pBest), Gia_ManName(p)) ||
+        (*pnBestLevels > nCurLevels) ||
+        (*pnBestLevels == nCurLevels && *pnBestLuts > nCurLuts) ||
+        (*pnBestLevels == nCurLevels && *pnBestLuts == nCurLuts && *pnBestEdges > nCurEdges) )
+    {
+        *pnBestLuts = nCurLuts;
+        *pnBestEdges = nCurEdges;
+        *pnBestLevels = nCurLevels;
+        return 1;
+    }
+    return 0;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc9Save( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    int c;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pAbc->pGia == NULL )
+    {
+        Abc_Print( -1, "Empty network.\n" );
+        return 1;
+    }
+    if ( !Gia_ManHasMapping(pAbc->pGia) )
+    {
+        Abc_Print( -1, "GIA has not mapping.\n" );
+        return 1;
+    }
+    if ( !Gia_ManCompareWithBest( pAbc->pGiaBest, pAbc->pGia, &pAbc->nBestLuts, &pAbc->nBestEdges, &pAbc->nBestLevels ) )
+        return 0;
+    // save the design as best
+    Gia_ManStopP( &pAbc->pGiaBest );
+    pAbc->pGiaBest = Gia_ManDupWithAttributes( pAbc->pGia );
+    return 0; 
+
+usage:
+    Abc_Print( -2, "usage: &save [-h]\n" );
+    Abc_Print( -2, "\t        compares and possibly saves AIG with mapping\n" );
+    Abc_Print( -2, "\t-h    : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc9Load( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    int c;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    // restore from best
+    if ( pAbc->pGiaBest == NULL )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9Load(): There is no best design saved.\n" );
+        return 1;
+    }
+    Gia_ManStopP( &pAbc->pGia );
+    pAbc->pGia = Gia_ManDupWithAttributes( pAbc->pGiaBest );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: &load [-h]\n" );
+    Abc_Print( -2, "\t        loads previously saved AIG with mapping" );
+    Abc_Print( -2, "\t-h    : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
   Synopsis    []
 
   Description []
@@ -25507,10 +25636,10 @@ usage:
 int Abc_CommandAbc9Ps( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Gps_Par_t Pars, * pPars = &Pars;
-    int c;
+    int c, fBest = 0;
     memset( pPars, 0, sizeof(Gps_Par_t) );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "Dtpcnlmash" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Dtpcnlmasbh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -25547,22 +25676,37 @@ int Abc_CommandAbc9Ps( Abc_Frame_t * pAbc, int argc, char ** argv )
             pPars->pDumpFile = argv[globalUtilOptind];
             globalUtilOptind++;
             break;
+        case 'b':
+            fBest ^= 1;
+            break;
         case 'h':
             goto usage;
         default:
             goto usage;
         }
     }
-    if ( pAbc->pGia == NULL )
+    if ( fBest )
     {
-        Abc_Print( -1, "Abc_CommandAbc9Ps(): There is no AIG.\n" );
-        return 1;
+        if ( pAbc->pGiaBest == NULL )
+        {
+            Abc_Print( -1, "Abc_CommandAbc9Ps(): There is no AIG.\n" );
+            return 1;
+        }
+        Gia_ManPrintStats( pAbc->pGiaBest, pPars );
     }
-    Gia_ManPrintStats( pAbc->pGia, pPars );
+    else
+    {
+        if ( pAbc->pGia == NULL )
+        {
+            Abc_Print( -1, "Abc_CommandAbc9Ps(): There is no AIG.\n" );
+            return 1;
+        }
+        Gia_ManPrintStats( pAbc->pGia, pPars );
+    }
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &ps [-tpcnlmash] [-D file]\n" );
+    Abc_Print( -2, "usage: &ps [-tpcnlmasbh] [-D file]\n" );
     Abc_Print( -2, "\t          prints stats of the current AIG\n" );
     Abc_Print( -2, "\t-t      : toggle printing BMC tents [default = %s]\n",                pPars->fTents? "yes": "no" );
     Abc_Print( -2, "\t-p      : toggle printing switching activity [default = %s]\n",       pPars->fSwitch? "yes": "no" );
@@ -25572,6 +25716,7 @@ usage:
     Abc_Print( -2, "\t-m      : toggle printing MUX/XOR statistics [default = %s]\n",       pPars->fMuxXor? "yes": "no" );
     Abc_Print( -2, "\t-a      : toggle printing miter statistics [default = %s]\n",         pPars->fMiter? "yes": "no" );
     Abc_Print( -2, "\t-s      : skip mapping statistics even if mapped [default = %s]\n",   pPars->fSkipMap? "yes": "no" );
+    Abc_Print( -2, "\t-b      : toggle printing saved AIG statistics [default = %s]\n",     fBest? "yes": "no" );
     Abc_Print( -2, "\t-D file : file name to dump statistics [default = none]\n" );
     Abc_Print( -2, "\t-h      : print the command usage\n");
     return 1;
@@ -30646,6 +30791,11 @@ int Abc_CommandAbc9If( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Empty GIA network.\n" );
         return 1;
     }
+    if ( Gia_ManHasMapping(pAbc->pGia) )
+    {
+        Abc_Print( -1, "Current AIG has mapping. Run \"&st\".\n" );
+        return 1;
+    }
 
     if ( pPars->nLutSize == -1 )
     {
@@ -31648,6 +31798,11 @@ int Abc_CommandAbc9Lf( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( pAbc->pGia == NULL )
     {
         Abc_Print( -1, "Empty GIA network.\n" );
+        return 1;
+    }
+    if ( Gia_ManHasMapping(pAbc->pGia) )
+    {
+        Abc_Print( -1, "Current AIG has mapping. Run \"&st\".\n" );
         return 1;
     }
     if ( pPars->nLutSizeMux && pPars->fUseMux7 )

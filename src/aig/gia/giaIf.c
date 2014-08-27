@@ -183,6 +183,56 @@ int Gia_ManLutLevel( Gia_Man_t * p )
 
 /**Function*************************************************************
 
+  Synopsis    [Prints mapping statistics.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_ManLutParams( Gia_Man_t * p, int * pnCurLuts, int * pnCurEdges, int * pnCurLevels )
+{
+    if ( p->pManTime && Tim_ManBoxNum((Tim_Man_t *)p->pManTime) )
+    {
+        int i;
+        *pnCurLuts = 0;
+        *pnCurEdges = 0;
+        Gia_ManForEachLut( p, i )
+        {
+            (*pnCurLuts)++;
+            (*pnCurEdges) += Gia_ObjLutSize(p, i);
+        }
+        *pnCurLevels = Gia_ManLutLevelWithBoxes( p );
+    }
+    else
+    {
+        Gia_Obj_t * pObj;
+        int i, k, iFan;
+        int * pLevels = ABC_CALLOC( int, Gia_ManObjNum(p) );
+        *pnCurLuts = 0;
+        *pnCurEdges = 0;
+        Gia_ManForEachLut( p, i )
+        {
+            int Level = 0;
+            (*pnCurLuts)++;
+            (*pnCurEdges) += Gia_ObjLutSize(p, i);
+            Gia_LutForEachFanin( p, i, iFan, k )
+                if ( Level < pLevels[iFan] )
+                    Level = pLevels[iFan];
+            pLevels[i] = Level + 1;
+        }
+        *pnCurLevels = 0;
+        Gia_ManForEachCo( p, pObj, k )
+            if ( *pnCurLevels < pLevels[Gia_ObjFaninId0p(p, pObj)] )
+                *pnCurLevels = pLevels[Gia_ObjFaninId0p(p, pObj)];
+        ABC_FREE( pLevels );
+    }
+}
+
+/**Function*************************************************************
+
   Synopsis    [Assigns levels.]
 
   Description []
@@ -395,7 +445,9 @@ void Gia_ManPrintMappingStats( Gia_Man_t * p, char * pDumpFile )
     Abc_Print( 1, "lev =%5d ",   LevelMax );
     Abc_Print( 1, "(%.2f)  ",    (float)Ave / Gia_ManCoNum(p) );
     SetConsoleTextAttribute( hConsole, 7 );  // normal
-    Abc_Print( 1, "over =%5.1f %%  ", 100.0 * Gia_ManComputeOverlap(p) / Gia_ManAndNum(p) );
+//    Abc_Print( 1, "over =%5.1f %%  ", 100.0 * Gia_ManComputeOverlap(p) / Gia_ManAndNum(p) );
+    if ( p->pManTime && Tim_ManBoxNum((Tim_Man_t *)p->pManTime) )
+        Abc_Print( 1, "levB =%5d  ", Gia_ManLutLevelWithBoxes(p) );
     Abc_Print( 1, "mem =%5.2f MB", 4.0*(Gia_ManObjNum(p) + 2*nLuts + nFanins)/(1<<20) );
     Abc_Print( 1, "\n" );
     }
@@ -405,7 +457,9 @@ void Gia_ManPrintMappingStats( Gia_Man_t * p, char * pDumpFile )
     Abc_Print( 1, "%sedge =%8d%s  ", "\033[1;32m", nFanins,  "\033[0m" );  // green
     Abc_Print( 1, "%slev =%5d%s ",   "\033[1;31m", LevelMax, "\033[0m" );  // red
     Abc_Print( 1, "%s(%.2f)%s  ",    "\033[1;31m", (float)Ave / Gia_ManCoNum(p), "\033[0m" );
-    Abc_Print( 1, "over =%5.1f %%  ", 100.0 * Gia_ManComputeOverlap(p) / Gia_ManAndNum(p) );
+//    Abc_Print( 1, "over =%5.1f %%  ", 100.0 * Gia_ManComputeOverlap(p) / Gia_ManAndNum(p) );
+    if ( p->pManTime && Tim_ManBoxNum((Tim_Man_t *)p->pManTime) )
+        Abc_Print( 1, "levB =%5d  ", Gia_ManLutLevelWithBoxes(p) );
     Abc_Print( 1, "mem =%5.2f MB", 4.0*(Gia_ManObjNum(p) + 2*nLuts + nFanins)/(1<<20) );
     Abc_Print( 1, "\n" );
 #endif
