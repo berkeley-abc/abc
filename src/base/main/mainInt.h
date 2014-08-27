@@ -85,6 +85,7 @@ struct Abc_Frame_t_
     // decomposition package    
     void *          pManDec;       // decomposition manager
     void *          pManDsd;       // decomposition manager
+    void *          pManDsd2;      // decomposition manager
     DdManager *     dd;            // temporary BDD package
     // libraries for mapping
     void *          pLibLut;       // the current LUT library

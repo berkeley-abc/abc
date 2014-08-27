@@ -60,6 +60,7 @@ void *      Abc_FrameReadLibScl()                            { return s_GlobalFr
 void *      Abc_FrameReadManDd()                             { if ( s_GlobalFrame->dd == NULL )      s_GlobalFrame->dd = Cudd_Init( 0, 0, CUDD_UNIQUE_SLOTS, CUDD_CACHE_SLOTS, 0 );  return s_GlobalFrame->dd;      } 
 void *      Abc_FrameReadManDec()                            { if ( s_GlobalFrame->pManDec == NULL ) s_GlobalFrame->pManDec = Dec_ManStart();                                        return s_GlobalFrame->pManDec; } 
 void *      Abc_FrameReadManDsd()                            { return s_GlobalFrame->pManDsd;      } 
+void *      Abc_FrameReadManDsd2()                           { return s_GlobalFrame->pManDsd2;     } 
 char *      Abc_FrameReadFlag( char * pFlag )                { return Cmd_FlagReadByName( s_GlobalFrame, pFlag );   } 
 
 int         Abc_FrameReadBmcFrames( Abc_Frame_t * p )        { return s_GlobalFrame->nFrames;      }               
@@ -85,7 +86,8 @@ void        Abc_FrameSetFlag( char * pFlag, char * pValue )  { Cmd_FlagUpdateVal
 void        Abc_FrameSetCex( Abc_Cex_t * pCex )              { ABC_FREE( s_GlobalFrame->pCex ); s_GlobalFrame->pCex = pCex;       }
 void        Abc_FrameSetNFrames( int nFrames )               { ABC_FREE( s_GlobalFrame->pCex ); s_GlobalFrame->nFrames = nFrames; }
 void        Abc_FrameSetStatus( int Status )                 { ABC_FREE( s_GlobalFrame->pCex ); s_GlobalFrame->Status = Status;   }
-void        Abc_FrameSetManDsd( void * pMan )                { if (s_GlobalFrame->pManDsd && s_GlobalFrame->pManDsd != pMan) If_DsdManFree((If_DsdMan_t *)s_GlobalFrame->pManDsd, 0); s_GlobalFrame->pManDsd = pMan; }
+void        Abc_FrameSetManDsd( void * pMan )                { if (s_GlobalFrame->pManDsd  && s_GlobalFrame->pManDsd  != pMan) If_DsdManFree((If_DsdMan_t *)s_GlobalFrame->pManDsd,  0); s_GlobalFrame->pManDsd = pMan;  }
+void        Abc_FrameSetManDsd2( void * pMan )               { if (s_GlobalFrame->pManDsd2 && s_GlobalFrame->pManDsd2 != pMan) If_DsdManFree((If_DsdMan_t *)s_GlobalFrame->pManDsd2, 0); s_GlobalFrame->pManDsd2 = pMan; }
 
 int         Abc_FrameIsBatchMode()                           { return s_GlobalFrame ? s_GlobalFrame->fBatchMode : 0;              } 
 
@@ -195,6 +197,7 @@ void Abc_FrameDeallocate( Abc_Frame_t * p )
     if ( p->pSave3    )  Aig_ManStop( (Aig_Man_t *)p->pSave3 );
     if ( p->pSave4    )  Aig_ManStop( (Aig_Man_t *)p->pSave4 );
     if ( p->pManDsd   )  If_DsdManFree( (If_DsdMan_t *)p->pManDsd, 0 );
+    if ( p->pManDsd2  )  If_DsdManFree( (If_DsdMan_t *)p->pManDsd2, 0 );
     if ( p->vPlugInComBinPairs ) 
     {
         char * pTemp;

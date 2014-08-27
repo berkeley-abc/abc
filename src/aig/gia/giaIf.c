@@ -444,10 +444,10 @@ void Gia_ManPrintMappingStats( Gia_Man_t * p, char * pDumpFile )
     SetConsoleTextAttribute( hConsole, 12 ); // red
     Abc_Print( 1, "lev =%5d ",   LevelMax );
     Abc_Print( 1, "(%.2f)  ",    (float)Ave / Gia_ManCoNum(p) );
-    SetConsoleTextAttribute( hConsole, 7 );  // normal
 //    Abc_Print( 1, "over =%5.1f %%  ", 100.0 * Gia_ManComputeOverlap(p) / Gia_ManAndNum(p) );
     if ( p->pManTime && Tim_ManBoxNum((Tim_Man_t *)p->pManTime) )
         Abc_Print( 1, "levB =%5d  ", Gia_ManLutLevelWithBoxes(p) );
+    SetConsoleTextAttribute( hConsole, 7 );  // normal
     Abc_Print( 1, "mem =%5.2f MB", 4.0*(Gia_ManObjNum(p) + 2*nLuts + nFanins)/(1<<20) );
     Abc_Print( 1, "\n" );
     }
@@ -459,7 +459,7 @@ void Gia_ManPrintMappingStats( Gia_Man_t * p, char * pDumpFile )
     Abc_Print( 1, "%s(%.2f)%s  ",    "\033[1;31m", (float)Ave / Gia_ManCoNum(p), "\033[0m" );
 //    Abc_Print( 1, "over =%5.1f %%  ", 100.0 * Gia_ManComputeOverlap(p) / Gia_ManAndNum(p) );
     if ( p->pManTime && Tim_ManBoxNum((Tim_Man_t *)p->pManTime) )
-        Abc_Print( 1, "levB =%5d  ", Gia_ManLutLevelWithBoxes(p) );
+        Abc_Print( 1, "%slevB =%5d%s  ", "\033[1;31m", Gia_ManLutLevelWithBoxes(p), "\033[0m" );
     Abc_Print( 1, "mem =%5.2f MB", 4.0*(Gia_ManObjNum(p) + 2*nLuts + nFanins)/(1<<20) );
     Abc_Print( 1, "\n" );
 #endif
@@ -1831,11 +1831,11 @@ Gia_Man_t * Gia_ManPerformDsdBalance( Gia_Man_t * p, int nLutSize, int nCutNum, 
     pPars->fCutMin     = 1;
     pPars->fTruth      = 1;
     pPars->fExpRed     = 0;
-    if ( Abc_FrameReadManDsd() == NULL )
-        Abc_FrameSetManDsd( If_DsdManAlloc(pPars->nLutSize, 0) );
+    if ( Abc_FrameReadManDsd2() == NULL )
+        Abc_FrameSetManDsd2( If_DsdManAlloc(pPars->nLutSize, 0) );
     // perform mapping
     pIfMan = Gia_ManToIf( p, pPars );
-    pIfMan->pIfDsdMan = (If_DsdMan_t *)Abc_FrameReadManDsd();
+    pIfMan->pIfDsdMan = (If_DsdMan_t *)Abc_FrameReadManDsd2();
     if ( pPars->fDsdBalance )
         If_DsdManAllocIsops( pIfMan->pIfDsdMan, pPars->nLutSize );
     If_ManPerformMapping( pIfMan );

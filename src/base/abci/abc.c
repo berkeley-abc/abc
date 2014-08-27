@@ -15662,26 +15662,21 @@ int Abc_CommandDsdSave( Abc_Frame_t * pAbc, int argc, char ** argv )
     char * FileName;
     char ** pArgvNew;
     int nArgcNew;
-    int c;
-
+    int c, fSecond = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "bh" ) ) != EOF )
     {
         switch ( c )
         {
+        case 'b':
+            fSecond ^= 1;
+            break;
         case 'h':
             goto usage;
         default:
             goto usage;
         }
     }
-
-    if ( !Abc_FrameReadManDsd() )
-    {
-        Abc_Print( -1, "The DSD manager is not started.\n" );
-        return 1;
-    }
-
     pArgvNew = argv + globalUtilOptind;
     nArgcNew = argc - globalUtilOptind;
     if ( nArgcNew != 1 )
@@ -15691,12 +15686,30 @@ int Abc_CommandDsdSave( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     // get the input file name
     FileName = (nArgcNew == 1) ? pArgvNew[0] : NULL;
-    If_DsdManSave( (If_DsdMan_t *)Abc_FrameReadManDsd(), FileName );
+    if ( fSecond )
+    {
+        if ( !Abc_FrameReadManDsd2() )
+        {
+            Abc_Print( -1, "The DSD manager is not started.\n" );
+            return 1;
+        }
+        If_DsdManSave( (If_DsdMan_t *)Abc_FrameReadManDsd2(), FileName );
+    }
+    else
+    {
+        if ( !Abc_FrameReadManDsd() )
+        {
+            Abc_Print( -1, "The DSD manager is not started.\n" );
+            return 1;
+        }
+        If_DsdManSave( (If_DsdMan_t *)Abc_FrameReadManDsd(), FileName );
+    }
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: dsd_save [-h] <file>\n" );
+    Abc_Print( -2, "usage: dsd_save [-bh] <file>\n" );
     Abc_Print( -2, "\t         saves DSD manager into a file\n");
+    Abc_Print( -2, "\t-b     : toggles processing second manager [default = %s]\n", fSecond? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     Abc_Print( -2, "\t<file> : (optional) file name to write\n");
     return 1;
@@ -15717,14 +15730,17 @@ int Abc_CommandDsdLoad( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     char * FileName, * pTemp;
     char ** pArgvNew;
-    int c, nArgcNew;
+    int c, nArgcNew, fSecond = 0;
     FILE * pFile;
     If_DsdMan_t * pDsdMan;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "bh" ) ) != EOF )
     {
         switch ( c )
         {
+        case 'b':
+            fSecond ^= 1;
+            break;
         case 'h':
             goto usage;
         default:
@@ -15753,16 +15769,28 @@ int Abc_CommandDsdLoad( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
     fclose( pFile );
-    Abc_FrameSetManDsd( NULL );
-    pDsdMan = If_DsdManLoad(FileName);
-    if ( pDsdMan == NULL )
-        return 1;
-    Abc_FrameSetManDsd( pDsdMan );
+    if ( fSecond )
+    {
+        Abc_FrameSetManDsd2( NULL );
+        pDsdMan = If_DsdManLoad(FileName);
+        if ( pDsdMan == NULL )
+            return 1;
+        Abc_FrameSetManDsd2( pDsdMan );
+    }
+    else
+    {
+        Abc_FrameSetManDsd( NULL );
+        pDsdMan = If_DsdManLoad(FileName);
+        if ( pDsdMan == NULL )
+            return 1;
+        Abc_FrameSetManDsd( pDsdMan );
+    }
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: dsd_load [-h] <file>\n" );
+    Abc_Print( -2, "usage: dsd_load [-bh] <file>\n" );
     Abc_Print( -2, "\t         loads DSD manager from file\n");
+    Abc_Print( -2, "\t-b     : toggles processing second manager [default = %s]\n", fSecond? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     Abc_Print( -2, "\t<file> : file name to read\n");
     return 1;
@@ -15781,30 +15809,46 @@ usage:
 ***********************************************************************/
 int Abc_CommandDsdFree( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    int c;
+    int c, fSecond = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "bh" ) ) != EOF )
     {
         switch ( c )
         {
+        case 'b':
+            fSecond ^= 1;
+            break;
         case 'h':
             goto usage;
         default:
             goto usage;
         }
     }
-    if ( !Abc_FrameReadManDsd() )
+    if ( fSecond )
     {
-        Abc_Print( 1, "The DSD manager is not started.\n" );
-        return 0;
+        if ( !Abc_FrameReadManDsd2() )
+        {
+            Abc_Print( 1, "The DSD manager is not started.\n" );
+            return 0;
+        }
+        Abc_FrameSetManDsd2( NULL );
     }
-    Abc_FrameSetManDsd( NULL );
+    else
+    {
+        if ( !Abc_FrameReadManDsd() )
+        {
+            Abc_Print( 1, "The DSD manager is not started.\n" );
+            return 0;
+        }
+        Abc_FrameSetManDsd( NULL );
+    }
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: dsd_ps [-h]\n" );
-    Abc_Print( -2, "\t        deletes DSD manager\n" );
-    Abc_Print( -2, "\t-h    : print the command usage\n");
+    Abc_Print( -2, "usage: dsd_free [-bh]\n" );
+    Abc_Print( -2, "\t         deletes DSD manager\n" );
+    Abc_Print( -2, "\t-b     : toggles processing second manager [default = %s]\n", fSecond? "yes": "no" );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
 }
 
@@ -15821,9 +15865,9 @@ usage:
 ***********************************************************************/
 int Abc_CommandDsdPs( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    int c, Number = 0, Support = 0, fOccurs = 0, fTtDump = 0, fVerbose = 0;
+    int c, Number = 0, Support = 0, fOccurs = 0, fTtDump = 0, fSecond = 0, fVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "NSotvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "NSotbvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -15855,6 +15899,9 @@ int Abc_CommandDsdPs( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 't':
             fTtDump ^= 1;
             break;
+        case 'b':
+            fSecond ^= 1;
+            break;
         case 'v':
             fVerbose ^= 1;
             break;
@@ -15864,21 +15911,34 @@ int Abc_CommandDsdPs( Abc_Frame_t * pAbc, int argc, char ** argv )
             goto usage;
         }
     }
-    if ( !Abc_FrameReadManDsd() )
+    if ( fSecond )
     {
-        Abc_Print( 1, "The DSD manager is not started.\n" );
-        return 0;
+        if ( !Abc_FrameReadManDsd2() )
+        {
+            Abc_Print( 1, "The DSD manager is not started.\n" );
+            return 0;
+        }
+        If_DsdManPrint( (If_DsdMan_t *)Abc_FrameReadManDsd2(), NULL, Number, Support, fOccurs, fTtDump, fVerbose );
     }
-    If_DsdManPrint( (If_DsdMan_t *)Abc_FrameReadManDsd(), NULL, Number, Support, fOccurs, fTtDump, fVerbose );
+    else
+    {
+        if ( !Abc_FrameReadManDsd() )
+        {
+            Abc_Print( 1, "The DSD manager is not started.\n" );
+            return 0;
+        }
+        If_DsdManPrint( (If_DsdMan_t *)Abc_FrameReadManDsd(), NULL, Number, Support, fOccurs, fTtDump, fVerbose );
+    }
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: dsd_ps [-NS num] [-ovh]\n" );
+    Abc_Print( -2, "usage: dsd_ps [-NS num] [-obvh]\n" );
     Abc_Print( -2, "\t         prints statistics of DSD manager\n" );
     Abc_Print( -2, "\t-N num : show structures whose ID divides by N [default = %d]\n",   Number );
     Abc_Print( -2, "\t-S num : show structures whose support size is S [default = %d]\n", Support );
     Abc_Print( -2, "\t-o     : toggles printing occurence distribution [default = %s]\n", fOccurs? "yes": "no" );
     Abc_Print( -2, "\t-t     : toggles dumping truth tables [default = %s]\n",            fTtDump? "yes": "no" );
+    Abc_Print( -2, "\t-b     : toggles processing second manager [default = %s]\n",       fSecond? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggles verbose output [default = %s]\n",                  fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;

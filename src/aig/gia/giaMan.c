@@ -428,7 +428,7 @@ void Gia_ManPrintStats( Gia_Man_t * p, Gps_Par_t * pPars )
     if ( Gia_ManHasChoices(p) )
         Abc_Print( 1, "  ch =%5d", Gia_ManChoiceNum(p) );
     if ( p->pManTime )
-        Abc_Print( 1, "  box =%d", Tim_ManBoxNum((Tim_Man_t *)p->pManTime) );
+        Abc_Print( 1, "  box = %d", Tim_ManBoxNum((Tim_Man_t *)p->pManTime) );
     if ( pPars && pPars->fMuxXor )
         printf( "\nXOR/MUX " ), Gia_ManPrintMuxStats( p );
     if ( pPars && pPars->fSwitch )
