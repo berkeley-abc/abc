@@ -383,6 +383,7 @@ static int Abc_CommandAbc9Force              ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandAbc9Embed              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Sopb               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Dsdb               ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9Flow               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9If                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Iff                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9If2                ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -391,6 +392,7 @@ static int Abc_CommandAbc9Kf                 ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandAbc9Lf                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Mf                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Nf                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9Unmap              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Struct             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Trace              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Speedup            ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -970,6 +972,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "ABC9",         "&embed",        Abc_CommandAbc9Embed,        0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&sopb",         Abc_CommandAbc9Sopb,         0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&dsdb",         Abc_CommandAbc9Dsdb,         0 );
+    Cmd_CommandAdd( pAbc, "ABC9",         "&flow",         Abc_CommandAbc9Flow,         0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&if",           Abc_CommandAbc9If,           0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&iff",          Abc_CommandAbc9Iff,          0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&if2",          Abc_CommandAbc9If2,          0 );
@@ -978,6 +981,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "ABC9",         "&lf",           Abc_CommandAbc9Lf,           0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&mf",           Abc_CommandAbc9Mf,           0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&nf",           Abc_CommandAbc9Nf,           0 );
+    Cmd_CommandAdd( pAbc, "ABC9",         "&unmap",        Abc_CommandAbc9Unmap,        0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&struct",       Abc_CommandAbc9Struct,       0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&trace",        Abc_CommandAbc9Trace,        0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&speedup",      Abc_CommandAbc9Speedup,      0 );
@@ -30622,6 +30626,91 @@ usage:
   SeeAlso     []
 
 ***********************************************************************/
+int Abc_CommandAbc9Flow( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern void Gia_ManPerformFlow( int fIsMapped, int nAnds, int nLevels, int nLutSize, int nCutNum, int nRelaxRatio, int fVerbose );
+//    Gia_Man_t * pTemp;
+    int nLutSize    = 4;
+    int nCutNum     = 8;
+    int nRelaxRatio = 0;
+    int c, fVerbose = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "KCRvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'K':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-K\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nLutSize = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nLutSize < 0 )
+                goto usage;
+            break;
+         case 'C':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-C\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nCutNum = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nCutNum < 0 )
+                goto usage;
+            break;
+        case 'R':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-R\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nRelaxRatio = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nRelaxRatio < 0 )
+                goto usage;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pAbc->pGia == NULL )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9Flow(): There is no AIG.\n" );
+        return 1;
+    }
+    Gia_ManPerformFlow( Gia_ManHasMapping(pAbc->pGia), Gia_ManAndNum(pAbc->pGia), Gia_ManLevelNum(pAbc->pGia), nLutSize, nCutNum, nRelaxRatio, fVerbose );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: &flow [-KCR num] [-vh]\n" );
+    Abc_Print( -2, "\t         integration optimization and mapping flow\n" );
+    Abc_Print( -2, "\t-K num : the number of LUT inputs (LUT size) [default = %d]\n", nLutSize );
+    Abc_Print( -2, "\t-C num : the number of cuts at a node [default = %d]\n", nCutNum );
+    Abc_Print( -2, "\t-R num : the delay relaxation ratio (num >= 0) [default = %d]\n", nRelaxRatio );
+    Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 int Abc_CommandAbc9If( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     char Buffer[200];
@@ -32296,6 +32385,52 @@ usage:
     Abc_Print( -2, "\t-v       : toggles verbose output [default = %s]\n", pPars->fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-w       : toggles very verbose output [default = %s]\n", pPars->fVeryVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h       : prints the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc9Unmap( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern void Gia_ManTestStruct( Gia_Man_t * p );
+    int c, fVerbose = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pAbc->pGia == NULL )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9Struct(): There is no AIG to map.\n" );
+        return 1;
+    }
+    Vec_IntFreeP( &pAbc->pGia->vMapping );
+    Vec_IntFreeP( &pAbc->pGia->vPacking );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: &unmap [-vh]\n" );
+    Abc_Print( -2, "\t           removes mapping from the current network\n" );
+    Abc_Print( -2, "\t-v       : toggle printing optimization summary [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h       : print the command usage\n");
     return 1;
 }
 
