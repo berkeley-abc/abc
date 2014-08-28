@@ -554,7 +554,7 @@ static char * Io_MvLoadFileBz2( char * pFileName, int * pnFileSize )
     int       nFileSize = 0;
     char    * pContents;
     BZFILE  * b;
-    int       bzError;
+    int       bzError, RetValue;
     struct buflist * pNext;
     buflist * bufHead = NULL, * buf = NULL;
 
@@ -603,7 +603,7 @@ static char * Io_MvLoadFileBz2( char * pFileName, int * pnFileSize )
         }
         pContents = ABC_ALLOC( char, nFileSize + 10 );
         rewind( pFile );
-        fread( pContents, nFileSize, 1, pFile );
+        RetValue = fread( pContents, nFileSize, 1, pFile );
     } else { 
         // Some other error.
         Abc_Print( -1, "Io_MvLoadFileBz2(): Unable to read the compressed BLIF.\n" );
