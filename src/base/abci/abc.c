@@ -25552,7 +25552,7 @@ int Abc_CommandAbc9Save( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     if ( !Gia_ManHasMapping(pAbc->pGia) )
     {
-        Abc_Print( -1, "GIA has not mapping.\n" );
+        Abc_Print( -1, "GIA has no mapping.\n" );
         return 1;
     }
     if ( !Gia_ManCompareWithBest( pAbc->pGiaBest, pAbc->pGia, &pAbc->nBestLuts, &pAbc->nBestEdges, &pAbc->nBestLevels ) )

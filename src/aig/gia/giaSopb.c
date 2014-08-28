@@ -348,7 +348,7 @@ void Gia_ManPerformMap( int nAnds, int nLutSize, int nCutNum, int fVerbose )
         printf( "Mapping with &lf:\n" );
         Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&ps" );
     }
-    if ( nAnds < 100000 )
+    if ( (nLutSize == 4 && nAnds < 100000) || (nLutSize == 6 && nAnds < 2000) )
     {
         sprintf( Command, "&unmap; &if -sz -S %d%d -K %d -C %d", nLutSize, nLutSize, 2*nLutSize-1, 2*nCutNum );
         Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), Command );
@@ -375,26 +375,28 @@ void Gia_ManPerformRound( int fIsMapped, int nAnds, int nLevels, int nLutSize, i
     if ( nAnds < 50000 )
     {
         Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "" );
-        sprintf( Command, "&dsdb; &dch -f; &if -K %d -C %d; &save; &st", nLutSize, nCutNum );
+        sprintf( Command, "&dsdb; &dch -f; &if -K %d -C %d; &save", nLutSize, nCutNum );
         Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), Command );
         if ( fVerbose )
         {
             printf( "Mapping with &dch -f; &if -K %d -C %d:\n", nLutSize, nCutNum );
             Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&ps" );
         }
+        Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&st" );
     }
 
     // perform AIG-based synthesis
     if ( nAnds < 20000 )
     {
         Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "" );
-        sprintf( Command, "&dsdb; &dch -f; &if -K %d -C %d; &save; &st", nLutSize, nCutNum );
+        sprintf( Command, "&dsdb; &dch -f; &if -K %d -C %d; &save", nLutSize, nCutNum );
         Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), Command );
         if ( fVerbose )
         {
             printf( "Mapping with &dch -f; &if -K %d -C %d:\n", nLutSize, nCutNum );
             Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&ps" );
         }
+        Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&st" );
     }
 
     // perform first round of mapping
