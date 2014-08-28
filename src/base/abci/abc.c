@@ -26066,8 +26066,8 @@ int Abc_CommandAbc9Strash( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( Gia_ManHasMapping(pAbc->pGia) )
     {
         pTemp = (Gia_Man_t *)Dsm_ManDeriveGia( pAbc->pGia, fAddMuxes );
-        if ( !Abc_FrameReadFlag("silentmode") )
-            printf( "Performed delay-oriented unmapping.\n" );
+//        if ( !Abc_FrameReadFlag("silentmode") )
+//            printf( "Performed delay-oriented unmapping.\n" );
     }
     else if ( fAddMuxes )
     {

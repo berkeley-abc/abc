@@ -18,6 +18,8 @@
 
 ***********************************************************************/
 
+#include "misc/zlib/zlib.h"
+#include "misc/bzlib/bzlib.h"
 #include "base/abc/abc.h"
 #include "misc/vec/vecPtr.h"
 #include "ioAbc.h"
@@ -540,12 +542,136 @@ static int Io_MvGetLine( Io_MvMan_t * p, char * pToken )
   SeeAlso     []
 
 ***********************************************************************/
+typedef struct buflist {
+  char buf[1<<20];
+  int nBuf;
+  struct buflist * next;
+} buflist;
+
+static char * Io_MvLoadFileBz2( char * pFileName, int * pnFileSize )
+{
+    FILE    * pFile;
+    int       nFileSize = 0;
+    char    * pContents;
+    BZFILE  * b;
+    int       bzError;
+    struct buflist * pNext;
+    buflist * bufHead = NULL, * buf = NULL;
+
+    pFile = fopen( pFileName, "rb" );
+    if ( pFile == NULL )
+    {
+        Abc_Print( -1, "Io_MvLoadFileBz2(): The file is unavailable (absent or open).\n" );
+        return NULL;
+    }
+    b = BZ2_bzReadOpen(&bzError,pFile,0,0,NULL,0);
+    if (bzError != BZ_OK) {
+        Abc_Print( -1, "Io_MvLoadFileBz2(): BZ2_bzReadOpen() failed with error %d.\n",bzError );
+        return NULL;
+    }
+    do {
+        if (!bufHead)
+            buf = bufHead = ABC_ALLOC( buflist, 1 );
+        else
+            buf = buf->next = ABC_ALLOC( buflist, 1 );
+        nFileSize += buf->nBuf = BZ2_bzRead(&bzError,b,buf->buf,1<<20);
+        buf->next = NULL;
+    } while (bzError == BZ_OK);
+    if (bzError == BZ_STREAM_END) {
+        // we're okay
+        char * p;
+        int nBytes = 0;
+        BZ2_bzReadClose(&bzError,b);
+        p = pContents = ABC_ALLOC( char, nFileSize + 10 );
+        buf = bufHead;
+        do {
+            memcpy(p+nBytes,buf->buf,buf->nBuf);
+            nBytes += buf->nBuf;
+//        } while((buf = buf->next));
+            pNext = buf->next;
+            ABC_FREE( buf );
+        } while((buf = pNext));
+    } else if (bzError == BZ_DATA_ERROR_MAGIC) {
+        // not a BZIP2 file
+        BZ2_bzReadClose(&bzError,b);
+        fseek( pFile, 0, SEEK_END );
+        nFileSize = ftell( pFile );
+        if ( nFileSize == 0 )
+        {
+            Abc_Print( -1, "Io_MvLoadFileBz2(): The file is empty.\n" );
+            return NULL;
+        }
+        pContents = ABC_ALLOC( char, nFileSize + 10 );
+        rewind( pFile );
+        fread( pContents, nFileSize, 1, pFile );
+    } else { 
+        // Some other error.
+        Abc_Print( -1, "Io_MvLoadFileBz2(): Unable to read the compressed BLIF.\n" );
+        return NULL;
+    }
+    fclose( pFile );
+    // finish off the file with the spare .end line
+    // some benchmarks suddenly break off without this line
+    strcpy( pContents + nFileSize, "\n.end\n" );
+    *pnFileSize = nFileSize;
+    return pContents;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Reads the file into a character buffer.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static char * Io_MvLoadFileGz( char * pFileName, int * pnFileSize )
+{
+    const int READ_BLOCK_SIZE = 100000;
+    gzFile pFile;
+    char * pContents;
+    int amtRead, readBlock, nFileSize = READ_BLOCK_SIZE;
+    pFile = gzopen( pFileName, "rb" ); // if pFileName doesn't end in ".gz" then this acts as a passthrough to fopen
+    pContents = ABC_ALLOC( char, nFileSize );        
+    readBlock = 0;
+    while ((amtRead = gzread(pFile, pContents + readBlock * READ_BLOCK_SIZE, READ_BLOCK_SIZE)) == READ_BLOCK_SIZE) {
+        //Abc_Print( 1,"%d: read %d bytes\n", readBlock, amtRead);
+        nFileSize += READ_BLOCK_SIZE;
+        pContents = ABC_REALLOC(char, pContents, nFileSize);
+        ++readBlock;
+    }
+    //Abc_Print( 1,"%d: read %d bytes\n", readBlock, amtRead);
+    assert( amtRead != -1 ); // indicates a zlib error
+    nFileSize -= (READ_BLOCK_SIZE - amtRead);
+    gzclose(pFile);
+    *pnFileSize = nFileSize;
+    return pContents;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Reads the file into a character buffer.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 static char * Io_MvLoadFile( char * pFileName )
 {
     FILE * pFile;
     int nFileSize;
     char * pContents;
     int RetValue;
+    if ( !strncmp(pFileName+strlen(pFileName)-4,".bz2",4) )
+        return Io_MvLoadFileBz2( pFileName, &nFileSize );
+    if ( !strncmp(pFileName+strlen(pFileName)-3,".gz",3) )
+        return Io_MvLoadFileGz( pFileName, &nFileSize );
     pFile = fopen( pFileName, "rb" );
     if ( pFile == NULL )
     {
