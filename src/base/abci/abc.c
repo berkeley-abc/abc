@@ -9162,7 +9162,7 @@ usage:
     Abc_Print( -2, "usage: move_names [-h] <file>\n" );
     Abc_Print( -2, "\t         moves PI/PO/latch names from the other network\n" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
-    Abc_Print( -2, "\t<file> : file names with network that has required names\n");
+    Abc_Print( -2, "\t<file> : file with network that has required names\n");
     return 1;
 }
 
