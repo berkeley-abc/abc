@@ -425,7 +425,10 @@ void Gia_ManPerformFlow( int fIsMapped, int nAnds, int nLevels, int nLutSize, in
     // remove comb equivs
     if ( fIsMapped )
         Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&st" );
-    Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&fraig -c" );
+    if ( Abc_FrameReadGia(Abc_FrameGetGlobalFrame())->pManTime )
+        Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&sweep" );
+    else
+        Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&fraig -c" );
 
     // perform first round
     Gia_ManPerformRound( fIsMapped, nAnds, nLevels, nLutSize, nCutNum, nRelaxRatio, fVerbose );
