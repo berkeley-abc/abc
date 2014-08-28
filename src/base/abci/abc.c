@@ -159,6 +159,7 @@ static int Abc_CommandTopmost                ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandTopAnd                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandTrim                   ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandShortNames             ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandMoveNames              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandExdcFree               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandExdcGet                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandExdcSet                ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -752,6 +753,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Various",      "topand",        Abc_CommandTopAnd,          1 );
     Cmd_CommandAdd( pAbc, "Various",      "trim",          Abc_CommandTrim,             1 );
     Cmd_CommandAdd( pAbc, "Various",      "short_names",   Abc_CommandShortNames,       0 );
+    Cmd_CommandAdd( pAbc, "Various",      "move_names",    Abc_CommandMoveNames,        0 );
     Cmd_CommandAdd( pAbc, "Various",      "exdc_free",     Abc_CommandExdcFree,         1 );
     Cmd_CommandAdd( pAbc, "Various",      "exdc_get",      Abc_CommandExdcGet,          1 );
     Cmd_CommandAdd( pAbc, "Various",      "exdc_set",      Abc_CommandExdcSet,          1 );
@@ -9084,6 +9086,83 @@ usage:
     Abc_Print( -2, "usage: short_names [-h]\n" );
     Abc_Print( -2, "\t         replaces PI/PO/latch names by short char strings\n" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandMoveNames( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern void Abc_NtkMoveNames( Abc_Ntk_t * pNtk, Abc_Ntk_t * pOld );
+    Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
+    Abc_Ntk_t * pNtk2;
+    char * FileName;
+    int c;
+    // set defaults
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+
+    // get the second network
+    if ( argc != globalUtilOptind + 1 )
+    {
+        Abc_Print( -1, "The network to take names from is not given.\n" );
+        return 1;
+    }
+
+    // read the second network
+    FileName = argv[globalUtilOptind];
+    pNtk2 = Io_Read( FileName, Io_ReadFileType(FileName), 1, 0 );
+    if ( pNtk2 == NULL )
+        return 1;
+
+    // compare inputs/outputs
+    if ( Abc_NtkPiNum(pNtk) != Abc_NtkPiNum(pNtk2) )
+    {
+        Abc_NtkDelete( pNtk2 );
+        Abc_Print( -1, "The PI count (%d) of the first network is not equal to PI count (%d) of the second network.\n", Abc_NtkPiNum(pNtk), Abc_NtkPiNum(pNtk2) );
+        return 0;
+    }
+    // compare inputs/outputs
+    if ( Abc_NtkPoNum(pNtk) != Abc_NtkPoNum(pNtk2) )
+    {
+        Abc_NtkDelete( pNtk2 );
+        Abc_Print( -1, "The PO count (%d) of the first network is not equal to PO count (%d) of the second network.\n", Abc_NtkPoNum(pNtk), Abc_NtkPoNum(pNtk2) );
+        return 0;
+    }
+    // compare inputs/outputs
+    if ( Abc_NtkLatchNum(pNtk) != Abc_NtkLatchNum(pNtk2) )
+    {
+        Abc_NtkDelete( pNtk2 );
+        Abc_Print( -1, "The flop count (%d) of the first network is not equal to flop count (%d) of the second network.\n", Abc_NtkLatchNum(pNtk), Abc_NtkLatchNum(pNtk2) );
+        return 0;
+    }
+    Abc_NtkMoveNames( pNtk, pNtk2 );
+    Abc_NtkDelete( pNtk2 );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: move_names [-h] <file>\n" );
+    Abc_Print( -2, "\t         moves PI/PO/latch names from the other network\n" );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
+    Abc_Print( -2, "\t<file> : file names with network that has required names\n");
     return 1;
 }
 

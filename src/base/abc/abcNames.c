@@ -496,6 +496,33 @@ void Abc_NtkShortNames( Abc_Ntk_t * pNtk )
     Abc_NtkAddDummyBoxNames( pNtk );
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Moves names from the other network.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkMoveNames( Abc_Ntk_t * pNtk, Abc_Ntk_t * pOld )
+{
+    Abc_Obj_t * pObj; int i;
+    Nm_ManFree( pNtk->pManName );
+    pNtk->pManName = Nm_ManCreate( Abc_NtkCiNum(pNtk) + Abc_NtkCoNum(pNtk) + Abc_NtkBoxNum(pNtk) );
+    Abc_NtkForEachPi( pNtk, pObj, i )
+        Abc_ObjAssignName( pObj, Abc_ObjName(Abc_NtkPi(pOld, i)), NULL );
+    Abc_NtkForEachPo( pNtk, pObj, i )
+        Abc_ObjAssignName( pObj, Abc_ObjName(Abc_NtkPo(pOld, i)), NULL );
+    Abc_NtkForEachLatch( pNtk, pObj, i )
+    {
+        Abc_ObjAssignName( Abc_ObjFanin0(pObj),  Abc_ObjName(Abc_ObjFanin0(Abc_NtkBox(pOld, i))),  NULL );
+        Abc_ObjAssignName( Abc_ObjFanout0(pObj), Abc_ObjName(Abc_ObjFanout0(Abc_NtkBox(pOld, i))), NULL );
+    }
+}
+
 
 /**Function*************************************************************
 
