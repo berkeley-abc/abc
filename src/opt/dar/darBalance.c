@@ -81,6 +81,8 @@ void Dar_BalanceUniqify( Aig_Obj_t * pObj, Vec_Ptr_t * vNodes, int fExor )
             i++;
     }
     Vec_PtrShrink( vNodes, k );
+    if ( Vec_PtrSize(vNodes) < 2 )
+        return;
     // check that there is no duplicates
     pTemp = (Aig_Obj_t *)Vec_PtrEntry( vNodes, 0 );
     Vec_PtrForEachEntryStart( Aig_Obj_t *, vNodes, pTempNext, i, 1 )
