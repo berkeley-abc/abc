@@ -25,7 +25,7 @@
 
 ABC_NAMESPACE_IMPL_START
 
-#define XAIG_VERBOSE 0
+#define XAIG_VERBOSE 1
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -1038,6 +1038,8 @@ void Gia_AigerWrite( Gia_Man_t * pInit, char * pFileName, int fWriteSymbols, int
     {
 //        printf( "Gia_AigerWrite(): Normalizing AIG for writing.\n" );
         p = Gia_ManDupNormalize( pInit );
+        Gia_ManTransferMapping( p, pInit );
+        Gia_ManTransferPacking( p, pInit );
         Gia_ManTransferTiming( p, pInit );
         p->vNamesIn   = pInit->vNamesIn;   pInit->vNamesIn   = NULL;
         p->vNamesOut  = pInit->vNamesOut;  pInit->vNamesOut  = NULL;
