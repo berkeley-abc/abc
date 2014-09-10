@@ -25,7 +25,7 @@
 
 ABC_NAMESPACE_IMPL_START
 
-#define XAIG_VERBOSE 1
+#define XAIG_VERBOSE 0
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
