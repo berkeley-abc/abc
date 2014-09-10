@@ -17984,7 +17984,7 @@ usage:
     Abc_Print( -2, "\t-N num : set last <num> POs to be constraints (use with -c) [default = %d]\n", nConstrs );
     Abc_Print( -2, "\t-c     : toggle using explicit constraints [default = %s]\n", pPars->fConstrs? "yes": "no" );
     Abc_Print( -2, "\t-m     : toggle full merge if constraints are present [default = %s]\n", pPars->fMergeFull? "yes": "no" );
-    Abc_Print( -2, "\t-p     : toggle alighning polarity of SAT variables [default = %s]\n", pPars->fPolarFlip? "yes": "no" );
+    Abc_Print( -2, "\t-p     : toggle aligning polarity of SAT variables [default = %s]\n", pPars->fPolarFlip? "yes": "no" );
     Abc_Print( -2, "\t-l     : toggle doing latch correspondence [default = %s]\n", pPars->fLatchCorr? "yes": "no" );
     Abc_Print( -2, "\t-k     : toggle doing constant correspondence [default = %s]\n", pPars->fConstCorr? "yes": "no" );
     Abc_Print( -2, "\t-o     : toggle doing \'PO correspondence\' [default = %s]\n", pPars->fOutputCorr? "yes": "no" );
@@ -21251,13 +21251,13 @@ int Abc_CommandDSat( Abc_Frame_t * pAbc, int argc, char ** argv )
 usage:
     Abc_Print( -2, "usage: dsat [-CILDE num] [-panvh]\n" );
     Abc_Print( -2, "\t         solves the combinational miter using SAT solver MiniSat-1.14\n" );
-    Abc_Print( -2, "\t         derives CNF from the current network and leave it unchanged\n" );
+    Abc_Print( -2, "\t         derives CNF from the current network and leaves it unchanged\n" );
     Abc_Print( -2, "\t-C num : limit on the number of conflicts [default = %d]\n",    nConfLimit );
     Abc_Print( -2, "\t-I num : limit on the number of inspections [default = %d]\n", nInsLimit );
     Abc_Print( -2, "\t-L num : starting value for learned clause removal [default = %d]\n", nLearnedStart );
     Abc_Print( -2, "\t-D num : delta value for learned clause removal [default = %d]\n", nLearnedDelta );
     Abc_Print( -2, "\t-E num : ratio percentage for learned clause removal [default = %d]\n", nLearnedPerce );
-    Abc_Print( -2, "\t-p     : alighn polarity of SAT variables [default = %s]\n", fAlignPol? "yes": "no" );
+    Abc_Print( -2, "\t-p     : align polarity of SAT variables [default = %s]\n", fAlignPol? "yes": "no" );
     Abc_Print( -2, "\t-a     : toggle ANDing/ORing of miter outputs [default = %s]\n", fAndOuts? "ANDing": "ORing" );
     Abc_Print( -2, "\t-n     : toggle using new solver [default = %s]\n", fNewSolver? "yes": "no" );
     Abc_Print( -2, "\t-v     : prints verbose information [default = %s]\n", fVerbose? "yes": "no" );
@@ -30683,8 +30683,8 @@ int Abc_CommandAbc9Dsdb( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &sopb [-LWKCR num] [-vh]\n" );
-    Abc_Print( -2, "\t         performs SOP balancing\n" );
+    Abc_Print( -2, "usage: &dsdb [-LWKCR num] [-vh]\n" );
+    Abc_Print( -2, "\t         performs DSD balancing\n" );
     Abc_Print( -2, "\t-L num : optimize paths above this level [default = %d]\n", nLevelMax );
     Abc_Print( -2, "\t-W num : optimize paths falling into this window [default = %d]\n", nTimeWindow );
     Abc_Print( -2, "\t-K num : the number of LUT inputs (LUT size) [default = %d]\n", nLutSize );

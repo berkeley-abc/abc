@@ -599,6 +599,10 @@ SOURCE=.\src\base\io\ioReadVerilog.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\base\io\ioReadWord.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\base\io\ioUtil.c
 # End Source File
 # Begin Source File
