@@ -122,7 +122,7 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p )
     // create primary inputs
     Wlc_NtkForEachObj( p, pObj, i )
     {
-        char * pName = Wlc_ObjName(p, i);
+//        char * pName = Wlc_ObjName(p, i);
         nRange  = Wlc_ObjRange( pObj );
         nRange0 = Wlc_ObjFaninNum(pObj) > 0 ? Wlc_ObjRange( Wlc_ObjFanin0(p, pObj) ) : -1;
         nRange1 = Wlc_ObjFaninNum(pObj) > 1 ? Wlc_ObjRange( Wlc_ObjFanin1(p, pObj) ) : -1;

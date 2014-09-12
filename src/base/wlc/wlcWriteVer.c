@@ -168,7 +168,7 @@ void Wlc_WriteVerInt( FILE * pFile, Wlc_Ntk_t * p )
                 else if ( pObj->Type == WLC_OBJ_ARI_DIVIDE )
                     fprintf( pFile, "//" );
                 else if ( pObj->Type == WLC_OBJ_ARI_MODULUS )
-                    fprintf( pFile, "%" );
+                    fprintf( pFile, "%%" );
                 else if ( pObj->Type == WLC_OBJ_ARI_POWER )
                     fprintf( pFile, "**" );
                 else assert( 0 );

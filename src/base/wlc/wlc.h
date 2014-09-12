@@ -81,51 +81,7 @@ typedef enum {
     WLC_OBJ_ARI_MODULUS,   // 37: arithmetic modulus
     WLC_OBJ_ARI_POWER,     // 38: arithmetic power
     WLC_OBJ_NUMBER         // 39: unused
-} Abc_ObjType_t;
-
-// object types
-static char * Wlc_Names[WLC_OBJ_NUMBER+1] = { 
-    NULL,                  // 00: unknown
-    "pi",                  // 01: primary input 
-    "po",                  // 02: primary output 
-    "bo",                  // 03: box output
-    "bi",                  // 04: box input
-    "ff",                  // 05: flop
-    "const",               // 06: constant
-    "buf",                 // 07: buffer
-    "mux",                 // 08: multiplexer
-    ">>",                  // 09: shift right
-    ">>>",                 // 10: shift right (arithmetic)
-    "<<",                  // 11: shift left
-    "<<<",                 // 12: shift left (arithmetic)
-    "~",                   // 13: bitwise NOT
-    "&",                   // 14: bitwise AND
-    "|",                   // 15: bitwise OR
-    "^",                   // 16: bitwise XOR
-    "[:]",                 // 17: bit selection
-    "{,}",                 // 18: bit concatenation
-    "BitPad",              // 19: zero padding
-    "SgnExt",              // 20: sign extension
-    "!",                   // 21: logic NOT
-    "&&",                  // 22: logic AND
-    "||",                  // 23: logic OR
-    "==",                  // 24: compare equal
-    "!=",                  // 25: compare not equal
-    "<",                   // 26: compare less
-    ">",                   // 27: compare more
-    "<=",                  // 28: compare less or equal
-    ">=",                  // 29: compare more or equal
-    "&",                   // 30: reduction AND
-    "|",                   // 31: reduction OR
-    "^",                   // 32: reduction XOR
-    "+",                   // 33: arithmetic addition
-    "-",                   // 34: arithmetic subtraction
-    "*",                   // 35: arithmetic multiplier
-    "//",                  // 36: arithmetic division
-    "%%",                  // 37: arithmetic modulus
-    "**",                  // 38: arithmetic power
-    NULL                   // 39: unused
-};
+} Wlc_ObjType_t;
 
 
 ////////////////////////////////////////////////////////////////////////
