@@ -71,7 +71,7 @@ struct Abc_Frame_t_
     int             nSteps;        // the counter of different network processed
     int             fSource;       // marks the source mode
     int             fAutoexac;     // marks the autoexec mode
-    int                fBatchMode;       // batch mode flag
+    int             fBatchMode;    // batch mode flag
     int             fBridgeMode;   // bridge mode flag
     // output streams
     FILE *          Out;
