@@ -46,7 +46,6 @@ static int IoCommandReadTruth   ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandReadVerilog ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandReadStatus  ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandReadGig     ( Abc_Frame_t * pAbc, int argc, char **argv );
-static int IoCommandReadWord    ( Abc_Frame_t * pAbc, int argc, char **argv );
 
 static int IoCommandWrite       ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandWriteHie    ( Abc_Frame_t * pAbc, int argc, char **argv );
@@ -111,7 +110,6 @@ void Io_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "I/O", "read_verilog",  IoCommandReadVerilog,  1 );
     Cmd_CommandAdd( pAbc, "I/O", "read_status",   IoCommandReadStatus,   0 );
     Cmd_CommandAdd( pAbc, "I/O", "&read_gig",     IoCommandReadGig,      0 );
-    Cmd_CommandAdd( pAbc, "I/O", "read_word",     IoCommandReadWord,     0 );
 
     Cmd_CommandAdd( pAbc, "I/O", "write",         IoCommandWrite,        0 );
     Cmd_CommandAdd( pAbc, "I/O", "write_hie",     IoCommandWriteHie,     0 );
@@ -1188,61 +1186,6 @@ int IoCommandReadGig( Abc_Frame_t * pAbc, int argc, char ** argv )
 usage:
     fprintf( pAbc->Err, "usage: &read_gig [-h] <file>\n" );
     fprintf( pAbc->Err, "\t         reads design in GIG format\n" );
-    fprintf( pAbc->Err, "\t-h     : prints the command summary\n" );
-    fprintf( pAbc->Err, "\tfile   : the name of a file to read\n" );
-    return 1;
-}
-
-/**Function*************************************************************
-
-  Synopsis    []
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int IoCommandReadWord( Abc_Frame_t * pAbc, int argc, char ** argv )
-{
-    extern void Io_ReadWordTest( char * pFileName );
-    char * pFileName;
-    FILE * pFile;
-    int c;
-
-    Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
-    {
-        switch ( c )
-        {
-            case 'h':
-                goto usage;
-            default:
-                goto usage;
-        }
-    }
-    if ( argc != globalUtilOptind + 1 )
-    {
-        goto usage;
-    }
-
-    // get the input file name
-    pFileName = argv[globalUtilOptind];
-    if ( (pFile = fopen( pFileName, "r" )) == NULL )
-    {
-        fprintf( pAbc->Err, "Cannot open input file \"%s\". \n", pFileName );
-        return 1;
-    }
-    fclose( pFile );
-
-    // set the new network
-//    Io_ReadWordTest( pFileName );
-    return 0;
-
-usage:
-    fprintf( pAbc->Err, "usage: read_word [-h] <file>\n" );
-    fprintf( pAbc->Err, "\t         reads design in word-level Verilog\n" );
     fprintf( pAbc->Err, "\t-h     : prints the command summary\n" );
     fprintf( pAbc->Err, "\tfile   : the name of a file to read\n" );
     return 1;

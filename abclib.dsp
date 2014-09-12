@@ -599,10 +599,6 @@ SOURCE=.\src\base\io\ioReadVerilog.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\base\io\ioReadWord.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\src\base\io\ioUtil.c
 # End Source File
 # Begin Source File
@@ -745,6 +741,38 @@ SOURCE=.\src\base\test\test.c
 # Begin Group "ply"
 
 # PROP Default_Filter ""
+# End Group
+# Begin Group "wlc"
+
+# PROP Default_Filter ""
+# Begin Source File
+
+SOURCE=.\src\base\wlc\wlc.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\wlc\wlc.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\wlc\wlcBlast.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\wlc\wlcCom.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\wlc\wlcNtk.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\wlc\wlcReadVer.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\wlc\wlcWriteVer.c
+# End Source File
 # End Group
 # End Group
 # Begin Group "bdd"

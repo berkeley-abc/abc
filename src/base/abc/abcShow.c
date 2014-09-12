@@ -309,10 +309,12 @@ void Abc_ShowFile( char * FileNameDot )
     if ( _spawnl( _P_NOWAIT, pGsNameWin, pGsNameWin, FileNamePs, NULL ) == -1 )
         if ( _spawnl( _P_NOWAIT, "C:\\Program Files\\Ghostgum\\gsview\\gsview32.exe", 
             "C:\\Program Files\\Ghostgum\\gsview\\gsview32.exe", FileNamePs, NULL ) == -1 )
-        {
-            fprintf( stdout, "Cannot find \"%s\".\n", pGsNameWin );
-            return;
-        }
+            if ( _spawnl( _P_NOWAIT, "C:\\Program Files\\Ghostgum\\gsview\\gsview64.exe", 
+                "C:\\Program Files\\Ghostgum\\gsview\\gsview64.exe", FileNamePs, NULL ) == -1 )
+            {
+                fprintf( stdout, "Cannot find \"%s\".\n", pGsNameWin );
+                return;
+            }
 #else
     {
         char CommandPs[1000];

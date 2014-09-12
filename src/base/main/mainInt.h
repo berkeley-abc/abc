@@ -126,6 +126,7 @@ struct Abc_Frame_t_
     void *          pAbc85Ntl2;
     void *          pAbc85Best;
     void *          pAbc85Delay;
+    void *          pAbcWlc;
 
     EXT_ABC_FRAME   // plugin for external functionality
 };

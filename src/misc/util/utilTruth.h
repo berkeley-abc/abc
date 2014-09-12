@@ -732,6 +732,13 @@ static inline char Abc_TtPrintDigit( int Digit )
         return '0' + Digit;
     return 'A' + Digit-10;
 }
+static inline char Abc_TtPrintDigitLower( int Digit )
+{
+    assert( Digit >= 0 && Digit < 16 );
+    if ( Digit < 10 )
+        return '0' + Digit;
+    return 'a' + Digit-10;
+}
 static inline int Abc_TtReadHexDigit( char HexChar )
 {
     if ( HexChar >= '0' && HexChar <= '9' )
@@ -796,6 +803,12 @@ static inline int Abc_TtWriteHexRev( char * pStr, word * pTruth, int nVars )
             *pStr++ = Abc_TtPrintDigit( (int)(pThis[0] >> (k << 2)) & 15 );
     return pStr - pStrInit;
 }
+static inline void Abc_TtPrintHexArrayRev( FILE * pFile, word * pTruth, int nDigits )
+{
+    int k;
+    for ( k = nDigits - 1; k >= 0; k-- )
+        fprintf( pFile, "%c", Abc_TtPrintDigitLower( Abc_TtGetHex(pTruth, k) ) );
+}
 
 /**Function*************************************************************
 
@@ -847,6 +860,22 @@ static inline int Abc_TtReadHex( word * pTruth, char * pString )
     if ( nVars < 6 )
         pTruth[0] = Abc_Tt6Stretch( pTruth[0], nVars );
     return nVars;
+}
+static inline int Abc_TtReadHexNumber( word * pTruth, char * pString )
+{
+    // count the number of hex digits
+    int k, Digit, nDigits = 0;
+    for ( k = 0; Abc_TtIsHexDigit(pString[k]); k++ )
+        nDigits++;
+    // read hexadecimal digits in the reverse order
+    // (the last symbol in the string is the least significant digit)
+    for ( k = 0; k < nDigits; k++ )
+    {
+        Digit = Abc_TtReadHexDigit( pString[nDigits - 1 - k] );
+        assert( Digit >= 0 && Digit < 16 );
+        Abc_TtSetHex( pTruth, k, Digit );
+    }
+    return nDigits;
 }
 
 
