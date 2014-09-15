@@ -90,7 +90,6 @@ typedef enum {
 
 typedef struct Wlc_Ntk_t_  Wlc_Ntk_t;
 typedef struct Wlc_Obj_t_  Wlc_Obj_t;
-typedef struct Wlc_Prs_t_  Wlc_Prs_t;
 
 struct Wlc_Obj_t_ // 16 bytes
 {
