@@ -3735,11 +3735,15 @@ SOURCE=.\src\aig\gia\giaAigerExt.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\aig\gia\giaBalance.c
+SOURCE=.\src\aig\gia\giaBalAig.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\aig\gia\giaBalance2.c
+SOURCE=.\src\aig\gia\giaBalLut.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\gia\giaBalMap.c
 # End Source File
 # Begin Source File
 
@@ -3919,6 +3923,10 @@ SOURCE=.\src\aig\gia\giaScl.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\aig\gia\giaScript.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\aig\gia\giaShrink.c
 # End Source File
 # Begin Source File
@@ -3936,10 +3944,6 @@ SOURCE=.\src\aig\gia\giaSim.c
 # Begin Source File
 
 SOURCE=.\src\aig\gia\giaSim2.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\aig\gia\giaSopb.c
 # End Source File
 # Begin Source File
 

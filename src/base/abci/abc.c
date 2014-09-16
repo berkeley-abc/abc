@@ -360,6 +360,7 @@ static int Abc_CommandAbc9BalanceLut         ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandAbc9Syn2               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Syn3               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Syn4               ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9Synch2             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9False              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Miter              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Miter2             ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -950,6 +951,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "ABC9",         "&syn2",         Abc_CommandAbc9Syn2,         0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&syn3",         Abc_CommandAbc9Syn3,         0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&syn4",         Abc_CommandAbc9Syn4,         0 );
+    Cmd_CommandAdd( pAbc, "ABC9",         "&synch2",       Abc_CommandAbc9Synch2,       0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&false",        Abc_CommandAbc9False,        0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&miter",        Abc_CommandAbc9Miter,        0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&miter2",       Abc_CommandAbc9Miter2,       0 );
@@ -28434,6 +28436,53 @@ usage:
     Abc_Print( -2, "\t-d       : toggles additional delay optimization [default = %s]\n",   fDelayMin? "yes": "no" );
     Abc_Print( -2, "\t-v       : toggles printing verbose information [default = %s]\n",    fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-w       : toggles printing additional information [default = %s]\n", fVeryVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h       : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc9Synch2( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern Gia_Man_t * Gia_ManAigSynch2( Gia_Man_t * p, int fVerbose );
+    Gia_Man_t * pTemp;
+    int c, fVerbose  =  0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pAbc->pGia == NULL )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9Synch2(): There is no AIG.\n" );
+        return 1;
+    }
+    pTemp = Gia_ManAigSynch2( pAbc->pGia, fVerbose );
+    Abc_FrameUpdateGia( pAbc, pTemp );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: &synch2 [-vh]\n" );
+    Abc_Print( -2, "\t           performs synthesis and computes structural choices\n" );
+    Abc_Print( -2, "\t-v       : toggles printing additional information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h       : print the command usage\n");
     return 1;
 }

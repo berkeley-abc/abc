@@ -2,8 +2,9 @@ SRC +=    src/aig/gia/giaAig.c \
     src/aig/gia/giaAgi.c \
     src/aig/gia/giaAiger.c \
     src/aig/gia/giaAigerExt.c \
-    src/aig/gia/giaBalance.c \
-    src/aig/gia/giaBalance2.c \
+    src/aig/gia/giaBalAig.c \
+    src/aig/gia/giaBalLut.c \
+    src/aig/gia/giaBalMap.c \
     src/aig/gia/giaBidec.c \
     src/aig/gia/giaCCof.c \
     src/aig/gia/giaCex.c \
@@ -48,12 +49,12 @@ SRC +=    src/aig/gia/giaAig.c \
     src/aig/gia/giaResub.c \
     src/aig/gia/giaRetime.c \
     src/aig/gia/giaScl.c \
+    src/aig/gia/giaScript.c \
     src/aig/gia/giaShrink.c \
     src/aig/gia/giaShrink6.c \
     src/aig/gia/giaShrink7.c \
     src/aig/gia/giaSim.c \
     src/aig/gia/giaSim2.c \
-    src/aig/gia/giaSopb.c \
     src/aig/gia/giaSort.c \
     src/aig/gia/giaSpeedup.c \
     src/aig/gia/giaStg.c \
