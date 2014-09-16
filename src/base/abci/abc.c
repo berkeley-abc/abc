@@ -28453,16 +28453,66 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9Synch2( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern Gia_Man_t * Gia_ManAigSynch2( Gia_Man_t * p, int fVerbose );
+    extern Gia_Man_t * Gia_ManAigSynch2( Gia_Man_t * p, void * pPars, int nLutSize );
     Gia_Man_t * pTemp;
-    int c, fVerbose  =  0;
+    Dch_Pars_t Pars, * pPars = &Pars;
+    int c, nLutSize = 6;
+    // set defaults
+    Dch_ManSetDefaultParams( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "WCSKfvh" ) ) != EOF )
     {
         switch ( c )
         {
+        case 'W':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-W\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nWords = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nWords < 0 )
+                goto usage;
+            break;
+        case 'C':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-C\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nBTLimit = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nBTLimit < 0 )
+                goto usage;
+            break;
+        case 'S':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-S\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nSatVarMax = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nSatVarMax < 0 )
+                goto usage;
+            break;
+        case 'K':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-K\" should be followed by a char string.\n" );
+                goto usage;
+            }
+            nLutSize = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nLutSize < 0 )
+                goto usage;
+            break;
+        case 'f':
+            pPars->fLightSynth ^= 1;
+            break;
         case 'v':
-            fVerbose ^= 1;
+            pPars->fVerbose ^= 1;
             break;
         case 'h':
             goto usage;
@@ -28472,18 +28522,23 @@ int Abc_CommandAbc9Synch2( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     if ( pAbc->pGia == NULL )
     {
-        Abc_Print( -1, "Abc_CommandAbc9Synch2(): There is no AIG.\n" );
+        Abc_Print( -1, "Abc_CommandAbc9Dch(): There is no AIG.\n" );
         return 1;
     }
-    pTemp = Gia_ManAigSynch2( pAbc->pGia, fVerbose );
+    pTemp = Gia_ManAigSynch2( pAbc->pGia, pPars, nLutSize );
     Abc_FrameUpdateGia( pAbc, pTemp );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &synch2 [-vh]\n" );
-    Abc_Print( -2, "\t           performs synthesis and computes structural choices\n" );
-    Abc_Print( -2, "\t-v       : toggles printing additional information [default = %s]\n", fVerbose? "yes": "no" );
-    Abc_Print( -2, "\t-h       : print the command usage\n");
+    Abc_Print( -2, "usage: &synch2 [-WCSK num] [-fvh]\n" );
+    Abc_Print( -2, "\t         computes structural choices using a new approach\n" );
+    Abc_Print( -2, "\t-W num : the max number of simulation words [default = %d]\n", pPars->nWords );
+    Abc_Print( -2, "\t-C num : the max number of conflicts at a node [default = %d]\n", pPars->nBTLimit );
+    Abc_Print( -2, "\t-S num : the max number of SAT variables [default = %d]\n", pPars->nSatVarMax );
+    Abc_Print( -2, "\t-K num : the target LUT size for downstream mapping [default = %d]\n", nLutSize );
+    Abc_Print( -2, "\t-f     : toggle using lighter logic synthesis [default = %s]\n", pPars->fLightSynth? "yes": "no" );
+    Abc_Print( -2, "\t-v     : toggle verbose printout [default = %s]\n", pPars->fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
 }
 

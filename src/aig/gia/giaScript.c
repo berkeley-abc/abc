@@ -18,9 +18,11 @@
 
 ***********************************************************************/
 
-#include "gia.h"
+#include "giaAig.h"
 #include "base/main/main.h"
 #include "base/cmd/cmd.h"
+#include "proof/dch/dch.h"
+#include "opt/dau/dau.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -346,6 +348,35 @@ void Gia_ManPerformFlow( int fIsMapped, int nAnds, int nLevels, int nLutSize, in
 
 /**Function*************************************************************
 
+  Synopsis    [Duplicates the AIG manager.]
+
+  Description [This duplicator works for AIGs with choices.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Ptr_t * Gia_ManOrderPios( Aig_Man_t * p, Gia_Man_t * pOrder )
+{
+    Vec_Ptr_t * vPios;
+    Gia_Obj_t * pObj;
+    int i;
+    assert( Aig_ManCiNum(p) == Gia_ManCiNum(pOrder) );
+    assert( Aig_ManCoNum(p) == Gia_ManCoNum(pOrder) );
+    vPios = Vec_PtrAlloc( Aig_ManCiNum(p) + Aig_ManCoNum(p) );
+    Gia_ManForEachObj( pOrder, pObj, i )
+    {
+        if ( Gia_ObjIsCi(pObj) )
+            Vec_PtrPush( vPios, Aig_ManCi(p, Gia_ObjCioId(pObj)) );
+        else if ( Gia_ObjIsCo(pObj) )
+            Vec_PtrPush( vPios, Aig_ManCo(p, Gia_ObjCioId(pObj)) );
+    }
+    return vPios;
+}
+
+/**Function*************************************************************
+
   Synopsis    []
 
   Description []
@@ -355,9 +386,98 @@ void Gia_ManPerformFlow( int fIsMapped, int nAnds, int nLevels, int nLutSize, in
   SeeAlso     []
 
 ***********************************************************************/
-Gia_Man_t * Gia_ManAigSynch2( Gia_Man_t * p, int fVerbose )
+Gia_Man_t * Gia_ManAigSynch2Choices( Gia_Man_t * pGia1, Gia_Man_t * pGia2, Gia_Man_t * pGia3, Dch_Pars_t * pPars )
 {
-    return NULL;
+    Aig_Man_t * pMan, * pTemp;
+    Gia_Man_t * pGia, * pMiter;
+    // derive miter
+    Vec_Ptr_t * vPios, * vGias = Vec_PtrAlloc( 3 );
+    if ( pGia3 ) Vec_PtrPush( vGias, pGia3 );
+    if ( pGia2 ) Vec_PtrPush( vGias, pGia2 );
+    if ( pGia1 ) Vec_PtrPush( vGias, pGia1 );
+    pMiter = Gia_ManChoiceMiter( vGias );
+    Vec_PtrFree( vGias );
+    // transform into an AIG
+    pMan = Gia_ManToAigSkip( pMiter, 3 );
+    Gia_ManStop( pMiter );
+    // compute choices
+    pMan = Dch_ComputeChoices( pTemp = pMan, pPars );
+    Aig_ManStop( pTemp );
+    // reconstruct the network
+    vPios = Gia_ManOrderPios( pMan, pGia1 ); 
+    pMan = Aig_ManDupDfsGuided( pTemp = pMan, vPios );
+    Aig_ManStop( pTemp );
+    Vec_PtrFree( vPios );
+    // convert to GIA
+    pGia = Gia_ManFromAigChoices( pMan );
+    Aig_ManStop( pMan );
+    return pGia;
+}
+Gia_Man_t * Gia_ManAigSynch2( Gia_Man_t * pInit, void * pPars0, int nLutSize )
+{
+    extern Gia_Man_t * Gia_ManLutBalance( Gia_Man_t * p, int nLutSize, int fUseMuxes, int fRecursive, int fOptArea, int fVerbose );
+    Dch_Pars_t * pParsDch = (Dch_Pars_t *)pPars0;
+    Gia_Man_t * pGia1, * pGia2, * pGia3, * pNew, * pTemp;
+    int fVerbose = pParsDch->fVerbose;
+    Jf_Par_t Pars, * pPars = &Pars;
+    Lf_ManSetDefaultPars( pPars );
+    pPars->fCutMin     = 1;
+    pPars->fCoarsen    = 1;
+    pPars->nRelaxRatio = 20;
+    pPars->nAreaTuner  = 1;
+    pPars->nCutNum     = 4;
+    pPars->fVerbose    = fVerbose;
+    if ( fVerbose )  Gia_ManPrintStats( pInit, NULL );
+    pGia1 = Gia_ManDup( pInit );
+    if ( Gia_ManAndNum(pGia1) == 0 )
+    {
+        Gia_ManTransferTiming( pGia1, pInit );
+        return pGia1;
+    }
+    if ( pGia1->pManTime && pGia1->vLevels == NULL )
+        Gia_ManLevelWithBoxes( pGia1 );
+    // unmap if mapped
+    if ( Gia_ManHasMapping(pInit) )
+    {
+        Gia_ManTransferMapping( pGia1, pInit );
+        pGia1 = (Gia_Man_t *)Dsm_ManDeriveGia( pTemp = pGia1, 0 );
+        Gia_ManStop( pTemp );
+    }
+    // perform LUT balancing
+    pGia2 = Gia_ManLutBalance( pGia1, nLutSize, 1, 1, 1, 0 );
+    // perform balancing
+    pGia2 = Gia_ManAreaBalance( pTemp = pGia2, 0, ABC_INFINITY, 0, 0 );
+    if ( fVerbose )     Gia_ManPrintStats( pGia2, NULL );
+    Gia_ManStop( pTemp );
+    // perform mapping
+    pGia2 = Lf_ManPerformMapping( pTemp = pGia2, pPars );
+    if ( fVerbose )     Gia_ManPrintStats( pGia2, NULL );
+    if ( pTemp != pGia2 )
+        Gia_ManStop( pTemp );
+    // perform balancing
+    if ( pParsDch->fLightSynth )
+        pGia3 = Gia_ManAreaBalance( pGia2, 0, ABC_INFINITY, 0, 0 );
+    else
+    {
+        pGia2 = Gia_ManAreaBalance( pTemp = pGia2, 0, ABC_INFINITY, 0, 0 );
+        if ( fVerbose )     Gia_ManPrintStats( pGia2, NULL );
+        Gia_ManStop( pTemp );
+        // perform DSD balancing
+        pGia3 = Gia_ManPerformDsdBalance( pGia2, 6, 8, 0, 0 );
+    }
+    if ( fVerbose )     Gia_ManPrintStats( pGia3, NULL );
+    // perform choice computation
+    pNew = Gia_ManAigSynch2Choices( pGia1, pGia2, pGia3, pParsDch );
+    Gia_ManStop( pGia1 );
+    Gia_ManStop( pGia2 );
+    Gia_ManStop( pGia3 );
+    // copy names
+    ABC_FREE( pNew->pName );
+    ABC_FREE( pNew->pSpec );
+    pNew->pName = Abc_UtilStrsav(pInit->pName);
+    pNew->pSpec = Abc_UtilStrsav(pInit->pSpec);
+    Gia_ManTransferTiming( pNew, pInit );
+    return pNew;
 }
 
 ////////////////////////////////////////////////////////////////////////
