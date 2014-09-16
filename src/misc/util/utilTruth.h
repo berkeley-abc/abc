@@ -341,6 +341,20 @@ static inline void Abc_TtElemInit( word ** pTtElems, int nVars )
             for ( k = 0; k < nWords; k++ )
                 pTtElems[i][k] = (k & (1 << (i-6))) ? ~(word)0 : 0;
 }
+static inline void Abc_TtElemInit2( word * pTtElems, int nVars )
+{
+    int i, k, nWords = Abc_TtWordNum( nVars );
+    for ( i = 0; i < nVars; i++ )
+    {
+        word * pTruth = pTtElems + i * nWords;
+        if ( i < 6 )
+            for ( k = 0; k < nWords; k++ )
+                pTruth[k] = s_Truths6[i];
+        else
+            for ( k = 0; k < nWords; k++ )
+                pTruth[k] = (k & (1 << (i-6))) ? ~(word)0 : 0;
+    }
+}
 
 /**Function*************************************************************
 

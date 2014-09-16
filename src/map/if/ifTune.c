@@ -23,12 +23,17 @@
 #include "sat/bsat/satStore.h"
 #include "sat/cnf/cnf.h"
 #include "misc/extra/extra.h"
+#include "bool/kit/kit.h"
 
 ABC_NAMESPACE_IMPL_START
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
+ 
+#define IFN_INS    11
+#define IFN_WRD  (IFN_INS > 6 ? 1 << (IFN_INS-6) : 1)
+#define IFN_PAR  1024
 
 // network types
 typedef enum { 
@@ -41,10 +46,119 @@ typedef enum {
     IF_DSD_PRIME                   // 6:  PRIME
 } If_DsdType_t;
 
+// object types
+static char * Ifn_Symbs[16] = { 
+    NULL,                          // 0:  unknown
+    "const",                       // 1:  constant
+    "var",                         // 2:  variable
+    "()",                          // 3:  AND
+    "[]",                          // 4:  XOR
+    "<>",                          // 5:  MUX
+    "{}"                           // 6:  PRIME
+};
+
+typedef struct Ift_Obj_t_  Ift_Obj_t;
+typedef struct Ift_Ntk_t_  Ift_Ntk_t;
+
+struct Ift_Obj_t_
+{
+    unsigned               Type    :  3;      // node type
+    unsigned               nFanins :  5;      // fanin counter
+    unsigned               iFirst  :  8;      // first parameter
+    unsigned               Var     : 16;      // current variable
+    int                    Fanins[IFN_INS];   // fanin IDs
+};
+struct Ift_Ntk_t_ 
+{
+    // cell structure
+    int                    nInps;             // inputs
+    int                    nObjs;             // objects
+    Ift_Obj_t              Nodes[2*IFN_INS];  // nodes
+    // constraints
+    int                    pConstr[IFN_INS];  // constraint pairs
+    int                    nConstr;           // number of pairs
+    // user data
+    int                    nVars;             // variables
+    int                    nWords;            // truth table words
+    int                    nParsVNum;         // selection parameters per variable
+    int                    nParsVIni;         // first selection parameter
+    int                    nPars;             // total parameters
+    word *                 pTruth;            // user truth table
+    // matching procedures
+    int                    Values[IFN_PAR];            // variable values
+    word                   pTtElems[IFN_INS*IFN_WRD];  // elementary truth tables
+    word                   pTtObjs[2*IFN_INS*IFN_WRD]; // object truth tables
+};
+
+static inline word *       Ift_ElemTruth( Ift_Ntk_t * p, int i ) { return p->pTtElems + i * Abc_TtWordNum(p->nInps); }
+static inline word *       Ift_ObjTruth( Ift_Ntk_t * p, int i )  { return p->pTtObjs + i * p->nWords;                }
+ 
+// variable ordering
+// - primary inputs            [0;            p->nInps)
+// - internal nodes            [p->nInps;     p->nObjs)
+// - configuration params      [p->nObjs;     p->nParsVIni)
+// - variable selection params [p->nParsVIni; p->pPars)
+
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
- 
+
+/**Function*************************************************************
+
+  Synopsis    [Prepare network to check the given function.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Ifn_Prepare( Ift_Ntk_t * p, word * pTruth, int nVars )
+{
+    int i, fVerbose = 0;
+    assert( nVars <= p->nInps );
+    p->pTruth = pTruth;
+    p->nVars  = nVars;
+    p->nWords = Abc_TtWordNum(nVars);
+    p->nPars  = p->nObjs;
+    for ( i = p->nInps; i < p->nObjs; i++ )
+    {
+        if ( p->Nodes[i].Type != IF_DSD_PRIME )
+            continue;
+        p->Nodes[i].iFirst = p->nPars;
+        p->nPars += (1 << p->Nodes[i].nFanins);
+        if ( fVerbose )
+            printf( "Node %d  Start %d  Vars %d\n", i, p->Nodes[i].iFirst, (1 << p->Nodes[i].nFanins) );
+    }
+    if ( fVerbose )
+        printf( "Groups start %d\n", p->nPars );
+    p->nParsVIni = p->nPars;
+    p->nParsVNum = Abc_Base2Log(nVars);
+    p->nPars    += p->nParsVNum * p->nInps;
+    assert( p->nPars <= IFN_PAR );
+    memset( p->Values, 0xFF, sizeof(int) * p->nPars );
+    return p->nPars;
+}
+void Ifn_NtkPrint( Ift_Ntk_t * p )
+{
+    int i, k; 
+    if ( p == NULL )
+        printf( "String is empty.\n" );
+    if ( p == NULL )
+        return;
+    for ( i = p->nInps; i < p->nObjs; i++ )
+    {
+        printf( "%c=", 'a'+i );
+        printf( "%c", Ifn_Symbs[p->Nodes[i].Type][0] );
+        for ( k = 0; k < (int)p->Nodes[i].nFanins; k++ )
+            printf( "%c", 'a'+p->Nodes[i].Fanins[k] );
+        printf( "%c", Ifn_Symbs[p->Nodes[i].Type][1] );
+        printf( ";" );
+    }
+    printf( "\n" );
+}
+
 /**Function*************************************************************
 
   Synopsis    []
@@ -56,7 +170,7 @@ typedef enum {
   SeeAlso     []
 
 ***********************************************************************/
-int If_ManStrCheck( char * pStr, int * pnVars, int * pnObjs )
+int Ifn_ManStrCheck( char * pStr, int * pnInps, int * pnObjs )
 {
     int i, Marks[32] = {0}, MaxVar = 0, MaxDef = 0, RetValue = 1;
     for ( i = 0; pStr[i]; i++ )
@@ -110,141 +224,207 @@ int If_ManStrCheck( char * pStr, int * pnVars, int * pnObjs )
             printf( "String \"%s\" has no definition for internal variable (%c).\n", pStr, 'a' + i ), RetValue = 0;
     if ( !RetValue )
         return 0;
-    *pnVars = MaxVar;
+    *pnInps = MaxVar;
     *pnObjs = MaxDef;
     return 1;
 }
-int If_ManStrParse( char * pStr, int nVars, int nObjs, int * pTypes, int * pnFans, int ppFans[][6], int * pFirsts, int * pnSatVars )
+Ift_Ntk_t * Ifn_ManStrParse( char * pStr )
 {
-    int i, k, n, f, nPars = nVars;
-    char Next = 0;
-    assert( nVars < nObjs );
-    for ( i = nVars; i < nObjs; i++ )
+    int i, k, n, f, nFans, iFan;
+    static Ift_Ntk_t P, * p = &P;
+    memset( p, 0, sizeof(Ift_Ntk_t) );
+    if ( !Ifn_ManStrCheck(pStr, &p->nInps, &p->nObjs) )
+        return NULL;
+    if ( p->nInps > IFN_INS )
     {
+        printf( "The number of variables (%d) exceeds predefined limit (%d). Recompile with different value of IFN_INS.\n", p->nInps, IFN_INS );
+        return NULL;
+    }
+    assert( p->nInps > 1 && p->nInps < p->nObjs && p->nInps <= IFN_INS && p->nObjs < 2*IFN_INS );
+    for ( i = p->nInps; i < p->nObjs; i++ )
+    {
+        char Next = 0;
         for ( k = 0; pStr[k]; k++ )
             if ( pStr[k] == 'a' + i && pStr[k+1] == '=' )
                 break;
-        assert( pStr[k] );
+        if ( pStr[k] == 0 )
+        {
+            printf( "Cannot find definition of signal %c.\n", 'a' + i );
+            return NULL;
+        }
         if ( pStr[k+2] == '(' )
-            pTypes[i] = IF_DSD_AND, Next = ')';
+            p->Nodes[i].Type = IF_DSD_AND, Next = ')';
         else if ( pStr[k+2] == '[' )
-            pTypes[i] = IF_DSD_XOR, Next = ']';
+            p->Nodes[i].Type = IF_DSD_XOR, Next = ']';
         else if ( pStr[k+2] == '<' )
-            pTypes[i] = IF_DSD_MUX, Next = '>';
+            p->Nodes[i].Type = IF_DSD_MUX, Next = '>';
         else if ( pStr[k+2] == '{' )
-            pTypes[i] = IF_DSD_PRIME, Next = '}';
-        else assert( 0 );
+            p->Nodes[i].Type = IF_DSD_PRIME, Next = '}';
+        else 
+        {
+            printf( "Cannot find openning operation symbol in the defition of of signal %c.\n", 'a' + i );
+            return NULL;
+        }
         for ( n = k + 3; pStr[n]; n++ )
             if ( pStr[n] == Next )
                 break;
-        assert( pStr[k] );
-        pnFans[i] = n - k - 3;
-        assert( pnFans[i] > 0 && pnFans[i] <= 6 );
-        for ( f = 0; f < pnFans[i]; f++ )
+        if ( pStr[n] == 0 )
         {
-            ppFans[i][f] = pStr[k + 3 + f] - 'a';
-            assert( ppFans[i][k] < i );
-            if ( ppFans[i][f] < 0 || ppFans[i][f] >= nObjs )
-                printf( "Error!\n" );
+            printf( "Cannot find closing operation symbol in the defition of of signal %c.\n", 'a' + i );
+            return NULL;
         }
-        if ( pTypes[i] != IF_DSD_PRIME )
-            continue;
-        pFirsts[i] = nPars;
-        nPars += (1 << pnFans[i]);
+        nFans = n - k - 3;
+        if ( nFans < 1 || nFans > 8 )
+        {
+            printf( "Cannot find matching operation symbol in the defition of of signal %c.\n", 'a' + i );
+            return NULL;
+        }
+        for ( f = 0; f < nFans; f++ )
+        {
+            iFan = pStr[k + 3 + f] - 'a';
+            if ( iFan < 0 || iFan >= i )
+            {
+                printf( "Fanin number %d is signal %d is out of range.\n", f, 'a' + i );
+                return NULL;
+            }
+            p->Nodes[i].Fanins[f] = iFan;
+        }
+        p->Nodes[i].nFanins = nFans;
     }
-    *pnSatVars = nPars;
-    return 1;
+    // truth tables
+    Abc_TtElemInit2( p->pTtElems, p->nInps );
+/*
+    // constraints
+    p->nConstr = 5;
+    p->pConstr[0] = (0 << 16) | 1;
+
+    p->pConstr[1] = (2 << 16) | 3;
+    p->pConstr[2] = (3 << 16) | 4;
+
+    p->pConstr[3] = (6 << 16) | 7;
+    p->pConstr[4] = (7 << 16) | 8;
+*/
+    return p;
 }
-Gia_Man_t * If_ManStrFindModel( int nVars, int nObjs, int nSatVars, int * pTypes, int * pnFans, int ppFans[][6], int * pFirsts )
+
+/**Function*************************************************************
+
+  Synopsis    [Derive truth table given the configulation values.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+word * Ift_NtkDeriveTruth( Ift_Ntk_t * p, int * pValues )
 {
-    Gia_Man_t * pNew, * pTemp;
-    int * pVarsPar, * pVarsObj;
-    int i, k, n, Step, iLit, nMints, nPars = 0;
-    pNew = Gia_ManStart( 1000 );
-    pNew->pName = Abc_UtilStrsav( "model" );
-    Gia_ManHashStart( pNew );
-    pVarsPar = ABC_ALLOC( int, nSatVars );
-    pVarsObj = ABC_ALLOC( int, nObjs );
-    for ( i = 0; i < nSatVars; i++ )
-        pVarsPar[i] = Gia_ManAppendCi(pNew);
-    for ( i = 0; i < nVars; i++ )
-        pVarsObj[i] = pVarsPar[nSatVars - nVars + i];
-    for ( i = nVars; i < nObjs; i++ )
+    int i, v, f, iVar, iStart;
+    // elementary variables
+    for ( i = 0; i < p->nInps; i++ )
     {
-        if ( pTypes[i] == IF_DSD_AND )
+        // find variable
+        iStart = p->nParsVIni + i * p->nParsVNum;
+        for ( v = iVar = 0; v < p->nParsVNum; v++ )
+            if ( p->Values[iStart+v] )
+                iVar += (1 << v);
+        // assign variable
+        Abc_TtCopy( Ift_ObjTruth(p, i), Ift_ElemTruth(p, iVar), p->nWords, 0 );
+    }
+    // internal variables
+    for ( i = p->nInps; i < p->nObjs; i++ )
+    {
+        int nFans = p->Nodes[i].nFanins;
+        int * pFans = p->Nodes[i].Fanins;
+        word * pTruth = Ift_ObjTruth( p, i );
+        if ( p->Nodes[i].Type == IF_DSD_AND )
         {
-            iLit = 1;
-            for ( k = 0; k < pnFans[i]; k++ )
-                iLit = Gia_ManHashAnd( pNew, iLit, pVarsObj[ppFans[i][k]] );
-            pVarsObj[i] = iLit;
+            Abc_TtFill( pTruth, p->nWords );
+            for ( f = 0; f < nFans; f++ )
+                Abc_TtAnd( pTruth, pTruth, Ift_ObjTruth(p, pFans[f]), p->nWords, 0 );
         }
-        else if ( pTypes[i] == IF_DSD_XOR )
+        else if ( p->Nodes[i].Type == IF_DSD_XOR )
         {
-            iLit = 0;
-            for ( k = 0; k < pnFans[i]; k++ )
-                iLit = Gia_ManHashXor( pNew, iLit, pVarsObj[ppFans[i][k]] );
-            pVarsObj[i] = iLit;
+            Abc_TtClear( pTruth, p->nWords );
+            for ( f = 0; f < nFans; f++ )
+                Abc_TtXor( pTruth, pTruth, Ift_ObjTruth(p, pFans[f]), p->nWords, 0 );
         }
-        else if ( pTypes[i] == IF_DSD_MUX )
+        else if ( p->Nodes[i].Type == IF_DSD_MUX )
         {
-            assert( pnFans[i] == 3 );
-            pVarsObj[i] = Gia_ManHashMux( pNew, pVarsObj[ppFans[i][0]], pVarsObj[ppFans[i][1]], pVarsObj[ppFans[i][2]] );
+            assert( nFans == 3 );
+            Abc_TtMux( pTruth, Ift_ObjTruth(p, pFans[0]), Ift_ObjTruth(p, pFans[1]), Ift_ObjTruth(p, pFans[2]), p->nWords );
         }
-        else if ( pTypes[i] == IF_DSD_PRIME )
+        else if ( p->Nodes[i].Type == IF_DSD_PRIME )
         {
-            int pVarsData[64];
-            assert( pnFans[i] >= 1 && pnFans[i] <= 6 );
-            nMints = (1 << pnFans[i]);
-            for ( k = 0; k < nMints; k++ )
-                pVarsData[k] = pVarsPar[nPars++];
-            for ( Step = 1, k = 0; k < pnFans[i]; k++, Step <<= 1 )
-                for ( n = 0; n < nMints; n += Step << 1 )
-                    pVarsData[n] = Gia_ManHashMux( pNew, pVarsObj[ppFans[i][k]], pVarsData[n+Step], pVarsData[n] );
-            assert( Step == nMints );
-            pVarsObj[i] = pVarsData[0];
+            int nValues = (1 << nFans);
+            word * pTemp = Ift_ObjTruth(p, p->nObjs);
+            Abc_TtClear( pTruth, p->nWords );
+            for ( v = 0; v < nValues; v++ )
+            {
+                if ( pValues[p->Nodes[i].iFirst + v] == 0 )
+                    continue;
+                Abc_TtFill( pTemp, p->nWords );
+                for ( f = 0; f < nFans; f++ )
+                    if ( (v >> f) & 1 )
+                        Abc_TtAnd( pTemp, pTemp, Ift_ObjTruth(p, pFans[f]), p->nWords, 0 );
+                    else
+                        Abc_TtSharp( pTemp, pTemp, Ift_ObjTruth(p, pFans[f]), p->nWords );
+                Abc_TtOr( pTruth, pTruth, pTemp, p->nWords );
+            }
         }
         else assert( 0 );
+//Dau_DsdPrintFromTruth( pTruth, p->nVars );
     }
-    assert( nPars + nVars == nSatVars );
-    Gia_ManAppendCo( pNew, pVarsObj[nObjs-1] );
-    pNew = Gia_ManCleanup( pTemp = pNew );
-    Gia_ManStop( pTemp );
-    ABC_FREE( pVarsPar );
-    ABC_FREE( pVarsObj );
-    assert( Gia_ManPiNum(pNew) == nSatVars );
-    assert( Gia_ManPoNum(pNew) == 1 );
-    return pNew;
+    return Ift_ObjTruth(p, p->nObjs-1);
 }
-Gia_Man_t * If_ManStrFindCofactors( int nPars, Gia_Man_t * p )
+
+/**Function*************************************************************
+
+  Synopsis    [Compute more or equal]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Ift_TtComparisonConstr( word * pTruth, int nVars, int fMore, int fEqual )
 {
-    Gia_Man_t * pNew, * pTemp; 
-    Gia_Obj_t * pObj;
-    int i, m, nMints = 1 << (Gia_ManCiNum(p) - nPars);
-    pNew = Gia_ManStart( Gia_ManObjNum(p) );
-    pNew->pName = Abc_UtilStrsav( p->pName );
-    Gia_ManHashAlloc( pNew );
-    Gia_ManConst0(p)->Value = 0;
-    Gia_ManForEachCi( p, pObj, i )
-        if ( i < nPars )
-            pObj->Value = Gia_ManAppendCi( pNew );
-    for ( m = 0; m < nMints; m++ )
+    word Cond[4], Equa[4], Temp[4];
+    word s_TtElems[8][4] = {
+        ABC_CONST(0xAAAAAAAAAAAAAAAA),ABC_CONST(0xAAAAAAAAAAAAAAAA),ABC_CONST(0xAAAAAAAAAAAAAAAA),ABC_CONST(0xAAAAAAAAAAAAAAAA),
+        ABC_CONST(0xCCCCCCCCCCCCCCCC),ABC_CONST(0xCCCCCCCCCCCCCCCC),ABC_CONST(0xCCCCCCCCCCCCCCCC),ABC_CONST(0xCCCCCCCCCCCCCCCC),
+        ABC_CONST(0xF0F0F0F0F0F0F0F0),ABC_CONST(0xF0F0F0F0F0F0F0F0),ABC_CONST(0xF0F0F0F0F0F0F0F0),ABC_CONST(0xF0F0F0F0F0F0F0F0),
+        ABC_CONST(0xFF00FF00FF00FF00),ABC_CONST(0xFF00FF00FF00FF00),ABC_CONST(0xFF00FF00FF00FF00),ABC_CONST(0xFF00FF00FF00FF00),
+        ABC_CONST(0xFFFF0000FFFF0000),ABC_CONST(0xFFFF0000FFFF0000),ABC_CONST(0xFFFF0000FFFF0000),ABC_CONST(0xFFFF0000FFFF0000),
+        ABC_CONST(0xFFFFFFFF00000000),ABC_CONST(0xFFFFFFFF00000000),ABC_CONST(0xFFFFFFFF00000000),ABC_CONST(0xFFFFFFFF00000000),
+        ABC_CONST(0x0000000000000000),ABC_CONST(0xFFFFFFFFFFFFFFFF),ABC_CONST(0x0000000000000000),ABC_CONST(0xFFFFFFFFFFFFFFFF),
+        ABC_CONST(0x0000000000000000),ABC_CONST(0x0000000000000000),ABC_CONST(0xFFFFFFFFFFFFFFFF),ABC_CONST(0xFFFFFFFFFFFFFFFF)
+    };
+    int i, nWords = Abc_TtWordNum(2*nVars);
+    assert( nVars > 0 && nVars <= 4 );
+    Abc_TtClear( pTruth, nWords );
+    Abc_TtFill( Equa, nWords );
+    for ( i = nVars - 1; i >= 0; i-- )
     {
-        Gia_ManForEachCi( p, pObj, i )
-            if ( i >= nPars )
-                pObj->Value = ((m >> (i - nPars)) & 1);
-        Gia_ManForEachAnd( p, pObj, i )
-            pObj->Value = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
-        Gia_ManForEachPo( p, pObj, i )
-            pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
+        if ( fMore )
+            Abc_TtSharp( Cond, s_TtElems[2*i+1], s_TtElems[2*i+0], nWords );
+        else
+            Abc_TtSharp( Cond, s_TtElems[2*i+0], s_TtElems[2*i+1], nWords );
+        Abc_TtAnd( Temp, Equa, Cond, nWords, 0 );
+        Abc_TtOr( pTruth, pTruth, Temp, nWords );
+        Abc_TtXor( Temp, s_TtElems[2*i+0], s_TtElems[2*i+1], nWords, 1 );
+        Abc_TtAnd( Equa, Equa, Temp, nWords, 0 );
     }
-    pNew = Gia_ManCleanup( pTemp = pNew );
-    Gia_ManStop( pTemp );
-    return pNew;
+    if ( fEqual )
+        Abc_TtNot( pTruth, nWords );
 }
 
 /**Function*************************************************************
 
-  Synopsis    []
+  Synopsis    [Adds parameter constraints.]
 
   Description []
                
@@ -253,70 +433,185 @@ Gia_Man_t * If_ManStrFindCofactors( int nPars, Gia_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-static inline Cnf_Dat_t * Cnf_DeriveGiaRemapped( Gia_Man_t * p )
+void Ift_AddClause( sat_solver * pSat, int * pBeg, int * pEnd )
 {
-    Cnf_Dat_t * pCnf;
-    Aig_Man_t * pAig = Gia_ManToAigSimple( p );
-    pAig->nRegs = 0;
-    pCnf = Cnf_Derive( pAig, Aig_ManCoNum(pAig) );
-    Aig_ManStop( pAig );
-    return pCnf;
+    int fVerbose = 0;
+    int RetValue = sat_solver_addclause( pSat, pBeg, pEnd );
+    if ( fVerbose )
+    {
+        for ( ; pBeg < pEnd; pBeg++ )
+            printf( "%c%d ", Abc_LitIsCompl(*pBeg) ? '-':'+', Abc_Lit2Var(*pBeg) );
+        printf( "\n" );
+    }
+    assert( RetValue );
 }
-sat_solver * If_ManStrFindSolver( Gia_Man_t * p, Vec_Int_t ** pvPiVars, Vec_Int_t ** pvPoVars )
+void Ift_NtkAddConstrOne( sat_solver * pSat, Vec_Int_t * vCover, int * pVars, int nVars )
 {
-    sat_solver * pSat;
-    Gia_Obj_t * pObj;
-    Cnf_Dat_t * pCnf;
-    int i;    
-    pCnf = Cnf_DeriveGiaRemapped( p );
-    // start the SAT solver
-    pSat = sat_solver_new();
-    sat_solver_setnvars( pSat, pCnf->nVars );
-    // add timeframe clauses
-    for ( i = 0; i < pCnf->nClauses; i++ )
-        if ( !sat_solver_addclause( pSat, pCnf->pClauses[i], pCnf->pClauses[i+1] ) )
+    int k, c, Cube, Literal, nLits, pLits[IFN_INS];
+    Vec_IntForEachEntry( vCover, Cube, c )
+    {
+        nLits = 0;
+        for ( k = 0; k < nVars; k++ )
+        {
+            Literal = 3 & (Cube >> (k << 1));
+            if ( Literal == 1 )      // '0'  -> pos lit
+                pLits[nLits++] = Abc_Var2Lit(pVars[k], 0);
+            else if ( Literal == 2 ) // '1'  -> neg lit
+                pLits[nLits++] = Abc_Var2Lit(pVars[k], 1);
+            else if ( Literal != 0 )
+                assert( 0 );
+        }
+        Ift_AddClause( pSat, pLits, pLits + nLits );
+    }
+}
+void Ift_NtkAddConstraints( Ift_Ntk_t * p, sat_solver * pSat )
+{
+    int fAddConstr = 0;
+    Vec_Int_t * vCover = Vec_IntAlloc( 0 );
+    word uTruth = Abc_Tt6Stretch( ~Abc_Tt6Mask(p->nVars), p->nParsVNum );
+    assert( p->nParsVNum <= 4 );
+    if ( uTruth )
+    {
+        int i, k, pVars[IFN_INS];
+        int RetValue = Kit_TruthIsop( (unsigned *)&uTruth, p->nParsVNum, vCover, 0 );
+        assert( RetValue == 0 );
+//        Dau_DsdPrintFromTruth( &uTruth, p->nParsVNum );
+        // add capacity constraints
+        for ( i = 0; i < p->nInps; i++ )
+        {
+            for ( k = 0; k < p->nParsVNum; k++ )
+                pVars[k] = p->nParsVIni + i * p->nParsVNum + k;
+            Ift_NtkAddConstrOne( pSat, vCover, pVars, p->nParsVNum );
+        }
+    }
+    // ordering constraints
+    if ( fAddConstr && p->nConstr )
+    {
+        word pTruth[4];
+        int i, k, RetValue, pVars[2*IFN_INS];
+        int fForceDiff = (p->nVars == p->nInps);
+        Ift_TtComparisonConstr( pTruth, p->nParsVNum, fForceDiff, fForceDiff );
+        RetValue = Kit_TruthIsop( (unsigned *)pTruth, 2*p->nParsVNum, vCover, 0 );
+        assert( RetValue == 0 );
+//        Kit_TruthIsopPrintCover( vCover, 2*p->nParsVNum, 0 );
+        for ( i = 0; i < p->nConstr; i++ )
+        {
+            int iVar1 = p->pConstr[i] >> 16;
+            int iVar2 = p->pConstr[i] & 0xFFFF;
+            for ( k = 0; k < p->nParsVNum; k++ )
+            {
+                pVars[2*k+0] = p->nParsVIni + iVar1 * p->nParsVNum + k;
+                pVars[2*k+1] = p->nParsVIni + iVar2 * p->nParsVNum + k;
+            }
+            Ift_NtkAddConstrOne( pSat, vCover, pVars, 2*p->nParsVNum );
+//            printf( "added constraint with %d clauses for %d and %d\n", Vec_IntSize(vCover), iVar1, iVar2 );
+        }
+    }
+    Vec_IntFree( vCover );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Derive clauses given variable assignment.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Ift_NtkAddClauses( Ift_Ntk_t * p, int * pValues, sat_solver * pSat )
+{
+    int i, f, v, nLits, pLits[IFN_INS+2], pLits2[IFN_INS+2];
+    // assign new variables
+    int nSatVars = sat_solver_nvars(pSat);
+    for ( i = 0; i < p->nObjs-1; i++ )
+        p->Nodes[i].Var = nSatVars++;
+    p->Nodes[p->nObjs-1].Var = -ABC_INFINITY;
+    sat_solver_setnvars( pSat, nSatVars );
+    // verify variable values
+    for ( i = 0; i < p->nVars; i++ )
+        assert( pValues[i] != -1 );
+    for ( i = p->nVars; i < p->nObjs-1; i++ )
+        assert( pValues[i] == -1 );
+    assert( pValues[p->nObjs-1] != -1 );
+    // internal variables
+//printf( "\n" );
+    for ( i = 0; i < p->nInps; i++ )
+    {
+        int iParStart = p->nParsVIni + i * p->nParsVNum;
+        for ( v = 0; v < p->nVars; v++ )
+        {
+            // add output literal
+            pLits[0] = Abc_Var2Lit( p->Nodes[i].Var, pValues[v]==0 );
+            // add clause literals
+            for ( f = 0; f < p->nParsVNum; f++ )
+                pLits[f+1] = Abc_Var2Lit( iParStart + f, (v >> f) & 1 ); 
+            Ift_AddClause( pSat, pLits, pLits+p->nParsVNum+1 );
+        }
+    }
+//printf( "\n" );
+    for ( i = p->nInps; i < p->nObjs; i++ )
+    {
+        int nFans = p->Nodes[i].nFanins;
+        int * pFans = p->Nodes[i].Fanins;
+        if ( p->Nodes[i].Type == IF_DSD_AND )
+        {
+            nLits = 0;
+            pLits[nLits++] = Abc_Var2Lit( p->Nodes[i].Var, 0 );
+            for ( f = 0; f < nFans; f++ )
+            {
+                pLits[nLits++] = Abc_Var2Lit( p->Nodes[pFans[f]].Var, 1 );
+                // add small clause
+                pLits2[0] = Abc_Var2Lit( p->Nodes[i].Var, 1 );
+                pLits2[1] = Abc_Var2Lit( p->Nodes[pFans[f]].Var, 0 );
+                Ift_AddClause( pSat, pLits2, pLits2 + 2 );
+            }
+            // add big clause
+            Ift_AddClause( pSat, pLits, pLits + nLits );
+        }
+        else if ( p->Nodes[i].Type == IF_DSD_XOR )
+        {
             assert( 0 );
-    // inputs/outputs
-    *pvPiVars = Vec_IntAlloc( Gia_ManPiNum(p) );
-    Gia_ManForEachCi( p, pObj, i )
-        Vec_IntPush( *pvPiVars, pCnf->pVarNums[Gia_ObjId(p, pObj)] );
-    *pvPoVars = Vec_IntAlloc( Gia_ManPoNum(p) );
-    Gia_ManForEachCo( p, pObj, i )
-        Vec_IntPush( *pvPoVars, pCnf->pVarNums[Gia_ObjId(p, pObj)] );
-    Cnf_DataFree( pCnf );
-    return pSat;
+        }
+        else if ( p->Nodes[i].Type == IF_DSD_MUX )
+        {
+            assert( 0 );
+        }
+        else if ( p->Nodes[i].Type == IF_DSD_PRIME )
+        {
+            int nValues = (1 << nFans);
+            int iParStart = p->Nodes[i].iFirst;
+            for ( v = 0; v < nValues; v++ )
+            {
+                nLits = 0;
+                if ( pValues[i] == -1 )
+                {
+                    pLits[nLits]  = Abc_Var2Lit( p->Nodes[i].Var, 0 );
+                    pLits2[nLits] = Abc_Var2Lit( p->Nodes[i].Var, 1 );
+                    nLits++;
+                }
+                for ( f = 0; f < nFans; f++, nLits++ )
+                    pLits[nLits] = pLits2[nLits] = Abc_Var2Lit( p->Nodes[pFans[f]].Var, (v >> f) & 1 ); 
+                pLits[nLits]  = Abc_Var2Lit( iParStart + v, 1 ); 
+                pLits2[nLits] = Abc_Var2Lit( iParStart + v, 0 ); 
+                nLits++;
+                if ( pValues[i] != 0 )
+                    Ift_AddClause( pSat, pLits2, pLits2 + nLits );
+                if ( pValues[i] != 1 )
+                    Ift_AddClause( pSat, pLits,  pLits + nLits );
+            }
+        }
+        else assert( 0 );
+//printf( "\n" );
+    }
+    return 1;
 }
 
-sat_solver * If_ManSatBuild( char * pStr, Vec_Int_t ** pvPiVars, Vec_Int_t ** pvPoVars )
-{
-    int nVars, nObjs, nSatVars;
-    int pTypes[32] = {0};
-    int pnFans[32] = {0};
-    int ppFans[32][6] = {{0}};
-    int pFirsts[32] = {0};
-    Gia_Man_t * p1, * p2;
-    sat_solver * pSat = NULL;
-    *pvPiVars = *pvPoVars = NULL;
-    if ( !If_ManStrCheck(pStr, &nVars, &nObjs) )
-        return NULL;
-    if ( !If_ManStrParse(pStr, nVars, nObjs, pTypes, pnFans, ppFans, pFirsts, &nSatVars) )
-        return NULL;
-    p1 = If_ManStrFindModel(nVars, nObjs, nSatVars, pTypes, pnFans, ppFans, pFirsts);
-    if ( p1 == NULL )
-        return NULL;
-//    Gia_AigerWrite( p1, "satbuild.aig", 0, 0 );
-    p2 = If_ManStrFindCofactors( nSatVars - nVars, p1 );
-    Gia_ManStop( p1 );
-    if ( p2 == NULL )
-        return NULL;
-//    Gia_AigerWrite( p2, "satbuild2.aig", 0, 0 );
-    pSat = If_ManStrFindSolver( p2, pvPiVars, pvPoVars );
-    Gia_ManStop( p2 );
-    return pSat;
-}
 /**Function*************************************************************
 
-  Synopsis    []
+  Synopsis    [Returns the minterm number for which there is a mismatch.]
 
   Description []
                
@@ -325,68 +620,126 @@ sat_solver * If_ManSatBuild( char * pStr, Vec_Int_t ** pvPiVars, Vec_Int_t ** pv
   SeeAlso     []
 
 ***********************************************************************/
-void If_ManSatPrintPerm( char * pPerms, int nVars )
+void Ift_SatPrintStatus( sat_solver * p, int Iter, int status, int iMint, int Value, abctime clk )
 {
-    int i;
-    for ( i = 0; i < nVars; i++ )
-        printf( "%c", 'a' + pPerms[i] );
+    printf( "Iter = %5d  ",  Iter );
+    printf( "Mint = %5d  ",  iMint );
+    printf( "Value = %2d  ", Value );
+    printf( "Var = %6d  ",   sat_solver_nvars(p) );
+    printf( "Cla = %6d  ",   sat_solver_nclauses(p) );
+    printf( "Conf = %6d  ",  sat_solver_nconflicts(p) );
+    if ( status == l_False )
+        printf( "status = unsat" );
+    else if ( status == l_True )
+        printf( "status = sat  " );
+    else 
+        printf( "status = undec" );
+    Abc_PrintTime( 1, "", clk );
+}
+void Ift_SatPrintConfig( Ift_Ntk_t * p, sat_solver * pSat )
+{
+    int v;
+    for ( v = p->nObjs; v < p->nPars; v++ )
+    {
+        if ( v >= p->nParsVIni && (v - p->nParsVIni) % p->nParsVNum == 0 )
+            printf( " %d=", (v - p->nParsVIni) / p->nParsVNum );
+        printf( "%d", sat_solver_var_value(pSat, v) );
+    }
     printf( "\n" );
 }
-int If_ManSatCheckOne( sat_solver * pSat, Vec_Int_t * vPoVars, word * pTruth, int nVars, int * pPerm, int nVarsAll, Vec_Int_t * vLits )
+
+int Ift_NtkMatch( Ift_Ntk_t * p, word * pTruth, int nVars, int fVerbose )
 {
-    int v, Value, m, mNew, nMints = (1 << nVars);
-    assert( (1 << nVarsAll) == Vec_IntSize(vPoVars) );
-    assert( nMints <= Vec_IntSize(vPoVars) );
-    // remap minterms
-    Vec_IntFill( vLits, Vec_IntSize(vPoVars), -1 );
-    for ( m = 0; m < nMints; m++ )
-    {
-        mNew = 0;
-        for ( v = 0; v < nVarsAll; v++ )
-        {
-            assert( pPerm[v] < nVars );
-            if ( ((m >> pPerm[v]) & 1) )
-                mNew |= (1 << v);
-        }
-        assert( Vec_IntEntry(vLits, mNew) == -1 );
-        Vec_IntWriteEntry( vLits, mNew, Abc_TtGetBit(pTruth, m) );
-    }
-    // find assumptions
-    v = 0;
-    Vec_IntForEachEntry( vLits, Value, m )
-        if ( Value >= 0 )
-            Vec_IntWriteEntry( vLits, v++, Abc_Var2Lit(Vec_IntEntry(vPoVars, m), !Value) );
-    Vec_IntShrink( vLits, v );
-    // run SAT solver
-    Value = sat_solver_solve( pSat, Vec_IntArray(vLits), Vec_IntArray(vLits) + Vec_IntSize(vLits), 0, 0, 0, 0 );
-    return (int)(Value == l_True);
-}
-void If_ManSatDeriveOne( sat_solver * pSat, Vec_Int_t * vPiVars, Vec_Int_t * vValues )
-{
-    int i, iVar;
-    Vec_IntClear( vValues );
-    Vec_IntForEachEntry( vPiVars, iVar, i )
-        Vec_IntPush( vValues, sat_solver_var_value(pSat, iVar) );
-}
-int If_ManSatCheckAll_int( sat_solver * pSat, Vec_Int_t * vPoVars, word * pTruth, int nVars, Vec_Int_t * vLits, char ** pPerms, int nPerms )
-{
-    int pPerm[IF_MAX_FUNC_LUTSIZE];
-    int p, i;
-    for ( p = 0; p < nPerms; p++ )
-    {
-        for ( i = 0; i < nVars; i++ )
-            pPerm[i] = (int)pPerms[p][i];
-        if ( If_ManSatCheckOne(pSat, vPoVars, pTruth, nVars, pPerm, nVars, vLits) )
-            return p;
-    }
-    return -1;
-}
-int If_ManSatCheckAll( sat_solver * pSat, Vec_Int_t * vPoVars, word * pTruth, int nVars, Vec_Int_t * vLits, char ** pPerms, int nPerms )
-{
+    word * pTruth1;
+    int RetValue = 0;
+    int nIterMax = (1<<nVars);
+    int i, v, status, iMint = 0;
     abctime clk = Abc_Clock();
-    int RetValue = If_ManSatCheckAll_int( pSat, vPoVars, pTruth, nVars, vLits, pPerms, nPerms );
-    Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
+//    abctime clkTru = 0, clkSat = 0, clk2;
+    sat_solver * pSat = sat_solver_new();
+    Ifn_Prepare( p, pTruth, nVars );
+    sat_solver_setnvars( pSat, p->nPars );
+    Ift_NtkAddConstraints( p, pSat );
+    if ( fVerbose )
+        Ift_SatPrintStatus( pSat, 0, l_True, -1, -1, Abc_Clock() - clk );
+    for ( i = 0; i < nIterMax; i++ )
+    {
+        // get variable assignment
+        for ( v = 0; v < p->nObjs; v++ )
+            p->Values[v] = v < p->nVars ? (iMint >> v) & 1 :  -1;
+        p->Values[p->nObjs-1] = Abc_TtGetBit( pTruth, iMint );
+        // derive clauses
+        if ( !Ift_NtkAddClauses( p, p->Values, pSat ) )
+            break;
+        // find assignment of parameters
+//        clk2 = Abc_Clock();
+        status = sat_solver_solve( pSat, NULL, NULL, 0, 0, 0, 0 );
+//        clkSat += Abc_Clock() - clk2;
+        if ( fVerbose )
+            Ift_SatPrintStatus( pSat, i+1, status, iMint, p->Values[p->nObjs-1], Abc_Clock() - clk );
+        if ( status == l_False )
+            break;
+        assert( status == l_True );
+        // collect assignment
+        for ( v = p->nObjs; v < p->nPars; v++ )
+            p->Values[v] = sat_solver_var_value(pSat, v);
+        // find truth table
+//        clk2 = Abc_Clock();
+        pTruth1 = Ift_NtkDeriveTruth( p, p->Values );
+//        clkTru += Abc_Clock() - clk2;
+        Abc_TtXor( pTruth1, pTruth1, p->pTruth, p->nWords, 0 );
+        // find mismatch if present
+        iMint = Abc_TtFindFirstBit( pTruth1, p->nVars );
+        if ( iMint == -1 )
+        {
+            Ift_SatPrintConfig( p, pSat );
+            RetValue = 1;
+            break;
+        }
+    }
+    assert( i < nIterMax );
+    sat_solver_delete( pSat );
+    printf( "Matching = %d  Iters = %d. ", RetValue, i );
+//    Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
+//    Abc_PrintTime( 1, "Sat", clkSat );
+//    Abc_PrintTime( 1, "Tru", clkTru );
     return RetValue;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Ifn_NtkRead()
+{
+    int RetValue;
+    int nVars = 9;
+//    int nVars = 8;
+//    int nVars = 3;
+//    word * pTruth = Dau_DsdToTruth( "(abcdefghi)", nVars );
+    word * pTruth = Dau_DsdToTruth( "1008{(1008{(ab)cde}f)ghi}", nVars );
+//    word * pTruth = Dau_DsdToTruth( "18{(1008{(ab)cde}f)gh}", nVars );
+//    word * pTruth = Dau_DsdToTruth( "1008{(1008{[ab]cde}f)ghi}", nVars );
+//    word * pTruth = Dau_DsdToTruth( "(abcd)", nVars );
+//    word * pTruth = Dau_DsdToTruth( "(abc)", nVars );
+//    char * pStr = "e={abc};f={ed};";
+//    char * pStr = "d={ab};e={cd};";
+    char * pStr = "j=(ab);k={jcde};l=(kf);m={lghi};";
+//    char * pStr = "i={abc};j={ide};k={ifg};l={jkh};";
+//    char * pStr = "h={abcde};i={abcdf};j=<ghi>;";
+//    char * pStr = "g=<abc>;h=<ade>;i={fgh};";
+    Ift_Ntk_t * p = Ifn_ManStrParse( pStr );
+    Ifn_NtkPrint( p );
+    Dau_DsdPrintFromTruth( pTruth, nVars );
+    // get the given function
+    RetValue = Ift_NtkMatch( p, pTruth, nVars, 1 );
 }
 
 ////////////////////////////////////////////////////////////////////////
