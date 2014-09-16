@@ -549,7 +549,8 @@ void Abc_SclPrintCells( SC_Lib * p, float SlewInit, float Gain, int fInvOnly, in
                 printf( " : " );
                 printf( "%-*s  ",           nLength, pCell->pName );
                 printf( "%2d   ",           pCell->drive_strength );
-                printf( "A =%8.2f    ",     pCell->area );
+                printf( "A =%8.2f  ",       pCell->area );
+                printf( "L =%8.2f  ",       pCell->leakage );
                 if ( pCell->n_outputs == 1 )
                 {
                     if ( Abc_SclComputeParametersCell( p, pCell, Slew, &LD, &PD ) )
@@ -568,6 +569,25 @@ void Abc_SclPrintCells( SC_Lib * p, float SlewInit, float Gain, int fInvOnly, in
         }
     }
 }
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_SclConvertLeakageIntoArea( SC_Lib * p, float A, float B )
+{
+    SC_Cell * pCell; int i;
+    SC_LibForEachCell( p, pCell, i )
+        pCell->area = A * pCell->area + B * pCell->leakage;
+}
+
 
 /**Function*************************************************************
 

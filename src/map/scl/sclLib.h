@@ -40,7 +40,7 @@ ABC_NAMESPACE_HEADER_START
 ///                         PARAMETERS                               ///
 ////////////////////////////////////////////////////////////////////////
 
-#define ABC_SCL_CUR_VERSION 7
+#define ABC_SCL_CUR_VERSION 8
 
 typedef enum  
 {
@@ -186,6 +186,7 @@ struct SC_Cell_
     int            seq;            // -- set to TRUE by parser if a sequential element
     int            unsupp;         // -- set to TRUE by parser if cell contains information we cannot handle
     float          area;
+    float          leakage;
     int            drive_strength; // -- some library files provide this field (currently unused, but may be a good hint for sizing) (not used)
     Vec_Ptr_t *    vPins;          // NamedSet<SC_Pin> 
     int            n_inputs;       // -- 'pins[0 .. n_inputs-1]' are input pins
@@ -616,6 +617,7 @@ extern int           Abc_SclClassCellNum( SC_Cell * pClass );
 extern int           Abc_SclLibClassNum( SC_Lib * pLib );
 extern void          Abc_SclLinkCells( SC_Lib * p );
 extern void          Abc_SclPrintCells( SC_Lib * p, float Slew, float Gain, int fInvOnly, int fShort );
+extern void          Abc_SclConvertLeakageIntoArea( SC_Lib * p, float A, float B );
 extern void          Abc_SclLibNormalize( SC_Lib * p );
 extern SC_Cell *     Abc_SclFindInvertor( SC_Lib * p, int fFindBuff );
 extern SC_Cell *     Abc_SclFindSmallestGate( SC_Cell * p, float CinMin );

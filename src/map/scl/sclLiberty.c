@@ -619,6 +619,23 @@ char * Scl_LibertyReadCellArea( Scl_Tree_t * p, Scl_Item_t * pCell )
         return Scl_LibertyReadString(p, pArea->Head);
     return 0;
 }
+char * Scl_LibertyReadCellLeakage( Scl_Tree_t * p, Scl_Item_t * pCell )
+{
+    Scl_Item_t * pItem, * pChild;
+    Scl_ItemForEachChildName( p, pCell, pItem, "cell_leakage_power" )
+        return Scl_LibertyReadString(p, pItem->Head);
+    // look for another type
+    Scl_ItemForEachChildName( p, pCell, pItem, "leakage_power" )
+    {
+        Scl_ItemForEachChildName( p, pItem, pChild, "when" )
+            break;
+        if ( pChild && !Scl_LibertyCompare(p, pChild->Key, "when") )
+            continue;
+        Scl_ItemForEachChildName( p, pItem, pChild, "value" )
+            return Scl_LibertyReadString(p, pChild->Head);
+    }
+    return 0;
+}
 char * Scl_LibertyReadPinFormula( Scl_Tree_t * p, Scl_Item_t * pPin )
 {
     Scl_Item_t * pFunc;
@@ -1447,6 +1464,8 @@ Vec_Str_t * Scl_LibertyReadSclStr( Scl_Tree_t * p, int fVerbose, int fVeryVerbos
         Vec_StrPutS_( vOut, Scl_LibertyReadString(p, pCell->Head) );
         pName = Scl_LibertyReadCellArea(p, pCell);
         Vec_StrPutF_( vOut, pName ? atof(pName) : 1 );
+        pName = Scl_LibertyReadCellLeakage(p, pCell);
+        Vec_StrPutF_( vOut, pName ? atof(pName) : 0 );
         Vec_StrPutI_( vOut, Scl_LibertyReadDeriveStrength(p, pCell) );
         // pin count
         nOutputs = Scl_LibertyReadCellOutputNum( p, pCell );

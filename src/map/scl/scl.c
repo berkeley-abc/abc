@@ -33,6 +33,7 @@ static int Scl_CommandWriteLib   ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Scl_CommandReadScl    ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Scl_CommandWriteScl   ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Scl_CommandPrintLib   ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Scl_CommandLeak2Area  ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Scl_CommandDumpGen    ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Scl_CommandPrintGS    ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Scl_CommandStime      ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -92,6 +93,7 @@ void Scl_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "SCL mapping",  "read_lib",      Scl_CommandReadLib,     0 ); 
     Cmd_CommandAdd( pAbc, "SCL mapping",  "write_lib",     Scl_CommandWriteLib,    0 ); 
     Cmd_CommandAdd( pAbc, "SCL mapping",  "print_lib",     Scl_CommandPrintLib,    0 ); 
+    Cmd_CommandAdd( pAbc, "SCL mapping",  "leak2area",     Scl_CommandLeak2Area,   0 ); 
     Cmd_CommandAdd( pAbc, "SCL mapping",  "read_scl",      Scl_CommandReadScl,     0 ); 
     Cmd_CommandAdd( pAbc, "SCL mapping",  "write_scl",     Scl_CommandWriteScl,    0 ); 
     Cmd_CommandAdd( pAbc, "SCL mapping",  "dump_genlib",   Scl_CommandDumpGen,     0 ); 
@@ -372,6 +374,77 @@ usage:
     fprintf( pAbc->Err, "\t-h       : print the help massage\n" );
     return 1;
 }
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Scl_CommandLeak2Area( Abc_Frame_t * pAbc, int argc, char **argv )
+{
+    float A = 1, B = 1;
+    int c, fVerbose = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "ABvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'A':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-A\" should be followed by a floating point number.\n" );
+                goto usage;
+            }
+            A = (float)atof(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( A <= 0.0 )
+                goto usage;
+            break;
+        case 'B':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-B\" should be followed by a floating point number.\n" );
+                goto usage;
+            }
+            B = (float)atof(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( B <= 0.0 )
+                goto usage;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pAbc->pLibScl == NULL )
+    {
+        fprintf( pAbc->Err, "There is no Liberty library available.\n" );
+        return 1;
+    }
+    // update the current library
+    Abc_SclConvertLeakageIntoArea( (SC_Lib *)pAbc->pLibScl, A, B );
+    return 0;
+
+usage:
+    fprintf( pAbc->Err, "usage: leak2area [-AB float] [-v]\n" );
+    fprintf( pAbc->Err, "\t           converts leakage into area: Area = A * Area + B * Leakage\n" );
+    fprintf( pAbc->Err, "\t-A float : the multiplicative coefficient to transform area [default = %.2f]\n", A );
+    fprintf( pAbc->Err, "\t-B float : the multiplicative coefficient to transform leakage [default = %.2f]\n", B );
+    fprintf( pAbc->Err, "\t-v       : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
+    fprintf( pAbc->Err, "\t-h       : print the help massage\n" );
+    return 1;
+}
+
 
 
 /**Function*************************************************************

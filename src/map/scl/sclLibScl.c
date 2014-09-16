@@ -132,6 +132,7 @@ static int Abc_SclReadLibrary( Vec_Str_t * vOut, int * pPos, SC_Lib * p )
 
         pCell->pName           = Vec_StrGetS(vOut, pPos);     
         pCell->area           = Vec_StrGetF(vOut, pPos);
+        pCell->leakage        = Vec_StrGetF(vOut, pPos);
         pCell->drive_strength = Vec_StrGetI(vOut, pPos);
 
         pCell->n_inputs       = Vec_StrGetI(vOut, pPos);
@@ -380,6 +381,7 @@ static void Abc_SclWriteLibrary( Vec_Str_t * vOut, SC_Lib * p )
 
         Vec_StrPutS( vOut, pCell->pName );
         Vec_StrPutF( vOut, pCell->area );
+        Vec_StrPutF( vOut, pCell->leakage );
         Vec_StrPutI( vOut, pCell->drive_strength );
 
         // Write 'pins': (sorted at this point; first inputs, then outputs)
@@ -582,10 +584,11 @@ static void Abc_SclWriteLibraryText( FILE * s, SC_Lib * p )
             continue;
 
         fprintf( s, "\n" );
-        fprintf( s, "  cell(%s) {\n", pCell->pName );
+        fprintf( s, "  cell(%s) {\n",                             pCell->pName );
         fprintf( s, "    /*  n_inputs = %d  n_outputs = %d */\n", pCell->n_inputs, pCell->n_outputs );
-        fprintf( s, "    area : %f;\n", pCell->area );
-        fprintf( s, "    drive_strength : %d;\n", pCell->drive_strength );
+        fprintf( s, "    area : %f;\n",                           pCell->area );
+        fprintf( s, "    cell_leakage_power : %f;\n",             pCell->leakage );
+        fprintf( s, "    drive_strength : %d;\n",                 pCell->drive_strength );
 
         SC_CellForEachPinIn( pCell, pPin, j )
         {
