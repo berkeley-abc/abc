@@ -80,7 +80,8 @@ typedef enum {
     WLC_OBJ_ARI_DIVIDE,    // 36: arithmetic division
     WLC_OBJ_ARI_MODULUS,   // 37: arithmetic modulus
     WLC_OBJ_ARI_POWER,     // 38: arithmetic power
-    WLC_OBJ_NUMBER         // 39: unused
+    WLC_OBJ_TABLE,         // 39: arithmetic power
+    WLC_OBJ_NUMBER         // 40: unused
 } Wlc_ObjType_t;
 
 
@@ -117,6 +118,8 @@ struct Wlc_Ntk_t_
     int                    iObj;
     int                    nObjsAlloc;
     Mem_Flex_t *           pMemFanin;
+    Mem_Flex_t *           pMemTable;
+    Vec_Ptr_t *            vTables;
     // object names
     Abc_Nam_t *            pManName;           // object names
     Vec_Int_t              vNameIds;           // object name IDs
@@ -159,6 +162,7 @@ static inline int          Wlc_ObjRange( Wlc_Obj_t * p )                        
 static inline int          Wlc_ObjRangeEnd( Wlc_Obj_t * p )                       { assert(p->Type == WLC_OBJ_BIT_SELECT); return p->Fanins[1] >> 16;     }
 static inline int          Wlc_ObjRangeBeg( Wlc_Obj_t * p )                       { assert(p->Type == WLC_OBJ_BIT_SELECT); return p->Fanins[1] & 0xFFFF;  }
 static inline int *        Wlc_ObjConstValue( Wlc_Obj_t * p )                     { assert(p->Type == WLC_OBJ_CONST);      return Wlc_ObjFanins(p);       }
+static inline int          Wlc_ObjTableId( Wlc_Obj_t * p )                        { assert(p->Type == WLC_OBJ_TABLE);      return p->Fanins[1];           }
 
 static inline void         Wlc_NtkCleanCopy( Wlc_Ntk_t * p )                      { Vec_IntFill( &p->vCopies, p->nObjsAlloc, 0 );                }
 static inline int          Wlc_NtkHasCopy( Wlc_Ntk_t * p )                        { return Vec_IntSize( &p->vCopies ) > 0;                       }

@@ -68,7 +68,8 @@ static char * Wlc_Names[WLC_OBJ_NUMBER+1] = {
     "//",                  // 36: arithmetic division
     "%%",                  // 37: arithmetic modulus
     "**",                  // 38: arithmetic power
-    NULL                   // 39: unused
+    "table",               // 39: lookup table
+    NULL                   // 40: unused
 };
 
 ////////////////////////////////////////////////////////////////////////
@@ -155,10 +156,10 @@ void Wlc_ObjAddFanins( Wlc_Ntk_t * p, Wlc_Obj_t * pObj, Vec_Int_t * vFanins )
     if ( Wlc_ObjHasArray(pObj) )
         pObj->pFanins[0] = (int *)Mem_FlexEntryFetch( p->pMemFanin, Vec_IntSize(vFanins) * sizeof(int) );
     memcpy( Wlc_ObjFanins(pObj), Vec_IntArray(vFanins), sizeof(int) * Vec_IntSize(vFanins) );
-    // special treatment of CONST and SELECT
+    // special treatment of CONST, SELECT and TABLE
     if ( pObj->Type == WLC_OBJ_CONST )
         pObj->nFanins = 0;
-    else if ( pObj->Type == WLC_OBJ_BIT_SELECT )
+    else if ( pObj->Type == WLC_OBJ_BIT_SELECT || pObj->Type == WLC_OBJ_TABLE )
         pObj->nFanins = 1;
 }
 void Wlc_NtkFree( Wlc_Ntk_t * p )
@@ -167,6 +168,9 @@ void Wlc_NtkFree( Wlc_Ntk_t * p )
         Abc_NamStop( p->pManName );
     if ( p->pMemFanin )
         Mem_FlexStop( p->pMemFanin, 0 );
+    if ( p->pMemTable )
+        Mem_FlexStop( p->pMemTable, 0 );
+    Vec_PtrFreeP( &p->vTables );
     ABC_FREE( p->vPis.pArray );
     ABC_FREE( p->vPos.pArray );
     ABC_FREE( p->vCis.pArray );
@@ -258,7 +262,7 @@ void Wlc_ObjCollectCopyFanins( Wlc_Ntk_t * p, int iObj, Vec_Int_t * vFanins )
         for ( i = 0; i < nInts; i++ )
             Vec_IntPush( vFanins, pInts[i] );
     }
-    else if ( pObj->Type == WLC_OBJ_BIT_SELECT )
+    else if ( pObj->Type == WLC_OBJ_BIT_SELECT || pObj->Type == WLC_OBJ_TABLE )
     {
         assert( Vec_IntSize(vFanins) == 1 );
         Vec_IntPush( vFanins, pObj->Fanins[1] );
@@ -316,6 +320,9 @@ void Wlc_NtkTransferNames( Wlc_Ntk_t * pNew, Wlc_Ntk_t * p )
     pNew->pManName = p->pManName; 
     p->pManName = NULL;
     Vec_IntErase( &p->vNameIds );
+    // transfer table
+    pNew->pMemTable = p->pMemTable;  p->pMemTable = NULL;
+    pNew->vTables = p->vTables;      p->vTables = NULL;
 }
 
 ////////////////////////////////////////////////////////////////////////

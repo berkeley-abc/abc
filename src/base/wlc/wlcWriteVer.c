@@ -87,6 +87,7 @@ void Wlc_WriteVerInt( FILE * pFile, Wlc_Ntk_t * p )
         int nDigits   = Abc_Base10Log(pObj->End+1) + Abc_Base10Log(pObj->Beg+1);
         sprintf( Range, "%s[%d:%d]%*s", pObj->Signed ? "signed ":"       ", pObj->End, pObj->Beg, 8-nDigits, "" );
         fprintf( pFile, "  " );
+        assert( pObj->Type != WLC_OBJ_TABLE );
         if ( pObj->Type == WLC_OBJ_PI )
             fprintf( pFile, "input  wire %s %-16s", Range, pName );
         else if ( pObj->Type == WLC_OBJ_PO )

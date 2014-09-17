@@ -40,6 +40,9 @@ struct Wlc_Prs_t_
     Vec_Int_t *            vStarts;
     Vec_Int_t *            vFanins;
     Wlc_Ntk_t *            pNtk;
+    Mem_Flex_t *           pMemTable;
+    Vec_Ptr_t *            vTables;
+    int                    nConsts;
     char                   sError[WLV_PRS_MAX_LINE];
 };
 
@@ -47,8 +50,10 @@ static inline int          Wlc_PrsOffset( Wlc_Prs_t * p, char * pStr )  { return
 static inline char *       Wlc_PrsStr( Wlc_Prs_t * p, int iOffset )     { return p->pBuffer + iOffset;                  }
 static inline int          Wlc_PrsStrCmp( char * pStr, char * pWhat )   { return !strncmp( pStr, pWhat, strlen(pWhat)); }
 
-#define Wlc_PrsForEachLine( p, pLine, i ) \
+#define Wlc_PrsForEachLine( p, pLine, i )             \
     for ( i = 0; (i < Vec_IntSize((p)->vStarts)) && ((pLine) = Wlc_PrsStr(p, Vec_IntEntry((p)->vStarts, i))); i++ )
+#define Wlc_PrsForEachLineStart( p, pLine, i, Start ) \
+    for ( i = Start; (i < Vec_IntSize((p)->vStarts)) && ((pLine) = Wlc_PrsStr(p, Vec_IntEntry((p)->vStarts, i))); i++ )
 
 
 ////////////////////////////////////////////////////////////////////////
@@ -79,12 +84,17 @@ Wlc_Prs_t * Wlc_PrsStart( char * pFileName )
     p->vLines    = Vec_IntAlloc( p->nFileSize / 50 );
     p->vStarts   = Vec_IntAlloc( p->nFileSize / 50 );
     p->vFanins   = Vec_IntAlloc( 100 );
+    p->vTables   = Vec_PtrAlloc( 1000 );
+    p->pMemTable = Mem_FlexStart();
     return p;
 }
 void Wlc_PrsStop( Wlc_Prs_t * p )
 {
     if ( p->pNtk )
         Wlc_NtkFree( p->pNtk );
+    if ( p->pMemTable )
+        Mem_FlexStop( p->pMemTable, 0 );
+    Vec_PtrFreeP( &p->vTables );
     Vec_IntFree( p->vLines );
     Vec_IntFree( p->vStarts );
     Vec_IntFree( p->vFanins );
@@ -386,16 +396,78 @@ static inline char * Wlc_PrsFindName( char * pStr, char ** ppPlace )
     *pThis = 0;
     return pStr;
 }
+static inline char * Wlc_PrsReadConstant( Wlc_Prs_t * p, char * pStr, Vec_Int_t * vFanins, int * pRange, int * pSigned )
+{
+    int nDigits, nBits = atoi( pStr );
+    *pRange = -1;
+    *pSigned = 0;
+    pStr = Wlc_PrsSkipSpaces( pStr );
+    if ( Wlc_PrsFindSymbol( pStr, '\'' ) == NULL )
+    {
+        // handle decimal number
+        int Number = atoi( pStr );
+        *pRange = Abc_Base2Log( Number );
+        while ( Wlc_PrsIsDigit(pStr) )
+            pStr++;
+        return pStr;
+    }
+    pStr = Wlc_PrsFindSymbol( pStr, '\'' );
+    if ( pStr[1] == 's' )
+    {
+        *pSigned = 1;
+        pStr++;
+    }
+    if ( pStr[1] != 'h' )
+        return (char *)(ABC_PTRINT_T)Wlc_PrsWriteErrorMessage( p, pStr, "Expecting hexadecimal constant and not \"%c\".", pStr[1] );
+    Vec_IntFill( vFanins, Abc_BitWordNum(nBits), 0 );
+    nDigits = Abc_TtReadHexNumber( (word *)Vec_IntArray(vFanins), pStr+2 );
+    if ( nDigits != (nBits + 3)/4 )
+    {
+//        return (char *)(ABC_PTRINT_T)Wlc_PrsWriteErrorMessage( p, pStr, "The length of a constant does not match." );
+        printf( "Warning: The length of a constant (%d hex digits) does not match the number of bits (%d).\n", nDigits, nBits );
+    }
+    *pRange = nBits;
+    pStr += 2;
+    while ( Wlc_PrsIsChar(pStr) )
+        pStr++;
+    return pStr;
+}
 static inline char * Wlc_PrsReadName( Wlc_Prs_t * p, char * pStr, Vec_Int_t * vFanins )
 {
-    char * pName;
-    int NameId, fFound;
-    pStr = Wlc_PrsFindName( pStr, &pName );
-    if ( pStr == NULL )
-        return (char *)(ABC_PTRINT_T)Wlc_PrsWriteErrorMessage( p, pStr, "Cannot read name." );
-    NameId = Abc_NamStrFindOrAdd( p->pNtk->pManName, pName, &fFound );
-    if ( !fFound )
-        return (char *)(ABC_PTRINT_T)Wlc_PrsWriteErrorMessage( p, pStr, "Name %s is used but not declared.", pName );
+    int NameId, fFound, iObj;
+    pStr = Wlc_PrsSkipSpaces( pStr );
+    if ( Wlc_PrsIsDigit(pStr) )
+    {
+        char Buffer[100];
+        int Range, Signed;
+        Vec_Int_t * vFanins = Vec_IntAlloc(0);
+        pStr = Wlc_PrsReadConstant( p, pStr, vFanins, &Range, &Signed );
+        if ( pStr == NULL )
+        {
+            Vec_IntFree( vFanins );
+            return 0;
+        }
+        // create new node
+        iObj = Wlc_ObjAlloc( p->pNtk, WLC_OBJ_CONST, Signed, Range-1, 0 );
+        Wlc_ObjAddFanins( p->pNtk, Wlc_NtkObj(p->pNtk, iObj), vFanins );
+        Vec_IntFree( vFanins );
+        // add node's name
+        sprintf( Buffer, "const%d", p->nConsts++ );
+        NameId = Abc_NamStrFindOrAdd( p->pNtk->pManName, Buffer, &fFound );
+        if ( fFound )
+            return (char *)(ABC_PTRINT_T)Wlc_PrsWriteErrorMessage( p, pStr, "Name %s is already used.", Buffer );
+        assert( iObj == NameId );
+    }
+    else
+    {
+        char * pName;
+        pStr = Wlc_PrsFindName( pStr, &pName );
+        if ( pStr == NULL )
+            return (char *)(ABC_PTRINT_T)Wlc_PrsWriteErrorMessage( p, pStr, "Cannot read name." );
+        NameId = Abc_NamStrFindOrAdd( p->pNtk->pManName, pName, &fFound );
+        if ( !fFound )
+            return (char *)(ABC_PTRINT_T)Wlc_PrsWriteErrorMessage( p, pStr, "Name %s is used but not declared.", pName );
+    }
     Vec_IntPush( vFanins, NameId );
     return Wlc_PrsSkipSpaces( pStr );
 }
@@ -403,6 +475,7 @@ static inline int Wlc_PrsFindDefinition( Wlc_Prs_t * p, char * pStr, Vec_Int_t *
 {
     char * pName;
     int Type = WLC_OBJ_NONE;
+    int fRotating = 0;
     Vec_IntClear( vFanins );
     pStr = Wlc_PrsSkipSpaces( pStr );
     if ( pStr[0] != '=' )
@@ -410,27 +483,32 @@ static inline int Wlc_PrsFindDefinition( Wlc_Prs_t * p, char * pStr, Vec_Int_t *
     pStr = Wlc_PrsSkipSpaces( pStr+1 );
     if ( pStr[0] == '(' )
     {
-        char * pClose = Wlc_PrsFindClosingParanthesis( pStr, '(', ')' );
-        if ( pClose == NULL )
-            return Wlc_PrsWriteErrorMessage( p, pStr, "Expecting closing paranthesis." );
-        *pStr = *pClose = ' ';
-        pStr = Wlc_PrsSkipSpaces( pStr );
+        // consider rotating shifter
+        if ( Wlc_PrsFindSymbolTwo(pStr, '>', '>') && Wlc_PrsFindSymbolTwo(pStr, '<', '<') )
+        {
+            // THIS IS A HACK TO DETECT rotating shifters
+            char * pClose = Wlc_PrsFindClosingParanthesis( pStr, '(', ')' );
+            if ( pClose == NULL )
+                return Wlc_PrsWriteErrorMessage( p, pStr, "Expecting closing paranthesis." );
+            *pStr = ' '; *pClose = 0;
+            pStr = Wlc_PrsSkipSpaces( pStr );
+            fRotating = 1;
+        }
+        else
+        {
+            char * pClose = Wlc_PrsFindClosingParanthesis( pStr, '(', ')' );
+            if ( pClose == NULL )
+                return Wlc_PrsWriteErrorMessage( p, pStr, "Expecting closing paranthesis." );
+            *pStr = *pClose = ' ';
+            pStr = Wlc_PrsSkipSpaces( pStr );
+        }
     }
     if ( Wlc_PrsIsDigit(pStr) )
     {
-        int nDigits, nBits = atoi( pStr );
-        pStr = Wlc_PrsFindSymbol( pStr, '\'' );
+        int Range, Signed;
+        pStr = Wlc_PrsReadConstant( p, pStr, vFanins, &Range, &Signed );
         if ( pStr == NULL )
-            return Wlc_PrsWriteErrorMessage( p, pStr, "Expecting constant symbol (\')." );
-        if ( pStr[1] == 's' )
-            pStr++;
-        if ( pStr[1] != 'h' )
-            return Wlc_PrsWriteErrorMessage( p, pStr, "Expecting hexadecimal constant and not \"%c\".", pStr[1] );
-        Vec_IntFill( vFanins, Abc_BitWordNum(nBits), 0 );
-        nDigits = Abc_TtReadHexNumber( (word *)Vec_IntArray(vFanins), pStr+2 );
-        if ( nDigits != (nBits + 3)/4 )
-            return Wlc_PrsWriteErrorMessage( p, pStr, "The length of contant does not match." );
-        pStr += nDigits + 2;
+            return 0;
         Type = WLC_OBJ_CONST;
     }
     else if ( pStr[0] == '!' || pStr[0] == '~' )
@@ -440,7 +518,16 @@ static inline int Wlc_PrsFindDefinition( Wlc_Prs_t * p, char * pStr, Vec_Int_t *
         else if ( pStr[0] == '~' )
             Type = WLC_OBJ_BIT_NOT;
         else assert( 0 );
-        if ( !(pStr = Wlc_PrsReadName(p, pStr+1, vFanins)) )
+        // skip parantheses
+        pStr = Wlc_PrsSkipSpaces( pStr+1 );
+        if ( pStr[0] == '(' )
+        {
+            char * pClose = Wlc_PrsFindClosingParanthesis( pStr, '(', ')' );
+            if ( pClose == NULL )
+                return Wlc_PrsWriteErrorMessage( p, pStr, "Expecting closing paranthesis." );
+            *pStr = *pClose = ' ';
+        }
+        if ( !(pStr = Wlc_PrsReadName(p, pStr, vFanins)) )
             return Wlc_PrsWriteErrorMessage( p, pStr, "Cannot read name after !." );
     }
     else if ( pStr[0] == '&' || pStr[0] == '|' || pStr[0] == '^' )
@@ -457,7 +544,7 @@ static inline int Wlc_PrsFindDefinition( Wlc_Prs_t * p, char * pStr, Vec_Int_t *
     }
     else if ( pStr[0] == '{' )
     {
-        // THIS IS SHORTCUT TO DETECT zero padding AND sign extension
+        // THIS IS A HACK TO DETECT zero padding AND sign extension
         if ( Wlc_PrsFindSymbol(pStr+1, '{') )
         {
             if ( Wlc_PrsFindSymbol(pStr+1, '\'') )
@@ -477,7 +564,8 @@ static inline int Wlc_PrsFindDefinition( Wlc_Prs_t * p, char * pStr, Vec_Int_t *
         {
             while ( 1 )
             {
-                if ( !(pStr = Wlc_PrsReadName(p, pStr+1, vFanins)) )
+                pStr = Wlc_PrsSkipSpaces( pStr+1 );
+                if ( !(pStr = Wlc_PrsReadName(p, pStr, vFanins)) )
                     return Wlc_PrsWriteErrorMessage( p, pStr, "Cannot read name in concatenation." );
                 if ( pStr[0] == '}' )
                     break;
@@ -550,6 +638,54 @@ static inline int Wlc_PrsFindDefinition( Wlc_Prs_t * p, char * pStr, Vec_Int_t *
     }
     return Type;
 }
+int Wlc_PrsReadDeclaration( Wlc_Prs_t * p, char * pStart )
+{
+    int fFound = 0, Type = WLC_OBJ_NONE, iObj; 
+    int Signed = 0, Beg = 0, End = 0, NameId;
+    if ( Wlc_PrsStrCmp( pStart, "input" ) )
+        Type = WLC_OBJ_PI, pStart += strlen("input");
+    else if ( Wlc_PrsStrCmp( pStart, "output" ) )
+        Type = WLC_OBJ_PO, pStart += strlen("output");
+    pStart = Wlc_PrsSkipSpaces( pStart );
+    if ( Wlc_PrsStrCmp( pStart, "wire" ) )
+        pStart += strlen("wire");
+    // read 'signed'
+    pStart = Wlc_PrsFindWord( pStart, "signed", &Signed );
+    // read range
+    pStart = Wlc_PrsFindRange( pStart, &End, &Beg );
+    if ( pStart == NULL )
+        return Wlc_PrsWriteErrorMessage( p, pStart, "Cannot read range." );
+    while ( 1 )
+    {
+        char * pName;
+        // read name
+        pStart = Wlc_PrsFindName( pStart, &pName );
+        if ( pStart == NULL )
+            return Wlc_PrsWriteErrorMessage( p, pStart, "Cannot read name." );
+        NameId = Abc_NamStrFindOrAdd( p->pNtk->pManName, pName, &fFound );
+        if ( fFound )
+            return Wlc_PrsWriteErrorMessage( p, pStart, "Name %s is declared more than once.", pName );
+        iObj = Wlc_ObjAlloc( p->pNtk, Type, Signed, End, Beg );
+        assert( iObj == NameId );
+        // check next definition
+        pStart = Wlc_PrsSkipSpaces( pStart );
+        if ( pStart[0] == ',' )
+        {
+            pStart++;
+            continue;
+        }
+        // check definition
+        Type = Wlc_PrsFindDefinition( p, pStart, p->vFanins );
+        if ( Type )
+        {
+            Wlc_Obj_t * pObj = Wlc_NtkObj( p->pNtk, iObj );
+            Wlc_ObjUpdateType( p->pNtk, pObj, Type );
+            Wlc_ObjAddFanins( p->pNtk, pObj, p->vFanins );
+        }
+        break;
+    }
+    return 1;
+}
 int Wlc_PrsDerive( Wlc_Prs_t * p )
 {
     char * pStart, * pName;
@@ -560,13 +696,63 @@ int Wlc_PrsDerive( Wlc_Prs_t * p )
         if ( Wlc_PrsStrCmp( pStart, "module" ) )
         {
             // get module name
-            pName = strtok( pStart + strlen("module"), " (" );
+            pName = strtok( pStart + strlen("module"), " \r\n\t(,)" );
             if ( pName == NULL )
                 return Wlc_PrsWriteErrorMessage( p, pStart, "Cannot read model name." );
+            if ( Wlc_PrsStrCmp( pName, "table" ) )
+            {
+                // THIS IS A HACK TO DETECT tables
+                int v, b, Value, nBits, nInts, * pTable;
+                Vec_Int_t * vValues = Vec_IntAlloc( 256 );
+                Wlc_PrsForEachLineStart( p, pStart, i, i+1 )
+                {
+                    if ( Wlc_PrsStrCmp( pStart, "endcase" ) )
+                        break;
+                    pStart = Wlc_PrsFindSymbol( pStart, '\'' );
+                    if ( pStart == NULL )
+                        continue;
+                    pStart = Wlc_PrsFindSymbol( pStart+2, '\'' );
+                    if ( pStart == NULL )
+                        continue;
+                    Value = 0;
+                    Abc_TtReadHexNumber( (word *)&Value, pStart+2 );
+                    Vec_IntPush( vValues, Value );
+                }
+                //Vec_IntPrint( vValues );
+                nBits = Abc_Base2Log( Vec_IntSize(vValues) );
+                if ( Vec_IntSize(vValues) != (1 << nBits) )
+                {
+                    Vec_IntFree( vValues );
+                    return Wlc_PrsWriteErrorMessage( p, pStart, "Cannot read module \"%s\".", pName );
+                }
+                // create bitmap
+                nInts = Abc_BitWordNum( nBits * Vec_IntSize(vValues) );
+                pTable = (unsigned *)Mem_FlexEntryFetch( p->pMemTable, nInts * sizeof(unsigned) );
+                memset( pTable, 0, nInts * sizeof(unsigned) );
+                Vec_IntForEachEntry( vValues, Value, v )
+                    for ( b = 0; b < nBits; b++ )
+                        if ( (Value >> b) & 1 )
+                            Abc_InfoSetBit( pTable, v * nBits + b );
+                Vec_PtrPush( p->vTables, pTable );
+                Vec_IntFree( vValues );
+                continue;
+            }
             if ( p->pNtk != NULL )
                 return Wlc_PrsWriteErrorMessage( p, pStart, "Network is already defined." );
             p->pNtk = Wlc_NtkAlloc( pName, Vec_IntSize(p->vStarts) );
             p->pNtk->pManName = Abc_NamStart( Vec_IntSize(p->vStarts), 20 );
+            p->pNtk->pMemTable = p->pMemTable; p->pMemTable = NULL;
+            p->pNtk->vTables = p->vTables; p->vTables = NULL;
+            // read the argument definitions
+            while ( (pName = strtok( NULL, "(,)" )) )
+            {
+                pName = Wlc_PrsSkipSpaces( pName );
+                if ( Wlc_PrsStrCmp( pName, "input" ) || Wlc_PrsStrCmp( pName, "output" ) || Wlc_PrsStrCmp( pName, "wire" ) )
+                {
+                    if ( !Wlc_PrsReadDeclaration( p, pName ) )
+                        return 0;
+                }
+            }
         }
         else if ( Wlc_PrsStrCmp( pStart, "endmodule" ) )
         {
@@ -578,49 +764,8 @@ int Wlc_PrsDerive( Wlc_Prs_t * p )
         // these are read as part of the interface
         else if ( Wlc_PrsStrCmp( pStart, "input" ) || Wlc_PrsStrCmp( pStart, "output" ) || Wlc_PrsStrCmp( pStart, "wire" ) )
         {
-            int fFound = 0, Type = WLC_OBJ_NONE, iObj; 
-            int Signed = 0, Beg = 0, End = 0, NameId;
-            if ( Wlc_PrsStrCmp( pStart, "input" ) )
-                Type = WLC_OBJ_PI, pStart += strlen("input");
-            else if ( Wlc_PrsStrCmp( pStart, "output" ) )
-                Type = WLC_OBJ_PO, pStart += strlen("output");
-            pStart = Wlc_PrsSkipSpaces( pStart );
-            if ( Wlc_PrsStrCmp( pStart, "wire" ) )
-                pStart += strlen("wire");
-            // read 'signed'
-            pStart = Wlc_PrsFindWord( pStart, "signed", &Signed );
-            // read range
-            pStart = Wlc_PrsFindRange( pStart, &End, &Beg );
-            if ( pStart == NULL )
-                return Wlc_PrsWriteErrorMessage( p, pStart, "Cannot read range." );
-            while ( 1 )
-            {
-                // read name
-                pStart = Wlc_PrsFindName( pStart, &pName );
-                if ( pStart == NULL )
-                    return Wlc_PrsWriteErrorMessage( p, pStart, "Cannot read name." );
-                NameId = Abc_NamStrFindOrAdd( p->pNtk->pManName, pName, &fFound );
-                if ( fFound )
-                    return Wlc_PrsWriteErrorMessage( p, pStart, "Name %s is declared more than once.", pName );
-                iObj = Wlc_ObjAlloc( p->pNtk, Type, Signed, End, Beg );
-                assert( iObj == NameId );
-                // check next definition
-                pStart = Wlc_PrsSkipSpaces( pStart );
-                if ( pStart[0] == ',' )
-                {
-                    pStart++;
-                    continue;
-                }
-                // check definition
-                Type = Wlc_PrsFindDefinition( p, pStart, p->vFanins );
-                if ( Type )
-                {
-                    Wlc_Obj_t * pObj = Wlc_NtkObj( p->pNtk, iObj );
-                    Wlc_ObjUpdateType( p->pNtk, pObj, Type );
-                    Wlc_ObjAddFanins( p->pNtk, pObj, p->vFanins );
-                }
-                break;
-            }
+            if ( !Wlc_PrsReadDeclaration( p, pStart ) )
+                return 0;
         }
         else if ( Wlc_PrsStrCmp( pStart, "assign" ) )
         {
@@ -643,6 +788,42 @@ int Wlc_PrsDerive( Wlc_Prs_t * p )
             }
             else
                 return 0;
+        }
+        else if ( Wlc_PrsStrCmp( pStart, "table" ) )
+        {
+            // THIS IS A HACK TO DETECT tables
+            int NameId, fFound, iTable = atoi( pStart + strlen("table") );
+            // find opening
+            pStart = Wlc_PrsFindSymbol( pStart, '(' );
+            if ( pStart == NULL )
+                return Wlc_PrsWriteErrorMessage( p, pStart, "Cannot read table." );
+            // read input
+            pStart = Wlc_PrsFindName( pStart+1, &pName );
+            if ( pStart == NULL )
+                return Wlc_PrsWriteErrorMessage( p, pStart, "Cannot read name after assign." );
+            NameId = Abc_NamStrFindOrAdd( p->pNtk->pManName, pName, &fFound );
+            if ( !fFound )
+                return Wlc_PrsWriteErrorMessage( p, pStart, "Name %s is not declared.", pName );
+            // save inputs
+            Vec_IntClear( p->vFanins );
+            Vec_IntPush( p->vFanins, NameId );
+            Vec_IntPush( p->vFanins, iTable );
+            // find comma
+            pStart = Wlc_PrsFindSymbol( pStart, ',' );
+            if ( pStart == NULL )
+                return Wlc_PrsWriteErrorMessage( p, pStart, "Cannot read table." );
+            // read output
+            pStart = Wlc_PrsFindName( pStart+1, &pName );
+            if ( pStart == NULL )
+                return Wlc_PrsWriteErrorMessage( p, pStart, "Cannot read name after assign." );
+            NameId = Abc_NamStrFindOrAdd( p->pNtk->pManName, pName, &fFound );
+            if ( !fFound )
+                return Wlc_PrsWriteErrorMessage( p, pStart, "Name %s is not declared.", pName );
+            {
+                Wlc_Obj_t * pObj = Wlc_NtkObj( p->pNtk, NameId );
+                Wlc_ObjUpdateType( p->pNtk, pObj, WLC_OBJ_TABLE );
+                Wlc_ObjAddFanins( p->pNtk, pObj, p->vFanins );
+            }
         }
 //        else if ( Wlc_PrsStrCmp( pStart, "CPL_FF" ) )
         else

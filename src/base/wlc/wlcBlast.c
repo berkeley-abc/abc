@@ -328,6 +328,12 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p )
             assert( Vec_IntSize(vTemp3) == nRange );
             Vec_IntAppend( vBits, vTemp3 );
         }
+        else if ( pObj->Type == WLC_OBJ_TABLE )
+        {
+            assert( pObj->Type != WLC_OBJ_TABLE );
+            for ( k = 0; k < nRange; k++ )
+                Vec_IntPush( vBits, 0 );
+        }
         else assert( 0 );
     }
     assert( nBits == Vec_IntSize(vBits) );
