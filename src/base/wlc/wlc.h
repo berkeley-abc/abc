@@ -42,8 +42,8 @@ ABC_NAMESPACE_HEADER_START
 // object types
 typedef enum { 
     WLC_OBJ_NONE = 0,      // 00: unknown
-    WLC_OBJ_PI,            // 01: primary input terminal
-    WLC_OBJ_PO,            // 02: primary output terminal
+    WLC_OBJ_PI,            // 01: primary input 
+    WLC_OBJ_PO,            // 02: primary output 
     WLC_OBJ_BO,            // 03: box output
     WLC_OBJ_BI,            // 04: box input
     WLC_OBJ_FF,            // 05: flop
@@ -54,34 +54,37 @@ typedef enum {
     WLC_OBJ_SHIFT_RA,      // 10: shift right (arithmetic)
     WLC_OBJ_SHIFT_L,       // 11: shift left
     WLC_OBJ_SHIFT_LA,      // 12: shift left (arithmetic)
-    WLC_OBJ_BIT_NOT,       // 13: bitwise NOT
-    WLC_OBJ_BIT_AND,       // 14: bitwise AND
-    WLC_OBJ_BIT_OR,        // 15: bitwise OR
-    WLC_OBJ_BIT_XOR,       // 16: bitwise XOR
-    WLC_OBJ_BIT_SELECT,    // 17: bit selection
-    WLC_OBJ_BIT_CONCAT,    // 18: bit concatenation
-    WLC_OBJ_BIT_ZEROPAD,   // 19: zero padding
-    WLC_OBJ_BIT_SIGNEXT,   // 20: sign extension
-    WLC_OBJ_LOGIC_NOT,     // 21: logic NOT
-    WLC_OBJ_LOGIC_AND,     // 22: logic AND
-    WLC_OBJ_LOGIC_OR,      // 23: logic OR
-    WLC_OBJ_COMP_EQU,      // 24: compare equal
-    WLC_OBJ_COMP_NOT,      // 25: compare not equal
-    WLC_OBJ_COMP_LESS,     // 26: compare less
-    WLC_OBJ_COMP_MORE,     // 27: compare more
-    WLC_OBJ_COMP_LESSEQU,  // 28: compare less or equal
-    WLC_OBJ_COMP_MOREEQU,  // 29: compare more or equal
-    WLC_OBJ_REDUCT_AND,    // 30: reduction AND
-    WLC_OBJ_REDUCT_OR,     // 31: reduction OR
-    WLC_OBJ_REDUCT_XOR,    // 32: reduction XOR
-    WLC_OBJ_ARI_ADD,       // 33: arithmetic addition
-    WLC_OBJ_ARI_SUB,       // 34: arithmetic subtraction
-    WLC_OBJ_ARI_MULTI,     // 35: arithmetic multiplier
-    WLC_OBJ_ARI_DIVIDE,    // 36: arithmetic division
-    WLC_OBJ_ARI_MODULUS,   // 37: arithmetic modulus
-    WLC_OBJ_ARI_POWER,     // 38: arithmetic power
-    WLC_OBJ_TABLE,         // 39: arithmetic power
-    WLC_OBJ_NUMBER         // 40: unused
+    WLC_OBJ_ROTATE_R,      // 13: rotate right
+    WLC_OBJ_ROTATE_L,      // 14: rotate left
+    WLC_OBJ_BIT_NOT,       // 15: bitwise NOT
+    WLC_OBJ_BIT_AND,       // 16: bitwise AND
+    WLC_OBJ_BIT_OR,        // 17: bitwise OR
+    WLC_OBJ_BIT_XOR,       // 18: bitwise XOR
+    WLC_OBJ_BIT_SELECT,    // 19: bit selection
+    WLC_OBJ_BIT_CONCAT,    // 20: bit concatenation
+    WLC_OBJ_BIT_ZEROPAD,   // 21: zero padding
+    WLC_OBJ_BIT_SIGNEXT,   // 22: sign extension
+    WLC_OBJ_LOGIC_NOT,     // 23: logic NOT
+    WLC_OBJ_LOGIC_AND,     // 24: logic AND
+    WLC_OBJ_LOGIC_OR,      // 25: logic OR
+    WLC_OBJ_COMP_EQU,      // 26: compare equal
+    WLC_OBJ_COMP_NOTEQU,   // 27: compare not equal
+    WLC_OBJ_COMP_LESS,     // 28: compare less
+    WLC_OBJ_COMP_MORE,     // 29: compare more
+    WLC_OBJ_COMP_LESSEQU,  // 30: compare less or equal
+    WLC_OBJ_COMP_MOREEQU,  // 31: compare more or equal
+    WLC_OBJ_REDUCT_AND,    // 32: reduction AND
+    WLC_OBJ_REDUCT_OR,     // 33: reduction OR
+    WLC_OBJ_REDUCT_XOR,    // 34: reduction XOR
+    WLC_OBJ_ARI_ADD,       // 35: arithmetic addition
+    WLC_OBJ_ARI_SUB,       // 36: arithmetic subtraction
+    WLC_OBJ_ARI_MULTI,     // 37: arithmetic multiplier
+    WLC_OBJ_ARI_DIVIDE,    // 38: arithmetic division
+    WLC_OBJ_ARI_MODULUS,   // 39: arithmetic modulus
+    WLC_OBJ_ARI_POWER,     // 40: arithmetic power
+    WLC_OBJ_ARI_MINUS,     // 41: arithmetic minus
+    WLC_OBJ_TABLE,         // 42: bit table
+    WLC_OBJ_NUMBER         // 43: unused
 } Wlc_ObjType_t;
 
 
@@ -89,9 +92,7 @@ typedef enum {
 ///                         BASIC TYPES                              ///
 ////////////////////////////////////////////////////////////////////////
 
-typedef struct Wlc_Ntk_t_  Wlc_Ntk_t;
 typedef struct Wlc_Obj_t_  Wlc_Obj_t;
-
 struct Wlc_Obj_t_ // 16 bytes
 {
     unsigned               Type    :  6;       // node type
@@ -104,6 +105,7 @@ struct Wlc_Obj_t_ // 16 bytes
             int *          pFanins[1]; };
 };
 
+typedef struct Wlc_Ntk_t_  Wlc_Ntk_t;
 struct Wlc_Ntk_t_ 
 {
     char *                 pName;              // model name
@@ -129,50 +131,51 @@ struct Wlc_Ntk_t_
     Vec_Int_t              vCopies;            // object first bits
 };
 
-static inline int          Wlc_NtkObjNum( Wlc_Ntk_t * p )                         { return p->iObj - 1;                                          }
-static inline int          Wlc_NtkObjNumMax( Wlc_Ntk_t * p )                      { return p->iObj;                                              }
-static inline int          Wlc_NtkPiNum( Wlc_Ntk_t * p )                          { return Vec_IntSize(&p->vPis);                                }
-static inline int          Wlc_NtkPoNum( Wlc_Ntk_t * p )                          { return Vec_IntSize(&p->vPos);                                }
-static inline int          Wlc_NtkCiNum( Wlc_Ntk_t * p )                          { return Vec_IntSize(&p->vCis);                                }
-static inline int          Wlc_NtkCoNum( Wlc_Ntk_t * p )                          { return Vec_IntSize(&p->vCos);                                }
-static inline int          Wlc_NtkFfNum( Wlc_Ntk_t * p )                          { return Vec_IntSize(&p->vFfs);                                }
+static inline int          Wlc_NtkObjNum( Wlc_Ntk_t * p )                         { return p->iObj - 1;                                                   }
+static inline int          Wlc_NtkObjNumMax( Wlc_Ntk_t * p )                      { return p->iObj;                                                       }
+static inline int          Wlc_NtkPiNum( Wlc_Ntk_t * p )                          { return Vec_IntSize(&p->vPis);                                         }
+static inline int          Wlc_NtkPoNum( Wlc_Ntk_t * p )                          { return Vec_IntSize(&p->vPos);                                         }
+static inline int          Wlc_NtkCiNum( Wlc_Ntk_t * p )                          { return Vec_IntSize(&p->vCis);                                         }
+static inline int          Wlc_NtkCoNum( Wlc_Ntk_t * p )                          { return Vec_IntSize(&p->vCos);                                         }
+static inline int          Wlc_NtkFfNum( Wlc_Ntk_t * p )                          { return Vec_IntSize(&p->vFfs);                                         }
 
-static inline Wlc_Obj_t *  Wlc_NtkObj( Wlc_Ntk_t * p, int Id )                    { assert(Id > 0 && Id < p->nObjsAlloc); return p->pObjs + Id;  }
-static inline Wlc_Obj_t *  Wlc_NtkPi( Wlc_Ntk_t * p, int i )                      { return Wlc_NtkObj( p, Vec_IntEntry(&p->vPis, i) );           }
-static inline Wlc_Obj_t *  Wlc_NtkPo( Wlc_Ntk_t * p, int i )                      { return Wlc_NtkObj( p, Vec_IntEntry(&p->vPos, i) );           }
-static inline Wlc_Obj_t *  Wlc_NtkCi( Wlc_Ntk_t * p, int i )                      { return Wlc_NtkObj( p, Vec_IntEntry(&p->vCis, i) );           }
-static inline Wlc_Obj_t *  Wlc_NtkCo( Wlc_Ntk_t * p, int i )                      { return Wlc_NtkObj( p, Vec_IntEntry(&p->vCos, i) );           }
-static inline Wlc_Obj_t *  Wlc_NtkFf( Wlc_Ntk_t * p, int i )                      { return Wlc_NtkObj( p, Vec_IntEntry(&p->vFfs, i) );           }
+static inline Wlc_Obj_t *  Wlc_NtkObj( Wlc_Ntk_t * p, int Id )                    { assert(Id > 0 && Id < p->nObjsAlloc); return p->pObjs + Id;           }
+static inline Wlc_Obj_t *  Wlc_NtkPi( Wlc_Ntk_t * p, int i )                      { return Wlc_NtkObj( p, Vec_IntEntry(&p->vPis, i) );                    }
+static inline Wlc_Obj_t *  Wlc_NtkPo( Wlc_Ntk_t * p, int i )                      { return Wlc_NtkObj( p, Vec_IntEntry(&p->vPos, i) );                    }
+static inline Wlc_Obj_t *  Wlc_NtkCi( Wlc_Ntk_t * p, int i )                      { return Wlc_NtkObj( p, Vec_IntEntry(&p->vCis, i) );                    }
+static inline Wlc_Obj_t *  Wlc_NtkCo( Wlc_Ntk_t * p, int i )                      { return Wlc_NtkObj( p, Vec_IntEntry(&p->vCos, i) );                    }
+static inline Wlc_Obj_t *  Wlc_NtkFf( Wlc_Ntk_t * p, int i )                      { return Wlc_NtkObj( p, Vec_IntEntry(&p->vFfs, i) );                    }
 
-static inline int          Wlc_ObjId( Wlc_Ntk_t * p, Wlc_Obj_t * pObj )           { return pObj - p->pObjs;                                      }
+static inline int          Wlc_ObjId( Wlc_Ntk_t * p, Wlc_Obj_t * pObj )           { return pObj - p->pObjs;                                               }
 static inline int          Wlc_ObjPioId( Wlc_Obj_t * p )                          { assert(p->Type==WLC_OBJ_PI||p->Type==WLC_OBJ_PO);return p->Fanins[1]; }
-static inline int          Wlc_ObjFaninNum( Wlc_Obj_t * p )                       { return p->nFanins;                                           }
-static inline int          Wlc_ObjHasArray( Wlc_Obj_t * p )                       { return p->nFanins > 2 || p->Type == WLC_OBJ_CONST;           }
-static inline int *        Wlc_ObjFanins( Wlc_Obj_t * p )                         { return Wlc_ObjHasArray(p) ? p->pFanins[0] : p->Fanins;       }
-static inline int          Wlc_ObjFaninId( Wlc_Obj_t * p, int i )                 { return Wlc_ObjFanins(p)[i];                                  }
-static inline int          Wlc_ObjFaninId0( Wlc_Obj_t * p )                       { return Wlc_ObjFanins(p)[0];                                  }
-static inline int          Wlc_ObjFaninId1( Wlc_Obj_t * p )                       { return Wlc_ObjFanins(p)[1];                                  }
-static inline int          Wlc_ObjFaninId2( Wlc_Obj_t * p )                       { return Wlc_ObjFanins(p)[2];                                  }
-static inline Wlc_Obj_t *  Wlc_ObjFanin( Wlc_Ntk_t * p, Wlc_Obj_t * pObj, int i ) { return Wlc_NtkObj( p, Wlc_ObjFaninId(pObj, i) );             }
-static inline Wlc_Obj_t *  Wlc_ObjFanin0( Wlc_Ntk_t * p, Wlc_Obj_t * pObj )       { return Wlc_NtkObj( p, Wlc_ObjFaninId(pObj, 0) );             }
-static inline Wlc_Obj_t *  Wlc_ObjFanin1( Wlc_Ntk_t * p, Wlc_Obj_t * pObj )       { return Wlc_NtkObj( p, Wlc_ObjFaninId(pObj, 1) );             }
-static inline Wlc_Obj_t *  Wlc_ObjFanin2( Wlc_Ntk_t * p, Wlc_Obj_t * pObj )       { return Wlc_NtkObj( p, Wlc_ObjFaninId(pObj, 2) );             }
+static inline int          Wlc_ObjFaninNum( Wlc_Obj_t * p )                       { return p->nFanins;                                                    }
+static inline int          Wlc_ObjHasArray( Wlc_Obj_t * p )                       { return p->nFanins > 2 || p->Type == WLC_OBJ_CONST;                    }
+static inline int *        Wlc_ObjFanins( Wlc_Obj_t * p )                         { return Wlc_ObjHasArray(p) ? p->pFanins[0] : p->Fanins;                }
+static inline int          Wlc_ObjFaninId( Wlc_Obj_t * p, int i )                 { return Wlc_ObjFanins(p)[i];                                           }
+static inline int          Wlc_ObjFaninId0( Wlc_Obj_t * p )                       { return Wlc_ObjFanins(p)[0];                                           }
+static inline int          Wlc_ObjFaninId1( Wlc_Obj_t * p )                       { return Wlc_ObjFanins(p)[1];                                           }
+static inline int          Wlc_ObjFaninId2( Wlc_Obj_t * p )                       { return Wlc_ObjFanins(p)[2];                                           }
+static inline Wlc_Obj_t *  Wlc_ObjFanin( Wlc_Ntk_t * p, Wlc_Obj_t * pObj, int i ) { return Wlc_NtkObj( p, Wlc_ObjFaninId(pObj, i) );                      }
+static inline Wlc_Obj_t *  Wlc_ObjFanin0( Wlc_Ntk_t * p, Wlc_Obj_t * pObj )       { return Wlc_NtkObj( p, Wlc_ObjFaninId(pObj, 0) );                      }
+static inline Wlc_Obj_t *  Wlc_ObjFanin1( Wlc_Ntk_t * p, Wlc_Obj_t * pObj )       { return Wlc_NtkObj( p, Wlc_ObjFaninId(pObj, 1) );                      }
+static inline Wlc_Obj_t *  Wlc_ObjFanin2( Wlc_Ntk_t * p, Wlc_Obj_t * pObj )       { return Wlc_NtkObj( p, Wlc_ObjFaninId(pObj, 2) );                      }
 
-static inline int          Wlc_ObjRange( Wlc_Obj_t * p )                          { return p->End - p->Beg + 1;                                  }
+static inline int          Wlc_ObjRange( Wlc_Obj_t * p )                          { return p->End - p->Beg + 1;                                           }
 static inline int          Wlc_ObjRangeEnd( Wlc_Obj_t * p )                       { assert(p->Type == WLC_OBJ_BIT_SELECT); return p->Fanins[1] >> 16;     }
 static inline int          Wlc_ObjRangeBeg( Wlc_Obj_t * p )                       { assert(p->Type == WLC_OBJ_BIT_SELECT); return p->Fanins[1] & 0xFFFF;  }
 static inline int *        Wlc_ObjConstValue( Wlc_Obj_t * p )                     { assert(p->Type == WLC_OBJ_CONST);      return Wlc_ObjFanins(p);       }
 static inline int          Wlc_ObjTableId( Wlc_Obj_t * p )                        { assert(p->Type == WLC_OBJ_TABLE);      return p->Fanins[1];           }
+static inline word *       Wlc_ObjTable( Wlc_Ntk_t * p, Wlc_Obj_t * pObj )        { return (word *)Vec_PtrEntry( p->vTables, Wlc_ObjTableId(pObj) );      }
 
-static inline void         Wlc_NtkCleanCopy( Wlc_Ntk_t * p )                      { Vec_IntFill( &p->vCopies, p->nObjsAlloc, 0 );                }
-static inline int          Wlc_NtkHasCopy( Wlc_Ntk_t * p )                        { return Vec_IntSize( &p->vCopies ) > 0;                       }
-static inline void         Wlc_ObjSetCopy( Wlc_Ntk_t * p, int iObj, int i )       { Vec_IntWriteEntry( &p->vCopies, iObj, i );                   }
-static inline int          Wlc_ObjCopy( Wlc_Ntk_t * p, int iObj )                 { return Vec_IntEntry( &p->vCopies, iObj );                    }
+static inline void         Wlc_NtkCleanCopy( Wlc_Ntk_t * p )                      { Vec_IntFill( &p->vCopies, p->nObjsAlloc, 0 );                         }
+static inline int          Wlc_NtkHasCopy( Wlc_Ntk_t * p )                        { return Vec_IntSize( &p->vCopies ) > 0;                                }
+static inline void         Wlc_ObjSetCopy( Wlc_Ntk_t * p, int iObj, int i )       { Vec_IntWriteEntry( &p->vCopies, iObj, i );                            }
+static inline int          Wlc_ObjCopy( Wlc_Ntk_t * p, int iObj )                 { return Vec_IntEntry( &p->vCopies, iObj );                             }
 
-static inline void         Wlc_NtkCleanNameId( Wlc_Ntk_t * p )                    { Vec_IntFill( &p->vNameIds, p->nObjsAlloc, 0 );               }
-static inline int          Wlc_NtkHasNameId( Wlc_Ntk_t * p )                      { return Vec_IntSize( &p->vNameIds ) > 0;                      }
-static inline void         Wlc_ObjSetNameId( Wlc_Ntk_t * p, int iObj, int i )     { Vec_IntWriteEntry( &p->vNameIds, iObj, i );                  }
-static inline int          Wlc_ObjNameId( Wlc_Ntk_t * p, int iObj )               { return Vec_IntEntry( &p->vNameIds, iObj );                   }
+static inline void         Wlc_NtkCleanNameId( Wlc_Ntk_t * p )                    { Vec_IntFill( &p->vNameIds, p->nObjsAlloc, 0 );                        }
+static inline int          Wlc_NtkHasNameId( Wlc_Ntk_t * p )                      { return Vec_IntSize( &p->vNameIds ) > 0;                               }
+static inline void         Wlc_ObjSetNameId( Wlc_Ntk_t * p, int iObj, int i )     { Vec_IntWriteEntry( &p->vNameIds, iObj, i );                           }
+static inline int          Wlc_ObjNameId( Wlc_Ntk_t * p, int iObj )               { return Vec_IntEntry( &p->vNameIds, iObj );                            }
 
 ////////////////////////////////////////////////////////////////////////
 ///                      MACRO DEFINITIONS                           ///

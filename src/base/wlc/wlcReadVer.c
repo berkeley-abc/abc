@@ -409,6 +409,7 @@ static inline char * Wlc_PrsReadConstant( Wlc_Prs_t * p, char * pStr, Vec_Int_t 
         *pRange = Abc_Base2Log( Number );
         while ( Wlc_PrsIsDigit(pStr) )
             pStr++;
+        Vec_IntFill( vFanins, 1, Number );
         return pStr;
     }
     pStr = Wlc_PrsFindSymbol( pStr, '\'' );
@@ -424,7 +425,7 @@ static inline char * Wlc_PrsReadConstant( Wlc_Prs_t * p, char * pStr, Vec_Int_t 
     if ( nDigits != (nBits + 3)/4 )
     {
 //        return (char *)(ABC_PTRINT_T)Wlc_PrsWriteErrorMessage( p, pStr, "The length of a constant does not match." );
-        printf( "Warning: The length of a constant (%d hex digits) does not match the number of bits (%d).\n", nDigits, nBits );
+//        printf( "Warning: The length of a constant (%d hex digits) does not match the number of bits (%d).\n", nDigits, nBits );
     }
     *pRange = nBits;
     pStr += 2;
@@ -452,7 +453,7 @@ static inline char * Wlc_PrsReadName( Wlc_Prs_t * p, char * pStr, Vec_Int_t * vF
         Wlc_ObjAddFanins( p->pNtk, Wlc_NtkObj(p->pNtk, iObj), vFanins );
         Vec_IntFree( vFanins );
         // add node's name
-        sprintf( Buffer, "const%d", p->nConsts++ );
+        sprintf( Buffer, "_c%d_", p->nConsts++ );
         NameId = Abc_NamStrFindOrAdd( p->pNtk->pManName, Buffer, &fFound );
         if ( fFound )
             return (char *)(ABC_PTRINT_T)Wlc_PrsWriteErrorMessage( p, pStr, "Name %s is already used.", Buffer );
@@ -530,7 +531,7 @@ static inline int Wlc_PrsFindDefinition( Wlc_Prs_t * p, char * pStr, Vec_Int_t *
         if ( !(pStr = Wlc_PrsReadName(p, pStr, vFanins)) )
             return Wlc_PrsWriteErrorMessage( p, pStr, "Cannot read name after !." );
     }
-    else if ( pStr[0] == '&' || pStr[0] == '|' || pStr[0] == '^' )
+    else if ( pStr[0] == '&' || pStr[0] == '|' || pStr[0] == '^' || pStr[0] == '-' )
     {
         if ( pStr[0] == '&' )
             Type = WLC_OBJ_REDUCT_AND;
@@ -538,9 +539,11 @@ static inline int Wlc_PrsFindDefinition( Wlc_Prs_t * p, char * pStr, Vec_Int_t *
             Type = WLC_OBJ_REDUCT_OR;
         else if ( pStr[0] == '^' )
             Type = WLC_OBJ_REDUCT_XOR;
+        else if ( pStr[0] == '-' )
+            Type = WLC_OBJ_ARI_MINUS;
         else assert( 0 );
         if ( !(pStr = Wlc_PrsReadName(p, pStr+1, vFanins)) )
-            return Wlc_PrsWriteErrorMessage( p, pStr, "Cannot read name after reduction operator." );
+            return Wlc_PrsWriteErrorMessage( p, pStr, "Cannot read name after a unary operator." );
     }
     else if ( pStr[0] == '{' )
     {
@@ -603,9 +606,9 @@ static inline int Wlc_PrsFindDefinition( Wlc_Prs_t * p, char * pStr, Vec_Int_t *
         }
         else 
         {
-                 if ( pStr[0] == '>' && pStr[1] == '>' && pStr[2] != '>' ) pStr += 2, Type = WLC_OBJ_SHIFT_R;
+                 if ( pStr[0] == '>' && pStr[1] == '>' && pStr[2] != '>' ) pStr += 2, Type = fRotating ? WLC_OBJ_ROTATE_R : WLC_OBJ_SHIFT_R;
             else if ( pStr[0] == '>' && pStr[1] == '>' && pStr[2] == '>' ) pStr += 3, Type = WLC_OBJ_SHIFT_RA;      
-            else if ( pStr[0] == '<' && pStr[1] == '<' && pStr[2] != '<' ) pStr += 2, Type = WLC_OBJ_SHIFT_L;       
+            else if ( pStr[0] == '<' && pStr[1] == '<' && pStr[2] != '<' ) pStr += 2, Type = fRotating ? WLC_OBJ_ROTATE_L : WLC_OBJ_SHIFT_L;
             else if ( pStr[0] == '<' && pStr[1] == '<' && pStr[2] == '<' ) pStr += 3, Type = WLC_OBJ_SHIFT_LA;      
             else if ( pStr[0] == '&' && pStr[1] != '&'                   ) pStr += 1, Type = WLC_OBJ_BIT_AND;       
             else if ( pStr[0] == '|' && pStr[1] != '|'                   ) pStr += 1, Type = WLC_OBJ_BIT_OR;        
@@ -613,7 +616,7 @@ static inline int Wlc_PrsFindDefinition( Wlc_Prs_t * p, char * pStr, Vec_Int_t *
             else if ( pStr[0] == '&' && pStr[1] == '&'                   ) pStr += 2, Type = WLC_OBJ_LOGIC_AND;     
             else if ( pStr[0] == '|' && pStr[1] == '|'                   ) pStr += 2, Type = WLC_OBJ_LOGIC_OR;      
             else if ( pStr[0] == '=' && pStr[1] == '='                   ) pStr += 2, Type = WLC_OBJ_COMP_EQU;      
-            else if ( pStr[0] == '!' && pStr[1] == '='                   ) pStr += 2, Type = WLC_OBJ_COMP_NOT;      
+            else if ( pStr[0] == '!' && pStr[1] == '='                   ) pStr += 2, Type = WLC_OBJ_COMP_NOTEQU;      
             else if ( pStr[0] == '<' && pStr[1] != '='                   ) pStr += 1, Type = WLC_OBJ_COMP_LESS;     
             else if ( pStr[0] == '>' && pStr[1] != '='                   ) pStr += 1, Type = WLC_OBJ_COMP_MORE;     
             else if ( pStr[0] == '<' && pStr[1] == '='                   ) pStr += 2, Type = WLC_OBJ_COMP_LESSEQU;
@@ -702,6 +705,7 @@ int Wlc_PrsDerive( Wlc_Prs_t * p )
             if ( Wlc_PrsStrCmp( pName, "table" ) )
             {
                 // THIS IS A HACK TO DETECT tables
+                int Width1, Width2;
                 int v, b, Value, nBits, nInts, * pTable;
                 Vec_Int_t * vValues = Vec_IntAlloc( 256 );
                 Wlc_PrsForEachLineStart( p, pStart, i, i+1 )
@@ -711,9 +715,11 @@ int Wlc_PrsDerive( Wlc_Prs_t * p )
                     pStart = Wlc_PrsFindSymbol( pStart, '\'' );
                     if ( pStart == NULL )
                         continue;
+                    Width1 = atoi(pStart-1);
                     pStart = Wlc_PrsFindSymbol( pStart+2, '\'' );
                     if ( pStart == NULL )
                         continue;
+                    Width2 = atoi(pStart-1);
                     Value = 0;
                     Abc_TtReadHexNumber( (word *)&Value, pStart+2 );
                     Vec_IntPush( vValues, Value );
@@ -725,14 +731,15 @@ int Wlc_PrsDerive( Wlc_Prs_t * p )
                     Vec_IntFree( vValues );
                     return Wlc_PrsWriteErrorMessage( p, pStart, "Cannot read module \"%s\".", pName );
                 }
+                assert( Width1 == nBits );
                 // create bitmap
-                nInts = Abc_BitWordNum( nBits * Vec_IntSize(vValues) );
+                nInts = Abc_BitWordNum( Width2 * Vec_IntSize(vValues) );
                 pTable = (unsigned *)Mem_FlexEntryFetch( p->pMemTable, nInts * sizeof(unsigned) );
                 memset( pTable, 0, nInts * sizeof(unsigned) );
                 Vec_IntForEachEntry( vValues, Value, v )
-                    for ( b = 0; b < nBits; b++ )
+                    for ( b = 0; b < Width2; b++ )
                         if ( (Value >> b) & 1 )
-                            Abc_InfoSetBit( pTable, v * nBits + b );
+                            Abc_InfoSetBit( pTable, v * Width2 + b );
                 Vec_PtrPush( p->vTables, pTable );
                 Vec_IntFree( vValues );
                 continue;

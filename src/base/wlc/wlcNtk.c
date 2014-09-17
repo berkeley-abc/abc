@@ -42,34 +42,37 @@ static char * Wlc_Names[WLC_OBJ_NUMBER+1] = {
     ">>>",                 // 10: shift right (arithmetic)
     "<<",                  // 11: shift left
     "<<<",                 // 12: shift left (arithmetic)
-    "~",                   // 13: bitwise NOT
-    "&",                   // 14: bitwise AND
-    "|",                   // 15: bitwise OR
-    "^",                   // 16: bitwise XOR
-    "[:]",                 // 17: bit selection
-    "{,}",                 // 18: bit concatenation
-    "BitPad",              // 19: zero padding
-    "SgnExt",              // 20: sign extension
-    "!",                   // 21: logic NOT
-    "&&",                  // 22: logic AND
-    "||",                  // 23: logic OR
-    "==",                  // 24: compare equal
-    "!=",                  // 25: compare not equal
-    "<",                   // 26: compare less
-    ">",                   // 27: compare more
-    "<=",                  // 28: compare less or equal
-    ">=",                  // 29: compare more or equal
-    "&",                   // 30: reduction AND
-    "|",                   // 31: reduction OR
-    "^",                   // 32: reduction XOR
-    "+",                   // 33: arithmetic addition
-    "-",                   // 34: arithmetic subtraction
-    "*",                   // 35: arithmetic multiplier
-    "//",                  // 36: arithmetic division
-    "%%",                  // 37: arithmetic modulus
-    "**",                  // 38: arithmetic power
-    "table",               // 39: lookup table
-    NULL                   // 40: unused
+    "rotateR",             // 13: shift left (arithmetic)
+    "rotateL",             // 14: shift left (arithmetic)
+    "~",                   // 15: bitwise NOT
+    "&",                   // 16: bitwise AND
+    "|",                   // 17: bitwise OR
+    "^",                   // 18: bitwise XOR
+    "[:]",                 // 19: bit selection
+    "{,}",                 // 20: bit concatenation
+    "bitPad",              // 21: zero padding
+    "signExtend",          // 22: sign extension
+    "!",                   // 23: logic NOT
+    "&&",                  // 24: logic AND
+    "||",                  // 25: logic OR
+    "==",                  // 26: compare equal
+    "!=",                  // 27: compare not equal
+    "<",                   // 28: compare less
+    ">",                   // 29: compare more
+    "<=",                  // 30: compare less or equal
+    ">=",                  // 31: compare more or equal
+    "&",                   // 32: reduction AND
+    "|",                   // 33: reduction OR
+    "^",                   // 34: reduction XOR
+    "+",                   // 35: arithmetic addition
+    "-",                   // 36: arithmetic subtraction
+    "*",                   // 37: arithmetic multiplier
+    "//",                  // 38: arithmetic division
+    "%%",                  // 39: arithmetic modulus
+    "**",                  // 40: arithmetic power
+    "-",                   // 41: arithmetic minus
+    "table",               // 42: bit table
+    NULL                   // 43: unused
 };
 
 ////////////////////////////////////////////////////////////////////////
