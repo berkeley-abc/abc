@@ -705,8 +705,9 @@ int Wlc_PrsDerive( Wlc_Prs_t * p )
             if ( Wlc_PrsStrCmp( pName, "table" ) )
             {
                 // THIS IS A HACK TO DETECT tables
-                int Width1, Width2;
-                int v, b, Value, nBits, nInts, * pTable;
+                int Width1 = -1, Width2 = -1;
+                int v, b, Value, nBits, nInts;
+                unsigned * pTable;
                 Vec_Int_t * vValues = Vec_IntAlloc( 256 );
                 Wlc_PrsForEachLineStart( p, pStart, i, i+1 )
                 {

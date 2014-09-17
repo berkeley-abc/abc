@@ -55,7 +55,7 @@ void Wlc_WriteTableOne( FILE * pFile, int nFans, int nOuts, word * pTable, int I
     fprintf( pFile, "  begin\n" );
     fprintf( pFile, "    case (ind)\n" );
     for ( m = 0; m < nMints; m++ )
-    fprintf( pFile, "      %d\'h%x: val = %d\'h%x;\n", nFans, m, nOuts, (pTable[(nOuts * m) >> 6] >> ((nOuts * m) & 63)) & Abc_Tt6Mask(nOuts) );
+    fprintf( pFile, "      %d\'h%x: val = %d\'h%x;\n", nFans, m, nOuts, (unsigned)((pTable[(nOuts * m) >> 6] >> ((nOuts * m) & 63)) & Abc_Tt6Mask(nOuts)) );
     fprintf( pFile, "    endcase\n" );
     fprintf( pFile, "  end\n" );
     fprintf( pFile, "endmodule\n" );
