@@ -448,7 +448,7 @@ void Ifn_TtComparisonConstr( word * pTruth, int nVars, int fMore, int fEqual )
   SeeAlso     []
 
 ***********************************************************************/
-void Ifn_AddClause( sat_solver * pSat, int * pBeg, int * pEnd )
+int Ifn_AddClause( sat_solver * pSat, int * pBeg, int * pEnd )
 {
     int fVerbose = 0;
     int RetValue = sat_solver_addclause( pSat, pBeg, pEnd );
@@ -458,11 +458,11 @@ void Ifn_AddClause( sat_solver * pSat, int * pBeg, int * pEnd )
             printf( "%c%d ", Abc_LitIsCompl(*pBeg) ? '-':'+', Abc_Lit2Var(*pBeg) );
         printf( "\n" );
     }
-    assert( RetValue );
+    return RetValue;
 }
 void Ifn_NtkAddConstrOne( sat_solver * pSat, Vec_Int_t * vCover, int * pVars, int nVars )
 {
-    int k, c, Cube, Literal, nLits, pLits[IFN_INS];
+    int RetValue, k, c, Cube, Literal, nLits, pLits[IFN_INS];
     Vec_IntForEachEntry( vCover, Cube, c )
     {
         nLits = 0;
@@ -476,7 +476,8 @@ void Ifn_NtkAddConstrOne( sat_solver * pSat, Vec_Int_t * vCover, int * pVars, in
             else if ( Literal != 0 )
                 assert( 0 );
         }
-        Ifn_AddClause( pSat, pLits, pLits + nLits );
+        RetValue = Ifn_AddClause( pSat, pLits, pLits + nLits );
+        assert( RetValue );
     }
 }
 void Ifn_NtkAddConstraints( Ifn_Ntk_t * p, sat_solver * pSat )
@@ -563,7 +564,8 @@ int Ifn_NtkAddClauses( Ifn_Ntk_t * p, int * pValues, sat_solver * pSat )
             // add clause literals
             for ( f = 0; f < p->nParsVNum; f++ )
                 pLits[f+1] = Abc_Var2Lit( iParStart + f, (v >> f) & 1 ); 
-            Ifn_AddClause( pSat, pLits, pLits+p->nParsVNum+1 );
+            if ( !Ifn_AddClause( pSat, pLits, pLits+p->nParsVNum+1 ) )
+                return 0;
         }
     }
 //printf( "\n" );
@@ -581,10 +583,12 @@ int Ifn_NtkAddClauses( Ifn_Ntk_t * p, int * pValues, sat_solver * pSat )
                 // add small clause
                 pLits2[0] = Abc_Var2Lit( p->Nodes[i].Var, 1 );
                 pLits2[1] = Abc_Var2Lit( p->Nodes[pFans[f]].Var, 0 );
-                Ifn_AddClause( pSat, pLits2, pLits2 + 2 );
+                if ( !Ifn_AddClause( pSat, pLits2, pLits2 + 2 ) )
+                    return 0;
             }
             // add big clause
-            Ifn_AddClause( pSat, pLits, pLits + nLits );
+            if ( !Ifn_AddClause( pSat, pLits, pLits + nLits ) )
+                return 0;
         }
         else if ( p->Nodes[i].Type == IF_DSD_XOR )
         {
@@ -601,7 +605,8 @@ int Ifn_NtkAddClauses( Ifn_Ntk_t * p, int * pValues, sat_solver * pSat )
                 pLits[0] = Abc_Var2Lit( p->Nodes[i].Var, (m >> nFans) & 1 );
                 for ( v = 0; v < nFans; v++ )
                     pLits[v+1] = Abc_Var2Lit( p->Nodes[pFans[v]].Var, (m >> v) & 1 );
-                Ifn_AddClause( pSat, pLits, pLits + nFans + 1 );
+                if ( !Ifn_AddClause( pSat, pLits, pLits + nFans + 1 ) )
+                    return 0;
             }
         }
         else if ( p->Nodes[i].Type == IF_DSD_MUX )
@@ -609,22 +614,26 @@ int Ifn_NtkAddClauses( Ifn_Ntk_t * p, int * pValues, sat_solver * pSat )
             pLits[0] = Abc_Var2Lit( p->Nodes[i].Var, 0 );
             pLits[1] = Abc_Var2Lit( p->Nodes[pFans[0]].Var, 1 ); // ctrl
             pLits[2] = Abc_Var2Lit( p->Nodes[pFans[1]].Var, 1 );
-            Ifn_AddClause( pSat, pLits, pLits + 3 );
+            if ( !Ifn_AddClause( pSat, pLits, pLits + 3 ) )
+                return 0;
 
             pLits[0] = Abc_Var2Lit( p->Nodes[i].Var, 1 );
             pLits[1] = Abc_Var2Lit( p->Nodes[pFans[0]].Var, 1 ); // ctrl
             pLits[2] = Abc_Var2Lit( p->Nodes[pFans[1]].Var, 0 );
-            Ifn_AddClause( pSat, pLits, pLits + 3 );
+            if ( !Ifn_AddClause( pSat, pLits, pLits + 3 ) )
+                return 0;
 
             pLits[0] = Abc_Var2Lit( p->Nodes[i].Var, 0 );
             pLits[1] = Abc_Var2Lit( p->Nodes[pFans[0]].Var, 0 ); // ctrl
             pLits[2] = Abc_Var2Lit( p->Nodes[pFans[2]].Var, 1 );
-            Ifn_AddClause( pSat, pLits, pLits + 3 );
+            if ( !Ifn_AddClause( pSat, pLits, pLits + 3 ) )
+                return 0;
 
             pLits[0] = Abc_Var2Lit( p->Nodes[i].Var, 1 );
             pLits[1] = Abc_Var2Lit( p->Nodes[pFans[0]].Var, 0 ); // ctrl
             pLits[2] = Abc_Var2Lit( p->Nodes[pFans[2]].Var, 0 );
-            Ifn_AddClause( pSat, pLits, pLits + 3 );
+            if ( !Ifn_AddClause( pSat, pLits, pLits + 3 ) )
+                return 0;
         }
         else if ( p->Nodes[i].Type == IF_DSD_PRIME )
         {
@@ -645,9 +654,15 @@ int Ifn_NtkAddClauses( Ifn_Ntk_t * p, int * pValues, sat_solver * pSat )
                 pLits2[nLits] = Abc_Var2Lit( iParStart + v, 0 ); 
                 nLits++;
                 if ( pValues[i] != 0 )
-                    Ifn_AddClause( pSat, pLits2, pLits2 + nLits );
+                {
+                    if ( !Ifn_AddClause( pSat, pLits2, pLits2 + nLits ) )
+                        return 0;
+                }
                 if ( pValues[i] != 1 )
-                    Ifn_AddClause( pSat, pLits,  pLits + nLits );
+                {
+                    if ( !Ifn_AddClause( pSat, pLits,  pLits + nLits ) )
+                        return 0;
+                }
             }
         }
         else assert( 0 );
