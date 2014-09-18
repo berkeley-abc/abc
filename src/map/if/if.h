@@ -130,6 +130,7 @@ struct If_Par_t_
     int                fEnableCheck75;// enable additional checking
     int                fEnableCheck75u;// enable additional checking
     int                fUseDsd;       // compute DSD of the cut functions
+    int                fUseDsdTune;   // use matching based on precomputed manager
     int                fUseTtPerm;    // compute truth tables of the cut functions
     int                fDeriveLuts;   // enables deriving LUT structures
     int                fDoAverage;    // optimize average rather than maximum level
@@ -549,9 +550,12 @@ extern If_DsdMan_t *   If_DsdManFilter( If_DsdMan_t * p, int Limit );
 extern int             If_DsdManCompute( If_DsdMan_t * p, word * pTruth, int nLeaves, unsigned char * pPerm, char * pLutStruct );
 extern char *          If_DsdManFileName( If_DsdMan_t * p );
 extern int             If_DsdManVarNum( If_DsdMan_t * p );
+extern int             If_DsdManObjNum( If_DsdMan_t * p );
 extern int             If_DsdManLutSize( If_DsdMan_t * p );
 extern int             If_DsdManSuppSize( If_DsdMan_t * p, int iDsd );
 extern int             If_DsdManCheckDec( If_DsdMan_t * p, int iDsd );
+extern int             If_DsdManReadMark( If_DsdMan_t * p, int iDsd );
+extern void            If_DsdManSetNewAsUseless( If_DsdMan_t * p );
 extern unsigned        If_DsdManCheckXY( If_DsdMan_t * p, int iDsd, int LutSize, int fDerive, unsigned uMaskNot, int fHighEffort, int fVerbose );
 extern int             If_CutDsdBalanceEval( If_Man_t * p, If_Cut_t * pCut, Vec_Int_t * vAig );
 extern int             If_CutDsdBalancePinDelays( If_Man_t * p, If_Cut_t * pCut, char * pPerm );

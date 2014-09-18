@@ -262,6 +262,14 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
                         p->nCuts5a++;
                 }
             }
+            else if ( p->pPars->fUseDsdTune )
+            {
+                pCut->fUseless = If_DsdManReadMark( p->pIfDsdMan, If_CutDsdLit(p, pCut) );
+                p->nCutsUselessAll += pCut->fUseless;
+                p->nCutsUseless[pCut->nLeaves] += pCut->fUseless;
+                p->nCutsCountAll++;
+                p->nCutsCount[pCut->nLeaves]++;
+            }
         }
         
         // compute the application-specific cost and depth

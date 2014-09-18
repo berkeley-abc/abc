@@ -15312,7 +15312,7 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
             pPars->fEnableCheck08 ^= 1;
             break;
         case 'k':
-            pPars->fEnableCheck10 ^= 1;
+            pPars->fUseDsdTune ^= 1;
             break;
         case 't':
             pPars->fDoAverage ^= 1;
@@ -15376,7 +15376,7 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
         pPars->fCutMin = 1;
     }
 
-    if ( pPars->fEnableCheck07 + pPars->fEnableCheck08 + pPars->fEnableCheck10 + (pPars->pLutStruct != NULL) > 1 )
+    if ( pPars->fEnableCheck07 + pPars->fEnableCheck08 + pPars->fUseDsdTune + (pPars->pLutStruct != NULL) > 1 )
     {
         Abc_Print( -1, "Only one additional check can be performed at the same time.\n" );
         return 1;
@@ -15401,15 +15401,22 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
         pPars->pFuncCell = If_CutPerformCheck08;
         pPars->fCutMin = 1;
     }
-    if ( pPars->fEnableCheck10 )
+    if ( pPars->fUseDsdTune )
     {
-        if ( pPars->nLutSize < 6 || pPars->nLutSize > 10 )
+        If_DsdMan_t * pDsdMan = (If_DsdMan_t *)Abc_FrameReadManDsd();
+        if ( pDsdMan == NULL )
         {
-            Abc_Print( -1, "This feature only works for {6,7,8,9,10}-LUTs.\n" );
+            Abc_Print( -1, "DSD manager is not available.\n" );
             return 1;
         }
-        pPars->pFuncCell = If_CutPerformCheck10;
+        if ( pPars->nLutSize > If_DsdManLutSize(pDsdMan) )
+        {
+            Abc_Print( -1, "LUT size (%d) is more than the number of variables in the DSD manager (%d).\n", pPars->nLutSize, If_DsdManLutSize(pDsdMan) );
+            return 1;
+        }
         pPars->fCutMin = 1;
+        pPars->fUseDsd = 1;
+        If_DsdManSetNewAsUseless( pDsdMan );
     }
     if ( pPars->pLutStruct )
     {
@@ -15604,7 +15611,7 @@ usage:
     Abc_Print( -2, "\t-o       : toggles using buffers to decouple combinational outputs [default = %s]\n", pPars->fUseBuffs? "yes": "no" );
     Abc_Print( -2, "\t-j       : toggles enabling additional check [default = %s]\n", pPars->fEnableCheck07? "yes": "no" );
     Abc_Print( -2, "\t-i       : toggles enabling additional check [default = %s]\n", pPars->fEnableCheck08? "yes": "no" );
-    Abc_Print( -2, "\t-k       : toggles enabling additional check [default = %s]\n", pPars->fEnableCheck10? "yes": "no" );
+    Abc_Print( -2, "\t-k       : toggles matching based on precomputed DSD manager [default = %s]\n", pPars->fUseDsdTune? "yes": "no" );
     Abc_Print( -2, "\t-t       : toggles optimizing average rather than maximum level [default = %s]\n", pPars->fDoAverage? "yes": "no" );
     Abc_Print( -2, "\t-n       : toggles computing DSDs of the cut functions [default = %s]\n", pPars->fUseDsd? "yes": "no" );
     Abc_Print( -2, "\t-c       : toggles computing truth tables in a new way [default = %s]\n", pPars->fUseTtPerm? "yes": "no" );
@@ -31156,7 +31163,7 @@ int Abc_CommandAbc9If( Abc_Frame_t * pAbc, int argc, char ** argv )
             pPars->fEnableCheck08 ^= 1;
             break;
         case 'k':
-            pPars->fEnableCheck10 ^= 1;
+            pPars->fUseDsdTune ^= 1;
             break;
         case 'f':
             pPars->fEnableCheck75 ^= 1;
@@ -31240,7 +31247,7 @@ int Abc_CommandAbc9If( Abc_Frame_t * pAbc, int argc, char ** argv )
         pPars->fCutMin = 1;
     }
 
-    if ( pPars->fEnableCheck07 + pPars->fEnableCheck08 + pPars->fEnableCheck10 + pPars->fEnableCheck75 + pPars->fEnableCheck75u + (pPars->pLutStruct != NULL) > 1 )
+    if ( pPars->fEnableCheck07 + pPars->fEnableCheck08 + pPars->fUseDsdTune + pPars->fEnableCheck75 + pPars->fEnableCheck75u + (pPars->pLutStruct != NULL) > 1 )
     {
         Abc_Print( -1, "Only one additional check can be performed at the same time.\n" );
         return 1;
@@ -31265,15 +31272,22 @@ int Abc_CommandAbc9If( Abc_Frame_t * pAbc, int argc, char ** argv )
         pPars->pFuncCell = If_CutPerformCheck08;
         pPars->fCutMin = 1;
     }
-    if ( pPars->fEnableCheck10 )
+    if ( pPars->fUseDsdTune )
     {
-        if ( pPars->nLutSize < 6 || pPars->nLutSize > 10 )
+        If_DsdMan_t * pDsdMan = (If_DsdMan_t *)Abc_FrameReadManDsd();
+        if ( pDsdMan == NULL )
         {
-            Abc_Print( -1, "This feature only works for {6,7,8,9,10}-LUTs.\n" );
+            Abc_Print( -1, "DSD manager is not available.\n" );
             return 1;
         }
-        pPars->pFuncCell = If_CutPerformCheck10;
+        if ( pPars->nLutSize > If_DsdManLutSize(pDsdMan) )
+        {
+            Abc_Print( -1, "LUT size (%d) is more than the number of variables in the DSD manager (%d).\n", pPars->nLutSize, If_DsdManLutSize(pDsdMan) );
+            return 1;
+        }
         pPars->fCutMin = 1;
+        pPars->fUseDsd = 1;
+        If_DsdManSetNewAsUseless( pDsdMan );
     }
     if ( pPars->fEnableCheck75 || pPars->fEnableCheck75u )
     {
@@ -31454,9 +31468,9 @@ usage:
     Abc_Print( -2, "\t-o       : toggles using buffers to decouple combinational outputs [default = %s]\n", pPars->fUseBuffs? "yes": "no" );
     Abc_Print( -2, "\t-j       : toggles enabling additional check [default = %s]\n", pPars->fEnableCheck07? "yes": "no" );
     Abc_Print( -2, "\t-i       : toggles enabling additional check [default = %s]\n", pPars->fEnableCheck08? "yes": "no" );
-    Abc_Print( -2, "\t-k       : toggles enabling additional check [default = %s]\n", pPars->fEnableCheck10? "yes": "no" );
     Abc_Print( -2, "\t-f       : toggles enabling additional check [default = %s]\n", pPars->fEnableCheck75? "yes": "no" );
     Abc_Print( -2, "\t-u       : toggles enabling additional check [default = %s]\n", pPars->fEnableCheck75u? "yes": "no" );
+    Abc_Print( -2, "\t-k       : toggles matching based on precomputed DSD manager [default = %s]\n", pPars->fUseDsdTune? "yes": "no" );
     Abc_Print( -2, "\t-z       : toggles deriving LUTs when mapping into LUT structures [default = %s]\n", pPars->fDeriveLuts? "yes": "no" );
     Abc_Print( -2, "\t-t       : toggles optimizing average rather than maximum level [default = %s]\n", pPars->fDoAverage? "yes": "no" );
     Abc_Print( -2, "\t-n       : toggles computing DSDs of the cut functions [default = %s]\n", pPars->fUseDsd? "yes": "no" );

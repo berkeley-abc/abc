@@ -89,6 +89,7 @@ struct If_DsdMan_t_
     Gia_Man_t *    pTtGia;         // GIA to represent truth tables
     Vec_Int_t *    vCover;         // temporary memory
     void *         pSat;           // SAT solver
+    int            fNewAsUseless;  // set new as useless
     int            nUniqueHits;    // statistics
     int            nUniqueMisses;  // statistics
     abctime        timeDsd;        // statistics
@@ -160,6 +161,10 @@ int If_DsdManVarNum( If_DsdMan_t * p )
 {
     return p->nVars;
 }
+int If_DsdManObjNum( If_DsdMan_t * p )
+{
+    return Vec_PtrSize( &p->vObjs );
+}
 int If_DsdManLutSize( If_DsdMan_t * p )
 {
     return p->LutSize;
@@ -171,6 +176,14 @@ int If_DsdManSuppSize( If_DsdMan_t * p, int iDsd )
 int If_DsdManCheckDec( If_DsdMan_t * p, int iDsd )
 {
     return If_DsdVecObjMark( &p->vObjs, Abc_Lit2Var(iDsd) );
+}
+int If_DsdManReadMark( If_DsdMan_t * p, int iDsd )
+{
+    return If_DsdVecObjMark( &p->vObjs, Abc_Lit2Var(iDsd) );
+}
+void If_DsdManSetNewAsUseless( If_DsdMan_t * p )
+{
+    p->fNewAsUseless = 1;
 }
 
 /**Function*************************************************************
@@ -204,7 +217,7 @@ If_DsdObj_t * If_DsdObjAlloc( If_DsdMan_t * p, int Type, int nFans )
     pObj->Type   = Type;
     pObj->nFans  = nFans;
     pObj->Id     = Vec_PtrSize( &p->vObjs );
-    pObj->fMark  = 0;
+    pObj->fMark  = p->fNewAsUseless;
     pObj->Count  = 0;
     Vec_PtrPush( &p->vObjs, pObj );
     Vec_IntPush( &p->vNexts, 0 );
@@ -2401,8 +2414,7 @@ void Id_DsdManTuneStr1( If_DsdMan_t * p, char * pStruct, int nConfls, int fVerbo
         if ( fVeryVerbose )
             printf( "\n" );
         if ( Value == 0 )
-            continue;
-        If_DsdVecObjSetMark( &p->vObjs, i );
+            If_DsdVecObjSetMark( &p->vObjs, i );
     }
     Extra_ProgressBarStop( pProgress );
     printf( "Finished matching %d functions. ", Vec_PtrSize(&p->vObjs) );
@@ -2542,7 +2554,7 @@ void Id_DsdManTuneStr( If_DsdMan_t * p, char * pStruct, int nConfls, int nProcs,
                 {
                     //printf( "Closing obj %d with Thread %d:\n", ThData[i].Id, i );
                     assert( ThData[i].Result == 0 || ThData[i].Result == 1 );
-                    if ( ThData[i].Result == 1 )
+                    if ( ThData[i].Result == 0 )
                         If_DsdVecObjSetMark( &p->vObjs, ThData[i].Id );
                     ThData[i].Id     = -1;
                     ThData[i].Result = -1;
