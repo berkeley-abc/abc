@@ -134,7 +134,7 @@ int Wlc_PrsWriteErrorMessage( Wlc_Prs_t * p, char * pCur, const char * format, .
                 break;
         sprintf( p->sError, "%s (line %d): %s\n", p->pFileName, iLine+1, pMessage );
     }
-    free( pMessage );
+    ABC_FREE( pMessage );
     return 0;
 }
 void Wlc_PrsPrintErrorMessage( Wlc_Prs_t * p )

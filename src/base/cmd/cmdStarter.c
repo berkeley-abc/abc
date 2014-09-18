@@ -248,7 +248,7 @@ void Cmd_RunStarter( char * pFileName, char * pBinary, char * pCommand, int nCor
     fflush( stdout );
 }
 
-#endif
+#endif // pthreads are used
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

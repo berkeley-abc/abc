@@ -26,6 +26,17 @@
 #include "aig/gia/gia.h"
 #include "bool/kit/kit.h"
 
+#ifdef ABC_USE_PTHREADS
+
+#ifdef _WIN32
+#include "../lib/pthread.h"
+#else
+#include <pthread.h>
+#include <unistd.h>
+#endif
+
+#endif
+
 ABC_NAMESPACE_IMPL_START
 
 
@@ -206,6 +217,7 @@ If_DsdMan_t * If_DsdManAlloc( int nVars, int LutSize )
 {
     If_DsdMan_t * p; int v;
     char pFileName[10];
+    assert( nVars <= DAU_MAX_VAR );
     sprintf( pFileName, "%02d.dsd", nVars );
     p = ABC_CALLOC( If_DsdMan_t, 1 );
     p->pStore  = Abc_UtilStrsav( pFileName );
@@ -1213,10 +1225,9 @@ void If_DsdManComputeTruth_rec( If_DsdMan_t * p, int iDsd, word * pRes, unsigned
     assert( 0 );
 
 }
-word * If_DsdManComputeTruth( If_DsdMan_t * p, int iDsd, unsigned char * pPermLits )
+void If_DsdManComputeTruthPtr( If_DsdMan_t * p, int iDsd, unsigned char * pPermLits, word * pRes )
 {
     int nSupp = 0;
-    word * pRes = p->pTtElems[DAU_MAX_VAR];
     If_DsdObj_t * pObj = If_DsdVecObj( &p->vObjs, Abc_Lit2Var(iDsd) );
     if ( iDsd == 0 )
         Abc_TtConst0( pRes, p->nWords );
@@ -1231,6 +1242,11 @@ word * If_DsdManComputeTruth( If_DsdMan_t * p, int iDsd, unsigned char * pPermLi
     else
         If_DsdManComputeTruth_rec( p, iDsd, pRes, pPermLits, &nSupp );
     assert( nSupp == If_DsdVecLitSuppSize(&p->vObjs, iDsd) );
+}
+word * If_DsdManComputeTruth( If_DsdMan_t * p, int iDsd, unsigned char * pPermLits )
+{
+    word * pRes = p->pTtElems[DAU_MAX_VAR];
+    If_DsdManComputeTruthPtr( p, iDsd, pPermLits, pRes );
     return pRes;
 }
 
@@ -2259,6 +2275,7 @@ extern Ifn_Ntk_t * Ifn_NtkParse( char * pStr );
 extern int         Ifn_NtkMatch( Ifn_Ntk_t * p, word * pTruth, int nVars, int nConfls, int fVerbose, int fVeryVerbose );
 extern void        Ifn_NtkPrint( Ifn_Ntk_t * p );
 extern int         Ifn_NtkLutSizeMax( Ifn_Ntk_t * p );
+extern int         Ifn_NtkInputNum( Ifn_Ntk_t * p );
 
 /**Function*************************************************************
 
@@ -2271,7 +2288,7 @@ extern int         Ifn_NtkLutSizeMax( Ifn_Ntk_t * p );
   SeeAlso     []
 
 ***********************************************************************/
-void Id_DsdManTuneStr( If_DsdMan_t * p, char * pStruct, int nConfls, int fVerbose )
+void Id_DsdManTuneStr1( If_DsdMan_t * p, char * pStruct, int nConfls, int fVerbose )
 {
     int fVeryVerbose = 0;
     ProgressBar * pProgress = NULL;
@@ -2281,6 +2298,14 @@ void Id_DsdManTuneStr( If_DsdMan_t * p, char * pStruct, int nConfls, int fVerbos
     abctime clk = Abc_Clock();
     // parse the structure
     Ifn_Ntk_t * pNtk = Ifn_NtkParse( pStruct );
+    if ( If_DsdManVarNum(p) > Ifn_NtkInputNum(pNtk) )
+    {
+        printf( "The support of DSD manager (%d) exceeds the support of the structure (%d).\n", If_DsdManVarNum(p), Ifn_NtkInputNum(pNtk) );
+        ABC_FREE( pNtk );
+        return;
+    }
+    if ( If_DsdManVarNum(p) < Ifn_NtkInputNum(pNtk) )
+        printf( "Warning: The support of DSD manager (%d) is less than the support of the structure (%d).\n", If_DsdManVarNum(p), Ifn_NtkInputNum(pNtk) );
     LutSize = Ifn_NtkLutSizeMax(pNtk);
     // print
     if ( fVerbose )
@@ -2316,7 +2341,198 @@ void Id_DsdManTuneStr( If_DsdMan_t * p, char * pStruct, int nConfls, int fVerbos
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     if ( fVeryVerbose )
         If_DsdManPrintDistrib( p );
+    ABC_FREE( pNtk );
 }
+
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+#ifndef ABC_USE_PTHREADS
+void Id_DsdManTuneStr( If_DsdMan_t * p, char * pStruct, int nConfls, int nProcs, int fVerbose )
+{
+    Id_DsdManTuneStr1( p, pStruct, nConfls, fVerbose );
+}
+#else // pthreads are used
+
+
+#define PAR_THR_MAX 100
+typedef struct Ifn_ThData_t_
+{
+    Ifn_Ntk_t * pNtk;    // network
+    word        pTruth[DAU_MAX_WORD];
+    int         nVars;   // support
+    int         Id;      // object
+    int         nConfls; // conflicts
+    int         Result;  // result
+    int         Status;  // state
+    abctime     clkUsed; // total runtime
+} Ifn_ThData_t;
+void * Ifn_WorkerThread( void * pArg )
+{
+    Ifn_ThData_t * pThData = (Ifn_ThData_t *)pArg;
+    volatile int * pPlace = &pThData->Status;
+    abctime clk;
+    while ( 1 )
+    {
+        while ( *pPlace == 0 );
+        assert( pThData->Status == 1 );
+        if ( pThData->Id == -1 )
+        {
+            pthread_exit( NULL );
+            assert( 0 );
+            return NULL;
+        }
+        clk = Abc_Clock();
+        pThData->Result = Ifn_NtkMatch( pThData->pNtk, pThData->pTruth, pThData->nVars, pThData->nConfls, 0, 0 );
+        pThData->clkUsed += Abc_Clock() - clk;
+        pThData->Status = 0;
+//        printf( "Finished object %d\n", pThData->Id );
+    }
+    assert( 0 );
+    return NULL;
+}
+void Id_DsdManTuneStr( If_DsdMan_t * p, char * pStruct, int nConfls, int nProcs, int fVerbose )
+{
+    int fVeryVerbose = 0;
+    ProgressBar * pProgress = NULL;
+    int i, k, nVars, LutSize;
+    abctime clk = Abc_Clock();
+    Ifn_Ntk_t * pNtk;
+    If_DsdObj_t * pObj;
+    if ( nProcs == 1 )
+    {
+        Id_DsdManTuneStr1( p, pStruct, nConfls, fVerbose );
+        return;
+    }
+    if ( nProcs > PAR_THR_MAX )
+    {
+        printf( "The number of processes (%d) exceeds the precompiled limit (%d).\n", nProcs, PAR_THR_MAX );
+        return;
+    }
+    // parse the structure
+    pNtk = Ifn_NtkParse( pStruct );
+    if ( pNtk == NULL )
+        return;
+    if ( If_DsdManVarNum(p) > Ifn_NtkInputNum(pNtk) )
+    {
+        printf( "The support of DSD manager (%d) exceeds the support of the structure (%d).\n", If_DsdManVarNum(p), Ifn_NtkInputNum(pNtk) );
+        ABC_FREE( pNtk );
+        return;
+    }
+    if ( If_DsdManVarNum(p) < Ifn_NtkInputNum(pNtk) )
+        printf( "Warning: The support of DSD manager (%d) is less than the support of the structure (%d).\n", If_DsdManVarNum(p), Ifn_NtkInputNum(pNtk) );
+    // check the largest LUT
+    LutSize = Ifn_NtkLutSizeMax(pNtk);
+    if ( fVerbose )
+    {
+        printf( "Considering programmable cell: " );
+        Ifn_NtkPrint( pNtk );
+        printf( "Largest LUT size = %d.\n", LutSize );
+    }
+    ABC_FREE( pNtk );
+    // clean the attributes
+    If_DsdVecForEachObj( &p->vObjs, pObj, i )
+        pObj->fMark = 0;
+    pProgress = Extra_ProgressBarStart( stdout, Vec_PtrSize(&p->vObjs) );
+
+    // perform concurrent solving
+    {
+        pthread_t WorkerThread[PAR_THR_MAX];
+        Ifn_ThData_t ThData[PAR_THR_MAX];
+        abctime clk, clkUsed = 0;
+        int status, fRunning = 1, iCurrentObj = 0;
+        // start the threads
+        for ( i = 0; i < nProcs; i++ )
+        {
+            ThData[i].pNtk    = Ifn_NtkParse( pStruct );
+            ThData[i].nVars   = -1;      // support
+            ThData[i].Id      = -1;      // object
+            ThData[i].nConfls = nConfls; // conflicts
+            ThData[i].Result  = -1;      // result
+            ThData[i].Status  =  0;      // state
+            ThData[i].clkUsed =  0;      // total runtime
+            status = pthread_create( WorkerThread + i, NULL, Ifn_WorkerThread, (void *)(ThData + i) );  assert( status == 0 );
+        }
+        // run the threads
+        while ( fRunning || iCurrentObj < Vec_PtrSize(&p->vObjs) )
+        {
+            for ( i = 0; i < nProcs; i++ )
+            {
+                if ( ThData[i].Status )
+                    continue;
+                assert( ThData[i].Status == 0 );
+                if ( ThData[i].Id >= 0 )
+                {
+                    //printf( "Closing obj %d with Thread %d:\n", ThData[i].Id, i );
+                    assert( ThData[i].Result == 0 || ThData[i].Result == 1 );
+                    if ( ThData[i].Result == 1 )
+                        If_DsdVecObjSetMark( &p->vObjs, ThData[i].Id );
+                    ThData[i].Id     = -1;
+                    ThData[i].Result = -1;
+                }
+                for ( k = iCurrentObj; k < Vec_PtrSize(&p->vObjs); k++ )
+                {
+                    if ( (k & 0x3FF) == 0 )
+                        Extra_ProgressBarUpdate( pProgress, k, NULL );
+                    pObj  = If_DsdVecObj( &p->vObjs, k );
+                    nVars = If_DsdObjSuppSize(pObj);
+                    if ( nVars <= LutSize )
+                        continue;
+                    clk = Abc_Clock();
+                    If_DsdManComputeTruthPtr( p, Abc_Var2Lit(k, 0), NULL, ThData[i].pTruth );
+                    clkUsed += Abc_Clock() - clk;
+                    ThData[i].nVars  = nVars;
+                    ThData[i].Id     =  k;
+                    ThData[i].Result = -1;
+                    ThData[i].Status =  1;
+                    //printf( "Scheduling %d for Thread %d\n", ThData[i].Id, i );
+                    iCurrentObj = k+1;
+                    break;
+                }
+            }
+            fRunning = 0;
+            for ( i = 0; i < nProcs; i++ )
+                if ( ThData[i].Status == 1 || (ThData[i].Status == 0 && ThData[i].Id >= 0) )
+                    fRunning = 1;
+            //printf( "fRunning %d\n", fRunning );
+        }
+        // stop the threads
+        for ( i = 0; i < nProcs; i++ )
+        {
+            assert( ThData[i].Status == 0 );
+            ThData[i].Id = -1;
+            ThData[i].Status = 1;
+            ABC_FREE( ThData[i].pNtk );
+        }
+        if ( fVerbose )
+        {
+            printf( "Main     : " );
+            Abc_PrintTime( 1, "Time", clkUsed );
+            for ( i = 0; i < nProcs; i++ )
+            {
+                printf( "Thread %d : ", i );
+                Abc_PrintTime( 1, "Time", ThData[i].clkUsed );
+            }
+        }
+    }
+
+    Extra_ProgressBarStop( pProgress );
+    printf( "Finished matching %d functions. ", Vec_PtrSize(&p->vObjs) );
+    Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
+    if ( fVeryVerbose )
+        If_DsdManPrintDistrib( p );
+}
+
+#endif // pthreads are used
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

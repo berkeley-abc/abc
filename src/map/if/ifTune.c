@@ -166,6 +166,10 @@ int Ifn_NtkLutSizeMax( Ifn_Ntk_t * p )
             LutSize = Abc_MaxInt( LutSize, (int)p->Nodes[i].nFanins );
     return LutSize;
 }
+int Ifn_NtkInputNum( Ifn_Ntk_t * p )
+{
+    return p->nInps;
+}
 
 /**Function*************************************************************
 
@@ -240,18 +244,24 @@ int Ifn_ManStrCheck( char * pStr, int * pnInps, int * pnObjs )
     *pnObjs = MaxDef;
     return 1;
 }
-Ifn_Ntk_t * Ifn_NtkParse( char * pStr )
+int Ifn_ErrorMessage( const char * format, ...  )
+{
+    char * pMessage;
+    va_list args;
+    va_start( args, format );
+    pMessage = vnsprintf( format, args );
+    va_end( args );
+    printf( "%s", pMessage );
+    ABC_FREE( pMessage );
+    return 0;
+}
+int Ifn_NtkParseInt( char * pStr, Ifn_Ntk_t * p )
 {
     int i, k, n, f, nFans, iFan;
-    static Ifn_Ntk_t P, * p = &P;
-    memset( p, 0, sizeof(Ifn_Ntk_t) );
     if ( !Ifn_ManStrCheck(pStr, &p->nInps, &p->nObjs) )
-        return NULL;
+        return 0;
     if ( p->nInps > IFN_INS )
-    {
-        printf( "The number of variables (%d) exceeds predefined limit (%d). Recompile with different value of IFN_INS.\n", p->nInps, IFN_INS );
-        return NULL;
-    }
+        return Ifn_ErrorMessage( "The number of variables (%d) exceeds predefined limit (%d). Recompile with different value of IFN_INS.\n", p->nInps, IFN_INS );
     assert( p->nInps > 1 && p->nInps < p->nObjs && p->nInps <= IFN_INS && p->nObjs < 2*IFN_INS );
     for ( i = p->nInps; i < p->nObjs; i++ )
     {
@@ -260,10 +270,7 @@ Ifn_Ntk_t * Ifn_NtkParse( char * pStr )
             if ( pStr[k] == 'a' + i && pStr[k+1] == '=' )
                 break;
         if ( pStr[k] == 0 )
-        {
-            printf( "Cannot find definition of signal %c.\n", 'a' + i );
-            return NULL;
-        }
+            return Ifn_ErrorMessage( "Cannot find definition of signal %c.\n", 'a' + i );
         if ( pStr[k+2] == '(' )
             p->Nodes[i].Type = IF_DSD_AND, Next = ')';
         else if ( pStr[k+2] == '[' )
@@ -273,32 +280,20 @@ Ifn_Ntk_t * Ifn_NtkParse( char * pStr )
         else if ( pStr[k+2] == '{' )
             p->Nodes[i].Type = IF_DSD_PRIME, Next = '}';
         else 
-        {
-            printf( "Cannot find openning operation symbol in the defition of of signal %c.\n", 'a' + i );
-            return NULL;
-        }
+            return Ifn_ErrorMessage( "Cannot find openning operation symbol in the defition of of signal %c.\n", 'a' + i );
         for ( n = k + 3; pStr[n]; n++ )
             if ( pStr[n] == Next )
                 break;
         if ( pStr[n] == 0 )
-        {
-            printf( "Cannot find closing operation symbol in the defition of of signal %c.\n", 'a' + i );
-            return NULL;
-        }
+            return Ifn_ErrorMessage( "Cannot find closing operation symbol in the defition of of signal %c.\n", 'a' + i );
         nFans = n - k - 3;
         if ( nFans < 1 || nFans > 8 )
-        {
-            printf( "Cannot find matching operation symbol in the defition of of signal %c.\n", 'a' + i );
-            return NULL;
-        }
+            return Ifn_ErrorMessage( "Cannot find matching operation symbol in the defition of of signal %c.\n", 'a' + i );
         for ( f = 0; f < nFans; f++ )
         {
             iFan = pStr[k + 3 + f] - 'a';
             if ( iFan < 0 || iFan >= i )
-            {
-                printf( "Fanin number %d is signal %d is out of range.\n", f, 'a' + i );
-                return NULL;
-            }
+                return Ifn_ErrorMessage( "Fanin number %d is signal %d is out of range.\n", f, 'a' + i );
             p->Nodes[i].Fanins[f] = iFan;
         }
         p->Nodes[i].nFanins = nFans;
@@ -316,19 +311,15 @@ Ifn_Ntk_t * Ifn_NtkParse( char * pStr )
             }
 //    if ( p->nConstr )
 //        printf( "Total constraints = %d\n", p->nConstr );
-
-/*
-    // constraints
-    p->nConstr = 5;
-    p->pConstr[0] = (0 << 16) | 1;
-
-    p->pConstr[1] = (2 << 16) | 3;
-    p->pConstr[2] = (3 << 16) | 4;
-
-    p->pConstr[3] = (6 << 16) | 7;
-    p->pConstr[4] = (7 << 16) | 8;
-*/
-    return p;
+    return 1;
+}
+Ifn_Ntk_t * Ifn_NtkParse( char * pStr )
+{
+    Ifn_Ntk_t * p = ABC_CALLOC( Ifn_Ntk_t, 1 );
+    if ( Ifn_NtkParseInt( pStr, p ) )
+        return p;
+    ABC_FREE( p );
+    return NULL;
 }
 
 /**Function*************************************************************
@@ -805,6 +796,7 @@ void Ifn_NtkRead()
     Dau_DsdPrintFromTruth( pTruth, nVars );
     // get the given function
     RetValue = Ifn_NtkMatch( p, pTruth, nVars, 0, 1, 1 );
+    ABC_FREE( p );
 }
 
 ////////////////////////////////////////////////////////////////////////

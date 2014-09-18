@@ -21,7 +21,7 @@
 #include "if.h"
 #include "aig/gia/gia.h"
 
-//#ifdef ABC_USE_PTHREADS
+#ifdef ABC_USE_PTHREADS
 
 #ifdef _WIN32
 #include "../lib/pthread.h"
@@ -30,13 +30,19 @@
 #include <unistd.h>
 #endif
 
-//#endif
+#endif
 
 ABC_NAMESPACE_IMPL_START
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
+
+#ifndef ABC_USE_PTHREADS
+
+// do nothing
+
+#else // pthreads are used
 
 static inline word * Gia_ParTestObj( Gia_Man_t * p, int Id )         { return (word *)p->pData + Id * p->iData; }
 static inline void   Gia_ParTestAlloc( Gia_Man_t * p, int nWords )   { assert( !p->pData ); p->pData = (unsigned *)ABC_ALLOC(word, Gia_ManObjNum(p) * nWords); p->iData = nWords; }
@@ -338,6 +344,8 @@ void Gia_ParTest( Gia_Man_t * p, int nWords, int nProcs )
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
+
+#endif // pthreads are used
 
 
 ABC_NAMESPACE_IMPL_END

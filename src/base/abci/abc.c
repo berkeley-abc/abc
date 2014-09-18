@@ -15489,7 +15489,14 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
             return 0;
         }
         if ( p == NULL )
+        {
+            if ( LutSize > DAU_MAX_VAR || pPars->nLutSize > DAU_MAX_VAR )
+            {
+                printf( "Size of required DSD manager (%d) exceeds the precompiled limit (%d) (change parameter DAU_MAX_VAR).\n", LutSize, DAU_MAX_VAR );
+                return 0;
+            }
             Abc_FrameSetManDsd( If_DsdManAlloc(pPars->nLutSize, LutSize) );
+        }
     }
 
     if ( pPars->fUserRecLib )
@@ -15913,7 +15920,7 @@ int Abc_CommandDsdFree( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
         if ( !Abc_FrameReadManDsd2() )
         {
-            Abc_Print( 1, "The DSD manager is not started.\n" );
+            Abc_Print( -1, "The DSD manager is not started.\n" );
             return 0;
         }
         Abc_FrameSetManDsd2( NULL );
@@ -15922,7 +15929,7 @@ int Abc_CommandDsdFree( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
         if ( !Abc_FrameReadManDsd() )
         {
-            Abc_Print( 1, "The DSD manager is not started.\n" );
+            Abc_Print( -1, "The DSD manager is not started.\n" );
             return 0;
         }
         Abc_FrameSetManDsd( NULL );
@@ -16000,7 +16007,7 @@ int Abc_CommandDsdPs( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
         if ( !Abc_FrameReadManDsd2() )
         {
-            Abc_Print( 1, "The DSD manager is not started.\n" );
+            Abc_Print( -1, "The DSD manager is not started.\n" );
             return 0;
         }
         If_DsdManPrint( (If_DsdMan_t *)Abc_FrameReadManDsd2(), NULL, Number, Support, fOccurs, fTtDump, fVerbose );
@@ -16009,7 +16016,7 @@ int Abc_CommandDsdPs( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
         if ( !Abc_FrameReadManDsd() )
         {
-            Abc_Print( 1, "The DSD manager is not started.\n" );
+            Abc_Print( -1, "The DSD manager is not started.\n" );
             return 0;
         }
         If_DsdManPrint( (If_DsdMan_t *)Abc_FrameReadManDsd(), NULL, Number, Support, fOccurs, fTtDump, fVerbose );
@@ -16043,10 +16050,10 @@ usage:
 int Abc_CommandDsdTune( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     char * pStruct = NULL;
-    int c, fVerbose = 0, fFast = 0, fAdd = 0, fSpec = 0, LutSize = 0, nConfls = 10000;
+    int c, fVerbose = 0, fFast = 0, fAdd = 0, fSpec = 0, LutSize = 0, nConfls = 10000, nProcs = 1;
     If_DsdMan_t * pDsdMan = (If_DsdMan_t *)Abc_FrameReadManDsd();
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "KCSfasvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "KCPSfasvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -16068,6 +16075,15 @@ int Abc_CommandDsdTune( Abc_Frame_t * pAbc, int argc, char ** argv )
                 goto usage;
             }
             nConfls = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            break;
+        case 'P':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-P\" should be followed by a floating point number.\n" );
+                goto usage;
+            }
+            nProcs = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
             break;
         case 'S':
@@ -16099,20 +16115,21 @@ int Abc_CommandDsdTune( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     if ( !Abc_FrameReadManDsd() )
     {
-        Abc_Print( 1, "The DSD manager is not started.\n" );
+        Abc_Print( -1, "The DSD manager is not started.\n" );
         return 0;
     }
     if ( pStruct )
-        Id_DsdManTuneStr( pDsdMan, pStruct, nConfls, fVerbose );
+        Id_DsdManTuneStr( pDsdMan, pStruct, nConfls, nProcs, fVerbose );
     else
         If_DsdManTune( pDsdMan, LutSize, fFast, fAdd, fSpec, fVerbose );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: dsd_tune [-KC num] [-fasvh] [-S str]\n" );
+    Abc_Print( -2, "usage: dsd_tune [-KCP num] [-fasvh] [-S str]\n" );
     Abc_Print( -2, "\t         tunes DSD manager for the given LUT size\n" );
     Abc_Print( -2, "\t-K num : LUT size used for tuning [default = %d]\n",        LutSize );
     Abc_Print( -2, "\t-C num : the maximum number of conflicts [default = %d]\n", nConfls );
+    Abc_Print( -2, "\t-P num : the maximum number of processes [default = %d]\n", nProcs );
     Abc_Print( -2, "\t-f     : toggles using fast check [default = %s]\n",        fFast? "yes": "no" );
     Abc_Print( -2, "\t-a     : toggles adding tuning to the current one [default = %s]\n",    fAdd? "yes": "no" );
     Abc_Print( -2, "\t-s     : toggles using specialized check [default = %s]\n", fSpec? "yes": "no" );
@@ -16153,7 +16170,7 @@ int Abc_CommandDsdMerge( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     if ( !Abc_FrameReadManDsd() )
     {
-        Abc_Print( 1, "The DSD manager is not started.\n" );
+        Abc_Print( -1, "The DSD manager is not started.\n" );
         return 0;
     }
     pArgvNew = argv + globalUtilOptind;
@@ -16223,7 +16240,7 @@ int Abc_CommandDsdClean( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     if ( !Abc_FrameReadManDsd() )
     {
-        Abc_Print( 1, "The DSD manager is not started.\n" );
+        Abc_Print( -1, "The DSD manager is not started.\n" );
         return 0;
     }
     If_DsdManClean( (If_DsdMan_t *)Abc_FrameReadManDsd(), fVerbose );
@@ -30804,6 +30821,16 @@ int Abc_CommandAbc9Dsdb( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Abc_CommandAbc9Dsdb(): There is no AIG.\n" );
         return 1;
     }
+    if ( nLutSize > DAU_MAX_VAR )
+    {
+        printf( "Abc_CommandAbc9Dsdb(): Size of the required DSD manager (%d) exceeds the precompiled limit (%d) (change parameter DAU_MAX_VAR).\n", nLutSize, DAU_MAX_VAR );
+        return 0;
+    }
+    if ( Abc_FrameReadManDsd2() && nLutSize > If_DsdManVarNum(Abc_FrameReadManDsd2()) )
+    {
+        printf( "Abc_CommandAbc9Dsdb(): Incompatible size of the DSD manager (run \"dsd_free -b\").\n" );
+        return 0;
+    }
     if ( nLevelMax || nTimeWindow )
         pTemp = Gia_ManPerformDsdBalanceWin( pAbc->pGia, nLevelMax, nTimeWindow, nLutSize, nCutNum, nRelaxRatio, fVerbose );
     else
@@ -31329,7 +31356,14 @@ int Abc_CommandAbc9If( Abc_Frame_t * pAbc, int argc, char ** argv )
             return 0;
         }
         if ( p == NULL )
+        {
+            if ( LutSize > DAU_MAX_VAR || pPars->nLutSize > DAU_MAX_VAR )
+            {
+                printf( "Size of required DSD manager (%d) exceeds the precompiled limit (%d) (change parameter DAU_MAX_VAR).\n", LutSize, DAU_MAX_VAR );
+                return 0;
+            }
             Abc_FrameSetManDsd( If_DsdManAlloc(pPars->nLutSize, LutSize) );
+        }
     }
 
     if ( pPars->fUserRecLib )

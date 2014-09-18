@@ -21,7 +21,7 @@
 #include "gia.h"
 #include "misc/vec/vecSet.h"
 
-//#ifdef ABC_USE_PTHREADS
+#ifdef ABC_USE_PTHREADS
 
 #ifdef _WIN32
 #include "../lib/pthread.h"
@@ -30,13 +30,20 @@
 #include <unistd.h>
 #endif
 
-//#endif
+#endif
 
 ABC_NAMESPACE_IMPL_START
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
+
+#ifndef ABC_USE_PTHREADS
+
+void Kf_ManSetDefaultPars( Jf_Par_t * pPars ) {}
+Gia_Man_t * Kf_ManPerformMapping( Gia_Man_t * pGia, Jf_Par_t * pPars ) { return NULL; }
+
+#else // pthreads are used
 
 #define KF_LEAF_MAX  16
 #define KF_CUT_MAX   32
@@ -1328,6 +1335,7 @@ Gia_Man_t * Kf_ManPerformMapping( Gia_Man_t * pGia, Jf_Par_t * pPars )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+#endif // pthreads are used
 
 ABC_NAMESPACE_IMPL_END
 

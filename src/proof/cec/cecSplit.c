@@ -26,7 +26,7 @@
 #include "misc/util/utilTruth.h"
 //#include "bdd/cudd/cuddInt.h"
 
-//#ifdef ABC_USE_PTHREADS
+#ifdef ABC_USE_PTHREADS
 
 #ifdef _WIN32
 #include "../lib/pthread.h"
@@ -35,7 +35,7 @@
 #include <unistd.h>
 #endif
 
-//#endif
+#endif
 
 ABC_NAMESPACE_IMPL_START
 
@@ -43,6 +43,12 @@ ABC_NAMESPACE_IMPL_START
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
+
+#ifndef ABC_USE_PTHREADS
+
+int Cec_GiaSplitTest( Gia_Man_t * p, int nProcs, int nTimeOut, int nIterMax, int LookAhead, int fVerbose, int fVeryVerbose ) { return -1; }
+
+#else // pthreads are used
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -821,6 +827,8 @@ void Cec_GiaPrintCofStats2( Gia_Man_t * p )
         Gia_ManStop( pCof1 );
     }
 }
+
+#endif // pthreads are used
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

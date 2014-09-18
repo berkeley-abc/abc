@@ -194,7 +194,7 @@ int Gia_GlaProveCheck( int fVerbose )
     return 1;
 }
 
-#endif
+#endif // pthreads are used
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
