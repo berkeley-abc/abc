@@ -2253,6 +2253,71 @@ void If_DsdManTune( If_DsdMan_t * p, int LutSize, int fFast, int fAdd, int fSpec
 }
 
 
+typedef struct Ifn_Ntk_t_  Ifn_Ntk_t;
+
+extern Ifn_Ntk_t * Ifn_NtkParse( char * pStr );
+extern int         Ifn_NtkMatch( Ifn_Ntk_t * p, word * pTruth, int nVars, int nConfls, int fVerbose, int fVeryVerbose );
+extern void        Ifn_NtkPrint( Ifn_Ntk_t * p );
+extern int         Ifn_NtkLutSizeMax( Ifn_Ntk_t * p );
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Id_DsdManTuneStr( If_DsdMan_t * p, char * pStruct, int nConfls, int fVerbose )
+{
+    int fVeryVerbose = 0;
+    ProgressBar * pProgress = NULL;
+    If_DsdObj_t * pObj;
+    word * pTruth;
+    int i, nVars, Value, LutSize;
+    abctime clk = Abc_Clock();
+    // parse the structure
+    Ifn_Ntk_t * pNtk = Ifn_NtkParse( pStruct );
+    LutSize = Ifn_NtkLutSizeMax(pNtk);
+    // print
+    if ( fVerbose )
+    {
+        printf( "Considering programmable cell: " );
+        Ifn_NtkPrint( pNtk );
+        printf( "Largest LUT size = %d.\n", LutSize );
+    }
+    // clean the attributes
+    If_DsdVecForEachObj( &p->vObjs, pObj, i )
+        pObj->fMark = 0;
+    pProgress = Extra_ProgressBarStart( stdout, Vec_PtrSize(&p->vObjs) );
+    If_DsdVecForEachObj( &p->vObjs, pObj, i )
+    {
+        Extra_ProgressBarUpdate( pProgress, i, NULL );
+        nVars = If_DsdObjSuppSize(pObj);
+        if ( nVars <= LutSize )
+            continue;
+        pTruth = If_DsdManComputeTruth( p, Abc_Var2Lit(i, 0), NULL );
+        if ( fVeryVerbose )
+            Dau_DsdPrintFromTruth( pTruth, nVars );
+        if ( fVerbose )
+            printf( "%6d : %2d ", i, nVars );
+        Value = Ifn_NtkMatch( pNtk, pTruth, nVars, nConfls, fVerbose, fVeryVerbose );
+        if ( fVeryVerbose )
+            printf( "\n" );
+        if ( Value == 0 )
+            continue;
+        If_DsdVecObjSetMark( &p->vObjs, i );
+    }
+    Extra_ProgressBarStop( pProgress );
+    printf( "Finished matching %d functions. ", Vec_PtrSize(&p->vObjs) );
+    Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
+    if ( fVeryVerbose )
+        If_DsdManPrintDistrib( p );
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

@@ -57,10 +57,10 @@ static char * Ifn_Symbs[16] = {
     "{}"                           // 6:  PRIME
 };
 
-typedef struct Ift_Obj_t_  Ift_Obj_t;
-typedef struct Ift_Ntk_t_  Ift_Ntk_t;
+typedef struct Ifn_Obj_t_  Ifn_Obj_t;
+typedef struct Ifn_Ntk_t_  Ifn_Ntk_t;
 
-struct Ift_Obj_t_
+struct Ifn_Obj_t_
 {
     unsigned               Type    :  3;      // node type
     unsigned               nFanins :  5;      // fanin counter
@@ -68,12 +68,12 @@ struct Ift_Obj_t_
     unsigned               Var     : 16;      // current variable
     int                    Fanins[IFN_INS];   // fanin IDs
 };
-struct Ift_Ntk_t_ 
+struct Ifn_Ntk_t_ 
 {
     // cell structure
     int                    nInps;             // inputs
     int                    nObjs;             // objects
-    Ift_Obj_t              Nodes[2*IFN_INS];  // nodes
+    Ifn_Obj_t              Nodes[2*IFN_INS];  // nodes
     // constraints
     int                    pConstr[IFN_INS];  // constraint pairs
     int                    nConstr;           // number of pairs
@@ -90,8 +90,8 @@ struct Ift_Ntk_t_
     word                   pTtObjs[2*IFN_INS*IFN_WRD]; // object truth tables
 };
 
-static inline word *       Ift_ElemTruth( Ift_Ntk_t * p, int i ) { return p->pTtElems + i * Abc_TtWordNum(p->nInps); }
-static inline word *       Ift_ObjTruth( Ift_Ntk_t * p, int i )  { return p->pTtObjs + i * p->nWords;                }
+static inline word *       Ifn_ElemTruth( Ifn_Ntk_t * p, int i ) { return p->pTtElems + i * Abc_TtWordNum(p->nInps); }
+static inline word *       Ifn_ObjTruth( Ifn_Ntk_t * p, int i )  { return p->pTtObjs + i * p->nWords;                }
  
 // variable ordering
 // - primary inputs            [0;            p->nInps)
@@ -114,7 +114,7 @@ static inline word *       Ift_ObjTruth( Ift_Ntk_t * p, int i )  { return p->pTt
   SeeAlso     []
 
 ***********************************************************************/
-int Ifn_Prepare( Ift_Ntk_t * p, word * pTruth, int nVars )
+int Ifn_Prepare( Ifn_Ntk_t * p, word * pTruth, int nVars )
 {
     int i, fVerbose = 0;
     assert( nVars <= p->nInps );
@@ -140,7 +140,7 @@ int Ifn_Prepare( Ift_Ntk_t * p, word * pTruth, int nVars )
     memset( p->Values, 0xFF, sizeof(int) * p->nPars );
     return p->nPars;
 }
-void Ifn_NtkPrint( Ift_Ntk_t * p )
+void Ifn_NtkPrint( Ifn_Ntk_t * p )
 {
     int i, k; 
     if ( p == NULL )
@@ -157,6 +157,14 @@ void Ifn_NtkPrint( Ift_Ntk_t * p )
         printf( ";" );
     }
     printf( "\n" );
+}
+int Ifn_NtkLutSizeMax( Ifn_Ntk_t * p )
+{
+    int i, LutSize = 0;
+    for ( i = p->nInps; i < p->nObjs; i++ )
+        if ( p->Nodes[i].Type == IF_DSD_PRIME )
+            LutSize = Abc_MaxInt( LutSize, (int)p->Nodes[i].nFanins );
+    return LutSize;
 }
 
 /**Function*************************************************************
@@ -181,6 +189,8 @@ int Ifn_ManStrCheck( char * pStr, int * pnInps, int * pnObjs )
              pStr[i] == '<' || pStr[i] == '>' || 
              pStr[i] == '{' || pStr[i] == '}' )
             continue;
+        if ( pStr[i] >= 'A' && pStr[i] <= 'Z' )
+            continue;
         if ( pStr[i] >= 'a' && pStr[i] <= 'z' )
         {
             if ( pStr[i+1] == '=' )
@@ -199,6 +209,8 @@ int Ifn_ManStrCheck( char * pStr, int * pnInps, int * pnObjs )
              pStr[i] == '[' || pStr[i] == ']' || 
              pStr[i] == '<' || pStr[i] == '>' || 
              pStr[i] == '{' || pStr[i] == '}' )
+            continue;
+        if ( pStr[i] >= 'A' && pStr[i] <= 'Z' )
             continue;
         if ( pStr[i] >= 'a' && pStr[i] <= 'z' )
         {
@@ -228,11 +240,11 @@ int Ifn_ManStrCheck( char * pStr, int * pnInps, int * pnObjs )
     *pnObjs = MaxDef;
     return 1;
 }
-Ift_Ntk_t * Ifn_ManStrParse( char * pStr )
+Ifn_Ntk_t * Ifn_NtkParse( char * pStr )
 {
     int i, k, n, f, nFans, iFan;
-    static Ift_Ntk_t P, * p = &P;
-    memset( p, 0, sizeof(Ift_Ntk_t) );
+    static Ifn_Ntk_t P, * p = &P;
+    memset( p, 0, sizeof(Ifn_Ntk_t) );
     if ( !Ifn_ManStrCheck(pStr, &p->nInps, &p->nObjs) )
         return NULL;
     if ( p->nInps > IFN_INS )
@@ -293,6 +305,18 @@ Ift_Ntk_t * Ifn_ManStrParse( char * pStr )
     }
     // truth tables
     Abc_TtElemInit2( p->pTtElems, p->nInps );
+    // parse constraints
+    p->nConstr = 0;
+    for ( i = 0; i < p->nInps; i++ )
+        for ( k = 0; pStr[k]; k++ )
+            if ( pStr[k] == 'A' + i && pStr[k-1] == ';' )
+            {
+                p->pConstr[p->nConstr++] = ((int)(pStr[k] - 'A') << 16) | (int)(pStr[k+1] - 'A');
+//                printf( "Added constraint (%c < %c)\n", pStr[k], pStr[k+1] );
+            }
+//    if ( p->nConstr )
+//        printf( "Total constraints = %d\n", p->nConstr );
+
 /*
     // constraints
     p->nConstr = 5;
@@ -318,7 +342,7 @@ Ift_Ntk_t * Ifn_ManStrParse( char * pStr )
   SeeAlso     []
 
 ***********************************************************************/
-word * Ift_NtkDeriveTruth( Ift_Ntk_t * p, int * pValues )
+word * Ifn_NtkDeriveTruth( Ifn_Ntk_t * p, int * pValues )
 {
     int i, v, f, iVar, iStart;
     // elementary variables
@@ -330,35 +354,35 @@ word * Ift_NtkDeriveTruth( Ift_Ntk_t * p, int * pValues )
             if ( p->Values[iStart+v] )
                 iVar += (1 << v);
         // assign variable
-        Abc_TtCopy( Ift_ObjTruth(p, i), Ift_ElemTruth(p, iVar), p->nWords, 0 );
+        Abc_TtCopy( Ifn_ObjTruth(p, i), Ifn_ElemTruth(p, iVar), p->nWords, 0 );
     }
     // internal variables
     for ( i = p->nInps; i < p->nObjs; i++ )
     {
         int nFans = p->Nodes[i].nFanins;
         int * pFans = p->Nodes[i].Fanins;
-        word * pTruth = Ift_ObjTruth( p, i );
+        word * pTruth = Ifn_ObjTruth( p, i );
         if ( p->Nodes[i].Type == IF_DSD_AND )
         {
             Abc_TtFill( pTruth, p->nWords );
             for ( f = 0; f < nFans; f++ )
-                Abc_TtAnd( pTruth, pTruth, Ift_ObjTruth(p, pFans[f]), p->nWords, 0 );
+                Abc_TtAnd( pTruth, pTruth, Ifn_ObjTruth(p, pFans[f]), p->nWords, 0 );
         }
         else if ( p->Nodes[i].Type == IF_DSD_XOR )
         {
             Abc_TtClear( pTruth, p->nWords );
             for ( f = 0; f < nFans; f++ )
-                Abc_TtXor( pTruth, pTruth, Ift_ObjTruth(p, pFans[f]), p->nWords, 0 );
+                Abc_TtXor( pTruth, pTruth, Ifn_ObjTruth(p, pFans[f]), p->nWords, 0 );
         }
         else if ( p->Nodes[i].Type == IF_DSD_MUX )
         {
             assert( nFans == 3 );
-            Abc_TtMux( pTruth, Ift_ObjTruth(p, pFans[0]), Ift_ObjTruth(p, pFans[1]), Ift_ObjTruth(p, pFans[2]), p->nWords );
+            Abc_TtMux( pTruth, Ifn_ObjTruth(p, pFans[0]), Ifn_ObjTruth(p, pFans[1]), Ifn_ObjTruth(p, pFans[2]), p->nWords );
         }
         else if ( p->Nodes[i].Type == IF_DSD_PRIME )
         {
             int nValues = (1 << nFans);
-            word * pTemp = Ift_ObjTruth(p, p->nObjs);
+            word * pTemp = Ifn_ObjTruth(p, p->nObjs);
             Abc_TtClear( pTruth, p->nWords );
             for ( v = 0; v < nValues; v++ )
             {
@@ -367,16 +391,16 @@ word * Ift_NtkDeriveTruth( Ift_Ntk_t * p, int * pValues )
                 Abc_TtFill( pTemp, p->nWords );
                 for ( f = 0; f < nFans; f++ )
                     if ( (v >> f) & 1 )
-                        Abc_TtAnd( pTemp, pTemp, Ift_ObjTruth(p, pFans[f]), p->nWords, 0 );
+                        Abc_TtAnd( pTemp, pTemp, Ifn_ObjTruth(p, pFans[f]), p->nWords, 0 );
                     else
-                        Abc_TtSharp( pTemp, pTemp, Ift_ObjTruth(p, pFans[f]), p->nWords );
+                        Abc_TtSharp( pTemp, pTemp, Ifn_ObjTruth(p, pFans[f]), p->nWords );
                 Abc_TtOr( pTruth, pTruth, pTemp, p->nWords );
             }
         }
         else assert( 0 );
 //Dau_DsdPrintFromTruth( pTruth, p->nVars );
     }
-    return Ift_ObjTruth(p, p->nObjs-1);
+    return Ifn_ObjTruth(p, p->nObjs-1);
 }
 
 /**Function*************************************************************
@@ -390,7 +414,7 @@ word * Ift_NtkDeriveTruth( Ift_Ntk_t * p, int * pValues )
   SeeAlso     []
 
 ***********************************************************************/
-void Ift_TtComparisonConstr( word * pTruth, int nVars, int fMore, int fEqual )
+void Ifn_TtComparisonConstr( word * pTruth, int nVars, int fMore, int fEqual )
 {
     word Cond[4], Equa[4], Temp[4];
     word s_TtElems[8][4] = {
@@ -433,7 +457,7 @@ void Ift_TtComparisonConstr( word * pTruth, int nVars, int fMore, int fEqual )
   SeeAlso     []
 
 ***********************************************************************/
-void Ift_AddClause( sat_solver * pSat, int * pBeg, int * pEnd )
+void Ifn_AddClause( sat_solver * pSat, int * pBeg, int * pEnd )
 {
     int fVerbose = 0;
     int RetValue = sat_solver_addclause( pSat, pBeg, pEnd );
@@ -445,7 +469,7 @@ void Ift_AddClause( sat_solver * pSat, int * pBeg, int * pEnd )
     }
     assert( RetValue );
 }
-void Ift_NtkAddConstrOne( sat_solver * pSat, Vec_Int_t * vCover, int * pVars, int nVars )
+void Ifn_NtkAddConstrOne( sat_solver * pSat, Vec_Int_t * vCover, int * pVars, int nVars )
 {
     int k, c, Cube, Literal, nLits, pLits[IFN_INS];
     Vec_IntForEachEntry( vCover, Cube, c )
@@ -461,12 +485,12 @@ void Ift_NtkAddConstrOne( sat_solver * pSat, Vec_Int_t * vCover, int * pVars, in
             else if ( Literal != 0 )
                 assert( 0 );
         }
-        Ift_AddClause( pSat, pLits, pLits + nLits );
+        Ifn_AddClause( pSat, pLits, pLits + nLits );
     }
 }
-void Ift_NtkAddConstraints( Ift_Ntk_t * p, sat_solver * pSat )
+void Ifn_NtkAddConstraints( Ifn_Ntk_t * p, sat_solver * pSat )
 {
-    int fAddConstr = 0;
+    int fAddConstr = 1;
     Vec_Int_t * vCover = Vec_IntAlloc( 0 );
     word uTruth = Abc_Tt6Stretch( ~Abc_Tt6Mask(p->nVars), p->nParsVNum );
     assert( p->nParsVNum <= 4 );
@@ -481,7 +505,7 @@ void Ift_NtkAddConstraints( Ift_Ntk_t * p, sat_solver * pSat )
         {
             for ( k = 0; k < p->nParsVNum; k++ )
                 pVars[k] = p->nParsVIni + i * p->nParsVNum + k;
-            Ift_NtkAddConstrOne( pSat, vCover, pVars, p->nParsVNum );
+            Ifn_NtkAddConstrOne( pSat, vCover, pVars, p->nParsVNum );
         }
     }
     // ordering constraints
@@ -490,7 +514,7 @@ void Ift_NtkAddConstraints( Ift_Ntk_t * p, sat_solver * pSat )
         word pTruth[4];
         int i, k, RetValue, pVars[2*IFN_INS];
         int fForceDiff = (p->nVars == p->nInps);
-        Ift_TtComparisonConstr( pTruth, p->nParsVNum, fForceDiff, fForceDiff );
+        Ifn_TtComparisonConstr( pTruth, p->nParsVNum, fForceDiff, fForceDiff );
         RetValue = Kit_TruthIsop( (unsigned *)pTruth, 2*p->nParsVNum, vCover, 0 );
         assert( RetValue == 0 );
 //        Kit_TruthIsopPrintCover( vCover, 2*p->nParsVNum, 0 );
@@ -503,7 +527,7 @@ void Ift_NtkAddConstraints( Ift_Ntk_t * p, sat_solver * pSat )
                 pVars[2*k+0] = p->nParsVIni + iVar1 * p->nParsVNum + k;
                 pVars[2*k+1] = p->nParsVIni + iVar2 * p->nParsVNum + k;
             }
-            Ift_NtkAddConstrOne( pSat, vCover, pVars, 2*p->nParsVNum );
+            Ifn_NtkAddConstrOne( pSat, vCover, pVars, 2*p->nParsVNum );
 //            printf( "added constraint with %d clauses for %d and %d\n", Vec_IntSize(vCover), iVar1, iVar2 );
         }
     }
@@ -521,7 +545,7 @@ void Ift_NtkAddConstraints( Ift_Ntk_t * p, sat_solver * pSat )
   SeeAlso     []
 
 ***********************************************************************/
-int Ift_NtkAddClauses( Ift_Ntk_t * p, int * pValues, sat_solver * pSat )
+int Ifn_NtkAddClauses( Ifn_Ntk_t * p, int * pValues, sat_solver * pSat )
 {
     int i, f, v, nLits, pLits[IFN_INS+2], pLits2[IFN_INS+2];
     // assign new variables
@@ -548,7 +572,7 @@ int Ift_NtkAddClauses( Ift_Ntk_t * p, int * pValues, sat_solver * pSat )
             // add clause literals
             for ( f = 0; f < p->nParsVNum; f++ )
                 pLits[f+1] = Abc_Var2Lit( iParStart + f, (v >> f) & 1 ); 
-            Ift_AddClause( pSat, pLits, pLits+p->nParsVNum+1 );
+            Ifn_AddClause( pSat, pLits, pLits+p->nParsVNum+1 );
         }
     }
 //printf( "\n" );
@@ -566,18 +590,50 @@ int Ift_NtkAddClauses( Ift_Ntk_t * p, int * pValues, sat_solver * pSat )
                 // add small clause
                 pLits2[0] = Abc_Var2Lit( p->Nodes[i].Var, 1 );
                 pLits2[1] = Abc_Var2Lit( p->Nodes[pFans[f]].Var, 0 );
-                Ift_AddClause( pSat, pLits2, pLits2 + 2 );
+                Ifn_AddClause( pSat, pLits2, pLits2 + 2 );
             }
             // add big clause
-            Ift_AddClause( pSat, pLits, pLits + nLits );
+            Ifn_AddClause( pSat, pLits, pLits + nLits );
         }
         else if ( p->Nodes[i].Type == IF_DSD_XOR )
         {
-            assert( 0 );
+            int m, nMints = (1 << (nFans+1));
+            for ( m = 0; m < nMints; m++ )
+            {
+                // skip even 
+                int Count = 0;
+                for ( v = 0; v <= nFans; v++ )
+                    Count += ((m >> v) & 1);
+                if ( (Count & 1) == 0 )
+                    continue;
+                // generate minterm
+                pLits[0] = Abc_Var2Lit( p->Nodes[i].Var, (m >> nFans) & 1 );
+                for ( v = 0; v < nFans; v++ )
+                    pLits[v+1] = Abc_Var2Lit( p->Nodes[pFans[v]].Var, (m >> v) & 1 );
+                Ifn_AddClause( pSat, pLits, pLits + nFans + 1 );
+            }
         }
         else if ( p->Nodes[i].Type == IF_DSD_MUX )
         {
-            assert( 0 );
+            pLits[0] = Abc_Var2Lit( p->Nodes[i].Var, 0 );
+            pLits[1] = Abc_Var2Lit( p->Nodes[pFans[0]].Var, 1 ); // ctrl
+            pLits[2] = Abc_Var2Lit( p->Nodes[pFans[1]].Var, 1 );
+            Ifn_AddClause( pSat, pLits, pLits + 3 );
+
+            pLits[0] = Abc_Var2Lit( p->Nodes[i].Var, 1 );
+            pLits[1] = Abc_Var2Lit( p->Nodes[pFans[0]].Var, 1 ); // ctrl
+            pLits[2] = Abc_Var2Lit( p->Nodes[pFans[1]].Var, 0 );
+            Ifn_AddClause( pSat, pLits, pLits + 3 );
+
+            pLits[0] = Abc_Var2Lit( p->Nodes[i].Var, 0 );
+            pLits[1] = Abc_Var2Lit( p->Nodes[pFans[0]].Var, 0 ); // ctrl
+            pLits[2] = Abc_Var2Lit( p->Nodes[pFans[2]].Var, 1 );
+            Ifn_AddClause( pSat, pLits, pLits + 3 );
+
+            pLits[0] = Abc_Var2Lit( p->Nodes[i].Var, 1 );
+            pLits[1] = Abc_Var2Lit( p->Nodes[pFans[0]].Var, 0 ); // ctrl
+            pLits[2] = Abc_Var2Lit( p->Nodes[pFans[2]].Var, 0 );
+            Ifn_AddClause( pSat, pLits, pLits + 3 );
         }
         else if ( p->Nodes[i].Type == IF_DSD_PRIME )
         {
@@ -598,9 +654,9 @@ int Ift_NtkAddClauses( Ift_Ntk_t * p, int * pValues, sat_solver * pSat )
                 pLits2[nLits] = Abc_Var2Lit( iParStart + v, 0 ); 
                 nLits++;
                 if ( pValues[i] != 0 )
-                    Ift_AddClause( pSat, pLits2, pLits2 + nLits );
+                    Ifn_AddClause( pSat, pLits2, pLits2 + nLits );
                 if ( pValues[i] != 1 )
-                    Ift_AddClause( pSat, pLits,  pLits + nLits );
+                    Ifn_AddClause( pSat, pLits,  pLits + nLits );
             }
         }
         else assert( 0 );
@@ -620,7 +676,7 @@ int Ift_NtkAddClauses( Ift_Ntk_t * p, int * pValues, sat_solver * pSat )
   SeeAlso     []
 
 ***********************************************************************/
-void Ift_SatPrintStatus( sat_solver * p, int Iter, int status, int iMint, int Value, abctime clk )
+void Ifn_SatPrintStatus( sat_solver * p, int Iter, int status, int iMint, int Value, abctime clk )
 {
     printf( "Iter = %5d  ",  Iter );
     printf( "Mint = %5d  ",  iMint );
@@ -636,19 +692,23 @@ void Ift_SatPrintStatus( sat_solver * p, int Iter, int status, int iMint, int Va
         printf( "status = undec" );
     Abc_PrintTime( 1, "", clk );
 }
-void Ift_SatPrintConfig( Ift_Ntk_t * p, sat_solver * pSat )
+void Ifn_SatPrintConfig( Ifn_Ntk_t * p, sat_solver * pSat )
 {
-    int v;
+    int v, i;
     for ( v = p->nObjs; v < p->nPars; v++ )
     {
-        if ( v >= p->nParsVIni && (v - p->nParsVIni) % p->nParsVNum == 0 )
+        for ( i = p->nInps; i < p->nObjs; i++ )
+            if ( p->Nodes[i].Type == IF_DSD_PRIME && (int)p->Nodes[i].iFirst == v )
+                break;
+        if ( i < p->nObjs )
+            printf( " " );
+        else if ( v >= p->nParsVIni && (v - p->nParsVIni) % p->nParsVNum == 0 )
             printf( " %d=", (v - p->nParsVIni) / p->nParsVNum );
         printf( "%d", sat_solver_var_value(pSat, v) );
     }
-    printf( "\n" );
 }
 
-int Ift_NtkMatch( Ift_Ntk_t * p, word * pTruth, int nVars, int fVerbose )
+int Ifn_NtkMatch( Ifn_Ntk_t * p, word * pTruth, int nVars, int nConfls, int fVerbose, int fVeryVerbose )
 {
     word * pTruth1;
     int RetValue = 0;
@@ -659,9 +719,9 @@ int Ift_NtkMatch( Ift_Ntk_t * p, word * pTruth, int nVars, int fVerbose )
     sat_solver * pSat = sat_solver_new();
     Ifn_Prepare( p, pTruth, nVars );
     sat_solver_setnvars( pSat, p->nPars );
-    Ift_NtkAddConstraints( p, pSat );
-    if ( fVerbose )
-        Ift_SatPrintStatus( pSat, 0, l_True, -1, -1, Abc_Clock() - clk );
+    Ifn_NtkAddConstraints( p, pSat );
+    if ( fVeryVerbose )
+        Ifn_SatPrintStatus( pSat, 0, l_True, -1, -1, Abc_Clock() - clk );
     for ( i = 0; i < nIterMax; i++ )
     {
         // get variable assignment
@@ -669,37 +729,41 @@ int Ift_NtkMatch( Ift_Ntk_t * p, word * pTruth, int nVars, int fVerbose )
             p->Values[v] = v < p->nVars ? (iMint >> v) & 1 :  -1;
         p->Values[p->nObjs-1] = Abc_TtGetBit( pTruth, iMint );
         // derive clauses
-        if ( !Ift_NtkAddClauses( p, p->Values, pSat ) )
+        if ( !Ifn_NtkAddClauses( p, p->Values, pSat ) )
             break;
         // find assignment of parameters
 //        clk2 = Abc_Clock();
-        status = sat_solver_solve( pSat, NULL, NULL, 0, 0, 0, 0 );
+        status = sat_solver_solve( pSat, NULL, NULL, nConfls, 0, 0, 0 );
 //        clkSat += Abc_Clock() - clk2;
-        if ( fVerbose )
-            Ift_SatPrintStatus( pSat, i+1, status, iMint, p->Values[p->nObjs-1], Abc_Clock() - clk );
-        if ( status == l_False )
+        if ( fVeryVerbose )
+            Ifn_SatPrintStatus( pSat, i+1, status, iMint, p->Values[p->nObjs-1], Abc_Clock() - clk );
+        if ( status != l_True )
             break;
-        assert( status == l_True );
         // collect assignment
         for ( v = p->nObjs; v < p->nPars; v++ )
             p->Values[v] = sat_solver_var_value(pSat, v);
         // find truth table
 //        clk2 = Abc_Clock();
-        pTruth1 = Ift_NtkDeriveTruth( p, p->Values );
+        pTruth1 = Ifn_NtkDeriveTruth( p, p->Values );
 //        clkTru += Abc_Clock() - clk2;
         Abc_TtXor( pTruth1, pTruth1, p->pTruth, p->nWords, 0 );
         // find mismatch if present
         iMint = Abc_TtFindFirstBit( pTruth1, p->nVars );
         if ( iMint == -1 )
         {
-            Ift_SatPrintConfig( p, pSat );
             RetValue = 1;
             break;
         }
     }
     assert( i < nIterMax );
+    if ( fVerbose )
+    {
+        printf( "%s  Iter =%4d. Confl = %6d.  ", RetValue ? "yes":"no ", i, sat_solver_nconflicts(pSat) );
+        if ( RetValue )
+            Ifn_SatPrintConfig( p, pSat );
+        printf( "\n" );
+    }
     sat_solver_delete( pSat );
-    printf( "Matching = %d  Iters = %d. ", RetValue, i );
 //    Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
 //    Abc_PrintTime( 1, "Sat", clkSat );
 //    Abc_PrintTime( 1, "Tru", clkTru );
@@ -731,15 +795,16 @@ void Ifn_NtkRead()
 //    word * pTruth = Dau_DsdToTruth( "(abc)", nVars );
 //    char * pStr = "e={abc};f={ed};";
 //    char * pStr = "d={ab};e={cd};";
-    char * pStr = "j=(ab);k={jcde};l=(kf);m={lghi};";
+//    char * pStr = "j=(ab);k={jcde};l=(kf);m={lghi};";
 //    char * pStr = "i={abc};j={ide};k={ifg};l={jkh};";
 //    char * pStr = "h={abcde};i={abcdf};j=<ghi>;";
 //    char * pStr = "g=<abc>;h=<ade>;i={fgh};";
-    Ift_Ntk_t * p = Ifn_ManStrParse( pStr );
+    char * pStr = "i=<abc>;j=(def);k=[gh];l={ijk};";
+    Ifn_Ntk_t * p = Ifn_NtkParse( pStr );
     Ifn_NtkPrint( p );
     Dau_DsdPrintFromTruth( pTruth, nVars );
     // get the given function
-    RetValue = Ift_NtkMatch( p, pTruth, nVars, 1 );
+    RetValue = Ifn_NtkMatch( p, pTruth, nVars, 0, 1, 1 );
 }
 
 ////////////////////////////////////////////////////////////////////////
