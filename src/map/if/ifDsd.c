@@ -378,6 +378,15 @@ void If_DsdManDumpAll( If_DsdMan_t * p, int Support )
     }
     fclose( pFile );
 }
+int If_DsdManHasMarks( If_DsdMan_t * p )
+{
+    If_DsdObj_t * pObj;
+    int i;
+    If_DsdVecForEachObj( &p->vObjs, pObj, i )
+        if ( pObj->fMark )
+            return 1;
+    return 0;
+}
 
 /**Function*************************************************************
 
@@ -650,6 +659,24 @@ void If_DsdManPrint( If_DsdMan_t * p, char * pFileName, int Number, int Support,
     {
         printf( "cannot open output file\n" );
         return;
+    }
+    if ( fVerbose )
+    {
+        fprintf( pFile, "*****  NOTATIONS USED BELOW  *****\n" );
+        fprintf( pFile, "Support -- the support size\n" );
+        fprintf( pFile, "Obj     -- the number of nodes in the DSD manager for each support size\n" );
+        fprintf( pFile, "           (the constant node and the primary input node have no support)\n" );
+        fprintf( pFile, "ObjNDSD -- the number of prime nodes (that is, nodes whose function has no DSD)\n" );
+        fprintf( pFile, "           (percentage is relative to the number of all nodes of that size)\n" );
+        fprintf( pFile, "NPNNDSD -- the number of different NPN classes of prime nodes\n" );
+        fprintf( pFile, "           (Each NPN class may appear more than once. For example: F1 = 17(ab(cd))\n" ); 
+        fprintf( pFile, "           and F2 = 17(ab[cd]) both have prime majority node (hex TT is 17),\n" ); 
+        fprintf( pFile, "           but in one case the majority node is fed by AND, and in another by XOR.\n" );
+        fprintf( pFile, "           These two majority nodes are different nodes in the DSD manager\n" );
+        fprintf( pFile, "Str     -- the number of structures for each support size\n" );
+        fprintf( pFile, "           (each structure is composed of one or more nodes)\n" );
+        fprintf( pFile, "StrNDSD -- the number of DSD structures containing at least one prime node\n" );
+        fprintf( pFile, "Marked  -- the number of DSD structures matchable with the LUT structure (say, \"44\")\n" );
     }
     If_DsdVecForEachObj( &p->vObjs, pObj, i )
     {
@@ -1105,6 +1132,9 @@ void If_DsdManMerge( If_DsdMan_t * p, If_DsdMan_t * pNew )
         printf( "LUT size should be the same.\n" );
         return;
     }
+    if ( If_DsdManHasMarks(p) != If_DsdManHasMarks(pNew) )
+        printf( "Warning! Old manager has %smarks while new manager has %smarks.\n", 
+            If_DsdManHasMarks(p) ? "" : "no ", If_DsdManHasMarks(pNew) ? "" : "no " );
     vMap = Vec_IntAlloc( Vec_PtrSize(&pNew->vObjs) );
     Vec_IntPush( vMap, 0 );
     Vec_IntPush( vMap, 1 );
@@ -1113,6 +1143,8 @@ void If_DsdManMerge( If_DsdMan_t * p, If_DsdMan_t * pNew )
         If_DsdObjForEachFaninLit( &pNew->vObjs, pObj, iFanin, k )
             pFanins[k] = Abc_Lit2LitV( Vec_IntArray(vMap), iFanin );
         Id = If_DsdObjFindOrAdd( p, pObj->Type, pFanins, pObj->nFans, pObj->Type == IF_DSD_PRIME ? If_DsdObjTruth(pNew, pObj) : NULL );
+        if ( pObj->fMark )
+            If_DsdVecObjSetMark( &p->vObjs, Id );
         Vec_IntPush( vMap, Id );
     }
     assert( Vec_IntSize(vMap) == Vec_PtrSize(&pNew->vObjs) );
@@ -1124,6 +1156,42 @@ void If_DsdManClean( If_DsdMan_t * p, int fVerbose )
     int i;
     If_DsdVecForEachObj( &p->vObjs, pObj, i )
         pObj->Count = 0;
+}
+void If_DsdManFilter_rec( If_DsdMan_t * pNew, If_DsdMan_t * p, int i, Vec_Int_t * vMap )
+{
+    If_DsdObj_t * pObj;
+    int pFanins[DAU_MAX_VAR];
+    int k, iFanin, Id;
+    if ( Vec_IntEntry(vMap, i) >= 0 )
+        return;
+    // call recursively
+    pObj = If_DsdVecObj( &p->vObjs, i );
+    If_DsdObjForEachFaninLit( &p->vObjs, pObj, iFanin, k )
+        If_DsdManFilter_rec( pNew, p, Abc_Lit2Var(iFanin), vMap );
+    // duplicate this one
+    If_DsdObjForEachFaninLit( &p->vObjs, pObj, iFanin, k )
+        pFanins[k] = Abc_Lit2LitV( Vec_IntArray(vMap), iFanin );
+    Id = If_DsdObjFindOrAdd( pNew, pObj->Type, pFanins, pObj->nFans, pObj->Type == IF_DSD_PRIME ? If_DsdObjTruth(p, pObj) : NULL );
+    if ( pObj->fMark )
+        If_DsdVecObjSetMark( &pNew->vObjs, Id );
+    If_DsdVecObj( &pNew->vObjs, Id )->Count = pObj->Count;
+    // save the result
+    Vec_IntWriteEntry( vMap, i, Id );
+}
+If_DsdMan_t * If_DsdManFilter( If_DsdMan_t * p, int Limit )
+{
+    If_DsdMan_t * pNew = If_DsdManAlloc( p->nVars, p->LutSize );
+    If_DsdObj_t * pObj; 
+    Vec_Int_t * vMap;
+    int i;
+    vMap = Vec_IntStartFull( Vec_PtrSize(&p->vObjs) );
+    Vec_IntWriteEntry( vMap, 0, 0 );
+    Vec_IntWriteEntry( vMap, 1, 1 );
+    If_DsdVecForEachNode( &p->vObjs, pObj, i )
+        if ( (int)pObj->Count >= Limit )
+            If_DsdManFilter_rec( pNew, p, i, vMap );
+    Vec_IntFree( vMap );
+    return pNew;
 }
 
 /**Function*************************************************************

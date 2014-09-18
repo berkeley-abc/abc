@@ -16223,12 +16223,22 @@ usage:
 ***********************************************************************/
 int Abc_CommandDsdClean( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    int c, fVerbose = 0;
+    If_DsdMan_t * pDsd = (If_DsdMan_t *)Abc_FrameReadManDsd();
+    int c, nLimit = 0, fVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Lvh" ) ) != EOF )
     {
         switch ( c )
         {
+        case 'L':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-L\" should be followed by a floating point number.\n" );
+                goto usage;
+            }
+            nLimit = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            break;
         case 'v':
             fVerbose ^= 1;
             break;
@@ -16238,18 +16248,22 @@ int Abc_CommandDsdClean( Abc_Frame_t * pAbc, int argc, char ** argv )
             goto usage;
         }
     }
-    if ( !Abc_FrameReadManDsd() )
+    if ( pDsd == NULL )
     {
         Abc_Print( -1, "The DSD manager is not started.\n" );
         return 0;
     }
-    If_DsdManClean( (If_DsdMan_t *)Abc_FrameReadManDsd(), fVerbose );
+    if ( nLimit > 0 )
+        Abc_FrameSetManDsd( If_DsdManFilter(pDsd, nLimit) );
+    else
+        If_DsdManClean( pDsd, fVerbose );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: dsd_clean [-K num] [-vh]\n" );
+    Abc_Print( -2, "usage: dsd_clean [-L num] [-vh]\n" );
     Abc_Print( -2, "\t         cleans the occurrence counters\n" );
-    Abc_Print( -2, "\t-v     : toggles verbose output [default = %s]\n",          fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-L num : remove structures with fewer occurances that this [default = %d]\n", nLimit );
+    Abc_Print( -2, "\t-v     : toggles verbose output [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
 }
