@@ -37,13 +37,13 @@ ABC_NAMESPACE_IMPL_START
 
 // network types
 typedef enum { 
-    IFN_DSD_NONE = 0,               // 0:  unknown
-    IFN_DSD_CONST0,                 // 1:  constant
-    IFN_DSD_VAR,                    // 2:  variable
-    IFN_DSD_AND,                    // 3:  AND
-    IFN_DSD_XOR,                    // 4:  XOR
-    IFN_DSD_MUX,                    // 5:  MUX
-    IFN_DSD_PRIME                   // 6:  PRIME
+    IFN_DSD_NONE = 0,              // 0:  unknown
+    IFN_DSD_CONST0,                // 1:  constant
+    IFN_DSD_VAR,                   // 2:  variable
+    IFN_DSD_AND,                   // 3:  AND
+    IFN_DSD_XOR,                   // 4:  XOR
+    IFN_DSD_MUX,                   // 5:  MUX
+    IFN_DSD_PRIME                  // 6:  PRIME
 } Ifn_DsdType_t;
 
 // object types
@@ -540,7 +540,7 @@ Gia_Man_t * Ifn_ManStrFindCofactors( int nIns, Gia_Man_t * p )
 {
     Gia_Man_t * pNew, * pTemp; 
     Gia_Obj_t * pObj;
-    int i, m, nMints = nIns;
+    int i, m, nMints = 1 << nIns;
     pNew = Gia_ManStart( Gia_ManObjNum(p) );
     pNew->pName = Abc_UtilStrsav( p->pName );
     Gia_ManHashAlloc( pNew );
@@ -640,17 +640,17 @@ void Ifn_ManSatPrintPerm( char * pPerms, int nVars )
         printf( "%c", 'a' + pPerms[i] );
     printf( "\n" );
 }
-int Ifn_ManSatCheckOne( sat_solver * pSat, Vec_Int_t * vPoVars, word * pTruth, int nVars, int * pPerm, int nVarsAll, Vec_Int_t * vLits )
+int Ifn_ManSatCheckOne( sat_solver * pSat, Vec_Int_t * vPoVars, word * pTruth, int nVars, int * pPerm, int nInps, Vec_Int_t * vLits )
 {
     int v, Value, m, mNew, nMints = (1 << nVars);
-    assert( (1 << nVarsAll) == Vec_IntSize(vPoVars) );
-    assert( nVars <= nVarsAll );
+    assert( (1 << nInps) == Vec_IntSize(vPoVars) );
+    assert( nVars <= nInps );
     // remap minterms
     Vec_IntFill( vLits, Vec_IntSize(vPoVars), -1 );
     for ( m = 0; m < nMints; m++ )
     {
         mNew = 0;
-        for ( v = 0; v < nVarsAll; v++ )
+        for ( v = 0; v < nInps; v++ )
         {
             assert( pPerm[v] < nVars );
             if ( ((m >> pPerm[v]) & 1) )
@@ -676,22 +676,37 @@ void Ifn_ManSatDeriveOne( sat_solver * pSat, Vec_Int_t * vPiVars, Vec_Int_t * vV
     Vec_IntForEachEntry( vPiVars, iVar, i )
         Vec_IntPush( vValues, sat_solver_var_value(pSat, iVar) );
 }
-int Ifn_ManSatFindCofigBits( sat_solver * pSat, Vec_Int_t * vPiVars, Vec_Int_t * vPoVars, word * pTruth, int nVars, word Perm, Vec_Int_t * vValues )
+int Ifn_ManSatFindCofigBits( sat_solver * pSat, Vec_Int_t * vPiVars, Vec_Int_t * vPoVars, word * pTruth, int nVars, word Perm, int nInps, Vec_Int_t * vValues )
 {
     // extract permutation
     int RetValue, i, pPerm[IF_MAX_FUNC_LUTSIZE];
-    for ( i = 0; i < Vec_IntSize(vPiVars); i++ )
+    assert( nInps <= IF_MAX_FUNC_LUTSIZE );
+    for ( i = 0; i < nInps; i++ )
     {
         pPerm[i] = Abc_TtGetHex( &Perm, i );
         assert( pPerm[i] < nVars );
     }
     // perform SAT check 
-    RetValue = Ifn_ManSatCheckOne( pSat, vPoVars, pTruth, nVars, pPerm, Vec_IntSize(vPiVars), vValues );
+    RetValue = Ifn_ManSatCheckOne( pSat, vPoVars, pTruth, nVars, pPerm, nInps, vValues );
     Vec_IntClear( vValues );
     if ( RetValue == 0 )
         return 0;
     Ifn_ManSatDeriveOne( pSat, vPiVars, vValues );
     return 1;
+}
+int Ifn_ManSatFindCofigBitsTest( Ifn_Ntk_t * p, word * pTruth, int nVars, word Perm )
+{
+    Vec_Int_t * vValues = Vec_IntAlloc( 100 );
+    Vec_Int_t * vPiVars, * vPoVars;
+    sat_solver * pSat = Ifn_ManSatBuild( p, &vPiVars, &vPoVars );
+    int RetValue = Ifn_ManSatFindCofigBits( pSat, vPiVars, vPoVars, pTruth, nVars, Perm, p->nInps, vValues );
+    Vec_IntPrint( vValues );
+    // cleanup
+    sat_solver_delete( pSat );
+    Vec_IntFreeP( &vPiVars );
+    Vec_IntFreeP( &vPoVars );
+    Vec_IntFreeP( &vValues );
+    return RetValue;
 }
 
 
@@ -1055,7 +1070,7 @@ int Ifn_NtkAddClauses( Ifn_Ntk_t * p, int * pValues, sat_solver * pSat )
   SeeAlso     []
 
 ***********************************************************************/
-void Ifn_SatPrintStatus( sat_solver * p, int Iter, int status, int iMint, int Value, abctime clk )
+void Ifn_NtkMatchPrintStatus( sat_solver * p, int Iter, int status, int iMint, int Value, abctime clk )
 {
     printf( "Iter = %5d  ",  Iter );
     printf( "Mint = %5d  ",  iMint );
@@ -1069,9 +1084,9 @@ void Ifn_SatPrintStatus( sat_solver * p, int Iter, int status, int iMint, int Va
         printf( "status = sat  " );
     else 
         printf( "status = undec" );
-    Abc_PrintTime( 1, "", clk );
+    Abc_PrintTime( 1, "Time", clk );
 }
-void Ifn_SatPrintConfig( Ifn_Ntk_t * p, sat_solver * pSat )
+void Ifn_NtkMatchPrintConfig( Ifn_Ntk_t * p, sat_solver * pSat )
 {
     int v, i;
     for ( v = p->nObjs; v < p->nPars; v++ )
@@ -1086,8 +1101,29 @@ void Ifn_SatPrintConfig( Ifn_Ntk_t * p, sat_solver * pSat )
         printf( "%d", sat_solver_var_value(pSat, v) );
     }
 }
-
-int Ifn_NtkMatch( Ifn_Ntk_t * p, word * pTruth, int nVars, int nConfls, int fVerbose, int fVeryVerbose )
+word Ifn_NtkMatchCollectPerm( Ifn_Ntk_t * p, sat_solver * pSat )
+{
+    word Perm = 0;
+    int i, v, Mint;
+    assert( p->nParsVNum <= 4 );
+    for ( i = 0; i < p->nInps; i++ )
+    {
+        for ( Mint = v = 0; v < p->nParsVNum; v++ )
+            if ( sat_solver_var_value(pSat, p->nParsVIni + i * p->nParsVNum + v) )
+                Mint |= (1 << v);
+        Abc_TtSetHex( &Perm, i, Mint );
+    }
+    return Perm;
+}
+void Ifn_NtkMatchPrintPerm( word Perm, int nInps )
+{
+    int i;
+    assert( nInps <= 16 );
+    for ( i = 0; i < nInps; i++ )
+        printf( "%c", 'a' + Abc_TtGetHex(&Perm, i) );
+    printf( "\n" );
+}
+int Ifn_NtkMatch( Ifn_Ntk_t * p, word * pTruth, int nVars, int nConfls, int fVerbose, int fVeryVerbose, word * pPerm )
 {
     word * pTruth1;
     int RetValue = 0;
@@ -1100,7 +1136,8 @@ int Ifn_NtkMatch( Ifn_Ntk_t * p, word * pTruth, int nVars, int nConfls, int fVer
     sat_solver_setnvars( pSat, p->nPars );
     Ifn_NtkAddConstraints( p, pSat );
     if ( fVeryVerbose )
-        Ifn_SatPrintStatus( pSat, 0, l_True, -1, -1, Abc_Clock() - clk );
+        Ifn_NtkMatchPrintStatus( pSat, 0, l_True, -1, -1, Abc_Clock() - clk );
+    if ( pPerm ) *pPerm = 0;
     for ( i = 0; i < nIterMax; i++ )
     {
         // get variable assignment
@@ -1115,7 +1152,7 @@ int Ifn_NtkMatch( Ifn_Ntk_t * p, word * pTruth, int nVars, int nConfls, int fVer
         status = sat_solver_solve( pSat, NULL, NULL, nConfls, 0, 0, 0 );
 //        clkSat += Abc_Clock() - clk2;
         if ( fVeryVerbose )
-            Ifn_SatPrintStatus( pSat, i+1, status, iMint, p->Values[p->nObjs-1], Abc_Clock() - clk );
+            Ifn_NtkMatchPrintStatus( pSat, i+1, status, iMint, p->Values[p->nObjs-1], Abc_Clock() - clk );
         if ( status != l_True )
             break;
         // collect assignment
@@ -1130,6 +1167,17 @@ int Ifn_NtkMatch( Ifn_Ntk_t * p, word * pTruth, int nVars, int nConfls, int fVer
         iMint = Abc_TtFindFirstBit( pTruth1, p->nVars );
         if ( iMint == -1 )
         {
+            if ( pPerm ) 
+                *pPerm = Ifn_NtkMatchCollectPerm( p, pSat );
+/*
+            if ( pPerm )
+            {
+                int RetValue = Ifn_ManSatFindCofigBitsTest( p, pTruth, nVars, *pPerm );
+                Ifn_NtkMatchPrintPerm( *pPerm, p->nInps );
+                if ( RetValue == 0 )
+                    printf( "Verification failed.\n" );
+            }
+*/
             RetValue = 1;
             break;
         }
@@ -1139,7 +1187,7 @@ int Ifn_NtkMatch( Ifn_Ntk_t * p, word * pTruth, int nVars, int nConfls, int fVer
     {
         printf( "%s  Iter =%4d. Confl = %6d.  ", RetValue ? "yes":"no ", i, sat_solver_nconflicts(pSat) );
         if ( RetValue )
-            Ifn_SatPrintConfig( p, pSat );
+            Ifn_NtkMatchPrintConfig( p, pSat );
         printf( "\n" );
     }
     sat_solver_delete( pSat );
@@ -1163,29 +1211,30 @@ int Ifn_NtkMatch( Ifn_Ntk_t * p, word * pTruth, int nVars, int nConfls, int fVer
 void Ifn_NtkRead()
 {
     int RetValue;
-    int nVars = 9;
-//    int nVars = 8;
-//    int nVars = 3;
+    int nVars = 8;
 //    word * pTruth = Dau_DsdToTruth( "(abcdefghi)", nVars );
     word * pTruth = Dau_DsdToTruth( "1008{(1008{(ab)cde}f)ghi}", nVars );
 //    word * pTruth = Dau_DsdToTruth( "18{(1008{(ab)cde}f)gh}", nVars );
 //    word * pTruth = Dau_DsdToTruth( "1008{(1008{[ab]cde}f)ghi}", nVars );
 //    word * pTruth = Dau_DsdToTruth( "(abcd)", nVars );
 //    word * pTruth = Dau_DsdToTruth( "(abc)", nVars );
+//    word * pTruth = Dau_DsdToTruth( "18{(1008{(ab)cde}f)gh}", nVars );
 //    char * pStr = "e={abc};f={ed};";
 //    char * pStr = "d={ab};e={cd};";
 //    char * pStr = "j=(ab);k={jcde};l=(kf);m={lghi};";
 //    char * pStr = "i={abc};j={ide};k={ifg};l={jkh};";
 //    char * pStr = "h={abcde};i={abcdf};j=<ghi>;";
 //    char * pStr = "g=<abc>;h=<ade>;i={fgh};";
-    char * pStr = "i=<abc>;j=(def);k=[gh];l={ijk};";
+//    char * pStr = "i=<abc>;j=(def);k=[gh];l={ijk};";
+    char * pStr = "{({(ab)cde}f)ghi};AB;CD;DE;GH;HI";
     Ifn_Ntk_t * p = Ifn_NtkParse( pStr );
+    word Perm = 0;
     if ( p == NULL )
         return;
     Ifn_NtkPrint( p );
     Dau_DsdPrintFromTruth( pTruth, nVars );
     // get the given function
-    RetValue = Ifn_NtkMatch( p, pTruth, nVars, 0, 1, 1 );
+    RetValue = Ifn_NtkMatch( p, pTruth, nVars, 0, 1, 1, &Perm );
     ABC_FREE( p );
 }
 

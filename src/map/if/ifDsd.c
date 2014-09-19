@@ -86,6 +86,7 @@ struct If_DsdMan_t_
     Vec_Ptr_t *    vTtDecs[IF_MAX_FUNC_LUTSIZE+1]; // truth table decompositions
     Vec_Wec_t *    vIsops[IF_MAX_FUNC_LUTSIZE+1];  // ISOP for each function
     int *          pSched[IF_MAX_FUNC_LUTSIZE];    // grey code schedules
+    Vec_Wrd_t *    vPerms;         // permutations
     Gia_Man_t *    pTtGia;         // GIA to represent truth tables
     Vec_Int_t *    vCover;         // temporary memory
     void *         pSat;           // SAT solver
@@ -186,7 +187,8 @@ int If_DsdManReadMark( If_DsdMan_t * p, int iDsd )
 }
 void If_DsdManSetNewAsUseless( If_DsdMan_t * p )
 {
-    p->nObjsPrev = If_DsdManObjNum(p);
+    if ( p->nObjsPrev == 0 )
+        p->nObjsPrev = If_DsdManObjNum(p);
     p->fNewAsUseless = 1;
 }
 
@@ -323,6 +325,7 @@ void If_DsdManFree( If_DsdMan_t * p, int fVerbose )
         if ( p->vIsops[v] )
             Vec_WecFree( p->vIsops[v] );
     }
+    Vec_WrdFreeP( &p->vPerms );
     Vec_IntFreeP( &p->vTemp1 );
     Vec_IntFreeP( &p->vTemp2 );
     ABC_FREE( p->vObjs.pArray );
@@ -2357,7 +2360,7 @@ void If_DsdManTune( If_DsdMan_t * p, int LutSize, int fFast, int fAdd, int fSpec
 typedef struct Ifn_Ntk_t_  Ifn_Ntk_t;
 
 extern Ifn_Ntk_t * Ifn_NtkParse( char * pStr );
-extern int         Ifn_NtkMatch( Ifn_Ntk_t * p, word * pTruth, int nVars, int nConfls, int fVerbose, int fVeryVerbose );
+extern int         Ifn_NtkMatch( Ifn_Ntk_t * p, word * pTruth, int nVars, int nConfls, int fVerbose, int fVeryVerbose, word * pPerm );
 extern void        Ifn_NtkPrint( Ifn_Ntk_t * p );
 extern int         Ifn_NtkLutSizeMax( Ifn_Ntk_t * p );
 extern int         Ifn_NtkInputNum( Ifn_Ntk_t * p );
@@ -2378,7 +2381,7 @@ void Id_DsdManTuneStr1( If_DsdMan_t * p, char * pStruct, int nConfls, int fVerbo
     int fVeryVerbose = 0;
     ProgressBar * pProgress = NULL;
     If_DsdObj_t * pObj;
-    word * pTruth;
+    word * pTruth, Perm;
     int i, nVars, Value, LutSize;
     abctime clk = Abc_Clock();
     // parse the structure
@@ -2407,6 +2410,10 @@ void Id_DsdManTuneStr1( If_DsdMan_t * p, char * pStruct, int nConfls, int fVerbo
     If_DsdVecForEachObj( &p->vObjs, pObj, i )
         if ( i >= p->nObjsPrev )
             pObj->fMark = 0;
+    if ( p->vPerms == NULL )
+        p->vPerms = Vec_WrdStart( Vec_PtrSize(&p->vObjs) );
+    else
+        Vec_WrdFillExtra( p->vPerms, Vec_PtrSize(&p->vObjs), 0 );
     pProgress = Extra_ProgressBarStart( stdout, Vec_PtrSize(&p->vObjs) );
     If_DsdVecForEachObjStart( &p->vObjs, pObj, i, p->nObjsPrev )
     {
@@ -2420,11 +2427,13 @@ void Id_DsdManTuneStr1( If_DsdMan_t * p, char * pStruct, int nConfls, int fVerbo
             Dau_DsdPrintFromTruth( pTruth, nVars );
         if ( fVerbose )
             printf( "%6d : %2d ", i, nVars );
-        Value = Ifn_NtkMatch( pNtk, pTruth, nVars, nConfls, fVerbose, fVeryVerbose );
+        Value = Ifn_NtkMatch( pNtk, pTruth, nVars, nConfls, fVerbose, fVeryVerbose, &Perm );
         if ( fVeryVerbose )
             printf( "\n" );
         if ( Value == 0 )
             If_DsdVecObjSetMark( &p->vObjs, i );
+        else
+            Vec_WrdWriteEntry( p->vPerms, i, Perm );
     }
     p->nObjsPrev = 0;
     Extra_ProgressBarStop( pProgress );
@@ -2465,6 +2474,7 @@ typedef struct Ifn_ThData_t_
     int         nConfls; // conflicts
     int         Result;  // result
     int         Status;  // state
+    word        Perm;    // permutation
     abctime     clkUsed; // total runtime
 } Ifn_ThData_t;
 void * Ifn_WorkerThread( void * pArg )
@@ -2483,7 +2493,7 @@ void * Ifn_WorkerThread( void * pArg )
             return NULL;
         }
         clk = Abc_Clock();
-        pThData->Result = Ifn_NtkMatch( pThData->pNtk, pThData->pTruth, pThData->nVars, pThData->nConfls, 0, 0 );
+        pThData->Result = Ifn_NtkMatch( pThData->pNtk, pThData->pTruth, pThData->nVars, pThData->nConfls, 0, 0, &pThData->Perm );
         pThData->clkUsed += Abc_Clock() - clk;
         pThData->Status = 0;
 //        printf( "Finished object %d\n", pThData->Id );
@@ -2536,6 +2546,10 @@ void Id_DsdManTuneStr( If_DsdMan_t * p, char * pStruct, int nConfls, int nProcs,
     If_DsdVecForEachObj( &p->vObjs, pObj, i )
         if ( i >= p->nObjsPrev )
             pObj->fMark = 0;
+    if ( p->vPerms == NULL )
+        p->vPerms = Vec_WrdStart( Vec_PtrSize(&p->vObjs) );
+    else
+        Vec_WrdFillExtra( p->vPerms, Vec_PtrSize(&p->vObjs), 0 );
     pProgress = Extra_ProgressBarStart( stdout, Vec_PtrSize(&p->vObjs) );
 
     // perform concurrent solving
@@ -2570,6 +2584,8 @@ void Id_DsdManTuneStr( If_DsdMan_t * p, char * pStruct, int nConfls, int nProcs,
                     assert( ThData[i].Result == 0 || ThData[i].Result == 1 );
                     if ( ThData[i].Result == 0 )
                         If_DsdVecObjSetMark( &p->vObjs, ThData[i].Id );
+                    else
+                        Vec_WrdWriteEntry( p->vPerms, ThData[i].Id, ThData[i].Perm );
                     ThData[i].Id     = -1;
                     ThData[i].Result = -1;
                 }
