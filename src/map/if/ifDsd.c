@@ -2410,7 +2410,8 @@ void Id_DsdManTuneStr1( If_DsdMan_t * p, char * pStruct, int nConfls, int fVerbo
     pProgress = Extra_ProgressBarStart( stdout, Vec_PtrSize(&p->vObjs) );
     If_DsdVecForEachObjStart( &p->vObjs, pObj, i, p->nObjsPrev )
     {
-        Extra_ProgressBarUpdate( pProgress, i, NULL );
+        if ( (i & 0xFF) == 0 )
+            Extra_ProgressBarUpdate( pProgress, i, NULL );
         nVars = If_DsdObjSuppSize(pObj);
         if ( nVars <= LutSize )
             continue;
@@ -2574,7 +2575,7 @@ void Id_DsdManTuneStr( If_DsdMan_t * p, char * pStruct, int nConfls, int nProcs,
                 }
                 for ( k = iCurrentObj; k < Vec_PtrSize(&p->vObjs); k++ )
                 {
-                    if ( (k & 0x3FF) == 0 )
+                    if ( (k & 0xFF) == 0 )
                         Extra_ProgressBarUpdate( pProgress, k, NULL );
                     pObj  = If_DsdVecObj( &p->vObjs, k );
                     nVars = If_DsdObjSuppSize(pObj);

@@ -1011,6 +1011,75 @@ static inline int Abc_Tt6SupportAndSize( word t, int nVars, int * pSuppSize )
     return Supp;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Checks if there is a var whose both cofs have supp <= nSuppLim.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline int Abc_TtCheckCondDep2( word * pTruth, int nVars, int nSuppLim )
+{
+    int v, d, nWords = Abc_TtWordNum(nVars);
+    if ( nVars <= nSuppLim + 1 )
+        return 0;
+    for ( v = 0; v < nVars; v++ )
+    {
+        int nDep0 = 0, nDep1 = 0;
+        for ( d = 0; d < nVars; d++ )
+        {
+            if ( v == d )
+                continue;
+            if ( v < d )
+            {
+                nDep0 += !Abc_TtCheckEqualCofs( pTruth, nWords, v, d, 0, 2 );
+                nDep1 += !Abc_TtCheckEqualCofs( pTruth, nWords, v, d, 1, 3 );
+            }
+            else // if ( v > d )
+            {
+                nDep0 += !Abc_TtCheckEqualCofs( pTruth, nWords, d, v, 0, 1 );
+                nDep1 += !Abc_TtCheckEqualCofs( pTruth, nWords, d, v, 2, 3 );
+            }
+            if ( nDep0 > nSuppLim || nDep1 > nSuppLim )
+                break;
+        }
+        if ( d == nVars )
+            return v;
+    }
+    return nVars;
+}
+static inline int Abc_TtCheckCondDep( word * pTruth, int nVars, int nSuppLim )
+{
+    int nVarsMax = 12;
+    word Cof0[64], Cof1[64]; // pow( 2, nVarsMax-6 )
+    int v, d, nWords = Abc_TtWordNum(nVars);
+    assert( nVars <= nVarsMax );
+    if ( nVars <= nSuppLim + 1 )
+        return 0;
+    for ( v = 0; v < nVars; v++ )
+    {
+        int nDep0 = 0, nDep1 = 0;
+        Abc_TtCofactor0p( Cof0, pTruth, nWords, v );
+        Abc_TtCofactor1p( Cof1, pTruth, nWords, v );
+        for ( d = 0; d < nVars; d++ )
+        {
+            if ( v == d )
+                continue;
+            nDep0 += Abc_TtHasVar( Cof0, nVars, d );
+            nDep1 += Abc_TtHasVar( Cof1, nVars, d );
+            if ( nDep0 > nSuppLim || nDep1 > nSuppLim )
+                break;
+        }
+        if ( d == nVars )
+            return v;
+    }
+    return nVars;
+}
+
 
 /**Function*************************************************************
 

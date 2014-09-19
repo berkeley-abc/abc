@@ -125,6 +125,17 @@ If_Man_t * If_ManStart( If_Par_t * pPars )
         p->vPairRes = Vec_IntAlloc( 1000 );
         Vec_IntPush( p->vPairRes, -1 );
     }
+    if ( pPars->fUseCofVars )
+    {
+        for ( v = 6; v <= Abc_MaxInt(6,p->pPars->nLutSize); v++ )
+        {
+            p->vTtVars[v] = Vec_StrAlloc( 1000 );
+            Vec_StrPush( p->vTtVars[v], 0 );
+            Vec_StrPush( p->vTtVars[v], 0 );
+        }
+        for ( v = 0; v < 6; v++ )
+            p->vTtVars[v]  = p->vTtVars[6];
+    }
     if ( pPars->fUseBat )
     {
 //        abctime clk = Abc_Clock();
@@ -209,8 +220,8 @@ void If_ManStop( If_Man_t * p )
     {
         for ( i = 0; i <= 16; i++ )
             if ( p->nCutsUseless[i] )
-                Abc_Print( 1, "Useless cuts %2d  = %9d  (out of %9d)  (%6.2f %%)\n", i, p->nCutsUseless[i], p->nCutsCount[i], 100.0*p->nCutsUseless[i]/(p->nCutsCount[i]+1) );
-        Abc_Print( 1, "Useless cuts all = %9d  (out of %9d)  (%6.2f %%)\n", p->nCutsUselessAll, p->nCutsCountAll, 100.0*p->nCutsUselessAll/(p->nCutsCountAll+1) );
+                Abc_Print( 1, "Useless cuts %2d  = %9d  (out of %9d)  (%6.2f %%)\n", i, p->nCutsUseless[i], p->nCutsCount[i], 100.0*p->nCutsUseless[i]/Abc_MaxInt(p->nCutsCount[i],1) );
+        Abc_Print( 1, "Useless cuts all = %9d  (out of %9d)  (%6.2f %%)\n", p->nCutsUselessAll, p->nCutsCountAll, 100.0*p->nCutsUselessAll/Abc_MaxInt(p->nCutsCountAll,1) );
     }
 //    if ( p->pPars->fVerbose && p->nCuts5 )
 //        Abc_Print( 1, "Statistics about 5-cuts: Total = %d  Non-decomposable = %d (%.2f %%)\n", p->nCuts5, p->nCuts5-p->nCuts5a, 100.0*(p->nCuts5-p->nCuts5a)/p->nCuts5 );
@@ -235,6 +246,8 @@ void If_ManStop( If_Man_t * p )
         Vec_IntFreeP( &p->vTtDsds[i] );
     for ( i = 6; i <= Abc_MaxInt(6,p->pPars->nLutSize); i++ )
         Vec_StrFreeP( &p->vTtPerms[i] );
+    for ( i = 6; i <= Abc_MaxInt(6,p->pPars->nLutSize); i++ )
+        Vec_StrFreeP( &p->vTtVars[i] );
     Vec_IntFreeP( &p->vCutData );
     Vec_IntFreeP( &p->vPairRes );
     Vec_StrFreeP( &p->vPairPerms );

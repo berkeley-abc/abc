@@ -270,6 +270,25 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
                 p->nCutsCountAll++;
                 p->nCutsCount[pCut->nLeaves]++;
             }
+            else if ( p->pPars->fUseCofVars )
+            {
+                extern int Abc_TtCheckCondDepTest( word * pTruth, int nVars, int nSuppLim );
+                int iCofVar = -1, truthId = Abc_Lit2Var(pCut->iCutFunc);
+                if ( truthId >= Vec_StrSize(p->vTtVars[pCut->nLeaves]) || Vec_StrEntry(p->vTtVars[pCut->nLeaves], truthId) == (char)-1 )
+                {
+                    while ( truthId >= Vec_StrSize(p->vTtVars[pCut->nLeaves]) )
+                        Vec_StrPush( p->vTtVars[pCut->nLeaves], (char)-1 );
+                    iCofVar = Abc_TtCheckCondDep( If_CutTruthWR(p, pCut), pCut->nLeaves, p->pPars->nLutSize / 2 );
+                    Vec_StrWriteEntry( p->vTtVars[pCut->nLeaves], truthId, (char)iCofVar );
+                }
+                iCofVar = Vec_StrEntry(p->vTtVars[pCut->nLeaves], truthId);
+                assert( iCofVar >= 0 && iCofVar <= (int)pCut->nLeaves );
+                pCut->fUseless = (int)(iCofVar == (int)pCut->nLeaves && pCut->nLeaves > 0);
+                p->nCutsUselessAll += pCut->fUseless;
+                p->nCutsUseless[pCut->nLeaves] += pCut->fUseless;
+                p->nCutsCountAll++;
+                p->nCutsCount[pCut->nLeaves]++;
+            }
         }
         
         // compute the application-specific cost and depth

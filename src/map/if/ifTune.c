@@ -37,14 +37,14 @@ ABC_NAMESPACE_IMPL_START
 
 // network types
 typedef enum { 
-    IF_DSD_NONE = 0,               // 0:  unknown
-    IF_DSD_CONST0,                 // 1:  constant
-    IF_DSD_VAR,                    // 2:  variable
-    IF_DSD_AND,                    // 3:  AND
-    IF_DSD_XOR,                    // 4:  XOR
-    IF_DSD_MUX,                    // 5:  MUX
-    IF_DSD_PRIME                   // 6:  PRIME
-} If_DsdType_t;
+    IFN_DSD_NONE = 0,               // 0:  unknown
+    IFN_DSD_CONST0,                 // 1:  constant
+    IFN_DSD_VAR,                    // 2:  variable
+    IFN_DSD_AND,                    // 3:  AND
+    IFN_DSD_XOR,                    // 4:  XOR
+    IFN_DSD_MUX,                    // 5:  MUX
+    IFN_DSD_PRIME                   // 6:  PRIME
+} Ifn_DsdType_t;
 
 // object types
 static char * Ifn_Symbs[16] = { 
@@ -124,7 +124,7 @@ int Ifn_Prepare( Ifn_Ntk_t * p, word * pTruth, int nVars )
     p->nPars  = p->nObjs;
     for ( i = p->nInps; i < p->nObjs; i++ )
     {
-        if ( p->Nodes[i].Type != IF_DSD_PRIME )
+        if ( p->Nodes[i].Type != IFN_DSD_PRIME )
             continue;
         p->Nodes[i].iFirst = p->nPars;
         p->nPars += (1 << p->Nodes[i].nFanins);
@@ -162,7 +162,7 @@ int Ifn_NtkLutSizeMax( Ifn_Ntk_t * p )
 {
     int i, LutSize = 0;
     for ( i = p->nInps; i < p->nObjs; i++ )
-        if ( p->Nodes[i].Type == IF_DSD_PRIME )
+        if ( p->Nodes[i].Type == IFN_DSD_PRIME )
             LutSize = Abc_MaxInt( LutSize, (int)p->Nodes[i].nFanins );
     return LutSize;
 }
@@ -182,9 +182,150 @@ int Ifn_NtkInputNum( Ifn_Ntk_t * p )
   SeeAlso     []
 
 ***********************************************************************/
+int Ifn_ErrorMessage( const char * format, ...  )
+{
+    char * pMessage;
+    va_list args;
+    va_start( args, format );
+    pMessage = vnsprintf( format, args );
+    va_end( args );
+    printf( "%s", pMessage );
+    ABC_FREE( pMessage );
+    return 0;
+}
+int Inf_ManOpenSymb( char * pStr )
+{
+    if ( pStr[0] == '(' )
+        return 3;
+    if ( pStr[0] == '[' )
+        return 4;
+    if ( pStr[0] == '<' )
+        return 5;
+    if ( pStr[0] == '{' )
+        return 6;
+    return 0;
+}
 int Ifn_ManStrCheck( char * pStr, int * pnInps, int * pnObjs )
 {
-    int i, Marks[32] = {0}, MaxVar = 0, MaxDef = 0, RetValue = 1;
+    int i, nNodes = 0, Marks[32] = {0}, MaxVar = -1, RetValue = 1;
+    for ( i = 0; pStr[i]; i++ )
+    {
+        if ( Inf_ManOpenSymb(pStr+i) )
+            nNodes++;
+        if ( pStr[i] == ';' || 
+             pStr[i] == '(' || pStr[i] == ')' || 
+             pStr[i] == '[' || pStr[i] == ']' || 
+             pStr[i] == '<' || pStr[i] == '>' || 
+             pStr[i] == '{' || pStr[i] == '}' )
+            continue;
+        if ( pStr[i] >= 'A' && pStr[i] <= 'Z' )
+            continue;
+        if ( pStr[i] >= 'a' && pStr[i] <= 'z' )
+        {
+            MaxVar = Abc_MaxInt( MaxVar, (int)(pStr[i] - 'a') );
+            Marks[pStr[i] - 'a'] = 1;
+            continue;
+        }
+        return Ifn_ErrorMessage( "String \"%s\" contains unrecognized symbol \'%c\'.\n", pStr, pStr[i] );
+    }
+    for ( i = 0; i <= MaxVar; i++ )
+        if ( Marks[i] == 0 )
+            return Ifn_ErrorMessage( "String \"%s\" has no symbol \'%c\'.\n", pStr, 'a' + i );
+    *pnInps = MaxVar + 1;
+    *pnObjs = MaxVar + 1 + nNodes;
+    return 1;
+}
+static inline char * Ifn_NtkParseFindClosingParanthesis( char * pStr, char Open, char Close )
+{
+    int Counter = 0;
+    assert( *pStr == Open );
+    for ( ; *pStr; pStr++ )
+    {
+        if ( *pStr == Open )
+            Counter++;
+        if ( *pStr == Close )
+            Counter--;
+        if ( Counter == 0 )
+            return pStr;
+    }
+    return NULL;
+}
+int Ifn_NtkParseInt_rec( char * pStr, Ifn_Ntk_t * p, char ** ppFinal, int * piNode )
+{
+    Ifn_Obj_t * pObj;
+    int nFanins = 0, pFanins[IFN_INS];
+    int Type = Inf_ManOpenSymb( pStr );
+    char * pLim = Ifn_NtkParseFindClosingParanthesis( pStr++, Ifn_Symbs[Type][0], Ifn_Symbs[Type][1] );
+    *ppFinal = NULL;
+    if ( pLim == NULL )
+        return Ifn_ErrorMessage( "For symbol \'%c\' cannot find matching symbol \'%c\'.\n", Ifn_Symbs[Type][0], Ifn_Symbs[Type][1] );
+    while ( pStr < pLim )
+    {
+        assert( nFanins < IFN_INS );
+        if ( pStr[0] >= 'a' && pStr[0] <= 'z' )
+            pFanins[nFanins++] = pStr[0] - 'a', pStr++; 
+        else if ( Inf_ManOpenSymb(pStr) )
+        {
+            if ( !Ifn_NtkParseInt_rec( pStr, p, &pStr, piNode ) )
+                return 0;
+            pFanins[nFanins++] = *piNode - 1;
+        }
+        else
+            return Ifn_ErrorMessage( "Substring \"%s\" contans unrecognized symbol \'%c\'.\n", pStr, pStr[0] );
+    }
+    assert( pStr == pLim );
+    pObj = p->Nodes + (*piNode)++;
+    pObj->Type = Type;
+    assert( pObj->nFanins == 0 );
+    pObj->nFanins = nFanins;
+    memcpy( pObj->Fanins, pFanins, sizeof(int) * nFanins );
+    *ppFinal = pLim + 1;
+    if ( Type == IFN_DSD_MUX && nFanins != 3 )
+        return Ifn_ErrorMessage( "MUX should have exactly three fanins.\n" );
+    return 1;
+}
+int Ifn_NtkParseInt( char * pStr, Ifn_Ntk_t * p )
+{
+    char * pFinal; int iNode;
+    if ( !Ifn_ManStrCheck(pStr, &p->nInps, &p->nObjs) )
+        return 0;
+    if ( p->nInps > IFN_INS )
+        return Ifn_ErrorMessage( "The number of variables (%d) exceeds predefined limit (%d). Recompile with different value of IFN_INS.\n", p->nInps, IFN_INS );
+    assert( p->nInps > 1 && p->nInps < p->nObjs && p->nInps <= IFN_INS && p->nObjs < 2*IFN_INS );
+    if ( !Inf_ManOpenSymb(pStr) )
+        return Ifn_ErrorMessage( "The first symbol should be one of the symbols: (, [, <, {.\n" );
+    iNode = p->nInps;
+    if ( !Ifn_NtkParseInt_rec( pStr, p, &pFinal, &iNode ) )
+        return 0;
+    if ( pFinal[0] && pFinal[0] != ';' )
+        return Ifn_ErrorMessage( "The last symbol should be \';\'.\n" );
+    if ( iNode != p->nObjs )
+        return Ifn_ErrorMessage( "Mismatch in the number of nodes.\n" );
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Ifn_ManStrType2( char * pStr )
+{
+    int i;
+    for ( i = 0; pStr[i]; i++ )
+        if ( pStr[i] == '=' )
+            return 1;
+    return 0;
+}
+int Ifn_ManStrCheck2( char * pStr, int * pnInps, int * pnObjs )
+{
+    int i, Marks[32] = {0}, MaxVar = 0, MaxDef = 0;
     for ( i = 0; pStr[i]; i++ )
     {
         if ( pStr[i] == '=' || pStr[i] == ';' || 
@@ -201,11 +342,8 @@ int Ifn_ManStrCheck( char * pStr, int * pnInps, int * pnObjs )
                 Marks[pStr[i] - 'a'] = 2, MaxDef = Abc_MaxInt(MaxDef, pStr[i] - 'a');
             continue;
         }
-        printf( "String \"%s\" contains unrecognized symbol (%c).\n", pStr, pStr[i] );
-        RetValue = 0;
+        return Ifn_ErrorMessage( "String \"%s\" contains unrecognized symbol \'%c\'.\n", pStr, pStr[i] );
     }
-    if ( !RetValue )
-        return 0;
     for ( i = 0; pStr[i]; i++ )
     {
         if ( pStr[i] == '=' || pStr[i] == ';' || 
@@ -222,43 +360,27 @@ int Ifn_ManStrCheck( char * pStr, int * pnInps, int * pnObjs )
                 Marks[pStr[i] - 'a'] = 1, MaxVar = Abc_MaxInt(MaxVar, pStr[i] - 'a');
             continue;
         }
-        printf( "String \"%s\" contains unrecognized symbol (%c).\n", pStr, pStr[i] );
-        RetValue = 0;
+        return Ifn_ErrorMessage( "String \"%s\" contains unrecognized symbol \'%c\'.\n", pStr, pStr[i] );
     }
-    if ( !RetValue )
-        return 0;
     MaxVar++;
     MaxDef++;
     for ( i = 0; i < MaxDef; i++ )
         if ( Marks[i] == 0 )
-            printf( "String \"%s\" has no symbol (%c).\n", pStr, 'a' + i ), RetValue = 0;
+            return Ifn_ErrorMessage( "String \"%s\" has no symbol \'%c\'.\n", pStr, 'a' + i );
     for ( i = 0; i < MaxVar; i++ )
         if ( Marks[i] == 2 )
-            printf( "String \"%s\" has definition of input variable (%c).\n", pStr, 'a' + i ), RetValue = 0;
+            return Ifn_ErrorMessage( "String \"%s\" has definition of input variable \'%c\'.\n", pStr, 'a' + i );
     for ( i = MaxVar; i < MaxDef; i++ )
         if ( Marks[i] == 1 )
-            printf( "String \"%s\" has no definition for internal variable (%c).\n", pStr, 'a' + i ), RetValue = 0;
-    if ( !RetValue )
-        return 0;
+            return Ifn_ErrorMessage( "String \"%s\" has no definition for internal variable \'%c\'.\n", pStr, 'a' + i );
     *pnInps = MaxVar;
     *pnObjs = MaxDef;
     return 1;
 }
-int Ifn_ErrorMessage( const char * format, ...  )
-{
-    char * pMessage;
-    va_list args;
-    va_start( args, format );
-    pMessage = vnsprintf( format, args );
-    va_end( args );
-    printf( "%s", pMessage );
-    ABC_FREE( pMessage );
-    return 0;
-}
-int Ifn_NtkParseInt( char * pStr, Ifn_Ntk_t * p )
+int Ifn_NtkParseInt2( char * pStr, Ifn_Ntk_t * p )
 {
     int i, k, n, f, nFans, iFan;
-    if ( !Ifn_ManStrCheck(pStr, &p->nInps, &p->nObjs) )
+    if ( !Ifn_ManStrCheck2(pStr, &p->nInps, &p->nObjs) )
         return 0;
     if ( p->nInps > IFN_INS )
         return Ifn_ErrorMessage( "The number of variables (%d) exceeds predefined limit (%d). Recompile with different value of IFN_INS.\n", p->nInps, IFN_INS );
@@ -270,25 +392,25 @@ int Ifn_NtkParseInt( char * pStr, Ifn_Ntk_t * p )
             if ( pStr[k] == 'a' + i && pStr[k+1] == '=' )
                 break;
         if ( pStr[k] == 0 )
-            return Ifn_ErrorMessage( "Cannot find definition of signal %c.\n", 'a' + i );
+            return Ifn_ErrorMessage( "Cannot find definition of signal \'%c\'.\n", 'a' + i );
         if ( pStr[k+2] == '(' )
-            p->Nodes[i].Type = IF_DSD_AND, Next = ')';
+            p->Nodes[i].Type = IFN_DSD_AND, Next = ')';
         else if ( pStr[k+2] == '[' )
-            p->Nodes[i].Type = IF_DSD_XOR, Next = ']';
+            p->Nodes[i].Type = IFN_DSD_XOR, Next = ']';
         else if ( pStr[k+2] == '<' )
-            p->Nodes[i].Type = IF_DSD_MUX, Next = '>';
+            p->Nodes[i].Type = IFN_DSD_MUX, Next = '>';
         else if ( pStr[k+2] == '{' )
-            p->Nodes[i].Type = IF_DSD_PRIME, Next = '}';
+            p->Nodes[i].Type = IFN_DSD_PRIME, Next = '}';
         else 
-            return Ifn_ErrorMessage( "Cannot find openning operation symbol in the defition of of signal %c.\n", 'a' + i );
+            return Ifn_ErrorMessage( "Cannot find openning operation symbol in the defition of of signal \'%c\'.\n", 'a' + i );
         for ( n = k + 3; pStr[n]; n++ )
             if ( pStr[n] == Next )
                 break;
         if ( pStr[n] == 0 )
-            return Ifn_ErrorMessage( "Cannot find closing operation symbol in the defition of of signal %c.\n", 'a' + i );
+            return Ifn_ErrorMessage( "Cannot find closing operation symbol in the defition of of signal \'%c\'.\n", 'a' + i );
         nFans = n - k - 3;
         if ( nFans < 1 || nFans > 8 )
-            return Ifn_ErrorMessage( "Cannot find matching operation symbol in the defition of of signal %c.\n", 'a' + i );
+            return Ifn_ErrorMessage( "Cannot find matching operation symbol in the defition of of signal \'%c\'.\n", 'a' + i );
         for ( f = 0; f < nFans; f++ )
         {
             iFan = pStr[k + 3 + f] - 'a';
@@ -298,8 +420,11 @@ int Ifn_NtkParseInt( char * pStr, Ifn_Ntk_t * p )
         }
         p->Nodes[i].nFanins = nFans;
     }
-    // truth tables
-    Abc_TtElemInit2( p->pTtElems, p->nInps );
+    return 1;
+}
+void Ifn_NtkParseConstraints( char * pStr, Ifn_Ntk_t * p )
+{
+    int i, k;
     // parse constraints
     p->nConstr = 0;
     for ( i = 0; i < p->nInps; i++ )
@@ -311,16 +436,264 @@ int Ifn_NtkParseInt( char * pStr, Ifn_Ntk_t * p )
             }
 //    if ( p->nConstr )
 //        printf( "Total constraints = %d\n", p->nConstr );
-    return 1;
 }
+
 Ifn_Ntk_t * Ifn_NtkParse( char * pStr )
 {
     Ifn_Ntk_t * p = ABC_CALLOC( Ifn_Ntk_t, 1 );
-    if ( Ifn_NtkParseInt( pStr, p ) )
-        return p;
-    ABC_FREE( p );
-    return NULL;
+    if ( Ifn_ManStrType2(pStr) )
+    {
+        if ( !Ifn_NtkParseInt2( pStr, p ) )
+        {
+            ABC_FREE( p );
+            return NULL;
+        }
+    }
+    else
+    {
+        if ( !Ifn_NtkParseInt( pStr, p ) )
+        {
+            ABC_FREE( p );
+            return NULL;
+        }
+    }
+    Ifn_NtkParseConstraints( pStr, p );
+    Abc_TtElemInit2( p->pTtElems, p->nInps );
+    printf( "Finished parsing: " ); Ifn_NtkPrint(p);
+    return p;
 }
+
+
+
+/**Function*************************************************************
+
+  Synopsis    [Derive AIG.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Gia_Man_t * Ifn_ManStrFindModel( Ifn_Ntk_t * p )
+{
+    Gia_Man_t * pNew, * pTemp;
+    int i, k, iLit, * pVarMap = ABC_FALLOC( int, p->nParsVIni );
+    pNew = Gia_ManStart( 1000 );
+    pNew->pName = Abc_UtilStrsav( "model" );
+    Gia_ManHashStart( pNew );
+    for ( i = 0; i < p->nInps; i++ )
+        pVarMap[i] = Gia_ManAppendCi(pNew);
+    for ( i = p->nObjs; i < p->nParsVIni; i++ )
+        pVarMap[i] = Gia_ManAppendCi(pNew);
+    for ( i = p->nInps; i < p->nObjs; i++ )
+    {
+        int Type = p->Nodes[i].Type;
+        int nFans = p->Nodes[i].nFanins;
+        int * pFans = p->Nodes[i].Fanins;
+        int iFanin = p->Nodes[i].iFirst;
+        if ( Type == IFN_DSD_AND )
+        {
+            iLit = 1;
+            for ( k = 0; k < nFans; k++ )
+                iLit = Gia_ManHashAnd( pNew, iLit, pVarMap[pFans[k]] );
+            pVarMap[i] = iLit;
+        }
+        else if ( Type == IFN_DSD_XOR )
+        {
+            iLit = 0;
+            for ( k = 0; k < nFans; k++ )
+                iLit = Gia_ManHashXor( pNew, iLit, pVarMap[pFans[k]] );
+            pVarMap[i] = iLit;
+        }
+        else if ( Type == IFN_DSD_MUX )
+        {
+            assert( nFans == 3 );
+            pVarMap[i] = Gia_ManHashMux( pNew, pVarMap[pFans[0]], pVarMap[pFans[1]], pVarMap[pFans[2]] );
+        }
+        else if ( Type == IFN_DSD_PRIME )
+        {
+            int n, Step, pVarsData[256];
+            int nMints = (1 << nFans);
+            assert( nFans >= 1 && nFans <= 8 );
+            for ( k = 0; k < nMints; k++ )
+                pVarsData[k] = pVarMap[iFanin + k];
+            for ( Step = 1, k = 0; k < nFans; k++, Step <<= 1 )
+                for ( n = 0; n < nMints; n += Step << 1 )
+                    pVarsData[n] = Gia_ManHashMux( pNew, pVarMap[pFans[k]], pVarsData[n+Step], pVarsData[n] );
+            assert( Step == nMints );
+            pVarMap[i] = pVarsData[0];
+        }
+        else assert( 0 );
+    }
+    Gia_ManAppendCo( pNew, pVarMap[p->nObjs-1] );
+    ABC_FREE( pVarMap );
+    pNew = Gia_ManCleanup( pTemp = pNew );
+    Gia_ManStop( pTemp );
+    assert( Gia_ManPiNum(pNew) == p->nParsVIni - (p->nObjs - p->nInps) );
+    assert( Gia_ManPoNum(pNew) == 1 );
+    return pNew;
+}
+// compute cofactors w.r.t. the first nIns variables
+Gia_Man_t * Ifn_ManStrFindCofactors( int nIns, Gia_Man_t * p )
+{
+    Gia_Man_t * pNew, * pTemp; 
+    Gia_Obj_t * pObj;
+    int i, m, nMints = nIns;
+    pNew = Gia_ManStart( Gia_ManObjNum(p) );
+    pNew->pName = Abc_UtilStrsav( p->pName );
+    Gia_ManHashAlloc( pNew );
+    Gia_ManConst0(p)->Value = 0;
+    Gia_ManForEachCi( p, pObj, i )
+        if ( i >= nIns )
+            pObj->Value = Gia_ManAppendCi( pNew );
+    for ( m = 0; m < nMints; m++ )
+    {
+        Gia_ManForEachCi( p, pObj, i )
+            if ( i < nIns )
+                pObj->Value = ((m >> i) & 1);
+        Gia_ManForEachAnd( p, pObj, i )
+            pObj->Value = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+        Gia_ManForEachPo( p, pObj, i )
+            pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
+    }
+    pNew = Gia_ManCleanup( pTemp = pNew );
+    Gia_ManStop( pTemp );
+    return pNew;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Derive SAT solver.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline Cnf_Dat_t * Cnf_DeriveGiaRemapped( Gia_Man_t * p )
+{
+    Cnf_Dat_t * pCnf;
+    Aig_Man_t * pAig = Gia_ManToAigSimple( p );
+    pAig->nRegs = 0;
+    pCnf = Cnf_Derive( pAig, Aig_ManCoNum(pAig) );
+    Aig_ManStop( pAig );
+    return pCnf;
+}
+sat_solver * Ifn_ManStrFindSolver( Gia_Man_t * p, Vec_Int_t ** pvPiVars, Vec_Int_t ** pvPoVars )
+{
+    sat_solver * pSat;
+    Gia_Obj_t * pObj;
+    Cnf_Dat_t * pCnf;
+    int i;    
+    pCnf = Cnf_DeriveGiaRemapped( p );
+    // start the SAT solver
+    pSat = sat_solver_new();
+    sat_solver_setnvars( pSat, pCnf->nVars );
+    // add timeframe clauses
+    for ( i = 0; i < pCnf->nClauses; i++ )
+        if ( !sat_solver_addclause( pSat, pCnf->pClauses[i], pCnf->pClauses[i+1] ) )
+            assert( 0 );
+    // inputs/outputs
+    *pvPiVars = Vec_IntAlloc( Gia_ManPiNum(p) );
+    Gia_ManForEachCi( p, pObj, i )
+        Vec_IntPush( *pvPiVars, pCnf->pVarNums[Gia_ObjId(p, pObj)] );
+    *pvPoVars = Vec_IntAlloc( Gia_ManPoNum(p) );
+    Gia_ManForEachCo( p, pObj, i )
+        Vec_IntPush( *pvPoVars, pCnf->pVarNums[Gia_ObjId(p, pObj)] );
+    Cnf_DataFree( pCnf );
+    return pSat;
+}
+sat_solver * Ifn_ManSatBuild( Ifn_Ntk_t * p, Vec_Int_t ** pvPiVars, Vec_Int_t ** pvPoVars )
+{
+    Gia_Man_t * p1, * p2;
+    sat_solver * pSat = NULL;
+    *pvPiVars = *pvPoVars = NULL;
+    p1 = Ifn_ManStrFindModel( p );
+//    Gia_AigerWrite( p1, "satbuild.aig", 0, 0 );
+    p2 = Ifn_ManStrFindCofactors( p->nInps, p1 );
+    Gia_ManStop( p1 );
+//    Gia_AigerWrite( p2, "satbuild2.aig", 0, 0 );
+    pSat = Ifn_ManStrFindSolver( p2, pvPiVars, pvPoVars );
+    Gia_ManStop( p2 );
+    return pSat;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Ifn_ManSatPrintPerm( char * pPerms, int nVars )
+{
+    int i;
+    for ( i = 0; i < nVars; i++ )
+        printf( "%c", 'a' + pPerms[i] );
+    printf( "\n" );
+}
+int Ifn_ManSatCheckOne( sat_solver * pSat, Vec_Int_t * vPoVars, word * pTruth, int nVars, int * pPerm, int nVarsAll, Vec_Int_t * vLits )
+{
+    int v, Value, m, mNew, nMints = (1 << nVars);
+    assert( (1 << nVarsAll) == Vec_IntSize(vPoVars) );
+    assert( nVars <= nVarsAll );
+    // remap minterms
+    Vec_IntFill( vLits, Vec_IntSize(vPoVars), -1 );
+    for ( m = 0; m < nMints; m++ )
+    {
+        mNew = 0;
+        for ( v = 0; v < nVarsAll; v++ )
+        {
+            assert( pPerm[v] < nVars );
+            if ( ((m >> pPerm[v]) & 1) )
+                mNew |= (1 << v);
+        }
+        assert( Vec_IntEntry(vLits, mNew) == -1 );
+        Vec_IntWriteEntry( vLits, mNew, Abc_TtGetBit(pTruth, m) );
+    }
+    // find assumptions
+    v = 0;
+    Vec_IntForEachEntry( vLits, Value, m )
+        if ( Value >= 0 )
+            Vec_IntWriteEntry( vLits, v++, Abc_Var2Lit(Vec_IntEntry(vPoVars, m), !Value) );
+    Vec_IntShrink( vLits, v );
+    // run SAT solver
+    Value = sat_solver_solve( pSat, Vec_IntArray(vLits), Vec_IntArray(vLits) + Vec_IntSize(vLits), 0, 0, 0, 0 );
+    return (int)(Value == l_True);
+}
+void Ifn_ManSatDeriveOne( sat_solver * pSat, Vec_Int_t * vPiVars, Vec_Int_t * vValues )
+{
+    int i, iVar;
+    Vec_IntClear( vValues );
+    Vec_IntForEachEntry( vPiVars, iVar, i )
+        Vec_IntPush( vValues, sat_solver_var_value(pSat, iVar) );
+}
+int Ifn_ManSatFindCofigBits( sat_solver * pSat, Vec_Int_t * vPiVars, Vec_Int_t * vPoVars, word * pTruth, int nVars, word Perm, Vec_Int_t * vValues )
+{
+    // extract permutation
+    int RetValue, i, pPerm[IF_MAX_FUNC_LUTSIZE];
+    for ( i = 0; i < Vec_IntSize(vPiVars); i++ )
+    {
+        pPerm[i] = Abc_TtGetHex( &Perm, i );
+        assert( pPerm[i] < nVars );
+    }
+    // perform SAT check 
+    RetValue = Ifn_ManSatCheckOne( pSat, vPoVars, pTruth, nVars, pPerm, Vec_IntSize(vPiVars), vValues );
+    Vec_IntClear( vValues );
+    if ( RetValue == 0 )
+        return 0;
+    Ifn_ManSatDeriveOne( pSat, vPiVars, vValues );
+    return 1;
+}
+
 
 /**Function*************************************************************
 
@@ -353,24 +726,24 @@ word * Ifn_NtkDeriveTruth( Ifn_Ntk_t * p, int * pValues )
         int nFans = p->Nodes[i].nFanins;
         int * pFans = p->Nodes[i].Fanins;
         word * pTruth = Ifn_ObjTruth( p, i );
-        if ( p->Nodes[i].Type == IF_DSD_AND )
+        if ( p->Nodes[i].Type == IFN_DSD_AND )
         {
             Abc_TtFill( pTruth, p->nWords );
             for ( f = 0; f < nFans; f++ )
                 Abc_TtAnd( pTruth, pTruth, Ifn_ObjTruth(p, pFans[f]), p->nWords, 0 );
         }
-        else if ( p->Nodes[i].Type == IF_DSD_XOR )
+        else if ( p->Nodes[i].Type == IFN_DSD_XOR )
         {
             Abc_TtClear( pTruth, p->nWords );
             for ( f = 0; f < nFans; f++ )
                 Abc_TtXor( pTruth, pTruth, Ifn_ObjTruth(p, pFans[f]), p->nWords, 0 );
         }
-        else if ( p->Nodes[i].Type == IF_DSD_MUX )
+        else if ( p->Nodes[i].Type == IFN_DSD_MUX )
         {
             assert( nFans == 3 );
             Abc_TtMux( pTruth, Ifn_ObjTruth(p, pFans[0]), Ifn_ObjTruth(p, pFans[1]), Ifn_ObjTruth(p, pFans[2]), p->nWords );
         }
-        else if ( p->Nodes[i].Type == IF_DSD_PRIME )
+        else if ( p->Nodes[i].Type == IFN_DSD_PRIME )
         {
             int nValues = (1 << nFans);
             word * pTemp = Ifn_ObjTruth(p, p->nObjs);
@@ -573,7 +946,7 @@ int Ifn_NtkAddClauses( Ifn_Ntk_t * p, int * pValues, sat_solver * pSat )
     {
         int nFans = p->Nodes[i].nFanins;
         int * pFans = p->Nodes[i].Fanins;
-        if ( p->Nodes[i].Type == IF_DSD_AND )
+        if ( p->Nodes[i].Type == IFN_DSD_AND )
         {
             nLits = 0;
             pLits[nLits++] = Abc_Var2Lit( p->Nodes[i].Var, 0 );
@@ -590,7 +963,7 @@ int Ifn_NtkAddClauses( Ifn_Ntk_t * p, int * pValues, sat_solver * pSat )
             if ( !Ifn_AddClause( pSat, pLits, pLits + nLits ) )
                 return 0;
         }
-        else if ( p->Nodes[i].Type == IF_DSD_XOR )
+        else if ( p->Nodes[i].Type == IFN_DSD_XOR )
         {
             int m, nMints = (1 << (nFans+1));
             for ( m = 0; m < nMints; m++ )
@@ -609,7 +982,7 @@ int Ifn_NtkAddClauses( Ifn_Ntk_t * p, int * pValues, sat_solver * pSat )
                     return 0;
             }
         }
-        else if ( p->Nodes[i].Type == IF_DSD_MUX )
+        else if ( p->Nodes[i].Type == IFN_DSD_MUX )
         {
             pLits[0] = Abc_Var2Lit( p->Nodes[i].Var, 0 );
             pLits[1] = Abc_Var2Lit( p->Nodes[pFans[0]].Var, 1 ); // ctrl
@@ -635,7 +1008,7 @@ int Ifn_NtkAddClauses( Ifn_Ntk_t * p, int * pValues, sat_solver * pSat )
             if ( !Ifn_AddClause( pSat, pLits, pLits + 3 ) )
                 return 0;
         }
-        else if ( p->Nodes[i].Type == IF_DSD_PRIME )
+        else if ( p->Nodes[i].Type == IFN_DSD_PRIME )
         {
             int nValues = (1 << nFans);
             int iParStart = p->Nodes[i].iFirst;
@@ -704,7 +1077,7 @@ void Ifn_SatPrintConfig( Ifn_Ntk_t * p, sat_solver * pSat )
     for ( v = p->nObjs; v < p->nPars; v++ )
     {
         for ( i = p->nInps; i < p->nObjs; i++ )
-            if ( p->Nodes[i].Type == IF_DSD_PRIME && (int)p->Nodes[i].iFirst == v )
+            if ( p->Nodes[i].Type == IFN_DSD_PRIME && (int)p->Nodes[i].iFirst == v )
                 break;
         if ( i < p->nObjs )
             printf( " " );

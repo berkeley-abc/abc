@@ -15309,7 +15309,7 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
             pPars->fEnableCheck07 ^= 1;
             break;
         case 'i':
-            pPars->fEnableCheck08 ^= 1;
+            pPars->fUseCofVars ^= 1;
             break;
         case 'k':
             pPars->fUseDsdTune ^= 1;
@@ -15376,7 +15376,7 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
         pPars->fCutMin = 1;
     }
 
-    if ( pPars->fEnableCheck07 + pPars->fEnableCheck08 + pPars->fUseDsdTune + (pPars->pLutStruct != NULL) > 1 )
+    if ( pPars->fEnableCheck07 + pPars->fUseCofVars + pPars->fUseDsdTune + (pPars->pLutStruct != NULL) > 1 )
     {
         Abc_Print( -1, "Only one additional check can be performed at the same time.\n" );
         return 1;
@@ -15391,14 +15391,13 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
         pPars->pFuncCell = If_CutPerformCheck07;
         pPars->fCutMin = 1;
     }
-    if ( pPars->fEnableCheck08 )
+    if ( pPars->fUseCofVars )
     {
-        if ( pPars->nLutSize < 6 || pPars->nLutSize > 8 )
+        if ( !(pPars->nLutSize & 1) )
         {
-            Abc_Print( -1, "This feature only works for {6,7,8}-LUTs.\n" );
+            Abc_Print( -1, "This feature only works for odd-sized LUTs.\n" );
             return 1;
         }
-        pPars->pFuncCell = If_CutPerformCheck08;
         pPars->fCutMin = 1;
     }
     if ( pPars->fUseDsdTune )
@@ -15610,7 +15609,7 @@ usage:
     Abc_Print( -2, "\t-y       : toggles delay optimization with recorded library [default = %s]\n", pPars->fUserRecLib? "yes": "no" );
     Abc_Print( -2, "\t-o       : toggles using buffers to decouple combinational outputs [default = %s]\n", pPars->fUseBuffs? "yes": "no" );
     Abc_Print( -2, "\t-j       : toggles enabling additional check [default = %s]\n", pPars->fEnableCheck07? "yes": "no" );
-    Abc_Print( -2, "\t-i       : toggles enabling additional check [default = %s]\n", pPars->fEnableCheck08? "yes": "no" );
+    Abc_Print( -2, "\t-i       : toggles using cofactoring variables [default = %s]\n", pPars->fUseCofVars? "yes": "no" );
     Abc_Print( -2, "\t-k       : toggles matching based on precomputed DSD manager [default = %s]\n", pPars->fUseDsdTune? "yes": "no" );
     Abc_Print( -2, "\t-t       : toggles optimizing average rather than maximum level [default = %s]\n", pPars->fDoAverage? "yes": "no" );
     Abc_Print( -2, "\t-n       : toggles computing DSDs of the cut functions [default = %s]\n", pPars->fUseDsd? "yes": "no" );
@@ -30984,7 +30983,7 @@ int Abc_CommandAbc9If( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     pPars->pLutLib = (If_LibLut_t *)pAbc->pLibLut;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "KCFAGRDEWSTqalepmrsdbgxyojikfuztncvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "KCFAGRDEWSTqalepmrsdbgxyojfuikztncvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -31159,17 +31158,17 @@ int Abc_CommandAbc9If( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'j':
             pPars->fEnableCheck07 ^= 1;
             break;
-        case 'i':
-            pPars->fEnableCheck08 ^= 1;
-            break;
-        case 'k':
-            pPars->fUseDsdTune ^= 1;
-            break;
         case 'f':
             pPars->fEnableCheck75 ^= 1;
             break;
         case 'u':
             pPars->fEnableCheck75u ^= 1;
+            break;
+        case 'i':
+            pPars->fUseCofVars ^= 1;
+            break;
+        case 'k':
+            pPars->fUseDsdTune ^= 1;
             break;
         case 'z':
             pPars->fDeriveLuts ^= 1;
@@ -31247,7 +31246,7 @@ int Abc_CommandAbc9If( Abc_Frame_t * pAbc, int argc, char ** argv )
         pPars->fCutMin = 1;
     }
 
-    if ( pPars->fEnableCheck07 + pPars->fEnableCheck08 + pPars->fUseDsdTune + pPars->fEnableCheck75 + pPars->fEnableCheck75u + (pPars->pLutStruct != NULL) > 1 )
+    if ( pPars->fEnableCheck07 + pPars->fUseCofVars + pPars->fUseDsdTune + pPars->fEnableCheck75 + pPars->fEnableCheck75u + (pPars->pLutStruct != NULL) > 1 )
     {
         Abc_Print( -1, "Only one additional check can be performed at the same time.\n" );
         return 1;
@@ -31262,14 +31261,13 @@ int Abc_CommandAbc9If( Abc_Frame_t * pAbc, int argc, char ** argv )
         pPars->pFuncCell = If_CutPerformCheck07;
         pPars->fCutMin = 1;
     }
-    if ( pPars->fEnableCheck08 )
+    if ( pPars->fUseCofVars )
     {
-        if ( pPars->nLutSize < 6 || pPars->nLutSize > 8 )
+        if ( !(pPars->nLutSize & 1) )
         {
-            Abc_Print( -1, "This feature only works for {6,7,8}-LUTs.\n" );
+            Abc_Print( -1, "This feature only works for odd-sized LUTs.\n" );
             return 1;
         }
-        pPars->pFuncCell = If_CutPerformCheck08;
         pPars->fCutMin = 1;
     }
     if ( pPars->fUseDsdTune )
@@ -31439,7 +31437,7 @@ usage:
         sprintf(LutSize, "library" );
     else
         sprintf(LutSize, "%d", pPars->nLutSize );
-    Abc_Print( -2, "usage: &if [-KCFAGRT num] [-DEW float] [-S str] [-qarlepmsdbgxyojikfuztncvh]\n" );
+    Abc_Print( -2, "usage: &if [-KCFAGRT num] [-DEW float] [-S str] [-qarlepmsdbgxyojfuikztncvh]\n" );
     Abc_Print( -2, "\t           performs FPGA technology mapping of the network\n" );
     Abc_Print( -2, "\t-K num   : the number of LUT inputs (2 < num < %d) [default = %s]\n", IF_MAX_LUTSIZE+1, LutSize );
     Abc_Print( -2, "\t-C num   : the max number of priority cuts (0 < num < 2^12) [default = %d]\n", pPars->nCutsMax );
@@ -31467,9 +31465,9 @@ usage:
     Abc_Print( -2, "\t-y       : toggles delay optimization with recorded library [default = %s]\n", pPars->fUserRecLib? "yes": "no" );
     Abc_Print( -2, "\t-o       : toggles using buffers to decouple combinational outputs [default = %s]\n", pPars->fUseBuffs? "yes": "no" );
     Abc_Print( -2, "\t-j       : toggles enabling additional check [default = %s]\n", pPars->fEnableCheck07? "yes": "no" );
-    Abc_Print( -2, "\t-i       : toggles enabling additional check [default = %s]\n", pPars->fEnableCheck08? "yes": "no" );
     Abc_Print( -2, "\t-f       : toggles enabling additional check [default = %s]\n", pPars->fEnableCheck75? "yes": "no" );
     Abc_Print( -2, "\t-u       : toggles enabling additional check [default = %s]\n", pPars->fEnableCheck75u? "yes": "no" );
+    Abc_Print( -2, "\t-i       : toggles using cofactoring variables [default = %s]\n", pPars->fUseCofVars? "yes": "no" );
     Abc_Print( -2, "\t-k       : toggles matching based on precomputed DSD manager [default = %s]\n", pPars->fUseDsdTune? "yes": "no" );
     Abc_Print( -2, "\t-z       : toggles deriving LUTs when mapping into LUT structures [default = %s]\n", pPars->fDeriveLuts? "yes": "no" );
     Abc_Print( -2, "\t-t       : toggles optimizing average rather than maximum level [default = %s]\n", pPars->fDoAverage? "yes": "no" );
@@ -32255,7 +32253,7 @@ usage:
     Abc_Print( -2, "\t-L num   : the fanout limit for coarsening XOR/MUX (num >= 2) [default = %d]\n", pPars->nCoarseLimit );
     Abc_Print( -2, "\t-E num   : the area/edge tradeoff parameter (0 <= num <= 100) [default = %d]\n", pPars->nAreaTuner );
     Abc_Print( -2, "\t-D num   : sets the delay constraint for the mapping [default = %s]\n", Buffer );
-    Abc_Print( -2, "\t-M num   : LUT size for the cofactoring (0 <= num <= 100) [default = %d]\n", pPars->nLutSizeMux );
+    Abc_Print( -2, "\t-M num   : LUT size when cofactoring is performed (0 <= num <= 100) [default = %d]\n", pPars->nLutSizeMux );
 //    Abc_Print( -2, "\t-a       : toggles area-oriented mapping [default = %s]\n", pPars->fAreaOnly? "yes": "no" );
     Abc_Print( -2, "\t-e       : toggles edge vs node minimization [default = %s]\n", pPars->fOptEdge? "yes": "no" );
     Abc_Print( -2, "\t-k       : toggles coarsening the subject graph [default = %s]\n", pPars->fCoarsen? "yes": "no" );
