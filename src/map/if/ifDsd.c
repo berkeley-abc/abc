@@ -89,6 +89,7 @@ struct If_DsdMan_t_
     Gia_Man_t *    pTtGia;         // GIA to represent truth tables
     Vec_Int_t *    vCover;         // temporary memory
     void *         pSat;           // SAT solver
+    int            nObjsPrev;      // previous number of objects
     int            fNewAsUseless;  // set new as useless
     int            nUniqueHits;    // statistics
     int            nUniqueMisses;  // statistics
@@ -127,13 +128,15 @@ static inline void          If_DsdVecObjClearMark( Vec_Ptr_t * p, int iObj )    
 
 #define If_DsdVecForEachObj( vVec, pObj, i )                \
     Vec_PtrForEachEntry( If_DsdObj_t *, vVec, pObj, i )
-#define If_DsdVecForEachObjVec( vNodes, vVec, pObj, i )      \
+#define If_DsdVecForEachObjStart( vVec, pObj, i, Start )    \
+    Vec_PtrForEachEntryStart( If_DsdObj_t *, vVec, pObj, i, Start )
+#define If_DsdVecForEachObjVec( vNodes, vVec, pObj, i )     \
     for ( i = 0; (i < Vec_IntSize(vNodes)) && ((pObj) = If_DsdVecObj(vVec, Vec_IntEntry(vNodes,i))); i++ )
 #define If_DsdVecForEachNode( vVec, pObj, i )               \
     Vec_PtrForEachEntryStart( If_DsdObj_t *, vVec, pObj, i, 2 )
 #define If_DsdObjForEachFanin( vVec, pObj, pFanin, i )      \
     for ( i = 0; (i < If_DsdObjFaninNum(pObj)) && ((pFanin) = If_DsdObjFanin(vVec, pObj, i)); i++ )
-#define If_DsdObjForEachFaninLit( vVec, pObj, iLit, i )      \
+#define If_DsdObjForEachFaninLit( vVec, pObj, iLit, i )     \
     for ( i = 0; (i < If_DsdObjFaninNum(pObj)) && ((iLit) = If_DsdObjFaninLit(pObj, i)); i++ )
 
 extern int Kit_TruthToGia( Gia_Man_t * pMan, unsigned * pTruth, int nVars, Vec_Int_t * vMemory, Vec_Int_t * vLeaves, int fHash );
@@ -183,6 +186,7 @@ int If_DsdManReadMark( If_DsdMan_t * p, int iDsd )
 }
 void If_DsdManSetNewAsUseless( If_DsdMan_t * p )
 {
+    p->nObjsPrev = If_DsdManObjNum(p);
     p->fNewAsUseless = 1;
 }
 
@@ -2379,6 +2383,8 @@ void Id_DsdManTuneStr1( If_DsdMan_t * p, char * pStruct, int nConfls, int fVerbo
     abctime clk = Abc_Clock();
     // parse the structure
     Ifn_Ntk_t * pNtk = Ifn_NtkParse( pStruct );
+    if ( pNtk == NULL )
+        return;
     if ( If_DsdManVarNum(p) > Ifn_NtkInputNum(pNtk) )
     {
         printf( "The support of DSD manager (%d) exceeds the support of the structure (%d).\n", If_DsdManVarNum(p), Ifn_NtkInputNum(pNtk) );
@@ -2395,11 +2401,14 @@ void Id_DsdManTuneStr1( If_DsdMan_t * p, char * pStruct, int nConfls, int fVerbo
         Ifn_NtkPrint( pNtk );
         printf( "Largest LUT size = %d.\n", LutSize );
     }
+    if ( p->nObjsPrev > 0 )
+        printf( "Starting the tuning process from object %d (out of %d).\n", p->nObjsPrev, Vec_PtrSize(&p->vObjs) );
     // clean the attributes
     If_DsdVecForEachObj( &p->vObjs, pObj, i )
-        pObj->fMark = 0;
+        if ( i >= p->nObjsPrev )
+            pObj->fMark = 0;
     pProgress = Extra_ProgressBarStart( stdout, Vec_PtrSize(&p->vObjs) );
-    If_DsdVecForEachObj( &p->vObjs, pObj, i )
+    If_DsdVecForEachObjStart( &p->vObjs, pObj, i, p->nObjsPrev )
     {
         Extra_ProgressBarUpdate( pProgress, i, NULL );
         nVars = If_DsdObjSuppSize(pObj);
@@ -2416,6 +2425,7 @@ void Id_DsdManTuneStr1( If_DsdMan_t * p, char * pStruct, int nConfls, int fVerbo
         if ( Value == 0 )
             If_DsdVecObjSetMark( &p->vObjs, i );
     }
+    p->nObjsPrev = 0;
     Extra_ProgressBarStop( pProgress );
     printf( "Finished matching %d functions. ", Vec_PtrSize(&p->vObjs) );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
@@ -2519,9 +2529,12 @@ void Id_DsdManTuneStr( If_DsdMan_t * p, char * pStruct, int nConfls, int nProcs,
         printf( "Largest LUT size = %d.\n", LutSize );
     }
     ABC_FREE( pNtk );
+    if ( p->nObjsPrev > 0 )
+        printf( "Starting the tuning process from object %d (out of %d).\n", p->nObjsPrev, Vec_PtrSize(&p->vObjs) );
     // clean the attributes
     If_DsdVecForEachObj( &p->vObjs, pObj, i )
-        pObj->fMark = 0;
+        if ( i >= p->nObjsPrev )
+            pObj->fMark = 0;
     pProgress = Extra_ProgressBarStart( stdout, Vec_PtrSize(&p->vObjs) );
 
     // perform concurrent solving
@@ -2529,7 +2542,7 @@ void Id_DsdManTuneStr( If_DsdMan_t * p, char * pStruct, int nConfls, int nProcs,
         pthread_t WorkerThread[PAR_THR_MAX];
         Ifn_ThData_t ThData[PAR_THR_MAX];
         abctime clk, clkUsed = 0;
-        int status, fRunning = 1, iCurrentObj = 0;
+        int status, fRunning = 1, iCurrentObj = p->nObjsPrev;
         // start the threads
         for ( i = 0; i < nProcs; i++ )
         {
@@ -2605,6 +2618,7 @@ void Id_DsdManTuneStr( If_DsdMan_t * p, char * pStruct, int nConfls, int nProcs,
         }
     }
 
+    p->nObjsPrev = 0;
     Extra_ProgressBarStop( pProgress );
     printf( "Finished matching %d functions. ", Vec_PtrSize(&p->vObjs) );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );

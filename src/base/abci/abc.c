@@ -15409,9 +15409,9 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
             Abc_Print( -1, "DSD manager is not available.\n" );
             return 1;
         }
-        if ( pPars->nLutSize > If_DsdManLutSize(pDsdMan) )
+        if ( pPars->nLutSize > If_DsdManVarNum(pDsdMan) )
         {
-            Abc_Print( -1, "LUT size (%d) is more than the number of variables in the DSD manager (%d).\n", pPars->nLutSize, If_DsdManLutSize(pDsdMan) );
+            Abc_Print( -1, "LUT size (%d) is more than the number of variables in the DSD manager (%d).\n", pPars->nLutSize, If_DsdManVarNum(pDsdMan) );
             return 1;
         }
         pPars->fCutMin = 1;
@@ -31280,9 +31280,9 @@ int Abc_CommandAbc9If( Abc_Frame_t * pAbc, int argc, char ** argv )
             Abc_Print( -1, "DSD manager is not available.\n" );
             return 1;
         }
-        if ( pPars->nLutSize > If_DsdManLutSize(pDsdMan) )
+        if ( pPars->nLutSize > If_DsdManVarNum(pDsdMan) )
         {
-            Abc_Print( -1, "LUT size (%d) is more than the number of variables in the DSD manager (%d).\n", pPars->nLutSize, If_DsdManLutSize(pDsdMan) );
+            Abc_Print( -1, "LUT size (%d) is more than the number of variables in the DSD manager (%d).\n", pPars->nLutSize, If_DsdManVarNum(pDsdMan) );
             return 1;
         }
         pPars->fCutMin = 1;

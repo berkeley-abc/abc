@@ -807,6 +807,8 @@ void Ifn_NtkRead()
 //    char * pStr = "g=<abc>;h=<ade>;i={fgh};";
     char * pStr = "i=<abc>;j=(def);k=[gh];l={ijk};";
     Ifn_Ntk_t * p = Ifn_NtkParse( pStr );
+    if ( p == NULL )
+        return;
     Ifn_NtkPrint( p );
     Dau_DsdPrintFromTruth( pTruth, nVars );
     // get the given function
