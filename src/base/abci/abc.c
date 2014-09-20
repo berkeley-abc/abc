@@ -386,6 +386,7 @@ static int Abc_CommandAbc9Embed              ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandAbc9Sopb               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Dsdb               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Flow               ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9Flow2              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9If                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Iff                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9If2                ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -977,6 +978,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "ABC9",         "&sopb",         Abc_CommandAbc9Sopb,         0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&dsdb",         Abc_CommandAbc9Dsdb,         0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&flow",         Abc_CommandAbc9Flow,         0 );
+    Cmd_CommandAdd( pAbc, "ABC9",         "&flow2",        Abc_CommandAbc9Flow2,        0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&if",           Abc_CommandAbc9If,           0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&iff",          Abc_CommandAbc9Iff,          0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&if2",          Abc_CommandAbc9If2,          0 );
@@ -25652,8 +25654,7 @@ static inline int Gia_ManCompareWithBest( Gia_Man_t * pBest, Gia_Man_t * p, int 
          Gia_ManRegNum(pBest) != Gia_ManRegNum(p) ||
          strcmp(Gia_ManName(pBest), Gia_ManName(p)) ||
         (*pnBestLevels > nCurLevels) ||
-        (*pnBestLevels == nCurLevels && *pnBestLuts > nCurLuts) ||
-        (*pnBestLevels == nCurLevels && *pnBestLuts == nCurLuts && *pnBestEdges > nCurEdges) )
+        (*pnBestLevels == nCurLevels && 2*(*pnBestLuts) + *pnBestEdges > 2*nCurLuts + nCurEdges) )
     {
         *pnBestLuts = nCurLuts;
         *pnBestEdges = nCurEdges;
@@ -30884,14 +30885,12 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9Flow( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern void Gia_ManPerformFlow( int fIsMapped, int nAnds, int nLevels, int nLutSize, int nCutNum, int nRelaxRatio, int fVerbose );
-//    Gia_Man_t * pTemp;
-    int nLutSize    = 4;
-    int nCutNum     = 8;
-    int nRelaxRatio = 0;
-    int c, fVerbose = 0;
+    extern void Gia_ManPerformFlow( int fIsMapped, int nAnds, int nLevels, int nLutSize, int nCutNum, int fVerbose );
+    int nLutSize    =  6;
+    int nCutNum     =  8;
+    int c, fVerbose =  0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "KCRvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "KCvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -30917,17 +30916,6 @@ int Abc_CommandAbc9Flow( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( nCutNum < 0 )
                 goto usage;
             break;
-        case 'R':
-            if ( globalUtilOptind >= argc )
-            {
-                Abc_Print( -1, "Command line switch \"-R\" should be followed by an integer.\n" );
-                goto usage;
-            }
-            nRelaxRatio = atoi(argv[globalUtilOptind]);
-            globalUtilOptind++;
-            if ( nRelaxRatio < 0 )
-                goto usage;
-            break;
         case 'v':
             fVerbose ^= 1;
             break;
@@ -30942,15 +30930,85 @@ int Abc_CommandAbc9Flow( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Abc_CommandAbc9Flow(): There is no AIG.\n" );
         return 1;
     }
-    Gia_ManPerformFlow( Gia_ManHasMapping(pAbc->pGia), Gia_ManAndNum(pAbc->pGia), Gia_ManLevelNum(pAbc->pGia), nLutSize, nCutNum, nRelaxRatio, fVerbose );
+    Gia_ManPerformFlow( Gia_ManHasMapping(pAbc->pGia), Gia_ManAndNum(pAbc->pGia), Gia_ManLevelNum(pAbc->pGia), nLutSize, nCutNum, fVerbose );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &flow [-KCR num] [-vh]\n" );
+    Abc_Print( -2, "usage: &flow [-KC num] [-vh]\n" );
     Abc_Print( -2, "\t         integration optimization and mapping flow\n" );
     Abc_Print( -2, "\t-K num : the number of LUT inputs (LUT size) [default = %d]\n", nLutSize );
     Abc_Print( -2, "\t-C num : the number of cuts at a node [default = %d]\n", nCutNum );
-    Abc_Print( -2, "\t-R num : the delay relaxation ratio (num >= 0) [default = %d]\n", nRelaxRatio );
+    Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc9Flow2( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern void Gia_ManPerformFlow2( int fIsMapped, int nAnds, int nLevels, int nLutSize, int nCutNum, int fVerbose );
+    int nLutSize    =  6;
+    int nCutNum     =  8;
+    int c, fVerbose =  0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "KCvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'K':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-K\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nLutSize = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nLutSize < 0 )
+                goto usage;
+            break;
+         case 'C':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-C\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nCutNum = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nCutNum < 0 )
+                goto usage;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pAbc->pGia == NULL )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9Flow2(): There is no AIG.\n" );
+        return 1;
+    }
+    Gia_ManPerformFlow2( Gia_ManHasMapping(pAbc->pGia), Gia_ManAndNum(pAbc->pGia), Gia_ManLevelNum(pAbc->pGia), nLutSize, nCutNum, fVerbose );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: &flow2 [-KC num] [-vh]\n" );
+    Abc_Print( -2, "\t         integration optimization and mapping flow\n" );
+    Abc_Print( -2, "\t-K num : the number of LUT inputs (LUT size) [default = %d]\n", nLutSize );
+    Abc_Print( -2, "\t-C num : the number of cuts at a node [default = %d]\n", nCutNum );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;

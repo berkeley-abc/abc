@@ -226,128 +226,6 @@ Gia_Man_t * Gia_ManAigSyn4( Gia_Man_t * p, int fVerbose, int fVeryVerbose )
 
 /**Function*************************************************************
 
-  Synopsis    []
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Gia_ManPerformMap( int nAnds, int nLutSize, int nCutNum, int fVerbose )
-{
-    char Command[200];
-    sprintf( Command, "&unmap; &lf -K %d -C %d -k; &save", nLutSize, nCutNum );
-    Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), Command );
-    if ( fVerbose )
-    {
-        printf( "MAPPING:\n" );
-        printf( "Mapping with &lf -k:\n" );
-        Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&ps" );
-    }
-    sprintf( Command, "&unmap; &lf -K %d -C %d; &save", nLutSize, nCutNum );
-    Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), Command );
-    if ( fVerbose )
-    {
-        printf( "Mapping with &lf:\n" );
-        Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&ps" );
-    }
-    if ( (nLutSize == 4 && nAnds < 100000) || (nLutSize == 6 && nAnds < 2000) )
-    {
-        sprintf( Command, "&unmap; &if -sz -S %d%d -K %d -C %d", nLutSize, nLutSize, 2*nLutSize-1, 2*nCutNum );
-        Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), Command );
-        Vec_IntFreeP( &Abc_FrameReadGia(Abc_FrameGetGlobalFrame())->vPacking );
-        Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&save" );
-        if ( fVerbose )
-        {
-            printf( "Mapping with &if -sz -S %d%d -K %d -C %d:\n", nLutSize, nLutSize, 2*nLutSize-1, 2*nCutNum );
-            Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&ps" );
-        }
-    }
-    Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&load" );
-    if ( fVerbose )
-    {
-        printf( "Mapping final:\n" );
-        Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&ps" );
-    }
-}
-void Gia_ManPerformRound( int fIsMapped, int nAnds, int nLevels, int nLutSize, int nCutNum, int nRelaxRatio, int fVerbose )
-{
-    char Command[200];
-
-    // perform AIG-based synthesis
-    if ( nAnds < 50000 )
-    {
-        Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "" );
-        sprintf( Command, "&dsdb; &dch -f; &if -K %d -C %d; &save", nLutSize, nCutNum );
-        Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), Command );
-        if ( fVerbose )
-        {
-            printf( "Mapping with &dch -f; &if -K %d -C %d:\n", nLutSize, nCutNum );
-            Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&ps" );
-        }
-        Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&st" );
-    }
-
-    // perform AIG-based synthesis
-    if ( nAnds < 20000 )
-    {
-        Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "" );
-        sprintf( Command, "&dsdb; &dch -f; &if -K %d -C %d; &save", nLutSize, nCutNum );
-        Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), Command );
-        if ( fVerbose )
-        {
-            printf( "Mapping with &dch -f; &if -K %d -C %d:\n", nLutSize, nCutNum );
-            Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&ps" );
-        }
-        Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&st" );
-    }
-
-    // perform first round of mapping
-    Gia_ManPerformMap( nAnds, nLutSize, nCutNum, fVerbose );
-    Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&st" );
-
-    // perform synthesis
-    Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&dsdb" );
-
-    // perform second round of mapping
-    Gia_ManPerformMap( nAnds, nLutSize, nCutNum, fVerbose );
-    Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&st" );
-
-    // perform synthesis
-    Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&syn2 -m -R 10; &dsdb" );
-
-    // prepare for final mapping
-    sprintf( Command, "&blut -a -K %d", nLutSize );
-    Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), Command );
-
-    // perform third round of mapping
-    Gia_ManPerformMap( nAnds, nLutSize, nCutNum, fVerbose );
-}
-void Gia_ManPerformFlow( int fIsMapped, int nAnds, int nLevels, int nLutSize, int nCutNum, int nRelaxRatio, int fVerbose )
-{
-    // remove comb equivs
-    if ( fIsMapped )
-        Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&st" );
-    if ( Abc_FrameReadGia(Abc_FrameGetGlobalFrame())->pManTime )
-        Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&sweep" );
-    else
-        Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&fraig -c" );
-
-    // perform first round
-    Gia_ManPerformRound( fIsMapped, nAnds, nLevels, nLutSize, nCutNum, nRelaxRatio, fVerbose );
-
-    // perform synthesis
-    Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&st; &sopb" );
-
-    // perform first round
-    Gia_ManPerformRound( fIsMapped, nAnds, nLevels, nLutSize, nCutNum, nRelaxRatio, fVerbose );
-}
-
-
-/**Function*************************************************************
-
   Synopsis    [Duplicates the AIG manager.]
 
   Description [This duplicator works for AIGs with choices.]
@@ -424,8 +302,8 @@ Gia_Man_t * Gia_ManAigSynch2( Gia_Man_t * pInit, void * pPars0, int nLutSize )
     pPars->fCutMin     = 1;
     pPars->fCoarsen    = 1;
     pPars->nRelaxRatio = 20;
-    pPars->nAreaTuner  = 1;
-    pPars->nCutNum     = 4;
+    pPars->nAreaTuner  = 5;
+    pPars->nCutNum     = 12;
     pPars->fVerbose    = fVerbose;
     if ( fVerbose )  Gia_ManPrintStats( pInit, NULL );
     pGia1 = Gia_ManDup( pInit );
@@ -479,6 +357,177 @@ Gia_Man_t * Gia_ManAigSynch2( Gia_Man_t * pInit, void * pPars0, int nLutSize )
     Gia_ManTransferTiming( pNew, pInit );
     return pNew;
 }
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_ManPerformMap( int nAnds, int nLutSize, int nCutNum, int fVerbose )
+{
+    char Command[200];
+    sprintf( Command, "&unmap; &lf -K %d -C %d -k; &save", nLutSize, nCutNum );
+    Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), Command );
+    if ( fVerbose )
+    {
+        printf( "MAPPING:\n" );
+        printf( "Mapping with &lf -k:\n" );
+        Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&ps" );
+    }
+    sprintf( Command, "&unmap; &lf -K %d -C %d; &save", nLutSize, nCutNum );
+    Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), Command );
+    if ( fVerbose )
+    {
+        printf( "Mapping with &lf:\n" );
+        Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&ps" );
+    }
+    if ( (nLutSize == 4 && nAnds < 100000) || (nLutSize == 6 && nAnds < 2000) )
+    {
+        sprintf( Command, "&unmap; &if -sz -S %d%d -K %d -C %d", nLutSize, nLutSize, 2*nLutSize-1, 2*nCutNum );
+        Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), Command );
+        Vec_IntFreeP( &Abc_FrameReadGia(Abc_FrameGetGlobalFrame())->vPacking );
+        Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&save" );
+        if ( fVerbose )
+        {
+            printf( "Mapping with &if -sz -S %d%d -K %d -C %d:\n", nLutSize, nLutSize, 2*nLutSize-1, 2*nCutNum );
+            Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&ps" );
+        }
+    }
+    Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&load" );
+    if ( fVerbose )
+    {
+        printf( "Mapping final:\n" );
+        Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&ps" );
+    }
+}
+void Gia_ManPerformRound( int fIsMapped, int nAnds, int nLevels, int nLutSize, int nCutNum, int fVerbose )
+{
+    char Command[200];
+
+    // perform AIG-based synthesis
+    if ( nAnds < 50000 )
+    {
+        Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "" );
+        sprintf( Command, "&dsdb; &dch -f; &if -K %d -C %d; &save", nLutSize, nCutNum );
+        Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), Command );
+        if ( fVerbose )
+        {
+            printf( "Mapping with &dch -f; &if -K %d -C %d:\n", nLutSize, nCutNum );
+            Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&ps" );
+        }
+        Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&st" );
+    }
+
+    // perform AIG-based synthesis
+    if ( nAnds < 20000 )
+    {
+        Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "" );
+        sprintf( Command, "&dsdb; &dch -f; &if -K %d -C %d; &save", nLutSize, nCutNum );
+        Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), Command );
+        if ( fVerbose )
+        {
+            printf( "Mapping with &dch -f; &if -K %d -C %d:\n", nLutSize, nCutNum );
+            Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&ps" );
+        }
+        Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&st" );
+    }
+
+    // perform first round of mapping
+    Gia_ManPerformMap( nAnds, nLutSize, nCutNum, fVerbose );
+    Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&st" );
+
+    // perform synthesis
+    Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&dsdb" );
+
+    // perform second round of mapping
+    Gia_ManPerformMap( nAnds, nLutSize, nCutNum, fVerbose );
+    Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&st" );
+
+    // perform synthesis
+    Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&syn2 -m -R 10; &dsdb" );
+
+    // prepare for final mapping
+    sprintf( Command, "&blut -a -K %d", nLutSize );
+    Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), Command );
+
+    // perform third round of mapping
+    Gia_ManPerformMap( nAnds, nLutSize, nCutNum, fVerbose );
+}
+void Gia_ManPerformFlow( int fIsMapped, int nAnds, int nLevels, int nLutSize, int nCutNum, int fVerbose )
+{
+    // remove comb equivs
+    if ( fIsMapped )
+        Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&st" );
+//    if ( Abc_FrameReadGia(Abc_FrameGetGlobalFrame())->pManTime )
+//        Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&sweep" );
+//    else
+//        Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&fraig -c" );
+
+    // perform first round
+    Gia_ManPerformRound( fIsMapped, nAnds, nLevels, nLutSize, nCutNum, fVerbose );
+
+    // perform synthesis
+    Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&st; &sopb" );
+
+    // perform first round
+    Gia_ManPerformRound( fIsMapped, nAnds, nLevels, nLutSize, nCutNum, fVerbose );
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_ManPerformFlow2( int fIsMapped, int nAnds, int nLevels, int nLutSize, int nCutNum, int fVerbose )
+{
+    char Comm1[100], Comm2[100];
+    sprintf( Comm1, "&synch2 -K %d; &lf -mk -E 5 -K %d -C %d; &save", nLutSize, nLutSize, nCutNum );
+    sprintf( Comm2, "&dch -f;       &lf -mk -E 5 -K %d -C %d; &save",           nLutSize, nCutNum+4 );
+
+    // perform synthesis
+    if ( fIsMapped )
+    Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&st" );
+    Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), Comm1 );
+    if ( fVerbose )
+    Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&ps" );
+
+    // perform synthesis
+    Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&st" );
+    Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), Comm2 );
+    if ( fVerbose )
+    Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&ps" );
+
+    // perform synthesis
+    Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&st" );
+    Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), Comm1 );
+    if ( fVerbose )
+    Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&ps" );
+
+    // perform synthesis
+    Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&st" );
+    Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), Comm2 );
+    if ( fVerbose )
+    Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&ps" );
+
+    // perform synthesis
+    Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&load" );
+    if ( fVerbose )
+    Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&ps" );
+}
+
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
