@@ -16232,9 +16232,9 @@ usage:
 int Abc_CommandDsdClean( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     If_DsdMan_t * pDsd = (If_DsdMan_t *)Abc_FrameReadManDsd();
-    int c, nLimit = 0, fVerbose = 0;
+    int c, nLimit = 0, nLutSize = -1, fCleanOccur = 0, fCleanMarks = 0, fVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "Lvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "LKomvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -16246,6 +16246,21 @@ int Abc_CommandDsdClean( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nLimit = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
+            break;
+        case 'K':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-K\" should be followed by a floating point number.\n" );
+                goto usage;
+            }
+            nLutSize = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            break;
+        case 'o':
+            fCleanOccur ^= 1;
+            break;
+        case 'm':
+            fCleanMarks ^= 1;
             break;
         case 'v':
             fVerbose ^= 1;
@@ -16263,15 +16278,22 @@ int Abc_CommandDsdClean( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     if ( nLimit > 0 )
         Abc_FrameSetManDsd( If_DsdManFilter(pDsd, nLimit) );
-    else
-        If_DsdManClean( pDsd, fVerbose );
+    if ( nLutSize >= 0 )
+        If_DsdManSetLutSize( pDsd, nLutSize );
+    if ( fCleanOccur )
+        If_DsdManCleanOccur( pDsd, fVerbose );
+    if ( fCleanMarks )
+        If_DsdManCleanMarks( pDsd, fVerbose );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: dsd_clean [-L num] [-vh]\n" );
-    Abc_Print( -2, "\t         cleans the occurrence counters\n" );
+    Abc_Print( -2, "usage: dsd_clean [-LK num] [-omvh]\n" );
+    Abc_Print( -2, "\t         modifying parameters of the DSD manager\n" );
     Abc_Print( -2, "\t-L num : remove structures with fewer occurances that this [default = %d]\n", nLimit );
-    Abc_Print( -2, "\t-v     : toggles verbose output [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-K num : new LUT size to set for the DSD manager [default = %d]\n",           nLutSize );
+    Abc_Print( -2, "\t-o     : toggles cleaning occurrence counters [default = %s]\n",              fCleanOccur? "yes": "no" );
+    Abc_Print( -2, "\t-m     : toggles cleaning matching marks [default = %s]\n",                   fCleanMarks? "yes": "no" );
+    Abc_Print( -2, "\t-v     : toggles verbose output [default = %s]\n",                            fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
 }

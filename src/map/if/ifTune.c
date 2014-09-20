@@ -459,7 +459,7 @@ Ifn_Ntk_t * Ifn_NtkParse( char * pStr )
     }
     Ifn_NtkParseConstraints( pStr, p );
     Abc_TtElemInit2( p->pTtElems, p->nInps );
-    printf( "Finished parsing: " ); Ifn_NtkPrint(p);
+//    printf( "Finished parsing: " ); Ifn_NtkPrint(p);
     return p;
 }
 

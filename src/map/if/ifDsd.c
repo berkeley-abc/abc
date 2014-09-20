@@ -173,6 +173,10 @@ int If_DsdManLutSize( If_DsdMan_t * p )
 {
     return p->LutSize;
 }
+void If_DsdManSetLutSize( If_DsdMan_t * p, int nLutSize )
+{
+    p->LutSize = nLutSize;
+}
 int If_DsdManSuppSize( If_DsdMan_t * p, int iDsd )
 {
     return If_DsdVecLitSuppSize( &p->vObjs, iDsd );
@@ -1170,12 +1174,19 @@ void If_DsdManMerge( If_DsdMan_t * p, If_DsdMan_t * pNew )
     assert( Vec_IntSize(vMap) == Vec_PtrSize(&pNew->vObjs) );
     Vec_IntFree( vMap );
 }
-void If_DsdManClean( If_DsdMan_t * p, int fVerbose )
+void If_DsdManCleanOccur( If_DsdMan_t * p, int fVerbose )
 {
     If_DsdObj_t * pObj; 
     int i;
     If_DsdVecForEachObj( &p->vObjs, pObj, i )
         pObj->Count = 0;
+}
+void If_DsdManCleanMarks( If_DsdMan_t * p, int fVerbose )
+{
+    If_DsdObj_t * pObj; 
+    int i;
+    If_DsdVecForEachObj( &p->vObjs, pObj, i )
+        pObj->fMark = 0;
 }
 void If_DsdManFilter_rec( If_DsdMan_t * pNew, If_DsdMan_t * p, int i, Vec_Int_t * vMap )
 {
