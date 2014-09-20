@@ -2450,6 +2450,7 @@ void Id_DsdManTuneStr1( If_DsdMan_t * p, char * pStruct, int nConfls, int fVerbo
             Vec_WrdWriteEntry( p->vPerms, i, Perm );
     }
     p->nObjsPrev = 0;
+    p->LutSize = 0;
     Extra_ProgressBarStop( pProgress );
     printf( "Finished matching %d functions. ", Vec_PtrSize(&p->vObjs) );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
@@ -2650,6 +2651,7 @@ void Id_DsdManTuneStr( If_DsdMan_t * p, char * pStruct, int nConfls, int nProcs,
     }
 
     p->nObjsPrev = 0;
+    p->LutSize = 0;
     Extra_ProgressBarStop( pProgress );
     printf( "Finished matching %d functions. ", Vec_PtrSize(&p->vObjs) );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
