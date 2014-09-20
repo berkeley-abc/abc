@@ -718,8 +718,8 @@ void If_DsdManPrint( If_DsdMan_t * p, char * pFileName, int Number, int Support,
         MemSizeDecs += (int)Vec_VecMemoryInt((Vec_Vec_t *)(p->vTtDecs[v]));
     }
     If_DsdManPrintDistrib( p );
-    printf( "Number of inputs = %d. LUT size = %d. Marks = %s. Bookmark = %d.\n", 
-        p->nVars, p->LutSize, If_DsdManHasMarks(p)? "yes" : "no", p->fNewAsUseless );
+    printf( "Number of inputs = %d.  LUT size = %d.  Marks = %s.  NewAsUseless = %s.  Bookmark = %d.\n", 
+        p->nVars, p->LutSize, If_DsdManHasMarks(p)? "yes" : "no", p->fNewAsUseless? "yes" : "no", p->nObjsPrev );
     if ( p->pTtGia )
     fprintf( pFile, "Non-DSD AIG nodes          = %8d\n", Gia_ManAndNum(p->pTtGia) );
     fprintf( pFile, "Unique table misses        = %8d\n", p->nUniqueMisses );
