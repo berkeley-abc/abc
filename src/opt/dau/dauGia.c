@@ -30,7 +30,7 @@ ABC_NAMESPACE_IMPL_START
 
 extern int Kit_TruthToGia( Gia_Man_t * pMan, unsigned * pTruth, int nVars, Vec_Int_t * vMemory, Vec_Int_t * vLeaves, int fHash );
 
-#define DAU_DSD_MAX_VAR 8
+#define DAU_DSD_MAX_VAR 12
 
 static int m_Calls = 0;
 static int m_NonDsd = 0;
