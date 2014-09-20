@@ -207,7 +207,7 @@ int Inf_ManOpenSymb( char * pStr )
 }
 int Ifn_ManStrCheck( char * pStr, int * pnInps, int * pnObjs )
 {
-    int i, nNodes = 0, Marks[32] = {0}, MaxVar = -1, RetValue = 1;
+    int i, nNodes = 0, Marks[32] = {0}, MaxVar = -1;
     for ( i = 0; pStr[i]; i++ )
     {
         if ( Inf_ManOpenSymb(pStr+i) )

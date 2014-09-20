@@ -2073,7 +2073,7 @@ int If_CutDsdBalancePinDelays_rec( If_DsdMan_t * p, int Id, int * pTimes, word *
     {
         word pFaninRes[IF_MAX_FUNC_LUTSIZE];
         int i, iFanin, Delay, Result = 0;
-        int fXor = (If_DsdObjType(pObj) == IF_DSD_XOR);
+        int fXor = 0;//(If_DsdObjType(pObj) == IF_DSD_XOR);
         int nCounter = 0, pCounter[IF_MAX_FUNC_LUTSIZE];
         If_DsdObjForEachFaninLit( &p->vObjs, pObj, iFanin, i )
         {
@@ -2188,7 +2188,8 @@ int If_CutDsdBalanceEval_rec( If_DsdMan_t * p, int Id, int * pTimes, int * pnSup
     assert( If_DsdObjType(pObj) == IF_DSD_AND || If_DsdObjType(pObj) == IF_DSD_XOR );
     {
         int i, iFanin, Delay, Result = 0;
-        int fXor = (If_DsdObjType(pObj) == IF_DSD_XOR);
+        int fXor = 0;//(If_DsdObjType(pObj) == IF_DSD_XOR);
+        int fXorFunc = (If_DsdObjType(pObj) == IF_DSD_XOR);
         int nCounter = 0, pCounter[IF_MAX_FUNC_LUTSIZE], pFaninLits[IF_MAX_FUNC_LUTSIZE];
         If_DsdObjForEachFaninLit( &p->vObjs, pObj, iFanin, i )
         {
@@ -2196,13 +2197,13 @@ int If_CutDsdBalanceEval_rec( If_DsdMan_t * p, int Id, int * pTimes, int * pnSup
             if ( Delay == -1 )
                 return -1;
             pFaninLits[i] = Abc_LitNotCond( pFaninLits[i], Abc_LitIsCompl(iFanin) );
-            Result = If_LogCounterAddAig( pCounter, &nCounter, pFaninLits, Delay, pFaninLits[i], vAig, nSuppAll, fXor );
+            Result = If_LogCounterAddAig( pCounter, &nCounter, pFaninLits, Delay, pFaninLits[i], vAig, nSuppAll, fXor, fXorFunc );
         }
         assert( nCounter > 0 );
         if ( fXor )
             Result = If_LogCounterDelayXor( pCounter, nCounter ); // estimation
         if ( vAig )
-            *piLit = If_LogCreateAndXorMulti( vAig, pFaninLits, nCounter, nSuppAll, fXor );
+            *piLit = If_LogCreateAndXorMulti( vAig, pFaninLits, nCounter, nSuppAll, fXorFunc );
         else
             *pArea += (pObj->nFans - 1) * (1 + 2 * fXor);
         return Result;

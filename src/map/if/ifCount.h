@@ -85,7 +85,7 @@ static inline int If_LogCreateAndXorMulti( Vec_Int_t * vAig, int * pFaninLits, i
         pFaninLits[i-1] = If_LogCreateAndXor( vAig, pFaninLits[i], pFaninLits[i-1], nSuppAll, fXor );
     return pFaninLits[0];
 }
-static inline int If_LogCounterAddAig( int * pTimes, int * pnTimes, int * pFaninLits, int Num, int iLit, Vec_Int_t * vAig, int nSuppAll, int fXor )
+static inline int If_LogCounterAddAig( int * pTimes, int * pnTimes, int * pFaninLits, int Num, int iLit, Vec_Int_t * vAig, int nSuppAll, int fXor, int fXorFunc )
 {
     int nTimes = *pnTimes;
     if ( vAig )
@@ -107,7 +107,7 @@ static inline int If_LogCounterAddAig( int * pTimes, int * pnTimes, int * pFanin
             }
             pTimes[k-1] += 1 + fXor;
             if ( vAig )
-                pFaninLits[k-1] = If_LogCreateAndXor( vAig, pFaninLits[k], pFaninLits[k-1], nSuppAll, fXor );
+                pFaninLits[k-1] = If_LogCreateAndXor( vAig, pFaninLits[k], pFaninLits[k-1], nSuppAll, fXorFunc );
             for ( nTimes--, i = k; i < nTimes; i++ )
             {
                 pTimes[i] = pTimes[i+1];
