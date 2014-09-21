@@ -373,6 +373,7 @@ void Gia_ManPerformMap( int nAnds, int nLutSize, int nCutNum, int fVerbose )
 {
     char Command[200];
     sprintf( Command, "&unmap; &lf -K %d -C %d -k; &save", nLutSize, nCutNum );
+//    sprintf( Command, "&unmap; &if -K %d -C %d; &save", nLutSize, nCutNum );
     Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), Command );
     if ( fVerbose )
     {
@@ -387,7 +388,7 @@ void Gia_ManPerformMap( int nAnds, int nLutSize, int nCutNum, int fVerbose )
         printf( "Mapping with &lf:\n" );
         Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&ps" );
     }
-    if ( (nLutSize == 4 && nAnds < 100000) || (nLutSize == 6 && nAnds < 2000) )
+    if ( (nLutSize == 4 && nAnds < 100000) || (nLutSize == 6 && nAnds < 10000) )
     {
         sprintf( Command, "&unmap; &if -sz -S %d%d -K %d -C %d", nLutSize, nLutSize, 2*nLutSize-1, 2*nCutNum );
         Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), Command );
@@ -492,11 +493,15 @@ void Gia_ManPerformFlow( int fIsMapped, int nAnds, int nLevels, int nLutSize, in
 ***********************************************************************/
 void Gia_ManPerformFlow2( int fIsMapped, int nAnds, int nLevels, int nLutSize, int nCutNum, int fVerbose )
 {
-    char Comm1[100], Comm2[100];
-    sprintf( Comm1, "&synch2 -K %d; &lf -mk -E 5 -K %d -C %d; &save", nLutSize, nLutSize, nCutNum );
-    sprintf( Comm2, "&dch -f;       &lf -mk -E 5 -K %d -C %d; &save",           nLutSize, nCutNum+4 );
+    char Comm1[100], Comm2[100], Comm3[100], Comm4[100];
+    sprintf( Comm1, "&synch2 -K %d; &if -m       -K %d -C %d; &save", nLutSize, nLutSize, nCutNum );
+    sprintf( Comm2, "&dch -f;       &if -m       -K %d -C %d; &save",           nLutSize, nCutNum+4 );
+    sprintf( Comm3, "&synch2 -K %d; &lf -mk -E 5 -K %d -C %d; &save", nLutSize, nLutSize, nCutNum );
+    sprintf( Comm4, "&dch -f;       &lf -mk -E 5 -K %d -C %d; &save",           nLutSize, nCutNum+4 );
 
     // perform synthesis
+    if ( fVerbose )
+        printf( "Trying synthesis...\n" );
     if ( fIsMapped )
     Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&st" );
     Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), Comm1 );
@@ -509,9 +514,20 @@ void Gia_ManPerformFlow2( int fIsMapped, int nAnds, int nLevels, int nLutSize, i
     if ( fVerbose )
     Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&ps" );
 
+    // return the result
+    Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&load" );
+    if ( fVerbose )
+    Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&ps" );
+
+
+    // perform balancing
+    if ( fVerbose )
+        printf( "Trying SOP balancing...\n" );
+    Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&st; &sopb -R 10 -C 4" );
+
+
     // perform synthesis
-    Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&st" );
-    Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), Comm1 );
+    Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), Comm3 );
     if ( fVerbose )
     Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&ps" );
 
@@ -521,7 +537,55 @@ void Gia_ManPerformFlow2( int fIsMapped, int nAnds, int nLevels, int nLutSize, i
     if ( fVerbose )
     Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&ps" );
 
+    // return the result
+    Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&load" );
+    if ( fVerbose )
+    Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&ps" );
+    if ( nAnds > 100000 )
+        return;
+
+
+    // perform balancing
+    if ( fVerbose )
+        printf( "Trying SOP balancing...\n" );
+    Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&st; &sopb -R 10" );
+
     // perform synthesis
+    Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), Comm3 );
+    if ( fVerbose )
+    Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&ps" );
+
+    // perform synthesis
+    Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&st" );
+    Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), Comm2 );
+    if ( fVerbose )
+    Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&ps" );
+
+    // return the result
+    Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&load" );
+    if ( fVerbose )
+    Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&ps" );
+    if ( nAnds > 50000 )
+        return;
+
+
+    // perform balancing
+    if ( fVerbose )
+        printf( "Trying SOP balancing...\n" );
+    Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&st; &sopb -R 10" );
+
+    // perform synthesis
+    Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), Comm3 );
+    if ( fVerbose )
+    Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&ps" );
+
+    // perform synthesis
+    Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&st" );
+    Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), Comm2 );
+    if ( fVerbose )
+    Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&ps" );
+
+    // return the result
     Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&load" );
     if ( fVerbose )
     Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&ps" );
