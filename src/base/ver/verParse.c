@@ -63,7 +63,7 @@ int Ver_ParseSkipComments( Ver_Man_t * pMan )
         return Ver_ParseSkipComments( pMan );
     }
     if ( Symbol == '*' )
-    { // skip till the next occurance of */
+    { // skip till the next occurrence of */
         Ver_StreamPopChar( p );
         do {
             Ver_StreamSkipToChars( p, "*" );

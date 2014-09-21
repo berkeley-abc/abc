@@ -34,7 +34,7 @@ typedef struct Npn_Man_t_ Npn_Man_t;
 struct Npn_Obj_t_
 {
     word         uTruth;      // truth table
-    int          Count;       // occurances
+    int          Count;       // occurrences
     int          iNext;       // next entry
 };
 struct Npn_Man_t_

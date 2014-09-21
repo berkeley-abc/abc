@@ -1060,8 +1060,8 @@ void Abc_Init( Abc_Frame_t * pAbc )
 //        If_ManSatTest();
     }
 
-    if ( Sdm_ManCanRead() )
-        Sdm_ManRead();
+//    if ( Sdm_ManCanRead() )
+//        Sdm_ManRead();
 }
 
 /**Function*************************************************************
@@ -16033,7 +16033,7 @@ int Abc_CommandDsdPs( Abc_Frame_t * pAbc, int argc, char ** argv )
 
 usage:
     Abc_Print( -2, "usage: dsd_ps [-NS num] [-obvh]\n" );
-    Abc_Print( -2, "\t         prints statistics of DSD manager\n" );
+    Abc_Print( -2, "\t         prints statistics of the DSD manager\n" );
     Abc_Print( -2, "\t-N num : show structures whose ID divides by N [default = %d]\n",   Number );
     Abc_Print( -2, "\t-S num : show structures whose support size is S [default = %d]\n", Support );
     Abc_Print( -2, "\t-o     : toggles printing occurence distribution [default = %s]\n", fOccurs? "yes": "no" );
@@ -16289,7 +16289,7 @@ int Abc_CommandDsdClean( Abc_Frame_t * pAbc, int argc, char ** argv )
 usage:
     Abc_Print( -2, "usage: dsd_clean [-LK num] [-omvh]\n" );
     Abc_Print( -2, "\t         modifying parameters of the DSD manager\n" );
-    Abc_Print( -2, "\t-L num : remove structures with fewer occurances that this [default = %d]\n", nLimit );
+    Abc_Print( -2, "\t-L num : remove structures with fewer occurrences that this [default = %d]\n", nLimit );
     Abc_Print( -2, "\t-K num : new LUT size to set for the DSD manager [default = %d]\n",           nLutSize );
     Abc_Print( -2, "\t-o     : toggles cleaning occurrence counters [default = %s]\n",              fCleanOccur? "yes": "no" );
     Abc_Print( -2, "\t-m     : toggles cleaning matching marks [default = %s]\n",                   fCleanMarks? "yes": "no" );
