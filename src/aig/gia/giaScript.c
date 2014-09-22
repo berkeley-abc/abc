@@ -491,7 +491,7 @@ void Gia_ManPerformFlow( int fIsMapped, int nAnds, int nLevels, int nLutSize, in
   SeeAlso     []
 
 ***********************************************************************/
-void Gia_ManPerformFlow2( int fIsMapped, int nAnds, int nLevels, int nLutSize, int nCutNum, int fVerbose )
+void Gia_ManPerformFlow2( int fIsMapped, int nAnds, int nLevels, int nLutSize, int nCutNum, int fBalance, int fVerbose )
 {
     char Comm1[100], Comm2[100], Comm3[100], Comm4[100];
     sprintf( Comm1, "&synch2 -K %d; &if -m       -K %d -C %d; &save", nLutSize, nLutSize, nCutNum );
@@ -521,9 +521,12 @@ void Gia_ManPerformFlow2( int fIsMapped, int nAnds, int nLevels, int nLutSize, i
 
 
     // perform balancing
-    if ( fVerbose )
-        printf( "Trying SOP balancing...\n" );
-    Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&st; &sopb -R 10 -C 4" );
+    if ( fBalance )
+    {
+        if ( fVerbose )
+            printf( "Trying SOP balancing...\n" );
+        Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&st; &sopb -R 10 -C 4" );
+    }
 
 
     // perform synthesis
@@ -546,9 +549,13 @@ void Gia_ManPerformFlow2( int fIsMapped, int nAnds, int nLevels, int nLutSize, i
 
 
     // perform balancing
-    if ( fVerbose )
-        printf( "Trying SOP balancing...\n" );
-    Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&st; &sopb -R 10" );
+    if ( fBalance )
+    {
+        if ( fVerbose )
+            printf( "Trying SOP balancing...\n" );
+        Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&st; &sopb -R 10" );
+    }
+
 
     // perform synthesis
     Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), Comm3 );
@@ -570,9 +577,13 @@ void Gia_ManPerformFlow2( int fIsMapped, int nAnds, int nLevels, int nLutSize, i
 
 
     // perform balancing
-    if ( fVerbose )
-        printf( "Trying SOP balancing...\n" );
-    Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&st; &sopb -R 10" );
+    if ( fBalance )
+    {
+        if ( fVerbose )
+            printf( "Trying SOP balancing...\n" );
+        Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&st; &sopb -R 10" );
+    }
+
 
     // perform synthesis
     Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), Comm3 );
