@@ -87,6 +87,7 @@ void Wlc_BlastShiftRight( Gia_Man_t * pNew, int * pNum, int nNum, int * pShift, 
     int * pRes = Wlc_VecCopy( vRes, pNum, nNum );
     int Fill = fSticky ? pNum[nNum-1] : 0;
     int i, j, fShort = 0;
+    assert( nShift <= 32 );
     for( i = 0; i < nShift; i++ ) 
         for( j = 0; j < nNum - fSticky; j++ ) 
         {
@@ -105,6 +106,7 @@ void Wlc_BlastShiftLeft( Gia_Man_t * pNew, int * pNum, int nNum, int * pShift, i
     int * pRes = Wlc_VecCopy( vRes, pNum, nNum );
     int Fill = fSticky ? pNum[0] : 0;
     int i, j, fShort = 0;
+    assert( nShift <= 32 );
     for( i = 0; i < nShift; i++ ) 
         for( j = nNum-1; j >= fSticky; j-- ) 
         {
@@ -120,18 +122,22 @@ void Wlc_BlastShiftLeft( Gia_Man_t * pNew, int * pNum, int nNum, int * pShift, i
 }
 void Wlc_BlastRotateRight( Gia_Man_t * pNew, int * pNum, int nNum, int * pShift, int nShift, Vec_Int_t * vRes )
 {
+    int * pRes = Wlc_VecCopy( vRes, pNum, nNum );
     int i, j, * pTemp = ABC_ALLOC( int, nNum );
-    for( i = 0; i < nShift; i++, Wlc_VecCopy(vRes, pTemp, nNum) ) 
+    assert( nShift <= 32 );
+    for( i = 0; i < nShift; i++, pRes = Wlc_VecCopy(vRes, pTemp, nNum) ) 
         for( j = 0; j < nNum; j++ ) 
-            pTemp[j] = Gia_ManHashMux( pNew, pShift[i], pNum[(j+(1<<i))%nNum], pNum[j] );
+            pTemp[j] = Gia_ManHashMux( pNew, pShift[i], pRes[(j+(1<<i))%nNum], pRes[j] );
     ABC_FREE( pTemp );
 }
 void Wlc_BlastRotateLeft( Gia_Man_t * pNew, int * pNum, int nNum, int * pShift, int nShift, Vec_Int_t * vRes )
 {
+    int * pRes = Wlc_VecCopy( vRes, pNum, nNum );
     int i, j, * pTemp = ABC_ALLOC( int, nNum );
-    for( i = 0; i < nShift; i++, Wlc_VecCopy(vRes, pTemp, nNum) ) 
+    assert( nShift <= 32 );
+    for( i = 0; i < nShift; i++, pRes = Wlc_VecCopy(vRes, pTemp, nNum) ) 
         for( j = 0; j < nNum; j++ ) 
-            pTemp[j] = Gia_ManHashMux( pNew, pShift[i], pNum[(nNum-(1<<i)+j)%nNum], pNum[j] );
+            pTemp[j] = Gia_ManHashMux( pNew, pShift[i], pRes[((unsigned)(nNum-(1<<i)+j))%nNum], pRes[j] );
     ABC_FREE( pTemp );
 }
 int Wlc_BlastReduction( Gia_Man_t * pNew, int * pFans, int nFans, int Type )
@@ -187,6 +193,17 @@ void Wlc_BlastAdder( Gia_Man_t * pNew, int * pAdd0, int * pAdd1, int nBits ) // 
         pAdd0[b] = iSum;
     }
 }
+void Wlc_BlastSubtract( Gia_Man_t * pNew, int * pAdd0, int * pAdd1, int nBits ) // result is in pAdd0
+{
+    int borrow = 0, top_bit, b;
+    for ( b = 0; b < nBits; b++ )
+    {
+        top_bit  = Gia_ManHashMux(pNew, borrow, Abc_LitNot(pAdd0[b]),  pAdd0[b]);
+        borrow   = Gia_ManHashMux(pNew, pAdd0[b], Gia_ManHashAnd(pNew, borrow, pAdd1[b]), Gia_ManHashOr(pNew, borrow, pAdd1[b]));
+        pAdd0[b] = Gia_ManHashXor(pNew, top_bit, pAdd1[b]);
+    }
+}
+
 void Wlc_BlastMultiplier( Gia_Man_t * pNew, int * pArg0, int * pArg1, int nBits, Vec_Int_t * vTemp, Vec_Int_t * vRes )
 {
     int i, j;
@@ -467,11 +484,14 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p )
         }
         else if ( pObj->Type == WLC_OBJ_REDUCT_AND || pObj->Type == WLC_OBJ_REDUCT_OR || pObj->Type == WLC_OBJ_REDUCT_XOR )
             Vec_IntPush( vRes, Wlc_BlastReduction( pNew, pFans0, nRange, pObj->Type ) );
-        else if ( pObj->Type == WLC_OBJ_ARI_ADD || pObj->Type == WLC_OBJ_ARI_SUB )  // SUBTRACT is not implemented!
+        else if ( pObj->Type == WLC_OBJ_ARI_ADD || pObj->Type == WLC_OBJ_ARI_SUB ) 
         {
             int * pArg0 = Wlc_VecLoadFanins( vRes,   pFans0, nRange0, nRange, Wlc_ObjFanin0(p, pObj)->Signed );
             int * pArg1 = Wlc_VecLoadFanins( vTemp1, pFans1, nRange1, nRange, Wlc_ObjFanin1(p, pObj)->Signed );
-            Wlc_BlastAdder( pNew, pArg0, pArg1, nRange ); // result is in pFan0 (vRes)
+            if ( pObj->Type == WLC_OBJ_ARI_ADD )
+                Wlc_BlastAdder( pNew, pArg0, pArg1, nRange ); // result is in pFan0 (vRes)
+            else 
+                Wlc_BlastSubtract( pNew, pArg0, pArg1, nRange ); // result is in pFan0 (vRes)
         }
         else if ( pObj->Type == WLC_OBJ_ARI_MULTI )
         {
@@ -485,7 +505,7 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p )
             int * pArg0 = Wlc_VecLoadFanins( vTemp0, pFans0, nRange0, nRange, Wlc_ObjFanin0(p, pObj)->Signed );
             int * pArg1 = Wlc_VecLoadFanins( vTemp1, pFans1, nRange1, nRange, Wlc_ObjFanin1(p, pObj)->Signed );
             assert( nRange0 <= nRange && nRange1 <= nRange );
-            Wlc_BlastDivider( pNew, pArg0, nRange0, pArg1, nRange1, pObj->Type == WLC_OBJ_ARI_DIVIDE, vRes );
+            Wlc_BlastDivider( pNew, pArg0, nRange, pArg1, nRange, pObj->Type == WLC_OBJ_ARI_DIVIDE, vRes );
         }
         else if ( pObj->Type == WLC_OBJ_ARI_MINUS )
         {
