@@ -70,6 +70,16 @@ int * Wlc_VecLoadFanins( Vec_Int_t * vOut, int * pFanins, int nFanins, int nTota
         Vec_IntPush( vOut, i < nFanins ? pFanins[i] : Fill );
     return Vec_IntArray( vOut );
 }
+int Wlc_BlastGetConst( int * pNum, int nNum )
+{
+    int i, Res = 0;
+    for ( i = 0; i < nNum; i++ )
+        if ( pNum[i] == 1 )
+            Res |= (1 << i);
+        else if ( pNum[i] != 0 )
+            return -1;
+    return Res;
+}
 
 /**Function*************************************************************
 
@@ -137,7 +147,11 @@ void Wlc_BlastRotateLeft( Gia_Man_t * pNew, int * pNum, int nNum, int * pShift, 
     assert( nShift <= 32 );
     for( i = 0; i < nShift; i++, pRes = Wlc_VecCopy(vRes, pTemp, nNum) ) 
         for( j = 0; j < nNum; j++ ) 
-            pTemp[j] = Gia_ManHashMux( pNew, pShift[i], pRes[((unsigned)(nNum-(1<<i)+j))%nNum], pRes[j] );
+        {
+            int move = (j >= (1<<i)) ? (j-(1<<i))%nNum : (nNum - (((1<<i)-j)%nNum)) % nNum;
+            pTemp[j] = Gia_ManHashMux( pNew, pShift[i], pRes[move], pRes[j] );
+//            pTemp[j] = Gia_ManHashMux( pNew, pShift[i], pRes[((unsigned)(nNum-(1<<i)+j))%nNum], pRes[j] );
+        }
     ABC_FREE( pTemp );
 }
 int Wlc_BlastReduction( Gia_Man_t * pNew, int * pFans, int nFans, int Type )
