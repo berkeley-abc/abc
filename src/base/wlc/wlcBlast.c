@@ -355,7 +355,7 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p )
     // create primary inputs
     Wlc_NtkForEachObj( p, pObj, i )
     {
-        char * pName = Wlc_ObjName(p, i);
+//        char * pName = Wlc_ObjName(p, i);
         nRange  = Wlc_ObjRange( pObj );
         nRange0 = Wlc_ObjFaninNum(pObj) > 0 ? Wlc_ObjRange( Wlc_ObjFanin0(p, pObj) ) : -1;
         nRange1 = Wlc_ObjFaninNum(pObj) > 1 ? Wlc_ObjRange( Wlc_ObjFanin1(p, pObj) ) : -1;
@@ -522,7 +522,7 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p )
             int fCompl = (pObj->Type == WLC_OBJ_COMP_MOREEQU || pObj->Type == WLC_OBJ_COMP_LESSEQU);
             assert( nRange == 1 );
             if ( fSwap ) ABC_SWAP( int *, pFans0, pFans1 );
-            iLit = Wlc_BlastLess( pNew, pFans0, pFans1, nRangeMax );
+            iLit = Wlc_BlastLess( pNew, pArg0, pArg1, nRangeMax );
             iLit = Abc_LitNotCond( iLit, fCompl );
             Vec_IntFill( vRes, 1, iLit );
         }
