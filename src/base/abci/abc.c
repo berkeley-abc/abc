@@ -30992,13 +30992,14 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9Flow2( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern void Gia_ManPerformFlow2( int fIsMapped, int nAnds, int nLevels, int nLutSize, int nCutNum, int fBalance, int fVerbose );
+    extern void Gia_ManPerformFlow2( int fIsMapped, int nAnds, int nLevels, int nLutSize, int nCutNum, int fBalance, int fMinAve, int fVerbose );
     int nLutSize    =  6;
     int nCutNum     =  8;
     int fBalance    =  0;
+    int fMinAve     =  0;
     int c, fVerbose =  0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "KCbvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "KCbtvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -31027,6 +31028,9 @@ int Abc_CommandAbc9Flow2( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'b':
             fBalance ^= 1;
             break;
+        case 't':
+            fMinAve ^= 1;
+            break;
         case 'v':
             fVerbose ^= 1;
             break;
@@ -31041,15 +31045,16 @@ int Abc_CommandAbc9Flow2( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Abc_CommandAbc9Flow2(): There is no AIG.\n" );
         return 1;
     }
-    Gia_ManPerformFlow2( Gia_ManHasMapping(pAbc->pGia), Gia_ManAndNum(pAbc->pGia), Gia_ManLevelNum(pAbc->pGia), nLutSize, nCutNum, fBalance, fVerbose );
+    Gia_ManPerformFlow2( Gia_ManHasMapping(pAbc->pGia), Gia_ManAndNum(pAbc->pGia), Gia_ManLevelNum(pAbc->pGia), nLutSize, nCutNum, fBalance, fMinAve, fVerbose );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &flow2 [-KC num] [-bvh]\n" );
+    Abc_Print( -2, "usage: &flow2 [-KC num] [-btvh]\n" );
     Abc_Print( -2, "\t         integration optimization and mapping flow\n" );
     Abc_Print( -2, "\t-K num : the number of LUT inputs (LUT size) [default = %d]\n", nLutSize );
     Abc_Print( -2, "\t-C num : the number of cuts at a node [default = %d]\n", nCutNum );
     Abc_Print( -2, "\t-b     : toggle using SOP balancing during synthesis [default = %s]\n", fBalance? "yes": "no" );
+    Abc_Print( -2, "\t-t     : toggle minimizing average (not maximum) level [default = %s]\n", fMinAve? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
