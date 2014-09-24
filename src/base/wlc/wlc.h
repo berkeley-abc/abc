@@ -163,6 +163,8 @@ static inline Wlc_Obj_t *  Wlc_ObjFanin2( Wlc_Ntk_t * p, Wlc_Obj_t * pObj )     
 static inline int          Wlc_ObjRange( Wlc_Obj_t * p )                          { return p->End - p->Beg + 1;                                           }
 static inline int          Wlc_ObjRangeEnd( Wlc_Obj_t * p )                       { assert(p->Type == WLC_OBJ_BIT_SELECT); return p->Fanins[1] >> 16;     }
 static inline int          Wlc_ObjRangeBeg( Wlc_Obj_t * p )                       { assert(p->Type == WLC_OBJ_BIT_SELECT); return p->Fanins[1] & 0xFFFF;  }
+static inline int          Wlc_ObjSigned( Wlc_Obj_t * p )                         { return p->Signed;                                                     }
+static inline int          Wlc_ObjSign( Wlc_Obj_t * p )                           { return Abc_Var2Lit( Wlc_ObjRange(p), Wlc_ObjSigned(p) );              }
 static inline int *        Wlc_ObjConstValue( Wlc_Obj_t * p )                     { assert(p->Type == WLC_OBJ_CONST);      return Wlc_ObjFanins(p);       }
 static inline int          Wlc_ObjTableId( Wlc_Obj_t * p )                        { assert(p->Type == WLC_OBJ_TABLE);      return p->Fanins[1];           }
 static inline word *       Wlc_ObjTable( Wlc_Ntk_t * p, Wlc_Obj_t * pObj )        { return (word *)Vec_PtrEntry( p->vTables, Wlc_ObjTableId(pObj) );      }
