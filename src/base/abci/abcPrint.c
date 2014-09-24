@@ -222,6 +222,7 @@ void Abc_NtkPrintStats( Abc_Ntk_t * pNtk, int fFactored, int fSaveBest, int fDum
     }
     if ( fSaveBest )
         Abc_NtkCompareAndSaveBest( pNtk );
+/*
     if ( fDumpResult )
     {
         char Buffer[1000] = {0};
@@ -230,6 +231,7 @@ void Abc_NtkPrintStats( Abc_Ntk_t * pNtk, int fFactored, int fSaveBest, int fDum
         Io_Write( pNtk, Buffer, IO_FILE_BLIF );
         if ( pNtk->pSpec ) ABC_FREE( pNameGen );
     }
+*/
 
 //    if ( Abc_NtkIsStrash(pNtk) )
 //        Abc_AigCountNext( pNtk->pManFunc );
@@ -322,6 +324,18 @@ void Abc_NtkPrintStats( Abc_Ntk_t * pNtk, int fFactored, int fSaveBest, int fDum
     Abc_Print( 1,"\n" );
 
     // print the statistic into a file
+    if ( fDumpResult )
+    {
+        FILE * pTable = fopen( "abcstats.txt", "a+" );
+        fprintf( pTable, "%s ",  pNtk->pName );
+        fprintf( pTable, "%d ", Abc_NtkPiNum(pNtk) );
+        fprintf( pTable, "%d ", Abc_NtkPoNum(pNtk) );
+        fprintf( pTable, "%d ", Abc_NtkNodeNum(pNtk) );
+        fprintf( pTable, "%d ", Abc_NtkGetTotalFanins(pNtk) );
+        fprintf( pTable, "%d ", Abc_NtkLevel(pNtk) );
+        fprintf( pTable, "\n" );
+        fclose( pTable );
+    }
 /*
     {
         FILE * pTable;
