@@ -51,8 +51,8 @@ static char * Wlc_Names[WLC_OBJ_NUMBER+1] = {
     "^",                   // 18: bitwise XOR
     "[:]",                 // 19: bit selection
     "{,}",                 // 20: bit concatenation
-    "bitPad",              // 21: zero padding
-    "signExtend",          // 22: sign extension
+    "zeroPad",             // 21: zero padding
+    "signExt",             // 22: sign extension
     "!",                   // 23: logic NOT
     "&&",                  // 24: logic AND
     "||",                  // 25: logic OR
@@ -216,10 +216,7 @@ int Wlc_NtkMemUsage( Wlc_Ntk_t * p )
 ***********************************************************************/
 static inline int Wlc_NtkPrintDistribMakeSign( int s, int s0, int s1 )
 {
-    if ( s0 & 1 )
-    {
-        int s = 9;
-    }
+    s &= 0x3FF;  s0 &= 0x3FF;  s1 &= 0x3FF;
     return (s1 << 20) | (s0 << 10) | s;
 }
 static inline void Wlc_NtkPrintDistribFromSign( int sss, int * s, int * s0, int * s1 )
@@ -259,6 +256,9 @@ void Wlc_NtkPrintDistrib( Wlc_Ntk_t * p, int fVerbose )
     {
 //        char * pName = Wlc_ObjName(p, i);
 //        if ( pObj->Type == WLC_OBJ_ARI_MULTI )
+        if ( Wlc_ObjSign(pObj) > 0x3FF )
+            printf( "Object %d has range %d, which is reduced to %d in the statistics.\n", 
+                i, Wlc_ObjRange(pObj), Wlc_ObjRange(pObj) & 0x1FF );
        // 0-input types
         if ( pObj->Type == WLC_OBJ_PI || pObj->Type == WLC_OBJ_CONST || pObj->Type == WLC_OBJ_BIT_CONCAT )
             Sign = Wlc_NtkPrintDistribMakeSign( Wlc_ObjSign(pObj), 0, 0 );
@@ -287,12 +287,12 @@ void Wlc_NtkPrintDistrib( Wlc_Ntk_t * p, int fVerbose )
         Vec_IntForEachEntry( vType, Sign, k )
         {
             Wlc_NtkPrintDistribFromSign( Sign, &s, &s0, &s1 );
-            printf( "(%d) ", Vec_IntEntry( vOccur, k ) );
-            printf( "%s%d ",       Abc_LitIsCompl(s)?"-":"",  Abc_Lit2Var(s) );
+            printf( "(%d)", Vec_IntEntry( vOccur, k ) );
+            printf( "%s%d",      Abc_LitIsCompl(s)?"-":"",  Abc_Lit2Var(s) );
             if ( s0 )
-                printf( "= %s%d ", Abc_LitIsCompl(s0)?"-":"", Abc_Lit2Var(s0) );
+                printf( "=%s%d", Abc_LitIsCompl(s0)?"-":"", Abc_Lit2Var(s0) );
             if ( s1 )
-                printf( " %s%d ",  Abc_LitIsCompl(s1)?"-":"", Abc_Lit2Var(s1) );
+                printf( ".%s%d", Abc_LitIsCompl(s1)?"-":"", Abc_Lit2Var(s1) );
             printf( " " );
         }
         printf( "\n" );
