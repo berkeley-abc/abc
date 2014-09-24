@@ -607,6 +607,8 @@ static inline int Wlc_PrsFindDefinition( Wlc_Prs_t * p, char * pStr, Vec_Int_t *
                 return Wlc_PrsWriteErrorMessage( p, pStr, "MUX lacks the colon symbol (:)." );
             if ( !(pStr = Wlc_PrsReadName(p, pStr+1, vFanins)) )
                 return Wlc_PrsWriteErrorMessage( p, pStr, "Cannot read name in MUX." );
+            assert( Vec_IntSize(vFanins) == 3 );
+            ABC_SWAP( int, Vec_IntArray(vFanins)[1], Vec_IntArray(vFanins)[2] );
             Type = WLC_OBJ_MUX;
         }
         else if ( pStr[0] == '[' )
