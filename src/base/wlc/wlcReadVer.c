@@ -398,7 +398,7 @@ static inline char * Wlc_PrsFindName( char * pStr, char ** ppPlace )
 }
 static inline char * Wlc_PrsReadConstant( Wlc_Prs_t * p, char * pStr, Vec_Int_t * vFanins, int * pRange, int * pSigned )
 {
-    int nDigits, nBits = atoi( pStr );
+    int i, nDigits, nBits = atoi( pStr );
     *pRange = -1;
     *pSigned = 0;
     pStr = Wlc_PrsSkipSpaces( pStr );
@@ -417,6 +417,18 @@ static inline char * Wlc_PrsReadConstant( Wlc_Prs_t * p, char * pStr, Vec_Int_t 
     {
         *pSigned = 1;
         pStr++;
+    }
+    if ( pStr[1] == 'b' )
+    {
+        Vec_IntFill( vFanins, Abc_BitWordNum(nBits), 0 );
+        for ( i = 0; i < nBits; i++ )
+            if ( pStr[2+i] == '1' )
+                Abc_InfoSetBit( (unsigned *)Vec_IntArray(vFanins), i );
+            else if ( pStr[2+i] != '0' )
+                return (char *)(ABC_PTRINT_T)Wlc_PrsWriteErrorMessage( p, pStr, "Wrong digit in binary constant \"%c\".", pStr[2+i] );
+        *pRange = nBits;
+        pStr += 2 + nBits;
+        return pStr;
     }
     if ( pStr[1] != 'h' )
         return (char *)(ABC_PTRINT_T)Wlc_PrsWriteErrorMessage( p, pStr, "Expecting hexadecimal constant and not \"%c\".", pStr[1] );
@@ -652,6 +664,8 @@ int Wlc_PrsReadDeclaration( Wlc_Prs_t * p, char * pStart )
     pStart = Wlc_PrsSkipSpaces( pStart );
     if ( Wlc_PrsStrCmp( pStart, "wire" ) )
         pStart += strlen("wire");
+    else if ( Wlc_PrsStrCmp( pStart, "reg" ) )
+        pStart += strlen("reg");
     // read 'signed'
     pStart = Wlc_PrsFindWord( pStart, "signed", &Signed );
     // read range
@@ -696,6 +710,7 @@ int Wlc_PrsDerive( Wlc_Prs_t * p )
     // go through the directives
     Wlc_PrsForEachLine( p, pStart, i )
     {
+startword:
         if ( Wlc_PrsStrCmp( pStart, "module" ) )
         {
             // get module name
@@ -770,7 +785,7 @@ int Wlc_PrsDerive( Wlc_Prs_t * p )
             break;
         }
         // these are read as part of the interface
-        else if ( Wlc_PrsStrCmp( pStart, "input" ) || Wlc_PrsStrCmp( pStart, "output" ) || Wlc_PrsStrCmp( pStart, "wire" ) )
+        else if ( Wlc_PrsStrCmp( pStart, "input" ) || Wlc_PrsStrCmp( pStart, "output" ) || Wlc_PrsStrCmp( pStart, "wire" ) || Wlc_PrsStrCmp( pStart, "reg" ) )
         {
             if ( !Wlc_PrsReadDeclaration( p, pStart ) )
                 return 0;
@@ -831,6 +846,84 @@ int Wlc_PrsDerive( Wlc_Prs_t * p )
                 Wlc_Obj_t * pObj = Wlc_NtkObj( p->pNtk, NameId );
                 Wlc_ObjUpdateType( p->pNtk, pObj, WLC_OBJ_TABLE );
                 Wlc_ObjAddFanins( p->pNtk, pObj, p->vFanins );
+            }
+        }
+        else if ( Wlc_PrsStrCmp( pStart, "always" ) )
+        {
+            // THIS IS A HACK TO DETECT tables
+            int NameId, NameIdOut = -1, fFound;
+            // find control
+            pStart = Wlc_PrsFindWord( pStart, "case", &fFound );
+            if ( pStart == NULL )
+                return Wlc_PrsWriteErrorMessage( p, pStart, "Cannot read case statement." );
+            // read the name
+            pStart = Wlc_PrsFindSymbol( pStart, '(' );
+            if ( pStart == NULL )
+                return Wlc_PrsWriteErrorMessage( p, pStart, "Cannot read table." );
+            pStart = Wlc_PrsFindSymbol( pStart+1, '(' );
+            if ( pStart == NULL )
+                return Wlc_PrsWriteErrorMessage( p, pStart, "Cannot read table." );
+            pStart = Wlc_PrsFindName( pStart+1, &pName );
+            if ( pStart == NULL )
+                return Wlc_PrsWriteErrorMessage( p, pStart, "Cannot read name after case." );
+            NameId = Abc_NamStrFindOrAdd( p->pNtk->pManName, pName, &fFound );
+            if ( !fFound )
+                return Wlc_PrsWriteErrorMessage( p, pStart, "Name %s is not declared.", pName );
+            Vec_IntClear( p->vFanins );
+            Vec_IntPush( p->vFanins, NameId );
+            // read data inputs
+            while ( 1 )
+            {
+                // find opening
+                pStart = Wlc_PrsFindSymbol( pStart, ':' );
+                if ( pStart == NULL )
+                    return Wlc_PrsWriteErrorMessage( p, pStart, "Cannot find colon in the case statement." );
+                // find output name
+                pStart = Wlc_PrsFindName( pStart+1, &pName );
+                if ( pStart == NULL )
+                    return Wlc_PrsWriteErrorMessage( p, pStart, "Cannot read name after case." );
+                NameIdOut = Abc_NamStrFindOrAdd( p->pNtk->pManName, pName, &fFound );
+                if ( !fFound )
+                    return Wlc_PrsWriteErrorMessage( p, pStart, "Name %s is not declared.", pName );
+                // find equality
+                pStart = Wlc_PrsFindSymbol( pStart, '=' );
+                if ( pStart == NULL )
+                    return Wlc_PrsWriteErrorMessage( p, pStart, "Cannot find equality in the case statement." );
+                // find input name
+                pStart = Wlc_PrsSkipSpaces( pStart+1 );
+                pStart = Wlc_PrsReadName( p, pStart, p->vFanins );
+                if ( pStart == NULL )
+                    return Wlc_PrsWriteErrorMessage( p, pStart, "Cannot read name inside case statement." );
+                // get next line and check its opening character
+                pStart = Wlc_PrsStr(p, Vec_IntEntry(p->vStarts, ++i));
+                pStart = Wlc_PrsSkipSpaces( pStart );
+                if ( Wlc_PrsIsDigit(pStart) )
+                    continue;
+                if ( Wlc_PrsStrCmp( pStart, "default" ) )
+                {
+                    printf( "Ignoring default in Line %d.\n", i );
+                    pStart = Wlc_PrsStr(p, Vec_IntEntry(p->vStarts, ++i));
+                }
+                // find closing
+                pStart = Wlc_PrsFindWord( pStart, "endcase", &fFound );
+                if ( pStart == NULL )
+                    return Wlc_PrsWriteErrorMessage( p, pStart, "Cannot read case statement." );
+                // find closing
+                pStart = Wlc_PrsFindWord( pStart, "end", &fFound );
+                if ( pStart == NULL )
+                    return Wlc_PrsWriteErrorMessage( p, pStart, "Cannot read case statement." );
+                pStart = Wlc_PrsSkipSpaces( pStart );
+                break;
+            }
+            // check range of the control
+            {
+                Wlc_Obj_t * pObj = Wlc_NtkObj( p->pNtk, Vec_IntEntry(p->vFanins, 0) );
+                if ( (1 << Wlc_ObjRange(pObj)) != Vec_IntSize(p->vFanins) - 1 )
+                    return Wlc_PrsWriteErrorMessage( p, pStart, "The number of values in the case statement is wrong.", pName );
+                pObj = Wlc_NtkObj( p->pNtk, NameIdOut );
+                Wlc_ObjUpdateType( p->pNtk, pObj, WLC_OBJ_MUX );
+                Wlc_ObjAddFanins( p->pNtk, pObj, p->vFanins );
+                goto startword;
             }
         }
 //        else if ( Wlc_PrsStrCmp( pStart, "CPL_FF" ) )

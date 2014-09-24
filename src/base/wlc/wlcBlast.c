@@ -80,6 +80,15 @@ int Wlc_BlastGetConst( int * pNum, int nNum )
             return -1;
     return Res;
 }
+int Wlc_NtkMuxTree_rec( Gia_Man_t * pNew, int * pCtrl, int nCtrl, Vec_Int_t * vData, int Shift )
+{
+    int iLit0, iLit1;
+    if ( nCtrl == 0 )
+        return Vec_IntEntry( vData, Shift );
+    iLit0 = Wlc_NtkMuxTree_rec( pNew, pCtrl, nCtrl-1, vData, Shift );
+    iLit1 = Wlc_NtkMuxTree_rec( pNew, pCtrl, nCtrl-1, vData, Shift + (1<<(nCtrl-1)) );
+    return Gia_ManHashMux( pNew, pCtrl[nCtrl-1], iLit1, iLit0 );
+}
 
 /**Function*************************************************************
 
@@ -333,7 +342,7 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p )
     Vec_Int_t * vBits, * vTemp0, * vTemp1, * vTemp2, * vRes;
     int nBits = Wlc_NtkPrepareBits( p );
     int nRange, nRange0, nRange1, nRange2;
-    int i, k, b, iLit, * pFans0, * pFans1, * pFans2;
+    int i, k, b, iFanin, iLit, * pFans0, * pFans1, * pFans2;
     vBits  = Vec_IntAlloc( nBits );
     vTemp0 = Vec_IntAlloc( 1000 );
     vTemp1 = Vec_IntAlloc( 1000 );
@@ -346,7 +355,7 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p )
     // create primary inputs
     Wlc_NtkForEachObj( p, pObj, i )
     {
-//        char * pName = Wlc_ObjName(p, i);
+        char * pName = Wlc_ObjName(p, i);
         nRange  = Wlc_ObjRange( pObj );
         nRange0 = Wlc_ObjFaninNum(pObj) > 0 ? Wlc_ObjRange( Wlc_ObjFanin0(p, pObj) ) : -1;
         nRange1 = Wlc_ObjFaninNum(pObj) > 1 ? Wlc_ObjRange( Wlc_ObjFanin1(p, pObj) ) : -1;
@@ -362,9 +371,18 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p )
         }
         else if ( pObj->Type == WLC_OBJ_PO || pObj->Type == WLC_OBJ_BUF )
         {
-//            assert( nRange <= nRange0 );
-            for ( k = 0; k < nRange; k++ )
-                Vec_IntPush( vRes, k < nRange0 ? pFans0[k] : 0 );
+            if ( pObj->Type == WLC_OBJ_BUF && pObj->Signed && !Wlc_ObjFanin0(p, pObj)->Signed ) // unsign->sign
+            {
+                int nRangeMax = Abc_MaxInt( nRange0, nRange );
+                int * pArg0 = Wlc_VecLoadFanins( vTemp0, pFans0, nRange0, nRangeMax, 0 );
+                Wlc_BlastMinus( pNew, pArg0, nRange, vRes );
+            }
+            else
+            {
+    //            assert( nRange <= nRange0 );
+                for ( k = 0; k < nRange; k++ )
+                    Vec_IntPush( vRes, k < nRange0 ? pFans0[k] : 0 );
+            }
         }
         else if ( pObj->Type == WLC_OBJ_CONST )
         {
@@ -374,9 +392,19 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p )
         }
         else if ( pObj->Type == WLC_OBJ_MUX )
         {
-            assert( nRange0 == 1 && nRange1 == nRange && nRange2 == nRange );
-            for ( k = 0; k < nRange; k++ )
-                Vec_IntPush( vRes, Gia_ManHashMux(pNew, pFans0[0], pFans1[k], pFans2[k]) );
+            assert( 1 + (1 << nRange0) == Wlc_ObjFaninNum(pObj) );
+            for ( b = 0; b < nRange; b++ )
+            {
+                Vec_IntClear( vTemp0 );
+                Wlc_ObjForEachFanin( pObj, iFanin, k )
+                {
+                    if ( !k ) continue;
+                    assert( nRange == Wlc_ObjRange(Wlc_NtkObj(p, iFanin)) );
+                    pFans1 = Vec_IntEntryP( vBits, Wlc_ObjCopy(p, iFanin) );
+                    Vec_IntPush( vTemp0, pFans1[b] );
+                }
+                Vec_IntPush( vRes, Wlc_NtkMuxTree_rec(pNew, pFans0, nRange0, vTemp0, 0) );
+            }
         }
         else if ( pObj->Type == WLC_OBJ_SHIFT_R || pObj->Type == WLC_OBJ_SHIFT_RA )
         {
@@ -487,12 +515,14 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p )
         else if ( pObj->Type == WLC_OBJ_COMP_LESS || pObj->Type == WLC_OBJ_COMP_MOREEQU ||
                   pObj->Type == WLC_OBJ_COMP_MORE || pObj->Type == WLC_OBJ_COMP_LESSEQU )
         {
+            int nRangeMax = Abc_MaxInt( nRange0, nRange1 );
+            int * pArg0 = Wlc_VecLoadFanins( vRes,   pFans0, nRange0, nRangeMax, Wlc_ObjFanin0(p, pObj)->Signed );
+            int * pArg1 = Wlc_VecLoadFanins( vTemp1, pFans1, nRange1, nRangeMax, Wlc_ObjFanin1(p, pObj)->Signed );
             int fSwap  = (pObj->Type == WLC_OBJ_COMP_MORE    || pObj->Type == WLC_OBJ_COMP_LESSEQU);
             int fCompl = (pObj->Type == WLC_OBJ_COMP_MOREEQU || pObj->Type == WLC_OBJ_COMP_LESSEQU);
             assert( nRange == 1 );
-            assert( nRange0 == nRange1 );
             if ( fSwap ) ABC_SWAP( int *, pFans0, pFans1 );
-            iLit = Wlc_BlastLess( pNew, pFans0, pFans1, nRange0 );
+            iLit = Wlc_BlastLess( pNew, pFans0, pFans1, nRangeMax );
             iLit = Abc_LitNotCond( iLit, fCompl );
             Vec_IntFill( vRes, 1, iLit );
         }
@@ -516,15 +546,17 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p )
         }
         else if ( pObj->Type == WLC_OBJ_ARI_DIVIDE || pObj->Type == WLC_OBJ_ARI_MODULUS )
         {
-            int * pArg0 = Wlc_VecLoadFanins( vTemp0, pFans0, nRange0, nRange, Wlc_ObjFanin0(p, pObj)->Signed );
-            int * pArg1 = Wlc_VecLoadFanins( vTemp1, pFans1, nRange1, nRange, Wlc_ObjFanin1(p, pObj)->Signed );
-            assert( nRange0 <= nRange && nRange1 <= nRange );
-            Wlc_BlastDivider( pNew, pArg0, nRange, pArg1, nRange, pObj->Type == WLC_OBJ_ARI_DIVIDE, vRes );
+            int nRangeMax = Abc_MaxInt( nRange, Abc_MaxInt(nRange0, nRange1) );
+            int * pArg0 = Wlc_VecLoadFanins( vTemp0, pFans0, nRange0, nRangeMax, Wlc_ObjFanin0(p, pObj)->Signed );
+            int * pArg1 = Wlc_VecLoadFanins( vTemp1, pFans1, nRange1, nRangeMax, Wlc_ObjFanin1(p, pObj)->Signed );
+            Wlc_BlastDivider( pNew, pArg0, nRangeMax, pArg1, nRangeMax, pObj->Type == WLC_OBJ_ARI_DIVIDE, vRes );
+            Vec_IntShrink( vRes, nRange );
         }
         else if ( pObj->Type == WLC_OBJ_ARI_MINUS )
         {
-            assert( nRange0 == nRange );
-            Wlc_BlastMinus( pNew, pFans0, nRange0, vRes );
+            int * pArg0 = Wlc_VecLoadFanins( vTemp0, pFans0, nRange0, nRange, Wlc_ObjFanin0(p, pObj)->Signed );
+            assert( nRange0 <= nRange );
+            Wlc_BlastMinus( pNew, pArg0, nRange, vRes );
         }
         else if ( pObj->Type == WLC_OBJ_TABLE )
             Wlc_BlastTable( pNew, Wlc_ObjTable(p, pObj), pFans0, nRange0, nRange, vRes );

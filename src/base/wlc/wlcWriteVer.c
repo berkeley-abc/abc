@@ -178,6 +178,30 @@ void Wlc_WriteVerInt( FILE * pFile, Wlc_Ntk_t * p )
             else
                 fprintf( pFile, "(%s << %d) | (%s >> %d)", pName0, Num0, pName0, Num1 );
         }
+        else if ( pObj->Type == WLC_OBJ_MUX && Wlc_ObjFaninNum(pObj) > 3 )
+        {
+            fprintf( pFile, "       reg %s ;\n", pName );
+            fprintf( pFile, "       " );
+            fprintf( pFile, "always @( " );
+            Wlc_ObjForEachFanin( pObj, iFanin, k )
+                fprintf( pFile, "%s%s", k ? " or ":"", Wlc_ObjName(p, Wlc_ObjFaninId(pObj, k)) );
+            fprintf( pFile, " )\n" );
+            fprintf( pFile, "           " );
+            fprintf( pFile, "begin\n" );
+            fprintf( pFile, "             " );
+            fprintf( pFile, "case ( %s )\n", Wlc_ObjName(p, Wlc_ObjFaninId(pObj, 0)) );
+            Wlc_ObjForEachFanin( pObj, iFanin, k )
+            {
+                if ( !k ) continue;
+                fprintf( pFile, "               " );
+                fprintf( pFile, "%d : %s = %s ;\n", k-1, pName, Wlc_ObjName(p, Wlc_ObjFaninId(pObj, k)) );
+            }
+            fprintf( pFile, "             " );
+            fprintf( pFile, "endcase\n" );
+            fprintf( pFile, "           " );
+            fprintf( pFile, "end\n" );
+            continue;
+        }
         else
         {
             fprintf( pFile, "       wire %s %-16s = ", Range, Wlc_ObjName(p, i) );
