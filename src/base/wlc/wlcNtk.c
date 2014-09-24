@@ -214,51 +214,72 @@ int Wlc_NtkMemUsage( Wlc_Ntk_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-static inline int Wlc_NtkPrintDistribMakeSign( int s, int s0, int s1 )
+static inline void Vec_WrdSelectSortCost2( word * pArray, int nSize, word * pCosts )
 {
-    s &= 0x3FF;  s0 &= 0x3FF;  s1 &= 0x3FF;
-    return (s1 << 20) | (s0 << 10) | s;
+    int i, j, best_i;
+    for ( i = 0; i < nSize-1; i++ )
+    {
+        best_i = i;
+        for ( j = i+1; j < nSize; j++ )
+            if ( pCosts[j] < pCosts[best_i] )
+                best_i = j;
+        ABC_SWAP( word, pArray[i], pArray[best_i] );
+        ABC_SWAP( word, pCosts[i], pCosts[best_i] );
+    }
 }
-static inline void Wlc_NtkPrintDistribFromSign( int sss, int * s, int * s0, int * s1 )
+static inline word Wlc_NtkPrintDistribMakeSign( int s, int s0, int s1 )
 {
-    *s1 =  sss >> 20;  *s0 = (sss >> 10) & 0x3FF;  *s  =  sss & 0x3FF;
+    return ((word)s1 << 42) | ((word)s0 << 21) | (word)s;
 }
-static inline void Wlc_NtkPrintDistribAddOne( Vec_Wec_t * vTypes, Vec_Wec_t * vOccurs, int Type, int Sign )
+static inline void Wlc_NtkPrintDistribFromSign( word sss, int * s, int * s0, int * s1 )
 {
-    Vec_Int_t * vType  = Vec_WecEntry( vTypes, Type );
-    Vec_Int_t * vOccur = Vec_WecEntry( vOccurs, Type );
-    int i, Entry;
-    Vec_IntForEachEntry( vType, Entry, i )
+    *s1 =  (int)(sss >> 42);  *s0 = (int)(sss >> 21) & 0x1FFFFF;  *s  =  (int)sss & 0x1FFFFF;
+}
+static inline void Wlc_NtkPrintDistribAddOne( Vec_Ptr_t * vTypes, Vec_Ptr_t * vOccurs, int Type, word Sign )
+{
+    Vec_Wrd_t * vType  = (Vec_Wrd_t *)Vec_PtrEntry( vTypes, Type );
+    Vec_Wrd_t * vOccur = (Vec_Wrd_t *)Vec_PtrEntry( vOccurs, Type );
+    word Entry; int i;
+    Vec_WrdForEachEntry( vType, Entry, i )
         if ( Entry == Sign )
         {
-            Vec_IntAddToEntry( vOccur, i, 1 );
+            Vec_WrdAddToEntry( vOccur, i, 1 );
             return;
         }
-    Vec_IntPush( vType, Sign );
-    Vec_IntPush( vOccur, 1 );
+    Vec_WrdPush( vType, Sign );
+    Vec_WrdPush( vOccur, 1 );
 }
-void Wlc_NtkPrintDistribSortOne( Vec_Wec_t * vTypes, Vec_Wec_t * vOccurs, int Type )
+void Wlc_NtkPrintDistribSortOne( Vec_Ptr_t * vTypes, Vec_Ptr_t * vOccurs, int Type )
 {
-    Vec_Int_t * vType  = Vec_WecEntry( vTypes,  Type );
-    Vec_Int_t * vOccur = Vec_WecEntry( vOccurs, Type );
-    Vec_IntSelectSortCost2( Vec_IntArray(vType), Vec_IntSize(vType), Vec_IntArray(vOccur) );
-    Vec_IntReverseOrder( vType );
-    Vec_IntReverseOrder( vOccur );
+    Vec_Wrd_t * vType  = (Vec_Wrd_t *)Vec_PtrEntry( vTypes, Type );
+    Vec_Wrd_t * vOccur = (Vec_Wrd_t *)Vec_PtrEntry( vOccurs, Type );
+    Vec_WrdSelectSortCost2( Vec_WrdArray(vType), Vec_WrdSize(vType), Vec_WrdArray(vOccur) );
+    Vec_WrdReverseOrder( vType );
+    Vec_WrdReverseOrder( vOccur );
 }
 void Wlc_NtkPrintDistrib( Wlc_Ntk_t * p, int fVerbose )
 {
     Wlc_Obj_t * pObj; 
-    int i, k, Sign, s, s0, s1;
-    Vec_Wec_t * vTypes, * vOccurs;
-    vTypes  = Vec_WecStart( WLC_OBJ_NUMBER );
-    vOccurs = Vec_WecStart( WLC_OBJ_NUMBER );
+    Vec_Ptr_t * vTypes, * vOccurs;
+    word Sign;
+    int i, k, s, s0, s1;
+    // allocate statistics arrays
+    vTypes  = Vec_PtrStart( WLC_OBJ_NUMBER );
+    vOccurs = Vec_PtrStart( WLC_OBJ_NUMBER );
+    for ( i = 0; i < WLC_OBJ_NUMBER; i++ )
+        Vec_PtrWriteEntry( vTypes, i, Vec_WrdAlloc(16) );
+    for ( i = 0; i < WLC_OBJ_NUMBER; i++ )
+        Vec_PtrWriteEntry( vOccurs, i, Vec_WrdAlloc(16) );
+    // add nodes
     Wlc_NtkForEachObj( p, pObj, i )
     {
 //        char * pName = Wlc_ObjName(p, i);
 //        if ( pObj->Type == WLC_OBJ_ARI_MULTI )
-        if ( Wlc_ObjSign(pObj) > 0x3FF )
-            printf( "Object %d has range %d, which is reduced to %d in the statistics.\n", 
-                i, Wlc_ObjRange(pObj), Wlc_ObjRange(pObj) & 0x1FF );
+        if ( Wlc_ObjSign(pObj) > 0x1FFFFF )
+            printf( "Object %6d has range %d, which is reduced to %d in the statistics.\n", 
+                i, Wlc_ObjRange(pObj), Wlc_ObjRange(pObj) & 0xFFFFF );
+        if ( pObj->Beg )
+            printf( "Object %6d has non-standard range %d=[%d:%d]\n", i, Wlc_ObjRange(pObj), pObj->End, pObj->Beg );
        // 0-input types
         if ( pObj->Type == WLC_OBJ_PI || pObj->Type == WLC_OBJ_CONST || pObj->Type == WLC_OBJ_BIT_CONCAT )
             Sign = Wlc_NtkPrintDistribMakeSign( Wlc_ObjSign(pObj), 0, 0 );
@@ -275,19 +296,22 @@ void Wlc_NtkPrintDistrib( Wlc_Ntk_t * p, int fVerbose )
         Wlc_NtkPrintDistribAddOne( vTypes, vOccurs, pObj->Type, Sign );
     }
     // print by occurrence
+    printf( "Format: type ID : occurance  name ... (occurrence)<output_range>=<input_range>.<input_range>\n" );
     for ( i = 0; i < WLC_OBJ_NUMBER; i++ )
     {
-        Vec_Int_t * vType  = Vec_WecEntry( vTypes, i );
-        Vec_Int_t * vOccur = Vec_WecEntry( vOccurs, i );
+        Vec_Wrd_t * vType  = (Vec_Wrd_t *)Vec_PtrEntry( vTypes, i );
+        Vec_Wrd_t * vOccur = (Vec_Wrd_t *)Vec_PtrEntry( vOccurs, i );
         if ( p->nObjs[i] == 0 )
             continue;
-        printf( "%2d  :  %6d  %-8s      ", i, p->nObjs[i], Wlc_Names[i] );
+        printf( "%2d  :  %6d  %-8s ", i, p->nObjs[i], Wlc_Names[i] );
         // sort by occurence
         Wlc_NtkPrintDistribSortOne( vTypes, vOccurs, i );
-        Vec_IntForEachEntry( vType, Sign, k )
+        Vec_WrdForEachEntry( vType, Sign, k )
         {
             Wlc_NtkPrintDistribFromSign( Sign, &s, &s0, &s1 );
-            printf( "(%d)", Vec_IntEntry( vOccur, k ) );
+            if ( ((k % 8) == 7 && s1) || ((k % 10) == 9 && !s1) )
+                printf( "\n                        " );
+            printf( "(%d)", (int)Vec_WrdEntry( vOccur, k ) );
             printf( "%s%d",      Abc_LitIsCompl(s)?"-":"",  Abc_Lit2Var(s) );
             if ( s0 )
                 printf( "=%s%d", Abc_LitIsCompl(s0)?"-":"", Abc_Lit2Var(s0) );
@@ -297,8 +321,8 @@ void Wlc_NtkPrintDistrib( Wlc_Ntk_t * p, int fVerbose )
         }
         printf( "\n" );
     }
-    Vec_WecFree( vTypes );
-    Vec_WecFree( vOccurs );
+    Vec_VecFree( (Vec_Vec_t *)vTypes );
+    Vec_VecFree( (Vec_Vec_t *)vOccurs );
 }
 void Wlc_NtkPrintNodes( Wlc_Ntk_t * p, int Type )
 {
