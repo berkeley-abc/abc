@@ -146,8 +146,8 @@ void Wlc_ObjUpdateType( Wlc_Ntk_t * p, Wlc_Obj_t * pObj, int Type )
 {
     if ( pObj->Type == WLC_OBJ_PO )
     {
-        if ( Type != WLC_OBJ_BUF )
-            printf( "Primary outputs should be driven by buffers.\n" );
+//        if ( Type != WLC_OBJ_BUF )
+//            printf( "Primary outputs should be driven by buffers.\n" );
         assert( Type == WLC_OBJ_BUF );
         return;
     }
@@ -303,7 +303,7 @@ void Wlc_NtkPrintDistrib( Wlc_Ntk_t * p, int fVerbose )
         Vec_Wrd_t * vOccur = (Vec_Wrd_t *)Vec_PtrEntry( vOccurs, i );
         if ( p->nObjs[i] == 0 )
             continue;
-        printf( "%2d  :  %6d  %-8s ", i, p->nObjs[i], Wlc_Names[i] );
+        printf( "%2d  :  %-8s  %6d ", i, Wlc_Names[i], p->nObjs[i] );
         // sort by occurence
         Wlc_NtkPrintDistribSortOne( vTypes, vOccurs, i );
         Vec_WrdForEachEntry( vType, Sign, k )
@@ -345,7 +345,7 @@ void Wlc_NtkPrintNodes( Wlc_Ntk_t * p, int Type )
         printf( "\n" );
     }
 }
-void Wlc_NtkPrintStats( Wlc_Ntk_t * p, int fVerbose )
+void Wlc_NtkPrintStats( Wlc_Ntk_t * p, int fDistrib, int fVerbose )
 {
     int i;
     printf( "%-20s : ",        p->pName );
@@ -357,12 +357,21 @@ void Wlc_NtkPrintStats( Wlc_Ntk_t * p, int fVerbose )
     printf( "\n" );
     if ( !fVerbose )
         return;
-    printf( "Node type statisticts:\n" );
-    Wlc_NtkPrintDistrib( p, fVerbose );
-    return;
-    for ( i = 0; i < WLC_OBJ_NUMBER; i++ )
-        if ( p->nObjs[i] )
-            printf( "%2d  :  %6d  %-8s\n", i, p->nObjs[i], Wlc_Names[i] );
+    if ( fDistrib )
+    {
+        Wlc_NtkPrintDistrib( p, fVerbose );
+        return;
+    }
+    printf( "Node type statistics:\n" );
+    for ( i = 1; i < WLC_OBJ_NUMBER; i++ )
+    {
+        if ( !p->nObjs[i] )
+            continue;
+        if ( p->nAnds[0] && p->nAnds[i] )
+            printf( "%2d  :  %-8s  %6d  %7.2f %%\n", i, Wlc_Names[i], p->nObjs[i], 100.0*p->nAnds[i]/p->nAnds[0] );
+        else
+            printf( "%2d  :  %-8s  %6d\n", i, Wlc_Names[i], p->nObjs[i] );
+    }
 }
 
 /**Function*************************************************************

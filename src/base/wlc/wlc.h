@@ -115,6 +115,7 @@ struct Wlc_Ntk_t_
     Vec_Int_t              vCos;               // combinational outputs
     Vec_Int_t              vFfs;               // flops
     int                    nObjs[WLC_OBJ_NUMBER]; // counter of objects of each type
+    int                    nAnds[WLC_OBJ_NUMBER]; // counter of AND gates after blasting
     // memory for objects
     Wlc_Obj_t *            pObjs;
     int                    iObj;
@@ -218,7 +219,7 @@ extern void           Wlc_ObjUpdateType( Wlc_Ntk_t * p, Wlc_Obj_t * pObj, int Ty
 extern void           Wlc_ObjAddFanins( Wlc_Ntk_t * p, Wlc_Obj_t * pObj, Vec_Int_t * vFanins );
 extern void           Wlc_NtkFree( Wlc_Ntk_t * p );
 extern void           Wlc_NtkPrintNodes( Wlc_Ntk_t * p, int Type );
-extern void           Wlc_NtkPrintStats( Wlc_Ntk_t * p, int fVerbose );
+extern void           Wlc_NtkPrintStats( Wlc_Ntk_t * p, int fDistrib, int fVerbose );
 extern Wlc_Ntk_t *    Wlc_NtkDupDfs( Wlc_Ntk_t * p );
 extern void           Wlc_NtkTransferNames( Wlc_Ntk_t * pNew, Wlc_Ntk_t * p );
 /*=== wlcReadWord.c ========================================================*/

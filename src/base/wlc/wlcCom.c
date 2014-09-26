@@ -208,9 +208,10 @@ int Abc_CommandPs( Abc_Frame_t * pAbc, int argc, char ** argv )
     Wlc_Ntk_t * pNtk = Wlc_AbcGetNtk(pAbc);
     int fShowMulti   = 0;
     int fShowAdder   = 0;
+    int fDistrib     = 0;
     int c, fVerbose  = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "mavh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "madvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -219,6 +220,9 @@ int Abc_CommandPs( Abc_Frame_t * pAbc, int argc, char ** argv )
             break;
         case 'a':
             fShowAdder ^= 1;
+            break;
+        case 'd':
+            fDistrib ^= 1;
             break;
         case 'v':
             fVerbose ^= 1;
@@ -234,17 +238,18 @@ int Abc_CommandPs( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( 1, "Abc_CommandPs(): There is no current design.\n" );
         return 0;
     }
-    Wlc_NtkPrintStats( pNtk, fVerbose );
+    Wlc_NtkPrintStats( pNtk, fDistrib, fVerbose );
     if ( fShowMulti )
         Wlc_NtkPrintNodes( pNtk, WLC_OBJ_ARI_MULTI );
     if ( fShowAdder )
         Wlc_NtkPrintNodes( pNtk, WLC_OBJ_ARI_ADD );
     return 0;
 usage:
-    Abc_Print( -2, "usage: %%ps [-mavh]\n" );
+    Abc_Print( -2, "usage: %%ps [-madvh]\n" );
     Abc_Print( -2, "\t         prints statistics\n" );
     Abc_Print( -2, "\t-m     : toggle printing multipliers [default = %s]\n",         fShowMulti? "yes": "no" );
     Abc_Print( -2, "\t-a     : toggle printing adders [default = %s]\n",              fShowAdder? "yes": "no" );
+    Abc_Print( -2, "\t-d     : toggle printing distrubition [default = %s]\n",        fDistrib? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;

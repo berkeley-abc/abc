@@ -352,9 +352,12 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p )
     pNew = Gia_ManStart( 5 * Wlc_NtkObjNum(p) + 1000 );
     pNew->pName = Abc_UtilStrsav( p->pName );
     Gia_ManHashAlloc( pNew );
+    // clean AND-gate counters
+    memset( p->nAnds, 0, sizeof(int) * WLC_OBJ_NUMBER );
     // create primary inputs
     Wlc_NtkForEachObj( p, pObj, i )
     {
+        int nAndPrev = Gia_ManObjNum(pNew);
 //        char * pName = Wlc_ObjName(p, i);
         nRange  = Wlc_ObjRange( pObj );
         nRange0 = Wlc_ObjFaninNum(pObj) > 0 ? Wlc_ObjRange( Wlc_ObjFanin0(p, pObj) ) : -1;
@@ -564,7 +567,10 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p )
         assert( Vec_IntSize(vBits) == Wlc_ObjCopy(p, i) );
         Vec_IntAppend( vBits, vRes );
         pPrev = pObj;
+        if ( pObj->Type != WLC_OBJ_PI && pObj->Type != WLC_OBJ_PO )
+            p->nAnds[pObj->Type] += Gia_ManObjNum(pNew) - nAndPrev;
     }
+    p->nAnds[0] = Gia_ManAndNum(pNew);
     assert( nBits == Vec_IntSize(vBits) );
     Vec_IntFree( vTemp0 );
     Vec_IntFree( vTemp1 );
