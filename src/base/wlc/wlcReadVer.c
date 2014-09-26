@@ -658,11 +658,11 @@ static inline int Wlc_PrsFindDefinition( Wlc_Prs_t * p, char * pStr, Vec_Int_t *
 int Wlc_PrsReadDeclaration( Wlc_Prs_t * p, char * pStart )
 {
     int fFound = 0, Type = WLC_OBJ_NONE, iObj; 
-    int Signed = 0, Beg = 0, End = 0, NameId;
+    int Signed = 0, Beg = 0, End = 0, NameId, fIsPo = 0;
     if ( Wlc_PrsStrCmp( pStart, "input" ) )
-        Type = WLC_OBJ_PI, pStart += strlen("input");
+        pStart += strlen("input"), Type = WLC_OBJ_PI;
     else if ( Wlc_PrsStrCmp( pStart, "output" ) )
-        Type = WLC_OBJ_PO, pStart += strlen("output");
+        pStart += strlen("output"), fIsPo = 1;
     pStart = Wlc_PrsSkipSpaces( pStart );
     if ( Wlc_PrsStrCmp( pStart, "wire" ) )
         pStart += strlen("wire");
@@ -685,6 +685,7 @@ int Wlc_PrsReadDeclaration( Wlc_Prs_t * p, char * pStart )
         if ( fFound )
             return Wlc_PrsWriteErrorMessage( p, pStart, "Name %s is declared more than once.", pName );
         iObj = Wlc_ObjAlloc( p->pNtk, Type, Signed, End, Beg );
+        if ( fIsPo ) Wlc_ObjSetCo( p->pNtk, Wlc_NtkObj(p->pNtk, iObj), 0 );
         assert( iObj == NameId );
         // check next definition
         pStart = Wlc_PrsSkipSpaces( pStart );
@@ -707,6 +708,7 @@ int Wlc_PrsReadDeclaration( Wlc_Prs_t * p, char * pStart )
 }
 int Wlc_PrsDerive( Wlc_Prs_t * p )
 {
+    Wlc_Obj_t * pObj;
     char * pStart, * pName;
     int i;
     // go through the directives
@@ -719,9 +721,21 @@ startword:
             pName = strtok( pStart + strlen("module"), " \r\n\t(,)" );
             if ( pName == NULL )
                 return Wlc_PrsWriteErrorMessage( p, pStart, "Cannot read model name." );
+            // THIS IS A HACK to skip definitions of modules beginning with "CPL_"
+            if ( Wlc_PrsStrCmp( pName, "CPL_" ) )
+            {
+                while ( ++i < Vec_IntSize(p->vStarts) )
+                {
+                    pStart = Wlc_PrsStr(p, Vec_IntEntry(p->vStarts, i));
+                    pStart = strstr( pStart, "endmodule" );
+                    if ( pStart != NULL )
+                        break;
+                }
+                continue;
+            }
             if ( Wlc_PrsStrCmp( pName, "table" ) )
             {
-                // THIS IS A HACK TO DETECT tables
+                // THIS IS A HACK to detect table module descriptions
                 int Width1 = -1, Width2 = -1;
                 int v, b, Value, nBits, nInts;
                 unsigned * pTable;
@@ -784,6 +798,14 @@ startword:
             Vec_Int_t * vTemp = Vec_IntStartNatural( Wlc_NtkObjNumMax(p->pNtk) );
             Vec_IntAppend( &p->pNtk->vNameIds, vTemp );
             Vec_IntFree( vTemp );
+            // move FO/FI to be part of CI/CO
+            assert( (Vec_IntSize(&p->pNtk->vFfs) & 1) == 0 );
+            Wlc_NtkForEachFf( p->pNtk, pObj, i )
+                if ( i & 1 )
+                    Wlc_ObjSetCo( p->pNtk, pObj, 1 );
+                else
+                    Wlc_ObjSetCi( p->pNtk, pObj );
+            Vec_IntClear( &p->pNtk->vFfs );
             break;
         }
         // these are read as part of the interface
@@ -807,7 +829,7 @@ startword:
             Type = Wlc_PrsFindDefinition( p, pStart, p->vFanins );
             if ( Type )
             {
-                Wlc_Obj_t * pObj = Wlc_NtkObj( p->pNtk, NameId );
+                pObj = Wlc_NtkObj( p->pNtk, NameId );
                 Wlc_ObjUpdateType( p->pNtk, pObj, Type );
                 Wlc_ObjAddFanins( p->pNtk, pObj, p->vFanins );
             }
@@ -816,7 +838,7 @@ startword:
         }
         else if ( Wlc_PrsStrCmp( pStart, "table" ) )
         {
-            // THIS IS A HACK TO DETECT tables
+            // THIS IS A HACK to detect tables
             int NameId, fFound, iTable = atoi( pStart + strlen("table") );
             // find opening
             pStart = Wlc_PrsFindSymbol( pStart, '(' );
@@ -844,15 +866,13 @@ startword:
             NameId = Abc_NamStrFindOrAdd( p->pNtk->pManName, pName, &fFound );
             if ( !fFound )
                 return Wlc_PrsWriteErrorMessage( p, pStart, "Name %s is not declared.", pName );
-            {
-                Wlc_Obj_t * pObj = Wlc_NtkObj( p->pNtk, NameId );
-                Wlc_ObjUpdateType( p->pNtk, pObj, WLC_OBJ_TABLE );
-                Wlc_ObjAddFanins( p->pNtk, pObj, p->vFanins );
-            }
+            pObj = Wlc_NtkObj( p->pNtk, NameId );
+            Wlc_ObjUpdateType( p->pNtk, pObj, WLC_OBJ_TABLE );
+            Wlc_ObjAddFanins( p->pNtk, pObj, p->vFanins );
         }
         else if ( Wlc_PrsStrCmp( pStart, "always" ) )
         {
-            // THIS IS A HACK TO DETECT tables
+            // THIS IS A HACK to detect always statement representing combinational MUX
             int NameId, NameIdOut = -1, fFound;
             // find control
             pStart = Wlc_PrsFindWord( pStart, "case", &fFound );
@@ -918,18 +938,58 @@ startword:
                 break;
             }
             // check range of the control
-            {
-                Wlc_Obj_t * pObj = Wlc_NtkObj( p->pNtk, Vec_IntEntry(p->vFanins, 0) );
-                if ( (1 << Wlc_ObjRange(pObj)) != Vec_IntSize(p->vFanins) - 1 )
-                    return Wlc_PrsWriteErrorMessage( p, pStart, "The number of values in the case statement is wrong.", pName );
-                pObj = Wlc_NtkObj( p->pNtk, NameIdOut );
-                Wlc_ObjUpdateType( p->pNtk, pObj, WLC_OBJ_MUX );
-                Wlc_ObjAddFanins( p->pNtk, pObj, p->vFanins );
-                goto startword;
-            }
+            pObj = Wlc_NtkObj( p->pNtk, Vec_IntEntry(p->vFanins, 0) );
+            if ( (1 << Wlc_ObjRange(pObj)) != Vec_IntSize(p->vFanins) - 1 )
+                return Wlc_PrsWriteErrorMessage( p, pStart, "The number of values in the case statement is wrong.", pName );
+            pObj = Wlc_NtkObj( p->pNtk, NameIdOut );
+            Wlc_ObjUpdateType( p->pNtk, pObj, WLC_OBJ_MUX );
+            Wlc_ObjAddFanins( p->pNtk, pObj, p->vFanins );
+            goto startword;
         }
-//        else if ( Wlc_PrsStrCmp( pStart, "CPL_FF" ) )
-        else
+        else if ( Wlc_PrsStrCmp( pStart, "CPL_FF" ) )
+        {
+            int NameId = -1, NameIdOut = -1, fFound, nBits = 1, fFlopOut;
+            pStart += strlen("CPL_FF");
+            if ( pStart[0] == '#' )
+                nBits = atoi(pStart+1);
+            // read names
+            while ( 1 )
+            {
+                pStart = Wlc_PrsFindSymbol( pStart, '.' );
+                if ( pStart == NULL )
+                    break;
+                pStart = Wlc_PrsSkipSpaces( pStart+1 );
+                if ( pStart[0] != 'd' && (pStart[0] != 'q' || pStart[1] == 'b') )
+                    continue;
+                fFlopOut = (pStart[0] == 'd');
+                pStart = Wlc_PrsFindSymbol( pStart, '(' );
+                if ( pStart == NULL )
+                    return Wlc_PrsWriteErrorMessage( p, pStart, "Cannot read opening paranthesis in the flop description." );
+                pStart = Wlc_PrsFindName( pStart+1, &pName );
+                if ( pStart == NULL )
+                    return Wlc_PrsWriteErrorMessage( p, pStart, "Cannot read name inside flop description." );
+                if ( fFlopOut )
+                    NameIdOut = Abc_NamStrFindOrAdd( p->pNtk->pManName, pName, &fFound );
+                else 
+                    NameId = Abc_NamStrFindOrAdd( p->pNtk->pManName, pName, &fFound );
+                if ( !fFound )
+                    return Wlc_PrsWriteErrorMessage( p, pStart, "Name %s is not declared.", pName );
+            }
+            if ( NameId == -1 || NameIdOut == -1 )
+                return Wlc_PrsWriteErrorMessage( p, pStart, "Name of flop input or flop output is missing." );
+            // create flop output
+            pObj = Wlc_NtkObj( p->pNtk, NameId );
+            Wlc_ObjUpdateType( p->pNtk, pObj, WLC_OBJ_FO );
+            Vec_IntPush( &p->pNtk->vFfs, NameId );
+            if ( nBits != Wlc_ObjRange(pObj) )
+                printf( "Warning!  Flop input has bit-width (%d) that differs from the declaration (%d)\n", nBits, Wlc_ObjRange(pObj) );
+            // create flop input
+            pObj = Wlc_NtkObj( p->pNtk, NameIdOut );
+            Vec_IntPush( &p->pNtk->vFfs, NameIdOut );
+            if ( nBits != Wlc_ObjRange(pObj) )
+                printf( "Warning!  Flop output has bit-width (%d) that differs from the declaration (%d)\n", nBits, Wlc_ObjRange(pObj) );
+        }
+        else if ( pStart[0] != '`' )
         {
             pStart = Wlc_PrsFindName( pStart, &pName );
             return Wlc_PrsWriteErrorMessage( p, pStart, "Cannot read line beginning with %s.", pName );

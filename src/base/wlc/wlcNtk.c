@@ -107,9 +107,30 @@ Wlc_Ntk_t * Wlc_NtkAlloc( char * pName, int nObjsAlloc )
     p->iObj = 1;
     return p;
 }
+void Wlc_ObjSetCi( Wlc_Ntk_t * p, Wlc_Obj_t * pObj )
+{
+    assert( Wlc_ObjIsCi(pObj) );
+    assert( Wlc_ObjFaninNum(pObj) == 0 );
+    pObj->Fanins[1] = Vec_IntSize(&p->vCis);
+    Vec_IntPush( &p->vCis, Wlc_ObjId(p, pObj) );
+    if ( pObj->Type == WLC_OBJ_PI )
+        Vec_IntPush( &p->vPis, Wlc_ObjId(p, pObj) );
+}
+void Wlc_ObjSetCo( Wlc_Ntk_t * p, Wlc_Obj_t * pObj, int fFlopInput )
+{
+//    pObj->Fanins[1] = Vec_IntSize(&p->vCos);
+    Vec_IntPush( &p->vCos, Wlc_ObjId(p, pObj) );
+    if ( !fFlopInput )
+        Vec_IntPush( &p->vPos, Wlc_ObjId(p, pObj) );
+    if ( fFlopInput )
+        pObj->fIsFi = 1;
+    else
+        pObj->fIsPo = 1;
+}
 int Wlc_ObjAlloc( Wlc_Ntk_t * p, int Type, int Signed, int End, int Beg )
 {
     Wlc_Obj_t * pObj;
+    assert( Type != WLC_OBJ_PO && Type != WLC_OBJ_FI );
     if ( p->iObj == p->nObjsAlloc )
     {
         p->pObjs = ABC_REALLOC( Wlc_Obj_t, p->pObjs, 2 * p->nObjsAlloc );
@@ -121,16 +142,8 @@ int Wlc_ObjAlloc( Wlc_Ntk_t * p, int Type, int Signed, int End, int Beg )
     pObj->Signed = Signed;
     pObj->End    = End;
     pObj->Beg    = Beg;
-    if ( Type == WLC_OBJ_PI )
-    {
-        pObj->Fanins[1] = Vec_IntSize(&p->vPis);
-        Vec_IntPush( &p->vPis, p->iObj );
-    }
-    else if ( Type == WLC_OBJ_PO )
-    {
-        pObj->Fanins[1] = Vec_IntSize(&p->vPos);
-        Vec_IntPush( &p->vPos, p->iObj );
-    }
+    if ( Wlc_ObjIsCi(pObj) )
+        Wlc_ObjSetCi( p, pObj );
     p->nObjs[Type]++;
     return p->iObj++;
 }
@@ -144,13 +157,7 @@ char * Wlc_ObjName( Wlc_Ntk_t * p, int iObj )
 }                          
 void Wlc_ObjUpdateType( Wlc_Ntk_t * p, Wlc_Obj_t * pObj, int Type )
 {
-    if ( pObj->Type == WLC_OBJ_PO )
-    {
-//        if ( Type != WLC_OBJ_BUF )
-//            printf( "Primary outputs should be driven by buffers.\n" );
-        assert( Type == WLC_OBJ_BUF );
-        return;
-    }
+    assert( pObj->Type == WLC_OBJ_NONE );
     p->nObjs[pObj->Type]--;
     pObj->Type = Type;
     p->nObjs[pObj->Type]++;
@@ -274,20 +281,18 @@ void Wlc_NtkPrintDistrib( Wlc_Ntk_t * p, int fVerbose )
     Wlc_NtkForEachObj( p, pObj, i )
     {
 //        char * pName = Wlc_ObjName(p, i);
-//        if ( pObj->Type == WLC_OBJ_ARI_MULTI )
         if ( Wlc_ObjSign(pObj) > 0x1FFFFF )
             printf( "Object %6d has range %d, which is reduced to %d in the statistics.\n", 
                 i, Wlc_ObjRange(pObj), Wlc_ObjRange(pObj) & 0xFFFFF );
         if ( pObj->Beg )
             printf( "Object %6d has non-standard range %d=[%d:%d]\n", i, Wlc_ObjRange(pObj), pObj->End, pObj->Beg );
        // 0-input types
-        if ( pObj->Type == WLC_OBJ_PI || pObj->Type == WLC_OBJ_CONST || pObj->Type == WLC_OBJ_BIT_CONCAT )
+        if ( Wlc_ObjIsCi(pObj) || pObj->Type == WLC_OBJ_CONST || pObj->Type == WLC_OBJ_BIT_CONCAT )
             Sign = Wlc_NtkPrintDistribMakeSign( Wlc_ObjSign(pObj), 0, 0 );
         // 1-input types
-        else if ( pObj->Type == WLC_OBJ_BUF    || pObj->Type == WLC_OBJ_PO          || pObj->Type == WLC_OBJ_BI ||
+        else if ( pObj->Type == WLC_OBJ_BUF    || pObj->Type == WLC_OBJ_BIT_SELECT  || pObj->Type == WLC_OBJ_TABLE ||
              pObj->Type == WLC_OBJ_BIT_ZEROPAD || pObj->Type == WLC_OBJ_BIT_SIGNEXT || 
-             pObj->Type == WLC_OBJ_BIT_NOT     || pObj->Type == WLC_OBJ_LOGIC_NOT   || pObj->Type == WLC_OBJ_ARI_MINUS || 
-             pObj->Type == WLC_OBJ_BIT_SELECT  || pObj->Type == WLC_OBJ_TABLE )
+             pObj->Type == WLC_OBJ_BIT_NOT     || pObj->Type == WLC_OBJ_LOGIC_NOT   || pObj->Type == WLC_OBJ_ARI_MINUS )
             Sign = Wlc_NtkPrintDistribMakeSign( Wlc_ObjSign(pObj), Wlc_ObjSign(Wlc_ObjFanin0(p, pObj)), 0 );
         // 2-input types (including MUX)
         else 
@@ -296,7 +301,7 @@ void Wlc_NtkPrintDistrib( Wlc_Ntk_t * p, int fVerbose )
         Wlc_NtkPrintDistribAddOne( vTypes, vOccurs, pObj->Type, Sign );
     }
     // print by occurrence
-    printf( "Format: type ID : occurance  name ... (occurrence)<output_range>=<input_range>.<input_range>\n" );
+    printf( "ID  :  name  occurrence (occurrence)<output_range>=<input_range>.<input_range> ...\n" );
     for ( i = 0; i < WLC_OBJ_NUMBER; i++ )
     {
         Vec_Wrd_t * vType  = (Vec_Wrd_t *)Vec_PtrEntry( vTypes, i );
@@ -436,12 +441,12 @@ Wlc_Ntk_t * Wlc_NtkDupDfs( Wlc_Ntk_t * p )
     Wlc_NtkCleanCopy( p );
     vFanins = Vec_IntAlloc( 100 );
     pNew = Wlc_NtkAlloc( p->pName, p->nObjsAlloc );
-    Wlc_NtkForEachPi( p, pObj, i )
+    Wlc_NtkForEachCi( p, pObj, i )
         Wlc_ObjDup( pNew, p, Wlc_ObjId(p, pObj), vFanins );
-    Wlc_NtkForEachPo( p, pObj, i )
-        Wlc_NtkDupDfs_rec( pNew, p, Wlc_ObjFaninId0(pObj), vFanins );
-    Wlc_NtkForEachPo( p, pObj, i )
-        Wlc_ObjDup( pNew, p, Wlc_ObjId(p, pObj), vFanins );
+    Wlc_NtkForEachCo( p, pObj, i )
+        Wlc_NtkDupDfs_rec( pNew, p, Wlc_ObjId(p, pObj), vFanins );
+    Wlc_NtkForEachCo( p, pObj, i )
+        Wlc_ObjSetCo( pNew, Wlc_ObjCopyObj(pNew, p, pObj), pObj->fIsFi );
     Vec_IntFree( vFanins );
     return pNew;
 }

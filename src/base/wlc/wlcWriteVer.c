@@ -151,17 +151,21 @@ void Wlc_WriteVerInt( FILE * pFile, Wlc_Ntk_t * p )
         sprintf( Range, "%s[%d:%d]%*s", pObj->Signed ? "signed ":"       ", pObj->End, pObj->Beg, 8-nDigits, "" );
         fprintf( pFile, "  " );
         if ( pObj->Type == WLC_OBJ_PI )
-            fprintf( pFile, "input  wire %s %s", Range, pName );
-        else if ( pObj->Type == WLC_OBJ_PO )
-            fprintf( pFile, "output wire %s %-16s = %s", Range, pName, pName0 );
+            fprintf( pFile, "input  " );
+        else if ( pObj->fIsPo )
+            fprintf( pFile, "output " );
+        else
+            fprintf( pFile, "       " );
+        if ( Wlc_ObjIsCi(pObj) )
+            fprintf( pFile, "wire %s %s", Range, pName );
         else if ( pObj->Type == WLC_OBJ_TABLE )
         {
             // wire [3:0] s4972; table0 s4972_Index(s4971, s4972);
-            fprintf( pFile, "       wire %s %s ;              table%d s%d_Index(%s, %s)", Range, pName, Wlc_ObjTableId(pObj), i, pName0, pName );
+            fprintf( pFile, "wire %s %s ;              table%d s%d_Index(%s, %s)", Range, pName, Wlc_ObjTableId(pObj), i, pName0, pName );
         }
         else if ( pObj->Type == WLC_OBJ_CONST )
         {
-            fprintf( pFile, "       wire %s %-16s = %d\'%sh", Range, pName, Wlc_ObjRange(pObj), pObj->Signed ? "s":"" );
+            fprintf( pFile, "wire %s %-16s = %d\'%sh", Range, pName, Wlc_ObjRange(pObj), pObj->Signed ? "s":"" );
             Abc_TtPrintHexArrayRev( pFile, (word *)Wlc_ObjConstValue(pObj), (Wlc_ObjRange(pObj) + 3) / 4 );
         }
         else if ( pObj->Type == WLC_OBJ_ROTATE_R || pObj->Type == WLC_OBJ_ROTATE_L )
@@ -172,7 +176,7 @@ void Wlc_WriteVerInt( FILE * pFile, Wlc_Ntk_t * p )
             int Num1 = Wlc_ObjRange(pObj) - Num0;
             assert( pShift->Type == WLC_OBJ_CONST );
             assert( Num0 > 0 && Num0 < Wlc_ObjRange(pObj) );
-            fprintf( pFile, "       wire %s %-16s = ", Range, Wlc_ObjName(p, i) );
+            fprintf( pFile, "wire %s %-16s = ", Range, Wlc_ObjName(p, i) );
             if ( pObj->Type == WLC_OBJ_ROTATE_R )
                 fprintf( pFile, "(%s >> %d) | (%s << %d)", pName0, Num0, pName0, Num1 );
             else
@@ -180,7 +184,7 @@ void Wlc_WriteVerInt( FILE * pFile, Wlc_Ntk_t * p )
         }
         else if ( pObj->Type == WLC_OBJ_MUX && Wlc_ObjFaninNum(pObj) > 3 )
         {
-            fprintf( pFile, "       reg %s ;\n", pName );
+            fprintf( pFile, "reg %s ;\n", pName );
             fprintf( pFile, "       " );
             fprintf( pFile, "always @( " );
             Wlc_ObjForEachFanin( pObj, iFanin, k )
@@ -204,11 +208,11 @@ void Wlc_WriteVerInt( FILE * pFile, Wlc_Ntk_t * p )
         }
         else
         {
-            fprintf( pFile, "       wire %s %-16s = ", Range, Wlc_ObjName(p, i) );
+            fprintf( pFile, "wire %s %-16s = ", Range, Wlc_ObjName(p, i) );
             if ( pObj->Type == WLC_OBJ_BUF )
                 fprintf( pFile, "%s", pName0 );
             else if ( pObj->Type == WLC_OBJ_MUX )
-                fprintf( pFile, "%s ? %s : %s", pName0, Wlc_ObjName(p, Wlc_ObjFaninId1(pObj)), Wlc_ObjName(p, Wlc_ObjFaninId2(pObj)) );
+                fprintf( pFile, "%s ? %s : %s", pName0, Wlc_ObjName(p, Wlc_ObjFaninId2(pObj)), Wlc_ObjName(p, Wlc_ObjFaninId1(pObj)) );
             else if ( pObj->Type == WLC_OBJ_BIT_NOT )
                 fprintf( pFile, "~%s", pName0 );
             else if ( pObj->Type == WLC_OBJ_LOGIC_NOT )
@@ -282,6 +286,27 @@ void Wlc_WriteVerInt( FILE * pFile, Wlc_Ntk_t * p )
             }
         }
         fprintf( pFile, " ;\n" );
+    }
+    Wlc_NtkForEachCi( p, pObj, i )
+    {
+        char * pName  = Wlc_ObjName(p, Wlc_ObjId(p, pObj));
+        assert( i == Wlc_ObjCiId(pObj) );
+        if ( pObj->Type == WLC_OBJ_PI )
+            continue;
+//  CPL_FF#9  I_32890_reg ( .q ( E_42304 )  , .qbar (  )  , .d ( E_42305 )  , .clk ( E_65040 )  ,
+//                .arst ( E_65037 )  , .arstval ( E_62126 )  );
+        fprintf( pFile, "         " );
+        fprintf( pFile, "CPL_FF" );
+        if ( Wlc_ObjRange(pObj) > 1 )
+            fprintf( pFile, "#%d", Wlc_ObjRange(pObj) );
+        fprintf( pFile, " %reg%d (",       i );
+        fprintf( pFile, " .q( %s ),",      pName );
+        fprintf( pFile, " .qbar()," );
+        fprintf( pFile, " .d( %s ),",      Wlc_ObjName(p, Wlc_ObjId(p, Wlc_ObjFoToFi(p, pObj))) );
+        fprintf( pFile, " .clk( %s ),",    "1\'b0" );
+        fprintf( pFile, " .arst( %s ),",   "1\'b0" );
+        fprintf( pFile, " .arstval( %s )", "1\'b0" );
+        fprintf( pFile, " ) ;\n" );
     }
     fprintf( pFile, "endmodule\n\n" );
 } 
