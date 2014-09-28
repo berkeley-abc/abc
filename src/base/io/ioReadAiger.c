@@ -477,7 +477,7 @@ Abc_Ntk_t * Io_ReadAiger( char * pFileName, int fCheck )
  
     // read the names if present
     pCur = pSymbols;
-    if ( *pCur != 'c' )
+    if ( pCur < pContents + nFileSize && *pCur != 'c' )
     {
         int Counter = 0;
         while ( pCur < pContents + nFileSize && *pCur != 'c' )

@@ -369,7 +369,7 @@ Gia_Man_t * Gia_AigerReadFromMemory( char * pContents, int nFileSize, int fSkipS
 
     // read signal names if they are of the special type
     pCur = pSymbols;
-    if ( *pCur != 'c' )
+    if ( pCur < (unsigned char *)pContents + nFileSize && *pCur != 'c' )
     {
         int fBreakUsed = 0;
         unsigned char * pCurOld = pCur;
