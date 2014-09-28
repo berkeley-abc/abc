@@ -1643,11 +1643,11 @@ Cnf_Dat_t * Mf_ManGenerateCnf( Gia_Man_t * pGia, int nLutSize, int fCnfObjIds, i
 //    Cnf_DataPrint( (Cnf_Dat_t *)pGia->pData, 1 );
     return pGia->pData;
 }
-void Mf_ManDumpCnf( Gia_Man_t * p, char * pFileName, int nLutSize, int fVerbose )
+void Mf_ManDumpCnf( Gia_Man_t * p, char * pFileName, int nLutSize, int fCnfObjIds, int fAddOrCla, int fVerbose )
 {
     abctime clk = Abc_Clock();
     Cnf_Dat_t * pCnf;
-    pCnf = Mf_ManGenerateCnf( p, nLutSize, 0, 1, fVerbose );
+    pCnf = Mf_ManGenerateCnf( p, nLutSize, fCnfObjIds, fAddOrCla, fVerbose );
     Cnf_DataWriteIntoFile( pCnf, pFileName, 0, NULL, NULL );
 //    if ( fVerbose )
     {

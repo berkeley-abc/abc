@@ -1939,14 +1939,16 @@ usage:
 int IoCommandWriteCnf2( Abc_Frame_t * pAbc, int argc, char **argv )
 {
     extern void Jf_ManDumpCnf( Gia_Man_t * p, char * pFileName, int fVerbose );
-    extern void Mf_ManDumpCnf( Gia_Man_t * p, char * pFileName, int nLutSize, int fVerbose );
+    extern void Mf_ManDumpCnf( Gia_Man_t * p, char * pFileName, int nLutSize, int fCnfObjIds, int fAddOrCla, int fVerbose );
     FILE * pFile;
     char * pFileName;
-    int nLutSize = 6;
-    int fNewAlgo = 1;
+    int nLutSize    = 6;
+    int fNewAlgo    = 1;
+    int fCnfObjIds  = 0;
+    int fAddOrCla   = 1;
     int c, fVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "Kavh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Kaiovh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -1961,6 +1963,12 @@ int IoCommandWriteCnf2( Abc_Frame_t * pAbc, int argc, char **argv )
                 break;
             case 'a':
                 fNewAlgo ^= 1;
+                break;
+            case 'i':
+                fCnfObjIds ^= 1;
+                break;
+            case 'o':
+                fAddOrCla ^= 1;
                 break;
             case 'v':
                 fVerbose ^= 1;
@@ -2003,16 +2011,18 @@ int IoCommandWriteCnf2( Abc_Frame_t * pAbc, int argc, char **argv )
     }
     fclose( pFile );
     if ( fNewAlgo )
-        Mf_ManDumpCnf( pAbc->pGia, pFileName, nLutSize, fVerbose );
+        Mf_ManDumpCnf( pAbc->pGia, pFileName, nLutSize, fCnfObjIds, fAddOrCla, fVerbose );
     else
         Jf_ManDumpCnf( pAbc->pGia, pFileName, fVerbose );
     return 0;
 
 usage:
-    fprintf( pAbc->Err, "usage: &write_cnf [-Kavh] <file>\n" );
+    fprintf( pAbc->Err, "usage: &write_cnf [-Kaiovh] <file>\n" );
     fprintf( pAbc->Err, "\t           writes CNF produced by a new generator\n" );
     fprintf( pAbc->Err, "\t-K <num> : the LUT size (3 <= num <= 8) [default = %d]\n", nLutSize );
     fprintf( pAbc->Err, "\t-a       : toggle using new algorithm [default = %s]\n", fNewAlgo? "yes" : "no" );
+    fprintf( pAbc->Err, "\t-i       : toggle using AIG object IDs as CNF variables [default = %s]\n", fCnfObjIds? "yes" : "no" );
+    fprintf( pAbc->Err, "\t-o       : toggle adding OR clause for the outputs [default = %s]\n", fAddOrCla? "yes" : "no" );
     fprintf( pAbc->Err, "\t-v       : toggle printing verbose information [default = %s]\n", fVerbose? "yes" : "no" );
     fprintf( pAbc->Err, "\t-h       : print the help massage\n" );
     fprintf( pAbc->Err, "\tfile     : the name of the file to write\n" );
