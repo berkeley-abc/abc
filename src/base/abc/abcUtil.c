@@ -1003,6 +1003,45 @@ int Abc_NtkLogicMakeSimpleCos2( Abc_Ntk_t * pNtk, int fDuplicate )
   SeeAlso     []
 
 ***********************************************************************/
+void Abc_NtkLogicMakeSimpleCosTest( Abc_Ntk_t * pNtk, int fDuplicate )
+{
+    int nObjs = Abc_NtkObjNumMax(pNtk);
+    unsigned * pType = ABC_CALLOC( unsigned, nObjs );
+    Abc_Obj_t * pNode;
+    int i, Counts[4] = {0}, Consts[2] = {0}, Inputs[2] = {0};
+    // collect info
+    Abc_NtkForEachCo( pNtk, pNode, i ) 
+    {
+        if ( Abc_ObjFaninId0(pNode) == 0 )
+            Consts[Abc_ObjFaninC0(pNode)]++;
+        if ( Abc_ObjIsCi(Abc_ObjFanin0(pNode)) )
+            Inputs[Abc_ObjFaninC0(pNode)]++;
+        pType[Abc_ObjFaninId0(pNode)] |= (1 << Abc_ObjFaninC0(pNode));
+    }
+    // count the numbers
+    for ( i = 0; i < nObjs; i++ )
+        Counts[pType[i]]++;
+    for ( i = 0; i < 4; i++ )
+        printf( "%d = %d     ", i, Counts[i] );
+    for ( i = 0; i < 2; i++ )
+        printf( "c%d = %d     ", i, Consts[i] );
+    for ( i = 0; i < 2; i++ )
+        printf( "i%d = %d    ", i, Inputs[i] );
+    printf( "\n" );
+    ABC_FREE( pType );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Transforms the network to have simple COs.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 int Abc_NtkLogicMakeSimpleCos( Abc_Ntk_t * pNtk, int fDuplicate )
 {
     Vec_Ptr_t * vDrivers, * vCoTerms;
@@ -1010,6 +1049,7 @@ int Abc_NtkLogicMakeSimpleCos( Abc_Ntk_t * pNtk, int fDuplicate )
     int i, k, LevelMax, nTotal = 0;
     assert( Abc_NtkIsLogic(pNtk) );
     LevelMax = Abc_NtkLevel(pNtk);
+//    Abc_NtkLogicMakeSimpleCosTest( pNtk, fDuplicate );
 
     // fix constant drivers
     Abc_NtkForEachCo( pNtk, pNode, i ) 

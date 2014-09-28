@@ -240,9 +240,9 @@ static int Abc_CommandDsdSave                ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandDsdLoad                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandDsdFree                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandDsdPs                  ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandDsdTune                ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandDsdMatch               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandDsdMerge               ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandDsdClean               ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandDsdFilter              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 static int Abc_CommandScut                   ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandInit                   ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -833,9 +833,9 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "DSD manager",  "dsd_load",      Abc_CommandDsdLoad,          0 );
     Cmd_CommandAdd( pAbc, "DSD manager",  "dsd_free",      Abc_CommandDsdFree,          0 );
     Cmd_CommandAdd( pAbc, "DSD manager",  "dsd_ps",        Abc_CommandDsdPs,            0 );
-    Cmd_CommandAdd( pAbc, "DSD manager",  "dsd_tune",      Abc_CommandDsdTune,          0 );
+    Cmd_CommandAdd( pAbc, "DSD manager",  "dsd_match",     Abc_CommandDsdMatch,         0 );
     Cmd_CommandAdd( pAbc, "DSD manager",  "dsd_merge",     Abc_CommandDsdMerge,         0 );
-    Cmd_CommandAdd( pAbc, "DSD manager",  "dsd_clean",     Abc_CommandDsdClean,         0 );
+    Cmd_CommandAdd( pAbc, "DSD manager",  "dsd_filter",    Abc_CommandDsdFilter,        0 );
 
 //    Cmd_CommandAdd( pAbc, "Sequential",   "scut",          Abc_CommandScut,             0 );
     Cmd_CommandAdd( pAbc, "Sequential",   "init",          Abc_CommandInit,             1 );
@@ -16055,7 +16055,7 @@ usage:
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_CommandDsdTune( Abc_Frame_t * pAbc, int argc, char ** argv )
+int Abc_CommandDsdMatch( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     char * pStruct = NULL;
     int c, fVerbose = 0, fFast = 0, fAdd = 0, fSpec = 0, LutSize = 0, nConfls = 10000, nProcs = 1;
@@ -16133,8 +16133,8 @@ int Abc_CommandDsdTune( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: dsd_tune [-KCP num] [-fasvh] [-S str]\n" );
-    Abc_Print( -2, "\t         tunes DSD manager for the given LUT size\n" );
+    Abc_Print( -2, "usage: dsd_match [-KCP num] [-fasvh] [-S str]\n" );
+    Abc_Print( -2, "\t         matches DSD structures with the given cell\n" );
     Abc_Print( -2, "\t-K num : LUT size used for tuning [default = %d]\n",        LutSize );
     Abc_Print( -2, "\t-C num : the maximum number of conflicts [default = %d]\n", nConfls );
     Abc_Print( -2, "\t-P num : the maximum number of processes [default = %d]\n", nProcs );
@@ -16229,7 +16229,7 @@ usage:
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_CommandDsdClean( Abc_Frame_t * pAbc, int argc, char ** argv )
+int Abc_CommandDsdFilter( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     If_DsdMan_t * pDsd = (If_DsdMan_t *)Abc_FrameReadManDsd();
     int c, nLimit = 0, nLutSize = -1, fCleanOccur = 0, fCleanMarks = 0, fVerbose = 0;
@@ -16287,8 +16287,8 @@ int Abc_CommandDsdClean( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: dsd_clean [-LK num] [-omvh]\n" );
-    Abc_Print( -2, "\t         modifying parameters of the DSD manager\n" );
+    Abc_Print( -2, "usage: dsd_filter [-LK num] [-omvh]\n" );
+    Abc_Print( -2, "\t         filtering structured and modifying parameters of DSD manager\n" );
     Abc_Print( -2, "\t-L num : remove structures with fewer occurrences that this [default = %d]\n", nLimit );
     Abc_Print( -2, "\t-K num : new LUT size to set for the DSD manager [default = %d]\n",           nLutSize );
     Abc_Print( -2, "\t-o     : toggles cleaning occurrence counters [default = %s]\n",              fCleanOccur? "yes": "no" );

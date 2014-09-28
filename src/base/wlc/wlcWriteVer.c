@@ -299,7 +299,7 @@ void Wlc_WriteVerInt( FILE * pFile, Wlc_Ntk_t * p )
         fprintf( pFile, "CPL_FF" );
         if ( Wlc_ObjRange(pObj) > 1 )
             fprintf( pFile, "#%d", Wlc_ObjRange(pObj) );
-        fprintf( pFile, " %reg%d (",       i );
+        fprintf( pFile, " reg%d (",       i );
         fprintf( pFile, " .q( %s ),",      pName );
         fprintf( pFile, " .qbar()," );
         fprintf( pFile, " .d( %s ),",      Wlc_ObjName(p, Wlc_ObjId(p, Wlc_ObjFoToFi(p, pObj))) );
