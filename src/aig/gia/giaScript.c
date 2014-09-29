@@ -369,11 +369,11 @@ Gia_Man_t * Gia_ManAigSynch2( Gia_Man_t * pInit, void * pPars0, int nLutSize )
   SeeAlso     []
 
 ***********************************************************************/
-void Gia_ManPerformMap( int nAnds, int nLutSize, int nCutNum, int fVerbose )
+void Gia_ManPerformMap( int nAnds, int nLutSize, int nCutNum, int fMinAve, int fVerbose )
 {
     char Command[200];
-    sprintf( Command, "&unmap; &lf -K %d -C %d -k; &save", nLutSize, nCutNum );
-//    sprintf( Command, "&unmap; &if -K %d -C %d; &save", nLutSize, nCutNum );
+    sprintf( Command, "&unmap; &lf -K %d -C %d -k %s; &save", nLutSize, nCutNum, fMinAve?"-t":"" );
+//    sprintf( Command, "&unmap; &if -K %d -C %d %s; &save", nLutSize, nCutNum, fMinAve?"-t":"" );
     Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), Command );
     if ( fVerbose )
     {
@@ -381,7 +381,7 @@ void Gia_ManPerformMap( int nAnds, int nLutSize, int nCutNum, int fVerbose )
         printf( "Mapping with &lf -k:\n" );
         Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&ps" );
     }
-    sprintf( Command, "&unmap; &lf -K %d -C %d; &save", nLutSize, nCutNum );
+    sprintf( Command, "&unmap; &lf -K %d -C %d %s; &save", nLutSize, nCutNum, fMinAve?"-t":"" );
     Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), Command );
     if ( fVerbose )
     {
@@ -390,13 +390,13 @@ void Gia_ManPerformMap( int nAnds, int nLutSize, int nCutNum, int fVerbose )
     }
     if ( (nLutSize == 4 && nAnds < 100000) || (nLutSize == 6 && nAnds < 10000) )
     {
-        sprintf( Command, "&unmap; &if -sz -S %d%d -K %d -C %d", nLutSize, nLutSize, 2*nLutSize-1, 2*nCutNum );
+        sprintf( Command, "&unmap; &if -sz -S %d%d -K %d -C %d %s", nLutSize, nLutSize, 2*nLutSize-1, 2*nCutNum, fMinAve?"-t":"" );
         Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), Command );
         Vec_IntFreeP( &Abc_FrameReadGia(Abc_FrameGetGlobalFrame())->vPacking );
         Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&save" );
         if ( fVerbose )
         {
-            printf( "Mapping with &if -sz -S %d%d -K %d -C %d:\n", nLutSize, nLutSize, 2*nLutSize-1, 2*nCutNum );
+            printf( "Mapping with &if -sz -S %d%d -K %d -C %d %s:\n", nLutSize, nLutSize, 2*nLutSize-1, 2*nCutNum, fMinAve?"-t":"" );
             Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&ps" );
         }
     }
@@ -407,7 +407,7 @@ void Gia_ManPerformMap( int nAnds, int nLutSize, int nCutNum, int fVerbose )
         Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&ps" );
     }
 }
-void Gia_ManPerformRound( int fIsMapped, int nAnds, int nLevels, int nLutSize, int nCutNum, int fVerbose )
+void Gia_ManPerformRound( int fIsMapped, int nAnds, int nLevels, int nLutSize, int nCutNum, int fMinAve, int fVerbose )
 {
     char Command[200];
 
@@ -415,11 +415,11 @@ void Gia_ManPerformRound( int fIsMapped, int nAnds, int nLevels, int nLutSize, i
     if ( nAnds < 50000 )
     {
         Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "" );
-        sprintf( Command, "&dsdb; &dch -f; &if -K %d -C %d; &save", nLutSize, nCutNum );
+        sprintf( Command, "&dsdb; &dch -f; &if -K %d -C %d %s; &save", nLutSize, nCutNum, fMinAve?"-t":"" );
         Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), Command );
         if ( fVerbose )
         {
-            printf( "Mapping with &dch -f; &if -K %d -C %d:\n", nLutSize, nCutNum );
+            printf( "Mapping with &dch -f; &if -K %d -C %d %s:\n", nLutSize, nCutNum, fMinAve?"-t":"" );
             Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&ps" );
         }
         Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&st" );
@@ -429,25 +429,25 @@ void Gia_ManPerformRound( int fIsMapped, int nAnds, int nLevels, int nLutSize, i
     if ( nAnds < 20000 )
     {
         Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "" );
-        sprintf( Command, "&dsdb; &dch -f; &if -K %d -C %d; &save", nLutSize, nCutNum );
+        sprintf( Command, "&dsdb; &dch -f; &if -K %d -C %d %s; &save", nLutSize, nCutNum, fMinAve?"-t":"" );
         Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), Command );
         if ( fVerbose )
         {
-            printf( "Mapping with &dch -f; &if -K %d -C %d:\n", nLutSize, nCutNum );
+            printf( "Mapping with &dch -f; &if -K %d -C %d %s:\n", nLutSize, nCutNum, fMinAve?"-t":"" );
             Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&ps" );
         }
         Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&st" );
     }
 
     // perform first round of mapping
-    Gia_ManPerformMap( nAnds, nLutSize, nCutNum, fVerbose );
+    Gia_ManPerformMap( nAnds, nLutSize, nCutNum, fMinAve, fVerbose );
     Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&st" );
 
     // perform synthesis
     Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&dsdb" );
 
     // perform second round of mapping
-    Gia_ManPerformMap( nAnds, nLutSize, nCutNum, fVerbose );
+    Gia_ManPerformMap( nAnds, nLutSize, nCutNum, fMinAve, fVerbose );
     Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&st" );
 
     // perform synthesis
@@ -458,9 +458,9 @@ void Gia_ManPerformRound( int fIsMapped, int nAnds, int nLevels, int nLutSize, i
     Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), Command );
 
     // perform third round of mapping
-    Gia_ManPerformMap( nAnds, nLutSize, nCutNum, fVerbose );
+    Gia_ManPerformMap( nAnds, nLutSize, nCutNum, fMinAve, fVerbose );
 }
-void Gia_ManPerformFlow( int fIsMapped, int nAnds, int nLevels, int nLutSize, int nCutNum, int fVerbose )
+void Gia_ManPerformFlow( int fIsMapped, int nAnds, int nLevels, int nLutSize, int nCutNum, int fMinAve, int fVerbose )
 {
     // remove comb equivs
     if ( fIsMapped )
@@ -471,13 +471,13 @@ void Gia_ManPerformFlow( int fIsMapped, int nAnds, int nLevels, int nLutSize, in
 //        Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&fraig -c" );
 
     // perform first round
-    Gia_ManPerformRound( fIsMapped, nAnds, nLevels, nLutSize, nCutNum, fVerbose );
+    Gia_ManPerformRound( fIsMapped, nAnds, nLevels, nLutSize, nCutNum, fMinAve, fVerbose );
 
     // perform synthesis
     Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&st; &sopb" );
 
     // perform first round
-    Gia_ManPerformRound( fIsMapped, nAnds, nLevels, nLutSize, nCutNum, fVerbose );
+    Gia_ManPerformRound( fIsMapped, nAnds, nLevels, nLutSize, nCutNum, fMinAve, fVerbose );
 }
 
 /**Function*************************************************************
