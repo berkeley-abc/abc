@@ -51,6 +51,7 @@ static int CmdCommandRecall        ( Abc_Frame_t * pAbc, int argc, char ** argv 
 static int CmdCommandEmpty         ( Abc_Frame_t * pAbc, int argc, char ** argv );
 #if defined(WIN32) && !defined(__cplusplus)
 static int CmdCommandScanDir       ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int CmdCommandRenameFiles   ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int CmdCommandLs            ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int CmdCommandScrGen        ( Abc_Frame_t * pAbc, int argc, char ** argv );
 #endif
@@ -98,6 +99,7 @@ void Cmd_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Basic", "empty",         CmdCommandEmpty,           0 );
 #if defined(WIN32) && !defined(__cplusplus)
     Cmd_CommandAdd( pAbc, "Basic", "scandir",       CmdCommandScanDir,         0 );
+    Cmd_CommandAdd( pAbc, "Basic", "renamefiles",   CmdCommandRenameFiles,     0 );
     Cmd_CommandAdd( pAbc, "Basic", "ls",            CmdCommandLs,              0 );
     Cmd_CommandAdd( pAbc, "Basic", "scrgen",        CmdCommandScrGen,          0 );
 #endif
@@ -1283,6 +1285,195 @@ usage:
     return 1;
 }
 
+
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int CmfFindNumber( char * pName )
+{
+    char * pTemp;
+    for ( pTemp = pName; *pTemp; pTemp++ )
+        if ( *pTemp == '.' )
+            break;
+    if ( *pTemp == 0 )
+        return -1;
+    for ( --pTemp; pTemp > pName; pTemp-- )
+        if ( *pTemp < '0' || *pTemp > '9' )
+        {
+            pTemp++;
+            break;
+        }
+    if ( *pTemp == '.' )
+        return -2;
+    return atoi( pTemp );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Command to print the contents of the current directory (Windows).]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int CmdCommandRenameFiles( Abc_Frame_t * pAbc, int argc, char **argv )
+{
+    struct _finddata_t c_file;
+    long   hFile;
+    char pNewName[1000];
+    char * pDirStr = NULL;
+    char * pDirCur = NULL;
+    char * pNameNew = NULL;
+    char * pNameExt = NULL;
+    int c, i, nBase = 0;
+    Extra_UtilGetoptReset();
+    while ( (c = Extra_UtilGetopt(argc, argv, "DENB") ) != EOF )
+    {
+        switch (c)
+        {
+            case 'D':
+                if ( globalUtilOptind >= argc )
+                {
+                    fprintf( pAbc->Err, "Command line switch \"-D\" should be followed by a string.\n" );
+                    goto usage;
+                }
+                pDirStr = argv[globalUtilOptind];
+                globalUtilOptind++;
+                break;
+            case 'E':
+                if ( globalUtilOptind >= argc )
+                {
+                    fprintf( pAbc->Err, "Command line switch \"-E\" should be followed by a string.\n" );
+                    goto usage;
+                }
+                pNameExt = argv[globalUtilOptind];
+                globalUtilOptind++;
+                break;
+            case 'N':
+                if ( globalUtilOptind >= argc )
+                {
+                    fprintf( pAbc->Err, "Command line switch \"-N\" should be followed by a string.\n" );
+                    goto usage;
+                }
+                pNameNew = argv[globalUtilOptind];
+                globalUtilOptind++;
+                break;
+            case 'B':
+                if ( globalUtilOptind >= argc )
+                {
+                    fprintf( pAbc->Err, "Command line switch \"-B\" should be followed by a positive integer.\n" );
+                    goto usage;
+                }
+                nBase = atoi(argv[globalUtilOptind]);
+                globalUtilOptind++;
+                if ( nBase < 0 )
+                    goto usage;
+                break;
+            default:
+                goto usage;
+        }
+    }
+
+    if ( pNameExt == NULL )
+    {
+        printf( "Extension of the files should be given on the command line.\n" );
+        return 0;
+    }
+
+    if ( pDirStr )
+    {
+        if( (pDirCur = _getcwd( NULL, 0 )) == NULL )
+        {
+            printf( "Cannot read current directory\n" );
+            return 0;
+        }
+        if ( _chdir(pDirStr) )
+        {
+            printf( "Cannot change to directory: %s\n", pDirStr );
+            return 0;
+        }
+    }
+
+    sprintf( pNewName, "*.%s", pNameExt );
+    if( (hFile = _findfirst( pNewName, &c_file )) == -1L )
+    {
+        if ( pDirStr )
+            printf( "No .aig files in the current directory.\n" );
+        else
+            printf( "No .aig files in directory: %s\n", pDirStr );
+    }
+    else
+    {
+        char * pName, * pOldName;
+        int nDigits, * pOrder;
+        Vec_Ptr_t * vNames = Vec_PtrAlloc( 1000 );
+        Vec_Int_t * vNums  = Vec_IntAlloc( 1000 );
+        // collect names
+        do {
+            Vec_PtrPush( vNames, Abc_UtilStrsav(c_file.name) );
+        } while( _findnext( hFile, &c_file ) == 0 );
+        _findclose( hFile );
+        // sort files by number
+        Vec_PtrForEachEntry( char *, vNames, pName, i )
+        {
+            Vec_IntPush( vNums, CmfFindNumber(pName) );
+            if ( Vec_IntEntryLast(vNums) < 0 )
+            {
+                printf( "Directory \"%s\" contains file (%s) with extension %s without number\n", pDirStr, pName, pNameExt );
+                Vec_PtrFreeFree( vNames );
+                Vec_IntFree( vNums );
+                return 0;
+            }
+        }
+        // sort by number
+        pOrder = Abc_QuickSortCost( Vec_IntArray(vNums), Vec_IntSize(vNums), 0 );
+        // rename files in that order
+        nDigits = Abc_Base10Log( nBase + Vec_IntSize(vNums) );
+        for ( i = 0; i < Vec_IntSize(vNums); i++ )
+        {
+            pOldName = (char *)Vec_PtrEntry( vNames, pOrder[i] );
+            sprintf( pNewName, "%s%0*d.%s", pNameNew ? pNameNew : "", nDigits, nBase+i, pNameExt );
+            printf( "%s -> %s\n", pOldName, pNewName );
+            rename( pOldName, pNewName );
+        }
+        // cleanup
+        Vec_PtrFreeFree( vNames );
+        Vec_IntFree( vNums );
+        ABC_FREE( pOrder );
+    }
+    if ( pDirStr )
+    {
+        if ( _chdir(pDirCur) )
+        {
+            ABC_FREE( pDirCur );
+            printf( "Cannot change to directory: %s\n", pDirCur );
+            return 0;
+        }
+        ABC_FREE( pDirCur );
+    }
+    return 0;
+
+usage:
+    fprintf( pAbc->Err, "usage: renamefiles [-DEN str] [-B num]\n" );
+    fprintf( pAbc->Err, "            performs renaming of files in the given directory\n" );
+    fprintf( pAbc->Err, "\t-D str  : the directory to read files from [default = current]\n" );
+    fprintf( pAbc->Err, "\t-E str  : the extension of files to look for [default = none]\n" );
+    fprintf( pAbc->Err, "\t-N str  : the root of the resulting files [default = none]\n" );
+    fprintf( pAbc->Err, "\t-B num  : the base number for all files [default = %d]\n", nBase );
+    return 1;
+}
 
 
 /**Function*************************************************************
