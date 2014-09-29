@@ -494,10 +494,10 @@ void Gia_ManPerformFlow( int fIsMapped, int nAnds, int nLevels, int nLutSize, in
 void Gia_ManPerformFlow2( int fIsMapped, int nAnds, int nLevels, int nLutSize, int nCutNum, int fBalance, int fMinAve, int fUseMfs, int fVerbose )
 {
     char Comm1[100], Comm2[100], Comm3[100], Comm4[100];
-    sprintf( Comm1, "&synch2 -K %d; &if -m%s       -K %d -C %d; %s &save", nLutSize, fMinAve?"t":"", nLutSize, nCutNum,   fUseMfs ? "&put; mfs2; &get -m;":"" );
-    sprintf( Comm2, "&dch -f;       &if -m%s       -K %d -C %d; %s &save",           fMinAve?"t":"", nLutSize, nCutNum+4, fUseMfs ? "&put; mfs2; &get -m;":"" );
-    sprintf( Comm3, "&synch2 -K %d; &lf -m%s  -E 5 -K %d -C %d; %s &save", nLutSize, fMinAve?"t":"", nLutSize, nCutNum,   fUseMfs ? "&put; mfs2; &get -m;":"" );
-    sprintf( Comm4, "&dch -f;       &lf -m%sk -E 5 -K %d -C %d; %s &save",           fMinAve?"t":"", nLutSize, nCutNum+4, fUseMfs ? "&put; mfs2; &get -m;":"" );
+    sprintf( Comm1, "&synch2 -K %d; &if -m%s       -K %d -C %d; %s &save", nLutSize, fMinAve?"t":"", nLutSize, nCutNum,   fUseMfs ? "&put; mfs2 -W 4 -M 500 -C 7000; &get -m;":"" );
+    sprintf( Comm2, "&dch -f;       &if -m%s       -K %d -C %d; %s &save",           fMinAve?"t":"", nLutSize, nCutNum+4, fUseMfs ? "&put; mfs2 -W 4 -M 500 -C 7000; &get -m;":"" );
+    sprintf( Comm3, "&synch2 -K %d; &lf -m%s  -E 5 -K %d -C %d; %s &save", nLutSize, fMinAve?"t":"", nLutSize, nCutNum,   fUseMfs ? "&put; mfs2 -W 4 -M 500 -C 7000; &get -m;":"" );
+    sprintf( Comm4, "&dch -f;       &lf -m%sk -E 5 -K %d -C %d; %s &save",           fMinAve?"t":"", nLutSize, nCutNum+4, fUseMfs ? "&put; mfs2 -W 4 -M 500 -C 7000; &get -m;":"" );
 
     // perform synthesis
     if ( fVerbose )
