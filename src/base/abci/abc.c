@@ -30921,13 +30921,14 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9Flow( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern void Gia_ManPerformFlow( int fIsMapped, int nAnds, int nLevels, int nLutSize, int nCutNum, int fMinAve, int fVerbose );
+    extern void Gia_ManPerformFlow( int fIsMapped, int nAnds, int nLevels, int nLutSize, int nCutNum, int fMinAve, int fUseMfs, int fVerbose );
     int nLutSize    =  6;
     int nCutNum     =  8;
     int fMinAve     =  0;
+    int fUseMfs     =  0;
     int c, fVerbose =  0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "KCtvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "KCtmvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -30956,6 +30957,9 @@ int Abc_CommandAbc9Flow( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 't':
             fMinAve ^= 1;
             break;
+        case 'm':
+            fUseMfs ^= 1;
+            break;
         case 'v':
             fVerbose ^= 1;
             break;
@@ -30970,15 +30974,16 @@ int Abc_CommandAbc9Flow( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Abc_CommandAbc9Flow(): There is no AIG.\n" );
         return 1;
     }
-    Gia_ManPerformFlow( Gia_ManHasMapping(pAbc->pGia), Gia_ManAndNum(pAbc->pGia), Gia_ManLevelNum(pAbc->pGia), nLutSize, nCutNum, fMinAve, fVerbose );
+    Gia_ManPerformFlow( Gia_ManHasMapping(pAbc->pGia), Gia_ManAndNum(pAbc->pGia), Gia_ManLevelNum(pAbc->pGia), nLutSize, nCutNum, fMinAve, fUseMfs, fVerbose );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &flow [-KC num] [-tvh]\n" );
+    Abc_Print( -2, "usage: &flow [-KC num] [-tmvh]\n" );
     Abc_Print( -2, "\t         integration optimization and mapping flow\n" );
     Abc_Print( -2, "\t-K num : the number of LUT inputs (LUT size) [default = %d]\n", nLutSize );
     Abc_Print( -2, "\t-C num : the number of cuts at a node [default = %d]\n", nCutNum );
     Abc_Print( -2, "\t-t     : toggle minimizing average rather than max delay [default = %s]\n", fMinAve? "yes": "no" );
+    Abc_Print( -2, "\t-m     : toggle using \"mfs2\" in the script [default = %s]\n", fUseMfs? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;

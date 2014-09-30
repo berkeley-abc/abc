@@ -369,7 +369,7 @@ Gia_Man_t * Gia_ManAigSynch2( Gia_Man_t * pInit, void * pPars0, int nLutSize )
   SeeAlso     []
 
 ***********************************************************************/
-void Gia_ManPerformMap( int nAnds, int nLutSize, int nCutNum, int fMinAve, int fVerbose )
+void Gia_ManPerformMap( int nAnds, int nLutSize, int nCutNum, int fMinAve, int fUseMfs, int fVerbose )
 {
     char Command[200];
     sprintf( Command, "&unmap; &lf -K %d -C %d -k %s; &save", nLutSize, nCutNum, fMinAve?"-t":"" );
@@ -401,13 +401,15 @@ void Gia_ManPerformMap( int nAnds, int nLutSize, int nCutNum, int fMinAve, int f
         }
     }
     Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&load" );
+    if ( fUseMfs )
+        Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&put; mfs2 -W 4 -M 500 -C 7000; &get -m" );
     if ( fVerbose )
     {
         printf( "Mapping final:\n" );
         Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&ps" );
     }
 }
-void Gia_ManPerformRound( int fIsMapped, int nAnds, int nLevels, int nLutSize, int nCutNum, int fMinAve, int fVerbose )
+void Gia_ManPerformRound( int fIsMapped, int nAnds, int nLevels, int nLutSize, int nCutNum, int fMinAve, int fUseMfs, int fVerbose )
 {
     char Command[200];
 
@@ -440,14 +442,14 @@ void Gia_ManPerformRound( int fIsMapped, int nAnds, int nLevels, int nLutSize, i
     }
 
     // perform first round of mapping
-    Gia_ManPerformMap( nAnds, nLutSize, nCutNum, fMinAve, fVerbose );
+    Gia_ManPerformMap( nAnds, nLutSize, nCutNum, fMinAve, fUseMfs, fVerbose );
     Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&st" );
 
     // perform synthesis
     Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&dsdb" );
 
     // perform second round of mapping
-    Gia_ManPerformMap( nAnds, nLutSize, nCutNum, fMinAve, fVerbose );
+    Gia_ManPerformMap( nAnds, nLutSize, nCutNum, fMinAve, fUseMfs, fVerbose );
     Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&st" );
 
     // perform synthesis
@@ -458,9 +460,9 @@ void Gia_ManPerformRound( int fIsMapped, int nAnds, int nLevels, int nLutSize, i
     Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), Command );
 
     // perform third round of mapping
-    Gia_ManPerformMap( nAnds, nLutSize, nCutNum, fMinAve, fVerbose );
+    Gia_ManPerformMap( nAnds, nLutSize, nCutNum, fMinAve, fUseMfs, fVerbose );
 }
-void Gia_ManPerformFlow( int fIsMapped, int nAnds, int nLevels, int nLutSize, int nCutNum, int fMinAve, int fVerbose )
+void Gia_ManPerformFlow( int fIsMapped, int nAnds, int nLevels, int nLutSize, int nCutNum, int fMinAve, int fUseMfs, int fVerbose )
 {
     // remove comb equivs
     if ( fIsMapped )
@@ -471,13 +473,13 @@ void Gia_ManPerformFlow( int fIsMapped, int nAnds, int nLevels, int nLutSize, in
 //        Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&fraig -c" );
 
     // perform first round
-    Gia_ManPerformRound( fIsMapped, nAnds, nLevels, nLutSize, nCutNum, fMinAve, fVerbose );
+    Gia_ManPerformRound( fIsMapped, nAnds, nLevels, nLutSize, nCutNum, fMinAve, fUseMfs, fVerbose );
 
     // perform synthesis
     Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&st; &sopb" );
 
     // perform first round
-    Gia_ManPerformRound( fIsMapped, nAnds, nLevels, nLutSize, nCutNum, fMinAve, fVerbose );
+    Gia_ManPerformRound( fIsMapped, nAnds, nLevels, nLutSize, nCutNum, fMinAve, fUseMfs, fVerbose );
 }
 
 /**Function*************************************************************
