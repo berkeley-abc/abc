@@ -222,6 +222,8 @@ void Extra_PrintKMap(
         fprintf( Output, "PrintKMap(): The on-set and the off-set overlap\n" );
         return;
     }
+    if ( nVars == 0 )
+        { printf( "Function is constant %d.\n", !Cudd_IsComplement(OnSet) ); return; }
 
     // print truth table for debugging
     if ( fPrintTruth )

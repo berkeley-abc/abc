@@ -1440,11 +1440,12 @@ int CmdCommandRenameFiles( Abc_Frame_t * pAbc, int argc, char **argv )
         // sort by number
         pOrder = Abc_QuickSortCost( Vec_IntArray(vNums), Vec_IntSize(vNums), 0 );
         // rename files in that order
-        nDigits = Abc_Base10Log( nBase + Vec_IntSize(vNums) );
+//        nDigits = Abc_Base10Log( nBase + Vec_IntSize(vNums) );
+        nDigits = Abc_Base10Log( nBase + Vec_IntEntry(vNums, pOrder[Vec_IntSize(vNums)-1]) + 1 );
         for ( i = 0; i < Vec_IntSize(vNums); i++ )
         {
             pOldName = (char *)Vec_PtrEntry( vNames, pOrder[i] );
-            sprintf( pNewName, "%s%0*d.%s", pNameNew ? pNameNew : "", nDigits, nBase+i, pNameExt );
+            sprintf( pNewName, "%s%0*d.%s", pNameNew ? pNameNew : "", nDigits, nBase+Vec_IntEntry(vNums, pOrder[i]), pNameExt );
             printf( "%s -> %s\n", pOldName, pNewName );
             rename( pOldName, pNewName );
         }

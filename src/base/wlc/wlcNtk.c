@@ -295,8 +295,13 @@ void Wlc_NtkPrintDistrib( Wlc_Ntk_t * p, int fVerbose )
              pObj->Type == WLC_OBJ_BIT_NOT     || pObj->Type == WLC_OBJ_LOGIC_NOT   || pObj->Type == WLC_OBJ_ARI_MINUS )
             Sign = Wlc_NtkPrintDistribMakeSign( Wlc_ObjSign(pObj), Wlc_ObjSign(Wlc_ObjFanin0(p, pObj)), 0 );
         // 2-input types (including MUX)
-        else 
+        else if ( Wlc_ObjFaninNum(pObj) == 1 )
+            Sign = Wlc_NtkPrintDistribMakeSign( Wlc_ObjSign(pObj), Wlc_ObjSign(Wlc_ObjFanin0(p, pObj)), 0 );
+        else
+        {
+            assert( Wlc_ObjFaninNum(pObj) >= 2 );
             Sign = Wlc_NtkPrintDistribMakeSign( Wlc_ObjSign(pObj), Wlc_ObjSign(Wlc_ObjFanin0(p, pObj)), Wlc_ObjSign(Wlc_ObjFanin1(p, pObj)) );
+        }
         // add to storage
         Wlc_NtkPrintDistribAddOne( vTypes, vOccurs, pObj->Type, Sign );
     }
