@@ -594,7 +594,7 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p )
             else
                 Wlc_BlastDivider( pNew, pArg0, nRangeMax, pArg1, nRangeMax, pObj->Type == WLC_OBJ_ARI_DIVIDE, vRes );
             Vec_IntShrink( vRes, nRange );
-            Wlc_BlastZeroCondition( pNew, pFans1, nRange1, vRes );
+//            Wlc_BlastZeroCondition( pNew, pFans1, nRange1, vRes );
         }
         else if ( pObj->Type == WLC_OBJ_ARI_MINUS )
         {
