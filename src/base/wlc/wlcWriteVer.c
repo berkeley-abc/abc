@@ -189,19 +189,19 @@ void Wlc_WriteVerInt( FILE * pFile, Wlc_Ntk_t * p )
             Range[0] = 0;
         }
         if ( pObj->fIsPo )
-            fprintf( pFile, "  assign                        " );
+            fprintf( pFile, "  assign                         " );
         else if ( pObj->Type == WLC_OBJ_MUX && Wlc_ObjFaninNum(pObj) > 3 )
-            fprintf( pFile, "reg  " );
+            fprintf( pFile, "reg  %s ", Range );
         else
-            fprintf( pFile, "wire " );
+            fprintf( pFile, "wire %s ", Range );
         if ( pObj->Type == WLC_OBJ_TABLE )
         {
             // wire [3:0] s4972; table0 s4972_Index(s4971, s4972);
-            fprintf( pFile, "%s %s ;              table%d s%d_Index(%s, %s)", Range, pName, Wlc_ObjTableId(pObj), i, pName0, pName );
+            fprintf( pFile, "%s ;              table%d s%d_Index(%s, %s)", pName, Wlc_ObjTableId(pObj), i, pName0, pName );
         }
         else if ( pObj->Type == WLC_OBJ_CONST )
         {
-            fprintf( pFile, "%s %-16s = %d\'%sh", Range, pName, Wlc_ObjRange(pObj), pObj->Signed ? "s":"" );
+            fprintf( pFile, "%-16s = %d\'%sh", pName, Wlc_ObjRange(pObj), pObj->Signed ? "s":"" );
             Abc_TtPrintHexArrayRev( pFile, (word *)Wlc_ObjConstValue(pObj), (Wlc_ObjRange(pObj) + 3) / 4 );
         }
         else if ( pObj->Type == WLC_OBJ_ROTATE_R || pObj->Type == WLC_OBJ_ROTATE_L )
@@ -212,7 +212,7 @@ void Wlc_WriteVerInt( FILE * pFile, Wlc_Ntk_t * p )
             int Num1 = Wlc_ObjRange(pObj) - Num0;
             assert( pShift->Type == WLC_OBJ_CONST );
             assert( Num0 > 0 && Num0 < Wlc_ObjRange(pObj) );
-            fprintf( pFile, "wire %s %-16s = ", Range, Wlc_ObjName(p, i) );
+            fprintf( pFile, "%-16s = ", Wlc_ObjName(p, i) );
             if ( pObj->Type == WLC_OBJ_ROTATE_R )
                 fprintf( pFile, "(%s >> %d) | (%s << %d)", pName0, Num0, pName0, Num1 );
             else
@@ -221,7 +221,7 @@ void Wlc_WriteVerInt( FILE * pFile, Wlc_Ntk_t * p )
         else if ( pObj->Type == WLC_OBJ_MUX && Wlc_ObjFaninNum(pObj) > 3 )
         {
             fprintf( pFile, "%s ;\n", pName );
-            fprintf( pFile, "       " );
+            fprintf( pFile, "         " );
             fprintf( pFile, "always @( " );
             Wlc_ObjForEachFanin( pObj, iFanin, k )
                 fprintf( pFile, "%s%s", k ? " or ":"", Wlc_ObjName(p, Wlc_ObjFaninId(pObj, k)) );
@@ -244,7 +244,7 @@ void Wlc_WriteVerInt( FILE * pFile, Wlc_Ntk_t * p )
         }
         else
         {
-            fprintf( pFile, "%s %-16s = ", Range, Wlc_ObjName(p, i) );
+            fprintf( pFile, "%-16s = ", pName );
             if ( pObj->Type == WLC_OBJ_BUF )
                 fprintf( pFile, "%s", pName0 );
             else if ( pObj->Type == WLC_OBJ_MUX )
