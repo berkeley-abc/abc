@@ -229,7 +229,16 @@ void Wlc_BlastSubtract( Gia_Man_t * pNew, int * pAdd0, int * pAdd1, int nBits ) 
         pAdd0[b] = Gia_ManHashXor(pNew, top_bit, pAdd1[b]);
     }
 }
-
+void Wlc_BlastMinus( Gia_Man_t * pNew, int * pNum, int nNum, Vec_Int_t * vRes )
+{
+    int * pRes  = Wlc_VecCopy( vRes, pNum, nNum );
+    int i, invert = 0;
+    for ( i = 0; i < nNum; i++ )
+    {
+        pRes[i] = Gia_ManHashMux( pNew, invert, Abc_LitNot(pRes[i]), pRes[i] );
+        invert = Gia_ManHashOr( pNew, invert, pNum[i] );    
+    }
+}
 void Wlc_BlastMultiplier( Gia_Man_t * pNew, int * pArg0, int * pArg1, int nBits, Vec_Int_t * vTemp, Vec_Int_t * vRes )
 {
     int i, j;
@@ -292,25 +301,44 @@ void Wlc_BlastDivider( Gia_Man_t * pNew, int * pNum, int nNum, int * pDiv, int n
 }
 void Wlc_BlastDividerSigned( Gia_Man_t * pNew, int * pNum, int nNum, int * pDiv, int nDiv, int fQuo, Vec_Int_t * vRes )
 {
-    int iDiffSign = Gia_ManHashXor( pNew, pNum[nNum-1], pDiv[nDiv-1] );
-    Wlc_BlastDivider( pNew, pNum, nNum-1, pDiv, nDiv-1, fQuo, vRes );
-    Vec_IntPush( vRes, iDiffSign );
+    Vec_Int_t * vNum   = Vec_IntAlloc( nNum );
+    Vec_Int_t * vDiv   = Vec_IntAlloc( nDiv );
+    Vec_Int_t * vRes00 = Vec_IntAlloc( nNum );
+    Vec_Int_t * vRes01 = Vec_IntAlloc( nNum );
+    Vec_Int_t * vRes10 = Vec_IntAlloc( nNum );
+    Vec_Int_t * vRes11 = Vec_IntAlloc( nNum );
+    Vec_Int_t * vRes2  = Vec_IntAlloc( nNum );
+    int k, iDiffSign   = Gia_ManHashXor( pNew, pNum[nNum-1], pDiv[nDiv-1] );
+    Wlc_BlastMinus( pNew, pNum, nNum, vNum );
+    Wlc_BlastMinus( pNew, pDiv, nDiv, vDiv );
+    Wlc_BlastDivider( pNew,               pNum, nNum,               pDiv, nDiv, fQuo, vRes00 );
+    Wlc_BlastDivider( pNew,               pNum, nNum, Vec_IntArray(vDiv), nDiv, fQuo, vRes01 );
+    Wlc_BlastDivider( pNew, Vec_IntArray(vNum), nNum,               pDiv, nDiv, fQuo, vRes10 );
+    Wlc_BlastDivider( pNew, Vec_IntArray(vNum), nNum, Vec_IntArray(vDiv), nDiv, fQuo, vRes11 );
+    Vec_IntClear( vRes );
+    for ( k = 0; k < nNum; k++ )
+    {
+        int Data0 =  Gia_ManHashMux( pNew, pDiv[nDiv-1], Vec_IntEntry(vRes01,k), Vec_IntEntry(vRes00,k) );
+        int Data1 =  Gia_ManHashMux( pNew, pDiv[nDiv-1], Vec_IntEntry(vRes11,k), Vec_IntEntry(vRes10,k) );
+        Vec_IntPush( vRes, Gia_ManHashMux(pNew, pNum[nNum-1], Data1, Data0) );
+    }
+    Wlc_BlastMinus( pNew, Vec_IntArray(vRes), nNum, vRes2 );
+    for ( k = 0; k < nNum; k++ )
+        Vec_IntWriteEntry( vRes, k, Gia_ManHashMux(pNew, fQuo ? iDiffSign : pNum[nNum-1], Vec_IntEntry(vRes2,k), Vec_IntEntry(vRes,k)) );
+    Vec_IntFree( vNum );
+    Vec_IntFree( vDiv );
+    Vec_IntFree( vRes00 );
+    Vec_IntFree( vRes01 );
+    Vec_IntFree( vRes10 );
+    Vec_IntFree( vRes11 );
+    Vec_IntFree( vRes2 );
+    assert( Vec_IntSize(vRes) == nNum );
 }
 void Wlc_BlastZeroCondition( Gia_Man_t * pNew, int * pDiv, int nDiv, Vec_Int_t * vRes )
 {
     int i, Entry, iLit = Wlc_BlastReduction( pNew, pDiv, nDiv, WLC_OBJ_REDUCT_OR );
     Vec_IntForEachEntry( vRes, Entry, i )
         Vec_IntWriteEntry( vRes, i, Gia_ManHashAnd(pNew, iLit, Entry) );
-}
-void Wlc_BlastMinus( Gia_Man_t * pNew, int * pNum, int nNum, Vec_Int_t * vRes )
-{
-    int * pRes  = Wlc_VecCopy( vRes, pNum, nNum );
-    int i, invert = 0;
-    for ( i = 0; i < nNum; i++ )
-    {
-        pRes[i] = Gia_ManHashMux( pNew, invert, Abc_LitNot(pRes[i]), pRes[i] );
-        invert = Gia_ManHashOr( pNew, invert, pNum[i] );    
-    }
 }
 void Wlc_BlastTable( Gia_Man_t * pNew, word * pTable, int * pFans, int nFans, int nOuts, Vec_Int_t * vRes )
 {

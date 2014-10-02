@@ -96,6 +96,31 @@ void Wlc_WriteTables( FILE * pFile, Wlc_Ntk_t * p )
   SeeAlso     []
 
 ***********************************************************************/
+void Wlc_WriteAddPos( Wlc_Ntk_t * p )
+{
+    Wlc_Obj_t * pObj;
+    int i;
+    Vec_IntClear( &p->vPos );
+    Wlc_NtkForEachObj( p, pObj, i )
+        if ( pObj->Type != WLC_OBJ_PI && pObj->Type != WLC_OBJ_MUX )
+        {
+            pObj->fIsPo = 1;
+            Vec_IntPush( &p->vPos, Wlc_ObjId(p, pObj) );
+        }
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 void Wlc_WriteVerIntVec( FILE * pFile, Wlc_Ntk_t * p, Vec_Int_t * vVec, int Start )
 {
     char * pName;
@@ -156,16 +181,27 @@ void Wlc_WriteVerInt( FILE * pFile, Wlc_Ntk_t * p )
             fprintf( pFile, "output " );
         else
             fprintf( pFile, "       " );
-        if ( Wlc_ObjIsCi(pObj) )
-            fprintf( pFile, "wire %s %s", Range, pName );
-        else if ( pObj->Type == WLC_OBJ_TABLE )
+        if ( Wlc_ObjIsCi(pObj) || pObj->fIsPo )
+        {
+            fprintf( pFile, "wire %s %s ;\n", Range, pName );
+            if ( Wlc_ObjIsCi(pObj) )
+                continue;
+            Range[0] = 0;
+        }
+        if ( pObj->fIsPo )
+            fprintf( pFile, "  assign                        " );
+        else if ( pObj->Type == WLC_OBJ_MUX && Wlc_ObjFaninNum(pObj) > 3 )
+            fprintf( pFile, "reg  " );
+        else
+            fprintf( pFile, "wire " );
+        if ( pObj->Type == WLC_OBJ_TABLE )
         {
             // wire [3:0] s4972; table0 s4972_Index(s4971, s4972);
-            fprintf( pFile, "wire %s %s ;              table%d s%d_Index(%s, %s)", Range, pName, Wlc_ObjTableId(pObj), i, pName0, pName );
+            fprintf( pFile, "%s %s ;              table%d s%d_Index(%s, %s)", Range, pName, Wlc_ObjTableId(pObj), i, pName0, pName );
         }
         else if ( pObj->Type == WLC_OBJ_CONST )
         {
-            fprintf( pFile, "wire %s %-16s = %d\'%sh", Range, pName, Wlc_ObjRange(pObj), pObj->Signed ? "s":"" );
+            fprintf( pFile, "%s %-16s = %d\'%sh", Range, pName, Wlc_ObjRange(pObj), pObj->Signed ? "s":"" );
             Abc_TtPrintHexArrayRev( pFile, (word *)Wlc_ObjConstValue(pObj), (Wlc_ObjRange(pObj) + 3) / 4 );
         }
         else if ( pObj->Type == WLC_OBJ_ROTATE_R || pObj->Type == WLC_OBJ_ROTATE_L )
@@ -184,7 +220,7 @@ void Wlc_WriteVerInt( FILE * pFile, Wlc_Ntk_t * p )
         }
         else if ( pObj->Type == WLC_OBJ_MUX && Wlc_ObjFaninNum(pObj) > 3 )
         {
-            fprintf( pFile, "reg %s ;\n", pName );
+            fprintf( pFile, "%s ;\n", pName );
             fprintf( pFile, "       " );
             fprintf( pFile, "always @( " );
             Wlc_ObjForEachFanin( pObj, iFanin, k )
@@ -208,11 +244,13 @@ void Wlc_WriteVerInt( FILE * pFile, Wlc_Ntk_t * p )
         }
         else
         {
-            fprintf( pFile, "wire %s %-16s = ", Range, Wlc_ObjName(p, i) );
+            fprintf( pFile, "%s %-16s = ", Range, Wlc_ObjName(p, i) );
             if ( pObj->Type == WLC_OBJ_BUF )
                 fprintf( pFile, "%s", pName0 );
             else if ( pObj->Type == WLC_OBJ_MUX )
                 fprintf( pFile, "%s ? %s : %s", pName0, Wlc_ObjName(p, Wlc_ObjFaninId2(pObj)), Wlc_ObjName(p, Wlc_ObjFaninId1(pObj)) );
+            else if ( pObj->Type == WLC_OBJ_ARI_MINUS )
+                fprintf( pFile, "-%s", pName0 );
             else if ( pObj->Type == WLC_OBJ_BIT_NOT )
                 fprintf( pFile, "~%s", pName0 );
             else if ( pObj->Type == WLC_OBJ_LOGIC_NOT )
@@ -293,8 +331,6 @@ void Wlc_WriteVerInt( FILE * pFile, Wlc_Ntk_t * p )
         assert( i == Wlc_ObjCiId(pObj) );
         if ( pObj->Type == WLC_OBJ_PI )
             continue;
-//  CPL_FF#9  I_32890_reg ( .q ( E_42304 )  , .qbar (  )  , .d ( E_42305 )  , .clk ( E_65040 )  ,
-//                .arst ( E_65037 )  , .arstval ( E_62126 )  );
         fprintf( pFile, "         " );
         fprintf( pFile, "CPL_FF" );
         if ( Wlc_ObjRange(pObj) > 1 )
@@ -322,6 +358,7 @@ void Wlc_WriteVer( Wlc_Ntk_t * p, char * pFileName )
     fprintf( pFile, "// Benchmark \"%s\" written by ABC on %s\n", p->pName, Extra_TimeStamp() );
     fprintf( pFile, "\n" );
     Wlc_WriteTables( pFile, p );
+//    Wlc_WriteAddPos( p );
     Wlc_WriteVerInt( pFile, p );
     fprintf( pFile, "\n" );
     fclose( pFile );
