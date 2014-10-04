@@ -1319,6 +1319,32 @@ int CmfFindNumber( char * pName )
 
 /**Function*************************************************************
 
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void CnfDupFileUnzip( char * pOldName )
+{
+    extern char * Io_MvLoadFileBz2( char * pFileName, int * pnFileSize );
+    char pNewName[1000];
+    FILE * pFile;
+    int nFileSize;
+    char * pBuffer = Io_MvLoadFileBz2( pOldName, &nFileSize );
+    assert( strlen(pOldName) < 1000 );
+    sprintf( pNewName, "%s.v", pOldName );
+    pFile = fopen( pNewName, "wb" );
+    fwrite( pBuffer, nFileSize, 1, pFile );
+    fclose( pFile );
+    ABC_FREE( pBuffer );
+}
+
+/**Function*************************************************************
+
   Synopsis    [Command to print the contents of the current directory (Windows).]
 
   Description []
@@ -1446,8 +1472,9 @@ int CmdCommandRenameFiles( Abc_Frame_t * pAbc, int argc, char **argv )
         {
             pOldName = (char *)Vec_PtrEntry( vNames, pOrder[i] );
             sprintf( pNewName, "%s%0*d.%s", pNameNew ? pNameNew : "", nDigits, nBase+Vec_IntEntry(vNums, pOrder[i]), pNameExt );
-            printf( "%s -> %s\n", pOldName, pNewName );
             rename( pOldName, pNewName );
+            printf( "%s -> %s\n", pOldName, pNewName );
+//            CnfDupFileUnzip( pOldName );
         }
         // cleanup
         Vec_PtrFreeFree( vNames );

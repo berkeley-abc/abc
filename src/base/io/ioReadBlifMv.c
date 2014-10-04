@@ -548,7 +548,7 @@ typedef struct buflist {
   struct buflist * next;
 } buflist;
 
-static char * Io_MvLoadFileBz2( char * pFileName, int * pnFileSize )
+char * Io_MvLoadFileBz2( char * pFileName, int * pnFileSize )
 {
     FILE    * pFile;
     int       nFileSize = 0;

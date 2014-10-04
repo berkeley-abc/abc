@@ -1425,6 +1425,22 @@ int Gia_ManFromIfLogicFindLut( If_Man_t * pIfMan, Gia_Man_t * pNew, If_Cut_t * p
   SeeAlso     []
 
 ***********************************************************************/
+int Gia_ManFromIfLogicFindCell( If_Man_t * pIfMan, Gia_Man_t * pNew, If_Cut_t * pCutBest, sat_solver * pSat, Vec_Int_t * vPiVars, Vec_Int_t * vPoVars, void * pNtkCell, Vec_Int_t * vLeaves, Vec_Int_t * vLits, Vec_Int_t * vCover, Vec_Int_t * vMapping, Vec_Int_t * vMapping2, Vec_Int_t * vPacking )
+{
+    return 0;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Converts IF into GIA manager.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 Gia_Man_t * Gia_ManFromIfLogic( If_Man_t * pIfMan )
 {
     Gia_Man_t * pNew;
@@ -1432,7 +1448,9 @@ Gia_Man_t * Gia_ManFromIfLogic( If_Man_t * pIfMan )
     If_Obj_t * pIfObj, * pIfLeaf;
     Vec_Int_t * vMapping, * vMapping2, * vPacking = NULL;
     Vec_Int_t * vLeaves, * vLeaves2, * vCover, * vLits;
+    Vec_Int_t * vPiVars = NULL, * vPoVars = NULL;
     sat_solver * pSat = NULL;
+    void * pNtkCell = NULL;
     int i, k, Entry;
     assert( !pIfMan->pPars->fDeriveLuts || pIfMan->pPars->fTruth );
 //    if ( pIfMan->pPars->fEnableCheck07 )
@@ -1478,6 +1496,13 @@ Gia_Man_t * Gia_ManFromIfLogic( If_Man_t * pIfMan )
                     pIfObj->iCopy = Gia_ManFromIfLogicCreateLut( pNew, If_CutTruthW(pIfMan, pCutBest), vLeaves, vCover, vMapping, vMapping2 );
                 pIfObj->iCopy = Abc_LitNotCond( pIfObj->iCopy, pCutBest->fCompl );
             }
+            else if ( pIfMan->pPars->fUseDsd && pIfMan->pPars->fUseDsdTune && pIfMan->pPars->fDeriveLuts )
+            {
+                if ( pSat == NULL )
+                    pSat = (sat_solver *)If_ManSatBuildFromCell( NULL, &vPiVars, &vPoVars, (void **)&pNtkCell );
+                pIfObj->iCopy = Gia_ManFromIfLogicFindCell( pIfMan, pNew, pCutBest, pSat, vPiVars, vPoVars, pNtkCell, vLeaves, vLits, vCover, vMapping, vMapping2, vPacking );
+                pIfObj->iCopy = Abc_LitNotCond( pIfObj->iCopy, pCutBest->fCompl );
+            }
             else if ( (pIfMan->pPars->fDeriveLuts && pIfMan->pPars->fTruth) || pIfMan->pPars->fUseDsd || pIfMan->pPars->fUseTtPerm )
             {
                 word * pTruth = If_CutTruthW(pIfMan, pCutBest);
@@ -1520,6 +1545,10 @@ Gia_Man_t * Gia_ManFromIfLogic( If_Man_t * pIfMan )
     Vec_IntFree( vCover );
     Vec_IntFree( vLeaves );
     Vec_IntFree( vLeaves2 );
+    Vec_IntFreeP( &vPiVars );
+    Vec_IntFreeP( &vPoVars );
+    if ( pNtkCell )
+        ABC_FREE( pNtkCell );
     if ( pSat != NULL )
         sat_solver_delete(pSat);
 //    printf( "Mapping array size:  IfMan = %d. Gia = %d. Increase = %.2f\n", 

@@ -621,6 +621,15 @@ sat_solver * Ifn_ManSatBuild( Ifn_Ntk_t * p, Vec_Int_t ** pvPiVars, Vec_Int_t **
     Gia_ManStop( p2 );
     return pSat;
 }
+void * If_ManSatBuildFromCell( char * pStr, Vec_Int_t ** pvPiVars, Vec_Int_t ** pvPoVars, void ** ppNtk )
+{
+    Ifn_Ntk_t * p = Ifn_NtkParse( pStr );
+    *ppNtk = p;
+    if ( p == NULL )
+        return NULL;
+//    Ifn_NtkPrint( p );
+    return Ifn_ManSatBuild( p, pvPiVars, pvPoVars );
+}
 
 /**Function*************************************************************
 
