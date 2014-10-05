@@ -1425,9 +1425,51 @@ int Gia_ManFromIfLogicFindLut( If_Man_t * pIfMan, Gia_Man_t * pNew, If_Cut_t * p
   SeeAlso     []
 
 ***********************************************************************/
-int Gia_ManFromIfLogicFindCell( If_Man_t * pIfMan, Gia_Man_t * pNew, If_Cut_t * pCutBest, sat_solver * pSat, Vec_Int_t * vPiVars, Vec_Int_t * vPoVars, void * pNtkCell, Vec_Int_t * vLeaves, Vec_Int_t * vLits, Vec_Int_t * vCover, Vec_Int_t * vMapping, Vec_Int_t * vMapping2, Vec_Int_t * vPacking )
+int Gia_ManFromIfLogicFindCell( If_Man_t * pIfMan, Gia_Man_t * pNew, Gia_Man_t * pTemp, If_Cut_t * pCutBest, sat_solver * pSat, Vec_Int_t * vPiVars, Vec_Int_t * vPoVars, Ifn_Ntk_t * pNtkCell, int nLutMax, Vec_Int_t * vLeaves, Vec_Int_t * vLits, Vec_Int_t * vCover, Vec_Int_t * vMapping, Vec_Int_t * vMapping2, Vec_Int_t * vPacking )
 {
-    return 0;
+    int iLit;
+    if ( Vec_IntSize(vLeaves) <= nLutMax )
+        iLit = Gia_ManFromIfLogicCreateLut( pNew, If_CutTruthW(pIfMan, pCutBest), vLeaves, vCover, vMapping, vMapping2 );
+    else
+    {
+        Gia_Obj_t * pObj;
+        int i, Id;
+        // extract variable permutation
+        word Perm = If_DsdManGetFuncPerm( pIfMan->pIfDsdMan, If_CutDsdLit(pIfMan, pCutBest) );
+        assert( Perm > 0 );
+        // perform boolean matching
+        if ( !If_ManSatFindCofigBits( pSat, vPiVars, vPoVars, If_CutTruthW(pIfMan, pCutBest), Vec_IntSize(vLeaves), Perm, Ifn_NtkInputNum(pNtkCell), vLits ) )
+        {
+            printf( "Boolean matching does not exist.\n" );
+            return -1;
+        }
+        // use config bits to generate the network
+        iLit = If_ManSatDeriveGiaFromBits( pTemp, pNtkCell, vLits, vCover );
+        // copy GIA back into the manager
+        Vec_IntFillExtra( &pTemp->vCopies, Gia_ManObjNum(pTemp), -1 );
+        Gia_ObjSetCopyArray( pTemp, 0, 0 );
+        Gia_ManForEachCiId( pTemp, Id, i )
+            Gia_ObjSetCopyArray( pTemp, Id, Vec_IntEntry(vLeaves, i) );
+        // collect nodes
+        Gia_ManIncrementTravId( pTemp );
+        Id = Abc_Lit2Var( iLit );
+        Gia_ManCollectAnds( pTemp, &Id, 1, vCover );
+        // copy GIA
+        Gia_ManForEachObjVec( vCover, pTemp, pObj, i )
+        {
+            iLit = Gia_ManAppendAnd( pNew, Gia_ObjFanin0CopyArray(pTemp, pObj), Gia_ObjFanin1CopyArray(pTemp, pObj) );
+            Gia_ObjSetCopyArray( pTemp, Gia_ObjId(pTemp, pObj), iLit );
+        }
+        iLit = Abc_LitNotCond( Gia_ObjCopyArray(pTemp, Id), Abc_LitIsCompl(iLit) );
+    }
+    // write packing
+    if ( !Gia_ObjIsCi(Gia_ManObj(pNew, Abc_Lit2Var(iLit))) && iLit > 1 )
+    {
+        Vec_IntPush( vPacking, 1 );
+        Vec_IntPush( vPacking, Abc_Lit2Var(iLit) );
+        Vec_IntAddToEntry( vPacking, 0, 1 );
+    }
+    return iLit;
 }
 
 /**Function*************************************************************
@@ -1443,15 +1485,15 @@ int Gia_ManFromIfLogicFindCell( If_Man_t * pIfMan, Gia_Man_t * pNew, If_Cut_t * 
 ***********************************************************************/
 Gia_Man_t * Gia_ManFromIfLogic( If_Man_t * pIfMan )
 {
-    Gia_Man_t * pNew;
+    Gia_Man_t * pNew, * pHashed = NULL;
     If_Cut_t * pCutBest;
     If_Obj_t * pIfObj, * pIfLeaf;
     Vec_Int_t * vMapping, * vMapping2, * vPacking = NULL;
     Vec_Int_t * vLeaves, * vLeaves2, * vCover, * vLits;
     Vec_Int_t * vPiVars = NULL, * vPoVars = NULL;
     sat_solver * pSat = NULL;
-    void * pNtkCell = NULL;
-    int i, k, Entry;
+    Ifn_Ntk_t * pNtkCell = NULL;
+    int i, k, nLutMax, Entry;
     assert( !pIfMan->pPars->fDeriveLuts || pIfMan->pPars->fTruth );
 //    if ( pIfMan->pPars->fEnableCheck07 )
 //        pIfMan->pPars->fDeriveLuts = 0;
@@ -1499,8 +1541,16 @@ Gia_Man_t * Gia_ManFromIfLogic( If_Man_t * pIfMan )
             else if ( pIfMan->pPars->fUseDsd && pIfMan->pPars->fUseDsdTune && pIfMan->pPars->fDeriveLuts )
             {
                 if ( pSat == NULL )
-                    pSat = (sat_solver *)If_ManSatBuildFromCell( NULL, &vPiVars, &vPoVars, (void **)&pNtkCell );
-                pIfObj->iCopy = Gia_ManFromIfLogicFindCell( pIfMan, pNew, pCutBest, pSat, vPiVars, vPoVars, pNtkCell, vLeaves, vLits, vCover, vMapping, vMapping2, vPacking );
+                {
+                    pSat = (sat_solver *)If_ManSatBuildFromCell( If_DsdManGetCellStr(pIfMan->pIfDsdMan), &vPiVars, &vPoVars, &pNtkCell );
+                    nLutMax = Ifn_NtkLutSizeMax( pNtkCell );
+                    pHashed = Gia_ManStart( 10000 );
+                    Vec_IntFillExtra( &pHashed->vCopies, 10000, -1 );
+                    for ( k = 0; k < pIfMan->pPars->nLutSize; k++ )
+                        Gia_ManAppendCi( pHashed );
+                    Gia_ManHashAlloc( pHashed );
+                }
+                pIfObj->iCopy = Gia_ManFromIfLogicFindCell( pIfMan, pNew, pHashed, pCutBest, pSat, vPiVars, vPoVars, pNtkCell, nLutMax, vLeaves, vLits, vCover, vMapping, vMapping2, vPacking );
                 pIfObj->iCopy = Abc_LitNotCond( pIfObj->iCopy, pCutBest->fCompl );
             }
             else if ( (pIfMan->pPars->fDeriveLuts && pIfMan->pPars->fTruth) || pIfMan->pPars->fUseDsd || pIfMan->pPars->fUseTtPerm )
@@ -1549,8 +1599,10 @@ Gia_Man_t * Gia_ManFromIfLogic( If_Man_t * pIfMan )
     Vec_IntFreeP( &vPoVars );
     if ( pNtkCell )
         ABC_FREE( pNtkCell );
-    if ( pSat != NULL )
+    if ( pSat )
         sat_solver_delete(pSat);
+    if ( pHashed )
+        Gia_ManStop( pHashed );
 //    printf( "Mapping array size:  IfMan = %d. Gia = %d. Increase = %.2f\n", 
 //        If_ManObjNum(pIfMan), Gia_ManObjNum(pNew), 1.0 * Gia_ManObjNum(pNew) / If_ManObjNum(pIfMan) );
     // finish mapping 

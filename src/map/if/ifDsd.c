@@ -90,6 +90,7 @@ struct If_DsdMan_t_
     Gia_Man_t *    pTtGia;         // GIA to represent truth tables
     Vec_Int_t *    vCover;         // temporary memory
     void *         pSat;           // SAT solver
+    char *         pCellStr;       // symbolic cell description
     int            nObjsPrev;      // previous number of objects
     int            fNewAsUseless;  // set new as useless
     int            nUniqueHits;    // statistics
@@ -194,6 +195,14 @@ void If_DsdManSetNewAsUseless( If_DsdMan_t * p )
     if ( p->nObjsPrev == 0 )
         p->nObjsPrev = If_DsdManObjNum(p);
     p->fNewAsUseless = 1;
+}
+word If_DsdManGetFuncPerm( If_DsdMan_t * p, int iDsd )
+{
+    return p->vPerms ? Vec_WrdEntry(p->vPerms, Abc_Lit2Var(iDsd)) : 0;
+}
+char * If_DsdManGetCellStr( If_DsdMan_t * p )
+{
+    return p->pCellStr;
 }
 
 /**Function*************************************************************
@@ -339,6 +348,7 @@ void If_DsdManFree( If_DsdMan_t * p, int fVerbose )
     Gia_ManStopP( &p->pTtGia );
     Vec_IntFreeP( &p->vCover );
     If_ManSatUnbuild( p->pSat );
+    ABC_FREE( p->pCellStr );
     ABC_FREE( p->pStore );
     ABC_FREE( p->pBins );
     ABC_FREE( p );
@@ -720,6 +730,8 @@ void If_DsdManPrint( If_DsdMan_t * p, char * pFileName, int Number, int Support,
     If_DsdManPrintDistrib( p );
     printf( "Number of inputs = %d.  LUT size = %d.  Marks = %s.  NewAsUseless = %s.  Bookmark = %d.\n", 
         p->nVars, p->LutSize, If_DsdManHasMarks(p)? "yes" : "no", p->fNewAsUseless? "yes" : "no", p->nObjsPrev );
+    if ( p->pCellStr )
+        printf( "Symbolic cell description: %s\n", p->pCellStr );
     if ( p->pTtGia )
     fprintf( pFile, "Non-DSD AIG nodes          = %8d\n", Gia_ManAndNum(p->pTtGia) );
     fprintf( pFile, "Unique table misses        = %8d\n", p->nUniqueMisses );
@@ -1061,6 +1073,14 @@ void If_DsdManSave( If_DsdMan_t * p, char * pFileName )
             fwrite( Vec_IntArray(vSets), sizeof(int)*Num, 1, pFile );
         }
     }
+    Num = p->vPerms ? Vec_WrdSize(p->vPerms) : 0;
+    fwrite( &Num, 4, 1, pFile );
+    if ( Num )
+        fwrite( Vec_WrdArray(p->vPerms), sizeof(word)*Num, 1, pFile );
+    Num = p->pCellStr ? strlen(p->pCellStr) : 0;
+    fwrite( &Num, 4, 1, pFile );
+    if ( Num )
+        fwrite( p->pCellStr, sizeof(char)*Num, 1, pFile );
     fclose( pFile );
 }
 If_DsdMan_t * If_DsdManLoad( char * pFileName )
@@ -1139,6 +1159,18 @@ If_DsdMan_t * If_DsdManLoad( char * pFileName )
         assert( Num2 == Vec_PtrSize(p->vTtDecs[v]) ); 
     }
     ABC_FREE( pTruth );
+    RetValue = fread( &Num, 4, 1, pFile );
+    if ( Num )
+    {
+        p->vPerms = Vec_WrdStart( Num );
+        RetValue = fread( Vec_WrdArray(p->vPerms), sizeof(word)*Num, 1, pFile );
+    }
+    RetValue = fread( &Num, 4, 1, pFile );
+    if ( Num )
+    {
+        p->pCellStr = ABC_CALLOC( char, Num + 1 );
+        RetValue = fread( p->pCellStr, sizeof(char)*Num, 1, pFile );
+    }
     fclose( pFile );
     return p;
 }
@@ -1187,6 +1219,7 @@ void If_DsdManCleanMarks( If_DsdMan_t * p, int fVerbose )
 {
     If_DsdObj_t * pObj; 
     int i;
+    ABC_FREE( p->pCellStr );
     If_DsdVecForEachObj( &p->vObjs, pObj, i )
         pObj->fMark = 0;
 }
@@ -2371,13 +2404,6 @@ void If_DsdManTune( If_DsdMan_t * p, int LutSize, int fFast, int fAdd, int fSpec
 }
 
 
-typedef struct Ifn_Ntk_t_  Ifn_Ntk_t;
-
-extern Ifn_Ntk_t * Ifn_NtkParse( char * pStr );
-extern int         Ifn_NtkMatch( Ifn_Ntk_t * p, word * pTruth, int nVars, int nConfls, int fVerbose, int fVeryVerbose, word * pPerm );
-extern void        Ifn_NtkPrint( Ifn_Ntk_t * p );
-extern int         Ifn_NtkLutSizeMax( Ifn_Ntk_t * p );
-extern int         Ifn_NtkInputNum( Ifn_Ntk_t * p );
 
 /**Function*************************************************************
 
@@ -2408,6 +2434,8 @@ void Id_DsdManTuneStr1( If_DsdMan_t * p, char * pStruct, int nConfls, int fVerbo
         ABC_FREE( pNtk );
         return;
     }
+    ABC_FREE( p->pCellStr );
+    p->pCellStr = Abc_UtilStrsav( pStruct );
     if ( If_DsdManVarNum(p) < Ifn_NtkInputNum(pNtk) )
         printf( "Warning: The support of DSD manager (%d) is less than the support of the structure (%d).\n", If_DsdManVarNum(p), Ifn_NtkInputNum(pNtk) );
     LutSize = Ifn_NtkLutSizeMax(pNtk);
@@ -2544,6 +2572,8 @@ void Id_DsdManTuneStr( If_DsdMan_t * p, char * pStruct, int nConfls, int nProcs,
         ABC_FREE( pNtk );
         return;
     }
+    ABC_FREE( p->pCellStr );
+    p->pCellStr = Abc_UtilStrsav( pStruct );
     if ( If_DsdManVarNum(p) < Ifn_NtkInputNum(pNtk) )
         printf( "Warning: The support of DSD manager (%d) is less than the support of the structure (%d).\n", If_DsdManVarNum(p), Ifn_NtkInputNum(pNtk) );
     // check the largest LUT

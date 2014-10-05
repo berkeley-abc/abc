@@ -112,7 +112,7 @@ Gia_Man_t * Gia_ManCorrSpecReduce( Gia_Man_t * p, int nFrames, int fScorr, Vec_I
     assert( nFrames > 0 );
     assert( Gia_ManRegNum(p) > 0 );
     assert( p->pReprs != NULL );
-    p->pCopies = ABC_FALLOC( int, (nFrames+fScorr)*Gia_ManObjNum(p) );
+    Vec_IntFill( &p->vCopies, -1, (nFrames+fScorr)*Gia_ManObjNum(p) );
     Gia_ManSetPhase( p );
     pNew = Gia_ManStart( nFrames * Gia_ManObjNum(p) );
     pNew->pName = Abc_UtilStrsav( p->pName );
@@ -200,7 +200,7 @@ Gia_Man_t * Gia_ManCorrSpecReduce( Gia_Man_t * p, int nFrames, int fScorr, Vec_I
         Gia_ManAppendCo( pNew, iObjNew );
     Vec_IntFree( vXorLits );
     Gia_ManHashStop( pNew );
-    ABC_FREE( p->pCopies );
+    ABC_FREE( p->vCopies.pArray );
 //Abc_Print( 1, "Before sweeping = %d\n", Gia_ManAndNum(pNew) );
     pNew = Gia_ManCleanup( pTemp = pNew );
 //Abc_Print( 1, "After sweeping = %d\n", Gia_ManAndNum(pNew) );
@@ -229,7 +229,7 @@ Gia_Man_t * Gia_ManCorrSpecReduceInit( Gia_Man_t * p, int nFrames, int nPrefix, 
     assert( (!fScorr && nFrames > 1) || (fScorr && nFrames > 0) || nPrefix );
     assert( Gia_ManRegNum(p) > 0 );
     assert( p->pReprs != NULL );
-    p->pCopies = ABC_FALLOC( int, (nFrames+nPrefix+fScorr)*Gia_ManObjNum(p) );
+    Vec_IntFill( &p->vCopies, -1, (nFrames+nPrefix+fScorr)*Gia_ManObjNum(p) );
     Gia_ManSetPhase( p );
     pNew = Gia_ManStart( (nFrames+nPrefix) * Gia_ManObjNum(p) );
     pNew->pName = Abc_UtilStrsav( p->pName );
@@ -270,7 +270,7 @@ Gia_Man_t * Gia_ManCorrSpecReduceInit( Gia_Man_t * p, int nFrames, int nPrefix, 
         Gia_ManAppendCo( pNew, iObjNew );
     Vec_IntFree( vXorLits );
     Gia_ManHashStop( pNew );
-    ABC_FREE( p->pCopies );
+    ABC_FREE( p->vCopies.pArray );
 //Abc_Print( 1, "Before sweeping = %d\n", Gia_ManAndNum(pNew) );
     pNew = Gia_ManCleanup( pTemp = pNew );
 //Abc_Print( 1, "After sweeping = %d\n", Gia_ManAndNum(pNew) );

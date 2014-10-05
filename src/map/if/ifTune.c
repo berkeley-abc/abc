@@ -58,8 +58,6 @@ static char * Ifn_Symbs[16] = {
 };
 
 typedef struct Ifn_Obj_t_  Ifn_Obj_t;
-typedef struct Ifn_Ntk_t_  Ifn_Ntk_t;
-
 struct Ifn_Obj_t_
 {
     unsigned               Type    :  3;      // node type
@@ -621,9 +619,10 @@ sat_solver * Ifn_ManSatBuild( Ifn_Ntk_t * p, Vec_Int_t ** pvPiVars, Vec_Int_t **
     Gia_ManStop( p2 );
     return pSat;
 }
-void * If_ManSatBuildFromCell( char * pStr, Vec_Int_t ** pvPiVars, Vec_Int_t ** pvPoVars, void ** ppNtk )
+void * If_ManSatBuildFromCell( char * pStr, Vec_Int_t ** pvPiVars, Vec_Int_t ** pvPoVars, Ifn_Ntk_t ** ppNtk )
 {
     Ifn_Ntk_t * p = Ifn_NtkParse( pStr );
+    Ifn_Prepare( p, NULL, p->nInps );
     *ppNtk = p;
     if ( p == NULL )
         return NULL;
@@ -651,7 +650,7 @@ void Ifn_ManSatPrintPerm( char * pPerms, int nVars )
 }
 int Ifn_ManSatCheckOne( sat_solver * pSat, Vec_Int_t * vPoVars, word * pTruth, int nVars, int * pPerm, int nInps, Vec_Int_t * vLits )
 {
-    int v, Value, m, mNew, nMints = (1 << nVars);
+    int v, Value, m, mNew, nMints = (1 << nVars); // (1 << nInps);
     assert( (1 << nInps) == Vec_IntSize(vPoVars) );
     assert( nVars <= nInps );
     // remap minterms
@@ -685,7 +684,7 @@ void Ifn_ManSatDeriveOne( sat_solver * pSat, Vec_Int_t * vPiVars, Vec_Int_t * vV
     Vec_IntForEachEntry( vPiVars, iVar, i )
         Vec_IntPush( vValues, sat_solver_var_value(pSat, iVar) );
 }
-int Ifn_ManSatFindCofigBits( sat_solver * pSat, Vec_Int_t * vPiVars, Vec_Int_t * vPoVars, word * pTruth, int nVars, word Perm, int nInps, Vec_Int_t * vValues )
+int If_ManSatFindCofigBits( void * pSat, Vec_Int_t * vPiVars, Vec_Int_t * vPoVars, word * pTruth, int nVars, word Perm, int nInps, Vec_Int_t * vValues )
 {
     // extract permutation
     int RetValue, i, pPerm[IF_MAX_FUNC_LUTSIZE];
@@ -696,7 +695,7 @@ int Ifn_ManSatFindCofigBits( sat_solver * pSat, Vec_Int_t * vPiVars, Vec_Int_t *
         assert( pPerm[i] < nVars );
     }
     // perform SAT check 
-    RetValue = Ifn_ManSatCheckOne( pSat, vPoVars, pTruth, nVars, pPerm, nInps, vValues );
+    RetValue = Ifn_ManSatCheckOne( (sat_solver *)pSat, vPoVars, pTruth, nVars, pPerm, nInps, vValues );
     Vec_IntClear( vValues );
     if ( RetValue == 0 )
         return 0;
@@ -708,7 +707,7 @@ int Ifn_ManSatFindCofigBitsTest( Ifn_Ntk_t * p, word * pTruth, int nVars, word P
     Vec_Int_t * vValues = Vec_IntAlloc( 100 );
     Vec_Int_t * vPiVars, * vPoVars;
     sat_solver * pSat = Ifn_ManSatBuild( p, &vPiVars, &vPoVars );
-    int RetValue = Ifn_ManSatFindCofigBits( pSat, vPiVars, vPoVars, pTruth, nVars, Perm, p->nInps, vValues );
+    int RetValue = If_ManSatFindCofigBits( pSat, vPiVars, vPoVars, pTruth, nVars, Perm, p->nInps, vValues );
     Vec_IntPrint( vValues );
     // cleanup
     sat_solver_delete( pSat );
@@ -718,6 +717,78 @@ int Ifn_ManSatFindCofigBitsTest( Ifn_Ntk_t * p, word * pTruth, int nVars, word P
     return RetValue;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Derive GIA using programmable bits.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int If_ManSatDeriveGiaFromBits( void * pGia, Ifn_Ntk_t * p, Vec_Int_t * vValues, Vec_Int_t * vCover )
+{
+    Gia_Man_t * pNew = (Gia_Man_t *)pGia;
+    int i, Id, k, iLit, iVar = 0, nVarsNew, pVarMap[1000];
+    assert( Gia_ManCiNum(pNew) == p->nInps && p->nParsVIni < 1000 );
+    Gia_ManForEachCiId( pNew, Id, i )
+        pVarMap[i] = Abc_Var2Lit( Id, 0 );
+    for ( i = p->nInps; i < p->nObjs; i++ )
+    {
+        int Type = p->Nodes[i].Type;
+        int nFans = p->Nodes[i].nFanins;
+        int * pFans = p->Nodes[i].Fanins;
+        int iFanin = p->Nodes[i].iFirst;
+        assert( nFans <= 6 );
+        if ( Type == IFN_DSD_AND )
+        {
+            iLit = 1;
+            for ( k = 0; k < nFans; k++ )
+                iLit = Gia_ManHashAnd( pNew, iLit, pVarMap[pFans[k]] );
+            pVarMap[i] = iLit;
+        }
+        else if ( Type == IFN_DSD_XOR )
+        {
+            iLit = 0;
+            for ( k = 0; k < nFans; k++ )
+                iLit = Gia_ManHashXor( pNew, iLit, pVarMap[pFans[k]] );
+            pVarMap[i] = iLit;
+        }
+        else if ( Type == IFN_DSD_MUX )
+        {
+            assert( nFans == 3 );
+            pVarMap[i] = Gia_ManHashMux( pNew, pVarMap[pFans[0]], pVarMap[pFans[1]], pVarMap[pFans[2]] );
+        }
+        else if ( Type == IFN_DSD_PRIME )
+        {
+            int pFaninLits[16];
+            // collect truth table
+            word uTruth = 0;
+            int nMints = (1 << nFans);
+            for ( k = 0; k < nMints; k++ )
+                if ( Vec_IntEntry( vValues, iVar++ ) )
+                    uTruth |= ((word)1 << k);
+            // collect function
+            for ( k = 0; k < nFans; k++ )
+                pFaninLits[k] = pVarMap[pFans[k]];
+            // implement the function
+            nVarsNew = Abc_TtMinBase( &uTruth, pFaninLits, nFans, 6 );
+            if ( nVarsNew == 0 )
+                pVarMap[i] = (int)(uTruth & 1);
+            else
+            {
+                extern int Kit_TruthToGia( Gia_Man_t * pMan, unsigned * pTruth, int nVars, Vec_Int_t * vMemory, Vec_Int_t * vLeaves, int fHash );
+                Vec_Int_t Leaves = { nVarsNew, nVarsNew, pFaninLits };
+                pVarMap[i] = Kit_TruthToGia( pNew, (unsigned *)uTruth, nVarsNew, vCover, &Leaves, 1 ); // hashing enabled!!!
+            }
+        }
+        else assert( 0 );
+    }
+    assert( iVar == Vec_IntSize(vValues) );
+    return pVarMap[p->nObjs - 1];
+}
 
 /**Function*************************************************************
 

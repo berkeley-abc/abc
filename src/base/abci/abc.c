@@ -16139,7 +16139,15 @@ int Abc_CommandDsdMatch( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 0;
     }
     if ( pStruct )
+    {
+        char * pStructCur = If_DsdManGetCellStr( pDsdMan );
+        if ( pStructCur && strcmp(pStructCur, pStruct) )
+        {
+            Abc_Print( -1, "DSD manager matched with cell %s needs to be cleaned before matching with cell %s.\n", pStructCur, pStruct );
+            return 0;
+        }
         Id_DsdManTuneStr( pDsdMan, pStruct, nConfls, nProcs, fVerbose );
+    }
     else
         If_DsdManTune( pDsdMan, LutSize, fFast, fAdd, fSpec, fVerbose );
     return 0;
@@ -31414,6 +31422,11 @@ int Abc_CommandAbc9If( Abc_Frame_t * pAbc, int argc, char ** argv )
             Abc_Print( -1, "LUT size (%d) is more than the number of variables in the DSD manager (%d).\n", pPars->nLutSize, If_DsdManVarNum(pDsdMan) );
             return 1;
         }
+        if ( pPars->fDeriveLuts && If_DsdManGetCellStr(pDsdMan) == NULL )
+        {
+            Abc_Print( -1, "DSD manager is not matched with any particular cell.\n" );
+            return 1;
+        }
         pPars->fCutMin = 1;
         pPars->fUseDsd = 1;
         If_DsdManSetNewAsUseless( pDsdMan );
@@ -31454,7 +31467,7 @@ int Abc_CommandAbc9If( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
         pPars->fTruth = 1;
         pPars->fExpRed = 0;
-        if ( pPars->pLutStruct == NULL )
+        if ( pPars->pLutStruct == NULL && !pPars->fUseDsdTune )
             pPars->fDeriveLuts = 1;
     }
     // modify the subgraph recording

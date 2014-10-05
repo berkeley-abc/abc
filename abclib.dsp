@@ -2991,6 +2991,10 @@ SOURCE=.\src\misc\util\utilFile.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\misc\util\utilIsop.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\misc\util\utilMem.c
 # End Source File
 # Begin Source File
