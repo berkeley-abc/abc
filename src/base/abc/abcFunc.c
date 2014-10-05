@@ -935,6 +935,7 @@ Gia_Man_t * Abc_NtkAigToGia( Abc_Ntk_t * p )
     // create new manager
     pNew = Gia_ManStart( 10000 );
     pNew->pName = Abc_UtilStrsav( Abc_NtkName(p) );
+    pNew->pSpec = Abc_UtilStrsav( Abc_NtkSpec(p) );
     Abc_NtkCleanCopy( p );
     Hop_ManConst1(pHopMan)->iData = 1;
     // create primary inputs
