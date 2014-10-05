@@ -15426,6 +15426,11 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
             Abc_Print( -1, "LUT size (%d) is more than the number of variables in the DSD manager (%d).\n", pPars->nLutSize, If_DsdManVarNum(pDsdMan) );
             return 1;
         }
+        if ( pPars->fDeriveLuts && If_DsdManGetCellStr(pDsdMan) == NULL )
+        {
+            Abc_Print( -1, "DSD manager is not matched with any particular cell.\n" );
+            return 1;
+        }
         pPars->fCutMin = 1;
         pPars->fUseDsd = 1;
         If_DsdManSetNewAsUseless( pDsdMan );
@@ -16143,7 +16148,7 @@ int Abc_CommandDsdMatch( Abc_Frame_t * pAbc, int argc, char ** argv )
         char * pStructCur = If_DsdManGetCellStr( pDsdMan );
         if ( pStructCur && strcmp(pStructCur, pStruct) )
         {
-            Abc_Print( -1, "DSD manager matched with cell %s needs to be cleaned before matching with cell %s.\n", pStructCur, pStruct );
+            Abc_Print( -1, "DSD manager matched with cell %s should be cleaned by \"dsd_filter -m\" before matching with cell %s.\n", pStructCur, pStruct );
             return 0;
         }
         Id_DsdManTuneStr( pDsdMan, pStruct, nConfls, nProcs, fVerbose );

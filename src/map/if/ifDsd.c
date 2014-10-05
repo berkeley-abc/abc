@@ -1160,13 +1160,13 @@ If_DsdMan_t * If_DsdManLoad( char * pFileName )
     }
     ABC_FREE( pTruth );
     RetValue = fread( &Num, 4, 1, pFile );
-    if ( Num )
+    if ( RetValue && Num )
     {
         p->vPerms = Vec_WrdStart( Num );
         RetValue = fread( Vec_WrdArray(p->vPerms), sizeof(word)*Num, 1, pFile );
     }
     RetValue = fread( &Num, 4, 1, pFile );
-    if ( Num )
+    if ( RetValue && Num )
     {
         p->pCellStr = ABC_CALLOC( char, Num + 1 );
         RetValue = fread( p->pCellStr, sizeof(char)*Num, 1, pFile );
@@ -1196,6 +1196,8 @@ void If_DsdManMerge( If_DsdMan_t * p, If_DsdMan_t * pNew )
     vMap = Vec_IntAlloc( Vec_PtrSize(&pNew->vObjs) );
     Vec_IntPush( vMap, 0 );
     Vec_IntPush( vMap, 1 );
+    if ( p->vPerms && pNew->vPerms )
+        Vec_WrdFillExtra( p->vPerms, Vec_PtrSize(&p->vObjs) + Vec_PtrSize(&pNew->vObjs), 0 );
     If_DsdVecForEachNode( &pNew->vObjs, pObj, i )
     {
         If_DsdObjForEachFaninLit( &pNew->vObjs, pObj, iFanin, k )
@@ -1203,10 +1205,14 @@ void If_DsdManMerge( If_DsdMan_t * p, If_DsdMan_t * pNew )
         Id = If_DsdObjFindOrAdd( p, pObj->Type, pFanins, pObj->nFans, pObj->Type == IF_DSD_PRIME ? If_DsdObjTruth(pNew, pObj) : NULL );
         if ( pObj->fMark )
             If_DsdVecObjSetMark( &p->vObjs, Id );
+        if ( p->vPerms && pNew->vPerms && i < Vec_WrdSize(pNew->vPerms) )
+            Vec_WrdFillExtra( p->vPerms, Id, Vec_WrdEntry(pNew->vPerms, i) );
         Vec_IntPush( vMap, Id );
     }
     assert( Vec_IntSize(vMap) == Vec_PtrSize(&pNew->vObjs) );
     Vec_IntFree( vMap );
+    if ( p->vPerms && pNew->vPerms )
+        Vec_WrdShrink( p->vPerms, Vec_PtrSize(&p->vObjs) );
 }
 void If_DsdManCleanOccur( If_DsdMan_t * p, int fVerbose )
 {
@@ -1220,6 +1226,7 @@ void If_DsdManCleanMarks( If_DsdMan_t * p, int fVerbose )
     If_DsdObj_t * pObj; 
     int i;
     ABC_FREE( p->pCellStr );
+    Vec_WrdFreeP( &p->vPerms );
     If_DsdVecForEachObj( &p->vObjs, pObj, i )
         pObj->fMark = 0;
 }
