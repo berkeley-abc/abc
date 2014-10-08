@@ -550,6 +550,7 @@ extern If_DsdMan_t *   If_DsdManLoad( char * pFileName );
 extern void            If_DsdManMerge( If_DsdMan_t * p, If_DsdMan_t * pNew );
 extern void            If_DsdManCleanOccur( If_DsdMan_t * p, int fVerbose );
 extern void            If_DsdManCleanMarks( If_DsdMan_t * p, int fVerbose );
+extern void            If_DsdManInvertMarks( If_DsdMan_t * p, int fVerbose );
 extern If_DsdMan_t *   If_DsdManFilter( If_DsdMan_t * p, int Limit );
 extern int             If_DsdManCompute( If_DsdMan_t * p, word * pTruth, int nLeaves, unsigned char * pPerm, char * pLutStruct );
 extern char *          If_DsdManFileName( If_DsdMan_t * p );

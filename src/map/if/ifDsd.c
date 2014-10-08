@@ -1230,6 +1230,15 @@ void If_DsdManCleanMarks( If_DsdMan_t * p, int fVerbose )
     If_DsdVecForEachObj( &p->vObjs, pObj, i )
         pObj->fMark = 0;
 }
+void If_DsdManInvertMarks( If_DsdMan_t * p, int fVerbose )
+{
+    If_DsdObj_t * pObj; 
+    int i;
+    ABC_FREE( p->pCellStr );
+    Vec_WrdFreeP( &p->vPerms );
+    If_DsdVecForEachObj( &p->vObjs, pObj, i )
+        pObj->fMark = !pObj->fMark;
+}
 void If_DsdManFilter_rec( If_DsdMan_t * pNew, If_DsdMan_t * p, int i, Vec_Int_t * vMap )
 {
     If_DsdObj_t * pObj;
@@ -2697,6 +2706,70 @@ void Id_DsdManTuneStr( If_DsdMan_t * p, char * pStruct, int nConfls, int nProcs,
 }
 
 #endif // pthreads are used
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Id_DsdManTuneThresh( If_DsdMan_t * p, int fUnate, int fThresh, int fVerbose )
+{
+    extern int Extra_ThreshCheck( word * t, int nVars, int * pW );
+    int fVeryVerbose = 0;
+    int pW[16];
+    ProgressBar * pProgress = NULL;
+    If_DsdObj_t * pObj;
+    word * pTruth, Perm;
+    int i, nVars, Value;
+    abctime clk = Abc_Clock();
+    assert( fUnate != fThresh );
+    if ( p->nObjsPrev > 0 )
+        printf( "Starting the tuning process from object %d (out of %d).\n", p->nObjsPrev, Vec_PtrSize(&p->vObjs) );
+    // clean the attributes
+    If_DsdVecForEachObj( &p->vObjs, pObj, i )
+        if ( i >= p->nObjsPrev )
+            pObj->fMark = 0;
+    if ( p->vPerms == NULL )
+        p->vPerms = Vec_WrdStart( Vec_PtrSize(&p->vObjs) );
+    else
+        Vec_WrdFillExtra( p->vPerms, Vec_PtrSize(&p->vObjs), 0 );
+    pProgress = Extra_ProgressBarStart( stdout, Vec_PtrSize(&p->vObjs) );
+    If_DsdVecForEachObjStart( &p->vObjs, pObj, i, p->nObjsPrev )
+    {
+        if ( (i & 0xFF) == 0 )
+            Extra_ProgressBarUpdate( pProgress, i, NULL );
+        nVars = If_DsdObjSuppSize(pObj);
+        pTruth = If_DsdManComputeTruth( p, Abc_Var2Lit(i, 0), NULL );
+        if ( fVeryVerbose )
+            Dau_DsdPrintFromTruth( pTruth, nVars );
+        if ( fVerbose )
+            printf( "%6d : %2d ", i, nVars );
+        if ( fUnate )
+            Value = Abc_TtIsUnate( pTruth, nVars );
+        else if ( fThresh )
+            Value = Extra_ThreshCheck( pTruth, nVars, pW );
+        Perm = 0;
+        if ( fVeryVerbose )
+            printf( "\n" );
+        if ( Value )
+            If_DsdVecObjSetMark( &p->vObjs, i );
+        else
+            Vec_WrdWriteEntry( p->vPerms, i, Perm );
+    }
+    p->nObjsPrev = 0;
+    p->LutSize = 0;
+    Extra_ProgressBarStop( pProgress );
+    printf( "Finished matching %d functions. ", Vec_PtrSize(&p->vObjs) );
+    Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
+    if ( fVeryVerbose )
+        If_DsdManPrintDistrib( p );
+}
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

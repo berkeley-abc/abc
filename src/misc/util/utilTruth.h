@@ -1597,6 +1597,101 @@ static inline void Abc_TtReverseBits( word * pTruth, int nVars )
 
 /**Function*************************************************************
 
+  Synopsis    [Checks unateness of a function.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline int Abc_Tt6PosVar( word t, int iVar )
+{
+    return ((t >> (1<<iVar)) & t & s_Truths6Neg[iVar]) == (t & s_Truths6Neg[iVar]);
+}
+static inline int Abc_Tt6NegVar( word t, int iVar )
+{
+    return ((t << (1<<iVar)) & t & s_Truths6[iVar]) == (t & s_Truths6[iVar]);
+}
+static inline int Abc_TtPosVar( word * t, int nVars, int iVar )
+{
+    assert( iVar < nVars );
+    if ( nVars <= 6 )
+        return Abc_Tt6PosVar( t[0], iVar );
+    if ( iVar < 6 )
+    {
+        int i, Shift = (1 << iVar);
+        int nWords = Abc_TtWordNum( nVars );
+        for ( i = 0; i < nWords; i++ )
+            if ( ((t[i] >> Shift) & t[i] & s_Truths6Neg[iVar]) != (t[i] & s_Truths6Neg[iVar]) )
+                return 0;
+        return 1;
+    }
+    else
+    {
+        int i, Step = (1 << (iVar - 6));
+        word * tLimit = t + Abc_TtWordNum( nVars );
+        for ( ; t < tLimit; t += 2*Step )
+            for ( i = 0; i < Step; i++ )
+                if ( t[i] != (t[i] & t[Step+i]) )
+                    return 0;
+        return 1;
+    }
+}
+static inline int Abc_TtNegVar( word * t, int nVars, int iVar )
+{
+    assert( iVar < nVars );
+    if ( nVars <= 6 )
+        return Abc_Tt6NegVar( t[0], iVar );
+    if ( iVar < 6 )
+    {
+        int i, Shift = (1 << iVar);
+        int nWords = Abc_TtWordNum( nVars );
+        for ( i = 0; i < nWords; i++ )
+            if ( ((t[i] << Shift) & t[i] & s_Truths6[iVar]) != (t[i] & s_Truths6[iVar]) )
+                return 0;
+        return 1;
+    }
+    else
+    {
+        int i, Step = (1 << (iVar - 6));
+        word * tLimit = t + Abc_TtWordNum( nVars );
+        for ( ; t < tLimit; t += 2*Step )
+            for ( i = 0; i < Step; i++ )
+                if ( (t[i] & t[Step+i]) != t[Step+i] )
+                    return 0;
+        return 1;
+    }
+}
+static inline int Abc_TtIsUnate( word * t, int nVars )
+{
+    int i;
+    for ( i = 0; i < nVars; i++ )
+        if ( !Abc_TtNegVar(t, nVars, i) && !Abc_TtPosVar(t, nVars, i) )
+            return 0;
+    return 1;
+}
+static inline int Abc_TtIsPosUnate( word * t, int nVars )
+{
+    int i;
+    for ( i = 0; i < nVars; i++ )
+        if ( !Abc_TtPosVar(t, nVars, i) )
+            return 0;
+    return 1;
+}
+static inline void Abc_TtMakePosUnate( word * t, int nVars )
+{
+    int i, nWords = Abc_TtWordNum(nVars);
+    for ( i = 0; i < nVars; i++ )
+        if ( Abc_TtNegVar(t, nVars, i) )
+            Abc_TtFlip( t, nWords, i );
+        else assert( Abc_TtPosVar(t, nVars, i) );
+}
+
+
+/**Function*************************************************************
+
   Synopsis    [Computes ISOP for 6 variables or less.]
 
   Description []

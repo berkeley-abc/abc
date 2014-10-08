@@ -95,47 +95,6 @@ static inline void Abc_IsopAddLits( int * pCover, int nCost0, int nCost1, int Va
     for ( c = 0; c < nCost1; c++ )
         pCover[nCost0+c] |= (1 << Abc_Var2Lit(Var,1));
 }
-int Abc_Isop6Cover2( word uOn, word uOnDc, word * pRes, int nVars, int nCostLim, int * pCover )
-{
-    word uOn0, uOn1, uOnDc0, uOnDc1, uRes0, uRes1, uRes2;
-    int Var, nCost0, nCost1, nCost2;
-    assert( nVars <= 6 );
-    assert( (uOn & ~uOnDc) == 0 );
-    if ( uOn == 0 )
-    {
-        pRes[0] = 0;
-        return 0;
-    }
-    if ( uOnDc == ~(word)0 )
-    {
-        pRes[0] = ~(word)0;
-        if ( pCover ) pCover[0] = 0;
-        return (1 << 16);
-    }
-    assert( nVars > 0 );
-    // find the topmost var
-    for ( Var = nVars-1; Var >= 0; Var-- )
-        if ( Abc_Tt6HasVar( uOn, Var ) || Abc_Tt6HasVar( uOnDc, Var ) )
-             break;
-    assert( Var >= 0 );
-    // cofactor
-    uOn0   = Abc_Tt6Cofactor0( uOn,   Var );
-    uOn1   = Abc_Tt6Cofactor1( uOn  , Var );
-    uOnDc0 = Abc_Tt6Cofactor0( uOnDc, Var );
-    uOnDc1 = Abc_Tt6Cofactor1( uOnDc, Var );
-    // solve for cofactors
-    nCost0 = Abc_Isop6Cover2( uOn0 & ~uOnDc1, uOnDc0, &uRes0, Var, nCostLim, pCover );
-    if ( nCost0 >= nCostLim ) return nCostLim;
-    nCost1 = Abc_Isop6Cover2( uOn1 & ~uOnDc0, uOnDc1, &uRes1, Var, nCostLim, pCover ? pCover + (nCost0 >> 16) : NULL );
-    if ( nCost0 + nCost1 >= nCostLim ) return nCostLim;
-    nCost2 = Abc_Isop6Cover2( (uOn0 & ~uRes0) | (uOn1 & ~uRes1), uOnDc0 & uOnDc1, &uRes2, Var, nCostLim, pCover ? pCover + (nCost0 >> 16) + (nCost1 >> 16) : NULL );
-    if ( nCost0 + nCost1 + nCost2 >= nCostLim ) return nCostLim;
-    // derive the final truth table
-    *pRes = uRes2 | (uRes0 & s_Truths6Neg[Var]) | (uRes1 & s_Truths6[Var]);
-    assert( (uOn & ~*pRes) == 0 && (*pRes & ~uOnDc) == 0 );
-    Abc_IsopAddLits( pCover, nCost0, nCost1, Var );
-    return nCost0 + nCost1 + nCost2 + (nCost0 >> 16) + (nCost1 >> 16);
-}
 int Abc_Isop6Cover( word uOn, word uOnDc, word * pRes, int nVars, int nCostLim, int * pCover )
 {
     word uOn0, uOn1, uOnDc0, uOnDc1, uRes0, uRes1, uRes2;
@@ -164,13 +123,10 @@ int Abc_Isop6Cover( word uOn, word uOnDc, word * pRes, int nVars, int nCostLim, 
     uOn1   = Abc_Tt6Cofactor1( uOn  , Var );
     uOnDc0 = Abc_Tt6Cofactor0( uOnDc, Var );
     uOnDc1 = Abc_Tt6Cofactor1( uOnDc, Var );
-//R0 = bsop(L0&~(U1 | (L1 &  ~U0)),U0,new_varbs)
     // solve for cofactors
-//    nCost0 = Abc_Isop6Cover( uOn0 & ~uOnDc1, uOnDc0, &uRes0, Var, nCostLim, pCover );
-    nCost0 = Abc_Isop6Cover( uOn0 & ~(uOnDc1 | (uOn1 & ~uOnDc0)), uOnDc0, &uRes0, Var, nCostLim, pCover );
+    nCost0 = Abc_Isop6Cover( uOn0 & ~uOnDc1, uOnDc0, &uRes0, Var, nCostLim, pCover );
     if ( nCost0 >= nCostLim ) return nCostLim;
-//    nCost1 = Abc_Isop6Cover( uOn1 & ~uOnDc0, uOnDc1, &uRes1, Var, nCostLim, pCover ? pCover + (nCost0 >> 16) : NULL );
-    nCost1 = Abc_Isop6Cover( uOn1 & ~(uOnDc0 | (uOn0 & ~uOnDc1)), uOnDc1, &uRes1, Var, nCostLim, pCover ? pCover + (nCost0 >> 16) : NULL );
+    nCost1 = Abc_Isop6Cover( uOn1 & ~uOnDc0, uOnDc1, &uRes1, Var, nCostLim, pCover ? pCover + (nCost0 >> 16) : NULL );
     if ( nCost0 + nCost1 >= nCostLim ) return nCostLim;
     nCost2 = Abc_Isop6Cover( (uOn0 & ~uRes0) | (uOn1 & ~uRes1), uOnDc0 & uOnDc1, &uRes2, Var, nCostLim, pCover ? pCover + (nCost0 >> 16) + (nCost1 >> 16) : NULL );
     if ( nCost0 + nCost1 + nCost2 >= nCostLim ) return nCostLim;
@@ -180,7 +136,6 @@ int Abc_Isop6Cover( word uOn, word uOnDc, word * pRes, int nVars, int nCostLim, 
     Abc_IsopAddLits( pCover, nCost0, nCost1, Var );
     return nCost0 + nCost1 + nCost2 + (nCost0 >> 16) + (nCost1 >> 16);
 }
-
 int Abc_Isop7Cover( word * pOn, word * pOnDc, word * pRes, int * pCover, int nCostLim )
 {
     word uOn0, uOn1, uOn2, uOnDc2, uRes0, uRes1, uRes2;
@@ -622,12 +577,10 @@ int Abc_Isop( word * pFunc, int nVars, int Type, int nCubeLim, Vec_Int_t * vCove
 ***********************************************************************/
 int Abc_IsopTest( word * pFunc, int nVars, Vec_Int_t * vCover )
 {
-    int fVerbose = 1;
+    int Cost, fVerbose = 0;
     word pRes[1024];
-    int Cost;
 //    if ( fVerbose )
 //    Dau_DsdPrintFromTruth( pFunc, nVars ), printf( "         " );
-
 
     Cost = Abc_IsopCheck( pFunc, pFunc, pRes, nVars, ABC_INFINITY, Vec_IntArray(vCover) );
     vCover->nSize = Cost >> 16;
@@ -646,7 +599,7 @@ int Abc_IsopTest( word * pFunc, int nVars, Vec_Int_t * vCover )
     printf( "%5d(%5d) ", Cost >> 16, Cost & 0xFFFF );
     Abc_IsopVerify( pFunc, nVars, pRes, vCover, 0, 1 );
 
-/*
+
     Cost = Abc_EsopCheck( pFunc, nVars, ABC_INFINITY, Vec_IntArray(vCover) );
     vCover->nSize = Cost >> 16;
     assert( vCover->nSize <= vCover->nCap );
@@ -663,12 +616,11 @@ int Abc_IsopTest( word * pFunc, int nVars, Vec_Int_t * vCover )
     if ( fVerbose )
     printf( "%5d(%5d)  ", Cost >> 16, Cost & 0xFFFF );
     Abc_IsopVerify( pFunc, nVars, pRes, vCover, 1, 1 );
-*/
+
 
     if ( fVerbose )
     printf( "\n" );
 //Kit_TruthIsopPrintCover( vCover, nVars, 0 );
-
     return 1; 
 }
 

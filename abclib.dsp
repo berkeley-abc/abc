@@ -2795,6 +2795,10 @@ SOURCE=.\src\misc\extra\extraUtilSupp.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\misc\extra\extraUtilThresh.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\misc\extra\extraUtilTruth.c
 # End Source File
 # Begin Source File

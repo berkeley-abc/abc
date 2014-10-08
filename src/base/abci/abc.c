@@ -16256,10 +16256,11 @@ usage:
 ***********************************************************************/
 int Abc_CommandDsdFilter( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
+    extern void Id_DsdManTuneThresh( If_DsdMan_t * p, int fUnate, int fThresh, int fVerbose );
     If_DsdMan_t * pDsd = (If_DsdMan_t *)Abc_FrameReadManDsd();
-    int c, nLimit = 0, nLutSize = -1, fCleanOccur = 0, fCleanMarks = 0, fVerbose = 0;
+    int c, nLimit = 0, nLutSize = -1, fCleanOccur = 0, fCleanMarks = 0, fInvMarks = 0, fUnate = 0, fThresh = 0, fVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "LKomvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "LKomiutvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -16287,6 +16288,15 @@ int Abc_CommandDsdFilter( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'm':
             fCleanMarks ^= 1;
             break;
+        case 'i':
+            fInvMarks ^= 1;
+            break;
+        case 'u':
+            fUnate ^= 1;
+            break;
+        case 't':
+            fThresh ^= 1;
+            break;
         case 'v':
             fVerbose ^= 1;
             break;
@@ -16309,15 +16319,24 @@ int Abc_CommandDsdFilter( Abc_Frame_t * pAbc, int argc, char ** argv )
         If_DsdManCleanOccur( pDsd, fVerbose );
     if ( fCleanMarks )
         If_DsdManCleanMarks( pDsd, fVerbose );
+    if ( fInvMarks )
+        If_DsdManInvertMarks( pDsd, fVerbose );
+    if ( fUnate )
+        Id_DsdManTuneThresh( pDsd, 1, 0, fVerbose );
+    if ( fThresh )
+        Id_DsdManTuneThresh( pDsd, 0, 1, fVerbose );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: dsd_filter [-LK num] [-omvh]\n" );
+    Abc_Print( -2, "usage: dsd_filter [-LK num] [-omiutvh]\n" );
     Abc_Print( -2, "\t         filtering structured and modifying parameters of DSD manager\n" );
     Abc_Print( -2, "\t-L num : remove structures with fewer occurrences that this [default = %d]\n", nLimit );
     Abc_Print( -2, "\t-K num : new LUT size to set for the DSD manager [default = %d]\n",           nLutSize );
     Abc_Print( -2, "\t-o     : toggles cleaning occurrence counters [default = %s]\n",              fCleanOccur? "yes": "no" );
     Abc_Print( -2, "\t-m     : toggles cleaning matching marks [default = %s]\n",                   fCleanMarks? "yes": "no" );
+    Abc_Print( -2, "\t-i     : toggles inverting matching marks [default = %s]\n",                  fInvMarks? "yes": "no" );
+    Abc_Print( -2, "\t-u     : toggles marking unate functions [default = %s]\n",                   fUnate? "yes": "no" );
+    Abc_Print( -2, "\t-t     : toggles marking threshold functions [default = %s]\n",               fThresh? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggles verbose output [default = %s]\n",                            fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
