@@ -740,7 +740,7 @@ int If_ManSatDeriveGiaFromBits( void * pGia, Ifn_Ntk_t * p, Vec_Int_t * vValues,
         int Type = p->Nodes[i].Type;
         int nFans = p->Nodes[i].nFanins;
         int * pFans = p->Nodes[i].Fanins;
-        int iFanin = p->Nodes[i].iFirst;
+        //int iFanin = p->Nodes[i].iFirst;
         assert( nFans <= 6 );
         if ( Type == IFN_DSD_AND )
         {

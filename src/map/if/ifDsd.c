@@ -2754,6 +2754,8 @@ void Id_DsdManTuneThresh( If_DsdMan_t * p, int fUnate, int fThresh, int fVerbose
             Value = Abc_TtIsUnate( pTruth, nVars );
         else if ( fThresh )
             Value = Extra_ThreshCheck( pTruth, nVars, pW );
+        else 
+            Value = 0;
         Perm = 0;
         if ( fVeryVerbose )
             printf( "\n" );
