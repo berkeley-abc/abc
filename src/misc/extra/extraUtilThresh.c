@@ -282,7 +282,7 @@ int Extra_ThreshSelectWeights( word * t, int nVars, int * pW )
 }
 int Extra_ThreshCheck( word * t, int nVars, int * pW )
 {
-    int Chow[16], Chow0, nMints = (1 << nVars);
+    int Chow0, Chow[16];
     if ( !Abc_TtIsUnate(t, nVars) )
         return 0;
     Abc_TtMakePosUnate( t, nVars );

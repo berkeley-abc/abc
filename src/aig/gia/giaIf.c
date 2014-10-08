@@ -1495,7 +1495,7 @@ Gia_Man_t * Gia_ManFromIfLogic( If_Man_t * pIfMan )
     Vec_Int_t * vPiVars = NULL, * vPoVars = NULL;
     sat_solver * pSat = NULL;
     Ifn_Ntk_t * pNtkCell = NULL;
-    int i, k, nLutMax, Entry;
+    int i, k, nLutMax = -1, Entry;
     assert( !pIfMan->pPars->fDeriveLuts || pIfMan->pPars->fTruth );
 //    if ( pIfMan->pPars->fEnableCheck07 )
 //        pIfMan->pPars->fDeriveLuts = 0;
