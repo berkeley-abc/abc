@@ -2745,6 +2745,8 @@ void Id_DsdManTuneThresh( If_DsdMan_t * p, int fUnate, int fThresh, int fVerbose
         if ( (i & 0xFF) == 0 )
             Extra_ProgressBarUpdate( pProgress, i, NULL );
         nVars = If_DsdObjSuppSize(pObj);
+        if ( nVars > 8 )
+            continue;
         pTruth = If_DsdManComputeTruth( p, Abc_Var2Lit(i, 0), NULL );
         if ( fVeryVerbose )
             Dau_DsdPrintFromTruth( pTruth, nVars );
