@@ -499,13 +499,13 @@ void Abc_TruthDecPerform( Abc_TtStore_t * p, int DecType, int fVerbose )
         Vec_Str_t * vStr;
         char * pSopStr;
         vStr = Vec_StrAlloc( 10000 );
-        vCover = Vec_IntAlloc( 1 << 20 );
+        vCover = Vec_IntAlloc( 1 << 16 );
         for ( i = 0; i < p->nFuncs; i++ )
         {
-            extern int Abc_IsopTest( word * pFunc, int nVars, Vec_Int_t * vCover );
-            if ( i == 0 ) printf( "\n" );
-            Abc_IsopTest( p->pFuncs[i], p->nVars, vCover );
-            continue;
+//            extern int Abc_IsopTest( word * pFunc, int nVars, Vec_Int_t * vCover );
+//            if ( i == 0 ) printf( "\n" );
+//            Abc_IsopTest( p->pFuncs[i], p->nVars, vCover );
+//            continue;
             if ( fVerbose )
                 printf( "%7d : ", i );
             pSopStr = Kit_PlaFromTruthNew( (unsigned *)p->pFuncs[i], p->nVars, vCover, vStr );
