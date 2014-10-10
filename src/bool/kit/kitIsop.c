@@ -58,7 +58,7 @@ int Kit_TruthIsop( unsigned * puTruth, int nVars, Vec_Int_t * vMemory, int fTryB
     Kit_Sop_t cRes2, * pcRes2 = &cRes2;
     unsigned * pResult;
     int RetValue = 0;
-    assert( nVars >= 0 && nVars < 16 );
+    assert( nVars >= 0 && nVars <= 16 );
     // if nVars < 5, make sure it does not depend on those vars
 //    for ( i = nVars; i < 5; i++ )
 //        assert( !Kit_TruthVarInSupport(puTruth, 5, i) );
