@@ -1102,7 +1102,7 @@ int Abc_IsopTest( word * pFunc, int nVars, Vec_Int_t * vCover )
     TotalCost[4] += Abc_CostCubes(Cost);
     TotalTime[4] += Abc_Clock() - clk;
 */
-
+/*
     // try old computation
     clk = Abc_Clock();
     Cost = Kit_TruthIsop( (unsigned *)pFunc, nVars, vCover, 1 );
@@ -1112,7 +1112,7 @@ int Abc_IsopTest( word * pFunc, int nVars, Vec_Int_t * vCover )
     printf( "%5d %7d   ", Vec_IntSize(vCover), Abc_IsopCountLits(vCover, nVars) );
     TotalCost[4] += Vec_IntSize(vCover);
     TotalTime[4] += Abc_Clock() - clk;
-
+*/
 
     clk = Abc_Clock();
     Cost = Abc_Isop( pFunc, nVars, ABC_ISOP_MAX_CUBE, vCover, 1 );

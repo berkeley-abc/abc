@@ -454,9 +454,9 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p )
             int nRangeMax = Abc_MaxInt( nRange, nRange0 );
             int * pArg0 = Wlc_VecLoadFanins( vTemp0, pFans0, nRange0, nRangeMax, Wlc_ObjFanin0(p, pObj)->Signed );
             if ( pObj->Type == WLC_OBJ_SHIFT_R || pObj->Type == WLC_OBJ_SHIFT_RA )
-                Wlc_BlastShiftRight( pNew, pArg0, nRangeMax, pFans1, nRange1, pObj->Type == WLC_OBJ_SHIFT_RA, vRes );
+                Wlc_BlastShiftRight( pNew, pArg0, nRangeMax, pFans1, nRange1, Wlc_ObjFanin0(p, pObj)->Signed && pObj->Type == WLC_OBJ_SHIFT_RA, vRes );
             else
-                Wlc_BlastShiftLeft( pNew, pArg0, nRangeMax, pFans1, nRange1, pObj->Type == WLC_OBJ_SHIFT_LA, vRes );
+                Wlc_BlastShiftLeft( pNew, pArg0, nRangeMax, pFans1, nRange1, 0, vRes );
             Vec_IntShrink( vRes, nRange );
         }
         else if ( pObj->Type == WLC_OBJ_ROTATE_R )
@@ -622,7 +622,7 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p )
             else
                 Wlc_BlastDivider( pNew, pArg0, nRangeMax, pArg1, nRangeMax, pObj->Type == WLC_OBJ_ARI_DIVIDE, vRes );
             Vec_IntShrink( vRes, nRange );
-//            Wlc_BlastZeroCondition( pNew, pFans1, nRange1, vRes );
+            Wlc_BlastZeroCondition( pNew, pFans1, nRange1, vRes );
         }
         else if ( pObj->Type == WLC_OBJ_ARI_MINUS )
         {
