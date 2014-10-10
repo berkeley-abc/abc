@@ -30273,7 +30273,7 @@ int Abc_CommandAbc9Cec( Abc_Frame_t * pAbc, int argc, char ** argv )
     int c, nArgcNew, fMiter = 0, fDualOutput = 0, fDumpMiter = 0;
     Cec_ManCecSetDefaultParams( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "CTmdavh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "CTnmdavh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -30298,6 +30298,9 @@ int Abc_CommandAbc9Cec( Abc_Frame_t * pAbc, int argc, char ** argv )
             globalUtilOptind++;
             if ( pPars->TimeLimit < 0 )
                 goto usage;
+            break;
+        case 'n':
+            pPars->fNaive ^= 1;
             break;
         case 'm':
             fMiter ^= 1;
@@ -30390,10 +30393,11 @@ int Abc_CommandAbc9Cec( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &cec [-CT num] [-mdavh]\n" );
+    Abc_Print( -2, "usage: &cec [-CT num] [-nmdavh]\n" );
     Abc_Print( -2, "\t         new combinational equivalence checker\n" );
     Abc_Print( -2, "\t-C num : the max number of conflicts at a node [default = %d]\n", pPars->nBTLimit );
     Abc_Print( -2, "\t-T num : approximate runtime limit in seconds [default = %d]\n", pPars->TimeLimit );
+    Abc_Print( -2, "\t-n     : toggle using naive SAT-based checking [default = %s]\n", pPars->fNaive? "yes":"no");
     Abc_Print( -2, "\t-m     : toggle miter vs. two circuits [default = %s]\n", fMiter? "miter":"two circuits");
     Abc_Print( -2, "\t-d     : toggle using dual output miter [default = %s]\n", fDualOutput? "yes":"no");
     Abc_Print( -2, "\t-a     : toggle writing dual-output miter [default = %s]\n", fDumpMiter? "yes":"no");

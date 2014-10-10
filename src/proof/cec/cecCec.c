@@ -21,6 +21,8 @@
 #include "cecInt.h"
 #include "proof/fra/fra.h"
 #include "aig/gia/giaAig.h"
+#include "misc/extra/extra.h"
+#include "sat/cnf/cnf.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -193,6 +195,107 @@ int Cec_ManHandleSpecialCases( Gia_Man_t * p, Cec_ParCec_t * pPars )
 
 /**Function*************************************************************
 
+  Synopsis    [Performs naive checking.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Cec_ManVerifyNaive( Gia_Man_t * p, Cec_ParCec_t * pPars )
+{
+    extern Cnf_Dat_t * Mf_ManGenerateCnf( Gia_Man_t * pGia, int nLutSize, int fCnfObjIds, int fAddOrCla, int fVerbose );
+    Cnf_Dat_t * pCnf = Mf_ManGenerateCnf( p, 8, 0, 0, 0 );
+    sat_solver * pSat = (sat_solver *)Cnf_DataWriteIntoSolver( pCnf, 1, 0 );
+    Gia_Obj_t * pObj0, * pObj1;
+    abctime clkStart = Abc_Clock();
+    int nPairs = Gia_ManPoNum(p)/2;
+    int nUnsats = 0, nSats = 0, nUndecs = 0, nTrivs = 0;
+    int i, iVar0, iVar1, pLits[2], status, RetValue;
+    ProgressBar * pProgress = Extra_ProgressBarStart( stdout, nPairs );
+    assert( Gia_ManPoNum(p) % 2 == 0 );
+    for ( i = 0; i < nPairs; i++ )
+    {
+        if ( (i & 0xFF) == 0 )
+            Extra_ProgressBarUpdate( pProgress, i, NULL );
+        pObj0 = Gia_ManPo(p, 2*i);
+        pObj1 = Gia_ManPo(p, 2*i+1);
+        if ( Gia_ObjChild0(pObj0) == Gia_ObjChild0(pObj1) )
+        {
+            nUnsats++;
+            nTrivs++;
+            continue;
+        }
+        if ( pPars->TimeLimit && (Abc_Clock() - clkStart)/CLOCKS_PER_SEC >= pPars->TimeLimit )
+        {
+            printf( "Timeout (%d sec) is reached.\n", pPars->TimeLimit );
+            nUndecs = nPairs - nUnsats - nSats;
+            break;
+        }
+        iVar0 = pCnf->pVarNums[ Gia_ObjId(p, pObj0) ];
+        iVar1 = pCnf->pVarNums[ Gia_ObjId(p, pObj1) ];
+        assert( iVar0 >= 0 && iVar1 >= 0 );
+        pLits[0] = Abc_Var2Lit( iVar0, 0 );
+        pLits[1] = Abc_Var2Lit( iVar1, 0 );
+        // check direct
+        pLits[0] = lit_neg(pLits[0]);
+        status = sat_solver_solve( pSat, pLits, pLits + 2, pPars->nBTLimit, 0, 0, 0 );
+        if ( status == l_False )
+        {
+            pLits[0] = lit_neg( pLits[0] );
+            pLits[1] = lit_neg( pLits[1] );
+            RetValue = sat_solver_addclause( pSat, pLits, pLits + 2 );
+            assert( RetValue );
+        }
+        else if ( status == l_True )
+        {
+            printf( "Output %d is SAT.\n", i );
+            nSats++;
+            continue;
+        }
+        else
+        {
+            nUndecs++;
+            continue;
+        }
+        // check inverse
+        status = sat_solver_solve( pSat, pLits, pLits + 2, pPars->nBTLimit, 0, 0, 0 );
+        if ( status == l_False )
+        {
+            pLits[0] = lit_neg( pLits[0] );
+            pLits[1] = lit_neg( pLits[1] );
+            RetValue = sat_solver_addclause( pSat, pLits, pLits + 2 );
+            assert( RetValue );
+        }
+        else if ( status == l_True )
+        {
+            printf( "Output %d is SAT.\n", i );
+            nSats++;
+            continue;
+        }
+        else
+        {
+            nUndecs++;
+            continue;
+        }
+        nUnsats++;
+    }
+    Extra_ProgressBarStop( pProgress );
+    printf( "UNSAT = %6d.  SAT = %6d.   UNDEC = %6d.  Trivial = %6d.  ", nUnsats, nSats, nUndecs, nTrivs );
+    Abc_PrintTime( 1, "Time", Abc_Clock() - clkStart );
+    Cnf_DataFree( pCnf );
+    sat_solver_delete( pSat );
+    if ( nSats )
+        return 0;
+    if ( nUndecs )
+        return -1;
+    return 1;
+}
+
+/**Function*************************************************************
+
   Synopsis    [New CEC engine.]
 
   Description []
@@ -222,6 +325,12 @@ int Cec_ManVerify( Gia_Man_t * pInit, Cec_ParCec_t * pPars )
     Gia_ManEquivFixOutputPairs( p );
     p = Gia_ManCleanup( pNew = p );
     Gia_ManStop( pNew );
+    if ( pPars->fNaive )
+    {
+        RetValue = Cec_ManVerifyNaive( p, pPars );
+        Gia_ManStop( p );
+        return RetValue;
+    }
     // sweep for equivalences
     Cec_ManFraSetDefaultParams( pParsFra );
     pParsFra->nItersMax    = 1000;

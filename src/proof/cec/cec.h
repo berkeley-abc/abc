@@ -122,6 +122,7 @@ struct Cec_ParCec_t_
 //    int              fFirstStop;    // stop on the first sat output
     int              fUseSmartCnf;  // use smart CNF computation
     int              fRewriting;    // enables AIG rewriting
+    int              fNaive;        // performs naive SAT-based checking
     int              fVeryVerbose;  // verbose stats
     int              fVerbose;      // verbose stats
     int              iOutFail;      // the number of failed output
