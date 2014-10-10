@@ -294,7 +294,10 @@ int  Msat_ClauseIsLocked( Msat_Solver_t * p, Msat_Clause_t * pC )
 ***********************************************************************/
 float Msat_ClauseReadActivity( Msat_Clause_t * pC )
 {
-    return *((float *)(pC->pData + pC->nSize));
+    float f;
+
+    memcpy( &f, pC->pData + pC->nSize, sizeof (f));
+    return f;
 }
 
 /**Function*************************************************************
@@ -310,7 +313,7 @@ float Msat_ClauseReadActivity( Msat_Clause_t * pC )
 ***********************************************************************/
 void Msat_ClauseWriteActivity( Msat_Clause_t * pC, float Num )
 {
-    *((float *)(pC->pData + pC->nSize)) = Num;
+    memcpy( pC->pData + pC->nSize, &Num, sizeof (Num) );
 }
 
 /**Function*************************************************************

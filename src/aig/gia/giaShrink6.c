@@ -170,11 +170,14 @@ Gia_Man_t * Shr_ManFree( Shr_Man_t * p )
 ***********************************************************************/
 static inline void Shr_ManAddFanout( Shr_Man_t * p, int iFanin, int iFanout )
 {
-    Shr_Fan_t FanStr;
-    FanStr.iFan = iFanout;
-    FanStr.Next = Vec_IntEntry(p->vObj2Fan, iFanin);
+    union {
+        Shr_Fan_t sFan;
+        word      sWord;
+    } FanStr;
+    FanStr.sFan.iFan = iFanout;
+    FanStr.sFan.Next = Vec_IntEntry(p->vObj2Fan, iFanin);
     Vec_IntWriteEntry( p->vObj2Fan, iFanin, Vec_WrdSize(p->vFanMem) );
-    Vec_WrdPush(p->vFanMem, *((word *)&FanStr) );
+    Vec_WrdPush(p->vFanMem, FanStr.sWord );
 }
 static inline int Shr_ManFanIterStart( Shr_Man_t * p, int iNode )
 {

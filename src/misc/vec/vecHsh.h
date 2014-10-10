@@ -46,6 +46,13 @@ struct Hsh_IntObj_t_
     int          iNext;
 };
 
+typedef union Hsh_IntObjWord_t_ Hsh_IntObjWord_t;
+union Hsh_IntObjWord_t_
+{
+    Hsh_IntObj_t wObj;
+    word         wWord;
+};
+
 typedef struct Hsh_IntMan_t_ Hsh_IntMan_t;
 struct Hsh_IntMan_t_
 {
@@ -80,7 +87,7 @@ struct Hsh_VecMan_t_
 
 static inline unsigned *      Hsh_IntData( Hsh_IntMan_t * p, int iData )  { return (unsigned *)Vec_IntEntryP( p->vData, p->nSize * iData );             }
 static inline Hsh_IntObj_t *  Hsh_IntObj( Hsh_IntMan_t * p, int iObj )    { return iObj == -1 ? NULL : (Hsh_IntObj_t *)Vec_WrdEntryP( p->vObjs, iObj ); }
-static inline word            Hsh_IntWord( int iData, int iNext )         { Hsh_IntObj_t Obj = {iData, iNext}; return *((word *)&Obj);                  }
+static inline word            Hsh_IntWord( int iData, int iNext )         { Hsh_IntObjWord_t Obj = { {iData, iNext} }; return Obj.wWord;                }
 
 static inline Hsh_VecObj_t *  Hsh_VecObj( Hsh_VecMan_t * p, int i )  { return i == -1 ? NULL : (Hsh_VecObj_t *)Vec_IntEntryP(p->vData, Vec_IntEntry(p->vMap, i));  }
 

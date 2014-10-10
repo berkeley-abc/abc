@@ -512,10 +512,13 @@ word Mio_DeriveTruthTable6( Mio_Gate_t * pGate )
         { 0xFFFF0000, 0xFFFF0000 },
         { 0x00000000, 0xFFFFFFFF }
     };
-    unsigned uTruthRes[2];
+    union {
+      unsigned u[2];
+      word w;
+    } uTruthRes;
     assert( pGate->nInputs <= 6 );
-    Mio_DeriveTruthTable( pGate, uTruths6, pGate->nInputs, 6, uTruthRes );
-    return *((word *)uTruthRes);
+    Mio_DeriveTruthTable( pGate, uTruths6, pGate->nInputs, 6, uTruthRes.u );
+    return uTruthRes.w;
 }
 
 #if 0

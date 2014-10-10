@@ -50,6 +50,13 @@ struct Gia_PtrAre_t_
     unsigned       fMark    :  1;  // user mark
 };
 
+typedef union Gia_PtrAreInt_t_ Gia_PtrAreInt_t;
+union Gia_PtrAreInt_t_
+{
+    Gia_PtrAre_t   iGia;
+    unsigned       iInt;
+};
+
 // tree nodes
 typedef struct Gia_ObjAre_t_ Gia_ObjAre_t;
 struct Gia_ObjAre_t_
@@ -118,8 +125,8 @@ struct Gia_ManAre_t_
     int            timeCube;       // cube checking time 
 }; 
 
-static inline Gia_PtrAre_t    Gia_Int2Ptr( unsigned n )                               { return *(Gia_PtrAre_t *)(&n);                            }
-static inline unsigned        Gia_Ptr2Int( Gia_PtrAre_t n )                           { return (*(int *)(&n)) & 0x7fffffff;                      }
+static inline Gia_PtrAre_t    Gia_Int2Ptr( unsigned n )                               { Gia_PtrAreInt_t g; g.iInt = n; return g.iGia;            }
+static inline unsigned        Gia_Ptr2Int( Gia_PtrAre_t n )                           { Gia_PtrAreInt_t g = { n }; return g.iInt & 0x7fffffff;   }
 
 static inline int             Gia_ObjHasBranch0( Gia_ObjAre_t * q )                   { return !q->nStas0 && (q->F[0].nPage || q->F[0].nItem);   }
 static inline int             Gia_ObjHasBranch1( Gia_ObjAre_t * q )                   { return !q->nStas1 && (q->F[1].nPage || q->F[1].nItem);   }
