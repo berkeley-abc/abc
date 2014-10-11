@@ -164,7 +164,7 @@ static inline int Wlc_PrsIsChar( char * pStr )
     return (pStr[0] >= 'a' && pStr[0] <= 'z') || 
            (pStr[0] >= 'A' && pStr[0] <= 'Z') || 
            (pStr[0] >= '0' && pStr[0] <= '9') || 
-            pStr[0] == '_' || pStr[0] == '$';
+            pStr[0] == '_' || pStr[0] == '$' || pStr[0] == '\\';
 }
 static inline char * Wlc_PrsSkipSpaces( char * pStr )
 {
@@ -174,9 +174,16 @@ static inline char * Wlc_PrsSkipSpaces( char * pStr )
 }
 static inline char * Wlc_PrsFindSymbol( char * pStr, char Symb )
 {
+    int fNotName = 1;
     for ( ; *pStr; pStr++ )
-        if ( *pStr == Symb )
+    {
+        if ( fNotName && *pStr == Symb )
             return pStr;
+        if ( pStr[0] == '\\' )
+            fNotName = 0;
+        else if ( !fNotName && *pStr == ' ' )
+            fNotName = 1;
+    }
     return NULL;
 }
 static inline char * Wlc_PrsFindSymbolTwo( char * pStr, char Symb, char Symb2 )
@@ -336,6 +343,67 @@ int Wlc_PrsPrepare( Wlc_Prs_t * p )
 
 /**Function*************************************************************
 
+  Synopsis    [Modified version of strtok().]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+char * Wlc_PrsStrtok( char * s, const char * delim )
+{
+  const char *spanp;
+  int c, sc;
+  char *tok;
+  static char *last;
+  if (s == NULL && (s = last) == NULL)
+      return NULL;
+  // skip leading delimiters
+cont:
+  c = *s++;
+  for (spanp = delim; (sc = *spanp++) != 0;) 
+      if (c == sc)
+          goto cont;
+  if (c == 0)    // no non-delimiter characters 
+      return (last = NULL);
+//  tok = s - 1;
+  if ( c != '\\' )
+      tok = s - 1;
+  else
+      tok = s - 1;
+  // go back to the first non-delimiter character
+  s--;
+  // find the token
+  for (;;) 
+  {
+      c = *s++;
+      if ( c == '\\' )  // skip blind characters
+      {
+          while ( c != ' ' )
+              c = *s++;
+          c = *s++;
+      }
+      spanp = delim;
+      do {
+          if ((sc = *spanp++) == c) 
+          {
+              if (c == 0)
+                  s = NULL;
+              else
+                  s[-1] = 0;
+              last = s;
+              return (tok);
+          }
+      } while (sc != 0);
+  }
+  // not reached
+  return NULL;
+}
+
+/**Function*************************************************************
+
   Synopsis    []
 
   Description []
@@ -388,11 +456,22 @@ static inline char * Wlc_PrsFindName( char * pStr, char ** ppPlace )
 {
     static char Buffer[WLV_PRS_MAX_LINE];
     char * pThis = *ppPlace = Buffer;
+    int fNotName = 1;
     pStr = Wlc_PrsSkipSpaces( pStr );
     if ( !Wlc_PrsIsChar(pStr) )
         return NULL;
-    while ( Wlc_PrsIsChar(pStr) )
+//    while ( Wlc_PrsIsChar(pStr) )
+//        *pThis++ = *pStr++;
+    while ( *pStr )
+    {
+        if ( fNotName && !Wlc_PrsIsChar(pStr) )
+            break;
+        if ( *pStr == '\\' )
+            fNotName = 0;
+        else if ( !fNotName && *pStr == ' ' )
+            fNotName = 1;
         *pThis++ = *pStr++;
+    }
     *pThis = 0;
     return pStr;
 }
@@ -476,7 +555,7 @@ static inline char * Wlc_PrsReadName( Wlc_Prs_t * p, char * pStr, Vec_Int_t * vF
         char * pName;
         pStr = Wlc_PrsFindName( pStr, &pName );
         if ( pStr == NULL )
-            return (char *)(ABC_PTRINT_T)Wlc_PrsWriteErrorMessage( p, pStr, "Cannot read name." );
+            return (char *)(ABC_PTRINT_T)Wlc_PrsWriteErrorMessage( p, pStr, "Cannot read name in assign-statement." );
         NameId = Abc_NamStrFindOrAdd( p->pNtk->pManName, pName, &fFound );
         if ( !fFound )
             return (char *)(ABC_PTRINT_T)Wlc_PrsWriteErrorMessage( p, pStr, "Name %s is used but not declared.", pName );
@@ -680,7 +759,7 @@ int Wlc_PrsReadDeclaration( Wlc_Prs_t * p, char * pStart )
         // read name
         pStart = Wlc_PrsFindName( pStart, &pName );
         if ( pStart == NULL )
-            return Wlc_PrsWriteErrorMessage( p, pStart, "Cannot read name." );
+            return Wlc_PrsWriteErrorMessage( p, pStart, "Cannot read name in declaration." );
         NameId = Abc_NamStrFindOrAdd( p->pNtk->pManName, pName, &fFound );
         if ( fFound )
             return Wlc_PrsWriteErrorMessage( p, pStart, "Name %s is declared more than once.", pName );
@@ -718,7 +797,7 @@ startword:
         if ( Wlc_PrsStrCmp( pStart, "module" ) )
         {
             // get module name
-            pName = strtok( pStart + strlen("module"), " \r\n\t(,)" );
+            pName = Wlc_PrsStrtok( pStart + strlen("module"), " \r\n\t(,)" );
             if ( pName == NULL )
                 return Wlc_PrsWriteErrorMessage( p, pStart, "Cannot read model name." );
             // THIS IS A HACK to skip definitions of modules beginning with "CPL_"
@@ -783,7 +862,7 @@ startword:
             p->pNtk->pMemTable = p->pMemTable; p->pMemTable = NULL;
             p->pNtk->vTables = p->vTables; p->vTables = NULL;
             // read the argument definitions
-            while ( (pName = strtok( NULL, "(,)" )) )
+            while ( (pName = Wlc_PrsStrtok( NULL, " (,)" )) )
             {
                 pName = Wlc_PrsSkipSpaces( pName );
                 if ( Wlc_PrsStrCmp( pName, "input" ) || Wlc_PrsStrCmp( pName, "output" ) || Wlc_PrsStrCmp( pName, "wire" ) )
