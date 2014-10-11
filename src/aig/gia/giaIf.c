@@ -1435,10 +1435,14 @@ int Gia_ManFromIfLogicFindCell( If_Man_t * pIfMan, Gia_Man_t * pNew, Gia_Man_t *
     else
     {
         Gia_Obj_t * pObj;
-        int i, Id;
+        int i, Id, iLitTemp;
         // extract variable permutation
-        word Perm = If_DsdManGetFuncPerm( pIfMan->pIfDsdMan, If_CutDsdLit(pIfMan, pCutBest) );
+        char * pCutPerm = If_CutDsdPerm( pIfMan, pCutBest ); // DSD input -> cut input
+        word Perm = If_DsdManGetFuncPerm( pIfMan->pIfDsdMan, If_CutDsdLit(pIfMan, pCutBest) ); // cell input -> DSD input
         assert( Perm > 0 );
+        // (extend storage for configuration bits)
+        // derive mapping from cell inputs into cut inputs
+        // retrieve config bits of the LUTs
         // perform boolean matching
         if ( !If_ManSatFindCofigBits( pSat, vPiVars, vPoVars, If_CutTruthW(pIfMan, pCutBest), Vec_IntSize(vLeaves), Perm, Ifn_NtkInputNum(pNtkCell), vLits ) )
         {
@@ -1450,12 +1454,15 @@ int Gia_ManFromIfLogicFindCell( If_Man_t * pIfMan, Gia_Man_t * pNew, Gia_Man_t *
         // copy GIA back into the manager
         Vec_IntFillExtra( &pTemp->vCopies, Gia_ManObjNum(pTemp), -1 );
         Gia_ObjSetCopyArray( pTemp, 0, 0 );
-        Gia_ManForEachCiId( pTemp, Id, i )
-            Gia_ObjSetCopyArray( pTemp, Id, Vec_IntEntry(vLeaves, i) );
+        Vec_IntForEachEntry( vLeaves, iLitTemp, i )
+            Gia_ObjSetCopyArray( pTemp, Gia_ManCiIdToId(pTemp, i), iLitTemp );
         // collect nodes
         Gia_ManIncrementTravId( pTemp );
         Id = Abc_Lit2Var( iLit );
         Gia_ManCollectAnds( pTemp, &Id, 1, vCover );
+        Vec_IntPrint( vCover );
+        Gia_ManForEachObjVec( vCover, pTemp, pObj, i )
+            Gia_ObjPrint( pTemp, pObj );
         // copy GIA
         Gia_ManForEachObjVec( vCover, pTemp, pObj, i )
         {
@@ -1502,7 +1509,7 @@ Gia_Man_t * Gia_ManFromIfLogic( If_Man_t * pIfMan )
     // start mapping and packing
     vMapping  = Vec_IntStart( If_ManObjNum(pIfMan) );
     vMapping2 = Vec_IntStart( 1 );
-    if ( pIfMan->pPars->fDeriveLuts && (pIfMan->pPars->pLutStruct || pIfMan->pPars->fEnableCheck75 || pIfMan->pPars->fEnableCheck75u || pIfMan->pPars->fEnableCheck07) )
+    if ( pIfMan->pPars->fDeriveLuts && (pIfMan->pPars->pLutStruct || pIfMan->pPars->fEnableCheck75 || pIfMan->pPars->fEnableCheck75u || pIfMan->pPars->fEnableCheck07 || pIfMan->pPars->fUseDsdTune) )
     {
         vPacking = Vec_IntAlloc( 1000 );
         Vec_IntPush( vPacking, 0 );

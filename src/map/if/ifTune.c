@@ -770,6 +770,7 @@ int If_ManSatDeriveGiaFromBits( void * pGia, Ifn_Ntk_t * p, Vec_Int_t * vValues,
             for ( k = 0; k < nMints; k++ )
                 if ( Vec_IntEntry( vValues, iVar++ ) )
                     uTruth |= ((word)1 << k);
+            uTruth = Abc_Tt6Stretch( uTruth, nFans );
             // collect function
             for ( k = 0; k < nFans; k++ )
                 pFaninLits[k] = pVarMap[pFans[k]];
@@ -781,7 +782,7 @@ int If_ManSatDeriveGiaFromBits( void * pGia, Ifn_Ntk_t * p, Vec_Int_t * vValues,
             {
                 extern int Kit_TruthToGia( Gia_Man_t * pMan, unsigned * pTruth, int nVars, Vec_Int_t * vMemory, Vec_Int_t * vLeaves, int fHash );
                 Vec_Int_t Leaves = { nVarsNew, nVarsNew, pFaninLits };
-                pVarMap[i] = Kit_TruthToGia( pNew, (unsigned *)uTruth, nVarsNew, vCover, &Leaves, 1 ); // hashing enabled!!!
+                pVarMap[i] = Kit_TruthToGia( pNew, (unsigned *)&uTruth, nVarsNew, vCover, &Leaves, 1 ); // hashing enabled!!!
             }
         }
         else assert( 0 );
