@@ -1909,15 +1909,14 @@ void bmGateWay( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int p_equivalence )
             }                
 
             if( iLastItem2 < Abc_NtkPiNum(pNtk2) )
-            {                
                 iNumOfItemsAdded = iSplitByDep(pNtk2, iDep2, iMatch2, iGroup2, &iLastItem2, oGroup2);
-                if( oLastItem2 < Abc_NtkPoNum(pNtk2) )        
-                    oNumOfItemsAdded = oSplitByDep(pNtk2, oDep2, oMatch2, oGroup2, &oLastItem2, iGroup2);
-                else
-                    oNumOfItemsAdded = 0;
-            }
             else
-                iNumOfItemsAdded = 0;                            
+                iNumOfItemsAdded = 0;    
+                
+            if( oLastItem2 < Abc_NtkPoNum(pNtk2) )        
+                oNumOfItemsAdded = oSplitByDep(pNtk2, oDep2, oMatch2, oGroup2, &oLastItem2, iGroup2);
+            else
+                oNumOfItemsAdded = 0;
             
             if(!checkListConsistency(iMatch1, oMatch1, iMatch2, oMatch2, iLastItem1, oLastItem1, iLastItem2, oLastItem2))
             {
