@@ -272,7 +272,6 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
             }
             else if ( p->pPars->fUseCofVars )
             {
-                extern int Abc_TtCheckCondDepTest( word * pTruth, int nVars, int nSuppLim );
                 int iCofVar = -1, truthId = Abc_Lit2Var(pCut->iCutFunc);
                 if ( truthId >= Vec_StrSize(p->vTtVars[pCut->nLeaves]) || Vec_StrEntry(p->vTtVars[pCut->nLeaves], truthId) == (char)-1 )
                 {
