@@ -883,8 +883,8 @@ static void Vec_PtrUniqify( Vec_Ptr_t * p, int (*Vec_PtrSortCompare)() )
             p->pArray[k++] = p->pArray[i];
     p->nSize = k;
 }
-static void Vec_PtrUniqify2( Vec_Ptr_t * p, int (*Vec_PtrSortCompare)(), void (*Vec_PtrObjFree)(), Vec_Int_t * vCounts ) ___unused;
-static void Vec_PtrUniqify2( Vec_Ptr_t * p, int (*Vec_PtrSortCompare)(), void (*Vec_PtrObjFree)(), Vec_Int_t * vCounts )
+static void Vec_PtrUniqify2( Vec_Ptr_t * p, int (*Vec_PtrSortCompare)(void**, void**), void (*Vec_PtrObjFree)(void*), Vec_Int_t * vCounts ) ___unused;
+static void Vec_PtrUniqify2( Vec_Ptr_t * p, int (*Vec_PtrSortCompare)(void**, void**), void (*Vec_PtrObjFree)(void*), Vec_Int_t * vCounts )
 {
     int i, k;
     if ( vCounts )

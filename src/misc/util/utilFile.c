@@ -26,7 +26,7 @@
 #include <sys/stat.h>
 
 #if defined(_MSC_VER) || defined(__MINGW32__)
-#include <Windows.h>
+#include <windows.h>
 #include <process.h>
 #include <io.h>
 #else

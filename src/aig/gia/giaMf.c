@@ -23,6 +23,7 @@
 #include "misc/util/utilTruth.h"
 #include "misc/extra/extra.h"
 #include "sat/cnf/cnf.h"
+#include "opt/dau/dau.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -96,7 +97,6 @@ static inline int        Mf_CutIsTriv( int * pCut, int i )           { return Mf
 #define Mf_ObjForEachCut( pCuts, i, nCuts )     for ( i = 0, i < nCuts; i++ )
 
 extern int Kit_TruthToGia( Gia_Man_t * pMan, unsigned * pTruth, int nVars, Vec_Int_t * vMemory, Vec_Int_t * vLeaves, int fHash );
-extern void Dau_DsdPrintFromTruth( word * pTruth, int nVarsInit );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///

@@ -21,6 +21,7 @@
 #include "base/main/main.h"
 #include "exp.h"
 #include "misc/util/utilTruth.h"
+#include "opt/dau/dau.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -966,7 +967,6 @@ void Nf_ManPreparePrint( int nVars, int * pComp, int * pPerm, char Line[2*720*64
 
 void Nf_ManPrepareLibrary( Mio_Library_t * pLib )
 {
-    extern void Dau_DsdPrintFromTruth( word * pTruth, int nVarsInit );
 //    char Lines[2*720*64][8];
 //    Nf_ManPreparePrint( 6, pComp, pPerm, Lines );
     int * pComp[7];

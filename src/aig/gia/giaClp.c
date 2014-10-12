@@ -31,12 +31,47 @@ ABC_NAMESPACE_IMPL_START
 extern int Abc_ConvertZddToSop( DdManager * dd, DdNode * zCover, char * pSop, int nFanins, Vec_Str_t * vCube, int fPhase );
 extern int Abc_CountZddCubes( DdManager * dd, DdNode * zCover );
 extern int Abc_NtkDeriveFlatGiaSop( Gia_Man_t * pGia, int * gFanins, char * pSop );
-extern Vec_Ptr_t * Abc_NodeGetFakeNames( int nNames );
 extern int Gia_ManFactorNode( Gia_Man_t * p, char * pSop, Vec_Int_t * vLeaves );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Ptr_t * Gia_GetFakeNames( int nNames )
+{
+    Vec_Ptr_t * vNames;
+    char Buffer[5];
+    int i;
+
+    vNames = Vec_PtrAlloc( nNames );
+    for ( i = 0; i < nNames; i++ )
+    {
+        if ( nNames < 26 )
+        {
+            Buffer[0] = 'a' + i;
+            Buffer[1] = 0;
+        }
+        else
+        {
+            Buffer[0] = 'a' + i%26;
+            Buffer[1] = '0' + i/26;
+            Buffer[2] = 0;
+        }
+        Vec_PtrPush( vNames, Extra_UtilStrsav(Buffer) );
+    }
+    return vNames;
+}
 
 /**Function*************************************************************
 
@@ -338,8 +373,8 @@ Gia_Man_t * Gia_ManCollapseTest( Gia_Man_t * p, int fVerbose )
     Dsd_Decompose( pManDsd, (DdNode **)Vec_PtrArray(vFuncs), Vec_PtrSize(vFuncs) );
     if ( fVerbose )
     {
-        Vec_Ptr_t * vNamesCi = Abc_NodeGetFakeNames( Gia_ManCiNum(p) );
-        Vec_Ptr_t * vNamesCo = Abc_NodeGetFakeNames( Gia_ManCoNum(p) );
+        Vec_Ptr_t * vNamesCi = Gia_GetFakeNames( Gia_ManCiNum(p) );
+        Vec_Ptr_t * vNamesCo = Gia_GetFakeNames( Gia_ManCoNum(p) );
         char ** ppNamesCi = (char **)Vec_PtrArray( vNamesCi );
         char ** ppNamesCo = (char **)Vec_PtrArray( vNamesCo );
         Dsd_TreePrint( stdout, pManDsd, ppNamesCi, ppNamesCo, 0, -1 );

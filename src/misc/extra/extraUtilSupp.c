@@ -24,6 +24,7 @@
 #include <assert.h>
 #include "misc/vec/vec.h"
 #include "misc/vec/vecWec.h"
+#include "extra.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -302,7 +303,6 @@ void Abc_SuppTest( int nOnes, int nVars, int fUseSimple, int fCheck, int fVerbos
 ***********************************************************************/
 Vec_Wrd_t * Abc_SuppReadMin( char * pFileName, int * pnVars )
 {
-    extern char * Extra_FileReadContents( char * pFileName );
     Vec_Wrd_t * vRes; word uCube;
     int nCubes = 0, nVars = -1, iVar;
     char * pCur, * pToken, * pStart = "INPUT F-COVER";
