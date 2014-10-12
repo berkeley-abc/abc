@@ -927,7 +927,8 @@ static inline int         Gia_ObjIsLut( Gia_Man_t * p, int Id )             { re
 static inline int         Gia_ObjLutSize( Gia_Man_t * p, int Id )           { return Vec_IntEntry(p->vMapping, Vec_IntEntry(p->vMapping, Id));              }
 static inline int *       Gia_ObjLutFanins( Gia_Man_t * p, int Id )         { return Vec_IntEntryP(p->vMapping, Vec_IntEntry(p->vMapping, Id)) + 1;         }
 static inline int         Gia_ObjLutFanin( Gia_Man_t * p, int Id, int i )   { return Gia_ObjLutFanins(p, Id)[i];                                            }
-static inline int         Gia_ObjLutIsMux( Gia_Man_t * p, int Id )          { return (int)(Gia_ObjLutFanins(p, Id)[Gia_ObjLutSize(p, Id)] == -Id);          }
+static inline int         Gia_ObjLutMuxId( Gia_Man_t * p, int Id )          { return Gia_ObjLutFanins(p, Id)[Gia_ObjLutSize(p, Id)];                        }
+static inline int         Gia_ObjLutIsMux( Gia_Man_t * p, int Id )          { return (int)(Gia_ObjLutMuxId(p, Id) < 0);                                     }
 
 static inline int         Gia_ManHasCellMapping( Gia_Man_t * p )            { return p->vCellMapping != NULL;                                               }
 static inline int         Gia_ObjIsCell( Gia_Man_t * p, int iLit )          { return Vec_IntEntry(p->vCellMapping, iLit) != 0;                              }

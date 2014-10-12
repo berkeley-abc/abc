@@ -1598,12 +1598,11 @@ Gia_Man_t * Gia_ManFromIfLogic( If_Man_t * pIfMan )
             {
                 word pTruthCof[128], * pTruth = If_CutTruthW(pIfMan, pCutBest);
                 int pVarsNew[16], nVarsNew, iLitCofs[3]; 
-                int LutSize = pIfMan->pPars->nLutSize;
-                int nWords  = Abc_Truth6WordNum(LutSize);
-                int truthId = Abc_Lit2Var(pCutBest->iCutFunc);
                 int nLeaves = pCutBest->nLeaves;
+                int nWords  = Abc_Truth6WordNum(nLeaves);
+                int truthId = Abc_Lit2Var(pCutBest->iCutFunc);
                 int c, iVar = Vec_StrEntry(pIfMan->vTtVars[nLeaves], truthId), iTemp, iTopLit;
-                assert( iVar >= 0 && iVar < nLeaves && LutSize <= 13 );
+                assert( iVar >= 0 && iVar < nLeaves && pIfMan->pPars->nLutSize <= 13 );
                 for ( c = 0; c < 2; c++ )
                 {
                     for ( k = 0; k < nLeaves; k++ )
@@ -1612,7 +1611,7 @@ Gia_Man_t * Gia_ManFromIfLogic( If_Man_t * pIfMan )
                         Abc_TtCofactor1p( pTruthCof, pTruth, nWords, iVar );
                     else
                         Abc_TtCofactor0p( pTruthCof, pTruth, nWords, iVar );
-                    nVarsNew = Abc_TtMinBase( pTruthCof, pVarsNew, pCutBest->nLeaves, LutSize );
+                    nVarsNew = Abc_TtMinBase( pTruthCof, pVarsNew, pCutBest->nLeaves, Abc_MaxInt(6, pCutBest->nLeaves) );
                     // derive LUT
                     Vec_IntClear( vLeaves2 );
                     for ( k = 0; k < nVarsNew; k++ )
@@ -1621,6 +1620,7 @@ Gia_Man_t * Gia_ManFromIfLogic( If_Man_t * pIfMan )
                     if ( nVarsNew < 2 )
                         continue;
                     // create mapping
+                    assert( Gia_ObjIsAnd(Gia_ManObj(pNew, Abc_Lit2Var(iLitCofs[c]))) );
                     Vec_IntSetEntry( vMapping, Abc_Lit2Var(iLitCofs[c]), Vec_IntSize(vMapping2) );
                     Vec_IntPush( vMapping2, Vec_IntSize(vLeaves2) );
                     Vec_IntForEachEntry( vLeaves2, iTemp, k )
@@ -1637,7 +1637,7 @@ Gia_Man_t * Gia_ManFromIfLogic( If_Man_t * pIfMan )
                     Vec_IntPush( vLeaves2, iLitCofs[1] );
                     Vec_IntPush( vLeaves2, iLitCofs[2] );
                     pIfObj->iCopy = Kit_TruthToGia( pNew, (unsigned *)pTruthCof, Vec_IntSize(vLeaves2), vCover, vLeaves2, 0 );
-                    iTopLit = iLitCofs[2];
+                    iTopLit = pIfObj->iCopy;
                 }
                 else
                 {
@@ -1651,7 +1651,7 @@ Gia_Man_t * Gia_ManFromIfLogic( If_Man_t * pIfMan )
                     iLitCofs[0]   = Abc_LitNot( Gia_ManAppendAnd2( pNew, iLitCofs[0], Abc_LitNot(iLitCofs[2]) ) );
                     iLitCofs[1]   = Abc_LitNot( Gia_ManAppendAnd2( pNew, iLitCofs[1], iLitCofs[2]             ) );
                     pIfObj->iCopy = Abc_LitNot( Gia_ManAppendAnd2( pNew, iLitCofs[0], iLitCofs[1]             ) );
-                    iTopLit = pIfObj->iCopy;
+                    iTopLit = iLitCofs[2];
                 }
                 // create mapping
                 Vec_IntSetEntry( vMapping, Abc_Lit2Var(pIfObj->iCopy), Vec_IntSize(vMapping2) );
@@ -1734,6 +1734,12 @@ Gia_Man_t * Gia_ManFromIfLogic( If_Man_t * pIfMan )
         Gia_Obj_t * pObj;
         Gia_ManForEachCo( pNew, pObj, i )
            assert( !Gia_ObjIsAnd(Gia_ObjFanin0(pObj)) || Gia_ObjIsLut(pNew, Gia_ObjFaninId0p(pNew, pObj)) );
+    }
+    // verify that CIs have no mapping
+    {
+        Gia_Obj_t * pObj;
+        Gia_ManForEachCi( pNew, pObj, i )
+           assert( !Gia_ObjIsLut(pNew, Gia_ObjId(pNew, pObj)) );
     }
     return pNew;
 }
@@ -1822,7 +1828,8 @@ void Gia_ManTransferMapping( Gia_Man_t * p, Gia_Man_t * pGia )
         Vec_IntPush( p->vMapping, Gia_ObjLutSize(pGia, i) );
         Gia_LutForEachFanin( pGia, i, iFan, k )
             Vec_IntPush( p->vMapping, Abc_Lit2Var(Gia_ObjValue(Gia_ManObj(pGia, iFan))) );
-        Vec_IntPush( p->vMapping, Gia_ObjLutIsMux(pGia, i) ? -Gia_ObjId(p, pObj) : Gia_ObjId(p, pObj) );
+        iFan = Abc_Lit2Var( Gia_ObjValue(Gia_ManObj(pGia, Gia_ObjLutMuxId(pGia, i))) );
+        Vec_IntPush( p->vMapping, Gia_ObjLutIsMux(pGia, i) ? -iFan : iFan );
     }
     Gia_ManMappingVerify( p );
 }
