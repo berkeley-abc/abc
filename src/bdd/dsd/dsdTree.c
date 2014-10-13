@@ -18,6 +18,7 @@
 
 #include "dsdInt.h"
 #include "misc/util/utilTruth.h"
+#include "opt/dau/dau.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -869,7 +870,6 @@ void Dsd_TreePrint2_rec( FILE * pFile, DdManager * dd, Dsd_Node_t * pNode, int f
         fprintf( pFile, " " );
         if ( pNode->nDecs <= 6 )
         {
-            extern unsigned Abc_TtCanonicize( word * pTruth, int nVars, char * pCanonPerm );
             char pCanonPerm[6]; int uCanonPhase;
             // compute truth table
             DdNode * bFunc = Dsd_TreeGetPrimeFunction( dd, pNode );  
