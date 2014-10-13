@@ -1641,16 +1641,23 @@ Gia_Man_t * Gia_ManFromIfLogic( If_Man_t * pIfMan )
                 }
                 else
                 {
+                    assert( iLitCofs[0] > 1 || iLitCofs[1] > 1 );
                     // collect leaves
                     Vec_IntClear( vLeaves2 );
                     for ( k = 0; k < 3; k++ )
                         if ( iLitCofs[k] > 1 )
                             Vec_IntPush( vLeaves2, iLitCofs[k] );
                     assert( Vec_IntSize(vLeaves2) == 2 );
-                    // create "MUX"
-                    iLitCofs[0]   = Abc_LitNot( Gia_ManAppendAnd2( pNew, iLitCofs[0], Abc_LitNot(iLitCofs[2]) ) );
-                    iLitCofs[1]   = Abc_LitNot( Gia_ManAppendAnd2( pNew, iLitCofs[1], iLitCofs[2]             ) );
-                    pIfObj->iCopy = Abc_LitNot( Gia_ManAppendAnd2( pNew, iLitCofs[0], iLitCofs[1]             ) );
+                    // consider three possibilities
+                    if ( iLitCofs[0] == 0 )
+                        pIfObj->iCopy = Gia_ManAppendAnd( pNew, iLitCofs[2], iLitCofs[1] );
+                    else if ( iLitCofs[0] == 1 )
+                        pIfObj->iCopy = Gia_ManAppendOr( pNew, Abc_LitNot(iLitCofs[2]), iLitCofs[1] );
+                    else if ( iLitCofs[1] == 0 )
+                        pIfObj->iCopy = Gia_ManAppendAnd( pNew, Abc_LitNot(iLitCofs[2]), iLitCofs[0] );
+                    else if ( iLitCofs[1] == 1 )
+                        pIfObj->iCopy = Gia_ManAppendOr( pNew, iLitCofs[2], iLitCofs[0] );
+                    else assert( 0 );
                     iTopLit = iLitCofs[2];
                 }
                 // create mapping
@@ -1734,6 +1741,13 @@ Gia_Man_t * Gia_ManFromIfLogic( If_Man_t * pIfMan )
         Gia_Obj_t * pObj;
         Gia_ManForEachCo( pNew, pObj, i )
            assert( !Gia_ObjIsAnd(Gia_ObjFanin0(pObj)) || Gia_ObjIsLut(pNew, Gia_ObjFaninId0p(pNew, pObj)) );
+    }
+    // verify that internal nodes have mapping
+    {
+        Gia_Obj_t * pFanin;
+        Gia_ManForEachLut( pNew, i )
+            Gia_LutForEachFaninObj( pNew, i, pFanin, k )
+                assert( !Gia_ObjIsAnd(pFanin) || Gia_ObjIsLut(pNew, Gia_ObjId(pNew, pFanin)) );
     }
     // verify that CIs have no mapping
     {
@@ -1828,7 +1842,7 @@ void Gia_ManTransferMapping( Gia_Man_t * p, Gia_Man_t * pGia )
         Vec_IntPush( p->vMapping, Gia_ObjLutSize(pGia, i) );
         Gia_LutForEachFanin( pGia, i, iFan, k )
             Vec_IntPush( p->vMapping, Abc_Lit2Var(Gia_ObjValue(Gia_ManObj(pGia, iFan))) );
-        iFan = Abc_Lit2Var( Gia_ObjValue(Gia_ManObj(pGia, Gia_ObjLutMuxId(pGia, i))) );
+        iFan = Abc_Lit2Var( Gia_ObjValue(Gia_ManObj(pGia, Abc_AbsInt(Gia_ObjLutMuxId(pGia, i)))) );
         Vec_IntPush( p->vMapping, Gia_ObjLutIsMux(pGia, i) ? -iFan : iFan );
     }
     Gia_ManMappingVerify( p );
