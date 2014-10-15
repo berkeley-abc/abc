@@ -634,6 +634,12 @@ static inline void Vec_StrAppend( Vec_Str_t * p, const char * pString )
 {
     Vec_StrPrintStr( p, pString );
 }
+static inline void Vec_StrCopy( Vec_Str_t * p, const char * pString )
+{
+    Vec_StrClear( p );
+    Vec_StrAppend( p, pString );
+    Vec_StrPush( p, '\0' );
+}
 
 /**Function*************************************************************
 

@@ -97,21 +97,20 @@ void If_CutRotatePins( If_Man_t * p, If_Cut_t * pCut )
 ***********************************************************************/
 int If_CutComputeTruth( If_Man_t * p, If_Cut_t * pCut, If_Cut_t * pCut0, If_Cut_t * pCut1, int fCompl0, int fCompl1 )
 {
-    int fCompl, truthId, nLeavesNew, RetValue = 0;
-    int PrevSize, nWords = Abc_TtWordNum( pCut->nLeaves );
+    int fCompl, truthId, nLeavesNew, PrevSize, RetValue = 0;
     word * pTruth0s = Vec_MemReadEntry( p->vTtMem[pCut0->nLeaves], Abc_Lit2Var(pCut0->iCutFunc) );
     word * pTruth1s = Vec_MemReadEntry( p->vTtMem[pCut1->nLeaves], Abc_Lit2Var(pCut1->iCutFunc) );
     word * pTruth0  = (word *)p->puTemp[0];
     word * pTruth1  = (word *)p->puTemp[1];
     word * pTruth   = (word *)p->puTemp[2];
-    Abc_TtCopy( pTruth0, pTruth0s, nWords, fCompl0 ^ pCut0->fCompl ^ Abc_LitIsCompl(pCut0->iCutFunc) );
-    Abc_TtCopy( pTruth1, pTruth1s, nWords, fCompl1 ^ pCut1->fCompl ^ Abc_LitIsCompl(pCut1->iCutFunc) );
+    Abc_TtCopy( pTruth0, pTruth0s, p->nTruth6Words[pCut0->nLeaves], fCompl0 ^ pCut0->fCompl ^ Abc_LitIsCompl(pCut0->iCutFunc) );
+    Abc_TtCopy( pTruth1, pTruth1s, p->nTruth6Words[pCut1->nLeaves], fCompl1 ^ pCut1->fCompl ^ Abc_LitIsCompl(pCut1->iCutFunc) );
     Abc_TtStretch6( pTruth0, pCut0->nLeaves, pCut->nLeaves );
     Abc_TtStretch6( pTruth1, pCut1->nLeaves, pCut->nLeaves );
     Abc_TtExpand( pTruth0, pCut->nLeaves, pCut0->pLeaves, pCut0->nLeaves, pCut->pLeaves, pCut->nLeaves );
     Abc_TtExpand( pTruth1, pCut->nLeaves, pCut1->pLeaves, pCut1->nLeaves, pCut->pLeaves, pCut->nLeaves );
     fCompl         = (pTruth0[0] & pTruth1[0] & 1);
-    Abc_TtAnd( pTruth, pTruth0, pTruth1, nWords, fCompl );
+    Abc_TtAnd( pTruth, pTruth0, pTruth1, p->nTruth6Words[pCut->nLeaves], fCompl );
     if ( p->pPars->fCutMin && (pCut0->nLeaves + pCut1->nLeaves > pCut->nLeaves || pCut0->nLeaves == 0 || pCut1->nLeaves == 0) )
     {
         nLeavesNew = Abc_TtMinBase( pTruth, pCut->pLeaves, pCut->nLeaves, pCut->nLeaves );
@@ -130,7 +129,7 @@ int If_CutComputeTruth( If_Man_t * p, If_Cut_t * pCut, If_Cut_t * pCut0, If_Cut_
     {
         word pCopy[1024];
         char pCanonPerm[16];
-        memcpy( pCopy, If_CutTruthW(pCut), sizeof(word) * nWords );
+        memcpy( pCopy, If_CutTruthW(pCut), sizeof(word) * p->nTruth6Words[pCut->nLeaves] );
         Abc_TtCanonicize( pCopy, pCut->nLeaves, pCanonPerm );
     }
 #endif
@@ -167,7 +166,6 @@ int If_CutComputeTruthPerm_int( If_Man_t * p, If_Cut_t * pCut, If_Cut_t * pCut0,
     abctime clk = 0;
     int pPerm[IF_MAX_LUTSIZE];
     int v, Place, fCompl, truthId, nLeavesNew, RetValue = 0;
-    int nWords      = Abc_TtWordNum( pCut->nLeaves );
     word * pTruth0s = Vec_MemReadEntry( p->vTtMem[pCut0->nLeaves], Abc_Lit2Var(iCutFunc0) );
     word * pTruth1s = Vec_MemReadEntry( p->vTtMem[pCut1->nLeaves], Abc_Lit2Var(iCutFunc1) );
     word * pTruth0  = (word *)p->puTemp[0];
@@ -175,8 +173,8 @@ int If_CutComputeTruthPerm_int( If_Man_t * p, If_Cut_t * pCut, If_Cut_t * pCut0,
     word * pTruth   = (word *)p->puTemp[2];
     assert( pCut0->uMaskFunc >= 0 );
     assert( pCut1->uMaskFunc >= 0 );
-    Abc_TtCopy( pTruth0, pTruth0s, nWords, Abc_LitIsCompl(iCutFunc0) );
-    Abc_TtCopy( pTruth1, pTruth1s, nWords, Abc_LitIsCompl(iCutFunc1) );
+    Abc_TtCopy( pTruth0, pTruth0s, p->nTruth6Words[pCut0->nLeaves], Abc_LitIsCompl(iCutFunc0) );
+    Abc_TtCopy( pTruth1, pTruth1s, p->nTruth6Words[pCut1->nLeaves], Abc_LitIsCompl(iCutFunc1) );
     Abc_TtStretch6( pTruth0, pCut0->nLeaves, pCut->nLeaves );
     Abc_TtStretch6( pTruth1, pCut1->nLeaves, pCut->nLeaves );
 
@@ -192,7 +190,7 @@ if ( fVerbose )
         if ( p->pPerm[1][v] >= (int)pCut0->nLeaves )
             pCut->pLeaves[p->pPerm[1][v]] = Abc_Var2Lit( pCut1->pLeaves[v], If_CutLeafBit(pCut1, v) );
         else if ( If_CutLeafBit(pCut0, p->pPerm[1][v]) != If_CutLeafBit(pCut1, v) )
-            Abc_TtFlip( pTruth1, nWords, v );  
+            Abc_TtFlip( pTruth1, p->nTruth6Words[pCut1->nLeaves], v );  
     // permute variables
     for ( v = (int)pCut1->nLeaves; v < (int)pCut->nLeaves; v++ )
         p->pPerm[1][v] = -1;
@@ -214,7 +212,7 @@ if ( fVerbose )
 }
 
     // perform operation
-    Abc_TtAnd( pTruth, pTruth0, pTruth1, nWords, 0 );
+    Abc_TtAnd( pTruth, pTruth0, pTruth1, p->nTruth6Words[pCut->nLeaves], 0 );
     // minimize support
     if ( p->pPars->fCutMin && (pCut0->nLeaves + pCut1->nLeaves > pCut->nLeaves || pCut0->nLeaves == 0 || pCut1->nLeaves == 0) )
     {
