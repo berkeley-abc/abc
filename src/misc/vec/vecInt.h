@@ -1758,6 +1758,12 @@ static inline void Vec_IntPrint( Vec_Int_t * vVec )
         printf( " %d", Entry );
     printf( " }\n" );
 }
+static inline void Vec_IntPrintBinary( Vec_Int_t * vVec )
+{
+    int i, Entry;
+    Vec_IntForEachEntry( vVec, Entry, i )
+        printf( "%d", (int)(Entry != 0) );
+}
 
 /**Function*************************************************************
 
