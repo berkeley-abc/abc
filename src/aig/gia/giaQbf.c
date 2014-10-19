@@ -43,7 +43,9 @@ struct Qbf_Man_t_
     sat_solver *    pSatSyn;        // synthesis instance
     Vec_Int_t *     vValues;        // variable values
     Vec_Int_t *     vParMap;        // parameter mapping
+    Vec_Int_t *     vLits;          // literals for the SAT solver
     abctime         clkStart;       // global timeout
+    abctime         clkSat;         // SAT solver time
 };
 
 extern Cnf_Dat_t * Mf_ManGenerateCnf( Gia_Man_t * pGia, int nLutSize, int fCnfObjIds, int fAddOrCla, int fVerbose );
@@ -67,7 +69,7 @@ void Gia_QbfDumpFile( Gia_Man_t * pGia, int nPars )
 {
     // original problem: \exists p \forall x \exists y.  M(p,x,y)
     // negated problem:  \forall p \exists x \exists y. !M(p,x,y)
-    Cnf_Dat_t * pCnf = Mf_ManGenerateCnf( pGia, 8, 0, 0, 0 );
+    Cnf_Dat_t * pCnf = Mf_ManGenerateCnf( pGia, 8, 0, 1, 0 );
     Vec_Int_t * vVarMap, * vForAlls, * vExists;
     Gia_Obj_t * pObj;
     char * pFileName;
@@ -108,18 +110,23 @@ void Gia_QbfDumpFile( Gia_Man_t * pGia, int nPars )
 ***********************************************************************/
 Qbf_Man_t * Gia_QbfAlloc( Gia_Man_t * pGia, int nPars, int fVerbose )
 {
-    Cnf_Dat_t * pCnf = Mf_ManGenerateCnf( pGia, 8, 0, 0, 0 );
-    Qbf_Man_t * p = ABC_CALLOC( Qbf_Man_t, 1 );
+    Qbf_Man_t * p;
+    Cnf_Dat_t * pCnf;
+    Gia_ObjFlipFaninC0( Gia_ManPo(pGia, 0) );
+    pCnf = Mf_ManGenerateCnf( pGia, 8, 0, 1, 0 );
+    Gia_ObjFlipFaninC0( Gia_ManPo(pGia, 0) );
+    p = ABC_CALLOC( Qbf_Man_t, 1 );
     p->clkStart   = Abc_Clock();
     p->pGia       = pGia;
     p->nPars      = nPars;
     p->nVars      = Gia_ManPiNum(pGia) - nPars;
     p->fVerbose   = fVerbose;
-    p->iParVarBeg = pCnf->nVars - Gia_ManPiNum(pGia) - 2;
+    p->iParVarBeg = pCnf->nVars - Gia_ManPiNum(pGia) - 1;
     p->pSatVer    = (sat_solver *)Cnf_DataWriteIntoSolver( pCnf, 1, 0 );
     p->pSatSyn    = sat_solver_new();
     p->vValues    = Vec_IntAlloc( Gia_ManPiNum(pGia) );
     p->vParMap    = Vec_IntStartFull( nPars );
+    p->vLits      = Vec_IntAlloc( nPars );
     sat_solver_setnvars( p->pSatSyn, nPars );
     Cnf_DataFree( pCnf );
     return p;
@@ -128,6 +135,7 @@ void Gia_QbfFree( Qbf_Man_t * p )
 {
     sat_solver_delete( p->pSatVer );
     sat_solver_delete( p->pSatSyn );
+    Vec_IntFree( p->vLits );
     Vec_IntFree( p->vValues );
     Vec_IntFree( p->vParMap );
     ABC_FREE( p );
@@ -166,8 +174,8 @@ Gia_Man_t * Gia_QbfCofactor( Gia_Man_t * p, int nPars, Vec_Int_t * vValues, Vec_
 }
 int Gia_QbfAddCofactor( Qbf_Man_t * p, Gia_Man_t * pCof )
 {
-    Cnf_Dat_t * pCnf = Mf_ManGenerateCnf( pCof, 8, 0, 0, 0 );
-    int i, iFirstVar = sat_solver_nvars(p->pSatSyn) + pCnf->nVars - Gia_ManPiNum(pCof) - 2;
+    Cnf_Dat_t * pCnf = Mf_ManGenerateCnf( pCof, 8, 0, 1, 0 );
+    int i, iFirstVar = sat_solver_nvars(p->pSatSyn) + pCnf->nVars - Gia_ManPiNum(pCof) - 1;
     pCnf->pMan = NULL;
     Cnf_DataLift( pCnf, sat_solver_nvars(p->pSatSyn) );
     for ( i = 0; i < pCnf->nClauses; i++ )
@@ -198,7 +206,7 @@ int Gia_QbfAddCofactor( Qbf_Man_t * p, Gia_Man_t * pCof )
 void Gia_QbfOnePattern( Qbf_Man_t * p, Vec_Int_t * vValues )
 {
     int i;
-    Vec_IntClear( vValues );
+    Vec_IntClear( p->vValues );
     for ( i = 0; i < p->nPars; i++ )
         Vec_IntPush( vValues, sat_solver_var_value(p->pSatSyn, i) );
 }
@@ -228,9 +236,10 @@ int Gia_QbfVerify( Qbf_Man_t * p, Vec_Int_t * vValues )
 {
     int i, Entry, RetValue;
     assert( Vec_IntSize(vValues) == p->nPars );
+    Vec_IntClear( p->vLits );
     Vec_IntForEachEntry( vValues, Entry, i )
-        Vec_IntWriteEntry( vValues, i, Abc_Var2Lit(p->iParVarBeg+i, !Entry) );
-    RetValue = sat_solver_solve( p->pSatVer, Vec_IntArray(vValues), Vec_IntLimit(vValues), 0, 0, 0, 0 );
+        Vec_IntPush( p->vLits, Abc_Var2Lit(p->iParVarBeg+i, !Entry) );
+    RetValue = sat_solver_solve( p->pSatVer, Vec_IntArray(p->vLits), Vec_IntLimit(p->vLits), 0, 0, 0, 0 );
     if ( RetValue == l_True )
     {
         Vec_IntClear( vValues );
@@ -256,6 +265,7 @@ int Gia_QbfSolve( Gia_Man_t * pGia, int nPars, int nIterLimit, int nConfLimit, i
     Qbf_Man_t * p = Gia_QbfAlloc( pGia, nPars, fVerbose );
     Gia_Man_t * pCof;
     int i, status, RetValue = 0;
+    abctime clk;
     assert( Gia_ManRegNum(pGia) == 0 );
     Vec_IntFill( p->vValues, nPars, 0 );
     for ( i = 0; Gia_QbfVerify(p, p->vValues) && (!nIterLimit || i < nIterLimit); i++ )
@@ -267,7 +277,9 @@ int Gia_QbfSolve( Gia_Man_t * pGia, int nPars, int nIterLimit, int nConfLimit, i
         Gia_ManStop( pCof );
         if ( status == 0 )       { RetValue =  1; break; }
         // synthesize next assignment
+        clk = Abc_Clock();
         status = sat_solver_solve( p->pSatSyn, NULL, NULL, nConfLimit, 0, 0, 0 );
+        p->clkSat += Abc_Clock() - clk;
         if ( fVerbose )
             Gia_QbfPrint( p, p->vValues, i );
         if ( status == l_Undef ) { RetValue = -1; break; }
@@ -284,7 +296,10 @@ int Gia_QbfSolve( Gia_Man_t * pGia, int nPars, int nIterLimit, int nConfLimit, i
         printf( "The problem is UNSAT.  " );
     else 
         printf( "The problem is SAT.  " );
-    Abc_PrintTime( 1, "Time", Abc_Clock() - p->clkStart );
+    printf( "\n" );
+    Abc_PrintTime( 1, "SAT  ", p->clkSat );
+    Abc_PrintTime( 1, "Other", Abc_Clock() - p->clkStart - p->clkSat );
+    Abc_PrintTime( 1, "TOTAL", Abc_Clock() - p->clkStart );
     if ( RetValue == 0 )
     {
         assert( Vec_IntSize(p->vValues) == nPars );
