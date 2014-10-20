@@ -35690,6 +35690,7 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9Qbf( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
+    extern Gia_Man_t * Gia_QbfQuantify( Gia_Man_t * p, int nPars );
     extern void Gia_QbfDumpFile( Gia_Man_t * pGia, int nPars );
     extern int Gia_QbfSolve( Gia_Man_t * pGia, int nPars, int nIterLimit, int nConfLimit, int nTimeOut, int fVerbose );
     int c, nPars   = -1;
@@ -35697,9 +35698,10 @@ int Abc_CommandAbc9Qbf( Abc_Frame_t * pAbc, int argc, char ** argv )
     int nConfLimit =  0;
     int nTimeOut   =  0;
     int fDumpCnf   =  0;
+    int fQuantX    =  0;
     int fVerbose   =  1;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "PICTdvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "PICTdqvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -35750,6 +35752,9 @@ int Abc_CommandAbc9Qbf( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'd':
             fDumpCnf ^= 1;
             break;
+        case 'q':
+            fQuantX ^= 1;
+            break;
         case 'v':
             fVerbose ^= 1;
             break;
@@ -35779,6 +35784,18 @@ int Abc_CommandAbc9Qbf( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "The number of parameter variables is invalid (should be > 0 and < PI num).\n" );
         return 1;
     }
+    if ( fQuantX )
+    {
+        Gia_Man_t * pTemp;
+        if ( Gia_ManPiNum(pAbc->pGia) - nPars > 16 )
+        {
+            Abc_Print( -1, "Cannot quantify more than 16 variables.\n" );
+            return 1;
+        }
+        pTemp = Gia_QbfQuantify( pAbc->pGia, nPars );
+        Abc_FrameUpdateGia( pAbc, pTemp );
+        return 0;
+    }
     if ( fDumpCnf )
         Gia_QbfDumpFile( pAbc->pGia, nPars );
     else
@@ -35786,13 +35803,14 @@ int Abc_CommandAbc9Qbf( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &qbf [-PICT num] [-dvh]\n" );
+    Abc_Print( -2, "usage: &qbf [-PICT num] [-dqvh]\n" );
     Abc_Print( -2, "\t         solves QBF problem EpVxM(p,x)\n" );
     Abc_Print( -2, "\t-P num : number of parameters p (should be the first PIs) [default = %d]\n", nPars );
     Abc_Print( -2, "\t-I num : quit after the given iteration even if unsolved [default = %d]\n", nIterLimit );
     Abc_Print( -2, "\t-C num : conflict limit per problem [default = %d]\n", nConfLimit );
     Abc_Print( -2, "\t-T num : global timeout [default = %d]\n", nTimeOut );
     Abc_Print( -2, "\t-d     : toggle dumping QDIMACS file instead of solving [default = %s]\n", fDumpCnf? "yes": "no" );
+    Abc_Print( -2, "\t-q     : toggle quantifying functions variables [default = %s]\n", fQuantX? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle verbose output [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;

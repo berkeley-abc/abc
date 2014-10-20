@@ -152,6 +152,45 @@ void Gia_QbfFree( Qbf_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
+Gia_Man_t * Gia_QbfQuantify( Gia_Man_t * p, int nPars )
+{
+    Gia_Man_t * pNew, * pTemp;
+    Gia_Obj_t * pObj; 
+    int i, m, nMints = (1 << (Gia_ManPiNum(p) - nPars));
+    assert( Gia_ManPoNum(p) == 1 );
+    pNew = Gia_ManStart( Gia_ManObjNum(p) );
+    pNew->pName = Abc_UtilStrsav( p->pName );
+    Gia_ManHashAlloc( pNew );
+    Gia_ManConst0(p)->Value = 0;
+    for ( i = 0; i < nPars; i++ )
+        Gia_ManAppendCi(pNew);
+    for ( m = 0; m < nMints; m++ )
+    {
+        Gia_ManForEachPi( p, pObj, i )
+            pObj->Value = (i < nPars) ? Gia_Obj2Lit(pNew, Gia_ManPi(pNew, i)) : ((m >> (i - nPars)) & 1);
+        Gia_ManForEachAnd( p, pObj, i )
+            pObj->Value = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+        Gia_ManForEachCo( p, pObj, i )
+            pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
+    }
+    pNew = Gia_ManCleanup( pTemp = pNew );
+    Gia_ManStop( pTemp );
+    assert( Gia_ManPiNum(pNew) == nPars );
+    assert( Gia_ManPoNum(pNew) == nMints );
+    return pNew;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Create and add one cofactor.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 Gia_Man_t * Gia_QbfCofactor( Gia_Man_t * p, int nPars, Vec_Int_t * vValues, Vec_Int_t * vParMap )
 {
     Gia_Man_t * pNew, * pTemp;
@@ -350,7 +389,8 @@ int Gia_QbfSolve( Gia_Man_t * pGia, int nPars, int nIterLimit, int nConfLimit, i
         Gia_QbfOnePattern( p, p->vValues );
         assert( Vec_IntSize(p->vValues) == p->nPars );
         // examine variables
-//        Gia_QbfLearnConstraint( p, p->vValues );
+        if ( i % 50 == 49 )
+            Gia_QbfLearnConstraint( p, p->vValues );
 //        Vec_IntPrintBinary( p->vValues ); printf( "\n" );
         if ( nIterLimit && i+1 == nIterLimit ) { RetValue = -1; break; }
         if ( nTimeOut && (Abc_Clock() - p->clkStart)/CLOCKS_PER_SEC >= nTimeOut ) { RetValue = -1; break; }
