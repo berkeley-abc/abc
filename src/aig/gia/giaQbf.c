@@ -389,8 +389,7 @@ int Gia_QbfSolve( Gia_Man_t * pGia, int nPars, int nIterLimit, int nConfLimit, i
         Gia_QbfOnePattern( p, p->vValues );
         assert( Vec_IntSize(p->vValues) == p->nPars );
         // examine variables
-        if ( i % 50 == 49 )
-            Gia_QbfLearnConstraint( p, p->vValues );
+//        Gia_QbfLearnConstraint( p, p->vValues );
 //        Vec_IntPrintBinary( p->vValues ); printf( "\n" );
         if ( nIterLimit && i+1 == nIterLimit ) { RetValue = -1; break; }
         if ( nTimeOut && (Abc_Clock() - p->clkStart)/CLOCKS_PER_SEC >= nTimeOut ) { RetValue = -1; break; }
