@@ -187,6 +187,9 @@ static int Abc_CommandNpnSave                ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandSendAig                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandSendStatus             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
+static int Abc_CommandBackup                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandRestore                ( Abc_Frame_t * pAbc, int argc, char ** argv );
+
 static int Abc_CommandIStrash                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandICut                   ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandIRewrite               ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -784,6 +787,9 @@ void Abc_Init( Abc_Frame_t * pAbc )
 
     Cmd_CommandAdd( pAbc, "Various",      "send_aig",      Abc_CommandSendAig,          0 );
     Cmd_CommandAdd( pAbc, "Various",      "send_status",   Abc_CommandSendStatus,       0 );
+
+    Cmd_CommandAdd( pAbc, "Various",      "backup",        Abc_CommandBackup,           0 );
+    Cmd_CommandAdd( pAbc, "Various",      "restore",       Abc_CommandRestore,          0 );
 
     Cmd_CommandAdd( pAbc, "New AIG",      "istrash",       Abc_CommandIStrash,          1 );
     Cmd_CommandAdd( pAbc, "New AIG",      "icut",          Abc_CommandICut,             0 );
@@ -13163,6 +13169,82 @@ usage:
     Abc_Print( -2, "usage: send_status\n" );
     Abc_Print( -2, "\t         sends current status to the bridge\n" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
+    return 1;
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandBackup( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
+    int c;
+    // set defaults
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+
+    if ( pNtk == NULL )
+    {
+        Abc_Print( -1, "Empty network.\n" );
+        return 1;
+    }
+    if ( pAbc->pNtkBackup )
+        Abc_NtkDelete( pAbc->pNtkBackup );
+    pAbc->pNtkBackup = Abc_NtkDup( pNtk );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: backup [-h]\n" );
+    Abc_Print( -2, "\t        backs up the current network\n" );
+    Abc_Print( -2, "\t-h    : print the command usage\n");
+    return 1;
+}
+int Abc_CommandRestore( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    int c;
+    // set defaults
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+
+    if ( pAbc->pNtkBackup == NULL )
+    {
+        Abc_Print( -1, "There is no backup network.\n" );
+        return 1;
+    }
+    Abc_FrameReplaceCurrentNetwork( pAbc, Abc_NtkDup(pAbc->pNtkBackup) );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: restore [-h]\n" );
+    Abc_Print( -2, "\t        restores the current network\n" );
+    Abc_Print( -2, "\t-h    : print the command usage\n");
     return 1;
 }
 

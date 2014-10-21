@@ -198,6 +198,7 @@ void Abc_FrameDeallocate( Abc_Frame_t * p )
     if ( p->pSave4    )  Aig_ManStop( (Aig_Man_t *)p->pSave4 );
     if ( p->pManDsd   )  If_DsdManFree( (If_DsdMan_t *)p->pManDsd, 0 );
     if ( p->pManDsd2  )  If_DsdManFree( (If_DsdMan_t *)p->pManDsd2, 0 );
+    if ( p->pNtkBackup)  Abc_NtkDelete( p->pNtkBackup );
     if ( p->vPlugInComBinPairs ) 
     {
         char * pTemp;

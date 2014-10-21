@@ -3919,6 +3919,10 @@ SOURCE=.\src\aig\gia\giaPat.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\aig\gia\giaQbf.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\aig\gia\giaResub.c
 # End Source File
 # Begin Source File

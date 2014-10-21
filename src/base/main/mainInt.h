@@ -68,6 +68,7 @@ struct Abc_Frame_t_
     Abc_Ntk_t *     pNtkCur;       // the current network
     Abc_Ntk_t *     pNtkBestDelay; // the current network
     Abc_Ntk_t *     pNtkBestArea;  // the current network
+    Abc_Ntk_t *     pNtkBackup;    // the current network
     int             nSteps;        // the counter of different network processed
     int             fSource;       // marks the source mode
     int             fAutoexac;     // marks the autoexec mode
