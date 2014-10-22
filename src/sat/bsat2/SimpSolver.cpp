@@ -222,10 +222,11 @@ bool SimpSolver::merge(const Clause& _ps, const Clause& _qs, Var v, vec<Lit>& ou
     bool  ps_smallest = _ps.size() < _qs.size();
     const Clause& ps  =  ps_smallest ? _qs : _ps;
     const Clause& qs  =  ps_smallest ? _ps : _qs;
+    int i, j;
 
-    for (int i = 0; i < qs.size(); i++){
+    for (i = 0; i < qs.size(); i++){
         if (var(qs[i]) != v){
-            for (int j = 0; j < ps.size(); j++)
+            for (j = 0; j < ps.size(); j++)
                 if (var(ps[j]) == var(qs[i]))
                     if (ps[j] == ~qs[i])
                         return false;
@@ -472,12 +473,13 @@ bool SimpSolver::eliminateVar(Var v)
     assert(!frozen[v]);
     assert(!isEliminated(v));
     assert(value(v) == l_Undef);
+    int i;
 
     // Split the occurrences into positive and negative:
     //
     const vec<CRef>& cls = occurs.lookup(v);
     vec<CRef>        pos, neg;
-    for (int i = 0; i < cls.size(); i++)
+    for (i = 0; i < cls.size(); i++)
         (find(ca[cls[i]], mkLit(v)) ? pos : neg).push(cls[i]);
 
     // Check wether the increase in number of clauses stays within the allowed ('grow'). Moreover, no
@@ -683,7 +685,8 @@ void SimpSolver::relocAll(ClauseAllocator& to)
 
     // All occurs lists:
     //
-    for (int i = 0; i < nVars(); i++){
+    int i;
+    for (i = 0; i < nVars(); i++){
         vec<CRef>& cs = occurs[i];
         for (int j = 0; j < cs.size(); j++)
             ca.reloc(cs[j], to);
