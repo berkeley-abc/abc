@@ -66,7 +66,7 @@ ABC_NAMESPACE_IMPL_START
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-//#define USE_MINISAT22
+#define USE_MINISAT22
 
 static int Abc_CommandPrintStats             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandPrintExdc              ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -13272,6 +13272,8 @@ int Abc_CommandMinisat( Abc_Frame_t * pAbc, int argc, char ** argv )
 #ifdef USE_MINISAT22
     extern int MainSat(int argc, char** argv);
     MainSat( argc, argv );
+#else
+    printf( "This command is currently disabled.\n" );
 #endif
     return 1;
 }
@@ -13280,6 +13282,8 @@ int Abc_CommandMinisimp( Abc_Frame_t * pAbc, int argc, char ** argv )
 #ifdef USE_MINISAT22
     extern int MainSimp(int argc, char** argv);
     MainSimp( argc, argv );
+#else
+    printf( "This command is currently disabled.\n" );
 #endif
     return 1;
 }
