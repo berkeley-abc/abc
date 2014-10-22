@@ -66,7 +66,7 @@ ABC_NAMESPACE_IMPL_START
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-#define USE_MINISAT22
+//#define USE_MINISAT22
 
 static int Abc_CommandPrintStats             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandPrintExdc              ( Abc_Frame_t * pAbc, int argc, char ** argv );
