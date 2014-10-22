@@ -19,7 +19,6 @@ src/xxx/
 src/aig/au/
 src/aig/ssm/
 src/aig/ddb/
-src/sat/bsat2/
 
 src/base/abc2/
 src/base/abc2d/

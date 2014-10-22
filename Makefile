@@ -109,13 +109,21 @@ DEP := $(OBJ:.o=.d)
 	@echo "$(MSG_PREFIX)\`\` Compiling:" $(LOCAL_PATH)/$<
 	@$(CXX) -c $(CXXFLAGS) $< -o $@
 
+%.o: %.cpp
+	@echo "$(MSG_PREFIX)\`\` Compiling:" $(LOCAL_PATH)/$<
+	@$(CXX) -c $(CXXFLAGS) $< -o $@
+
 %.d: %.c
-	@echo "$(MSG_PREFIX)\`\` Dependency:" $(LOCAL_PATH)/$<
+	@echo "$(MSG_PREFIX)\`\` Generating dependency:" $(LOCAL_PATH)/$<
 	@./depends.sh $(CC) `dirname $*.c` $(CFLAGS) $*.c > $@
 
 %.d: %.cc
 	@echo "$(MSG_PREFIX)\`\` Generating dependency:" $(LOCAL_PATH)/$<
 	@./depends.sh $(CXX) `dirname $*.cc` $(CXXFLAGS) $*.cc > $@
+
+%.d: %.cpp
+	@echo "$(MSG_PREFIX)\`\` Generating dependency:" $(LOCAL_PATH)/$<
+	@./depends.sh $(CXX) `dirname $*.cpp` $(CXXFLAGS) $*.cpp > $@
 
 -include $(DEP)
 
