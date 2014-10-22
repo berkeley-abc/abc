@@ -1017,7 +1017,7 @@ Gia_Man_t * Gia_ManSpecReduceInit( Gia_Man_t * p, Abc_Cex_t * pInit, int nFrames
     }
 */
     assert( pInit->nRegs == Gia_ManRegNum(p) && pInit->nPis == 0 );
-    Vec_IntFill( &p->vCopies, -1, nFrames * Gia_ManObjNum(p) );
+    Vec_IntFill( &p->vCopies, nFrames * Gia_ManObjNum(p), -1 );
     vXorLits = Vec_IntAlloc( 1000 );
     Gia_ManSetPhase( p );
     if ( fDualOut )
@@ -1052,7 +1052,7 @@ Gia_Man_t * Gia_ManSpecReduceInit( Gia_Man_t * p, Abc_Cex_t * pInit, int nFrames
 //        Abc_Print( 1, "Speculatively reduced model has no primary outputs.\n" );
         Gia_ManAppendCo( pNew, 0 );
     }
-    ABC_FREE( p->vCopies.pArray );
+    Vec_IntErase( &p->vCopies );
     Vec_IntFree( vXorLits );
     Gia_ManHashStop( pNew );
     pNew = Gia_ManCleanup( pTemp = pNew );

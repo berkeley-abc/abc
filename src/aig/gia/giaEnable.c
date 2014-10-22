@@ -362,7 +362,7 @@ Gia_Man_t * Gia_ManUnrollInit( Gia_Man_t * p, int nFrames )
     Gia_Man_t * pNew;
     Gia_Obj_t * pObj, * pObjRi, * pObjRo;
     int f, i;
-    Vec_IntFill( &p->vCopies, -1, nFrames * Gia_ManObjNum(p) );
+    Vec_IntFill( &p->vCopies, nFrames * Gia_ManObjNum(p), -1 );
     pNew = Gia_ManStart( nFrames * Gia_ManObjNum(p) );
     pNew->pName = Abc_UtilStrsav( p->pName );
     pNew->pSpec = Abc_UtilStrsav( p->pSpec );
@@ -412,7 +412,7 @@ Gia_Man_t * Gia_ManUnrollAndCofactor( Gia_Man_t * p, int nFrames, int nFanMax, i
     vCofSigs = Gia_ManTransferFrames( p, pFrames, nFrames, pAig, vTemp = vCofSigs );
     Vec_IntFree( vTemp );
     Gia_ManStop( pFrames );
-    ABC_FREE( p->vCopies.pArray );
+    Vec_IntErase( &p->vCopies );
     // cofactor all these variables
     pNew = Gia_ManDupCofAllInt( pAig, vCofSigs, fVerbose );
     Vec_IntFree( vCofSigs );
