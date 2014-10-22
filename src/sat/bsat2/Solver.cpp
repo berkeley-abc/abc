@@ -839,8 +839,8 @@ void Solver::toDimacs(FILE* f, const vec<Lit>& assumps)
 
     // Cannot use removeClauses here because it is not safe
     // to deallocate them at this point. Could be improved.
-    int cnt = 0;
-    for (int i = 0; i < clauses.size(); i++)
+    int i, cnt = 0;
+    for (i = 0; i < clauses.size(); i++)
         if (!satisfied(ca[clauses[i]]))
             cnt++;
         
@@ -890,7 +890,8 @@ void Solver::relocAll(ClauseAllocator& to)
 
     // All reasons:
     //
-    for (int i = 0; i < trail.size(); i++){
+    int i;
+    for (i = 0; i < trail.size(); i++){
         Var v = var(trail[i]);
 
         if (reason(v) != CRef_Undef && (ca[reason(v)].reloced() || locked(ca[reason(v)])))
