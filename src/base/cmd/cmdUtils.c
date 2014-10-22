@@ -489,6 +489,14 @@ void CmdFreeArgv( int argc, char **argv )
         ABC_FREE( argv[i] );
     ABC_FREE( argv );
 }
+char ** CmdDupArgv( int argc, char **argv )
+{
+    char ** argvNew = ABC_ALLOC( char *, argc );
+    int i;
+    for ( i = 0; i < argc; i++ )
+        argvNew[i] = Abc_UtilStrsav( argv[i] );
+    return argvNew;
+}
 
 /**Function*************************************************************
 

@@ -891,7 +891,7 @@ static void Vec_PtrUniqify2( Vec_Ptr_t * p, int (*Vec_PtrSortCompare)(void**, vo
         Vec_IntFill( vCounts, 1, 1 );
     if ( p->nSize < 2 )
         return;
-    Vec_PtrSort( p, Vec_PtrSortCompare );
+    Vec_PtrSort( p, (int (*)())Vec_PtrSortCompare );
     for ( i = k = 1; i < p->nSize; i++ )
         if ( Vec_PtrSortCompare(p->pArray+i, p->pArray+k-1) != 0 )
         {

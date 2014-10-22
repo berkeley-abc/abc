@@ -19,10 +19,13 @@ src/xxx/
 src/aig/au/
 src/aig/ssm/
 src/aig/ddb/
+src/sat/bsat2/
 
 src/base/abc2/
 src/base/abc2d/
-
+src/base/abc3/
+src/base/abc4/
+ 
 src/base/pcm/
 src/base/ply/
 

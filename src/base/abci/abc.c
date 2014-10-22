@@ -66,6 +66,8 @@ ABC_NAMESPACE_IMPL_START
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
+//#define USE_MINISAT22
+
 static int Abc_CommandPrintStats             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandPrintExdc              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandPrintIo                ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -189,6 +191,9 @@ static int Abc_CommandSendStatus             ( Abc_Frame_t * pAbc, int argc, cha
 
 static int Abc_CommandBackup                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandRestore                ( Abc_Frame_t * pAbc, int argc, char ** argv );
+
+static int Abc_CommandMinisat                ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandMinisimp               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 static int Abc_CommandIStrash                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandICut                   ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -790,6 +795,9 @@ void Abc_Init( Abc_Frame_t * pAbc )
 
     Cmd_CommandAdd( pAbc, "Various",      "backup",        Abc_CommandBackup,           0 );
     Cmd_CommandAdd( pAbc, "Various",      "restore",       Abc_CommandRestore,          0 );
+
+    Cmd_CommandAdd( pAbc, "Various",      "minisat",       Abc_CommandMinisat,          0 );
+    Cmd_CommandAdd( pAbc, "Various",      "minisimp",      Abc_CommandMinisimp,         0 );
 
     Cmd_CommandAdd( pAbc, "New AIG",      "istrash",       Abc_CommandIStrash,          1 );
     Cmd_CommandAdd( pAbc, "New AIG",      "icut",          Abc_CommandICut,             0 );
@@ -13245,6 +13253,34 @@ usage:
     Abc_Print( -2, "usage: restore [-h]\n" );
     Abc_Print( -2, "\t        restores the current network\n" );
     Abc_Print( -2, "\t-h    : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandMinisat( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+#ifdef USE_MINISAT22
+    extern int MainSat(int argc, char** argv);
+    MainSat( argc, argv );
+#endif
+    return 1;
+}
+int Abc_CommandMinisimp( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+#ifdef USE_MINISAT22
+    extern int MainSimp(int argc, char** argv);
+    MainSimp( argc, argv );
+#endif
     return 1;
 }
 
