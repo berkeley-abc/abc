@@ -34,6 +34,7 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 
 #else
 
+#   define __STDC_LIMIT_MACROS
 #   include <stdint.h>
 #   include <inttypes.h>
 

@@ -25,7 +25,7 @@ MODULES := \
 	src/opt/cut src/opt/fxu src/opt/rwr src/opt/mfs src/opt/sim \
 	src/opt/ret src/opt/res src/opt/lpk src/opt/nwk src/opt/rwt \
 	src/opt/cgt src/opt/csw src/opt/dar src/opt/dau src/opt/sfm \
-	src/sat/bsat src/sat/csat src/sat/msat src/sat/psat src/sat/cnf src/sat/bmc \
+	src/sat/bsat src/sat/csat src/sat/msat src/sat/psat src/sat/cnf src/sat/bmc src/sat/bsat2 \
 	src/bool/bdc src/bool/deco src/bool/dec src/bool/kit src/bool/lucky \
 	src/bool/rsb src/bool/rpo \
 	src/proof/pdr src/proof/abs src/proof/bbr src/proof/llb src/proof/live \
@@ -94,6 +94,7 @@ include $(patsubst %, %/module.make, $(MODULES))
 
 OBJ := \
 	$(patsubst %.cc, %.o, $(filter %.cc, $(SRC))) \
+	$(patsubst %.cpp, %.o, $(filter %.cpp, $(SRC))) \
 	$(patsubst %.c, %.o,  $(filter %.c, $(SRC)))  \
 	$(patsubst %.y, %.o,  $(filter %.y, $(SRC))) 
 
