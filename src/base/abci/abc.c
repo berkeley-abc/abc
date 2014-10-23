@@ -25382,8 +25382,8 @@ int Abc_CommandAbc9Read( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     if ( fUseMini )
         pAig = Gia_ManReadMiniAig( FileName );
-    else if ( Extra_FileIsType( FileName, ".v", NULL, NULL ) )
-        Abc3_ReadShowHie( FileName, fSkipStrash );
+//    else if ( Extra_FileIsType( FileName, ".v", NULL, NULL ) )
+//        Abc3_ReadShowHie( FileName, fSkipStrash );
     else 
         pAig = Gia_AigerRead( FileName, fSkipStrash, 0 );
     if ( pAig )
