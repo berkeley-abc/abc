@@ -213,6 +213,19 @@ char * Extra_FileNameWithoutPath( char * FileName )
             return pRes + 1;
     return FileName;
 }
+char * Extra_FilePathWithoutName( char * FileName )
+{
+    char * pRes;
+    FileName = Abc_UtilStrsav( FileName );
+    for ( pRes = FileName + strlen(FileName) - 1; pRes >= FileName; pRes-- )
+        if ( *pRes == '\\' || *pRes == '/' )
+        {
+            *pRes = 0;
+            return FileName;
+        }
+    ABC_FREE( FileName );
+    return NULL;
+}
 
 /**Function*************************************************************
 

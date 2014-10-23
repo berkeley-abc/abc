@@ -17,14 +17,14 @@ SRC +=    src/base/abci/abc.c \
     src/base/abci/abcDsd.c \
     src/base/abci/abcExtract.c \
     src/base/abci/abcFraig.c \
-        src/base/abci/abcFx.c \
-        src/base/abci/abcFxu.c \
-        src/base/abci/abcGen.c \
+    src/base/abci/abcFx.c \
+    src/base/abci/abcFxu.c \
+    src/base/abci/abcGen.c \
     src/base/abci/abcHaig.c \
     src/base/abci/abcIf.c \
     src/base/abci/abcIfif.c \
     src/base/abci/abcIfMux.c \
-        src/base/abci/abcIvy.c \
+    src/base/abci/abcIvy.c \
     src/base/abci/abcLog.c \
     src/base/abci/abcLut.c \
     src/base/abci/abcLutmin.c \

@@ -13247,6 +13247,8 @@ int Abc_CommandRestore( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
     Abc_FrameReplaceCurrentNetwork( pAbc, Abc_NtkDup(pAbc->pNtkBackup) );
+    pAbc->nFrames = -1;
+    pAbc->Status = -1;
     return 0;
 
 usage:
@@ -25327,7 +25329,8 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9Read( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    Gia_Man_t * pAig;
+    extern void Abc3_ReadShowHie( char * pFileName, int fFlat );
+    Gia_Man_t * pAig = NULL;
     FILE * pFile;
     char ** pArgvNew;
     char * FileName, * pTemp;
@@ -25379,9 +25382,12 @@ int Abc_CommandAbc9Read( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     if ( fUseMini )
         pAig = Gia_ManReadMiniAig( FileName );
-    else
+    else if ( Extra_FileIsType( FileName, ".v", NULL, NULL ) )
+        Abc3_ReadShowHie( FileName, fSkipStrash );
+    else 
         pAig = Gia_AigerRead( FileName, fSkipStrash, 0 );
-    Abc_FrameUpdateGia( pAbc, pAig );
+    if ( pAig )
+        Abc_FrameUpdateGia( pAbc, pAig );
     return 0;
 
 usage:
