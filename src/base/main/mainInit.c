@@ -59,6 +59,24 @@ extern void Abc2_End ( Abc_Frame_t * pAbc );
 extern void Abc85_Init( Abc_Frame_t * pAbc );
 extern void Abc85_End( Abc_Frame_t * pAbc );
 
+static Abc_FrameInitializer_t* s_InitializerStart = NULL;
+static Abc_FrameInitializer_t* s_InitializerEnd = NULL;
+
+void Abc_FrameAddInitializer( Abc_FrameInitializer_t* p )
+{
+    if( ! s_InitializerStart )
+        s_InitializerStart = p;
+
+    p->next = NULL;
+    p->prev = s_InitializerEnd;
+
+    if ( s_InitializerEnd )
+        s_InitializerEnd->next = p;
+
+    s_InitializerEnd = p;
+
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
@@ -76,6 +94,8 @@ extern void Abc85_End( Abc_Frame_t * pAbc );
 ***********************************************************************/
 void Abc_FrameInit( Abc_Frame_t * pAbc )
 {
+    Abc_FrameInitializer_t* p;
+
     Cmd_Init( pAbc );
     Cmd_CommandExecute( pAbc, "set checkread" ); 
     Io_Init( pAbc );
@@ -96,6 +116,10 @@ void Abc_FrameInit( Abc_Frame_t * pAbc )
     Abc85_Init( pAbc );
 #endif
     EXT_ABC_INIT(pAbc) // plugin for external functionality
+
+    for( p = s_InitializerStart ; p ; p = p->next )
+        if(p->init)
+            p->init(pAbc);
 }
 
 
@@ -112,6 +136,12 @@ void Abc_FrameInit( Abc_Frame_t * pAbc )
 ***********************************************************************/
 void Abc_FrameEnd( Abc_Frame_t * pAbc )
 {
+    Abc_FrameInitializer_t* p;
+
+    for( p = s_InitializerEnd ; p ; p = p->prev )
+        if ( p->destroy )
+            p->destroy(pAbc);
+
     Abc_End( pAbc );
     Io_End( pAbc );
     Cmd_End( pAbc );

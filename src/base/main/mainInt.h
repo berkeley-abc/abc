@@ -132,6 +132,20 @@ struct Abc_Frame_t_
     EXT_ABC_FRAME   // plugin for external functionality
 };
 
+typedef void (*Abc_Frame_Initialization_Func)( Abc_Frame_t * pAbc );
+
+struct Abc_FrameInitializer_t_;
+typedef struct Abc_FrameInitializer_t_ Abc_FrameInitializer_t;
+
+struct Abc_FrameInitializer_t_
+{
+    Abc_Frame_Initialization_Func init;
+    Abc_Frame_Initialization_Func destroy;
+
+    Abc_FrameInitializer_t* next;
+    Abc_FrameInitializer_t* prev;
+};
+
 ////////////////////////////////////////////////////////////////////////
 ///                       GLOBAL VARIABLES                           ///
 ////////////////////////////////////////////////////////////////////////
@@ -150,6 +164,7 @@ extern ABC_DLL int             main( int argc, char * argv[] );
 /*=== mvInit.c ===================================================*/
 extern ABC_DLL void            Abc_FrameInit( Abc_Frame_t * pAbc );
 extern ABC_DLL void            Abc_FrameEnd( Abc_Frame_t * pAbc );
+extern ABC_DLL void            Abc_FrameAddInitializer( Abc_FrameInitializer_t* p );
 /*=== mvFrame.c =====================================================*/
 extern ABC_DLL Abc_Frame_t *   Abc_FrameAllocate();
 extern ABC_DLL void            Abc_FrameDeallocate( Abc_Frame_t * p );
