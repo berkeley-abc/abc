@@ -129,6 +129,7 @@ struct Bmc_ParFf_t_
     int        fComplVars;
     int        fStartPats;
     int        nTimeOut;
+    int        nIterCheck;
     int        fBasic;
     int        fDump;
     int        fDumpUntest;

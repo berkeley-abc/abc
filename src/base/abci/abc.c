@@ -35635,7 +35635,7 @@ int Abc_CommandAbc9FFTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     int c;
     Gia_ParFfSetDefault( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "ATSGsbduvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "ATNSGsbduvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -35659,6 +35659,17 @@ int Abc_CommandAbc9FFTest( Abc_Frame_t * pAbc, int argc, char ** argv )
             pPars->nTimeOut = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
             if ( pPars->nTimeOut < 0 )
+                goto usage;
+            break;
+        case 'N':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-N\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nIterCheck = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nIterCheck < 0 )
                 goto usage;
             break;
         case 'S':
@@ -35769,7 +35780,7 @@ int Abc_CommandAbc9FFTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &fftest [-AT num] [-sbduvh] <file> [-G file] [-S str]\n" );
+    Abc_Print( -2, "usage: &fftest [-ATN num] [-sbduvh] <file> [-G file] [-S str]\n" );
     Abc_Print( -2, "\t          performs functional fault test generation\n" );
     Abc_Print( -2, "\t-A num  : selects fault model for all gates [default = %d]\n", pPars->Algo );
     Abc_Print( -2, "\t                0: fault model is not selected (use -S str)\n" );
@@ -35778,6 +35789,7 @@ usage:
     Abc_Print( -2, "\t                3: complement fault: -S ((a&b)^p)\n" );
     Abc_Print( -2, "\t                4: functionally observable fault\n" );
     Abc_Print( -2, "\t-T num  : specifies approximate runtime limit in seconds [default = %d]\n",        pPars->nTimeOut );
+    Abc_Print( -2, "\t-N num  : specifies iteration to check for fixed parameters [default = %d]\n",     pPars->nIterCheck );
     Abc_Print( -2, "\t-s      : toggles starting with the all-0 and all-1 patterns [default = %s]\n",    pPars->fStartPats?  "yes": "no" );
     Abc_Print( -2, "\t-b      : toggles testing for single faults only [default = %s]\n",                pPars->fBasic?      "yes": "no" );
     Abc_Print( -2, "\t-d      : toggles dumping test patterns into file \"tests.txt\" [default = %s]\n", pPars->fDump?       "yes": "no" );

@@ -55,6 +55,7 @@ void Gia_ParFfSetDefault( Bmc_ParFf_t * p )
     p->Algo          =     0; 
     p->fStartPats    =     0; 
     p->nTimeOut      =     0; 
+    p->nIterCheck    =     0;
     p->fBasic        =     0; 
     p->fDump         =     0; 
     p->fDumpUntest   =     0; 
@@ -802,12 +803,60 @@ Gia_Man_t * Gia_ManDeriveDup( Gia_Man_t * p, int nPisNew )
   SeeAlso     []
 
 ***********************************************************************/
+int Gia_ManFaultAnalyze( sat_solver * pSat, Vec_Int_t * vPars, Vec_Int_t * vLits, int Iter )
+{
+    int status, i, v, iVar, Lit;
+    int nUnsats = 0, nRuns = 0;
+    abctime clk = Abc_Clock();
+    Vec_IntFill( vLits, Vec_IntSize(vPars), 0 );
+    for ( v = 0; v < Vec_IntSize(vPars); v++ )
+    {
+        if ( Vec_IntEntry(vLits, v) )
+            continue;
+        nRuns++;
+        Lit = Abc_Var2Lit( Vec_IntEntry(vPars, v), 0 );
+        status = sat_solver_solve( pSat, &Lit, &Lit+1, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
+        if ( status == l_Undef )
+        {
+            //printf( "Var %d timed out\n", v );
+            continue;
+        }
+        if ( status == l_False )
+        {
+            nUnsats++;
+            //printf( "Var %d is UNSAT\n", v );
+            Lit = Abc_LitNot(Lit);
+            //status = sat_solver_addclause( pSat, &Lit, &Lit+1 );
+            //assert( status );
+            continue;
+        }
+        Vec_IntForEachEntry( vPars, iVar, i )
+            if ( !Vec_IntEntry(vLits, i) && sat_solver_var_value(pSat, iVar) )
+                Vec_IntWriteEntry( vLits, i, 1 );
+        assert( Vec_IntEntry(vLits, v) == 1 );
+    }
+    printf( "Iteration %3d has determined %5d (out of %5d) parameters after %6d SAT calls.  ", Iter, nUnsats, Vec_IntSize(vPars), nRuns );
+    Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
+    return nUnsats;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 void Gia_ManFaultTest( Gia_Man_t * p, Gia_Man_t * pG, Bmc_ParFf_t * pPars )
 {
     int nIterMax = 1000000, nVars, nPars;
     int i, Iter, Iter2, status, nFuncVars = -1;
     abctime clkSat = 0, clkTotal = Abc_Clock();
-    Vec_Int_t * vLits, * vTests;
+    Vec_Int_t * vLits, * vTests, * vPars = NULL;
     Gia_Man_t * p0 = NULL, * p1 = NULL, * pM;
     Gia_Obj_t * pObj;
     Cnf_Dat_t * pCnf;
@@ -1015,6 +1064,18 @@ void Gia_ManFaultTest( Gia_Man_t * p, Gia_Man_t * pG, Bmc_ParFf_t * pPars )
         Vec_IntAppend( vTests, vLits );
         // add constraint
         Gia_ManFaultAddOne( pM, pCnf, pSat, vLits, nFuncVars );
+        // collect parameter variables
+        if ( pPars->nIterCheck && vPars == NULL )
+        {
+            vPars = Vec_IntAlloc( Gia_ManPiNum(pM) - nFuncVars );
+            Gia_ManForEachPi( pM, pObj, i )
+                if ( i >= nFuncVars )
+                    Vec_IntPush( vPars, pCnf->pVarNums[Gia_ObjId(pM, pObj)] );
+            assert( Vec_IntSize(vPars) == Gia_ManPiNum(pM) - nFuncVars );
+        }
+        // derive unit parameter variables
+        if ( pPars->nIterCheck && !(Iter % pPars->nIterCheck) )
+            Gia_ManFaultAnalyze( pSat, vPars, vLits, Iter );
     }
 finish:
     // print results
@@ -1142,6 +1203,7 @@ finish:
     Gia_ManStop( pM );
     Vec_IntFree( vTests );
     Vec_IntFree( vLits );
+    Vec_IntFreeP( &vPars );
 }
 
 
