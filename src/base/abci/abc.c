@@ -12895,7 +12895,7 @@ int Abc_CommandQbf( Abc_Frame_t * pAbc, int argc, char ** argv )
     nPars    =  -1;
     nIters   = 500;
     fDumpCnf =   0;
-    fVerbose =   1;
+    fVerbose =   0;
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "PIdvh" ) ) != EOF )
     {
@@ -35908,7 +35908,7 @@ int Abc_CommandAbc9Qbf( Abc_Frame_t * pAbc, int argc, char ** argv )
     int nTimeOut   =  0;
     int fDumpCnf   =  0;
     int fQuantX    =  0;
-    int fVerbose   =  1;
+    int fVerbose   =  0;
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "PICTdqvh" ) ) != EOF )
     {
