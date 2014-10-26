@@ -56,6 +56,65 @@ extern Cnf_Dat_t * Mf_ManGenerateCnf( Gia_Man_t * pGia, int nLutSize, int fCnfOb
 
 /**Function*************************************************************
 
+  Synopsis    [Naive way to enumerate SAT assignments.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Gia_ManSatEnum( Gia_Man_t * pGia, int nConfLimit, int nTimeOut, int fVerbose )
+{
+    Cnf_Dat_t * pCnf;
+    sat_solver * pSat;
+    Vec_Int_t * vLits;
+    int i, iLit, iParVarBeg, Iter;
+    int nSolutions = 0, RetValue = 0;
+    abctime clkStart = Abc_Clock();
+    pCnf = Mf_ManGenerateCnf( pGia, 8, 0, 1, 0 );
+    pSat = (sat_solver *)Cnf_DataWriteIntoSolver( pCnf, 1, 0 );
+    iParVarBeg = pCnf->nVars - Gia_ManPiNum(pGia) - 1;
+    Cnf_DataFree( pCnf );
+    // iterate through the SAT assignment
+    vLits = Vec_IntAlloc( Gia_ManPiNum(pGia) );
+    for ( Iter = 1 ; ; Iter++ )
+    {
+        int status = sat_solver_solve( pSat, NULL, NULL, (ABC_INT64_T)nConfLimit, 0, 0, 0 );
+        if ( status == l_False ) { RetValue =  1; break; }
+        if ( status == l_Undef ) { RetValue =  0; break; }
+        nSolutions++;
+        // extract SAT assignment
+        Vec_IntClear( vLits );
+        for ( i = 0; i < Gia_ManPiNum(pGia); i++ )
+            Vec_IntPush( vLits, Abc_Var2Lit(iParVarBeg+i, sat_solver_var_value(pSat, iParVarBeg+i)) );
+        if ( fVerbose )
+        {
+            printf( "%5d : ", Iter );
+            Vec_IntForEachEntry( vLits, iLit, i )
+                printf( "%d", !Abc_LitIsCompl(iLit) );
+            printf( "\n" );
+        }
+        // add clause
+        if ( !sat_solver_addclause( pSat, Vec_IntArray(vLits), Vec_IntArray(vLits) + Vec_IntSize(vLits) ) )
+            { RetValue =  1; break; }
+        if ( nTimeOut && (Abc_Clock() - clkStart)/CLOCKS_PER_SEC >= nTimeOut ) { RetValue = 0; break; }
+    }
+    sat_solver_delete( pSat );
+    Vec_IntFree( vLits );
+    if ( nTimeOut && (Abc_Clock() - clkStart)/CLOCKS_PER_SEC >= nTimeOut )
+        printf( "Enumerated %d assignments when timeout (%d sec) was reached.  ", nSolutions, nTimeOut );
+    else if ( nConfLimit && !RetValue )
+        printf( "Enumerated %d assignments when conflict limit (%d) was reached.  ", nSolutions, nConfLimit );
+    else 
+        printf( "Enumerated the complete set of %d assignments.  ", nSolutions );
+    Abc_PrintTime( 1, "Time", Abc_Clock() - clkStart );
+    return RetValue;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Dumps the original problem in QDIMACS format.]
 
   Description []
