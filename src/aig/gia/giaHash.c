@@ -688,6 +688,25 @@ int Gia_ManHashMux( Gia_Man_t * p, int iCtrl, int iData1, int iData0 )
 
 /**Function*************************************************************
 
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Gia_ManHashMaj( Gia_Man_t * p, int iData0, int iData1, int iData2 )  
+{ 
+    int iTemp0 = Gia_ManHashOr( p, iData1, iData2 );
+    int iTemp1 = Gia_ManHashAnd( p, iData0, iTemp0 );
+    int iTemp2 = Gia_ManHashAnd( p, iData1, iData2 );
+    return Gia_ManHashOr( p, iTemp1, iTemp2 );
+}
+
+/**Function*************************************************************
+
   Synopsis    [Rehashes AIG.]
 
   Description []

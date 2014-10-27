@@ -1174,6 +1174,7 @@ extern int                 Gia_ManHashAnd( Gia_Man_t * p, int iLit0, int iLit1 )
 extern int                 Gia_ManHashOr( Gia_Man_t * p, int iLit0, int iLit1 ); 
 extern int                 Gia_ManHashXor( Gia_Man_t * p, int iLit0, int iLit1 ); 
 extern int                 Gia_ManHashMux( Gia_Man_t * p, int iCtrl, int iData1, int iData0 );
+extern int                 Gia_ManHashMaj( Gia_Man_t * p, int iData0, int iData1, int iData2 );
 extern int                 Gia_ManHashAndTry( Gia_Man_t * p, int iLit0, int iLit1 );
 extern Gia_Man_t *         Gia_ManRehash( Gia_Man_t * p, int fAddStrash );
 extern void                Gia_ManHashProfile( Gia_Man_t * p );
