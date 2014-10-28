@@ -12,7 +12,7 @@ $(info $(MSG_PREFIX)Using LD=$(LD))
 PROG := abc
 
 MODULES := \
-	$(wildcard src/ext) src/misc/ext \
+	$(wildcard src/ext*) src/misc/ext \
 	src/base/abc src/base/abci src/base/cmd src/base/io \
 	src/base/main src/base/ver src/base/wlc src/base/test \
 	src/bdd/cudd src/bdd/dsd src/bdd/epd src/bdd/mtr src/bdd/parse \

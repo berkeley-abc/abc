@@ -691,6 +691,10 @@ SOURCE=.\src\base\main\mainLib.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\base\main\mainReal.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\base\main\mainUtils.c
 # End Source File
 # End Group
