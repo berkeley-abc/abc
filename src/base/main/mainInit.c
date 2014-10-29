@@ -22,9 +22,6 @@
 #include "mainInt.h"
 
 ABC_NAMESPACE_IMPL_START
-
-//#define USE_ABC2
-//#define USE_ABC85
  
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -95,7 +92,6 @@ void Abc_FrameAddInitializer( Abc_FrameInitializer_t* p )
 void Abc_FrameInit( Abc_Frame_t * pAbc )
 {
     Abc_FrameInitializer_t* p;
-
     Cmd_Init( pAbc );
     Cmd_CommandExecute( pAbc, "set checkread" ); 
     Io_Init( pAbc );
@@ -109,14 +105,6 @@ void Abc_FrameInit( Abc_Frame_t * pAbc )
     Scl_Init( pAbc );
     Wlc_Init( pAbc );
     Test_Init( pAbc );
-#ifdef USE_ABC2
-    Abc2_Init( pAbc );
-#endif
-#ifdef USE_ABC85
-    Abc85_Init( pAbc );
-#endif
-    EXT_ABC_INIT(pAbc) // plugin for external functionality
-
     for( p = s_InitializerStart ; p ; p = p->next )
         if(p->init)
             p->init(pAbc);
@@ -137,11 +125,9 @@ void Abc_FrameInit( Abc_Frame_t * pAbc )
 void Abc_FrameEnd( Abc_Frame_t * pAbc )
 {
     Abc_FrameInitializer_t* p;
-
     for( p = s_InitializerEnd ; p ; p = p->prev )
         if ( p->destroy )
             p->destroy(pAbc);
-
     Abc_End( pAbc );
     Io_End( pAbc );
     Cmd_End( pAbc );
@@ -154,13 +140,6 @@ void Abc_FrameEnd( Abc_Frame_t * pAbc )
     Scl_End( pAbc );
     Wlc_End( pAbc );
     Test_End( pAbc );
-#ifdef USE_ABC2
-    Abc2_End( pAbc );
-#endif
-#ifdef USE_ABC85
-    Abc85_End( pAbc );
-#endif
-    EXT_ABC_END(pAbc) // plugin for external functionality
 }
 
 

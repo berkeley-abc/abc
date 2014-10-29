@@ -730,22 +730,6 @@ SOURCE=.\src\base\ver\verStream.c
 SOURCE=.\src\base\test\test.c
 # End Source File
 # End Group
-# Begin Group "abc2"
-
-# PROP Default_Filter ""
-# End Group
-# Begin Group "abc2d"
-
-# PROP Default_Filter ""
-# End Group
-# Begin Group "pcm"
-
-# PROP Default_Filter ""
-# End Group
-# Begin Group "ply"
-
-# PROP Default_Filter ""
-# End Group
 # Begin Group "wlc"
 
 # PROP Default_Filter ""
@@ -777,10 +761,6 @@ SOURCE=.\src\base\wlc\wlcReadVer.c
 
 SOURCE=.\src\base\wlc\wlcWriteVer.c
 # End Source File
-# End Group
-# Begin Group "abc3"
-
-# PROP Default_Filter ""
 # End Group
 # End Group
 # Begin Group "bdd"

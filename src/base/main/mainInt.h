@@ -35,7 +35,6 @@
 #include "proof/fra/fra.h"
 //#include "aig/nwk/nwkMerge.h"
 //#include "aig/ntl/ntlnwk.h"
-#include "misc/ext/ext.h"
 #include "misc/extra/extraBdd.h"
 
 ABC_NAMESPACE_HEADER_START
@@ -128,8 +127,6 @@ struct Abc_Frame_t_
     void *          pAbc85Best;
     void *          pAbc85Delay;
     void *          pAbcWlc;
-
-    EXT_ABC_FRAME   // plugin for external functionality
 };
 
 typedef void (*Abc_Frame_Initialization_Func)( Abc_Frame_t * pAbc );
