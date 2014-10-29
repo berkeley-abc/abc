@@ -1635,7 +1635,7 @@ nTimeSat += clkSatRun;
                     pCexNew0 = pCexNew; 
                     pCexNew = (Abc_Cex_t *)(ABC_PTRINT_T)1;
                 }
-                Vec_PtrWriteEntry( p->vCexes, i, pCexNew ); pCexNew = NULL;
+                Vec_PtrWriteEntry( p->vCexes, i, Abc_CexDup(pCexNew, Saig_ManRegNum(pAig)) ); 
                 if ( pPars->pFuncOnFail && pPars->pFuncOnFail(i, pPars->fStoreCex ? (Abc_Cex_t *)Vec_PtrEntry(p->vCexes, i) : NULL) )
                 {
                     Abc_CexFreeP( &pCexNew0 );
