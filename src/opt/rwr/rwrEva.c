@@ -68,7 +68,7 @@ int Rwr_NodeRewrite( Rwr_Man_t * p, Cut_Man_t * pManCut, Abc_Obj_t * pNode, int 
     char * pPerm;
     int Required, nNodesSaved;
     int nNodesSaveCur = -1; // Suppress "might be used uninitialized"
-    int i, GainCur, GainBest = -1;
+    int i, GainCur = -1, GainBest = -1;
     abctime clk, clk2;//, Counter;
 
     p->nNodesConsidered++;

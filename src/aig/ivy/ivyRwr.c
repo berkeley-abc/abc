@@ -163,7 +163,7 @@ int Ivy_NodeRewrite( Ivy_Man_t * pMan, Rwt_Man_t * p, Ivy_Obj_t * pNode, int fUp
     char * pPerm;
     int Required, nNodesSaved;
     int nNodesSaveCur = -1; // Suppress "might be used uninitialized"
-    int i, c, GainCur, GainBest = -1;
+    int i, c, GainCur = -1, GainBest = -1;
     abctime clk, clk2;
 
     p->nNodesConsidered++;

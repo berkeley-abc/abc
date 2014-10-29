@@ -211,8 +211,8 @@ static void sat_solver_act_var_clear(sat_solver* s)
 {
     int i;
     for (i = 0; i < s->size; i++)
-        s->activity[i] = 0.0;
-    s->var_inc = 1.0;
+        s->activity[i] = 0;
+    s->var_inc = 1;
 }
 static void sat_solver_compress(sat_solver* s) 
 {

@@ -156,7 +156,7 @@ int Ivy_NodeRewriteSeq( Ivy_Man_t * pMan, Rwt_Man_t * p, Ivy_Obj_t * pNode, int 
     char * pPerm;
     int nNodesSaved;
     int nNodesSaveCur = -1; // Suppress "might be used uninitialized"
-    int i, c, GainCur, GainBest = -1;
+    int i, c, GainCur = -1, GainBest = -1;
     abctime clk, clk2;//, clk3;
 
     p->nNodesConsidered++;

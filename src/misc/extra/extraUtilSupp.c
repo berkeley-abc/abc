@@ -402,7 +402,7 @@ static inline int Abc_SuppCountOnes64( word i )
 }
 int Abc_SuppFindVar( Vec_Wec_t * pS, Vec_Wec_t * pD, int nVars )
 {
-    int v, vBest = -1, dBest;
+    int v, vBest = -1, dBest = -1;
     for ( v = 0; v < nVars; v++ )
     {
         if ( Vec_WecLevelSize(pS, v) )
