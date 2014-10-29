@@ -744,15 +744,21 @@ void _set_death_signal();
 class _Cex(object):
 
     def __new__(cls, pCex):
+    
         if not pCex:
-            return None        
+            return None
+            
+        if int(pCex)==1:
+        	return True 
+        	      
         return object.__new__(cls)
 
     def __init__(self, pCex):
         self.pCex = pCex
         
     def __del__(self):
-        _cex_free(self.pCex)
+    	if _cex_free:
+        	_cex_free(self.pCex)
 
     def n_regs(self):
         return _cex_n_regs(self.pCex)
