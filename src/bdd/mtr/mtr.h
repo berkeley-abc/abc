@@ -76,12 +76,12 @@ ABC_NAMESPACE_HEADER_START
 #define SIZEOF_INT 4
 #endif
 
-#undef CONST
-#if defined(__STDC__) || defined(__cplusplus)
-#define CONST           const
-#else /* !(__STDC__ || __cplusplus) */
-#define CONST
-#endif /* !(__STDC__ || __cplusplus) */
+//#undef CONST
+//#if defined(__STDC__) || defined(__cplusplus)
+//#define CONST           const
+//#else /* !(__STDC__ || __cplusplus) */
+//#define CONST
+//#endif /* !(__STDC__ || __cplusplus) */
 
 #if defined(__GNUC__)
 #define MTR_INLINE __inline__
