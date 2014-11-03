@@ -103,7 +103,7 @@ void fillInFlipArray(permInfo* pi)
     
     
 }
-inline int factorial(int n)
+static inline int factorial(int n)
 {
     return (n == 1 || n == 0) ? 1 : factorial(n - 1) * n;
 }
@@ -129,14 +129,14 @@ void freePermInfoPtr(permInfo* x)
     free(x->swapArray);
     free(x);
 }
-inline void minWord(word* a, word* b, word* minimal, int nVars)
+static inline void minWord(word* a, word* b, word* minimal, int nVars)
 {
     if(memCompare(a, b, nVars) == -1)
         Kit_TruthCopy_64bit( minimal, a, nVars );
     else
         Kit_TruthCopy_64bit( minimal, b, nVars );
 }
-inline void minWord3(word* a, word* b, word* minimal, int nVars)
+static inline void minWord3(word* a, word* b, word* minimal, int nVars)
 { 
     if (memCompare(a, b, nVars) <= 0)
     {

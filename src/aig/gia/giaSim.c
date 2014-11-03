@@ -27,23 +27,13 @@ ABC_NAMESPACE_IMPL_START
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-typedef struct Gia_ManSim_t_ Gia_ManSim_t;
-struct Gia_ManSim_t_
-{
-    Gia_Man_t *    pAig;
-    Gia_ParSim_t * pPars; 
-    int            nWords;
-    Vec_Int_t *    vCis2Ids;
-    Vec_Int_t *    vConsts;
-    // simulation information
-    unsigned *     pDataSim;     // simulation data
-    unsigned *     pDataSimCis;  // simulation data for CIs
-    unsigned *     pDataSimCos;  // simulation data for COs
-};
-
 static inline unsigned * Gia_SimData( Gia_ManSim_t * p, int i )    { return p->pDataSim + i * p->nWords;    }
 static inline unsigned * Gia_SimDataCi( Gia_ManSim_t * p, int i )  { return p->pDataSimCis + i * p->nWords; }
 static inline unsigned * Gia_SimDataCo( Gia_ManSim_t * p, int i )  { return p->pDataSimCos + i * p->nWords; }
+
+unsigned * Gia_SimDataExt( Gia_ManSim_t * p, int i )    { return Gia_SimData(p, i);    }
+unsigned * Gia_SimDataCiExt( Gia_ManSim_t * p, int i )  { return Gia_SimDataCi(p, i);  }
+unsigned * Gia_SimDataCoExt( Gia_ManSim_t * p, int i )  { return Gia_SimDataCo(p, i);  }
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -436,7 +426,7 @@ static inline void Gia_ManSimulateNode( Gia_ManSim_t * p, Gia_Obj_t * pObj )
   SeeAlso     []
 
 ***********************************************************************/
-static inline void Gia_ManSimInfoInit( Gia_ManSim_t * p )
+void Gia_ManSimInfoInit( Gia_ManSim_t * p )
 {
     int iPioNum, i;
     Vec_IntForEachEntry( p->vCis2Ids, iPioNum, i )
@@ -459,7 +449,7 @@ static inline void Gia_ManSimInfoInit( Gia_ManSim_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-static inline void Gia_ManSimInfoTransfer( Gia_ManSim_t * p )
+void Gia_ManSimInfoTransfer( Gia_ManSim_t * p )
 {
     int iPioNum, i;
     Vec_IntForEachEntry( p->vCis2Ids, iPioNum, i )
@@ -482,7 +472,7 @@ static inline void Gia_ManSimInfoTransfer( Gia_ManSim_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-static inline void Gia_ManSimulateRound( Gia_ManSim_t * p )
+void Gia_ManSimulateRound( Gia_ManSim_t * p )
 {
     Gia_Obj_t * pObj;
     int i, iCis = 0, iCos = 0;

@@ -189,7 +189,6 @@ struct Gia_Man_t_
 };
 
 
-
 typedef struct Gps_Par_t_ Gps_Par_t;
 struct Gps_Par_t_
 {
@@ -244,6 +243,20 @@ struct Gia_ParSim_t_
     int            fCheckMiter;   // check if miter outputs are non-zero
     int            fVerbose;      // enables verbose output
     int            iOutFail;      // index of the failed output
+};
+
+typedef struct Gia_ManSim_t_ Gia_ManSim_t;
+struct Gia_ManSim_t_
+{
+    Gia_Man_t *    pAig;
+    Gia_ParSim_t * pPars; 
+    int            nWords;
+    Vec_Int_t *    vCis2Ids;
+    Vec_Int_t *    vConsts;
+    // simulation information
+    unsigned *     pDataSim;     // simulation data
+    unsigned *     pDataSimCis;  // simulation data for CIs
+    unsigned *     pDataSimCos;  // simulation data for COs
 };
 
 typedef struct Jf_Par_t_ Jf_Par_t; 
@@ -1279,6 +1292,12 @@ extern int *               Gia_SortFloats( float * pArray, int * pPerm, int nSiz
 /*=== giaSim.c ============================================================*/
 extern void                Gia_ManSimSetDefaultParams( Gia_ParSim_t * p );
 extern int                 Gia_ManSimSimulate( Gia_Man_t * pAig, Gia_ParSim_t * pPars );
+extern unsigned *          Gia_SimDataExt( Gia_ManSim_t * p, int i );
+extern unsigned *          Gia_SimDataCiExt( Gia_ManSim_t * p, int i );
+extern unsigned *          Gia_SimDataCoExt( Gia_ManSim_t * p, int i );
+extern void                Gia_ManSimInfoInit( Gia_ManSim_t * p );
+extern void                Gia_ManSimInfoTransfer( Gia_ManSim_t * p );
+extern void                Gia_ManSimulateRound( Gia_ManSim_t * p );
 /*=== giaSpeedup.c ============================================================*/
 extern float               Gia_ManDelayTraceLut( Gia_Man_t * p );
 extern float               Gia_ManDelayTraceLutPrint( Gia_Man_t * p, int fVerbose );
