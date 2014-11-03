@@ -229,11 +229,11 @@ Gia_Man_t * Gia_ManFaultUnfold( Gia_Man_t * p, int fUseMuxes )
   SeeAlso     []
 
 ***********************************************************************/
-Gia_Man_t * Gia_ManStuckAtUnfold( Gia_Man_t * p )
+Gia_Man_t * Gia_ManStuckAtUnfold( Gia_Man_t * p, Vec_Int_t * vMap )
 {
     Gia_Man_t * pNew, * pTemp;
     Gia_Obj_t * pObj;
-    int i;
+    int i, iFuncVars = 0;
     pNew = Gia_ManStart( 3 * Gia_ManObjNum(p) );
     pNew->pName = Abc_UtilStrsav( p->pName );
     Gia_ManHashAlloc( pNew );
@@ -243,9 +243,18 @@ Gia_Man_t * Gia_ManStuckAtUnfold( Gia_Man_t * p )
     Gia_ManForEachAnd( p, pObj, i )
     {
         pObj->Value = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
-        pObj->Value = Gia_ManHashAnd( pNew, Abc_LitNot(Gia_ManAppendCi(pNew)), pObj->Value );
-        pObj->Value = Gia_ManHashOr( pNew, Gia_ManAppendCi(pNew), pObj->Value );
+
+        if ( Vec_IntEntry(vMap, iFuncVars++) )
+            pObj->Value = Gia_ManHashAnd( pNew, Abc_LitNot(Gia_ManAppendCi(pNew)), pObj->Value );
+        else
+            Gia_ManAppendCi(pNew);
+
+        if ( Vec_IntEntry(vMap, iFuncVars++) )
+            pObj->Value = Gia_ManHashOr( pNew, Gia_ManAppendCi(pNew), pObj->Value );
+        else
+            Gia_ManAppendCi(pNew);
     }
+    assert( iFuncVars == Vec_IntSize(vMap) );
     Gia_ManForEachCo( p, pObj, i )
         pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
     pNew = Gia_ManCleanup( pTemp = pNew );
@@ -265,11 +274,11 @@ Gia_Man_t * Gia_ManStuckAtUnfold( Gia_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-Gia_Man_t * Gia_ManFlipUnfold( Gia_Man_t * p )
+Gia_Man_t * Gia_ManFlipUnfold( Gia_Man_t * p, Vec_Int_t * vMap )
 {
     Gia_Man_t * pNew, * pTemp;
     Gia_Obj_t * pObj;
-    int i;
+    int i, iFuncVars = 0;
     pNew = Gia_ManStart( 4 * Gia_ManObjNum(p) );
     pNew->pName = Abc_UtilStrsav( p->pName );
     Gia_ManHashAlloc( pNew );
@@ -279,8 +288,12 @@ Gia_Man_t * Gia_ManFlipUnfold( Gia_Man_t * p )
     Gia_ManForEachAnd( p, pObj, i )
     {
         pObj->Value = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
-        pObj->Value = Gia_ManHashXor( pNew, Gia_ManAppendCi(pNew), pObj->Value );
+        if ( Vec_IntEntry(vMap, iFuncVars++) )
+            pObj->Value = Gia_ManHashXor( pNew, Gia_ManAppendCi(pNew), pObj->Value );
+        else
+            Gia_ManAppendCi(pNew);
     }
+    assert( iFuncVars == Vec_IntSize(vMap) );
     Gia_ManForEachCo( p, pObj, i )
         pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
     pNew = Gia_ManCleanup( pTemp = pNew );
@@ -300,11 +313,11 @@ Gia_Man_t * Gia_ManFlipUnfold( Gia_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-Gia_Man_t * Gia_ManFOFUnfold( Gia_Man_t * p )
+Gia_Man_t * Gia_ManFOFUnfold( Gia_Man_t * p, Vec_Int_t * vMap )
 {
     Gia_Man_t * pNew, * pTemp;
     Gia_Obj_t * pObj;
-    int i, iCtrl0, iCtrl1, iCtrl2, iCtrl3, iMuxA, iMuxB;
+    int i, iCtrl0, iCtrl1, iCtrl2, iCtrl3, iMuxA, iMuxB, iFuncVars = 0;
     pNew = Gia_ManStart( 9 * Gia_ManObjNum(p) );
     pNew->pName = Abc_UtilStrsav( p->pName );
     Gia_ManHashAlloc( pNew );
@@ -313,10 +326,26 @@ Gia_Man_t * Gia_ManFOFUnfold( Gia_Man_t * p )
         pObj->Value = Gia_ManAppendCi( pNew );
     Gia_ManForEachAnd( p, pObj, i )
     {
-        iCtrl0 = Gia_ManAppendCi(pNew);
-        iCtrl1 = Gia_ManAppendCi(pNew);
-        iCtrl2 = Gia_ManAppendCi(pNew);
-        iCtrl3 = Gia_ManAppendCi(pNew);
+        if ( Vec_IntEntry(vMap, iFuncVars++) )
+            iCtrl0 = Gia_ManAppendCi(pNew);
+        else
+            iCtrl0 = 0, Gia_ManAppendCi(pNew);
+
+        if ( Vec_IntEntry(vMap, iFuncVars++) )
+            iCtrl1 = Gia_ManAppendCi(pNew);
+        else
+            iCtrl1 = 0, Gia_ManAppendCi(pNew);
+
+        if ( Vec_IntEntry(vMap, iFuncVars++) )
+            iCtrl2 = Gia_ManAppendCi(pNew);
+        else
+            iCtrl2 = 0, Gia_ManAppendCi(pNew);
+
+        if ( Vec_IntEntry(vMap, iFuncVars++) )
+            iCtrl3 = Gia_ManAppendCi(pNew);
+        else
+            iCtrl3 = 0, Gia_ManAppendCi(pNew);
+
         if ( Gia_ObjFaninC0(pObj) && Gia_ObjFaninC1(pObj) )
             iCtrl0 = Abc_LitNot(iCtrl0);
         else if ( !Gia_ObjFaninC0(pObj) && Gia_ObjFaninC1(pObj) )
@@ -325,10 +354,12 @@ Gia_Man_t * Gia_ManFOFUnfold( Gia_Man_t * p )
             iCtrl2 = Abc_LitNot(iCtrl2);
         else //if ( !Gia_ObjFaninC0(pObj) && !Gia_ObjFaninC1(pObj) )
             iCtrl3 = Abc_LitNot(iCtrl3);
+
         iMuxA       = Gia_ManHashMux( pNew, Gia_ObjFanin0(pObj)->Value, iCtrl1, iCtrl0 );
         iMuxB       = Gia_ManHashMux( pNew, Gia_ObjFanin0(pObj)->Value, iCtrl3, iCtrl2 );
         pObj->Value = Gia_ManHashMux( pNew, Gia_ObjFanin1(pObj)->Value, iMuxB,  iMuxA );
     }
+    assert( iFuncVars == Vec_IntSize(vMap) );
     Gia_ManForEachCo( p, pObj, i )
         pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
     pNew = Gia_ManCleanup( pTemp = pNew );
@@ -803,41 +834,203 @@ Gia_Man_t * Gia_ManDeriveDup( Gia_Man_t * p, int nPisNew )
   SeeAlso     []
 
 ***********************************************************************/
-int Gia_ManFaultAnalyze( sat_solver * pSat, Vec_Int_t * vPars, Vec_Int_t * vLits, int Iter )
+int Gia_ManFaultAnalyze( sat_solver * pSat, Vec_Int_t * vPars, Vec_Int_t * vMap, Vec_Int_t * vLits, int Iter )
 {
+    int nConfLimit = 100;
     int status, i, v, iVar, Lit;
     int nUnsats = 0, nRuns = 0;
     abctime clk = Abc_Clock();
-    Vec_IntFill( vLits, Vec_IntSize(vPars), 0 );
+    assert( Vec_IntSize(vPars) == Vec_IntSize(vMap) );
+    // check presence of each variable
+    Vec_IntClear( vLits );
+    Vec_IntAppend( vLits, vMap );
     for ( v = 0; v < Vec_IntSize(vPars); v++ )
     {
-        if ( Vec_IntEntry(vLits, v) )
+        if ( !Vec_IntEntry(vLits, v) )
             continue;
+        assert( Vec_IntEntry(vLits, v) == 1 );
         nRuns++;
         Lit = Abc_Var2Lit( Vec_IntEntry(vPars, v), 0 );
-        status = sat_solver_solve( pSat, &Lit, &Lit+1, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
+        status = sat_solver_solve( pSat, &Lit, &Lit+1, (ABC_INT64_T)nConfLimit, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
         if ( status == l_Undef )
-        {
-            //printf( "Var %d timed out\n", v );
             continue;
-        }
         if ( status == l_False )
         {
             nUnsats++;
-            //printf( "Var %d is UNSAT\n", v );
+            assert( Vec_IntEntry(vMap, v) == 1 );
+            Vec_IntWriteEntry( vMap, v, 0 );
             Lit = Abc_LitNot(Lit);
             //status = sat_solver_addclause( pSat, &Lit, &Lit+1 );
             //assert( status );
             continue;
         }
         Vec_IntForEachEntry( vPars, iVar, i )
-            if ( !Vec_IntEntry(vLits, i) && sat_solver_var_value(pSat, iVar) )
-                Vec_IntWriteEntry( vLits, i, 1 );
-        assert( Vec_IntEntry(vLits, v) == 1 );
+            if ( Vec_IntEntry(vLits, i) && sat_solver_var_value(pSat, iVar) )
+                Vec_IntWriteEntry( vLits, i, 0 );
+        assert( Vec_IntEntry(vLits, v) == 0 );
     }
-    printf( "Iteration %3d has determined %5d (out of %5d) parameters after %6d SAT calls.  ", Iter, nUnsats, Vec_IntSize(vPars), nRuns );
+    printf( "Iteration %3d has determined %5d (out of %5d) parameters after %6d SAT calls.  ", Iter, Vec_IntSize(vMap) - Vec_IntCountPositive(vMap), Vec_IntSize(vPars), nRuns );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     return nUnsats;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Generate miter, CNF and solver.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Gia_ManFaultPrepare( Gia_Man_t * p, Gia_Man_t * pG, Bmc_ParFf_t * pPars, int nFuncVars, Vec_Int_t * vMap, Vec_Int_t * vTests, Vec_Int_t * vLits, Gia_Man_t ** ppMiter, Cnf_Dat_t ** ppCnf, sat_solver ** ppSat, int fWarmUp )
+{
+    Gia_Man_t * p0, * p1, * pM;
+    Gia_Obj_t * pObj;
+    Cnf_Dat_t * pCnf;
+    sat_solver * pSat;
+    int i, Iter, status;
+    abctime clkSat = 0;
+
+    if ( Vec_IntSize(vTests) && (Vec_IntSize(vTests) % nFuncVars != 0) )
+    {
+        printf( "The number of symbols in the input patterns (%d) does not divide evenly on the number of test variables (%d).\n", Vec_IntSize(vTests), nFuncVars );
+        Vec_IntFree( vTests );
+        return 0;
+    }
+
+    // select algorithm
+    if ( pPars->Algo == 0 )
+        p1 = Gia_ManFormulaUnfold( p, pPars->pFormStr );
+    else if ( pPars->Algo == 1 )
+    {
+        assert( Gia_ManRegNum(p) > 0 );
+        p0 = Gia_ManFaultUnfold( pG, 0 );
+        p1 = Gia_ManFaultUnfold( p, 1 );
+    }
+    else if ( pPars->Algo == 2 )
+        p1 = Gia_ManStuckAtUnfold( p, vMap );
+    else if ( pPars->Algo == 3 )
+        p1 = Gia_ManFlipUnfold( p, vMap );
+    else if ( pPars->Algo == 4 )
+        p1 = Gia_ManFOFUnfold( p, vMap );
+    if ( pPars->Algo != 1 )
+        p0 = Gia_ManDeriveDup( pG, Gia_ManCiNum(p1) - Gia_ManCiNum(pG) );
+//    Gia_AigerWrite( p1, "newfault.aig", 0, 0 );
+//    printf( "Dumped circuit with fault parameters into file \"newfault.aig\".\n" );
+
+    // create miter
+    pM = Gia_ManMiter( p0, p1, 0, 0, 0, 0, 0 );
+    pCnf = Cnf_DeriveGiaRemapped( pM );
+    Gia_ManStop( p0 );
+    Gia_ManStop( p1 );
+
+    // start the SAT solver
+    pSat = sat_solver_new();
+    sat_solver_setnvars( pSat, pCnf->nVars );
+    sat_solver_set_runtime_limit( pSat, pPars->nTimeOut ? pPars->nTimeOut * CLOCKS_PER_SEC + Abc_Clock(): 0 );
+    // add timeframe clauses
+    for ( i = 0; i < pCnf->nClauses; i++ )
+        if ( !sat_solver_addclause( pSat, pCnf->pClauses[i], pCnf->pClauses[i+1] ) )
+            assert( 0 );
+
+    // add one large OR clause
+    Vec_IntClear( vLits );
+    Gia_ManForEachCo( pM, pObj, i )
+        Vec_IntPush( vLits, Abc_Var2Lit(pCnf->pVarNums[Gia_ObjId(pM, pObj)], 0) );
+    sat_solver_addclause( pSat, Vec_IntArray(vLits), Vec_IntArray(vLits) + Vec_IntSize(vLits) );
+
+    // add cardinality constraint
+    if ( pPars->fBasic )
+    {
+        Vec_IntClear( vLits );
+        Gia_ManForEachPi( pM, pObj, i )
+            if ( i >= nFuncVars )
+                Vec_IntPush( vLits, pCnf->pVarNums[Gia_ObjId(pM, pObj)] );
+        Cnf_AddCardinConstr( pSat, vLits );
+    }
+
+    // add available test-patterns
+    if ( Vec_IntSize(vTests) > 0 )
+    {
+        int nTests = Vec_IntSize(vTests) / nFuncVars;
+        assert( Vec_IntSize(vTests) % nFuncVars == 0 );
+        if ( pPars->pFileName )
+            printf( "Reading %d pre-computed test patterns from file \"%s\".\n", Vec_IntSize(vTests) / nFuncVars, pPars->pFileName );
+        else
+            printf( "Reading %d pre-computed test patterns from previous rounds.\n", Vec_IntSize(vTests) / nFuncVars );
+        for ( Iter = 0; Iter < nTests; Iter++ )
+        {
+            if ( fWarmUp )
+            {
+                abctime clk = Abc_Clock();
+                status = sat_solver_solve( pSat, NULL, NULL, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
+                clkSat += Abc_Clock() - clk;
+                if ( status == l_Undef )
+                {
+                    if ( pPars->fVerbose )
+                        printf( "\n" );
+                    printf( "Timeout reached after %d seconds and adding %d tests.\n", pPars->nTimeOut, Iter );
+                    return 0;
+                }
+                if ( status == l_False )
+                {
+                    if ( pPars->fVerbose )
+                        printf( "\n" );
+                    printf( "The problem is UNSAT after adding %d tests.\n", Iter );
+                    return 0;
+                }
+            }
+            // get pattern
+            Vec_IntClear( vLits );
+            for ( i = 0; i < nFuncVars; i++ )
+                Vec_IntPush( vLits, Vec_IntEntry(vTests, Iter*nFuncVars + i) );
+            Gia_ManFaultAddOne( pM, pCnf, pSat, vLits, nFuncVars );
+            if ( pPars->fVerbose )
+            {
+                printf( "Iter%6d : ",       Iter );
+                printf( "Var =%10d  ",      sat_solver_nvars(pSat) );
+                printf( "Clause =%10d  ",   sat_solver_nclauses(pSat) );
+                printf( "Conflict =%10d  ", sat_solver_nconflicts(pSat) );
+                //Abc_PrintTime( 1, "Time", clkSat );
+                ABC_PRTr( "Solver time", clkSat );
+            }
+        }
+    }
+    else if ( pPars->fStartPats )
+    {
+        for ( Iter = 0; Iter < 2; Iter++ )
+        {
+            status = sat_solver_solve( pSat, NULL, NULL, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
+            if ( status == l_Undef )
+            {
+                if ( pPars->fVerbose )
+                    printf( "\n" );
+                printf( "Timeout reached after %d seconds and %d iterations.\n", pPars->nTimeOut, Iter );
+                return 0;
+            }
+            if ( status == l_False )
+            {
+                if ( pPars->fVerbose )
+                    printf( "\n" );
+                printf( "The problem is UNSAT after %d iterations.\n", Iter );
+                return 0;
+            }
+            // initialize simple pattern
+            Vec_IntFill( vLits, nFuncVars, Iter );
+            Vec_IntAppend( vTests, vLits );
+            Gia_ManFaultAddOne( pM, pCnf, pSat, vLits, nFuncVars );
+        }
+    }
+
+    printf( "Using miter with:  AIG nodes = %6d.  CNF variables = %6d.  CNF clauses = %8d.\n", Gia_ManAndNum(pM), pCnf->nVars, pCnf->nClauses );
+
+    *ppMiter = pM;
+    *ppCnf = pCnf;
+    *ppSat = pSat;
+    return 1;
 }
 
 /**Function*************************************************************
@@ -855,8 +1048,8 @@ void Gia_ManFaultTest( Gia_Man_t * p, Gia_Man_t * pG, Bmc_ParFf_t * pPars )
 {
     int nIterMax = 1000000, nVars, nPars;
     int i, Iter, Iter2, status, nFuncVars = -1;
-    abctime clkSat = 0, clkTotal = Abc_Clock();
-    Vec_Int_t * vLits, * vTests, * vPars = NULL;
+    abctime clk, clkSat = 0, clkTotal = Abc_Clock();
+    Vec_Int_t * vLits, * vMap = NULL, * vTests, * vPars = NULL;
     Gia_Man_t * p0 = NULL, * p1 = NULL, * pM;
     Gia_Obj_t * pObj;
     Cnf_Dat_t * pCnf;
@@ -901,135 +1094,51 @@ void Gia_ManFaultTest( Gia_Man_t * p, Gia_Man_t * pG, Bmc_ParFf_t * pPars )
         vTests = Vec_IntAlloc( 10000 );
     if ( vTests == NULL )
         return;
-    if ( Vec_IntSize(vTests) % nFuncVars != 0 )
-    {
-        printf( "The number of symbols in the input patterns (%d) does not divide evenly on the number of test variables (%d).\n", Vec_IntSize(vTests), nFuncVars );
-        Vec_IntFree( vTests );
-        return;
-    }
 
     // select algorithm
-    if ( pPars->Algo == 0 )
-        p1 = Gia_ManFormulaUnfold( p, pPars->pFormStr );
-    else if ( pPars->Algo == 1 )
-    {
-        assert( Gia_ManRegNum(p) > 0 );
-        p0 = Gia_ManFaultUnfold( pG, 0 );
-        p1 = Gia_ManFaultUnfold( p, 1 );
-    }
-    else if ( pPars->Algo == 2 )
-        p1 = Gia_ManStuckAtUnfold( p );
+    vMap = Vec_IntAlloc( 0 );
+    if ( pPars->Algo == 2 )
+        Vec_IntFill( vMap, 2 * Gia_ManAndNum(p), 1 );
     else if ( pPars->Algo == 3 )
-        p1 = Gia_ManFlipUnfold( p );
+        Vec_IntFill( vMap,     Gia_ManAndNum(p), 1 );
     else if ( pPars->Algo == 4 )
-        p1 = Gia_ManFOFUnfold( p );
-    if ( pPars->Algo != 1 )
-        p0 = Gia_ManDeriveDup( pG, Gia_ManCiNum(p1) - Gia_ManCiNum(pG) );
-//    Gia_AigerWrite( p1, "newfault.aig", 0, 0 );
-//    printf( "Dumped circuit with fault parameters into file \"newfault.aig\".\n" );
+        Vec_IntFill( vMap, 4 * Gia_ManAndNum(p), 1 );
 
-    // create miter
-    pM = Gia_ManMiter( p0, p1, 0, 0, 0, 0, 0 );
-    pCnf = Cnf_DeriveGiaRemapped( pM );
-    Gia_ManStop( p0 );
-    Gia_ManStop( p1 );
-
-    // start the SAT solver
-    pSat = sat_solver_new();
-    sat_solver_setnvars( pSat, pCnf->nVars );
-    sat_solver_set_runtime_limit( pSat, pPars->nTimeOut ? pPars->nTimeOut * CLOCKS_PER_SEC + Abc_Clock(): 0 );
-    // add timeframe clauses
-    for ( i = 0; i < pCnf->nClauses; i++ )
-        if ( !sat_solver_addclause( pSat, pCnf->pClauses[i], pCnf->pClauses[i+1] ) )
-            assert( 0 );
-
-    // add one large OR clause
+    // prepare SAT solver
     vLits = Vec_IntAlloc( Gia_ManCoNum(p) );
-    Gia_ManForEachCo( pM, pObj, i )
-        Vec_IntPush( vLits, Abc_Var2Lit(pCnf->pVarNums[Gia_ObjId(pM, pObj)], 0) );
-    sat_solver_addclause( pSat, Vec_IntArray(vLits), Vec_IntArray(vLits) + Vec_IntSize(vLits) );
-
-    // add cardinality constraint
-    if ( pPars->fBasic )
-    {
-        Vec_IntClear( vLits );
-        Gia_ManForEachPi( pM, pObj, i )
-            if ( i >= nFuncVars )
-                Vec_IntPush( vLits, pCnf->pVarNums[Gia_ObjId(pM, pObj)] );
-        Cnf_AddCardinConstr( pSat, vLits );
-    }
-
-    // add available test-patterns
-    if ( Vec_IntSize(vTests) > 0 )
-    {
-        int nTests = Vec_IntSize(vTests) / nFuncVars;
-        assert( Vec_IntSize(vTests) % nFuncVars == 0 );
-        printf( "Reading %d pre-computed test patterns from file \"%s\".\n", Vec_IntSize(vTests) / nFuncVars, pPars->pFileName );
-        for ( Iter = 0; Iter < nTests; Iter++ )
-        {
-            abctime clk = Abc_Clock();
-            status = sat_solver_solve( pSat, NULL, NULL, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
-            clkSat += Abc_Clock() - clk;
-            if ( status == l_Undef )
-            {
-                if ( pPars->fVerbose )
-                    printf( "\n" );
-                printf( "Timeout reached after %d seconds and adding %d tests.\n", pPars->nTimeOut, Iter );
-                goto finish;
-            }
-            if ( status == l_False )
-            {
-                if ( pPars->fVerbose )
-                    printf( "\n" );
-                printf( "The problem is UNSAT after adding %d tests.\n", Iter );
-                goto finish;
-            }
-            // get pattern
-            Vec_IntClear( vLits );
-            for ( i = 0; i < nFuncVars; i++ )
-                Vec_IntPush( vLits, Vec_IntEntry(vTests, Iter*nFuncVars + i) );
-            Gia_ManFaultAddOne( pM, pCnf, pSat, vLits, nFuncVars );
-            if ( pPars->fVerbose )
-            {
-                printf( "Iter%6d : ",       Iter );
-                printf( "Var =%10d  ",      sat_solver_nvars(pSat) );
-                printf( "Clause =%10d  ",   sat_solver_nclauses(pSat) );
-                printf( "Conflict =%10d  ", sat_solver_nconflicts(pSat) );
-                //Abc_PrintTime( 1, "Time", clkSat );
-                ABC_PRTr( "Solver time", clkSat );
-            }
-        }
-    }
-    else if ( pPars->fStartPats )
-    {
-        for ( Iter = 0; Iter < 2; Iter++ )
-        {
-            status = sat_solver_solve( pSat, NULL, NULL, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
-            if ( status == l_Undef )
-            {
-                if ( pPars->fVerbose )
-                    printf( "\n" );
-                printf( "Timeout reached after %d seconds and %d iterations.\n", pPars->nTimeOut, Iter );
-                goto finish;
-            }
-            if ( status == l_False )
-            {
-                if ( pPars->fVerbose )
-                    printf( "\n" );
-                printf( "The problem is UNSAT after %d iterations.\n", Iter );
-                goto finish;
-            }
-            // initialize simple pattern
-            Vec_IntFill( vLits, nFuncVars, Iter );
-            Vec_IntAppend( vTests, vLits );
-            Gia_ManFaultAddOne( pM, pCnf, pSat, vLits, nFuncVars );
-        }
-    }
+    if ( !Gia_ManFaultPrepare(p, pG, pPars, nFuncVars, vMap, vTests, vLits, &pM, &pCnf, &pSat, 1) )
+        return;
 
     // iterate through the test vectors
     for ( Iter = pPars->fStartPats ? 2 : Vec_IntSize(vTests) / nFuncVars; Iter < nIterMax; Iter++ )
     {
-        abctime clk = Abc_Clock();
+        // collect parameter variables
+        if ( pPars->nIterCheck && vPars == NULL )
+        {
+            vPars = Vec_IntAlloc( Gia_ManPiNum(pM) - nFuncVars );
+            Gia_ManForEachPi( pM, pObj, i )
+                if ( i >= nFuncVars )
+                    Vec_IntPush( vPars, pCnf->pVarNums[Gia_ObjId(pM, pObj)] );
+            assert( Vec_IntSize(vPars) == Gia_ManPiNum(pM) - nFuncVars );
+        }
+        // derive unit parameter variables
+        if ( Iter && pPars->nIterCheck && (Iter % pPars->nIterCheck) == 0 )
+        {
+            Gia_ManFaultAnalyze( pSat, vPars, vMap, vLits, Iter );
+            // cleanup
+            Gia_ManStop( pM );
+            Cnf_DataFree( pCnf );
+            sat_solver_delete( pSat );
+            // recompute
+            if ( !Gia_ManFaultPrepare(p, pG, pPars, nFuncVars, vMap, vTests, vLits, &pM, &pCnf, &pSat, 0) )
+            {
+                printf( "This should never happen.\n" );
+                return;
+            }
+            Vec_IntFreeP( &vPars );
+        }
+        // solve
+        clk = Abc_Clock();
         status = sat_solver_solve( pSat, NULL, NULL, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
         clkSat += Abc_Clock() - clk;
         if ( pPars->fVerbose )
@@ -1064,18 +1173,6 @@ void Gia_ManFaultTest( Gia_Man_t * p, Gia_Man_t * pG, Bmc_ParFf_t * pPars )
         Vec_IntAppend( vTests, vLits );
         // add constraint
         Gia_ManFaultAddOne( pM, pCnf, pSat, vLits, nFuncVars );
-        // collect parameter variables
-        if ( pPars->nIterCheck && vPars == NULL )
-        {
-            vPars = Vec_IntAlloc( Gia_ManPiNum(pM) - nFuncVars );
-            Gia_ManForEachPi( pM, pObj, i )
-                if ( i >= nFuncVars )
-                    Vec_IntPush( vPars, pCnf->pVarNums[Gia_ObjId(pM, pObj)] );
-            assert( Vec_IntSize(vPars) == Gia_ManPiNum(pM) - nFuncVars );
-        }
-        // derive unit parameter variables
-        if ( pPars->nIterCheck && !(Iter % pPars->nIterCheck) )
-            Gia_ManFaultAnalyze( pSat, vPars, vLits, Iter );
     }
 finish:
     // print results
@@ -1202,6 +1299,7 @@ finish:
     Cnf_DataFree( pCnf );
     Gia_ManStop( pM );
     Vec_IntFree( vTests );
+    Vec_IntFree( vMap );
     Vec_IntFree( vLits );
     Vec_IntFreeP( &vPars );
 }
