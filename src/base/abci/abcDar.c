@@ -2307,7 +2307,7 @@ int Abc_NtkDarBmc3( Abc_Ntk_t * pNtk, Saig_ParBmc_t * pPars, int fOrDecomp )
                     if ( pPars->nDropOuts )
                         Abc_Print( 1, " while others timed out (%d out of %d)", pPars->nDropOuts, nOutputs );
                 }
-                Abc_Print( 1, " after %d frames", pPars->iFrame );
+                Abc_Print( 1, " after %d frames", pPars->iFrame+2 );
                 Abc_Print( 1, ".   " );
             }
         }

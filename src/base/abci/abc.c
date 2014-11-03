@@ -16493,20 +16493,17 @@ int Abc_CommandInit( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
     Abc_Obj_t * pObj;
+    char * pInitStr = NULL;
+    int fZeros    = 0;
+    int fOnes     = 0;
+    int fRandom   = 0;
+    int fDontCare = 0;
+    int fUseCexCs = 0;
+    int fUseCexNs = 0;
     int c, i;
-    int fZeros;
-    int fOnes;
-    int fRandom;
-    int fDontCare;
-    char * pInitStr;
     // set defaults
-    fZeros    = 0;
-    fOnes     = 0;
-    fRandom   = 0;
-    fDontCare = 0;
-    pInitStr  = NULL;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "Szordh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Szordcnh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -16530,6 +16527,12 @@ int Abc_CommandInit( Abc_Frame_t * pAbc, int argc, char ** argv )
             break;
         case 'd':
             fDontCare ^= 1;
+            break;
+        case 'c':
+            fUseCexCs ^= 1;
+            break;
+        case 'n':
+            fUseCexNs ^= 1;
             break;
         case 'h':
             goto usage;
@@ -16591,17 +16594,50 @@ int Abc_CommandInit( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_NtkForEachLatch( pNtk, pObj, i )
             Abc_LatchSetInitDc( pObj );
     }
+    else if ( fUseCexCs || fUseCexNs )
+    {
+        extern Vec_Int_t * Saig_ManReturnFailingState( Aig_Man_t * pMan, Abc_Cex_t * p, int fNextOne );
+        Aig_Man_t * pMan;
+        Vec_Int_t * vFailState;
+        if ( fUseCexCs && fUseCexNs )
+        {
+            Abc_Print( -1, "The two options (-c and -n) are incompatible.\n" );
+            return 0;
+        }
+        if ( !Abc_NtkIsStrash(pNtk) )
+        {
+            Abc_Print( -1, "The current network should be an AIG.\n" );
+            return 0;
+        }
+        if ( pAbc->pCex == NULL )
+        {
+            Abc_Print( -1, "The current CEX is not available.\n" );
+            return 0;
+        }
+        pMan = Abc_NtkToDar( pNtk, 0, 1 );
+        vFailState = Saig_ManReturnFailingState( pMan, pAbc->pCex, fUseCexNs );
+        //Vec_IntPrint( vFailState );
+        Aig_ManStop( pMan );
+        Abc_NtkForEachLatch( pNtk, pObj, i )
+            if ( Vec_IntEntry( vFailState, i ) )
+                Abc_LatchSetInit1( pObj );
+            else
+                Abc_LatchSetInit0( pObj );
+        Vec_IntFree( vFailState );
+    }
     else
         Abc_Print( -1, "The initial states remain unchanged.\n" );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: init [-zordh] [-S <init_string>]\n" );
+    Abc_Print( -2, "usage: init [-zordcnh] [-S <init_string>]\n" );
     Abc_Print( -2, "\t         resets initial states of all latches\n" );
     Abc_Print( -2, "\t-z     : set zeros initial states [default = %s]\n", fZeros? "yes": "no" );
     Abc_Print( -2, "\t-o     : set ones initial states [default = %s]\n", fOnes? "yes": "no" );
     Abc_Print( -2, "\t-d     : set don't-care initial states [default = %s]\n", fDontCare? "yes": "no" );
     Abc_Print( -2, "\t-r     : set random initial states [default = %s]\n", fRandom? "yes": "no" );
+    Abc_Print( -2, "\t-c     : set failure current state from the CEX (and run \"zero\") [default = %s]\n", fUseCexCs? "yes": "no" );
+    Abc_Print( -2, "\t-n     : set next state after failure from the CEX (and run \"zero\") [default = %s]\n", fUseCexNs? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     Abc_Print( -2, "\t-S str : (optional) initial state  [default = unused]\n" );
     return 1;

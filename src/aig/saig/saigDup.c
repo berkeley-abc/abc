@@ -315,6 +315,70 @@ int Saig_ManVerifyCex( Aig_Man_t * pAig, Abc_Cex_t * p )
   SeeAlso     []
 
 ***********************************************************************/
+int Saig_ManVerifyCexNoClear( Aig_Man_t * pAig, Abc_Cex_t * p )
+{
+    Aig_Obj_t * pObj, * pObjRi, * pObjRo;
+    int RetValue, i, k, iBit = 0;
+    Aig_ManCleanMarkB(pAig);
+    Aig_ManConst1(pAig)->fMarkB = 1;
+    Saig_ManForEachLo( pAig, pObj, i )
+        pObj->fMarkB = Abc_InfoHasBit(p->pData, iBit++);
+    for ( i = 0; i <= p->iFrame; i++ )
+    {
+        Saig_ManForEachPi( pAig, pObj, k )
+            pObj->fMarkB = Abc_InfoHasBit(p->pData, iBit++);
+        Aig_ManForEachNode( pAig, pObj, k )
+            pObj->fMarkB = (Aig_ObjFanin0(pObj)->fMarkB ^ Aig_ObjFaninC0(pObj)) & 
+                           (Aig_ObjFanin1(pObj)->fMarkB ^ Aig_ObjFaninC1(pObj));
+        Aig_ManForEachCo( pAig, pObj, k )
+            pObj->fMarkB = Aig_ObjFanin0(pObj)->fMarkB ^ Aig_ObjFaninC0(pObj);
+        if ( i == p->iFrame )
+            break;
+        Saig_ManForEachLiLo( pAig, pObjRi, pObjRo, k )
+            pObjRo->fMarkB = pObjRi->fMarkB;
+    }
+    assert( iBit == p->nBits );
+    RetValue = Aig_ManCo(pAig, p->iPo)->fMarkB;
+    //Aig_ManCleanMarkB(pAig);
+    return RetValue;
+}
+Vec_Int_t * Saig_ManReturnFailingState( Aig_Man_t * pAig, Abc_Cex_t * p, int fNextOne )
+{
+    Aig_Obj_t * pObj;
+    Vec_Int_t * vState;
+    int i, RetValue = Saig_ManVerifyCexNoClear( pAig, p );
+    if ( RetValue == 0 )
+    {
+        Aig_ManCleanMarkB(pAig);
+        printf( "CEX does fail the given sequential miter.\n" );
+        return NULL;
+    }
+    vState = Vec_IntAlloc( Aig_ManRegNum(pAig) );
+    if ( fNextOne )
+    {
+        Saig_ManForEachLi( pAig, pObj, i )
+            Vec_IntPush( vState, pObj->fMarkB );
+    }
+    else
+    {
+        Saig_ManForEachLo( pAig, pObj, i )
+            Vec_IntPush( vState, pObj->fMarkB );
+    }
+    Aig_ManCleanMarkB(pAig);
+    return vState;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Resimulates the counter-example.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 Abc_Cex_t * Saig_ManExtendCex( Aig_Man_t * pAig, Abc_Cex_t * p )
 {
     Abc_Cex_t * pNew;
