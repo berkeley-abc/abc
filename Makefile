@@ -67,7 +67,7 @@ endif
 endif
 
 # LIBS := -ldl -lrt
-LIBS := -ldl
+LIBS += -ldl
 ifneq ($(findstring Darwin, $(shell uname)), Darwin)
    LIBS += -lrt
 endif
