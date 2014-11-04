@@ -887,7 +887,7 @@ int Gia_ManFaultAnalyze( sat_solver * pSat, Vec_Int_t * vPars, Vec_Int_t * vMap,
 ***********************************************************************/
 int Gia_ManFaultPrepare( Gia_Man_t * p, Gia_Man_t * pG, Bmc_ParFf_t * pPars, int nFuncVars, Vec_Int_t * vMap, Vec_Int_t * vTests, Vec_Int_t * vLits, Gia_Man_t ** ppMiter, Cnf_Dat_t ** ppCnf, sat_solver ** ppSat, int fWarmUp )
 {
-    Gia_Man_t * p0, * p1, * pM;
+    Gia_Man_t * p0 = NULL, * p1 = NULL, * pM;
     Gia_Obj_t * pObj;
     Cnf_Dat_t * pCnf;
     sat_solver * pSat;
@@ -1050,7 +1050,7 @@ void Gia_ManFaultTest( Gia_Man_t * p, Gia_Man_t * pG, Bmc_ParFf_t * pPars )
     int i, Iter, Iter2, status, nFuncVars = -1;
     abctime clk, clkSat = 0, clkTotal = Abc_Clock();
     Vec_Int_t * vLits, * vMap = NULL, * vTests, * vPars = NULL;
-    Gia_Man_t * p0 = NULL, * p1 = NULL, * pM;
+    Gia_Man_t * pM;
     Gia_Obj_t * pObj;
     Cnf_Dat_t * pCnf;
     sat_solver * pSat;
