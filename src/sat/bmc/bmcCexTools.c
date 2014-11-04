@@ -306,7 +306,7 @@ void Bmc_CexBuildNetworkTest( Gia_Man_t * p, Abc_Cex_t * pCex )
 ***********************************************************************/
 void Bmc_CexPrint( Abc_Cex_t * pCex, int nInputs, int fVerbose )
 {
-    int i, k, Count, iBit = 0;
+    int i, k, Count, iBit = pCex->nRegs;
     Abc_CexPrintStatsInputs( pCex, nInputs );
     if ( !fVerbose )
         return;
