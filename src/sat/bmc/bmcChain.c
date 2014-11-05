@@ -185,11 +185,12 @@ Gia_Man_t * Gia_ManDupPosAndPropagateInit( Gia_Man_t * p )
 }
 sat_solver * Gia_ManDeriveSatSolver( Gia_Man_t * p )
 {
-//    return Mf_ManGenerateCnf( p, 8, 0, 0, 0 );
+//    extern Cnf_Dat_t * Mf_ManGenerateCnf( Gia_Man_t * pGia, int nLutSize, int fCnfObjIds, int fAddOrCla, int fVerbose );
     sat_solver * pSat;
     Aig_Man_t * pAig = Gia_ManToAigSimple( p );
     Cnf_Dat_t * pCnf = Cnf_Derive( pAig, Aig_ManCoNum(pAig) );
     Aig_ManStop( pAig );
+//    Cnf_Dat_t * pCnf = Mf_ManGenerateCnf( p, 8, 0, 0, 0 );
     pSat = (sat_solver *)Cnf_DataWriteIntoSolver( pCnf, 1, 0 );
     Cnf_DataFree( pCnf );
     assert( p->nRegs == 0 );
@@ -276,7 +277,12 @@ int Bmc_ChainTest( Gia_Man_t * p, int nFrameMax, int nConfMax, int fVerbose, int
     Gia_Man_t * pTemp, * pNew = Gia_ManDup(p);
     Abc_Cex_t * pCex = NULL;
     Vec_Int_t * vOutputs;
-    abctime clk = Abc_Clock(); 
+    abctime clk2, clk = Abc_Clock(); 
+    abctime clkBmc = 0;
+    abctime clkMov = 0;
+    abctime clkSat = 0;
+    abctime clkCln = 0;
+    abctime clkSwp = 0;
     int DepthTotal = 0;
     for ( Iter = 0; Iter < IterMax; Iter++ )
     {
@@ -287,7 +293,9 @@ int Bmc_ChainTest( Gia_Man_t * p, int nFrameMax, int nConfMax, int fVerbose, int
             break;
         }
         // run BMC till the first failure
+        clk2 = Abc_Clock(); 
         pCex = Bmc_ChainFailOneOutput( pNew, nFrameMax, nConfMax, fVerbose, fVeryVerbose );
+        clkBmc += Abc_Clock() - clk2;
         if ( pCex == NULL )
         {
             if ( fVerbose )
@@ -296,36 +304,52 @@ int Bmc_ChainTest( Gia_Man_t * p, int nFrameMax, int nConfMax, int fVerbose, int
         }
         assert( !Iter || pCex->iFrame > 0 );
         // move the AIG to the failure state
+        clk2 = Abc_Clock(); 
         pNew = Gia_ManVerifyCexAndMove( pTemp = pNew, pCex );
         Gia_ManStop( pTemp );
         DepthTotal += pCex->iFrame;
+        clkMov += Abc_Clock() - clk2;
         // find outputs that fail in this state
+        clk2 = Abc_Clock(); 
         vOutputs = Bmc_ChainFindFailedOutputs( pNew );
         assert( Vec_IntFind(vOutputs, pCex->iPo) >= 0 );
         Abc_CexFree( pCex );
+        clkSat += Abc_Clock() - clk2;
         // remove them from the AIG 
+        clk2 = Abc_Clock(); 
         pNew = Bmc_ChainCleanup( pTemp = pNew, vOutputs );
         Gia_ManStop( pTemp );
+        clkCln += Abc_Clock() - clk2;
         // perform sequential cleanup
+        clk2 = Abc_Clock(); 
 //        pNew = Gia_ManSeqStructSweep( pTemp = pNew, 0, 1, 0 );
 //        Gia_ManStop( pTemp );
+        clkSwp += Abc_Clock() - clk2;
         // printout
         if ( fVerbose )
         {
             int nNonConst = Gia_ManCountNonConst0(pNew);
             printf( "Iter %4d : ",    Iter+1 );
-            printf( "Depth =%6d ",    DepthTotal );
-            printf( "FailPo =%6d ",   Vec_IntSize(vOutputs) );
-            printf( "UndefPo =%6d ",  nNonConst );
-            printf( "(%6.2f %%) ",    100.0 * nNonConst / Gia_ManPoNum(pNew) );
-            printf( "AIG = %8d  ",    Gia_ManAndNum(pNew) );
+            printf( "Depth =%5d  ",   DepthTotal );
+            printf( "FailPo =%5d  ",  Vec_IntSize(vOutputs) );
+            printf( "UndecPo =%5d ",  nNonConst );
+            printf( "(%6.2f %%)  ",   100.0 * nNonConst / Gia_ManPoNum(pNew) );
+            printf( "AIG =%8d  ",     Gia_ManAndNum(pNew) );
             Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
         }
         Vec_IntFree( vOutputs );
     }
     printf( "Completed a CEX chain with %d segments, %d frames, and %d failed POs (out of %d). ", 
         Iter, DepthTotal, Gia_ManPoNum(pNew) - Gia_ManCountNonConst0(pNew), Gia_ManPoNum(pNew) );
+    if ( fVerbose )
+    {
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
+    Abc_PrintTimeP( 1, "BMC  ", clkBmc, Abc_Clock() - clk );
+    Abc_PrintTimeP( 1, "Init ", clkMov, Abc_Clock() - clk );
+    Abc_PrintTimeP( 1, "SAT  ", clkSat, Abc_Clock() - clk );
+    Abc_PrintTimeP( 1, "Clean", clkCln, Abc_Clock() - clk );
+//    Abc_PrintTimeP( 1, "Sweep", clkSwp, Abc_Clock() - clk );
+    }
     Gia_ManStop( pNew );
     return 0;
 }
