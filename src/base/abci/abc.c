@@ -428,6 +428,7 @@ static int Abc_CommandAbc9GroupProve         ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandAbc9MultiProve         ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9SplitProve         ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Bmc                ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9ChainBmc           ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9BCore              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9ICheck             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9SatTest            ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -1028,6 +1029,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "ABC9",         "&mprove",       Abc_CommandAbc9MultiProve,   0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&splitprove",   Abc_CommandAbc9SplitProve,   0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&bmc",          Abc_CommandAbc9Bmc,          0 );
+    Cmd_CommandAdd( pAbc, "ABC9",         "&chainbmc",     Abc_CommandAbc9ChainBmc,     0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&bcore",        Abc_CommandAbc9BCore,        0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&icheck",       Abc_CommandAbc9ICheck,       0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&sattest",      Abc_CommandAbc9SatTest,      0 );
@@ -35444,6 +35446,90 @@ usage:
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n",         pPars->fVerbose?     "yes": "no" );
     Abc_Print( -2, "\t-w     : toggle printing information about unfolding [default = %s]\n", pPars->fVeryVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc9ChainBmc( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern int Bmc_ChainTest( Gia_Man_t * p, int nFrameMax, int nConfMax, int fVerbose, int fVeryVerbose );
+    int nFrameMax    =  200;
+    int nConfMax     =    0;
+    int fVerbose     =    0;
+    int fVeryVerbose =    0;
+    int c;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "FCvwh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'F':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-F\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nFrameMax = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nFrameMax < 0 )
+                goto usage;
+            break;
+        case 'C':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-C\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nConfMax = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nConfMax < 0 )
+                goto usage;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'w':
+            fVeryVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pAbc->pGia == NULL )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9ChainBmc(): There is no AIG.\n" );
+        return 0;
+    }
+    if ( !Gia_ManRegNum(pAbc->pGia) )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9ChainBmc(): The AIG is combinational.\n" );
+        return 0;
+    }
+    Bmc_ChainTest( pAbc->pGia, nFrameMax, nConfMax, fVerbose, fVeryVerbose );
+    //pAbc->Status  = ...;
+    //pAbc->nFrames = pPars->iFrame;
+    //Abc_FrameReplaceCex( pAbc, &pAbc->pGia->pCexSeq );
+    return 0;
+usage:
+    Abc_Print( -2, "usage: &chainbmc [-FC <num>] [-vwh]\n" );
+    Abc_Print( -2, "\t           runs a specialized flavor of BMC\n" );
+    Abc_Print( -2, "\t-F <num> : the max number of timeframes (0 = unused) [default = %d]\n", nFrameMax );
+    Abc_Print( -2, "\t-C <num> : the max number of conflicts (0 = unused) [default = %d]\n", nConfMax );
+    Abc_Print( -2, "\t-v       : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-w       : toggle printing even more information [default = %s]\n", fVeryVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h       : print the command usage\n");
     return 1;
 }
 
