@@ -205,6 +205,26 @@ char * Extra_FileNameGenericAppend( char * pBase, char * pSuffix )
   SeeAlso     []
 
 ***********************************************************************/
+void Extra_FileNameCorrectPath( char * FileName )
+{
+    char * pStart;
+    if ( FileName )
+        for ( pStart = FileName; *pStart; pStart++ )
+            if ( *pStart == '>' || *pStart == '\\' )
+                *pStart = '/';
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 char * Extra_FileNameWithoutPath( char * FileName )
 {
     char * pRes;
@@ -220,8 +240,9 @@ char * Extra_FilePathWithoutName( char * FileName )
     for ( pRes = FileName + strlen(FileName) - 1; pRes >= FileName; pRes-- )
         if ( *pRes == '\\' || *pRes == '/' )
         {
-            *pRes = 0;
-            return FileName;
+           *pRes = 0;
+           Extra_FileNameCorrectPath( FileName );
+           return FileName;
         }
     ABC_FREE( FileName );
     return NULL;
