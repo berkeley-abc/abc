@@ -26480,7 +26480,7 @@ int Abc_CommandAbc9Strash( Abc_Frame_t * pAbc, int argc, char ** argv )
         pNew->pManTime = NULL;
         Gia_ManStop( pNew );
         if ( !Abc_FrameReadFlag("silentmode") )
-            printf( "Collapsed AIG with boxes with logic of the boxes.\n" );
+            printf( "Collapsed AIG with boxes and logic of the boxes.\n" );
     }
     else if ( pAbc->pGia->pMuxes )
     {

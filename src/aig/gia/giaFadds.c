@@ -225,7 +225,7 @@ void Dtc_ManComputeCuts( Gia_Man_t * p, Vec_Int_t ** pvCutsXor, Vec_Int_t ** pvC
         Dtc_ManCutMerge( p, i, pList0, pList1, vTemp, vCutsXor, vCutsMaj );
         Vec_IntWriteEntry( vCuts, i, Vec_IntSize(vCuts) );
         Vec_IntAppend( vCuts, vTemp );
-        nCuts += Vec_IntSize( vTemp );
+        nCuts += Vec_IntEntry( vTemp, 0 );
     }
     if ( fVerbose )
         printf( "Nodes = %d.  Cuts = %d.  Cuts/Node = %.2f.  Ints/Node = %.2f.\n", 
@@ -650,6 +650,7 @@ void Gia_ManDupWithFaddBoxes_rec( Gia_Man_t * pNew, Gia_Man_t * p, Gia_Obj_t * p
 }
 Gia_Man_t * Gia_ManDupWithFaddBoxes( Gia_Man_t * p, int nFaddMin, int fVerbose )
 {
+    abctime clk = Abc_Clock();
     Gia_Man_t * pNew, * pTemp;
     Vec_Int_t * vFadds, * vMap, * vMap2Chain, * vTruths, * vChain;
     Vec_Wec_t * vChains;
@@ -678,8 +679,11 @@ Gia_Man_t * Gia_ManDupWithFaddBoxes( Gia_Man_t * p, int nFaddMin, int fVerbose )
     vMap2Chain = Gia_ManFindMapping( p, vFadds, vMap, vChains );
     // compute truth tables for FADDs
     vTruths = Gia_ManCollectTruthTables( p, vFadds );
+    if ( fVerbose )
+        Abc_PrintTime( 1, "Carry-chain detection time", Abc_Clock() - clk );
 
     // duplicate
+    clk = Abc_Clock();
     Gia_ManFillValue( p );
     pNew = Gia_ManStart( Gia_ManObjNum(p) );
     pNew->pName = Abc_UtilStrsav( p->pName );
@@ -723,6 +727,8 @@ Gia_Man_t * Gia_ManDupWithFaddBoxes( Gia_Man_t * p, int nFaddMin, int fVerbose )
     //Gia_ManStop( pTemp );
 
     //Gia_ManIllustrateBoxes( pNew );
+    if ( fVerbose )
+        Abc_PrintTime( 1, "AIG with boxes construction time", Abc_Clock() - clk );
     return pNew;
 }
 
