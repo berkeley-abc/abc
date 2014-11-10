@@ -719,6 +719,13 @@ static inline int Gia_ManAppendMux( Gia_Man_t * p, int iCtrl, int iData1, int iD
     int iTemp1 = Gia_ManAppendAnd( p, iCtrl, iData1 );
     return Abc_LitNotCond( Gia_ManAppendAnd( p, Abc_LitNot(iTemp0), Abc_LitNot(iTemp1) ), 1 );
 }
+static inline int Gia_ManAppendMaj( Gia_Man_t * p, int iData0, int iData1, int iData2 )  
+{ 
+    int iTemp0 = Gia_ManAppendOr( p, iData1, iData2 );
+    int iTemp1 = Gia_ManAppendAnd( p, iData0, iTemp0 );
+    int iTemp2 = Gia_ManAppendAnd( p, iData1, iData2 );
+    return Gia_ManAppendOr( p, iTemp1, iTemp2 );
+}
 static inline int Gia_ManAppendXor( Gia_Man_t * p, int iLit0, int iLit1 )  
 { 
     return Gia_ManAppendMux( p, iLit0, Abc_LitNot(iLit1), iLit1 );

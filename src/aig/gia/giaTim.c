@@ -117,7 +117,7 @@ Vec_Int_t * Gia_ManOrderWithBoxes( Gia_Man_t * p )
     // include primary inputs
     for ( i = 0; i < Tim_ManPiNum(pManTime); i++ )
     {
-        pObj = Gia_ManPi( p, i );
+        pObj = Gia_ManCi( p, i );
         Vec_IntPush( vNodes, Gia_ObjId(p, pObj) );
         Gia_ObjSetTravIdCurrent( p, pObj );
         assert( Gia_ObjId(p, pObj) == i+1 );
@@ -130,7 +130,7 @@ Vec_Int_t * Gia_ManOrderWithBoxes( Gia_Man_t * p )
         // add internal nodes
         for ( k = 0; k < Tim_ManBoxInputNum(pManTime, i); k++ )
         {
-            pObj = Gia_ManPo( p, curCo + k );
+            pObj = Gia_ManCo( p, curCo + k );
             if ( Gia_ManOrderWithBoxes_rec( p, Gia_ObjFanin0(pObj), vNodes ) )
             {
                 int iCiNum  = p->iData2;
@@ -151,14 +151,14 @@ Vec_Int_t * Gia_ManOrderWithBoxes( Gia_Man_t * p )
         // add POs corresponding to box inputs
         for ( k = 0; k < Tim_ManBoxInputNum(pManTime, i); k++ )
         {
-            pObj = Gia_ManPo( p, curCo + k );
+            pObj = Gia_ManCo( p, curCo + k );
             Vec_IntPush( vNodes, Gia_ObjId(p, pObj) );
         }
         curCo += Tim_ManBoxInputNum(pManTime, i);
         // add PIs corresponding to box outputs
         for ( k = 0; k < Tim_ManBoxOutputNum(pManTime, i); k++ )
         {
-            pObj = Gia_ManPi( p, curCi + k );
+            pObj = Gia_ManCi( p, curCi + k );
             Vec_IntPush( vNodes, Gia_ObjId(p, pObj) );
             Gia_ObjSetTravIdCurrent( p, pObj );
         }
@@ -167,19 +167,19 @@ Vec_Int_t * Gia_ManOrderWithBoxes( Gia_Man_t * p )
     // add remaining nodes
     for ( i = Tim_ManCoNum(pManTime) - Tim_ManPoNum(pManTime); i < Tim_ManCoNum(pManTime); i++ )
     {
-        pObj = Gia_ManPo( p, i );
+        pObj = Gia_ManCo( p, i );
         Gia_ManOrderWithBoxes_rec( p, Gia_ObjFanin0(pObj), vNodes );
     }
     // add POs
     for ( i = Tim_ManCoNum(pManTime) - Tim_ManPoNum(pManTime); i < Tim_ManCoNum(pManTime); i++ )
     {
-        pObj = Gia_ManPo( p, i );
+        pObj = Gia_ManCo( p, i );
         Vec_IntPush( vNodes, Gia_ObjId(p, pObj) );
     }
     curCo += Tim_ManPoNum(pManTime);
     // verify counts
-    assert( curCi == Gia_ManPiNum(p) );
-    assert( curCo == Gia_ManPoNum(p) );
+    assert( curCi == Gia_ManCiNum(p) );
+    assert( curCo == Gia_ManCoNum(p) );
     assert( Vec_IntSize(vNodes) == Gia_ManObjNum(p) );
     return vNodes;
 }
@@ -292,8 +292,8 @@ Gia_Man_t * Gia_ManDupCollapse( Gia_Man_t * p, Gia_Man_t * pBoxes, Vec_Int_t * v
     Gia_Man_t * pNew, * pTemp;
     Gia_Obj_t * pObj, * pObjBox;
     int i, k, curCi, curCo;
-    assert( Gia_ManRegNum(p) == 0 );
-    assert( Gia_ManPiNum(p) == Tim_ManPiNum(pManTime) + Gia_ManPoNum(pBoxes) );
+    //assert( Gia_ManRegNum(p) == 0 );
+    assert( Gia_ManCiNum(p) == Tim_ManPiNum(pManTime) + Gia_ManCoNum(pBoxes) );
     pNew = Gia_ManStart( Gia_ManObjNum(p) );
     pNew->pName = Abc_UtilStrsav( p->pName );
     pNew->pSpec = Abc_UtilStrsav( p->pSpec );
@@ -307,7 +307,7 @@ Gia_Man_t * Gia_ManDupCollapse( Gia_Man_t * p, Gia_Man_t * pBoxes, Vec_Int_t * v
     Gia_ObjSetTravIdCurrent( p, Gia_ManConst0(p) );
     for ( i = 0; i < Tim_ManPiNum(pManTime); i++ )
     {
-        pObj = Gia_ManPi( p, i );
+        pObj = Gia_ManCi( p, i );
         pObj->Value = Gia_ManAppendCi(pNew);
         Gia_ObjSetTravIdCurrent( p, pObj );
     }
@@ -326,13 +326,13 @@ Gia_Man_t * Gia_ManDupCollapse( Gia_Man_t * p, Gia_Man_t * pBoxes, Vec_Int_t * v
             int fSkip = (vBoxPres != NULL && !Vec_IntEntry(vBoxPres, i));
             for ( k = 0; k < Tim_ManBoxInputNum(pManTime, i); k++ )
             {
-                pObj = Gia_ManPo( p, curCo + k );
+                pObj = Gia_ManCo( p, curCo + k );
                 Gia_ManDupCollapse_rec( p, Gia_ObjFanin0(pObj), pNew );
                 pObj->Value = fSkip ? -1 : Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
             }
             for ( k = 0; k < Tim_ManBoxOutputNum(pManTime, i); k++ )
             {
-                pObj = Gia_ManPi( p, curCi + k );
+                pObj = Gia_ManCi( p, curCi + k );
                 pObj->Value = fSkip ? 0 : Gia_ManAppendCi(pNew);
                 Gia_ObjSetTravIdCurrent( p, pObj );
             }
@@ -342,20 +342,20 @@ Gia_Man_t * Gia_ManDupCollapse( Gia_Man_t * p, Gia_Man_t * pBoxes, Vec_Int_t * v
             for ( k = 0; k < Tim_ManBoxInputNum(pManTime, i); k++ )
             {
                 // build logic
-                pObj = Gia_ManPo( p, curCo + k );
+                pObj = Gia_ManCo( p, curCo + k );
                 Gia_ManDupCollapse_rec( p, Gia_ObjFanin0(pObj), pNew );
                 // transfer to the PI
-                pObjBox = Gia_ManPi( pBoxes, k );
+                pObjBox = Gia_ManCi( pBoxes, k );
                 pObjBox->Value = Gia_ObjFanin0Copy(pObj);
                 Gia_ObjSetTravIdCurrent( pBoxes, pObjBox );
             }
             for ( k = 0; k < Tim_ManBoxOutputNum(pManTime, i); k++ )
             {
                 // build logic
-                pObjBox = Gia_ManPo( pBoxes, curCi - Tim_ManPiNum(pManTime) + k );
+                pObjBox = Gia_ManCo( pBoxes, curCi - Tim_ManPiNum(pManTime) + k );
                 Gia_ManDupCollapse_rec( pBoxes, Gia_ObjFanin0(pObjBox), pNew );
                 // transfer to the PI
-                pObj = Gia_ManPi( p, curCi + k );
+                pObj = Gia_ManCi( p, curCi + k );
                 pObj->Value = Gia_ObjFanin0Copy(pObjBox);
                 Gia_ObjSetTravIdCurrent( p, pObj );
             }
@@ -366,21 +366,21 @@ Gia_Man_t * Gia_ManDupCollapse( Gia_Man_t * p, Gia_Man_t * pBoxes, Vec_Int_t * v
     // add remaining nodes
     for ( i = Tim_ManCoNum(pManTime) - Tim_ManPoNum(pManTime); i < Tim_ManCoNum(pManTime); i++ )
     {
-        pObj = Gia_ManPo( p, i );
+        pObj = Gia_ManCo( p, i );
         Gia_ManDupCollapse_rec( p, Gia_ObjFanin0(pObj), pNew );
         pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
     }
     curCo += Tim_ManPoNum(pManTime);
     // verify counts
-    assert( curCi == Gia_ManPiNum(p) );
-    assert( curCo == Gia_ManPoNum(p) );
+    assert( curCi == Gia_ManCiNum(p) );
+    assert( curCo == Gia_ManCoNum(p) );
     Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
     Gia_ManHashStop( pNew );
     pNew = Gia_ManCleanup( pTemp = pNew );
     Gia_ManCleanupRemap( p, pTemp );
     Gia_ManStop( pTemp );
-    assert( Tim_ManPoNum(pManTime) == Gia_ManPoNum(pNew) );
-    assert( Tim_ManPiNum(pManTime) == Gia_ManPiNum(pNew) );
+    assert( Tim_ManPoNum(pManTime) == Gia_ManCoNum(pNew) );
+    assert( Tim_ManPiNum(pManTime) == Gia_ManCiNum(pNew) );
     return pNew;
 }
 
@@ -426,7 +426,7 @@ int Gia_ManLevelWithBoxes( Gia_Man_t * p )
     Gia_ObjSetTravIdCurrent( p, Gia_ManConst0(p) );
     for ( i = 0; i < Tim_ManPiNum(pManTime); i++ )
     {
-        pObj = Gia_ManPi( p, i );
+        pObj = Gia_ManCi( p, i );
         Gia_ObjSetLevel( p, pObj, Tim_ManGetCiArrival(pManTime, i) / nAnd2Delay );
         Gia_ObjSetTravIdCurrent( p, pObj );
     }
@@ -441,7 +441,7 @@ int Gia_ManLevelWithBoxes( Gia_Man_t * p )
         // compute level for TFI of box inputs
         for ( k = 0; k < nBoxInputs; k++ )
         {
-            pObj = Gia_ManPo( p, curCo + k );
+            pObj = Gia_ManCo( p, curCo + k );
             if ( Gia_ManLevelWithBoxes_rec( p, Gia_ObjFanin0(pObj) ) )
             {
                 printf( "Boxes are not in a topological order. Switching to level computation without boxes.\n" );
@@ -453,12 +453,12 @@ int Gia_ManLevelWithBoxes( Gia_Man_t * p )
         // compute level for box outputs
         for ( k = 0; k < nBoxOutputs; k++ )
         {
-            pObj = Gia_ManPi( p, curCi + k );
+            pObj = Gia_ManCi( p, curCi + k );
             Gia_ObjSetTravIdCurrent( p, pObj );
             // evaluate delay of this output
             LevelMax = 0;
             assert( nBoxInputs == (int)pDelayTable[1] );
-            for ( j = 0; j < nBoxInputs && (pObjIn = Gia_ManPo(p, curCo + j)); j++ )
+            for ( j = 0; j < nBoxInputs && (pObjIn = Gia_ManCo(p, curCo + j)); j++ )
                 if ( (int)pDelayTable[3+k*nBoxInputs+j] != -ABC_INFINITY )
                     LevelMax = Abc_MaxInt( LevelMax, Gia_ObjLevel(p, pObjIn) + ((int)pDelayTable[3+k*nBoxInputs+j] / nAnd2Delay) );
             // set box output level
@@ -471,15 +471,15 @@ int Gia_ManLevelWithBoxes( Gia_Man_t * p )
     p->nLevels = 0;
     for ( i = Tim_ManCoNum(pManTime) - Tim_ManPoNum(pManTime); i < Tim_ManCoNum(pManTime); i++ )
     {
-        pObj = Gia_ManPo( p, i );
+        pObj = Gia_ManCo( p, i );
         Gia_ManLevelWithBoxes_rec( p, Gia_ObjFanin0(pObj) );
         Gia_ObjSetCoLevel( p, pObj );
         p->nLevels = Abc_MaxInt( p->nLevels, Gia_ObjLevel(p, pObj) );
     }
     curCo += Tim_ManPoNum(pManTime);
     // verify counts
-    assert( curCi == Gia_ManPiNum(p) );
-    assert( curCo == Gia_ManPoNum(p) );
+    assert( curCi == Gia_ManCiNum(p) );
+    assert( curCo == Gia_ManCoNum(p) );
 //    printf( "Max level is %d.\n", p->nLevels );
     return p->nLevels;
 }
@@ -528,7 +528,7 @@ int Gia_ManLutLevelWithBoxes( Gia_Man_t * p )
     Gia_ObjSetTravIdCurrent( p, Gia_ManConst0(p) );
     for ( i = 0; i < Tim_ManPiNum(pManTime); i++ )
     {
-        pObj = Gia_ManPi( p, i );
+        pObj = Gia_ManCi( p, i );
 //        Gia_ObjSetLevel( p, pObj, Tim_ManGetCiArrival(pManTime, i) / nAnd2Delay );
         Gia_ObjSetLevel( p, pObj, 0 );
         Gia_ObjSetTravIdCurrent( p, pObj );
@@ -544,7 +544,7 @@ int Gia_ManLutLevelWithBoxes( Gia_Man_t * p )
         // compute level for TFI of box inputs
         for ( k = 0; k < nBoxInputs; k++ )
         {
-            pObj = Gia_ManPo( p, curCo + k );
+            pObj = Gia_ManCo( p, curCo + k );
             if ( Gia_ManLutLevelWithBoxes_rec( p, Gia_ObjFanin0(pObj) ) )
             {
                 printf( "Boxes are not in a topological order. Switching to level computation without boxes.\n" );
@@ -556,12 +556,12 @@ int Gia_ManLutLevelWithBoxes( Gia_Man_t * p )
         // compute level for box outputs
         for ( k = 0; k < nBoxOutputs; k++ )
         {
-            pObj = Gia_ManPi( p, curCi + k );
+            pObj = Gia_ManCi( p, curCi + k );
             Gia_ObjSetTravIdCurrent( p, pObj );
             // evaluate delay of this output
             LevelMax = 0;
             assert( nBoxInputs == (int)pDelayTable[1] );
-            for ( j = 0; j < nBoxInputs && (pObjIn = Gia_ManPo(p, curCo + j)); j++ )
+            for ( j = 0; j < nBoxInputs && (pObjIn = Gia_ManCo(p, curCo + j)); j++ )
                 if ( (int)pDelayTable[3+k*nBoxInputs+j] != -ABC_INFINITY )
 //                    LevelMax = Abc_MaxInt( LevelMax, Gia_ObjLevel(p, pObjIn) + ((int)pDelayTable[3+k*nBoxInputs+j] / nAnd2Delay) );
                     LevelMax = Abc_MaxInt( LevelMax, Gia_ObjLevel(p, pObjIn) + 1 );
@@ -575,15 +575,15 @@ int Gia_ManLutLevelWithBoxes( Gia_Man_t * p )
     p->nLevels = 0;
     for ( i = Tim_ManCoNum(pManTime) - Tim_ManPoNum(pManTime); i < Tim_ManCoNum(pManTime); i++ )
     {
-        pObj = Gia_ManPo( p, i );
+        pObj = Gia_ManCo( p, i );
         Gia_ManLutLevelWithBoxes_rec( p, Gia_ObjFanin0(pObj) );
         Gia_ObjSetCoLevel( p, pObj );
         p->nLevels = Abc_MaxInt( p->nLevels, Gia_ObjLevel(p, pObj) );
     }
     curCo += Tim_ManPoNum(pManTime);
     // verify counts
-    assert( curCi == Gia_ManPiNum(p) );
-    assert( curCo == Gia_ManPoNum(p) );
+    assert( curCi == Gia_ManCiNum(p) );
+    assert( curCo == Gia_ManCoNum(p) );
 //    printf( "Max level is %d.\n", p->nLevels );
     return p->nLevels;
 }
@@ -714,14 +714,14 @@ Gia_Man_t * Gia_ManUpdateExtraAig( void * pTime, Gia_Man_t * p, Vec_Int_t * vBox
     Vec_Int_t * vOutPres = Vec_IntAlloc( 100 );
     int i, k, curPo = 0;
     assert( Vec_IntSize(vBoxPres) == Tim_ManBoxNum(pManTime) );
-    assert( Gia_ManPoNum(p) == Tim_ManCiNum(pManTime) - Tim_ManPiNum(pManTime) );
+    assert( Gia_ManCoNum(p) == Tim_ManCiNum(pManTime) - Tim_ManPiNum(pManTime) );
     for ( i = 0; i < Tim_ManBoxNum(pManTime); i++ )
     {
         for ( k = 0; k < Tim_ManBoxOutputNum(pManTime, i); k++ )
             Vec_IntPush( vOutPres, Vec_IntEntry(vBoxPres, i) );
         curPo += Tim_ManBoxOutputNum(pManTime, i);
     }
-    assert( curPo == Gia_ManPoNum(p) );
+    assert( curPo == Gia_ManCoNum(p) );
 //    if ( Vec_IntSize(vOutPres) > 0 )
         pNew = Gia_ManDupOutputVec( p, vOutPres );
     Vec_IntFree( vOutPres );

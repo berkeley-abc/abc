@@ -3815,6 +3815,10 @@ SOURCE=.\src\aig\gia\giaEra2.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\aig\gia\giaFadds.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\aig\gia\giaFalse.c
 # End Source File
 # Begin Source File
