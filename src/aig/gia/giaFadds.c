@@ -56,7 +56,7 @@ void Gia_ManIllustrateBoxes( Gia_Man_t * p )
     // walk through the boxes
     curCi = Tim_ManPiNum(pManTime);
     curCo = 0;
-    for ( i = 0; i < Tim_ManBoxNum(pManTime); i++ )
+    for ( i = 0; i < nBoxes; i++ )
     {
         nBoxIns = Tim_ManBoxInputNum(pManTime, i);
         nBoxOuts = Tim_ManBoxOutputNum(pManTime, i);
@@ -306,7 +306,7 @@ Vec_Int_t * Gia_ManDetectFullAdders( Gia_Man_t * p, int fVerbose )
     vFadds = Dtc_ManFindCommonCuts( p, vCutsXor, vCutsMaj );
     qsort( Vec_IntArray(vFadds), Vec_IntSize(vFadds)/5, 20, (int (*)(const void *, const void *))Dtc_ManCompare2 );
     if ( fVerbose )
-        printf( "XOR3 cuts = %d.  MAJ cuts = %d.  Fadds = %d.\n", Vec_IntSize(vCutsXor)/4, Vec_IntSize(vCutsMaj)/4, Vec_IntSize(vFadds)/5 );
+        printf( "XOR3 cuts = %d.  MAJ cuts = %d.  Full-adders = %d.\n", Vec_IntSize(vCutsXor)/4, Vec_IntSize(vCutsMaj)/4, Vec_IntSize(vFadds)/5 );
     //Dtc_ManPrintFadds( vFadds );
     Vec_IntFree( vCutsXor );
     Vec_IntFree( vCutsMaj );
@@ -467,10 +467,11 @@ void Gia_ManPrintChains( Gia_Man_t * p, Vec_Int_t * vFadds, Vec_Int_t * vMap, Ve
 Vec_Int_t * Gia_ManFindMapping( Gia_Man_t * p, Vec_Int_t * vFadds, Vec_Int_t * vMap, Vec_Wec_t * vChains )
 {
     Vec_Int_t * vChain;
-    int i, k, iFadd;
+    int i, k, iFadd = -1;
     Vec_Int_t * vMap2Chain = Vec_IntStartFull( Gia_ManObjNum(p) );
     Vec_WecForEachLevel( vChains, vChain, i )
     {
+        assert( Vec_IntSize(vChain) > 0 );
         Vec_IntForEachEntry( vChain, iFadd, k )
         {
             //printf( "Chain %d: setting SUM %d (obj %d)\n", i, k, Vec_IntEntry(vFadds, 5*iFadd+3) );
@@ -692,7 +693,13 @@ Gia_Man_t * Gia_ManDupWithFaddBoxes( Gia_Man_t * p, int nFaddMin, int fVerbose )
         Gia_ManDupWithFaddBoxes_rec( pNew, p, Gia_ObjFanin0(pObj), vFadds, vMap, vChains, vMap2Chain, vTruths );
     Gia_ManForEachCo( p, pObj, i )
         Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
-    Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
+//    Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
+    if ( Gia_ManRegNum(p) )
+    {
+        if ( fVerbose )
+            printf( "Warning: Sequential design is coverted into combinational one by adding white boxes.\n" );
+        Gia_ManSetRegNum( pNew, 0 );
+    }
     assert( !Gia_ManHasDangling(pNew) );
 
     // cleanup
