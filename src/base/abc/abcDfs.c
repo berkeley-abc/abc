@@ -687,6 +687,95 @@ int Abc_NtkIsDfsOrdered( Abc_Ntk_t * pNtk )
     return 1;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Create DFS ordering of nets.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkDfsNets_rec( Abc_Obj_t * pNet, Vec_Ptr_t * vNets )
+{
+    Abc_Obj_t * pNext;
+    Abc_Obj_t * pNode; int i;
+    assert( Abc_ObjIsNet(pNet) );
+    if ( Abc_NodeIsTravIdCurrent( pNet ) )
+        return;
+    Abc_NodeSetTravIdCurrent( pNet );
+    pNode = Abc_ObjFanin0( pNet );
+    Abc_ObjForEachFanin( pNode, pNext, i )
+        Abc_NtkDfsNets_rec( pNext, vNets );
+    Abc_ObjForEachFanout( pNode, pNext, i )
+        Vec_PtrPush( vNets, pNext );
+}
+Vec_Ptr_t * Abc_NtkDfsNets( Abc_Ntk_t * pNtk )
+{
+    Vec_Ptr_t * vNets;
+    Abc_Obj_t * pObj; int i;
+    vNets = Vec_PtrAlloc( 100 );
+    Abc_NtkIncrementTravId( pNtk );
+    Abc_NtkForEachCi( pNtk, pObj, i )
+        Abc_NodeSetTravIdCurrent( Abc_ObjFanout0(pObj) );
+    Abc_NtkForEachCi( pNtk, pObj, i )
+        Vec_PtrPush( vNets, Abc_ObjFanout0(pObj) );
+    Abc_NtkForEachCo( pNtk, pObj, i )
+        Abc_NtkDfsNets_rec( Abc_ObjFanin0(pObj), vNets );
+    return vNets;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Returns the DFS ordered array of logic nodes.]
+
+  Description [Collects only the internal nodes, leaving out CIs and CO.
+  However it marks with the current TravId both CIs and COs.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkDfsWithBoxes_rec( Abc_Obj_t * pNode, Vec_Ptr_t * vNodes )
+{
+    Abc_Obj_t * pFanin;
+    int i;
+    assert( !Abc_ObjIsNet(pNode) );
+    if ( Abc_ObjIsBo(pNode) )
+        pNode = Abc_ObjFanin0(pNode);
+    if ( Abc_ObjIsPi(pNode) )
+        return;
+    assert( Abc_ObjIsNode( pNode ) || Abc_ObjIsBox( pNode ) );
+    if ( Abc_NodeIsTravIdCurrent( pNode ) )
+        return;
+    Abc_NodeSetTravIdCurrent( pNode );
+    Abc_ObjForEachFanin( pNode, pFanin, i )
+    {
+        if ( Abc_ObjIsBox(pNode) )
+            pFanin = Abc_ObjFanin0(pFanin);
+        assert( Abc_ObjIsNet(pFanin) );
+        Abc_NtkDfsWithBoxes_rec( Abc_ObjFanin0Ntk(pFanin), vNodes );
+    }
+    Vec_PtrPush( vNodes, pNode );
+}
+Vec_Ptr_t * Abc_NtkDfsWithBoxes( Abc_Ntk_t * pNtk )
+{
+    Vec_Ptr_t * vNodes;
+    Abc_Obj_t * pObj;
+    int i;
+    Abc_NtkIncrementTravId( pNtk );
+    vNodes = Vec_PtrAlloc( 100 );
+    Abc_NtkForEachPo( pNtk, pObj, i )
+    {
+        assert( Abc_ObjIsNet(Abc_ObjFanin0(pObj)) );
+        Abc_NtkDfsWithBoxes_rec( Abc_ObjFanin0Ntk(Abc_ObjFanin0(pObj)), vNodes );
+    }
+    return vNodes;
+}
+
 
 /**Function*************************************************************
 
@@ -1353,6 +1442,99 @@ int Abc_NtkIsAcyclic( Abc_Ntk_t * pNtk )
     }
     return fAcyclic;
 }
+ 
+/**Function*************************************************************
+
+  Synopsis    [Checks for the loops with boxes.]
+
+  Description []
+                
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_NtkIsAcyclicWithBoxes_rec( Abc_Obj_t * pNode )
+{
+    Abc_Ntk_t * pNtk = pNode->pNtk;
+    Abc_Obj_t * pFanin;
+    int fAcyclic, i;
+    assert( !Abc_ObjIsNet(pNode) );
+    if ( Abc_ObjIsBo(pNode) )
+        pNode = Abc_ObjFanin0(pNode);
+    if ( Abc_ObjIsPi(pNode) )
+        return 1;
+    assert( Abc_ObjIsNode(pNode) || Abc_ObjIsBox(pNode) );
+    // make sure the node is not visited
+    assert( !Abc_NodeIsTravIdPrevious(pNode) );
+    // check if the node is part of the combinational loop
+    if ( Abc_NodeIsTravIdCurrent(pNode) )
+    {
+        fprintf( stdout, "Network \"%s\" contains combinational loop!\n", Abc_NtkName(pNtk) );
+        if ( Abc_ObjIsBox(pNode) )
+            fprintf( stdout, "Box \"%s\" is encountered twice on the following path to the COs:\n", Abc_ObjName(pNode) );
+        else
+            fprintf( stdout, "Node \"%s\" is encountered twice on the following path to the COs:\n", Abc_ObjName(Abc_ObjFanout0(pNode)) );
+        return 0;
+    }
+    // mark this node as a node on the current path
+    Abc_NodeSetTravIdCurrent( pNode );
+    // visit the transitive fanin
+    Abc_ObjForEachFanin( pNode, pFanin, i )
+    { 
+        if ( Abc_ObjIsBox(pNode) )
+            pFanin = Abc_ObjFanin0(pFanin);
+        pFanin = Abc_ObjFanin0Ntk(pFanin);
+        // make sure there is no mixing of networks
+        assert( pFanin->pNtk == pNode->pNtk );
+        // check if the fanin is visited
+        if ( Abc_ObjIsPi(pFanin) )
+            continue;
+        if ( Abc_ObjIsBo(pFanin) )
+            pFanin = Abc_ObjFanin0(pFanin);
+        assert( Abc_ObjIsNode(pFanin) || Abc_ObjIsBox(pFanin) );
+        if ( Abc_NodeIsTravIdPrevious(pFanin) ) 
+            continue;
+        // traverse the fanin's cone searching for the loop
+        if ( (fAcyclic = Abc_NtkIsAcyclicWithBoxes_rec(pFanin)) )
+            continue;
+        // return as soon as the loop is detected
+        fprintf( stdout, " %s ->", Abc_ObjName( Abc_ObjIsBox(pFanin) ? pFanin : Abc_ObjFanout0(pFanin) ) );
+        return 0;
+    }
+    // mark this node as a visited node
+    assert( Abc_ObjIsNode(pNode) || Abc_ObjIsBox(pNode) );
+    Abc_NodeSetTravIdPrevious( pNode );
+    return 1;
+}
+int Abc_NtkIsAcyclicWithBoxes( Abc_Ntk_t * pNtk )
+{
+    Abc_Obj_t * pNode;
+    int fAcyclic;
+    int i;
+    // set the traversal ID for this DFS ordering
+    Abc_NtkIncrementTravId( pNtk );   
+    Abc_NtkIncrementTravId( pNtk );   
+    // pNode->TravId == pNet->nTravIds      means "pNode is on the path"
+    // pNode->TravId == pNet->nTravIds - 1  means "pNode is visited but is not on the path"
+    // pNode->TravId <  pNet->nTravIds - 1  means "pNode is not visited"
+    // traverse the network to detect cycles
+    fAcyclic = 1;
+    Abc_NtkForEachPo( pNtk, pNode, i )
+    {
+        pNode = Abc_ObjFanin0Ntk(Abc_ObjFanin0(pNode));
+        if ( Abc_NodeIsTravIdPrevious(pNode) )
+            continue;
+        // traverse the output logic cone
+        if ( (fAcyclic = Abc_NtkIsAcyclicWithBoxes_rec(pNode)) )
+            continue;
+        // stop as soon as the first loop is detected
+        fprintf( stdout, " PO \"%s\"\n", Abc_ObjName(Abc_ObjFanout0(pNode)) );
+        break;
+    }
+    return fAcyclic;
+}
+
 
 
 /**Function*************************************************************

@@ -8,6 +8,7 @@ SRC +=    src/base/abc/abcAig.c \
     src/base/abc/abcFunc.c \
     src/base/abc/abcHie.c \
     src/base/abc/abcHieCec.c \
+    src/base/abc/abcHieGia.c \
     src/base/abc/abcHieNew.c \
     src/base/abc/abcLatch.c \
     src/base/abc/abcLib.c \

@@ -170,13 +170,14 @@ int IoCommandRead( Abc_Frame_t * pAbc, int argc, char ** argv )
     char Command[1000];
     Abc_Ntk_t * pNtk;
     char * pFileName, * pTemp;
-    int c, fCheck, fBarBufs;
+    int c, fCheck, fBarBufs, fReadGia;
 
     fCheck = 1;
     fBarBufs = 0;
+    fReadGia = 0;
     glo_fMapped = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "mcbh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "mcbgh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -188,6 +189,9 @@ int IoCommandRead( Abc_Frame_t * pAbc, int argc, char ** argv )
                 break;
             case 'b':
                 fBarBufs ^= 1;
+                break;
+            case 'g':
+                fReadGia ^= 1;
                 break;
             case 'h':
                 goto usage;
@@ -225,6 +229,20 @@ int IoCommandRead( Abc_Frame_t * pAbc, int argc, char ** argv )
         Cmd_CommandExecute( pAbc, Command );
         return 0;
     }
+    if ( fReadGia )
+    {
+        extern Gia_Man_t * Gia_ManFlattenLogicHierarchy( Abc_Ntk_t * pNtk );
+        Abc_Ntk_t * pNtk = Io_ReadNetlist( pFileName, Io_ReadFileType(pFileName), fCheck );
+        Gia_Man_t * pGia = Gia_ManFlattenLogicHierarchy( pNtk );
+        Abc_NtkDelete( pNtk );
+        if ( pGia == NULL )
+        {
+            Abc_Print( 1, "Abc_CommandBlast(): Bit-blasting has failed.\n" );
+            return 0;
+        }
+        Abc_FrameUpdateGia( pAbc, pGia );
+        return 0;
+    }
     // check if the library is available
     if ( glo_fMapped && Abc_FrameReadLibGen() == NULL )
     {
@@ -247,13 +265,14 @@ int IoCommandRead( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( pAbc->Err, "usage: read [-mcbh] <file>\n" );
+    fprintf( pAbc->Err, "usage: read [-mcbgh] <file>\n" );
     fprintf( pAbc->Err, "\t         replaces the current network by the network read from <file>\n" );
     fprintf( pAbc->Err, "\t         by calling the parser that matches the extension of <file>\n" );
     fprintf( pAbc->Err, "\t         (to read a hierarchical design, use \"read_hie\")\n" );
     fprintf( pAbc->Err, "\t-m     : toggle reading mapped Verilog [default = %s]\n", glo_fMapped? "yes":"no" );
     fprintf( pAbc->Err, "\t-c     : toggle network check after reading [default = %s]\n", fCheck? "yes":"no" );
     fprintf( pAbc->Err, "\t-b     : toggle reading barrier buffers [default = %s]\n", fBarBufs? "yes":"no" );
+    fprintf( pAbc->Err, "\t-g     : toggle reading and flattening into &-space [default = %s]\n", fBarBufs? "yes":"no" );
     fprintf( pAbc->Err, "\t-h     : prints the command summary\n" );
     fprintf( pAbc->Err, "\tfile   : the name of a file to read\n" );
     return 1;

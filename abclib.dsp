@@ -135,6 +135,10 @@ SOURCE=.\src\base\abc\abcHieCec.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\base\abc\abcHieGia.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\base\abc\abcHieNew.c
 # End Source File
 # Begin Source File

@@ -610,6 +610,7 @@ extern ABC_DLL Vec_Ptr_t *        Abc_NtkDfsIter( Abc_Ntk_t * pNtk, int fCollect
 extern ABC_DLL Vec_Ptr_t *        Abc_NtkDfsIterNodes( Abc_Ntk_t * pNtk, Vec_Ptr_t * vRoots );
 extern ABC_DLL Vec_Ptr_t *        Abc_NtkDfsHie( Abc_Ntk_t * pNtk, int fCollectAll );
 extern ABC_DLL int                Abc_NtkIsDfsOrdered( Abc_Ntk_t * pNtk );
+extern ABC_DLL Vec_Ptr_t *        Abc_NtkDfsWithBoxes( Abc_Ntk_t * pNtk );
 extern ABC_DLL Vec_Ptr_t *        Abc_NtkSupport( Abc_Ntk_t * pNtk );
 extern ABC_DLL Vec_Ptr_t *        Abc_NtkNodeSupport( Abc_Ntk_t * pNtk, Abc_Obj_t ** ppNodes, int nNodes );
 extern ABC_DLL Vec_Ptr_t *        Abc_AigDfs( Abc_Ntk_t * pNtk, int fCollectAll, int fCollectCos );
@@ -619,6 +620,7 @@ extern ABC_DLL Vec_Vec_t *        Abc_NtkLevelize( Abc_Ntk_t * pNtk );
 extern ABC_DLL int                Abc_NtkLevel( Abc_Ntk_t * pNtk );
 extern ABC_DLL int                Abc_NtkLevelReverse( Abc_Ntk_t * pNtk );
 extern ABC_DLL int                Abc_NtkIsAcyclic( Abc_Ntk_t * pNtk );
+extern ABC_DLL int                Abc_NtkIsAcyclicWithBoxes( Abc_Ntk_t * pNtk );
 extern ABC_DLL Vec_Ptr_t *        Abc_AigGetLevelizedOrder( Abc_Ntk_t * pNtk, int fCollectCis );
 /*=== abcFanio.c ==========================================================*/
 extern ABC_DLL void               Abc_ObjAddFanin( Abc_Obj_t * pObj, Abc_Obj_t * pFanin );

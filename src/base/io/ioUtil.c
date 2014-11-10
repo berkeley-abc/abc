@@ -158,7 +158,19 @@ Abc_Ntk_t * Io_ReadNetlist( char * pFileName, Io_FileType_t FileType, int fCheck
         return NULL;
     }
     if ( Abc_NtkBlackboxNum(pNtk) || Abc_NtkWhiteboxNum(pNtk) )
+    {
+        int i, fCycle = 0;
+        Abc_Ntk_t * pModel;
         fprintf( stdout, "Warning: The network contains hierarchy.\n" );
+        Vec_PtrForEachEntry( Abc_Ntk_t *, pNtk->pDesign->vModules, pModel, i )
+                if ( !Abc_NtkIsAcyclicWithBoxes( pModel ) )
+                    fCycle = 1;
+        if ( fCycle )
+        {
+            Abc_NtkDelete( pNtk );
+            return NULL;    
+        }
+    }
     return pNtk;
 }
 
