@@ -619,6 +619,7 @@ int Pdr_ManSolveInt( Pdr_Man_t * p )
                 pCexNew = (p->pPars->fUseBridge || p->pPars->fStoreCex) ? Abc_CexMakeTriv( Aig_ManRegNum(p->pAig), Saig_ManPiNum(p->pAig), Saig_ManPoNum(p->pAig), k*Saig_ManPoNum(p->pAig)+p->iOutCur ) : (Abc_Cex_t *)(ABC_PTRINT_T)1;
                 p->pPars->nFailOuts++;
                 if ( p->pPars->vOutMap ) Vec_IntWriteEntry( p->pPars->vOutMap, p->iOutCur, 0 );
+                if ( !p->pPars->fNotVerbose )
                 Abc_Print( 1, "Output %*d was trivially asserted in frame %2d (solved %*d out of %*d outputs).\n",
                     nOutDigits, p->iOutCur, k, nOutDigits, p->pPars->nFailOuts, nOutDigits, Saig_ManPoNum(p->pAig) );
                 assert( Vec_PtrEntry(p->vCexes, p->iOutCur) == NULL );
