@@ -182,7 +182,7 @@ void Gia_ManHashResize( Gia_Man_t * p )
         assert( *pPlace != 0 );
         Counter++;
     }
-    Counter2 = Gia_ManAndNum(p);
+    Counter2 = Gia_ManAndNum(p) - Gia_ManBufNum(p);
     assert( Counter == Counter2 );
     ABC_FREE( pHTableOld );
 //    if ( p->fVerbose )

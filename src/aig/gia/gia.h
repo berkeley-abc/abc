@@ -142,6 +142,7 @@ struct Gia_Man_t_
     Vec_Int_t *    vObjClasses;   // classes of objects for abstraction
     Vec_Int_t *    vInitClasses;  // classes of flops for retiming/merging/etc
     Vec_Int_t *    vDoms;         // dominators
+    Vec_Int_t *    vBarBufs;      // barrier buffers
     unsigned char* pSwitching;    // switching activity for each object
     Gia_Plc_t *    pPlacement;    // placement of the objects
     Gia_Man_t *    pAigExtra;     // combinational logic of holes
