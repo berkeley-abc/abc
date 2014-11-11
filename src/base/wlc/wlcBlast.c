@@ -441,9 +441,9 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p )
                 Wlc_ObjForEachFanin( pObj, iFanin, k )
                 {
                     if ( !k ) continue;
-                    assert( nRange == Wlc_ObjRange(Wlc_NtkObj(p, iFanin)) );
+                    //assert( nRange == Wlc_ObjRange(Wlc_NtkObj(p, iFanin)) );
                     pFans1 = Vec_IntEntryP( vBits, Wlc_ObjCopy(p, iFanin) );
-                    Vec_IntPush( vTemp0, pFans1[b] );
+                    Vec_IntPush( vTemp0, b < Wlc_ObjRange(Wlc_NtkObj(p, iFanin)) ? pFans1[b] : 0 );
                 }
                 Vec_IntPush( vRes, Wlc_NtkMuxTree_rec(pNew, pFans0, nRange0, vTemp0, 0) );
             }
