@@ -30253,10 +30253,10 @@ usage:
 int Abc_CommandAbc9Filter( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     char * pFileName1 = NULL, * pFileName2 = NULL;
-    int fFlopsOnly = 0, fFlopsWith = 0;
+    int fFlopsOnly = 0, fFlopsWith = 0, fUseRiDrivers = 0;
     int c, fVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "fgvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "fgivh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -30265,6 +30265,9 @@ int Abc_CommandAbc9Filter( Abc_Frame_t * pAbc, int argc, char ** argv )
             break;
         case 'g':
             fFlopsWith ^= 1;
+            break;
+        case 'i':
+            fUseRiDrivers ^= 1;
             break;
         case 'v':
             fVerbose ^= 1;
@@ -30292,7 +30295,7 @@ int Abc_CommandAbc9Filter( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     // filter using one of the choices
     if ( fFlopsOnly ^ fFlopsWith )
-        Gia_ManFilterEquivsUsingLatches( pAbc->pGia, fFlopsOnly, fFlopsWith );
+        Gia_ManFilterEquivsUsingLatches( pAbc->pGia, fFlopsOnly, fFlopsWith, fUseRiDrivers );
     // get the input file name
     if ( argc == globalUtilOptind + 2 )
     {
@@ -30307,11 +30310,12 @@ int Abc_CommandAbc9Filter( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &filter [-fgvh] <PartA_FileName> <PartB_FileName>\n" );
+    Abc_Print( -2, "usage: &filter [-fgivh] <PartA_FileName> <PartB_FileName>\n" );
     Abc_Print( -2, "\t         performs filtering of equivalence classes\n" );
     Abc_Print( -2, "\t         (if Parts A/B are given, removes classes composed of one part)\n" );
     Abc_Print( -2, "\t-f     : toggle removing all elements except flops [default = %s]\n", fFlopsOnly? "yes": "no" );
-    Abc_Print( -2, "\t-g     : toggle removing removing classes without flops [default = %s]\n", fFlopsWith? "yes": "no" );
+    Abc_Print( -2, "\t-g     : toggle removing classes without flops [default = %s]\n", fFlopsWith? "yes": "no" );
+    Abc_Print( -2, "\t-i     : toggle using flop inputs instead of flop outputs [default = %s]\n", fUseRiDrivers? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;

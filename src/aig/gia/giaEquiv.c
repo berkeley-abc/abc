@@ -2144,21 +2144,32 @@ int Gia_ManFilterEquivsUsingParts( Gia_Man_t * pGia, char * pName1, char * pName
   SeeAlso     []
 
 ***********************************************************************/
-void Gia_ManFilterEquivsUsingLatches( Gia_Man_t * pGia, int fFlopsOnly, int fFlopsWith )
+void Gia_ManFilterEquivsUsingLatches( Gia_Man_t * pGia, int fFlopsOnly, int fFlopsWith, int fUseRiDrivers )
 {
-    Vec_Int_t * vNodes;
-    Gia_Obj_t * pObj;
+    Gia_Obj_t * pObjR;
+    Vec_Int_t * vNodes, * vFfIds;
     int i, k, iObj, iNext, iPrev, iRepr;
     int iLitsOld = 0, iLitsNew = 0;
     assert( fFlopsOnly ^ fFlopsWith );
     vNodes = Vec_IntAlloc( 100 );
-    // remove all noo-flop constants
+    // select nodes "flop" node IDs
+    vFfIds = Vec_IntStart( Gia_ManObjNum(pGia) );
+    if ( fUseRiDrivers )
+    {
+        Gia_ManForEachRi( pGia, pObjR, i )
+            Vec_IntWriteEntry( vFfIds, Gia_ObjFaninId0p(pGia, pObjR), 1 );
+    }
+    else
+    {
+        Gia_ManForEachRo( pGia, pObjR, i )
+            Vec_IntWriteEntry( vFfIds, Gia_ObjId(pGia, pObjR), 1 );
+    }
+    // remove all non-flop constants
     Gia_ManForEachConst( pGia, i )
     {
         iLitsOld++;
-        pObj = Gia_ManObj( pGia, i );
         assert( pGia->pNexts[i] == 0 );
-        if ( !Gia_ObjIsRo(pGia, pObj) )
+        if ( !Vec_IntEntry(vFfIds, i) )
             Gia_ObjUnsetRepr( pGia, i );
         else
             iLitsNew++;
@@ -2171,8 +2182,7 @@ void Gia_ManFilterEquivsUsingLatches( Gia_Man_t * pGia, int fFlopsOnly, int fFlo
             Vec_IntClear( vNodes );
             Gia_ClassForEachObj( pGia, i, iObj )
             {
-                pObj = Gia_ManObj( pGia, iObj );
-                if ( Gia_ObjIsRo(pGia, pObj) )
+                if ( Vec_IntEntry(vFfIds, iObj) )
                     Vec_IntPush( vNodes, iObj );
                 iLitsOld++;
             }
@@ -2207,8 +2217,7 @@ void Gia_ManFilterEquivsUsingLatches( Gia_Man_t * pGia, int fFlopsOnly, int fFlo
             int fSeenFlop = 0;
             Gia_ClassForEachObj( pGia, i, iObj )
             {
-                pObj = Gia_ManObj( pGia, iObj );
-                if ( Gia_ObjIsRo(pGia, pObj) )
+                if ( Vec_IntEntry(vFfIds, iObj) )
                     fSeenFlop = 1;
                 iLitsOld++;
                 iLitsNew++;
@@ -2230,6 +2239,7 @@ void Gia_ManFilterEquivsUsingLatches( Gia_Man_t * pGia, int fFlopsOnly, int fFlo
         }
     }
     Vec_IntFree( vNodes );
+    Vec_IntFree( vFfIds );
     Abc_Print( 1, "The number of literals: Before = %d. After = %d.\n", iLitsOld, iLitsNew );
 }
 
