@@ -233,14 +233,17 @@ int IoCommandRead( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
         extern Gia_Man_t * Gia_ManFlattenLogicHierarchy( Abc_Ntk_t * pNtk );
         Abc_Ntk_t * pNtk = Io_ReadNetlist( pFileName, Io_ReadFileType(pFileName), fCheck );
-        Gia_Man_t * pGia = Gia_ManFlattenLogicHierarchy( pNtk );
-        Abc_NtkDelete( pNtk );
-        if ( pGia == NULL )
+        if ( pNtk )
         {
-            Abc_Print( 1, "Abc_CommandBlast(): Bit-blasting has failed.\n" );
-            return 0;
+            Gia_Man_t * pGia = Gia_ManFlattenLogicHierarchy( pNtk );
+            Abc_NtkDelete( pNtk );
+            if ( pGia == NULL )
+            {
+                Abc_Print( 1, "Abc_CommandBlast(): Bit-blasting has failed.\n" );
+                return 0;
+            }
+            Abc_FrameUpdateGia( pAbc, pGia );
         }
-        Abc_FrameUpdateGia( pAbc, pGia );
         return 0;
     }
     // check if the library is available

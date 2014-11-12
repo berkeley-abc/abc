@@ -1462,7 +1462,7 @@ int Abc_NtkIsAcyclicWithBoxes_rec( Abc_Obj_t * pNode )
     assert( !Abc_ObjIsNet(pNode) );
     if ( Abc_ObjIsBo(pNode) )
         pNode = Abc_ObjFanin0(pNode);
-    if ( Abc_ObjIsPi(pNode) )
+    if ( Abc_ObjIsPi(pNode) || Abc_ObjIsLatch(pNode) || Abc_ObjIsBlackbox(pNode) )
         return 1;
     assert( Abc_ObjIsNode(pNode) || Abc_ObjIsBox(pNode) );
     // make sure the node is not visited
@@ -1487,11 +1487,11 @@ int Abc_NtkIsAcyclicWithBoxes_rec( Abc_Obj_t * pNode )
         pFanin = Abc_ObjFanin0Ntk(pFanin);
         // make sure there is no mixing of networks
         assert( pFanin->pNtk == pNode->pNtk );
-        // check if the fanin is visited
-        if ( Abc_ObjIsPi(pFanin) )
-            continue;
         if ( Abc_ObjIsBo(pFanin) )
             pFanin = Abc_ObjFanin0(pFanin);
+        // check if the fanin is visited
+        if ( Abc_ObjIsPi(pFanin) || Abc_ObjIsLatch(pFanin) || Abc_ObjIsBlackbox(pFanin) )
+            continue;
         assert( Abc_ObjIsNode(pFanin) || Abc_ObjIsBox(pFanin) );
         if ( Abc_NodeIsTravIdPrevious(pFanin) ) 
             continue;
@@ -1531,6 +1531,21 @@ int Abc_NtkIsAcyclicWithBoxes( Abc_Ntk_t * pNtk )
         // stop as soon as the first loop is detected
         fprintf( stdout, " PO \"%s\"\n", Abc_ObjName(Abc_ObjFanout0(pNode)) );
         break;
+    }
+    if ( fAcyclic )
+    {
+        Abc_NtkForEachLatchInput( pNtk, pNode, i )
+        {
+            pNode = Abc_ObjFanin0Ntk(Abc_ObjFanin0(pNode));
+            if ( Abc_NodeIsTravIdPrevious(pNode) )
+                continue;
+            // traverse the output logic cone
+            if ( (fAcyclic = Abc_NtkIsAcyclicWithBoxes_rec(pNode)) )
+                continue;
+            // stop as soon as the first loop is detected
+            fprintf( stdout, " PO \"%s\"\n", Abc_ObjName(Abc_ObjFanout0(pNode)) );
+            break;
+        }
     }
     return fAcyclic;
 }
