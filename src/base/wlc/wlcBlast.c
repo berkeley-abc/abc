@@ -751,16 +751,17 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Vec_Int_t * vBoxIds )
         curPo += nBitCos;
         assert( curPi == Tim_ManCiNum(pManTime) );
         assert( curPo == Tim_ManCoNum(pManTime) );
-        // normalize AIG
-        pNew = Gia_ManDupNormalize( pTemp = pNew );
-        Gia_ManStop( pTemp );
         // finalize the extra AIG
         pExtra = Gia_ManCleanup( pTemp = pExtra );
         Gia_ManStop( pTemp );
-        assert( Gia_ManPoNum(pExtra) == Gia_ManPiNum(pNew) - nBitCis );
+        assert( Gia_ManPoNum(pExtra) == Gia_ManCiNum(pNew) - nBitCis );
         // attach
         pNew->pAigExtra = pExtra;
         pNew->pManTime = pManTime;
+        // normalize AIG
+        pNew = Gia_ManDupNormalize( pTemp = pNew );
+        Gia_ManTransferTiming( pNew, pTemp );
+        Gia_ManStop( pTemp );
         //Tim_ManPrint( pManTime );
     }
     return pNew;

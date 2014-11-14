@@ -35,6 +35,22 @@ ABC_NAMESPACE_IMPL_START
 
 /**Function*************************************************************
 
+  Synopsis    [Returns one if this is a seq AIG with non-trivial boxes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Gia_ManIsSeqWithBoxes( Gia_Man_t * p )
+{
+    return (Gia_ManRegNum(p) > 0) && (p->pManTime != NULL) && (Tim_ManBoxNum((Tim_Man_t *)p->pManTime) > 0);
+}
+
+/**Function*************************************************************
+
   Synopsis    [Makes sure the manager is normalized.]
 
   Description []
@@ -79,7 +95,7 @@ Gia_Man_t * Gia_ManDupNormalize( Gia_Man_t * p )
     pNew->pName = Abc_UtilStrsav( p->pName );
     pNew->pSpec = Abc_UtilStrsav( p->pSpec );
     Gia_ManConst0(p)->Value = 0;
-    if ( Gia_ManRegNum(p) == 0 || p->pManTime == NULL || Tim_ManBoxNum((Tim_Man_t *)p->pManTime) == 0 )
+    if ( !Gia_ManIsSeqWithBoxes(p) )
     {
         Gia_ManForEachCi( p, pObj, i )
             pObj->Value = Gia_ManAppendCi(pNew);
@@ -102,7 +118,7 @@ Gia_Man_t * Gia_ManDupNormalize( Gia_Man_t * p )
         // copy flops last
         for ( i = nCIs - Gia_ManRegNum(p); i < nCIs; i++ )
             Gia_ManCi(p, i)->Value = Gia_ManAppendCi(pNew);
-        printf( "Warning: Scrambling CI order in the AIG with boxes.\n" );
+        printf( "Warning: Suffled CI order to be correct sequential AIG.\n" );
     }
     Gia_ManForEachAnd( p, pObj, i )
         pObj->Value = Gia_ManAppendAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
@@ -126,14 +142,14 @@ Gia_Man_t * Gia_ManDupNormalize( Gia_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-Gia_Man_t * Gia_ManDupReorderInputs( Gia_Man_t * p )
+Gia_Man_t * Gia_ManDupUnshuffleInputs( Gia_Man_t * p )
 {
     Gia_Man_t * pNew;
     Gia_Obj_t * pObj;
     int i, nCIs, nAll, nPis;
     // sanity checks
     assert( Gia_ManIsNormalized(p) );
-    assert( Gia_ManRegNum(p) > 0 && p->pManTime != NULL && Tim_ManBoxNum((Tim_Man_t *)p->pManTime) > 0 );
+    assert( Gia_ManIsSeqWithBoxes(p) );
     Gia_ManFillValue( p );
     pNew = Gia_ManStart( Gia_ManObjNum(p) );
     pNew->pName = Abc_UtilStrsav( p->pName );
@@ -156,7 +172,7 @@ Gia_Man_t * Gia_ManDupReorderInputs( Gia_Man_t * p )
     // copy new CIs last
     for ( i = nPis; i < nAll - Gia_ManRegNum(p); i++ )
         Gia_ManCi(p, i)->Value = Gia_ManAppendCi(pNew);
-    printf( "Warning: Unscrambling CI order in the AIG with boxes.\n" );
+    printf( "Warning: Unshuffled CI order to be correct AIG with boxes.\n" );
     // other things
     Gia_ManForEachAnd( p, pObj, i )
         pObj->Value = Gia_ManAppendAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
@@ -644,13 +660,14 @@ void Gia_ManDupCollapse_rec( Gia_Man_t * p, Gia_Obj_t * pObj, Gia_Man_t * pNew )
     if ( Gia_ObjSibl(p, Gia_ObjId(p, pObj)) )
         pNew->pSibls[Abc_Lit2Var(pObj->Value)] = Abc_Lit2Var(Gia_ObjSiblObj(p, Gia_ObjId(p, pObj))->Value);        
 }
-Gia_Man_t * Gia_ManDupCollapseInt( Gia_Man_t * p, Gia_Man_t * pBoxes, Vec_Int_t * vBoxPres )
+Gia_Man_t * Gia_ManDupCollapse( Gia_Man_t * p, Gia_Man_t * pBoxes, Vec_Int_t * vBoxPres )
 {
+    // this procedure assumes that sequential AIG with boxes is unshuffled to have valid boxes
     Tim_Man_t * pManTime = (Tim_Man_t *)p->pManTime;
     Gia_Man_t * pNew, * pTemp;
     Gia_Obj_t * pObj, * pObjBox;
     int i, k, curCi, curCo;
-    assert( Gia_ManRegNum(p) == 0 );
+    //assert( Gia_ManRegNum(p) == 0 );
     assert( Gia_ManCiNum(p) == Tim_ManPiNum(pManTime) + Gia_ManCoNum(pBoxes) );
     pNew = Gia_ManStart( Gia_ManObjNum(p) );
     pNew->pName = Abc_UtilStrsav( p->pName );
@@ -740,32 +757,6 @@ Gia_Man_t * Gia_ManDupCollapseInt( Gia_Man_t * p, Gia_Man_t * pBoxes, Vec_Int_t 
     assert( Tim_ManPoNum(pManTime) == Gia_ManCoNum(pNew) );
     assert( Tim_ManPiNum(pManTime) == Gia_ManCiNum(pNew) );
     return pNew;
-}
-Gia_Man_t * Gia_ManDupCollapse( Gia_Man_t * p, Gia_Man_t * pBoxes, Vec_Int_t * vBoxPres )
-{
-    Gia_Man_t * pRes, * pTemp;
-    int nFlops = Gia_ManRegNum(p);
-    if ( Gia_ManRegNum(p) == 0 || p->pManTime == NULL || Tim_ManBoxNum((Tim_Man_t *)p->pManTime) == 0 )
-    {
-        p->nRegs = 0;
-        pRes = Gia_ManDupCollapseInt( p, pBoxes, vBoxPres );
-        Gia_ManSetRegNum( p, nFlops );
-    }
-    else
-    {
-        pTemp = Gia_ManDupReorderInputs( p );
-        pTemp->nRegs = 0;
-
-        pTemp->pManTime  = p->pManTime;  p->pManTime  = NULL;
-        pTemp->pAigExtra = p->pAigExtra; p->pAigExtra = NULL;
-        pRes = Gia_ManDupCollapseInt( pTemp, pBoxes, vBoxPres );
-        p->pManTime  = pTemp->pManTime;  pTemp->pManTime  = NULL;
-        p->pAigExtra = pTemp->pAigExtra; pTemp->pAigExtra = NULL;
-
-        Gia_ManStop( pTemp );
-    }
-    Gia_ManSetRegNum( pRes, nFlops );
-    return pRes;
 }
 
 /**Function*************************************************************

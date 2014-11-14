@@ -1345,9 +1345,11 @@ extern float               Gia_ManComputeSwitching( Gia_Man_t * p, int nFrames, 
 extern Vec_Int_t *         Gia_ManComputeSwitchProbs( Gia_Man_t * pGia, int nFrames, int nPref, int fProbOne );
 extern Vec_Flt_t *         Gia_ManPrintOutputProb( Gia_Man_t * p );
 /*=== giaTim.c ===========================================================*/
+extern int                 Gia_ManIsSeqWithBoxes( Gia_Man_t * p );
 extern int                 Gia_ManIsNormalized( Gia_Man_t * p );
 extern Gia_Man_t *         Gia_ManDupNormalize( Gia_Man_t * p );
 extern Gia_Man_t *         Gia_ManDupUnnormalize( Gia_Man_t * p );
+extern Gia_Man_t *         Gia_ManDupUnshuffleInputs( Gia_Man_t * p );
 extern int                 Gia_ManLevelWithBoxes( Gia_Man_t * p );
 extern int                 Gia_ManLutLevelWithBoxes( Gia_Man_t * p );
 extern void *              Gia_ManUpdateTimMan( Gia_Man_t * p, Vec_Int_t * vBoxPres );

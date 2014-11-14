@@ -26474,7 +26474,16 @@ int Abc_CommandAbc9Strash( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     else if ( fCollapse && pAbc->pGia->pAigExtra )
     {
-        pTemp = Gia_ManDupCollapse( pAbc->pGia, pAbc->pGia->pAigExtra, NULL );
+        if ( Gia_ManIsSeqWithBoxes(pAbc->pGia) )
+        {
+            Gia_Man_t * pUnshuffled = Gia_ManDupUnshuffleInputs( pAbc->pGia );
+            Gia_ManTransferTiming( pUnshuffled, pAbc->pGia );
+            pTemp = Gia_ManDupCollapse( pUnshuffled, pUnshuffled->pAigExtra, NULL );
+            Gia_ManTransferTiming( pAbc->pGia, pUnshuffled );
+            Gia_ManStop( pUnshuffled );
+        }
+        else
+            pTemp = Gia_ManDupCollapse( pAbc->pGia, pAbc->pGia->pAigExtra, NULL );
         if ( !Abc_FrameReadFlag("silentmode") )
             printf( "Collapsed AIG with boxes and logic of the boxes.\n" );
     }
