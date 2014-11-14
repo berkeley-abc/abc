@@ -204,6 +204,8 @@ static inline Wlc_Obj_t *  Wlc_ObjFoToFi( Wlc_Ntk_t * p, Wlc_Obj_t * pObj )     
 
 #define Wlc_NtkForEachObj( p, pObj, i )                                             \
     for ( i = 1; (i < Wlc_NtkObjNumMax(p)) && (((pObj) = Wlc_NtkObj(p, i)), 1); i++ )
+#define Wlc_NtkForEachObjVec( vVec, p, pObj, i )                                    \
+    for ( i = 0; (i < Vec_IntSize(vVec)) && (((pObj) = Wlc_NtkObj(p, Vec_IntEntry(vVec, i))), 1); i++ )
 #define Wlc_NtkForEachPi( p, pPi, i )                                               \
     for ( i = 0; (i < Wlc_NtkPiNum(p)) && (((pPi) = Wlc_NtkPi(p, i)), 1); i++ )
 #define Wlc_NtkForEachPo( p, pPo, i )                                               \
@@ -226,7 +228,7 @@ static inline Wlc_Obj_t *  Wlc_ObjFoToFi( Wlc_Ntk_t * p, Wlc_Obj_t * pObj )     
 ////////////////////////////////////////////////////////////////////////
 
 /*=== wlcBlast.c ========================================================*/
-extern Gia_Man_t *    Wlc_NtkBitBlast( Wlc_Ntk_t * p );
+extern Gia_Man_t *    Wlc_NtkBitBlast( Wlc_Ntk_t * p, Vec_Int_t * vBoxIds );
 /*=== wlcNtk.c ========================================================*/
 extern Wlc_Ntk_t *    Wlc_NtkAlloc( char * pName, int nObjsAlloc );
 extern int            Wlc_ObjAlloc( Wlc_Ntk_t * p, int Type, int Signed, int End, int Beg );
@@ -240,6 +242,7 @@ extern void           Wlc_NtkPrintNodes( Wlc_Ntk_t * p, int Type );
 extern void           Wlc_NtkPrintStats( Wlc_Ntk_t * p, int fDistrib, int fVerbose );
 extern Wlc_Ntk_t *    Wlc_NtkDupDfs( Wlc_Ntk_t * p );
 extern void           Wlc_NtkTransferNames( Wlc_Ntk_t * pNew, Wlc_Ntk_t * p );
+extern Vec_Int_t *    Wlc_NtkCollectMultipliers( Wlc_Ntk_t * p );
 /*=== wlcReadWord.c ========================================================*/
 extern Wlc_Ntk_t *    Wlc_ReadVer( char * pFileName );
 /*=== wlcWriteWord.c ========================================================*/

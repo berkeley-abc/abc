@@ -473,6 +473,30 @@ void Wlc_NtkTransferNames( Wlc_Ntk_t * pNew, Wlc_Ntk_t * p )
     pNew->vTables = p->vTables;      p->vTables = NULL;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Collect IDs of the multipliers.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Int_t * Wlc_NtkCollectMultipliers( Wlc_Ntk_t * p )
+{
+    Wlc_Obj_t * pObj;  int i;
+    Vec_Int_t * vBoxIds = Vec_IntAlloc( 100 );
+    Wlc_NtkForEachObj( p, pObj, i )
+        if ( pObj->Type == WLC_OBJ_ARI_MULTI )
+            Vec_IntPush( vBoxIds, i );
+    if ( Vec_IntSize( vBoxIds ) > 0 )
+        return vBoxIds;
+    Vec_IntFree( vBoxIds );
+    return NULL;
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

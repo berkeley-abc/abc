@@ -842,31 +842,6 @@ int Gia_ManCrossCut( Gia_Man_t * p, int fReverse )
     return nCutMax;
 }
 
-/**Function*************************************************************
-
-  Synopsis    [Makes sure the manager is normalized.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Gia_ManIsNormalized( Gia_Man_t * p )  
-{
-    int i, nOffset;
-    nOffset = 1;
-    for ( i = 0; i < Gia_ManCiNum(p); i++ )
-        if ( !Gia_ObjIsCi( Gia_ManObj(p, nOffset+i) ) )
-            return 0;
-    nOffset = 1 + Gia_ManCiNum(p) + Gia_ManAndNum(p);
-    for ( i = 0; i < Gia_ManCoNum(p); i++ )
-        if ( !Gia_ObjIsCo( Gia_ManObj(p, nOffset+i) ) )
-            return 0;
-    return 1;
-}
-
 
 /**Function*************************************************************
 

@@ -26474,11 +26474,7 @@ int Abc_CommandAbc9Strash( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     else if ( fCollapse && pAbc->pGia->pAigExtra )
     {
-        Gia_Man_t * pNew = Gia_ManDupUnnormalize( pAbc->pGia );
-        pNew->pManTime = pAbc->pGia->pManTime;
-        pTemp = Gia_ManDupCollapse( pNew, pAbc->pGia->pAigExtra, NULL );
-        pNew->pManTime = NULL;
-        Gia_ManStop( pNew );
+        pTemp = Gia_ManDupCollapse( pAbc->pGia, pAbc->pGia->pAigExtra, NULL );
         if ( !Abc_FrameReadFlag("silentmode") )
             printf( "Collapsed AIG with boxes and logic of the boxes.\n" );
     }
@@ -26494,7 +26490,8 @@ int Abc_CommandAbc9Strash( Abc_Frame_t * pAbc, int argc, char ** argv )
         if ( !Abc_FrameReadFlag("silentmode") )
             printf( "Rehashed the current AIG.\n" );
     }
-    Gia_ManTransferTiming( pTemp, pAbc->pGia );
+    if ( !(fCollapse && pAbc->pGia->pAigExtra) )
+        Gia_ManTransferTiming( pTemp, pAbc->pGia );
     Abc_FrameUpdateGia( pAbc, pTemp );
     return 0;
 
@@ -30662,6 +30659,7 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9Verify( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
+    char * pFileSpec = NULL;
     Cec_ParCec_t ParsCec, * pPars = &ParsCec;
     int c;
     Cec_ManCecSetDefaultParams( pPars );
@@ -30701,16 +30699,23 @@ int Abc_CommandAbc9Verify( Abc_Frame_t * pAbc, int argc, char ** argv )
             goto usage;
         }
     }
-    Gia_ManVerifyWithBoxes( pAbc->pGia, pPars );
+    if ( argc == globalUtilOptind + 1 )
+    {
+        pFileSpec = argv[globalUtilOptind];
+        Extra_FileNameCorrectPath( pFileSpec );
+        printf( "Taking spec from file \"%s\".\n", pFileSpec );
+    }
+    Gia_ManVerifyWithBoxes( pAbc->pGia, pPars, pFileSpec );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &verify [-CT num] [-vh]\n" );
+    Abc_Print( -2, "usage: &verify [-CT num] [-vh] <file>\n" );
     Abc_Print( -2, "\t         performs verification of combinational design\n" );
     Abc_Print( -2, "\t-C num : the max number of conflicts at a node [default = %d]\n", pPars->nBTLimit );
     Abc_Print( -2, "\t-T num : approximate runtime limit in seconds [default = %d]\n", pPars->TimeLimit );
     Abc_Print( -2, "\t-v     : toggle verbose output [default = %s]\n", pPars->fVerbose? "yes":"no");
     Abc_Print( -2, "\t-h     : print the command usage\n");
+    Abc_Print( -2, "\t<file> : optional file name with the spec [default = not used\n" );
     return 1;
 }
 

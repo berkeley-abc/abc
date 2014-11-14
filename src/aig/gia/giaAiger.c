@@ -742,9 +742,8 @@ Gia_Man_t * Gia_AigerReadFromMemory( char * pContents, int nFileSize, int fSkipS
     {
 //        Tim_ManPrint( (Tim_Man_t *)pNew->pManTime );
         if ( Abc_FrameReadLibBox() == NULL )
-            printf( "Cannot create TIM manager because box library is not available.\n" );
-        else
-            Tim_ManCreate( (Tim_Man_t *)pNew->pManTime, Abc_FrameReadLibBox(), pNew->vInArrs, pNew->vOutReqs );
+            printf( "Warning: Creating unit-delay box delay tables because box library is not available.\n" );
+        Tim_ManCreate( (Tim_Man_t *)pNew->pManTime, Abc_FrameReadLibBox(), pNew->vInArrs, pNew->vOutReqs );
     }
     Vec_FltFreeP( &pNew->vInArrs );
     Vec_FltFreeP( &pNew->vOutReqs );
@@ -1016,7 +1015,6 @@ void Gia_AigerWrite( Gia_Man_t * pInit, char * pFileName, int fWriteSymbols, int
     int i, nBufferSize, Pos;
     unsigned char * pBuffer;
     unsigned uLit0, uLit1, uLit;
-//    assert( Gia_ManIsNormalized(pInit) );
     assert( pInit->nXors == 0 && pInit->nMuxes == 0 );
 
     if ( Gia_ManCoNum(pInit) == 0 )

@@ -19,6 +19,7 @@
 ***********************************************************************/
 
 #include "wlc.h"
+#include "misc/tim/tim.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -377,32 +378,64 @@ void Wlc_BlastTable( Gia_Man_t * pNew, word * pTable, int * pFans, int nFans, in
   SeeAlso     []
 
 ***********************************************************************/
-Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p )
+Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Vec_Int_t * vBoxIds )
 {
     int fVerbose = 0;
-    Gia_Man_t * pTemp, * pNew;
+    Tim_Man_t * pManTime = NULL;
+    Gia_Man_t * pTemp, * pNew, * pExtra = NULL;
     Wlc_Obj_t * pObj, * pPrev = NULL;
     Vec_Int_t * vBits, * vTemp0, * vTemp1, * vTemp2, * vRes;
     int nBits = Wlc_NtkPrepareBits( p );
     int nRange, nRange0, nRange1, nRange2;
-    int i, k, b, iFanin, iLit, * pFans0, * pFans1, * pFans2;
-    int nFFins = 0, nFFouts = 0;
+    int i, k, b, iFanin, iLit, nAndPrev, * pFans0, * pFans1, * pFans2;
+    int nFFins = 0, nFFouts = 0, curPi = 0, curPo = 0;
+    int nBitCis = 0, nBitCos = 0;
     vBits  = Vec_IntAlloc( nBits );
     vTemp0 = Vec_IntAlloc( 1000 );
     vTemp1 = Vec_IntAlloc( 1000 );
     vTemp2 = Vec_IntAlloc( 1000 );
     vRes   = Vec_IntAlloc( 1000 );
+    // clean AND-gate counters
+    memset( p->nAnds, 0, sizeof(int) * WLC_OBJ_NUMBER );
     // create AIG manager
     pNew = Gia_ManStart( 5 * Wlc_NtkObjNum(p) + 1000 );
     pNew->pName = Abc_UtilStrsav( p->pName );
     Gia_ManHashAlloc( pNew );
-    // clean AND-gate counters
-    memset( p->nAnds, 0, sizeof(int) * WLC_OBJ_NUMBER );
-    // create primary inputs
+    // prepare for AIG with boxes
+    if ( vBoxIds )
+    {
+        int nNewCis = 0, nNewCos = 0;
+        Wlc_NtkForEachObj( p, pObj, i )
+            pObj->Mark = 0;
+        // count bit-width of regular CIs/COs
+        Wlc_NtkForEachCi( p, pObj, i )
+            nBitCis += Wlc_ObjRange( pObj );
+        Wlc_NtkForEachCo( p, pObj, i )
+            nBitCos += Wlc_ObjRange( pObj );
+        // count bit-width of additional CIs/COs due to selected multipliers
+        assert( Vec_IntSize(vBoxIds) > 0 );
+        Wlc_NtkForEachObjVec( vBoxIds, p, pObj, i )
+        {
+            // currently works only for multipliers
+            assert( pObj->Type == WLC_OBJ_ARI_MULTI );
+            nNewCis += Wlc_ObjRange( pObj );
+            nNewCos += Wlc_ObjRange( Wlc_ObjFanin0(p, pObj) );
+            nNewCos += Wlc_ObjRange( Wlc_ObjFanin1(p, pObj) );
+            pObj->Mark = 1;
+        }
+        // create hierarchy manager
+        pManTime = Tim_ManStart( nBitCis + nNewCis, nBitCos + nNewCos );
+        curPi = nBitCis;
+        curPo = 0;
+        // create AIG manager for logic of the boxes
+        pExtra = Gia_ManStart( Wlc_NtkObjNum(p) );
+        Gia_ManHashAlloc( pExtra );
+    }
+    // blast in the topological order
     Wlc_NtkForEachObj( p, pObj, i )
     {
 //        char * pName = Wlc_ObjName(p, i);
-        int nAndPrev = Gia_ManAndNum(pNew);
+        nAndPrev = Gia_ManAndNum(pNew);
         nRange  = Wlc_ObjRange( pObj );
         nRange0 = Wlc_ObjFaninNum(pObj) > 0 ? Wlc_ObjRange( Wlc_ObjFanin0(p, pObj) ) : -1;
         nRange1 = Wlc_ObjFaninNum(pObj) > 1 ? Wlc_ObjRange( Wlc_ObjFanin1(p, pObj) ) : -1;
@@ -412,7 +445,52 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p )
         pFans2  = Wlc_ObjFaninNum(pObj) > 2 ? Vec_IntEntryP( vBits, Wlc_ObjCopy(p, Wlc_ObjFaninId2(pObj)) ) : NULL;
         Vec_IntClear( vRes );
         assert( nRange > 0 );
-        if ( Wlc_ObjIsCi(pObj) )
+        if ( vBoxIds && pObj->Mark )
+        {
+            pObj->Mark = 0;
+
+            // create new box
+            Tim_ManCreateBox( pManTime, curPo, nRange0 + nRange1, curPi, nRange, -1 );
+            curPi += nRange;
+            curPo += nRange0 + nRange1;
+
+            // create combinational outputs in the normal manager
+            for ( k = 0; k < nRange0; k++ )
+                Gia_ManAppendCo( pNew, pFans0[k] );
+            for ( k = 0; k < nRange1; k++ )
+                Gia_ManAppendCo( pNew, pFans1[k] );
+
+            // make sure there is enough primary inputs in the manager
+            for ( k = Gia_ManPiNum(pExtra); k < nRange0 + nRange1; k++ )
+                Gia_ManAppendCi( pExtra );
+            // create combinational inputs
+            Vec_IntClear( vTemp0 );
+            for ( k = 0; k < nRange0; k++ )
+                Vec_IntPush( vTemp0, Gia_Obj2Lit(pExtra, Gia_ManPi(pExtra, k)) );
+            Vec_IntClear( vTemp1 );
+            for ( k = 0; k < nRange1; k++ )
+                Vec_IntPush( vTemp1, Gia_Obj2Lit(pExtra, Gia_ManPi(pExtra, nRange0+k)) );
+            // get new fanin arrays
+            pFans0 = Vec_IntArray( vTemp0 );
+            pFans1 = Vec_IntArray( vTemp1 );
+            // bit-blast the multiplier in the external manager
+            {
+                int nRangeMax = Abc_MaxInt( nRange, Abc_MaxInt(nRange0, nRange1) );
+                int * pArg0 = Wlc_VecLoadFanins( vTemp0, pFans0, nRange0, nRangeMax, Wlc_ObjFanin0(p, pObj)->Signed && Wlc_ObjFanin1(p, pObj)->Signed );
+                int * pArg1 = Wlc_VecLoadFanins( vTemp1, pFans1, nRange1, nRangeMax, Wlc_ObjFanin0(p, pObj)->Signed && Wlc_ObjFanin1(p, pObj)->Signed );
+                Wlc_BlastMultiplier( pExtra, pArg0, pArg1, nRange, vTemp2, vRes );
+                Vec_IntShrink( vRes, nRange );
+            }
+            // create outputs in the external manager
+            for ( k = 0; k < nRange; k++ )
+                Gia_ManAppendCo( pExtra, Vec_IntEntry(vRes, k) );
+
+            // create combinational inputs in the normal manager
+            Vec_IntClear( vRes );
+            for ( k = 0; k < nRange; k++ )
+                Vec_IntPush( vRes, Gia_ManAppendCi(pNew) );
+        }
+        else if ( Wlc_ObjIsCi(pObj) )
         {
             for ( k = 0; k < nRange; k++ )
                 Vec_IntPush( vRes, Gia_ManAppendCi(pNew) );
@@ -664,9 +742,27 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p )
     // set the number of registers
     assert( nFFins == nFFouts );
     Gia_ManSetRegNum( pNew, nFFins );
-    // finalize and cleanup
+    // finalize AIG
     pNew = Gia_ManCleanup( pTemp = pNew );
     Gia_ManStop( pTemp );
+    // finalize AIG with boxes
+    if ( vBoxIds )
+    {
+        curPo += nBitCos;
+        assert( curPi == Tim_ManCiNum(pManTime) );
+        assert( curPo == Tim_ManCoNum(pManTime) );
+        // normalize AIG
+        pNew = Gia_ManDupNormalize( pTemp = pNew );
+        Gia_ManStop( pTemp );
+        // finalize the extra AIG
+        pExtra = Gia_ManCleanup( pTemp = pExtra );
+        Gia_ManStop( pTemp );
+        assert( Gia_ManPoNum(pExtra) == Gia_ManPiNum(pNew) - nBitCis );
+        // attach
+        pNew->pAigExtra = pExtra;
+        pNew->pManTime = pManTime;
+        //Tim_ManPrint( pManTime );
+    }
     return pNew;
 }
 

@@ -1345,14 +1345,15 @@ extern float               Gia_ManComputeSwitching( Gia_Man_t * p, int nFrames, 
 extern Vec_Int_t *         Gia_ManComputeSwitchProbs( Gia_Man_t * pGia, int nFrames, int nPref, int fProbOne );
 extern Vec_Flt_t *         Gia_ManPrintOutputProb( Gia_Man_t * p );
 /*=== giaTim.c ===========================================================*/
+extern int                 Gia_ManIsNormalized( Gia_Man_t * p );
 extern Gia_Man_t *         Gia_ManDupNormalize( Gia_Man_t * p );
 extern Gia_Man_t *         Gia_ManDupUnnormalize( Gia_Man_t * p );
-extern Gia_Man_t *         Gia_ManDupCollapse( Gia_Man_t * p, Gia_Man_t * pBoxes, Vec_Int_t * vBoxPres );
 extern int                 Gia_ManLevelWithBoxes( Gia_Man_t * p );
 extern int                 Gia_ManLutLevelWithBoxes( Gia_Man_t * p );
-extern int                 Gia_ManVerifyWithBoxes( Gia_Man_t * pGia, void * pParsInit );
 extern void *              Gia_ManUpdateTimMan( Gia_Man_t * p, Vec_Int_t * vBoxPres );
 extern Gia_Man_t *         Gia_ManUpdateExtraAig( void * pTime, Gia_Man_t * pAig, Vec_Int_t * vBoxPres );
+extern Gia_Man_t *         Gia_ManDupCollapse( Gia_Man_t * p, Gia_Man_t * pBoxes, Vec_Int_t * vBoxPres );
+extern int                 Gia_ManVerifyWithBoxes( Gia_Man_t * pGia, void * pParsInit, char * pFileSpec );
 /*=== giaTruth.c ===========================================================*/
 extern word                Gia_ObjComputeTruthTable6Lut( Gia_Man_t * p, int iObj, Vec_Wrd_t * vTemp );
 extern word                Gia_ObjComputeTruthTable6( Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Int_t * vSupp, Vec_Wrd_t * vTruths );
@@ -1396,7 +1397,6 @@ extern void                Gia_ManCreateValueRefs( Gia_Man_t * p );
 extern void                Gia_ManCreateRefs( Gia_Man_t * p );
 extern int *               Gia_ManCreateMuxRefs( Gia_Man_t * p );
 extern int                 Gia_ManCrossCut( Gia_Man_t * p, int fReverse );
-extern int                 Gia_ManIsNormalized( Gia_Man_t * p );
 extern Vec_Int_t *         Gia_ManCollectPoIds( Gia_Man_t * p );
 extern int                 Gia_ObjIsMuxType( Gia_Obj_t * pNode );
 extern int                 Gia_ObjRecognizeExor( Gia_Obj_t * pObj, Gia_Obj_t ** ppFan0, Gia_Obj_t ** ppFan1 );

@@ -538,7 +538,7 @@ Tim_Man_t * Gia_ManGenerateTim( int nPis, int nPos, int nBoxes, int nIns, int nO
     curPo = 0;
     for ( i = 0; i < nBoxes; i++ )
     {
-        Tim_ManCreateBox( pMan, curPo, nIns, curPi, nOuts, 0 );
+        Tim_ManCreateBox( pMan, curPo, nIns, curPi, nOuts, -1 );
         curPi += nOuts;
         curPo += nIns;
     }
@@ -697,12 +697,12 @@ Gia_Man_t * Gia_ManDupWithFaddBoxes( Gia_Man_t * p, int nFaddMin, int fVerbose )
         Gia_ManDupWithFaddBoxes_rec( pNew, p, Gia_ObjFanin0(pObj), vFadds, vMap, vChains, vMap2Chain, vTruths );
     Gia_ManForEachCo( p, pObj, i )
         Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
-//    Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
+    Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
     if ( Gia_ManRegNum(p) )
     {
         if ( fVerbose )
             printf( "Warning: Sequential design is coverted into combinational one by adding white boxes.\n" );
-        Gia_ManSetRegNum( pNew, 0 );
+        pNew->nRegs = 0;
     }
     assert( !Gia_ManHasDangling(pNew) );
 
@@ -712,16 +712,18 @@ Gia_Man_t * Gia_ManDupWithFaddBoxes( Gia_Man_t * p, int nFaddMin, int fVerbose )
     Vec_WecFree( vChains );
     Vec_IntFree( vMap2Chain );
     Vec_IntFree( vTruths );
-
-    // normalize
-    pNew = Gia_ManDupNormalize( pTemp = pNew );
-    Gia_ManStop( pTemp );
     
     // other information
     nBoxes = (Gia_ManCiNum(pNew) - Gia_ManCiNum(p)) / 2;
     assert( nBoxes == (Gia_ManCoNum(pNew) - Gia_ManCoNum(p)) / 3 );
     pNew->pManTime  = Gia_ManGenerateTim( Gia_ManCiNum(p), Gia_ManCoNum(p), nBoxes, 3, 2 );
     pNew->pAigExtra = Gia_ManGenerateExtraAig( nBoxes, 3, 2 );
+
+    // normalize
+    pNew = Gia_ManDupNormalize( pTemp = pNew );
+    pNew->pManTime  = pTemp->pManTime;  pTemp->pManTime  = NULL;
+    pNew->pAigExtra = pTemp->pAigExtra; pTemp->pAigExtra = NULL;
+    Gia_ManStop( pTemp );
 
     //pNew = Gia_ManDupCollapse( pTemp = pNew, pNew->pAigExtra, NULL );
     //Gia_ManStop( pTemp );
