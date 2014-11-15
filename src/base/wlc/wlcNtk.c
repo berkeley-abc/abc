@@ -382,13 +382,13 @@ void Wlc_NtkPrintStats( Wlc_Ntk_t * p, int fDistrib, int fVerbose )
     printf( "Obj = %6d  ",     Wlc_NtkObjNum(p) );
     printf( "Mem = %.3f MB",   1.0*Wlc_NtkMemUsage(p)/(1<<20) );
     printf( "\n" );
-    if ( !fVerbose )
-        return;
     if ( fDistrib )
     {
         Wlc_NtkPrintDistrib( p, fVerbose );
         return;
     }
+    if ( !fVerbose )
+        return;
     printf( "Node type statistics:\n" );
     for ( i = 1; i < WLC_OBJ_NUMBER; i++ )
     {
