@@ -195,8 +195,8 @@ void Wlc_WriteVerInt( FILE * pFile, Wlc_Ntk_t * p )
         if ( pObj->Type == WLC_OBJ_TABLE )
         {
             // wire [3:0] s4972; table0 s4972_Index(s4971, s4972);
-            fprintf( pFile, "%s ;              table%d", Wlc_ObjName(p, i), Wlc_ObjTableId(pObj), i );
-            fprintf( pFile, " s%d_Index(%s, ", Wlc_ObjName(p, Wlc_ObjFaninId0(pObj)) );
+            fprintf( pFile, "%s ;              table%d", Wlc_ObjName(p, i), Wlc_ObjTableId(pObj) );
+            fprintf( pFile, " s%d_Index(%s, ", i, Wlc_ObjName(p, Wlc_ObjFaninId0(pObj)) );
             fprintf( pFile, "%s)",             Wlc_ObjName(p, i) );
         }
         else if ( pObj->Type == WLC_OBJ_CONST )
