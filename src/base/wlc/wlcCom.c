@@ -32,6 +32,7 @@ static int  Abc_CommandReadVer  ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int  Abc_CommandWriteVer ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int  Abc_CommandPs       ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int  Abc_CommandBlast    ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int  Abc_CommandTest     ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 static inline Wlc_Ntk_t * Wlc_AbcGetNtk( Abc_Frame_t * pAbc )                       { return (Wlc_Ntk_t *)pAbc->pAbcWlc;                      }
 static inline void        Wlc_AbcFreeNtk( Abc_Frame_t * pAbc )                      { if ( pAbc->pAbcWlc ) Wlc_NtkFree(Wlc_AbcGetNtk(pAbc));  }
@@ -58,6 +59,7 @@ void Wlc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Word level", "%write_ver",  Abc_CommandWriteVer,  0 );
     Cmd_CommandAdd( pAbc, "Word level", "%ps",         Abc_CommandPs,        0 );
     Cmd_CommandAdd( pAbc, "Word level", "%blast",      Abc_CommandBlast,     0 );
+    Cmd_CommandAdd( pAbc, "Word level", "%test",       Abc_CommandTest,      0 );
 }
 
 /**Function********************************************************************
@@ -314,6 +316,53 @@ usage:
     Abc_Print( -2, "usage: %%blast [-mvh]\n" );
     Abc_Print( -2, "\t         performs bit-blasting of the word-level design\n" );
     Abc_Print( -2, "\t-m     : toggle creating boxes for all multipliers in the design [default = %s]\n", fMulti? "yes": "no" );
+    Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
+    return 1;
+}
+
+/**Function********************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+******************************************************************************/
+int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    Wlc_Ntk_t * pNtk = Wlc_AbcGetNtk(pAbc);
+    int c, fVerbose  = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pNtk == NULL )
+    {
+        Abc_Print( 1, "Abc_CommandBlast(): There is no current design.\n" );
+        return 0;
+    }
+    // transform
+//    pNtk = Wlc_NtkAbstractNodes( pNtk, NULL );
+    pNtk = Wlc_NtkUifNodePairs( pNtk, NULL );
+    Wlc_AbcUpdateNtk( pAbc, pNtk );
+    return 0;
+usage:
+    Abc_Print( -2, "usage: %%test [-vh]\n" );
+    Abc_Print( -2, "\t         experiments with word-level networks\n" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;

@@ -111,8 +111,19 @@ void Wlc_ObjSetCi( Wlc_Ntk_t * p, Wlc_Obj_t * pObj )
 {
     assert( Wlc_ObjIsCi(pObj) );
     assert( Wlc_ObjFaninNum(pObj) == 0 );
-    pObj->Fanins[1] = Vec_IntSize(&p->vCis);
-    Vec_IntPush( &p->vCis, Wlc_ObjId(p, pObj) );
+    if ( Wlc_NtkPiNum(p) == Wlc_NtkCiNum(p) || pObj->Type != WLC_OBJ_PI )
+    {
+        pObj->Fanins[1] = Vec_IntSize(&p->vCis);
+        Vec_IntPush( &p->vCis, Wlc_ObjId(p, pObj) );
+    }
+    else // insert in the array of CI at the end of PIs
+    {
+        Wlc_Obj_t * pTemp; int i;
+        Vec_IntInsert( &p->vCis, Wlc_NtkPiNum(p), Wlc_ObjId(p, pObj) );
+        // other CI IDs are invalidated... naive fix!
+        Wlc_NtkForEachCi( p, pTemp, i )
+            pTemp->Fanins[1] = i;
+    }
     if ( pObj->Type == WLC_OBJ_PI )
         Vec_IntPush( &p->vPis, Wlc_ObjId(p, pObj) );
 }
@@ -146,6 +157,12 @@ int Wlc_ObjAlloc( Wlc_Ntk_t * p, int Type, int Signed, int End, int Beg )
         Wlc_ObjSetCi( p, pObj );
     p->nObjs[Type]++;
     return p->iObj++;
+}
+int Wlc_ObjCreate( Wlc_Ntk_t * p, int Type, int Signed, int End, int Beg, Vec_Int_t * vFanins )
+{
+    int iFaninNew = Wlc_ObjAlloc( p, Type, Signed, End, Beg );
+    Wlc_ObjAddFanins( p, Wlc_NtkObj(p, iFaninNew), vFanins );
+    return iFaninNew;
 }
 char * Wlc_ObjName( Wlc_Ntk_t * p, int iObj )
 {
@@ -345,9 +362,9 @@ void Wlc_NtkPrintNodes( Wlc_Ntk_t * p, int Type )
             continue;
         printf( "%8d  :",      Counter++ );
         printf( "%8d  :  ",    i );
-        printf( "%3d%s = ",    Wlc_ObjRange(pObj),                   pObj->Signed ? "s" : " " );
-        printf( "%3d%s  %s ",  Wlc_ObjRange(Wlc_ObjFanin0(p, pObj)), Wlc_ObjFanin0(p, pObj)->Signed ? "s" : " ", Wlc_Names[Type] );
-        printf( "%3d%s ",      Wlc_ObjRange(Wlc_ObjFanin1(p, pObj)), Wlc_ObjFanin1(p, pObj)->Signed ? "s" : " " );
+        printf( "%3d%s = ",    Wlc_ObjRange(pObj),                   Wlc_ObjIsSigned(pObj) ? "s" : " " );
+        printf( "%3d%s  %s ",  Wlc_ObjRange(Wlc_ObjFanin0(p, pObj)), Wlc_ObjIsSigned(Wlc_ObjFanin0(p, pObj)) ? "s" : " ", Wlc_Names[Type] );
+        printf( "%3d%s ",      Wlc_ObjRange(Wlc_ObjFanin1(p, pObj)), Wlc_ObjIsSigned(Wlc_ObjFanin1(p, pObj)) ? "s" : " " );
         printf( " :    " );
         printf( "%-12s =  ",   Wlc_ObjName(p, i) );
         printf( "%-12s  %s  ", Wlc_ObjName(p, Wlc_ObjFaninId0(pObj)), Wlc_Names[Type] );
@@ -419,7 +436,7 @@ void Wlc_ObjCollectCopyFanins( Wlc_Ntk_t * p, int iObj, Vec_Int_t * vFanins )
 int Wlc_ObjDup( Wlc_Ntk_t * pNew, Wlc_Ntk_t * p, int iObj, Vec_Int_t * vFanins )
 {
     Wlc_Obj_t * pObj = Wlc_NtkObj( p, iObj );
-    int iFaninNew = Wlc_ObjAlloc( pNew, pObj->Type, pObj->Signed, pObj->End, pObj->Beg );
+    int iFaninNew = Wlc_ObjAlloc( pNew, pObj->Type, Wlc_ObjIsSigned(pObj), pObj->End, pObj->Beg );
     Wlc_Obj_t * pObjNew = Wlc_NtkObj(pNew, iFaninNew);
     Wlc_ObjCollectCopyFanins( p, iObj, vFanins );
     Wlc_ObjAddFanins( pNew, pObjNew, vFanins );
@@ -463,7 +480,7 @@ void Wlc_NtkTransferNames( Wlc_Ntk_t * pNew, Wlc_Ntk_t * p )
     assert( pNew->pManName  == NULL && p->pManName != NULL );
     Wlc_NtkCleanNameId( pNew );
     for ( i = 0; i < p->nObjsAlloc; i++ )
-        if ( Wlc_ObjCopy(p, i) && Wlc_ObjNameId(p, i) )
+        if ( Wlc_ObjCopy(p, i) && i < Vec_IntSize(&p->vNameIds) && Wlc_ObjNameId(p, i) )
             Wlc_ObjSetNameId( pNew, Wlc_ObjCopy(p, i), Wlc_ObjNameId(p, i) );
     pNew->pManName = p->pManName; 
     p->pManName = NULL;
@@ -471,30 +488,6 @@ void Wlc_NtkTransferNames( Wlc_Ntk_t * pNew, Wlc_Ntk_t * p )
     // transfer table
     pNew->pMemTable = p->pMemTable;  p->pMemTable = NULL;
     pNew->vTables = p->vTables;      p->vTables = NULL;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Collect IDs of the multipliers.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-Vec_Int_t * Wlc_NtkCollectMultipliers( Wlc_Ntk_t * p )
-{
-    Wlc_Obj_t * pObj;  int i;
-    Vec_Int_t * vBoxIds = Vec_IntAlloc( 100 );
-    Wlc_NtkForEachObj( p, pObj, i )
-        if ( pObj->Type == WLC_OBJ_ARI_MULTI )
-            Vec_IntPush( vBoxIds, i );
-    if ( Vec_IntSize( vBoxIds ) > 0 )
-        return vBoxIds;
-    Vec_IntFree( vBoxIds );
-    return NULL;
 }
 
 ////////////////////////////////////////////////////////////////////////

@@ -862,7 +862,7 @@ startword:
             p->pNtk->pMemTable = p->pMemTable; p->pMemTable = NULL;
             p->pNtk->vTables = p->vTables; p->vTables = NULL;
             // read the argument definitions
-            while ( (pName = Wlc_PrsStrtok( NULL, " (,)" )) )
+            while ( (pName = Wlc_PrsStrtok( NULL, "(,)" )) )
             {
                 pName = Wlc_PrsSkipSpaces( pName );
                 if ( Wlc_PrsStrCmp( pName, "input" ) || Wlc_PrsStrCmp( pName, "output" ) || Wlc_PrsStrCmp( pName, "wire" ) )

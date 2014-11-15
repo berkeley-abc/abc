@@ -1,4 +1,4 @@
-SRC +=    src/base/wlc/wlc.c \
+SRC +=    src/base/wlc/wlcAbs.c \
     src/base/wlc/wlcBlast.c \
     src/base/wlc/wlcCom.c \
     src/base/wlc/wlcNtk.c \
