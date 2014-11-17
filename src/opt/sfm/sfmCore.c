@@ -258,8 +258,13 @@ int Sfm_NtkPerform( Sfm_Ntk_t * p, Sfm_Par_t * pPars )
 {
     int i, k, Counter = 0;
     p->timeTotal = Abc_Clock();
-    if ( pPars->fVerbose && Vec_StrSum(p->vFixed) > 0 )
-        printf( "Performing MFS with %d fixed objects.\n", Vec_StrSum(p->vFixed) );
+    if ( pPars->fVerbose )
+    {
+        int nFixed = p->vFixed ? Vec_StrSum(p->vFixed) : 0;
+        int nEmpty = p->vEmpty ? Vec_StrSum(p->vEmpty) : 0;
+        printf( "Performing MFS with %d PIs, %d POs, %d nodes (%d flexible, %d fixed, %d empty).\n", 
+            p->nPis, p->nPos, p->nNodes, p->nNodes-nFixed, nFixed, nEmpty );
+    }
     p->pPars = pPars;
     Sfm_NtkPrepare( p );
 //    Sfm_ComputeInterpolantCheck( p );
