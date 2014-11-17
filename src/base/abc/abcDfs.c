@@ -1460,8 +1460,6 @@ int Abc_NtkIsAcyclicWithBoxes_rec( Abc_Obj_t * pNode )
     Abc_Obj_t * pFanin;
     int fAcyclic, i;
     assert( !Abc_ObjIsNet(pNode) );
-    if ( Abc_ObjIsBo(pNode) )
-        pNode = Abc_ObjFanin0(pNode);
     if ( Abc_ObjIsPi(pNode) || Abc_ObjIsLatch(pNode) || Abc_ObjIsBlackbox(pNode) )
         return 1;
     assert( Abc_ObjIsNode(pNode) || Abc_ObjIsBox(pNode) );
@@ -1485,8 +1483,6 @@ int Abc_NtkIsAcyclicWithBoxes_rec( Abc_Obj_t * pNode )
         if ( Abc_ObjIsBox(pNode) )
             pFanin = Abc_ObjFanin0(pFanin);
         pFanin = Abc_ObjFanin0Ntk(pFanin);
-        // make sure there is no mixing of networks
-        assert( pFanin->pNtk == pNode->pNtk );
         if ( Abc_ObjIsBo(pFanin) )
             pFanin = Abc_ObjFanin0(pFanin);
         // check if the fanin is visited
@@ -1523,6 +1519,8 @@ int Abc_NtkIsAcyclicWithBoxes( Abc_Ntk_t * pNtk )
     Abc_NtkForEachPo( pNtk, pNode, i )
     {
         pNode = Abc_ObjFanin0Ntk(Abc_ObjFanin0(pNode));
+        if ( Abc_ObjIsBo(pNode) )
+            pNode = Abc_ObjFanin0(pNode);
         if ( Abc_NodeIsTravIdPrevious(pNode) )
             continue;
         // traverse the output logic cone
@@ -1537,6 +1535,8 @@ int Abc_NtkIsAcyclicWithBoxes( Abc_Ntk_t * pNtk )
         Abc_NtkForEachLatchInput( pNtk, pNode, i )
         {
             pNode = Abc_ObjFanin0Ntk(Abc_ObjFanin0(pNode));
+            if ( Abc_ObjIsBo(pNode) )
+                pNode = Abc_ObjFanin0(pNode);
             if ( Abc_NodeIsTravIdPrevious(pNode) )
                 continue;
             // traverse the output logic cone

@@ -54,7 +54,8 @@ void Sfm_CheckConsistency( Vec_Wec_t * vFanins, int nPis, int nPos, Vec_Str_t * 
             assert( Vec_IntSize(vArray) == 0 && Vec_StrEntry(vFixed, i) == (char)0 );
         // nodes are in a topo order; POs cannot be fanins
         Vec_IntForEachEntry( vArray, Fanin, k )
-            assert( Fanin < i && Fanin + nPos < Vec_WecSize(vFanins) );
+//            assert( Fanin < i && Fanin + nPos < Vec_WecSize(vFanins) );
+            assert( Fanin + nPos < Vec_WecSize(vFanins) );
         // POs have one fanout
         if ( i + nPos >= Vec_WecSize(vFanins) )
             assert( Vec_IntSize(vArray) == 1 && Vec_StrEntry(vFixed, i) == (char)0 );

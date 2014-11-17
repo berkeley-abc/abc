@@ -270,7 +270,6 @@ int Abc_NtkPerformMfs( Abc_Ntk_t * pNtk, Sfm_Par_t * pPars )
     p = Abc_NtkExtractMfs( pNtk, pPars->nFirstFixed );
     // perform optimization
     nNodes = Sfm_NtkPerform( p, pPars );
-    // call the fast extract procedure
     if ( nNodes == 0 )
     {
 //        Abc_Print( 1, "The network is not changed by \"mfs\".\n" );
@@ -451,7 +450,6 @@ int Abc_NtkMfsAfterICheck( Abc_Ntk_t * p, int nFrames, int nFramesAdd, Vec_Int_t
     pp = Abc_NtkExtractMfs2( pNtk, iPivot );
     // perform optimization
     nNodes = Sfm_NtkPerform( pp, pPars );
-    // call the fast extract procedure
     if ( nNodes == 0 )
     {
 //        Abc_Print( 1, "The network is not changed by \"mfs\".\n" );

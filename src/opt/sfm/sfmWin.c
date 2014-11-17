@@ -125,33 +125,53 @@ static inline int   Sfm_ObjIsTravIdCurrent2( Sfm_Ntk_t * p, int Id )   { return 
 
   Synopsis    [Collects used internal nodes in a topological order.]
 
-  Description []
+  Description [Additionally considers objects in groups as a single object
+  and collects them in a topological order together as single entity.]
                
   SideEffects []
 
   SeeAlso     []
 
 ***********************************************************************/
-void Sfm_NtkDfs_rec( Sfm_Ntk_t * p, int iNode, Vec_Int_t * vNodes )
+void Sfm_NtkDfs_rec( Sfm_Ntk_t * p, int iNode, Vec_Int_t * vNodes, Vec_Wec_t * vGroups, Vec_Int_t * vGroupMap, Vec_Int_t * vBoxesLeft )
 {
     int i, iFanin;
     if ( Sfm_ObjIsPi(p, iNode) )
         return;
     if ( Sfm_ObjIsTravIdCurrent(p, iNode) )
         return;
-    Sfm_ObjSetTravIdCurrent(p, iNode);
-    Sfm_ObjForEachFanin( p, iNode, iFanin, i )
-        Sfm_NtkDfs_rec( p, iFanin, vNodes );
-    Vec_IntPush( vNodes, iNode );
+    if ( Vec_IntEntry(vGroupMap, iNode) >= 0 )
+    {
+        int k, iGroup = Abc_Lit2Var( Vec_IntEntry(vGroupMap, iNode) );
+        Vec_Int_t * vGroup = Vec_WecEntry( vGroups, iGroup );
+        Vec_IntForEachEntry( vGroup, iNode, i )
+            assert( Sfm_ObjIsNode(p, iNode) );
+        Vec_IntForEachEntry( vGroup, iNode, i )
+            Sfm_ObjSetTravIdCurrent( p, iNode );
+        Vec_IntForEachEntry( vGroup, iNode, i )
+            Sfm_ObjForEachFanin( p, iNode, iFanin, k )
+                Sfm_NtkDfs_rec( p, iFanin, vNodes, vGroups, vGroupMap, vBoxesLeft );
+        Vec_IntForEachEntry( vGroup, iNode, i )
+            Vec_IntPush( vNodes, iNode );
+        Vec_IntPush( vBoxesLeft, iGroup );
+    }
+    else
+    {
+        Sfm_ObjSetTravIdCurrent(p, iNode);
+        Sfm_ObjForEachFanin( p, iNode, iFanin, i )
+            Sfm_NtkDfs_rec( p, iFanin, vNodes, vGroups, vGroupMap, vBoxesLeft );
+        Vec_IntPush( vNodes, iNode );
+    }
 }
-Vec_Int_t * Sfm_NtkDfs( Sfm_Ntk_t * p )
+Vec_Int_t * Sfm_NtkDfs( Sfm_Ntk_t * p, Vec_Wec_t * vGroups, Vec_Int_t * vGroupMap, Vec_Int_t * vBoxesLeft )
 {
     Vec_Int_t * vNodes;
     int i;
+    Vec_IntClear( vBoxesLeft );
     vNodes = Vec_IntAlloc( p->nObjs );
     Sfm_NtkIncrementTravId( p );
     Sfm_NtkForEachPo( p, i )
-        Sfm_NtkDfs_rec( p, Sfm_ObjFanin(p, i, 0), vNodes );
+        Sfm_NtkDfs_rec( p, Sfm_ObjFanin(p, i, 0), vNodes, vGroups, vGroupMap, vBoxesLeft );
     return vNodes;
 }
 

@@ -35,6 +35,22 @@ ABC_NAMESPACE_IMPL_START
 
 /**Function*************************************************************
 
+  Synopsis    [Returns the number of boxes in the AIG with boxes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Gia_ManBoxNum( Gia_Man_t * p )
+{
+    return p->pManTime ? Tim_ManBoxNum((Tim_Man_t *)p->pManTime) : 0;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Returns one if this is a seq AIG with non-trivial boxes.]
 
   Description []
@@ -598,8 +614,15 @@ void * Gia_ManUpdateTimMan( Gia_Man_t * p, Vec_Int_t * vBoxPres )
 {
     Tim_Man_t * pManTime = (Tim_Man_t *)p->pManTime;
     assert( pManTime != NULL );
-    assert( Tim_ManBoxNum(pManTime) == Vec_IntSize(vBoxPres) );
+    assert( Vec_IntSize(vBoxPres) == Tim_ManBoxNum(pManTime) );
     return Tim_ManTrim( pManTime, vBoxPres );
+}
+void * Gia_ManUpdateTimMan2( Gia_Man_t * p, Vec_Int_t * vBoxesLeft )
+{
+    Tim_Man_t * pManTime = (Tim_Man_t *)p->pManTime;
+    assert( pManTime != NULL );
+    assert( Vec_IntSize(vBoxesLeft) <= Tim_ManBoxNum(pManTime) );
+    return Tim_ManReduce( pManTime, vBoxesLeft );
 }
 
 /**Function*************************************************************
@@ -615,7 +638,7 @@ void * Gia_ManUpdateTimMan( Gia_Man_t * p, Vec_Int_t * vBoxPres )
 ***********************************************************************/
 Gia_Man_t * Gia_ManUpdateExtraAig( void * pTime, Gia_Man_t * p, Vec_Int_t * vBoxPres )
 {
-    Gia_Man_t * pNew = NULL;
+    Gia_Man_t * pNew;
     Tim_Man_t * pManTime = (Tim_Man_t *)pTime;
     Vec_Int_t * vOutPres = Vec_IntAlloc( 100 );
     int i, k, curPo = 0;
@@ -628,9 +651,30 @@ Gia_Man_t * Gia_ManUpdateExtraAig( void * pTime, Gia_Man_t * p, Vec_Int_t * vBox
         curPo += Tim_ManBoxOutputNum(pManTime, i);
     }
     assert( curPo == Gia_ManCoNum(p) );
-//    if ( Vec_IntSize(vOutPres) > 0 )
-        pNew = Gia_ManDupOutputVec( p, vOutPres );
+    pNew = Gia_ManDupOutputVec( p, vOutPres );
     Vec_IntFree( vOutPres );
+    return pNew;
+}
+Gia_Man_t * Gia_ManUpdateExtraAig2( void * pTime, Gia_Man_t * p, Vec_Int_t * vBoxesLeft )
+{
+    Gia_Man_t * pNew;
+    Tim_Man_t * pManTime = (Tim_Man_t *)pTime;
+    int nRealPis = Tim_ManPiNum(pManTime);
+    Vec_Int_t * vOutsLeft;
+    int i, k, iBox, iOutFirst;
+    if ( Vec_IntSize(vBoxesLeft) == Tim_ManBoxNum(pManTime) )
+        return Gia_ManDup( p );
+    assert( Vec_IntSize(vBoxesLeft) < Tim_ManBoxNum(pManTime) );
+    assert( Gia_ManCoNum(p) == Tim_ManCiNum(pManTime) - nRealPis );
+    vOutsLeft = Vec_IntAlloc( 100 );
+    Vec_IntForEachEntry( vBoxesLeft, iBox, i )
+    {
+        iOutFirst = Tim_ManBoxOutputFirst(pManTime, iBox) - nRealPis;
+        for ( k = 0; k < Tim_ManBoxOutputNum(pManTime, iBox); k++ )
+            Vec_IntPush( vOutsLeft, iOutFirst + k );
+    }
+    pNew = Gia_ManDupSelectedOutputs( p, vOutsLeft );
+    Vec_IntFree( vOutsLeft );
     return pNew;
 }
 

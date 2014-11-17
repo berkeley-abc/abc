@@ -77,7 +77,7 @@ extern word *       Sfm_NodeReadTruth( Sfm_Ntk_t * p, int i );
 extern int          Sfm_NodeReadFixed( Sfm_Ntk_t * p, int i );
 extern int          Sfm_NodeReadUsed( Sfm_Ntk_t * p, int i );
 /*=== sfmWin.c ==========================================================*/
-extern Vec_Int_t *  Sfm_NtkDfs( Sfm_Ntk_t * p );
+extern Vec_Int_t *  Sfm_NtkDfs( Sfm_Ntk_t * p, Vec_Wec_t * vGroups, Vec_Int_t * vGroupMap, Vec_Int_t * vBoxesLeft );
 
 
 ABC_NAMESPACE_HEADER_END
