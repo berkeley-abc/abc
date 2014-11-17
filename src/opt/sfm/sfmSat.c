@@ -91,7 +91,8 @@ int Sfm_NtkWindowToSolver( Sfm_Ntk_t * p )
             if ( Vec_IntSize(vClause) == 0 )
                 break;
             RetValue = sat_solver_addclause( p->pSat, Vec_IntArray(vClause), Vec_IntArray(vClause) + Vec_IntSize(vClause) );
-            assert( RetValue );
+            if ( RetValue == 0 )
+                return 0;
         }
     }
     if ( Vec_IntSize(p->vTfo) > 0 )
@@ -126,7 +127,8 @@ int Sfm_NtkWindowToSolver( Sfm_Ntk_t * p )
                 if ( Vec_IntSize(vClause) == 0 )
                     break;
                 RetValue = sat_solver_addclause( p->pSat, Vec_IntArray(vClause), Vec_IntArray(vClause) + Vec_IntSize(vClause) );
-                assert( RetValue );
+                if ( RetValue == 0 )
+                    return 0;
             }
         }
         // create XOR clauses for the roots

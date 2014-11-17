@@ -239,7 +239,7 @@ Tim_Man_t * Tim_ManTrim( Tim_Man_t * p, Vec_Int_t * vBoxPres )
 
 /**Function*************************************************************
 
-  Synopsis    [Trims the timing manager.]
+  Synopsis    [Reduces the timing manager.]
 
   Description []
                
@@ -255,9 +255,7 @@ Tim_Man_t * Tim_ManReduce( Tim_Man_t * p, Vec_Int_t * vBoxesLeft )
     Tim_Obj_t * pObj;
     float * pDelayTable, * pDelayTableNew;
     int i, k, iBox, nNewCis, nNewCos, nInputs, nOutputs;
-    if ( Vec_IntSize(vBoxesLeft) == Tim_ManBoxNum(p) )
-        return Tim_ManDup( p, 0 );
-    assert( Vec_IntSize(vBoxesLeft) < Tim_ManBoxNum(p) );
+    assert( Vec_IntSize(vBoxesLeft) <= Tim_ManBoxNum(p) );
     // count the number of CIs and COs in the trimmed manager
     nNewCis = Tim_ManPiNum(p);
     nNewCos = Tim_ManPoNum(p);
@@ -267,8 +265,8 @@ Tim_Man_t * Tim_ManReduce( Tim_Man_t * p, Vec_Int_t * vBoxesLeft )
         nNewCis += pBox->nOutputs;
         nNewCos += pBox->nInputs;
     }
-    assert( nNewCis < Tim_ManCiNum(p) );
-    assert( nNewCos < Tim_ManCoNum(p) );
+    assert( nNewCis <= Tim_ManCiNum(p) );
+    assert( nNewCos <= Tim_ManCoNum(p) );
     // clear traversal IDs
     Tim_ManForEachCi( p, pObj, i ) 
         pObj->TravId = 0;          

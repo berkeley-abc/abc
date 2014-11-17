@@ -280,7 +280,7 @@ Gia_Man_t * Gia_ManDupSelectedOutputs( Gia_Man_t * p, Vec_Int_t * vOutsLeft )
     Vec_IntForEachEntry( vOutsLeft, iOut, i )
         Gia_ManDupOrderDfs_rec( pNew, p, Gia_ObjFanin0(Gia_ManPo(p, iOut)) );
     Vec_IntForEachEntry( vOutsLeft, iOut, i )
-        pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(Gia_ManPo(p, iOut)) );
+        Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(Gia_ManPo(p, iOut)) );
     return pNew;
 }
 

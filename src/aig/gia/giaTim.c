@@ -660,13 +660,10 @@ Gia_Man_t * Gia_ManUpdateExtraAig2( void * pTime, Gia_Man_t * p, Vec_Int_t * vBo
     Gia_Man_t * pNew;
     Tim_Man_t * pManTime = (Tim_Man_t *)pTime;
     int nRealPis = Tim_ManPiNum(pManTime);
-    Vec_Int_t * vOutsLeft;
+    Vec_Int_t * vOutsLeft = Vec_IntAlloc( 100 );
     int i, k, iBox, iOutFirst;
-    if ( Vec_IntSize(vBoxesLeft) == Tim_ManBoxNum(pManTime) )
-        return Gia_ManDup( p );
-    assert( Vec_IntSize(vBoxesLeft) < Tim_ManBoxNum(pManTime) );
+    assert( Vec_IntSize(vBoxesLeft) <= Tim_ManBoxNum(pManTime) );
     assert( Gia_ManCoNum(p) == Tim_ManCiNum(pManTime) - nRealPis );
-    vOutsLeft = Vec_IntAlloc( 100 );
     Vec_IntForEachEntry( vBoxesLeft, iBox, i )
     {
         iOutFirst = Tim_ManBoxOutputFirst(pManTime, iBox) - nRealPis;
