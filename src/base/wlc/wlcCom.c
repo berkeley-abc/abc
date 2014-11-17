@@ -356,8 +356,8 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 0;
     }
     // transform
-//    pNtk = Wlc_NtkAbstractNodes( pNtk, NULL );
     pNtk = Wlc_NtkUifNodePairs( pNtk, NULL );
+    pNtk = Wlc_NtkAbstractNodes( pNtk, NULL );
     Wlc_AbcUpdateNtk( pAbc, pNtk );
     return 0;
 usage:
