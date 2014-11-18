@@ -234,7 +234,7 @@ Wlc_Ntk_t * Wlc_NtkUifNodePairs( Wlc_Ntk_t * p, Vec_Int_t * vPairsInit )
         iObjNew2 = Wlc_ObjCreate( p, WLC_OBJ_COMP_EQU, 0, 0, 0, vFanins );
         // create implication node (iObjNew is already complemented above)
         Vec_IntFillTwo( vFanins, 2, iObjNew, iObjNew2 );
-        iObjNew = Wlc_ObjCreate( p, WLC_OBJ_LOGIC_AND, 0, 0, 0, vFanins );
+        iObjNew = Wlc_ObjCreate( p, WLC_OBJ_LOGIC_OR, 0, 0, 0, vFanins );
         // save the constraint
         Vec_IntPush( vUifConstrs, iObjNew );
     }
