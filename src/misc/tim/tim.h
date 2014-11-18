@@ -130,6 +130,7 @@ extern Tim_Man_t *     Tim_ManLoad( Vec_Str_t * p, int fHieOnly );
 extern Tim_Man_t *     Tim_ManStart( int nCis, int nCos );
 extern Tim_Man_t *     Tim_ManDup( Tim_Man_t * p, int fUnitDelay );
 extern Tim_Man_t *     Tim_ManTrim( Tim_Man_t * p, Vec_Int_t * vBoxPres );
+extern Tim_Man_t *     Tim_ManReduce( Tim_Man_t * p, Vec_Int_t * vBoxesLeft );
 extern Vec_Int_t *     Tim_ManAlignTwo( Tim_Man_t * pSpec, Tim_Man_t * pImpl );
 extern void            Tim_ManCreate( Tim_Man_t * p, void * pLib, Vec_Flt_t * vInArrs, Vec_Flt_t * vOutReqs );
 extern float *         Tim_ManGetArrTimes( Tim_Man_t * p );

@@ -19,21 +19,14 @@
 ***********************************************************************/
 
 #include "gia.h"
-#include "bool/kit/kit.h"
 #include "opt/sfm/sfm.h"
 #include "misc/tim/tim.h"
 
 ABC_NAMESPACE_IMPL_START
 
-
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
-
-static word s_ElemVar  = ABC_CONST(0xAAAAAAAAAAAAAAAA);
-static word s_ElemVar2 = ABC_CONST(0xCCCCCCCCCCCCCCCC);
-
-extern int Kit_TruthToGia( Gia_Man_t * pMan, unsigned * pTruth, int nVars, Vec_Int_t * vMemory, Vec_Int_t * vLeaves, int fHash );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -50,204 +43,149 @@ extern int Kit_TruthToGia( Gia_Man_t * pMan, unsigned * pTruth, int nVars, Vec_I
   SeeAlso     []
 
 ***********************************************************************/
-void Gia_ManExtractMfs_rec( Gia_Man_t * p, int iObj, Vec_Int_t * vId2Mfs, Vec_Wec_t * vFanins, Vec_Str_t * vFixed, Vec_Wrd_t * vTruths, Vec_Wrd_t * vTruthsTemp )
+Sfm_Ntk_t * Gia_ManExtractMfs( Gia_Man_t * p )
 {
+    word uTruth, uTruths6[6] = {
+        ABC_CONST(0xAAAAAAAAAAAAAAAA),
+        ABC_CONST(0xCCCCCCCCCCCCCCCC),
+        ABC_CONST(0xF0F0F0F0F0F0F0F0),
+        ABC_CONST(0xFF00FF00FF00FF00),
+        ABC_CONST(0xFFFF0000FFFF0000),
+        ABC_CONST(0xFFFFFFFF00000000)
+    };
+    Gia_Obj_t * pObj, * pObjExtra;
+    Vec_Wec_t * vFanins; // mfs data
+    Vec_Str_t * vFixed;  // mfs data 
+    Vec_Str_t * vEmpty;  // mfs data
+    Vec_Wrd_t * vTruths; // mfs data
     Vec_Int_t * vArray;
-    int i, Fanin;
-    Gia_Obj_t * pObj = Gia_ManObj( p, iObj );
-    assert( Gia_ObjIsLut(p, iObj) );
-    if ( !~pObj->Value )
-        return;
-    Gia_LutForEachFanin( p, iObj, Fanin, i )
-        Gia_ManExtractMfs_rec( p, Fanin, vId2Mfs, vFanins, vFixed, vTruths, vTruthsTemp );
-    pObj->Value = Vec_WecSize(vFanins);
-    vArray = Vec_WecPushLevel( vFanins );
-    Vec_IntGrow( vArray, Gia_ObjLutSize(p, iObj) );
-    Gia_LutForEachFanin( p, iObj, Fanin, i )
-        Vec_IntPush( vArray, Gia_ManObj(p, Fanin)->Value );
-    Vec_StrPush( vFixed, (char)0 );
-    Vec_WrdPush( vTruths, Gia_ObjComputeTruthTable6Lut(p, iObj, vTruthsTemp) );
-    Vec_IntWriteEntry( vId2Mfs, iObj, pObj->Value );
-}
-void Gia_ManExtractMfs_rec2( Gia_Man_t * p, int iObj, Vec_Int_t * vId2Mfs, Vec_Wec_t * vFanins, Vec_Str_t * vFixed, Vec_Wrd_t * vTruths )
-{
-    Vec_Int_t * vArray;
-    Gia_Obj_t * pObj = Gia_ManObj( p, iObj );
-    if ( Gia_ObjIsTravIdCurrent(p, pObj) )
-        return;
-    Gia_ObjSetTravIdCurrent(p, pObj);
-    assert( Gia_ObjIsAnd(pObj) );
-    Gia_ManExtractMfs_rec2( p, Gia_ObjFaninId0(pObj, iObj), vId2Mfs, vFanins, vFixed, vTruths );
-    Gia_ManExtractMfs_rec2( p, Gia_ObjFaninId1(pObj, iObj), vId2Mfs, vFanins, vFixed, vTruths );
-    pObj->Value = Vec_WecSize(vFanins);
-    vArray = Vec_WecPushLevel( vFanins );
-    Vec_IntGrow( vArray, 2 );
-    Vec_IntPush( vArray, Gia_ObjFanin0(pObj)->Value );
-    Vec_IntPush( vArray, Gia_ObjFanin1(pObj)->Value );
-    Vec_StrPush( vFixed, (char)1 );
-    Vec_WrdPush( vTruths, (Gia_ObjFaninC0(pObj) ? ~s_ElemVar : s_ElemVar) & (Gia_ObjFaninC1(pObj) ? ~s_ElemVar2 : s_ElemVar2) );
-    Vec_IntWriteEntry( vId2Mfs, iObj, pObj->Value );
-}
-Sfm_Ntk_t * Gia_ManExtractMfs( Gia_Man_t * p, Gia_Man_t * pBoxes, Vec_Int_t ** pvId2Mfs )
-{
+    Vec_Int_t * vLeaves;
     Tim_Man_t * pManTime = (Tim_Man_t *)p->pManTime;
-    Vec_Int_t * vPoNodes;
-    Vec_Int_t * vId2Mfs;
-    Vec_Wec_t * vFanins;
-    Vec_Str_t * vFixed;
-    Vec_Wrd_t * vTruths, * vTruthsTemp;
-    Vec_Int_t * vArray;
-    Gia_Obj_t * pObj, * pObjBox;
-    int i, k, nRealPis, nRealPos, nPiNum, nPoNum, curCi, curCo;
-    assert( pManTime == NULL || Tim_ManCiNum(pManTime) == Gia_ManCiNum(p) );
-    assert( pManTime == NULL || Tim_ManCoNum(pManTime) == Gia_ManCoNum(p) );
-    // get the real number of PIs and POs
-    nRealPis = pManTime ? Tim_ManPiNum(pManTime) : Gia_ManCiNum(p);
-    nRealPos = pManTime ? Tim_ManPoNum(pManTime) : Gia_ManCoNum(p);
-    // create mapping from GIA into MFS
-    vId2Mfs  = Vec_IntStartFull( Gia_ManObjNum(p) );
-    // collect PO nodes
-    vPoNodes = Vec_IntAlloc( 1000 );
-    // create the arrays
-    vFanins  = Vec_WecAlloc( 1000 );
-    vFixed   = Vec_StrAlloc( 1000 );
-    vTruths  = Vec_WrdAlloc( 1000 );
-    vTruthsTemp = Vec_WrdStart( Gia_ManObjNum(p) );
-    // assign MFS ids to primary inputs
-    Gia_ManFillValue( p );
-    for ( i = 0; i < nRealPis; i++ )
+    int nBoxes   = Gia_ManBoxNum(p);
+    int nRealPis = nBoxes ? Tim_ManPiNum(pManTime) : Gia_ManPiNum(p);
+    int nRealPos = nBoxes ? Tim_ManPoNum(pManTime) : Gia_ManPoNum(p);
+    int i, j, k, curCi, curCo, nBoxIns, nBoxOuts;
+    int Id, iFan, nMfsVars, Counter = 0;
+    assert( !p->pAigExtra || Gia_ManPiNum(p->pAigExtra) <= 6 );
+    // prepare storage
+    nMfsVars = Gia_ManCiNum(p) + 1 + Gia_ManLutNum(p) + Gia_ManCoNum(p);
+    vFanins  = Vec_WecStart( nMfsVars );
+    vFixed   = Vec_StrStart( nMfsVars );
+    vEmpty   = Vec_StrStart( nMfsVars );
+    vTruths  = Vec_WrdStart( nMfsVars );
+    // set internal PIs
+    Gia_ManCleanCopyArray( p );
+    Gia_ManForEachCiId( p, Id, i )
+        Gia_ObjSetCopyArray( p, Id, Counter++ );
+    // set constant node
+    Vec_StrWriteEntry( vFixed, Counter, (char)1 );
+    Vec_WrdWriteEntry( vTruths, Counter, (word)0 );
+    Gia_ObjSetCopyArray( p, 0, Counter++ );
+    // set internal LUTs
+    vLeaves = Vec_IntAlloc( 6 );
+    Gia_ObjComputeTruthTableStart( p, 6 );
+    Gia_ManForEachLut( p, Id )
     {
-        pObj = Gia_ManPi( p, i );
-        pObj->Value = Vec_WecSize(vFanins);
-        Vec_WecPushLevel( vFanins );
-        Vec_StrPush( vFixed, (char)0 );
-        Vec_WrdPush( vTruths, (word)0 );
-        Vec_IntWriteEntry( vId2Mfs, Gia_ObjId(p, pObj), pObj->Value );
-    }
-    // assign MFS ids to black box outputs
-    curCi = nRealPis;
-    curCo = 0;
-    if ( pManTime )
-    for ( i = 0; i < Tim_ManBoxNum(pManTime); i++ )
-    {
-        if ( !Tim_ManBoxIsBlack(pManTime, i) )
+        Vec_IntClear( vLeaves );
+        vArray = Vec_WecEntry( vFanins, Counter );
+        Vec_IntGrow( vArray, Gia_ObjLutSize(p, Id) );
+        Gia_LutForEachFanin( p, Id, iFan, k )
         {
-            // collect POs
-            for ( k = 0; k < Tim_ManBoxInputNum(pManTime, i); k++ )
-            {
-                pObj = Gia_ManPo( p, curCo + k );
-                Vec_IntPush( vPoNodes, Gia_ObjId(p, pObj) );
-            }
-            // assign values to the PIs
-            for ( k = 0; k < Tim_ManBoxOutputNum(pManTime, i); k++ )
-            {
-                pObj = Gia_ManPi( p, curCi + k );
-                pObj->Value = Vec_WecSize(vFanins);
-                Vec_WecPushLevel( vFanins );
-                Vec_StrPush( vFixed, (char)1 );
-                Vec_WrdPush( vTruths, (word)0 );
-                Vec_IntWriteEntry( vId2Mfs, Gia_ObjId(p, pObj), pObj->Value );
-            }
+            assert( Gia_ObjCopyArray(p, iFan) >= 0 );
+            Vec_IntPush( vArray, Gia_ObjCopyArray(p, iFan) );
+            Vec_IntPush( vLeaves, iFan );
         }
-        curCo += Tim_ManBoxInputNum(pManTime, i);
-        curCi += Tim_ManBoxOutputNum(pManTime, i);
+        assert( Vec_IntSize(vLeaves) <= 6 );
+        assert( Vec_IntSize(vLeaves) == Gia_ObjLutSize(p, Id) );
+        uTruth = *Gia_ObjComputeTruthTableCut( p, Gia_ManObj(p, Id), vLeaves );
+        Vec_WrdWriteEntry( vTruths, Counter, uTruth );
+        Gia_ObjSetCopyArray( p, Id, Counter++ );
     }
-    // collect POs
-//    for ( i = Tim_ManCoNum(pManTime) - Tim_ManPoNum(pManTime); i < Tim_ManCoNum(pManTime); i++ )
-    for ( i = Gia_ManCoNum(p) - nRealPos; i < Gia_ManCoNum(p); i++ )
+    Gia_ObjComputeTruthTableStop( p );
+    // set all POs
+    Gia_ManForEachCo( p, pObj, i )
     {
-        pObj = Gia_ManPo( p, i );
-        Vec_IntPush( vPoNodes, Gia_ObjId(p, pObj) );
-    }
-    curCo += nRealPos;
-    // verify counts
-    assert( curCi == Gia_ManPiNum(p) );
-    assert( curCo == Gia_ManPoNum(p) );
-    // remeber the end of PIs
-    nPiNum = Vec_WecSize(vFanins);
-    nPoNum = Vec_IntSize(vPoNodes);
-    // assign value to constant node
-    pObj = Gia_ManConst0(p);
-    Vec_IntWriteEntry( vId2Mfs, Gia_ObjId(p, pObj), Vec_WecSize(vFanins) );
-    pObj->Value = Vec_WecSize(vFanins);
-    Vec_WecPushLevel( vFanins );
-    Vec_StrPush( vFixed, (char)0 );
-    Vec_WrdPush( vTruths, (word)0 );
-    Vec_IntWriteEntry( vId2Mfs, Gia_ObjId(p, pObj), pObj->Value );
-    // create internal nodes
-    curCi = nRealPis;
-    curCo = 0;
-    if ( pManTime )
-    for ( i = 0; i < Tim_ManBoxNum(pManTime); i++ )
-    {
-        // recursively add for box inputs
-        Gia_ManIncrementTravId( pBoxes );
-        for ( k = 0; k < Tim_ManBoxInputNum(pManTime, i); k++ )
+        iFan = Gia_ObjFaninId0p( p, pObj );
+        assert( Gia_ObjCopyArray(p, iFan) >= 0 );
+        vArray = Vec_WecEntry( vFanins, Counter );
+        Vec_IntFill( vArray, 1, Gia_ObjCopyArray(p, iFan) );
+        if ( i < Gia_ManCoNum(p) - nRealPos ) // internal PO
         {
-            // build logic
-            pObj = Gia_ManPo( p, curCo + k );
-            Gia_ManExtractMfs_rec( p, Gia_ObjFaninId0p(p, pObj), vId2Mfs, vFanins, vFixed, vTruths, vTruthsTemp );
-            // add buffer/inverter
-            pObj->Value = Vec_WecSize(vFanins);
-            vArray = Vec_WecPushLevel( vFanins );
-            Vec_IntGrow( vArray, 1 );
-            assert( !~Gia_ObjFanin0(pObj)->Value );
-            Vec_IntPush( vArray, Gia_ObjFanin0(pObj)->Value );
-            Vec_StrPush( vFixed, (char)0 );
-            Vec_WrdPush( vTruths, Gia_ObjFaninC0(pObj) ? ~s_ElemVar : s_ElemVar );
-            Vec_IntWriteEntry( vId2Mfs, Gia_ObjId(p, pObj), pObj->Value );
-            // transfer to the PI
-            pObjBox = Gia_ManPi( pBoxes, k );
-            pObjBox->Value = pObj->Value;
-            Gia_ObjSetTravIdCurrent( pBoxes, pObjBox );
+            Vec_StrWriteEntry( vFixed, Counter, (char)1 );
+            Vec_StrWriteEntry( vEmpty, Counter, (char)1 );
+            uTruth = Gia_ObjFaninC0(pObj) ? ~uTruths6[0]: uTruths6[0];
+            Vec_WrdWriteEntry( vTruths, Counter, uTruth );
         }
-        if ( !Tim_ManBoxIsBlack(pManTime, i) )
-        {
-            pObjBox = Gia_ManConst0(pBoxes);
-            pObjBox->Value = Vec_WecSize(vFanins);
-            Vec_WecPushLevel( vFanins );
-            Vec_StrPush( vFixed, (char)0 );
-            Vec_WrdPush( vTruths, (word)0 );
-            Gia_ObjSetTravIdCurrent( pBoxes, pObjBox );
-            // add internal nodes and transfer
-            for ( k = 0; k < Tim_ManBoxOutputNum(pManTime, i); k++ )
-            {
-                // build logic
-                pObjBox = Gia_ManPo( pBoxes, curCi - Tim_ManPiNum(pManTime) + k );
-                Gia_ManExtractMfs_rec2( pBoxes, Gia_ObjFaninId0p(pBoxes, pObjBox), vId2Mfs, vFanins, vFixed, vTruths );
-                // add buffer/inverter
-                vArray = Vec_WecPushLevel( vFanins );
-                Vec_IntGrow( vArray, 1 );
-                assert( !~Gia_ObjFanin0(pObjBox)->Value );
-                Vec_IntPush( vArray, Gia_ObjFanin0(pObjBox)->Value );
-                Vec_StrPush( vFixed, (char)1 );
-                Vec_WrdPush( vTruths, Gia_ObjFaninC0(pObjBox) ? ~s_ElemVar : s_ElemVar );
-                // transfer to the PI
-                pObj = Gia_ManPi( p, curCi + k );
-                pObj->Value = pObjBox->Value;
-            }
-        }
-        curCo += Tim_ManBoxInputNum(pManTime, i);
-        curCi += Tim_ManBoxOutputNum(pManTime, i);
+        Gia_ObjSetCopyArray( p, Gia_ObjId(p, pObj), Counter++ );
     }
-    // create POs with buffers
-    Gia_ManForEachObjVec( vPoNodes, p, pObj, i )
+    assert( Counter == nMfsVars );
+    // add functions of the boxes
+    if ( p->pAigExtra )
     {
-        Gia_ManExtractMfs_rec( p, Gia_ObjFaninId0p(p, pObj), vId2Mfs, vFanins, vFixed, vTruths, vTruthsTemp );
-        pObj->Value = Vec_WecSize(vFanins);
-        // add buffer/inverter
-        vArray = Vec_WecPushLevel( vFanins );
-        Vec_IntGrow( vArray, 1 );
-        assert( !~Gia_ObjFanin0(pObj)->Value );
-        Vec_IntPush( vArray, Gia_ObjFanin0(pObj)->Value );
-        Vec_StrPush( vFixed, (char)0 );
-        Vec_WrdPush( vTruths, Gia_ObjFaninC0(pObj) ? ~s_ElemVar : s_ElemVar );
-        Vec_IntWriteEntry( vId2Mfs, Gia_ObjId(p, pObj), pObj->Value );
+        Gia_ObjComputeTruthTableStart( p->pAigExtra, 6 );
+        curCi = nRealPis;
+        curCo = 0;
+        for ( k = 0; k < nBoxes; k++ )
+        {
+            assert( !Tim_ManBoxIsBlack(pManTime, k) );
+            nBoxIns = Tim_ManBoxInputNum( pManTime, k );
+            nBoxOuts = Tim_ManBoxOutputNum( pManTime, k );
+            // collect truth table leaves
+            Vec_IntClear( vLeaves );
+            for ( i = 0; i < nBoxIns; i++ )
+                Vec_IntPush( vLeaves, Gia_ObjId(p->pAigExtra, Gia_ManCi(p->pAigExtra, i)) );
+            // iterate through box outputs
+            //printf( "Box %d:\n", k );
+            for ( j = 0; j < nBoxOuts; j++ )
+            {
+                // CI corresponding to the box outputs
+                pObj = Gia_ManCi( p, curCi + j );
+                Counter = Gia_ObjCopyArray( p, Gia_ObjId(p, pObj) );
+                // box output in the extra manager
+                pObjExtra = Gia_ManCo( p->pAigExtra, curCi - nRealPis + j );
+                // compute truth table
+                if ( Gia_ObjFaninId0p(p->pAigExtra, pObjExtra) == 0 )
+                    uTruth = 0;
+                else if ( Gia_ObjIsCi(Gia_ObjFanin0(pObjExtra)) )
+                    uTruth = uTruths6[Gia_ObjCioId(Gia_ObjFanin0(pObjExtra))];
+                else
+                    uTruth = *Gia_ObjComputeTruthTableCut( p->pAigExtra, Gia_ObjFanin0(pObjExtra), vLeaves );
+                uTruth = Gia_ObjFaninC0(pObjExtra) ? ~uTruth : uTruth;
+                Vec_WrdWriteEntry( vTruths, Counter, uTruth );
+                //Dau_DsdPrintFromTruth( &uTruth, Vec_IntSize(vLeaves) );
+                // add box inputs (POs of the AIG) as fanins
+                vArray = Vec_WecEntry( vFanins, Counter );
+                Vec_IntGrow( vArray, nBoxIns );
+                for ( i = 0; i < nBoxIns; i++ )
+                {
+                    iFan = Gia_ObjId( p, Gia_ManCo(p, curCo + i) );
+                    assert( Gia_ObjCopyArray(p, iFan) >= 0 );
+                    Vec_IntPush( vArray, Gia_ObjCopyArray(p, iFan) );
+                }
+                Vec_StrWriteEntry( vFixed, Counter, (char)1 );
+            }
+            // set internal POs pointing directly to internal PIs as no-delay
+            for ( i = 0; i < nBoxIns; i++ )
+            {
+                pObj = Gia_ManCo( p, curCo + i );
+                if ( !Gia_ObjIsCi( Gia_ObjFanin0(pObj) ) )
+                    continue;
+                Counter = Gia_ObjCopyArray( p, Gia_ObjFaninId0p(p, pObj) );
+                Vec_StrWriteEntry( vEmpty, Counter, (char)1 );
+            }
+            curCo += nBoxIns;
+            curCi += nBoxOuts;
+        }
+        curCo += nRealPos;
+        Gia_ObjComputeTruthTableStop( p->pAigExtra );
+        // verify counts
+        assert( curCi == Gia_ManCiNum(p) );
+        assert( curCo == Gia_ManCoNum(p) );
+        assert( curCi - nRealPis == Gia_ManCoNum(p->pAigExtra) );
     }
-    Vec_IntFree( vPoNodes );
-    Vec_WrdFree( vTruthsTemp );
-    *pvId2Mfs = vId2Mfs;
-    return Sfm_NtkConstruct( vFanins, nPiNum, nPoNum, vFixed, NULL, vTruths );
+    // finalize 
+    Vec_IntFree( vLeaves );
+    return Sfm_NtkConstruct( vFanins, nRealPis, nRealPos, vFixed, vEmpty, vTruths );
 }
 
 /**Function*************************************************************
@@ -261,71 +199,161 @@ Sfm_Ntk_t * Gia_ManExtractMfs( Gia_Man_t * p, Gia_Man_t * pBoxes, Vec_Int_t ** p
   SeeAlso     []
 
 ***********************************************************************/
-Gia_Man_t * Gia_ManInsertMfs( Gia_Man_t * p, Sfm_Ntk_t * pNtk, Vec_Int_t * vId2Mfs )
+Gia_Man_t * Gia_ManInsertMfs( Gia_Man_t * p, Sfm_Ntk_t * pNtk )
 {
-    Gia_Man_t * pNew;
-    Gia_Obj_t * pObj;
-    Vec_Int_t * vMfsTopo, * vMfs2New, * vArray, * vCover;
-    int i, k, Fanin, iMfsId, iLitNew;
-    word * pTruth;
-    // collect MFS nodes in the topo order
-    vMfsTopo = Sfm_NtkDfs( pNtk );
-    // create mapping from MFS to new GIA literals
-    vMfs2New = Vec_IntStartFull( Vec_IntCap(vMfsTopo) );
+    extern int Gia_ManFromIfLogicCreateLut( Gia_Man_t * pNew, word * pRes, Vec_Int_t * vLeaves, Vec_Int_t * vCover, Vec_Int_t * vMapping, Vec_Int_t * vMapping2 );
+    Gia_Man_t * pNew;  Gia_Obj_t * pObj;
+    Tim_Man_t * pManTime = (Tim_Man_t *)p->pManTime;
+    int nBoxes   = Gia_ManBoxNum(p);
+    int nRealPis = nBoxes ? Tim_ManPiNum(pManTime) : Gia_ManPiNum(p);
+    int nRealPos = nBoxes ? Tim_ManPoNum(pManTime) : Gia_ManPoNum(p);
+    int i, k, Id, curCi, curCo, nBoxIns, nBoxOuts, iLitNew, iMfsId, iGroup, Fanin;
+    int nMfsNodes = 1 + Gia_ManCiNum(p) + Gia_ManLutNum(p) + Gia_ManCoNum(p);
+    word * pTruth, uTruthVar = ABC_CONST(0xAAAAAAAAAAAAAAAA);
+    Vec_Wec_t * vGroups = Vec_WecStart( nBoxes );
+    Vec_Int_t * vMfs2Gia = Vec_IntStartFull( nMfsNodes );
+    Vec_Int_t * vGroupMap = Vec_IntStartFull( nMfsNodes );
+    Vec_Int_t * vMfsTopo, * vCover, * vBoxesLeft;
+    Vec_Int_t * vArray, * vLeaves;
+    Vec_Int_t * vMapping, * vMapping2;
+    // collect nodes
+    curCi = nRealPis;
+    curCo = 0;
+    for ( i = 0; i < nBoxes; i++ )
+    {
+        nBoxIns = Tim_ManBoxInputNum( pManTime, i );
+        nBoxOuts = Tim_ManBoxOutputNum( pManTime, i );
+        vArray = Vec_WecEntry( vGroups, i );
+        for ( k = 0; k < nBoxIns; k++ )
+        {
+            pObj = Gia_ManCo( p, curCo + k );
+            iMfsId = Gia_ObjCopyArray( p, Gia_ObjId(p, pObj) );
+            assert( iMfsId > 0 );
+            Vec_IntPush( vArray, iMfsId );
+            Vec_IntWriteEntry( vGroupMap, iMfsId, Abc_Var2Lit(i,0) );
+        }
+        for ( k = 0; k < nBoxOuts; k++ )
+        {
+            pObj = Gia_ManCi( p, curCi + k );
+            iMfsId = Gia_ObjCopyArray( p, Gia_ObjId(p, pObj) );
+            assert( iMfsId > 0 );
+            Vec_IntPush( vArray, iMfsId );
+            Vec_IntWriteEntry( vGroupMap, iMfsId, Abc_Var2Lit(i,1) );
+        }
+        curCo += nBoxIns;
+        curCi += nBoxOuts;
+    }
+    curCo += nRealPos;
+    assert( curCi == Gia_ManCiNum(p) );
+    assert( curCo == Gia_ManCoNum(p) );
+
+    // collect nodes in the given order
+    vBoxesLeft = Vec_IntAlloc( nBoxes );
+    vMfsTopo = Sfm_NtkDfs( pNtk, vGroups, vGroupMap, vBoxesLeft );
+    assert( Vec_IntSize(vBoxesLeft) <= nBoxes );
+    assert( Vec_IntSize(vMfsTopo) > 0 );
+
     // start new GIA
     pNew = Gia_ManStart( Gia_ManObjNum(p) );
     pNew->pName = Abc_UtilStrsav( p->pName );
     pNew->pSpec = Abc_UtilStrsav( p->pSpec );
+
+    // start mapping
+    vMapping  = Vec_IntStart( Gia_ManObjNum(p) );
+    vMapping2 = Vec_IntStart( 1 );
+    // create const LUT
+    Vec_IntWriteEntry( vMapping, 0, Vec_IntSize(vMapping2) );
+    Vec_IntPush( vMapping2, 0 );
+    Vec_IntPush( vMapping2, 0 );
+
+    // map constant
+    Vec_IntWriteEntry( vMfs2Gia, Gia_ObjCopyArray(p, 0), 0 );
     // map primary inputs
-    Gia_ManForEachCi( p, pObj, i )
-    {
-        iMfsId = Vec_IntEntry( vId2Mfs, Gia_ObjId(p, pObj) );
-        assert( iMfsId >= 0 );
-        Vec_IntWriteEntry( vMfs2New, iMfsId, Gia_ManAppendCi(pNew) );
-    }
+    Gia_ManForEachCiId( p, Id, i )
+        if ( i < nRealPis )
+            Vec_IntWriteEntry( vMfs2Gia, Gia_ObjCopyArray(p, Id), Gia_ManAppendCi(pNew) );
     // map internal nodes
+    vLeaves = Vec_IntAlloc( 6 );
     vCover = Vec_IntAlloc( 1 << 16 );
     Vec_IntForEachEntry( vMfsTopo, iMfsId, i )
     {
-        assert( Sfm_NodeReadUsed(pNtk, iMfsId) );
         pTruth = Sfm_NodeReadTruth( pNtk, iMfsId );
-        if ( pTruth[0] == 0 || ~pTruth[0] == 0 )
-        {
-            Vec_IntWriteEntry( vMfs2New, iMfsId, 0 );
-            continue;
-        }
+        iGroup = Vec_IntEntry( vGroupMap, iMfsId );
         vArray = Sfm_NodeReadFanins( pNtk, iMfsId ); // belongs to pNtk
+        Vec_IntClear( vLeaves );
         Vec_IntForEachEntry( vArray, Fanin, k )
         {
-            iLitNew = Vec_IntEntry( vMfs2New, Fanin );
-            assert( iLitNew >= 0 );
-            Vec_IntWriteEntry( vArray, k, iLitNew );            
+            iLitNew = Vec_IntEntry( vMfs2Gia, Fanin );  assert( iLitNew >= 0 );
+            Vec_IntPush( vLeaves, iLitNew );            
         }
-        // derive new function
-        iLitNew = Kit_TruthToGia( pNew, (unsigned *)pTruth, Vec_IntSize(vArray), vCover, vArray, 0 );
-        Vec_IntWriteEntry( vMfs2New, iMfsId, iLitNew );
+        if ( iGroup == -1 ) // internal node
+        {
+            assert( Sfm_NodeReadUsed(pNtk, iMfsId) );
+            iLitNew = Gia_ManFromIfLogicCreateLut( pNew, pTruth, vLeaves, vCover, vMapping, vMapping2 );
+        }
+        else if ( Abc_LitIsCompl(iGroup) ) // internal CI
+        {
+            //Dau_DsdPrintFromTruth( pTruth, Vec_IntSize(vLeaves) );
+            iLitNew = Gia_ManAppendCi( pNew );
+        }
+        else // internal CO
+        {
+            iLitNew = Gia_ManAppendCo( pNew, Abc_LitNotCond(Vec_IntEntry(vLeaves, 0), pTruth[0] == ~uTruthVar) );
+            //printf("Group = %d. po = %d\n", iGroup>>1, iMfsId );
+        }
+        Vec_IntWriteEntry( vMfs2Gia, iMfsId, iLitNew );
     }
     Vec_IntFree( vCover );
-    // map output nodes
+    Vec_IntFree( vLeaves );
+
+    // map primary outputs
     Gia_ManForEachCo( p, pObj, i )
     {
-        iMfsId = Vec_IntEntry( vId2Mfs, Gia_ObjId(p, pObj) );
-        assert( iMfsId >= 0 );
-        vArray = Sfm_NodeReadFanins( pNtk, iMfsId ); // belongs to pNtk
-        assert( Vec_IntSize(vArray) == 1 );
-        // get the fanin
-        iLitNew = Vec_IntEntry( vMfs2New, Vec_IntEntry(vArray, 0) );
+        if ( i < Gia_ManCoNum(p) - nRealPos ) // internal COs
+        {
+            iMfsId = Gia_ObjCopyArray( p, Gia_ObjId(p, pObj) );
+            iGroup = Vec_IntEntry( vGroupMap, iMfsId );
+            if ( Vec_IntFind(vMfsTopo, iGroup) >= 0 )
+            {
+                iLitNew = Vec_IntEntry( vMfs2Gia, iMfsId );
+                assert( iLitNew >= 0 );
+            }
+            continue;
+        }
+        iLitNew = Vec_IntEntry( vMfs2Gia, Gia_ObjCopyArray(p, Gia_ObjFaninId0p(p, pObj)) );
         assert( iLitNew >= 0 );
-        // create CO
-        pTruth = Sfm_NodeReadTruth( pNtk, iMfsId );
-        assert( pTruth[0] == s_ElemVar || ~pTruth[0] == s_ElemVar );
-        Gia_ManAppendCo( pNew, Abc_LitNotCond(iLitNew, (int)(pTruth[0] != s_ElemVar)) );
+        Gia_ManAppendCo( pNew, Abc_LitNotCond(iLitNew, Gia_ObjFaninC0(pObj)) );
     }
-    Vec_IntFree( vMfs2New );
+
+    // finish mapping 
+    if ( Vec_IntSize(vMapping) > Gia_ManObjNum(pNew) )
+        Vec_IntShrink( vMapping, Gia_ManObjNum(pNew) );
+    else
+        Vec_IntFillExtra( vMapping, Gia_ManObjNum(pNew), 0 );
+    assert( Vec_IntSize(vMapping) == Gia_ManObjNum(pNew) );
+    Vec_IntForEachEntry( vMapping, iLitNew, i )
+        if ( iLitNew > 0 )
+            Vec_IntAddToEntry( vMapping, i, Gia_ManObjNum(pNew) );
+    Vec_IntAppend( vMapping, vMapping2 );
+    Vec_IntFree( vMapping2 );
+    assert( pNew->vMapping == NULL );
+    pNew->vMapping = vMapping;
+
+    // create new timing manager and extra AIG
+    if ( pManTime )
+        pNew->pManTime = Gia_ManUpdateTimMan2( p, vBoxesLeft );
+    // update extra STG
+    if ( p->pAigExtra )
+        pNew->pAigExtra = Gia_ManUpdateExtraAig2( p->pManTime, p->pAigExtra, vBoxesLeft );
+
+    // cleanup
+    Vec_WecFree( vGroups );
     Vec_IntFree( vMfsTopo );
+    Vec_IntFree( vGroupMap );
+    Vec_IntFree( vMfs2Gia );
+    Vec_IntFree( vBoxesLeft );
     return pNew;
 }
-
 
 /**Function*************************************************************
 
@@ -341,7 +369,6 @@ Gia_Man_t * Gia_ManInsertMfs( Gia_Man_t * p, Sfm_Ntk_t * pNtk, Vec_Int_t * vId2M
 Gia_Man_t * Gia_ManPerformMfs( Gia_Man_t * p, Sfm_Par_t * pPars )
 {
     Sfm_Ntk_t * pNtk;
-    Vec_Int_t * vId2Mfs;
     Gia_Man_t * pNew;
     int nFaninMax, nNodes;
     assert( Gia_ManRegNum(p) == 0 );
@@ -359,32 +386,29 @@ Gia_Man_t * Gia_ManPerformMfs( Gia_Man_t * p, Sfm_Par_t * pPars )
         return NULL;
     }
     // collect information
-    pNtk = Gia_ManExtractMfs( p, p->pAigExtra, &vId2Mfs );
+    pNtk = Gia_ManExtractMfs( p );
     // perform optimization
     nNodes = Sfm_NtkPerform( pNtk, pPars );
-    // call the fast extract procedure
     if ( nNodes == 0 )
     {
         Abc_Print( 1, "The network is not changed by \"&mfs\".\n" );
         pNew = Gia_ManDup( p );
         pNew->vMapping = Vec_IntDup( p->vMapping );
+        Gia_ManTransferTiming( pNew, p );
     }
     else
     {
-        pNew = Gia_ManInsertMfs( p, pNtk, vId2Mfs );
+        pNew = Gia_ManInsertMfs( p, pNtk );
         if( pPars->fVerbose )
             Abc_Print( 1, "The network has %d nodes changed by \"&mfs\".\n", nNodes );
     }
-    Vec_IntFree( vId2Mfs );
     Sfm_NtkFree( pNtk );
     return pNew;
 }
 
-
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
-
 
 ABC_NAMESPACE_IMPL_END
 

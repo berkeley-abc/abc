@@ -152,6 +152,8 @@ Wlc_Ntk_t * Wlc_NtkAbstractNodes( Wlc_Ntk_t * p, Vec_Int_t * vNodesInit )
     Wlc_NtkCleanCopy( p );
     Wlc_NtkForEachObj( p, pObj, i )
     {
+        if ( i == Vec_IntSize(&p->vCopies) )
+            break;
         if ( pObj->Mark ) {
             // clean
             pObj->Mark = 0;

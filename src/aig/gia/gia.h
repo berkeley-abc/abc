@@ -483,6 +483,7 @@ static inline int          Gia_ObjCopyF( Gia_Man_t * p, int f, Gia_Obj_t * pObj 
 static inline void         Gia_ObjSetCopyF( Gia_Man_t * p, int f, Gia_Obj_t * pObj, int iLit )  { Vec_IntWriteEntry(&p->vCopies, Gia_ManObjNum(p) * f + Gia_ObjId(p,pObj), iLit);  }
 static inline int          Gia_ObjCopyArray( Gia_Man_t * p, int iObj )                          { return Vec_IntEntry(&p->vCopies, iObj);                                          }
 static inline void         Gia_ObjSetCopyArray( Gia_Man_t * p, int iObj, int iLit )             { Vec_IntWriteEntry(&p->vCopies, iObj, iLit);                                      }
+static inline void         Gia_ManCleanCopyArray( Gia_Man_t * p )                               { Vec_IntFill( &p->vCopies, Gia_ManObjNum(p), -1 );                                }
 
 static inline int          Gia_ObjFanin0CopyF( Gia_Man_t * p, int f, Gia_Obj_t * pObj )         { return Abc_LitNotCond(Gia_ObjCopyF(p, f, Gia_ObjFanin0(pObj)), Gia_ObjFaninC0(pObj));   }
 static inline int          Gia_ObjFanin1CopyF( Gia_Man_t * p, int f, Gia_Obj_t * pObj )         { return Abc_LitNotCond(Gia_ObjCopyF(p, f, Gia_ObjFanin1(pObj)), Gia_ObjFaninC1(pObj));   }
@@ -1088,6 +1089,7 @@ extern Gia_Man_t *         Gia_ManDupOrderDfsChoices( Gia_Man_t * p );
 extern Gia_Man_t *         Gia_ManDupOrderDfsReverse( Gia_Man_t * p );
 extern Gia_Man_t *         Gia_ManDupOutputGroup( Gia_Man_t * p, int iOutStart, int iOutStop );
 extern Gia_Man_t *         Gia_ManDupOutputVec( Gia_Man_t * p, Vec_Int_t * vOutPres );
+extern Gia_Man_t *         Gia_ManDupSelectedOutputs( Gia_Man_t * p, Vec_Int_t * vOutsLeft );
 extern Gia_Man_t *         Gia_ManDupOrderAiger( Gia_Man_t * p );
 extern Gia_Man_t *         Gia_ManDupLastPis( Gia_Man_t * p, int nLastPis );
 extern Gia_Man_t *         Gia_ManDupFlip( Gia_Man_t * p, int * pInitState );
@@ -1345,6 +1347,7 @@ extern float               Gia_ManComputeSwitching( Gia_Man_t * p, int nFrames, 
 extern Vec_Int_t *         Gia_ManComputeSwitchProbs( Gia_Man_t * pGia, int nFrames, int nPref, int fProbOne );
 extern Vec_Flt_t *         Gia_ManPrintOutputProb( Gia_Man_t * p );
 /*=== giaTim.c ===========================================================*/
+extern int                 Gia_ManBoxNum( Gia_Man_t * p );
 extern int                 Gia_ManIsSeqWithBoxes( Gia_Man_t * p );
 extern int                 Gia_ManIsNormalized( Gia_Man_t * p );
 extern Gia_Man_t *         Gia_ManDupNormalize( Gia_Man_t * p );
@@ -1353,7 +1356,9 @@ extern Gia_Man_t *         Gia_ManDupUnshuffleInputs( Gia_Man_t * p );
 extern int                 Gia_ManLevelWithBoxes( Gia_Man_t * p );
 extern int                 Gia_ManLutLevelWithBoxes( Gia_Man_t * p );
 extern void *              Gia_ManUpdateTimMan( Gia_Man_t * p, Vec_Int_t * vBoxPres );
+extern void *              Gia_ManUpdateTimMan2( Gia_Man_t * p, Vec_Int_t * vBoxesLeft );
 extern Gia_Man_t *         Gia_ManUpdateExtraAig( void * pTime, Gia_Man_t * pAig, Vec_Int_t * vBoxPres );
+extern Gia_Man_t *         Gia_ManUpdateExtraAig2( void * pTime, Gia_Man_t * pAig, Vec_Int_t * vBoxesLeft );
 extern Gia_Man_t *         Gia_ManDupCollapse( Gia_Man_t * p, Gia_Man_t * pBoxes, Vec_Int_t * vBoxPres );
 extern int                 Gia_ManVerifyWithBoxes( Gia_Man_t * pGia, void * pParsInit, char * pFileSpec );
 /*=== giaTruth.c ===========================================================*/

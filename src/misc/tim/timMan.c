@@ -239,6 +239,91 @@ Tim_Man_t * Tim_ManTrim( Tim_Man_t * p, Vec_Int_t * vBoxPres )
 
 /**Function*************************************************************
 
+  Synopsis    [Reduces the timing manager.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Tim_Man_t * Tim_ManReduce( Tim_Man_t * p, Vec_Int_t * vBoxesLeft )
+{
+    Tim_Man_t * pNew;
+    Tim_Box_t * pBox;
+    Tim_Obj_t * pObj;
+    float * pDelayTable, * pDelayTableNew;
+    int i, k, iBox, nNewCis, nNewCos, nInputs, nOutputs;
+    assert( Vec_IntSize(vBoxesLeft) <= Tim_ManBoxNum(p) );
+    // count the number of CIs and COs in the trimmed manager
+    nNewCis = Tim_ManPiNum(p);
+    nNewCos = Tim_ManPoNum(p);
+    Vec_IntForEachEntry( vBoxesLeft, iBox, i )
+    {
+        pBox = Tim_ManBox( p, iBox );
+        nNewCis += pBox->nOutputs;
+        nNewCos += pBox->nInputs;
+    }
+    assert( nNewCis <= Tim_ManCiNum(p) );
+    assert( nNewCos <= Tim_ManCoNum(p) );
+    // clear traversal IDs
+    Tim_ManForEachCi( p, pObj, i ) 
+        pObj->TravId = 0;          
+    Tim_ManForEachCo( p, pObj, i ) 
+        pObj->TravId = 0;          
+    // create new manager
+    pNew = Tim_ManStart( nNewCis, nNewCos );
+    // copy box connectivity information
+    memcpy( pNew->pCis, p->pCis, sizeof(Tim_Obj_t) * Tim_ManPiNum(p) );
+    memcpy( pNew->pCos + nNewCos - Tim_ManPoNum(p), 
+            p->pCos + Tim_ManCoNum(p) - Tim_ManPoNum(p), 
+            sizeof(Tim_Obj_t) * Tim_ManPoNum(p) );
+    // duplicate delay tables
+    if ( Tim_ManDelayTableNum(p) > 0 )
+    {
+        pNew->vDelayTables = Vec_PtrStart( Vec_PtrSize(p->vDelayTables) );
+        Tim_ManForEachTable( p, pDelayTable, i )
+        {
+            if ( pDelayTable == NULL )
+                continue;
+            assert( i == (int)pDelayTable[0] );
+            nInputs   = (int)pDelayTable[1];
+            nOutputs  = (int)pDelayTable[2];
+            pDelayTableNew = ABC_ALLOC( float, 3 + nInputs * nOutputs );
+            pDelayTableNew[0] = (int)pDelayTable[0];
+            pDelayTableNew[1] = (int)pDelayTable[1];
+            pDelayTableNew[2] = (int)pDelayTable[2];
+            for ( k = 0; k < nInputs * nOutputs; k++ )
+                pDelayTableNew[3+k] = pDelayTable[3+k];
+//            assert( (int)pDelayTableNew[0] == Vec_PtrSize(pNew->vDelayTables) );
+            assert( Vec_PtrEntry(pNew->vDelayTables, i) == NULL );
+            Vec_PtrWriteEntry( pNew->vDelayTables, i, pDelayTableNew );
+        }
+    }
+    // duplicate boxes
+    if ( Tim_ManBoxNum(p) > 0 )
+    {
+        int curPi = Tim_ManPiNum(p);
+        int curPo = 0;
+        pNew->vBoxes = Vec_PtrAlloc( Tim_ManBoxNum(p) );
+        Vec_IntForEachEntry( vBoxesLeft, iBox, i )
+        {
+            pBox = Tim_ManBox( p, iBox );
+            Tim_ManCreateBox( pNew, curPo, pBox->nInputs, curPi, pBox->nOutputs, pBox->iDelayTable );
+            Tim_ManBoxSetCopy( pNew, Tim_ManBoxNum(pNew) - 1, iBox );
+            curPi += pBox->nOutputs;
+            curPo += pBox->nInputs;
+        }
+        curPo += Tim_ManPoNum(p);
+        assert( curPi == Tim_ManCiNum(pNew) );
+        assert( curPo == Tim_ManCoNum(pNew) );
+    }
+    return pNew;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Aligns two sets of boxes using the copy field.]
 
   Description []
