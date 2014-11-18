@@ -44,6 +44,22 @@ ABC_NAMESPACE_IMPL_START
   SeeAlso     []
 
 ***********************************************************************/
+int Cmd_CommandIsDefined( Abc_Frame_t * pAbc, const char * sName )
+{
+    return st__is_member( pAbc->tCommands, sName );
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 void Cmd_CommandAdd( Abc_Frame_t * pAbc, const char * sGroup, const char * sName, Cmd_CommandFuncType pFunc, int fChanges )
 {
     const char * key;

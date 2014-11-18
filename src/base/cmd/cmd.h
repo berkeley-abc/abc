@@ -52,6 +52,7 @@ extern void        Cmd_Init( Abc_Frame_t * pAbc );
 extern void        Cmd_End( Abc_Frame_t * pAbc );
 /*=== cmdApi.c ========================================================*/
 typedef int (*Cmd_CommandFuncType)(Abc_Frame_t*, int, char**);
+extern int         Cmd_CommandIsDefined( Abc_Frame_t * pAbc, const char * sName );
 extern void        Cmd_CommandAdd( Abc_Frame_t * pAbc, const char * sGroup, const char * sName, Cmd_CommandFuncType pFunc, int fChanges );
 extern ABC_DLL int Cmd_CommandExecute( Abc_Frame_t * pAbc, const char * sCommand );
 /*=== cmdFlag.c ========================================================*/
