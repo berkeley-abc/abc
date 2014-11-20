@@ -822,53 +822,59 @@ int Gia_ManVerifyWithBoxes( Gia_Man_t * pGia, void * pParsInit, char * pFileSpec
         printf( "Spec file is not given. Use standard flow.\n" );
         return Status;
     }
-    if ( pGia->pManTime == NULL )
-    {
-        printf( "Design has no tim manager. Use standard flow.\n" );
-        return Status;
-    }
-    if ( pGia->pAigExtra == NULL )
+    if ( Gia_ManBoxNum(pGia) && pGia->pAigExtra == NULL )
     {
         printf( "Design has no box logic. Use standard flow.\n" );
         return Status;
     }
     // read original AIG
     pSpec = Gia_AigerRead( pFileSpec ? pFileSpec : pGia->pSpec, 0, 0 );
-    if ( pSpec->pManTime == NULL )
+    if ( Gia_ManBoxNum(pSpec) && pSpec->pAigExtra == NULL )
     {
-        printf( "Spec has no tim manager. Use standard flow.\n" );
-        return Status;
-    }
-    if ( pSpec->pAigExtra == NULL )
-    {
+        Gia_ManStop( pSpec );
         printf( "Spec has no box logic. Use standard flow.\n" );
         return Status;
     }
-    // if timing managers have different number of black boxes,
-    // it is possible that some of the boxes are swept away
-    if ( Tim_ManBlackBoxNum( (Tim_Man_t *)pSpec->pManTime ) > 0 )
+    // prepare miter
+    if ( pGia->pManTime == NULL && pSpec->pManTime == NULL )
     {
-        // specification cannot have fewer boxes than implementation
-        if ( Tim_ManBoxNum( (Tim_Man_t *)pSpec->pManTime ) < Tim_ManBoxNum( (Tim_Man_t *)pGia->pManTime ) )
+        pGia0 = Gia_ManDup( pSpec );
+        pGia1 = Gia_ManDup( pGia );
+    }
+    else
+    {
+        // if timing managers have different number of black boxes,
+        // it is possible that some of the boxes are swept away
+        if ( pSpec->pManTime && Tim_ManBlackBoxNum((Tim_Man_t *)pSpec->pManTime) > 0 && Gia_ManBoxNum(pGia) > 0 )
         {
-            printf( "Spec has more boxes than the design. Cannot proceed.\n" );
-            return Status;
-        }
-        // to align the boxes, find what boxes of pSpec are dropped in pGia
-        if ( Tim_ManBoxNum( (Tim_Man_t *)pSpec->pManTime ) != Tim_ManBoxNum( (Tim_Man_t *)pGia->pManTime ) )
-        {
-            vBoxPres = Tim_ManAlignTwo( (Tim_Man_t *)pSpec->pManTime, (Tim_Man_t *)pGia->pManTime );
-            if ( vBoxPres == NULL )
+            // specification cannot have fewer boxes than implementation
+            if ( Gia_ManBoxNum(pSpec) < Gia_ManBoxNum(pGia) )
             {
-                printf( "Boxes of spec and design cannot be aligned. Cannot proceed.\n" );
+                printf( "Spec has less boxes than the design. Cannot proceed.\n" );
                 return Status;
             }
+            // to align the boxes, find what boxes of pSpec are dropped in pGia
+            if ( Gia_ManBoxNum(pSpec) > Gia_ManBoxNum(pGia) )
+            {
+                vBoxPres = Tim_ManAlignTwo( (Tim_Man_t *)pSpec->pManTime, (Tim_Man_t *)pGia->pManTime );
+                if ( vBoxPres == NULL )
+                {
+                    printf( "Boxes of spec and design cannot be aligned. Cannot proceed.\n" );
+                    return Status;
+                }
+            }
         }
+        // collapse two designs
+        if ( Gia_ManBoxNum(pSpec) > 0 )
+            pGia0 = Gia_ManDupCollapse( pSpec, pSpec->pAigExtra, vBoxPres );
+        else
+            pGia0 = Gia_ManDup( pSpec );
+        if ( Gia_ManBoxNum(pGia) > 0 )
+            pGia1 = Gia_ManDupCollapse( pGia,  pGia->pAigExtra,  NULL  );
+        else
+            pGia1 = Gia_ManDup( pGia );
+        Vec_IntFreeP( &vBoxPres );
     }
-    // collapse two designs
-    pGia0 = Gia_ManDupCollapse( pSpec, pSpec->pAigExtra, vBoxPres );
-    pGia1 = Gia_ManDupCollapse( pGia,  pGia->pAigExtra,  NULL  );
-    Vec_IntFreeP( &vBoxPres );
     // compute the miter
     pMiter = Gia_ManMiter( pGia0, pGia1, 0, 1, 0, 0, fVerbose );
     if ( pMiter )

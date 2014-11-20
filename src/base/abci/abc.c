@@ -36581,11 +36581,13 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9Fadds( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern Gia_Man_t * Gia_ManDupWithFaddBoxes( Gia_Man_t * p, int nFaddMin, int fVerbose );
+    extern Gia_Man_t * Gia_ManDupWithNaturalBoxes( Gia_Man_t * p, int nFaddMin, int fVerbose );
+    extern Gia_Man_t * Gia_ManDupWithArtificialBoxes( Gia_Man_t * p, int DelayC, int nPathMin, int nPathMax, int nPathLimit, int fUseFanout, int fVerbose );
     Gia_Man_t * pTemp;
-    int c, nFaddMin = 3, fVerbose = 0;
+    int c, nFaddMin = 3, fUseArt = 0, fVerbose = 0;
+    int DelayC = 0, nPathMin = 3, nPathMax = 32, nPathLimit = 50, fUseFanout = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "Nvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "NBSLPafvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -36599,6 +36601,56 @@ int Abc_CommandAbc9Fadds( Abc_Frame_t * pAbc, int argc, char ** argv )
             globalUtilOptind++;
             if ( nFaddMin < 0 )
                 goto usage;
+            break;
+        case 'B':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-B\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            DelayC = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( DelayC < 0 )
+                goto usage;
+            break;
+        case 'S':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-S\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nPathMin = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nPathMin < 0 )
+                goto usage;
+            break;
+        case 'L':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-L\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nPathMax = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nPathMax < 0 )
+                goto usage;
+            break;
+        case 'P':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-P\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nPathLimit = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nPathLimit < 0 )
+                goto usage;
+            break;
+        case 'a':
+            fUseArt ^= 1;
+            break;
+        case 'f':
+            fUseFanout ^= 1;
             break;
         case 'v':
             fVerbose ^= 1;
@@ -36614,14 +36666,23 @@ int Abc_CommandAbc9Fadds( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Abc_CommandAbc9Fadds(): There is no AIG.\n" );
         return 0;
     }
-    pTemp = Gia_ManDupWithFaddBoxes( pAbc->pGia, nFaddMin, fVerbose );
+    if ( fUseArt )
+        pTemp = Gia_ManDupWithArtificialBoxes( pAbc->pGia, DelayC, nPathMin, nPathMax, nPathLimit, fUseFanout, fVerbose );
+    else
+        pTemp = Gia_ManDupWithNaturalBoxes( pAbc->pGia, nFaddMin, fVerbose );
     Abc_FrameUpdateGia( pAbc, pTemp );
     return 0;
 usage:
-    Abc_Print( -2, "usage: &fadds [-N num] [-vh]\n" );
+    Abc_Print( -2, "usage: &fadds [-NBSLP num] [-afvh]\n" );
     Abc_Print( -2, "\t         detects full-adder chains and puts them into white boxes\n" );
-    Abc_Print( -2, "\t-N num : the minimum length of full-adder chain to box [default = %d]\n", nFaddMin );
-    Abc_Print( -2, "\t-v     : toggles printing verbose information [default = %s]\n",  fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-N num : minimum length of a natural full-adder chain to detect [default = %d]\n",   nFaddMin );
+    Abc_Print( -2, "\t-a     : toggles detecting artificial full-adder chains [default = %s]\n",           fUseArt? "yes": "no" );
+    Abc_Print( -2, "\t-B num : full-adder box delay (percentage of AND-gate delay) [default = %d]\n",      DelayC );
+    Abc_Print( -2, "\t-S num : minimum length of an artificial full-adder chain [default = %d]\n",         nPathMin );
+    Abc_Print( -2, "\t-L num : maximum length of an artificial full-adder chain [default = %d]\n",         nPathMax );
+    Abc_Print( -2, "\t-P num : maximum number of artificial full-adder chains to detect [default = %d]\n", nPathLimit );
+    Abc_Print( -2, "\t-f     : toggles using intermediate fanouts in artificial chains [default = %s]\n",  fUseFanout? "yes": "no" );
+    Abc_Print( -2, "\t-v     : toggles printing verbose information [default = %s]\n",                     fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
 }
