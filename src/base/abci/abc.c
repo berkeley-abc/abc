@@ -340,6 +340,7 @@ static int Abc_CommandAbc9PSig               ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandAbc9Status             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9MuxProfile         ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Show               ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9SetRegNum          ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Strash             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Topand             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Add1Hot            ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -943,6 +944,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "ABC9",         "&status",       Abc_CommandAbc9Status,       0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&mux_profile",  Abc_CommandAbc9MuxProfile,   0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&show",         Abc_CommandAbc9Show,         0 );
+    Cmd_CommandAdd( pAbc, "ABC9",         "&setregnum",    Abc_CommandAbc9SetRegNum,    0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&st",           Abc_CommandAbc9Strash,       0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&topand",       Abc_CommandAbc9Topand,       0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&add1hot",      Abc_CommandAbc9Add1Hot,      0 );
@@ -26414,6 +26416,68 @@ usage:
   SeeAlso     []
 
 ***********************************************************************/
+int Abc_CommandAbc9SetRegNum( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    int c, nRegNum = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Nh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'N':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-N\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nRegNum = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nRegNum < 0 )
+                goto usage;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pAbc->pGia == NULL )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9SetRegNum(): There is no AIG.\n" );
+        return 1;
+    }
+    if ( nRegNum >= Gia_ManCiNum(pAbc->pGia) )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9SetRegNum(): The number of registers should be less than the number of CIs.\n" );
+        return 1;
+    }
+    if ( nRegNum >= Gia_ManCoNum(pAbc->pGia) )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9SetRegNum(): The number of registers should be less than the number of COs.\n" );
+        return 1;
+    }
+    pAbc->pGia->nRegs = nRegNum;
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: &setregnum [-N num] [-h]\n" );
+    Abc_Print( -2, "\t         manually sets the number of registers to combine the last PI/PO pairs\n" );
+    Abc_Print( -2, "\t-N num : set the number of registers to be the given number [default = %d]\n", nRegNum );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 int Abc_CommandAbc9Strash( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Gia_Man_t * pTemp;
@@ -36582,12 +36646,12 @@ usage:
 int Abc_CommandAbc9Fadds( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     extern Gia_Man_t * Gia_ManDupWithNaturalBoxes( Gia_Man_t * p, int nFaddMin, int fVerbose );
-    extern Gia_Man_t * Gia_ManDupWithArtificialBoxes( Gia_Man_t * p, int DelayC, int nPathMin, int nPathMax, int nPathLimit, int fUseFanout, int fVerbose );
-    Gia_Man_t * pTemp;
-    int c, nFaddMin = 3, fUseArt = 0, fVerbose = 0;
-    int DelayC = 0, nPathMin = 3, nPathMax = 32, nPathLimit = 50, fUseFanout = 0;
+    extern Gia_Man_t * Gia_ManDupWithArtificialBoxes( Gia_Man_t * p, int DelayC, int nPathMin, int nPathMax, int nPathLimit, int fUseFanout, int fIgnoreBoxDelays, int fVerbose );
+    Gia_Man_t * pTemp, * pTemp2;
+    int c, nFaddMin = 3, fUseNat = 0, fUseArt = 0, fVerbose = 0;
+    int DelayC = 0, nPathMin = 3, nPathMax = 32, nPathLimit = 50, fUseFanout = 0, fIgnoreBoxDelays = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "NBSLPafvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "NBSLPnafbvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -36646,11 +36710,17 @@ int Abc_CommandAbc9Fadds( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( nPathLimit < 0 )
                 goto usage;
             break;
+        case 'n':
+            fUseNat ^= 1;
+            break;
         case 'a':
             fUseArt ^= 1;
             break;
         case 'f':
             fUseFanout ^= 1;
+            break;
+        case 'b':
+            fIgnoreBoxDelays ^= 1;
             break;
         case 'v':
             fVerbose ^= 1;
@@ -36666,22 +36736,35 @@ int Abc_CommandAbc9Fadds( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Abc_CommandAbc9Fadds(): There is no AIG.\n" );
         return 0;
     }
-    if ( fUseArt )
-        pTemp = Gia_ManDupWithArtificialBoxes( pAbc->pGia, DelayC, nPathMin, nPathMax, nPathLimit, fUseFanout, fVerbose );
-    else
+    if ( fUseNat )
         pTemp = Gia_ManDupWithNaturalBoxes( pAbc->pGia, nFaddMin, fVerbose );
-    Abc_FrameUpdateGia( pAbc, pTemp );
+    else
+    {
+        pTemp = Gia_ManDup( pAbc->pGia );
+        Gia_ManTransferTiming( pTemp, pAbc->pGia );
+    }
+    if ( fUseArt )
+        pTemp2 = Gia_ManDupWithArtificialBoxes( pTemp, DelayC, nPathMin, nPathMax, nPathLimit, fUseFanout, fIgnoreBoxDelays, fVerbose );
+    else
+    {
+        pTemp2 = Gia_ManDup( pTemp );
+        Gia_ManTransferTiming( pTemp2, pTemp );
+    }
+    Gia_ManStop( pTemp );
+    Abc_FrameUpdateGia( pAbc, pTemp2 );
     return 0;
 usage:
-    Abc_Print( -2, "usage: &fadds [-NBSLP num] [-afvh]\n" );
+    Abc_Print( -2, "usage: &fadds [-NBSLP num] [-nafvh]\n" );
     Abc_Print( -2, "\t         detects full-adder chains and puts them into white boxes\n" );
+    Abc_Print( -2, "\t-n     : toggles detecting natural full-adder chains [default = %s]\n",              fUseNat? "yes": "no" );
     Abc_Print( -2, "\t-N num : minimum length of a natural full-adder chain to detect [default = %d]\n",   nFaddMin );
     Abc_Print( -2, "\t-a     : toggles detecting artificial full-adder chains [default = %s]\n",           fUseArt? "yes": "no" );
     Abc_Print( -2, "\t-B num : full-adder box delay (percentage of AND-gate delay) [default = %d]\n",      DelayC );
     Abc_Print( -2, "\t-S num : minimum length of an artificial full-adder chain [default = %d]\n",         nPathMin );
     Abc_Print( -2, "\t-L num : maximum length of an artificial full-adder chain [default = %d]\n",         nPathMax );
     Abc_Print( -2, "\t-P num : maximum number of artificial full-adder chains to detect [default = %d]\n", nPathLimit );
-    Abc_Print( -2, "\t-f     : toggles using intermediate fanouts in artificial chains [default = %s]\n",  fUseFanout? "yes": "no" );
+    Abc_Print( -2, "\t-f     : toggles allowing external fanouts in artificial chains [default = %s]\n",   fUseFanout? "yes": "no" );
+    Abc_Print( -2, "\t-b     : toggles ignoring boxes when computing delays [default = %s]\n",             fIgnoreBoxDelays? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggles printing verbose information [default = %s]\n",                     fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;

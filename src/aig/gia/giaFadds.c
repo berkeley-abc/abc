@@ -656,6 +656,11 @@ Gia_Man_t * Gia_ManDupWithNaturalBoxes( Gia_Man_t * p, int nFaddMin, int fVerbos
     Vec_Wec_t * vChains;
     Gia_Obj_t * pObj;  
     int i, nBoxes;
+    if ( Gia_ManBoxNum(p) > 0 )
+    {
+        printf( "Currently natural carry-chains cannot be detected when boxes are present.\n" );
+        return NULL;
+    }
     assert( Gia_ManBoxNum(p) == 0 );
 
     // detect FADDs
@@ -748,11 +753,58 @@ Gia_Man_t * Gia_ManDupWithNaturalBoxes( Gia_Man_t * p, int nFaddMin, int fVerbos
   SeeAlso     []
 
 ***********************************************************************/
-Gia_Man_t * Gia_ManDupWithArtificalFaddBoxes( Gia_Man_t * p )
+int Gia_ObjFanin0CopyCarry( Vec_Int_t * vCarries, Gia_Obj_t * pObj, int Id )
+{
+    if ( vCarries == NULL || Vec_IntEntry(vCarries, Gia_ObjFaninId0(pObj, Id)) == -1 )
+        return Gia_ObjFanin0Copy(pObj);
+    return Abc_LitNotCond( Vec_IntEntry(vCarries, Gia_ObjFaninId0(pObj, Id)), Gia_ObjFaninC0(pObj) );
+}
+int Gia_ObjFanin1CopyCarry( Vec_Int_t * vCarries, Gia_Obj_t * pObj, int Id )
+{
+    if ( vCarries == NULL || Vec_IntEntry(vCarries, Gia_ObjFaninId1(pObj, Id)) == -1 )
+        return Gia_ObjFanin1Copy(pObj);
+    return Abc_LitNotCond( Vec_IntEntry(vCarries, Gia_ObjFaninId1(pObj, Id)), Gia_ObjFaninC1(pObj) );
+}
+Gia_Man_t * Gia_ManDupWithArtificalFaddBoxes( Gia_Man_t * p, int fUseFanout )
 {
     Gia_Man_t * pNew;
     Gia_Obj_t * pObj;  
-    int i, nRealPis, nRealPos, nBoxes = Gia_ManBoxNum(p);
+    int nBoxes = Gia_ManBoxNum(p);
+    int i, nRealPis, nRealPos;
+    Vec_Int_t * vCarries = NULL;
+    // make sure two chains do not overlap
+    Gia_ManCleanPhase( p );
+    Gia_ManForEachCi( p, pObj, i )
+        assert( !pObj->fMark0 && !pObj->fMark1 );
+    Gia_ManForEachCo( p, pObj, i )
+        assert( !pObj->fMark0 && !pObj->fMark1 );
+    Gia_ManForEachAnd( p, pObj, i )
+    {
+        assert( !pObj->fMark0 || !pObj->fMark1 );
+        if ( pObj->fMark0 )
+        {
+            assert( Gia_ObjFanin0(pObj)->fPhase == 0 );
+            Gia_ObjFanin0(pObj)->fPhase = 1;
+        }
+        if ( pObj->fMark1 )
+        {
+            assert( Gia_ObjFanin1(pObj)->fPhase == 0 );
+            Gia_ObjFanin1(pObj)->fPhase = 1;
+        }
+    }
+    // create mapping for carry-chains
+    if ( !fUseFanout )
+        vCarries = Vec_IntStartFull( Gia_ManObjNum(p) );
+    // create references and discount carries
+    if ( vCarries )
+    {
+        Gia_ManCreateRefs( p );
+        Gia_ManForEachAnd( p, pObj, i )
+            if ( pObj->fMark0 )
+                Gia_ObjRefFanin0Dec( p, pObj );
+            else if ( pObj->fMark1 )
+                Gia_ObjRefFanin1Dec( p, pObj );
+    }
     // if AIG already has (natural) FADD boxes, it should not un-normalized
     Gia_ManFillValue( p );
     pNew = Gia_ManStart( Gia_ManObjNum(p) );
@@ -771,12 +823,14 @@ Gia_Man_t * Gia_ManDupWithArtificalFaddBoxes( Gia_Man_t * p )
         {
             int iCiLit, iOtherLit, iLit0, iLit1, iLit2;
             assert( pObj->fMark0 != pObj->fMark1 );
-            iCiLit    = pObj->fMark0 ? Gia_ObjFanin0Copy(pObj) : Gia_ObjFanin1Copy(pObj);
+            iCiLit    = pObj->fMark0 ? Gia_ObjFanin0CopyCarry(vCarries, pObj, i) : Gia_ObjFanin1CopyCarry(vCarries, pObj, i);
             iOtherLit = pObj->fMark0 ? Gia_ObjFanin1Copy(pObj) : Gia_ObjFanin0Copy(pObj);
+            assert( iCiLit >= 0 && iOtherLit >= 0 );
             iLit0 = Abc_LitNotCond( iCiLit,    Abc_LitIsCompl(iCiLit) );
             iLit1 = Abc_LitNotCond( iOtherLit, Abc_LitIsCompl(iCiLit) );
             iLit2 = Abc_LitNotCond( 0,         Abc_LitIsCompl(iCiLit) );
             // add COs
+            assert( !Abc_LitIsCompl(iLit0) );
             Gia_ManAppendCo( pNew, iLit0 );
             Gia_ManAppendCo( pNew, iLit1 );
             Gia_ManAppendCo( pNew, iLit2 );
@@ -784,9 +838,19 @@ Gia_Man_t * Gia_ManDupWithArtificalFaddBoxes( Gia_Man_t * p )
             Gia_ManAppendCi(pNew);
             // add CI (carry bit)
             pObj->Value = Abc_LitNotCond( Gia_ManAppendCi(pNew), Abc_LitIsCompl(iCiLit) );
+            if ( vCarries && pObj->fPhase )
+            {
+                Vec_IntWriteEntry( vCarries, i, pObj->Value );
+                if ( Gia_ObjRefNum(p, pObj) > 0 )
+                    pObj->Value = Gia_ManAppendAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+            }
             nBoxes++;
         }
     }
+    Gia_ManCleanPhase( p );
+    Vec_IntFreeP( &vCarries );
+    ABC_FREE( p->pRefs );
+    assert( !Gia_ManHasDangling(pNew) );
     // other information
 //    nBoxes += (Gia_ManCiNum(pNew) - Gia_ManCiNum(p)) / 2;
 //    assert( nBoxes == Gia_ManBoxNum(p) + (Gia_ManCoNum(pNew) - Gia_ManCoNum(p)) / 3 );
@@ -813,14 +877,14 @@ Gia_Man_t * Gia_ManDupWithArtificalFaddBoxesTest( Gia_Man_t * p )
     }
 
     // output new AIG
-    pNew = Gia_ManDupWithArtificalFaddBoxes( p );
+    pNew = Gia_ManDupWithArtificalFaddBoxes( p, 0 );
     Gia_ManCleanMark01( p );
     return pNew;
 }
 
 /**Function*************************************************************
 
-  Synopsis    [Computes AIG delay information when boxes are used.]
+  Synopsis    [Adds artificial carry chains to the manager.]
 
   Description []
                
@@ -829,16 +893,43 @@ Gia_Man_t * Gia_ManDupWithArtificalFaddBoxesTest( Gia_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-int Gia_ManFindAnnotatedDelay( Gia_Man_t * p, int DelayC, int * pnBoxes )
+// computes AIG delay information when boxes are used
+int Gia_ManFindAnnotatedDelay( Gia_Man_t * p, int DelayC, int * pnBoxes, int fIgnoreBoxDelays )
 {
     Gia_Obj_t * pObj;
+    int nRealPis = Gia_ManBoxNum(p) ? Tim_ManPiNum((Tim_Man_t *)p->pManTime) : Gia_ManCiNum(p);
     int * pDelays = Vec_IntArray(p->vLevels);
-    int i, Delay, Delay0, Delay1, DelayMax = 0, nBoxes = 0;
+    int i, k, iBox, iBoxOutId, Delay, Delay0, Delay1, DelayMax = 0, nBoxes = 0;
     Vec_IntFill( p->vLevels, Gia_ManObjNum(p), 0 );
     Gia_ManForEachObj1( p, pObj, i )
     {
         if ( Gia_ObjIsCi(pObj) )
+        {
+            if ( fIgnoreBoxDelays )
+                continue;
+            // check if it is real PI
+            iBoxOutId = Gia_ObjCioId(pObj) - nRealPis;
+            if ( iBoxOutId < 0 )
+                continue;
+            // if it is a box output, find box number
+            iBox = iBoxOutId / 2;
+            assert( iBox < Gia_ManBoxNum(p) );
+            // check find the maximum delay of the box inputs
+            Delay = 0;
+            for ( k = 0; k < 3; k++ )
+            {
+                int Id = Gia_ObjId( p, Gia_ManCo(p, iBox*3+k) );
+                assert( Id < i );
+                Delay = Abc_MaxInt( Delay, pDelays[Id] );
+            }
+            // consider outputs
+            if ( iBoxOutId & 1 ) // carry output
+                Delay += DelayC;
+            else // sum output
+                Delay += 100;
+            pDelays[i] = Delay;
             continue;
+        }
         if ( Gia_ObjIsCo(pObj) )
         {
             pDelays[i] = pDelays[Gia_ObjFaninId0(pObj, i)];
@@ -866,14 +957,20 @@ int Gia_ManFindAnnotatedDelay( Gia_Man_t * p, int DelayC, int * pnBoxes )
         *pnBoxes = nBoxes;
     return DelayMax;
 }
-int Gia_ManFindInternalNode( Gia_Man_t * p )
+// check if the object is already used in some chain
+static inline int Gia_ObjIsUsed( Gia_Obj_t * pObj )
+{
+    return pObj->fMark0 || pObj->fMark1 || pObj->fPhase;
+}
+// finds internal node that can begin a new chain
+int Gia_ManFindChainStart( Gia_Man_t * p )
 {
     Gia_Obj_t * pObj;
     int * pDelays = Vec_IntArray(p->vLevels);
     int i, iMax = -1, DelayMax = 0;
     Gia_ManForEachAnd( p, pObj, i )
     {
-        if ( pObj->fMark0 || pObj->fMark1 || pObj->fPhase )
+        if ( Gia_ObjIsUsed(pObj) )
             continue;
         if ( DelayMax > pDelays[i] )
             continue;
@@ -882,29 +979,30 @@ int Gia_ManFindInternalNode( Gia_Man_t * p )
     }
     return iMax;
 }
+// finds a sequence of internal nodes that creates a new chain
 int Gia_ManFindPath( Gia_Man_t * p, int DelayC, int nPathMin, int nPathMax, Vec_Int_t * vPath )
 {
     Gia_Obj_t * pObj, * pFanin0, * pFanin1;
     int * pDelays = Vec_IntArray(p->vLevels);
-    int i, iLit, iMax = Gia_ManFindInternalNode( p );
+    int i, iLit, iMax = Gia_ManFindChainStart( p );
     if ( iMax == -1 )
         return -1;
     Vec_IntClear( vPath );
     pObj = Gia_ManObj(p, iMax);
     assert( Gia_ObjIsAnd(pObj) );
-    assert( !(pObj->fMark0 || pObj->fMark1 || pObj->fPhase) );
     while ( Gia_ObjIsAnd(pObj) )
     {
+        assert( !Gia_ObjIsUsed(pObj) );
         pFanin0 = Gia_ObjFanin0(pObj);
         pFanin1 = Gia_ObjFanin1(pObj);
-        if ( (pFanin0->fMark0 || pFanin0->fMark1 || Gia_ObjIsCi(pFanin0)) && (pFanin1->fMark0 || pFanin1->fMark1 || Gia_ObjIsCi(pFanin1)) )
+        if ( Gia_ObjIsUsed(pFanin0) && Gia_ObjIsUsed(pFanin1) )
             break;
-        if ( pFanin0->fMark0 || pFanin0->fMark1 || Gia_ObjIsCi(pFanin0) )
+        if ( Gia_ObjIsUsed(pFanin0) )
         {
             Vec_IntPush( vPath, Abc_Var2Lit(Gia_ObjId(p, pObj), 1) );
             pObj = pFanin1;
         }
-        else if ( pFanin1->fMark0 || pFanin1->fMark1 || Gia_ObjIsCi(pFanin1) )
+        else if ( Gia_ObjIsUsed(pFanin1) )
         {
             Vec_IntPush( vPath, Abc_Var2Lit(Gia_ObjId(p, pObj), 0) );
             pObj = pFanin0;
@@ -932,25 +1030,42 @@ int Gia_ManFindPath( Gia_Man_t * p, int DelayC, int nPathMin, int nPathMax, Vec_
     if ( Vec_IntSize(vPath) > nPathMax )
         Vec_IntShrink( vPath, nPathMax );
     Vec_IntForEachEntry( vPath, iLit, i )
+    {
+        pObj = Gia_ManObj( p, Abc_Lit2Var(iLit) );
         if ( Abc_LitIsCompl(iLit) )
-            Gia_ManObj(p, Abc_Lit2Var(iLit))->fMark1 = 1;
+        {
+            assert( pObj->fMark1 == 0 );
+            pObj->fMark1 = 1;
+            assert( Gia_ObjFanin1(pObj)->fPhase == 0 );
+            Gia_ObjFanin1(pObj)->fPhase = 1;
+        }
         else
-            Gia_ManObj(p, Abc_Lit2Var(iLit))->fMark0 = 1;
+        {
+            assert( pObj->fMark0 == 0 );
+            pObj->fMark0 = 1;
+            assert( Gia_ObjFanin0(pObj)->fPhase == 0 );
+            Gia_ObjFanin0(pObj)->fPhase = 1;
+        }
+    }
     return Vec_IntSize(vPath);
 }
-int Gia_ManIteratePaths( Gia_Man_t * p, int DelayC, int nPathMin, int nPathMax, int nPathLimit, int fVerbose )
+// iteratively create the given number of chains
+int Gia_ManIteratePaths( Gia_Man_t * p, int DelayC, int nPathMin, int nPathMax, int nPathLimit, int fIgnoreBoxDelays, int fVerbose )
 {
+    Gia_Obj_t * pObj;
     Vec_Int_t * vPath = Vec_IntAlloc( 100 );
     int i, RetValue, nBoxes, MaxDelay, nPaths = 0;
     assert( p->vLevels == NULL );
     p->vLevels = Vec_IntStart( Gia_ManObjNum(p) );
     Gia_ManCleanMark01( p );
     Gia_ManCleanPhase( p );
+    Gia_ManForEachCi( p, pObj, i )
+        pObj->fPhase = 1;
     if ( fVerbose )
         printf( "Running path detection: BoxDelay = %d, PathMin = %d, PathMax = %d, PathLimit = %d.\n", DelayC, nPathMin, nPathMax, nPathLimit );
     for ( i = 0; i < nPathLimit; i++ )
     {
-        MaxDelay = Gia_ManFindAnnotatedDelay( p, DelayC, &nBoxes );
+        MaxDelay = Gia_ManFindAnnotatedDelay( p, DelayC, &nBoxes, fIgnoreBoxDelays );
         RetValue = Gia_ManFindPath( p, DelayC, nPathMin, nPathMax, vPath );
         if ( RetValue == -1 )
             break;
@@ -960,18 +1075,23 @@ int Gia_ManIteratePaths( Gia_Man_t * p, int DelayC, int nPathMin, int nPathMax, 
     }
     Vec_IntFree( vPath );
     Vec_IntFreeP( &p->vLevels );
+    Gia_ManCleanPhase( p );
     return 1;
 }
-Gia_Man_t * Gia_ManDupWithArtificialBoxes( Gia_Man_t * p, int DelayC, int nPathMin, int nPathMax, int nPathLimit, int fUseFanout, int fVerbose )
+// annotate artificial chains and then put them into boxes
+Gia_Man_t * Gia_ManDupWithArtificialBoxes( Gia_Man_t * p, int DelayC, int nPathMin, int nPathMax, int nPathLimit, int fUseFanout, int fIgnoreBoxDelays, int fVerbose )
 {
     Gia_Man_t * pNew;
+/*
     if ( Gia_ManBoxNum(p) > 0 )
     {
         printf( "Currently artifical carry-chains cannot be detected when natural ones are present.\n" );
         return NULL;
     }
-    Gia_ManIteratePaths( p, DelayC, nPathMin, nPathMax, nPathLimit, fVerbose );
-    pNew = Gia_ManDupWithArtificalFaddBoxes( p );
+*/
+    Gia_ManIteratePaths( p, DelayC, nPathMin, nPathMax, nPathLimit, fIgnoreBoxDelays, fVerbose );
+    pNew = Gia_ManDupWithArtificalFaddBoxes( p, fUseFanout );
+    Gia_ManCleanMark01( p );
     return pNew;
 }
 
