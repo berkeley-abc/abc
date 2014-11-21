@@ -332,13 +332,6 @@ box    = array containing model name, instance name, followed by pairs of formal
 */
 
 
-static inline int    Abc_Ptr2Int( void * p )             { return (int)(ABC_PTRINT_T)p;                }
-static inline void * Abc_Int2Ptr( int i )                { return (void *)(ABC_PTRINT_T)i;             }
-
-static inline word   Abc_Ptr2Wrd( void * p )             { return (word)(ABC_PTRUINT_T)p;              }
-static inline void * Abc_Wrd2Ptr( word i )               { return (void *)(ABC_PTRUINT_T)i;            }
-
-
 /**Function*************************************************************
 
   Synopsis    [Node type conversions.]
