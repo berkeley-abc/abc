@@ -463,7 +463,13 @@ void Gia_ManPrintStats( Gia_Man_t * p, Gps_Par_t * pPars )
 //    if ( p->pManTime )
 //        Tim_ManPrintStats( (Tim_Man_t *)p->pManTime, p->nAnd2Delay );
     // print register classes
-    Gia_ManPrintFlopClasses( p );
+    if ( p->vFlopClasses && Gia_ManRegNum(p) == 0 )
+    {
+        printf( "The design has %d flops with the following class info: ", Vec_IntSize(p->vFlopClasses) );
+        Vec_IntPrint( p->vFlopClasses );
+    }
+    else
+        Gia_ManPrintFlopClasses( p );
     Gia_ManPrintGateClasses( p );
     Gia_ManPrintObjClasses( p );
     if ( p->vInitClasses )
