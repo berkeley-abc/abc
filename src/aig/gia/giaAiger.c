@@ -571,12 +571,10 @@ Gia_Man_t * Gia_AigerReadFromMemory( char * pContents, int nFileSize, int fSkipS
             // read flop classes
             else if ( *pCur == 'f' )
             {
-                int nFlops;
                 pCur++;
-                nFlops = Gia_AigerReadInt(pCur);  pCur += 4;
-                //assert( Gia_AigerReadInt(pCur) == 4*Gia_ManRegNum(pNew) );   pCur += 4; 
-                pNew->vFlopClasses  = Vec_IntStart( nFlops );
-                memcpy( Vec_IntArray(pNew->vFlopClasses),  pCur, 4*nFlops );   pCur += 4*nFlops;
+                assert( Gia_AigerReadInt(pCur) == 4*Gia_ManRegNum(pNew) );   pCur += 4;
+                pNew->vFlopClasses  = Vec_IntStart( Gia_ManRegNum(pNew) );
+                memcpy( Vec_IntArray(pNew->vFlopClasses),  pCur, 4*Gia_ManRegNum(pNew) );   pCur += 4*Gia_ManRegNum(pNew);
                 if ( fVerbose ) printf( "Finished reading extension \"f\".\n" );
             }
             // read gate classes
@@ -653,6 +651,16 @@ Gia_Man_t * Gia_AigerReadFromMemory( char * pContents, int nFileSize, int fSkipS
                 assert( pCur == pCurTemp );
                 pNew->pPlacement = pPlacement;
                 if ( fVerbose ) printf( "Finished reading extension \"p\".\n" );
+            }
+            // read register classes
+            else if ( *pCur == 'r' )
+            {
+                int nRegs;
+                pCur++;
+                nRegs = Gia_AigerReadInt(pCur);                         pCur += 4;
+                pNew->vRegClasses = Vec_IntStart( nRegs );
+                memcpy(Vec_IntArray(pNew->vRegClasses), pCur, 4*nRegs); pCur += 4*nRegs;
+                if ( fVerbose ) printf( "Finished reading extension \"r\".\n" );
             }
             // read choices
             else if ( *pCur == 'q' )
@@ -1188,9 +1196,9 @@ void Gia_AigerWrite( Gia_Man_t * pInit, char * pFileName, int fWriteSymbols, int
     if ( p->vFlopClasses )
     {
         fprintf( pFile, "f" );
-        Gia_FileWriteBufferSize( pFile, 4*Vec_IntSize(p->vFlopClasses) );
-        //assert( Vec_IntSize(p->vFlopClasses) == Gia_ManRegNum(p) );
-        fwrite( Vec_IntArray(p->vFlopClasses), 1, 4*Vec_IntSize(p->vFlopClasses), pFile );
+        Gia_FileWriteBufferSize( pFile, 4*Gia_ManRegNum(p) );
+        assert( Vec_IntSize(p->vFlopClasses) == Gia_ManRegNum(p) );
+        fwrite( Vec_IntArray(p->vFlopClasses), 1, 4*Gia_ManRegNum(p), pFile );
     }
     // write gate classes
     if ( p->vGateClasses )
@@ -1240,6 +1248,13 @@ void Gia_AigerWrite( Gia_Man_t * pInit, char * pFileName, int fWriteSymbols, int
         fprintf( pFile, "p" );
         Gia_FileWriteBufferSize( pFile, 4*Gia_ManObjNum(p) );
         fwrite( p->pPlacement, 1, 4*Gia_ManObjNum(p), pFile );
+    }
+    // write register classes
+    if ( p->vRegClasses )
+    {
+        fprintf( pFile, "r" );
+        Gia_FileWriteBufferSize( pFile, Vec_IntSize(p->vRegClasses) );
+        fwrite( Vec_IntArray(p->vRegClasses), 1, 4*Vec_IntSize(p->vRegClasses), pFile );
     }
     // write choices
     if ( Gia_ManHasChoices(p) )

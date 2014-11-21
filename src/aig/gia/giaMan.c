@@ -101,6 +101,7 @@ void Gia_ManStop( Gia_Man_t * p )
     Vec_IntFreeP( &p->vGateClasses );
     Vec_IntFreeP( &p->vObjClasses );
     Vec_IntFreeP( &p->vInitClasses );
+    Vec_IntFreeP( &p->vRegClasses );
     Vec_IntFreeP( &p->vDoms );
     Vec_IntFreeP( &p->vBarBufs );
     Vec_IntFreeP( &p->vLevels );
@@ -462,16 +463,14 @@ void Gia_ManPrintStats( Gia_Man_t * p, Gps_Par_t * pPars )
         Gia_ManPrintPlacement( p );
 //    if ( p->pManTime )
 //        Tim_ManPrintStats( (Tim_Man_t *)p->pManTime, p->nAnd2Delay );
-    // print register classes
-    if ( p->vFlopClasses && Gia_ManRegNum(p) == 0 )
-    {
-        printf( "The design has %d flops with the following class info: ", Vec_IntSize(p->vFlopClasses) );
-        Vec_IntPrint( p->vFlopClasses );
-    }
-    else
-        Gia_ManPrintFlopClasses( p );
+    Gia_ManPrintFlopClasses( p );
     Gia_ManPrintGateClasses( p );
     Gia_ManPrintObjClasses( p );
+    if ( p->vRegClasses )
+    {
+        printf( "The design has %d flops with the following class info: ", Vec_IntSize(p->vRegClasses) );
+        Vec_IntPrint( p->vRegClasses );
+    }
     if ( p->vInitClasses )
         Gia_ManPrintInitClasses( p->vInitClasses );
     if ( pPars && pPars->fTents )
