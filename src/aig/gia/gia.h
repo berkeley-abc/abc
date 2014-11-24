@@ -1317,7 +1317,8 @@ extern Gia_Man_t *         Gia_ManSpeedup( Gia_Man_t * p, int Percentage, int De
 extern void                Gia_ManStgPrint( FILE * pFile, Vec_Int_t * vLines, int nIns, int nOuts, int nStates );
 extern Gia_Man_t *         Gia_ManStgRead( char * pFileName, int kHot, int fVerbose );
 /*=== giaSweep.c ============================================================*/
-extern Gia_Man_t *         Gia_ManFraigSweep( Gia_Man_t * p, void * pPars );
+extern Gia_Man_t *         Gia_ManFraigSweepSimple( Gia_Man_t * p, void * pPars );
+extern Gia_Man_t *         Gia_ManSweepWithBoxes( Gia_Man_t * p, void * pParsC, void * pParsS, int fConst, int fEquiv, int fVerbose );
 /*=== giaSweeper.c ============================================================*/
 extern Gia_Man_t *         Gia_SweeperStart( Gia_Man_t * p );
 extern void                Gia_SweeperStop( Gia_Man_t * p );
@@ -1349,6 +1350,7 @@ extern Vec_Int_t *         Gia_ManComputeSwitchProbs( Gia_Man_t * pGia, int nFra
 extern Vec_Flt_t *         Gia_ManPrintOutputProb( Gia_Man_t * p );
 /*=== giaTim.c ===========================================================*/
 extern int                 Gia_ManBoxNum( Gia_Man_t * p );
+extern int                 Gia_ManRegBoxNum( Gia_Man_t * p );
 extern int                 Gia_ManIsSeqWithBoxes( Gia_Man_t * p );
 extern int                 Gia_ManIsNormalized( Gia_Man_t * p );
 extern Gia_Man_t *         Gia_ManDupNormalize( Gia_Man_t * p );
@@ -1360,8 +1362,8 @@ extern void *              Gia_ManUpdateTimMan( Gia_Man_t * p, Vec_Int_t * vBoxP
 extern void *              Gia_ManUpdateTimMan2( Gia_Man_t * p, Vec_Int_t * vBoxesLeft );
 extern Gia_Man_t *         Gia_ManUpdateExtraAig( void * pTime, Gia_Man_t * pAig, Vec_Int_t * vBoxPres );
 extern Gia_Man_t *         Gia_ManUpdateExtraAig2( void * pTime, Gia_Man_t * pAig, Vec_Int_t * vBoxesLeft );
-extern Gia_Man_t *         Gia_ManDupCollapse( Gia_Man_t * p, Gia_Man_t * pBoxes, Vec_Int_t * vBoxPres );
-extern int                 Gia_ManVerifyWithBoxes( Gia_Man_t * pGia, void * pParsInit, char * pFileSpec );
+extern Gia_Man_t *         Gia_ManDupCollapse( Gia_Man_t * p, Gia_Man_t * pBoxes, Vec_Int_t * vBoxPres, int fSeq );
+extern int                 Gia_ManVerifyWithBoxes( Gia_Man_t * pGia, int nBTLimit, int nTimeLim, int fSeq, int fVerbose, char * pFileSpec );
 /*=== giaTruth.c ===========================================================*/
 extern word                Gia_ObjComputeTruthTable6Lut( Gia_Man_t * p, int iObj, Vec_Wrd_t * vTemp );
 extern word                Gia_ObjComputeTruthTable6( Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Int_t * vSupp, Vec_Wrd_t * vTruths );

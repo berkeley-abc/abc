@@ -20534,7 +20534,6 @@ int Abc_CommandDSec( Abc_Frame_t * pAbc, int argc, char ** argv )
     int c;
     int fIgnoreNames;
 
-    extern void Fra_SecSetDefaultParams( Fra_Sec_t * p );
     extern int Abc_NtkDarSec( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, Fra_Sec_t * p );
 
     pNtk = Abc_FrameReadNtk(pAbc);
@@ -26544,12 +26543,12 @@ int Abc_CommandAbc9Strash( Abc_Frame_t * pAbc, int argc, char ** argv )
         {
             Gia_Man_t * pUnshuffled = Gia_ManDupUnshuffleInputs( pAbc->pGia );
             Gia_ManTransferTiming( pUnshuffled, pAbc->pGia );
-            pTemp = Gia_ManDupCollapse( pUnshuffled, pUnshuffled->pAigExtra, NULL );
+            pTemp = Gia_ManDupCollapse( pUnshuffled, pUnshuffled->pAigExtra, NULL, 0 );
             Gia_ManTransferTiming( pAbc->pGia, pUnshuffled );
             Gia_ManStop( pUnshuffled );
         }
         else
-            pTemp = Gia_ManDupCollapse( pAbc->pGia, pAbc->pGia->pAigExtra, NULL );
+            pTemp = Gia_ManDupCollapse( pAbc->pGia, pAbc->pGia->pAigExtra, NULL, 0 );
         if ( !Abc_FrameReadFlag("silentmode") )
             printf( "Collapsed AIG with boxes and logic of the boxes.\n" );
     }
@@ -29424,6 +29423,22 @@ int Abc_CommandAbc9Scl( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Abc_CommandAbc9Scl(): There is no AIG.\n" );
         return 1;
     }
+    if ( Gia_ManBoxNum(pAbc->pGia) && Gia_ManRegBoxNum(pAbc->pGia) )
+    {
+        if ( pAbc->pGia->pAigExtra == NULL )
+        {
+            printf( "Timing manager is given but there is no GIA of boxes.\n" );
+            return 0;
+        }
+        pTemp = Gia_ManSweepWithBoxes( pAbc->pGia, NULL, NULL, fConst, fEquiv, fVerbose );
+        Abc_FrameUpdateGia( pAbc, pTemp );
+        return 0;
+    }
+    if ( Gia_ManRegNum(pAbc->pGia) == 0 )
+    {
+        Abc_Print( -1, "The network is combinational.\n" );
+        return 0;
+    }
     pTemp = Gia_ManSeqStructSweep( pAbc->pGia, fConst, fEquiv, fVerbose );
     Abc_FrameUpdateGia( pAbc, pTemp );
     return 0;
@@ -29511,6 +29526,17 @@ int Abc_CommandAbc9Lcorr( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
         Abc_Print( -1, "Abc_CommandAbc9Lcorr(): There is no AIG.\n" );
         return 1;
+    }
+    if ( Gia_ManBoxNum(pAbc->pGia) && Gia_ManRegBoxNum(pAbc->pGia) )
+    {
+        if ( pAbc->pGia->pAigExtra == NULL )
+        {
+            printf( "Timing manager is given but there is no GIA of boxes.\n" );
+            return 0;
+        }
+        pTemp = Gia_ManSweepWithBoxes( pAbc->pGia, NULL, pPars, 0, 0, pPars->fVerbose );
+        Abc_FrameUpdateGia( pAbc, pTemp );
+        return 0;
     }
     if ( Gia_ManRegNum(pAbc->pGia) == 0 )
     {
@@ -29618,6 +29644,17 @@ int Abc_CommandAbc9Scorr( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
         Abc_Print( -1, "Abc_CommandAbc9Scorr(): There is no AIG.\n" );
         return 1;
+    }
+    if ( Gia_ManBoxNum(pAbc->pGia) && Gia_ManRegBoxNum(pAbc->pGia) )
+    {
+        if ( pAbc->pGia->pAigExtra == NULL )
+        {
+            printf( "Timing manager is given but there is no GIA of boxes.\n" );
+            return 0;
+        }
+        pTemp = Gia_ManSweepWithBoxes( pAbc->pGia, NULL, pPars, 0, 0, pPars->fVerbose );
+        Abc_FrameUpdateGia( pAbc, pTemp );
+        return 0;
     }
     if ( Gia_ManRegNum(pAbc->pGia) == 0 )
     {
@@ -30735,11 +30772,9 @@ usage:
 int Abc_CommandAbc9Verify( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     char * pFileSpec = NULL;
-    Cec_ParCec_t ParsCec, * pPars = &ParsCec;
-    int c;
-    Cec_ManCecSetDefaultParams( pPars );
+    int c, nBTLimit = 1000, nTimeLim = 0, fSeq = 0, fVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "CTvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "CTsvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -30749,9 +30784,9 @@ int Abc_CommandAbc9Verify( Abc_Frame_t * pAbc, int argc, char ** argv )
                 Abc_Print( -1, "Command line switch \"-C\" should be followed by an integer.\n" );
                 goto usage;
             }
-            pPars->nBTLimit = atoi(argv[globalUtilOptind]);
+            nBTLimit = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nBTLimit < 0 )
+            if ( nBTLimit < 0 )
                 goto usage;
             break;
         case 'T':
@@ -30760,13 +30795,16 @@ int Abc_CommandAbc9Verify( Abc_Frame_t * pAbc, int argc, char ** argv )
                 Abc_Print( -1, "Command line switch \"-T\" should be followed by an integer.\n" );
                 goto usage;
             }
-            pPars->TimeLimit = atoi(argv[globalUtilOptind]);
+            nTimeLim = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->TimeLimit < 0 )
+            if ( nTimeLim < 0 )
                 goto usage;
             break;
+        case 's':
+            fSeq ^= 1;
+            break;
         case 'v':
-            pPars->fVerbose ^= 1;
+            fVerbose ^= 1;
             break;
         case 'h':
             goto usage;
@@ -30780,15 +30818,16 @@ int Abc_CommandAbc9Verify( Abc_Frame_t * pAbc, int argc, char ** argv )
         Extra_FileNameCorrectPath( pFileSpec );
         printf( "Taking spec from file \"%s\".\n", pFileSpec );
     }
-    Gia_ManVerifyWithBoxes( pAbc->pGia, pPars, pFileSpec );
+    Gia_ManVerifyWithBoxes( pAbc->pGia, nBTLimit, nTimeLim, fSeq, fVerbose, pFileSpec );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &verify [-CT num] [-vh] <file>\n" );
+    Abc_Print( -2, "usage: &verify [-CT num] [-svh] <file>\n" );
     Abc_Print( -2, "\t         performs verification of combinational design\n" );
-    Abc_Print( -2, "\t-C num : the max number of conflicts at a node [default = %d]\n", pPars->nBTLimit );
-    Abc_Print( -2, "\t-T num : approximate runtime limit in seconds [default = %d]\n", pPars->TimeLimit );
-    Abc_Print( -2, "\t-v     : toggle verbose output [default = %s]\n", pPars->fVerbose? "yes":"no");
+    Abc_Print( -2, "\t-C num : the max number of conflicts at a node [default = %d]\n", nBTLimit );
+    Abc_Print( -2, "\t-T num : approximate runtime limit in seconds [default = %d]\n",  nTimeLim );
+    Abc_Print( -2, "\t-s     : toggle using sequential verification [default = %s]\n",  fSeq? "yes":"no");
+    Abc_Print( -2, "\t-v     : toggle verbose output [default = %s]\n",                 fVerbose? "yes":"no");
     Abc_Print( -2, "\t-h     : print the command usage\n");
     Abc_Print( -2, "\t<file> : optional file name with the spec [default = not used\n" );
     return 1;
@@ -30876,7 +30915,15 @@ int Abc_CommandAbc9Sweep( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Abc_CommandAbc9Sweep(): There is no AIG.\n" );
         return 1;
     }
-    pTemp = Gia_ManFraigSweep( pAbc->pGia, pPars );
+    if ( Gia_ManBoxNum(pAbc->pGia) && pAbc->pGia->pAigExtra == NULL )
+    {
+        printf( "Timing manager is given but there is no GIA of boxes.\n" );
+        return 0;
+    }
+    if ( Gia_ManBoxNum(pAbc->pGia) )
+        pTemp = Gia_ManSweepWithBoxes( pAbc->pGia, pPars, NULL, 0, 0, pPars->fVerbose );
+    else
+        pTemp = Gia_ManFraigSweepSimple( pAbc->pGia, pPars );
     Abc_FrameUpdateGia( pAbc, pTemp );
     return 0;
 

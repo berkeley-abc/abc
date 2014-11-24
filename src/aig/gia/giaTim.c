@@ -19,8 +19,10 @@
 ***********************************************************************/
 
 #include "gia.h"
+#include "giaAig.h"
 #include "misc/tim/tim.h"
 #include "proof/cec/cec.h"
+#include "proof/fra/fra.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -47,6 +49,10 @@ ABC_NAMESPACE_IMPL_START
 int Gia_ManBoxNum( Gia_Man_t * p )
 {
     return p->pManTime ? Tim_ManBoxNum((Tim_Man_t *)p->pManTime) : 0;
+}
+int Gia_ManRegBoxNum( Gia_Man_t * p )
+{
+    return p->vRegClasses ? Vec_IntSize(p->vRegClasses) : 0;
 }
 
 /**Function*************************************************************
@@ -701,13 +707,14 @@ void Gia_ManDupCollapse_rec( Gia_Man_t * p, Gia_Obj_t * pObj, Gia_Man_t * pNew )
     if ( Gia_ObjSibl(p, Gia_ObjId(p, pObj)) )
         pNew->pSibls[Abc_Lit2Var(pObj->Value)] = Abc_Lit2Var(Gia_ObjSiblObj(p, Gia_ObjId(p, pObj))->Value);        
 }
-Gia_Man_t * Gia_ManDupCollapse( Gia_Man_t * p, Gia_Man_t * pBoxes, Vec_Int_t * vBoxPres )
+Gia_Man_t * Gia_ManDupCollapse( Gia_Man_t * p, Gia_Man_t * pBoxes, Vec_Int_t * vBoxPres, int fSeq )
 {
     // this procedure assumes that sequential AIG with boxes is unshuffled to have valid boxes
     Tim_Man_t * pManTime = (Tim_Man_t *)p->pManTime;
     Gia_Man_t * pNew, * pTemp;
     Gia_Obj_t * pObj, * pObjBox;
     int i, k, curCi, curCo;
+    assert( !fSeq || p->vRegClasses );
     //assert( Gia_ManRegNum(p) == 0 );
     assert( Gia_ManCiNum(p) == Tim_ManPiNum(pManTime) + Gia_ManCoNum(pBoxes) );
     pNew = Gia_ManStart( Gia_ManObjNum(p) );
@@ -790,7 +797,7 @@ Gia_Man_t * Gia_ManDupCollapse( Gia_Man_t * p, Gia_Man_t * pBoxes, Vec_Int_t * v
     // verify counts
     assert( curCi == Gia_ManCiNum(p) );
     assert( curCo == Gia_ManCoNum(p) );
-    Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
+    Gia_ManSetRegNum( pNew, (fSeq && p->vRegClasses) ? Vec_IntSize(p->vRegClasses) : Gia_ManRegNum(p) );
     Gia_ManHashStop( pNew );
     pNew = Gia_ManCleanup( pTemp = pNew );
     Gia_ManCleanupRemap( p, pTemp );
@@ -811,9 +818,8 @@ Gia_Man_t * Gia_ManDupCollapse( Gia_Man_t * p, Gia_Man_t * pBoxes, Vec_Int_t * v
   SeeAlso     []
 
 ***********************************************************************/
-int Gia_ManVerifyWithBoxes( Gia_Man_t * pGia, void * pParsInit, char * pFileSpec )
+int Gia_ManVerifyWithBoxes( Gia_Man_t * pGia, int nBTLimit, int nTimeLim, int fSeq, int fVerbose, char * pFileSpec )
 {
-    int fVerbose =  1;
     int Status   = -1;
     Gia_Man_t * pSpec, * pGia0, * pGia1, * pMiter;
     Vec_Int_t * vBoxPres = NULL;
@@ -866,28 +872,48 @@ int Gia_ManVerifyWithBoxes( Gia_Man_t * pGia, void * pParsInit, char * pFileSpec
         }
         // collapse two designs
         if ( Gia_ManBoxNum(pSpec) > 0 )
-            pGia0 = Gia_ManDupCollapse( pSpec, pSpec->pAigExtra, vBoxPres );
+            pGia0 = Gia_ManDupCollapse( pSpec, pSpec->pAigExtra, vBoxPres, fSeq );
         else
             pGia0 = Gia_ManDup( pSpec );
         if ( Gia_ManBoxNum(pGia) > 0 )
-            pGia1 = Gia_ManDupCollapse( pGia,  pGia->pAigExtra,  NULL  );
+            pGia1 = Gia_ManDupCollapse( pGia,  pGia->pAigExtra,  NULL, fSeq  );
         else
             pGia1 = Gia_ManDup( pGia );
         Vec_IntFreeP( &vBoxPres );
     }
     // compute the miter
-    pMiter = Gia_ManMiter( pGia0, pGia1, 0, 1, 0, 0, fVerbose );
-    if ( pMiter )
+    if ( fSeq )
     {
-        Cec_ParCec_t ParsCec, * pPars = &ParsCec;
-        Cec_ManCecSetDefaultParams( pPars );
-        pPars->fVerbose = fVerbose;
-        if ( pParsInit )
-            memcpy( pPars, pParsInit, sizeof(Cec_ParCec_t) );
-        Status = Cec_ManVerify( pMiter, pPars );
-        Gia_ManStop( pMiter );
-        if ( pPars->iOutFail >= 0 )
-            Abc_Print( 1, "Verification failed for at least one output (%d).\n", pPars->iOutFail );
+        pMiter = Gia_ManMiter( pGia0, pGia1, 0, 0, 1, 0, fVerbose );
+        if ( pMiter )
+        {
+            Aig_Man_t * pMan;
+            Fra_Sec_t SecPar, * pSecPar = &SecPar;
+            Fra_SecSetDefaultParams( pSecPar );
+            pSecPar->nBTLimit  = nBTLimit;
+            pSecPar->TimeLimit = nTimeLim;
+            pSecPar->fVerbose  = fVerbose;
+            pMan = Gia_ManToAig( pMiter, 0 );
+            Gia_ManStop( pMiter );
+            Status = Fra_FraigSec( pMan, pSecPar, NULL );
+            Aig_ManStop( pMan );
+        }
+    }
+    else
+    {
+        pMiter = Gia_ManMiter( pGia0, pGia1, 0, 1, 0, 0, fVerbose );
+        if ( pMiter )
+        {
+            Cec_ParCec_t ParsCec, * pPars = &ParsCec;
+            Cec_ManCecSetDefaultParams( pPars );
+            pPars->nBTLimit  = nBTLimit;
+            pPars->TimeLimit = nTimeLim;
+            pPars->fVerbose  = fVerbose;
+            Status = Cec_ManVerify( pMiter, pPars );
+            if ( pPars->iOutFail >= 0 )
+                Abc_Print( 1, "Verification failed for at least one output (%d).\n", pPars->iOutFail );
+            Gia_ManStop( pMiter );
+        }
     }
     Gia_ManStop( pGia0 );
     Gia_ManStop( pGia1 );
