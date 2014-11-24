@@ -381,6 +381,17 @@ char * Ptr_TypeToName( Ptr_ObjType_t Type )
     assert( 0 );
     return "???";
 }
+char * Ptr_TypeToSop( Ptr_ObjType_t Type )
+{
+    if ( Type == PTR_OBJ_BUF )   return "1 1\n";
+    if ( Type == PTR_OBJ_INV )   return "0 1\n";
+    if ( Type == PTR_OBJ_AND )   return "11 1\n";
+    if ( Type == PTR_OBJ_OR )    return "00 0\n";
+    if ( Type == PTR_OBJ_XOR )   return "01 1\n10 1\n";
+    if ( Type == PTR_OBJ_XNOR )  return "00 1\n11 1\n";
+    assert( 0 );
+    return "???";
+}
 Ptr_ObjType_t Ptr_SopToType( char * pSop )
 {
     if ( !strcmp(pSop, "1 1\n") )        return PTR_OBJ_BUF;
@@ -551,6 +562,85 @@ Vec_Ptr_t * Ptr_ManDumpDes( Abc_Ntk_t * pNtk )
   SeeAlso     []
 
 ***********************************************************************/
+void Ptr_ManDumpNodeToBlif( FILE * pFile, Vec_Ptr_t * vNode )
+{
+    char * pName;  int i;
+    fprintf( pFile, ".names" );
+    Vec_PtrForEachEntryStart( char *, vNode, pName, i, 2 )
+        fprintf( pFile, " %s", pName );
+    fprintf( pFile, " %s\n", (char *)Vec_PtrEntry(vNode, 0) );
+    fprintf( pFile, "%s", Ptr_TypeToSop( (Ptr_ObjType_t)Abc_Ptr2Int(Vec_PtrEntry(vNode, 1)) ) );
+}
+void Ptr_ManDumpNodesToBlif( FILE * pFile, Vec_Ptr_t * vNodes )
+{
+    Vec_Ptr_t * vNode; int i;
+    Vec_PtrForEachEntry( Vec_Ptr_t *, vNodes, vNode, i )
+        Ptr_ManDumpNodeToBlif( pFile, vNode );
+}
+
+void Ptr_ManDumpBoxToBlif( FILE * pFile, Vec_Ptr_t * vBox )
+{
+    char * pName; int i;
+    fprintf( pFile, "%s", (char *)Vec_PtrEntry(vBox, 0) );
+    Vec_PtrForEachEntryStart( char *, vBox, pName, i, 2 )
+        fprintf( pFile, " %s=%s", pName, (char *)Vec_PtrEntry(vBox, i+1) ), i++;
+    fprintf( pFile, "\n" );
+}
+void Ptr_ManDumpBoxesToBlif( FILE * pFile, Vec_Ptr_t * vBoxes )
+{
+    Vec_Ptr_t * vBox; int i;
+    Vec_PtrForEachEntry( Vec_Ptr_t *, vBoxes, vBox, i )
+        Ptr_ManDumpBoxToBlif( pFile, vBox );
+}
+
+void Ptr_ManDumpSignalsToBlif( FILE * pFile, Vec_Ptr_t * vSigs, int fSkipLastComma )
+{
+    char * pSig; int i;
+    Vec_PtrForEachEntry( char *, vSigs, pSig, i )
+        fprintf( pFile, " %s", pSig );
+}
+void Ptr_ManDumpModuleToBlif( FILE * pFile, Vec_Ptr_t * vNtk )
+{
+    fprintf( pFile, ".model %s\n", (char *)Vec_PtrEntry(vNtk, 0) );
+    fprintf( pFile, ".inputs" );
+    Ptr_ManDumpSignalsToBlif( pFile, (Vec_Ptr_t *)Vec_PtrEntry(vNtk, 1), 0 );
+    fprintf( pFile, "\n" );
+    fprintf( pFile, ".outputs" );
+    Ptr_ManDumpSignalsToBlif( pFile, (Vec_Ptr_t *)Vec_PtrEntry(vNtk, 2), 1 );
+    fprintf( pFile, "\n\n" );
+    Ptr_ManDumpNodesToBlif( pFile, (Vec_Ptr_t *)Vec_PtrEntry(vNtk, 3) );
+    fprintf( pFile, "\n" );
+    Ptr_ManDumpBoxesToBlif( pFile, (Vec_Ptr_t *)Vec_PtrEntry(vNtk, 4) );
+    fprintf( pFile, "\n" );
+    fprintf( pFile, ".end\n\n" );
+}
+void Ptr_ManDumpToBlif( char * pFileName, Vec_Ptr_t * vDes )
+{
+    FILE * pFile;
+    Vec_Ptr_t * vNtk; int i;
+    pFile = fopen( pFileName, "wb" );
+    if ( pFile == NULL )
+    {
+        printf( "Cannot open output file \"%s\".\n", pFileName );
+        return;
+    }
+    fprintf( pFile, "// Design \"%s\" written by ABC on %s\n\n", (char *)Vec_PtrEntry(vDes, 0), Extra_TimeStamp() );
+    Vec_PtrForEachEntryStart( Vec_Ptr_t *, vDes, vNtk, i, 1 )
+        Ptr_ManDumpModuleToBlif( pFile, vNtk );
+    fclose( pFile );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Dumping Ptr into a Verilog file.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 void Ptr_ManDumpNodeToFile( FILE * pFile, Vec_Ptr_t * vNode )
 {
     char * pName;  int i;
@@ -572,7 +662,7 @@ void Ptr_ManDumpBoxToFile( FILE * pFile, Vec_Ptr_t * vBox )
     char * pName; int i;
     fprintf( pFile, "%s %s (", (char *)Vec_PtrEntry(vBox, 0), (char *)Vec_PtrEntry(vBox, 1) );
     Vec_PtrForEachEntryStart( char *, vBox, pName, i, 2 )
-        fprintf( pFile, " .%s(%s)%s", pName, (char *)Vec_PtrEntry(vBox, ++i), i >= Vec_PtrSize(vBox)-2 ? "" : "," );
+        fprintf( pFile, " .%s(%s)%s", pName, (char *)Vec_PtrEntry(vBox, i+1), i >= Vec_PtrSize(vBox)-2 ? "" : "," ), i++;
     fprintf( pFile, " );\n" );
 }
 void Ptr_ManDumpBoxesToFile( FILE * pFile, Vec_Ptr_t * vBoxes )
