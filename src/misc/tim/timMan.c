@@ -284,16 +284,22 @@ Tim_Man_t * Tim_ManReduce( Tim_Man_t * p, Vec_Int_t * vBoxesLeft, int nTermsDiff
     // duplicate delay tables
     if ( Tim_ManDelayTableNum(p) > 0 )
     {
+        int fWarning = 0;
         pNew->vDelayTables = Vec_PtrStart( Vec_PtrSize(p->vDelayTables) );
         Tim_ManForEachTable( p, pDelayTable, i )
         {
             if ( pDelayTable == NULL )
                 continue;
-            assert( i == (int)pDelayTable[0] );
+            if ( i != (int)pDelayTable[0] && fWarning == 0 )
+            {
+                printf( "Warning: Mismatch in delay-table number between the manager and the box.\n" );
+                fWarning = 1;
+            }
+            //assert( i == (int)pDelayTable[0] );
             nInputs   = (int)pDelayTable[1];
             nOutputs  = (int)pDelayTable[2];
             pDelayTableNew = ABC_ALLOC( float, 3 + nInputs * nOutputs );
-            pDelayTableNew[0] = (int)pDelayTable[0];
+            pDelayTableNew[0] = i;//(int)pDelayTable[0];
             pDelayTableNew[1] = (int)pDelayTable[1];
             pDelayTableNew[2] = (int)pDelayTable[2];
             for ( k = 0; k < nInputs * nOutputs; k++ )
@@ -407,7 +413,7 @@ void Tim_ManCreate( Tim_Man_t * p, void * pLib, Vec_Flt_t * vInArrs, Vec_Flt_t *
     if ( p->vBoxes )
     Tim_ManForEachBox( p, pBox, i )
     {
-        if ( pBox->iDelayTable == -1 )
+        if ( pBox->iDelayTable == -1 || pLibBox == NULL )
         {
             // create table with constants
             pTable = ABC_ALLOC( float, 3 + pBox->nInputs * pBox->nOutputs );

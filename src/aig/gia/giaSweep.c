@@ -129,9 +129,7 @@ Gia_Man_t * Gia_ManDupWithBoxes( Gia_Man_t * p, int fSeq )
     Vec_Int_t * vBoxesLeft;
     int curCi, curCo, nBoxIns, nBoxOuts;
     int i, k, iShift, nMarked;
-    int CiLeft = 0, CoLeft = 0;
     assert( Gia_ManBoxNum(p) > 0 );
-    assert( Gia_ManRegBoxNum(p) > 0 );
     // mark useful boxes
     Gia_ManMarkSeqGiaWithBoxes( p, fSeq );
     // duplicate marked entries
@@ -181,29 +179,18 @@ Gia_Man_t * Gia_ManDupWithBoxes( Gia_Man_t * p, int fSeq )
         // check presence
         assert( nMarked == 0 || nMarked == nBoxIns + nBoxOuts );
         if ( nMarked )
-        {
             Vec_IntPush( vBoxesLeft, i );
-
-            CoLeft += nBoxIns;
-            CiLeft += nBoxOuts;
-        }
     }
     curCo += Tim_ManPoNum(pManTime);
     assert( curCi == Gia_ManCiNum(p) );
     assert( curCo == Gia_ManCoNum(p) );
     // update timing manager
-    pNew->pManTime = Gia_ManUpdateTimMan2( p, vBoxesLeft, Vec_IntSize(p->vRegClasses) - Vec_IntSize(pNew->vRegClasses) );
+    pNew->pManTime = Gia_ManUpdateTimMan2( p, vBoxesLeft, Gia_ManRegBoxNum(p) - Gia_ManRegBoxNum(pNew) );
     // update extra STG
     assert( p->pAigExtra != NULL );
     assert( pNew->pAigExtra == NULL );
     pNew->pAigExtra = Gia_ManUpdateExtraAig2( p->pManTime, p->pAigExtra, vBoxesLeft );
-    {
-        int a = Gia_ManCiNum(pNew);
-        int b = Tim_ManPiNum(pNew->pManTime);
-        int c = Gia_ManCoNum(pNew->pAigExtra);
-        int d = b + c;
     assert( Gia_ManCiNum(pNew) == Tim_ManPiNum(pNew->pManTime) + Gia_ManCoNum(pNew->pAigExtra) );
-    }
     Vec_IntFree( vBoxesLeft );
     return pNew;
 }

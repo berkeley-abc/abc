@@ -30849,10 +30849,9 @@ int Abc_CommandAbc9Sweep( Abc_Frame_t * pAbc, int argc, char ** argv )
     Gia_Man_t * pTemp;
     Dch_Pars_t Pars, * pPars = &Pars;
     int c;
-    // set defaults
     Dch_ManSetDefaultParams( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "WCSsptfvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "WCStvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -30889,17 +30888,8 @@ int Abc_CommandAbc9Sweep( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( pPars->nSatVarMax < 0 )
                 goto usage;
             break;
-        case 's':
-            pPars->fSynthesis ^= 1;
-            break;
-        case 'p':
-            pPars->fPower ^= 1;
-            break;
         case 't':
             pPars->fSimulateTfo ^= 1;
-            break;
-        case 'f':
-            pPars->fLightSynth ^= 1;
             break;
         case 'v':
             pPars->fVerbose ^= 1;
@@ -30928,15 +30918,12 @@ int Abc_CommandAbc9Sweep( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &sweep [-WCS num] [-sptfvh]\n" );
-    Abc_Print( -2, "\t         computes structural choices using a new approach\n" );
+    Abc_Print( -2, "usage: &sweep [-WCS num] [-tvh]\n" );
+    Abc_Print( -2, "\t         performs SAT sweeping for AIG with boxes\n" );
     Abc_Print( -2, "\t-W num : the max number of simulation words [default = %d]\n", pPars->nWords );
     Abc_Print( -2, "\t-C num : the max number of conflicts at a node [default = %d]\n", pPars->nBTLimit );
     Abc_Print( -2, "\t-S num : the max number of SAT variables [default = %d]\n", pPars->nSatVarMax );
-    Abc_Print( -2, "\t-s     : toggle synthesizing three snapshots [default = %s]\n", pPars->fSynthesis? "yes": "no" );
-    Abc_Print( -2, "\t-p     : toggle power-aware rewriting [default = %s]\n", pPars->fPower? "yes": "no" );
     Abc_Print( -2, "\t-t     : toggle simulation of the TFO classes [default = %s]\n", pPars->fSimulateTfo? "yes": "no" );
-    Abc_Print( -2, "\t-f     : toggle using lighter logic synthesis [default = %s]\n", pPars->fLightSynth? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle verbose printout [default = %s]\n", pPars->fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
