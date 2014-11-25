@@ -408,6 +408,8 @@ void Gia_ManPrintStats( Gia_Man_t * p, Gps_Par_t * pPars )
         Abc_Print( 1, "(c=%d)", Gia_ManConstrNum(p) );
     if ( Gia_ManRegNum(p) )
         Abc_Print( 1, "  ff =%7d", Gia_ManRegNum(p) );
+    if ( p->vRegClasses )
+        Abc_Print( 1, "  boxff =%d(%d)", Vec_IntSize(p->vRegClasses), Vec_IntFindMax(p->vRegClasses) );
 
 #ifdef WIN32
     {
@@ -466,11 +468,11 @@ void Gia_ManPrintStats( Gia_Man_t * p, Gps_Par_t * pPars )
     Gia_ManPrintFlopClasses( p );
     Gia_ManPrintGateClasses( p );
     Gia_ManPrintObjClasses( p );
-    if ( p->vRegClasses )
-    {
-        printf( "The design has %d flops with the following class info: ", Vec_IntSize(p->vRegClasses) );
-        Vec_IntPrint( p->vRegClasses );
-    }
+//    if ( p->vRegClasses )
+//    {
+//        printf( "The design has %d flops with the following class info: ", Vec_IntSize(p->vRegClasses) );
+//        Vec_IntPrint( p->vRegClasses );
+//    }
     if ( p->vInitClasses )
         Gia_ManPrintInitClasses( p->vInitClasses );
     if ( pPars && pPars->fTents )

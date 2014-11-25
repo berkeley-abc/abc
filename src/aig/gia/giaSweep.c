@@ -65,7 +65,7 @@ void Gia_ManMarkSeqGiaWithBoxes_rec( Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Int_t 
         int nRegs = Gia_ManRegBoxNum(p);
         int iFlop = Gia_ObjCioId(pObj) - (nRealCis - nRegs);
         assert( iFlop >= 0 && iFlop < nRegs );
-        pObj = Gia_ManCo( p, Tim_ManPoNum(pManTime) - nRegs + iFlop );
+        pObj = Gia_ManCo( p, Gia_ManPoNum(p) - nRegs + iFlop );
         Vec_IntPush( vRoots, Gia_ObjId(p, pObj) );
         return;
     }
@@ -104,13 +104,20 @@ void Gia_ManMarkSeqGiaWithBoxes( Gia_Man_t * p, int fSeq )
     // collect flops reachable from the POs
     vRoots = Vec_IntAlloc( Gia_ManRegBoxNum(p) );
     for ( i = Gia_ManPoNum(p) - nRealCos; i < Gia_ManPoNum(p) - nRegs; i++ )
+    {
+        Gia_ObjSetTravIdCurrent( p, Gia_ManPo(p, i) );
         Gia_ManMarkSeqGiaWithBoxes_rec( p, Gia_ObjFanin0(Gia_ManPo(p, i)), vRoots );
+    }
     // collect flops reachable from roots
     if ( fSeq )
-    Gia_ManForEachObjVec( vRoots, p, pObj, i )
     {
-        assert( Gia_ObjIsCo(pObj) );
-        Gia_ManMarkSeqGiaWithBoxes_rec( p, Gia_ObjFanin0(pObj), vRoots );
+        Gia_ManForEachObjVec( vRoots, p, pObj, i )
+        {
+            assert( Gia_ObjIsCo(pObj) );
+            Gia_ObjSetTravIdCurrent( p, pObj );
+            Gia_ManMarkSeqGiaWithBoxes_rec( p, Gia_ObjFanin0(pObj), vRoots );
+        }
+        //printf( "Explored %d flops\n", Vec_IntSize(vRoots) );
     }
     Vec_IntFree( vRoots );
 }
@@ -122,6 +129,7 @@ Gia_Man_t * Gia_ManDupWithBoxes( Gia_Man_t * p, int fSeq )
     Vec_Int_t * vBoxesLeft;
     int curCi, curCo, nBoxIns, nBoxOuts;
     int i, k, iShift, nMarked;
+    int CiLeft = 0, CoLeft = 0;
     assert( Gia_ManBoxNum(p) > 0 );
     assert( Gia_ManRegBoxNum(p) > 0 );
     // mark useful boxes
@@ -143,7 +151,7 @@ Gia_Man_t * Gia_ManDupWithBoxes( Gia_Man_t * p, int fSeq )
             pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
         else assert( 0 );
     }
-    assert( !Gia_ManHasDangling(p) );
+    assert( !Gia_ManHasDangling(pNew) );
     // collect remaining flops
     if ( fSeq )
     {
@@ -173,17 +181,29 @@ Gia_Man_t * Gia_ManDupWithBoxes( Gia_Man_t * p, int fSeq )
         // check presence
         assert( nMarked == 0 || nMarked == nBoxIns + nBoxOuts );
         if ( nMarked )
+        {
             Vec_IntPush( vBoxesLeft, i );
+
+            CoLeft += nBoxIns;
+            CiLeft += nBoxOuts;
+        }
     }
     curCo += Tim_ManPoNum(pManTime);
     assert( curCi == Gia_ManCiNum(p) );
     assert( curCo == Gia_ManCoNum(p) );
     // update timing manager
-    pNew->pManTime = Gia_ManUpdateTimMan2( p, vBoxesLeft );
+    pNew->pManTime = Gia_ManUpdateTimMan2( p, vBoxesLeft, Vec_IntSize(p->vRegClasses) - Vec_IntSize(pNew->vRegClasses) );
     // update extra STG
     assert( p->pAigExtra != NULL );
     assert( pNew->pAigExtra == NULL );
     pNew->pAigExtra = Gia_ManUpdateExtraAig2( p->pManTime, p->pAigExtra, vBoxesLeft );
+    {
+        int a = Gia_ManCiNum(pNew);
+        int b = Tim_ManPiNum(pNew->pManTime);
+        int c = Gia_ManCoNum(pNew->pAigExtra);
+        int d = b + c;
+    assert( Gia_ManCiNum(pNew) == Tim_ManPiNum(pNew->pManTime) + Gia_ManCoNum(pNew->pAigExtra) );
+    }
     Vec_IntFree( vBoxesLeft );
     return pNew;
 }
@@ -363,19 +383,62 @@ Gia_Man_t * Gia_ManFraigReduceGia( Gia_Man_t * p, int * pReprs )
   SeeAlso     []
 
 ***********************************************************************/
-int * Gia_ManFraigSelectReprs( Gia_Man_t * p, Gia_Man_t * pGia, int fVerbose )
+int * Gia_ManFraigSelectReprs( Gia_Man_t * p, Gia_Man_t * pClp, int fVerbose )
 {
     Gia_Obj_t * pObj;
+    Tim_Man_t * pManTime = (Tim_Man_t *)p->pManTime;
     int * pReprs   = ABC_FALLOC( int, Gia_ManObjNum(p) );
-    int * pGia2Abc = ABC_FALLOC( int, Gia_ManObjNum(pGia) );
-    int i, iLitGia, iLitGia2, iReprGia, fCompl;
-    int nConsts = 0, nReprs = 0;
-    pGia2Abc[0] = 0;
+    int * pClp2Gia = ABC_FALLOC( int, Gia_ManObjNum(pClp) );
+    int i, nBoxes, iLast, iBox, iLitClp, iLitClp2, iReprClp, fCompl;
+    int nConsts = 0, nReprs = 0, Count1 = 0, Count2 = 0;
+    assert( pManTime != NULL );
+    // count the number of equivalent objects
+    Gia_ManForEachObj1( pClp, pObj, i )
+    {
+        if ( Gia_ObjIsCo(pObj) )
+            continue;
+        if ( i == Gia_ObjReprSelf(pClp, i) )
+            continue;
+        if ( Gia_ObjReprSelf(pClp, i) == 0 )
+            nConsts++;
+        else
+            nReprs++;
+    }
+    if ( fVerbose )
+        printf( "Computed %d const objects and %d other objects.\n", nConsts, nReprs );
+    nConsts = nReprs = 0;
+
+    // mark flop input boxes
     Gia_ManCleanMark0( p );
-    Gia_ManForEachCo( p, pObj, i )
-        if ( Gia_ObjIsCi(Gia_ObjFanin0(pObj)) ) // this CI is pointed by CO
-            Gia_ObjFanin0(pObj)->fMark0 = 1;
-    Gia_ManSetPhase( pGia );
+    for ( i = Gia_ManPoNum(p) - Gia_ManRegBoxNum(p); i < Gia_ManPoNum(p); i++ )
+    {
+        pObj = Gia_ObjFanin0( Gia_ManPo(p, i) );
+        assert( Gia_ObjIsCi(pObj) );
+        pObj->fMark0 = 1;
+        Count1++;
+    }
+    // mark connects between last box inputs and first box outputs
+    nBoxes =  Tim_ManBoxNum( pManTime );
+    for ( i = 0; i < nBoxes; i++ )
+    {
+        iLast = Tim_ManBoxInputLast( pManTime, i );
+        pObj = Gia_ObjFanin0( Gia_ManCo(p, iLast) );
+        if ( !Gia_ObjIsCi(pObj) )
+            continue;
+        iBox = Tim_ManBoxForCi( pManTime, Gia_ObjCioId(pObj) );
+        if ( iBox == -1 ) 
+            continue;
+        assert( Gia_ObjIsCi(pObj) );
+        if ( Gia_ObjCioId(pObj) == Tim_ManBoxOutputLast(pManTime, iBox) )
+            pObj->fMark0 = 1, Count2++;
+    }
+    if ( fVerbose )
+        printf( "Fixed %d flop inputs and %d box/box connections (out of %d boxes).\n", 
+            Count1, Count2, nBoxes - Gia_ManRegBoxNum(p) );
+
+    // compute representatives
+    pClp2Gia[0] = 0;
+    Gia_ManSetPhase( pClp );
     Gia_ManForEachObj1( p, pObj, i )
     {
         if ( Gia_ObjIsCo(pObj) )
@@ -383,32 +446,32 @@ int * Gia_ManFraigSelectReprs( Gia_Man_t * p, Gia_Man_t * pGia, int fVerbose )
         if ( Gia_ObjIsCi(pObj) && pObj->fMark0 ) // skip CI pointed by CO
             continue;
         assert( Gia_ObjIsCi(pObj) || Gia_ObjIsAnd(pObj) );
-        iLitGia = Gia_ObjValue(pObj);
-        if ( iLitGia == -1 )
+        iLitClp = Gia_ObjValue(pObj);
+        if ( iLitClp == -1 )
             continue;
-        iReprGia = Gia_ObjReprSelf( pGia, Abc_Lit2Var(iLitGia) );
-        if ( pGia2Abc[iReprGia] == -1 )
-            pGia2Abc[iReprGia] = i;
+        iReprClp = Gia_ObjReprSelf( pClp, Abc_Lit2Var(iLitClp) );
+        if ( pClp2Gia[iReprClp] == -1 )
+            pClp2Gia[iReprClp] = i;
         else
         { 
-            iLitGia2 = Gia_ObjValue( Gia_ManObj(p, pGia2Abc[iReprGia]) );
-            assert( Gia_ObjReprSelf(pGia, Abc_Lit2Var(iLitGia)) == Gia_ObjReprSelf(pGia, Abc_Lit2Var(iLitGia2)) );
-            fCompl  = Abc_LitIsCompl(iLitGia) ^ Abc_LitIsCompl(iLitGia2);
-            fCompl ^= Gia_ManObj(pGia, Abc_Lit2Var(iLitGia))->fPhase;
-            fCompl ^= Gia_ManObj(pGia, Abc_Lit2Var(iLitGia2))->fPhase;
-            pReprs[i] = Abc_Var2Lit( pGia2Abc[iReprGia], fCompl );
+            iLitClp2 = Gia_ObjValue( Gia_ManObj(p, pClp2Gia[iReprClp]) );
+            assert( Gia_ObjReprSelf(pClp, Abc_Lit2Var(iLitClp)) == Gia_ObjReprSelf(pClp, Abc_Lit2Var(iLitClp2)) );
+            fCompl  = Abc_LitIsCompl(iLitClp) ^ Abc_LitIsCompl(iLitClp2);
+            fCompl ^= Gia_ManObj(pClp, Abc_Lit2Var(iLitClp))->fPhase;
+            fCompl ^= Gia_ManObj(pClp, Abc_Lit2Var(iLitClp2))->fPhase;
+            pReprs[i] = Abc_Var2Lit( pClp2Gia[iReprClp], fCompl );
             assert( Abc_Lit2Var(pReprs[i]) < i );
-            if ( pGia2Abc[iReprGia] == 0 )
+            if ( pClp2Gia[iReprClp] == 0 )
                 nConsts++;
             else
                 nReprs++;
         }
     }
-    ABC_FREE( pGia2Abc );
-    Gia_ManForEachCo( p, pObj, i )
-        Gia_ObjFanin0(pObj)->fMark0 = 0;
+    ABC_FREE( pClp2Gia );
+    Gia_ManForEachCi( p, pObj, i )
+        pObj->fMark0 = 0;
     if ( fVerbose )
-        printf( "Found %d const reprs and %d other reprs.\n", nConsts, nReprs );
+        printf( "Found %d const objects and %d other objects.\n", nConsts, nReprs );
     return pReprs;
 }
 
@@ -469,7 +532,7 @@ Gia_Man_t * Gia_ManFraigSweepSimple( Gia_Man_t * p, void * pPars )
 ***********************************************************************/
 Gia_Man_t * Gia_ManSweepWithBoxes( Gia_Man_t * p, void * pParsC, void * pParsS, int fConst, int fEquiv, int fVerbose )
 { 
-    Gia_Man_t * pGia, * pNew, * pTemp;
+    Gia_Man_t * pClp, * pNew, * pTemp;
     int * pReprs;
     assert( Gia_ManRegNum(p) == 0 );
     assert( p->pAigExtra != NULL );
@@ -477,23 +540,23 @@ Gia_Man_t * Gia_ManSweepWithBoxes( Gia_Man_t * p, void * pParsC, void * pParsS, 
     pNew = Gia_ManDupUnnormalize( p );
     if ( pNew == NULL )
         return NULL;
-    Gia_ManTransferTiming( pNew, p );
     // find global equivalences
-    pGia = Gia_ManDupCollapse( pNew, p->pAigExtra, NULL, pParsC ? 0 : 1 );
-    Gia_ManTransferTiming( pGia, pNew );
+    Gia_ManTransferTiming( pNew, p );
+    pClp = Gia_ManDupCollapse( pNew, pNew->pAigExtra, NULL, pParsC ? 0 : 1 );
     // compute equivalences
     if ( pParsC )
-        Gia_ManFraigSweepPerform( pGia, pParsC );
+        Gia_ManFraigSweepPerform( pClp, pParsC );
     else if ( pParsS )
-        Cec_ManLSCorrespondenceClasses( pGia, (Cec_ParCor_t *)pParsS );
+        Cec_ManLSCorrespondenceClasses( pClp, (Cec_ParCor_t *)pParsS );
     else 
-        Gia_ManSeqCleanupClasses( pGia, fConst, fEquiv, fVerbose );
+        Gia_ManSeqCleanupClasses( pClp, fConst, fEquiv, fVerbose );
     // transfer equivalences
-    pReprs = Gia_ManFraigSelectReprs( pNew, pGia, fVerbose );
-    Gia_ManStop( pGia );
+    pReprs = Gia_ManFraigSelectReprs( pNew, pClp, fVerbose );
+    Gia_ManStop( pClp );
     // reduce AIG
+    Gia_ManTransferTiming( p, pNew );
     pNew = Gia_ManFraigReduceGia( pTemp = pNew, pReprs );
-    Gia_ManTransferTiming( pNew, pTemp );
+    Gia_ManTransferTiming( pNew, p );
     Gia_ManStop( pTemp );
     ABC_FREE( pReprs );
     // derive new AIG

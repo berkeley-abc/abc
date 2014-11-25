@@ -248,25 +248,27 @@ Tim_Man_t * Tim_ManTrim( Tim_Man_t * p, Vec_Int_t * vBoxPres )
   SeeAlso     []
 
 ***********************************************************************/
-Tim_Man_t * Tim_ManReduce( Tim_Man_t * p, Vec_Int_t * vBoxesLeft )
+Tim_Man_t * Tim_ManReduce( Tim_Man_t * p, Vec_Int_t * vBoxesLeft, int nTermsDiff )
 {
     Tim_Man_t * pNew;
     Tim_Box_t * pBox;
     Tim_Obj_t * pObj;
     float * pDelayTable, * pDelayTableNew;
     int i, k, iBox, nNewCis, nNewCos, nInputs, nOutputs;
+    int nNewPiNum = Tim_ManPiNum(p) - nTermsDiff;
+    int nNewPoNum = Tim_ManPoNum(p) - nTermsDiff;
     assert( Vec_IntSize(vBoxesLeft) <= Tim_ManBoxNum(p) );
     // count the number of CIs and COs in the trimmed manager
-    nNewCis = Tim_ManPiNum(p);
-    nNewCos = Tim_ManPoNum(p);
+    nNewCis = nNewPiNum;
+    nNewCos = nNewPoNum;
     Vec_IntForEachEntry( vBoxesLeft, iBox, i )
     {
         pBox = Tim_ManBox( p, iBox );
         nNewCis += pBox->nOutputs;
         nNewCos += pBox->nInputs;
     }
-    assert( nNewCis <= Tim_ManCiNum(p) );
-    assert( nNewCos <= Tim_ManCoNum(p) );
+    assert( nNewCis <= Tim_ManCiNum(p) - nTermsDiff );
+    assert( nNewCos <= Tim_ManCoNum(p) - nTermsDiff );
     // clear traversal IDs
     Tim_ManForEachCi( p, pObj, i ) 
         pObj->TravId = 0;          
@@ -275,10 +277,10 @@ Tim_Man_t * Tim_ManReduce( Tim_Man_t * p, Vec_Int_t * vBoxesLeft )
     // create new manager
     pNew = Tim_ManStart( nNewCis, nNewCos );
     // copy box connectivity information
-    memcpy( pNew->pCis, p->pCis, sizeof(Tim_Obj_t) * Tim_ManPiNum(p) );
-    memcpy( pNew->pCos + nNewCos - Tim_ManPoNum(p), 
+    memcpy( pNew->pCis, p->pCis, sizeof(Tim_Obj_t) * nNewPiNum );
+    memcpy( pNew->pCos + nNewCos - nNewPoNum, 
             p->pCos + Tim_ManCoNum(p) - Tim_ManPoNum(p), 
-            sizeof(Tim_Obj_t) * Tim_ManPoNum(p) );
+            sizeof(Tim_Obj_t) * nNewPoNum );
     // duplicate delay tables
     if ( Tim_ManDelayTableNum(p) > 0 )
     {
@@ -304,7 +306,7 @@ Tim_Man_t * Tim_ManReduce( Tim_Man_t * p, Vec_Int_t * vBoxesLeft )
     // duplicate boxes
     if ( Tim_ManBoxNum(p) > 0 )
     {
-        int curPi = Tim_ManPiNum(p);
+        int curPi = nNewPiNum;
         int curPo = 0;
         pNew->vBoxes = Vec_PtrAlloc( Tim_ManBoxNum(p) );
         Vec_IntForEachEntry( vBoxesLeft, iBox, i )
@@ -315,7 +317,7 @@ Tim_Man_t * Tim_ManReduce( Tim_Man_t * p, Vec_Int_t * vBoxesLeft )
             curPi += pBox->nOutputs;
             curPo += pBox->nInputs;
         }
-        curPo += Tim_ManPoNum(p);
+        curPo += nNewPoNum;
         assert( curPi == Tim_ManCiNum(pNew) );
         assert( curPo == Tim_ManCoNum(pNew) );
     }

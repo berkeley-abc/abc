@@ -623,12 +623,12 @@ void * Gia_ManUpdateTimMan( Gia_Man_t * p, Vec_Int_t * vBoxPres )
     assert( Vec_IntSize(vBoxPres) == Tim_ManBoxNum(pManTime) );
     return Tim_ManTrim( pManTime, vBoxPres );
 }
-void * Gia_ManUpdateTimMan2( Gia_Man_t * p, Vec_Int_t * vBoxesLeft )
+void * Gia_ManUpdateTimMan2( Gia_Man_t * p, Vec_Int_t * vBoxesLeft, int nTermsDiff )
 {
     Tim_Man_t * pManTime = (Tim_Man_t *)p->pManTime;
     assert( pManTime != NULL );
     assert( Vec_IntSize(vBoxesLeft) <= Tim_ManBoxNum(pManTime) );
-    return Tim_ManReduce( pManTime, vBoxesLeft );
+    return Tim_ManReduce( pManTime, vBoxesLeft, nTermsDiff );
 }
 
 /**Function*************************************************************

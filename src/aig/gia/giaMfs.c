@@ -341,7 +341,7 @@ Gia_Man_t * Gia_ManInsertMfs( Gia_Man_t * p, Sfm_Ntk_t * pNtk )
 
     // create new timing manager and extra AIG
     if ( pManTime )
-        pNew->pManTime = Gia_ManUpdateTimMan2( p, vBoxesLeft );
+        pNew->pManTime = Gia_ManUpdateTimMan2( p, vBoxesLeft, 0 );
     // update extra STG
     if ( p->pAigExtra )
         pNew->pAigExtra = Gia_ManUpdateExtraAig2( p->pManTime, p->pAigExtra, vBoxesLeft );

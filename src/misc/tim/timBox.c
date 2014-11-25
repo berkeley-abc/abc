@@ -126,6 +126,22 @@ int Tim_ManBoxInputFirst( Tim_Man_t * p, int iBox )
 
 /**Function*************************************************************
 
+  Synopsis    [Returns the last input of the box.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Tim_ManBoxInputLast( Tim_Man_t * p, int iBox )
+{
+    return Tim_ManBox(p, iBox)->Inouts[0] + Tim_ManBoxInputNum(p, iBox) - 1;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Returns the first output of the box.]
 
   Description []
@@ -138,6 +154,22 @@ int Tim_ManBoxInputFirst( Tim_Man_t * p, int iBox )
 int Tim_ManBoxOutputFirst( Tim_Man_t * p, int iBox )
 {
     return Tim_ManBox(p, iBox)->Inouts[Tim_ManBox(p, iBox)->nInputs];
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Returns the last output of the box.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Tim_ManBoxOutputLast( Tim_Man_t * p, int iBox )
+{
+    return Tim_ManBox(p, iBox)->Inouts[Tim_ManBox(p, iBox)->nInputs] + Tim_ManBoxOutputNum(p, iBox) - 1;
 }
 
 /**Function*************************************************************

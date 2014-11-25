@@ -114,7 +114,9 @@ extern void            Tim_ManCreateBox( Tim_Man_t * p, int firstIn, int nIns, i
 extern int             Tim_ManBoxForCi( Tim_Man_t * p, int iCo );
 extern int             Tim_ManBoxForCo( Tim_Man_t * p, int iCi );
 extern int             Tim_ManBoxInputFirst( Tim_Man_t * p, int iBox );
+extern int             Tim_ManBoxInputLast( Tim_Man_t * p, int iBox );
 extern int             Tim_ManBoxOutputFirst( Tim_Man_t * p, int iBox );
+extern int             Tim_ManBoxOutputLast( Tim_Man_t * p, int iBox );
 extern int             Tim_ManBoxInputNum( Tim_Man_t * p, int iBox );
 extern int             Tim_ManBoxOutputNum( Tim_Man_t * p, int iBox );
 extern int             Tim_ManBoxDelayTableId( Tim_Man_t * p, int iBox );
@@ -130,7 +132,7 @@ extern Tim_Man_t *     Tim_ManLoad( Vec_Str_t * p, int fHieOnly );
 extern Tim_Man_t *     Tim_ManStart( int nCis, int nCos );
 extern Tim_Man_t *     Tim_ManDup( Tim_Man_t * p, int fUnitDelay );
 extern Tim_Man_t *     Tim_ManTrim( Tim_Man_t * p, Vec_Int_t * vBoxPres );
-extern Tim_Man_t *     Tim_ManReduce( Tim_Man_t * p, Vec_Int_t * vBoxesLeft );
+extern Tim_Man_t *     Tim_ManReduce( Tim_Man_t * p, Vec_Int_t * vBoxesLeft, int nTermsDiff );
 extern Vec_Int_t *     Tim_ManAlignTwo( Tim_Man_t * pSpec, Tim_Man_t * pImpl );
 extern void            Tim_ManCreate( Tim_Man_t * p, void * pLib, Vec_Flt_t * vInArrs, Vec_Flt_t * vOutReqs );
 extern float *         Tim_ManGetArrTimes( Tim_Man_t * p );
