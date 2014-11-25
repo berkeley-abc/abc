@@ -345,6 +345,9 @@ Gia_Man_t * Gia_ManInsertMfs( Gia_Man_t * p, Sfm_Ntk_t * pNtk )
     // update extra STG
     if ( p->pAigExtra )
         pNew->pAigExtra = Gia_ManUpdateExtraAig2( p->pManTime, p->pAigExtra, vBoxesLeft );
+    // duplicated flops
+    if ( p->vRegClasses )
+        pNew->vRegClasses = Vec_IntDup( p->vRegClasses );
 
     // cleanup
     Vec_WecFree( vGroups );
