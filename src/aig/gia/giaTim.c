@@ -914,6 +914,7 @@ int Gia_ManVerifyWithBoxes( Gia_Man_t * pGia, int nBTLimit, int nTimeLim, int fS
             Aig_Man_t * pMan;
             Fra_Sec_t SecPar, * pSecPar = &SecPar;
             Fra_SecSetDefaultParams( pSecPar );
+            pSecPar->fRetimeFirst = 0;
             pSecPar->nBTLimit  = nBTLimit;
             pSecPar->TimeLimit = nTimeLim;
             pSecPar->fVerbose  = fVerbose;

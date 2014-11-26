@@ -634,7 +634,8 @@ Gia_Man_t * Gia_ManSweepWithBoxesAndDomains( Gia_Man_t * p, void * pParsS, int f
     // iterate over domains
     for ( iDom = 1; iDom <= nDoms; iDom++ )
     {
-        if ( Vec_IntCountEntry(pNew->vRegClasses, iDom) < 2 )
+        int nFlops = Vec_IntCountEntry(pNew->vRegClasses, iDom);
+        if ( nFlops < 2 )
             continue;
         // find global equivalences
         pClp = Gia_ManDupCollapse( pNew, pNew->pAigExtra, NULL, 1 );
@@ -655,7 +656,7 @@ Gia_Man_t * Gia_ManSweepWithBoxesAndDomains( Gia_Man_t * p, void * pParsS, int f
         // report
         //if ( fVerbose )
         {
-        printf( "Domain %2d with %5d flops:  ", iDom, Vec_IntCountEntry(pNew->vRegClasses, iDom) );
+        printf( "Domain %2d : %5d -> %5d :  ", iDom, nFlops, Vec_IntCountEntry(pNew->vRegClasses, iDom) );
         Gia_ManPrintStats( pNew, NULL );
         }
     }

@@ -58,7 +58,7 @@ int Inter_ManCheckInitialState( Aig_Man_t * p )
         return 0;
     }
     status = sat_solver_solve( pSat, NULL, NULL, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
-    ABC_PRT( "Time", Abc_Clock() - clk );
+    //ABC_PRT( "Time", Abc_Clock() - clk );
     if ( status == l_True )
     {
         p->pSeqModel = Abc_CexAlloc( Aig_ManRegNum(p), Saig_ManPiNum(p), 1 );
