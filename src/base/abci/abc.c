@@ -26539,11 +26539,11 @@ int Abc_CommandAbc9Strash( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     else if ( fCollapse && pAbc->pGia->pAigExtra )
     {
-        if ( Gia_ManIsSeqWithBoxes(pAbc->pGia) )
+        if ( Gia_ManIsSeqWithBoxes(pAbc->pGia) || Gia_ManRegBoxNum(pAbc->pGia) )
         {
             Gia_Man_t * pUnshuffled = Gia_ManDupUnshuffleInputs( pAbc->pGia );
             Gia_ManTransferTiming( pUnshuffled, pAbc->pGia );
-            pTemp = Gia_ManDupCollapse( pUnshuffled, pUnshuffled->pAigExtra, NULL, 0 );
+            pTemp = Gia_ManDupCollapse( pUnshuffled, pUnshuffled->pAigExtra, NULL, Gia_ManRegBoxNum(pUnshuffled) > 0 );
             Gia_ManTransferTiming( pAbc->pGia, pUnshuffled );
             Gia_ManStop( pUnshuffled );
         }

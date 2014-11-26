@@ -1355,6 +1355,7 @@ extern int                 Gia_ManRegBoxNum( Gia_Man_t * p );
 extern int                 Gia_ManNonRegBoxNum( Gia_Man_t * p );
 extern int                 Gia_ManBoxCiNum( Gia_Man_t * p );
 extern int                 Gia_ManBoxCoNum( Gia_Man_t * p );
+extern int                 Gia_ManClockDomainNum( Gia_Man_t * p );
 extern int                 Gia_ManIsSeqWithBoxes( Gia_Man_t * p );
 extern int                 Gia_ManIsNormalized( Gia_Man_t * p );
 extern Gia_Man_t *         Gia_ManDupNormalize( Gia_Man_t * p );

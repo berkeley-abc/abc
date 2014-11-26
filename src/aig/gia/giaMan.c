@@ -411,7 +411,7 @@ void Gia_ManPrintStats( Gia_Man_t * p, Gps_Par_t * pPars )
     if ( Gia_ManRegNum(p) )
         Abc_Print( 1, "  ff =%7d", Gia_ManRegNum(p) );
     if ( Gia_ManRegBoxNum(p) )
-        Abc_Print( 1, "  boxff =%d(%d)", Gia_ManRegBoxNum(p), Vec_IntFindMax(p->vRegClasses) );
+        Abc_Print( 1, "  boxff =%d(%d)", Gia_ManRegBoxNum(p), Gia_ManClockDomainNum(p) );
 
 #ifdef WIN32
     {

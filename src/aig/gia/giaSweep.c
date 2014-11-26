@@ -567,6 +567,109 @@ Gia_Man_t * Gia_ManFraigSweepSimple( Gia_Man_t * p, void * pPars )
 
 /**Function*************************************************************
 
+  Synopsis    [Computes equivalences for one clock domain.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_ManSweepComputeOneDomainEquivs( Gia_Man_t * p, Vec_Int_t * vRegClasses, int iDom, void * pParsS, int fConst, int fEquiv, int fVerbose )
+{
+    Gia_Man_t * pNew;
+    Gia_Obj_t * pObj;
+    Vec_Int_t * vPerm;
+    int i, Class, nFlops;
+    int nDoms = Vec_IntFindMax(vRegClasses);
+    assert( iDom >= 1 && iDom <= nDoms );
+    assert( p->pManTime == NULL );
+    assert( Gia_ManRegNum(p) > 0 );
+    // create required flop permutation
+    vPerm = Vec_IntAlloc( Gia_ManRegNum(p) );
+    Vec_IntForEachEntry( vRegClasses, Class, i )
+        if ( Class != iDom )
+            Vec_IntPush( vPerm, i );
+    nFlops = Vec_IntSize( vPerm );
+    Vec_IntForEachEntry( vRegClasses, Class, i )
+        if ( Class == iDom )
+            Vec_IntPush( vPerm, i );
+    nFlops = Vec_IntSize(vPerm) - nFlops;
+    assert( Vec_IntSize(vPerm) == Gia_ManRegNum(p) );
+    // derive new AIG
+    pNew = Gia_ManDupPermFlop( p, vPerm );
+    assert( Gia_ManObjNum(pNew) == Gia_ManObjNum(p) );
+    Vec_IntFree( vPerm );
+    // perform computation of equivalences 
+    pNew->nRegs = nFlops;
+    if ( pParsS )
+        Cec_ManLSCorrespondenceClasses( pNew, (Cec_ParCor_t *)pParsS );
+    else 
+        Gia_ManSeqCleanupClasses( pNew, fConst, fEquiv, fVerbose );
+    pNew->nRegs = Gia_ManRegNum(p);
+    // make new point to old
+    Gia_ManForEachObj( p, pObj, i )
+    {
+        assert( !Abc_LitIsCompl(pObj->Value) );
+        Gia_ManObj(pNew, Abc_Lit2Var(pObj->Value))->Value = Abc_Var2Lit(i, 0);
+    }
+    // transfer
+    Gia_ManDupRemapEquiv( p, pNew );
+    Gia_ManStop( pNew );
+}
+Gia_Man_t * Gia_ManSweepWithBoxesAndDomains( Gia_Man_t * p, void * pParsS, int fConst, int fEquiv, int fVerbose )
+{ 
+    Gia_Man_t * pClp, * pNew, * pTemp;
+    int nDoms = Vec_IntFindMax(p->vRegClasses);
+    int * pReprs, iDom;
+    assert( Gia_ManRegNum(p) == 0 );
+    assert( p->pAigExtra != NULL );
+    assert( nDoms > 1 );
+    // order AIG objects
+    pNew = Gia_ManDupUnnormalize( p );
+    if ( pNew == NULL )
+        return NULL;
+    Gia_ManTransferTiming( pNew, p );
+    // iterate over domains
+    for ( iDom = 1; iDom <= nDoms; iDom++ )
+    {
+        if ( Vec_IntCountEntry(pNew->vRegClasses, iDom) < 2 )
+            continue;
+        // find global equivalences
+        pClp = Gia_ManDupCollapse( pNew, pNew->pAigExtra, NULL, 1 );
+        // compute equivalences
+        Gia_ManSweepComputeOneDomainEquivs( pClp, pNew->vRegClasses, iDom, pParsS, fConst, fEquiv, fVerbose );
+        // transfer equivalences
+        pReprs = Gia_ManFraigSelectReprs( pNew, pClp, fVerbose );
+        Gia_ManStop( pClp );
+        // reduce AIG
+        Gia_ManTransferTiming( p, pNew );
+        pNew = Gia_ManFraigReduceGia( pTemp = pNew, pReprs );
+        Gia_ManTransferTiming( pNew, p );
+        Gia_ManStop( pTemp );
+        ABC_FREE( pReprs );
+        // derive new AIG
+        pNew = Gia_ManDupWithBoxes( pTemp = pNew, 1 );
+        Gia_ManStop( pTemp );
+        // report
+        //if ( fVerbose )
+        {
+        printf( "Domain %2d with %5d flops:  ", iDom, Vec_IntCountEntry(pNew->vRegClasses, iDom) );
+        Gia_ManPrintStats( pNew, NULL );
+        }
+    }
+    // normalize the result
+    pNew = Gia_ManDupNormalize( pTemp = pNew );
+    Gia_ManTransferTiming( pNew, pTemp );
+    Gia_ManStop( pTemp );
+    // check integrity
+    //Gia_ManCheckIntegrityWithBoxes( pNew );
+    return pNew;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Reduces root model with scorr.]
 
   Description []
@@ -582,12 +685,15 @@ Gia_Man_t * Gia_ManSweepWithBoxes( Gia_Man_t * p, void * pParsC, void * pParsS, 
     int * pReprs;
     assert( Gia_ManRegNum(p) == 0 );
     assert( p->pAigExtra != NULL );
+    // consider seq synthesis with multiple clock domains
+//    if ( pParsC == NULL && Gia_ManClockDomainNum(p) > 1 )
+//        return Gia_ManSweepWithBoxesAndDomains( p, pParsS, fConst, fEquiv, fVerbose );
     // order AIG objects
     pNew = Gia_ManDupUnnormalize( p );
     if ( pNew == NULL )
         return NULL;
-    // find global equivalences
     Gia_ManTransferTiming( pNew, p );
+    // find global equivalences
     pClp = Gia_ManDupCollapse( pNew, pNew->pAigExtra, NULL, pParsC ? 0 : 1 );
     // compute equivalences
     if ( pParsC )

@@ -66,6 +66,18 @@ int Gia_ManBoxCoNum( Gia_Man_t * p )
 {
     return p->pManTime ? Gia_ManCoNum(p) - Tim_ManPoNum((Tim_Man_t *)p->pManTime) : 0;
 }
+int Gia_ManClockDomainNum( Gia_Man_t * p )
+{
+    int i, nDoms, Count = 0;
+    if ( p->vRegClasses == NULL )
+        return 0;
+    nDoms = Vec_IntFindMax(p->vRegClasses);
+    assert( Vec_IntCountEntry(p->vRegClasses, 0) == 0 );
+    for ( i = 1; i <= nDoms; i++ )
+        if ( Vec_IntCountEntry(p->vRegClasses, i) > 0 )
+            Count++;
+    return Count;    
+}
 
 /**Function*************************************************************
 
@@ -80,7 +92,7 @@ int Gia_ManBoxCoNum( Gia_Man_t * p )
 ***********************************************************************/
 int Gia_ManIsSeqWithBoxes( Gia_Man_t * p )
 {
-    return (Gia_ManRegNum(p) > 0) && (p->pManTime != NULL) && (Tim_ManBoxNum((Tim_Man_t *)p->pManTime) > 0);
+    return (Gia_ManRegNum(p) > 0 && Gia_ManBoxNum(p) > 0);
 }
 
 /**Function*************************************************************
@@ -152,7 +164,7 @@ Gia_Man_t * Gia_ManDupNormalize( Gia_Man_t * p )
         // copy flops last
         for ( i = nCIs - Gia_ManRegNum(p); i < nCIs; i++ )
             Gia_ManCi(p, i)->Value = Gia_ManAppendCi(pNew);
-        printf( "Warning: Suffled CI order to be correct sequential AIG.\n" );
+        printf( "Warning: Shuffled CI order to be correct sequential AIG.\n" );
     }
     Gia_ManForEachAnd( p, pObj, i )
         pObj->Value = Gia_ManAppendAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
