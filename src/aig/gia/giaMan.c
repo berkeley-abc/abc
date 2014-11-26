@@ -403,13 +403,15 @@ void Gia_ManPrintStats( Gia_Man_t * p, Gps_Par_t * pPars )
     if ( p->pName )
         Abc_Print( 1, "%s%-8s%s : ", "\033[1;37m", p->pName, "\033[0m" );  // bright
 #endif
-    Abc_Print( 1, "i/o =%7d/%7d", Gia_ManPiNum(p), Gia_ManPoNum(p) );
+    Abc_Print( 1, "i/o =%7d/%7d", 
+        Gia_ManPiNum(p) - Gia_ManBoxCiNum(p) - Gia_ManRegBoxNum(p), 
+        Gia_ManPoNum(p) - Gia_ManBoxCoNum(p) - Gia_ManRegBoxNum(p) );
     if ( Gia_ManConstrNum(p) )
         Abc_Print( 1, "(c=%d)", Gia_ManConstrNum(p) );
     if ( Gia_ManRegNum(p) )
         Abc_Print( 1, "  ff =%7d", Gia_ManRegNum(p) );
-    if ( p->vRegClasses )
-        Abc_Print( 1, "  boxff =%d(%d)", Vec_IntSize(p->vRegClasses), Vec_IntFindMax(p->vRegClasses) );
+    if ( Gia_ManRegBoxNum(p) )
+        Abc_Print( 1, "  boxff =%d(%d)", Gia_ManRegBoxNum(p), Vec_IntFindMax(p->vRegClasses) );
 
 #ifdef WIN32
     {
@@ -433,7 +435,7 @@ void Gia_ManPrintStats( Gia_Man_t * p, Gps_Par_t * pPars )
     if ( Gia_ManHasChoices(p) )
         Abc_Print( 1, "  ch =%5d", Gia_ManChoiceNum(p) );
     if ( p->pManTime )
-        Abc_Print( 1, "  box = %d", Gia_ManBoxNum(p) - Gia_ManRegBoxNum(p) );
+        Abc_Print( 1, "  box = %d", Gia_ManNonRegBoxNum(p) );
     if ( pPars && pPars->fMuxXor )
         printf( "\nXOR/MUX " ), Gia_ManPrintMuxStats( p );
     if ( pPars && pPars->fSwitch )
@@ -475,6 +477,17 @@ void Gia_ManPrintStats( Gia_Man_t * p, Gps_Par_t * pPars )
 //    }
     if ( p->vInitClasses )
         Gia_ManPrintInitClasses( p->vInitClasses );
+    // check integrity of boxes
+    Gia_ManCheckIntegrityWithBoxes( p );
+/*
+    if ( Gia_ManRegBoxNum(p) )
+    {
+        int i, Limit = Vec_IntFindMax(p->vRegClasses);
+        for ( i = 1; i <= Limit; i++ )
+            printf( "%d ", Vec_IntCountEntry(p->vRegClasses, i) );
+        printf( "\n" );
+    }
+*/
     if ( pPars && pPars->fTents )
     {
 /*

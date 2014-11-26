@@ -404,6 +404,8 @@ Gia_Man_t * Gia_ManPerformMfs( Gia_Man_t * p, Sfm_Par_t * pPars )
         pNew = Gia_ManInsertMfs( p, pNtk );
         if( pPars->fVerbose )
             Abc_Print( 1, "The network has %d nodes changed by \"&mfs\".\n", nNodes );
+        // check integrity
+        //Gia_ManCheckIntegrityWithBoxes( pNew );
     }
     Sfm_NtkFree( pNtk );
     return pNew;

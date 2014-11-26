@@ -54,6 +54,18 @@ int Gia_ManRegBoxNum( Gia_Man_t * p )
 {
     return p->vRegClasses ? Vec_IntSize(p->vRegClasses) : 0;
 }
+int Gia_ManNonRegBoxNum( Gia_Man_t * p )
+{
+    return Gia_ManBoxNum(p) - Gia_ManRegBoxNum(p);
+}
+int Gia_ManBoxCiNum( Gia_Man_t * p )
+{
+    return p->pManTime ? Gia_ManCiNum(p) - Tim_ManPiNum((Tim_Man_t *)p->pManTime) : 0;
+}
+int Gia_ManBoxCoNum( Gia_Man_t * p )
+{
+    return p->pManTime ? Gia_ManCoNum(p) - Tim_ManPoNum((Tim_Man_t *)p->pManTime) : 0;
+}
 
 /**Function*************************************************************
 

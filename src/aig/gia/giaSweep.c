@@ -361,6 +361,75 @@ Gia_Man_t * Gia_ManFraigReduceGia( Gia_Man_t * p, int * pReprs )
 
 /**Function*************************************************************
 
+  Synopsis    [Compute the set of CIs representing carry-outs of boxes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Int_t * Gia_ManComputeCarryOuts( Gia_Man_t * p )
+{
+    Gia_Obj_t * pObj;
+    Tim_Man_t * pManTime = (Tim_Man_t *)p->pManTime;
+    int i, iLast, iBox, nBoxes =  Tim_ManBoxNum( pManTime );
+    Vec_Int_t * vCarryOuts = Vec_IntAlloc( nBoxes );
+    for ( i = 0; i < nBoxes; i++ )
+    {
+        iLast = Tim_ManBoxInputLast( pManTime, i );
+        pObj = Gia_ObjFanin0( Gia_ManCo(p, iLast) );
+        if ( !Gia_ObjIsCi(pObj) )
+            continue;
+        iBox = Tim_ManBoxForCi( pManTime, Gia_ObjCioId(pObj) );
+        if ( iBox == -1 ) 
+            continue;
+        assert( Gia_ObjIsCi(pObj) );
+        if ( Gia_ObjCioId(pObj) == Tim_ManBoxOutputLast(pManTime, iBox) )
+            Vec_IntPush( vCarryOuts, Gia_ObjId(p, pObj) );
+    }
+    return vCarryOuts;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Checks integriting of complex flops and carry-chains.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_ManCheckIntegrityWithBoxes( Gia_Man_t * p )
+{
+    Gia_Obj_t * pObj;
+    Vec_Int_t * vCarryOuts;
+    int i, nCountReg = 0, nCountCarry = 0;
+    if ( p->pManTime == NULL )
+        return;
+    Gia_ManCreateRefs( p );
+    for ( i = Gia_ManPoNum(p) - Gia_ManRegBoxNum(p); i < Gia_ManPoNum(p); i++ )
+    {
+        pObj = Gia_ObjFanin0( Gia_ManPo(p, i) );
+        assert( Gia_ObjIsCi(pObj) );
+        if ( Gia_ObjRefNum(p, pObj) > 1 )
+            nCountReg++;
+    }
+    vCarryOuts = Gia_ManComputeCarryOuts( p );
+    Gia_ManForEachObjVec( vCarryOuts, p, pObj, i )
+        if ( Gia_ObjRefNum(p, pObj) > 1 )
+            nCountCarry++;
+    Vec_IntFree( vCarryOuts );
+    if ( nCountReg || nCountCarry )
+        printf( "Warning: AIG with boxes has internal fanout in %d complex flops and %d carries.\n", nCountReg, nCountCarry );
+    ABC_FREE( p->pRefs );
+}
+
+/**Function*************************************************************
+
   Synopsis    [Computes representatives in terms of the original objects.]
 
   Description []
@@ -373,11 +442,12 @@ Gia_Man_t * Gia_ManFraigReduceGia( Gia_Man_t * p, int * pReprs )
 int * Gia_ManFraigSelectReprs( Gia_Man_t * p, Gia_Man_t * pClp, int fVerbose )
 {
     Gia_Obj_t * pObj;
+    Vec_Int_t * vCarryOuts;
     Tim_Man_t * pManTime = (Tim_Man_t *)p->pManTime;
     int * pReprs   = ABC_FALLOC( int, Gia_ManObjNum(p) );
     int * pClp2Gia = ABC_FALLOC( int, Gia_ManObjNum(pClp) );
-    int i, nBoxes, iLast, iBox, iLitClp, iLitClp2, iReprClp, fCompl;
-    int nConsts = 0, nReprs = 0, Count1 = 0, Count2 = 0;
+    int i, iLitClp, iLitClp2, iReprClp, fCompl;
+    int nConsts = 0, nReprs = 0;
     assert( pManTime != NULL );
     // count the number of equivalent objects
     Gia_ManForEachObj1( pClp, pObj, i )
@@ -402,26 +472,15 @@ int * Gia_ManFraigSelectReprs( Gia_Man_t * p, Gia_Man_t * pClp, int fVerbose )
         pObj = Gia_ObjFanin0( Gia_ManPo(p, i) );
         assert( Gia_ObjIsCi(pObj) );
         pObj->fMark0 = 1;
-        Count1++;
     }
     // mark connects between last box inputs and first box outputs
-    nBoxes =  Tim_ManBoxNum( pManTime );
-    for ( i = 0; i < nBoxes; i++ )
-    {
-        iLast = Tim_ManBoxInputLast( pManTime, i );
-        pObj = Gia_ObjFanin0( Gia_ManCo(p, iLast) );
-        if ( !Gia_ObjIsCi(pObj) )
-            continue;
-        iBox = Tim_ManBoxForCi( pManTime, Gia_ObjCioId(pObj) );
-        if ( iBox == -1 ) 
-            continue;
-        assert( Gia_ObjIsCi(pObj) );
-        if ( Gia_ObjCioId(pObj) == Tim_ManBoxOutputLast(pManTime, iBox) )
-            pObj->fMark0 = 1, Count2++;
-    }
+    vCarryOuts = Gia_ManComputeCarryOuts( p );
+    Gia_ManForEachObjVec( vCarryOuts, p, pObj, i )
+        pObj->fMark0 = 1;
     if ( fVerbose )
-        printf( "Fixed %d flop inputs and %d box/box connections (out of %d boxes).\n", 
-            Count1, Count2, nBoxes - Gia_ManRegBoxNum(p) );
+        printf( "Fixed %d flop inputs and %d box/box connections (out of %d non-flop boxes).\n", 
+            Gia_ManRegBoxNum(p), Vec_IntSize(vCarryOuts), Gia_ManNonRegBoxNum(p) );
+    Vec_IntFree( vCarryOuts );
 
     // compute representatives
     pClp2Gia[0] = 0;
@@ -553,6 +612,8 @@ Gia_Man_t * Gia_ManSweepWithBoxes( Gia_Man_t * p, void * pParsC, void * pParsS, 
     pNew = Gia_ManDupNormalize( pTemp = pNew );
     Gia_ManTransferTiming( pNew, pTemp );
     Gia_ManStop( pTemp );
+    // check integrity
+    //Gia_ManCheckIntegrityWithBoxes( pNew );
     return pNew;
 }
 

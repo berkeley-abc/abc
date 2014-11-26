@@ -1319,6 +1319,7 @@ extern Gia_Man_t *         Gia_ManStgRead( char * pFileName, int kHot, int fVerb
 /*=== giaSweep.c ============================================================*/
 extern Gia_Man_t *         Gia_ManFraigSweepSimple( Gia_Man_t * p, void * pPars );
 extern Gia_Man_t *         Gia_ManSweepWithBoxes( Gia_Man_t * p, void * pParsC, void * pParsS, int fConst, int fEquiv, int fVerbose );
+extern void                Gia_ManCheckIntegrityWithBoxes( Gia_Man_t * p );
 /*=== giaSweeper.c ============================================================*/
 extern Gia_Man_t *         Gia_SweeperStart( Gia_Man_t * p );
 extern void                Gia_SweeperStop( Gia_Man_t * p );
@@ -1351,6 +1352,9 @@ extern Vec_Flt_t *         Gia_ManPrintOutputProb( Gia_Man_t * p );
 /*=== giaTim.c ===========================================================*/
 extern int                 Gia_ManBoxNum( Gia_Man_t * p );
 extern int                 Gia_ManRegBoxNum( Gia_Man_t * p );
+extern int                 Gia_ManNonRegBoxNum( Gia_Man_t * p );
+extern int                 Gia_ManBoxCiNum( Gia_Man_t * p );
+extern int                 Gia_ManBoxCoNum( Gia_Man_t * p );
 extern int                 Gia_ManIsSeqWithBoxes( Gia_Man_t * p );
 extern int                 Gia_ManIsNormalized( Gia_Man_t * p );
 extern Gia_Man_t *         Gia_ManDupNormalize( Gia_Man_t * p );
