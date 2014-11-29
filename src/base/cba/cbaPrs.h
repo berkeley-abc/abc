@@ -104,7 +104,7 @@ struct Cba_Prs_t_
 static inline int Cba_PrsErrorSet( Cba_Prs_t * p, char * pError, int Value )
 {
     assert( !p->ErrorStr[0] );
-    sprintf( p->ErrorStr, pError );
+    sprintf( p->ErrorStr, "%s", pError );
     return Value;
 }
 // print error message

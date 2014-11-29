@@ -251,7 +251,7 @@ usage:
 int Cba_CommandBlast( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Cba_Ntk_t * pNtk = Cba_AbcGetNtk(pAbc);
-    Vec_Int_t * vBoxIds = NULL;
+    //Vec_Int_t * vBoxIds = NULL;
     Gia_Man_t * pNew = NULL;
     int c, fMulti = 0, fVerbose  = 0;
     Extra_UtilGetoptReset();

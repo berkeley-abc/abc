@@ -49,7 +49,7 @@ int Inter_ManCheckInitialState( Aig_Man_t * p )
     Aig_Obj_t * pObj;
     sat_solver * pSat;
     int i, status;
-    abctime clk = Abc_Clock();
+    //abctime clk = Abc_Clock();
     pCnf = Cnf_Derive( p, Saig_ManRegNum(p) ); 
     pSat = (sat_solver *)Cnf_DataWriteIntoSolver( pCnf, 1, 1 );
     if ( pSat == NULL )
