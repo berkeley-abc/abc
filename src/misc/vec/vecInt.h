@@ -65,6 +65,8 @@ struct Vec_Int_t_
     for ( i = 0; (i < Vec_IntSize(vVec1)) && (((Entry1) = Vec_IntEntry(vVec1, i)), 1) && (((Entry2) = Vec_IntEntry(vVec2, i)), 1); i++ )
 #define Vec_IntForEachEntryDouble( vVec, Entry1, Entry2, i )                                \
     for ( i = 0; (i+1 < Vec_IntSize(vVec)) && (((Entry1) = Vec_IntEntry(vVec, i)), 1) && (((Entry2) = Vec_IntEntry(vVec, i+1)), 1); i += 2 )
+#define Vec_IntForEachEntryTriple( vVec, Entry1, Entry2, Entry3, i )                                \
+    for ( i = 0; (i+2 < Vec_IntSize(vVec)) && (((Entry1) = Vec_IntEntry(vVec, i)), 1) && (((Entry2) = Vec_IntEntry(vVec, i+1)), 1) && (((Entry3) = Vec_IntEntry(vVec, i+2)), 1); i += 3 )
 #define Vec_IntForEachEntryThisNext( vVec, This, Next, i )                                  \
     for ( i = 0, (This) = (Next) = (Vec_IntSize(vVec) ? Vec_IntEntry(vVec, 0) : -1); (i+1 < Vec_IntSize(vVec)) && (((Next) = Vec_IntEntry(vVec, i+1)), 1); i += 2, (This) = (Next) )
 
@@ -696,6 +698,11 @@ static inline void Vec_IntPush( Vec_Int_t * p, int Entry )
     }
     p->pArray[p->nSize++] = Entry;
 }
+static inline void Vec_IntPushTwo( Vec_Int_t * p, int Entry1, int Entry2 )
+{
+    Vec_IntPush( p, Entry1 );
+    Vec_IntPush( p, Entry2 );
+}
 static inline void Vec_IntPushArray( Vec_Int_t * p, int * pEntries, int nEntries )
 {
     int i;
@@ -1045,6 +1052,34 @@ static inline void Vec_IntReverseOrder( Vec_Int_t * p )
 
 /**Function*************************************************************
 
+  Synopsis    [Removes odd entries.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline void Vec_IntRemoveOdd( Vec_Int_t * p )
+{
+    int i;
+    assert( (p->nSize & 1) == 0 );
+    p->nSize >>= 1;
+    for ( i = 0; i < p->nSize; i++ )
+        p->pArray[i] = p->pArray[2*i];
+}
+static inline void Vec_IntRemoveEven( Vec_Int_t * p )
+{
+    int i;
+    assert( (p->nSize & 1) == 0 );
+    p->nSize >>= 1;
+    for ( i = 0; i < p->nSize; i++ )
+        p->pArray[i] = p->pArray[2*i+1];
+}
+
+/**Function*************************************************************
+
   Synopsis    []
 
   Description []
@@ -1142,6 +1177,13 @@ static inline int Vec_IntCountPositive( Vec_Int_t * p )
     int i, Counter = 0;
     for ( i = 0; i < p->nSize; i++ )
         Counter += (p->pArray[i] > 0);
+    return Counter;
+}
+static inline int Vec_IntCountZero( Vec_Int_t * p ) 
+{
+    int i, Counter = 0;
+    for ( i = 0; i < p->nSize; i++ )
+        Counter += (p->pArray[i] == 0);
     return Counter;
 }
 

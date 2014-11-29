@@ -247,6 +247,25 @@ char * Extra_FilePathWithoutName( char * FileName )
     ABC_FREE( FileName );
     return NULL;
 }
+char * Extra_FileDesignName( char * pFileName )
+{
+    char * pBeg, * pEnd, * pStore, * pCur;
+    // find the first dot
+    for ( pEnd = pFileName; *pEnd; pEnd++ )
+        if ( *pEnd == '.' )
+            break;
+    // find the first char
+    for ( pBeg = pEnd - 1; pBeg >= pFileName; pBeg-- )
+        if ( !((*pBeg >= 'a' && *pBeg <= 'z') || (*pBeg >= 'A' && *pBeg <= 'Z') || (*pBeg >= '0' && *pBeg <= '9') || *pBeg == '_') )
+            break;
+    pBeg++;
+    // fill up storage
+    pStore = ABC_ALLOC( char, pEnd - pBeg + 1 );
+    for ( pCur = pStore; pBeg < pEnd; pBeg++, pCur++ )
+        *pCur = *pBeg;
+    *pCur = 0;
+    return pStore;
+}
 
 /**Function*************************************************************
 

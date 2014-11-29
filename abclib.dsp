@@ -770,6 +770,58 @@ SOURCE=.\src\base\wlc\wlcReadVer.c
 SOURCE=.\src\base\wlc\wlcWriteVer.c
 # End Source File
 # End Group
+# Begin Group "cba"
+
+# PROP Default_Filter ""
+# Begin Source File
+
+SOURCE=.\src\base\cba\cba.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\cba\cbaBlast.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\cba\cbaBuild.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\cba\cbaCom.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\cba\cbaLib.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\cba\cbaNtk.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\cba\cbaPrs.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\cba\cbaReadBlif.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\cba\cbaReadVer.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\cba\cbaSimple.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\cba\cbaWriteBlif.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\cba\cbaWriteVer.c
+# End Source File
+# End Group
 # End Group
 # Begin Group "bdd"
 
