@@ -485,7 +485,8 @@ static inline char * Wlc_PrsReadConstant( Wlc_Prs_t * p, char * pStr, Vec_Int_t 
     {
         // handle decimal number
         int Number = atoi( pStr );
-        *pRange = Abc_Base2Log( Number );
+        *pRange = Abc_Base2Log( Number+1 );
+        assert( *pRange < 32 );
         while ( Wlc_PrsIsDigit(pStr) )
             pStr++;
         Vec_IntFill( vFanins, 1, Number );
