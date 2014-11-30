@@ -59,7 +59,7 @@ void Cmd_HistoryAddCommand(    Abc_Frame_t * p, const char * command )
         Buffer[Len-1] = 0;
     if ( strlen(Buffer) > 3 &&
          strncmp(Buffer,"set",3) && 
-         strncmp(Buffer,"inset",5) && 
+         strncmp(Buffer,"unset",5) && 
          strncmp(Buffer,"time",4) && 
          strncmp(Buffer,"quit",4) && 
          strncmp(Buffer,"alias",5) && 
