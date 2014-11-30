@@ -59,8 +59,10 @@ void Cmd_HistoryAddCommand(    Abc_Frame_t * p, const char * command )
         Buffer[Len-1] = 0;
     if ( strlen(Buffer) > 3 &&
          strncmp(Buffer,"set",3) && 
+         strncmp(Buffer,"inset",5) && 
          strncmp(Buffer,"time",4) && 
          strncmp(Buffer,"quit",4) && 
+         strncmp(Buffer,"alias",5) && 
 //         strncmp(Buffer,"source",6) && 
          strncmp(Buffer,"history",7) && strncmp(Buffer,"hi ", 3) && strcmp(Buffer,"hi") &&
          Buffer[strlen(Buffer)-1] != '?' )

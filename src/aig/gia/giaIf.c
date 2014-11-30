@@ -499,6 +499,7 @@ void Gia_ManPrintMappingStats( Gia_Man_t * p, char * pDumpFile )
     if ( nMuxF )
         Gia_ManCountDupLut( p );
 
+    return;
     if ( pDumpFile )
     {
         static char FileNameOld[1000] = {0};
@@ -509,11 +510,18 @@ void Gia_ManPrintMappingStats( Gia_Man_t * p, char * pDumpFile )
             sprintf( FileNameOld, "%s", p->pName );
             fprintf( pTable, "\n" );
             fprintf( pTable, "%s  ", p->pName );
-            fprintf( pTable, "%d ", Gia_ManCiNum(p) );
-            fprintf( pTable, "%d ", Gia_ManCoNum(p) );
-            fprintf( pTable, "%d  ", Gia_ManAndNum(p) );
+//            fprintf( pTable, "%d ", Gia_ManCiNum(p) );
+//            fprintf( pTable, "%d ", Gia_ManCoNum(p) );
+//            fprintf( pTable, "%d  ", Gia_ManAndNum(p) );
+            fprintf( pTable, "%d ", Gia_ManPiNum(p) - Gia_ManBoxCiNum(p) - Gia_ManRegBoxNum(p) );
+            fprintf( pTable, "%d ", Gia_ManPoNum(p) - Gia_ManBoxCoNum(p) - Gia_ManRegBoxNum(p) );
+            fprintf( pTable, "%d ", Gia_ManClockDomainNum(p) );
+
+            fprintf( pTable, " " );
             fprintf( pTable, "%d ", nLuts           );
             fprintf( pTable, "%d ", LevelMax        );
+            fprintf( pTable, "%d ", Gia_ManRegBoxNum(p) );
+            fprintf( pTable, "%d ", Gia_ManNonRegBoxNum(p) );
             clk = Abc_Clock();
         }
         else
@@ -521,6 +529,8 @@ void Gia_ManPrintMappingStats( Gia_Man_t * p, char * pDumpFile )
             fprintf( pTable, " " );
             fprintf( pTable, "%d ", nLuts           );
             fprintf( pTable, "%d ", LevelMax        );
+            fprintf( pTable, "%d ", Gia_ManRegBoxNum(p) );
+            fprintf( pTable, "%d ", Gia_ManNonRegBoxNum(p) );
             fprintf( pTable, "%.2f", 1.0*(Abc_Clock() - clk)/CLOCKS_PER_SEC );
             clk = Abc_Clock();
         }

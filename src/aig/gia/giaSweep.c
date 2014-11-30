@@ -654,7 +654,7 @@ Gia_Man_t * Gia_ManSweepWithBoxesAndDomains( Gia_Man_t * p, void * pParsS, int f
         pNew = Gia_ManDupWithBoxes( pTemp = pNew, 1 );
         Gia_ManStop( pTemp );
         // report
-        //if ( fVerbose )
+        if ( fVerbose )
         {
         printf( "Domain %2d : %5d -> %5d :  ", iDom, nFlops, Vec_IntCountEntry(pNew->vRegClasses, iDom) );
         Gia_ManPrintStats( pNew, NULL );
@@ -687,8 +687,8 @@ Gia_Man_t * Gia_ManSweepWithBoxes( Gia_Man_t * p, void * pParsC, void * pParsS, 
     assert( Gia_ManRegNum(p) == 0 );
     assert( p->pAigExtra != NULL );
     // consider seq synthesis with multiple clock domains
-//    if ( pParsC == NULL && Gia_ManClockDomainNum(p) > 1 )
-//        return Gia_ManSweepWithBoxesAndDomains( p, pParsS, fConst, fEquiv, fVerbose );
+    if ( pParsC == NULL && Gia_ManClockDomainNum(p) > 1 )
+        return Gia_ManSweepWithBoxesAndDomains( p, pParsS, fConst, fEquiv, fVerbose );
     // order AIG objects
     pNew = Gia_ManDupUnnormalize( p );
     if ( pNew == NULL )
