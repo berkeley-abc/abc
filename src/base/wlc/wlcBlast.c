@@ -366,6 +366,30 @@ void Wlc_BlastTable( Gia_Man_t * pNew, word * pTable, int * pFans, int nFans, in
     Vec_IntFree( vMemory );
     ABC_FREE( pTruth );
 }
+void Wlc_BlastPower( Gia_Man_t * pNew, int * pNum, int nNum, int * pExp, int nExp, Vec_Int_t * vTemp, Vec_Int_t * vRes )
+{
+    Vec_Int_t * vDegrees = Vec_IntAlloc( nNum );
+    Vec_Int_t * vResTemp = Vec_IntAlloc( nNum );
+    int i, * pDegrees, * pRes = Vec_IntArray(vRes);
+    int k, * pResTemp = Vec_IntArray(vResTemp);
+    Vec_IntFill( vRes, nNum, 0 );
+    Vec_IntWriteEntry( vRes, 0, 1 );
+    for ( i = 0; i < nExp; i++ )
+    {
+        if ( i == 0 )
+            pDegrees = Wlc_VecCopy( vDegrees, pNum, nNum );
+        else
+        {
+            Wlc_BlastMultiplier( pNew, pDegrees, pDegrees, nNum, vTemp, vResTemp );
+            pDegrees = Wlc_VecCopy( vDegrees, pResTemp, nNum );
+        }
+        Wlc_BlastMultiplier( pNew, pRes, pDegrees, nNum, vTemp, vResTemp );
+        for ( k = 0; k < nNum; k++ )
+            pRes[k] = Gia_ManHashMux( pNew, pExp[i], pResTemp[k], pRes[k] );
+    }
+    Vec_IntFree( vResTemp );
+    Vec_IntFree( vDegrees );
+}
 
 /**Function*************************************************************
 
@@ -707,6 +731,14 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Vec_Int_t * vBoxIds )
             int nRangeMax = Abc_MaxInt( nRange0, nRange );
             int * pArg0 = Wlc_VecLoadFanins( vTemp0, pFans0, nRange0, nRangeMax, Wlc_ObjFanin0(p, pObj)->Signed );
             Wlc_BlastMinus( pNew, pArg0, nRangeMax, vRes );
+            Vec_IntShrink( vRes, nRange );
+        }
+        else if ( pObj->Type == WLC_OBJ_ARI_POWER )
+        {
+            int nRangeMax = Abc_MaxInt(nRange0, nRange);
+            int * pArg0 = Wlc_VecLoadFanins( vTemp0, pFans0, nRange0, nRangeMax, Wlc_ObjFanin0(p, pObj)->Signed );
+            int * pArg1 = Wlc_VecLoadFanins( vTemp1, pFans1, nRange1, nRange1, Wlc_ObjFanin1(p, pObj)->Signed );
+            Wlc_BlastPower( pNew, pArg0, nRangeMax, pArg1, nRange1, vTemp2, vRes );
             Vec_IntShrink( vRes, nRange );
         }
         else if ( pObj->Type == WLC_OBJ_TABLE )
