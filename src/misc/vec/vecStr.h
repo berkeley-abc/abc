@@ -201,6 +201,18 @@ static inline Vec_Str_t * Vec_StrDupArray( Vec_Str_t * pVec )
   SeeAlso     []
 
 ***********************************************************************/
+static inline void Vec_StrZero( Vec_Str_t * p )
+{
+    p->pArray = NULL;
+    p->nSize = 0;
+    p->nCap = 0;
+}
+static inline void Vec_StrErase( Vec_Str_t * p )
+{
+    ABC_FREE( p->pArray );
+    p->nSize = 0;
+    p->nCap = 0;
+}
 static inline void Vec_StrFree( Vec_Str_t * p )
 {
     ABC_FREE( p->pArray );

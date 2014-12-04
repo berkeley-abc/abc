@@ -10834,6 +10834,10 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_IsopTestNew();
     }
 */
+    {
+        extern void Cba_PrsReadBlifTest();
+        Cba_PrsReadBlifTest();
+    }
     return 0;
 usage:
     Abc_Print( -2, "usage: test [-CKDNM] [-aovwh] <file_name>\n" );

@@ -57,6 +57,7 @@ void Cba_PrsWriteBlifArray2( FILE * pFile, Cba_Ntk_t * p, Vec_Int_t * vFanins )
     assert( Vec_IntSize(vFanins) % 2 == 0 );
     Vec_IntForEachEntryDouble( vFanins, FormId, NameId, i )
         fprintf( pFile, " %s=%s", Cba_NtkStr(p, FormId), Cba_NtkStr(p, NameId) );
+    fprintf( pFile, "\n" );
 }
 void Cba_PrsWriteBlifLines( FILE * pFile, Cba_Ntk_t * p )
 {
@@ -67,19 +68,19 @@ void Cba_PrsWriteBlifLines( FILE * pFile, Cba_Ntk_t * p )
         {
             fprintf( pFile, ".names" );
             Cba_PrsWriteBlifArray( pFile, p, vFanins, 1 );
-            fprintf( pFile, " %s", Cba_NtkStr(p,  Func) );
+            fprintf( pFile, "%s", Cba_NtkFuncStr(p,  Func) );
         }
         else if ( Type == CBA_PRS_BOX ) // .names/assign/box2 (no formal/actual binding)
         {
             fprintf( pFile, ".subckt" );
-            fprintf( pFile, " %s", Cba_NtkFuncStr(p,  Func) );
+            fprintf( pFile, " %s", Cba_NtkStr(p,  Func) );
             Cba_PrsWriteBlifArray2( pFile, p, vFanins );
         }
         else if ( Type == CBA_PRS_LATCH ) // .names/assign/box2 (no formal/actual binding)
         {
             fprintf( pFile, ".latch" );
-            fprintf( pFile, " %s", Cba_NtkFuncStr(p,  Vec_IntEntry(vFanins, 1)) );
-            fprintf( pFile, " %s", Cba_NtkFuncStr(p,  Vec_IntEntry(vFanins, 0)) );
+            fprintf( pFile, " %s", Cba_NtkStr(p,  Vec_IntEntry(vFanins, 1)) );
+            fprintf( pFile, " %s", Cba_NtkStr(p,  Vec_IntEntry(vFanins, 0)) );
             fprintf( pFile, " %c\n", '0' + Func );
         }
 }
@@ -89,7 +90,9 @@ void Cba_PrsWriteBlifNtk( FILE * pFile, Cba_Ntk_t * p )
     assert( Vec_IntSize(&p->vFuncs)   == Cba_NtkObjNum(p) );
     // write header
     fprintf( pFile, ".model %s\n", Cba_NtkName(p) );
+    if ( Vec_IntSize(&p->vInouts) )
     fprintf( pFile, ".inouts" );
+    if ( Vec_IntSize(&p->vInouts) )
     Cba_PrsWriteBlifArray( pFile, p, &p->vInouts, 0 );
     fprintf( pFile, ".inputs" );
     Cba_PrsWriteBlifArray( pFile, p, &p->vInputs, 0 );
@@ -97,7 +100,7 @@ void Cba_PrsWriteBlifNtk( FILE * pFile, Cba_Ntk_t * p )
     Cba_PrsWriteBlifArray( pFile, p, &p->vOutputs, 0 );
     // write objects
     Cba_PrsWriteBlifLines( pFile, p );
-    fprintf( pFile, ".end\n" );
+    fprintf( pFile, ".end\n\n" );
 }
 void Cba_PrsWriteBlif( char * pFileName, Cba_Man_t * pDes )
 {

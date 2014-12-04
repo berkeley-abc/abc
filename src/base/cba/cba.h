@@ -150,7 +150,7 @@ static inline Cba_Ntk_t * Cba_NtkAlloc( Cba_Man_t * p, char * pName )
 {
     Cba_Ntk_t * pNtk = ABC_CALLOC( Cba_Ntk_t, 1 );
     pNtk->pDesign = p;
-    pNtk->pName = pName;
+    pNtk->pName = Abc_UtilStrsav(pName);
     Vec_PtrPush( &p->vNtks, pNtk );
     return pNtk;
 }
@@ -169,9 +169,13 @@ static inline void Cba_NtkFree( Cba_Ntk_t * p )
     Vec_IntErase( &p->vNameIds );
     Vec_IntErase( &p->vRanges );
     Vec_IntErase( &p->vCopies );
+    ABC_FREE( p->pName );
     ABC_FREE( p );
 }
-
+static inline int Cba_NtkMemory( Cba_Ntk_t * p )
+{
+    return Vec_WecMemory(&p->vFanins);
+}
 
 static inline Cba_Man_t * Cba_ManAlloc( char * pFileName )
 {
@@ -193,6 +197,7 @@ static inline void Cba_ManFree( Cba_Man_t * p )
     Cba_Ntk_t * pNtk; int i;
     Cba_ManForEachNtk( p, pNtk, i )
         Cba_NtkFree( pNtk );
+    ABC_FREE( p->vNtks.pArray );
     Mem_FlexStop( p->pMem, 0 );
     // design names
     Abc_NamStop( p->pNames );
@@ -201,6 +206,19 @@ static inline void Cba_ManFree( Cba_Man_t * p )
     ABC_FREE( p->pName );
     ABC_FREE( p->pSpec );
     ABC_FREE( p );
+}
+static inline int Cba_ManMemory( Cba_Man_t * p )
+{
+    Cba_Ntk_t * pNtk; int i;
+    int nMem = sizeof(Cba_Man_t);
+    nMem += Abc_NamMemUsed(p->pNames);
+    nMem += Abc_NamMemUsed(p->pModels);
+    nMem += Abc_NamMemUsed(p->pFuncs);
+    nMem += Mem_FlexReadMemUsage(p->pMem);
+    nMem += (int)Vec_PtrMemory(&p->vNtks);
+    Cba_ManForEachNtk( p, pNtk, i )
+        nMem += Cba_NtkMemory( pNtk );
+    return nMem;
 }
 
 

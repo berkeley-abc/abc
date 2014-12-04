@@ -264,24 +264,24 @@ static inline int Cba_PrsReadRange( Cba_Prs_t * p )
 {
     if ( !Cba_PrsIsChar(p, '[') )
         return 0;
-    Vec_StrClear( p->vCover );
-    Vec_StrPush( p->vCover, *p->pCur++ );
+    Vec_StrClear( &p->vCover );
+    Vec_StrPush( &p->vCover, *p->pCur++ );
     Cba_PrsUtilSkipSpaces( p );
     if ( !Cba_PrsIsDigit(p) )     return Cba_PrsErrorSet(p, "Cannot read digit in range specification.", 2);
     while ( Cba_PrsIsDigit(p) )
-        Vec_StrPush( p->vCover, *p->pCur++ );
+        Vec_StrPush( &p->vCover, *p->pCur++ );
     Cba_PrsUtilSkipSpaces( p );
     if ( Cba_PrsIsChar(p, ':') )
     {
-        Vec_StrPush( p->vCover, *p->pCur++ );
+        Vec_StrPush( &p->vCover, *p->pCur++ );
         if ( !Cba_PrsIsDigit(p) ) return Cba_PrsErrorSet(p, "Cannot read digit in range specification.", 2);
         while ( Cba_PrsIsDigit(p) )
-            Vec_StrPush( p->vCover, *p->pCur++ );
+            Vec_StrPush( &p->vCover, *p->pCur++ );
         Cba_PrsUtilSkipSpaces( p );
     }
     if ( !Cba_PrsIsChar(p, ']') ) return Cba_PrsErrorSet(p, "Cannot read closing brace in range specification.", 2);
-    Vec_StrPush( p->vCover, *p->pCur++ );
-    return Abc_NamStrFindOrAddLim( p->pDesign->pNames, Vec_StrArray(p->vCover), Vec_StrArray(p->vCover)+Vec_StrSize(p->vCover), NULL );
+    Vec_StrPush( &p->vCover, *p->pCur++ );
+    return Abc_NamStrFindOrAddLim( p->pDesign->pNames, Vec_StrArray(&p->vCover), Vec_StrArray(&p->vCover)+Vec_StrSize(&p->vCover), NULL );
 }
 static inline void Cba_PrsReadSignalList( Cba_Prs_t * p, Vec_Int_t * vTemp )
 {
@@ -303,12 +303,12 @@ static inline void Cba_PrsReadSignalList( Cba_Prs_t * p, Vec_Int_t * vTemp )
 static inline int Cba_PrsReadDeclaration( Cba_Prs_t * p, int Type )
 {
     int NameId, RangeId, RangeIdTemp;
-    Vec_Int_t * vSigs[4] = { p->vInoutsCur, p->vInputsCur, p->vOutputsCur, p->vWiresCur };
+    Vec_Int_t * vSigs[4] = { &p->vInoutsCur, &p->vInputsCur, &p->vOutputsCur, &p->vWiresCur };
     assert( Type >= CBA_VER_INOUT && Type <= CBA_VER_WIRE );
     Cba_PrsUtilSkipSpaces( p );
     RangeId = Cba_PrsReadRange( p );
-    Cba_PrsReadSignalList( p, p->vTemp );
-    Vec_IntForEachEntryDouble( p->vTemp, NameId, RangeId, RangeIdTemp )
+    Cba_PrsReadSignalList( p, &p->vTemp );
+    Vec_IntForEachEntryDouble( &p->vTemp, NameId, RangeId, RangeIdTemp )
     {
         if ( !RangeIdTemp )      return Cba_PrsErrorSet(p, "Range is specified twice in the declaration.", 0);
         Vec_IntPushTwo( vSigs[Type - CBA_VER_INOUT], NameId, RangeId );
@@ -317,17 +317,17 @@ static inline int Cba_PrsReadDeclaration( Cba_Prs_t * p, int Type )
 }
 static inline int Cba_PrsReadConcat( Cba_Prs_t * p )
 {
-    int iToken = Vec_WecSize( p->vFaninsCur );
+    int iToken = Vec_WecSize( &p->vFaninsCur );
     assert( Cba_PrsIsChar(p, '{') );
     p->pCur++;
-    Cba_PrsReadSignalList( p, p->vTemp2 );
+    Cba_PrsReadSignalList( p, &p->vTemp2 );
     if ( !Cba_PrsIsChar(p, '}') )  return Cba_PrsErrorSet(p, "Cannot read concatenation.", 0);
     p->pCur++;
     // assign
-    Vec_IntPush( p->vTypesCur, CBA_PRS_CONCAT );
-    Vec_IntPush( p->vFuncsCur, 0 );
-    Vec_IntPush( p->vInstIdsCur, 0 );
-    Cba_PrsSetupVecInt( p, Vec_WecPushLevel(p->vFaninsCur), p->vTemp2 );
+    Vec_IntPush( &p->vTypesCur, CBA_PRS_CONCAT );
+    Vec_IntPush( &p->vFuncsCur, 0 );
+    Vec_IntPush( &p->vInstIdsCur, 0 );
+    Cba_PrsSetupVecInt( p, Vec_WecPushLevel(&p->vFaninsCur), &p->vTemp2 );
     return iToken;
 }
 
@@ -335,7 +335,7 @@ static inline int Cba_PrsReadInstance( Cba_Prs_t * p, int Func )
 {
     // have to assign Type, Func, InstId, vFanins
     int FormId, NameId, RangeId, Type, InstId;
-    Vec_IntClear( p->vTemp );
+    Vec_IntClear( &p->vTemp );
     Cba_PrsUtilSkipSpaces( p );
     if ( Cba_PrsIsChar(p, '(') ) // node
     {
@@ -355,7 +355,7 @@ static inline int Cba_PrsReadInstance( Cba_Prs_t * p, int Func )
                 NameId  = Cba_PrsReadName( p );
                 RangeId = Cba_PrsReadRange( p );
             }
-            Vec_IntPushTwo( p->vTemp, NameId, RangeId );
+            Vec_IntPushTwo( &p->vTemp, NameId, RangeId );
             Cba_PrsUtilSkipSpaces( p );
             if ( Cba_PrsIsChar(p, ')') )
                 break;
@@ -390,7 +390,7 @@ static inline int Cba_PrsReadInstance( Cba_Prs_t * p, int Func )
                 NameId  = Cba_PrsReadName( p );
                 RangeId = Cba_PrsReadRange( p );
             }
-            Vec_IntPushTwo( p->vTemp, NameId, RangeId );
+            Vec_IntPushTwo( &p->vTemp, NameId, RangeId );
             Cba_PrsUtilSkipSpaces( p );
             if ( !Cba_PrsIsChar(p, ')') ) return Cba_PrsErrorSet(p, "Expecting opening paranthesis after the acctual name.", 2);
             p->pCur++;
@@ -402,10 +402,10 @@ static inline int Cba_PrsReadInstance( Cba_Prs_t * p, int Func )
         }
     }
     // assign
-    Vec_IntPush( p->vTypesCur, Type );
-    Vec_IntPush( p->vFuncsCur, Func );
-    Vec_IntPush( p->vInstIdsCur, InstId );
-    Cba_PrsSetupVecInt( p, Vec_WecPushLevel(p->vFaninsCur), p->vTemp );
+    Vec_IntPush( &p->vTypesCur, Type );
+    Vec_IntPush( &p->vFuncsCur, Func );
+    Vec_IntPush( &p->vInstIdsCur, InstId );
+    Cba_PrsSetupVecInt( p, Vec_WecPushLevel(&p->vFaninsCur), &p->vTemp );
     return 0;
 }
 
@@ -414,7 +414,7 @@ static inline int Cba_PrsReadInstance( Cba_Prs_t * p, int Func )
 static inline int Cba_PrsReadModule( Cba_Prs_t * p )
 {
     int fKnown, iToken, iNameId;
-    assert( Vec_IntSize(p->vInputsCur) == 0 && Vec_IntSize(p->vOutputsCur) == 0 );
+    assert( Vec_IntSize(&p->vInputsCur) == 0 && Vec_IntSize(&p->vOutputsCur) == 0 );
     Cba_PrsUtilSkipSpaces( p );
     if ( !Cba_PrsOk(p) )          return 0;
     // read keyword

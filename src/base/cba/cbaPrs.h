@@ -78,19 +78,19 @@ struct Cba_Prs_t_
     Cba_Man_t *  pDesign; 
     // interface collected by the parser
     int          iModuleName; // name Id
-    Vec_Int_t *  vInoutsCur;  // inouts
-    Vec_Int_t *  vInputsCur;  // inputs 
-    Vec_Int_t *  vOutputsCur; // outputs
-    Vec_Int_t *  vWiresCur;   // wires
+    Vec_Int_t    vInoutsCur;  // inouts
+    Vec_Int_t    vInputsCur;  // inputs 
+    Vec_Int_t    vOutputsCur; // outputs
+    Vec_Int_t    vWiresCur;   // wires
     // objects collected by the parser
-    Vec_Int_t *  vTypesCur;   // Cba_PrsType_t
-    Vec_Int_t *  vFuncsCur;   // functions (node->func; box->module; gate->cell; latch->init; concat->unused)
-    Vec_Int_t *  vInstIdsCur; // instance names
-    Vec_Wec_t *  vFaninsCur;  // instances
+    Vec_Int_t    vTypesCur;   // Cba_PrsType_t
+    Vec_Int_t    vFuncsCur;   // functions (node->func; box->module; gate->cell; latch->init; concat->unused)
+    Vec_Int_t    vInstIdsCur; // instance names
+    Vec_Wec_t    vFaninsCur;  // instances
     // temporary data
-    Vec_Str_t *  vCover;      // one SOP cover
-    Vec_Int_t *  vTemp;       // array of tokens
-    Vec_Int_t *  vTemp2;      // array of tokens
+    Vec_Str_t    vCover;      // one SOP cover
+    Vec_Int_t    vTemp;       // array of tokens
+    Vec_Int_t    vTemp2;      // array of tokens
     // error handling
     char ErrorStr[1000];      // error
 };
@@ -132,16 +132,16 @@ static inline void Cba_PrsSetupVecInt( Cba_Prs_t * p, Vec_Int_t * vTo, Vec_Int_t
 static inline Cba_Ntk_t * Cba_PrsAddCurrentModel( Cba_Prs_t * p, int iNameId )
 {
     Cba_Ntk_t * pNtk = Cba_NtkAlloc( p->pDesign, Abc_NamStr(p->pDesign->pNames, iNameId) );
-    assert( Vec_IntSize(p->vInputsCur) != 0 && Vec_IntSize(p->vOutputsCur) != 0 );
-    Cba_PrsSetupVecInt( p, &pNtk->vInouts,  p->vInoutsCur  );
-    Cba_PrsSetupVecInt( p, &pNtk->vInputs,  p->vInputsCur  );
-    Cba_PrsSetupVecInt( p, &pNtk->vOutputs, p->vOutputsCur );
-    Cba_PrsSetupVecInt( p, &pNtk->vWires,   p->vWiresCur   );
-    Cba_PrsSetupVecInt( p, &pNtk->vTypes,   p->vTypesCur   );
-    Cba_PrsSetupVecInt( p, &pNtk->vFuncs,   p->vFuncsCur   );
-    Cba_PrsSetupVecInt( p, &pNtk->vInstIds, p->vInstIdsCur );
-    pNtk->vFanins = *p->vFaninsCur;
-    Vec_WecZero( &pNtk->vFanins );
+    assert( Vec_IntSize(&p->vInputsCur) != 0 || Vec_IntSize(&p->vOutputsCur) != 0 );
+    Cba_PrsSetupVecInt( p, &pNtk->vInouts,  &p->vInoutsCur  );
+    Cba_PrsSetupVecInt( p, &pNtk->vInputs,  &p->vInputsCur  );
+    Cba_PrsSetupVecInt( p, &pNtk->vOutputs, &p->vOutputsCur );
+    Cba_PrsSetupVecInt( p, &pNtk->vWires,   &p->vWiresCur   );
+    Cba_PrsSetupVecInt( p, &pNtk->vTypes,   &p->vTypesCur   );
+    Cba_PrsSetupVecInt( p, &pNtk->vFuncs,   &p->vFuncsCur   );
+    Cba_PrsSetupVecInt( p, &pNtk->vInstIds, &p->vInstIdsCur );
+    pNtk->vFanins = p->vFaninsCur;
+    Vec_WecZero( &p->vFaninsCur );
     return pNtk;
 }
 
@@ -185,29 +185,25 @@ static inline Cba_Prs_t * Cba_PrsAlloc( char * pFileName )
     p->pLimit  = pLimit;
     p->pCur    = pBuffer;
     p->pDesign = Cba_ManAlloc( pFileName );
-    // temporaries
-    p->vCover = Vec_StrAlloc( 1000 );
-    p->vTemp  = Vec_IntAlloc( 1000 );
-    p->vTemp2 = Vec_IntAlloc( 1000 );
     return p;
 }
 static inline void Cba_PrsFree( Cba_Prs_t * p )
 {
     if ( p->pDesign )
         Cba_ManFree( p->pDesign );
-    Vec_IntFreeP( &p->vInoutsCur );
-    Vec_IntFreeP( &p->vInputsCur );
-    Vec_IntFreeP( &p->vOutputsCur );
-    Vec_IntFreeP( &p->vWiresCur );
+    Vec_IntErase( &p->vInoutsCur );
+    Vec_IntErase( &p->vInputsCur );
+    Vec_IntErase( &p->vOutputsCur );
+    Vec_IntErase( &p->vWiresCur );
 
-    Vec_IntFreeP( &p->vTypesCur );
-    Vec_IntFreeP( &p->vFuncsCur );
-    Vec_IntFreeP( &p->vInstIdsCur );
-    Vec_WecFreeP( &p->vFaninsCur );
+    Vec_IntErase( &p->vTypesCur );
+    Vec_IntErase( &p->vFuncsCur );
+    Vec_IntErase( &p->vInstIdsCur );
+    ABC_FREE( p->vFaninsCur.pArray );
     // temporary
-    Vec_StrFreeP( &p->vCover );
-    Vec_IntFreeP( &p->vTemp );
-    Vec_IntFreeP( &p->vTemp2 );
+    Vec_StrErase( &p->vCover );
+    Vec_IntErase( &p->vTemp );
+    Vec_IntErase( &p->vTemp2 );
     ABC_FREE( p->pBuffer );
     ABC_FREE( p );
 }

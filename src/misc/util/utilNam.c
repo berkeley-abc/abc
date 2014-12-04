@@ -257,7 +257,7 @@ int Abc_NamStrHash( const char * pStr, const char * pLim, int nTableSize )
     unsigned i, uHash;
     if ( pLim )
     {
-        for ( uHash = 0, i = 0; pStr < pLim; i++ )
+        for ( uHash = 0, i = 0; pStr+i < pLim; i++ )
             if ( i & 1 ) 
                 uHash *= pStr[i] * s_FPrimes[i & 0x7F];
             else
@@ -285,6 +285,23 @@ int Abc_NamStrHash( const char * pStr, const char * pLim, int nTableSize )
   SeeAlso     []
 
 ***********************************************************************/
+static inline int Abc_NamStrcmp( char * pStr, char * pLim, char * pThis )
+{
+    if ( pLim )
+    {
+        while ( pStr < pLim )
+            if ( *pStr++ != *pThis++ )
+                return 1;
+        return *pThis != '\0';
+    }
+    else
+    {
+        while ( *pStr )
+            if ( *pStr++ != *pThis++ )
+                return 1;
+        return *pThis != '\0';
+    }
+}
 static inline int * Abc_NamStrHashFind( Abc_Nam_t * p, const char * pStr, const char * pLim )
 {
     char * pThis;
@@ -293,7 +310,7 @@ static inline int * Abc_NamStrHashFind( Abc_Nam_t * p, const char * pStr, const 
     for ( pThis = (*pPlace)? Abc_NamIntToStr(p, *pPlace) : NULL; 
           pThis;    pPlace = Abc_NamIntToNextP(p, *pPlace), 
           pThis = (*pPlace)? Abc_NamIntToStr(p, *pPlace) : NULL )
-              if ( !strcmp( pStr, pThis ) )
+              if ( !Abc_NamStrcmp( (char *)pStr, (char *)pLim, pThis ) )
                   break;
     return pPlace;
 }
