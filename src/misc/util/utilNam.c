@@ -433,6 +433,7 @@ int Abc_NamStrFindOrAddLim( Abc_Nam_t * p, char * pStr, char * pLim, int * pfFou
     int iHandleNew;
     int *piPlace;
     char * pStore;
+    assert( pStr < pLim );
     piPlace = Abc_NamStrHashFind( p, pStr, pLim );
     if ( *piPlace )
     {

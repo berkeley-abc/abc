@@ -42,24 +42,6 @@ typedef enum {
     CBA_PRS_UNKNOWN      // 5:  unknown
 } Cba_PrsType_t; 
 
-// node types during parsing
-typedef enum { 
-    CBA_NODE_NONE = 0,   // 0:  unused
-    CBA_NODE_CONST,      // 1:  constant
-    CBA_NODE_BUF,        // 2:  buffer
-    CBA_NODE_INV,        // 3:  inverter
-    CBA_NODE_AND,        // 4:  AND
-    CBA_NODE_OR,         // 5:  OR
-    CBA_NODE_XOR,        // 6:  XOR
-    CBA_NODE_NAND,       // 7:  NAND
-    CBA_NODE_NOR,        // 8:  NOR
-    CBA_NODE_XNOR,       // 9  .XNOR
-    CBA_NODE_MUX,        // 10: MUX
-    CBA_NODE_MAJ,        // 11: MAJ
-    CBA_NODE_UNKNOWN     // 12: unknown
-} Cba_NodeType_t; 
-
-
 ////////////////////////////////////////////////////////////////////////
 ///                         BASIC TYPES                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -91,10 +73,16 @@ struct Cba_Prs_t_
     Vec_Str_t    vCover;      // one SOP cover
     Vec_Int_t    vTemp;       // array of tokens
     Vec_Int_t    vTemp2;      // array of tokens
+    // statistics
+    Vec_Int_t    vKnown;
+    Vec_Int_t    vFailed;
+    Vec_Int_t    vSucceeded;
     // error handling
     char ErrorStr[1000];      // error
 };
 
+#define Cba_PrsForEachModelVec( vVec, p, pName, i ) \
+    for ( i = 0; (i < Vec_IntSize(vVec)) && ((pName) = Abc_NamStr(p->pDesign->pNames, Vec_IntEntry(vVec,i))); i++ )
 
 ////////////////////////////////////////////////////////////////////////
 ///                      MACRO DEFINITIONS                           ///
@@ -106,6 +94,11 @@ static inline int Cba_PrsErrorSet( Cba_Prs_t * p, char * pError, int Value )
     assert( !p->ErrorStr[0] );
     sprintf( p->ErrorStr, "%s", pError );
     return Value;
+}
+// clear error message
+static inline void Cba_PrsErrorClear( Cba_Prs_t * p )
+{
+    p->ErrorStr[0] = '\0';
 }
 // print error message
 static inline int Cba_PrsErrorPrint( Cba_Prs_t * p )
@@ -204,6 +197,10 @@ static inline void Cba_PrsFree( Cba_Prs_t * p )
     Vec_StrErase( &p->vCover );
     Vec_IntErase( &p->vTemp );
     Vec_IntErase( &p->vTemp2 );
+
+    Vec_IntErase( &p->vKnown );
+    Vec_IntErase( &p->vFailed );
+    Vec_IntErase( &p->vSucceeded );
     ABC_FREE( p->pBuffer );
     ABC_FREE( p );
 }
@@ -211,7 +208,6 @@ static inline void Cba_PrsFree( Cba_Prs_t * p )
 ////////////////////////////////////////////////////////////////////////
 ///                             ITERATORS                            ///
 ////////////////////////////////////////////////////////////////////////
-
 
 ////////////////////////////////////////////////////////////////////////
 ///                    FUNCTION DECLARATIONS                         ///

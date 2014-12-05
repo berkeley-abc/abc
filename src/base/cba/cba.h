@@ -58,6 +58,25 @@ typedef enum {
     CBA_OBJ_UNKNOWN    // 9:  unknown
 } Cba_ObjType_t; 
 
+// Verilog predefined models
+typedef enum { 
+    CBA_NODE_NONE = 0,   // 0:  unused
+    CBA_NODE_CONST,      // 1:  constant
+    CBA_NODE_BUF,        // 2:  buffer
+    CBA_NODE_INV,        // 3:  inverter
+    CBA_NODE_AND,        // 4:  AND
+    CBA_NODE_NAND,       // 5:  NAND
+    CBA_NODE_OR,         // 6:  OR
+    CBA_NODE_NOR,        // 7:  NOR
+    CBA_NODE_XOR,        // 8:  XOR
+    CBA_NODE_XNOR,       // 9  .XNOR
+    CBA_NODE_MUX,        // 10: MUX
+    CBA_NODE_MAJ,        // 11: MAJ
+    CBA_NODE_KNOWN,      // 12: unknown
+    CBA_NODE_UNKNOWN     // 13: unknown
+} Cba_NodeType_t; 
+
+
 // design
 typedef struct Cba_Man_t_ Cba_Man_t;
 struct Cba_Man_t_

@@ -145,7 +145,6 @@ static inline int Cba_PrsReadName( Cba_Prs_t * p )
         Cba_PrsSkip(p);
     if ( pStart == p->pCur )
         return 0;
-    assert( pStart < p->pCur );
     return Abc_NamStrFindOrAddLim( p->pDesign->pNames, pStart, p->pCur, NULL );
 }
 static inline int Cba_PrsReadList( Cba_Prs_t * p )
@@ -430,6 +429,7 @@ void Cba_PrsReadBlifTest( char * pFileName )
     Cba_Man_t * p = Cba_PrsReadBlif( "aga/ray/ray_hie_oper.blif" );
     if ( !p ) return;
     printf( "Finished reading %d networks. ", Cba_ManNtkNum(p) );
+    printf( "NameIDs = %d. ", Abc_NamObjNumMax(p->pNames) );
     printf( "Memory = %.2f MB. ", 1.0*Cba_ManMemory(p)/(1<<20) );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
 //    Abc_NamPrint( p->pDesign->pNames );
