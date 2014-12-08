@@ -251,7 +251,7 @@ float * Jf_ManInitRefs( Jf_Man_t * pMan )
     Gia_ManForEachAnd( p, pObj, i )
     {
         Gia_ObjRefFanin0Inc( p, pObj );
-        if ( Gia_ObjIsBuf(pObj) )
+        if ( Gia_ObjIsBarBuf(pObj) )
             continue;
         Gia_ObjRefFanin1Inc( p, pObj );
         if ( !Gia_ObjIsMuxType(pObj) )
@@ -311,7 +311,7 @@ void Jf_ManProfileClasses( Jf_Man_t * p )
     int i, iFunc, Total = 0, CostTotal = 0, Other = 0, CostOther = 0;
     printf( "DSD classes that appear in more than %.1f %% of mapped nodes:\n", 0.1 * p->pPars->nVerbLimit );
     Gia_ManForEachAnd( p->pGia, pObj, i )
-        if ( !Gia_ObjIsBuf(pObj) && Gia_ObjRefNumId(p->pGia, i) )
+        if ( !Gia_ObjIsBarBuf(pObj) && Gia_ObjRefNumId(p->pGia, i) )
         {
             iFunc = Jf_CutFuncClass( Jf_ObjCutBest(p, i) );
             assert( iFunc < 595 );
@@ -1100,7 +1100,7 @@ static inline void Jf_ObjAssignCut( Jf_Man_t * p, Gia_Obj_t * pObj )
 {
     int iObj = Gia_ObjId(p->pGia, pObj);
     int pClause[3] = { 1, Jf_CutSetAll(2, 0, 1), Jf_ObjLit(iObj, 0) }; // set function
-    assert( Gia_ObjIsCi(pObj) || Gia_ObjIsBuf(pObj) );
+    assert( Gia_ObjIsCi(pObj) || Gia_ObjIsBarBuf(pObj) );
     Vec_IntWriteEntry( &p->vCuts, iObj, Vec_SetAppend( &p->pMem, pClause, 3 ) );
 }
 static inline void Jf_ObjPropagateBuf( Jf_Man_t * p, Gia_Obj_t * pObj, int fReverse )
@@ -1108,7 +1108,7 @@ static inline void Jf_ObjPropagateBuf( Jf_Man_t * p, Gia_Obj_t * pObj, int fReve
     int iObj = Gia_ObjId( p->pGia, pObj );
     int iFanin = Gia_ObjFaninId0( pObj, iObj );
     assert( 0 );
-    assert( Gia_ObjIsBuf(pObj) );
+    assert( Gia_ObjIsBarBuf(pObj) );
     if ( fReverse )
         ABC_SWAP( int, iObj, iFanin );
     Vec_IntWriteEntry( &p->vArr,  iObj, Jf_ObjArr(p, iFanin) );
@@ -1247,9 +1247,9 @@ void Jf_ManComputeCuts( Jf_Man_t * p, int fEdge )
     }
     Gia_ManForEachObj( p->pGia, pObj, i )
     {
-        if ( Gia_ObjIsCi(pObj) || Gia_ObjIsBuf(pObj) )
+        if ( Gia_ObjIsCi(pObj) || Gia_ObjIsBarBuf(pObj) )
             Jf_ObjAssignCut( p, pObj );
-        if ( Gia_ObjIsBuf(pObj) )
+        if ( Gia_ObjIsBarBuf(pObj) )
             Jf_ObjPropagateBuf( p, pObj, 0 );
         else if ( Gia_ObjIsAnd(pObj) )
             Jf_ObjComputeCuts( p, pObj, fEdge );
@@ -1291,7 +1291,7 @@ int Jf_ManComputeDelay( Jf_Man_t * p, int fEval )
     if ( fEval )
     {
         Gia_ManForEachObj( p->pGia, pObj, i )
-            if ( Gia_ObjIsBuf(pObj) )
+            if ( Gia_ObjIsBarBuf(pObj) )
                 Jf_ObjPropagateBuf( p, pObj, 0 );
             else if ( Gia_ObjIsAnd(pObj) && Gia_ObjRefNum(p->pGia, pObj) > 0 )
                 Vec_IntWriteEntry( &p->vArr, i, Jf_CutArr(p, Jf_ObjCutBest(p, i)) );
@@ -1314,7 +1314,7 @@ int Jf_ManComputeRefs( Jf_Man_t * p )
     p->pPars->Area = p->pPars->Edge = 0;
     Gia_ManForEachObjReverse( p->pGia, pObj, i )
     {
-        if ( Gia_ObjIsCo(pObj) || Gia_ObjIsBuf(pObj) )
+        if ( Gia_ObjIsCo(pObj) || Gia_ObjIsBarBuf(pObj) )
             Gia_ObjRefInc( p->pGia, Gia_ObjFanin0(pObj) );
         else if ( Gia_ObjIsAnd(pObj) && Gia_ObjRefNum(p->pGia, pObj) > 0 )
         {
@@ -1381,7 +1381,7 @@ void Jf_ManPropagateFlow( Jf_Man_t * p, int fEdge )
     Gia_Obj_t * pObj; 
     int i;
     Gia_ManForEachObj( p->pGia, pObj, i )
-        if ( Gia_ObjIsBuf(pObj) )
+        if ( Gia_ObjIsBarBuf(pObj) )
             Jf_ObjPropagateBuf( p, pObj, 0 );
         else if ( Gia_ObjIsAnd(pObj) && Jf_ObjIsUnit(pObj) )
             Jf_ObjComputeBestCut( p, pObj, fEdge, 0 );
@@ -1393,7 +1393,7 @@ void Jf_ManPropagateEla( Jf_Man_t * p, int fEdge )
     int i, CostBef, CostAft;
     p->pPars->Area = p->pPars->Edge = p->pPars->Clause = 0;
     Gia_ManForEachObjReverse( p->pGia, pObj, i )
-        if ( Gia_ObjIsBuf(pObj) )
+        if ( Gia_ObjIsBarBuf(pObj) )
             Jf_ObjPropagateBuf( p, pObj, 1 );
         else if ( Gia_ObjIsAnd(pObj) && Gia_ObjRefNum(p->pGia, pObj) > 0 )
         {
@@ -1457,7 +1457,7 @@ Gia_Man_t * Jf_ManDeriveMappingGia( Jf_Man_t * p )
     // iterate through nodes used in the mapping
     Gia_ManForEachAnd( p->pGia, pObj, i )
     {
-       if ( Gia_ObjIsBuf(pObj) || Gia_ObjRefNum(p->pGia, pObj) == 0 )
+       if ( Gia_ObjIsBarBuf(pObj) || Gia_ObjRefNum(p->pGia, pObj) == 0 )
             continue;
         pCut = Jf_ObjCutBest( p, i );
 //        printf( "Best cut of node %d:  ", i );  Jf_CutPrint(pCut);
@@ -1549,7 +1549,7 @@ void Jf_ManDeriveMapping( Jf_Man_t * p )
     Vec_IntFill( vMapping, Gia_ManObjNum(p->pGia), 0 );
     Gia_ManForEachAnd( p->pGia, pObj, i )
     {
-        if ( Gia_ObjIsBuf(pObj) || Gia_ObjRefNum(p->pGia, pObj) == 0 )
+        if ( Gia_ObjIsBarBuf(pObj) || Gia_ObjRefNum(p->pGia, pObj) == 0 )
             continue;
         pCut = Jf_ObjCutBest( p, i );
         Vec_IntWriteEntry( vMapping, i, Vec_IntSize(vMapping) );
@@ -1599,7 +1599,7 @@ Gia_Man_t * Jf_ManDeriveGia( Jf_Man_t * p )
     Gia_ManHashStart( pNew );
     Gia_ManForEachAnd( p->pGia, pObj, i )
     {
-       if ( Gia_ObjIsBuf(pObj) || Gia_ObjRefNum(p->pGia, pObj) == 0 )
+       if ( Gia_ObjIsBarBuf(pObj) || Gia_ObjRefNum(p->pGia, pObj) == 0 )
             continue;
         pCut = Jf_ObjCutBest( p, i );
 //        printf( "Best cut of node %d:  ", i );  Jf_CutPrint(pCut);

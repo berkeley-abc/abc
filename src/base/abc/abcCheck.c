@@ -527,6 +527,8 @@ int Abc_NtkCheckNode( Abc_Ntk_t * pNtk, Abc_Obj_t * pNode )
     // the node should have a function assigned unless it is an AIG
     if ( pNode->pData == NULL )
     {
+        if ( Abc_ObjIsBarBuf(pNode) )
+            return 1;
         fprintf( stdout, "NodeCheck: An internal node \"%s\" does not have a logic function.\n", Abc_ObjNameNet(pNode) );
         return 0;
     }

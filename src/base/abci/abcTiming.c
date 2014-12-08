@@ -828,6 +828,13 @@ void Abc_NodeDelayTraceArrival( Abc_Obj_t * pNode, Vec_Int_t * vSlacks )
     // start the arrival time of the node
     pTimeOut = Abc_NodeArrival(pNode);
     pTimeOut->Rise = pTimeOut->Fall = -ABC_INFINITY; 
+    // consider the buffer
+    if ( Abc_ObjIsBarBuf(pNode) )
+    {
+        pTimeIn = Abc_NodeArrival(Abc_ObjFanin0(pNode));
+        *pTimeOut = *pTimeIn;
+        return;
+    }
     // go through the pins of the gate
     pPin = Mio_GateReadPins((Mio_Gate_t *)pNode->pData);
     Abc_ObjForEachFanin( pNode, pFanin, i )

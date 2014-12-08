@@ -370,7 +370,7 @@ void Wlc_BlastPower( Gia_Man_t * pNew, int * pNum, int nNum, int * pExp, int nEx
 {
     Vec_Int_t * vDegrees = Vec_IntAlloc( nNum );
     Vec_Int_t * vResTemp = Vec_IntAlloc( nNum );
-    int i, * pDegrees, * pRes = Vec_IntArray(vRes);
+    int i, * pDegrees = NULL, * pRes = Vec_IntArray(vRes);
     int k, * pResTemp = Vec_IntArray(vResTemp);
     Vec_IntFill( vRes, nNum, 0 );
     Vec_IntWriteEntry( vRes, 0, 1 );

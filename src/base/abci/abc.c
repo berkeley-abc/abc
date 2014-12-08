@@ -26396,6 +26396,11 @@ int Abc_CommandAbc9Show( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Abc_CommandAbc9Show(): There is no AIG.\n" );
         return 1;
     }
+    if ( Gia_ManBufNum(pAbc->pGia) )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9Show(): Cannot show GIA with barrier buffers.\n" );
+        return 1;
+    }
     pMan = Gia_ManToAigSimple( pAbc->pGia );
     Aig_ManShow( pMan, 0, NULL );
     Aig_ManStop( pMan );

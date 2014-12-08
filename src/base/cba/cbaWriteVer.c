@@ -147,7 +147,7 @@ void Cba_PrsWriteVerilogNodes( FILE * pFile, Cba_Ntk_t * p )
                 Cba_PrsWriteVerilogMux( pFile, p, Cba_ObjFanins(p, i) );
             else
             {
-                char * pName = Cba_NtkStr(p, Func);
+                //char * pName = Cba_NtkStr(p, Func);
                 assert( 0 );
             }
         }

@@ -1178,7 +1178,7 @@ int Abc_NtkLevel_rec( Abc_Obj_t * pNode )
         if ( pNode->Level < (unsigned)Level )
             pNode->Level = Level;
     }
-    if ( Abc_ObjFaninNum(pNode) > 0 )
+    if ( Abc_ObjFaninNum(pNode) > 0 && !Abc_ObjIsBarBuf(pNode) )
         pNode->Level++;
     return pNode->Level;
 }
@@ -1216,7 +1216,7 @@ int Abc_NtkLevelReverse_rec( Abc_Obj_t * pNode )
         if ( pNode->Level < (unsigned)Level )
             pNode->Level = Level;
     }
-    if ( Abc_ObjFaninNum(pNode) > 0 )
+    if ( Abc_ObjFaninNum(pNode) > 0 && !Abc_ObjIsBarBuf(pNode) )
         pNode->Level++;
     return pNode->Level;
 }

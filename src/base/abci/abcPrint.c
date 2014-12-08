@@ -306,7 +306,9 @@ void Abc_NtkPrintStats( Abc_Ntk_t * pNtk, int fFactored, int fSaveBest, int fDum
 //        Abc_Print( 1,"  var = %5d", Abc_NtkCiNum(pNtk) + Abc_NtkCoNum(pNtk)+Abc_NtkGetMultiRefNum(pNtk) );
     }
     else
-        Abc_Print( 1,"  lev =%3d", Abc_NtkLevel(pNtk) );
+        Abc_Print( 1,"  lev = %d", Abc_NtkLevel(pNtk) );
+    if ( pNtk->nBarBufs2 )
+        Abc_Print( 1,"  buf = %d", pNtk->nBarBufs2 );
     if ( fUseLutLib && Abc_FrameReadLibLut() )
         Abc_Print( 1,"  delay =%5.2f", Abc_NtkDelayTraceLut(pNtk, 1) );
     if ( fUseLutLib && Abc_FrameReadLibLut() )

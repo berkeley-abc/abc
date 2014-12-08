@@ -136,6 +136,8 @@ int Abc_NtkSopToBdd( Abc_Ntk_t * pNtk )
     // convert each node from SOP to BDD
     Abc_NtkForEachNode( pNtk, pNode, i )
     {
+        if ( Abc_ObjIsBarBuf(pNode) )
+            continue;
         assert( pNode->pData );
         if ( Abc_ObjFaninNum(pNode) > 10 )
         {
@@ -379,6 +381,8 @@ int Abc_NtkBddToSop( Abc_Ntk_t * pNtk, int fDirect )
     vCube = Vec_StrAlloc( 100 );
     Abc_NtkForEachNode( pNtk, pNode, i )
     {
+        if ( Abc_ObjIsBarBuf(pNode) )
+            continue;
         assert( pNode->pData );
         bFunc = (DdNode *)pNode->pData;
         pNode->pNext = (Abc_Obj_t *)Abc_ConvertBddToSop( pManNew, dd, bFunc, bFunc, Abc_ObjFaninNum(pNode), 0, vCube, fMode );
@@ -400,6 +404,8 @@ int Abc_NtkBddToSop( Abc_Ntk_t * pNtk, int fDirect )
     // transfer from next to data
     Abc_NtkForEachNode( pNtk, pNode, i )
     {
+        if ( Abc_ObjIsBarBuf(pNode) )
+            continue;
         Cudd_RecursiveDeref( dd, (DdNode *)pNode->pData );
         pNode->pData = pNode->pNext;
         pNode->pNext = NULL;
@@ -513,7 +519,7 @@ void Abc_NtkLogicMakeDirectSops( Abc_Ntk_t * pNtk )
     // check if there are nodes with complemented SOPs
     fFound = 0;
     Abc_NtkForEachNode( pNtk, pNode, i )
-        if ( Abc_SopIsComplement((char *)pNode->pData) )
+        if ( !Abc_ObjIsBarBuf(pNode) && Abc_SopIsComplement((char *)pNode->pData) )
         {
             fFound = 1;
             break;
@@ -530,7 +536,7 @@ void Abc_NtkLogicMakeDirectSops( Abc_Ntk_t * pNtk )
     // change the cover of negated nodes
     vCube = Vec_StrAlloc( 100 );
     Abc_NtkForEachNode( pNtk, pNode, i )
-        if ( Abc_SopIsComplement((char *)pNode->pData) )
+        if ( !Abc_ObjIsBarBuf(pNode) && Abc_SopIsComplement((char *)pNode->pData) )
         {
             bFunc = Abc_ConvertSopToBdd( dd, (char *)pNode->pData, NULL );  Cudd_Ref( bFunc );
             pNode->pData = Abc_ConvertBddToSop( (Mem_Flex_t *)pNtk->pManFunc, dd, bFunc, bFunc, Abc_ObjFaninNum(pNode), 0, vCube, 1 );
@@ -620,6 +626,8 @@ int Abc_NtkSopToAig( Abc_Ntk_t * pNtk )
     // convert each node from SOP to BDD
     Abc_NtkForEachNode( pNtk, pNode, i )
     {
+        if ( Abc_ObjIsBarBuf(pNode) )
+            continue;
         assert( pNode->pData );
         pNode->pData = Abc_ConvertSopToAig( pMan, (char *)pNode->pData );
         if ( pNode->pData == NULL )
@@ -726,6 +734,7 @@ int Abc_NtkAigToBdd( Abc_Ntk_t * pNtk )
 {
     Abc_Obj_t * pNode;
     Hop_Man_t * pMan;
+    DdNode * pFunc;
     DdManager * dd, * ddTemp = NULL;
     Vec_Int_t * vFanins = NULL;
     int nFaninsMax, i, k, iVar;
@@ -753,7 +762,9 @@ int Abc_NtkAigToBdd( Abc_Ntk_t * pNtk )
     // convert each node from SOP to BDD
     Abc_NtkForEachNode( pNtk, pNode, i )
     {
-        DdNode * pFunc = Abc_ConvertAigToBdd( ddTemp, (Hop_Obj_t *)pNode->pData );
+        if ( Abc_ObjIsBarBuf(pNode) )
+            continue;
+        pFunc = Abc_ConvertAigToBdd( ddTemp, (Hop_Obj_t *)pNode->pData );
         if ( pFunc == NULL )
         {
             printf( "Abc_NtkAigToBdd: Error while converting AIG into BDD.\n" );
@@ -944,12 +955,18 @@ Gia_Man_t * Abc_NtkAigToGia( Abc_Ntk_t * p )
     // find the number of objects
     nObjs = 1 + Abc_NtkCiNum(p) + Abc_NtkCoNum(p);
     Abc_NtkForEachNode( p, pNode, i )
-        nObjs += Hop_DagSize( (Hop_Obj_t *)pNode->pData );
+        nObjs += Abc_ObjIsBarBuf(pNode) ? 1 : Hop_DagSize( (Hop_Obj_t *)pNode->pData );
     vMapping = Vec_IntStart( nObjs );
     // iterate through nodes used in the mapping
     vNodes = Abc_NtkDfs( p, 0 );
     Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pNode, i )
     {
+        if ( Abc_ObjIsBarBuf(pNode) )
+        {
+            assert( !Abc_ObjFaninC0(pNode) );
+            pNode->iTemp = Gia_ManAppendBuf( pNew, Abc_ObjFanin0(pNode)->iTemp );
+            continue;
+        }
         Abc_ObjForEachFanin( pNode, pFanin, k )
             Hop_ManPi(pHopMan, k)->iData = pFanin->iTemp;
         pHopObj = Hop_Regular( (Hop_Obj_t *)pNode->pData );
@@ -1068,6 +1085,8 @@ int Abc_NtkMapToSop( Abc_Ntk_t * pNtk )
     // update the nodes
     Abc_NtkForEachNode( pNtk, pNode, i )
     {
+        if ( Abc_ObjIsBarBuf(pNode) )
+            continue;
         pSop = Mio_GateReadSop((Mio_Gate_t *)pNode->pData);
         assert( Abc_SopGetVarNum(pSop) == Abc_ObjFaninNum(pNode) );
         pNode->pData = Abc_SopRegister( (Mem_Flex_t *)pNtk->pManFunc, pSop );

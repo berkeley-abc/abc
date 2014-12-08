@@ -999,7 +999,7 @@ Gia_Man_t * Gia_ManDupMarked( Gia_Man_t * p )
                 pObj->Value = Gia_ManAppendXorReal( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
             else if ( Gia_ObjIsMux(p, pObj) )
                 pObj->Value = Gia_ManAppendMuxReal( pNew, Gia_ObjFanin2Copy(p, pObj), Gia_ObjFanin1Copy(pObj), Gia_ObjFanin0Copy(pObj) );
-            else if ( Gia_ObjIsBuf(pObj) )
+            else if ( Gia_ObjIsBarBuf(pObj) )
                 pObj->Value = Gia_ManAppendBuf( pNew, Gia_ObjFanin0Copy(pObj) );
             else
                 pObj->Value = Gia_ManAppendAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );

@@ -443,6 +443,14 @@ Mio_Cell_t * Mio_CollectRootsNew( Mio_Library_t * pLib, int nInputs, int * pnGat
         }
         Mio_CollectCopy( ppCells + iCell++, pGate );
     }
+    if ( ppCells[0].pName == NULL )
+        { printf( "Error: Cannot find constant 0 gate in the library.\n" ); return NULL; }
+    if ( ppCells[1].pName == NULL )
+        { printf( "Error: Cannot find constant 1 gate in the library.\n" ); return NULL; }
+    if ( ppCells[2].pName == NULL )
+        { printf( "Error: Cannot find buffer gate in the library.\n" );     return NULL; }
+    if ( ppCells[3].pName == NULL )
+        { printf( "Error: Cannot find inverter gate in the library.\n" );   return NULL; }
     // sort by delay
     if ( iCell > 1 ) 
     {

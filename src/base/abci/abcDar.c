@@ -820,6 +820,8 @@ static inline Abc_Obj_t * Abc_NtkFromCellRead( Abc_Ntk_t * p, Vec_Int_t * vCopyL
     int iObjNew = Vec_IntEntry( vCopyLits, Abc_Var2Lit(i, c) );
     if ( iObjNew >= 0 )
         return Abc_NtkObj(p, iObjNew);
+    // opposite phase should be already constructed
+    assert( 0 );
     if ( i == 0 )
         pObjNew = c ? Abc_NtkCreateNodeConst1(p) : Abc_NtkCreateNodeConst0(p);
     else
@@ -838,7 +840,7 @@ Abc_Ntk_t * Abc_NtkFromCellMappedGia( Gia_Man_t * p )
     Vec_Int_t * vCopyLits;
     Abc_Obj_t * pObjNew, * pObjNewLi, * pObjNewLo;
     Gia_Obj_t * pObj, * pObjLi, * pObjLo;
-    int i, k, iLit, iFanLit, nDupGates, nCells; 
+    int i, k, iLit, iFanLit, nDupGates, nCells, fNeedConst[2] = {0}; 
     Mio_Cell_t * pCells = Mio_CollectRootsNewDefault( 6, &nCells, 0 );
     assert( Gia_ManHasCellMapping(p) );
     // start network
@@ -867,16 +869,74 @@ Abc_Ntk_t * Abc_NtkFromCellMappedGia( Gia_Man_t * p )
         Abc_NtkFromCellWrite( vCopyLits, Gia_ObjId(p, pObjLo), 0, Abc_ObjId( pObjNewLo ) );
         Abc_LatchSetInit0( pObjNew );
     }
+
+    // create constants
+    Gia_ManForEachCo( p, pObj, i )
+        if ( Gia_ObjFaninId0p(p, pObj) == 0 )
+            fNeedConst[Gia_ObjFaninC0(pObj)] = 1;
+    if ( Gia_ManBufNum(p) )
+        Gia_ManForEachBuf( p, pObj, i )
+            if ( Gia_ObjFaninId0p(p, pObj) == 0 )
+                fNeedConst[Gia_ObjFaninC0(pObj)] = 1;
+    if ( fNeedConst[0] )
+        Abc_NtkFromCellWrite( vCopyLits, 0, 0, Abc_ObjId(Abc_NtkCreateNodeConst0(pNtkNew)) );
+    if ( fNeedConst[1] )
+        Abc_NtkFromCellWrite( vCopyLits, 0, 1, Abc_ObjId(Abc_NtkCreateNodeConst1(pNtkNew)) );
+
     // rebuild the AIG
     Gia_ManForEachCell( p, iLit )
     {
-        assert( Vec_IntEntry(vCopyLits, iLit) == -1 );
-        pObjNew = Abc_NtkCreateNode( pNtkNew );
-        Gia_CellForEachFanin( p, iLit, iFanLit, k )
+        int fSkip = 0;
+        if ( Gia_ObjIsCellBuf(p, iLit) )
+        {
+            assert( !Abc_LitIsCompl(iLit) );
+            // build buffer
+            pObjNew = Abc_NtkCreateNode( pNtkNew );
+            iFanLit = Gia_ObjFaninLit0p( p, Gia_ManObj(p, Abc_Lit2Var(iLit)) );
             Abc_ObjAddFanin( pObjNew, Abc_NtkFromCellRead(pNtkNew, vCopyLits, Abc_Lit2Var(iFanLit), Abc_LitIsCompl(iFanLit)) );
-        pObjNew->pData = Mio_LibraryReadGateByName( (Mio_Library_t *)pNtkNew->pManFunc, pCells[Gia_ObjCellId(p, iLit)].pName, NULL );
+            pObjNew->pData = NULL; // barrier buffer
+            assert( Abc_ObjIsBarBuf(pObjNew) );
+            pNtkNew->nBarBufs2++;
+        }
+        else if ( Gia_ObjIsCellInv(p, iLit) )
+        {
+            int iLitNot = Abc_LitNot(iLit);
+            if ( !Abc_LitIsCompl(iLit) ) // positive phase
+            {
+                // build negative phase
+                assert( Vec_IntEntry(vCopyLits, iLitNot) == -1 );
+                assert( Gia_ObjCellId(p, iLitNot) > 0 );
+                pObjNew = Abc_NtkCreateNode( pNtkNew );
+                Gia_CellForEachFanin( p, iLitNot, iFanLit, k )
+                    Abc_ObjAddFanin( pObjNew, Abc_NtkFromCellRead(pNtkNew, vCopyLits, Abc_Lit2Var(iFanLit), Abc_LitIsCompl(iFanLit)) );
+                pObjNew->pData = Mio_LibraryReadGateByName( (Mio_Library_t *)pNtkNew->pManFunc, pCells[Gia_ObjCellId(p, iLitNot)].pName, NULL );
+                Abc_NtkFromCellWrite( vCopyLits, Abc_Lit2Var(iLitNot), Abc_LitIsCompl(iLitNot), Abc_ObjId(pObjNew) );
+                fSkip = 1;
+            }
+            else // negative phase
+            {
+                // positive phase is available
+                assert( Vec_IntEntry(vCopyLits, iLitNot) != -1 );
+            }
+            // build inverter
+            pObjNew = Abc_NtkCreateNode( pNtkNew );
+            Abc_ObjAddFanin( pObjNew, Abc_NtkFromCellRead(pNtkNew, vCopyLits, Abc_Lit2Var(iLit), Abc_LitIsCompl(iLitNot)) );
+            pObjNew->pData = Mio_LibraryReadGateByName( (Mio_Library_t *)pNtkNew->pManFunc, pCells[3].pName, NULL );
+        }
+        else
+        {
+            assert( Gia_ObjCellId(p, iLit) > 0 );
+            pObjNew = Abc_NtkCreateNode( pNtkNew );
+            Gia_CellForEachFanin( p, iLit, iFanLit, k )
+                Abc_ObjAddFanin( pObjNew, Abc_NtkFromCellRead(pNtkNew, vCopyLits, Abc_Lit2Var(iFanLit), Abc_LitIsCompl(iFanLit)) );
+            pObjNew->pData = Mio_LibraryReadGateByName( (Mio_Library_t *)pNtkNew->pManFunc, pCells[Gia_ObjCellId(p, iLit)].pName, NULL );
+        }
+        assert( Vec_IntEntry(vCopyLits, iLit) == -1 );
         Abc_NtkFromCellWrite( vCopyLits, Abc_Lit2Var(iLit), Abc_LitIsCompl(iLit), Abc_ObjId(pObjNew) );
+        // skip next
+        iLit += fSkip;
     }
+
     // connect the PO nodes
     Gia_ManForEachCo( p, pObj, i )
     {

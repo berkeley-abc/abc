@@ -436,6 +436,8 @@ void Gia_ManPrintStats( Gia_Man_t * p, Gps_Par_t * pPars )
         Abc_Print( 1, "  ch =%5d", Gia_ManChoiceNum(p) );
     if ( p->pManTime )
         Abc_Print( 1, "  box = %d", Gia_ManNonRegBoxNum(p) );
+    if ( Gia_ManBufNum(p) )
+        Abc_Print( 1, "  buf = %d", Gia_ManBufNum(p) );
     if ( pPars && pPars->fMuxXor )
         printf( "\nXOR/MUX " ), Gia_ManPrintMuxStats( p );
     if ( pPars && pPars->fSwitch )

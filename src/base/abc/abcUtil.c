@@ -340,6 +340,8 @@ double Abc_NtkGetMappedArea( Abc_Ntk_t * pNtk )
     TotalArea = 0.0;
     Abc_NtkForEachNode( pNtk, pObj, i )
     {
+        if ( Abc_ObjIsBarBuf(pObj) )
+            continue;
 //        assert( pObj->pData );
         if ( pObj->pData == NULL )
         {

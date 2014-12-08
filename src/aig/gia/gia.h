@@ -423,7 +423,7 @@ static inline int          Gia_ObjIsXor( Gia_Obj_t * pObj )                    {
 static inline int          Gia_ObjIsMuxId( Gia_Man_t * p, int iObj )           { return p->pMuxes && p->pMuxes[iObj] > 0;        } 
 static inline int          Gia_ObjIsMux( Gia_Man_t * p, Gia_Obj_t * pObj )     { return Gia_ObjIsMuxId( p, Gia_ObjId(p, pObj) ); } 
 static inline int          Gia_ObjIsAndReal( Gia_Man_t * p, Gia_Obj_t * pObj ) { return Gia_ObjIsAnd(pObj) && pObj->iDiff0 > pObj->iDiff1 && !Gia_ObjIsMux(p, pObj); } 
-static inline int          Gia_ObjIsBuf( Gia_Obj_t * pObj )                    { return pObj->iDiff0 == pObj->iDiff1 && pObj->iDiff0 != GIA_NONE; } 
+static inline int          Gia_ObjIsBarBuf( Gia_Obj_t * pObj )                 { return pObj->iDiff0 == pObj->iDiff1 && !pObj->fTerm; } 
 static inline int          Gia_ObjIsCand( Gia_Obj_t * pObj )                   { return Gia_ObjIsAnd(pObj) || Gia_ObjIsCi(pObj); } 
 static inline int          Gia_ObjIsConst0( Gia_Obj_t * pObj )                 { return pObj->iDiff0 == GIA_NONE && pObj->iDiff1 == GIA_NONE;     } 
 static inline int          Gia_ManObjIsConst0( Gia_Man_t * p, Gia_Obj_t * pObj){ return pObj == p->pObjs;                        } 
@@ -955,6 +955,8 @@ static inline int         Gia_ObjLutIsMux( Gia_Man_t * p, int Id )          { re
 
 static inline int         Gia_ManHasCellMapping( Gia_Man_t * p )            { return p->vCellMapping != NULL;                                               }
 static inline int         Gia_ObjIsCell( Gia_Man_t * p, int iLit )          { return Vec_IntEntry(p->vCellMapping, iLit) != 0;                              }
+static inline int         Gia_ObjIsCellInv( Gia_Man_t * p, int iLit )       { return Vec_IntEntry(p->vCellMapping, iLit) == -1;                             }
+static inline int         Gia_ObjIsCellBuf( Gia_Man_t * p, int iLit )       { return Vec_IntEntry(p->vCellMapping, iLit) == -2;                             }
 static inline int         Gia_ObjCellSize( Gia_Man_t * p, int iLit )        { return Vec_IntEntry(p->vCellMapping, Vec_IntEntry(p->vCellMapping, iLit));    }
 static inline int *       Gia_ObjCellFanins( Gia_Man_t * p, int iLit )      { return Vec_IntEntryP(p->vCellMapping, Vec_IntEntry(p->vCellMapping, iLit))+1; }
 static inline int         Gia_ObjCellFanin( Gia_Man_t * p, int iLit, int i ){ return Gia_ObjCellFanins(p, iLit)[i];                                         }
@@ -990,6 +992,10 @@ static inline int         Gia_ObjCellId( Gia_Man_t * p, int iLit )          { re
     for ( i = p->nObjs - 1; (i >= 0) && ((pObj) = Gia_ManObj(p, i)); i-- )
 #define Gia_ManForEachObjReverse1( p, pObj, i )                         \
     for ( i = p->nObjs - 1; (i > 0) && ((pObj) = Gia_ManObj(p, i)); i-- )
+#define Gia_ManForEachBuf( p, pObj, i )                                 \
+    for ( i = 0; (i < p->nObjs) && ((pObj) = Gia_ManObj(p, i)); i++ )      if ( !Gia_ObjIsBarBuf(pObj) ) {} else
+#define Gia_ManForEachBufId( p, i )                                     \
+    for ( i = 0; (i < p->nObjs); i++ )                                     if ( !Gia_ObjIsBarBuf(Gia_ManObj(p, i)) ) {} else
 #define Gia_ManForEachAnd( p, pObj, i )                                 \
     for ( i = 0; (i < p->nObjs) && ((pObj) = Gia_ManObj(p, i)); i++ )      if ( !Gia_ObjIsAnd(pObj) ) {} else
 #define Gia_ManForEachAndId( p, i )                                     \

@@ -271,6 +271,7 @@ void Abc_NtkFlattenLogicHierarchy_rec( Abc_Ntk_t * pNtkNew, Abc_Ntk_t * pNtk, in
     // process the blackbox
     if ( Abc_NtkHasBlackbox(pNtk) )
     {
+        printf( "Flatting black box \"%s\".\n", pNtk->pName );
         // duplicate the blackbox
         assert( Abc_NtkBoxNum(pNtk) == 1 );
         pObj = Abc_NtkBox( pNtk, 0 );

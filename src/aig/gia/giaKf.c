@@ -914,7 +914,7 @@ int Kf_ManComputeRefs( Kf_Man_t * p )
     p->pPars->Area = p->pPars->Edge = 0;
     Gia_ManForEachObjReverse( p->pGia, pObj, i )
     {
-        if ( Gia_ObjIsCo(pObj) || Gia_ObjIsBuf(pObj) )
+        if ( Gia_ObjIsCo(pObj) || Gia_ObjIsBarBuf(pObj) )
             Gia_ObjRefInc( p->pGia, Gia_ObjFanin0(pObj) );
         else if ( Gia_ObjIsAnd(pObj) && Gia_ObjRefNum(p->pGia, pObj) > 0 )
         {
@@ -1270,7 +1270,7 @@ Gia_Man_t * Kf_ManDerive( Kf_Man_t * p )
     Vec_IntFill( vMapping, Gia_ManObjNum(p->pGia), 0 );
     Gia_ManForEachAnd( p->pGia, pObj, i )
     {
-        if ( Gia_ObjIsBuf(pObj) || Gia_ObjRefNum(p->pGia, pObj) == 0 )
+        if ( Gia_ObjIsBarBuf(pObj) || Gia_ObjRefNum(p->pGia, pObj) == 0 )
             continue;
         pCut = Kf_ObjCutBest( p, i );
         Vec_IntWriteEntry( vMapping, i, Vec_IntSize(vMapping) );
