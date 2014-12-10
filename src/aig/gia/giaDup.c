@@ -562,7 +562,9 @@ Gia_Man_t * Gia_ManDup( Gia_Man_t * p )
     Gia_ManConst0(p)->Value = 0;
     Gia_ManForEachObj1( p, pObj, i )
     {
-        if ( Gia_ObjIsAnd(pObj) )
+        if ( Gia_ObjIsBarBuf(pObj) )
+            pObj->Value = Gia_ManAppendBuf( pNew, Gia_ObjFanin0Copy(pObj) );
+        else if ( Gia_ObjIsAnd(pObj) )
         {
             pObj->Value = Gia_ManAppendAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
             if ( Gia_ObjSibl(p, Gia_ObjId(p, pObj)) )

@@ -675,6 +675,147 @@ int Abc_NtkEliminate1( Abc_Ntk_t * pNtk, int ElimValue, int nMaxSize, int nIterM
     return 1;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Sort nodes in the reverse topo order.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_ObjCompareByNumber( Abc_Obj_t ** pp1, Abc_Obj_t ** pp2 )
+{
+    return Abc_ObjRegular(*pp1)->iTemp - Abc_ObjRegular(*pp2)->iTemp;
+}
+void Abc_ObjSortInReverseOrder( Abc_Ntk_t * pNtk, Vec_Ptr_t * vNodes )
+{
+    Vec_Ptr_t * vOrder;
+    Abc_Obj_t * pNode; 
+    int i;
+    vOrder = Abc_NtkDfsReverse( pNtk );
+    Vec_PtrForEachEntry( Abc_Obj_t *, vOrder, pNode, i )
+        pNode->iTemp = i;
+    Vec_PtrSort( vNodes, (int (*)())Abc_ObjCompareByNumber );
+    Vec_PtrForEachEntry( Abc_Obj_t *, vOrder, pNode, i )
+        pNode->iTemp = 0;
+    Vec_PtrFree( vOrder );
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    [Performs traditional eliminate -1.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_NtkEliminateSpecial( Abc_Ntk_t * pNtk, int nMaxSize, int fVerbose )
+{
+    extern void Abc_NtkBddReorder( Abc_Ntk_t * pNtk, int fVerbose );
+    Vec_Ptr_t * vFanouts, * vFanins, * vNodes;
+    Abc_Obj_t * pNode, * pFanout;
+    int * pPermFanin, * pPermFanout;
+    int RetValue, i, k;
+    assert( nMaxSize > 0 );
+    assert( Abc_NtkIsLogic(pNtk) ); 
+
+
+    // convert network to BDD representation
+    if ( !Abc_NtkToBdd(pNtk) )
+    {
+        fprintf( stdout, "Converting to BDD has failed.\n" );
+        return 0;
+    }
+
+    // prepare nodes for sweeping
+    Abc_NtkRemoveDupFanins( pNtk );
+    Abc_NtkMinimumBase( pNtk );
+    Abc_NtkCleanup( pNtk, 0 );
+
+    // convert network to SOPs
+    if ( !Abc_NtkToSop(pNtk, 0) )
+    {
+        fprintf( stdout, "Converting to SOP has failed.\n" );
+        return 0;
+    }
+
+    // collect info about the nodes to be eliminated
+    vNodes = Vec_PtrAlloc( 1000 );
+    Abc_NtkForEachNode( pNtk, pNode, i )
+    {
+        if ( Abc_ObjFanoutNum(pNode) != 1 )
+            continue;
+        pFanout = Abc_ObjFanout0(pNode);
+        if ( !Abc_ObjIsNode(pFanout) )
+            continue;
+        if ( Abc_SopGetCubeNum((char *)pNode->pData) != 1 )
+            continue;
+        if ( Abc_SopGetCubeNum((char *)pFanout->pData) != 1 )
+            continue;
+        // find the fanout's fanin
+        RetValue = Abc_NodeFindFanin( pFanout, pNode );
+        assert( RetValue >= 0 && RetValue < Abc_ObjFaninNum(pFanout) );
+        // both pNode and pFanout are AND/OR type nodes
+        if ( Abc_SopIsComplement((char *)pNode->pData) == Abc_SopGetIthCareLit((char *)pFanout->pData, RetValue) )
+            continue;
+        Vec_PtrPush( vNodes, pNode );
+    }
+    if ( Vec_PtrSize(vNodes) == 0 )
+    {
+        Vec_PtrFree( vNodes );
+        return 1;
+    }
+    Abc_ObjSortInReverseOrder( pNtk, vNodes );
+
+    // convert network to BDD representation
+    if ( !Abc_NtkToBdd(pNtk) )
+    {
+        fprintf( stdout, "Converting to BDD has failed.\n" );
+        return 0;
+    }
+
+    // go through the nodes and decide is they can be eliminated
+    pPermFanin = ABC_ALLOC( int, nMaxSize + 1000 );
+    pPermFanout = ABC_ALLOC( int, nMaxSize + 1000 );
+    vFanins = Vec_PtrAlloc( 1000 );
+    vFanouts = Vec_PtrAlloc( 1000 );
+    Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pNode, i )
+    {
+        assert( Abc_ObjIsNode(pNode) );
+        assert( Abc_NodeFindCoFanout(pNode) == NULL );
+        // perform elimination
+        Abc_NodeCollectFanouts( pNode, vFanouts );
+        Vec_PtrForEachEntry( Abc_Obj_t *, vFanouts, pFanout, k )
+        {
+            if ( fVerbose )
+                printf( "Collapsing fanin %5d (supp =%2d) into fanout %5d (supp =%2d) ",
+                    Abc_ObjId(pNode), Abc_ObjFaninNum(pNode), Abc_ObjId(pFanout), Abc_ObjFaninNum(pFanout) ); 
+            RetValue = Abc_NodeCollapse( pNode, pFanout, vFanins, pPermFanin, pPermFanout );
+            assert( RetValue );
+            if ( fVerbose )
+            {
+                Abc_Obj_t * pNodeNew = Abc_NtkObj( pNtk, Abc_NtkObjNumMax(pNtk) - 1 );
+                if ( pNodeNew )
+                    printf( "resulting in node %5d (supp =%2d).\n", Abc_ObjId(pNodeNew), Abc_ObjFaninNum(pNodeNew) );
+            }
+        }
+    }
+    Abc_NtkBddReorder( pNtk, 0 );
+    Vec_PtrFree( vFanins );
+    Vec_PtrFree( vFanouts );
+    Vec_PtrFree( vNodes );
+    ABC_FREE( pPermFanin );
+    ABC_FREE( pPermFanout );
+    return 1;
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

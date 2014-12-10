@@ -3909,10 +3909,12 @@ int Abc_CommandEliminate( Abc_Frame_t * pAbc, int argc, char ** argv )
     int nIterMax;
     int fGreedy;
     int fReverse;
+    int fSpecial;
     int fVerbose;
     int c;
     extern int Abc_NtkEliminate( Abc_Ntk_t * pNtk, int nMaxSize, int fReverse, int fVerbose );
     extern int Abc_NtkEliminate1( Abc_Ntk_t * pNtk, int ElimValue, int nMaxSize, int nIterMax, int fReverse, int fVerbose );
+    extern int Abc_NtkEliminateSpecial( Abc_Ntk_t * pNtk, int nMaxSize, int fVerbose );
 
     // set the defaults
     ElimValue = -1;
@@ -3920,9 +3922,10 @@ int Abc_CommandEliminate( Abc_Frame_t * pAbc, int argc, char ** argv )
     nIterMax  =  1;
     fGreedy   =  0;
     fReverse  =  0;
+    fSpecial  =  0;
     fVerbose  =  0;
     Extra_UtilGetoptReset();
-    while ( (c = Extra_UtilGetopt(argc, argv, "VNIgrvh")) != EOF )
+    while ( (c = Extra_UtilGetopt(argc, argv, "VNIgrsvh")) != EOF )
     {
         switch (c)
         {
@@ -3965,6 +3968,9 @@ int Abc_CommandEliminate( Abc_Frame_t * pAbc, int argc, char ** argv )
             case 'r':
                 fReverse ^= 1;
                 break;
+            case 's':
+                fSpecial ^= 1;
+                break;
             case 'v':
                 fVerbose ^= 1;
                 break;
@@ -3994,14 +4000,16 @@ int Abc_CommandEliminate( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
 
-    if ( fGreedy )
+    if ( fSpecial )
+        Abc_NtkEliminateSpecial( pNtk, 1000, fVerbose );
+    else if ( fGreedy )
         Abc_NtkEliminate( pNtk, nMaxSize, fReverse, fVerbose );
     else
         Abc_NtkEliminate1( pNtk, ElimValue, nMaxSize, nIterMax, fReverse, fVerbose );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: eliminate [-VNI <num>] [-grvh]\n");
+    Abc_Print( -2, "usage: eliminate [-VNI <num>] [-grsvh]\n");
     Abc_Print( -2, "\t           traditional \"eliminate -1\", which collapses the node into its fanout\n");
     Abc_Print( -2, "\t           if the node's variable appears in the fanout's factored form only once\n");
     Abc_Print( -2, "\t-V <num> : the \"value\" parameter used by \"eliminate\" in SIS [default = %d]\n", ElimValue );
@@ -4009,6 +4017,7 @@ usage:
     Abc_Print( -2, "\t-I <num> : the maximum number of iterations [default = %d]\n", nIterMax );
     Abc_Print( -2, "\t-g       : toggle using greedy eliminate (without \"value\") [default = %s]\n", fGreedy? "yes": "no" );
     Abc_Print( -2, "\t-r       : use the reverse topological order [default = %s]\n", fReverse? "yes": "no" );
+    Abc_Print( -2, "\t-s       : toggle eliminating similar nodes [default = %s]\n", fSpecial? "yes": "no" );
     Abc_Print( -2, "\t-v       : print verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h       : print the command usage\n");
     return 1;
