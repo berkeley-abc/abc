@@ -25821,7 +25821,7 @@ int Abc_CommandAbc9Put( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Empty network.\n" );
         return 1;
     }
-    if ( Gia_ManHasMapping(pAbc->pGia) )
+    if ( Gia_ManHasMapping(pAbc->pGia) || pAbc->pGia->pMuxes )
     {
         extern Abc_Ntk_t * Abc_NtkFromMappedGia( Gia_Man_t * p );
         pNtk = Abc_NtkFromMappedGia( pAbc->pGia );

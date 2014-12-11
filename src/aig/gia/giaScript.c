@@ -264,6 +264,92 @@ Vec_Ptr_t * Gia_ManOrderPios( Aig_Man_t * p, Gia_Man_t * pOrder )
   SeeAlso     []
 
 ***********************************************************************/
+Gia_Man_t * Gia_ManDupFromBarBufs( Gia_Man_t * p )
+{
+    Vec_Int_t * vBufObjs;
+    Gia_Man_t * pNew;
+    Gia_Obj_t * pObj;
+    int i, k = 0;
+    assert( Gia_ManBufNum(p) > 0 );
+    assert( Gia_ManRegNum(p) == 0 );
+    assert( !Gia_ManHasChoices(p) );
+    pNew = Gia_ManStart( Gia_ManObjNum(p) );
+    pNew->pName = Abc_UtilStrsav( p->pName );
+    pNew->pSpec = Abc_UtilStrsav( p->pSpec );
+    Gia_ManFillValue(p);
+    Gia_ManConst0(p)->Value = 0;
+    Gia_ManForEachCi( p, pObj, i )
+        pObj->Value = Gia_ManAppendCi( pNew );
+    vBufObjs = Vec_IntAlloc( Gia_ManBufNum(p) );
+    for ( i = 0; i < Gia_ManBufNum(p); i++ )
+        Vec_IntPush( vBufObjs, Gia_ManAppendCi(pNew) );
+    Gia_ManForEachAnd( p, pObj, i )
+    {
+        if ( Gia_ObjIsBarBuf(pObj) )
+        {
+            pObj->Value = Vec_IntEntry( vBufObjs, k );
+            Vec_IntWriteEntry( vBufObjs, k++, Gia_ObjFanin0Copy(pObj) );
+        }
+        else 
+            pObj->Value = Gia_ManAppendAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+    }
+    assert( k == Gia_ManBufNum(p) );
+    for ( i = 0; i < Gia_ManBufNum(p); i++ )
+        Gia_ManAppendCo( pNew, Vec_IntEntry(vBufObjs, i) );
+    Vec_IntFree( vBufObjs );
+    Gia_ManForEachCo( p, pObj, i )
+        Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
+    Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
+    return pNew;
+}
+Gia_Man_t * Gia_ManDupToBarBufs( Gia_Man_t * p, int nBarBufs )
+{
+    Gia_Man_t * pNew;
+    Gia_Obj_t * pObj;
+    int i, nPiReal = Gia_ManCiNum(p) - nBarBufs;
+    int k, nPoReal = Gia_ManCoNum(p) - nBarBufs;
+    assert( Gia_ManBufNum(p) == 0 );
+    assert( Gia_ManRegNum(p) == 0 );
+    assert( Gia_ManHasChoices(p) );
+    pNew = Gia_ManStart( Gia_ManObjNum(p) );
+    pNew->pName = Abc_UtilStrsav( p->pName );
+    pNew->pSpec = Abc_UtilStrsav( p->pSpec );
+    if ( Gia_ManHasChoices(p) )
+        pNew->pSibls = ABC_CALLOC( int, Gia_ManObjNum(p) );
+    Gia_ManFillValue(p);
+    Gia_ManConst0(p)->Value = 0;
+    for ( i = 0; i < nPiReal; i++ )
+        Gia_ManCi(p, i)->Value = Gia_ManAppendCi( pNew );
+    k = 0;
+    Gia_ManForEachAnd( p, pObj, i )
+    {
+        while ( ~Gia_ObjFanin0Copy(Gia_ManCo(p, k)) )
+        {
+            Gia_ManCi(p, nPiReal + k)->Value = Gia_ManAppendBuf( pNew, Gia_ObjFanin0Copy(Gia_ManCo(p, k)) );
+            k++;            
+        }
+        pObj->Value = Gia_ManAppendAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+        if ( Gia_ObjSibl(p, Gia_ObjId(p, pObj)) )
+            pNew->pSibls[Abc_Lit2Var(pObj->Value)] = Abc_Lit2Var(Gia_ObjSiblObj(p, Gia_ObjId(p, pObj))->Value);  
+    }
+    assert( k == nBarBufs );
+    for ( i = 0; i < nPoReal; i++ )
+        Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(Gia_ManCo(p, nBarBufs+i)) );
+    Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
+    return pNew;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 Gia_Man_t * Gia_ManAigSynch2Choices( Gia_Man_t * pGia1, Gia_Man_t * pGia2, Gia_Man_t * pGia3, Dch_Pars_t * pPars )
 {
     Aig_Man_t * pMan, * pTemp;
@@ -345,10 +431,27 @@ Gia_Man_t * Gia_ManAigSynch2( Gia_Man_t * pInit, void * pPars0, int nLutSize )
     }
     if ( fVerbose )     Gia_ManPrintStats( pGia3, NULL );
     // perform choice computation
+    if ( Gia_ManBufNum(pInit) )
+    {
+        assert( Gia_ManBufNum(pInit) == Gia_ManBufNum(pGia1) );
+        pGia1 = Gia_ManDupFromBarBufs( pTemp = pGia1 );
+        Gia_ManStop( pTemp );
+        assert( Gia_ManBufNum(pInit) == Gia_ManBufNum(pGia2) );
+        pGia2 = Gia_ManDupFromBarBufs( pTemp = pGia2 );
+        Gia_ManStop( pTemp );
+        assert( Gia_ManBufNum(pInit) == Gia_ManBufNum(pGia3) );
+        pGia3 = Gia_ManDupFromBarBufs( pTemp = pGia3 );
+        Gia_ManStop( pTemp );
+    }
     pNew = Gia_ManAigSynch2Choices( pGia1, pGia2, pGia3, pParsDch );
     Gia_ManStop( pGia1 );
     Gia_ManStop( pGia2 );
     Gia_ManStop( pGia3 );
+    if ( Gia_ManBufNum(pInit) )
+    {
+        pNew = Gia_ManDupToBarBufs( pTemp = pNew, Gia_ManBufNum(pInit) );
+        Gia_ManStop( pTemp );
+    }
     // copy names
     ABC_FREE( pNew->pName );
     ABC_FREE( pNew->pSpec );

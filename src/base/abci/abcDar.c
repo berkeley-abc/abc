@@ -720,8 +720,8 @@ Abc_Ntk_t * Abc_NtkFromMappedGia( Gia_Man_t * p )
     Gia_Obj_t * pObj, * pObjLi, * pObjLo;
     Vec_Ptr_t * vReflect;
     int i, k, iFan, nDupGates; 
-    assert( Gia_ManHasMapping(p) );
-    pNtkNew = Abc_NtkAlloc( ABC_NTK_LOGIC, ABC_FUNC_AIG, 1 );
+    assert( Gia_ManHasMapping(p) || p->pMuxes );
+    pNtkNew = Abc_NtkAlloc( ABC_NTK_LOGIC, Gia_ManHasMapping(p) ? ABC_FUNC_AIG : ABC_FUNC_SOP, 1 );
     // duplicate the name and the spec
     pNtkNew->pName = Extra_UtilStrsav(p->pName);
     pNtkNew->pSpec = Extra_UtilStrsav(p->pSpec);
@@ -748,23 +748,60 @@ Abc_Ntk_t * Abc_NtkFromMappedGia( Gia_Man_t * p )
         Abc_LatchSetInit0( pObjNew );
     }
     // rebuild the AIG
-    vReflect = Vec_PtrStart( Gia_ManObjNum(p) );
-    Gia_ManForEachLut( p, i )
+    if ( p->pMuxes )
     {
-        pObj = Gia_ManObj(p, i);
-        assert( pObj->Value == ~0 );
-        if ( Gia_ObjLutSize(p, i) == 0 )
+        Gia_ManForEachAnd( p, pObj, i )
         {
-            pObj->Value = Abc_ObjId(pConst0);
-            continue;
+            pObjNew = Abc_NtkCreateNode( pNtkNew );
+            if ( Gia_ObjIsMuxId(p, i) )
+            {
+                Abc_ObjAddFanin( pObjNew, Abc_NtkObj(pNtkNew, Gia_ObjValue(Gia_ObjFanin2(p, pObj))) );
+                Abc_ObjAddFanin( pObjNew, Abc_NtkObj(pNtkNew, Gia_ObjValue(Gia_ObjFanin1(pObj))) );
+                Abc_ObjAddFanin( pObjNew, Abc_NtkObj(pNtkNew, Gia_ObjValue(Gia_ObjFanin0(pObj))) );
+                pObjNew->pData = Abc_SopCreateMux( (Mem_Flex_t *)pNtkNew->pManFunc );
+                if ( Gia_ObjFaninC2(p, pObj) )  Abc_SopComplementVar( (char *)pObjNew->pData, 0 );
+                if ( Gia_ObjFaninC1(pObj) )     Abc_SopComplementVar( (char *)pObjNew->pData, 1 );
+                if ( Gia_ObjFaninC0(pObj) )     Abc_SopComplementVar( (char *)pObjNew->pData, 2 );
+            }
+            else if ( Gia_ObjIsXor(pObj) )
+            {
+                Abc_ObjAddFanin( pObjNew, Abc_NtkObj(pNtkNew, Gia_ObjValue(Gia_ObjFanin0(pObj))) );
+                Abc_ObjAddFanin( pObjNew, Abc_NtkObj(pNtkNew, Gia_ObjValue(Gia_ObjFanin1(pObj))) );
+                pObjNew->pData = Abc_SopCreateXor( (Mem_Flex_t *)pNtkNew->pManFunc, 2 );
+                if ( Gia_ObjFaninC0(pObj) )  Abc_SopComplementVar( (char *)pObjNew->pData, 0 );
+                if ( Gia_ObjFaninC1(pObj) )  Abc_SopComplementVar( (char *)pObjNew->pData, 1 );
+            }
+            else 
+            {
+                Abc_ObjAddFanin( pObjNew, Abc_NtkObj(pNtkNew, Gia_ObjValue(Gia_ObjFanin0(pObj))) );
+                Abc_ObjAddFanin( pObjNew, Abc_NtkObj(pNtkNew, Gia_ObjValue(Gia_ObjFanin1(pObj))) );
+                pObjNew->pData = Abc_SopCreateAnd( (Mem_Flex_t *)pNtkNew->pManFunc, 2, NULL );
+                if ( Gia_ObjFaninC0(pObj) )  Abc_SopComplementVar( (char *)pObjNew->pData, 0 );
+                if ( Gia_ObjFaninC1(pObj) )  Abc_SopComplementVar( (char *)pObjNew->pData, 1 );
+            }
+            pObj->Value = Abc_ObjId( pObjNew );
         }
-        pObjNew = Abc_NtkCreateNode( pNtkNew );
-        Gia_LutForEachFanin( p, i, iFan, k )
-            Abc_ObjAddFanin( pObjNew, Abc_NtkObj(pNtkNew, Gia_ObjValue(Gia_ManObj(p, iFan))) );
-        pObjNew->pData = Abc_ObjHopFromGia( (Hop_Man_t *)pNtkNew->pManFunc, p, i, vReflect );
-        pObj->Value = Abc_ObjId( pObjNew );
     }
-    Vec_PtrFree( vReflect );
+    else
+    {
+        vReflect = Vec_PtrStart( Gia_ManObjNum(p) );
+        Gia_ManForEachLut( p, i )
+        {
+            pObj = Gia_ManObj(p, i);
+            assert( pObj->Value == ~0 );
+            if ( Gia_ObjLutSize(p, i) == 0 )
+            {
+                pObj->Value = Abc_ObjId(pConst0);
+                continue;
+            }
+            pObjNew = Abc_NtkCreateNode( pNtkNew );
+            Gia_LutForEachFanin( p, i, iFan, k )
+                Abc_ObjAddFanin( pObjNew, Abc_NtkObj(pNtkNew, Gia_ObjValue(Gia_ManObj(p, iFan))) );
+            pObjNew->pData = Abc_ObjHopFromGia( (Hop_Man_t *)pNtkNew->pManFunc, p, i, vReflect );
+            pObj->Value = Abc_ObjId( pObjNew );
+        }
+        Vec_PtrFree( vReflect );
+    }
     // connect the PO nodes
     Gia_ManForEachCo( p, pObj, i )
     {
