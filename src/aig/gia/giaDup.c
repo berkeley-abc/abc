@@ -562,7 +562,7 @@ Gia_Man_t * Gia_ManDup( Gia_Man_t * p )
     Gia_ManConst0(p)->Value = 0;
     Gia_ManForEachObj1( p, pObj, i )
     {
-        if ( Gia_ObjIsBarBuf(pObj) )
+        if ( Gia_ObjIsBuf(pObj) )
             pObj->Value = Gia_ManAppendBuf( pNew, Gia_ObjFanin0Copy(pObj) );
         else if ( Gia_ObjIsAnd(pObj) )
         {
@@ -992,17 +992,18 @@ Gia_Man_t * Gia_ManDupMarked( Gia_Man_t * p )
     {
         if ( pObj->fMark0 )
         {
+            assert( Gia_ObjIsAnd(pObj) && !Gia_ObjIsBuf(pObj) );
             pObj->fMark0 = 0;
             continue;
         }
-        if ( Gia_ObjIsAnd(pObj) )
+        if ( Gia_ObjIsBuf(pObj) )
+            pObj->Value = Gia_ManAppendBuf( pNew, Gia_ObjFanin0Copy(pObj) );
+        else if ( Gia_ObjIsAnd(pObj) )
         {
             if ( Gia_ObjIsXor(pObj) )
                 pObj->Value = Gia_ManAppendXorReal( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
             else if ( Gia_ObjIsMux(p, pObj) )
                 pObj->Value = Gia_ManAppendMuxReal( pNew, Gia_ObjFanin2Copy(p, pObj), Gia_ObjFanin1Copy(pObj), Gia_ObjFanin0Copy(pObj) );
-            else if ( Gia_ObjIsBarBuf(pObj) )
-                pObj->Value = Gia_ManAppendBuf( pNew, Gia_ObjFanin0Copy(pObj) );
             else
                 pObj->Value = Gia_ManAppendAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
         }
@@ -1036,6 +1037,7 @@ Gia_Man_t * Gia_ManDupMarked( Gia_Man_t * p )
                 continue;
             if ( !~pRepr->Value )
                 continue;
+            assert( !Gia_ObjIsBuf(pObj) );
             if ( Abc_Lit2Var(pObj->Value) != Abc_Lit2Var(pRepr->Value) )
                 Gia_ObjSetRepr( pNew, Abc_Lit2Var(pObj->Value), Abc_Lit2Var(pRepr->Value) ); 
         }
@@ -1054,6 +1056,7 @@ Gia_Man_t * Gia_ManDupMarked( Gia_Man_t * p )
                 continue;
             if ( !~pSibl->Value )
                 continue;
+            assert( !Gia_ObjIsBuf(pObj) );
             assert( Abc_Lit2Var(pObj->Value) > Abc_Lit2Var(pSibl->Value) );
             pNew->pSibls[Abc_Lit2Var(pObj->Value)] = Abc_Lit2Var(pSibl->Value);
         }

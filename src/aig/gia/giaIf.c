@@ -1786,7 +1786,7 @@ int Gia_ManMappingVerify_rec( Gia_Man_t * p, Gia_Obj_t * pObj )
     if ( Gia_ObjIsTravIdCurrent(p, pObj) )
         return 1;
     Gia_ObjSetTravIdCurrent(p, pObj);
-    if ( !Gia_ObjIsAnd(pObj) )
+    if ( !Gia_ObjIsAndNotBuf(pObj) )
         return 1;
     if ( !Gia_ObjIsLut(p, Gia_ObjId(p, pObj)) )
     {
@@ -1805,10 +1805,23 @@ void Gia_ManMappingVerify( Gia_Man_t * p )
     int i, Result = 1;
     assert( Gia_ManHasMapping(p) );
     Gia_ManIncrementTravId( p );
+    Gia_ManForEachBuf( p, pObj, i )
+    {
+        pFanin = Gia_ObjFanin0(pObj);
+        if ( !Gia_ObjIsAndNotBuf(pFanin) )
+            continue;
+        if ( !Gia_ObjIsLut(p, Gia_ObjId(p, pFanin)) )
+        {
+            Abc_Print( -1, "Gia_ManMappingVerify: CO driver %d does not have mapping.\n", Gia_ObjId(p, pFanin) );
+            Result = 0;
+            continue;
+        }
+        Result &= Gia_ManMappingVerify_rec( p, pFanin );
+    }
     Gia_ManForEachCo( p, pObj, i )
     {
         pFanin = Gia_ObjFanin0(pObj);
-        if ( !Gia_ObjIsAnd(pFanin) )
+        if ( !Gia_ObjIsAndNotBuf(pFanin) )
             continue;
         if ( !Gia_ObjIsLut(p, Gia_ObjId(p, pFanin)) )
         {

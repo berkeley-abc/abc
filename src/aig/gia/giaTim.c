@@ -167,7 +167,10 @@ Gia_Man_t * Gia_ManDupNormalize( Gia_Man_t * p )
         printf( "Warning: Shuffled CI order to be correct sequential AIG.\n" );
     }
     Gia_ManForEachAnd( p, pObj, i )
-        pObj->Value = Gia_ManAppendAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+        if ( Gia_ObjIsBuf(pObj) )
+            pObj->Value = Gia_ManAppendBuf( pNew, Gia_ObjFanin0Copy(pObj) );
+        else 
+            pObj->Value = Gia_ManAppendAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
     Gia_ManForEachCo( p, pObj, i )
         pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
     Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
@@ -254,6 +257,13 @@ int Gia_ManOrderWithBoxes_rec( Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Int_t * vNod
         return 1;
     }
     assert( Gia_ObjIsAnd(pObj) );
+    if ( Gia_ObjIsBuf(pObj) )
+    {
+        if ( Gia_ManOrderWithBoxes_rec( p, Gia_ObjFanin0(pObj), vNodes ) )
+            return 1;
+        Vec_IntPush( vNodes, Gia_ObjId(p, pObj) );
+        return 0;
+    }
     if ( Gia_ObjSibl(p, Gia_ObjId(p, pObj)) )
         if ( Gia_ManOrderWithBoxes_rec( p, Gia_ObjSiblObj(p, Gia_ObjId(p, pObj)), vNodes ) )
             return 1;
@@ -366,6 +376,7 @@ Gia_Man_t * Gia_ManDupUnnormalize( Gia_Man_t * p )
     Gia_Man_t * pNew;
     Gia_Obj_t * pObj;
     int i;
+    assert( !Gia_ManBufNum(p) );
     vNodes = Gia_ManOrderWithBoxes( p );
     if ( vNodes == NULL )
         return NULL;
@@ -377,7 +388,9 @@ Gia_Man_t * Gia_ManDupUnnormalize( Gia_Man_t * p )
         pNew->pSibls = ABC_CALLOC( int, Gia_ManObjNum(p) );
     Gia_ManForEachObjVec( vNodes, p, pObj, i )
     {
-        if ( Gia_ObjIsAnd(pObj) )
+        if ( Gia_ObjIsBuf(pObj) )
+            pObj->Value = Gia_ManAppendBuf( pNew, Gia_ObjFanin0Copy(pObj) );
+        else if ( Gia_ObjIsAnd(pObj) )
         {
             pObj->Value = Gia_ManAppendAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
             if ( Gia_ObjSibl(p, Gia_ObjId(p, pObj)) )
@@ -460,6 +473,7 @@ int Gia_ManLevelWithBoxes( Gia_Man_t * p )
     Gia_Obj_t * pObj, * pObjIn;
     int i, k, j, curCi, curCo, LevelMax;
     assert( Gia_ManRegNum(p) == 0 );
+    assert( Gia_ManBufNum(p) == 0 );
     // copy const and real PIs
     Gia_ManCleanLevels( p, Gia_ManObjNum(p) );
     Gia_ObjSetLevel( p, Gia_ManConst0(p), 0 );

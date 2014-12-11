@@ -227,6 +227,7 @@ void Gia_ManCreateGate( Gia_Man_t * pNew, Gia_Obj_t * pObj, Vec_Int_t * vSuper )
 }
 int Gia_ManBalanceGate( Gia_Man_t * pNew, Gia_Obj_t * pObj, Vec_Int_t * vSuper, int * pLits, int nLits )
 {
+    assert( !Gia_ObjIsBuf(pObj) );
     Vec_IntClear( vSuper );
     if ( nLits == 1 )
         Vec_IntPush( vSuper, pLits[0] );
@@ -280,6 +281,7 @@ void Gia_ManBalance_rec( Gia_Man_t * pNew, Gia_Man_t * p, Gia_Obj_t * pObj )
     if ( ~pObj->Value )
         return;
     assert( Gia_ObjIsAnd(pObj) );
+    assert( !Gia_ObjIsBuf(pObj) );
     // handle MUX
     if ( Gia_ObjIsMux(p, pObj) )
     {
@@ -329,6 +331,12 @@ Gia_Man_t * Gia_ManBalanceInt( Gia_Man_t * p )
         pObj->Value = Gia_ManAppendCi( pNew );
     // create internal nodes
     Gia_ManHashStart( pNew );
+    Gia_ManForEachBuf( p, pObj, i )
+    {
+        Gia_ManBalance_rec( pNew, p, Gia_ObjFanin0(pObj) );
+        pObj->Value = Gia_ManAppendBuf( pNew, Gia_ObjFanin0Copy(pObj) );
+        Gia_ObjSetGateLevel( pNew, Gia_ManObj(pNew, Abc_Lit2Var(pObj->Value)) );
+    }
     Gia_ManForEachCo( p, pObj, i )
     {
         Gia_ManBalance_rec( pNew, p, Gia_ObjFanin0(pObj) );
@@ -428,6 +436,11 @@ void Dam_ManCollectSets_rec( Dam_Man_t * p, int Id )
     pObj = Gia_ManObj(p->pGia, Id);
     if ( Gia_ObjIsCi(pObj) )
         return;
+    if ( Gia_ObjIsBuf(pObj) )
+    {
+        Dam_ManCollectSets_rec( p, Gia_ObjFaninId0(pObj, Id) );
+        return;
+    }
     if ( Gia_ObjIsMux(p->pGia, pObj) )
     {
         if ( pObj->fMark0 )
@@ -714,6 +727,12 @@ Gia_Man_t * Dam_ManMultiAig( Dam_Man_t * pMan )
     }
     // create internal nodes
     Gia_ManHashStart( pNew );
+    Gia_ManForEachBuf( p, pObj, i )
+    {
+        Dam_ManMultiAig_rec( pMan, pNew, p, Gia_ObjFanin0(pObj) );
+        pObj->Value = Gia_ManAppendBuf( pNew, Gia_ObjFanin0Copy(pObj) );
+        Gia_ObjSetGateLevel( pNew, Gia_ManObj(pNew, Abc_Lit2Var(pObj->Value)) );
+    }
     Gia_ManForEachCo( p, pObj, i )
     {
         Dam_ManMultiAig_rec( pMan, pNew, p, Gia_ObjFanin0(pObj) );

@@ -63,7 +63,7 @@ void Gia_ManPrintMuxStats( Gia_Man_t * p )
     int nAnds, nMuxes, nXors, nTotal;
     if ( p->pMuxes )
     {
-        nAnds  = Gia_ManAndNum(p)-Gia_ManXorNum(p)-Gia_ManMuxNum(p);
+        nAnds  = Gia_ManAndNotBufNum(p)-Gia_ManXorNum(p)-Gia_ManMuxNum(p);
         nXors  = Gia_ManXorNum(p);
         nMuxes = Gia_ManMuxNum(p);
         nTotal = nAnds + 3*nXors + 3*nMuxes;
@@ -71,14 +71,14 @@ void Gia_ManPrintMuxStats( Gia_Man_t * p )
     else 
     {
         Gia_ManCountMuxXor( p, &nMuxes, &nXors );
-        nAnds  = Gia_ManAndNum(p) - 3*nMuxes - 3*nXors;
-        nTotal = Gia_ManAndNum(p);
+        nAnds  = Gia_ManAndNotBufNum(p) - 3*nMuxes - 3*nXors;
+        nTotal = Gia_ManAndNotBufNum(p);
     }
     Abc_Print( 1, "stats:  " );
     Abc_Print( 1, "xor =%8d %6.2f %%   ", nXors,  300.0*nXors/nTotal );
     Abc_Print( 1, "mux =%8d %6.2f %%   ", nMuxes, 300.0*nMuxes/nTotal );
     Abc_Print( 1, "and =%8d %6.2f %%   ", nAnds,  100.0*nAnds/nTotal );
-    Abc_Print( 1, "obj =%8d  ", Gia_ManAndNum(p) );
+    Abc_Print( 1, "obj =%8d  ", Gia_ManAndNotBufNum(p) );
     fflush( stdout );
 }
 
@@ -117,7 +117,7 @@ Gia_Man_t * Gia_ManDupMuxes( Gia_Man_t * p, int Limit )
             pObj->Value = Gia_ManAppendCi( pNew );
         else if ( Gia_ObjIsCo(pObj) )
             pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
-        else if ( Gia_ObjIsBarBuf(pObj) )
+        else if ( Gia_ObjIsBuf(pObj) )
             pObj->Value = Gia_ManAppendBuf( pNew, Gia_ObjFanin0Copy(pObj) );
         else if ( !Gia_ObjIsMuxType(pObj) || Gia_ObjSibl(p, Gia_ObjFaninId0(pObj, i)) || Gia_ObjSibl(p, Gia_ObjFaninId1(pObj, i)) )
             pObj->Value = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
@@ -174,7 +174,7 @@ Gia_Man_t * Gia_ManDupNoMuxes( Gia_Man_t * p )
             pObj->Value = Gia_ManAppendCi( pNew );
         else if ( Gia_ObjIsCo(pObj) )
             pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
-        else if ( Gia_ObjIsBarBuf(pObj) )
+        else if ( Gia_ObjIsBuf(pObj) )
             pObj->Value = Gia_ManAppendBuf( pNew, Gia_ObjFanin0Copy(pObj) );
         else if ( Gia_ObjIsMuxId(p, i) )
             pObj->Value = Gia_ManHashMux( pNew, Gia_ObjFanin2Copy(p, pObj), Gia_ObjFanin1Copy(pObj), Gia_ObjFanin0Copy(pObj) );

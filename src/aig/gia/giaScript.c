@@ -285,7 +285,7 @@ Gia_Man_t * Gia_ManDupFromBarBufs( Gia_Man_t * p )
         Vec_IntPush( vBufObjs, Gia_ManAppendCi(pNew) );
     Gia_ManForEachAnd( p, pObj, i )
     {
-        if ( Gia_ObjIsBarBuf(pObj) )
+        if ( Gia_ObjIsBuf(pObj) )
         {
             pObj->Value = Vec_IntEntry( vBufObjs, k );
             Vec_IntWriteEntry( vBufObjs, k++, Gia_ObjFanin0Copy(pObj) );
@@ -306,8 +306,9 @@ Gia_Man_t * Gia_ManDupToBarBufs( Gia_Man_t * p, int nBarBufs )
 {
     Gia_Man_t * pNew;
     Gia_Obj_t * pObj;
-    int i, nPiReal = Gia_ManCiNum(p) - nBarBufs;
-    int k, nPoReal = Gia_ManCoNum(p) - nBarBufs;
+    int nPiReal = Gia_ManCiNum(p) - nBarBufs;
+    int nPoReal = Gia_ManCoNum(p) - nBarBufs;
+    int i, k = 0;
     assert( Gia_ManBufNum(p) == 0 );
     assert( Gia_ManRegNum(p) == 0 );
     assert( Gia_ManHasChoices(p) );
@@ -320,22 +321,25 @@ Gia_Man_t * Gia_ManDupToBarBufs( Gia_Man_t * p, int nBarBufs )
     Gia_ManConst0(p)->Value = 0;
     for ( i = 0; i < nPiReal; i++ )
         Gia_ManCi(p, i)->Value = Gia_ManAppendCi( pNew );
-    k = 0;
     Gia_ManForEachAnd( p, pObj, i )
     {
-        while ( ~Gia_ObjFanin0Copy(Gia_ManCo(p, k)) )
-        {
-            Gia_ManCi(p, nPiReal + k)->Value = Gia_ManAppendBuf( pNew, Gia_ObjFanin0Copy(Gia_ManCo(p, k)) );
-            k++;            
-        }
+        for ( ; k < nBarBufs; k++ )
+            if ( ~Gia_ObjFanin0Copy(Gia_ManCo(p, k)) )
+                Gia_ManCi(p, nPiReal + k)->Value = Gia_ManAppendBuf( pNew, Gia_ObjFanin0Copy(Gia_ManCo(p, k)) );
         pObj->Value = Gia_ManAppendAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
         if ( Gia_ObjSibl(p, Gia_ObjId(p, pObj)) )
             pNew->pSibls[Abc_Lit2Var(pObj->Value)] = Abc_Lit2Var(Gia_ObjSiblObj(p, Gia_ObjId(p, pObj))->Value);  
     }
+    for ( ; k < nBarBufs; k++ )
+        if ( ~Gia_ObjFanin0Copy(Gia_ManCo(p, k)) )
+            Gia_ManCi(p, nPiReal + k)->Value = Gia_ManAppendBuf( pNew, Gia_ObjFanin0Copy(Gia_ManCo(p, k)) );
     assert( k == nBarBufs );
     for ( i = 0; i < nPoReal; i++ )
         Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(Gia_ManCo(p, nBarBufs+i)) );
     Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
+    assert( Gia_ManBufNum(pNew) == nBarBufs );
+    assert( Gia_ManCiNum(pNew) == nPiReal );
+    assert( Gia_ManCoNum(pNew) == nPoReal );
     return pNew;
 }
 
@@ -407,22 +411,27 @@ Gia_Man_t * Gia_ManAigSynch2( Gia_Man_t * pInit, void * pPars0, int nLutSize )
         pGia1 = (Gia_Man_t *)Dsm_ManDeriveGia( pTemp = pGia1, 0 );
         Gia_ManStop( pTemp );
     }
-    // perform LUT balancing
-    pGia2 = Gia_ManLutBalance( pGia1, nLutSize, 1, 1, 1, 0 );
     // perform balancing
-    pGia2 = Gia_ManAreaBalance( pTemp = pGia2, 0, ABC_INFINITY, 0, 0 );
+    if ( Gia_ManBufNum(pGia1) )
+        pGia2 = Gia_ManAreaBalance( pGia1, 0, ABC_INFINITY, 0, 0 );
+    else
+    {
+        pGia2 = Gia_ManLutBalance( pGia1, nLutSize, 1, 1, 1, 0 );
+        pGia2 = Gia_ManAreaBalance( pTemp = pGia2, 0, ABC_INFINITY, 0, 0 );
+        Gia_ManStop( pTemp );
+    }
     if ( fVerbose )     Gia_ManPrintStats( pGia2, NULL );
-    Gia_ManStop( pTemp );
     // perform mapping
     pGia2 = Lf_ManPerformMapping( pTemp = pGia2, pPars );
     if ( fVerbose )     Gia_ManPrintStats( pGia2, NULL );
     if ( pTemp != pGia2 )
         Gia_ManStop( pTemp );
     // perform balancing
-    if ( pParsDch->fLightSynth )
+    if ( pParsDch->fLightSynth || Gia_ManBufNum(pGia2) )
         pGia3 = Gia_ManAreaBalance( pGia2, 0, ABC_INFINITY, 0, 0 );
     else
     {
+        assert( Gia_ManBufNum(pGia2) == 0 );
         pGia2 = Gia_ManAreaBalance( pTemp = pGia2, 0, ABC_INFINITY, 0, 0 );
         if ( fVerbose )     Gia_ManPrintStats( pGia2, NULL );
         Gia_ManStop( pTemp );

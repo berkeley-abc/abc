@@ -33,7 +33,7 @@ ABC_NAMESPACE_IMPL_START
 
 /**Function*************************************************************
 
-  Synopsis    [Marks unreachable internal nodes and returned their number.]
+  Synopsis    [Marks unreachable internal nodes and returns their number.]
 
   Description []
                
@@ -50,30 +50,21 @@ int Gia_ManCombMarkUsed_rec( Gia_Man_t * p, Gia_Obj_t * pObj )
         return 0;
     pObj->fMark0 = 0;
     assert( Gia_ObjIsAnd(pObj) );
+    assert( !Gia_ObjIsBuf(pObj) );
     return 1 + Gia_ManCombMarkUsed_rec( p, Gia_ObjFanin0(pObj) )
              + Gia_ManCombMarkUsed_rec( p, Gia_ObjFanin1(pObj) )
              + (p->pNexts ? Gia_ManCombMarkUsed_rec( p, Gia_ObjNextObj(p, Gia_ObjId(p, pObj)) ) : 0)
              + (p->pSibls ? Gia_ManCombMarkUsed_rec( p, Gia_ObjSiblObj(p, Gia_ObjId(p, pObj)) ) : 0)
              + (p->pMuxes ? Gia_ManCombMarkUsed_rec( p, Gia_ObjFanin2(p, pObj) ) : 0);
 }
-
-/**Function*************************************************************
-
-  Synopsis    [Marks unreachable internal nodes and returned their number.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
 int Gia_ManCombMarkUsed( Gia_Man_t * p )
 {
     Gia_Obj_t * pObj;
     int i, nNodes = 0;
     Gia_ManForEachObj( p, pObj, i )
-        pObj->fMark0 = Gia_ObjIsAnd(pObj);
+        pObj->fMark0 = Gia_ObjIsAnd(pObj) && !Gia_ObjIsBuf(pObj);
+    Gia_ManForEachBuf( p, pObj, i )
+        nNodes += Gia_ManCombMarkUsed_rec( p, Gia_ObjFanin0(pObj) );
     Gia_ManForEachCo( p, pObj, i )
         nNodes += Gia_ManCombMarkUsed_rec( p, Gia_ObjFanin0(pObj) );
     return nNodes;

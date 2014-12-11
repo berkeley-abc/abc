@@ -911,10 +911,9 @@ Abc_Ntk_t * Abc_NtkFromCellMappedGia( Gia_Man_t * p )
     Gia_ManForEachCo( p, pObj, i )
         if ( Gia_ObjFaninId0p(p, pObj) == 0 )
             fNeedConst[Gia_ObjFaninC0(pObj)] = 1;
-    if ( Gia_ManBufNum(p) )
-        Gia_ManForEachBuf( p, pObj, i )
-            if ( Gia_ObjFaninId0p(p, pObj) == 0 )
-                fNeedConst[Gia_ObjFaninC0(pObj)] = 1;
+    Gia_ManForEachBuf( p, pObj, i )
+        if ( Gia_ObjFaninId0p(p, pObj) == 0 )
+            fNeedConst[Gia_ObjFaninC0(pObj)] = 1;
     if ( fNeedConst[0] )
         Abc_NtkFromCellWrite( vCopyLits, 0, 0, Abc_ObjId(Abc_NtkCreateNodeConst0(pNtkNew)) );
     if ( fNeedConst[1] )

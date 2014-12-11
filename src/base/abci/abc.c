@@ -26557,6 +26557,7 @@ int Abc_CommandAbc9Strash( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     else if ( fCollapse && pAbc->pGia->pAigExtra )
     {
+        assert( !Gia_ManBufNum(pAbc->pGia) );
         if ( Gia_ManIsSeqWithBoxes(pAbc->pGia) || Gia_ManRegBoxNum(pAbc->pGia) )
         {
             Gia_Man_t * pUnshuffled = Gia_ManDupUnshuffleInputs( pAbc->pGia );
@@ -31744,6 +31745,11 @@ int Abc_CommandAbc9If( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Empty GIA network.\n" );
         return 1;
     }
+    if ( Gia_ManBufNum(pAbc->pGia) )
+    {
+        Abc_Print( -1, "This command does not work with barrier buffers.\n" );
+        return 1;
+    }
     if ( Gia_ManHasMapping(pAbc->pGia) )
     {
         Abc_Print( -1, "Current AIG has mapping. Run \"&st\".\n" );
@@ -32377,7 +32383,11 @@ int Abc_CommandAbc9Jf( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Empty GIA network.\n" );
         return 1;
     }
-
+    if ( Gia_ManBufNum(pAbc->pGia) )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9Jf(): This command does not work with barrier buffers.\n" );
+        return 1;
+    }
     if ( (pPars->fFuncDsd || pPars->fGenCnf) && pPars->nLutSize > 6 )
     {
         Abc_Print( -1, "Abc_CommandAbc9Jf(): DSD computation works for LUT6 or less.\n" );
@@ -33639,6 +33649,11 @@ int Abc_CommandAbc9Dch( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( pAbc->pGia == NULL )
     {
         Abc_Print( -1, "Abc_CommandAbc9Dch(): There is no AIG.\n" );
+        return 1;
+    }
+    if ( Gia_ManBufNum(pAbc->pGia) )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9Dch(): This command does not work with barrier buffers.\n" );
         return 1;
     }
     pTemp = Gia_ManPerformDch( pAbc->pGia, pPars );
@@ -36949,6 +36964,11 @@ int Abc_CommandAbc9Mfs( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
         Abc_Print( -1, "Abc_CommandAbc9Mfs(): There is no AIG.\n" );
         return 0;
+    }
+    if ( Gia_ManBufNum(pAbc->pGia) )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9Mfs(): This command does not work with barrier buffers.\n" );
+        return 1;
     }
     if ( !Gia_ManHasMapping(pAbc->pGia) )
     {

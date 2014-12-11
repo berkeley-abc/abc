@@ -510,7 +510,9 @@ int Gia_ManLevelNum( Gia_Man_t * p )
     p->nLevels = 0;
     Gia_ManForEachObj( p, pObj, i )
     {
-        if ( Gia_ObjIsAnd(pObj) )
+        if ( Gia_ObjIsBuf(pObj) )
+            Gia_ObjSetBufLevel( p, pObj );
+        else if ( Gia_ObjIsAnd(pObj) )
             Gia_ObjSetGateLevel( p, pObj );
         else if ( Gia_ObjIsCo(pObj) )
             Gia_ObjSetCoLevel( p, pObj );
@@ -609,6 +611,10 @@ Vec_Int_t * Gia_ManReverseLevel( Gia_Man_t * p )
         {
             Vec_IntUpdateEntry( vLevelRev, Gia_ObjFaninId0(pObj, i), LevelR + 2 );
             Vec_IntUpdateEntry( vLevelRev, Gia_ObjFaninId1(pObj, i), LevelR + 2 );
+        }
+        else if ( Gia_ObjIsBuf(pObj) )
+        {
+            Vec_IntUpdateEntry( vLevelRev, Gia_ObjFaninId0(pObj, i), LevelR );
         }
         else
         {
@@ -882,7 +888,7 @@ int Gia_ObjIsMuxType( Gia_Obj_t * pNode )
     // check that the node is regular
     assert( !Gia_IsComplement(pNode) );
     // if the node is not AND, this is not MUX
-    if ( !Gia_ObjIsAnd(pNode) || Gia_ObjIsBarBuf(pNode) )
+    if ( !Gia_ObjIsAnd(pNode) || Gia_ObjIsBuf(pNode) )
         return 0;
     // if the children are not complemented, this is not MUX
     if ( !Gia_ObjFaninC0(pNode) || !Gia_ObjFaninC1(pNode) )
@@ -916,7 +922,7 @@ int Gia_ObjRecognizeExor( Gia_Obj_t * pObj, Gia_Obj_t ** ppFan0, Gia_Obj_t ** pp
 {
     Gia_Obj_t * p0, * p1;
     assert( !Gia_IsComplement(pObj) );
-    if ( !Gia_ObjIsAnd(pObj) || Gia_ObjIsBarBuf(pObj) )
+    if ( !Gia_ObjIsAnd(pObj) || Gia_ObjIsBuf(pObj) )
         return 0;
     assert( Gia_ObjIsAnd(pObj) );
     p0 = Gia_ObjChild0(pObj);
@@ -1273,7 +1279,7 @@ void Gia_ObjPrint( Gia_Man_t * p, Gia_Obj_t * pObj )
         printf( "RO( %4d%s )", Gia_ObjFaninId0p(p, Gia_ObjRoToRi(p, pObj)), (Gia_ObjFaninC0(Gia_ObjRoToRi(p, pObj))? "\'" : " ") );
     else if ( Gia_ObjIsCo(pObj) )
         printf( "RI( %4d%s )", Gia_ObjFaninId0p(p, pObj), (Gia_ObjFaninC0(pObj)? "\'" : " ") );
-//    else if ( Gia_ObjIsBarBuf(pObj) )
+//    else if ( Gia_ObjIsBuf(pObj) )
 //        printf( "BUF( %d%s )", Gia_ObjFaninId0p(p, pObj), (Gia_ObjFaninC0(pObj)? "\'" : " ") );
     else if ( Gia_ObjIsXor(pObj) )
         printf( "XOR( %4d%s, %4d%s )", 
@@ -1308,7 +1314,7 @@ void Gia_ObjPrint( Gia_Man_t * p, Gia_Obj_t * pObj )
             printf( "Node %4d : ", Gia_ObjId(pFanout) );
             if ( Gia_ObjIsPo(pFanout) )
                 printf( "PO( %4d%s )", Gia_ObjFanin0(pFanout)->Id, (Gia_ObjFaninC0(pFanout)? "\'" : " ") );
-            else if ( Gia_ObjIsBarBuf(pFanout) )
+            else if ( Gia_ObjIsBuf(pFanout) )
                 printf( "BUF( %d%s )", Gia_ObjFanin0(pFanout)->Id, (Gia_ObjFaninC0(pFanout)? "\'" : " ") );
             else
                 printf( "AND( %4d%s, %4d%s )", 

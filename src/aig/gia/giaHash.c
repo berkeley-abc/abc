@@ -729,6 +729,9 @@ Gia_Man_t * Gia_ManRehash( Gia_Man_t * p, int fAddStrash )
     Gia_ManConst0(p)->Value = 0;
     Gia_ManForEachObj( p, pObj, i )
     {
+        //if ( Gia_ObjIsBuf(pObj) )
+        //    pObj->Value = Gia_ManAppendBuf( pNew, Gia_ObjFanin0Copy(pObj) );
+        //else 
         if ( Gia_ObjIsAnd(pObj) )
             pObj->Value = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
         else if ( Gia_ObjIsCi(pObj) )

@@ -494,8 +494,15 @@ void * Dsm_ManDeriveGia( void * pGia, int fUseMuxes )
     vCover  = Vec_IntAlloc( 1 << 16 );
     Gia_ManHashStart( pNew );
     Gia_ObjComputeTruthTableStart( p, Gia_ManLutSizeMax(p) );
-    Gia_ManForEachLut( p, iLut )
+    Gia_ManForEachAnd( p, pObj, iLut )
     {
+        if ( Gia_ObjIsBuf(pObj) )
+        {
+            pObj->Value = Gia_ManAppendBuf( pNew, Gia_ObjFanin0Copy(pObj) );
+            continue;
+        }
+        if ( !Gia_ObjIsLut(p, iLut) )
+            continue;
         // collect leaves
         Vec_IntClear( vLeaves );
         Gia_LutForEachFanin( p, iLut, iVar, k )
