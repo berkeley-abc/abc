@@ -672,7 +672,7 @@ void Gia_ManPrintResults( Gia_Man_t * p, sat_solver * pSat, int nIter, abctime c
   SeeAlso     []
 
 ***********************************************************************/
-void Gia_ManFaultAddOne( Gia_Man_t * pM, Cnf_Dat_t * pCnf, sat_solver * pSat, Vec_Int_t * vLits, int nFuncVars )
+int Gia_ManFaultAddOne( Gia_Man_t * pM, Cnf_Dat_t * pCnf, sat_solver * pSat, Vec_Int_t * vLits, int nFuncVars )
 {
     Gia_Man_t * pC;
     Cnf_Dat_t * pCnf2;
@@ -688,13 +688,21 @@ void Gia_ManFaultAddOne( Gia_Man_t * pM, Cnf_Dat_t * pCnf, sat_solver * pSat, Ve
     // add timeframe clauses
     for ( i = 0; i < pCnf2->nClauses; i++ )
         if ( !sat_solver_addclause( pSat, pCnf2->pClauses[i], pCnf2->pClauses[i+1] ) )
-            assert( 0 );
+        {
+            Cnf_DataFree( pCnf2 );
+            Gia_ManStop( pC );
+            return 0;
+        }
     // add constraint clauses
     Gia_ManForEachPo( pC, pObj, i )
     {
         Lit = Abc_Var2Lit( pCnf2->pVarNums[Gia_ObjId(pC, pObj)], 1 );
         if ( !sat_solver_addclause( pSat, &Lit, &Lit+1 ) )
-            assert( 0 );
+        {
+            Cnf_DataFree( pCnf2 );
+            Gia_ManStop( pC );
+            return 0;
+        }
     }
     // add connection clauses
     Gia_ManForEachPi( pM, pObj, i )
@@ -702,6 +710,7 @@ void Gia_ManFaultAddOne( Gia_Man_t * pM, Cnf_Dat_t * pCnf, sat_solver * pSat, Ve
             sat_solver_add_buffer( pSat, pCnf->pVarNums[Gia_ObjId(pM, pObj)], pCnf2->pVarNums[Gia_ObjId(pC, Gia_ManPi(pC, i))], 0 );
     Cnf_DataFree( pCnf2 );
     Gia_ManStop( pC );
+    return 1;
 }
 
 
@@ -987,7 +996,13 @@ int Gia_ManFaultPrepare( Gia_Man_t * p, Gia_Man_t * pG, Bmc_ParFf_t * pPars, int
             Vec_IntClear( vLits );
             for ( i = 0; i < nFuncVars; i++ )
                 Vec_IntPush( vLits, Vec_IntEntry(vTests, Iter*nFuncVars + i) );
-            Gia_ManFaultAddOne( pM, pCnf, pSat, vLits, nFuncVars );
+            if ( !Gia_ManFaultAddOne( pM, pCnf, pSat, vLits, nFuncVars ) )
+            {
+                if ( pPars->fVerbose )
+                    printf( "\n" );
+                printf( "The problem is UNSAT after adding %d tests.\n", Iter );
+                return 0;
+            }
             if ( pPars->fVerbose )
             {
                 printf( "Iter%6d : ",       Iter );
@@ -1021,7 +1036,13 @@ int Gia_ManFaultPrepare( Gia_Man_t * p, Gia_Man_t * pG, Bmc_ParFf_t * pPars, int
             // initialize simple pattern
             Vec_IntFill( vLits, nFuncVars, Iter );
             Vec_IntAppend( vTests, vLits );
-            Gia_ManFaultAddOne( pM, pCnf, pSat, vLits, nFuncVars );
+            if ( !Gia_ManFaultAddOne( pM, pCnf, pSat, vLits, nFuncVars ) )
+            {
+                if ( pPars->fVerbose )
+                    printf( "\n" );
+                printf( "The problem is UNSAT after adding %d tests.\n", Iter );
+                return 0;
+            }
         }
     }
 
@@ -1172,7 +1193,13 @@ void Gia_ManFaultTest( Gia_Man_t * p, Gia_Man_t * pG, Bmc_ParFf_t * pPars )
                 Vec_IntPush( vLits, sat_solver_var_value(pSat, pCnf->pVarNums[Gia_ObjId(pM, pObj)]) );
         Vec_IntAppend( vTests, vLits );
         // add constraint
-        Gia_ManFaultAddOne( pM, pCnf, pSat, vLits, nFuncVars );
+        if ( !Gia_ManFaultAddOne( pM, pCnf, pSat, vLits, nFuncVars ) )
+        {
+            if ( pPars->fVerbose )
+                printf( "\n" );
+            printf( "The problem is UNSAT after adding %d tests.\n", Iter );
+            break;
+        }
     }
 finish:
     // print results
@@ -1189,7 +1216,7 @@ finish:
     }
 
     // compute untestable faults
-    if ( p != pG || pPars->fDumpUntest )
+    if ( Iter && (p != pG || pPars->fDumpUntest) )
     {
         abctime clkTotal = Abc_Clock();
         // restart the SAT solver
@@ -1259,7 +1286,11 @@ finish:
             Vec_IntClear( vLits );
             for ( i = 0; i < nFuncVars; i++ )
                 Vec_IntPush( vLits, Vec_IntEntry(vTests, Iter2*nFuncVars + i) );
-            Gia_ManFaultAddOne( pM, pCnf, pSat, vLits, nFuncVars );
+            if ( !Gia_ManFaultAddOne( pM, pCnf, pSat, vLits, nFuncVars ) )
+            {
+                printf( "The problem is UNSAT after adding %d tests.\n", Iter2 );
+                goto finish;
+            }
         }
         assert( Iter2 == Iter );
         if ( pPars->fVerbose )
