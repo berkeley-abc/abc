@@ -324,8 +324,10 @@ Gia_Man_t * Gia_ManDupToBarBufs( Gia_Man_t * p, int nBarBufs )
     Gia_ManForEachAnd( p, pObj, i )
     {
         for ( ; k < nBarBufs; k++ )
-            if ( ~Gia_ObjFanin0Copy(Gia_ManCo(p, k)) )
+            if ( ~Gia_ObjFanin0(Gia_ManCo(p, k))->Value )
                 Gia_ManCi(p, nPiReal + k)->Value = Gia_ManAppendBuf( pNew, Gia_ObjFanin0Copy(Gia_ManCo(p, k)) );
+            else
+                break;
         pObj->Value = Gia_ManAppendAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
         if ( Gia_ObjSibl(p, Gia_ObjId(p, pObj)) )
             pNew->pSibls[Abc_Lit2Var(pObj->Value)] = Abc_Lit2Var(Gia_ObjSiblObj(p, Gia_ObjId(p, pObj))->Value);  

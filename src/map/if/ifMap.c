@@ -99,7 +99,7 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
     If_Cut_t * pCut0R, * pCut1R;
     int fFunc0R, fFunc1R;
     int i, k, v, iCutDsd, fChange;
-    int fSave0 = p->pPars->fDelayOpt || p->pPars->fDelayOptLut || p->pPars->fDsdBalance || p->pPars->fUserRecLib || p->pPars->fUseDsdTune || p->pPars->fUseCofVars || p->pPars->pLutStruct != NULL;
+    int fSave0 = p->pPars->fDelayOpt || p->pPars->fDelayOptLut || p->pPars->fDsdBalance || p->pPars->fUserRecLib || p->pPars->fUseDsdTune || p->pPars->fUseCofVars || p->pPars->fUseAndVars || p->pPars->pLutStruct != NULL;
     assert( !If_ObjIsAnd(pObj->pFanin0) || pObj->pFanin0->pCutSet->nCuts > 0 );
     assert( !If_ObjIsAnd(pObj->pFanin1) || pObj->pFanin1->pCutSet->nCuts > 0 );
 
@@ -270,23 +270,47 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
                 p->nCutsCountAll++;
                 p->nCutsCount[pCut->nLeaves]++;
             }
-            else if ( p->pPars->fUseCofVars )
+            else 
             {
-                int iCofVar = -1, truthId = Abc_Lit2Var(pCut->iCutFunc);
-                if ( truthId >= Vec_StrSize(p->vTtVars[pCut->nLeaves]) || Vec_StrEntry(p->vTtVars[pCut->nLeaves], truthId) == (char)-1 )
+                if ( p->pPars->fUseAndVars )
                 {
-                    while ( truthId >= Vec_StrSize(p->vTtVars[pCut->nLeaves]) )
-                        Vec_StrPush( p->vTtVars[pCut->nLeaves], (char)-1 );
-                    iCofVar = Abc_TtCheckCondDep( If_CutTruthWR(p, pCut), pCut->nLeaves, p->pPars->nLutSize / 2 );
-                    Vec_StrWriteEntry( p->vTtVars[pCut->nLeaves], truthId, (char)iCofVar );
+                    int iDecMask = -1, truthId = Abc_Lit2Var(pCut->iCutFunc);
+                    if ( truthId >= Vec_IntSize(p->vTtDecs[pCut->nLeaves]) || Vec_IntEntry(p->vTtDecs[pCut->nLeaves], truthId) == -1 )
+                    {
+                        while ( truthId >= Vec_IntSize(p->vTtDecs[pCut->nLeaves]) )
+                            Vec_IntPush( p->vTtDecs[pCut->nLeaves], -1 );
+                        if ( (int)pCut->nLeaves > p->pPars->nLutSize / 2 )
+                            iDecMask = Abc_TtProcessBiDec( If_CutTruthW(p, pCut), (int)pCut->nLeaves, p->pPars->nLutSize / 2 );
+                        else
+                            iDecMask = 0;
+                        Vec_IntWriteEntry( p->vTtDecs[pCut->nLeaves], truthId, iDecMask );
+                    }
+                    iDecMask = Vec_IntEntry(p->vTtDecs[pCut->nLeaves], truthId);
+                    assert( iDecMask >= 0 );
+                    pCut->fUseless = (int)(iDecMask == 0 && (int)pCut->nLeaves > p->pPars->nLutSize / 2);
+                    p->nCutsUselessAll += pCut->fUseless;
+                    p->nCutsUseless[pCut->nLeaves] += pCut->fUseless;
+                    p->nCutsCountAll++;
+                    p->nCutsCount[pCut->nLeaves]++;
                 }
-                iCofVar = Vec_StrEntry(p->vTtVars[pCut->nLeaves], truthId);
-                assert( iCofVar >= 0 && iCofVar <= (int)pCut->nLeaves );
-                pCut->fUseless = (int)(iCofVar == (int)pCut->nLeaves && pCut->nLeaves > 0);
-                p->nCutsUselessAll += pCut->fUseless;
-                p->nCutsUseless[pCut->nLeaves] += pCut->fUseless;
-                p->nCutsCountAll++;
-                p->nCutsCount[pCut->nLeaves]++;
+                if ( p->pPars->fUseCofVars && (!p->pPars->fUseAndVars || pCut->fUseless) )
+                {
+                    int iCofVar = -1, truthId = Abc_Lit2Var(pCut->iCutFunc);
+                    if ( truthId >= Vec_StrSize(p->vTtVars[pCut->nLeaves]) || Vec_StrEntry(p->vTtVars[pCut->nLeaves], truthId) == (char)-1 )
+                    {
+                        while ( truthId >= Vec_StrSize(p->vTtVars[pCut->nLeaves]) )
+                            Vec_StrPush( p->vTtVars[pCut->nLeaves], (char)-1 );
+                        iCofVar = Abc_TtCheckCondDep( If_CutTruthWR(p, pCut), pCut->nLeaves, p->pPars->nLutSize / 2 );
+                        Vec_StrWriteEntry( p->vTtVars[pCut->nLeaves], truthId, (char)iCofVar );
+                    }
+                    iCofVar = Vec_StrEntry(p->vTtVars[pCut->nLeaves], truthId);
+                    assert( iCofVar >= 0 && iCofVar <= (int)pCut->nLeaves );
+                    pCut->fUseless = (int)(iCofVar == (int)pCut->nLeaves && pCut->nLeaves > 0);
+                    p->nCutsUselessAll += pCut->fUseless;
+                    p->nCutsUseless[pCut->nLeaves] += pCut->fUseless;
+                    p->nCutsCountAll++;
+                    p->nCutsCount[pCut->nLeaves]++;
+                }
             }
         }
         

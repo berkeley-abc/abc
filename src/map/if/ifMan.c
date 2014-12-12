@@ -136,6 +136,17 @@ If_Man_t * If_ManStart( If_Par_t * pPars )
         for ( v = 0; v < 6; v++ )
             p->vTtVars[v]  = p->vTtVars[6];
     }
+    if ( pPars->fUseAndVars )
+    {
+        for ( v = 6; v <= Abc_MaxInt(6,p->pPars->nLutSize); v++ )
+        {
+            p->vTtDecs[v] = Vec_IntAlloc( 1000 );
+            Vec_IntPush( p->vTtDecs[v], 0 );
+            Vec_IntPush( p->vTtDecs[v], 0 );
+        }
+        for ( v = 0; v < 6; v++ )
+            p->vTtDecs[v]  = p->vTtDecs[6];
+    }
     if ( pPars->fUseBat )
     {
 //        abctime clk = Abc_Clock();
@@ -248,6 +259,8 @@ void If_ManStop( If_Man_t * p )
         Vec_StrFreeP( &p->vTtPerms[i] );
     for ( i = 6; i <= Abc_MaxInt(6,p->pPars->nLutSize); i++ )
         Vec_StrFreeP( &p->vTtVars[i] );
+    for ( i = 6; i <= Abc_MaxInt(6,p->pPars->nLutSize); i++ )
+        Vec_IntFreeP( &p->vTtDecs[i] );
     Vec_IntFreeP( &p->vCutData );
     Vec_IntFreeP( &p->vPairRes );
     Vec_StrFreeP( &p->vPairPerms );

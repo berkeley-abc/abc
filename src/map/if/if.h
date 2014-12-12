@@ -133,6 +133,7 @@ struct If_Par_t_
     int                fUseDsd;       // compute DSD of the cut functions
     int                fUseDsdTune;   // use matching based on precomputed manager
     int                fUseCofVars;   // use cofactoring variables
+    int                fUseAndVars;   // use bi-decomposition
     int                fUseTtPerm;    // compute truth tables of the cut functions
     int                fDeriveLuts;   // enables deriving LUT structures
     int                fDoAverage;    // optimize average rather than maximum level
@@ -245,6 +246,7 @@ struct If_Man_t_
     Vec_Int_t *        vTtDsds[IF_MAX_FUNC_LUTSIZE+1];  // mapping of truth table into DSD
     Vec_Str_t *        vTtPerms[IF_MAX_FUNC_LUTSIZE+1]; // mapping of truth table into permutations
     Vec_Str_t *        vTtVars[IF_MAX_FUNC_LUTSIZE+1];  // mapping of truth table into selected vars
+    Vec_Int_t *        vTtDecs[IF_MAX_FUNC_LUTSIZE+1];  // mapping of truth table into decomposition pattern
     Hash_IntMan_t *    vPairHash;     // hashing pairs of truth tables
     Vec_Int_t *        vPairRes;      // resulting truth table
     Vec_Str_t *        vPairPerms;    // resulting permutation

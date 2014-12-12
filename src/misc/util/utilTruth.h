@@ -2269,6 +2269,272 @@ static inline void Unm_ManCheckTest()
 }
 
 
+
+/**Function*************************************************************
+
+  Synopsis    [Checks existence of bi-decomposition.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline void Abc_TtComputeGraph( word * pTruth, int v, int nVars, int * pGraph )
+{
+    word Cof0[64], Cof1[64]; // pow( 2, nVarsMax-6 )
+    word Cof00[64], Cof01[64], Cof10[64], Cof11[64];
+    word CofXor, CofAndTest; 
+    int i, w, nWords = Abc_TtWordNum(nVars);
+    pGraph[v] |= (1 << v);
+    if ( v == nVars - 1 )
+        return;
+    assert( v < nVars - 1 );
+    Abc_TtCofactor0p( Cof0, pTruth, nWords, v );
+    Abc_TtCofactor1p( Cof1, pTruth, nWords, v );
+    for ( i = v + 1; i < nVars; i++ )
+    {
+        Abc_TtCofactor0p( Cof00, Cof0, nWords, i );
+        Abc_TtCofactor1p( Cof01, Cof0, nWords, i );
+        Abc_TtCofactor0p( Cof10, Cof1, nWords, i );
+        Abc_TtCofactor1p( Cof11, Cof1, nWords, i );
+        for ( w = 0; w < nWords; w++ )
+        {
+            CofXor     =  Cof00[w] ^ Cof01[w]  ^  Cof10[w] ^ Cof11[w];
+            CofAndTest = (Cof00[w] & Cof01[w]) | (Cof10[w] & Cof11[w]);
+            if ( CofXor & CofAndTest )
+            {
+                pGraph[v] |= (1 << i);
+                pGraph[i] |= (1 << v);
+            }
+            else if ( CofXor & ~CofAndTest )
+            {
+                pGraph[v] |= (1 << (16+i));
+                pGraph[i] |= (1 << (16+v));
+            }
+        }
+    }
+}
+static inline void Abc_TtPrintVarSet( int Mask, int nVars )
+{
+    int i;
+    for ( i = 0; i < nVars; i++ )
+        if ( (Mask >> i) & 1 )
+            printf( "1" );
+        else
+            printf( "." );
+}
+static inline void Abc_TtPrintBiDec( word * pTruth, int nVars )
+{
+    int v, pGraph[12] = {0};
+    assert( nVars <= 12 );
+    for ( v = 0; v < nVars; v++ )
+    {
+        Abc_TtComputeGraph( pTruth, v, nVars, pGraph );
+        Abc_TtPrintVarSet( pGraph[v], nVars );
+        printf( "    " );
+        Abc_TtPrintVarSet( pGraph[v] >> 16, nVars );
+        printf( "\n" );
+    }
+}
+static inline int Abc_TtVerifyBiDec( word * pTruth, int nVars, int This, int That, int nSuppLim, word wThis, word wThat )
+{
+    int pVarsThis[12], pVarsThat[12], pVarsAll[12];
+    int nThis = Abc_TtBitCount16(This);
+    int nThat = Abc_TtBitCount16(That);
+    int i, k, nWords = Abc_TtWordNum(nVars);
+    word pThis[64] = {wThis}, pThat[64] = {wThat};
+    assert( nVars <= 12 );
+    for ( i = 0; i < nVars; i++ )
+        pVarsAll[i] = i;
+    for ( i = k = 0; i < nVars; i++ )
+        if ( (This >> i) & 1 )
+            pVarsThis[k++] = i;
+    assert( k == nThis );
+    for ( i = k = 0; i < nVars; i++ )
+        if ( (That >> i) & 1 )
+            pVarsThat[k++] = i;
+    assert( k == nThat );
+    Abc_TtStretch6( pThis, nThis, nVars );
+    Abc_TtStretch6( pThat, nThat, nVars );
+    Abc_TtExpand( pThis, nVars, pVarsThis, nThis, pVarsAll, nVars );
+    Abc_TtExpand( pThat, nVars, pVarsThat, nThat, pVarsAll, nVars );
+    for ( k = 0; k < nWords; k++ )
+        if ( pTruth[k] != (pThis[k] & pThat[k]) )
+            return 0;
+    return 1;
+}
+static inline void Abc_TtExist( word * pTruth, int iVar, int nWords )
+{
+    word Cof0[64], Cof1[64]; 
+    Abc_TtCofactor0p( Cof0, pTruth, nWords, iVar );
+    Abc_TtCofactor1p( Cof1, pTruth, nWords, iVar );
+    Abc_TtOr( pTruth, Cof0, Cof1, nWords );
+}
+static inline int Abc_TtCheckBiDec( word * pTruth, int nVars, int This, int That )
+{
+    int VarMask[2] = {This & ~That, That & ~This};
+    int v, c, nWords = Abc_TtWordNum(nVars);
+    word pTempR[2][64]; 
+    for ( c = 0; c < 2; c++ )
+    {
+        Abc_TtCopy( pTempR[c], pTruth, nWords, 0 );
+        for ( v = 0; v < nVars; v++ )
+            if ( ((VarMask[c] >> v) & 1) )
+                Abc_TtExist( pTempR[c], v, nWords );
+    }
+    for ( v = 0; v < nWords; v++ )
+        if ( ~pTruth[v] & pTempR[0][v] & pTempR[1][v] )
+            return 0;
+    return 1;
+}
+static inline word Abc_TtDeriveBiDecOne( word * pTruth, int nVars, int This )
+{
+    word pTemp[64]; 
+    int nThis = Abc_TtBitCount16(This);
+    int v, nWords = Abc_TtWordNum(nVars);
+    Abc_TtCopy( pTemp, pTruth, nWords, 0 );
+    for ( v = 0; v < nVars; v++ )
+        if ( !((This >> v) & 1) )
+            Abc_TtExist( pTemp, v, nWords );
+    Abc_TtShrink( pTemp, nThis, nVars, This );
+    return Abc_Tt6Stretch( pTemp[0], nThis );
+}
+static inline void Abc_TtDeriveBiDec( word * pTruth, int nVars, int This, int That, int nSuppLim, word * pThis, word * pThat )
+{
+    assert( Abc_TtBitCount16(This) <= nSuppLim );
+    assert( Abc_TtBitCount16(That) <= nSuppLim );
+    pThis[0] = Abc_TtDeriveBiDecOne( pTruth, nVars, This );
+    pThat[0] = Abc_TtDeriveBiDecOne( pTruth, nVars, That );
+    if ( !Abc_TtVerifyBiDec(pTruth, nVars, This, That, nSuppLim, pThis[0], pThat[0] ) )
+        printf( "Bi-decomposition verification failed.\n" );
+}
+// detect simple case of decomposition with topmost AND gate
+static inline int Abc_TtCheckBiDecSimple( word * pTruth, int nVars, int nSuppLim )
+{
+    word Cof0[64], Cof1[64]; 
+    int v, Res = 0, nDecVars = 0, nWords = Abc_TtWordNum(nVars);
+    for ( v = 0; v < nVars; v++ )
+    {
+        Abc_TtCofactor0p( Cof0, pTruth, nWords, v );
+        Abc_TtCofactor1p( Cof1, pTruth, nWords, v );
+        if ( !Abc_TtIsConst0(Cof0, nWords) && !Abc_TtIsConst0(Cof1, nWords) )
+            continue;
+        nDecVars++;
+        Res |= 1 << v;
+        if ( nDecVars >= nVars - nSuppLim )
+            return ((Res ^ (int)Abc_Tt6Mask(nVars)) << 16) | Res;
+    }
+    return 0;
+}
+static inline int Abc_TtProcessBiDec( word * pTruth, int nVars, int nSuppLim )
+{
+    int i, v, Res, nSupp, CountShared = 0, pGraph[12] = {0};
+    assert( nSuppLim < nVars && nVars <= 12 );
+    assert( 2 <= nSuppLim && nSuppLim <= 6 );
+    Res = Abc_TtCheckBiDecSimple( pTruth, nVars, nSuppLim );
+    if ( Res )
+        return Res;
+    for ( v = 0; v < nVars; v++ )
+    {
+        Abc_TtComputeGraph( pTruth, v, nVars, pGraph );
+        nSupp = Abc_TtBitCount16(pGraph[v] & 0xFFFF);
+        if ( nSupp > nSuppLim ) 
+        {
+            // this variable is shared - check if the limit is exceeded
+            if ( ++CountShared > 2*nSuppLim - nVars )
+                return 0;
+        }
+        else if ( nVars - nSupp <= nSuppLim )
+        {
+            int This = pGraph[v] & 0xFFFF;
+            int That = This ^ (int)Abc_Tt6Mask(nVars);
+            // find the other component
+            int Graph = That;
+            for ( i = 0; i < nVars; i++ )
+                if ( (That >> i) & 1 )
+                    Graph |= pGraph[i] & 0xFFFF;
+            // check if this can be done
+            if ( Abc_TtBitCount16(Graph) > nSuppLim )
+                continue;
+            // try decomposition
+            if ( Abc_TtCheckBiDec(pTruth, nVars, This, Graph) )
+                return (Graph << 16) | This;
+        }
+    }
+    return 0;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Tests decomposition procedures.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     [] 
+
+***********************************************************************/
+static inline void Abc_TtProcessBiDecTest( word * pTruth, int nVars, int nSuppLim )
+{
+    word This, That, pTemp[64];
+    int Res, resThis, resThat, nThis, nThat;
+    int nWords = Abc_TtWordNum(nVars);
+    Abc_TtCopy( pTemp, pTruth, nWords, 0 );
+    Res = Abc_TtProcessBiDec( pTemp, nVars, nSuppLim );
+    if ( Res == 0 )
+    {
+        //Dau_DsdPrintFromTruth( pTemp, nVars );
+        //printf( "Non_dec\n\n" );
+        return;
+    }
+
+    resThis = Res & 0xFFFF;
+    resThat = Res >> 16;
+
+    Abc_TtDeriveBiDec( pTemp, nVars, resThis, resThat, nSuppLim, &This, &That );
+    return;
+
+    //if ( !(resThis & resThat) )
+    //    return;
+
+//    Dau_DsdPrintFromTruth( pTemp, nVars );
+
+    nThis = Abc_TtBitCount16(resThis);
+    nThat = Abc_TtBitCount16(resThat);
+
+    printf( "Variable sets:    " );
+    Abc_TtPrintVarSet( resThis, nVars );
+    printf( "    " );
+    Abc_TtPrintVarSet( resThat, nVars );
+    printf( "\n" );
+    Abc_TtDeriveBiDec( pTemp, nVars, resThis, resThat, nSuppLim, &This, &That );
+//    Dau_DsdPrintFromTruth( &This, nThis );
+//    Dau_DsdPrintFromTruth( &That, nThat );
+    printf( "\n" );
+}
+static inline void Abc_TtProcessBiDecExperiment()
+{
+    int nVars = 3;
+    int nSuppLim = 2;
+    int Res, resThis, resThat;
+    word This, That;
+//    word t = ABC_CONST(0x8000000000000000);
+//    word t = (s_Truths6[0] | s_Truths6[1]) & (s_Truths6[2] | s_Truths6[3] | s_Truths6[4] | s_Truths6[5]);
+//    word t = ((s_Truths6[0] & s_Truths6[1]) | (~s_Truths6[1] & s_Truths6[2]));
+    word t = ((s_Truths6[0] | s_Truths6[1]) & (s_Truths6[1] | s_Truths6[2]));
+    Abc_TtPrintBiDec( &t, nVars );
+    Res = Abc_TtProcessBiDec( &t, nVars, nSuppLim );
+    resThis = Res & 0xFFFF;
+    resThat = Res >> 16;
+    Abc_TtDeriveBiDec( &t, nVars, resThis, resThat, nSuppLim, &This, &That );
+//    Dau_DsdPrintFromTruth( &This, Abc_TtBitCount16(resThis) );
+//    Dau_DsdPrintFromTruth( &That, Abc_TtBitCount16(resThat) );
+    nVars = nSuppLim;
+}
+
 /*=== utilTruth.c ===========================================================*/
 
 

@@ -1572,7 +1572,8 @@ Gia_Man_t * Gia_ManFromIfLogic( If_Man_t * pIfMan )
             // perform sorting of cut leaves by delay, so that the slowest pin drives the fastest input of the LUT
             if ( !pIfMan->pPars->fUseTtPerm && !pIfMan->pPars->fDelayOpt && !pIfMan->pPars->fDelayOptLut && !pIfMan->pPars->fDsdBalance && 
                  !pIfMan->pPars->pLutStruct && !pIfMan->pPars->fUserRecLib && !pIfMan->pPars->nGateSize && !pIfMan->pPars->fEnableCheck75 && 
-                 !pIfMan->pPars->fEnableCheck75u && !pIfMan->pPars->fEnableCheck07 && !pIfMan->pPars->fUseDsdTune && !pIfMan->pPars->fUseCofVars )
+                 !pIfMan->pPars->fEnableCheck75u && !pIfMan->pPars->fEnableCheck07 && !pIfMan->pPars->fUseDsdTune && 
+                 !pIfMan->pPars->fUseCofVars && !pIfMan->pPars->fUseAndVars )
                 If_CutRotatePins( pIfMan, pCutBest );
             // collect leaves of the best cut
             Vec_IntClear( vLeaves );
@@ -1677,6 +1678,10 @@ Gia_Man_t * Gia_ManFromIfLogic( If_Man_t * pIfMan )
                     Vec_IntPush( vMapping2, Abc_Lit2Var(iTemp) );
                 Vec_IntPush( vMapping2, -Abc_Lit2Var(iTopLit) );
                 pIfObj->iCopy = Abc_LitNotCond( pIfObj->iCopy, pCutBest->fCompl );
+            }
+            else if ( pIfMan->pPars->fUseAndVars && pIfMan->pPars->fDeriveLuts && (int)pCutBest->nLeaves > pIfMan->pPars->nLutSize/2 )
+            {
+                assert( 0 );
             }
             else if ( (pIfMan->pPars->fDeriveLuts && pIfMan->pPars->fTruth) || pIfMan->pPars->fUseDsd || pIfMan->pPars->fUseTtPerm )
             {
@@ -2132,6 +2137,7 @@ void Gia_ManTestStruct( Gia_Man_t * p )
     printf( "LUT7 = %d  NonDec = %d (%.2f %%)    ", LutCount[7], LutNDecomp[7], 100.0 * LutNDecomp[7]/Abc_MaxInt(LutCount[7], 1) );
     printf( "\n" );
 }
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
