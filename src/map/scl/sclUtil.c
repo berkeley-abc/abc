@@ -47,33 +47,46 @@ ABC_NAMESPACE_IMPL_START
 void Abc_SclMioGates2SclGates( SC_Lib * pLib, Abc_Ntk_t * p )
 {
     Abc_Obj_t * pObj;
-    int i;
+    int i, gateId, bufferId;
+    // find buffer
+    if ( Mio_LibraryReadBuf((Mio_Library_t *)p->pManFunc) == NULL )
+    {
+        printf( "Cannot find buffer in the current library. Quitting.\n" );
+        return;
+    }
+    bufferId = Abc_SclCellFind( pLib, Mio_GateReadName(Mio_LibraryReadBuf((Mio_Library_t *)p->pManFunc)) );
+    assert( bufferId >= 0 );
+    // remap cells
     assert( p->vGates == NULL );
     p->vGates = Vec_IntStartFull( Abc_NtkObjNumMax(p) );
     Abc_NtkForEachNode1( p, pObj, i )
     {
-        char * pName = Mio_GateReadName((Mio_Gate_t *)pObj->pData);
-        int gateId = Abc_SclCellFind( pLib, pName );
+        if ( Abc_ObjIsBarBuf(pObj) )
+            gateId = bufferId;
+        else
+            gateId = Abc_SclCellFind( pLib, Mio_GateReadName((Mio_Gate_t *)pObj->pData) );
         assert( gateId >= 0 );
         Vec_IntWriteEntry( p->vGates, i, gateId );
-//printf( "Found gate %s\n", pName );
     }
     p->pSCLib = pLib;
 }
 void Abc_SclSclGates2MioGates( SC_Lib * pLib, Abc_Ntk_t * p )
 {
     Abc_Obj_t * pObj;
+    SC_Cell * pCell;
     int i, Counter = 0, CounterAll = 0;
     assert( p->vGates != NULL );
     Abc_NtkForEachNode1( p, pObj, i )
     {
-        SC_Cell * pCell = Abc_SclObjCell(pObj);
+        pCell = Abc_SclObjCell(pObj);
         assert( pCell->n_inputs == Abc_ObjFaninNum(pObj) );
-        pObj->pData = Mio_LibraryReadGateByName( (Mio_Library_t *)p->pManFunc, pCell->pName, NULL );
+        if ( Abc_ObjIsBarBuf(pObj) )
+            pObj->pData = NULL;
+        else
+            pObj->pData = Mio_LibraryReadGateByName( (Mio_Library_t *)p->pManFunc, pCell->pName, NULL );
         Counter += (pObj->pData == NULL);
         assert( pObj->fMarkA == 0 && pObj->fMarkB == 0 );
         CounterAll++;
-//printf( "Found gate %s\n", pCell->name );
     }
     if ( Counter )
         printf( "Could not find %d (out of %d) gates in the current library.\n", Counter, CounterAll );
@@ -96,11 +109,12 @@ void Abc_SclSclGates2MioGates( SC_Lib * pLib, Abc_Ntk_t * p )
 void Abc_SclManPrintGateSizes( SC_Lib * pLib, Abc_Ntk_t * p, Vec_Int_t * vGates )
 {
     Abc_Obj_t * pObj;
+    SC_Cell * pCell;
     int i, nGates = 0, Counters[ABC_SCL_MAX_SIZE] = {0};
     double TotArea = 0, Areas[ABC_SCL_MAX_SIZE] = {0};
     Abc_NtkForEachNode1( p, pObj, i )
     {
-        SC_Cell * pCell = SC_LibCell( pLib, Vec_IntEntry(vGates, Abc_ObjId(pObj)) );
+        pCell = SC_LibCell( pLib, Vec_IntEntry(vGates, Abc_ObjId(pObj)) );
         assert( pCell->Order < ABC_SCL_MAX_SIZE );
         Counters[pCell->Order]++;
         Areas[pCell->Order] += pCell->area;
@@ -124,6 +138,7 @@ void Abc_SclPrintGateSizes( SC_Lib * pLib, Abc_Ntk_t * p )
 {
     Abc_SclMioGates2SclGates( pLib, p );
     Abc_SclManPrintGateSizes( pLib, p, p->vGates );
+    Abc_SclSclGates2MioGates( pLib, p );
     Vec_IntFreeP( &p->vGates );
     p->pSCLib = NULL;
 }
@@ -236,6 +251,44 @@ void Abc_SclReadTimingConstr( Abc_Frame_t * pAbc, char * pFileName, int fVerbose
             printf( "Unrecognized token \"%s\".\n", pToken );
     }
     fclose( pFile );
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Int_t * Abc_SclExtractBarBufs( Abc_Ntk_t * pNtk )
+{
+    Vec_Int_t * vBufs;
+    Mio_Gate_t * pBuffer;
+    Abc_Obj_t * pObj; int i;
+    pBuffer = Mio_LibraryReadBuf( (Mio_Library_t *)pNtk->pManFunc );
+    if ( pBuffer == NULL )
+    {
+        printf( "Cannot find buffer in the current library. Quitting.\n" );
+        return NULL;
+    }
+    vBufs = Vec_IntAlloc( 100 );
+    Abc_NtkForEachBarBuf( pNtk, pObj, i )
+    {
+        assert( pObj->pData == NULL );
+        pObj->pData = pBuffer;
+        Vec_IntPush( vBufs, i );
+    }
+    return vBufs;
+}
+void Abc_SclInsertBarBufs( Abc_Ntk_t * pNtk, Vec_Int_t * vBufs )
+{
+    Abc_Obj_t * pObj; int i;
+    Abc_NtkForEachObjVec( vBufs, pNtk, pObj, i )
+        pObj->pData = NULL;
 }
 
 ////////////////////////////////////////////////////////////////////////

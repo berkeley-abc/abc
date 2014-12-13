@@ -106,7 +106,8 @@ struct SC_Man_
 ////////////////////////////////////////////////////////////////////////
 
 static inline SC_Lib  * Abc_SclObjLib( Abc_Obj_t * p )                              { return (SC_Lib *)p->pNtk->pSCLib;    }
-static inline SC_Cell * Abc_SclObjCell( Abc_Obj_t * p )                             { return SC_LibCell( Abc_SclObjLib(p), Vec_IntEntry(p->pNtk->vGates, Abc_ObjId(p)) ); }
+static inline int       Abc_SclObjCellId( Abc_Obj_t * p )                           { return Vec_IntEntry( p->pNtk->vGates, Abc_ObjId(p) );                               }
+static inline SC_Cell * Abc_SclObjCell( Abc_Obj_t * p )                             { int c = Abc_SclObjCellId(p); return c == -1 ? NULL:SC_LibCell(Abc_SclObjLib(p), c); }
 static inline void      Abc_SclObjSetCell( Abc_Obj_t * p, SC_Cell * pCell )         { Vec_IntWriteEntry( p->pNtk->vGates, Abc_ObjId(p), pCell->Id );                      }
 
 static inline SC_Pair * Abc_SclObjLoad( SC_Man * p, Abc_Obj_t * pObj )              { return p->pLoads + Abc_ObjId(pObj);  }
@@ -579,6 +580,8 @@ extern void          Abc_SclSclGates2MioGates( SC_Lib * pLib, Abc_Ntk_t * p );
 extern void          Abc_SclPrintGateSizes( SC_Lib * pLib, Abc_Ntk_t * p );
 extern void          Abc_SclMinsizePerform( SC_Lib * pLib, Abc_Ntk_t * p, int fUseMax, int fVerbose );
 extern int           Abc_SclCountMinSize( SC_Lib * pLib, Abc_Ntk_t * p, int fUseMax );
+extern Vec_Int_t *   Abc_SclExtractBarBufs( Abc_Ntk_t * pNtk );
+extern void          Abc_SclInsertBarBufs( Abc_Ntk_t * pNtk, Vec_Int_t * vBufs );
 
 
 ABC_NAMESPACE_HEADER_END

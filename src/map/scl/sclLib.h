@@ -232,6 +232,7 @@ static inline float       SC_PairMin( SC_Pair * d )                 { return Abc
 static inline float       SC_PairAve( SC_Pair * d )                 { return 0.5 * d->rise + 0.5 * d->fall;  }
 static inline void        SC_PairDup( SC_Pair * d, SC_Pair * s )    { *d = *s;                               }
 static inline void        SC_PairMove( SC_Pair * d, SC_Pair * s )   { *d = *s; s->rise = s->fall = 0;        }
+static inline void        SC_PairAdd( SC_Pair * d, SC_Pair * s )    { d->rise += s->rise; d->fall += s->fall;}
 static inline int         SC_PairEqual( SC_Pair * d, SC_Pair * s )  { return d->rise == s->rise && d->fall == s->fall;                }
 static inline int         SC_PairEqualE( SC_Pair * d, SC_Pair * s, float E )  { return d->rise - s->rise < E && s->rise - d->rise < E &&  d->fall - s->fall < E && s->fall - d->fall < E;    }
 

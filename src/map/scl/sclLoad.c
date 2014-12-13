@@ -154,6 +154,15 @@ void Abc_SclComputeLoad( SC_Man * p )
                 printf( "Maximum input drive strength is exceeded at primary input %d.\n", i );
         }
     }
+/*
+    // transfer load from barbufs
+    Abc_NtkForEachBarBuf( p->pNtk, pObj, i )
+    {
+        SC_Pair * pLoad = Abc_SclObjLoad( p, pObj );
+        SC_Pair * pLoadF = Abc_SclObjLoad( p, Abc_ObjFanin(pObj, 0) );
+        SC_PairAdd( pLoadF, pLoad );
+    }
+*/
     // calculate average load
 //    if ( p->EstLoadMax )
     {

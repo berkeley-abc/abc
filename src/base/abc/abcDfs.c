@@ -87,10 +87,14 @@ Vec_Ptr_t * Abc_NtkDfs( Abc_Ntk_t * pNtk, int fCollectAll )
     Abc_NtkIncrementTravId( pNtk );
     // start the array of nodes
     vNodes = Vec_PtrAlloc( 100 );
-    Abc_NtkForEachCo( pNtk, pObj, i )
+    Abc_NtkForEachObj( pNtk, pObj, i )
     {
+        if ( !Abc_ObjIsCo(pObj) || !Abc_ObjIsBarBuf(pObj) )
+            continue;
         Abc_NodeSetTravIdCurrent( pObj );
         Abc_NtkDfs_rec( Abc_ObjFanin0Ntk(Abc_ObjFanin0(pObj)), vNodes );
+        if ( Abc_ObjIsBarBuf(pObj) )
+            Vec_PtrPush( vNodes, pObj );
     }
     // collect dangling nodes if asked to
     if ( fCollectAll )

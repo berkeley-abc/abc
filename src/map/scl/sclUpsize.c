@@ -844,7 +844,7 @@ void Abc_SclUpsizeRemoveDangling( SC_Man * p, Abc_Ntk_t * pNtk )
     SC_Cell * pCell;
     Abc_Obj_t * pObj;
     int i;
-    Abc_NtkForEachNode( pNtk, pObj, i )
+    Abc_NtkForEachNodeNotBarBuf( pNtk, pObj, i )
         if ( Abc_ObjFanoutNum(pObj) == 0 )
         {
             pCell = Abc_SclObjCell( pObj );
