@@ -86,7 +86,7 @@ int Abc_NodeStrashToGia( Gia_Man_t * pNew, Abc_Obj_t * pNode )
   SeeAlso     []
 
 ***********************************************************************/
-void Gia_ManFlattenLogicHierarchy2_rec( Gia_Man_t * pNew, Abc_Ntk_t * pNtk, int * pCounter, Vec_Int_t * vBufs )
+void Abc_NtkFlattenHierarchyGia2_rec( Gia_Man_t * pNew, Abc_Ntk_t * pNtk, int * pCounter, Vec_Int_t * vBufs )
 {
     Vec_Ptr_t * vDfs = (Vec_Ptr_t *)pNtk->pData;
     Abc_Obj_t * pObj, * pTerm; 
@@ -112,7 +112,7 @@ void Gia_ManFlattenLogicHierarchy2_rec( Gia_Man_t * pNew, Abc_Ntk_t * pNtk, int 
             if ( vBufs )
                 Abc_ObjForEachFanin( pObj, pTerm, k )
                     Abc_ObjFanout0(Abc_NtkPi(pModel, k))->iTemp = Gia_ManAppendBuf( pNew, Abc_ObjFanout0(Abc_NtkPi(pModel, k))->iTemp );
-            Gia_ManFlattenLogicHierarchy2_rec( pNew, pModel, pCounter, vBufs );
+            Abc_NtkFlattenHierarchyGia2_rec( pNew, pModel, pCounter, vBufs );
             if ( vBufs )
                 Abc_ObjForEachFanout( pObj, pTerm, k )
                     Abc_ObjFanin0(Abc_NtkPo(pModel, k))->iTemp = Gia_ManAppendBuf( pNew, Abc_ObjFanin0(Abc_NtkPo(pModel, k))->iTemp );
@@ -131,7 +131,7 @@ void Gia_ManFlattenLogicHierarchy2_rec( Gia_Man_t * pNew, Abc_Ntk_t * pNtk, int 
         }
     }
 }
-Gia_Man_t * Gia_ManFlattenLogicHierarchy2( Abc_Ntk_t * pNtk )
+Gia_Man_t * Abc_NtkFlattenHierarchyGia2( Abc_Ntk_t * pNtk )
 {
     int fUseBufs = 1;
     int fUseInter = 0;
@@ -165,7 +165,7 @@ Gia_Man_t * Gia_ManFlattenLogicHierarchy2( Abc_Ntk_t * pNtk )
 
     // call recursively
     Gia_ManHashAlloc( pNew );
-    Gia_ManFlattenLogicHierarchy2_rec( pNew, pNtk, &Counter, pNew->vBarBufs );
+    Abc_NtkFlattenHierarchyGia2_rec( pNew, pNtk, &Counter, pNew->vBarBufs );
     Gia_ManHashStop( pNew );
     printf( "Hierarchy reader flattened %d instances of logic boxes.\n", Counter );
 
@@ -230,7 +230,7 @@ int Gia_ManFlattenLogicPrepare( Abc_Ntk_t * pNtk )
     }
     return Abc_NtkPiNum(pNtk) + Abc_NtkPoNum(pNtk);
 }
-int Gia_ManFlattenLogicHierarchy_rec( Gia_Man_t * pNew, Vec_Ptr_t * vSupers, Abc_Obj_t * pObj, Vec_Ptr_t * vBuffers )
+int Abc_NtkFlattenHierarchyGia_rec( Gia_Man_t * pNew, Vec_Ptr_t * vSupers, Abc_Obj_t * pObj, Vec_Ptr_t * vBuffers )
 {
     Abc_Ntk_t * pModel;
     Abc_Obj_t * pBox, * pFanin;  
@@ -238,7 +238,7 @@ int Gia_ManFlattenLogicHierarchy_rec( Gia_Man_t * pNew, Vec_Ptr_t * vSupers, Abc
     if ( pObj->iTemp != -1 )
         return pObj->iTemp;
     if ( Abc_ObjIsNet(pObj) || Abc_ObjIsPo(pObj) || Abc_ObjIsBi(pObj) )
-        return (pObj->iTemp = Gia_ManFlattenLogicHierarchy_rec(pNew, vSupers, Abc_ObjFanin0(pObj), vBuffers));
+        return (pObj->iTemp = Abc_NtkFlattenHierarchyGia_rec(pNew, vSupers, Abc_ObjFanin0(pObj), vBuffers));
     if ( Abc_ObjIsPi(pObj) )
     {
         pBox   = (Abc_Obj_t *)Vec_PtrPop( vSupers );
@@ -247,7 +247,7 @@ int Gia_ManFlattenLogicHierarchy_rec( Gia_Man_t * pNew, Vec_Ptr_t * vSupers, Abc
         assert( Abc_ObjFaninNum(pBox) == Abc_NtkPiNum(pModel) );
         assert( pObj->iData >= 0 && pObj->iData < Abc_NtkPiNum(pModel) );
         pFanin = Abc_ObjFanin( pBox, pObj->iData );
-        iLit   = Gia_ManFlattenLogicHierarchy_rec( pNew, vSupers, pFanin, vBuffers );
+        iLit   = Abc_NtkFlattenHierarchyGia_rec( pNew, vSupers, pFanin, vBuffers );
         Vec_PtrPush( vSupers, pBox );
         //if ( vBuffers ) Vec_PtrPush( vBuffers, pFanin ); // save BI
         if ( vBuffers ) Vec_PtrPush( vBuffers, pObj );   // save PI
@@ -263,7 +263,7 @@ int Gia_ManFlattenLogicHierarchy_rec( Gia_Man_t * pNew, Vec_Ptr_t * vSupers, Abc
         assert( Abc_ObjFanoutNum(pBox) == Abc_NtkPoNum(pModel) );
         assert( pObj->iData >= 0 && pObj->iData < Abc_NtkPoNum(pModel) );
         pFanin = Abc_NtkPo( pModel, pObj->iData );
-        iLit   = Gia_ManFlattenLogicHierarchy_rec( pNew, vSupers, pFanin, vBuffers );
+        iLit   = Abc_NtkFlattenHierarchyGia_rec( pNew, vSupers, pFanin, vBuffers );
         Vec_PtrPop( vSupers );
         //if ( vBuffers ) Vec_PtrPush( vBuffers, pObj );   // save BO
         if ( vBuffers ) Vec_PtrPush( vBuffers, pFanin ); // save PO
@@ -271,10 +271,10 @@ int Gia_ManFlattenLogicHierarchy_rec( Gia_Man_t * pNew, Vec_Ptr_t * vSupers, Abc
     }
     assert( Abc_ObjIsNode(pObj) );
     Abc_ObjForEachFanin( pObj, pFanin, i )
-        Gia_ManFlattenLogicHierarchy_rec( pNew, vSupers, pFanin, vBuffers );
+        Abc_NtkFlattenHierarchyGia_rec( pNew, vSupers, pFanin, vBuffers );
     return (pObj->iTemp = Abc_NodeStrashToGia( pNew, pObj ));
 }
-Gia_Man_t * Gia_ManFlattenLogicHierarchy( Abc_Ntk_t * pNtk, Vec_Ptr_t ** pvBuffers )
+Gia_Man_t * Abc_NtkFlattenHierarchyGia( Abc_Ntk_t * pNtk, Vec_Ptr_t ** pvBuffers, int fVerbose )
 {
     int fUseBufs = 1;
     Gia_Man_t * pNew, * pTemp; 
@@ -307,11 +307,11 @@ Gia_Man_t * Gia_ManFlattenLogicHierarchy( Abc_Ntk_t * pNtk, Vec_Ptr_t ** pvBuffe
     vSupers = Vec_PtrAlloc( 100 );
     Gia_ManHashAlloc( pNew );
     Abc_NtkForEachPo( pNtk, pTerm, i )
-        Gia_ManFlattenLogicHierarchy_rec( pNew, vSupers, pTerm, vBuffers );
+        Abc_NtkFlattenHierarchyGia_rec( pNew, vSupers, pTerm, vBuffers );
     Gia_ManHashStop( pNew );
     Vec_PtrFree( vSupers );
     printf( "Hierarchy reader flattened %d instances of boxes and added %d barbufs (out of %d).\n", 
-        pNtk->pDesign ? Vec_PtrSize(pNtk->pDesign->vModules)-1 : 0, Vec_PtrSize(vBuffers), &Counter );
+        pNtk->pDesign ? Vec_PtrSize(pNtk->pDesign->vModules)-1 : 0, Vec_PtrSize(vBuffers), Counter );
 
     // create buffers and POs
     Abc_NtkForEachPo( pNtk, pTerm, i )
@@ -358,6 +358,8 @@ Abc_Obj_t * Gia_ManInsertOne_rec( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNew, Abc_Obj_t 
 void Gia_ManInsertOne( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNew )
 {
     Abc_Obj_t * pObj, * pBox;  int i, k;
+    assert( !Abc_NtkHasMapping(pNtk) );
+    assert( Abc_NtkHasMapping(pNew) );
     // check that PIs point to barbufs
     Abc_NtkForEachPi( pNtk, pObj, i )
         assert( !pObj->pCopy || Abc_ObjNtk(pObj->pCopy) == pNew );
@@ -380,11 +382,15 @@ void Gia_ManInsertOne( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNew )
     Abc_NtkForEachPo( pNtk, pObj, i )
         if ( Abc_ObjFaninNum(pObj) == 0 )
             Abc_ObjAddFanin( pObj, Gia_ManInsertOne_rec(pNtk, pNew, pObj->pCopy) );
+    // update the functionality manager
+    pNtk->pManFunc = pNew->pManFunc;
+    pNtk->ntkFunc  = pNew->ntkFunc;
+    assert( Abc_NtkHasMapping(pNtk) );
 }
-void Gia_ManInsertLogicHierarchy( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNew )
+void Abc_NtkInsertHierarchyGia( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNew, int fVerbose )
 {
     Vec_Ptr_t * vBuffers;
-    Gia_Man_t * pGia = Gia_ManFlattenLogicHierarchy( pNtk, &vBuffers );
+    Gia_Man_t * pGia = Abc_NtkFlattenHierarchyGia( pNtk, &vBuffers, 0 );
     Abc_Ntk_t * pModel;  
     Abc_Obj_t * pObj; 
     int i;
@@ -421,7 +427,6 @@ void Gia_ManInsertLogicHierarchy( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNew )
             if ( pModel != pNtk )
                 Gia_ManInsertOne( pModel, pNew );
 }
-
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

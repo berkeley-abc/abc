@@ -671,6 +671,9 @@ extern ABC_DLL Abc_Ntk_t *        Abc_NtkFlattenLogicHierarchy( Abc_Ntk_t * pNtk
 extern ABC_DLL Abc_Ntk_t *        Abc_NtkConvertBlackboxes( Abc_Ntk_t * pNtk );
 extern ABC_DLL Abc_Ntk_t *        Abc_NtkInsertNewLogic( Abc_Ntk_t * pNtkH, Abc_Ntk_t * pNtkL );
 extern ABC_DLL void               Abc_NtkPrintBoxInfo( Abc_Ntk_t * pNtk );
+/*=== abcHieGia.c ==========================================================*/
+extern ABC_DLL Gia_Man_t *        Abc_NtkFlattenHierarchyGia( Abc_Ntk_t * pNtk, Vec_Ptr_t ** pvBuffers, int fVerbose );
+extern ABC_DLL void               Abc_NtkInsertHierarchyGia( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNew, int fVerbose );
 /*=== abcLatch.c ==========================================================*/
 extern ABC_DLL int                Abc_NtkLatchIsSelfFeed( Abc_Obj_t * pLatch );
 extern ABC_DLL int                Abc_NtkCountSelfFeedLatches( Abc_Ntk_t * pNtk );

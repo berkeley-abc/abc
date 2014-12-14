@@ -231,11 +231,10 @@ int IoCommandRead( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     if ( fReadGia )
     {
-        extern Gia_Man_t * Gia_ManFlattenLogicHierarchy( Abc_Ntk_t * pNtk );
         Abc_Ntk_t * pNtk = Io_ReadNetlist( pFileName, Io_ReadFileType(pFileName), fCheck );
         if ( pNtk )
         {
-            Gia_Man_t * pGia = Gia_ManFlattenLogicHierarchy( pNtk );
+            Gia_Man_t * pGia = Abc_NtkFlattenHierarchyGia( pNtk, NULL, 0 );
             Abc_NtkDelete( pNtk );
             if ( pGia == NULL )
             {

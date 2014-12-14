@@ -333,6 +333,8 @@ static int Abc_CommandAbc9Read               ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandAbc9ReadBlif           ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9ReadCBlif          ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9ReadStg            ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9ReadVer            ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9WriteVer           ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Write              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Ps                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9PFan               ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -937,6 +939,8 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "ABC9",         "&read_blif",    Abc_CommandAbc9ReadBlif,     0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&read_cblif",   Abc_CommandAbc9ReadCBlif,    0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&read_stg",     Abc_CommandAbc9ReadStg,      0 );
+    Cmd_CommandAdd( pAbc, "ABC9",         "&read_ver",     Abc_CommandAbc9ReadVer,      0 );
+    Cmd_CommandAdd( pAbc, "ABC9",         "&write_ver",    Abc_CommandAbc9WriteVer,     0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&w",            Abc_CommandAbc9Write,        0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&ps",           Abc_CommandAbc9Ps,           0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&pfan",         Abc_CommandAbc9PFan,         0 );
@@ -25693,6 +25697,82 @@ usage:
   SeeAlso     []
 
 ***********************************************************************/
+int Abc_CommandAbc9ReadVer( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    Abc_Ntk_t * pNtk;
+    Gia_Man_t * pAig;
+    FILE * pFile;
+    char ** pArgvNew;
+    char * pFileName, * pTemp;
+    int nArgcNew;
+    int c, fVerbose = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        default:
+            goto usage;
+        }
+    }
+    pArgvNew = argv + globalUtilOptind;
+    nArgcNew = argc - globalUtilOptind;
+    if ( nArgcNew != 1 )
+    {
+        Abc_Print( -1, "There is no file name.\n" );
+        return 1;
+    }
+
+    // get the input file name
+    pFileName = pArgvNew[0];
+    // fix the wrong symbol
+    for ( pTemp = pFileName; *pTemp; pTemp++ )
+        if ( *pTemp == '>' )
+            *pTemp = '\\';
+    if ( (pFile = fopen( pFileName, "r" )) == NULL )
+    {
+        Abc_Print( -1, "Cannot open input file \"%s\". ", pFileName );
+        if ( (pFileName = Extra_FileGetSimilarName( pFileName, ".v", ".blif", NULL, NULL, NULL )) )
+            Abc_Print( 1, "Did you mean \"%s\"?", pFileName );
+        Abc_Print( 1, "\n" );
+        return 1;
+    }
+    fclose( pFile );
+    // read hierarchical Verilog
+    pNtk = Io_ReadNetlist( pFileName, Io_ReadFileType(pFileName), 0 );
+    if ( pNtk == NULL )
+    {
+        Abc_Print( -1, "Reading hierarchical Verilog has failed.\n" );
+        return 1;
+    }
+    pAig = Abc_NtkFlattenHierarchyGia( pNtk, NULL, fVerbose );
+    Abc_NtkDelete( pNtk );
+    Abc_FrameUpdateGia( pAbc, pAig );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: &read_ver [-vh] <file>\n" );
+    Abc_Print( -2, "\t         a specialized reader for hierarchical Verilog files\n" );
+    Abc_Print( -2, "\t-v     : toggles additional verbose output [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
+    Abc_Print( -2, "\t<file> : the file name\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 int Abc_CommandAbc9Get( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     extern Aig_Man_t * Abc_NtkToDarChoices( Abc_Ntk_t * pNtk );
@@ -26087,6 +26167,87 @@ usage:
     Abc_Print( -2, "\t-v     : toggle verbose output [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     Abc_Print( -2, "\t<file> : the file name\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc9WriteVer( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    char * pFileSpec = NULL;
+    Abc_Ntk_t * pNtkSpec = NULL;
+    char * pFileName;
+    char ** pArgvNew;
+    int c, nArgcNew;
+    int fVerbose = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Svh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'S':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-S\" should be followed by a file name.\n" );
+                goto usage;
+            }
+            pFileSpec = argv[globalUtilOptind];
+            globalUtilOptind++;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    pArgvNew = argv + globalUtilOptind;
+    nArgcNew = argc - globalUtilOptind;
+    if ( nArgcNew != 1 )
+    {
+        Abc_Print( -1, "Expecting output file name on the command line.\n" );
+        return 1;
+    }
+    pFileName = argv[globalUtilOptind];
+    if ( pAbc->pNtkCur == NULL )
+    {
+        Abc_Print( -1, "There is no mapped file to write.\n" );
+        return 1;
+    }
+    if ( pFileSpec == NULL )
+    {
+        Abc_Print( -1, "The specification file is not given.\n" );
+        return 1;
+    }
+    pNtkSpec = Io_ReadNetlist( pFileSpec, Io_ReadFileType(pFileSpec), 0 );
+    if ( pNtkSpec == NULL )
+    {
+        Abc_Print( -1, "Reading hierarchical Verilog for the specification has failed.\n" );
+        return 1;
+    }
+    Abc_NtkInsertHierarchyGia( pNtkSpec, pAbc->pNtkCur, fVerbose );
+    Io_WriteVerilog( pNtkSpec, pFileName );
+    Abc_NtkDelete( pNtkSpec );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: &write_ver [-S <file>] [-vh] <file>\n" );
+    Abc_Print( -2, "\t          writes hierarchical Verilog after mapping\n" );
+    Abc_Print( -2, "\t-S file : file name for the original hierarchical design (required)\n" );
+    Abc_Print( -2, "\t-v      : toggle verbose output [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h      : print the command usage\n");
+    Abc_Print( -2, "\t<file>  : the file name\n");
     return 1;
 }
 
