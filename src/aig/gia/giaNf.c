@@ -550,7 +550,7 @@ void Nf_StoPrintOne( Nf_Man_t * p, int Count, int t, int i, Mio_Cell_t * pC, int
                 printf( "%c", 'a' + iFanin - fComplF * ('a' - 'A') );
             }
             printf( "}" );
-            pInfo += nSizeAll;
+            pInfo += nSizeAll; nSizeNeg = 0;
         }
     }
     else assert( 0 );
@@ -1115,7 +1115,7 @@ void Nf_ObjMergeOrder( Nf_Man_t * p, int iObj )
 {
     Nf_Cut_t pCuts0[NF_CUT_MAX], pCuts1[NF_CUT_MAX], pCuts[NF_CUT_MAX], * pCutsR[NF_CUT_MAX];
     Gia_Obj_t * pObj = Gia_ManObj(p->pGia, iObj);
-    Nf_Obj_t * pBest = Nf_ManObj(p, iObj);
+    //Nf_Obj_t * pBest = Nf_ManObj(p, iObj);
     float dFlowRefs  = Nf_ObjFlowRefs(p, iObj, 0) + Nf_ObjFlowRefs(p, iObj, 1);
     int nLutSize = p->pPars->nLutSize;
     int nCutNum  = p->pPars->nCutNum;
@@ -1630,7 +1630,7 @@ void Nf_ManCutMatchOne( Nf_Man_t * p, int iObj, int * pCut, int * pCutSet )
 //                    Conf |= Abc_LitNotCond((int)pInfo[k], 0) << (iFanin << 2);
                     Conf |= Abc_Var2Lit(iFanin, Abc_LitIsCompl((int)pInfo[k])) << (Abc_Lit2Var((int)pInfo[k]) << 2);
                 }
-                pInfo += nSizeAll;
+                pInfo += nSizeAll; nSizeNeg = 0;
             }
             assert( Conf > 0 );
             if ( pD->D > Delay )
@@ -1677,7 +1677,7 @@ static inline void Nf_ObjPrepareBuf( Nf_Man_t * p, Gia_Obj_t * pObj )
     int iObj = Gia_ObjId( p->pGia, pObj );
     int iFanin = Gia_ObjFaninId0( pObj, iObj );
     Nf_Mat_t * pDf = Nf_ObjMatchD( p, iFanin, Gia_ObjFaninC0(pObj) );
-    Nf_Mat_t * pAf = Nf_ObjMatchA( p, iFanin, Gia_ObjFaninC0(pObj) );
+    //Nf_Mat_t * pAf = Nf_ObjMatchA( p, iFanin, Gia_ObjFaninC0(pObj) );
     // set the direct phase
     Nf_Mat_t * pDp = Nf_ObjMatchD( p, iObj, 0 );
     Nf_Mat_t * pAp = Nf_ObjMatchA( p, iObj, 0 );
@@ -1926,7 +1926,7 @@ int Nf_ManSetMapRefs( Nf_Man_t * p )
     Nf_Mat_t * pD, * pA, * pM;
     Nf_Mat_t * pDs[2], * pAs[2], * pMs[2];
     Gia_Obj_t * pObj;
-    float Required, Requireds[2];
+    float Required = 0, Requireds[2];
     // check references
     assert( !p->fUseEla );
     memset( pMapRefs, 0, sizeof(int) * nLits );
