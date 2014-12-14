@@ -383,7 +383,7 @@ Gia_Man_t * Gia_ManAigSynch2Choices( Gia_Man_t * pGia1, Gia_Man_t * pGia2, Gia_M
     Aig_ManStop( pMan );
     return pGia;
 }
-Gia_Man_t * Gia_ManAigSynch2( Gia_Man_t * pInit, void * pPars0, int nLutSize )
+Gia_Man_t * Gia_ManAigSynch2( Gia_Man_t * pInit, void * pPars0, int nLutSize, int nRelaxRatio )
 {
     extern Gia_Man_t * Gia_ManLutBalance( Gia_Man_t * p, int nLutSize, int fUseMuxes, int fRecursive, int fOptArea, int fVerbose );
     Dch_Pars_t * pParsDch = (Dch_Pars_t *)pPars0;
@@ -393,7 +393,7 @@ Gia_Man_t * Gia_ManAigSynch2( Gia_Man_t * pInit, void * pPars0, int nLutSize )
     Lf_ManSetDefaultPars( pPars );
     pPars->fCutMin     = 1;
     pPars->fCoarsen    = 1;
-    pPars->nRelaxRatio = 20;
+    pPars->nRelaxRatio = nRelaxRatio;
     pPars->nAreaTuner  = 5;
     pPars->nCutNum     = 12;
     pPars->fVerbose    = fVerbose;

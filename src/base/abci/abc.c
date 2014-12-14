@@ -28850,14 +28850,15 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9Synch2( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern Gia_Man_t * Gia_ManAigSynch2( Gia_Man_t * p, void * pPars, int nLutSize );
+    extern Gia_Man_t * Gia_ManAigSynch2( Gia_Man_t * p, void * pPars, int nLutSize, int nRelaxRatio );
     Gia_Man_t * pTemp;
     Dch_Pars_t Pars, * pPars = &Pars;
     int c, nLutSize = 6;
+    int nRelaxRatio = 20;
     // set defaults
     Dch_ManSetDefaultParams( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "WCSKfvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "WCSKRfvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -28905,6 +28906,17 @@ int Abc_CommandAbc9Synch2( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( nLutSize < 0 )
                 goto usage;
             break;
+        case 'R':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( 1, "Command line switch \"-R\" should be followed by a floating point number.\n" );
+                return 0;
+            }
+            nRelaxRatio = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nRelaxRatio < 0 ) 
+                goto usage;
+            break;
         case 'f':
             pPars->fLightSynth ^= 1;
             break;
@@ -28922,17 +28934,18 @@ int Abc_CommandAbc9Synch2( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Abc_CommandAbc9Dch(): There is no AIG.\n" );
         return 1;
     }
-    pTemp = Gia_ManAigSynch2( pAbc->pGia, pPars, nLutSize );
+    pTemp = Gia_ManAigSynch2( pAbc->pGia, pPars, nLutSize, nRelaxRatio );
     Abc_FrameUpdateGia( pAbc, pTemp );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &synch2 [-WCSK num] [-fvh]\n" );
+    Abc_Print( -2, "usage: &synch2 [-WCSKR num] [-fvh]\n" );
     Abc_Print( -2, "\t         computes structural choices using a new approach\n" );
     Abc_Print( -2, "\t-W num : the max number of simulation words [default = %d]\n", pPars->nWords );
     Abc_Print( -2, "\t-C num : the max number of conflicts at a node [default = %d]\n", pPars->nBTLimit );
     Abc_Print( -2, "\t-S num : the max number of SAT variables [default = %d]\n", pPars->nSatVarMax );
     Abc_Print( -2, "\t-K num : the target LUT size for downstream mapping [default = %d]\n", nLutSize );
+    Abc_Print( -2, "\t-R num   : the delay relaxation ratio (num >= 0) [default = %d]\n",   nRelaxRatio );
     Abc_Print( -2, "\t-f     : toggle using lighter logic synthesis [default = %s]\n", pPars->fLightSynth? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle verbose printout [default = %s]\n", pPars->fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
