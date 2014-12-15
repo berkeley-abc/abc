@@ -2003,7 +2003,7 @@ int Nf_ManSetMapRefs( Nf_Man_t * p )
             for ( c = 0; c < 2; c++ )
             {
                 Requireds[c] = Nf_ObjRequired( p, i, c );
-                assert( Requireds[c] < NF_INFINITY );
+                //assert( Requireds[c] < NF_INFINITY );
                 pDs[c] = Nf_ObjMatchD( p, i, c );
                 pAs[c] = Nf_ObjMatchA( p, i, c );
                 pMs[c] = (pAs[c]->D < Requireds[c] + Epsilon) ? pAs[c] : pDs[c];
@@ -2040,7 +2040,7 @@ int Nf_ManSetMapRefs( Nf_Man_t * p )
 
                 // select oppositve phase
                 Required = Nf_ObjRequired( p, i, !c );
-                assert( Required < NF_INFINITY );
+                //assert( Required < NF_INFINITY );
                 pD = Nf_ObjMatchD( p, i, !c );
                 pA = Nf_ObjMatchA( p, i, !c );
                 pM = (pA->D < Required + Epsilon) ? pA : pD;
@@ -2062,7 +2062,7 @@ int Nf_ManSetMapRefs( Nf_Man_t * p )
             assert( nRefs[c] && !nRefs[!c] );
             // consider this phase
             Required = Nf_ObjRequired( p, i, c );
-            assert( Required < NF_INFINITY );
+            //assert( Required < NF_INFINITY );
             pD = Nf_ObjMatchD( p, i, c );
             pA = Nf_ObjMatchA( p, i, c );
             pM = (pA->D < Required + Epsilon) ? pA : pD;
@@ -2077,7 +2077,7 @@ int Nf_ManSetMapRefs( Nf_Man_t * p )
                 Nf_ObjUpdateRequired( p, i, !c, Required - p->InvDelay );
                 // select oppositve phase
                 Required = Nf_ObjRequired( p, i, !c );
-                assert( Required < NF_INFINITY );
+                //assert( Required < NF_INFINITY );
                 pD = Nf_ObjMatchD( p, i, !c );
                 pA = Nf_ObjMatchA( p, i, !c );
                 pM = (pA->D < Required + Epsilon) ? pA : pD;
