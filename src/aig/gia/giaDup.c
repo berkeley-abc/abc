@@ -992,7 +992,7 @@ Gia_Man_t * Gia_ManDupMarked( Gia_Man_t * p )
     {
         if ( pObj->fMark0 )
         {
-            assert( Gia_ObjIsAnd(pObj) && !Gia_ObjIsBuf(pObj) );
+            assert( !Gia_ObjIsBuf(pObj) );
             pObj->fMark0 = 0;
             continue;
         }
