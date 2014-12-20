@@ -199,6 +199,147 @@ Gia_Man_t * Abc_NtkFlattenHierarchyGia2( Abc_Ntk_t * pNtk )
     return pNew;
 }
 
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_ManPrintBarBufDrivers( Gia_Man_t * p )
+{
+    Vec_Int_t * vMap, * vFan, * vCrits;
+    Gia_Obj_t * pObj;
+    int i, iFanin, CountCrit[2] = {0}, CountFans[2] = {0};
+    // map barbuf drivers into barbuf literals of the first barbuf driven by them
+    vMap = Vec_IntStart( Gia_ManObjNum(p) );
+    vFan = Vec_IntStart( Gia_ManObjNum(p) );
+    vCrits = Vec_IntAlloc( 100 );
+    Gia_ManForEachObj( p, pObj, i )
+    {
+        // count fanouts
+        if ( Gia_ObjIsBuf(pObj) || Gia_ObjIsCo(pObj) )
+            Vec_IntAddToEntry( vFan, Gia_ObjFaninId0(pObj, i), 1 );
+        else if ( Gia_ObjIsAnd(pObj) )
+        {
+            Vec_IntAddToEntry( vFan, Gia_ObjFaninId0(pObj, i), 1 );
+            Vec_IntAddToEntry( vFan, Gia_ObjFaninId1(pObj, i), 1 );
+        }
+        // count critical barbufs
+        if ( Gia_ObjIsBuf(pObj) )
+        {
+            iFanin = Gia_ObjFaninId0( pObj, i );
+            if ( iFanin == 0 || Vec_IntEntry(vMap, iFanin) != 0 )
+            {
+                CountCrit[(int)(iFanin != 0)]++;
+                Vec_IntPush( vCrits, i );
+                continue;
+            }
+            Vec_IntWriteEntry( vMap, iFanin, Abc_Var2Lit(i, Gia_ObjFaninC0(pObj)) );
+        }
+    }
+    // check fanouts of the critical barbufs
+    Gia_ManForEachObjVec( vCrits, p, pObj, i )
+    {
+        assert( Gia_ObjIsBuf(pObj) );
+        if ( Vec_IntEntry(vFan, i) == 0 )
+            continue;
+        iFanin = Gia_ObjFaninId0p( p, pObj );
+        CountFans[(int)(iFanin != 0)]++;
+    }
+    printf( "Detected %d const (out of %d) and %d shared (out of %d) barbufs with fanout.\n", 
+        CountFans[0], CountCrit[0], CountFans[1], CountCrit[1] );
+    Vec_IntFree( vMap );
+    Vec_IntFree( vFan );
+    Vec_IntFree( vCrits );
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline void Gia_ManPatchBufDriver( Gia_Man_t * p, int iBuf, int iLit0 )  
+{
+    Gia_Obj_t * pObjBuf  = Gia_ManObj( p, iBuf );
+    assert( Gia_ObjIsBuf(pObjBuf) );
+    assert( Gia_ObjId(p, pObjBuf) > Abc_Lit2Var(iLit0) );
+    pObjBuf->iDiff1  = pObjBuf->iDiff0  = Gia_ObjId(p, pObjBuf) - Abc_Lit2Var(iLit0);
+    pObjBuf->fCompl1 = pObjBuf->fCompl0 = Abc_LitIsCompl(iLit0);
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Gia_Man_t * Gia_ManSweepHierarchy( Gia_Man_t * p )
+{
+    Vec_Int_t * vMap = Vec_IntStart( Gia_ManObjNum(p) );
+    Gia_Man_t * pNew, * pTemp;
+    Gia_Obj_t * pObj, * pObjNew, * pObjNewR;
+    int i, iFanin, CountReals[2] = {0};
+
+    // duplicate AIG while propagating constants and equivalences 
+    pNew = Gia_ManStart( Gia_ManObjNum(p) );
+    pNew->pName = Abc_UtilStrsav( p->pName );
+    pNew->pSpec = Abc_UtilStrsav( p->pSpec );
+    Gia_ManConst0(p)->Value = 0;
+    Gia_ManHashAlloc( pNew );
+    Gia_ManForEachObj1( p, pObj, i )
+    {
+        if ( Gia_ObjIsBuf(pObj) )
+        {
+            pObj->Value = Gia_ManAppendBuf( pNew, Gia_ObjFanin0Copy(pObj) );
+            pObjNew = Gia_ManObj( pNew, Abc_Lit2Var(pObj->Value) );
+            iFanin = Gia_ObjFaninId0p( pNew, pObjNew );
+            if ( iFanin == 0 )
+            {
+                pObj->Value = Gia_ObjFaninC0(pObjNew);
+                CountReals[0]++;
+                Gia_ManPatchBufDriver( pNew, Gia_ObjId(pNew, pObjNew), 0 );
+            }
+            else if ( Vec_IntEntry(vMap, iFanin) )
+            {
+                pObjNewR = Gia_ManObj( pNew, Vec_IntEntry(vMap, iFanin) );
+                pObj->Value = Abc_Var2Lit( Vec_IntEntry(vMap, iFanin), Gia_ObjFaninC0(pObjNewR) ^ Gia_ObjFaninC0(pObjNew) );
+                CountReals[1]++;
+                Gia_ManPatchBufDriver( pNew, Gia_ObjId(pNew, pObjNew), 0 );
+            }
+            else
+                Vec_IntWriteEntry( vMap, iFanin, Gia_ObjId(pNew, pObjNew) );
+        }
+        else if ( Gia_ObjIsAnd(pObj) )
+            pObj->Value = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+        else if ( Gia_ObjIsCi(pObj) )
+            pObj->Value = Gia_ManAppendCi( pNew );
+        else if ( Gia_ObjIsCo(pObj) )
+            pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
+    }
+    Gia_ManHashStop( pNew );
+    Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
+    pNew = Gia_ManCleanup( pTemp = pNew );
+    Gia_ManStop( pTemp );
+//    printf( "Updated %d const and %d shared.\n", CountReals[0], CountReals[1] );
+    Vec_IntFree( vMap );
+    return pNew;
+}
 
 /**Function*************************************************************
 
@@ -325,6 +466,10 @@ Gia_Man_t * Abc_NtkFlattenHierarchyGia( Abc_Ntk_t * pNtk, Vec_Ptr_t ** pvBuffers
     // cleanup
     pNew = Gia_ManCleanup( pTemp = pNew );
     Gia_ManStop( pTemp );
+//    Gia_ManPrintStats( pNew, NULL );
+    pNew = Gia_ManSweepHierarchy( pTemp = pNew );
+    Gia_ManStop( pTemp );
+//    Gia_ManPrintStats( pNew, NULL );
     return pNew;
 }
 
@@ -393,7 +538,7 @@ void Abc_NtkInsertHierarchyGia( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNew, int fVerbose
     Gia_Man_t * pGia = Abc_NtkFlattenHierarchyGia( pNtk, &vBuffers, 0 );
     Abc_Ntk_t * pModel;  
     Abc_Obj_t * pObj; 
-    int i;
+    int i, k = 0;
 
     assert( Gia_ManPiNum(pGia) == Abc_NtkPiNum(pNtk) );
     assert( Gia_ManPiNum(pGia) == Abc_NtkPiNum(pNew) );
@@ -416,7 +561,7 @@ void Abc_NtkInsertHierarchyGia( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNew, int fVerbose
     Abc_NtkForEachPo( pNew, pObj, i )
         Abc_NtkPo(pNtk, i)->pCopy = pObj;
     Abc_NtkForEachBarBuf( pNew, pObj, i )
-        ((Abc_Obj_t *)Vec_PtrEntry(vBuffers, i))->pCopy = pObj;
+        ((Abc_Obj_t *)Vec_PtrEntry(vBuffers, k++))->pCopy = pObj;
     Vec_PtrFree( vBuffers );
 
     // connect each model

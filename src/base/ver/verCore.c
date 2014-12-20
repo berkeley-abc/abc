@@ -2869,7 +2869,7 @@ void Ver_ParsePrintLog( Ver_Man_t * pMan )
 ***********************************************************************/
 int Ver_ParseAttachBoxes( Ver_Man_t * pMan )
 {
-    int fPrintLog = 1;
+    int fPrintLog = 0;
     Abc_Ntk_t * pNtk = NULL;
     Ver_Bundle_t * pBundle;
     Vec_Ptr_t * vUndefs;
