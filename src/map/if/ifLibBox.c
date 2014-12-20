@@ -250,7 +250,7 @@ If_LibBox_t * If_LibBoxRead2( char * pFileName )
 char * If_LibBoxGetToken( FILE * pFile )
 {
     static char pBuffer[1000];
-    char c, * pTemp = pBuffer;
+    int c; char * pTemp = pBuffer;
     while ( (c = fgetc(pFile)) != EOF )
     {
         if ( c == '#' )
