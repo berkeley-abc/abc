@@ -729,7 +729,7 @@ int Abc_NtkVerifyCex( Abc_Ntk_t * pNtk, Abc_Cex_t * p )
     int RetValue, i, k, iBit = 0;
     assert( Abc_NtkIsStrash(pNtk) );
     assert( p->nPis  == Abc_NtkPiNum(pNtk) );
-    assert( p->nRegs == Abc_NtkLatchNum(pNtk) );
+//    assert( p->nRegs == Abc_NtkLatchNum(pNtk) );
     Abc_NtkCleanMarkC( pNtk );
     Abc_AigConst1(pNtk)->fMarkC = 1;
     // initialize flops
