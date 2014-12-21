@@ -1532,6 +1532,138 @@ int Gia_ManFromIfLogicFindCell( If_Man_t * pIfMan, Gia_Man_t * pNew, Gia_Man_t *
   SeeAlso     []
 
 ***********************************************************************/
+int Gia_ManFromIfLogicCofVars( Gia_Man_t * pNew, If_Man_t * pIfMan, If_Cut_t * pCutBest, Vec_Int_t * vLeaves, Vec_Int_t * vLeaves2, Vec_Int_t * vCover, Vec_Int_t * vMapping, Vec_Int_t * vMapping2 )
+{
+    word pTruthCof[128], * pTruth = If_CutTruthW(pIfMan, pCutBest);
+    int pVarsNew[16], nVarsNew, iLitCofs[3]; 
+    int nLeaves = pCutBest->nLeaves;
+    int nWords  = Abc_Truth6WordNum(nLeaves);
+    int truthId = Abc_Lit2Var(pCutBest->iCutFunc);
+    int c, iVar = Vec_StrEntry(pIfMan->vTtVars[nLeaves], truthId), iTemp, iTopLit;
+    int k, RetValue = -1;
+    assert( iVar >= 0 && iVar < nLeaves && pIfMan->pPars->nLutSize <= 13 );
+    for ( c = 0; c < 2; c++ )
+    {
+        for ( k = 0; k < nLeaves; k++ )
+            pVarsNew[k] = k;
+        if ( c )
+            Abc_TtCofactor1p( pTruthCof, pTruth, nWords, iVar );
+        else
+            Abc_TtCofactor0p( pTruthCof, pTruth, nWords, iVar );
+        nVarsNew = Abc_TtMinBase( pTruthCof, pVarsNew, pCutBest->nLeaves, Abc_MaxInt(6, pCutBest->nLeaves) );
+        // derive LUT
+        Vec_IntClear( vLeaves2 );
+        for ( k = 0; k < nVarsNew; k++ )
+            Vec_IntPush( vLeaves2, Vec_IntEntry(vLeaves, pVarsNew[k]) );
+        iLitCofs[c] = Kit_TruthToGia( pNew, (unsigned *)pTruthCof, nVarsNew, vCover, vLeaves2, 0 );
+        if ( nVarsNew < 2 )
+            continue;
+        // create mapping
+        assert( Gia_ObjIsAnd(Gia_ManObj(pNew, Abc_Lit2Var(iLitCofs[c]))) );
+        Vec_IntSetEntry( vMapping, Abc_Lit2Var(iLitCofs[c]), Vec_IntSize(vMapping2) );
+        Vec_IntPush( vMapping2, Vec_IntSize(vLeaves2) );
+        Vec_IntForEachEntry( vLeaves2, iTemp, k )
+            Vec_IntPush( vMapping2, Abc_Lit2Var(iTemp) );
+        Vec_IntPush( vMapping2, Abc_Lit2Var(iLitCofs[c]) );
+    }
+    iLitCofs[2]  = Vec_IntEntry(vLeaves, iVar);
+    // derive MUX
+    if ( iLitCofs[0] > 1 && iLitCofs[1] > 1 )
+    {
+        pTruthCof[0] = ABC_CONST(0xCACACACACACACACA);
+        Vec_IntClear( vLeaves2 );
+        Vec_IntPush( vLeaves2, iLitCofs[0] );
+        Vec_IntPush( vLeaves2, iLitCofs[1] );
+        Vec_IntPush( vLeaves2, iLitCofs[2] );
+        RetValue = Kit_TruthToGia( pNew, (unsigned *)pTruthCof, Vec_IntSize(vLeaves2), vCover, vLeaves2, 0 );
+        iTopLit = RetValue;
+    }
+    else
+    {
+        assert( iLitCofs[0] > 1 || iLitCofs[1] > 1 );
+        // collect leaves
+        Vec_IntClear( vLeaves2 );
+        for ( k = 0; k < 3; k++ )
+            if ( iLitCofs[k] > 1 )
+                Vec_IntPush( vLeaves2, iLitCofs[k] );
+        assert( Vec_IntSize(vLeaves2) == 2 );
+        // consider three possibilities
+        if ( iLitCofs[0] == 0 )
+            RetValue = Gia_ManAppendAnd( pNew, iLitCofs[2], iLitCofs[1] );
+        else if ( iLitCofs[0] == 1 )
+            RetValue = Gia_ManAppendOr( pNew, Abc_LitNot(iLitCofs[2]), iLitCofs[1] );
+        else if ( iLitCofs[1] == 0 )
+            RetValue = Gia_ManAppendAnd( pNew, Abc_LitNot(iLitCofs[2]), iLitCofs[0] );
+        else if ( iLitCofs[1] == 1 )
+            RetValue = Gia_ManAppendOr( pNew, iLitCofs[2], iLitCofs[0] );
+        else assert( 0 );
+        iTopLit = iLitCofs[2];
+    }
+    // create mapping
+    Vec_IntSetEntry( vMapping, Abc_Lit2Var(RetValue), Vec_IntSize(vMapping2) );
+    Vec_IntPush( vMapping2, Vec_IntSize(vLeaves2) );
+    Vec_IntForEachEntry( vLeaves2, iTemp, k )
+        Vec_IntPush( vMapping2, Abc_Lit2Var(iTemp) );
+    Vec_IntPush( vMapping2, -Abc_Lit2Var(iTopLit) );
+    RetValue = Abc_LitNotCond( RetValue, pCutBest->fCompl );
+    return RetValue;
+}
+int Gia_ManFromIfLogicAndVars( Gia_Man_t * pNew, If_Man_t * pIfMan, If_Cut_t * pCutBest, Vec_Int_t * vLeaves, Vec_Int_t * vLeaves2, Vec_Int_t * vCover, Vec_Int_t * vMapping, Vec_Int_t * vMapping2 )
+{
+    word pFunc[64], uTruth[2];
+    int nLeaves = pCutBest->nLeaves;
+    int truthId = Abc_Lit2Var(pCutBest->iCutFunc);
+    int c, k, Mask = Vec_IntEntry(pIfMan->vTtDecs[nLeaves], truthId);
+    int MaskOne[2] = { Mask & 0xFFFF, (Mask >> 16) & 0x3FFF };
+    int iLitCofs[2], iTemp, fOrDec = (Mask >> 30) & 1, RetValue = -1; 
+    assert( Mask > 0 && nLeaves <= 2 * (pIfMan->pPars->nLutSize/2) && pIfMan->pPars->nLutSize <= 13 );
+    Abc_TtCopy( pFunc, If_CutTruthWR(pIfMan, pCutBest), pIfMan->nTruth6Words[nLeaves], fOrDec );
+    Abc_TtDeriveBiDec( pFunc, nLeaves, MaskOne[0], MaskOne[1], pIfMan->pPars->nLutSize/2, &uTruth[0], &uTruth[1] );
+    uTruth[0] = fOrDec ? ~uTruth[0] : uTruth[0];
+    uTruth[1] = fOrDec ? ~uTruth[1] : uTruth[1];
+    for ( c = 0; c < 2; c++ )
+    {
+        Vec_IntClear( vLeaves2 );
+        for ( k = 0; k < nLeaves; k++ )
+            if ( (MaskOne[c] >> k) & 1 )
+                Vec_IntPush( vLeaves2, Vec_IntEntry(vLeaves, k) );
+        assert( Vec_IntSize(vLeaves2) >= 1 );
+        iLitCofs[c] = Kit_TruthToGia( pNew, (unsigned *)&uTruth[c], Vec_IntSize(vLeaves2), vCover, vLeaves2, 0 );
+        if ( Vec_IntSize(vLeaves2) == 1 )
+            continue;
+        // create mapping
+        assert( Gia_ObjIsAnd(Gia_ManObj(pNew, Abc_Lit2Var(iLitCofs[c]))) );
+        Vec_IntSetEntry( vMapping, Abc_Lit2Var(iLitCofs[c]), Vec_IntSize(vMapping2) );
+        Vec_IntPush( vMapping2, Vec_IntSize(vLeaves2) );
+        Vec_IntForEachEntry( vLeaves2, iTemp, k )
+            Vec_IntPush( vMapping2, Abc_Lit2Var(iTemp) );
+        Vec_IntPush( vMapping2, Abc_Lit2Var(iLitCofs[c]) );
+    }
+    iLitCofs[0] = Abc_LitNotCond( iLitCofs[0], fOrDec );
+    iLitCofs[1] = Abc_LitNotCond( iLitCofs[1], fOrDec );
+    RetValue = Gia_ManAppendAnd( pNew, iLitCofs[0], iLitCofs[1] );
+    RetValue = Abc_LitNotCond( RetValue, fOrDec ^ Abc_LitIsCompl(pCutBest->iCutFunc) );
+    // create mapping
+    Vec_IntSetEntry( vMapping, Abc_Lit2Var(RetValue), Vec_IntSize(vMapping2) );
+    Vec_IntPush( vMapping2, 2 );
+    Vec_IntPush( vMapping2, Abc_Lit2Var(iLitCofs[0]) );
+    Vec_IntPush( vMapping2, Abc_Lit2Var(iLitCofs[1]) );
+    Vec_IntPush( vMapping2, -Abc_Lit2Var(RetValue) );
+    RetValue = Abc_LitNotCond( RetValue, pCutBest->fCompl );
+    return RetValue;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Converts IF into GIA manager.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 Gia_Man_t * Gia_ManFromIfLogic( If_Man_t * pIfMan )
 {
     Gia_Man_t * pNew, * pHashed = NULL;
@@ -1605,122 +1737,22 @@ Gia_Man_t * Gia_ManFromIfLogic( If_Man_t * pIfMan )
                 pIfObj->iCopy = Gia_ManFromIfLogicFindCell( pIfMan, pNew, pHashed, pCutBest, pSat, vPiVars, vPoVars, pNtkCell, nLutMax, vLeaves, vLits, vCover, vMapping, vMapping2, vPacking );
                 pIfObj->iCopy = Abc_LitNotCond( pIfObj->iCopy, pCutBest->fCompl );
             }
-            else if ( pIfMan->pPars->fUseCofVars && pIfMan->pPars->fDeriveLuts && (int)pCutBest->nLeaves > pIfMan->pPars->nLutSize/2 )
+            else if ( pIfMan->pPars->fUseAndVars && pIfMan->pPars->fUseCofVars && pIfMan->pPars->fDeriveLuts && (int)pCutBest->nLeaves > pIfMan->pPars->nLutSize/2 )
             {
-                word pTruthCof[128], * pTruth = If_CutTruthW(pIfMan, pCutBest);
-                int pVarsNew[16], nVarsNew, iLitCofs[3]; 
-                int nLeaves = pCutBest->nLeaves;
-                int nWords  = Abc_Truth6WordNum(nLeaves);
                 int truthId = Abc_Lit2Var(pCutBest->iCutFunc);
-                int c, iVar = Vec_StrEntry(pIfMan->vTtVars[nLeaves], truthId), iTemp, iTopLit;
-                assert( iVar >= 0 && iVar < nLeaves && pIfMan->pPars->nLutSize <= 13 );
-                for ( c = 0; c < 2; c++ )
-                {
-                    for ( k = 0; k < nLeaves; k++ )
-                        pVarsNew[k] = k;
-                    if ( c )
-                        Abc_TtCofactor1p( pTruthCof, pTruth, nWords, iVar );
-                    else
-                        Abc_TtCofactor0p( pTruthCof, pTruth, nWords, iVar );
-                    nVarsNew = Abc_TtMinBase( pTruthCof, pVarsNew, pCutBest->nLeaves, Abc_MaxInt(6, pCutBest->nLeaves) );
-                    // derive LUT
-                    Vec_IntClear( vLeaves2 );
-                    for ( k = 0; k < nVarsNew; k++ )
-                        Vec_IntPush( vLeaves2, Vec_IntEntry(vLeaves, pVarsNew[k]) );
-                    iLitCofs[c] = Kit_TruthToGia( pNew, (unsigned *)pTruthCof, nVarsNew, vCover, vLeaves2, 0 );
-                    if ( nVarsNew < 2 )
-                        continue;
-                    // create mapping
-                    assert( Gia_ObjIsAnd(Gia_ManObj(pNew, Abc_Lit2Var(iLitCofs[c]))) );
-                    Vec_IntSetEntry( vMapping, Abc_Lit2Var(iLitCofs[c]), Vec_IntSize(vMapping2) );
-                    Vec_IntPush( vMapping2, Vec_IntSize(vLeaves2) );
-                    Vec_IntForEachEntry( vLeaves2, iTemp, k )
-                        Vec_IntPush( vMapping2, Abc_Lit2Var(iTemp) );
-                    Vec_IntPush( vMapping2, Abc_Lit2Var(iLitCofs[c]) );
-                }
-                iLitCofs[2]  = Vec_IntEntry(vLeaves, iVar);
-                // derive MUX
-                if ( iLitCofs[0] > 1 && iLitCofs[1] > 1 )
-                {
-                    pTruthCof[0] = ABC_CONST(0xCACACACACACACACA);
-                    Vec_IntClear( vLeaves2 );
-                    Vec_IntPush( vLeaves2, iLitCofs[0] );
-                    Vec_IntPush( vLeaves2, iLitCofs[1] );
-                    Vec_IntPush( vLeaves2, iLitCofs[2] );
-                    pIfObj->iCopy = Kit_TruthToGia( pNew, (unsigned *)pTruthCof, Vec_IntSize(vLeaves2), vCover, vLeaves2, 0 );
-                    iTopLit = pIfObj->iCopy;
-                }
+                int Mask = Vec_IntEntry(pIfMan->vTtDecs[pCutBest->nLeaves], truthId);
+                if ( Mask )
+                    pIfObj->iCopy = Gia_ManFromIfLogicAndVars( pNew, pIfMan, pCutBest, vLeaves, vLeaves2, vCover, vMapping, vMapping2 );
                 else
-                {
-                    assert( iLitCofs[0] > 1 || iLitCofs[1] > 1 );
-                    // collect leaves
-                    Vec_IntClear( vLeaves2 );
-                    for ( k = 0; k < 3; k++ )
-                        if ( iLitCofs[k] > 1 )
-                            Vec_IntPush( vLeaves2, iLitCofs[k] );
-                    assert( Vec_IntSize(vLeaves2) == 2 );
-                    // consider three possibilities
-                    if ( iLitCofs[0] == 0 )
-                        pIfObj->iCopy = Gia_ManAppendAnd( pNew, iLitCofs[2], iLitCofs[1] );
-                    else if ( iLitCofs[0] == 1 )
-                        pIfObj->iCopy = Gia_ManAppendOr( pNew, Abc_LitNot(iLitCofs[2]), iLitCofs[1] );
-                    else if ( iLitCofs[1] == 0 )
-                        pIfObj->iCopy = Gia_ManAppendAnd( pNew, Abc_LitNot(iLitCofs[2]), iLitCofs[0] );
-                    else if ( iLitCofs[1] == 1 )
-                        pIfObj->iCopy = Gia_ManAppendOr( pNew, iLitCofs[2], iLitCofs[0] );
-                    else assert( 0 );
-                    iTopLit = iLitCofs[2];
-                }
-                // create mapping
-                Vec_IntSetEntry( vMapping, Abc_Lit2Var(pIfObj->iCopy), Vec_IntSize(vMapping2) );
-                Vec_IntPush( vMapping2, Vec_IntSize(vLeaves2) );
-                Vec_IntForEachEntry( vLeaves2, iTemp, k )
-                    Vec_IntPush( vMapping2, Abc_Lit2Var(iTemp) );
-                Vec_IntPush( vMapping2, -Abc_Lit2Var(iTopLit) );
-                pIfObj->iCopy = Abc_LitNotCond( pIfObj->iCopy, pCutBest->fCompl );
+                    pIfObj->iCopy = Gia_ManFromIfLogicCofVars( pNew, pIfMan, pCutBest, vLeaves, vLeaves2, vCover, vMapping, vMapping2 );
             }
             else if ( pIfMan->pPars->fUseAndVars && pIfMan->pPars->fDeriveLuts && (int)pCutBest->nLeaves > pIfMan->pPars->nLutSize/2 )
             {
-                word pFunc[64], uTruth[2];
-                int nLeaves = pCutBest->nLeaves;
-                int truthId = Abc_Lit2Var(pCutBest->iCutFunc);
-                int c, Mask = Vec_IntEntry(pIfMan->vTtDecs[nLeaves], truthId);
-                int MaskOne[2] = { Mask & 0xFFFF, (Mask >> 16) & 0x3FFF };
-                int iLitCofs[2], iTemp, fOrDec = (Mask >> 30) & 1; 
-                assert( Mask > 0 && nLeaves <= 2 * (pIfMan->pPars->nLutSize/2) && pIfMan->pPars->nLutSize <= 13 );
-                Abc_TtCopy( pFunc, If_CutTruthWR(pIfMan, pCutBest), pIfMan->nTruth6Words[nLeaves], fOrDec );
-                Abc_TtDeriveBiDec( pFunc, nLeaves, MaskOne[0], MaskOne[1], pIfMan->pPars->nLutSize/2, &uTruth[0], &uTruth[1] );
-                uTruth[0] = fOrDec ? ~uTruth[0] : uTruth[0];
-                uTruth[1] = fOrDec ? ~uTruth[1] : uTruth[1];
-                for ( c = 0; c < 2; c++ )
-                {
-                    Vec_IntClear( vLeaves2 );
-                    for ( k = 0; k < nLeaves; k++ )
-                        if ( (MaskOne[c] >> k) & 1 )
-                            Vec_IntPush( vLeaves2, Vec_IntEntry(vLeaves, k) );
-                    assert( Vec_IntSize(vLeaves2) >= 1 );
-                    iLitCofs[c] = Kit_TruthToGia( pNew, (unsigned *)&uTruth[c], Vec_IntSize(vLeaves2), vCover, vLeaves2, 0 );
-                    if ( Vec_IntSize(vLeaves2) == 1 )
-                        continue;
-                    // create mapping
-                    assert( Gia_ObjIsAnd(Gia_ManObj(pNew, Abc_Lit2Var(iLitCofs[c]))) );
-                    Vec_IntSetEntry( vMapping, Abc_Lit2Var(iLitCofs[c]), Vec_IntSize(vMapping2) );
-                    Vec_IntPush( vMapping2, Vec_IntSize(vLeaves2) );
-                    Vec_IntForEachEntry( vLeaves2, iTemp, k )
-                        Vec_IntPush( vMapping2, Abc_Lit2Var(iTemp) );
-                    Vec_IntPush( vMapping2, Abc_Lit2Var(iLitCofs[c]) );
-                }
-                iLitCofs[0] = Abc_LitNotCond( iLitCofs[0], fOrDec );
-                iLitCofs[1] = Abc_LitNotCond( iLitCofs[1], fOrDec );
-                pIfObj->iCopy = Gia_ManAppendAnd( pNew, iLitCofs[0], iLitCofs[1] );
-                pIfObj->iCopy = Abc_LitNotCond( pIfObj->iCopy, fOrDec ^ Abc_LitIsCompl(pCutBest->iCutFunc) );
-                // create mapping
-                Vec_IntSetEntry( vMapping, Abc_Lit2Var(pIfObj->iCopy), Vec_IntSize(vMapping2) );
-                Vec_IntPush( vMapping2, 2 );
-                Vec_IntPush( vMapping2, Abc_Lit2Var(iLitCofs[0]) );
-                Vec_IntPush( vMapping2, Abc_Lit2Var(iLitCofs[1]) );
-                Vec_IntPush( vMapping2, -Abc_Lit2Var(pIfObj->iCopy) );
-                pIfObj->iCopy = Abc_LitNotCond( pIfObj->iCopy, pCutBest->fCompl );
+                pIfObj->iCopy = Gia_ManFromIfLogicAndVars( pNew, pIfMan, pCutBest, vLeaves, vLeaves2, vCover, vMapping, vMapping2 );
+            }
+            else if ( pIfMan->pPars->fUseCofVars && pIfMan->pPars->fDeriveLuts && (int)pCutBest->nLeaves > pIfMan->pPars->nLutSize/2 )
+            {
+                pIfObj->iCopy = Gia_ManFromIfLogicCofVars( pNew, pIfMan, pCutBest, vLeaves, vLeaves2, vCover, vMapping, vMapping2 );
             }
             else if ( (pIfMan->pPars->fDeriveLuts && pIfMan->pPars->fTruth) || pIfMan->pPars->fUseDsd || pIfMan->pPars->fUseTtPerm )
             {
