@@ -2428,10 +2428,10 @@ static inline int Abc_TtCheckBiDecSimple( word * pTruth, int nVars, int nSuppLim
     }
     return 0;
 }
-static inline int Abc_TtProcessBiDec( word * pTruth, int nVars, int nSuppLim )
+static inline int Abc_TtProcessBiDecInt( word * pTruth, int nVars, int nSuppLim )
 {
     int i, v, Res, nSupp, CountShared = 0, pGraph[12] = {0};
-    assert( nSuppLim < nVars && nVars <= 12 );
+    assert( nSuppLim < nVars && nVars <= 2 * nSuppLim && nVars <= 12 );
     assert( 2 <= nSuppLim && nSuppLim <= 6 );
     Res = Abc_TtCheckBiDecSimple( pTruth, nVars, nSuppLim );
     if ( Res )
@@ -2463,6 +2463,20 @@ static inline int Abc_TtProcessBiDec( word * pTruth, int nVars, int nSuppLim )
                 return (Graph << 16) | This;
         }
     }
+    return 0;
+}
+static inline int Abc_TtProcessBiDec( word * pTruth, int nVars, int nSuppLim )
+{
+    word pFunc[64];
+    int Res, nWords = Abc_TtWordNum(nVars);
+    Abc_TtCopy( pFunc, pTruth, nWords, 0 );
+    Res = Abc_TtProcessBiDecInt( pFunc, nVars, nSuppLim );
+    if ( Res )
+        return Res;
+    Abc_TtCopy( pFunc, pTruth, nWords, 1 );
+    Res = Abc_TtProcessBiDecInt( pFunc, nVars, nSuppLim );
+    if ( Res )
+        return Res | (1 << 30);
     return 0;
 }
 

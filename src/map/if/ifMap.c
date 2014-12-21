@@ -275,12 +275,13 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
                 if ( p->pPars->fUseAndVars )
                 {
                     int iDecMask = -1, truthId = Abc_Lit2Var(pCut->iCutFunc);
+                    assert( p->pPars->nLutSize <= 13 );
                     if ( truthId >= Vec_IntSize(p->vTtDecs[pCut->nLeaves]) || Vec_IntEntry(p->vTtDecs[pCut->nLeaves], truthId) == -1 )
                     {
                         while ( truthId >= Vec_IntSize(p->vTtDecs[pCut->nLeaves]) )
                             Vec_IntPush( p->vTtDecs[pCut->nLeaves], -1 );
-                        if ( (int)pCut->nLeaves > p->pPars->nLutSize / 2 )
-                            iDecMask = Abc_TtProcessBiDec( If_CutTruthW(p, pCut), (int)pCut->nLeaves, p->pPars->nLutSize / 2 );
+                        if ( (int)pCut->nLeaves > p->pPars->nLutSize / 2 && (int)pCut->nLeaves <= 2 * (p->pPars->nLutSize / 2) )
+                            iDecMask = Abc_TtProcessBiDec( If_CutTruthWR(p, pCut), (int)pCut->nLeaves, p->pPars->nLutSize / 2 );
                         else
                             iDecMask = 0;
                         Vec_IntWriteEntry( p->vTtDecs[pCut->nLeaves], truthId, iDecMask );
