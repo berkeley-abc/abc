@@ -96,6 +96,33 @@ void Abc_SclSclGates2MioGates( SC_Lib * pLib, Abc_Ntk_t * p )
 
 /**Function*************************************************************
 
+  Synopsis    [Transfer gate sizes from AIG without barbufs.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_SclTransferGates( Abc_Ntk_t * pOld, Abc_Ntk_t * pNew )
+{
+    Abc_Obj_t * pObj; int i;
+    assert( pOld->nBarBufs2 > 0 );
+    assert( pNew->nBarBufs2 == 0 );
+    Abc_NtkForEachNode( pOld, pObj, i )
+    {
+        if ( pObj->pCopy == NULL )
+            continue;
+        if ( Abc_ObjIsBarBuf(pObj) )
+            continue;
+        assert( Abc_ObjNtk(pObj->pCopy) == pNew );
+        pObj->pData = pObj->pCopy->pData;
+    }
+}
+
+/**Function*************************************************************
+
   Synopsis    [Reports percentage of gates of each size.]
 
   Description []

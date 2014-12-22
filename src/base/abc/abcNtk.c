@@ -513,6 +513,50 @@ Abc_Ntk_t * Abc_NtkDupDfs( Abc_Ntk_t * pNtk )
     pNtk->pCopy = pNtkNew;
     return pNtkNew;
 }
+Abc_Ntk_t * Abc_NtkDupDfsNoBarBufs( Abc_Ntk_t * pNtk )
+{
+    Vec_Ptr_t * vNodes;
+    Abc_Ntk_t * pNtkNew; 
+    Abc_Obj_t * pObj, * pFanin;
+    int i, k;
+    if ( pNtk == NULL )
+        return NULL;
+    assert( Abc_NtkIsLogic(pNtk) );
+    assert( pNtk->nBarBufs2 > 0 );
+    // start the network
+    pNtkNew = Abc_NtkStartFrom( pNtk, pNtk->ntkType, pNtk->ntkFunc );
+    // copy the internal nodes
+    vNodes = Abc_NtkDfs2( pNtk );
+    Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pObj, i )
+        if ( Abc_ObjIsBarBuf(pObj) )
+            pObj->pCopy = Abc_ObjFanin0(pObj)->pCopy;
+        else
+            Abc_NtkDupObj( pNtkNew, pObj, 0 );
+    Vec_PtrFree( vNodes );
+    // reconnect all objects (no need to transfer attributes on edges)
+    Abc_NtkForEachObj( pNtk, pObj, i )
+        if ( !Abc_ObjIsBox(pObj) && !Abc_ObjIsBo(pObj) && !Abc_ObjIsBarBuf(pObj) )
+            Abc_ObjForEachFanin( pObj, pFanin, k )
+                if ( pObj->pCopy && pFanin->pCopy )
+                    Abc_ObjAddFanin( pObj->pCopy, pFanin->pCopy );
+    // duplicate the EXDC Ntk
+    if ( pNtk->pExdc )
+        pNtkNew->pExdc = Abc_NtkDup( pNtk->pExdc );
+    if ( pNtk->pExcare )
+        pNtkNew->pExcare = Abc_NtkDup( (Abc_Ntk_t *)pNtk->pExcare );
+    // duplicate timing manager
+    if ( pNtk->pManTime )
+        Abc_NtkTimeInitialize( pNtkNew, pNtk );
+    if ( pNtk->vPhases )
+        Abc_NtkTransferPhases( pNtkNew, pNtk );
+    if ( pNtk->pWLoadUsed )
+        pNtkNew->pWLoadUsed = Abc_UtilStrsav( pNtk->pWLoadUsed );
+    // check correctness
+    if ( !Abc_NtkCheck( pNtkNew ) )
+        fprintf( stdout, "Abc_NtkDup(): Network check has failed.\n" );
+    pNtk->pCopy = pNtkNew;
+    return pNtkNew;
+}
 
 /**Function*************************************************************
 

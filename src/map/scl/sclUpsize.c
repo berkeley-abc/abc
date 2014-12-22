@@ -865,7 +865,7 @@ void Abc_SclUpsizeRemoveDangling( SC_Man * p, Abc_Ntk_t * pNtk )
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_SclUpsizePerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, SC_SizePars * pPars )
+void Abc_SclUpsizePerformInt( SC_Lib * pLib, Abc_Ntk_t * pNtk, SC_SizePars * pPars )
 {
     SC_Man * p;
     Vec_Int_t * vPathPos = NULL;    // critical POs
@@ -1011,6 +1011,29 @@ void Abc_SclUpsizePerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, SC_SizePars * pPars 
     Abc_SclSclGates2MioGates( pLib, pNtk ); // updates gate pointers
     Abc_SclManFree( p );
 //    Abc_NtkCleanMarkAB( pNtk );
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_SclUpsizePerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, SC_SizePars * pPars )
+{
+    Abc_Ntk_t * pNtkNew = pNtk;
+    if ( pNtk->nBarBufs2 > 0 )
+        pNtkNew = Abc_NtkDupDfsNoBarBufs( pNtk );
+    Abc_SclUpsizePerformInt( pLib, pNtkNew, pPars );
+    if ( pNtk->nBarBufs2 > 0 )
+        Abc_SclTransferGates( pNtk, pNtkNew );
+    if ( pNtk->nBarBufs2 > 0 )
+        Abc_NtkDelete( pNtkNew );
 }
 
 ////////////////////////////////////////////////////////////////////////

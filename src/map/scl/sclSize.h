@@ -577,6 +577,7 @@ extern void          Abc_SclUpsizePerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, SC_S
 /*=== sclUtil.c ===============================================================*/
 extern void          Abc_SclMioGates2SclGates( SC_Lib * pLib, Abc_Ntk_t * p );
 extern void          Abc_SclSclGates2MioGates( SC_Lib * pLib, Abc_Ntk_t * p );
+extern void          Abc_SclTransferGates( Abc_Ntk_t * pOld, Abc_Ntk_t * pNew );
 extern void          Abc_SclPrintGateSizes( SC_Lib * pLib, Abc_Ntk_t * p );
 extern void          Abc_SclMinsizePerform( SC_Lib * pLib, Abc_Ntk_t * p, int fUseMax, int fVerbose );
 extern int           Abc_SclCountMinSize( SC_Lib * pLib, Abc_Ntk_t * p, int fUseMax );
