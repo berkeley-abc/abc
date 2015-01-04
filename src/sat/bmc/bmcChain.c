@@ -342,9 +342,10 @@ int Bmc_ChainTest( Gia_Man_t * p, int nFrameMax, int nConfMax, int fVerbose, int
         vOutputs = Bmc_ChainFindFailedOutputs( pNew, pvCexes ? *pvCexes : NULL );
         assert( Vec_IntFind(vOutputs, pCex->iPo) >= 0 );
         // save the counter-example
-        //Abc_CexFree( pCex );
         if ( pvCexes )
             Vec_PtrPush( *pvCexes, pCex );
+        else
+            Abc_CexFree( pCex );
         clkSat += Abc_Clock() - clk2;
         // remove them from the AIG 
         clk2 = Abc_Clock(); 
