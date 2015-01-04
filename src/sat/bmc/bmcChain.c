@@ -183,30 +183,41 @@ Gia_Man_t * Gia_ManDupPosAndPropagateInit( Gia_Man_t * p )
     Gia_ManStop( pTemp );
     return pNew;
 }
-sat_solver * Gia_ManDeriveSatSolver( Gia_Man_t * p )
+sat_solver * Gia_ManDeriveSatSolver( Gia_Man_t * p, Vec_Int_t * vSatIds )
 {
 //    extern Cnf_Dat_t * Mf_ManGenerateCnf( Gia_Man_t * pGia, int nLutSize, int fCnfObjIds, int fAddOrCla, int fVerbose );
     sat_solver * pSat;
     Aig_Man_t * pAig = Gia_ManToAigSimple( p );
-    Cnf_Dat_t * pCnf = Cnf_Derive( pAig, Aig_ManCoNum(pAig) );
-    Aig_ManStop( pAig );
 //    Cnf_Dat_t * pCnf = Mf_ManGenerateCnf( p, 8, 0, 0, 0 );
+    Cnf_Dat_t * pCnf = Cnf_Derive( pAig, Aig_ManCoNum(pAig) );
+    // save SAT vars for the primary inputs
+    if ( vSatIds )
+    {
+        Aig_Obj_t * pObj; int i;
+        Vec_IntClear( vSatIds );
+        Aig_ManForEachCi( pAig, pObj, i )
+            Vec_IntPush( vSatIds, pCnf->pVarNums[ Aig_ObjId(pObj) ] );
+        assert( Vec_IntSize(vSatIds) == Gia_ManPiNum(p) );
+    }
+    Aig_ManStop( pAig );
     pSat = (sat_solver *)Cnf_DataWriteIntoSolver( pCnf, 1, 0 );
     Cnf_DataFree( pCnf );
     assert( p->nRegs == 0 );
     return pSat;
 }
-Vec_Int_t * Bmc_ChainFindFailedOutputs( Gia_Man_t * p )
+Vec_Int_t * Bmc_ChainFindFailedOutputs( Gia_Man_t * p, Vec_Ptr_t * vCexes )
 {
     Vec_Int_t * vOutputs;
+    Vec_Int_t * vSatIds;
     Gia_Man_t * pInit;
     Gia_Obj_t * pObj;
     sat_solver * pSat;
-    int i, Lit, status = 0;
+    int i, j, k = 0, Lit, status = 0;
     // derive output logic cones
     pInit = Gia_ManDupPosAndPropagateInit( p );
     // derive SAT solver and test
-    pSat = Gia_ManDeriveSatSolver( pInit );
+    vSatIds = Vec_IntAlloc( Gia_ManPiNum(p) );
+    pSat = Gia_ManDeriveSatSolver( pInit, vSatIds );
     vOutputs = Vec_IntAlloc( 100 );
     Gia_ManForEachPo( pInit, pObj, i )
     {
@@ -215,10 +226,25 @@ Vec_Int_t * Bmc_ChainFindFailedOutputs( Gia_Man_t * p )
         Lit = Abc_Var2Lit( i+1, 0 );
         status = sat_solver_solve( pSat, &Lit, &Lit + 1, 0, 0, 0, 0 );
         if ( status == l_True )
+        {
+            // save the index of solved output
             Vec_IntPush( vOutputs, i );
+            // create CEX for this output
+            if ( vCexes )
+            {
+                Abc_Cex_t * pCex = Abc_CexAlloc( Gia_ManRegNum(p), Gia_ManPiNum(p), 1 );
+                pCex->iFrame = 0;
+                pCex->iPo = i;
+                for ( j = 0; j < Gia_ManPiNum(p); j++ )
+                    if ( sat_solver_var_value( pSat, Vec_IntEntry(vSatIds, j) ) )
+                        Abc_InfoSetBit( pCex->pData, Gia_ManRegNum(p) + j );
+                Vec_PtrPush( vCexes, pCex );
+            }
+        }
     }
     Gia_ManStop( pInit );
     sat_solver_delete( pSat );
+    Vec_IntFree( vSatIds );
     return vOutputs;
 }
 
@@ -271,7 +297,7 @@ Gia_Man_t * Bmc_ChainCleanup( Gia_Man_t * p, Vec_Int_t * vOutputs )
   SeeAlso     []
 
 ***********************************************************************/
-int Bmc_ChainTest( Gia_Man_t * p, int nFrameMax, int nConfMax, int fVerbose, int fVeryVerbose )
+int Bmc_ChainTest( Gia_Man_t * p, int nFrameMax, int nConfMax, int fVerbose, int fVeryVerbose, Vec_Ptr_t ** pvCexes )
 {
     int Iter, IterMax = 10000;
     Gia_Man_t * pTemp, * pNew = Gia_ManDup(p);
@@ -284,6 +310,8 @@ int Bmc_ChainTest( Gia_Man_t * p, int nFrameMax, int nConfMax, int fVerbose, int
     abctime clkCln = 0;
     abctime clkSwp = 0;
     int DepthTotal = 0;
+    if ( pvCexes )
+        *pvCexes = Vec_PtrAlloc( 1000 );
     for ( Iter = 0; Iter < IterMax; Iter++ )
     {
         if ( Gia_ManPoNum(pNew) == 0 )
@@ -311,9 +339,12 @@ int Bmc_ChainTest( Gia_Man_t * p, int nFrameMax, int nConfMax, int fVerbose, int
         clkMov += Abc_Clock() - clk2;
         // find outputs that fail in this state
         clk2 = Abc_Clock(); 
-        vOutputs = Bmc_ChainFindFailedOutputs( pNew );
+        vOutputs = Bmc_ChainFindFailedOutputs( pNew, pvCexes ? *pvCexes : NULL );
         assert( Vec_IntFind(vOutputs, pCex->iPo) >= 0 );
-        Abc_CexFree( pCex );
+        // save the counter-example
+        //Abc_CexFree( pCex );
+        if ( pvCexes )
+            Vec_PtrPush( *pvCexes, pCex );
         clkSat += Abc_Clock() - clk2;
         // remove them from the AIG 
         clk2 = Abc_Clock(); 
@@ -351,6 +382,8 @@ int Bmc_ChainTest( Gia_Man_t * p, int nFrameMax, int nConfMax, int fVerbose, int
 //    Abc_PrintTimeP( 1, "Sweep", clkSwp, Abc_Clock() - clk );
     }
     Gia_ManStop( pNew );
+    if ( pvCexes )
+        printf( "Total number of CEXes collected = %d.\n", Vec_PtrSize(*pvCexes) );
     return 0;
 }
 

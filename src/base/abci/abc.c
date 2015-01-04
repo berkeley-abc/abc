@@ -35795,7 +35795,8 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9ChainBmc( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern int Bmc_ChainTest( Gia_Man_t * p, int nFrameMax, int nConfMax, int fVerbose, int fVeryVerbose );
+    extern int Bmc_ChainTest( Gia_Man_t * p, int nFrameMax, int nConfMax, int fVerbose, int fVeryVerbose, Vec_Ptr_t ** pvCexes );
+    Vec_Ptr_t * vCexes = NULL;
     int nFrameMax    =  200;
     int nConfMax     =    0;
     int fVerbose     =    0;
@@ -35850,7 +35851,8 @@ int Abc_CommandAbc9ChainBmc( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Abc_CommandAbc9ChainBmc(): The AIG is combinational.\n" );
         return 0;
     }
-    Bmc_ChainTest( pAbc->pGia, nFrameMax, nConfMax, fVerbose, fVeryVerbose );
+    Bmc_ChainTest( pAbc->pGia, nFrameMax, nConfMax, fVerbose, fVeryVerbose, &vCexes );
+    if ( vCexes ) Vec_PtrFreeFree( vCexes );
     //pAbc->Status  = ...;
     //pAbc->nFrames = pPars->iFrame;
     //Abc_FrameReplaceCex( pAbc, &pAbc->pGia->pCexSeq );
