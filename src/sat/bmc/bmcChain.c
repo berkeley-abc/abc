@@ -212,7 +212,7 @@ Vec_Int_t * Bmc_ChainFindFailedOutputs( Gia_Man_t * p, Vec_Ptr_t * vCexes )
     Gia_Man_t * pInit;
     Gia_Obj_t * pObj;
     sat_solver * pSat;
-    int i, j, k = 0, Lit, status = 0;
+    int i, j, Lit, status = 0;
     // derive output logic cones
     pInit = Gia_ManDupPosAndPropagateInit( p );
     // derive SAT solver and test

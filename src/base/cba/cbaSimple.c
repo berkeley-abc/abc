@@ -164,7 +164,7 @@ static int Ptr_ManCheckArray( Vec_Ptr_t * vArray )
     assert( 0 );
     return 0;
 }
-Vec_Ptr_t * Ptr_ManDumpNode( Abc_Obj_t * pObj )
+Vec_Ptr_t * Ptr_ManDeriveNode( Abc_Obj_t * pObj )
 {
     Abc_Obj_t * pFanin; int i;
     Vec_Ptr_t * vNode = Vec_PtrAlloc( 2 + Abc_ObjFaninNum(pObj) );
@@ -176,17 +176,17 @@ Vec_Ptr_t * Ptr_ManDumpNode( Abc_Obj_t * pObj )
     assert( Ptr_ManCheckArray(vNode) );
     return vNode;
 }
-Vec_Ptr_t * Ptr_ManDumpNodes( Abc_Ntk_t * pNtk )
+Vec_Ptr_t * Ptr_ManDeriveNodes( Abc_Ntk_t * pNtk )
 {
     Abc_Obj_t * pObj; int i;
     Vec_Ptr_t * vNodes = Vec_PtrAlloc( Abc_NtkNodeNum(pNtk) );
     Abc_NtkForEachNode( pNtk, pObj, i )
-        Vec_PtrPush( vNodes, Ptr_ManDumpNode(pObj) );
+        Vec_PtrPush( vNodes, Ptr_ManDeriveNode(pObj) );
     assert( Ptr_ManCheckArray(vNodes) );
     return vNodes;
 }
 
-Vec_Ptr_t * Ptr_ManDumpBox( Abc_Obj_t * pObj )
+Vec_Ptr_t * Ptr_ManDeriveBox( Abc_Obj_t * pObj )
 {
     Abc_Obj_t * pNext; int i;
     Abc_Ntk_t * pModel = Abc_ObjModel(pObj);
@@ -207,17 +207,17 @@ Vec_Ptr_t * Ptr_ManDumpBox( Abc_Obj_t * pObj )
     assert( Ptr_ManCheckArray(vBox) );
     return vBox;
 }
-Vec_Ptr_t * Ptr_ManDumpBoxes( Abc_Ntk_t * pNtk )
+Vec_Ptr_t * Ptr_ManDeriveBoxes( Abc_Ntk_t * pNtk )
 {
     Abc_Obj_t * pObj; int i;
     Vec_Ptr_t * vBoxes = Vec_PtrAlloc( Abc_NtkBoxNum(pNtk) );
     Abc_NtkForEachBox( pNtk, pObj, i )
-        Vec_PtrPush( vBoxes, Ptr_ManDumpBox(pObj) );
+        Vec_PtrPush( vBoxes, Ptr_ManDeriveBox(pObj) );
     assert( Ptr_ManCheckArray(vBoxes) );
     return vBoxes;
 }
 
-Vec_Ptr_t * Ptr_ManDumpInputs( Abc_Ntk_t * pNtk )
+Vec_Ptr_t * Ptr_ManDeriveInputs( Abc_Ntk_t * pNtk )
 {
     Abc_Obj_t * pObj; int i;
     Vec_Ptr_t * vSigs = Vec_PtrAlloc( Abc_NtkPiNum(pNtk) );
@@ -226,7 +226,7 @@ Vec_Ptr_t * Ptr_ManDumpInputs( Abc_Ntk_t * pNtk )
     assert( Ptr_ManCheckArray(vSigs) );
     return vSigs;
 }
-Vec_Ptr_t * Ptr_ManDumpOutputs( Abc_Ntk_t * pNtk )
+Vec_Ptr_t * Ptr_ManDeriveOutputs( Abc_Ntk_t * pNtk )
 {
     Abc_Obj_t * pObj; int i;
     Vec_Ptr_t * vSigs = Vec_PtrAlloc( Abc_NtkPoNum(pNtk) );
@@ -235,25 +235,25 @@ Vec_Ptr_t * Ptr_ManDumpOutputs( Abc_Ntk_t * pNtk )
     assert( Ptr_ManCheckArray(vSigs) );
     return vSigs;
 }
-Vec_Ptr_t * Ptr_ManDumpNtk( Abc_Ntk_t * pNtk )
+Vec_Ptr_t * Ptr_ManDeriveNtk( Abc_Ntk_t * pNtk )
 {
     Vec_Ptr_t * vNtk = Vec_PtrAlloc( 5 );
     Vec_PtrPush( vNtk, Abc_NtkName(pNtk) );
-    Vec_PtrPush( vNtk, Ptr_ManDumpInputs(pNtk) );
-    Vec_PtrPush( vNtk, Ptr_ManDumpOutputs(pNtk) );
-    Vec_PtrPush( vNtk, Ptr_ManDumpNodes(pNtk) );
-    Vec_PtrPush( vNtk, Ptr_ManDumpBoxes(pNtk) );
+    Vec_PtrPush( vNtk, Ptr_ManDeriveInputs(pNtk) );
+    Vec_PtrPush( vNtk, Ptr_ManDeriveOutputs(pNtk) );
+    Vec_PtrPush( vNtk, Ptr_ManDeriveNodes(pNtk) );
+    Vec_PtrPush( vNtk, Ptr_ManDeriveBoxes(pNtk) );
     assert( Ptr_ManCheckArray(vNtk) );
     return vNtk;
 }
-Vec_Ptr_t * Ptr_ManDumpDes( Abc_Ntk_t * pNtk )
+Vec_Ptr_t * Ptr_ManDeriveDes( Abc_Ntk_t * pNtk )
 {
     Vec_Ptr_t * vDes;
     Abc_Ntk_t * pTemp; int i;
     vDes = Vec_PtrAlloc( 1 + Vec_PtrSize(pNtk->pDesign->vModules) );
     Vec_PtrPush( vDes, pNtk->pDesign->pName );
     Vec_PtrForEachEntry( Abc_Ntk_t *, pNtk->pDesign->vModules, pTemp, i )
-        Vec_PtrPush( vDes, Ptr_ManDumpNtk(pTemp) );
+        Vec_PtrPush( vDes, Ptr_ManDeriveNtk(pTemp) );
     assert( Ptr_ManCheckArray(vDes) );
     return vDes;
 }
@@ -269,7 +269,7 @@ Vec_Ptr_t * Ptr_ManDumpDes( Abc_Ntk_t * pNtk )
   SeeAlso     []
 
 ***********************************************************************/
-void Ptr_ManDumpNodeToBlif( FILE * pFile, Vec_Ptr_t * vNode )
+void Ptr_ManDumpNodeBlif( FILE * pFile, Vec_Ptr_t * vNode )
 {
     char * pName;  int i;
     fprintf( pFile, ".names" );
@@ -278,50 +278,50 @@ void Ptr_ManDumpNodeToBlif( FILE * pFile, Vec_Ptr_t * vNode )
     fprintf( pFile, " %s\n", (char *)Vec_PtrEntry(vNode, 0) );
     fprintf( pFile, "%s", Ptr_TypeToSop( (Ptr_ObjType_t)Abc_Ptr2Int(Vec_PtrEntry(vNode, 1)) ) );
 }
-void Ptr_ManDumpNodesToBlif( FILE * pFile, Vec_Ptr_t * vNodes )
+void Ptr_ManDumpNodesBlif( FILE * pFile, Vec_Ptr_t * vNodes )
 {
     Vec_Ptr_t * vNode; int i;
     Vec_PtrForEachEntry( Vec_Ptr_t *, vNodes, vNode, i )
-        Ptr_ManDumpNodeToBlif( pFile, vNode );
+        Ptr_ManDumpNodeBlif( pFile, vNode );
 }
 
-void Ptr_ManDumpBoxToBlif( FILE * pFile, Vec_Ptr_t * vBox )
+void Ptr_ManDumpBoxBlif( FILE * pFile, Vec_Ptr_t * vBox )
 {
     char * pName; int i;
-    fprintf( pFile, "%s", (char *)Vec_PtrEntry(vBox, 0) );
+    fprintf( pFile, ".subckt %s", (char *)Vec_PtrEntry(vBox, 0) );
     Vec_PtrForEachEntryStart( char *, vBox, pName, i, 2 )
         fprintf( pFile, " %s=%s", pName, (char *)Vec_PtrEntry(vBox, i+1) ), i++;
     fprintf( pFile, "\n" );
 }
-void Ptr_ManDumpBoxesToBlif( FILE * pFile, Vec_Ptr_t * vBoxes )
+void Ptr_ManDumpBoxesBlif( FILE * pFile, Vec_Ptr_t * vBoxes )
 {
     Vec_Ptr_t * vBox; int i;
     Vec_PtrForEachEntry( Vec_Ptr_t *, vBoxes, vBox, i )
-        Ptr_ManDumpBoxToBlif( pFile, vBox );
+        Ptr_ManDumpBoxBlif( pFile, vBox );
 }
 
-void Ptr_ManDumpSignalsToBlif( FILE * pFile, Vec_Ptr_t * vSigs, int fSkipLastComma )
+void Ptr_ManDumpSignalsBlif( FILE * pFile, Vec_Ptr_t * vSigs, int fSkipLastComma )
 {
     char * pSig; int i;
     Vec_PtrForEachEntry( char *, vSigs, pSig, i )
         fprintf( pFile, " %s", pSig );
 }
-void Ptr_ManDumpModuleToBlif( FILE * pFile, Vec_Ptr_t * vNtk )
+void Ptr_ManDumpModuleBlif( FILE * pFile, Vec_Ptr_t * vNtk )
 {
     fprintf( pFile, ".model %s\n", (char *)Vec_PtrEntry(vNtk, 0) );
     fprintf( pFile, ".inputs" );
-    Ptr_ManDumpSignalsToBlif( pFile, (Vec_Ptr_t *)Vec_PtrEntry(vNtk, 1), 0 );
+    Ptr_ManDumpSignalsBlif( pFile, (Vec_Ptr_t *)Vec_PtrEntry(vNtk, 1), 0 );
     fprintf( pFile, "\n" );
     fprintf( pFile, ".outputs" );
-    Ptr_ManDumpSignalsToBlif( pFile, (Vec_Ptr_t *)Vec_PtrEntry(vNtk, 2), 1 );
+    Ptr_ManDumpSignalsBlif( pFile, (Vec_Ptr_t *)Vec_PtrEntry(vNtk, 2), 1 );
     fprintf( pFile, "\n\n" );
-    Ptr_ManDumpNodesToBlif( pFile, (Vec_Ptr_t *)Vec_PtrEntry(vNtk, 3) );
+    Ptr_ManDumpNodesBlif( pFile, (Vec_Ptr_t *)Vec_PtrEntry(vNtk, 3) );
     fprintf( pFile, "\n" );
-    Ptr_ManDumpBoxesToBlif( pFile, (Vec_Ptr_t *)Vec_PtrEntry(vNtk, 4) );
+    Ptr_ManDumpBoxesBlif( pFile, (Vec_Ptr_t *)Vec_PtrEntry(vNtk, 4) );
     fprintf( pFile, "\n" );
     fprintf( pFile, ".end\n\n" );
 }
-void Ptr_ManDumpToBlif( char * pFileName, Vec_Ptr_t * vDes )
+void Ptr_ManDumpBlif( char * pFileName, Vec_Ptr_t * vDes )
 {
     FILE * pFile;
     Vec_Ptr_t * vNtk; int i;
@@ -333,7 +333,7 @@ void Ptr_ManDumpToBlif( char * pFileName, Vec_Ptr_t * vDes )
     }
     fprintf( pFile, "// Design \"%s\" written by ABC on %s\n\n", (char *)Vec_PtrEntry(vDes, 0), Extra_TimeStamp() );
     Vec_PtrForEachEntryStart( Vec_Ptr_t *, vDes, vNtk, i, 1 )
-        Ptr_ManDumpModuleToBlif( pFile, vNtk );
+        Ptr_ManDumpModuleBlif( pFile, vNtk );
     fclose( pFile );
 }
 
@@ -348,7 +348,7 @@ void Ptr_ManDumpToBlif( char * pFileName, Vec_Ptr_t * vDes )
   SeeAlso     []
 
 ***********************************************************************/
-void Ptr_ManDumpNodeToFile( FILE * pFile, Vec_Ptr_t * vNode )
+void Ptr_ManDumpNodeVerilog( FILE * pFile, Vec_Ptr_t * vNode )
 {
     char * pName;  int i;
     fprintf( pFile, "%s", Ptr_TypeToName( (Ptr_ObjType_t)Abc_Ptr2Int(Vec_PtrEntry(vNode, 1)) ) );
@@ -357,14 +357,14 @@ void Ptr_ManDumpNodeToFile( FILE * pFile, Vec_Ptr_t * vNode )
         fprintf( pFile, ", %s", pName );
     fprintf( pFile, " );\n" );
 }
-void Ptr_ManDumpNodesToFile( FILE * pFile, Vec_Ptr_t * vNodes )
+void Ptr_ManDumpNodesVerilog( FILE * pFile, Vec_Ptr_t * vNodes )
 {
     Vec_Ptr_t * vNode; int i;
     Vec_PtrForEachEntry( Vec_Ptr_t *, vNodes, vNode, i )
-        Ptr_ManDumpNodeToFile( pFile, vNode );
+        Ptr_ManDumpNodeVerilog( pFile, vNode );
 }
 
-void Ptr_ManDumpBoxToFile( FILE * pFile, Vec_Ptr_t * vBox )
+void Ptr_ManDumpBoxVerilog( FILE * pFile, Vec_Ptr_t * vBox )
 {
     char * pName; int i;
     fprintf( pFile, "%s %s (", (char *)Vec_PtrEntry(vBox, 0), (char *)Vec_PtrEntry(vBox, 1) );
@@ -372,37 +372,37 @@ void Ptr_ManDumpBoxToFile( FILE * pFile, Vec_Ptr_t * vBox )
         fprintf( pFile, " .%s(%s)%s", pName, (char *)Vec_PtrEntry(vBox, i+1), i >= Vec_PtrSize(vBox)-2 ? "" : "," ), i++;
     fprintf( pFile, " );\n" );
 }
-void Ptr_ManDumpBoxesToFile( FILE * pFile, Vec_Ptr_t * vBoxes )
+void Ptr_ManDumpBoxesVerilog( FILE * pFile, Vec_Ptr_t * vBoxes )
 {
     Vec_Ptr_t * vBox; int i;
     Vec_PtrForEachEntry( Vec_Ptr_t *, vBoxes, vBox, i )
-        Ptr_ManDumpBoxToFile( pFile, vBox );
+        Ptr_ManDumpBoxVerilog( pFile, vBox );
 }
 
-void Ptr_ManDumpSignalsToFile( FILE * pFile, Vec_Ptr_t * vSigs, int fSkipLastComma )
+void Ptr_ManDumpSignalsVerilog( FILE * pFile, Vec_Ptr_t * vSigs, int fSkipLastComma )
 {
     char * pSig; int i;
     Vec_PtrForEachEntry( char *, vSigs, pSig, i )
         fprintf( pFile, " %s%s", pSig, (fSkipLastComma && i == Vec_PtrSize(vSigs)-1) ? "" : "," );
 }
-void Ptr_ManDumpModuleToFile( FILE * pFile, Vec_Ptr_t * vNtk )
+void Ptr_ManDumpModuleVerilog( FILE * pFile, Vec_Ptr_t * vNtk )
 {
     fprintf( pFile, "module %s\n", (char *)Vec_PtrEntry(vNtk, 0) );
     fprintf( pFile, "(\n" );
-    Ptr_ManDumpSignalsToFile( pFile, (Vec_Ptr_t *)Vec_PtrEntry(vNtk, 1), 0 );
+    Ptr_ManDumpSignalsVerilog( pFile, (Vec_Ptr_t *)Vec_PtrEntry(vNtk, 1), 0 );
     fprintf( pFile, "\n" );
-    Ptr_ManDumpSignalsToFile( pFile, (Vec_Ptr_t *)Vec_PtrEntry(vNtk, 2), 1 );
+    Ptr_ManDumpSignalsVerilog( pFile, (Vec_Ptr_t *)Vec_PtrEntry(vNtk, 2), 1 );
     fprintf( pFile, "\n);\ninput" );
-    Ptr_ManDumpSignalsToFile( pFile, (Vec_Ptr_t *)Vec_PtrEntry(vNtk, 1), 1 );
+    Ptr_ManDumpSignalsVerilog( pFile, (Vec_Ptr_t *)Vec_PtrEntry(vNtk, 1), 1 );
     fprintf( pFile, ";\noutput" );
-    Ptr_ManDumpSignalsToFile( pFile, (Vec_Ptr_t *)Vec_PtrEntry(vNtk, 2), 1 );
+    Ptr_ManDumpSignalsVerilog( pFile, (Vec_Ptr_t *)Vec_PtrEntry(vNtk, 2), 1 );
     fprintf( pFile, ";\n\n" );
-    Ptr_ManDumpNodesToFile( pFile, (Vec_Ptr_t *)Vec_PtrEntry(vNtk, 3) );
+    Ptr_ManDumpNodesVerilog( pFile, (Vec_Ptr_t *)Vec_PtrEntry(vNtk, 3) );
     fprintf( pFile, "\n" );
-    Ptr_ManDumpBoxesToFile( pFile, (Vec_Ptr_t *)Vec_PtrEntry(vNtk, 4) );
+    Ptr_ManDumpBoxesVerilog( pFile, (Vec_Ptr_t *)Vec_PtrEntry(vNtk, 4) );
     fprintf( pFile, "endmodule\n\n" );
 }
-void Ptr_ManDumpToFile( char * pFileName, Vec_Ptr_t * vDes )
+void Ptr_ManDumpVerilog( char * pFileName, Vec_Ptr_t * vDes )
 {
     FILE * pFile;
     Vec_Ptr_t * vNtk; int i;
@@ -414,7 +414,7 @@ void Ptr_ManDumpToFile( char * pFileName, Vec_Ptr_t * vDes )
     }
     fprintf( pFile, "// Design \"%s\" written by ABC on %s\n\n", (char *)Vec_PtrEntry(vDes, 0), Extra_TimeStamp() );
     Vec_PtrForEachEntryStart( Vec_Ptr_t *, vDes, vNtk, i, 1 )
-        Ptr_ManDumpModuleToFile( pFile, vNtk );
+        Ptr_ManDumpModuleVerilog( pFile, vNtk );
     fclose( pFile );
 }
 
@@ -499,14 +499,14 @@ void Ptr_ManFreeDes( Vec_Ptr_t * vDes )
 void Ptr_ManExperiment( Abc_Ntk_t * pNtk )
 {
     abctime clk = Abc_Clock();
-    Vec_Ptr_t * vDes = Ptr_ManDumpDes( pNtk );
+    char * pFileName = Extra_FileNameGenericAppend(pNtk->pDesign->pName, "_out.blif");
+    Vec_Ptr_t * vDes = Ptr_ManDeriveDes( pNtk );
     printf( "Converting to Ptr:  Memory = %6.3f MB  ", 1.0*Ptr_ManMemDes(vDes)/(1<<20) );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
-    Ptr_ManDumpToFile( Extra_FileNameGenericAppend(pNtk->pDesign->pName, "_out.v"), vDes );
-    printf( "Finished writing output file \"%s\".\n", Extra_FileNameGenericAppend(pNtk->pDesign->pName, "_out.v") );
+    Ptr_ManDumpBlif( pFileName, vDes );
+    printf( "Finished writing output file \"%s\".  ", pFileName );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     Ptr_ManFreeDes( vDes );
-    Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
 }
 
 
