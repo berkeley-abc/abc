@@ -267,7 +267,7 @@ static inline int Cba_PrsReadNode( Cba_Prs_t * p )
     // save results
     Vec_IntPush( &p->vTypesCur, CBA_PRS_NODE );
     Vec_IntPush( &p->vFuncsCur, 1 ); // default const 0 function
-    Cba_PrsSetupVecInt( p, Vec_WecPushLevel(&p->vFaninsCur), &p->vTemp );
+    Vec_IntPush( &p->vFaninsCur, Cba_PrsSetupDataInt(p, &p->vTemp) ); 
     return 0;
 }
 static inline int Cba_PrsReadBox( Cba_Prs_t * p, int fGate )
@@ -278,7 +278,7 @@ static inline int Cba_PrsReadBox( Cba_Prs_t * p, int fGate )
     // save results
     Vec_IntPush( &p->vTypesCur, CBA_PRS_BOX );
     Vec_IntPush( &p->vFuncsCur, iToken );
-    Cba_PrsSetupVecInt( p, Vec_WecPushLevel(&p->vFaninsCur), &p->vTemp );
+    Vec_IntPush( &p->vFaninsCur, Cba_PrsSetupDataInt(p, &p->vTemp) ); 
     return 0;
 }
 static inline int Cba_PrsReadLatch( Cba_Prs_t * p )
@@ -301,7 +301,7 @@ static inline int Cba_PrsReadLatch( Cba_Prs_t * p )
     // save results
     Vec_IntPush( &p->vTypesCur, CBA_PRS_LATCH );
     Vec_IntPush( &p->vFuncsCur, iToken );
-    Cba_PrsSetupVecInt( p, Vec_WecPushLevel(&p->vFaninsCur), &p->vTemp );
+    Vec_IntPush( &p->vFaninsCur, Cba_PrsSetupDataInt(p, &p->vTemp) ); 
     return 0;
 }
 static inline int Cba_PrsReadShort( Cba_Prs_t * p )
@@ -318,7 +318,7 @@ static inline int Cba_PrsReadShort( Cba_Prs_t * p )
     // save results
     Vec_IntPush( &p->vTypesCur, CBA_PRS_NODE );
     Vec_IntPush( &p->vFuncsCur, 2 );   // default buffer function
-    Cba_PrsSetupVecInt( p, Vec_WecPushLevel(&p->vFaninsCur), &p->vTemp );
+    Vec_IntPush( &p->vFaninsCur, Cba_PrsSetupDataInt(p, &p->vTemp) ); 
     return 0;
 }
 static inline int Cba_PrsReadModel( Cba_Prs_t * p )

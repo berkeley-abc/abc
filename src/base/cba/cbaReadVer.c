@@ -370,10 +370,8 @@ static inline int Cba_PrsReadConcat( Cba_Prs_t * p, Vec_Int_t * vTemp2 )
     Vec_IntPush( &p->vTypesCur, CBA_PRS_CONCAT );
     Vec_IntPush( &p->vFuncsCur, 0 );
     Vec_IntPush( &p->vInstIdsCur, 0 );
-    Cba_PrsSetupVecInt( p, Vec_WecPushLevel(&p->vFaninsCur), vTemp2 );
-    // return the result
-    assert( Vec_WecSize(&p->vFaninsCur) > 0 );
-    return Vec_WecSize(&p->vFaninsCur);
+    Vec_IntPush( &p->vFaninsCur, Cba_PrsSetupDataInt(p, vTemp2) ); 
+    return Vec_IntSize(&p->vFaninsCur);
 }
 static inline int Cba_PrsReadSignalOrConcat( Cba_Prs_t * p, int * pName, int * pRange )
 {
@@ -502,7 +500,7 @@ static inline int Cba_PrsReadAssign( Cba_Prs_t * p )
         Vec_IntPush( &p->vTypesCur, CBA_PRS_NODE );
         Vec_IntPush( &p->vFuncsCur, fCompl ? CBA_NODE_INV : CBA_NODE_BUF );
         Vec_IntPush( &p->vInstIdsCur, 0 );
-        Cba_PrsSetupVecInt( p, Vec_WecPushLevel(&p->vFaninsCur), &p->vTemp );
+        Vec_IntPush( &p->vFaninsCur, Cba_PrsSetupDataInt(p, &p->vTemp) ); 
         return 1;
     }
     if ( Cba_PrsIsChar(p, '&') ) 
@@ -537,7 +535,7 @@ static inline int Cba_PrsReadAssign( Cba_Prs_t * p )
     Vec_IntPush( &p->vTypesCur, CBA_PRS_NODE );
     Vec_IntPush( &p->vFuncsCur, Oper );
     Vec_IntPush( &p->vInstIdsCur, 0 );
-    Cba_PrsSetupVecInt( p, Vec_WecPushLevel(&p->vFaninsCur), &p->vTemp );
+    Vec_IntPush( &p->vFaninsCur, Cba_PrsSetupDataInt(p, &p->vTemp) ); 
     return 1;
 }
 static inline int Cba_PrsReadInstance( Cba_Prs_t * p, int Func )
@@ -567,7 +565,7 @@ static inline int Cba_PrsReadInstance( Cba_Prs_t * p, int Func )
     Vec_IntPush( &p->vTypesCur, Type );
     Vec_IntPush( &p->vFuncsCur, Func );
     Vec_IntPush( &p->vInstIdsCur, InstId );
-    Cba_PrsSetupVecInt( p, Vec_WecPushLevel(&p->vFaninsCur), &p->vTemp );
+    Vec_IntPush( &p->vFaninsCur, Cba_PrsSetupDataInt(p, &p->vTemp) ); 
     return 1;
 }
 
@@ -635,8 +633,7 @@ static inline int Cba_PrsReadModule( Cba_Prs_t * p )
                 Vec_IntPush( &p->vFailed, p->iModuleName );
                 // cleanup
                 Vec_IntClear( &p->vWiresCur );
-                ABC_FREE( p->vFaninsCur.pArray );
-                Vec_WecZero( &p->vFaninsCur );
+                Vec_IntClear( &p->vFaninsCur );
                 Vec_IntClear( &p->vTypesCur );
                 Vec_IntClear( &p->vFuncsCur );
                 Vec_IntClear( &p->vInstIdsCur );

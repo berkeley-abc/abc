@@ -33,9 +33,9 @@ static int  Cba_CommandPs       ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int  Cba_CommandBlast    ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int  Cba_CommandTest     ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
-static inline Cba_Ntk_t * Cba_AbcGetNtk( Abc_Frame_t * pAbc )                       { return (Cba_Ntk_t *)pAbc->pAbcCba;                      }
-static inline void        Cba_AbcFreeNtk( Abc_Frame_t * pAbc )                      { if ( pAbc->pAbcCba ) Cba_NtkFree(Cba_AbcGetNtk(pAbc));  }
-static inline void        Cba_AbcUpdateNtk( Abc_Frame_t * pAbc, Cba_Ntk_t * pNtk )  { Cba_AbcFreeNtk(pAbc); pAbc->pAbcCba = pNtk;             }
+static inline Cba_Ntk_t * Cba_AbcGetNtk( Abc_Frame_t * pAbc )                       { return (Cba_Ntk_t *)pAbc->pAbcCba;                                  }
+static inline void        Cba_AbcFreeNtk( Abc_Frame_t * pAbc )                      { if ( pAbc->pAbcCba ) Cba_ManFree(Cba_NtkMan(Cba_AbcGetNtk(pAbc)));  }
+static inline void        Cba_AbcUpdateNtk( Abc_Frame_t * pAbc, Cba_Ntk_t * pNtk )  { Cba_AbcFreeNtk(pAbc); pAbc->pAbcCba = pNtk;                         }
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///

@@ -95,7 +95,7 @@ void Cba_PrsWriteVerilogConcat( FILE * pFile, Cba_Ntk_t * p, int Id )
 {
     extern void Cba_PrsWriteVerilogArray2( FILE * pFile, Cba_Ntk_t * p, Vec_Int_t * vFanins );
     fprintf( pFile, "{" );
-    Cba_PrsWriteVerilogArray2( pFile, p, Cba_ObjFanins(p, Id) );
+    Cba_PrsWriteVerilogArray2( pFile, p, Cba_ObjFaninVec2(p, Id) );
     fprintf( pFile, "}" );
 }
 void Cba_PrsWriteVerilogArray2( FILE * pFile, Cba_Ntk_t * p, Vec_Int_t * vFanins )
@@ -140,11 +140,11 @@ void Cba_PrsWriteVerilogNodes( FILE * pFile, Cba_Ntk_t * p )
             if ( Func >= CBA_NODE_BUF && Func <= CBA_NODE_XNOR )
             {
                 fprintf( pFile, "  %s (", s_NodeTypes[Func] );
-                Cba_PrsWriteVerilogArray2( pFile, p, Cba_ObjFanins(p, i) );
+                Cba_PrsWriteVerilogArray2( pFile, p, Cba_ObjFaninVec(p, i) );
                 fprintf( pFile, ");\n" );
             }
             else if ( Func == CBA_NODE_MUX )
-                Cba_PrsWriteVerilogMux( pFile, p, Cba_ObjFanins(p, i) );
+                Cba_PrsWriteVerilogMux( pFile, p, Cba_ObjFaninVec(p, i) );
             else
             {
                 //char * pName = Cba_NtkStr(p, Func);
@@ -159,7 +159,7 @@ void Cba_PrsWriteVerilogBoxes( FILE * pFile, Cba_Ntk_t * p )
         if ( Type == CBA_PRS_BOX ) // .subckt/.gate/box (formal/actual binding) 
         {
             fprintf( pFile, "  %s %s (", Cba_ObjFuncStr(p, i), Cba_ObjInstStr(p, i) );
-            Cba_PrsWriteVerilogArray3( pFile, p, Cba_ObjFanins(p, i) );
+            Cba_PrsWriteVerilogArray3( pFile, p, Cba_ObjFaninVec(p, i) );
             fprintf( pFile, ");\n" );
         }
 }

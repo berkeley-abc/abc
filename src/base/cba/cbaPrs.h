@@ -68,7 +68,7 @@ struct Cba_Prs_t_
     Vec_Int_t    vTypesCur;   // Cba_PrsType_t
     Vec_Int_t    vFuncsCur;   // functions (node->func; box->module; gate->cell; latch->init; concat->unused)
     Vec_Int_t    vInstIdsCur; // instance names
-    Vec_Wec_t    vFaninsCur;  // instances
+    Vec_Int_t    vFaninsCur;  // instances
     // temporary data
     Vec_Str_t    vCover;      // one SOP cover
     Vec_Int_t    vTemp;       // array of tokens
@@ -113,12 +113,21 @@ static inline int Cba_PrsErrorPrint( Cba_Prs_t * p )
 
 
 // copy contents to the vector
+static inline int Cba_PrsSetupDataInt( Cba_Prs_t * p, Vec_Int_t * vFrom )
+{
+    int h = Vec_SetFetchH( Cba_ManMem(p->pDesign), sizeof(int) * (Vec_IntSize(vFrom) + 1) );
+    int * pArray = (int *)Vec_SetEntry( Cba_ManMem(p->pDesign), h );
+    pArray[0] = Vec_IntSize(vFrom);
+    memcpy( pArray+1, Vec_IntArray(vFrom), sizeof(int) * Vec_IntSize(vFrom) );
+    Vec_IntClear( vFrom );
+    return h;
+}
 static inline void Cba_PrsSetupVecInt( Cba_Prs_t * p, Vec_Int_t * vTo, Vec_Int_t * vFrom )
 {
     if ( Vec_IntSize(vFrom) == 0 )
         return;
     vTo->nSize = vTo->nCap = Vec_IntSize(vFrom);
-    vTo->pArray = (int *)Mem_FlexEntryFetch( p->pDesign->pMem, sizeof(int) * Vec_IntSize(vFrom) );
+    vTo->pArray = (int *)Vec_SetFetch( Cba_ManMem(p->pDesign), sizeof(int) * Vec_IntSize(vFrom) );
     memcpy( Vec_IntArray(vTo), Vec_IntArray(vFrom), sizeof(int) * Vec_IntSize(vFrom) );
     Vec_IntClear( vFrom );
 }
@@ -133,8 +142,7 @@ static inline Cba_Ntk_t * Cba_PrsAddCurrentModel( Cba_Prs_t * p, int iNameId )
     Cba_PrsSetupVecInt( p, &pNtk->vTypes,   &p->vTypesCur   );
     Cba_PrsSetupVecInt( p, &pNtk->vFuncs,   &p->vFuncsCur   );
     Cba_PrsSetupVecInt( p, &pNtk->vInstIds, &p->vInstIdsCur );
-    pNtk->vFanins = p->vFaninsCur;
-    Vec_WecZero( &p->vFaninsCur );
+    Cba_PrsSetupVecInt( p, &pNtk->vFanins,  &p->vFaninsCur  );
     return pNtk;
 }
 
@@ -192,7 +200,7 @@ static inline void Cba_PrsFree( Cba_Prs_t * p )
     Vec_IntErase( &p->vTypesCur );
     Vec_IntErase( &p->vFuncsCur );
     Vec_IntErase( &p->vInstIdsCur );
-    ABC_FREE( p->vFaninsCur.pArray );
+    Vec_IntErase( &p->vFaninsCur );
     // temporary
     Vec_StrErase( &p->vCover );
     Vec_IntErase( &p->vTemp );

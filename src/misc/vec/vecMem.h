@@ -84,6 +84,14 @@ struct Vec_Mem_t_
   SeeAlso     []
 
 ***********************************************************************/
+static inline void Vec_MemAlloc_( Vec_Mem_t * p, int nEntrySize, int LogPageSze )
+{
+    memset( p, 0, sizeof(Vec_Mem_t) );
+    p->nEntrySize = nEntrySize;
+    p->LogPageSze = LogPageSze;
+    p->PageMask   = (1 << p->LogPageSze) - 1;
+    p->iPage      = -1;
+}
 static inline Vec_Mem_t * Vec_MemAlloc( int nEntrySize, int LogPageSze )
 {
     Vec_Mem_t * p;

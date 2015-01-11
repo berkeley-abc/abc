@@ -242,6 +242,20 @@ static inline int Vec_SetAppendS( Vec_Set_t * p, int nSize )
     Vec_SetIncLimitS( p->pPages[p->iPageS], nWords );
     return Vec_SetHandCurrentS(p) - nWords;
 }
+static inline int Vec_SetFetchH( Vec_Set_t * p, int nBytes )
+{
+    return Vec_SetAppend(p, NULL, (nBytes + 3) >> 2);
+}
+static inline void * Vec_SetFetch( Vec_Set_t * p, int nBytes )
+{
+    return (void *)Vec_SetEntry( p, Vec_SetFetchH(p, nBytes) );
+}
+static inline char * Vec_SetStrsav( Vec_Set_t * p, char * pName )
+{
+    char * pStr = (char *)Vec_SetFetch( p, strlen(pName) + 1 );
+    strcpy( pStr, pName );
+    return pStr;
+}
 
 /**Function*************************************************************
 
