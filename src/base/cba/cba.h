@@ -100,16 +100,17 @@ struct Cba_Ntk_t_
     char *       pName;    // name
     Cba_Man_t *  pDesign;  // design
     // interface
-    Vec_Int_t    vInouts;  // inouts          (used by parser to store signals) 
-    Vec_Int_t    vInputs;  // inputs          (used by parser to store signals)
-    Vec_Int_t    vOutputs; // outputs         (used by parser to store signals) 
-    Vec_Int_t    vWires;   // wires           (used by parser to store signals)
+    Vec_Int_t    vInouts;  // inouts          (used by parser to store signals as NameId) 
+    Vec_Int_t    vInputs;  // inputs          (used by parser to store signals as NameId)
+    Vec_Int_t    vOutputs; // outputs         (used by parser to store signals as NameId) 
+    Vec_Int_t    vWires;   // wires           (used by parser to store signals as NameId)
     // objects
     Vec_Int_t    vTypes;   // types           (used by parser to store Cba_PrsType_t)
     Vec_Int_t    vFuncs;   // functions       (used by parser to store function)
     Vec_Int_t    vInstIds; // instance names  (used by parser to store instance name as NameId)
     Vec_Int_t    vFanins;  // fanins          (used by parser to store fanin/fanout/range as NameId)      
     // attributes
+    Vec_Int_t    vBoxes;   // box objects
     Vec_Int_t    vNameIds; // original names as NameId  
     Vec_Int_t    vRanges;  // ranges as NameId
     Vec_Int_t    vCopies;  // copy pointers
@@ -118,15 +119,22 @@ struct Cba_Ntk_t_
 
 static inline char *        Cba_ManName( Cba_Man_t * p )                    { return p->pName;                                                                            }
 static inline int           Cba_ManNtkNum( Cba_Man_t * p )                  { return Vec_PtrSize(&p->vNtks) - 1;                                                          }
+static inline int           Cba_ManNtkId( Cba_Man_t * p, char * pName )     { return Abc_NamStrFind(p->pModels, pName);                                                   }
 static inline Cba_Ntk_t *   Cba_ManNtk( Cba_Man_t * p, int i )              { assert( i > 0 ); return (Cba_Ntk_t *)Vec_PtrEntry(&p->vNtks, i);                            }
 static inline Cba_Ntk_t *   Cba_ManRoot( Cba_Man_t * p )                    { return Cba_ManNtk(p, p->iRoot);                                                             }
 static inline Vec_Set_t *   Cba_ManMem( Cba_Man_t * p )                     { return &p->Mem;                                                                             }
 static inline int           Cba_ManMemSave( Cba_Man_t * p, int * d, int s ) { return Vec_SetAppend(Cba_ManMem(p), d, s);                                                  }
-static inline int *         Cba_ManMemRead( Cba_Man_t * p, int h )          { return (int *)Vec_SetEntry(Cba_ManMem(p), h);                                               }
+static inline int *         Cba_ManMemRead( Cba_Man_t * p, int h )          { return h ? (int *)Vec_SetEntry(Cba_ManMem(p), h) : NULL;                                    }
 
 static inline char *        Cba_NtkName( Cba_Ntk_t * p )                    { return p->pName;                                                                            }
 static inline Cba_Man_t *   Cba_NtkMan( Cba_Ntk_t * p )                     { return p->pDesign;                                                                          }
 static inline int           Cba_NtkObjNum( Cba_Ntk_t * p )                  { return Vec_IntSize(&p->vFanins);                                                            }
+static inline int           Cba_NtkPiNum( Cba_Ntk_t * p )                   { return Vec_IntSize(&p->vInputs);                                                            }
+static inline int           Cba_NtkPoNum( Cba_Ntk_t * p )                   { return Vec_IntSize(&p->vOutputs);                                                           }
+static inline int           Cba_NtkBoxNum( Cba_Ntk_t * p )                  { return Vec_IntSize(&p->vBoxes);                                                             }
+static inline int           Cba_NtkNodeNum( Cba_Ntk_t * p )                 { return Cba_NtkObjNum(p) - Cba_NtkPiNum(p) - Cba_NtkPoNum(p) - Cba_NtkBoxNum(p);             }
+static inline int           Cba_NtkPi( Cba_Ntk_t * p, int i )               { return Vec_IntEntry(&p->vInputs, i);                                                        }
+static inline int           Cba_NtkPo( Cba_Ntk_t * p, int i )               { return Vec_IntEntry(&p->vOutputs, i);                                                       }
 static inline char *        Cba_NtkStr( Cba_Ntk_t * p, int i )              { return Abc_NamStr(p->pDesign->pNames, i);                                                   }
 static inline char *        Cba_NtkModelStr( Cba_Ntk_t * p, int i )         { return Abc_NamStr(p->pDesign->pModels, i);                                                  }
 static inline char *        Cba_NtkFuncStr( Cba_Ntk_t * p, int i )          { return Abc_NamStr(p->pDesign->pFuncs, i);                                                   }
@@ -135,13 +143,19 @@ static inline int           Cba_NtkMemSave( Cba_Ntk_t * p, int * d, int s ) { re
 static inline int *         Cba_NtkMemRead( Cba_Ntk_t * p, int h )          { return Cba_ManMemRead(p->pDesign, h);                                                       }
 
 static inline Cba_ObjType_t Cba_ObjType( Cba_Ntk_t * p, int i )             { return Vec_IntEntry(&p->vTypes, i);                                                         }
+static inline int           Cba_ObjIsPi( Cba_Ntk_t * p, int i )             { return Cba_ObjType(p, i) == CBA_OBJ_PI;                                                     }
+static inline int           Cba_ObjIsPo( Cba_Ntk_t * p, int i )             { return Cba_ObjType(p, i) == CBA_OBJ_PO;                                                     }
+static inline int           Cba_ObjIsNode( Cba_Ntk_t * p, int i )           { return Cba_ObjType(p, i) == CBA_OBJ_NODE;                                                   }
+static inline int           Cba_ObjIsBox( Cba_Ntk_t * p, int i )            { return Cba_ObjType(p, i) == CBA_OBJ_BOX;                                                    }
+static inline int           Cba_ObjIsPin( Cba_Ntk_t * p, int i )            { return Cba_ObjType(p, i) == CBA_OBJ_PIN;                                                    }
 static inline int           Cba_ObjFuncId( Cba_Ntk_t * p, int i )           { return Vec_IntEntry(&p->vFuncs, i);                                                         }
 static inline int           Cba_ObjInstId( Cba_Ntk_t * p, int i )           { return Vec_IntEntry(&p->vInstIds, i);                                                       }
 static inline int *         Cba_ObjFaninArray( Cba_Ntk_t * p, int i )       { return Cba_NtkMemRead(p, Vec_IntEntry(&p->vFanins, i));                                     }
 static inline int           Cba_ObjFaninNum( Cba_Ntk_t * p, int i )         { return *Cba_ObjFaninArray(p, i);                                                            }
 static inline int *         Cba_ObjFanins( Cba_Ntk_t * p, int i )           { return Cba_ObjFaninArray(p, i) + 1;                                                         }
-static inline Vec_Int_t *   Cba_ObjFaninVec( Cba_Ntk_t * p, int i )         { static Vec_Int_t V; V.pArray = Cba_ObjFaninArray(p, i); V.nSize = V.nCap = *V.pArray++; return &V; }
-static inline Vec_Int_t *   Cba_ObjFaninVec2( Cba_Ntk_t * p, int i )        { static Vec_Int_t W; W.pArray = Cba_ObjFaninArray(p, i); W.nSize = W.nCap = *W.pArray++; return &W; }
+static inline Vec_Int_t *   Cba_ObjFaninVec( Cba_Ntk_t * p, int i )         { static Vec_Int_t V; V.pArray = Cba_ObjFaninArray(p, i); V.nSize = V.nCap = V.pArray ? *V.pArray++ : 0; return &V; }
+static inline Vec_Int_t *   Cba_ObjFaninVec2( Cba_Ntk_t * p, int i )        { static Vec_Int_t W; W.pArray = Cba_ObjFaninArray(p, i); W.nSize = W.nCap = W.pArray ? *W.pArray++ : 0; return &W; }
+static inline Cba_Ntk_t *   Cba_ObjModel( Cba_Ntk_t * p, int i )            { assert(Cba_ObjIsBox(p, i)); return Cba_ManNtk(p->pDesign, Cba_ObjFuncId(p, i));             }
 
 static inline int           Cba_ObjNameId( Cba_Ntk_t * p, int i )           { return Vec_IntEntry(&p->vNameIds, i);                                                       }
 static inline int           Cba_ObjRangeId( Cba_Ntk_t * p, int i )          { return Vec_IntEntry(&p->vRanges, i);                                                        }
@@ -162,10 +176,15 @@ static inline char *        Cba_ObjRangeStr( Cba_Ntk_t * p, int i )         { re
 ////////////////////////////////////////////////////////////////////////
 
 
-#define Cba_ManForEachNtk( p, pNtk, i )                     \
+#define Cba_ManForEachNtk( p, pNtk, i )                                   \
     for ( i = 1; (i <= Cba_ManNtkNum(p)) && (((pNtk) = Cba_ManNtk(p, i)), 1); i++ ) 
 
-#define Cba_NtkForEachObjType( p, Type, i )      \
+#define Cba_NtkForEachPi( p, iObj, i )                                          \
+    for ( i = 0; (i < Cba_NtkPiNum(p))  && (((iObj) = Vec_IntEntry(&p->vInputs, i)), 1); i++ ) 
+#define Cba_NtkForEachPo( p, iObj, i )                                          \
+    for ( i = 0; (i < Cba_NtkPoNum(p))  && (((iObj) = Vec_IntEntry(&p->vOutputs, i)), 1); i++ ) 
+
+#define Cba_NtkForEachObjType( p, Type, i )                               \
     for ( i = 0; (i < Cba_NtkObjNum(p))  && (((Type) = Cba_ObjType(p, i)), 1); i++ ) 
 #define Cba_NtkForEachObjTypeFuncFanins( p, Type, Func, vFanins, i )      \
     for ( i = 0; (i < Cba_NtkObjNum(p))  && (((Type) = Cba_ObjType(p, i)), 1)  && (((Func) = Cba_ObjFuncId(p, i)), 1)  && (((vFanins) = Cba_ObjFaninVec(p, i)), 1); i++ ) 
@@ -175,27 +194,60 @@ static inline char *        Cba_ObjRangeStr( Cba_Ntk_t * p, int i )         { re
 ///                    FUNCTION DECLARATIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
+// copy contents to the vector
+static inline int Cba_ManHandleArray( Cba_Man_t * p, Vec_Int_t * vFrom )
+{
+    int h = Vec_SetFetchH( Cba_ManMem(p), sizeof(int) * (Vec_IntSize(vFrom) + 1) );
+    int * pArray = (int *)Vec_SetEntry( Cba_ManMem(p), h );
+    pArray[0] = Vec_IntSize(vFrom);
+    memcpy( pArray+1, Vec_IntArray(vFrom), sizeof(int) * Vec_IntSize(vFrom) );
+    Vec_IntClear( vFrom );
+    return h;
+}
+static inline int Cba_ManHandleBuffer( Cba_Man_t * p, int iFanin )
+{
+    int h = Vec_SetFetchH( Cba_ManMem(p), sizeof(int) * 2 );
+    int * pArray = (int *)Vec_SetEntry( Cba_ManMem(p), h );
+    pArray[0] = 1;
+    pArray[1] = iFanin;
+    return h;
+}
+static inline void Cba_ManSetupArray( Cba_Man_t * p, Vec_Int_t * vTo, Vec_Int_t * vFrom )
+{
+    if ( Vec_IntSize(vFrom) == 0 )
+        return;
+    vTo->nSize = vTo->nCap = Vec_IntSize(vFrom);
+    vTo->pArray = (int *)Vec_SetFetch( Cba_ManMem(p), sizeof(int) * Vec_IntSize(vFrom) );
+    memcpy( Vec_IntArray(vTo), Vec_IntArray(vFrom), sizeof(int) * Vec_IntSize(vFrom) );
+    Vec_IntClear( vFrom );
+}
+static inline void Cba_ManFetchArray( Cba_Man_t * p, Vec_Int_t * vTo, int nSize )
+{
+    if ( nSize == 0 )
+        return;
+    vTo->nSize = vTo->nCap = nSize;
+    vTo->pArray = (int *)Vec_SetFetch( Cba_ManMem(p), sizeof(int) * nSize );
+    memset( Vec_IntArray(vTo), 0xff, sizeof(int) * nSize );
+}
+
+// constructors desctructors
 static inline Cba_Ntk_t * Cba_NtkAlloc( Cba_Man_t * p, char * pName )
 {
     Cba_Ntk_t * pNtk = Vec_SetFetch( Cba_ManMem(p), sizeof(Cba_Ntk_t) );
     memset( pNtk, 0, sizeof(Cba_Ntk_t) );
     pNtk->pDesign = p;
-    pNtk->pName = Vec_SetStrsav( Cba_ManMem(p), pName );
+    pNtk->pName   = Vec_SetStrsav( Cba_ManMem(p), pName );
     Vec_PtrPush( &p->vNtks, pNtk );
     return pNtk;
 }
-
 static inline Cba_Man_t * Cba_ManAlloc( char * pFileName )
 {
-    Cba_Man_t * p;
-    p = ABC_CALLOC( Cba_Man_t, 1 );
-    // design names
-    p->pName      = Extra_FileDesignName( pFileName );
-    p->pSpec      = Abc_UtilStrsav( pFileName );
-    p->pNames     = Abc_NamStart( 1000, 20 );
-    p->pModels    = Abc_NamStart( 1000, 20 );
-    p->pFuncs     = Abc_NamStart( 1000, 20 );
-    // internal data
+    Cba_Man_t * p = ABC_CALLOC( Cba_Man_t, 1 );
+    p->pName    = Extra_FileDesignName( pFileName );
+    p->pSpec    = Abc_UtilStrsav( pFileName );
+    p->pNames   = Abc_NamStart( 1000, 20 );
+    p->pModels  = Abc_NamStart( 1000, 20 );
+    p->pFuncs   = Abc_NamStart( 1000, 20 );
     Vec_SetAlloc_( &p->Mem, 20 );
     Vec_PtrPush( &p->vNtks, NULL );
     return p;
@@ -204,7 +256,6 @@ static inline void Cba_ManFree( Cba_Man_t * p )
 {
     ABC_FREE( p->vNtks.pArray );
     Vec_SetFree_( &p->Mem );
-    // design names
     Abc_NamStop( p->pNames );
     Abc_NamStop( p->pModels );
     Abc_NamStop( p->pFuncs );
@@ -232,6 +283,10 @@ extern void        Cba_PrsWriteBlif( char * pFileName, Cba_Man_t * pDes );
 extern Cba_Man_t * Cba_PrsReadVerilog( char * pFileName );
 /*=== cbaWriteVer.c =========================================================*/
 extern void        Cba_PrsWriteVerilog( char * pFileName, Cba_Man_t * pDes );
+/*=== cbaNtk.c =========================================================*/
+extern void        Cba_ManAssignInternNames( Cba_Man_t * p );
+/*=== cbaBuild.c =========================================================*/
+extern Cba_Man_t * Cba_ManBuild( Cba_Man_t * p );
 
 
 

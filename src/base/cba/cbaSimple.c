@@ -19,6 +19,7 @@
 ***********************************************************************/
 
 #include "cba.h"
+#include "cbaPrs.h"
 #include "base/abc/abc.h"
 
 ABC_NAMESPACE_IMPL_START
@@ -144,18 +145,18 @@ Ptr_ObjType_t Ptr_HopToType( Abc_Obj_t * pObj )
   SeeAlso     []
 
 ***********************************************************************/
-static inline char * Ptr_ObjName( Abc_Obj_t * pObj )
+char * Ptr_AbcObjName( Abc_Obj_t * pObj )
 {
     if ( Abc_ObjIsNet(pObj) || Abc_ObjIsBox(pObj) )
         return Abc_ObjName(pObj);
     if ( Abc_ObjIsCi(pObj) || Abc_ObjIsNode(pObj) )
-        return Ptr_ObjName(Abc_ObjFanout0(pObj));
+        return Ptr_AbcObjName(Abc_ObjFanout0(pObj));
     if ( Abc_ObjIsCo(pObj) )
-        return Ptr_ObjName(Abc_ObjFanin0(pObj));
+        return Ptr_AbcObjName(Abc_ObjFanin0(pObj));
     assert( 0 );
     return NULL;
 }
-static int Ptr_ManCheckArray( Vec_Ptr_t * vArray )
+static int Ptr_CheckArray( Vec_Ptr_t * vArray )
 {
     if ( Vec_PtrSize(vArray) == 0 )
         return 1;
@@ -164,97 +165,97 @@ static int Ptr_ManCheckArray( Vec_Ptr_t * vArray )
     assert( 0 );
     return 0;
 }
-Vec_Ptr_t * Ptr_ManDeriveNode( Abc_Obj_t * pObj )
+Vec_Ptr_t * Ptr_AbcDeriveNode( Abc_Obj_t * pObj )
 {
     Abc_Obj_t * pFanin; int i;
     Vec_Ptr_t * vNode = Vec_PtrAlloc( 2 + Abc_ObjFaninNum(pObj) );
     assert( Abc_ObjIsNode(pObj) );
-    Vec_PtrPush( vNode, Ptr_ObjName(pObj) );
+    Vec_PtrPush( vNode, Ptr_AbcObjName(pObj) );
     Vec_PtrPush( vNode, Abc_Int2Ptr(Ptr_HopToType(pObj)) );
     Abc_ObjForEachFanin( pObj, pFanin, i )
-        Vec_PtrPush( vNode, Ptr_ObjName(pFanin) );
-    assert( Ptr_ManCheckArray(vNode) );
+        Vec_PtrPush( vNode, Ptr_AbcObjName(pFanin) );
+    assert( Ptr_CheckArray(vNode) );
     return vNode;
 }
-Vec_Ptr_t * Ptr_ManDeriveNodes( Abc_Ntk_t * pNtk )
+Vec_Ptr_t * Ptr_AbcDeriveNodes( Abc_Ntk_t * pNtk )
 {
     Abc_Obj_t * pObj; int i;
     Vec_Ptr_t * vNodes = Vec_PtrAlloc( Abc_NtkNodeNum(pNtk) );
     Abc_NtkForEachNode( pNtk, pObj, i )
-        Vec_PtrPush( vNodes, Ptr_ManDeriveNode(pObj) );
-    assert( Ptr_ManCheckArray(vNodes) );
+        Vec_PtrPush( vNodes, Ptr_AbcDeriveNode(pObj) );
+    assert( Ptr_CheckArray(vNodes) );
     return vNodes;
 }
 
-Vec_Ptr_t * Ptr_ManDeriveBox( Abc_Obj_t * pObj )
+Vec_Ptr_t * Ptr_AbcDeriveBox( Abc_Obj_t * pObj )
 {
     Abc_Obj_t * pNext; int i;
     Abc_Ntk_t * pModel = Abc_ObjModel(pObj);
     Vec_Ptr_t * vBox = Vec_PtrAlloc( 2 + 2 * Abc_ObjFaninNum(pObj) + 2 * Abc_ObjFanoutNum(pObj) );
     assert( Abc_ObjIsBox(pObj) );
     Vec_PtrPush( vBox, Abc_NtkName(pModel) );
-    Vec_PtrPush( vBox, Ptr_ObjName(pObj) );
+    Vec_PtrPush( vBox, Ptr_AbcObjName(pObj) );
     Abc_ObjForEachFanin( pObj, pNext, i )
     {
-        Vec_PtrPush( vBox, Ptr_ObjName(Abc_NtkPi(pModel, i)) );
-        Vec_PtrPush( vBox, Ptr_ObjName(pNext) );
+        Vec_PtrPush( vBox, Ptr_AbcObjName(Abc_NtkPi(pModel, i)) );
+        Vec_PtrPush( vBox, Ptr_AbcObjName(pNext) );
     }
     Abc_ObjForEachFanout( pObj, pNext, i )
     {
-        Vec_PtrPush( vBox, Ptr_ObjName(Abc_NtkPo(pModel, i)) );
-        Vec_PtrPush( vBox, Ptr_ObjName(pNext) );
+        Vec_PtrPush( vBox, Ptr_AbcObjName(Abc_NtkPo(pModel, i)) );
+        Vec_PtrPush( vBox, Ptr_AbcObjName(pNext) );
     }
-    assert( Ptr_ManCheckArray(vBox) );
+    assert( Ptr_CheckArray(vBox) );
     return vBox;
 }
-Vec_Ptr_t * Ptr_ManDeriveBoxes( Abc_Ntk_t * pNtk )
+Vec_Ptr_t * Ptr_AbcDeriveBoxes( Abc_Ntk_t * pNtk )
 {
     Abc_Obj_t * pObj; int i;
     Vec_Ptr_t * vBoxes = Vec_PtrAlloc( Abc_NtkBoxNum(pNtk) );
     Abc_NtkForEachBox( pNtk, pObj, i )
-        Vec_PtrPush( vBoxes, Ptr_ManDeriveBox(pObj) );
-    assert( Ptr_ManCheckArray(vBoxes) );
+        Vec_PtrPush( vBoxes, Ptr_AbcDeriveBox(pObj) );
+    assert( Ptr_CheckArray(vBoxes) );
     return vBoxes;
 }
 
-Vec_Ptr_t * Ptr_ManDeriveInputs( Abc_Ntk_t * pNtk )
+Vec_Ptr_t * Ptr_AbcDeriveInputs( Abc_Ntk_t * pNtk )
 {
     Abc_Obj_t * pObj; int i;
     Vec_Ptr_t * vSigs = Vec_PtrAlloc( Abc_NtkPiNum(pNtk) );
     Abc_NtkForEachPi( pNtk, pObj, i )
-        Vec_PtrPush( vSigs, Ptr_ObjName(pObj) );
-    assert( Ptr_ManCheckArray(vSigs) );
+        Vec_PtrPush( vSigs, Ptr_AbcObjName(pObj) );
+    assert( Ptr_CheckArray(vSigs) );
     return vSigs;
 }
-Vec_Ptr_t * Ptr_ManDeriveOutputs( Abc_Ntk_t * pNtk )
+Vec_Ptr_t * Ptr_AbcDeriveOutputs( Abc_Ntk_t * pNtk )
 {
     Abc_Obj_t * pObj; int i;
     Vec_Ptr_t * vSigs = Vec_PtrAlloc( Abc_NtkPoNum(pNtk) );
     Abc_NtkForEachPo( pNtk, pObj, i )
-        Vec_PtrPush( vSigs, Ptr_ObjName(pObj) );
-    assert( Ptr_ManCheckArray(vSigs) );
+        Vec_PtrPush( vSigs, Ptr_AbcObjName(pObj) );
+    assert( Ptr_CheckArray(vSigs) );
     return vSigs;
 }
-Vec_Ptr_t * Ptr_ManDeriveNtk( Abc_Ntk_t * pNtk )
+Vec_Ptr_t * Ptr_AbcDeriveNtk( Abc_Ntk_t * pNtk )
 {
     Vec_Ptr_t * vNtk = Vec_PtrAlloc( 5 );
     Vec_PtrPush( vNtk, Abc_NtkName(pNtk) );
-    Vec_PtrPush( vNtk, Ptr_ManDeriveInputs(pNtk) );
-    Vec_PtrPush( vNtk, Ptr_ManDeriveOutputs(pNtk) );
-    Vec_PtrPush( vNtk, Ptr_ManDeriveNodes(pNtk) );
-    Vec_PtrPush( vNtk, Ptr_ManDeriveBoxes(pNtk) );
-    assert( Ptr_ManCheckArray(vNtk) );
+    Vec_PtrPush( vNtk, Ptr_AbcDeriveInputs(pNtk) );
+    Vec_PtrPush( vNtk, Ptr_AbcDeriveOutputs(pNtk) );
+    Vec_PtrPush( vNtk, Ptr_AbcDeriveNodes(pNtk) );
+    Vec_PtrPush( vNtk, Ptr_AbcDeriveBoxes(pNtk) );
+    assert( Ptr_CheckArray(vNtk) );
     return vNtk;
 }
-Vec_Ptr_t * Ptr_ManDeriveDes( Abc_Ntk_t * pNtk )
+Vec_Ptr_t * Ptr_AbcDeriveDes( Abc_Ntk_t * pNtk )
 {
     Vec_Ptr_t * vDes;
     Abc_Ntk_t * pTemp; int i;
     vDes = Vec_PtrAlloc( 1 + Vec_PtrSize(pNtk->pDesign->vModules) );
     Vec_PtrPush( vDes, pNtk->pDesign->pName );
     Vec_PtrForEachEntry( Abc_Ntk_t *, pNtk->pDesign->vModules, pTemp, i )
-        Vec_PtrPush( vDes, Ptr_ManDeriveNtk(pTemp) );
-    assert( Ptr_ManCheckArray(vDes) );
+        Vec_PtrPush( vDes, Ptr_AbcDeriveNtk(pTemp) );
+    assert( Ptr_CheckArray(vDes) );
     return vDes;
 }
 
@@ -500,7 +501,7 @@ void Ptr_ManExperiment( Abc_Ntk_t * pNtk )
 {
     abctime clk = Abc_Clock();
     char * pFileName = Extra_FileNameGenericAppend(pNtk->pDesign->pName, "_out.blif");
-    Vec_Ptr_t * vDes = Ptr_ManDeriveDes( pNtk );
+    Vec_Ptr_t * vDes = Ptr_AbcDeriveDes( pNtk );
     printf( "Converting to Ptr:  Memory = %6.3f MB  ", 1.0*Ptr_ManMemDes(vDes)/(1<<20) );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     Ptr_ManDumpBlif( pFileName, vDes );
@@ -510,6 +511,238 @@ void Ptr_ManExperiment( Abc_Ntk_t * pNtk )
 }
 
 
+
+/**Function*************************************************************
+
+  Synopsis    [Dumping hierarchical Cba_Ntk_t in Ptr form.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Ptr_t * Ptr_CbaDeriveNode( Cba_Ntk_t * pNtk, int iObj )
+{
+    Vec_Int_t * vFanins = Cba_ObjFaninVec( pNtk, iObj );
+    Vec_Ptr_t * vNode = Vec_PtrAlloc( 2 + Vec_IntSize(vFanins) );
+    int i, iFanin;
+    assert( Cba_ObjIsNode(pNtk, iObj) );
+    Vec_PtrPush( vNode, Cba_ObjNameStr(pNtk, iObj) );
+    if ( Abc_NamObjNumMax(pNtk->pDesign->pFuncs) > 1 )
+        Vec_PtrPush( vNode, Cba_NtkFuncStr( pNtk, Cba_ObjFuncId(pNtk, iObj) ) );
+    else
+        Vec_PtrPush( vNode, Abc_Int2Ptr(Cba_ObjFuncId(pNtk, iObj)) );
+    Vec_IntForEachEntry( vFanins, iFanin, i )
+        Vec_PtrPush( vNode, Cba_ObjNameStr(pNtk, iFanin) );
+    assert( Ptr_CheckArray(vNode) );
+    return vNode;
+}
+Vec_Ptr_t * Ptr_CbaDeriveNodes( Cba_Ntk_t * pNtk )
+{
+    int Type, iObj;
+    Vec_Ptr_t * vNodes = Vec_PtrAlloc( Cba_NtkNodeNum(pNtk) );
+    Cba_NtkForEachObjType( pNtk, Type, iObj )
+        if ( Type == CBA_PRS_NODE )
+            Vec_PtrPush( vNodes, Ptr_CbaDeriveNode(pNtk, iObj) );
+    assert( Ptr_CheckArray(vNodes) );
+    return vNodes;
+}
+
+Vec_Ptr_t * Ptr_CbaDeriveBox( Cba_Ntk_t * pNtk, int iObj )
+{
+    int i, iTerm;
+    Vec_Int_t * vFanins = Cba_ObjFaninVec( pNtk, iObj );
+    Cba_Ntk_t * pModel = Cba_ObjModel( pNtk, iObj );
+    Vec_Ptr_t * vBox = Vec_PtrAlloc( 2 + Cba_NtkPiNum(pModel) + Cba_NtkPoNum(pModel) );
+    assert( Cba_ObjIsBox(pNtk, iObj) );
+    assert( Cba_NtkPiNum(pModel) == Vec_IntSize(vFanins) );
+    Vec_PtrPush( vBox, Cba_NtkName(pModel) );
+    Vec_PtrPush( vBox, Vec_IntSize(&pNtk->vInstIds) ? Cba_ObjInstStr(pNtk, iObj) : NULL );
+    Cba_NtkForEachPi( pModel, iTerm, i )
+    {
+        Vec_PtrPush( vBox, Cba_ObjNameStr(pModel, iTerm) );
+        Vec_PtrPush( vBox, Cba_ObjNameStr(pNtk, Vec_IntEntry(vFanins, i)) );
+    }
+    Cba_NtkForEachPo( pModel, iTerm, i )
+    {
+        Vec_PtrPush( vBox, Cba_ObjNameStr(pModel, iTerm) );
+        Vec_PtrPush( vBox, Cba_ObjNameStr(pNtk, iObj+1+i) );
+    }
+    assert( Ptr_CheckArray(vBox) );
+    return vBox;
+}
+Vec_Ptr_t * Ptr_CbaDeriveBoxes( Cba_Ntk_t * pNtk )
+{
+    int Type, iObj;
+    Vec_Ptr_t * vBoxes = Vec_PtrAlloc( Cba_NtkBoxNum(pNtk) );
+    Cba_NtkForEachObjType( pNtk, Type, iObj )
+        if ( Type == CBA_PRS_BOX )
+            Vec_PtrPush( vBoxes, Ptr_CbaDeriveBox(pNtk, iObj) );
+    assert( Ptr_CheckArray(vBoxes) );
+    return vBoxes;
+}
+
+Vec_Ptr_t * Ptr_CbaDeriveInputs( Cba_Ntk_t * pNtk )
+{
+    int i, iObj;
+    Vec_Ptr_t * vSigs = Vec_PtrAlloc( Cba_NtkPiNum(pNtk) );
+    Cba_NtkForEachPi( pNtk, iObj, i )
+        Vec_PtrPush( vSigs, Cba_ObjNameStr(pNtk, iObj) );
+    assert( Ptr_CheckArray(vSigs) );
+    return vSigs;
+}
+Vec_Ptr_t * Ptr_CbaDeriveOutputs( Cba_Ntk_t * pNtk )
+{
+    int i, iObj;
+    Vec_Ptr_t * vSigs = Vec_PtrAlloc( Cba_NtkPoNum(pNtk) );
+    Cba_NtkForEachPo( pNtk, iObj, i )
+        Vec_PtrPush( vSigs, Cba_ObjNameStr(pNtk, iObj) );
+    assert( Ptr_CheckArray(vSigs) );
+    return vSigs;
+}
+Vec_Ptr_t * Ptr_CbaDeriveNtk( Cba_Ntk_t * pNtk )
+{
+    Vec_Ptr_t * vNtk = Vec_PtrAlloc( 5 );
+    Vec_PtrPush( vNtk, Cba_NtkName(pNtk) );
+    Vec_PtrPush( vNtk, Ptr_CbaDeriveInputs(pNtk) );
+    Vec_PtrPush( vNtk, Ptr_CbaDeriveOutputs(pNtk) );
+    Vec_PtrPush( vNtk, Ptr_CbaDeriveNodes(pNtk) );
+    Vec_PtrPush( vNtk, Ptr_CbaDeriveBoxes(pNtk) );
+    assert( Ptr_CheckArray(vNtk) );
+    return vNtk;
+}
+Vec_Ptr_t * Ptr_CbaDeriveDes( Cba_Man_t * p )
+{
+    Vec_Ptr_t * vDes;
+    Cba_Ntk_t * pTemp; int i;
+    vDes = Vec_PtrAlloc( 1 + Cba_ManNtkNum(p) );
+    Vec_PtrPush( vDes, p->pName );
+    Cba_ManForEachNtk( p, pTemp, i )
+        Vec_PtrPush( vDes, Ptr_CbaDeriveNtk(pTemp) );
+    assert( Ptr_CheckArray(vDes) );
+    return vDes;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Int_t * Cba_PrsReadList( Cba_Man_t * p, Vec_Ptr_t * vNames, Vec_Int_t * vList, int nSkip, int nSkip2 )
+{
+    char * pName; int i;
+    Vec_IntClear( vList );
+    Vec_PtrForEachEntry( char *, vNames, pName, i )
+        if ( i != nSkip && i != nSkip2 )
+            Vec_IntPush( vList, Abc_NamStrFindOrAdd(p->pNames, pName, NULL) );
+    return vList;
+}
+void Cba_PrsReadNodes( Cba_Man_t * p, Vec_Ptr_t * vNodes, Vec_Int_t * vTypesCur, Vec_Int_t * vFuncsCur, Vec_Int_t * vInstIdsCur, Vec_Int_t * vFaninsCur, Vec_Int_t * vList )
+{
+    Vec_Ptr_t * vNode; int i;
+    Vec_PtrForEachEntry( Vec_Ptr_t *, vNodes, vNode, i )
+    {
+        Vec_IntPush( vTypesCur,   CBA_PRS_NODE );
+        Vec_IntPush( vFuncsCur,   (Ptr_ObjType_t)Abc_Ptr2Int(Vec_PtrEntry(vNode, 1)) );
+        Vec_IntPush( vInstIdsCur, 0 );
+        Vec_IntPush( vFaninsCur,  Cba_ManHandleArray(p, Cba_PrsReadList(p, vNode, vList, 1, -1)) ); 
+    }
+}
+void Cba_PrsReadBoxes( Cba_Man_t * p, Vec_Ptr_t * vBoxes, Vec_Int_t * vTypesCur, Vec_Int_t * vFuncsCur, Vec_Int_t * vInstIdsCur, Vec_Int_t * vFaninsCur, Vec_Int_t * vList )
+{
+    Vec_Ptr_t * vBox; int i;
+    Vec_PtrForEachEntry( Vec_Ptr_t *, vBoxes, vBox, i )
+    {
+        Vec_IntPush( vTypesCur,   CBA_PRS_BOX );
+        Vec_IntPush( vFuncsCur,   Abc_NamStrFindOrAdd(p->pNames, Vec_PtrEntry(vBox, 0), NULL) );
+        Vec_IntPush( vInstIdsCur, Abc_NamStrFindOrAdd(p->pNames, Vec_PtrEntry(vBox, 1), NULL) );
+        Vec_IntPush( vFaninsCur,  Cba_ManHandleArray(p, Cba_PrsReadList(p, vBox, vList, 0, 1)) ); 
+    }
+}
+void Cba_PrsReadModule( Cba_Man_t * p, Vec_Ptr_t * vNtk )   
+{
+    Vec_Int_t * vInputsCur  = Vec_IntAlloc( 1000 );
+    Vec_Int_t * vOutputsCur = Vec_IntAlloc( 1000 );
+    Vec_Int_t * vTypesCur   = Vec_IntAlloc( 1000 );
+    Vec_Int_t * vFuncsCur   = Vec_IntAlloc( 1000 );
+    Vec_Int_t * vInstIdsCur = Vec_IntAlloc( 1000 );
+    Vec_Int_t * vFaninsCur  = Vec_IntAlloc( 1000 );
+    Vec_Int_t * vList       = Vec_IntAlloc( 1000 );
+
+    Cba_Ntk_t * pNtk = Cba_NtkAlloc( p, (char *)Vec_PtrEntry(vNtk, 0) );
+    Cba_PrsReadList( p, (Vec_Ptr_t *)Vec_PtrEntry(vNtk, 1), vInputsCur,  -1, -1 );
+    Cba_PrsReadList( p, (Vec_Ptr_t *)Vec_PtrEntry(vNtk, 2), vOutputsCur, -1, -1 );
+    Cba_PrsReadNodes( p, (Vec_Ptr_t *)Vec_PtrEntry(vNtk, 3), vTypesCur, vFuncsCur, vInstIdsCur, vFaninsCur, vList );
+    Cba_PrsReadBoxes( p, (Vec_Ptr_t *)Vec_PtrEntry(vNtk, 4), vTypesCur, vFuncsCur, vInstIdsCur, vFaninsCur, vList );
+
+    Cba_ManSetupArray( p, &pNtk->vInputs,  vInputsCur  );
+    Cba_ManSetupArray( p, &pNtk->vOutputs, vOutputsCur );
+    Cba_ManSetupArray( p, &pNtk->vTypes,   vTypesCur   );
+    Cba_ManSetupArray( p, &pNtk->vFuncs,   vFuncsCur   );
+    Cba_ManSetupArray( p, &pNtk->vInstIds, vInstIdsCur );
+    Cba_ManSetupArray( p, &pNtk->vFanins,  vFaninsCur  );
+
+    Vec_IntFree( vInputsCur );
+    Vec_IntFree( vOutputsCur );
+    Vec_IntFree( vTypesCur );
+    Vec_IntFree( vFuncsCur );
+    Vec_IntFree( vInstIdsCur );
+    Vec_IntFree( vFaninsCur );
+    Vec_IntFree( vList );
+}
+Cba_Man_t * Cba_PrsReadDes( Vec_Ptr_t * vDes )
+{
+    Vec_Ptr_t * vNtk; int i;
+    Cba_Man_t * p = Cba_ManAlloc( (char *)Vec_PtrEntry(vDes, 0) );
+    Vec_PtrForEachEntryStart( Vec_Ptr_t *, vDes, vNtk, i, 1 )
+        Cba_PrsReadModule( p, vNtk );
+    return p;
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Cba_ManReadDesExperiment( Abc_Ntk_t * pNtk )
+{
+    abctime clk = Abc_Clock();
+    char * pFileName1 = Extra_FileNameGenericAppend(pNtk->pDesign->pName, "_out1.blif");
+    char * pFileName2 = Extra_FileNameGenericAppend(pNtk->pDesign->pName, "_out2.blif");
+    Cba_Man_t * p;
+
+    Vec_Ptr_t * vDes = Ptr_AbcDeriveDes( pNtk );
+    printf( "Converting to Ptr:  Memory = %6.3f MB  ", 1.0*Ptr_ManMemDes(vDes)/(1<<20) );
+    Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
+
+    Ptr_ManDumpBlif( pFileName1, vDes );
+    printf( "Finished writing output file \"%s\".  ", pFileName1 );
+    Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
+    
+    p = Cba_PrsReadDes( vDes );
+    Ptr_ManFreeDes( vDes );
+
+    //    Abc_NamPrint( p->pDesign->pNames );
+    Cba_PrsWriteBlif( pFileName2, p );
+    Cba_ManFree( p );
+    printf( "Finished writing output file \"%s\".  ", pFileName2 );
+    Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
+}
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

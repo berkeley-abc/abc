@@ -370,7 +370,7 @@ static inline int Cba_PrsReadConcat( Cba_Prs_t * p, Vec_Int_t * vTemp2 )
     Vec_IntPush( &p->vTypesCur, CBA_PRS_CONCAT );
     Vec_IntPush( &p->vFuncsCur, 0 );
     Vec_IntPush( &p->vInstIdsCur, 0 );
-    Vec_IntPush( &p->vFaninsCur, Cba_PrsSetupDataInt(p, vTemp2) ); 
+    Vec_IntPush( &p->vFaninsCur, Cba_ManHandleArray(p->pDesign, vTemp2) ); 
     return Vec_IntSize(&p->vFaninsCur);
 }
 static inline int Cba_PrsReadSignalOrConcat( Cba_Prs_t * p, int * pName, int * pRange )
@@ -500,7 +500,7 @@ static inline int Cba_PrsReadAssign( Cba_Prs_t * p )
         Vec_IntPush( &p->vTypesCur, CBA_PRS_NODE );
         Vec_IntPush( &p->vFuncsCur, fCompl ? CBA_NODE_INV : CBA_NODE_BUF );
         Vec_IntPush( &p->vInstIdsCur, 0 );
-        Vec_IntPush( &p->vFaninsCur, Cba_PrsSetupDataInt(p, &p->vTemp) ); 
+        Vec_IntPush( &p->vFaninsCur, Cba_ManHandleArray(p->pDesign, &p->vTemp) ); 
         return 1;
     }
     if ( Cba_PrsIsChar(p, '&') ) 
@@ -535,7 +535,7 @@ static inline int Cba_PrsReadAssign( Cba_Prs_t * p )
     Vec_IntPush( &p->vTypesCur, CBA_PRS_NODE );
     Vec_IntPush( &p->vFuncsCur, Oper );
     Vec_IntPush( &p->vInstIdsCur, 0 );
-    Vec_IntPush( &p->vFaninsCur, Cba_PrsSetupDataInt(p, &p->vTemp) ); 
+    Vec_IntPush( &p->vFaninsCur, Cba_ManHandleArray(p->pDesign, &p->vTemp) ); 
     return 1;
 }
 static inline int Cba_PrsReadInstance( Cba_Prs_t * p, int Func )
@@ -565,7 +565,7 @@ static inline int Cba_PrsReadInstance( Cba_Prs_t * p, int Func )
     Vec_IntPush( &p->vTypesCur, Type );
     Vec_IntPush( &p->vFuncsCur, Func );
     Vec_IntPush( &p->vInstIdsCur, InstId );
-    Vec_IntPush( &p->vFaninsCur, Cba_PrsSetupDataInt(p, &p->vTemp) ); 
+    Vec_IntPush( &p->vFaninsCur, Cba_ManHandleArray(p->pDesign, &p->vTemp) ); 
     return 1;
 }
 

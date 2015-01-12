@@ -121,7 +121,7 @@ void Cba_PrsWriteBlif( char * pFileName, Cba_Man_t * pDes )
 
 /**Function*************************************************************
 
-  Synopsis    []
+  Synopsis    [Write elaborated design.]
 
   Description []
                
@@ -130,6 +130,87 @@ void Cba_PrsWriteBlif( char * pFileName, Cba_Man_t * pDes )
   SeeAlso     []
 
 ***********************************************************************/
+void Cba_ManWriteBlifArray( FILE * pFile, Cba_Ntk_t * p, Vec_Int_t * vFanins, int iObj )
+{
+    int iFanin, i;
+    Vec_IntForEachEntry( vFanins, iFanin, i )
+        fprintf( pFile, " %s", Cba_ObjNameStr(p, iFanin) );
+    if ( iObj >= 0 )
+        fprintf( pFile, " %s", Cba_ObjNameStr(p, iObj) );
+    fprintf( pFile, "\n" );
+}
+void Cba_ManWriteBlifArray2( FILE * pFile, Cba_Ntk_t * p, int iObj )
+{
+    int iTerm, i;
+    Vec_Int_t * vFanins = Cba_ObjFaninVec( p, iObj );
+    Cba_Ntk_t * pModel = Cba_ObjModel( p, iObj );
+    Cba_NtkForEachPi( pModel, iTerm, i )
+        fprintf( pFile, " %s=%s", Cba_ObjNameStr(pModel, iTerm), Cba_ObjNameStr(p, Vec_IntEntry(vFanins, i)) );
+    Cba_NtkForEachPo( pModel, iTerm, i )
+        fprintf( pFile, " %s=%s", Cba_ObjNameStr(pModel, iTerm), Cba_ObjNameStr(p, iObj + 1 + i) );
+    fprintf( pFile, "\n" );
+}
+void Cba_ManWriteBlifLines( FILE * pFile, Cba_Ntk_t * p )
+{
+    int Type, i;
+    Cba_NtkForEachObjType( p, Type, i )
+    {
+        if ( Type == CBA_OBJ_NODE ) // .names/assign/box2 (no formal/actual binding)
+        {
+            fprintf( pFile, ".names" );
+            Cba_ManWriteBlifArray( pFile, p, Cba_ObjFaninVec(p, i), i );
+            fprintf( pFile, "%s", Cba_ObjFuncStr(p, i) );
+        }
+        else if ( Type == CBA_OBJ_BOX ) // .names/assign/box2 (no formal/actual binding)
+        {
+            fprintf( pFile, ".subckt" );
+            fprintf( pFile, " %s", Cba_ObjFuncStr(p, i) );
+            Cba_ManWriteBlifArray2( pFile, p, i );
+        }
+        else if ( Type == CBA_OBJ_LATCH ) // .names/assign/box2 (no formal/actual binding)
+        {
+            Vec_Int_t * vFanins = Cba_ObjFaninVec(p, i);
+            fprintf( pFile, ".latch" );
+            fprintf( pFile, " %s", Cba_ObjNameStr(p, Vec_IntEntry(vFanins, 1)) );
+            fprintf( pFile, " %s", Cba_ObjNameStr(p, Vec_IntEntry(vFanins, 0)) );
+            fprintf( pFile, " %c\n", '0' + Cba_ObjFuncId(p, i) );
+        }
+    }
+}
+void Cba_ManWriteBlifNtk( FILE * pFile, Cba_Ntk_t * p )
+{
+    assert( Vec_IntSize(&p->vTypes) == Cba_NtkObjNum(p) );
+    assert( Vec_IntSize(&p->vFuncs) == Cba_NtkObjNum(p) );
+    // write header
+    fprintf( pFile, ".model %s\n", Cba_NtkName(p) );
+    if ( Vec_IntSize(&p->vInouts) )
+    fprintf( pFile, ".inouts" );
+    if ( Vec_IntSize(&p->vInouts) )
+    Cba_ManWriteBlifArray( pFile, p, &p->vInouts, -1 );
+    fprintf( pFile, ".inputs" );
+    Cba_ManWriteBlifArray( pFile, p, &p->vInputs, -1 );
+    fprintf( pFile, ".outputs" );
+    Cba_ManWriteBlifArray( pFile, p, &p->vOutputs, -1 );
+    // write objects
+    Cba_ManWriteBlifLines( pFile, p );
+    fprintf( pFile, ".end\n\n" );
+}
+void Cba_ManWriteBlif( char * pFileName, Cba_Man_t * p )
+{
+    FILE * pFile;
+    Cba_Ntk_t * pNtk; 
+    int i;
+    pFile = fopen( pFileName, "wb" );
+    if ( pFile == NULL )
+    {
+        printf( "Cannot open output file \"%s\".\n", pFileName );
+        return;
+    }
+    fprintf( pFile, "// Design \"%s\" written by ABC on %s\n\n", Cba_ManName(p), Extra_TimeStamp() );
+    Cba_ManForEachNtk( p, pNtk, i )
+        Cba_ManWriteBlifNtk( pFile, pNtk );
+    fclose( pFile );
+}
 
 
 ////////////////////////////////////////////////////////////////////////

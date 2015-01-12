@@ -41,7 +41,27 @@ ABC_NAMESPACE_IMPL_START
   SeeAlso     []
 
 ***********************************************************************/
-
+void Cba_ManAssignInternNamesNtk( Cba_Ntk_t * p )
+{
+    int i, Type, NameId;
+    int nDigits = Abc_Base10Log( Cba_NtkObjNum(p) );
+    Cba_NtkForEachObjType( p, Type, i )
+    {
+        if ( Type == CBA_OBJ_NODE || Type == CBA_OBJ_PIN )
+        {
+            char Buffer[100];
+            sprintf( Buffer, "%s%0*d", "_n_", nDigits, i );
+            NameId = Abc_NamStrFindOrAdd( p->pDesign->pNames, Buffer, NULL );
+            Vec_IntWriteEntry( &p->vNameIds, i, NameId );
+        }
+    }
+}
+void Cba_ManAssignInternNames( Cba_Man_t * p )
+{
+    Cba_Ntk_t * pNtk; int i;
+    Cba_ManForEachNtk( p, pNtk, i )
+        Cba_ManAssignInternNamesNtk( pNtk );
+}
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

@@ -111,38 +111,19 @@ static inline int Cba_PrsErrorPrint( Cba_Prs_t * p )
     return 0;
 }
 
-
-// copy contents to the vector
-static inline int Cba_PrsSetupDataInt( Cba_Prs_t * p, Vec_Int_t * vFrom )
-{
-    int h = Vec_SetFetchH( Cba_ManMem(p->pDesign), sizeof(int) * (Vec_IntSize(vFrom) + 1) );
-    int * pArray = (int *)Vec_SetEntry( Cba_ManMem(p->pDesign), h );
-    pArray[0] = Vec_IntSize(vFrom);
-    memcpy( pArray+1, Vec_IntArray(vFrom), sizeof(int) * Vec_IntSize(vFrom) );
-    Vec_IntClear( vFrom );
-    return h;
-}
-static inline void Cba_PrsSetupVecInt( Cba_Prs_t * p, Vec_Int_t * vTo, Vec_Int_t * vFrom )
-{
-    if ( Vec_IntSize(vFrom) == 0 )
-        return;
-    vTo->nSize = vTo->nCap = Vec_IntSize(vFrom);
-    vTo->pArray = (int *)Vec_SetFetch( Cba_ManMem(p->pDesign), sizeof(int) * Vec_IntSize(vFrom) );
-    memcpy( Vec_IntArray(vTo), Vec_IntArray(vFrom), sizeof(int) * Vec_IntSize(vFrom) );
-    Vec_IntClear( vFrom );
-}
+// create network
 static inline Cba_Ntk_t * Cba_PrsAddCurrentModel( Cba_Prs_t * p, int iNameId )
 {
     Cba_Ntk_t * pNtk = Cba_NtkAlloc( p->pDesign, Abc_NamStr(p->pDesign->pNames, iNameId) );
     assert( Vec_IntSize(&p->vInputsCur) != 0 || Vec_IntSize(&p->vOutputsCur) != 0 );
-    Cba_PrsSetupVecInt( p, &pNtk->vInouts,  &p->vInoutsCur  );
-    Cba_PrsSetupVecInt( p, &pNtk->vInputs,  &p->vInputsCur  );
-    Cba_PrsSetupVecInt( p, &pNtk->vOutputs, &p->vOutputsCur );
-    Cba_PrsSetupVecInt( p, &pNtk->vWires,   &p->vWiresCur   );
-    Cba_PrsSetupVecInt( p, &pNtk->vTypes,   &p->vTypesCur   );
-    Cba_PrsSetupVecInt( p, &pNtk->vFuncs,   &p->vFuncsCur   );
-    Cba_PrsSetupVecInt( p, &pNtk->vInstIds, &p->vInstIdsCur );
-    Cba_PrsSetupVecInt( p, &pNtk->vFanins,  &p->vFaninsCur  );
+    Cba_ManSetupArray( p->pDesign, &pNtk->vInouts,  &p->vInoutsCur  );
+    Cba_ManSetupArray( p->pDesign, &pNtk->vInputs,  &p->vInputsCur  );
+    Cba_ManSetupArray( p->pDesign, &pNtk->vOutputs, &p->vOutputsCur );
+    Cba_ManSetupArray( p->pDesign, &pNtk->vWires,   &p->vWiresCur   );
+    Cba_ManSetupArray( p->pDesign, &pNtk->vTypes,   &p->vTypesCur   );
+    Cba_ManSetupArray( p->pDesign, &pNtk->vFuncs,   &p->vFuncsCur   );
+    Cba_ManSetupArray( p->pDesign, &pNtk->vInstIds, &p->vInstIdsCur );
+    Cba_ManSetupArray( p->pDesign, &pNtk->vFanins,  &p->vFaninsCur  );
     return pNtk;
 }
 
