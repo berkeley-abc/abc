@@ -367,7 +367,7 @@ static inline int Cba_PrsReadConcat( Cba_Prs_t * p, Vec_Int_t * vTemp2 )
     assert( Vec_IntSize(vTemp2) > 2 );
     assert( Vec_IntSize(vTemp2) % 2 == 0 );
     // create new concatentation
-    Vec_IntPush( &p->vTypesCur, CBA_PRS_CONCAT );
+    Vec_IntPush( &p->vTypesCur, CBA_OBJ_CONCAT );
     Vec_IntPush( &p->vFuncsCur, 0 );
     Vec_IntPush( &p->vInstIdsCur, 0 );
     Vec_IntPush( &p->vFaninsCur, Cba_ManHandleArray(p->pDesign, vTemp2) ); 
@@ -497,7 +497,7 @@ static inline int Cba_PrsReadAssign( Cba_Prs_t * p )
     // check unary operator
     if ( Cba_PrsIsChar(p, ';') )
     {
-        Vec_IntPush( &p->vTypesCur, CBA_PRS_NODE );
+        Vec_IntPush( &p->vTypesCur, CBA_OBJ_NODE );
         Vec_IntPush( &p->vFuncsCur, fCompl ? CBA_NODE_INV : CBA_NODE_BUF );
         Vec_IntPush( &p->vInstIdsCur, 0 );
         Vec_IntPush( &p->vFaninsCur, Cba_ManHandleArray(p->pDesign, &p->vTemp) ); 
@@ -532,7 +532,7 @@ static inline int Cba_PrsReadAssign( Cba_Prs_t * p )
         if ( !Cba_PrsIsChar(p, ';') )              return Cba_PrsErrorSet(p, "Expected semicolon at the end of the assign-statement.", 0);
     }
     // write binary operator
-    Vec_IntPush( &p->vTypesCur, CBA_PRS_NODE );
+    Vec_IntPush( &p->vTypesCur, CBA_OBJ_NODE );
     Vec_IntPush( &p->vFuncsCur, Oper );
     Vec_IntPush( &p->vInstIdsCur, 0 );
     Vec_IntPush( &p->vFaninsCur, Cba_ManHandleArray(p->pDesign, &p->vTemp) ); 
@@ -550,12 +550,12 @@ static inline int Cba_PrsReadInstance( Cba_Prs_t * p, int Func )
     p->pCur++;
     if ( Cba_PrsUtilSkipSpaces(p) )               return 0;
     if ( Cba_PrsIsChar(p, '.') ) // node
-        Status = Cba_PrsReadSignalList2(p, &p->vTemp), Type = CBA_PRS_BOX;
+        Status = Cba_PrsReadSignalList2(p, &p->vTemp), Type = CBA_OBJ_BOX;
     else 
-        Status = Cba_PrsReadSignalList1(p, &p->vTemp), Type = CBA_PRS_NODE;
+        Status = Cba_PrsReadSignalList1(p, &p->vTemp), Type = CBA_OBJ_NODE;
     if ( Status == 0 )                            return 0;
     // translate elementary gate
-    if ( Type == CBA_PRS_NODE )
+    if ( Type == CBA_OBJ_NODE )
     {
         int iFuncNew = Cba_PrsIsKnownModule(p, Abc_NamStr(p->pDesign->pNames, Func));
         if ( iFuncNew == 0 )                      return Cba_PrsErrorSet(p, "Cannot find elementary gate.", 0);
@@ -726,7 +726,7 @@ Cba_Man_t * Cba_PrsReadVerilog( char * pFileName )
 void Cba_PrsReadVerilogTest( char * pFileName )
 {
     abctime clk = Abc_Clock();
-    extern void Cba_PrsWriteVerilog( char * pFileName, Cba_Man_t * pDes );
+    extern void Cba_PrsWriteVerilog( char * pFileName, Cba_Man_t * p );
 //    Cba_Man_t * p = Cba_PrsReadVerilog( "c/hie/dump/1/netlist_1.v" );
 //    Cba_Man_t * p = Cba_PrsReadVerilog( "aga/me/me_wide.v" );
     Cba_Man_t * p = Cba_PrsReadVerilog( "aga/ray/ray_wide.v" );

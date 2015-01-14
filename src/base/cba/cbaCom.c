@@ -174,7 +174,7 @@ int Cba_CommandWrite( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 0;
     }
     if ( argc == globalUtilOptind )
-        pFileName = Extra_FileNameGenericAppend( pNtk->pName, "_out.v" );
+        pFileName = Extra_FileNameGenericAppend( Cba_NtkMan(pNtk)->pName, "_out.v" );
     else if ( argc == globalUtilOptind + 1 )
         pFileName = argv[globalUtilOptind];
     else
@@ -314,7 +314,10 @@ usage:
 ******************************************************************************/
 int Cba_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
+    extern void Cba_ManReadDesExperiment( Abc_Ntk_t * pNtk );
+    Abc_Ntk_t * pAbcNtk;
     Cba_Ntk_t * pNtk = Cba_AbcGetNtk(pAbc);
+    char * pFileName = "c/hie/dump/1/netlist_1.v";
     int c, fVerbose  = 0;
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
@@ -330,14 +333,17 @@ int Cba_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
             goto usage;
         }
     }
+/*
     if ( pNtk == NULL )
     {
         Abc_Print( 1, "Cba_CommandTest(): There is no current design.\n" );
         return 0;
     }
+*/
     // transform
-//    pNtk = Cba_NtkUifNodePairs( pNtk, NULL );
-    Cba_AbcUpdateNtk( pAbc, pNtk );
+    pAbcNtk = Io_ReadNetlist( pFileName, Io_ReadFileType(pFileName), 0 );
+    Cba_ManReadDesExperiment( pAbcNtk );
+    Abc_NtkDelete( pAbcNtk );
     return 0;
 usage:
     Abc_Print( -2, "usage: @test [-vh]\n" );

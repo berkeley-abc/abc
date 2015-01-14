@@ -89,7 +89,7 @@ char * Ptr_TypeToName( Ptr_ObjType_t Type )
     assert( 0 );
     return "???";
 }
-char * Ptr_TypeToSop( Ptr_ObjType_t Type )
+char * Ptr_TypeToSop( int Type )
 {
     if ( Type == PTR_OBJ_BUF )   return "1 1\n";
     if ( Type == PTR_OBJ_INV )   return "0 1\n";
@@ -277,7 +277,7 @@ void Ptr_ManDumpNodeBlif( FILE * pFile, Vec_Ptr_t * vNode )
     Vec_PtrForEachEntryStart( char *, vNode, pName, i, 2 )
         fprintf( pFile, " %s", pName );
     fprintf( pFile, " %s\n", (char *)Vec_PtrEntry(vNode, 0) );
-    fprintf( pFile, "%s", Ptr_TypeToSop( (Ptr_ObjType_t)Abc_Ptr2Int(Vec_PtrEntry(vNode, 1)) ) );
+    fprintf( pFile, "%s", Ptr_TypeToSop( Abc_Ptr2Int(Vec_PtrEntry(vNode, 1)) ) );
 }
 void Ptr_ManDumpNodesBlif( FILE * pFile, Vec_Ptr_t * vNodes )
 {
@@ -544,7 +544,7 @@ Vec_Ptr_t * Ptr_CbaDeriveNodes( Cba_Ntk_t * pNtk )
     int Type, iObj;
     Vec_Ptr_t * vNodes = Vec_PtrAlloc( Cba_NtkNodeNum(pNtk) );
     Cba_NtkForEachObjType( pNtk, Type, iObj )
-        if ( Type == CBA_PRS_NODE )
+        if ( Type == CBA_OBJ_NODE )
             Vec_PtrPush( vNodes, Ptr_CbaDeriveNode(pNtk, iObj) );
     assert( Ptr_CheckArray(vNodes) );
     return vNodes;
@@ -578,7 +578,7 @@ Vec_Ptr_t * Ptr_CbaDeriveBoxes( Cba_Ntk_t * pNtk )
     int Type, iObj;
     Vec_Ptr_t * vBoxes = Vec_PtrAlloc( Cba_NtkBoxNum(pNtk) );
     Cba_NtkForEachObjType( pNtk, Type, iObj )
-        if ( Type == CBA_PRS_BOX )
+        if ( Type == CBA_OBJ_BOX )
             Vec_PtrPush( vBoxes, Ptr_CbaDeriveBox(pNtk, iObj) );
     assert( Ptr_CheckArray(vBoxes) );
     return vBoxes;
@@ -650,7 +650,7 @@ void Cba_PrsReadNodes( Cba_Man_t * p, Vec_Ptr_t * vNodes, Vec_Int_t * vTypesCur,
     Vec_Ptr_t * vNode; int i;
     Vec_PtrForEachEntry( Vec_Ptr_t *, vNodes, vNode, i )
     {
-        Vec_IntPush( vTypesCur,   CBA_PRS_NODE );
+        Vec_IntPush( vTypesCur,   CBA_OBJ_NODE );
         Vec_IntPush( vFuncsCur,   (Ptr_ObjType_t)Abc_Ptr2Int(Vec_PtrEntry(vNode, 1)) );
         Vec_IntPush( vInstIdsCur, 0 );
         Vec_IntPush( vFaninsCur,  Cba_ManHandleArray(p, Cba_PrsReadList(p, vNode, vList, 1, -1)) ); 
@@ -661,8 +661,8 @@ void Cba_PrsReadBoxes( Cba_Man_t * p, Vec_Ptr_t * vBoxes, Vec_Int_t * vTypesCur,
     Vec_Ptr_t * vBox; int i;
     Vec_PtrForEachEntry( Vec_Ptr_t *, vBoxes, vBox, i )
     {
-        Vec_IntPush( vTypesCur,   CBA_PRS_BOX );
-        Vec_IntPush( vFuncsCur,   Abc_NamStrFindOrAdd(p->pNames, Vec_PtrEntry(vBox, 0), NULL) );
+        Vec_IntPush( vTypesCur,   CBA_OBJ_BOX );
+        Vec_IntPush( vFuncsCur,   Abc_NamStrFindOrAdd(p->pModels, Vec_PtrEntry(vBox, 0), NULL) );
         Vec_IntPush( vInstIdsCur, Abc_NamStrFindOrAdd(p->pNames, Vec_PtrEntry(vBox, 1), NULL) );
         Vec_IntPush( vFaninsCur,  Cba_ManHandleArray(p, Cba_PrsReadList(p, vBox, vList, 0, 1)) ); 
     }
@@ -698,7 +698,7 @@ void Cba_PrsReadModule( Cba_Man_t * p, Vec_Ptr_t * vNtk )
     Vec_IntFree( vFaninsCur );
     Vec_IntFree( vList );
 }
-Cba_Man_t * Cba_PrsReadDes( Vec_Ptr_t * vDes )
+Cba_Man_t * Cba_PrsReadPtr( Vec_Ptr_t * vDes )
 {
     Vec_Ptr_t * vNtk; int i;
     Cba_Man_t * p = Cba_ManAlloc( (char *)Vec_PtrEntry(vDes, 0) );
@@ -722,25 +722,37 @@ Cba_Man_t * Cba_PrsReadDes( Vec_Ptr_t * vDes )
 void Cba_ManReadDesExperiment( Abc_Ntk_t * pNtk )
 {
     abctime clk = Abc_Clock();
-    char * pFileName1 = Extra_FileNameGenericAppend(pNtk->pDesign->pName, "_out1.blif");
-    char * pFileName2 = Extra_FileNameGenericAppend(pNtk->pDesign->pName, "_out2.blif");
-    Cba_Man_t * p;
+    Cba_Man_t * p, * pTemp;
+    char * pFileName;
 
+    // derive Ptr from ABC
     Vec_Ptr_t * vDes = Ptr_AbcDeriveDes( pNtk );
     printf( "Converting to Ptr:  Memory = %6.3f MB  ", 1.0*Ptr_ManMemDes(vDes)/(1<<20) );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
-
-    Ptr_ManDumpBlif( pFileName1, vDes );
-    printf( "Finished writing output file \"%s\".  ", pFileName1 );
+    // dump
+    pFileName = Extra_FileNameGenericAppend(pNtk->pDesign->pName, "_out1.blif");
+    Ptr_ManDumpBlif( pFileName, vDes );
+    printf( "Finished writing output file \"%s\".  ", pFileName );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     
-    p = Cba_PrsReadDes( vDes );
+    // derive CBA from Ptr
+    p = Cba_PrsReadPtr( vDes );
     Ptr_ManFreeDes( vDes );
+    // dump
+    pFileName = Extra_FileNameGenericAppend(pNtk->pDesign->pName, "_out2.blif");
+    Cba_PrsWriteBlif( pFileName, p );
+    printf( "Finished writing output file \"%s\".  ", pFileName );
+    Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
+    //    Abc_NamPrint( p->pNames );
 
-    //    Abc_NamPrint( p->pDesign->pNames );
-    Cba_PrsWriteBlif( pFileName2, p );
+    // build CBA from CBA
+    p = Cba_ManBuild( pTemp = p );
+    Cba_ManFree( pTemp );
+    // dump
+    pFileName = Extra_FileNameGenericAppend(pNtk->pDesign->pName, "_out3.blif");
+    Cba_ManWriteBlif( pFileName, p );
     Cba_ManFree( p );
-    printf( "Finished writing output file \"%s\".  ", pFileName2 );
+    printf( "Finished writing output file \"%s\".  ", pFileName );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
 }
 

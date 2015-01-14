@@ -265,7 +265,7 @@ static inline int Cba_PrsReadNode( Cba_Prs_t * p )
 {
     if ( Cba_PrsReadList2(p) )   return 1;
     // save results
-    Vec_IntPush( &p->vTypesCur, CBA_PRS_NODE );
+    Vec_IntPush( &p->vTypesCur, CBA_OBJ_NODE );
     Vec_IntPush( &p->vFuncsCur, 1 ); // default const 0 function
     Vec_IntPush( &p->vFaninsCur, Cba_ManHandleArray(p->pDesign, &p->vTemp) ); 
     return 0;
@@ -276,7 +276,7 @@ static inline int Cba_PrsReadBox( Cba_Prs_t * p, int fGate )
     if ( iToken == 0 )           return Cba_PrsErrorSet(p, "Cannot read model name.", 1);
     if ( Cba_PrsReadList3(p) )   return 1;
     // save results
-    Vec_IntPush( &p->vTypesCur, CBA_PRS_BOX );
+    Vec_IntPush( &p->vTypesCur, CBA_OBJ_BOX );
     Vec_IntPush( &p->vFuncsCur, iToken );
     Vec_IntPush( &p->vFaninsCur, Cba_ManHandleArray(p->pDesign, &p->vTemp) ); 
     return 0;
@@ -299,7 +299,7 @@ static inline int Cba_PrsReadLatch( Cba_Prs_t * p )
         iToken = 2;
     Cba_PrsSkipToChar( p, '\n' );
     // save results
-    Vec_IntPush( &p->vTypesCur, CBA_PRS_LATCH );
+    Vec_IntPush( &p->vTypesCur, CBA_OBJ_LATCH );
     Vec_IntPush( &p->vFuncsCur, iToken );
     Vec_IntPush( &p->vFaninsCur, Cba_ManHandleArray(p->pDesign, &p->vTemp) ); 
     return 0;
@@ -316,7 +316,7 @@ static inline int Cba_PrsReadShort( Cba_Prs_t * p )
     Cba_PrsSkipSpaces( p );
     if ( !Cba_PrsIsChar(p, '\n') )     return Cba_PrsErrorSet(p, "Trailing symbols on .short line.", 1);
     // save results
-    Vec_IntPush( &p->vTypesCur, CBA_PRS_NODE );
+    Vec_IntPush( &p->vTypesCur, CBA_OBJ_NODE );
     Vec_IntPush( &p->vFuncsCur, 2 );   // default buffer function
     Vec_IntPush( &p->vFaninsCur, Cba_ManHandleArray(p->pDesign, &p->vTemp) ); 
     return 0;

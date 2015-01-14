@@ -32,6 +32,7 @@
 
 ABC_NAMESPACE_HEADER_START 
 
+/*
 // parser objects (object types after parsing)
 typedef enum { 
     CBA_PRS_NONE = 0,    // 0:  unused
@@ -41,6 +42,7 @@ typedef enum {
     CBA_PRS_CONCAT,      // 4:  concatenation
     CBA_PRS_UNKNOWN      // 5:  unknown
 } Cba_PrsType_t; 
+*/
 
 ////////////////////////////////////////////////////////////////////////
 ///                         BASIC TYPES                              ///

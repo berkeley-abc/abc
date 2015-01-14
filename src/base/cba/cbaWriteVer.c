@@ -134,7 +134,7 @@ void Cba_PrsWriteVerilogNodes( FILE * pFile, Cba_Ntk_t * p )
 {
     int Type, Func, i;
     Cba_NtkForEachObjType( p, Type, i )
-        if ( Type == CBA_PRS_NODE ) // .names/assign/box2 (no formal/actual binding)
+        if ( Type == CBA_OBJ_NODE ) // .names/assign/box2 (no formal/actual binding)
         {
             Func = Cba_ObjFuncId(p, i);
             if ( Func >= CBA_NODE_BUF && Func <= CBA_NODE_XNOR )
@@ -156,7 +156,7 @@ void Cba_PrsWriteVerilogBoxes( FILE * pFile, Cba_Ntk_t * p )
 {
     int Type, i;
     Cba_NtkForEachObjType( p, Type, i )
-        if ( Type == CBA_PRS_BOX ) // .subckt/.gate/box (formal/actual binding) 
+        if ( Type == CBA_OBJ_BOX ) // .subckt/.gate/box (formal/actual binding) 
         {
             fprintf( pFile, "  %s %s (", Cba_ObjFuncStr(p, i), Cba_ObjInstStr(p, i) );
             Cba_PrsWriteVerilogArray3( pFile, p, Cba_ObjFaninVec(p, i) );
@@ -204,7 +204,7 @@ void Cba_PrsWriteVerilogNtk( FILE * pFile, Cba_Ntk_t * p )
     Cba_PrsWriteVerilogBoxes( pFile, p );
     fprintf( pFile, "endmodule\n\n" );
 }
-void Cba_PrsWriteVerilog( char * pFileName, Cba_Man_t * pDes )
+void Cba_PrsWriteVerilog( char * pFileName, Cba_Man_t * p )
 {
     FILE * pFile;
     Cba_Ntk_t * pNtk; 
@@ -215,8 +215,8 @@ void Cba_PrsWriteVerilog( char * pFileName, Cba_Man_t * pDes )
         printf( "Cannot open output file \"%s\".\n", pFileName );
         return;
     }
-    fprintf( pFile, "// Design \"%s\" written by ABC on %s\n\n", Cba_ManName(pDes), Extra_TimeStamp() );
-    Cba_ManForEachNtk( pDes, pNtk, i )
+    fprintf( pFile, "// Design \"%s\" written by ABC on %s\n\n", Cba_ManName(p), Extra_TimeStamp() );
+    Cba_ManForEachNtk( p, pNtk, i )
         Cba_PrsWriteVerilogNtk( pFile, pNtk );
     fclose( pFile );
 }
