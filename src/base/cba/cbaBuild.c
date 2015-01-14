@@ -51,9 +51,9 @@ ABC_NAMESPACE_IMPL_START
 
 ***********************************************************************/
 // replaces NameIds of formal names by their index in the box model
-void Cba_RemapBox( Cba_Ntk_t * pNtk, int iBox, Vec_Int_t * vMap )
+void Cba_BoxRemap( Cba_Ntk_t * pNtk, int iBox, Vec_Int_t * vMap )
 {
-    Cba_Ntk_t * pBoxModel = Cba_ObjModel( pNtk, iBox );
+    Cba_Ntk_t * pBoxModel = Cba_ObjBoxModel( pNtk, iBox );
     Vec_Int_t * vFanins = Cba_ObjFaninVec( pNtk, iBox );
     int i, NameId;
     // map formal names into I/O indexes
@@ -80,19 +80,19 @@ void Cba_RemapBox( Cba_Ntk_t * pNtk, int iBox, Vec_Int_t * vMap )
     Cba_NtkForEachPo( pBoxModel, NameId, i )
         Vec_IntWriteEntry( vMap, NameId, -1 );
 }
-void Cba_RemapBoxes( Cba_Ntk_t * pNtk, Vec_Int_t * vMap )
+void Cba_NtkRemapBoxes( Cba_Ntk_t * pNtk, Vec_Int_t * vMap )
 {
     int Type, iBox;
     Cba_NtkForEachObjType( pNtk, Type, iBox )
         if ( Type == CBA_OBJ_BOX )
-            Cba_RemapBox( pNtk, iBox, vMap );
+            Cba_BoxRemap( pNtk, iBox, vMap );
 }
-Cba_Ntk_t * Cba_NtkBuild( Cba_Man_t * pNew, Cba_Ntk_t * pNtk, Vec_Int_t * vMap, Vec_Int_t * vBoxes, Vec_Int_t * vTemp )
+// create maps of NameId and boxes
+int Cba_NtkCreateMap( Cba_Ntk_t * pNtk, Vec_Int_t * vMap, Vec_Int_t * vBoxes )
 {
     Vec_Int_t * vFanins;
-    Cba_Ntk_t * pNtkNew, * pNtkBox;
-    int i, iObj, ObjId, FaninId, Type, Index, NameId;
-    int nBoxes = 0, nObjCount = 0, NonDriven = 0;
+    int i, iObj, Type, Index, NameId;
+    int nObjCount = 0;
 
     // map old name IDs into new object IDs
     Vec_IntClear( vBoxes );
@@ -104,10 +104,10 @@ Cba_Ntk_t * Cba_NtkBuild( Cba_Man_t * pNew, Cba_Ntk_t * pNtk, Vec_Int_t * vMap, 
     }
     Cba_NtkForEachObjType( pNtk, Type, iObj )
     {
-        vFanins = Cba_ObjFaninVec( pNtk, iObj );
         if ( Type == CBA_OBJ_NODE )
         {
             // consider node output name
+            vFanins = Cba_ObjFaninVec( pNtk, iObj );
             NameId = Vec_IntEntry( vFanins, 0 ); 
             if ( Vec_IntEntry(vMap, NameId) != -1 )
                 printf( "Node output name %d is already driven.\n", NameId );
@@ -115,13 +115,16 @@ Cba_Ntk_t * Cba_NtkBuild( Cba_Man_t * pNew, Cba_Ntk_t * pNtk, Vec_Int_t * vMap, 
         }
         else if ( Type == CBA_OBJ_BOX )
         {
+            Cba_Ntk_t * pNtkBox = Cba_ObjBoxModel( pNtk, iObj );
+            nObjCount += Cba_NtkPiNum(pNtkBox);
             Vec_IntPush( vBoxes, nObjCount++ );
-            pNtkBox = Cba_ObjModel( pNtk, iObj );
+            vFanins = Cba_ObjFaninVec( pNtk, iObj );
             Vec_IntForEachEntry( vFanins, Index, i )
             {
                 i++;
                 if ( Index < Cba_NtkPiNum(pNtkBox) )
                     continue;
+                assert( Index - Cba_NtkPiNum(pNtkBox) < Cba_NtkPoNum(pNtkBox) );
                 // consider box output name
                 NameId = Vec_IntEntry( vFanins, i );
                 if ( Vec_IntEntry(vMap, NameId) != -1 )
@@ -131,14 +134,45 @@ Cba_Ntk_t * Cba_NtkBuild( Cba_Man_t * pNew, Cba_Ntk_t * pNtk, Vec_Int_t * vMap, 
             nObjCount += Cba_NtkPoNum(pNtkBox);
         }
     }
-
-    // check non-driven nets
+    // add outputs
+    nObjCount += Cba_NtkPoNum(pNtk);
+    return nObjCount;
+}
+void Cba_NtkCleanMap( Cba_Ntk_t * pNtk, Vec_Int_t * vMap )
+{
+    Vec_Int_t * vFanins;
+    int i, iObj, Type, NameId;
+    Cba_NtkForEachPi( pNtk, NameId, i )
+        Vec_IntWriteEntry( vMap, NameId, -1 );
     Cba_NtkForEachObjType( pNtk, Type, iObj )
     {
         vFanins = Cba_ObjFaninVec( pNtk, iObj );
         if ( Type == CBA_OBJ_NODE )
         {
+            Vec_IntForEachEntry( vFanins, NameId, i )
+                Vec_IntWriteEntry( vMap, NameId, -1 );
+        }
+        else if ( Type == CBA_OBJ_BOX )
+        {
+            Vec_IntForEachEntry( vFanins, NameId, i )
+                Vec_IntWriteEntry( vMap, Vec_IntEntry(vFanins, ++i), -1 );
+        }
+    }
+    Cba_NtkForEachPo( pNtk, NameId, i )
+        Vec_IntWriteEntry( vMap, NameId, -1 );
+}
+int Cba_NtkCheckNonDriven( Cba_Ntk_t * pNtk, Vec_Int_t * vMap, int nObjCount )
+{
+    Vec_Int_t * vFanins;
+    int i, iObj, Type, NameId, Index;
+    int NonDriven = 0;
+    // check non-driven nets
+    Cba_NtkForEachObjType( pNtk, Type, iObj )
+    {
+        if ( Type == CBA_OBJ_NODE )
+        {
             // consider node input names
+            vFanins = Cba_ObjFaninVec( pNtk, iObj );
             Vec_IntForEachEntryStart( vFanins, NameId, i, 1 )
             {
                 if ( Vec_IntEntry(vMap, NameId) != -1 )
@@ -149,7 +183,8 @@ Cba_Ntk_t * Cba_NtkBuild( Cba_Man_t * pNew, Cba_Ntk_t * pNtk, Vec_Int_t * vMap, 
         }
         else if ( Type == CBA_OBJ_BOX )
         {
-            pNtkBox = Cba_ObjModel( pNtk, iObj );
+            Cba_Ntk_t * pNtkBox = Cba_ObjBoxModel( pNtk, iObj );
+            vFanins = Cba_ObjFaninVec( pNtk, iObj );
             Vec_IntForEachEntry( vFanins, Index, i )
             {
                 i++;
@@ -173,16 +208,22 @@ Cba_Ntk_t * Cba_NtkBuild( Cba_Man_t * pNew, Cba_Ntk_t * pNtk, Vec_Int_t * vMap, 
     }
     if ( NonDriven > 0 )
         printf( "Detected %d non-driven nets.\n", NonDriven );
-    assert( NonDriven == 0 );
+    return NonDriven;
+}
+Cba_Ntk_t * Cba_NtkBuild( Cba_Man_t * pNew, Cba_Ntk_t * pNtk, Vec_Int_t * vMap, Vec_Int_t * vBoxes, Vec_Int_t * vTemp, int nObjCount )
+{
+    Vec_Int_t * vFanins;
+    Cba_Ntk_t * pNtkNew, * pNtkBox;
+    int i, iObj, ObjId, FaninId, Type, Index, NameId, nBoxes = 0;
 
     // start network
     pNtkNew = Cba_NtkAlloc( pNew, Cba_NtkName(pNtk) );
     Cba_ManFetchArray( pNew, &pNtkNew->vInputs,  Cba_NtkPiNum(pNtk) );
     Cba_ManFetchArray( pNew, &pNtkNew->vOutputs, Cba_NtkPoNum(pNtk) );
-    Cba_ManFetchArray( pNew, &pNtkNew->vTypes,   nObjCount + Cba_NtkPoNum(pNtk) );
-    Cba_ManFetchArray( pNew, &pNtkNew->vFuncs,   nObjCount + Cba_NtkPoNum(pNtk) );
-    Cba_ManFetchArray( pNew, &pNtkNew->vFanins,  nObjCount + Cba_NtkPoNum(pNtk) );
-    Cba_ManFetchArray( pNew, &pNtkNew->vNameIds, nObjCount + Cba_NtkPoNum(pNtk) );
+    Cba_ManFetchArray( pNew, &pNtkNew->vTypes,   nObjCount );
+    Cba_ManFetchArray( pNew, &pNtkNew->vFuncs,   nObjCount );
+    Cba_ManFetchArray( pNew, &pNtkNew->vFanins,  nObjCount );
+    Cba_ManFetchArray( pNew, &pNtkNew->vNameIds, nObjCount );
     Cba_ManSetupArray( pNew, &pNtkNew->vBoxes,   vBoxes );
 
     // fill object information
@@ -212,7 +253,9 @@ Cba_Ntk_t * Cba_NtkBuild( Cba_Man_t * pNew, Cba_Ntk_t * pNtk, Vec_Int_t * vMap, 
         else if ( Type == CBA_OBJ_BOX )
         {
             ObjId = Vec_IntEntry( vBoxes, nBoxes++ );
-            pNtkBox = Cba_ObjModel( pNtk, iObj );
+            pNtkBox = Cba_ObjBoxModel( pNtk, iObj );
+            Cba_NtkSetHost( pNtkBox, Cba_NtkId(pNtk), ObjId );
+            // collect fanins
             Vec_IntFill( vTemp, Cba_NtkPiNum(pNtkBox), -1 );
             Vec_IntForEachEntry( vFanins, Index, i )
             {
@@ -225,6 +268,13 @@ Cba_Ntk_t * Cba_NtkBuild( Cba_Man_t * pNew, Cba_Ntk_t * pNtk, Vec_Int_t * vMap, 
             }
             Vec_IntForEachEntry( vTemp, Index, i )
                 assert( Index >= 0 );
+            // create box inputs
+            for ( i = 0; i < Cba_NtkPiNum(pNtkBox); i++ )
+            {
+                Vec_IntWriteEntry( &pNtkNew->vTypes,  ObjId - Cba_NtkPiNum(pNtkBox) + i, CBA_OBJ_BI );
+                Vec_IntWriteEntry( &pNtkNew->vFuncs,  ObjId - Cba_NtkPiNum(pNtkBox) + i, i );
+                Vec_IntWriteEntry( &pNtkNew->vFanins, ObjId - Cba_NtkPiNum(pNtkBox) + i, Cba_ManHandleBuffer(pNew, Vec_IntEntry(vTemp, i)) );
+            }
             // craete box
             Vec_IntWriteEntry( &pNtkNew->vTypes,  ObjId, CBA_OBJ_BOX );
             Vec_IntWriteEntry( &pNtkNew->vFuncs,  ObjId, Cba_ManNtkId(pNew, Cba_NtkName(pNtkBox)) );
@@ -232,8 +282,8 @@ Cba_Ntk_t * Cba_NtkBuild( Cba_Man_t * pNew, Cba_Ntk_t * pNtk, Vec_Int_t * vMap, 
             // create box outputs
             for ( i = 1; i <= Cba_NtkPoNum(pNtkBox); i++ )
             {
-                Vec_IntWriteEntry( &pNtkNew->vTypes,  ObjId + i, CBA_OBJ_PIN );
-                Vec_IntWriteEntry( &pNtkNew->vFuncs,  ObjId + i, -1 );
+                Vec_IntWriteEntry( &pNtkNew->vTypes,  ObjId + i, CBA_OBJ_BO );
+                Vec_IntWriteEntry( &pNtkNew->vFuncs,  ObjId + i, i-1 );
                 Vec_IntWriteEntry( &pNtkNew->vFanins, ObjId + i, Cba_ManHandleBuffer(pNew, ObjId) );
             }
         }
@@ -241,7 +291,7 @@ Cba_Ntk_t * Cba_NtkBuild( Cba_Man_t * pNew, Cba_Ntk_t * pNtk, Vec_Int_t * vMap, 
     assert( nBoxes == Vec_IntSize(vBoxes) );
     Cba_NtkForEachPo( pNtk, NameId, i )
     {
-        ObjId = nObjCount + i;
+        ObjId = nObjCount - Cba_NtkPoNum(pNtk) + i;
         FaninId = Vec_IntEntry( vMap, NameId );
         assert( FaninId != -1 );
         Vec_IntWriteEntry( &pNtkNew->vOutputs, i, ObjId );
@@ -252,26 +302,6 @@ Cba_Ntk_t * Cba_NtkBuild( Cba_Man_t * pNew, Cba_Ntk_t * pNtk, Vec_Int_t * vMap, 
         Vec_IntWriteEntry( &pNtkNew->vNameIds, FaninId, -1 );
         Vec_IntWriteEntry( &pNtkNew->vNameIds, ObjId, NameId );
     }
-
-    // clean map
-    Cba_NtkForEachPi( pNtk, NameId, i )
-        Vec_IntWriteEntry( vMap, NameId, -1 );
-    Cba_NtkForEachObjType( pNtk, Type, iObj )
-    {
-        vFanins = Cba_ObjFaninVec( pNtk, iObj );
-        if ( Type == CBA_OBJ_NODE )
-        {
-            Vec_IntForEachEntry( vFanins, NameId, i )
-                Vec_IntWriteEntry( vMap, NameId, -1 );
-        }
-        else if ( Type == CBA_OBJ_BOX )
-        {
-            Vec_IntForEachEntry( vFanins, Index, i )
-                Vec_IntWriteEntry( vMap, Vec_IntEntry(vFanins, ++i), -1 );
-        }
-    }
-    Cba_NtkForEachPo( pNtk, NameId, i )
-        Vec_IntWriteEntry( vMap, NameId, -1 );
     return pNtkNew;
 }
 Cba_Man_t * Cba_ManBuild( Cba_Man_t * p )
@@ -280,13 +310,18 @@ Cba_Man_t * Cba_ManBuild( Cba_Man_t * p )
     Vec_Int_t * vMap   = Vec_IntStartFull( Abc_NamObjNumMax(p->pNames) + 1 );
     Vec_Int_t * vBoxes = Vec_IntAlloc( 1000 );
     Vec_Int_t * vTemp  = Vec_IntAlloc( 1000 );
-    Cba_Ntk_t * pNtk; int i;
+    Cba_Ntk_t * pNtk; int i, nObjs;
     Cba_ManForEachNtk( p, pNtk, i )
         Abc_NamStrFindOrAdd( p->pModels, Cba_NtkName(pNtk), NULL );
     assert( Abc_NamObjNumMax(p->pModels) == Cba_ManNtkNum(p) + 1 );
-    Cba_RemapBoxes( pNtk, vMap );
     Cba_ManForEachNtk( p, pNtk, i )
-        Cba_NtkBuild( p, pNtk, vMap, vBoxes, vTemp );
+    {
+        Cba_NtkRemapBoxes( pNtk, vMap );
+        nObjs = Cba_NtkCreateMap( pNtk, vMap, vBoxes );
+        Cba_NtkCheckNonDriven( pNtk, vMap, nObjs );
+        Cba_NtkBuild( pNew, pNtk, vMap, vBoxes, vTemp, nObjs );
+        Cba_NtkCleanMap( pNtk, vMap );
+    }
     Vec_IntFree( vTemp );
     Vec_IntFree( vBoxes );
     Vec_IntFree( vMap );

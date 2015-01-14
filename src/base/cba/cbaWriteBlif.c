@@ -143,7 +143,7 @@ void Cba_ManWriteBlifArray2( FILE * pFile, Cba_Ntk_t * p, int iObj )
 {
     int iTerm, i;
     Vec_Int_t * vFanins = Cba_ObjFaninVec( p, iObj );
-    Cba_Ntk_t * pModel = Cba_ObjModel( p, iObj );
+    Cba_Ntk_t * pModel = Cba_ObjBoxModel( p, iObj );
     Cba_NtkForEachPi( pModel, iTerm, i )
         fprintf( pFile, " %s=%s", Cba_ObjNameStr(pModel, iTerm), Cba_ObjNameStr(p, Vec_IntEntry(vFanins, i)) );
     Cba_NtkForEachPo( pModel, iTerm, i )

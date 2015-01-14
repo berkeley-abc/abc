@@ -554,7 +554,7 @@ Vec_Ptr_t * Ptr_CbaDeriveBox( Cba_Ntk_t * pNtk, int iObj )
 {
     int i, iTerm;
     Vec_Int_t * vFanins = Cba_ObjFaninVec( pNtk, iObj );
-    Cba_Ntk_t * pModel = Cba_ObjModel( pNtk, iObj );
+    Cba_Ntk_t * pModel = Cba_ObjBoxModel( pNtk, iObj );
     Vec_Ptr_t * vBox = Vec_PtrAlloc( 2 + Cba_NtkPiNum(pModel) + Cba_NtkPoNum(pModel) );
     assert( Cba_ObjIsBox(pNtk, iObj) );
     assert( Cba_NtkPiNum(pModel) == Vec_IntSize(vFanins) );
