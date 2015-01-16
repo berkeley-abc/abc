@@ -61,19 +61,22 @@ typedef enum {
 // Verilog predefined models
 typedef enum { 
     CBA_NODE_NONE = 0, // 0:  unused
-    CBA_NODE_CONST,    // 1:  constant
-    CBA_NODE_BUF,      // 2:  buffer
-    CBA_NODE_INV,      // 3:  inverter
-    CBA_NODE_AND,      // 4:  AND
-    CBA_NODE_NAND,     // 5:  NAND
-    CBA_NODE_OR,       // 6:  OR
-    CBA_NODE_NOR,      // 7:  NOR
-    CBA_NODE_XOR,      // 8:  XOR
-    CBA_NODE_XNOR,     // 9  .XNOR
-    CBA_NODE_MUX,      // 10: MUX
-    CBA_NODE_MAJ,      // 11: MAJ
-    CBA_NODE_KNOWN,    // 12: unknown
-    CBA_NODE_UNKNOWN   // 13: unknown
+    CBA_NODE_C0,       // 1:  logic node
+    CBA_NODE_C1,       // 2:  logic node
+    CBA_NODE_BUF,      // 3:  buffer
+    CBA_NODE_INV,      // 4:  inverter
+    CBA_NODE_AND,      // 5:  AND
+    CBA_NODE_NAND,     // 6:  NAND
+    CBA_NODE_OR,       // 7:  OR
+    CBA_NODE_NOR,      // 8:  NOR
+    CBA_NODE_XOR,      // 9:  XOR
+    CBA_NODE_XNOR,     // 10  XNOR
+    CBA_NODE_MUX,      // 11: MUX
+    CBA_NODE_MAJ,      // 12: MAJ
+    CBA_NODE_AND00,    // 13: AND00
+    CBA_NODE_AND01,    // 14: AND01
+    CBA_NODE_AND10,    // 15: AND10
+    CBA_NODE_UNKNOWN   // 16: unknown
 } Cba_NodeType_t; 
 
 
@@ -150,7 +153,8 @@ static inline char *         Cba_NtkFuncStr( Cba_Ntk_t * p, int i )          { r
 static inline Vec_Set_t *    Cba_NtkMem( Cba_Ntk_t * p )                     { return Cba_ManMem(p->pDesign);                                                              }
 static inline int            Cba_NtkMemSave( Cba_Ntk_t * p, int * d, int s ) { return Cba_ManMemSave(p->pDesign, d, s);                                                    }
 static inline int *          Cba_NtkMemRead( Cba_Ntk_t * p, int h )          { return Cba_ManMemRead(p->pDesign, h);                                                       }
-static inline Cba_Ntk_t *    Cba_NtkHost( Cba_Ntk_t * p )                    { return Cba_ManNtk(p->pDesign, p->iBoxNtk);                                                  }
+static inline Cba_Ntk_t *    Cba_NtkHostNtk( Cba_Ntk_t * p )                 { return Cba_ManNtk(p->pDesign, p->iBoxNtk);                                                  }
+static inline int            Cba_NtkHostObj( Cba_Ntk_t * p )                 { return p->iBoxObj;                                                                          }
 static inline void           Cba_NtkSetHost( Cba_Ntk_t * p, int n, int i )   { p->iBoxNtk = n; p->iBoxObj = i;                                                             }
 static inline Vec_Int_t *    Cba_NtkCopies( Cba_Ntk_t * p )                  { return &p->pDesign->vCopies;                                                                }
 static inline int            Cba_NtkCopy( Cba_Ntk_t * p, int i )             { return Vec_IntEntry( Cba_NtkCopies(p), p->iObjStart + i );                                  }
@@ -175,15 +179,17 @@ static inline int            Cba_ObjIsCo( Cba_Ntk_t * p, int i )             { r
 static inline int            Cba_ObjIsCio( Cba_Ntk_t * p, int i )            { return Cba_ObjIsCi(p, i) || Cba_ObjIsCo(p, i);                                              }
 static inline int            Cba_ObjIsBio( Cba_Ntk_t * p, int i )            { return Cba_ObjIsBi(p, i) || Cba_ObjIsBo(p, i);                                              }
 
-static inline int            Cba_ObjFanin0( Cba_Ntk_t * p, int i )           { assert(Cba_ObjIsPo(p, i) || Cba_ObjIsBio(p, i)); return Cba_ObjFuncId(p, i);                }
+static inline int            Cba_ObjFanin0( Cba_Ntk_t * p, int i )           { assert(Cba_ObjIsPo(p, i) || Cba_ObjIsBio(p, i)); return Cba_ObjFaninId(p, i);               }
 static inline int *          Cba_ObjFaninArray( Cba_Ntk_t * p, int i )       { assert(Cba_ObjType(p, i) >= CBA_OBJ_NODE); return Cba_NtkMemRead(p, Cba_ObjFaninId(p, i));  }
 static inline int            Cba_ObjFaninNum( Cba_Ntk_t * p, int i )         { return *Cba_ObjFaninArray(p, i);                                                            }
 static inline int *          Cba_ObjFanins( Cba_Ntk_t * p, int i )           { return Cba_ObjFaninArray(p, i) + 1;                                                         }
 static inline Vec_Int_t *    Cba_ObjFaninVec( Cba_Ntk_t * p, int i )         { static Vec_Int_t V; V.pArray = Cba_ObjFaninArray(p, i); V.nSize = V.nCap = V.pArray ? *V.pArray++ : 0; return &V; }
 static inline Vec_Int_t *    Cba_ObjFaninVec2( Cba_Ntk_t * p, int i )        { static Vec_Int_t W; W.pArray = Cba_ObjFaninArray(p, i); W.nSize = W.nCap = W.pArray ? *W.pArray++ : 0; return &W; }
-static inline Cba_NodeType_t Cba_ObjNodeType( Cba_Ntk_t * p, int i )         { assert(Cba_ObjIsNode(p, i)); return Cba_ObjFaninId(p, i);                                   }
+static inline Cba_NodeType_t Cba_ObjNodeType( Cba_Ntk_t * p, int i )         { assert(Cba_ObjIsNode(p, i)); return Cba_ObjFuncId(p, i);                                    }
 static inline int            Cba_ObjBoxModelId( Cba_Ntk_t * p, int i )       { assert(Cba_ObjIsBox(p, i)); return Cba_ObjFuncId(p, i);                                     }
 static inline Cba_Ntk_t *    Cba_ObjBoxModel( Cba_Ntk_t * p, int i )         { assert(Cba_ObjIsBox(p, i)); return Cba_ManNtk(p->pDesign, Cba_ObjBoxModelId(p, i));         }
+static inline int            Cba_ObjBoxSize( Cba_Ntk_t * p, int i )          { return 1 + Cba_NtkPiNum(Cba_ObjBoxModel(p, i)) + Cba_NtkPoNum(Cba_ObjBoxModel(p, i));       }
+
 static inline int            Cba_ObjBoxBiNum( Cba_Ntk_t * p, int i )         { assert(Cba_ObjIsBox(p, i)); return Cba_NtkPiNum(Cba_ObjBoxModel(p, i));                     }
 static inline int            Cba_ObjBoxBoNum( Cba_Ntk_t * p, int i )         { assert(Cba_ObjIsBox(p, i)); return Cba_NtkPoNum(Cba_ObjBoxModel(p, i));                     }
 static inline int            Cba_ObjBoxBi( Cba_Ntk_t * p, int b, int i )     { assert(Cba_ObjIsBox(p, b)); return b - Cba_ObjBoxBiNum(p, b) + i;                           }
@@ -253,7 +259,7 @@ static inline int Cba_ManHandleBuffer( Cba_Man_t * p, int iFanin )
 {
     int h = Vec_SetFetchH( Cba_ManMem(p), sizeof(int) * 2 );
     int * pArray = (int *)Vec_SetEntry( Cba_ManMem(p), h );
-    pArray[0] = 1;
+    pArray[0] = (iFanin >= 0) ? 1 : 0;
     pArray[1] = iFanin;
     return h;
 }
@@ -289,6 +295,14 @@ static inline Cba_Ntk_t * Cba_NtkAlloc( Cba_Man_t * p, char * pName )
         printf( "Model with name %s already exists.\n", pName );
     return pNtk;
 }
+static inline void Cba_NtkResize( Cba_Ntk_t * p, int nObjs )
+{
+    assert( Vec_IntSize(&p->vTypes) == 0 );
+    Cba_ManFetchArray( p->pDesign, &p->vTypes,   nObjs );
+    Cba_ManFetchArray( p->pDesign, &p->vFuncs,   nObjs );
+    Cba_ManFetchArray( p->pDesign, &p->vFanins,  nObjs );
+    Cba_ManFetchArray( p->pDesign, &p->vNameIds, nObjs );
+}
 static inline Cba_Man_t * Cba_ManAlloc( char * pFileName )
 {
     Cba_Man_t * p = ABC_CALLOC( Cba_Man_t, 1 );
@@ -304,15 +318,25 @@ static inline Cba_Man_t * Cba_ManAlloc( char * pFileName )
 }
 static inline Cba_Man_t * Cba_ManClone( Cba_Man_t * pOld )
 {
+    Cba_Ntk_t * pNtk, * pNtkNew; int i;
     Cba_Man_t * p = ABC_CALLOC( Cba_Man_t, 1 );
     p->pName    = Extra_FileDesignName( pOld->pName );
     p->pSpec    = Abc_UtilStrsav( pOld->pSpec );
     p->pNames   = Abc_NamRef( pOld->pNames );
     p->pModels  = Abc_NamRef( pOld->pModels );
     p->pFuncs   = Abc_NamRef( pOld->pFuncs );
+    p->iRoot    = 1;
     Vec_SetAlloc_( &p->Mem, 20 );
     Vec_PtrPush( &p->vNtks, NULL );
-    p->iRoot = 1;
+    Cba_ManForEachNtk( pOld, pNtk, i )
+    {
+        pNtkNew = Cba_NtkAlloc( p, Cba_NtkName(pNtk) );
+        Cba_ManFetchArray( p, &pNtkNew->vInputs,  Cba_NtkPiNum(pNtk) );
+        Cba_ManFetchArray( p, &pNtkNew->vOutputs, Cba_NtkPoNum(pNtk) );
+        Cba_ManFetchArray( p, &pNtkNew->vBoxes,   Cba_NtkBoxNum(pNtk) );
+        Vec_IntShrink( &pNtkNew->vBoxes, 0 );
+    }
+    assert( Cba_ManNtkNum(p) == Cba_ManNtkNum(pOld) );
     return p;
 }
 
@@ -343,6 +367,58 @@ static inline int Cba_ManMemory( Cba_Man_t * p )
     return nMem;
 }
 
+static inline Cba_NodeType_t Ptr_SopToType( char * pSop )
+{
+    if ( !strcmp(pSop, " 1\n") )         return CBA_NODE_C0;
+    if ( !strcmp(pSop, " 0\n") )         return CBA_NODE_C1;
+    if ( !strcmp(pSop, "1 1\n") )        return CBA_NODE_BUF;
+    if ( !strcmp(pSop, "0 1\n") )        return CBA_NODE_INV;
+    if ( !strcmp(pSop, "11 1\n") )       return CBA_NODE_AND;
+    if ( !strcmp(pSop, "00 1\n") )       return CBA_NODE_AND00;
+    if ( !strcmp(pSop, "01 1\n") )       return CBA_NODE_AND01;
+    if ( !strcmp(pSop, "10 1\n") )       return CBA_NODE_AND10;
+    if ( !strcmp(pSop, "00 0\n") )       return CBA_NODE_OR;
+    if ( !strcmp(pSop, "-1 1\n1- 1\n") ) return CBA_NODE_OR;
+    if ( !strcmp(pSop, "1- 1\n-1 1\n") ) return CBA_NODE_OR;
+    if ( !strcmp(pSop, "01 1\n10 1\n") ) return CBA_NODE_XOR;
+    if ( !strcmp(pSop, "10 1\n01 1\n") ) return CBA_NODE_XOR;
+    if ( !strcmp(pSop, "11 1\n00 1\n") ) return CBA_NODE_XNOR;
+    if ( !strcmp(pSop, "00 1\n11 1\n") ) return CBA_NODE_XNOR;
+    assert( 0 );
+    return CBA_NODE_NONE;
+}
+static inline char * Ptr_TypeToName( Cba_NodeType_t Type )
+{
+    if ( Type == CBA_NODE_C0 )    return "const0";
+    if ( Type == CBA_NODE_C1 )    return "const1";
+    if ( Type == CBA_NODE_BUF )   return "buf";
+    if ( Type == CBA_NODE_INV )   return "not";
+    if ( Type == CBA_NODE_AND )   return "and";
+    if ( Type == CBA_NODE_AND00 ) return "and00";
+    if ( Type == CBA_NODE_AND01 ) return "and01";
+    if ( Type == CBA_NODE_AND10 ) return "and10";
+    if ( Type == CBA_NODE_OR )    return "or";
+    if ( Type == CBA_NODE_XOR )   return "xor";
+    if ( Type == CBA_NODE_XNOR )  return "xnor";
+    assert( 0 );
+    return "???";
+}
+static inline char * Ptr_TypeToSop( Cba_NodeType_t Type )
+{
+    if ( Type == CBA_NODE_C0 )    return " 0\n";
+    if ( Type == CBA_NODE_C1 )    return " 1\n";
+    if ( Type == CBA_NODE_BUF )   return "1 1\n";
+    if ( Type == CBA_NODE_INV )   return "0 1\n";
+    if ( Type == CBA_NODE_AND )   return "11 1\n";
+    if ( Type == CBA_NODE_AND00 ) return "00 1\n";
+    if ( Type == CBA_NODE_AND01 ) return "01 1\n";
+    if ( Type == CBA_NODE_AND10 ) return "10 1\n";
+    if ( Type == CBA_NODE_OR )    return "00 0\n";
+    if ( Type == CBA_NODE_XOR )   return "01 1\n10 1\n";
+    if ( Type == CBA_NODE_XNOR )  return "00 1\n11 1\n";
+    assert( 0 );
+    return "???";
+}
 
 /*=== cbaBuild.c =========================================================*/
 extern Cba_Man_t * Cba_ManBuild( Cba_Man_t * p );
@@ -359,8 +435,7 @@ extern void        Cba_PrsWriteVerilog( char * pFileName, Cba_Man_t * p );
 extern void        Cba_ManAssignInternNames( Cba_Man_t * p );
 extern int         Cba_NtkNodeNum( Cba_Ntk_t * p );
 extern int         Cba_ManObjNum( Cba_Man_t * p );
-extern void        Cba_ManSetNtkBoxes( Cba_Man_t * p );
-extern Cba_Man_t * Cba_ManDupStart( Cba_Man_t * p, Vec_Int_t * vObjCounts );
+extern Cba_Man_t * Cba_ManDupStart( Cba_Man_t * p, Vec_Int_t * vNtkSizes );
 extern Cba_Man_t * Cba_ManDup( Cba_Man_t * p );
 
 

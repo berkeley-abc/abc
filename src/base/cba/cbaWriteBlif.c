@@ -75,7 +75,7 @@ void Cba_PrsWriteBlifLines( FILE * pFile, Cba_Ntk_t * p )
         else if ( Type == CBA_OBJ_BOX ) // .names/assign/box2 (no formal/actual binding)
         {
             fprintf( pFile, ".subckt" );
-            fprintf( pFile, " %s", Cba_ObjFuncStr(p, i) );
+            fprintf( pFile, " %s", Cba_NtkName(Cba_ObjBoxModel(p, i)) );
             Cba_PrsWriteBlifArray2( pFile, p, Cba_ObjFaninVec(p, i) );
         }
         else if ( Type == CBA_OBJ_LATCH ) // .names/assign/box2 (no formal/actual binding)

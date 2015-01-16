@@ -26,44 +26,6 @@ ABC_NAMESPACE_IMPL_START
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
-/*
-
-// node types during parsing
-typedef enum { 
-    CBA_NODE_NONE = 0,   // 0:  unused
-    CBA_NODE_CONST,      // 1:  constant
-    CBA_NODE_BUF,        // 2:  buffer
-    CBA_NODE_INV,        // 3:  inverter
-    CBA_NODE_AND,        // 4:  AND
-    CBA_NODE_OR,         // 5:  OR
-    CBA_NODE_XOR,        // 6:  XOR
-    CBA_NODE_NAND,       // 7:  NAND
-    CBA_NODE_NOR,        // 8:  NOR
-    CBA_NODE_XNOR,       // 9  .XNOR
-    CBA_NODE_MUX,        // 10: MUX
-    CBA_NODE_MAJ,        // 11: MAJ
-    CBA_NODE_KNOWN       // 12: unknown
-    CBA_NODE_UNKNOWN     // 13: unknown
-} Cba_NodeType_t; 
-
-*/
-
-const char * s_NodeTypes[CBA_NODE_UNKNOWN+1] = {
-    NULL,       // 0:  unused 
-    "const",    // 1:  constant 
-    "buf",      // 2:  buffer 
-    "not",      // 3:  inverter 
-    "and",      // 4:  AND 
-    "nand",     // 5:  OR 
-    "or",       // 6:  XOR 
-    "nor",      // 7:  NAND 
-    "xor",      // 8:  NOR 
-    "xnor",     // 9: .XNOR 
-    "mux",      // 10: MUX  
-    "maj",      // 11: MAJ 
-    "???"       // 12: known
-    "???"       // 13: unknown
-};
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -139,7 +101,7 @@ void Cba_PrsWriteVerilogNodes( FILE * pFile, Cba_Ntk_t * p )
             Func = Cba_ObjFuncId(p, i);
             if ( Func >= CBA_NODE_BUF && Func <= CBA_NODE_XNOR )
             {
-                fprintf( pFile, "  %s (", s_NodeTypes[Func] );
+                fprintf( pFile, "  %s (", Ptr_TypeToName(Func) );
                 Cba_PrsWriteVerilogArray2( pFile, p, Cba_ObjFaninVec(p, i) );
                 fprintf( pFile, ");\n" );
             }

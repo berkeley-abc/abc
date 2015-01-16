@@ -36,33 +36,6 @@ node   = array containing output name, followed by node type, followed by input 
 box    = array containing model name, instance name, followed by pairs of formal/actual names for each port
 */
 
-typedef enum { 
-    PTR_OBJ_NONE,    // 0: non-existent object
-    PTR_OBJ_CONST0,  // 1: constant node
-    PTR_OBJ_PI,      // 2: primary input
-    PTR_OBJ_PO,      // 3: primary output
-    PTR_OBJ_FAN,     // 4: box output
-    PTR_OBJ_FLOP,    // 5: flip-flop
-    PTR_OBJ_BOX,     // 6: box
-    PTR_OBJ_NODE,    // 7: logic node
-
-    PTR_OBJ_C0,      // 8: logic node
-    PTR_OBJ_C1,      // 9: logic node
-    PTR_OBJ_BUF,     // 0: logic node
-    PTR_OBJ_INV,     // 1: logic node
-    PTR_OBJ_AND,     // 2: logic node
-    PTR_OBJ_OR,      // 3: logic node
-    PTR_OBJ_XOR,     // 4: logic node
-    PTR_OBJ_NAND,    // 5: logic node
-    PTR_OBJ_NOR,     // 6: logic node
-    PTR_OBJ_XNOR,    // 7: logic node
-    PTR_OBJ_MUX,     // 8: logic node
-    PTR_OBJ_MAJ,     // 9: logic node
-
-    PTR_VOID         // 0: placeholder
-} Ptr_ObjType_t;
-
-
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
@@ -78,44 +51,7 @@ typedef enum {
   SeeAlso     []
 
 ***********************************************************************/
-char * Ptr_TypeToName( Ptr_ObjType_t Type )
-{
-    if ( Type == PTR_OBJ_BUF )   return "buf";
-    if ( Type == PTR_OBJ_INV )   return "not";
-    if ( Type == PTR_OBJ_AND )   return "and";
-    if ( Type == PTR_OBJ_OR )    return "or";
-    if ( Type == PTR_OBJ_XOR )   return "xor";
-    if ( Type == PTR_OBJ_XNOR )  return "xnor";
-    assert( 0 );
-    return "???";
-}
-char * Ptr_TypeToSop( int Type )
-{
-    if ( Type == PTR_OBJ_BUF )   return "1 1\n";
-    if ( Type == PTR_OBJ_INV )   return "0 1\n";
-    if ( Type == PTR_OBJ_AND )   return "11 1\n";
-    if ( Type == PTR_OBJ_OR )    return "00 0\n";
-    if ( Type == PTR_OBJ_XOR )   return "01 1\n10 1\n";
-    if ( Type == PTR_OBJ_XNOR )  return "00 1\n11 1\n";
-    assert( 0 );
-    return "???";
-}
-Ptr_ObjType_t Ptr_SopToType( char * pSop )
-{
-    if ( !strcmp(pSop, "1 1\n") )        return PTR_OBJ_BUF;
-    if ( !strcmp(pSop, "0 1\n") )        return PTR_OBJ_INV;
-    if ( !strcmp(pSop, "11 1\n") )       return PTR_OBJ_AND;
-    if ( !strcmp(pSop, "00 0\n") )       return PTR_OBJ_OR;
-    if ( !strcmp(pSop, "-1 1\n1- 1\n") ) return PTR_OBJ_OR;
-    if ( !strcmp(pSop, "1- 1\n-1 1\n") ) return PTR_OBJ_OR;
-    if ( !strcmp(pSop, "01 1\n10 1\n") ) return PTR_OBJ_XOR;
-    if ( !strcmp(pSop, "10 1\n01 1\n") ) return PTR_OBJ_XOR;
-    if ( !strcmp(pSop, "11 1\n00 1\n") ) return PTR_OBJ_XNOR;
-    if ( !strcmp(pSop, "00 1\n11 1\n") ) return PTR_OBJ_XNOR;
-    assert( 0 );
-    return PTR_OBJ_NONE;
-}
-Ptr_ObjType_t Ptr_HopToType( Abc_Obj_t * pObj )
+Cba_NodeType_t Ptr_HopToType( Abc_Obj_t * pObj )
 {
     static word uTruth, uTruths6[3] = {
         ABC_CONST(0xAAAAAAAAAAAAAAAA),
@@ -124,14 +60,14 @@ Ptr_ObjType_t Ptr_HopToType( Abc_Obj_t * pObj )
     };
     assert( Abc_ObjIsNode(pObj) );
     uTruth = Hop_ManComputeTruth6( (Hop_Man_t *)Abc_ObjNtk(pObj)->pManFunc, (Hop_Obj_t *)pObj->pData, Abc_ObjFaninNum(pObj) );
-    if ( uTruth ==  uTruths6[0] )                 return PTR_OBJ_BUF;
-    if ( uTruth == ~uTruths6[0] )                 return PTR_OBJ_INV;
-    if ( uTruth == (uTruths6[0] & uTruths6[1]) )  return PTR_OBJ_AND;
-    if ( uTruth == (uTruths6[0] | uTruths6[1]) )  return PTR_OBJ_OR;
-    if ( uTruth == (uTruths6[0] ^ uTruths6[1]) )  return PTR_OBJ_XOR;
-    if ( uTruth == (uTruths6[0] ^~uTruths6[1]) )  return PTR_OBJ_XNOR;
+    if ( uTruth ==  uTruths6[0] )                 return CBA_NODE_BUF;
+    if ( uTruth == ~uTruths6[0] )                 return CBA_NODE_INV;
+    if ( uTruth == (uTruths6[0] & uTruths6[1]) )  return CBA_NODE_AND;
+    if ( uTruth == (uTruths6[0] | uTruths6[1]) )  return CBA_NODE_OR;
+    if ( uTruth == (uTruths6[0] ^ uTruths6[1]) )  return CBA_NODE_XOR;
+    if ( uTruth == (uTruths6[0] ^~uTruths6[1]) )  return CBA_NODE_XNOR;
     assert( 0 );
-    return PTR_OBJ_NONE;
+    return CBA_NODE_NONE;
 }
 
 /**Function*************************************************************
@@ -315,11 +251,9 @@ void Ptr_ManDumpModuleBlif( FILE * pFile, Vec_Ptr_t * vNtk )
     fprintf( pFile, "\n" );
     fprintf( pFile, ".outputs" );
     Ptr_ManDumpSignalsBlif( pFile, (Vec_Ptr_t *)Vec_PtrEntry(vNtk, 2), 1 );
-    fprintf( pFile, "\n\n" );
+    fprintf( pFile, "\n" );
     Ptr_ManDumpNodesBlif( pFile, (Vec_Ptr_t *)Vec_PtrEntry(vNtk, 3) );
-    fprintf( pFile, "\n" );
     Ptr_ManDumpBoxesBlif( pFile, (Vec_Ptr_t *)Vec_PtrEntry(vNtk, 4) );
-    fprintf( pFile, "\n" );
     fprintf( pFile, ".end\n\n" );
 }
 void Ptr_ManDumpBlif( char * pFileName, Vec_Ptr_t * vDes )
@@ -352,7 +286,7 @@ void Ptr_ManDumpBlif( char * pFileName, Vec_Ptr_t * vDes )
 void Ptr_ManDumpNodeVerilog( FILE * pFile, Vec_Ptr_t * vNode )
 {
     char * pName;  int i;
-    fprintf( pFile, "%s", Ptr_TypeToName( (Ptr_ObjType_t)Abc_Ptr2Int(Vec_PtrEntry(vNode, 1)) ) );
+    fprintf( pFile, "%s", Ptr_TypeToName( (Cba_NodeType_t)Abc_Ptr2Int(Vec_PtrEntry(vNode, 1)) ) );
     fprintf( pFile, "( %s", (char *)Vec_PtrEntry(vNode, 0) );
     Vec_PtrForEachEntryStart( char *, vNode, pName, i, 2 )
         fprintf( pFile, ", %s", pName );
@@ -651,7 +585,7 @@ void Cba_PrsReadNodes( Cba_Man_t * p, Vec_Ptr_t * vNodes, Vec_Int_t * vTypesCur,
     Vec_PtrForEachEntry( Vec_Ptr_t *, vNodes, vNode, i )
     {
         Vec_IntPush( vTypesCur,   CBA_OBJ_NODE );
-        Vec_IntPush( vFuncsCur,   (Ptr_ObjType_t)Abc_Ptr2Int(Vec_PtrEntry(vNode, 1)) );
+        Vec_IntPush( vFuncsCur,   (Cba_NodeType_t)Abc_Ptr2Int(Vec_PtrEntry(vNode, 1)) );
         Vec_IntPush( vInstIdsCur, 0 );
         Vec_IntPush( vFaninsCur,  Cba_ManHandleArray(p, Cba_PrsReadList(p, vNode, vList, 1, -1)) ); 
     }
@@ -676,6 +610,7 @@ void Cba_PrsReadModule( Cba_Man_t * p, Vec_Ptr_t * vNtk )
     Vec_Int_t * vInstIdsCur = Vec_IntAlloc( 1000 );
     Vec_Int_t * vFaninsCur  = Vec_IntAlloc( 1000 );
     Vec_Int_t * vList       = Vec_IntAlloc( 1000 );
+    Vec_Int_t * vBoxes      = Vec_IntStart( Vec_PtrSize((Vec_Ptr_t *)Vec_PtrEntry(vNtk, 4)) );
 
     Cba_Ntk_t * pNtk = Cba_NtkAlloc( p, (char *)Vec_PtrEntry(vNtk, 0) );
     Cba_PrsReadList( p, (Vec_Ptr_t *)Vec_PtrEntry(vNtk, 1), vInputsCur,  -1, -1 );
@@ -689,6 +624,7 @@ void Cba_PrsReadModule( Cba_Man_t * p, Vec_Ptr_t * vNtk )
     Cba_ManSetupArray( p, &pNtk->vFuncs,   vFuncsCur   );
     Cba_ManSetupArray( p, &pNtk->vInstIds, vInstIdsCur );
     Cba_ManSetupArray( p, &pNtk->vFanins,  vFaninsCur  );
+    Cba_ManSetupArray( p, &pNtk->vBoxes,   vBoxes      );
 
     Vec_IntFree( vInputsCur );
     Vec_IntFree( vOutputsCur );
@@ -697,6 +633,7 @@ void Cba_PrsReadModule( Cba_Man_t * p, Vec_Ptr_t * vNtk )
     Vec_IntFree( vInstIdsCur );
     Vec_IntFree( vFaninsCur );
     Vec_IntFree( vList );
+    Vec_IntFree( vBoxes );
 }
 Cba_Man_t * Cba_PrsReadPtr( Vec_Ptr_t * vDes )
 {
@@ -721,6 +658,7 @@ Cba_Man_t * Cba_PrsReadPtr( Vec_Ptr_t * vDes )
 ***********************************************************************/
 void Cba_ManReadDesExperiment( Abc_Ntk_t * pNtk )
 {
+    extern Cba_Man_t * Cba_ManBlastTest( Cba_Man_t * p );
     abctime clk = Abc_Clock();
     Cba_Man_t * p, * pTemp;
     char * pFileName;
@@ -751,9 +689,28 @@ void Cba_ManReadDesExperiment( Abc_Ntk_t * pNtk )
     // dump
     pFileName = Extra_FileNameGenericAppend(pNtk->pDesign->pName, "_out3.blif");
     Cba_ManWriteBlif( pFileName, p );
-    Cba_ManFree( p );
     printf( "Finished writing output file \"%s\".  ", pFileName );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
+    
+    // duplicate CBA
+    p = Cba_ManDup( pTemp = p );
+    Cba_ManFree( pTemp );
+    // dump
+    pFileName = Extra_FileNameGenericAppend(pNtk->pDesign->pName, "_out4.blif");
+    Cba_ManWriteBlif( pFileName, p );
+    printf( "Finished writing output file \"%s\".  ", pFileName );
+    Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
+    
+    // CBA->GIA->CBA
+    p = Cba_ManBlastTest( pTemp = p );
+    Cba_ManFree( pTemp );
+    // dump
+    pFileName = Extra_FileNameGenericAppend(pNtk->pDesign->pName, "_out5.blif");
+    Cba_ManWriteBlif( pFileName, p );
+    printf( "Finished writing output file \"%s\".  ", pFileName );
+    Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
+
+    Cba_ManFree( p );
 }
 
 ////////////////////////////////////////////////////////////////////////
