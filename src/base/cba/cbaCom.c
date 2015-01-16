@@ -316,7 +316,7 @@ int Cba_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     extern void Cba_ManReadDesExperiment( Abc_Ntk_t * pNtk );
     Abc_Ntk_t * pAbcNtk;
-    Cba_Ntk_t * pNtk = Cba_AbcGetNtk(pAbc);
+    //Cba_Ntk_t * pNtk = Cba_AbcGetNtk(pAbc);
     char * pFileName = "c/hie/dump/1/netlist_1.v";
     int c, fVerbose  = 0;
     Extra_UtilGetoptReset();

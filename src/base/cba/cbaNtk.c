@@ -131,7 +131,6 @@ void Cba_NtkDupStart( Cba_Ntk_t * pNew, Cba_Ntk_t * p )
         Cba_ObjDupStart( pNew, p, iObj );
     Cba_NtkForEachBox( p, iObj, i )
     {
-        Cba_Ntk_t * pBox = Cba_ObjBoxModel( p, iObj );
         Cba_BoxForEachBi( p, iObj, iTerm, k )
             Cba_ObjDupStart( pNew, p, iTerm );
         Cba_ObjDupStart( pNew, p, iObj );
