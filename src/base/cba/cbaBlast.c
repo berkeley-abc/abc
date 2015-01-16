@@ -42,36 +42,47 @@ ABC_NAMESPACE_IMPL_START
   SeeAlso     []
 
 ***********************************************************************/
-int Cba_ManAddBarbuf( Gia_Man_t * pNew, int iRes, Cba_Man_t * p, int iLNtk, int iLObj, int iRNtk, int iRObj )
+int Cba_ManAddBarbuf( Gia_Man_t * pNew, int iRes, Cba_Man_t * p, int iLNtk, int iLObj, int iRNtk, int iRObj, Vec_Int_t * vMap )
 {
-//    if ( iRes == 0 || iRes == 1 )
-//        return iRes;
+    int iBufLit, iIdLit;
+    if ( iRes == 0 || iRes == 1 )
+        return iRes;
+    assert( iRes > 0 );
+    if ( vMap && Abc_Lit2Var(iRes) < Vec_IntSize(vMap) && (iIdLit = Vec_IntEntry(vMap, Abc_Lit2Var(iRes))) >= 0 && 
+        Vec_IntEntry(p->vBuf2LeafNtk, Abc_Lit2Var(iIdLit)) == iLNtk && Vec_IntEntry(p->vBuf2RootNtk, Abc_Lit2Var(iIdLit)) == iRNtk )
+        return Abc_LitNotCond( Vec_IntEntry(pNew->vBarBufs, Abc_Lit2Var(iIdLit)), Abc_LitIsCompl(iRes) ^ Abc_LitIsCompl(iIdLit) );
     Vec_IntPush( p->vBuf2LeafNtk, iLNtk );
     Vec_IntPush( p->vBuf2LeafObj, iLObj );
     Vec_IntPush( p->vBuf2RootNtk, iRNtk );
     Vec_IntPush( p->vBuf2RootObj, iRObj );
-    return Gia_ManAppendBuf( pNew, iRes );
+    iBufLit = Gia_ManAppendBuf( pNew, iRes );
+    if ( vMap )
+    {
+        Vec_IntSetEntryFull( vMap, Abc_Lit2Var(iRes), Abc_Var2Lit(Vec_IntSize(pNew->vBarBufs), Abc_LitIsCompl(iRes)) );
+        Vec_IntPush( pNew->vBarBufs, iBufLit );
+    }
+    return iBufLit;
 }
-int Cba_ManExtract_rec( Gia_Man_t * pNew, Cba_Ntk_t * p, int i )
+int Cba_ManExtract_rec( Gia_Man_t * pNew, Cba_Ntk_t * p, int i, Vec_Int_t * vMap )
 {
     int iRes = Cba_NtkCopy( p, i );
     if ( iRes >= 0 )
         return iRes;
     if ( Cba_ObjIsCo(p, i) )
-        iRes = Cba_ManExtract_rec( pNew, p, Cba_ObjFanin0(p, i) );
+        iRes = Cba_ManExtract_rec( pNew, p, Cba_ObjFanin0(p, i), vMap );
     else if ( Cba_ObjIsBo(p, i) )
     {
         Cba_Ntk_t * pBox = Cba_ObjBoModel( p, i );
         int iObj = Cba_NtkPo( pBox, Cba_ObjCioIndex(p, i) );
-        iRes = Cba_ManExtract_rec( pNew, pBox, iObj );
-        iRes = Cba_ManAddBarbuf( pNew, iRes, p->pDesign, Cba_NtkId(p), i, Cba_NtkId(pBox), iObj );
+        iRes = Cba_ManExtract_rec( pNew, pBox, iObj, vMap );
+        iRes = Cba_ManAddBarbuf( pNew, iRes, p->pDesign, Cba_NtkId(p), i, Cba_NtkId(pBox), iObj, vMap );
     }
     else if ( Cba_ObjIsPi(p, i) )
     {
         Cba_Ntk_t * pHost = Cba_NtkHostNtk( p );
         int iObj = Cba_ObjBoxBi( pHost, Cba_NtkHostObj(p), Cba_ObjCioIndex(p, i) );
-        iRes = Cba_ManExtract_rec( pNew, pHost, iObj );
-        iRes = Cba_ManAddBarbuf( pNew, iRes, p->pDesign, Cba_NtkId(p), i, Cba_NtkId(pHost), iObj );
+        iRes = Cba_ManExtract_rec( pNew, pHost, iObj, vMap );
+        iRes = Cba_ManAddBarbuf( pNew, iRes, p->pDesign, Cba_NtkId(p), i, Cba_NtkId(pHost), iObj, vMap );
     }
     else if ( Cba_ObjIsNode(p, i) )
     {
@@ -89,15 +100,15 @@ int Cba_ManExtract_rec( Gia_Man_t * pNew, Cba_Ntk_t * p, int i )
         else if ( pFanins[0] == 1 )
         {
             if ( Type == CBA_NODE_BUF )
-                iRes = Cba_ManExtract_rec( pNew, p, pFanins[1] );
+                iRes = Cba_ManExtract_rec( pNew, p, pFanins[1], vMap );
             else if ( Type == CBA_NODE_INV )
-                iRes = Abc_LitNot( Cba_ManExtract_rec( pNew, p, pFanins[1] ) );
+                iRes = Abc_LitNot( Cba_ManExtract_rec( pNew, p, pFanins[1], vMap ) );
             else assert( 0 );
         }
         else
         {
             for ( k = 0; k < pFanins[0]; k++ )
-                pLits[k] = Cba_ManExtract_rec( pNew, p, pFanins[k+1] );
+                pLits[k] = Cba_ManExtract_rec( pNew, p, pFanins[k+1], vMap );
             if ( Type == CBA_NODE_AND )
                 iRes = Gia_ManHashAnd( pNew, pLits[0], pLits[1] );
             else if ( Type == CBA_NODE_OR )
@@ -117,6 +128,7 @@ Gia_Man_t * Cba_ManExtract( Cba_Man_t * p, int fVerbose )
 {
     Cba_Ntk_t * pRoot = Cba_ManRoot(p);
     Gia_Man_t * pNew, * pTemp; 
+    Vec_Int_t * vMap = NULL;
     int i, iObj;
     Vec_IntFreeP( &p->vBuf2LeafNtk );
     Vec_IntFreeP( &p->vBuf2LeafObj );
@@ -132,12 +144,21 @@ Gia_Man_t * Cba_ManExtract( Cba_Man_t * p, int fVerbose )
     pNew->pName = Abc_UtilStrsav(p->pName);
     pNew->pSpec = Abc_UtilStrsav(p->pSpec);
     Vec_IntFill( &p->vCopies, Cba_ManObjNum(p), -1 );
+
+    // primary inputs
     Cba_NtkForEachPi( pRoot, iObj, i )
         Cba_NtkSetCopy( pRoot, iObj, Gia_ManAppendCi(pNew) );
+
+    // internal nodes
     Gia_ManHashAlloc( pNew );
+    pNew->vBarBufs = Vec_IntAlloc( 10000 );
+    vMap = Vec_IntStartFull( 10000 );
     Cba_NtkForEachPo( pRoot, iObj, i )
-        Cba_ManExtract_rec( pNew, pRoot, iObj );
+        Cba_ManExtract_rec( pNew, pRoot, iObj, vMap );
+    Vec_IntFreeP( &vMap );
     Gia_ManHashStop( pNew );
+
+    // primary outputs
     Cba_NtkForEachPo( pRoot, iObj, i )
         Gia_ManAppendCo( pNew, Cba_NtkCopy(pRoot, iObj) );
     assert( Vec_IntSize(p->vBuf2LeafNtk) == pNew->nBufs );
@@ -146,9 +167,6 @@ Gia_Man_t * Cba_ManExtract( Cba_Man_t * p, int fVerbose )
     pNew = Gia_ManCleanup( pTemp = pNew );
     Gia_ManStop( pTemp );
     Gia_ManPrintStats( pNew, NULL );
-//    pNew = Gia_ManSweepHierarchy( pTemp = pNew );
-//    Gia_ManStop( pTemp );
-//    Gia_ManPrintStats( pNew, NULL );
     return pNew;
 }
 
@@ -302,7 +320,8 @@ void Cba_NtkInsertGia( Cba_Man_t * p, Gia_Man_t * pGia )
     // create node and connect POs
     Gia_ManForEachPo( pGia, pObj, i )
         Cba_NtkCreateAndConnectBuffer( pGia, pObj, pRoot, Cba_NtkPo(pRoot, i) );
-    assert( Cba_NtkObjNum(pRoot) == pRoot->nObjs );
+    Cba_ManForEachNtk( p, pNtk, i )
+        assert( Cba_NtkObjNum(pNtk) == pNtk->nObjs );
 }
 Cba_Man_t * Cba_ManInsertGia( Cba_Man_t * p, Gia_Man_t * pGia )
 {

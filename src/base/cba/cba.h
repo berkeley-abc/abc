@@ -308,9 +308,9 @@ static inline Cba_Man_t * Cba_ManAlloc( char * pFileName )
     Cba_Man_t * p = ABC_CALLOC( Cba_Man_t, 1 );
     p->pName    = Extra_FileDesignName( pFileName );
     p->pSpec    = Abc_UtilStrsav( pFileName );
-    p->pNames   = Abc_NamStart( 1000, 20 );
-    p->pModels  = Abc_NamStart( 1000, 20 );
-    p->pFuncs   = Abc_NamStart( 1000, 20 );
+    p->pNames   = Abc_NamStart( 1000, 24 );
+    p->pModels  = Abc_NamStart( 1000, 24 );
+    p->pFuncs   = Abc_NamStart( 1000, 24 );
     Vec_SetAlloc_( &p->Mem, 20 );
     Vec_PtrPush( &p->vNtks, NULL );
     p->iRoot = 1;

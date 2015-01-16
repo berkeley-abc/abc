@@ -47,8 +47,6 @@ void Cba_BoxRemap( Cba_Ntk_t * pNtk, int iBox, Vec_Int_t * vMap )
     Cba_Ntk_t * pBoxModel = Cba_ObjBoxModel( pNtk, iBox );
     Vec_Int_t * vFanins = Cba_ObjFaninVec( pNtk, iBox );
     int i, NameId;
-    Vec_IntForEachEntry( vMap, NameId, i )
-        assert( NameId == -1 );
     // map formal names into I/O indexes
     Cba_NtkForEachPi( pBoxModel, NameId, i )
     {
@@ -79,6 +77,8 @@ void Cba_NtkRemapBoxes( Cba_Ntk_t * pNtk, Vec_Int_t * vMap )
     Cba_NtkForEachObjType( pNtk, Type, iBox )
         if ( Type == CBA_OBJ_BOX )
             Cba_BoxRemap( pNtk, iBox, vMap );
+    Vec_IntForEachEntry( vMap, Type, iBox )
+        assert( Type == -1 );
 }
 // create maps of NameId and boxes
 void Cba_NtkFindNonDriven( Cba_Ntk_t * pNtk, Vec_Int_t * vMap, int nObjCount, Vec_Int_t * vNonDriven )

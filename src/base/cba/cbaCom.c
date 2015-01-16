@@ -317,7 +317,9 @@ int Cba_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     extern void Cba_ManReadDesExperiment( Abc_Ntk_t * pNtk );
     Abc_Ntk_t * pAbcNtk;
     //Cba_Ntk_t * pNtk = Cba_AbcGetNtk(pAbc);
-    char * pFileName = "c/hie/dump/1/netlist_1.v";
+//    char * pFileName = "c/hie/dump/1/netlist_1.v";
+//    char * pFileName = "c/hie/dump/3/netlist_18.v";
+    char * pFileName = "c/hie/dump/1/netlist_0.v";
     int c, fVerbose  = 0;
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
