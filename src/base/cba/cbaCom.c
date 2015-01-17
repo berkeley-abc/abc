@@ -481,7 +481,6 @@ int Cba_CommandCec( Abc_Frame_t * pAbc, int argc, char ** argv )
     pMiter = Gia_ManMiter( pFirst, pSecond, 0, 1, 0, 0, pPars->fVerbose );
     if ( pMiter )
     {
-        int fDumpMiter = 0;
         if ( fDumpMiter )
         {
             Abc_Print( 0, "The verification miter is written into file \"%s\".\n", "cec_miter.aig" );

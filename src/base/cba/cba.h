@@ -371,7 +371,7 @@ static inline int Cba_ManMemory( Cba_Man_t * p )
     return nMem;
 }
 
-static inline Cba_NtkPrintStats( Cba_Ntk_t * p )
+static inline void Cba_NtkPrintStats( Cba_Ntk_t * p )
 {
     printf( "%-32s ",      Cba_NtkName(p) );
     printf( "pi =%5d  ",   Cba_NtkPiNum(p) );
@@ -381,7 +381,7 @@ static inline Cba_NtkPrintStats( Cba_Ntk_t * p )
     printf( "obj =%6d  ",  Cba_NtkObjNum(p) );
     printf( "\n" );
 }
-static inline Cba_ManPrintStats( Cba_Man_t * p, int fVerbose )
+static inline void Cba_ManPrintStats( Cba_Man_t * p, int fVerbose )
 {
     Cba_Ntk_t * pNtk; int i;
     Cba_ManForEachNtk( p, pNtk, i )
