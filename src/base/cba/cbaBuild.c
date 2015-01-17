@@ -204,7 +204,6 @@ Cba_Ntk_t * Cba_NtkBuild( Cba_Man_t * pNew, Cba_Ntk_t * pNtk, Vec_Int_t * vMap, 
         {
             ObjId = Vec_IntEntry( &pNtkNew->vBoxes, nBoxes++ );
             pNtkBox = Cba_ObjBoxModel( pNtk, iObj );
-            Cba_NtkSetHost( pNtkBox, Cba_NtkId(pNtk), ObjId );
             // collect fanins
             Vec_IntFill( vTemp, Cba_NtkPiNum(pNtkBox), -1 );
             Vec_IntForEachEntry( vFanins, Index, i )
@@ -227,6 +226,7 @@ Cba_Ntk_t * Cba_NtkBuild( Cba_Man_t * pNew, Cba_Ntk_t * pNtk, Vec_Int_t * vMap, 
             // create box
             Vec_IntWriteEntry( &pNtkNew->vTypes,  ObjId, CBA_OBJ_BOX );
             Vec_IntWriteEntry( &pNtkNew->vFuncs,  ObjId, Cba_ManNtkId(pNew, Cba_NtkName(pNtkBox)) );
+            Cba_NtkSetHost( Cba_ObjBoxModel(pNtkNew, ObjId), Cba_NtkId(pNtkNew), ObjId );
             // create box inputs
             Cba_BoxForEachBi( pNtkNew, ObjId, FaninId, i )
             {
@@ -311,7 +311,8 @@ Cba_Man_t * Cba_ManBuild( Cba_Man_t * p )
     Vec_Int_t * vMap   = Vec_IntStartFull( Abc_NamObjNumMax(p->pNames) + 1 );
     Vec_Int_t * vNonDr = Vec_IntAlloc( 1000 );
     Vec_Int_t * vTemp  = Vec_IntAlloc( 1000 );
-    Cba_Ntk_t * pNtk; int i, nObjs;
+    Cba_Ntk_t * pNtk;  
+    int i, nObjs;
     assert( Abc_NamObjNumMax(p->pModels) == Cba_ManNtkNum(p) + 1 );
     Cba_ManForEachNtk( p, pNtk, i )
     {

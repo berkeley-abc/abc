@@ -63,26 +63,28 @@ int Cba_ManAddBarbuf( Gia_Man_t * pNew, int iRes, Cba_Man_t * p, int iLNtk, int 
     }
     return iBufLit;
 }
-int Cba_ManExtract_rec( Gia_Man_t * pNew, Cba_Ntk_t * p, int i, Vec_Int_t * vMap )
+int Cba_ManExtract_rec( Gia_Man_t * pNew, Cba_Ntk_t * p, int i, int fBuffers, Vec_Int_t * vMap )
 {
     int iRes = Cba_NtkCopy( p, i );
     if ( iRes >= 0 )
         return iRes;
     if ( Cba_ObjIsCo(p, i) )
-        iRes = Cba_ManExtract_rec( pNew, p, Cba_ObjFanin0(p, i), vMap );
+        iRes = Cba_ManExtract_rec( pNew, p, Cba_ObjFanin0(p, i), fBuffers, vMap );
     else if ( Cba_ObjIsBo(p, i) )
     {
         Cba_Ntk_t * pBox = Cba_ObjBoModel( p, i );
         int iObj = Cba_NtkPo( pBox, Cba_ObjCioIndex(p, i) );
-        iRes = Cba_ManExtract_rec( pNew, pBox, iObj, vMap );
-        iRes = Cba_ManAddBarbuf( pNew, iRes, p->pDesign, Cba_NtkId(p), i, Cba_NtkId(pBox), iObj, vMap );
+        iRes = Cba_ManExtract_rec( pNew, pBox, iObj, fBuffers, vMap );
+        if ( fBuffers )
+            iRes = Cba_ManAddBarbuf( pNew, iRes, p->pDesign, Cba_NtkId(p), i, Cba_NtkId(pBox), iObj, vMap );
     }
     else if ( Cba_ObjIsPi(p, i) )
     {
         Cba_Ntk_t * pHost = Cba_NtkHostNtk( p );
         int iObj = Cba_ObjBoxBi( pHost, Cba_NtkHostObj(p), Cba_ObjCioIndex(p, i) );
-        iRes = Cba_ManExtract_rec( pNew, pHost, iObj, vMap );
-        iRes = Cba_ManAddBarbuf( pNew, iRes, p->pDesign, Cba_NtkId(p), i, Cba_NtkId(pHost), iObj, vMap );
+        iRes = Cba_ManExtract_rec( pNew, pHost, iObj, fBuffers, vMap );
+        if ( fBuffers )
+            iRes = Cba_ManAddBarbuf( pNew, iRes, p->pDesign, Cba_NtkId(p), i, Cba_NtkId(pHost), iObj, vMap );
     }
     else if ( Cba_ObjIsNode(p, i) )
     {
@@ -100,15 +102,15 @@ int Cba_ManExtract_rec( Gia_Man_t * pNew, Cba_Ntk_t * p, int i, Vec_Int_t * vMap
         else if ( pFanins[0] == 1 )
         {
             if ( Type == CBA_NODE_BUF )
-                iRes = Cba_ManExtract_rec( pNew, p, pFanins[1], vMap );
+                iRes = Cba_ManExtract_rec( pNew, p, pFanins[1], fBuffers, vMap );
             else if ( Type == CBA_NODE_INV )
-                iRes = Abc_LitNot( Cba_ManExtract_rec( pNew, p, pFanins[1], vMap ) );
+                iRes = Abc_LitNot( Cba_ManExtract_rec( pNew, p, pFanins[1], fBuffers, vMap ) );
             else assert( 0 );
         }
         else
         {
             for ( k = 0; k < pFanins[0]; k++ )
-                pLits[k] = Cba_ManExtract_rec( pNew, p, pFanins[k+1], vMap );
+                pLits[k] = Cba_ManExtract_rec( pNew, p, pFanins[k+1], fBuffers, vMap );
             if ( Type == CBA_NODE_AND )
                 iRes = Gia_ManHashAnd( pNew, pLits[0], pLits[1] );
             else if ( Type == CBA_NODE_OR )
@@ -124,7 +126,7 @@ int Cba_ManExtract_rec( Gia_Man_t * pNew, Cba_Ntk_t * p, int i, Vec_Int_t * vMap
     Cba_NtkSetCopy( p, i, iRes );
     return iRes;
 }
-Gia_Man_t * Cba_ManExtract( Cba_Man_t * p, int fVerbose )
+Gia_Man_t * Cba_ManExtract( Cba_Man_t * p, int fBuffers, int fVerbose )
 {
     Cba_Ntk_t * pRoot = Cba_ManRoot(p);
     Gia_Man_t * pNew, * pTemp; 
@@ -154,7 +156,7 @@ Gia_Man_t * Cba_ManExtract( Cba_Man_t * p, int fVerbose )
     pNew->vBarBufs = Vec_IntAlloc( 10000 );
     vMap = Vec_IntStartFull( 10000 );
     Cba_NtkForEachPo( pRoot, iObj, i )
-        Cba_ManExtract_rec( pNew, pRoot, iObj, vMap );
+        Cba_ManExtract_rec( pNew, pRoot, iObj, fBuffers, vMap );
     Vec_IntFreeP( &vMap );
     Gia_ManHashStop( pNew );
 
@@ -166,7 +168,7 @@ Gia_Man_t * Cba_ManExtract( Cba_Man_t * p, int fVerbose )
     // cleanup
     pNew = Gia_ManCleanup( pTemp = pNew );
     Gia_ManStop( pTemp );
-    Gia_ManPrintStats( pNew, NULL );
+    //Gia_ManPrintStats( pNew, NULL );
     return pNew;
 }
 
@@ -347,12 +349,32 @@ Cba_Man_t * Cba_ManInsertGia( Cba_Man_t * p, Gia_Man_t * pGia )
 ***********************************************************************/
 Cba_Man_t * Cba_ManBlastTest( Cba_Man_t * p )
 {
-    Gia_Man_t * pGia = Cba_ManExtract( p, 0 );
+    Gia_Man_t * pGia = Cba_ManExtract( p, 1, 0 );
     Cba_Man_t * pNew = Cba_ManInsertGia( p, pGia );
     Gia_ManStop( pGia );
     Cba_ManAssignInternNames( pNew );
     return pNew;
 }
+
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void * Cba_ManInsertAbc( Cba_Man_t * p, void * pAbc )
+{
+    Abc_Ntk_t * pNtk = pAbc;
+    Cba_Man_t * pNew = NULL;
+    return pNew;
+}
+
 
 
 ////////////////////////////////////////////////////////////////////////

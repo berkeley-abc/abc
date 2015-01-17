@@ -168,7 +168,7 @@ static inline Cba_Prs_t * Cba_PrsAlloc( char * pFileName )
     p->pBuffer = pBuffer;
     p->pLimit  = pLimit;
     p->pCur    = pBuffer;
-    p->pDesign = Cba_ManAlloc( pFileName );
+    p->pDesign = Cba_ManAlloc( NULL, pFileName );
     return p;
 }
 static inline void Cba_PrsFree( Cba_Prs_t * p )
@@ -194,6 +194,20 @@ static inline void Cba_PrsFree( Cba_Prs_t * p )
     Vec_IntErase( &p->vSucceeded );
     ABC_FREE( p->pBuffer );
     ABC_FREE( p );
+}
+static inline void Cba_PrsRemapBoxModels( Cba_Man_t * p )
+{
+    Cba_Ntk_t * pNtk; 
+    int i, Type, iObj;
+    Cba_ManForEachNtk( p, pNtk, i )
+        Cba_NtkForEachObjType( pNtk, Type, iObj )
+            if ( Type == CBA_OBJ_BOX )
+            {
+                char * pName = Abc_NamStr( p->pNames, Cba_ObjFuncId(pNtk, iObj) );
+                int iModelId = Abc_NamStrFind( p->pModels, pName );
+                assert( iModelId > 0 );
+                Vec_IntWriteEntry( &pNtk->vFuncs, iObj, iModelId );
+            }
 }
 
 ////////////////////////////////////////////////////////////////////////

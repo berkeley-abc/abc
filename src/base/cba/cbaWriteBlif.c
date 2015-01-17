@@ -114,7 +114,7 @@ void Cba_PrsWriteBlif( char * pFileName, Cba_Man_t * p )
         printf( "Cannot open output file \"%s\".\n", pFileName );
         return;
     }
-    fprintf( pFile, "// Design \"%s\" written by ABC on %s\n\n", Cba_ManName(p), Extra_TimeStamp() );
+    fprintf( pFile, "# Design \"%s\" written by ABC on %s\n\n", Cba_ManName(p), Extra_TimeStamp() );
     Cba_ManForEachNtk( p, pNtk, i )
         Cba_PrsWriteBlifNtk( pFile, pNtk );
     fclose( pFile );
@@ -207,7 +207,8 @@ void Cba_ManWriteBlif( char * pFileName, Cba_Man_t * p )
         printf( "Cannot open output file \"%s\".\n", pFileName );
         return;
     }
-    fprintf( pFile, "// Design \"%s\" written by ABC on %s\n\n", Cba_ManName(p), Extra_TimeStamp() );
+    fprintf( pFile, "# Design \"%s\" written by ABC on %s\n\n", Cba_ManName(p), Extra_TimeStamp() );
+    Cba_ManAssignInternNames( p );
     Cba_ManForEachNtk( p, pNtk, i )
         Cba_ManWriteBlifNtk( pFile, pNtk );
     fclose( pFile );

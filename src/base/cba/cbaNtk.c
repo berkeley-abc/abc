@@ -74,13 +74,6 @@ void Cba_ManAssignInternNames( Cba_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-int Cba_NtkNodeNum( Cba_Ntk_t * p )
-{ 
-    int iObj, Count = 0;
-    Cba_NtkForEachNode( p, iObj )
-        Count++;
-    return Count;
-}
 int Cba_ManObjNum( Cba_Man_t * p )
 {
     Cba_Ntk_t * pNtk; 
@@ -136,6 +129,9 @@ void Cba_NtkDupStart( Cba_Ntk_t * pNew, Cba_Ntk_t * p )
         Cba_ObjDupStart( pNew, p, iObj );
         Cba_BoxForEachBo( p, iObj, iTerm, k )
             Cba_ObjDupStart( pNew, p, iTerm );
+        // connect box outputs to boxes
+        Cba_BoxForEachBo( p, iObj, iTerm, k )
+            Vec_IntWriteEntry( &pNew->vFanins, Cba_NtkCopy(p, iTerm), Cba_NtkCopy(p, Cba_ObjFanin0(p, iTerm)) );
     }
     assert( Cba_NtkBoxNum(p) == Cba_NtkBoxNum(pNew) );
 }
@@ -174,10 +170,11 @@ void Cba_NtkDupNodes( Cba_Ntk_t * pNew, Cba_Ntk_t * p, Vec_Int_t * vTemp )
     // connect
     Cba_NtkForEachObjType( p, Type, i )
     {
-        if ( Type == CBA_OBJ_PI || Type == CBA_OBJ_BOX )
+        if ( Type == CBA_OBJ_PI || Type == CBA_OBJ_BOX || Type == CBA_OBJ_BO )
             continue;
-        if ( Type == CBA_OBJ_PO || Type == CBA_OBJ_BI || Type == CBA_OBJ_BO )
+        if ( Type == CBA_OBJ_PO || Type == CBA_OBJ_BI )
         {
+            assert( Vec_IntEntry(&pNew->vFanins, Cba_NtkCopy(p, i)) == -1 );
             Vec_IntWriteEntry( &pNew->vFanins, Cba_NtkCopy(p, i), Cba_NtkCopy(p, Cba_ObjFanin0(p, i)) );
             continue;
         }

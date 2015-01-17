@@ -64,9 +64,9 @@ static inline void Cba_PrsAddBlifDirectives( Cba_Prs_t * p )
     for ( i = 1; s_BlifTypes[i]; i++ )
         Abc_NamStrFindOrAdd( p->pDesign->pNames, (char *)s_BlifTypes[i],   NULL );
     assert( Abc_NamObjNumMax(p->pDesign->pNames) == i );
-    Abc_NamStrFindOrAdd( p->pDesign->pFuncs, (char *)" 0\n",   NULL );  // default const 0 function
-    Abc_NamStrFindOrAdd( p->pDesign->pFuncs, (char *)"1 1\n",   NULL ); // default buffer function
-    assert( Abc_NamObjNumMax(p->pDesign->pFuncs) == 3 );
+    for ( i = 1; i < CBA_NODE_UNKNOWN; i++ )
+        Abc_NamStrFindOrAdd( p->pDesign->pFuncs, Ptr_TypeToSop(i),   NULL );
+    assert( Abc_NamObjNumMax(p->pDesign->pFuncs) == i-1 );
 }
 
 
@@ -408,6 +408,7 @@ Cba_Man_t * Cba_PrsReadBlif( char * pFileName )
     if ( Cba_PrsErrorPrint(p) )
         ABC_SWAP( Cba_Man_t *, pDesign, p->pDesign );
     Cba_PrsFree( p );
+    Cba_PrsRemapBoxModels( pDesign );
     return pDesign;
 }
 

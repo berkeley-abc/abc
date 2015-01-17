@@ -80,7 +80,7 @@ static inline int Cba_IsChar( char c )    { return (c >= 'a' && c <= 'z') || (c 
 static inline int Cba_IsSymb1( char c )   { return Cba_IsChar(c) || c == '_';                                                   }
 static inline int Cba_IsSymb2( char c )   { return Cba_IsSymb1(c) || Cba_IsDigit(c) || c == '$';                                }
 
-static inline int Cba_PrsIsChar( Cba_Prs_t * p, char c )    { return *p->pCur == c;                          }
+static inline int Cba_PrsIsChar( Cba_Prs_t * p, char c )    { return p->pCur[0] == c;                        }
 static inline int Cba_PrsIsChar1( Cba_Prs_t * p, char c )   { return p->pCur[1] == c;                        }
 static inline int Cba_PrsIsDigit( Cba_Prs_t * p )           { return Cba_IsDigit(*p->pCur);                  }
 
@@ -720,6 +720,7 @@ Cba_Man_t * Cba_PrsReadVerilog( char * pFileName )
     if ( Cba_PrsErrorPrint(p) )
         ABC_SWAP( Cba_Man_t *, pDesign, p->pDesign );
     Cba_PrsFree( p );
+    Cba_PrsRemapBoxModels( pDesign );
     return pDesign;
 }
 
@@ -727,18 +728,18 @@ void Cba_PrsReadVerilogTest( char * pFileName )
 {
     abctime clk = Abc_Clock();
     extern void Cba_PrsWriteVerilog( char * pFileName, Cba_Man_t * p );
-//    Cba_Man_t * p = Cba_PrsReadVerilog( "c/hie/dump/1/netlist_1.v" );
+    Cba_Man_t * p = Cba_PrsReadVerilog( "c/hie/dump/1/netlist_1.v" );
 //    Cba_Man_t * p = Cba_PrsReadVerilog( "aga/me/me_wide.v" );
-    Cba_Man_t * p = Cba_PrsReadVerilog( "aga/ray/ray_wide.v" );
+//    Cba_Man_t * p = Cba_PrsReadVerilog( "aga/ray/ray_wide.v" );
     if ( !p ) return;
     printf( "Finished reading %d networks. ", Cba_ManNtkNum(p) );
     printf( "NameIDs = %d. ", Abc_NamObjNumMax(p->pNames) );
     printf( "Memory = %.2f MB. ", 1.0*Cba_ManMemory(p)/(1<<20) );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
 //    Abc_NamPrint( p->pDesign->pNames );
-//    Cba_PrsWriteVerilog( "c/hie/dump/1/netlist_1_out.v", p );
+    Cba_PrsWriteVerilog( "c/hie/dump/1/netlist_1_out.v", p );
 //    Cba_PrsWriteVerilog( "aga/me/me_wide_out.v", p );
-    Cba_PrsWriteVerilog( "aga/ray/ray_wide_out.v", p );
+//    Cba_PrsWriteVerilog( "aga/ray/ray_wide_out.v", p );
     Cba_ManFree( p );
 }
 
