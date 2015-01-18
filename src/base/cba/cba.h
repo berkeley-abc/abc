@@ -21,7 +21,6 @@
 #ifndef ABC__base__cba__cba_h
 #define ABC__base__cba__cba_h
 
-
 ////////////////////////////////////////////////////////////////////////
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
@@ -66,17 +65,15 @@ typedef enum {
     CBA_NODE_BUF,      // 3:  buffer
     CBA_NODE_INV,      // 4:  inverter
     CBA_NODE_AND,      // 5:  AND
-    CBA_NODE_AND00,    // 6:  AND00
-    CBA_NODE_AND01,    // 7:  AND01
-    CBA_NODE_AND10,    // 8:  AND10
-    CBA_NODE_NAND,     // 9:  NAND
-    CBA_NODE_OR,       // 10: OR
-    CBA_NODE_NOR,      // 11: NOR
-    CBA_NODE_XOR,      // 12: XOR
-    CBA_NODE_XNOR,     // 13  XNOR
-    CBA_NODE_MUX,      // 14: MUX
-    CBA_NODE_MAJ,      // 15: MAJ
-    CBA_NODE_UNKNOWN   // 16: unknown
+    CBA_NODE_NAND,     // 6:  NAND
+    CBA_NODE_OR,       // 7:  OR
+    CBA_NODE_NOR,      // 8:  NOR
+    CBA_NODE_XOR,      // 9:  XOR
+    CBA_NODE_XNOR,     // 10  XNOR
+    CBA_NODE_SHARP,    // 11: SHARP
+    CBA_NODE_MUX,      // 12: MUX
+    CBA_NODE_MAJ,      // 13: MAJ
+    CBA_NODE_UNKNOWN   // 14: unknown
 } Cba_NodeType_t; 
 
 
@@ -100,6 +97,8 @@ struct Cba_Man_t_
     Vec_Int_t *  vBuf2RootObj;
     Vec_Int_t *  vBuf2LeafNtk;
     Vec_Int_t *  vBuf2LeafObj;
+    void *       pMioLib;
+    void **      ppGraphs;
 };
 
 // network
@@ -123,7 +122,6 @@ struct Cba_Ntk_t_
     Vec_Int_t    vInstIds; // instance names  (used by parser to store instance name as NameId)       
     Vec_Int_t    vFanins;  // fanins          (used by parser to store fanin/fanout/range as NameId)  (node: handle; CO/BI fanin0)
     // attributes
-    Vec_Int_t    vBoxes;   // box objects
     Vec_Int_t    vNameIds; // original names as NameId  
     Vec_Int_t    vRanges;  // ranges as NameId
 };
@@ -145,9 +143,8 @@ static inline char *         Cba_NtkName( Cba_Ntk_t * p )                    { r
 static inline int            Cba_NtkObjNum( Cba_Ntk_t * p )                  { return Vec_IntSize(&p->vFanins);                                                            }
 static inline int            Cba_NtkPiNum( Cba_Ntk_t * p )                   { return Vec_IntSize(&p->vInputs);                                                            }
 static inline int            Cba_NtkPoNum( Cba_Ntk_t * p )                   { return Vec_IntSize(&p->vOutputs);                                                           }
-static inline int            Cba_NtkBoxNum( Cba_Ntk_t * p )                  { return Vec_IntSize(&p->vBoxes);                                                             }
-static inline int            Cba_NtkBoxNumCount( Cba_Ntk_t * p )             { return Vec_IntCountEntry(&p->vTypes, CBA_OBJ_BOX);                                          }
 static inline int            Cba_NtkNodeNum( Cba_Ntk_t * p )                 { return Vec_IntCountEntry(&p->vTypes, CBA_OBJ_NODE);                                         }
+static inline int            Cba_NtkBoxNum( Cba_Ntk_t * p )                  { return Vec_IntCountEntry(&p->vTypes, CBA_OBJ_BOX);                                          }
 
 static inline int            Cba_NtkPi( Cba_Ntk_t * p, int i )               { return Vec_IntEntry(&p->vInputs, i);                                                        }
 static inline int            Cba_NtkPo( Cba_Ntk_t * p, int i )               { return Vec_IntEntry(&p->vOutputs, i);                                                       }
@@ -218,7 +215,6 @@ static inline char *         Cba_ObjRangeStr( Cba_Ntk_t * p, int i )         { r
 ///                             ITERATORS                            ///
 ////////////////////////////////////////////////////////////////////////
 
-
 #define Cba_ManForEachNtk( p, pNtk, i )                                   \
     for ( i = 1; (i <= Cba_ManNtkNum(p)) && (((pNtk) = Cba_ManNtk(p, i)), 1); i++ ) 
 
@@ -230,8 +226,8 @@ static inline char *         Cba_ObjRangeStr( Cba_Ntk_t * p, int i )         { r
 #define Cba_NtkForEachObjType( p, Type, i )                               \
     for ( i = 0; (i < Cba_NtkObjNum(p))  && (((Type) = Cba_ObjType(p, i)), 1); i++ ) 
 
-#define Cba_NtkForEachBox( p, iObj, i )                                   \
-    for ( i = 0; (i < Cba_NtkBoxNum(p))  && (((iObj) = Vec_IntEntry(&p->vBoxes, i)), 1); i++ ) 
+#define Cba_NtkForEachBox( p, i )                                         \
+    for ( i = 0; (i < Cba_NtkObjNum(p)); i++ ) if ( Cba_ObjType(p, i) != CBA_OBJ_BOX ) {} else
 #define Cba_NtkForEachNode( p, i )                                        \
     for ( i = 0; (i < Cba_NtkObjNum(p)); i++ ) if ( Cba_ObjType(p, i) != CBA_OBJ_NODE ) {} else
 
@@ -337,8 +333,6 @@ static inline Cba_Man_t * Cba_ManClone( Cba_Man_t * pOld )
         pNtkNew = Cba_NtkAlloc( p, Cba_NtkName(pNtk) );
         Cba_ManFetchArray( p, &pNtkNew->vInputs,  Cba_NtkPiNum(pNtk) );
         Cba_ManFetchArray( p, &pNtkNew->vOutputs, Cba_NtkPoNum(pNtk) );
-        Cba_ManFetchArray( p, &pNtkNew->vBoxes,   Cba_NtkBoxNumCount(pNtk) );
-        Vec_IntShrink( &pNtkNew->vBoxes, 0 );
     }
     assert( Cba_ManNtkNum(p) == Cba_ManNtkNum(pOld) );
     return p;
@@ -398,9 +392,7 @@ static inline Cba_NodeType_t Ptr_SopToType( char * pSop )
     if ( !strcmp(pSop, "1 1\n") )        return CBA_NODE_BUF;
     if ( !strcmp(pSop, "0 1\n") )        return CBA_NODE_INV;
     if ( !strcmp(pSop, "11 1\n") )       return CBA_NODE_AND;
-    if ( !strcmp(pSop, "00 1\n") )       return CBA_NODE_AND00;
-    if ( !strcmp(pSop, "01 1\n") )       return CBA_NODE_AND01;
-    if ( !strcmp(pSop, "10 1\n") )       return CBA_NODE_AND10;
+    if ( !strcmp(pSop, "00 1\n") )       return CBA_NODE_NOR;
     if ( !strcmp(pSop, "00 0\n") )       return CBA_NODE_OR;
     if ( !strcmp(pSop, "-1 1\n1- 1\n") ) return CBA_NODE_OR;
     if ( !strcmp(pSop, "1- 1\n-1 1\n") ) return CBA_NODE_OR;
@@ -408,6 +400,7 @@ static inline Cba_NodeType_t Ptr_SopToType( char * pSop )
     if ( !strcmp(pSop, "10 1\n01 1\n") ) return CBA_NODE_XOR;
     if ( !strcmp(pSop, "11 1\n00 1\n") ) return CBA_NODE_XNOR;
     if ( !strcmp(pSop, "00 1\n11 1\n") ) return CBA_NODE_XNOR;
+    if ( !strcmp(pSop, "10 1\n") )       return CBA_NODE_SHARP;
     assert( 0 );
     return CBA_NODE_NONE;
 }
@@ -418,9 +411,6 @@ static inline char * Ptr_TypeToName( Cba_NodeType_t Type )
     if ( Type == CBA_NODE_BUF )   return "buf";
     if ( Type == CBA_NODE_INV )   return "not";
     if ( Type == CBA_NODE_AND )   return "and";
-    if ( Type == CBA_NODE_AND00 ) return "and00";
-    if ( Type == CBA_NODE_AND01 ) return "and01";
-    if ( Type == CBA_NODE_AND10 ) return "and10";
     if ( Type == CBA_NODE_NAND )  return "nand";
     if ( Type == CBA_NODE_OR )    return "or";
     if ( Type == CBA_NODE_NOR )   return "nor";
@@ -428,6 +418,7 @@ static inline char * Ptr_TypeToName( Cba_NodeType_t Type )
     if ( Type == CBA_NODE_XNOR )  return "xnor";
     if ( Type == CBA_NODE_MUX )   return "mux";
     if ( Type == CBA_NODE_MAJ )   return "maj";
+    if ( Type == CBA_NODE_SHARP ) return "sharp";
     assert( 0 );
     return "???";
 }
@@ -438,14 +429,12 @@ static inline char * Ptr_TypeToSop( Cba_NodeType_t Type )
     if ( Type == CBA_NODE_BUF )   return "1 1\n";
     if ( Type == CBA_NODE_INV )   return "0 1\n";
     if ( Type == CBA_NODE_AND )   return "11 1\n";
-    if ( Type == CBA_NODE_AND00 ) return "00 1\n";
-    if ( Type == CBA_NODE_AND01 ) return "01 1\n";
-    if ( Type == CBA_NODE_AND10 ) return "10 1\n";
     if ( Type == CBA_NODE_NAND )  return "11 0\n";
     if ( Type == CBA_NODE_OR )    return "00 0\n";
     if ( Type == CBA_NODE_NOR )   return "00 1\n";
     if ( Type == CBA_NODE_XOR )   return "01 1\n10 1\n";
     if ( Type == CBA_NODE_XNOR )  return "00 1\n11 1\n";
+    if ( Type == CBA_NODE_SHARP ) return "10 1\n";
     if ( Type == CBA_NODE_MUX )   return "11- 1\n0-1 1\n";
     if ( Type == CBA_NODE_MAJ )   return "11- 1\n1-1 1\n-11 1\n";
     assert( 0 );
@@ -462,7 +451,7 @@ extern Cba_Man_t * Cba_ManBuild( Cba_Man_t * p );
 /*=== cbaReadBlif.c =========================================================*/
 extern Cba_Man_t * Cba_PrsReadBlif( char * pFileName );
 /*=== cbaReadVer.c ==========================================================*/
-extern Cba_Man_t * Cba_PrsReadVerilog( char * pFileName );
+extern Cba_Man_t * Cba_PrsReadVerilog( char * pFileName, int fBinary );
 /*=== cbaWriteBlif.c ========================================================*/
 extern void        Cba_PrsWriteBlif( char * pFileName, Cba_Man_t * p );
 extern void        Cba_ManWriteBlif( char * pFileName, Cba_Man_t * p );

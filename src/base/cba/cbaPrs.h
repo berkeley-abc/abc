@@ -197,17 +197,15 @@ static inline void Cba_PrsFree( Cba_Prs_t * p )
 }
 static inline void Cba_PrsRemapBoxModels( Cba_Man_t * p )
 {
-    Cba_Ntk_t * pNtk; 
-    int i, Type, iObj;
+    Cba_Ntk_t * pNtk; int i, iBox;
     Cba_ManForEachNtk( p, pNtk, i )
-        Cba_NtkForEachObjType( pNtk, Type, iObj )
-            if ( Type == CBA_OBJ_BOX )
-            {
-                char * pName = Abc_NamStr( p->pNames, Cba_ObjFuncId(pNtk, iObj) );
-                int iModelId = Abc_NamStrFind( p->pModels, pName );
-                assert( iModelId > 0 );
-                Vec_IntWriteEntry( &pNtk->vFuncs, iObj, iModelId );
-            }
+        Cba_NtkForEachBox( pNtk, iBox )
+        {
+            char * pName = Abc_NamStr( p->pNames, Cba_ObjFuncId(pNtk, iBox) );
+            int iModelId = Abc_NamStrFind( p->pModels, pName );
+            assert( iModelId > 0 );
+            Vec_IntWriteEntry( &pNtk->vFuncs, iBox, iModelId );
+        }
 }
 
 ////////////////////////////////////////////////////////////////////////

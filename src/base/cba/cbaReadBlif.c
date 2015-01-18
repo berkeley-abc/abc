@@ -62,11 +62,11 @@ static inline void Cba_PrsAddBlifDirectives( Cba_Prs_t * p )
 {
     int i;
     for ( i = 1; s_BlifTypes[i]; i++ )
-        Abc_NamStrFindOrAdd( p->pDesign->pNames, (char *)s_BlifTypes[i],   NULL );
+        Abc_NamStrFindOrAdd( p->pDesign->pNames, (char *)s_BlifTypes[i], NULL );
     assert( Abc_NamObjNumMax(p->pDesign->pNames) == i );
     for ( i = 1; i < CBA_NODE_UNKNOWN; i++ )
-        Abc_NamStrFindOrAdd( p->pDesign->pFuncs, Ptr_TypeToSop(i),   NULL );
-    assert( Abc_NamObjNumMax(p->pDesign->pFuncs) == i-1 );
+        Abc_NamStrFindOrAdd( p->pDesign->pFuncs, Ptr_TypeToSop(i), NULL );
+    assert( Abc_NamObjNumMax(p->pDesign->pFuncs) == i );
 }
 
 

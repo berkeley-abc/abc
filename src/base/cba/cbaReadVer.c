@@ -708,7 +708,57 @@ void Cba_PrsPrintModules( Cba_Prs_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-Cba_Man_t * Cba_PrsReadVerilog( char * pFileName )
+void Cba_PrsSkipRangesNtk( Cba_Ntk_t * p )
+{
+    Vec_Int_t * vFanins; 
+    int FormId, NameId, RangeId;
+    int i, k, s, Count = 0;
+    Vec_Int_t * vSigs[4] = { &p->vInouts, &p->vInputs, &p->vOutputs, &p->vWires };
+    for ( s = 0; s < 4; s++ )
+    {
+        k = 0;
+        Vec_IntForEachEntryDouble( vSigs[s], NameId, RangeId, i )
+            Vec_IntWriteEntry( vSigs[s], k++, NameId ), Count += RangeId > 0;
+        Vec_IntShrink( vSigs[s], k );
+    }
+    Cba_NtkForEachNode( p, i )
+    {
+        k = 0;
+        vFanins = Cba_ObjFaninVec( p, i );
+        Vec_IntForEachEntryDouble( vFanins, NameId, RangeId, s )
+            Vec_IntWriteEntry( vFanins, k++, NameId ), Count += RangeId > 0;
+        Cba_ObjFaninArray(p, i)[0] = k;
+    }
+    Cba_NtkForEachBox( p, i )
+    {
+        k = 0;
+        vFanins = Cba_ObjFaninVec( p, i );
+        Vec_IntForEachEntryTriple( vFanins, FormId, NameId, RangeId, s )
+            Vec_IntWriteEntry( vFanins, k++, FormId ), Vec_IntWriteEntry( vFanins, k++, NameId ), Count += RangeId > 0;
+        Cba_ObjFaninArray(p, i)[0] = k;
+    }
+    if ( Count )
+        printf( "Network %s has %d non-trivial ranges.\n", Cba_NtkName(p), Count );
+}
+void Cba_PrsSkipRanges( Cba_Man_t * p )
+{
+    Cba_Ntk_t * pNtk; int i;
+    Cba_ManForEachNtk( p, pNtk, i )
+        Cba_PrsSkipRangesNtk( pNtk );
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Cba_Man_t * Cba_PrsReadVerilog( char * pFileName, int fBinary )
 {
     Cba_Man_t * pDesign = NULL;
     Cba_Prs_t * p = Cba_PrsAlloc( pFileName );
@@ -716,11 +766,14 @@ Cba_Man_t * Cba_PrsReadVerilog( char * pFileName )
         return NULL;
     Cba_PrsAddVerilogDirectives( p );
     Cba_PrsReadDesign( p );
-    Cba_PrsPrintModules( p );
+    //Cba_PrsPrintModules( p );
     if ( Cba_PrsErrorPrint(p) )
         ABC_SWAP( Cba_Man_t *, pDesign, p->pDesign );
     Cba_PrsFree( p );
     Cba_PrsRemapBoxModels( pDesign );
+    // transform to binary ranges
+    if ( fBinary )
+        Cba_PrsSkipRanges( pDesign );
     return pDesign;
 }
 
@@ -728,16 +781,16 @@ void Cba_PrsReadVerilogTest( char * pFileName )
 {
     abctime clk = Abc_Clock();
     extern void Cba_PrsWriteVerilog( char * pFileName, Cba_Man_t * p );
-    Cba_Man_t * p = Cba_PrsReadVerilog( "c/hie/dump/1/netlist_1.v" );
-//    Cba_Man_t * p = Cba_PrsReadVerilog( "aga/me/me_wide.v" );
-//    Cba_Man_t * p = Cba_PrsReadVerilog( "aga/ray/ray_wide.v" );
+    Cba_Man_t * p = Cba_PrsReadVerilog( "c/hie/dump/24/netlist_0.v", 0 );
+//    Cba_Man_t * p = Cba_PrsReadVerilog( "aga/me/me_wide.v", 0 );
+//    Cba_Man_t * p = Cba_PrsReadVerilog( "aga/ray/ray_wide.v", 0 );
     if ( !p ) return;
     printf( "Finished reading %d networks. ", Cba_ManNtkNum(p) );
     printf( "NameIDs = %d. ", Abc_NamObjNumMax(p->pNames) );
     printf( "Memory = %.2f MB. ", 1.0*Cba_ManMemory(p)/(1<<20) );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
 //    Abc_NamPrint( p->pDesign->pNames );
-    Cba_PrsWriteVerilog( "c/hie/dump/1/netlist_1_out.v", p );
+    Cba_PrsWriteVerilog( "c/hie/dump/24/netlist_0_out.v", p );
 //    Cba_PrsWriteVerilog( "aga/me/me_wide_out.v", p );
 //    Cba_PrsWriteVerilog( "aga/ray/ray_wide_out.v", p );
     Cba_ManFree( p );

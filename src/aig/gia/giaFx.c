@@ -96,6 +96,20 @@ int Gia_ManSopToAig( Gia_Man_t * p, char * pSop, Vec_Int_t * vLeaves )
         iSum = Abc_LitNot(iSum);
     return iSum;
 }
+int Gia_ManFactorGraph( Gia_Man_t * p, Dec_Graph_t * pFForm, Vec_Int_t * vLeaves )
+{
+    Dec_Node_t * pFFNode;
+    int i, Lit;
+    // assign fanins
+    Dec_GraphForEachLeaf( pFForm, pFFNode, i )
+    {
+        assert( Vec_IntEntry(vLeaves, i) >= 0 );
+        pFFNode->iFunc = Vec_IntEntry(vLeaves, i);
+    }
+    // perform strashing
+    Lit = Gia_ManGraphToAig( p, pFForm );
+    return Lit;
+}
 int Gia_ManFactorNode( Gia_Man_t * p, char * pSop, Vec_Int_t * vLeaves )
 {
     if ( Kit_PlaGetVarNum(pSop) == 0 )
@@ -103,18 +117,8 @@ int Gia_ManFactorNode( Gia_Man_t * p, char * pSop, Vec_Int_t * vLeaves )
     assert( Kit_PlaGetVarNum(pSop) == Vec_IntSize(vLeaves) );
     if ( Kit_PlaGetVarNum(pSop) > 2 && Kit_PlaGetCubeNum(pSop) > 1 )
     {
-        Dec_Graph_t * pFForm;
-        Dec_Node_t * pFFNode;
-        int i, Lit;
-        pFForm = Dec_Factor( pSop );
-        // assign fanins
-        Dec_GraphForEachLeaf( pFForm, pFFNode, i )
-        {
-            assert( Vec_IntEntry(vLeaves, i) >= 0 );
-            pFFNode->iFunc = Vec_IntEntry(vLeaves, i);
-        }
-        // perform strashing
-        Lit = Gia_ManGraphToAig( p, pFForm );
+        Dec_Graph_t * pFForm = Dec_Factor( pSop );
+        int Lit = Gia_ManFactorGraph( p, pFForm, vLeaves );
         Dec_GraphFree( pFForm );
         return Lit;
     }

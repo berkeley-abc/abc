@@ -20,6 +20,8 @@
 
 #include "cba.h"
 #include "cbaPrs.h"
+#include "map/mio/mio.h"
+#include "base/main/main.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -131,6 +133,14 @@ void Cba_PrsWriteBlif( char * pFileName, Cba_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
+void Cba_ManWriteBlifGate( FILE * pFile, Cba_Ntk_t * p, Mio_Gate_t * pGate, Vec_Int_t * vFanins, int iObj )
+{
+    int iFanin, i;
+    Vec_IntForEachEntry( vFanins, iFanin, i )
+        fprintf( pFile, " %s=%s", Mio_GateReadPinName(pGate, i), Cba_ObjNameStr(p, iFanin) );
+    fprintf( pFile, " %s=%s", Mio_GateReadOutName(pGate), Cba_ObjNameStr(p, iObj) );
+    fprintf( pFile, "\n" );
+}
 void Cba_ManWriteBlifArray( FILE * pFile, Cba_Ntk_t * p, Vec_Int_t * vFanins, int iObj )
 {
     int iFanin, i;
@@ -157,10 +167,20 @@ void Cba_ManWriteBlifLines( FILE * pFile, Cba_Ntk_t * p )
     {
         if ( Type == CBA_OBJ_NODE ) // .names/assign/box2 (no formal/actual binding)
         {
-            fprintf( pFile, ".names" );
-            Cba_ManWriteBlifArray( pFile, p, Cba_ObjFaninVec(p, i), i );
-            //fprintf( pFile, "%s", Cba_NtkFuncStr(p,  Cba_ObjFuncId(p, i)) );
-            fprintf( pFile, "%s", Ptr_TypeToSop( Cba_ObjFuncId(p, i) ) );
+            if ( Abc_NamObjNumMax(p->pDesign->pFuncs) > 1 ) // mapped
+            {
+                char * pGateName = Abc_NamStr( p->pDesign->pFuncs, Cba_ObjFuncId(p, i) );
+                Mio_Gate_t * pGate = Mio_LibraryReadGateByName( (Mio_Library_t *)p->pDesign->pMioLib, pGateName, NULL );
+                fprintf( pFile, ".gate" );
+                Cba_ManWriteBlifGate( pFile, p, pGate, Cba_ObjFaninVec(p, i), i );
+            }
+            else
+            { 
+                fprintf( pFile, ".names" );
+                Cba_ManWriteBlifArray( pFile, p, Cba_ObjFaninVec(p, i), i );
+                //fprintf( pFile, "%s", Cba_NtkFuncStr(p,  Cba_ObjFuncId(p, i)) );
+                fprintf( pFile, "%s", Ptr_TypeToSop( Cba_ObjFuncId(p, i) ) );
+            }
         }
         else if ( Type == CBA_OBJ_BOX ) // .names/assign/box2 (no formal/actual binding)
         {
@@ -201,6 +221,12 @@ void Cba_ManWriteBlif( char * pFileName, Cba_Man_t * p )
     FILE * pFile;
     Cba_Ntk_t * pNtk; 
     int i;
+    // check the library
+    if ( Abc_NamObjNumMax(p->pFuncs) > 1 && p->pMioLib != Abc_FrameReadLibGen() )
+    {
+        printf( "Genlib library used in the mapped design is not longer a current library.\n" );
+        return;
+    }
     pFile = fopen( pFileName, "wb" );
     if ( pFile == NULL )
     {

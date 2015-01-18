@@ -43,11 +43,11 @@ ABC_NAMESPACE_IMPL_START
 ***********************************************************************/
 void Cba_ManAssignInternNamesNtk( Cba_Ntk_t * p )
 {
-    int i, Type, NameId;
+    int i, NameId;
     int nDigits = Abc_Base10Log( Cba_NtkObjNum(p) );
-    Cba_NtkForEachObjType( p, Type, i )
+    Cba_NtkForEachNode( p, i )
     {
-        if ( Type == CBA_OBJ_NODE && Cba_ObjNameId(p, i) == -1 )
+        if ( Cba_ObjNameId(p, i) == -1 )
         {
             char Buffer[100];
             sprintf( Buffer, "%s%0*d", "_n_", nDigits, i );
@@ -109,28 +109,25 @@ void Cba_ObjDupStart( Cba_Ntk_t * pNew, Cba_Ntk_t * p, int iObj )
     Vec_IntWriteEntry( &pNew->vNameIds, pNew->nObjs, Cba_ObjNameId(p, iObj) );
     if ( Cba_ObjIsBox(p, iObj) )
         Cba_NtkSetHost( Cba_ObjBoxModel(pNew, pNew->nObjs), Cba_NtkId(pNew), pNew->nObjs );
-    if ( Cba_ObjIsBox(p, iObj) )
-        Vec_IntPush( &pNew->vBoxes, pNew->nObjs );
     Cba_NtkSetCopy( p, iObj, pNew->nObjs++ );
 }
 void Cba_NtkDupStart( Cba_Ntk_t * pNew, Cba_Ntk_t * p )
 {
-    int i, k, iObj, iTerm;
-    assert( Vec_IntSize(&pNew->vBoxes) == 0 );
+    int i, iObj, iTerm;
     pNew->nObjs = 0;
     Cba_NtkForEachPi( p, iObj, i )
         Cba_ObjDupStart( pNew, p, iObj );
     Cba_NtkForEachPo( p, iObj, i )
         Cba_ObjDupStart( pNew, p, iObj );
-    Cba_NtkForEachBox( p, iObj, i )
+    Cba_NtkForEachBox( p, iObj )
     {
-        Cba_BoxForEachBi( p, iObj, iTerm, k )
+        Cba_BoxForEachBi( p, iObj, iTerm, i )
             Cba_ObjDupStart( pNew, p, iTerm );
         Cba_ObjDupStart( pNew, p, iObj );
-        Cba_BoxForEachBo( p, iObj, iTerm, k )
+        Cba_BoxForEachBo( p, iObj, iTerm, i )
             Cba_ObjDupStart( pNew, p, iTerm );
         // connect box outputs to boxes
-        Cba_BoxForEachBo( p, iObj, iTerm, k )
+        Cba_BoxForEachBo( p, iObj, iTerm, i )
             Vec_IntWriteEntry( &pNew->vFanins, Cba_NtkCopy(p, iTerm), Cba_NtkCopy(p, Cba_ObjFanin0(p, iTerm)) );
     }
     assert( Cba_NtkBoxNum(p) == Cba_NtkBoxNum(pNew) );

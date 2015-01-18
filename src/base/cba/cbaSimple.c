@@ -481,11 +481,10 @@ Vec_Ptr_t * Ptr_CbaDeriveNode( Cba_Ntk_t * pNtk, int iObj )
 }
 Vec_Ptr_t * Ptr_CbaDeriveNodes( Cba_Ntk_t * pNtk )
 {
-    int Type, iObj;
+    int i;
     Vec_Ptr_t * vNodes = Vec_PtrAlloc( Cba_NtkNodeNum(pNtk) );
-    Cba_NtkForEachObjType( pNtk, Type, iObj )
-        if ( Type == CBA_OBJ_NODE )
-            Vec_PtrPush( vNodes, Ptr_CbaDeriveNode(pNtk, iObj) );
+    Cba_NtkForEachNode( pNtk, i )
+        Vec_PtrPush( vNodes, Ptr_CbaDeriveNode(pNtk, i) );
     assert( Ptr_CheckArray(vNodes) );
     return vNodes;
 }
@@ -515,11 +514,10 @@ Vec_Ptr_t * Ptr_CbaDeriveBox( Cba_Ntk_t * pNtk, int iObj )
 }
 Vec_Ptr_t * Ptr_CbaDeriveBoxes( Cba_Ntk_t * pNtk )
 {
-    int Type, iObj;
+    int i;
     Vec_Ptr_t * vBoxes = Vec_PtrAlloc( Cba_NtkBoxNum(pNtk) );
-    Cba_NtkForEachObjType( pNtk, Type, iObj )
-        if ( Type == CBA_OBJ_BOX )
-            Vec_PtrPush( vBoxes, Ptr_CbaDeriveBox(pNtk, iObj) );
+    Cba_NtkForEachBox( pNtk, i )
+        Vec_PtrPush( vBoxes, Ptr_CbaDeriveBox(pNtk, i) );
     assert( Ptr_CheckArray(vBoxes) );
     return vBoxes;
 }
@@ -620,7 +618,6 @@ void Cba_PrsReadModule( Cba_Man_t * p, Cba_Ntk_t * pNtk, Vec_Ptr_t * vNtk, Vec_I
     Cba_ManAllocArray( p, &pNtk->vFuncs,   Vec_PtrSize(vNodes) + Vec_PtrSize(vBoxes) ); 
     Cba_ManAllocArray( p, &pNtk->vInstIds, Vec_PtrSize(vNodes) + Vec_PtrSize(vBoxes) ); 
     Cba_ManAllocArray( p, &pNtk->vFanins,  Vec_PtrSize(vNodes) + Vec_PtrSize(vBoxes) ); 
-    Cba_ManAllocArray( p, &pNtk->vBoxes,   Vec_PtrSize(vBoxes) ); 
 
     Cba_PrsReadList( p, vInputs,  &pNtk->vInputs,  -1, -1 );
     Cba_PrsReadList( p, vOutputs, &pNtk->vOutputs, -1, -1 );

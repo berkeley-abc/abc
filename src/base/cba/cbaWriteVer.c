@@ -116,14 +116,13 @@ void Cba_PrsWriteVerilogNodes( FILE * pFile, Cba_Ntk_t * p )
 }
 void Cba_PrsWriteVerilogBoxes( FILE * pFile, Cba_Ntk_t * p )
 {
-    int Type, i;
-    Cba_NtkForEachObjType( p, Type, i )
-        if ( Type == CBA_OBJ_BOX ) // .subckt/.gate/box (formal/actual binding) 
-        {
-            fprintf( pFile, "  %s %s (", Cba_NtkName(Cba_ObjBoxModel(p, i)), Cba_ObjInstStr(p, i) );
-            Cba_PrsWriteVerilogArray3( pFile, p, Cba_ObjFaninVec(p, i) );
-            fprintf( pFile, ");\n" );
-        }
+    int i;
+    Cba_NtkForEachBox( p, i ) // .subckt/.gate/box (formal/actual binding) 
+    {
+        fprintf( pFile, "  %s %s (", Cba_NtkName(Cba_ObjBoxModel(p, i)), Cba_ObjInstStr(p, i) );
+        Cba_PrsWriteVerilogArray3( pFile, p, Cba_ObjFaninVec(p, i) );
+        fprintf( pFile, ");\n" );
+    }
 }
 void Cba_PrsWriteVerilogSignals( FILE * pFile, Cba_Ntk_t * p, int SigType )
 {
@@ -259,40 +258,32 @@ void Cba_ManWriteVerilogArray2( FILE * pFile, Cba_Ntk_t * p, int iObj, Vec_Int_t
 }
 void Cba_ManWriteVerilogNodes( FILE * pFile, Cba_Ntk_t * p )
 {
-    int Type, Func, i;
-    Cba_NtkForEachObjType( p, Type, i )
-        if ( Type == CBA_OBJ_NODE ) // .names/assign/box2 (no formal/actual binding)
+    int Func, i;
+    Cba_NtkForEachNode( p, i ) // .names/assign/box2 (no formal/actual binding)
+    {
+        Func = Cba_ObjFuncId(p, i);
+        if ( Func >= CBA_NODE_BUF && Func <= CBA_NODE_XNOR )
         {
-            Func = Cba_ObjFuncId(p, i);
-            if ( Func >= CBA_NODE_BUF && Func <= CBA_NODE_XNOR )
-            {
-                fprintf( pFile, "  %s (", Ptr_TypeToName(Func) );
-                Cba_ManWriteVerilogArray2( pFile, p, i, Cba_ObjFaninVec(p, i) );
-                fprintf( pFile, ");\n" );
-            }
-//            else if ( Func == CBA_NODE_MUX )
-//                Cba_PrsWriteVerilogMux( pFile, p, Cba_ObjFaninVec(p, i) );
-            else
-            {
-                //char * pName = Cba_NtkStr(p, Func);
-                assert( 0 );
-            }
+            fprintf( pFile, "  %s (", Ptr_TypeToName(Func) );
+            Cba_ManWriteVerilogArray2( pFile, p, i, Cba_ObjFaninVec(p, i) );
+            fprintf( pFile, ");\n" );
         }
+        else assert( 0 );
+    }
 }
 void Cba_ManWriteVerilogBoxes( FILE * pFile, Cba_Ntk_t * p )
 {
-    int i, k, iTerm, Type;
-    Cba_NtkForEachObjType( p, Type, i )
-        if ( Type == CBA_OBJ_BOX ) // .subckt/.gate/box (formal/actual binding) 
-        {
-            Cba_Ntk_t * pModel = Cba_ObjBoxModel( p, i );
-            fprintf( pFile, "  %s %s (", Cba_NtkName(pModel), Vec_IntSize(&p->vInstIds) ? Cba_ObjInstStr(p, i) : "" );
-            Cba_NtkForEachPi( pModel, iTerm, k )
-                fprintf( pFile, " %s=%s", Cba_ObjNameStr(pModel, iTerm), Cba_ObjNameStr(p, Cba_ObjBoxBi(p, i, k)) );
-            Cba_NtkForEachPo( pModel, iTerm, k )
-                fprintf( pFile, " %s=%s", Cba_ObjNameStr(pModel, iTerm), Cba_ObjNameStr(p, Cba_ObjBoxBo(p, i, k)) );
-            fprintf( pFile, "\n" );
-        }
+    int i, k, iTerm;
+    Cba_NtkForEachBox( p, i ) // .subckt/.gate/box (formal/actual binding) 
+    {
+        Cba_Ntk_t * pModel = Cba_ObjBoxModel( p, i );
+        fprintf( pFile, "  %s %s (", Cba_NtkName(pModel), Vec_IntSize(&p->vInstIds) ? Cba_ObjInstStr(p, i) : "" );
+        Cba_NtkForEachPi( pModel, iTerm, k )
+            fprintf( pFile, " %s=%s", Cba_ObjNameStr(pModel, iTerm), Cba_ObjNameStr(p, Cba_ObjBoxBi(p, i, k)) );
+        Cba_NtkForEachPo( pModel, iTerm, k )
+            fprintf( pFile, " %s=%s", Cba_ObjNameStr(pModel, iTerm), Cba_ObjNameStr(p, Cba_ObjBoxBo(p, i, k)) );
+        fprintf( pFile, "\n" );
+    }
 }
 void Cba_ManWriteVerilogSignals( FILE * pFile, Cba_Ntk_t * p, int SigType, int fNoRange )
 {

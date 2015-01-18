@@ -149,7 +149,7 @@ int Cba_CommandRead( Abc_Frame_t * pAbc, int argc, char ** argv )
     else if ( !strcmp( Extra_FileNameExtension(pFileName), "blif" )  )
         p = Cba_PrsReadBlif( pFileName );
     else if ( !strcmp( Extra_FileNameExtension(pFileName), "v" )  )
-        p = Cba_PrsReadVerilog( pFileName );
+        p = Cba_PrsReadVerilog( pFileName, 1 );
     else assert( 0 );
     p = Cba_ManBuild( pTemp = p );
     Cba_ManFree( pTemp );
@@ -465,7 +465,7 @@ int Cba_CommandCec( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( !strcmp( Extra_FileNameExtension(FileName), "blif" )  )
         p = Cba_PrsReadBlif( FileName );
     else if ( !strcmp( Extra_FileNameExtension(FileName), "v" )  )
-        p = Cba_PrsReadVerilog( FileName );
+        p = Cba_PrsReadVerilog( FileName, 1 );
     else assert( 0 );
     p = Cba_ManBuild( pTemp = p );
     Cba_ManFree( pTemp );
