@@ -50,7 +50,7 @@ void Cba_ManPrepareGates( Cba_Man_t * p )
     if ( p->pMioLib == NULL )
         return;
     assert( p->ppGraphs == NULL );
-    p->ppGraphs = ABC_ALLOC( Dec_Graph_t *, Abc_NamObjNumMax(p->pFuncs) );
+    p->ppGraphs = (Dec_Graph_t **)ABC_ALLOC( Dec_Graph_t *, Abc_NamObjNumMax(p->pFuncs) );
     p->ppGraphs[0] = NULL;
     for ( i = 1; i < Abc_NamObjNumMax(p->pFuncs); i++ )
     {

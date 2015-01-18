@@ -1589,6 +1589,7 @@ Gia_Man_t * Jf_ManDeriveGia( Jf_Man_t * p )
     pNew = Gia_ManStart( Gia_ManObjNum(p->pGia) );
     pNew->pName = Abc_UtilStrsav( p->pGia->pName );
     pNew->pSpec = Abc_UtilStrsav( p->pGia->pSpec );
+    pNew->vLevels = Vec_IntStart( 6*Gia_ManObjNum(p->pGia)/5 + 100 );
     // map primary inputs
     Vec_IntWriteEntry( vCopies, 0, 0 );
     Gia_ManForEachCi( p->pGia, pObj, i )

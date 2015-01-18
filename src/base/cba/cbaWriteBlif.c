@@ -167,12 +167,18 @@ void Cba_ManWriteBlifLines( FILE * pFile, Cba_Ntk_t * p )
     {
         if ( Type == CBA_OBJ_NODE ) // .names/assign/box2 (no formal/actual binding)
         {
-            if ( Abc_NamObjNumMax(p->pDesign->pFuncs) > 1 ) // mapped
+            if ( p->pDesign->pMioLib ) // mapped
             {
                 char * pGateName = Abc_NamStr( p->pDesign->pFuncs, Cba_ObjFuncId(p, i) );
                 Mio_Gate_t * pGate = Mio_LibraryReadGateByName( (Mio_Library_t *)p->pDesign->pMioLib, pGateName, NULL );
                 fprintf( pFile, ".gate" );
                 Cba_ManWriteBlifGate( pFile, p, pGate, Cba_ObjFaninVec(p, i), i );
+            }
+            else if ( Abc_NamObjNumMax(p->pDesign->pFuncs) > 1 ) // SOP functions
+            {
+                fprintf( pFile, ".names" );
+                Cba_ManWriteBlifArray( pFile, p, Cba_ObjFaninVec(p, i), i );
+                fprintf( pFile, "%s", Cba_ObjFuncStr(p, i) );
             }
             else
             { 

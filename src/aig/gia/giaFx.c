@@ -328,6 +328,7 @@ Gia_Man_t * Gia_ManFxInsert( Gia_Man_t * p, Vec_Wec_t * vCubes, Vec_Str_t * vCom
     pNew = Gia_ManStart( Gia_ManObjNum(p) );
     pNew->pName = Abc_UtilStrsav( p->pName );
     pNew->pSpec = Abc_UtilStrsav( p->pSpec );
+    pNew->vLevels = Vec_IntStart( 6*Gia_ManObjNum(p)/5 + 100 );
     Gia_ManHashStart( pNew );
     // create primary inputs
     vMap = Vec_IntStartFull( Vec_IntSize(vOrder) );
