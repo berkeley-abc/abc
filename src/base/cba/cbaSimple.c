@@ -583,26 +583,26 @@ Vec_Int_t * Cba_PrsReadList( Cba_Man_t * p, Vec_Ptr_t * vNames, Vec_Int_t * vLis
             Vec_IntPush( vList, Abc_NamStrFindOrAdd(p->pNames, pName, NULL) );
     return vList;
 }
-void Cba_PrsReadNodes( Cba_Man_t * p, Vec_Ptr_t * vNodes, Vec_Int_t * vTypesCur, Vec_Int_t * vFuncsCur, Vec_Int_t * vInstIdsCur, Vec_Int_t * vFaninsCur, Vec_Int_t * vList )
+void Cba_PrsReadNodes( Cba_Man_t * p, Vec_Ptr_t * vNodes, Vec_Int_t * vTypesCur, Vec_Int_t * vFuncsCur, Vec_Int_t * vFaninsCur, Vec_Int_t * vInstIdsCur, Vec_Int_t * vList )
 {
     Vec_Ptr_t * vNode; int i;
     Vec_PtrForEachEntry( Vec_Ptr_t *, vNodes, vNode, i )
     {
         Vec_IntPush( vTypesCur,   CBA_OBJ_NODE );
         Vec_IntPush( vFuncsCur,   (Cba_NodeType_t)Abc_Ptr2Int(Vec_PtrEntry(vNode, 1)) );
-        Vec_IntPush( vInstIdsCur, 0 );
         Vec_IntPush( vFaninsCur,  Cba_ManHandleArray(p, Cba_PrsReadList(p, vNode, vList, 1, -1)) ); 
+        Vec_IntPush( vInstIdsCur, 0 );
     }
 }
-void Cba_PrsReadBoxes( Cba_Man_t * p, Vec_Ptr_t * vBoxes, Vec_Int_t * vTypesCur, Vec_Int_t * vFuncsCur, Vec_Int_t * vInstIdsCur, Vec_Int_t * vFaninsCur, Vec_Int_t * vList )
+void Cba_PrsReadBoxes( Cba_Man_t * p, Vec_Ptr_t * vBoxes, Vec_Int_t * vTypesCur, Vec_Int_t * vFuncsCur, Vec_Int_t * vFaninsCur, Vec_Int_t * vInstIdsCur, Vec_Int_t * vList )
 {
     Vec_Ptr_t * vBox; int i;
     Vec_PtrForEachEntry( Vec_Ptr_t *, vBoxes, vBox, i )
     {
         Vec_IntPush( vTypesCur,   CBA_OBJ_BOX );
         Vec_IntPush( vFuncsCur,   Abc_NamStrFindOrAdd(p->pModels, Vec_PtrEntry(vBox, 0), NULL) );
-        Vec_IntPush( vInstIdsCur, Abc_NamStrFindOrAdd(p->pNames, Vec_PtrEntry(vBox, 1), NULL) );
         Vec_IntPush( vFaninsCur,  Cba_ManHandleArray(p, Cba_PrsReadList(p, vBox, vList, 0, 1)) ); 
+        Vec_IntPush( vInstIdsCur, Abc_NamStrFindOrAdd(p->pNames, Vec_PtrEntry(vBox, 1), NULL) );
     }
 }
 void Cba_PrsReadModule( Cba_Man_t * p, Cba_Ntk_t * pNtk, Vec_Ptr_t * vNtk, Vec_Int_t * vList )   
@@ -616,13 +616,13 @@ void Cba_PrsReadModule( Cba_Man_t * p, Cba_Ntk_t * pNtk, Vec_Ptr_t * vNtk, Vec_I
     Cba_ManAllocArray( p, &pNtk->vOutputs, Vec_PtrSize(vOutputs) ); 
     Cba_ManAllocArray( p, &pNtk->vTypes,   Vec_PtrSize(vNodes) + Vec_PtrSize(vBoxes) ); 
     Cba_ManAllocArray( p, &pNtk->vFuncs,   Vec_PtrSize(vNodes) + Vec_PtrSize(vBoxes) ); 
-    Cba_ManAllocArray( p, &pNtk->vInstIds, Vec_PtrSize(vNodes) + Vec_PtrSize(vBoxes) ); 
     Cba_ManAllocArray( p, &pNtk->vFanins,  Vec_PtrSize(vNodes) + Vec_PtrSize(vBoxes) ); 
+    Cba_ManAllocArray( p, &pNtk->vInstIds, Vec_PtrSize(vNodes) + Vec_PtrSize(vBoxes) ); 
 
     Cba_PrsReadList( p, vInputs,  &pNtk->vInputs,  -1, -1 );
     Cba_PrsReadList( p, vOutputs, &pNtk->vOutputs, -1, -1 );
-    Cba_PrsReadNodes( p, vNodes,  &pNtk->vTypes, &pNtk->vFuncs, &pNtk->vInstIds, &pNtk->vFanins, vList );
-    Cba_PrsReadBoxes( p, vBoxes,  &pNtk->vTypes, &pNtk->vFuncs, &pNtk->vInstIds, &pNtk->vFanins, vList );
+    Cba_PrsReadNodes( p, vNodes,  &pNtk->vTypes, &pNtk->vFuncs, &pNtk->vFanins, &pNtk->vInstIds, vList );
+    Cba_PrsReadBoxes( p, vBoxes,  &pNtk->vTypes, &pNtk->vFuncs, &pNtk->vFanins, &pNtk->vInstIds, vList );
 }
 Cba_Man_t * Cba_PrsReadPtr( Vec_Ptr_t * vDes )
 {

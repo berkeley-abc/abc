@@ -369,8 +369,8 @@ static inline int Cba_PrsReadConcat( Cba_Prs_t * p, Vec_Int_t * vTemp2 )
     // create new concatentation
     Vec_IntPush( &p->vTypesCur, CBA_OBJ_CONCAT );
     Vec_IntPush( &p->vFuncsCur, 0 );
-    Vec_IntPush( &p->vInstIdsCur, 0 );
     Vec_IntPush( &p->vFaninsCur, Cba_ManHandleArray(p->pDesign, vTemp2) ); 
+    Vec_IntPush( &p->vInstIdsCur, 0 );
     return Vec_IntSize(&p->vFaninsCur);
 }
 static inline int Cba_PrsReadSignalOrConcat( Cba_Prs_t * p, int * pName, int * pRange )
@@ -499,8 +499,8 @@ static inline int Cba_PrsReadAssign( Cba_Prs_t * p )
     {
         Vec_IntPush( &p->vTypesCur, CBA_OBJ_NODE );
         Vec_IntPush( &p->vFuncsCur, fCompl ? CBA_NODE_INV : CBA_NODE_BUF );
-        Vec_IntPush( &p->vInstIdsCur, 0 );
         Vec_IntPush( &p->vFaninsCur, Cba_ManHandleArray(p->pDesign, &p->vTemp) ); 
+        Vec_IntPush( &p->vInstIdsCur, 0 );
         return 1;
     }
     if ( Cba_PrsIsChar(p, '&') ) 
@@ -534,8 +534,8 @@ static inline int Cba_PrsReadAssign( Cba_Prs_t * p )
     // write binary operator
     Vec_IntPush( &p->vTypesCur, CBA_OBJ_NODE );
     Vec_IntPush( &p->vFuncsCur, Oper );
-    Vec_IntPush( &p->vInstIdsCur, 0 );
     Vec_IntPush( &p->vFaninsCur, Cba_ManHandleArray(p->pDesign, &p->vTemp) ); 
+    Vec_IntPush( &p->vInstIdsCur, 0 );
     return 1;
 }
 static inline int Cba_PrsReadInstance( Cba_Prs_t * p, int Func )
@@ -564,8 +564,8 @@ static inline int Cba_PrsReadInstance( Cba_Prs_t * p, int Func )
     // assign
     Vec_IntPush( &p->vTypesCur, Type );
     Vec_IntPush( &p->vFuncsCur, Func );
-    Vec_IntPush( &p->vInstIdsCur, InstId );
     Vec_IntPush( &p->vFaninsCur, Cba_ManHandleArray(p->pDesign, &p->vTemp) ); 
+    Vec_IntPush( &p->vInstIdsCur, InstId );
     return 1;
 }
 
@@ -633,9 +633,9 @@ static inline int Cba_PrsReadModule( Cba_Prs_t * p )
                 Vec_IntPush( &p->vFailed, p->iModuleName );
                 // cleanup
                 Vec_IntClear( &p->vWiresCur );
-                Vec_IntClear( &p->vFaninsCur );
                 Vec_IntClear( &p->vTypesCur );
                 Vec_IntClear( &p->vFuncsCur );
+                Vec_IntClear( &p->vFaninsCur );
                 Vec_IntClear( &p->vInstIdsCur );
                 // add
                 Cba_PrsAddCurrentModel( p, p->iModuleName );

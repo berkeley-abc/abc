@@ -69,8 +69,8 @@ struct Cba_Prs_t_
     // objects collected by the parser
     Vec_Int_t    vTypesCur;   // Cba_PrsType_t
     Vec_Int_t    vFuncsCur;   // functions (node->func; box->module; gate->cell; latch->init; concat->unused)
-    Vec_Int_t    vInstIdsCur; // instance names
     Vec_Int_t    vFaninsCur;  // instances
+    Vec_Int_t    vInstIdsCur; // instance names
     // temporary data
     Vec_Str_t    vCover;      // one SOP cover
     Vec_Int_t    vTemp;       // array of tokens
@@ -124,8 +124,8 @@ static inline Cba_Ntk_t * Cba_PrsAddCurrentModel( Cba_Prs_t * p, int iNameId )
     Cba_ManSetupArray( p->pDesign, &pNtk->vWires,   &p->vWiresCur   );
     Cba_ManSetupArray( p->pDesign, &pNtk->vTypes,   &p->vTypesCur   );
     Cba_ManSetupArray( p->pDesign, &pNtk->vFuncs,   &p->vFuncsCur   );
-    Cba_ManSetupArray( p->pDesign, &pNtk->vInstIds, &p->vInstIdsCur );
     Cba_ManSetupArray( p->pDesign, &pNtk->vFanins,  &p->vFaninsCur  );
+    Cba_ManSetupArray( p->pDesign, &pNtk->vInstIds, &p->vInstIdsCur );
     return pNtk;
 }
 
@@ -182,8 +182,8 @@ static inline void Cba_PrsFree( Cba_Prs_t * p )
 
     Vec_IntErase( &p->vTypesCur );
     Vec_IntErase( &p->vFuncsCur );
-    Vec_IntErase( &p->vInstIdsCur );
     Vec_IntErase( &p->vFaninsCur );
+    Vec_IntErase( &p->vInstIdsCur );
     // temporary
     Vec_StrErase( &p->vCover );
     Vec_IntErase( &p->vTemp );

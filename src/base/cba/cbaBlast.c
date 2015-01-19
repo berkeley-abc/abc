@@ -46,19 +46,20 @@ ABC_NAMESPACE_IMPL_START
 ***********************************************************************/
 void Cba_ManPrepareGates( Cba_Man_t * p )
 {
-    int i;
+    Dec_Graph_t ** ppGraphs; int i;
     if ( p->pMioLib == NULL )
         return;
-    assert( p->ppGraphs == NULL );
-    p->ppGraphs = (Dec_Graph_t **)ABC_ALLOC( Dec_Graph_t *, Abc_NamObjNumMax(p->pFuncs) );
-    p->ppGraphs[0] = NULL;
+    ppGraphs = ABC_ALLOC( Dec_Graph_t *, Abc_NamObjNumMax(p->pFuncs) );
+    ppGraphs[0] = NULL;
     for ( i = 1; i < Abc_NamObjNumMax(p->pFuncs); i++ )
     {
         char * pGateName = Abc_NamStr( p->pFuncs, i );
         Mio_Gate_t * pGate = Mio_LibraryReadGateByName( (Mio_Library_t *)p->pMioLib, pGateName, NULL );
         char * pSop = Mio_GateReadSop( pGate );
-        p->ppGraphs[i] = Dec_Factor( pSop );
+        ppGraphs[i] = Dec_Factor( pSop );
     }
+    assert( p->ppGraphs == NULL );
+    p->ppGraphs = ppGraphs;
 }
 void Cba_ManUndoGates( Cba_Man_t * p )
 {
@@ -66,7 +67,7 @@ void Cba_ManUndoGates( Cba_Man_t * p )
     if ( p->pMioLib == NULL )
         return;
     for ( i = 1; i < Abc_NamObjNumMax(p->pFuncs); i++ )
-        Dec_GraphFree( p->ppGraphs[i] );
+        Dec_GraphFree( (Dec_Graph_t *)p->ppGraphs[i] );
     ABC_FREE( p->ppGraphs );
 }
 

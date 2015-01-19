@@ -137,7 +137,7 @@ Cba_Man_t * Cba_ManDupStart( Cba_Man_t * p, Vec_Int_t * vNtkSizes )
     Cba_Ntk_t * pNtk; int i;
     Cba_Man_t * pNew = Cba_ManClone( p );
     Cba_ManForEachNtk( p, pNtk, i )
-        Cba_NtkResize( Cba_ManNtk(pNew, i), vNtkSizes ? Vec_IntEntry(vNtkSizes, i) : Cba_NtkObjNum(pNtk) );
+        Cba_NtkResize( Cba_ManNtk(pNew, i), vNtkSizes ? Vec_IntEntry(vNtkSizes, i) : Cba_NtkObjNum(pNtk), Cba_NtkIsWordLevel(pNtk) );
     Vec_IntFill( &p->vCopies, Cba_ManObjNum(p), -1 );
     Cba_ManForEachNtk( p, pNtk, i )
         Cba_NtkDupStart( Cba_ManNtk(pNew, i), pNtk );

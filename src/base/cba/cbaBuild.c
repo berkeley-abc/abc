@@ -169,7 +169,7 @@ Cba_Ntk_t * Cba_NtkBuild( Cba_Man_t * pNew, Cba_Ntk_t * pNtk, Vec_Int_t * vMap, 
 
     // start network
     pNtkNew = Cba_ManNtk( pNew, Cba_NtkId(pNtk) );
-    Cba_NtkResize( pNtkNew, nObjCount );
+    Cba_NtkResize( pNtkNew, nObjCount, 0 );
 
     // fill object information
     Cba_NtkForEachPi( pNtk, NameId, i )
