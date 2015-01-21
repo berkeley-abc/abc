@@ -871,13 +871,14 @@ static inline Abc_Obj_t * Abc_NtkFromCellRead( Abc_Ntk_t * p, Vec_Int_t * vCopyL
 }
 Abc_Ntk_t * Abc_NtkFromCellMappedGia( Gia_Man_t * p )
 {
-    int fVerbose = 1;
+    int fFixDrivers = 0;
     int fDuplicate = 1;
+    int fVerbose = 1;
     Abc_Ntk_t * pNtkNew;
     Vec_Int_t * vCopyLits;
     Abc_Obj_t * pObjNew, * pObjNewLi, * pObjNewLo;
     Gia_Obj_t * pObj, * pObjLi, * pObjLo;
-    int i, k, iLit, iFanLit, nDupGates, nCells, fNeedConst[2] = {0}; 
+    int i, k, iLit, iFanLit, nCells, fNeedConst[2] = {0}; 
     Mio_Cell_t * pCells = Mio_CollectRootsNewDefault( 6, &nCells, 0 );
     assert( Gia_ManHasCellMapping(p) );
     // start network
@@ -985,14 +986,18 @@ Abc_Ntk_t * Abc_NtkFromCellMappedGia( Gia_Man_t * p )
     Abc_NtkAddDummyBoxNames( pNtkNew );
 
     // decouple the PO driver nodes to reduce the number of levels
-    nDupGates = Abc_NtkLogicMakeSimpleCos( pNtkNew, fDuplicate );
-    if ( fVerbose && nDupGates && !Abc_FrameReadFlag("silentmode") )
+    if ( fFixDrivers )
     {
-        if ( !fDuplicate )
-            printf( "Added %d buffers/inverters to decouple the CO drivers.\n", nDupGates );
-        else
-            printf( "Duplicated %d gates to decouple the CO drivers.\n", nDupGates );
+        int nDupGates = Abc_NtkLogicMakeSimpleCos( pNtkNew, fDuplicate );
+        if ( fVerbose && nDupGates && !Abc_FrameReadFlag("silentmode") )
+        {
+            if ( !fDuplicate )
+                printf( "Added %d buffers/inverters to decouple the CO drivers.\n", nDupGates );
+            else
+                printf( "Duplicated %d gates to decouple the CO drivers.\n", nDupGates );
+        }
     }
+
     assert( Gia_ManPiNum(p) == Abc_NtkPiNum(pNtkNew) );
     assert( Gia_ManPoNum(p) == Abc_NtkPoNum(pNtkNew) );
     assert( Gia_ManRegNum(p) == Abc_NtkLatchNum(pNtkNew) );

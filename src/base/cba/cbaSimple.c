@@ -30,10 +30,23 @@ ABC_NAMESPACE_IMPL_START
 
 /*
 design = array containing design name (as the first entry in the array) followed by pointers to modules
-module = array containing module name (as the first entry in the array) followed by pointers to four arrays: 
-         {array of input names; array of output names; array of nodes; array of boxes}
+module = array containing module name (as the first entry in the array) followed by pointers to 6 arrays: 
+         {array of input names; array of output names; array of nodes; array of boxes, 
+          array of floating-point input-arrival times; array of floating-point output-required times}
 node   = array containing output name, followed by node type, followed by input names
 box    = array containing model name, instance name, followed by pairs of formal/actual names for each port
+
+  Comments:
+  - in describing boxes
+     - input formal/actual name pairs should be listed before output name pairs
+     - the order of formal names should be the same as the order of inputs/outputs in the module description
+     - all formal names present in the module description should be listed
+     - if an input pin is not driven or an output pin has no fanout, the actual pin name is NULL
+     - word-level formal name "a" is written as bit-level names (a[0]. a[1], etc) ordered LSB to MSB
+  - primitive names should be given as char*-strings in description of nodes and boxes
+  - primitive modules should not be written, but the list of primitives and formal names should be provided
+  - constant 0/1 nets can be specified as char*-strings "NetConst0" and "NetConst1".
+  - arrays of input-arrival/output-required times in the module description are optional
 */
 
 ////////////////////////////////////////////////////////////////////////

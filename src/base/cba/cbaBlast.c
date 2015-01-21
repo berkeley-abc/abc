@@ -59,7 +59,7 @@ void Cba_ManPrepareGates( Cba_Man_t * p )
         ppGraphs[i] = Dec_Factor( pSop );
     }
     assert( p->ppGraphs == NULL );
-    p->ppGraphs = ppGraphs;
+    p->ppGraphs = (void **)ppGraphs;
 }
 void Cba_ManUndoGates( Cba_Man_t * p )
 {
@@ -432,7 +432,7 @@ Cba_Man_t * Cba_ManBlastTest( Cba_Man_t * p )
 ***********************************************************************/
 static inline int Abc_NodeIsSeriousGate( Abc_Obj_t * p )
 {
-    return Abc_ObjIsNode(p) && (Abc_ObjFaninNum(p) > 0);
+    return (Abc_ObjIsNode(p) && (Abc_ObjFaninNum(p) > 0) && !Abc_ObjIsBarBuf(p));// || Abc_ObjIsPi(p);
 }
 Vec_Int_t * Cba_ManCountAbc( Cba_Man_t * p, Abc_Ntk_t * pNtk, int fAlwaysAdd )
 {
@@ -464,10 +464,11 @@ Vec_Int_t * Cba_ManCountAbc( Cba_Man_t * p, Abc_Ntk_t * pNtk, int fAlwaysAdd )
     assert( Count == pNtk->nBarBufs2 );
     Abc_NtkForEachPo( pNtk, pObj, i )
     {
+        if ( !Abc_NodeIsSeriousGate(Abc_ObjFanin0(pObj)) )
+            continue;
         assert( Abc_ObjFanin0(pObj)->iTemp == 1 );
         pObj->iTemp = Abc_ObjFanin0(pObj)->iTemp;
-        if ( Abc_NodeIsSeriousGate(Abc_ObjFanin0(pObj)) )
-            Vec_IntAddToEntry( vDrivenCos, pObj->iTemp, 1 );
+        Vec_IntAddToEntry( vDrivenCos, pObj->iTemp, 1 );
     }
     // for each network, count the total number of COs
     Cba_ManForEachNtk( p, pCbaNtk, i )
@@ -487,6 +488,14 @@ void Cba_NtkCreateOrConnectFanin( Abc_Ntk_t * pNtk, Abc_Obj_t * pFanin, Cba_Ntk_
         Vec_IntWriteEntry( &p->vNameIds, pFanin->iTemp, Cba_ObjNameId(p, iTerm) );
         Vec_IntWriteEntry( &p->vFanins,  iTerm,         pFanin->iTemp );
     }
+    else if ( pNtk && (Abc_ObjIsPi(pFanin) || Abc_ObjIsBarBuf(pFanin)) )
+    {
+        Vec_IntWriteEntry( &p->vTypes,   p->nObjs, CBA_OBJ_NODE );
+        Vec_IntWriteEntry( &p->vFuncs,   p->nObjs, 3 ); // assuming elem gates are added first
+        Vec_IntWriteEntry( &p->vFanins,  p->nObjs, Cba_ManHandleBuffer(p->pDesign, pFanin->iTemp) );
+        Vec_IntWriteEntry( &p->vNameIds, p->nObjs, Cba_ObjNameId(p, iTerm) );
+        Vec_IntWriteEntry( &p->vFanins,  iTerm,    p->nObjs++ );
+    }
     else
     {
         assert( !pFanin || Abc_NodeIsConst0(pFanin) || Abc_NodeIsConst1(pFanin) );
@@ -502,12 +511,19 @@ void Cba_NtkPrepareLibrary( Cba_Man_t * p, Mio_Library_t * pLib )
     Mio_Gate_t * pGate;
     Mio_Gate_t * pGate0 = Mio_LibraryReadConst0( pLib );
     Mio_Gate_t * pGate1 = Mio_LibraryReadConst1( pLib );
+    Mio_Gate_t * pGate2 = Mio_LibraryReadBuf( pLib );
+    if ( !pGate0 || !pGate1 || !pGate2 )
+    {
+        printf( "The library does not have one of the elementary gates.\n" );
+        return;
+    }
     assert( Abc_NamObjNumMax(p->pFuncs) == 1 );
     Abc_NamStrFindOrAdd( p->pFuncs, Mio_GateReadName(pGate0), NULL );
     Abc_NamStrFindOrAdd( p->pFuncs, Mio_GateReadName(pGate1), NULL );
-    assert( Abc_NamObjNumMax(p->pFuncs) == 3 );
+    Abc_NamStrFindOrAdd( p->pFuncs, Mio_GateReadName(pGate2), NULL );
+    assert( Abc_NamObjNumMax(p->pFuncs) == 4 );
     Mio_LibraryForEachGate( pLib, pGate )
-        if ( pGate != pGate0 && pGate != pGate1 )
+        if ( pGate != pGate0 && pGate != pGate1 && pGate != pGate2 )
             Abc_NamStrFindOrAdd( p->pFuncs, Mio_GateReadName(pGate), NULL );
     assert( Abc_NamObjNumMax(p->pFuncs) > 1 );
 }
@@ -519,6 +535,7 @@ void Cba_NtkInsertNtk( Cba_Man_t * p, Abc_Ntk_t * pNtk )
     Abc_Obj_t * pObj, * pFanin;
     assert( Abc_NtkHasMapping(pNtk) );
     Cba_NtkPrepareLibrary( p, (Mio_Library_t *)pNtk->pManFunc );
+    p->pMioLib = pNtk->pManFunc;
 
     Abc_NtkForEachPi( pNtk, pObj, i )
         pObj->iTemp = Cba_NtkPi( pRoot, i );

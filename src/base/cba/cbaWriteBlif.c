@@ -171,7 +171,7 @@ void Cba_ManWriteBlifLines( FILE * pFile, Cba_Ntk_t * p )
             {
                 char * pGateName = Abc_NamStr( p->pDesign->pFuncs, Cba_ObjFuncId(p, i) );
                 Mio_Gate_t * pGate = Mio_LibraryReadGateByName( (Mio_Library_t *)p->pDesign->pMioLib, pGateName, NULL );
-                fprintf( pFile, ".gate" );
+                fprintf( pFile, ".gate %s", pGateName );
                 Cba_ManWriteBlifGate( pFile, p, pGate, Cba_ObjFaninVec(p, i), i );
             }
             else if ( Abc_NamObjNumMax(p->pDesign->pFuncs) > 1 ) // SOP functions
