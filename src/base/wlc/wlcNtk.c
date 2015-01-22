@@ -33,7 +33,7 @@ static char * Wlc_Names[WLC_OBJ_NUMBER+1] = {
     NULL,                  // 00: unknown
     "pi",                  // 01: primary input 
     "po",                  // 02: primary output 
-    "bo",                  // 03: box output
+    "ff",                  // 03: box output
     "bi",                  // 04: box input
     "ff",                  // 05: flop
     "const",               // 06: constant
@@ -206,9 +206,11 @@ void Wlc_NtkFree( Wlc_Ntk_t * p )
     ABC_FREE( p->vCis.pArray );
     ABC_FREE( p->vCos.pArray );
     ABC_FREE( p->vFfs.pArray );
+    ABC_FREE( p->vInits.pArray );
     ABC_FREE( p->vTravIds.pArray );
     ABC_FREE( p->vNameIds.pArray );
     ABC_FREE( p->vCopies.pArray );
+    ABC_FREE( p->pInits );
     ABC_FREE( p->pObjs );
     ABC_FREE( p->pName );
     ABC_FREE( p );
@@ -469,6 +471,7 @@ Wlc_Ntk_t * Wlc_NtkDupDfs( Wlc_Ntk_t * p )
         Wlc_NtkDupDfs_rec( pNew, p, Wlc_ObjId(p, pObj), vFanins );
     Wlc_NtkForEachCo( p, pObj, i )
         Wlc_ObjSetCo( pNew, Wlc_ObjCopyObj(pNew, p, pObj), pObj->fIsFi );
+    pNew->pInits = Abc_UtilStrsav( p->pInits );
     Vec_IntFree( vFanins );
     return pNew;
 }

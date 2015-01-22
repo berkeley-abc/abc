@@ -413,6 +413,42 @@ cont:
   SeeAlso     []
 
 ***********************************************************************/
+char * Wlc_PrsConvertInitValues( Wlc_Ntk_t * p )
+{
+    Wlc_Obj_t * pObj; 
+    int i, k, Value, * pInits;
+    char * pResult;
+    Vec_Str_t * vStr = Vec_StrAlloc( 1000 );
+    Vec_IntForEachEntry( &p->vInits, Value, i )
+    {
+        if ( Value < 0 )
+        {
+            for ( k = 0; k < -Value; k++ )
+                Vec_StrPush( vStr, '0' );
+            continue;
+        }
+        pObj = Wlc_NtkObj( p, Value );
+        pInits = pObj->Type == WLC_OBJ_CONST ? Wlc_ObjConstValue(pObj) : NULL;
+        for ( k = 0; k < Wlc_ObjRange(pObj); k++ )
+            Vec_StrPush( vStr, (char)(pInits ? '0' + Abc_InfoHasBit(pInits, k) : 'X') );
+    }
+    Vec_StrPush( vStr, '\0' );
+    pResult = Vec_StrReleaseArray( vStr );
+    Vec_StrFree( vStr );
+    return pResult;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 static inline char * Wlc_PrsFindRange( char * pStr, int * End, int * Beg )
 {
     *End = *Beg = 0;
@@ -880,12 +916,17 @@ startword:
             Vec_IntFree( vTemp );
             // move FO/FI to be part of CI/CO
             assert( (Vec_IntSize(&p->pNtk->vFfs) & 1) == 0 );
+            assert( Vec_IntSize(&p->pNtk->vFfs) == 2 * Vec_IntSize(&p->pNtk->vInits) );
             Wlc_NtkForEachFf( p->pNtk, pObj, i )
                 if ( i & 1 )
                     Wlc_ObjSetCo( p->pNtk, pObj, 1 );
                 else
                     Wlc_ObjSetCi( p->pNtk, pObj );
             Vec_IntClear( &p->pNtk->vFfs );
+            // convert init values into binary string
+            //Vec_IntPrint( &p->pNtk->vInits );
+            p->pNtk->pInits = Wlc_PrsConvertInitValues( p->pNtk );
+            //printf( "%s", p->pNtk->pInits );
             break;
         }
         // these are read as part of the interface
@@ -1028,7 +1069,7 @@ startword:
         }
         else if ( Wlc_PrsStrCmp( pStart, "CPL_FF" ) )
         {
-            int NameId = -1, NameIdOut = -1, fFound, nBits = 1, fFlopOut;
+            int NameId = -1, NameIdIn = -1, NameIdOut = -1, fFound, nBits = 1, fFlopOut, fFlopIn;
             pStart += strlen("CPL_FF");
             if ( pStart[0] == '#' )
                 nBits = atoi(pStart+1);
@@ -1039,8 +1080,9 @@ startword:
                 if ( pStart == NULL )
                     break;
                 pStart = Wlc_PrsSkipSpaces( pStart+1 );
-                if ( pStart[0] != 'd' && (pStart[0] != 'q' || pStart[1] == 'b') )
+                if ( pStart[0] != 'd' && (pStart[0] != 'q' || pStart[1] == 'b') && strncmp(pStart, "arstval", 7) )
                     continue;
+                fFlopIn = (pStart[0] == 'q');
                 fFlopOut = (pStart[0] == 'd');
                 pStart = Wlc_PrsFindSymbol( pStart, '(' );
                 if ( pStart == NULL )
@@ -1050,17 +1092,19 @@ startword:
                     return Wlc_PrsWriteErrorMessage( p, pStart, "Cannot read name inside flop description." );
                 if ( fFlopOut )
                     NameIdOut = Abc_NamStrFindOrAdd( p->pNtk->pManName, pName, &fFound );
-                else 
+                else if ( fFlopIn ) 
+                    NameIdIn = Abc_NamStrFindOrAdd( p->pNtk->pManName, pName, &fFound );
+                else
                     NameId = Abc_NamStrFindOrAdd( p->pNtk->pManName, pName, &fFound );
                 if ( !fFound )
                     return Wlc_PrsWriteErrorMessage( p, pStart, "Name %s is not declared.", pName );
             }
-            if ( NameId == -1 || NameIdOut == -1 )
+            if ( NameIdIn == -1 || NameIdOut == -1 )
                 return Wlc_PrsWriteErrorMessage( p, pStart, "Name of flop input or flop output is missing." );
             // create flop output
-            pObj = Wlc_NtkObj( p->pNtk, NameId );
+            pObj = Wlc_NtkObj( p->pNtk, NameIdIn );
             Wlc_ObjUpdateType( p->pNtk, pObj, WLC_OBJ_FO );
-            Vec_IntPush( &p->pNtk->vFfs, NameId );
+            Vec_IntPush( &p->pNtk->vFfs, NameIdIn );
             if ( nBits != Wlc_ObjRange(pObj) )
                 printf( "Warning!  Flop input has bit-width (%d) that differs from the declaration (%d)\n", nBits, Wlc_ObjRange(pObj) );
             // create flop input
@@ -1068,6 +1112,8 @@ startword:
             Vec_IntPush( &p->pNtk->vFfs, NameIdOut );
             if ( nBits != Wlc_ObjRange(pObj) )
                 printf( "Warning!  Flop output has bit-width (%d) that differs from the declaration (%d)\n", nBits, Wlc_ObjRange(pObj) );
+            // save flop init value
+            Vec_IntPush( &p->pNtk->vInits, NameId > 0 ? NameId : -Wlc_ObjRange(pObj) );
         }
         else if ( pStart[0] != '`' )
         {

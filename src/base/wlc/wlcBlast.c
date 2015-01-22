@@ -777,6 +777,20 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Vec_Int_t * vBoxIds )
     // finalize AIG
     pNew = Gia_ManCleanup( pTemp = pNew );
     Gia_ManStop( pTemp );
+    // transform AIG with init state
+    if ( p->pInits )
+    {
+        if ( (int)strlen(p->pInits) != Gia_ManRegNum(pNew) )
+        {
+            printf( "The number of init values (%d) does not match the number of flops (%d).\n", strlen(p->pInits), Gia_ManRegNum(pNew) );
+            printf( "It is assumed that the AIG has constant 0 initial state.\n" );
+        }
+        else
+        {
+            pNew = Gia_ManDupZeroUndc( pTemp = pNew, p->pInits, 1 );
+            Gia_ManStop( pTemp );
+        }
+    }
     // finalize AIG with boxes
     if ( vBoxIds )
     {
