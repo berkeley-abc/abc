@@ -782,7 +782,7 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Vec_Int_t * vBoxIds )
     {
         if ( (int)strlen(p->pInits) != Gia_ManRegNum(pNew) )
         {
-            printf( "The number of init values (%d) does not match the number of flops (%d).\n", strlen(p->pInits), Gia_ManRegNum(pNew) );
+            printf( "The number of init values (%d) does not match the number of flops (%d).\n", (int)strlen(p->pInits), Gia_ManRegNum(pNew) );
             printf( "It is assumed that the AIG has constant 0 initial state.\n" );
         }
         else
