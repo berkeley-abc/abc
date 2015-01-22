@@ -428,6 +428,8 @@ char * Wlc_PrsConvertInitValues( Wlc_Ntk_t * p )
             continue;
         }
         pObj = Wlc_NtkObj( p, Value );
+        while ( pObj->Type == WLC_OBJ_BUF )
+            pObj = Wlc_NtkObj( p, Wlc_ObjFaninId0(pObj) );
         pInits = pObj->Type == WLC_OBJ_CONST ? Wlc_ObjConstValue(pObj) : NULL;
         for ( k = 0; k < Wlc_ObjRange(pObj); k++ )
             Vec_StrPush( vStr, (char)(pInits ? '0' + Abc_InfoHasBit((unsigned *)pInits, k) : 'X') );
