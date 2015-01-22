@@ -35080,7 +35080,7 @@ int Abc_CommandAbc9Cone( Abc_Frame_t * pAbc, int argc, char ** argv )
             Abc_FrameUpdateGia( pAbc, pTemp );
         return 0;
     }
-    if ( iOutNum < 0 || iOutNum + nOutRange >= Gia_ManPoNum(pAbc->pGia) )
+    if ( iOutNum < 0 || iOutNum + nOutRange > Gia_ManPoNum(pAbc->pGia) )
     {
         Abc_Print( -1, "Abc_CommandAbc9Cone(): Range of outputs to extract is incorrect.\n" );
         return 1;
