@@ -120,7 +120,7 @@ struct Wlc_Ntk_t_
     Vec_Int_t              vCis;               // combinational inputs
     Vec_Int_t              vCos;               // combinational outputs
     Vec_Int_t              vFfs;               // flops
-    Vec_Int_t              vInits;             // initial values
+    Vec_Int_t *            vInits;             // initial values
     char *                 pInits;             // initial values
     int                    nObjs[WLC_OBJ_NUMBER]; // counter of objects of each type
     int                    nAnds[WLC_OBJ_NUMBER]; // counter of AND gates after blasting

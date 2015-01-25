@@ -339,16 +339,50 @@ void Wlc_WriteVerInt( FILE * pFile, Wlc_Ntk_t * p )
         fprintf( pFile, "         " );
         fprintf( pFile, "CPL_FF" );
         if ( Wlc_ObjRange(pObj) > 1 )
-            fprintf( pFile, "#%d", Wlc_ObjRange(pObj) );
+            fprintf( pFile, "#%d%*s", Wlc_ObjRange(pObj), 4 - Abc_Base10Log(Wlc_ObjRange(pObj)+1), "" );
+        else
+            fprintf( pFile, "     " );
         fprintf( pFile, " reg%d (",       i );
         fprintf( pFile, " .q( %s ),",      pName );
         fprintf( pFile, " .qbar()," );
         fprintf( pFile, " .d( %s ),",      Wlc_ObjName(p, Wlc_ObjId(p, Wlc_ObjFoToFi(p, pObj))) );
         fprintf( pFile, " .clk( %s ),",    "1\'b0" );
         fprintf( pFile, " .arst( %s ),",   "1\'b0" );
-        fprintf( pFile, " .arstval( %s )", "1\'b0" );
+        if ( p->vInits )
+            fprintf( pFile, " .arstval( %s_init )", pName );
+        else
+            fprintf( pFile, " .arstval( %s )", "1\'b0" );
         fprintf( pFile, " ) ;\n" );
     }
+    iFanin = 0;
+    assert( !p->vInits || Wlc_NtkFfNum(p) == Vec_IntSize(p->vInits) );
+    if ( p->vInits )
+    Wlc_NtkForEachCi( p, pObj, i )
+    {
+        int nDigits   = Abc_Base10Log(pObj->End+1) + 1;
+        char * pName  = Wlc_ObjName(p, Wlc_ObjId(p, pObj));
+        assert( i == Wlc_ObjCiId(pObj) );
+        if ( pObj->Type == WLC_OBJ_PI )
+            continue;
+        sprintf( Range, "       [%d:%d]%*s", Wlc_ObjRange(pObj) - 1, 0, 8-nDigits, "" );
+        fprintf( pFile, "         " );
+        fprintf( pFile, "wire %s ", Range );
+        fprintf( pFile, "%s_init%*s = ", pName, 11 - strlen(pName), "" );
+        if ( Vec_IntEntry(p->vInits, i-Wlc_NtkPiNum(p)) > 0 )
+            fprintf( pFile, "%s", Wlc_ObjName(p, Wlc_ObjId(p, Wlc_NtkPi(p, Vec_IntEntry(p->vInits, i-Wlc_NtkPiNum(p))))));
+        else
+        {
+            fprintf( pFile, "%d\'b", Wlc_ObjRange(pObj) );
+            for ( k = 0; k < Wlc_ObjRange(pObj); k++ )
+                fprintf( pFile, "%c", p->pInits[iFanin + k] );
+        }
+        fprintf( pFile, ";\n" );
+        iFanin += Wlc_ObjRange(pObj);
+
+        //printf( "%d %d %s\n", iFanin, Wlc_ObjRange(pObj), Wlc_ObjName(p, Wlc_ObjId(p, pObj)) );
+    }
+    k = (int)strlen(p->pInits);
+    //assert( !p->vInits || iFanin == (int)strlen(p->pInits) );
     fprintf( pFile, "endmodule\n\n" );
 } 
 void Wlc_WriteVer( Wlc_Ntk_t * p, char * pFileName )
