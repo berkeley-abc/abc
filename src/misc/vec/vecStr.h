@@ -80,6 +80,16 @@ static inline Vec_Str_t * Vec_StrAlloc( int nCap )
     p->pArray = p->nCap? ABC_ALLOC( char, p->nCap ) : NULL;
     return p;
 }
+static inline Vec_Str_t * Vec_StrAllocExact( int nCap )
+{
+    Vec_Str_t * p;
+    assert( nCap >= 0 );
+    p = ABC_ALLOC( Vec_Str_t, 1 );
+    p->nSize  = 0;
+    p->nCap   = nCap;
+    p->pArray = p->nCap? ABC_ALLOC( char, p->nCap ) : NULL;
+    return p;
+}
 
 /**Function*************************************************************
 

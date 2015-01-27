@@ -86,6 +86,16 @@ static inline Vec_Flt_t * Vec_FltAlloc( int nCap )
     p->pArray = p->nCap? ABC_ALLOC( float, p->nCap ) : NULL;
     return p;
 }
+static inline Vec_Flt_t * Vec_FltAllocExact( int nCap )
+{
+    Vec_Flt_t * p;
+    assert( nCap >= 0 );
+    p = ABC_ALLOC( Vec_Flt_t, 1 );
+    p->nSize  = 0;
+    p->nCap   = nCap;
+    p->pArray = p->nCap? ABC_ALLOC( float, p->nCap ) : NULL;
+    return p;
+}
 
 /**Function*************************************************************
 

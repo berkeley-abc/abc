@@ -88,6 +88,16 @@ static inline Vec_Wrd_t * Vec_WrdAlloc( int nCap )
     p->pArray = p->nCap? ABC_ALLOC( word, p->nCap ) : NULL;
     return p;
 }
+static inline Vec_Wrd_t * Vec_WrdAllocExact( int nCap )
+{
+    Vec_Wrd_t * p;
+    assert( nCap >= 0 );
+    p = ABC_ALLOC( Vec_Wrd_t, 1 );
+    p->nSize  = 0;
+    p->nCap   = nCap;
+    p->pArray = p->nCap? ABC_ALLOC( word, p->nCap ) : NULL;
+    return p;
+}
 
 /**Function*************************************************************
 

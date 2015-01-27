@@ -91,6 +91,16 @@ static inline Vec_Ptr_t * Vec_PtrAlloc( int nCap )
     p->pArray = p->nCap? ABC_ALLOC( void *, p->nCap ) : NULL;
     return p;
 }
+static inline Vec_Ptr_t * Vec_PtrAllocExact( int nCap )
+{
+    Vec_Ptr_t * p;
+    assert( nCap >= 0 );
+    p = ABC_ALLOC( Vec_Ptr_t, 1 );
+    p->nSize  = 0;
+    p->nCap   = nCap;
+    p->pArray = p->nCap? ABC_ALLOC( void *, p->nCap ) : NULL;
+    return p;
+}
 
 /**Function*************************************************************
 

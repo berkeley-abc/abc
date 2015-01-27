@@ -95,6 +95,16 @@ static inline Vec_Wec_t * Vec_WecAlloc( int nCap )
     p->pArray = p->nCap? ABC_CALLOC( Vec_Int_t, p->nCap ) : NULL;
     return p;
 }
+static inline Vec_Wec_t * Vec_WecAllocExact( int nCap )
+{
+    Vec_Wec_t * p;
+    assert( nCap >= 0 );
+    p = ABC_ALLOC( Vec_Wec_t, 1 );
+    p->nSize  = 0;
+    p->nCap   = nCap;
+    p->pArray = p->nCap? ABC_CALLOC( Vec_Int_t, p->nCap ) : NULL;
+    return p;
+}
 static inline Vec_Wec_t * Vec_WecStart( int nSize )
 {
     Vec_Wec_t * p;

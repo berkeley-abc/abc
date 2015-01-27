@@ -2211,7 +2211,7 @@ int If_CutDsdBalanceEval_rec( If_DsdMan_t * p, int Id, int * pTimes, int * pnSup
     if ( If_DsdObjType(pObj) == IF_DSD_VAR )
     {
         int iCutVar = Abc_Lit2Var( pPermLits[*pnSupp] );
-        if ( vAig )
+        if ( vAig ) 
             *piLit = Abc_Var2Lit( iCutVar, Abc_LitIsCompl(pPermLits[*pnSupp]) );
         (*pnSupp)++;
         return pTimes[iCutVar];
@@ -2224,7 +2224,8 @@ int If_CutDsdBalanceEval_rec( If_DsdMan_t * p, int Id, int * pTimes, int * pnSup
             Delays[i] = If_CutDsdBalanceEval_rec( p, Abc_Lit2Var(iFanin), pTimes, pnSupp, vAig, pFaninLits+i, nSuppAll, pArea, pPermLits );
             if ( Delays[i] == -1 )
                 return -1;
-            pFaninLits[i] = Abc_LitNotCond( pFaninLits[i], Abc_LitIsCompl(iFanin) );
+            if ( vAig ) 
+                pFaninLits[i] = Abc_LitNotCond( pFaninLits[i], Abc_LitIsCompl(iFanin) );
         }
         if ( vAig )
             *piLit = If_LogCreateMux( vAig, pFaninLits[0], pFaninLits[1], pFaninLits[2], nSuppAll );
@@ -2243,7 +2244,8 @@ int If_CutDsdBalanceEval_rec( If_DsdMan_t * p, int Id, int * pTimes, int * pnSup
             Delays[i] = If_CutDsdBalanceEval_rec( p, Abc_Lit2Var(iFanin), pTimes, pnSupp, vAig, pFaninLits+i, nSuppAll, pArea, pPermLits );
             if ( Delays[i] == -1 )
                 return -1;
-            pFaninLits[i] = Abc_LitNotCond( pFaninLits[i], Abc_LitIsCompl(iFanin) );
+            if ( vAig ) 
+                pFaninLits[i] = Abc_LitNotCond( pFaninLits[i], Abc_LitIsCompl(iFanin) );
         }
         return If_CutSopBalanceEvalInt( vCover, Delays, pFaninLits, vAig, piLit, nSuppAll, pArea );
     }
@@ -2258,8 +2260,9 @@ int If_CutDsdBalanceEval_rec( If_DsdMan_t * p, int Id, int * pTimes, int * pnSup
             Delay = If_CutDsdBalanceEval_rec( p, Abc_Lit2Var(iFanin), pTimes, pnSupp, vAig, pFaninLits+i, nSuppAll, pArea, pPermLits );
             if ( Delay == -1 )
                 return -1;
-            pFaninLits[i] = Abc_LitNotCond( pFaninLits[i], Abc_LitIsCompl(iFanin) );
-            Result = If_LogCounterAddAig( pCounter, &nCounter, pFaninLits, Delay, pFaninLits[i], vAig, nSuppAll, fXor, fXorFunc );
+            if ( vAig ) 
+                pFaninLits[i] = Abc_LitNotCond( pFaninLits[i], Abc_LitIsCompl(iFanin) );
+            Result = If_LogCounterAddAig( pCounter, &nCounter, pFaninLits, Delay, vAig ? pFaninLits[i] : -1, vAig, nSuppAll, fXor, fXorFunc );
         }
         assert( nCounter > 0 );
         if ( fXor )

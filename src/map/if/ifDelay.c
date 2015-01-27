@@ -204,9 +204,9 @@ int If_CutSopBalanceEvalInt( Vec_Int_t * vCover, int * pTimes, int * pFaninLits,
         {
             Literal = 3 & (Entry >> (k << 1));
             if ( Literal == 1 ) // neg literal
-                nLits++, Delay = If_LogCounterAddAig( pCounterAnd, &nCounterAnd, pFaninLitsAnd, pTimes[k], Abc_LitNot(pFaninLits[k]), vAig, nSuppAll, 0, 0 );
+                nLits++, Delay = If_LogCounterAddAig( pCounterAnd, &nCounterAnd, pFaninLitsAnd, pTimes[k], vAig ? Abc_LitNot(pFaninLits[k]) : -1, vAig, nSuppAll, 0, 0 );
             else if ( Literal == 2 ) // pos literal
-                nLits++, Delay = If_LogCounterAddAig( pCounterAnd, &nCounterAnd, pFaninLitsAnd, pTimes[k], pFaninLits[k], vAig, nSuppAll, 0, 0 );
+                nLits++, Delay = If_LogCounterAddAig( pCounterAnd, &nCounterAnd, pFaninLitsAnd, pTimes[k], vAig ? pFaninLits[k] : -1, vAig, nSuppAll, 0, 0 );
             else if ( Literal != 0 ) 
                 assert( 0 );
         }
@@ -216,7 +216,7 @@ int If_CutSopBalanceEvalInt( Vec_Int_t * vCover, int * pTimes, int * pFaninLits,
             iRes = If_LogCreateAndXorMulti( vAig, pFaninLitsAnd, nCounterAnd, nSuppAll, 0 );
         else
             *pArea += nLits == 1 ? 0 : nLits - 1;
-        Delay = If_LogCounterAddAig( pCounterOr, &nCounterOr, pFaninLitsOr, Delay, Abc_LitNot(iRes), vAig, nSuppAll, 0, 0 );
+        Delay = If_LogCounterAddAig( pCounterOr, &nCounterOr, pFaninLitsOr, Delay, vAig ? Abc_LitNot(iRes) : -1, vAig, nSuppAll, 0, 0 );
     }
     assert( nCounterOr > 0 );
     if ( vAig )
