@@ -48,6 +48,31 @@ typedef enum {
 ///                         BASIC TYPES                              ///
 ////////////////////////////////////////////////////////////////////////
 
+// network
+typedef struct Cba_Prn_t_ Cba_Prn_t;
+struct Cba_Prn_t_
+{
+    int          iModuleName;
+    // interface
+    Vec_Int_t    vOrder;    
+    // signal names
+    Vec_Int_t    vInouts;   // inouts 
+    Vec_Int_t    vInputs;   // inputs 
+    Vec_Int_t    vOutputs;  // outputs
+    Vec_Int_t    vWires;    // wires  
+    // signal ranges
+    Vec_Int_t    vInoutsR;  // inouts 
+    Vec_Int_t    vInputsR;  // inputs 
+    Vec_Int_t    vOutputsR; // outputs
+    Vec_Int_t    vWiresR;   // wires  
+    // objects
+    Vec_Int_t    vObjBegs;  // object beginnings
+    Vec_Int_t    vObjects;  // object data (ModuleId; InstId; FormNameId/ActNameId/ActRange)
+    // concatenations
+    Vec_Int_t    vConBegs;  // concatenation beginnings
+    Vec_Int_t    vConcats;  // concatenation data
+};
+
 // parser
 typedef struct Cba_Prs_t_ Cba_Prs_t;
 struct Cba_Prs_t_

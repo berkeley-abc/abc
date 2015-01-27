@@ -414,7 +414,7 @@ Gia_Man_t * Gia_ManAigSynch2( Gia_Man_t * pInit, void * pPars0, int nLutSize, in
         Gia_ManStop( pTemp );
     }
     // perform balancing
-    if ( Gia_ManBufNum(pGia1) )
+    if ( Gia_ManBufNum(pGia1) || 1 )
         pGia2 = Gia_ManAreaBalance( pGia1, 0, ABC_INFINITY, 0, 0 );
     else
     {

@@ -49,12 +49,11 @@ typedef enum {
     CBA_OBJ_BO,        // 2:  box output
     CBA_OBJ_PI,        // 3:  input
     CBA_OBJ_PO,        // 4:  output
-    CBA_OBJ_PIO,       // 5:  ioput
-    CBA_OBJ_NODE,      // 6:  node
-    CBA_OBJ_BOX,       // 7:  box
-    CBA_OBJ_LATCH,     // 8:  latch
-    CBA_OBJ_CONCAT,    // 9:  concatenation
-    CBA_OBJ_UNKNOWN    // 10: unknown
+    CBA_OBJ_NODE,      // 5:  node
+    CBA_OBJ_BOX,       // 6:  box
+    CBA_OBJ_LATCH,     // 7:  latch
+    CBA_OBJ_CONCAT,    // 8:  concatenation
+    CBA_OBJ_UNKNOWN    // 9:  unknown
 } Cba_ObjType_t; 
 
 // Verilog predefined models
@@ -62,6 +61,8 @@ typedef enum {
     CBA_NODE_NONE = 0, // 0:  unused
     CBA_NODE_C0,       // 1:  constant 0
     CBA_NODE_C1,       // 2:  constant 1
+    CBA_NODE_CX,       // 2:  constant X
+    CBA_NODE_CZ,       // 2:  constant Z
     CBA_NODE_BUF,      // 3:  buffer
     CBA_NODE_INV,      // 4:  inverter
     CBA_NODE_AND,      // 5:  AND
@@ -88,7 +89,6 @@ typedef enum {
     CBA_NODE_PENC,
     CBA_NODE_DEC,
 
-    CBA_NODE_C,
     CBA_NODE_ADD,
     CBA_NODE_SUB,
     CBA_NODE_MUL,
@@ -169,8 +169,6 @@ struct Cba_Ntk_t_
     // attributes
     Vec_Int_t    vInstIds; // instance names  (used by parser to store instance name as NameId)       
     Vec_Int_t    vNameIds; // original names as NameId  
-    Vec_Int_t    vRangesL; // ranges as NameId
-    Vec_Int_t    vRangesR; // ranges as NameId
 };
 
 
@@ -210,15 +208,12 @@ static inline void           Cba_NtkSetHost( Cba_Ntk_t * p, int n, int i )   { p
 static inline Vec_Int_t *    Cba_NtkCopies( Cba_Ntk_t * p )                  { return &p->pDesign->vCopies;                                                                }
 static inline int            Cba_NtkCopy( Cba_Ntk_t * p, int i )             { return Vec_IntEntry( Cba_NtkCopies(p), p->iObjStart + i );                                  }
 static inline void           Cba_NtkSetCopy( Cba_Ntk_t * p, int i, int x )   { Vec_IntWriteEntry( Cba_NtkCopies(p), p->iObjStart + i, x );                                 }
-static inline int            Cba_NtkIsWordLevel( Cba_Ntk_t * p )             { return Vec_IntSize(&p->vRangesL) > 0;                                                       }
 
 static inline Cba_ObjType_t  Cba_ObjType( Cba_Ntk_t * p, int i )             { return (Cba_ObjType_t)Vec_IntEntry(&p->vTypes, i);                                          }
 static inline int            Cba_ObjFuncId( Cba_Ntk_t * p, int i )           { return Vec_IntEntry(&p->vFuncs, i);                                                         }
 static inline int            Cba_ObjFaninId( Cba_Ntk_t * p, int i )          { return Vec_IntEntry(&p->vFanins, i);                                                        }
 static inline int            Cba_ObjInstId( Cba_Ntk_t * p, int i )           { return Vec_IntEntry(&p->vInstIds, i);                                                       }
 static inline int            Cba_ObjNameId( Cba_Ntk_t * p, int i )           { return Vec_IntEntry(&p->vNameIds, i);                                                       }
-static inline int            Cba_ObjRangeLId( Cba_Ntk_t * p, int i )         { return Vec_IntEntry(&p->vRangesL, i);                                                       }
-static inline int            Cba_ObjRangeRId( Cba_Ntk_t * p, int i )         { return Vec_IntEntry(&p->vRangesR, i);                                                       }
 
 static inline int            Cba_ObjIsPi( Cba_Ntk_t * p, int i )             { return Cba_ObjType(p, i) == CBA_OBJ_PI;                                                     }
 static inline int            Cba_ObjIsPo( Cba_Ntk_t * p, int i )             { return Cba_ObjType(p, i) == CBA_OBJ_PO;                                                     }
@@ -341,6 +336,33 @@ static inline void Cba_ManSetupArray( Cba_Man_t * p, Vec_Int_t * vTo, Vec_Int_t 
 }
 
 // constructors desctructors
+static inline int Cba_ObjAdd( Cba_Ntk_t * p, int i, Cba_ObjType_t Type, int Func, int Fanin, int NameId )
+{
+    if ( Type == CBA_OBJ_PI )
+        Vec_IntWriteEntry( &p->vInputs,  Func, i );
+    if ( Type == CBA_OBJ_PO )
+        Vec_IntWriteEntry( &p->vOutputs, Func, i );
+    if ( Type >= 0 )
+        Vec_IntWriteEntry( &p->vTypes,   i, Type );
+    if ( Func >= 0 )
+        Vec_IntWriteEntry( &p->vFuncs,   i, Func );
+    if ( Fanin >= 0 )
+        Vec_IntWriteEntry( &p->vFanins,  i, Fanin );
+    if ( NameId >= 0 )
+        Vec_IntWriteEntry( &p->vNameIds, i, NameId );
+    return i;
+}
+static inline int Cba_BoxAdd( Cba_Ntk_t * p, Cba_Ntk_t * pBox, int NameId )
+{
+    int i, ObjId;
+    for ( i = 0; i < Cba_NtkPiNum(pBox); i++ )
+        Cba_ObjAdd( p, p->nObjs++, CBA_OBJ_BI, i, -1, -1 );
+    ObjId = Cba_ObjAdd( p, p->nObjs++, CBA_OBJ_BOX, Cba_NtkId(pBox), -1, NameId );
+    for ( i = 0; i < Cba_NtkPoNum(pBox); i++ )
+        Cba_ObjAdd( p, p->nObjs++, CBA_OBJ_BO, i, ObjId, -1 );
+    Cba_NtkSetHost( pBox, Cba_NtkId(p), ObjId );
+    return ObjId;
+}
 static inline Cba_Ntk_t * Cba_NtkAlloc( Cba_Man_t * p, char * pName )
 {
     int iModelId = Abc_NamStrFindOrAdd( p->pModels, pName, NULL );
@@ -354,16 +376,13 @@ static inline Cba_Ntk_t * Cba_NtkAlloc( Cba_Man_t * p, char * pName )
         printf( "Model with name %s already exists.\n", pName );
     return pNtk;
 }
-static inline void Cba_NtkResize( Cba_Ntk_t * p, int nObjs, int fRange )
+static inline void Cba_NtkResize( Cba_Ntk_t * p, int nObjs )
 {
     assert( Vec_IntSize(&p->vTypes) == 0 );
     Cba_ManFetchArray( p->pDesign, &p->vTypes,   nObjs );
     Cba_ManFetchArray( p->pDesign, &p->vFuncs,   nObjs );
     Cba_ManFetchArray( p->pDesign, &p->vFanins,  nObjs );
     Cba_ManFetchArray( p->pDesign, &p->vNameIds, nObjs );
-    if ( !fRange ) return;
-    Cba_ManFetchArray( p->pDesign, &p->vRangesL, nObjs );
-    Cba_ManFetchArray( p->pDesign, &p->vRangesR, nObjs );
 }
 static inline Cba_Man_t * Cba_ManAlloc( Cba_Man_t * pOld, char * pFileName )
 {
