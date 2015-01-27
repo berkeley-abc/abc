@@ -366,6 +366,10 @@ void Aig_MmFlexStop( Aig_MmFlex_t * p, int fVerbose )
 char * Aig_MmFlexEntryFetch( Aig_MmFlex_t * p, int nBytes )
 {
     char * pTemp;
+#ifdef ABC_MEMALIGN
+    // extend size to max alignment
+    nBytes += (ABC_MEMALIGN - nBytes % ABC_MEMALIGN) % ABC_MEMALIGN;
+#endif
     // check if there are still free entries
     if ( p->pCurrent == NULL || p->pCurrent + nBytes > p->pEnd )
     { // need to allocate more entries
@@ -535,6 +539,10 @@ char * Aig_MmStepEntryFetch( Aig_MmStep_t * p, int nBytes )
 {
     if ( nBytes == 0 )
         return NULL;
+#ifdef ABC_MEMALIGN
+    // extend size to max alignment
+    nBytes += (ABC_MEMALIGN - nBytes % ABC_MEMALIGN) % ABC_MEMALIGN;
+#endif
     if ( nBytes > p->nMapSize )
     {
         if ( p->nChunks == p->nChunksAlloc )
@@ -564,6 +572,10 @@ void Aig_MmStepEntryRecycle( Aig_MmStep_t * p, char * pEntry, int nBytes )
 {
     if ( nBytes == 0 )
         return;
+#ifdef ABC_MEMALIGN
+    // extend size to max alignment
+    nBytes += (ABC_MEMALIGN - nBytes % ABC_MEMALIGN) % ABC_MEMALIGN;
+#endif
     if ( nBytes > p->nMapSize )
     {
 //        ABC_FREE( pEntry );

@@ -44,7 +44,10 @@ arch_flags : arch_flags.c
 ARCHFLAGS ?= $(shell $(CC) arch_flags.c -o arch_flags && ./arch_flags)
 OPTFLAGS  ?= -g -O #-DABC_NAMESPACE=xxx
 
-CFLAGS   += -Wall -Wno-unused-function -Wno-write-strings -Wno-sign-compare $(OPTFLAGS) $(ARCHFLAGS) -Isrc
+CFLAGS    += -Wall -Wno-unused-function -Wno-write-strings -Wno-sign-compare $(OPTFLAGS) $(ARCHFLAGS) -Isrc
+ifneq ($(findstring arm,$(shell uname -m)),)
+	CFLAGS += -DABC_MEMALIGN=4
+endif
 
 # Set -Wno-unused-bug-set-variable for GCC 4.6.0 and greater only
 ifneq ($(or $(findstring gcc,$(CC)),$(findstring g++,$(CC))),)
