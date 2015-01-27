@@ -343,7 +343,7 @@ void Wlc_WriteVerInt( FILE * pFile, Wlc_Ntk_t * p )
         sprintf( Range, "       [%d:%d]%*s", Wlc_ObjRange(pObj) - 1, 0, 8-nDigits, "" );
         fprintf( pFile, "         " );
         fprintf( pFile, "wire %s ", Range );
-        fprintf( pFile, "%s_init%*s = ", pName, 11 - strlen(pName), "" );
+        fprintf( pFile, "%s_init%*s = ", pName, 11 - (int)strlen(pName), "" );
         if ( Vec_IntEntry(p->vInits, i-Wlc_NtkPiNum(p)) > 0 )
             fprintf( pFile, "%s", Wlc_ObjName(p, Wlc_ObjId(p, Wlc_NtkPi(p, Vec_IntEntry(p->vInits, i-Wlc_NtkPiNum(p))))));
         else
