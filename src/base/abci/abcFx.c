@@ -635,7 +635,7 @@ static int Fx_ManDivNormalize( Vec_Int_t * vCubeFree ) // return 1 if complement
   SeeAlso     []
 
 ***********************************************************************/
-int Fx_ManDivFindCubeFree( Vec_Int_t * vArr1, Vec_Int_t * vArr2, Vec_Int_t * vCubeFree )
+int Fx_ManDivFindCubeFree( Vec_Int_t * vArr1, Vec_Int_t * vArr2, Vec_Int_t * vCubeFree, int * fWarning )
 {
     int * pBeg1 = vArr1->pArray + 1;  // skip variable ID
     int * pBeg2 = vArr2->pArray + 1;  // skip variable ID
@@ -664,8 +664,8 @@ int Fx_ManDivFindCubeFree( Vec_Int_t * vArr1, Vec_Int_t * vArr2, Vec_Int_t * vCu
         printf( "The SOP has duplicated cubes.\n" );
     else if ( Vec_IntSize(vCubeFree) == 1 )
         printf( "The SOP has contained cubes.\n" );
-    else if ( Vec_IntSize(vCubeFree) == 2 && Abc_Lit2Var(Abc_Lit2Var(Vec_IntEntry(vCubeFree, 0))) == Abc_Lit2Var(Abc_Lit2Var(Vec_IntEntry(vCubeFree, 1))) )
-        printf( "The SOP has distance-1 cubes or it is not a prime cover.  Please make sure the result verifies.\n" );
+    else if ( Vec_IntSize(vCubeFree) == 2 && Abc_Lit2Var(Abc_Lit2Var(Vec_IntEntry(vCubeFree, 0))) == Abc_Lit2Var(Abc_Lit2Var(Vec_IntEntry(vCubeFree, 1))) && !*fWarning )
+        printf( "The SOP has distance-1 cubes or it is not a prime cover.  Please make sure the result verifies.\n" ), *fWarning = 1;
     assert( !Abc_LitIsCompl(Vec_IntEntry(vCubeFree, 0)) );
     return Counter;
 }
@@ -819,7 +819,7 @@ int Fx_ManCubeSingleCubeDivisors( Fx_Man_t * p, Vec_Int_t * vPivot, int fRemove,
     }
     return Vec_IntSize(vPivot) * (Vec_IntSize(vPivot) - 1) / 2;
 }
-void Fx_ManCubeDoubleCubeDivisors( Fx_Man_t * p, int iFirst, Vec_Int_t * vPivot, int fRemove, int fUpdate )
+void Fx_ManCubeDoubleCubeDivisors( Fx_Man_t * p, int iFirst, Vec_Int_t * vPivot, int fRemove, int fUpdate, int * fWarning )
 {
     Vec_Int_t * vCube;
     int i, iDiv, Base;
@@ -831,7 +831,7 @@ void Fx_ManCubeDoubleCubeDivisors( Fx_Man_t * p, int iFirst, Vec_Int_t * vPivot,
             continue;
         if ( Vec_IntEntry(vCube, 0) != Vec_IntEntry(vPivot, 0) )
             break;
-        Base = Fx_ManDivFindCubeFree( vCube, vPivot, p->vCubeFree );
+        Base = Fx_ManDivFindCubeFree( vCube, vPivot, p->vCubeFree, fWarning );
         if ( Vec_IntSize(p->vCubeFree) == 4 )
         { 
             int Value = Fx_ManDivNormalize( p->vCubeFree );
@@ -872,7 +872,7 @@ void Fx_ManCreateDivisors( Fx_Man_t * p )
 {
     Vec_Int_t * vCube;
     float Weight;
-    int i;
+    int i, fWarning = 0;
     // alloc hash table
     assert( p->pHash == NULL );
     p->pHash = Hsh_VecManStart( 1000 );
@@ -883,7 +883,7 @@ void Fx_ManCreateDivisors( Fx_Man_t * p )
     assert( p->nDivsS == Vec_FltSize(p->vWeights) );
     // create two-cube divisors
     Vec_WecForEachLevel( p->vCubes, vCube, i )
-        Fx_ManCubeDoubleCubeDivisors( p, i+1, vCube, 0, 0 ); // add - no update
+        Fx_ManCubeDoubleCubeDivisors( p, i+1, vCube, 0, 0, &fWarning ); // add - no update
     // create queue with all divisors
     p->vPrio = Vec_QueAlloc( Vec_FltSize(p->vWeights) );
     Vec_QueSetPriority( p->vPrio, Vec_FltArrayP(p->vWeights) );
@@ -926,7 +926,7 @@ static inline void Fx_ManCompressCubes( Vec_Wec_t * vCubes, Vec_Int_t * vLit2Cub
 
 ***********************************************************************/
 static inline int Fx_ManGetCubeVar( Vec_Wec_t * vCubes, int iCube )  { return Vec_IntEntry( Vec_WecEntry(vCubes, iCube), 0 );      }
-void Fx_ManFindCommonPairs( Vec_Wec_t * vCubes, Vec_Int_t * vPart0, Vec_Int_t * vPart1, Vec_Int_t * vPairs, Vec_Int_t * vCompls, Vec_Int_t * vDiv, Vec_Int_t * vCubeFree )
+void Fx_ManFindCommonPairs( Vec_Wec_t * vCubes, Vec_Int_t * vPart0, Vec_Int_t * vPart1, Vec_Int_t * vPairs, Vec_Int_t * vCompls, Vec_Int_t * vDiv, Vec_Int_t * vCubeFree, int * fWarning )
 {
     int * pBeg1 = vPart0->pArray;
     int * pBeg2 = vPart1->pArray;
@@ -952,7 +952,7 @@ void Fx_ManFindCommonPairs( Vec_Wec_t * vCubes, Vec_Int_t * vPart0, Vec_Int_t * 
             {
                 if ( pBeg1[i_] == pBeg2[k_] )
                     continue;
-                Fx_ManDivFindCubeFree( Vec_WecEntry(vCubes, pBeg1[i_]), Vec_WecEntry(vCubes, pBeg2[k_]), vCubeFree );
+                Fx_ManDivFindCubeFree( Vec_WecEntry(vCubes, pBeg1[i_]), Vec_WecEntry(vCubes, pBeg2[k_]), vCubeFree, fWarning );
                 fCompl = (Vec_IntSize(vCubeFree) == 4 && Fx_ManDivNormalize(vCubeFree) == 1);
                 if ( !Vec_IntEqual( vDiv, vCubeFree ) )
                     continue;
@@ -981,7 +981,7 @@ void Fx_ManFindCommonPairs( Vec_Wec_t * vCubes, Vec_Int_t * vPart0, Vec_Int_t * 
   SeeAlso     []
 
 ***********************************************************************/
-void Fx_ManUpdate( Fx_Man_t * p, int iDiv )
+void Fx_ManUpdate( Fx_Man_t * p, int iDiv, int * fWarning )
 {
     Vec_Int_t * vCube, * vCube2, * vLitP, * vLitN;
     Vec_Int_t * vDiv = p->vDiv;
@@ -1014,7 +1014,7 @@ void Fx_ManUpdate( Fx_Man_t * p, int iDiv )
     // collect double-cube-divisor cube pairs
     Fx_ManCompressCubes( p->vCubes, Vec_WecEntry(p->vLits, Lit0) );
     Fx_ManCompressCubes( p->vCubes, Vec_WecEntry(p->vLits, Lit1) );
-    Fx_ManFindCommonPairs( p->vCubes, Vec_WecEntry(p->vLits, Lit0), Vec_WecEntry(p->vLits, Lit1), p->vCubesD, p->vCompls, vDiv, p->vCubeFree );
+    Fx_ManFindCommonPairs( p->vCubes, Vec_WecEntry(p->vLits, Lit0), Vec_WecEntry(p->vLits, Lit1), p->vCubesD, p->vCompls, vDiv, p->vCubeFree, fWarning );
 
     // subtract cost of single-cube divisors
     Fx_ManForEachCubeVec( p->vCubesS, p->vCubes, vCube, i )
@@ -1028,9 +1028,9 @@ void Fx_ManUpdate( Fx_Man_t * p, int iDiv )
 
     // subtract cost of double-cube divisors
     Fx_ManForEachCubeVec( p->vCubesS, p->vCubes, vCube, i )
-        Fx_ManCubeDoubleCubeDivisors( p, Fx_ManGetFirstVarCube(p, vCube), vCube, 1, 1 );  // remove - update
+        Fx_ManCubeDoubleCubeDivisors( p, Fx_ManGetFirstVarCube(p, vCube), vCube, 1, 1, fWarning );  // remove - update
     Fx_ManForEachCubeVec( p->vCubesD, p->vCubes, vCube, i )
-        Fx_ManCubeDoubleCubeDivisors( p, Fx_ManGetFirstVarCube(p, vCube), vCube, 1, 1 );  // remove - update
+        Fx_ManCubeDoubleCubeDivisors( p, Fx_ManGetFirstVarCube(p, vCube), vCube, 1, 1, fWarning );  // remove - update
 
     // unmark the cubes to be removed
     Vec_WecUnmarkLevels( p->vCubes, p->vCubesS );
@@ -1119,9 +1119,9 @@ void Fx_ManUpdate( Fx_Man_t * p, int iDiv )
 
     // add cost of double-cube divisors
     Fx_ManForEachCubeVec( p->vCubesS, p->vCubes, vCube, i )
-        Fx_ManCubeDoubleCubeDivisors( p, Fx_ManGetFirstVarCube(p, vCube), vCube, 0, 1 );  // add - update
+        Fx_ManCubeDoubleCubeDivisors( p, Fx_ManGetFirstVarCube(p, vCube), vCube, 0, 1, fWarning );  // add - update
     Fx_ManForEachCubeVec( p->vCubesD, p->vCubes, vCube, i )
-        Fx_ManCubeDoubleCubeDivisors( p, Fx_ManGetFirstVarCube(p, vCube), vCube, 0, 1 );  // add - update
+        Fx_ManCubeDoubleCubeDivisors( p, Fx_ManGetFirstVarCube(p, vCube), vCube, 0, 1, fWarning );  // add - update
 
     // unmark the cubes to be removed
     Vec_WecUnmarkLevels( p->vCubes, p->vCubesS );
@@ -1168,7 +1168,7 @@ void Fx_ManUpdate( Fx_Man_t * p, int iDiv )
 int Fx_FastExtract( Vec_Wec_t * vCubes, int ObjIdMax, int nNewNodesMax, int LitCountMax, int fVerbose, int fVeryVerbose )
 {
     int fVeryVeryVerbose = 0;
-    int i, iDiv;
+    int i, iDiv, fWarning = 0;
     Fx_Man_t * p;
     abctime clk = Abc_Clock();
     // initialize the data-structure
@@ -1188,7 +1188,7 @@ int Fx_FastExtract( Vec_Wec_t * vCubes, int ObjIdMax, int nNewNodesMax, int LitC
         iDiv = Vec_QuePop(p->vPrio);
         if ( fVeryVerbose )
             Fx_PrintDiv( p, iDiv );
-        Fx_ManUpdate( p, iDiv );
+        Fx_ManUpdate( p, iDiv, &fWarning );
         if ( fVeryVeryVerbose )
             Fx_PrintMatrix( p );
     }
