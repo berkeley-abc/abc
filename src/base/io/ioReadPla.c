@@ -34,9 +34,59 @@ static Abc_Ntk_t * Io_ReadPlaNetwork( Extra_FileReader_t * p, int fZeros );
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
-static inline Io_CubesEqual( word * c1, word * c2, int nWords )
-{
 
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Io_ReadPlaMarkIdentical( word ** pCs, int nCubes, int nWords, Vec_Bit_t * vMarks )
+{
+    int c1, c2;
+    Vec_BitFill( vMarks, nCubes, 0 );
+    for ( c1 = 0; c1 < nCubes; c1++ )
+        if ( !Vec_BitEntry(vMarks, c1) )
+            for ( c2 = c1 + 1; c2 < nCubes; c2++ )
+                if ( !Vec_BitEntry(vMarks, c2) )
+                    if ( Abc_TtEqual(pCs[c1], pCs[c2], nWords) )
+                        Vec_BitWriteEntry( vMarks, c2, 1 );
+}
+void Io_ReadPlaMarkContained( word ** pCs, int nCubes, int nWords, Vec_Bit_t * vMarks )
+{
+    int c1, c2;
+    Vec_BitFill( vMarks, nCubes, 0 );
+    for ( c1 = 0; c1 < nCubes; c1++ )
+        if ( !Vec_BitEntry(vMarks, c1) )
+            for ( c2 = c1 + 1; c2 < nCubes; c2++ )
+                if ( !Vec_BitEntry(vMarks, c2) )
+                {
+                    if ( Abc_TtImply(pCs[c1], pCs[c2], nWords) )
+                        Vec_BitWriteEntry( vMarks, c2, 1 );
+                    else if ( Abc_TtImply(pCs[c2], pCs[c1], nWords) )
+                    {
+                        Vec_BitWriteEntry( vMarks, c1, 1 );
+                        break;
+                    }
+                }
+}
+int Io_ReadPlaRemoveMarked( word ** pCs, int nCubes, int nWords, Vec_Bit_t * vMarks )
+{
+    int c1, c;
+    for ( c1 = c = 0; c1 < nCubes; c1++ )
+        if ( !Vec_BitEntry(vMarks, c1) )
+        {
+            if ( c == c1 )
+                c++;
+            else
+                Abc_TtCopy( pCs[c++], pCs[c1], nWords, 0 );
+        }
+    return c;
 }
 
 /**Function*************************************************************
@@ -94,56 +144,22 @@ void Io_ReadPlaCubePreprocess( Vec_Str_t * vSop, int iCover, int fVerbose )
     word ** pCs = Io_ReadPlaCubeSetup( vSop );
     int nCubes  = Abc_SopGetCubeNum( Vec_StrArray(vSop) );
     int nVars   = Abc_SopGetVarNum( Vec_StrArray(vSop) );
-    int nWords  = Abc_Bit6WordNum( 2*nVars ), c, c1, c2;
+    int nWords  = Abc_Bit6WordNum( 2*nVars ), nCubesNew;
     Vec_Bit_t * vMarks = Vec_BitStart( nCubes );
     if ( fVerbose )
         printf( "Cover %5d : V =%5d  C =%5d  P =%9d ", iCover, nVars, nCubes, nCubes*nCubes/2 );
     // check identical
-    for ( c1 = 0; c1 < nCubes; c1++ )
-        if ( !Vec_BitEntry(vMarks, c1) )
-            for ( c2 = c1 + 1; c2 < nCubes; c2++ )
-                if ( !Vec_BitEntry(vMarks, c2) )
-                    if ( Abc_TtEqual(pCs[c1], pCs[c2], nWords) )
-                        Vec_BitWriteEntry( vMarks, c2, 1 );
-    // remove identical
-    for ( c1 = c = 0; c1 < nCubes; c1++ )
-        if ( !Vec_BitEntry(vMarks, c1) )
-        {
-            if ( nCubes == c1 )
-                c++;
-            else
-                Abc_TtCopy( pCs[c++], pCs[c1], nWords, 0 );
-        }
+    Io_ReadPlaMarkIdentical( pCs, nCubes, nWords, vMarks );
+    nCubesNew = Io_ReadPlaRemoveMarked( pCs, nCubes, nWords, vMarks );
     if ( fVerbose )
-        printf( "  Equal =%5d", nCubes - c );
+        printf( "  Equal =%5d", nCubes - nCubesNew );
+    nCubes = nCubesNew;
     // check contained
-    nCubes = c;
-    Vec_BitFill( vMarks, nCubes, 0 );
-    for ( c1 = 0; c1 < nCubes; c1++ )
-        if ( !Vec_BitEntry(vMarks, c1) )
-            for ( c2 = c1 + 1; c2 < nCubes; c2++ )
-                if ( !Vec_BitEntry(vMarks, c2) )
-                {
-                    if ( Abc_TtImply(pCs[c1], pCs[c2], nWords) )
-                        Vec_BitWriteEntry( vMarks, c2, 1 );
-                    else if ( Abc_TtImply(pCs[c2], pCs[c1], nWords) )
-                    {
-                        Vec_BitWriteEntry( vMarks, c1, 1 );
-                        break;
-                    }
-                }
-    // remove contained
-    for ( c1 = c = 0; c1 < nCubes; c1++ )
-        if ( !Vec_BitEntry(vMarks, c1) )
-        {
-            if ( nCubes == c1 )
-                c++;
-            else
-                Abc_TtCopy( pCs[c++], pCs[c1], nWords, 0 );
-        }
+    Io_ReadPlaMarkContained( pCs, nCubes, nWords, vMarks );
+    nCubesNew = Io_ReadPlaRemoveMarked( pCs, nCubes, nWords, vMarks );
     if ( fVerbose )
-        printf( "  Contain =%5d", nCubes - c );
-    nCubes = c;
+        printf( "  Contain =%5d", nCubes - nCubesNew );
+    nCubes = nCubesNew;
     // check distance-1
 
     // translate
