@@ -34,6 +34,55 @@ static Abc_Ntk_t * Io_ReadPlaNetwork( Extra_FileReader_t * p, int fZeros );
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
+/**Function*************************************************************
+
+  Synopsis    [Checks if cubes are distance-1.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline void Io_ReadPlaPrintCube( word * p, int nVars )
+{
+    char Symbs[3] = {'-', '0', '1'}; int v;
+    for ( v = 0; v < nVars; v++ )
+        printf( "%c", Symbs[Abc_TtGetQua(p, v)] );
+    printf( "\n" );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Checks if cubes are distance-1.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline int Io_ReadPlaDistance1( word * p, word * q, int nWords )
+{
+    word Test; int c, fFound = 0;
+    for ( c = 0; c < nWords; c++ )
+    {
+        if ( p[c] == q[c] )
+            continue;
+        if ( fFound )
+            return 0;
+        // check if the number of 1s is one
+//        Test = ((p[c] ^ q[c]) & ((p[c] ^ q[c]) >> 1)) & ABC_CONST(0x5555555555555555); // exactly one 0/1 literal (but may be -/0 or -/1)
+        Test = ((p[c] ^ q[c]) | ((p[c] ^ q[c]) >> 1)) & ABC_CONST(0x5555555555555555);
+        if ( !Abc_TtOnlyOneOne(Test) )
+            return 0;
+        fFound = 1;
+    }
+    return fFound;
+}
+
 
 /**Function*************************************************************
 
@@ -88,6 +137,34 @@ int Io_ReadPlaRemoveMarked( word ** pCs, int nCubes, int nWords, Vec_Bit_t * vMa
         }
     return c;
 }
+int Io_ReadPlaCountDistance1( word ** pCs, int nCubes, int nWords, Vec_Bit_t * vMarks )
+{
+    int c1, c2, Res, Counter = 0;
+    Vec_BitFill( vMarks, nCubes, 0 );
+    for ( c1 = 0; c1 < nCubes; c1++ )
+        if ( !Vec_BitEntry(vMarks, c1) )
+            for ( c2 = c1 + 1; c2 < nCubes; c2++ )
+                if ( !Vec_BitEntry(vMarks, c2) )
+                {
+                    Res = Io_ReadPlaDistance1( pCs[c1], pCs[c2], nWords );
+                    if ( !Res )
+                        continue;
+/*
+                    if ( Counter % 100 )
+                    {
+                        printf( "\n" );
+                        Io_ReadPlaPrintCube( pCs[c1], 32 * nWords );
+                        Io_ReadPlaPrintCube( pCs[c2], 32 * nWords );
+                        printf( "\n" );
+                    }
+*/
+                    Abc_TtAnd( pCs[c1], pCs[c1], pCs[c2], nWords, 0 );
+                    Vec_BitWriteEntry( vMarks, c2, 1 );
+                    Counter++;
+                    break;
+                }
+    return Counter;
+}
 
 /**Function*************************************************************
 
@@ -125,16 +202,12 @@ word ** Io_ReadPlaCubeSetup( Vec_Str_t * vSop )
 }
 void Io_ReadPlaCubeSetdown( Vec_Str_t * vSop, word ** pCs, int nCubes, int nVars )
 {
-    char Symbs[3] = {'-', '0', '1'};
-    int c, v, Lit;
+    char Symbs[3] = {'-', '0', '1'}; int c, v;
     Vec_StrClear( vSop );
     for ( c = 0; c < nCubes; c++ )
     {
-        for ( v = 0; v < nVars && ((Lit = Abc_TtGetQua(pCs[c], v)), 1); v++ )
-        {
-            assert( Lit < 3 );
-            Vec_StrPush( vSop, Symbs[Lit] );
-        }
+        for ( v = 0; v < nVars; v++ )
+            Vec_StrPush( vSop, Symbs[Abc_TtGetQua(pCs[c], v)] );
         Vec_StrPrintStr( vSop, " 1\n" );
     }
     Vec_StrPush( vSop, 0 );
@@ -144,24 +217,22 @@ void Io_ReadPlaCubePreprocess( Vec_Str_t * vSop, int iCover, int fVerbose )
     word ** pCs = Io_ReadPlaCubeSetup( vSop );
     int nCubes  = Abc_SopGetCubeNum( Vec_StrArray(vSop) );
     int nVars   = Abc_SopGetVarNum( Vec_StrArray(vSop) );
-    int nWords  = Abc_Bit6WordNum( 2*nVars ), nCubesNew;
+    int nWords  = Abc_Bit6WordNum( 2*nVars );
+    int nCubesNew, Count;
     Vec_Bit_t * vMarks = Vec_BitStart( nCubes );
     if ( fVerbose )
         printf( "Cover %5d : V =%5d  C =%5d  P =%9d ", iCover, nVars, nCubes, nCubes*nCubes/2 );
-    // check identical
-    Io_ReadPlaMarkIdentical( pCs, nCubes, nWords, vMarks );
-    nCubesNew = Io_ReadPlaRemoveMarked( pCs, nCubes, nWords, vMarks );
-    if ( fVerbose )
-        printf( "  Equal =%5d", nCubes - nCubesNew );
-    nCubes = nCubesNew;
-    // check contained
-    Io_ReadPlaMarkContained( pCs, nCubes, nWords, vMarks );
-    nCubesNew = Io_ReadPlaRemoveMarked( pCs, nCubes, nWords, vMarks );
-    if ( fVerbose )
-        printf( "  Contain =%5d", nCubes - nCubesNew );
-    nCubes = nCubesNew;
-    // check distance-1
-
+    do 
+    {
+        // remove contained
+        Io_ReadPlaMarkContained( pCs, nCubes, nWords, vMarks );
+        nCubesNew = Io_ReadPlaRemoveMarked( pCs, nCubes, nWords, vMarks );
+        if ( fVerbose )
+            printf( "  C =%5d", nCubes - nCubesNew );
+        nCubes = nCubesNew;
+        // merge distance-1
+        Count = Io_ReadPlaCountDistance1( pCs, nCubes, nWords, vMarks );
+    } while ( Count );
     // translate
     Io_ReadPlaCubeSetdown( vSop, pCs, nCubes, nVars );
     // finalize
