@@ -300,7 +300,7 @@ void Io_ReadPlaCubePreprocess( Vec_Str_t * vSop, int iCover, int fVerbose )
         if ( fVerbose )
             printf( "  C%d =%5d", Iter, nCubes );
         // try consensus
-        Count = Io_ReadPlaSelfSubsumption( pCs, nCubes, nWords, vMarks );
+        //Count = Io_ReadPlaSelfSubsumption( pCs, nCubes, nWords, vMarks );
         if ( fVerbose )
             printf( "%4d", Count );
     } while ( Count );
@@ -553,8 +553,6 @@ Abc_Ntk_t * Io_ReadPlaNetwork( Extra_FileReader_t * p, int fZeros )
         }
         Vec_StrPush( ppSops[i], 0 );
         Io_ReadPlaCubePreprocess( ppSops[i], i, 0 );
-        //Io_ReadPlaCubePreprocess( ppSops[i], i, 1 );
-        //printf( "\n" );
         pNode->pData = Abc_SopRegister( (Mem_Flex_t *)pNtk->pManFunc, ppSops[i]->pArray );
         Vec_StrFree( ppSops[i] );
     }
