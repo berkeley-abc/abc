@@ -19,6 +19,7 @@
 ***********************************************************************/
 
 #include "ioAbc.h"
+#include "misc/util/utilTruth.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -32,6 +33,128 @@ static Abc_Ntk_t * Io_ReadPlaNetwork( Extra_FileReader_t * p, int fZeros );
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
+
+static inline Io_CubesEqual( word * c1, word * c2, int nWords )
+{
+
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+word ** Io_ReadPlaCubeSetup( Vec_Str_t * vSop )
+{
+    char * pSop = Vec_StrArray( vSop ), * pCube, Lit;
+    int nCubes  = Abc_SopGetCubeNum( pSop );
+    int nVars   = Abc_SopGetVarNum( pSop );
+    int nWords  = Abc_Bit6WordNum( 2*nVars ), c, v;
+    word ** pCs = ABC_ALLOC( word *, nCubes );
+    pCs[0] = ABC_CALLOC( word, nCubes * nWords );
+    for ( c = 1; c < nCubes; c++ )
+        pCs[c] = pCs[c-1] + nWords;
+    c = 0;
+    Abc_SopForEachCube( pSop, nVars, pCube )
+    {
+        Abc_CubeForEachVar( pCube, Lit, v )
+            if ( Lit == '0' )
+                Abc_TtSetBit( pCs[c], Abc_Var2Lit(v,0) );
+            else if ( Lit == '1' )
+                Abc_TtSetBit( pCs[c], Abc_Var2Lit(v,1) );
+        c++;
+    }
+    assert( c == nCubes );
+    return pCs;
+}
+void Io_ReadPlaCubeSetdown( Vec_Str_t * vSop, word ** pCs, int nCubes, int nVars )
+{
+    char Symbs[3] = {'-', '0', '1'};
+    int c, v, Lit;
+    Vec_StrClear( vSop );
+    for ( c = 0; c < nCubes; c++ )
+    {
+        for ( v = 0; v < nVars && ((Lit = Abc_TtGetQua(pCs[c], v)), 1); v++ )
+        {
+            assert( Lit < 3 );
+            Vec_StrPush( vSop, Symbs[Lit] );
+        }
+        Vec_StrPrintStr( vSop, " 1\n" );
+    }
+    Vec_StrPush( vSop, 0 );
+}
+void Io_ReadPlaCubePreprocess( Vec_Str_t * vSop, int iCover, int fVerbose )
+{
+    word ** pCs = Io_ReadPlaCubeSetup( vSop );
+    int nCubes  = Abc_SopGetCubeNum( Vec_StrArray(vSop) );
+    int nVars   = Abc_SopGetVarNum( Vec_StrArray(vSop) );
+    int nWords  = Abc_Bit6WordNum( 2*nVars ), c, c1, c2;
+    Vec_Bit_t * vMarks = Vec_BitStart( nCubes );
+    if ( fVerbose )
+        printf( "Cover %5d : V =%5d  C =%5d  P =%9d ", iCover, nVars, nCubes, nCubes*nCubes/2 );
+    // check identical
+    for ( c1 = 0; c1 < nCubes; c1++ )
+        if ( !Vec_BitEntry(vMarks, c1) )
+            for ( c2 = c1 + 1; c2 < nCubes; c2++ )
+                if ( !Vec_BitEntry(vMarks, c2) )
+                    if ( Abc_TtEqual(pCs[c1], pCs[c2], nWords) )
+                        Vec_BitWriteEntry( vMarks, c2, 1 );
+    // remove identical
+    for ( c1 = c = 0; c1 < nCubes; c1++ )
+        if ( !Vec_BitEntry(vMarks, c1) )
+        {
+            if ( nCubes == c1 )
+                c++;
+            else
+                Abc_TtCopy( pCs[c++], pCs[c1], nWords, 0 );
+        }
+    if ( fVerbose )
+        printf( "  Equal =%5d", nCubes - c );
+    // check contained
+    nCubes = c;
+    Vec_BitFill( vMarks, nCubes, 0 );
+    for ( c1 = 0; c1 < nCubes; c1++ )
+        if ( !Vec_BitEntry(vMarks, c1) )
+            for ( c2 = c1 + 1; c2 < nCubes; c2++ )
+                if ( !Vec_BitEntry(vMarks, c2) )
+                {
+                    if ( Abc_TtImply(pCs[c1], pCs[c2], nWords) )
+                        Vec_BitWriteEntry( vMarks, c2, 1 );
+                    else if ( Abc_TtImply(pCs[c2], pCs[c1], nWords) )
+                    {
+                        Vec_BitWriteEntry( vMarks, c1, 1 );
+                        break;
+                    }
+                }
+    // remove contained
+    for ( c1 = c = 0; c1 < nCubes; c1++ )
+        if ( !Vec_BitEntry(vMarks, c1) )
+        {
+            if ( nCubes == c1 )
+                c++;
+            else
+                Abc_TtCopy( pCs[c++], pCs[c1], nWords, 0 );
+        }
+    if ( fVerbose )
+        printf( "  Contain =%5d", nCubes - c );
+    nCubes = c;
+    // check distance-1
+
+    // translate
+    Io_ReadPlaCubeSetdown( vSop, pCs, nCubes, nVars );
+    // finalize
+    if ( fVerbose )
+        printf( "\n" );
+    Vec_BitFree( vMarks );
+    ABC_FREE( pCs[0] );
+    ABC_FREE( pCs );
+}
 
 /**Function*************************************************************
 
@@ -270,6 +393,7 @@ Abc_Ntk_t * Io_ReadPlaNetwork( Extra_FileReader_t * p, int fZeros )
             continue;
         }
         Vec_StrPush( ppSops[i], 0 );
+        Io_ReadPlaCubePreprocess( ppSops[i], i, 0 );
         pNode->pData = Abc_SopRegister( (Mem_Flex_t *)pNtk->pManFunc, ppSops[i]->pArray );
         Vec_StrFree( ppSops[i] );
     }

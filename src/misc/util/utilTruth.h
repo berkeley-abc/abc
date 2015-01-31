@@ -150,10 +150,20 @@ static inline int     Abc_TtGetBit( word * p, int i )         { return (int)(p[i
 static inline void    Abc_TtSetBit( word * p, int i )         { p[i>>6] |= (((word)1)<<(i & 63));             }
 static inline void    Abc_TtXorBit( word * p, int i )         { p[i>>6] ^= (((word)1)<<(i & 63));             }
 
+// read/write k-th digit d of a quaternary number:
+static inline int     Abc_TtGetQua( word * p, int k )         { return (int)(p[k>>5] >> ((k<<1) & 63)) & 3;   }
+static inline void    Abc_TtSetQua( word * p, int k, int d )  { p[k>>5] |= (((word)d)<<((k<<1) & 63));        }
+static inline void    Abc_TtXorQua( word * p, int k, int d )  { p[k>>5] ^= (((word)d)<<((k<<1) & 63));        }
+
 // read/write k-th digit d of a hexadecimal number:
 static inline int     Abc_TtGetHex( word * p, int k )         { return (int)(p[k>>4] >> ((k<<2) & 63)) & 15;  }
 static inline void    Abc_TtSetHex( word * p, int k, int d )  { p[k>>4] |= (((word)d)<<((k<<2) & 63));        }
 static inline void    Abc_TtXorHex( word * p, int k, int d )  { p[k>>4] ^= (((word)d)<<((k<<2) & 63));        }
+
+// read/write k-th digit d of a 256-base number:
+static inline int     Abc_TtGet256( word * p, int k )         { return (int)(p[k>>3] >> ((k<<3) & 63)) & 255; }
+static inline void    Abc_TtSet256( word * p, int k, int d )  { p[k>>3] |= (((word)d)<<((k<<3) & 63));        }
+static inline void    Abc_TtXor256( word * p, int k, int d )  { p[k>>3] ^= (((word)d)<<((k<<3) & 63));        }
 
 /**Function*************************************************************
 
@@ -271,6 +281,14 @@ static inline int Abc_TtEqual( word * pIn1, word * pIn2, int nWords )
     int w;
     for ( w = 0; w < nWords; w++ )
         if ( pIn1[w] != pIn2[w] )
+            return 0;
+    return 1;
+}
+static inline int Abc_TtImply( word * pIn1, word * pIn2, int nWords )
+{
+    int w;
+    for ( w = 0; w < nWords; w++ )
+        if ( (pIn1[w] & pIn2[w]) != pIn1[w] )
             return 0;
     return 1;
 }

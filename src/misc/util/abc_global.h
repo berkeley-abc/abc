@@ -254,6 +254,7 @@ static inline int      Abc_Base10Log( unsigned n )            { int r; if ( n < 
 static inline int      Abc_Base16Log( unsigned n )            { int r; if ( n < 2 ) return n; for ( r = 0, n--; n; n /= 16, r++ ) {}; return r; }
 static inline char *   Abc_UtilStrsav( char * s )             { return s ? strcpy(ABC_ALLOC(char, strlen(s)+1), s) : NULL;  }
 static inline int      Abc_BitWordNum( int nBits )            { return (nBits>>5) + ((nBits&31) > 0);                       }
+static inline int      Abc_Bit6WordNum( int nBits )           { return (nBits>>6) + ((nBits&63) > 0);                       }
 static inline int      Abc_TruthWordNum( int nVars )          { return nVars <= 5 ? 1 : (1 << (nVars - 5));                 }
 static inline int      Abc_Truth6WordNum( int nVars )         { return nVars <= 6 ? 1 : (1 << (nVars - 6));                 }
 static inline int      Abc_InfoHasBit( unsigned * p, int i )  { return (p[(i)>>5] & (1<<((i) & 31))) > 0;                   }
