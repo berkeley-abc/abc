@@ -82,6 +82,24 @@ static inline int Io_ReadPlaDistance1( word * p, word * q, int nWords )
     }
     return fFound;
 }
+static inline int Io_ReadPlaConsensus( word * p, word * q, int nWords, int * piVar )
+{
+    word Test; int c, fFound = 0;
+    for ( c = 0; c < nWords; c++ )
+    {
+        if ( p[c] == q[c] )
+            continue;
+        if ( fFound )
+            return 0;
+        // check if there is exactly one opposite literal (0/1) but may have other diffs (-/0 or -/1)
+        Test = ((p[c] ^ q[c]) & ((p[c] ^ q[c]) >> 1)) & ABC_CONST(0x5555555555555555); 
+        if ( !Abc_TtOnlyOneOne(Test) )
+            return 0;
+        fFound = 1;
+        *piVar = c * 32 + Abc_Tt6FirstBit(Test)/2;
+    }
+    return fFound;
+}
 
 
 /**Function*************************************************************
@@ -137,7 +155,7 @@ int Io_ReadPlaRemoveMarked( word ** pCs, int nCubes, int nWords, Vec_Bit_t * vMa
         }
     return c;
 }
-int Io_ReadPlaCountDistance1( word ** pCs, int nCubes, int nWords, Vec_Bit_t * vMarks )
+int Io_ReadPlaMergeDistance1( word ** pCs, int nCubes, int nWords, Vec_Bit_t * vMarks )
 {
     int c1, c2, Res, Counter = 0;
     Vec_BitFill( vMarks, nCubes, 0 );
@@ -149,18 +167,60 @@ int Io_ReadPlaCountDistance1( word ** pCs, int nCubes, int nWords, Vec_Bit_t * v
                     Res = Io_ReadPlaDistance1( pCs[c1], pCs[c2], nWords );
                     if ( !Res )
                         continue;
-/*
-                    if ( Counter % 100 )
-                    {
-                        printf( "\n" );
-                        Io_ReadPlaPrintCube( pCs[c1], 32 * nWords );
-                        Io_ReadPlaPrintCube( pCs[c2], 32 * nWords );
-                        printf( "\n" );
-                    }
-*/
                     Abc_TtAnd( pCs[c1], pCs[c1], pCs[c2], nWords, 0 );
                     Vec_BitWriteEntry( vMarks, c2, 1 );
                     Counter++;
+                    break;
+                }
+    return Counter;
+}
+int Io_ReadPlaSelfSubsumption( word ** pCs, int nCubes, int nWords, Vec_Bit_t * vMarks )
+{
+    int c1, c2, Res, Counter = 0, iVar = -1, Val0, Val1;
+    Vec_BitFill( vMarks, nCubes, 0 );
+    for ( c1 = 0; c1 < nCubes; c1++ )
+        if ( !Vec_BitEntry(vMarks, c1) )
+            for ( c2 = c1 + 1; c2 < nCubes; c2++ )
+                if ( !Vec_BitEntry(vMarks, c2) )
+                {
+                    Res = Io_ReadPlaConsensus( pCs[c1], pCs[c2], nWords, &iVar );
+                    if ( !Res )
+                        continue;
+                    assert( iVar >= 0  && iVar < nWords*32 );
+                    Val0 = Abc_TtGetQua( pCs[c1], iVar );
+                    Val1 = Abc_TtGetQua( pCs[c2], iVar );
+                    // remove values
+                    Abc_TtXorQua( pCs[c1], iVar, Val0 );
+                    Abc_TtXorQua( pCs[c2], iVar, Val1 );
+                    // check containment
+                    if ( Abc_TtImply(pCs[c1], pCs[c2], nWords) )
+                    {
+                        Abc_TtXorQua( pCs[c1], iVar, Val0 );
+                        Vec_BitWriteEntry( vMarks, c2, 1 );
+                        Counter++;
+                    }
+                    else if ( Abc_TtImply(pCs[c2], pCs[c1], nWords) )
+                    {
+                        Abc_TtXorQua( pCs[c2], iVar, Val1 );
+                        Vec_BitWriteEntry( vMarks, c1, 1 );
+                        Counter++;
+                        break;
+                    }
+                    else
+                    {
+                        Abc_TtXorQua( pCs[c1], iVar, Val0 );
+                        Abc_TtXorQua( pCs[c2], iVar, Val1 );
+                    }
+
+/*
+                    printf( "Var = %3d  ", iVar );
+                    printf( "Cube0 = %d  ", Abc_TtGetQua(pCs[c1], iVar) );
+                    printf( "Cube1 = %d  ", Abc_TtGetQua(pCs[c2], iVar) );
+                    printf( "\n" );
+                    Io_ReadPlaPrintCube( pCs[c1], 32 * nWords );
+                    Io_ReadPlaPrintCube( pCs[c2], 32 * nWords );
+                    printf( "\n" );
+*/
                     break;
                 }
     return Counter;
@@ -218,21 +278,33 @@ void Io_ReadPlaCubePreprocess( Vec_Str_t * vSop, int iCover, int fVerbose )
     int nCubes  = Abc_SopGetCubeNum( Vec_StrArray(vSop) );
     int nVars   = Abc_SopGetVarNum( Vec_StrArray(vSop) );
     int nWords  = Abc_Bit6WordNum( 2*nVars );
-    int nCubesNew, Count;
+    int nCubesNew, Count, Iter = 0;
     Vec_Bit_t * vMarks = Vec_BitStart( nCubes );
     if ( fVerbose )
-        printf( "Cover %5d : V =%5d  C =%5d  P =%9d ", iCover, nVars, nCubes, nCubes*nCubes/2 );
+        printf( "Cover %5d : V =%5d  C%d =%5d", iCover, nVars, Iter, nCubes );
+
     do 
     {
-        // remove contained
-        Io_ReadPlaMarkContained( pCs, nCubes, nWords, vMarks );
-        nCubesNew = Io_ReadPlaRemoveMarked( pCs, nCubes, nWords, vMarks );
+        Iter++;
+        do 
+        {
+            // remove contained
+            Io_ReadPlaMarkContained( pCs, nCubes, nWords, vMarks );
+            nCubesNew = Io_ReadPlaRemoveMarked( pCs, nCubes, nWords, vMarks );
+            //if ( fVerbose )
+            //    printf( "  C =%5d", nCubes - nCubesNew );
+            nCubes = nCubesNew;
+            // merge distance-1
+            Count = Io_ReadPlaMergeDistance1( pCs, nCubes, nWords, vMarks );
+        } while ( Count );
         if ( fVerbose )
-            printf( "  C =%5d", nCubes - nCubesNew );
-        nCubes = nCubesNew;
-        // merge distance-1
-        Count = Io_ReadPlaCountDistance1( pCs, nCubes, nWords, vMarks );
+            printf( "  C%d =%5d", Iter, nCubes );
+        // try consensus
+        Count = Io_ReadPlaSelfSubsumption( pCs, nCubes, nWords, vMarks );
+        if ( fVerbose )
+            printf( "%4d", Count );
     } while ( Count );
+
     // translate
     Io_ReadPlaCubeSetdown( vSop, pCs, nCubes, nVars );
     // finalize
@@ -481,6 +553,8 @@ Abc_Ntk_t * Io_ReadPlaNetwork( Extra_FileReader_t * p, int fZeros )
         }
         Vec_StrPush( ppSops[i], 0 );
         Io_ReadPlaCubePreprocess( ppSops[i], i, 0 );
+        //Io_ReadPlaCubePreprocess( ppSops[i], i, 1 );
+        //printf( "\n" );
         pNode->pData = Abc_SopRegister( (Mem_Flex_t *)pNtk->pManFunc, ppSops[i]->pArray );
         Vec_StrFree( ppSops[i] );
     }
