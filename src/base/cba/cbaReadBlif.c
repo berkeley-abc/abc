@@ -18,6 +18,7 @@
 
 ***********************************************************************/
 
+#include "cba.h"
 #include "cbaPrs.h"
 
 ABC_NAMESPACE_IMPL_START

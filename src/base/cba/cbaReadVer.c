@@ -418,7 +418,7 @@ static inline int Prs_ManReadSignal( Prs_Man_t * p )
         return Abc_Var2Lit2( Item, CBA_PRS_NAME );
     }
 }
-static inline int Prs_ManReadSignalList( Prs_Man_t * p, Vec_Int_t * vTemp, char LastSymb, int fAddForm )
+int Prs_ManReadSignalList( Prs_Man_t * p, Vec_Int_t * vTemp, char LastSymb, int fAddForm )
 {
     Vec_IntClear( vTemp );
     while ( 1 )

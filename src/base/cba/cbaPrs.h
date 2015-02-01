@@ -284,7 +284,6 @@ static inline void Prs_NtkFree( Prs_Ntk_t * p )
 
 static inline void Prs_ManFree( Prs_Man_t * p )
 {
-    extern void Prs_ManVecFree( Vec_Ptr_t * vPrs );
     if ( p->pStrs )
         Abc_NamDeref( p->pStrs );
     if ( p->vNtks )
