@@ -295,12 +295,23 @@ usage:
 int Cba_CommandPs( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Cba_Man_t * p = Cba_AbcGetMan(pAbc);
-    int c, fVerbose  = 0;
+    int c, nModules = 0, fVerbose  = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Mvh" ) ) != EOF )
     {
         switch ( c )
         {
+        case 'M':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-M\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nModules = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nModules < 0 )
+                goto usage;
+            break;
         case 'v':
             fVerbose ^= 1;
             break;
@@ -315,11 +326,12 @@ int Cba_CommandPs( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( 1, "Cba_CommandPs(): There is no current design.\n" );
         return 0;
     }
-    Cba_ManPrintStats( p, fVerbose );
+    Cba_ManPrintStats( p, nModules, fVerbose );
     return 0;
 usage:
-    Abc_Print( -2, "usage: @ps [-vh]\n" );
+    Abc_Print( -2, "usage: @ps [-M num] [-vh]\n" );
     Abc_Print( -2, "\t         prints statistics\n" );
+    Abc_Print( -2, "\t-M num : the number of first modules to report [default = %d]\n", nModules );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;

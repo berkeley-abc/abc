@@ -159,6 +159,7 @@ void Prs_ManBuildNtk( Cba_Ntk_t * pNew, Vec_Ptr_t * vDes, Prs_Ntk_t * pNtk, Vec_
             pNtkBox = Prs_ManNtk( vDes, Prs_BoxNtk(pNtk, iBox) );
             iObj = Cba_BoxAlloc( pNew, CBA_OBJ_BOX, Prs_NtkPiNum(pNtkBox), Prs_NtkPoNum(pNtkBox), Prs_BoxNtk(pNtk, iBox) );
             Cba_ObjSetName( pNew, iObj, Prs_BoxName(pNtk, iBox) );
+            Cba_NtkSetHost( Cba_ManNtk(pNew->pDesign, Prs_BoxNtk(pNtk, iBox)), Cba_NtkId(pNew), iObj );
             Vec_IntForEachEntry( vSigs, Index, i )
             {
                 i++;
