@@ -422,7 +422,7 @@ void Prs_ManReadBlifTest()
     Vec_Ptr_t * vPrs = Prs_ManReadBlif( "c/hie/dump/1/netlist_1_out8.blif" );
     if ( !vPrs ) return;
     printf( "Finished reading %d networks. ", Vec_PtrSize(vPrs) );
-    printf( "NameIDs = %d. ", Abc_NamObjNumMax(Prs_ManRoot(vPrs)->pStrs) );
+    printf( "NameIDs = %d. ", Abc_NamObjNumMax(Prs_ManNameMan(vPrs)) );
     printf( "Memory = %.2f MB. ", 1.0*Prs_ManMemory(vPrs)/(1<<20) );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
 //    Abc_NamPrint( p->pStrs );

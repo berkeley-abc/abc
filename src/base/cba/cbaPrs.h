@@ -102,6 +102,7 @@ struct Prs_Man_t_
 
 static inline Prs_Ntk_t * Prs_ManNtk( Vec_Ptr_t * vPrs, int i )        { return (Prs_Ntk_t *)Vec_PtrEntry(vPrs, i);              }
 static inline Prs_Ntk_t * Prs_ManRoot( Vec_Ptr_t * vPrs )              { return Prs_ManNtk(vPrs, 0);                             }
+static inline Abc_Nam_t * Prs_ManNameMan( Vec_Ptr_t * vPrs )           { return Prs_ManRoot(vPrs)->pStrs;                        }
 
 static inline int         Prs_NtkId( Prs_Ntk_t * p )                   { return p->iModuleName;                                  }
 static inline int         Prs_NtkPioNum( Prs_Ntk_t * p )               { return Vec_IntSize(&p->vInouts);                        }
@@ -322,7 +323,7 @@ static inline int Prs_ManMemory( Vec_Ptr_t * vPrs )
     int nMem = Vec_PtrMemory(vPrs);
     Vec_PtrForEachEntry( Prs_Ntk_t *, vPrs, pNtk, i )
         nMem += Prs_NtkMemory( pNtk );
-    nMem += Abc_NamMemUsed(pNtk->pStrs);
+    nMem += Abc_NamMemUsed(Prs_ManNameMan(vPrs));
     return nMem;
 }
 
