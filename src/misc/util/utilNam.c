@@ -478,7 +478,7 @@ int Abc_NamStrFindOrAddLim( Abc_Nam_t * p, char * pStr, char * pLim, int * pfFou
 ***********************************************************************/
 char * Abc_NamStr( Abc_Nam_t * p, int NameId )
 {
-    return NameId? Abc_NamIntToStr(p, NameId) : NULL;
+    return NameId > 0 ? Abc_NamIntToStr(p, NameId) : NULL;
 }
 
 /**Function*************************************************************

@@ -4,9 +4,9 @@
 
   SystemName  [ABC: Logic synthesis and verification system.]
 
-  PackageName [Verilog parser.]
+  PackageName [Hierarchical word-level netlist.]
 
-  Synopsis    [Parses several flavors of word-level Verilog.]
+  Synopsis    [Verilog parser.]
 
   Author      [Alan Mishchenko]
   
@@ -14,7 +14,7 @@
 
   Date        [Ver. 1.0. Started - November 29, 2014.]
 
-  Revision    [$Id: cbaWriteVer.c,v 1.00 2014/11/29 00:00:00 alanmi Exp $]
+  Revision    [$Id: cbaWriteBlif.c,v 1.00 2014/11/29 00:00:00 alanmi Exp $]
 
 ***********************************************************************/
 
@@ -44,83 +44,78 @@ ABC_NAMESPACE_IMPL_START
   SeeAlso     []
 
 ***********************************************************************/
-void Cba_PrsWriteBlifArray( FILE * pFile, Cba_Ntk_t * p, Vec_Int_t * vFanins, int fFirst )
+void Prs_ManWriteBlifArray( FILE * pFile, Prs_Ntk_t * p, Vec_Int_t * vFanins )
 {
-    int NameId, i;
-    Vec_IntForEachEntryStart( vFanins, NameId, i, fFirst )
-        fprintf( pFile, " %s", Cba_NtkStr(p, NameId) );
-    if ( fFirst )
-        fprintf( pFile, " %s", Cba_NtkStr(p, Vec_IntEntry(vFanins,0)) );
+    int i, NameId;
+    Vec_IntForEachEntry( vFanins, NameId, i )
+        fprintf( pFile, " %s", Prs_NtkStr(p, NameId) );
     fprintf( pFile, "\n" );
 }
-void Cba_PrsWriteBlifArray2( FILE * pFile, Cba_Ntk_t * p, Vec_Int_t * vFanins )
+void Prs_ManWriteBlifLines( FILE * pFile, Prs_Ntk_t * p )
 {
-    int FormId, NameId, i;
-    assert( Vec_IntSize(vFanins) % 2 == 0 );
-    Vec_IntForEachEntryDouble( vFanins, FormId, NameId, i )
-        fprintf( pFile, " %s=%s", Cba_NtkStr(p, FormId), Cba_NtkStr(p, NameId) );
-    fprintf( pFile, "\n" );
-}
-void Cba_PrsWriteBlifLines( FILE * pFile, Cba_Ntk_t * p )
-{
-    int i, Type;
-    Cba_NtkForEachObjType( p, Type, i )
-        if ( Type == CBA_OBJ_NODE ) // .names/assign/box2 (no formal/actual binding)
+    Vec_Int_t * vBox; 
+    int i, k, FormId, ActId;
+    Prs_NtkForEachBox( p, vBox, i )
+    {
+        int NtkId = Prs_BoxNtk(p, i);
+        assert( Prs_BoxIONum(p, i) > 0 );
+        assert( Vec_IntSize(vBox) % 2 == 0 );
+        if ( NtkId == -1 ) // latch
+        {
+            fprintf( pFile, ".latch" );
+            fprintf( pFile, " %s", Prs_NtkStr(p, Vec_IntEntry(vBox, 1)) );
+            fprintf( pFile, " %s", Prs_NtkStr(p, Vec_IntEntry(vBox, 3)) );
+            fprintf( pFile, " %c\n", '0' + Prs_BoxName(p, i) );
+        }
+        else if ( Prs_BoxIsNode(p, i) ) // node
         {
             fprintf( pFile, ".names" );
-            Cba_PrsWriteBlifArray( pFile, p, Cba_ObjFaninVec(p, i), 1 );
-            //fprintf( pFile, "%s", Cba_NtkFuncStr(p,  Cba_ObjFuncId(p, i)) );
-            fprintf( pFile, "%s", Ptr_TypeToSop( Cba_ObjFuncId(p, i) ) );
+            Vec_IntForEachEntryDouble( vBox, FormId, ActId, k )
+                fprintf( pFile, " %s", Prs_NtkStr(p, ActId) );
+            fprintf( pFile, "\n%s", Prs_NtkStr(p, NtkId) );
         }
-        else if ( Type == CBA_OBJ_BOX ) // .names/assign/box2 (no formal/actual binding)
+        else // box
         {
             fprintf( pFile, ".subckt" );
-            fprintf( pFile, " %s", Cba_NtkName(Cba_ObjBoxModel(p, i)) );
-            Cba_PrsWriteBlifArray2( pFile, p, Cba_ObjFaninVec(p, i) );
+            fprintf( pFile, " %s", Prs_NtkStr(p, NtkId) );
+            Vec_IntForEachEntryDouble( vBox, FormId, ActId, k )
+                fprintf( pFile, " %s=%s", Prs_NtkStr(p, FormId), Prs_NtkStr(p, ActId) );
+            fprintf( pFile, "\n" );
         }
-        else if ( Type == CBA_OBJ_LATCH ) // .names/assign/box2 (no formal/actual binding)
-        {
-            Vec_Int_t * vFanins = Cba_ObjFaninVec(p, i);
-            fprintf( pFile, ".latch" );
-            fprintf( pFile, " %s", Cba_NtkStr(p,  Vec_IntEntry(vFanins, 1)) );
-            fprintf( pFile, " %s", Cba_NtkStr(p,  Vec_IntEntry(vFanins, 0)) );
-            fprintf( pFile, " %c\n", '0' + Cba_ObjFuncId(p, i) );
-        }
+    }
 }
-void Cba_PrsWriteBlifNtk( FILE * pFile, Cba_Ntk_t * p )
+void Prs_ManWriteBlifNtk( FILE * pFile, Prs_Ntk_t * p )
 {
-    assert( Vec_IntSize(&p->vTypes)   == Cba_NtkObjNum(p) );
-    assert( Vec_IntSize(&p->vFuncs)   == Cba_NtkObjNum(p) );
     // write header
-    fprintf( pFile, ".model %s\n", Cba_NtkName(p) );
+    fprintf( pFile, ".model %s\n", Prs_NtkStr(p, p->iModuleName) );
     if ( Vec_IntSize(&p->vInouts) )
     fprintf( pFile, ".inouts" );
     if ( Vec_IntSize(&p->vInouts) )
-    Cba_PrsWriteBlifArray( pFile, p, &p->vInouts, 0 );
+    Prs_ManWriteBlifArray( pFile, p, &p->vInouts );
     fprintf( pFile, ".inputs" );
-    Cba_PrsWriteBlifArray( pFile, p, &p->vInputs, 0 );
+    Prs_ManWriteBlifArray( pFile, p, &p->vInputs );
     fprintf( pFile, ".outputs" );
-    Cba_PrsWriteBlifArray( pFile, p, &p->vOutputs, 0 );
+    Prs_ManWriteBlifArray( pFile, p, &p->vOutputs );
     // write objects
-    Cba_PrsWriteBlifLines( pFile, p );
+    Prs_ManWriteBlifLines( pFile, p );
     fprintf( pFile, ".end\n\n" );
 }
-void Cba_PrsWriteBlif( char * pFileName, Cba_Man_t * p )
+void Prs_ManWriteBlif( char * pFileName, Vec_Ptr_t * vPrs )
 {
-    FILE * pFile;
-    Cba_Ntk_t * pNtk; 
-    int i;
-    pFile = fopen( pFileName, "wb" );
+    Prs_Ntk_t * pNtk = Prs_ManRoot(vPrs);
+    FILE * pFile = fopen( pFileName, "wb" ); int i;
     if ( pFile == NULL )
     {
         printf( "Cannot open output file \"%s\".\n", pFileName );
         return;
     }
-    fprintf( pFile, "# Design \"%s\" written by ABC on %s\n\n", Cba_ManName(p), Extra_TimeStamp() );
-    Cba_ManForEachNtk( p, pNtk, i )
-        Cba_PrsWriteBlifNtk( pFile, pNtk );
+    fprintf( pFile, "# Design \"%s\" written by ABC on %s\n\n", Prs_NtkStr(pNtk, pNtk->iModuleName), Extra_TimeStamp() );
+    Vec_PtrForEachEntry( Prs_Ntk_t *, vPrs, pNtk, i )
+        Prs_ManWriteBlifNtk( pFile, pNtk );
     fclose( pFile );
 }
+
+
 
 /**Function*************************************************************
 
@@ -153,67 +148,52 @@ void Cba_ManWriteBlifArray( FILE * pFile, Cba_Ntk_t * p, Vec_Int_t * vFanins, in
 void Cba_ManWriteBlifArray2( FILE * pFile, Cba_Ntk_t * p, int iObj )
 {
     int iTerm, i;
-    Cba_Ntk_t * pModel = Cba_ObjBoxModel( p, iObj );
+    Cba_Ntk_t * pModel = Cba_BoxNtk( p, iObj );
     Cba_NtkForEachPi( pModel, iTerm, i )
-        fprintf( pFile, " %s=%s", Cba_ObjNameStr(pModel, iTerm), Cba_ObjNameStr(p, Cba_ObjBoxBi(p, iObj, i)) );
+        fprintf( pFile, " %s=%s", Cba_ObjNameStr(pModel, iTerm), Cba_ObjNameStr(p, Cba_BoxBi(p, iObj, i)) );
     Cba_NtkForEachPo( pModel, iTerm, i )
-        fprintf( pFile, " %s=%s", Cba_ObjNameStr(pModel, iTerm), Cba_ObjNameStr(p, Cba_ObjBoxBo(p, iObj, i)) );
+        fprintf( pFile, " %s=%s", Cba_ObjNameStr(pModel, iTerm), Cba_ObjNameStr(p, Cba_BoxBo(p, iObj, i)) );
     fprintf( pFile, "\n" );
 }
 void Cba_ManWriteBlifLines( FILE * pFile, Cba_Ntk_t * p )
 {
-    int Type, i;
-    Cba_NtkForEachObjType( p, Type, i )
+    int i, k, iTerm;
+    Cba_NtkForEachBox( p, i )
     {
-        if ( Type == CBA_OBJ_NODE ) // .names/assign/box2 (no formal/actual binding)
-        {
-            if ( p->pDesign->pMioLib ) // mapped
-            {
-                char * pGateName = Abc_NamStr( p->pDesign->pFuncs, Cba_ObjFuncId(p, i) );
-                Mio_Gate_t * pGate = Mio_LibraryReadGateByName( (Mio_Library_t *)p->pDesign->pMioLib, pGateName, NULL );
-                fprintf( pFile, ".gate %s", pGateName );
-                Cba_ManWriteBlifGate( pFile, p, pGate, Cba_ObjFaninVec(p, i), i );
-            }
-            else if ( Abc_NamObjNumMax(p->pDesign->pFuncs) > 1 ) // SOP functions
-            {
-                fprintf( pFile, ".names" );
-                Cba_ManWriteBlifArray( pFile, p, Cba_ObjFaninVec(p, i), i );
-                fprintf( pFile, "%s", Cba_ObjFuncStr(p, i) );
-            }
-            else
-            { 
-                fprintf( pFile, ".names" );
-                Cba_ManWriteBlifArray( pFile, p, Cba_ObjFaninVec(p, i), i );
-                //fprintf( pFile, "%s", Cba_NtkFuncStr(p,  Cba_ObjFuncId(p, i)) );
-                fprintf( pFile, "%s", Ptr_TypeToSop( Cba_ObjFuncId(p, i) ) );
-            }
-        }
-        else if ( Type == CBA_OBJ_BOX ) // .names/assign/box2 (no formal/actual binding)
+        if ( Cba_ObjIsBoxUser(p, i) )
         {
             fprintf( pFile, ".subckt" );
-            fprintf( pFile, " %s", Cba_NtkName(Cba_ObjBoxModel(p, i)) );
+            fprintf( pFile, " %s", Cba_NtkName(Cba_BoxNtk(p, i)) );
             Cba_ManWriteBlifArray2( pFile, p, i );
         }
-        else if ( Type == CBA_OBJ_LATCH ) // .names/assign/box2 (no formal/actual binding)
+        else if ( Cba_ObjIsGate(p, i) )
         {
-            Vec_Int_t * vFanins = Cba_ObjFaninVec(p, i);
-            fprintf( pFile, ".latch" );
-            fprintf( pFile, " %s", Cba_ObjNameStr(p, Vec_IntEntry(vFanins, 1)) );
-            fprintf( pFile, " %s", Cba_ObjNameStr(p, Vec_IntEntry(vFanins, 0)) );
-            fprintf( pFile, " %c\n", '0' + Cba_ObjFuncId(p, i) );
+            char * pGateName = Abc_NamStr(p->pDesign->pMods, Cba_BoxNtkId(p, i));
+            Mio_Library_t * pLib = (Mio_Library_t *)Abc_FrameReadLibGen( Abc_FrameGetGlobalFrame() );
+            Mio_Gate_t * pGate = Mio_LibraryReadGateByName( pLib, pGateName, NULL );
+            fprintf( pFile, ".gate %s", pGateName );
+            Cba_BoxForEachBi( p, i, iTerm, k )
+                fprintf( pFile, " %s=%s", Mio_GateReadPinName(pGate, k), Cba_ObjNameStr(p, iTerm) );
+            Cba_BoxForEachBo( p, i, iTerm, k )
+                fprintf( pFile, " %s=%s", Mio_GateReadOutName(pGate), Cba_ObjNameStr(p, iTerm) );
+            fprintf( pFile, "\n" );
+        }
+        else
+        {
+            fprintf( pFile, ".names" );
+            Cba_BoxForEachBi( p, i, iTerm, k )
+                fprintf( pFile, " %s", Cba_ObjNameStr(p, iTerm) );
+            Cba_BoxForEachBo( p, i, iTerm, k )
+                fprintf( pFile, " %s", Cba_ObjNameStr(p, iTerm) );
+            fprintf( pFile, "\n%s",  Ptr_TypeToSop(Cba_ObjType(p, i)) );
         }
     }
 }
 void Cba_ManWriteBlifNtk( FILE * pFile, Cba_Ntk_t * p )
 {
-    assert( Vec_IntSize(&p->vTypes) == Cba_NtkObjNum(p) );
-    assert( Vec_IntSize(&p->vFuncs) == Cba_NtkObjNum(p) );
+    assert( Vec_IntSize(&p->vFanin) == Cba_NtkObjNum(p) );
     // write header
     fprintf( pFile, ".model %s\n", Cba_NtkName(p) );
-    if ( Vec_IntSize(&p->vInouts) )
-    fprintf( pFile, ".inouts" );
-    if ( Vec_IntSize(&p->vInouts) )
-    Cba_ManWriteBlifArray( pFile, p, &p->vInouts, -1 );
     fprintf( pFile, ".inputs" );
     Cba_ManWriteBlifArray( pFile, p, &p->vInputs, -1 );
     fprintf( pFile, ".outputs" );
@@ -228,7 +208,7 @@ void Cba_ManWriteBlif( char * pFileName, Cba_Man_t * p )
     Cba_Ntk_t * pNtk; 
     int i;
     // check the library
-    if ( Abc_NamObjNumMax(p->pFuncs) > 1 && p->pMioLib != Abc_FrameReadLibGen() )
+    if ( p->pMioLib && p->pMioLib != Abc_FrameReadLibGen() )
     {
         printf( "Genlib library used in the mapped design is not longer a current library.\n" );
         return;

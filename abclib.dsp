@@ -783,10 +783,6 @@ SOURCE=.\src\base\cba\cbaBlast.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\base\cba\cbaBuild.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\src\base\cba\cbaCom.c
 # End Source File
 # Begin Source File
@@ -803,15 +799,27 @@ SOURCE=.\src\base\cba\cbaPrs.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\base\cba\cbaPrsBuild.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\cba\cbaPrsTrans.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\cba\cbaPtr.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\cba\cbaPtrAbc.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\base\cba\cbaReadBlif.c
 # End Source File
 # Begin Source File
 
 SOURCE=.\src\base\cba\cbaReadVer.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\base\cba\cbaSimple.c
 # End Source File
 # Begin Source File
 

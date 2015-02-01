@@ -1,12 +1,12 @@
 /**CFile****************************************************************
 
-  FileName    [cbaLib.c]
+  FileName    [cbaPrsTrans.c]
 
   SystemName  [ABC: Logic synthesis and verification system.]
 
   PackageName [Hierarchical word-level netlist.]
 
-  Synopsis    [Library procedures.]
+  Synopsis    [Parse tree to netlist transformation.]
 
   Author      [Alan Mishchenko]
   
@@ -14,11 +14,12 @@
 
   Date        [Ver. 1.0. Started - November 29, 2014.]
 
-  Revision    [$Id: cbaLib.c,v 1.00 2014/11/29 00:00:00 alanmi Exp $]
+  Revision    [$Id: cbaPrsTrans.c,v 1.00 2014/11/29 00:00:00 alanmi Exp $]
 
 ***********************************************************************/
 
 #include "cba.h"
+#include "cbaPrs.h"
 
 ABC_NAMESPACE_IMPL_START
 

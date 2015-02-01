@@ -706,6 +706,39 @@ static inline int Vec_StrSum( Vec_Str_t * p )
 
 /**Function*************************************************************
 
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline int Vec_StrCountEntry( Vec_Str_t * p, char Entry ) 
+{
+    int i, Counter = 0;
+    for ( i = 0; i < p->nSize; i++ )
+        Counter += (p->pArray[i] == Entry);
+    return Counter;
+}
+static inline int Vec_StrCountLarger( Vec_Str_t * p, char Entry ) 
+{
+    int i, Counter = 0;
+    for ( i = 0; i < p->nSize; i++ )
+        Counter += (p->pArray[i] > Entry);
+    return Counter;
+}
+static inline int Vec_StrCountSmaller( Vec_Str_t * p, char Entry ) 
+{
+    int i, Counter = 0;
+    for ( i = 0; i < p->nSize; i++ )
+        Counter += (p->pArray[i] < Entry);
+    return Counter;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Compares two strings.]
 
   Description []

@@ -65,7 +65,9 @@ struct Vec_Int_t_
     for ( i = 0; (i < Vec_IntSize(vVec1)) && (((Entry1) = Vec_IntEntry(vVec1, i)), 1) && (((Entry2) = Vec_IntEntry(vVec2, i)), 1); i++ )
 #define Vec_IntForEachEntryDouble( vVec, Entry1, Entry2, i )                                \
     for ( i = 0; (i+1 < Vec_IntSize(vVec)) && (((Entry1) = Vec_IntEntry(vVec, i)), 1) && (((Entry2) = Vec_IntEntry(vVec, i+1)), 1); i += 2 )
-#define Vec_IntForEachEntryTriple( vVec, Entry1, Entry2, Entry3, i )                                \
+#define Vec_IntForEachEntryDoubleStart( vVec, Entry1, Entry2, i, Start )                    \
+    for ( i = Start; (i+1 < Vec_IntSize(vVec)) && (((Entry1) = Vec_IntEntry(vVec, i)), 1) && (((Entry2) = Vec_IntEntry(vVec, i+1)), 1); i += 2 )
+#define Vec_IntForEachEntryTriple( vVec, Entry1, Entry2, Entry3, i )                        \
     for ( i = 0; (i+2 < Vec_IntSize(vVec)) && (((Entry1) = Vec_IntEntry(vVec, i)), 1) && (((Entry2) = Vec_IntEntry(vVec, i+1)), 1) && (((Entry3) = Vec_IntEntry(vVec, i+2)), 1); i += 3 )
 #define Vec_IntForEachEntryThisNext( vVec, This, Next, i )                                  \
     for ( i = 0, (This) = (Next) = (Vec_IntSize(vVec) ? Vec_IntEntry(vVec, 0) : -1); (i+1 < Vec_IntSize(vVec)) && (((Next) = Vec_IntEntry(vVec, i+1)), 1); i += 2, (This) = (Next) )
@@ -611,6 +613,11 @@ static inline void Vec_IntFillExtra( Vec_Int_t * p, int nSize, int Fill )
 static inline int Vec_IntGetEntry( Vec_Int_t * p, int i )
 {
     Vec_IntFillExtra( p, i + 1, 0 );
+    return Vec_IntEntry( p, i );
+}
+static inline int Vec_IntGetEntryFull( Vec_Int_t * p, int i )
+{
+    Vec_IntFillExtra( p, i + 1, -1 );
     return Vec_IntEntry( p, i );
 }
 
@@ -1168,6 +1175,20 @@ static inline int Vec_IntCountEntry( Vec_Int_t * p, int Entry )
     int i, Counter = 0;
     for ( i = 0; i < p->nSize; i++ )
         Counter += (p->pArray[i] == Entry);
+    return Counter;
+}
+static inline int Vec_IntCountLarger( Vec_Int_t * p, int Entry ) 
+{
+    int i, Counter = 0;
+    for ( i = 0; i < p->nSize; i++ )
+        Counter += (p->pArray[i] > Entry);
+    return Counter;
+}
+static inline int Vec_IntCountSmaller( Vec_Int_t * p, int Entry ) 
+{
+    int i, Counter = 0;
+    for ( i = 0; i < p->nSize; i++ )
+        Counter += (p->pArray[i] < Entry);
     return Counter;
 }
 

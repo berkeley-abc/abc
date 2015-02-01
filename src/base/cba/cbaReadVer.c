@@ -4,9 +4,9 @@
 
   SystemName  [ABC: Logic synthesis and verification system.]
 
-  PackageName [Verilog parser.]
+  PackageName [Hierarchical word-level netlist.]
 
-  Synopsis    [Parses several flavors of word-level Verilog.]
+  Synopsis    [BLIF writer.]
 
   Author      [Alan Mishchenko]
   
@@ -29,23 +29,23 @@ ABC_NAMESPACE_IMPL_START
 
 // Verilog keywords
 typedef enum { 
-    CBA_VER_NONE = 0,  // 0:  unused
-    CBA_VER_MODULE,    // 1:  module
-    CBA_VER_INOUT,     // 2:  inout
-    CBA_VER_INPUT,     // 3:  input
-    CBA_VER_OUTPUT,    // 4:  output
-    CBA_VER_WIRE,      // 5:  wire
-    CBA_VER_ASSIGN,    // 6:  assign
-    CBA_VER_REG,       // 7:  reg
-    CBA_VER_ALWAYS,    // 8:  always
-    CBA_VER_DEFPARAM,  // 9:  always
-    CBA_VER_BEGIN,     // 10: begin
-    CBA_VER_END,       // 11: end
-    CBA_VER_ENDMODULE, // 12: endmodule
-    CBA_VER_UNKNOWN    // 13: unknown
+    PRS_VER_NONE = 0,  // 0:  unused
+    PRS_VER_MODULE,    // 1:  module
+    PRS_VER_INOUT,     // 2:  inout
+    PRS_VER_INPUT,     // 3:  input
+    PRS_VER_OUTPUT,    // 4:  output
+    PRS_VER_WIRE,      // 5:  wire
+    PRS_VER_ASSIGN,    // 6:  assign
+    PRS_VER_REG,       // 7:  reg
+    PRS_VER_ALWAYS,    // 8:  always
+    PRS_VER_DEFPARAM,  // 9:  always
+    PRS_VER_BEGIN,     // 10: begin
+    PRS_VER_END,       // 11: end
+    PRS_VER_ENDMODULE, // 12: endmodule
+    PRS_VER_UNKNOWN    // 13: unknown
 } Cba_VerType_t;
 
-const char * s_VerTypes[CBA_VER_UNKNOWN+1] = {
+const char * s_VerTypes[PRS_VER_UNKNOWN+1] = {
     NULL,              // 0:  unused
     "module",          // 1:  module
     "inout",           // 2:  inout
@@ -62,27 +62,27 @@ const char * s_VerTypes[CBA_VER_UNKNOWN+1] = {
     NULL               // 13: unknown 
 };
 
-static inline void Cba_PrsAddVerilogDirectives( Cba_Prs_t * p )
+static inline void Prs_NtkAddVerilogDirectives( Prs_Man_t * p )
 {
     int i;
     for ( i = 1; s_VerTypes[i]; i++ )
-        Abc_NamStrFindOrAdd( p->pDesign->pNames, (char *)s_VerTypes[i],   NULL );
-    assert( Abc_NamObjNumMax(p->pDesign->pNames) == i );
+        Abc_NamStrFindOrAdd( p->pStrs, (char *)s_VerTypes[i],   NULL );
+    assert( Abc_NamObjNumMax(p->pStrs) == i );
 }
 
 
 // character recognition 
-static inline int Cba_IsSpace( char c )   { return (c == ' ' || c == '\t' || c == '\r' || c == '\n');                           }
-static inline int Cba_IsDigit( char c )   { return (c >= '0' && c <= '9');                                                      }
-static inline int Cba_IsDigitB( char c )  { return (c == '0' || c == '1'  || c == 'x' || c == 'z');                             }
-static inline int Cba_IsDigitH( char c )  { return (c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f');  }
-static inline int Cba_IsChar( char c )    { return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z');                            }
-static inline int Cba_IsSymb1( char c )   { return Cba_IsChar(c) || c == '_';                                                   }
-static inline int Cba_IsSymb2( char c )   { return Cba_IsSymb1(c) || Cba_IsDigit(c) || c == '$';                                }
+static inline int Prs_CharIsSpace( char c )   { return (c == ' ' || c == '\t' || c == '\r' || c == '\n');                           }
+static inline int Prs_CharIsDigit( char c )   { return (c >= '0' && c <= '9');                                                      }
+static inline int Prs_CharIsDigitB( char c )  { return (c == '0' || c == '1'  || c == 'x' || c == 'z');                             }
+static inline int Prs_CharIsDigitH( char c )  { return (c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f');  }
+static inline int Prs_CharIsChar( char c )    { return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z');                            }
+static inline int Prs_CharIsSymb1( char c )   { return Prs_CharIsChar(c) || c == '_';                                               }
+static inline int Prs_CharIsSymb2( char c )   { return Prs_CharIsSymb1(c) || Prs_CharIsDigit(c) || c == '$';                        }
 
-static inline int Cba_PrsIsChar( Cba_Prs_t * p, char c )    { return p->pCur[0] == c;                        }
-static inline int Cba_PrsIsChar1( Cba_Prs_t * p, char c )   { return p->pCur[1] == c;                        }
-static inline int Cba_PrsIsDigit( Cba_Prs_t * p )           { return Cba_IsDigit(*p->pCur);                  }
+static inline int Prs_ManIsChar( Prs_Man_t * p, char c )    { return p->pCur[0] == c;                        }
+static inline int Prs_ManIsChar1( Prs_Man_t * p, char c )   { return p->pCur[1] == c;                        }
+static inline int Prs_ManIsDigit( Prs_Man_t * p )           { return Prs_CharIsDigit(*p->pCur);              }
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -102,43 +102,88 @@ static inline int Cba_PrsIsDigit( Cba_Prs_t * p )           { return Cba_IsDigit
 
 // collect predefined modules names
 const char * s_KnownModules[100] = {
-    NULL,       // 0:  unused 
-    "const",    // 1:  constant 
-    "buf",      // 2:  buffer 
-    "not",      // 3:  inverter 
-    "and",      // 4:  AND 
-    "nand",     // 5:  OR 
-    "or",       // 6:  XOR 
-    "nor",      // 7:  NAND 
-    "xor",      // 8:  NOR 
-    "xnor",     // 9: .XNOR 
-    "mux",      // 10: MUX  
-    "maj",      // 11: MAJ 
+    NULL,     // CBA_OBJ_NONE = 0,  // 0:  unused
+    NULL,     // CBA_OBJ_PI,        // 1:  input
+    NULL,     // CBA_OBJ_PO,        // 2:  output
+    NULL,     // CBA_OBJ_BI,        // 3:  box input
+    NULL,     // CBA_OBJ_BO,        // 4:  box output
+    NULL,     // CBA_OBJ_BOX,       // 5:  box
+ 
+    "const0", // CBA_BOX_C0,   
+    "const1", // CBA_BOX_C1,   
+    "constX", // CBA_BOX_CX,   
+    "constZ", // CBA_BOX_CZ,   
+    "buf",    // CBA_BOX_BUF,  
+    "not",    // CBA_BOX_INV,  
+    "and",    // CBA_BOX_AND,  
+    "nand",   // CBA_BOX_NAND, 
+    "or",     // CBA_BOX_OR,   
+    "nor",    // CBA_BOX_NOR,  
+    "xor",    // CBA_BOX_XOR,  
+    "xnor",   // CBA_BOX_XNOR, 
+    "sharp",  // CBA_BOX_SHARP,
+    "mux",    // CBA_BOX_MUX,  
+    "maj",    // CBA_BOX_MAJ,  
 
     "VERIFIC_",
-    "wide_",
-    "reduce_",
-    "equal_",
-    "not_equal_",
-    "sub_",
-    "add_",
-    "mult_",
-    "mux_",
-    "Mux_",
-    "Select_",
-    "Decoder_",
-    "LessThan_",
-    "ReadPort_",
-    "WritePort_",
-    "ClockedWritePort_",
+    "add_",                  
+    "mult_",                 
+    "div_",                  
+    "mod_",                  
+    "rem_",                  
+    "shift_left_",           
+    "shift_right_",          
+    "rotate_left_",          
+    "rotate_right_",         
+    "reduce_and_",           
+    "reduce_or_",            
+    "reduce_xor_",           
+    "reduce_nand_",          
+    "reduce_nor_",           
+    "reduce_xnor_",          
+    "LessThan_",             
+    "Mux_",                  
+    "Select_",               
+    "Decoder_",              
+    "EnabledDecoder_",       
+    "PrioSelect_",           
+    "DualPortRam_",          
+    "ReadPort_",             
+    "WritePort_",            
+    "ClockedWritePort_",     
+    "lut",                   
+    "and_",                  
+    "or_",                   
+    "xor_",                  
+    "nand_",                 
+    "nor_",                  
+    "xnor_",                 
+    "buf_",                  
+    "inv_",                  
+    "tri_",                  
+    "sub_",                  
+    "unary_minus_",          
+    "equal_",                
+    "not_equal_",            
+    "mux_",                  
+    "wide_mux_",             
+    "wide_select_",          
+    "wide_dff_",             
+    "wide_dlatch_",          
+    "wide_dffrs_",           
+    "wide_dlatchrs_",        
+    "wide_prio_select_",     
+    "pow_",                  
+    "PrioEncoder_",          
+    "abs",                   
     NULL
 };
 
 // check if it is a known module
-static inline int Cba_PrsIsKnownModule( Cba_Prs_t * p, char * pName )
+static inline int Prs_ManIsKnownModule( Prs_Man_t * p, char * pName )
 {
     int i;
-    for ( i = 1; s_KnownModules[i]; i++ )
+    for ( i = CBA_BOX_C0; s_KnownModules[i]; i++ )
         if ( !strncmp(pName, s_KnownModules[i], strlen(s_KnownModules[i])) )
             return i;
     return 0;
@@ -158,65 +203,65 @@ static inline int Cba_PrsIsKnownModule( Cba_Prs_t * p, char * pName )
 ***********************************************************************/
 
 // skips Verilog comments (returns 1 if some comments were skipped)
-static inline int Cba_PrsUtilSkipComments( Cba_Prs_t * p )
+static inline int Prs_ManUtilSkipComments( Prs_Man_t * p )
 {
-    if ( !Cba_PrsIsChar(p, '/') )
+    if ( !Prs_ManIsChar(p, '/') )
         return 0;
-    if ( Cba_PrsIsChar1(p, '/') )
+    if ( Prs_ManIsChar1(p, '/') )
     {
         for ( p->pCur += 2; p->pCur < p->pLimit; p->pCur++ )
-            if ( Cba_PrsIsChar(p, '\n') )
+            if ( Prs_ManIsChar(p, '\n') )
                 { p->pCur++; return 1; }
     }
-    else if ( Cba_PrsIsChar1(p, '*') )
+    else if ( Prs_ManIsChar1(p, '*') )
     {
         for ( p->pCur += 2; p->pCur < p->pLimit; p->pCur++ )
-            if ( Cba_PrsIsChar(p, '*') && Cba_PrsIsChar1(p, '/') )
+            if ( Prs_ManIsChar(p, '*') && Prs_ManIsChar1(p, '/') )
                 { p->pCur++; p->pCur++; return 1; }
     }
     return 0;
 }
-static inline int Cba_PrsUtilSkipName( Cba_Prs_t * p )
+static inline int Prs_ManUtilSkipName( Prs_Man_t * p )
 {
-    if ( !Cba_PrsIsChar(p, '\\') )
+    if ( !Prs_ManIsChar(p, '\\') )
         return 0;
     for ( p->pCur++; p->pCur < p->pLimit; p->pCur++ )
-        if ( Cba_PrsIsChar(p, ' ') )
+        if ( Prs_ManIsChar(p, ' ') )
             { p->pCur++; return 1; }
     return 0;
 }
 
 // skip any number of spaces and comments
-static inline int Cba_PrsUtilSkipSpaces( Cba_Prs_t * p )
+static inline int Prs_ManUtilSkipSpaces( Prs_Man_t * p )
 {
     while ( p->pCur < p->pLimit )
     {
-        while ( Cba_IsSpace(*p->pCur) ) 
+        while ( Prs_CharIsSpace(*p->pCur) ) 
             p->pCur++;
         if ( !*p->pCur )
-            return Cba_PrsErrorSet(p, "Unexpectedly reached end-of-file.", 1);
-        if ( !Cba_PrsUtilSkipComments(p) )
+            return Prs_ManErrorSet(p, "Unexpectedly reached end-of-file.", 1);
+        if ( !Prs_ManUtilSkipComments(p) )
             return 0;
     }
-    return Cba_PrsErrorSet(p, "Unexpectedly reached end-of-file.", 1);
+    return Prs_ManErrorSet(p, "Unexpectedly reached end-of-file.", 1);
 }
 // skip everything including comments until the given char
-static inline int Cba_PrsUtilSkipUntil( Cba_Prs_t * p, char c )
+static inline int Prs_ManUtilSkipUntil( Prs_Man_t * p, char c )
 {
     while ( p->pCur < p->pLimit )
     {
-        if ( Cba_PrsIsChar(p, c) )
+        if ( Prs_ManIsChar(p, c) )
             return 1;
-        if ( Cba_PrsUtilSkipComments(p) )
+        if ( Prs_ManUtilSkipComments(p) )
             continue;
-        if ( Cba_PrsUtilSkipName(p) )
+        if ( Prs_ManUtilSkipName(p) )
             continue;
         p->pCur++;
     }
     return 0;
 }
 // skip everything including comments until the given word
-static inline int Cba_PrsUtilSkipUntilWord( Cba_Prs_t * p, char * pWord )
+static inline int Prs_ManUtilSkipUntilWord( Prs_Man_t * p, char * pWord )
 {
     char * pPlace = strstr( p->pCur, pWord );
     if ( pPlace == NULL )  return 1;
@@ -224,13 +269,6 @@ static inline int Cba_PrsUtilSkipUntilWord( Cba_Prs_t * p, char * pWord )
     return 0;
 }
 
-/* 
-signal is a pair {NameId; RangeId}
-if ( RangeId == 0 )  this is name without range
-if ( RangeId == -1 ) this is constant
-if ( RangeId == -2 ) this is concatenation
-*/
-
 /**Function*************************************************************
 
   Synopsis    []
@@ -242,206 +280,186 @@ if ( RangeId == -2 ) this is concatenation
   SeeAlso     []
 
 ***********************************************************************/
-static inline int Cba_PrsReadName( Cba_Prs_t * p )
+static inline int Prs_ManReadName( Prs_Man_t * p )
 {
     char * pStart = p->pCur;
-    if ( Cba_PrsIsChar(p, '\\') ) // escaped name
+    if ( Prs_ManIsChar(p, '\\') ) // escaped name
     {
         pStart = ++p->pCur;
-        while ( !Cba_PrsIsChar(p, ' ') ) 
+        while ( !Prs_ManIsChar(p, ' ') ) 
             p->pCur++;
     }    
-    else if ( Cba_IsSymb1(*p->pCur) ) // simple name
+    else if ( Prs_CharIsSymb1(*p->pCur) ) // simple name
     {
         p->pCur++;
-        while ( Cba_IsSymb2(*p->pCur) ) 
+        while ( Prs_CharIsSymb2(*p->pCur) ) 
             p->pCur++;
     }
     else 
         return 0;
-    return Abc_NamStrFindOrAddLim( p->pDesign->pNames, pStart, p->pCur, NULL );
+    return Abc_NamStrFindOrAddLim( p->pStrs, pStart, p->pCur, NULL );
 }
-static inline int Cba_PrsReadConstant( Cba_Prs_t * p )
-{
-    char * pStart = p->pCur;
-    assert( Cba_PrsIsDigit(p) );
-    while ( Cba_PrsIsDigit(p) ) 
-        p->pCur++;
-    if ( !Cba_PrsIsChar(p, '\'') )        return Cba_PrsErrorSet(p, "Cannot read constant.", 0);
-    p->pCur++;
-    if ( Cba_PrsIsChar(p, 'b') )
-    {
-        p->pCur++;
-        while ( Cba_IsDigitB(*p->pCur) ) 
-            p->pCur++;
-    }
-    else if ( Cba_PrsIsChar(p, 'h') )
-    {
-        p->pCur++;
-        while ( Cba_IsDigitH(*p->pCur) ) 
-            p->pCur++;
-    }
-    else if ( Cba_PrsIsChar(p, 'd') )
-    {
-        p->pCur++;
-        while ( Cba_PrsIsDigit(p) ) 
-            p->pCur++;
-    }
-    else                                  return Cba_PrsErrorSet(p, "Cannot read radix of constant.", 0);
-    return Abc_NamStrFindOrAddLim( p->pDesign->pNames, pStart, p->pCur, NULL );
-}
-static inline int Cba_PrsReadRange( Cba_Prs_t * p )
-{
-    assert( Cba_PrsIsChar(p, '[') );
-    Vec_StrClear( &p->vCover );
-    Vec_StrPush( &p->vCover, *p->pCur++ );
-    if ( Cba_PrsUtilSkipSpaces(p) )       return 0;
-    if ( !Cba_PrsIsDigit(p) )             return Cba_PrsErrorSet(p, "Cannot read digit in range specification.", 0);
-    while ( Cba_PrsIsDigit(p) )
-        Vec_StrPush( &p->vCover, *p->pCur++ );
-    if ( Cba_PrsUtilSkipSpaces(p) )      return 0;
-    if ( Cba_PrsIsChar(p, ':') )
-    {
-        Vec_StrPush( &p->vCover, *p->pCur++ );
-        if ( Cba_PrsUtilSkipSpaces(p) )   return 0;
-        if ( !Cba_PrsIsDigit(p) )         return Cba_PrsErrorSet(p, "Cannot read digit in range specification.", 0);
-        while ( Cba_PrsIsDigit(p) )
-            Vec_StrPush( &p->vCover, *p->pCur++ );
-        if ( Cba_PrsUtilSkipSpaces(p) )   return 0;
-    }
-    if ( !Cba_PrsIsChar(p, ']') )         return Cba_PrsErrorSet(p, "Cannot read closing brace in range specification.", 0);
-    Vec_StrPush( &p->vCover, *p->pCur++ );
-    Vec_StrPush( &p->vCover, '\0' );
-    return Abc_NamStrFindOrAdd( p->pDesign->pNames, Vec_StrArray(&p->vCover), NULL );
-}
-static inline int Cba_PrsReadSignal( Cba_Prs_t * p, int * pName, int * pRange )
-{
-    *pName = *pRange = 0;
-    if ( Cba_PrsUtilSkipSpaces(p) )       return 0;
-    if ( Cba_PrsIsDigit(p) )
-    {
-        *pName = Cba_PrsReadConstant(p);
-        if ( *pName == 0 )                return 0;
-        if ( Cba_PrsUtilSkipSpaces(p) )   return 0;
-        *pRange = -1;
-        return 1;
-    }
-    *pName = Cba_PrsReadName( p );
-    if ( *pName == 0 )                    
-        return 1;
-    if ( Cba_PrsUtilSkipSpaces(p) )       return 0;
-    if ( !Cba_PrsIsChar(p, '[') )
-        return 1;
-    *pRange = Cba_PrsReadRange(p);
-    if ( *pRange == 0 )                   return 0;
-    if ( Cba_PrsUtilSkipSpaces(p) )       return 0;
-    return 1;
-}
-static inline int Cba_PrsReadSignalList( Cba_Prs_t * p, Vec_Int_t * vTemp, char LastSymb )
+static inline int Prs_ManReadNameList( Prs_Man_t * p, Vec_Int_t * vTemp, char LastSymb )
 {
     Vec_IntClear( vTemp );
     while ( 1 )
     {
-        int NameId, RangeId;
-        if ( !Cba_PrsReadSignal(p, &NameId, &RangeId) )  return 0;
-        if ( NameId == 0 )                return Cba_PrsErrorSet(p, "Cannot read signal in the list.", 0);
-        Vec_IntPushTwo( vTemp, NameId, RangeId );
-        if ( Cba_PrsIsChar(p, LastSymb) ) break;
-        if ( !Cba_PrsIsChar(p, ',') )     return Cba_PrsErrorSet(p, "Expecting comma in the list.", 0);
+        int Item = Prs_ManReadName(p);
+        if ( Item == 0 )                    return Prs_ManErrorSet(p, "Cannot read name in the list.", 0);
+        Vec_IntPush( vTemp, Item );
+        if ( Prs_ManIsChar(p, LastSymb) )   break;
+        if ( !Prs_ManIsChar(p, ',') )       return Prs_ManErrorSet(p, "Expecting comma in the list.", 0);
         p->pCur++;
+        if ( Prs_ManUtilSkipSpaces(p) )     return 0;
     }
-    assert( Vec_IntSize(vTemp) > 0 );
-    assert( Vec_IntSize(vTemp) % 2 == 0 );
     return 1;
 }
-static inline int Cba_PrsReadConcat( Cba_Prs_t * p, Vec_Int_t * vTemp2 )
+static inline int Prs_ManReadConstant( Prs_Man_t * p )
 {
-    assert( Cba_PrsIsChar(p, '{') );
+    char * pStart = p->pCur;
+    assert( Prs_ManIsDigit(p) );
+    while ( Prs_ManIsDigit(p) ) 
+        p->pCur++;
+    if ( !Prs_ManIsChar(p, '\'') )          return Prs_ManErrorSet(p, "Cannot read constant.", 0);
     p->pCur++;
-    if ( !Cba_PrsReadSignalList(p, vTemp2, '}') ) return 0;
+    if ( Prs_ManIsChar(p, 'b') )
+    {
+        p->pCur++;
+        while ( Prs_CharIsDigitB(*p->pCur) ) 
+            p->pCur++;
+    }
+    else if ( Prs_ManIsChar(p, 'h') )
+    {
+        p->pCur++;
+        while ( Prs_CharIsDigitH(*p->pCur) ) 
+            p->pCur++;
+    }
+    else if ( Prs_ManIsChar(p, 'd') )
+    {
+        p->pCur++;
+        while ( Prs_ManIsDigit(p) ) 
+            p->pCur++;
+    }
+    else                                    return Prs_ManErrorSet(p, "Cannot read radix of constant.", 0);
+    return Abc_NamStrFindOrAddLim( p->pStrs, pStart, p->pCur, NULL );
+}
+static inline int Prs_ManReadRange( Prs_Man_t * p )
+{
+    assert( Prs_ManIsChar(p, '[') );
+    Vec_StrClear( &p->vCover );
+    Vec_StrPush( &p->vCover, *p->pCur++ );
+    if ( Prs_ManUtilSkipSpaces(p) )         return 0;
+    if ( !Prs_ManIsDigit(p) )               return Prs_ManErrorSet(p, "Cannot read digit in range specification.", 0);
+    while ( Prs_ManIsDigit(p) )
+        Vec_StrPush( &p->vCover, *p->pCur++ );
+    if ( Prs_ManUtilSkipSpaces(p) )         return 0;
+    if ( Prs_ManIsChar(p, ':') )
+    {
+        Vec_StrPush( &p->vCover, *p->pCur++ );
+        if ( Prs_ManUtilSkipSpaces(p) )     return 0;
+        if ( !Prs_ManIsDigit(p) )           return Prs_ManErrorSet(p, "Cannot read digit in range specification.", 0);
+        while ( Prs_ManIsDigit(p) )
+            Vec_StrPush( &p->vCover, *p->pCur++ );
+        if ( Prs_ManUtilSkipSpaces(p) )     return 0;
+    }
+    if ( !Prs_ManIsChar(p, ']') )           return Prs_ManErrorSet(p, "Cannot read closing brace in range specification.", 0);
+    Vec_StrPush( &p->vCover, *p->pCur++ );
+    Vec_StrPush( &p->vCover, '\0' );
+    return Abc_NamStrFindOrAdd( p->pStrs, Vec_StrArray(&p->vCover), NULL );
+}
+static inline int Prs_ManReadConcat( Prs_Man_t * p, Vec_Int_t * vTemp2 )
+{
+    extern int Prs_ManReadSignalList( Prs_Man_t * p, Vec_Int_t * vTemp, char LastSymb, int fAddForm );
+    assert( Prs_ManIsChar(p, '{') );
+    p->pCur++;
+    if ( !Prs_ManReadSignalList( p, vTemp2, '}', 0 ) ) return 0;
     // check final
-    assert( Cba_PrsIsChar(p, '}') );
+    assert( Prs_ManIsChar(p, '}') );
     p->pCur++;
     // return special case
-    if ( Vec_IntSize(vTemp2) == 2 )               return -1; // trivial concatentation
-    assert( Vec_IntSize(vTemp2) > 2 );
-    assert( Vec_IntSize(vTemp2) % 2 == 0 );
-    // create new concatentation
-    Vec_IntPush( &p->vTypesCur, CBA_OBJ_CONCAT );
-    Vec_IntPush( &p->vFuncsCur, 0 );
-    Vec_IntPush( &p->vFaninsCur, Cba_ManHandleArray(p->pDesign, vTemp2) ); 
-    Vec_IntPush( &p->vInstIdsCur, 0 );
-    return Vec_IntSize(&p->vFaninsCur);
+    assert( Vec_IntSize(vTemp2) > 0 );
+    if ( Vec_IntSize(vTemp2) == 1 )
+        return Vec_IntEntry(vTemp2, 0);
+    return Abc_Var2Lit2( Prs_NtkAddConcat(p->pNtk, vTemp2), CBA_PRS_CONCAT );
 }
-static inline int Cba_PrsReadSignalOrConcat( Cba_Prs_t * p, int * pName, int * pRange )
+static inline int Prs_ManReadSignal( Prs_Man_t * p )
 {
-    if ( Cba_PrsUtilSkipSpaces(p) )       return 0;
-    if ( Cba_PrsIsChar(p, '{') )
+    int Item;
+    if ( Prs_ManUtilSkipSpaces(p) )         return 0;
+    if ( Prs_ManIsDigit(p) )
     {
-        int Status = Cba_PrsReadConcat(p, &p->vTemp2);
-        if ( Status == 0 )                return 0;
-        *pName  = Status == -1 ? Vec_IntEntry( &p->vTemp2, 0 ) : Status;
-        *pRange = Status == -1 ? Vec_IntEntry( &p->vTemp2, 1 ) : -2;
-        if ( Cba_PrsUtilSkipSpaces(p) )   return 0;
+        Item = Prs_ManReadConstant(p);
+        if ( Item == 0 )                    return 0;
+        if ( Prs_ManUtilSkipSpaces(p) )     return 0;
+        return Abc_Var2Lit2( Item, CBA_PRS_CONST );
+    }
+    if ( Prs_ManIsChar(p, '{') )
+    {
+        if ( p->fUsingTemp2 )               return Prs_ManErrorSet(p, "Cannot read nested concatenations.", 0);
+        p->fUsingTemp2 = 1;
+        Item = Prs_ManReadConcat(p, &p->vTemp2);
+        p->fUsingTemp2 = 0;
+        if ( Item == 0 )                    return 0;
+        if ( Prs_ManUtilSkipSpaces(p) )     return 0;
+        return Item;
     }
     else
     {
-        if ( !Cba_PrsReadSignal(p, pName, pRange) )  return 0;
-        if ( *pName == 0 )                return Cba_PrsErrorSet(p, "Cannot read formal name in the list.", 0);
+        Item = Prs_ManReadName( p );
+        if ( Item == 0 )                    return 0;    // was        return 1;                
+        if ( Prs_ManUtilSkipSpaces(p) )     return 0;
+        if ( Prs_ManIsChar(p, '[') )
+        {
+            int Range = Prs_ManReadRange(p);
+            if ( Range == 0 )               return 0;
+            if ( Prs_ManUtilSkipSpaces(p) ) return 0;
+            return Abc_Var2Lit2( Prs_NtkAddSlice(p->pNtk, Item, Range), CBA_PRS_SLICE );
+        }
+        return Abc_Var2Lit2( Item, CBA_PRS_NAME );
     }
-    return 1;
 }
-static inline int Cba_PrsReadSignalList1( Cba_Prs_t * p, Vec_Int_t * vTemp )
+static inline int Prs_ManReadSignalList( Prs_Man_t * p, Vec_Int_t * vTemp, char LastSymb, int fAddForm )
 {
     Vec_IntClear( vTemp );
     while ( 1 )
     {
-        int NameId, RangeId;
-        if ( !Cba_PrsReadSignalOrConcat(p, &NameId, &RangeId) ) return 0;
-        if ( NameId == 0 )                return Cba_PrsErrorSet(p, "Cannot read signal or concatenation in the list.", 0);
-        Vec_IntPushTwo( vTemp, NameId, RangeId );
-        if ( Cba_PrsIsChar(p, ')') )      break;
-        if ( !Cba_PrsIsChar(p, ',') )     return Cba_PrsErrorSet(p, "Expecting comma in the list.", 0);
+        int Item = Prs_ManReadSignal(p);
+        if ( Item == 0 )                    return Prs_ManErrorSet(p, "Cannot read signal in the list.", 0);
+        if ( fAddForm )
+            Vec_IntPush( vTemp, 0 );
+        Vec_IntPush( vTemp, Item );
+        if ( Prs_ManIsChar(p, LastSymb) )   break;
+        if ( !Prs_ManIsChar(p, ',') )       return Prs_ManErrorSet(p, "Expecting comma in the list.", 0);
         p->pCur++;
     }
-    p->pCur++;
-    if ( Cba_PrsUtilSkipSpaces(p) )       return 0;
-    if ( !Cba_PrsIsChar(p, ';') )         return Cba_PrsErrorSet(p, "Expecting semicolon in the instance.", 0);
-    assert( Vec_IntSize(vTemp) > 0 );
-    assert( Vec_IntSize(vTemp) % 2 == 0 );
     return 1;
 }
-static inline int Cba_PrsReadSignalList2( Cba_Prs_t * p, Vec_Int_t * vTemp )
+static inline int Prs_ManReadSignalList2( Prs_Man_t * p, Vec_Int_t * vTemp )
 {
-    int FormId, NameId, RangeId;
+    int FormId, ActItem;
     Vec_IntClear( vTemp );
-    assert( Cba_PrsIsChar(p, '.') );
-    while ( Cba_PrsIsChar(p, '.') )
+    assert( Prs_ManIsChar(p, '.') );
+    while ( Prs_ManIsChar(p, '.') )
     {
         p->pCur++;
-        if ( !Cba_PrsReadSignal(p, &FormId, &RangeId) )  return 0;
-        if ( FormId == 0 )                return Cba_PrsErrorSet(p, "Cannot read formal name of the instance.", 0);
-        if ( RangeId != 0 )               return Cba_PrsErrorSet(p, "Formal signal cannot have range.", 0);
-        if ( !Cba_PrsIsChar(p, '(') )     return Cba_PrsErrorSet(p, "Cannot read \"(\" in the instance.", 0);
+        FormId = Prs_ManReadName( p );
+        if ( FormId == 0 )                  return Prs_ManErrorSet(p, "Cannot read formal name of the instance.", 0);
+        if ( !Prs_ManIsChar(p, '(') )       return Prs_ManErrorSet(p, "Cannot read \"(\" in the instance.", 0);
         p->pCur++;
-        if ( Cba_PrsUtilSkipSpaces(p) )   return 0;
-        if ( !Cba_PrsReadSignalOrConcat(p, &NameId, &RangeId) )  return 0;
-        if ( NameId == 0 )                return Cba_PrsErrorSet(p, "Cannot read actual name of the instance.", 0);
-        if ( !Cba_PrsIsChar(p, ')') )     return Cba_PrsErrorSet(p, "Cannot read \")\" in the instance.", 0);
+        if ( Prs_ManUtilSkipSpaces(p) )     return 0;
+        ActItem = Prs_ManReadSignal( p );
+        if ( ActItem == 0 )                 return Prs_ManErrorSet(p, "Cannot read actual name of the instance.", 0);
+        if ( !Prs_ManIsChar(p, ')') )       return Prs_ManErrorSet(p, "Cannot read \")\" in the instance.", 0);
         p->pCur++;
-        Vec_IntPush( vTemp, FormId );
-        Vec_IntPushTwo( vTemp, NameId, RangeId );
-        if ( Cba_PrsUtilSkipSpaces(p) )   return 0;
-        if ( Cba_PrsIsChar(p, ')') )      break;
-        if ( !Cba_PrsIsChar(p, ',') )     return Cba_PrsErrorSet(p, "Expecting comma in the instance.", 0);
+        Vec_IntPushTwo( vTemp, FormId, ActItem );
+        if ( Prs_ManUtilSkipSpaces(p) )     return 0;
+        if ( Prs_ManIsChar(p, ')') )        break;
+        if ( !Prs_ManIsChar(p, ',') )       return Prs_ManErrorSet(p, "Expecting comma in the instance.", 0);
         p->pCur++;
-        if ( Cba_PrsUtilSkipSpaces(p) )   return 0;
+        if ( Prs_ManUtilSkipSpaces(p) )     return 0;
     }
-    p->pCur++;
-    if ( Cba_PrsUtilSkipSpaces(p) )       return 0;
-    if ( !Cba_PrsIsChar(p, ';') )         return Cba_PrsErrorSet(p, "Expecting semicolon in the instance.", 0);
     assert( Vec_IntSize(vTemp) > 0 );
-    assert( Vec_IntSize(vTemp) % 3 == 0 );
+    assert( Vec_IntSize(vTemp) % 2 == 0 );
     return 1;
 }
 
@@ -456,204 +474,245 @@ static inline int Cba_PrsReadSignalList2( Cba_Prs_t * p, Vec_Int_t * vTemp )
   SeeAlso     []
 
 ***********************************************************************/
-static inline int Cba_PrsReadDeclaration( Cba_Prs_t * p, int Type )
+static inline int Prs_ManReadDeclaration( Prs_Man_t * p, int Type )
 {
-    int NameId, RangeId, RangeIdTemp, i;
-    Vec_Int_t * vSigs[4] = { &p->vInoutsCur, &p->vInputsCur, &p->vOutputsCur, &p->vWiresCur };
-    assert( Type >= CBA_VER_INOUT && Type <= CBA_VER_WIRE );
-    if ( Cba_PrsUtilSkipSpaces(p) )                                   return 0;
-    RangeId = 0;
-    if ( Cba_PrsIsChar(p, '[') && !(RangeId = Cba_PrsReadRange(p)) )  return 0;
-    if ( !Cba_PrsReadSignalList( p, &p->vTemp, ';' ) )                return 0;
-    Vec_IntForEachEntryDouble( &p->vTemp, NameId, RangeIdTemp, i )
+    int i, Sig, RangeId = 0;
+    Vec_Int_t * vSigs[4]  = { &p->pNtk->vInouts,  &p->pNtk->vInputs,  &p->pNtk->vOutputs,  &p->pNtk->vWires };
+    Vec_Int_t * vSigsR[4] = { &p->pNtk->vInoutsR, &p->pNtk->vInputsR, &p->pNtk->vOutputsR, &p->pNtk->vWiresR };
+    assert( Type >= PRS_VER_INOUT && Type <= PRS_VER_WIRE );
+    if ( Prs_ManUtilSkipSpaces(p) )                                   return 0;
+    if ( Prs_ManIsChar(p, '[') && !(RangeId = Prs_ManReadRange(p)) )  return 0;
+    if ( !Prs_ManReadNameList( p, &p->vTemp, ';' ) )                  return 0;
+    Vec_IntForEachEntry( &p->vTemp, Sig, i )
     {
-        if ( RangeIdTemp )                                            return Cba_PrsErrorSet(p, "Range is specified twice in the declaration.", 0);
-        Vec_IntPushTwo( vSigs[Type - CBA_VER_INOUT], NameId, RangeId );
+        Vec_IntPush( vSigs[Type - PRS_VER_INOUT], Sig );
+        Vec_IntPush( vSigsR[Type - PRS_VER_INOUT], RangeId );
     }
     return 1;
 }
-static inline int Cba_PrsReadAssign( Cba_Prs_t * p )
+static inline int Prs_ManReadAssign( Prs_Man_t * p )
 {
-    int OutName = 0, InName = 0, RangeId = 0, fCompl = 0, Oper = 0;
-    Vec_IntClear( &p->vTemp );
+    int OutItem, InItem, fCompl = 0, Oper = 0;
     // read output name
-    if ( !Cba_PrsReadSignal(p, &OutName, &RangeId) )  return 0;
-    if ( OutName == 0 )                            return Cba_PrsErrorSet(p, "Cannot read output in assign-statement.", 0);
-    if ( !Cba_PrsIsChar(p, '=') )                  return Cba_PrsErrorSet(p, "Expecting \"=\" in assign-statement.", 0);
+    OutItem = Prs_ManReadSignal( p );
+    if ( OutItem == 0 )                     return Prs_ManErrorSet(p, "Cannot read output in assign-statement.", 0);
+    if ( !Prs_ManIsChar(p, '=') )           return Prs_ManErrorSet(p, "Expecting \"=\" in assign-statement.", 0);
     p->pCur++;
-    if ( Cba_PrsUtilSkipSpaces(p) )                return 0;
-    if ( Cba_PrsIsChar(p, '~') ) 
+    if ( Prs_ManUtilSkipSpaces(p) )         return 0;
+    if ( Prs_ManIsChar(p, '~') ) 
     { 
         fCompl = 1; 
         p->pCur++; 
     }
-    Vec_IntPush( &p->vTemp, OutName );
-    Vec_IntPush( &p->vTemp, RangeId );
     // read first name
-    if ( !Cba_PrsReadSignal(p, &InName, &RangeId)) return 0;
-    if ( InName == 0 )                             return Cba_PrsErrorSet(p, "Cannot read first input name in the assign-statement.", 0);
-    Vec_IntPush( &p->vTemp, InName );
-    Vec_IntPush( &p->vTemp, RangeId );
+    InItem = Prs_ManReadSignal( p );
+    if ( InItem == 0 )                      return Prs_ManErrorSet(p, "Cannot read first input name in the assign-statement.", 0);
+    Vec_IntClear( &p->vTemp );
+    Vec_IntPush( &p->vTemp, 0 );
+    Vec_IntPush( &p->vTemp, InItem );
     // check unary operator
-    if ( Cba_PrsIsChar(p, ';') )
+    if ( Prs_ManIsChar(p, ';') )
     {
-        Vec_IntPush( &p->vTypesCur, CBA_OBJ_NODE );
-        Vec_IntPush( &p->vFuncsCur, fCompl ? CBA_NODE_INV : CBA_NODE_BUF );
-        Vec_IntPush( &p->vFaninsCur, Cba_ManHandleArray(p->pDesign, &p->vTemp) ); 
-        Vec_IntPush( &p->vInstIdsCur, 0 );
+        Vec_IntPush( &p->vTemp, 0 );
+        Vec_IntPush( &p->vTemp, OutItem );
+        Oper = fCompl ? CBA_BOX_INV : CBA_BOX_BUF;
+        Prs_NtkAddBox( p->pNtk, Oper, 0, &p->vTemp );
         return 1;
     }
-    if ( Cba_PrsIsChar(p, '&') ) 
-        Oper = CBA_NODE_AND;
-    else if ( Cba_PrsIsChar(p, '|') ) 
-        Oper = CBA_NODE_OR;
-    else if ( Cba_PrsIsChar(p, '^') ) 
-        Oper = fCompl ? CBA_NODE_XNOR : CBA_NODE_XOR;
-    else if ( Cba_PrsIsChar(p, '?') ) 
-        Oper = CBA_NODE_MUX;
-    else                                           return Cba_PrsErrorSet(p, "Unrecognized operator in the assign-statement.", 0);
+    if ( Prs_ManIsChar(p, '&') ) 
+        Oper = CBA_BOX_AND;
+    else if ( Prs_ManIsChar(p, '|') ) 
+        Oper = CBA_BOX_OR;
+    else if ( Prs_ManIsChar(p, '^') ) 
+        Oper = fCompl ? CBA_BOX_XNOR : CBA_BOX_XOR;
+    else if ( Prs_ManIsChar(p, '?') ) 
+        Oper = CBA_BOX_MUX;
+    else                                    return Prs_ManErrorSet(p, "Unrecognized operator in the assign-statement.", 0);
     p->pCur++; 
     // read second name
-    if ( !Cba_PrsReadSignal(p, &InName, &RangeId)) return 0;
-    if ( InName == 0 )                             return Cba_PrsErrorSet(p, "Cannot read second input name in the assign-statement.", 0);
-    Vec_IntPush( &p->vTemp, InName );
-    Vec_IntPush( &p->vTemp, RangeId );
+    InItem = Prs_ManReadSignal( p );
+    if ( InItem == 0 )                      return Prs_ManErrorSet(p, "Cannot read second input name in the assign-statement.", 0);
+    Vec_IntPush( &p->vTemp, 0 );
+    Vec_IntPush( &p->vTemp, InItem );
     // read third argument
-    if ( Oper == CBA_NODE_MUX )
+    if ( Oper == CBA_BOX_MUX )
     {
         assert( fCompl == 0 ); 
-        if ( !Cba_PrsIsChar(p, ':') )              return Cba_PrsErrorSet(p, "Expected colon in the MUX assignment.", 0);
+        if ( !Prs_ManIsChar(p, ':') )       return Prs_ManErrorSet(p, "Expected colon in the MUX assignment.", 0);
         p->pCur++; 
         // read third name
-        if ( !Cba_PrsReadSignal(p, &InName, &RangeId)) return 0;
-        if ( InName == 0 )                         return Cba_PrsErrorSet(p, "Cannot read third input name in the assign-statement.", 0);
-        Vec_IntPush( &p->vTemp, InName );
-        Vec_IntPush( &p->vTemp, RangeId );
-        if ( !Cba_PrsIsChar(p, ';') )              return Cba_PrsErrorSet(p, "Expected semicolon at the end of the assign-statement.", 0);
+        InItem = Prs_ManReadSignal( p );
+        if ( InItem == 0 )                  return Prs_ManErrorSet(p, "Cannot read third input name in the assign-statement.", 0);
+        Vec_IntPush( &p->vTemp, 0 );
+        Vec_IntPush( &p->vTemp, InItem );
+        if ( !Prs_ManIsChar(p, ';') )       return Prs_ManErrorSet(p, "Expected semicolon at the end of the assign-statement.", 0);
     }
     // write binary operator
-    Vec_IntPush( &p->vTypesCur, CBA_OBJ_NODE );
-    Vec_IntPush( &p->vFuncsCur, Oper );
-    Vec_IntPush( &p->vFaninsCur, Cba_ManHandleArray(p->pDesign, &p->vTemp) ); 
-    Vec_IntPush( &p->vInstIdsCur, 0 );
+    Vec_IntPush( &p->vTemp, 0 );
+    Vec_IntPush( &p->vTemp, OutItem );
+    Prs_NtkAddBox( p->pNtk, Oper, 0, &p->vTemp );
     return 1;
 }
-static inline int Cba_PrsReadInstance( Cba_Prs_t * p, int Func )
+static inline int Prs_ManReadInstance( Prs_Man_t * p, int Func )
 {
-    // have to assign Type, Func, InstId, vFanins
-    int InstId, Status, Type;
-    Vec_IntClear( &p->vTemp );
-    if ( Cba_PrsUtilSkipSpaces(p) )               return 0;
-    InstId = Cba_PrsReadName( p );
-    if ( InstId && Cba_PrsUtilSkipSpaces(p) )     return 0;
-    if ( !Cba_PrsIsChar(p, '(') )                 return Cba_PrsErrorSet(p, "Expecting \"(\" in module instantiation.", 0);
-    p->pCur++;
-    if ( Cba_PrsUtilSkipSpaces(p) )               return 0;
-    if ( Cba_PrsIsChar(p, '.') ) // node
-        Status = Cba_PrsReadSignalList2(p, &p->vTemp), Type = CBA_OBJ_BOX;
-    else 
-        Status = Cba_PrsReadSignalList1(p, &p->vTemp), Type = CBA_OBJ_NODE;
-    if ( Status == 0 )                            return 0;
-    // translate elementary gate
-    if ( Type == CBA_OBJ_NODE )
+    int InstId, Status;
+/*
+    static Counter = 0;
+    if ( ++Counter == 7 )
     {
-        int iFuncNew = Cba_PrsIsKnownModule(p, Abc_NamStr(p->pDesign->pNames, Func));
-        if ( iFuncNew == 0 )                      return Cba_PrsErrorSet(p, "Cannot find elementary gate.", 0);
-        Func = iFuncNew;
+        int s=0;
     }
-    // assign
-    Vec_IntPush( &p->vTypesCur, Type );
-    Vec_IntPush( &p->vFuncsCur, Func );
-    Vec_IntPush( &p->vFaninsCur, Cba_ManHandleArray(p->pDesign, &p->vTemp) ); 
-    Vec_IntPush( &p->vInstIdsCur, InstId );
+*/
+    if ( Prs_ManUtilSkipSpaces(p) )         return 0;
+    if ( (InstId = Prs_ManReadName(p)) )
+        if (Prs_ManUtilSkipSpaces(p))       return 0;
+    if ( !Prs_ManIsChar(p, '(') )           return Prs_ManErrorSet(p, "Expecting \"(\" in module instantiation.", 0);
+    p->pCur++;
+    if ( Prs_ManUtilSkipSpaces(p) )         return 0;
+    if ( Prs_ManIsChar(p, '.') ) // box
+        Status = Prs_ManReadSignalList2(p, &p->vTemp);
+    else  // node
+    {
+        //char * s = Abc_NamStr(p->pStrs, Func);
+        // translate elementary gate
+        int iFuncNew = Prs_ManIsKnownModule(p, Abc_NamStr(p->pStrs, Func));
+        if ( iFuncNew == 0 )                return Prs_ManErrorSet(p, "Cannot find elementary gate.", 0);
+        Func = iFuncNew;
+        Status = Prs_ManReadSignalList( p, &p->vTemp, ')', 1 );
+    }
+    if ( Status == 0 )                      return 0;
+    assert( Prs_ManIsChar(p, ')') );
+    p->pCur++;
+    if ( Prs_ManUtilSkipSpaces(p) )         return 0;
+    if ( !Prs_ManIsChar(p, ';') )           return Prs_ManErrorSet(p, "Expecting semicolon in the instance.", 0);
+    // add box 
+    Prs_NtkAddBox( p->pNtk, Func, InstId, &p->vTemp );
     return 1;
 }
-
+static inline int Prs_ManReadArguments( Prs_Man_t * p )
+{
+    int iRange = 0, iType = -1;
+    Vec_Int_t * vSigs[3]  = { &p->pNtk->vInouts,  &p->pNtk->vInputs,  &p->pNtk->vOutputs };
+    Vec_Int_t * vSigsR[3] = { &p->pNtk->vInoutsR, &p->pNtk->vInputsR, &p->pNtk->vOutputsR };
+    assert( Prs_ManIsChar(p, '(') );
+    p->pCur++;
+    if ( Prs_ManUtilSkipSpaces(p) )             return 0;
+    while ( 1 )
+    {
+        int iName = Prs_ManReadName( p );
+        if ( iName == 0 )                       return 0;
+        if ( Prs_ManUtilSkipSpaces(p) )         return 0;
+        if ( iName >= PRS_VER_INOUT && iName <= PRS_VER_OUTPUT ) // declaration
+        {
+            iType = iName;
+            if ( Prs_ManIsChar(p, '[') )
+            {
+                iRange = Prs_ManReadRange(p);
+                if ( iRange == 0 )              return 0;
+                if ( Prs_ManUtilSkipSpaces(p) ) return 0;
+            }
+        }
+        if ( iType > 0 )
+        {
+            Vec_IntPush( vSigs[iType - PRS_VER_INOUT], iName );
+            Vec_IntPush( vSigsR[iType - PRS_VER_INOUT], iRange );
+        }
+        Vec_IntPush( &p->pNtk->vOrder, iName );
+        if ( Prs_ManIsChar(p, ')') )
+            break;
+        if ( !Prs_ManIsChar(p, ',') )           return Prs_ManErrorSet(p, "Expecting comma in the instance.", 0);
+        p->pCur++;
+        if ( Prs_ManUtilSkipSpaces(p) )         return 0;
+    }
+    // check final
+    assert( Prs_ManIsChar(p, ')') );
+    return 1;
+}
 // this procedure can return:
 // 0 = reached end-of-file; 1 = successfully parsed; 2 = recognized as primitive; 3 = failed and skipped; 4 = error (failed and could not skip)
-static inline int Cba_PrsReadModule( Cba_Prs_t * p )
+static inline int Prs_ManReadModule( Prs_Man_t * p )
 {
     int iToken, Status;
-    if ( p->iModuleName != 0 )            return Cba_PrsErrorSet(p, "Parsing previous module is unfinished.", 4);
-    if ( Cba_PrsUtilSkipSpaces(p) )
+    if ( p->pNtk != NULL )                  return Prs_ManErrorSet(p, "Parsing previous module is unfinished.", 4);
+    if ( Prs_ManUtilSkipSpaces(p) )
     { 
-        Cba_PrsErrorClear( p );       
+        Prs_ManErrorClear( p );       
         return 0; 
     }
     // read keyword
-    iToken = Cba_PrsReadName( p );
-    if ( iToken != CBA_VER_MODULE )       return Cba_PrsErrorSet(p, "Cannot read \"module\" keyword.", 4);
-    if ( Cba_PrsUtilSkipSpaces(p) )       return 4;
+    iToken = Prs_ManReadName( p );
+    if ( iToken != PRS_VER_MODULE )         return Prs_ManErrorSet(p, "Cannot read \"module\" keyword.", 4);
+    if ( Prs_ManUtilSkipSpaces(p) )         return 4;
     // read module name
-    p->iModuleName = Cba_PrsReadName( p );
-    if ( p->iModuleName == 0 )            return Cba_PrsErrorSet(p, "Cannot read module name.", 4);
-    if ( Cba_PrsIsKnownModule(p, Abc_NamStr(p->pDesign->pNames, p->iModuleName)) )
+    iToken = Prs_ManReadName( p );
+    if ( iToken == 0 )                      return Prs_ManErrorSet(p, "Cannot read module name.", 4);
+    if ( Prs_ManIsKnownModule(p, Abc_NamStr(p->pStrs, iToken)) )
     {
-        if ( Cba_PrsUtilSkipUntilWord( p, "endmodule" ) ) return Cba_PrsErrorSet(p, "Cannot find \"endmodule\" keyword.", 4);
-        //printf( "Warning! Skipped known module \"%s\".\n", Abc_NamStr(p->pDesign->pNames, p->iModuleName) );
-        Vec_IntPush( &p->vKnown, p->iModuleName );
-        p->iModuleName = 0;
+        if ( Prs_ManUtilSkipUntilWord( p, "endmodule" ) ) return Prs_ManErrorSet(p, "Cannot find \"endmodule\" keyword.", 4);
+        //printf( "Warning! Skipped known module \"%s\".\n", Abc_NamStr(p->pStrs, iToken) );
+        Vec_IntPush( &p->vKnown, iToken );
         return 2;
     }
+    Prs_ManInitializeNtk( p, iToken, 1 );
     // skip arguments
-    if ( Cba_PrsUtilSkipSpaces(p) )       return 4;
-    if ( !Cba_PrsIsChar(p, '(') )         return Cba_PrsErrorSet(p, "Cannot find \"(\" in the argument declaration.", 4);
-    if ( !Cba_PrsUtilSkipUntil(p,')') )   return 4;
+    if ( Prs_ManUtilSkipSpaces(p) )         return 4;
+    if ( !Prs_ManIsChar(p, '(') )           return Prs_ManErrorSet(p, "Cannot find \"(\" in the argument declaration.", 4);
+    if ( !Prs_ManReadArguments(p) )         return 4;
     assert( *p->pCur == ')' );
     p->pCur++;
-    if ( Cba_PrsUtilSkipSpaces(p) )       return 4;
+    if ( Prs_ManUtilSkipSpaces(p) )         return 4;
     // read declarations and instances
-    while ( Cba_PrsIsChar(p, ';') )
+    while ( Prs_ManIsChar(p, ';') )
     {
         p->pCur++;
-        if ( Cba_PrsUtilSkipSpaces(p) )   return 4;
-        iToken = Cba_PrsReadName( p );
-        if ( iToken == CBA_VER_ENDMODULE )
+        if ( Prs_ManUtilSkipSpaces(p) )     return 4;
+        iToken = Prs_ManReadName( p );
+        if ( iToken == PRS_VER_ENDMODULE )
         {
-            Vec_IntPush( &p->vSucceeded, p->iModuleName );
-            Cba_PrsAddCurrentModel( p, p->iModuleName );
-            p->iModuleName = 0;
+            Vec_IntPush( &p->vSucceeded, p->pNtk->iModuleName );
+            Prs_ManFinalizeNtk( p );
             return 1;
         }
-        if ( iToken >= CBA_VER_INOUT && iToken <= CBA_VER_WIRE ) // declaration
-            Status = Cba_PrsReadDeclaration( p, iToken );
-        else if ( iToken == CBA_VER_REG || iToken == CBA_VER_DEFPARAM ) // unsupported keywords
-            Status = Cba_PrsUtilSkipUntil( p, ';' );
+        if ( iToken >= PRS_VER_INOUT && iToken <= PRS_VER_WIRE ) // declaration
+            Status = Prs_ManReadDeclaration( p, iToken );
+        else if ( iToken == PRS_VER_REG || iToken == PRS_VER_DEFPARAM ) // unsupported keywords
+            Status = Prs_ManUtilSkipUntil( p, ';' );
         else // read instance
         {
-            if ( iToken == CBA_VER_ASSIGN )
-                Status = Cba_PrsReadAssign( p );
+            if ( iToken == PRS_VER_ASSIGN )
+                Status = Prs_ManReadAssign( p );
             else
-                Status = Cba_PrsReadInstance( p, iToken );
+                Status = Prs_ManReadInstance( p, iToken );
             if ( Status == 0 )
             {
-                if ( Cba_PrsUtilSkipUntilWord( p, "endmodule" ) ) return Cba_PrsErrorSet(p, "Cannot find \"endmodule\" keyword.", 4);
+                if ( Prs_ManUtilSkipUntilWord( p, "endmodule" ) ) return Prs_ManErrorSet(p, "Cannot find \"endmodule\" keyword.", 4);
                 //printf( "Warning! Failed to parse \"%s\". Adding module \"%s\" as blackbox.\n", 
-                //    Abc_NamStr(p->pDesign->pNames, iToken), Abc_NamStr(p->pDesign->pNames, p->iModuleName) );
-                Vec_IntPush( &p->vFailed, p->iModuleName );
+                //    Abc_NamStr(p->pStrs, iToken), Abc_NamStr(p->pStrs, p->pNtk->iModuleName) );
+                Vec_IntPush( &p->vFailed, p->pNtk->iModuleName );
                 // cleanup
-                Vec_IntClear( &p->vWiresCur );
-                Vec_IntClear( &p->vTypesCur );
-                Vec_IntClear( &p->vFuncsCur );
-                Vec_IntClear( &p->vFaninsCur );
-                Vec_IntClear( &p->vInstIdsCur );
+                Vec_IntErase( &p->pNtk->vWires );
+                Vec_IntErase( &p->pNtk->vWiresR );
+                Vec_IntErase( &p->pNtk->vSlices );
+                Vec_IntErase( &p->pNtk->vConcats );
+                Vec_IntErase( &p->pNtk->vBoxes );
+                Vec_IntErase( &p->pNtk->vObjs );
+                p->fUsingTemp2 = 0;
                 // add
-                Cba_PrsAddCurrentModel( p, p->iModuleName );
-                Cba_PrsErrorClear( p );
-                p->iModuleName = 0;
+                Prs_ManFinalizeNtk( p );
+                Prs_ManErrorClear( p );
                 return 3;
             }
         }
-        if ( !Status )                    return 4;
-        if ( Cba_PrsUtilSkipSpaces(p) )   return 4;
+        if ( !Status )                      return 4;
+        if ( Prs_ManUtilSkipSpaces(p) )     return 4;
     }
-    return Cba_PrsErrorSet(p, "Cannot find \";\" in the module definition.", 4);
+    return Prs_ManErrorSet(p, "Cannot find \";\" in the module definition.", 4);
 }
-static inline int Cba_PrsReadDesign( Cba_Prs_t * p )
+static inline int Prs_ManReadDesign( Prs_Man_t * p )
 {
     while ( 1 )
     {
-        int RetValue = Cba_PrsReadModule( p );
+        int RetValue = Prs_ManReadModule( p );
         if ( RetValue == 0 ) // end of file
             break;
         if ( RetValue == 1 ) // successfully parsed
@@ -680,19 +739,19 @@ static inline int Cba_PrsReadDesign( Cba_Prs_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-void Cba_PrsPrintModules( Cba_Prs_t * p )
+void Prs_ManPrintModules( Prs_Man_t * p )
 {
     char * pName; int i; 
     printf( "Succeeded parsing %d models:\n", Vec_IntSize(&p->vSucceeded) );
-    Cba_PrsForEachModelVec( &p->vSucceeded, p, pName, i )
+    Prs_ManForEachNameVec( &p->vSucceeded, p, pName, i )
         printf( " %s", pName );
     printf( "\n" );
     printf( "Skipped %d known models:\n", Vec_IntSize(&p->vKnown) );
-    Cba_PrsForEachModelVec( &p->vKnown, p, pName, i )
+    Prs_ManForEachNameVec( &p->vKnown, p, pName, i )
         printf( " %s", pName );
     printf( "\n" );
     printf( "Skipped %d failed models:\n", Vec_IntSize(&p->vFailed) );
-    Cba_PrsForEachModelVec( &p->vFailed, p, pName, i )
+    Prs_ManForEachNameVec( &p->vFailed, p, pName, i )
         printf( " %s", pName );
     printf( "\n" );
 }
@@ -708,94 +767,39 @@ void Cba_PrsPrintModules( Cba_Prs_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-void Cba_PrsSkipRangesNtk( Cba_Ntk_t * p )
+Vec_Ptr_t * Prs_ManReadVerilog( char * pFileName )
 {
-    Vec_Int_t * vFanins; 
-    int FormId, NameId, RangeId;
-    int i, k, s, Count = 0;
-    Vec_Int_t * vSigs[4] = { &p->vInouts, &p->vInputs, &p->vOutputs, &p->vWires };
-    for ( s = 0; s < 4; s++ )
-    {
-        k = 0;
-        Vec_IntForEachEntryDouble( vSigs[s], NameId, RangeId, i )
-            Vec_IntWriteEntry( vSigs[s], k++, NameId ), Count += RangeId > 0;
-        Vec_IntShrink( vSigs[s], k );
-    }
-    Cba_NtkForEachNode( p, i )
-    {
-        k = 0;
-        vFanins = Cba_ObjFaninVec( p, i );
-        Vec_IntForEachEntryDouble( vFanins, NameId, RangeId, s )
-            Vec_IntWriteEntry( vFanins, k++, NameId ), Count += RangeId > 0;
-        Cba_ObjFaninArray(p, i)[0] = k;
-    }
-    Cba_NtkForEachBox( p, i )
-    {
-        k = 0;
-        vFanins = Cba_ObjFaninVec( p, i );
-        Vec_IntForEachEntryTriple( vFanins, FormId, NameId, RangeId, s )
-            Vec_IntWriteEntry( vFanins, k++, FormId ), Vec_IntWriteEntry( vFanins, k++, NameId ), Count += RangeId > 0;
-        Cba_ObjFaninArray(p, i)[0] = k;
-    }
-    if ( Count )
-        printf( "Network %s has %d non-trivial ranges.\n", Cba_NtkName(p), Count );
-}
-void Cba_PrsSkipRanges( Cba_Man_t * p )
-{
-    Cba_Ntk_t * pNtk; int i;
-    Cba_ManForEachNtk( p, pNtk, i )
-        Cba_PrsSkipRangesNtk( pNtk );
-}
-
-/**Function*************************************************************
-
-  Synopsis    []
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-Cba_Man_t * Cba_PrsReadVerilog( char * pFileName, int fBinary )
-{
-    Cba_Man_t * pDesign = NULL;
-    Cba_Prs_t * p = Cba_PrsAlloc( pFileName );
+    Vec_Ptr_t * vPrs = NULL;
+    Prs_Man_t * p = Prs_ManAlloc( pFileName );
     if ( p == NULL )
         return NULL;
-    Cba_PrsAddVerilogDirectives( p );
-    Cba_PrsReadDesign( p );
-    //Cba_PrsPrintModules( p );
-    if ( Cba_PrsErrorPrint(p) )
-        ABC_SWAP( Cba_Man_t *, pDesign, p->pDesign );
-    Cba_PrsFree( p );
-    Cba_PrsRemapBoxModels( pDesign );
-    // transform to binary ranges
-    if ( fBinary )
-        Cba_PrsSkipRanges( pDesign );
-    return pDesign;
+    Prs_NtkAddVerilogDirectives( p );
+    Prs_ManReadDesign( p );
+    //Prs_ManPrintModules( p );
+    if ( Prs_ManErrorPrint(p) )
+        ABC_SWAP( Vec_Ptr_t *, vPrs, p->vNtks );
+    Prs_ManFree( p );
+    return vPrs;
 }
 
-void Cba_PrsReadVerilogTest( char * pFileName )
+void Prs_ManReadVerilogTest( char * pFileName )
 {
     abctime clk = Abc_Clock();
-    extern void Cba_PrsWriteVerilog( char * pFileName, Cba_Man_t * p );
-    Cba_Man_t * p = Cba_PrsReadVerilog( "c/hie/dump/24/netlist_0.v", 0 );
-//    Cba_Man_t * p = Cba_PrsReadVerilog( "aga/me/me_wide.v", 0 );
-//    Cba_Man_t * p = Cba_PrsReadVerilog( "aga/ray/ray_wide.v", 0 );
-    if ( !p ) return;
-    printf( "Finished reading %d networks. ", Cba_ManNtkNum(p) );
-    printf( "NameIDs = %d. ", Abc_NamObjNumMax(p->pNames) );
-    printf( "Memory = %.2f MB. ", 1.0*Cba_ManMemory(p)/(1<<20) );
+    extern void Prs_ManWriteVerilog( char * pFileName, Vec_Ptr_t * p );
+    Vec_Ptr_t * vPrs = Prs_ManReadVerilog( "c/hie/dump/1/netlist_1.v" );
+//    Vec_Ptr_t * vPrs = Prs_ManReadVerilog( "aga/me/me_wide.v" );
+//    Vec_Ptr_t * vPrs = Prs_ManReadVerilog( "aga/ray/ray_wide.v" );
+    if ( !vPrs ) return;
+    printf( "Finished reading %d networks. ", Vec_PtrSize(vPrs) );
+    printf( "NameIDs = %d. ", Abc_NamObjNumMax(Prs_ManRoot(vPrs)->pStrs) );
+    printf( "Memory = %.2f MB. ", 1.0*Prs_ManMemory(vPrs)/(1<<20) );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
-//    Abc_NamPrint( p->pDesign->pNames );
-    Cba_PrsWriteVerilog( "c/hie/dump/24/netlist_0_out.v", p );
-//    Cba_PrsWriteVerilog( "aga/me/me_wide_out.v", p );
-//    Cba_PrsWriteVerilog( "aga/ray/ray_wide_out.v", p );
-    Cba_ManFree( p );
+    Prs_ManWriteVerilog( "c/hie/dump/1/netlist_1_out_new.v", vPrs );
+//    Prs_ManWriteVerilog( "aga/me/me_wide_out.v", vPrs );
+//    Prs_ManWriteVerilog( "aga/ray/ray_wide_out.v", vPrs );
+//    Abc_NamPrint( p->pStrs );
+    Prs_ManVecFree( vPrs );
 }
-
 
 
 ////////////////////////////////////////////////////////////////////////

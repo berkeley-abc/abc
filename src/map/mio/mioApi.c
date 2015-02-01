@@ -112,6 +112,26 @@ Mio_Gate_t * Mio_LibraryReadGateByName( Mio_Library_t * pLib, char * pName, char
 
 /**Function*************************************************************
 
+  Synopsis    [Returns the first gate in the library with the given TT.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Mio_Gate_t * Mio_LibraryReadGateByTruth( Mio_Library_t * pLib, word t )
+{
+    Mio_Gate_t * pGate;
+    Mio_LibraryForEachGate( pLib, pGate )
+        if ( pGate->nInputs <= 6 && pGate->uTruth == t )
+            return pGate;
+    return NULL;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Read Mvc of the gate by name.]
 
   Description []

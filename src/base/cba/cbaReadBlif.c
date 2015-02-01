@@ -4,9 +4,9 @@
 
   SystemName  [ABC: Logic synthesis and verification system.]
 
-  PackageName [Verilog parser.]
+  PackageName [Hierarchical word-level netlist.]
 
-  Synopsis    [Parses several flavors of word-level Verilog.]
+  Synopsis    [BLIF parser.]
 
   Author      [Alan Mishchenko]
   
@@ -18,7 +18,6 @@
 
 ***********************************************************************/
 
-#include "cba.h"
 #include "cbaPrs.h"
 
 ABC_NAMESPACE_IMPL_START
@@ -29,21 +28,21 @@ ABC_NAMESPACE_IMPL_START
 
 // BLIF keywords
 typedef enum { 
-    CBA_BLIF_NONE = 0, // 0:   unused
-    CBA_BLIF_MODEL,    // 1:   .model
-    CBA_BLIF_INOUTS,   // 2:   .inouts
-    CBA_BLIF_INPUTS,   // 3:   .inputs
-    CBA_BLIF_OUTPUTS,  // 4:   .outputs
-    CBA_BLIF_NAMES,    // 5:   .names
-    CBA_BLIF_SUBCKT,   // 6:   .subckt
-    CBA_BLIF_GATE,     // 7:   .gate
-    CBA_BLIF_LATCH,    // 8:   .latch
-    CBA_BLIF_SHORT,    // 9:   .short
-    CBA_BLIF_END,      // 10:  .end
-    CBA_BLIF_UNKNOWN   // 11:  unknown
+    PRS_BLIF_NONE = 0, // 0:   unused
+    PRS_BLIF_MODEL,    // 1:   .model
+    PRS_BLIF_INOUTS,   // 2:   .inouts
+    PRS_BLIF_INPUTS,   // 3:   .inputs
+    PRS_BLIF_OUTPUTS,  // 4:   .outputs
+    PRS_BLIF_NAMES,    // 5:   .names
+    PRS_BLIF_SUBCKT,   // 6:   .subckt
+    PRS_BLIF_GATE,     // 7:   .gate
+    PRS_BLIF_LATCH,    // 8:   .latch
+    PRS_BLIF_SHORT,    // 9:   .short
+    PRS_BLIF_END,      // 10:  .end
+    PRS_BLIF_UNKNOWN   // 11:  unknown
 } Cba_BlifType_t;
 
-const char * s_BlifTypes[CBA_BLIF_UNKNOWN+1] = {
+const char * s_BlifTypes[PRS_BLIF_UNKNOWN+1] = {
     NULL,              // 0:   unused
     ".model",          // 1:   .model   
     ".inouts",         // 2:   .inputs
@@ -58,15 +57,12 @@ const char * s_BlifTypes[CBA_BLIF_UNKNOWN+1] = {
     NULL               // 11:  unknown
 };
 
-static inline void Cba_PrsAddBlifDirectives( Cba_Prs_t * p )
+static inline void Prs_NtkAddBlifDirectives( Prs_Man_t * p )
 {
     int i;
     for ( i = 1; s_BlifTypes[i]; i++ )
-        Abc_NamStrFindOrAdd( p->pDesign->pNames, (char *)s_BlifTypes[i], NULL );
-    assert( Abc_NamObjNumMax(p->pDesign->pNames) == i );
-    for ( i = 1; i < CBA_NODE_UNKNOWN; i++ )
-        Abc_NamStrFindOrAdd( p->pDesign->pFuncs, Ptr_TypeToSop(i), NULL );
-    assert( Abc_NamObjNumMax(p->pDesign->pFuncs) == i );
+        Abc_NamStrFindOrAdd( p->pStrs, (char *)s_BlifTypes[i], NULL );
+    assert( Abc_NamObjNumMax(p->pStrs) == i );
 }
 
 
@@ -85,19 +81,19 @@ static inline void Cba_PrsAddBlifDirectives( Cba_Prs_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-static inline int  Cba_CharIsSpace( char c )                { return c == ' ' || c == '\t' || c == '\r';              }
-static inline int  Cba_CharIsStop( char c )                 { return c == '#' || c == '\\' || c == '\n' || c == '=';  }
-static inline int  Cba_CharIsLit( char c )                  { return c == '0' || c == '1'  || c == '-';               }
+static inline int  Prs_CharIsSpace( char c )                { return c == ' ' || c == '\t' || c == '\r';              }
+static inline int  Prs_CharIsStop( char c )                 { return c == '#' || c == '\\' || c == '\n' || c == '=';  }
+static inline int  Prs_CharIsLit( char c )                  { return c == '0' || c == '1'  || c == '-';               }
 
-static inline int  Cba_PrsIsSpace( Cba_Prs_t * p )          { return Cba_CharIsSpace(*p->pCur);                       }
-static inline int  Cba_PrsIsStop( Cba_Prs_t * p )           { return Cba_CharIsStop(*p->pCur);                        }
-static inline int  Cba_PrsIsLit( Cba_Prs_t * p )            { return Cba_CharIsLit(*p->pCur);                         }
+static inline int  Prs_ManIsSpace( Prs_Man_t * p )          { return Prs_CharIsSpace(*p->pCur);                       }
+static inline int  Prs_ManIsStop( Prs_Man_t * p )           { return Prs_CharIsStop(*p->pCur);                        }
+static inline int  Prs_ManIsLit( Prs_Man_t * p )            { return Prs_CharIsLit(*p->pCur);                         }
 
-static inline int  Cba_PrsIsChar( Cba_Prs_t * p, char c )   { return *p->pCur == c;                                   }
-static inline int  Cba_PrsIsChar2( Cba_Prs_t * p, char c )  { return *p->pCur++ == c;                                 }
+static inline int  Prs_ManIsChar( Prs_Man_t * p, char c )   { return *p->pCur == c;                                   }
+static inline int  Prs_ManIsChar2( Prs_Man_t * p, char c )  { return *p->pCur++ == c;                                 }
 
-static inline void Cba_PrsSkip( Cba_Prs_t * p )             { p->pCur++;                                              }
-static inline char Cba_PrsSkip2( Cba_Prs_t * p )            { return *p->pCur++;                                      }
+static inline void Prs_ManSkip( Prs_Man_t * p )             { p->pCur++;                                              }
+static inline char Prs_ManSkip2( Prs_Man_t * p )            { return *p->pCur++;                                      }
 
 
 /**Function*************************************************************
@@ -111,79 +107,77 @@ static inline char Cba_PrsSkip2( Cba_Prs_t * p )            { return *p->pCur++;
   SeeAlso     []
 
 ***********************************************************************/
-static inline void Cba_PrsSkipToChar( Cba_Prs_t * p, char c )  
+static inline void Prs_ManSkipToChar( Prs_Man_t * p, char c )  
 { 
-    while ( !Cba_PrsIsChar(p, c) ) 
-        Cba_PrsSkip(p);
+    while ( !Prs_ManIsChar(p, c) ) 
+        Prs_ManSkip(p);
 }
-static inline void Cba_PrsSkipSpaces( Cba_Prs_t * p )
+static inline void Prs_ManSkipSpaces( Prs_Man_t * p )
 {
     while ( 1 )
     {
-        while ( Cba_PrsIsSpace(p) )
-            Cba_PrsSkip(p);
-        if ( Cba_PrsIsChar(p, '\\') )
+        while ( Prs_ManIsSpace(p) )
+            Prs_ManSkip(p);
+        if ( Prs_ManIsChar(p, '\\') )
         {
-            Cba_PrsSkipToChar( p, '\n' );
-            Cba_PrsSkip(p);
+            Prs_ManSkipToChar( p, '\n' );
+            Prs_ManSkip(p);
             continue;
         }
-        if ( Cba_PrsIsChar(p, '#') )  
-            Cba_PrsSkipToChar( p, '\n' );
+        if ( Prs_ManIsChar(p, '#') )  
+            Prs_ManSkipToChar( p, '\n' );
         break;
     }
-    assert( !Cba_PrsIsSpace(p) );
+    assert( !Prs_ManIsSpace(p) );
 }
-static inline int Cba_PrsReadName( Cba_Prs_t * p )
+static inline int Prs_ManReadName( Prs_Man_t * p )
 {
     char * pStart;
-    Cba_PrsSkipSpaces( p );
-    if ( Cba_PrsIsChar(p, '\n') )
+    Prs_ManSkipSpaces( p );
+    if ( Prs_ManIsChar(p, '\n') )
         return 0;
     pStart = p->pCur;
-    while ( !Cba_PrsIsSpace(p) && !Cba_PrsIsStop(p) )
-        Cba_PrsSkip(p);
+    while ( !Prs_ManIsSpace(p) && !Prs_ManIsStop(p) )
+        Prs_ManSkip(p);
     if ( pStart == p->pCur )
         return 0;
-    return Abc_NamStrFindOrAddLim( p->pDesign->pNames, pStart, p->pCur, NULL );
+    return Abc_NamStrFindOrAddLim( p->pStrs, pStart, p->pCur, NULL );
 }
-static inline int Cba_PrsReadList( Cba_Prs_t * p )
+static inline int Prs_ManReadList( Prs_Man_t * p )
 {
     int iToken;
     Vec_IntClear( &p->vTemp );
-    while ( (iToken = Cba_PrsReadName(p)) )
+    while ( (iToken = Prs_ManReadName(p)) )
         Vec_IntPush( &p->vTemp, iToken );
-    if ( Vec_IntSize(&p->vTemp) == 0 )                return Cba_PrsErrorSet(p, "Signal list is empty.", 1);
+    if ( Vec_IntSize(&p->vTemp) == 0 )                return Prs_ManErrorSet(p, "Signal list is empty.", 1);
     return 0;
 }
-static inline int Cba_PrsReadList2( Cba_Prs_t * p )
+static inline int Prs_ManReadList2( Prs_Man_t * p )
 {
     int iToken;
-    Vec_IntFill( &p->vTemp, 1, -1 );
-    while ( (iToken = Cba_PrsReadName(p)) )
-        Vec_IntPush( &p->vTemp, iToken );
-    iToken = Vec_IntPop(&p->vTemp);
-    if ( Vec_IntSize(&p->vTemp) == 0 )                return Cba_PrsErrorSet(p, "Signal list is empty.", 1);
-    Vec_IntWriteEntry( &p->vTemp, 0, iToken );
+    Vec_IntClear( &p->vTemp );
+    while ( (iToken = Prs_ManReadName(p)) )
+        Vec_IntPushTwo( &p->vTemp, 0, iToken );
+    if ( Vec_IntSize(&p->vTemp) == 0 )                return Prs_ManErrorSet(p, "Signal list is empty.", 1);
     return 0;
 }
-static inline int Cba_PrsReadList3( Cba_Prs_t * p )
+static inline int Prs_ManReadList3( Prs_Man_t * p )
 {
     Vec_IntClear( &p->vTemp );
-    while ( !Cba_PrsIsChar(p, '\n') )
+    while ( !Prs_ManIsChar(p, '\n') )
     {
-        int iToken = Cba_PrsReadName(p);
-        if ( iToken == 0 )              return Cba_PrsErrorSet(p, "Cannot read formal name.", 1);
+        int iToken = Prs_ManReadName(p);
+        if ( iToken == 0 )              return Prs_ManErrorSet(p, "Cannot read formal name.", 1);
         Vec_IntPush( &p->vTemp, iToken );
-        Cba_PrsSkipSpaces( p );
-        if ( !Cba_PrsIsChar2(p, '=') )  return Cba_PrsErrorSet(p, "Cannot find symbol \"=\".", 1);
-        iToken = Cba_PrsReadName(p);
-        if ( iToken == 0 )              return Cba_PrsErrorSet(p, "Cannot read actual name.", 1);
+        Prs_ManSkipSpaces( p );
+        if ( !Prs_ManIsChar2(p, '=') )  return Prs_ManErrorSet(p, "Cannot find symbol \"=\".", 1);
+        iToken = Prs_ManReadName(p);
+        if ( iToken == 0 )              return Prs_ManErrorSet(p, "Cannot read actual name.", 1);
         Vec_IntPush( &p->vTemp, iToken );
-        Cba_PrsSkipSpaces( p );
+        Prs_ManSkipSpaces( p );
     }
-    if ( Vec_IntSize(&p->vTemp) == 0 )  return Cba_PrsErrorSet(p, "Cannot read a list of formal/actual names.", 1);
-    if ( Vec_IntSize(&p->vTemp) % 2  )  return Cba_PrsErrorSet(p, "The number of formal/actual names is not even.", 1);
+    if ( Vec_IntSize(&p->vTemp) == 0 )  return Prs_ManErrorSet(p, "Cannot read a list of formal/actual names.", 1);
+    if ( Vec_IntSize(&p->vTemp) % 2  )  return Prs_ManErrorSet(p, "The number of formal/actual names is not even.", 1);
     return 0;
 }
 
@@ -198,38 +192,39 @@ static inline int Cba_PrsReadList3( Cba_Prs_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-static inline int Cba_PrsReadCube( Cba_Prs_t * p )
+static inline int Prs_ManReadCube( Prs_Man_t * p )
 {
-    assert( Cba_PrsIsLit(p) );
-    while ( Cba_PrsIsLit(p) )
-        Vec_StrPush( &p->vCover, Cba_PrsSkip2(p) );
-    Cba_PrsSkipSpaces( p );
-    if ( Cba_PrsIsChar(p, '\n') )
+    assert( Prs_ManIsLit(p) );
+    while ( Prs_ManIsLit(p) )
+        Vec_StrPush( &p->vCover, Prs_ManSkip2(p) );
+    Prs_ManSkipSpaces( p );
+    if ( Prs_ManIsChar(p, '\n') )
     {
-        if ( Vec_StrSize(&p->vCover) != 1 )            return Cba_PrsErrorSet(p, "Cannot read cube.", 1);
+        if ( Vec_StrSize(&p->vCover) != 1 )            return Prs_ManErrorSet(p, "Cannot read cube.", 1);
         // fix single literal cube by adding space
         Vec_StrPush( &p->vCover, Vec_StrEntry(&p->vCover,0) );
         Vec_StrWriteEntry( &p->vCover, 0, ' ' );
         Vec_StrPush( &p->vCover, '\n' );
         return 0;
     }
-    if ( !Cba_PrsIsLit(p) )                           return Cba_PrsErrorSet(p, "Cannot read output literal.", 1);
+    if ( !Prs_ManIsLit(p) )                           return Prs_ManErrorSet(p, "Cannot read output literal.", 1);
     Vec_StrPush( &p->vCover, ' ' );
-    Vec_StrPush( &p->vCover, Cba_PrsSkip2(p) );
+    Vec_StrPush( &p->vCover, Prs_ManSkip2(p) );
     Vec_StrPush( &p->vCover, '\n' );
-    Cba_PrsSkipSpaces( p );
-    if ( !Cba_PrsIsChar(p, '\n') )                    return Cba_PrsErrorSet(p, "Cannot read end of cube.", 1);
+    Prs_ManSkipSpaces( p );
+    if ( !Prs_ManIsChar(p, '\n') )                    return Prs_ManErrorSet(p, "Cannot read end of cube.", 1);
     return 0;
 }
-static inline void Cba_PrsSaveCover( Cba_Prs_t * p )
+static inline void Prs_ManSaveCover( Prs_Man_t * p )
 {
     int iToken;
     assert( Vec_StrSize(&p->vCover) > 0 );
     Vec_StrPush( &p->vCover, '\0' );
-    iToken = Abc_NamStrFindOrAdd( p->pDesign->pFuncs, Vec_StrArray(&p->vCover), NULL );
-    assert( Vec_IntEntryLast(&p->vFuncsCur) == 1 );
-    Vec_IntWriteEntry( &p->vFuncsCur, Vec_IntSize(&p->vFuncsCur)-1, iToken );
+    iToken = Abc_NamStrFindOrAdd( p->pStrs, Vec_StrArray(&p->vCover), NULL );
     Vec_StrClear( &p->vCover );
+    // set the cover to the module of this box
+    assert( Prs_BoxNtk(p->pNtk, Prs_NtkBoxNum(p->pNtk)-1) == 1 ); // default const 0
+    Prs_BoxSetNtk( p->pNtk, Prs_NtkBoxNum(p->pNtk)-1, iToken );
 }
 
 /**Function*************************************************************
@@ -243,144 +238,140 @@ static inline void Cba_PrsSaveCover( Cba_Prs_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-static inline int Cba_PrsReadInouts( Cba_Prs_t * p )
+static inline int Prs_ManReadInouts( Prs_Man_t * p )
 {
-    if ( Cba_PrsReadList(p) )    return 1;
-    Vec_IntAppend( &p->vInoutsCur, &p->vTemp );
+    if ( Prs_ManReadList(p) )    return 1;
+    Vec_IntAppend( &p->pNtk->vInouts, &p->vTemp );
     return 0;
 }
-static inline int Cba_PrsReadInputs( Cba_Prs_t * p )
+static inline int Prs_ManReadInputs( Prs_Man_t * p )
 {
-    if ( Cba_PrsReadList(p) )    return 1;
-    Vec_IntAppend( &p->vInputsCur, &p->vTemp );
+    if ( Prs_ManReadList(p) )    return 1;
+    Vec_IntAppend( &p->pNtk->vInputs, &p->vTemp );
     return 0;
 }
-static inline int Cba_PrsReadOutputs( Cba_Prs_t * p )
+static inline int Prs_ManReadOutputs( Prs_Man_t * p )
 {
-    if ( Cba_PrsReadList(p) )    return 1;
-    Vec_IntAppend( &p->vOutputsCur, &p->vTemp );
+    if ( Prs_ManReadList(p) )    return 1;
+    Vec_IntAppend( &p->pNtk->vOutputs, &p->vTemp );
     return 0;
 }
-static inline int Cba_PrsReadNode( Cba_Prs_t * p )
+static inline int Prs_ManReadNode( Prs_Man_t * p )
 {
-    if ( Cba_PrsReadList2(p) )   return 1;
+    if ( Prs_ManReadList2(p) )   return 1;
     // save results
-    Vec_IntPush( &p->vTypesCur, CBA_OBJ_NODE );
-    Vec_IntPush( &p->vFuncsCur, 1 ); // default const 0 function
-    Vec_IntPush( &p->vFaninsCur, Cba_ManHandleArray(p->pDesign, &p->vTemp) ); 
+    Prs_NtkAddBox( p->pNtk, 1, 0, &p->vTemp ); // default const 0 function
     return 0;
 }
-static inline int Cba_PrsReadBox( Cba_Prs_t * p, int fGate )
+static inline int Prs_ManReadBox( Prs_Man_t * p, int fGate )
 {
-    int iToken = Cba_PrsReadName(p);
-    if ( iToken == 0 )           return Cba_PrsErrorSet(p, "Cannot read model name.", 1);
-    if ( Cba_PrsReadList3(p) )   return 1;
+    int iToken = Prs_ManReadName(p);
+    if ( iToken == 0 )           return Prs_ManErrorSet(p, "Cannot read model name.", 1);
+    if ( Prs_ManReadList3(p) )   return 1;
     // save results
-    Vec_IntPush( &p->vTypesCur, CBA_OBJ_BOX );
-    Vec_IntPush( &p->vFuncsCur, iToken );
-    Vec_IntPush( &p->vFaninsCur, Cba_ManHandleArray(p->pDesign, &p->vTemp) ); 
+    Prs_NtkAddBox( p->pNtk, iToken, 0, &p->vTemp );
+    if ( fGate ) p->pNtk->fMapped = 1;
     return 0;
 }
-static inline int Cba_PrsReadLatch( Cba_Prs_t * p )
+static inline int Prs_ManReadLatch( Prs_Man_t * p )
 {
-    int iToken = Cba_PrsReadName(p);
-    Vec_IntFill( &p->vTemp, 2, -1 );
-    if ( iToken == 0 )                 return Cba_PrsErrorSet(p, "Cannot read latch input.", 1);
+    int iToken = Prs_ManReadName(p);
+    Vec_IntClear( &p->vTemp );
+    if ( iToken == 0 )                 return Prs_ManErrorSet(p, "Cannot read latch input.", 1);
     Vec_IntWriteEntry( &p->vTemp, 1, iToken );
-    iToken = Cba_PrsReadName(p);
-    if ( iToken == 0 )                 return Cba_PrsErrorSet(p, "Cannot read latch output.", 1);
+    iToken = Prs_ManReadName(p);
+    if ( iToken == 0 )                 return Prs_ManErrorSet(p, "Cannot read latch output.", 1);
     Vec_IntWriteEntry( &p->vTemp, 0, iToken );
-    Cba_PrsSkipSpaces( p );
-    if ( Cba_PrsIsChar(p, '0') )
+    Prs_ManSkipSpaces( p );
+    if ( Prs_ManIsChar(p, '0') )
         iToken = 0;
-    else if ( Cba_PrsIsChar(p, '1') )
+    else if ( Prs_ManIsChar(p, '1') )
         iToken = 1;
     else 
         iToken = 2;
-    Cba_PrsSkipToChar( p, '\n' );
+    Prs_ManSkipToChar( p, '\n' );
     // save results
-    Vec_IntPush( &p->vTypesCur, CBA_OBJ_LATCH );
-    Vec_IntPush( &p->vFuncsCur, iToken );
-    Vec_IntPush( &p->vFaninsCur, Cba_ManHandleArray(p->pDesign, &p->vTemp) ); 
+    Prs_NtkAddBox( p->pNtk, -1, iToken, &p->vTemp ); // -1 stands for latch
     return 0;
 }
-static inline int Cba_PrsReadShort( Cba_Prs_t * p )
+static inline int Prs_ManReadShort( Prs_Man_t * p )
 {
-    int iToken = Cba_PrsReadName(p);
-    Vec_IntFill( &p->vTemp, 2, -1 );
-    if ( iToken == 0 )                 return Cba_PrsErrorSet(p, "Cannot read .short input.", 1);
+    int iToken = Prs_ManReadName(p);
+    Vec_IntClear( &p->vTemp );
+    if ( iToken == 0 )                 return Prs_ManErrorSet(p, "Cannot read .short input.", 1);
     Vec_IntWriteEntry( &p->vTemp, 1, iToken );
-    iToken = Cba_PrsReadName(p);
-    if ( iToken == 0 )                 return Cba_PrsErrorSet(p, "Cannot read .short output.", 1);
+    iToken = Prs_ManReadName(p);
+    if ( iToken == 0 )                 return Prs_ManErrorSet(p, "Cannot read .short output.", 1);
     Vec_IntWriteEntry( &p->vTemp, 0, iToken );
-    Cba_PrsSkipSpaces( p );
-    if ( !Cba_PrsIsChar(p, '\n') )     return Cba_PrsErrorSet(p, "Trailing symbols on .short line.", 1);
+    Prs_ManSkipSpaces( p );
+    if ( !Prs_ManIsChar(p, '\n') )     return Prs_ManErrorSet(p, "Trailing symbols on .short line.", 1);
     // save results
-    Vec_IntPush( &p->vTypesCur, CBA_OBJ_NODE );
-    Vec_IntPush( &p->vFuncsCur, 2 );   // default buffer function
-    Vec_IntPush( &p->vFaninsCur, Cba_ManHandleArray(p->pDesign, &p->vTemp) ); 
+    iToken = Abc_NamStrFindOrAdd( p->pStrs, "1 1\n", NULL );
+    Prs_NtkAddBox( p->pNtk, iToken, 0, &p->vTemp );
     return 0;
 }
-static inline int Cba_PrsReadModel( Cba_Prs_t * p )
+static inline int Prs_ManReadModel( Prs_Man_t * p )
 {
-    if ( p->iModuleName > 0 )                      return Cba_PrsErrorSet(p, "Parsing previous model is unfinished.", 1);
-    p->iModuleName = Cba_PrsReadName(p);
-    Cba_PrsSkipSpaces( p );
-    if ( !Cba_PrsIsChar(p, '\n') )                 return Cba_PrsErrorSet(p, "Trailing symbols on .model line.", 1);
+    int iToken;
+    if ( p->pNtk != NULL )                         return Prs_ManErrorSet(p, "Parsing previous model is unfinished.", 1);
+    iToken = Prs_ManReadName(p);
+    if ( iToken == 0 )                             return Prs_ManErrorSet(p, "Cannot read model name.", 1);
+    Prs_ManInitializeNtk( p, iToken, 0 );
+    Prs_ManSkipSpaces( p );
+    if ( !Prs_ManIsChar(p, '\n') )                 return Prs_ManErrorSet(p, "Trailing symbols on .model line.", 1);
     return 0;
 }
-static inline int Cba_PrsReadEnd( Cba_Prs_t * p )
+static inline int Prs_ManReadEnd( Prs_Man_t * p )
 {
-    if ( p->iModuleName == 0 )                     return Cba_PrsErrorSet(p, "Directive .end without .model.", 1);
-    //printf( "Saving model \"%s\".\n", Abc_NamStr(p->pDesign->pNames, p->iModuleName) );
-    Cba_PrsAddCurrentModel( p, p->iModuleName );
-    p->iModuleName = 0;
-    Cba_PrsSkipSpaces( p );
-    if ( !Cba_PrsIsChar(p, '\n') )                 return Cba_PrsErrorSet(p, "Trailing symbols on .end line.", 1);
+    if ( p->pNtk == 0 )                            return Prs_ManErrorSet(p, "Directive .end without .model.", 1);
+    //printf( "Saving model \"%s\".\n", Abc_NamStr(p->pStrs, p->iModuleName) );
+    Prs_ManFinalizeNtk( p );
+    Prs_ManSkipSpaces( p );
+    if ( !Prs_ManIsChar(p, '\n') )                 return Prs_ManErrorSet(p, "Trailing symbols on .end line.", 1);
     return 0;
 }
 
-static inline int Cba_PrsReadDirective( Cba_Prs_t * p )
+static inline int Prs_ManReadDirective( Prs_Man_t * p )
 {
     int iToken;
-    if ( !Cba_PrsIsChar(p, '.') )
-        return Cba_PrsReadCube( p );
+    if ( !Prs_ManIsChar(p, '.') )
+        return Prs_ManReadCube( p );
     if ( Vec_StrSize(&p->vCover) > 0 ) // SOP was specified for the previous node
-        Cba_PrsSaveCover( p );
-    iToken = Cba_PrsReadName( p );  
-    if ( iToken == CBA_BLIF_MODEL )
-        return Cba_PrsReadModel( p );
-    if ( iToken == CBA_BLIF_INOUTS )
-        return Cba_PrsReadInouts( p );
-    if ( iToken == CBA_BLIF_INPUTS )
-        return Cba_PrsReadInputs( p );
-    if ( iToken == CBA_BLIF_OUTPUTS )
-        return Cba_PrsReadOutputs( p );
-    if ( iToken == CBA_BLIF_NAMES )
-        return Cba_PrsReadNode( p );
-    if ( iToken == CBA_BLIF_SUBCKT )
-        return Cba_PrsReadBox( p, 0 );
-    if ( iToken == CBA_BLIF_GATE )
-        return Cba_PrsReadBox( p, 1 );
-    if ( iToken == CBA_BLIF_LATCH )
-        return Cba_PrsReadLatch( p );
-    if ( iToken == CBA_BLIF_SHORT )
-        return Cba_PrsReadShort( p );
-    if ( iToken == CBA_BLIF_END )
-        return Cba_PrsReadEnd( p );
-    printf( "Cannot read directive \"%s\".\n", Abc_NamStr(p->pDesign->pNames, iToken) );
+        Prs_ManSaveCover( p );
+    iToken = Prs_ManReadName( p );  
+    if ( iToken == PRS_BLIF_MODEL )
+        return Prs_ManReadModel( p );
+    if ( iToken == PRS_BLIF_INOUTS )
+        return Prs_ManReadInouts( p );
+    if ( iToken == PRS_BLIF_INPUTS )
+        return Prs_ManReadInputs( p );
+    if ( iToken == PRS_BLIF_OUTPUTS )
+        return Prs_ManReadOutputs( p );
+    if ( iToken == PRS_BLIF_NAMES )
+        return Prs_ManReadNode( p );
+    if ( iToken == PRS_BLIF_SUBCKT )
+        return Prs_ManReadBox( p, 0 );
+    if ( iToken == PRS_BLIF_GATE )
+        return Prs_ManReadBox( p, 1 );
+    if ( iToken == PRS_BLIF_LATCH )
+        return Prs_ManReadLatch( p );
+    if ( iToken == PRS_BLIF_SHORT )
+        return Prs_ManReadShort( p );
+    if ( iToken == PRS_BLIF_END )
+        return Prs_ManReadEnd( p );
+    printf( "Cannot read directive \"%s\".\n", Abc_NamStr(p->pStrs, iToken) );
     return 1;
 }
-static inline int Cba_PrsReadLines( Cba_Prs_t * p )
+static inline int Prs_ManReadLines( Prs_Man_t * p )
 {
     while ( p->pCur[1] != '\0' )
     {
-        assert( Cba_PrsIsChar(p, '\n') );
-        Cba_PrsSkip(p);
-        Cba_PrsSkipSpaces( p );
-        if ( Cba_PrsIsChar(p, '\n') )
+        assert( Prs_ManIsChar(p, '\n') );
+        Prs_ManSkip(p);
+        Prs_ManSkipSpaces( p );
+        if ( Prs_ManIsChar(p, '\n') )
             continue;
-        if ( Cba_PrsReadDirective(p) )   
+        if ( Prs_ManReadDirective(p) )   
             return 1;
     }
     return 0;
@@ -397,19 +388,18 @@ static inline int Cba_PrsReadLines( Cba_Prs_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-Cba_Man_t * Cba_PrsReadBlif( char * pFileName )
+Vec_Ptr_t * Prs_ManReadBlif( char * pFileName )
 {
-    Cba_Man_t * pDesign = NULL;
-    Cba_Prs_t * p = Cba_PrsAlloc( pFileName );
+    Vec_Ptr_t * vPrs = NULL;
+    Prs_Man_t * p = Prs_ManAlloc( pFileName );
     if ( p == NULL )
         return NULL;
-    Cba_PrsAddBlifDirectives( p );
-    Cba_PrsReadLines( p );
-    if ( Cba_PrsErrorPrint(p) )
-        ABC_SWAP( Cba_Man_t *, pDesign, p->pDesign );
-    Cba_PrsFree( p );
-    Cba_PrsRemapBoxModels( pDesign );
-    return pDesign;
+    Prs_NtkAddBlifDirectives( p );
+    Prs_ManReadLines( p );
+    if ( Prs_ManErrorPrint(p) )
+        ABC_SWAP( Vec_Ptr_t *, vPrs, p->vNtks );
+    Prs_ManFree( p );
+    return vPrs;
 }
 
 /**Function*************************************************************
@@ -423,21 +413,21 @@ Cba_Man_t * Cba_PrsReadBlif( char * pFileName )
   SeeAlso     []
 
 ***********************************************************************/
-void Cba_PrsReadBlifTest( char * pFileName )
+void Prs_ManReadBlifTest()
 {
     abctime clk = Abc_Clock();
-    extern void Cba_PrsWriteBlif( char * pFileName, Cba_Man_t * pDes );
-    Cba_Man_t * p = Cba_PrsReadBlif( "aga/ray/ray_hie_oper.blif" );
-    if ( !p ) return;
-    printf( "Finished reading %d networks. ", Cba_ManNtkNum(p) );
-    printf( "NameIDs = %d. ", Abc_NamObjNumMax(p->pNames) );
-    printf( "Memory = %.2f MB. ", 1.0*Cba_ManMemory(p)/(1<<20) );
+    extern void Prs_ManWriteBlif( char * pFileName, Vec_Ptr_t * vPrs );
+//    Vec_Ptr_t * vPrs = Prs_ManReadBlif( "aga/ray/ray_hie_oper.blif" );
+    Vec_Ptr_t * vPrs = Prs_ManReadBlif( "c/hie/dump/1/netlist_1_out8.blif" );
+    if ( !vPrs ) return;
+    printf( "Finished reading %d networks. ", Vec_PtrSize(vPrs) );
+    printf( "NameIDs = %d. ", Abc_NamObjNumMax(Prs_ManRoot(vPrs)->pStrs) );
+    printf( "Memory = %.2f MB. ", 1.0*Prs_ManMemory(vPrs)/(1<<20) );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
-//    Abc_NamPrint( p->pDesign->pNames );
-    Cba_PrsWriteBlif( "aga/ray/ray_hie_oper_out.blif", p );
-    Cba_ManFree( p );
+//    Abc_NamPrint( p->pStrs );
+    Prs_ManWriteBlif( "c/hie/dump/1/netlist_1_out8_out.blif", vPrs );
+    Prs_ManVecFree( vPrs );
 }
-
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
