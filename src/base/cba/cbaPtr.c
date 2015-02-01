@@ -222,7 +222,7 @@ void Cba_ManCollectGateNameOne( Mio_Library_t * pLib, Ptr_ObjType_t Type, word T
 }
 Vec_Ptr_t * Cba_ManCollectGateNamesByTruth( Mio_Library_t * pLib )
 {
-    static word uTruth, uTruths6[3] = {
+    static word uTruths6[3] = {
         ABC_CONST(0xAAAAAAAAAAAAAAAA),
         ABC_CONST(0xCCCCCCCCCCCCCCCC),
         ABC_CONST(0xF0F0F0F0F0F0F0F0),

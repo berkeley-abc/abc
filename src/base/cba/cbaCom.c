@@ -616,7 +616,7 @@ int Cba_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     extern void Prs_ManReadBlifTest();
     extern void Prs_ManReadVerilogTest();
-    Cba_Man_t * p = Cba_AbcGetMan(pAbc);
+    //Cba_Man_t * p = Cba_AbcGetMan(pAbc);
     int c, fVerbose  = 0;
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
