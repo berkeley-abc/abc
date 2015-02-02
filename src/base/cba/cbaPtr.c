@@ -43,9 +43,11 @@ box    = array containing model name, instance name, followed by pairs of formal
      - all formal names present in the module description should be listed
      - if an input pin is not driven or an output pin has no fanout, the actual pin name is NULL
      - word-level formal name "a" is written as bit-level names (a[0]. a[1], etc) ordered LSB to MSB
-  - primitive names should be given as char*-strings in description of nodes and boxes
+     - the boxes can appear in any order (topological order is not expected)
+  - in description of nodes and boxes, primitive names should be given as char*-strings ("AndT", "OrT", etc)
+  - constant 0/1 nets should be driven by constant nodes having primitive names "Const0T" and "Const1T"
   - primitive modules should not be written, but the list of primitives and formal names should be provided
-  - constant 0/1 nets can be specified as char*-strings "NetConst0" and "NetConst1".
+  - currently only "boxes" are supported (the array of "nodes" should contain no entries)
   - arrays of input-arrival/output-required times in the module description are optional
 */
 
@@ -382,7 +384,6 @@ Vec_Ptr_t * Cba_PtrTransformTest( Vec_Ptr_t * vDes )
   SeeAlso     []
 
 ***********************************************************************/
-
 void Cba_PtrTransformTestTest()
 {
     char * pFileName = "c/hie/dump/1/netlist_1.v";
