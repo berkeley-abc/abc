@@ -143,10 +143,6 @@ int Cba_ManExtract_rec( Gia_Man_t * pNew, Cba_Ntk_t * p, int i, int fBuffers, Ve
                 Dec_Graph_t * pGraph = (Dec_Graph_t *)p->pDesign->ppGraphs[Cba_BoxNtkId(p, iBox)];
                 Vec_Int_t Leaves = { nLits, nLits, pLits };
                 assert( pGraph != NULL );
-                if ( pGraph->nLeaves == 0 )
-                {
-                    int s = 0;
-                }
                 return Gia_ManFactorGraph( pNew, pGraph, &Leaves );
             }
             else
