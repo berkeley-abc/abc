@@ -194,6 +194,8 @@ static inline int            Cba_NtkPiNumAlloc( Cba_Ntk_t * p )              { r
 static inline int            Cba_NtkPoNumAlloc( Cba_Ntk_t * p )              { return Vec_IntCap(&p->vOutputs);                                                            }
 static inline int            Cba_NtkBiNum( Cba_Ntk_t * p )                   { return Vec_StrCountEntry(&p->vType, (char)CBA_OBJ_BI);                                      }
 static inline int            Cba_NtkBoNum( Cba_Ntk_t * p )                   { return Vec_StrCountEntry(&p->vType, (char)CBA_OBJ_BO);                                      }
+static inline int            Cba_NtkCiNum( Cba_Ntk_t * p )                   { return Cba_NtkPiNum(p) + Cba_NtkBoNum(p);                                                   }
+static inline int            Cba_NtkCoNum( Cba_Ntk_t * p )                   { return Cba_NtkPoNum(p) + Cba_NtkBiNum(p);                                                   }
 static inline int            Cba_NtkBoxNum( Cba_Ntk_t * p )                  { return Cba_NtkObjNum(p) - Vec_StrCountSmaller(&p->vType, (char)CBA_OBJ_BOX);                }
 static inline int            Cba_NtkPrimNum( Cba_Ntk_t * p )                 { return Vec_StrCountLarger(&p->vType, (char)CBA_OBJ_BOX);                                    }
 static inline int            Cba_NtkUserNum( Cba_Ntk_t * p )                 { return Vec_StrCountEntry(&p->vType, (char)CBA_OBJ_BOX);                                     }
@@ -241,7 +243,7 @@ static inline int            Cba_ObjCopy( Cba_Ntk_t * p, int i )             { r
 static inline char *         Cba_ObjNameStr( Cba_Ntk_t * p, int i )          { return Cba_NtkStr(p, Cba_ObjName(p, i));                                                    }
 static inline char *         Cba_ObjRangeStr( Cba_Ntk_t * p, int i )         { return Cba_NtkStr(p, Cba_ObjRange(p, i));                                                   }
 static inline void           Cba_ObjSetFanin( Cba_Ntk_t * p, int i, int x )  { assert(Cba_ObjFanin(p, i) == -1); Vec_IntWriteEntry( &p->vFanin, i, x );                    }
-static inline void           Cba_ObjSetName( Cba_Ntk_t * p, int i, int x )   { /*assert(Cba_ObjName(p, i) == 0);*/ Vec_IntWriteEntry( &p->vName,  i, x );                  }
+static inline void           Cba_ObjSetName( Cba_Ntk_t * p, int i, int x )   { assert(Cba_ObjName(p, i) == 0);   Vec_IntWriteEntry( &p->vName,  i, x );                    }
 static inline void           Cba_ObjSetRange( Cba_Ntk_t * p, int i, int x )  { assert(Cba_ObjRange(p, i) == 0);  Vec_IntWriteEntry( &p->vRange, i, x );                    }
 static inline void           Cba_ObjSetCopy( Cba_Ntk_t * p, int i, int x )   { assert(Cba_ObjCopy(p, i) == -1);  Vec_IntWriteEntry( &p->vCopy,  i, x );                    }
 
@@ -445,7 +447,7 @@ static inline void Cba_NtkDupUserBoxes( Cba_Ntk_t * pNew, Cba_Ntk_t * p )
 {
     int i, iObj;
     assert( pNew != p );
-    Cba_NtkAlloc( pNew, Cba_NtkNameId(p), Cba_NtkPiNum(p), Cba_NtkPoNum(p), Cba_NtkObjNum(p) );
+    Cba_NtkAlloc( pNew, Cba_NtkNameId(p), Cba_NtkPiNum(p), Cba_NtkPoNum(p), Cba_NtkObjNum(p) + 3*Cba_NtkCoNum(p) );
     Cba_NtkStartCopies( p );
     if ( Cba_NtkHasNames(p) )
         Cba_NtkStartNames( pNew );
@@ -455,6 +457,12 @@ static inline void Cba_NtkDupUserBoxes( Cba_Ntk_t * pNew, Cba_Ntk_t * p )
         Cba_ObjDup( pNew, p, iObj );
     Cba_NtkForEachBoxUser( p, iObj )
         Cba_BoxDup( pNew, p, iObj );
+    // connect feed-throughs
+    Cba_NtkForEachCo( p, iObj )
+        if ( Cba_ObjCopy(p, iObj) >= 0 && 
+             Cba_ObjCopy(p, Cba_ObjFanin(p, iObj)) >= 0 && 
+             Cba_ObjName(p, iObj) == Cba_ObjName(p, Cba_ObjFanin(p, iObj)) )
+            Cba_ObjSetFanin( pNew, Cba_ObjCopy(p, iObj), Cba_ObjCopy(p, Cba_ObjFanin(p, iObj)) );
 }
 static inline void Cba_NtkFree( Cba_Ntk_t * p )
 {
@@ -627,7 +635,7 @@ static inline void Cba_ManPrintStats( Cba_Man_t * p, int nModules, int fVerbose 
     Cba_Ntk_t * pRoot = Cba_ManRoot( p );
     printf( "%-12s : ",   Cba_ManName(p) );
     printf( "pi =%5d  ",  Cba_NtkPiNum(pRoot) );
-    printf( "pi =%5d  ",  Cba_NtkPoNum(pRoot) );
+    printf( "po =%5d  ",  Cba_NtkPoNum(pRoot) );
     printf( "mod =%6d  ", Cba_ManNtkNum(p) );
     printf( "box =%7d  ", Cba_ManNodeNum(p) );
     printf( "obj =%7d  ", Cba_ManObjNum(p) );

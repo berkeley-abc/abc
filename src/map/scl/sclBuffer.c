@@ -296,6 +296,8 @@ int Abc_SclCheckNtk( Abc_Ntk_t * p, int fVerbose )
             if ( !Abc_NodeIsTravIdCurrent( pFanin ) )
                 printf( "obj %d and its fanin %d are not in the topo order\n", Abc_ObjId(pObj), Abc_ObjId(pFanin) ), fFlag = 0;
         Abc_NodeSetTravIdCurrent( pObj );
+        if ( Abc_ObjIsBarBuf(pObj) )
+            continue;
         if ( Abc_ObjFanoutNum(pObj) == 0 )
             printf( "node %d has no fanout\n", Abc_ObjId(pObj) ), fFlag = 0;
         if ( !fFlag )

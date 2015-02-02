@@ -77,7 +77,7 @@ void Cba_ManAssignInternNamesNtk( Cba_Ntk_t * p )
                 continue;
             sprintf( Buffer, "%s%0*d", "_n_", nDigits, iTerm );
             NameId = Abc_NamStrFindOrAdd( p->pDesign->pStrs, Buffer, &fFound );
-            assert( !fFound );
+            //assert( !fFound );
             Cba_ObjSetName( p, iTerm, NameId );
         }
     // transfer names for prim BI

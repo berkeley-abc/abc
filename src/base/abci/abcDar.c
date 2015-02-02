@@ -871,7 +871,7 @@ static inline Abc_Obj_t * Abc_NtkFromCellRead( Abc_Ntk_t * p, Vec_Int_t * vCopyL
 }
 Abc_Ntk_t * Abc_NtkFromCellMappedGia( Gia_Man_t * p )
 {
-    int fFixDrivers = 0;
+    int fFixDrivers = 1;
     int fDuplicate = 1;
     int fVerbose = 1;
     Abc_Ntk_t * pNtkNew;

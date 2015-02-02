@@ -57,23 +57,20 @@ Dec_Graph_t * Dec_Factor( char * pSop )
     Mvc_Cover_t * pCover;
     Dec_Graph_t * pFForm;
     Dec_Edge_t eRoot;
+    if ( Abc_SopIsConst0(pSop) )
+        return Dec_GraphCreateConst0();
+    if ( Abc_SopIsConst1(pSop) )
+        return Dec_GraphCreateConst1();
 
     // derive the cover from the SOP representation
     pCover = Dec_ConvertSopToMvc( pSop );
 
     // make sure the cover is CCS free (should be done before CST)
     Mvc_CoverContain( pCover );
+
     // check for trivial functions
-    if ( Mvc_CoverIsEmpty(pCover) )
-    {
-        Mvc_CoverFree( pCover );
-        return Dec_GraphCreateConst0();
-    }
-    if ( Mvc_CoverIsTautology(pCover) )
-    {
-        Mvc_CoverFree( pCover );
-        return Dec_GraphCreateConst1();
-    }
+    assert( !Mvc_CoverIsEmpty(pCover) );
+    assert( !Mvc_CoverIsTautology(pCover) );
 
     // perform CST
     Mvc_CoverInverse( pCover ); // CST
@@ -334,6 +331,7 @@ Mvc_Cover_t * Dec_ConvertSopToMvc( char * pSop )
 
     // start the cover
     nVars = Abc_SopGetVarNum(pSop);
+    assert( nVars > 0 );
     pMvc = Mvc_CoverAlloc( pMem, nVars * 2 );
     // check the logic function of the node
     Abc_SopForEachCube( pSop, nVars, pCube )

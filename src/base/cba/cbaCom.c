@@ -196,13 +196,15 @@ int Cba_CommandRead( Abc_Frame_t * pAbc, int argc, char ** argv )
     else if ( !strcmp( Extra_FileNameExtension(pFileName), "blif" )  )
     {
         vDes = Prs_ManReadBlif( pFileName );
-        p = Prs_ManBuildCba( pFileName, vDes );
+        if ( vDes && Vec_PtrSize(vDes) )
+            p = Prs_ManBuildCba( pFileName, vDes );
         Prs_ManVecFree( vDes );
     }
     else if ( !strcmp( Extra_FileNameExtension(pFileName), "v" )  )
     {
         vDes = Prs_ManReadVerilog( pFileName );
-        p = Prs_ManBuildCba( pFileName, vDes );
+        if ( vDes && Vec_PtrSize(vDes) )
+            p = Prs_ManBuildCba( pFileName, vDes );
         Prs_ManVecFree( vDes );
     }
     else assert( 0 );
@@ -352,12 +354,15 @@ int Cba_CommandPut( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Cba_Man_t * p = Cba_AbcGetMan(pAbc);
     Gia_Man_t * pGia = NULL;
-    int c, fVerbose  = 0;
+    int c, fBarBufs = 1, fVerbose  = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "bvh" ) ) != EOF )
     {
         switch ( c )
         {
+        case 'b':
+            fBarBufs ^= 1;
+            break;
         case 'v':
             fVerbose ^= 1;
             break;
@@ -372,7 +377,7 @@ int Cba_CommandPut( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( 1, "Cba_CommandPut(): There is no current design.\n" );
         return 0;
     }
-    pGia = Cba_ManExtract( p, 1, 0 );
+    pGia = Cba_ManExtract( p, fBarBufs, fVerbose );
     if ( pGia == NULL )
     {
         Abc_Print( 1, "Cba_CommandPut(): Conversion to AIG has failed.\n" );
@@ -381,8 +386,9 @@ int Cba_CommandPut( Abc_Frame_t * pAbc, int argc, char ** argv )
     Abc_FrameUpdateGia( pAbc, pGia );
     return 0;
 usage:
-    Abc_Print( -2, "usage: @put [-mvh]\n" );
-    Abc_Print( -2, "\t         extracts AIG with barrier buffers from the hierarchical design\n" );
+    Abc_Print( -2, "usage: @put [-bvh]\n" );
+    Abc_Print( -2, "\t         extracts AIG from the hierarchical design\n" );
+    Abc_Print( -2, "\t-b     : toggle using barrier buffers [default = %s]\n", fBarBufs? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
@@ -517,7 +523,7 @@ int Cba_CommandCec( Abc_Frame_t * pAbc, int argc, char ** argv )
     Cec_ParCec_t ParsCec, * pPars = &ParsCec;
     Vec_Ptr_t * vDes;
     char * FileName, * pStr, ** pArgvNew;
-    int c, nArgcNew, fDumpMiter = 0, fVerbose  = 0;
+    int c, nArgcNew, fDumpMiter = 0;
     FILE * pFile;
     Cec_ManCecSetDefaultParams( pPars );
     Extra_UtilGetoptReset();
@@ -526,7 +532,7 @@ int Cba_CommandCec( Abc_Frame_t * pAbc, int argc, char ** argv )
         switch ( c )
         {
         case 'v':
-            fVerbose ^= 1;
+            pPars->fVerbose ^= 1;
             break;
         case 'h':
             goto usage;
@@ -608,7 +614,7 @@ int Cba_CommandCec( Abc_Frame_t * pAbc, int argc, char ** argv )
 usage:
     Abc_Print( -2, "usage: @cec [-vh]\n" );
     Abc_Print( -2, "\t         combinational equivalence checking\n" );
-    Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", pPars->fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
 }

@@ -143,6 +143,10 @@ int Cba_ManExtract_rec( Gia_Man_t * pNew, Cba_Ntk_t * p, int i, int fBuffers, Ve
                 Dec_Graph_t * pGraph = (Dec_Graph_t *)p->pDesign->ppGraphs[Cba_BoxNtkId(p, iBox)];
                 Vec_Int_t Leaves = { nLits, nLits, pLits };
                 assert( pGraph != NULL );
+                if ( pGraph->nLeaves == 0 )
+                {
+                    int s = 0;
+                }
                 return Gia_ManFactorGraph( pNew, pGraph, &Leaves );
             }
             else
@@ -298,23 +302,17 @@ void Cba_ManRemapBarbufs( Cba_Man_t * pNew, Cba_Man_t * p )
 void Cba_NtkCreateAndConnectBuffer( Gia_Man_t * pGia, Gia_Obj_t * pObj, Cba_Ntk_t * p, int iTerm )
 {
     int iObj;
-//    Vec_IntWriteEntry( &p->vTypes, p->nObjs, CBA_OBJ_NODE );
     if ( pGia && Gia_ObjFaninId0p(pGia, pObj) > 0 )
     {
-//        Vec_IntWriteEntry( &p->vFuncs,  p->nObjs, Gia_ObjFaninC0(pObj) ? CBA_BOX_INV : CBA_BOX_BUF );
-//        Vec_IntWriteEntry( &p->vFanins, p->nObjs, Cba_ManHandleBuffer(p->pDesign, Gia_ObjFanin0(pObj)->Value) );
+        assert( Cba_ObjName(p, Gia_ObjFanin0(pObj)->Value) != Cba_ObjName(p, iTerm) ); // not a feedthrough
         iObj = Cba_ObjAlloc( p, CBA_OBJ_BI, 0, Gia_ObjFanin0(pObj)->Value );
         Cba_ObjSetName( p, iObj, Cba_ObjName(p, Gia_ObjFanin0(pObj)->Value) );
         Cba_ObjAlloc( p, Gia_ObjFaninC0(pObj) ? CBA_BOX_INV : CBA_BOX_BUF, -1, -1 );
     }
     else
     {
-//        Vec_IntWriteEntry( &p->vFuncs,  p->nObjs, pGia && Gia_ObjFaninC0(pObj) ? CBA_BOX_C1 : CBA_BOX_C0 );
-//        Vec_IntWriteEntry( &p->vFanins, p->nObjs, Cba_ManHandleBuffer(p->pDesign, -1) );
         Cba_ObjAlloc( p, pGia && Gia_ObjFaninC0(pObj) ? CBA_BOX_C1 : CBA_BOX_C0, -1, -1 );
     }
-//    Vec_IntWriteEntry( &p->vNameIds, p->nObjs, Cba_ObjNameId(p, iTerm) );
-//    Vec_IntWriteEntry( &p->vFanins, iTerm, p->nObjs++ );
     iObj = Cba_ObjAlloc( p, CBA_OBJ_BO, 0, -1 );
     Cba_ObjSetName( p, iObj, Cba_ObjName(p, iTerm) );
     Cba_ObjSetFanin( p, iTerm, iObj );
@@ -335,7 +333,8 @@ void Cba_NtkInsertGia( Cba_Man_t * p, Gia_Man_t * pGia )
             pNtk = Cba_ManNtk( p, Vec_IntEntry(p->vBuf2RootNtk, Count) );
             iTerm = Vec_IntEntry( p->vBuf2RootObj, Count );
             assert( Cba_ObjIsCo(pNtk, iTerm) );
-            Cba_NtkCreateAndConnectBuffer( pGia, pObj, pNtk, iTerm );
+            if ( Cba_ObjFanin(pNtk, iTerm) == -1 ) // not a feedthrough
+                Cba_NtkCreateAndConnectBuffer( pGia, pObj, pNtk, iTerm );
             // prepare leaf
             pObj->Value = Vec_IntEntry( p->vBuf2LeafObj, Count++ );
         }
@@ -357,13 +356,6 @@ void Cba_NtkInsertGia( Cba_Man_t * p, Gia_Man_t * pGia )
             else 
                 Type = CBA_BOX_AND;
             // create box
-/*
-            Vec_IntFillTwo( vTemp, 2, iLit0, iLit1 );
-            Vec_IntWriteEntry( &pNtk->vTypes,  pNtk->nObjs, CBA_OBJ_NODE );
-            Vec_IntWriteEntry( &pNtk->vFuncs,  pNtk->nObjs, Type );
-            Vec_IntWriteEntry( &pNtk->vFanins, pNtk->nObjs, Cba_ManHandleArray(p, vTemp) );
-            pNtk->nObjs++;
-*/
             iTerm = Cba_ObjAlloc( pNtk, CBA_OBJ_BI, 1, iLit1 );
             Cba_ObjSetName( pNtk, iTerm, Cba_ObjName(pNtk, iLit1) );
             iTerm = Cba_ObjAlloc( pNtk, CBA_OBJ_BI, 0, iLit0 );
@@ -387,7 +379,8 @@ void Cba_NtkInsertGia( Cba_Man_t * p, Gia_Man_t * pGia )
     }
     // create node and connect POs
     Gia_ManForEachPo( pGia, pObj, i )
-        Cba_NtkCreateAndConnectBuffer( pGia, pObj, pRoot, Cba_NtkPo(pRoot, i) );
+        if ( Cba_ObjFanin(pRoot, Cba_NtkPo(pRoot, i)) == -1 ) // not a feedthrough
+            Cba_NtkCreateAndConnectBuffer( pGia, pObj, pRoot, Cba_NtkPo(pRoot, i) );
 }
 Cba_Man_t * Cba_ManInsertGia( Cba_Man_t * p, Gia_Man_t * pGia )
 {
@@ -461,33 +454,22 @@ void Cba_ManMarkNodesAbc( Cba_Man_t * p, Abc_Ntk_t * pNtk )
 void Cba_NtkCreateOrConnectFanin( Abc_Obj_t * pFanin, Cba_Ntk_t * p, int iTerm )
 {
     int iObj;
-    if ( pFanin && Abc_NodeIsSeriousGate(pFanin) )
+    if ( pFanin && Abc_NodeIsSeriousGate(pFanin) && Cba_ObjName(p, pFanin->iTemp) == -1 ) // gate without name
     {
-//        Vec_IntWriteEntry( &p->vNameIds, pFanin->iTemp, Cba_ObjNameId(p, iTerm) );
-//        Vec_IntWriteEntry( &p->vFanins,  iTerm,         pFanin->iTemp );
         iObj = pFanin->iTemp;
     }
-    else if ( pFanin && (Abc_ObjIsPi(pFanin) || Abc_ObjIsBarBuf(pFanin)) )
+    else if ( pFanin && (Abc_ObjIsPi(pFanin) || Abc_ObjIsBarBuf(pFanin) || Abc_NodeIsSeriousGate(pFanin)) ) // PI/BO or gate with name
     {
-//        Vec_IntWriteEntry( &p->vTypes,   p->nObjs, CBA_OBJ_NODE );
-//        Vec_IntWriteEntry( &p->vFuncs,   p->nObjs, 3 ); // assuming elem gates are added first
-//        Vec_IntWriteEntry( &p->vFanins,  p->nObjs, Cba_ManHandleBuffer(p->pDesign, pFanin->iTemp) );
-//        Vec_IntWriteEntry( &p->vNameIds, p->nObjs, Cba_ObjNameId(p, iTerm) );
-//        Vec_IntWriteEntry( &p->vFanins,  iTerm,    p->nObjs++ );
+        assert( Cba_ObjName(p, pFanin->iTemp) != Cba_ObjName(p, iTerm) ); // not a feedthrough
         iObj = Cba_ObjAlloc( p, CBA_OBJ_BI, 0, pFanin->iTemp );
         Cba_ObjSetName( p, iObj, Cba_ObjName(p, pFanin->iTemp) );
-        Cba_ObjAlloc( p, CBA_BOX_GATE, p->pDesign->ElemGates[2], -1 );
+        Cba_ObjAlloc( p, CBA_BOX_GATE, p->pDesign->ElemGates[2], -1 ); // buffer
         iObj = Cba_ObjAlloc( p, CBA_OBJ_BO, 0, -1 );
     }
     else
     {
         assert( !pFanin || Abc_NodeIsConst0(pFanin) || Abc_NodeIsConst1(pFanin) );
-//        Vec_IntWriteEntry( &p->vTypes,   p->nObjs, CBA_OBJ_NODE );
-//        Vec_IntWriteEntry( &p->vFuncs,   p->nObjs, pFanin && Abc_NodeIsConst1(pFanin) ? 2 : 1 ); // assuming elem gates are added first
-//        Vec_IntWriteEntry( &p->vFanins,  p->nObjs, Cba_ManHandleBuffer(p->pDesign, -1) );
-//        Vec_IntWriteEntry( &p->vNameIds, p->nObjs, Cba_ObjNameId(p, iTerm) );
-//        Vec_IntWriteEntry( &p->vFanins,  iTerm,    p->nObjs++ );
-        Cba_ObjAlloc( p, CBA_BOX_GATE, p->pDesign->ElemGates[(pFanin && Abc_NodeIsConst1(pFanin))], -1 );
+        Cba_ObjAlloc( p, CBA_BOX_GATE, p->pDesign->ElemGates[(pFanin && Abc_NodeIsConst1(pFanin))], -1 ); // const 0/1
         iObj = Cba_ObjAlloc( p, CBA_OBJ_BO, 0, -1 );
     }
     Cba_ObjSetName( p, iObj, Cba_ObjName(p, iTerm) );
@@ -530,22 +512,13 @@ void Cba_NtkInsertNtk( Cba_Man_t * p, Abc_Ntk_t * pNtk )
             pCbaNtk = Cba_ManNtk( p, Vec_IntEntry(p->vBuf2RootNtk, Count) );
             iTerm = Vec_IntEntry( p->vBuf2RootObj, Count );
             assert( Cba_ObjIsCo(pCbaNtk, iTerm) );
-            Cba_NtkCreateOrConnectFanin( Abc_ObjFanin0(pObj), pCbaNtk, iTerm );
+            if ( Cba_ObjFanin(pCbaNtk, iTerm) == -1 ) // not a feedthrough
+                Cba_NtkCreateOrConnectFanin( Abc_ObjFanin0(pObj), pCbaNtk, iTerm );
             // prepare leaf
             pObj->iTemp = Vec_IntEntry( p->vBuf2LeafObj, Count++ );
         }
         else if ( Abc_NodeIsSeriousGate(pObj) )
         {
-/*
-            Vec_IntClear( vTemp );
-            Abc_ObjForEachFanin( pObj, pFanin, k )
-                Vec_IntPush( vTemp, pFanin->iTemp );
-            pCbaNtk = Cba_ManNtk( p, pObj->iTemp );
-            Vec_IntWriteEntry( &pCbaNtk->vTypes,  pCbaNtk->nObjs, CBA_OBJ_NODE );
-            Vec_IntWriteEntry( &pCbaNtk->vFuncs,  pCbaNtk->nObjs, Abc_NamStrFind(p->pMods, Mio_GateReadName((Mio_Gate_t *)pObj->pData)) );
-            Vec_IntWriteEntry( &pCbaNtk->vFanins, pCbaNtk->nObjs, Cba_ManHandleArray(p, vTemp) );
-            pObj->iTemp = pCbaNtk->nObjs++;
-*/
             pCbaNtk = Cba_ManNtk( p, pObj->iTemp );
             for ( k = Abc_ObjFaninNum(pObj)-1; k >= 0; k-- )
             {
@@ -571,7 +544,8 @@ void Cba_NtkInsertNtk( Cba_Man_t * p, Abc_Ntk_t * pNtk )
     }
     // create node and connect POs
     Abc_NtkForEachPo( pNtk, pObj, i )
-        Cba_NtkCreateOrConnectFanin( Abc_ObjFanin0(pObj), pRoot, Cba_NtkPo(pRoot, i) );
+        if ( Cba_ObjFanin(pRoot, Cba_NtkPo(pRoot, i)) == -1 ) // not a feedthrough
+            Cba_NtkCreateOrConnectFanin( Abc_ObjFanin0(pObj), pRoot, Cba_NtkPo(pRoot, i) );
 }
 void * Cba_ManInsertAbc( Cba_Man_t * p, void * pAbc )
 {

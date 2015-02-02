@@ -20,6 +20,7 @@
 
 #include "cba.h"
 #include "cbaPrs.h"
+#include "map/mio/mio.h"
 #include "base/main/main.h"
 
 ABC_NAMESPACE_IMPL_START
@@ -260,7 +261,19 @@ void Cba_ManWriteVerilogBoxes( FILE * pFile, Cba_Ntk_t * p )
                 fprintf( pFile, "%s.%s(%s)", k ? ", " : "", Cba_ObjNameStr(pModel, iTerm), Cba_ObjNameStr(p, Cba_BoxBi(p, i, k)) );
             Cba_NtkForEachPo( pModel, iTerm, k )
                 fprintf( pFile, "%s.%s(%s)", Cba_NtkPiNum(pModel) ? ", " : "", Cba_ObjNameStr(pModel, iTerm), Cba_ObjNameStr(p, Cba_BoxBo(p, i, k)) );
-            fprintf( pFile, ")\n" );
+            fprintf( pFile, ");\n" );
+        }
+        else if ( Cba_ObjIsGate(p, i) )
+        {
+            char * pGateName = Abc_NamStr(p->pDesign->pMods, Cba_BoxNtkId(p, i));
+            Mio_Library_t * pLib = (Mio_Library_t *)Abc_FrameReadLibGen( Abc_FrameGetGlobalFrame() );
+            Mio_Gate_t * pGate = Mio_LibraryReadGateByName( pLib, pGateName, NULL );
+            fprintf( pFile, "  %s (", pGateName );
+            Cba_BoxForEachBi( p, i, iTerm, k )
+                fprintf( pFile, "%s.%s(%s)", k ? ", " : "", Mio_GateReadPinName(pGate, k), Cba_ObjNameStr(p, iTerm) );
+            Cba_BoxForEachBo( p, i, iTerm, k )
+                fprintf( pFile, "%s.%s(%s)", Cba_BoxBiNum(p, i) ? ", " : "", Mio_GateReadOutName(pGate), Cba_ObjNameStr(p, iTerm) );
+            fprintf( pFile, ");\n" );
         }
         else
         {
