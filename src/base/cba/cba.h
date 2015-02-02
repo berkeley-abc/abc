@@ -740,8 +740,8 @@ static inline char * Ptr_TypeToSop( Cba_ObjType_t Type )
 }
 
 /*=== cbaCom.c ===============================================================*/
-extern void        Abc_FrameImportDes( Vec_Ptr_t * vDes );
-extern Vec_Ptr_t * Abc_FrameExportDes();
+extern void        Abc_FrameImportPtr( Vec_Ptr_t * vPtr );
+extern Vec_Ptr_t * Abc_FrameExportPtr();
 
 /*=== cbaBlast.c =============================================================*/
 extern Gia_Man_t * Cba_ManExtract( Cba_Man_t * p, int fBuffers, int fVerbose );

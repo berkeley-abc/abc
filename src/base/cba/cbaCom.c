@@ -56,7 +56,7 @@ static inline void        Cba_AbcUpdateMan( Abc_Frame_t * pAbc, Cba_Man_t * p ) 
   SeeAlso     []
 
 ******************************************************************************/
-void Abc_FrameImportDes( Vec_Ptr_t * vDes )
+void Abc_FrameImportPtr( Vec_Ptr_t * vPtr )
 {
     Cba_Man_t * p;
     if ( Abc_FrameGetGlobalFrame() == NULL )
@@ -64,14 +64,14 @@ void Abc_FrameImportDes( Vec_Ptr_t * vDes )
         printf( "ABC framework is not started.\n" );
         return;
     }
-    p = Cba_PtrTransformToCba( vDes );
+    p = Cba_PtrTransformToCba( vPtr );
     if ( p == NULL )
         printf( "Converting from Ptr failed.\n" );
     Cba_AbcUpdateMan( Abc_FrameGetGlobalFrame(), p );
 }
-Vec_Ptr_t * Abc_FrameExportDes()
+Vec_Ptr_t * Abc_FrameExportPtr()
 {
-    Vec_Ptr_t * vDes;
+    Vec_Ptr_t * vPtr;
     Cba_Man_t * p;
     if ( Abc_FrameGetGlobalFrame() == NULL )
     {
@@ -81,10 +81,10 @@ Vec_Ptr_t * Abc_FrameExportDes()
     p = Cba_AbcGetMan( Abc_FrameGetGlobalFrame() );
     if ( p == NULL )
         printf( "There is no CBA design present.\n" );
-    vDes = Cba_PtrDeriveFromCba( p );
-    if ( vDes == NULL )
+    vPtr = Cba_PtrDeriveFromCba( p );
+    if ( vPtr == NULL )
         printf( "Converting to Ptr has failed.\n" );
-    return vDes;
+    return vPtr;
 }
 
 /**Function********************************************************************
