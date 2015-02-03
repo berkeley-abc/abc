@@ -808,6 +808,7 @@ static inline int Nf_ManPrepareCuts( Nf_Cut_t * pCuts, Nf_Man_t * p, int iObj, i
             pMfCut->iFunc   = Nf_CutFunc( pCut );
             pMfCut->nLeaves = Nf_CutSize( pCut );
             pMfCut->Sign    = Nf_CutGetSign( pCut+1, Nf_CutSize(pCut) );
+            pMfCut->Useless = Nf_ObjCutUseless( p, Abc_Lit2Var(pMfCut->iFunc) );
             memcpy( pMfCut->pLeaves, pCut+1, sizeof(int) * Nf_CutSize(pCut) );
             pMfCut++;
         }
