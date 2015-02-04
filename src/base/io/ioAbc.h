@@ -59,6 +59,7 @@ typedef enum {
     IO_FILE_GML,      
     IO_FILE_LIST,      
     IO_FILE_PLA,      
+    IO_FILE_MOPLA,      
     IO_FILE_SMV,      
     IO_FILE_VERILOG,    
     IO_FILE_UNKNOWN       
@@ -128,6 +129,7 @@ extern void               Io_WriteGml( Abc_Ntk_t * pNtk, char * pFileName );
 extern void               Io_WriteList( Abc_Ntk_t * pNtk, char * pFileName, int fUseHost );
 /*=== abcWritePla.c ===========================================================*/
 extern int                Io_WritePla( Abc_Ntk_t * pNtk, char * FileName );
+extern int                Io_WriteMoPla( Abc_Ntk_t * pNtk, char * FileName );
 /*=== abcWriteSmv.c ===========================================================*/
 extern int                Io_WriteSmv( Abc_Ntk_t * pNtk, char * FileName );
 /*=== abcWriteVerilog.c =======================================================*/

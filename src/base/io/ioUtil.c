@@ -399,6 +399,10 @@ void Io_Write( Abc_Ntk_t * pNtk, char * pFileName, Io_FileType_t FileType )
         if ( !Abc_NtkToSop( pNtkTemp, 1 ) )
             return;
     }
+    else if ( FileType == IO_FILE_MOPLA )
+    {
+        pNtkTemp = Abc_NtkStrash( pNtk, 0, 0, 0 );
+    }
     else if ( FileType == IO_FILE_BENCH )
     {
         if ( !Abc_NtkIsStrash(pNtk) )
@@ -444,6 +448,8 @@ void Io_Write( Abc_Ntk_t * pNtk, char * pFileName, Io_FileType_t FileType )
         Io_WriteBook( pNtkTemp, pFileName );
     else if ( FileType == IO_FILE_PLA )
         Io_WritePla( pNtkTemp, pFileName );
+    else if ( FileType == IO_FILE_MOPLA )
+        Io_WriteMoPla( pNtkTemp, pFileName );
     else if ( FileType == IO_FILE_EQN )
     {
         if ( !Abc_NtkHasAig(pNtkTemp) )

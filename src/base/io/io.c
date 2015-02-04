@@ -2479,13 +2479,16 @@ usage:
 int IoCommandWritePla( Abc_Frame_t * pAbc, int argc, char **argv )
 {
     char * pFileName;
-    int c;
+    int c, fUseMoPla = 0;
 
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "mh" ) ) != EOF )
     {
         switch ( c )
         {
+            case 'm':
+                fUseMoPla ^= 1;
+                break;
             case 'h':
                 goto usage;
             default:
@@ -2502,12 +2505,13 @@ int IoCommandWritePla( Abc_Frame_t * pAbc, int argc, char **argv )
     // get the output file name
     pFileName = argv[globalUtilOptind];
     // call the corresponding file writer
-    Io_Write( pAbc->pNtkCur, pFileName, IO_FILE_PLA );
+    Io_Write( pAbc->pNtkCur, pFileName, fUseMoPla ? IO_FILE_MOPLA : IO_FILE_PLA );
     return 0;
 
 usage:
-    fprintf( pAbc->Err, "usage: write_pla [-h] <file>\n" );
+    fprintf( pAbc->Err, "usage: write_pla [-mh] <file>\n" );
     fprintf( pAbc->Err, "\t         writes the collapsed network into a PLA file\n" );
+    fprintf( pAbc->Err, "\t-m     : toggle writing multi-output PLA [default = %s]\n", fUseMoPla? "yes":"no" );
     fprintf( pAbc->Err, "\t-h     : print the help massage\n" );
     fprintf( pAbc->Err, "\tfile   : the name of the file to write\n" );
     return 1;

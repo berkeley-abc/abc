@@ -30,7 +30,7 @@ ABC_NAMESPACE_IMPL_START
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-#define ABC_MUX_CUBES   100000
+#define ABC_MAX_CUBES   100000
 
 int Abc_ConvertZddToSop( DdManager * dd, DdNode * zCover, char * pSop, int nFanins, Vec_Str_t * vCube, int fPhase );
 static DdNode * Abc_ConvertAigToBdd( DdManager * dd, Hop_Obj_t * pRoot);
@@ -307,10 +307,10 @@ char * Abc_ConvertBddToSop( Mem_Flex_t * pMan, DdManager * dd, DdNode * bFuncOn,
         assert( 0 );
     }
 
-    if ( nCubes > ABC_MUX_CUBES )
+    if ( nCubes > ABC_MAX_CUBES )
     {
         Cudd_RecursiveDerefZdd( dd, zCover );
-        printf( "The number of cubes exceeded the predefined limit (%d).\n", ABC_MUX_CUBES );
+        printf( "The number of cubes exceeded the predefined limit (%d).\n", ABC_MAX_CUBES );
         return NULL;
     }
 
@@ -571,7 +571,7 @@ void Abc_CountZddCubes_rec( DdManager * dd, DdNode * zCover, int * pnCubes )
         (*pnCubes)++;
         return;
     }
-    if ( (*pnCubes) > ABC_MUX_CUBES )
+    if ( (*pnCubes) > ABC_MAX_CUBES )
         return;
     extraDecomposeCover( dd, zCover, &zC0, &zC1, &zC2 );
     Abc_CountZddCubes_rec( dd, zC0, pnCubes );
