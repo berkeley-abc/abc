@@ -41,7 +41,9 @@ default: $(PROG)
 arch_flags : arch_flags.c
 	$(CC) arch_flags.c -o arch_flags
 
-ARCHFLAGS := $(shell $(CC) arch_flags.c -o arch_flags && ./arch_flags)
+ARCHFLAGS ?= $(shell $(CC) arch_flags.c -o arch_flags && ./arch_flags)
+ARCHFLAGS := $(ARCHFLAGS)
+
 OPTFLAGS  ?= -g -O #-DABC_NAMESPACE=xxx
 
 CFLAGS    += -Wall -Wno-unused-function -Wno-write-strings -Wno-sign-compare $(OPTFLAGS) $(ARCHFLAGS) -Isrc
