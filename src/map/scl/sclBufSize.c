@@ -172,8 +172,6 @@ static inline float Abc_NtkComputeEdgeDept( Abc_Obj_t * pFanout, int iFanin, flo
     float Load = Bus_SclObjLoad( pFanout );
     float Dept = Bus_SclObjDept( pFanout );
     float Edge = Scl_LibPinArrivalEstimate( Abc_SclObjCell(pFanout), iFanin, Slew, Load );
-//if ( Abc_ObjFaninNum(pFanout) == 0 )
-//printf( "Edge = %.2f\n", Edge );
     assert( Edge > 0 );
     return Dept + Edge;
 }
@@ -183,8 +181,12 @@ float Abc_NtkComputeNodeDeparture( Abc_Obj_t * pObj, float Slew )
     int i;
     assert( Bus_SclObjDept(pObj) == 0 );
     Abc_ObjForEachFanout( pObj, pFanout, i )
-        if ( !Abc_ObjIsCo(pFanout) ) // add required times here
+    {
+        if ( Abc_ObjIsBarBuf(pFanout) )
+            Bus_SclObjUpdateDept( pObj, Bus_SclObjDept(pFanout) );
+        else if ( !Abc_ObjIsCo(pFanout) ) // add required times here
             Bus_SclObjUpdateDept( pObj, Abc_NtkComputeEdgeDept(pFanout, Abc_NodeFindFanin(pFanout, pObj), Slew) );
+    }
     return Bus_SclObjDept( pObj );
 }
 void Abc_NtkComputeFanoutInfo( Abc_Obj_t * pObj, float Slew )
@@ -192,12 +194,19 @@ void Abc_NtkComputeFanoutInfo( Abc_Obj_t * pObj, float Slew )
     Abc_Obj_t * pFanout;
     int i;
     Abc_ObjForEachFanout( pObj, pFanout, i )
-        if ( !Abc_ObjIsCo(pFanout) )
+    {
+        if ( Abc_ObjIsBarBuf(pFanout) )
+        {
+            Bus_SclObjSetETime( pFanout, Bus_SclObjDept(pFanout) );
+            Bus_SclObjSetCin( pFanout, Bus_SclObjLoad(pFanout) );
+        }
+        else if ( !Abc_ObjIsCo(pFanout) )
         {
             int iFanin = Abc_NodeFindFanin(pFanout, pObj);
             Bus_SclObjSetETime( pFanout, Abc_NtkComputeEdgeDept(pFanout, iFanin, Slew) );
             Bus_SclObjSetCin( pFanout, SC_CellPinCap( Abc_SclObjCell(pFanout), iFanin ) );
         }
+    }
 }
 float Abc_NtkComputeNodeLoad( Bus_Man_t * p, Abc_Obj_t * pObj )
 {
@@ -407,10 +416,12 @@ void Abc_SclBufSize( Bus_Man_t * p, float Gain )
         Abc_NtkComputeFanoutInfo( pObj, p->pPars->Slew );
         Load = Abc_NtkComputeNodeLoad( p, pObj );
         // consider the gate
-        if ( Abc_ObjIsCi(pObj) )
+        if ( Abc_ObjIsCi(pObj) || Abc_ObjIsBarBuf(pObj) )
         {
             pCell = p->pPiDrive;
-            Cin = SC_CellPinCapAve( pCell );
+            // if PI driver is not given, assume Cin to be equal to Load
+            // this way, buffering of the PIs is performed
+            Cin = pCell ? SC_CellPinCapAve(pCell) : Load;
         }
         else
         {
@@ -418,7 +429,7 @@ void Abc_SclBufSize( Bus_Man_t * p, float Gain )
             Cin = SC_CellPinCapAve( pCell->pAve );
 //        Cin = SC_CellPinCapAve( pCell->pRepr->pNext );
         }
-        // consider upsizing the gate
+        // consider buffering this gate
         if ( !p->pPars->fSizeOnly && (Abc_ObjFanoutNum(pObj) > p->pPars->nDegree || Load > GainGate * Cin) )
         {
             // add one or more inverters
@@ -448,6 +459,8 @@ void Abc_SclBufSize( Bus_Man_t * p, float Gain )
         if ( Abc_ObjIsCi(pObj) )
             continue;
         Abc_NtkComputeNodeDeparture( pObj, p->pPars->Slew );
+        if ( Abc_ObjIsBarBuf(pObj) )
+            continue;
         // create cell
         pCellNew = Abc_SclFindSmallestGate( pCell, Load / GainGate );
         Abc_SclObjSetCell( pObj, pCellNew );

@@ -90,12 +90,12 @@ int Cba_ManAddBarbuf( Gia_Man_t * pNew, int iRes, Cba_Man_t * p, int iLNtk, int 
         return iRes;
     assert( iRes > 0 );
     if ( vMap && Abc_Lit2Var(iRes) < Vec_IntSize(vMap) && (iIdLit = Vec_IntEntry(vMap, Abc_Lit2Var(iRes))) >= 0 && 
-        Vec_IntEntry(p->vBuf2LeafNtk, Abc_Lit2Var(iIdLit)) == iLNtk && Vec_IntEntry(p->vBuf2RootNtk, Abc_Lit2Var(iIdLit)) == iRNtk )
+        Vec_IntEntry(&p->vBuf2LeafNtk, Abc_Lit2Var(iIdLit)) == iLNtk && Vec_IntEntry(&p->vBuf2RootNtk, Abc_Lit2Var(iIdLit)) == iRNtk )
         return Abc_LitNotCond( Vec_IntEntry(pNew->vBarBufs, Abc_Lit2Var(iIdLit)), Abc_LitIsCompl(iRes) ^ Abc_LitIsCompl(iIdLit) );
-    Vec_IntPush( p->vBuf2LeafNtk, iLNtk );
-    Vec_IntPush( p->vBuf2LeafObj, iLObj );
-    Vec_IntPush( p->vBuf2RootNtk, iRNtk );
-    Vec_IntPush( p->vBuf2RootObj, iRObj );
+    Vec_IntPush( &p->vBuf2LeafNtk, iLNtk );
+    Vec_IntPush( &p->vBuf2LeafObj, iLObj );
+    Vec_IntPush( &p->vBuf2RootNtk, iRNtk );
+    Vec_IntPush( &p->vBuf2RootObj, iRObj );
     iBufLit = Gia_ManAppendBuf( pNew, iRes );
     if ( vMap )
     {
@@ -196,14 +196,10 @@ Gia_Man_t * Cba_ManExtract( Cba_Man_t * p, int fBuffers, int fVerbose )
     Vec_Int_t * vMap = NULL;
     int i, iObj;
 
-    Vec_IntFreeP( &p->vBuf2LeafNtk );
-    Vec_IntFreeP( &p->vBuf2LeafObj );
-    Vec_IntFreeP( &p->vBuf2RootNtk );
-    Vec_IntFreeP( &p->vBuf2RootObj );
-    p->vBuf2LeafNtk = Vec_IntAlloc( 1000 );
-    p->vBuf2LeafObj = Vec_IntAlloc( 1000 );
-    p->vBuf2RootNtk = Vec_IntAlloc( 1000 );
-    p->vBuf2RootObj = Vec_IntAlloc( 1000 );
+    Vec_IntClear( &p->vBuf2LeafNtk );
+    Vec_IntClear( &p->vBuf2LeafObj );
+    Vec_IntClear( &p->vBuf2RootNtk );
+    Vec_IntClear( &p->vBuf2RootObj );
 
     Cba_ManForEachNtk( p, pNtk, i )
         Cba_NtkStartCopies(pNtk);
@@ -231,7 +227,7 @@ Gia_Man_t * Cba_ManExtract( Cba_Man_t * p, int fBuffers, int fVerbose )
     // primary outputs
     Cba_NtkForEachPo( pRoot, iObj, i )
         Gia_ManAppendCo( pNew, Cba_ObjCopy(pRoot, iObj) );
-    assert( Vec_IntSize(p->vBuf2LeafNtk) == pNew->nBufs );
+    assert( Vec_IntSize(&p->vBuf2LeafNtk) == pNew->nBufs );
 
     // cleanup
     pNew = Gia_ManCleanup( pTemp = pNew );
@@ -254,14 +250,14 @@ Gia_Man_t * Cba_ManExtract( Cba_Man_t * p, int fBuffers, int fVerbose )
 void Cba_ManMarkNodesGia( Cba_Man_t * p, Gia_Man_t * pGia )
 {
     Gia_Obj_t * pObj; int i, Count = 0;
-    assert( Vec_IntSize(p->vBuf2LeafNtk) == Gia_ManBufNum(pGia) );
+    assert( Vec_IntSize(&p->vBuf2LeafNtk) == Gia_ManBufNum(pGia) );
     Gia_ManConst0(pGia)->Value = 0;
     Gia_ManForEachPi( pGia, pObj, i )
         pObj->Value = 0;
     Gia_ManForEachAnd( pGia, pObj, i )
     {
         if ( Gia_ObjIsBuf(pObj) )
-            pObj->Value = Vec_IntEntry( p->vBuf2LeafNtk, Count++ );
+            pObj->Value = Vec_IntEntry( &p->vBuf2LeafNtk, Count++ );
         else
         {
             pObj->Value = Gia_ObjFanin0(pObj)->Value;
@@ -278,21 +274,21 @@ void Cba_ManMarkNodesGia( Cba_Man_t * p, Gia_Man_t * pGia )
 void Cba_ManRemapBarbufs( Cba_Man_t * pNew, Cba_Man_t * p )
 {
     Cba_Ntk_t * pNtk;  int Entry, i;
-    assert( p->vBuf2RootNtk != NULL );
-    assert( pNew->vBuf2RootNtk == NULL );
-    pNew->vBuf2RootNtk = Vec_IntDup( p->vBuf2RootNtk );
-    pNew->vBuf2RootObj = Vec_IntDup( p->vBuf2RootObj );
-    pNew->vBuf2LeafNtk = Vec_IntDup( p->vBuf2LeafNtk );
-    pNew->vBuf2LeafObj = Vec_IntDup( p->vBuf2LeafObj );
-    Vec_IntForEachEntry( p->vBuf2LeafObj, Entry, i )
+    assert( Vec_IntSize(&p->vBuf2RootNtk) );
+    assert( !Vec_IntSize(&pNew->vBuf2RootNtk) );
+    Vec_IntAppend( &pNew->vBuf2RootNtk, &p->vBuf2RootNtk );
+    Vec_IntAppend( &pNew->vBuf2RootObj, &p->vBuf2RootObj );
+    Vec_IntAppend( &pNew->vBuf2LeafNtk, &p->vBuf2LeafNtk );
+    Vec_IntAppend( &pNew->vBuf2LeafObj, &p->vBuf2LeafObj );
+    Vec_IntForEachEntry( &p->vBuf2LeafObj, Entry, i )
     {
-        pNtk = Cba_ManNtk( p, Vec_IntEntry(p->vBuf2LeafNtk, i) );
-        Vec_IntWriteEntry( pNew->vBuf2LeafObj, i, Cba_ObjCopy(pNtk, Entry) );
+        pNtk = Cba_ManNtk( p, Vec_IntEntry(&p->vBuf2LeafNtk, i) );
+        Vec_IntWriteEntry( &pNew->vBuf2LeafObj, i, Cba_ObjCopy(pNtk, Entry) );
     }
-    Vec_IntForEachEntry( p->vBuf2RootObj, Entry, i )
+    Vec_IntForEachEntry( &p->vBuf2RootObj, Entry, i )
     {
-        pNtk = Cba_ManNtk( p, Vec_IntEntry(p->vBuf2RootNtk, i) );
-        Vec_IntWriteEntry( pNew->vBuf2RootObj, i, Cba_ObjCopy(pNtk, Entry) );
+        pNtk = Cba_ManNtk( p, Vec_IntEntry(&p->vBuf2RootNtk, i) );
+        Vec_IntWriteEntry( &pNew->vBuf2RootObj, i, Cba_ObjCopy(pNtk, Entry) );
     }
 }
 void Cba_NtkCreateAndConnectBuffer( Gia_Man_t * pGia, Gia_Obj_t * pObj, Cba_Ntk_t * p, int iTerm )
@@ -326,13 +322,13 @@ void Cba_NtkInsertGia( Cba_Man_t * p, Gia_Man_t * pGia )
     {
         if ( Gia_ObjIsBuf(pObj) )
         {
-            pNtk = Cba_ManNtk( p, Vec_IntEntry(p->vBuf2RootNtk, Count) );
-            iTerm = Vec_IntEntry( p->vBuf2RootObj, Count );
+            pNtk = Cba_ManNtk( p, Vec_IntEntry(&p->vBuf2RootNtk, Count) );
+            iTerm = Vec_IntEntry( &p->vBuf2RootObj, Count );
             assert( Cba_ObjIsCo(pNtk, iTerm) );
             if ( Cba_ObjFanin(pNtk, iTerm) == -1 ) // not a feedthrough
                 Cba_NtkCreateAndConnectBuffer( pGia, pObj, pNtk, iTerm );
             // prepare leaf
-            pObj->Value = Vec_IntEntry( p->vBuf2LeafObj, Count++ );
+            pObj->Value = Vec_IntEntry( &p->vBuf2LeafObj, Count++ );
         }
         else
         {
@@ -424,13 +420,13 @@ static inline int Abc_NodeIsSeriousGate( Abc_Obj_t * p )
 void Cba_ManMarkNodesAbc( Cba_Man_t * p, Abc_Ntk_t * pNtk )
 {
     Abc_Obj_t * pObj, * pFanin; int i, k, Count = 0;
-    assert( Vec_IntSize(p->vBuf2LeafNtk) == pNtk->nBarBufs2 );
+    assert( Vec_IntSize(&p->vBuf2LeafNtk) == pNtk->nBarBufs2 );
     Abc_NtkForEachPi( pNtk, pObj, i )
         pObj->iTemp = 0;
     Abc_NtkForEachNode( pNtk, pObj, i )
     {
         if ( Abc_ObjIsBarBuf(pObj) )
-            pObj->iTemp = Vec_IntEntry( p->vBuf2LeafNtk, Count++ );
+            pObj->iTemp = Vec_IntEntry( &p->vBuf2LeafNtk, Count++ );
         else if ( Abc_NodeIsSeriousGate(pObj) )
         {
             pObj->iTemp = Abc_ObjFanin0(pObj)->iTemp;
@@ -505,13 +501,13 @@ void Cba_NtkInsertNtk( Cba_Man_t * p, Abc_Ntk_t * pNtk )
     {
         if ( Abc_ObjIsBarBuf(pObj) )
         {
-            pCbaNtk = Cba_ManNtk( p, Vec_IntEntry(p->vBuf2RootNtk, Count) );
-            iTerm = Vec_IntEntry( p->vBuf2RootObj, Count );
+            pCbaNtk = Cba_ManNtk( p, Vec_IntEntry(&p->vBuf2RootNtk, Count) );
+            iTerm = Vec_IntEntry( &p->vBuf2RootObj, Count );
             assert( Cba_ObjIsCo(pCbaNtk, iTerm) );
             if ( Cba_ObjFanin(pCbaNtk, iTerm) == -1 ) // not a feedthrough
                 Cba_NtkCreateOrConnectFanin( Abc_ObjFanin0(pObj), pCbaNtk, iTerm );
             // prepare leaf
-            pObj->iTemp = Vec_IntEntry( p->vBuf2LeafObj, Count++ );
+            pObj->iTemp = Vec_IntEntry( &p->vBuf2LeafObj, Count++ );
         }
         else if ( Abc_NodeIsSeriousGate(pObj) )
         {

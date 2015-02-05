@@ -1081,7 +1081,6 @@ int Abc_NtkMapToSop( Abc_Ntk_t * pNtk )
     // update the functionality manager
     assert( pNtk->pManFunc == Abc_FrameReadLibGen() );
     pNtk->pManFunc = Mem_FlexStart();
-    pNtk->ntkFunc  = ABC_FUNC_SOP;
     // update the nodes
     Abc_NtkForEachNode( pNtk, pNode, i )
     {
@@ -1091,6 +1090,7 @@ int Abc_NtkMapToSop( Abc_Ntk_t * pNtk )
         assert( Abc_SopGetVarNum(pSop) == Abc_ObjFaninNum(pNode) );
         pNode->pData = Abc_SopRegister( (Mem_Flex_t *)pNtk->pManFunc, pSop );
     }
+    pNtk->ntkFunc  = ABC_FUNC_SOP;
     return 1;
 }
 

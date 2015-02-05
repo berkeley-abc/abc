@@ -59,12 +59,9 @@ void Abc_SclMioGates2SclGates( SC_Lib * pLib, Abc_Ntk_t * p )
     // remap cells
     assert( p->vGates == NULL );
     p->vGates = Vec_IntStartFull( Abc_NtkObjNumMax(p) );
-    Abc_NtkForEachNode1( p, pObj, i )
+    Abc_NtkForEachNodeNotBarBuf1( p, pObj, i )
     {
-        if ( Abc_ObjIsBarBuf(pObj) )
-            gateId = bufferId;
-        else
-            gateId = Abc_SclCellFind( pLib, Mio_GateReadName((Mio_Gate_t *)pObj->pData) );
+        gateId = Abc_SclCellFind( pLib, Mio_GateReadName((Mio_Gate_t *)pObj->pData) );
         assert( gateId >= 0 );
         Vec_IntWriteEntry( p->vGates, i, gateId );
     }
@@ -76,14 +73,11 @@ void Abc_SclSclGates2MioGates( SC_Lib * pLib, Abc_Ntk_t * p )
     SC_Cell * pCell;
     int i, Counter = 0, CounterAll = 0;
     assert( p->vGates != NULL );
-    Abc_NtkForEachNode1( p, pObj, i )
+    Abc_NtkForEachNodeNotBarBuf1( p, pObj, i )
     {
         pCell = Abc_SclObjCell(pObj);
         assert( pCell->n_inputs == Abc_ObjFaninNum(pObj) );
-        if ( Abc_ObjIsBarBuf(pObj) )
-            pObj->pData = NULL;
-        else
-            pObj->pData = Mio_LibraryReadGateByName( (Mio_Library_t *)p->pManFunc, pCell->pName, NULL );
+        pObj->pData = Mio_LibraryReadGateByName( (Mio_Library_t *)p->pManFunc, pCell->pName, NULL );
         Counter += (pObj->pData == NULL);
         assert( pObj->fMarkA == 0 && pObj->fMarkB == 0 );
         CounterAll++;
@@ -110,11 +104,9 @@ void Abc_SclTransferGates( Abc_Ntk_t * pOld, Abc_Ntk_t * pNew )
     Abc_Obj_t * pObj; int i;
     assert( pOld->nBarBufs2 > 0 );
     assert( pNew->nBarBufs2 == 0 );
-    Abc_NtkForEachNode( pOld, pObj, i )
+    Abc_NtkForEachNodeNotBarBuf( pOld, pObj, i )
     {
         if ( pObj->pCopy == NULL )
-            continue;
-        if ( Abc_ObjIsBarBuf(pObj) )
             continue;
         assert( Abc_ObjNtk(pObj->pCopy) == pNew );
         pObj->pData = pObj->pCopy->pData;
@@ -139,7 +131,7 @@ void Abc_SclManPrintGateSizes( SC_Lib * pLib, Abc_Ntk_t * p, Vec_Int_t * vGates 
     SC_Cell * pCell;
     int i, nGates = 0, Counters[ABC_SCL_MAX_SIZE] = {0};
     double TotArea = 0, Areas[ABC_SCL_MAX_SIZE] = {0};
-    Abc_NtkForEachNode1( p, pObj, i )
+    Abc_NtkForEachNodeNotBarBuf1( p, pObj, i )
     {
         pCell = SC_LibCell( pLib, Vec_IntEntry(vGates, Abc_ObjId(pObj)) );
         assert( pCell->Order < ABC_SCL_MAX_SIZE );
@@ -216,7 +208,7 @@ void Abc_SclMinsizePerform( SC_Lib * pLib, Abc_Ntk_t * p, int fUseMax, int fVerb
     int i, gateId;
     vMinCells = Abc_SclFindMinAreas( pLib, fUseMax );
     Abc_SclMioGates2SclGates( pLib, p );
-    Abc_NtkForEachNode1( p, pObj, i )
+    Abc_NtkForEachNodeNotBarBuf1( p, pObj, i )
     {
         gateId = Vec_IntEntry( p->vGates, i );
         assert( gateId >= 0 && gateId < Vec_PtrSize(pLib->vCells) );
@@ -233,7 +225,7 @@ int Abc_SclCountMinSize( SC_Lib * pLib, Abc_Ntk_t * p, int fUseMax )
     Abc_Obj_t * pObj;
     int i, gateId, Counter = 0;
     vMinCells = Abc_SclFindMinAreas( pLib, fUseMax );
-    Abc_NtkForEachNode1( p, pObj, i )
+    Abc_NtkForEachNodeNotBarBuf1( p, pObj, i )
     {
         gateId = Vec_IntEntry( p->vGates, i );
         Counter += ( gateId == Vec_IntEntry(vMinCells, gateId) );

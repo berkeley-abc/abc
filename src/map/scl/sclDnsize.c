@@ -239,7 +239,7 @@ void Abc_SclDnsizePrint( SC_Man * p, int Iter, int nAttempts, int nOverlaps, int
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_SclDnsizePerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, SC_SizePars * pPars )
+void Abc_SclDnsizePerformInt( SC_Lib * pLib, Abc_Ntk_t * pNtk, SC_SizePars * pPars )
 {
     SC_Man * p;
     Abc_Obj_t * pObj;
@@ -344,6 +344,29 @@ void Abc_SclDnsizePerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, SC_SizePars * pPars 
     Abc_SclSclGates2MioGates( pLib, pNtk ); // updates gate pointers
     Abc_SclManFree( p );
 //    Abc_NtkCleanMarkAB( pNtk );
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_SclDnsizePerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, SC_SizePars * pPars )
+{
+    Abc_Ntk_t * pNtkNew = pNtk;
+    if ( pNtk->nBarBufs2 > 0 )
+        pNtkNew = Abc_NtkDupDfsNoBarBufs( pNtk );
+    Abc_SclDnsizePerformInt( pLib, pNtkNew, pPars );
+    if ( pNtk->nBarBufs2 > 0 )
+        Abc_SclTransferGates( pNtk, pNtkNew );
+    if ( pNtk->nBarBufs2 > 0 )
+        Abc_NtkDelete( pNtkNew );
 }
 
 ////////////////////////////////////////////////////////////////////////

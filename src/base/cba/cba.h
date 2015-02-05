@@ -157,10 +157,10 @@ struct Cba_Man_t_
     int          nNtks;    // number of current networks
     Cba_Ntk_t *  pNtks;    // networks
     // user data
-    Vec_Int_t *  vBuf2RootNtk;
-    Vec_Int_t *  vBuf2RootObj;
-    Vec_Int_t *  vBuf2LeafNtk;
-    Vec_Int_t *  vBuf2LeafObj;
+    Vec_Int_t    vBuf2RootNtk;
+    Vec_Int_t    vBuf2RootObj;
+    Vec_Int_t    vBuf2LeafNtk;
+    Vec_Int_t    vBuf2LeafObj;
     void *       pMioLib;
     void **      ppGraphs;
     int          ElemGates[4];
@@ -574,10 +574,10 @@ static inline void Cba_ManFree( Cba_Man_t * p )
     Cba_Ntk_t * pNtk; int i;
     Cba_ManForEachNtk( p, pNtk, i )
         Cba_NtkFree( pNtk );
-    Vec_IntFreeP( &p->vBuf2LeafNtk );
-    Vec_IntFreeP( &p->vBuf2LeafObj );
-    Vec_IntFreeP( &p->vBuf2RootNtk );
-    Vec_IntFreeP( &p->vBuf2RootObj );
+    Vec_IntErase( &p->vBuf2LeafNtk );
+    Vec_IntErase( &p->vBuf2LeafObj );
+    Vec_IntErase( &p->vBuf2RootNtk );
+    Vec_IntErase( &p->vBuf2RootObj );
     Abc_NamDeref( p->pStrs );
     Abc_NamDeref( p->pMods );
     ABC_FREE( p->pName );

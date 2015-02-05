@@ -430,7 +430,7 @@ static inline int Abc_SclGetBufInvCount( Abc_Ntk_t * pNtk )
 {
     Abc_Obj_t * pObj;
     int i, Count = 0;
-    Abc_NtkForEachNode( pNtk, pObj, i )
+    Abc_NtkForEachNodeNotBarBuf1( pNtk, pObj, i )
         Count += (Abc_ObjFaninNum(pObj) == 1);
     return Count;
 }
@@ -439,7 +439,7 @@ static inline float Abc_SclGetAverageSize( Abc_Ntk_t * pNtk )
     Abc_Obj_t * pObj;
     double Total = 0;
     int i, Count = 0;
-    Abc_NtkForEachNode1( pNtk, pObj, i )
+    Abc_NtkForEachNodeNotBarBuf1( pNtk, pObj, i )
         Count++, Total += 100.0*Abc_SclObjCell(pObj)->Order/Abc_SclObjCell(pObj)->nGates;
     return (float)(Total / Count);
 }
@@ -448,7 +448,7 @@ static inline float Abc_SclGetTotalArea( Abc_Ntk_t * pNtk )
     double Area = 0;
     Abc_Obj_t * pObj;
     int i;
-    Abc_NtkForEachNode1( pNtk, pObj, i )
+    Abc_NtkForEachNodeNotBarBuf1( pNtk, pObj, i )
         Area += Abc_SclObjCell(pObj)->area;
     return Area;
 }

@@ -377,7 +377,7 @@ Abc_Obj_t * Abc_NtkDupObj( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pObj, int fCopyName 
             else if ( Abc_NtkHasAig(pNtkNew) )
                 pObjNew->pData = Hop_Transfer((Hop_Man_t *)pObj->pNtk->pManFunc, (Hop_Man_t *)pNtkNew->pManFunc, (Hop_Obj_t *)pObj->pData, Abc_ObjFaninNum(pObj));
             else if ( Abc_NtkHasMapping(pNtkNew) )
-                pObjNew->pData = pObj->pData;
+                pObjNew->pData = pObj->pData, pNtkNew->nBarBufs2 += !pObj->pData;
             else assert( 0 );
         }
     }

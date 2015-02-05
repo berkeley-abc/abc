@@ -668,7 +668,7 @@ SC_Man * Abc_SclManStart( SC_Lib * pLib, Abc_Ntk_t * pNtk, int fUseWireLoads, in
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_SclTimePerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, int nTreeCRatio, int fUseWireLoads, int fShowAll, int fPrintPath, int fDumpStats )
+void Abc_SclTimePerformInt( SC_Lib * pLib, Abc_Ntk_t * pNtk, int nTreeCRatio, int fUseWireLoads, int fShowAll, int fPrintPath, int fDumpStats )
 {
     SC_Man * p;
     p = Abc_SclManStart( pLib, pNtk, fUseWireLoads, 1, 0, nTreeCRatio );
@@ -676,6 +676,27 @@ void Abc_SclTimePerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, int nTreeCRatio, int f
     if ( fDumpStats )
         Abc_SclDumpStats( p, "stats.txt", 0 );
     Abc_SclManFree( p );
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_SclTimePerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, int nTreeCRatio, int fUseWireLoads, int fShowAll, int fPrintPath, int fDumpStats )
+{
+    Abc_Ntk_t * pNtkNew = pNtk;
+    if ( pNtk->nBarBufs2 > 0 )
+        pNtkNew = Abc_NtkDupDfsNoBarBufs( pNtk );
+    Abc_SclTimePerformInt( pLib, pNtkNew, nTreeCRatio, fUseWireLoads, fShowAll, fPrintPath, fDumpStats );
+    if ( pNtk->nBarBufs2 > 0 )
+        Abc_NtkDelete( pNtkNew );
 }
 
 

@@ -1073,7 +1073,7 @@ void Abc_NtkPrintGates( Abc_Ntk_t * pNtk, int fUseLibrary )
 
         // count the gates by name
         CounterTotal = 0;
-        Abc_NtkForEachNode( pNtk, pObj, i )
+        Abc_NtkForEachNodeNotBarBuf( pNtk, pObj, i )
         {
             if ( i == 0 ) continue;
             Mio_GateSetValue( (Mio_Gate_t *)pObj->pData, 1 + Mio_GateReadValue((Mio_Gate_t *)pObj->pData) );
@@ -1128,7 +1128,7 @@ void Abc_NtkPrintGates( Abc_Ntk_t * pNtk, int fUseLibrary )
 
     // get hold of the SOP of the node
     CountConst = CountBuf = CountInv = CountAnd = CountOr = CountOther = CounterTotal = 0;
-    Abc_NtkForEachNode( pNtk, pObj, i )
+    Abc_NtkForEachNodeNotBarBuf( pNtk, pObj, i )
     {
         if ( i == 0 ) continue;
         if ( Abc_NtkHasMapping(pNtk) )

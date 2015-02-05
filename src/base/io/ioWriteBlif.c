@@ -615,9 +615,18 @@ int Io_NtkWriteNode( FILE * pFile, Abc_Obj_t * pNode, int Length )
     if ( Abc_NtkHasMapping(pNode->pNtk) )
     {
         // write the .gate line
-        fprintf( pFile, ".gate" );
-        RetValue = Io_NtkWriteNodeGate( pFile, pNode, Length );
-        fprintf( pFile, "\n" );
+        if ( Abc_ObjIsBarBuf(pNode) )
+        {
+            fprintf( pFile, ".barbuf " );
+            fprintf( pFile, "%s %s", Abc_ObjName(Abc_ObjFanin0(pNode)), Abc_ObjName(Abc_ObjFanout0(pNode)) );
+            fprintf( pFile, "\n" );
+        }
+        else
+        {
+            fprintf( pFile, ".gate" );
+            RetValue = Io_NtkWriteNodeGate( pFile, pNode, Length );
+            fprintf( pFile, "\n" );
+        }
     }
     else
     {

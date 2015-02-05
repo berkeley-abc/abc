@@ -358,7 +358,7 @@ static inline int         Abc_ObjIsLatch( Abc_Obj_t * pObj )         { return pO
 static inline int         Abc_ObjIsBox( Abc_Obj_t * pObj )           { return pObj->Type == ABC_OBJ_LATCH || pObj->Type == ABC_OBJ_WHITEBOX || pObj->Type == ABC_OBJ_BLACKBOX; }
 static inline int         Abc_ObjIsWhitebox( Abc_Obj_t * pObj )      { return pObj->Type == ABC_OBJ_WHITEBOX;}
 static inline int         Abc_ObjIsBlackbox( Abc_Obj_t * pObj )      { return pObj->Type == ABC_OBJ_BLACKBOX;}
-static inline int         Abc_ObjIsBarBuf( Abc_Obj_t * pObj )        { return Abc_NtkIsLogic(pObj->pNtk) && Abc_ObjIsNode(pObj) && Vec_IntSize(&pObj->vFanins) == 1 && pObj->pData == NULL;  }
+static inline int         Abc_ObjIsBarBuf( Abc_Obj_t * pObj )        { return Abc_NtkHasMapping(pObj->pNtk) && Abc_ObjIsNode(pObj) && Vec_IntSize(&pObj->vFanins) == 1 && pObj->pData == NULL;  }
 static inline void        Abc_ObjBlackboxToWhitebox( Abc_Obj_t * pObj ) { assert( Abc_ObjIsBlackbox(pObj) ); pObj->Type = ABC_OBJ_WHITEBOX; pObj->pNtk->nObjCounts[ABC_OBJ_BLACKBOX]--; pObj->pNtk->nObjCounts[ABC_OBJ_WHITEBOX]++; }
 
 // working with fanin/fanout edges
