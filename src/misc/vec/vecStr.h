@@ -553,6 +553,13 @@ static inline void Vec_StrPush( Vec_Str_t * p, char Entry )
     }
     p->pArray[p->nSize++] = Entry;
 }
+static inline void Vec_StrPushBuffer( Vec_Str_t * p, char * pBuffer, int nSize )
+{
+    if ( p->nSize + nSize > p->nCap )
+        Vec_StrGrow( p, 2 * (p->nSize + nSize) );
+    memcpy( p->pArray + p->nSize, pBuffer, nSize );
+    p->nSize += nSize;
+}
 
 /**Function*************************************************************
 

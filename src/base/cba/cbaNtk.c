@@ -264,7 +264,7 @@ Cba_Man_t * Cba_ManCollapseInt( Cba_Man_t * p )
     assert( Vec_IntSize(vSigs) == Cba_NtkPoNum(pRoot) );
     Cba_NtkForEachPo( pRoot, iObj, i )
         Cba_ObjAlloc( pRootNew, CBA_OBJ_PO, i, Vec_IntEntry(vSigs, i) );
-    assert( Cba_NtkObjNum(pRootNew) == Cba_NtkAllocNum(pRootNew) );
+    assert( Cba_NtkObjNum(pRootNew) == Cba_NtkObjNumAlloc(pRootNew) );
     Vec_IntFree( vSigs );
     // transfer PI/PO names
     Cba_NtkStartNames( pRootNew );

@@ -172,7 +172,7 @@ int Cba_CommandRead( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( (pFile = fopen( pFileName, "r" )) == NULL )
     {
         Abc_Print( 1, "Cannot open input file \"%s\". ", pFileName );
-        if ( (pFileName = Extra_FileGetSimilarName( pFileName, ".v", ".blif", NULL, NULL, NULL )) )
+        if ( (pFileName = Extra_FileGetSimilarName( pFileName, ".v", ".blif", ".smt", ".cba", NULL )) )
             Abc_Print( 1, "Did you mean \"%s\"?", pFileName );
         Abc_Print( 1, "\n" );
         return 0;
@@ -206,6 +206,17 @@ int Cba_CommandRead( Abc_Frame_t * pAbc, int argc, char ** argv )
         if ( vDes && Vec_PtrSize(vDes) )
             p = Prs_ManBuildCba( pFileName, vDes );
         Prs_ManVecFree( vDes );
+    }
+    else if ( !strcmp( Extra_FileNameExtension(pFileName), "smt" )  )
+    {
+        vDes = Prs_ManReadSmt( pFileName );
+        if ( vDes && Vec_PtrSize(vDes) )
+            p = Prs_ManBuildCba( pFileName, vDes );
+        Prs_ManVecFree( vDes );
+    }
+    else if ( !strcmp( Extra_FileNameExtension(pFileName), "cba" )  )
+    {
+        p = Cba_ManReadCba( pFileName );
     }
     else assert( 0 );
     Cba_AbcUpdateMan( pAbc, p );
@@ -268,6 +279,8 @@ int Cba_CommandWrite( Abc_Frame_t * pAbc, int argc, char ** argv )
         Cba_ManWriteBlif( pFileName, p );
     else if ( !strcmp( Extra_FileNameExtension(pFileName), "v" )  )
         Cba_ManWriteVerilog( pFileName, p );
+    else if ( !strcmp( Extra_FileNameExtension(pFileName), "cba" )  )
+        Cba_ManWriteCba( pFileName, p );
     else 
     {
         printf( "Unrecognized output file extension.\n" );

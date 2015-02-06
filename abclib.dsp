@@ -783,6 +783,10 @@ SOURCE=.\src\base\cba\cbaBlast.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\base\cba\cbaCba.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\base\cba\cbaCom.c
 # End Source File
 # Begin Source File
@@ -819,11 +823,19 @@ SOURCE=.\src\base\cba\cbaReadBlif.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\base\cba\cbaReadSmt.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\base\cba\cbaReadVer.c
 # End Source File
 # Begin Source File
 
 SOURCE=.\src\base\cba\cbaWriteBlif.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\cba\cbaWriteSmt.c
 # End Source File
 # Begin Source File
 
