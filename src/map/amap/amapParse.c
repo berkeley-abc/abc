@@ -30,8 +30,8 @@ ABC_NAMESPACE_IMPL_START
 ////////////////////////////////////////////////////////////////////////
 
 // the list of operation symbols to be used in expressions
-#define AMAP_EQN_SYM_OPEN    '('   // opening paranthesis
-#define AMAP_EQN_SYM_CLOSE   ')'   // closing paranthesis
+#define AMAP_EQN_SYM_OPEN    '('   // opening parenthesis
+#define AMAP_EQN_SYM_CLOSE   ')'   // closing parenthesis
 #define AMAP_EQN_SYM_CONST0  '0'   // constant 0
 #define AMAP_EQN_SYM_CONST1  '1'   // constant 1
 #define AMAP_EQN_SYM_NEG     '!'   // negation before the variable
@@ -47,7 +47,7 @@ ABC_NAMESPACE_IMPL_START
 #define AMAP_EQN_OPER_AND     9    // logic AND
 #define AMAP_EQN_OPER_XOR     8    // logic XOR
 #define AMAP_EQN_OPER_OR      7    // logic OR
-#define AMAP_EQN_OPER_MARK    1    // OpStack token standing for an opening paranthesis
+#define AMAP_EQN_OPER_MARK    1    // OpStack token standing for an opening parenthesis
 
 // these are values of the internal Flag
 #define AMAP_EQN_FLAG_START   1    // after the opening parenthesis 
@@ -114,7 +114,7 @@ Hop_Obj_t * Amap_ParseFormula( FILE * pOutput, char * pFormInit, Vec_Ptr_t * vVa
     int Oper, Oper1, Oper2;
     int i, v;
 
-    // make sure that the number of opening and closing parantheses is the same
+    // make sure that the number of opening and closing parentheses is the same
     nParans = 0;
     for ( pTemp = pFormInit; *pTemp; pTemp++ )
         if ( *pTemp == '(' )
@@ -123,7 +123,7 @@ Hop_Obj_t * Amap_ParseFormula( FILE * pOutput, char * pFormInit, Vec_Ptr_t * vVa
             nParans--;
     if ( nParans != 0 )
     {
-        fprintf( pOutput, "Amap_ParseFormula(): Different number of opening and closing parantheses ().\n" );
+        fprintf( pOutput, "Amap_ParseFormula(): Different number of opening and closing parentheses ().\n" );
         return NULL;
     }
 
@@ -207,7 +207,7 @@ Hop_Obj_t * Amap_ParseFormula( FILE * pOutput, char * pFormInit, Vec_Ptr_t * vVa
             if ( Flag == AMAP_EQN_FLAG_VAR )
             {
                 Vec_IntPush( pStackOp, AMAP_EQN_OPER_AND );
-//                fprintf( pOutput, "Amap_ParseFormula(): An opening paranthesis follows a var without operation sign.\n" ); 
+//                fprintf( pOutput, "Amap_ParseFormula(): An opening parenthesis follows a var without operation sign.\n" ); 
 //                Flag = AMAP_EQN_FLAG_ERROR; 
 //              break; 
             }
@@ -222,7 +222,7 @@ Hop_Obj_t * Amap_ParseFormula( FILE * pOutput, char * pFormInit, Vec_Ptr_t * vVa
                 {
                     if ( Vec_IntSize( pStackOp ) == 0 )
                     {
-                        fprintf( pOutput, "Amap_ParseFormula(): There is no opening paranthesis\n" );
+                        fprintf( pOutput, "Amap_ParseFormula(): There is no opening parenthesis\n" );
                         Flag = AMAP_EQN_FLAG_ERROR; 
                         break;
                     }
@@ -243,7 +243,7 @@ Hop_Obj_t * Amap_ParseFormula( FILE * pOutput, char * pFormInit, Vec_Ptr_t * vVa
             }
             else
             {
-                fprintf( pOutput, "Amap_ParseFormula(): There is no opening paranthesis\n" );
+                fprintf( pOutput, "Amap_ParseFormula(): There is no opening parenthesis\n" );
                 Flag = AMAP_EQN_FLAG_ERROR; 
                 break;
             }
@@ -262,7 +262,7 @@ Hop_Obj_t * Amap_ParseFormula( FILE * pOutput, char * pFormInit, Vec_Ptr_t * vVa
               {
                     if ( pTemp[i] == AMAP_EQN_SYM_NEG || pTemp[i] == AMAP_EQN_SYM_OPEN )
                     {
-                        fprintf( pOutput, "Amap_ParseFormula(): The negation sign or an opening paranthesis inside the variable name.\n" );
+                        fprintf( pOutput, "Amap_ParseFormula(): The negation sign or an opening parenthesis inside the variable name.\n" );
                         Flag = AMAP_EQN_FLAG_ERROR; 
                         break;
                     }

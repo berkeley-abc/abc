@@ -24,11 +24,11 @@
     and underscores: For example: 1) a&b <+> c'&d => a + b;   
     2) a1 b2 c3' dummy' + (a2+b2')c3 dummy
  2) Constant values 0 and 1 can be used just like normal variables
- 3) Any boolean operator (listed below) and parantheses can be used
+ 3) Any boolean operator (listed below) and parentheses can be used
     any number of times provided there are equal number of opening
-    and closing parantheses.
+    and closing parentheses.
  4) By default, absence of an operator between vars and before and 
-    after parantheses is taken for AND. 
+    after parentheses is taken for AND. 
  5) Both complementation prefix and complementation suffix can be 
     used at the same time (but who needs this?)
  6) Spaces (tabs, end-of-lines) may be inserted anywhere,
@@ -47,8 +47,8 @@ ABC_NAMESPACE_IMPL_START
 
 
 // the list of operation symbols to be used in expressions
-#define PARSE_SYM_OPEN    '('   // opening paranthesis
-#define PARSE_SYM_CLOSE   ')'   // closing paranthesis
+#define PARSE_SYM_OPEN    '('   // opening parenthesis
+#define PARSE_SYM_CLOSE   ')'   // closing parenthesis
 #define PARSE_SYM_LOWER   '['   // shifts one rank down 
 #define PARSE_SYM_RAISE   ']'   // shifts one rank up
 #define PARSE_SYM_CONST0  '0'   // constant 0
@@ -81,7 +81,7 @@ ABC_NAMESPACE_IMPL_START
 #define PARSE_OPER_EQU  6  // equvalence   (a'b'| ab )
 #define PARSE_OPER_FLR  5  // implication  ( a' | b )
 #define PARSE_OPER_FLL  4  // backward imp ( 'b | a )
-#define PARSE_OPER_MARK 1  // OpStack token standing for an opening paranthesis
+#define PARSE_OPER_MARK 1  // OpStack token standing for an opening parenthesis
 
 // these are values of the internal Flag
 #define PARSE_FLAG_START  1 // after the opening parenthesis 
@@ -133,7 +133,7 @@ DdNode * Parse_FormulaParser( FILE * pOutput, char * pFormulaInit, int nVars, in
         return NULL;
     }
 
-    // make sure that the number of opening and closing parantheses is the same
+    // make sure that the number of opening and closing parentheses is the same
     nParans = 0;
     for ( pTemp = pFormulaInit; *pTemp; pTemp++ )
         if ( *pTemp == '(' )
@@ -142,7 +142,7 @@ DdNode * Parse_FormulaParser( FILE * pOutput, char * pFormulaInit, int nVars, in
             nParans--;
     if ( nParans != 0 )
     {
-        fprintf( pOutput, "Parse_FormulaParser(): Different number of opening and closing parantheses ().\n" );
+        fprintf( pOutput, "Parse_FormulaParser(): Different number of opening and closing parentheses ().\n" );
         return NULL;
     }
 
@@ -326,7 +326,7 @@ DdNode * Parse_FormulaParser( FILE * pOutput, char * pFormulaInit, int nVars, in
                 {
                     if ( Parse_StackOpIsEmpty( pStackOp ) )
                     {
-                        fprintf( pOutput, "Parse_FormulaParser(): There is no opening paranthesis\n" );
+                        fprintf( pOutput, "Parse_FormulaParser(): There is no opening parenthesis\n" );
                         Flag = PARSE_FLAG_ERROR; 
                         break;
                     }
@@ -353,7 +353,7 @@ DdNode * Parse_FormulaParser( FILE * pOutput, char * pFormulaInit, int nVars, in
             }
             else
             {
-                fprintf( pOutput, "Parse_FormulaParser(): There is no opening paranthesis\n" );
+                fprintf( pOutput, "Parse_FormulaParser(): There is no opening parenthesis\n" );
                 Flag = PARSE_FLAG_ERROR; 
                 break;
             }

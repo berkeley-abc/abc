@@ -219,7 +219,7 @@ int Io_NtkWriteEqnCheck( Abc_Ntk_t * pNtk )
     int i, k, Length;
     int RetValue = 1;
 
-    // make sure the network does not have proper names, such as "0" or "1" or containing parantheses
+    // make sure the network does not have proper names, such as "0" or "1" or containing parentheses
     Abc_NtkForEachObj( pNtk, pObj, i )
     {
         pName = Nm_ManFindNameById(pNtk->pManName, i);

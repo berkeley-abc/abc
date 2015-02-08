@@ -193,7 +193,7 @@ static inline char * Wlc_PrsFindSymbolTwo( char * pStr, char Symb, char Symb2 )
             return pStr;
     return NULL;
 }
-static inline char * Wlc_PrsFindClosingParanthesis( char * pStr, char Open, char Close )
+static inline char * Wlc_PrsFindClosingParenthesis( char * pStr, char Open, char Close )
 {
     int Counter = 0;
     int fNotName = 1;
@@ -624,18 +624,18 @@ static inline int Wlc_PrsFindDefinition( Wlc_Prs_t * p, char * pStr, Vec_Int_t *
         if ( Wlc_PrsFindSymbolTwo(pStr, '>', '>') && Wlc_PrsFindSymbolTwo(pStr, '<', '<') )
         {
             // THIS IS A HACK TO DETECT rotating shifters
-            char * pClose = Wlc_PrsFindClosingParanthesis( pStr, '(', ')' );
+            char * pClose = Wlc_PrsFindClosingParenthesis( pStr, '(', ')' );
             if ( pClose == NULL )
-                return Wlc_PrsWriteErrorMessage( p, pStr, "Expecting closing paranthesis." );
+                return Wlc_PrsWriteErrorMessage( p, pStr, "Expecting closing parenthesis." );
             *pStr = ' '; *pClose = 0;
             pStr = Wlc_PrsSkipSpaces( pStr );
             fRotating = 1;
         }
         else
         {
-            char * pClose = Wlc_PrsFindClosingParanthesis( pStr, '(', ')' );
+            char * pClose = Wlc_PrsFindClosingParenthesis( pStr, '(', ')' );
             if ( pClose == NULL )
-                return Wlc_PrsWriteErrorMessage( p, pStr, "Expecting closing paranthesis." );
+                return Wlc_PrsWriteErrorMessage( p, pStr, "Expecting closing parenthesis." );
             *pStr = *pClose = ' ';
             pStr = Wlc_PrsSkipSpaces( pStr );
         }
@@ -655,13 +655,13 @@ static inline int Wlc_PrsFindDefinition( Wlc_Prs_t * p, char * pStr, Vec_Int_t *
         else if ( pStr[0] == '~' )
             Type = WLC_OBJ_BIT_NOT;
         else assert( 0 );
-        // skip parantheses
+        // skip parentheses
         pStr = Wlc_PrsSkipSpaces( pStr+1 );
         if ( pStr[0] == '(' )
         {
-            char * pClose = Wlc_PrsFindClosingParanthesis( pStr, '(', ')' );
+            char * pClose = Wlc_PrsFindClosingParenthesis( pStr, '(', ')' );
             if ( pClose == NULL )
-                return Wlc_PrsWriteErrorMessage( p, pStr, "Expecting closing paranthesis." );
+                return Wlc_PrsWriteErrorMessage( p, pStr, "Expecting closing parenthesis." );
             *pStr = *pClose = ' ';
         }
         if ( !(pStr = Wlc_PrsReadName(p, pStr, vFanins)) )
@@ -1097,7 +1097,7 @@ startword:
                 fFlopOut = (pStart[0] == 'q');
                 pStart = Wlc_PrsFindSymbol( pStart, '(' );
                 if ( pStart == NULL )
-                    return Wlc_PrsWriteErrorMessage( p, pStart, "Cannot read opening paranthesis in the flop description." );
+                    return Wlc_PrsWriteErrorMessage( p, pStart, "Cannot read opening parenthesis in the flop description." );
                 pStart = Wlc_PrsFindName( pStart+1, &pName );
                 if ( pStart == NULL )
                     return Wlc_PrsWriteErrorMessage( p, pStart, "Cannot read name inside flop description." );

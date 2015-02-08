@@ -706,7 +706,7 @@ usage:
     fprintf( pAbc->Err, "\t          (in this case CA=11001010 is truth table of MUX(Data0,Data1,Ctrl))\n" );
     fprintf( pAbc->Err, "\t          The lower chars (a,b,c,etc) are reserved for elementary variables.\n" );
     fprintf( pAbc->Err, "\t          The upper chars (A,B,C,etc) are reserved for hexadecimal digits.\n" );
-    fprintf( pAbc->Err, "\t          No spaces are allowed in formulas. In parantheses, LSB goes first.\n" );
+    fprintf( pAbc->Err, "\t          No spaces are allowed in formulas. In parentheses, LSB goes first.\n" );
     return 1;
 }
 

@@ -233,7 +233,7 @@ int Ifn_ManStrCheck( char * pStr, int * pnInps, int * pnObjs )
     *pnObjs = MaxVar + 1 + nNodes;
     return 1;
 }
-static inline char * Ifn_NtkParseFindClosingParanthesis( char * pStr, char Open, char Close )
+static inline char * Ifn_NtkParseFindClosingParenthesis( char * pStr, char Open, char Close )
 {
     int Counter = 0;
     assert( *pStr == Open );
@@ -253,7 +253,7 @@ int Ifn_NtkParseInt_rec( char * pStr, Ifn_Ntk_t * p, char ** ppFinal, int * piNo
     Ifn_Obj_t * pObj;
     int nFanins = 0, pFanins[IFN_INS];
     int Type = Inf_ManOpenSymb( pStr );
-    char * pLim = Ifn_NtkParseFindClosingParanthesis( pStr++, Ifn_Symbs[Type][0], Ifn_Symbs[Type][1] );
+    char * pLim = Ifn_NtkParseFindClosingParenthesis( pStr++, Ifn_Symbs[Type][0], Ifn_Symbs[Type][1] );
     *ppFinal = NULL;
     if ( pLim == NULL )
         return Ifn_ErrorMessage( "For symbol \'%c\' cannot find matching symbol \'%c\'.\n", Ifn_Symbs[Type][0], Ifn_Symbs[Type][1] );

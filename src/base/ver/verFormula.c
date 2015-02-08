@@ -28,8 +28,8 @@ ABC_NAMESPACE_IMPL_START
 ////////////////////////////////////////////////////////////////////////
 
 // the list of operation symbols to be used in expressions
-#define VER_PARSE_SYM_OPEN    '('   // opening paranthesis
-#define VER_PARSE_SYM_CLOSE   ')'   // closing paranthesis
+#define VER_PARSE_SYM_OPEN    '('   // opening parenthesis
+#define VER_PARSE_SYM_CLOSE   ')'   // closing parenthesis
 #define VER_PARSE_SYM_CONST0  '0'   // constant 0
 #define VER_PARSE_SYM_CONST1  '1'   // constant 1
 #define VER_PARSE_SYM_NEGBEF1 '!'   // negation before the variable
@@ -47,7 +47,7 @@ ABC_NAMESPACE_IMPL_START
 #define VER_PARSE_OPER_OR      4    // logic OR
 #define VER_PARSE_OPER_EQU     3    // equvalence   (a'b'| ab )
 #define VER_PARSE_OPER_MUX     2    // MUX(a,b,c)   (ab | a'c )
-#define VER_PARSE_OPER_MARK    1    // OpStack token standing for an opening paranthesis
+#define VER_PARSE_OPER_MARK    1    // OpStack token standing for an opening parenthesis
 
 // these are values of the internal Flag
 #define VER_PARSE_FLAG_START   1    // after the opening parenthesis 
@@ -91,7 +91,7 @@ void * Ver_FormulaParser( char * pFormula, void * pMan, Vec_Ptr_t * vNames, Vec_
     if ( !strcmp(pFormula, "1") || !strcmp(pFormula, "1\'b1") )
         return Hop_ManConst1((Hop_Man_t *)pMan);
 
-    // make sure that the number of opening and closing parantheses is the same
+    // make sure that the number of opening and closing parentheses is the same
     nParans = 0;
     for ( pTemp = pFormula; *pTemp; pTemp++ )
         if ( *pTemp == '(' )
@@ -100,11 +100,11 @@ void * Ver_FormulaParser( char * pFormula, void * pMan, Vec_Ptr_t * vNames, Vec_
             nParans--;
     if ( nParans != 0 )
     {
-        sprintf( pErrorMessage, "Parse_FormulaParser(): Different number of opening and closing parantheses ()." );
+        sprintf( pErrorMessage, "Parse_FormulaParser(): Different number of opening and closing parentheses ()." );
         return NULL;
     }
  
-    // add parantheses
+    // add parentheses
     pTemp = pFormula + strlen(pFormula) + 2;
     *pTemp-- = 0; *pTemp = ')';
     while ( --pTemp != pFormula )
@@ -186,7 +186,7 @@ void * Ver_FormulaParser( char * pFormula, void * pMan, Vec_Ptr_t * vNames, Vec_
         case VER_PARSE_SYM_OPEN:
             if ( Flag == VER_PARSE_FLAG_VAR )
             {
-                sprintf( pErrorMessage, "Parse_FormulaParser(): Variable before a paranthesis." );
+                sprintf( pErrorMessage, "Parse_FormulaParser(): Variable before a parenthesis." );
                 Flag = VER_PARSE_FLAG_ERROR; 
                 break;
             }
@@ -202,7 +202,7 @@ void * Ver_FormulaParser( char * pFormula, void * pMan, Vec_Ptr_t * vNames, Vec_
                 {
                     if ( !Vec_IntSize( vStackOp ) )
                     {
-                        sprintf( pErrorMessage, "Parse_FormulaParser(): There is no opening paranthesis\n" );
+                        sprintf( pErrorMessage, "Parse_FormulaParser(): There is no opening parenthesis\n" );
                         Flag = VER_PARSE_FLAG_ERROR; 
                         break;
                     }
@@ -226,7 +226,7 @@ void * Ver_FormulaParser( char * pFormula, void * pMan, Vec_Ptr_t * vNames, Vec_
             }
             else
             {
-                sprintf( pErrorMessage, "Parse_FormulaParser(): There is no opening paranthesis\n" );
+                sprintf( pErrorMessage, "Parse_FormulaParser(): There is no opening parenthesis\n" );
                 Flag = VER_PARSE_FLAG_ERROR; 
                 break;
             }

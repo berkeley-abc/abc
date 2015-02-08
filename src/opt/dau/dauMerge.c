@@ -264,7 +264,7 @@ static inline void Dau_DsdMergeInlineDefinitions( char * pDsd, int * pMatches, D
 
 /**Function*************************************************************
 
-  Synopsis    [Computes independence status for each opening paranthesis.]
+  Synopsis    [Computes independence status for each opening parenthesis.]
 
   Description []
                

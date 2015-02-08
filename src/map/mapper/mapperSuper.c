@@ -149,7 +149,7 @@ int Map_LibraryReadFile( Map_SuperLib_t * pLib, FILE * pFile )
         // get the gate
         pGate = Map_LibraryReadGate( pLib, pTemp, pLib->nVarsMax );
         assert( pGate->Num == nCounter + 1 );
-        // count the number of parantheses in the formula - this is the number of gates
+        // count the number of parentheses in the formula - this is the number of gates
         for ( pTemp = pGate->pFormula; *pTemp; pTemp++ )
             pGate->nGates += (*pTemp == '(');
         // verify the truth table
@@ -261,7 +261,7 @@ char * Map_LibraryReadFormulaStep( char * pFormula, char * pStrings[], int * pnS
     // skip leading spaces
     for ( pName = pFormula; *pName && *pName == ' '; pName++ );
     assert( *pName );
-    // find the first opening paranthesis
+    // find the first opening parenthesis
     for ( pPar1 = pName; *pPar1 && *pPar1 != '('; pPar1++ );
     if ( *pPar1 == 0 )
     {
@@ -271,7 +271,7 @@ char * Map_LibraryReadFormulaStep( char * pFormula, char * pStrings[], int * pnS
     // overwrite it with space
     assert( *pPar1 == '(' );
     *pPar1 = 0;
-    // find the corresponding closing paranthesis
+    // find the corresponding closing parenthesis
     for ( CountPars = 1, pPar2 = pPar1 + 1; *pPar2 && CountPars; pPar2++ )
         if ( *pPar2 == '(' )
             CountPars++;

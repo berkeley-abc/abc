@@ -412,7 +412,7 @@ int Ver_ParseModule( Ver_Man_t * pMan )
     // get the network with this name
     pNtk = Ver_ParseFindOrCreateNetwork( pMan, pWord );
 
-    // make sure we stopped at the opening paranthesis
+    // make sure we stopped at the opening parenthesis
     if ( Ver_StreamPopChar(p) != '(' )
     {
         sprintf( pMan->sError, "Cannot find \"(\" after \"module\" in network %s.", pNtk->pName );
@@ -420,7 +420,7 @@ int Ver_ParseModule( Ver_Man_t * pMan )
         return 0;
     }
 
-    // skip to the end of parantheses
+    // skip to the end of parentheses
     do {
         if ( Ver_ParseGetName( pMan ) == NULL )
             return 0;
@@ -432,7 +432,7 @@ int Ver_ParseModule( Ver_Man_t * pMan )
     Symbol = Ver_StreamPopChar(p);
     if ( Symbol != ';' )
     {
-        sprintf( pMan->sError, "Expected closing paranthesis after \"module\"." );
+        sprintf( pMan->sError, "Expected closing parenthesis after \"module\"." );
         Ver_ParsePrintErrorMessage( pMan );
         return 0;
     }
@@ -654,7 +654,7 @@ int Ver_ParseSignalPrefix( Ver_Man_t * pMan, char ** ppWord, int * pnMsb, int * 
     {
         assert( *pWord == ':' );
         nLsb = atoi( pWord + 1 );
-        // find the closing paranthesis
+        // find the closing parenthesis
         while ( *pWord && *pWord != ']' )
             pWord++;
         if ( *pWord == 0 )
@@ -1340,7 +1340,7 @@ int Ver_ParseGateStandard( Ver_Man_t * pMan, Abc_Ntk_t * pNtk, Ver_GateType_t Ga
     // this is gate name - throw it away
     if ( Ver_StreamPopChar(p) != '(' )
     {
-        sprintf( pMan->sError, "Cannot parse a standard gate (expected opening paranthesis)." );
+        sprintf( pMan->sError, "Cannot parse a standard gate (expected opening parenthesis)." );
         Ver_ParsePrintErrorMessage( pMan );
         return 0;
     }
@@ -1377,7 +1377,7 @@ int Ver_ParseGateStandard( Ver_Man_t * pMan, Abc_Ntk_t * pNtk, Ver_GateType_t Ga
         // skip comma
         if ( Symbol != ',' )
         {
-            sprintf( pMan->sError, "Cannot parse a standard gate %s (expected closing paranthesis).", Abc_ObjName(Abc_ObjFanout0(pNode)) );
+            sprintf( pMan->sError, "Cannot parse a standard gate %s (expected closing parenthesis).", Abc_ObjName(Abc_ObjFanout0(pNode)) );
             Ver_ParsePrintErrorMessage( pMan );
             return 0;
         }
@@ -1436,7 +1436,7 @@ int Ver_ParseFlopStandard( Ver_Man_t * pMan, Abc_Ntk_t * pNtk )
     // this is gate name - throw it away
     if ( Ver_StreamPopChar(p) != '(' )
     {
-        sprintf( pMan->sError, "Cannot parse a standard gate (expected opening paranthesis)." );
+        sprintf( pMan->sError, "Cannot parse a standard gate (expected opening parenthesis)." );
         Ver_ParsePrintErrorMessage( pMan );
         return 0;
     }
@@ -1573,7 +1573,7 @@ int Ver_ParseGate( Ver_Man_t * pMan, Abc_Ntk_t * pNtk, Mio_Gate_t * pGate )
     // this is gate name - throw it away
     if ( Ver_StreamPopChar(p) != '(' )
     {
-        sprintf( pMan->sError, "Cannot parse gate %s (expected opening paranthesis).", Mio_GateReadName(pGate) );
+        sprintf( pMan->sError, "Cannot parse gate %s (expected opening parenthesis).", Mio_GateReadName(pGate) );
         Ver_ParsePrintErrorMessage( pMan );
         return 0;
     }
@@ -1613,10 +1613,10 @@ int Ver_ParseGate( Ver_Man_t * pMan, Abc_Ntk_t * pNtk, Mio_Gate_t * pGate )
             return 0;
         }
 
-        // open the paranthesis
+        // open the parenthesis
         if ( Ver_StreamPopChar(p) != '(' )
         {
-            sprintf( pMan->sError, "Cannot formal parameter %s of gate %s (expected opening paranthesis).", pWord, Mio_GateReadName(pGate) );
+            sprintf( pMan->sError, "Cannot formal parameter %s of gate %s (expected opening parenthesis).", pWord, Mio_GateReadName(pGate) );
             Ver_ParsePrintErrorMessage( pMan );
             return 0;
         }
@@ -1646,10 +1646,10 @@ int Ver_ParseGate( Ver_Man_t * pMan, Abc_Ntk_t * pNtk, Mio_Gate_t * pGate )
             return 0;
         }
 
-        // close the paranthesis
+        // close the parenthesis
         if ( Ver_StreamPopChar(p) != ')' )
         {
-            sprintf( pMan->sError, "Cannot formal parameter %s of gate %s (expected closing paranthesis).", pWord, Mio_GateReadName(pGate) );
+            sprintf( pMan->sError, "Cannot formal parameter %s of gate %s (expected closing parenthesis).", pWord, Mio_GateReadName(pGate) );
             Ver_ParsePrintErrorMessage( pMan );
             return 0;
         }
@@ -1678,7 +1678,7 @@ int Ver_ParseGate( Ver_Man_t * pMan, Abc_Ntk_t * pNtk, Mio_Gate_t * pGate )
         // skip comma
         if ( Symbol != ',' )
         {
-            sprintf( pMan->sError, "Cannot formal parameter %s of gate %s (expected closing paranthesis).", pWord, Mio_GateReadName(pGate) );
+            sprintf( pMan->sError, "Cannot formal parameter %s of gate %s (expected closing parenthesis).", pWord, Mio_GateReadName(pGate) );
             Ver_ParsePrintErrorMessage( pMan );
             return 0;
         }
@@ -1754,7 +1754,7 @@ int Ver_ParseBox( Ver_Man_t * pMan, Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkBox )
     // continue parsing the box
     if ( Ver_StreamPopChar(p) != '(' )
     {
-        sprintf( pMan->sError, "Cannot parse box %s (expected opening paranthesis).", Abc_ObjName(pNode) );
+        sprintf( pMan->sError, "Cannot parse box %s (expected opening parenthesis).", Abc_ObjName(pNode) );
         Ver_ParsePrintErrorMessage( pMan );
         return 0;
     }
@@ -1791,10 +1791,10 @@ int Ver_ParseBox( Ver_Man_t * pMan, Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkBox )
             // save the name
             pBundle->pNameFormal = Extra_UtilStrsav( pWord );
 
-            // open the paranthesis
+            // open the parenthesis
             if ( Ver_StreamPopChar(p) != '(' )
             {
-                sprintf( pMan->sError, "Cannot formal parameter %s of box %s (expected opening paranthesis).", pWord, Abc_ObjName(pNode));
+                sprintf( pMan->sError, "Cannot formal parameter %s of box %s (expected opening parenthesis).", pWord, Abc_ObjName(pNode));
                 Ver_ParsePrintErrorMessage( pMan );
                 return 0;
             }
@@ -2002,11 +2002,11 @@ int Ver_ParseBox( Ver_Man_t * pMan, Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkBox )
 
         if ( fFormalIsGiven )
         {
-            // close the paranthesis
+            // close the parenthesis
             Ver_ParseSkipComments( pMan );
             if ( Ver_StreamPopChar(p) != ')' )
             {
-                sprintf( pMan->sError, "Cannot parse formal parameter %s of box %s (expected closing paranthesis).", pWord, Abc_ObjName(pNode) );
+                sprintf( pMan->sError, "Cannot parse formal parameter %s of box %s (expected closing parenthesis).", pWord, Abc_ObjName(pNode) );
                 Ver_ParsePrintErrorMessage( pMan );
                 return 0;
             }
@@ -2179,7 +2179,7 @@ int Ver_ParseConnectBox( Ver_Man_t * pMan, Abc_Obj_t * pBox )
             if ( !strcmp(pBundle->pNameFormal, pNameFormal) )
                 break;
         assert( pBundle != NULL );
-        // if the bundle is not found, try without parantheses
+        // if the bundle is not found, try without parentheses
         if ( k == Vec_PtrSize(vBundles) )
         {
             pBundle = NULL;
@@ -2230,7 +2230,7 @@ int Ver_ParseConnectBox( Ver_Man_t * pMan, Abc_Obj_t * pBox )
             if ( !strcmp(pBundle->pNameFormal, pNameFormal) )
                 break;
         assert( pBundle != NULL );
-        // if the name is not found, try without parantheses
+        // if the name is not found, try without parentheses
         if ( k == Vec_PtrSize(vBundles) )
         {
             pBundle = NULL;

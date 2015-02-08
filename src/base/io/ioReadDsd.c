@@ -90,17 +90,17 @@ int Io_ReadDsdStrSplit( char * pCur, char * pParts[], int * pTypeXor )
             // skip hex truth table
             while ( (*pCur >= '0' && *pCur <= '9') || (*pCur >= 'A' && *pCur <= 'F') )
                 pCur++;
-            // process parantheses
+            // process parentheses
             if ( *pCur != '(' )
             {
-                printf( "Cannot find the opening paranthesis.\n" );
+                printf( "Cannot find the opening parenthesis.\n" );
                 break;
             }
-            // find the corresponding closing paranthesis
+            // find the corresponding closing parenthesis
             pCur = Io_ReadDsdFindEnd( pCur );
             if ( pCur == NULL )
             {
-                printf( "Cannot find the closing paranthesis.\n" );
+                printf( "Cannot find the closing parenthesis.\n" );
                 break;
             }
             pCur++;
@@ -254,7 +254,7 @@ Abc_Ntk_t * Io_ReadDsd( char * pForm )
         Abc_ObjAssignName( Abc_NtkCreatePi(pNtk), (char *)Vec_PtrEntry(vNames, i), NULL );
     Abc_NodeFreeNames( vNames );
 
-    // transform the formula by inserting parantheses
+    // transform the formula by inserting parentheses
     // this transforms strings like PRIME(a,b,cd) into (PRIME((a),(b),(cd)))
     pCur = pFormCopy = ABC_ALLOC( char, 3 * strlen(pForm) + 10 );
     *pCur++ = '(';

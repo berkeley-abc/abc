@@ -384,12 +384,12 @@ int Gia_FormStrCount( char * pStr, int * pnVars, int * pnPars )
     int i, Counter = 0;
     if ( pStr[0] != '(' )
     {
-        printf( "The first symbol should be the opening paranthesis \"(\".\n" );
+        printf( "The first symbol should be the opening parenthesis \"(\".\n" );
         return 1;
     }
     if ( pStr[strlen(pStr)-1] != ')' )
     {
-        printf( "The last symbol should be the closing paranthesis \")\".\n" );
+        printf( "The last symbol should be the closing parenthesis \")\".\n" );
         return 1;
     }
     for ( i = 0; pStr[i]; i++ )
@@ -399,7 +399,7 @@ int Gia_FormStrCount( char * pStr, int * pnVars, int * pnPars )
             Counter--;
     if ( Counter != 0 )
     {
-        printf( "The number of opening and closing parantheses is not equal.\n" );
+        printf( "The number of opening and closing parentheses is not equal.\n" );
         return 1;
     }
     *pnVars = 0;

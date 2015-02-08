@@ -75,7 +75,7 @@ int Io_WriteSmv( Abc_Ntk_t * pNtk, char * pFileName )
     assert( Abc_NtkIsSopNetlist(pNtk) );
     if ( !Io_WriteSmvCheckNames(pNtk) )
     {
-        fprintf( stdout, "Io_WriteSmv(): Signal names in this benchmark contain parantheses making them impossible to reproduce in the SMV format. Use \"short_names\".\n" );
+        fprintf( stdout, "Io_WriteSmv(): Signal names in this benchmark contain parentheses making them impossible to reproduce in the SMV format. Use \"short_names\".\n" );
         return 0;
     }
     pFile = fopen( pFileName, "w" );

@@ -27,8 +27,8 @@ ABC_NAMESPACE_IMPL_START
 ////////////////////////////////////////////////////////////////////////
 
 // the list of operation symbols to be used in expressions
-#define MIO_EQN_SYM_OPEN    '('   // opening paranthesis
-#define MIO_EQN_SYM_CLOSE   ')'   // closing paranthesis
+#define MIO_EQN_SYM_OPEN    '('   // opening parenthesis
+#define MIO_EQN_SYM_CLOSE   ')'   // closing parenthesis
 #define MIO_EQN_SYM_CONST0  '0'   // constant 0
 #define MIO_EQN_SYM_CONST1  '1'   // constant 1
 #define MIO_EQN_SYM_NEG     '!'   // negation before the variable
@@ -44,7 +44,7 @@ ABC_NAMESPACE_IMPL_START
 #define MIO_EQN_OPER_AND     9    // logic AND
 #define MIO_EQN_OPER_XOR     8    // logic XOR
 #define MIO_EQN_OPER_OR      7    // logic OR
-#define MIO_EQN_OPER_MARK    1    // OpStack token standing for an opening paranthesis
+#define MIO_EQN_OPER_MARK    1    // OpStack token standing for an opening parenthesis
 
 // these are values of the internal Flag
 #define MIO_EQN_FLAG_START   1    // after the opening parenthesis 
@@ -114,7 +114,7 @@ Vec_Int_t * Mio_ParseFormula( char * pFormInit, char ** ppVarNames, int nVars )
     int Oper, Oper1, Oper2;
     int i, v;
 
-    // make sure that the number of opening and closing parantheses is the same
+    // make sure that the number of opening and closing parentheses is the same
     nParans = 0;
     for ( pTemp = pFormInit; *pTemp; pTemp++ )
         if ( *pTemp == '(' )
@@ -123,7 +123,7 @@ Vec_Int_t * Mio_ParseFormula( char * pFormInit, char ** ppVarNames, int nVars )
             nParans--;
     if ( nParans != 0 )
     {
-        fprintf( stdout, "Mio_ParseFormula(): Different number of opening and closing parantheses ().\n" );
+        fprintf( stdout, "Mio_ParseFormula(): Different number of opening and closing parentheses ().\n" );
         return NULL;
     }
 
@@ -207,7 +207,7 @@ Vec_Int_t * Mio_ParseFormula( char * pFormInit, char ** ppVarNames, int nVars )
             if ( Flag == MIO_EQN_FLAG_VAR )
             {
                 Vec_IntPush( pStackOp, MIO_EQN_OPER_AND );
-//                fprintf( stdout, "Mio_ParseFormula(): An opening paranthesis follows a var without operation sign.\n" ); 
+//                fprintf( stdout, "Mio_ParseFormula(): An opening parenthesis follows a var without operation sign.\n" ); 
 //                Flag = MIO_EQN_FLAG_ERROR; 
 //              break; 
             }
@@ -222,7 +222,7 @@ Vec_Int_t * Mio_ParseFormula( char * pFormInit, char ** ppVarNames, int nVars )
                 {
                     if ( Vec_IntSize( pStackOp ) == 0 )
                     {
-                        fprintf( stdout, "Mio_ParseFormula(): There is no opening paranthesis\n" );
+                        fprintf( stdout, "Mio_ParseFormula(): There is no opening parenthesis\n" );
                         Flag = MIO_EQN_FLAG_ERROR; 
                         break;
                     }
@@ -243,7 +243,7 @@ Vec_Int_t * Mio_ParseFormula( char * pFormInit, char ** ppVarNames, int nVars )
             }
             else
             {
-                fprintf( stdout, "Mio_ParseFormula(): There is no opening paranthesis\n" );
+                fprintf( stdout, "Mio_ParseFormula(): There is no opening parenthesis\n" );
                 Flag = MIO_EQN_FLAG_ERROR; 
                 break;
             }
@@ -262,7 +262,7 @@ Vec_Int_t * Mio_ParseFormula( char * pFormInit, char ** ppVarNames, int nVars )
               {
                     if ( pTemp[i] == MIO_EQN_SYM_NEG || pTemp[i] == MIO_EQN_SYM_OPEN )
                     {
-                        fprintf( stdout, "Mio_ParseFormula(): The negation sign or an opening paranthesis inside the variable name.\n" );
+                        fprintf( stdout, "Mio_ParseFormula(): The negation sign or an opening parenthesis inside the variable name.\n" );
                         Flag = MIO_EQN_FLAG_ERROR; 
                         break;
                     }

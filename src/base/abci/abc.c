@@ -36329,7 +36329,7 @@ usage:
     Abc_Print( -2, "\t            Functional variables: {a,b} (both a and b are always present)\n");
     Abc_Print( -2, "\t            Parameter variables: {p,q,r,s,t,u,v,w} (any number from 1 to 8)\n");
     Abc_Print( -2, "\t            Boolean operators: AND(&), OR(|), XOR(^), MUX(?:), NOT(~)\n");
-    Abc_Print( -2, "\t            Parantheses should be used around each operator. Spaces not allowed.\n");
+    Abc_Print( -2, "\t            Parentheses should be used around each operator. Spaces not allowed.\n");
     Abc_Print( -2, "\t            Complement (~) is only allowed before variables (use DeMorgan law).\n");
     Abc_Print( -2, "\t            Examples:\n");
     Abc_Print( -2, "\t              (((a&b)&~p)|q)        stuck-at-0/1 at the output\n");

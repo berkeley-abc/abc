@@ -48,7 +48,7 @@ struct Ver_Stream_t_
     char *           pBufferEnd;    // the first position not used by currently loaded data
     char *           pBufferStop;   // the position where loading new data will be done
     // tokens given to the user
-    char             pChars[VER_WORD_SIZE+5]; // temporary storage for a word (plus end-of-string and two parantheses)
+    char             pChars[VER_WORD_SIZE+5]; // temporary storage for a word (plus end-of-string and two parentheses)
     int              nChars;        // the total number of characters in the word
     // status of the parser
     int              fStop;         // this flag goes high when the end of file is reached
