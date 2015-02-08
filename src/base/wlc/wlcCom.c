@@ -28,8 +28,8 @@ ABC_NAMESPACE_IMPL_START
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-static int  Abc_CommandReadVer  ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int  Abc_CommandWriteVer ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int  Abc_CommandReadWlc  ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int  Abc_CommandWriteWlc ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int  Abc_CommandPs       ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int  Abc_CommandBlast    ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int  Abc_CommandTest     ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -55,8 +55,8 @@ static inline void        Wlc_AbcUpdateNtk( Abc_Frame_t * pAbc, Wlc_Ntk_t * pNtk
 ******************************************************************************/
 void Wlc_Init( Abc_Frame_t * pAbc )
 {
-    Cmd_CommandAdd( pAbc, "Word level", "%read_ver",   Abc_CommandReadVer,   0 );
-    Cmd_CommandAdd( pAbc, "Word level", "%write_ver",  Abc_CommandWriteVer,  0 );
+    Cmd_CommandAdd( pAbc, "Word level", "%read",       Abc_CommandReadWlc,   0 );
+    Cmd_CommandAdd( pAbc, "Word level", "%write",      Abc_CommandWriteWlc,  0 );
     Cmd_CommandAdd( pAbc, "Word level", "%ps",         Abc_CommandPs,        0 );
     Cmd_CommandAdd( pAbc, "Word level", "%blast",      Abc_CommandBlast,     0 );
     Cmd_CommandAdd( pAbc, "Word level", "%test",       Abc_CommandTest,      0 );
@@ -90,7 +90,7 @@ void Wlc_End( Abc_Frame_t * pAbc )
   SeeAlso     []
 
 ******************************************************************************/
-int Abc_CommandReadVer( Abc_Frame_t * pAbc, int argc, char ** argv )
+int Abc_CommandReadWlc( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     FILE * pFile;
     Wlc_Ntk_t * pNtk = NULL;
@@ -112,7 +112,7 @@ int Abc_CommandReadVer( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     if ( argc != globalUtilOptind + 1 )
     {
-        printf( "Abc_CommandReadVer(): Input file name should be given on the command line.\n" );
+        printf( "Abc_CommandReadWlc(): Input file name should be given on the command line.\n" );
         return 0;
     }
     // get the file name
@@ -120,7 +120,7 @@ int Abc_CommandReadVer( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( (pFile = fopen( pFileName, "r" )) == NULL )
     {
         Abc_Print( 1, "Cannot open input file \"%s\". ", pFileName );
-        if ( (pFileName = Extra_FileGetSimilarName( pFileName, ".v", ".smt", NULL, NULL, NULL )) )
+        if ( (pFileName = Extra_FileGetSimilarName( pFileName, ".v", ".smt", ".smt2", NULL, NULL )) )
             Abc_Print( 1, "Did you mean \"%s\"?", pFileName );
         Abc_Print( 1, "\n" );
         return 0;
@@ -128,11 +128,19 @@ int Abc_CommandReadVer( Abc_Frame_t * pAbc, int argc, char ** argv )
     fclose( pFile );
 
     // perform reading
-    pNtk = Wlc_ReadVer( pFileName );
+    if ( !strcmp( Extra_FileNameExtension(pFileName), "v" )  )
+        pNtk = Wlc_ReadVer( pFileName );
+    else if ( !strcmp( Extra_FileNameExtension(pFileName), "smt" ) || !strcmp( Extra_FileNameExtension(pFileName), "smt2" )  )
+        pNtk = Wlc_ReadSmt( pFileName );
+    else
+    {
+        printf( "Abc_CommandReadWlc(): Unknown file extension.\n" );
+        return 0;
+    }
     Wlc_AbcUpdateNtk( pAbc, pNtk );
     return 0;
 usage:
-    Abc_Print( -2, "usage: %%read_ver [-vh] <file_name>\n" );
+    Abc_Print( -2, "usage: %%read [-vh] <file_name>\n" );
     Abc_Print( -2, "\t         reads word-level design from Verilog file\n" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
@@ -150,7 +158,7 @@ usage:
   SeeAlso     []
 
 ******************************************************************************/
-int Abc_CommandWriteVer( Abc_Frame_t * pAbc, int argc, char ** argv )
+int Abc_CommandWriteWlc( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Wlc_Ntk_t * pNtk = Wlc_AbcGetNtk(pAbc);
     char * pFileName = NULL;
@@ -171,7 +179,7 @@ int Abc_CommandWriteVer( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     if ( pNtk == NULL )
     {
-        Abc_Print( 1, "Abc_CommandWriteVer(): There is no current design.\n" );
+        Abc_Print( 1, "Abc_CommandWriteWlc(): There is no current design.\n" );
         return 0;
     }
     if ( argc == globalUtilOptind )
@@ -186,7 +194,7 @@ int Abc_CommandWriteVer( Abc_Frame_t * pAbc, int argc, char ** argv )
     Wlc_WriteVer( pNtk, pFileName );
     return 0;
 usage:
-    Abc_Print( -2, "usage: %%write_ver [-vh]\n" );
+    Abc_Print( -2, "usage: %%write [-vh]\n" );
     Abc_Print( -2, "\t         writes the design into a file\n" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n",        fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");

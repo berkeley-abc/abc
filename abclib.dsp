@@ -763,6 +763,10 @@ SOURCE=.\src\base\wlc\wlcNtk.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\base\wlc\wlcReadSmt.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\base\wlc\wlcReadVer.c
 # End Source File
 # Begin Source File

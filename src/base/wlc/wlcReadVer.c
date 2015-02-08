@@ -547,7 +547,7 @@ static inline char * Wlc_PrsReadConstant( Wlc_Prs_t * p, char * pStr, Vec_Int_t 
         Vec_IntFill( vFanins, Abc_BitWordNum(nBits), 0 );
         for ( i = 0; i < nBits; i++ )
             if ( pStr[2+i] == '1' )
-                Abc_InfoSetBit( (unsigned *)Vec_IntArray(vFanins), i );
+                Abc_InfoSetBit( (unsigned *)Vec_IntArray(vFanins), nBits-1-i );
             else if ( pStr[2+i] != '0' )
                 return (char *)(ABC_PTRINT_T)Wlc_PrsWriteErrorMessage( p, pStr, "Wrong digit in binary constant \"%c\".", pStr[2+i] );
         *pRange = nBits;
@@ -922,19 +922,22 @@ startword:
             Vec_Int_t * vTemp = Vec_IntStartNatural( Wlc_NtkObjNumMax(p->pNtk) );
             Vec_IntAppend( &p->pNtk->vNameIds, vTemp );
             Vec_IntFree( vTemp );
-            // move FO/FI to be part of CI/CO
-            assert( (Vec_IntSize(&p->pNtk->vFfs) & 1) == 0 );
-            assert( Vec_IntSize(&p->pNtk->vFfs) == 2 * Vec_IntSize(p->pNtk->vInits) );
-            Wlc_NtkForEachFf( p->pNtk, pObj, i )
-                if ( i & 1 )
-                    Wlc_ObjSetCo( p->pNtk, pObj, 1 );
-                else
-                    Wlc_ObjSetCi( p->pNtk, pObj );
-            Vec_IntClear( &p->pNtk->vFfs );
-            // convert init values into binary string
-            //Vec_IntPrint( &p->pNtk->vInits );
-            p->pNtk->pInits = Wlc_PrsConvertInitValues( p->pNtk );
-            //printf( "%s", p->pNtk->pInits );
+            if ( p->pNtk->vInits )
+            {
+                // move FO/FI to be part of CI/CO
+                assert( (Vec_IntSize(&p->pNtk->vFfs) & 1) == 0 );
+                assert( Vec_IntSize(&p->pNtk->vFfs) == 2 * Vec_IntSize(p->pNtk->vInits) );
+                Wlc_NtkForEachFf( p->pNtk, pObj, i )
+                    if ( i & 1 )
+                        Wlc_ObjSetCo( p->pNtk, pObj, 1 );
+                    else
+                        Wlc_ObjSetCi( p->pNtk, pObj );
+                Vec_IntClear( &p->pNtk->vFfs );
+                // convert init values into binary string
+                //Vec_IntPrint( &p->pNtk->vInits );
+                p->pNtk->pInits = Wlc_PrsConvertInitValues( p->pNtk );
+                //printf( "%s", p->pNtk->pInits );
+            }
             break;
         }
         // these are read as part of the interface

@@ -471,7 +471,9 @@ Wlc_Ntk_t * Wlc_NtkDupDfs( Wlc_Ntk_t * p )
         Wlc_NtkDupDfs_rec( pNew, p, Wlc_ObjId(p, pObj), vFanins );
     Wlc_NtkForEachCo( p, pObj, i )
         Wlc_ObjSetCo( pNew, Wlc_ObjCopyObj(pNew, p, pObj), pObj->fIsFi );
+    if ( p->vInits )
     pNew->vInits = Vec_IntDup( p->vInits );
+    if ( p->pInits )
     pNew->pInits = Abc_UtilStrsav( p->pInits );
     Vec_IntFree( vFanins );
     return pNew;

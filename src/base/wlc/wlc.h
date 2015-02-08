@@ -252,9 +252,11 @@ extern void           Wlc_NtkPrintNodes( Wlc_Ntk_t * p, int Type );
 extern void           Wlc_NtkPrintStats( Wlc_Ntk_t * p, int fDistrib, int fVerbose );
 extern Wlc_Ntk_t *    Wlc_NtkDupDfs( Wlc_Ntk_t * p );
 extern void           Wlc_NtkTransferNames( Wlc_Ntk_t * pNew, Wlc_Ntk_t * p );
-/*=== wlcReadWord.c ========================================================*/
+/*=== wlcReadSmt.c ========================================================*/
+extern Wlc_Ntk_t *    Wlc_ReadSmt( char * pFileName );
+/*=== wlcReadVer.c ========================================================*/
 extern Wlc_Ntk_t *    Wlc_ReadVer( char * pFileName );
-/*=== wlcWriteWord.c ========================================================*/
+/*=== wlcWriteVer.c ========================================================*/
 extern void           Wlc_WriteVer( Wlc_Ntk_t * p, char * pFileName );
 
 

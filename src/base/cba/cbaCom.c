@@ -209,7 +209,7 @@ int Cba_CommandRead( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     else if ( !strcmp( Extra_FileNameExtension(pFileName), "smt" )  )
     {
-        vDes = Prs_ManReadSmt( pFileName );
+        vDes = NULL;//Prs_ManReadSmt( pFileName );
         if ( vDes && Vec_PtrSize(vDes) )
             p = Prs_ManBuildCba( pFileName, vDes );
         Prs_ManVecFree( vDes );
@@ -647,6 +647,7 @@ int Cba_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     extern void Prs_ManReadBlifTest();
     extern void Prs_ManReadVerilogTest();
+    extern void Prs_SmtReadSmtTest();
     //Cba_Man_t * p = Cba_AbcGetMan(pAbc);
     int c, fVerbose  = 0;
     Extra_UtilGetoptReset();
@@ -671,7 +672,8 @@ int Cba_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
 */
     //Cba_PtrTransformTestTest();
-    Prs_ManReadVerilogTest();
+    //Prs_ManReadVerilogTest();
+    //Prs_SmtReadSmtTest();
     return 0;
 usage:
     Abc_Print( -2, "usage: @test [-vh]\n" );
