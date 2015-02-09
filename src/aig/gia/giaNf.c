@@ -182,7 +182,6 @@ static inline int         Nf_CutConfC( int Conf, int i )                        
 ***********************************************************************/
 void Nf_StoCreateGateAdd( Nf_Man_t * pMan, word uTruth, int * pFans, int nFans, int CellId )
 {
-    int fUsePinPermutation = 0;  // set to 1 to enable pin-permutation (which is good for delay when pin-delays differ)
     Vec_Int_t * vArray;
     Pf_Mat_t Mat = Pf_Int2Mat(0);
     int i, GateId, Entry, fCompl = (int)(uTruth & 1);
@@ -198,7 +197,7 @@ void Nf_StoCreateGateAdd( Nf_Man_t * pMan, word uTruth, int * pFans, int nFans, 
         Mat.Perm  |= (unsigned)(Abc_Lit2Var(pFans[i]) << (3*i));
         Mat.Phase |= (unsigned)(Abc_LitIsCompl(pFans[i]) << i);
     }
-    if ( fUsePinPermutation )
+    if ( pMan->pPars->fPinPerm ) // use pin-permutation (slower but good for delay when pin-delays differ)
     {
         Vec_IntPush( vArray, CellId );
         Vec_IntPush( vArray, Pf_Mat2Int(Mat) );
@@ -2079,6 +2078,7 @@ void Nf_ManSetDefaultPars( Jf_Par_t * pPars )
     pPars->nVerbLimit   =  5;
     pPars->DelayTarget  = -1;
     pPars->fAreaOnly    =  0;
+    pPars->fPinPerm     =  0;
     pPars->fOptEdge     =  1; 
     pPars->fCoarsen     =  0;
     pPars->fCutMin      =  1;

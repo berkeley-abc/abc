@@ -275,6 +275,7 @@ struct Jf_Par_t_
     int            nVerbLimit;
     int            DelayTarget;
     int            fAreaOnly;
+    int            fPinPerm;
     int            fOptEdge;
     int            fUseMux7;
     int            fPower;
