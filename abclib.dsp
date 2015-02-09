@@ -4003,6 +4003,10 @@ SOURCE=.\src\aig\gia\giaPat.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\aig\gia\giaPf.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\aig\gia\giaQbf.c
 # End Source File
 # Begin Source File

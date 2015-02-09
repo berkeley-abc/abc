@@ -160,6 +160,7 @@ double Gia_ManMemory( Gia_Man_t * p )
     Memory += sizeof(int) * Gia_ManCiNum(p);
     Memory += sizeof(int) * Gia_ManCoNum(p);
     Memory += sizeof(int) * p->nHTable * (p->pHTable != NULL);
+    Memory += sizeof(int) * Gia_ManObjNum(p) * (p->pRefs != NULL);
     return Memory;
 }
 
