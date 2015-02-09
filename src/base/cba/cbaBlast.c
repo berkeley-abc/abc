@@ -202,7 +202,10 @@ Gia_Man_t * Cba_ManExtract( Cba_Man_t * p, int fBuffers, int fVerbose )
     Vec_IntClear( &p->vBuf2RootObj );
 
     Cba_ManForEachNtk( p, pNtk, i )
-        Cba_NtkStartCopies(pNtk);
+    {
+        Cba_NtkDeriveIndex( pNtk );
+        Cba_NtkStartCopies( pNtk );
+    }
 
     // start the manager
     pNew = Gia_ManStart( Cba_ManNodeNum(p) );
@@ -297,15 +300,15 @@ void Cba_NtkCreateAndConnectBuffer( Gia_Man_t * pGia, Gia_Obj_t * pObj, Cba_Ntk_
     if ( pGia && Gia_ObjFaninId0p(pGia, pObj) > 0 )
     {
         assert( Cba_ObjName(p, Gia_ObjFanin0(pObj)->Value) != Cba_ObjName(p, iTerm) ); // not a feedthrough
-        iObj = Cba_ObjAlloc( p, CBA_OBJ_BI, 0, Gia_ObjFanin0(pObj)->Value );
+        iObj = Cba_ObjAlloc( p, CBA_OBJ_BI, Gia_ObjFanin0(pObj)->Value );
         Cba_ObjSetName( p, iObj, Cba_ObjName(p, Gia_ObjFanin0(pObj)->Value) );
-        Cba_ObjAlloc( p, Gia_ObjFaninC0(pObj) ? CBA_BOX_INV : CBA_BOX_BUF, -1, -1 );
+        Cba_ObjAlloc( p, Gia_ObjFaninC0(pObj) ? CBA_BOX_INV : CBA_BOX_BUF, -1 );
     }
     else
     {
-        Cba_ObjAlloc( p, pGia && Gia_ObjFaninC0(pObj) ? CBA_BOX_C1 : CBA_BOX_C0, -1, -1 );
+        Cba_ObjAlloc( p, pGia && Gia_ObjFaninC0(pObj) ? CBA_BOX_C1 : CBA_BOX_C0, -1 );
     }
-    iObj = Cba_ObjAlloc( p, CBA_OBJ_BO, 0, -1 );
+    iObj = Cba_ObjAlloc( p, CBA_OBJ_BO, -1 );
     Cba_ObjSetName( p, iObj, Cba_ObjName(p, iTerm) );
     Cba_ObjSetFanin( p, iTerm, iObj );
 }
@@ -348,12 +351,12 @@ void Cba_NtkInsertGia( Cba_Man_t * p, Gia_Man_t * pGia )
             else 
                 Type = CBA_BOX_AND;
             // create box
-            iTerm = Cba_ObjAlloc( pNtk, CBA_OBJ_BI, 1, iLit1 );
+            iTerm = Cba_ObjAlloc( pNtk, CBA_OBJ_BI, iLit1 );
             Cba_ObjSetName( pNtk, iTerm, Cba_ObjName(pNtk, iLit1) );
-            iTerm = Cba_ObjAlloc( pNtk, CBA_OBJ_BI, 0, iLit0 );
+            iTerm = Cba_ObjAlloc( pNtk, CBA_OBJ_BI, iLit0 );
             Cba_ObjSetName( pNtk, iTerm, Cba_ObjName(pNtk, iLit0) );
-            Cba_ObjAlloc( pNtk, Type, -1, -1 );
-            pObj->Value = Cba_ObjAlloc( pNtk, CBA_OBJ_BO, 0, -1 );
+            Cba_ObjAlloc( pNtk, Type, -1 );
+            pObj->Value = Cba_ObjAlloc( pNtk, CBA_OBJ_BO, -1 );
         }
     }
     assert( Count == Gia_ManBufNum(pGia) );
@@ -453,16 +456,16 @@ void Cba_NtkCreateOrConnectFanin( Abc_Obj_t * pFanin, Cba_Ntk_t * p, int iTerm )
     else if ( pFanin && (Abc_ObjIsPi(pFanin) || Abc_ObjIsBarBuf(pFanin) || Abc_NodeIsSeriousGate(pFanin)) ) // PI/BO or gate with name
     {
         assert( Cba_ObjName(p, pFanin->iTemp) != Cba_ObjName(p, iTerm) ); // not a feedthrough
-        iObj = Cba_ObjAlloc( p, CBA_OBJ_BI, 0, pFanin->iTemp );
+        iObj = Cba_ObjAlloc( p, CBA_OBJ_BI, pFanin->iTemp );
         Cba_ObjSetName( p, iObj, Cba_ObjName(p, pFanin->iTemp) );
-        Cba_ObjAlloc( p, CBA_BOX_GATE, p->pDesign->ElemGates[2], -1 ); // buffer
-        iObj = Cba_ObjAlloc( p, CBA_OBJ_BO, 0, -1 );
+        Cba_ObjAlloc( p, CBA_BOX_GATE, p->pDesign->ElemGates[2] ); // buffer
+        iObj = Cba_ObjAlloc( p, CBA_OBJ_BO, -1 );
     }
     else
     {
         assert( !pFanin || Abc_NodeIsConst0(pFanin) || Abc_NodeIsConst1(pFanin) );
-        Cba_ObjAlloc( p, CBA_BOX_GATE, p->pDesign->ElemGates[(pFanin && Abc_NodeIsConst1(pFanin))], -1 ); // const 0/1
-        iObj = Cba_ObjAlloc( p, CBA_OBJ_BO, 0, -1 );
+        Cba_ObjAlloc( p, CBA_BOX_GATE, p->pDesign->ElemGates[(pFanin && Abc_NodeIsConst1(pFanin))] ); // const 0/1
+        iObj = Cba_ObjAlloc( p, CBA_OBJ_BO, -1 );
     }
     Cba_ObjSetName( p, iObj, Cba_ObjName(p, iTerm) );
     Cba_ObjSetFanin( p, iTerm, iObj );
@@ -514,11 +517,11 @@ void Cba_NtkInsertNtk( Cba_Man_t * p, Abc_Ntk_t * pNtk )
             pCbaNtk = Cba_ManNtk( p, pObj->iTemp );
             for ( k = Abc_ObjFaninNum(pObj)-1; k >= 0; k-- )
             {
-                iTerm = Cba_ObjAlloc( pCbaNtk, CBA_OBJ_BI, k, Abc_ObjFanin(pObj, k)->iTemp );
+                iTerm = Cba_ObjAlloc( pCbaNtk, CBA_OBJ_BI, Abc_ObjFanin(pObj, k)->iTemp );
                 Cba_ObjSetName( pCbaNtk, iTerm, Cba_ObjName(pCbaNtk, Abc_ObjFanin(pObj, k)->iTemp) );
             }
-            Cba_ObjAlloc( pCbaNtk, CBA_BOX_GATE, Abc_NamStrFind(p->pMods, Mio_GateReadName((Mio_Gate_t *)pObj->pData)), -1 );
-            pObj->iTemp = Cba_ObjAlloc( pCbaNtk, CBA_OBJ_BO, 0, -1 );
+            Cba_ObjAlloc( pCbaNtk, CBA_BOX_GATE, Abc_NamStrFind(p->pMods, Mio_GateReadName((Mio_Gate_t *)pObj->pData)) );
+            pObj->iTemp = Cba_ObjAlloc( pCbaNtk, CBA_OBJ_BO, -1 );
         }
     }
     assert( Count == pNtk->nBarBufs2 );

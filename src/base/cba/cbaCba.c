@@ -44,7 +44,7 @@ ABC_NAMESPACE_IMPL_START
 ***********************************************************************/
 int CbaManReadCbaLine( Vec_Str_t * vOut, int * pPos, char * pBuffer, char * pLimit )
 {
-    char c; 
+    char c;
     while ( (c = Vec_StrEntry(vOut, (*pPos)++)) != '\n' && pBuffer < pLimit )
         *pBuffer++ = c;
     *pBuffer = 0;
@@ -94,11 +94,19 @@ void Cba_ManReadCbaVecInt( Vec_Str_t * vOut, int * pPos, Vec_Int_t * p, int nSiz
 }
 void Cba_ManReadCbaNtk( Vec_Str_t * vOut, int * pPos, Cba_Ntk_t * pNtk )
 {
-    Cba_ManReadCbaVecInt( vOut, pPos, &pNtk->vInputs,  4 * Cba_NtkPiNumAlloc(pNtk) );
-    Cba_ManReadCbaVecInt( vOut, pPos, &pNtk->vOutputs, 4 * Cba_NtkPoNumAlloc(pNtk) );
-    Cba_ManReadCbaVecStr( vOut, pPos, &pNtk->vType,        Cba_NtkObjNumAlloc(pNtk) );
-    Cba_ManReadCbaVecInt( vOut, pPos, &pNtk->vIndex,   4 * Cba_NtkObjNumAlloc(pNtk) );
-    Cba_ManReadCbaVecInt( vOut, pPos, &pNtk->vFanin,   4 * Cba_NtkObjNumAlloc(pNtk) );
+    int i, Type;
+    Cba_ManReadCbaVecStr( vOut, pPos, &pNtk->vType,      Cba_NtkObjNumAlloc(pNtk) );
+    Cba_ManReadCbaVecInt( vOut, pPos, &pNtk->vFanin, 4 * Cba_NtkObjNumAlloc(pNtk) );
+    Cba_NtkForEachObjType( pNtk, Type, i )
+    {
+        if ( Type == CBA_OBJ_PI )
+            Vec_IntPush( &pNtk->vInputs, i );
+        if ( Type == CBA_OBJ_PO )
+            Vec_IntPush( &pNtk->vOutputs, i );
+    }
+    assert( Cba_NtkPiNum(pNtk)  == Cba_NtkPiNumAlloc(pNtk) );
+    assert( Cba_NtkPoNum(pNtk)  == Cba_NtkPoNumAlloc(pNtk) );
+    assert( Cba_NtkObjNum(pNtk) == Cba_NtkObjNumAlloc(pNtk) );
 }
 Cba_Man_t * Cba_ManReadCbaInt( Vec_Str_t * vOut )
 {
@@ -186,11 +194,8 @@ Cba_Man_t * Cba_ManReadCba( char * pFileName )
 ***********************************************************************/
 void Cba_ManWriteCbaNtk( Vec_Str_t * vOut, Cba_Ntk_t * pNtk )
 {
-    Vec_StrPushBuffer( vOut, (char *)Vec_IntArray(&pNtk->vInputs),  4 * Cba_NtkPiNum(pNtk) );
-    Vec_StrPushBuffer( vOut, (char *)Vec_IntArray(&pNtk->vOutputs), 4 * Cba_NtkPoNum(pNtk) );
-    Vec_StrPushBuffer( vOut, (char *)Vec_StrArray(&pNtk->vType),        Cba_NtkObjNum(pNtk) );
-    Vec_StrPushBuffer( vOut, (char *)Vec_IntArray(&pNtk->vIndex),   4 * Cba_NtkObjNum(pNtk) );
-    Vec_StrPushBuffer( vOut, (char *)Vec_IntArray(&pNtk->vFanin),   4 * Cba_NtkObjNum(pNtk) );
+    Vec_StrPushBuffer( vOut, (char *)Vec_StrArray(&pNtk->vType),      Cba_NtkObjNum(pNtk) );
+    Vec_StrPushBuffer( vOut, (char *)Vec_IntArray(&pNtk->vFanin), 4 * Cba_NtkObjNum(pNtk) );
 }
 void Cba_ManWriteCbaInt( Vec_Str_t * vOut, Cba_Man_t * p )
 {

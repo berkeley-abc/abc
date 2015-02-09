@@ -322,7 +322,7 @@ void Abc_SclDnsizePerformInt( SC_Lib * pLib, Abc_Ntk_t * pNtk, SC_SizePars * pPa
     Vec_IntFree( vEvals );
     Vec_IntFree( vTryLater );
     if ( !pPars->fVerbose )
-        printf( "                                                                                                                               \r" );
+        printf( "                                                                                                                                                  \r" );
 
     // report runtime
     p->timeTotal = Abc_Clock() - p->timeTotal;

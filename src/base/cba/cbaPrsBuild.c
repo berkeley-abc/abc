@@ -147,7 +147,7 @@ void Prs_ManBuildNtk( Cba_Ntk_t * pNew, Vec_Ptr_t * vDes, Prs_Ntk_t * pNtk, Vec_
     {
         if ( Vec_IntEntry(vMap, NameId) != -1 )
             printf( "Primary inputs %d and %d have the same name.\n", Vec_IntEntry(vMap, NameId), i );
-        iObj = Cba_ObjAlloc( pNew, CBA_OBJ_PI, -1, -1 );
+        iObj = Cba_ObjAlloc( pNew, CBA_OBJ_PI, -1 );
         Cba_ObjSetName( pNew, iObj, NameId );
         Vec_IntWriteEntry( vMap, NameId, iObj );
     }
@@ -250,7 +250,7 @@ void Prs_ManBuildNtk( Cba_Ntk_t * pNew, Vec_Ptr_t * vDes, Prs_Ntk_t * pNtk, Vec_
         }
     Prs_NtkForEachPo( pNtk, NameId, i )
     {
-        iObj = Cba_ObjAlloc( pNew, CBA_OBJ_PO, -1, Vec_IntEntry(vMap, NameId) );
+        iObj = Cba_ObjAlloc( pNew, CBA_OBJ_PO, Vec_IntEntry(vMap, NameId) );
         Cba_ObjSetName( pNew, iObj, NameId );
     }
     if ( nNonDriven )

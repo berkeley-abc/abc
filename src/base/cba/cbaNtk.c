@@ -115,7 +115,7 @@ int Cba_ManClpObjNum_rec( Cba_Ntk_t * p )
     if ( p->Count >= 0 )
         return p->Count;
     Cba_NtkForEachBox( p, i )
-        Counter += Cba_ObjIsBoxUser(p, i) ? Cba_ManClpObjNum_rec( Cba_BoxNtk(p, i) ) : Cba_BoxSize(p, i);
+        Counter += Cba_ObjIsBoxUser(p, i) ? Cba_ManClpObjNum_rec( Cba_BoxNtk(p, i) ) + 3*Cba_BoxBoNum(p, i) : Cba_BoxSize(p, i);
     return (p->Count = Counter);
 }
 int Cba_ManClpObjNum( Cba_Man_t * p )
@@ -220,37 +220,49 @@ int Cba_NtkDfsUserBoxes( Cba_Ntk_t * p )
 ***********************************************************************/
 void Cba_NtkCollapse_rec( Cba_Ntk_t * pNew, Cba_Ntk_t * p, Vec_Int_t * vSigs )
 {
-    int i, k, iObj, iTerm;
+    int i, iObj, iObjNew, iTerm;
     Cba_NtkStartCopies( p );
     // set PI copies
     assert( Vec_IntSize(vSigs) == Cba_NtkPiNum(p) );
     Cba_NtkForEachPi( p, iObj, i )
         Cba_ObjSetCopy( p, iObj, Vec_IntEntry(vSigs, i) );
-    // duplicate internal objects
+    // duplicate internal objects and create buffers for hierarchy instances
     Cba_NtkForEachBox( p, iObj )
-        if ( Cba_ObjIsBoxPrim(p, iObj) )
+        if ( Cba_ObjIsBoxPrim( p, iObj ) )
             Cba_BoxDup( pNew, p, iObj );
-    // duplicate user moduled in DFS order
-    Vec_IntForEachEntry( &p->vArray, iObj, i )
-    {
-        assert( Cba_ObjIsBoxUser(p, iObj) );
-        Vec_IntClear( vSigs );
-        Cba_BoxForEachBi( p, iObj, iTerm, k )
-            Vec_IntPush( vSigs, Cba_ObjCopy(p, Cba_ObjFanin(p, iTerm)) );
-        Cba_NtkCollapse_rec( pNew, Cba_BoxNtk(p, iObj), vSigs );
-        assert( Vec_IntSize(vSigs) == Cba_BoxBoNum(p, iObj) );
-        Cba_BoxForEachBo( p, iObj, iTerm, k )
-            Cba_ObjSetCopy( p, iTerm, Vec_IntEntry(vSigs, k) );
-    }
-    // connect objects
-    Cba_NtkForEachBi( p, iObj )
-        Cba_ObjSetFanin( pNew, Cba_ObjCopy(p, iObj), Cba_ObjCopy(p, Cba_ObjFanin(p, iObj)) );
+        else
+        {
+            Cba_BoxForEachBo( p, iObj, iTerm, i )
+            {
+                iObjNew = Cba_ObjAlloc( pNew, CBA_OBJ_BI,  -1 );
+                iObjNew = Cba_ObjAlloc( pNew, CBA_BOX_BUF, -1 ); // buffer
+                iObjNew = Cba_ObjAlloc( pNew, CBA_OBJ_BO,  -1 );
+                Cba_ObjSetCopy( p, iTerm, iObjNew );
+            }
+        }
+    // duplicate user modules and connect objects
+    Cba_NtkForEachBox( p, iObj )
+        if ( Cba_ObjIsBoxPrim( p, iObj ) )
+        {
+            Cba_BoxForEachBi( p, iObj, iTerm, i )
+                Cba_ObjSetFanin( pNew, Cba_ObjCopy(p, iTerm), Cba_ObjCopy(p, Cba_ObjFanin(p, iTerm)) );
+        }
+        else
+        {
+            Vec_IntClear( vSigs );
+            Cba_BoxForEachBi( p, iObj, iTerm, i )
+                Vec_IntPush( vSigs, Cba_ObjCopy(p, Cba_ObjFanin(p, iTerm)) );
+            Cba_NtkCollapse_rec( pNew, Cba_BoxNtk(p, iObj), vSigs );
+            assert( Vec_IntSize(vSigs) == Cba_BoxBoNum(p, iObj) );
+            Cba_BoxForEachBo( p, iObj, iTerm, i )
+                Cba_ObjSetFanin( pNew, Cba_ObjCopy(p, iTerm)-2, Vec_IntEntry(vSigs, i) );
+        }
     // collect POs
     Vec_IntClear( vSigs );
     Cba_NtkForEachPo( p, iObj, i )
         Vec_IntPush( vSigs, Cba_ObjCopy(p, Cba_ObjFanin(p, iObj)) );
 }
-Cba_Man_t * Cba_ManCollapseInt( Cba_Man_t * p )
+Cba_Man_t * Cba_ManCollapse( Cba_Man_t * p )
 {
     int i, iObj;
     Vec_Int_t * vSigs = Vec_IntAlloc( 1000 );
@@ -259,28 +271,25 @@ Cba_Man_t * Cba_ManCollapseInt( Cba_Man_t * p )
     Cba_Ntk_t * pRootNew = Cba_ManRoot( pNew );
     Cba_NtkAlloc( pRootNew, Cba_NtkNameId(pRoot), Cba_NtkPiNum(pRoot), Cba_NtkPoNum(pRoot), Cba_ManClpObjNum(p) );
     Cba_NtkForEachPi( pRoot, iObj, i )
-        Vec_IntPush( vSigs, Cba_ObjAlloc(pRootNew, CBA_OBJ_PI, i, -1) );
+        Vec_IntPush( vSigs, Cba_ObjAlloc(pRootNew, CBA_OBJ_PI, -1) );
     Cba_NtkCollapse_rec( pRootNew, pRoot, vSigs );
     assert( Vec_IntSize(vSigs) == Cba_NtkPoNum(pRoot) );
     Cba_NtkForEachPo( pRoot, iObj, i )
-        Cba_ObjAlloc( pRootNew, CBA_OBJ_PO, i, Vec_IntEntry(vSigs, i) );
+        Cba_ObjAlloc( pRootNew, CBA_OBJ_PO, Vec_IntEntry(vSigs, i) );
     assert( Cba_NtkObjNum(pRootNew) == Cba_NtkObjNumAlloc(pRootNew) );
     Vec_IntFree( vSigs );
+/*
     // transfer PI/PO names
-    Cba_NtkStartNames( pRootNew );
-    Cba_NtkForEachPo( pRoot, iObj, i )
-        Cba_ObjSetName( pRootNew, Cba_NtkPo(pRootNew, i), Cba_ObjName(pRoot, iObj) );
-    Cba_NtkForEachPo( pRoot, iObj, i )
-        Cba_ObjSetName( pRootNew, Cba_NtkPo(pRootNew, i), Cba_ObjName(pRoot, iObj) );
+    if ( Cba_NtkHasNames(pRoot) )
+    {
+        Cba_NtkStartNames( pRootNew );
+        Cba_NtkForEachPo( pRoot, iObj, i )
+            Cba_ObjSetName( pRootNew, Cba_NtkPo(pRootNew, i), Cba_ObjName(pRoot, iObj) );
+        Cba_NtkForEachPo( pRoot, iObj, i )
+            Cba_ObjSetName( pRootNew, Cba_NtkPo(pRootNew, i), Cba_ObjName(pRoot, iObj) );
+    }
+*/
     return pNew;
-}
-Cba_Man_t * Cba_ManCollapse( Cba_Man_t * p )
-{
-    Cba_Ntk_t * pNtk; int i;
-    Cba_ManForEachNtk( p, pNtk, i )
-        if ( !Cba_NtkDfsUserBoxes(pNtk) )
-            return NULL;
-    return Cba_ManCollapseInt( p );
 }
 
 ////////////////////////////////////////////////////////////////////////

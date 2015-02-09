@@ -289,7 +289,7 @@ int Cba_NtkDeriveFromPtr( Cba_Ntk_t * pNtk, Vec_Ptr_t * vNtk, Vec_Int_t * vMap, 
         NameId = Abc_NamStrFindOrAdd( pNtk->pDesign->pStrs, pName, NULL );
         if ( Vec_IntGetEntryFull(vMap, NameId) != -1 )
             { printf( "PI with name \"%s\" is not unique module \"%s\".\n", pName, pModuleName ); return 0; }
-        iObj = Cba_ObjAlloc( pNtk, CBA_OBJ_PI, -1, -1 );
+        iObj = Cba_ObjAlloc( pNtk, CBA_OBJ_PI, -1 );
         Cba_ObjSetName( pNtk, iObj, NameId );
         Vec_IntSetEntryFull( vMap, NameId, iObj );
     }
@@ -340,7 +340,7 @@ int Cba_NtkDeriveFromPtr( Cba_Ntk_t * pNtk, Vec_Ptr_t * vNtk, Vec_Int_t * vMap, 
         NameId = Abc_NamStrFindOrAdd( pNtk->pDesign->pStrs, pName, NULL );
         if ( Vec_IntGetEntryFull(vMap, NameId) == -1 )
             printf( "PO with name \"%s\" in not driven in module \"%s\".\n", pName, pModuleName );
-        iObj = Cba_ObjAlloc( pNtk, CBA_OBJ_PO, -1, Vec_IntGetEntryFull(vMap, NameId) );
+        iObj = Cba_ObjAlloc( pNtk, CBA_OBJ_PO, Vec_IntGetEntryFull(vMap, NameId) );
         Cba_ObjSetName( pNtk, iObj, NameId );
     }
     // update map
