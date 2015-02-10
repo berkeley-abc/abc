@@ -3756,10 +3756,11 @@ int Abc_CommandFastExtract( Abc_Frame_t * pAbc, int argc, char ** argv )
     Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
     Fxu_Data_t Params, * p = &Params;
     int c, fNewAlgo = 1;
+    int nPairsLimit = 1000000000;
     // set the defaults
     Abc_NtkSetDefaultFxParams( p );
     Extra_UtilGetoptReset();
-    while ( (c = Extra_UtilGetopt(argc, argv, "SDNWMsdzcnvwh")) != EOF )
+    while ( (c = Extra_UtilGetopt(argc, argv, "SDNWMPsdzcnvwh")) != EOF )
     {
         switch (c)
         {
@@ -3818,6 +3819,17 @@ int Abc_CommandFastExtract( Abc_Frame_t * pAbc, int argc, char ** argv )
                 if ( p->LitCountMax < 0 )
                     goto usage;
                 break;
+            case 'P':
+                if ( globalUtilOptind >= argc )
+                {
+                    Abc_Print( -1, "Command line switch \"-P\" should be followed by an integer.\n" );
+                    goto usage;
+                }
+                nPairsLimit = atoi(argv[globalUtilOptind]);
+                globalUtilOptind++;
+                if ( nPairsLimit < 0 )
+                    goto usage;
+                break;
             case 's':
                 p->fOnlyS ^= 1;
                 break;
@@ -3866,6 +3878,11 @@ int Abc_CommandFastExtract( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Fast extract can only be applied to a logic network with SOP local functions (run \"bdd; sop\").\n" );
         return 1;
     }
+    if ( Abc_NtkGetCubePairNum(pNtk) > nPairsLimit )
+    {
+        Abc_Print( -1, "Cannot perform \"fx\" because the number cube pairs exceeds the limit (%d).\n", nPairsLimit );
+        return 1;
+    }
 
     // the nodes to be merged are linked into the special linked list
     if ( fNewAlgo )
@@ -3876,13 +3893,14 @@ int Abc_CommandFastExtract( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: fx [-SDNWM <num>] [-sdzcnvwh]\n");
+    Abc_Print( -2, "usage: fx [-SDNWMP <num>] [-sdzcnvwh]\n");
     Abc_Print( -2, "\t           performs unate fast extract on the current network\n");
     Abc_Print( -2, "\t-S <num> : max number of single-cube divisors to consider [default = %d]\n", p->nSingleMax );
     Abc_Print( -2, "\t-D <num> : max number of double-cube divisors to consider [default = %d]\n", p->nPairsMax );
     Abc_Print( -2, "\t-N <num> : max number of divisors to extract during this run [default = %d]\n", p->nNodesExt );
     Abc_Print( -2, "\t-W <num> : lower bound on the weight of divisors to extract [default = %d]\n", p->WeightMin );
     Abc_Print( -2, "\t-M <num> : upper bound on literal count of divisors to extract [default = %d]\n", p->LitCountMax );
+    Abc_Print( -2, "\t-P <num> : skip \"fx\" if cube pair count exceeds this limit [default = %d]\n", nPairsLimit );
     Abc_Print( -2, "\t-s       : use only single-cube divisors [default = %s]\n", p->fOnlyS? "yes": "no" );
     Abc_Print( -2, "\t-d       : use only double-cube divisors [default = %s]\n", p->fOnlyD? "yes": "no" );
     Abc_Print( -2, "\t-z       : use zero-weight divisors [default = %s]\n", p->fUse0? "yes": "no" );

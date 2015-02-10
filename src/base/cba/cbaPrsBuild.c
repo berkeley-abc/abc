@@ -153,10 +153,10 @@ void Prs_ManRemapBoxes( Cba_Man_t * pNew, Vec_Ptr_t * vDes, Prs_Ntk_t * pNtk, Ve
             int NtkId = Prs_BoxNtk( pNtk, iBox );
             int NtkIdNew = Cba_ManNtkFindId( pNew, Prs_NtkStr(pNtk, NtkId) );
             Prs_BoxSetNtk( pNtk, iBox, NtkIdNew );
-            if ( NtkId < Cba_ManNtkNum(pNew) )
+            if ( NtkIdNew < Cba_ManNtkNum(pNew) )
                 Prs_ManRemapOne( vSigs, Prs_ManNtk(vDes, NtkIdNew), vMap );
-            else
-                Prs_ManRemapGate( vSigs );
+            //else
+            //    Prs_ManRemapGate( vSigs );
         }
 }
 void Prs_ManCleanMap( Prs_Ntk_t * pNtk, Vec_Int_t * vMap )
