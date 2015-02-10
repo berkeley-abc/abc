@@ -138,17 +138,19 @@ int Abc_NtkGetCubeNum( Abc_Ntk_t * pNtk )
 int Abc_NtkGetCubePairNum( Abc_Ntk_t * pNtk )
 {
     Abc_Obj_t * pNode;
-    int i, nCubes, nCubePairs = 0;
+    int i;
+    word nCubes, nCubePairs = 0;
     assert( Abc_NtkHasSop(pNtk) );
     Abc_NtkForEachNode( pNtk, pNode, i )
     {
         if ( Abc_NodeIsConst(pNode) )
             continue;
         assert( pNode->pData );
-        nCubes = Abc_SopGetCubeNum( (char *)pNode->pData );
-        nCubePairs += nCubes * (nCubes - 1) / 2;
+        nCubes = (word)Abc_SopGetCubeNum( (char *)pNode->pData );
+        if ( nCubes > 1 )
+            nCubePairs += nCubes * (nCubes - 1) / 2;
     }
-    return nCubePairs;
+    return (int)(nCubePairs > (1<<30) ? (1<<30) : nCubePairs);
 }
 
 /**Function*************************************************************
