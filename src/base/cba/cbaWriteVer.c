@@ -330,7 +330,7 @@ void Cba_ManWriteVerilogNtk( FILE * pFile, Cba_Ntk_t * p, Vec_Int_t * vMap, Vec_
     for ( s = 0; s < 2; s++ )
     {
         fprintf( pFile, "    " );
-        Cba_ManWriteVerilogSignalList( pFile, p, s, s==2, 1, vWires );
+        Cba_ManWriteVerilogSignalList( pFile, p, s, s==1, 1, vWires );
         fprintf( pFile, "\n" );
     }
     fprintf( pFile, "  );\n" );

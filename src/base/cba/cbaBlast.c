@@ -22,6 +22,7 @@
 #include "base/abc/abc.h"
 #include "map/mio/mio.h"
 #include "bool/dec/dec.h"
+#include "base/main/mainInt.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -488,6 +489,17 @@ void Cba_NtkPrepareLibrary( Cba_Man_t * p, Mio_Library_t * pLib )
         if ( pGate != pGate0 && pGate != pGate1 && pGate != pGate2 )
             Abc_NamStrFindOrAdd( p->pMods, Mio_GateReadName(pGate), NULL );
     assert( Abc_NamObjNumMax(p->pMods) > 1 );
+}
+int Cba_NtkBuildLibrary( Cba_Man_t * p )
+{
+    int RetValue = 1;
+    Mio_Library_t * pLib = (Mio_Library_t *)Abc_FrameReadLibGen( Abc_FrameGetGlobalFrame() );
+    if ( pLib == NULL )
+        printf( "The standard cell library is not available.\n" ), RetValue = 0;
+    else
+        Cba_NtkPrepareLibrary( p, pLib );
+    p->pMioLib = pLib;
+    return RetValue;
 }
 void Cba_NtkInsertNtk( Cba_Man_t * p, Abc_Ntk_t * pNtk )
 {

@@ -100,7 +100,7 @@ struct Prs_Man_t_
     char ErrorStr[1000];      // error
 };
 
-static inline Prs_Ntk_t * Prs_ManNtk( Vec_Ptr_t * vPrs, int i )        { return (Prs_Ntk_t *)Vec_PtrEntry(vPrs, i);              }
+static inline Prs_Ntk_t * Prs_ManNtk( Vec_Ptr_t * vPrs, int i )        { return i >= 0 && i < Vec_PtrSize(vPrs) ? (Prs_Ntk_t *)Vec_PtrEntry(vPrs, i) : NULL; }
 static inline Prs_Ntk_t * Prs_ManRoot( Vec_Ptr_t * vPrs )              { return Prs_ManNtk(vPrs, 0);                             }
 static inline Abc_Nam_t * Prs_ManNameMan( Vec_Ptr_t * vPrs )           { return Prs_ManRoot(vPrs)->pStrs;                        }
 

@@ -20,6 +20,8 @@
 
 #include "cba.h"
 #include "cbaPrs.h"
+#include "map/mio/mio.h"
+#include "base/main/main.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -30,6 +32,33 @@ ABC_NAMESPACE_IMPL_START
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Prs_ManIsMapped( Prs_Ntk_t * pNtk )
+{
+    Vec_Int_t * vSigs; int iBox;
+    Mio_Library_t * pLib = (Mio_Library_t *)Abc_FrameReadLibGen( Abc_FrameGetGlobalFrame() );
+    if ( pLib == NULL )
+        return 0;
+    Prs_NtkForEachBox( pNtk, vSigs, iBox )
+        if ( !Prs_BoxIsNode(pNtk, iBox) )
+        {
+            int NtkId = Prs_BoxNtk( pNtk, iBox );
+            if ( Mio_LibraryReadGateByName(pLib, Prs_NtkStr(pNtk, NtkId), NULL) )
+                return 1;
+        }
+    return 0;
+}
 
 /**Function*************************************************************
 
@@ -109,6 +138,12 @@ void Prs_ManRemapOne( Vec_Int_t * vSigs, Prs_Ntk_t * pNtkBox, Vec_Int_t * vMap )
     Prs_NtkForEachPo( pNtkBox, NameId, i )
         Vec_IntWriteEntry( vMap, NameId, -1 );
 }
+void Prs_ManRemapGate( Vec_Int_t * vSigs )
+{
+    int i, FormId;
+    Vec_IntForEachEntry( vSigs, FormId, i )
+        Vec_IntWriteEntry( vSigs, i, i/2 + 1 ), i++;
+}
 void Prs_ManRemapBoxes( Cba_Man_t * pNew, Vec_Ptr_t * vDes, Prs_Ntk_t * pNtk, Vec_Int_t * vMap )
 {
     Vec_Int_t * vSigs; int iBox;
@@ -118,7 +153,10 @@ void Prs_ManRemapBoxes( Cba_Man_t * pNew, Vec_Ptr_t * vDes, Prs_Ntk_t * pNtk, Ve
             int NtkId = Prs_BoxNtk( pNtk, iBox );
             int NtkIdNew = Cba_ManNtkFindId( pNew, Prs_NtkStr(pNtk, NtkId) );
             Prs_BoxSetNtk( pNtk, iBox, NtkIdNew );
-            Prs_ManRemapOne( vSigs, Prs_ManNtk(vDes, NtkIdNew), vMap );
+            if ( NtkId < Cba_ManNtkNum(pNew) )
+                Prs_ManRemapOne( vSigs, Prs_ManNtk(vDes, NtkIdNew), vMap );
+            else
+                Prs_ManRemapGate( vSigs );
         }
 }
 void Prs_ManCleanMap( Prs_Ntk_t * pNtk, Vec_Int_t * vMap )
@@ -157,23 +195,39 @@ void Prs_ManBuildNtk( Cba_Ntk_t * pNew, Vec_Ptr_t * vDes, Prs_Ntk_t * pNtk, Vec_
         if ( !Prs_BoxIsNode(pNtk, iBox) )
         {
             pNtkBox = Prs_ManNtk( vDes, Prs_BoxNtk(pNtk, iBox) );
-            iObj = Cba_BoxAlloc( pNew, CBA_OBJ_BOX, Prs_NtkPiNum(pNtkBox), Prs_NtkPoNum(pNtkBox), Prs_BoxNtk(pNtk, iBox) );
-            Cba_ObjSetName( pNew, iObj, Prs_BoxName(pNtk, iBox) );
-            Cba_NtkSetHost( Cba_ManNtk(pNew->pDesign, Prs_BoxNtk(pNtk, iBox)), Cba_NtkId(pNew), iObj );
-            Vec_IntForEachEntry( vSigs, Index, i )
+            if ( pNtkBox == NULL )
             {
-                i++;
-                if ( --Index < Prs_NtkPiNum(pNtkBox) )
-                    continue;
-                assert( Index - Prs_NtkPiNum(pNtkBox) < Prs_NtkPoNum(pNtkBox) );
+                iObj = Cba_BoxAlloc( pNew, CBA_BOX_GATE, Vec_IntSize(vSigs)/2-1, 1, Prs_BoxNtk(pNtk, iBox) + 1 ); // +1 to map NtkId into gate name
+                Cba_ObjSetName( pNew, iObj, Prs_BoxName(pNtk, iBox) );
                 // consider box output 
-                NameId = Vec_IntEntry( vSigs, i );
+                NameId = Vec_IntEntryLast( vSigs );
                 NameId = Prs_NtkSigName( pNtk, NameId );
                 if ( Vec_IntEntry(vMap, NameId) != -1 )
                     printf( "Box output name %d is already driven.\n", NameId );
-                iTerm = Cba_BoxBo( pNew, iObj, Index - Prs_NtkPiNum(pNtkBox) );
+                iTerm = Cba_BoxBo( pNew, iObj, 0 );
                 Cba_ObjSetName( pNew, iTerm, NameId );
                 Vec_IntWriteEntry( vMap, NameId, iTerm );
+            }
+            else
+            {
+                iObj = Cba_BoxAlloc( pNew, CBA_OBJ_BOX, Prs_NtkPiNum(pNtkBox), Prs_NtkPoNum(pNtkBox), Prs_BoxNtk(pNtk, iBox) );
+                Cba_ObjSetName( pNew, iObj, Prs_BoxName(pNtk, iBox) );
+                Cba_NtkSetHost( Cba_ManNtk(pNew->pDesign, Prs_BoxNtk(pNtk, iBox)), Cba_NtkId(pNew), iObj );
+                Vec_IntForEachEntry( vSigs, Index, i )
+                {
+                    i++;
+                    if ( --Index < Prs_NtkPiNum(pNtkBox) )
+                        continue;
+                    assert( Index - Prs_NtkPiNum(pNtkBox) < Prs_NtkPoNum(pNtkBox) );
+                    // consider box output 
+                    NameId = Vec_IntEntry( vSigs, i );
+                    NameId = Prs_NtkSigName( pNtk, NameId );
+                    if ( Vec_IntEntry(vMap, NameId) != -1 )
+                        printf( "Box output name %d is already driven.\n", NameId );
+                    iTerm = Cba_BoxBo( pNew, iObj, Index - Prs_NtkPiNum(pNtkBox) );
+                    Cba_ObjSetName( pNew, iTerm, NameId );
+                    Vec_IntWriteEntry( vMap, NameId, iTerm );
+                }
             }
             // remember box
             Vec_IntPush( vBoxes, iObj );
@@ -198,24 +252,47 @@ void Prs_ManBuildNtk( Cba_Ntk_t * pNew, Vec_Ptr_t * vDes, Prs_Ntk_t * pNtk, Vec_
         {
             pNtkBox = Prs_ManNtk( vDes, Prs_BoxNtk(pNtk, iBox) );
             iObj = Vec_IntEntry( vBoxes, iBox );
-            Vec_IntForEachEntry( vSigs, Index, i )
+            if ( pNtkBox == NULL )
             {
-                i++;
-                if ( --Index >= Prs_NtkPiNum(pNtkBox) )
-                    continue;
-                NameId = Vec_IntEntry( vSigs, i );
-                NameId = Prs_NtkSigName( pNtk, NameId );
-                iTerm = Cba_BoxBi( pNew, iObj, Index );
-                if ( Vec_IntEntry(vMap, NameId) == -1 )
+                Vec_IntForEachEntryStop( vSigs, Index, i, Vec_IntSize(vSigs)-2 )
                 {
-                    iConst0 = Cba_BoxAlloc( pNew, CBA_BOX_C0, 0, 1, -1 );
-                    Vec_IntWriteEntry( vMap, NameId, iConst0+1 );
-                    if ( iNonDriven == -1 )
-                        iNonDriven = NameId;
-                    nNonDriven++;
+                    i++;
+                    NameId = Vec_IntEntry( vSigs, i );
+                    NameId = Prs_NtkSigName( pNtk, NameId );
+                    iTerm = Cba_BoxBi( pNew, iObj, i/2 );
+                    if ( Vec_IntEntry(vMap, NameId) == -1 )
+                    {
+                        iConst0 = Cba_BoxAlloc( pNew, CBA_BOX_C0, 0, 1, -1 );
+                        Vec_IntWriteEntry( vMap, NameId, iConst0+1 );
+                        if ( iNonDriven == -1 )
+                            iNonDriven = NameId;
+                        nNonDriven++;
+                    }
+                    Cba_ObjSetFanin( pNew, iTerm, Vec_IntEntry(vMap, NameId) );
+                    Cba_ObjSetName( pNew, iTerm, NameId );
                 }
-                Cba_ObjSetFanin( pNew, iTerm, Vec_IntEntry(vMap, NameId) );
-                Cba_ObjSetName( pNew, iTerm, NameId );
+            }
+            else
+            {
+                Vec_IntForEachEntry( vSigs, Index, i )
+                {
+                    i++;
+                    if ( --Index >= Prs_NtkPiNum(pNtkBox) )
+                        continue;
+                    NameId = Vec_IntEntry( vSigs, i );
+                    NameId = Prs_NtkSigName( pNtk, NameId );
+                    iTerm = Cba_BoxBi( pNew, iObj, Index );
+                    if ( Vec_IntEntry(vMap, NameId) == -1 )
+                    {
+                        iConst0 = Cba_BoxAlloc( pNew, CBA_BOX_C0, 0, 1, -1 );
+                        Vec_IntWriteEntry( vMap, NameId, iConst0+1 );
+                        if ( iNonDriven == -1 )
+                            iNonDriven = NameId;
+                        nNonDriven++;
+                    }
+                    Cba_ObjSetFanin( pNew, iTerm, Vec_IntEntry(vMap, NameId) );
+                    Cba_ObjSetName( pNew, iTerm, NameId );
+                }
             }
         }
         else
@@ -279,8 +356,11 @@ Cba_Man_t * Prs_ManBuildCba( char * pFileName, Vec_Ptr_t * vDes )
     pNew->pStrs = Abc_NamRef( pNtk->pStrs );  
     Vec_PtrForEachEntry( Prs_Ntk_t *, vDes, pNtk, i )
         Cba_NtkAlloc( Cba_ManNtk(pNew, i), Prs_NtkId(pNtk), Prs_NtkPiNum(pNtk), Prs_NtkPoNum(pNtk), Prs_NtkCountObjects(pNtk) );
-    Vec_PtrForEachEntry( Prs_Ntk_t *, vDes, pNtk, i )
-        Prs_ManBuildNtk( Cba_ManNtk(pNew, i), vDes, pNtk, vMap, vTmp );
+    if ( (pNtk->fMapped || (pNtk->fSlices && Prs_ManIsMapped(pNtk))) && !Cba_NtkBuildLibrary(pNew) )
+        Cba_ManFree(pNew), pNew = NULL;
+    else 
+        Vec_PtrForEachEntry( Prs_Ntk_t *, vDes, pNtk, i )
+            Prs_ManBuildNtk( Cba_ManNtk(pNew, i), vDes, pNtk, vMap, vTmp );
     assert( Vec_IntCountEntry(vMap, -1) == Vec_IntSize(vMap) );
     Vec_IntFree( vMap );
     Vec_IntFree( vTmp );

@@ -757,6 +757,7 @@ extern void        Abc_FrameImportPtr( Vec_Ptr_t * vPtr );
 extern Vec_Ptr_t * Abc_FrameExportPtr();
 
 /*=== cbaBlast.c =============================================================*/
+extern int         Cba_NtkBuildLibrary( Cba_Man_t * p );
 extern Gia_Man_t * Cba_ManExtract( Cba_Man_t * p, int fBuffers, int fVerbose );
 extern Cba_Man_t * Cba_ManInsertGia( Cba_Man_t * p, Gia_Man_t * pGia );
 extern void *      Cba_ManInsertAbc( Cba_Man_t * p, void * pAbc );

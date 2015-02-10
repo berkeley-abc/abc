@@ -278,17 +278,15 @@ Cba_Man_t * Cba_ManCollapse( Cba_Man_t * p )
         Cba_ObjAlloc( pRootNew, CBA_OBJ_PO, Vec_IntEntry(vSigs, i) );
     assert( Cba_NtkObjNum(pRootNew) == Cba_NtkObjNumAlloc(pRootNew) );
     Vec_IntFree( vSigs );
-/*
     // transfer PI/PO names
     if ( Cba_NtkHasNames(pRoot) )
     {
         Cba_NtkStartNames( pRootNew );
-        Cba_NtkForEachPo( pRoot, iObj, i )
-            Cba_ObjSetName( pRootNew, Cba_NtkPo(pRootNew, i), Cba_ObjName(pRoot, iObj) );
+        Cba_NtkForEachPi( pRoot, iObj, i )
+            Cba_ObjSetName( pRootNew, Cba_NtkPi(pRootNew, i), Cba_ObjName(pRoot, iObj) );
         Cba_NtkForEachPo( pRoot, iObj, i )
             Cba_ObjSetName( pRootNew, Cba_NtkPo(pRootNew, i), Cba_ObjName(pRoot, iObj) );
     }
-*/
     return pNew;
 }
 

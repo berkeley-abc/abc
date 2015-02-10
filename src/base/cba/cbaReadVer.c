@@ -774,7 +774,7 @@ Vec_Ptr_t * Prs_ManReadVerilog( char * pFileName )
     if ( p == NULL )
         return NULL;
     Prs_NtkAddVerilogDirectives( p );
-    Prs_ManReadDesign( p );
+    Prs_ManReadDesign( p );   
     //Prs_ManPrintModules( p );
     if ( Prs_ManErrorPrint(p) )
         ABC_SWAP( Vec_Ptr_t *, vPrs, p->vNtks );
