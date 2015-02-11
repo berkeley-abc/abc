@@ -373,11 +373,11 @@ int Abc_NtkBddToSop( Abc_Ntk_t * pNtk, int fDirect )
         if ( !Abc_ObjIsBarBuf(pNode) )
             Vec_PtrPush( vFuncs, pNode->pData );
     // estimate the number of cubes in the ISOPs
-    nCubes = Extra_bddCountCubes( dd, (DdNode **)Vec_PtrArray(vFuncs), Vec_PtrSize(vFuncs), fDirect, 100000 );
+    nCubes = Extra_bddCountCubes( dd, (DdNode **)Vec_PtrArray(vFuncs), Vec_PtrSize(vFuncs), fDirect, ABC_MAX_CUBES );
     Vec_PtrFree( vFuncs );
     if ( nCubes == -1 )
         return 0;
-    printf( "The total number of cubes = %d.\n", nCubes );
+    //printf( "The total number of cubes = %d.\n", nCubes );
 
     if ( fDirect )
         fMode = 1;
