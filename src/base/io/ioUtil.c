@@ -367,7 +367,7 @@ void Io_Write( Abc_Ntk_t * pNtk, char * pFileName, Io_FileType_t FileType )
             return;
         }
         if ( !Abc_NtkHasSop(pNtk) )
-            Abc_NtkToSop( pNtk, 0 );
+            Abc_NtkToSop( pNtk, 0, ABC_INFINITY );
         Io_WriteBblif( pNtk, pFileName );
         return;
     }
@@ -396,7 +396,7 @@ void Io_Write( Abc_Ntk_t * pNtk, char * pFileName, Io_FileType_t FileType )
             pNtkTemp = Abc_NtkToNetlist( pNtk );
             Abc_NtkDelete( pNtkCopy );
         }
-        if ( !Abc_NtkToSop( pNtkTemp, 1 ) )
+        if ( !Abc_NtkToSop( pNtkTemp, 1, ABC_INFINITY ) )
             return;
     }
     else if ( FileType == IO_FILE_MOPLA )
@@ -433,7 +433,7 @@ void Io_Write( Abc_Ntk_t * pNtk, char * pFileName, Io_FileType_t FileType )
     if ( FileType == IO_FILE_BLIF )
     {
         if ( !Abc_NtkHasSop(pNtkTemp) && !Abc_NtkHasMapping(pNtkTemp) )
-            Abc_NtkToSop( pNtkTemp, 0 );
+            Abc_NtkToSop( pNtkTemp, 0, ABC_INFINITY );
         Io_WriteBlif( pNtkTemp, pFileName, 1, 0, 0 );
     }
     else if ( FileType == IO_FILE_BLIFMV )
@@ -568,12 +568,12 @@ void Io_WriteHie( Abc_Ntk_t * pNtk, char * pBaseName, char * pFileName )
         {
             Vec_PtrForEachEntry( Abc_Ntk_t *, pNtkResult->pDesign->vModules, pNtkTemp, i )
                 if ( !Abc_NtkHasSop(pNtkTemp) && !Abc_NtkHasMapping(pNtkTemp) )
-                    Abc_NtkToSop( pNtkTemp, 0 );
+                    Abc_NtkToSop( pNtkTemp, 0, ABC_INFINITY );
         }
         else
         {
             if ( !Abc_NtkHasSop(pNtkResult) && !Abc_NtkHasMapping(pNtkResult) )
-                Abc_NtkToSop( pNtkResult, 0 );
+                Abc_NtkToSop( pNtkResult, 0, ABC_INFINITY );
         }
         Io_WriteBlif( pNtkResult, pFileName, 1, 0, 0 );
     }

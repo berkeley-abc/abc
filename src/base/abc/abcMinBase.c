@@ -740,7 +740,7 @@ int Abc_NtkEliminateSpecial( Abc_Ntk_t * pNtk, int nMaxSize, int fVerbose )
     Abc_NtkCleanup( pNtk, 0 );
 
     // convert network to SOPs
-    if ( !Abc_NtkToSop(pNtk, 0) )
+    if ( !Abc_NtkToSop(pNtk, 0, ABC_INFINITY) )
     {
         fprintf( stdout, "Converting to SOP has failed.\n" );
         return 0;

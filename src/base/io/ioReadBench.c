@@ -286,7 +286,7 @@ Abc_Ntk_t * Io_ReadBenchNetwork( Extra_FileReader_t * p )
             Abc_NtkDelete( pNtk );
             return NULL;
         }
-        if ( !Abc_NtkToSop(pNtk, 0) )
+        if ( !Abc_NtkToSop(pNtk, 0, ABC_INFINITY) )
         {
             printf( "Io_ReadBenchNetwork(): Converting to SOP has failed.\n" );
             Abc_NtkDelete( pNtk );

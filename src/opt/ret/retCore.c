@@ -120,7 +120,7 @@ int Abc_NtkRetimeDebug( Abc_Ntk_t * pNtk )
     extern int Abc_NtkSecFraig( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nSeconds, int nFrames, int fVerbose );
     Abc_Ntk_t * pNtkRet;
     assert( Abc_NtkIsLogic(pNtk) );
-    Abc_NtkToSop( pNtk, 0 );
+    Abc_NtkToSop( pNtk, 0, ABC_INFINITY );
 //    if ( !Abc_NtkCheck( pNtk ) )
 //        fprintf( stdout, "Abc_NtkRetimeDebug(): Network check has failed.\n" );
 //    Io_WriteBlifLogic( pNtk, "debug_temp.blif", 1 );

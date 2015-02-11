@@ -214,7 +214,7 @@ typedef ABC_INT64_T iword;
 ///                      MACRO DEFINITIONS                           ///
 ////////////////////////////////////////////////////////////////////////
 
-#define ABC_INFINITY    (100000000)
+#define ABC_INFINITY    (1000000000)
 
 #define ABC_SWAP(Type, a, b)  { Type t = a; a = b; b = t; }
 

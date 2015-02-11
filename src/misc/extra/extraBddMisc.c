@@ -1486,19 +1486,20 @@ int Extra_bddCountCubes( DdManager * dd, DdNode ** pFuncs, int nFuncs, int fDire
     st__table *table = st__init_table( st__ptrcmp, st__ptrhash );
     if ( table == NULL )
         return -1;
-    dd->maxLive = (dd->keys - dd->dead) + (dd->keysZ - dd->deadZ) + nLimit;
     for ( i = 0; i < nFuncs; i++ )
     {
         int Count0 = 0, Count1 = 0;
+        dd->maxLive = (dd->keys - dd->dead) + (dd->keysZ - dd->deadZ) + nLimit;
         if ( NULL == extraBddCountCubes( dd, pFuncs[i], pFuncs[i], table, &Count0, nLimit - CounterAll ) )
             break;
         if ( fDirect )
             Count1 = Count0;
         else
         {
+            dd->maxLive = (dd->keys - dd->dead) + (dd->keysZ - dd->deadZ) + nLimit;
             pFuncs[i] = Cudd_Not( pFuncs[i] );
-            if ( NULL == extraBddCountCubes( dd, pFuncs[i], pFuncs[i], table, &Count1, nLimit - CounterAll ) )
-                break;
+            if ( NULL == extraBddCountCubes( dd, pFuncs[i], pFuncs[i], table, &Count1, Count0 ) )
+                Count1 = Count0;
             pFuncs[i] = Cudd_Not( pFuncs[i] );
         }
         CounterAll += Abc_MinInt( Count0, Count1 );

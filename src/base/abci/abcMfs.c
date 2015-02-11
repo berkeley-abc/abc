@@ -55,11 +55,7 @@ Vec_Ptr_t * Abc_NtkAssignIDs( Abc_Ntk_t * pNtk )
     Abc_NtkForEachCi( pNtk, pObj, i )
         pObj->iTemp = i;
     Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pObj, i )
-    {
         pObj->iTemp = Abc_NtkCiNum(pNtk) + i;
-//printf( "%d->%d ", pObj->Id, pObj->iTemp );
-    }
-//printf( "\n" );
     Abc_NtkForEachCo( pNtk, pObj, i )
         pObj->iTemp = Abc_NtkCiNum(pNtk) + Vec_PtrSize(vNodes) + i;
     return vNodes;
@@ -265,7 +261,11 @@ int Abc_NtkPerformMfs( Abc_Ntk_t * pNtk, Sfm_Par_t * pPars )
         return 0;
     }
     if ( !Abc_NtkHasSop(pNtk) )
-        Abc_NtkToSop( pNtk, 0 );
+        if ( !Abc_NtkToSop( pNtk, 0, ABC_INFINITY ) )
+        {
+            printf( "Conversion to SOP has failed due to low resource limit.\n" );
+            return 0;
+        }
     // collect information
     p = Abc_NtkExtractMfs( pNtk, pPars->nFirstFixed );
     // perform optimization
@@ -442,7 +442,7 @@ int Abc_NtkMfsAfterICheck( Abc_Ntk_t * p, int nFrames, int nFramesAdd, Vec_Int_t
         return 0;
     }
     if ( !Abc_NtkHasSop(p) )
-        Abc_NtkToSop( p, 0 );
+        Abc_NtkToSop( p, 0, ABC_INFINITY );
     // derive unfolded network
     pNtk = Abc_NtkUnrollAndDrop( p, nFrames, nFramesAdd, vFlops, &iPivot );
     Io_WriteBlifLogic( pNtk, "unroll_dump.blif", 0 );
@@ -466,7 +466,7 @@ int Abc_NtkMfsAfterICheck( Abc_Ntk_t * p, int nFrames, int nFramesAdd, Vec_Int_t
     // perform final sweep
     Abc_NtkSweep( p, 0 );
     if ( !Abc_NtkHasSop(p) )
-        Abc_NtkToSop( p, 0 );
+        Abc_NtkToSop( p, 0, ABC_INFINITY );
     return 1;
 
 }

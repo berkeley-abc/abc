@@ -1388,7 +1388,7 @@ void Io_WriteBlifSpecial( Abc_Ntk_t * pNtk, char * FileName, char * pLutStruct, 
 {
     Abc_Ntk_t * pNtkTemp;
     assert( Abc_NtkIsLogic(pNtk) );
-    Abc_NtkToSop( pNtk, 0 );
+    Abc_NtkToSop( pNtk, 0, ABC_INFINITY );
     // derive the netlist
     pNtkTemp = Abc_NtkToNetlist(pNtk);
     if ( pNtkTemp == NULL )

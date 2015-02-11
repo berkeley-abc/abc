@@ -356,7 +356,7 @@ char * Abc_ConvertBddToSop( Mem_Flex_t * pMan, DdManager * dd, DdNode * bFuncOn,
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_NtkBddToSop( Abc_Ntk_t * pNtk, int fDirect )
+int Abc_NtkBddToSop( Abc_Ntk_t * pNtk, int fDirect, int nCubeLimit )
 {
     extern void Abc_NtkSortSops( Abc_Ntk_t * pNtk );
     Abc_Obj_t * pNode;
@@ -366,18 +366,21 @@ int Abc_NtkBddToSop( Abc_Ntk_t * pNtk, int fDirect )
     Vec_Str_t * vCube;
     int i, fMode, nCubes;
 
-    // collect all BDDs into one array
-    Vec_Ptr_t * vFuncs = Vec_PtrAlloc( Abc_NtkNodeNum(pNtk) );
-    assert( !Cudd_ReorderingStatus(dd, &nCubes) );
-    Abc_NtkForEachNode( pNtk, pNode, i )
-        if ( !Abc_ObjIsBarBuf(pNode) )
-            Vec_PtrPush( vFuncs, pNode->pData );
-    // estimate the number of cubes in the ISOPs
-    nCubes = Extra_bddCountCubes( dd, (DdNode **)Vec_PtrArray(vFuncs), Vec_PtrSize(vFuncs), fDirect, ABC_MAX_CUBES );
-    Vec_PtrFree( vFuncs );
-    if ( nCubes == -1 )
-        return 0;
-    //printf( "The total number of cubes = %d.\n", nCubes );
+    if ( nCubeLimit < ABC_INFINITY )
+    {
+        // collect all BDDs into one array
+        Vec_Ptr_t * vFuncs = Vec_PtrAlloc( Abc_NtkNodeNum(pNtk) );
+        assert( !Cudd_ReorderingStatus(dd, &nCubes) );
+        Abc_NtkForEachNode( pNtk, pNode, i )
+            if ( !Abc_ObjIsBarBuf(pNode) )
+                Vec_PtrPush( vFuncs, pNode->pData );
+        // estimate the number of cubes in the ISOPs
+        nCubes = Extra_bddCountCubes( dd, (DdNode **)Vec_PtrArray(vFuncs), Vec_PtrSize(vFuncs), fDirect, nCubeLimit );
+        Vec_PtrFree( vFuncs );
+        if ( nCubes == -1 )
+            return 0;
+        //printf( "The total number of cubes = %d.\n", nCubes );
+    }
 
     if ( fDirect )
         fMode = 1;
@@ -407,6 +410,7 @@ int Abc_NtkBddToSop( Abc_Ntk_t * pNtk, int fDirect )
             Vec_StrFree( vCube );
             return 0;
         }
+        assert( Abc_ObjFaninNum(pNode) == Abc_SopGetVarNum((char *)pNode->pNext) );
     }
     Vec_StrFree( vCube );
 
@@ -1134,7 +1138,7 @@ int Abc_NtkSopToBlifMv( Abc_Ntk_t * pNtk )
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_NtkToSop( Abc_Ntk_t * pNtk, int fDirect )
+int Abc_NtkToSop( Abc_Ntk_t * pNtk, int fDirect, int nCubeLimit )
 {
     assert( !Abc_NtkIsStrash(pNtk) );
     if ( Abc_NtkHasSop(pNtk) )
@@ -1143,17 +1147,17 @@ int Abc_NtkToSop( Abc_Ntk_t * pNtk, int fDirect )
             return 1;
         if ( !Abc_NtkSopToBdd(pNtk) )
             return 0;
-        return Abc_NtkBddToSop(pNtk, fDirect);
+        return Abc_NtkBddToSop(pNtk, fDirect, nCubeLimit);
     }
     if ( Abc_NtkHasMapping(pNtk) )
         return Abc_NtkMapToSop(pNtk);
     if ( Abc_NtkHasBdd(pNtk) )
-        return Abc_NtkBddToSop(pNtk, fDirect);
+        return Abc_NtkBddToSop(pNtk, fDirect, nCubeLimit);
     if ( Abc_NtkHasAig(pNtk) )
     {
         if ( !Abc_NtkAigToBdd(pNtk) )
             return 0;
-        return Abc_NtkBddToSop(pNtk, fDirect);
+        return Abc_NtkBddToSop(pNtk, fDirect, nCubeLimit);
     }
     assert( 0 );
     return 0;
@@ -1214,7 +1218,7 @@ int Abc_NtkToAig( Abc_Ntk_t * pNtk )
     }
     if ( Abc_NtkHasBdd(pNtk) )
     {
-        if ( !Abc_NtkBddToSop(pNtk,0) )
+        if ( !Abc_NtkBddToSop(pNtk,0, ABC_INFINITY) )
             return 0;
         return Abc_NtkSopToAig(pNtk);
     }

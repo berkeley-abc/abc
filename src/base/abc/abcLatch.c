@@ -446,7 +446,7 @@ Abc_Ntk_t * Abc_NtkConvertOnehot( Abc_Ntk_t * pNtk )
             iState |= (1 << i);
     }
     // transfer logic to SOPs
-    Abc_NtkToSop( pNtk, 0 );
+    Abc_NtkToSop( pNtk, 0, ABC_INFINITY );
     // create new network
     pNtkNew = Abc_NtkStartFromNoLatches( pNtk, pNtk->ntkType, pNtk->ntkFunc );
     nStates = (1 << nFlops);

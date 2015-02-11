@@ -1119,7 +1119,7 @@ void Abc_NtkPrintGates( Abc_Ntk_t * pNtk, int fUseLibrary )
     // transform logic functions from BDD to SOP
     if ( (fHasBdds = Abc_NtkIsBddLogic(pNtk)) )
     {
-        if ( !Abc_NtkBddToSop(pNtk, 0) )
+        if ( !Abc_NtkBddToSop(pNtk, 0, ABC_INFINITY) )
         {
             printf( "Abc_NtkPrintGates(): Converting to SOPs has failed.\n" );
             return;

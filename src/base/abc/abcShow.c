@@ -209,7 +209,7 @@ void Abc_NtkShow( Abc_Ntk_t * pNtk0, int fGateNames, int fSeq, int fUseReverse )
     // convert to logic SOP
     pNtk = Abc_NtkDup( pNtk0 );
     if ( Abc_NtkIsLogic(pNtk) && !Abc_NtkHasMapping(pNtk) )
-        Abc_NtkToSop( pNtk, 0 );
+        Abc_NtkToSop( pNtk, 0, ABC_INFINITY );
 
     // collect all nodes in the network
     vNodes = Vec_PtrAlloc( 100 );

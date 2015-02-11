@@ -7889,16 +7889,27 @@ usage:
 int Abc_CommandSop( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
-    int fDirect;
+    int fDirect, nCubeLimit = 1000000;
     int c;
 
     // set defaults
     fDirect = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "dh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Cdh" ) ) != EOF )
     {
         switch ( c )
         {
+        case 'C':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-C\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nCubeLimit = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nCubeLimit < 0 )
+                goto usage;
+            break;
         case 'd':
             fDirect ^= 1;
             break;
@@ -7918,7 +7929,7 @@ int Abc_CommandSop( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Converting to SOP is possible only for logic networks.\n" );
         return 1;
     }
-    if ( !Abc_NtkToSop(pNtk, fDirect) )
+    if ( !Abc_NtkToSop(pNtk, fDirect, nCubeLimit) )
     {
         Abc_Print( -1, "Converting to SOP has failed.\n" );
         return 1;
@@ -7926,8 +7937,9 @@ int Abc_CommandSop( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: sop [-dh]\n" );
+    Abc_Print( -2, "usage: sop [-C num] [-dh]\n" );
     Abc_Print( -2, "\t         converts node functions to SOP\n" );
+    Abc_Print( -2, "\t-C num : the limit on the total cube count of all nodes [default = %d]\n", nCubeLimit );
     Abc_Print( -2, "\t-d     : toggles using both phases or only positive [default = %s]\n", fDirect? "direct": "both" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
@@ -17226,7 +17238,7 @@ int Abc_CommandRetime( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
 
     // get the network in the SOP form
-    if ( !Abc_NtkToSop(pNtk, 0) )
+    if ( !Abc_NtkToSop(pNtk, 0, ABC_INFINITY) )
     {
         Abc_Print( -1, "Converting to SOPs has failed.\n" );
         return 0;
