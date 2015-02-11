@@ -364,7 +364,20 @@ int Abc_NtkBddToSop( Abc_Ntk_t * pNtk, int fDirect )
     DdManager * dd = (DdManager *)pNtk->pManFunc;
     DdNode * bFunc;
     Vec_Str_t * vCube;
-    int i, fMode;
+    int i, fMode, nCubes;
+
+    // collect all BDDs into one array
+    Vec_Ptr_t * vFuncs = Vec_PtrAlloc( Abc_NtkNodeNum(pNtk) );
+    assert( !Cudd_ReorderingStatus(dd, &nCubes) );
+    Abc_NtkForEachNode( pNtk, pNode, i )
+        if ( !Abc_ObjIsBarBuf(pNode) )
+            Vec_PtrPush( vFuncs, pNode->pData );
+    // estimate the number of cubes in the ISOPs
+    nCubes = Extra_bddCountCubes( dd, (DdNode **)Vec_PtrArray(vFuncs), Vec_PtrSize(vFuncs), fDirect, 100000 );
+    Vec_PtrFree( vFuncs );
+    if ( nCubes == -1 )
+        return 0;
+    printf( "The total number of cubes = %d.\n", nCubes );
 
     if ( fDirect )
         fMode = 1;

@@ -1246,6 +1246,270 @@ extraDecomposeCover(
     }
 } /* extraDecomposeCover */
 
+
+
+/**Function********************************************************************
+
+  Synopsis    [Counts the total number of cubes in the ISOPs of the functions.]
+
+  Description [Returns -1 if the number of cubes exceeds the limit.]
+
+  SideEffects [None]
+
+  SeeAlso     [Extra_TransferPermute]
+
+******************************************************************************/
+static DdNode * extraBddCountCubes( DdManager * dd, DdNode * L, DdNode * U, st__table *table, int * pnCubes, int Limit )
+{
+    DdNode      *one = DD_ONE(dd);
+    DdNode      *zero = Cudd_Not(one);
+    int         v, top_l, top_u;
+    DdNode      *Lsub0, *Usub0, *Lsub1, *Usub1, *Ld, *Ud;
+    DdNode      *Lsuper0, *Usuper0, *Lsuper1, *Usuper1;
+    DdNode      *Isub0, *Isub1, *Id;
+    DdNode      *x;
+    DdNode      *term0, *term1, *sum;
+    DdNode      *Lv, *Uv, *Lnv, *Unv;
+    DdNode      *r;
+    int         index;
+    int         Count0 = 0, Count1 = 0, Count2 = 0;
+
+    statLine(dd);
+    if (L == zero)
+        return(zero);
+    if (U == one)
+    {
+        *pnCubes = 1;
+        return(one);
+    }
+
+    /* Check cache */
+    r = cuddCacheLookup2(dd, cuddBddIsop, L, U);
+    if (r)
+    {
+        int nCubes = 0;
+        if ( st__lookup( table, (char *)r, (char **)&nCubes ) )
+            *pnCubes = nCubes;
+        else assert( 0 );
+        return r;
+    }
+
+    top_l = dd->perm[Cudd_Regular(L)->index];
+    top_u = dd->perm[Cudd_Regular(U)->index];
+    v = ddMin(top_l, top_u);
+
+    /* Compute cofactors */
+    if (top_l == v) {
+        index = Cudd_Regular(L)->index;
+        Lv = Cudd_T(L);
+        Lnv = Cudd_E(L);
+        if (Cudd_IsComplement(L)) {
+            Lv = Cudd_Not(Lv);
+            Lnv = Cudd_Not(Lnv);
+        }
+    }
+    else {
+        index = Cudd_Regular(U)->index;
+        Lv = Lnv = L;
+    }
+
+    if (top_u == v) {
+        Uv = Cudd_T(U);
+        Unv = Cudd_E(U);
+        if (Cudd_IsComplement(U)) {
+            Uv = Cudd_Not(Uv);
+            Unv = Cudd_Not(Unv);
+        }
+    }
+    else {
+        Uv = Unv = U;
+    }
+
+    Lsub0 = cuddBddAndRecur(dd, Lnv, Cudd_Not(Uv));
+    if (Lsub0 == NULL)
+        return(NULL);
+    Cudd_Ref(Lsub0);
+    Usub0 = Unv;
+    Lsub1 = cuddBddAndRecur(dd, Lv, Cudd_Not(Unv));
+    if (Lsub1 == NULL) {
+        Cudd_RecursiveDeref(dd, Lsub0);
+        return(NULL);
+    }
+    Cudd_Ref(Lsub1);
+    Usub1 = Uv;
+
+    Isub0 = extraBddCountCubes(dd, Lsub0, Usub0, table, &Count0, Limit);
+    if (Isub0 == NULL) {
+        Cudd_RecursiveDeref(dd, Lsub0);
+        Cudd_RecursiveDeref(dd, Lsub1);
+        return(NULL);
+    }
+    Cudd_Ref(Isub0);
+    Isub1 = extraBddCountCubes(dd, Lsub1, Usub1, table, &Count1, Limit);
+    if (Isub1 == NULL) {
+        Cudd_RecursiveDeref(dd, Lsub0);
+        Cudd_RecursiveDeref(dd, Lsub1);
+        Cudd_RecursiveDeref(dd, Isub0);
+        return(NULL);
+    }
+    Cudd_Ref(Isub1);
+    Cudd_RecursiveDeref(dd, Lsub0);
+    Cudd_RecursiveDeref(dd, Lsub1);
+
+    Lsuper0 = cuddBddAndRecur(dd, Lnv, Cudd_Not(Isub0));
+    if (Lsuper0 == NULL) {
+        Cudd_RecursiveDeref(dd, Isub0);
+        Cudd_RecursiveDeref(dd, Isub1);
+        return(NULL);
+    }
+    Cudd_Ref(Lsuper0);
+    Lsuper1 = cuddBddAndRecur(dd, Lv, Cudd_Not(Isub1));
+    if (Lsuper1 == NULL) {
+        Cudd_RecursiveDeref(dd, Isub0);
+        Cudd_RecursiveDeref(dd, Isub1);
+        Cudd_RecursiveDeref(dd, Lsuper0);
+        return(NULL);
+    }
+    Cudd_Ref(Lsuper1);
+    Usuper0 = Unv;
+    Usuper1 = Uv;
+
+    /* Ld = Lsuper0 + Lsuper1 */
+    Ld = cuddBddAndRecur(dd, Cudd_Not(Lsuper0), Cudd_Not(Lsuper1));
+    Ld = Cudd_NotCond(Ld, Ld != NULL);
+    if (Ld == NULL) {
+        Cudd_RecursiveDeref(dd, Isub0);
+        Cudd_RecursiveDeref(dd, Isub1);
+        Cudd_RecursiveDeref(dd, Lsuper0);
+        Cudd_RecursiveDeref(dd, Lsuper1);
+        return(NULL);
+    }
+    Cudd_Ref(Ld);
+    Ud = cuddBddAndRecur(dd, Usuper0, Usuper1);
+    if (Ud == NULL) {
+        Cudd_RecursiveDeref(dd, Isub0);
+        Cudd_RecursiveDeref(dd, Isub1);
+        Cudd_RecursiveDeref(dd, Lsuper0);
+        Cudd_RecursiveDeref(dd, Lsuper1);
+        Cudd_RecursiveDeref(dd, Ld);
+        return(NULL);
+    }
+    Cudd_Ref(Ud);
+    Cudd_RecursiveDeref(dd, Lsuper0);
+    Cudd_RecursiveDeref(dd, Lsuper1);
+
+    Id = extraBddCountCubes(dd, Ld, Ud, table, &Count2, Limit);
+    if (Id == NULL) {
+        Cudd_RecursiveDeref(dd, Isub0);
+        Cudd_RecursiveDeref(dd, Isub1);
+        Cudd_RecursiveDeref(dd, Ld);
+        Cudd_RecursiveDeref(dd, Ud);
+        return(NULL);
+    }
+    Cudd_Ref(Id);
+    Cudd_RecursiveDeref(dd, Ld);
+    Cudd_RecursiveDeref(dd, Ud);
+
+    x = cuddUniqueInter(dd, index, one, zero);
+    if (x == NULL) {
+        Cudd_RecursiveDeref(dd, Isub0);
+        Cudd_RecursiveDeref(dd, Isub1);
+        Cudd_RecursiveDeref(dd, Id);
+        return(NULL);
+    }
+    Cudd_Ref(x);
+    term0 = cuddBddAndRecur(dd, Cudd_Not(x), Isub0);
+    if (term0 == NULL) {
+        Cudd_RecursiveDeref(dd, Isub0);
+        Cudd_RecursiveDeref(dd, Isub1);
+        Cudd_RecursiveDeref(dd, Id);
+        Cudd_RecursiveDeref(dd, x);
+        return(NULL);
+    }
+    Cudd_Ref(term0);
+    Cudd_RecursiveDeref(dd, Isub0);
+    term1 = cuddBddAndRecur(dd, x, Isub1);
+    if (term1 == NULL) {
+        Cudd_RecursiveDeref(dd, Isub1);
+        Cudd_RecursiveDeref(dd, Id);
+        Cudd_RecursiveDeref(dd, x);
+        Cudd_RecursiveDeref(dd, term0);
+        return(NULL);
+    }
+    Cudd_Ref(term1);
+    Cudd_RecursiveDeref(dd, x);
+    Cudd_RecursiveDeref(dd, Isub1);
+    /* sum = term0 + term1 */
+    sum = cuddBddAndRecur(dd, Cudd_Not(term0), Cudd_Not(term1));
+    sum = Cudd_NotCond(sum, sum != NULL);
+    if (sum == NULL) {
+        Cudd_RecursiveDeref(dd, Id);
+        Cudd_RecursiveDeref(dd, term0);
+        Cudd_RecursiveDeref(dd, term1);
+        return(NULL);
+    }
+    Cudd_Ref(sum);
+    Cudd_RecursiveDeref(dd, term0);
+    Cudd_RecursiveDeref(dd, term1);
+    /* r = sum + Id */
+    r = cuddBddAndRecur(dd, Cudd_Not(sum), Cudd_Not(Id));
+    r = Cudd_NotCond(r, r != NULL);
+    if (r == NULL) {
+        Cudd_RecursiveDeref(dd, Id);
+        Cudd_RecursiveDeref(dd, sum);
+        return(NULL);
+    }
+    Cudd_Ref(r);
+    Cudd_RecursiveDeref(dd, sum);
+    Cudd_RecursiveDeref(dd, Id);
+
+    cuddCacheInsert2(dd, cuddBddIsop, L, U, r);
+    *pnCubes = Count0 + Count1 + Count2;
+    if ( st__add_direct( table, (char *)r, (char *)*pnCubes ) == st__OUT_OF_MEM )
+    {
+        Cudd_RecursiveDeref( dd, r );
+        return NULL;
+    }
+    if ( *pnCubes > Limit )
+    {
+        Cudd_RecursiveDeref( dd, r );
+        return NULL;
+    }
+    //printf( "%d ", *pnCubes );
+    Cudd_Deref(r);
+    return r;
+} 
+int Extra_bddCountCubes( DdManager * dd, DdNode ** pFuncs, int nFuncs, int fDirect, int nLimit )
+{
+    int i, CounterAll = 0;
+    unsigned int saveLimit = dd->maxLive;
+    st__table *table = st__init_table( st__ptrcmp, st__ptrhash );
+    if ( table == NULL )
+        return -1;
+    dd->maxLive = (dd->keys - dd->dead) + (dd->keysZ - dd->deadZ) + nLimit;
+    for ( i = 0; i < nFuncs; i++ )
+    {
+        int Count0 = 0, Count1 = 0;
+        if ( NULL == extraBddCountCubes( dd, pFuncs[i], pFuncs[i], table, &Count0, nLimit - CounterAll ) )
+            break;
+        if ( fDirect )
+            Count1 = Count0;
+        else
+        {
+            pFuncs[i] = Cudd_Not( pFuncs[i] );
+            if ( NULL == extraBddCountCubes( dd, pFuncs[i], pFuncs[i], table, &Count1, nLimit - CounterAll ) )
+                break;
+            pFuncs[i] = Cudd_Not( pFuncs[i] );
+        }
+        CounterAll += Abc_MinInt( Count0, Count1 );
+        if ( CounterAll > nLimit )
+            break;
+    }
+    dd->maxLive = saveLimit;
+    st__free_table( table );
+    return i == nFuncs ? CounterAll : -1;
+}   /* end of Extra_bddCountCubes */
+
 /*---------------------------------------------------------------------------*/
 /* Definition of static Functions                                            */
 /*---------------------------------------------------------------------------*/
