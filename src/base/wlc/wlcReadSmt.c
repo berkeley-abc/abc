@@ -99,13 +99,9 @@ static inline char * Prs_SmtLoadFile( char * pFileName, char ** ppLimit )
     *ppLimit = pBuffer + nFileSize + 2;
     return pBuffer;
 }
-static inline Prs_Smt_t * Prs_SmtAlloc( char * pFileName )
+static inline Prs_Smt_t * Prs_SmtAlloc( char * pFileName, char * pBuffer, char * pLimit )
 {
     Prs_Smt_t * p;
-    char * pBuffer, * pLimit;
-    pBuffer = Prs_SmtLoadFile( pFileName, &pLimit );
-    if ( pBuffer == NULL )
-        return NULL;
     p = ABC_CALLOC( Prs_Smt_t, 1 );
     p->pName   = pFileName;
     p->pBuffer = pBuffer;
@@ -121,7 +117,6 @@ static inline void Prs_SmtFree( Prs_Smt_t * p )
     if ( p->pStrs )
         Abc_NamDeref( p->pStrs );
     Vec_IntErase( &p->vData );
-    ABC_FREE( p->pBuffer );
     ABC_FREE( p );
 }
 
@@ -655,20 +650,30 @@ Wlc_Ntk_t * Prs_SmtBuild( Prs_Smt_t * p )
     Vec_IntFree( vFanins );
     return pNtk;
 }
-Wlc_Ntk_t * Wlc_ReadSmt( char * pFileName )
+Wlc_Ntk_t * Wlc_ReadSmtBuffer( char * pFileName, char * pBuffer, char * pLimit )
 {
     Wlc_Ntk_t * pNtk = NULL;
-    Prs_Smt_t * p = Prs_SmtAlloc( pFileName );
+    Prs_Smt_t * p = Prs_SmtAlloc( pFileName, pBuffer, pLimit );
     if ( p == NULL )
         return NULL;
     Prs_SmtRemoveComments( p );
     Prs_SmtReadLines( p );
     //Prs_SmtPrintParser( p );
     if ( Prs_SmtErrorPrint(p) )
-    {
         pNtk = Prs_SmtBuild( p );
-    }
     Prs_SmtFree( p );
+    return pNtk;
+}
+Wlc_Ntk_t * Wlc_ReadSmt( char * pFileName )
+{
+    Wlc_Ntk_t * pNtk = NULL;
+    Prs_Smt_t * p = NULL;
+    char * pBuffer, * pLimit;
+    pBuffer = Prs_SmtLoadFile( pFileName, &pLimit );
+    if ( pBuffer == NULL )
+        return NULL;
+    pNtk = Wlc_ReadSmtBuffer( pFileName, pBuffer, pLimit );
+    ABC_FREE( pBuffer );
     return pNtk;
 }
 

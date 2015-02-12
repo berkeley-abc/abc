@@ -51,6 +51,7 @@ SUPPORT, UPDATES, ENHANCEMENTS, OR MODIFICATIONS.
 
 #include "base/abc/abc.h"
 #include "mainInt.h"
+#include "base/wlc/wlc.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -90,7 +91,8 @@ int Abc_RealMain( int argc, char * argv[] )
         INTERACTIVE, // interactive mode
         BATCH, // batch mode, run a command and quit
         BATCH_THEN_INTERACTIVE, // run a command, then back to interactive mode
-        BATCH_QUIET // as in batch mode, but don't echo the command
+        BATCH_QUIET, // as in batch mode, but don't echo the command
+        BATCH_SMT // special batch mode, which expends SMTLIB problem via stdin
     } fBatch;
 
     // added to detect memory leaks
@@ -138,7 +140,7 @@ int Abc_RealMain( int argc, char * argv[] )
     sprintf( sWriteCmd, "write" );
 
     Extra_UtilGetoptReset();
-    while ((c = Extra_UtilGetopt(argc, argv, "c:q:C:hf:F:o:st:T:xb")) != EOF) {
+    while ((c = Extra_UtilGetopt(argc, argv, "c:q:C:S:hf:F:o:st:T:xb")) != EOF) {
         switch(c) {
             case 'c':
                 strcpy( sCommandUsr, globalUtilOptarg );
@@ -153,6 +155,11 @@ int Abc_RealMain( int argc, char * argv[] )
             case 'C':
                 strcpy( sCommandUsr, globalUtilOptarg );
                 fBatch = BATCH_THEN_INTERACTIVE;
+                break;
+
+            case 'S':
+                strcpy( sCommandUsr, globalUtilOptarg );
+                fBatch = BATCH_SMT;
                 break;
 
             case 'f':
@@ -221,6 +228,28 @@ int Abc_RealMain( int argc, char * argv[] )
             default:
                 goto usage;
         }
+    }
+
+    if ( fBatch == BATCH_SMT )
+    {
+        Wlc_Ntk_t * pNtk;
+        Vec_Str_t * vInput;
+        // collect stdin
+        vInput = Wlc_GenerateSmtStdin();
+        // parse the input
+        pNtk = Wlc_ReadSmtBuffer( NULL, Vec_StrArray(vInput), Vec_StrArray(vInput) + Vec_StrSize(vInput) );
+        Vec_StrFree( vInput );
+        // install current network
+        Wlc_SetNtk( pAbc, pNtk );
+        // execute command
+        fStatus = Cmd_CommandExecute( pAbc, sCommandUsr );
+        // generate output
+        if ( !fStatus )
+            Wlc_GenerateSmtStdout( pAbc );
+        else
+            Abc_Print( 1, "Something did not work out with the command \"%s\".\n", sCommandUsr );
+        Abc_Stop();
+        return 0;
     }
 
     if ( Abc_FrameIsBridgeMode() )

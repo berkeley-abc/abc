@@ -78,6 +78,59 @@ void Wlc_End( Abc_Frame_t * pAbc )
     Wlc_AbcFreeNtk( pAbc );
 }
 
+/**Function********************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+******************************************************************************/
+void Wlc_SetNtk( Abc_Frame_t * pAbc, Wlc_Ntk_t * pNtk )
+{
+    Wlc_AbcUpdateNtk( pAbc, pNtk );
+}
+
+
+/**Function********************************************************************
+
+  Synopsis    [Reads stdin and stops when "(check-sat)" is observed.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+******************************************************************************/
+static inline int Wlc_GenerateStop( Vec_Str_t * vInput, char * pLine, int LineSize )
+{
+    char * pStr = Vec_StrArray(vInput) + Vec_StrSize(vInput) - LineSize;
+    if ( Vec_StrSize(vInput) < LineSize )
+        return 0;
+    return !strncmp( pStr, pLine, LineSize );
+}
+Vec_Str_t * Wlc_GenerateSmtStdin()
+{
+    char * pLine = "(check-sat)";
+    int c, LineSize = strlen(pLine);
+    Vec_Str_t * vInput = Vec_StrAlloc( 1000 );
+    while ( (c = fgetc(stdin)) != EOF )
+    {
+        Vec_StrPush( vInput, (char)c );
+        if ( c == ')' && Wlc_GenerateStop(vInput, pLine, LineSize) )
+            break;
+    }
+    Vec_StrPush( vInput, '\0' );
+    return vInput;
+}
+void Wlc_GenerateSmtStdout( Abc_Frame_t * pAbc )
+{
+    printf( "Output produced by SMT solver will be here.\n" );
+}
 
 /**Function********************************************************************
 

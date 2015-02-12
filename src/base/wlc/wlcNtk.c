@@ -95,7 +95,7 @@ Wlc_Ntk_t * Wlc_NtkAlloc( char * pName, int nObjsAlloc )
 {
     Wlc_Ntk_t * p;
     p = ABC_CALLOC( Wlc_Ntk_t, 1 );
-    p->pName = Extra_FileNameGeneric( pName );
+    p->pName = pName ? Extra_FileNameGeneric( pName ) : NULL;
     Vec_IntGrow( &p->vPis, 111 );
     Vec_IntGrow( &p->vPos, 111 );
     Vec_IntGrow( &p->vCis, 111 );

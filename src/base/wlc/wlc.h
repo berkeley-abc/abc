@@ -32,6 +32,7 @@
 #include "misc/mem/mem.h"
 #include "misc/extra/extra.h"
 #include "misc/util/utilTruth.h"
+#include "base/main/mainInt.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                         PARAMETERS                               ///
@@ -238,6 +239,10 @@ extern Wlc_Ntk_t *    Wlc_NtkAbstractNodes( Wlc_Ntk_t * pNtk, Vec_Int_t * vNodes
 extern Wlc_Ntk_t *    Wlc_NtkUifNodePairs( Wlc_Ntk_t * pNtk, Vec_Int_t * vPairs );
 /*=== wlcBlast.c ========================================================*/
 extern Gia_Man_t *    Wlc_NtkBitBlast( Wlc_Ntk_t * p, Vec_Int_t * vBoxIds );
+/*=== wlcCom.c ========================================================*/
+extern void           Wlc_SetNtk( Abc_Frame_t * pAbc, Wlc_Ntk_t * pNtk );
+extern Vec_Str_t *    Wlc_GenerateSmtStdin();
+extern void           Wlc_GenerateSmtStdout( Abc_Frame_t * pAbc );
 /*=== wlcNtk.c ========================================================*/
 extern Wlc_Ntk_t *    Wlc_NtkAlloc( char * pName, int nObjsAlloc );
 extern int            Wlc_ObjAlloc( Wlc_Ntk_t * p, int Type, int Signed, int End, int Beg );
@@ -253,6 +258,7 @@ extern void           Wlc_NtkPrintStats( Wlc_Ntk_t * p, int fDistrib, int fVerbo
 extern Wlc_Ntk_t *    Wlc_NtkDupDfs( Wlc_Ntk_t * p );
 extern void           Wlc_NtkTransferNames( Wlc_Ntk_t * pNew, Wlc_Ntk_t * p );
 /*=== wlcReadSmt.c ========================================================*/
+extern Wlc_Ntk_t *    Wlc_ReadSmtBuffer( char * pFileName, char * pBuffer, char * pLimit );
 extern Wlc_Ntk_t *    Wlc_ReadSmt( char * pFileName );
 /*=== wlcReadVer.c ========================================================*/
 extern Wlc_Ntk_t *    Wlc_ReadVer( char * pFileName );
