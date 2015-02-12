@@ -240,8 +240,8 @@ void Ptr_ManExperiment( Abc_Ntk_t * pNtk )
 ***********************************************************************/
 static inline int Ptr_NameToType( char * pSop )
 {
-    if ( !strcmp(pSop, "Const0T") )      return CBA_BOX_C0;
-    if ( !strcmp(pSop, "Const1T") )      return CBA_BOX_C1;
+    if ( !strcmp(pSop, "Const0T") )      return CBA_BOX_CF;
+    if ( !strcmp(pSop, "Const1T") )      return CBA_BOX_CT;
     if ( !strcmp(pSop, "BufT") )         return CBA_BOX_BUF;
     if ( !strcmp(pSop, "InvT") )         return CBA_BOX_INV;
     if ( !strcmp(pSop, "AndT") )         return CBA_BOX_AND;

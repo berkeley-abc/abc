@@ -151,9 +151,9 @@ int Cba_ManExtract_rec( Gia_Man_t * pNew, Cba_Ntk_t * p, int i, int fBuffers, Ve
                 Cba_ObjType_t Type = Cba_ObjType(p, iBox);
                 if ( nLits == 0 )
                 {
-                    if ( Type == CBA_BOX_C0 )
+                    if ( Type == CBA_BOX_CF )
                         iRes = 0;
-                    else if ( Type == CBA_BOX_C1 )
+                    else if ( Type == CBA_BOX_CT )
                         iRes = 1;
                     else assert( 0 );
                 }
@@ -307,7 +307,7 @@ void Cba_NtkCreateAndConnectBuffer( Gia_Man_t * pGia, Gia_Obj_t * pObj, Cba_Ntk_
     }
     else
     {
-        Cba_ObjAlloc( p, pGia && Gia_ObjFaninC0(pObj) ? CBA_BOX_C1 : CBA_BOX_C0, -1 );
+        Cba_ObjAlloc( p, pGia && Gia_ObjFaninC0(pObj) ? CBA_BOX_CT : CBA_BOX_CF, -1 );
     }
     iObj = Cba_ObjAlloc( p, CBA_OBJ_BO, -1 );
     Cba_ObjSetName( p, iObj, Cba_ObjName(p, iTerm) );

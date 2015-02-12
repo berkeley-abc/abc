@@ -262,7 +262,7 @@ void Prs_ManBuildNtk( Cba_Ntk_t * pNew, Vec_Ptr_t * vDes, Prs_Ntk_t * pNtk, Vec_
                     iTerm = Cba_BoxBi( pNew, iObj, i/2 );
                     if ( Vec_IntEntry(vMap, NameId) == -1 )
                     {
-                        iConst0 = Cba_BoxAlloc( pNew, CBA_BOX_C0, 0, 1, -1 );
+                        iConst0 = Cba_BoxAlloc( pNew, CBA_BOX_CF, 0, 1, -1 );
                         Vec_IntWriteEntry( vMap, NameId, iConst0+1 );
                         if ( iNonDriven == -1 )
                             iNonDriven = NameId;
@@ -284,7 +284,7 @@ void Prs_ManBuildNtk( Cba_Ntk_t * pNew, Vec_Ptr_t * vDes, Prs_Ntk_t * pNtk, Vec_
                     iTerm = Cba_BoxBi( pNew, iObj, Index );
                     if ( Vec_IntEntry(vMap, NameId) == -1 )
                     {
-                        iConst0 = Cba_BoxAlloc( pNew, CBA_BOX_C0, 0, 1, -1 );
+                        iConst0 = Cba_BoxAlloc( pNew, CBA_BOX_CF, 0, 1, -1 );
                         Vec_IntWriteEntry( vMap, NameId, iConst0+1 );
                         if ( iNonDriven == -1 )
                             iNonDriven = NameId;
@@ -305,7 +305,7 @@ void Prs_ManBuildNtk( Cba_Ntk_t * pNew, Vec_Ptr_t * vDes, Prs_Ntk_t * pNtk, Vec_
                 iTerm = Cba_BoxBi( pNew, iObj, i/2 );
                 if ( Vec_IntEntry(vMap, NameId) == -1 )
                 {
-                    iConst0 = Cba_BoxAlloc( pNew, CBA_BOX_C0, 0, 1, -1 );
+                    iConst0 = Cba_BoxAlloc( pNew, CBA_BOX_CF, 0, 1, -1 );
                     Vec_IntWriteEntry( vMap, NameId, iConst0+1 );
                     if ( iNonDriven == -1 )
                         iNonDriven = NameId;
@@ -319,7 +319,7 @@ void Prs_ManBuildNtk( Cba_Ntk_t * pNew, Vec_Ptr_t * vDes, Prs_Ntk_t * pNtk, Vec_
     Prs_NtkForEachPo( pNtk, NameId, i )
         if ( Vec_IntEntry(vMap, NameId) == -1 )
         {
-            iConst0 = Cba_BoxAlloc( pNew, CBA_BOX_C0, 0, 1, -1 );
+            iConst0 = Cba_BoxAlloc( pNew, CBA_BOX_CF, 0, 1, -1 );
             Vec_IntWriteEntry( vMap, NameId, iConst0+1 );
             if ( iNonDriven == -1 )
                 iNonDriven = NameId;

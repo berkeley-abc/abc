@@ -48,8 +48,8 @@ typedef enum {
     CBA_OBJ_BO,        // 4:  box output
     CBA_OBJ_BOX,       // 5:  box
 
-    CBA_BOX_C0,   
-    CBA_BOX_C1,   
+    CBA_BOX_CF,   
+    CBA_BOX_CT,   
     CBA_BOX_CX,   
     CBA_BOX_CZ,   
     CBA_BOX_BUF,  
@@ -71,7 +71,7 @@ typedef enum {
     CBA_BOX_RXOR,
     CBA_BOX_RXNOR,
 
-    CBA_BOX_N1MUX,  
+    CBA_BOX_NMUX,  
     CBA_BOX_SEL,
     CBA_BOX_PSEL,
     CBA_BOX_ENC,
@@ -159,7 +159,6 @@ struct Cba_Man_t_
     int          iRoot;    // root network
     int          nNtks;    // number of current networks
     Cba_Ntk_t *  pNtks;    // networks
-    Vec_Int_t    vInfo;    // box info
     // user data
     Vec_Int_t    vBuf2RootNtk;
     Vec_Int_t    vBuf2RootObj;
@@ -173,6 +172,7 @@ struct Cba_Man_t_
 static inline char *         Cba_ManName( Cba_Man_t * p )                    { return p->pName;                                                                            }
 static inline char *         Cba_ManSpec( Cba_Man_t * p )                    { return p->pSpec;                                                                            }
 static inline int            Cba_ManNtkNum( Cba_Man_t * p )                  { return p->nNtks;                                                                            }
+static inline int            Cba_ManPrimNum( Cba_Man_t * p )                 { return Abc_NamObjNumMax(p->pMods) - Cba_ManNtkNum(p);                                       }
 static inline int            Cba_ManNtkIsOk( Cba_Man_t * p, int i )          { return i >= 0 && i < Cba_ManNtkNum(p);                                                      }
 static inline Cba_Ntk_t *    Cba_ManNtk( Cba_Man_t * p, int i )              { return Cba_ManNtkIsOk(p, i) ? p->pNtks + i : NULL;                                          }
 static inline int            Cba_ManNtkFindId( Cba_Man_t * p, char * pName ) { return Abc_NamStrFind(p->pMods, pName) - 1;                                                 }
@@ -180,7 +180,6 @@ static inline Cba_Ntk_t *    Cba_ManNtkFind( Cba_Man_t * p, char * pName )   { r
 static inline Cba_Ntk_t *    Cba_ManRoot( Cba_Man_t * p )                    { return Cba_ManNtk(p, p->iRoot);                                                             }
 static inline char *         Cba_ManStr( Cba_Man_t * p, int i )              { return Abc_NamStr(p->pStrs, i);                                                             }
 static inline int            Cba_ManStrId( Cba_Man_t * p, char * pStr )      { return Abc_NamStrFind(p->pStrs, pStr);                                                      }
-static inline int            Cba_ManInfoNum( Cba_Man_t * p )                 { return Vec_IntSize(&p->vInfo) >> 2;                                                         }
 
 static inline int            Cba_NtkId( Cba_Ntk_t * p )                      { int i = p - p->pDesign->pNtks; assert(Cba_ManNtkIsOk(p->pDesign, i)); return i;             }
 static inline Cba_Man_t *    Cba_NtkMan( Cba_Ntk_t * p )                     { return p->pDesign;                                                                          }
@@ -271,6 +270,47 @@ static inline Cba_Ntk_t *    Cba_BoxBiNtk( Cba_Ntk_t * p, int i )            { r
 static inline Cba_Ntk_t *    Cba_BoxBoNtk( Cba_Ntk_t * p, int i )            { return Cba_ManNtk( p->pDesign, Cba_BoxBoNtkId(p, i) );                                      }
 static inline char *         Cba_BoxNtkName( Cba_Ntk_t * p, int i )          { return Abc_NamStr( p->pDesign->pMods, Cba_BoxNtkId(p, i) );                                 }
 
+static inline int Cba_CharIsDigit( char c ) { return c >= '0' && c <= '9'; }
+static inline int Cba_NtkNamePoNum( char * pName )
+{
+    int Multi = 1, Counter = 0;
+    char * pTemp = pName + strlen(pName) - 1; 
+    assert( Cba_CharIsDigit(*pTemp) );
+    for ( ; pName < pTemp && Cba_CharIsDigit(*pTemp); pTemp--, Multi *= 10 )
+        Counter += Multi * (*pTemp - '0');
+    return Counter;
+}
+static inline int Cba_NtkNamePiNum( char * pName )
+{
+    char * pTemp; int CounterAll = 0, Counter = 0;
+    for ( pTemp = pName; *pTemp; pTemp++ )
+    {
+        if ( Cba_CharIsDigit(*pTemp) )
+            Counter = 10 * Counter + *pTemp - '0';
+        else
+            CounterAll += Counter, Counter = 0;
+    }
+    return CounterAll;
+}
+static inline int Cba_NtkNameRanges( char * pName, int * pRanges, char * pSymbs )
+{
+    char Symb, * pTemp; 
+    int nSigs = 0, Num = 0;
+    assert( !strncmp(pName, "ABC", 3) );
+    for ( pTemp = pName; *pTemp && !Cba_CharIsDigit(*pTemp); pTemp++ );
+    assert( Cba_CharIsDigit(*pTemp) );
+    Symb = *(pTemp - 1);
+    for ( ; *pTemp; pTemp++ )
+    {
+        if ( Cba_CharIsDigit(*pTemp) )
+            Num = 10 * Num + *pTemp - '0';
+        else
+            pSymbs[nSigs] = Symb, Symb = *pTemp, pRanges[nSigs++] = Num, Num = 0;
+    }
+    assert( Num > 0 );
+    pSymbs[nSigs] = Symb, pRanges[nSigs++] = Num;
+    return nSigs;
+}
 
 ////////////////////////////////////////////////////////////////////////
 ///                      MACRO DEFINITIONS                           ///
@@ -590,7 +630,6 @@ static inline void Cba_ManFree( Cba_Man_t * p )
     Vec_IntErase( &p->vBuf2LeafObj );
     Vec_IntErase( &p->vBuf2RootNtk );
     Vec_IntErase( &p->vBuf2RootObj );
-    Vec_IntErase( &p->vInfo );
     Abc_NamDeref( p->pStrs );
     Abc_NamDeref( p->pMods );
     ABC_FREE( p->pName );
@@ -649,6 +688,7 @@ static inline void Cba_ManPrintStats( Cba_Man_t * p, int nModules, int fVerbose 
     printf( "%-12s : ",   Cba_ManName(p) );
     printf( "pi =%5d  ",  Cba_NtkPiNum(pRoot) );
     printf( "po =%5d  ",  Cba_NtkPoNum(pRoot) );
+    printf( "pri =%4d  ", Cba_ManPrimNum(p) );
     printf( "mod =%6d  ", Cba_ManNtkNum(p) );
     printf( "box =%7d  ", Cba_ManNodeNum(p) );
     printf( "obj =%7d  ", Cba_ManObjNum(p) );
@@ -679,8 +719,8 @@ static inline void Cba_ManPrintStats( Cba_Man_t * p, int nModules, int fVerbose 
 ***********************************************************************/
 static inline Cba_ObjType_t Ptr_SopToType( char * pSop )
 {
-    if ( !strcmp(pSop, " 0\n") )         return CBA_BOX_C0;
-    if ( !strcmp(pSop, " 1\n") )         return CBA_BOX_C1;
+    if ( !strcmp(pSop, " 0\n") )         return CBA_BOX_CF;
+    if ( !strcmp(pSop, " 1\n") )         return CBA_BOX_CT;
     if ( !strcmp(pSop, "1 1\n") )        return CBA_BOX_BUF;
     if ( !strcmp(pSop, "0 1\n") )        return CBA_BOX_INV;
     if ( !strcmp(pSop, "11 1\n") )       return CBA_BOX_AND;
@@ -717,8 +757,8 @@ static inline char * Ptr_SopToTypeName( char * pSop )
 }
 static inline char * Ptr_TypeToName( Cba_ObjType_t Type )
 {
-    if ( Type == CBA_BOX_C0 )    return "const0";
-    if ( Type == CBA_BOX_C1 )    return "const1";
+    if ( Type == CBA_BOX_CF )    return "const0";
+    if ( Type == CBA_BOX_CT )    return "const1";
     if ( Type == CBA_BOX_BUF )   return "buf";
     if ( Type == CBA_BOX_INV )   return "not";
     if ( Type == CBA_BOX_AND )   return "and";
@@ -735,8 +775,8 @@ static inline char * Ptr_TypeToName( Cba_ObjType_t Type )
 }
 static inline char * Ptr_TypeToSop( Cba_ObjType_t Type )
 {
-    if ( Type == CBA_BOX_C0 )    return " 0\n";
-    if ( Type == CBA_BOX_C1 )    return " 1\n";
+    if ( Type == CBA_BOX_CF )    return " 0\n";
+    if ( Type == CBA_BOX_CT )    return " 1\n";
     if ( Type == CBA_BOX_BUF )   return "1 1\n";
     if ( Type == CBA_BOX_INV )   return "0 1\n";
     if ( Type == CBA_BOX_AND )   return "11 1\n";

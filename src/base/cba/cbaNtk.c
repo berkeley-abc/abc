@@ -41,60 +41,91 @@ ABC_NAMESPACE_IMPL_START
   SeeAlso     []
 
 ***********************************************************************/
-void Cba_ManAssignInternNamesNtk( Cba_Ntk_t * p )
+int Cba_ManSetInternOne( Cba_Ntk_t * p, int iTerm, Vec_Int_t * vMap )
 {
-    char Buffer[100];
-    int i, iObj, iTerm, NameId, fFound, nNameLess = 0;
-    int nDigits = Abc_Base10Log( Cba_NtkObjNum(p) );
-    // PI/PO should have NameId
-    Cba_NtkForEachPi( p, iObj, i )
-        assert( Cba_ObjName(p, iObj) );
-    Cba_NtkForEachPo( p, iObj, i )
-        assert( Cba_ObjName(p, iObj) );
-    // user BI/BO should have NameId
-    Cba_NtkForEachBoxUser( p, iObj )
+    if ( !Cba_ObjName(p, iTerm) )
+        return 1;
+    assert( Vec_IntEntry(vMap, Cba_ObjName(p, iTerm)) == 0 );
+    Vec_IntWriteEntry( vMap, Cba_ObjName(p, iTerm), iTerm+1 );
+    return 0;
+}
+int Cba_ManAssignInternOne( Cba_Ntk_t * p, int iTerm, Vec_Int_t * vMap )
+{
+    char Buffer[16];
+    int i = 0, NameId, nDigits;
+    if ( Cba_ObjName(p, iTerm) )
+        return 0;
+    do
     {
-        Cba_BoxForEachBi( p, iObj, iTerm, i )
-            assert( Cba_ObjName(p, iTerm) );
-        Cba_BoxForEachBo( p, iObj, iTerm, i )
-            assert( Cba_ObjName(p, iTerm) );
-    }
-    // check missing IDs
-    Cba_NtkForEachBoxPrim( p, iObj )
-    {
-        Cba_BoxForEachBi( p, iObj, iTerm, i )
-            nNameLess += !Cba_ObjName(p, iTerm);
-        Cba_BoxForEachBo( p, iObj, iTerm, i )
-            nNameLess += !Cba_ObjName(p, iTerm);
-    }
-    if ( !nNameLess )
-        return;
-    // create names for prim BO
-    Cba_NtkForEachBoxPrim( p, iObj )
-        Cba_BoxForEachBo( p, iObj, iTerm, i )
-        {
-            if ( Cba_ObjName(p, iTerm) )
-                continue;
+        nDigits = Abc_Base10Log( Cba_NtkObjNum(p) );
+        if ( i == 0 )
             sprintf( Buffer, "%s%0*d", "_n_", nDigits, iTerm );
-            NameId = Abc_NamStrFindOrAdd( p->pDesign->pStrs, Buffer, &fFound );
-            //assert( !fFound );
-            Cba_ObjSetName( p, iTerm, NameId );
-        }
-    // transfer names for prim BI
-    Cba_NtkForEachBoxPrim( p, iObj )
+        else
+            sprintf( Buffer, "%s%0*d_%d", "_n_", nDigits, iTerm, ++i );
+        NameId = Abc_NamStrFindOrAdd( p->pDesign->pStrs, Buffer, NULL );
+    }
+    while ( Vec_IntEntry(vMap, NameId) );
+    Cba_ObjSetName( p, iTerm, NameId );
+    Vec_IntWriteEntry( vMap, NameId, iTerm+1 );
+    return 1;
+}
+void Cba_ManAssignInternNamesNtk( Cba_Ntk_t * p, Vec_Int_t * vMap )
+{
+    int i, iObj, iTerm, nNameless = 0;
+    if ( !Cba_NtkHasNames(p) )
+        Cba_NtkStartNames(p);
+    // set all names
+    Cba_NtkForEachPi( p, iObj, i )
+        nNameless += Cba_ManSetInternOne( p, iObj, vMap );
+    Cba_NtkForEachPo( p, iObj, i )
+        nNameless += Cba_ManSetInternOne( p, iObj, vMap );
+    Cba_NtkForEachBox( p, iObj )
+    {
         Cba_BoxForEachBi( p, iObj, iTerm, i )
+            nNameless += Cba_ManSetInternOne( p, iTerm, vMap );
+        Cba_BoxForEachBo( p, iObj, iTerm, i )
+            nNameless += Cba_ManSetInternOne( p, iTerm, vMap );
+    }
+    if ( nNameless )
+    {
+        int nNameless2 = 0;
+        // generate new names
+        Cba_NtkForEachPi( p, iObj, i )
+            nNameless2 += Cba_ManAssignInternOne( p, iObj, vMap );
+        Cba_NtkForEachPo( p, iObj, i )
+            nNameless2 += Cba_ManAssignInternOne( p, iObj, vMap );
+        Cba_NtkForEachBox( p, iObj )
         {
-            if ( Cba_ObjName(p, iTerm) )
-                continue;
-            assert( Cba_ObjName(p, Cba_ObjFanin(p, iTerm)) );
-            Cba_ObjSetName( p, iTerm, Cba_ObjName(p, Cba_ObjFanin(p, iTerm)) );
+            Cba_BoxForEachBi( p, iObj, iTerm, i )
+                nNameless2 += Cba_ManAssignInternOne( p, iTerm, vMap );
+            Cba_BoxForEachBo( p, iObj, iTerm, i )
+                nNameless2 += Cba_ManAssignInternOne( p, iTerm, vMap );
         }
+        assert( nNameless == nNameless2 );
+        if ( nNameless )
+            printf( "Generated unique names for %d objects in network \"%s\".\n", nNameless, Cba_NtkName(p) );
+    }
+    // unmark all names
+    Cba_NtkForEachPi( p, iObj, i )
+        Vec_IntWriteEntry( vMap, Cba_ObjName(p, iObj), 0 );
+    Cba_NtkForEachPo( p, iObj, i )
+        Vec_IntWriteEntry( vMap, Cba_ObjName(p, iObj), 0 );
+    Cba_NtkForEachBox( p, iObj )
+    {
+        Cba_BoxForEachBi( p, iObj, iTerm, i )
+            Vec_IntWriteEntry( vMap, Cba_ObjName(p, iTerm), 0 );
+        Cba_BoxForEachBo( p, iObj, iTerm, i )
+            Vec_IntWriteEntry( vMap, Cba_ObjName(p, iTerm), 0 );
+    }
+
 }
 void Cba_ManAssignInternNames( Cba_Man_t * p )
 {
+    Vec_Int_t * vMap = Vec_IntStart( Cba_ManObjNum(p) );
     Cba_Ntk_t * pNtk; int i;
     Cba_ManForEachNtk( p, pNtk, i )
-        Cba_ManAssignInternNamesNtk( pNtk );
+        Cba_ManAssignInternNamesNtk( pNtk, vMap );
+    Vec_IntFree( vMap );
 }
 
 

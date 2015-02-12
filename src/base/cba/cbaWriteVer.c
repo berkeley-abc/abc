@@ -275,6 +275,54 @@ void Cba_ManWriteVerilogBoxes( FILE * pFile, Cba_Ntk_t * p )
                 fprintf( pFile, "%s.%s(%s)", Cba_BoxBiNum(p, i) ? ", " : "", Mio_GateReadOutName(pGate), Cba_ObjNameStr(p, iTerm) );
             fprintf( pFile, ");\n" );
         }
+        else if ( Cba_BoxNtkId(p, i) )
+        {
+            int pRanges[8]; char pSymbs[8];
+            char * pName = Cba_BoxNtkName(p, i);
+            int nSigs = Cba_NtkNameRanges( pName, pRanges, pSymbs );
+            int s, k, iTerm, nInputs = 0;
+            fprintf( pFile, "  %s ( ", pName );
+            for ( s = 0; s < nSigs-1; s++ )
+            {
+                fprintf( pFile, "%s.%c(", nInputs ? ", " : "", pSymbs[s] );
+                if ( pRanges[s] == 1 )
+                {
+                    iTerm = Cba_BoxBi(p, i, nInputs++);
+                    fprintf( pFile, "%s", Cba_ObjNameStr(p, iTerm) );
+                }
+                else
+                {
+                    assert( pRanges[s] > 1 );
+                    fprintf( pFile, "{" );
+                    for ( k = 0; k < pRanges[s]; k++ )
+                    {
+                        iTerm = Cba_BoxBi(p, i, nInputs++);
+                        fprintf( pFile, "%s%s", k ? ", " : "", Cba_ObjNameStr(p, iTerm) );
+                    }
+                    fprintf( pFile, "}" );
+                }
+                fprintf( pFile, ")" );
+            }
+            assert( nInputs == Cba_BoxBiNum(p, i) );
+            fprintf( pFile, "%s.%c(", nInputs ? ", " : "", pSymbs[nSigs-1] );
+            if ( pRanges[nSigs-1] == 1 )
+            {
+                iTerm = Cba_BoxBo(p, i, 0);
+                fprintf( pFile, "%s", Cba_ObjNameStr(p, iTerm) );
+            }
+            else
+            {
+                assert( pRanges[nSigs-1] > 1 );
+                fprintf( pFile, "{" );
+                for ( k = 0; k < pRanges[nSigs-1]; k++ )
+                {
+                    iTerm = Cba_BoxBo(p, i, k);
+                    fprintf( pFile, "%s%s", k ? ", " : "", Cba_ObjNameStr(p, iTerm) );
+                }
+                fprintf( pFile, "}" );
+            }
+            fprintf( pFile, ") );\n" );
+         }
         else
         {
             Cba_ObjType_t Type = Cba_ObjType( p, i );

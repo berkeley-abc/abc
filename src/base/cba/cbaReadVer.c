@@ -183,7 +183,7 @@ const char * s_KnownModules[100] = {
 static inline int Prs_ManIsKnownModule( Prs_Man_t * p, char * pName )
 {
     int i;
-    for ( i = CBA_BOX_C0; s_KnownModules[i]; i++ )
+    for ( i = CBA_BOX_CF; s_KnownModules[i]; i++ )
         if ( !strncmp(pName, s_KnownModules[i], strlen(s_KnownModules[i])) )
             return i;
     return 0;

@@ -113,16 +113,15 @@ Cba_Man_t * Cba_ManReadCbaInt( Vec_Str_t * vOut )
     Cba_Man_t * p;
     Cba_Ntk_t * pNtk;
     char Buffer[1000] = "#"; 
-    int i, NameId, Pos = 0, Num1, Num2, Num3;
+    int i, NameId, Pos = 0, nNtks, nPrims, Num1, Num2, Num3;
     while ( Buffer[0] == '#' )
         if ( !CbaManReadCbaLine(vOut, &Pos, Buffer, Buffer+1000) )
             return NULL;
-    if ( !CbaManReadCbaNameAndNums(Buffer, &Num1, &Num2, &Num3) )
+    if ( !CbaManReadCbaNameAndNums(Buffer, &nNtks, &nPrims, &Num3) )
         return NULL;
     // start manager
-    assert( Num1 > 0 && Num2 >= 0 );
-    p = Cba_ManAlloc( Buffer, Num1 );
-    Vec_IntGrow( &p->vInfo, 4 * Num2 );
+    assert( nNtks > 0 && nPrims > 0 );
+    p = Cba_ManAlloc( Buffer, nNtks );
     // start networks
     Cba_ManForEachNtk( p, pNtk, i )
     {
@@ -143,8 +142,16 @@ Cba_Man_t * Cba_ManReadCbaInt( Vec_Str_t * vOut )
     // read networks
     Cba_ManForEachNtk( p, pNtk, i )
         Cba_ManReadCbaNtk( vOut, &Pos, pNtk );
-    Cba_ManReadCbaVecInt( vOut, &Pos, &p->vInfo,  4 * Vec_IntSize(&p->vInfo) );
+    // read primitives
+    for ( i = 0; i < nPrims; i++ )
+    {
+        char * pName = Vec_StrEntryP( vOut, Pos );     
+        Abc_NamStrFindOrAdd( p->pMods, pName, NULL );
+        Pos += strlen(pName) + 1;
+    }
     assert( Pos == Vec_StrSize(vOut) );
+    assert( Cba_ManNtkNum(p) == nNtks );
+    assert( Cba_ManPrimNum(p) == nPrims );
     return p;
 }
 Cba_Man_t * Cba_ManReadCba( char * pFileName )
@@ -200,11 +207,11 @@ void Cba_ManWriteCbaNtk( Vec_Str_t * vOut, Cba_Ntk_t * pNtk )
 void Cba_ManWriteCbaInt( Vec_Str_t * vOut, Cba_Man_t * p )
 {
     char Buffer[1000];
-    Cba_Ntk_t * pNtk; int i;
+    Cba_Ntk_t * pNtk; int i, nPrims = Cba_ManPrimNum(p);
     sprintf( Buffer, "# Design \"%s\" written by ABC on %s\n", Cba_ManName(p), Extra_TimeStamp() );
     Vec_StrPrintStr( vOut, Buffer );
     // write short info
-    sprintf( Buffer, "%s %d %d \n", Cba_ManName(p), Cba_ManNtkNum(p), Cba_ManInfoNum(p) );
+    sprintf( Buffer, "%s %d %d \n", Cba_ManName(p), Cba_ManNtkNum(p), Cba_ManPrimNum(p) );
     Vec_StrPrintStr( vOut, Buffer );
     Cba_ManForEachNtk( p, pNtk, i )
     {
@@ -213,7 +220,12 @@ void Cba_ManWriteCbaInt( Vec_Str_t * vOut, Cba_Man_t * p )
     }
     Cba_ManForEachNtk( p, pNtk, i )
         Cba_ManWriteCbaNtk( vOut, pNtk );
-    Vec_StrPushBuffer( vOut, (char *)Vec_IntArray(&p->vInfo), 16 * Cba_ManInfoNum(p) );
+    for ( i = 0; i < nPrims; i++ )
+    {
+        char * pName = Abc_NamStr( p->pMods, Cba_ManNtkNum(p) + i );
+        Vec_StrPrintStr( vOut, pName );
+        Vec_StrPush( vOut, '\0' );
+    }
 }
 void Cba_ManWriteCba( char * pFileName, Cba_Man_t * p )
 {
