@@ -382,9 +382,11 @@ int Abc_NtkBddToSop( Abc_Ntk_t * pNtk, int fDirect, int nCubeLimit )
         //printf( "The total number of cubes = %d.\n", nCubes );
     }
 
-    if ( fDirect )
+    if ( fDirect == 2 ) // negative polarity only
+        fMode = 0;
+    else if ( fDirect == 1 ) // positive polarity only
         fMode = 1;
-    else
+    else // both polarities
         fMode = -1;
 
     assert( Abc_NtkHasBdd(pNtk) );

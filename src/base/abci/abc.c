@@ -7889,13 +7889,12 @@ usage:
 int Abc_CommandSop( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
-    int fDirect, nCubeLimit = 1000000;
+    int fDirect = 0, nCubeLimit = 1000000;
     int c;
 
     // set defaults
-    fDirect = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "Cdh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Cdnh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -7911,7 +7910,10 @@ int Abc_CommandSop( Abc_Frame_t * pAbc, int argc, char ** argv )
                 goto usage;
             break;
         case 'd':
-            fDirect ^= 1;
+            fDirect = 1;
+            break;
+        case 'n':
+            fDirect = 2;
             break;
         case 'h':
             goto usage;
@@ -7940,7 +7942,7 @@ usage:
     Abc_Print( -2, "usage: sop [-C num] [-dh]\n" );
     Abc_Print( -2, "\t         converts node functions to SOP\n" );
     Abc_Print( -2, "\t-C num : the limit on the total cube count of all nodes [default = %d]\n", nCubeLimit );
-    Abc_Print( -2, "\t-d     : toggles using both phases or only positive [default = %s]\n", fDirect? "direct": "both" );
+    Abc_Print( -2, "\t-d     : toggles using both phases or only positive [default = %s]\n", fDirect? (fDirect == 1? "direct":"negated"): "both" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
 }
