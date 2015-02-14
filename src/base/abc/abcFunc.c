@@ -370,7 +370,7 @@ int Abc_NtkBddToSop( Abc_Ntk_t * pNtk, int fDirect, int nCubeLimit )
     {
         // collect all BDDs into one array
         Vec_Ptr_t * vFuncs = Vec_PtrAlloc( Abc_NtkNodeNum(pNtk) );
-        assert( !Cudd_ReorderingStatus(dd, &nCubes) );
+        assert( !Cudd_ReorderingStatus(dd, (Cudd_ReorderingType *)&nCubes) );
         Abc_NtkForEachNode( pNtk, pNode, i )
             if ( !Abc_ObjIsBarBuf(pNode) )
                 Vec_PtrPush( vFuncs, pNode->pData );

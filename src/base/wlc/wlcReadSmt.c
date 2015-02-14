@@ -667,7 +667,6 @@ Wlc_Ntk_t * Wlc_ReadSmtBuffer( char * pFileName, char * pBuffer, char * pLimit )
 Wlc_Ntk_t * Wlc_ReadSmt( char * pFileName )
 {
     Wlc_Ntk_t * pNtk = NULL;
-    Prs_Smt_t * p = NULL;
     char * pBuffer, * pLimit;
     pBuffer = Prs_SmtLoadFile( pFileName, &pLimit );
     if ( pBuffer == NULL )

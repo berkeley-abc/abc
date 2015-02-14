@@ -269,7 +269,7 @@ void Prs_ManBuildNtk( Cba_Ntk_t * pNew, Vec_Ptr_t * vDes, Prs_Ntk_t * pNtk, Vec_
                         nNonDriven++;
                     }
                     Cba_ObjSetFanin( pNew, iTerm, Vec_IntEntry(vMap, NameId) );
-                    Cba_ObjSetName( pNew, iTerm, NameId );
+                    //Cba_ObjSetName( pNew, iTerm, NameId );
                 }
             }
             else
@@ -291,7 +291,7 @@ void Prs_ManBuildNtk( Cba_Ntk_t * pNew, Vec_Ptr_t * vDes, Prs_Ntk_t * pNtk, Vec_
                         nNonDriven++;
                     }
                     Cba_ObjSetFanin( pNew, iTerm, Vec_IntEntry(vMap, NameId) );
-                    Cba_ObjSetName( pNew, iTerm, NameId );
+                    //Cba_ObjSetName( pNew, iTerm, NameId );
                 }
             }
         }
@@ -312,7 +312,7 @@ void Prs_ManBuildNtk( Cba_Ntk_t * pNew, Vec_Ptr_t * vDes, Prs_Ntk_t * pNtk, Vec_
                     nNonDriven++;
                 }
                 Cba_ObjSetFanin( pNew, iTerm, Vec_IntEntry(vMap, NameId) );
-                Cba_ObjSetName( pNew, iTerm, NameId );
+                //Cba_ObjSetName( pNew, iTerm, NameId );
             }
         }
     // add fanins for primary outputs
@@ -328,7 +328,7 @@ void Prs_ManBuildNtk( Cba_Ntk_t * pNew, Vec_Ptr_t * vDes, Prs_Ntk_t * pNtk, Vec_
     Prs_NtkForEachPo( pNtk, NameId, i )
     {
         iObj = Cba_ObjAlloc( pNew, CBA_OBJ_PO, Vec_IntEntry(vMap, NameId) );
-        Cba_ObjSetName( pNew, iObj, NameId );
+        //Cba_ObjSetName( pNew, iObj, NameId );
     }
     if ( nNonDriven )
         printf( "Module %s has %d non-driven nets (for example, %s).\n", Prs_NtkName(pNtk), nNonDriven, Prs_NtkStr(pNtk, iNonDriven) );

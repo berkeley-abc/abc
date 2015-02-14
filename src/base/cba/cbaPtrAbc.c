@@ -331,7 +331,7 @@ int Cba_NtkDeriveFromPtr( Cba_Ntk_t * pNtk, Vec_Ptr_t * vNtk, Vec_Int_t * vMap, 
             if ( Vec_IntGetEntryFull(vMap, NameId) == -1 )
                 printf( "Signal \"%s\" in not driven in module \"%s\".\n", pName, pModuleName );
             Cba_ObjSetFanin( pNtk, iTerm, Vec_IntGetEntryFull(vMap, NameId) );
-            Cba_ObjSetName( pNtk, iTerm, NameId );
+            //Cba_ObjSetName( pNtk, iTerm, NameId );
         }
     }
     // connect POs
@@ -341,7 +341,7 @@ int Cba_NtkDeriveFromPtr( Cba_Ntk_t * pNtk, Vec_Ptr_t * vNtk, Vec_Int_t * vMap, 
         if ( Vec_IntGetEntryFull(vMap, NameId) == -1 )
             printf( "PO with name \"%s\" in not driven in module \"%s\".\n", pName, pModuleName );
         iObj = Cba_ObjAlloc( pNtk, CBA_OBJ_PO, Vec_IntGetEntryFull(vMap, NameId) );
-        Cba_ObjSetName( pNtk, iObj, NameId );
+        //Cba_ObjSetName( pNtk, iObj, NameId );
     }
     // update map
     Cba_NtkForEachCi( pNtk, iObj )

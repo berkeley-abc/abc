@@ -1505,6 +1505,7 @@ int Extra_bddCountCubes( DdManager * dd, DdNode ** pFuncs, int nFuncs, int fDire
         CounterAll += Abc_MinInt( Count0, Count1 );
         if ( CounterAll > nLimit )
             break;
+        //printf( "Output %d has %d cubes\n", i, Abc_MinInt(Count0, Count1) );
     }
     dd->maxLive = saveLimit;
     st__free_table( table );

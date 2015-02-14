@@ -77,30 +77,18 @@ void Cba_ManAssignInternNamesNtk( Cba_Ntk_t * p, Vec_Int_t * vMap )
     // set all names
     Cba_NtkForEachPi( p, iObj, i )
         nNameless += Cba_ManSetInternOne( p, iObj, vMap );
-    Cba_NtkForEachPo( p, iObj, i )
-        nNameless += Cba_ManSetInternOne( p, iObj, vMap );
     Cba_NtkForEachBox( p, iObj )
-    {
-        Cba_BoxForEachBi( p, iObj, iTerm, i )
-            nNameless += Cba_ManSetInternOne( p, iTerm, vMap );
         Cba_BoxForEachBo( p, iObj, iTerm, i )
             nNameless += Cba_ManSetInternOne( p, iTerm, vMap );
-    }
+    // generate new names
     if ( nNameless )
     {
         int nNameless2 = 0;
-        // generate new names
         Cba_NtkForEachPi( p, iObj, i )
             nNameless2 += Cba_ManAssignInternOne( p, iObj, vMap );
-        Cba_NtkForEachPo( p, iObj, i )
-            nNameless2 += Cba_ManAssignInternOne( p, iObj, vMap );
         Cba_NtkForEachBox( p, iObj )
-        {
-            Cba_BoxForEachBi( p, iObj, iTerm, i )
-                nNameless2 += Cba_ManAssignInternOne( p, iTerm, vMap );
             Cba_BoxForEachBo( p, iObj, iTerm, i )
                 nNameless2 += Cba_ManAssignInternOne( p, iTerm, vMap );
-        }
         assert( nNameless == nNameless2 );
         if ( nNameless )
             printf( "Generated unique names for %d objects in network \"%s\".\n", nNameless, Cba_NtkName(p) );
@@ -108,16 +96,9 @@ void Cba_ManAssignInternNamesNtk( Cba_Ntk_t * p, Vec_Int_t * vMap )
     // unmark all names
     Cba_NtkForEachPi( p, iObj, i )
         Vec_IntWriteEntry( vMap, Cba_ObjName(p, iObj), 0 );
-    Cba_NtkForEachPo( p, iObj, i )
-        Vec_IntWriteEntry( vMap, Cba_ObjName(p, iObj), 0 );
     Cba_NtkForEachBox( p, iObj )
-    {
-        Cba_BoxForEachBi( p, iObj, iTerm, i )
-            Vec_IntWriteEntry( vMap, Cba_ObjName(p, iTerm), 0 );
         Cba_BoxForEachBo( p, iObj, iTerm, i )
             Vec_IntWriteEntry( vMap, Cba_ObjName(p, iTerm), 0 );
-    }
-
 }
 void Cba_ManAssignInternNames( Cba_Man_t * p )
 {
@@ -315,8 +296,9 @@ Cba_Man_t * Cba_ManCollapse( Cba_Man_t * p )
         Cba_NtkStartNames( pRootNew );
         Cba_NtkForEachPi( pRoot, iObj, i )
             Cba_ObjSetName( pRootNew, Cba_NtkPi(pRootNew, i), Cba_ObjName(pRoot, iObj) );
-        Cba_NtkForEachPo( pRoot, iObj, i )
-            Cba_ObjSetName( pRootNew, Cba_NtkPo(pRootNew, i), Cba_ObjName(pRoot, iObj) );
+        Cba_NtkForEachPoDriver( pRoot, iObj, i )
+            if ( !Cba_ObjIsPi(pRoot, iObj) )
+                Cba_ObjSetName( pRootNew, Cba_ObjCopy(pRoot, iObj), Cba_ObjName(pRoot, iObj) );
     }
     return pNew;
 }

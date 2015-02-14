@@ -275,6 +275,7 @@ void Cba_ManWriteVerilogBoxes( FILE * pFile, Cba_Ntk_t * p )
                 fprintf( pFile, "%s.%s(%s)", Cba_BoxBiNum(p, i) ? ", " : "", Mio_GateReadOutName(pGate), Cba_ObjNameStr(p, iTerm) );
             fprintf( pFile, ");\n" );
         }
+/*
         else if ( Cba_BoxNtkId(p, i) )
         {
             int pRanges[8]; char pSymbs[8];
@@ -322,7 +323,8 @@ void Cba_ManWriteVerilogBoxes( FILE * pFile, Cba_Ntk_t * p )
                 fprintf( pFile, "}" );
             }
             fprintf( pFile, ") );\n" );
-         }
+        }
+*/
         else
         {
             Cba_ObjType_t Type = Cba_ObjType( p, i );
