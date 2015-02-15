@@ -290,8 +290,9 @@ int Cba_NtkDeriveFromPtr( Cba_Ntk_t * pNtk, Vec_Ptr_t * vNtk, Vec_Int_t * vMap, 
         if ( Vec_IntGetEntryFull(vMap, NameId) != -1 )
             { printf( "PI with name \"%s\" is not unique module \"%s\".\n", pName, pModuleName ); return 0; }
         iObj = Cba_ObjAlloc( pNtk, CBA_OBJ_PI, -1 );
-        Cba_ObjSetName( pNtk, iObj, NameId );
+        Cba_ObjSetName( pNtk, iObj, Abc_Var2Lit2(NameId, CBA_NAME_BIN) );
         Vec_IntSetEntryFull( vMap, NameId, iObj );
+        Cba_NtkAddInfo( pNtk, Abc_Var2Lit2(NameId, 1), -1, -1 );
     }
     // map driven NameIds into their ObjIds for BOs
     Vec_IntClear( vBox2Id );
@@ -307,14 +308,14 @@ int Cba_NtkDeriveFromPtr( Cba_Ntk_t * pNtk, Vec_Ptr_t * vNtk, Vec_Int_t * vMap, 
         iObj = Cba_BoxAlloc( pNtk, Ptr_NameToType(pBoxNtk), nInputs, nOutputs, NtkId );
         if ( NtkId >= 0 )
             Cba_NtkSetHost( Cba_ManNtk(pNtk->pDesign, NtkId), Cba_NtkId(pNtk), iObj );
-        Cba_ObjSetName( pNtk, iObj, Abc_NamStrFindOrAdd(pNtk->pDesign->pStrs, pBoxName, NULL) );
+        Cba_ObjSetName( pNtk, iObj, Abc_Var2Lit2(Abc_NamStrFindOrAdd(pNtk->pDesign->pStrs, pBoxName, NULL), CBA_NAME_BIN) );
         Cba_BoxForEachBo( pNtk, iObj, iTerm, k )
         {
             pName = (char *)Vec_PtrEntry( vBox, Vec_PtrSize(vBox) - 2*(nOutputs - k) + 1 );
             NameId = Abc_NamStrFindOrAdd( pNtk->pDesign->pStrs, pName, NULL );
             if ( Vec_IntGetEntryFull(vMap, NameId) != -1 )
                 { printf( "Signal \"%s\" has multiple drivers in module \"%s\".\n", pName, pModuleName ); return 0; }
-            Cba_ObjSetName( pNtk, iTerm, NameId );
+            Cba_ObjSetName( pNtk, iTerm, Abc_Var2Lit2(NameId, CBA_NAME_BIN) );
             Vec_IntSetEntryFull( vMap, NameId, iTerm );
         }
         Vec_IntPush( vBox2Id, iObj );
@@ -331,7 +332,6 @@ int Cba_NtkDeriveFromPtr( Cba_Ntk_t * pNtk, Vec_Ptr_t * vNtk, Vec_Int_t * vMap, 
             if ( Vec_IntGetEntryFull(vMap, NameId) == -1 )
                 printf( "Signal \"%s\" in not driven in module \"%s\".\n", pName, pModuleName );
             Cba_ObjSetFanin( pNtk, iTerm, Vec_IntGetEntryFull(vMap, NameId) );
-            //Cba_ObjSetName( pNtk, iTerm, NameId );
         }
     }
     // connect POs
@@ -341,7 +341,7 @@ int Cba_NtkDeriveFromPtr( Cba_Ntk_t * pNtk, Vec_Ptr_t * vNtk, Vec_Int_t * vMap, 
         if ( Vec_IntGetEntryFull(vMap, NameId) == -1 )
             printf( "PO with name \"%s\" in not driven in module \"%s\".\n", pName, pModuleName );
         iObj = Cba_ObjAlloc( pNtk, CBA_OBJ_PO, Vec_IntGetEntryFull(vMap, NameId) );
-        //Cba_ObjSetName( pNtk, iObj, NameId );
+        Cba_NtkAddInfo( pNtk, Abc_Var2Lit2(NameId, 2), -1, -1 );
     }
     // update map
     Cba_NtkForEachCi( pNtk, iObj )

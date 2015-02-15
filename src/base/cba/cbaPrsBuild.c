@@ -186,7 +186,7 @@ void Prs_ManBuildNtk( Cba_Ntk_t * pNew, Vec_Ptr_t * vDes, Prs_Ntk_t * pNtk, Vec_
         if ( Vec_IntEntry(vMap, NameId) != -1 )
             printf( "Primary inputs %d and %d have the same name.\n", Vec_IntEntry(vMap, NameId), i );
         iObj = Cba_ObjAlloc( pNew, CBA_OBJ_PI, -1 );
-        Cba_ObjSetName( pNew, iObj, NameId );
+        Cba_ObjSetName( pNew, iObj, Abc_Var2Lit2(NameId, CBA_NAME_BIN) );
         Vec_IntWriteEntry( vMap, NameId, iObj );
     }
     // create box outputs
@@ -198,20 +198,20 @@ void Prs_ManBuildNtk( Cba_Ntk_t * pNew, Vec_Ptr_t * vDes, Prs_Ntk_t * pNtk, Vec_
             if ( pNtkBox == NULL )
             {
                 iObj = Cba_BoxAlloc( pNew, CBA_BOX_GATE, Vec_IntSize(vSigs)/2-1, 1, Prs_BoxNtk(pNtk, iBox) + 1 ); // +1 to map NtkId into gate name
-                Cba_ObjSetName( pNew, iObj, Prs_BoxName(pNtk, iBox) );
+                Cba_ObjSetName( pNew, iObj, Abc_Var2Lit2(Prs_BoxName(pNtk, iBox), CBA_NAME_BIN) );
                 // consider box output 
                 NameId = Vec_IntEntryLast( vSigs );
                 NameId = Prs_NtkSigName( pNtk, NameId );
                 if ( Vec_IntEntry(vMap, NameId) != -1 )
                     printf( "Box output name %d is already driven.\n", NameId );
                 iTerm = Cba_BoxBo( pNew, iObj, 0 );
-                Cba_ObjSetName( pNew, iTerm, NameId );
+                Cba_ObjSetName( pNew, iTerm, Abc_Var2Lit2(NameId, CBA_NAME_BIN) );
                 Vec_IntWriteEntry( vMap, NameId, iTerm );
             }
             else
             {
                 iObj = Cba_BoxAlloc( pNew, CBA_OBJ_BOX, Prs_NtkPiNum(pNtkBox), Prs_NtkPoNum(pNtkBox), Prs_BoxNtk(pNtk, iBox) );
-                Cba_ObjSetName( pNew, iObj, Prs_BoxName(pNtk, iBox) );
+                Cba_ObjSetName( pNew, iObj, Abc_Var2Lit2(Prs_BoxName(pNtk, iBox), CBA_NAME_BIN) );
                 Cba_NtkSetHost( Cba_ManNtk(pNew->pDesign, Prs_BoxNtk(pNtk, iBox)), Cba_NtkId(pNew), iObj );
                 Vec_IntForEachEntry( vSigs, Index, i )
                 {
@@ -225,7 +225,7 @@ void Prs_ManBuildNtk( Cba_Ntk_t * pNew, Vec_Ptr_t * vDes, Prs_Ntk_t * pNtk, Vec_
                     if ( Vec_IntEntry(vMap, NameId) != -1 )
                         printf( "Box output name %d is already driven.\n", NameId );
                     iTerm = Cba_BoxBo( pNew, iObj, Index - Prs_NtkPiNum(pNtkBox) );
-                    Cba_ObjSetName( pNew, iTerm, NameId );
+                    Cba_ObjSetName( pNew, iTerm, Abc_Var2Lit2(NameId, CBA_NAME_BIN) );
                     Vec_IntWriteEntry( vMap, NameId, iTerm );
                 }
             }
@@ -241,7 +241,7 @@ void Prs_ManBuildNtk( Cba_Ntk_t * pNew, Vec_Ptr_t * vDes, Prs_Ntk_t * pNtk, Vec_
             if ( Vec_IntEntry(vMap, NameId) != -1 )
                 printf( "Node output name %d is already driven.\n", NameId );
             iTerm = Cba_BoxBo( pNew, iObj, 0 );
-            Cba_ObjSetName( pNew, iTerm, NameId );
+            Cba_ObjSetName( pNew, iTerm, Abc_Var2Lit2(NameId, CBA_NAME_BIN) );
             Vec_IntWriteEntry( vMap, NameId, iTerm );
             // remember box
             Vec_IntPush( vBoxes, iObj );
@@ -269,7 +269,6 @@ void Prs_ManBuildNtk( Cba_Ntk_t * pNew, Vec_Ptr_t * vDes, Prs_Ntk_t * pNtk, Vec_
                         nNonDriven++;
                     }
                     Cba_ObjSetFanin( pNew, iTerm, Vec_IntEntry(vMap, NameId) );
-                    //Cba_ObjSetName( pNew, iTerm, NameId );
                 }
             }
             else
@@ -291,7 +290,6 @@ void Prs_ManBuildNtk( Cba_Ntk_t * pNew, Vec_Ptr_t * vDes, Prs_Ntk_t * pNtk, Vec_
                         nNonDriven++;
                     }
                     Cba_ObjSetFanin( pNew, iTerm, Vec_IntEntry(vMap, NameId) );
-                    //Cba_ObjSetName( pNew, iTerm, NameId );
                 }
             }
         }
@@ -312,7 +310,6 @@ void Prs_ManBuildNtk( Cba_Ntk_t * pNew, Vec_Ptr_t * vDes, Prs_Ntk_t * pNtk, Vec_
                     nNonDriven++;
                 }
                 Cba_ObjSetFanin( pNew, iTerm, Vec_IntEntry(vMap, NameId) );
-                //Cba_ObjSetName( pNew, iTerm, NameId );
             }
         }
     // add fanins for primary outputs
@@ -326,13 +323,13 @@ void Prs_ManBuildNtk( Cba_Ntk_t * pNew, Vec_Ptr_t * vDes, Prs_Ntk_t * pNtk, Vec_
             nNonDriven++;
         }
     Prs_NtkForEachPo( pNtk, NameId, i )
-    {
         iObj = Cba_ObjAlloc( pNew, CBA_OBJ_PO, Vec_IntEntry(vMap, NameId) );
-        //Cba_ObjSetName( pNew, iObj, NameId );
-    }
     if ( nNonDriven )
         printf( "Module %s has %d non-driven nets (for example, %s).\n", Prs_NtkName(pNtk), nNonDriven, Prs_NtkStr(pNtk, iNonDriven) );
     Prs_ManCleanMap( pNtk, vMap );
+    // setup info
+    Vec_IntForEachEntry( &pNtk->vOrder, NameId, i )
+        Cba_NtkAddInfo( pNew, NameId, -1, -1 );
 }
 
 /**Function*************************************************************
@@ -364,6 +361,7 @@ Cba_Man_t * Prs_ManBuildCba( char * pFileName, Vec_Ptr_t * vDes )
     assert( Vec_IntCountEntry(vMap, -1) == Vec_IntSize(vMap) );
     Vec_IntFree( vMap );
     Vec_IntFree( vTmp );
+//    Vec_StrPrint( &Cba_ManNtk(pNew, 0)->vType, 1 );
     return pNew;
 }
 

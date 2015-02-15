@@ -30,11 +30,11 @@ ABC_NAMESPACE_IMPL_START
 // Verilog keywords
 typedef enum { 
     PRS_VER_NONE = 0,  // 0:  unused
-    PRS_VER_MODULE,    // 1:  module
-    PRS_VER_INOUT,     // 2:  inout
-    PRS_VER_INPUT,     // 3:  input
-    PRS_VER_OUTPUT,    // 4:  output
-    PRS_VER_WIRE,      // 5:  wire
+    PRS_VER_INPUT,     // 1:  input
+    PRS_VER_OUTPUT,    // 2:  output
+    PRS_VER_INOUT,     // 3:  inout
+    PRS_VER_WIRE,      // 4:  wire
+    PRS_VER_MODULE,    // 5:  module
     PRS_VER_ASSIGN,    // 6:  assign
     PRS_VER_REG,       // 7:  reg
     PRS_VER_ALWAYS,    // 8:  always
@@ -47,11 +47,11 @@ typedef enum {
 
 const char * s_VerTypes[PRS_VER_UNKNOWN+1] = {
     NULL,              // 0:  unused
-    "module",          // 1:  module
-    "inout",           // 2:  inout
-    "input",           // 3:  input
-    "output",          // 4:  output
-    "wire",            // 5:  wire
+    "input",           // 1:  input
+    "output",          // 2:  output
+    "inout",           // 3:  inout
+    "wire",            // 4:  wire
+    "module",          // 5:  module
     "assign",          // 6:  assign
     "reg",             // 7:  reg
     "always",          // 8:  always
@@ -476,17 +476,19 @@ static inline int Prs_ManReadSignalList2( Prs_Man_t * p, Vec_Int_t * vTemp )
 ***********************************************************************/
 static inline int Prs_ManReadDeclaration( Prs_Man_t * p, int Type )
 {
-    int i, Sig, RangeId = 0;
-    Vec_Int_t * vSigs[4]  = { &p->pNtk->vInouts,  &p->pNtk->vInputs,  &p->pNtk->vOutputs,  &p->pNtk->vWires };
-    Vec_Int_t * vSigsR[4] = { &p->pNtk->vInoutsR, &p->pNtk->vInputsR, &p->pNtk->vOutputsR, &p->pNtk->vWiresR };
-    assert( Type >= PRS_VER_INOUT && Type <= PRS_VER_WIRE );
+    int i, NameId, RangeId = 0;
+    Vec_Int_t * vNames[4]  = { &p->pNtk->vInputs,  &p->pNtk->vOutputs,  &p->pNtk->vInouts,  &p->pNtk->vWires };
+    Vec_Int_t * vNamesR[4] = { &p->pNtk->vInputsR, &p->pNtk->vOutputsR, &p->pNtk->vInoutsR, &p->pNtk->vWiresR };
+    assert( Type >= PRS_VER_INPUT && Type <= PRS_VER_WIRE );
     if ( Prs_ManUtilSkipSpaces(p) )                                   return 0;
     if ( Prs_ManIsChar(p, '[') && !(RangeId = Prs_ManReadRange(p)) )  return 0;
     if ( !Prs_ManReadNameList( p, &p->vTemp, ';' ) )                  return 0;
-    Vec_IntForEachEntry( &p->vTemp, Sig, i )
+    Vec_IntForEachEntry( &p->vTemp, NameId, i )
     {
-        Vec_IntPush( vSigs[Type - PRS_VER_INOUT], Sig );
-        Vec_IntPush( vSigsR[Type - PRS_VER_INOUT], RangeId );
+        Vec_IntPush( vNames[Type - PRS_VER_INPUT], NameId );
+        Vec_IntPush( vNamesR[Type - PRS_VER_INPUT], RangeId );
+        if ( Type < PRS_VER_WIRE )
+            Vec_IntPush( &p->pNtk->vOrder, Abc_Var2Lit2(NameId, Type) );
     }
     return 1;
 }
@@ -592,8 +594,8 @@ static inline int Prs_ManReadInstance( Prs_Man_t * p, int Func )
 static inline int Prs_ManReadArguments( Prs_Man_t * p )
 {
     int iRange = 0, iType = -1;
-    Vec_Int_t * vSigs[3]  = { &p->pNtk->vInouts,  &p->pNtk->vInputs,  &p->pNtk->vOutputs };
-    Vec_Int_t * vSigsR[3] = { &p->pNtk->vInoutsR, &p->pNtk->vInputsR, &p->pNtk->vOutputsR };
+    Vec_Int_t * vSigs[3]  = { &p->pNtk->vInputs,  &p->pNtk->vOutputs,  &p->pNtk->vInouts  };
+    Vec_Int_t * vSigsR[3] = { &p->pNtk->vInputsR, &p->pNtk->vOutputsR, &p->pNtk->vInoutsR };
     assert( Prs_ManIsChar(p, '(') );
     p->pCur++;
     if ( Prs_ManUtilSkipSpaces(p) )             return 0;
@@ -602,7 +604,7 @@ static inline int Prs_ManReadArguments( Prs_Man_t * p )
         int iName = Prs_ManReadName( p );
         if ( iName == 0 )                       return 0;
         if ( Prs_ManUtilSkipSpaces(p) )         return 0;
-        if ( iName >= PRS_VER_INOUT && iName <= PRS_VER_OUTPUT ) // declaration
+        if ( iName >= PRS_VER_INPUT && iName <= PRS_VER_INOUT ) // declaration
         {
             iType = iName;
             if ( Prs_ManIsChar(p, '[') )
@@ -611,13 +613,15 @@ static inline int Prs_ManReadArguments( Prs_Man_t * p )
                 if ( iRange == 0 )              return 0;
                 if ( Prs_ManUtilSkipSpaces(p) ) return 0;
             }
+            iName = Prs_ManReadName( p );
+            if ( iName == 0 )                   return 0;
         }
         if ( iType > 0 )
         {
-            Vec_IntPush( vSigs[iType - PRS_VER_INOUT], iName );
-            Vec_IntPush( vSigsR[iType - PRS_VER_INOUT], iRange );
+            Vec_IntPush( vSigs[iType - PRS_VER_INPUT], iName );
+            Vec_IntPush( vSigsR[iType - PRS_VER_INPUT], iRange );
+            Vec_IntPush( &p->pNtk->vOrder, Abc_Var2Lit2(iName, iType) );
         }
-        Vec_IntPush( &p->pNtk->vOrder, iName );
         if ( Prs_ManIsChar(p, ')') )
             break;
         if ( !Prs_ManIsChar(p, ',') )           return Prs_ManErrorSet(p, "Expecting comma in the instance.", 0);
@@ -673,7 +677,7 @@ static inline int Prs_ManReadModule( Prs_Man_t * p )
             Prs_ManFinalizeNtk( p );
             return 1;
         }
-        if ( iToken >= PRS_VER_INOUT && iToken <= PRS_VER_WIRE ) // declaration
+        if ( iToken >= PRS_VER_INPUT && iToken <= PRS_VER_WIRE ) // declaration
             Status = Prs_ManReadDeclaration( p, iToken );
         else if ( iToken == PRS_VER_REG || iToken == PRS_VER_DEFPARAM ) // unsupported keywords
             Status = Prs_ManUtilSkipUntil( p, ';' );

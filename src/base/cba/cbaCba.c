@@ -50,9 +50,9 @@ int CbaManReadCbaLine( Vec_Str_t * vOut, int * pPos, char * pBuffer, char * pLim
     *pBuffer = 0;
     return pBuffer < pLimit;
 }
-int CbaManReadCbaNameAndNums( char * pBuffer, int * Num1, int * Num2, int * Num3 )
+int CbaManReadCbaNameAndNums( char * pBuffer, int * Num1, int * Num2, int * Num3, int * Num4 )
 {
-    *Num1 = *Num2 = *Num3 = -1;
+    *Num1 = *Num2 = *Num3 = *Num4 = -1;
     // read name
     while ( *pBuffer && *pBuffer != ' ' )
         pBuffer++;
@@ -76,6 +76,13 @@ int CbaManReadCbaNameAndNums( char * pBuffer, int * Num1, int * Num2, int * Num3
     // read Num3
     assert( *pBuffer == ' ' );
     *Num3 = atoi(++pBuffer);
+    while ( *pBuffer && *pBuffer != ' ' )
+        pBuffer++;
+    if ( !*pBuffer )
+        return 1;
+    // read Num4
+    assert( *pBuffer == ' ' );
+    *Num4 = atoi(++pBuffer);
     return 1;
 }
 void Cba_ManReadCbaVecStr( Vec_Str_t * vOut, int * pPos, Vec_Str_t * p, int nSize )
@@ -97,6 +104,7 @@ void Cba_ManReadCbaNtk( Vec_Str_t * vOut, int * pPos, Cba_Ntk_t * pNtk )
     int i, Type;
     Cba_ManReadCbaVecStr( vOut, pPos, &pNtk->vType,      Cba_NtkObjNumAlloc(pNtk) );
     Cba_ManReadCbaVecInt( vOut, pPos, &pNtk->vFanin, 4 * Cba_NtkObjNumAlloc(pNtk) );
+    Cba_ManReadCbaVecInt( vOut, pPos, &pNtk->vInfo, 12 * Cba_NtkInfoNumAlloc(pNtk) );
     Cba_NtkForEachObjType( pNtk, Type, i )
     {
         if ( Type == CBA_OBJ_PI )
@@ -107,17 +115,18 @@ void Cba_ManReadCbaNtk( Vec_Str_t * vOut, int * pPos, Cba_Ntk_t * pNtk )
     assert( Cba_NtkPiNum(pNtk)  == Cba_NtkPiNumAlloc(pNtk) );
     assert( Cba_NtkPoNum(pNtk)  == Cba_NtkPoNumAlloc(pNtk) );
     assert( Cba_NtkObjNum(pNtk) == Cba_NtkObjNumAlloc(pNtk) );
+    assert( Cba_NtkInfoNum(pNtk) == Cba_NtkInfoNumAlloc(pNtk) );
 }
 Cba_Man_t * Cba_ManReadCbaInt( Vec_Str_t * vOut )
 {
     Cba_Man_t * p;
     Cba_Ntk_t * pNtk;
     char Buffer[1000] = "#"; 
-    int i, NameId, Pos = 0, nNtks, nPrims, Num1, Num2, Num3;
+    int i, NameId, Pos = 0, nNtks, nPrims, Num1, Num2, Num3, Num4;
     while ( Buffer[0] == '#' )
         if ( !CbaManReadCbaLine(vOut, &Pos, Buffer, Buffer+1000) )
             return NULL;
-    if ( !CbaManReadCbaNameAndNums(Buffer, &nNtks, &nPrims, &Num3) )
+    if ( !CbaManReadCbaNameAndNums(Buffer, &nNtks, &nPrims, &Num3, &Num4) )
         return NULL;
     // start manager
     assert( nNtks > 0 && nPrims > 0 );
@@ -130,7 +139,7 @@ Cba_Man_t * Cba_ManReadCbaInt( Vec_Str_t * vOut )
             Cba_ManFree( p );
             return NULL;
         }
-        if ( !CbaManReadCbaNameAndNums(Buffer, &Num1, &Num2, &Num3) )
+        if ( !CbaManReadCbaNameAndNums(Buffer, &Num1, &Num2, &Num3, &Num4) )
         {
             Cba_ManFree( p );
             return NULL;
@@ -138,6 +147,7 @@ Cba_Man_t * Cba_ManReadCbaInt( Vec_Str_t * vOut )
         assert( Num1 > 0 && Num2 > 0 && Num3 > 0 );
         NameId = Abc_NamStrFindOrAdd( p->pStrs, Buffer, NULL );
         Cba_NtkAlloc( pNtk, NameId, Num1, Num2, Num3 );
+        Vec_IntFill( &pNtk->vInfo, 3 * Num4, -1 );
     }
     // read networks
     Cba_ManForEachNtk( p, pNtk, i )
@@ -201,8 +211,9 @@ Cba_Man_t * Cba_ManReadCba( char * pFileName )
 ***********************************************************************/
 void Cba_ManWriteCbaNtk( Vec_Str_t * vOut, Cba_Ntk_t * pNtk )
 {
-    Vec_StrPushBuffer( vOut, (char *)Vec_StrArray(&pNtk->vType),      Cba_NtkObjNum(pNtk) );
-    Vec_StrPushBuffer( vOut, (char *)Vec_IntArray(&pNtk->vFanin), 4 * Cba_NtkObjNum(pNtk) );
+    Vec_StrPushBuffer( vOut, (char *)Vec_StrArray(&pNtk->vType),       Cba_NtkObjNum(pNtk) );
+    Vec_StrPushBuffer( vOut, (char *)Vec_IntArray(&pNtk->vFanin),  4 * Cba_NtkObjNum(pNtk) );
+    Vec_StrPushBuffer( vOut, (char *)Vec_IntArray(&pNtk->vInfo),  12 * Cba_NtkInfoNum(pNtk) );
 }
 void Cba_ManWriteCbaInt( Vec_Str_t * vOut, Cba_Man_t * p )
 {
@@ -215,7 +226,8 @@ void Cba_ManWriteCbaInt( Vec_Str_t * vOut, Cba_Man_t * p )
     Vec_StrPrintStr( vOut, Buffer );
     Cba_ManForEachNtk( p, pNtk, i )
     {
-        sprintf( Buffer, "%s %d %d %d \n", Cba_NtkName(pNtk), Cba_NtkPiNum(pNtk), Cba_NtkPoNum(pNtk), Cba_NtkObjNum(pNtk) );
+        sprintf( Buffer, "%s %d %d %d %d \n", Cba_NtkName(pNtk), 
+            Cba_NtkPiNum(pNtk), Cba_NtkPoNum(pNtk), Cba_NtkObjNum(pNtk), Cba_NtkInfoNum(pNtk) );
         Vec_StrPrintStr( vOut, Buffer );
     }
     Cba_ManForEachNtk( p, pNtk, i )

@@ -144,12 +144,15 @@ static inline int Prs_ManReadName( Prs_Man_t * p )
         return 0;
     return Abc_NamStrFindOrAddLim( p->pStrs, pStart, p->pCur, NULL );
 }
-static inline int Prs_ManReadList( Prs_Man_t * p )
+static inline int Prs_ManReadList( Prs_Man_t * p, Vec_Int_t * vOrder, int Type )
 {
     int iToken;
     Vec_IntClear( &p->vTemp );
     while ( (iToken = Prs_ManReadName(p)) )
+    {
         Vec_IntPush( &p->vTemp, iToken );
+        Vec_IntPush( vOrder, Abc_Var2Lit2(iToken, Type) );
+    }
     if ( Vec_IntSize(&p->vTemp) == 0 )                return Prs_ManErrorSet(p, "Signal list is empty.", 1);
     return 0;
 }
@@ -201,7 +204,7 @@ static inline int Prs_ManReadCube( Prs_Man_t * p )
     Prs_ManSkipSpaces( p );
     if ( Prs_ManIsChar(p, '\n') )
     {
-        if ( Vec_StrSize(&p->vCover) != 1 )            return Prs_ManErrorSet(p, "Cannot read cube.", 1);
+        if ( Vec_StrSize(&p->vCover) != 1 )           return Prs_ManErrorSet(p, "Cannot read cube.", 1);
         // fix single literal cube by adding space
         Vec_StrPush( &p->vCover, Vec_StrEntry(&p->vCover,0) );
         Vec_StrWriteEntry( &p->vCover, 0, ' ' );
@@ -221,7 +224,8 @@ static inline void Prs_ManSaveCover( Prs_Man_t * p )
     int iToken;
     assert( Vec_StrSize(&p->vCover) > 0 );
     Vec_StrPush( &p->vCover, '\0' );
-    iToken = Abc_NamStrFindOrAdd( p->pStrs, Vec_StrArray(&p->vCover), NULL );
+    //iToken = Abc_NamStrFindOrAdd( p->pStrs, Vec_StrArray(&p->vCover), NULL );
+    iToken = Ptr_SopToType( Vec_StrArray(&p->vCover) );
     Vec_StrClear( &p->vCover );
     // set the cover to the module of this box
     assert( Prs_BoxNtk(p->pNtk, Prs_NtkBoxNum(p->pNtk)-1) == 1 ); // default const 0
@@ -241,19 +245,19 @@ static inline void Prs_ManSaveCover( Prs_Man_t * p )
 ***********************************************************************/
 static inline int Prs_ManReadInouts( Prs_Man_t * p )
 {
-    if ( Prs_ManReadList(p) )    return 1;
+    if ( Prs_ManReadList(p, &p->pNtk->vOrder, 3) )    return 1;
     Vec_IntAppend( &p->pNtk->vInouts, &p->vTemp );
     return 0;
 }
 static inline int Prs_ManReadInputs( Prs_Man_t * p )
 {
-    if ( Prs_ManReadList(p) )    return 1;
+    if ( Prs_ManReadList(p, &p->pNtk->vOrder, 1) )    return 1;
     Vec_IntAppend( &p->pNtk->vInputs, &p->vTemp );
     return 0;
 }
 static inline int Prs_ManReadOutputs( Prs_Man_t * p )
 {
-    if ( Prs_ManReadList(p) )    return 1;
+    if ( Prs_ManReadList(p, &p->pNtk->vOrder, 2) )    return 1;
     Vec_IntAppend( &p->pNtk->vOutputs, &p->vTemp );
     return 0;
 }
