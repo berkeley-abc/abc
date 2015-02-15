@@ -60,7 +60,7 @@ int Cba_ManAssignInternTwo( Cba_Ntk_t * p, int iNum, Vec_Int_t * vMap )
 }
 void Cba_ManPrepareBitNames( Cba_Ntk_t * p, Vec_Int_t * vMap, int * pnNames, Vec_Int_t * vRanges, Vec_Int_t * vNames )
 {
-    int n = 0, i, k, Range;
+    int i, k, Range;
     Vec_IntClear( vNames );
     Vec_IntForEachEntry( vRanges, Range, i )
     {

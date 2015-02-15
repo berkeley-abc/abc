@@ -212,7 +212,6 @@ void Cba_ManWriteLit( Cba_Ntk_t * p, int NameId, int iBit )
 }
 void Cba_ManWriteSig( Cba_Ntk_t * p, int iObj )
 {
-    Vec_Str_t * vStr = p->pDesign->vOut;
     int iNameId = Cba_ObjName(p, iObj);
     if ( Cba_NameType(iNameId) == CBA_NAME_BIN )
         Cba_ManWriteLit( p, Abc_Lit2Var2(iNameId), -1 );

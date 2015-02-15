@@ -1465,7 +1465,7 @@ static DdNode * extraBddCountCubes( DdManager * dd, DdNode * L, DdNode * U, st__
 
     cuddCacheInsert2(dd, cuddBddIsop, L, U, r);
     *pnCubes = Count0 + Count1 + Count2;
-    if ( st__add_direct( table, (char *)r, (char *)*pnCubes ) == st__OUT_OF_MEM )
+    if ( st__add_direct( table, (char *)r, (char *)(ABC_PTRINT_T)*pnCubes ) == st__OUT_OF_MEM )
     {
         Cudd_RecursiveDeref( dd, r );
         return NULL;
