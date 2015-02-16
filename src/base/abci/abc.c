@@ -21448,6 +21448,7 @@ int Abc_CommandDSat( Abc_Frame_t * pAbc, int argc, char ** argv )
     int fAlignPol;
     int fAndOuts;
     int fNewSolver;
+    int fSilent;
     int fVerbose;
     int nConfLimit;
     int nLearnedStart;
@@ -21461,6 +21462,7 @@ int Abc_CommandDSat( Abc_Frame_t * pAbc, int argc, char ** argv )
     fAlignPol  = 0;
     fAndOuts   = 0;
     fNewSolver = 0;
+    fSilent    = 0;
     fVerbose   = 0;
     nConfLimit = 0;
     nInsLimit  = 0;
@@ -21468,7 +21470,7 @@ int Abc_CommandDSat( Abc_Frame_t * pAbc, int argc, char ** argv )
     nLearnedDelta = 0;
     nLearnedPerce = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "CILDEpanvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "CILDEpansvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -21536,6 +21538,9 @@ int Abc_CommandDSat( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'n':
             fNewSolver ^= 1;
             break;
+        case 's':
+            fSilent ^= 1;
+            break;
         case 'v':
             fVerbose ^= 1;
             break;
@@ -21596,18 +21601,20 @@ int Abc_CommandDSat( Abc_Frame_t * pAbc, int argc, char ** argv )
         pAbc->pCex = Abc_CexCreate( 0, Abc_NtkPiNum(pNtk), pNtk->pModel, 0, 0, 0 );
     }
     pAbc->Status = RetValue;
-    if ( RetValue == -1 )
-        Abc_Print( 1, "UNDECIDED      " );
-    else if ( RetValue == 0 )
-        Abc_Print( 1, "SATISFIABLE    " );
-    else
-        Abc_Print( 1, "UNSATISFIABLE  " );
-    //Abc_Print( -1, "\n" );
-    Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
+    if ( !fSilent )
+    {
+        if ( RetValue == -1 )
+            Abc_Print( 1, "UNDECIDED      " );
+        else if ( RetValue == 0 )
+            Abc_Print( 1, "SATISFIABLE    " );
+        else
+            Abc_Print( 1, "UNSATISFIABLE  " );
+        Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
+    }
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: dsat [-CILDE num] [-panvh]\n" );
+    Abc_Print( -2, "usage: dsat [-CILDE num] [-pansvh]\n" );
     Abc_Print( -2, "\t         solves the combinational miter using SAT solver MiniSat-1.14\n" );
     Abc_Print( -2, "\t         derives CNF from the current network and leaves it unchanged\n" );
     Abc_Print( -2, "\t-C num : limit on the number of conflicts [default = %d]\n",    nConfLimit );
@@ -21618,6 +21625,7 @@ usage:
     Abc_Print( -2, "\t-p     : align polarity of SAT variables [default = %s]\n", fAlignPol? "yes": "no" );
     Abc_Print( -2, "\t-a     : toggle ANDing/ORing of miter outputs [default = %s]\n", fAndOuts? "ANDing": "ORing" );
     Abc_Print( -2, "\t-n     : toggle using new solver [default = %s]\n", fNewSolver? "yes": "no" );
+    Abc_Print( -2, "\t-s     : enable silent computation (no reporting) [default = %s]\n", fSilent? "yes": "no" );
     Abc_Print( -2, "\t-v     : prints verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;

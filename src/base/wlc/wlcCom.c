@@ -115,21 +115,34 @@ static inline int Wlc_GenerateStop( Vec_Str_t * vInput, char * pLine, int LineSi
 }
 Vec_Str_t * Wlc_GenerateSmtStdin()
 {
-    char * pLine = "(check-sat)";
-    int c, LineSize = strlen(pLine);
-    Vec_Str_t * vInput = Vec_StrAlloc( 1000 );
+    //char * pLine = "(check-sat)";
+    //int c, LineSize = strlen(pLine);
+    Vec_Str_t * vInput = Vec_StrAlloc( 1000 ); int c;
     while ( (c = fgetc(stdin)) != EOF )
-    {
         Vec_StrPush( vInput, (char)c );
-        if ( c == ')' && Wlc_GenerateStop(vInput, pLine, LineSize) )
-            break;
-    }
     Vec_StrPush( vInput, '\0' );
     return vInput;
 }
 void Wlc_GenerateSmtStdout( Abc_Frame_t * pAbc )
 {
-    printf( "Output produced by SMT solver will be here.\n" );
+    if ( Abc_FrameReadProbStatus(pAbc) == -1 )
+        printf( "undecided\n" );
+    else if ( Abc_FrameReadProbStatus(pAbc) == 1 )
+        printf( "unsat\n" );
+    else if ( Abc_FrameReadProbStatus(pAbc) == 0 )
+    {
+        Vec_Int_t * vAssign = Vec_IntAlloc( 100 );
+        Abc_Cex_t * pCex = Abc_FrameReadCex( pAbc ); int i;
+        if ( pCex == NULL )
+        {
+            printf( "CEX is not found\n" );
+            return;
+        }
+        for ( i = 0; i < pCex->nPis; i++ )
+            Vec_IntPush( vAssign, Abc_InfoHasBit(pCex->pData, i) );
+        Wlc_NtkReport( (Wlc_Ntk_t *)pAbc->pAbcWlc, vAssign );
+        Vec_IntFree( vAssign );
+    }
 }
 
 /**Function********************************************************************
@@ -417,9 +430,10 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 0;
     }
     // transform
-    pNtk = Wlc_NtkUifNodePairs( pNtk, NULL );
-    pNtk = Wlc_NtkAbstractNodes( pNtk, NULL );
-    Wlc_AbcUpdateNtk( pAbc, pNtk );
+    //pNtk = Wlc_NtkUifNodePairs( pNtk, NULL );
+    //pNtk = Wlc_NtkAbstractNodes( pNtk, NULL );
+    //Wlc_AbcUpdateNtk( pAbc, pNtk );
+    Wlc_GenerateSmtStdout( pAbc );
     return 0;
 usage:
     Abc_Print( -2, "usage: %%test [-vh]\n" );

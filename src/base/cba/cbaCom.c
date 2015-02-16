@@ -218,7 +218,11 @@ int Cba_CommandRead( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
         p = Cba_ManReadCba( pFileName );
     }
-    else assert( 0 );
+    else 
+    {
+        printf( "Unrecognized input file extension.\n" );
+        return 0;
+    }
     Cba_AbcUpdateMan( pAbc, p );
     return 0;
 usage:

@@ -32,7 +32,8 @@ typedef enum {
     PRS_SMT_INPUT,    
     PRS_SMT_CONST,    
     PRS_SMT_LET,   
-    PRS_SMT_ASSERT
+    PRS_SMT_ASSERT,
+    PRS_SMT_VALUE
 } Prs_ManType_t; 
 
 // parser
@@ -46,7 +47,8 @@ struct Prs_Smt_t_
     char *       pCur;        // current position
     Abc_Nam_t *  pStrs;       // string manager
     // network structure
-    Vec_Int_t    vData;       
+    Vec_Int_t    vData;
+    Vec_Int_t    vValues;
     // error handling
     char ErrorStr[1000];      
 };
@@ -117,6 +119,7 @@ static inline void Prs_SmtFree( Prs_Smt_t * p )
     if ( p->pStrs )
         Abc_NamDeref( p->pStrs );
     Vec_IntErase( &p->vData );
+    Vec_IntErase( &p->vValues );
     ABC_FREE( p );
 }
 
@@ -234,8 +237,24 @@ static inline int Prs_SmtParseFun( Prs_Smt_t * p, char * pLimit, int Type )
     p->pCur = pLimit;
     return 1;
 }
+static inline int Prs_SmtParseValue( Prs_Smt_t * p, char * pLimit, int Type )
+{
+    char * pToken;
+    assert( *pLimit == ')' );
+    *pLimit = 0;
+    pToken = strtok( p->pCur, " ()" );
+    assert( pToken != NULL );
+    Vec_IntPush( &p->vValues, Abc_NamStrFindOrAdd(p->pStrs, pToken, NULL) );
+    pToken = strtok( NULL, " ()" );
+    assert( pToken == NULL );
+    assert( *pLimit == 0 );
+    *pLimit = ')';
+    p->pCur = pLimit;
+    return 1;
+}
 int Prs_SmtReadLines( Prs_Smt_t * p )
 {
+    int fAssert = 0;
     Prs_SmtSkipSpaces( p );
     while ( *p->pCur == '(' )
     {
@@ -263,25 +282,35 @@ int Prs_SmtReadLines( Prs_Smt_t * p )
             assert( *p->pCur == ')' );
             p->pCur++;
         }
-        else if ( Prs_SmtIsWord(p, "check-sat") )
+        else if ( Prs_SmtIsWord(p, "get-value") )
         {
-            Vec_IntPush( &p->vData, 0 );
-            return 1;
+            if ( !Prs_SmtParseValue( p, Prs_SmtFindNextPar(p), PRS_SMT_VALUE ) )
+                return 0;
+            assert( *p->pCur == ')' );
+            p->pCur++;
         }
         else if ( Prs_SmtIsWord(p, "assert") )
-        {}
-        else if ( Prs_SmtIsWord(p, "set-option") || Prs_SmtIsWord(p, "set-logic") )
+            fAssert = 1;
+        else if ( Prs_SmtIsWord(p, "set-option") || Prs_SmtIsWord(p, "set-logic") || Prs_SmtIsWord(p, "check-sat") )
             p->pCur = Prs_SmtFindNextPar(p) + 1;
-        else
-            break;
+//        else
             //return Prs_SmtErrorSet(p, "Unsupported directive.", 0);
         Prs_SmtSkipSpaces( p );
+        if ( *p->pCur != '(' && fAssert == 1 )
+        {
+            fAssert = 0;
+            // finish parsing assert
+            if ( !Prs_SmtParseLet( p, Prs_SmtFindNextPar(p), PRS_SMT_ASSERT ) )
+                return 0;
+            assert( *p->pCur == ')' );
+            Vec_IntPush( &p->vData, 0 );
+            // skip closing
+            while ( *p->pCur == ')' )
+                p->pCur++;
+            Prs_SmtSkipSpaces( p );
+        }
     }
-    // finish parsing assert
-    if ( !Prs_SmtParseLet( p, Prs_SmtFindNextPar(p), PRS_SMT_ASSERT ) )
-        return 0;
-    assert( *p->pCur == ')' );
-    Vec_IntPush( &p->vData, 0 );
+    assert( fAssert == 0 );
     return 1;
 }
 
@@ -320,6 +349,8 @@ void Prs_SmtPrintParser( Prs_Smt_t * p )
         }
         printf( " %s", Abc_NamStr(p->pStrs, Entry) );
     }
+    Vec_IntForEachEntry( &p->vValues, Entry, i )
+        printf( "get-value %s\n", Abc_NamStr(p->pStrs, Entry) );
 }
 
 
@@ -404,9 +435,9 @@ static inline int Prs_SmtReadName( Wlc_Ntk_t * pNtk, char * pStr, int nBits, Vec
         return 1;
     }
 }
-static inline int Prs_SmtStrToType( char * pName )
+static inline int Prs_SmtStrToType( char * pName, int * pfSigned )
 {
-    int Type = 0;
+    int Type = 0; *pfSigned = 0;
     if ( !strcmp(pName, "ite") )
         Type = WLC_OBJ_MUX;           // 08: multiplexer
     else if ( !strcmp(pName, "bvlshr") )
@@ -436,56 +467,77 @@ static inline int Prs_SmtStrToType( char * pName )
     else if ( !strcmp(pName, "zero_extend") )
         Type = WLC_OBJ_BIT_ZEROPAD;   // 21: zero padding
     else if ( !strcmp(pName, "sign_extend") )
-        Type = WLC_OBJ_BIT_SIGNEXT;   // 22: sign extension
+        Type = WLC_OBJ_BIT_SIGNEXT, *pfSigned = 1;   // 22: sign extension
     else if ( !strcmp(pName, "not") )
         Type = WLC_OBJ_LOGIC_NOT;     // 23: logic NOT
     else if ( !strcmp(pName, "and") )
         Type = WLC_OBJ_LOGIC_AND;     // 24: logic AND
     else if ( !strcmp(pName, "or") )
         Type = WLC_OBJ_LOGIC_OR;      // 25: logic OR
+    else if ( !strcmp(pName, "xor") )
+        Type = WLC_OBJ_LOGIC_XOR;     // 26: logic OR
     else if ( !strcmp(pName, "bvcomp") )
-        Type = WLC_OBJ_COMP_EQU;      // 26: compare equal
+        Type = WLC_OBJ_COMP_EQU;      // 27: compare equal
 //    else if ( !strcmp(pName, "") )
-//        Type = WLC_OBJ_COMP_NOTEQU;   // 27: compare not equal
+//        Type = WLC_OBJ_COMP_NOTEQU;   // 28: compare not equal
     else if ( !strcmp(pName, "bvult") )
-        Type = WLC_OBJ_COMP_LESS;     // 28: compare less
+        Type = WLC_OBJ_COMP_LESS;     // 29: compare less
     else if ( !strcmp(pName, "bvugt") )
-        Type = WLC_OBJ_COMP_MORE;     // 29: compare more
+        Type = WLC_OBJ_COMP_MORE;     // 30: compare more
     else if ( !strcmp(pName, "bvule") )
-        Type = WLC_OBJ_COMP_LESSEQU;  // 30: compare less or equal
+        Type = WLC_OBJ_COMP_LESSEQU;  // 31: compare less or equal
     else if ( !strcmp(pName, "bvuge") )
-        Type = WLC_OBJ_COMP_MOREEQU;  // 31: compare more or equal
+        Type = WLC_OBJ_COMP_MOREEQU;  // 32: compare more or equal
+    else if ( !strcmp(pName, "bvslt") )
+        Type = WLC_OBJ_COMP_LESS, *pfSigned = 1;     // 29: compare less
+    else if ( !strcmp(pName, "bvsgt") )
+        Type = WLC_OBJ_COMP_MORE, *pfSigned = 1;     // 30: compare more
+    else if ( !strcmp(pName, "bvsle") )
+        Type = WLC_OBJ_COMP_LESSEQU, *pfSigned = 1;  // 31: compare less or equal
+    else if ( !strcmp(pName, "bvsge") )
+        Type = WLC_OBJ_COMP_MOREEQU, *pfSigned = 1;  // 32: compare more or equal
     else if ( !strcmp(pName, "bvredand") )
-        Type = WLC_OBJ_REDUCT_AND;    // 32: reduction AND
+        Type = WLC_OBJ_REDUCT_AND;    // 33: reduction AND
     else if ( !strcmp(pName, "bvredor") )
-        Type = WLC_OBJ_REDUCT_OR;     // 33: reduction OR
+        Type = WLC_OBJ_REDUCT_OR;     // 34: reduction OR
     else if ( !strcmp(pName, "bvredxor") )
-        Type = WLC_OBJ_REDUCT_XOR;    // 34: reduction XOR
+        Type = WLC_OBJ_REDUCT_XOR;    // 35: reduction XOR
     else if ( !strcmp(pName, "bvadd") )
-        Type = WLC_OBJ_ARI_ADD;       // 35: arithmetic addition
+        Type = WLC_OBJ_ARI_ADD;       // 36: arithmetic addition
     else if ( !strcmp(pName, "bvsub") )
-        Type = WLC_OBJ_ARI_SUB;       // 36: arithmetic subtraction
+        Type = WLC_OBJ_ARI_SUB;       // 37: arithmetic subtraction
     else if ( !strcmp(pName, "bvmul") )
-        Type = WLC_OBJ_ARI_MULTI;     // 37: arithmetic multiplier
-    else if ( !strcmp(pName, "bvdiv") )
-        Type = WLC_OBJ_ARI_DIVIDE;    // 38: arithmetic division
+        Type = WLC_OBJ_ARI_MULTI;     // 38: arithmetic multiplier
+    else if ( !strcmp(pName, "bvudiv") )
+        Type = WLC_OBJ_ARI_DIVIDE;    // 39: arithmetic division
     else if ( !strcmp(pName, "bvurem") )
-        Type = WLC_OBJ_ARI_MODULUS;   // 39: arithmetic modulus
+        Type = WLC_OBJ_ARI_MODULUS;   // 40: arithmetic modulus
+    else if ( !strcmp(pName, "bvsdiv") )
+        Type = WLC_OBJ_ARI_DIVIDE, *pfSigned = 1;    // 39: arithmetic division
+    else if ( !strcmp(pName, "bvsrem") )
+        Type = WLC_OBJ_ARI_MODULUS, *pfSigned = 1;   // 40: arithmetic modulus
+    else if ( !strcmp(pName, "bvsmod") )
+        Type = WLC_OBJ_ARI_MODULUS, *pfSigned = 1;   // 40: arithmetic modulus
 //    else if ( !strcmp(pName, "") )
-//        Type = WLC_OBJ_ARI_POWER;     // 40: arithmetic power
+//        Type = WLC_OBJ_ARI_POWER;     // 41: arithmetic power
     else if ( !strcmp(pName, "bvneg") )
-        Type = WLC_OBJ_ARI_MINUS;     // 41: arithmetic minus
+        Type = WLC_OBJ_ARI_MINUS;       // 42: arithmetic minus
 //    else if ( !strcmp(pName, "") )
-//        Type = WLC_OBJ_TABLE;         // 42: bit table
-    else assert( 0 );
+//        Type = WLC_OBJ_TABLE;         // 43: bit table
+    else
+    {
+        printf( "The following operations is currently not supported (%s)\n", pName );
+        fflush( stdout );
+        assert( 0 );
+    }
     return Type;
 }
-static inline int Prs_SmtReadNode( Prs_Smt_t * p, Wlc_Ntk_t * pNtk, Vec_Int_t * vData, int i, Vec_Int_t * vFanins, int * pRange )
+static inline int Prs_SmtReadNode( Prs_Smt_t * p, Wlc_Ntk_t * pNtk, Vec_Int_t * vData, int i, Vec_Int_t * vFanins, int * pRange, int * pfSigned )
 {
     int Type, NameId;
     char * pName = Abc_NamStr( p->pStrs, Vec_IntEntry(vData, i) );
     // read type
-    Type = Prs_SmtStrToType( pName );
+    Type = Prs_SmtStrToType( pName, pfSigned );
     if ( Type == 0 )
         return 0;
     *pRange = 0;
@@ -499,7 +551,7 @@ static inline int Prs_SmtReadNode( Prs_Smt_t * p, Wlc_Ntk_t * pNtk, Vec_Int_t * 
     }
     else if ( Type == WLC_OBJ_LOGIC_NOT )
     {
-        pName  = Abc_NamStr( p->pStrs, Vec_IntEntry(vData, ++i) );
+        pName = Abc_NamStr( p->pStrs, Vec_IntEntry(vData, ++i) );
         if ( !strcmp(pName, "bvcomp") )
         {
             *pRange = 1;
@@ -558,7 +610,7 @@ Wlc_Ntk_t * Prs_SmtBuild( Prs_Smt_t * p )
     Wlc_Ntk_t * pNtk;
     char * pName, * pBits, * pConst;
     Vec_Int_t * vFanins = Vec_IntAlloc( 100 );
-    int i, iObj, Type, Entry, NameId, fFound, Range;
+    int i, k, iObj, Type, Entry, NameId, fFound, Range, fSigned, nBits = 0;
     // start network and create primary inputs
     pNtk = Wlc_NtkAlloc( p->pName, Vec_IntCountEntry(&p->vData, 0) + 100 );
     pNtk->pManName = Abc_NamStart( 1000, 24 );
@@ -567,12 +619,23 @@ Wlc_Ntk_t * Prs_SmtBuild( Prs_Smt_t * p )
         assert( Vec_IntEntry(&p->vData, i) == 0 );
         if ( Vec_IntEntry(&p->vData, ++i) == PRS_SMT_INPUT )
         {
+            int NameOld = Vec_IntEntry(&p->vData, i+1);
             pName = Abc_NamStr( p->pStrs, Vec_IntEntry(&p->vData, ++i) );
             pBits = Abc_NamStr( p->pStrs, Vec_IntEntry(&p->vData, ++i) );
             iObj = Wlc_ObjAlloc( pNtk, WLC_OBJ_PI, 0, atoi(pBits)-1, 0 );
             NameId = Abc_NamStrFindOrAdd( pNtk->pManName, pName, &fFound );
             assert( !fFound );
             assert( iObj == NameId );
+            // save values
+            Vec_IntForEachEntry( &p->vValues, Entry, k )
+                if ( Entry == NameOld )
+                {
+                    Vec_IntPush( &pNtk->vValues, NameId );
+                    Vec_IntPush( &pNtk->vValues, nBits );
+                    Vec_IntPush( &pNtk->vValues, atoi(pBits) );
+                    break;
+                }
+            nBits += atoi(pBits);
         }
         while ( Vec_IntEntry(&p->vData, ++i) );
     }
@@ -595,13 +658,21 @@ Wlc_Ntk_t * Prs_SmtBuild( Prs_Smt_t * p )
         else if ( Entry == PRS_SMT_LET )
         {
             pName = Abc_NamStr( p->pStrs, Vec_IntEntry(&p->vData, ++i) );
-            Type = Prs_SmtReadNode( p, pNtk, &p->vData, ++i, vFanins, &Range );
+            Type = Prs_SmtReadNode( p, pNtk, &p->vData, ++i, vFanins, &Range, &fSigned );
             if ( Type == WLC_OBJ_NONE )
                 return NULL;
             assert( Range > 0 );
             // create new node
             iObj = Wlc_ObjAlloc( pNtk, Type, 0, Range-1, 0 );
             Wlc_ObjAddFanins( pNtk, Wlc_NtkObj(pNtk, iObj), vFanins );
+            if ( fSigned )
+            {
+                Wlc_NtkObj(pNtk, iObj)->Signed = fSigned;
+                if ( Vec_IntSize(vFanins) > 0 )
+                    Wlc_NtkObj(pNtk, Vec_IntEntry(vFanins, 0))->Signed = fSigned;
+                if ( Vec_IntSize(vFanins) > 1 )
+                    Wlc_NtkObj(pNtk, Vec_IntEntry(vFanins, 1))->Signed = fSigned;
+            }
             // add node's name
             NameId = Abc_NamStrFindOrAdd( pNtk->pManName, pName, &fFound );
             assert( !fFound );
@@ -648,6 +719,7 @@ Wlc_Ntk_t * Prs_SmtBuild( Prs_Smt_t * p )
     vFanins = Vec_IntStartNatural( Wlc_NtkObjNumMax(pNtk) );
     Vec_IntAppend( &pNtk->vNameIds, vFanins );
     Vec_IntFree( vFanins );
+    //Wlc_NtkReport( pNtk, NULL );
     return pNtk;
 }
 Wlc_Ntk_t * Wlc_ReadSmtBuffer( char * pFileName, char * pBuffer, char * pLimit )

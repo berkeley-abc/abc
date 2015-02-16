@@ -658,6 +658,14 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Vec_Int_t * vBoxIds )
             for ( k = 1; k < nRange; k++ )
                 Vec_IntPush( vRes, 0 );
         }
+        else if ( pObj->Type == WLC_OBJ_LOGIC_XOR )
+        {
+            int iLit0 = Wlc_BlastReduction( pNew, pFans0, nRange0, WLC_OBJ_REDUCT_OR );
+            int iLit1 = Wlc_BlastReduction( pNew, pFans1, nRange1, WLC_OBJ_REDUCT_OR );
+            Vec_IntFill( vRes, 1, Gia_ManHashXor(pNew, iLit0, iLit1) );
+            for ( k = 1; k < nRange; k++ )
+                Vec_IntPush( vRes, 0 );
+        }
         else if ( pObj->Type == WLC_OBJ_COMP_EQU || pObj->Type == WLC_OBJ_COMP_NOTEQU )
         {
             int iLit = 0, nRangeMax = Abc_MaxInt( nRange0, nRange1 );

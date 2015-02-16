@@ -68,24 +68,25 @@ typedef enum {
     WLC_OBJ_LOGIC_NOT,     // 23: logic NOT
     WLC_OBJ_LOGIC_AND,     // 24: logic AND
     WLC_OBJ_LOGIC_OR,      // 25: logic OR
-    WLC_OBJ_COMP_EQU,      // 26: compare equal
-    WLC_OBJ_COMP_NOTEQU,   // 27: compare not equal
-    WLC_OBJ_COMP_LESS,     // 28: compare less
-    WLC_OBJ_COMP_MORE,     // 29: compare more
-    WLC_OBJ_COMP_LESSEQU,  // 30: compare less or equal
-    WLC_OBJ_COMP_MOREEQU,  // 31: compare more or equal
-    WLC_OBJ_REDUCT_AND,    // 32: reduction AND
-    WLC_OBJ_REDUCT_OR,     // 33: reduction OR
-    WLC_OBJ_REDUCT_XOR,    // 34: reduction XOR
-    WLC_OBJ_ARI_ADD,       // 35: arithmetic addition
-    WLC_OBJ_ARI_SUB,       // 36: arithmetic subtraction
-    WLC_OBJ_ARI_MULTI,     // 37: arithmetic multiplier
-    WLC_OBJ_ARI_DIVIDE,    // 38: arithmetic division
-    WLC_OBJ_ARI_MODULUS,   // 39: arithmetic modulus
-    WLC_OBJ_ARI_POWER,     // 40: arithmetic power
-    WLC_OBJ_ARI_MINUS,     // 41: arithmetic minus
-    WLC_OBJ_TABLE,         // 42: bit table
-    WLC_OBJ_NUMBER         // 43: unused
+    WLC_OBJ_LOGIC_XOR,     // 26: logic XOR
+    WLC_OBJ_COMP_EQU,      // 27: compare equal
+    WLC_OBJ_COMP_NOTEQU,   // 28: compare not equal
+    WLC_OBJ_COMP_LESS,     // 29: compare less
+    WLC_OBJ_COMP_MORE,     // 30: compare more
+    WLC_OBJ_COMP_LESSEQU,  // 31: compare less or equal
+    WLC_OBJ_COMP_MOREEQU,  // 32: compare more or equal
+    WLC_OBJ_REDUCT_AND,    // 33: reduction AND
+    WLC_OBJ_REDUCT_OR,     // 34: reduction OR
+    WLC_OBJ_REDUCT_XOR,    // 35: reduction XOR
+    WLC_OBJ_ARI_ADD,       // 36: arithmetic addition
+    WLC_OBJ_ARI_SUB,       // 37: arithmetic subtraction
+    WLC_OBJ_ARI_MULTI,     // 38: arithmetic multiplier
+    WLC_OBJ_ARI_DIVIDE,    // 39: arithmetic division
+    WLC_OBJ_ARI_MODULUS,   // 40: arithmetic modulus
+    WLC_OBJ_ARI_POWER,     // 41: arithmetic power
+    WLC_OBJ_ARI_MINUS,     // 42: arithmetic minus
+    WLC_OBJ_TABLE,         // 43: bit table
+    WLC_OBJ_NUMBER         // 44: unused
 } Wlc_ObjType_t;
 
 
@@ -135,6 +136,7 @@ struct Wlc_Ntk_t_
     // object names
     Abc_Nam_t *            pManName;           // object names
     Vec_Int_t              vNameIds;           // object name IDs
+    Vec_Int_t              vValues;            // value objects
     // object attributes
     int                    nTravIds;           // counter of traversal IDs
     Vec_Int_t              vTravIds;           // trav IDs of the objects
@@ -257,6 +259,7 @@ extern void           Wlc_NtkPrintNodes( Wlc_Ntk_t * p, int Type );
 extern void           Wlc_NtkPrintStats( Wlc_Ntk_t * p, int fDistrib, int fVerbose );
 extern Wlc_Ntk_t *    Wlc_NtkDupDfs( Wlc_Ntk_t * p );
 extern void           Wlc_NtkTransferNames( Wlc_Ntk_t * pNew, Wlc_Ntk_t * p );
+extern void           Wlc_NtkReport( Wlc_Ntk_t * p, Vec_Int_t * vAssign );
 /*=== wlcReadSmt.c ========================================================*/
 extern Wlc_Ntk_t *    Wlc_ReadSmtBuffer( char * pFileName, char * pBuffer, char * pLimit );
 extern Wlc_Ntk_t *    Wlc_ReadSmt( char * pFileName );
