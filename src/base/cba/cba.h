@@ -181,6 +181,7 @@ struct Cba_Man_t_
     Cba_Ntk_t *  pNtks;    // networks
     // user data
     Vec_Str_t *  vOut;     
+    Vec_Str_t *  vOut2;     
     Vec_Int_t    vBuf2RootNtk;
     Vec_Int_t    vBuf2RootObj;
     Vec_Int_t    vBuf2LeafNtk;
@@ -271,6 +272,7 @@ static inline int            Cba_ObjIsGate( Cba_Ntk_t * p, int i )           { r
 static inline int            Cba_ObjIsCi( Cba_Ntk_t * p, int i )             { return Cba_ObjIsPi(p, i) || Cba_ObjIsBo(p, i);                                              }
 static inline int            Cba_ObjIsCo( Cba_Ntk_t * p, int i )             { return Cba_ObjIsPo(p, i) || Cba_ObjIsBi(p, i);                                              }
 static inline int            Cba_ObjIsCio( Cba_Ntk_t * p, int i )            { return Cba_ObjType(p, i) < CBA_OBJ_BOX;                                                     }
+static inline int            Cba_ObjIsConst( Cba_Ntk_t * p, int i )          { return Cba_ObjType(p, i) >= CBA_BOX_CF && Cba_ObjType(p, i) <= CBA_BOX_CZ;                  }
 
 static inline int            Cba_ObjFanin( Cba_Ntk_t * p, int i )            { assert(Cba_ObjIsCo(p, i)); return Vec_IntEntry(&p->vFanin, i);                              }
 static inline int            Cba_ObjIndex( Cba_Ntk_t * p, int i )            { assert(Cba_ObjIsCio(p, i)); return Vec_IntEntry(&p->vIndex, i);                             }
@@ -289,6 +291,7 @@ static inline void           Cba_ObjSetFanin( Cba_Ntk_t * p, int i, int x )  { a
 static inline void           Cba_ObjSetIndex( Cba_Ntk_t * p, int i, int x )  { assert(Cba_ObjIndex(p, i) == -1); Vec_IntSetEntry( &p->vIndex, i, x );                      }
 static inline void           Cba_ObjSetName( Cba_Ntk_t * p, int i, int x )   { assert(Cba_ObjName(p, i) == 0 && !Cba_ObjIsCo(p, i)); Vec_IntSetEntry( &p->vName, i, x );   }
 static inline void           Cba_ObjSetCopy( Cba_Ntk_t * p, int i, int x )   { assert(Cba_ObjCopy(p, i) == -1);  Vec_IntSetEntry( &p->vCopy,  i, x );                      }
+static inline int            Cba_ObjGetConst( Cba_Ntk_t * p, int i )         { int f = Cba_ObjFanin(p, i); return Cba_ObjIsBo(p, f) && Cba_ObjIsConst(p, f-1) ? -Cba_ObjType(p, f-1) : 0;   }
 
 static inline int            Cba_BoxBiNum( Cba_Ntk_t * p, int i )            { int s = i-1; assert(Cba_ObjIsBox(p, i)); while (--i >= 0               && Cba_ObjIsBi(p, i)); return s - i;  }
 static inline int            Cba_BoxBoNum( Cba_Ntk_t * p, int i )            { int s = i+1; assert(Cba_ObjIsBox(p, i)); while (++i < Cba_NtkObjNum(p) && Cba_ObjIsBo(p, i)); return i - s;  }
