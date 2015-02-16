@@ -1143,6 +1143,8 @@ int Abc_NtkSopToBlifMv( Abc_Ntk_t * pNtk )
 int Abc_NtkToSop( Abc_Ntk_t * pNtk, int fDirect, int nCubeLimit )
 {
     assert( !Abc_NtkIsStrash(pNtk) );
+    if ( Abc_NtkHasBlackbox(pNtk) )
+        return 1;
     if ( Abc_NtkHasSop(pNtk) )
     {
         if ( !fDirect )
@@ -1179,6 +1181,8 @@ int Abc_NtkToSop( Abc_Ntk_t * pNtk, int fDirect, int nCubeLimit )
 int Abc_NtkToBdd( Abc_Ntk_t * pNtk )
 {
     assert( !Abc_NtkIsStrash(pNtk) );
+    if ( Abc_NtkHasBlackbox(pNtk) )
+        return 1;
     if ( Abc_NtkHasBdd(pNtk) )
         return 1;
     if ( Abc_NtkHasMapping(pNtk) )
@@ -1211,6 +1215,8 @@ int Abc_NtkToBdd( Abc_Ntk_t * pNtk )
 int Abc_NtkToAig( Abc_Ntk_t * pNtk )
 {
     assert( !Abc_NtkIsStrash(pNtk) );
+    if ( Abc_NtkHasBlackbox(pNtk) )
+        return 1;
     if ( Abc_NtkHasAig(pNtk) )
         return 1;
     if ( Abc_NtkHasMapping(pNtk) )
