@@ -803,6 +803,10 @@ SOURCE=.\src\base\cba\cbaNtk.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\base\cba\cbaOper.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\base\cba\cbaPrs.h
 # End Source File
 # Begin Source File

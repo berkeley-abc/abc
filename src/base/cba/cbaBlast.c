@@ -165,11 +165,12 @@ int Cba_ManExtract_rec( Gia_Man_t * pNew, Cba_Ntk_t * p, int i, int fBuffers, Ve
                         iRes = Abc_LitNot( pLits[0] );
                     else assert( 0 );
                 }
-                else
+                else if ( nLits == 2 )
                 {
-                    assert( nLits == 2 );
                     if ( Type == CBA_BOX_AND )
                         iRes = Gia_ManHashAnd( pNew, pLits[0], pLits[1] );
+                    else if ( Type == CBA_BOX_NAND )
+                        iRes = Abc_LitNot( Gia_ManHashAnd( pNew, pLits[0], pLits[1] ) );
                     else if ( Type == CBA_BOX_OR )
                         iRes = Gia_ManHashOr( pNew, pLits[0], pLits[1] );
                     else if ( Type == CBA_BOX_NOR )
@@ -180,9 +181,30 @@ int Cba_ManExtract_rec( Gia_Man_t * pNew, Cba_Ntk_t * p, int i, int fBuffers, Ve
                         iRes = Abc_LitNot( Gia_ManHashXor( pNew, pLits[0], pLits[1] ) );
                     else if ( Type == CBA_BOX_SHARP )
                         iRes = Gia_ManHashAnd( pNew, pLits[0], Abc_LitNot(pLits[1]) );
+                    else if ( Type == CBA_BOX_SHARPL )
+                        iRes = Gia_ManHashAnd( pNew, Abc_LitNot(pLits[0]), pLits[1] );
                     else assert( 0 );
                 }
-                //printf("%d input\n", nLits );
+                else if ( nLits == 3 )
+                {
+                    if ( Type == CBA_BOX_MUX )
+                        iRes = Gia_ManHashMux( pNew, pLits[0], pLits[1], pLits[2] );
+                    else if ( Type == CBA_BOX_MAJ )
+                        iRes = Gia_ManHashMaj( pNew, pLits[0], pLits[1], pLits[2] );
+                    else if ( Type == CBA_BOX_ADD )
+                    {
+                        int iRes0 = Gia_ManHashAnd( pNew, pLits[1], pLits[2] );
+                        int iRes1 = Gia_ManHashOr( pNew, pLits[1], pLits[2] );
+                        assert( Cba_BoxBoNum(p, iBox) == 2 );
+                        if ( Cba_BoxBo(p, iBox, 0) == i ) // sum
+                            iRes = Gia_ManHashXor( pNew, pLits[0], Gia_ManHashAnd(pNew, Abc_LitNot(iRes0), iRes1) );
+                        else if ( Cba_BoxBo(p, iBox, 1) == i ) // cout
+                            iRes = Gia_ManHashOr( pNew, iRes0, Gia_ManHashAnd(pNew, pLits[0], iRes1) );
+                        else assert( 0 );
+                    }
+                    else assert( 0 );
+                }
+                else assert( 0 );
             }
         }
     }

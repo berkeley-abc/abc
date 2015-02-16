@@ -326,19 +326,39 @@ static inline int Prs_ManReadConstant( Prs_Man_t * p )
     {
         p->pCur++;
         while ( Prs_CharIsDigitB(*p->pCur) ) 
+        {
+            if ( *p->pCur == '0' )
+                p->pNtk->fHasC0s = 1;
+            else if ( *p->pCur == '1' )
+                p->pNtk->fHasC1s = 1;
+            else if ( *p->pCur == 'x' )
+                p->pNtk->fHasCXs = 1;
+            else if ( *p->pCur == 'z' )
+                p->pNtk->fHasCZs = 1;
             p->pCur++;
+        }
     }
     else if ( Prs_ManIsChar(p, 'h') )
     {
         p->pCur++;
+        p->pNtk->fHasC0s = 1;
         while ( Prs_CharIsDigitH(*p->pCur) ) 
+        {
+            if ( *p->pCur != '0' )
+                p->pNtk->fHasC1s = 1;
             p->pCur++;
+        }
     }
     else if ( Prs_ManIsChar(p, 'd') )
     {
         p->pCur++;
+        p->pNtk->fHasC0s = 1;
         while ( Prs_ManIsDigit(p) ) 
+        {
+            if ( *p->pCur != '0' )
+                p->pNtk->fHasC1s = 1;
             p->pCur++;
+        }
     }
     else                                    return Prs_ManErrorSet(p, "Cannot read radix of constant.", 0);
     return Abc_NamStrFindOrAddLim( p->pStrs, pStart, p->pCur, NULL );

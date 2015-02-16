@@ -222,6 +222,16 @@ static inline int Prs_ManReadCube( Prs_Man_t * p )
 static inline void Prs_ManSaveCover( Prs_Man_t * p )
 {
     int iToken;
+    if ( Vec_StrSize(&p->vCover) == 0 )
+        p->pNtk->fHasC0s = 1;
+    else if ( Vec_StrSize(&p->vCover) == 2 )
+    {
+        if ( Vec_StrEntryLast(&p->vCover) == '0' )
+            p->pNtk->fHasC0s = 1;
+        else if ( Vec_StrEntryLast(&p->vCover) == '1' )
+            p->pNtk->fHasC1s = 1;
+        else assert( 0 );
+    }
     assert( Vec_StrSize(&p->vCover) > 0 );
     Vec_StrPush( &p->vCover, '\0' );
     //iToken = Abc_NamStrFindOrAdd( p->pStrs, Vec_StrArray(&p->vCover), NULL );

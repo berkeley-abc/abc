@@ -55,6 +55,10 @@ struct Prs_Ntk_t_
     int          iModuleName;
     unsigned     fMapped : 1;
     unsigned     fSlices : 1;
+    unsigned     fHasC0s : 1;
+    unsigned     fHasC1s : 1;
+    unsigned     fHasCXs : 1;
+    unsigned     fHasCZs : 1;
     Abc_Nam_t *  pStrs;
     // interface
     Vec_Int_t    vOrder;     // order of signals

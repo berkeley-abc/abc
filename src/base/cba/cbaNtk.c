@@ -32,6 +32,67 @@ ABC_NAMESPACE_IMPL_START
 
 /**Function*************************************************************
 
+  Synopsis    [Replaces fanin iOld by iNew in all fanouts.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Cba_NtkUpdateFanout( Cba_Ntk_t * p, int iOld, int iNew )
+{
+    int iCo;
+    assert( Cba_ObjIsCi(p, iOld) );
+    assert( Cba_ObjIsCi(p, iNew) );
+    Cba_ObjForEachFanout( p, iOld, iCo )
+    {
+        assert( Cba_ObjFanin(p, iCo) == iOld );
+        Cba_ObjCleanFanin( p, iCo );
+        Cba_ObjSetFanin( p, iCo, iNew );
+    }
+    Cba_ObjSetFanout( p, iNew, Cba_ObjFanout(p, iOld) );
+    Cba_ObjSetFanout( p, iOld, 0 );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Derives fanout.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Cba_NtkDeriveFanout( Cba_Ntk_t * p )
+{
+    int iCi, iCo;
+    assert( !Cba_NtkHasFanouts(p) );
+    Cba_NtkStartFanouts( p );
+    Cba_NtkForEachCo( p, iCo )
+    {
+        assert( !Cba_ObjNextFanout(p, iCo) );
+        iCi = Cba_ObjFanin(p, iCo);
+        if ( Cba_ObjFanout(p, iCi) )
+            Cba_ObjSetNextFanout( p, Cba_ObjFanout(p, iCi), iCo );
+        Cba_ObjSetFanout( p, iCi, iCo );
+    }
+    Cba_NtkForEachCo( p, iCo )
+        if ( !Cba_ObjNextFanout(p, iCo) )
+            Cba_ObjSetFanout( p, Cba_ObjFanin(p, iCo), iCo );
+}
+void Cba_ManDeriveFanout( Cba_Man_t * p )
+{
+    Cba_Ntk_t * pNtk; int i;
+    Cba_ManForEachNtk( p, pNtk, i )
+        Cba_NtkDeriveFanout( pNtk );
+}
+
+/**Function*************************************************************
+
   Synopsis    [Assigns word-level names.]
 
   Description []
