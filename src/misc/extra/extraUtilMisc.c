@@ -2532,6 +2532,40 @@ void Extra_NpnTest()
 }
 
 
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Extra_NtkPrintBin( word * pT, int nBits )
+{
+    int i;
+    for ( i = nBits - 1; i >= 0; i-- )
+        printf( "%d", (*pT >> (word)i) & 1 );
+}
+void Extra_NtkPowerTest()
+{
+    int i, j, k, n = 4;
+    for ( i = 0; i < (1<<n); i++ )
+    for ( j = 0; j < (1<<n); j++ )
+    {
+        word t = (word)i;
+        for ( k = 1; k < j; k++ )
+            t *= (word)i;
+        Extra_NtkPrintBin( (word *)&i, n );
+        Extra_NtkPrintBin( (word *)&j, n );
+        printf( " " );
+        Extra_NtkPrintBin( (word *)&t, 64 );
+        printf( "\n" );
+    }
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

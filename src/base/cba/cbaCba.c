@@ -144,7 +144,7 @@ Cba_Man_t * Cba_ManReadCbaInt( Vec_Str_t * vOut )
             Cba_ManFree( p );
             return NULL;
         }
-        assert( Num1 > 0 && Num2 > 0 && Num3 > 0 );
+        assert( Num1 >= 0 && Num2 >= 0 && Num3 >= 0 );
         NameId = Abc_NamStrFindOrAdd( p->pStrs, Buffer, NULL );
         Cba_NtkAlloc( pNtk, NameId, Num1, Num2, Num3 );
         Vec_IntFill( &pNtk->vInfo, 3 * Num4, -1 );

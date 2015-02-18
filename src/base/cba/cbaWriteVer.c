@@ -191,152 +191,194 @@ void Prs_ManWriteVerilog( char * pFileName, Vec_Ptr_t * vPrs )
   SeeAlso     []
 
 ***********************************************************************/
+void Cba_ManWriteVar( Cba_Ntk_t * p, int RealName )
+{
+    Vec_StrPrintStr( p->pDesign->vOut, Cba_NtkStr(p, RealName) );
+}
 void Cba_ManWriteRange( Cba_Ntk_t * p, int Beg, int End )
 {
     Vec_Str_t * vStr = p->pDesign->vOut;
     Vec_StrPrintStr( vStr, "[" );
-    Vec_StrPrintNum( vStr, End );
-    Vec_StrPrintStr( vStr, ":" );
+    if ( End >= 0 )
+    {
+        Vec_StrPrintNum( vStr, End );
+        Vec_StrPrintStr( vStr, ":" );
+    }
     Vec_StrPrintNum( vStr, Beg );
     Vec_StrPrintStr( vStr, "]" );
 }
-void Cba_ManWriteLit( Cba_Ntk_t * p, int NameId, int iBit )
+void Cba_ManWriteConstBit( Cba_Ntk_t * p, int iObj, int fHead )
 {
     Vec_Str_t * vStr = p->pDesign->vOut;
-    Vec_StrPrintStr( vStr, Cba_NtkStr(p, NameId) );
-    if ( iBit == -1 )
-        return;
-    Vec_StrPrintStr( vStr, "[" );
-    Vec_StrPrintNum( vStr, iBit );
-    Vec_StrPrintStr( vStr, "]" );
+    int Const = Cba_ObjGetConst(p, iObj);
+    assert( Const );
+    if ( fHead )
+        Vec_StrPrintStr( vStr, "1\'b" );
+    if ( Const == CBA_BOX_CF )
+        Vec_StrPush( vStr, '0' );
+    else if ( Const == CBA_BOX_CT )
+        Vec_StrPush( vStr, '1' );
+    else if ( Const == CBA_BOX_CX )
+        Vec_StrPush( vStr, 'x' );
+    else if ( Const == CBA_BOX_CZ )
+        Vec_StrPush( vStr, 'z' );
+    else assert( 0 );
+}
+int Cba_ManFindRealNameId( Cba_Ntk_t * p, int iObj )
+{
+    int NameId = Cba_ObjName(p, iObj);
+    assert( Cba_ObjIsCi(p, iObj) );
+    if ( Cba_NameType(NameId) == CBA_NAME_INDEX )
+        NameId = Cba_ObjName(p, iObj - Abc_Lit2Var2(NameId));
+    if ( Cba_NameType(NameId) == CBA_NAME_INFO )
+        return Cba_NtkInfoName(p, Abc_Lit2Var2(NameId));
+    assert( Cba_NameType(NameId) == CBA_NAME_BIN || Cba_NameType(NameId) == CBA_NAME_WORD );
+    return Abc_Lit2Var2(NameId);
+}
+int Cba_ManFindRealIndex( Cba_Ntk_t * p, int iObj )
+{
+    int iBit = 0, NameId = Cba_ObjName(p, iObj);
+    assert( Cba_ObjIsCi(p, iObj) );
+    assert( Cba_NameType(NameId) != CBA_NAME_BIN );
+    if ( Cba_NameType(NameId) == CBA_NAME_INDEX )
+        NameId = Cba_ObjName(p, iObj - (iBit = Abc_Lit2Var2(NameId)));
+    if ( Cba_NameType(NameId) == CBA_NAME_INFO )
+        return Cba_NtkInfoIndex(p, Abc_Lit2Var2(NameId), iBit);
+    assert( Cba_NameType(NameId) == CBA_NAME_WORD );
+    return iBit;
 }
 void Cba_ManWriteSig( Cba_Ntk_t * p, int iObj )
 {
-    int iNameId = Cba_ObjName(p, iObj);
-    if ( Cba_NameType(iNameId) == CBA_NAME_BIN )
-        Cba_ManWriteLit( p, Abc_Lit2Var2(iNameId), -1 );
-    else if ( Cba_NameType(iNameId) == CBA_NAME_WORD )
-        Cba_ManWriteLit( p, Abc_Lit2Var2(iNameId), 0 );
-    else if ( Cba_NameType(iNameId) == CBA_NAME_INDEX )
+    if ( Cba_ObjIsCo(p, iObj) )
+        iObj = Cba_ObjFanin(p, iObj);
+    assert( Cba_ObjIsCi(p, iObj) );
+    if ( Cba_ObjGetConst(p, iObj) )
+        Cba_ManWriteConstBit( p, iObj, 1 );
+    else
     {
-        int iBit = Abc_Lit2Var2(iNameId);
-        iNameId = Cba_ObjName(p, iObj - iBit);
-        if ( Cba_NameType(iNameId) == CBA_NAME_WORD )
-            Cba_ManWriteLit( p, Abc_Lit2Var2(iNameId), iBit );
-        else if ( Cba_NameType(iNameId) == CBA_NAME_INFO )
-            Cba_ManWriteLit( p, Cba_NtkInfoName(p, Abc_Lit2Var2(iNameId)), Cba_NtkInfoIndex(p, Abc_Lit2Var2(iNameId), iBit) );
-        else assert( 0 );
+        int NameId = Cba_ObjName(p, iObj);
+        if ( Cba_NameType(NameId) == CBA_NAME_BIN )
+            Cba_ManWriteVar( p, Abc_Lit2Var2(NameId) );
+        else
+        {
+            Cba_ManWriteVar( p, Cba_ManFindRealNameId(p, iObj) );
+            Cba_ManWriteRange( p, Cba_ManFindRealIndex(p, iObj), -1 );
+        }
     }
-    else if ( Cba_NameType(iNameId) == CBA_NAME_INFO )
-        Cba_ManWriteLit( p, Cba_NtkInfoName(p, Abc_Lit2Var2(iNameId)), Cba_NtkInfoIndex(p, Abc_Lit2Var2(iNameId), 0) );
-    else assert( 0 );
 }
-/*
-void Cba_ManWriteSlices( Cba_Ntk_t * p, Vec_Int_t * vSigs )
+void Cba_ManWriteConstant( Cba_Ntk_t * p, int iObj )
 {
-    int Entry, NameId, Beg, End, j;
+}
+void Cba_ManWriteConcat( Cba_Ntk_t * p, int iStart, int nObjs )
+{
     Vec_Str_t * vStr = p->pDesign->vOut; 
-    Vec_StrClear( vStr );
+    assert( nObjs >= 1 );
+    if ( nObjs == 1 )
+    {
+        Cba_ManWriteSig( p, iStart );
+        return;
+    }
     Vec_StrPrintStr( vStr, "{" );
-    Vec_IntForEachEntry( vSigs, NameId, Beg )
+    if ( Cba_ObjIsBo(p, iStart) ) // box output
     {
-        if ( Vec_StrEntryLast(vStr) != '{' )
-            Vec_StrPrintStr( vStr, ", " );
-        if ( NameId < 0 ) // constant
+        int i;
+        for ( i = iStart + nObjs - 1; i >= iStart; i-- )
         {
-            Vec_IntForEachEntryStart( vSigs, Entry, End, Beg+1 )
-                if ( Entry >= 0 )
-                    break;
-            Vec_StrPrintNum( vStr, End - Beg );
-            Vec_StrPrintStr( vStr, "b\'" );
-            Vec_IntForEachEntryStartStop( vSigs, NameId, j, Beg, End )
-            {
-                if ( -NameId == CBA_BOX_CF )
-                    Vec_StrPush( vStr, '0' );
-                else if ( -NameId == CBA_BOX_CT )
-                    Vec_StrPush( vStr, '1' );
-                else if ( -NameId == CBA_BOX_CX )
-                    Vec_StrPush( vStr, 'x' );
-                else if ( -NameId == CBA_BOX_CZ )
-                    Vec_StrPush( vStr, 'z' );
-                else assert( 0 );
-            }
+            if ( Cba_ObjNameType(p, i) == CBA_NAME_INDEX )
+                continue;
+            if ( Vec_StrEntryLast(vStr) != '{' )
+                Vec_StrPrintStr( vStr, ", " );
+            Cba_ManWriteVar( p, Cba_ManFindRealNameId(p, i) );
         }
-        else if ( Cba_NameType(NameId) == CBA_NAME_BIN ) // bin
-        {
-            Cba_ManWriteLit( p, Abc_Lit2Var2(NameId), -1 );
-        }
-        else if ( Cba_NameType(NameId) == CBA_NAME_WORD || Cba_NameType(NameId) == CBA_NAME_INDEX ) // word
-        {
-            Vec_IntForEachEntryStart( vSigs, Entry, End, Beg+1 )
-                if ( Cba_NameType(Entry) != CBA_NAME_INDEX )
-                    break;
-            // the whole word is there
-            if ( Cba_NameType(NameId) == CBA_NAME_WORD && Cba_ObjGetRange(p, 0) == End - Beg )
-                Cba_ManWriteLit( p, Abc_Lit2Var2(NameId), -1 );
-            else if ( End - Beg == 1 )
-                Cba_ManWriteLit( p, Abc_Lit2Var2(NameId), Beg );
-            else
-            {
-                Cba_ManWriteLit( p, Abc_Lit2Var2(NameId), -1 );
-                Cba_ManWriteRange( p, Beg, End-1 );
-            }
-        }
-        else assert( 0 );
     }
+    else if ( Cba_ObjIsBi(p, iStart) ) // box input
+    {
+        int e, b, k, NameId;
+        for ( e = iStart - nObjs + 1; e <= iStart; )
+        {
+            if ( Vec_StrEntryLast(vStr) != '{' )
+                Vec_StrPrintStr( vStr, ", " );
+            // write constant
+            if ( Cba_ObjGetConst(p, Cba_ObjFanin(p, e)) )
+            {
+                int fBinary = Cba_ObjIsConstBin(p, Cba_ObjFanin(p, e)-1);                
+                for ( b = e + 1; b <= iStart; b++ )
+                {
+                    if ( !Cba_ObjGetConst(p, Cba_ObjFanin(p, b)) )
+                        break;
+                    if ( !Cba_ObjIsConstBin(p, Cba_ObjFanin(p, b)-1) )
+                        fBinary = 0;
+                }
+                Vec_StrPrintNum( vStr, b - e );
+                if ( fBinary && b - e > 8 ) // write hex if more than 8 bits
+                {
+                    int Digit = 0, nBits = ((b - e) & 3) ? (b - e) & 3 : 4;
+                    Vec_StrPrintStr( vStr, "\'h" );
+                    for ( k = e; k < b; k++ )
+                    {
+                        Digit = 2*Digit + Cba_ObjGetConst(p, Cba_ObjFanin(p, k)) - CBA_BOX_CF;
+                        assert( Digit < 16 );
+                        if ( --nBits == 0 )
+                        {
+                            Vec_StrPush( vStr, (char)(Digit < 10 ? '0' + Digit : 'a' + Digit - 10) );
+                            nBits = 4;
+                            Digit = 0;
+                        }
+                    }
+                    assert( nBits == 4 );
+                    assert( Digit == 0 );
+                }
+                else
+                {
+                    Vec_StrPrintStr( vStr, "\'b" );
+                    for ( k = e; k < b; k++ )
+                        Cba_ManWriteConstBit( p, Cba_ObjFanin(p, k), 0 );
+                }
+                e = b;
+                continue;
+            }
+            // try replication
+            for ( b = e + 1; b <= iStart; b++ )
+                if ( Cba_ObjFanin(p, b) != Cba_ObjFanin(p, e) )
+                    break;
+            if ( b > e + 2 ) // more than two
+            {
+                Vec_StrPrintNum( vStr, b - e );
+                Vec_StrPrintStr( vStr, "{" );
+                Cba_ManWriteSig( p, e );
+                Vec_StrPrintStr( vStr, "}" );
+                e = b;
+                continue;
+            }
+            NameId = Cba_ObjName(p, Cba_ObjFanin(p, e));
+            if ( Cba_NameType(NameId) == CBA_NAME_BIN )
+            {
+                Cba_ManWriteVar( p, Abc_Lit2Var2(NameId) );
+                e++;
+                continue;
+            }
+            // find end of the slice
+            for ( b = e + 1; b <= iStart; b++ )
+                if ( Cba_ObjFanin(p, e) - Cba_ObjFanin(p, b) != b - e )
+                    break;
+            // write signal name
+            Cba_ManWriteVar( p, Cba_ManFindRealNameId(p, Cba_ObjFanin(p, e)) );
+            if ( b == e + 1 ) // literal
+                Cba_ManWriteRange( p, Cba_ManFindRealIndex(p, Cba_ObjFanin(p, e)), -1 );
+            else // slice or complete variable
+            {
+                // consider first variable of the slice
+                int f = Cba_ObjFanin( p, b-1 );
+                assert( Cba_ObjNameType(p, f) != CBA_NAME_BIN );
+                if ( Cba_ObjNameType(p, f) == CBA_NAME_INDEX || Cba_ObjGetRange(p, f) != b - e ) // slice
+                    Cba_ManWriteRange( p, Cba_ManFindRealIndex(p, f), Cba_ManFindRealIndex(p, Cba_ObjFanin(p, e)) );
+                // else this is complete variable
+            }
+            e = b;
+        }
+    }
+    else assert( 0 );
     Vec_StrPrintStr( vStr, "}" );
-    Vec_StrReverseOrder( vStr );
-    Vec_StrPush( vStr, '\0' );
-}
-void Cba_ManWriteConcat( Cba_Ntk_t * p, int iStart, int nObjs )
-{
-    Vec_Str_t * vStr = p->pDesign->vOut; int i;
-    assert( nObjs >= 1 );
-    if ( nObjs == 1 )
-        Cba_ManWriteSig( p, iStart );
-    else
-    {
-        // collect fanins
-        Vec_IntClear( &p->vArray );
-        for ( i = 0; i < nObjs; i++ )
-        {
-            if ( Cba_ObjIsBo(p, iStart) )
-                Vec_IntPush( &p->vArray, iStart + i );
-            else if ( Cba_ObjIsBi(p, iStart) )
-            {
-                int iFanin = Cba_ObjFanin(p, iStart - i);
-                int Const  = Cba_ObjGetConst(p, iFanin);
-                Vec_IntPush( &p->vArray, Const ? Const : Cba_ObjName(p, iFanin) );
-            }
-            else assert( 0 );
-        }
-        ABC_SWAP( Vec_Str_t *, p->pDesign->vOut, p->pDesign->vOut2 );
-        Cba_ManWriteSlices( p, &p->vArray );
-        ABC_SWAP( Vec_Str_t *, p->pDesign->vOut, p->pDesign->vOut2 );
-        Vec_StrAppend( vStr, Vec_StrArray(p->pDesign->vOut2) );
-    }
-}
-*/
-void Cba_ManWriteConcat( Cba_Ntk_t * p, int iStart, int nObjs )
-{
-    Vec_Str_t * vStr = p->pDesign->vOut; int i;
-    assert( nObjs >= 1 );
-    if ( nObjs == 1 )
-        Cba_ManWriteSig( p, iStart );
-    else
-    {
-        Vec_StrPrintStr( vStr, "{" );
-        for ( i = nObjs - 1; i >= 0; i-- )
-        {
-            Vec_StrPrintStr( vStr, i < nObjs - 1 ? ", " : "" );
-            if ( Cba_ObjIsBo(p, iStart) )
-                Cba_ManWriteSig( p, iStart + i );
-            else if ( Cba_ObjIsBi(p, iStart) )
-                Cba_ManWriteSig( p, Cba_ObjFanin(p, iStart - i) );
-            else assert( 0 );
-        }
-        Vec_StrPrintStr( vStr, "}" );
-    }
 }
 void Cba_ManWriteGate( Cba_Ntk_t * p, int iObj )
 {
@@ -363,7 +405,7 @@ void Cba_ManWriteGate( Cba_Ntk_t * p, int iObj )
         Cba_ManWriteSig( p, iTerm );
         Vec_StrPrintStr( vStr, ")" );
     }
-    Vec_StrPrintStr( vStr, " );\n" );
+    Vec_StrPrintStr( vStr, ");\n" );
 }
 void Cba_ManWriteAssign( Cba_Ntk_t * p, int iObj )
 {
@@ -416,11 +458,14 @@ void Cba_ManWriteAssign( Cba_Ntk_t * p, int iObj )
 void Cba_ManWriteVerilogBoxes( Cba_Ntk_t * p )
 {
     Vec_Str_t * vStr = p->pDesign->vOut;
-    int iObj, k, i, o;
+    int iObj, k, i, o, StartPos;
     Cba_NtkForEachBox( p, iObj ) // .subckt/.gate/box (formal/actual binding) 
     {
         Cba_Ntk_t * pModel = NULL;
         char * pName = NULL;
+        // skip constants
+        if ( Cba_ObjIsConst(p, iObj) )
+            continue;
         // write mapped
         if ( Cba_ObjIsGate(p, iObj) )
         {
@@ -433,18 +478,17 @@ void Cba_ManWriteVerilogBoxes( Cba_Ntk_t * p )
             Cba_ManWriteAssign( p, iObj );
             continue;
         }
-
         // write header
         if ( Cba_ObjIsBoxUser(p, iObj) )
             pModel = Cba_BoxNtk( p, iObj );
         else if ( Cba_BoxNtkId(p, iObj) )
             pName = Cba_BoxNtkName(p, iObj);
         else assert( 0 );
+        StartPos = Vec_StrSize(vStr);
         Vec_StrPrintStr( vStr, "  " );
         Vec_StrPrintStr( vStr, pModel ? Cba_NtkName(pModel) : pName );
         Vec_StrPrintStr( vStr, " " );
         Vec_StrPrintStr( vStr, Cba_ObjName(p, iObj) ? Cba_ObjNameStr(p, iObj) : ""  );
-
         // write arguments
         i = o = 0;
         Vec_StrPrintStr( vStr, " (" );
@@ -456,7 +500,13 @@ void Cba_ManWriteVerilogBoxes( Cba_Ntk_t * p )
             {
                 int NameId = Abc_Lit2Var2( Value );
                 int Type = Abc_Lit2Att2( Value );
-                Vec_StrPrintStr( vStr, k ? ", ." : "." );
+                Vec_StrPrintStr( vStr, k ? ", " : "" );
+                if ( Vec_StrSize(vStr) > StartPos + 70 )
+                {
+                    StartPos = Vec_StrSize(vStr);
+                    Vec_StrPrintStr( vStr, "\n    " );
+                }
+                Vec_StrPrintStr( vStr, "." );
                 Vec_StrPrintStr( vStr, Cba_NtkStr(p, NameId) );
                 Vec_StrPrintStr( vStr, "(" );
                 Range = Cba_InfoRange( Beg, End );
@@ -469,13 +519,19 @@ void Cba_ManWriteVerilogBoxes( Cba_Ntk_t * p )
                 Vec_StrPrintStr( vStr, ")" );
             }
         }
-        else
+        else 
         {
             int pRanges[8]; char pSymbs[8];
             int nSigs = Cba_NtkNameRanges( pName, pRanges, pSymbs );
             for ( k = 0; k < nSigs; k++ )
             {
-                Vec_StrPrintStr( vStr, k ? ", ." : "." );
+                Vec_StrPrintStr( vStr, k ? ", " : "" );
+                if ( Vec_StrSize(vStr) > StartPos + 70 )
+                {
+                    StartPos = Vec_StrSize(vStr);
+                    Vec_StrPrintStr( vStr, "\n    " );
+                }
+                Vec_StrPrintStr( vStr, "." );
                 Vec_StrPush( vStr, pSymbs[k] );
                 Vec_StrPrintStr( vStr, "(" );
                 if ( k < nSigs - 1 )
@@ -485,7 +541,7 @@ void Cba_ManWriteVerilogBoxes( Cba_Ntk_t * p )
                 Vec_StrPrintStr( vStr, ")" );
             }
         }
-        Vec_StrPrintStr( vStr, " );\n" );
+        Vec_StrPrintStr( vStr, ");\n" );
         assert( i == Cba_BoxBiNum(p, iObj) );
         assert( o == Cba_BoxBoNum(p, iObj) );
     }
@@ -494,19 +550,25 @@ void Cba_ManWriteVerilogNtk( Cba_Ntk_t * p )
 {
     char * pKeyword[4] = { "wire ", "input ", "output ", "inout " };
     Vec_Str_t * vStr = p->pDesign->vOut;
-    int k, iObj, iTerm, Value, Beg, End, Length;
-    assert( Cba_NtkInfoNum(p) );
+    int k, iObj, iTerm, Value, Beg, End, Length, fHaveWires, StartPos;
+//    assert( Cba_NtkInfoNum(p) );
     assert( Vec_IntSize(&p->vFanin) == Cba_NtkObjNum(p) );
 //    Cba_NtkPrint( p );
     // write header
     Vec_StrPrintStr( vStr, "module " );
     Vec_StrPrintStr( vStr, Cba_NtkName(p) );
     Vec_StrPrintStr( vStr, " (\n    " );
+    StartPos = Vec_StrSize(vStr);
     Vec_IntForEachEntryTriple( &p->vInfo, Value, Beg, End, k )
     if ( Abc_Lit2Att2(Value) != 0 )
     {
         Vec_StrPrintStr( vStr, k ? ", " : "" );
-        Vec_StrPrintStr( vStr, Cba_NtkStr(p, Abc_Lit2Var2(Value)) );
+        if ( Vec_StrSize(vStr) > StartPos + 70 )
+        {
+            StartPos = Vec_StrSize(vStr);
+            Vec_StrPrintStr( vStr, "\n    " );
+        }
+        Cba_ManWriteVar( p, Abc_Lit2Var2(Value) );
     }
     Vec_StrPrintStr( vStr, "\n  );\n" );
     // write inputs/outputs
@@ -517,37 +579,48 @@ void Cba_ManWriteVerilogNtk( Cba_Ntk_t * p )
         Vec_StrPrintStr( vStr, pKeyword[Abc_Lit2Att2(Value)] );
         if ( Beg >= 0 )
             Cba_ManWriteRange( p, Beg, End );
-        Vec_StrPrintStr( vStr, Cba_NtkStr(p, Abc_Lit2Var2(Value)) );
+        Cba_ManWriteVar( p, Abc_Lit2Var2(Value) );
         Vec_StrPrintStr( vStr, ";\n" );
     }
     Vec_StrPrintStr( vStr, "\n" );
     // write word-level wires
     Cba_NtkForEachBox( p, iObj )
-    Cba_BoxForEachBo( p, iObj, iTerm, k )
-        if ( Cba_NameType(Cba_ObjName(p, iTerm)) == CBA_NAME_WORD )
+    if ( !Cba_ObjIsConst(p, iObj) )
+        Cba_BoxForEachBo( p, iObj, iTerm, k )
+        if ( Cba_ObjNameType(p, iTerm) == CBA_NAME_WORD || Cba_ObjNameType(p, iTerm) == CBA_NAME_INFO )
         {
-            int Beg, End;
-            Cba_ObjGetRange( p, iTerm, &Beg, &End );
             Vec_StrPrintStr( vStr, "  wire " );
-            Cba_ManWriteRange( p, Beg, End );
-            Vec_StrPrintStr( vStr, Cba_ObjNameStr(p, iTerm) );
+            Cba_ManWriteRange( p, Cba_ManFindRealIndex(p, iTerm), Cba_ManFindRealIndex(p, iTerm + Cba_ObjGetRange(p, iTerm) - 1) );
+            Cba_ManWriteVar( p, Cba_ManFindRealNameId(p, iTerm) );
             Vec_StrPrintStr( vStr, ";\n" );
         }
-    // write bit-level wires
-    Length = 7;
-    Vec_StrPrintStr( vStr, "  wire " );
+    // check if there are any wires left
+    fHaveWires = 0;
     Cba_NtkForEachBox( p, iObj )
-    Cba_BoxForEachBo( p, iObj, iTerm, k )
-        if ( Cba_NameType(Cba_ObjName(p, iTerm)) == CBA_NAME_BIN )
-        {
-            if ( Length > 72 )
-                Vec_StrPrintStr( vStr, ";\n  wire " ), Length = 7;
-            if ( Length > 7 )
-                Vec_StrPrintStr( vStr, ", " );
-            Vec_StrPrintStr( vStr, Cba_ObjNameStr(p, iTerm) ); 
-            Length += strlen(Cba_ObjNameStr(p, iTerm));
-        }
-    Vec_StrPrintStr( vStr, ";\n\n" );
+    if ( !Cba_ObjIsConst(p, iObj) )
+        Cba_BoxForEachBo( p, iObj, iTerm, k )
+        if ( Cba_ObjNameType(p, iTerm) == CBA_NAME_BIN )
+        { fHaveWires = 1; iObj = Cba_NtkObjNum(p); break; }
+    // write bit-level wires
+    if ( fHaveWires )
+    {
+        Length = 7;
+        Vec_StrPrintStr( vStr, "\n  wire " );
+        Cba_NtkForEachBox( p, iObj )
+        if ( !Cba_ObjIsConst(p, iObj) )
+            Cba_BoxForEachBo( p, iObj, iTerm, k )
+            if ( Cba_ObjNameType(p, iTerm) == CBA_NAME_BIN )
+            {
+                if ( Length > 72 )
+                    Vec_StrPrintStr( vStr, ";\n  wire " ), Length = 7;
+                if ( Length > 7 )
+                    Vec_StrPrintStr( vStr, ", " );
+                Vec_StrPrintStr( vStr, Cba_ObjNameStr(p, iTerm) ); 
+                Length += strlen(Cba_ObjNameStr(p, iTerm));
+            }
+        Vec_StrPrintStr( vStr, ";\n" );
+    }
+    Vec_StrPrintStr( vStr, "\n" );
     // write objects
     Cba_ManWriteVerilogBoxes( p );
     Vec_StrPrintStr( vStr, "endmodule\n\n" );

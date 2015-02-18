@@ -131,10 +131,10 @@ typedef enum {
 
 // name types
 typedef enum { 
-    CBA_NAME_BIN = 0,        // 0:  binary ID real
-    CBA_NAME_WORD,           // 1:  word-level ID real
-    CBA_NAME_INFO,           // 2:  word-level offset
-    CBA_NAME_INDEX,          // 3:  word-leveln index
+    CBA_NAME_BIN = 0,        // 0:  binary variable
+    CBA_NAME_WORD,           // 1:  first bit of word-level variable
+    CBA_NAME_INFO,           // 2:  first bit of special variable
+    CBA_NAME_INDEX,          // 3:  index of word-level variable
 } Cba_NameType_t; 
 
 
@@ -273,6 +273,7 @@ static inline int            Cba_ObjIsCi( Cba_Ntk_t * p, int i )             { r
 static inline int            Cba_ObjIsCo( Cba_Ntk_t * p, int i )             { return Cba_ObjIsPo(p, i) || Cba_ObjIsBi(p, i);                                              }
 static inline int            Cba_ObjIsCio( Cba_Ntk_t * p, int i )            { return Cba_ObjType(p, i) < CBA_OBJ_BOX;                                                     }
 static inline int            Cba_ObjIsConst( Cba_Ntk_t * p, int i )          { return Cba_ObjType(p, i) >= CBA_BOX_CF && Cba_ObjType(p, i) <= CBA_BOX_CZ;                  }
+static inline int            Cba_ObjIsConstBin( Cba_Ntk_t * p, int i )       { return Cba_ObjType(p, i) == CBA_BOX_CF || Cba_ObjType(p, i) == CBA_BOX_CT;                  }
 
 static inline int            Cba_ObjFanin( Cba_Ntk_t * p, int i )            { assert(Cba_ObjIsCo(p, i)); return Vec_IntEntry(&p->vFanin, i);                              }
 static inline int            Cba_ObjIndex( Cba_Ntk_t * p, int i )            { assert(Cba_ObjIsCio(p, i)); return Vec_IntEntry(&p->vIndex, i);                             }
@@ -291,7 +292,7 @@ static inline void           Cba_ObjSetFanin( Cba_Ntk_t * p, int i, int x )  { a
 static inline void           Cba_ObjSetIndex( Cba_Ntk_t * p, int i, int x )  { assert(Cba_ObjIndex(p, i) == -1); Vec_IntSetEntry( &p->vIndex, i, x );                      }
 static inline void           Cba_ObjSetName( Cba_Ntk_t * p, int i, int x )   { assert(Cba_ObjName(p, i) == 0 && !Cba_ObjIsCo(p, i)); Vec_IntSetEntry( &p->vName, i, x );   }
 static inline void           Cba_ObjSetCopy( Cba_Ntk_t * p, int i, int x )   { assert(Cba_ObjCopy(p, i) == -1);  Vec_IntSetEntry( &p->vCopy,  i, x );                      }
-static inline int            Cba_ObjGetConst( Cba_Ntk_t * p, int i )         { int f = Cba_ObjFanin(p, i); return Cba_ObjIsBo(p, f) && Cba_ObjIsConst(p, f-1) ? -Cba_ObjType(p, f-1) : 0;   }
+static inline int            Cba_ObjGetConst( Cba_Ntk_t * p, int i )         { assert(Cba_ObjIsCi(p, i)); return Cba_ObjIsBo(p, i) && Cba_ObjIsConst(p, i-1) ? Cba_ObjType(p, i-1) : 0;              }
 
 static inline int            Cba_BoxBiNum( Cba_Ntk_t * p, int i )            { int s = i-1; assert(Cba_ObjIsBox(p, i)); while (--i >= 0               && Cba_ObjIsBi(p, i)); return s - i;  }
 static inline int            Cba_BoxBoNum( Cba_Ntk_t * p, int i )            { int s = i+1; assert(Cba_ObjIsBox(p, i)); while (++i < Cba_NtkObjNum(p) && Cba_ObjIsBo(p, i)); return i - s;  }
@@ -403,31 +404,18 @@ static inline int Cba_NtkReadRangesUser( Cba_Ntk_t * p, Vec_Int_t * vRanges, int
     }
     return Count;
 }
-static inline int Cba_ObjGetRange( Cba_Ntk_t * p, int iObj, int * pBeg, int * pEnd )
+static inline int Cba_ObjGetRange( Cba_Ntk_t * p, int iObj )
 {
-    int i, Beg, End, iNameId = Cba_ObjName(p, iObj);
-    if ( pBeg ) *pBeg = -1;
-    if ( pEnd ) *pEnd = -1;
-    if ( Cba_NameType(iNameId) == CBA_NAME_BIN )
-        return 1;
-    if ( Cba_NameType(iNameId) == CBA_NAME_WORD )
-    {
-        if ( pBeg ) *pBeg = 0;
-        for ( i = 0; iObj + i + 1 < Cba_NtkObjNum(p); i++ )
-            if ( !Cba_ObjIsCi(p, iObj + i + 1) || Cba_ObjNameType(p, iObj + i + 1) != CBA_NAME_INDEX )
-                break;
-        if ( pEnd ) *pEnd = i;
-        return i + 1;
-    }
-    assert( Cba_NameType(iNameId) == CBA_NAME_INFO );
-    Beg = Cba_NtkInfoBeg( p, Abc_Lit2Var2(iNameId) );
-    End = Cba_NtkInfoEnd( p, Abc_Lit2Var2(iNameId) );
-    assert( Beg >= 0 );
-    if ( pBeg ) *pBeg = Beg;
-    if ( pEnd ) *pEnd = End;
-    return Cba_InfoRange( Beg, End );
+    int i, NameId = Cba_ObjName(p, iObj);
+    assert( Cba_ObjIsCi(p, iObj) );
+//    if ( Cba_NameType(NameId) == CBA_NAME_INDEX )
+//        NameId = Cba_ObjName(p, iObj - Abc_Lit2Var2(NameId));
+    assert( Cba_NameType(NameId) == CBA_NAME_WORD || Cba_NameType(NameId) == CBA_NAME_INFO );
+    for ( i = iObj + 1; i < Cba_NtkObjNum(p); i++ )
+        if ( !Cba_ObjIsCi(p, i) || Cba_ObjNameType(p, i) != CBA_NAME_INDEX )
+            break;
+    return i - iObj;
 }
-
 
 ////////////////////////////////////////////////////////////////////////
 ///                      MACRO DEFINITIONS                           ///
