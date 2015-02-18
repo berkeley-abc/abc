@@ -56,6 +56,8 @@ Vec_Flt_t * Abc_SclFindWireCaps( SC_WireLoad * pWL, int nFanoutMax )
     vCaps = Vec_FltStart( Abc_MaxInt(nFanoutMax, EntryMax) + 1 );
     Vec_IntForEachEntry( pWL->vFanout, Entry, i )
         Vec_FltWriteEntry( vCaps, Entry, Vec_FltEntry(pWL->vLen, i) * pWL->cap );
+    if ( Vec_FltEntry(vCaps, 1) == 0 )
+        return vCaps;
     // interpolate between the values
     assert( Vec_FltEntry(vCaps, 1) != 0 );
     iPrev = 1;
