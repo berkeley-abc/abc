@@ -621,7 +621,6 @@ Wlc_Ntk_t * Prs_SmtBuild( Prs_Smt_t * p )
         assert( Vec_IntEntry(&p->vData, i) == 0 );
         if ( Vec_IntEntry(&p->vData, ++i) == PRS_SMT_INPUT )
         {
-            int NameOld = Vec_IntEntry(&p->vData, i+1);
             pName = Abc_NamStr( p->pStrs, Vec_IntEntry(&p->vData, ++i) );
             pBits = Abc_NamStr( p->pStrs, Vec_IntEntry(&p->vData, ++i) );
             iObj = Wlc_ObjAlloc( pNtk, WLC_OBJ_PI, 0, atoi(pBits)-1, 0 );
