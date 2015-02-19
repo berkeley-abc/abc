@@ -2316,6 +2316,7 @@ int CmdCommandCapo( Abc_Frame_t * pAbc, int argc, char **argv )
         pProgNameGnuplotUnix = Cmd_FlagReadByName(pAbc, "gnuplotunix");
 
     // check if Gnuplot is available
+    pProgNameGnuplot = NULL;
     if ( (pFile = fopen( pProgNameGnuplotWin, "r" )) )
         pProgNameGnuplot = pProgNameGnuplotWin;
     else if ( (pFile = fopen( pProgNameGnuplotUnix, "r" )) )

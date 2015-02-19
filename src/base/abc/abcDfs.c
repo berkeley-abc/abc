@@ -88,11 +88,13 @@ Vec_Ptr_t * Abc_NtkDfs( Abc_Ntk_t * pNtk, int fCollectAll )
     // start the array of nodes
     vNodes = Vec_PtrAlloc( 100 );
     if ( pNtk->nBarBufs2 > 0 )
-    Abc_NtkForEachBarBuf( pNtk, pObj, i )
     {
-        Abc_NodeSetTravIdCurrent( pObj );
-        Abc_NtkDfs_rec( Abc_ObjFanin0Ntk(Abc_ObjFanin0(pObj)), vNodes );
-        Vec_PtrPush( vNodes, pObj );
+        Abc_NtkForEachBarBuf( pNtk, pObj, i )
+        {
+            Abc_NodeSetTravIdCurrent( pObj );
+            Abc_NtkDfs_rec( Abc_ObjFanin0Ntk(Abc_ObjFanin0(pObj)), vNodes );
+            Vec_PtrPush( vNodes, pObj );
+        }
     }
     Abc_NtkForEachCo( pNtk, pObj, i )
     {

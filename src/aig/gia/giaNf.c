@@ -38,6 +38,7 @@ ABC_NAMESPACE_IMPL_START
 #define NF_LEAF_MAX  6
 #define NF_CUT_MAX  32
 #define NF_NO_LEAF  31
+#define NF_NO_FUNC  0x3FFFFFF
 #define NF_INFINITY FLT_MAX
 
 typedef struct Nf_Cut_t_ Nf_Cut_t; 
@@ -46,7 +47,7 @@ struct Nf_Cut_t_
     word            Sign;           // signature
     int             Delay;          // delay
     float           Flow;           // flow
-    unsigned        iFunc   : 26;   // function
+    unsigned        iFunc   : 26;   // function (NF_NO_FUNC)
     unsigned        Useless :  1;   // function
     unsigned        nLeaves :  5;   // leaf number (NF_NO_LEAF)
     int             pLeaves[NF_LEAF_MAX+1]; // leaves
@@ -645,7 +646,7 @@ static inline int Nf_CutMergeOrder( Nf_Cut_t * pCut0, Nf_Cut_t * pCut1, Nf_Cut_t
             pC[i] = pC0[i];
         }
         pCut->nLeaves = nLutSize;
-        pCut->iFunc = -1;
+        pCut->iFunc = NF_NO_FUNC;
         pCut->Sign = pCut0->Sign | pCut1->Sign;
         return 1;
     }
@@ -679,7 +680,7 @@ FlushCut0:
     while ( i < nSize0 )
         pC[c++] = pC0[i++];
     pCut->nLeaves = c;
-    pCut->iFunc = -1;
+    pCut->iFunc = NF_NO_FUNC;
     pCut->Sign = pCut0->Sign | pCut1->Sign;
     return 1;
 
@@ -688,7 +689,7 @@ FlushCut1:
     while ( k < nSize1 )
         pC[c++] = pC1[k++];
     pCut->nLeaves = c;
-    pCut->iFunc = -1;
+    pCut->iFunc = NF_NO_FUNC;
     pCut->Sign = pCut0->Sign | pCut1->Sign;
     return 1;
 }
@@ -712,7 +713,7 @@ static inline int Nf_CutMergeOrderMux( Nf_Cut_t * pCut0, Nf_Cut_t * pCut1, Nf_Cu
         if (x2 == xMin) i2++;
     }
     pCut->nLeaves = c;
-    pCut->iFunc = -1;
+    pCut->iFunc = NF_NO_FUNC;
     pCut->Sign = pCut0->Sign | pCut1->Sign | pCut2->Sign;
     return 1;
 }

@@ -67,7 +67,7 @@ static inline int irand(double* seed, int size) {
 //=================================================================================================
 // Variable datatype + minor functions:
 
-static const int var0  = 1;
+//static const int var0  = 1;
 static const int var1  = 0;
 static const int varX  = 3;
 

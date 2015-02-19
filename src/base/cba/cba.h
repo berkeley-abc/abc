@@ -294,8 +294,8 @@ static inline void           Cba_ObjSetName( Cba_Ntk_t * p, int i, int x )   { a
 static inline void           Cba_ObjSetCopy( Cba_Ntk_t * p, int i, int x )   { assert(Cba_ObjCopy(p, i) == -1);  Vec_IntSetEntry( &p->vCopy,  i, x );                      }
 static inline int            Cba_ObjGetConst( Cba_Ntk_t * p, int i )         { assert(Cba_ObjIsCi(p, i)); return Cba_ObjIsBo(p, i) && Cba_ObjIsConst(p, i-1) ? Cba_ObjType(p, i-1) : 0;              }
 
-static inline int            Cba_BoxBiNum( Cba_Ntk_t * p, int i )            { int s = i-1; assert(Cba_ObjIsBox(p, i)); while (--i >= 0               && Cba_ObjIsBi(p, i)); return s - i;  }
-static inline int            Cba_BoxBoNum( Cba_Ntk_t * p, int i )            { int s = i+1; assert(Cba_ObjIsBox(p, i)); while (++i < Cba_NtkObjNum(p) && Cba_ObjIsBo(p, i)); return i - s;  }
+static inline int            Cba_BoxBiNum( Cba_Ntk_t * p, int i )            { int s = i-1; assert(Cba_ObjIsBox(p, i)); while (--i >= 0               && Cba_ObjIsBi(p, i)) {} return s - i;  }
+static inline int            Cba_BoxBoNum( Cba_Ntk_t * p, int i )            { int s = i+1; assert(Cba_ObjIsBox(p, i)); while (++i < Cba_NtkObjNum(p) && Cba_ObjIsBo(p, i)) {} return i - s;  }
 static inline int            Cba_BoxSize( Cba_Ntk_t * p, int i )             { return 1 + Cba_BoxBiNum(p, i) + Cba_BoxBoNum(p, i);                                         }
 static inline int            Cba_BoxBi( Cba_Ntk_t * p, int b, int i )        { assert(Cba_ObjIsBox(p, b)); return b - 1 - i;                                               }
 static inline int            Cba_BoxBo( Cba_Ntk_t * p, int b, int i )        { assert(Cba_ObjIsBox(p, b)); return b + 1 + i;                                               }
