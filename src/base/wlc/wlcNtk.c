@@ -497,52 +497,6 @@ void Wlc_NtkTransferNames( Wlc_Ntk_t * pNew, Wlc_Ntk_t * p )
     pNew->vTables = p->vTables;      p->vTables = NULL;
 }
 
-/**Function*************************************************************
-
-  Synopsis    [Report results.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Wlc_NtkReport( Wlc_Ntk_t * p, Vec_Int_t * vAssign )
-{
-    //sat
-//((s0 #x12000000070000000000c0000085006b))
-//((s1 #x0e008f00ff0000000000ff0000ed0040))
-//((s2 #x96008f00ff0000000000ff0000ed0040))
-
-    int i, Name, Start, nBits, k;
-    Vec_Str_t * vNum = Vec_StrAlloc( 100 );
-//    Vec_IntForEachEntryTriple( &p->vValues, Name, Start, nBits, i )
-//        printf( "Variable %s : %d %d\n", Abc_NamStr(p->pManName, Name), Start, nBits );
-    printf( "sat\n" );
-    Vec_IntForEachEntryTriple( &p->vValues, Name, Start, nBits, i )
-    {
-        Vec_StrClear( vNum );
-        for ( k = Start; k < Start + nBits; )
-        {
-            int j, Digit = 0;
-            for ( j = 0; j < 4 && k < Start + nBits; j++, k++ )
-                Digit += (1 << j) * Vec_IntEntry(vAssign, k);
-            assert( Digit >= 0 && Digit < 16 );
-            if ( Digit >= 0 && Digit <= 9 )
-                Vec_StrPush( vNum, (char)('0' + Digit) );
-            else
-                Vec_StrPush( vNum, (char)('a' + Digit - 10) );
-        }
-        Vec_StrPush( vNum, 'x' );
-        Vec_StrPush( vNum, '#' );
-        Vec_StrReverseOrder( vNum );
-        Vec_StrPush( vNum, '\0' );
-        printf( "((%s %s))\n", Abc_NamStr(p->pManName, Name), Vec_StrArray(vNum) );
-    }
-    Vec_StrFree( vNum );
-}
-
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

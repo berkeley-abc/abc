@@ -291,7 +291,9 @@ int Prs_SmtReadLines( Prs_Smt_t * p )
         }
         else if ( Prs_SmtIsWord(p, "assert") )
             fAssert = 1;
-        else if ( Prs_SmtIsWord(p, "set-option") || Prs_SmtIsWord(p, "set-logic") || Prs_SmtIsWord(p, "check-sat") )
+        else if ( Prs_SmtIsWord(p, "check-sat") )
+            break;
+        else if ( Prs_SmtIsWord(p, "set-option") || Prs_SmtIsWord(p, "set-logic") )
             p->pCur = Prs_SmtFindNextPar(p) + 1;
 //        else
             //return Prs_SmtErrorSet(p, "Unsupported directive.", 0);

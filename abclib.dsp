@@ -771,6 +771,10 @@ SOURCE=.\src\base\wlc\wlcReadVer.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\base\wlc\wlcStdin.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\base\wlc\wlcWriteVer.c
 # End Source File
 # End Group

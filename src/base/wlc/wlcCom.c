@@ -97,56 +97,6 @@ void Wlc_SetNtk( Abc_Frame_t * pAbc, Wlc_Ntk_t * pNtk )
 
 /**Function********************************************************************
 
-  Synopsis    [Reads stdin and stops when "(check-sat)" is observed.]
-
-  Description []
-
-  SideEffects []
-
-  SeeAlso     []
-
-******************************************************************************/
-static inline int Wlc_GenerateStop( Vec_Str_t * vInput, char * pLine, int LineSize )
-{
-    char * pStr = Vec_StrArray(vInput) + Vec_StrSize(vInput) - LineSize;
-    if ( Vec_StrSize(vInput) < LineSize )
-        return 0;
-    return !strncmp( pStr, pLine, LineSize );
-}
-Vec_Str_t * Wlc_GenerateSmtStdin()
-{
-    //char * pLine = "(check-sat)";
-    //int c, LineSize = strlen(pLine);
-    Vec_Str_t * vInput = Vec_StrAlloc( 1000 ); int c;
-    while ( (c = fgetc(stdin)) != EOF )
-        Vec_StrPush( vInput, (char)c );
-    Vec_StrPush( vInput, '\0' );
-    return vInput;
-}
-void Wlc_GenerateSmtStdout( Abc_Frame_t * pAbc )
-{
-    if ( Abc_FrameReadProbStatus(pAbc) == -1 )
-        printf( "undecided\n" );
-    else if ( Abc_FrameReadProbStatus(pAbc) == 1 )
-        printf( "unsat\n" );
-    else if ( Abc_FrameReadProbStatus(pAbc) == 0 )
-    {
-        Vec_Int_t * vAssign = Vec_IntAlloc( 100 );
-        Abc_Cex_t * pCex = Abc_FrameReadCex( pAbc ); int i;
-        if ( pCex == NULL )
-        {
-            printf( "CEX is not found\n" );
-            return;
-        }
-        for ( i = 0; i < pCex->nPis; i++ )
-            Vec_IntPush( vAssign, Abc_InfoHasBit(pCex->pData, i) );
-        Wlc_NtkReport( (Wlc_Ntk_t *)pAbc->pAbcWlc, vAssign );
-        Vec_IntFree( vAssign );
-    }
-}
-
-/**Function********************************************************************
-
   Synopsis    []
 
   Description []
@@ -433,7 +383,7 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     //pNtk = Wlc_NtkUifNodePairs( pNtk, NULL );
     //pNtk = Wlc_NtkAbstractNodes( pNtk, NULL );
     //Wlc_AbcUpdateNtk( pAbc, pNtk );
-    Wlc_GenerateSmtStdout( pAbc );
+    //Wlc_GenerateSmtStdout( pAbc );
     return 0;
 usage:
     Abc_Print( -2, "usage: %%test [-vh]\n" );

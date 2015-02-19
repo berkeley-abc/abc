@@ -232,22 +232,7 @@ int Abc_RealMain( int argc, char * argv[] )
 
     if ( fBatch == BATCH_SMT )
     {
-        Wlc_Ntk_t * pNtk;
-        Vec_Str_t * vInput;
-        // collect stdin
-        vInput = Wlc_GenerateSmtStdin();
-        // parse the input
-        pNtk = Wlc_ReadSmtBuffer( NULL, Vec_StrArray(vInput), Vec_StrArray(vInput) + Vec_StrSize(vInput) );
-        Vec_StrFree( vInput );
-        // install current network
-        Wlc_SetNtk( pAbc, pNtk );
-        // execute command
-        fStatus = Cmd_CommandExecute( pAbc, sCommandUsr );
-        // generate output
-        if ( !fStatus )
-            Wlc_GenerateSmtStdout( pAbc );
-        else
-            Abc_Print( 1, "Something did not work out with the command \"%s\".\n", sCommandUsr );
+        Wlc_StdinProcessSmt( pAbc, sCommandUsr );
         Abc_Stop();
         return 0;
     }
