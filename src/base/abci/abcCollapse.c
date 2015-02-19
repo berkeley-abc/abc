@@ -31,9 +31,76 @@ ABC_NAMESPACE_IMPL_START
 static Abc_Ntk_t * Abc_NtkFromGlobalBdds( Abc_Ntk_t * pNtk );
 static Abc_Obj_t * Abc_NodeFromGlobalBdds( Abc_Ntk_t * pNtkNew, DdManager * dd, DdNode * bFunc );
 
+extern int Abc_NodeSupport( DdNode * bFunc, Vec_Str_t * vSupport, int nVars );
+
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
+
+/**Function*************************************************************
+
+  Synopsis    [Makes nodes minimum base.]
+
+  Description [Returns the number of changed nodes.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_NodeMinimumBase2( Abc_Obj_t * pNode )
+{
+    Vec_Str_t * vSupport;
+    Vec_Ptr_t * vFanins;
+    DdNode * bTemp;
+    int i, nVars;
+
+    assert( Abc_NtkIsBddLogic(pNode->pNtk) );
+    assert( Abc_ObjIsNode(pNode) );
+
+    // compute support
+    vSupport = Vec_StrAlloc( 10 );
+    nVars = Abc_NodeSupport( Cudd_Regular(pNode->pData), vSupport, Abc_ObjFaninNum(pNode) );
+    if ( nVars == Abc_ObjFaninNum(pNode) )
+    {
+        Vec_StrFree( vSupport );
+        return 0;
+    }
+
+    // add fanins
+    vFanins = Vec_PtrAlloc( Abc_ObjFaninNum(pNode) );
+    Abc_NodeCollectFanins( pNode, vFanins );
+    Vec_IntClear( &pNode->vFanins );
+    for ( i = 0; i < vFanins->nSize; i++ )
+        if ( vSupport->pArray[i] != 0 ) // useful
+            Vec_IntPush( &pNode->vFanins, Abc_ObjId((Abc_Obj_t *)vFanins->pArray[i]) );
+    assert( nVars == Abc_ObjFaninNum(pNode) );
+
+    // update the function of the node
+    pNode->pData = Extra_bddRemapUp( (DdManager *)pNode->pNtk->pManFunc, bTemp = (DdNode *)pNode->pData );   Cudd_Ref( (DdNode *)pNode->pData );
+    Cudd_RecursiveDeref( (DdManager *)pNode->pNtk->pManFunc, bTemp );
+    Vec_PtrFree( vFanins );
+    Vec_StrFree( vSupport );
+    return 1;
+}
+int Abc_NtkMinimumBase2( Abc_Ntk_t * pNtk )
+{
+    Abc_Obj_t * pNode, * pFanin;
+    int i, k, Counter;
+    assert( Abc_NtkIsBddLogic(pNtk) );
+    // remove all fanouts
+    Abc_NtkForEachObj( pNtk, pNode, i )
+        Vec_IntClear( &pNode->vFanouts );
+    // add useful fanins
+    Counter = 0;
+    Abc_NtkForEachNode( pNtk, pNode, i )
+        Counter += Abc_NodeMinimumBase2( pNode );
+    // add fanouts
+    Abc_NtkForEachObj( pNtk, pNode, i )
+        Abc_ObjForEachFanin( pNode, pFanin, k )
+            Vec_IntPush( &pFanin->vFanouts, Abc_ObjId(pNode) );
+    return Counter;
+}
 
 /**Function*************************************************************
 
@@ -76,7 +143,7 @@ Abc_Ntk_t * Abc_NtkCollapse( Abc_Ntk_t * pNtk, int fBddSizeMax, int fDualRail, i
 //    pNtk->pManGlob = NULL;
 
     // make the network minimum base
-    Abc_NtkMinimumBase( pNtkNew );
+    Abc_NtkMinimumBase2( pNtkNew );
 
     if ( pNtk->pExdc )
         pNtkNew->pExdc = Abc_NtkDup( pNtk->pExdc );

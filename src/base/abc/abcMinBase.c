@@ -28,7 +28,7 @@ ABC_NAMESPACE_IMPL_START
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
  
-static int Abc_NodeSupport( DdNode * bFunc, Vec_Str_t * vSupport, int nVars );
+extern int Abc_NodeSupport( DdNode * bFunc, Vec_Str_t * vSupport, int nVars );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
