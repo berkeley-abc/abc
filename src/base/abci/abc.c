@@ -10885,7 +10885,7 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     {
         extern void Tab_DecomposeTest();
-        Tab_DecomposeTest();
+        //Tab_DecomposeTest();
     }
     return 0;
 usage:
