@@ -110,7 +110,7 @@ void Wlc_NtkReport( Wlc_Ntk_t * p, Abc_Cex_t * pCex, char * pName, int Radix )
 {
     Vec_Str_t * vNum;
     Wlc_Obj_t * pObj;
-    int i, ObjId, Start, nBits;
+    int i, ObjId, Start, nBits = -1;
     assert( pCex->nRegs == 0 );
     // get the node ID
     ObjId = Abc_NamStrFind( p->pManName, pName );
