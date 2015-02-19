@@ -88,7 +88,7 @@ Ivy_Man_t * Abc_NtkIvyBefore( Abc_Ntk_t * pNtk, int fSeq, int fUseDc )
     assert( !Abc_NtkIsNetlist(pNtk) );
     if ( Abc_NtkIsBddLogic(pNtk) )
     {
-        if ( !Abc_NtkBddToSop(pNtk, 0, ABC_INFINITY) )
+        if ( !Abc_NtkBddToSop(pNtk, -1, ABC_INFINITY) )
         {
             printf( "Abc_NtkIvyBefore(): Converting to SOPs has failed.\n" );
             return NULL;
@@ -634,7 +634,7 @@ Abc_Ntk_t * Abc_NtkIvy( Abc_Ntk_t * pNtk )
     assert( !Abc_NtkIsNetlist(pNtk) );
     if ( Abc_NtkIsBddLogic(pNtk) )
     {
-        if ( !Abc_NtkBddToSop(pNtk, 0, ABC_INFINITY) )
+        if ( !Abc_NtkBddToSop(pNtk, -1, ABC_INFINITY) )
         {
             Vec_IntFree( vInit );
             printf( "Abc_NtkIvy(): Converting to SOPs has failed.\n" );

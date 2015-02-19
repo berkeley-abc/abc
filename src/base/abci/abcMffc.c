@@ -389,7 +389,7 @@ void Abc_NktMffcPrint( char * pFileName, Abc_Obj_t ** pNodes, int nNodes, Vec_Pt
     Abc_Obj_t * pObj, * pFanin;
     int i, k;
     // convert the network
-    Abc_NtkToSop( pNodes[0]->pNtk, 0, ABC_INFINITY );
+    Abc_NtkToSop( pNodes[0]->pNtk, -1, ABC_INFINITY );
     // write the file
     pFile = fopen( pFileName, "wb" );
     fprintf( pFile, ".model %s_part\n", pNodes[0]->pNtk->pName );
@@ -430,7 +430,7 @@ void Abc_NktMffcPrintInt( char * pFileName, Abc_Ntk_t * pNtk, Vec_Int_t * vRoots
     Abc_Obj_t * pObj, * pFanin;
     int i, k;
     // convert the network
-    Abc_NtkToSop( pNtk, 0, ABC_INFINITY );
+    Abc_NtkToSop( pNtk, -1, ABC_INFINITY );
     // write the file
     pFile = fopen( pFileName, "wb" );
     fprintf( pFile, ".model %s_part\n", pNtk->pName );

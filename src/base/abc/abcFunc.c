@@ -1142,28 +1142,28 @@ int Abc_NtkSopToBlifMv( Abc_Ntk_t * pNtk )
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_NtkToSop( Abc_Ntk_t * pNtk, int fDirect, int nCubeLimit )
+int Abc_NtkToSop( Abc_Ntk_t * pNtk, int fMode, int nCubeLimit )
 {
     assert( !Abc_NtkIsStrash(pNtk) );
     if ( Abc_NtkHasBlackbox(pNtk) )
         return 1;
     if ( Abc_NtkHasSop(pNtk) )
     {
-        if ( !fDirect )
+        if ( fMode == -1 )
             return 1;
         if ( !Abc_NtkSopToBdd(pNtk) )
             return 0;
-        return Abc_NtkBddToSop(pNtk, fDirect, nCubeLimit);
+        return Abc_NtkBddToSop(pNtk, fMode, nCubeLimit);
     }
     if ( Abc_NtkHasMapping(pNtk) )
         return Abc_NtkMapToSop(pNtk);
     if ( Abc_NtkHasBdd(pNtk) )
-        return Abc_NtkBddToSop(pNtk, fDirect, nCubeLimit);
+        return Abc_NtkBddToSop(pNtk, fMode, nCubeLimit);
     if ( Abc_NtkHasAig(pNtk) )
     {
         if ( !Abc_NtkAigToBdd(pNtk) )
             return 0;
-        return Abc_NtkBddToSop(pNtk, fDirect, nCubeLimit);
+        return Abc_NtkBddToSop(pNtk, fMode, nCubeLimit);
     }
     assert( 0 );
     return 0;
@@ -1228,7 +1228,7 @@ int Abc_NtkToAig( Abc_Ntk_t * pNtk )
     }
     if ( Abc_NtkHasBdd(pNtk) )
     {
-        if ( !Abc_NtkBddToSop(pNtk,0, ABC_INFINITY) )
+        if ( !Abc_NtkBddToSop(pNtk, -1, ABC_INFINITY) )
             return 0;
         return Abc_NtkSopToAig(pNtk);
     }

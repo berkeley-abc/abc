@@ -199,7 +199,7 @@ Abc_Ntk_t * Abc_NtkAutoDebugModify( Abc_Ntk_t * pNtkInit, int Step, int fConst1 
 
     Abc_NtkSweep( pNtk, 0 );
     Abc_NtkCleanupSeq( pNtk, 0, 0, 0 );
-    Abc_NtkToSop( pNtk, 0, ABC_INFINITY );
+    Abc_NtkToSop( pNtk, -1, ABC_INFINITY );
     Abc_NtkCycleInitStateSop( pNtk, 50, 0 );
     return pNtk;
 }

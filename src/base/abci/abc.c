@@ -10883,6 +10883,10 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
 //        extern void Cba_PrsReadBlifTest();
 //        Cba_PrsReadBlifTest();
     }
+    {
+        extern void Tab_DecomposeTest();
+        Tab_DecomposeTest();
+    }
     return 0;
 usage:
     Abc_Print( -2, "usage: test [-CKDNM] [-aovwh] <file_name>\n" );
@@ -17240,7 +17244,7 @@ int Abc_CommandRetime( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
 
     // get the network in the SOP form
-    if ( !Abc_NtkToSop(pNtk, 0, ABC_INFINITY) )
+    if ( !Abc_NtkToSop(pNtk, -1, ABC_INFINITY) )
     {
         Abc_Print( -1, "Converting to SOPs has failed.\n" );
         return 0;

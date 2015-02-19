@@ -261,7 +261,7 @@ int Abc_NtkPerformMfs( Abc_Ntk_t * pNtk, Sfm_Par_t * pPars )
         return 0;
     }
     if ( !Abc_NtkHasSop(pNtk) )
-        if ( !Abc_NtkToSop( pNtk, 0, ABC_INFINITY ) )
+        if ( !Abc_NtkToSop( pNtk, -1, ABC_INFINITY ) )
         {
             printf( "Conversion to SOP has failed due to low resource limit.\n" );
             return 0;
@@ -442,7 +442,7 @@ int Abc_NtkMfsAfterICheck( Abc_Ntk_t * p, int nFrames, int nFramesAdd, Vec_Int_t
         return 0;
     }
     if ( !Abc_NtkHasSop(p) )
-        Abc_NtkToSop( p, 0, ABC_INFINITY );
+        Abc_NtkToSop( p, -1, ABC_INFINITY );
     // derive unfolded network
     pNtk = Abc_NtkUnrollAndDrop( p, nFrames, nFramesAdd, vFlops, &iPivot );
     Io_WriteBlifLogic( pNtk, "unroll_dump.blif", 0 );
@@ -466,7 +466,7 @@ int Abc_NtkMfsAfterICheck( Abc_Ntk_t * p, int nFrames, int nFramesAdd, Vec_Int_t
     // perform final sweep
     Abc_NtkSweep( p, 0 );
     if ( !Abc_NtkHasSop(p) )
-        Abc_NtkToSop( p, 0, ABC_INFINITY );
+        Abc_NtkToSop( p, -1, ABC_INFINITY );
     return 1;
 
 }
