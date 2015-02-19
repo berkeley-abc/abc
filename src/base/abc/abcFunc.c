@@ -356,38 +356,38 @@ char * Abc_ConvertBddToSop( Mem_Flex_t * pMan, DdManager * dd, DdNode * bFuncOn,
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_NtkBddToSop( Abc_Ntk_t * pNtk, int fDirect, int nCubeLimit )
+int Abc_NtkBddToSop( Abc_Ntk_t * pNtk, int fMode, int nCubeLimit )
 {
     extern void Abc_NtkSortSops( Abc_Ntk_t * pNtk );
+    Vec_Int_t * vGuide;
+    Vec_Str_t * vCube;
     Abc_Obj_t * pNode;
     Mem_Flex_t * pManNew;
     DdManager * dd = (DdManager *)pNtk->pManFunc;
     DdNode * bFunc;
-    Vec_Str_t * vCube;
-    int i, fMode, nCubes;
+    int i, nCubes;
 
+    // compute SOP size
+    vGuide = Vec_IntAlloc( Abc_NtkObjNumMax(pNtk) );
+    Vec_IntFill( vGuide, Abc_NtkObjNumMax(pNtk), fMode );
     if ( nCubeLimit < ABC_INFINITY )
     {
         // collect all BDDs into one array
-        Vec_Ptr_t * vFuncs = Vec_PtrAlloc( Abc_NtkNodeNum(pNtk) );
+        Vec_Ptr_t * vFuncs = Vec_PtrStart( Abc_NtkObjNumMax(pNtk) );
         assert( !Cudd_ReorderingStatus(dd, (Cudd_ReorderingType *)&nCubes) );
         Abc_NtkForEachNode( pNtk, pNode, i )
             if ( !Abc_ObjIsBarBuf(pNode) )
-                Vec_PtrPush( vFuncs, pNode->pData );
-        // estimate the number of cubes in the ISOPs
-        nCubes = Extra_bddCountCubes( dd, (DdNode **)Vec_PtrArray(vFuncs), Vec_PtrSize(vFuncs), fDirect, nCubeLimit );
+                Vec_PtrWriteEntry( vFuncs, i, pNode->pData );
+        // compute the number of cubes in the ISOPs and detemine polarity
+        nCubes = Extra_bddCountCubes( dd, (DdNode **)Vec_PtrArray(vFuncs), Vec_PtrSize(vFuncs), fMode, nCubeLimit, Vec_IntArray(vGuide) );
         Vec_PtrFree( vFuncs );
         if ( nCubes == -1 )
+        {
+            Vec_IntFree( vGuide );
             return 0;
+        }
         //printf( "The total number of cubes = %d.\n", nCubes );
     }
-
-    if ( fDirect == 2 ) // negative polarity only
-        fMode = 0;
-    else if ( fDirect == 1 ) // positive polarity only
-        fMode = 1;
-    else // both polarities
-        fMode = -1;
 
     assert( Abc_NtkHasBdd(pNtk) );
     if ( dd->size > 0 )
@@ -403,17 +403,19 @@ int Abc_NtkBddToSop( Abc_Ntk_t * pNtk, int fDirect, int nCubeLimit )
             continue;
         assert( pNode->pData );
         bFunc = (DdNode *)pNode->pData;
-        pNode->pNext = (Abc_Obj_t *)Abc_ConvertBddToSop( pManNew, dd, bFunc, bFunc, Abc_ObjFaninNum(pNode), 0, vCube, fMode );
+        pNode->pNext = (Abc_Obj_t *)Abc_ConvertBddToSop( pManNew, dd, bFunc, bFunc, Abc_ObjFaninNum(pNode), 0, vCube, Vec_IntEntry(vGuide, i) );
         if ( pNode->pNext == NULL )
         {
             Mem_FlexStop( pManNew, 0 );
             Abc_NtkCleanNext( pNtk );
 //            printf( "Converting from BDDs to SOPs has failed.\n" );
+            Vec_IntFree( vGuide );
             Vec_StrFree( vCube );
             return 0;
         }
         assert( Abc_ObjFaninNum(pNode) == Abc_SopGetVarNum((char *)pNode->pNext) );
     }
+    Vec_IntFree( vGuide );
     Vec_StrFree( vCube );
 
     // update the network type

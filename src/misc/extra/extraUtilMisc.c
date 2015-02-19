@@ -2547,7 +2547,7 @@ void Extra_NtkPrintBin( word * pT, int nBits )
 {
     int i;
     for ( i = nBits - 1; i >= 0; i-- )
-        printf( "%d", (*pT >> (word)i) & 1 );
+        printf( "%d", (int)((*pT >> i) & 1) );
 }
 void Extra_NtkPowerTest()
 {

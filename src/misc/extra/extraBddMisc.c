@@ -1479,33 +1479,33 @@ static DdNode * extraBddCountCubes( DdManager * dd, DdNode * L, DdNode * U, st__
     Cudd_Deref(r);
     return r;
 } 
-int Extra_bddCountCubes( DdManager * dd, DdNode ** pFuncs, int nFuncs, int fDirect, int nLimit )
+int Extra_bddCountCubes( DdManager * dd, DdNode ** pFuncs, int nFuncs, int fMode, int nLimit, int * pGuide )
 {
-    int i, CounterAll = 0;
-    unsigned int saveLimit = dd->maxLive;
+    DdNode * pF0, * pF1; 
+    int i, Count, Count0, Count1, CounterAll = 0;
     st__table *table = st__init_table( st__ptrcmp, st__ptrhash );
-    if ( table == NULL )
-        return -1;
+    unsigned int saveLimit = dd->maxLive;
+    dd->maxLive = dd->keys - dd->dead + 1000000; // limit on intermediate BDD nodes
     for ( i = 0; i < nFuncs; i++ )
     {
-        int Count0 = 0, Count1 = 0;
-        dd->maxLive = (dd->keys - dd->dead) + (dd->keysZ - dd->deadZ) + nLimit;
-        if ( NULL == extraBddCountCubes( dd, pFuncs[i], pFuncs[i], table, &Count0, nLimit - CounterAll ) )
+        if ( !pFuncs[i] )
+            continue;
+        pF1 = pF0 = NULL;
+        Count0 = Count1 = nLimit;
+        if ( fMode == -1 || fMode == 1 ) // both or pos
+            pF1 = extraBddCountCubes( dd, pFuncs[i], pFuncs[i], table, &Count1, nLimit );
+        pFuncs[i] = Cudd_Not( pFuncs[i] );
+        if ( fMode == -1 || fMode == 0 ) // both or neg
+            pF0 = extraBddCountCubes( dd, pFuncs[i], pFuncs[i], table, &Count0, Count1 );
+        pFuncs[i] = Cudd_Not( pFuncs[i] );
+        if ( !pF1 && !pF0 )
             break;
-        if ( fDirect )
-            Count1 = Count0;
-        else
-        {
-            dd->maxLive = (dd->keys - dd->dead) + (dd->keysZ - dd->deadZ) + nLimit;
-            pFuncs[i] = Cudd_Not( pFuncs[i] );
-            if ( NULL == extraBddCountCubes( dd, pFuncs[i], pFuncs[i], table, &Count1, Count0 ) )
-                Count1 = Count0;
-            pFuncs[i] = Cudd_Not( pFuncs[i] );
-        }
-        CounterAll += Abc_MinInt( Count0, Count1 );
-        if ( CounterAll > nLimit )
-            break;
-        //printf( "Output %d has %d cubes\n", i, Abc_MinInt(Count0, Count1) );
+        if ( !pF0 )                  pGuide[i] = 1, Count = Count1; // use pos
+        else if ( !pF1 )             pGuide[i] = 0, Count = Count0; // use neg
+        else if ( Count1 <= Count0 ) pGuide[i] = 1, Count = Count1; // use pos
+        else                         pGuide[i] = 0, Count = Count0; // use neg
+        CounterAll += Count;
+        //printf( "Output %5d has %5d cubes (%d)  (%5d and %5d)\n", nOuts++, Count, pGuide[i], Count1, Count0 );
     }
     dd->maxLive = saveLimit;
     st__free_table( table );

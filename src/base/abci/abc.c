@@ -7889,8 +7889,7 @@ usage:
 int Abc_CommandSop( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
-    int fDirect = 0, nCubeLimit = 1000000;
-    int c;
+    int c, fMode = -1, nCubeLimit = 1000000;
 
     // set defaults
     Extra_UtilGetoptReset();
@@ -7910,10 +7909,10 @@ int Abc_CommandSop( Abc_Frame_t * pAbc, int argc, char ** argv )
                 goto usage;
             break;
         case 'd':
-            fDirect = 1;
+            fMode = 1;
             break;
         case 'n':
-            fDirect = 2;
+            fMode = 0;
             break;
         case 'h':
             goto usage;
@@ -7931,7 +7930,7 @@ int Abc_CommandSop( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Converting to SOP is possible only for logic networks.\n" );
         return 1;
     }
-    if ( !Abc_NtkToSop(pNtk, fDirect, nCubeLimit) )
+    if ( !Abc_NtkToSop(pNtk, fMode, nCubeLimit) )
     {
         Abc_Print( -1, "Converting to SOP has failed.\n" );
         return 1;
@@ -7939,10 +7938,11 @@ int Abc_CommandSop( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: sop [-C num] [-dh]\n" );
+    Abc_Print( -2, "usage: sop [-C num] [-dnh]\n" );
     Abc_Print( -2, "\t         converts node functions to SOP\n" );
-    Abc_Print( -2, "\t-C num : the limit on the total cube count of all nodes [default = %d]\n", nCubeLimit );
-    Abc_Print( -2, "\t-d     : toggles using both phases or only positive [default = %s]\n", fDirect? (fDirect == 1? "direct":"negated"): "both" );
+    Abc_Print( -2, "\t-C num : the limit on the number of cubes at a node [default = %d]\n", nCubeLimit );
+    Abc_Print( -2, "\t-d     : toggles using only positive polarity [default = %s]\n", fMode == 1 ? "yes": "no"  );
+    Abc_Print( -2, "\t-n     : toggles using only negative polarity [default = %s]\n", fMode == 0 ? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
 }
