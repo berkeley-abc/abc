@@ -65,14 +65,15 @@ Vec_Str_t * Wlc_ConvertToRadix( unsigned * pBits, int Start, int nBits, int Radi
     Vec_Str_t * vSum = Vec_StrStart( nBits );
     char * pRes = Vec_StrArray( vRes );
     char * pSum = Vec_StrArray( vSum );  int i;
-    assert( Radix > 2 && Radix < 36 );
+    assert( Radix >= 2 && Radix < 36 );
     pSum[0] = 1;
     // compute number
     for ( i = 0; i < nBits; i++ )
     {
         if ( Abc_InfoHasBit(pBits, Start + i) )
             Wlc_ComputeSum( pRes, pSum, nBits, Radix );
-        Wlc_ComputeSum( pSum, pSum, nBits, Radix );
+        if ( i < nBits - 1 )
+            Wlc_ComputeSum( pSum, pSum, nBits, Radix );
     }
     Vec_StrFree( vSum );
     // remove zeros
@@ -109,34 +110,29 @@ Vec_Str_t * Wlc_ConvertToRadix( unsigned * pBits, int Start, int nBits, int Radi
 void Wlc_NtkReport( Wlc_Ntk_t * p, Abc_Cex_t * pCex, char * pName, int Radix )
 {
     Vec_Str_t * vNum;
-    Wlc_Obj_t * pObj;
-    int i, ObjId, Start, nBits = -1;
+    int i, NameId, Name, Start, nBits = -1;
     assert( pCex->nRegs == 0 );
-    // get the node ID
-    ObjId = Abc_NamStrFind( p->pManName, pName );
-    if ( ObjId <= 0 )
+    // get the name ID
+    NameId = Abc_NamStrFind( p->pManName, pName );
+    if ( NameId <= 0 )
     {
         printf( "Cannot find \"%s\" among nodes of the network.\n", pName );
         return;
     }
-    // find the PI
-    Start = 0;
-    Wlc_NtkForEachPi( p, pObj, i )
-    {
-        nBits = Wlc_ObjRange( pObj );
-        if ( Wlc_ObjId(p, pObj) == ObjId )
+    // get the primary input
+    Vec_IntForEachEntryTriple( &p->vValues, Name, Start, nBits, i )
+        if ( Name == NameId )
             break;
-        Start += nBits;
-    }
-    if ( i == Wlc_NtkPiNum(p) )
+    // find the PI
+    if ( i == Vec_IntSize(&p->vValues) )
     {
         printf( "Cannot find \"%s\" among primary inputs of the network.\n", pName );
         return;
     }
     // print value
-    assert( Radix == 10 || Radix == 16 );
+    assert( Radix == 2 || Radix == 10 || Radix == 16 );
     vNum = Wlc_ConvertToRadix( pCex->pData, Start, nBits, Radix );
-    printf( "((%s %s%s))\n", pName, Radix == 16 ? "#x" : "", Vec_StrArray(vNum) );
+    printf( "((%s %s%s))\n", pName, Radix == 16 ? "#x" : (Radix == 2 ? "#b" : ""), Vec_StrArray(vNum) );
     Vec_StrFree( vNum );
 }
 

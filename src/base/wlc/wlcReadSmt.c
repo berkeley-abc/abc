@@ -612,7 +612,7 @@ Wlc_Ntk_t * Prs_SmtBuild( Prs_Smt_t * p )
     Wlc_Ntk_t * pNtk;
     char * pName, * pBits, * pConst;
     Vec_Int_t * vFanins = Vec_IntAlloc( 100 );
-    int i, k, iObj, Type, Entry, NameId, fFound, Range, fSigned, nBits = 0;
+    int i, iObj, Type, Entry, NameId, fFound, Range, fSigned, nBits = 0;
     // start network and create primary inputs
     pNtk = Wlc_NtkAlloc( p->pName, Vec_IntCountEntry(&p->vData, 0) + 100 );
     pNtk->pManName = Abc_NamStart( 1000, 24 );
@@ -629,14 +629,9 @@ Wlc_Ntk_t * Prs_SmtBuild( Prs_Smt_t * p )
             assert( !fFound );
             assert( iObj == NameId );
             // save values
-            Vec_IntForEachEntry( &p->vValues, Entry, k )
-                if ( Entry == NameOld )
-                {
-                    Vec_IntPush( &pNtk->vValues, NameId );
-                    Vec_IntPush( &pNtk->vValues, nBits );
-                    Vec_IntPush( &pNtk->vValues, atoi(pBits) );
-                    break;
-                }
+            Vec_IntPush( &pNtk->vValues, NameId );
+            Vec_IntPush( &pNtk->vValues, nBits );
+            Vec_IntPush( &pNtk->vValues, atoi(pBits) );
             nBits += atoi(pBits);
         }
         while ( Vec_IntEntry(&p->vData, ++i) );
