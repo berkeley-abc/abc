@@ -210,6 +210,7 @@ int Wlc_StdinProcessSmt( Abc_Frame_t * pAbc, char * pCmd )
     else if ( Abc_FrameReadProbStatus(pAbc) == 0 )
         printf( "sat\n" );
     else assert( 0 );
+    fflush( stdout );
     // wait for stdin for give directions
     while ( (vInput = Wlc_StdinCollectQuery()) != NULL )
     {
@@ -240,6 +241,7 @@ int Wlc_StdinProcessSmt( Abc_Frame_t * pAbc, char * pCmd )
         // report value of this variable
         Wlc_NtkReport( (Wlc_Ntk_t *)pAbc->pAbcWlc, Abc_FrameReadCex(pAbc), pName, 16 );
         Vec_StrFree( vInput );
+        fflush( stdout );
     }
     return 1;
 }
