@@ -2871,6 +2871,10 @@ SOURCE=.\src\misc\extra\extraUtilPerm.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\misc\extra\extraUtilPrime.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\misc\extra\extraUtilProgress.c
 # End Source File
 # Begin Source File
