@@ -695,15 +695,15 @@ static inline void Cba_NtkFree( Cba_Ntk_t * p )
 static inline int Cba_NtkMemory( Cba_Ntk_t * p )
 {
     int nMem = sizeof(Cba_Ntk_t);
-    nMem += Vec_IntMemory(&p->vInputs);
-    nMem += Vec_IntMemory(&p->vOutputs);
-    nMem += Vec_IntMemory(&p->vInfo);
-    nMem += Vec_StrMemory(&p->vType);
-    nMem += Vec_IntMemory(&p->vFanin);
-    nMem += Vec_IntMemory(&p->vIndex);
-    nMem += Vec_IntMemory(&p->vName);
-    nMem += Vec_IntMemory(&p->vFanout);
-    nMem += Vec_IntMemory(&p->vCopy);
+    nMem += (int)Vec_IntMemory(&p->vInputs);
+    nMem += (int)Vec_IntMemory(&p->vOutputs);
+    nMem += (int)Vec_IntMemory(&p->vInfo);
+    nMem += (int)Vec_StrMemory(&p->vType);
+    nMem += (int)Vec_IntMemory(&p->vFanin);
+    nMem += (int)Vec_IntMemory(&p->vIndex);
+    nMem += (int)Vec_IntMemory(&p->vName);
+    nMem += (int)Vec_IntMemory(&p->vFanout);
+    nMem += (int)Vec_IntMemory(&p->vCopy);
     return nMem;
 }
 static inline void Cba_NtkPrintStats( Cba_Ntk_t * p )
