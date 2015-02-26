@@ -765,7 +765,7 @@ int Gia_ObjFanin1CopyCarry( Vec_Int_t * vCarries, Gia_Obj_t * pObj, int Id )
         return Gia_ObjFanin1Copy(pObj);
     return Abc_LitNotCond( Vec_IntEntry(vCarries, Gia_ObjFaninId1(pObj, Id)), Gia_ObjFaninC1(pObj) );
 }
-Gia_Man_t * Gia_ManDupWithArtificalFaddBoxes( Gia_Man_t * p, int fUseFanout )
+Gia_Man_t * Gia_ManDupWithArtificalFaddBoxes( Gia_Man_t * p, int fUseFanout, int fXorTrick )
 {
     Gia_Man_t * pNew;
     Gia_Obj_t * pObj;  
@@ -821,7 +821,7 @@ Gia_Man_t * Gia_ManDupWithArtificalFaddBoxes( Gia_Man_t * p, int fUseFanout )
             pObj->Value = Gia_ManAppendAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
         else // AND-gate with chain
         {
-            int iCiLit, iOtherLit, iLit0, iLit1, iLit2;
+            int iCiLit, iOtherLit, iLit0, iLit1, iLit2, iXorLit;
             assert( pObj->fMark0 != pObj->fMark1 );
             iCiLit    = pObj->fMark0 ? Gia_ObjFanin0CopyCarry(vCarries, pObj, i) : Gia_ObjFanin1CopyCarry(vCarries, pObj, i);
             iOtherLit = pObj->fMark0 ? Gia_ObjFanin1Copy(pObj) : Gia_ObjFanin0Copy(pObj);
@@ -835,14 +835,19 @@ Gia_Man_t * Gia_ManDupWithArtificalFaddBoxes( Gia_Man_t * p, int fUseFanout )
             Gia_ManAppendCo( pNew, iLit1 );
             Gia_ManAppendCo( pNew, iLit2 );
             // add CI (unused sum bit)
-            Gia_ManAppendCi(pNew);
+            iXorLit = Gia_ManAppendCi(pNew);
             // add CI (carry bit)
             pObj->Value = Abc_LitNotCond( Gia_ManAppendCi(pNew), Abc_LitIsCompl(iCiLit) );
             if ( vCarries && pObj->fPhase )
             {
                 Vec_IntWriteEntry( vCarries, i, pObj->Value );
                 if ( Gia_ObjRefNum(p, pObj) > 0 )
-                    pObj->Value = Gia_ManAppendAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+                {
+                    if ( fXorTrick )
+                        pObj->Value = Gia_ManAppendAnd( pNew, Abc_LitNotCond(iXorLit, !Abc_LitIsCompl(iCiLit)), iOtherLit );
+                    else
+                        pObj->Value = Gia_ManAppendAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+                }
             }
             nBoxes++;
         }
@@ -877,7 +882,7 @@ Gia_Man_t * Gia_ManDupWithArtificalFaddBoxesTest( Gia_Man_t * p )
     }
 
     // output new AIG
-    pNew = Gia_ManDupWithArtificalFaddBoxes( p, 0 );
+    pNew = Gia_ManDupWithArtificalFaddBoxes( p, 0, 0 );
     Gia_ManCleanMark01( p );
     return pNew;
 }
@@ -1079,7 +1084,7 @@ int Gia_ManIteratePaths( Gia_Man_t * p, int DelayC, int nPathMin, int nPathMax, 
     return 1;
 }
 // annotate artificial chains and then put them into boxes
-Gia_Man_t * Gia_ManDupWithArtificialBoxes( Gia_Man_t * p, int DelayC, int nPathMin, int nPathMax, int nPathLimit, int fUseFanout, int fIgnoreBoxDelays, int fVerbose )
+Gia_Man_t * Gia_ManDupWithArtificialBoxes( Gia_Man_t * p, int DelayC, int nPathMin, int nPathMax, int nPathLimit, int fUseFanout, int fXorTrick, int fIgnoreBoxDelays, int fVerbose )
 {
     Gia_Man_t * pNew;
 /*
@@ -1090,7 +1095,7 @@ Gia_Man_t * Gia_ManDupWithArtificialBoxes( Gia_Man_t * p, int DelayC, int nPathM
     }
 */
     Gia_ManIteratePaths( p, DelayC, nPathMin, nPathMax, nPathLimit, fIgnoreBoxDelays, fVerbose );
-    pNew = Gia_ManDupWithArtificalFaddBoxes( p, fUseFanout );
+    pNew = Gia_ManDupWithArtificalFaddBoxes( p, fUseFanout, fXorTrick );
     Gia_ManCleanMark01( p );
     return pNew;
 }

@@ -36947,12 +36947,12 @@ usage:
 int Abc_CommandAbc9Fadds( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     extern Gia_Man_t * Gia_ManDupWithNaturalBoxes( Gia_Man_t * p, int nFaddMin, int fVerbose );
-    extern Gia_Man_t * Gia_ManDupWithArtificialBoxes( Gia_Man_t * p, int DelayC, int nPathMin, int nPathMax, int nPathLimit, int fUseFanout, int fIgnoreBoxDelays, int fVerbose );
+    extern Gia_Man_t * Gia_ManDupWithArtificialBoxes( Gia_Man_t * p, int DelayC, int nPathMin, int nPathMax, int nPathLimit, int fUseFanout, int fXorTrick, int fIgnoreBoxDelays, int fVerbose );
     Gia_Man_t * pTemp, * pTemp2;
     int c, nFaddMin = 3, fUseNat = 0, fUseArt = 0, fVerbose = 0;
-    int DelayC = 0, nPathMin = 3, nPathMax = 32, nPathLimit = 50, fUseFanout = 0, fIgnoreBoxDelays = 0;
+    int DelayC = 0, nPathMin = 3, nPathMax = 32, nPathLimit = 50, fUseFanout = 0, fUseXorTrick = 0, fIgnoreBoxDelays = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "NBSLPnafbvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "NBSLPnafxbvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -37020,6 +37020,9 @@ int Abc_CommandAbc9Fadds( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'f':
             fUseFanout ^= 1;
             break;
+        case 'x':
+            fUseXorTrick ^= 1;
+            break;
         case 'b':
             fIgnoreBoxDelays ^= 1;
             break;
@@ -37045,7 +37048,7 @@ int Abc_CommandAbc9Fadds( Abc_Frame_t * pAbc, int argc, char ** argv )
         Gia_ManTransferTiming( pTemp, pAbc->pGia );
     }
     if ( fUseArt )
-        pTemp2 = Gia_ManDupWithArtificialBoxes( pTemp, DelayC, nPathMin, nPathMax, nPathLimit, fUseFanout, fIgnoreBoxDelays, fVerbose );
+        pTemp2 = Gia_ManDupWithArtificialBoxes( pTemp, DelayC, nPathMin, nPathMax, nPathLimit, fUseFanout, fUseXorTrick, fIgnoreBoxDelays, fVerbose );
     else
     {
         pTemp2 = Gia_ManDup( pTemp );
@@ -37055,7 +37058,7 @@ int Abc_CommandAbc9Fadds( Abc_Frame_t * pAbc, int argc, char ** argv )
     Abc_FrameUpdateGia( pAbc, pTemp2 );
     return 0;
 usage:
-    Abc_Print( -2, "usage: &fadds [-NBSLP num] [-nafvh]\n" );
+    Abc_Print( -2, "usage: &fadds [-NBSLP num] [-nafxvh]\n" );
     Abc_Print( -2, "\t         detects full-adder chains and puts them into white boxes\n" );
     Abc_Print( -2, "\t-n     : toggles detecting natural full-adder chains [default = %s]\n",              fUseNat? "yes": "no" );
     Abc_Print( -2, "\t-N num : minimum length of a natural full-adder chain to detect [default = %d]\n",   nFaddMin );
@@ -37065,6 +37068,7 @@ usage:
     Abc_Print( -2, "\t-L num : maximum length of an artificial full-adder chain [default = %d]\n",         nPathMax );
     Abc_Print( -2, "\t-P num : maximum number of artificial full-adder chains to detect [default = %d]\n", nPathLimit );
     Abc_Print( -2, "\t-f     : toggles allowing external fanouts in artificial chains [default = %s]\n",   fUseFanout? "yes": "no" );
+    Abc_Print( -2, "\t-x     : toggles using XOR to generate fanouts in artificial chains [default = %s]\n",   fUseXorTrick? "yes": "no" );
     Abc_Print( -2, "\t-b     : toggles ignoring boxes when computing delays [default = %s]\n",             fIgnoreBoxDelays? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggles printing verbose information [default = %s]\n",                     fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
