@@ -310,6 +310,13 @@ static inline void Vec_BitWriteEntry( Vec_Bit_t * p, int i, int Entry )
         p->pArray[i >> 5] &= ~(1 << (i & 31));
     else assert(0);
 }
+static inline int Vec_BitAddEntry( Vec_Bit_t * p, int i )
+{
+    if ( Vec_BitEntry(p, i) )
+        return 1;
+    Vec_BitWriteEntry( p, i, 1 );
+    return 0;
+}
 
 /**Function*************************************************************
 
@@ -599,6 +606,24 @@ static inline int Vec_BitCount( Vec_Bit_t * p )
             Counter += Vec_BitCountWord( pArray[i] );
     }
     return Counter;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline void Vec_BitReset( Vec_Bit_t * p ) 
+{
+    int i, nWords = (p->nSize >> 5) + ((p->nSize & 31) > 0);
+    for ( i = 0; i < nWords; i++ )
+        p->pArray[i] = 0;
 }
 
 ABC_NAMESPACE_HEADER_END

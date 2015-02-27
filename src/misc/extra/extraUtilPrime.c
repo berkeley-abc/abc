@@ -123,103 +123,45 @@ void Abc_GenPrimesTest()
 
 
 
-#define ABC_PRIME_MASK 0x3FF
-static int s_1kPrimes[ABC_PRIME_MASK+1] = 
+
+#define ABC_PRIME_MASK 0xFF
+static unsigned s_256Primes[ABC_PRIME_MASK+1] = 
 {
-/*
-    53,
-    97,
-    193,
-    389,
-    769,
-    1543,
-    3079,
-    6151,
-    12289,
-    24593,
-    49157,
-    98317,
-    196613,
-    393241,
-    786433,
-    1572869,
-    3145739,
-    6291469,
-    12582917,
-    25165843,
-    50331653,
-    100663319,
-    201326611,
-    402653189,
-    805306457,
-    1610612741,
-    0
-*/
-    901403,984877,908741,966307,924437,965639,918787,931067,982621,917669,981473,936407,990487,926077,922897,970861,
-    942317,961747,979717,978947,940157,987821,981221,917713,983083,992231,928253,961187,991817,927643,923129,934291,
-    998071,967567,961087,988661,910031,930481,904489,974167,941351,959911,963811,921463,900161,934489,905629,930653,
-    901819,909457,939871,924083,915113,937969,928457,946291,973787,912869,994093,959279,905803,995219,949903,911011,
-    986707,995053,930583,955511,928307,930889,968729,911507,949043,939359,961679,918041,937681,909091,963913,923539,
-    929587,953347,917573,913037,995387,976483,986239,946949,922489,917887,957553,931529,929813,949567,941683,905161,
-    928819,932417,900089,935903,926587,914467,967361,944833,945881,941741,915949,903407,904157,971863,993893,963607,
-    918943,912463,980957,962963,968089,904513,963763,907363,904097,904093,991343,918347,986983,986659,935819,903569,
-    929171,913933,999749,923123,961531,935861,915053,994853,943511,969923,927191,968333,949391,950959,968311,991409,
-    911681,987101,904027,975259,907399,946223,907259,900409,957221,901063,974657,912337,979001,970147,982301,968213,
-    923959,964219,935443,950161,989251,936127,985679,958159,930077,971899,944857,956083,914293,941981,909481,909047,
-    960527,958183,970687,914827,949051,928159,933551,964423,914041,915869,929953,901367,914219,975551,912391,917809,
-    991499,904781,949153,959887,961957,970943,947741,941263,984541,951437,984301,947423,905761,964913,971357,927709,
-    916441,941933,956993,988243,921197,905453,922081,950813,946331,998561,929023,937421,956231,907651,977897,905491,
-    960173,931837,955217,911951,990643,971021,949439,988453,996781,951497,906011,944309,911293,917123,983803,928097,
-    977747,928703,949957,919189,925513,923953,904997,986351,930689,902009,912007,906757,955793,926803,906809,962743,
-    911917,909329,949021,974651,959083,945367,905137,948377,931757,945409,920279,915007,960121,920609,946163,946391,
-    928903,932951,944329,901529,959809,918469,978643,911159,982573,965411,962233,911269,953273,974437,907589,992269,
-    929399,980431,905693,968267,970481,911089,950557,913799,920407,974489,909863,918529,975277,929323,971549,969181,
-    972787,964267,939971,943763,940483,971501,921637,945341,955211,920701,978349,969041,929861,904103,908539,995369,
-    995567,917471,908879,993821,947783,954599,978463,914519,942869,947263,988343,914657,956987,903641,943343,991063,
-    985403,926327,982829,958439,942017,960353,944987,934793,948971,999331,990767,915199,912211,946459,997019,965059,
-    924907,983233,943273,945359,919613,933883,928927,942763,994087,996211,918971,924871,938491,957139,918839,914629,
-    974329,900577,952823,941641,900461,946997,983123,935149,923693,908419,995651,912871,987067,920201,913921,929209,
-    962509,974599,972001,920273,922099,951781,958549,909971,975133,937207,929941,961397,980677,923579,980081,942199,
-    940319,942979,912349,942691,986989,947711,972343,932663,937877,940369,919571,927187,981439,932353,952313,915947,
-    915851,974041,989381,921029,997013,999199,914801,918751,997327,992843,982133,932051,964861,903979,937463,916781,
-    944389,986719,958369,961451,917767,954367,949853,934939,958807,975797,949699,957097,980773,969989,934907,909281,
-    904679,909833,991741,946769,908381,932447,957889,981697,905701,919033,999023,993541,912953,911719,934603,925019,
-    989341,912269,917789,981049,959149,989909,960521,952183,922627,936253,910957,972047,945037,940399,928313,928471,
-    962459,959947,927541,917333,926899,911837,985631,955127,922729,911171,900511,926251,918209,943477,955277,959773,
-    971039,917353,955313,930301,990799,957731,917519,938507,988111,911657,999721,968917,934537,903073,921703,966227,
-    904661,998213,954307,931309,909331,933643,910099,958627,914533,902903,950149,972721,915157,969037,988219,944137,
-    976411,952873,964787,970927,968963,920741,975187,966817,982909,975281,931907,959267,980711,924617,975691,962309,
-    976307,932209,989921,907969,947927,932207,945397,948929,904903,938563,961691,977671,963173,927149,951061,966547,
-    937661,983597,948139,948041,982759,941093,993703,910097,902347,990307,978217,996763,904919,924641,902299,929549,
-    977323,975071,932917,996293,925579,925843,915487,917443,999541,943043,919109,959879,912173,986339,939193,939599,
-    927077,977183,966521,959471,991943,985951,942187,932557,904297,972337,931751,964097,942341,966221,929113,960131,
-    906427,970133,996511,925637,971651,983443,981703,933613,939749,929029,958043,961511,957241,901079,950479,975493,
-    985799,909401,945601,911077,978359,948151,950333,968879,978727,961151,957823,950393,960293,915683,971513,915659,
-    943841,902477,916837,911161,958487,963691,949607,935707,987607,901613,972557,938947,931949,919021,982217,914737,
-    913753,971279,981683,915631,907807,970421,983173,916099,984587,912049,981391,947747,966233,932101,991733,969757,
-    904283,996601,979807,974419,964693,931537,917251,967961,910093,989321,988129,997307,963427,999221,962447,991171,
-    993137,914339,964973,908617,968567,920497,980719,949649,912239,907367,995623,906779,914327,918131,983113,962993,
-    977849,914941,932681,905713,932579,923977,965507,916469,984119,931981,998423,984407,993841,901273,910799,939847,
-    997153,971429,994927,912631,931657,968377,927833,920149,978041,947449,993233,927743,939737,975017,961861,984539,
-    938857,977437,950921,963659,923917,932983,922331,982393,983579,935537,914357,973051,904531,962077,990281,989231,
-    910643,948281,961141,911839,947413,923653,982801,903883,931943,930617,928679,962119,969977,926921,999773,954181,
-    963019,973411,918139,959719,918823,941471,931883,925273,918173,949453,946993,945457,959561,968857,935603,978283,
-    978269,947389,931267,902599,961189,947621,920039,964049,947603,913259,997811,943843,978277,972119,929431,918257,
-    991663,954043,910883,948797,929197,985057,990023,960961,967139,923227,923371,963499,961601,971591,976501,989959,
-    908731,951331,989887,925307,909299,949159,913447,969797,959449,976957,906617,901213,922667,953731,960199,960049,
-    985447,942061,955613,965443,947417,988271,945887,976369,919823,971353,962537,929963,920473,974177,903649,955777,
-    963877,973537,929627,994013,940801,985709,995341,936319,904681,945817,996617,953191,952859,934889,949513,965407,
-    988357,946801,970391,953521,905413,976187,968419,940669,908591,976439,915731,945473,948517,939181,935183,978067,
-    907663,967511,968111,981599,913907,933761,994933,980557,952073,906557,935621,914351,967903,949129,957917,971821,
-    925937,926179,955729,966871,960737,968521,949997,956999,961273,962683,990377,908851,932231,929749,932149,966971,
-    922079,978149,938453,958313,995381,906259,969503,922321,918947,972443,916411,935021,944429,928643,952199,918157,
-    917783,998497,944777,917771,936731,999953,975157,908471,989557,914189,933787,933157,938953,922931,986569,964363,
-    906473,963419,941467,946079,973561,957431,952429,965267,978473,924109,979529,991901,988583,918259,961991,978037,
-    938033,949967,986071,986333,974143,986131,963163,940553,950933,936587,923407,950357,926741,959099,914891,976231,
-    949387,949441,943213,915353,983153,975739,934243,969359,926557,969863,961097,934463,957547,916501,904901,928231,
-    903673,974359,932219,916933,996019,934399,955813,938089,907693,918223,969421,940903,940703,913027,959323,940993,
-    937823,906691,930841,923701,933259,911959,915601,960251,985399,914359,930827,950251,975379,903037,905783,971237
+    0x984b6ad9,0x18a6eed3,0x950353e2,0x6222f6eb,0xdfbedd47,0xef0f9023,0xac932a26,0x590eaf55,
+    0x97d0a034,0xdc36cd2e,0x22736b37,0xdc9066b0,0x2eb2f98b,0x5d9c7baf,0x85747c9e,0x8aca1055,
+    0x50d66b74,0x2f01ae9e,0xa1a80123,0x3e1ce2dc,0xebedbc57,0x4e68bc34,0x855ee0cf,0x17275120,
+    0x2ae7f2df,0xf71039eb,0x7c283eec,0x70cd1137,0x7cf651f3,0xa87bfa7a,0x14d87f02,0xe82e197d,
+    0x8d8a5ebe,0x1e6a15dc,0x197d49db,0x5bab9c89,0x4b55dea7,0x55dede49,0x9a6a8080,0xe5e51035,
+    0xe148d658,0x8a17eb3b,0xe22e4b38,0xe5be2a9a,0xbe938cbb,0x3b981069,0x7f9c0c8e,0xf756df10,
+    0x8fa783f7,0x252062ce,0x3dc46b4b,0xf70f6432,0x3f378276,0x44b137a1,0x2bf74b77,0x04892ed6,
+    0xfd318de1,0xd58c235e,0x94c6d25b,0x7aa5f218,0x35c9e921,0x5732fbbb,0x06026481,0xf584a44f,
+    0x946e1b5f,0x8463d5b2,0x4ebca7b2,0x54887b15,0x08d1e804,0x5b22067d,0x794580f6,0xb351ea43,
+    0xbce555b9,0x19ae2194,0xd32f1396,0x6fc1a7f1,0x1fd8a867,0x3a89fdb0,0xea49c61c,0x25f8a879,
+    0xde1e6437,0x7c74afca,0x8ba63e50,0xb1572074,0xe4655092,0xdb6f8b1c,0xc2955f3c,0x327f85ba,
+    0x60a17021,0x95bd261d,0xdea94f28,0x04528b65,0xbe0109cc,0x26dd5688,0x6ab2729d,0xc4f029ce,
+    0xacf7a0be,0x4c912f55,0x34c06e65,0x4fbb938e,0x1533fb5f,0x03da06bd,0x48262889,0xc2523d7d,
+    0x28a71d57,0x89f9713a,0xf574c551,0x7a99deb5,0x52834d91,0x5a6f4484,0xc67ba946,0x13ae698f,
+    0x3e390f34,0x34fc9593,0x894c7932,0x6cf414a3,0xdb7928ab,0x13a3b8a3,0x4b381c1d,0xa10b54cb,
+    0x55359d9d,0x35a3422a,0x58d1b551,0x0fd4de20,0x199eb3f4,0x167e09e2,0x3ee6a956,0x5371a7fa,
+    0xd424efda,0x74f521c5,0xcb899ff6,0x4a42e4f4,0x747917b6,0x4b08df0b,0x090c7a39,0x11e909e4,
+    0x258e2e32,0xd9fad92d,0x48fe5f69,0x0545cde6,0x55937b37,0x9b4ae4e4,0x1332b40e,0xc3792351,
+    0xaff982ef,0x4dba132a,0x38b81ef1,0x28e641bf,0x227208c1,0xec4bbe37,0xc4e1821c,0x512c9d09,
+    0xdaef1257,0xb63e7784,0x043e04d7,0x9c2cea47,0x45a0e59a,0x281315ca,0x849f0aac,0xa4071ed3,
+    0x0ef707b3,0xfe8dac02,0x12173864,0x471f6d46,0x24a53c0a,0x35ab9265,0xbbf77406,0xa2144e79,
+    0xb39a884a,0x0baf5b6d,0xcccee3dd,0x12c77584,0x2907325b,0xfd1adcd2,0xd16ee972,0x345ad6c1,
+    0x315ebe66,0xc7ad2b8d,0x99e82c8d,0xe52da8c8,0xba50f1d3,0x66689cd8,0x2e8e9138,0x43e15e74,
+    0xf1ced14d,0x188ec52a,0xe0ef3cbb,0xa958aedc,0x4107a1bc,0x5a9e7a3e,0x3bde939f,0xb5b28d5a,
+    0x596fe848,0xe85ad00c,0x0b6b3aae,0x44503086,0x25b5695c,0xc0c31dcd,0x5ee617f0,0x74d40c3a,
+    0xd2cb2b9f,0x1e19f5fa,0x81e24faf,0xa01ed68f,0xcee172fc,0x7fdf2e4d,0x002f4774,0x664f82dd,
+    0xc569c39a,0xa2d4dcbe,0xaadea306,0xa4c947bf,0xa413e4e3,0x81fb5486,0x8a404970,0x752c980c,
+    0x98d1d881,0x5c932c1e,0xeee65dfb,0x37592cdd,0x0fd4e65b,0xad1d383f,0x62a1452f,0x8872f68d,
+    0xb58c919b,0x345c8ee3,0xb583a6d6,0x43d72cb3,0x77aaa0aa,0xeb508242,0xf2db64f8,0x86294328,
+    0x82211731,0x1239a9d5,0x673ba5de,0xaf4af007,0x44203b19,0x2399d955,0xa175cd12,0x595928a7,
+    0x6918928b,0xde3126bb,0x6c99835c,0x63ba1fa2,0xdebbdff0,0x3d02e541,0xd6f7aac6,0xe80b4cd0,
+    0xd0fa29f1,0x804cac5e,0x2c226798,0x462f624c,0xad05b377,0x22924fcd,0xfbea205c,0x1b47586d
 };
+
+
 
 #define TAB_UNUSED 0xFFFF
 
@@ -229,8 +171,10 @@ struct Tab_Man_t_
 {
     int         nVars;
     int         nCubes;
+    int         nLits; 
+    int         nTable;
     int *       pCubes;   // pointers to cubes
-    int *       pValues;  // hash values
+    word *      pValues;  // hash values
     Tab_Ent_t * pTable;   // hash table (lits -> cube + lit + lit)
     int         Degree;   // degree of 2 larger than log2(nCubes)
     int         Mask;     // table size (2^Degree)
@@ -245,47 +189,69 @@ struct Tab_Ent_t_
     int         Next;
 };
 
-static inline int * Tab_ManCube( Tab_Man_t * p, int i ) { return p->pCubes + i * (p->nVars + 1); }
+static inline int *       Tab_ManCube( Tab_Man_t * p, int i ) { assert(i >= 0  && i < p->nCubes); return p->pCubes + i * (p->nVars + 1);  }
+static inline Tab_Ent_t * Tab_ManEnt( Tab_Man_t * p, int i )  { assert(i >= -1 && i < p->nTable); return i >= 0 ? p->pTable + i : NULL;   }
+
 static inline int   Tab_ManValue( Tab_Man_t * p, int a )
 {
-    return (a + 53) * s_1kPrimes[a];
+    assert( a >= 0 && a < 256 );
+    return s_256Primes[a];
 }
 static inline int   Tab_ManFinal( Tab_Man_t * p, int a )
 {
-//    return (a ^ (a >> p->Degree)) & p->Mask;
     return a & p->Mask;
 }
-static inline int   Tab_ManHashValue( Tab_Man_t * p, int * pCube )
+static inline word Tab_ManHashValue( Tab_Man_t * p, int * pCube )
 {
-    unsigned Value = 0; int i;
+    word Value = 0; int i;
     for ( i = 1; i <= pCube[0]; i++ )
         Value += Tab_ManValue( p, pCube[i] );
     return Value;
+}
+static inline word Tab_ManHashValueWithoutVar( Tab_Man_t * p, int * pCube, int iVar )
+{
+    word Value = 0; int i;
+    for ( i = 1; i <= pCube[0]; i++ )
+        if ( i != iVar )
+            Value += Tab_ManValue( p, pCube[i] );
+    return Value;
+}
+static inline unsigned Tab_ManHashValueCube( Tab_Man_t * p, int c, int iVar )
+{
+    if ( iVar == 0xFFFF )
+        return (unsigned)(p->pValues[c] % p->nTable);
+    return (unsigned)((p->pValues[c] - Tab_ManValue(p, Tab_ManCube(p, c)[iVar+1])) % p->nTable);
+}
+static inline void  Tab_ManPrintCube( Tab_Man_t * p, int c, int Var )
+{
+    int i, * pCube = Tab_ManCube( p, c );
+    for ( i = 1; i <= pCube[0]; i++ )
+//        if ( i == Var + 1 )
+//            printf( "-" );
+//        else
+            printf( "%d", !Abc_LitIsCompl(pCube[i]) );
 }
 static inline void  Tab_ManHashAdd( Tab_Man_t * p, int Value, int Cube, int VarA, int VarB )
 {
     Tab_Ent_t * pCell = p->pTable + p->nEnts;
     Tab_Ent_t * pBin  = p->pTable + Value;
-    if ( pBin->Table )
+/*
+    printf( "Adding cube " );
+    Tab_ManPrintCube( p, Cube, VarA );
+    printf( " with var %d and value %d\n", VarA, Value );
+*/
+    if ( pBin->Table >= 0 )
         pCell->Next = pBin->Table;
     pBin->Table = p->nEnts++;
     pCell->Cube = Cube;
     pCell->VarA = VarA;
     pCell->VarB = VarB;
 }
-static inline void  Tab_ManPrintCube( Tab_Man_t * p, int c, int Var )
-{
-    int i, * pCube = Tab_ManCube( p, c );
-    for ( i = 1; i <= pCube[0]; i++ )
-        if ( i == Var + 1 )
-            printf( "-" );
-        else
-            printf( "%d", !Abc_LitIsCompl(pCube[i]) );
-}
 static inline void  Tab_ManPrintEntry( Tab_Man_t * p, int e )
 {
-    printf( "Entry %4d : ", e );
-    printf( "%3d   ", p->pTable[e].Cube );
+    printf( "Entry %10d : ", e );
+    printf( "Cube %6d  ", p->pTable[e].Cube );
+    printf( "Value %12u  ", Tab_ManHashValueCube(p, p->pTable[e].Cube, p->pTable[e].VarA) % p->nTable );
     Tab_ManPrintCube( p, p->pTable[e].Cube, p->pTable[e].VarA );
     printf( "   " );
     if ( p->pTable[e].VarA != 0xFFFF )
@@ -297,11 +263,31 @@ static inline void  Tab_ManPrintEntry( Tab_Man_t * p, int e )
     else
         printf( "   " );
     printf( "\n" );
+} 
+static inline void  Tab_ManHashCollectBin( Tab_Man_t * p, int Bin, Vec_Int_t * vBin )
+{
+    Tab_Ent_t * pEnt = p->pTable + Bin;
+    Vec_IntClear( vBin );
+    for ( pEnt = Tab_ManEnt(p, pEnt->Table); pEnt; pEnt = Tab_ManEnt(p, pEnt->Next) )
+    {
+        Vec_IntPush( vBin, pEnt - p->pTable );
+        //Tab_ManPrintEntry( p, pEnt - p->pTable );
+    }
+    //printf( "\n" );
 }
+
+#define Tab_ManForEachCube( p, pCube, c )                                  \
+    for ( c = 0; c < p->nCubes && (pCube = Tab_ManCube(p, c)); c++ )       \
+        if ( pCube[0] == -1 ) {} else 
+
+#define Tab_ManForEachCubeReverse( p, pCube, c )                           \
+    for ( c = p->nCubes - 1; c >= 0 && (pCube = Tab_ManCube(p, c)); c-- )  \
+        if ( pCube[0] == -1 ) {} else 
+
 
 /**Function*************************************************************
 
-  Synopsis    [Table decomposition.]
+  Synopsis    [Manager manipulation.]
 
   Description []
                
@@ -317,11 +303,11 @@ Tab_Man_t * Tab_ManAlloc( int nVars, int nCubes )
     p->nCubes  = nCubes;
     p->Degree  = Abc_Base2Log((p->nVars + 1) * p->nCubes + 1) + 3;
     p->Mask    = (1 << p->Degree) - 1;
-    p->nEnts   = 1;
-    p->pCubes  = ABC_ALLOC( int, p->nCubes * (p->nVars + 1) );
-    p->pValues = ABC_ALLOC( int, p->nCubes );
-    p->pTable  = ABC_CALLOC( Tab_Ent_t, (p->Mask + 1) );
-    printf( "Allocated %.2f MB for table with %d entries (degree %d) (expected %d).\n", 16.0 * (p->Mask + 1) / (1 << 20), p->Mask + 1, p->Degree, p->nCubes * (p->nVars + 1) );
+    //p->nEnts   = 1;
+    p->pCubes  = ABC_CALLOC( int, p->nCubes * (p->nVars + 1) );
+    p->pValues = ABC_CALLOC( word, p->nCubes );
+//    p->pTable  = ABC_CALLOC( Tab_Ent_t, (p->Mask + 1) );
+    printf( "Allocated %.2f MB for cube structure.\n", 4.0 * p->nCubes * (p->nVars + 2) / (1 << 20) );
     return p;
 }
 void Tab_ManFree( Tab_Man_t * p )
@@ -333,53 +319,249 @@ void Tab_ManFree( Tab_Man_t * p )
 }
 void Tab_ManStart( Tab_Man_t * p, Vec_Int_t * vCubes )
 {
-    int Count0 = 0, Count1 = 0, Count2 = 0, Count3 = 0;
     int * pCube, Cube, c, v;
-    Vec_IntForEachEntry( vCubes, Cube, c )
+    p->nLits = 0;
+    Tab_ManForEachCube( p, pCube, c )
     {
-        pCube = Tab_ManCube( p, c );
+        Cube = Vec_IntEntry( vCubes, c );
         pCube[0] = p->nVars;
         for ( v = 0; v < p->nVars; v++ )
             pCube[v+1] = Abc_Var2Lit( v, !((Cube >> v) & 1) );
         p->pValues[c] = Tab_ManHashValue( p, pCube );
-        Tab_ManHashAdd( p, Tab_ManFinal(p, p->pValues[c]), c, TAB_UNUSED, TAB_UNUSED );
-        // add distance-1 
-        for ( v = 0; v < p->nVars; v++ )
-            Tab_ManHashAdd( p, Tab_ManFinal(p, p->pValues[c] - Tab_ManValue(p, pCube[v+1])), c, v, TAB_UNUSED );
-//printf( "%3d : %3d  ", c, Cube );
-//Tab_ManPrintCube( p, c, TAB_UNUSED );
-//printf( "\n" );
+        p->nLits += pCube[0];
     }
-    // count empty cell, one-entry cells, and multi-entry cells
-    for ( v = 0; v <= p->Mask; v++ )
-    {
-/*
-        int i, iStart = p->pTable[v].Table;
-        for ( i = 0; iStart; i++, iStart = p->pTable[iStart].Next );
-        printf( "%d ", i );
-*/
-/*
-        if ( v < 100 )
-        {
-            int i, iStart = p->pTable[v].Table;
-            if ( iStart )
-                printf( "\nBin %d\n", v );
-            for ( i = 0; iStart; i++, iStart = p->pTable[iStart].Next )
-                Tab_ManPrintEntry( p, iStart );
-        }
-*/
-        if ( p->pTable[v].Table == 0 )
-            Count0++;
-        else if ( p->pTable[p->pTable[v].Table].Next == 0 )
-            Count1++;
-        else if ( p->pTable[p->pTable[p->pTable[v].Table].Next].Next == 0 )
-            Count2++;
-        else
-            Count3++;
-    }
-    printf( "0 = %d.  1 = %d.  2 = %d.  3+ = %d.\n", Count0, Count1, Count2, Count3 );
 }
 
+
+/**Function*************************************************************
+
+  Synopsis    [Find a cube-free divisor of the two cubes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Tab_ManCubeFree( int * pCube1, int * pCube2, Vec_Int_t * vCubeFree )
+{
+    int * pBeg1 = pCube1 + 1;  // skip variable ID
+    int * pBeg2 = pCube2 + 1;  // skip variable ID
+    int * pEnd1 = pBeg1 + pCube1[0];
+    int * pEnd2 = pBeg2 + pCube2[0];
+    int Counter = 0, fAttr0 = 0, fAttr1 = 1;
+    Vec_IntClear( vCubeFree );
+    while ( pBeg1 < pEnd1 && pBeg2 < pEnd2 )
+    {
+        if ( *pBeg1 == *pBeg2 )
+            pBeg1++, pBeg2++, Counter++;
+        else if ( *pBeg1 < *pBeg2 )
+            Vec_IntPush( vCubeFree, Abc_Var2Lit(*pBeg1++, fAttr0) );
+        else  
+        {
+            if ( Vec_IntSize(vCubeFree) == 0 )
+                fAttr0 = 1, fAttr1 = 0;
+            Vec_IntPush( vCubeFree, Abc_Var2Lit(*pBeg2++, fAttr1) );
+        }
+    }
+    while ( pBeg1 < pEnd1 )
+        Vec_IntPush( vCubeFree, Abc_Var2Lit(*pBeg1++, fAttr0) );
+    while ( pBeg2 < pEnd2 )
+        Vec_IntPush( vCubeFree, Abc_Var2Lit(*pBeg2++, fAttr1) );
+    if ( Vec_IntSize(vCubeFree) == 0 )
+        printf( "The SOP has duplicated cubes.\n" );
+    else if ( Vec_IntSize(vCubeFree) == 1 )
+        printf( "The SOP has contained cubes.\n" );
+//    else if ( Vec_IntSize(vCubeFree) == 2 && Abc_Lit2Var(Abc_Lit2Var(Vec_IntEntry(vCubeFree, 0))) == Abc_Lit2Var(Abc_Lit2Var(Vec_IntEntry(vCubeFree, 1))) )
+//        printf( "The SOP has distance-1 cubes or it is not a prime cover.  Please make sure the result verifies.\n" );
+    assert( !Abc_LitIsCompl(Vec_IntEntry(vCubeFree, 0)) );
+    return Counter;
+}
+int Tab_ManCheckEqual2( int * pCube1, int * pCube2, int Var1, int Var2 )
+{
+    int i1, i2;
+    for ( i1 = i2 = 1; ; i1++, i2++ )
+    {
+        if ( i1 == Var1 )  i1++;
+        if ( i2 == Var2 )  i2++;
+        if ( i1 > pCube1[0] || i2 > pCube2[0] )
+            return 0;
+        if ( pCube1[i1] != pCube2[i2] )
+            return 0;
+        if ( i1 == pCube1[0] && i2 == pCube2[0] )
+            return 1;
+    }
+}
+int Tab_ManCheckEqual( int * pCube1, int * pCube2, int Var1, int Var2 )
+{
+    int Cube1[32], Cube2[32];
+    int i, k, nVars1, nVars2;
+    assert( pCube1[0] <= 32 );
+    assert( pCube2[0] <= 32 );
+    for ( i = 1, k = 0; i <= pCube1[0]; i++ )
+        if ( i != Var1 )
+            Cube1[k++] = pCube1[i];
+    nVars1 = k;
+    for ( i = 1, k = 0; i <= pCube2[0]; i++ )
+        if ( i != Var2 )
+            Cube2[k++] = pCube2[i];
+    nVars2 = k;
+    if ( nVars1 != nVars2 )
+        return 0;
+    for ( i = 0; i < nVars1; i++ )
+        if ( Cube1[i] != Cube2[i] )
+            return 0;
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Collecting distance-1 pairs.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Tab_ManCountItems( Tab_Man_t * p, int Dist2, Vec_Int_t ** pvStarts )
+{
+    Vec_Int_t * vStarts = Vec_IntAlloc( p->nCubes );
+    int * pCube, c, Count = 0;
+    Tab_ManForEachCube( p, pCube, c )
+    {
+        Vec_IntPush( vStarts, Count );
+        Count += 1 + pCube[0];
+        if ( Dist2 )
+            Count += pCube[0] * pCube[0] / 2;
+    }
+    assert( Vec_IntSize(vStarts) == p->nCubes );
+    if ( pvStarts )
+        *pvStarts = vStarts;
+    return Count;
+}
+Vec_Int_t * Tab_ManCollectDist1( Tab_Man_t * p, int Dist2 )
+{
+    Vec_Int_t * vStarts = NULL;                           // starting mark for each cube
+    int nItems = Tab_ManCountItems( p, Dist2, &vStarts ); // item count
+    int nBits  = Abc_Base2Log( nItems ) + 6;              // hash table size  
+    Vec_Bit_t * vPres = Vec_BitStart( 1 << nBits );       // hash table
+    Vec_Bit_t * vMarks = Vec_BitStart( nItems );          // collisions 
+    Vec_Int_t * vUseful = Vec_IntAlloc( 1000 );           // useful pairs
+    Vec_Int_t * vBin = Vec_IntAlloc( 100 );
+    Vec_Int_t * vCubeFree = Vec_IntAlloc( 100 );
+    word Value; unsigned Mask = (1 << nBits) - 1;
+    int * pCube, c, a, b, nMarks = 0, nUseful, Entry1, Entry2;
+    // iterate forward
+    Tab_ManForEachCube( p, pCube, c )
+    {
+        // cube
+        if ( Vec_BitAddEntry(vPres, (int)p->pValues[c] & Mask) )
+            Vec_BitWriteEntry( vMarks, nMarks, 1 );
+        nMarks++;
+        // dist1
+        for ( a = 1; a <= pCube[0]; a++, nMarks++ )
+            if ( Vec_BitAddEntry(vPres, (int)(p->pValues[c] - Tab_ManValue(p, pCube[a])) & Mask) )
+                Vec_BitWriteEntry( vMarks, nMarks, 1 );
+        // dist2
+        if ( Dist2 )
+        for ( a = 1; a <= pCube[0]; a++ )
+        {
+            Value = p->pValues[c] - Tab_ManValue(p, pCube[a]);
+            for ( b = a + 1; b <= pCube[0]; b++, nMarks++ )
+                if ( Vec_BitAddEntry(vPres, (int)(Value - Tab_ManValue(p, pCube[b])) & Mask) )
+                    Vec_BitWriteEntry( vMarks, nMarks, 1 );
+        }
+    }
+    assert( nMarks == nItems );
+    Vec_BitReset( vPres );
+    // iterate backward
+    nMarks--;
+    Tab_ManForEachCubeReverse( p, pCube, c )
+    {
+        Value = p->pValues[c];
+        // dist2
+        if ( Dist2 )
+        for ( a = pCube[0]; a >= 1; a-- )
+        {
+            Value = p->pValues[c] - Tab_ManValue(p, pCube[a]);
+            for ( b = pCube[0]; b >= a + 1; b--, nMarks-- )
+                if ( Vec_BitAddEntry(vPres, (int)(Value - Tab_ManValue(p, pCube[b])) & Mask) )
+                    Vec_BitWriteEntry( vMarks, nMarks, 1 );
+        }
+        // dist1
+        for ( a = pCube[0]; a >= 1; a--, nMarks-- )
+            if ( Vec_BitAddEntry(vPres, (int)(p->pValues[c] - Tab_ManValue(p, pCube[a])) & Mask) )
+                Vec_BitWriteEntry( vMarks, nMarks, 1 );
+        // cube
+        if ( Vec_BitAddEntry(vPres, (int)p->pValues[c] & Mask) )
+            Vec_BitWriteEntry( vMarks, nMarks, 1 );
+        nMarks--;
+    }
+    nMarks++;
+    assert( nMarks == 0 );
+    Vec_BitFree( vPres );
+    // count useful
+    nUseful = Vec_BitCount( vMarks );
+printf( "Items = %d. Bits = %d.   Useful = %d.   \n", nItems, nBits, nUseful );
+
+    // add to the hash table
+    p->nTable = Abc_PrimeCudd(nUseful);
+    p->pTable = ABC_FALLOC( Tab_Ent_t, p->nTable );
+printf( "Table %d\n", p->nTable );
+    Tab_ManForEachCube( p, pCube, c )
+    {
+        // cube
+        if ( Vec_BitEntry(vMarks, nMarks++) )
+            Tab_ManHashAdd( p, (int)(p->pValues[c] % p->nTable), c, TAB_UNUSED, TAB_UNUSED );
+        // dist1
+        for ( a = 1; a <= pCube[0]; a++, nMarks++ )
+            if ( Vec_BitEntry(vMarks, nMarks) )
+                Tab_ManHashAdd( p, (int)((p->pValues[c] - Tab_ManValue(p, pCube[a])) % p->nTable), c, a-1, TAB_UNUSED );
+        // dist2
+        if ( Dist2 )
+        for ( a = 1; a <= pCube[0]; a++ )
+        {
+            Value = p->pValues[c] - Tab_ManValue(p, pCube[a]);
+            for ( b = a + 1; b <= pCube[0]; b++, nMarks++ )
+                if ( Vec_BitEntry(vMarks, nMarks) )
+                    Tab_ManHashAdd( p, (int)((Value - Tab_ManValue(p, pCube[b])) % p->nTable), c, a-1, b-1 );
+        }
+    }
+    assert( nMarks == nItems );
+    // collect entries
+    for ( c = 0; c < p->nTable; c++ )
+    {
+        Tab_ManHashCollectBin( p, c, vBin );
+        //printf( "%d ", Vec_IntSize(vBin) );
+        //if ( c > 100 )
+        //    break;
+        Vec_IntForEachEntry( vBin, Entry1, a )
+        Vec_IntForEachEntryStart( vBin, Entry2, b, a + 1 )
+        {
+            Tab_Ent_t * pEntA = Tab_ManEnt( p, Entry1 );
+            Tab_Ent_t * pEntB = Tab_ManEnt( p, Entry2 );
+            int * pCubeA = Tab_ManCube( p, pEntA->Cube );
+            int * pCubeB = Tab_ManCube( p, pEntB->Cube );
+//            int Base = Tab_ManCubeFree( pCubeA, pCubeB, vCubeFree );
+//            if ( Vec_IntSize(vCubeFree) == 2 )
+            if ( Tab_ManCheckEqual(pCubeA, pCubeB, pEntA->VarA+1, pEntB->VarA+1) )
+            {
+                Vec_IntPushTwo( vUseful, pEntA->Cube, pEntB->Cube );
+            }
+        }
+
+    }
+    //printf( "\n" );
+
+    ABC_FREE( p->pTable );
+    Vec_IntFree( vCubeFree );
+    Vec_IntFree( vBin );
+    Vec_BitFree( vMarks );
+    return vUseful;
+}
 
 /**Function*************************************************************
 
@@ -396,10 +578,14 @@ void Tab_DecomposeTest()
 {
     int nVars = 20;// no more than 13
     abctime clk = Abc_Clock();
+    Vec_Int_t * vPairs;
     Vec_Int_t * vPrimes = Abc_GenPrimes( nVars );
     Tab_Man_t * p = Tab_ManAlloc( nVars, Vec_IntSize(vPrimes) );
     Tab_ManStart( p, vPrimes );
-    printf( "Added %d entries.\n", p->nEnts );
+    printf( "Created %d cubes dependent on %d variables with %d literals.\n", p->nCubes, p->nVars );
+    vPairs = Tab_ManCollectDist1( p, 0 );
+    printf( "Collected %d pairs.\n", Vec_IntSize(vPairs)/2 );
+    Vec_IntFree( vPairs );
     Tab_ManFree( p );
     Vec_IntFree( vPrimes );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
