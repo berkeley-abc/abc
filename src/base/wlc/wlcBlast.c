@@ -107,6 +107,8 @@ void Wlc_BlastShiftRight( Gia_Man_t * pNew, int * pNum, int nNum, int * pShift, 
     int * pRes = Wlc_VecCopy( vRes, pNum, nNum );
     int Fill = fSticky ? pNum[nNum-1] : 0;
     int i, j, fShort = 0;
+    if ( nShift > 32 )
+        nShift = 32;
     assert( nShift <= 32 );
     for( i = 0; i < nShift; i++ ) 
         for( j = 0; j < nNum - fSticky; j++ ) 
@@ -126,6 +128,8 @@ void Wlc_BlastShiftLeft( Gia_Man_t * pNew, int * pNum, int nNum, int * pShift, i
     int * pRes = Wlc_VecCopy( vRes, pNum, nNum );
     int Fill = fSticky ? pNum[0] : 0;
     int i, j, fShort = 0;
+    if ( nShift > 32 )
+        nShift = 32;
     assert( nShift <= 32 );
     for( i = 0; i < nShift; i++ ) 
         for( j = nNum-1; j >= fSticky; j-- ) 
