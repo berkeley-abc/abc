@@ -746,6 +746,39 @@ static inline int Vec_StrCountSmaller( Vec_Str_t * p, char Entry )
 
 /**Function*************************************************************
 
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline int Vec_StrCountEntryLit( Vec_Str_t * p, char Entry ) 
+{
+    int i, Counter = 0;
+    for ( i = 0; i < p->nSize; i++ )
+        Counter += (Abc_Lit2Var((int)p->pArray[i]) == Entry);
+    return Counter;
+}
+static inline int Vec_StrCountLargerLit( Vec_Str_t * p, char Entry ) 
+{
+    int i, Counter = 0;
+    for ( i = 0; i < p->nSize; i++ )
+        Counter += (Abc_Lit2Var((int)p->pArray[i]) > Entry);
+    return Counter;
+}
+static inline int Vec_StrCountSmallerLit( Vec_Str_t * p, char Entry ) 
+{
+    int i, Counter = 0;
+    for ( i = 0; i < p->nSize; i++ )
+        Counter += (Abc_Lit2Var((int)p->pArray[i]) < Entry);
+    return Counter;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Compares two strings.]
 
   Description []

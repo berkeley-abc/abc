@@ -462,7 +462,7 @@ Vec_Ptr_t * Cba_PtrDeriveFromCba( Cba_Man_t * p )
     Cba_Ntk_t * pTemp; int i;
     if ( p == NULL )
         return NULL;
-    Cba_ManAssignInternNames( p );
+    Cba_ManAssignInternWordNames( p );
     vDes = Vec_PtrAllocExact( 1 + Cba_ManNtkNum(p) );
     Vec_PtrPush( vDes, p->pName );
     Cba_ManForEachNtk( p, pTemp, i )

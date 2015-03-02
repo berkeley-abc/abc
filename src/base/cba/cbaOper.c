@@ -213,7 +213,7 @@ int Cba_ObjClpArith( Cba_Ntk_t * p, int iBox )
 {
     Cba_ObjType_t Type = Cba_ObjType( p, iBox );
     int i, iObj = -1;
-    int nBis = Cba_NtkReadRangesPrim( Cba_BoxNtkName(p, iObj), &p->vArray, 0 );
+    int nBis = 0;//Cba_NtkReadRangesPrim( Cba_BoxNtkName(p, iObj), &p->vArray, 0 );
     assert( nBis == Cba_BoxBiNum(p, iBox) );
     if ( Type == CBA_BOX_ADD )
     {

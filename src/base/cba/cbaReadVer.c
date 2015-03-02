@@ -101,18 +101,12 @@ static inline int Prs_ManIsDigit( Prs_Man_t * p )           { return Prs_CharIsD
 ***********************************************************************/
 
 // collect predefined modules names
-const char * s_KnownModules[100] = {
-    NULL,     // CBA_OBJ_NONE = 0,  // 0:  unused
-    NULL,     // CBA_OBJ_PI,        // 1:  input
-    NULL,     // CBA_OBJ_PO,        // 2:  output
-    NULL,     // CBA_OBJ_BI,        // 3:  box input
-    NULL,     // CBA_OBJ_BO,        // 4:  box output
-    NULL,     // CBA_OBJ_BOX,       // 5:  box
- 
-    "const0", // CBA_BOX_C0,   
-    "const1", // CBA_BOX_C1,   
-    "constX", // CBA_BOX_CX,   
-    "constZ", // CBA_BOX_CZ,   
+const char * s_VerilogModules[100] = 
+{
+    "const0", // CBA_BOX_CF,  
+    "const1", // CBA_BOX_CT,  
+    "constX", // CBA_BOX_CX,  
+    "constZ", // CBA_BOX_CZ,  
     "buf",    // CBA_BOX_BUF,  
     "not",    // CBA_BOX_INV,  
     "and",    // CBA_BOX_AND,  
@@ -124,7 +118,10 @@ const char * s_KnownModules[100] = {
     "sharp",  // CBA_BOX_SHARP,
     "mux",    // CBA_BOX_MUX,  
     "maj",    // CBA_BOX_MAJ,  
-
+    NULL
+};
+const char * s_KnownModules[100] = 
+{
     "VERIFIC_",
     "add_",                  
     "mult_",                 
@@ -179,11 +176,20 @@ const char * s_KnownModules[100] = {
     NULL
 };
 
+// check if it is a Verilog predefined module
+static inline int Prs_ManIsVerilogModule( Prs_Man_t * p, char * pName )
+{
+    int i;
+    for ( i = 0; s_VerilogModules[i]; i++ )
+        if ( !strcmp(pName, s_VerilogModules[i]) )
+            return CBA_BOX_CF + i;
+    return 0;
+}
 // check if it is a known module
 static inline int Prs_ManIsKnownModule( Prs_Man_t * p, char * pName )
 {
     int i;
-    for ( i = CBA_BOX_CF; s_KnownModules[i]; i++ )
+    for ( i = 0; s_KnownModules[i]; i++ )
         if ( !strncmp(pName, s_KnownModules[i], strlen(s_KnownModules[i])) )
             return i;
     return 0;
@@ -306,11 +312,14 @@ static inline int Prs_ManReadNameList( Prs_Man_t * p, Vec_Int_t * vTemp, char La
     {
         int Item = Prs_ManReadName(p);
         if ( Item == 0 )                    return Prs_ManErrorSet(p, "Cannot read name in the list.", 0);
+        if ( Prs_ManUtilSkipSpaces(p) )     return Prs_ManErrorSet(p, "Error number 1.", 0);
+        if ( Item == PRS_VER_WIRE  )
+            continue;
         Vec_IntPush( vTemp, Item );
         if ( Prs_ManIsChar(p, LastSymb) )   break;
         if ( !Prs_ManIsChar(p, ',') )       return Prs_ManErrorSet(p, "Expecting comma in the list.", 0);
         p->pCur++;
-        if ( Prs_ManUtilSkipSpaces(p) )     return 0;
+        if ( Prs_ManUtilSkipSpaces(p) )     return Prs_ManErrorSet(p, "Error number 2.", 0);
     }
     return 1;
 }
@@ -368,19 +377,19 @@ static inline int Prs_ManReadRange( Prs_Man_t * p )
     assert( Prs_ManIsChar(p, '[') );
     Vec_StrClear( &p->vCover );
     Vec_StrPush( &p->vCover, *p->pCur++ );
-    if ( Prs_ManUtilSkipSpaces(p) )         return 0;
+    if ( Prs_ManUtilSkipSpaces(p) )         return Prs_ManErrorSet(p, "Error number 3.", 0);
     if ( !Prs_ManIsDigit(p) )               return Prs_ManErrorSet(p, "Cannot read digit in range specification.", 0);
     while ( Prs_ManIsDigit(p) )
         Vec_StrPush( &p->vCover, *p->pCur++ );
-    if ( Prs_ManUtilSkipSpaces(p) )         return 0;
+    if ( Prs_ManUtilSkipSpaces(p) )         return Prs_ManErrorSet(p, "Error number 4.", 0);
     if ( Prs_ManIsChar(p, ':') )
     {
         Vec_StrPush( &p->vCover, *p->pCur++ );
-        if ( Prs_ManUtilSkipSpaces(p) )     return 0;
+        if ( Prs_ManUtilSkipSpaces(p) )     return Prs_ManErrorSet(p, "Error number 5.", 0);
         if ( !Prs_ManIsDigit(p) )           return Prs_ManErrorSet(p, "Cannot read digit in range specification.", 0);
         while ( Prs_ManIsDigit(p) )
             Vec_StrPush( &p->vCover, *p->pCur++ );
-        if ( Prs_ManUtilSkipSpaces(p) )     return 0;
+        if ( Prs_ManUtilSkipSpaces(p) )     return Prs_ManErrorSet(p, "Error number 6.", 0);
     }
     if ( !Prs_ManIsChar(p, ']') )           return Prs_ManErrorSet(p, "Cannot read closing brace in range specification.", 0);
     Vec_StrPush( &p->vCover, *p->pCur++ );
@@ -392,7 +401,7 @@ static inline int Prs_ManReadConcat( Prs_Man_t * p, Vec_Int_t * vTemp2 )
     extern int Prs_ManReadSignalList( Prs_Man_t * p, Vec_Int_t * vTemp, char LastSymb, int fAddForm );
     assert( Prs_ManIsChar(p, '{') );
     p->pCur++;
-    if ( !Prs_ManReadSignalList( p, vTemp2, '}', 0 ) ) return 0;
+    if ( !Prs_ManReadSignalList( p, vTemp2, '}', 0 ) ) return Prs_ManErrorSet(p, "Error number 7.", 0);
     // check final
     assert( Prs_ManIsChar(p, '}') );
     p->pCur++;
@@ -405,12 +414,12 @@ static inline int Prs_ManReadConcat( Prs_Man_t * p, Vec_Int_t * vTemp2 )
 static inline int Prs_ManReadSignal( Prs_Man_t * p )
 {
     int Item;
-    if ( Prs_ManUtilSkipSpaces(p) )         return 0;
+    if ( Prs_ManUtilSkipSpaces(p) )         return Prs_ManErrorSet(p, "Error number 8.", 0);
     if ( Prs_ManIsDigit(p) )
     {
         Item = Prs_ManReadConstant(p);
-        if ( Item == 0 )                    return 0;
-        if ( Prs_ManUtilSkipSpaces(p) )     return 0;
+        if ( Item == 0 )                    return Prs_ManErrorSet(p, "Error number 9.", 0);
+        if ( Prs_ManUtilSkipSpaces(p) )     return Prs_ManErrorSet(p, "Error number 10.", 0);
         return Abc_Var2Lit2( Item, CBA_PRS_CONST );
     }
     if ( Prs_ManIsChar(p, '{') )
@@ -419,20 +428,20 @@ static inline int Prs_ManReadSignal( Prs_Man_t * p )
         p->fUsingTemp2 = 1;
         Item = Prs_ManReadConcat(p, &p->vTemp2);
         p->fUsingTemp2 = 0;
-        if ( Item == 0 )                    return 0;
-        if ( Prs_ManUtilSkipSpaces(p) )     return 0;
+        if ( Item == 0 )                    return Prs_ManErrorSet(p, "Error number 11.", 0);
+        if ( Prs_ManUtilSkipSpaces(p) )     return Prs_ManErrorSet(p, "Error number 12.", 0);
         return Item;
     }
     else
     {
         Item = Prs_ManReadName( p );
-        if ( Item == 0 )                    return 0;    // was        return 1;                
-        if ( Prs_ManUtilSkipSpaces(p) )     return 0;
+        if ( Item == 0 )                    return Prs_ManErrorSet(p, "Error number 13.", 0);    // was        return 1;                
+        if ( Prs_ManUtilSkipSpaces(p) )     return Prs_ManErrorSet(p, "Error number 14.", 0);
         if ( Prs_ManIsChar(p, '[') )
         {
             int Range = Prs_ManReadRange(p);
-            if ( Range == 0 )               return 0;
-            if ( Prs_ManUtilSkipSpaces(p) ) return 0;
+            if ( Range == 0 )               return Prs_ManErrorSet(p, "Error number 15.", 0);
+            if ( Prs_ManUtilSkipSpaces(p) ) return Prs_ManErrorSet(p, "Error number 16.", 0);
             return Abc_Var2Lit2( Prs_NtkAddSlice(p->pNtk, Item, Range), CBA_PRS_SLICE );
         }
         return Abc_Var2Lit2( Item, CBA_PRS_NAME );
@@ -466,17 +475,17 @@ static inline int Prs_ManReadSignalList2( Prs_Man_t * p, Vec_Int_t * vTemp )
         if ( FormId == 0 )                  return Prs_ManErrorSet(p, "Cannot read formal name of the instance.", 0);
         if ( !Prs_ManIsChar(p, '(') )       return Prs_ManErrorSet(p, "Cannot read \"(\" in the instance.", 0);
         p->pCur++;
-        if ( Prs_ManUtilSkipSpaces(p) )     return 0;
+        if ( Prs_ManUtilSkipSpaces(p) )     return Prs_ManErrorSet(p, "Error number 17.", 0);
         ActItem = Prs_ManReadSignal( p );
         if ( ActItem == 0 )                 return Prs_ManErrorSet(p, "Cannot read actual name of the instance.", 0);
         if ( !Prs_ManIsChar(p, ')') )       return Prs_ManErrorSet(p, "Cannot read \")\" in the instance.", 0);
         p->pCur++;
         Vec_IntPushTwo( vTemp, FormId, ActItem );
-        if ( Prs_ManUtilSkipSpaces(p) )     return 0;
+        if ( Prs_ManUtilSkipSpaces(p) )     return Prs_ManErrorSet(p, "Error number 18.", 0);
         if ( Prs_ManIsChar(p, ')') )        break;
         if ( !Prs_ManIsChar(p, ',') )       return Prs_ManErrorSet(p, "Expecting comma in the instance.", 0);
         p->pCur++;
-        if ( Prs_ManUtilSkipSpaces(p) )     return 0;
+        if ( Prs_ManUtilSkipSpaces(p) )     return Prs_ManErrorSet(p, "Error number 19.", 0);
     }
     assert( Vec_IntSize(vTemp) > 0 );
     assert( Vec_IntSize(vTemp) % 2 == 0 );
@@ -500,9 +509,9 @@ static inline int Prs_ManReadDeclaration( Prs_Man_t * p, int Type )
     Vec_Int_t * vNames[4]  = { &p->pNtk->vInputs,  &p->pNtk->vOutputs,  &p->pNtk->vInouts,  &p->pNtk->vWires };
     Vec_Int_t * vNamesR[4] = { &p->pNtk->vInputsR, &p->pNtk->vOutputsR, &p->pNtk->vInoutsR, &p->pNtk->vWiresR };
     assert( Type >= PRS_VER_INPUT && Type <= PRS_VER_WIRE );
-    if ( Prs_ManUtilSkipSpaces(p) )                                   return 0;
-    if ( Prs_ManIsChar(p, '[') && !(RangeId = Prs_ManReadRange(p)) )  return 0;
-    if ( !Prs_ManReadNameList( p, &p->vTemp, ';' ) )                  return 0;
+    if ( Prs_ManUtilSkipSpaces(p) )                                   return Prs_ManErrorSet(p, "Error number 20.", 0);
+    if ( Prs_ManIsChar(p, '[') && !(RangeId = Prs_ManReadRange(p)) )  return Prs_ManErrorSet(p, "Error number 21.", 0);
+    if ( !Prs_ManReadNameList( p, &p->vTemp, ';' ) )                  return Prs_ManErrorSet(p, "Error number 22.", 0);
     Vec_IntForEachEntry( &p->vTemp, NameId, i )
     {
         Vec_IntPush( vNames[Type - PRS_VER_INPUT], NameId );
@@ -514,13 +523,13 @@ static inline int Prs_ManReadDeclaration( Prs_Man_t * p, int Type )
 }
 static inline int Prs_ManReadAssign( Prs_Man_t * p )
 {
-    int OutItem, InItem, fCompl = 0, Oper = 0;
+    int OutItem, InItem, fCompl = 0, fCompl2 = 0, Oper = 0;
     // read output name
     OutItem = Prs_ManReadSignal( p );
     if ( OutItem == 0 )                     return Prs_ManErrorSet(p, "Cannot read output in assign-statement.", 0);
     if ( !Prs_ManIsChar(p, '=') )           return Prs_ManErrorSet(p, "Expecting \"=\" in assign-statement.", 0);
     p->pCur++;
-    if ( Prs_ManUtilSkipSpaces(p) )         return 0;
+    if ( Prs_ManUtilSkipSpaces(p) )         return Prs_ManErrorSet(p, "Error number 23.", 0);
     if ( Prs_ManIsChar(p, '~') ) 
     { 
         fCompl = 1; 
@@ -546,11 +555,17 @@ static inline int Prs_ManReadAssign( Prs_Man_t * p )
     else if ( Prs_ManIsChar(p, '|') ) 
         Oper = CBA_BOX_OR;
     else if ( Prs_ManIsChar(p, '^') ) 
-        Oper = fCompl ? CBA_BOX_XNOR : CBA_BOX_XOR;
+        Oper = CBA_BOX_XOR;
     else if ( Prs_ManIsChar(p, '?') ) 
         Oper = CBA_BOX_MUX;
     else                                    return Prs_ManErrorSet(p, "Unrecognized operator in the assign-statement.", 0);
     p->pCur++; 
+    if ( Prs_ManUtilSkipSpaces(p) )         return Prs_ManErrorSet(p, "Error number 24.", 0);
+    if ( Prs_ManIsChar(p, '~') ) 
+    { 
+        fCompl2 = 1; 
+        p->pCur++; 
+    }
     // read second name
     InItem = Prs_ManReadSignal( p );
     if ( InItem == 0 )                      return Prs_ManErrorSet(p, "Cannot read second input name in the assign-statement.", 0);
@@ -569,6 +584,31 @@ static inline int Prs_ManReadAssign( Prs_Man_t * p )
         Vec_IntPush( &p->vTemp, InItem );
         if ( !Prs_ManIsChar(p, ';') )       return Prs_ManErrorSet(p, "Expected semicolon at the end of the assign-statement.", 0);
     }
+    else
+    {
+        // figure out operator
+        if ( Oper == CBA_BOX_AND )
+        {
+            if ( fCompl && !fCompl2 )
+                Oper = CBA_BOX_SHARPL;
+            else if ( !fCompl && fCompl2 )
+                Oper = CBA_BOX_SHARP;
+            else if ( fCompl && fCompl2 )
+                Oper = CBA_BOX_NOR;
+        }
+        else if ( Oper == CBA_BOX_OR )
+        {
+            if ( fCompl && fCompl2 )
+                Oper = CBA_BOX_NAND;
+            else assert( !fCompl && !fCompl2 );
+        }
+        else if ( Oper == CBA_BOX_XOR )
+        {
+            if ( fCompl && !fCompl2 )
+                Oper = CBA_BOX_XNOR;
+            else assert( !fCompl && !fCompl2 );
+        }
+    }
     // write binary operator
     Vec_IntPush( &p->vTemp, 0 );
     Vec_IntPush( &p->vTemp, OutItem );
@@ -585,27 +625,27 @@ static inline int Prs_ManReadInstance( Prs_Man_t * p, int Func )
         int s=0;
     }
 */
-    if ( Prs_ManUtilSkipSpaces(p) )         return 0;
+    if ( Prs_ManUtilSkipSpaces(p) )         return Prs_ManErrorSet(p, "Error number 25.", 0);
     if ( (InstId = Prs_ManReadName(p)) )
-        if (Prs_ManUtilSkipSpaces(p))       return 0;
+        if (Prs_ManUtilSkipSpaces(p))       return Prs_ManErrorSet(p, "Error number 26.", 0);
     if ( !Prs_ManIsChar(p, '(') )           return Prs_ManErrorSet(p, "Expecting \"(\" in module instantiation.", 0);
     p->pCur++;
-    if ( Prs_ManUtilSkipSpaces(p) )         return 0;
+    if ( Prs_ManUtilSkipSpaces(p) )         return Prs_ManErrorSet(p, "Error number 27.", 0);
     if ( Prs_ManIsChar(p, '.') ) // box
         Status = Prs_ManReadSignalList2(p, &p->vTemp);
     else  // node
     {
         //char * s = Abc_NamStr(p->pStrs, Func);
         // translate elementary gate
-        int iFuncNew = Prs_ManIsKnownModule(p, Abc_NamStr(p->pStrs, Func));
+        int iFuncNew = Prs_ManIsVerilogModule(p, Abc_NamStr(p->pStrs, Func));
         if ( iFuncNew == 0 )                return Prs_ManErrorSet(p, "Cannot find elementary gate.", 0);
         Func = iFuncNew;
         Status = Prs_ManReadSignalList( p, &p->vTemp, ')', 1 );
     }
-    if ( Status == 0 )                      return 0;
+    if ( Status == 0 )                      return Prs_ManErrorSet(p, "Error number 28.", 0);
     assert( Prs_ManIsChar(p, ')') );
     p->pCur++;
-    if ( Prs_ManUtilSkipSpaces(p) )         return 0;
+    if ( Prs_ManUtilSkipSpaces(p) )         return Prs_ManErrorSet(p, "Error number 29.", 0);
     if ( !Prs_ManIsChar(p, ';') )           return Prs_ManErrorSet(p, "Expecting semicolon in the instance.", 0);
     // add box 
     Prs_NtkAddBox( p->pNtk, Func, InstId, &p->vTemp );
@@ -618,23 +658,23 @@ static inline int Prs_ManReadArguments( Prs_Man_t * p )
     Vec_Int_t * vSigsR[3] = { &p->pNtk->vInputsR, &p->pNtk->vOutputsR, &p->pNtk->vInoutsR };
     assert( Prs_ManIsChar(p, '(') );
     p->pCur++;
-    if ( Prs_ManUtilSkipSpaces(p) )             return 0;
+    if ( Prs_ManUtilSkipSpaces(p) )             return Prs_ManErrorSet(p, "Error number 30.", 0);
     while ( 1 )
     {
         int iName = Prs_ManReadName( p );
-        if ( iName == 0 )                       return 0;
-        if ( Prs_ManUtilSkipSpaces(p) )         return 0;
+        if ( iName == 0 )                       return Prs_ManErrorSet(p, "Error number 31.", 0);
+        if ( Prs_ManUtilSkipSpaces(p) )         return Prs_ManErrorSet(p, "Error number 32.", 0);
         if ( iName >= PRS_VER_INPUT && iName <= PRS_VER_INOUT ) // declaration
         {
             iType = iName;
             if ( Prs_ManIsChar(p, '[') )
             {
                 iRange = Prs_ManReadRange(p);
-                if ( iRange == 0 )              return 0;
-                if ( Prs_ManUtilSkipSpaces(p) ) return 0;
+                if ( iRange == 0 )              return Prs_ManErrorSet(p, "Error number 33.", 0);
+                if ( Prs_ManUtilSkipSpaces(p) ) return Prs_ManErrorSet(p, "Error number 34.", 0);
             }
             iName = Prs_ManReadName( p );
-            if ( iName == 0 )                   return 0;
+            if ( iName == 0 )                   return Prs_ManErrorSet(p, "Error number 35.", 0);
         }
         if ( iType > 0 )
         {
@@ -646,7 +686,7 @@ static inline int Prs_ManReadArguments( Prs_Man_t * p )
             break;
         if ( !Prs_ManIsChar(p, ',') )           return Prs_ManErrorSet(p, "Expecting comma in the instance.", 0);
         p->pCur++;
-        if ( Prs_ManUtilSkipSpaces(p) )         return 0;
+        if ( Prs_ManUtilSkipSpaces(p) )         return Prs_ManErrorSet(p, "Error number 36.", 0);
     }
     // check final
     assert( Prs_ManIsChar(p, ')') );

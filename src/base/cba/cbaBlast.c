@@ -300,7 +300,7 @@ void Cba_ManMarkNodesGia( Cba_Man_t * p, Gia_Man_t * pGia )
 void Cba_ManRemapBarbufs( Cba_Man_t * pNew, Cba_Man_t * p )
 {
     Cba_Ntk_t * pNtk;  int Entry, i;
-    assert( Vec_IntSize(&p->vBuf2RootNtk) );
+    //assert( Vec_IntSize(&p->vBuf2RootNtk) );
     assert( !Vec_IntSize(&pNew->vBuf2RootNtk) );
     Vec_IntAppend( &pNew->vBuf2RootNtk, &p->vBuf2RootNtk );
     Vec_IntAppend( &pNew->vBuf2RootObj, &p->vBuf2RootObj );

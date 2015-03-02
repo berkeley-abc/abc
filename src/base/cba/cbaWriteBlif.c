@@ -132,7 +132,12 @@ void Cba_ManWriteBlifGate( FILE * pFile, Cba_Ntk_t * p, Mio_Gate_t * pGate, Vec_
 {
     int iFanin, i;
     Vec_IntForEachEntry( vFanins, iFanin, i )
+    {
+        if ( Cba_ObjIsCo(p, iFanin) )
+            iFanin = Cba_ObjFanin(p, iFanin);
+        assert( Cba_ObjIsCi(p, iFanin) );
         fprintf( pFile, " %s=%s", Mio_GateReadPinName(pGate, i), Cba_ObjNameStr(p, iFanin) );
+    }
     fprintf( pFile, " %s=%s", Mio_GateReadOutName(pGate), Cba_ObjNameStr(p, iObj) );
     fprintf( pFile, "\n" );
 }
@@ -140,7 +145,12 @@ void Cba_ManWriteBlifArray( FILE * pFile, Cba_Ntk_t * p, Vec_Int_t * vFanins, in
 {
     int iFanin, i;
     Vec_IntForEachEntry( vFanins, iFanin, i )
+    {
+        if ( Cba_ObjIsCo(p, iFanin) )
+            iFanin = Cba_ObjFanin(p, iFanin);
+        assert( Cba_ObjIsCi(p, iFanin) );
         fprintf( pFile, " %s", Cba_ObjNameStr(p, iFanin) );
+    }
     if ( iObj >= 0 )
         fprintf( pFile, " %s", Cba_ObjNameStr(p, iObj) );
     fprintf( pFile, "\n" );
@@ -182,7 +192,7 @@ void Cba_ManWriteBlifLines( FILE * pFile, Cba_Ntk_t * p )
         {
             fprintf( pFile, ".names" );
             Cba_BoxForEachBi( p, i, iTerm, k )
-                fprintf( pFile, " %s", Cba_ObjNameStr(p, iTerm) );
+                fprintf( pFile, " %s", Cba_ObjNameStr(p, Cba_ObjFanin(p, iTerm)) );
             Cba_BoxForEachBo( p, i, iTerm, k )
                 fprintf( pFile, " %s", Cba_ObjNameStr(p, iTerm) );
             fprintf( pFile, "\n%s",  Ptr_TypeToSop(Cba_ObjType(p, i)) );
@@ -220,7 +230,7 @@ void Cba_ManWriteBlif( char * pFileName, Cba_Man_t * p )
         return;
     }
     fprintf( pFile, "# Design \"%s\" written by ABC on %s\n\n", Cba_ManName(p), Extra_TimeStamp() );
-    Cba_ManAssignInternNames( p );
+    Cba_ManAssignInternWordNames( p );
     Cba_ManForEachNtk( p, pNtk, i )
         Cba_ManWriteBlifNtk( pFile, pNtk );
     fclose( pFile );

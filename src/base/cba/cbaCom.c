@@ -198,21 +198,24 @@ int Cba_CommandRead( Abc_Frame_t * pAbc, int argc, char ** argv )
         vDes = Prs_ManReadBlif( pFileName );
         if ( vDes && Vec_PtrSize(vDes) )
             p = Prs_ManBuildCba( pFileName, vDes );
-        Prs_ManVecFree( vDes );
+        if ( vDes )
+            Prs_ManVecFree( vDes );
     }
     else if ( !strcmp( Extra_FileNameExtension(pFileName), "v" )  )
     {
         vDes = Prs_ManReadVerilog( pFileName );
         if ( vDes && Vec_PtrSize(vDes) )
             p = Prs_ManBuildCba( pFileName, vDes );
-        Prs_ManVecFree( vDes );
+        if ( vDes )
+            Prs_ManVecFree( vDes );
     }
     else if ( !strcmp( Extra_FileNameExtension(pFileName), "smt" )  )
     {
         vDes = NULL;//Prs_ManReadSmt( pFileName );
         if ( vDes && Vec_PtrSize(vDes) )
             p = Prs_ManBuildCba( pFileName, vDes );
-        Prs_ManVecFree( vDes );
+        if ( vDes )
+            Prs_ManVecFree( vDes );
     }
     else if ( !strcmp( Extra_FileNameExtension(pFileName), "cba" )  )
     {
@@ -249,12 +252,16 @@ int Cba_CommandWrite( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Cba_Man_t * p = Cba_AbcGetMan(pAbc);
     char * pFileName = NULL;
+    int fUseAssign   =    1;
     int c, fVerbose  =    0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "avh" ) ) != EOF )
     {
         switch ( c )
         {
+        case 'a':
+            fUseAssign ^= 1;
+            break;
         case 'v':
             fVerbose ^= 1;
             break;
@@ -282,7 +289,7 @@ int Cba_CommandWrite( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( !strcmp( Extra_FileNameExtension(pFileName), "blif" )  )
         Cba_ManWriteBlif( pFileName, p );
     else if ( !strcmp( Extra_FileNameExtension(pFileName), "v" )  )
-        Cba_ManWriteVerilog( pFileName, p );
+        Cba_ManWriteVerilog( pFileName, p, fUseAssign );
     else if ( !strcmp( Extra_FileNameExtension(pFileName), "cba" )  )
         Cba_ManWriteCba( pFileName, p );
     else 
@@ -292,8 +299,9 @@ int Cba_CommandWrite( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     return 0;
 usage:
-    Abc_Print( -2, "usage: @write [-vh]\n" );
+    Abc_Print( -2, "usage: @write [-avh]\n" );
     Abc_Print( -2, "\t         writes the design into a file in BLIF or Verilog\n" );
+    Abc_Print( -2, "\t-a     : toggle using assign-statement for primitives [default = %s]\n",  fUseAssign? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n",  fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
