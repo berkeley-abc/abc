@@ -345,7 +345,7 @@ int Cba_NtkDeriveFromPtr( Cba_Ntk_t * pNtk, Vec_Ptr_t * vNtk, Vec_Int_t * vMap, 
     }
     // update map
     Cba_NtkForEachCi( pNtk, iObj )
-        Vec_IntSetEntryFull( vMap, Cba_ObjName(pNtk, iObj), -1 );
+        Vec_IntSetEntryFull( vMap, Cba_ObjNameId(pNtk, iObj), -1 );
     // double check
     Vec_IntForEachEntry( vMap, iObj, i )
         assert( iObj == -1 );

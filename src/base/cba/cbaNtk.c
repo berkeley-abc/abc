@@ -323,7 +323,7 @@ void Cba_ManAssignInternWordNamesNtk( Cba_Ntk_t * p, Vec_Int_t * vMap )
         }
         else
         {
-            int Type = Cba_ObjType(p, iObj);
+            //int Type = Cba_ObjType(p, iObj);
             int Range = Cba_ObjIsPi(p, iObj) ? Cba_ObjPiRange(p, iObj) : Cba_BoxBoRange(p, iObj);
             iName = Cba_ManAssignInternTwo( p, nNames++, nDigits, Cba_ObjIsPi(p, iObj), vMap );
             if ( Range == 1 )
