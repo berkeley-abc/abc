@@ -286,8 +286,8 @@ static inline int            Cba_ObjFanin( Cba_Ntk_t * p, int i )            { a
 static inline int            Cba_ObjIndex( Cba_Ntk_t * p, int i )            { assert(Cba_ObjIsCio(p, i)); return Vec_IntEntry(&p->vIndex, i);                             }
 static inline int            Cba_ObjNameInt( Cba_Ntk_t * p, int i )          { assert(!Cba_ObjIsCo(p, i)); return Vec_IntEntry(&p->vName, i);                              }
 static inline int            Cba_ObjName( Cba_Ntk_t * p, int i )             { return Cba_ObjIsCo(p, i) ? Cba_ObjNameInt(p, Cba_ObjFanin(p,i)) : Cba_ObjNameInt(p, i);     }
-static inline Cba_NameType_t Cba_ObjNameType( Cba_Ntk_t * p, int i )         { assert(!Cba_ObjIsCo(p, i)); return Cba_NameType( Cba_ObjName(p, i) );                       }
-static inline int            Cba_ObjNameId( Cba_Ntk_t * p, int i )           { assert(!Cba_ObjIsCo(p, i)); return Abc_Lit2Var2( Cba_ObjName(p, i) );                       }
+static inline Cba_NameType_t Cba_ObjNameType( Cba_Ntk_t * p, int i )         { return Cba_NameType( Cba_ObjName(p, i) );                                                   }
+static inline int            Cba_ObjNameId( Cba_Ntk_t * p, int i )           { return Abc_Lit2Var2( Cba_ObjName(p, i) );                                                   }
 static inline char *         Cba_ObjNameStr( Cba_Ntk_t * p, int i )          { assert(Cba_ObjNameType(p, i) <= CBA_NAME_WORD); return Cba_NtkStr(p, Cba_ObjNameId(p, i));  }
 static inline int            Cba_ObjCopy( Cba_Ntk_t * p, int i )             { return Vec_IntEntry(&p->vCopy, i);                                                          }
 static inline int            Cba_ObjFanout( Cba_Ntk_t * p, int i )           { assert(Cba_ObjIsCi(p, i)); return Vec_IntEntry(&p->vFanout, i);                             }
