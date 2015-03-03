@@ -357,7 +357,6 @@ void Wlc_WriteVerInt( FILE * pFile, Wlc_Ntk_t * p )
     }
     Wlc_NtkForEachCi( p, pObj, i )
     {
-        char * pName  = Wlc_ObjName(p, Wlc_ObjId(p, pObj));
         assert( i == Wlc_ObjCiId(pObj) );
         if ( pObj->Type == WLC_OBJ_PI )
             continue;
@@ -368,13 +367,13 @@ void Wlc_WriteVerInt( FILE * pFile, Wlc_Ntk_t * p )
         else
             fprintf( pFile, "     " );
         fprintf( pFile, " reg%d (",       i );
-        fprintf( pFile, " .q( %s ),",      pName );
+        fprintf( pFile, " .q( %s ),",      Wlc_ObjName(p, Wlc_ObjId(p, pObj)) );
         fprintf( pFile, " .qbar()," );
         fprintf( pFile, " .d( %s ),",      Wlc_ObjName(p, Wlc_ObjId(p, Wlc_ObjFoToFi(p, pObj))) );
         fprintf( pFile, " .clk( %s ),",    "1\'b0" );
         fprintf( pFile, " .arst( %s ),",   "1\'b0" );
         if ( p->vInits )
-            fprintf( pFile, " .arstval( %s_init )", pName );
+            fprintf( pFile, " .arstval( %s_init )", Wlc_ObjName(p, Wlc_ObjId(p, pObj)) );
         else
             fprintf( pFile, " .arstval( %s )", "1\'b0" );
         fprintf( pFile, " ) ;\n" );
