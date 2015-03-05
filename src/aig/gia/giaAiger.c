@@ -662,10 +662,12 @@ Gia_Man_t * Gia_AigerReadFromMemory( char * pContents, int nFileSize, int fSkipS
             {
                 int i, nRegs;
                 pCur++;
-                nRegs = Gia_AigerReadInt(pCur)/4;                       pCur += 4;
+                pCurTemp = pCur + Gia_AigerReadInt(pCur) + 4;           pCur += 4;
+                nRegs = Gia_AigerReadInt(pCur);                         pCur += 4;
                 pNew->vRegClasses = Vec_IntAlloc( nRegs );
                 for ( i = 0; i < nRegs; i++ )
                     Vec_IntPush( pNew->vRegClasses, Gia_AigerReadInt(pCur) ), pCur += 4;
+                assert( pCur == pCurTemp );
                 if ( fVerbose ) printf( "Finished reading extension \"r\".\n" );
             }
             // read choices
@@ -1260,7 +1262,8 @@ void Gia_AigerWrite( Gia_Man_t * pInit, char * pFileName, int fWriteSymbols, int
     {
         int i;
         fprintf( pFile, "r" );
-        Gia_FileWriteBufferSize( pFile, 4*Vec_IntSize(p->vRegClasses) );
+        Gia_FileWriteBufferSize( pFile, 4*(Vec_IntSize(p->vRegClasses)+1) );
+        Gia_FileWriteBufferSize( pFile, Vec_IntSize(p->vRegClasses) );
         for ( i = 0; i < Vec_IntSize(p->vRegClasses); i++ )
             Gia_FileWriteBufferSize( pFile, Vec_IntEntry(p->vRegClasses, i) );
     }
