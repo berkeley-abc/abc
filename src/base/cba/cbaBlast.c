@@ -93,6 +93,7 @@ int Cba_ManAddBarbuf( Gia_Man_t * pNew, int iRes, Cba_Man_t * p, int iLNtk, int 
     if ( vMap && Abc_Lit2Var(iRes) < Vec_IntSize(vMap) && (iIdLit = Vec_IntEntry(vMap, Abc_Lit2Var(iRes))) >= 0 && 
         Vec_IntEntry(&p->vBuf2LeafNtk, Abc_Lit2Var(iIdLit)) == iLNtk && Vec_IntEntry(&p->vBuf2RootNtk, Abc_Lit2Var(iIdLit)) == iRNtk )
         return Abc_LitNotCond( Vec_IntEntry(pNew->vBarBufs, Abc_Lit2Var(iIdLit)), Abc_LitIsCompl(iRes) ^ Abc_LitIsCompl(iIdLit) );
+    assert( Cba_ManNtkIsOk(p, iLNtk) && Cba_ManNtkIsOk(p, iRNtk) );
     Vec_IntPush( &p->vBuf2LeafNtk, iLNtk );
     Vec_IntPush( &p->vBuf2LeafObj, iLObj );
     Vec_IntPush( &p->vBuf2RootNtk, iRNtk );
@@ -277,9 +278,9 @@ void Cba_ManMarkNodesGia( Cba_Man_t * p, Gia_Man_t * pGia )
 {
     Gia_Obj_t * pObj; int i, Count = 0;
     assert( Vec_IntSize(&p->vBuf2LeafNtk) == Gia_ManBufNum(pGia) );
-    Gia_ManConst0(pGia)->Value = 0;
+    Gia_ManConst0(pGia)->Value = 1;
     Gia_ManForEachPi( pGia, pObj, i )
-        pObj->Value = 0;
+        pObj->Value = 1;
     Gia_ManForEachAnd( pGia, pObj, i )
     {
         if ( Gia_ObjIsBuf(pObj) )
@@ -293,8 +294,8 @@ void Cba_ManMarkNodesGia( Cba_Man_t * p, Gia_Man_t * pGia )
     assert( Count == Gia_ManBufNum(pGia) );
     Gia_ManForEachPo( pGia, pObj, i )
     {
-        assert( Gia_ObjFanin0(pObj)->Value == 0 );
-        pObj->Value = 0;
+        assert( Gia_ObjFanin0(pObj)->Value == 1 );
+        pObj->Value = 1;
     }
 }
 void Cba_ManRemapBarbufs( Cba_Man_t * pNew, Cba_Man_t * p )
@@ -444,7 +445,7 @@ void Cba_ManMarkNodesAbc( Cba_Man_t * p, Abc_Ntk_t * pNtk )
     Abc_Obj_t * pObj, * pFanin; int i, k, Count = 0;
     assert( Vec_IntSize(&p->vBuf2LeafNtk) == pNtk->nBarBufs2 );
     Abc_NtkForEachPi( pNtk, pObj, i )
-        pObj->iTemp = 0;
+        pObj->iTemp = 1;
     Abc_NtkForEachNode( pNtk, pObj, i )
     {
         if ( Abc_ObjIsBarBuf(pObj) )
@@ -460,7 +461,7 @@ void Cba_ManMarkNodesAbc( Cba_Man_t * p, Abc_Ntk_t * pNtk )
     {
         if ( !Abc_NodeIsSeriousGate(Abc_ObjFanin0(pObj)) )
             continue;
-        assert( Abc_ObjFanin0(pObj)->iTemp == 0 );
+        assert( Abc_ObjFanin0(pObj)->iTemp == 1 );
         pObj->iTemp = Abc_ObjFanin0(pObj)->iTemp;
     }
     assert( Count == pNtk->nBarBufs2 );

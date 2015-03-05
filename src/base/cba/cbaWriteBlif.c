@@ -219,7 +219,7 @@ void Cba_ManWriteBlif( char * pFileName, Cba_Man_t * p )
         printf( "Cannot open output file \"%s\".\n", pFileName );
         return;
     }
-    fprintf( pFile, "# Design \"%s\" written by ABC on %s\n\n", Cba_ManName(p), Extra_TimeStamp() );
+    fprintf( pFile, "# Design \"%s\" written via CBA package in ABC on %s\n\n", Cba_ManName(p), Extra_TimeStamp() );
     Cba_ManAssignInternWordNames( p );
     Cba_ManForEachNtk( p, pNtk, i )
         Cba_ManWriteBlifNtk( pFile, pNtk );

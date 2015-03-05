@@ -397,7 +397,7 @@ static inline void Cba_ManWriteGate( Cba_Ntk_t * p, int iObj )
     char * pGateName = Abc_NamStr(p->pDesign->pMods, Cba_BoxNtkId(p, iObj));
     Mio_Library_t * pLib = (Mio_Library_t *)Abc_FrameReadLibGen( Abc_FrameGetGlobalFrame() );
     Mio_Gate_t * pGate = Mio_LibraryReadGateByName( pLib, pGateName, NULL );
-    Vec_StrPrintStr( vStr, " " );
+    Vec_StrPrintStr( vStr, "  " );
     Vec_StrPrintStr( vStr, pGateName );
     Vec_StrPrintStr( vStr, " " );
     Vec_StrPrintStr( vStr, Cba_ObjName(p, iObj) ? Cba_ObjNameStr(p, iObj) : "" );
@@ -669,6 +669,11 @@ void Cba_ManWriteVerilog( char * pFileName, Cba_Man_t * p, int fUseAssign )
     // derive the stream
     p->vOut = Vec_StrAlloc( 10000 );
     p->vOut2 = Vec_StrAlloc( 1000 );
+    Vec_StrPrintStr( p->vOut, "// Design \"" );
+    Vec_StrPrintStr( p->vOut, Cba_ManName(p) );
+    Vec_StrPrintStr( p->vOut, "\" written via CBA package in ABC on " );
+    Vec_StrPrintStr( p->vOut, Extra_TimeStamp() );
+    Vec_StrPrintStr( p->vOut, "\n\n" );
     Cba_ManAssignInternWordNames( p );
     Cba_ManForEachNtk( p, pNtk, i )
         Cba_ManWriteVerilogNtk( pNtk, fUseAssign );

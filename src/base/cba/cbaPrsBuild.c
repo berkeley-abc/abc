@@ -152,9 +152,10 @@ void Prs_ManRemapBoxes( Cba_Man_t * pNew, Vec_Ptr_t * vDes, Prs_Ntk_t * pNtk, Ve
         {
             int NtkId = Prs_BoxNtk( pNtk, iBox );
             int NtkIdNew = Cba_ManNtkFindId( pNew, Prs_NtkStr(pNtk, NtkId) );
+            assert( NtkIdNew > 0 );
             Prs_BoxSetNtk( pNtk, iBox, NtkIdNew );
-            if ( NtkIdNew < Cba_ManNtkNum(pNew) )
-                Prs_ManRemapOne( vSigs, Prs_ManNtk(vDes, NtkIdNew), vMap );
+            if ( NtkIdNew <= Cba_ManNtkNum(pNew) )
+                Prs_ManRemapOne( vSigs, Prs_ManNtk(vDes, NtkIdNew-1), vMap );
             //else
             //    Prs_ManRemapGate( vSigs );
         }
@@ -194,10 +195,10 @@ void Prs_ManBuildNtk( Cba_Ntk_t * pNew, Vec_Ptr_t * vDes, Prs_Ntk_t * pNtk, Vec_
     Prs_NtkForEachBox( pNtk, vSigs, iBox )
         if ( !Prs_BoxIsNode(pNtk, iBox) )
         {
-            pNtkBox = Prs_ManNtk( vDes, Prs_BoxNtk(pNtk, iBox) );
+            pNtkBox = Prs_ManNtk( vDes, Prs_BoxNtk(pNtk, iBox)-1 );
             if ( pNtkBox == NULL )
             {
-                iObj = Cba_BoxAlloc( pNew, CBA_BOX_GATE, Vec_IntSize(vSigs)/2-1, 1, Prs_BoxNtk(pNtk, iBox) + 1 ); // +1 to map NtkId into gate name
+                iObj = Cba_BoxAlloc( pNew, CBA_BOX_GATE, Vec_IntSize(vSigs)/2-1, 1, Prs_BoxNtk(pNtk, iBox) );
                 Cba_ObjSetName( pNew, iObj, Abc_Var2Lit2(Prs_BoxName(pNtk, iBox), CBA_NAME_BIN) );
                 // consider box output 
                 NameId = Vec_IntEntryLast( vSigs );
@@ -250,7 +251,7 @@ void Prs_ManBuildNtk( Cba_Ntk_t * pNew, Vec_Ptr_t * vDes, Prs_Ntk_t * pNtk, Vec_
     Prs_NtkForEachBox( pNtk, vSigs, iBox )
         if ( !Prs_BoxIsNode(pNtk, iBox) )
         {
-            pNtkBox = Prs_ManNtk( vDes, Prs_BoxNtk(pNtk, iBox) );
+            pNtkBox = Prs_ManNtk( vDes, Prs_BoxNtk(pNtk, iBox)-1 );
             iObj = Vec_IntEntry( vBoxes, iBox );
             if ( pNtkBox == NULL )
             {
@@ -352,16 +353,16 @@ Cba_Man_t * Prs_ManBuildCba( char * pFileName, Vec_Ptr_t * vDes )
     Abc_NamDeref( pNew->pStrs );
     pNew->pStrs = Abc_NamRef( pNtk->pStrs );  
     Vec_PtrForEachEntry( Prs_Ntk_t *, vDes, pNtk, i )
-        Cba_NtkAlloc( Cba_ManNtk(pNew, i), Prs_NtkId(pNtk), Prs_NtkPiNum(pNtk), Prs_NtkPoNum(pNtk), Prs_NtkCountObjects(pNtk) );
+        Cba_NtkAlloc( Cba_ManNtk(pNew, i+1), Prs_NtkId(pNtk), Prs_NtkPiNum(pNtk), Prs_NtkPoNum(pNtk), Prs_NtkCountObjects(pNtk) );
     if ( (pNtk->fMapped || (pNtk->fSlices && Prs_ManIsMapped(pNtk))) && !Cba_NtkBuildLibrary(pNew) )
         Cba_ManFree(pNew), pNew = NULL;
     else 
         Vec_PtrForEachEntry( Prs_Ntk_t *, vDes, pNtk, i )
-            Prs_ManBuildNtk( Cba_ManNtk(pNew, i), vDes, pNtk, vMap, vTmp );
+            Prs_ManBuildNtk( Cba_ManNtk(pNew, i+1), vDes, pNtk, vMap, vTmp );
     assert( Vec_IntCountEntry(vMap, -1) == Vec_IntSize(vMap) );
     Vec_IntFree( vMap );
     Vec_IntFree( vTmp );
-//    Vec_StrPrint( &Cba_ManNtk(pNew, 0)->vType, 1 );
+//    Vec_StrPrint( &Cba_ManNtk(pNew, 1)->vType, 1 );
     return pNew;
 }
 

@@ -269,7 +269,7 @@ int Ptr_ManCountNtk( Vec_Ptr_t * vNtk )
 int Cba_BoxCountOutputs( Cba_Ntk_t * pNtk, char * pBoxNtk )
 {
     int ModuleId = Cba_ManNtkFindId( pNtk->pDesign, pBoxNtk );
-    if ( ModuleId == -1 )
+    if ( ModuleId == 0 )
         return 1;
     return Cba_NtkPoNumAlloc( Cba_ManNtk(pNtk->pDesign, ModuleId) );
 }
@@ -306,7 +306,7 @@ int Cba_NtkDeriveFromPtr( Cba_Ntk_t * pNtk, Vec_Ptr_t * vNtk, Vec_Int_t * vMap, 
         assert( Vec_PtrSize(vBox) % 2 == 0 );
         assert( nOutputs > 0 && 2*(nOutputs + 1) <= Vec_PtrSize(vBox) );
         iObj = Cba_BoxAlloc( pNtk, Ptr_NameToType(pBoxNtk), nInputs, nOutputs, NtkId );
-        if ( NtkId >= 0 )
+        if ( NtkId > 0 )
             Cba_NtkSetHost( Cba_ManNtk(pNtk->pDesign, NtkId), Cba_NtkId(pNtk), iObj );
         Cba_ObjSetName( pNtk, iObj, Abc_Var2Lit2(Abc_NamStrFindOrAdd(pNtk->pDesign->pStrs, pBoxName, NULL), CBA_NAME_BIN) );
         Cba_BoxForEachBo( pNtk, iObj, iTerm, k )
@@ -362,7 +362,7 @@ Cba_Man_t * Cba_PtrTransformToCba( Vec_Ptr_t * vDes )
     Cba_Ntk_t * pNtk; int i;
     Cba_ManForEachNtk( pNew, pNtk, i )
     {
-        Vec_Ptr_t * vNtk = (Vec_Ptr_t *)Vec_PtrEntry(vDes, i+1);
+        Vec_Ptr_t * vNtk = (Vec_Ptr_t *)Vec_PtrEntry(vDes, i);
         Vec_Ptr_t * vInputs = (Vec_Ptr_t *)Vec_PtrEntry(vNtk, 1);
         Vec_Ptr_t * vOutputs = (Vec_Ptr_t *)Vec_PtrEntry(vNtk, 2);
         int NameId = Abc_NamStrFindOrAdd( pNew->pStrs, (char *)Vec_PtrEntry(vNtk, 0), NULL );
@@ -372,11 +372,11 @@ Cba_Man_t * Cba_PtrTransformToCba( Vec_Ptr_t * vDes )
     // parse the networks
     Cba_ManForEachNtk( pNew, pNtk, i )
     {
-        Vec_Ptr_t * vNtk = (Vec_Ptr_t *)Vec_PtrEntry(vDes, i+1);
+        Vec_Ptr_t * vNtk = (Vec_Ptr_t *)Vec_PtrEntry(vDes, i);
         if ( !Cba_NtkDeriveFromPtr( pNtk, vNtk, vMap, vBox2Id ) )
             break;
     }
-    if ( i < Cba_ManNtkNum(pNew) )
+    if ( i <= Cba_ManNtkNum(pNew) )
        Cba_ManFree(pNew), pNew = NULL;
     Vec_IntFree( vBox2Id );
     Vec_IntFree( vMap );
@@ -400,8 +400,8 @@ Vec_Ptr_t * Cba_NtkTransformToPtrBox( Cba_Ntk_t * p, int iBox )
     int i, iTerm, fUser = Cba_ObjIsBoxUser( p, iBox );
     Cba_Ntk_t * pBoxNtk = Cba_BoxNtk( p, iBox );
     Mio_Library_t * pLib = (Mio_Library_t *)p->pDesign->pMioLib;
-    Mio_Gate_t * pGate = Mio_LibraryReadGateByName( pLib, Cba_BoxNtkName(p, iBox), NULL );
-    Vec_Ptr_t * vBox = Vec_PtrAllocExact( Cba_BoxSize(p, iBox) );
+    Mio_Gate_t * pGate = pLib ? Mio_LibraryReadGateByName( pLib, Cba_BoxNtkName(p, iBox), NULL ) : NULL;
+    Vec_Ptr_t * vBox = Vec_PtrAllocExact( 2*Cba_BoxSize(p, iBox) );
     Vec_PtrPush( vBox, Cba_BoxNtkName(p, iBox) );
     Vec_PtrPush( vBox, Cba_ObjNameStr(p, iBox) );
     Cba_BoxForEachBi( p, iBox, iTerm, i )
@@ -462,6 +462,11 @@ Vec_Ptr_t * Cba_PtrDeriveFromCba( Cba_Man_t * p )
     Cba_Ntk_t * pTemp; int i;
     if ( p == NULL )
         return NULL;
+    if ( p->pMioLib == NULL )
+    {
+        printf( "Cannot transform CBA network into Ptr because it is not mapped.\n" );
+        return NULL;
+    }
     Cba_ManAssignInternWordNames( p );
     vDes = Vec_PtrAllocExact( 1 + Cba_ManNtkNum(p) );
     Vec_PtrPush( vDes, p->pName );

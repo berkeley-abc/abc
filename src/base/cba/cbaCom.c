@@ -144,14 +144,17 @@ int Cba_CommandRead( Abc_Frame_t * pAbc, int argc, char ** argv )
     Cba_Man_t * p = NULL;
     Vec_Ptr_t * vDes = NULL;
     char * pFileName = NULL;
-    int c, fUseAbc = 0, fVerbose  =    0;
+    int c, fUseAbc = 0, fUsePtr = 0, fVerbose  =    0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "avh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "apvh" ) ) != EOF )
     {
         switch ( c )
         {
         case 'a':
             fUseAbc ^= 1;
+            break;
+        case 'p':
+            fUsePtr ^= 1;
             break;
         case 'v':
             fVerbose ^= 1;
@@ -179,7 +182,7 @@ int Cba_CommandRead( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     fclose( pFile );
     // perform reading
-    if ( fUseAbc )
+    if ( fUseAbc || fUsePtr )
     {
         extern Vec_Ptr_t * Ptr_AbcDeriveDes( Abc_Ntk_t * pNtk );
         Abc_Ntk_t * pAbcNtk = Io_ReadNetlist( pFileName, Io_ReadFileType(pFileName), 0 );
@@ -229,9 +232,10 @@ int Cba_CommandRead( Abc_Frame_t * pAbc, int argc, char ** argv )
     Cba_AbcUpdateMan( pAbc, p );
     return 0;
 usage:
-    Abc_Print( -2, "usage: @read [-avh] <file_name>\n" );
+    Abc_Print( -2, "usage: @read [-apvh] <file_name>\n" );
     Abc_Print( -2, "\t         reads hierarchical design in BLIF or Verilog\n" );
     Abc_Print( -2, "\t-a     : toggle using old ABC parser [default = %s]\n", fUseAbc? "yes": "no" );
+    Abc_Print( -2, "\t-p     : toggle using Ptr construction [default = %s]\n", fUsePtr? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
@@ -253,14 +257,18 @@ int Cba_CommandWrite( Abc_Frame_t * pAbc, int argc, char ** argv )
     Cba_Man_t * p = Cba_AbcGetMan(pAbc);
     char * pFileName = NULL;
     int fUseAssign   =    1;
+    int fUsePtr      =    0; 
     int c, fVerbose  =    0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "avh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "apvh" ) ) != EOF )
     {
         switch ( c )
         {
         case 'a':
             fUseAssign ^= 1;
+            break;
+        case 'p':
+            fUsePtr ^= 1;
             break;
         case 'v':
             fVerbose ^= 1;
@@ -289,7 +297,21 @@ int Cba_CommandWrite( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( !strcmp( Extra_FileNameExtension(pFileName), "blif" )  )
         Cba_ManWriteBlif( pFileName, p );
     else if ( !strcmp( Extra_FileNameExtension(pFileName), "v" )  )
-        Cba_ManWriteVerilog( pFileName, p, fUseAssign );
+    {
+        if ( fUsePtr )
+        {
+            Vec_Ptr_t * vPtr = Cba_PtrDeriveFromCba( p );
+            if ( vPtr == NULL )
+                printf( "Converting to Ptr has failed.\n" );
+            else
+            {
+                Cba_PtrDumpVerilog( pFileName, vPtr );
+                Cba_PtrFree( vPtr ); 
+            }
+        }
+        else
+            Cba_ManWriteVerilog( pFileName, p, fUseAssign );        
+    }
     else if ( !strcmp( Extra_FileNameExtension(pFileName), "cba" )  )
         Cba_ManWriteCba( pFileName, p );
     else 
@@ -299,9 +321,10 @@ int Cba_CommandWrite( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     return 0;
 usage:
-    Abc_Print( -2, "usage: @write [-avh]\n" );
+    Abc_Print( -2, "usage: @write [-apvh]\n" );
     Abc_Print( -2, "\t         writes the design into a file in BLIF or Verilog\n" );
     Abc_Print( -2, "\t-a     : toggle using assign-statement for primitives [default = %s]\n",  fUseAssign? "yes": "no" );
+    Abc_Print( -2, "\t-p     : toggle using Ptr construction (mapped Verilog only) [default = %s]\n", fUsePtr? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n",  fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;

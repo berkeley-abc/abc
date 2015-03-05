@@ -350,8 +350,8 @@ int Cba_ObjClpMemory( Cba_Ntk_t * p, int iBox )
         // collect address
     }
     // for each fanout of RAMBOX, makes ure address width is the same
-    Cba_BoxForEachFanoutBox( p, iBox, iNext, i )
-        assert( Cba_ObjType(p, iNext) == CBA_BOX_RAMR );
+//    Cba_BoxForEachFanoutBox( p, iBox, iNext, i )
+//        assert( Cba_ObjType(p, iNext) == CBA_BOX_RAMR );
     // create selectors and connect them
     return 1;
 }

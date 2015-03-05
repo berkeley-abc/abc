@@ -198,9 +198,73 @@ void Cba_PtrDumpBlif( char * pFileName, Vec_Ptr_t * vDes )
         printf( "Cannot open output file \"%s\".\n", pFileName );
         return;
     }
-    fprintf( pFile, "// Design \"%s\" written by ABC on %s\n\n", (char *)Vec_PtrEntry(vDes, 0), Extra_TimeStamp() );
+    fprintf( pFile, "// Design \"%s\" written via Ptr in ABC on %s\n\n", (char *)Vec_PtrEntry(vDes, 0), Extra_TimeStamp() );
     Vec_PtrForEachEntryStart( Vec_Ptr_t *, vDes, vNtk, i, 1 )
         Cba_PtrDumpModuleBlif( pFile, vNtk );
+    fclose( pFile );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Dumping Ptr into a Verilog file.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Cba_PtrDumpSignalsVerilog( FILE * pFile, Vec_Ptr_t * vSigs, int fAlwaysComma )
+{
+    char * pSig; int i;
+    Vec_PtrForEachEntry( char *, vSigs, pSig, i )
+        fprintf( pFile, " %s%s", pSig, (fAlwaysComma || i < Vec_PtrSize(vSigs) - 1) ? ",":"" );
+}
+void Cba_PtrDumpBoxVerilog( FILE * pFile, Vec_Ptr_t * vBox )
+{
+    char * pName; int i;
+    fprintf( pFile, "  %s", (char *)Vec_PtrEntry(vBox, 0) );
+    fprintf( pFile, " %s (", (char *)Vec_PtrEntry(vBox, 1) ); // write intance name in Verilog
+    Vec_PtrForEachEntryStart( char *, vBox, pName, i, 2 )
+        fprintf( pFile, ".%s(%s)%s", pName, (char *)Vec_PtrEntry(vBox, i+1), i < Vec_PtrSize(vBox) - 2 ? ", ":"" ), i++;
+    fprintf( pFile, ");\n" );
+}
+void Cba_PtrDumpBoxesVerilog( FILE * pFile, Vec_Ptr_t * vBoxes )
+{
+    Vec_Ptr_t * vBox; int i;
+    Vec_PtrForEachEntry( Vec_Ptr_t *, vBoxes, vBox, i )
+        Cba_PtrDumpBoxVerilog( pFile, vBox );
+}
+void Cba_PtrDumpModuleVerilog( FILE * pFile, Vec_Ptr_t * vNtk )
+{
+    fprintf( pFile, "module %s (\n    ", (char *)Vec_PtrEntry(vNtk, 0) );
+    Cba_PtrDumpSignalsVerilog( pFile, (Vec_Ptr_t *)Vec_PtrEntry(vNtk, 1), 1 );
+    Cba_PtrDumpSignalsVerilog( pFile, (Vec_Ptr_t *)Vec_PtrEntry(vNtk, 2), 0 );
+    fprintf( pFile, "\n  );\n" );
+    fprintf( pFile, "  input" );
+    Cba_PtrDumpSignalsVerilog( pFile, (Vec_Ptr_t *)Vec_PtrEntry(vNtk, 1), 0 );
+    fprintf( pFile, ";\n" );
+    fprintf( pFile, "  output" );
+    Cba_PtrDumpSignalsVerilog( pFile, (Vec_Ptr_t *)Vec_PtrEntry(vNtk, 2), 0 );
+    fprintf( pFile, ";\n" );
+    assert( Vec_PtrSize((Vec_Ptr_t *)Vec_PtrEntry(vNtk, 3)) == 0 ); // no nodes; only boxes
+    Cba_PtrDumpBoxesVerilog( pFile, (Vec_Ptr_t *)Vec_PtrEntry(vNtk, 4) );
+    fprintf( pFile, "endmodule\n\n" );
+}
+void Cba_PtrDumpVerilog( char * pFileName, Vec_Ptr_t * vDes )
+{
+    FILE * pFile;
+    Vec_Ptr_t * vNtk; int i;
+    pFile = fopen( pFileName, "wb" );
+    if ( pFile == NULL )
+    {
+        printf( "Cannot open output file \"%s\".\n", pFileName );
+        return;
+    }
+    fprintf( pFile, "// Design \"%s\" written via Ptr in ABC on %s\n\n", (char *)Vec_PtrEntry(vDes, 0), Extra_TimeStamp() );
+    Vec_PtrForEachEntryStart( Vec_Ptr_t *, vDes, vNtk, i, 1 )
+        Cba_PtrDumpModuleVerilog( pFile, vNtk );
     fclose( pFile );
 }
 

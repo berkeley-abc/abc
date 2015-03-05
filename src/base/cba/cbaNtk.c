@@ -341,30 +341,33 @@ void Cba_ManAssignInternWordNamesNtk( Cba_Ntk_t * p, Vec_Int_t * vMap )
         }
     }
     // transfer names to the interface
-    for ( k = 0; k < Cba_NtkInfoNum(p); k++ )
+    if ( Cba_NtkInfoNum(p) )
     {
-        //char * pName = Cba_NtkName(p);
-        if ( Cba_NtkInfoType(p, k) == 1 ) // PI
+        for ( k = 0; k < Cba_NtkInfoNum(p); k++ )
         {
-            iObj = Cba_NtkPi(p, nPis);
-            assert( !Cba_ObjBit(p, iObj) );
-            assert( Cba_ObjNameType(p, iObj) <= CBA_NAME_WORD );
-            Cba_NtkSetInfoName( p, k, Abc_Var2Lit2(Cba_ObjNameId(p, iObj), 1) );
-            nPis += Cba_NtkInfoRange(p, k);
+            //char * pName = Cba_NtkName(p);
+            if ( Cba_NtkInfoType(p, k) == 1 ) // PI
+            {
+                iObj = Cba_NtkPi(p, nPis);
+                assert( !Cba_ObjBit(p, iObj) );
+                assert( Cba_ObjNameType(p, iObj) <= CBA_NAME_WORD );
+                Cba_NtkSetInfoName( p, k, Abc_Var2Lit2(Cba_ObjNameId(p, iObj), 1) );
+                nPis += Cba_NtkInfoRange(p, k);
+            }
+            else if ( Cba_NtkInfoType(p, k) == 2 ) // PO
+            {
+                iObj = Cba_NtkPo(p, nPos);
+                assert( !Cba_ObjBit(p, iObj) );
+                iObj = Cba_ObjFanin(p, iObj);
+                assert( Cba_ObjNameType(p, iObj) <= CBA_NAME_WORD );
+                Cba_NtkSetInfoName( p, k, Abc_Var2Lit2(Cba_ObjNameId(p, iObj), 2) );
+                nPos += Cba_NtkInfoRange(p, k);
+            }
+            else assert( 0 );
         }
-        else if ( Cba_NtkInfoType(p, k) == 2 ) // PO
-        {
-            iObj = Cba_NtkPo(p, nPos);
-            assert( !Cba_ObjBit(p, iObj) );
-            iObj = Cba_ObjFanin(p, iObj);
-            assert( Cba_ObjNameType(p, iObj) <= CBA_NAME_WORD );
-            Cba_NtkSetInfoName( p, k, Abc_Var2Lit2(Cba_ObjNameId(p, iObj), 2) );
-            nPos += Cba_NtkInfoRange(p, k);
-        }
-        else assert( 0 );
+        assert( nPis == Cba_NtkPiNum(p) );
+        assert( nPos == Cba_NtkPoNum(p) );
     }
-    assert( nPis == Cba_NtkPiNum(p) );
-    assert( nPos == Cba_NtkPoNum(p) );
     // assign instance names
     nDigits = Abc_Base10Log( Cba_NtkObjNum(p) );
     Cba_NtkForEachBox( p, iObj )
@@ -388,7 +391,7 @@ void Cba_ManAssignInternWordNamesNtk( Cba_Ntk_t * p, Vec_Int_t * vMap )
 }
 void Cba_ManAssignInternWordNames( Cba_Man_t * p )
 {
-    Vec_Int_t * vMap = Vec_IntStart( Cba_ManObjNum(p) );
+    Vec_Int_t * vMap = Vec_IntStart( 2*Cba_ManObjNum(p) );
     Cba_Ntk_t * pNtk; int i;
     Cba_ManForEachNtk( p, pNtk, i )
         Cba_ManAssignInternWordNamesNtk( pNtk, vMap );
@@ -569,6 +572,8 @@ Cba_Man_t * Cba_ManCollapse( Cba_Man_t * p )
     Cba_Ntk_t * pRoot = Cba_ManRoot( p );
     Cba_Ntk_t * pRootNew = Cba_ManRoot( pNew );
     Cba_NtkAlloc( pRootNew, Cba_NtkNameId(pRoot), Cba_NtkPiNum(pRoot), Cba_NtkPoNum(pRoot), Cba_ManClpObjNum(p) );
+    if ( Vec_IntSize(&pRoot->vInfo) )
+        Vec_IntAppend( &pRootNew->vInfo, &pRoot->vInfo );
     Cba_NtkForEachPi( pRoot, iObj, i )
         Vec_IntPush( vSigs, Cba_ObjAlloc(pRootNew, CBA_OBJ_PI, -1) );
     Cba_NtkCollapse_rec( pRootNew, pRoot, vSigs );
@@ -582,10 +587,10 @@ Cba_Man_t * Cba_ManCollapse( Cba_Man_t * p )
     {
         Cba_NtkStartNames( pRootNew );
         Cba_NtkForEachPi( pRoot, iObj, i )
-            Cba_ObjSetName( pRootNew, Cba_NtkPi(pRootNew, i), Cba_ObjNameId(pRoot, iObj) );
+            Cba_ObjSetName( pRootNew, Cba_NtkPi(pRootNew, i), Cba_ObjName(pRoot, iObj) );
         Cba_NtkForEachPoDriver( pRoot, iObj, i )
             if ( !Cba_ObjIsPi(pRoot, iObj) )
-                Cba_ObjSetName( pRootNew, Cba_ObjCopy(pRoot, iObj), Cba_ObjNameId(pRoot, iObj) );
+                Cba_ObjSetName( pRootNew, Cba_ObjCopy(pRoot, iObj), Cba_ObjName(pRoot, iObj) );
     }
     return pNew;
 }
