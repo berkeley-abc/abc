@@ -13,6 +13,7 @@ SRC +=    src/sat/bmc/bmcBCore.c \
     src/sat/bmc/bmcChain.c \
     src/sat/bmc/bmcEco.c \
     src/sat/bmc/bmcFault.c \
+    src/sat/bmc/bmcFx.c \
     src/sat/bmc/bmcICheck.c \
     src/sat/bmc/bmcInse.c \
     src/sat/bmc/bmcLoad.c \
