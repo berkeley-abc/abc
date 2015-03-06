@@ -558,7 +558,7 @@ int Bmc_FxCompute( Gia_Man_t * p )
     int nOuts = Gia_ManCoNum(p);
     int nCiVars = Gia_ManCiNum(p), iCiVarBeg = pCnf->nVars - nCiVars;// - 1;
     int o, i, n, RetValue, nCounter, iAuxVarStart = sat_solver_nvars( pSat );
-    int nCubes[2][2] = {0};
+    int nCubes[2][2] = {{0}};
     // create variables
     Vec_Int_t * vVars = Vec_IntAlloc( nCiVars );
     for ( n = 0; n < nCiVars; n++ )
