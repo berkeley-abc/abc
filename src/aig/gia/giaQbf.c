@@ -75,7 +75,7 @@ int Gia_ManSatEnum( Gia_Man_t * pGia, int nConfLimit, int nTimeOut, int fVerbose
     abctime clkStart = Abc_Clock();
     pCnf = Mf_ManGenerateCnf( pGia, 8, 0, 1, 0 );
     pSat = (sat_solver *)Cnf_DataWriteIntoSolver( pCnf, 1, 0 );
-    iParVarBeg = pCnf->nVars - Gia_ManPiNum(pGia) - 1;
+    iParVarBeg = pCnf->nVars - Gia_ManPiNum(pGia);// - 1;
     Cnf_DataFree( pCnf );
     // iterate through the SAT assignment
     vLits = Vec_IntAlloc( Gia_ManPiNum(pGia) );
@@ -180,7 +180,7 @@ Qbf_Man_t * Gia_QbfAlloc( Gia_Man_t * pGia, int nPars, int fVerbose )
     p->nPars      = nPars;
     p->nVars      = Gia_ManPiNum(pGia) - nPars;
     p->fVerbose   = fVerbose;
-    p->iParVarBeg = pCnf->nVars - Gia_ManPiNum(pGia) - 1;
+    p->iParVarBeg = pCnf->nVars - Gia_ManPiNum(pGia);// - 1;
     p->pSatVer    = (sat_solver *)Cnf_DataWriteIntoSolver( pCnf, 1, 0 );
     p->pSatSyn    = sat_solver_new();
     p->vValues    = Vec_IntAlloc( Gia_ManPiNum(pGia) );
@@ -280,7 +280,7 @@ Gia_Man_t * Gia_QbfCofactor( Gia_Man_t * p, int nPars, Vec_Int_t * vValues, Vec_
 int Gia_QbfAddCofactor( Qbf_Man_t * p, Gia_Man_t * pCof )
 {
     Cnf_Dat_t * pCnf = Mf_ManGenerateCnf( pCof, 8, 0, 1, 0 );
-    int i, iFirstVar = sat_solver_nvars(p->pSatSyn) + pCnf->nVars - Gia_ManPiNum(pCof) - 1;
+    int i, iFirstVar = sat_solver_nvars(p->pSatSyn) + pCnf->nVars - Gia_ManPiNum(pCof);// - 1;
     pCnf->pMan = NULL;
     Cnf_DataLift( pCnf, sat_solver_nvars(p->pSatSyn) );
     for ( i = 0; i < pCnf->nClauses; i++ )

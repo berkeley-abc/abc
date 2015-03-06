@@ -54,10 +54,11 @@ void * If_ManSatBuildXY( int nLutSize )
     sat_solver_setnvars( p, nVars );
     for ( m = 0; m < nMintsF; m++ )
         sat_solver_add_mux( p, 
+            iVarM  + m, 
             iVarP0 + m % nMintsL, 
             iVarP1 + 2 * (m / nMintsL) + 1, 
             iVarP1 + 2 * (m / nMintsL), 
-            iVarM + m );
+            0, 0, 0, 0 );
     return p;
 }
 void * If_ManSatBuildXYZ( int nLutSize )
@@ -73,13 +74,13 @@ void * If_ManSatBuildXYZ( int nLutSize )
     sat_solver_setnvars( p, nVars );
     for ( m = 0; m < nMintsF; m++ )
         sat_solver_add_mux41( p, 
+            iVarM  + m,
             iVarP0 + m % nMintsL, 
             iVarP1 + (m >> nLutSize) % nMintsL, 
             iVarP2 + 4 * (m >> (2 * nLutSize)) + 0, 
             iVarP2 + 4 * (m >> (2 * nLutSize)) + 1, 
             iVarP2 + 4 * (m >> (2 * nLutSize)) + 2, 
-            iVarP2 + 4 * (m >> (2 * nLutSize)) + 3, 
-            iVarM + m );
+            iVarP2 + 4 * (m >> (2 * nLutSize)) + 3 );
     return p;
 }
 void If_ManSatUnbuild( void * p )

@@ -346,9 +346,9 @@ Cnf_Dat_t * Mf_ManDeriveCnf( Mf_Man_t * p, int fCnfObjIds, int fAddOrCla )
         Gia_ManForEachAndReverseId( p->pGia, Id )
             if ( Mf_ObjMapRefNum(p, Id) )
                 Vec_IntWriteEntry( vCnfIds, Id, Id ), iVar++;
+        Vec_IntWriteEntry( vCnfIds, 0, 0 );
         Gia_ManForEachCiId( p->pGia, Id, i )
             Vec_IntWriteEntry( vCnfIds, Id, Id );
-        Vec_IntWriteEntry( vCnfIds, 0, 0 );
         assert( iVar == nVars );
     }
     else
@@ -358,9 +358,9 @@ Cnf_Dat_t * Mf_ManDeriveCnf( Mf_Man_t * p, int fCnfObjIds, int fAddOrCla )
         Gia_ManForEachAndReverseId( p->pGia, Id )
             if ( Mf_ObjMapRefNum(p, Id) )
                 Vec_IntWriteEntry( vCnfIds, Id, iVar++ );
+        Vec_IntWriteEntry( vCnfIds, 0, iVar++ );
         Gia_ManForEachCiId( p->pGia, Id, i )
             Vec_IntWriteEntry( vCnfIds, Id, iVar++ );
-        Vec_IntWriteEntry( vCnfIds, 0, iVar++ );
         assert( iVar == nVars );
     }
     // generate CNF

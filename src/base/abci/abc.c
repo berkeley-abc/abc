@@ -437,6 +437,7 @@ static int Abc_CommandAbc9ICheck             ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandAbc9SatTest            ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9FFTest             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Qbf                ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9SatFx              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Inse               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Maxi               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Bmci               ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -1043,6 +1044,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "ABC9",         "&sattest",      Abc_CommandAbc9SatTest,      0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&fftest",       Abc_CommandAbc9FFTest,       0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&qbf",          Abc_CommandAbc9Qbf,          0 );
+    Cmd_CommandAdd( pAbc, "ABC9",         "&satfx",        Abc_CommandAbc9SatFx,        0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&inse",         Abc_CommandAbc9Inse,         0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&maxi",         Abc_CommandAbc9Maxi,         0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&bmci",         Abc_CommandAbc9Bmci,         0 );
@@ -36533,6 +36535,72 @@ usage:
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
 }
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc9SatFx( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern int Bmc_FxCompute( Gia_Man_t * p );
+    extern int Bmc_FxComputeOne( Gia_Man_t * p );
+    int c, nFrames = 1000, fDec = 0, fVerbose = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Fdvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'F':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-F\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nFrames = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nFrames < 0 )
+                goto usage;
+            break;
+        case 'd':
+            fDec ^= 1;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pAbc->pGia == NULL )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9SatFx(): There is no AIG.\n" );
+        return 0;
+    }
+    if ( fDec )
+        Bmc_FxComputeOne( pAbc->pGia );
+    else
+        Bmc_FxCompute( pAbc->pGia );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: &satfx [-F num] [-dvh]\n" );
+    Abc_Print( -2, "\t         performs SAT based shared logic extraction\n" );
+    Abc_Print( -2, "\t-F num : the number of timeframes [default = %d]\n",             nFrames );
+    Abc_Print( -2, "\t-d     : toggles decomposing the first output [default = %s]\n", fDec? "yes": "no" );
+    Abc_Print( -2, "\t-v     : toggles printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
+    return 1;
+}
+
 
 /**Function*************************************************************
 

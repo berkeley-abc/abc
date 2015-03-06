@@ -138,7 +138,6 @@ static inline Cnf_Dat_t * Cnf_DeriveGiaRemapped( Gia_Man_t * p )
 int Bmc_EcoSolve( sat_solver * pSat, int Root, Vec_Int_t * vVars )
 {
     int nBTLimit = 1000000;
-    Vec_Int_t * vValues = Vec_IntAlloc( Vec_IntSize(vVars) );
     Vec_Int_t * vLits   = Vec_IntAlloc( Vec_IntSize(vVars) );
     int status, i, Div, iVar, nFinal, * pFinal, nIter = 0, RetValue = 0;
     int pLits[2], nVars = sat_solver_nvars( pSat );
@@ -154,10 +153,6 @@ int Bmc_EcoSolve( sat_solver * pSat, int Root, Vec_Int_t * vVars )
         if ( status == l_False )
             { RetValue = 1; break; }
         assert( status == l_True );
-        // remember variable values
-        Vec_IntClear( vValues );
-        Vec_IntForEachEntry( vVars, iVar, i )
-            Vec_IntPush( vValues, sat_solver_var_value(pSat, iVar) );
         // collect divisor literals
         Vec_IntClear( vLits );
         Vec_IntPush( vLits, Abc_LitNot(pLits[0]) ); // F = 0
@@ -189,7 +184,6 @@ int Bmc_EcoSolve( sat_solver * pSat, int Root, Vec_Int_t * vVars )
         nIter++;
     }
 //    assert( status == l_True );
-    Vec_IntFree( vValues );
     Vec_IntFree( vLits );
     return RetValue;
 }
