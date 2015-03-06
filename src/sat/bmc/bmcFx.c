@@ -391,6 +391,7 @@ Vec_Int_t * Div_CubePairs( Vec_Wec_t * p, int nVars, int nDivs )
 int Bmc_FxSolve( sat_solver * pSat, int iOut, int iAuxVar, Vec_Int_t * vVars, int fDumpPla, int fVerbose, int * pCounter, Vec_Wec_t * vCubes )
 {
     int nBTLimit = 1000000;
+    int fUseOrder = 1;
     Vec_Int_t * vLevel  = NULL;
     Vec_Int_t * vLits   = Vec_IntAlloc( Vec_IntSize(vVars) );
     Vec_Int_t * vLits2  = Vec_IntAlloc( Vec_IntSize(vVars) );
@@ -417,72 +418,117 @@ int Bmc_FxSolve( sat_solver * pSat, int iOut, int iAuxVar, Vec_Int_t * vVars, in
         // collect divisor literals
         Vec_IntClear( vLits );
         Vec_IntPush( vLits, Abc_LitNot(pLits[0]) ); // F = 0
-        Vec_IntForEachEntryReverse( vVars, iVar, i )
-//        Vec_IntForEachEntry( vVars, iVar, i )
+//        Vec_IntForEachEntryReverse( vVars, iVar, i )
+        Vec_IntForEachEntry( vVars, iVar, i )
             Vec_IntPush( vLits, sat_solver_var_literal(pSat, iVar) );
-        // check against offset
-        status = sat_solver_solve( pSat, Vec_IntArray(vLits), Vec_IntArray(vLits) + Vec_IntSize(vLits), nBTLimit, 0, 0, 0 );
-        if ( status == l_Undef )
-            { RetValue = -1; break; }
-        if ( status == l_True )
-            break;
-        assert( status == l_False );
-        // get subset of literals
-        nFinal = sat_solver_final( pSat, &pFinal );
-        Before = nFinal;
-        //printf( "Before %d. ", nFinal );
 
-/*
-        // save these literals
-        Vec_IntClear( vLits );
-        for ( i = 0; i < nFinal; i++ )
-            Vec_IntPush( vLits, Abc_LitNot(pFinal[i]) );
-        Vec_IntReverseOrder( vLits );
-
-        // make one final run
-        status = sat_solver_solve( pSat, Vec_IntArray(vLits), Vec_IntArray(vLits) + Vec_IntSize(vLits), nBTLimit, 0, 0, 0 );
-        assert( status == l_False );
-        nFinal = sat_solver_final( pSat, &pFinal );
-*/
-
-        // save these literals
-        Vec_IntClear( vLits2 );
-        for ( i = 0; i < nFinal; i++ )
-            Vec_IntPush( vLits2, Abc_LitNot(pFinal[i]) );
-        Vec_IntSort( vLits2, 1 );
-
-        // try removing literals from the cube
-        Vec_IntForEachEntry( vLits2, Lit2, k )
+        if ( fUseOrder )
         {
-            if ( Lit2 == Abc_LitNot(pLits[0]) )
-                continue;
+            //////////////////////////////////////////////////////////////
+            // save these literals
+            Vec_IntClear( vLits2 );
+            Vec_IntAppend( vLits2, vLits );
+            Before = Vec_IntSize(vLits2);
+
+            // try removing literals from the cube
+            Vec_IntForEachEntry( vLits2, Lit2, k )
+            {
+                if ( Lit2 == Abc_LitNot(pLits[0]) )
+                    continue;
+                Vec_IntClear( vLits );
+                Vec_IntForEachEntry( vLits2, Lit, n )
+                    if ( Lit != -1 && Lit != Lit2 )
+                        Vec_IntPush( vLits, Lit );
+                // call sat
+                status = sat_solver_solve( pSat, Vec_IntArray(vLits), Vec_IntArray(vLits) + Vec_IntSize(vLits), nBTLimit, 0, 0, 0 );
+                if ( status == l_Undef )
+                    assert( 0 );
+                if ( status == l_True ) // SAT
+                    continue;
+                // Lit2 can be removed
+                Vec_IntWriteEntry( vLits2, k, -1 );
+            }
+
+            // make one final run
             Vec_IntClear( vLits );
-            Vec_IntForEachEntry( vLits2, Lit, n )
-                if ( Lit != -1 && Lit != Lit2 )
-                    Vec_IntPush( vLits, Lit );
-            // call sat
+            Vec_IntForEachEntry( vLits2, Lit2, k )
+                if ( Lit2 != -1 )
+                    Vec_IntPush( vLits, Lit2 );
+            status = sat_solver_solve( pSat, Vec_IntArray(vLits), Vec_IntArray(vLits) + Vec_IntSize(vLits), nBTLimit, 0, 0, 0 );
+            assert( status == l_False );
+
+            // get subset of literals
+            nFinal = sat_solver_final( pSat, &pFinal );
+            //////////////////////////////////////////////////////////////
+        }
+        else
+        {
+            ///////////////////////////////////////////////////////////////
+            // check against offset
             status = sat_solver_solve( pSat, Vec_IntArray(vLits), Vec_IntArray(vLits) + Vec_IntSize(vLits), nBTLimit, 0, 0, 0 );
             if ( status == l_Undef )
-                assert( 0 );
-            if ( status == l_True ) // SAT
-                continue;
-            // Lit2 can be removed
-            Vec_IntWriteEntry( vLits2, k, -1 );
+                { RetValue = -1; break; }
+            if ( status == l_True )
+                break;
+            assert( status == l_False );
+            // get subset of literals
+            nFinal = sat_solver_final( pSat, &pFinal );
+            Before = nFinal;
+            //printf( "Before %d. ", nFinal );
+
+/*
+            // save these literals
+            Vec_IntClear( vLits );
+            for ( i = 0; i < nFinal; i++ )
+                Vec_IntPush( vLits, Abc_LitNot(pFinal[i]) );
+            Vec_IntReverseOrder( vLits );
+
+            // make one final run
+            status = sat_solver_solve( pSat, Vec_IntArray(vLits), Vec_IntArray(vLits) + Vec_IntSize(vLits), nBTLimit, 0, 0, 0 );
+            assert( status == l_False );
+            nFinal = sat_solver_final( pSat, &pFinal );
+*/
+
+            // save these literals
+            Vec_IntClear( vLits2 );
+            for ( i = 0; i < nFinal; i++ )
+                Vec_IntPush( vLits2, Abc_LitNot(pFinal[i]) );
+            Vec_IntSort( vLits2, 1 );
+
+            // try removing literals from the cube
+            Vec_IntForEachEntry( vLits2, Lit2, k )
+            {
+                if ( Lit2 == Abc_LitNot(pLits[0]) )
+                    continue;
+                Vec_IntClear( vLits );
+                Vec_IntForEachEntry( vLits2, Lit, n )
+                    if ( Lit != -1 && Lit != Lit2 )
+                        Vec_IntPush( vLits, Lit );
+                // call sat
+                status = sat_solver_solve( pSat, Vec_IntArray(vLits), Vec_IntArray(vLits) + Vec_IntSize(vLits), nBTLimit, 0, 0, 0 );
+                if ( status == l_Undef )
+                    assert( 0 );
+                if ( status == l_True ) // SAT
+                    continue;
+                // Lit2 can be removed
+                Vec_IntWriteEntry( vLits2, k, -1 );
+            }
+
+            // make one final run
+            Vec_IntClear( vLits );
+            Vec_IntForEachEntry( vLits2, Lit2, k )
+                if ( Lit2 != -1 )
+                    Vec_IntPush( vLits, Lit2 );
+            status = sat_solver_solve( pSat, Vec_IntArray(vLits), Vec_IntArray(vLits) + Vec_IntSize(vLits), nBTLimit, 0, 0, 0 );
+            assert( status == l_False );
+
+            // put them back
+            nFinal = 0;
+            Vec_IntForEachEntry( vLits2, Lit2, k )
+                if ( Lit2 != -1 )
+                    pFinal[nFinal++] = Abc_LitNot(Lit2);        
+            /////////////////////////////////////////////////////////
         }
-
-        // make one final run
-        Vec_IntClear( vLits );
-        Vec_IntForEachEntry( vLits2, Lit2, k )
-            if ( Lit2 != -1 )
-                Vec_IntPush( vLits, Lit2 );
-        status = sat_solver_solve( pSat, Vec_IntArray(vLits), Vec_IntArray(vLits) + Vec_IntSize(vLits), nBTLimit, 0, 0, 0 );
-        assert( status == l_False );
-
-        // put them back
-        nFinal = 0;
-        Vec_IntForEachEntry( vLits2, Lit2, k )
-            if ( Lit2 != -1 )
-                pFinal[nFinal++] = Abc_LitNot(Lit2);        
 
 
         //printf( "After %d. \n", nFinal );
@@ -628,7 +674,7 @@ int Bmc_FxComputeOne( Gia_Man_t * p )
 {
     int Extra    = 1000;
     int nIterMax =    5;
-    int nDiv2Add =   16;
+    int nDiv2Add =   15;
     // create SAT solver
     Cnf_Dat_t * pCnf = Mf_ManGenerateCnf( p, 8, 0, 0, 0 );
     sat_solver * pSat = (sat_solver *)Cnf_DataWriteIntoSolver( pCnf, 1, 0 );
