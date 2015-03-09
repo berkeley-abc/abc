@@ -738,8 +738,9 @@ int Ifn_ManSatFindCofigBitsTest( Ifn_Ntk_t * p, word * pTruth, int nVars, word P
   SeeAlso     []
 
 ***********************************************************************/
-int If_ManSatDeriveGiaFromBits( Gia_Man_t * pNew, Ifn_Ntk_t * p, word * pConfigData, Vec_Int_t * vLeaves, Vec_Int_t * vCover )
+int If_ManSatDeriveGiaFromBits( void * pGia, Ifn_Ntk_t * p, word * pConfigData, Vec_Int_t * vLeaves, Vec_Int_t * vCover )
 {
+    Gia_Man_t * pNew = (Gia_Man_t *)pGia;
     int i, k, iLit, iVar = 0, nVarsNew, pVarMap[1000];
     int nTtBits = p->nParsVIni - p->nObjs;
     int nPermBits = Abc_Base2Log(p->nInps + 1) + 1;
