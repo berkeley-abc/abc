@@ -677,7 +677,7 @@ Gia_Man_t * Gia_AigerReadFromMemory( char * pContents, int nFileSize, int fSkipS
                 pCur++;
                 nSize = Gia_AigerReadInt(pCur);
                 pCurTemp = pCur + nSize + 4;                            pCur += 4;
-                pNew->pCellStr = Abc_UtilStrsav( pCur );                pCur += strlen(pCur) + 1;
+                pNew->pCellStr = Abc_UtilStrsav( (char*)pCur );         pCur += strlen(pCur) + 1;
                 nSize = nSize - strlen(pNew->pCellStr) - 1;
                 assert( nSize % 4 == 0 );
                 pNew->vConfigs = Vec_IntStart(nSize / 4);

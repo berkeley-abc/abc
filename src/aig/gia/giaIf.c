@@ -1522,9 +1522,9 @@ int Gia_ManFromIfLogicFindCell( If_Man_t * pIfMan, Gia_Man_t * pNew, Gia_Man_t *
         Gia_Obj_t * pObj;
         int i, Id, iLitTemp;
         // extract variable permutation
-        char * pCutPerm = If_CutDsdPerm( pIfMan, pCutBest ); // DSD input -> cut input
+        //char * pCutPerm = If_CutDsdPerm( pIfMan, pCutBest ); // DSD input -> cut input
         word * pPerm = If_DsdManGetFuncConfig( pIfMan->pIfDsdMan, If_CutDsdLit(pIfMan, pCutBest) ); // cell input -> DSD input
-        int nBits = If_DsdManTtBitNum( pIfMan->pIfDsdMan );
+        //int nBits = If_DsdManTtBitNum( pIfMan->pIfDsdMan );
         // use config bits to generate the network
         iLit = If_ManSatDeriveGiaFromBits( pTemp, pNtkCell, pPerm + 1, vLeaves, vCover );
         // copy GIA back into the manager
@@ -1706,7 +1706,7 @@ Gia_Man_t * Gia_ManFromIfLogic( If_Man_t * pIfMan )
     Vec_Int_t * vLeaves, * vLeaves2, * vCover, * vLits;
     Ifn_Ntk_t * pNtkCell = NULL;
     sat_solver * pSat = NULL;
-    int i, k, Entry, nLutMax = -1; int Count = 0;
+    int i, k, Entry;
     assert( !pIfMan->pPars->fDeriveLuts || pIfMan->pPars->fTruth );
 //    if ( pIfMan->pPars->fEnableCheck07 )
 //        pIfMan->pPars->fDeriveLuts = 0;
