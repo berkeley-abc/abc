@@ -1327,7 +1327,10 @@ int Ifn_NtkMatch( Ifn_Ntk_t * p, word * pTruth, int nVars, int nConfls, int fVer
     int i, v, status, iMint = 0;
     abctime clk = Abc_Clock();
 //    abctime clkTru = 0, clkSat = 0, clk2;
-    sat_solver * pSat = sat_solver_new();
+    sat_solver * pSat;
+    if ( nVars == 0 )
+        return 1;
+    pSat = sat_solver_new();
     Ifn_Prepare( p, pTruth, nVars );
     sat_solver_setnvars( pSat, p->nPars );
     Ifn_NtkAddConstraints( p, pSat );
