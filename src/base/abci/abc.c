@@ -26745,12 +26745,10 @@ int Abc_CommandAbc9Strash( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Abc_CommandAbc9Strash(): There is no AIG.\n" );
         return 1;
     }
-    if ( Gia_ManHasMapping(pAbc->pGia) )
-    {
-        pTemp = (Gia_Man_t *)Dsm_ManDeriveGia( pAbc->pGia, fAddMuxes );
-//        if ( !Abc_FrameReadFlag("silentmode") )
-//            printf( "Performed delay-oriented unmapping.\n" );
-    }
+    if ( Gia_ManHasMapping(pAbc->pGia) && pAbc->pGia->vConfigs )
+        pTemp = (Gia_Man_t *)If_ManDeriveGiaFromCells( pAbc->pGia );
+    else if ( Gia_ManHasMapping(pAbc->pGia) )
+        pTemp = (Gia_Man_t *)Dsm_ManDeriveGia( pAbc->pGia, fAddMuxes ); // delay-oriented unmapping
     else if ( fAddMuxes )
     {
         if ( pAbc->pGia->pMuxes )

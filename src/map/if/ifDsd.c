@@ -44,6 +44,8 @@ ABC_NAMESPACE_IMPL_START
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
+#define DSD_VERSION "dsd1"
+
 // network types
 typedef enum { 
     IF_DSD_NONE = 0,               // 0:  unknown
@@ -86,7 +88,9 @@ struct If_DsdMan_t_
     Vec_Ptr_t *    vTtDecs[IF_MAX_FUNC_LUTSIZE+1]; // truth table decompositions
     Vec_Wec_t *    vIsops[IF_MAX_FUNC_LUTSIZE+1];  // ISOP for each function
     int *          pSched[IF_MAX_FUNC_LUTSIZE];    // grey code schedules
-    Vec_Wrd_t *    vPerms;         // permutations
+    int            nTtBits;        // the number of truth table bits
+    int            nConfigWords;   // the number of words for config data per node
+    Vec_Wrd_t *    vConfigs;       // permutations
     Gia_Man_t *    pTtGia;         // GIA to represent truth tables
     Vec_Int_t *    vCover;         // temporary memory
     void *         pSat;           // SAT solver
@@ -174,6 +178,14 @@ int If_DsdManLutSize( If_DsdMan_t * p )
 {
     return p->LutSize;
 }
+int If_DsdManTtBitNum( If_DsdMan_t * p )
+{
+    return p->nTtBits;
+}
+int If_DsdManPermBitNum( If_DsdMan_t * p )
+{
+    return (Abc_Base2Log(p->nVars + 1) + 1) * p->nVars;
+}
 void If_DsdManSetLutSize( If_DsdMan_t * p, int nLutSize )
 {
     p->LutSize = nLutSize;
@@ -196,9 +208,9 @@ void If_DsdManSetNewAsUseless( If_DsdMan_t * p )
         p->nObjsPrev = If_DsdManObjNum(p);
     p->fNewAsUseless = 1;
 }
-word If_DsdManGetFuncPerm( If_DsdMan_t * p, int iDsd )
+word * If_DsdManGetFuncConfig( If_DsdMan_t * p, int iDsd )
 {
-    return p->vPerms ? Vec_WrdEntry(p->vPerms, Abc_Lit2Var(iDsd)) : 0;
+    return p->vConfigs ? Vec_WrdEntryP(p->vConfigs, p->nConfigWords * Abc_Lit2Var(iDsd)) : NULL;
 }
 char * If_DsdManGetCellStr( If_DsdMan_t * p )
 {
@@ -259,6 +271,7 @@ If_DsdMan_t * If_DsdManAlloc( int nVars, int LutSize )
     p->nBins   = Abc_PrimeCudd( 100000 );
     p->pBins   = ABC_CALLOC( unsigned, p->nBins );
     p->pMem    = Mem_FlexStart();
+    p->nConfigWords = 1;
     Vec_PtrGrow( &p->vObjs, 10000 );
     Vec_IntGrow( &p->vNexts, 10000 );
     Vec_IntGrow( &p->vTruths, 10000 );
@@ -338,7 +351,7 @@ void If_DsdManFree( If_DsdMan_t * p, int fVerbose )
         if ( p->vIsops[v] )
             Vec_WecFree( p->vIsops[v] );
     }
-    Vec_WrdFreeP( &p->vPerms );
+    Vec_WrdFreeP( &p->vConfigs );
     Vec_IntFreeP( &p->vTemp1 );
     Vec_IntFreeP( &p->vTemp2 );
     ABC_FREE( p->vObjs.pArray );
@@ -1033,7 +1046,6 @@ void If_DsdManSave( If_DsdMan_t * p, char * pFileName )
 {
     If_DsdObj_t * pObj; 
     Vec_Int_t * vSets;
-    char * pBuffer = "dsd0";
     word * pTruth; 
     int i, v, Num;
     FILE * pFile = fopen( pFileName ? pFileName : p->pStore, "wb" );
@@ -1042,7 +1054,7 @@ void If_DsdManSave( If_DsdMan_t * p, char * pFileName )
         printf( "Writing DSD manager file \"%s\" has failed.\n", pFileName ? pFileName : p->pStore );
         return;
     }
-    fwrite( pBuffer, 4, 1, pFile );
+    fwrite( DSD_VERSION, 4, 1, pFile );
     Num = p->nVars;
     fwrite( &Num, 4, 1, pFile );
     Num = p->LutSize;
@@ -1073,10 +1085,14 @@ void If_DsdManSave( If_DsdMan_t * p, char * pFileName )
             fwrite( Vec_IntArray(vSets), sizeof(int)*Num, 1, pFile );
         }
     }
-    Num = p->vPerms ? Vec_WrdSize(p->vPerms) : 0;
+    Num = p->nConfigWords;
+    fwrite( &Num, 4, 1, pFile );
+    Num = p->nTtBits;
+    fwrite( &Num, 4, 1, pFile );
+    Num = p->vConfigs ? Vec_WrdSize(p->vConfigs) : 0;
     fwrite( &Num, 4, 1, pFile );
     if ( Num )
-        fwrite( Vec_WrdArray(p->vPerms), sizeof(word)*Num, 1, pFile );
+        fwrite( Vec_WrdArray(p->vConfigs), sizeof(word)*Num, 1, pFile );
     Num = p->pCellStr ? strlen(p->pCellStr) : 0;
     fwrite( &Num, 4, 1, pFile );
     if ( Num )
@@ -1099,7 +1115,7 @@ If_DsdMan_t * If_DsdManLoad( char * pFileName )
         return NULL;
     }
     RetValue = fread( pBuffer, 4, 1, pFile );
-    if ( pBuffer[0] != 'd' && pBuffer[1] != 's' && pBuffer[2] != 'd' && pBuffer[3] != '0' )
+    if ( strncmp(pBuffer, DSD_VERSION, strlen(DSD_VERSION)) )
     {
         printf( "Unrecognized format of file \"%s\".\n", pFileName );
         return NULL;
@@ -1160,10 +1176,14 @@ If_DsdMan_t * If_DsdManLoad( char * pFileName )
     }
     ABC_FREE( pTruth );
     RetValue = fread( &Num, 4, 1, pFile );
+    p->nConfigWords = Num;
+    RetValue = fread( &Num, 4, 1, pFile );
+    p->nTtBits = Num;
+    RetValue = fread( &Num, 4, 1, pFile );
     if ( RetValue && Num )
     {
-        p->vPerms = Vec_WrdStart( Num );
-        RetValue = fread( Vec_WrdArray(p->vPerms), sizeof(word)*Num, 1, pFile );
+        p->vConfigs = Vec_WrdStart( Num );
+        RetValue = fread( Vec_WrdArray(p->vConfigs), sizeof(word)*Num, 1, pFile );
     }
     RetValue = fread( &Num, 4, 1, pFile );
     if ( RetValue && Num )
@@ -1190,14 +1210,16 @@ void If_DsdManMerge( If_DsdMan_t * p, If_DsdMan_t * pNew )
         printf( "LUT size should be the same.\n" );
         return;
     }
+    assert( p->nTtBits == pNew->nTtBits );
+    assert( p->nConfigWords == pNew->nConfigWords );
     if ( If_DsdManHasMarks(p) != If_DsdManHasMarks(pNew) )
         printf( "Warning! Old manager has %smarks while new manager has %smarks.\n", 
             If_DsdManHasMarks(p) ? "" : "no ", If_DsdManHasMarks(pNew) ? "" : "no " );
     vMap = Vec_IntAlloc( Vec_PtrSize(&pNew->vObjs) );
     Vec_IntPush( vMap, 0 );
     Vec_IntPush( vMap, 1 );
-    if ( p->vPerms && pNew->vPerms )
-        Vec_WrdFillExtra( p->vPerms, Vec_PtrSize(&p->vObjs) + Vec_PtrSize(&pNew->vObjs), 0 );
+    if ( p->vConfigs && pNew->vConfigs )
+        Vec_WrdFillExtra( p->vConfigs, p->nConfigWords * (Vec_PtrSize(&p->vObjs) + Vec_PtrSize(&pNew->vObjs)), 0 );
     If_DsdVecForEachNode( &pNew->vObjs, pObj, i )
     {
         If_DsdObjForEachFaninLit( &pNew->vObjs, pObj, iFanin, k )
@@ -1205,14 +1227,19 @@ void If_DsdManMerge( If_DsdMan_t * p, If_DsdMan_t * pNew )
         Id = If_DsdObjFindOrAdd( p, pObj->Type, pFanins, pObj->nFans, pObj->Type == IF_DSD_PRIME ? If_DsdObjTruth(pNew, pObj) : NULL );
         if ( pObj->fMark )
             If_DsdVecObjSetMark( &p->vObjs, Id );
-        if ( p->vPerms && pNew->vPerms && i < Vec_WrdSize(pNew->vPerms) )
-            Vec_WrdFillExtra( p->vPerms, Id, Vec_WrdEntry(pNew->vPerms, i) );
+        if ( p->vConfigs && pNew->vConfigs && p->nConfigWords * i < Vec_WrdSize(pNew->vConfigs) )
+        {
+            //Vec_WrdFillExtra( p->vConfigs, Id, Vec_WrdEntry(pNew->vConfigs, i) );
+            word * pConfigNew = Vec_WrdEntryP(pNew->vConfigs, p->nConfigWords * i);
+            word * pConfigOld = Vec_WrdEntryP(p->vConfigs, p->nConfigWords * Id);
+            memcpy( pConfigOld, pConfigNew, sizeof(word) * p->nConfigWords );
+        }
         Vec_IntPush( vMap, Id );
     }
     assert( Vec_IntSize(vMap) == Vec_PtrSize(&pNew->vObjs) );
     Vec_IntFree( vMap );
-    if ( p->vPerms && pNew->vPerms )
-        Vec_WrdShrink( p->vPerms, Vec_PtrSize(&p->vObjs) );
+    if ( p->vConfigs && pNew->vConfigs )
+        Vec_WrdShrink( p->vConfigs, p->nConfigWords * Vec_PtrSize(&p->vObjs) );
 }
 void If_DsdManCleanOccur( If_DsdMan_t * p, int fVerbose )
 {
@@ -1226,7 +1253,7 @@ void If_DsdManCleanMarks( If_DsdMan_t * p, int fVerbose )
     If_DsdObj_t * pObj; 
     int i;
     ABC_FREE( p->pCellStr );
-    Vec_WrdFreeP( &p->vPerms );
+    Vec_WrdFreeP( &p->vConfigs );
     If_DsdVecForEachObj( &p->vObjs, pObj, i )
         pObj->fMark = 0;
 }
@@ -1235,7 +1262,7 @@ void If_DsdManInvertMarks( If_DsdMan_t * p, int fVerbose )
     If_DsdObj_t * pObj; 
     int i;
     ABC_FREE( p->pCellStr );
-    Vec_WrdFreeP( &p->vPerms );
+    Vec_WrdFreeP( &p->vConfigs );
     If_DsdVecForEachObj( &p->vObjs, pObj, i )
         pObj->fMark = !pObj->fMark;
 }
@@ -2440,7 +2467,7 @@ void Id_DsdManTuneStr1( If_DsdMan_t * p, char * pStruct, int nConfls, int fVerbo
     int fVeryVerbose = 0;
     ProgressBar * pProgress = NULL;
     If_DsdObj_t * pObj;
-    word * pTruth, Perm;
+    word * pTruth, * pConfig;
     int i, nVars, Value, LutSize;
     abctime clk = Abc_Clock();
     // parse the structure
@@ -2458,6 +2485,8 @@ void Id_DsdManTuneStr1( If_DsdMan_t * p, char * pStruct, int nConfls, int fVerbo
     if ( If_DsdManVarNum(p) < Ifn_NtkInputNum(pNtk) )
         printf( "Warning: The support of DSD manager (%d) is less than the support of the structure (%d).\n", If_DsdManVarNum(p), Ifn_NtkInputNum(pNtk) );
     LutSize = Ifn_NtkLutSizeMax(pNtk);
+    p->nTtBits = Ifn_NtkTtBits( pStruct );
+    p->nConfigWords = 1 + Abc_Bit6WordNum( p->nTtBits );
     // print
     if ( fVerbose )
     {
@@ -2471,30 +2500,32 @@ void Id_DsdManTuneStr1( If_DsdMan_t * p, char * pStruct, int nConfls, int fVerbo
     If_DsdVecForEachObj( &p->vObjs, pObj, i )
         if ( i >= p->nObjsPrev )
             pObj->fMark = 0;
-    if ( p->vPerms == NULL )
-        p->vPerms = Vec_WrdStart( Vec_PtrSize(&p->vObjs) );
+    if ( p->vConfigs == NULL )
+        p->vConfigs = Vec_WrdStart( p->nConfigWords * Vec_PtrSize(&p->vObjs) );
     else
-        Vec_WrdFillExtra( p->vPerms, Vec_PtrSize(&p->vObjs), 0 );
+        Vec_WrdFillExtra( p->vConfigs, p->nConfigWords * Vec_PtrSize(&p->vObjs), 0 );
     pProgress = Extra_ProgressBarStart( stdout, Vec_PtrSize(&p->vObjs) );
     If_DsdVecForEachObjStart( &p->vObjs, pObj, i, p->nObjsPrev )
     {
         if ( (i & 0xFF) == 0 )
             Extra_ProgressBarUpdate( pProgress, i, NULL );
         nVars = If_DsdObjSuppSize(pObj);
-        if ( nVars <= LutSize )
-            continue;
+        //if ( nVars <= LutSize )
+        //    continue;
         pTruth = If_DsdManComputeTruth( p, Abc_Var2Lit(i, 0), NULL );
         if ( fVeryVerbose )
             Dau_DsdPrintFromTruth( pTruth, nVars );
         if ( fVerbose )
             printf( "%6d : %2d ", i, nVars );
-        Value = Ifn_NtkMatch( pNtk, pTruth, nVars, nConfls, fVerbose, fVeryVerbose, &Perm );
+        pConfig = Vec_WrdEntryP( p->vConfigs, p->nConfigWords * i );
+        Value = Ifn_NtkMatch( pNtk, pTruth, nVars, nConfls, fVerbose, fVeryVerbose, pConfig );
         if ( fVeryVerbose )
             printf( "\n" );
         if ( Value == 0 )
+        {
             If_DsdVecObjSetMark( &p->vObjs, i );
-        else
-            Vec_WrdWriteEntry( p->vPerms, i, Perm );
+            memset( pConfig, 0, sizeof(word) * p->nConfigWords );
+        }
     }
     p->nObjsPrev = 0;
     p->LutSize = 0;
@@ -2531,12 +2562,13 @@ typedef struct Ifn_ThData_t_
 {
     Ifn_Ntk_t * pNtk;    // network
     word        pTruth[DAU_MAX_WORD];
+    word        pConfig[10]; // configuration data
+    int         nConfigWords;// configuration data word count
     int         nVars;   // support
     int         Id;      // object
     int         nConfls; // conflicts
     int         Result;  // result
     int         Status;  // state
-    word        Perm;    // permutation
     abctime     clkUsed; // total runtime
 } Ifn_ThData_t;
 void * Ifn_WorkerThread( void * pArg )
@@ -2555,7 +2587,8 @@ void * Ifn_WorkerThread( void * pArg )
             return NULL;
         }
         clk = Abc_Clock();
-        pThData->Result = Ifn_NtkMatch( pThData->pNtk, pThData->pTruth, pThData->nVars, pThData->nConfls, 0, 0, &pThData->Perm );
+        memset( pThData->pConfig, 0, sizeof(word) * pThData->nConfigWords );
+        pThData->Result = Ifn_NtkMatch( pThData->pNtk, pThData->pTruth, pThData->nVars, pThData->nConfls, 0, 0, pThData->pConfig );
         pThData->clkUsed += Abc_Clock() - clk;
         pThData->Status = 0;
 //        printf( "Finished object %d\n", pThData->Id );
@@ -2597,6 +2630,9 @@ void Id_DsdManTuneStr( If_DsdMan_t * p, char * pStruct, int nConfls, int nProcs,
         printf( "Warning: The support of DSD manager (%d) is less than the support of the structure (%d).\n", If_DsdManVarNum(p), Ifn_NtkInputNum(pNtk) );
     // check the largest LUT
     LutSize = Ifn_NtkLutSizeMax(pNtk);
+    p->nTtBits = Ifn_NtkTtBits( pStruct );
+    p->nConfigWords = 1 + Abc_Bit6WordNum( p->nTtBits );
+    assert( p->nConfigWords <= 10 );
     if ( fVerbose )
     {
         printf( "Considering programmable cell: " );
@@ -2610,10 +2646,10 @@ void Id_DsdManTuneStr( If_DsdMan_t * p, char * pStruct, int nConfls, int nProcs,
     If_DsdVecForEachObj( &p->vObjs, pObj, i )
         if ( i >= p->nObjsPrev )
             pObj->fMark = 0;
-    if ( p->vPerms == NULL )
-        p->vPerms = Vec_WrdStart( Vec_PtrSize(&p->vObjs) );
+    if ( p->vConfigs == NULL )
+        p->vConfigs = Vec_WrdStart( p->nConfigWords * Vec_PtrSize(&p->vObjs) );
     else
-        Vec_WrdFillExtra( p->vPerms, Vec_PtrSize(&p->vObjs), 0 );
+        Vec_WrdFillExtra( p->vConfigs, p->nConfigWords * Vec_PtrSize(&p->vObjs), 0 );
     pProgress = Extra_ProgressBarStart( stdout, Vec_PtrSize(&p->vObjs) );
 
     // perform concurrent solving
@@ -2625,13 +2661,14 @@ void Id_DsdManTuneStr( If_DsdMan_t * p, char * pStruct, int nConfls, int nProcs,
         // start the threads
         for ( i = 0; i < nProcs; i++ )
         {
-            ThData[i].pNtk    = Ifn_NtkParse( pStruct );
-            ThData[i].nVars   = -1;      // support
-            ThData[i].Id      = -1;      // object
-            ThData[i].nConfls = nConfls; // conflicts
-            ThData[i].Result  = -1;      // result
-            ThData[i].Status  =  0;      // state
-            ThData[i].clkUsed =  0;      // total runtime
+            ThData[i].pNtk     = Ifn_NtkParse( pStruct );
+            ThData[i].nVars    = -1;      // support
+            ThData[i].Id       = -1;      // object
+            ThData[i].nConfls  = nConfls; // conflicts
+            ThData[i].Result   = -1;      // result
+            ThData[i].Status   =  0;      // state
+            ThData[i].clkUsed  =  0;      // total runtime
+            ThData[i].nConfigWords = p->nConfigWords;
             status = pthread_create( WorkerThread + i, NULL, Ifn_WorkerThread, (void *)(ThData + i) );  assert( status == 0 );
         }
         // run the threads
@@ -2649,7 +2686,10 @@ void Id_DsdManTuneStr( If_DsdMan_t * p, char * pStruct, int nConfls, int nProcs,
                     if ( ThData[i].Result == 0 )
                         If_DsdVecObjSetMark( &p->vObjs, ThData[i].Id );
                     else
-                        Vec_WrdWriteEntry( p->vPerms, ThData[i].Id, ThData[i].Perm );
+                    {
+                        word * pTtWords = Vec_WrdEntryP( p->vConfigs, p->nConfigWords * ThData[i].Id );
+                        memcpy( pTtWords, ThData[i].pConfig, sizeof(word) * p->nConfigWords );
+                    }
                     ThData[i].Id     = -1;
                     ThData[i].Result = -1;
                 }
@@ -2659,8 +2699,8 @@ void Id_DsdManTuneStr( If_DsdMan_t * p, char * pStruct, int nConfls, int nProcs,
                         Extra_ProgressBarUpdate( pProgress, k, NULL );
                     pObj  = If_DsdVecObj( &p->vObjs, k );
                     nVars = If_DsdObjSuppSize(pObj);
-                    if ( nVars <= LutSize )
-                        continue;
+                    //if ( nVars <= LutSize )
+                    //    continue;
                     clk = Abc_Clock();
                     If_DsdManComputeTruthPtr( p, Abc_Var2Lit(k, 0), NULL, ThData[i].pTruth );
                     clkUsed += Abc_Clock() - clk;
@@ -2738,10 +2778,10 @@ void Id_DsdManTuneThresh( If_DsdMan_t * p, int fUnate, int fThresh, int fVerbose
     If_DsdVecForEachObj( &p->vObjs, pObj, i )
         if ( i >= p->nObjsPrev )
             pObj->fMark = 0;
-    if ( p->vPerms == NULL )
-        p->vPerms = Vec_WrdStart( Vec_PtrSize(&p->vObjs) );
+    if ( p->vConfigs == NULL )
+        p->vConfigs = Vec_WrdStart( Vec_PtrSize(&p->vObjs) );
     else
-        Vec_WrdFillExtra( p->vPerms, Vec_PtrSize(&p->vObjs), 0 );
+        Vec_WrdFillExtra( p->vConfigs, Vec_PtrSize(&p->vObjs), 0 );
     pProgress = Extra_ProgressBarStart( stdout, Vec_PtrSize(&p->vObjs) );
     If_DsdVecForEachObjStart( &p->vObjs, pObj, i, p->nObjsPrev )
     {
@@ -2767,7 +2807,7 @@ void Id_DsdManTuneThresh( If_DsdMan_t * p, int fUnate, int fThresh, int fVerbose
         if ( Value )
             If_DsdVecObjSetMark( &p->vObjs, i );
         else
-            Vec_WrdWriteEntry( p->vPerms, i, Perm );
+            Vec_WrdWriteEntry( p->vConfigs, i, Perm );
     }
     p->nObjsPrev = 0;
     p->LutSize = 0;

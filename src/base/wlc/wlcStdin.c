@@ -110,7 +110,7 @@ Vec_Str_t * Wlc_ConvertToRadix( unsigned * pBits, int Start, int nBits, int Radi
 void Wlc_NtkReport( Wlc_Ntk_t * p, Abc_Cex_t * pCex, char * pName, int Radix )
 {
     Vec_Str_t * vNum;
-    int i, NameId, Name, Start, nBits = -1;
+    int i, NameId, Name, Start = -1, nBits = -1;
     assert( pCex->nRegs == 0 );
     // get the name ID
     NameId = Abc_NamStrFind( p->pManName, pName );

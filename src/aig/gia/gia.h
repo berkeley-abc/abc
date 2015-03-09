@@ -131,6 +131,8 @@ struct Gia_Man_t_
     Vec_Int_t *    vMapping;      // mapping for each node
     Vec_Int_t *    vCellMapping;  // mapping for each node
     Vec_Int_t *    vPacking;      // packing information
+    Vec_Int_t *    vConfigs;      // cell configurations
+    char *         pCellStr;      // cell description
     Vec_Int_t *    vLutConfigs;   // LUT configurations
     Abc_Cex_t *    pCexComb;      // combinational counter-example
     Abc_Cex_t *    pCexSeq;       // sequential counter-example

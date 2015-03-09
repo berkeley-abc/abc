@@ -1467,9 +1467,54 @@ int Gia_ManFromIfLogicFindLut( If_Man_t * pIfMan, Gia_Man_t * pNew, If_Cut_t * p
   SeeAlso     []
 
 ***********************************************************************/
-int Gia_ManFromIfLogicFindCell( If_Man_t * pIfMan, Gia_Man_t * pNew, Gia_Man_t * pTemp, If_Cut_t * pCutBest, sat_solver * pSat, Vec_Int_t * vPiVars, Vec_Int_t * vPoVars, Ifn_Ntk_t * pNtkCell, int nLutMax, Vec_Int_t * vLeaves, Vec_Int_t * vLits, Vec_Int_t * vCover, Vec_Int_t * vMapping, Vec_Int_t * vMapping2, Vec_Int_t * vPacking )
+void Gia_ManFromIfGetConfig( Vec_Int_t * vConfigs, If_Man_t * pIfMan, If_Cut_t * pCutBest, int fCompl )
+{
+    If_Obj_t * pIfObj;
+    word * pPerm = If_DsdManGetFuncConfig( pIfMan->pIfDsdMan, If_CutDsdLit(pIfMan, pCutBest) ); // cell input -> DSD input
+    char * pCutPerm = If_CutDsdPerm( pIfMan, pCutBest ); // DSD input -> cut input
+    word * pArray;  int v, i, Lit, Var;
+    int nVarNum = If_DsdManVarNum(pIfMan->pIfDsdMan);
+    int nTtBitNum = If_DsdManTtBitNum(pIfMan->pIfDsdMan);
+    int nPermBitNum = If_DsdManPermBitNum(pIfMan->pIfDsdMan);
+    int nPermBitOne = nPermBitNum / nVarNum;
+    // prepare storage
+    int nIntNum = Vec_IntEntry( vConfigs, 1 );
+    for ( i = 0; i < nIntNum; i++ )
+        Vec_IntPush( vConfigs, 0 );
+    pArray = (word *)Vec_IntEntryP( vConfigs, Vec_IntSize(vConfigs) - nIntNum );
+    assert( nPermBitNum % nVarNum == 0 );
+    // set truth table bits
+    for ( i = 0; i < nTtBitNum; i++ )
+        if ( Abc_TtGetBit(pPerm + 1, i) )
+            Abc_TtSetBit( pArray, i );
+    // set permutation bits
+    for ( v = 0; v < nVarNum; v++ )
+    {
+        // get DSD variable
+        Var = ((pPerm[0] >> (v * 4)) & 0xF);
+        assert( Var < (int)pCutBest->nLeaves );
+        // get AIG literal
+        Lit = (int)pCutPerm[Var];
+        assert( Abc_Lit2Var(Lit) < (int)pCutBest->nLeaves );
+        // complement if polarity has changed
+        pIfObj = If_ManObj( pIfMan, pCutBest->pLeaves[Abc_Lit2Var(Lit)] );
+        Lit = Abc_LitNotCond( Lit, Abc_LitIsCompl(pIfObj->iCopy) );
+        // create config literal
+        for ( i = 0; i < nPermBitOne; i++ )
+            if ( (Lit >> i) & 1 )
+                Abc_TtSetBit( pArray, nTtBitNum + v * nPermBitOne + i );
+    }
+    // remember complementation
+    assert( nTtBitNum + nPermBitNum < 32 * nIntNum );
+    if ( Abc_LitIsCompl(If_CutDsdLit(pIfMan, pCutBest)) ^ pCutBest->fCompl ^ fCompl )
+        Abc_TtSetBit( pArray, nTtBitNum + nPermBitNum );
+    // update count
+    Vec_IntAddToEntry( vConfigs, 0, 1 );
+}
+int Gia_ManFromIfLogicFindCell( If_Man_t * pIfMan, Gia_Man_t * pNew, Gia_Man_t * pTemp, If_Cut_t * pCutBest, Ifn_Ntk_t * pNtkCell, int nLutMax, Vec_Int_t * vLeaves, Vec_Int_t * vLits, Vec_Int_t * vCover, Vec_Int_t * vMapping, Vec_Int_t * vMapping2, Vec_Int_t * vConfigs )
 {
     int iLit;
+    assert( 0 );
     if ( Vec_IntSize(vLeaves) <= nLutMax )
         iLit = Gia_ManFromIfLogicCreateLut( pNew, If_CutTruthW(pIfMan, pCutBest), vLeaves, vCover, vMapping, vMapping2 );
     else
@@ -1478,19 +1523,10 @@ int Gia_ManFromIfLogicFindCell( If_Man_t * pIfMan, Gia_Man_t * pNew, Gia_Man_t *
         int i, Id, iLitTemp;
         // extract variable permutation
         char * pCutPerm = If_CutDsdPerm( pIfMan, pCutBest ); // DSD input -> cut input
-        word Perm = If_DsdManGetFuncPerm( pIfMan->pIfDsdMan, If_CutDsdLit(pIfMan, pCutBest) ); // cell input -> DSD input
-        assert( Perm > 0 );
-        // (extend storage for configuration bits)
-        // derive mapping from cell inputs into cut inputs
-        // retrieve config bits of the LUTs
-        // perform boolean matching
-        if ( !If_ManSatFindCofigBits( pSat, vPiVars, vPoVars, If_CutTruthW(pIfMan, pCutBest), Vec_IntSize(vLeaves), Perm, Ifn_NtkInputNum(pNtkCell), vLits ) )
-        {
-            printf( "Boolean matching does not exist.\n" );
-            return -1;
-        }
+        word * pPerm = If_DsdManGetFuncConfig( pIfMan->pIfDsdMan, If_CutDsdLit(pIfMan, pCutBest) ); // cell input -> DSD input
+        int nBits = If_DsdManTtBitNum( pIfMan->pIfDsdMan );
         // use config bits to generate the network
-        iLit = If_ManSatDeriveGiaFromBits( pTemp, pNtkCell, vLits, vCover );
+        iLit = If_ManSatDeriveGiaFromBits( pTemp, pNtkCell, pPerm + 1, vLeaves, vCover );
         // copy GIA back into the manager
         Vec_IntFillExtra( &pTemp->vCopies, Gia_ManObjNum(pTemp), -1 );
         Gia_ObjSetCopyArray( pTemp, 0, 0 );
@@ -1512,14 +1548,11 @@ int Gia_ManFromIfLogicFindCell( If_Man_t * pIfMan, Gia_Man_t * pNew, Gia_Man_t *
         iLit = Abc_LitNotCond( Gia_ObjCopyArray(pTemp, Id), Abc_LitIsCompl(iLit) );
     }
     // write packing
-    if ( !Gia_ObjIsCi(Gia_ManObj(pNew, Abc_Lit2Var(iLit))) && iLit > 1 )
-    {
-        Vec_IntPush( vPacking, 1 );
-        Vec_IntPush( vPacking, Abc_Lit2Var(iLit) );
-        Vec_IntAddToEntry( vPacking, 0, 1 );
-    }
+//    if ( vConfigs && !Gia_ObjIsCi(Gia_ManObj(pNew, Abc_Lit2Var(iLit))) && iLit > 1 )
+//        Gia_ManFromIfGetConfig( vConfigs, pIfMan, pCutBest );
     return iLit;
 }
+
 
 /**Function*************************************************************
 
@@ -1669,22 +1702,30 @@ Gia_Man_t * Gia_ManFromIfLogic( If_Man_t * pIfMan )
     Gia_Man_t * pNew, * pHashed = NULL;
     If_Cut_t * pCutBest;
     If_Obj_t * pIfObj, * pIfLeaf;
-    Vec_Int_t * vMapping, * vMapping2, * vPacking = NULL;
+    Vec_Int_t * vMapping, * vMapping2, * vPacking = NULL, * vConfigs = NULL;
     Vec_Int_t * vLeaves, * vLeaves2, * vCover, * vLits;
-    Vec_Int_t * vPiVars = NULL, * vPoVars = NULL;
-    sat_solver * pSat = NULL;
     Ifn_Ntk_t * pNtkCell = NULL;
-    int i, k, nLutMax = -1, Entry;
+    sat_solver * pSat = NULL;
+    int i, k, Entry, nLutMax = -1; int Count = 0;
     assert( !pIfMan->pPars->fDeriveLuts || pIfMan->pPars->fTruth );
 //    if ( pIfMan->pPars->fEnableCheck07 )
 //        pIfMan->pPars->fDeriveLuts = 0;
     // start mapping and packing
     vMapping  = Vec_IntStart( If_ManObjNum(pIfMan) );
     vMapping2 = Vec_IntStart( 1 );
-    if ( pIfMan->pPars->fDeriveLuts && (pIfMan->pPars->pLutStruct || pIfMan->pPars->fEnableCheck75 || pIfMan->pPars->fEnableCheck75u || pIfMan->pPars->fEnableCheck07 || pIfMan->pPars->fUseDsdTune) )
+    if ( pIfMan->pPars->fDeriveLuts && (pIfMan->pPars->pLutStruct || pIfMan->pPars->fEnableCheck75 || pIfMan->pPars->fEnableCheck75u || pIfMan->pPars->fEnableCheck07) )
     {
         vPacking = Vec_IntAlloc( 1000 );
         Vec_IntPush( vPacking, 0 );
+    }
+    if ( pIfMan->pPars->fUseDsdTune )
+    {
+        int nTtBitNum = If_DsdManTtBitNum(pIfMan->pIfDsdMan);
+        int nPermBitNum = If_DsdManPermBitNum(pIfMan->pIfDsdMan);
+        int nConfigInts = Abc_BitWordNum(nTtBitNum + nPermBitNum + 1);
+        vConfigs = Vec_IntAlloc( 1000 );
+        Vec_IntPush( vConfigs, 0 );
+        Vec_IntPush( vConfigs, nConfigInts );
     }
     // create new manager
     pNew = Gia_ManStart( If_ManObjNum(pIfMan) );
@@ -1722,11 +1763,13 @@ Gia_Man_t * Gia_ManFromIfLogic( If_Man_t * pIfMan )
                     pIfObj->iCopy = Gia_ManFromIfLogicCreateLut( pNew, If_CutTruthW(pIfMan, pCutBest), vLeaves, vCover, vMapping, vMapping2 );
                 pIfObj->iCopy = Abc_LitNotCond( pIfObj->iCopy, pCutBest->fCompl );
             }
+/*
             else if ( pIfMan->pPars->fUseDsd && pIfMan->pPars->fUseDsdTune && pIfMan->pPars->fDeriveLuts )
             {
-                if ( pSat == NULL )
+                if ( pNtkCell == NULL )
                 {
-                    pSat = (sat_solver *)If_ManSatBuildFromCell( If_DsdManGetCellStr(pIfMan->pIfDsdMan), &vPiVars, &vPoVars, &pNtkCell );
+                    assert( If_DsdManGetCellStr(pIfMan->pIfDsdMan) != NULL );
+                    pNtkCell = Ifn_NtkParse( If_DsdManGetCellStr(pIfMan->pIfDsdMan) );
                     nLutMax = Ifn_NtkLutSizeMax( pNtkCell );
                     pHashed = Gia_ManStart( 10000 );
                     Vec_IntFillExtra( &pHashed->vCopies, 10000, -1 );
@@ -1734,9 +1777,10 @@ Gia_Man_t * Gia_ManFromIfLogic( If_Man_t * pIfMan )
                         Gia_ManAppendCi( pHashed );
                     Gia_ManHashAlloc( pHashed );
                 }
-                pIfObj->iCopy = Gia_ManFromIfLogicFindCell( pIfMan, pNew, pHashed, pCutBest, pSat, vPiVars, vPoVars, pNtkCell, nLutMax, vLeaves, vLits, vCover, vMapping, vMapping2, vPacking );
+                pIfObj->iCopy = Gia_ManFromIfLogicFindCell( pIfMan, pNew, pHashed, pCutBest, pNtkCell, nLutMax, vLeaves, vLits, vCover, vMapping, vMapping2, vConfigs );
                 pIfObj->iCopy = Abc_LitNotCond( pIfObj->iCopy, pCutBest->fCompl );
             }
+*/
             else if ( pIfMan->pPars->fUseAndVars && pIfMan->pPars->fUseCofVars && pIfMan->pPars->fDeriveLuts && (int)pCutBest->nLeaves > pIfMan->pPars->nLutSize/2 )
             {
                 int truthId = Abc_Lit2Var(pCutBest->iCutFunc);
@@ -1764,6 +1808,8 @@ Gia_Man_t * Gia_ManFromIfLogic( If_Man_t * pIfMan )
                 // perform decomposition of the cut
                 pIfObj->iCopy = Gia_ManFromIfLogicNode( pIfMan, pNew, i, vLeaves, vLeaves2, pTruth, pIfMan->pPars->pLutStruct, vCover, vMapping, vMapping2, vPacking, (pIfMan->pPars->fEnableCheck75 || pIfMan->pPars->fEnableCheck75u), pIfMan->pPars->fEnableCheck07 );
                 pIfObj->iCopy = Abc_LitNotCond( pIfObj->iCopy, pCutBest->fCompl );
+                if ( vConfigs && Vec_IntSize(vLeaves) > 1 && !Gia_ObjIsCi(Gia_ManObj(pNew, Abc_Lit2Var(pIfObj->iCopy))) && pIfObj->iCopy > 1 )
+                    Gia_ManFromIfGetConfig( vConfigs, pIfMan, pCutBest, Abc_LitIsCompl(pIfObj->iCopy) );
             }
             else
             {
@@ -1796,8 +1842,6 @@ Gia_Man_t * Gia_ManFromIfLogic( If_Man_t * pIfMan )
     Vec_IntFree( vCover );
     Vec_IntFree( vLeaves );
     Vec_IntFree( vLeaves2 );
-    Vec_IntFreeP( &vPiVars );
-    Vec_IntFreeP( &vPoVars );
     if ( pNtkCell )
         ABC_FREE( pNtkCell );
     if ( pSat )
@@ -1820,8 +1864,13 @@ Gia_Man_t * Gia_ManFromIfLogic( If_Man_t * pIfMan )
     // attach mapping and packing
     assert( pNew->vMapping == NULL );
     assert( pNew->vPacking == NULL );
+    assert( pNew->vConfigs == NULL );
+    assert( pNew->pCellStr == NULL );
     pNew->vMapping = vMapping;
     pNew->vPacking = vPacking;
+    pNew->vConfigs = vConfigs;
+    pNew->pCellStr = vConfigs ? Abc_UtilStrsav( If_DsdManGetCellStr(pIfMan->pIfDsdMan) ) : NULL;
+    assert( !vConfigs || Vec_IntSize(vConfigs) == 2 + Vec_IntEntry(vConfigs, 0) * Vec_IntEntry(vConfigs, 1) );
     // verify that COs have mapping
     {
         Gia_Obj_t * pObj;

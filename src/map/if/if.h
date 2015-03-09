@@ -559,12 +559,14 @@ extern char *          If_DsdManFileName( If_DsdMan_t * p );
 extern int             If_DsdManVarNum( If_DsdMan_t * p );
 extern int             If_DsdManObjNum( If_DsdMan_t * p );
 extern int             If_DsdManLutSize( If_DsdMan_t * p );
+extern int             If_DsdManTtBitNum( If_DsdMan_t * p );
+extern int             If_DsdManPermBitNum( If_DsdMan_t * p );
 extern void            If_DsdManSetLutSize( If_DsdMan_t * p, int nLutSize );
 extern int             If_DsdManSuppSize( If_DsdMan_t * p, int iDsd );
 extern int             If_DsdManCheckDec( If_DsdMan_t * p, int iDsd );
 extern int             If_DsdManReadMark( If_DsdMan_t * p, int iDsd );
 extern void            If_DsdManSetNewAsUseless( If_DsdMan_t * p );
-extern word            If_DsdManGetFuncPerm( If_DsdMan_t * p, int iDsd );
+extern word *          If_DsdManGetFuncConfig( If_DsdMan_t * p, int iDsd );
 extern char *          If_DsdManGetCellStr( If_DsdMan_t * p );
 extern unsigned        If_DsdManCheckXY( If_DsdMan_t * p, int iDsd, int LutSize, int fDerive, unsigned uMaskNot, int fHighEffort, int fVerbose );
 extern int             If_CutDsdBalanceEval( If_Man_t * p, If_Cut_t * pCut, Vec_Int_t * vAig );
@@ -631,13 +633,15 @@ extern int             If_CutComputeTruth( If_Man_t * p, If_Cut_t * pCut, If_Cut
 extern int             If_CutComputeTruthPerm( If_Man_t * p, If_Cut_t * pCut, If_Cut_t * pCut0, If_Cut_t * pCut1, int fCompl0, int fCompl1 );
 /*=== ifTune.c ===========================================================*/
 extern Ifn_Ntk_t *     Ifn_NtkParse( char * pStr );
-extern int             Ifn_NtkMatch( Ifn_Ntk_t * p, word * pTruth, int nVars, int nConfls, int fVerbose, int fVeryVerbose, word * pPerm );
+extern int             Ifn_NtkTtBits( char * pStr );
+extern int             Ifn_NtkMatch( Ifn_Ntk_t * p, word * pTruth, int nVars, int nConfls, int fVerbose, int fVeryVerbose, word * pConfig );
 extern void            Ifn_NtkPrint( Ifn_Ntk_t * p );
 extern int             Ifn_NtkLutSizeMax( Ifn_Ntk_t * p );
 extern int             Ifn_NtkInputNum( Ifn_Ntk_t * p );
 extern void *          If_ManSatBuildFromCell( char * pStr, Vec_Int_t ** pvPiVars, Vec_Int_t ** pvPoVars, Ifn_Ntk_t ** ppNtk );
 extern int             If_ManSatFindCofigBits( void * pSat, Vec_Int_t * vPiVars, Vec_Int_t * vPoVars, word * pTruth, int nVars, word Perm, int nInps, Vec_Int_t * vValues );
-extern int             If_ManSatDeriveGiaFromBits( void * pNew, Ifn_Ntk_t * p, Vec_Int_t * vLeaves, Vec_Int_t * vValues );
+extern int             If_ManSatDeriveGiaFromBits( void * pNew, Ifn_Ntk_t * p, word * pTtData, Vec_Int_t * vLeaves, Vec_Int_t * vValues );
+extern void *          If_ManDeriveGiaFromCells( void * p );
 /*=== ifUtil.c ============================================================*/
 extern void            If_ManCleanNodeCopy( If_Man_t * p );
 extern void            If_ManCleanCutData( If_Man_t * p );

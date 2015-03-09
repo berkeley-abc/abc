@@ -95,7 +95,7 @@ static inline word *       Ifn_ObjTruth( Ifn_Ntk_t * p, int i )  { return p->pTt
 // - primary inputs            [0;            p->nInps)
 // - internal nodes            [p->nInps;     p->nObjs)
 // - configuration params      [p->nObjs;     p->nParsVIni)
-// - variable selection params [p->nParsVIni; p->pPars)
+// - variable selection params [p->nParsVIni; p->nPars)
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -460,6 +460,16 @@ Ifn_Ntk_t * Ifn_NtkParse( char * pStr )
 //    printf( "Finished parsing: " ); Ifn_NtkPrint(p);
     return p;
 }
+int Ifn_NtkTtBits( char * pStr )
+{
+    int i, Counter = 0;
+    Ifn_Ntk_t * pNtk = Ifn_NtkParse( pStr );
+    for ( i = pNtk->nInps; i < pNtk->nObjs; i++ )
+        if ( pNtk->Nodes[i].Type == IFN_DSD_PRIME )
+            Counter += (1 << pNtk->Nodes[i].nFanins);
+    ABC_FREE( pNtk );
+    return Counter;
+}
 
 
 
@@ -728,13 +738,21 @@ int Ifn_ManSatFindCofigBitsTest( Ifn_Ntk_t * p, word * pTruth, int nVars, word P
   SeeAlso     []
 
 ***********************************************************************/
-int If_ManSatDeriveGiaFromBits( void * pGia, Ifn_Ntk_t * p, Vec_Int_t * vValues, Vec_Int_t * vCover )
+int If_ManSatDeriveGiaFromBits( Gia_Man_t * pNew, Ifn_Ntk_t * p, word * pConfigData, Vec_Int_t * vLeaves, Vec_Int_t * vCover )
 {
-    Gia_Man_t * pNew = (Gia_Man_t *)pGia;
-    int i, Id, k, iLit, iVar = 0, nVarsNew, pVarMap[1000];
-    assert( Gia_ManCiNum(pNew) == p->nInps && p->nParsVIni < 1000 );
-    Gia_ManForEachCiId( pNew, Id, i )
-        pVarMap[i] = Abc_Var2Lit( Id, 0 );
+    int i, k, iLit, iVar = 0, nVarsNew, pVarMap[1000];
+    int nTtBits = p->nParsVIni - p->nObjs;
+    int nPermBits = Abc_Base2Log(p->nInps + 1) + 1;
+    int fCompl = Abc_TtGetBit( pConfigData, nTtBits + nPermBits * p->nInps );
+    assert( Vec_IntSize(vLeaves) <= p->nInps && p->nParsVIni < 1000 );
+    for ( i = 0; i < p->nInps; i++ )
+    {
+        for ( iLit = k = 0; k < nPermBits; k++ )
+            if ( Abc_TtGetBit(pConfigData, nTtBits + i * nPermBits + k) )
+                iLit |= (1 << k);
+        assert( Abc_Lit2Var(iLit) < Vec_IntSize(vLeaves) );
+        pVarMap[i] = Abc_Lit2LitL( Vec_IntArray(vLeaves), iLit );
+    }
     for ( i = p->nInps; i < p->nObjs; i++ )
     {
         int Type = p->Nodes[i].Type;
@@ -768,7 +786,7 @@ int If_ManSatDeriveGiaFromBits( void * pGia, Ifn_Ntk_t * p, Vec_Int_t * vValues,
             word uTruth = 0;
             int nMints = (1 << nFans);
             for ( k = 0; k < nMints; k++ )
-                if ( Vec_IntEntry( vValues, iVar++ ) )
+                if ( Abc_TtGetBit(pConfigData, iVar++) )
                     uTruth |= ((word)1 << k);
             uTruth = Abc_Tt6Stretch( uTruth, nFans );
             // collect function
@@ -787,8 +805,89 @@ int If_ManSatDeriveGiaFromBits( void * pGia, Ifn_Ntk_t * p, Vec_Int_t * vValues,
         }
         else assert( 0 );
     }
-    assert( iVar == Vec_IntSize(vValues) );
-    return pVarMap[p->nObjs - 1];
+    assert( iVar == nTtBits );
+    return Abc_LitNotCond( pVarMap[p->nObjs - 1], fCompl );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Derive GIA using programmable bits.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void * If_ManDeriveGiaFromCells( void * pGia )
+{
+    Gia_Man_t * p = (Gia_Man_t *)pGia;
+    Gia_Man_t * pNew, * pTemp;
+    Vec_Int_t * vCover, * vLeaves;
+    Ifn_Ntk_t * pNtkCell;
+    Gia_Obj_t * pObj; 
+    word * pConfigData;
+    //word * pTruth;
+    int k, i, iLut, iVar;
+    int nConfigInts, Count = 0;
+    assert( p->vConfigs != NULL );
+    assert( p->pCellStr != NULL );
+    assert( Gia_ManHasMapping(p) );
+    // derive cell network
+    pNtkCell = Ifn_NtkParse( p->pCellStr );
+    Ifn_Prepare( pNtkCell, NULL, pNtkCell->nInps );
+    nConfigInts = Vec_IntEntry( p->vConfigs, 1 );
+    // create new manager
+    pNew = Gia_ManStart( 6*Gia_ManObjNum(p)/5 + 100 );
+    pNew->pName = Abc_UtilStrsav( p->pName );
+    pNew->pSpec = Abc_UtilStrsav( p->pSpec );
+    // map primary inputs
+    Gia_ManFillValue(p);
+    Gia_ManConst0(p)->Value = 0;
+    Gia_ManForEachCi( p, pObj, i )
+        pObj->Value = Gia_ManAppendCi(pNew);
+    // iterate through nodes used in the mapping
+    vLeaves = Vec_IntAlloc( 16 );
+    vCover  = Vec_IntAlloc( 1 << 16 );
+    Gia_ManHashStart( pNew );
+    //Gia_ObjComputeTruthTableStart( p, Gia_ManLutSizeMax(p) );
+    Gia_ManForEachAnd( p, pObj, iLut )
+    {
+        if ( Gia_ObjIsBuf(pObj) )
+        {
+            pObj->Value = Gia_ManAppendBuf( pNew, Gia_ObjFanin0Copy(pObj) );
+            continue;
+        }
+        if ( !Gia_ObjIsLut(p, iLut) )
+            continue;
+        // collect leaves
+        //Vec_IntClear( vLeaves );
+        //Gia_LutForEachFanin( p, iLut, iVar, k )
+        //    Vec_IntPush( vLeaves, iVar );
+        //pTruth = Gia_ObjComputeTruthTableCut( p, Gia_ManObj(p, iLut), vLeaves );
+        // collect incoming literals
+        Vec_IntClear( vLeaves );
+        Gia_LutForEachFanin( p, iLut, iVar, k )
+            Vec_IntPush( vLeaves, Gia_ManObj(p, iVar)->Value );
+        pConfigData = (word *)Vec_IntEntryP( p->vConfigs, 2 + nConfigInts * Count++ );
+        Gia_ManObj(p, iLut)->Value = If_ManSatDeriveGiaFromBits( pNew, pNtkCell, pConfigData, vLeaves, vCover );
+    }
+    assert( Vec_IntEntry(p->vConfigs, 0) == Count );
+    assert( Vec_IntSize(p->vConfigs) == 2 + nConfigInts * Count );
+    //Gia_ObjComputeTruthTableStop( p );
+    Gia_ManForEachCo( p, pObj, i )
+        pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
+    Gia_ManHashStop( pNew );
+    Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
+    Vec_IntFree( vLeaves );
+    Vec_IntFree( vCover );
+    ABC_FREE( pNtkCell );
+    // perform cleanup
+    pNew = Gia_ManCleanup( pTemp = pNew );
+    Gia_ManStop( pTemp );
+    return pNew;
+
 }
 
 /**Function*************************************************************
@@ -1196,6 +1295,21 @@ word Ifn_NtkMatchCollectPerm( Ifn_Ntk_t * p, sat_solver * pSat )
     }
     return Perm;
 }
+void Ifn_NtkMatchCollectConfig( Ifn_Ntk_t * p, sat_solver * pSat, word * pConfig )
+{
+    int i, v, Mint;
+    assert( p->nParsVNum <= 4 );
+    for ( i = 0; i < p->nInps; i++ )
+    {
+        for ( Mint = v = 0; v < p->nParsVNum; v++ )
+            if ( sat_solver_var_value(pSat, p->nParsVIni + i * p->nParsVNum + v) )
+                Mint |= (1 << v);
+        Abc_TtSetHex( pConfig, i, Mint );
+    }
+    for ( v = p->nObjs; v < p->nParsVIni; v++ )
+        if ( sat_solver_var_value(pSat, v) )
+            Abc_TtSetBit( pConfig + 1, v - p->nObjs );
+}
 void Ifn_NtkMatchPrintPerm( word Perm, int nInps )
 {
     int i;
@@ -1204,7 +1318,7 @@ void Ifn_NtkMatchPrintPerm( word Perm, int nInps )
         printf( "%c", 'a' + Abc_TtGetHex(&Perm, i) );
     printf( "\n" );
 }
-int Ifn_NtkMatch( Ifn_Ntk_t * p, word * pTruth, int nVars, int nConfls, int fVerbose, int fVeryVerbose, word * pPerm )
+int Ifn_NtkMatch( Ifn_Ntk_t * p, word * pTruth, int nVars, int nConfls, int fVerbose, int fVeryVerbose, word * pConfig )
 {
     word * pTruth1;
     int RetValue = 0;
@@ -1218,7 +1332,7 @@ int Ifn_NtkMatch( Ifn_Ntk_t * p, word * pTruth, int nVars, int nConfls, int fVer
     Ifn_NtkAddConstraints( p, pSat );
     if ( fVeryVerbose )
         Ifn_NtkMatchPrintStatus( pSat, 0, l_True, -1, -1, Abc_Clock() - clk );
-    if ( pPerm ) *pPerm = 0;
+    if ( pConfig ) assert( *pConfig == 0 );
     for ( i = 0; i < nIterMax; i++ )
     {
         // get variable assignment
@@ -1248,8 +1362,8 @@ int Ifn_NtkMatch( Ifn_Ntk_t * p, word * pTruth, int nVars, int nConfls, int fVer
         iMint = Abc_TtFindFirstBit( pTruth1, p->nVars );
         if ( iMint == -1 )
         {
-            if ( pPerm ) 
-                *pPerm = Ifn_NtkMatchCollectPerm( p, pSat );
+            if ( pConfig ) 
+                Ifn_NtkMatchCollectConfig( p, pSat, pConfig );
 /*
             if ( pPerm )
             {
