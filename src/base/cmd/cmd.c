@@ -38,7 +38,7 @@ ABC_NAMESPACE_IMPL_START
 static int CmdCommandTime          ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int CmdCommandEcho          ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int CmdCommandQuit          ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int CmdCommandWhich         ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int CmdCommandAbcrc         ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int CmdCommandHistory       ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int CmdCommandAlias         ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int CmdCommandUnalias       ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -87,6 +87,7 @@ void Cmd_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Basic", "time",          CmdCommandTime,            0 );
     Cmd_CommandAdd( pAbc, "Basic", "echo",          CmdCommandEcho,            0 );
     Cmd_CommandAdd( pAbc, "Basic", "quit",          CmdCommandQuit,            0 );
+    Cmd_CommandAdd( pAbc, "Basic", "abcrc",         CmdCommandAbcrc,           0 );
     Cmd_CommandAdd( pAbc, "Basic", "history",       CmdCommandHistory,         0 );
     Cmd_CommandAdd( pAbc, "Basic", "alias",         CmdCommandAlias,           0 );
     Cmd_CommandAdd( pAbc, "Basic", "unalias",       CmdCommandUnalias,         0 );
@@ -310,10 +311,9 @@ int CmdCommandQuit( Abc_Frame_t * pAbc, int argc, char **argv )
     return -1;
 
   usage:
-    fprintf( pAbc->Err, "usage: quit [-h] [-s]\n" );
+    fprintf( pAbc->Err, "usage: quit [-sh]\n" );
     fprintf( pAbc->Err, "   -h  print the command usage\n" );
-    fprintf( pAbc->Err,
-                      "   -s  frees all the memory before quitting\n" );
+    fprintf( pAbc->Err, "   -s  frees all the memory before quitting\n" );
     return 1;
 }
 
@@ -328,9 +328,29 @@ int CmdCommandQuit( Abc_Frame_t * pAbc, int argc, char **argv )
   SeeAlso     []
 
 ******************************************************************************/
-int CmdCommandWhich( Abc_Frame_t * pAbc, int argc, char **argv )
+int CmdCommandAbcrc( Abc_Frame_t * pAbc, int argc, char **argv )
 {
+    int c;
+
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'h':
+            goto usage;
+            break;
+        default:
+            goto usage;
+        }
+    }
+    Abc_UtilsSource( pAbc );
     return 0;
+
+  usage:
+    fprintf( pAbc->Err, "usage: abcrc [-h]\n" );
+    fprintf( pAbc->Err, "   -h  sources \"abc.rc\" from the current/parent/grandparent directory\n" );
+    return 1;
 }
 
 /**Function********************************************************************
