@@ -226,7 +226,7 @@ Tim_Man_t * Tim_ManTrim( Tim_Man_t * p, Vec_Int_t * vBoxPres )
             if ( Vec_IntEntry(vBoxPres, i) )
             {
                 Tim_ManCreateBox( pNew, curPo, pBox->nInputs, curPi, pBox->nOutputs, pBox->iDelayTable );
-                Tim_ManBoxSetCopy( pNew, Tim_ManBoxNum(pNew) - 1, i );
+                Tim_ManBoxSetCopy( pNew, Tim_ManBoxNum(pNew) - 1, Tim_ManBoxCopy(p, i) == -1 ? i : Tim_ManBoxCopy(p, i) );
                 curPi += pBox->nOutputs;
                 curPo += pBox->nInputs;
             }
@@ -319,7 +319,7 @@ Tim_Man_t * Tim_ManReduce( Tim_Man_t * p, Vec_Int_t * vBoxesLeft, int nTermsDiff
         {
             pBox = Tim_ManBox( p, iBox );
             Tim_ManCreateBox( pNew, curPo, pBox->nInputs, curPi, pBox->nOutputs, pBox->iDelayTable );
-            Tim_ManBoxSetCopy( pNew, Tim_ManBoxNum(pNew) - 1, iBox );
+            Tim_ManBoxSetCopy( pNew, Tim_ManBoxNum(pNew) - 1, Tim_ManBoxCopy(p, iBox) == -1 ? iBox : Tim_ManBoxCopy(p, iBox) );
             curPi += pBox->nOutputs;
             curPo += pBox->nInputs;
         }
