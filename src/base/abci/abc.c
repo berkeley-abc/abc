@@ -35609,10 +35609,10 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9SplitProve( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern int Cec_GiaSplitTest( Gia_Man_t * p, int nProcs, int nTimeOut, int nIterMax, int LookAhead, int fVerbose, int fVeryVerbose );
-    int c, nProcs = 1, nTimeOut = 10, nIterMax = 0, LookAhead = 1, fVerbose = 0, fVeryVerbose = 0;
+    extern int Cec_GiaSplitTest( Gia_Man_t * p, int nProcs, int nTimeOut, int nIterMax, int LookAhead, int fVerbose, int fVeryVerbose, int fSilent );
+    int c, nProcs = 1, nTimeOut = 10, nIterMax = 0, LookAhead = 1, fVerbose = 0, fVeryVerbose = 0, fSilent = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "PTILvwh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "PTILsvwh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -35663,6 +35663,9 @@ int Abc_CommandAbc9SplitProve( Abc_Frame_t * pAbc, int argc, char ** argv )
                 goto usage;
             }
             break;
+        case 's':
+            fSilent ^= 1;
+            break;
         case 'v':
             fVerbose ^= 1;
             break;
@@ -35685,17 +35688,18 @@ int Abc_CommandAbc9SplitProve( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Abc_CommandAbc9SplitProve(): The problem is sequential.\n" );
         return 1;
     }
-    pAbc->Status = Cec_GiaSplitTest( pAbc->pGia, nProcs, nTimeOut, nIterMax, LookAhead, fVerbose, fVeryVerbose );
+    pAbc->Status = Cec_GiaSplitTest( pAbc->pGia, nProcs, nTimeOut, nIterMax, LookAhead, fVerbose, fVeryVerbose, fSilent );
     pAbc->pCex = pAbc->pGia->pCexComb;  pAbc->pGia->pCexComb = NULL;
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &splitprove [-PTIL num] [-vwh]\n" );
+    Abc_Print( -2, "usage: &splitprove [-PTIL num] [-svwh]\n" );
     Abc_Print( -2, "\t         proves CEC problem by case-splitting\n" );
     Abc_Print( -2, "\t-P num : the number of concurrent processes [default = %d]\n",          nProcs );
     Abc_Print( -2, "\t-T num : runtime limit in seconds per subproblem [default = %d]\n",     nTimeOut );
     Abc_Print( -2, "\t-I num : the max number of iterations (0 = infinity) [default = %d]\n", nIterMax );
     Abc_Print( -2, "\t-L num : maximum look-ahead during cofactoring [default = %d]\n",       LookAhead );
+    Abc_Print( -2, "\t-s     : enable silent computation (no reporting) [default = %s]\n",    fSilent? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n",         fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-w     : toggle printing more verbose information [default = %s]\n",    fVeryVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");

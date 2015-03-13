@@ -674,12 +674,18 @@ void Gia_ManPrintResults( Gia_Man_t * p, sat_solver * pSat, int nIter, abctime c
 ***********************************************************************/
 int Gia_ManFaultAddOne( Gia_Man_t * pM, Cnf_Dat_t * pCnf, sat_solver * pSat, Vec_Int_t * vLits, int nFuncVars )
 {
-    Gia_Man_t * pC;
+    Gia_Man_t * pC;//, * pTemp;
     Cnf_Dat_t * pCnf2;
     Gia_Obj_t * pObj;
     int i, Lit;
     // derive the cofactor
     pC = Gia_ManFaultCofactor( pM, vLits );
+    // try synthesis
+//    printf( "\n" );
+//    Gia_ManPrintStats( pC, NULL );
+//    pC = Gia_ManAigSyn2( pTemp = pC, 0, 1, 0, 100, 0, 0, 0 );
+//    Gia_ManStop( pTemp );
+//    Gia_ManPrintStats( pC, NULL );
 //Gia_AigerWrite( pC, "fftest_cof.aig", 0, 0 );
 //printf( "Dumped cofactor circuit into file \"%s\".\n", "fftest_cof.aig" );
     // derive new CNF

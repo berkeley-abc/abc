@@ -46,7 +46,7 @@ ABC_NAMESPACE_IMPL_START
 
 #ifndef ABC_USE_PTHREADS
 
-int Cec_GiaSplitTest( Gia_Man_t * p, int nProcs, int nTimeOut, int nIterMax, int LookAhead, int fVerbose, int fVeryVerbose ) { return -1; }
+int Cec_GiaSplitTest( Gia_Man_t * p, int nProcs, int nTimeOut, int nIterMax, int LookAhead, int fVerbose, int fVeryVerbose, int fSilent ) { return -1; }
 
 #else // pthreads are used
 
@@ -564,7 +564,7 @@ void * Cec_GiaSplitWorkerThread( void * pArg )
     assert( 0 );
     return NULL;
 }
-int Cec_GiaSplitTestInt( Gia_Man_t * p, int nProcs, int nTimeOut, int nIterMax, int LookAhead, int fVerbose, int fVeryVerbose )
+int Cec_GiaSplitTestInt( Gia_Man_t * p, int nProcs, int nTimeOut, int nIterMax, int LookAhead, int fVerbose, int fVeryVerbose, int fSilent )
 {
     abctime clkTotal = Abc_Clock();
     Par_ThData_t ThData[PAR_THR_MAX];
@@ -715,19 +715,22 @@ finish:
     }
     // finish
     Cec_GiaSplitClean( vStack );
-    if ( RetValue == 0 )
-        printf( "Problem is SAT " );
-    else if ( RetValue == 1 )
-        printf( "Problem is UNSAT " );
-    else if ( RetValue == -1 )
-        printf( "Problem is UNDECIDED " );
-    else assert( 0 );
-    printf( "after %d case-splits.  ", nIter );
-    Abc_PrintTime( 1, "Time", Abc_Clock() - clkTotal );
-    fflush( stdout );
+    if ( !fSilent )
+    {
+        if ( RetValue == 0 )
+            printf( "Problem is SAT " );
+        else if ( RetValue == 1 )
+            printf( "Problem is UNSAT " );
+        else if ( RetValue == -1 )
+            printf( "Problem is UNDECIDED " );
+        else assert( 0 );
+        printf( "after %d case-splits.  ", nIter );
+        Abc_PrintTime( 1, "Time", Abc_Clock() - clkTotal );
+        fflush( stdout );
+    }
     return RetValue;
 }
-int Cec_GiaSplitTest( Gia_Man_t * p, int nProcs, int nTimeOut, int nIterMax, int LookAhead, int fVerbose, int fVeryVerbose )
+int Cec_GiaSplitTest( Gia_Man_t * p, int nProcs, int nTimeOut, int nIterMax, int LookAhead, int fVerbose, int fVeryVerbose, int fSilent )
 {
     Abc_Cex_t * pCex = NULL;
     Gia_Man_t * pOne;
@@ -739,7 +742,7 @@ int Cec_GiaSplitTest( Gia_Man_t * p, int nProcs, int nTimeOut, int nIterMax, int
         pOne = Gia_ManDupOutputGroup( p, i, i+1 );
         if ( fVerbose )
             printf( "\nSolving output %d:\n", i );
-        RetValue1 = Cec_GiaSplitTestInt( pOne, nProcs, nTimeOut, nIterMax, LookAhead,  fVerbose, fVeryVerbose );
+        RetValue1 = Cec_GiaSplitTestInt( pOne, nProcs, nTimeOut, nIterMax, LookAhead,  fVerbose, fVeryVerbose, fSilent );
         Gia_ManStop( pOne );
         // collect the result
         if ( RetValue1 == 0 && RetValue == -1 )
