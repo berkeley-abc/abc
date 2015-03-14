@@ -403,7 +403,7 @@ void Cec_GiaSplitPrintRefs( Gia_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-int Cec_GiaSplitTest2( Gia_Man_t * p, int nProcs, int nTimeOut, int nIterMax, int LookAhead, int fVerbose, int fVeryVerbose )
+int Cec_GiaSplitTest2( Gia_Man_t * p, int nProcs, int nTimeOut, int nIterMax, int LookAhead, int fVerbose, int fVeryVerbose, int fSilent )
 {
     abctime clkTotal = Abc_Clock();
     Vec_Ptr_t * vStack;
@@ -419,11 +419,13 @@ int Cec_GiaSplitTest2( Gia_Man_t * p, int nProcs, int nTimeOut, int nIterMax, in
         Cec_GiaSplitPrint( 0, 0, nSatVars, nSatConfs, status, Progress, Abc_Clock() - clkTotal );
     if ( status == 0 )
     {
+        if ( !fSilent )
         printf( "The problem is SAT without cofactoring.\n" );
         return 0;
     }
     if ( status == 1 )
     {
+        if ( !fSilent )
         printf( "The problem is UNSAT without cofactoring.\n" );
         return 1;
     }
@@ -508,16 +510,19 @@ int Cec_GiaSplitTest2( Gia_Man_t * p, int nProcs, int nTimeOut, int nIterMax, in
         RetValue = 1;
     // finish
     Cec_GiaSplitClean( vStack );
-    if ( RetValue == 0 )
-        printf( "Problem is SAT " );
-    else if ( RetValue == 1 )
-        printf( "Problem is UNSAT " );
-    else if ( RetValue == -1 )
-        printf( "Problem is UNDECIDED " );
-    else assert( 0 );
-    printf( "after %d case-splits.  ", nIter );
-    Abc_PrintTime( 1, "Time", Abc_Clock() - clkTotal );
-    fflush( stdout );
+    if ( !fSilent )
+    {
+        if ( RetValue == 0 )
+            printf( "Problem is SAT " );
+        else if ( RetValue == 1 )
+            printf( "Problem is UNSAT " );
+        else if ( RetValue == -1 )
+            printf( "Problem is UNDECIDED " );
+        else assert( 0 );
+        printf( "after %d case-splits.  ", nIter );
+        Abc_PrintTime( 1, "Time", Abc_Clock() - clkTotal );
+        fflush( stdout );
+    }
     return RetValue;
 }
 
@@ -581,7 +586,7 @@ int Cec_GiaSplitTestInt( Gia_Man_t * p, int nProcs, int nTimeOut, int nIterMax, 
         printf( "Processes = %d   TimeOut = %d sec   MaxIter = %d   LookAhead = %d   Verbose = %d.\n", nProcs, nTimeOut, nIterMax, LookAhead, fVerbose );
     fflush( stdout );
     if ( nProcs == 1 )
-        return Cec_GiaSplitTest2( p, nProcs, nTimeOut, nIterMax, LookAhead, fVerbose, fVeryVerbose );
+        return Cec_GiaSplitTest2( p, nProcs, nTimeOut, nIterMax, LookAhead, fVerbose, fVeryVerbose, fSilent );
     // subtract manager thread
     nProcs--;
     assert( nProcs >= 1 && nProcs <= PAR_THR_MAX );
@@ -593,11 +598,13 @@ int Cec_GiaSplitTestInt( Gia_Man_t * p, int nProcs, int nTimeOut, int nIterMax, 
         Cec_GiaSplitPrint( 0, 0, nSatVars, nSatConfs, status, Progress, Abc_Clock() - clkTotal );
     if ( status == 0 )
     {
+        if ( !fSilent )
         printf( "The problem is SAT without cofactoring.\n" );
         return 0;
     }
     if ( status == 1 )
     {
+        if ( !fSilent )
         printf( "The problem is UNSAT without cofactoring.\n" );
         return 1;
     }
