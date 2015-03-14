@@ -131,6 +131,7 @@ struct Bmc_ParFf_t_
     int        nTimeOut;
     int        nIterCheck;
     int        fBasic;
+    int        fFfOnly;
     int        fDump;
     int        fDumpUntest;
     int        fVerbose;

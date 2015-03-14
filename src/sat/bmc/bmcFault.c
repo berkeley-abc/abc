@@ -57,6 +57,7 @@ void Gia_ParFfSetDefault( Bmc_ParFf_t * p )
     p->nTimeOut      =     0; 
     p->nIterCheck    =     0;
     p->fBasic        =     0; 
+    p->fFfOnly       =     0;
     p->fDump         =     0; 
     p->fDumpUntest   =     0; 
     p->fVerbose      =     0; 
@@ -178,7 +179,7 @@ static inline void Cnf_DataLiftGia( Cnf_Dat_t * p, Gia_Man_t * pGia, int nVarsPl
   SeeAlso     []
 
 ***********************************************************************/
-Gia_Man_t * Gia_ManFaultUnfold( Gia_Man_t * p, int fUseMuxes )
+Gia_Man_t * Gia_ManFaultUnfold( Gia_Man_t * p, int fUseMuxes, int fFfOnly )
 {
     Gia_Man_t * pNew, * pTemp;
     Gia_Obj_t * pObj;
@@ -201,20 +202,40 @@ Gia_Man_t * Gia_ManFaultUnfold( Gia_Man_t * p, int fUseMuxes )
         pObj->Value = Gia_ObjRoToRi(p, pObj)->Value;
     Gia_ManForEachPi( p, pObj, i )
         pObj->Value = Gia_ManAppendCi( pNew );
-    Gia_ManForEachAnd( p, pObj, i )
+    if ( fFfOnly )
     {
-        iCtrl = Gia_ManAppendCi(pNew);
-        iThis = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
-        if ( fUseMuxes )
-            pObj->Value = Gia_ManHashMux( pNew, iCtrl, pObj->Value, iThis );
-        else
-            pObj->Value = iThis;
+        Gia_ManForEachAnd( p, pObj, i )
+            pObj->Value = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+        Gia_ManForEachPo( p, pObj, i )
+            pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
+        Gia_ManForEachRi( p, pObj, i )
+        {
+            iCtrl = Gia_ManAppendCi(pNew);
+            iThis = Gia_ObjFanin0Copy(pObj);
+            if ( fUseMuxes )
+                pObj->Value = Gia_ManHashMux( pNew, iCtrl, pObj->Value, iThis );
+            else
+                pObj->Value = iThis;
+            pObj->Value = Gia_ManAppendCo( pNew, pObj->Value );
+        }
     }
-    Gia_ManForEachCo( p, pObj, i )
-        pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
+    else
+    {
+        Gia_ManForEachAnd( p, pObj, i )
+        {
+            iCtrl = Gia_ManAppendCi(pNew);
+            iThis = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+            if ( fUseMuxes )
+                pObj->Value = Gia_ManHashMux( pNew, iCtrl, pObj->Value, iThis );
+            else
+                pObj->Value = iThis;
+        }
+        Gia_ManForEachCo( p, pObj, i )
+            pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
+    }
     pNew = Gia_ManCleanup( pTemp = pNew );
     Gia_ManStop( pTemp );
-    assert( Gia_ManPiNum(pNew) == Gia_ManRegNum(p) + 2 * Gia_ManPiNum(p) + Gia_ManAndNum(p) );
+    assert( Gia_ManPiNum(pNew) == Gia_ManRegNum(p) + 2 * Gia_ManPiNum(p) + (fFfOnly ? Gia_ManRegNum(p) : Gia_ManAndNum(p)) );
     return pNew;
 }
 
@@ -922,8 +943,8 @@ int Gia_ManFaultPrepare( Gia_Man_t * p, Gia_Man_t * pG, Bmc_ParFf_t * pPars, int
     else if ( pPars->Algo == 1 )
     {
         assert( Gia_ManRegNum(p) > 0 );
-        p0 = Gia_ManFaultUnfold( pG, 0 );
-        p1 = Gia_ManFaultUnfold( p, 1 );
+        p0 = Gia_ManFaultUnfold( pG, 0, pPars->fFfOnly );
+        p1 = Gia_ManFaultUnfold( p, 1, pPars->fFfOnly );
     }
     else if ( pPars->Algo == 2 )
         p1 = Gia_ManStuckAtUnfold( p, vMap );
