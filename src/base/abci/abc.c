@@ -25884,11 +25884,20 @@ int Abc_CommandAbc9Get( Abc_Frame_t * pAbc, int argc, char ** argv )
         pGia = Gia_ManFromAig( pAig );
         Aig_ManStop( pAig );
     }
-    // replace
+    // copy names
     if ( fNames )
     {
         pGia->vNamesIn  = Abc_NtkCollectCiNames( pAbc->pNtkCur );
         pGia->vNamesOut = Abc_NtkCollectCoNames( pAbc->pNtkCur );
+    }
+    // copy user timing information
+    if ( pAbc->pNtkCur->pManTime != NULL )
+    {
+        Abc_Ntk_t * pNtk = pAbc->pNtkCur;
+        Vec_FltFreeP( &pGia->vInArrs );
+        Vec_FltFreeP( &pGia->vOutReqs );
+        pGia->vInArrs = Vec_FltAllocArray( Abc_NtkGetCiArrivalFloats(pNtk), Abc_NtkCiNum(pNtk) ); 
+        pGia->vOutReqs = Vec_FltAllocArray( Abc_NtkGetCiArrivalFloats(pNtk), Abc_NtkCoNum(pNtk) ); 
     }
     Abc_FrameUpdateGia( pAbc, pGia );
     return 0;
@@ -26003,6 +26012,19 @@ int Abc_CommandAbc9Put( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
         }
     }
+    // transfer timing information
+    if ( pAbc->pGia->vInArrs || pAbc->pGia->vOutReqs )
+    {
+        Abc_Obj_t * pObj; int i;
+        Abc_NtkTimeInitialize( pNtk, NULL );
+        if ( pAbc->pGia->vInArrs )
+            Abc_NtkForEachCi( pNtk, pObj, i )
+                Abc_NtkTimeSetArrival( pNtk, Abc_ObjId(pObj), Vec_FltEntry(pAbc->pGia->vInArrs, i), Vec_FltEntry(pAbc->pGia->vInArrs, i) );
+        if ( pAbc->pGia->vOutReqs )
+            Abc_NtkForEachCo( pNtk, pObj, i )
+                Abc_NtkTimeSetRequired( pNtk, Abc_ObjId(pObj), Vec_FltEntry(pAbc->pGia->vOutReqs, i), Vec_FltEntry(pAbc->pGia->vOutReqs, i) );
+    }
+
     // replace the current network
     Abc_FrameReplaceCurrentNetwork( pAbc, pNtk );
     if ( fStatusClear )

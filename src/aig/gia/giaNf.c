@@ -1250,15 +1250,18 @@ void Nf_ManCutMatchOne( Nf_Man_t * p, int iObj, int * pCut, int * pCutSet )
     Nf_ManCutMatchPrint( p, iObj, 1, &pBest->M[1][1] );
 */
 }
-static inline void Nf_ObjPrepareCi( Nf_Man_t * p, int iObj )
+static inline void Nf_ObjPrepareCi( Nf_Man_t * p, int iObj, float Time )
 {
+    Nf_Mat_t * pD0 = Nf_ObjMatchD( p, iObj, 0 );
+    Nf_Mat_t * pA0 = Nf_ObjMatchA( p, iObj, 0 );
     Nf_Mat_t * pD = Nf_ObjMatchD( p, iObj, 1 );
     Nf_Mat_t * pA = Nf_ObjMatchA( p, iObj, 1 );
+    pD0->D = pA0->D = pD->D = pA->D = Time;
     pD->fCompl = 1;
-    pD->D = p->InvDelay;
+    pD->D += p->InvDelay;
     pD->A = p->InvArea;
     pA->fCompl = 1;
-    pA->D = p->InvDelay;
+    pA->D += p->InvDelay;
     pA->A = p->InvArea;
     Nf_ObjMatchD( p, iObj, 0 )->fBest = 1;
     Nf_ObjMatchD( p, iObj, 1 )->fBest = 1;
@@ -1551,6 +1554,13 @@ int Nf_ManSetMapRefs( Nf_Man_t * p )
     {
         Required = Nf_ObjMatchD( p, Gia_ObjFaninId0p(p->pGia, pObj), Gia_ObjFaninC0(pObj) )->D;
         Required = p->pPars->fDoAverage ? Required * (100.0 + p->pPars->nRelaxRatio) / 100.0 : p->pPars->MapDelay;
+        // if external required time can be achieved, use it
+        if ( p->pGia->vOutReqs && Vec_FltEntry(p->pGia->vOutReqs, i) > 0 && Required <= Vec_FltEntry(p->pGia->vOutReqs, i) )
+            Required = Vec_FltEntry(p->pGia->vOutReqs, i);
+        // if external required cannot be achieved, set the earliest possible arrival time
+//        else if ( p->pGia->vOutReqs && Vec_FltEntry(p->pGia->vOutReqs, i) > 0 && Required > Vec_FltEntry(p->pGia->vOutReqs, i) )
+//            ptTime->Rise = ptTime->Fall = ptTime->Worst = Required;
+        // otherwise, set the global required time
         Nf_ObjUpdateRequired( p, Gia_ObjFaninId0p(p->pGia, pObj), Gia_ObjFaninC0(pObj), Required );
         Nf_ObjMapRefInc( p, Gia_ObjFaninId0p(p->pGia, pObj), Gia_ObjFaninC0(pObj));
     }
@@ -2111,7 +2121,7 @@ Gia_Man_t * Nf_ManPerformMapping( Gia_Man_t * pGia, Jf_Par_t * pPars )
     Nf_ManComputeCuts( p );
     Nf_ManPrintQuit( p );
     Gia_ManForEachCiId( p->pGia, Id, i )
-        Nf_ObjPrepareCi( p, Id );
+        Nf_ObjPrepareCi( p, Id, p->pGia->vInArrs ? Vec_FltEntry(p->pGia->vInArrs, i) : 0.0 );
     for ( p->Iter = 0; p->Iter < p->pPars->nRounds; p->Iter++ )
     {
         Nf_ManComputeMapping( p );
