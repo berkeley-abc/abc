@@ -509,7 +509,7 @@ void Abc_NtkShortNames( Abc_Ntk_t * pNtk )
 ***********************************************************************/
 void Abc_NtkMoveNames( Abc_Ntk_t * pNtk, Abc_Ntk_t * pOld )
 {
-    Abc_Obj_t * pObj; int i;
+    Abc_Obj_t * pObj, * pObjCi, * pFanin; int i, Count = 0;
     Nm_ManFree( pNtk->pManName );
     pNtk->pManName = Nm_ManCreate( Abc_NtkCiNum(pNtk) + Abc_NtkCoNum(pNtk) + Abc_NtkBoxNum(pNtk) );
     Abc_NtkForEachPi( pNtk, pObj, i )
@@ -521,6 +521,25 @@ void Abc_NtkMoveNames( Abc_Ntk_t * pNtk, Abc_Ntk_t * pOld )
         Abc_ObjAssignName( Abc_ObjFanin0(pObj),  Abc_ObjName(Abc_ObjFanin0(Abc_NtkBox(pOld, i))),  NULL );
         Abc_ObjAssignName( Abc_ObjFanout0(pObj), Abc_ObjName(Abc_ObjFanout0(Abc_NtkBox(pOld, i))), NULL );
     }
+    // if CO points to CI with the same name, remove buffer between them
+    Abc_NtkForEachCo( pNtk, pObj, i )
+    {
+        int nCiId = Nm_ManFindIdByNameTwoTypes( pNtk->pManName, Abc_ObjName(pObj), ABC_OBJ_PI, ABC_OBJ_BO );
+        if ( nCiId == -1 )
+            continue;
+        pObjCi = Abc_NtkObj( pNtk, nCiId );
+        assert( !strcmp( Abc_ObjName(pObj), Abc_ObjName(pObjCi) ) );
+        pFanin = Abc_ObjFanin0(pObj);
+        if ( pFanin == pObjCi )
+            continue;
+        assert( Abc_NodeIsBuf(pFanin) );
+        Abc_ObjPatchFanin( pObj, pFanin, pObjCi );
+        if ( Abc_ObjFanoutNum(pFanin) == 0 )
+            Abc_NtkDeleteObj( pFanin );
+        Count++;
+    }
+    if ( Count )
+        printf( "Redirected %d POs from buffers to PIs with the same name.\n", Count );
 }
 
 
