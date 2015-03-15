@@ -68,7 +68,7 @@ void Cec_ManTransformPattern( Gia_Man_t * p, int iOut, int * pValues )
   SeeAlso     []
 
 ***********************************************************************/
-int Cec_ManVerifyOld( Gia_Man_t * pMiter, int fVerbose, int * piOutFail, abctime clkTotal )
+int Cec_ManVerifyOld( Gia_Man_t * pMiter, int fVerbose, int * piOutFail, abctime clkTotal, int fSilent )
 {
 //    extern int Fra_FraigCec( Aig_Man_t ** ppAig, int nConfLimit, int fVerbose );
     extern int Ssw_SecCexResimulate( Aig_Man_t * p, int * pModel, int * pnOutputs );
@@ -83,13 +83,19 @@ int Cec_ManVerifyOld( Gia_Man_t * pMiter, int fVerbose, int * piOutFail, abctime
     // report the miter
     if ( RetValue == 1 )
     {
-        Abc_Print( 1, "Networks are equivalent.   " );
-        Abc_PrintTime( 1, "Time", Abc_Clock() - clkTotal );
+        if ( !fSilent )
+        {
+            Abc_Print( 1, "Networks are equivalent.   " );
+            Abc_PrintTime( 1, "Time", Abc_Clock() - clkTotal );
+        }
     }
     else if ( RetValue == 0 )
     {
-        Abc_Print( 1, "Networks are NOT EQUIVALENT.   " );
-        Abc_PrintTime( 1, "Time", Abc_Clock() - clkTotal );
+        if ( !fSilent )
+        {
+            Abc_Print( 1, "Networks are NOT EQUIVALENT.   " );
+            Abc_PrintTime( 1, "Time", Abc_Clock() - clkTotal );
+        }
         if ( pMiterCec->pData == NULL )
             Abc_Print( 1, "Counter-example is not available.\n" );
         else
@@ -99,19 +105,20 @@ int Cec_ManVerifyOld( Gia_Man_t * pMiter, int fVerbose, int * piOutFail, abctime
                 Abc_Print( 1, "Counter-example verification has failed.\n" );
             else 
             {
-//                Aig_Obj_t * pObj = Aig_ManCo(pMiterCec, iOut);
-//                Aig_Obj_t * pFan = Aig_ObjFanin0(pObj);
-                Abc_Print( 1, "Primary output %d has failed", iOut );
-                if ( nOuts-1 >= 0 )
-                    Abc_Print( 1, ", along with other %d incorrect outputs", nOuts-1 );
-                Abc_Print( 1, ".\n" );
+                if ( !fSilent )
+                {
+                    Abc_Print( 1, "Primary output %d has failed", iOut );
+                    if ( nOuts-1 >= 0 )
+                        Abc_Print( 1, ", along with other %d incorrect outputs", nOuts-1 );
+                    Abc_Print( 1, ".\n" );
+                }
                 if ( piOutFail )
                     *piOutFail = iOut;
             }
             Cec_ManTransformPattern( pMiter, iOut, (int *)pMiterCec->pData );
         }
     }
-    else
+    else if ( !fSilent )
     {
         Abc_Print( 1, "Networks are UNDECIDED.   " );
         Abc_PrintTime( 1, "Time", Abc_Clock() - clkTotal );
@@ -146,8 +153,11 @@ int Cec_ManHandleSpecialCases( Gia_Man_t * p, Cec_ParCec_t * pPars )
         // (for example, when they have the same driver but complemented)
         if ( Gia_ObjPhase(pObj1) != Gia_ObjPhase(pObj2) )
         {
+            if ( !pPars->fSilent )
+            {
             Abc_Print( 1, "Networks are NOT EQUIVALENT. Output %d trivially differs (different phase).  ", i/2 );
             Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
+            }
             pPars->iOutFail = i/2;
             Cec_ManTransformPattern( p, i/2, NULL );
             return 0;
@@ -158,8 +168,11 @@ int Cec_ManHandleSpecialCases( Gia_Man_t * p, Cec_ParCec_t * pPars )
         // drivers are different PIs
         if ( Gia_ObjIsPi(p, pDri1) && Gia_ObjIsPi(p, pDri2) && pDri1 != pDri2 )
         {
+            if ( !pPars->fSilent )
+            {
             Abc_Print( 1, "Networks are NOT EQUIVALENT. Output %d trivially differs (different PIs).  ", i/2 );
             Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
+            }
             pPars->iOutFail = i/2;
             Cec_ManTransformPattern( p, i/2, NULL );
             // if their compl attributes are the same - one should be complemented
@@ -171,8 +184,11 @@ int Cec_ManHandleSpecialCases( Gia_Man_t * p, Cec_ParCec_t * pPars )
         if ( (Gia_ObjIsPi(p, pDri1) && Gia_ObjIsConst0(pDri2)) || 
              (Gia_ObjIsPi(p, pDri2) && Gia_ObjIsConst0(pDri1)) )
         {
+            if ( !pPars->fSilent )
+            {
             Abc_Print( 1, "Networks are NOT EQUIVALENT. Output %d trivially differs (PI vs. constant).  ", i/2 );
             Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
+            }
             pPars->iOutFail = i/2;
             Cec_ManTransformPattern( p, i/2, NULL );
             // the compl attributes are the same - the PI should be complemented
@@ -186,8 +202,11 @@ int Cec_ManHandleSpecialCases( Gia_Man_t * p, Cec_ParCec_t * pPars )
     }
     if ( Gia_ManAndNum(p) == 0 )
     {
+        if ( !pPars->fSilent )
+        {
         Abc_Print( 1, "Networks are equivalent.  " );
         Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
+        }
         return 1;
     }
     return -1;
@@ -383,7 +402,7 @@ int Cec_ManVerify( Gia_Man_t * pInit, Cec_ParCec_t * pPars )
     if ( pPars->fVerbose )
         Abc_Print( 1, "Calling the old CEC engine.\n" );
     fflush( stdout );
-    RetValue = Cec_ManVerifyOld( pNew, pPars->fVerbose, &pPars->iOutFail, clkTotal );
+    RetValue = Cec_ManVerifyOld( pNew, pPars->fVerbose, &pPars->iOutFail, clkTotal, pPars->fSilent );
     p->pCexComb = pNew->pCexComb; pNew->pCexComb = NULL;
     if ( p->pCexComb && !Gia_ManVerifyCex( p, p->pCexComb, 1 ) )
         Abc_Print( 1, "Counter-example simulation has failed.\n" );

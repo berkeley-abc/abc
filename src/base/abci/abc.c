@@ -30862,7 +30862,7 @@ int Abc_CommandAbc9Cec( Abc_Frame_t * pAbc, int argc, char ** argv )
     int c, nArgcNew, fMiter = 0, fDualOutput = 0, fDumpMiter = 0;
     Cec_ManCecSetDefaultParams( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "CTnmdavh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "CTnmdasvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -30900,6 +30900,9 @@ int Abc_CommandAbc9Cec( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'a':
             fDumpMiter ^= 1;
             break;
+        case 's':
+            pPars->fSilent ^= 1;
+            break;
         case 'v':
             pPars->fVerbose ^= 1;
             break;
@@ -30918,12 +30921,14 @@ int Abc_CommandAbc9Cec( Abc_Frame_t * pAbc, int argc, char ** argv )
                 Abc_Print( -1, "The dual-output miter should have an even number of outputs.\n" );
                 return 1;
             }
+            if ( !pPars->fSilent )
             Abc_Print( 1, "Assuming the current network is a double-output miter. (Conflict limit = %d.)\n", pPars->nBTLimit );
             pAbc->Status = Cec_ManVerify( pAbc->pGia, pPars );
         }
         else
         {
             Gia_Man_t * pTemp;
+            if ( !pPars->fSilent )
             Abc_Print( 1, "Assuming the current network is a single-output miter. (Conflict limit = %d.)\n", pPars->nBTLimit );
             pTemp = Gia_ManTransformToDual( pAbc->pGia );
             pAbc->Status = Cec_ManVerify( pTemp, pPars );
@@ -30982,7 +30987,7 @@ int Abc_CommandAbc9Cec( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &cec [-CT num] [-nmdavh]\n" );
+    Abc_Print( -2, "usage: &cec [-CT num] [-nmdasvh]\n" );
     Abc_Print( -2, "\t         new combinational equivalence checker\n" );
     Abc_Print( -2, "\t-C num : the max number of conflicts at a node [default = %d]\n", pPars->nBTLimit );
     Abc_Print( -2, "\t-T num : approximate runtime limit in seconds [default = %d]\n", pPars->TimeLimit );
@@ -30990,6 +30995,7 @@ usage:
     Abc_Print( -2, "\t-m     : toggle miter vs. two circuits [default = %s]\n", fMiter? "miter":"two circuits");
     Abc_Print( -2, "\t-d     : toggle using dual output miter [default = %s]\n", fDualOutput? "yes":"no");
     Abc_Print( -2, "\t-a     : toggle writing dual-output miter [default = %s]\n", fDumpMiter? "yes":"no");
+    Abc_Print( -2, "\t-s     : toggle silent operation [default = %s]\n", pPars->fSilent ? "yes":"no");
     Abc_Print( -2, "\t-v     : toggle verbose output [default = %s]\n", pPars->fVerbose? "yes":"no");
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
