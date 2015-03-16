@@ -36405,7 +36405,7 @@ usage:
     Abc_Print( -2, "\t-N num  : specifies iteration to check for fixed parameters [default = %d]\n",     pPars->nIterCheck );
     Abc_Print( -2, "\t-s      : toggles starting with the all-0 and all-1 patterns [default = %s]\n",    pPars->fStartPats?  "yes": "no" );
     Abc_Print( -2, "\t-b      : toggles testing for single faults only [default = %s]\n",                pPars->fBasic?      "yes": "no" );
-    Abc_Print( -2, "\t-f      : toggles using flop inputs only with \"-A 1\" [default = %s]\n",          pPars->fFfOnly?     "yes": "no" );
+    Abc_Print( -2, "\t-f      : toggles faults at flop inputs only with \"-A 1\" and \"-S str\" [default = %s]\n",          pPars->fFfOnly?     "yes": "no" );
     Abc_Print( -2, "\t-d      : toggles dumping test patterns into file \"tests.txt\" [default = %s]\n", pPars->fDump?       "yes": "no" );
     Abc_Print( -2, "\t-u      : toggles dumping untestable faults into \"untest.txt\" [default = %s]\n", pPars->fDumpUntest? "yes": "no" );
     Abc_Print( -2, "\t-v      : toggles printing verbose information [default = %s]\n",                  pPars->fVerbose?    "yes": "no" );

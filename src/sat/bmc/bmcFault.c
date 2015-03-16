@@ -557,9 +557,10 @@ int Gia_ManRealizeFormula( Gia_Man_t * p, int * pVars, int * pPars, char * pStr,
 {
     return Gia_ManRealizeFormula_rec( p, pVars, pPars, pStr, pStr + strlen(pStr), nPars );
 }
-Gia_Man_t * Gia_ManFormulaUnfold( Gia_Man_t * p, char * pForm )
+Gia_Man_t * Gia_ManFormulaUnfold( Gia_Man_t * p, char * pForm, int fFfOnly )
 {
     char pStr[100];
+    int Count = 0;
     Gia_Man_t * pNew, * pTemp;
     Gia_Obj_t * pObj;
     int i, k, iCtrl[FFTEST_MAX_PARS], iFans[FFTEST_MAX_VARS];
@@ -574,19 +575,44 @@ Gia_Man_t * Gia_ManFormulaUnfold( Gia_Man_t * p, char * pForm )
     Gia_ManConst0(p)->Value = 0;
     Gia_ManForEachCi( p, pObj, i )
         pObj->Value = Gia_ManAppendCi( pNew );
-    Gia_ManForEachAnd( p, pObj, i )
+    if ( fFfOnly )
     {
-        for ( k = 0; k < nPars; k++ )
-            iCtrl[k] = Gia_ManAppendCi(pNew);
-        iFans[0] = Gia_ObjFanin0Copy(pObj);
-        iFans[1] = Gia_ObjFanin1Copy(pObj);
-        pObj->Value = Gia_ManRealizeFormula( pNew, iFans, iCtrl, pStr, nPars );
+        Gia_ManCleanMark0( p );
+        Gia_ManForEachRi( p, pObj, i )
+            Gia_ObjFanin0(pObj)->fMark0 = 1;
+        Gia_ManForEachAnd( p, pObj, i )
+        {
+            if ( pObj->fMark0 )
+            {
+                for ( k = 0; k < nPars; k++ )
+                    iCtrl[k] = Gia_ManAppendCi(pNew);
+                iFans[0] = Gia_ObjFanin0Copy(pObj);
+                iFans[1] = Gia_ObjFanin1Copy(pObj);
+                pObj->Value = Gia_ManRealizeFormula( pNew, iFans, iCtrl, pStr, nPars );
+                Count++;
+            }
+            else
+                pObj->Value = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+        }
+        Gia_ManForEachRi( p, pObj, i )
+            Gia_ObjFanin0(pObj)->fMark0 = 0;
+    }
+    else
+    {
+        Gia_ManForEachAnd( p, pObj, i )
+        {
+            for ( k = 0; k < nPars; k++ )
+                iCtrl[k] = Gia_ManAppendCi(pNew);
+            iFans[0] = Gia_ObjFanin0Copy(pObj);
+            iFans[1] = Gia_ObjFanin1Copy(pObj);
+            pObj->Value = Gia_ManRealizeFormula( pNew, iFans, iCtrl, pStr, nPars );
+        }
     }
     Gia_ManForEachCo( p, pObj, i )
         pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
     pNew = Gia_ManCleanup( pTemp = pNew );
     Gia_ManStop( pTemp );
-    assert( Gia_ManPiNum(pNew) == Gia_ManCiNum(p) + nPars * Gia_ManAndNum(p) );
+    assert( Gia_ManPiNum(pNew) == Gia_ManCiNum(p) + nPars * (fFfOnly ? Count : Gia_ManAndNum(p)) );
 //    if ( fUseFaults )
 //        Gia_AigerWrite( pNew, "newfault.aig", 0, 0 );
     return pNew;
@@ -939,7 +965,7 @@ int Gia_ManFaultPrepare( Gia_Man_t * p, Gia_Man_t * pG, Bmc_ParFf_t * pPars, int
 
     // select algorithm
     if ( pPars->Algo == 0 )
-        p1 = Gia_ManFormulaUnfold( p, pPars->pFormStr );
+        p1 = Gia_ManFormulaUnfold( p, pPars->pFormStr, pPars->fFfOnly );
     else if ( pPars->Algo == 1 )
     {
         assert( Gia_ManRegNum(p) > 0 );
