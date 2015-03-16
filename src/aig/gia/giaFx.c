@@ -282,7 +282,7 @@ Vec_Int_t * Gia_ManFxTopoOrder( Vec_Wec_t * vCubes, int nInputs, int nStart, Vec
     // quit if there is no new nodes
     if ( nNodeMax == nStart )
     {
-        printf( "The network is unchanged by fast extract.\n" );
+        //printf( "The network is unchanged by fast extract.\n" );
         return NULL;
     }
     // find first cube and how many cubes
@@ -459,6 +459,8 @@ Gia_Man_t * Gia_ManPerformFx( Gia_Man_t * p, int nNewNodesMax, int LitCountMax, 
     Gia_Man_t * pNew = NULL;
     Vec_Wec_t * vCubes;
     Vec_Str_t * vCompl;
+    if ( Gia_ManAndNum(p) == 0 )
+        return Gia_ManDup(p);
 //    abctime clk;
     assert( Gia_ManHasMapping(p) );   
     // collect information

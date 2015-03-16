@@ -30301,7 +30301,7 @@ int Abc_CommandAbc9Fraig( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Abc_CommandAbc9Fraig(): There is no AIG.\n" );
         return 1;
     }
-    pTemp = Cec_ManSatSweeping( pAbc->pGia, pPars );
+    pTemp = Cec_ManSatSweeping( pAbc->pGia, pPars, 0 );
     Abc_FrameUpdateGia( pAbc, pTemp );
     return 0;
 

@@ -334,7 +334,7 @@ void Cec_ManSimulation( Gia_Man_t * pAig, Cec_ParSim_t * pPars )
   SeeAlso     []
 
 ***********************************************************************/
-Gia_Man_t * Cec_ManSatSweeping( Gia_Man_t * pAig, Cec_ParFra_t * pPars )
+Gia_Man_t * Cec_ManSatSweeping( Gia_Man_t * pAig, Cec_ParFra_t * pPars, int fSilent )
 {
     int fOutputResult = 0;
     Cec_ParSat_t ParsSat, * pParsSat = &ParsSat;
@@ -521,12 +521,13 @@ finalize:
     pTemp = p->pAig; p->pAig = NULL;
     if ( pTemp == NULL && pSim->iOut >= 0 )
     {
+        if ( !fSilent )
         Abc_Print( 1, "Disproved at least one output of the miter (zero-based number %d).\n", pSim->iOut );
         pPars->iOutFail = pSim->iOut;
     }
-    else if ( pSim->pCexes )
+    else if ( pSim->pCexes && !fSilent )
         Abc_Print( 1, "Disproved %d outputs of the miter.\n", pSim->nOuts );
-    if ( fTimeOut )
+    if ( fTimeOut && !fSilent )
         Abc_Print( 1, "Timed out after %d seconds.\n", (int)((double)Abc_Clock() - clkTotal)/CLOCKS_PER_SEC );
 
     pAig->pCexComb = pSim->pCexComb; pSim->pCexComb = NULL;

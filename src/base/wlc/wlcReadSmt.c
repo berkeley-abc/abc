@@ -706,12 +706,12 @@ static inline char * Smt_PrsLoadFile( char * pFileName, char ** ppLimit )
     // move the file current reading position to the beginning
     rewind( pFile ); 
     // load the contents of the file into memory
-    pBuffer = ABC_ALLOC( char, nFileSize + 3 );
+    pBuffer = ABC_ALLOC( char, nFileSize + 16 );
     pBuffer[0] = '\n';
     RetValue = fread( pBuffer+1, nFileSize, 1, pFile );
     // terminate the string with '\0'
-    pBuffer[nFileSize + 0] = '\n';
-    pBuffer[nFileSize + 1] = '\0';
+    pBuffer[nFileSize + 1] = '\n';
+    pBuffer[nFileSize + 2] = '\0';
     *ppLimit = pBuffer + nFileSize + 2;
     return pBuffer;
 }

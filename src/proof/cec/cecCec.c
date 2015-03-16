@@ -358,7 +358,7 @@ int Cec_ManVerify( Gia_Man_t * pInit, Cec_ParCec_t * pPars )
     pParsFra->fVerbose     = pPars->fVerbose;
     pParsFra->fCheckMiter  = 1;
     pParsFra->fDualOut     = 1;
-    pNew = Cec_ManSatSweeping( p, pParsFra );
+    pNew = Cec_ManSatSweeping( p, pParsFra, pPars->fSilent );
     pPars->iOutFail = pParsFra->iOutFail;
     // update
     pInit->pCexComb = p->pCexComb; p->pCexComb = NULL;
@@ -371,8 +371,11 @@ int Cec_ManVerify( Gia_Man_t * pInit, Cec_ParCec_t * pPars )
         {
             if ( p->pCexComb && !Gia_ManVerifyCex( p, p->pCexComb, 1 ) )
                 Abc_Print( 1, "Counter-example simulation has failed.\n" );
+            if ( !pPars->fSilent )
+            {
             Abc_Print( 1, "Networks are NOT EQUIVALENT.  " );
             Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
+            }
             return 0;
         }
         p = Gia_ManDup( pInit );
@@ -542,7 +545,7 @@ Aig_Man_t * Cec_FraigCombinational( Aig_Man_t * pAig, int nConfs, int fVerbose )
     pFraPars->nItersMax = 20;
     pFraPars->fVerbose  = fVerbose;
     pGia = Gia_ManFromAigSimple( pAig );
-    Cec_ManSatSweeping( pGia, pFraPars );
+    Cec_ManSatSweeping( pGia, pFraPars, 0 );
     Gia_ManReprToAigRepr( pAig, pGia );
     Gia_ManStop( pGia );
     return Aig_ManDupSimple( pAig );
