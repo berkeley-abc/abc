@@ -30954,6 +30954,7 @@ int Abc_CommandAbc9Cec( Abc_Frame_t * pAbc, int argc, char ** argv )
             Abc_Print( 1, "Assuming the current network is a single-output miter. (Conflict limit = %d.)\n", pPars->nBTLimit );
             pTemp = Gia_ManTransformToDual( pAbc->pGia );
             pAbc->Status = Cec_ManVerify( pTemp, pPars );
+            ABC_SWAP( Abc_Cex_t *, pAbc->pGia->pCexComb, pTemp->pCexComb );
             Gia_ManStop( pTemp );
         }        
         Abc_FrameReplaceCex( pAbc, &pAbc->pGia->pCexComb );
