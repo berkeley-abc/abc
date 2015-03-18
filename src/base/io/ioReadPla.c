@@ -28,7 +28,7 @@ ABC_NAMESPACE_IMPL_START
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-static Abc_Ntk_t * Io_ReadPlaNetwork( Extra_FileReader_t * p, int fZeros );
+static Abc_Ntk_t * Io_ReadPlaNetwork( Extra_FileReader_t * p, int fZeros, int fBoth );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -326,7 +326,7 @@ void Io_ReadPlaCubePreprocess( Vec_Str_t * vSop, int iCover, int fVerbose )
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Ntk_t * Io_ReadPla( char * pFileName, int fZeros, int fCheck )
+Abc_Ntk_t * Io_ReadPla( char * pFileName, int fZeros, int fBoth, int fCheck )
 {
     Extra_FileReader_t * p;
     Abc_Ntk_t * pNtk;
@@ -338,7 +338,7 @@ Abc_Ntk_t * Io_ReadPla( char * pFileName, int fZeros, int fCheck )
         return NULL;
 
     // read the network
-    pNtk = Io_ReadPlaNetwork( p, fZeros );
+    pNtk = Io_ReadPlaNetwork( p, fZeros, fBoth );
     Extra_FileReaderFree( p );
     if ( pNtk == NULL )
         return NULL;
@@ -363,7 +363,7 @@ Abc_Ntk_t * Io_ReadPla( char * pFileName, int fZeros, int fCheck )
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Ntk_t * Io_ReadPlaNetwork( Extra_FileReader_t * p, int fZeros )
+Abc_Ntk_t * Io_ReadPlaNetwork( Extra_FileReader_t * p, int fZeros, int fBoth )
 {
     ProgressBar * pProgress;
     Vec_Ptr_t * vTokens;
@@ -389,6 +389,10 @@ Abc_Ntk_t * Io_ReadPlaNetwork( Extra_FileReader_t * p, int fZeros )
         // if it is the end of file, quit the loop
         if ( strncmp( (char *)vTokens->pArray[0], ".e", 2 ) == 0 )
             break;
+
+        // if it is type directive, ignore it for now
+        if ( strncmp( (char *)vTokens->pArray[0], ".type", 5 ) == 0 )
+            continue;
 
         // if it is the model name, get the name
         if ( strcmp( (char *)vTokens->pArray[0], ".model" ) == 0 )
@@ -510,7 +514,18 @@ Abc_Ntk_t * Io_ReadPlaNetwork( Extra_FileReader_t * p, int fZeros )
                 ABC_FREE( ppSops );
                 return NULL;
             }
-            if ( fZeros )
+            if ( fBoth )
+            {
+                for ( i = 0; i < nOutputs; i++ )
+                {
+                    if ( pCubeOut[i] == '0' || pCubeOut[i] == '1' )
+                    {
+                        Vec_StrPrintStr( ppSops[i], pCubeIn );
+                        Vec_StrPrintStr( ppSops[i], " 1\n" );
+                    }
+                }
+            }
+            else if ( fZeros )
             {
                 for ( i = 0; i < nOutputs; i++ )
                 {

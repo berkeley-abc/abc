@@ -25897,7 +25897,7 @@ int Abc_CommandAbc9Get( Abc_Frame_t * pAbc, int argc, char ** argv )
         Vec_FltFreeP( &pGia->vInArrs );
         Vec_FltFreeP( &pGia->vOutReqs );
         pGia->vInArrs = Vec_FltAllocArray( Abc_NtkGetCiArrivalFloats(pNtk), Abc_NtkCiNum(pNtk) ); 
-        pGia->vOutReqs = Vec_FltAllocArray( Abc_NtkGetCiArrivalFloats(pNtk), Abc_NtkCoNum(pNtk) ); 
+        pGia->vOutReqs = Vec_FltAllocArray( Abc_NtkGetCoRequiredFloats(pNtk), Abc_NtkCoNum(pNtk) ); 
     }
     Abc_FrameUpdateGia( pAbc, pGia );
     return 0;
