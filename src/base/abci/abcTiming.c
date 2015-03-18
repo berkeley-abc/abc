@@ -188,8 +188,8 @@ void Abc_NtkTimeSetArrival( Abc_Ntk_t * pNtk, int ObjId, float Rise, float Fall 
     Abc_Time_t * pTime;
     if ( pNtk->pManTime == NULL )
         pNtk->pManTime = Abc_ManTimeStart(pNtk);
-    if ( pNtk->pManTime->tArrDef.Rise == Rise && pNtk->pManTime->tArrDef.Fall == Fall )
-        return;
+    //if ( pNtk->pManTime->tArrDef.Rise == Rise && pNtk->pManTime->tArrDef.Fall == Fall )
+    //    return;
     Abc_ManTimeExpand( pNtk->pManTime, ObjId + 1, 1 );
     // set the arrival time
     vTimes = pNtk->pManTime->vArrs;
@@ -203,8 +203,8 @@ void Abc_NtkTimeSetRequired( Abc_Ntk_t * pNtk, int ObjId, float Rise, float Fall
     Abc_Time_t * pTime;
     if ( pNtk->pManTime == NULL )
         pNtk->pManTime = Abc_ManTimeStart(pNtk);
-    if ( pNtk->pManTime->tReqDef.Rise == Rise && pNtk->pManTime->tReqDef.Fall == Fall )
-        return;
+    //if ( pNtk->pManTime->tReqDef.Rise == Rise && pNtk->pManTime->tReqDef.Fall == Fall )
+    //    return;
     Abc_ManTimeExpand( pNtk->pManTime, ObjId + 1, 1 );
     // set the required time
     vTimes = pNtk->pManTime->vReqs;
@@ -516,6 +516,41 @@ void Abc_ManTimeDup( Abc_Ntk_t * pNtkOld, Abc_Ntk_t * pNtkNew )
     {
         pNtkNew->pManTime->tOutLoad = ABC_ALLOC( Abc_Time_t, Abc_NtkCiNum(pNtkOld) );
         memcpy( pNtkNew->pManTime->tOutLoad, pNtkOld->pManTime->tOutLoad, sizeof(Abc_Time_t) * Abc_NtkCoNum(pNtkOld) );
+    }
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Prepares the timing manager for delay trace.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkTimePrint( Abc_Ntk_t * pNtk )
+{
+    if ( pNtk->pManTime == NULL )
+        printf( "There is no timing manager\n" );
+    else
+    {
+        Abc_Obj_t * pObj; int i;
+        printf( "Default arrival = %8f\n", pNtk->pManTime->tArrDef.Fall );
+        printf( "Default required = %8f\n", pNtk->pManTime->tReqDef.Fall );
+        printf( "Inputs (%d):\n", Abc_NtkCiNum(pNtk) );
+        Abc_NtkForEachCi( pNtk, pObj, i )
+            printf( "%20s   arrival = %8f   required = %8f\n", 
+                Abc_ObjName(pObj), 
+                Abc_NodeReadArrivalWorst(pObj), 
+                Abc_NodeReadRequiredWorst(pObj) );
+        printf( "Outputs (%d):\n", Abc_NtkCoNum(pNtk) );
+        Abc_NtkForEachCo( pNtk, pObj, i )
+            printf( "%20s   arrival = %8f   required = %8f\n", 
+                Abc_ObjName(pObj), 
+                Abc_NodeReadArrivalWorst(pObj), 
+                Abc_NodeReadRequiredWorst(pObj) );
     }
 }
 
