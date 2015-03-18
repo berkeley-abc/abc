@@ -854,6 +854,38 @@ SOURCE=.\src\base\cba\cbaWriteSmt.c
 SOURCE=.\src\base\cba\cbaWriteVer.c
 # End Source File
 # End Group
+# Begin Group "pla"
+
+# PROP Default_Filter ""
+# Begin Source File
+
+SOURCE=.\src\base\pla\pla.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\pla\plaCom.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\pla\plaHash.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\pla\plaMan.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\pla\plaMerge.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\pla\plaRead.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\pla\plaWrite.c
+# End Source File
+# End Group
 # End Group
 # Begin Group "bdd"
 

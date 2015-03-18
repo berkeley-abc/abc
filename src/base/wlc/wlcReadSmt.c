@@ -709,6 +709,7 @@ static inline char * Smt_PrsLoadFile( char * pFileName, char ** ppLimit )
     pBuffer = ABC_ALLOC( char, nFileSize + 16 );
     pBuffer[0] = '\n';
     RetValue = fread( pBuffer+1, nFileSize, 1, pFile );
+    fclose( pFile );
     // terminate the string with '\0'
     pBuffer[nFileSize + 1] = '\n';
     pBuffer[nFileSize + 2] = '\0';

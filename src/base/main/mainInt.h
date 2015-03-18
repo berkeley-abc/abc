@@ -128,6 +128,7 @@ struct Abc_Frame_t_
     void *          pAbc85Delay;
     void *          pAbcWlc;
     void *          pAbcCba;
+    void *          pAbcPla;
 };
 
 typedef void (*Abc_Frame_Initialization_Func)( Abc_Frame_t * pAbc );

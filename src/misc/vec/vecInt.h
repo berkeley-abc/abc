@@ -573,6 +573,14 @@ static inline void Vec_IntFillTwo( Vec_Int_t * p, int nSize, int FillEven, int F
         p->pArray[i] = (i & 1) ? FillOdd : FillEven;
     p->nSize = nSize;
 }
+static inline void Vec_IntFillNatural( Vec_Int_t * p, int nSize )
+{
+    int i;
+    Vec_IntGrow( p, nSize );
+    for ( i = 0; i < nSize; i++ )
+        p->pArray[i] = i;
+    p->nSize = nSize;
+}
 
 /**Function*************************************************************
 
