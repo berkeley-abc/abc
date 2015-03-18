@@ -232,7 +232,7 @@ static inline void Pla_ManPrintStats( Pla_Man_t * p, int fVerbose )
     printf( "Cube =%8d  ",   Pla_ManCubeNum(p) );
     printf( "LitIn =%8d  ",  Pla_ManLitInNum(p) );
     printf( "LitOut =%8d  ", Pla_ManLitOutNum(p) );
-    printf( "%\n" );
+    printf( "\n" );
 }
 
 

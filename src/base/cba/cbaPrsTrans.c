@@ -35,6 +35,7 @@ struct Cba_Trip_t_
     char *        pCode;
     char *        pSigs[6];
 };
+/*
 static Cba_Trip_t s_Types[100] =
 { 
     { CBA_BOX_CT       , "VERIFIC_PWR",           "1",      {"o"} },
@@ -118,7 +119,7 @@ static Cba_Trip_t s_Types[100] =
     { CBA_BOX_PENC     , "PrioEncoder_",          "a?",     {"sel","o"} },
     { CBA_BOX_ABS      , "abs",                   "aa",     {"i","o"} }
 };
-
+*/
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
