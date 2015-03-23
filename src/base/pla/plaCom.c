@@ -359,7 +359,7 @@ int Abc_CommandGen( Abc_Frame_t * pAbc, int argc, char ** argv )
         }
     }
     if ( fPrimes )
-        p = Pla_ManPrimeDetector( nInputs );
+        p = Pla_ManPrimesDetector( nInputs );
     else
     {
         Gia_ManRandom( 1 );
@@ -444,12 +444,23 @@ usage:
 int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Pla_Man_t * p = Pla_AbcGetMan(pAbc);
-    int c, fVerbose  = 0;
+    int c, nVars = 4, fVerbose  = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Nvh" ) ) != EOF )
     {
         switch ( c )
         {
+        case 'N':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-N\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nVars = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nVars < 0 )
+                goto usage;
+            break;
         case 'v':
             fVerbose ^= 1;
             break;
@@ -459,18 +470,22 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
             goto usage;
         }
     }
+/*
     if ( p == NULL )
     {
         Abc_Print( 1, "Abc_CommandTest(): There is no current design.\n" );
         return 0;
     }
-    Pla_ManHashDist1NumTest( p );
+*/
+    //Pla_ManFxPerformSimple( nVars );
     //Pla_ManConvertFromBits( p );
     //Pla_ManConvertToBits( p );
+    Pla_ManPerformFxch( p );
     return 0;
 usage:
-    Abc_Print( -2, "usage: |test [-vh]\n" );
+    Abc_Print( -2, "usage: |test [-N num] [-vh]\n" );
     Abc_Print( -2, "\t         experiments with SOPs\n" );
+    Abc_Print( -2, "\t-N num : the number of variables [default = %d]\n", nVars );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;

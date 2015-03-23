@@ -225,6 +225,18 @@ static inline Vec_Flt_t * Vec_FltDupArray( Vec_Flt_t * pVec )
   SeeAlso     []
 
 ***********************************************************************/
+static inline void Vec_FltZero( Vec_Flt_t * p )
+{
+    p->pArray = NULL;
+    p->nSize = 0;
+    p->nCap = 0;
+}
+static inline void Vec_FltErase( Vec_Flt_t * p )
+{
+    ABC_FREE( p->pArray );
+    p->nSize = 0;
+    p->nCap = 0;
+}
 static inline void Vec_FltFree( Vec_Flt_t * p )
 {
     ABC_FREE( p->pArray );

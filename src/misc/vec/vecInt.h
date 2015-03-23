@@ -1338,6 +1338,16 @@ static inline void Vec_IntSort( Vec_Int_t * p, int fReverse )
         qsort( (void *)p->pArray, p->nSize, sizeof(int), 
                 (int (*)(const void *, const void *)) Vec_IntSortCompare1 );
 }
+static inline void Vec_IntSortPairs( Vec_Int_t * p, int fReverse )
+{
+    assert( Vec_IntSize(p) % 2 == 0 );
+    if ( fReverse ) 
+        qsort( (void *)p->pArray, p->nSize/2, 2*sizeof(int), 
+                (int (*)(const void *, const void *)) Vec_IntSortCompare2 );
+    else
+        qsort( (void *)p->pArray, p->nSize/2, 2*sizeof(int), 
+                (int (*)(const void *, const void *)) Vec_IntSortCompare1 );
+}
 
 /**Function*************************************************************
 
@@ -1390,6 +1400,36 @@ static inline int Vec_IntCountUnique( Vec_Int_t * p )
             pPres[p->pArray[i]] = 1, Count++;
     ABC_FREE( pPres );
     return Count;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Counts the number of unique pairs.]
+
+  Description []
+               
+  SideEffects [] 
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline int Vec_IntUniqifyPairs( Vec_Int_t * p )
+{
+    int i, k, RetValue;
+    assert( p->nSize % 2 == 0 );
+    if ( p->nSize < 4 )
+        return 0;
+    Vec_IntSortPairs( p, 0 );
+    for ( i = k = 1; i < p->nSize/2; i++ )
+        if ( p->pArray[2*i] != p->pArray[2*(i-1)] || p->pArray[2*i+1] != p->pArray[2*(i-1)+1] )
+        {
+            p->pArray[2*k]   = p->pArray[2*i];
+            p->pArray[2*k+1] = p->pArray[2*i+1];
+            k++;
+        }
+    RetValue = p->nSize/2 - k;
+    p->nSize = 2*k;
+    return RetValue;
 }
 
 /**Function*************************************************************
@@ -1890,6 +1930,13 @@ static inline void Vec_IntAppend( Vec_Int_t * vVec1, Vec_Int_t * vVec2 )
     int Entry, i;
     Vec_IntForEachEntry( vVec2, Entry, i )
         Vec_IntPush( vVec1, Entry );
+}
+static inline void Vec_IntAppendSkip( Vec_Int_t * vVec1, Vec_Int_t * vVec2, int iVar )
+{
+    int Entry, i;
+    Vec_IntForEachEntry( vVec2, Entry, i )
+        if ( i != iVar )
+            Vec_IntPush( vVec1, Entry );
 }
 
 

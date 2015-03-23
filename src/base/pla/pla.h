@@ -74,20 +74,33 @@ struct Pla_Man_t_
     Vec_Int_t        vHashes;    // hash values
     Vec_Wrd_t        vInBits;    // input bits
     Vec_Wrd_t        vOutBits;   // output bits
-    Vec_Wec_t        vLits;      // cubes as interger arrays
-    Vec_Wec_t        vOccurs;    // occurent counters for the literals
+    Vec_Wec_t        vCubeLits;  // cubes as interger arrays
+    Vec_Wec_t        vOccurs;    // occurence counters for the literals
+    Vec_Int_t        vDivs;      // divisor definitions
 };
 
+static inline char * Pla_ManName( Pla_Man_t * p )                    { return p->pName;                   }
 static inline int    Pla_ManInNum( Pla_Man_t * p )                   { return p->nIns;                    }
 static inline int    Pla_ManOutNum( Pla_Man_t * p )                  { return p->nOuts;                   }
 static inline int    Pla_ManCubeNum( Pla_Man_t * p )                 { return Vec_IntSize( &p->vCubes );  }
+static inline int    Pla_ManDivNum( Pla_Man_t * p )                  { return Vec_IntSize( &p->vDivs );   }
 
 static inline word * Pla_CubeIn( Pla_Man_t * p, int i )              { return Vec_WrdEntryP(&p->vInBits,  i * p->nInWords);  }
 static inline word * Pla_CubeOut( Pla_Man_t * p, int i )             { return Vec_WrdEntryP(&p->vOutBits, i * p->nOutWords); }
 
-static inline int    Pla_CubeGetLit( word * p, int k )               { return (int)(p[k>>5] >> ((k<<1) & 63)) & 3; }
-static inline void   Pla_CubeSetLit( word * p, int k, Pla_Lit_t d )  { p[k>>5] |= (((word)d)<<((k<<1) & 63));      }
-static inline void   Pla_CubeXorLit( word * p, int k, Pla_Lit_t d )  { p[k>>5] ^= (((word)d)<<((k<<1) & 63));      }
+static inline int    Pla_CubeNum( int hCube )                        { return hCube >> 8;    }
+static inline int    Pla_CubeLit( int hCube )                        { return hCube & 0xFF;  }
+static inline int    Pla_CubeHandle( int iCube, int iLit )           { assert( !(iCube >> 24) && !(iLit >> 8) ); return iCube << 8 | iLit; }
+
+// read/write/flip i-th bit of a bit string table
+static inline int    Pla_TtGetBit( word * p, int i )                 { return (int)(p[i>>6] >> (i & 63)) & 1;      }
+static inline void   Pla_TtSetBit( word * p, int i )                 { p[i>>6] |= (((word)1)<<(i & 63));           }
+static inline void   Pla_TtXorBit( word * p, int i )                 { p[i>>6] ^= (((word)1)<<(i & 63));           }
+
+// read/write/flip i-th literal in a cube
+static inline int    Pla_CubeGetLit( word * p, int i )               { return (int)(p[i>>5] >> ((i<<1) & 63)) & 3; }
+static inline void   Pla_CubeSetLit( word * p, int i, Pla_Lit_t d )  { p[i>>5] |= (((word)d)<<((i<<1) & 63));      }
+static inline void   Pla_CubeXorLit( word * p, int i, Pla_Lit_t d )  { p[i>>5] ^= (((word)d)<<((i<<1) & 63));      }
 
 
 ////////////////////////////////////////////////////////////////////////
@@ -170,6 +183,23 @@ static inline int Pla_CubesAreConsensus( word * p, word * q, int nWords, int * p
     }
     return fFound;
 }
+static inline int Pla_TtCountOnesOne( word x )
+{
+    x = x - ((x >> 1) & ABC_CONST(0x5555555555555555));   
+    x = (x & ABC_CONST(0x3333333333333333)) + ((x >> 2) & ABC_CONST(0x3333333333333333));    
+    x = (x + (x >> 4)) & ABC_CONST(0x0F0F0F0F0F0F0F0F);    
+    x = x + (x >> 8);
+    x = x + (x >> 16);
+    x = x + (x >> 32); 
+    return (int)(x & 0xFF);
+}
+static inline int Pla_TtCountOnes( word * p, int nWords )
+{
+    int i, Count = 0;
+    for ( i = 0; i < nWords; i++ )
+        Count += Pla_TtCountOnesOne( p[i] );
+    return Count;
+}
             
 /**Function*************************************************************
 
@@ -202,8 +232,9 @@ static inline void Pla_ManFree( Pla_Man_t * p )
     Vec_IntErase( &p->vHashes );
     Vec_WrdErase( &p->vInBits );
     Vec_WrdErase( &p->vOutBits );
-    Vec_WecErase( &p->vLits );
+    Vec_WecErase( &p->vCubeLits );
     Vec_WecErase( &p->vOccurs );
+    Vec_IntErase( &p->vDivs );
     ABC_FREE( p->pName );
     ABC_FREE( p->pSpec );
     ABC_FREE( p );
@@ -226,26 +257,33 @@ static inline int Pla_ManLitOutNum( Pla_Man_t * p )
 }
 static inline void Pla_ManPrintStats( Pla_Man_t * p, int fVerbose )
 {
-    printf( "%-16s :  ",     p->pName );
+    printf( "%-16s :  ",     Pla_ManName(p) );
     printf( "In =%4d  ",     Pla_ManInNum(p) );
     printf( "Out =%4d  ",    Pla_ManOutNum(p) );
     printf( "Cube =%8d  ",   Pla_ManCubeNum(p) );
     printf( "LitIn =%8d  ",  Pla_ManLitInNum(p) );
     printf( "LitOut =%8d  ", Pla_ManLitOutNum(p) );
+    printf( "Div =%6d  ",    Pla_ManDivNum(p) );
     printf( "\n" );
 }
 
 
+/*=== plaFxch.c ========================================================*/
+extern int                 Pla_ManPerformFxch( Pla_Man_t * p );
 /*=== plaHash.c ========================================================*/
 extern int                 Pla_ManHashDist1NumTest( Pla_Man_t * p );
+extern void                Pla_ManComputeDist1Test( Pla_Man_t * p );
 /*=== plaMan.c ========================================================*/
-extern Pla_Man_t *         Pla_ManPrimeDetector( int nVars );
+extern Vec_Bit_t *         Pla_ManPrimesTable( int nVars );
+extern Pla_Man_t *         Pla_ManPrimesDetector( int nVars );
 extern Pla_Man_t *         Pla_ManGenerate( int nIns, int nOuts, int nCubes, int fVerbose );
 extern void                Pla_ManConvertFromBits( Pla_Man_t * p );
 extern void                Pla_ManConvertToBits( Pla_Man_t * p );
 extern int                 Pla_ManDist1NumTest( Pla_Man_t * p );
 /*=== plaMerge.c ========================================================*/
 extern int                 Pla_ManDist1Merge( Pla_Man_t * p );
+/*=== plaSimple.c ========================================================*/
+extern int                 Pla_ManFxPerformSimple( int nVars );
 /*=== plaRead.c ========================================================*/
 extern Pla_Man_t *         Pla_ReadPla( char * pFileName );
 /*=== plaWrite.c ========================================================*/

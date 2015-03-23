@@ -961,6 +961,25 @@ static inline word Vec_WrdSum( Vec_Wrd_t * p )
 
 /**Function*************************************************************
 
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline int Vec_WrdCountZero( Vec_Wrd_t * p ) 
+{
+    int i, Counter = 0;
+    for ( i = 0; i < p->nSize; i++ )
+        Counter += (p->pArray[i] == 0);
+    return Counter;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Checks if two vectors are equal.]
 
   Description []

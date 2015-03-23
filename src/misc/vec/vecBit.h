@@ -124,7 +124,7 @@ static inline Vec_Bit_t * Vec_BitStartFull( int nSize )
 {
     Vec_Bit_t * p;
     nSize = (nSize >> 5) + ((nSize & 31) > 0);
-    p = Vec_BitAlloc( nSize );
+    p = Vec_BitAlloc( nSize * 32 );
     p->nSize = nSize * 32;
     memset( p->pArray, 0xff, sizeof(int) * nSize );
     return p;

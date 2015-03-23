@@ -867,6 +867,10 @@ SOURCE=.\src\base\pla\plaCom.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\base\pla\plaFxch.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\base\pla\plaHash.c
 # End Source File
 # Begin Source File
@@ -880,6 +884,10 @@ SOURCE=.\src\base\pla\plaMerge.c
 # Begin Source File
 
 SOURCE=.\src\base\pla\plaRead.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\pla\plaSimple.c
 # End Source File
 # Begin Source File
 

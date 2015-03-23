@@ -49,7 +49,7 @@ Vec_Str_t * Pla_WritePlaInt( Pla_Man_t * p )
     int i, k, Lit; 
     // write comments
     Vec_StrPrintStr( vOut, "# SOP \"" );
-    Vec_StrPrintStr( vOut, p->pName );
+    Vec_StrPrintStr( vOut, Pla_ManName(p) );
     Vec_StrPrintStr( vOut, "\" written via PLA package in ABC on " );
     Vec_StrPrintStr( vOut, Extra_TimeStamp() );
     Vec_StrPrintStr( vOut, "\n\n" );

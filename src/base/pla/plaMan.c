@@ -41,19 +41,28 @@ ABC_NAMESPACE_IMPL_START
   SeeAlso     []
 
 ***********************************************************************/
+Vec_Bit_t * Pla_ManPrimesTable( int nVars )
+{
+    int i, n, nBits = 1 << nVars;
+    Vec_Bit_t * vMap = Vec_BitStartFull( Abc_MaxInt(64, nBits) );
+    for ( i = nBits; i < 64; i++ )
+        Vec_BitWriteEntry( vMap, i, 0 );
+    Vec_BitShrink( vMap, nBits );
+    Vec_BitWriteEntry( vMap, 0, 0 );
+    Vec_BitWriteEntry( vMap, 1, 0 );
+    for ( n = 2; n < nBits; n++ )
+        if ( Vec_BitEntry(vMap, n) )
+            for ( i = 2*n; i < nBits; i += n )
+                Vec_BitWriteEntry( vMap, i, 0 );
+    return vMap;
+}
 Vec_Int_t * Pla_GenPrimes( int nVars )
 {
-    int i, n, nBits = ( 1 << nVars );
-    Vec_Bit_t * vMap = Vec_BitStart( nBits );
+    int n, nBits = ( 1 << nVars );
     Vec_Int_t * vPrimes = Vec_IntAlloc( 1000 );
-    Vec_BitWriteEntry(vMap, 0, 1);
-    Vec_BitWriteEntry(vMap, 1, 1);
+    Vec_Bit_t * vMap = Pla_ManPrimesTable( nVars );
     for ( n = 2; n < nBits; n++ )
-        if ( !Vec_BitEntry(vMap, n) )
-            for ( i = 2*n; i < nBits; i += n )
-                Vec_BitWriteEntry(vMap, i, 1);
-    for ( n = 2; n < nBits; n++ )
-        if ( !Vec_BitEntry(vMap, n) )
+        if ( Vec_BitEntry(vMap, n) )
             Vec_IntPush( vPrimes, n );
     printf( "Primes up to 2^%d = %d\n", nVars, Vec_IntSize(vPrimes) );
 //    Abc_GenCountHits1( vMap, vPrimes, nVars );
@@ -75,7 +84,7 @@ Pla_Man_t * Pla_GenFromMinterms( char * pName, Vec_Int_t * vMints, int nVars )
         Pla_CubeSetLit( pCube, 0, PLA_LIT_ONE );
     return p;
 }
-Pla_Man_t * Pla_ManPrimeDetector( int nVars )
+Pla_Man_t * Pla_ManPrimesDetector( int nVars )
 {
     char pName[1000];
     Pla_Man_t * p;
@@ -117,10 +126,13 @@ Vec_Bit_t * Pla_GenRandom( int nVars, int nNums, int fNonZero )
 }
 Pla_Man_t * Pla_ManGenerate( int nInputs, int nOutputs, int nCubes, int fVerbose )
 {
+    Pla_Man_t * p;
     Vec_Bit_t * vBits;
     int i, k, Count;
     word * pCube;
-    Pla_Man_t * p = Pla_ManAlloc( "rand", nInputs, nOutputs, nCubes );
+    char Buffer[1000];
+    sprintf( Buffer, "%s_%d_%d_%d", "rand", nInputs, nOutputs, nCubes );
+    p = Pla_ManAlloc( Buffer, nInputs, nOutputs, nCubes );
     // generate nCube random input minterms
     vBits = Pla_GenRandom( nInputs, nCubes, 0 );
     for ( i = Count = 0; i < Vec_BitSize(vBits); i++ )
@@ -167,26 +179,40 @@ Pla_Man_t * Pla_ManGenerate( int nInputs, int nOutputs, int nCubes, int fVerbose
 ***********************************************************************/
 void Pla_ManConvertFromBits( Pla_Man_t * p )
 {
-    word * pCube; int i, k, Lit;
-    Vec_WecClear( &p->vLits );
+    Vec_Int_t * vCube;
+    word * pCube; int i, k, Lit, Count;
+    Vec_WecClear( &p->vCubeLits );
     Vec_WecClear( &p->vOccurs );
-    Vec_WecInit( &p->vLits, Pla_ManCubeNum(p) );
+    Vec_WecInit( &p->vCubeLits, Pla_ManCubeNum(p) );
     Vec_WecInit( &p->vOccurs, 2*Pla_ManInNum(p) );
     Pla_ForEachCubeIn( p, pCube, i )
+    {
+        vCube = Vec_WecEntry( &p->vCubeLits, i );
+
+        Count = 0;
+        Pla_CubeForEachLitIn( p, pCube, Lit, k )
+            if ( Lit != PLA_LIT_DASH )
+                Count++;
+        Vec_IntGrow( vCube, Count );
+
+        Count = 0;
         Pla_CubeForEachLitIn( p, pCube, Lit, k )
             if ( Lit != PLA_LIT_DASH )
             {
                 Lit = Abc_Var2Lit( k, Lit == PLA_LIT_ZERO );
-                Vec_WecPush( &p->vLits,   i, Lit );
+                Vec_WecPush( &p->vCubeLits, i, Lit );
+//                Vec_WecPush( &p->vOccurs, Lit, Pla_CubeHandle(i, Count++) );
                 Vec_WecPush( &p->vOccurs, Lit, i );
             }
+        assert( Vec_IntSize(vCube) == Vec_IntCap(vCube) );
+    }
 }
 void Pla_ManConvertToBits( Pla_Man_t * p )
 {
     Vec_Int_t * vCube; int i, k, Lit;
-    Vec_IntFillNatural( &p->vCubes, Vec_WecSize(&p->vLits) );
+    Vec_IntFillNatural( &p->vCubes, Vec_WecSize(&p->vCubeLits) );
     Vec_WrdFill( &p->vInBits,  Pla_ManCubeNum(p) * p->nInWords,  0 );
-    Vec_WecForEachLevel( &p->vLits, vCube, i )
+    Vec_WecForEachLevel( &p->vCubeLits, vCube, i )
         Vec_IntForEachEntry( vCube, Lit, k )
             Pla_CubeSetLit( Pla_CubeIn(p, i), Abc_Lit2Var(Lit), Abc_LitIsCompl(Lit) ? PLA_LIT_ZERO : PLA_LIT_ONE );
 }

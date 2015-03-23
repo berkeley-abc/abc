@@ -1091,12 +1091,12 @@ void Fx_ManUpdate( Fx_Man_t * p, int iDiv, int * fWarning )
         if ( Vec_IntSize(vDiv) == 2 || fCompl )
         {
             Vec_IntPush( vCube, Abc_Var2Lit(iVarNew, 1) );
-            Vec_IntPush( vLitN, Vec_WecLevelId(p->vCubes, vCube) );
+            Vec_IntPush( vLitN, Vec_WecLevelId(p->vCubes, vCube) ); // MAKE SURE vCube IS SORTED BY ID
         }
         else 
         {
             Vec_IntPush( vCube, Abc_Var2Lit(iVarNew, 0) );
-            Vec_IntPush( vLitP, Vec_WecLevelId(p->vCubes, vCube) );
+            Vec_IntPush( vLitP, Vec_WecLevelId(p->vCubes, vCube) ); // MAKE SURE vCube IS SORTED BY ID
         }
         p->nLits -= Vec_IntSize(vDiv) + Vec_IntSize(vCube2) - 2;
         // remove second cube
@@ -1106,6 +1106,8 @@ void Fx_ManUpdate( Fx_Man_t * p, int iDiv, int * fWarning )
     assert( k == Vec_IntSize(p->vCubesD) / 2 );
     Vec_IntShrink( p->vCubesD, k );
     Vec_IntSort( p->vCubesD, 0 );
+    //Vec_IntSort( vLitN, 0 );
+    //Vec_IntSort( vLitP, 0 );
 
     // add cost of single-cube divisors
     Fx_ManForEachCubeVec( p->vCubesS, p->vCubes, vCube, i )

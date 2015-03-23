@@ -63,7 +63,7 @@ static unsigned s_PlaHashValues[PLA_HASH_VALUE_NUM] =
     0xd0fa29f1,0x804cac5e,0x2c226798,0x462f624c,0xad05b377,0x22924fcd,0xfbea205c,0x1b47586d
 };
 
-static inline int Pla_HashValue( int i )  { assert( i >= 0 && i < PLA_HASH_VALUE_NUM ); return s_PlaHashValues[i] & 0xFFFFFF; }
+static inline int Pla_HashValue( int i )  { assert( i >= 0 && i < PLA_HASH_VALUE_NUM ); return s_PlaHashValues[i] & 0x3FFFFFF; }
 
 
 #define PLA_LIT_UNUSED 0xFFFF
@@ -107,7 +107,7 @@ static inline Tab_Obj_t *  Tab_ManEntry( Tab_Man_t * p, int i )   { return i ? p
 static inline Tab_Man_t * Tab_ManAlloc( int LogSize, Pla_Man_t * pMan )
 {
     Tab_Man_t * p = ABC_CALLOC( Tab_Man_t, 1 );
-    assert( LogSize >= 4 && LogSize <= 24 );
+    assert( LogSize >= 4 && LogSize <= 26 );
     p->SizeMask = (1 << LogSize) - 1;
     p->pBins = ABC_CALLOC( Tab_Obj_t, p->SizeMask + 1 );
     p->nBins = 1;
@@ -119,11 +119,12 @@ static inline void Tab_ManFree( Tab_Man_t * p )
     ABC_FREE( p->pBins );
     ABC_FREE( p );
 }
-static inline void Tab_ManHashInsert( Tab_Man_t * p, int Value, int iCube )
+static inline void Tab_ManHashInsert( Tab_Man_t * p, int Value, int iCube, int iVar )
 {
     Tab_Obj_t * pBin  = Tab_ManBin( p, Value );
     Tab_Obj_t * pCell = p->pBins + p->nBins;
     pCell->Cube = iCube;
+    pCell->VarA = iVar;
     pCell->Next = pBin->Table;
     pBin->Table = p->nBins++;
 }
@@ -131,9 +132,16 @@ static inline int Tab_ManHashLookup( Tab_Man_t * p, int Value, Vec_Int_t * vCube
 {
     Tab_Obj_t * pEnt, * pBin = Tab_ManBin( p, Value );
     for ( pEnt = Tab_ManEntry(p, pBin->Table); pEnt; pEnt = Tab_ManEntry(p, pEnt->Next) )
-       if ( Vec_IntEqual( Vec_WecEntry(&p->pMan->vLits, pEnt->Cube), vCube ) )
+       if ( Vec_IntEqual( Vec_WecEntry(&p->pMan->vCubeLits, pEnt->Cube), vCube ) )
             return 1;
     return 0;
+}
+static inline void Tab_ManHashCollect( Tab_Man_t * p, int iBin, Vec_Int_t * vEntries )
+{
+    Tab_Obj_t * pEnt, * pBin = Tab_ManBin( p, iBin );
+    Vec_IntClear( vEntries );
+    for ( pEnt = Tab_ManEntry(p, pBin->Table); pEnt; pEnt = Tab_ManEntry(p, pEnt->Next) )
+        Vec_IntPushTwo( vEntries, pEnt->Cube, pEnt->VarA );
 }
 
 
@@ -160,11 +168,11 @@ void Pla_ManHashCubes( Pla_Man_t * p, Tab_Man_t * pTab )
     Vec_Int_t * vCube; int i, Value;
     Vec_IntClear( &p->vHashes );
     Vec_IntGrow( &p->vHashes, Pla_ManCubeNum(p) );
-    Vec_WecForEachLevel( &p->vLits, vCube, i )
+    Vec_WecForEachLevel( &p->vCubeLits, vCube, i )
     {
         Value = Pla_CubeHashValue(vCube);
         Vec_IntPush( &p->vHashes, Value );
-        Tab_ManHashInsert( pTab, Value, i );
+        Tab_ManHashInsert( pTab, Value, i, PLA_LIT_UNUSED );
     }
 }
 int Pla_ManHashDistance1( Pla_Man_t * p )
@@ -174,11 +182,11 @@ int Pla_ManHashDistance1( Pla_Man_t * p )
     Vec_Int_t * vCubeCopy = Vec_IntAlloc( p->nIns );
     int nBits = Abc_Base2Log( Pla_ManCubeNum(p) ) + 2;
     int i, k, Lit, Value, ValueCopy, Count = 0;
-    assert( nBits <= 24 );
+    assert( nBits <= 26 );
     pTab = Tab_ManAlloc( nBits, p );
     Pla_ManConvertFromBits( p );
     Pla_ManHashCubes( p, pTab );
-    Vec_WecForEachLevel( &p->vLits, vCube, i )
+    Vec_WecForEachLevel( &p->vCubeLits, vCube, i )
     {
         Vec_IntClear( vCubeCopy );
         Vec_IntAppend( vCubeCopy, vCube );
@@ -208,6 +216,126 @@ int Pla_ManHashDist1NumTest( Pla_Man_t * p )
     printf( "Found %d pairs among %d cubes using cube hashing.  ", Count, Pla_ManCubeNum(p) );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Pla_PrintCube( Vec_Int_t * vLits, int nVars, int iVar )
+{
+    int v, Lit;
+    Vec_Str_t * vStr = Vec_StrStart( nVars + 1 );
+    Vec_StrFill( vStr, nVars, '-' );
+    Vec_IntForEachEntry( vLits, Lit, v )
+        Vec_StrWriteEntry( vStr, Abc_Lit2Var(Lit), (char)(Abc_LitIsCompl(Lit) ? '0' : '1') );
+    fprintf( stdout, "%s %d\n", Vec_StrArray(vStr), iVar );
+    Vec_StrFree( vStr );
+}
+void Pla_ManHashCubes2( Pla_Man_t * p, Tab_Man_t * pTab )
+{
+    Vec_Int_t * vCube; 
+    int i, v, Lit, Value;
+    Vec_WecForEachLevel( &p->vCubeLits, vCube, i )
+    {
+        Value = Pla_CubeHashValue(vCube);
+        Vec_IntForEachEntry( vCube, Lit, v )
+        {
+            Value -= Pla_HashValue(Lit);
+            Tab_ManHashInsert( pTab, Value, i, v );
+            Value += Pla_HashValue(Lit);
+        }
+    }
+}
+void Vec_IntCopySkip( Vec_Int_t * vCube, int iVar, Vec_Int_t * vRes )
+{
+    int i;
+    Vec_IntClear( vRes );
+    for ( i = 0; i < Vec_IntSize(vCube); i++ )
+        if ( i != iVar )
+            Vec_IntPush( vRes, Vec_IntEntry(vCube, i) );
+}
+Vec_Int_t * Pla_ManComputeDistance1Int( Pla_Man_t * p )
+{
+    Tab_Man_t * pTab;
+    Vec_Int_t * vCube1, * vCube2;
+    Vec_Int_t * vTemp1 = Vec_IntAlloc( 100 );
+    Vec_Int_t * vTemp2 = Vec_IntAlloc( 100 );
+    Vec_Int_t * vPairs = Vec_IntAlloc( 1000 );
+    Vec_Int_t * vCounts = Vec_IntStart( Vec_WecSize(&p->vCubeLits) );
+    Vec_Int_t * vEntries = Vec_IntAlloc( p->nIns );
+    int nBits = Abc_Base2Log( Vec_WecSizeSize(&p->vCubeLits) ) + 2;
+    int v, i, k, Count = 0;
+    int iCube1, iCube2, iVar1, iVar2;
+    assert( nBits <= 26 );
+    pTab = Tab_ManAlloc( nBits, p );
+    //Pla_ManConvertFromBits( p );
+    Pla_ManHashCubes2( p, pTab );
+    // iterate through the hash bins
+    for ( v = 0; v <= pTab->SizeMask; v++ )
+    {
+        Tab_ManHashCollect( pTab, v, vEntries );
+        for ( i = 0; i < Vec_IntSize(vEntries)/2; i++ )
+        for ( k = i+1; k < Vec_IntSize(vEntries)/2; k++ )
+        {
+            iCube1 = Vec_IntEntry(vEntries, 2*i);
+            iCube2 = Vec_IntEntry(vEntries, 2*k);
+            iVar1 = Vec_IntEntry(vEntries, 2*i+1);
+            iVar2 = Vec_IntEntry(vEntries, 2*k+1);
+
+            vCube1 = Vec_WecEntry(&p->vCubeLits, iCube1);
+            vCube2 = Vec_WecEntry(&p->vCubeLits, iCube2);
+/*
+            Pla_PrintCube( vCube1, p->nIns, iVar1 );
+            Pla_PrintCube( vCube2, p->nIns, iVar2 );
+            printf( "\n" );
+*/
+            if ( Vec_IntSize(vCube1) != Vec_IntSize(vCube2) )
+                continue;
+            Vec_IntCopySkip( vCube1, iVar1, vTemp1 );
+            Vec_IntCopySkip( vCube2, iVar2, vTemp2 );
+            if ( !Vec_IntEqual( vTemp1, vTemp2 ) )
+                continue;
+
+            printf( "%d %d  ", iCube1, iCube2 );
+
+            Vec_IntPushTwo( vPairs, iCube1, iVar1 );
+            Vec_IntPushTwo( vPairs, iCube2, iVar2 );
+
+            Vec_IntAddToEntry( vCounts, iCube1, 1 );
+            Vec_IntAddToEntry( vCounts, iCube2, 1 );
+        }
+    }
+    Vec_IntPrint( vCounts );
+
+    Vec_IntFree( vCounts );
+    Vec_IntFree( vTemp1 );
+    Vec_IntFree( vTemp2 );
+    Vec_IntFree( vEntries );
+    Tab_ManFree( pTab );
+    return vPairs;
+}
+Vec_Int_t * Pla_ManComputeDistance1( Pla_Man_t * p )
+{
+    abctime clk = Abc_Clock();
+    Vec_Int_t * vPairs = Pla_ManComputeDistance1Int( p );
+    printf( "Found %d pairs among %d cubes using cube hashing.  ", Vec_IntSize(vPairs)/4, Pla_ManCubeNum(p) );
+    Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
+    return vPairs;
+}
+void Pla_ManComputeDist1Test( Pla_Man_t * p )
+{
+    Vec_Int_t * vPairs;
+    Pla_ManConvertFromBits( p );
+    vPairs = Pla_ManComputeDistance1( p );
+    Vec_IntFree( vPairs );
 }
 
 ////////////////////////////////////////////////////////////////////////
