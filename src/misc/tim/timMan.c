@@ -143,8 +143,11 @@ Tim_Man_t * Tim_ManDup( Tim_Man_t * p, int fUnitDelay )
     {
         pNew->vBoxes = Vec_PtrAlloc( Tim_ManBoxNum(p) );
         Tim_ManForEachBox( p, pBox, i )
+        {
            Tim_ManCreateBox( pNew, pBox->Inouts[0], pBox->nInputs, 
                 pBox->Inouts[pBox->nInputs], pBox->nOutputs, pBox->iDelayTable );
+           Tim_ManBoxSetCopy( pNew, i, pBox->iCopy );
+        }
     }
     return pNew;
 }
@@ -609,6 +612,21 @@ void Tim_ManPrint( Tim_Man_t * p )
                 else
                     printf( "%5.0f", pTable[3+j*TableX+k] );
     }
+    printf( "\n" );
+}
+void Tim_ManPrintBoxCopy( Tim_Man_t * p )
+{
+    Tim_Box_t * pBox;
+    int i;
+    if ( p == NULL )
+        return;
+    printf( "TIMING MANAGER:\n" );
+    printf( "PI = %d. CI = %d. PO = %d. CO = %d. Box = %d.\n", 
+        Tim_ManPiNum(p), Tim_ManCiNum(p), Tim_ManPoNum(p), Tim_ManCoNum(p), Tim_ManBoxNum(p) );
+
+    if ( Tim_ManBoxNum(p) > 0 )
+    Tim_ManForEachBox( p, pBox, i )
+        printf( "%d ", pBox->iCopy );
     printf( "\n" );
 }
 
