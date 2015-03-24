@@ -365,6 +365,54 @@ void Abc_NtkTimeInitialize( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkOld )
 
 /**Function*************************************************************
 
+  Synopsis    [Finalizes the timing manager after setting arr/req times.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkTimeScale( Abc_Ntk_t * pNtk, float Scale )
+{
+    Abc_Obj_t * pObj;
+    Abc_Time_t ** ppTimes, * pTime;
+    int i;
+    if ( pNtk->pManTime == NULL )
+        return;
+    // arrival
+    pNtk->pManTime->tArrDef.Fall *= Scale;
+    pNtk->pManTime->tArrDef.Rise *= Scale;
+    // departure
+    if ( pNtk->pManTime->tReqDef.Fall != ABC_INFINITY )
+        pNtk->pManTime->tReqDef.Fall *= Scale;
+    if ( pNtk->pManTime->tReqDef.Rise != ABC_INFINITY )
+        pNtk->pManTime->tReqDef.Rise *= Scale;
+    // set the default timing
+    ppTimes = (Abc_Time_t **)pNtk->pManTime->vArrs->pArray;
+    Abc_NtkForEachCi( pNtk, pObj, i )
+    {
+        pTime = ppTimes[pObj->Id];
+        if ( Abc_MaxFloat(pTime->Fall, pTime->Rise) != -ABC_INFINITY )
+            continue;
+        pTime->Fall *= Scale;
+        pTime->Rise *= Scale;
+    }
+    // set the default timing
+    ppTimes = (Abc_Time_t **)pNtk->pManTime->vReqs->pArray;
+    Abc_NtkForEachCo( pNtk, pObj, i )
+    {
+        pTime = ppTimes[pObj->Id];
+        if ( Abc_MaxFloat(pTime->Fall, pTime->Rise) != ABC_INFINITY )
+            continue;
+        pTime->Fall *= Scale;
+        pTime->Rise *= Scale;
+    }
+}
+
+/**Function*************************************************************
+
   Synopsis    [Prepares the timing manager for delay trace.]
 
   Description []

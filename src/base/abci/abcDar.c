@@ -290,6 +290,7 @@ Aig_Man_t * Abc_NtkToDar( Abc_Ntk_t * pNtk, int fExors, int fRegisters )
         // initialize logic level of the CIs
         ((Aig_Obj_t *)pObj->pCopy)->Level = pObj->Level;
     }
+
     // complement the 1-values registers
     if ( fRegisters ) {
         Abc_NtkForEachLatch( pNtk, pObj, i )

@@ -114,6 +114,16 @@ Abc_Ntk_t * Abc_NtkIf( Abc_Ntk_t * pNtk, If_Par_t * pPars )
     pPars->pTimesArr = Abc_NtkGetCiArrivalFloats(pNtk);
     pPars->pTimesReq = Abc_NtkGetCoRequiredFloats(pNtk);
 
+    // update timing info to reflect logic level
+    if ( (pPars->fDelayOpt || pPars->fDsdBalance || pPars->fUserRecLib) && pNtk->AndGateDelay != 0.0 )
+    {
+        int c;
+        for ( c = 0; c < Abc_NtkCiNum(pNtk); c++ )
+            pPars->pTimesArr[c] /= pNtk->AndGateDelay;
+        for ( c = 0; c < Abc_NtkCoNum(pNtk); c++ )
+            pPars->pTimesReq[c] /= pNtk->AndGateDelay;
+    }
+
     // set the latch paths
     if ( pPars->fLatchPaths && pPars->pTimesArr )
     {

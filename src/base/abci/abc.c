@@ -238,6 +238,7 @@ static int Abc_CommandUnmap                  ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandAttach                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandSuperChoice            ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandSuperChoiceLut         ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandTimeScale              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 //static int Abc_CommandFpga                   ( Abc_Frame_t * pAbc, int argc, char ** argv );
 //static int Abc_CommandFpgaFast               ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -846,6 +847,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "SC mapping",   "attach",        Abc_CommandAttach,           1 );
     Cmd_CommandAdd( pAbc, "SC mapping",   "superc",        Abc_CommandSuperChoice,      1 );
     Cmd_CommandAdd( pAbc, "SC mapping",   "supercl",       Abc_CommandSuperChoiceLut,   1 );
+    Cmd_CommandAdd( pAbc, "SC mapping",   "timescale",     Abc_CommandTimeScale,        0 );
 
 //    Cmd_CommandAdd( pAbc, "FPGA mapping", "fpga",          Abc_CommandFpga,             1 );
 //    Cmd_CommandAdd( pAbc, "FPGA mapping", "ffpga",         Abc_CommandFpgaFast,         1 );
@@ -15013,6 +15015,76 @@ usage:
     Abc_Print( -2, "\t-N num : the max size of the cut [default = %d]\n", nCutSizeMax );
     Abc_Print( -2, "\t-v     : toggles verbose output [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandTimeScale( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern void Abc_NtkTimeScale( Abc_Ntk_t * pNtk, float Scale );
+    Abc_Ntk_t * pNtk;
+    float nTimeScale;
+    int c, fVerbose;
+
+    pNtk = Abc_FrameReadNtk(pAbc);
+    // set defaults
+    nTimeScale = (float)0.01;
+    fVerbose = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Th" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'T':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-T\" should be followed by a positive integer.\n" );
+                goto usage;
+            }
+            nTimeScale = atof(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nTimeScale < 0 )
+                goto usage;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+
+    if ( pNtk == NULL )
+    {
+        Abc_Print( -1, "Empty network.\n" );
+        return 1;
+    }
+    if ( pNtk->pManTime == NULL )
+    {
+        Abc_Print( -1, "Timing manager is not defined.\n" );
+        return 1;
+    }
+    Abc_NtkTimeScale( pNtk, nTimeScale );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: timescale [-T float] [-vh]\n" );
+    Abc_Print( -2, "\t           scales timing information of the current network\n" );
+    Abc_Print( -2, "\t-T float : multiplicative factor [default = %f]\n", nTimeScale );
+    Abc_Print( -2, "\t-v       : toggles verbose output [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h       : print the command usage\n");
     return 1;
 }
 
