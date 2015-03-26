@@ -182,9 +182,9 @@ Map_Time_t * Abc_NtkMapCopyCiArrival( Abc_Ntk_t * pNtk, Abc_Time_t * ppTimes )
     p = ABC_CALLOC( Map_Time_t, Abc_NtkCiNum(pNtk) );
     for ( i = 0; i < Abc_NtkCiNum(pNtk); i++ )
     {
-        p->Fall = ppTimes[i].Fall;
-        p->Rise = ppTimes[i].Rise;
-        p->Worst = Abc_MaxFloat( p->Fall, p->Rise );
+        p[i].Fall = ppTimes[i].Fall;
+        p[i].Rise = ppTimes[i].Rise;
+        p[i].Worst = Abc_MaxFloat( p[i].Fall, p[i].Rise );
     }
     ABC_FREE( ppTimes );
     return p;
@@ -196,9 +196,9 @@ Map_Time_t * Abc_NtkMapCopyCoRequired( Abc_Ntk_t * pNtk, Abc_Time_t * ppTimes )
     p = ABC_CALLOC( Map_Time_t, Abc_NtkCoNum(pNtk) );
     for ( i = 0; i < Abc_NtkCoNum(pNtk); i++ )
     {
-        p->Fall = ppTimes[i].Fall;
-        p->Rise = ppTimes[i].Rise;
-        p->Worst = Abc_MaxFloat( p->Fall, p->Rise );
+        p[i].Fall = ppTimes[i].Fall;
+        p[i].Rise = ppTimes[i].Rise;
+        p[i].Worst = Abc_MaxFloat( p[i].Fall, p[i].Rise );
     }
     ABC_FREE( ppTimes );
     return p;
