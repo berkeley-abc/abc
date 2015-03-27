@@ -98,7 +98,7 @@ float Abc_NodeReadArrivalWorst( Abc_Obj_t * pNode )
 }
 float Abc_NodeReadRequiredWorst( Abc_Obj_t * pNode )
 {
-    return Abc_MaxFloat( Abc_NodeReadRequired(pNode)->Rise, Abc_NodeReadRequired(pNode)->Fall );
+    return Abc_MinFloat( Abc_NodeReadRequired(pNode)->Rise, Abc_NodeReadRequired(pNode)->Fall );
 }
 
 /**Function*************************************************************
