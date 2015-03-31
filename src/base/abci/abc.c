@@ -29731,8 +29731,9 @@ int Abc_CommandAbc9Scl( Abc_Frame_t * pAbc, int argc, char ** argv )
     int fConst = 1;
     int fEquiv = 1;
     int fVerbose = 0;
+    int fVerboseFlops = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "cevh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "cevwh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -29744,6 +29745,9 @@ int Abc_CommandAbc9Scl( Abc_Frame_t * pAbc, int argc, char ** argv )
             break;
         case 'v':
             fVerbose ^= 1;
+            break;
+        case 'w':
+            fVerboseFlops ^= 1;
             break;
         default:
             goto usage;
@@ -29761,7 +29765,7 @@ int Abc_CommandAbc9Scl( Abc_Frame_t * pAbc, int argc, char ** argv )
             printf( "Timing manager is given but there is no GIA of boxes.\n" );
             return 0;
         }
-        pTemp = Gia_ManSweepWithBoxes( pAbc->pGia, NULL, NULL, fConst, fEquiv, fVerbose );
+        pTemp = Gia_ManSweepWithBoxes( pAbc->pGia, NULL, NULL, fConst, fEquiv, fVerbose, fVerboseFlops );
         Abc_FrameUpdateGia( pAbc, pTemp );
         return 0;
     }
@@ -29775,11 +29779,12 @@ int Abc_CommandAbc9Scl( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &scl [-cevh]\n" );
+    Abc_Print( -2, "usage: &scl [-cevwh]\n" );
     Abc_Print( -2, "\t         performs structural sequential cleanup\n" );
     Abc_Print( -2, "\t-c     : toggle removing stuck-at constant registers [default = %s]\n", fConst? "yes": "no" );
     Abc_Print( -2, "\t-e     : toggle removing equivalent-driver registers [default = %s]\n", fEquiv? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-w     : toggle printing verbose info about equivalent flops [default = %s]\n", fVerboseFlops? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
 }
@@ -29803,7 +29808,7 @@ int Abc_CommandAbc9Lcorr( Abc_Frame_t * pAbc, int argc, char ** argv )
     Cec_ManCorSetDefaultParams( pPars );
     pPars->fLatchCorr = 1;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "FCPrcvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "FCPrcvwh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -29849,6 +29854,9 @@ int Abc_CommandAbc9Lcorr( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'v':
             pPars->fVerbose ^= 1;
             break;
+        case 'w':
+            pPars->fVerboseFlops ^= 1;
+            break;
         default:
             goto usage;
         }
@@ -29865,7 +29873,7 @@ int Abc_CommandAbc9Lcorr( Abc_Frame_t * pAbc, int argc, char ** argv )
             printf( "Timing manager is given but there is no GIA of boxes.\n" );
             return 0;
         }
-        pTemp = Gia_ManSweepWithBoxes( pAbc->pGia, NULL, pPars, 0, 0, pPars->fVerbose );
+        pTemp = Gia_ManSweepWithBoxes( pAbc->pGia, NULL, pPars, 0, 0, pPars->fVerbose, pPars->fVerboseFlops );
         Abc_FrameUpdateGia( pAbc, pTemp );
         return 0;
     }
@@ -29879,7 +29887,7 @@ int Abc_CommandAbc9Lcorr( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &lcorr [-FCP num] [-rcvh]\n" );
+    Abc_Print( -2, "usage: &lcorr [-FCP num] [-rcvwh]\n" );
     Abc_Print( -2, "\t         performs latch correpondence computation\n" );
     Abc_Print( -2, "\t-C num : the max number of conflicts at a node [default = %d]\n", pPars->nBTLimit );
     Abc_Print( -2, "\t-F num : the number of timeframes in inductive case [default = %d]\n", pPars->nFrames );
@@ -29887,6 +29895,7 @@ usage:
     Abc_Print( -2, "\t-r     : toggle using implication rings during refinement [default = %s]\n", pPars->fUseRings? "yes": "no" );
     Abc_Print( -2, "\t-c     : toggle using circuit-based SAT solver [default = %s]\n", pPars->fUseCSat? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", pPars->fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-w     : toggle printing verbose info about equivalent flops [default = %s]\n", pPars->fVerboseFlops? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
 }
@@ -29983,7 +29992,7 @@ int Abc_CommandAbc9Scorr( Abc_Frame_t * pAbc, int argc, char ** argv )
             printf( "Timing manager is given but there is no GIA of boxes.\n" );
             return 0;
         }
-        pTemp = Gia_ManSweepWithBoxes( pAbc->pGia, NULL, pPars, 0, 0, pPars->fVerbose );
+        pTemp = Gia_ManSweepWithBoxes( pAbc->pGia, NULL, pPars, 0, 0, pPars->fVerbose, pPars->fVerboseFlops );
         Abc_FrameUpdateGia( pAbc, pTemp );
         return 0;
     }
@@ -31249,7 +31258,7 @@ int Abc_CommandAbc9Sweep( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 0;
     }
     if ( Gia_ManBoxNum(pAbc->pGia) )
-        pTemp = Gia_ManSweepWithBoxes( pAbc->pGia, pPars, NULL, 0, 0, pPars->fVerbose );
+        pTemp = Gia_ManSweepWithBoxes( pAbc->pGia, pPars, NULL, 0, 0, pPars->fVerbose, 0 );
     else
         pTemp = Gia_ManFraigSweepSimple( pAbc->pGia, pPars );
     Abc_FrameUpdateGia( pAbc, pTemp );

@@ -439,7 +439,7 @@ void Gia_ManCheckIntegrityWithBoxes( Gia_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-int * Gia_ManFraigSelectReprs( Gia_Man_t * p, Gia_Man_t * pClp, int fVerbose )
+int * Gia_ManFraigSelectReprs( Gia_Man_t * p, Gia_Man_t * pClp, int fVerbose, int pFlopTypes[3] )
 {
     Gia_Obj_t * pObj;
     Vec_Int_t * vCarryOuts;
@@ -481,6 +481,20 @@ int * Gia_ManFraigSelectReprs( Gia_Man_t * p, Gia_Man_t * pClp, int fVerbose )
         printf( "Fixed %d flop inputs and %d box/box connections (out of %d non-flop boxes).\n", 
             Gia_ManRegBoxNum(p), Vec_IntSize(vCarryOuts), Gia_ManNonRegBoxNum(p) );
     Vec_IntFree( vCarryOuts );
+
+    // collect equivalent node info
+    pFlopTypes[0] = pFlopTypes[1] = pFlopTypes[2] = 0;
+    Gia_ManForEachRo( pClp, pObj, i )
+    {
+        Gia_Obj_t * pRepr = Gia_ObjReprObj(pClp, i);
+        if ( pRepr && pRepr != pObj )
+        {
+            if ( pRepr == Gia_ManConst0(pClp) )
+                pFlopTypes[0]++;
+            else if ( Gia_ObjIsRo(pClp, pRepr) )
+                pFlopTypes[1]++;
+        }
+    }
 
     // compute representatives
     pClp2Gia[0] = 0;
@@ -618,11 +632,11 @@ void Gia_ManSweepComputeOneDomainEquivs( Gia_Man_t * p, Vec_Int_t * vRegClasses,
     Gia_ManDupRemapEquiv( p, pNew );
     Gia_ManStop( pNew );
 }
-Gia_Man_t * Gia_ManSweepWithBoxesAndDomains( Gia_Man_t * p, void * pParsS, int fConst, int fEquiv, int fVerbose )
+Gia_Man_t * Gia_ManSweepWithBoxesAndDomains( Gia_Man_t * p, void * pParsS, int fConst, int fEquiv, int fVerbose, int fVerbEquivs )
 { 
     Gia_Man_t * pClp, * pNew, * pTemp;
     int nDoms = Vec_IntFindMax(p->vRegClasses);
-    int * pReprs, iDom;
+    int * pReprs, iDom, pFlopTypes[3] = {0};
     assert( Gia_ManRegNum(p) == 0 );
     assert( p->pAigExtra != NULL );
     assert( nDoms > 1 );
@@ -634,7 +648,7 @@ Gia_Man_t * Gia_ManSweepWithBoxesAndDomains( Gia_Man_t * p, void * pParsS, int f
     // iterate over domains
     for ( iDom = 1; iDom <= nDoms; iDom++ )
     {
-        int nFlops = Vec_IntCountEntry(pNew->vRegClasses, iDom);
+        int nFlopsNew, nFlops = Vec_IntCountEntry(pNew->vRegClasses, iDom);
         if ( nFlops < 2 )
             continue;
         // find global equivalences
@@ -642,7 +656,7 @@ Gia_Man_t * Gia_ManSweepWithBoxesAndDomains( Gia_Man_t * p, void * pParsS, int f
         // compute equivalences
         Gia_ManSweepComputeOneDomainEquivs( pClp, pNew->vRegClasses, iDom, pParsS, fConst, fEquiv, fVerbose );
         // transfer equivalences
-        pReprs = Gia_ManFraigSelectReprs( pNew, pClp, fVerbose );
+        pReprs = Gia_ManFraigSelectReprs( pNew, pClp, fVerbose, pFlopTypes );
         Gia_ManStop( pClp );
         // reduce AIG
         Gia_ManTransferTiming( p, pNew );
@@ -654,10 +668,14 @@ Gia_Man_t * Gia_ManSweepWithBoxesAndDomains( Gia_Man_t * p, void * pParsS, int f
         pNew = Gia_ManDupWithBoxes( pTemp = pNew, 1 );
         Gia_ManStop( pTemp );
         // report
-        if ( fVerbose )
+        nFlopsNew = Vec_IntCountEntry(pNew->vRegClasses, iDom);
+        pFlopTypes[2] = nFlops - nFlopsNew - (pFlopTypes[0] + pFlopTypes[1]);
+        if ( fVerbEquivs )
         {
-        printf( "Domain %2d : %5d -> %5d :  ", iDom, nFlops, Vec_IntCountEntry(pNew->vRegClasses, iDom) );
-        Gia_ManPrintStats( pNew, NULL );
+            printf( "Domain %2d : %5d -> %5d :  ", iDom, nFlops, nFlopsNew );
+            printf( "EqConst =%4d.  EqFlop =%4d.  Dangling =%4d.  Unused =%4d.\n", 
+                pFlopTypes[0], pFlopTypes[1], Abc_MaxInt(0, pFlopTypes[2]), Abc_MaxInt(0, -pFlopTypes[2]) );
+            //Gia_ManPrintStats( pNew, NULL );
         }
     }
     // normalize the result
@@ -680,20 +698,22 @@ Gia_Man_t * Gia_ManSweepWithBoxesAndDomains( Gia_Man_t * p, void * pParsS, int f
   SeeAlso     []
 
 ***********************************************************************/
-Gia_Man_t * Gia_ManSweepWithBoxes( Gia_Man_t * p, void * pParsC, void * pParsS, int fConst, int fEquiv, int fVerbose )
+Gia_Man_t * Gia_ManSweepWithBoxes( Gia_Man_t * p, void * pParsC, void * pParsS, int fConst, int fEquiv, int fVerbose, int fVerbEquivs )
 { 
     Gia_Man_t * pClp, * pNew, * pTemp;
-    int * pReprs;
+    int * pReprs, pFlopTypes[3] = {0};
+    int nFlopsNew, nFlops;
     assert( Gia_ManRegNum(p) == 0 );
     assert( p->pAigExtra != NULL );
     // consider seq synthesis with multiple clock domains
     if ( pParsC == NULL && Gia_ManClockDomainNum(p) > 1 )
-        return Gia_ManSweepWithBoxesAndDomains( p, pParsS, fConst, fEquiv, fVerbose );
+        return Gia_ManSweepWithBoxesAndDomains( p, pParsS, fConst, fEquiv, fVerbose, fVerbEquivs );
     // order AIG objects
     pNew = Gia_ManDupUnnormalize( p );
     if ( pNew == NULL )
         return NULL;
     Gia_ManTransferTiming( pNew, p );
+    nFlops = Vec_IntCountEntry(pNew->vRegClasses, 1);
     // find global equivalences
     pClp = Gia_ManDupCollapse( pNew, pNew->pAigExtra, NULL, pParsC ? 0 : 1 );
     // compute equivalences
@@ -704,7 +724,7 @@ Gia_Man_t * Gia_ManSweepWithBoxes( Gia_Man_t * p, void * pParsC, void * pParsS, 
     else 
         Gia_ManSeqCleanupClasses( pClp, fConst, fEquiv, fVerbose );
     // transfer equivalences
-    pReprs = Gia_ManFraigSelectReprs( pNew, pClp, fVerbose );
+    pReprs = Gia_ManFraigSelectReprs( pNew, pClp, fVerbose, pFlopTypes );
     Gia_ManStop( pClp );
     // reduce AIG
     Gia_ManTransferTiming( p, pNew );
@@ -715,6 +735,15 @@ Gia_Man_t * Gia_ManSweepWithBoxes( Gia_Man_t * p, void * pParsC, void * pParsS, 
     // derive new AIG
     pNew = Gia_ManDupWithBoxes( pTemp = pNew, pParsC ? 0 : 1 );
     Gia_ManStop( pTemp );
+    // report
+    nFlopsNew = Vec_IntCountEntry(pNew->vRegClasses, 1);
+    pFlopTypes[2] = nFlops - nFlopsNew - (pFlopTypes[0] + pFlopTypes[1]);
+    if ( fVerbEquivs )
+    {
+        printf( "Domain %2d : %5d -> %5d :  ", 1, nFlops, nFlopsNew );
+        printf( "EqConst =%4d.  EqFlop =%4d.  Dangling =%4d.  Unused =%4d.\n", 
+            pFlopTypes[0], pFlopTypes[1], Abc_MaxInt(0, pFlopTypes[2]), Abc_MaxInt(0, -pFlopTypes[2]) );
+    }
     // normalize the result
     pNew = Gia_ManDupNormalize( pTemp = pNew );
     Gia_ManTransferTiming( pNew, pTemp );

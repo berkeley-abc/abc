@@ -1330,7 +1330,7 @@ extern void                Gia_ManStgPrint( FILE * pFile, Vec_Int_t * vLines, in
 extern Gia_Man_t *         Gia_ManStgRead( char * pFileName, int kHot, int fVerbose );
 /*=== giaSweep.c ============================================================*/
 extern Gia_Man_t *         Gia_ManFraigSweepSimple( Gia_Man_t * p, void * pPars );
-extern Gia_Man_t *         Gia_ManSweepWithBoxes( Gia_Man_t * p, void * pParsC, void * pParsS, int fConst, int fEquiv, int fVerbose );
+extern Gia_Man_t *         Gia_ManSweepWithBoxes( Gia_Man_t * p, void * pParsC, void * pParsS, int fConst, int fEquiv, int fVerbose, int fVerbEquivs );
 extern void                Gia_ManCheckIntegrityWithBoxes( Gia_Man_t * p );
 /*=== giaSweeper.c ============================================================*/
 extern Gia_Man_t *         Gia_SweeperStart( Gia_Man_t * p );
