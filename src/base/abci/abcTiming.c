@@ -18,6 +18,8 @@
 
 ***********************************************************************/
 
+#include <math.h>
+
 #include "base/abc/abc.h"
 #include "base/main/main.h"
 #include "map/mio/mio.h"
@@ -40,6 +42,10 @@ struct Abc_ManTime_t_
     Abc_Time_t *   tInDrive;
     Abc_Time_t *   tOutLoad;
 };
+
+#define TOLERANCE 0.001
+
+static inline int          Abc_FloatEqual( float x, float y )     { return fabs(x-y) < TOLERANCE; }
 
 // static functions
 static Abc_ManTime_t *     Abc_ManTimeStart( Abc_Ntk_t * pNtk );
@@ -341,7 +347,7 @@ void Abc_NtkTimeInitialize( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkOld )
     Abc_NtkForEachCi( pNtk, pObj, i )
     {
         pTime = ppTimes[pObj->Id];
-        if ( Abc_MaxFloat(pTime->Fall, pTime->Rise) != -ABC_INFINITY )
+        if ( !Abc_FloatEqual( Abc_MaxFloat(pTime->Fall, pTime->Rise), 0 ) )
             continue;
         *pTime = pNtkOld ? *Abc_NodeReadArrival(Abc_NtkCi(pNtkOld, i)) : pNtk->pManTime->tArrDef;
     }
@@ -350,7 +356,7 @@ void Abc_NtkTimeInitialize( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkOld )
     Abc_NtkForEachCo( pNtk, pObj, i )
     {
         pTime = ppTimes[pObj->Id];
-        if ( Abc_MaxFloat(pTime->Fall, pTime->Rise) != ABC_INFINITY )
+        if ( !Abc_FloatEqual( Abc_MaxFloat(pTime->Fall, pTime->Rise), ABC_INFINITY ) )
             continue;
         *pTime = pNtkOld ? *Abc_NodeReadRequired(Abc_NtkCo(pNtkOld, i)) : pNtk->pManTime->tReqDef;
     }
@@ -385,16 +391,18 @@ void Abc_NtkTimeScale( Abc_Ntk_t * pNtk, float Scale )
     pNtk->pManTime->tArrDef.Fall *= Scale;
     pNtk->pManTime->tArrDef.Rise *= Scale;
     // departure
-    if ( pNtk->pManTime->tReqDef.Fall != ABC_INFINITY )
-        pNtk->pManTime->tReqDef.Fall *= Scale;
-    if ( pNtk->pManTime->tReqDef.Rise != ABC_INFINITY )
-        pNtk->pManTime->tReqDef.Rise *= Scale;
+    pTime = &pNtk->pManTime->tReqDef;
+    if ( !Abc_FloatEqual( Abc_MaxFloat(pTime->Fall, pTime->Rise), ABC_INFINITY ) )
+    {
+        pTime->Fall *= Scale;
+        pTime->Rise *= Scale;
+    }
     // set the default timing
     ppTimes = (Abc_Time_t **)pNtk->pManTime->vArrs->pArray;
     Abc_NtkForEachCi( pNtk, pObj, i )
     {
         pTime = ppTimes[pObj->Id];
-        if ( Abc_MaxFloat(pTime->Fall, pTime->Rise) != -ABC_INFINITY )
+        if ( !Abc_FloatEqual( Abc_MaxFloat(pTime->Fall, pTime->Rise), 0 ) )
             continue;
         pTime->Fall *= Scale;
         pTime->Rise *= Scale;
@@ -404,7 +412,7 @@ void Abc_NtkTimeScale( Abc_Ntk_t * pNtk, float Scale )
     Abc_NtkForEachCo( pNtk, pObj, i )
     {
         pTime = ppTimes[pObj->Id];
-        if ( Abc_MaxFloat(pTime->Fall, pTime->Rise) != ABC_INFINITY )
+        if ( !Abc_FloatEqual( Abc_MaxFloat(pTime->Fall, pTime->Rise), ABC_INFINITY ) )
             continue;
         pTime->Fall *= Scale;
         pTime->Rise *= Scale;
