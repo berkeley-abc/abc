@@ -36666,22 +36666,36 @@ usage:
 int Abc_CommandAbc9SatFx( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     extern int Bmc_FxCompute( Gia_Man_t * p );
-    extern int Bmc_FxComputeOne( Gia_Man_t * p );
-    int c, nFrames = 1000, fDec = 0, fVerbose = 0;
+    extern int Bmc_FxComputeOne( Gia_Man_t * p, int nIterMax, int nDiv2Add );
+    int nIterMax =  5;
+    int nDiv2Add = 10;
+    int c, fDec  =  1;
+    int fVerbose =  0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "Fdvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "IDdvh" ) ) != EOF )
     {
         switch ( c )
         {
-        case 'F':
+        case 'I':
             if ( globalUtilOptind >= argc )
             {
-                Abc_Print( -1, "Command line switch \"-F\" should be followed by an integer.\n" );
+                Abc_Print( -1, "Command line switch \"-I\" should be followed by an integer.\n" );
                 goto usage;
             }
-            nFrames = atoi(argv[globalUtilOptind]);
+            nIterMax = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nFrames < 0 )
+            if ( nIterMax < 0 )
+                goto usage;
+            break;
+        case 'D':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-D\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nDiv2Add = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nDiv2Add < 0 )
                 goto usage;
             break;
         case 'd':
@@ -36702,15 +36716,16 @@ int Abc_CommandAbc9SatFx( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 0;
     }
     if ( fDec )
-        Bmc_FxComputeOne( pAbc->pGia );
+        Bmc_FxComputeOne( pAbc->pGia, nIterMax, nDiv2Add );
     else
         Bmc_FxCompute( pAbc->pGia );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &satfx [-F num] [-dvh]\n" );
+    Abc_Print( -2, "usage: &satfx [-ID num] [-dvh]\n" );
     Abc_Print( -2, "\t         performs SAT based shared logic extraction\n" );
-    Abc_Print( -2, "\t-F num : the number of timeframes [default = %d]\n",             nFrames );
+    Abc_Print( -2, "\t-I num : the number of iterations of divisor extraction [default = %d]\n", nIterMax );
+    Abc_Print( -2, "\t-D num : the number of divisors to extract in each iteration [default = %d]\n", nDiv2Add );
     Abc_Print( -2, "\t-d     : toggles decomposing the first output [default = %s]\n", fDec? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggles printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");

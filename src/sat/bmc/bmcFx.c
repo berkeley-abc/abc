@@ -670,11 +670,9 @@ void Bmc_FxAddClauses( sat_solver * pSat, Vec_Int_t * vDivs, int iCiVarBeg, int 
         else assert( 0 );
     }
 }
-int Bmc_FxComputeOne( Gia_Man_t * p )
+int Bmc_FxComputeOne( Gia_Man_t * p, int nIterMax, int nDiv2Add )
 {
     int Extra    = 1000;
-    int nIterMax =    5;
-    int nDiv2Add =   15;
     // create SAT solver
     Cnf_Dat_t * pCnf = Mf_ManGenerateCnf( p, 8, 0, 0, 0 );
     sat_solver * pSat = (sat_solver *)Cnf_DataWriteIntoSolver( pCnf, 1, 0 );
