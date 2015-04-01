@@ -1276,7 +1276,10 @@ static DdNode * extraBddCountCubes( DdManager * dd, DdNode * L, DdNode * U, st__
 
     statLine(dd);
     if (L == zero)
+    {
+        *pnCubes = 0;
         return(zero);
+    }
     if (U == one)
     {
         *pnCubes = 1;
