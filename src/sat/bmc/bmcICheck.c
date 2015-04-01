@@ -373,7 +373,7 @@ int Bmc_PerformISearchOne( Gia_Man_t * p, int nFramesMax, int nTimeOut, int fRev
     Gia_Man_t * pMiter, * pTemp;
     Cnf_Dat_t * pCnf;
     sat_solver * pSat;
-    Vec_Int_t * vRegs;
+    Vec_Int_t * vRegs = NULL;
 //    Vec_Int_t * vLits;
     int i, Iter, status;
     int nLitsUsed, RetValue = 0;
