@@ -397,7 +397,7 @@ void Abc_NtkReinsertNodes( Abc_Ntk_t * p, Abc_Ntk_t * pNtk, int iPivot )
     assert( Vec_PtrSize(vNodes) + Abc_NtkCiNum(p) + Abc_NtkPoNum(p) == iPivot );
     Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pNode, i )
     {
-        pNodeNew = Abc_NtkObj( pNtk, Abc_NtkCiNum(p) + i );
+        pNodeNew = Abc_NtkObj( pNtk, Abc_NtkCiNum(p) + i + 1 );
         if ( pNodeNew == NULL )
             continue;
         pNodeNew->pCopy = pNode;
@@ -405,7 +405,7 @@ void Abc_NtkReinsertNodes( Abc_Ntk_t * p, Abc_Ntk_t * pNtk, int iPivot )
     // connect internal nodes
     Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pNode, i )
     {
-        pNodeNew = Abc_NtkObj( pNtk, Abc_NtkCiNum(p) + i );
+        pNodeNew = Abc_NtkObj( pNtk, Abc_NtkCiNum(p) + i + 1 );
         if ( pNodeNew == NULL )
             continue;
         assert( pNodeNew->pCopy == pNode );

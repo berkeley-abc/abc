@@ -295,6 +295,69 @@ void Bmc_PerformICheck( Gia_Man_t * p, int nFramesMax, int nTimeOut, int fEmpty,
 
 /**Function*************************************************************
 
+  Synopsis    [Collect flops starting from the POs.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Bmc_PerformFindFlopOrder_rec( Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Int_t * vRegs )
+{
+    if ( Gia_ObjIsTravIdCurrent(p, pObj) )
+        return;
+    Gia_ObjSetTravIdCurrent(p, pObj);
+    if ( Gia_ObjIsCi(pObj) )
+    {
+        if ( Gia_ObjIsRo(p, pObj) )
+            Vec_IntPush( vRegs, Gia_ObjId(p, pObj) );
+        return;
+    }
+    assert( Gia_ObjIsAnd(pObj) );
+    Bmc_PerformFindFlopOrder_rec( p, Gia_ObjFanin0(pObj), vRegs );
+    Bmc_PerformFindFlopOrder_rec( p, Gia_ObjFanin1(pObj), vRegs );
+}
+void Bmc_PerformFindFlopOrder( Gia_Man_t * p, Vec_Int_t * vRegs )
+{
+    Gia_Obj_t * pObj;
+    int i, iReg, k = 0;
+    // start with POs
+    Vec_IntClear( vRegs );
+    Gia_ManForEachPo( p, pObj, i )
+        Vec_IntPush( vRegs, Gia_ObjId(p, pObj) );
+    // add flop outputs in the B
+    Gia_ManIncrementTravId( p );
+    Gia_ObjSetTravIdCurrent( p, Gia_ManConst0(p) );
+    Gia_ManForEachObjVec( vRegs, p, pObj, i )
+    {
+        assert( Gia_ObjIsPo(p, pObj) || Gia_ObjIsRo(p, pObj) );
+        if ( Gia_ObjIsRo(p, pObj) )
+            pObj = Gia_ObjRoToRi( p, pObj );
+        Bmc_PerformFindFlopOrder_rec( p, Gia_ObjFanin0(pObj), vRegs );
+    }
+    // add dangling flops
+    Gia_ManForEachRo( p, pObj, i )
+        if ( !Gia_ObjIsTravIdCurrent(p, pObj) )
+            Vec_IntPush( vRegs, Gia_ObjId(p, pObj) );
+    // remove POs; keep flop outputs only; remap ObjId into CiId
+    assert( Vec_IntSize(vRegs) == Gia_ManCoNum(p) );
+    Gia_ManForEachObjVec( vRegs, p, pObj, i )
+    {
+        if ( i < Gia_ManPoNum(p) )
+            continue;
+        iReg = Gia_ObjCioId(pObj) - Gia_ManPiNum(p);
+        assert( iReg >= 0 && iReg < Gia_ManRegNum(p) );
+        Vec_IntWriteEntry( vRegs, k++, iReg );
+    }
+    Vec_IntShrink( vRegs, k );
+    assert( Vec_IntSize(vRegs) == Gia_ManRegNum(p) );
+}
+
+
+/**Function*************************************************************
+
   Synopsis    []
 
   Description []
@@ -304,12 +367,13 @@ void Bmc_PerformICheck( Gia_Man_t * p, int nFramesMax, int nTimeOut, int fEmpty,
   SeeAlso     []
 
 ***********************************************************************/
-int Bmc_PerformISearchOne( Gia_Man_t * p, int nFramesMax, int nTimeOut, int fReverse, int fVerbose, Vec_Int_t * vLits )
+int Bmc_PerformISearchOne( Gia_Man_t * p, int nFramesMax, int nTimeOut, int fReverse, int fBackTopo, int fVerbose, Vec_Int_t * vLits )
 {
     int fUseOldCnf = 0;
     Gia_Man_t * pMiter, * pTemp;
     Cnf_Dat_t * pCnf;
     sat_solver * pSat;
+    Vec_Int_t * vRegs;
 //    Vec_Int_t * vLits;
     int i, Iter, status;
     int nLitsUsed, RetValue = 0;
@@ -328,9 +392,11 @@ int Bmc_PerformISearchOne( Gia_Man_t * p, int nFramesMax, int nTimeOut, int fRev
         pCnf = Cnf_DeriveGiaRemapped( pMiter );
     else
     {
-        pMiter = Jf_ManDeriveCnf( pTemp = pMiter, 0 );
-        Gia_ManStop( pTemp );
-        pCnf = (Cnf_Dat_t *)pMiter->pData; pMiter->pData = NULL;
+        extern Cnf_Dat_t * Mf_ManGenerateCnf( Gia_Man_t * pGia, int nLutSize, int fCnfObjIds, int fAddOrCla, int fVerbose );
+        //pMiter = Jf_ManDeriveCnf( pTemp = pMiter, 0 );
+        //Gia_ManStop( pTemp );
+        //pCnf = (Cnf_Dat_t *)pMiter->pData; pMiter->pData = NULL;
+        pCnf = Mf_ManGenerateCnf( pMiter, 8, 0, 0, 0 );
     }
 /*
     // collect positive literals
@@ -365,9 +431,15 @@ int Bmc_PerformISearchOne( Gia_Man_t * p, int nFramesMax, int nTimeOut, int fRev
             nLitsUsed++;
 
     // try removing variables
-    for ( Iter = 0; Iter < Gia_ManRegNum(p); Iter++ )
+    vRegs = Vec_IntStartNatural( Gia_ManRegNum(p) );
+    if ( fBackTopo )
+        Bmc_PerformFindFlopOrder( p, vRegs );
+    if ( fReverse )
+        Vec_IntReverseOrder( vRegs );
+//    for ( Iter = 0; Iter < Gia_ManRegNum(p); Iter++ )
+    Vec_IntForEachEntry( vRegs, i, Iter )
     {
-        i = fReverse ? Gia_ManRegNum(p) - 1 - Iter : Iter;
+//        i = fReverse ? Gia_ManRegNum(p) - 1 - Iter : Iter;
         if ( Abc_LitIsCompl(Vec_IntEntry(vLits, i)) )
             continue;
         Vec_IntWriteEntry( vLits, i, Abc_LitNot(Vec_IntEntry(vLits, i)) );
@@ -411,16 +483,17 @@ cleanup:
     sat_solver_delete( pSat );
     Cnf_DataFree( pCnf );
     Gia_ManStop( pMiter );
+    Vec_IntFree( vRegs );
 //    Vec_IntFree( vLits );
     return RetValue;
 }
-Vec_Int_t * Bmc_PerformISearch( Gia_Man_t * p, int nFramesMax, int nTimeOut, int fReverse, int fDump, int fVerbose )
+Vec_Int_t * Bmc_PerformISearch( Gia_Man_t * p, int nFramesMax, int nTimeOut, int fReverse, int fBackTopo, int fDump, int fVerbose )
 {
     Vec_Int_t * vLits, * vFlops;
     int i, f;
     if ( fVerbose )
-    printf( "Solving M-inductiveness for design %s with %d AND nodes and %d flip-flops:\n",
-        Gia_ManName(p), Gia_ManAndNum(p), Gia_ManRegNum(p) );
+    printf( "Solving M-inductiveness for design %s with %d AND nodes and %d flip-flops with %s %s flop order:\n",
+        Gia_ManName(p), Gia_ManAndNum(p), Gia_ManRegNum(p), fReverse ? "reverse":"direct", fBackTopo ? "backward":"natural" );
     fflush( stdout );
 
     // collect positive literals
@@ -429,7 +502,7 @@ Vec_Int_t * Bmc_PerformISearch( Gia_Man_t * p, int nFramesMax, int nTimeOut, int
         Vec_IntPush( vLits, Abc_Var2Lit(i, 0) );
 
     for ( f = 1; f <= nFramesMax; f++ )
-        if ( Bmc_PerformISearchOne( p, f, nTimeOut, fReverse, fVerbose, vLits ) )
+        if ( Bmc_PerformISearchOne( p, f, nTimeOut, fReverse, fBackTopo, fVerbose, vLits ) )
         {
             Vec_IntFree( vLits );
             return NULL;

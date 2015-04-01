@@ -169,7 +169,7 @@ extern void              Bmc_CexPrint( Abc_Cex_t * pCex, int nInputs, int fVerbo
 extern int               Bmc_CexVerify( Gia_Man_t * p, Abc_Cex_t * pCex, Abc_Cex_t * pCexCare );
 /*=== bmcICheck.c ==========================================================*/
 extern void              Bmc_PerformICheck( Gia_Man_t * p, int nFramesMax, int nTimeOut, int fEmpty, int fVerbose );
-extern Vec_Int_t *       Bmc_PerformISearch( Gia_Man_t * p, int nFramesMax, int nTimeOut, int fReverse, int fDump, int fVerbose );
+extern Vec_Int_t *       Bmc_PerformISearch( Gia_Man_t * p, int nFramesMax, int nTimeOut, int fReverse, int fBackTopo, int fDump, int fVerbose );
 /*=== bmcUnroll.c ==========================================================*/
 extern Unr_Man_t *       Unr_ManUnrollStart( Gia_Man_t * pGia, int fVerbose );
 extern Gia_Man_t *       Unr_ManUnrollFrame( Unr_Man_t * p, int f );

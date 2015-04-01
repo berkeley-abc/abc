@@ -36176,9 +36176,9 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9ICheck( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    int c, nFramesMax = 1, nTimeOut = 0, fEmpty = 0, fSearch = 1, fReverse = 0, fDump = 0, fVerbose = 0;
+    int c, nFramesMax = 1, nTimeOut = 0, fEmpty = 0, fSearch = 1, fReverse = 0, fBackTopo = 0, fDump = 0, fVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "MTesrdvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "MTesrbdvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -36213,6 +36213,9 @@ int Abc_CommandAbc9ICheck( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'r':
             fReverse ^= 1;
             break;
+        case 'b':
+            fBackTopo ^= 1;
+            break;
         case 'd':
             fDump ^= 1;
             break;
@@ -36237,20 +36240,21 @@ int Abc_CommandAbc9ICheck( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     Vec_IntFreeP( &pAbc->vIndFlops );
     if ( fSearch )
-        pAbc->vIndFlops = Bmc_PerformISearch( pAbc->pGia, nFramesMax, nTimeOut, fReverse, fDump, fVerbose );
+        pAbc->vIndFlops = Bmc_PerformISearch( pAbc->pGia, nFramesMax, nTimeOut, fReverse, fBackTopo, fDump, fVerbose );
     else
         Bmc_PerformICheck( pAbc->pGia, nFramesMax, nTimeOut, fEmpty, fVerbose );
     pAbc->nIndFrames = pAbc->vIndFlops ? nFramesMax : 0;
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &icheck [-MT num] [-esrdvh]\n" );
+    Abc_Print( -2, "usage: &icheck [-MT num] [-esrbdvh]\n" );
     Abc_Print( -2, "\t         performs specialized induction check\n" );
     Abc_Print( -2, "\t-M num : the number of timeframes used for induction [default = %d]\n",    nFramesMax );
     Abc_Print( -2, "\t-T num : approximate global runtime limit in seconds [default = %d]\n",    nTimeOut );
     Abc_Print( -2, "\t-e     : toggle using empty set of next-state functions [default = %s]\n", fEmpty? "yes": "no" );
     Abc_Print( -2, "\t-s     : toggle searching for a minimal subset [default = %s]\n",          fSearch? "yes": "no" );
     Abc_Print( -2, "\t-r     : toggle searching in the reverse order [default = %s]\n",          fReverse? "yes": "no" );
+    Abc_Print( -2, "\t-b     : toggle searching in backward order from POs [default = %s]\n",    fBackTopo? "yes": "no" );
     Abc_Print( -2, "\t-d     : toggle printing out the resulting set [default = %s]\n",          fDump? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n",            fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
