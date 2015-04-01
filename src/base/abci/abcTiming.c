@@ -160,21 +160,23 @@ float Abc_NodeReadOutputLoadWorst( Abc_Ntk_t * pNtk, int iPo )
 ***********************************************************************/
 void Abc_NtkTimeSetDefaultArrival( Abc_Ntk_t * pNtk, float Rise, float Fall )
 {
-    if ( Rise == 0.0 && Fall == 0.0 )
-        return;
+    Abc_Obj_t * pObj; int i;
     if ( pNtk->pManTime == NULL )
         pNtk->pManTime = Abc_ManTimeStart(pNtk);
     pNtk->pManTime->tArrDef.Rise  = Rise;
     pNtk->pManTime->tArrDef.Fall  = Fall;
+    Abc_NtkForEachCi( pNtk, pObj, i )
+        Abc_NtkTimeSetArrival( pNtk, Abc_ObjId(pObj), Rise, Fall );    
 }
 void Abc_NtkTimeSetDefaultRequired( Abc_Ntk_t * pNtk, float Rise, float Fall )
 {
-    if ( Rise == 0.0 && Fall == 0.0 )
-        return;
+    Abc_Obj_t * pObj; int i;
     if ( pNtk->pManTime == NULL )
         pNtk->pManTime = Abc_ManTimeStart(pNtk);
     pNtk->pManTime->tReqDef.Rise  = Rise;
     pNtk->pManTime->tReqDef.Fall  = Fall;
+    Abc_NtkForEachCo( pNtk, pObj, i )
+        Abc_NtkTimeSetRequired( pNtk, Abc_ObjId(pObj), Rise, Fall );        
 }
 
 /**Function*************************************************************
@@ -194,8 +196,6 @@ void Abc_NtkTimeSetArrival( Abc_Ntk_t * pNtk, int ObjId, float Rise, float Fall 
     Abc_Time_t * pTime;
     if ( pNtk->pManTime == NULL )
         pNtk->pManTime = Abc_ManTimeStart(pNtk);
-    //if ( pNtk->pManTime->tArrDef.Rise == Rise && pNtk->pManTime->tArrDef.Fall == Fall )
-    //    return;
     Abc_ManTimeExpand( pNtk->pManTime, ObjId + 1, 1 );
     // set the arrival time
     vTimes = pNtk->pManTime->vArrs;
@@ -209,8 +209,6 @@ void Abc_NtkTimeSetRequired( Abc_Ntk_t * pNtk, int ObjId, float Rise, float Fall
     Abc_Time_t * pTime;
     if ( pNtk->pManTime == NULL )
         pNtk->pManTime = Abc_ManTimeStart(pNtk);
-    //if ( pNtk->pManTime->tReqDef.Rise == Rise && pNtk->pManTime->tReqDef.Fall == Fall )
-    //    return;
     Abc_ManTimeExpand( pNtk->pManTime, ObjId + 1, 1 );
     // set the required time
     vTimes = pNtk->pManTime->vReqs;
@@ -487,13 +485,18 @@ void Abc_NtkTimePrepare( Abc_Ntk_t * pNtk )
 Abc_ManTime_t * Abc_ManTimeStart( Abc_Ntk_t * pNtk )
 {
     Abc_ManTime_t * p;
-    p = ABC_ALLOC( Abc_ManTime_t, 1 );
+    Abc_Obj_t * pObj; int i;
+    p = pNtk->pManTime = ABC_ALLOC( Abc_ManTime_t, 1 );
     memset( p, 0, sizeof(Abc_ManTime_t) );
     p->vArrs = Vec_PtrAlloc( 0 );
     p->vReqs = Vec_PtrAlloc( 0 );
     p->tReqDef.Rise = ABC_INFINITY;
     p->tReqDef.Fall = ABC_INFINITY;
     Abc_ManTimeExpand( p, Abc_NtkObjNumMax(pNtk) + 1, 0 );
+    Abc_NtkForEachCi( pNtk, pObj, i )
+        Abc_NtkTimeSetArrival( pNtk, Abc_ObjId(pObj), p->tArrDef.Rise, p->tArrDef.Rise );        
+    Abc_NtkForEachCo( pNtk, pObj, i )
+        Abc_NtkTimeSetArrival( pNtk, Abc_ObjId(pObj), p->tReqDef.Rise, p->tReqDef.Rise );        
     return p;
 }
 
