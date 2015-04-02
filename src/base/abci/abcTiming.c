@@ -757,11 +757,11 @@ float * Abc_NtkGetCiArrivalFloats( Abc_Ntk_t * pNtk )
     p = ABC_CALLOC( float, Abc_NtkCiNum(pNtk) );
     if ( pNtk->pManTime == NULL )
         return p;
-    Abc_NtkForEachCi( pNtk, pNode, i )
-        if ( Abc_NodeReadArrivalWorst(pNode) != 0 )
-            break;
-    if ( i == Abc_NtkCiNum(pNtk) )
-        return NULL;
+//    Abc_NtkForEachCi( pNtk, pNode, i )
+//        if ( Abc_NodeReadArrivalWorst(pNode) != 0 )
+//            break;
+//    if ( i == Abc_NtkCiNum(pNtk) )
+//        return NULL;
     // set the PI arrival times
     Abc_NtkForEachCi( pNtk, pNode, i )
         p[i] = Abc_NodeReadArrivalWorst(pNode);
@@ -774,11 +774,11 @@ float * Abc_NtkGetCoRequiredFloats( Abc_Ntk_t * pNtk )
     int i;
     if ( pNtk->pManTime == NULL )
         return NULL;
-    Abc_NtkForEachCo( pNtk, pNode, i )
-        if ( Abc_NodeReadRequiredWorst(pNode) != ABC_INFINITY )
-            break;
-    if ( i == Abc_NtkCoNum(pNtk) )
-        return NULL;
+//    Abc_NtkForEachCo( pNtk, pNode, i )
+//        if ( Abc_NodeReadRequiredWorst(pNode) != ABC_INFINITY )
+//            break;
+//    if ( i == Abc_NtkCoNum(pNtk) )
+//        return NULL;
     // set the PO required times
     p = ABC_CALLOC( float, Abc_NtkCoNum(pNtk) );
     Abc_NtkForEachCo( pNtk, pNode, i )
