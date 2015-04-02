@@ -354,7 +354,7 @@ void Abc_NtkTimeInitialize( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkOld )
     Abc_NtkForEachCo( pNtk, pObj, i )
     {
         pTime = ppTimes[pObj->Id];
-        if ( !Abc_FloatEqual( Abc_MaxFloat(pTime->Fall, pTime->Rise), ABC_INFINITY ) )
+        if ( !Abc_FloatEqual( Abc_MaxFloat(pTime->Fall, pTime->Rise), 0 ) )
             continue;
         *pTime = pNtkOld ? *Abc_NodeReadRequired(Abc_NtkCo(pNtkOld, i)) : pNtk->pManTime->tReqDef;
     }
@@ -389,12 +389,8 @@ void Abc_NtkTimeScale( Abc_Ntk_t * pNtk, float Scale )
     pNtk->pManTime->tArrDef.Fall *= Scale;
     pNtk->pManTime->tArrDef.Rise *= Scale;
     // departure
-    pTime = &pNtk->pManTime->tReqDef;
-    if ( !Abc_FloatEqual( Abc_MaxFloat(pTime->Fall, pTime->Rise), ABC_INFINITY ) )
-    {
-        pTime->Fall *= Scale;
-        pTime->Rise *= Scale;
-    }
+    pNtk->pManTime->tReqDef.Fall *= Scale;
+    pNtk->pManTime->tReqDef.Rise *= Scale;
     // set the default timing
     ppTimes = (Abc_Time_t **)pNtk->pManTime->vArrs->pArray;
     Abc_NtkForEachCi( pNtk, pObj, i )
@@ -410,7 +406,7 @@ void Abc_NtkTimeScale( Abc_Ntk_t * pNtk, float Scale )
     Abc_NtkForEachCo( pNtk, pObj, i )
     {
         pTime = ppTimes[pObj->Id];
-        if ( !Abc_FloatEqual( Abc_MaxFloat(pTime->Fall, pTime->Rise), ABC_INFINITY ) )
+        if ( !Abc_FloatEqual( Abc_MaxFloat(pTime->Fall, pTime->Rise), 0 ) )
             continue;
         pTime->Fall *= Scale;
         pTime->Rise *= Scale;
@@ -490,8 +486,6 @@ Abc_ManTime_t * Abc_ManTimeStart( Abc_Ntk_t * pNtk )
     memset( p, 0, sizeof(Abc_ManTime_t) );
     p->vArrs = Vec_PtrAlloc( 0 );
     p->vReqs = Vec_PtrAlloc( 0 );
-    p->tReqDef.Rise = ABC_INFINITY;
-    p->tReqDef.Fall = ABC_INFINITY;
     Abc_ManTimeExpand( p, Abc_NtkObjNumMax(pNtk) + 1, 0 );
     Abc_NtkForEachCi( pNtk, pObj, i )
         Abc_NtkTimeSetArrival( pNtk, Abc_ObjId(pObj), p->tArrDef.Rise, p->tArrDef.Rise );        
