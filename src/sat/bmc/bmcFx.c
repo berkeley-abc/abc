@@ -106,7 +106,7 @@ static inline Vec_Int_t * Tab_TabFindBest( Tab_Tab_t * p, int nDivs )
 }
 static inline int Tab_Hash( int LitA, int LitB, int LitC, int Func, int Mask )
 {
-    return (LitA * 50331653 + LitB * 100663319 + LitC + 201326611 + Func * 402653189) & Mask;
+    return (LitA * 50331653 + LitB * 100663319 + LitC * 201326611 + Func * 402653189) & Mask;
 }
 static inline void Tab_TabRehash( Tab_Tab_t * p )
 {
