@@ -216,21 +216,16 @@ char * Abc_ConvertBddToSop( Mem_Flex_t * pMan, DdManager * dd, DdNode * bFuncOn,
     assert( bFuncOn == bFuncOnDc || Cudd_bddLeq( dd, bFuncOn, bFuncOnDc ) );
     if ( Cudd_IsConstant(bFuncOn) || Cudd_IsConstant(bFuncOnDc) )
     {
-        if ( fMode == -1 ) // if the phase is not known, write constant 1
-            fMode = 1;
-        Vec_StrFill( vCube, nFanins, '-' );
-        Vec_StrPush( vCube, '\0' );
         if ( pMan )
             pSop = Mem_FlexEntryFetch( pMan, nFanins + 4 );
         else
             pSop = ABC_ALLOC( char, nFanins + 4 );
-        if ( bFuncOn == Cudd_ReadOne(dd) )
-            sprintf( pSop, "%s %d\n", vCube->pArray, fMode );
-        else
-            sprintf( pSop, "%s %d\n", vCube->pArray, !fMode );
+        pSop[0] = ' ';
+        pSop[1] = '0' + (int)(bFuncOn == Cudd_ReadOne(dd));
+        pSop[2] = '\n';
+        pSop[3] = '\0';
         return pSop;
     }
-
 
     if ( fMode == -1 )
     { // try both phases
