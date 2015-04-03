@@ -151,7 +151,9 @@ float Abc_NodeReadOutputLoadWorst( Abc_Ntk_t * pNtk, int iPo )
 
   Synopsis    [Sets the default arrival time for the network.]
 
-  Description []
+  Description [Please note that .default_input_arrival and
+  .default_output_required should precede .input_arrival and 
+  .output required. Otherwise, an overwrite may happen.]
                
   SideEffects []
 
@@ -165,6 +167,7 @@ void Abc_NtkTimeSetDefaultArrival( Abc_Ntk_t * pNtk, float Rise, float Fall )
         pNtk->pManTime = Abc_ManTimeStart(pNtk);
     pNtk->pManTime->tArrDef.Rise  = Rise;
     pNtk->pManTime->tArrDef.Fall  = Fall;
+    // set the arrival times for each input
     Abc_NtkForEachCi( pNtk, pObj, i )
         Abc_NtkTimeSetArrival( pNtk, Abc_ObjId(pObj), Rise, Fall );    
 }
@@ -175,6 +178,7 @@ void Abc_NtkTimeSetDefaultRequired( Abc_Ntk_t * pNtk, float Rise, float Fall )
         pNtk->pManTime = Abc_ManTimeStart(pNtk);
     pNtk->pManTime->tReqDef.Rise  = Rise;
     pNtk->pManTime->tReqDef.Fall  = Fall;
+    // set the required times for each output
     Abc_NtkForEachCo( pNtk, pObj, i )
         Abc_NtkTimeSetRequired( pNtk, Abc_ObjId(pObj), Rise, Fall );        
 }
@@ -332,32 +336,22 @@ void Abc_NtkTimeInitialize( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkOld )
     assert( pNtkOld == NULL || Abc_NtkCoNum(pNtk) == Abc_NtkCoNum(pNtkOld) );
     if ( pNtk->pManTime == NULL )
         return;
+    // create timing manager with default values
     Abc_ManTimeExpand( pNtk->pManTime, Abc_NtkObjNumMax(pNtk), 0 );
-    // set global defaults
+    // set global defaults from pNtkOld
     if ( pNtkOld )
     {
         pNtk->pManTime->tArrDef = pNtkOld->pManTime->tArrDef;
         pNtk->pManTime->tReqDef = pNtkOld->pManTime->tReqDef;
         pNtk->AndGateDelay = pNtkOld->AndGateDelay;
     }
-    // set the default timing
+    // set the default timing for CI and COs
     ppTimes = (Abc_Time_t **)pNtk->pManTime->vArrs->pArray;
     Abc_NtkForEachCi( pNtk, pObj, i )
-    {
-        pTime = ppTimes[pObj->Id];
-        if ( !Abc_FloatEqual( Abc_MaxFloat(pTime->Fall, pTime->Rise), 0 ) )
-            continue;
-        *pTime = pNtkOld ? *Abc_NodeReadArrival(Abc_NtkCi(pNtkOld, i)) : pNtk->pManTime->tArrDef;
-    }
-    // set the default timing
+        *ppTimes[pObj->Id] = pNtkOld ? *Abc_NodeReadArrival(Abc_NtkCi(pNtkOld, i)) : pNtk->pManTime->tArrDef;
     ppTimes = (Abc_Time_t **)pNtk->pManTime->vReqs->pArray;
     Abc_NtkForEachCo( pNtk, pObj, i )
-    {
-        pTime = ppTimes[pObj->Id];
-        if ( !Abc_FloatEqual( Abc_MaxFloat(pTime->Fall, pTime->Rise), 0 ) )
-            continue;
-        *pTime = pNtkOld ? *Abc_NodeReadRequired(Abc_NtkCo(pNtkOld, i)) : pNtk->pManTime->tReqDef;
-    }
+        *ppTimes[pObj->Id] = pNtkOld ? *Abc_NodeReadRequired(Abc_NtkCo(pNtkOld, i)) : pNtk->pManTime->tReqDef;
     // set the 0 arrival times for latch outputs and constant nodes
     ppTimes = (Abc_Time_t **)pNtk->pManTime->vArrs->pArray;
     Abc_NtkForEachLatchOutput( pNtk, pObj, i )
@@ -369,7 +363,7 @@ void Abc_NtkTimeInitialize( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkOld )
 
 /**Function*************************************************************
 
-  Synopsis    [Finalizes the timing manager after setting arr/req times.]
+  Synopsis    [This procedure scales user timing by multiplicative factor.]
 
   Description []
                
@@ -396,8 +390,6 @@ void Abc_NtkTimeScale( Abc_Ntk_t * pNtk, float Scale )
     Abc_NtkForEachCi( pNtk, pObj, i )
     {
         pTime = ppTimes[pObj->Id];
-        if ( !Abc_FloatEqual( Abc_MaxFloat(pTime->Fall, pTime->Rise), 0 ) )
-            continue;
         pTime->Fall *= Scale;
         pTime->Rise *= Scale;
     }
@@ -406,8 +398,6 @@ void Abc_NtkTimeScale( Abc_Ntk_t * pNtk, float Scale )
     Abc_NtkForEachCo( pNtk, pObj, i )
     {
         pTime = ppTimes[pObj->Id];
-        if ( !Abc_FloatEqual( Abc_MaxFloat(pTime->Fall, pTime->Rise), 0 ) )
-            continue;
         pTime->Fall *= Scale;
         pTime->Rise *= Scale;
     }
@@ -443,7 +433,7 @@ void Abc_NtkTimePrepare( Abc_Ntk_t * pNtk )
     Abc_NtkForEachNode( pNtk, pObj, i )
     {
         pTime = ppTimes[pObj->Id];
-        pTime->Fall = pTime->Rise = -ABC_INFINITY;
+        pTime->Fall = pTime->Rise = Abc_ObjFaninNum(pObj) ? -ABC_INFINITY : 0; // set contant node arrivals to zero
     }
     Abc_NtkForEachCo( pNtk, pObj, i )
     {
@@ -480,15 +470,23 @@ void Abc_NtkTimePrepare( Abc_Ntk_t * pNtk )
 ***********************************************************************/
 Abc_ManTime_t * Abc_ManTimeStart( Abc_Ntk_t * pNtk )
 {
+    int fUseZeroDefaultOutputRequired = 1;
     Abc_ManTime_t * p;
     Abc_Obj_t * pObj; int i;
     p = pNtk->pManTime = ABC_ALLOC( Abc_ManTime_t, 1 );
     memset( p, 0, sizeof(Abc_ManTime_t) );
     p->vArrs = Vec_PtrAlloc( 0 );
     p->vReqs = Vec_PtrAlloc( 0 );
+    // set default default input=arrivals (assumed to be 0)
+    // set default default output-requireds (can be either 0 or +infinity, based on the flag)
+    p->tReqDef.Rise = fUseZeroDefaultOutputRequired ? 0 : ABC_INFINITY;
+    p->tReqDef.Fall = fUseZeroDefaultOutputRequired ? 0 : ABC_INFINITY;
+    // extend manager
     Abc_ManTimeExpand( p, Abc_NtkObjNumMax(pNtk) + 1, 0 );
+    // set the default timing for CIs
     Abc_NtkForEachCi( pNtk, pObj, i )
-        Abc_NtkTimeSetArrival( pNtk, Abc_ObjId(pObj), p->tArrDef.Rise, p->tArrDef.Rise );        
+        Abc_NtkTimeSetArrival( pNtk, Abc_ObjId(pObj), p->tArrDef.Rise, p->tArrDef.Rise );   
+    // set the default timing for COs
     Abc_NtkForEachCo( pNtk, pObj, i )
         Abc_NtkTimeSetArrival( pNtk, Abc_ObjId(pObj), p->tReqDef.Rise, p->tReqDef.Rise );        
     return p;
@@ -574,7 +572,7 @@ void Abc_ManTimeDup( Abc_Ntk_t * pNtkOld, Abc_Ntk_t * pNtkNew )
 
 /**Function*************************************************************
 
-  Synopsis    [Prepares the timing manager for delay trace.]
+  Synopsis    [Prints out the timing manager.]
 
   Description []
                
@@ -751,11 +749,6 @@ float * Abc_NtkGetCiArrivalFloats( Abc_Ntk_t * pNtk )
     p = ABC_CALLOC( float, Abc_NtkCiNum(pNtk) );
     if ( pNtk->pManTime == NULL )
         return p;
-//    Abc_NtkForEachCi( pNtk, pNode, i )
-//        if ( Abc_NodeReadArrivalWorst(pNode) != 0 )
-//            break;
-//    if ( i == Abc_NtkCiNum(pNtk) )
-//        return NULL;
     // set the PI arrival times
     Abc_NtkForEachCi( pNtk, pNode, i )
         p[i] = Abc_NodeReadArrivalWorst(pNode);
@@ -768,11 +761,6 @@ float * Abc_NtkGetCoRequiredFloats( Abc_Ntk_t * pNtk )
     int i;
     if ( pNtk->pManTime == NULL )
         return NULL;
-//    Abc_NtkForEachCo( pNtk, pNode, i )
-//        if ( Abc_NodeReadRequiredWorst(pNode) != ABC_INFINITY )
-//            break;
-//    if ( i == Abc_NtkCoNum(pNtk) )
-//        return NULL;
     // set the PO required times
     p = ABC_CALLOC( float, Abc_NtkCoNum(pNtk) );
     Abc_NtkForEachCo( pNtk, pNode, i )
@@ -843,8 +831,7 @@ static inline void Abc_NtkDelayTraceSetSlack( Vec_Int_t * vSlacks, Abc_Obj_t * p
 int Abc_NtkDelayTraceCritPath_rec( Vec_Int_t * vSlacks, Abc_Obj_t * pNode, Abc_Obj_t * pLeaf, Vec_Int_t * vBest )
 {
     Abc_Obj_t * pFanin, * pFaninBest = NULL;
-    float SlackMin = ABC_INFINITY;
-    int i;
+    float SlackMin = ABC_INFINITY;  int i;
     // check primary inputs
     if ( Abc_ObjIsCi(pNode) )
         return (pLeaf == NULL || pLeaf == pNode);
@@ -967,19 +954,11 @@ void Abc_NodeDelayTraceArrival( Abc_Obj_t * pNode, Vec_Int_t * vSlacks )
             Slack = ABC_INFINITY;
             if ( PinPhase != MIO_PHASE_INV )  // NONINV phase is present
             {
-//                if ( pTimeOut->Rise < pTimeIn->Rise + tDelayBlockRise )
-//                    pTimeOut->Rise = pTimeIn->Rise + tDelayBlockRise;
-//                if ( pTimeOut->Fall < pTimeIn->Fall + tDelayBlockFall )
-//                    pTimeOut->Fall = pTimeIn->Fall + tDelayBlockFall;
                 Slack = Abc_MinFloat( Slack, Abc_AbsFloat(pTimeIn->Rise + tDelayBlockRise - pTimeOut->Rise) );
                 Slack = Abc_MinFloat( Slack, Abc_AbsFloat(pTimeIn->Fall + tDelayBlockFall - pTimeOut->Fall) );
             }
             if ( PinPhase != MIO_PHASE_NONINV )  // INV phase is present
             {
-//                if ( pTimeOut->Rise < pTimeIn->Fall + tDelayBlockRise )
-//                    pTimeOut->Rise = pTimeIn->Fall + tDelayBlockRise;
-//                if ( pTimeOut->Fall < pTimeIn->Rise + tDelayBlockFall )
-//                    pTimeOut->Fall = pTimeIn->Rise + tDelayBlockFall;
                 Slack = Abc_MinFloat( Slack, Abc_AbsFloat(pTimeIn->Fall + tDelayBlockRise - pTimeOut->Rise) );
                 Slack = Abc_MinFloat( Slack, Abc_AbsFloat(pTimeIn->Rise + tDelayBlockFall - pTimeOut->Fall) );
             }
