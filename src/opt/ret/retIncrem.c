@@ -176,7 +176,7 @@ int Abc_NtkRetimeFinalizeLatches( Abc_Ntk_t * pNtk, st__table * tLatches, int nI
         {
             // this is an old latch 
             // get its number in the original order
-            if ( ! st__lookup( tLatches, (char *)pLatch, (char **)&Index ) )
+            if ( ! st__lookup_int( tLatches, (char *)pLatch, &Index ) )
             {
                 printf( "Abc_NtkRetimeFinalizeLatches(): Internal error.\n" );
                 return 0;
