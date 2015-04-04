@@ -25968,7 +25968,9 @@ int Abc_CommandAbc9Get( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Ntk_t * pNtk = pAbc->pNtkCur;
         Vec_FltFreeP( &pGia->vInArrs );
         Vec_FltFreeP( &pGia->vOutReqs );
-        pGia->vInArrs = Vec_FltAllocArray( Abc_NtkGetCiArrivalFloats(pNtk), Abc_NtkCiNum(pNtk) ); 
+        pGia->DefInArrs  = Abc_NtkReadDefaultArrivalWorst(pNtk);
+        pGia->DefOutReqs = Abc_NtkReadDefaultRequiredWorst(pNtk);
+        pGia->vInArrs  = Vec_FltAllocArray( Abc_NtkGetCiArrivalFloats(pNtk), Abc_NtkCiNum(pNtk) ); 
         pGia->vOutReqs = Vec_FltAllocArray( Abc_NtkGetCoRequiredFloats(pNtk), Abc_NtkCoNum(pNtk) ); 
     }
     Abc_FrameUpdateGia( pAbc, pGia );
@@ -26089,6 +26091,8 @@ int Abc_CommandAbc9Put( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
         Abc_Obj_t * pObj; int i;
         Abc_NtkTimeInitialize( pNtk, NULL );
+        Abc_NtkTimeSetDefaultArrival( pNtk, pAbc->pGia->DefInArrs, pAbc->pGia->DefInArrs );
+        Abc_NtkTimeSetDefaultRequired( pNtk, pAbc->pGia->DefOutReqs, pAbc->pGia->DefOutReqs );
         if ( pAbc->pGia->vInArrs )
             Abc_NtkForEachCi( pNtk, pObj, i )
                 Abc_NtkTimeSetArrival( pNtk, Abc_ObjId(pObj), Vec_FltEntry(pAbc->pGia->vInArrs, i), Vec_FltEntry(pAbc->pGia->vInArrs, i) );

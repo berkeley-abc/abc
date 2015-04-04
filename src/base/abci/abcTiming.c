@@ -90,6 +90,14 @@ Abc_Time_t * Abc_NodeReadRequired( Abc_Obj_t * pNode )
     assert( pNode->pNtk->pManTime );
     return Abc_NodeRequired(pNode);
 }
+float Abc_NtkReadDefaultArrivalWorst( Abc_Ntk_t * pNtk )
+{
+    return 0.5 * pNtk->pManTime->tArrDef.Rise + 0.5 * pNtk->pManTime->tArrDef.Fall;
+}
+float Abc_NtkReadDefaultRequiredWorst( Abc_Ntk_t * pNtk )
+{
+    return 0.5 * pNtk->pManTime->tReqDef.Rise + 0.5 * pNtk->pManTime->tReqDef.Fall;
+}
 float Abc_NodeReadArrivalAve( Abc_Obj_t * pNode )
 {
     return 0.5 * Abc_NodeArrival(pNode)->Rise + 0.5 * Abc_NodeArrival(pNode)->Fall;
@@ -531,6 +539,8 @@ void Abc_ManTimeStop( Abc_ManTime_t * p )
 ***********************************************************************/
 void Abc_ManTimeDup( Abc_Ntk_t * pNtkOld, Abc_Ntk_t * pNtkNew )
 {
+    extern void Abc_NtkTimePrint( Abc_Ntk_t * pNtk );
+
     Abc_Obj_t * pObj;
     Abc_Time_t ** ppTimesOld, ** ppTimesNew;
     int i;

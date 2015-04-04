@@ -107,7 +107,7 @@ Abc_Ntk_t * Io_ReadBlif( char * pFileName, int fCheck )
         return NULL;
     }
     pNtk->pSpec = Extra_UtilStrsav( pFileName );
-    Abc_NtkTimeInitialize( pNtk, NULL );
+    //Abc_NtkTimeInitialize( pNtk, NULL );
     Io_ReadBlifFree( p );
 
     // make sure that everything is okay with the network structure

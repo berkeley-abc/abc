@@ -151,6 +151,8 @@ struct Gia_Man_t_
     Gia_Man_t *    pAigExtra;     // combinational logic of holes
     Vec_Flt_t *    vInArrs;       // PI arrival times
     Vec_Flt_t *    vOutReqs;      // PO required times
+    float          DefInArrs;     // default PI arrival times
+    float          DefOutReqs;    // default PO required times
     Vec_Int_t *    vSwitching;    // switching activity
     int *          pTravIds;      // separate traversal ID representation
     int            nTravIdsAlloc; // the number of trav IDs allocated

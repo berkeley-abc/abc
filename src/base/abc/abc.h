@@ -923,6 +923,8 @@ extern ABC_DLL Abc_Time_t *       Abc_NtkReadDefaultArrival( Abc_Ntk_t * pNtk );
 extern ABC_DLL Abc_Time_t *       Abc_NtkReadDefaultRequired( Abc_Ntk_t * pNtk );
 extern ABC_DLL Abc_Time_t *       Abc_NodeReadArrival( Abc_Obj_t * pNode );
 extern ABC_DLL Abc_Time_t *       Abc_NodeReadRequired( Abc_Obj_t * pNode );
+extern ABC_DLL float              Abc_NtkReadDefaultArrivalWorst( Abc_Ntk_t * pNtk );
+extern ABC_DLL float              Abc_NtkReadDefaultRequiredWorst( Abc_Ntk_t * pNtk );
 extern ABC_DLL float              Abc_NodeReadArrivalAve( Abc_Obj_t * pNode );
 extern ABC_DLL float              Abc_NodeReadRequiredAve( Abc_Obj_t * pNode );
 extern ABC_DLL float              Abc_NodeReadArrivalWorst( Abc_Obj_t * pNode );

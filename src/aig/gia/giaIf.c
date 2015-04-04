@@ -2035,6 +2035,8 @@ void Gia_ManTransferTiming( Gia_Man_t * p, Gia_Man_t * pGia )
     {
         p->vInArrs     = pGia->vInArrs;     pGia->vInArrs     = NULL;
         p->vOutReqs    = pGia->vOutReqs;    pGia->vOutReqs    = NULL;
+        p->DefInArrs   = pGia->DefInArrs;
+        p->DefOutReqs  = pGia->DefOutReqs;
     }
     if ( pGia->pManTime == NULL || p == pGia )
         return;
