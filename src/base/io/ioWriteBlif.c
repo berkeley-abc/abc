@@ -674,62 +674,59 @@ int Io_NtkWriteNodeSubckt( FILE * pFile, Abc_Obj_t * pNode, int Length )
 void Io_WriteTimingInfo( FILE * pFile, Abc_Ntk_t * pNtk )
 {
     Abc_Obj_t * pNode;
-    Abc_Time_t * pTime, * pTimeDef;
+    Abc_Time_t * pTime, * pTimeDefIn, * pTimeDefOut;
     int i;
 
     if ( pNtk->pManTime == NULL )
         return;
 
     fprintf( pFile, "\n" );
-
     if ( pNtk->AndGateDelay != 0.0 )
         fprintf( pFile, ".and_gate_delay %g\n", pNtk->AndGateDelay );
-
-    pTimeDef = Abc_NtkReadDefaultArrival( pNtk );
-    if ( pTimeDef->Rise != 0.0 || pTimeDef->Fall != 0.0 )
-        fprintf( pFile, ".default_input_arrival %g %g\n", pTimeDef->Rise, pTimeDef->Fall );
-    pTimeDef = Abc_NtkReadDefaultRequired( pNtk );
-    if ( pTimeDef->Rise != ABC_INFINITY || pTimeDef->Fall != ABC_INFINITY )
-        fprintf( pFile, ".default_output_required %g %g\n", pTimeDef->Rise, pTimeDef->Fall );
+    pTimeDefIn = Abc_NtkReadDefaultArrival( pNtk );
+    if ( pTimeDefIn->Rise != 0.0 || pTimeDefIn->Fall != 0.0 )
+        fprintf( pFile, ".default_input_arrival %g %g\n", pTimeDefIn->Rise, pTimeDefIn->Fall );
+    pTimeDefOut = Abc_NtkReadDefaultRequired( pNtk );
+    if ( pTimeDefOut->Rise != ABC_INFINITY || pTimeDefOut->Fall != ABC_INFINITY )
+        fprintf( pFile, ".default_output_required %g %g\n", pTimeDefOut->Rise, pTimeDefOut->Fall );
 
     fprintf( pFile, "\n" );
     Abc_NtkForEachPi( pNtk, pNode, i )
     {
         pTime = Abc_NodeReadArrival(pNode);
-        if ( pTime->Rise == pTimeDef->Rise && pTime->Fall == pTimeDef->Fall )
+        if ( pTime->Rise == pTimeDefIn->Rise && pTime->Fall == pTimeDefIn->Fall )
             continue;
         fprintf( pFile, ".input_arrival %s %g %g\n", Abc_ObjName(Abc_ObjFanout0(pNode)), pTime->Rise, pTime->Fall );
     }
     Abc_NtkForEachPo( pNtk, pNode, i )
     {
         pTime = Abc_NodeReadRequired(pNode);
-        if ( pTime->Rise == pTimeDef->Rise && pTime->Fall == pTimeDef->Fall )
+        if ( pTime->Rise == pTimeDefOut->Rise && pTime->Fall == pTimeDefOut->Fall )
             continue;
         fprintf( pFile, ".output_required %s %g %g\n", Abc_ObjName(Abc_ObjFanin0(pNode)), pTime->Rise, pTime->Fall );
     }
 
     fprintf( pFile, "\n" );
-
-    pTimeDef = Abc_NtkReadDefaultInputDrive( pNtk );
-    if ( pTimeDef->Rise != 0.0 || pTimeDef->Fall != 0.0 )
-        fprintf( pFile, ".default_input_drive %g %g\n", pTimeDef->Rise, pTimeDef->Fall );
+    pTimeDefIn = Abc_NtkReadDefaultInputDrive( pNtk );
+    if ( pTimeDefIn->Rise != 0.0 || pTimeDefIn->Fall != 0.0 )
+        fprintf( pFile, ".default_input_drive %g %g\n", pTimeDefIn->Rise, pTimeDefIn->Fall );
     if ( Abc_NodeReadInputDrive( pNtk, 0 ) )
         Abc_NtkForEachPi( pNtk, pNode, i )
         {
             pTime = Abc_NodeReadInputDrive( pNtk, i );
-            if ( pTime->Rise == pTimeDef->Rise && pTime->Fall == pTimeDef->Fall )
+            if ( pTime->Rise == pTimeDefIn->Rise && pTime->Fall == pTimeDefIn->Fall )
                 continue;
             fprintf( pFile, ".input_drive %s %g %g\n", Abc_ObjName(Abc_ObjFanout0(pNode)), pTime->Rise, pTime->Fall );
         }
 
-    pTimeDef = Abc_NtkReadDefaultOutputLoad( pNtk );
-    if ( pTimeDef->Rise != 0.0 || pTimeDef->Fall != 0.0 )
-        fprintf( pFile, ".default_output_load %g %g\n", pTimeDef->Rise, pTimeDef->Fall );
+    pTimeDefOut = Abc_NtkReadDefaultOutputLoad( pNtk );
+    if ( pTimeDefOut->Rise != 0.0 || pTimeDefOut->Fall != 0.0 )
+        fprintf( pFile, ".default_output_load %g %g\n", pTimeDefOut->Rise, pTimeDefOut->Fall );
     if ( Abc_NodeReadOutputLoad( pNtk, 0 ) )
         Abc_NtkForEachPo( pNtk, pNode, i )
         {
             pTime = Abc_NodeReadOutputLoad( pNtk, i );
-            if ( pTime->Rise == pTimeDef->Rise && pTime->Fall == pTimeDef->Fall )
+            if ( pTime->Rise == pTimeDefOut->Rise && pTime->Fall == pTimeDefOut->Fall )
                 continue;
             fprintf( pFile, ".output_load %s %g %g\n", Abc_ObjName(Abc_ObjFanin0(pNode)), pTime->Rise, pTime->Fall );
         }
