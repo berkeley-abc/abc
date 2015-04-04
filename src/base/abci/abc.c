@@ -26003,6 +26003,8 @@ usage:
 int Abc_CommandAbc9Put( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     extern Abc_Ntk_t * Abc_NtkFromDarChoices( Abc_Ntk_t * pNtkOld, Aig_Man_t * pMan );
+    extern void Abc_NtkRedirectCiCo( Abc_Ntk_t * pNtk );
+
     Aig_Man_t * pMan;
     Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
     int c, fVerbose = 0;
@@ -26086,6 +26088,11 @@ int Abc_CommandAbc9Put( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
         }
     }
+
+    // decouple CI/CO with the same name
+    if ( pAbc->pGia->vNamesIn || pAbc->pGia->vNamesOut )
+        Abc_NtkRedirectCiCo( pNtk );
+
     // transfer timing information
     if ( pAbc->pGia->vInArrs || pAbc->pGia->vOutReqs )
     {

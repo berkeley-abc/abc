@@ -507,20 +507,10 @@ void Abc_NtkShortNames( Abc_Ntk_t * pNtk )
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_NtkMoveNames( Abc_Ntk_t * pNtk, Abc_Ntk_t * pOld )
+void Abc_NtkRedirectCiCo( Abc_Ntk_t * pNtk )
 {
-    Abc_Obj_t * pObj, * pObjCi, * pFanin; int i, Count = 0;
-    Nm_ManFree( pNtk->pManName );
-    pNtk->pManName = Nm_ManCreate( Abc_NtkCiNum(pNtk) + Abc_NtkCoNum(pNtk) + Abc_NtkBoxNum(pNtk) );
-    Abc_NtkForEachPi( pNtk, pObj, i )
-        Abc_ObjAssignName( pObj, Abc_ObjName(Abc_NtkPi(pOld, i)), NULL );
-    Abc_NtkForEachPo( pNtk, pObj, i )
-        Abc_ObjAssignName( pObj, Abc_ObjName(Abc_NtkPo(pOld, i)), NULL );
-    Abc_NtkForEachLatch( pNtk, pObj, i )
-    {
-        Abc_ObjAssignName( Abc_ObjFanin0(pObj),  Abc_ObjName(Abc_ObjFanin0(Abc_NtkBox(pOld, i))),  NULL );
-        Abc_ObjAssignName( Abc_ObjFanout0(pObj), Abc_ObjName(Abc_ObjFanout0(Abc_NtkBox(pOld, i))), NULL );
-    }
+    Abc_Obj_t * pObj, * pObjCi, * pFanin; 
+    int i, Count = 0;
     // if CO points to CI with the same name, remove buffer between them
     Abc_NtkForEachCo( pNtk, pObj, i )
     {
@@ -540,6 +530,22 @@ void Abc_NtkMoveNames( Abc_Ntk_t * pNtk, Abc_Ntk_t * pOld )
     }
     if ( Count )
         printf( "Redirected %d POs from buffers to PIs with the same name.\n", Count );
+}
+void Abc_NtkMoveNames( Abc_Ntk_t * pNtk, Abc_Ntk_t * pOld )
+{
+    Abc_Obj_t * pObj; int i;
+    Nm_ManFree( pNtk->pManName );
+    pNtk->pManName = Nm_ManCreate( Abc_NtkCiNum(pNtk) + Abc_NtkCoNum(pNtk) + Abc_NtkBoxNum(pNtk) );
+    Abc_NtkForEachPi( pNtk, pObj, i )
+        Abc_ObjAssignName( pObj, Abc_ObjName(Abc_NtkPi(pOld, i)), NULL );
+    Abc_NtkForEachPo( pNtk, pObj, i )
+        Abc_ObjAssignName( pObj, Abc_ObjName(Abc_NtkPo(pOld, i)), NULL );
+    Abc_NtkForEachLatch( pNtk, pObj, i )
+    {
+        Abc_ObjAssignName( Abc_ObjFanin0(pObj),  Abc_ObjName(Abc_ObjFanin0(Abc_NtkBox(pOld, i))),  NULL );
+        Abc_ObjAssignName( Abc_ObjFanout0(pObj), Abc_ObjName(Abc_ObjFanout0(Abc_NtkBox(pOld, i))), NULL );
+    }
+    Abc_NtkRedirectCiCo( pNtk );
 }
 
 
