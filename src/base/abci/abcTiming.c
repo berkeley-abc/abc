@@ -337,7 +337,7 @@ void Abc_NtkTimeSetOutputLoad( Abc_Ntk_t * pNtk, int PoNum, float Rise, float Fa
 void Abc_NtkTimeInitialize( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkOld )
 {
     Abc_Obj_t * pObj;
-    Abc_Time_t ** ppTimes, * pTime;
+    Abc_Time_t ** ppTimes;
     int i;
     assert( pNtkOld == NULL || pNtkOld->pManTime != NULL );
     assert( pNtkOld == NULL || Abc_NtkCiNum(pNtk) == Abc_NtkCiNum(pNtkOld) );
@@ -360,13 +360,6 @@ void Abc_NtkTimeInitialize( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkOld )
     ppTimes = (Abc_Time_t **)pNtk->pManTime->vReqs->pArray;
     Abc_NtkForEachCo( pNtk, pObj, i )
         *ppTimes[pObj->Id] = pNtkOld ? *Abc_NodeReadRequired(Abc_NtkCo(pNtkOld, i)) : pNtk->pManTime->tReqDef;
-    // set the 0 arrival times for latch outputs and constant nodes
-    ppTimes = (Abc_Time_t **)pNtk->pManTime->vArrs->pArray;
-    Abc_NtkForEachLatchOutput( pNtk, pObj, i )
-    {
-        pTime = ppTimes[pObj->Id];
-        pTime->Fall = pTime->Rise = 0.0;
-    }
 }
 
 /**Function*************************************************************

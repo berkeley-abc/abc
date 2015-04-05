@@ -43,6 +43,19 @@ struct Io_ReadBlif_t_
     Vec_Ptr_t *          vTokens;      // the current tokens
     Vec_Ptr_t *          vNewTokens;   // the temporary storage for the tokens
     Vec_Str_t *          vCubes;       // the temporary storage for the tokens
+    // timing information
+    Vec_Int_t *          vInArrs;      // input arrival
+    Vec_Int_t *          vOutReqs;     // output required
+    Vec_Int_t *          vInDrives;    // input drive
+    Vec_Int_t *          vOutLoads;    // output load
+    float                DefInArrRise; // input arrival default
+    float                DefInArrFall; // input arrival default
+    float                DefOutReqRise;// output required default
+    float                DefOutReqFall;// output required default
+    float                DefInDriRise; // input drive default
+    float                DefInDriFall; // input drive default
+    float                DefOutLoadRise;// output load default
+    float                DefOutLoadFall;// output load default
     // the error message
     FILE *               Output;       // the output stream
     char                 sError[1000]; // the error string generated during parsing
@@ -73,6 +86,7 @@ static int Io_ReadBlifNetworkDefaultInputDrive( Io_ReadBlif_t * p, Vec_Ptr_t * v
 static int Io_ReadBlifNetworkDefaultOutputLoad( Io_ReadBlif_t * p, Vec_Ptr_t * vTokens );
 static int Io_ReadBlifNetworkAndGateDelay( Io_ReadBlif_t * p, Vec_Ptr_t * vTokens );
 static int Io_ReadBlifNetworkConnectBoxes( Io_ReadBlif_t * p, Abc_Ntk_t * pNtkMaster );
+static int Io_ReadBlifCreateTiming( Io_ReadBlif_t * p, Abc_Ntk_t * pNtkMaster );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -107,7 +121,7 @@ Abc_Ntk_t * Io_ReadBlif( char * pFileName, int fCheck )
         return NULL;
     }
     pNtk->pSpec = Extra_UtilStrsav( pFileName );
-    //Abc_NtkTimeInitialize( pNtk, NULL );
+    Io_ReadBlifCreateTiming( p, pNtk );
     Io_ReadBlifFree( p );
 
     // make sure that everything is okay with the network structure
@@ -858,8 +872,11 @@ int Io_ReadBlifNetworkInputArrival( Io_ReadBlif_t * p, Vec_Ptr_t * vTokens )
         Io_ReadBlifPrintErrorMessage( p );
         return 1;
     }
-    // set the arrival time
-    Abc_NtkTimeSetArrival( p->pNtkCur, Abc_ObjFanin0(pNet)->Id, (float)TimeRise, (float)TimeFall );
+    // set timing info
+    //Abc_NtkTimeSetArrival( p->pNtkCur, Abc_ObjFanin0(pNet)->Id, (float)TimeRise, (float)TimeFall );
+    Vec_IntPush( p->vInArrs, Abc_ObjFanin0(pNet)->Id );
+    Vec_IntPush( p->vInArrs, Abc_Float2Int((float)TimeRise) );
+    Vec_IntPush( p->vInArrs, Abc_Float2Int((float)TimeFall) );
     return 0;
 }
 
@@ -906,8 +923,11 @@ int Io_ReadBlifNetworkOutputRequired( Io_ReadBlif_t * p, Vec_Ptr_t * vTokens )
         Io_ReadBlifPrintErrorMessage( p );
         return 1;
     }
-    // set the arrival time
-    Abc_NtkTimeSetRequired( p->pNtkCur, Abc_ObjFanout0(pNet)->Id, (float)TimeRise, (float)TimeFall );
+    // set timing info
+//    Abc_NtkTimeSetRequired( p->pNtkCur, Abc_ObjFanout0(pNet)->Id, (float)TimeRise, (float)TimeFall );
+    Vec_IntPush( p->vOutReqs, Abc_ObjFanout0(pNet)->Id );
+    Vec_IntPush( p->vOutReqs, Abc_Float2Int((float)TimeRise) );
+    Vec_IntPush( p->vOutReqs, Abc_Float2Int((float)TimeFall) );
     return 0;
 }
 
@@ -945,8 +965,10 @@ int Io_ReadBlifNetworkDefaultInputArrival( Io_ReadBlif_t * p, Vec_Ptr_t * vToken
         Io_ReadBlifPrintErrorMessage( p );
         return 1;
     }
-    // set the arrival time
-    Abc_NtkTimeSetDefaultArrival( p->pNtkCur, (float)TimeRise, (float)TimeFall );
+    // set timing info
+    //Abc_NtkTimeSetDefaultArrival( p->pNtkCur, (float)TimeRise, (float)TimeFall );
+    p->DefInArrRise = (float)TimeRise;
+    p->DefInArrFall = (float)TimeFall;
     return 0;
 }
 
@@ -984,8 +1006,10 @@ int Io_ReadBlifNetworkDefaultOutputRequired( Io_ReadBlif_t * p, Vec_Ptr_t * vTok
         Io_ReadBlifPrintErrorMessage( p );
         return 1;
     }
-    // set the arrival time
-    Abc_NtkTimeSetDefaultRequired( p->pNtkCur, (float)TimeRise, (float)TimeFall );
+    // set timing info
+//    Abc_NtkTimeSetDefaultRequired( p->pNtkCur, (float)TimeRise, (float)TimeFall );
+    p->DefOutReqRise = (float)TimeRise;
+    p->DefOutReqFall = (float)TimeFall;
     return 0;
 }
 
@@ -1042,8 +1066,11 @@ int Io_ReadBlifNetworkInputDrive( Io_ReadBlif_t * p, Vec_Ptr_t * vTokens )
         Io_ReadBlifPrintErrorMessage( p );
         return 1;
     }
-    // set the arrival time
-    Abc_NtkTimeSetInputDrive( p->pNtkCur, Io_ReadFindCiId(p->pNtkCur, Abc_NtkObj(p->pNtkCur, Abc_ObjFanin0(pNet)->Id)), (float)TimeRise, (float)TimeFall );
+    // set timing info
+    //Abc_NtkTimeSetInputDrive( p->pNtkCur, Io_ReadFindCiId(p->pNtkCur, Abc_NtkObj(p->pNtkCur, Abc_ObjFanin0(pNet)->Id)), (float)TimeRise, (float)TimeFall );
+    Vec_IntPush( p->vInDrives, Io_ReadFindCiId(p->pNtkCur, Abc_NtkObj(p->pNtkCur, Abc_ObjFanin0(pNet)->Id)) );
+    Vec_IntPush( p->vInDrives, Abc_Float2Int((float)TimeRise) );
+    Vec_IntPush( p->vInDrives, Abc_Float2Int((float)TimeFall) );
     return 0;
 }
 
@@ -1099,8 +1126,11 @@ int Io_ReadBlifNetworkOutputLoad( Io_ReadBlif_t * p, Vec_Ptr_t * vTokens )
         Io_ReadBlifPrintErrorMessage( p );
         return 1;
     }
-    // set the arrival time
-    Abc_NtkTimeSetOutputLoad( p->pNtkCur, Io_ReadFindCoId(p->pNtkCur, Abc_NtkObj(p->pNtkCur, Abc_ObjFanout0(pNet)->Id)), (float)TimeRise, (float)TimeFall );
+    // set timing info
+//    Abc_NtkTimeSetOutputLoad( p->pNtkCur, Io_ReadFindCoId(p->pNtkCur, Abc_NtkObj(p->pNtkCur, Abc_ObjFanout0(pNet)->Id)), (float)TimeRise, (float)TimeFall );
+    Vec_IntPush( p->vOutLoads, Io_ReadFindCoId(p->pNtkCur, Abc_NtkObj(p->pNtkCur, Abc_ObjFanout0(pNet)->Id)) );
+    Vec_IntPush( p->vOutLoads, Abc_Float2Int((float)TimeRise) );
+    Vec_IntPush( p->vOutLoads, Abc_Float2Int((float)TimeFall) );
     return 0;
 }
 
@@ -1138,8 +1168,10 @@ int Io_ReadBlifNetworkDefaultInputDrive( Io_ReadBlif_t * p, Vec_Ptr_t * vTokens 
         Io_ReadBlifPrintErrorMessage( p );
         return 1;
     }
-    // set the arrival time
-    Abc_NtkTimeSetDefaultInputDrive( p->pNtkCur, (float)TimeRise, (float)TimeFall );
+    // set timing info
+//    Abc_NtkTimeSetDefaultInputDrive( p->pNtkCur, (float)TimeRise, (float)TimeFall );
+    p->DefInDriRise = (float)TimeRise;
+    p->DefInDriFall = (float)TimeFall;
     return 0;
 }
 
@@ -1177,8 +1209,10 @@ int Io_ReadBlifNetworkDefaultOutputLoad( Io_ReadBlif_t * p, Vec_Ptr_t * vTokens 
         Io_ReadBlifPrintErrorMessage( p );
         return 1;
     }
-    // set the arrival time
-    Abc_NtkTimeSetDefaultOutputLoad( p->pNtkCur, (float)TimeRise, (float)TimeFall );
+    // set timing info
+//    Abc_NtkTimeSetDefaultOutputLoad( p->pNtkCur, (float)TimeRise, (float)TimeFall );
+    p->DefOutLoadRise = (float)TimeRise;
+    p->DefOutLoadFall = (float)TimeFall;
     return 0;
 }
 
@@ -1215,7 +1249,7 @@ int Io_ReadBlifNetworkAndGateDelay( Io_ReadBlif_t * p, Vec_Ptr_t * vTokens )
         Io_ReadBlifPrintErrorMessage( p );
         return 1;
     }
-    // set the arrival time
+    // set timing info
     p->pNtkCur->AndGateDelay = (float)AndGateDelay;
     return 0;
 }
@@ -1341,6 +1375,10 @@ Io_ReadBlif_t * Io_ReadBlifFile( char * pFileName )
     p->Output     = stdout;
     p->vNewTokens = Vec_PtrAlloc( 100 );
     p->vCubes     = Vec_StrAlloc( 100 );
+    p->vInArrs    = Vec_IntAlloc( 100 );
+    p->vOutReqs   = Vec_IntAlloc( 100 );
+    p->vInDrives  = Vec_IntAlloc( 100 );
+    p->vOutLoads  = Vec_IntAlloc( 100 );
     return p;
 }
 
@@ -1360,6 +1398,10 @@ void Io_ReadBlifFree( Io_ReadBlif_t * p )
     Extra_FileReaderFree( p->pReader );
     Vec_PtrFree( p->vNewTokens );
     Vec_StrFree( p->vCubes );
+    Vec_IntFree( p->vInArrs );
+    Vec_IntFree( p->vOutReqs );
+    Vec_IntFree( p->vInDrives );
+    Vec_IntFree( p->vOutLoads );
     ABC_FREE( p );
 }
 
@@ -1545,6 +1587,73 @@ int Io_ReadBlifNetworkConnectBoxesOne( Io_ReadBlif_t * p, Abc_Ntk_t * pNtk, stmm
             return 1;
     Abc_NtkFinalizeRead( pNtk );
     return 0;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Creates timing manager.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Io_ReadBlifCreateTiming( Io_ReadBlif_t * p, Abc_Ntk_t * pNtk )
+{
+    int Id, Rise, Fall, i;
+
+    // set timing info
+    //Abc_NtkTimeSetDefaultArrival( p->pNtkCur, (float)TimeRise, (float)TimeFall );
+//    p->DefInArrRise = (float)TimeRise;
+//    p->DefInArrFall = (float)TimeFall;
+    Abc_NtkTimeSetDefaultArrival( pNtk, p->DefInArrRise, p->DefInArrFall );
+    // set timing info
+    //Abc_NtkTimeSetDefaultRequired( p->pNtkCur, (float)TimeRise, (float)TimeFall );
+//    p->DefOutReqRise = (float)TimeRise;
+//    p->DefOutReqFall = (float)TimeFall;
+    Abc_NtkTimeSetDefaultRequired( pNtk, p->DefOutReqRise, p->DefOutReqFall );
+    // set timing info
+    //Abc_NtkTimeSetDefaultInputDrive( p->pNtkCur, (float)TimeRise, (float)TimeFall );
+//    p->DefInDriRise = (float)TimeRise;
+//    p->DefInDriFall = (float)TimeFall;
+    Abc_NtkTimeSetDefaultInputDrive( pNtk, p->DefInDriRise, p->DefInDriFall );
+    // set timing info
+    //Abc_NtkTimeSetDefaultOutputLoad( p->pNtkCur, (float)TimeRise, (float)TimeFall );
+//    p->DefOutLoadRise = (float)TimeRise;
+//    p->DefOutLoadFall = (float)TimeFall;
+    Abc_NtkTimeSetDefaultOutputLoad( pNtk, p->DefOutLoadRise, p->DefOutLoadFall );
+
+    // set timing info
+    //Abc_NtkTimeSetArrival( p->pNtkCur, Abc_ObjFanin0(pNet)->Id, (float)TimeRise, (float)TimeFall );
+//    Vec_IntPush( p->vInArrs, Abc_ObjFanin0(pNet)->Id );
+//    Vec_IntPush( p->vInArrs, Abc_Float2Int((float)TimeRise) );
+//    Vec_IntPush( p->vInArrs, Abc_Float2Int((float)TimeFall) );
+    Vec_IntForEachEntryTriple( p->vInArrs, Id, Rise, Fall, i )
+        Abc_NtkTimeSetArrival( pNtk, Id, Abc_Int2Float(Rise), Abc_Int2Float(Fall) );
+    // set timing info
+    //Abc_NtkTimeSetRequired( p->pNtkCur, Abc_ObjFanout0(pNet)->Id, (float)TimeRise, (float)TimeFall );
+//    Vec_IntPush( p->vOutReqs, Abc_ObjFanout0(pNet)->Id );
+//    Vec_IntPush( p->vOutReqs, Abc_Float2Int((float)TimeRise) );
+//    Vec_IntPush( p->vOutReqs, Abc_Float2Int((float)TimeFall) );
+    Vec_IntForEachEntryTriple( p->vOutReqs, Id, Rise, Fall, i )
+        Abc_NtkTimeSetRequired( pNtk, Id, Abc_Int2Float(Rise), Abc_Int2Float(Fall) );
+    // set timing info
+    //Abc_NtkTimeSetInputDrive( p->pNtkCur, Io_ReadFindCiId(p->pNtkCur, Abc_NtkObj(p->pNtkCur, Abc_ObjFanin0(pNet)->Id)), (float)TimeRise, (float)TimeFall );
+//    Vec_IntPush( p->vInDrives, Io_ReadFindCiId(p->pNtkCur, Abc_NtkObj(p->pNtkCur, Abc_ObjFanin0(pNet)->Id)) );
+//    Vec_IntPush( p->vInDrives, Abc_Float2Int((float)TimeRise) );
+//    Vec_IntPush( p->vInDrives, Abc_Float2Int((float)TimeFall) );
+    Vec_IntForEachEntryTriple( p->vInDrives, Id, Rise, Fall, i )
+        Abc_NtkTimeSetInputDrive( pNtk, Id, Abc_Int2Float(Rise), Abc_Int2Float(Fall) );
+    // set timing info
+    //Abc_NtkTimeSetOutputLoad( p->pNtkCur, Io_ReadFindCoId(p->pNtkCur, Abc_NtkObj(p->pNtkCur, Abc_ObjFanout0(pNet)->Id)), (float)TimeRise, (float)TimeFall );
+//    Vec_IntPush( p->vOutLoads, Io_ReadFindCoId(p->pNtkCur, Abc_NtkObj(p->pNtkCur, Abc_ObjFanout0(pNet)->Id)) );
+//    Vec_IntPush( p->vOutLoads, Abc_Float2Int((float)TimeRise) );
+//    Vec_IntPush( p->vOutLoads, Abc_Float2Int((float)TimeFall) );
+    Vec_IntForEachEntryTriple( p->vOutLoads, Id, Rise, Fall, i )
+        Abc_NtkTimeSetOutputLoad( pNtk, Id, Abc_Int2Float(Rise), Abc_Int2Float(Fall) );
+    return 1;
 }
 
 #if 0
