@@ -57,6 +57,7 @@ float             Mio_LibraryReadDelayNand2Rise( Mio_Library_t * pLib )  { retur
 float             Mio_LibraryReadDelayNand2Fall( Mio_Library_t * pLib )  { return (float)(pLib->pGateNand2? pLib->pGateNand2->pPins->dDelayBlockFall : 0.0); }
 float             Mio_LibraryReadDelayNand2Max ( Mio_Library_t * pLib )  { return (float)(pLib->pGateNand2? pLib->pGateNand2->pPins->dDelayBlockMax  : 0.0); }
 float             Mio_LibraryReadDelayAnd2Max  ( Mio_Library_t * pLib )  { return (float)(pLib->pGateAnd2?  pLib->pGateAnd2->pPins->dDelayBlockMax   : 0.0); }
+float             Mio_LibraryReadDelayAigNode  ( Mio_Library_t * pLib )  { return pLib->pGateAnd2 ? Mio_LibraryReadDelayAnd2Max(pLib) : Mio_LibraryReadDelayNand2Max(pLib); } // approximate delay of the AIG node
 float             Mio_LibraryReadAreaInv       ( Mio_Library_t * pLib )  { return (float)(pLib->pGateInv?   pLib->pGateInv->dArea   : 0.0); }
 float             Mio_LibraryReadAreaBuf       ( Mio_Library_t * pLib )  { return (float)(pLib->pGateBuf?   pLib->pGateBuf->dArea   : 0.0); }
 float             Mio_LibraryReadAreaNand2     ( Mio_Library_t * pLib )  { return (float)(pLib->pGateNand2? pLib->pGateNand2->dArea : 0.0); }

@@ -112,6 +112,7 @@ extern float             Mio_LibraryReadDelayNand2Rise( Mio_Library_t * pLib );
 extern float             Mio_LibraryReadDelayNand2Fall( Mio_Library_t * pLib );
 extern float             Mio_LibraryReadDelayNand2Max( Mio_Library_t * pLib );
 extern float             Mio_LibraryReadDelayAnd2Max( Mio_Library_t * pLib );
+extern float             Mio_LibraryReadDelayAigNode( Mio_Library_t * pLib );
 extern float             Mio_LibraryReadAreaInv    ( Mio_Library_t * pLib );
 extern float             Mio_LibraryReadAreaBuf    ( Mio_Library_t * pLib );
 extern float             Mio_LibraryReadAreaNand2  ( Mio_Library_t * pLib );

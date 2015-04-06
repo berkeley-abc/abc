@@ -144,6 +144,8 @@ Abc_Ntk_t * Abc_NtkStartFrom( Abc_Ntk_t * pNtk, Abc_NtkType_t Type, Abc_NtkFunc_
     if ( pNtk->vObjPerm )
         pNtkNew->vObjPerm = Vec_IntDup( pNtk->vObjPerm );
     pNtkNew->AndGateDelay = pNtk->AndGateDelay;
+    if ( pNtkNew->pManTime && Abc_FrameReadLibGen() && pNtkNew->AndGateDelay == 0.0 )
+        pNtkNew->AndGateDelay = Mio_LibraryReadDelayAigNode((Mio_Library_t *)Abc_FrameReadLibGen());
     // initialize logic level of the CIs
     if ( pNtk->AndGateDelay != 0.0 && pNtk->pManTime != NULL && pNtk->ntkType != ABC_NTK_STRASH && Type == ABC_NTK_STRASH )
     {

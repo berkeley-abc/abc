@@ -23,6 +23,7 @@
 #include "map/if/if.h"
 #include "bool/kit/kit.h"
 #include "aig/aig/aig.h"
+#include "map/mio/mio.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -115,9 +116,19 @@ Abc_Ntk_t * Abc_NtkIf( Abc_Ntk_t * pNtk, If_Par_t * pPars )
     pPars->pTimesReq = Abc_NtkGetCoRequiredFloats(pNtk);
 
     // update timing info to reflect logic level
-    if ( (pPars->fDelayOpt || pPars->fDsdBalance || pPars->fUserRecLib) && pNtk->AndGateDelay != 0.0 )
+    if ( (pPars->fDelayOpt || pPars->fDsdBalance || pPars->fUserRecLib) && pNtk->pManTime )
     {
         int c;
+        if ( pNtk->AndGateDelay == 0.0 )
+        {
+            if ( Abc_FrameReadLibGen() )
+                pNtk->AndGateDelay = Mio_LibraryReadDelayAigNode((Mio_Library_t *)Abc_FrameReadLibGen());
+            if ( pNtk->AndGateDelay == 0.0 )
+            {
+                pNtk->AndGateDelay = 1.0;
+                printf( "The AIG-node delay is not set. Assuming unit-delay.\n" );
+            }
+        }
         for ( c = 0; c < Abc_NtkCiNum(pNtk); c++ )
             pPars->pTimesArr[c] /= pNtk->AndGateDelay;
         for ( c = 0; c < Abc_NtkCoNum(pNtk); c++ )
