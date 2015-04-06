@@ -242,8 +242,8 @@ void Abc_NtkTimeSetRequired( Abc_Ntk_t * pNtk, int ObjId, float Rise, float Fall
 ***********************************************************************/
 void Abc_NtkTimeSetDefaultInputDrive( Abc_Ntk_t * pNtk, float Rise, float Fall )
 {
-    if ( Rise == 0.0 && Fall == 0.0 )
-        return;
+//    if ( Rise == 0.0 && Fall == 0.0 )
+//        return;
     if ( pNtk->pManTime == NULL )
         pNtk->pManTime = Abc_ManTimeStart(pNtk);
     pNtk->pManTime->tInDriveDef.Rise  = Rise;
@@ -258,8 +258,8 @@ void Abc_NtkTimeSetDefaultInputDrive( Abc_Ntk_t * pNtk, float Rise, float Fall )
 }
 void Abc_NtkTimeSetDefaultOutputLoad( Abc_Ntk_t * pNtk, float Rise, float Fall )
 {
-    if ( Rise == 0.0 && Fall == 0.0 )
-        return;
+//    if ( Rise == 0.0 && Fall == 0.0 )
+//        return;
     if ( pNtk->pManTime == NULL )
         pNtk->pManTime = Abc_ManTimeStart(pNtk);
     pNtk->pManTime->tOutLoadDef.Rise  = Rise;
