@@ -253,6 +253,7 @@ int Abc_NtkPerformMfs( Abc_Ntk_t * pNtk, Sfm_Par_t * pPars )
     Sfm_Ntk_t * p;
     int nFaninMax, nNodes;
     assert( Abc_NtkIsLogic(pNtk) );
+    Abc_NtkSweep( pNtk, 0 );
     // count fanouts
     nFaninMax = Abc_NtkGetFaninMax( pNtk );
     if ( nFaninMax > 6 )
