@@ -56,6 +56,10 @@ struct Io_ReadBlif_t_
     float                DefInDriFall; // input drive default
     float                DefOutLoadRise;// output load default
     float                DefOutLoadFall;// output load default
+    int                  fHaveDefInArr;  // provided in the file
+    int                  fHaveDefOutReq; // provided in the file
+    int                  fHaveDefInDri;  // provided in the file
+    int                  fHaveDefOutLoad;// provided in the file
     // the error message
     FILE *               Output;       // the output stream
     char                 sError[1000]; // the error string generated during parsing
@@ -969,6 +973,7 @@ int Io_ReadBlifNetworkDefaultInputArrival( Io_ReadBlif_t * p, Vec_Ptr_t * vToken
     //Abc_NtkTimeSetDefaultArrival( p->pNtkCur, (float)TimeRise, (float)TimeFall );
     p->DefInArrRise = (float)TimeRise;
     p->DefInArrFall = (float)TimeFall;
+    p->fHaveDefInArr = 1;
     return 0;
 }
 
@@ -1010,6 +1015,7 @@ int Io_ReadBlifNetworkDefaultOutputRequired( Io_ReadBlif_t * p, Vec_Ptr_t * vTok
 //    Abc_NtkTimeSetDefaultRequired( p->pNtkCur, (float)TimeRise, (float)TimeFall );
     p->DefOutReqRise = (float)TimeRise;
     p->DefOutReqFall = (float)TimeFall;
+    p->fHaveDefOutReq = 1;
     return 0;
 }
 
@@ -1172,6 +1178,7 @@ int Io_ReadBlifNetworkDefaultInputDrive( Io_ReadBlif_t * p, Vec_Ptr_t * vTokens 
 //    Abc_NtkTimeSetDefaultInputDrive( p->pNtkCur, (float)TimeRise, (float)TimeFall );
     p->DefInDriRise = (float)TimeRise;
     p->DefInDriFall = (float)TimeFall;
+    p->fHaveDefInDri = 1;
     return 0;
 }
 
@@ -1213,6 +1220,7 @@ int Io_ReadBlifNetworkDefaultOutputLoad( Io_ReadBlif_t * p, Vec_Ptr_t * vTokens 
 //    Abc_NtkTimeSetDefaultOutputLoad( p->pNtkCur, (float)TimeRise, (float)TimeFall );
     p->DefOutLoadRise = (float)TimeRise;
     p->DefOutLoadFall = (float)TimeFall;
+    p->fHaveDefOutLoad = 1;
     return 0;
 }
 
@@ -1608,21 +1616,25 @@ int Io_ReadBlifCreateTiming( Io_ReadBlif_t * p, Abc_Ntk_t * pNtk )
     //Abc_NtkTimeSetDefaultArrival( p->pNtkCur, (float)TimeRise, (float)TimeFall );
 //    p->DefInArrRise = (float)TimeRise;
 //    p->DefInArrFall = (float)TimeFall;
+    if ( p->fHaveDefInArr )
     Abc_NtkTimeSetDefaultArrival( pNtk, p->DefInArrRise, p->DefInArrFall );
     // set timing info
     //Abc_NtkTimeSetDefaultRequired( p->pNtkCur, (float)TimeRise, (float)TimeFall );
 //    p->DefOutReqRise = (float)TimeRise;
 //    p->DefOutReqFall = (float)TimeFall;
+    if ( p->fHaveDefOutReq )
     Abc_NtkTimeSetDefaultRequired( pNtk, p->DefOutReqRise, p->DefOutReqFall );
     // set timing info
     //Abc_NtkTimeSetDefaultInputDrive( p->pNtkCur, (float)TimeRise, (float)TimeFall );
 //    p->DefInDriRise = (float)TimeRise;
 //    p->DefInDriFall = (float)TimeFall;
+    if ( p->fHaveDefInDri )
     Abc_NtkTimeSetDefaultInputDrive( pNtk, p->DefInDriRise, p->DefInDriFall );
     // set timing info
     //Abc_NtkTimeSetDefaultOutputLoad( p->pNtkCur, (float)TimeRise, (float)TimeFall );
 //    p->DefOutLoadRise = (float)TimeRise;
 //    p->DefOutLoadFall = (float)TimeFall;
+    if ( p->fHaveDefOutLoad )
     Abc_NtkTimeSetDefaultOutputLoad( pNtk, p->DefOutLoadRise, p->DefOutLoadFall );
 
     // set timing info

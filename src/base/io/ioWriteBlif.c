@@ -684,10 +684,10 @@ void Io_WriteTimingInfo( FILE * pFile, Abc_Ntk_t * pNtk )
     if ( pNtk->AndGateDelay != 0.0 )
         fprintf( pFile, ".and_gate_delay %g\n", pNtk->AndGateDelay );
     pTimeDefIn = Abc_NtkReadDefaultArrival( pNtk );
-    if ( pTimeDefIn->Rise != 0.0 || pTimeDefIn->Fall != 0.0 )
+    //if ( pTimeDefIn->Rise != 0.0 || pTimeDefIn->Fall != 0.0 )
         fprintf( pFile, ".default_input_arrival %g %g\n", pTimeDefIn->Rise, pTimeDefIn->Fall );
     pTimeDefOut = Abc_NtkReadDefaultRequired( pNtk );
-    if ( pTimeDefOut->Rise != ABC_INFINITY || pTimeDefOut->Fall != ABC_INFINITY )
+    //if ( pTimeDefOut->Rise != ABC_INFINITY || pTimeDefOut->Fall != ABC_INFINITY )
         fprintf( pFile, ".default_output_required %g %g\n", pTimeDefOut->Rise, pTimeDefOut->Fall );
 
     fprintf( pFile, "\n" );

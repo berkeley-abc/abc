@@ -489,7 +489,7 @@ Abc_ManTime_t * Abc_ManTimeStart( Abc_Ntk_t * pNtk )
         Abc_NtkTimeSetArrival( pNtk, Abc_ObjId(pObj), p->tArrDef.Rise, p->tArrDef.Rise );   
     // set the default timing for COs
     Abc_NtkForEachCo( pNtk, pObj, i )
-        Abc_NtkTimeSetArrival( pNtk, Abc_ObjId(pObj), p->tReqDef.Rise, p->tReqDef.Rise );        
+        Abc_NtkTimeSetRequired( pNtk, Abc_ObjId(pObj), p->tReqDef.Rise, p->tReqDef.Rise );        
     return p;
 }
 
