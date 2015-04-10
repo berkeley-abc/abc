@@ -196,6 +196,7 @@ extern DdNode *     extraBddChangePolarity( DdManager * dd, DdNode * bFunc, DdNo
 extern int          Extra_bddVarIsInCube( DdNode * bCube, int iVar );
 extern DdNode *     Extra_bddAndPermute( DdManager * ddF, DdNode * bF, DdManager * ddG, DdNode * bG, int * pPermute );
 extern int          Extra_bddCountCubes( DdManager * dd, DdNode ** pFuncs, int nFuncs, int fMode, int nLimit, int * pGuide );
+extern void         Extra_zddDumpPla( DdManager * dd, DdNode * zCover, int nVars, char * pFileName );
 
 #ifndef ABC_PRB
 #define ABC_PRB(dd,f)       printf("%s = ", #f); Extra_bddPrint(dd,f); printf("\n")

@@ -2293,6 +2293,45 @@ printf( "|F| =%6d  |G| =%6d  |H| =%6d  |F|*|G| =%9d  ",
     Cudd_AutodynEnable( ddF, CUDD_REORDER_SYMM_SIFT );
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Writes ZDD into a PLA file.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Extra_zddDumpPla( DdManager * dd, DdNode * F, int nVars, char * pFileName )
+{
+    DdGen *gen;
+    char * pCube;
+    int * pPath, i;
+    FILE * pFile = fopen( pFileName, "wb" );
+    if ( pFile == NULL )
+    {
+        printf( "Cannot open file \"%s\" for writing.\n", pFileName );
+        return;
+    }
+    fprintf( pFile, "# PLA file dumped by Extra_zddDumpPla() in ABC\n" );
+    fprintf( pFile, ".i %d\n", nVars );
+    fprintf( pFile, ".o 1\n" );
+    pCube = ABC_CALLOC( char, dd->sizeZ );
+    Cudd_zddForeachPath( dd, F, gen, pPath )
+    {
+        for ( i = 0; i < nVars; i++ )
+            pCube[i] = '-';
+        for ( i = 0; i < nVars; i++ )
+            if ( pPath[2*i] == 1 || pPath[2*i+1] == 1 )
+                pCube[i] = '0' + (pPath[2*i] == 1);
+        fprintf( pFile, "%s 1\n", pCube );           
+    }
+    fprintf( pFile, ".e\n\n" );
+    fclose( pFile );
+    ABC_FREE( pCube );
+}
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
