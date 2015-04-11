@@ -367,7 +367,7 @@ void * Abc_NtkBuildGlobalBdds( Abc_Ntk_t * pNtk, int nBddSizeMax, int fDropInter
 DdNode * Abc_NodeGlobalBdds_rec( DdManager * dd, Abc_Obj_t * pNode, int nBddSizeMax, int fDropInternal, ProgressBar * pProgress, int * pCounter, int fVerbose )
 {
     DdNode * bFunc, * bFunc0, * bFunc1, * bFuncC;
-    int fDetectMuxes = 1;
+    int fDetectMuxes = 0;
     assert( !Abc_ObjIsComplement(pNode) );
     if ( Cudd_ReadKeys(dd)-Cudd_ReadDead(dd) > (unsigned)nBddSizeMax )
     {
@@ -438,7 +438,10 @@ DdNode * Abc_NodeGlobalBdds_rec( DdManager * dd, Abc_Obj_t * pNode, int nBddSize
             bFunc0 = Cudd_NotCond( bFunc0, (int)Abc_ObjFaninC0(pNode) );
             bFunc1 = Cudd_NotCond( bFunc1, (int)Abc_ObjFaninC1(pNode) );
             // get the final result
-            bFunc = Cudd_bddAnd( dd, bFunc0, bFunc1 );   Cudd_Ref( bFunc );
+            bFunc = Cudd_bddAndLimit( dd, bFunc0, bFunc1, nBddSizeMax );
+            if ( bFunc == NULL )
+                return NULL;
+            Cudd_Ref( bFunc );
             Cudd_RecursiveDeref( dd, bFunc0 );
             Cudd_RecursiveDeref( dd, bFunc1 );
             // add the number of used nodes
