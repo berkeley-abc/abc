@@ -737,6 +737,7 @@ void Gia_ManDumpTestsDelay( Vec_Int_t * vTests, int nIter, char * pFileName, Gia
             fprintf( pFile, "%d", Vec_IntEntry(vValues, v) );
         fprintf( pFile, "\n" );
     }
+    Gia_ManCleanMark0(p);
     fclose( pFile );
     Vec_IntFree( vValues );
 }
@@ -1328,7 +1329,7 @@ finish:
     if ( pPars->fDump )
     {
         char * pFileName = "tests.txt";
-        if ( pPars->fDumpDelay )
+        if ( pPars->fDumpDelay && pPars->Algo == 1 )
         {
             Gia_ManDumpTestsDelay( vTests, Iter, pFileName, p );
             printf( "Dumping %d pairs of test patterns (total %d pattern) into file \"%s\".\n", Vec_IntSize(vTests) / nFuncVars, 2*Vec_IntSize(vTests) / nFuncVars, pFileName );
