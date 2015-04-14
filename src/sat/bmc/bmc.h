@@ -133,6 +133,7 @@ struct Bmc_ParFf_t_
     int        fBasic;
     int        fFfOnly;
     int        fDump;
+    int        fDumpDelay;
     int        fDumpUntest;
     int        fVerbose;
 };

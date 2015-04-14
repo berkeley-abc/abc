@@ -36342,7 +36342,7 @@ int Abc_CommandAbc9FFTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     int c;
     Gia_ParFfSetDefault( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "ATNSGsbfduvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "ATNSGsbfdeuvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -36408,6 +36408,9 @@ int Abc_CommandAbc9FFTest( Abc_Frame_t * pAbc, int argc, char ** argv )
             break;
         case 'd':
             pPars->fDump ^= 1;
+            break;
+        case 'e':
+            pPars->fDumpDelay ^= 1;
             break;
         case 'u':
             pPars->fDumpUntest ^= 1;
@@ -36490,7 +36493,7 @@ int Abc_CommandAbc9FFTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &fftest [-ATN num] [-sbfduvh] <file> [-G file] [-S str]\n" );
+    Abc_Print( -2, "usage: &fftest [-ATN num] [-sbfdeuvh] <file> [-G file] [-S str]\n" );
     Abc_Print( -2, "\t          performs functional fault test generation\n" );
     Abc_Print( -2, "\t-A num  : selects fault model for all gates [default = %d]\n", pPars->Algo );
     Abc_Print( -2, "\t                0: fault model is not selected (use -S str)\n" );
@@ -36504,6 +36507,7 @@ usage:
     Abc_Print( -2, "\t-b      : toggles testing for single faults only [default = %s]\n",                pPars->fBasic?      "yes": "no" );
     Abc_Print( -2, "\t-f      : toggles faults at flop inputs only with \"-A 1\" and \"-S str\" [default = %s]\n",          pPars->fFfOnly?     "yes": "no" );
     Abc_Print( -2, "\t-d      : toggles dumping test patterns into file \"tests.txt\" [default = %s]\n", pPars->fDump?       "yes": "no" );
+    Abc_Print( -2, "\t-e      : toggles dumping test pattern pairs (delay faults only) [default = %s]\n", pPars->fDumpDelay? "yes": "no" );
     Abc_Print( -2, "\t-u      : toggles dumping untestable faults into \"untest.txt\" [default = %s]\n", pPars->fDumpUntest? "yes": "no" );
     Abc_Print( -2, "\t-v      : toggles printing verbose information [default = %s]\n",                  pPars->fVerbose?    "yes": "no" );
     Abc_Print( -2, "\t-h      : print the command usage\n");

@@ -688,6 +688,70 @@ void Gia_ManDumpTests( Vec_Int_t * vTests, int nIter, char * pFileName )
   SeeAlso     []
 
 ***********************************************************************/
+void Gia_ManDumpTestsSimulate( Gia_Man_t * p, Vec_Int_t * vValues )
+{
+    Gia_Obj_t * pObj; int k;
+    assert( Vec_IntSize(vValues) == Gia_ManCiNum(p) );
+    Gia_ManConst0(p)->fMark0 = 0;
+    Gia_ManForEachCi( p, pObj, k )
+        pObj->fMark0 = Vec_IntEntry( vValues, k );
+    Gia_ManForEachAnd( p, pObj, k )
+        pObj->fMark0 = (Gia_ObjFanin0(pObj)->fMark0 ^ Gia_ObjFaninC0(pObj)) & 
+                       (Gia_ObjFanin1(pObj)->fMark0 ^ Gia_ObjFaninC1(pObj));
+    Gia_ManForEachCo( p, pObj, k )
+        pObj->fMark0 = Gia_ObjFanin0(pObj)->fMark0 ^ Gia_ObjFaninC0(pObj);
+    // collect flop input values
+    Vec_IntClear( vValues );
+    Gia_ManForEachRi( p, pObj, k )
+        Vec_IntPush( vValues, pObj->fMark0 );
+    assert( Vec_IntSize(vValues) == Gia_ManRegNum(p) );
+}
+void Gia_ManDumpTestsDelay( Vec_Int_t * vTests, int nIter, char * pFileName, Gia_Man_t * p )
+{
+    FILE * pFile = fopen( pFileName, "wb" );
+    Vec_Int_t * vValues = Vec_IntAlloc( Gia_ManCiNum(p) );
+    int i, v, nVars = Vec_IntSize(vTests) / nIter;
+    assert( Vec_IntSize(vTests) % nIter == 0 );
+    assert( nVars == 2 * Gia_ManPiNum(p) + Gia_ManRegNum(p) );
+    for ( i = 0; i < nIter; i++ )
+    {
+        // collect PIs followed by flops
+        Vec_IntClear( vValues );
+        for ( v = Gia_ManRegNum(p); v < Gia_ManCiNum(p); v++ )
+        {
+            fprintf( pFile, "%d", Vec_IntEntry(vTests, i * nVars + v) );
+            Vec_IntPush( vValues, Vec_IntEntry(vTests, i * nVars + v) );
+        }
+        for ( v = 0; v < Gia_ManRegNum(p); v++ )
+        {
+            fprintf( pFile, "%d", Vec_IntEntry(vTests, i * nVars + v) );
+            Vec_IntPush( vValues, Vec_IntEntry(vTests, i * nVars + v) );
+        }
+        fprintf( pFile, "\n" );
+        // derive next-state values
+        Gia_ManDumpTestsSimulate( p, vValues );
+        // collect PIs followed by flops
+        for ( v = Gia_ManCiNum(p); v < nVars; v++ )
+            fprintf( pFile, "%d", Vec_IntEntry(vTests, i * nVars + v) );
+        for ( v = 0; v < Vec_IntSize(vValues); v++ )
+            fprintf( pFile, "%d", Vec_IntEntry(vValues, v) );
+        fprintf( pFile, "\n" );
+    }
+    fclose( pFile );
+    Vec_IntFree( vValues );
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 void Gia_ManPrintResults( Gia_Man_t * p, sat_solver * pSat, int nIter, abctime clk )
 {
     FILE * pTable = fopen( "fault_stats.txt", "a+" );
@@ -1264,8 +1328,16 @@ finish:
     if ( pPars->fDump )
     {
         char * pFileName = "tests.txt";
-        Gia_ManDumpTests( vTests, Iter, pFileName );
-        printf( "Dumping %d computed test patterns into file \"%s\".\n", Vec_IntSize(vTests) / nFuncVars, pFileName );
+        if ( pPars->fDumpDelay )
+        {
+            Gia_ManDumpTestsDelay( vTests, Iter, pFileName, p );
+            printf( "Dumping %d pairs of test patterns (total %d pattern) into file \"%s\".\n", Vec_IntSize(vTests) / nFuncVars, 2*Vec_IntSize(vTests) / nFuncVars, pFileName );
+        }
+        else
+        {
+            Gia_ManDumpTests( vTests, Iter, pFileName );
+            printf( "Dumping %d test patterns into file \"%s\".\n", Vec_IntSize(vTests) / nFuncVars, pFileName );
+        }
     }
 
     // compute untestable faults
