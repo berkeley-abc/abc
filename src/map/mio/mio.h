@@ -103,6 +103,8 @@ extern Mio_Gate_t *      Mio_LibraryReadConst0     ( Mio_Library_t * pLib );
 extern Mio_Gate_t *      Mio_LibraryReadConst1     ( Mio_Library_t * pLib );
 extern Mio_Gate_t *      Mio_LibraryReadNand2      ( Mio_Library_t * pLib );
 extern Mio_Gate_t *      Mio_LibraryReadAnd2       ( Mio_Library_t * pLib );
+extern Mio_Gate_t *      Mio_LibraryReadNor2       ( Mio_Library_t * pLib );
+extern Mio_Gate_t *      Mio_LibraryReadOr2        ( Mio_Library_t * pLib );
 extern Mio_Gate_t *      Mio_LibraryReadBuf        ( Mio_Library_t * pLib );
 extern Mio_Gate_t *      Mio_LibraryReadInv        ( Mio_Library_t * pLib );
 extern float             Mio_LibraryReadDelayInvRise( Mio_Library_t * pLib );

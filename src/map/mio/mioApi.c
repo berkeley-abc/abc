@@ -50,6 +50,8 @@ Mio_Gate_t *      Mio_LibraryReadConst0        ( Mio_Library_t * pLib )  { retur
 Mio_Gate_t *      Mio_LibraryReadConst1        ( Mio_Library_t * pLib )  { return pLib->pGate1;     }
 Mio_Gate_t *      Mio_LibraryReadNand2         ( Mio_Library_t * pLib )  { return pLib->pGateNand2; }
 Mio_Gate_t *      Mio_LibraryReadAnd2          ( Mio_Library_t * pLib )  { return pLib->pGateAnd2;  }
+Mio_Gate_t *      Mio_LibraryReadNor2          ( Mio_Library_t * pLib )  { return pLib->pGateNor2;  }
+Mio_Gate_t *      Mio_LibraryReadOr2           ( Mio_Library_t * pLib )  { return pLib->pGateOr2;   }
 float             Mio_LibraryReadDelayInvRise  ( Mio_Library_t * pLib )  { return (float)(pLib->pGateInv?   pLib->pGateInv->pPins->dDelayBlockRise   : 0.0); }
 float             Mio_LibraryReadDelayInvFall  ( Mio_Library_t * pLib )  { return (float)(pLib->pGateInv?   pLib->pGateInv->pPins->dDelayBlockFall   : 0.0); }
 float             Mio_LibraryReadDelayInvMax   ( Mio_Library_t * pLib )  { return (float)(pLib->pGateInv?   pLib->pGateInv->pPins->dDelayBlockMax    : 0.0); }

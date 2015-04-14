@@ -601,14 +601,16 @@ static inline Mio_Gate_t * Mio_GateCompare( Mio_Gate_t * pThis, Mio_Gate_t * pNe
 void Mio_LibraryDetectSpecialGates( Mio_Library_t * pLib )
 {
     Mio_Gate_t * pGate;
-    word uFuncBuf, uFuncInv, uFuncNand2, uFuncAnd2;
+    word uFuncBuf, uFuncInv, uFuncNand2, uFuncAnd2, uFuncNor2, uFuncOr2;
 
     Mio_LibrarySortGates( pLib );
 
     uFuncBuf   = ABC_CONST(0xAAAAAAAAAAAAAAAA);
     uFuncAnd2  = ABC_CONST(0xAAAAAAAAAAAAAAAA) & ABC_CONST(0xCCCCCCCCCCCCCCCC);
+    uFuncOr2   = ABC_CONST(0xAAAAAAAAAAAAAAAA) | ABC_CONST(0xCCCCCCCCCCCCCCCC);
     uFuncInv   = ~uFuncBuf;
     uFuncNand2 = ~uFuncAnd2;
+    uFuncNor2  = ~uFuncOr2;
 
     // get smallest-area buffer
     Mio_LibraryForEachGate( pLib, pGate )
@@ -630,12 +632,15 @@ void Mio_LibraryDetectSpecialGates( Mio_Library_t * pLib )
 
     // get smallest-area NAND2/AND2 gates
     Mio_LibraryForEachGate( pLib, pGate )
-        pLib->pGateNand2 = Mio_GateCompare( pLib->pGateNand2, pGate, uFuncNand2 );
-    Mio_LibraryForEachGate( pLib, pGate )
-        pLib->pGateAnd2 = Mio_GateCompare( pLib->pGateAnd2, pGate, uFuncAnd2 );
-    if ( pLib->pGateAnd2 == NULL && pLib->pGateNand2 == NULL )
     {
-        printf( "Warnings: genlib library reader cannot detect the AND2 or NAND2 gate.\n" );
+        pLib->pGateNand2 = Mio_GateCompare( pLib->pGateNand2, pGate, uFuncNand2 );
+        pLib->pGateAnd2 = Mio_GateCompare( pLib->pGateAnd2, pGate, uFuncAnd2 );
+        pLib->pGateNor2 = Mio_GateCompare( pLib->pGateNor2, pGate, uFuncNor2 );
+        pLib->pGateOr2 = Mio_GateCompare( pLib->pGateOr2, pGate, uFuncOr2 );
+    }
+    if ( pLib->pGateAnd2 == NULL && pLib->pGateNand2 == NULL && pLib->pGateNor2 == NULL && pLib->pGateOr2 == NULL )
+    {
+        printf( "Warnings: genlib library reader cannot detect the AND2, NAND2, OR2, and NOR2 gate.\n" );
         printf( "Some parts of the supergate-based technology mapper may not work correctly.\n" );
     }
 }

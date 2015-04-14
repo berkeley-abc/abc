@@ -71,6 +71,8 @@ struct  Mio_LibraryStruct_t_
     Mio_Gate_t *       pGateInv;    // the inverter
     Mio_Gate_t *       pGateNand2;  // the NAND2 gate
     Mio_Gate_t *       pGateAnd2;   // the AND2 gate
+    Mio_Gate_t *       pGateNor2;   // the NOR2 gate
+    Mio_Gate_t *       pGateOr2;    // the OR2 gate
     st__table *         tName2Gate;  // the mapping of gate names into their pointer
     Mem_Flex_t *       pMmFlex;     // the memory manaqer for SOPs
     Vec_Str_t *        vCube;       // temporary cube
