@@ -2646,7 +2646,7 @@ Gia_Man_t * Gia_ManChoiceMiter( Vec_Ptr_t * vGias )
     Gia_ManHashStop( pNew );
     // check the presence of dangling nodes
     nNodes = Gia_ManHasDangling( pNew );
-    assert( nNodes == 0 );
+    //assert( nNodes == 0 );
     // finalize
     Gia_ManSetRegNum( pNew, Gia_ManRegNum(pGia0) );
     return pNew;
