@@ -36342,7 +36342,7 @@ int Abc_CommandAbc9FFTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     int c;
     Gia_ParFfSetDefault( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "ATNSGsbfdeuvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "ATNKSGkbsfdeuvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -36379,6 +36379,17 @@ int Abc_CommandAbc9FFTest( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( pPars->nIterCheck < 0 )
                 goto usage;
             break;
+        case 'K':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-K\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nCardConstr = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nCardConstr <= 0 )
+                goto usage;
+            break;
         case 'S':
             if ( globalUtilOptind >= argc )
             {
@@ -36397,11 +36408,14 @@ int Abc_CommandAbc9FFTest( Abc_Frame_t * pAbc, int argc, char ** argv )
             pFileName = argv[globalUtilOptind];
             globalUtilOptind++;
             break;
-        case 's':
-            pPars->fStartPats ^= 1;
+        case 'k':
+            pPars->fNonStrict ^= 1;
             break;
         case 'b':
             pPars->fBasic ^= 1;
+            break;
+        case 's':
+            pPars->fStartPats ^= 1;
             break;
         case 'f':
             pPars->fFfOnly ^= 1;
@@ -36493,7 +36507,7 @@ int Abc_CommandAbc9FFTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &fftest [-ATN num] [-sbfdeuvh] <file> [-G file] [-S str]\n" );
+    Abc_Print( -2, "usage: &fftest [-ATNK num] [-kbsfdeuvh] <file> [-G file] [-S str]\n" );
     Abc_Print( -2, "\t          performs functional fault test generation\n" );
     Abc_Print( -2, "\t-A num  : selects fault model for all gates [default = %d]\n", pPars->Algo );
     Abc_Print( -2, "\t                0: fault model is not selected (use -S str)\n" );
@@ -36503,8 +36517,10 @@ usage:
     Abc_Print( -2, "\t                4: functionally observable fault\n" );
     Abc_Print( -2, "\t-T num  : specifies approximate runtime limit in seconds [default = %d]\n",        pPars->nTimeOut );
     Abc_Print( -2, "\t-N num  : specifies iteration to check for fixed parameters [default = %d]\n",     pPars->nIterCheck );
+    Abc_Print( -2, "\t-K num  : specifies cardinality constraint (num > 0) [default = unused]\n" );
+    Abc_Print( -2, "\t-k      : toggles non-strict cardinality (n <= K, instead of n == K) [default = %s]\n",pPars->fNonStrict?  "yes": "no" );
+    Abc_Print( -2, "\t-b      : toggles testing for single faults (the same as \"-K 1\") [default = %s]\n", pPars->fBasic?      "yes": "no" );
     Abc_Print( -2, "\t-s      : toggles starting with the all-0 and all-1 patterns [default = %s]\n",    pPars->fStartPats?  "yes": "no" );
-    Abc_Print( -2, "\t-b      : toggles testing for single faults only [default = %s]\n",                pPars->fBasic?      "yes": "no" );
     Abc_Print( -2, "\t-f      : toggles faults at flop inputs only with \"-A 1\" and \"-S str\" [default = %s]\n",          pPars->fFfOnly?     "yes": "no" );
     Abc_Print( -2, "\t-d      : toggles dumping test patterns into file \"tests.txt\" [default = %s]\n", pPars->fDump?       "yes": "no" );
     Abc_Print( -2, "\t-e      : toggles dumping test pattern pairs (delay faults only) [default = %s]\n", pPars->fDumpDelay? "yes": "no" );

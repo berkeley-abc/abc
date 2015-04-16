@@ -65,6 +65,56 @@ void Gia_ParFfSetDefault( Bmc_ParFf_t * p )
 
 /**Function*************************************************************
 
+  Synopsis    [Adds a general cardinality constraint in terms of vVars.]
+
+  Description [Strict is "exactly K out of N". Non-strict is 
+  "less or equal than K out of N".]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline int Cnf_AddCardinVar( int Level, int Base, Vec_Int_t * vVars, int k )
+{
+    return Level ? Base + k : Vec_IntEntry( vVars, k );
+}
+static inline void Cnf_AddCardinConstrGeneral( sat_solver * p, Vec_Int_t * vVars, int K, int fStrict )
+{
+    int i, k, iCur, iNext, iVar, Lit;
+    int nVars = sat_solver_nvars(p);
+    int nBits = Vec_IntSize(vVars);
+    Vec_IntForEachEntry( vVars, iVar, i )
+        assert( iVar >= 0 && iVar < nVars );
+    sat_solver_setnvars( p, nVars + nBits * nBits );
+    for ( i = 0; i < nBits; i++ )
+    {
+        iCur = nVars + nBits * (i-1);
+        iNext = nVars + nBits * i;
+        if ( i & 1 )
+            sat_solver_add_buffer( p, iNext, Cnf_AddCardinVar(i, iCur, vVars, 0), 0 );
+        for ( k = i & 1; k + 1 < nBits; k += 2 )
+        {
+            sat_solver_add_and( p, iNext+k  , Cnf_AddCardinVar(i, iCur, vVars, k), Cnf_AddCardinVar(i, iCur, vVars, k+1), 1, 1, 1 );
+            sat_solver_add_and( p, iNext+k+1, Cnf_AddCardinVar(i, iCur, vVars, k), Cnf_AddCardinVar(i, iCur, vVars, k+1), 0, 0, 0 );
+        }
+        if ( k == nBits - 1 )
+            sat_solver_add_buffer( p, iNext + nBits-1, Cnf_AddCardinVar(i, iCur, vVars, nBits-1), 0 );
+    }
+    // add final constraint
+    assert( K > 0 && K < nBits );
+    Lit = Abc_Var2Lit( nVars + nBits * (nBits - 1) + K, 1 );
+    if ( !sat_solver_addclause( p, &Lit, &Lit+1 ) )
+        assert( 0 );
+    if ( fStrict )
+    {
+        Lit = Abc_Var2Lit( nVars + nBits * (nBits - 1) + K - 1, 0 );
+        if ( !sat_solver_addclause( p, &Lit, &Lit+1 ) )
+            assert( 0 );
+    }
+}
+/**Function*************************************************************
+
   Synopsis    [Add constraint that no more than 1 variable is 1.]
 
   Description []
@@ -99,17 +149,19 @@ static inline int Cnf_AddCardinConstr( sat_solver * p, Vec_Int_t * vVars )
 }
 void Cnf_AddCardinConstrTest()
 {
-    int i, status, nVars = 7;
+    int i, status, Count = 1, nVars = 6;
     Vec_Int_t * vVars = Vec_IntStartNatural( nVars );
     sat_solver * pSat = sat_solver_new();
     sat_solver_setnvars( pSat, nVars );
     Cnf_AddCardinConstr( pSat, vVars );
+    //Cnf_AddCardinConstrGeneral( pSat, vVars, 1, 1 );
     while ( 1 )
     {
         status = sat_solver_solve( pSat, NULL, NULL, 0, 0, 0, 0 );
         if ( status != l_True )
             break;
         Vec_IntClear( vVars );
+        printf( "%3d : ", Count++ );
         for ( i = 0; i < nVars; i++ )
         {
             Vec_IntPush( vVars, Abc_Var2Lit(i, sat_solver_var_value(pSat, i)) );
@@ -1077,6 +1129,14 @@ int Gia_ManFaultPrepare( Gia_Man_t * p, Gia_Man_t * pG, Bmc_ParFf_t * pPars, int
             if ( i >= nFuncVars )
                 Vec_IntPush( vLits, pCnf->pVarNums[Gia_ObjId(pM, pObj)] );
         Cnf_AddCardinConstr( pSat, vLits );
+    }
+    else if ( pPars->nCardConstr )
+    {
+        Vec_IntClear( vLits );
+        Gia_ManForEachPi( pM, pObj, i )
+            if ( i >= nFuncVars )
+                Vec_IntPush( vLits, pCnf->pVarNums[Gia_ObjId(pM, pObj)] );
+        Cnf_AddCardinConstrGeneral( pSat, vLits, pPars->nCardConstr, !pPars->fNonStrict );
     }
 
     // add available test-patterns

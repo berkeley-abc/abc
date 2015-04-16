@@ -130,6 +130,8 @@ struct Bmc_ParFf_t_
     int        fStartPats;
     int        nTimeOut;
     int        nIterCheck;
+    int        nCardConstr;
+    int        fNonStrict;
     int        fBasic;
     int        fFfOnly;
     int        fDump;
