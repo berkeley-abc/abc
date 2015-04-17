@@ -553,9 +553,9 @@ int Bmc_FxSolve( sat_solver * pSat, int iOut, int iAuxVar, Vec_Int_t * vVars, in
             assert( iVar >= 0 && iVar < Vec_IntSize(vVars) );
             //printf( "%s%d ", Abc_LitIsCompl(pFinal[i]) ? "+":"-", iVar );
             if ( fDumpPla )
-                Vec_StrWriteEntry( vCube, iVar, (char)(Abc_LitIsCompl(pFinal[i]) ? '0' : '1') );
+                Vec_StrWriteEntry( vCube, iVar, (char)(!Abc_LitIsCompl(pFinal[i]) ? '0' : '1') );
             if ( vLevel )
-                Vec_IntPush( vLevel, Abc_Var2Lit(iVar, Abc_LitIsCompl(pFinal[i])) );
+                Vec_IntPush( vLevel, Abc_Var2Lit(iVar, !Abc_LitIsCompl(pFinal[i])) );
         }
         if ( vCubes )
             Vec_IntSort( vLevel, 0 );
