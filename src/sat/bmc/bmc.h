@@ -137,6 +137,7 @@ struct Bmc_ParFf_t_
     int        fDump;
     int        fDumpDelay;
     int        fDumpUntest;
+    int        fDumpNewFaults;
     int        fVerbose;
 };
 

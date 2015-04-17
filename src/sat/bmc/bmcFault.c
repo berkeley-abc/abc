@@ -836,7 +836,7 @@ void Gia_ManPrintResults( Gia_Man_t * p, sat_solver * pSat, int nIter, abctime c
   SeeAlso     []
 
 ***********************************************************************/
-int Gia_ManFaultAddOne( Gia_Man_t * pM, Cnf_Dat_t * pCnf, sat_solver * pSat, Vec_Int_t * vLits, int nFuncVars )
+int Gia_ManFaultAddOne( Gia_Man_t * pM, Cnf_Dat_t * pCnf, sat_solver * pSat, Vec_Int_t * vLits, int nFuncVars, int fAddOr, Gia_Man_t * pGiaCnf )
 {
     Gia_Man_t * pC;//, * pTemp;
     Cnf_Dat_t * pCnf2;
@@ -844,14 +844,6 @@ int Gia_ManFaultAddOne( Gia_Man_t * pM, Cnf_Dat_t * pCnf, sat_solver * pSat, Vec
     int i, Lit;
     // derive the cofactor
     pC = Gia_ManFaultCofactor( pM, vLits );
-    // try synthesis
-//    printf( "\n" );
-//    Gia_ManPrintStats( pC, NULL );
-//    pC = Gia_ManAigSyn2( pTemp = pC, 0, 1, 0, 100, 0, 0, 0 );
-//    Gia_ManStop( pTemp );
-//    Gia_ManPrintStats( pC, NULL );
-//Gia_AigerWrite( pC, "fftest_cof.aig", 0, 0 );
-//printf( "Dumped cofactor circuit into file \"%s\".\n", "fftest_cof.aig" );
     // derive new CNF
     pCnf2 = Cnf_DeriveGiaRemapped( pC );
     Cnf_DataLiftGia( pCnf2, pC, sat_solver_nvars(pSat) );
@@ -864,20 +856,40 @@ int Gia_ManFaultAddOne( Gia_Man_t * pM, Cnf_Dat_t * pCnf, sat_solver * pSat, Vec
             return 0;
         }
     // add constraint clauses
-    Gia_ManForEachPo( pC, pObj, i )
+    if ( fAddOr )
     {
-        Lit = Abc_Var2Lit( pCnf2->pVarNums[Gia_ObjId(pC, pObj)], 1 );
-        if ( !sat_solver_addclause( pSat, &Lit, &Lit+1 ) )
+        // add one OR gate to assert difference of at least one output of the miter
+        Vec_Int_t * vOrGate = Vec_IntAlloc( Gia_ManPoNum(pC) );
+        Gia_ManForEachPo( pC, pObj, i )
         {
-            Cnf_DataFree( pCnf2 );
-            Gia_ManStop( pC );
-            return 0;
+            Lit = Abc_Var2Lit( pCnf2->pVarNums[Gia_ObjId(pC, pObj)], 0 );
+            Vec_IntPush( vOrGate, Lit );
+        }
+        if ( !sat_solver_addclause( pSat, Vec_IntArray(vOrGate), Vec_IntArray(vOrGate) + Vec_IntSize(vOrGate) ) )
+            assert( 0 );
+        Vec_IntFree( vOrGate );
+    }
+    else
+    {
+        // add negative literals to assert equality of all outputs of the miter
+        Gia_ManForEachPo( pC, pObj, i )
+        {
+            Lit = Abc_Var2Lit( pCnf2->pVarNums[Gia_ObjId(pC, pObj)], 1 );
+            if ( !sat_solver_addclause( pSat, &Lit, &Lit+1 ) )
+            {
+                Cnf_DataFree( pCnf2 );
+                Gia_ManStop( pC );
+                return 0;
+            }
         }
     }
     // add connection clauses
-    Gia_ManForEachPi( pM, pObj, i )
-        if ( i >= nFuncVars )
-            sat_solver_add_buffer( pSat, pCnf->pVarNums[Gia_ObjId(pM, pObj)], pCnf2->pVarNums[Gia_ObjId(pC, Gia_ManPi(pC, i))], 0 );
+    if ( pGiaCnf )
+    {
+        Gia_ManForEachPi( pGiaCnf, pObj, i )
+            if ( i >= nFuncVars )
+                sat_solver_add_buffer( pSat, pCnf->pVarNums[Gia_ObjId(pGiaCnf, pObj)], pCnf2->pVarNums[Gia_ObjId(pC, Gia_ManPi(pC, i))], 0 );
+    }
     Cnf_DataFree( pCnf2 );
     Gia_ManStop( pC );
     return 1;
@@ -1055,6 +1067,69 @@ int Gia_ManFaultAnalyze( sat_solver * pSat, Vec_Int_t * vPars, Vec_Int_t * vMap,
 
 /**Function*************************************************************
 
+  Synopsis    [Dump faults detected by the new test, which are not detected by previous tests.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Gia_ManFaultDumpNewFaults( Gia_Man_t * pM, int nFuncVars, Vec_Int_t * vTests, Vec_Int_t * vTestNew, Bmc_ParFf_t * pPars )
+{
+    char * pFileName = "newfaults.txt";
+    abctime clk;
+    Gia_Man_t * pC;
+    Cnf_Dat_t * pCnf2;
+    sat_solver * pSat;
+    Vec_Int_t * vLits;
+    int i, Iter, IterMax, nNewFaults;
+
+    // derive the cofactor
+    pC = Gia_ManFaultCofactor( pM, vTestNew );
+    // derive new CNF
+    pCnf2 = Cnf_DeriveGiaRemapped( pC );
+
+    // create SAT solver
+    pSat = sat_solver_new();
+    sat_solver_setnvars( pSat, 1 );
+    sat_solver_set_runtime_limit( pSat, pPars->nTimeOut ? pPars->nTimeOut * CLOCKS_PER_SEC + Abc_Clock(): 0 );
+    // create the first cofactor
+    Gia_ManFaultAddOne( pM, NULL, pSat, vTestNew, nFuncVars, 1, NULL );
+
+    // add other test patterns
+    assert( Vec_IntSize(vTests) % nFuncVars == 0 );
+    IterMax = Vec_IntSize(vTests) / nFuncVars;
+    vLits = Vec_IntAlloc( nFuncVars );
+    for ( Iter = 0; Iter < IterMax; Iter++ )
+    {
+        // get pattern
+        Vec_IntClear( vLits );
+        for ( i = 0; i < nFuncVars; i++ )
+            Vec_IntPush( vLits, Vec_IntEntry(vTests, Iter*nFuncVars + i) );
+        // the resulting problem cannot be UNSAT, because the new test is guaranteed 
+        // to detect something that the given test set does not detect
+        if ( !Gia_ManFaultAddOne( pM, pCnf2, pSat, vLits, nFuncVars, 0, pC ) )
+            assert( 0 );
+    }
+    Vec_IntFree( vLits );
+
+    // dump the new faults
+    clk = Abc_Clock();
+    nNewFaults = Gia_ManDumpUntests( pC, pCnf2, pSat, nFuncVars, pFileName, pPars->fVerbose );
+    printf( "Dumped %d new multiple faults into file \"%s\".  ", nNewFaults, pFileName );
+    Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
+
+    // cleanup
+    sat_solver_delete( pSat );
+    Cnf_DataFree( pCnf2 );
+    Gia_ManStop( pC );
+    return 1;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Generate miter, CNF and solver.]
 
   Description []
@@ -1174,7 +1249,7 @@ int Gia_ManFaultPrepare( Gia_Man_t * p, Gia_Man_t * pG, Bmc_ParFf_t * pPars, int
             Vec_IntClear( vLits );
             for ( i = 0; i < nFuncVars; i++ )
                 Vec_IntPush( vLits, Vec_IntEntry(vTests, Iter*nFuncVars + i) );
-            if ( !Gia_ManFaultAddOne( pM, pCnf, pSat, vLits, nFuncVars ) )
+            if ( !Gia_ManFaultAddOne( pM, pCnf, pSat, vLits, nFuncVars, 0, pM ) )
             {
                 if ( pPars->fVerbose )
                     printf( "\n" );
@@ -1214,7 +1289,7 @@ int Gia_ManFaultPrepare( Gia_Man_t * p, Gia_Man_t * pG, Bmc_ParFf_t * pPars, int
             // initialize simple pattern
             Vec_IntFill( vLits, nFuncVars, Iter );
             Vec_IntAppend( vTests, vLits );
-            if ( !Gia_ManFaultAddOne( pM, pCnf, pSat, vLits, nFuncVars ) )
+            if ( !Gia_ManFaultAddOne( pM, pCnf, pSat, vLits, nFuncVars, 0, pM ) )
             {
                 if ( pPars->fVerbose )
                     printf( "\n" );
@@ -1369,9 +1444,19 @@ void Gia_ManFaultTest( Gia_Man_t * p, Gia_Man_t * pG, Bmc_ParFf_t * pPars )
         Gia_ManForEachPi( pM, pObj, i )
             if ( i < nFuncVars )
                 Vec_IntPush( vLits, sat_solver_var_value(pSat, pCnf->pVarNums[Gia_ObjId(pM, pObj)]) );
+        // if the user selected to generate new faults detected by this test (vLits)
+        // and not detected by the given test set (vTests), we compute the new faults here and quit
+        if ( pPars->fDumpNewFaults )
+        {
+            if ( Vec_IntSize(vTests) == 0 )
+                printf( "The input test patterns are not given.\n" );
+            else
+                Gia_ManFaultDumpNewFaults( pM, nFuncVars, vTests, vLits, pPars );
+            goto finish_all;
+        }
         Vec_IntAppend( vTests, vLits );
         // add constraint
-        if ( !Gia_ManFaultAddOne( pM, pCnf, pSat, vLits, nFuncVars ) )
+        if ( !Gia_ManFaultAddOne( pM, pCnf, pSat, vLits, nFuncVars, 0, pM ) )
         {
             if ( pPars->fVerbose )
                 printf( "\n" );
@@ -1472,7 +1557,7 @@ finish:
             Vec_IntClear( vLits );
             for ( i = 0; i < nFuncVars; i++ )
                 Vec_IntPush( vLits, Vec_IntEntry(vTests, Iter2*nFuncVars + i) );
-            if ( !Gia_ManFaultAddOne( pM, pCnf, pSat, vLits, nFuncVars ) )
+            if ( !Gia_ManFaultAddOne( pM, pCnf, pSat, vLits, nFuncVars, 0, pM ) )
             {
                 printf( "The problem is UNSAT after adding %d tests.\n", Iter2 );
                 goto finish;
@@ -1512,6 +1597,7 @@ finish:
             Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
         }
     }
+finish_all:
     sat_solver_delete( pSat );
     Cnf_DataFree( pCnf );
     Gia_ManStop( pM );
