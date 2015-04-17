@@ -533,9 +533,9 @@ int Mio_LibraryCompareGatesByArea( Mio_Gate_t ** pp1, Mio_Gate_t ** pp2 )
 int Mio_LibraryCompareGatesByName( Mio_Gate_t ** pp1, Mio_Gate_t ** pp2 )
 {
     int Diff = strcmp( (*pp1)->pName, (*pp2)->pName );
-    if ( Diff < 0.0 )
+    if ( Diff < 0 )
         return -1;
-    if ( Diff > 0.0 ) 
+    if ( Diff > 0 ) 
         return 1;
     return 0; 
 }
@@ -559,22 +559,16 @@ void Mio_LibrarySortGates( Mio_Library_t * pLib )
     Mio_LibraryForEachGate( pLib, pGate )
         ppGates[i++] = pGate;
     assert( i == pLib->nGates );
-    // sort gates by area
+    // sort gates by name
     pLib->ppGates0 = ABC_ALLOC( Mio_Gate_t *, pLib->nGates );
     for ( i = 0; i < pLib->nGates; i++ )
         pLib->ppGates0[i] = ppGates[i];
     qsort( (void *)ppGates, pLib->nGates, sizeof(void *), 
-            (int (*)(const void *, const void *)) Mio_LibraryCompareGatesByArea );
+            (int (*)(const void *, const void *)) Mio_LibraryCompareGatesByName );
     for ( i = 0; i < pLib->nGates; i++ )
         ppGates[i]->pNext = (i < pLib->nGates-1)? ppGates[i+1] : NULL;
     pLib->pGates = ppGates[0];
-    ABC_FREE( ppGates );
-    // sort gates by name
-    pLib->ppGatesName = ABC_ALLOC( Mio_Gate_t *, pLib->nGates );
-    for ( i = 0; i < pLib->nGates; i++ )
-        pLib->ppGatesName[i] = pLib->ppGates0[i];
-    qsort( (void *)pLib->ppGatesName, pLib->nGates, sizeof(void *), 
-            (int (*)(const void *, const void *)) Mio_LibraryCompareGatesByName );
+    pLib->ppGatesName = ppGates;
 }
         
 /**Function*************************************************************
