@@ -171,7 +171,7 @@ p->timeTotal = Abc_Clock() - clk;
 ***********************************************************************/
 int Sim_ComputeSuppRound( Sim_Man_t * p, int  fUseTargets )
 {
-    Vec_Int_t * vTargets;
+    Vec_Ptr_t * vTargets;
     int i, Counter = 0;
     abctime clk;
     // perform one round of random simulation
@@ -181,7 +181,7 @@ p->timeSim += Abc_Clock() - clk;
     // iterate through the CIs and detect COs that depend on them
     for ( i = p->iInput; i < p->nInputs; i++ )
     {
-        vTargets = (Vec_Int_t *)p->vSuppTargs->pArray[i];
+        vTargets = (Vec_Ptr_t *)p->vSuppTargs->pArray[i];
         if ( fUseTargets && vTargets->nSize == 0 )
             continue;
         Counter += Sim_ComputeSuppRoundNode( p, i, fUseTargets );
@@ -204,7 +204,7 @@ int Sim_ComputeSuppRoundNode( Sim_Man_t * p, int iNumCi, int  fUseTargets )
 {
     int fVerbose = 0;
     Sim_Pat_t * pPat;
-    Vec_Int_t * vTargets;
+    Vec_Ptr_t * vTargets;
     Vec_Vec_t * vNodesByLevel;
     Abc_Obj_t * pNodeCi, * pNode;
     int i, k, v, Output, LuckyPat, fType0, fType1;
@@ -212,7 +212,7 @@ int Sim_ComputeSuppRoundNode( Sim_Man_t * p, int iNumCi, int  fUseTargets )
     int fFirst = 1;
     abctime clk;
     // collect nodes by level in the TFO of the CI 
-    // this proceduredoes not collect the CIs and COs
+    // this procedure does not collect the CIs and COs
     // but it increments TravId of the collected nodes and CIs/COs
 clk = Abc_Clock();
     pNodeCi       = Abc_NtkCi( p->pNtk, iNumCi );
@@ -232,11 +232,11 @@ p->timeSim += Abc_Clock() - clk;
     // set the simulation info of the affected COs
     if ( fUseTargets )
     {
-        vTargets = (Vec_Int_t *)p->vSuppTargs->pArray[iNumCi];
+        vTargets = (Vec_Ptr_t *)p->vSuppTargs->pArray[iNumCi];
         for ( i = vTargets->nSize - 1; i >= 0; i-- )
         {
             // get the target output
-            Output = vTargets->pArray[i];
+            Output = (int)(ABC_PTRUINT_T)vTargets->pArray[i];
             // get the target node
             pNode  = Abc_ObjFanin0( Abc_NtkCo(p->pNtk, Output) );
             // the output should be in the cone
@@ -247,7 +247,7 @@ p->timeSim += Abc_Clock() - clk;
                 continue;
 
             // otherwise, we solved a new target
-            Vec_IntRemove( vTargets, Output );
+            Vec_PtrRemove( vTargets, vTargets->pArray[i] );
 if ( fVerbose )
     printf( "(%d,%d) ", iNumCi, Output );
             Counter++;
