@@ -288,7 +288,7 @@ int Map_MatchNodePhase( Map_Man_t * p, Map_Node_t * pNode, int fPhase )
     for ( pCut = pNode->pCuts->pNext; pCut; pCut = pCut->pNext )
     {
         // limit gate sizes based on fanout count
-        if ( (pNode->nRefs > 3 && pCut->nLeaves > 2) || (pNode->nRefs > 1 && pCut->nLeaves > 3) )
+        if ( p->fSkipFanout && (pNode->nRefs > 3 && pCut->nLeaves > 2) || (pNode->nRefs > 1 && pCut->nLeaves > 3) )
             continue;
         pMatch = pCut->M + fPhase;
         if ( pMatch->pSupers == NULL )

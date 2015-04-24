@@ -14369,9 +14369,10 @@ int Abc_CommandMap( Abc_Frame_t * pAbc, int argc, char ** argv )
     int fRecovery;
     int fSweep;
     int fSwitching;
+    int fSkipFanout;
     int fVerbose;
     int c;
-    extern Abc_Ntk_t * Abc_NtkMap( Abc_Ntk_t * pNtk, double DelayTarget, double AreaMulti, double DelayMulti, float LogFan, float Slew, float Gain, int nGatesMin, int fRecovery, int fSwitching, int fVerbose );
+    extern Abc_Ntk_t * Abc_NtkMap( Abc_Ntk_t * pNtk, double DelayTarget, double AreaMulti, double DelayMulti, float LogFan, float Slew, float Gain, int nGatesMin, int fRecovery, int fSwitching, int fSkipFanout, int fVerbose );
     extern int Abc_NtkFraigSweep( Abc_Ntk_t * pNtk, int fUseInv, int fExdc, int fVerbose, int fVeryVerbose );
 
     pNtk = Abc_FrameReadNtk(pAbc);
@@ -14383,9 +14384,10 @@ int Abc_CommandMap( Abc_Frame_t * pAbc, int argc, char ** argv )
     fRecovery   = 1;
     fSweep      = 0;
     fSwitching  = 0;
+    fSkipFanout = 0;
     fVerbose    = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "DABFSGMarspvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "DABFSGMarspfvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -14474,6 +14476,9 @@ int Abc_CommandMap( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'p':
             fSwitching ^= 1;
             break;
+        case 'f':
+            fSkipFanout ^= 1;
+            break;
         case 'v':
             fVerbose ^= 1;
             break;
@@ -14510,7 +14515,7 @@ int Abc_CommandMap( Abc_Frame_t * pAbc, int argc, char ** argv )
         }
         Abc_Print( 0, "The network was strashed and balanced before mapping.\n" );
         // get the new network
-        pNtkRes = Abc_NtkMap( pNtk, DelayTarget, AreaMulti, DelayMulti, LogFan, Slew, Gain, nGatesMin, fRecovery, fSwitching, fVerbose );
+        pNtkRes = Abc_NtkMap( pNtk, DelayTarget, AreaMulti, DelayMulti, LogFan, Slew, Gain, nGatesMin, fRecovery, fSwitching, fSkipFanout, fVerbose );
         if ( pNtkRes == NULL )
         {
             Abc_NtkDelete( pNtk );
@@ -14522,7 +14527,7 @@ int Abc_CommandMap( Abc_Frame_t * pAbc, int argc, char ** argv )
     else
     {
         // get the new network
-        pNtkRes = Abc_NtkMap( pNtk, DelayTarget, AreaMulti, DelayMulti, LogFan, Slew, Gain, nGatesMin, fRecovery, fSwitching, fVerbose );
+        pNtkRes = Abc_NtkMap( pNtk, DelayTarget, AreaMulti, DelayMulti, LogFan, Slew, Gain, nGatesMin, fRecovery, fSwitching, fSkipFanout, fVerbose );
         if ( pNtkRes == NULL )
         {
             Abc_Print( -1, "Mapping has failed.\n" );
@@ -14549,7 +14554,7 @@ usage:
         sprintf(Buffer, "not used" );
     else
         sprintf(Buffer, "%.3f", DelayTarget );
-    Abc_Print( -2, "usage: map [-DABFSG float] [-M num] [-arspvh]\n" );
+    Abc_Print( -2, "usage: map [-DABFSG float] [-M num] [-arspfvh]\n" );
     Abc_Print( -2, "\t           performs standard cell mapping of the current network\n" );
     Abc_Print( -2, "\t-D float : sets the global required times [default = %s]\n", Buffer );
     Abc_Print( -2, "\t-A float : \"area multiplier\" to bias gate selection [default = %.2f]\n", AreaMulti );
@@ -14562,6 +14567,7 @@ usage:
     Abc_Print( -2, "\t-r       : toggles area recovery [default = %s]\n", fRecovery? "yes": "no" );
     Abc_Print( -2, "\t-s       : toggles sweep after mapping [default = %s]\n", fSweep? "yes": "no" );
     Abc_Print( -2, "\t-p       : optimizes power by minimizing switching [default = %s]\n", fSwitching? "yes": "no" );
+    Abc_Print( -2, "\t-f       : do not use large gates to map high-fanout nodes [default = %s]\n", fSkipFanout? "yes": "no" );
     Abc_Print( -2, "\t-v       : toggles verbose output [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h       : print the command usage\n");
     return 1;

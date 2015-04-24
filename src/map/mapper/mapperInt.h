@@ -120,7 +120,8 @@ struct Map_ManStruct_t_
     int                 fObeyFanoutLimits;// Should mapper try to obey fanout limits or not
     float               DelayTarget;   // the required times set by the user
     int                 nTravIds;      // the traversal counter
-    int                 fSwitching;    // Should mapper try to obey fanout limits or not
+    int                 fSwitching;    // use switching activity
+    int                 fSkipFanout;   // skip large gates when mapping high-fanout nodes
 
     // the supergate library
     Map_SuperLib_t *    pSuperLib;     // the current supergate library

@@ -56,7 +56,7 @@ static Abc_Obj_t *  Abc_NodeFromMapSuperChoice_rec( Abc_Ntk_t * pNtkNew, Map_Sup
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Ntk_t * Abc_NtkMap( Abc_Ntk_t * pNtk, double DelayTarget, double AreaMulti, double DelayMulti, float LogFan, float Slew, float Gain, int nGatesMin, int fRecovery, int fSwitching, int fVerbose )
+Abc_Ntk_t * Abc_NtkMap( Abc_Ntk_t * pNtk, double DelayTarget, double AreaMulti, double DelayMulti, float LogFan, float Slew, float Gain, int nGatesMin, int fRecovery, int fSwitching, int fSkipFanout, int fVerbose )
 {
     static int fUseMulti = 0;
     int fShowSwitching = 1;
@@ -132,6 +132,7 @@ Abc_Ntk_t * Abc_NtkMap( Abc_Ntk_t * pNtk, double DelayTarget, double AreaMulti, 
         return NULL;
 clk = Abc_Clock();
     Map_ManSetSwitching( pMan, fSwitching );
+    Map_ManSetSkipFanout( pMan, fSkipFanout );
     if ( LogFan != 0 )
         Map_ManCreateNodeDelays( pMan, LogFan );
     if ( !Map_Mapping( pMan ) )
