@@ -56,24 +56,25 @@ static char * Wlc_Names[WLC_OBJ_NUMBER+1] = {
     "!",                   // 23: logic NOT
     "&&",                  // 24: logic AND
     "||",                  // 25: logic OR
-    "==",                  // 26: compare equal
-    "!=",                  // 27: compare not equal
-    "<",                   // 28: compare less
-    ">",                   // 29: compare more
-    "<=",                  // 30: compare less or equal
-    ">=",                  // 31: compare more or equal
-    "&",                   // 32: reduction AND
-    "|",                   // 33: reduction OR
-    "^",                   // 34: reduction XOR
-    "+",                   // 35: arithmetic addition
-    "-",                   // 36: arithmetic subtraction
-    "*",                   // 37: arithmetic multiplier
-    "//",                  // 38: arithmetic division
-    "%",                   // 39: arithmetic modulus
-    "**",                  // 40: arithmetic power
-    "-",                   // 41: arithmetic minus
-    "table",               // 42: bit table
-    NULL                   // 43: unused
+    "^^",                  // 27: logic XOR
+    "==",                  // 28: compare equal
+    "!=",                  // 29: compare not equal
+    "<",                   // 30: compare less
+    ">",                   // 31: compare more
+    "<=",                  // 32: compare less or equal
+    ">=",                  // 33: compare more or equal
+    "&",                   // 34: reduction AND
+    "|",                   // 35: reduction OR
+    "^",                   // 36: reduction XOR
+    "+",                   // 37: arithmetic addition
+    "-",                   // 38: arithmetic subtraction
+    "*",                   // 39: arithmetic multiplier
+    "/",                   // 40: arithmetic division
+    "%",                   // 41: arithmetic modulus
+    "**",                  // 42: arithmetic power
+    "-",                   // 43: arithmetic minus
+    "table",               // 44: bit table
+    NULL                   // 45: unused
 };
 
 ////////////////////////////////////////////////////////////////////////

@@ -68,25 +68,25 @@ typedef enum {
     WLC_OBJ_LOGIC_NOT,     // 23: logic NOT
     WLC_OBJ_LOGIC_AND,     // 24: logic AND
     WLC_OBJ_LOGIC_OR,      // 25: logic OR
-    WLC_OBJ_LOGIC_XOR,     // 26: logic XOR
-    WLC_OBJ_COMP_EQU,      // 27: compare equal
-    WLC_OBJ_COMP_NOTEQU,   // 28: compare not equal
-    WLC_OBJ_COMP_LESS,     // 29: compare less
-    WLC_OBJ_COMP_MORE,     // 30: compare more
-    WLC_OBJ_COMP_LESSEQU,  // 31: compare less or equal
-    WLC_OBJ_COMP_MOREEQU,  // 32: compare more or equal
-    WLC_OBJ_REDUCT_AND,    // 33: reduction AND
-    WLC_OBJ_REDUCT_OR,     // 34: reduction OR
-    WLC_OBJ_REDUCT_XOR,    // 35: reduction XOR
-    WLC_OBJ_ARI_ADD,       // 36: arithmetic addition
-    WLC_OBJ_ARI_SUB,       // 37: arithmetic subtraction
-    WLC_OBJ_ARI_MULTI,     // 38: arithmetic multiplier
-    WLC_OBJ_ARI_DIVIDE,    // 39: arithmetic division
-    WLC_OBJ_ARI_MODULUS,   // 40: arithmetic modulus
-    WLC_OBJ_ARI_POWER,     // 41: arithmetic power
-    WLC_OBJ_ARI_MINUS,     // 42: arithmetic minus
-    WLC_OBJ_TABLE,         // 43: bit table
-    WLC_OBJ_NUMBER         // 44: unused
+    WLC_OBJ_LOGIC_XOR,     // 27: logic XOR
+    WLC_OBJ_COMP_EQU,      // 28: compare equal
+    WLC_OBJ_COMP_NOTEQU,   // 29: compare not equal
+    WLC_OBJ_COMP_LESS,     // 30: compare less
+    WLC_OBJ_COMP_MORE,     // 31: compare more
+    WLC_OBJ_COMP_LESSEQU,  // 32: compare less or equal
+    WLC_OBJ_COMP_MOREEQU,  // 33: compare more or equal
+    WLC_OBJ_REDUCT_AND,    // 34: reduction AND
+    WLC_OBJ_REDUCT_OR,     // 35: reduction OR
+    WLC_OBJ_REDUCT_XOR,    // 36: reduction XOR
+    WLC_OBJ_ARI_ADD,       // 37: arithmetic addition
+    WLC_OBJ_ARI_SUB,       // 38: arithmetic subtraction
+    WLC_OBJ_ARI_MULTI,     // 39: arithmetic multiplier
+    WLC_OBJ_ARI_DIVIDE,    // 40: arithmetic division
+    WLC_OBJ_ARI_MODULUS,   // 41: arithmetic modulus
+    WLC_OBJ_ARI_POWER,     // 42: arithmetic power
+    WLC_OBJ_ARI_MINUS,     // 43: arithmetic minus
+    WLC_OBJ_TABLE,         // 44: bit table
+    WLC_OBJ_NUMBER         // 45: unused
 } Wlc_ObjType_t;
 
 
