@@ -83,7 +83,7 @@ static Smt_Pair_t s_Types[SMT_PRS_END] =
 };
 static inline char * Smt_GetTypeName( Smt_LineType_t Type )
 {
-    Smt_LineType_t i;
+    int i;
     for ( i = 1; i < SMT_PRS_END; i++ )
         if ( s_Types[i].Type == Type )
             return s_Types[i].pName;
@@ -91,7 +91,7 @@ static inline char * Smt_GetTypeName( Smt_LineType_t Type )
 }
 static inline void Smt_AddTypes( Abc_Nam_t * p )
 {
-    Smt_LineType_t Type;
+    int Type;
     for ( Type = 1; Type < SMT_PRS_END; Type++ )
         Abc_NamStrFindOrAdd( p, Smt_GetTypeName(Type), NULL );
     assert( Abc_NamObjNumMax(p) == SMT_PRS_END );

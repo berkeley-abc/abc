@@ -982,6 +982,7 @@ extern void          Cba_ManDeriveFanout( Cba_Man_t * p );
 //extern void          Cba_ManAssignInternNames( Cba_Man_t * p );
 extern void          Cba_ManAssignInternWordNames( Cba_Man_t * p );
 extern Cba_Man_t *   Cba_ManCollapse( Cba_Man_t * p );
+extern void          Cba_ManSetupTypes( char ** pNames, char ** pSymbs );
 /*=== cbaPtr.c ===============================================================*/
 extern void          Cba_PtrFree( Vec_Ptr_t * vDes );
 extern int           Cba_PtrMemory( Vec_Ptr_t * vDes );

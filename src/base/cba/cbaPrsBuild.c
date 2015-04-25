@@ -47,7 +47,7 @@ ABC_NAMESPACE_IMPL_START
 int Prs_ManIsMapped( Prs_Ntk_t * pNtk )
 {
     Vec_Int_t * vSigs; int iBox;
-    Mio_Library_t * pLib = (Mio_Library_t *)Abc_FrameReadLibGen( Abc_FrameGetGlobalFrame() );
+    Mio_Library_t * pLib = (Mio_Library_t *)Abc_FrameReadLibGen();
     if ( pLib == NULL )
         return 0;
     Prs_NtkForEachBox( pNtk, vSigs, iBox )

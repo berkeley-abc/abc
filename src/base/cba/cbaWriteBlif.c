@@ -169,7 +169,7 @@ void Cba_ManWriteBlifLines( FILE * pFile, Cba_Ntk_t * p )
         else if ( Cba_ObjIsGate(p, i) )
         {
             char * pGateName = Abc_NamStr(p->pDesign->pMods, Cba_BoxNtkId(p, i));
-            Mio_Library_t * pLib = (Mio_Library_t *)Abc_FrameReadLibGen( Abc_FrameGetGlobalFrame() );
+            Mio_Library_t * pLib = (Mio_Library_t *)Abc_FrameReadLibGen();
             Mio_Gate_t * pGate = Mio_LibraryReadGateByName( pLib, pGateName, NULL );
             fprintf( pFile, ".gate %s", pGateName );
             Cba_BoxForEachBi( p, i, iTerm, k )

@@ -21,6 +21,7 @@
 #include "base/abc/abc.h"
 #include "base/main/mainInt.h"
 #include "map/mio/mio.h"
+#include "cba.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -321,7 +322,7 @@ Vec_Ptr_t * Cba_ManCollectGateNamesByTruth( Mio_Library_t * pLib )
 void Cba_PtrUpdateBox( Vec_Ptr_t * vBox, Vec_Ptr_t * vGatesNames )
 {
     Mio_Gate_t * pGate;  Mio_Pin_t * pPin; int i = 1;
-    Mio_Library_t * pLib = (Mio_Library_t *)Abc_FrameReadLibGen( Abc_FrameGetGlobalFrame() );
+    Mio_Library_t * pLib = (Mio_Library_t *)Abc_FrameReadLibGen();
     // update gate name
     char * pNameNew, * pName = (char *)Vec_PtrEntry(vBox, 0);
     if ( !strcmp(pName, "Const0T") )
@@ -419,7 +420,7 @@ Vec_Ptr_t * Cba_PtrTransformTest( Vec_Ptr_t * vDes )
         printf( "ABC framework is not started.\n" );
         return NULL;
     }
-    pLib = (Mio_Library_t *)Abc_FrameReadLibGen( Abc_FrameGetGlobalFrame() );
+    pLib = (Mio_Library_t *)Abc_FrameReadLibGen();
     if ( pLib == NULL )
     {
         printf( "Standard cell library is not entered.\n" );

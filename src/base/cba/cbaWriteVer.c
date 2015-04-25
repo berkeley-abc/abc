@@ -395,7 +395,7 @@ static inline void Cba_ManWriteGate( Cba_Ntk_t * p, int iObj )
 {
     Vec_Str_t * vStr = p->pDesign->vOut; int iTerm, k;
     char * pGateName = Abc_NamStr(p->pDesign->pMods, Cba_BoxNtkId(p, iObj));
-    Mio_Library_t * pLib = (Mio_Library_t *)Abc_FrameReadLibGen( Abc_FrameGetGlobalFrame() );
+    Mio_Library_t * pLib = (Mio_Library_t *)Abc_FrameReadLibGen();
     Mio_Gate_t * pGate = Mio_LibraryReadGateByName( pLib, pGateName, NULL );
     Vec_StrPrintStr( vStr, "  " );
     Vec_StrPrintStr( vStr, pGateName );

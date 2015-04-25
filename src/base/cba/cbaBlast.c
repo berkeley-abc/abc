@@ -509,7 +509,7 @@ void Cba_NtkPrepareLibrary( Cba_Man_t * p, Mio_Library_t * pLib )
 int Cba_NtkBuildLibrary( Cba_Man_t * p )
 {
     int RetValue = 1;
-    Mio_Library_t * pLib = (Mio_Library_t *)Abc_FrameReadLibGen( Abc_FrameGetGlobalFrame() );
+    Mio_Library_t * pLib = (Mio_Library_t *)Abc_FrameReadLibGen();
     if ( pLib == NULL )
         printf( "The standard cell library is not available.\n" ), RetValue = 0;
     else
