@@ -286,85 +286,7 @@ int Mio_DelayCompare( Mio_Gate_t ** ppG1, Mio_Gate_t ** ppG2 )
         return 1;
     return 0;
 }
-
-/**Function*************************************************************
-
-  Synopsis    [Collects the set of root gates.]
-
-  Description [Only collects the gates with unique functionality, 
-  which have fewer inputs and shorter delay than the given limits.]
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-Mio_Gate_t ** Mio_CollectRoots( Mio_Library_t * pLib, int nInputs, float tDelay, int fSkipInv, int * pnGates, int fVerbose )
-{
-    Mio_Gate_t * pGate;
-    Mio_Gate_t ** ppGates;
-    int i, nGates, iGate;
-    nGates = Mio_LibraryReadGateNum( pLib );
-    ppGates = ABC_ALLOC( Mio_Gate_t *, nGates );
-    iGate = 0;
-    // for each functionality, select gate with the smallest area
-    // if equal areas, select gate with lexicographically smaller name
-    Mio_LibraryForEachGate( pLib, pGate )
-    {
-        if ( pGate->nInputs > nInputs )
-            continue;
-        if ( tDelay > 0.0 && pGate->dDelayMax > (double)tDelay )
-            continue;
-        if ( pGate->uTruth == 0 || pGate->uTruth == ~(word)0 )
-            continue;
-        if ( pGate->uTruth == ABC_CONST(0xAAAAAAAAAAAAAAAA) )
-            continue;
-        if ( pGate->uTruth == ~ABC_CONST(0xAAAAAAAAAAAAAAAA) && fSkipInv )
-            continue;
-        if ( pGate->pTwin ) // skip multi-output gates for now
-            continue;
-        // check if the gate with this functionality already exists
-        for ( i = 0; i < iGate; i++ )
-            if ( ppGates[i]->uTruth == pGate->uTruth )
-            {
-                if ( ppGates[i]->dArea > pGate->dArea || 
-                    (ppGates[i]->dArea == pGate->dArea && strcmp(ppGates[i]->pName, pGate->pName) > 0) )
-                    ppGates[i] = pGate;
-                break;
-            }
-        if ( i < iGate )
-            continue;
-        assert( iGate < nGates );
-        ppGates[ iGate++ ] = pGate;
-        if ( fVerbose )
-            printf( "Selected gate %3d:   %-20s  A = %7.2f  D = %7.2f  %3s = %-s\n", 
-                iGate+1, pGate->pName, pGate->dArea, pGate->dDelayMax, pGate->pOutName, pGate->pForm );
-    }
-    // sort by delay
-    if ( iGate > 0 ) 
-    {
-        qsort( (void *)ppGates, iGate, sizeof(Mio_Gate_t *), 
-                (int (*)(const void *, const void *)) Mio_DelayCompare );
-        assert( Mio_DelayCompare( ppGates, ppGates + iGate - 1 ) <= 0 );
-    }
-    if ( pnGates )
-        *pnGates = iGate;
-    return ppGates;
-}
-
-
-/**Function*************************************************************
-
-  Synopsis    [Compares the max delay of two gates.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Mio_DelayCompareNew( Mio_Cell_t * pG1, Mio_Cell_t * pG2 )
+int Mio_AreaCompare( Mio_Cell_t * pG1, Mio_Cell_t * pG2 )
 {
     if ( (pG1)->nFanins < (pG2)->nFanins )
         return -1;
@@ -408,6 +330,97 @@ static inline float Mio_GateDelayAve( Mio_Gate_t * pGate )
         GateDelay /= pGate->nInputs;
     return GateDelay;
 }
+static inline int Mio_CompareTwoGates( Mio_Gate_t * pCell, Mio_Gate_t * pGate )
+{
+    int Comp;
+    float Eps = (float)0.01;
+    float CellDelay, GateDelay;
+    // compare areas
+    if ( pCell->dArea > (float)pGate->dArea + Eps )
+        return 1;
+    if ( pCell->dArea < (float)pGate->dArea - Eps )
+        return 0;
+    // compare delays
+    CellDelay = Mio_GateDelayAve( pCell );
+    GateDelay = Mio_GateDelayAve( pGate );
+    if ( CellDelay > GateDelay + Eps )
+        return 1;
+    if ( CellDelay < GateDelay - Eps )
+        return 0;
+    // compare names
+    Comp = strcmp( pCell->pName, pGate->pName );
+    if ( Comp > 0 )
+        return 1;
+    if ( Comp < 0 )
+        return 0;
+    assert( 0 );
+    return 0;
+}
+Mio_Gate_t ** Mio_CollectRoots( Mio_Library_t * pLib, int nInputs, float tDelay, int fSkipInv, int * pnGates, int fVerbose )
+{
+    Mio_Gate_t * pGate;
+    Mio_Gate_t ** ppGates;
+    int i, nGates, iGate;
+    nGates = Mio_LibraryReadGateNum( pLib );
+    ppGates = ABC_ALLOC( Mio_Gate_t *, nGates );
+    iGate = 0;
+    // for each functionality, select gate with the smallest area
+    // if equal areas, select gate with lexicographically smaller name
+    Mio_LibraryForEachGate( pLib, pGate )
+    {
+        if ( pGate->nInputs > nInputs )
+            continue;
+        if ( tDelay > 0.0 && pGate->dDelayMax > (double)tDelay )
+            continue;
+        if ( pGate->uTruth == 0 || pGate->uTruth == ~(word)0 )
+            continue;
+        if ( pGate->uTruth == ABC_CONST(0xAAAAAAAAAAAAAAAA) )
+            continue;
+        if ( pGate->uTruth == ~ABC_CONST(0xAAAAAAAAAAAAAAAA) && fSkipInv )
+            continue;
+        if ( pGate->pTwin ) // skip multi-output gates for now
+            continue;
+        // check if the gate with this functionality already exists
+        for ( i = 0; i < iGate; i++ )
+            if ( ppGates[i]->uTruth == pGate->uTruth )
+            {
+                if ( Mio_CompareTwoGates(ppGates[i], pGate) )
+                    ppGates[i] = pGate;
+                break;
+            }
+        if ( i < iGate )
+            continue;
+        assert( iGate < nGates );
+        ppGates[ iGate++ ] = pGate;
+        if ( fVerbose )
+            printf( "Selected gate %3d:   %-20s  A = %7.2f  D = %7.2f  %3s = %-s\n", 
+                iGate+1, pGate->pName, pGate->dArea, pGate->dDelayMax, pGate->pOutName, pGate->pForm );
+    }
+    // sort by delay
+    if ( iGate > 0 ) 
+    {
+        qsort( (void *)ppGates, iGate, sizeof(Mio_Gate_t *), 
+                (int (*)(const void *, const void *)) Mio_DelayCompare );
+        assert( Mio_DelayCompare( ppGates, ppGates + iGate - 1 ) <= 0 );
+    }
+    if ( pnGates )
+        *pnGates = iGate;
+    return ppGates;
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    [Collects the set of root gates.]
+
+  Description [Only collects the gates with unique functionality, 
+  which have fewer inputs and shorter delay than the given limits.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 static inline int Mio_CompareTwo( Mio_Cell_t * pCell, Mio_Gate_t * pGate )
 {
     int Comp;
@@ -497,8 +510,8 @@ Mio_Cell_t * Mio_CollectRootsNew( Mio_Library_t * pLib, int nInputs, int * pnGat
     if ( iCell > 1 ) 
     {
         qsort( (void *)(ppCells + 4), iCell - 4, sizeof(Mio_Cell_t), 
-                (int (*)(const void *, const void *)) Mio_DelayCompareNew );
-        assert( Mio_DelayCompareNew( ppCells + 4, ppCells + iCell - 1 ) <= 0 );
+                (int (*)(const void *, const void *)) Mio_AreaCompare );
+        assert( Mio_AreaCompare( ppCells + 4, ppCells + iCell - 1 ) <= 0 );
     }
     // assign IDs
     for ( i = 0; i < iCell; i++ )
