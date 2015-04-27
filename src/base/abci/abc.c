@@ -31034,6 +31034,11 @@ int Abc_CommandAbc9Cec( Abc_Frame_t * pAbc, int argc, char ** argv )
             goto usage;
         }
     }
+    if ( pAbc->pGia == NULL )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9Cec(): There is no AIG.\n" );
+        return 1;
+    }
     if ( fMiter )
     {
         if ( fDualOutput )

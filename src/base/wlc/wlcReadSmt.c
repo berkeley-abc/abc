@@ -290,10 +290,20 @@ static inline int Smt_PrsBuildConstant( Wlc_Ntk_t * pNtk, char * pStr, int nBits
     Vec_Int_t * vFanins = Vec_IntAlloc( 10 );
     if ( pStr[0] != '#' ) // decimal
     {
-        int Number = atoi( pStr );
-        nBits = Abc_Base2Log( Number+1 );
-        assert( nBits < 32 );
-        Vec_IntPush( vFanins, Number );
+        if ( pStr[0] >= 0 && pStr[0] <= 9 )
+        {
+            int Number = atoi( pStr );
+            nBits = Abc_Base2Log( Number+1 );
+            assert( nBits < 32 );
+            Vec_IntPush( vFanins, Number );
+        }
+        else
+        {
+            int fFound, iObj = Abc_NamStrFindOrAdd( pNtk->pManName, pStr, &fFound );
+            assert( fFound );
+            Vec_IntFree( vFanins );
+            return iObj;
+        }
     }
     else if ( pStr[1] == 'b' ) // binary
     {
