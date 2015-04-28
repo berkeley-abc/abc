@@ -963,7 +963,7 @@ Abc_Ntk_t * Abc_NtkFromCellMappedGia( Gia_Man_t * p )
         }
         else
         {
-            assert( Gia_ObjCellId(p, iLit) > 0 );
+            assert( Gia_ObjCellId(p, iLit) >= 0 );
             pObjNew = Abc_NtkCreateNode( pNtkNew );
             Gia_CellForEachFanin( p, iLit, iFanLit, k )
                 Abc_ObjAddFanin( pObjNew, Abc_NtkFromCellRead(pNtkNew, vCopyLits, Abc_Lit2Var(iFanLit), Abc_LitIsCompl(iFanLit)) );
