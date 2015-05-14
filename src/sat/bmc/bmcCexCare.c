@@ -34,6 +34,60 @@ ABC_NAMESPACE_IMPL_START
 
 /**Function*************************************************************
 
+  Synopsis    [Takes CEX and its care-set. Returns care-set of all objects.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Cex_t * Bmc_CexCareExtendToObjects( Gia_Man_t * p, Abc_Cex_t * pCex, Abc_Cex_t * pCexCare )
+{
+    Abc_Cex_t * pNew;
+    Gia_Obj_t * pObj;
+    int i, k;
+    assert( pCex->nPis == pCexCare->nPis );
+    assert( pCex->nRegs == pCexCare->nRegs );
+    assert( pCex->nBits == pCexCare->nBits );
+    // start the counter-example
+    pNew = Abc_CexAlloc( pCex->nRegs, Gia_ManObjNum(p), pCex->iFrame + 1 );
+    pNew->iFrame = pCex->iFrame;
+    pNew->iPo    = pCex->iPo;
+    // initialize terminary simulation
+    Gia_ObjTerSimSet0( Gia_ManConst0(p) );
+    Gia_ManForEachRi( p, pObj, k )
+        Gia_ObjTerSimSet0( pObj );
+    for ( i = 0; i <= pCex->iFrame; i++ )
+    {
+        Gia_ManForEachPi( p, pObj, k )
+        {
+            if ( !Abc_InfoHasBit( pCexCare->pData, pCexCare->nRegs + i * pCexCare->nPis + k ) )
+                Gia_ObjTerSimSetX( pObj );
+            else if ( Abc_InfoHasBit( pCex->pData, pCex->nRegs + i * pCex->nPis + k ) )
+                Gia_ObjTerSimSet1( pObj );
+            else
+                Gia_ObjTerSimSet0( pObj );
+        }
+        Gia_ManForEachRo( p, pObj, k )
+            Gia_ObjTerSimRo( p, pObj );
+        Gia_ManForEachAnd( p, pObj, k )
+            Gia_ObjTerSimAnd( pObj );
+        Gia_ManForEachCo( p, pObj, k )
+            Gia_ObjTerSimCo( pObj );
+        // add cares to the exdended counter-example
+        Gia_ManForEachObj( p, pObj, k )
+            if ( !Gia_ObjTerSimGetX(pObj) )
+                Abc_InfoSetBit( pNew->pData, pNew->nRegs + pNew->nPis * i + k );
+    }
+    pObj = Gia_ManPo( p, pCex->iPo );
+    assert( Gia_ObjTerSimGet1(pObj) );
+    return pNew;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Backward propagation.]
 
   Description []
