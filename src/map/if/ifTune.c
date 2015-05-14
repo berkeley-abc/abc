@@ -400,15 +400,15 @@ int Ifn_NtkParseInt2( char * pStr, Ifn_Ntk_t * p )
         else if ( pStr[k+2] == '{' )
             p->Nodes[i].Type = IFN_DSD_PRIME, Next = '}';
         else 
-            return Ifn_ErrorMessage( "Cannot find openning operation symbol in the defition of of signal \'%c\'.\n", 'a' + i );
+            return Ifn_ErrorMessage( "Cannot find openning operation symbol in the definition of signal \'%c\'.\n", 'a' + i );
         for ( n = k + 3; pStr[n]; n++ )
             if ( pStr[n] == Next )
                 break;
         if ( pStr[n] == 0 )
-            return Ifn_ErrorMessage( "Cannot find closing operation symbol in the defition of of signal \'%c\'.\n", 'a' + i );
+            return Ifn_ErrorMessage( "Cannot find closing operation symbol in the definition of signal \'%c\'.\n", 'a' + i );
         nFans = n - k - 3;
-        if ( nFans < 1 || nFans > 8 )
-            return Ifn_ErrorMessage( "Cannot find matching operation symbol in the defition of of signal \'%c\'.\n", 'a' + i );
+        if ( nFans > 8 )
+            return Ifn_ErrorMessage( "Cannot find matching operation symbol in the definition of signal \'%c\'.\n", 'a' + i );
         for ( f = 0; f < nFans; f++ )
         {
             iFan = pStr[k + 3 + f] - 'a';
@@ -524,7 +524,7 @@ Gia_Man_t * Ifn_ManStrFindModel( Ifn_Ntk_t * p )
         {
             int n, Step, pVarsData[256];
             int nMints = (1 << nFans);
-            assert( nFans >= 1 && nFans <= 8 );
+            assert( nFans >= 0 && nFans <= 8 );
             for ( k = 0; k < nMints; k++ )
                 pVarsData[k] = pVarMap[iFanin + k];
             for ( Step = 1, k = 0; k < nFans; k++, Step <<= 1 )

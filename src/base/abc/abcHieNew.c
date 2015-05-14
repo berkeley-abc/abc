@@ -676,7 +676,7 @@ int Au_NtkCheckRecursive( Au_Ntk_t * pNtk )
         Au_NtkForEachObj( pModel, pObj, k )
             if ( Au_ObjIsBox(pObj) && Au_ObjModel(pObj) == pModel )
             {
-                printf( "WARNING: Model \"%s\" contains a recursive defition.\n", Au_NtkName(pModel) );
+                printf( "WARNING: Model \"%s\" contains a recursive definition.\n", Au_NtkName(pModel) );
                 RetValue = 1;
                 break;
             }

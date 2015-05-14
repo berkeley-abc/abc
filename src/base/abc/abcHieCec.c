@@ -642,7 +642,7 @@ int Abc_NtkCheckRecursive( Abc_Ntk_t * pNtk )
         Abc_NtkForEachObj( pModel, pObj, k )
             if ( Abc_ObjIsBox(pObj) && pObj->pData == (void *)pModel )
             {
-                printf( "WARNING: Model \"%s\" contains a recursive defition.\n", Abc_NtkName(pModel) );
+                printf( "WARNING: Model \"%s\" contains a recursive definition.\n", Abc_NtkName(pModel) );
                 RetValue = 1;
                 break;
             }
