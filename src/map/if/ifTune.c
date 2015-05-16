@@ -1111,9 +1111,10 @@ int Ifn_NtkAddClauses( Ifn_Ntk_t * p, int * pValues, sat_solver * pSat )
     int i, f, v, nLits, pLits[IFN_INS+2], pLits2[IFN_INS+2];
     // assign new variables
     int nSatVars = sat_solver_nvars(pSat);
-    for ( i = 0; i < p->nObjs-1; i++ )
+//    for ( i = 0; i < p->nObjs-1; i++ )
+    for ( i = 0; i < p->nObjs; i++ )
         p->Nodes[i].Var = nSatVars++;
-    p->Nodes[p->nObjs-1].Var = 0xFFFF;
+    //p->Nodes[p->nObjs-1].Var = 0xFFFF;
     sat_solver_setnvars( pSat, nSatVars );
     // verify variable values
     for ( i = 0; i < p->nVars; i++ )
@@ -1237,6 +1238,10 @@ int Ifn_NtkAddClauses( Ifn_Ntk_t * p, int * pValues, sat_solver * pSat )
         else assert( 0 );
 //printf( "\n" );
     }
+    // add last clause (not needed if the root node is IFN_DSD_PRIME)
+    pLits[0] = Abc_Var2Lit( p->Nodes[p->nObjs-1].Var, pValues[p->nObjs-1]==0 );
+    if ( !Ifn_AddClause( pSat, pLits,  pLits + 1 ) )
+        return 0;
     return 1;
 }
 
