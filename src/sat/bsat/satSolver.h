@@ -294,11 +294,15 @@ static inline int sat_solver_add_buffer( sat_solver * pSat, int iVarA, int iVarB
     Lits[0] = toLitCond( iVarA, 0 );
     Lits[1] = toLitCond( iVarB, !fCompl );
     Cid = sat_solver_addclause( pSat, Lits, Lits + 2 );
+    if ( Cid == 0 )
+        return 0;
     assert( Cid );
 
     Lits[0] = toLitCond( iVarA, 1 );
     Lits[1] = toLitCond( iVarB, fCompl );
     Cid = sat_solver_addclause( pSat, Lits, Lits + 2 );
+    if ( Cid == 0 )
+        return 0;
     assert( Cid );
     return 2;
 }

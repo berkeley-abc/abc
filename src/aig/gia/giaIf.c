@@ -2043,6 +2043,11 @@ void Gia_ManTransferTiming( Gia_Man_t * p, Gia_Man_t * pGia )
         p->vNamesIn     = pGia->vNamesIn;     pGia->vNamesIn     = NULL;
         p->vNamesOut    = pGia->vNamesOut;    pGia->vNamesOut    = NULL;
     }
+    if ( pGia->vConfigs || pGia->pCellStr )
+    {
+        p->vConfigs     = pGia->vConfigs;     pGia->vConfigs     = NULL;
+        p->pCellStr     = pGia->pCellStr;     pGia->pCellStr     = NULL;
+    }
     if ( pGia->pManTime == NULL || p == pGia )
         return;
     p->pManTime    = pGia->pManTime;    pGia->pManTime    = NULL;
