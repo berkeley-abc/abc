@@ -680,8 +680,10 @@ Gia_Man_t * Gia_AigerReadFromMemory( char * pContents, int nFileSize, int fSkipS
                 pNew->pCellStr = Abc_UtilStrsav( (char*)pCur );         pCur += strlen((char*)pCur) + 1;
                 nSize = nSize - strlen(pNew->pCellStr) - 1;
                 assert( nSize % 4 == 0 );
-                pNew->vConfigs = Vec_IntStart(nSize / 4);
-                memcpy(Vec_IntArray(pNew->vConfigs), pCur, nSize);      pCur += nSize;
+                pNew->vConfigs = Vec_IntAlloc(nSize / 4);
+//                memcpy(Vec_IntArray(pNew->vConfigs), pCur, nSize);      pCur += nSize;
+                for ( i = 0; i < nSize / 4; i++ )
+                    Vec_IntPush( pNew->vConfigs, Gia_AigerReadInt(pCur) ), pCur += 4;
                 assert( pCur == pCurTemp );
                 if ( fVerbose ) printf( "Finished reading extension \"b\".\n" );
             }
@@ -1289,7 +1291,9 @@ void Gia_AigerWrite( Gia_Man_t * pInit, char * pFileName, int fWriteSymbols, int
         assert( p->pCellStr != NULL );
         Gia_FileWriteBufferSize( pFile, 4*Vec_IntSize(p->vConfigs) + strlen(p->pCellStr) + 1 );
         fwrite( p->pCellStr, 1, strlen(p->pCellStr) + 1, pFile );
-        fwrite( Vec_IntArray(p->vConfigs), 1, 4*Vec_IntSize(p->vConfigs), pFile );
+//        fwrite( Vec_IntArray(p->vConfigs), 1, 4*Vec_IntSize(p->vConfigs), pFile );
+        for ( i = 0; i < Vec_IntSize(p->vConfigs); i++ )
+            Gia_FileWriteBufferSize( pFile, Vec_IntEntry(p->vConfigs, i) );
     }
     // write choices
     if ( Gia_ManHasChoices(p) )
