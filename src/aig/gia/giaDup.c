@@ -51,6 +51,8 @@ void Gia_ManDupRemapLiterals( Vec_Int_t * vLits, Gia_Man_t * p )
     int i, iLit, iLitNew;
     Vec_IntForEachEntry( vLits, iLit, i )
     {
+        if ( iLit < 0 )
+            continue;
         pObj = Gia_ManObj( p, Abc_Lit2Var(iLit) );
         if ( ~pObj->Value == 0 )
             iLitNew = -1;
