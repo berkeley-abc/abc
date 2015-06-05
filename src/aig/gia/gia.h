@@ -450,6 +450,8 @@ static inline int          Gia_ObjIsRi( Gia_Man_t * p, Gia_Obj_t * pObj )      {
 
 static inline Gia_Obj_t *  Gia_ObjRoToRi( Gia_Man_t * p, Gia_Obj_t * pObj )    { assert( Gia_ObjIsRo(p, pObj) ); return Gia_ManCo(p, Gia_ManCoNum(p) - Gia_ManCiNum(p) + Gia_ObjCioId(pObj)); } 
 static inline Gia_Obj_t *  Gia_ObjRiToRo( Gia_Man_t * p, Gia_Obj_t * pObj )    { assert( Gia_ObjIsRi(p, pObj) ); return Gia_ManCi(p, Gia_ManCiNum(p) - Gia_ManCoNum(p) + Gia_ObjCioId(pObj)); } 
+static inline int          Gia_ObjRoToRiId( Gia_Man_t * p, int ObjId )         { return Gia_ObjId( p, Gia_ObjRoToRi( p, Gia_ManObj(p, ObjId) ) );    } 
+static inline int          Gia_ObjRiToRoId( Gia_Man_t * p, int ObjId )         { return Gia_ObjId( p, Gia_ObjRiToRo( p, Gia_ManObj(p, ObjId) ) );    }
 
 static inline int          Gia_ObjDiff0( Gia_Obj_t * pObj )                    { return pObj->iDiff0;         }
 static inline int          Gia_ObjDiff1( Gia_Obj_t * pObj )                    { return pObj->iDiff1;         }
@@ -1098,6 +1100,7 @@ extern int                 Gia_ManConeSize( Gia_Man_t * p, int * pNodes, int nNo
 extern Vec_Vec_t *         Gia_ManLevelize( Gia_Man_t * p );
 extern Vec_Int_t *         Gia_ManOrderReverse( Gia_Man_t * p );
 /*=== giaDup.c ============================================================*/
+extern void                Gia_ManDupRemapLiterals( Vec_Int_t * vLits, Gia_Man_t * p );
 extern void                Gia_ManDupRemapEquiv( Gia_Man_t * pNew, Gia_Man_t * p );
 extern Gia_Man_t *         Gia_ManDupOrderDfs( Gia_Man_t * p );
 extern Gia_Man_t *         Gia_ManDupOrderDfsChoices( Gia_Man_t * p );

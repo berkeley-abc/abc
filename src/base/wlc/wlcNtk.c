@@ -212,6 +212,7 @@ void Wlc_NtkFree( Wlc_Ntk_t * p )
     ABC_FREE( p->vNameIds.pArray );
     ABC_FREE( p->vValues.pArray );
     ABC_FREE( p->vCopies.pArray );
+    ABC_FREE( p->vBits.pArray );
     ABC_FREE( p->pInits );
     ABC_FREE( p->pObjs );
     ABC_FREE( p->pName );

@@ -141,6 +141,7 @@ struct Wlc_Ntk_t_
     int                    nTravIds;           // counter of traversal IDs
     Vec_Int_t              vTravIds;           // trav IDs of the objects
     Vec_Int_t              vCopies;            // object first bits
+    Vec_Int_t              vBits;              // object mapping into AIG nodes
 };
 
 static inline int          Wlc_NtkObjNum( Wlc_Ntk_t * p )                           { return p->iObj - 1;                                                      }
@@ -260,6 +261,9 @@ extern void           Wlc_NtkTransferNames( Wlc_Ntk_t * pNew, Wlc_Ntk_t * p );
 /*=== wlcReadSmt.c ========================================================*/
 extern Wlc_Ntk_t *    Wlc_ReadSmtBuffer( char * pFileName, char * pBuffer, char * pLimit );
 extern Wlc_Ntk_t *    Wlc_ReadSmt( char * pFileName );
+/*=== wlcSim.c ========================================================*/
+extern Vec_Ptr_t *    Wlc_NtkSimulate( Wlc_Ntk_t * p, Vec_Int_t * vNodes, int nWords, int nFrames );
+extern void           Wlc_NtkDeleteSim( Vec_Ptr_t * p );
 /*=== wlcStdin.c ========================================================*/
 extern int            Wlc_StdinProcessSmt( Abc_Frame_t * pAbc, char * pCmd );
 /*=== wlcReadVer.c ========================================================*/

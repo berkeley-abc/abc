@@ -358,6 +358,7 @@ usage:
 ******************************************************************************/
 int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
+    extern void Wlc_NtkSimulateTest( Wlc_Ntk_t * p );
     Wlc_Ntk_t * pNtk = Wlc_AbcGetNtk(pAbc);
     int c, fVerbose  = 0;
     Extra_UtilGetoptReset();
@@ -384,6 +385,7 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     //pNtk = Wlc_NtkAbstractNodes( pNtk, NULL );
     //Wlc_AbcUpdateNtk( pAbc, pNtk );
     //Wlc_GenerateSmtStdout( pAbc );
+    Wlc_NtkSimulateTest( (Wlc_Ntk_t *)pAbc->pAbcWlc );
     return 0;
 usage:
     Abc_Print( -2, "usage: %%test [-vh]\n" );

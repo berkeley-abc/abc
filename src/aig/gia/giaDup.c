@@ -36,6 +36,34 @@ ABC_NAMESPACE_IMPL_START
 
   Synopsis    [Removes pointers to the unmarked nodes..]
 
+  Description [Array vLits contains literals of p. At the same time, 
+  each object pObj of p points to a literal of pNew. This procedure
+  remaps literals in array vLits into literals of pNew.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_ManDupRemapLiterals( Vec_Int_t * vLits, Gia_Man_t * p )
+{
+    Gia_Obj_t * pObj;
+    int i, iLit, iLitNew;
+    Vec_IntForEachEntry( vLits, iLit, i )
+    {
+        pObj = Gia_ManObj( p, Abc_Lit2Var(iLit) );
+        if ( ~pObj->Value == 0 )
+            iLitNew = -1;
+        else
+            iLitNew = Abc_LitNotCond( pObj->Value, Abc_LitIsCompl(iLit) );
+        Vec_IntWriteEntry( vLits, i, iLitNew );
+    }
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Removes pointers to the unmarked nodes..]
+
   Description []
                
   SideEffects []

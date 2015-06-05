@@ -412,13 +412,14 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Vec_Int_t * vBoxIds )
     Tim_Man_t * pManTime = NULL;
     Gia_Man_t * pTemp, * pNew, * pExtra = NULL;
     Wlc_Obj_t * pObj, * pPrev = NULL;
-    Vec_Int_t * vBits, * vTemp0, * vTemp1, * vTemp2, * vRes;
+    Vec_Int_t * vBits = &p->vBits, * vTemp0, * vTemp1, * vTemp2, * vRes;
     int nBits = Wlc_NtkPrepareBits( p );
     int nRange, nRange0, nRange1, nRange2;
     int i, k, b, iFanin, iLit, nAndPrev, * pFans0, * pFans1, * pFans2;
     int nFFins = 0, nFFouts = 0, curPi = 0, curPo = 0;
     int nBitCis = 0, nBitCos = 0;
-    vBits  = Vec_IntAlloc( nBits );
+    Vec_IntClear( vBits );
+    Vec_IntGrow( vBits, nBits );
     vTemp0 = Vec_IntAlloc( 1000 );
     vTemp1 = Vec_IntAlloc( 1000 );
     vTemp2 = Vec_IntAlloc( 1000 );
@@ -781,13 +782,14 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Vec_Int_t * vBoxIds )
     }
     if ( fVerbose )
         printf( "\n" );
-    Vec_IntFree( vBits );
-    Vec_IntErase( &p->vCopies );
+    //Vec_IntErase( vBits );
+    //Vec_IntErase( &p->vCopies );
     // set the number of registers
     assert( nFFins == nFFouts );
     Gia_ManSetRegNum( pNew, nFFins );
     // finalize AIG
     pNew = Gia_ManCleanup( pTemp = pNew );
+    Gia_ManDupRemapLiterals( vBits, pTemp );
     Gia_ManStop( pTemp );
     // transform AIG with init state
     if ( p->pInits )
@@ -800,6 +802,7 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Vec_Int_t * vBoxIds )
         else
         {
             pNew = Gia_ManDupZeroUndc( pTemp = pNew, p->pInits, 1 );
+            Gia_ManDupRemapLiterals( vBits, pTemp );
             Gia_ManStop( pTemp );
         }
     }
