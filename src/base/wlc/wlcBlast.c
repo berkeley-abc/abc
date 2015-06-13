@@ -549,8 +549,10 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Vec_Int_t * vBoxIds )
                 {
                     if ( !k ) continue;
                     //assert( nRange == Wlc_ObjRange(Wlc_NtkObj(p, iFanin)) );
-                    pFans1 = Vec_IntEntryP( vBits, Wlc_ObjCopy(p, iFanin) );
-                    Vec_IntPush( vTemp0, b < Wlc_ObjRange(Wlc_NtkObj(p, iFanin)) ? pFans1[b] : 0 );
+                    pPrev   = Wlc_NtkObj(p, iFanin);
+                    nRange1 = Wlc_ObjRange(pPrev);
+                    pFans1  = Vec_IntEntryP( vBits, Wlc_ObjCopy(p, iFanin) );
+                    Vec_IntPush( vTemp0, b < nRange1 ? pFans1[b] : (pPrev->Signed? pFans1[nRange1-1] : 0) );
                 }
                 Vec_IntPush( vRes, Wlc_NtkMuxTree_rec(pNew, pFans0, nRange0, vTemp0, 0) );
             }
