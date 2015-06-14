@@ -541,19 +541,22 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Vec_Int_t * vBoxIds )
         }
         else if ( pObj->Type == WLC_OBJ_MUX )
         {
+            int fSigned = 1;
+            assert( nRange0 >= 1 && Wlc_ObjFaninNum(pObj) >= 3 );
             assert( 1 + (1 << nRange0) == Wlc_ObjFaninNum(pObj) );
+            Wlc_ObjForEachFanin( pObj, iFanin, k )
+                if ( k > 0 )
+                    fSigned &= Wlc_NtkObj(p, iFanin)->Signed;
             for ( b = 0; b < nRange; b++ )
             {
                 Vec_IntClear( vTemp0 );
                 Wlc_ObjForEachFanin( pObj, iFanin, k )
-                {
-                    if ( !k ) continue;
-                    //assert( nRange == Wlc_ObjRange(Wlc_NtkObj(p, iFanin)) );
-                    pPrev   = Wlc_NtkObj(p, iFanin);
-                    nRange1 = Wlc_ObjRange(pPrev);
-                    pFans1  = Vec_IntEntryP( vBits, Wlc_ObjCopy(p, iFanin) );
-                    Vec_IntPush( vTemp0, b < nRange1 ? pFans1[b] : (pPrev->Signed? pFans1[nRange1-1] : 0) );
-                }
+                    if ( k > 0 )
+                    {
+                        nRange1 = Wlc_ObjRange( Wlc_NtkObj(p, iFanin) );
+                        pFans1  = Vec_IntEntryP( vBits, Wlc_ObjCopy(p, iFanin) );
+                        Vec_IntPush( vTemp0, b < nRange1 ? pFans1[b] : (fSigned? pFans1[nRange1-1] : 0) );
+                    }
                 Vec_IntPush( vRes, Wlc_NtkMuxTree_rec(pNew, pFans0, nRange0, vTemp0, 0) );
             }
         }
