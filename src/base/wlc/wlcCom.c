@@ -385,7 +385,9 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     //pNtk = Wlc_NtkAbstractNodes( pNtk, NULL );
     //Wlc_AbcUpdateNtk( pAbc, pNtk );
     //Wlc_GenerateSmtStdout( pAbc );
-    Wlc_NtkSimulateTest( (Wlc_Ntk_t *)pAbc->pAbcWlc );
+    //Wlc_NtkSimulateTest( (Wlc_Ntk_t *)pAbc->pAbcWlc );
+    pNtk = Wlc_NtkDupSingleNodes( pNtk );
+    Wlc_AbcUpdateNtk( pAbc, pNtk );
     return 0;
 usage:
     Abc_Print( -2, "usage: %%test [-vh]\n" );

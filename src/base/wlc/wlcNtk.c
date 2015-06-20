@@ -499,6 +499,59 @@ void Wlc_NtkTransferNames( Wlc_Ntk_t * pNew, Wlc_Ntk_t * p )
     pNew->vTables = p->vTables;      p->vTables = NULL;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Duplicates the network by copying each node.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Wlc_Ntk_t * Wlc_NtkDupSingleNodes( Wlc_Ntk_t * p )
+{
+    Wlc_Ntk_t * pNew;
+    Vec_Int_t * vFanins;
+    Wlc_Obj_t * pObj, * pObjNew;
+    Wlc_Obj_t * pFanin, * pFaninNew;
+    int i, k, iFanin, iFaninNew, iObjNew, Count = 0;
+    // count objects
+    Wlc_NtkForEachObj( p, pObj, i )
+        if ( !Wlc_ObjIsCi(pObj) )
+            Count += 1 + Wlc_ObjFaninNum(pObj);
+    // copy objects
+    Wlc_NtkCleanCopy( p );
+    vFanins = Vec_IntAlloc( 100 );
+    pNew = Wlc_NtkAlloc( p->pName, p->nObjsAlloc );
+    Wlc_NtkForEachObj( p, pObj, i )
+    {
+        if ( Wlc_ObjIsCi(pObj) )
+            continue;
+        if ( pObj->Type == WLC_OBJ_ARI_MULTI )
+            continue;
+        // create CIs for the fanins
+        Wlc_ObjForEachFanin( pObj, iFanin, k )
+        {
+            pFanin = Wlc_NtkObj(p, iFanin);
+            iFaninNew = Wlc_ObjAlloc( pNew, WLC_OBJ_PI, pFanin->Signed, pFanin->End, pFanin->Beg );
+            pFaninNew = Wlc_NtkObj(pNew, iFaninNew);
+            Wlc_ObjSetCopy( p, iFanin, iFaninNew );
+            //Wlc_ObjSetCi( pNew, pFaninNew );
+        }
+        // create object
+        iObjNew = Wlc_ObjDup( pNew, p, i, vFanins );
+        pObjNew = Wlc_NtkObj(pNew, iObjNew);
+        pObjNew->fIsPo = 1;
+        Vec_IntPush( &pNew->vPos, iObjNew );
+    }
+    Vec_IntFree( vFanins );
+    Wlc_NtkTransferNames( pNew, p );
+    return pNew;
+}
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
