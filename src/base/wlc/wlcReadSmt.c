@@ -168,8 +168,8 @@ static inline int Smt_StrToType( char * pName, int * pfSigned )
         Type = WLC_OBJ_LOGIC_XOR;     // 26: logic OR
     else if ( !strcmp(pName, "bvcomp") )
         Type = WLC_OBJ_COMP_EQU;      // 27: compare equal
-//    else if ( !strcmp(pName, "") )
-//        Type = WLC_OBJ_COMP_NOTEQU;   // 28: compare not equal
+    else if ( !strcmp(pName, "distinct") )
+        Type = WLC_OBJ_COMP_NOTEQU;   // 28: compare not equal
     else if ( !strcmp(pName, "bvult") )
         Type = WLC_OBJ_COMP_LESS;     // 29: compare less
     else if ( !strcmp(pName, "bvugt") )
