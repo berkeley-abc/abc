@@ -100,6 +100,7 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
     int fFunc0R, fFunc1R;
     int i, k, v, iCutDsd, fChange;
     int fSave0 = p->pPars->fDelayOpt || p->pPars->fDelayOptLut || p->pPars->fDsdBalance || p->pPars->fUserRecLib || p->pPars->fUseDsdTune || p->pPars->fUseCofVars || p->pPars->fUseAndVars || p->pPars->pLutStruct != NULL;
+    int fUseAndCut = (p->pPars->nAndDelay > 0) || (p->pPars->nAndArea > 0);
     assert( !If_ObjIsAnd(pObj->pFanin0) || pObj->pFanin0->pCutSet->nCuts > 0 );
     assert( !If_ObjIsAnd(pObj->pFanin1) || pObj->pFanin1->pCutSet->nCuts > 0 );
 
@@ -189,6 +190,10 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
         // check if this cut is contained in any of the available cuts
         if ( !p->pPars->fSkipCutFilter && If_CutFilter( pCutSet, pCut, fSave0 ) )
             continue;
+        // check if the cut is a special AND-gate cut
+        pCut->fAndCut = fUseAndCut && pCut->nLeaves == 2 && pCut->pLeaves[0] == pObj->pFanin0->Id && pCut->pLeaves[1] == pObj->pFanin1->Id;
+        assert( pCut->nLeaves != 2 || pCut->pLeaves[0] < pCut->pLeaves[1] );
+        assert( pCut->nLeaves != 2 || pObj->pFanin0->Id < pObj->pFanin1->Id );
         // compute the truth table
         pCut->iCutFunc = -1;
         pCut->fCompl = 0;

@@ -98,7 +98,15 @@ float If_CutDelay( If_Man_t * p, If_Obj_t * pObj, If_Cut_t * pCut )
     float * pLutDelays;
     int i, Shift, Pin2PinDelay;//, iLeaf;
     Delay = -IF_FLOAT_LARGE;
-    if ( p->pPars->pLutLib )
+    if ( pCut->fAndCut )
+    {
+        If_CutForEachLeaf( p, pCut, pLeaf, i )
+        {
+            DelayCur = If_ObjCutBest(pLeaf)->Delay + p->pPars->nAndDelay;
+            Delay = IF_MAX( Delay, DelayCur );
+        }
+    }
+    else if ( p->pPars->pLutLib )
     {
         assert( !p->pPars->fLiftLeaves );
         pLutDelays = p->pPars->pLutLib->pLutDelays[pCut->nLeaves];
@@ -177,7 +185,12 @@ void If_CutPropagateRequired( If_Man_t * p, If_Obj_t * pObj, If_Cut_t * pCut, fl
     int i, Pin2PinDelay;//, iLeaf;
     assert( !p->pPars->fLiftLeaves );
     // compute the pins
-    if ( p->pPars->pLutLib )
+    if ( pCut->fAndCut )
+    {
+        If_CutForEachLeaf( p, pCut, pLeaf, i )
+            pLeaf->Required = IF_MIN( pLeaf->Required, ObjRequired - p->pPars->nAndDelay );
+    }
+    else if ( p->pPars->pLutLib )
     {
         pLutDelays = p->pPars->pLutLib->pLutDelays[pCut->nLeaves];
         if ( p->pPars->pLutLib->fVarPinDelays )

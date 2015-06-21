@@ -55,7 +55,7 @@ ABC_NAMESPACE_HEADER_START
 // a very large number
 #define IF_INFINITY          100000000  
 // the largest possible user cut cost
-#define IF_COST_MAX          8191 // ((1<<13)-1)
+#define IF_COST_MAX          4095 // ((1<<12)-1)
 
 #define IF_BIG_CHAR ((char)120)
 
@@ -110,6 +110,8 @@ struct If_Par_t_
     float              Epsilon;       // value used in comparison floating point numbers
     int                nRelaxRatio;   // delay relaxation ratio
     int                nStructType;   // type of the structure
+    int                nAndDelay;     // delay of AND-gate in LUT library units
+    int                nAndArea;      // area of AND-gate in LUT library units
     int                fPreprocess;   // preprossing
     int                fArea;         // area-oriented mapping
     int                fFancy;        // a fancy feature
@@ -281,10 +283,11 @@ struct If_Cut_t_
     int                iCutFunc;      // TT ID of the cut
     int                uMaskFunc;     // polarity bitmask
     unsigned           uSign;         // cut signature
-    unsigned           Cost    : 13;  // the user's cost of the cut (related to IF_COST_MAX)
+    unsigned           Cost    : 12;  // the user's cost of the cut (related to IF_COST_MAX)
     unsigned           fCompl  :  1;  // the complemented attribute 
     unsigned           fUser   :  1;  // using the user's area and delay
-    unsigned           fUseless:  1;  // using the user's area and delay
+    unsigned           fUseless:  1;  // cannot be used in the mapping
+    unsigned           fAndCut :  1;  // matched with AND gate
     unsigned           nLimit  :  8;  // the maximum number of leaves
     unsigned           nLeaves :  8;  // the number of leaves
     int                pLeaves[0];
@@ -425,7 +428,7 @@ static inline int        If_CutDsdLit( If_Man_t * p, If_Cut_t * pCut )       { r
 static inline int        If_CutDsdIsCompl( If_Man_t * p, If_Cut_t * pCut )   { return Abc_LitIsCompl( If_CutDsdLit(p, pCut) );                                                     }
 static inline char *     If_CutDsdPerm( If_Man_t * p, If_Cut_t * pCut )      { return Vec_StrEntryP( p->vTtPerms[pCut->nLeaves], Abc_Lit2Var(pCut->iCutFunc) * Abc_MaxInt(6, pCut->nLeaves) );           }
 
-static inline float      If_CutLutArea( If_Man_t * p, If_Cut_t * pCut )      { return pCut->fUser? (float)pCut->Cost : (p->pPars->pLutLib? p->pPars->pLutLib->pLutAreas[pCut->nLeaves] : (float)1.0);    }
+static inline float      If_CutLutArea( If_Man_t * p, If_Cut_t * pCut )      { return pCut->fAndCut ? p->pPars->nAndArea : (pCut->fUser? (float)pCut->Cost : (p->pPars->pLutLib? p->pPars->pLutLib->pLutAreas[pCut->nLeaves] : (float)1.0));  }
 static inline float      If_CutLutDelay( If_LibLut_t * p, int Size, int iPin )  { return p ? (p->fVarPinDelays ? p->pLutDelays[Size][iPin] : p->pLutDelays[Size][0]) : 1.0;                              }
 
 
