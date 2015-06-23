@@ -116,13 +116,12 @@ Aig_Obj_t * Ntl_GraphToNetworkAig( Aig_Man_t * pMan, Dec_Graph_t * pGraph )
   SeeAlso     []
 
 ***********************************************************************/
-Aig_Obj_t * Ntl_ManBuildNodeAig( Ntl_Obj_t * pNode )
+Aig_Obj_t * Ntl_ManBuildNodeAig( Ntl_Man_t * p, Ntl_Obj_t * pNode )
 {
-    Aig_Man_t * pMan = pNode->pModel->pMan->pAig;
     int fUseFactor = 1;
     // consider the constant node
     if ( Kit_PlaGetVarNum(pNode->pSop) == 0 )
-        return Aig_NotCond( Aig_ManConst1(pMan), Kit_PlaIsConst0(pNode->pSop) );
+        return Aig_NotCond( Aig_ManConst1(p->pAig), Kit_PlaIsConst0(pNode->pSop) );
     // decide when to use factoring
     if ( fUseFactor && Kit_PlaGetVarNum(pNode->pSop) > 2 && Kit_PlaGetCubeNum(pNode->pSop) > 1 )
     {
@@ -136,11 +135,11 @@ Aig_Obj_t * Ntl_ManBuildNodeAig( Ntl_Obj_t * pNode )
         Dec_GraphForEachLeaf( pFForm, pFFNode, i )
             pFFNode->pFunc = Ntl_ObjFanin(pNode, i)->pCopy;
         // perform strashing
-        pFunc = Ntl_GraphToNetworkAig( pMan, pFForm );
+        pFunc = Ntl_GraphToNetworkAig( p->pAig, pFForm );
         Dec_GraphFree( pFForm );
         return pFunc;
     }
-    return Ntl_ConvertSopToAigInternal( pMan, pNode, pNode->pSop );
+    return Ntl_ConvertSopToAigInternal( p->pAig, pNode, pNode->pSop );
 }
 
 /**Function*************************************************************
@@ -198,7 +197,7 @@ int Ntl_ManExtract_rec( Ntl_Man_t * p, Ntl_Net_t * pNet )
     }
     Vec_PtrPush( p->vVisNodes, pObj );
     if ( Ntl_ObjIsNode(pObj) )
-        pNet->pCopy = Ntl_ManBuildNodeAig( pObj );
+        pNet->pCopy = Ntl_ManBuildNodeAig( p, pObj );
     pNet->nVisits = 2;
     return 1;
 }
@@ -371,7 +370,7 @@ int Ntl_ManCollapseBoxSeq1_rec( Ntl_Man_t * p, Ntl_Obj_t * pBox, int fSeq )
         pNet->nVisits = 2;
         // remember the class of this register
         Vec_IntPush( p->vRegClasses, p->pNal ? pBox->iTemp : pObj->LatchId.regClass );
-        Vec_IntPush( p->vRstClasses, p->pNal ? pBox->Reset : -1 );
+//        Vec_IntPush( p->vRstClasses, p->pNal ? pBox->Reset : -1 );
     }
     // compute AIG for the internal nodes
     Ntl_ModelForEachPo( pModel, pObj, i )
@@ -478,7 +477,7 @@ int Ntl_ManCollapse_rec( Ntl_Man_t * p, Ntl_Net_t * pNet, int fSeq )
             return 0;
     }
     if ( Ntl_ObjIsNode(pObj) )
-        pNet->pCopy = Ntl_ManBuildNodeAig( pObj );
+        pNet->pCopy = Ntl_ManBuildNodeAig( p, pObj );
     pNet->nVisits = 2;
     return 1;
 }

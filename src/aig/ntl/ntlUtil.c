@@ -247,10 +247,10 @@ void Ntl_ManSetZeroInitValues( Ntl_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-void Ntl_ManAddInverters( Ntl_Obj_t * pObj )
+void Ntl_ManAddInverters( Ntl_Mod_t * pRoot, Ntl_Obj_t * pObj )
 {
     char * pStore;
-    Ntl_Mod_t * pRoot = pObj->pModel;
+//    Ntl_Mod_t * pRoot = pObj->pModel;
     Ntl_Man_t * pMan = pRoot->pMan;
     Ntl_Net_t * pNetLo, * pNetLi, * pNetLoInv, * pNetLiInv;
     Ntl_Obj_t * pNode;
@@ -322,7 +322,7 @@ void Ntl_ManTransformInitValues( Ntl_Man_t * p )
     Ntl_ModelForEachLatch( pRoot, pObj, i )
     {
         if ( Ntl_ObjIsInit1( pObj ) )
-            Ntl_ManAddInverters( pObj );
+            Ntl_ManAddInverters( pRoot, pObj );
         pObj->LatchId.regInit = 0;
     }
 }

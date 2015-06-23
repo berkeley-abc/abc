@@ -137,14 +137,14 @@ struct Ntl_Reg_t_
 
 struct Ntl_Obj_t_
 {
-    Ntl_Mod_t *        pModel;         // the model  
+//    Ntl_Mod_t *        pModel;         // the model  
     void *             pCopy;          // the copy of this object
     unsigned           Type   :  3;    // object type
     unsigned           fMark  :  1;    // temporary mark  
     unsigned           Id     : 28;    // object ID
     int                nFanins;        // the number of fanins
     int                nFanouts;       // the number of fanouts
-    int                Reset;          // reset of the flop
+//    int                Reset;          // reset of the flop
     union {                            // functionality
         Ntl_Mod_t *    pImplem;        // model (for boxes)
         char *         pSop;           // SOP (for logic nodes)
@@ -165,7 +165,7 @@ struct Ntl_Net_t_
     union {
         void *         pCopy2;         // the copy of this object
         float          dTemp;          // other data
-        int            iTemp;          // other data
+//        int            iTemp;          // other data
     };
     Ntl_Obj_t *        pDriver;        // driver of the net
     unsigned           NetId     : 27; // unique ID of the net

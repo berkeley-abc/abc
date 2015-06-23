@@ -20963,7 +20963,7 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc8Fraig( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    void * pNtlNew;
+    void * pNtlNew, * pNtlOld;
     int c, fVerbose;
     int nPartSize;
     int nConfLimit;
@@ -21037,7 +21037,8 @@ int Abc_CommandAbc8Fraig( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
 
     // get the input file name
-    pNtlNew = Ntl_ManFraig( pAbc->pAbc8Ntl, nPartSize, nConfLimit, nLevelMax, fUseCSat, fVerbose );
+    pNtlOld = pAbc->pAbc8Ntl; pAbc->pAbc8Ntl = NULL;
+    pNtlNew = Ntl_ManFraig( pNtlOld, nPartSize, nConfLimit, nLevelMax, fUseCSat, fVerbose );
     if ( pNtlNew == NULL )
     {
         printf( "Abc_CommandAbc8Fraig(): Tranformation of the AIG has failed.\n" );
@@ -21084,7 +21085,7 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc8Scl( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    void * pNtlNew;
+    void * pNtlNew, * pNtlOld;
     int c;
     int fLatchConst;
     int fLatchEqual;
@@ -21131,7 +21132,8 @@ int Abc_CommandAbc8Scl( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
 
     // get the input file name
-    pNtlNew = Ntl_ManScl( pAbc->pAbc8Ntl, fLatchConst, fLatchEqual, fVerbose );
+    pNtlOld = pAbc->pAbc8Ntl; pAbc->pAbc8Ntl = NULL;
+    pNtlNew = Ntl_ManScl( pNtlOld, fLatchConst, fLatchEqual, fVerbose );
     if ( pNtlNew == NULL )
     {
         printf( "Abc_CommandAbc8Scl(): Tranformation of the AIG has failed.\n" );
@@ -21177,7 +21179,7 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc8Lcorr( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    void * pNtlNew;
+    void * pNtlNew, * pNtlOld;
     int c;
     int fScorrGia;
     int fUseCSat;
@@ -21248,9 +21250,10 @@ int Abc_CommandAbc8Lcorr( Abc_Frame_t * pAbc, int argc, char ** argv )
         fprintf( stdout, "Abc_CommandAbc8Lcorr(): The network is combinational.\n" );
         return 0;
     }
-
+ 
     // get the input file name
-    pNtlNew = Ntl_ManLcorr( pAbc->pAbc8Ntl, nConfMax, fScorrGia, fUseCSat, fVerbose );
+    pNtlOld = pAbc->pAbc8Ntl; pAbc->pAbc8Ntl = NULL;
+    pNtlNew = Ntl_ManLcorr( pNtlOld, nConfMax, fScorrGia, fUseCSat, fVerbose );
     if ( pNtlNew == NULL )
     {
         printf( "Abc_CommandAbc8Lcorr(): Tranformation of the AIG has failed.\n" );
@@ -21297,7 +21300,7 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc8Ssw( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    void * pNtlNew;
+    void * pNtlNew, * pNtlOld;
     Fra_Ssw_t Pars, * pPars = &Pars;
     int c;
     extern Aig_Man_t * Ntl_ManExtract( void * p );
@@ -21455,7 +21458,8 @@ int Abc_CommandAbc8Ssw( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
 
     // get the input file name
-    pNtlNew = Ntl_ManSsw( pAbc->pAbc8Ntl, pPars );
+    pNtlOld = pAbc->pAbc8Ntl; pAbc->pAbc8Ntl = NULL;
+    pNtlNew = Ntl_ManSsw( pNtlOld, pPars );
     if ( pNtlNew == NULL )
     {
         printf( "Abc_CommandAbc8Ssw(): Tranformation of the AIG has failed.\n" );
@@ -21511,7 +21515,7 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc8Scorr( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    void * pNtlNew;
+    void * pNtlNew, * pNtlOld;
     Ssw_Pars_t Pars, * pPars = &Pars;
     int c;
     extern Aig_Man_t * Ntl_ManExtract( void * p );
@@ -21683,7 +21687,8 @@ int Abc_CommandAbc8Scorr( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
 
     // get the input file name
-    pNtlNew = Ntl_ManScorr( pAbc->pAbc8Ntl, pPars );
+    pNtlOld = pAbc->pAbc8Ntl; pAbc->pAbc8Ntl = NULL;
+    pNtlNew = Ntl_ManScorr( pNtlOld, pPars );
     if ( pNtlNew == NULL )
     {
         printf( "Abc_CommandAbc8Scorr(): Tranformation of the AIG has failed.\n" );

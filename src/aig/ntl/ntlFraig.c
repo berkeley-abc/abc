@@ -373,7 +373,7 @@ if ( fVerbose )
 
   Synopsis    [Returns AIG with WB after fraiging.]
 
-  Description []
+  Description [Consumes the input NTL to save memory.]
                
   SideEffects []
 
@@ -386,11 +386,12 @@ Ntl_Man_t * Ntl_ManFraig( Ntl_Man_t * p, int nPartSize, int nConfLimit, int nLev
     Aig_Man_t * pAig, * pAigCol, * pTemp;
 
     if ( Ntl_ModelNodeNum(Ntl_ManRootModel(p)) == 0 )
-        return Ntl_ManDup(p);
+        return p;
 
     // collapse the AIG
     pAig = Ntl_ManExtract( p );
     pNew = Ntl_ManInsertAig( p, pAig );
+    Ntl_ManFree( p );
     pAigCol = Ntl_ManCollapseComb( pNew );
     if ( pAigCol == NULL )
     {
@@ -434,12 +435,15 @@ Ntl_Man_t * Ntl_ManFraig( Ntl_Man_t * p, int nPartSize, int nConfLimit, int nLev
 ***********************************************************************/
 int Ntl_ManAigCountResets( Ntl_Man_t * pNtl )
 {
+/*
     Ntl_Mod_t * pModel = Ntl_ManRootModel(pNtl);
     Ntl_Obj_t * pBox;
     int i, Counter = -1;
     Ntl_ModelForEachObj( pModel, pBox, i )
         Counter = ABC_MAX( Counter, pBox->Reset );
     return Counter + 1;
+*/
+    return -1;
 }
 
 /**Function*************************************************************
@@ -590,7 +594,7 @@ void Ntl_ManRemapClassesScorr( Ntl_Man_t * pNtl, Aig_Man_t * p, Aig_Man_t * pNew
 
   Synopsis    [Performs sequential cleanup.]
 
-  Description []
+  Description [Consumes the input NTL to save memory.]
                
   SideEffects []
 
@@ -607,6 +611,7 @@ Ntl_Man_t * Ntl_ManScl( Ntl_Man_t * p, int fLatchConst, int fLatchEqual, int fVe
 //Ntl_ManPrintStats( p );
 //Aig_ManPrintStats( pAig );
     pNew = Ntl_ManInsertAig( p, pAig );
+    Ntl_ManFree( p );
     pAigCol = Ntl_ManCollapseSeq( pNew, 0, fVerbose );
     if ( pAigCol == NULL )
     {
@@ -617,7 +622,7 @@ Ntl_Man_t * Ntl_ManScl( Ntl_Man_t * p, int fLatchConst, int fLatchEqual, int fVe
 //Aig_ManPrintStats( pAigCol );
 
     // perform SCL
-    if ( p->pNal )
+    if ( pNew->pNal )
     {
         Aig_Man_t * pAigRst;
         pAigRst = Ntl_ManAigToRst( pNew, pAigCol );
@@ -644,7 +649,7 @@ Ntl_Man_t * Ntl_ManScl( Ntl_Man_t * p, int fLatchConst, int fLatchEqual, int fVe
 
   Synopsis    [Returns AIG with WB after fraiging.]
 
-  Description []
+  Description [Consumes the input NTL to save memory.]
                
   SideEffects []
 
@@ -663,6 +668,7 @@ Ntl_Man_t * Ntl_ManLcorr( Ntl_Man_t * p, int nConfMax, int fScorrGia, int fUseCS
     // collapse the AIG
     pAig = Ntl_ManExtract( p );
     pNew = Ntl_ManInsertAig( p, pAig );
+    Ntl_ManFree( p );
     pAigCol = Ntl_ManCollapseSeq( pNew, pPars->nMinDomSize, pPars->fVerbose );
     if ( pAigCol == NULL )
     {
@@ -673,7 +679,7 @@ Ntl_Man_t * Ntl_ManLcorr( Ntl_Man_t * p, int nConfMax, int fScorrGia, int fUseCS
     // perform LCORR
     pPars->fScorrGia = fScorrGia;
     pPars->fUseCSat  = fUseCSat;
-    if ( p->pNal )
+    if ( pNew->pNal )
     {
         Aig_Man_t * pAigRst;
         pAigRst = Ntl_ManAigToRst( pNew, pAigCol );
@@ -700,7 +706,7 @@ Ntl_Man_t * Ntl_ManLcorr( Ntl_Man_t * p, int nConfMax, int fScorrGia, int fUseCS
 
   Synopsis    [Returns AIG with WB after fraiging.]
 
-  Description []
+  Description [Consumes the input NTL to save memory.]
                
   SideEffects []
 
@@ -716,6 +722,7 @@ Ntl_Man_t * Ntl_ManSsw( Ntl_Man_t * p, Fra_Ssw_t * pPars )
     // collapse the AIG
     pAig = Ntl_ManExtract( p );
     pNew = Ntl_ManInsertAig( p, pAig );
+    Ntl_ManFree( p );
     pAigCol = Ntl_ManCollapseSeq( pNew, pPars->nMinDomSize, pPars->fVerbose );
     if ( pAigCol == NULL )
     {
@@ -739,7 +746,7 @@ Ntl_Man_t * Ntl_ManSsw( Ntl_Man_t * p, Fra_Ssw_t * pPars )
 
   Synopsis    [Returns AIG with WB after fraiging.]
 
-  Description []
+  Description [Consumes the input NTL to save memory.]
                
   SideEffects []
 
@@ -754,6 +761,7 @@ Ntl_Man_t * Ntl_ManScorr( Ntl_Man_t * p, Ssw_Pars_t * pPars )
     // collapse the AIG
     pAig = Ntl_ManExtract( p );
     pNew = Ntl_ManInsertAig( p, pAig );
+    Ntl_ManFree( p );
     pAigCol = Ntl_ManCollapseSeq( pNew, pPars->nMinDomSize, pPars->fVerbose );
     if ( pAigCol == NULL )
     {
@@ -762,7 +770,7 @@ Ntl_Man_t * Ntl_ManScorr( Ntl_Man_t * p, Ssw_Pars_t * pPars )
     }
 
     // perform SCL
-    if ( p->pNal )
+    if ( pNew->pNal )
     {
         Aig_Man_t * pAigRst;
         pAigRst = Ntl_ManAigToRst( pNew, pAigCol );

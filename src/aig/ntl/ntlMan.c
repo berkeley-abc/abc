@@ -124,7 +124,7 @@ Ntl_Man_t * Ntl_ManStartFrom( Ntl_Man_t * pOld )
         {
             ((Ntl_Obj_t *)pBox->pCopy)->pImplem = pBox->pImplem->pCopy;
             ((Ntl_Obj_t *)pBox->pCopy)->iTemp = pBox->iTemp;
-            ((Ntl_Obj_t *)pBox->pCopy)->Reset = pBox->Reset;
+//            ((Ntl_Obj_t *)pBox->pCopy)->Reset = pBox->Reset;
         }
     Ntl_ManForEachCiNet( pOld, pNet, i )
         Vec_PtrPush( pNew->vCis, pNet->pCopy );

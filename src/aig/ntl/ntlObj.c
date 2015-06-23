@@ -47,7 +47,7 @@ Ntl_Obj_t * Ntl_ModelCreatePi( Ntl_Mod_t * pModel )
     p->Id = Vec_PtrSize( pModel->vObjs );
     Vec_PtrPush( pModel->vObjs, p );
     Vec_PtrPush( pModel->vPis, p );
-    p->pModel   = pModel;
+//    p->pModel   = pModel;
     p->Type     = NTL_OBJ_PI;
     p->nFanins  = 0;
     p->nFanouts = 1;
@@ -74,7 +74,7 @@ Ntl_Obj_t * Ntl_ModelCreatePo( Ntl_Mod_t * pModel, Ntl_Net_t * pNet )
     p->Id = Vec_PtrSize( pModel->vObjs );
     Vec_PtrPush( pModel->vObjs, p );
     Vec_PtrPush( pModel->vPos, p );
-    p->pModel    = pModel;
+//    p->pModel    = pModel;
     p->Type      = NTL_OBJ_PO;
     p->nFanins   = 1;
     p->nFanouts  = 0;
@@ -101,7 +101,7 @@ Ntl_Obj_t * Ntl_ModelCreateLatch( Ntl_Mod_t * pModel )
     memset( p, 0, sizeof(Ntl_Obj_t) + sizeof(Ntl_Net_t *) * 3 );
     p->Id = Vec_PtrSize( pModel->vObjs );
     Vec_PtrPush( pModel->vObjs, p );
-    p->pModel   = pModel;
+//    p->pModel   = pModel;
     p->Type     = NTL_OBJ_LATCH;
     p->nFanins  = 1;
     p->nFanouts = 1;
@@ -127,7 +127,7 @@ Ntl_Obj_t * Ntl_ModelCreateNode( Ntl_Mod_t * pModel, int nFanins )
     memset( p, 0, sizeof(Ntl_Obj_t) + sizeof(Ntl_Net_t *) * (nFanins + 1) );
     p->Id = Vec_PtrSize( pModel->vObjs );
     Vec_PtrPush( pModel->vObjs, p );
-    p->pModel   = pModel;
+//    p->pModel   = pModel;
     p->Type     = NTL_OBJ_NODE;
     p->nFanins  = nFanins;
     p->nFanouts = 1;
@@ -156,11 +156,11 @@ Ntl_Obj_t * Ntl_ModelCreateBox( Ntl_Mod_t * pModel, int nFanins, int nFanouts )
     memset( p, 0, sizeof(Ntl_Obj_t) + sizeof(Ntl_Net_t *) * (nFanins + nFanouts) );
     p->Id = Vec_PtrSize( pModel->vObjs );
     Vec_PtrPush( pModel->vObjs, p );
-    p->pModel   = pModel;
+//    p->pModel   = pModel;
     p->Type     = NTL_OBJ_BOX;
     p->nFanins  = nFanins;
     p->nFanouts = nFanouts;
-    p->Reset    = -1;
+//    p->Reset    = -1;
     pModel->nObjs[NTL_OBJ_BOX]++;
     return p;
 }
