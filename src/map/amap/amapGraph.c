@@ -115,6 +115,7 @@ Amap_Obj_t * Amap_ManCreatePo( Amap_Man_t * p, Amap_Obj_t * pFan0 )
     pObj->Level  = Amap_Regular(pFan0)->Level;
     if ( p->nLevelMax < (int)pObj->Level )
         p->nLevelMax = (int)pObj->Level;
+    assert( p->nLevelMax < 4094 ); // 2^12-2
     p->nObjs[AMAP_OBJ_PO]++;
     return pObj;
 }
@@ -142,6 +143,7 @@ Amap_Obj_t * Amap_ManCreateAnd( Amap_Man_t * p, Amap_Obj_t * pFan0, Amap_Obj_t *
     pObj->Level  = 1 + ABC_MAX( Amap_Regular(pFan0)->Level, Amap_Regular(pFan1)->Level );
     if ( p->nLevelMax < (int)pObj->Level )
         p->nLevelMax = (int)pObj->Level;
+    assert( p->nLevelMax < 4094 ); // 2^12-2
     p->nObjs[AMAP_OBJ_AND]++;
     return pObj;
 }
@@ -168,6 +170,7 @@ Amap_Obj_t * Amap_ManCreateXor( Amap_Man_t * p, Amap_Obj_t * pFan0, Amap_Obj_t *
     pObj->Level  = 2 + ABC_MAX( Amap_Regular(pFan0)->Level, Amap_Regular(pFan1)->Level );
     if ( p->nLevelMax < (int)pObj->Level )
         p->nLevelMax = (int)pObj->Level;
+    assert( p->nLevelMax < 4094 ); // 2^12-2
     p->nObjs[AMAP_OBJ_XOR]++;
     return pObj;
 }
@@ -197,6 +200,7 @@ Amap_Obj_t * Amap_ManCreateMux( Amap_Man_t * p, Amap_Obj_t * pFan0, Amap_Obj_t *
     pObj->Level  = 2 + ABC_MAX( pObj->Level, Amap_Regular(pFanC)->Level );
     if ( p->nLevelMax < (int)pObj->Level )
         p->nLevelMax = (int)pObj->Level;
+    assert( p->nLevelMax < 4094 ); // 2^12-2
     p->nObjs[AMAP_OBJ_MUX]++;
     return pObj;
 }
@@ -227,6 +231,7 @@ void Amap_ManCreateChoice( Amap_Man_t * p, Amap_Obj_t * pObj )
     // mark the largest level
     if ( p->nLevelMax < (int)pObj->Level )
         p->nLevelMax = (int)pObj->Level;
+    assert( p->nLevelMax < 4094 ); // 2^12-2
 }
 
 /**Function*************************************************************

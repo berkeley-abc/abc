@@ -545,7 +545,7 @@ int Cec_ManResimulateCounterExamples( Cec_ManSim_t * pSim, Vec_Int_t * vCexStore
     vPairs = Gia_ManCorrCreateRemapping( pSim->pAig );
     Gia_ManSetRefs( pSim->pAig );
 //    pSim->pPars->nWords  = 63;
-    pSim->pPars->nRounds = nFrames;
+    pSim->pPars->nFrames = nFrames;
     vSimInfo = Vec_PtrAllocSimInfo( Gia_ManRegNum(pSim->pAig) + Gia_ManPiNum(pSim->pAig) * nFrames, pSim->pPars->nWords );
     while ( iStart < Vec_IntSize(vCexStore) )
     {
@@ -580,7 +580,7 @@ int Cec_ManResimulateCounterExamplesComb( Cec_ManSim_t * pSim, Vec_Int_t * vCexS
     Vec_Ptr_t * vSimInfo; 
     int RetValue = 0, iStart = 0;
     Gia_ManSetRefs( pSim->pAig );
-    pSim->pPars->nRounds = 1;
+    pSim->pPars->nFrames = 1;
     vSimInfo = Vec_PtrAllocSimInfo( Gia_ManCiNum(pSim->pAig), pSim->pPars->nWords );
     while ( iStart < Vec_IntSize(vCexStore) )
     {
@@ -774,7 +774,7 @@ void Cec_ManLSCorrespondenceBmc( Gia_Man_t * pAig, Cec_ParCor_t * pPars, int nPr
     // prepare simulation manager
     Cec_ManSimSetDefaultParams( pParsSim );
     pParsSim->nWords     = pPars->nWords;
-    pParsSim->nRounds    = pPars->nRounds;
+    pParsSim->nFrames    = pPars->nRounds;
     pParsSim->fVerbose   = pPars->fVerbose;
     pParsSim->fLatchCorr = pPars->fLatchCorr;
     pParsSim->fSeqSimulate = 1;
@@ -853,7 +853,7 @@ int Cec_ManLSCorrespondenceClasses( Gia_Man_t * pAig, Cec_ParCor_t * pPars )
     // prepare simulation manager
     Cec_ManSimSetDefaultParams( pParsSim );
     pParsSim->nWords     = pPars->nWords;
-    pParsSim->nRounds    = pPars->nRounds;
+    pParsSim->nFrames    = pPars->nFrames;
     pParsSim->fVerbose   = pPars->fVerbose;
     pParsSim->fLatchCorr = pPars->fLatchCorr;
     pParsSim->fSeqSimulate = 1;

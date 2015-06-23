@@ -45,275 +45,279 @@
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-static int Abc_CommandPrintStats     ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandPrintExdc      ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandPrintIo        ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandPrintLatch     ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandPrintFanio     ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandPrintMffc      ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandPrintFactor    ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandPrintLevel     ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandPrintSupport   ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandPrintSymms     ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandPrintUnate     ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandPrintAuto      ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandPrintKMap      ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandPrintGates     ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandPrintSharing   ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandPrintXCut      ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandPrintDsd       ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandPrintCone      ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandPrintMiter     ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandPrintStats             ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandPrintExdc              ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandPrintIo                ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandPrintLatch             ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandPrintFanio             ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandPrintMffc              ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandPrintFactor            ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandPrintLevel             ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandPrintSupport           ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandPrintSymms             ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandPrintUnate             ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandPrintAuto              ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandPrintKMap              ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandPrintGates             ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandPrintSharing           ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandPrintXCut              ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandPrintDsd               ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandPrintCone              ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandPrintMiter             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
-static int Abc_CommandShow           ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandShowBdd        ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandShowCut        ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandShow                   ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandShowBdd                ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandShowCut                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
-static int Abc_CommandCollapse       ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandStrash         ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandBalance        ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandMuxStruct      ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandMulti          ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandRenode         ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandCleanup        ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandSweep          ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandFastExtract    ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandEliminate      ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandDisjoint       ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandLutpack        ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandLutmin         ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandImfs           ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandMfs            ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandTrace          ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandSpeedup        ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandPowerdown      ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandMerge          ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandCollapse               ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandStrash                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandBalance                ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandMuxStruct              ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandMulti                  ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandRenode                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandCleanup                ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandSweep                  ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandFastExtract            ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandEliminate              ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandDisjoint               ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandLutpack                ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandLutmin                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandImfs                   ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandMfs                    ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandTrace                  ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandSpeedup                ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandPowerdown              ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandMerge                  ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
-static int Abc_CommandRewrite        ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandRefactor       ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandRestructure    ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandResubstitute   ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandRr             ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandCascade        ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandRewrite                ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandRefactor               ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandRestructure            ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandResubstitute           ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandRr                     ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandCascade                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
-static int Abc_CommandLogic          ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandComb           ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandMiter          ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandDemiter        ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandOrPos          ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandAndPos         ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandAppend         ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandFrames         ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandDFrames        ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandSop            ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandBdd            ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandAig            ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandReorder        ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandBidec          ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandOrder          ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandMuxes          ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandExtSeqDcs      ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandReach          ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandCone           ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandNode           ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandTopmost        ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandTopAnd         ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandTrim           ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandShortNames     ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandExdcFree       ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandExdcGet        ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandExdcSet        ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandCareSet        ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandCut            ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandEspresso       ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandGen            ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandCover          ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandDouble         ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandInter          ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandTest           ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandLogic                  ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandComb                   ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandMiter                  ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandDemiter                ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandOrPos                  ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAndPos                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAppend                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandFrames                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandDFrames                ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandSop                    ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandBdd                    ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAig                    ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandReorder                ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandBidec                  ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandOrder                  ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandMuxes                  ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandExtSeqDcs              ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandReach                  ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandCone                   ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandNode                   ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandTopmost                ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandTopAnd                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandTrim                   ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandShortNames             ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandExdcFree               ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandExdcGet                ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandExdcSet                ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandCareSet                ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandCut                    ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandEspresso               ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandGen                    ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandCover                  ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandDouble                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandInter                  ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandTest                   ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
-static int Abc_CommandQuaVar         ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandQuaRel         ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandQuaReach       ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandSenseInput     ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandQuaVar                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandQuaRel                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandQuaReach               ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandSenseInput             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
-static int Abc_CommandIStrash        ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandICut           ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandIRewrite       ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandDRewrite       ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandDRefactor      ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandDC2            ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandDChoice        ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandDch            ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandDrwsat         ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandIRewriteSeq    ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandIResyn         ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandISat           ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandIFraig         ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandDFraig         ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandCSweep         ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandDProve         ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandDProve2        ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandAbSec          ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandSimSec         ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandMatch          ( Abc_Frame_t * pAbc, int argc, char ** argv );
-//static int Abc_CommandHaig           ( Abc_Frame_t * pAbc, int argc, char ** argv );
-//static int Abc_CommandMini           ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandQbf            ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandIStrash                ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandICut                   ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandIRewrite               ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandDRewrite               ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandDRefactor              ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandDC2                    ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandDChoice                ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandDch                    ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandDrwsat                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandIRewriteSeq            ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandIResyn                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandISat                   ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandIFraig                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandDFraig                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandCSweep                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandDProve                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandDProve2                ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbSec                  ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandSimSec                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandMatch                  ( Abc_Frame_t * pAbc, int argc, char ** argv );
+//static int Abc_CommandHaig                   ( Abc_Frame_t * pAbc, int argc, char ** argv );
+//static int Abc_CommandMini                   ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandQbf                    ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
-static int Abc_CommandFraig          ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandFraigTrust     ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandFraigStore     ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandFraigRestore   ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandFraigClean     ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandFraigSweep     ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandFraigDress     ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandFraig                  ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandFraigTrust             ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandFraigStore             ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandFraigRestore           ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandFraigClean             ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandFraigSweep             ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandFraigDress             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
-//static int Abc_CommandHaigStart      ( Abc_Frame_t * pAbc, int argc, char ** argv );
-//static int Abc_CommandHaigStop       ( Abc_Frame_t * pAbc, int argc, char ** argv );
-//static int Abc_CommandHaigUse        ( Abc_Frame_t * pAbc, int argc, char ** argv );
+//static int Abc_CommandHaigStart              ( Abc_Frame_t * pAbc, int argc, char ** argv );
+//static int Abc_CommandHaigStop               ( Abc_Frame_t * pAbc, int argc, char ** argv );
+//static int Abc_CommandHaigUse                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
-//static int Abc_CommandRecStart       ( Abc_Frame_t * pAbc, int argc, char ** argv );
-//static int Abc_CommandRecStop        ( Abc_Frame_t * pAbc, int argc, char ** argv );
-//static int Abc_CommandRecAdd         ( Abc_Frame_t * pAbc, int argc, char ** argv );
-//static int Abc_CommandRecPs          ( Abc_Frame_t * pAbc, int argc, char ** argv );
-//static int Abc_CommandRecUse         ( Abc_Frame_t * pAbc, int argc, char ** argv );
+//static int Abc_CommandRecStart               ( Abc_Frame_t * pAbc, int argc, char ** argv );
+//static int Abc_CommandRecStop                ( Abc_Frame_t * pAbc, int argc, char ** argv );
+//static int Abc_CommandRecAdd                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
+//static int Abc_CommandRecPs                  ( Abc_Frame_t * pAbc, int argc, char ** argv );
+//static int Abc_CommandRecUse                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
-static int Abc_CommandMap            ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandAmap           ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandUnmap          ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandAttach         ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandSuperChoice    ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandSuperChoiceLut ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandMap                    ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAmap                   ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandUnmap                  ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAttach                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandSuperChoice            ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandSuperChoiceLut         ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
-static int Abc_CommandFpga           ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandFpgaFast       ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandIf             ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandFpga                   ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandFpgaFast               ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandIf                     ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
-static int Abc_CommandScut           ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandInit           ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandZero           ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandUndc           ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandOneHot         ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandPipe           ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandSeq            ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandUnseq          ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandRetime         ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandDRetime        ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandFlowRetime     ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandCRetime        ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandSeqFpga        ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandSeqMap         ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandSeqSweep       ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandSeqSweep2      ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandSeqSweepTest   ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandLcorr          ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandSeqCleanup     ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandCycle          ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandXsim           ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandSim            ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandDarPhase       ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandSynch          ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandClockGate      ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandExtWin         ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandInsWin         ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandScut                   ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandInit                   ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandZero                   ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandUndc                   ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandOneHot                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandPipe                   ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandSeq                    ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandUnseq                  ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandRetime                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandDRetime                ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandFlowRetime             ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandCRetime                ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandSeqFpga                ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandSeqMap                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandSeqSweep               ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandSeqSweep2              ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandSeqSweepTest           ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandLcorr                  ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandSeqCleanup             ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandCycle                  ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandXsim                   ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandSim                    ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandDarPhase               ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandSynch                  ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandClockGate              ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandExtWin                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandInsWin                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
-static int Abc_CommandCec            ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandDCec           ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandSec            ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandDSec           ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandSat            ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandDSat           ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandPSat           ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandProve          ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandIProve         ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandDebug          ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandBmc            ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandBmc2           ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandBmcInter       ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandIndcut         ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandEnlarge        ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandInduction      ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandPBAbstraction  ( Abc_Frame_t * pAbc, int argc, char ** argv );
-
-
-static int Abc_CommandTraceStart     ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandTraceCheck     ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandCec                    ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandDCec                   ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandSec                    ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandDSec                   ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandSat                    ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandDSat                   ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandPSat                   ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandProve                  ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandIProve                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandDebug                  ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandBmc                    ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandBmc2                   ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandBmcInter               ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandIndcut                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandEnlarge                ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandInduction              ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandPBAbstraction          ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 
-static int Abc_CommandAbc8Read       ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandAbc8ReadLogic  ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandAbc8Write      ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandAbc8WriteLogic ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandAbc8ReadLut    ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandAbc8PrintLut   ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandAbc8Check      ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandTraceStart             ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandTraceCheck             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
-static int Abc_CommandAbc8Ps         ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandAbc8Pfan       ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandAbc8If         ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandAbc8DChoice    ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandAbc8Dch        ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandAbc8DC2        ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandAbc8Bidec      ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandAbc8Strash     ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandAbc8Mfs        ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandAbc8Lutpack    ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandAbc8Lutmin     ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandAbc8Balance    ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandAbc8Speedup    ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandAbc8Merge      ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandAbc8Insert     ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
-static int Abc_CommandAbc8Fraig      ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandAbc8Scl        ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandAbc8Lcorr      ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandAbc8Ssw        ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandAbc8Scorr      ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandAbc8Sweep      ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandAbc8Zero       ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc8Read               ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc8ReadLogic          ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc8Write              ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc8WriteLogic         ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc8ReadLut            ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc8PrintLut           ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc8Check              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
-static int Abc_CommandAbc8Cec        ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandAbc8DSec       ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc8Ps                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc8Pfan               ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc8If                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc8DChoice            ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc8Dch                ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc8DC2                ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc8Bidec              ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc8Strash             ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc8Mfs                ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc8Lutpack            ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc8Lutmin             ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc8Balance            ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc8Speedup            ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc8Merge              ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc8Insert             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
-static int Abc_CommandAbc9Get        ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandAbc9Put        ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandAbc9Read       ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandAbc9Write      ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandAbc9Ps         ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandAbc9PFan       ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandAbc9PSig       ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandAbc9Status     ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandAbc9Show       ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandAbc9Hash       ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandAbc9Topand     ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandAbc9Cof        ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandAbc9Trim       ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandAbc9Dfs        ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandAbc9Sim        ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandAbc9Resim      ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandAbc9Equiv      ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandAbc9Semi       ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandAbc9Times      ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandAbc9Frames     ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandAbc9Retime     ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandAbc9Enable     ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandAbc9Miter      ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandAbc9Scl        ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandAbc9Lcorr      ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandAbc9Scorr      ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandAbc9Choice     ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandAbc9Sat        ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandAbc9Fraig      ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandAbc9Srm        ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandAbc9Reduce     ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandAbc9Cec        ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandAbc9Force      ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandAbc9Embed      ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandAbc9If         ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandAbc9Era        ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandAbc9Dch        ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandAbc9Test       ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc8Fraig              ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc8Scl                ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc8Lcorr              ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc8Ssw                ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc8Scorr              ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc8Sweep              ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc8Zero               ( Abc_Frame_t * pAbc, int argc, char ** argv );
+
+static int Abc_CommandAbc8Cec                ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc8DSec               ( Abc_Frame_t * pAbc, int argc, char ** argv );
+
+static int Abc_CommandAbc9Get                ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9Put                ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9Read               ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9Write              ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9Ps                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9PFan               ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9PSig               ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9Status             ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9Show               ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9Hash               ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9Topand             ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9Cof                ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9Trim               ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9Dfs                ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9Sim                ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9Resim              ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9SpecI              ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9Equiv              ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9Semi               ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9Times              ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9Frames             ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9Retime             ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9Enable             ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9Miter              ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9Scl                ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9Lcorr              ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9Scorr              ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9Choice             ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9Sat                ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9Fraig              ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9Srm                ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9Reduce             ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9Cec                ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9Force              ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9Embed              ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9If                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9Era                ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9Dch                ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9Test               ( Abc_Frame_t * pAbc, int argc, char ** argv );
+
+extern int Abc_CommandAbcLivenessToSafety    ( Abc_Frame_t * pAbc, int argc, char ** argv );
+extern int Abc_CommandAbcLivenessToSafetySim ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 static int Abc_CommandAbcTestNew     ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
@@ -370,6 +374,14 @@ void Abc_FrameClearDesign()
 ***********************************************************************/
 void Abc_Init( Abc_Frame_t * pAbc )
 {
+/*
+    {
+        Aig_Man_t * pAig;
+        pAig = Ioa_ReadAiger( "i10.aig", 1 );
+        Aig_ManStop( pAig );
+    }
+*/
+
 //    Amap_LibParseTest( "at\\syn\\libraries\\LIBS\\BRDCM\\tsmc13_5.ff.genlib" );
 //    Amap_LibParseTest( "at\\syn\\libraries\\LIBS\\GS60\\GS60_W_30_1.7_CORE.genlib" );
 //    Amap_LibParseTest( "at\\syn\\libraries\\LIBS\\TYPICAL\\typical.genlib" );
@@ -614,6 +626,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "AIG",          "&dfs",          Abc_CommandAbc9Dfs,          0 );
     Cmd_CommandAdd( pAbc, "AIG",          "&sim",          Abc_CommandAbc9Sim,          0 );
     Cmd_CommandAdd( pAbc, "AIG",          "&resim",        Abc_CommandAbc9Resim,        0 );
+    Cmd_CommandAdd( pAbc, "AIG",          "&speci",        Abc_CommandAbc9SpecI,        0 );
     Cmd_CommandAdd( pAbc, "AIG",          "&equiv",        Abc_CommandAbc9Equiv,        0 );
     Cmd_CommandAdd( pAbc, "AIG",          "&semi",         Abc_CommandAbc9Semi,         0 );
     Cmd_CommandAdd( pAbc, "AIG",          "&times",        Abc_CommandAbc9Times,        0 );
@@ -637,7 +650,10 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "AIG",          "&dch",          Abc_CommandAbc9Dch,          0 );
     Cmd_CommandAdd( pAbc, "AIG",          "&test",         Abc_CommandAbc9Test,         0 );
 
-    Cmd_CommandAdd( pAbc, "Various",      "testnew",         Abc_CommandAbcTestNew,     0 );
+    Cmd_CommandAdd( pAbc, "Liveness",     "l2s",           Abc_CommandAbcLivenessToSafety,    0 );
+    Cmd_CommandAdd( pAbc, "Liveness",     "l2ssim",        Abc_CommandAbcLivenessToSafetySim, 0 );
+
+    Cmd_CommandAdd( pAbc, "Various",      "testnew",       Abc_CommandAbcTestNew,       0 );
 
 //    Cmd_CommandAdd( pAbc, "Verification", "trace_start",   Abc_CommandTraceStart,       0 );
 //    Cmd_CommandAdd( pAbc, "Verification", "trace_check",   Abc_CommandTraceCheck,       0 );
@@ -6637,6 +6653,7 @@ int Abc_CommandReach( Abc_Frame_t * pAbc, int argc, char ** argv )
 */
 //    Abc_NtkVerifyUsingBdds( pNtk, nBddMax, nIterMax, fPartition, fReorder, fVerbose );
     Abc_NtkDarReach( pNtk, nBddMax, nIterMax, fPartition, fReorder, fReorderImage, fVerbose );
+    pAbc->pCex = pNtk->pSeqModel; // temporary ???
     return 0;
 
 usage:
@@ -15339,7 +15356,7 @@ usage:
     fprintf( pErr, "\t-T num : approximate runtime limit in seconds [default = %d]\n", TimeOut );
     fprintf( pErr, "\t-n     : toggle new vs. old implementation [default = %s]\n", fNew? "new": "old" );
     fprintf( pErr, "\t-c     : toggle comb vs. seq simulaton [default = %s]\n", fComb? "comb": "seq" );
-    fprintf( pErr, "\t-m     : toggle miter vs. any circuit [default = %s]\n", fMiter? "miter": "not miter" );
+    fprintf( pErr, "\t-m     : toggle miter vs. any circuit [default = %s]\n", fMiter? "miter": "circuit" );
     fprintf( pErr, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     fprintf( pErr, "\t-h     : print the command usage\n");
     return 1;
@@ -17908,7 +17925,7 @@ int Abc_CommandBmc( Abc_Frame_t * pAbc, int argc, char ** argv )
     int nCofFanLit;
     int fVerbose;
 
-    extern int Abc_NtkDarBmc( Abc_Ntk_t * pNtk, int nFrames, int nSizeMax, int nNodeDelta, int nBTLimit, int nBTLimitAll, int fRewrite, int fNewAlgo, int nCofFanLit, int fVerbose );
+    extern int Abc_NtkDarBmc( Abc_Ntk_t * pNtk, int nStart, int nFrames, int nSizeMax, int nNodeDelta, int nTimeOut, int nBTLimit, int nBTLimitAll, int fRewrite, int fNewAlgo, int nCofFanLit, int fVerbose );
 
     pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
@@ -18025,7 +18042,7 @@ int Abc_CommandBmc( Abc_Frame_t * pAbc, int argc, char ** argv )
         fprintf( stdout, "Does not work for combinational networks.\n" );
         return 0;
     }
-    Abc_NtkDarBmc( pNtk, nFrames, nSizeMax, nNodeDelta, nBTLimit, nBTLimitAll, fRewrite, fNewAlgo, nCofFanLit, fVerbose );
+    Abc_NtkDarBmc( pNtk, 0, nFrames, nSizeMax, nNodeDelta, 0, nBTLimit, nBTLimitAll, fRewrite, fNewAlgo, nCofFanLit, fVerbose );
     pAbc->pCex = pNtk->pSeqModel; // temporary ???
     return 0;
 
@@ -18062,35 +18079,50 @@ int Abc_CommandBmc2( Abc_Frame_t * pAbc, int argc, char ** argv )
     FILE * pOut, * pErr;
     Abc_Ntk_t * pNtk;
     int c;
+    int nStart;
     int nFrames;
     int nSizeMax;
     int nBTLimit;
     int nBTLimitAll;
     int nNodeDelta;
+    int nTimeOut;
     int fRewrite;
     int fNewAlgo;
     int fVerbose;
 
-    extern int Abc_NtkDarBmc( Abc_Ntk_t * pNtk, int nFrames, int nSizeMax, int nNodeDelta, int nBTLimit, int nBTLimitAll, int fRewrite, int fNewAlgo, int nCofFanLit, int fVerbose );
+    extern int Abc_NtkDarBmc( Abc_Ntk_t * pNtk, int nStart, int nFrames, int nSizeMax, int nNodeDelta, int nTimeOut, int nBTLimit, int nBTLimitAll, int fRewrite, int fNewAlgo, int nCofFanLit, int fVerbose );
 
     pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
     // set defaults
+    nStart      =        0;
     nFrames     =     2000;
     nSizeMax    =   200000;
     nBTLimit    =     2000;
     nBTLimitAll =  2000000;
     nNodeDelta  =     2000;
+    nTimeOut    =        0;
     fRewrite    =        0;
     fNewAlgo    =        0;
     fVerbose    =        0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "FNCGDrvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "SFNTCGDrvh" ) ) != EOF )
     {
         switch ( c )
         {
+        case 'S':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( pErr, "Command line switch \"-S\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nStart = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nStart < 0 ) 
+                goto usage;
+            break;
         case 'F':
             if ( globalUtilOptind >= argc )
             {
@@ -18111,6 +18143,17 @@ int Abc_CommandBmc2( Abc_Frame_t * pAbc, int argc, char ** argv )
             nSizeMax = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
             if ( nSizeMax < 0 ) 
+                goto usage;
+            break;
+        case 'T':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( pErr, "Command line switch \"-T\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nTimeOut = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nTimeOut < 0 ) 
                 goto usage;
             break;
         case 'C':
@@ -18176,16 +18219,18 @@ int Abc_CommandBmc2( Abc_Frame_t * pAbc, int argc, char ** argv )
         fprintf( stdout, "Does not work for combinational networks.\n" );
         return 0;
     }
-    Abc_NtkDarBmc( pNtk, nFrames, nSizeMax, nNodeDelta, nBTLimit, nBTLimitAll, fRewrite, fNewAlgo, 0, fVerbose );
+    Abc_NtkDarBmc( pNtk, nStart, nFrames, nSizeMax, nNodeDelta, nTimeOut, nBTLimit, nBTLimitAll, fRewrite, fNewAlgo, 0, fVerbose );
     pAbc->pCex = pNtk->pSeqModel; // temporary ???
     return 0;
 
 usage:
 //    fprintf( pErr, "usage: bmc2 [-FNCGD num] [-ravh]\n" );
-    fprintf( pErr, "usage: bmc2 [-FCGD num] [-vh]\n" );
+    fprintf( pErr, "usage: bmc2 [-SFTCGD num] [-vh]\n" );
     fprintf( pErr, "\t         performs bounded model checking with dynamic unrolling\n" );
+    fprintf( pErr, "\t-S num : the starting time frame [default = %d]\n", nStart );
     fprintf( pErr, "\t-F num : the max number of time frames [default = %d]\n", nFrames );
 //    fprintf( pErr, "\t-N num : the max number of nodes in the frames [default = %d]\n", nSizeMax );
+    fprintf( pErr, "\t-T num : approximate runtime limit in seconds [default = %d]\n", nTimeOut );
     fprintf( pErr, "\t-C num : the max number of conflicts at a node [default = %d]\n", nBTLimit );
     fprintf( pErr, "\t-G num : the max number of conflicts globally [default = %d]\n", nBTLimitAll );
     fprintf( pErr, "\t-D num : the delta in the number of nodes [default = %d]\n", nNodeDelta );
@@ -18337,6 +18382,7 @@ int Abc_CommandBmcInter( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
         Abc_NtkDarBmcInter( pNtk, pPars );
     }
+    pAbc->pCex = pNtk->pSeqModel; // temporary ???
     return 0;
 
 usage:
@@ -18765,9 +18811,12 @@ int Abc_CommandPBAbstraction( Abc_Frame_t * pAbc, int argc, char ** argv )
     int nFramesBmc;
     int nConfMaxBmc;
     int nRatio;
+    int fUseBdds;
+    int fUseDprove;
+    int fUseStart;
     int fVerbose;
     int c;
-    extern Abc_Ntk_t * Abc_NtkDarPBAbstraction( Abc_Ntk_t * pNtk, int nFramesMax, int nConfMax, int fDynamic, int fExtend, int fSkipProof, int nFramesBmc, int nConfMaxBmc, int nRatio, int fVerbose );
+    extern Abc_Ntk_t * Abc_NtkDarPBAbstraction( Abc_Ntk_t * pNtk, int nFramesMax, int nConfMax, int fDynamic, int fExtend, int fSkipProof, int nFramesBmc, int nConfMaxBmc, int nRatio, int fUseBdds, int fUseDprove, int fUseStart, int fVerbose );
 
     pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
@@ -18782,9 +18831,12 @@ int Abc_CommandPBAbstraction( Abc_Frame_t * pAbc, int argc, char ** argv )
     nFramesBmc  =  2000;
     nConfMaxBmc =  5000;
     nRatio      =    10;
+    fUseBdds    =     0;
+    fUseDprove  =     0;
+    fUseStart   =     1;
     fVerbose    =     0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "FCGDRdesvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "FCGDRdesrpfvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -18852,6 +18904,15 @@ int Abc_CommandPBAbstraction( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 's':
             fSkipProof ^= 1;
             break;
+        case 'r':
+            fUseBdds ^= 1;
+            break;
+        case 'p':
+            fUseDprove ^= 1;
+            break;
+        case 'f':
+            fUseStart ^= 1;
+            break;
         case 'v':
             fVerbose ^= 1;
             break;
@@ -18883,7 +18944,7 @@ int Abc_CommandPBAbstraction( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
 
     // modify the current network
-    pNtkRes = Abc_NtkDarPBAbstraction( pNtk, nFramesMax, nConfMax, fDynamic, fExtend, fSkipProof, nFramesBmc, nConfMaxBmc, nRatio, fVerbose );
+    pNtkRes = Abc_NtkDarPBAbstraction( pNtk, nFramesMax, nConfMax, fDynamic, fExtend, fSkipProof, nFramesBmc, nConfMaxBmc, nRatio, fUseBdds, fUseDprove, fUseStart, fVerbose );
     if ( pNtkRes == NULL )
     {
         if ( pNtk->pSeqModel == NULL )
@@ -18894,7 +18955,7 @@ int Abc_CommandPBAbstraction( Abc_Frame_t * pAbc, int argc, char ** argv )
     Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
     return 0;
 usage:
-    fprintf( pErr, "usage: abs [-FCGDR num] [-desvh]\n" );
+    fprintf( pErr, "usage: abs [-FCGDR num] [-desrpfvh]\n" );
     fprintf( pErr, "\t         proof-based abstraction (PBA) using UNSAT core of BMC\n" );
     fprintf( pErr, "\t         followed by counter-example-based abstraction\n" );
     fprintf( pErr, "\t-F num : the max number of timeframes for PBA [default = %d]\n", nFramesMax );
@@ -18905,6 +18966,9 @@ usage:
     fprintf( pErr, "\t-d     : toggle dynamic unrolling of timeframes [default = %s]\n", fDynamic? "yes": "no" );
     fprintf( pErr, "\t-e     : toggle extending abstraction using COI of flops [default = %s]\n", fExtend? "yes": "no" );
     fprintf( pErr, "\t-s     : toggle skipping proof-based abstraction [default = %s]\n", fSkipProof? "yes": "no" );
+    fprintf( pErr, "\t-r     : toggle using BDD-based reachability for filtering [default = %s]\n", fUseBdds? "yes": "no" );
+    fprintf( pErr, "\t-p     : toggle using \"dprove\" for filtering [default = %s]\n", fUseDprove? "yes": "no" );
+    fprintf( pErr, "\t-f     : toggle starting BMC from a later frame [default = %s]\n", fUseStart? "yes": "no" );
     fprintf( pErr, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     fprintf( pErr, "\t-h     : print the command usage\n");
     return 1;
@@ -20958,7 +21022,7 @@ usage:
                
   SideEffects []
 
-  SeeAlso     []
+  SeeAlso     [] 
 
 ***********************************************************************/
 int Abc_CommandAbc8Fraig( Abc_Frame_t * pAbc, int argc, char ** argv )
@@ -23049,7 +23113,7 @@ usage:
     fprintf( stdout, "\t-W num : the number of words to simulate [default = %d]\n", pPars->nWords );
     fprintf( stdout, "\t-F num : the number of frames to simulate [default = %d]\n", pPars->nIters );
     fprintf( stdout, "\t-T num : approximate runtime limit in seconds [default = %d]\n", pPars->TimeLimit );
-    fprintf( stdout, "\t-m     : toggle miter vs. any circuit [default = %s]\n", pPars->fCheckMiter? "miter": "not miter" );
+    fprintf( stdout, "\t-m     : toggle miter vs. any circuit [default = %s]\n", pPars->fCheckMiter? "miter": "circuit" );
     fprintf( stdout, "\t-v     : toggle printing verbose information [default = %s]\n", pPars->fVerbose? "yes": "no" );
     fprintf( stdout, "\t-h     : print the command usage\n");
     return 1;
@@ -23082,9 +23146,9 @@ int Abc_CommandAbc9Resim( Abc_Frame_t * pAbc, int argc, char ** argv )
                 fprintf( stdout, "Command line switch \"-F\" should be followed by an integer.\n" );
                 goto usage;
             }
-            pPars->nRounds = atoi(argv[globalUtilOptind]);
+            pPars->nFrames = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nRounds < 0 ) 
+            if ( pPars->nFrames < 0 ) 
                 goto usage;
             break;
         case 'm':
@@ -23110,12 +23174,95 @@ int Abc_CommandAbc9Resim( Abc_Frame_t * pAbc, int argc, char ** argv )
 usage:
     fprintf( stdout, "usage: &resim [-F <num>] [-mvh]\n" );
     fprintf( stdout, "\t         resimulates equivalence classes using counter-example\n" );
-    fprintf( stdout, "\t-F num : the number of additinal frames to simulate [default = %d]\n", pPars->nRounds );
-    fprintf( stdout, "\t-m     : toggle miter vs. any circuit [default = %s]\n", pPars->fCheckMiter? "miter": "not miter" );
+    fprintf( stdout, "\t-F num : the number of additinal frames to simulate [default = %d]\n", pPars->nFrames );
+    fprintf( stdout, "\t-m     : toggle miter vs. any circuit [default = %s]\n", pPars->fCheckMiter? "miter": "circuit" );
     fprintf( stdout, "\t-v     : toggle printing verbose information [default = %s]\n", pPars->fVerbose? "yes": "no" );
     fprintf( stdout, "\t-h     : print the command usage\n");
     return 1;
 }
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc9SpecI( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern int Gia_CommandSpecI( Gia_Man_t * pGia, int nFrames, int nBTLimit, int fUseStart, int fCheckMiter, int fVerbose );
+    int nFrames     =   100;
+    int nBTLimit    = 25000;
+    int fUseStart   =     1;
+    int fCheckMiter =     1;
+    int fVerbose    =     0;
+    int c;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "FCfmvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'F':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( stdout, "Command line switch \"-F\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nFrames = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nFrames < 0 ) 
+                goto usage;
+            break;
+        case 'C':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( stdout, "Command line switch \"-C\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nBTLimit = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nBTLimit < 0 ) 
+                goto usage;
+            break;
+        case 'f':
+            fUseStart ^= 1;
+            break;
+        case 'm':
+            fCheckMiter ^= 1;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pAbc->pAig == NULL )
+    {
+        printf( "Abc_CommandAbc9SpecI(): There is no AIG.\n" );
+        return 1;
+    } 
+    Gia_CommandSpecI( pAbc->pAig, nFrames, nBTLimit, fUseStart, fCheckMiter, fVerbose );
+    return 0;
+
+usage:
+    fprintf( stdout, "usage: &speci [-FC <num>] [-fmvh]\n" );
+    fprintf( stdout, "\t         refines equivalence classes using speculative reduction\n" );
+    fprintf( stdout, "\t-F num : the max number of time frames [default = %d]\n", nFrames );
+    fprintf( stdout, "\t-C num : the max number of conflicts at a node [default = %d]\n", nBTLimit );
+    fprintf( stdout, "\t-f     : toggle starting BMC from a later frame [default = %s]\n", fUseStart? "yes": "no" );
+    fprintf( stdout, "\t-m     : toggle miter vs. any circuit [default = %s]\n", fCheckMiter? "miter": "circuit" );
+    fprintf( stdout, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
+    fprintf( stdout, "\t-h     : print the command usage\n");
+    return 1;
+}
+
 
 
 /**Function*************************************************************
@@ -23135,7 +23282,7 @@ int Abc_CommandAbc9Equiv( Abc_Frame_t * pAbc, int argc, char ** argv )
     int c;
     Cec_ManSimSetDefaultParams( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "WRTsmfdvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "WFRSTsmdvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -23150,6 +23297,17 @@ int Abc_CommandAbc9Equiv( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( pPars->nWords < 0 ) 
                 goto usage;
             break;
+        case 'F':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( stdout, "Command line switch \"-F\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nFrames = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nFrames < 0 ) 
+                goto usage;
+            break;
         case 'R':
             if ( globalUtilOptind >= argc )
             {
@@ -23159,6 +23317,17 @@ int Abc_CommandAbc9Equiv( Abc_Frame_t * pAbc, int argc, char ** argv )
             pPars->nRounds = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
             if ( pPars->nRounds < 0 ) 
+                goto usage;
+            break;
+        case 'S':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( stdout, "Command line switch \"-S\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nNonRefines = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nNonRefines < 0 ) 
                 goto usage;
             break;
         case 'T':
@@ -23177,9 +23346,6 @@ int Abc_CommandAbc9Equiv( Abc_Frame_t * pAbc, int argc, char ** argv )
             break;
         case 'm':
             pPars->fCheckMiter ^= 1;
-            break;
-        case 'f':
-            pPars->fFirstStop ^= 1;
             break;
         case 'd':
             pPars->fDualOut ^= 1;
@@ -23202,14 +23368,15 @@ int Abc_CommandAbc9Equiv( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( stdout, "usage: &equiv [-WRT <num>] [-smfdvh]\n" );
+    fprintf( stdout, "usage: &equiv [-WFRST <num>] [-smdvh]\n" );
     fprintf( stdout, "\t         computes candidate equivalence classes\n" );
     fprintf( stdout, "\t-W num : the number of words to simulate [default = %d]\n", pPars->nWords );
-    fprintf( stdout, "\t-R num : the number of rounds to simulate [default = %d]\n", pPars->nRounds );
+    fprintf( stdout, "\t-F num : the number of frames to simulate [default = %d]\n", pPars->nFrames );
+    fprintf( stdout, "\t-R num : the max number of simulation rounds [default = %d]\n", pPars->nRounds );
+    fprintf( stdout, "\t-S num : the max number of rounds w/o refinement to stop [default = %d]\n", pPars->nNonRefines );
     fprintf( stdout, "\t-T num : approximate runtime limit in seconds [default = %d]\n", pPars->TimeLimit );
     fprintf( stdout, "\t-s     : toggle seq vs. comb simulation [default = %s]\n", pPars->fSeqSimulate? "yes": "no" );
-    fprintf( stdout, "\t-m     : toggle miter vs. any circuit [default = %s]\n", pPars->fCheckMiter? "yes": "no" );
-    fprintf( stdout, "\t-f     : toggle quitting when one PO is asserted [default = %s]\n", pPars->fFirstStop? "yes": "no" );
+    fprintf( stdout, "\t-m     : toggle miter vs. any circuit [default = %s]\n", pPars->fCheckMiter? "miter": "circuit" );
     fprintf( stdout, "\t-d     : toggle using two POs intead of XOR [default = %s]\n", pPars->fDualOut? "yes": "no" );
     fprintf( stdout, "\t-v     : toggle printing verbose information [default = %s]\n", pPars->fVerbose? "yes": "no" );
     fprintf( stdout, "\t-h     : print the command usage\n");
@@ -23233,7 +23400,7 @@ int Abc_CommandAbc9Semi( Abc_Frame_t * pAbc, int argc, char ** argv )
     int c;
     Cec_ManSmfSetDefaultParams( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "WRFCTmfdvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "WRFSMCTmdvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -23270,6 +23437,28 @@ int Abc_CommandAbc9Semi( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( pPars->nFrames < 0 ) 
                 goto usage;
             break;
+        case 'S':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( stdout, "Command line switch \"-S\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nNonRefines = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nNonRefines < 0 ) 
+                goto usage;
+            break;
+        case 'M':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( stdout, "Command line switch \"-M\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nMinOutputs = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nMinOutputs < 0 ) 
+                goto usage;
+            break;
         case 'C':
             if ( globalUtilOptind >= argc )
             {
@@ -23295,9 +23484,6 @@ int Abc_CommandAbc9Semi( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'm':
             pPars->fCheckMiter ^= 1;
             break;
-        case 'f':
-            pPars->fFirstStop ^= 1;
-            break;
         case 'd':
             pPars->fDualOut ^= 1;
             break;
@@ -23319,15 +23505,16 @@ int Abc_CommandAbc9Semi( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( stdout, "usage: &semi [-WRFCT <num>] [-mfdvh]\n" );
+    fprintf( stdout, "usage: &semi [-WRFSMCT <num>] [-mdvh]\n" );
     fprintf( stdout, "\t         performs semiformal refinement of equivalence classes\n" );
     fprintf( stdout, "\t-W num : the number of words to simulate [default = %d]\n", pPars->nWords );
-    fprintf( stdout, "\t-R num : the number of rounds to simulate [default = %d]\n", pPars->nRounds );
-    fprintf( stdout, "\t-F num : the number of frames to simulate [default = %d]\n", pPars->nFrames );
+    fprintf( stdout, "\t-R num : the max number of rounds to simulate [default = %d]\n", pPars->nRounds );
+    fprintf( stdout, "\t-F num : the max number of frames to unroll [default = %d]\n", pPars->nFrames );
+    fprintf( stdout, "\t-S num : the max number of rounds w/o refinement to stop [default = %d]\n", pPars->nNonRefines );
+    fprintf( stdout, "\t-M num : the min number of outputs of bounded SRM [default = %d]\n", pPars->nMinOutputs );
     fprintf( stdout, "\t-C num : the max number of conflicts at a node [default = %d]\n", pPars->nBTLimit );
     fprintf( stdout, "\t-T num : approximate runtime limit in seconds [default = %d]\n", pPars->TimeLimit );
-    fprintf( stdout, "\t-m     : toggle miter vs. any circuit [default = %s]\n", pPars->fCheckMiter? "yes": "no" );
-    fprintf( stdout, "\t-f     : toggle quitting when one PO is asserted [default = %s]\n", pPars->fFirstStop? "yes": "no" );
+    fprintf( stdout, "\t-m     : toggle miter vs. any circuit [default = %s]\n", pPars->fCheckMiter? "miter": "circuit" );
     fprintf( stdout, "\t-d     : toggle using two POs intead of XOR [default = %s]\n", pPars->fDualOut? "yes": "no" );
     fprintf( stdout, "\t-v     : toggle printing verbose information [default = %s]\n", pPars->fVerbose? "yes": "no" );
     fprintf( stdout, "\t-h     : print the command usage\n");
@@ -23775,7 +23962,7 @@ int Abc_CommandAbc9Lcorr( Abc_Frame_t * pAbc, int argc, char ** argv )
     Cec_ManCorSetDefaultParams( pPars );
     pPars->fLatchCorr = 1;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "FCPfrcvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "FCPrcvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -23811,9 +23998,6 @@ int Abc_CommandAbc9Lcorr( Abc_Frame_t * pAbc, int argc, char ** argv )
             globalUtilOptind++;
             if ( pPars->nPrefix < 0 ) 
                 goto usage;
-            break;
-        case 'f':
-            pPars->fFirstStop ^= 1;
             break;
         case 'r':
             pPars->fUseRings ^= 1;
@@ -23844,12 +24028,11 @@ int Abc_CommandAbc9Lcorr( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( stdout, "usage: &lcorr [-FCP num] [-frcvh]\n" );
+    fprintf( stdout, "usage: &lcorr [-FCP num] [-rcvh]\n" );
     fprintf( stdout, "\t         performs latch correpondence computation\n" );
     fprintf( stdout, "\t-C num : the max number of conflicts at a node [default = %d]\n", pPars->nBTLimit );
     fprintf( stdout, "\t-F num : the number of timeframes in inductive case [default = %d]\n", pPars->nFrames );
     fprintf( stdout, "\t-P num : the number of timeframes in the prefix [default = %d]\n", pPars->nPrefix );
-    fprintf( stdout, "\t-f     : toggle quitting when one PO is asserted [default = %s]\n", pPars->fFirstStop? "yes": "no" );
     fprintf( stdout, "\t-r     : toggle using implication rings during refinement [default = %s]\n", pPars->fUseRings? "yes": "no" );
     fprintf( stdout, "\t-c     : toggle using circuit-based SAT solver [default = %s]\n", pPars->fUseCSat? "yes": "no" );
     fprintf( stdout, "\t-v     : toggle printing verbose information [default = %s]\n", pPars->fVerbose? "yes": "no" );
@@ -23875,7 +24058,7 @@ int Abc_CommandAbc9Scorr( Abc_Frame_t * pAbc, int argc, char ** argv )
     int c;
     Cec_ManCorSetDefaultParams( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "FCPfrecvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "FCPrecvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -23911,9 +24094,6 @@ int Abc_CommandAbc9Scorr( Abc_Frame_t * pAbc, int argc, char ** argv )
             globalUtilOptind++;
             if ( pPars->nPrefix < 0 ) 
                 goto usage;
-            break;
-        case 'f':
-            pPars->fFirstStop ^= 1;
             break;
         case 'r':
             pPars->fUseRings ^= 1;
@@ -23947,12 +24127,11 @@ int Abc_CommandAbc9Scorr( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( stdout, "usage: &scorr [-FCP num] [-frecvh]\n" );
+    fprintf( stdout, "usage: &scorr [-FCP num] [-recvh]\n" );
     fprintf( stdout, "\t         performs signal correpondence computation\n" );
     fprintf( stdout, "\t-C num : the max number of conflicts at a node [default = %d]\n", pPars->nBTLimit );
     fprintf( stdout, "\t-F num : the number of timeframes in inductive case [default = %d]\n", pPars->nFrames );
     fprintf( stdout, "\t-P num : the number of timeframes in the prefix [default = %d]\n", pPars->nPrefix );
-    fprintf( stdout, "\t-f     : toggle quitting when one PO is asserted [default = %s]\n", pPars->fFirstStop? "yes": "no" );
     fprintf( stdout, "\t-r     : toggle using implication rings during refinement [default = %s]\n", pPars->fUseRings? "yes": "no" );
     fprintf( stdout, "\t-e     : toggle using equivalences as choices [default = %s]\n", pPars->fMakeChoices? "yes": "no" );
     fprintf( stdout, "\t-c     : toggle using circuit-based SAT solver [default = %s]\n", pPars->fUseCSat? "yes": "no" );
@@ -24048,7 +24227,7 @@ int Abc_CommandAbc9Sat( Abc_Frame_t * pAbc, int argc, char ** argv )
     int fCSat = 0;
     Cec_ManSatSetDefaultParams( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "CSNnmftcvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "CSNnmtcvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -24091,9 +24270,6 @@ int Abc_CommandAbc9Sat( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'm':
             pPars->fCheckMiter ^= 1;
             break;
-        case 'f':
-            pPars->fFirstStop ^= 1;
-            break;
         case 't':
             pPars->fLearnCls ^= 1;
             break;
@@ -24133,14 +24309,13 @@ int Abc_CommandAbc9Sat( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( stdout, "usage: &sat [-CSN <num>] [-nmfctvh]\n" );
+    fprintf( stdout, "usage: &sat [-CSN <num>] [-nmctvh]\n" );
     fprintf( stdout, "\t         performs SAT solving for the combinational outputs\n" );
     fprintf( stdout, "\t-C num : the max number of conflicts at a node [default = %d]\n", pPars->nBTLimit );
     fprintf( stdout, "\t-S num : the min number of variables to recycle the solver [default = %d]\n", pPars->nSatVarMax );
     fprintf( stdout, "\t-N num : the min number of calls to recycle the solver [default = %d]\n", pPars->nCallsRecycle );
     fprintf( stdout, "\t-n     : toggle using non-chronological backtracking [default = %s]\n", pPars->fNonChrono? "yes": "no" );
-    fprintf( stdout, "\t-m     : toggle miter vs. any circuit [default = %s]\n", pPars->fCheckMiter? "yes": "no" );
-    fprintf( stdout, "\t-f     : toggle quitting when one PO is asserted [default = %s]\n", pPars->fFirstStop? "yes": "no" );
+    fprintf( stdout, "\t-m     : toggle miter vs. any circuit [default = %s]\n", pPars->fCheckMiter? "miter": "circuit" );
     fprintf( stdout, "\t-c     : toggle using circuit-based SAT solver [default = %s]\n", fCSat? "yes": "no" );
     fprintf( stdout, "\t-t     : toggle using learning in curcuit-based solver [default = %s]\n", pPars->fLearnCls? "yes": "no" );
     fprintf( stdout, "\t-v     : toggle printing verbose information [default = %s]\n", pPars->fVerbose? "yes": "no" );
@@ -24166,7 +24341,7 @@ int Abc_CommandAbc9Fraig( Abc_Frame_t * pAbc, int argc, char ** argv )
     int c;
     Cec_ManFraSetDefaultParams( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "WRILDCrmfdwvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "WRILDCrmdwvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -24242,9 +24417,6 @@ int Abc_CommandAbc9Fraig( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'm':
             pPars->fCheckMiter ^= 1;
             break;
-        case 'f':
-            pPars->fFirstStop ^= 1;
-            break;
         case 'd':
             pPars->fDualOut ^= 1;
             break;
@@ -24272,7 +24444,7 @@ int Abc_CommandAbc9Fraig( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( stdout, "usage: &fraig [-WRILDC <num>] [-rmfdwvh]\n" );
+    fprintf( stdout, "usage: &fraig [-WRILDC <num>] [-rmdwvh]\n" );
     fprintf( stdout, "\t         performs combinational SAT sweeping\n" );
     fprintf( stdout, "\t-W num : the number of simulation words [default = %d]\n", pPars->nWords );
     fprintf( stdout, "\t-R num : the number of simulation rounds [default = %d]\n", pPars->nRounds );
@@ -24281,8 +24453,7 @@ usage:
     fprintf( stdout, "\t-D num : the max number of steps of speculative reduction [default = %d]\n", pPars->nDepthMax );
     fprintf( stdout, "\t-C num : the max number of conflicts at a node [default = %d]\n", pPars->nBTLimit );
     fprintf( stdout, "\t-r     : toggle the use of AIG rewriting [default = %s]\n", pPars->fRewriting? "yes": "no" );
-    fprintf( stdout, "\t-m     : toggle miter vs. any circuit [default = %s]\n", pPars->fCheckMiter? "yes": "no" );
-    fprintf( stdout, "\t-f     : toggle quitting when one PO is asserted [default = %s]\n", pPars->fFirstStop? "yes": "no" );
+    fprintf( stdout, "\t-m     : toggle miter vs. any circuit [default = %s]\n", pPars->fCheckMiter? "miter": "circuit" );
     fprintf( stdout, "\t-d     : toggle using double output miters [default = %s]\n", pPars->fDualOut? "yes": "no" );
     fprintf( stdout, "\t-w     : toggle printing even more verbose information [default = %s]\n", pPars->fVeryVerbose? "yes": "no" );
     fprintf( stdout, "\t-v     : toggle printing verbose information [default = %s]\n", pPars->fVerbose? "yes": "no" );

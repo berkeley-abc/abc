@@ -193,7 +193,7 @@ p->timeCnf += clock() - clk;
                 }
                 // likely spurious counter-example
                 p->nFrames += i;
-                Inter_ManClean( p );
+                Inter_ManClean( p ); 
                 break;
             }
             else if ( RetValue == -1 ) // timed out

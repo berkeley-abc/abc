@@ -32,6 +32,7 @@
 #include "satSolver.h"
 #include "satStore.h"
 #include "bdc.h"
+#include "gia.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                         PARAMETERS                               ///
@@ -65,6 +66,12 @@ struct Mfs_Man_t_
     int                 nCexes;    // the numbe rof current counter-examples
     int                 nSatCalls; 
     int                 nSatCexes;
+    // intermediate AIG data
+    Gia_Man_t *         pGia;      // replica of the AIG in the new package
+    Gia_Obj_t **        pSat2Gia;  // mapping of PO SAT var into internal GIA nodes
+    Tas_Man_t *         pTas;      // the SAT solver
+    Vec_Int_t *         vCex;      // the counter-example
+    Vec_Ptr_t *         vGiaLits;  // literals given as assumptions
     // used for bidecomposition
     Vec_Int_t *         vTruth;
     Bdc_Man_t *         pManDec;
@@ -110,6 +117,7 @@ struct Mfs_Man_t_
     int                 timeWin;
     int                 timeDiv;
     int                 timeAig;
+    int                 timeGia;
     int                 timeCnf;
     int                 timeSat;
     int                 timeInt;
@@ -155,6 +163,10 @@ extern double           Abc_NtkConstraintRatio( Mfs_Man_t * p, Abc_Obj_t * pNode
 /*=== mfsWin.c ==========================================================*/
 extern Vec_Ptr_t *      Abc_MfsComputeRoots( Abc_Obj_t * pNode, int nWinTfoMax, int nFanoutLimit );
 
+/*=== mfsGia.c ==========================================================*/
+extern void             Abc_NtkMfsConstructGia( Mfs_Man_t * p );
+extern void             Abc_NtkMfsDeconstructGia( Mfs_Man_t * p );
+extern int              Abc_NtkMfsTryResubOnceGia( Mfs_Man_t * p, int * pCands, int nCands );
 
 #ifdef __cplusplus
 }

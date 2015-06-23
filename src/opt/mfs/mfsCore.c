@@ -265,6 +265,9 @@ clk = clock();
         p->nNodesBad++;
         return 1;
     }
+clk = clock();
+    Abc_NtkMfsConstructGia( p );
+p->timeGia += clock() - clk;
     // solve the SAT problem
     if ( p->pPars->fPower )
         Abc_NtkMfsEdgePower( p, pNode );
@@ -277,6 +280,7 @@ clk = clock();
             Abc_NtkMfsResubNode2( p, pNode );
     }
 p->timeSat += clock() - clk;
+    Abc_NtkMfsDeconstructGia( p );
     return 1;
 }
 

@@ -213,7 +213,7 @@ int Cec_ManChoiceComputation_int( Gia_Man_t * pAig, Cec_ParChc_t * pPars )
     // prepare simulation manager
     Cec_ManSimSetDefaultParams( pParsSim );
     pParsSim->nWords     = pPars->nWords;
-    pParsSim->nRounds    = pPars->nRounds;
+    pParsSim->nFrames    = pPars->nRounds;
     pParsSim->fVerbose   = pPars->fVerbose;
     pParsSim->fLatchCorr   = 0;
     pParsSim->fSeqSimulate = 0;

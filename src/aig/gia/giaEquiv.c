@@ -256,6 +256,69 @@ int Gia_ManEquivCheckLits( Gia_Man_t * p, int nLits )
   SeeAlso     []
 
 ***********************************************************************/
+void Gia_ManPrintStatsClasses( Gia_Man_t * p )
+{
+    int i, Counter = 0, Counter0 = 0, CounterX = 0, Proved = 0, nLits;
+    for ( i = 1; i < Gia_ManObjNum(p); i++ )
+    {
+        if ( Gia_ObjIsHead(p, i) )
+            Counter++;
+        else if ( Gia_ObjIsConst(p, i) )
+            Counter0++;
+        else if ( Gia_ObjIsNone(p, i) )
+            CounterX++;
+        if ( Gia_ObjProved(p, i) )
+            Proved++;
+    }
+    CounterX -= Gia_ManCoNum(p);
+    nLits = Gia_ManCiNum(p) + Gia_ManAndNum(p) - Counter - CounterX;
+
+//    printf( "i/o/ff =%5d/%5d/%5d  ", Gia_ManPiNum(p), Gia_ManPoNum(p), Gia_ManRegNum(p) );
+//    printf( "and =%5d  ", Gia_ManAndNum(p) );
+//    printf( "lev =%3d  ", Gia_ManLevelNum(p) );
+    printf( "cst =%3d  cls =%6d  lit =%8d\n", Counter0, Counter, nLits );
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Gia_ManEquivCountLits( Gia_Man_t * p )
+{
+    int i, Counter = 0, Counter0 = 0, CounterX = 0;
+    if ( p->pReprs == NULL || p->pNexts == NULL )
+        return 0;
+    for ( i = 1; i < Gia_ManObjNum(p); i++ )
+    {
+        if ( Gia_ObjIsHead(p, i) )
+            Counter++;
+        else if ( Gia_ObjIsConst(p, i) )
+            Counter0++;
+        else if ( Gia_ObjIsNone(p, i) )
+            CounterX++;
+    }
+    CounterX -= Gia_ManCoNum(p);
+    return Gia_ManCiNum(p) + Gia_ManAndNum(p) - Counter - CounterX;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 void Gia_ManEquivPrintClasses( Gia_Man_t * p, int fVerbose, float Mem )
 {
     int i, Counter = 0, Counter0 = 0, CounterX = 0, Proved = 0, nLits;
@@ -274,6 +337,8 @@ void Gia_ManEquivPrintClasses( Gia_Man_t * p, int fVerbose, float Mem )
     nLits = Gia_ManCiNum(p) + Gia_ManAndNum(p) - Counter - CounterX;
     printf( "cst =%8d  cls =%7d  lit =%8d  unused =%8d  proof =%6d  mem =%5.2f Mb\n", 
         Counter0, Counter, nLits, CounterX, Proved, (Mem == 0.0) ? 8.0*Gia_ManObjNum(p)/(1<<20) : Mem );
+//    printf( "cst =%8d  cls =%7d  lit =%8d\n", 
+//        Counter0, Counter, nLits );
     assert( Gia_ManEquivCheckLits( p, nLits ) );
     if ( fVerbose )
     {
@@ -696,6 +761,29 @@ static inline void Gia_ManSpecBuild( Gia_Man_t * pNew, Gia_Man_t * p, Gia_Obj_t 
 
 /**Function*************************************************************
 
+  Synopsis    [Returns 1 if AIG has dangling nodes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Gia_ManHasNoEquivs( Gia_Man_t * p )
+{
+    Gia_Obj_t * pObj;
+    int i;
+    if ( p->pReprs == NULL )
+        return 1;
+    Gia_ManForEachObj( p, pObj, i )
+        if ( Gia_ObjReprObj(p, i) != NULL )
+            break;
+    return i == Gia_ManObjNum(p);
+}
+
+/**Function*************************************************************
+
   Synopsis    [Duplicates the AIG in the DFS order.]
 
   Description []
@@ -743,16 +831,11 @@ Gia_Man_t * Gia_ManSpecReduce( Gia_Man_t * p, int fDualOut, int fVerbose )
         printf( "Gia_ManSpecReduce(): Dual-output miter should have even number of POs.\n" );
         return NULL;
     }
-    // check if there are any equivalences defined
-    Gia_ManForEachObj( p, pObj, i )
-        if ( Gia_ObjReprObj(p, i) != NULL )
-            break;
-    if ( i == Gia_ManObjNum(p) )
+    if ( Gia_ManHasNoEquivs(p) )
     {
         printf( "Gia_ManSpecReduce(): There are no equivalences to reduce.\n" );
         return NULL;
     }
-
 /*
     if ( !Gia_ManCheckTopoOrder( p ) )
     {
@@ -791,7 +874,6 @@ Gia_Man_t * Gia_ManSpecReduce( Gia_Man_t * p, int fDualOut, int fVerbose )
     Gia_ManStop( pTemp );
     return pNew;
 }
-
 
 /**Function*************************************************************
 
@@ -879,6 +961,7 @@ Gia_Man_t * Gia_ManSpecReduceInit( Gia_Man_t * p, Gia_Cex_t * pInit, int nFrames
         printf( "Gia_ManSpecReduceInit(): Dual-output miter should have even number of POs.\n" );
         return NULL;
     }
+
 /*
     if ( !Gia_ManCheckTopoOrder( p ) )
     {
@@ -918,7 +1001,7 @@ Gia_Man_t * Gia_ManSpecReduceInit( Gia_Man_t * p, Gia_Cex_t * pInit, int nFrames
         Gia_ManAppendCo( pNew, iLitNew );
     if ( Vec_IntSize(vXorLits) == 0 )
     {
-        printf( "Speculatively reduced model has no primary outputs.\n" );
+//        printf( "Speculatively reduced model has no primary outputs.\n" );
         Gia_ManAppendCo( pNew, 0 );
     }
     ABC_FREE( p->pCopies );
@@ -927,6 +1010,41 @@ Gia_Man_t * Gia_ManSpecReduceInit( Gia_Man_t * p, Gia_Cex_t * pInit, int nFrames
     pNew = Gia_ManCleanup( pTemp = pNew );
     Gia_ManStop( pTemp );
     return pNew;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Creates initialized SRM with the given number of frames.]
+
+  Description [Uses as many frames as needed to create the number of 
+  output not less than the number of equivalence literals.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Gia_Man_t * Gia_ManSpecReduceInitFrames( Gia_Man_t * p, Gia_Cex_t * pInit, int nFramesMax, int * pnFrames, int fDualOut, int nMinOutputs )
+{
+    Gia_Man_t * pFrames;
+    int f, nLits;
+    nLits = Gia_ManEquivCountLits( p );
+    for ( f = 1; ; f++ )
+    {
+        pFrames = Gia_ManSpecReduceInit( p, pInit, f, fDualOut );
+        if ( (nMinOutputs == 0 && Gia_ManPoNum(pFrames) >= nLits/2+1) || 
+             (nMinOutputs != 0 && Gia_ManPoNum(pFrames) >= nMinOutputs) )
+            break;
+        if ( f == nFramesMax )
+            break;
+        Gia_ManStop( pFrames );
+        pFrames = NULL;
+    }
+    if ( f == nFramesMax )
+        printf( "Stopped unrolling after %d frames.\n", nFramesMax );
+    if ( pnFrames )
+        *pnFrames = f;
+    return pFrames;
 }
 
 /**Function*************************************************************
@@ -1290,6 +1408,107 @@ Gia_Man_t * Gia_ManEquivToChoices( Gia_Man_t * p, int nSnapshots )
     Gia_ManStop( pTemp );
 //    Gia_ManEquivPrintClasses( pNew, 0, 0 );
     return pNew;
+}
+
+#include "aig.h"
+#include "saig.h"
+#include "cec.h"
+#include "giaAig.h"
+
+/**Function*************************************************************
+
+  Synopsis    [Implements iteration during speculation.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Gia_CommandSpecI( Gia_Man_t * pGia, int nFramesInit, int nBTLimitInit, int fStart, int fCheckMiter, int fVerbose )
+{
+    extern int Cec_ManCheckNonTrivialCands( Gia_Man_t * pAig );
+    Aig_Man_t * pTemp;
+    Gia_Man_t * pSrm, * pReduce, * pAux;
+    int nIter, nStart = 0;
+    if ( pGia->pReprs == NULL || pGia->pNexts == NULL )
+    {
+        printf( "Gia_CommandSpecI(): Equivalence classes are not defined.\n" );
+        return 0;
+    }
+    // (spech)*  where spech = &srm; restore save3; bmc2 -F 100 -C 25000; &resim
+    Gia_ManCleanMark0( pGia );
+    Gia_ManPrintStats( pGia, 0 );
+    for ( nIter = 0; ; nIter++ )
+    {
+        if ( Gia_ManHasNoEquivs(pGia) )
+        {
+            printf( "Gia_CommandSpecI: No equivalences left.\n" );
+            break;
+        }
+        printf( "ITER %3d : ", nIter );
+//      if ( fVerbose )
+//            printf( "Starting BMC from frame %d.\n", nStart );
+//      if ( fVerbose )
+//            Gia_ManPrintStats( pGia, 0 );
+            Gia_ManPrintStatsClasses( pGia );
+        // perform speculative reduction
+//        if ( Gia_ManPoNum(pSrm) <= Gia_ManPoNum(pGia) )
+        if ( !Cec_ManCheckNonTrivialCands(pGia) )
+        {
+            printf( "Gia_CommandSpecI: There are only trivial equiv candidates left (PO drivers). Quitting.\n" );
+            break;
+        }
+        pSrm = Gia_ManSpecReduce( pGia, 0, 0 ); 
+        // bmc2 -F 100 -C 25000
+        {
+            Gia_Cex_t * pCex;
+            int nFrames     = nFramesInit; // different from default
+            int nNodeDelta  = 2000;
+            int nBTLimit    = nBTLimitInit; // different from default
+            int nBTLimitAll = 2000000;
+            pTemp = Gia_ManToAig( pSrm, 0 );
+//            Aig_ManPrintStats( pTemp );
+            Gia_ManStop( pSrm );
+            Saig_BmcPerform( pTemp, nStart, nFrames, nNodeDelta, 20, nBTLimit, nBTLimitAll, fVerbose, 0 );
+            pCex = pTemp->pSeqModel; pTemp->pSeqModel = NULL;
+            Aig_ManStop( pTemp );
+            if ( pCex == NULL )
+            {
+                printf( "Gia_CommandSpecI(): Internal BMC could not find a counter-example.\n" );
+                break;
+            }
+            if ( fStart ) 
+                nStart = pCex->iFrame;
+            // perform simulation
+            {
+                Cec_ParSim_t Pars, * pPars = &Pars;
+                Cec_ManSimSetDefaultParams( pPars );
+                pPars->fCheckMiter = fCheckMiter;
+                if ( Cec_ManSeqResimulateCounter( pGia, pPars, pCex ) )
+                {
+                    ABC_FREE( pCex );
+                    break;
+                }
+                ABC_FREE( pCex );
+            }
+        } 
+        // write equivalence classes
+        Gia_WriteAiger( pGia, "gore.aig", 0, 0 );
+        // reduce the model
+        pReduce = Gia_ManSpecReduce( pGia, 0, 0 );
+        if ( pReduce )
+        {
+            pReduce = Gia_ManSeqStructSweep( pAux = pReduce, 1, 1, 0 );
+            Gia_ManStop( pAux );
+            Gia_WriteAiger( pReduce, "gsrm.aig", 0, 0 );
+//            printf( "Speculatively reduced model was written into file \"%s\".\n", "gsrm.aig" );
+//          Gia_ManPrintStatsShort( pReduce );
+            Gia_ManStop( pReduce );
+        }
+    }
+    return 1;
 }
 
 ////////////////////////////////////////////////////////////////////////

@@ -26,7 +26,7 @@ MODULES := \
 	src/aig/bdc src/aig/bar src/aig/ntl src/aig/nwk \
 	src/aig/mfx src/aig/tim src/aig/saig src/aig/bbr \
 	src/aig/int src/aig/dch src/aig/ssw src/aig/cgt \
-	src/aig/cec src/aig/gia src/aig/bbl
+	src/aig/cec src/aig/gia src/aig/bbl src/aig/live
 
 default: $(PROG)
 

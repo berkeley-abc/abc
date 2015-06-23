@@ -90,10 +90,10 @@ static inline Aig_Obj_t *  Saig_ObjLiToLo( Aig_Man_t * p, Aig_Obj_t * pObj )  { 
 ////////////////////////////////////////////////////////////////////////
 
 /*=== sswAbs.c ==========================================================*/
-extern Aig_Man_t *       Saig_ManProofAbstraction( Aig_Man_t * p, int nFrames, int nConfMax, int fDynamic, int fExtend, int fSkipProof, int nFramesBmc, int nConfMaxBmc, int nRatio, int fVerbose );
+extern Aig_Man_t *       Saig_ManProofAbstraction( Aig_Man_t * p, int nFrames, int nConfMax, int fDynamic, int fExtend, int fSkipProof, int nFramesBmc, int nConfMaxBmc, int nRatio, int fUseBdds, int fUseDprove, int fUseStart, int fVerbose );
 /*=== saigBmc.c ==========================================================*/
 extern int               Saig_ManBmcSimple( Aig_Man_t * pAig, int nFrames, int nSizeMax, int nBTLimit, int fRewrite, int fVerbose, int * piFrame, int nCofFanLit );
-extern void              Saig_BmcPerform( Aig_Man_t * pAig, int nFramesMax, int nNodesMax, int nConfMaxOne, int nConfMaxAll, int fVerbose );
+extern void              Saig_BmcPerform( Aig_Man_t * pAig, int nStart, int nFramesMax, int nNodesMax, int nTimeOut, int nConfMaxOne, int nConfMaxAll, int fVerbose, int fVerbOverwrite );
 /*=== saigCone.c ==========================================================*/
 extern void              Saig_ManPrintCones( Aig_Man_t * p );
 /*=== saigDup.c ==========================================================*/

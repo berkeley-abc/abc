@@ -508,7 +508,7 @@ Ssw_Cex_t * Saig_BmcGenerateCounterExample( Saig_Bmc_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-int Saig_BmcSolveTargets( Saig_Bmc_t * p )
+int Saig_BmcSolveTargets( Saig_Bmc_t * p, int nStart, int * pnOutsSolved )
 {
     Aig_Obj_t * pObj;
     int i, VarNum, Lit, RetValue;
@@ -520,6 +520,8 @@ int Saig_BmcSolveTargets( Saig_Bmc_t * p )
     }
     Vec_PtrForEachEntry( p->vTargets, pObj, i )
     {
+        if ( ((*pnOutsSolved)++ / Saig_ManPoNum(p->pAig)) < nStart )
+            continue;
         if ( p->pSat->stats.conflicts > p->nConfMaxAll )
             return l_Undef;
         VarNum = Saig_BmcSatNum( p, Aig_Regular(pObj) );
@@ -575,11 +577,12 @@ void Saig_BmcAddTargetsAsPos( Saig_Bmc_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-void Saig_BmcPerform( Aig_Man_t * pAig, int nFramesMax, int nNodesMax, int nConfMaxOne, int nConfMaxAll, int fVerbose )
+void Saig_BmcPerform( Aig_Man_t * pAig, int nStart, int nFramesMax, int nNodesMax, int nTimeOut, int nConfMaxOne, int nConfMaxAll, int fVerbose, int fVerbOverwrite )
 {
     Saig_Bmc_t * p;
     Aig_Man_t * pNew;
     Cnf_Dat_t * pCnf;
+    int nOutsSolved = 0;
     int Iter, RetValue, clk = clock(), clk2;
     p = Saig_BmcManStart( pAig, nFramesMax, nNodesMax, nConfMaxOne, nConfMaxAll, fVerbose );
     if ( fVerbose )
@@ -609,7 +612,7 @@ void Saig_BmcPerform( Aig_Man_t * pAig, int nFramesMax, int nNodesMax, int nConf
         Cnf_DataFree( pCnf );
         Aig_ManStop( pNew );
         // solve the targets
-        RetValue = Saig_BmcSolveTargets( p );
+        RetValue = Saig_BmcSolveTargets( p, nStart, &nOutsSolved );
         if ( fVerbose )
         {
             printf( "%3d : F = %3d. O =%4d.  And = %7d. Var = %7d. Conf = %7d. ", 
@@ -620,11 +623,21 @@ void Saig_BmcPerform( Aig_Man_t * pAig, int nFramesMax, int nNodesMax, int nConf
             break;
     }
     if ( RetValue == l_True )
+    {
+        assert( p->iFrameFail * Saig_ManPoNum(p->pAig) + p->iOutputFail + 1 == nOutsSolved );
         printf( "Output %d was asserted in frame %d (use \"write_counter\" to dump a witness). ", 
             p->iOutputFail, p->iFrameFail );
+    }
     else // if ( RetValue == l_False || RetValue == l_Undef )
         printf( "No output was asserted in %d frames.  ", p->iFramePrev-1 );
-    ABC_PRT( "Time", clock() - clk );
+    if ( fVerbOverwrite )
+    {
+        ABC_PRTr( "Time", clock() - clk );
+    }
+    else
+    {
+        ABC_PRT( "Time", clock() - clk );
+    }
     if ( RetValue != l_True )
     {
         if ( p->iFrameLast >= p->nFramesMax )

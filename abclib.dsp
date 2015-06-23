@@ -1671,6 +1671,10 @@ SOURCE=.\src\opt\mfs\mfsDiv.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\opt\mfs\mfsGia.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\opt\mfs\mfsInt.h
 # End Source File
 # Begin Source File
@@ -3832,6 +3836,18 @@ SOURCE=.\src\aig\bbl\bblif.c
 # Begin Source File
 
 SOURCE=.\src\aig\bbl\bblif.h
+# End Source File
+# End Group
+# Begin Group "live"
+
+# PROP Default_Filter ""
+# Begin Source File
+
+SOURCE=.\src\aig\live\liveness.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\live\liveness_sim.c
 # End Source File
 # End Group
 # End Group

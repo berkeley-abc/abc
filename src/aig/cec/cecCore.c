@@ -48,7 +48,7 @@ void Cec_ManSatSetDefaultParams( Cec_ParSat_t * p )
     p->fNonChrono     =       0;  // use non-chronological backtracling (for circuit SAT only)
     p->fPolarFlip     =       1;  // flops polarity of variables
     p->fCheckMiter    =       0;  // the circuit is the miter
-    p->fFirstStop     =       0;  // stop on the first sat output
+//    p->fFirstStop     =       0;  // stop on the first sat output
     p->fLearnCls      =       0;  // perform clause learning
     p->fVerbose       =       0;  // verbose stats
 }  
@@ -67,11 +67,13 @@ void Cec_ManSatSetDefaultParams( Cec_ParSat_t * p )
 void Cec_ManSimSetDefaultParams( Cec_ParSim_t * p )
 {
     memset( p, 0, sizeof(Cec_ParSim_t) );
-    p->nWords         =      15;  // the number of simulation words
-    p->nRounds        =      15;  // the number of simulation rounds
+    p->nWords         =      31;  // the number of simulation words
+    p->nFrames        =     100;  // the number of simulation frames
+    p->nRounds        =      20;  // the max number of simulation rounds
+    p->nNonRefines    =       3;  // the max number of rounds without refinement
     p->TimeLimit      =       0;  // the runtime limit in seconds
     p->fCheckMiter    =       0;  // the circuit is the miter
-    p->fFirstStop     =       0;  // stop on the first sat output
+//    p->fFirstStop     =       0;  // stop on the first sat output
     p->fDualOut       =       0;  // miter with separate outputs
     p->fSeqSimulate   =       0;  // performs sequential simulation
     p->fVeryVerbose   =       0;  // verbose stats
@@ -93,13 +95,15 @@ void Cec_ManSmfSetDefaultParams( Cec_ParSmf_t * p )
 {
     memset( p, 0, sizeof(Cec_ParSmf_t) );
     p->nWords         =      31;  // the number of simulation words
-    p->nRounds        =       1;  // the number of simulation rounds
-    p->nFrames        =       2;  // the number of time frames
+    p->nRounds        =     200;  // the number of simulation rounds
+    p->nFrames        =     200;  // the max number of time frames
+    p->nNonRefines    =       3;  // the max number of rounds without refinement
+    p->nMinOutputs    =       0;  // the min outputs to accumulate
     p->nBTLimit       =     100;  // conflict limit at a node
     p->TimeLimit      =       0;  // the runtime limit in seconds
     p->fDualOut       =       0;  // miter with separate outputs
     p->fCheckMiter    =       0;  // the circuit is the miter
-    p->fFirstStop     =       0;  // stop on the first sat output
+//    p->fFirstStop     =       0;  // stop on the first sat output
     p->fVerbose       =       0;  // verbose stats
 } 
 
@@ -126,7 +130,7 @@ void Cec_ManFraSetDefaultParams( Cec_ParFra_t * p )
     p->nDepthMax      =       1;  // the depth in terms of steps of speculative reduction
     p->fRewriting     =       0;  // enables AIG rewriting
     p->fCheckMiter    =       0;  // the circuit is the miter
-    p->fFirstStop     =       0;  // stop on the first sat output
+//    p->fFirstStop     =       0;  // stop on the first sat output
     p->fDualOut       =       0;  // miter with separate outputs
     p->fColorDiff     =       0;  // miter with separate outputs
     p->fVeryVerbose   =       0;  // verbose stats
@@ -149,7 +153,7 @@ void Cec_ManCecSetDefaultParams( Cec_ParCec_t * p )
     memset( p, 0, sizeof(Cec_ParCec_t) );
     p->nBTLimit       =    1000;  // conflict limit at a node
     p->TimeLimit      =       0;  // the runtime limit in seconds
-    p->fFirstStop     =       0;  // stop on the first sat output
+//    p->fFirstStop     =       0;  // stop on the first sat output
     p->fUseSmartCnf   =       0;  // use smart CNF computation
     p->fRewriting     =       0;  // enables AIG rewriting
     p->fVeryVerbose   =       0;  // verbose stats
@@ -177,7 +181,7 @@ void Cec_ManCorSetDefaultParams( Cec_ParCor_t * p )
     p->fLatchCorr     =       0;  // consider only latch outputs
     p->fUseRings      =       1;  // combine classes into rings
     p->fUseCSat       =       1;  // use circuit-based solver
-    p->fFirstStop     =       0;  // stop on the first sat output
+//    p->fFirstStop     =       0;  // stop on the first sat output
     p->fUseSmartCnf   =       0;  // use smart CNF computation
     p->fVeryVerbose   =       0;  // verbose stats
     p->fVerbose       =       0;  // verbose stats
@@ -233,6 +237,32 @@ Gia_Man_t * Cec_ManSatSolving( Gia_Man_t * pAig, Cec_ParSat_t * pPars )
 
   Synopsis    [Core procedure for simulation.]
 
+  Description [Returns 1 if refinement has happened.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Cec_ManSimulationOne( Gia_Man_t * pAig, Cec_ParSim_t * pPars )
+{
+    Cec_ManSim_t * pSim;
+    int RetValue = 0, clkTotal = clock();
+    pSim = Cec_ManSimStart( pAig, pPars );
+    if ( (pAig->pReprs == NULL && (RetValue = Cec_ManSimClassesPrepare( pSim ))) ||
+         (RetValue == 0 &&        (RetValue = Cec_ManSimClassesRefine( pSim ))) )
+        printf( "The number of failed outputs of the miter = %6d. (Words = %4d. Frames = %4d.)\n", 
+            pSim->nOuts, pPars->nWords, pPars->nFrames );
+    if ( pPars->fVerbose )
+        ABC_PRT( "Time", clock() - clkTotal );
+    Cec_ManSimStop( pSim );
+    return RetValue;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Core procedure for simulation.]
+
   Description []
                
   SideEffects []
@@ -242,22 +272,44 @@ Gia_Man_t * Cec_ManSatSolving( Gia_Man_t * pAig, Cec_ParSat_t * pPars )
 ***********************************************************************/
 void Cec_ManSimulation( Gia_Man_t * pAig, Cec_ParSim_t * pPars )
 {
-    Cec_ManSim_t * pSim;
-    int RetValue, clkTotal = clock();
-    if ( pPars->fSeqSimulate )
-        printf( "Performing sequential simulation of %d frames with %d words.\n", 
-            pPars->nRounds, pPars->nWords );
+    int r, nLitsOld, nLitsNew, nCountNoRef = 0, fStop = 0;
     Gia_ManRandom( 1 );
-    pSim = Cec_ManSimStart( pAig, pPars );
-    if ( pAig->pReprs == NULL )
-        RetValue = Cec_ManSimClassesPrepare( pSim );
-    Cec_ManSimClassesRefine( pSim );
+    if ( pPars->fSeqSimulate )
+        printf( "Performing rounds of random simulation of %d frames with %d words.\n", 
+            pPars->nRounds, pPars->nFrames, pPars->nWords );
+    nLitsOld = Gia_ManEquivCountLits( pAig );
+    for ( r = 0; r < pPars->nRounds; r++ )
+    {
+        if ( Cec_ManSimulationOne( pAig, pPars ) )
+        {
+            fStop = 1;
+            break;
+        }
+        // decide when to stop
+        nLitsNew = Gia_ManEquivCountLits( pAig );
+        if ( nLitsOld == 0 || nLitsOld > nLitsNew )
+        {
+            nLitsOld = nLitsNew;
+            nCountNoRef = 0;
+        }
+        else if ( ++nCountNoRef == pPars->nNonRefines )
+        {
+            r++;
+            break;
+        }
+        assert( nLitsOld == nLitsNew );
+    }
+//    if ( pPars->fVerbose )
+    if ( r == pPars->nRounds || fStop )
+        printf( "Random simulation is stopped after %d rounds.\n", r );
+    else
+        printf( "Random simulation saturated after %d rounds.\n", r );
     if ( pPars->fCheckMiter )
-        printf( "The number of failed outputs of the miter = %6d. (Words = %4d. Rounds = %4d.)\n", 
-            pSim->iOut, pSim->nOuts, pPars->nWords, pPars->nRounds );
-    if ( pPars->fVerbose )
-        ABC_PRT( "Time", clock() - clkTotal );
-    Cec_ManSimStop( pSim );
+    {
+        int nNonConsts = Cec_ManCountNonConstOutputs( pAig );
+        if ( nNonConsts )
+            printf( "The number of POs that are not const-0 candidates = %d.\n", nNonConsts );
+    }
 }
 
 /**Function*************************************************************
@@ -297,9 +349,8 @@ Gia_Man_t * Cec_ManSatSweeping( Gia_Man_t * pAig, Cec_ParFra_t * pPars )
     // simulation
     Cec_ManSimSetDefaultParams( pParsSim );
     pParsSim->nWords      = pPars->nWords;
-    pParsSim->nRounds     = pPars->nRounds;
+    pParsSim->nFrames     = pPars->nRounds;
     pParsSim->fCheckMiter = pPars->fCheckMiter;
-    pParsSim->fFirstStop  = pPars->fFirstStop;
     pParsSim->fDualOut = pPars->fDualOut;
     pParsSim->fVerbose    = pPars->fVerbose;
     pSim = Cec_ManSimStart( p->pAig, pParsSim );

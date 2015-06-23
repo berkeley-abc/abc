@@ -154,6 +154,7 @@ typedef unsigned __int64 ABC_UINT64_T;
 #define ABC_INFINITY        (100000000)
 
 #define ABC_PRT(a,t)    (printf("%s = ", (a)), printf("%7.2f sec\n", (float)(t)/(float)(CLOCKS_PER_SEC)))
+#define ABC_PRTr(a,t)   (printf("%s = ", (a)), printf("%7.2f sec\r", (float)(t)/(float)(CLOCKS_PER_SEC)))
 #define ABC_PRTn(a,t)   (printf("%s = ", (a)), printf("%6.2f sec  ", (float)(t)/(float)(CLOCKS_PER_SEC)))
 #define ABC_PRTP(a,t,T) (printf("%s = ", (a)), printf("%7.2f sec (%6.2f %%)\n", (float)(t)/(float)(CLOCKS_PER_SEC), (T)? 100.0*(t)/(T) : 0.0))
 #define ABC_PRM(a,f)    (printf("%s = ", (a)), printf("%7.2f Mb  ",    1.0*(f)/(1<<20)))

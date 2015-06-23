@@ -504,7 +504,7 @@ int Abc_NtkIvyProve( Abc_Ntk_t ** ppNtk, void * pPars )
         pNtk = Abc_NtkStrash( pNtkTemp = pNtk, 0, 1, 0 );
         Abc_NtkDelete( pNtkTemp );
     }
-
+ 
     // check the case when the 0000 simulation pattern detect the bug
     pObj = Abc_NtkPo(pNtk,0);
     pFanin = Abc_ObjFanin0(pObj);

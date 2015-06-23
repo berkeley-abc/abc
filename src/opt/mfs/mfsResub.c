@@ -99,9 +99,17 @@ int Abc_NtkMfsTryResubOnce( Mfs_Man_t * p, int * pCands, int nCands )
 {
     unsigned * pData;
     int RetValue, iVar, i;
+    int clk = clock(), RetValue2 = Abc_NtkMfsTryResubOnceGia( p, pCands, nCands );
+p->timeGia += clock() - clk;
+
     p->nSatCalls++;
     RetValue = sat_solver_solve( p->pSat, pCands, pCands + nCands, (ABC_INT64_T)p->pPars->nBTLimit, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
 //    assert( RetValue == l_False || RetValue == l_True );
+    if ( RetValue != l_Undef && RetValue2 != -1 )
+    {
+        assert( (RetValue == l_False) == (RetValue2 == 1) );
+    }
+
     if ( RetValue == l_False )
         return 1;
     if ( RetValue != l_True )

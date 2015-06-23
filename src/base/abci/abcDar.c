@@ -1550,7 +1550,7 @@ static void sigfunc( int signo )
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_NtkDarBmc( Abc_Ntk_t * pNtk, int nFrames, int nSizeMax, int nNodeDelta, int nBTLimit, int nBTLimitAll, int fRewrite, int fNewAlgo, int nCofFanLit, int fVerbose )
+int Abc_NtkDarBmc( Abc_Ntk_t * pNtk, int nStart, int nFrames, int nSizeMax, int nNodeDelta, int nTimeOut, int nBTLimit, int nBTLimitAll, int fRewrite, int fNewAlgo, int nCofFanLit, int fVerbose )
 {
     Aig_Man_t * pMan;
     int status, RetValue = -1, clk = clock();
@@ -1632,7 +1632,7 @@ int Abc_NtkDarBmc( Abc_Ntk_t * pNtk, int nFrames, int nSizeMax, int nNodeDelta, 
             printf( "Output %d was asserted in frame %d (use \"write_counter\" to dump a witness). ", pCex->iPo, pCex->iFrame );
         }
 */
-        Saig_BmcPerform( pMan, nFrames, nNodeDelta, nBTLimit, nBTLimitAll, fVerbose );
+        Saig_BmcPerform( pMan, nStart, nFrames, nNodeDelta, nTimeOut, nBTLimit, nBTLimitAll, fVerbose, 0 );
         ABC_FREE( pNtk->pModel );
         ABC_FREE( pNtk->pSeqModel );
         pNtk->pSeqModel = pMan->pSeqModel; pMan->pSeqModel = NULL;
@@ -1676,11 +1676,6 @@ int Abc_NtkDarBmcInter_int( Aig_Man_t * pMan, Inter_ManParams_t * pPars )
             pTemp = Aig_ManDupOneOutput( pMan, i, 1 );
             pTemp = Aig_ManScl( pAux = pTemp, 1, 1, 0 );
             Aig_ManStop( pAux );
-            if ( Aig_ObjFanin0(pObjPo) == Aig_ManConst1(pMan) )
-            {
-                Aig_ManStop( pTemp );
-                continue;
-            }
             RetValue = Inter_ManPerformInterpolation( pTemp, pPars, &iFrame );
             if ( pTemp->pSeqModel )
             {
@@ -1864,7 +1859,7 @@ int Abc_NtkDarProve( Abc_Ntk_t * pNtk, Fra_Sec_t * pSecPar )
     }
     if ( pSecPar->fTryBmc )
     {
-        RetValue = Abc_NtkDarBmc( pNtk, 20, 100000, -1, 2000, -1, 0, 1, 0, 0 );
+        RetValue = Abc_NtkDarBmc( pNtk, 0, 20, 100000, -1, 0, 2000, -1, 0, 1, 0, 0 );
         if ( RetValue == 0 )
         {
             printf( "Networks are not equivalent.\n" );
@@ -2675,7 +2670,7 @@ ABC_PRT( "Time", clock() - clkTotal );
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Ntk_t * Abc_NtkDarPBAbstraction( Abc_Ntk_t * pNtk, int nFramesMax, int nConfMax, int fDynamic, int fExtend, int fSkipProof, int nFramesBmc, int nConfMaxBmc, int nRatio, int fVerbose )
+Abc_Ntk_t * Abc_NtkDarPBAbstraction( Abc_Ntk_t * pNtk, int nFramesMax, int nConfMax, int fDynamic, int fExtend, int fSkipProof, int nFramesBmc, int nConfMaxBmc, int nRatio, int fUseBdds, int fUseDprove, int fUseStart, int fVerbose )
 {
     Abc_Ntk_t * pNtkAig;
     Aig_Man_t * pMan, * pTemp;
@@ -2685,7 +2680,7 @@ Abc_Ntk_t * Abc_NtkDarPBAbstraction( Abc_Ntk_t * pNtk, int nFramesMax, int nConf
         return NULL;
 
     Aig_ManSetRegNum( pMan, pMan->nRegs );
-    pMan = Saig_ManProofAbstraction( pTemp = pMan, nFramesMax, nConfMax, fDynamic, fExtend, fSkipProof, nFramesBmc, nConfMaxBmc, nRatio, fVerbose );
+    pMan = Saig_ManProofAbstraction( pTemp = pMan, nFramesMax, nConfMax, fDynamic, fExtend, fSkipProof, nFramesBmc, nConfMaxBmc, nRatio, fUseBdds, fUseDprove, fUseStart, fVerbose );
     if ( pTemp->pSeqModel )
     {
         ABC_FREE( pNtk->pModel );
@@ -3498,7 +3493,7 @@ Abc_Ntk_t * Abc_NtkDarTestNtk( Abc_Ntk_t * pNtk )
         return NULL;
 /*
     Aig_ManSetRegNum( pMan, pMan->nRegs );
-    pMan = Saig_ManProofAbstraction( pTemp = pMan, 5, 10000, 0, 0, 0, -1, -1, 99, 1 );
+    pMan = Saig_ManProofAbstraction( pTemp = pMan, 5, 10000, 0, 0, 0, -1, -1, 99, fUseBdds, fUseDprove, 0, 1 );
     Aig_ManStop( pTemp );
     if ( pMan == NULL )
         return NULL;

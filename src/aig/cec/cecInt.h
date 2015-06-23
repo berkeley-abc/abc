@@ -192,8 +192,10 @@ extern Vec_Ptr_t *          Cec_ManPatCollectPatterns( Cec_ManPat_t *  pMan, int
 extern Vec_Ptr_t *          Cec_ManPatPackPatterns( Vec_Int_t * vCexStore, int nInputs, int nRegs, int nWordsInit );
 /*=== cecSeq.c ============================================================*/
 extern int                  Cec_ManSeqResimulate( Cec_ManSim_t * p, Vec_Ptr_t * vInfo );
-extern int                  Cec_ManSeqResimulateInfo( Gia_Man_t * pAig, Vec_Ptr_t * vSimInfo, Gia_Cex_t * pBestState );
+extern int                  Cec_ManSeqResimulateInfo( Gia_Man_t * pAig, Vec_Ptr_t * vSimInfo, Gia_Cex_t * pBestState, int fCheckMiter );
 extern void                 Cec_ManSeqDeriveInfoInitRandom( Vec_Ptr_t * vInfo, Gia_Man_t * pAig, Gia_Cex_t * pCex );
+extern int                  Cec_ManCountNonConstOutputs( Gia_Man_t * pAig );
+extern int                  Cec_ManCheckNonTrivialCands( Gia_Man_t * pAig );
 /*=== cecSolve.c ============================================================*/
 extern int                  Cec_ObjSatVarValue( Cec_ManSat_t * p, Gia_Obj_t * pObj );
 extern void                 Cec_ManSatSolve( Cec_ManPat_t * pPat, Gia_Man_t * pAig, Cec_ParSat_t * pPars );

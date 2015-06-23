@@ -545,7 +545,7 @@ void Cec_ManSimSavePattern( Cec_ManSim_t * p, int iPat )
 void Cec_ManSimFindBestPattern( Cec_ManSim_t * p )
 { 
     unsigned * pInfo;
-    int i, ScoreBest = 0, iPatBest = 1;
+    int i, ScoreBest = 0, iPatBest = 1; // set the first pattern
     // find the best pattern
     for ( i = 0; i < 32 * p->nWords; i++ )
         if ( ScoreBest < p->pScores[i] )
@@ -588,8 +588,8 @@ int Cec_ManSimAnalyzeOutputs( Cec_ManSim_t * p )
     // compare outputs with 0
     if ( p->pPars->fDualOut )
     {
-        assert( (Gia_ManCoNum(p->pAig) & 1) == 0 );
-        for ( i = 0; i < Gia_ManCoNum(p->pAig); i++ )
+        assert( (Gia_ManPoNum(p->pAig) & 1) == 0 );
+        for ( i = 0; i < Gia_ManPoNum(p->pAig); i++ )
         {
             pInfo  = Vec_PtrEntry( p->vCoSimInfo, i );
             pInfo2 = Vec_PtrEntry( p->vCoSimInfo, ++i );
@@ -601,7 +601,7 @@ int Cec_ManSimAnalyzeOutputs( Cec_ManSim_t * p )
                     Cec_ManSimSavePattern( p, Cec_ManSimCompareEqualFirstBit(pInfo, pInfo2, p->nWords) );
                 }
                 if ( p->pCexes == NULL )
-                    p->pCexes = ABC_CALLOC( void *, Gia_ManCoNum(p->pAig)/2 );
+                    p->pCexes = ABC_CALLOC( void *, Gia_ManPoNum(p->pAig)/2 );
                 if ( p->pCexes[i/2] == NULL )
                 {
                     p->nOuts++;
@@ -612,7 +612,7 @@ int Cec_ManSimAnalyzeOutputs( Cec_ManSim_t * p )
     }
     else
     {
-        for ( i = 0; i < Gia_ManCoNum(p->pAig); i++ )
+        for ( i = 0; i < Gia_ManPoNum(p->pAig); i++ )
         {
             pInfo = Vec_PtrEntry( p->vCoSimInfo, i );
             if ( !Cec_ManSimCompareConst( pInfo, p->nWords ) )
@@ -623,7 +623,7 @@ int Cec_ManSimAnalyzeOutputs( Cec_ManSim_t * p )
                     Cec_ManSimSavePattern( p, Cec_ManSimCompareConstFirstBit(pInfo, p->nWords) );
                 }
                 if ( p->pCexes == NULL )
-                    p->pCexes = ABC_CALLOC( void *, Gia_ManCoNum(p->pAig) );
+                    p->pCexes = ABC_CALLOC( void *, Gia_ManPoNum(p->pAig) );
                 if ( p->pCexes[i] == NULL )
                 {
                     p->nOuts++;
@@ -632,7 +632,7 @@ int Cec_ManSimAnalyzeOutputs( Cec_ManSim_t * p )
             }
         }
     }
-    return p->pCexes != NULL && p->pPars->fFirstStop;
+    return p->pCexes != NULL;
 }
 
 /**Function*************************************************************

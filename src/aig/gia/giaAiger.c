@@ -841,7 +841,7 @@ void Gia_WriteAiger( Gia_Man_t * pInit, char * pFileName, int fWriteSymbols, int
     // create normalized AIG
     if ( !Gia_ManIsNormalized(pInit) )
     {
-        printf( "Gia_WriteAiger(): Normalizing AIG for writing.\n" );
+//        printf( "Gia_WriteAiger(): Normalizing AIG for writing.\n" );
         p = Gia_ManDupNormalized( pInit );
     }
     else

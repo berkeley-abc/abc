@@ -25,6 +25,7 @@
 #include "satStore.h"
 #include "ssw.h"
 #include "ioa.h"
+#include "fra.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -694,17 +695,38 @@ Ssw_Cex_t * Saig_ManCexShrink( Aig_Man_t * p, Aig_Man_t * pAbs, Ssw_Cex_t * pCex
   SeeAlso     []
 
 ***********************************************************************/
-Aig_Man_t * Saig_ManProofRefine( Aig_Man_t * p, Aig_Man_t * pAbs, Vec_Int_t * vFlops, int nFrames, int nConfMaxOne, int fVerbose )
+Aig_Man_t * Saig_ManProofRefine( Aig_Man_t * p, Aig_Man_t * pAbs, Vec_Int_t * vFlops, int nFrames, int nConfMaxOne, int fUseBdds, int fUseDprove, int * pnUseStart, int fVerbose )
 { 
-    extern void Saig_BmcPerform( Aig_Man_t * pAig, int nFramesMax, int nNodesMax, int nConfMaxOne, int nConfMaxAll, int fVerbose );
+    extern void Saig_BmcPerform( Aig_Man_t * pAig, int nStart, int nFramesMax, int nNodesMax, int nTimeOut, int nConfMaxOne, int nConfMaxAll, int fVerbose, int fVerbOverwrite );
     extern Vec_Int_t * Saig_ManExtendCounterExampleTest( Aig_Man_t * p, int iFirstPi, void * pCex, int fVerbose );
+    extern int Aig_ManVerifyUsingBdds( Aig_Man_t * p, int nBddMax, int nIterMax, int fPartition, int fReorder, int fReorderImage, int fVerbose, int fSilent );
 
     Vec_Int_t * vFlopsNew, * vPiToReg;
     Aig_Obj_t * pObj;
     int i, Entry, iFlop;
-    Saig_BmcPerform( pAbs, nFrames, 2000, nConfMaxOne, 1000000, fVerbose );
+    if ( fUseDprove && Aig_ManRegNum(pAbs) > 0 )
+    {
+        Fra_Sec_t SecPar, * pSecPar = &SecPar;
+        int RetValue;
+        Fra_SecSetDefaultParams( pSecPar );
+        pSecPar->fVerbose       = fVerbose;
+        RetValue = Fra_FraigSec( pAbs, pSecPar, NULL );
+    }
+    else if ( fUseBdds && (Aig_ManRegNum(pAbs) > 0 && Aig_ManRegNum(pAbs) <= 80) )
+    {
+        int nBddMax       = 1000000;
+        int nIterMax      = nFrames;
+        int fPartition    = 1;
+        int fReorder      = 1;
+        int fReorderImage = 1;
+        Aig_ManVerifyUsingBdds( pAbs, nBddMax, nIterMax, fPartition, fReorder, fReorderImage, fVerbose, 0 );
+    }
+    else 
+        Saig_BmcPerform( pAbs, pnUseStart? *pnUseStart: 0, nFrames, 2000, 20, nConfMaxOne, 1000000, fVerbose, 0 );
     if ( pAbs->pSeqModel == NULL )
         return NULL;
+    if ( pnUseStart )
+        *pnUseStart = ((Fra_Cex_t *)pAbs->pSeqModel)->iFrame;
 //    Saig_ManExtendCounterExampleTest( p->pAig, 0, p->pAig->pSeqModel );
     vFlopsNew = Saig_ManExtendCounterExampleTest( pAbs, Saig_ManPiNum(p), pAbs->pSeqModel, fVerbose );
     if ( Vec_IntSize(vFlopsNew) == 0 )
@@ -766,7 +788,7 @@ Aig_Man_t * Saig_ManProofRefine( Aig_Man_t * p, Aig_Man_t * pAbs, Vec_Int_t * vF
   SeeAlso     []
  
 ***********************************************************************/
-Aig_Man_t * Saig_ManProofAbstraction( Aig_Man_t * p, int nFrames, int nConfMax, int fDynamic, int fExtend, int fSkipProof, int nFramesBmc, int nConfMaxBmc, int nRatio, int fVerbose )
+Aig_Man_t * Saig_ManProofAbstraction( Aig_Man_t * p, int nFrames, int nConfMax, int fDynamic, int fExtend, int fSkipProof, int nFramesBmc, int nConfMaxBmc, int nRatio, int fUseBdds, int fUseDprove, int fUseStart, int fVerbose )
 {
     Aig_Man_t * pResult, * pTemp;
     Cnf_Dat_t * pCnf;
@@ -845,13 +867,14 @@ Aig_Man_t * Saig_ManProofAbstraction( Aig_Man_t * p, int nFrames, int nConfMax, 
         Saig_AbsExtendOneStep( p, vFlops );
         if ( fVerbose )
             printf( " %d flops.\n", Vec_IntSize(vFlops) );
-    }
+    } 
 */
     // create the resulting AIG
     pResult = Saig_ManAbstraction( p, vFlops );
 
     if ( fExtend )
     {
+        int nUseStart = 0;
         if ( !fVerbose )
         {
             printf( "Init : " );
@@ -860,21 +883,19 @@ Aig_Man_t * Saig_ManProofAbstraction( Aig_Man_t * p, int nFrames, int nConfMax, 
         printf( "Refining abstraction...\n" );
         for ( Iter = 0; ; Iter++ )
         {
-            char FileName[100];
-            pTemp = Saig_ManProofRefine( p, pResult, vFlops, nFramesBmc, nConfMaxBmc, fVerbose );
+            pTemp = Saig_ManProofRefine( p, pResult, vFlops, nFramesBmc, nConfMaxBmc, fUseBdds, fUseDprove, fUseStart?&nUseStart:NULL, fVerbose );
             if ( pTemp == NULL )
                 break;
             Aig_ManStop( pResult );
             pResult = pTemp;
-            printf( "%4d : ", Iter );
+            printf( "ITER %4d : ", Iter );
             if ( !fVerbose )
                 Aig_ManPrintStats( pResult );
-            else
-                printf( " -----------------------------------------------------\n" );
+//            else
+//                printf( " -----------------------------------------------------\n" );
             // output the intermediate result of abstraction
-            sprintf( FileName, "gabs%02d.aig", Iter );
-            Ioa_WriteAiger( pResult, FileName, 0, 0 );
-            printf( "Intermediate abstracted model was written into file \"%s\".\n", FileName );
+            Ioa_WriteAiger( pResult, "gabs.aig", 0, 0 );
+//            printf( "Intermediate abstracted model was written into file \"%s\".\n", "gabs.aig" );
             // check if the ratio is reached
             if ( 100.0*(Aig_ManRegNum(p)-Aig_ManRegNum(pTemp))/Aig_ManRegNum(p) < 1.0*nRatio )
             {
@@ -886,6 +907,12 @@ Aig_Man_t * Saig_ManProofAbstraction( Aig_Man_t * p, int nFrames, int nConfMax, 
         }
     }
     Vec_IntFree( vFlops );
+    // write the final result
+    if ( pResult )
+    {
+        Ioa_WriteAiger( pResult, "gabs.aig", 0, 0 );
+        printf( "Final abstracted model was written into file \"%s\".\n", "gabs.aig" );
+    }
     return pResult;
 }
 

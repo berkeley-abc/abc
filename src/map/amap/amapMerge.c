@@ -170,9 +170,10 @@ Amap_Cut_t * Amap_ManCutCreate3( Amap_Man_t * p,
 ***********************************************************************/
 void Amap_ManCutSaveStored( Amap_Man_t * p, Amap_Obj_t * pNode )
 {
+    int nMaxCuts = 500;
     int * pBuffer;
     Amap_Cut_t * pNext, * pCut;
-    int i, nWords, Entry, nCuts;
+    int i, nWords, Entry, nCuts, nCuts2;
     assert( pNode->pData == NULL );
     // count memory needed
     nCuts = 1;
@@ -182,7 +183,8 @@ void Amap_ManCutSaveStored( Amap_Man_t * p, Amap_Obj_t * pNode )
         for ( pCut = p->ppCutsTemp[Entry]; pCut; pCut = *Amap_ManCutNextP(pCut) )
         {
             nCuts++;
-            nWords += pCut->nFans + 1;
+            if ( nCuts < nMaxCuts )
+                nWords += pCut->nFans + 1;
         }
     }
     p->nBytesUsed += 4*nWords;
@@ -194,17 +196,23 @@ void Amap_ManCutSaveStored( Amap_Man_t * p, Amap_Obj_t * pNode )
     pNext->fInv  = 0;
     pNext->nFans = 1;
     pNext->Fans[0] = Amap_Var2Lit(pNode->Id, 0);
-    pNext = (Amap_Cut_t *)(pBuffer + 2);
+    pNext  = (Amap_Cut_t *)(pBuffer + 2);
     // add other cuts
+    nCuts2 = 1;
     Vec_IntForEachEntry( p->vTemp, Entry, i )
     {
         for ( pCut = p->ppCutsTemp[Entry]; pCut; pCut = *Amap_ManCutNextP(pCut) )
         {
-            memcpy( pNext, pCut, sizeof(int) * (pCut->nFans + 1) );
-            pNext = (Amap_Cut_t *)((int *)pNext + pCut->nFans + 1);
+            nCuts2++;
+            if ( nCuts2 < nMaxCuts )
+            {
+                memcpy( pNext, pCut, sizeof(int) * (pCut->nFans + 1) );
+                pNext = (Amap_Cut_t *)((int *)pNext + pCut->nFans + 1);
+            }
         }
         p->ppCutsTemp[Entry] = NULL;
     }
+    assert( nCuts == nCuts2 );
     assert( (int *)pNext - pBuffer == nWords );
     // restore the storage
     Vec_IntClear( p->vTemp );
@@ -213,7 +221,8 @@ void Amap_ManCutSaveStored( Amap_Man_t * p, Amap_Obj_t * pNode )
         if ( p->ppCutsTemp[i] != NULL )
             printf( "Amap_ManCutSaveStored(): Error!\n" );
     pNode->pData = (Amap_Cut_t *)pBuffer;
-    pNode->nCuts = nCuts;
+    pNode->nCuts = ABC_MIN( nCuts, nMaxCuts-1 );
+    assert( nCuts < (1<<20) );
 //    printf("%d ", nCuts );
     // verify cuts
     pCut = NULL;
@@ -221,6 +230,8 @@ void Amap_ManCutSaveStored( Amap_Man_t * p, Amap_Obj_t * pNode )
 //        for ( i = 0, pNext = (Amap_Cut_t *)pNode->pData; i < (int)pNode->nCuts; 
 //        i++, pNext = Amap_ManCutNext(pNext) )
     {
+        if ( i == nMaxCuts )
+            break;
         assert( pCut == NULL || pCut->iMat <= pNext->iMat );
         pCut = pNext;
     }
@@ -311,8 +322,11 @@ void Amap_ManMergeNodeChoice( Amap_Man_t * p, Amap_Obj_t * pNode )
     for ( pTemp = pNode; pTemp; pTemp = Amap_ObjChoice(p, pTemp) )
     {
         Amap_NodeForEachCut( pTemp, pCut, c )
+        {
+            if (!pCut) break;   // mikelee added; abort when pCut is NULL
             if ( pCut->iMat )
                 Amap_ManCutStore( p, pCut, pNode->fPhase ^ pTemp->fPhase );
+        }
         pTemp->pData = NULL;
     }
     Amap_ManCutSaveStored( p, pNode );

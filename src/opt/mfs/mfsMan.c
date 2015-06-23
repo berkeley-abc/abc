@@ -157,15 +157,16 @@ void Mfs_ManPrint( Mfs_Man_t * p )
         printf( "Nodes resyn = %d. Ratio = %5.2f.  Total AIG node gain = %d. Timeouts = %d.\n", 
             p->nNodesDec, 1.0 * p->nNodesDec / p->nNodesTried, p->nNodesGained, p->nTimeOuts );
     }
-/*
+
     ABC_PRTP( "Win", p->timeWin            ,  p->timeTotal );
     ABC_PRTP( "Div", p->timeDiv            ,  p->timeTotal );
     ABC_PRTP( "Aig", p->timeAig            ,  p->timeTotal );
+    ABC_PRTP( "Gia", p->timeGia            ,  p->timeTotal );
     ABC_PRTP( "Cnf", p->timeCnf            ,  p->timeTotal );
     ABC_PRTP( "Sat", p->timeSat-p->timeInt ,  p->timeTotal );
     ABC_PRTP( "Int", p->timeInt            ,  p->timeTotal );
     ABC_PRTP( "ALL", p->timeTotal          ,  p->timeTotal );
-*/
+
 }
 
 /**Function*************************************************************

@@ -21,6 +21,7 @@
 #include "ntl.h"
 #include "fra.h"
 #include "ssw.h"
+#include "dch.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -400,12 +401,17 @@ Ntl_Man_t * Ntl_ManFraig( Ntl_Man_t * p, int nPartSize, int nConfLimit, int nLev
     }
 
     // perform fraiging for the given design
-//    if ( fUseCSat )
-    if ( 0 )
+    if ( fUseCSat )
     {
-        extern Aig_Man_t * Cec_FraigCombinational( Aig_Man_t * pAig, int nConfs, int fVerbose );
-        pTemp = Cec_FraigCombinational( pAigCol, nConfLimit, fVerbose );
-        Aig_ManStop( pTemp );
+//        extern Aig_Man_t * Cec_FraigCombinational( Aig_Man_t * pAig, int nConfs, int fVerbose );
+//        pTemp = Cec_FraigCombinational( pAigCol, nConfLimit, fVerbose );
+//        Aig_ManStop( pTemp );
+        extern void Dch_ComputeEquivalences( Aig_Man_t * pAig, Dch_Pars_t * pPars );
+        Dch_Pars_t Pars, * pPars = &Pars;
+        Dch_ManSetDefaultParams( pPars );
+        pPars->nBTLimit = nConfLimit;
+        pPars->fVerbose = fVerbose;
+        Dch_ComputeEquivalences( pAigCol, pPars );
     }
     else
     {

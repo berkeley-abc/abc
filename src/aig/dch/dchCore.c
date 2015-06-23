@@ -90,12 +90,44 @@ p->timeTotal = clock() - clkTotal;
     ABC_FREE( pAig->pTable );
     pResult = Dch_DeriveChoiceAig( pAig );
     // count the number of representatives
-    if ( pPars->fVerbose )
+    if ( pPars->fVerbose ) 
         printf( "STATS:  Reprs = %6d.  Equivs = %6d.  Choices = %6d.\n", 
                Dch_DeriveChoiceCountReprs( pAig ),
                Dch_DeriveChoiceCountEquivs( pResult ),
                Aig_ManChoiceNum( pResult ) );
     return pResult;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Performs computation of AIGs with choices.]
+
+  Description [Takes several AIGs and performs choicing.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Dch_ComputeEquivalences( Aig_Man_t * pAig, Dch_Pars_t * pPars )
+{
+    Dch_Man_t * p;
+    int clk, clkTotal = clock();
+    // reset random numbers
+    Aig_ManRandom(1);
+    // start the choicing manager
+    p = Dch_ManCreate( pAig, pPars );
+    // compute candidate equivalence classes
+clk = clock(); 
+    p->ppClasses = Dch_CreateCandEquivClasses( pAig, pPars->nWords, pPars->fVerbose );
+p->timeSimInit = clock() - clk;
+//    Dch_ClassesPrint( p->ppClasses, 0 );
+    p->nLits = Dch_ClassesLitNum( p->ppClasses );
+    // perform SAT sweeping
+    Dch_ManSweep( p );
+    // free memory ahead of time
+p->timeTotal = clock() - clkTotal;
+    Dch_ManStop( p );
 }
 
 ////////////////////////////////////////////////////////////////////////

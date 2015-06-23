@@ -718,7 +718,7 @@ clk2 = clock();
             pPat->timeTotalSave += clock() - clk3;
         }
         // quit if one of them is solved
-        if ( pPars->fFirstStop )
+        if ( pPars->fCheckMiter )
             break;
     }
     p->timeTotal = clock() - clk;
@@ -810,12 +810,12 @@ Vec_Str_t * Cec_ManSatSolveSeq( Vec_Ptr_t * vPatts, Gia_Man_t * pAig, Cec_ParSat
         {
             if ( Gia_ObjFaninC0(pObj) )
             {
-                printf( "Constant 1 output of SRM!!!\n" );
+//                printf( "Constant 1 output of SRM!!!\n" );
                 Vec_StrPush( vStatus, 0 );
             }
             else
             {
-                printf( "Constant 0 output of SRM!!!\n" );
+//                printf( "Constant 0 output of SRM!!!\n" );
                 Vec_StrPush( vStatus, 1 );
             }
             continue;

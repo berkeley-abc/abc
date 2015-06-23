@@ -68,7 +68,7 @@ struct Dch_Pars_t_
 /*=== dchCore.c ==========================================================*/
 extern void          Dch_ManSetDefaultParams( Dch_Pars_t * p );
 extern Aig_Man_t *   Dch_ComputeChoices( Aig_Man_t * pAig, Dch_Pars_t * pPars );
-
+extern void          Dch_ComputeEquivalences( Aig_Man_t * pAig, Dch_Pars_t * pPars );
 
 #ifdef __cplusplus
 }

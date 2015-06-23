@@ -557,6 +557,7 @@ extern Gia_Man_t *         Gia_ManRemoveEnables( Gia_Man_t * p );
 extern int                 Gia_ManCheckTopoOrder( Gia_Man_t * p );
 extern int *               Gia_ManDeriveNexts( Gia_Man_t * p );
 extern void                Gia_ManDeriveReprs( Gia_Man_t * p );
+extern int                 Gia_ManEquivCountLits( Gia_Man_t * p );
 extern int                 Gia_ManEquivCountClasses( Gia_Man_t * p );
 extern void                Gia_ManEquivPrintOne( Gia_Man_t * p, int i, int Counter );
 extern void                Gia_ManEquivPrintClasses( Gia_Man_t * p, int fVerbose, float Mem );
@@ -565,6 +566,7 @@ extern Gia_Man_t *         Gia_ManEquivReduceAndRemap( Gia_Man_t * p, int fSeq, 
 extern int                 Gia_ManEquivSetColors( Gia_Man_t * p, int fVerbose );
 extern Gia_Man_t *         Gia_ManSpecReduce( Gia_Man_t * p, int fDualOut, int fVerbose );
 extern Gia_Man_t *         Gia_ManSpecReduceInit( Gia_Man_t * p, Gia_Cex_t * pInit, int nFrames, int fDualOut );
+extern Gia_Man_t *         Gia_ManSpecReduceInitFrames( Gia_Man_t * p, Gia_Cex_t * pInit, int nFramesMax, int * pnFrames, int fDualOut, int nMinOutputs );
 extern void                Gia_ManEquivTransform( Gia_Man_t * p, int fVerbose );
 extern void                Gia_ManEquivImprove( Gia_Man_t * p );
 extern Gia_Man_t *         Gia_ManEquivToChoices( Gia_Man_t * p, int nSnapshots );
@@ -663,6 +665,7 @@ extern void                Tas_ManStop( Tas_Man_t * p );
 extern Vec_Int_t *         Tas_ReadModel( Tas_Man_t * p );
 extern void                Tas_ManSatPrintStats( Tas_Man_t * p );
 extern int                 Tas_ManSolve( Tas_Man_t * p, Gia_Obj_t * pObj, Gia_Obj_t * pObj2 );
+extern int                 Tas_ManSolveArray( Tas_Man_t * p, Vec_Ptr_t * vObjs );
 
  
 #ifdef __cplusplus

@@ -969,13 +969,13 @@ void Cbs_ManSatPrintStats( Cbs_Man_t * p )
     printf( "JustMax = %5d  ", p->Pars.nJustLimit );
     printf( "\n" );
     printf( "Unsat calls %6d  (%6.2f %%)   Ave conf = %8.1f   ", 
-        p->nSatUnsat, 100.0*p->nSatUnsat/p->nSatTotal, p->nSatUnsat? 1.0*p->nConfUnsat/p->nSatUnsat :0.0 );
+        p->nSatUnsat, p->nSatTotal? 100.0*p->nSatUnsat/p->nSatTotal :0.0, p->nSatUnsat? 1.0*p->nConfUnsat/p->nSatUnsat :0.0 );
     ABC_PRTP( "Time", p->timeSatUnsat, p->timeTotal );
     printf( "Sat   calls %6d  (%6.2f %%)   Ave conf = %8.1f   ", 
-        p->nSatSat,   100.0*p->nSatSat/p->nSatTotal, p->nSatSat? 1.0*p->nConfSat/p->nSatSat : 0.0 );
+        p->nSatSat,   p->nSatTotal? 100.0*p->nSatSat/p->nSatTotal :0.0, p->nSatSat? 1.0*p->nConfSat/p->nSatSat : 0.0 );
     ABC_PRTP( "Time", p->timeSatSat,   p->timeTotal );
     printf( "Undef calls %6d  (%6.2f %%)   Ave conf = %8.1f   ", 
-        p->nSatUndec, 100.0*p->nSatUndec/p->nSatTotal, p->nSatUndec? 1.0*p->nConfUndec/p->nSatUndec : 0.0 );
+        p->nSatUndec, p->nSatTotal? 100.0*p->nSatUndec/p->nSatTotal :0.0, p->nSatUndec? 1.0*p->nConfUndec/p->nSatUndec : 0.0 );
     ABC_PRTP( "Time", p->timeSatUndec, p->timeTotal );
     ABC_PRT( "Total time", p->timeTotal );
 }

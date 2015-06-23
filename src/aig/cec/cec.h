@@ -47,21 +47,23 @@ struct Cec_ParSat_t_
     int              fNonChrono;    // use non-chronological backtracling (for circuit SAT only)
     int              fPolarFlip;    // flops polarity of variables
     int              fCheckMiter;   // the circuit is the miter
-    int              fFirstStop;    // stop on the first sat output
+//    int              fFirstStop;    // stop on the first sat output
     int              fLearnCls;     // perform clause learning
     int              fVerbose;      // verbose stats
 };
 
 // simulation parameters
 typedef struct Cec_ParSim_t_ Cec_ParSim_t;
-struct Cec_ParSim_t_
+struct Cec_ParSim_t_ 
 {
     int              nWords;        // the number of simulation words
+    int              nFrames;       // the number of simulation frames
     int              nRounds;       // the number of simulation rounds
+    int              nNonRefines;   // the max number of rounds without refinement
     int              TimeLimit;     // the runtime limit in seconds
     int              fDualOut;      // miter with separate outputs
     int              fCheckMiter;   // the circuit is the miter
-    int              fFirstStop;    // stop on the first sat output
+//    int              fFirstStop;    // stop on the first sat output
     int              fSeqSimulate;  // performs sequential simulation
     int              fLatchCorr;    // consider only latch outputs
     int              fVeryVerbose;  // verbose stats
@@ -74,12 +76,14 @@ struct Cec_ParSmf_t_
 {
     int              nWords;        // the number of simulation words
     int              nRounds;       // the number of simulation rounds
-    int              nFrames;       // the number of time frames
+    int              nFrames;       // the max number of time frames
+    int              nNonRefines;   // the max number of rounds without refinement
+    int              nMinOutputs;   // the min outputs to accumulate
     int              nBTLimit;      // conflict limit at a node
     int              TimeLimit;     // the runtime limit in seconds
     int              fDualOut;      // miter with separate outputs
     int              fCheckMiter;   // the circuit is the miter
-    int              fFirstStop;    // stop on the first sat output
+//    int              fFirstStop;    // stop on the first sat output
     int              fVerbose;      // verbose stats
 };
 
@@ -96,7 +100,7 @@ struct Cec_ParFra_t_
     int              nDepthMax;     // the depth in terms of steps of speculative reduction
     int              fRewriting;    // enables AIG rewriting
     int              fCheckMiter;   // the circuit is the miter
-    int              fFirstStop;    // stop on the first sat output
+//    int              fFirstStop;    // stop on the first sat output
     int              fDualOut;      // miter with separate outputs
     int              fColorDiff;    // miter with separate outputs
     int              fVeryVerbose;  // verbose stats
@@ -109,7 +113,7 @@ struct Cec_ParCec_t_
 {
     int              nBTLimit;      // conflict limit at a node
     int              TimeLimit;     // the runtime limit in seconds
-    int              fFirstStop;    // stop on the first sat output
+//    int              fFirstStop;    // stop on the first sat output
     int              fUseSmartCnf;  // use smart CNF computation
     int              fRewriting;    // enables AIG rewriting
     int              fVeryVerbose;  // verbose stats
@@ -129,7 +133,7 @@ struct Cec_ParCor_t_
     int              fUseRings;     // use rings
     int              fMakeChoices;  // use equilvaences as choices
     int              fUseCSat;      // use circuit-based solver
-    int              fFirstStop;    // stop on the first sat output
+//    int              fFirstStop;    // stop on the first sat output
     int              fUseSmartCnf;  // use smart CNF computation
     int              fVeryVerbose;  // verbose stats
     int              fVerbose;      // verbose stats

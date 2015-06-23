@@ -88,33 +88,26 @@ Vec_Int_t * Ioa_WriteDecodeLiterals( char ** ppPos, int nEntries )
 
 /**Function*************************************************************
 
-  Synopsis    [Reads the AIG in the binary AIGER format.]
+  Synopsis    [Reads the AIG in from the memory buffer.]
 
-  Description []
+  Description [The buffer constains the AIG in AIGER format. The size gives
+  the number of types in the buffer. The buffer is allocated by the user 
+  and not deallocated by this procedure.]
   
   SideEffects []
 
   SeeAlso     []
 
 ***********************************************************************/
-Aig_Man_t * Ioa_ReadAiger( char * pFileName, int fCheck )
+Aig_Man_t * Ioa_ReadAigerFromMemory( char * pContents, int nFileSize, int fCheck )
 {
-//    Bar_Progress_t * pProgress;
-    FILE * pFile;
     Vec_Int_t * vLits = NULL;
     Vec_Ptr_t * vNodes, * vDrivers;//, * vTerms;
     Aig_Obj_t * pObj, * pNode0, * pNode1;
     Aig_Man_t * pNew;
-    int nTotal, nInputs, nOutputs, nLatches, nAnds, nFileSize, i;//, iTerm, nDigits;
-    char * pContents, * pDrivers, * pSymbols, * pCur, * pName;//, * pType;
+    int nTotal, nInputs, nOutputs, nLatches, nAnds, i;//, iTerm, nDigits;
+    char * pDrivers, * pSymbols, * pCur;//, * pType;
     unsigned uLit0, uLit1, uLit;
-
-    // read the file into the buffer
-    nFileSize = Ioa_FileSize( pFileName );
-    pFile = fopen( pFileName, "rb" );
-    pContents = ABC_ALLOC( char, nFileSize );
-    fread( pContents, nFileSize, 1, pFile );
-    fclose( pFile );
 
     // check if the input file format is correct
     if ( strncmp(pContents, "aig", 3) != 0 || (pContents[3] != ' ' && pContents[3] != '2') )
@@ -145,10 +138,6 @@ Aig_Man_t * Ioa_ReadAiger( char * pFileName, int fCheck )
 
     // allocate the empty AIG
     pNew = Aig_ManStart( nAnds );
-    pName = Ioa_FileNameGeneric( pFileName );
-    pNew->pName = Aig_UtilStrsav( pName );
-//    pNew->pSpec = Ioa_UtilStrsav( pFileName );
-    ABC_FREE( pName );
 
     // prepare the array of nodes
     vNodes = Vec_PtrAlloc( 1 + nInputs + nLatches + nAnds );
@@ -355,7 +344,6 @@ Aig_Man_t * Ioa_ReadAiger( char * pFileName, int fCheck )
     }
 
     // skipping the comments
-    ABC_FREE( pContents );
     Vec_PtrFree( vNodes );
 
     // remove the extra nodes
@@ -368,6 +356,43 @@ Aig_Man_t * Ioa_ReadAiger( char * pFileName, int fCheck )
         printf( "Ioa_ReadAiger: The network check has failed.\n" );
         Aig_ManStop( pNew );
         return NULL;
+    }
+    return pNew;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Reads the AIG in the binary AIGER format.]
+
+  Description []
+  
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Aig_Man_t * Ioa_ReadAiger( char * pFileName, int fCheck )
+{
+    FILE * pFile;
+    Aig_Man_t * pNew;
+    char * pName, * pContents;
+    int nFileSize;
+
+    // read the file into the buffer
+    nFileSize = Ioa_FileSize( pFileName );
+    pFile = fopen( pFileName, "rb" );
+    pContents = ABC_ALLOC( char, nFileSize );
+    fread( pContents, nFileSize, 1, pFile );
+    fclose( pFile );
+
+    pNew = Ioa_ReadAigerFromMemory( pContents, nFileSize, fCheck );
+    ABC_FREE( pContents );
+    if ( pNew )
+    {
+        pName = Ioa_FileNameGeneric( pFileName );
+        pNew->pName = Aig_UtilStrsav( pName );
+//        pNew->pSpec = Ioa_UtilStrsav( pFileName );
+        ABC_FREE( pName );
     }
     return pNew;
 }

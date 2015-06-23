@@ -480,6 +480,7 @@ clk = clock();
         }
         else if ( pParSec->fInterSeparate )
         {
+            Ssw_Cex_t * pCex = NULL;
             Aig_Man_t * pTemp, * pAux;
             Aig_Obj_t * pObjPo;
             int i, Counter = 0;
@@ -495,8 +496,7 @@ clk = clock();
                     RetValue = Inter_ManPerformInterpolation( pTemp, pPars, &Depth );
                     if ( pTemp->pSeqModel )
                     {
-                        Ssw_Cex_t * pCex;
-                        pCex = pNew->pSeqModel = pTemp->pSeqModel; pTemp->pSeqModel = NULL;
+                        pCex = p->pSeqModel = Ssw_SmlDupCounterExample( pTemp->pSeqModel, Aig_ManRegNum(p) );
                         pCex->iPo = i;
                         Aig_ManStop( pTemp );
                         break;
@@ -520,7 +520,7 @@ clk = clock();
                 printf( "Solving output %3d (out of %3d) using interpolation.\r", i, Saig_ManPoNum(pNew) );
             }
             Aig_ManCleanup( pNew );
-            if ( pNew->pSeqModel == NULL )
+            if ( pCex == NULL )
             {
                 printf( "Interpolation left %d (out of %d) outputs unsolved              \n", Counter, Saig_ManPoNum(pNew) );
                 if ( Counter )

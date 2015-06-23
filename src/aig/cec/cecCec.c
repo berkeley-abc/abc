@@ -135,7 +135,6 @@ int Cec_ManVerify( Gia_Man_t * p, Cec_ParCec_t * pPars )
     pParsFra->TimeLimit    = pPars->TimeLimit;
     pParsFra->fVerbose     = pPars->fVerbose;
     pParsFra->fCheckMiter  = 1;
-    pParsFra->fFirstStop   = 1;
     pParsFra->fDualOut     = 1;
     pNew = Cec_ManSatSweeping( p, pParsFra );
     if ( pNew == NULL )
