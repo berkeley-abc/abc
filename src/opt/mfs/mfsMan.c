@@ -136,10 +136,10 @@ void Mfs_ManPrint( Mfs_Man_t * p )
                  p->TotalSwitchingBeg - p->TotalSwitchingEnd,
                  100.0*(p->TotalSwitchingBeg-p->TotalSwitchingEnd)/p->TotalSwitchingBeg );
         printf( "\n" );
-#if 0
+//#if 0
         printf( "Nodes = %d. Try = %d. Resub = %d. Div = %d. SAT calls = %d. Timeouts = %d.\n",
             Abc_NtkNodeNum(p->pNtk), p->nNodesTried, p->nNodesResub, p->nTotalDivs, p->nSatCalls, p->nTimeOuts );
-#endif
+//#endif
         if ( p->pPars->fSwapEdge )
             printf( "Swappable edges = %d. Total edges = %d. Ratio = %5.2f.\n",
                 p->nNodesResub, Abc_NtkGetTotalFanins(p->pNtk), 1.00 * p->nNodesResub / Abc_NtkGetTotalFanins(p->pNtk) );

@@ -55,6 +55,7 @@ struct Mfs_Par_t_
     int           fOneHotness;   // adds one-hotness conditions
     int           fDelay;        // performs optimization for delay
     int           fPower;        // performs power-aware optimization
+    int           fGiaSat;       // use new SAT solver
     int           fVerbose;      // enable basic stats
     int           fVeryVerbose;  // enable detailed stats
 };

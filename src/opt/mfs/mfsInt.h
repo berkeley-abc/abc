@@ -68,7 +68,7 @@ struct Mfs_Man_t_
     int                 nSatCexes;
     // intermediate AIG data
     Gia_Man_t *         pGia;      // replica of the AIG in the new package
-    Gia_Obj_t **        pSat2Gia;  // mapping of PO SAT var into internal GIA nodes
+//    Gia_Obj_t **        pSat2Gia;  // mapping of PO SAT var into internal GIA nodes
     Tas_Man_t *         pTas;      // the SAT solver
     Vec_Int_t *         vCex;      // the counter-example
     Vec_Ptr_t *         vGiaLits;  // literals given as assumptions

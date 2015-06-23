@@ -27,7 +27,7 @@
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
-
+ 
 /**Function*************************************************************
 
   Synopsis    [Updates the network after resubstitution.]
@@ -97,27 +97,41 @@ void Abc_NtkMfsPrintResubStats( Mfs_Man_t * p )
 ***********************************************************************/
 int Abc_NtkMfsTryResubOnce( Mfs_Man_t * p, int * pCands, int nCands )
 {
+    int fVeryVerbose = 0;
     unsigned * pData;
-    int RetValue, iVar, i;
-//    int clk = clock(), RetValue2 = Abc_NtkMfsTryResubOnceGia( p, pCands, nCands );
-//p->timeGia += clock() - clk;
+    int RetValue, RetValue2 = -1, iVar, i, clk = clock();
+
+    if ( p->pPars->fGiaSat )
+    {
+        RetValue2 = Abc_NtkMfsTryResubOnceGia( p, pCands, nCands );
+p->timeGia += clock() - clk;
+        return RetValue2;
+    }
 
     p->nSatCalls++;
     RetValue = sat_solver_solve( p->pSat, pCands, pCands + nCands, (ABC_INT64_T)p->pPars->nBTLimit, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
-//    assert( RetValue == l_False || RetValue == l_True );
+    assert( RetValue == l_False || RetValue == l_True );
 
-//    if ( RetValue != l_Undef && RetValue2 != -1 )
-//    {
-//        assert( (RetValue == l_False) == (RetValue2 == 1) );
-//    }
+    if ( RetValue != l_Undef && RetValue2 != -1 )
+    {
+        assert( (RetValue == l_False) == (RetValue2 == 1) );
+    }
 
     if ( RetValue == l_False )
+    {
+        if ( fVeryVerbose )
+        printf( "U " );
         return 1;
+    }
     if ( RetValue != l_True )
     {
+        if ( fVeryVerbose )
+        printf( "T " );
         p->nTimeOuts++;
         return -1;
     }
+    if ( fVeryVerbose )
+    printf( "S " );
     p->nSatCexes++;
     // store the counter-example
     Vec_IntForEachEntry( p->vProjVars, iVar, i )
@@ -131,6 +145,7 @@ int Abc_NtkMfsTryResubOnce( Mfs_Man_t * p, int * pCands, int nCands )
     }
     p->nCexes++;
     return 0;
+
 }
 
 /**Function*************************************************************
@@ -146,7 +161,7 @@ int Abc_NtkMfsTryResubOnce( Mfs_Man_t * p, int * pCands, int nCands )
 ***********************************************************************/
 int Abc_NtkMfsSolveSatResub( Mfs_Man_t * p, Abc_Obj_t * pNode, int iFanin, int fOnlyRemove, int fSkipUpdate )
 {
-    int fVeryVerbose = p->pPars->fVeryVerbose && Vec_PtrSize(p->vDivs) < 80;
+    int fVeryVerbose = p->pPars->fVeryVerbose && Vec_PtrSize(p->vDivs) < 80;// || pNode->Id == 556;
     unsigned * pData;
     int pCands[MFS_FANIN_MAX];
     int RetValue, iVar, i, nCands, nWords, w, clk;
@@ -533,6 +548,7 @@ int Abc_NtkMfsResubNode( Mfs_Man_t * p, Abc_Obj_t * pNode )
     }
     if ( Abc_ObjFaninNum(pNode) == p->nFaninMax )
         return 0;
+/*
     // try replacing area critical fanins while adding two new fanins
     Abc_ObjForEachFanin( pNode, pFanin, i )
         if ( !Abc_ObjIsCi(pFanin) && Abc_ObjFanoutNum(pFanin) == 1 )
@@ -540,6 +556,7 @@ int Abc_NtkMfsResubNode( Mfs_Man_t * p, Abc_Obj_t * pNode )
             if ( Abc_NtkMfsSolveSatResub2( p, pNode, i, -1 ) )
                 return 1;
         }
+*/
     return 0;
 }
 

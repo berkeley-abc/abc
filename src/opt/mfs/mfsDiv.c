@@ -255,7 +255,7 @@ Vec_Ptr_t * Abc_MfsComputeDivisors( Mfs_Man_t * p, Abc_Obj_t * pNode, int nLevDi
             // skip nodes with large level
             if ( (int)pFanout->Level > nLevDivMax )
                 continue;
-            // skip nodes whose fanins are not divisors
+            // skip nodes whose fanins are not divisors  -- here we skip more than we need to skip!!! (revise later)  August 7, 2009
             Abc_ObjForEachFanin( pFanout, pFanin, m )
                 if ( !Abc_NodeIsTravIdPrevious(pFanin) )
                     break;

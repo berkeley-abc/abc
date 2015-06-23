@@ -261,7 +261,11 @@ Aig_Man_t * Dar_ManCompress2( Aig_Man_t * pAig, int fBalance, int fUpdateLevel, 
     }
 */
     // rewrite
+//    Dar_ManRewrite( pAig, pParsRwr );
+    pParsRwr->fUpdateLevel = 0;  // disable level update
     Dar_ManRewrite( pAig, pParsRwr );
+    pParsRwr->fUpdateLevel = fUpdateLevel;  // reenable level update if needed
+
     pAig = Aig_ManDupDfs( pTemp = pAig ); 
     Aig_ManStop( pTemp );
     if ( fVerbose ) Aig_ManPrintStats( pAig );
@@ -601,7 +605,11 @@ Aig_Man_t * Dar_NewCompress2( Aig_Man_t * pAig, int fBalance, int fUpdateLevel, 
     if ( !fLightSynth )
     {
         // rewrite
+        //Dar_ManRewrite( pAig, pParsRwr );
+        pParsRwr->fUpdateLevel = 0;  // disable level update
         Dar_ManRewrite( pAig, pParsRwr );
+        pParsRwr->fUpdateLevel = fUpdateLevel;  // reenable level update if needed
+
         pAig = Aig_ManDupDfs( pTemp = pAig ); 
         Aig_ManStop( pTemp );
         if ( fVerbose ) Aig_ManPrintStats( pAig );
