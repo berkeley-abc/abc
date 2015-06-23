@@ -61,7 +61,9 @@ void Fra_SecSetDefaultParams( Fra_Sec_t * p )
     p->fFraiging         =       1;  // enables fraiging at the beginning
     p->fInduction        =       1;  // enables the use of induction (signal correspondence)
     p->fInterpolation    =       1;  // enables interpolation
+    p->fInterSeparate    =       0;  // enables interpolation for each outputs separately
     p->fReachability     =       1;  // enables BDD based reachability
+    p->fReorderImage     =       0;  // enables variable reordering during image computation
     p->fStopOnFirstFail  =       1;  // enables stopping after first output of a miter has failed to prove
     p->fUseNewProver     =       0;  // enables new prover
     p->fSilent           =       0;  // disables all output
@@ -93,6 +95,7 @@ int Fra_FraigSec( Aig_Man_t * p, Fra_Sec_t * pParSec, Aig_Man_t ** ppResult )
     int TimeOut = 0;
     int fLatchCorr = 0;
     float TimeLeft = 0.0;
+    pParSec->nSMnumber = -1;
 
     // try the miter before solving
     pNew = Aig_ManDupSimple( p );
@@ -466,13 +469,67 @@ clk = clock();
     {
         Inter_ManParams_t Pars, * pPars = &Pars;
         int Depth;
-
+        ABC_FREE( pNew->pSeqModel );
         Inter_ManSetDefaultParams( pPars );
+//        pPars->nBTLimit = 100;
         pPars->nBTLimit = pParSec->nBTLimitInter;
         pPars->fVerbose = pParSec->fVeryVerbose;
         if ( Saig_ManPoNum(pNew) == 1 )
         {
             RetValue = Inter_ManPerformInterpolation( pNew, pPars, &Depth );
+        }
+        else if ( pParSec->fInterSeparate )
+        {
+            Aig_Man_t * pTemp, * pAux;
+            Aig_Obj_t * pObjPo;
+            int i, Counter = 0;
+            Saig_ManForEachPo( pNew, pObjPo, i )
+            { 
+                if ( Aig_ObjFanin0(pObjPo) == Aig_ManConst1(pNew) )
+                    continue;
+                pTemp = Aig_ManDupOneOutput( pNew, i, 1 );
+                pTemp = Aig_ManScl( pAux = pTemp, 1, 1, 0 );
+                Aig_ManStop( pAux );
+                if ( Saig_ManRegNum(pTemp) > 0 )
+                {
+                    RetValue = Inter_ManPerformInterpolation( pTemp, pPars, &Depth );
+                    if ( pTemp->pSeqModel )
+                    {
+                        Ssw_Cex_t * pCex;
+                        pCex = pNew->pSeqModel = pTemp->pSeqModel; pTemp->pSeqModel = NULL;
+                        pCex->iPo = i;
+                        Aig_ManStop( pTemp );
+                        break;
+                    }
+                    // if solved, remove the output
+                    if ( RetValue == 1 )
+                    {
+                        Aig_ObjPatchFanin0( pNew, pObjPo, Aig_ManConst0(pNew) );
+    //                    printf( "Output %3d : Solved ", i );
+                    }
+                    else
+                    {
+                        Counter++;
+    //                    printf( "Output %3d : Undec  ", i );
+                    }
+                }
+                else
+                    Counter++;
+//                Aig_ManPrintStats( pTemp );
+                Aig_ManStop( pTemp );
+                printf( "Solving output %3d (out of %3d) using interpolation.\r", i, Saig_ManPoNum(pNew) );
+            }
+            Aig_ManCleanup( pNew );
+            if ( pNew->pSeqModel == NULL )
+            {
+                printf( "Interpolation left %d (out of %d) outputs unsolved              \n", Counter, Saig_ManPoNum(pNew) );
+                if ( Counter )
+                    RetValue = -1;
+            }
+            pNew = Aig_ManDupUnsolvedOutputs( pTemp = pNew, 1 );
+            Aig_ManStop( pTemp );
+            pNew = Aig_ManScl( pTemp = pNew, 1, 1, 0 );
+            Aig_ManStop( pTemp );
         }
         else
         {
@@ -481,7 +538,6 @@ clk = clock();
             if ( pNewOrpos->pSeqModel )
             {
                 Ssw_Cex_t * pCex;
-                ABC_FREE( pNew->pSeqModel );
                 pCex = pNew->pSeqModel = pNewOrpos->pSeqModel; pNewOrpos->pSeqModel = NULL;
                 pCex->iPo = Ssw_SmlFindOutputCounterExample( pNew, pNew->pSeqModel );
             }
@@ -505,10 +561,10 @@ ABC_PRT( "Time", clock() - clk );
     // try reachability analysis
     if ( pParSec->fReachability && RetValue == -1 && Aig_ManRegNum(pNew) > 0 && Aig_ManRegNum(pNew) < pParSec->nBddVarsMax )
     {
-        extern int Aig_ManVerifyUsingBdds( Aig_Man_t * p, int nBddMax, int nIterMax, int fPartition, int fReorder, int fVerbose, int fSilent );
+        extern int Aig_ManVerifyUsingBdds( Aig_Man_t * p, int nBddMax, int nIterMax, int fPartition, int fReorder, int fReorderImage, int fVerbose, int fSilent );
         pNew->nTruePis = Aig_ManPiNum(pNew) - Aig_ManRegNum(pNew); 
         pNew->nTruePos = Aig_ManPoNum(pNew) - Aig_ManRegNum(pNew); 
-        RetValue = Aig_ManVerifyUsingBdds( pNew, pParSec->nBddMax, pParSec->nBddIterMax, 1, 1, 0, pParSec->fSilent );
+        RetValue = Aig_ManVerifyUsingBdds( pNew, pParSec->nBddMax, pParSec->nBddIterMax, 1, 1, pParSec->fReorderImage, 0, pParSec->fSilent );
     }
 
 finish:
@@ -541,6 +597,11 @@ ABC_PRT( "Time", clock() - clkTotal );
     }
     else 
     {
+        ///////////////////////////////////
+        // save intermediate result
+        extern void Abc_FrameSetSave1( void * pAig );
+        Abc_FrameSetSave1( Aig_ManDupSimple(pNew) );
+        ///////////////////////////////////
         if ( !pParSec->fSilent )
         {
             printf( "Networks are UNDECIDED.   " );
@@ -555,7 +616,8 @@ ABC_PRT( "Time", clock() - clkTotal );
         {
             static int Counter = 1;
             char pFileName[1000];
-            sprintf( pFileName, "sm%03d.aig", Counter++ );
+            pParSec->nSMnumber = Counter;
+            sprintf( pFileName, "sm%02d.aig", Counter++ );
             Ioa_WriteAiger( pNew, pFileName, 0, 0 );
             printf( "The unsolved reduced miter is written into file \"%s\".\n", pFileName );
         }

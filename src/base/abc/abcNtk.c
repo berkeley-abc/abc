@@ -1334,7 +1334,7 @@ Abc_Ntk_t * Abc_NtkTrim( Abc_Ntk_t * pNtk )
     // filter POs
     k = m = 0;
     Abc_NtkForEachCo( pNtk, pObj, i )
-    {
+    {  
         if ( Abc_ObjIsPo(pObj) )
         {
             // remove constant nodes and PI pointers

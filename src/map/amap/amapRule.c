@@ -296,7 +296,7 @@ Kit_DsdPrint( stdout, pNtk );
         {
             assert( iNod > 1 );
             pNod = Amap_LibNod( pLib, Amap_Lit2Var(iNod) );
-            assert( pNod->Type == AMAP_OBJ_MUX || pNod->nSuppSize == pGate->nPins );
+//            assert( pNod->Type == AMAP_OBJ_MUX || pNod->nSuppSize == pGate->nPins );
             pSet = (Amap_Set_t *)Aig_MmFlexEntryFetch( pLib->pMemSet, sizeof(Amap_Set_t) );
             memset( pSet, 0, sizeof(Amap_Set_t) );
             pSet->iGate = pGate->Id;

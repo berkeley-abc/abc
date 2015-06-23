@@ -271,6 +271,47 @@ Aig_Man_t * Gia_ManToAig( Gia_Man_t * p, int fChoices )
   SeeAlso     []
 
 ***********************************************************************/
+Aig_Man_t * Gia_ManToAigSkip( Gia_Man_t * p, int nOutDelta )
+{
+    Aig_Man_t * pNew;
+    Aig_Obj_t ** ppNodes;
+    Gia_Obj_t * pObj;
+    int i;
+    assert( p->pNexts == NULL && p->pReprs == NULL );
+    assert( nOutDelta > 0 && Gia_ManCoNum(p) % nOutDelta == 0 );
+    // create the new manager
+    pNew = Aig_ManStart( Gia_ManAndNum(p) );
+    pNew->pName = Gia_UtilStrsav( p->pName );
+//    pNew->pSpec = Gia_UtilStrsav( p->pName );
+    // create the PIs
+    ppNodes = ABC_CALLOC( Aig_Obj_t *, Gia_ManObjNum(p) );
+    ppNodes[0] = Aig_ManConst0(pNew);
+    Gia_ManForEachCi( p, pObj, i )
+        ppNodes[Gia_ObjId(p, pObj)] = Aig_ObjCreatePi( pNew );
+    // add logic for the POs
+    Gia_ManForEachCo( p, pObj, i )
+    {
+        Gia_ManToAig_rec( pNew, ppNodes, p, Gia_ObjFanin0(pObj) );        
+        if ( i % nOutDelta != 0 )
+            continue;
+        ppNodes[Gia_ObjId(p, pObj)] = Aig_ObjCreatePo( pNew, Gia_ObjChild0Copy2(ppNodes, pObj, Gia_ObjId(p, pObj)) );
+    }
+    Aig_ManSetRegNum( pNew, Gia_ManRegNum(p) );
+    ABC_FREE( ppNodes );
+    return pNew;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Duplicates AIG in the DFS order.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 Aig_Man_t * Gia_ManCofactorAig( Aig_Man_t * p, int nFrames, int nCofFanLit )
 {
     Aig_Man_t * pMan;

@@ -49,6 +49,7 @@ void Cec_ManSatSetDefaultParams( Cec_ParSat_t * p )
     p->fPolarFlip     =       1;  // flops polarity of variables
     p->fCheckMiter    =       0;  // the circuit is the miter
     p->fFirstStop     =       0;  // stop on the first sat output
+    p->fLearnCls      =       0;  // perform clause learning
     p->fVerbose       =       0;  // verbose stats
 }  
 

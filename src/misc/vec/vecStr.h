@@ -572,6 +572,28 @@ static inline char Vec_StrPop( Vec_Str_t * p )
 
 /**Function*************************************************************
 
+  Synopsis    [Reverses the order of entries.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline void Vec_StrReverseOrder( Vec_Str_t * p )
+{
+    int i, Temp;
+    for ( i = 0; i < p->nSize/2; i++ )
+    {
+        Temp = p->pArray[i];
+        p->pArray[i] = p->pArray[p->nSize-1-i];
+        p->pArray[p->nSize-1-i] = Temp;
+    }
+}
+
+/**Function*************************************************************
+
   Synopsis    [Comparison procedure for two clauses.]
 
   Description []

@@ -87,7 +87,7 @@ Saig_Bmc_t * Saig_BmcManStart( Aig_Man_t * pAig, int nFramesMax, int nNodesMax, 
     Saig_Bmc_t * p;
     Aig_Obj_t * pObj;
     int i, Lit;
-    assert( Aig_ManRegNum(pAig) > 0 );
+//    assert( Aig_ManRegNum(pAig) > 0 );
     p = (Saig_Bmc_t *)ABC_ALLOC( char, sizeof(Saig_Bmc_t) );
     memset( p, 0, sizeof(Saig_Bmc_t) );
     // set parameters
@@ -589,7 +589,7 @@ void Saig_BmcPerform( Aig_Man_t * pAig, int nFramesMax, int nNodesMax, int nConf
             Aig_ManNodeNum(pAig), Aig_ManLevelNum(pAig) );
         printf( "Params: FramesMax = %d. NodesDelta = %d. ConfMaxOne = %d. ConfMaxAll = %d.\n", 
             nFramesMax, nNodesMax, nConfMaxOne, nConfMaxAll );
-    }
+    } 
     for ( Iter = 0; ; Iter++ )
     {
         clk2 = clock();

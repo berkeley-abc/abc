@@ -157,7 +157,7 @@ void Abc_NtkTimeSetDefaultRequired( Abc_Ntk_t * pNtk, float Rise, float Fall )
     if ( pNtk->pManTime == NULL )
         pNtk->pManTime = Abc_ManTimeStart();
     pNtk->pManTime->tReqDef.Rise  = Rise;
-    pNtk->pManTime->tReqDef.Rise  = Fall;
+    pNtk->pManTime->tReqDef.Fall  = Fall;
     pNtk->pManTime->tReqDef.Worst = ABC_MAX( Rise, Fall );
 }
 
@@ -185,7 +185,7 @@ void Abc_NtkTimeSetArrival( Abc_Ntk_t * pNtk, int ObjId, float Rise, float Fall 
     vTimes = pNtk->pManTime->vArrs;
     pTime = vTimes->pArray[ObjId];
     pTime->Rise  = Rise;
-    pTime->Fall  = Rise;
+    pTime->Fall  = Fall;
     pTime->Worst = ABC_MAX( Rise, Fall );
 }
 
@@ -213,7 +213,7 @@ void Abc_NtkTimeSetRequired( Abc_Ntk_t * pNtk, int ObjId, float Rise, float Fall
     vTimes = pNtk->pManTime->vReqs;
     pTime = vTimes->pArray[ObjId];
     pTime->Rise  = Rise;
-    pTime->Fall  = Rise;
+    pTime->Fall  = Fall;
     pTime->Worst = ABC_MAX( Rise, Fall );
 }
 

@@ -277,6 +277,8 @@ void Gia_ManEquivPrintClasses( Gia_Man_t * p, int fVerbose, float Mem )
     assert( Gia_ManEquivCheckLits( p, nLits ) );
     if ( fVerbose )
     {
+        int Ent;
+/*
         printf( "Const0 = " );
         Gia_ManForEachConst( p, i )
             printf( "%d ", i );
@@ -284,6 +286,18 @@ void Gia_ManEquivPrintClasses( Gia_Man_t * p, int fVerbose, float Mem )
         Counter = 0;
         Gia_ManForEachClass( p, i )
             Gia_ManEquivPrintOne( p, i, ++Counter );
+*/
+        Gia_ManLevelNum( p );
+        Gia_ManForEachClass( p, i )
+            if ( i % 100 == 0 )
+            {
+//                printf( "%d ", Gia_ManEquivCountOne(p, i) );
+                Gia_ClassForEachObj( p, i, Ent )
+                {
+                    printf( "%d ", Gia_ObjLevel( p, Gia_ManObj(p, Ent) ) );
+                }
+                printf( "\n" );
+            }
     }
 }
 
@@ -368,6 +382,15 @@ Gia_Man_t * Gia_ManEquivReduce( Gia_Man_t * p, int fUseAll, int fDualOut, int fV
     if ( fDualOut && (Gia_ManPoNum(p) & 1) )
     {
         printf( "Gia_ManEquivReduce(): Dual-output miter should have even number of POs.\n" );
+        return NULL;
+    }
+    // check if there are any equivalences defined
+    Gia_ManForEachObj( p, pObj, i )
+        if ( Gia_ObjReprObj(p, i) != NULL )
+            break;
+    if ( i == Gia_ManObjNum(p) )
+    {
+        printf( "Gia_ManEquivReduce(): There are no equivalences to reduce.\n" );
         return NULL;
     }
 /*
@@ -720,6 +743,16 @@ Gia_Man_t * Gia_ManSpecReduce( Gia_Man_t * p, int fDualOut, int fVerbose )
         printf( "Gia_ManSpecReduce(): Dual-output miter should have even number of POs.\n" );
         return NULL;
     }
+    // check if there are any equivalences defined
+    Gia_ManForEachObj( p, pObj, i )
+        if ( Gia_ObjReprObj(p, i) != NULL )
+            break;
+    if ( i == Gia_ManObjNum(p) )
+    {
+        printf( "Gia_ManSpecReduce(): There are no equivalences to reduce.\n" );
+        return NULL;
+    }
+
 /*
     if ( !Gia_ManCheckTopoOrder( p ) )
     {

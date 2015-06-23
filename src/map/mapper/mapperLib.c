@@ -174,14 +174,19 @@ int Map_SuperLibDeriveFromGenlib( Mio_Library_t * pLib )
 {
     Abc_Frame_t * pAbc = Abc_FrameGetGlobalFrame();
     char * pNameGeneric;
-    char FileNameGenlib[100];
-    char FileNameSuper[100];
-    char CommandSuper[500];
-    char CommandRead[500];
+    char * FileNameGenlib;
+    char * FileNameSuper;
+    char * CommandSuper;
+    char * CommandRead;
     FILE * pFile;
 
     if ( pLib == NULL )
         return 0;
+
+    FileNameGenlib = ABC_ALLOC( char, 10000 );
+    FileNameSuper = ABC_ALLOC( char, 10000 );
+    CommandSuper = ABC_ALLOC( char, 10000 );
+    CommandRead = ABC_ALLOC( char, 10000 );
 
     // write the current library into the file
     sprintf( FileNameGenlib, "%s_temp", Mio_LibraryReadName(pLib) );
@@ -197,6 +202,10 @@ int Map_SuperLibDeriveFromGenlib( Mio_Library_t * pLib )
     sprintf( CommandSuper,  "super -l 1 -i 5 -d 10000000 -a 10000000 -t 100 %s", FileNameGenlib ); 
     if ( Cmd_CommandExecute( pAbc, CommandSuper ) )
     {
+        ABC_FREE( FileNameGenlib );
+        ABC_FREE( FileNameSuper );
+        ABC_FREE( CommandSuper );
+        ABC_FREE( CommandRead );
         fprintf( stdout, "Cannot execute command \"%s\".\n", CommandSuper );
         return 0;
     }
@@ -215,6 +224,10 @@ int Map_SuperLibDeriveFromGenlib( Mio_Library_t * pLib )
         unlink( FileNameSuper );
 #endif
         fprintf( stdout, "Cannot execute command \"%s\".\n", CommandRead );
+        ABC_FREE( FileNameGenlib );
+        ABC_FREE( FileNameSuper );
+        ABC_FREE( CommandSuper );
+        ABC_FREE( CommandRead );
         return 0;
     }
 
@@ -225,6 +238,10 @@ int Map_SuperLibDeriveFromGenlib( Mio_Library_t * pLib )
     unlink( FileNameSuper );
 #endif
 */
+    ABC_FREE( FileNameGenlib );
+    ABC_FREE( FileNameSuper );
+    ABC_FREE( CommandSuper );
+    ABC_FREE( CommandRead );
      return 1;
 }
 

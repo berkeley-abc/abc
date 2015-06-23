@@ -321,6 +321,7 @@ Nwk_Man_t * Nwk_ManFromIf( If_Man_t * pIfMan, Aig_Man_t * p, Vec_Ptr_t * vAigToI
             pObjNew = Nwk_ManCreateCo( pNtk );
             pObjNew->fInvert = Aig_ObjFaninC0(pObj);
             Nwk_ObjAddFanin( pObjNew, Aig_ObjFanin0(pObj)->pData );
+//printf( "%d ", pObjNew->Id );
         }
         else if ( Aig_ObjIsConst1(pObj) )
         {
@@ -331,6 +332,7 @@ Nwk_Man_t * Nwk_ManFromIf( If_Man_t * pIfMan, Aig_Man_t * p, Vec_Ptr_t * vAigToI
             assert( 0 );
         pObj->pData = pObjNew;
     }
+//printf( "\n" );
     Vec_PtrFree( vIfToAig );
     pNtk->pManTime = Tim_ManDup( pIfMan->pManTim, 0 );
     Nwk_ManMinimumBase( pNtk, 0 );

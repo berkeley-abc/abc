@@ -251,7 +251,7 @@ Vec_Int_t * Saig_ManExtendCounterExample( Aig_Man_t * p, int iFirstPi, Ssw_Cex_t
 {
     Vec_Int_t * vRes, * vResInv, * vUndo, * vVis, * vVis2;
     int i, f, Value;
-    assert( Aig_ManRegNum(p) > 0 );
+//    assert( Aig_ManRegNum(p) > 0 );
     assert( (unsigned *)Vec_PtrEntry(vSimInfo,1) - (unsigned *)Vec_PtrEntry(vSimInfo,0) >= Aig_BitWordNum(2*(pCex->iFrame+1)) );
     // start simulation data
     Value = Saig_ManSimDataInit( p, pCex, vSimInfo, NULL );

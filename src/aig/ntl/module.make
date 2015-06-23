@@ -6,6 +6,7 @@ SRC +=    src/aig/ntl/ntlCheck.c \
     src/aig/ntl/ntlInsert.c \
     src/aig/ntl/ntlMan.c \
     src/aig/ntl/ntlMap.c \
+    src/aig/ntl/ntlNames.c \
     src/aig/ntl/ntlObj.c \
     src/aig/ntl/ntlReadBlif.c \
     src/aig/ntl/ntlSweep.c \

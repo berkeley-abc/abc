@@ -24,6 +24,7 @@
 #include "satSolver.h"
 #include "satStore.h"
 #include "ssw.h"
+#include "ioa.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -681,7 +682,7 @@ Ssw_Cex_t * Saig_ManCexShrink( Aig_Man_t * p, Aig_Man_t * pAbs, Ssw_Cex_t * pCex
     }
     return pCex;
 }
-
+ 
 /**Function*************************************************************
 
   Synopsis    [Performs proof-based abstraction using BMC of the given depth.]
@@ -859,6 +860,7 @@ Aig_Man_t * Saig_ManProofAbstraction( Aig_Man_t * p, int nFrames, int nConfMax, 
         printf( "Refining abstraction...\n" );
         for ( Iter = 0; ; Iter++ )
         {
+            char FileName[100];
             pTemp = Saig_ManProofRefine( p, pResult, vFlops, nFramesBmc, nConfMaxBmc, fVerbose );
             if ( pTemp == NULL )
                 break;
@@ -869,9 +871,16 @@ Aig_Man_t * Saig_ManProofAbstraction( Aig_Man_t * p, int nFrames, int nConfMax, 
                 Aig_ManPrintStats( pResult );
             else
                 printf( " -----------------------------------------------------\n" );
+            // output the intermediate result of abstraction
+            sprintf( FileName, "gabs%02d.aig", Iter );
+            Ioa_WriteAiger( pResult, FileName, 0, 0 );
+            printf( "Intermediate abstracted model was written into file \"%s\".\n", FileName );
+            // check if the ratio is reached
             if ( 100.0*(Aig_ManRegNum(p)-Aig_ManRegNum(pTemp))/Aig_ManRegNum(p) < 1.0*nRatio )
             {
                 printf( "Refinements is stopped because flop reduction is less than %d%%\n", nRatio );
+                Aig_ManStop( pResult );
+                pResult = NULL;
                 break;
             }
         }

@@ -57,6 +57,7 @@ struct Inter_ManParams_t_
     int  fCheckKstep;   // check using K-step induction
     int  fUseBias;      // bias decisions to global variables
     int  fUseBackward;  // perform backward interpolation
+    int  fUseSeparate;  // solve each output separately
     int  fVerbose;      // print verbose statistics
 };
 

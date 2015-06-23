@@ -39,15 +39,14 @@
   SeeAlso     []
 
 ***********************************************************************/
-Dch_Man_t * Dch_ManCreate( Vec_Ptr_t * vAigs, Dch_Pars_t * pPars )
+Dch_Man_t * Dch_ManCreate( Aig_Man_t * pAig, Dch_Pars_t * pPars )
 {
     Dch_Man_t * p;
     // create interpolation manager
     p = ABC_ALLOC( Dch_Man_t, 1 );
     memset( p, 0, sizeof(Dch_Man_t) );
     p->pPars        = pPars;
-    p->vAigs        = vAigs;
-    p->pAigTotal    = Dch_DeriveTotalAig( vAigs );
+    p->pAigTotal    = pAig; //Dch_DeriveTotalAig( vAigs );
     Aig_ManFanoutStart( p->pAigTotal );
     // SAT solving
     p->nSatVars     = 1;
@@ -74,18 +73,14 @@ Dch_Man_t * Dch_ManCreate( Vec_Ptr_t * vAigs, Dch_Pars_t * pPars )
 ***********************************************************************/
 void Dch_ManPrintStats( Dch_Man_t * p )
 {
-//    Aig_Man_t * pAig;
-//    int i;
-//    printf( "Choicing will be performed with %d AIGs:\n", Vec_PtrSize(p->vAigs) );
-//    Vec_PtrForEachEntry( p->vAigs, pAig, i )
-//        Aig_ManPrintStats( pAig );
+    int nNodeNum = Aig_ManNodeNum(p->pAigTotal) / 3;
     printf( "Parameters: Sim words = %d. Conf limit = %d. SAT var max = %d.\n", 
         p->pPars->nWords, p->pPars->nBTLimit, p->pPars->nSatVarMax );
     printf( "AIG nodes : Total = %6d. Dangling = %6d. Main = %6d. (%6.2f %%)\n", 
         Aig_ManNodeNum(p->pAigTotal), 
-        Aig_ManNodeNum(p->pAigTotal)-Aig_ManNodeNum(Vec_PtrEntry(p->vAigs,0)),
-        Aig_ManNodeNum(Vec_PtrEntry(p->vAigs,0)),
-        100.0 * Aig_ManNodeNum(Vec_PtrEntry(p->vAigs,0))/Aig_ManNodeNum(p->pAigTotal) );
+        Aig_ManNodeNum(p->pAigTotal)-nNodeNum,
+        nNodeNum,
+        100.0 * nNodeNum/Aig_ManNodeNum(p->pAigTotal) );
     printf( "SAT solver: Vars = %d. Max cone = %d. Recycles = %d.\n", 
         p->nSatVars, p->nConeMax, p->nRecycles );
     printf( "SAT calls : All = %6d. Unsat = %6d. Sat = %6d. Fail = %6d.\n", 
@@ -108,7 +103,7 @@ void Dch_ManPrintStats( Dch_Man_t * p )
     {
     ABC_PRT( "Synthesis  ", p->pPars->timeSynth );
     }
-}
+} 
 
 /**Function*************************************************************
 
@@ -123,10 +118,9 @@ void Dch_ManPrintStats( Dch_Man_t * p )
 ***********************************************************************/
 void Dch_ManStop( Dch_Man_t * p )
 {
+    Aig_ManFanoutStop( p->pAigTotal );
     if ( p->pPars->fVerbose )
         Dch_ManPrintStats( p );
-    if ( p->pAigTotal )
-        Aig_ManStop( p->pAigTotal );
     if ( p->pAigFraig )
         Aig_ManStop( p->pAigFraig );
     if ( p->ppClasses )

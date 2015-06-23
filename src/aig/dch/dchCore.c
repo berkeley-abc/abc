@@ -49,6 +49,7 @@ void Dch_ManSetDefaultParams( Dch_Pars_t * p )
     p->fPolarFlip     =     1;  // uses polarity adjustment
     p->fSimulateTfo   =     1;  // simulate TFO
     p->fPower         =     0;  // power-aware rewriting
+    p->fLightSynth    =     0;  // uses lighter version of synthesis
     p->fVerbose       =     0;  // verbose stats
     p->nNodesAhead    =  1000;  // the lookahead in terms of nodes
     p->nCallsRecycle  =   100;  // calls to perform before recycling SAT solver
@@ -65,37 +66,35 @@ void Dch_ManSetDefaultParams( Dch_Pars_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-Aig_Man_t * Dch_ComputeChoices( Vec_Ptr_t * vAigs, Dch_Pars_t * pPars )
+Aig_Man_t * Dch_ComputeChoices( Aig_Man_t * pAig, Dch_Pars_t * pPars )
 {
     Dch_Man_t * p;
     Aig_Man_t * pResult;
     int clk, clkTotal = clock();
-    assert( Vec_PtrSize(vAigs) > 0 );
     // reset random numbers
     Aig_ManRandom(1);
     // start the choicing manager
-    p = Dch_ManCreate( vAigs, pPars );
+    p = Dch_ManCreate( pAig, pPars );
     // compute candidate equivalence classes
 clk = clock(); 
-    p->ppClasses = Dch_CreateCandEquivClasses( p->pAigTotal, pPars->nWords, pPars->fVerbose );
+    p->ppClasses = Dch_CreateCandEquivClasses( pAig, pPars->nWords, pPars->fVerbose );
 p->timeSimInit = clock() - clk;
 //    Dch_ClassesPrint( p->ppClasses, 0 );
     p->nLits = Dch_ClassesLitNum( p->ppClasses );
     // perform SAT sweeping
     Dch_ManSweep( p );
-    // count the number of representatives
-    p->nReprs = Dch_DeriveChoiceCountReprs( p->pAigTotal );
-    // create choices
-clk = clock();
-    pResult = Dch_DeriveChoiceAig( p->pAigTotal );
-p->timeChoice = clock() - clk;
-//    Aig_ManCleanup( p->pAigTotal );
-//    pResult = Aig_ManDupSimpleDfs( p->pAigTotal );
-    // count the number of equivalences and choices
-    p->nEquivs = Dch_DeriveChoiceCountEquivs( pResult );
-    p->nChoices = Aig_ManChoiceNum( pResult );
+    // free memory ahead of time
 p->timeTotal = clock() - clkTotal;
     Dch_ManStop( p );
+    // create choices
+    ABC_FREE( pAig->pTable );
+    pResult = Dch_DeriveChoiceAig( pAig );
+    // count the number of representatives
+    if ( pPars->fVerbose )
+        printf( "STATS:  Reprs = %6d.  Equivs = %6d.  Choices = %6d.\n", 
+               Dch_DeriveChoiceCountReprs( pAig ),
+               Dch_DeriveChoiceCountEquivs( pResult ),
+               Aig_ManChoiceNum( pResult ) );
     return pResult;
 }
 

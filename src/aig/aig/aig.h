@@ -481,13 +481,16 @@ extern Aig_Man_t *     Aig_ManDupOrdered( Aig_Man_t * p );
 extern Aig_Man_t *     Aig_ManDupTrim( Aig_Man_t * p );
 extern Aig_Man_t *     Aig_ManDupExor( Aig_Man_t * p );
 extern Aig_Man_t *     Aig_ManDupDfs( Aig_Man_t * p );
-extern Aig_Man_t *     Aig_ManDupDfsGuided( Aig_Man_t * p, Aig_Man_t * pGuide );
+extern Vec_Ptr_t *     Aig_ManOrderPios( Aig_Man_t * p, Aig_Man_t * pOrder );
+extern Aig_Man_t *     Aig_ManDupDfsGuided( Aig_Man_t * p, Vec_Ptr_t * vPios );
 extern Aig_Man_t *     Aig_ManDupLevelized( Aig_Man_t * p );
 extern Aig_Man_t *     Aig_ManDupWithoutPos( Aig_Man_t * p );
 extern Aig_Man_t *     Aig_ManDupRepres( Aig_Man_t * p );
 extern Aig_Man_t *     Aig_ManDupRepresDfs( Aig_Man_t * p );
 extern Aig_Man_t *     Aig_ManCreateMiter( Aig_Man_t * p1, Aig_Man_t * p2, int fImpl );
+extern Aig_Man_t *     Aig_ManDupOrpos( Aig_Man_t * p, int fAddRegs );
 extern Aig_Man_t *     Aig_ManDupOneOutput( Aig_Man_t * p, int iPoNum, int fAddRegs );
+extern Aig_Man_t *     Aig_ManDupUnsolvedOutputs( Aig_Man_t * p, int fAddRegs );
 /*=== aigFanout.c ==========================================================*/
 extern void            Aig_ObjAddFanout( Aig_Man_t * p, Aig_Obj_t * pObj, Aig_Obj_t * pFanout );
 extern void            Aig_ObjRemoveFanout( Aig_Man_t * p, Aig_Obj_t * pObj, Aig_Obj_t * pFanout );

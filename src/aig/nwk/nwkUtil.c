@@ -513,6 +513,49 @@ int Nwk_ManMinimumBaseNode( Nwk_Obj_t * pObj, Vec_Int_t * vTruth, int fVerbose )
   SeeAlso     []
 
 ***********************************************************************/
+int Nwk_ManMinimumBaseInt( Nwk_Man_t * pNtk, int fVerbose )
+{
+    Vec_Int_t * vTruth;
+    Nwk_Obj_t * pObj;
+    int i, Counter = 0;
+    vTruth = Vec_IntAlloc( 1 << 16 );
+    Nwk_ManForEachNode( pNtk, pObj, i )
+        Counter += Nwk_ManMinimumBaseNode( pObj, vTruth, fVerbose );
+    if ( fVerbose && Counter )
+        printf( "Support minimization reduced support of %d nodes.\n", Counter );
+    Vec_IntFree( vTruth );
+    return Counter;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Minimizes the support of all nodes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Nwk_ManMinimumBaseRec( Nwk_Man_t * pNtk, int fVerbose )
+{
+    int i, clk = clock();
+    for ( i = 0; Nwk_ManMinimumBaseInt( pNtk, fVerbose ); i++ );
+    ABC_PRT( "Minbase", clock() - clk );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Minimizes the support of all nodes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 void Nwk_ManMinimumBase( Nwk_Man_t * pNtk, int fVerbose )
 {
     Vec_Int_t * vTruth;
@@ -585,6 +628,7 @@ void Nwk_ManRemoveDupFanins( Nwk_Man_t * pNtk, int fVerbose )
         }
     }
     Vec_IntFree( vTruth );
+//    Nwk_ManMinimumBase( pNtk, fVerbose );
 }
 
 ////////////////////////////////////////////////////////////////////////

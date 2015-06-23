@@ -1278,6 +1278,133 @@ void Aig_NodeIntersectLists( Vec_Ptr_t * vArr1, Vec_Ptr_t * vArr2, Vec_Ptr_t * v
     assert( vArr->nSize <= vArr2->nSize );
 }
 
+#include "fra.h"
+#include "saig.h"
+
+extern void Aig_ManCounterExampleValueStart( Aig_Man_t * pAig, Fra_Cex_t * pCex );
+extern void Aig_ManCounterExampleValueStop( Aig_Man_t * pAig );
+extern int Aig_ManCounterExampleValueLookup(  Aig_Man_t * pAig, int Id, int iFrame );
+
+/**Function*************************************************************
+
+  Synopsis    [Starts the process of retuning values for internal nodes.]
+
+  Description [Should be called when pCex is available, before probing 
+  any object for its value using Aig_ManCounterExampleValueLookup().]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Aig_ManCounterExampleValueStart( Aig_Man_t * pAig, Fra_Cex_t * pCex )
+{
+    Aig_Obj_t * pObj, * pObjRi, * pObjRo;
+    int Val0, Val1, nObjs, i, k, iBit = 0;
+    assert( Aig_ManRegNum(pAig) > 0 ); // makes sense only for sequential AIGs
+    assert( pAig->pData2 == NULL );    // if this fail, there may be a memory leak
+    // allocate memory to store simulation bits for internal nodes
+    pAig->pData2 = ABC_CALLOC( unsigned, Aig_BitWordNum( (pCex->iFrame + 1) * Aig_ManObjNum(pAig) ) );
+    // the register values in the counter-example should be zero
+    Saig_ManForEachLo( pAig, pObj, k )
+        assert( Aig_InfoHasBit(pCex->pData, iBit++) == 0 );
+    // iterate through the timeframes
+    nObjs = Aig_ManObjNum(pAig);
+    for ( i = 0; i <= pCex->iFrame; i++ )
+    {
+        // set constant 1 node
+        Aig_InfoSetBit( pAig->pData2, nObjs * i + 0 );
+        // set primary inputs according to the counter-example
+        Saig_ManForEachPi( pAig, pObj, k )
+            if ( Aig_InfoHasBit(pCex->pData, iBit++) )
+                Aig_InfoSetBit( pAig->pData2, nObjs * i + Aig_ObjId(pObj) );
+        // compute values for each node
+        Aig_ManForEachNode( pAig, pObj, k )
+        {
+            Val0 = Aig_InfoHasBit( pAig->pData2, nObjs * i + Aig_ObjFaninId0(pObj) );
+            Val1 = Aig_InfoHasBit( pAig->pData2, nObjs * i + Aig_ObjFaninId1(pObj) );
+            if ( (Val0 ^ Aig_ObjFaninC0(pObj)) & (Val1 ^ Aig_ObjFaninC1(pObj)) )
+                Aig_InfoSetBit( pAig->pData2, nObjs * i + Aig_ObjId(pObj) );
+        }
+        // derive values for combinational outputs
+        Aig_ManForEachPo( pAig, pObj, k )
+        {
+            Val0 = Aig_InfoHasBit( pAig->pData2, nObjs * i + Aig_ObjFaninId0(pObj) );
+            if ( Val0 ^ Aig_ObjFaninC0(pObj) )
+                Aig_InfoSetBit( pAig->pData2, nObjs * i + Aig_ObjId(pObj) );
+        }
+        if ( i == pCex->iFrame )
+            continue;
+        // transfer values to the register output of the next frame
+        Saig_ManForEachLiLo( pAig, pObjRi, pObjRo, k )
+            if ( Aig_InfoHasBit( pAig->pData2, nObjs * i + Aig_ObjId(pObjRi) ) )
+                Aig_InfoSetBit( pAig->pData2, nObjs * (i+1) + Aig_ObjId(pObjRo) );
+    }
+    assert( iBit == pCex->nBits );
+    // check that the counter-example is correct, that is, the corresponding output is asserted
+    assert( Aig_InfoHasBit( pAig->pData2, nObjs * pCex->iFrame + Aig_ObjId(Aig_ManPo(pAig, pCex->iPo)) ) );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Stops the process of retuning values for internal nodes.]
+
+  Description [Should be called when probing is no longer needed]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Aig_ManCounterExampleValueStop( Aig_Man_t * pAig )
+{
+    assert( pAig->pData2 != NULL );    // if this fail, we try to call this procedure more than once
+    free( pAig->pData2 );
+    pAig->pData2 = NULL;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Returns the value of the given object in the given timeframe.]
+
+  Description [Should be called to probe the value of an object with 
+  the given ID (iFrame is a 0-based number of a time frame - should not 
+  exceed the number of timeframes in the original counter-example).]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Aig_ManCounterExampleValueLookup(  Aig_Man_t * pAig, int Id, int iFrame )
+{
+    assert( Id >= 0 && Id < Aig_ManObjNum(pAig) );
+    return Aig_InfoHasBit( pAig->pData2, Aig_ManObjNum(pAig) * iFrame + Id );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Procedure to test the above code.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Aig_ManCounterExampleValueTest( Aig_Man_t * pAig, Fra_Cex_t * pCex )
+{
+    Aig_Obj_t * pObj = Aig_ManObj( pAig, Aig_ManObjNum(pAig)/2 );
+    int iFrame = ABC_MAX( 0, pCex->iFrame - 1 );
+    printf( "\nUsing counter-example, which asserts output %d in frame %d.\n", pCex->iPo, pCex->iFrame );
+    Aig_ManCounterExampleValueStart( pAig, pCex );
+    printf( "Value of object %d in frame %d is %d.\n", Aig_ObjId(pObj), iFrame,
+        Aig_ManCounterExampleValueLookup(pAig, Aig_ObjId(pObj), iFrame) );
+    Aig_ManCounterExampleValueStop( pAig );
+}
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

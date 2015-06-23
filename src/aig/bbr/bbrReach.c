@@ -220,11 +220,16 @@ int Aig_ManComputeReachable( DdManager * dd, Aig_Man_t * p, DdNode ** pbParts, D
     int i, nIters, nBddSize;
     int nThreshold = 10000;
     Vec_Ptr_t * vOnionRings;
+    int status, method;
+
+    status = Cudd_ReorderingStatus( dd, &method );
+    if ( status )
+        Cudd_AutodynDisable( dd );
 
     // start the image computation
     bCubeCs  = Bbr_bddComputeRangeCube( dd, Saig_ManPiNum(p), Saig_ManCiNum(p) );    Cudd_Ref( bCubeCs );
     if ( fPartition )
-        pTree = Bbr_bddImageStart( dd, bCubeCs, Saig_ManRegNum(p), pbParts, Saig_ManRegNum(p), dd->vars+Saig_ManCiNum(p), fVerbose );
+        pTree = Bbr_bddImageStart( dd, bCubeCs, Saig_ManRegNum(p), pbParts, Saig_ManRegNum(p), dd->vars+Saig_ManCiNum(p), nBddMax, fVerbose );
     else
         pTree2 = Bbr_bddImageStart2( dd, bCubeCs, Saig_ManRegNum(p), pbParts, Saig_ManRegNum(p), dd->vars+Saig_ManCiNum(p), fVerbose );
     Cudd_RecursiveDeref( dd, bCubeCs );
@@ -234,6 +239,9 @@ int Aig_ManComputeReachable( DdManager * dd, Aig_Man_t * p, DdNode ** pbParts, D
             printf( "BDDs blew up during qualitification scheduling.  " );
         return -1;
     }
+
+    if ( status )
+        Cudd_AutodynEnable( dd, method );
 
     // start the onion rings
     vOnionRings = Vec_PtrAlloc( 1000 );
@@ -360,11 +368,11 @@ int Aig_ManComputeReachable( DdManager * dd, Aig_Man_t * p, DdNode ** pbParts, D
   Description []
                
   SideEffects []
-
+ 
   SeeAlso     []
 
 ***********************************************************************/
-int Aig_ManVerifyUsingBdds_int( Aig_Man_t * p, int nBddMax, int nIterMax, int fPartition, int fReorder, int fVerbose, int fSilent )
+int Aig_ManVerifyUsingBdds_int( Aig_Man_t * p, int nBddMax, int nIterMax, int fPartition, int fReorder, int fReorderImage, int fVerbose, int fSilent )
 {
     DdManager * dd;
     DdNode ** pbParts, ** pbOutputs;
@@ -396,6 +404,10 @@ int Aig_ManVerifyUsingBdds_int( Aig_Man_t * p, int nBddMax, int nIterMax, int fP
 
     // create the initial state and the variable map
     bInitial  = Aig_ManInitStateVarMap( dd, p, fVerbose );  Cudd_Ref( bInitial );
+
+    // set reordering
+    if ( fReorderImage )
+        Cudd_AutodynEnable( dd, CUDD_REORDER_SYMM_SIFT );
 
     // check the result
     RetValue = -1;
@@ -456,7 +468,7 @@ int Aig_ManVerifyUsingBdds_int( Aig_Man_t * p, int nBddMax, int nIterMax, int fP
   SeeAlso     []
 
 ***********************************************************************/
-int Aig_ManVerifyUsingBdds( Aig_Man_t * pInit, int nBddMax, int nIterMax, int fPartition, int fReorder, int fVerbose, int fSilent )
+int Aig_ManVerifyUsingBdds( Aig_Man_t * pInit, int nBddMax, int nIterMax, int fPartition, int fReorder, int fReorderImage, int fVerbose, int fSilent )
 {
     Ssw_Cex_t * pCexOld, * pCexNew;
     Aig_Man_t * p;
@@ -468,12 +480,12 @@ int Aig_ManVerifyUsingBdds( Aig_Man_t * pInit, int nBddMax, int nIterMax, int fP
         if ( Aig_ObjRefs(pObj) == 0 )
             break;
     if ( i == Saig_ManPiNum(pInit) )
-        return Aig_ManVerifyUsingBdds_int( pInit, nBddMax, nIterMax, fPartition, fReorder, fVerbose, fSilent );
+        return Aig_ManVerifyUsingBdds_int( pInit, nBddMax, nIterMax, fPartition, fReorder, fReorderImage, fVerbose, fSilent );
     // create new AIG
     p = Aig_ManDupTrim( pInit );
     assert( Aig_ManPiNum(p) < Aig_ManPiNum(pInit) );
     assert( Aig_ManRegNum(p) == Aig_ManRegNum(pInit) );
-    RetValue = Aig_ManVerifyUsingBdds_int( p, nBddMax, nIterMax, fPartition, fReorder, fVerbose, fSilent );
+    RetValue = Aig_ManVerifyUsingBdds_int( p, nBddMax, nIterMax, fPartition, fReorder, fReorderImage, fVerbose, fSilent );
     if ( RetValue != 0 )
     {
         Aig_ManStop( p );

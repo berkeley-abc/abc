@@ -50,6 +50,7 @@ struct Dch_Pars_t_
     int              fPower;        // uses power-aware rewriting
     int              fUseGia;       // uses GIA package 
     int              fUseCSat;      // uses circuit-based solver
+    int              fLightSynth;   // uses lighter version of synthesis
     int              fVerbose;      // verbose stats
     int              timeSynth;     // synthesis runtime
     int              nNodesAhead;   // the lookahead in terms of nodes
@@ -66,7 +67,7 @@ struct Dch_Pars_t_
 
 /*=== dchCore.c ==========================================================*/
 extern void          Dch_ManSetDefaultParams( Dch_Pars_t * p );
-extern Aig_Man_t *   Dch_ComputeChoices( Vec_Ptr_t * vAigs, Dch_Pars_t * pPars );
+extern Aig_Man_t *   Dch_ComputeChoices( Aig_Man_t * pAig, Dch_Pars_t * pPars );
 
 
 #ifdef __cplusplus

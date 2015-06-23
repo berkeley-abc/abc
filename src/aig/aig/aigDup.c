@@ -602,9 +602,8 @@ Aig_Obj_t * Aig_ManDupDfsGuided_rec( Aig_Man_t * pNew, Aig_Man_t * p, Aig_Obj_t 
   SeeAlso     []
 
 ***********************************************************************/
-Aig_Man_t * Aig_ManDupDfsGuided( Aig_Man_t * p, Aig_Man_t * pGuide )
+Aig_Man_t * Aig_ManDupDfsGuided( Aig_Man_t * p, Vec_Ptr_t * vPios )
 {
-    Vec_Ptr_t * vPios;
     Aig_Man_t * pNew;
     Aig_Obj_t * pObj, * pObjNew;
     int i, nNodes;
@@ -631,7 +630,6 @@ Aig_Man_t * Aig_ManDupDfsGuided( Aig_Man_t * p, Aig_Man_t * pGuide )
     // duplicate internal nodes
     Aig_ManConst1(p)->pData = Aig_ManConst1(pNew);
     Aig_ManConst1(pNew)->pHaig = Aig_ManConst1(p)->pHaig;
-    vPios = Aig_ManOrderPios( p, pGuide );
     Vec_PtrForEachEntry( vPios, pObj, i )
     {
         if ( Aig_ObjIsPi(pObj) )
@@ -650,7 +648,6 @@ Aig_Man_t * Aig_ManDupDfsGuided( Aig_Man_t * p, Aig_Man_t * pGuide )
             pObj->pData = pObjNew;
         }
     }
-    Vec_PtrFree( vPios );
 //    assert( Aig_ManBufNum(p) != 0 || Aig_ManNodeNum(p) == Aig_ManNodeNum(pNew) );
     if ( p->pEquivs == NULL && p->pReprs == NULL && (nNodes = Aig_ManCleanup( pNew )) )
         printf( "Aig_ManDupDfs(): Cleanup after AIG duplication removed %d nodes.\n", nNodes );
@@ -982,6 +979,54 @@ Aig_Man_t * Aig_ManCreateMiter( Aig_Man_t * p1, Aig_Man_t * p2, int Oper )
   SeeAlso     []
 
 ***********************************************************************/
+Aig_Man_t * Aig_ManDupOrpos( Aig_Man_t * p, int fAddRegs )
+{
+    Aig_Man_t * pNew;
+    Aig_Obj_t * pObj, * pMiter;
+    int i;
+    assert( Aig_ManRegNum(p) > 0 );
+    // create the new manager
+    pNew = Aig_ManStart( Aig_ManObjNumMax(p) );
+    pNew->pName = Aig_UtilStrsav( p->pName );
+    pNew->pSpec = Aig_UtilStrsav( p->pSpec );
+    // create the PIs
+    Aig_ManCleanData( p );
+    Aig_ManConst1(p)->pData = Aig_ManConst1(pNew);
+    Aig_ManForEachPi( p, pObj, i )
+        pObj->pData = Aig_ObjCreatePi( pNew );
+    // set registers
+    pNew->nRegs    = fAddRegs? p->nRegs : 0;
+    pNew->nTruePis = fAddRegs? p->nTruePis : p->nTruePis + p->nRegs;
+    pNew->nTruePos = 1;
+    // duplicate internal nodes
+    Aig_ManForEachNode( p, pObj, i )
+        pObj->pData = Aig_And( pNew, Aig_ObjChild0Copy(pObj), Aig_ObjChild1Copy(pObj) );
+    // create the PO
+    pMiter = Aig_ManConst0(pNew);
+    Aig_ManForEachPoSeq( p, pObj, i )
+        pMiter = Aig_Or( pNew, pMiter, Aig_ObjChild0Copy(pObj) ); 
+    Aig_ObjCreatePo( pNew, pMiter );
+    // create register inputs with MUXes
+    if ( fAddRegs )
+    {
+        Aig_ManForEachLiSeq( p, pObj, i )
+            Aig_ObjCreatePo( pNew, Aig_ObjChild0Copy(pObj) );
+    }
+    Aig_ManCleanup( pNew );
+    return pNew;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Duplicates AIG with only one primary output.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 Aig_Man_t * Aig_ManDupOneOutput( Aig_Man_t * p, int iPoNum, int fAddRegs )
 {
     Aig_Man_t * pNew;
@@ -1008,6 +1053,57 @@ Aig_Man_t * Aig_ManDupOneOutput( Aig_Man_t * p, int iPoNum, int fAddRegs )
     // create the PO
     pObj = Aig_ManPo( p, iPoNum );
     Aig_ObjCreatePo( pNew, Aig_ObjChild0Copy(pObj) );
+    // create register inputs with MUXes
+    if ( fAddRegs )
+    {
+        Aig_ManForEachLiSeq( p, pObj, i )
+            Aig_ObjCreatePo( pNew, Aig_ObjChild0Copy(pObj) );
+    }
+    Aig_ManCleanup( pNew );
+    return pNew;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Duplicates AIG with only one primary output.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Aig_Man_t * Aig_ManDupUnsolvedOutputs( Aig_Man_t * p, int fAddRegs )
+{ 
+    Aig_Man_t * pNew;
+    Aig_Obj_t * pObj;
+    int i, nOuts = 0;
+    assert( Aig_ManRegNum(p) > 0 );
+    // create the new manager
+    pNew = Aig_ManStart( Aig_ManObjNumMax(p) );
+    pNew->pName = Aig_UtilStrsav( p->pName );
+    pNew->pSpec = Aig_UtilStrsav( p->pSpec );
+    // create the PIs
+    Aig_ManCleanData( p );
+    Aig_ManConst1(p)->pData = Aig_ManConst1(pNew);
+    Aig_ManForEachPi( p, pObj, i )
+        pObj->pData = Aig_ObjCreatePi( pNew );
+    // create the POs
+    nOuts = 0;
+    Aig_ManForEachPoSeq( p, pObj, i )
+        nOuts += ( Aig_ObjFanin0(pObj) != Aig_ManConst1(p) );
+    // set registers
+    pNew->nRegs    = fAddRegs? p->nRegs : 0;
+    pNew->nTruePis = fAddRegs? p->nTruePis : p->nTruePis + p->nRegs;
+    pNew->nTruePos = nOuts;
+    // duplicate internal nodes
+    Aig_ManForEachNode( p, pObj, i )
+        pObj->pData = Aig_And( pNew, Aig_ObjChild0Copy(pObj), Aig_ObjChild1Copy(pObj) );
+    // create the PO
+    Aig_ManForEachPoSeq( p, pObj, i )
+        if ( Aig_ObjFanin0(pObj) != Aig_ManConst1(p) )
+            Aig_ObjCreatePo( pNew, Aig_ObjChild0Copy(pObj) );
     // create register inputs with MUXes
     if ( fAddRegs )
     {

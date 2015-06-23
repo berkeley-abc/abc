@@ -1020,6 +1020,8 @@ Vec_Int_t * Cbs_ManSolveMiterNc( Gia_Man_t * pAig, int nConfs, Vec_Str_t ** pvSt
     // solve for each output
     Gia_ManForEachCo( pAig, pRoot, i )
     {
+//        printf( "\n" );
+
         Vec_IntClear( vCex );
         if ( Gia_ObjIsConst0(Gia_ObjFanin0(pRoot)) )
         {

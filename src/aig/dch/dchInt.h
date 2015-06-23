@@ -51,7 +51,7 @@ struct Dch_Man_t_
     // parameters
     Dch_Pars_t *     pPars;          // choicing parameters
     // AIGs used in the package
-    Vec_Ptr_t *      vAigs;          // user-given AIGs
+//    Vec_Ptr_t *      vAigs;          // user-given AIGs
     Aig_Man_t *      pAigTotal;      // intermediate AIG
     Aig_Man_t *      pAigFraig;      // final AIG
     // equivalence classes
@@ -142,7 +142,7 @@ extern int           Dch_ClassesRefineConst1Group( Dch_Cla_t * p, Vec_Ptr_t * vR
 /*=== dchCnf.c ===================================================*/
 extern void          Dch_CnfNodeAddToSolver( Dch_Man_t * p, Aig_Obj_t * pObj );
 /*=== dchMan.c ===================================================*/
-extern Dch_Man_t *   Dch_ManCreate( Vec_Ptr_t * vAigs, Dch_Pars_t * pPars );
+extern Dch_Man_t *   Dch_ManCreate( Aig_Man_t * pAig, Dch_Pars_t * pPars );
 extern void          Dch_ManStop( Dch_Man_t * p );
 extern void          Dch_ManSatSolverRecycle( Dch_Man_t * p );
 /*=== dchSat.c ===================================================*/

@@ -231,6 +231,10 @@ SOURCE=.\src\base\abci\abcDelay.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\base\abci\abcDprove2.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\base\abci\abcDress.c
 # End Source File
 # Begin Source File
@@ -2269,6 +2273,14 @@ SOURCE=.\src\misc\util\abc_global.h
 
 SOURCE=.\src\misc\util\util_hack.h
 # End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\util\utilMem.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\util\utilMem.h
+# End Source File
 # End Group
 # Begin Group "nm"
 
@@ -3107,6 +3119,10 @@ SOURCE=.\src\aig\ntl\ntlMap.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\aig\ntl\ntlNames.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\aig\ntl\ntlObj.c
 # End Source File
 # Begin Source File
@@ -3669,46 +3685,6 @@ SOURCE=.\src\aig\cgt\cgtSat.c
 # Begin Group "nal"
 
 # PROP Default_Filter ""
-# Begin Source File
-
-SOURCE=.\src\aig\nal090422\nal.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\aig\nal090422\nalCore.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\aig\nal090422\nalFlop.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\aig\nal090422\nalFunc.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\aig\nal090422\nalInt.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\aig\nal090422\nalMan.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\aig\nal090422\nalModels.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\aig\nal090422\nalRead.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\aig\nal090422\nalUtil.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\aig\nal090422\nalWrite.c
-# End Source File
 # End Group
 # Begin Group "gia"
 
@@ -3744,6 +3720,10 @@ SOURCE=.\src\aig\gia\giaCSat.c
 # Begin Source File
 
 SOURCE=.\src\aig\gia\giaCSatOld.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\gia\giaCTas.c
 # End Source File
 # Begin Source File
 
@@ -3787,11 +3767,19 @@ SOURCE=.\src\aig\gia\giaFront.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\aig\gia\giaGiarf.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\aig\gia\giaGlitch.c
 # End Source File
 # Begin Source File
 
 SOURCE=.\src\aig\gia\giaHash.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\gia\giaHcd.c
 # End Source File
 # Begin Source File
 

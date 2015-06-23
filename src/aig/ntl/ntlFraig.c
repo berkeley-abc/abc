@@ -423,6 +423,171 @@ Ntl_Man_t * Ntl_ManFraig( Ntl_Man_t * p, int nPartSize, int nConfLimit, int nLev
 
 /**Function*************************************************************
 
+  Synopsis    [Counts the number of resets.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Ntl_ManAigCountResets( Ntl_Man_t * pNtl )
+{
+    Ntl_Mod_t * pModel = Ntl_ManRootModel(pNtl);
+    Ntl_Obj_t * pBox;
+    int i, Counter = -1;
+    Ntl_ModelForEachObj( pModel, pBox, i )
+        Counter = ABC_MAX( Counter, pBox->Reset );
+    return Counter + 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Transforms sequential AIG to allow for async reset.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Aig_Man_t * Ntl_ManAigToRst( Ntl_Man_t * pNtl, Aig_Man_t * p )
+{
+    Ntl_Mod_t * pModel = Ntl_ManRootModel(pNtl);
+    Aig_Man_t * pNew;
+    Aig_Obj_t * pObj;
+    int i, iRegNum, iRstNum, Counter = 0;
+    int nResets = Ntl_ManAigCountResets( pNtl );
+    assert( pNtl->pNal != NULL );
+    assert( Aig_ManRegNum(p) > 0 );
+    assert( Vec_IntSize(pNtl->vRstClasses) == Aig_ManRegNum(p) );
+//printf( "Number of resets before synthesis = %d.\n", nResets );
+    // create the PIs
+    Aig_ManCleanData( p );
+    Aig_ManSetPioNumbers( p );
+    // create the new manager
+    pNew = Aig_ManStart( Aig_ManObjNumMax(p) );
+    pNew->pName = Aig_UtilStrsav( p->pName );
+    pNew->pSpec = Aig_UtilStrsav( p->pSpec );
+    // create special PIs
+    for ( i = 0; i < nResets; i++ )
+        Aig_ObjCreatePi( pNew );
+    // duplicate internal nodes
+    Aig_ManForEachPi( p, pObj, i )
+        pObj->pData = Aig_ObjCreatePi( pNew );
+    Aig_ManForEachObj( p, pObj, i )
+    {
+        if ( Aig_ObjIsNode(pObj) )
+            pObj->pData = Aig_And( pNew, Aig_ObjChild0Copy(pObj), Aig_ObjChild1Copy(pObj) );
+        else if ( Aig_ObjIsPo(pObj) )
+            pObj->pData = Aig_ObjCreatePo( pNew, Aig_ObjChild0Copy(pObj) );
+        else if ( Aig_ObjIsPi(pObj) )
+        {
+//            pObj->pData = Aig_ObjCreatePi( pNew );
+            iRegNum = Aig_ObjPioNum(pObj) - (Aig_ManPiNum(p) - Aig_ManRegNum(p));
+            if ( iRegNum < 0 )
+                continue;
+            iRstNum = Vec_IntEntry(pNtl->vRstClasses, iRegNum);
+            if ( iRstNum < 0 )
+                continue;
+            assert( iRstNum < nResets );
+            pObj->pData = Aig_And( pNew, pObj->pData, Aig_ManPi(pNew, iRstNum) ); // could be NOT(pi)
+            Counter++;
+        }
+        else if ( Aig_ObjIsConst1(pObj) )
+            pObj->pData = Aig_ManConst1(pNew);
+        else
+            assert( 0 );
+    }
+    assert( Aig_ManNodeNum(p) + Counter == Aig_ManNodeNum(pNew) );
+    if ( (Counter = Aig_ManCleanup( pNew )) )
+        printf( "Aig_ManDupOrdered(): Cleanup after AIG duplication removed %d nodes.\n", Counter );
+    Aig_ManSetRegNum( pNew, Aig_ManRegNum(p) );
+    return pNew;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Remaps equivalence classes from the new nodes to the old ones.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Ntl_ManRemapClassesLcorr( Ntl_Man_t * pNtl, Aig_Man_t * p, Aig_Man_t * pNew )
+{
+    Ntl_Mod_t * pModel = Ntl_ManRootModel(pNtl);
+    Aig_Obj_t * pObj, * pObjRepr, * pObjNew, * pObjNewRepr;
+    int i, nResets = Ntl_ManAigCountResets( pNtl );
+    int nTruePis = Aig_ManPiNum(p) - Aig_ManRegNum(p);
+    assert( pNew->pReprs != NULL );
+    assert( nResets == Aig_ManPiNum(pNew) - Aig_ManPiNum(p) );
+    Aig_ManReprStart( p, Aig_ManObjNumMax(p) );
+    Aig_ManForEachLoSeq( pNew, pObjNew, i )
+    {
+        pObj = Aig_ManPi( p, i - nResets );
+        pObjNewRepr = pNew->pReprs[pObjNew->Id];
+        if ( pObjNewRepr == NULL )
+            continue;
+        if ( pObjNewRepr == Aig_ManConst1(pNew) )
+        {
+            Aig_ObjCreateRepr( p, Aig_ManConst1(p), pObj );
+            continue;
+        }
+        assert( Aig_ObjIsPi(pObjNewRepr) );
+        // find the corresponding representative node
+        pObjRepr = Aig_ManPi( p, Aig_ObjPioNum(pObjNewRepr) - nResets );
+        // if they belong to different domains, quit
+        if ( Vec_IntEntry( pNtl->vRstClasses, Aig_ObjPioNum(pObj) - nTruePis ) != 
+             Vec_IntEntry( pNtl->vRstClasses, Aig_ObjPioNum(pObjRepr) - nTruePis ) )
+            continue;
+        Aig_ObjCreateRepr( p, pObjRepr, pObj );
+    }
+} 
+
+/**Function*************************************************************
+
+  Synopsis    [Remaps equivalence classes from the new nodes to the old ones.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Ntl_ManRemapClassesScorr( Ntl_Man_t * pNtl, Aig_Man_t * p, Aig_Man_t * pNew )
+{
+    Aig_Obj_t * pObj, * pObjRepr, * pObjNew, * pObjNewRepr;
+    int i;
+    // map things back
+    Aig_ManForEachObj( p, pObj, i )
+    {
+        pObjNew = pObj->pData;
+        assert( pObjNew != NULL && !Aig_IsComplement(pObjNew) );
+        pObjNew->pData = pObj;
+    }
+    // remap the classes
+    Aig_ManForEachObj( pNew, pObjNew, i )
+    {
+        pObjNewRepr = pNew->pReprs[pObjNew->Id];
+        if ( pObjNewRepr == NULL )
+            continue;
+        pObj = pObjNew->pData;
+        pObjRepr = pObjNewRepr->pData;    
+        assert( Aig_ObjId(pObjRepr) < Aig_ObjId(pObj) );
+        Aig_ObjCreateRepr( p, pObjRepr, pObj );
+    }
+}
+
+
+/**Function*************************************************************
+
   Synopsis    [Performs sequential cleanup.]
 
   Description []
@@ -451,9 +616,21 @@ Ntl_Man_t * Ntl_ManScl( Ntl_Man_t * p, int fLatchConst, int fLatchEqual, int fVe
 //Ntl_ManPrintStats( pNew );
 //Aig_ManPrintStats( pAigCol );
 
-    // perform SCL for the given design
-    pTemp = Aig_ManScl( pAigCol, fLatchConst, fLatchEqual, fVerbose );
-    Aig_ManStop( pTemp );
+    // perform SCL
+    if ( p->pNal )
+    {
+        Aig_Man_t * pAigRst;
+        pAigRst = Ntl_ManAigToRst( pNew, pAigCol );
+        pTemp = Aig_ManScl( pAigRst, fLatchConst, fLatchEqual, fVerbose );
+        Aig_ManStop( pTemp );
+        Ntl_ManRemapClassesLcorr( pNew, pAigCol, pAigRst );
+        Aig_ManStop( pAigRst );
+    }
+    else
+    {
+        pTemp = Aig_ManScl( pAigCol, fLatchConst, fLatchEqual, fVerbose );
+        Aig_ManStop( pTemp );
+    }
 
     // finalize the transformation
     pNew = Ntl_ManFinalize( pAux = pNew, pAig, pAigCol, fVerbose );
@@ -493,11 +670,23 @@ Ntl_Man_t * Ntl_ManLcorr( Ntl_Man_t * p, int nConfMax, int fScorrGia, int fUseCS
         return pNew;
     }
 
-    // perform LCORR for the given design
+    // perform LCORR
     pPars->fScorrGia = fScorrGia;
     pPars->fUseCSat  = fUseCSat;
-    pTemp = Ssw_LatchCorrespondence( pAigCol, pPars );
-    Aig_ManStop( pTemp );
+    if ( p->pNal )
+    {
+        Aig_Man_t * pAigRst;
+        pAigRst = Ntl_ManAigToRst( pNew, pAigCol );
+        pTemp = Ssw_LatchCorrespondence( pAigRst, pPars );
+        Aig_ManStop( pTemp );
+        Ntl_ManRemapClassesLcorr( pNew, pAigCol, pAigRst );
+        Aig_ManStop( pAigRst );
+    }
+    else
+    {
+        pTemp = Ssw_LatchCorrespondence( pAigCol, pPars );
+        Aig_ManStop( pTemp );
+    }
 
     // finalize the transformation
     pNew = Ntl_ManFinalize( pAux = pNew, pAig, pAigCol, fVerbose );
@@ -522,6 +711,7 @@ Ntl_Man_t * Ntl_ManSsw( Ntl_Man_t * p, Fra_Ssw_t * pPars )
 {
     Ntl_Man_t * pNew, * pAux;
     Aig_Man_t * pAig, * pAigCol, * pTemp;
+    assert( 0 ); // not updated for nal
 
     // collapse the AIG
     pAig = Ntl_ManExtract( p );
@@ -571,9 +761,21 @@ Ntl_Man_t * Ntl_ManScorr( Ntl_Man_t * p, Ssw_Pars_t * pPars )
         return pNew;
     }
 
-    // perform SCL for the given design
-    pTemp = Ssw_SignalCorrespondence( pAigCol, pPars );
-    Aig_ManStop( pTemp );
+    // perform SCL
+    if ( p->pNal )
+    {
+        Aig_Man_t * pAigRst;
+        pAigRst = Ntl_ManAigToRst( pNew, pAigCol );
+        pTemp = Ssw_SignalCorrespondence( pAigRst, pPars );
+        Aig_ManStop( pTemp );
+        Ntl_ManRemapClassesLcorr( pNew, pAigCol, pAigRst );
+        Aig_ManStop( pAigRst );
+    }
+    else
+    {
+        pTemp = Ssw_SignalCorrespondence( pAigCol, pPars );
+        Aig_ManStop( pTemp );
+    }
 
     // finalize the transformation
     pNew = Ntl_ManFinalize( pAux = pNew, pAig, pAigCol, pPars->fVerbose );

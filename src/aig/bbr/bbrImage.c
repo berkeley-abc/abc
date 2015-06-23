@@ -27,7 +27,7 @@
     Helmut Veith, Dong Wang. Non-linear Quantification Scheduling in 
     Image Computation. ICCAD, 2001.
 */
-
+ 
 /*---------------------------------------------------------------------------*/
 /* Constant declarations                                                     */
 /*---------------------------------------------------------------------------*/
@@ -49,6 +49,7 @@ struct Bbr_ImageTree_t_
     int                 nNodesMax;  // the max number of nodes in one iter
     int                 nNodesMaxT; // the overall max number of nodes
     int                 nIter;      // the number of iterations with this tree
+    int                 nBddMax;    // the number of node to stop
 };
 
 struct Bbr_ImageNode_t_
@@ -89,8 +90,6 @@ struct Bbr_ImageVar_t_
 /* Macro declarations                                                        */
 /*---------------------------------------------------------------------------*/
 
-#define BDD_BLOW_UP  2000000
-
 #define     b0     Cudd_Not((dd)->one)
 #define     b1              (dd)->one
 
@@ -116,7 +115,7 @@ static Bbr_ImageNode_t ** Bbr_CreateNodes( DdManager * dd,
 static void Bbr_DeleteParts_rec( Bbr_ImageNode_t * pNode );
 static int Bbr_BuildTreeNode( DdManager * dd, 
     int nNodes, Bbr_ImageNode_t ** pNodes, 
-    int nVars,  Bbr_ImageVar_t ** pVars, int * pfStop );
+    int nVars,  Bbr_ImageVar_t ** pVars, int * pfStop, int nBddMax );
 static Bbr_ImageNode_t * Bbr_MergeTopNodes( DdManager * dd, 
     int nNodes, Bbr_ImageNode_t ** pNodes );
 static void Bbr_bddImageTreeDelete_rec( Bbr_ImageNode_t * pNode );
@@ -166,7 +165,7 @@ static void Bbr_bddPrint( DdManager * dd, DdNode * F );
 Bbr_ImageTree_t * Bbr_bddImageStart( 
     DdManager * dd, DdNode * bCare, // the care set
     int nParts, DdNode ** pbParts,  // the partitions for image computation
-    int nVars, DdNode ** pbVars, int fVerbose )   // the NS and parameter variables (not quantified!)
+    int nVars, DdNode ** pbVars, int nBddMax, int fVerbose )   // the NS and parameter variables (not quantified!)
 {
     Bbr_ImageTree_t * pTree;
     Bbr_ImagePart_t ** pParts;
@@ -184,7 +183,7 @@ Bbr_ImageTree_t * Bbr_bddImageStart(
     pCare  = pNodes[nParts];
 
     // process the nodes
-    while ( Bbr_BuildTreeNode( dd, nParts + 1, pNodes, dd->size, pVars, &fStop ) );
+    while ( Bbr_BuildTreeNode( dd, nParts + 1, pNodes, dd->size, pVars, &fStop, nBddMax ) );
 
     // consider the case of BDD node blowup
     if ( fStop )
@@ -213,6 +212,7 @@ Bbr_ImageTree_t * Bbr_bddImageStart(
     pTree = ABC_ALLOC( Bbr_ImageTree_t, 1 );
     memset( pTree, 0, sizeof(Bbr_ImageTree_t) );
     pTree->pCare = pCare;
+    pTree->nBddMax = nBddMax;
     pTree->fVerbose = fVerbose;
 
     // merge the topmost nodes
@@ -698,7 +698,7 @@ int Bbr_bddImageCompute_rec( Bbr_ImageTree_t * pTree, Bbr_ImageNode_t * pNode )
         if ( pTree->nNodesMax < nNodes )
             pTree->nNodesMax = nNodes;
     }
-    if ( dd->keys-dd->dead > BDD_BLOW_UP )
+    if ( dd->keys-dd->dead > (unsigned)pTree->nBddMax )
         return 0;
     return 1;
 }
@@ -716,7 +716,7 @@ int Bbr_bddImageCompute_rec( Bbr_ImageTree_t * pTree, Bbr_ImageNode_t * pNode )
 ***********************************************************************/
 int Bbr_BuildTreeNode( DdManager * dd, 
     int nNodes, Bbr_ImageNode_t ** pNodes, 
-    int nVars,  Bbr_ImageVar_t ** pVars, int * pfStop )
+    int nVars,  Bbr_ImageVar_t ** pVars, int * pfStop, int nBddMax )
 {
     Bbr_ImageNode_t * pNode1, * pNode2;
     Bbr_ImageVar_t * pVar;
@@ -808,7 +808,7 @@ int Bbr_BuildTreeNode( DdManager * dd,
     }
 
     *pfStop = 0;
-    if ( dd->keys-dd->dead > BDD_BLOW_UP )
+    if ( dd->keys-dd->dead > (unsigned)nBddMax )
     {
         *pfStop = 1;
         return 0;

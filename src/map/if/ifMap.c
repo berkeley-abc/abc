@@ -207,7 +207,9 @@ void If_ObjPerformMappingChoice( If_Man_t * p, If_Obj_t * pObj, int Mode, int fP
     for ( pTemp = pObj->pEquiv; pTemp; pTemp = pTemp->pEquiv )
     {
         assert( pTemp->nRefs == 0 );
-        assert( p->pPars->fSeqMap || pTemp->pCutSet->nCuts > 0 );
+//        assert( p->pPars->fSeqMap || pTemp->pCutSet->nCuts > 0 ); // June 9, 2009
+        if ( pTemp->pCutSet->nCuts == 0 )
+            continue;
         // go through the cuts of this node
         If_ObjForEachCut( pTemp, pCutTemp, i )
         {

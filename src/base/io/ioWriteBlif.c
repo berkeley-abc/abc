@@ -579,7 +579,8 @@ void Io_WriteTimingInfo( FILE * pFile, Abc_Ntk_t * pNtk )
         pTime = Abc_NodeReadArrival(pNode);
         if ( pTime->Rise == pTimeDef->Rise && pTime->Fall == pTimeDef->Fall )
             continue;
-        fprintf( pFile, ".input_arrival %s %g %g\n", Abc_ObjName(pNode), pTime->Rise, pTime->Fall );
+//        fprintf( pFile, ".input_arrival %s %g %g\n", Abc_ObjName(pNode), pTime->Rise, pTime->Fall );
+        fprintf( pFile, ".input_arrival %s %g %g\n", Abc_ObjName(Abc_ObjFanout0(pNode)), pTime->Rise, pTime->Fall );
     }
 }
 

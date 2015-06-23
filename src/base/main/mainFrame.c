@@ -28,6 +28,9 @@
 
 static Abc_Frame_t * s_GlobalFrame = NULL;
 
+extern void * Aig_ManDupSimple( void * p );
+extern void Aig_ManStop( void * pAig );
+
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
@@ -148,10 +151,15 @@ void Abc_FrameDeallocate( Abc_Frame_t * p )
     if ( p->pManDec ) Dec_ManStop( p->pManDec );
     if ( p->dd )      Extra_StopManager( p->dd );
     if ( p->vStore )  Vec_PtrFree( p->vStore );
+    if ( p->pSave1 )  Aig_ManStop( p->pSave1 );
+    if ( p->pSave2 )  Aig_ManStop( p->pSave2 );
+    if ( p->pSave3 )  Aig_ManStop( p->pSave3 );
+    if ( p->pSave4 )  Aig_ManStop( p->pSave4 );
     Abc_FrameDeleteAllNetworks( p );
     ABC_FREE( p );
     s_GlobalFrame = NULL;
 }
+
 
 /**Function*************************************************************
 
@@ -512,6 +520,58 @@ Abc_Frame_t * Abc_FrameReadGlobalFrame()
 {
     return s_GlobalFrame;
 }
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_FrameSetSave1( void * pAig )
+{
+    Abc_Frame_t * pFrame = Abc_FrameGetGlobalFrame();
+    if ( pFrame->pSave1 )
+        Aig_ManStop( pFrame->pSave1 );
+    pFrame->pSave1 = pAig;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_FrameSetSave2( void * pAig )
+{
+    Abc_Frame_t * pFrame = Abc_FrameGetGlobalFrame();
+    if ( pFrame->pSave2 )
+        Aig_ManStop( pFrame->pSave2 );
+    pFrame->pSave2 = pAig;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void * Abc_FrameReadSave1()  { void * pAig = Abc_FrameGetGlobalFrame()->pSave1; Abc_FrameGetGlobalFrame()->pSave1 = NULL; return pAig; }
+void * Abc_FrameReadSave2()  { void * pAig = Abc_FrameGetGlobalFrame()->pSave2; Abc_FrameGetGlobalFrame()->pSave2 = NULL; return pAig; }
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

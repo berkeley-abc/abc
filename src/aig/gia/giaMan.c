@@ -70,6 +70,7 @@ void Gia_ManStop( Gia_Man_t * p )
     Vec_IntFree( p->vFlopClasses );
     Vec_IntFree( p->vCis );
     Vec_IntFree( p->vCos );
+    ABC_FREE( p->pTravIds );
     ABC_FREE( p->pPlacement );
     ABC_FREE( p->pSwitching );
     ABC_FREE( p->pCexSeq );
@@ -203,10 +204,10 @@ void Gia_ManPrintStats( Gia_Man_t * p, int fSwitch )
 void Gia_ManPrintStatsShort( Gia_Man_t * p )
 {
     printf( "i/o =%7d/%7d  ", Gia_ManPiNum(p), Gia_ManPoNum(p) );
-//    printf( "ff =%7d  ", Gia_ManRegNum(p) );
+    printf( "ff =%7d  ", Gia_ManRegNum(p) );
     printf( "and =%8d  ", Gia_ManAndNum(p) );
     printf( "lev =%5d  ", Gia_ManLevelNum(p) );
-    printf( "mem =%5.2f Mb", 12.0*Gia_ManObjNum(p)/(1<<20) );
+//    printf( "mem =%5.2f Mb", 12.0*Gia_ManObjNum(p)/(1<<20) );
     printf( "\n" );
 }
  

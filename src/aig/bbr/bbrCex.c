@@ -63,7 +63,7 @@ Ssw_Cex_t * Aig_ManVerifyUsingBddsCountExample( Aig_Man_t * p, DdManager * dd,
 
     // create the cube of NS variables
     bCubeNs  = Bbr_bddComputeRangeCube( dd, Saig_ManCiNum(p), Saig_ManCiNum(p)+Saig_ManRegNum(p) );    Cudd_Ref( bCubeNs );
-    pTree = Bbr_bddImageStart( dd, bCubeNs, Saig_ManRegNum(p), pbParts, Saig_ManCiNum(p), dd->vars, fVerbose );
+    pTree = Bbr_bddImageStart( dd, bCubeNs, Saig_ManRegNum(p), pbParts, Saig_ManCiNum(p), dd->vars, 100000000, fVerbose );
     Cudd_RecursiveDeref( dd, bCubeNs );
     if ( pTree == NULL )
     {

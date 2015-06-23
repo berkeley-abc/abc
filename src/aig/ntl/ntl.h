@@ -76,6 +76,7 @@ struct Ntl_Man_t_
     Vec_Ptr_t *        vVisNodes;      // the nodes of the abstracted part
     Vec_Int_t *        vBox1Cios;      // the first COs of the boxes
     Vec_Int_t *        vRegClasses;    // the classes of registers in the AIG
+    Vec_Int_t *        vRstClasses;    // the classes of reset registers in the AIG
     Aig_Man_t *        pAig;           // the extracted AIG
     Tim_Man_t *        pManTime;       // the timing manager
     int                iLastCi;        // the last true CI
@@ -83,6 +84,7 @@ struct Ntl_Man_t_
     void (*pNalF)(void *);             // additional data
     void (*pNalD)(void *,void *);      // additional data
     void (*pNalW)(void *,void *);      // additional data
+    void (*pNalR)(void *);             // additional data
     // hashing names into models
     Ntl_Mod_t **       pModTable;      // the hash table of names into models
     int                nModTableSize;  // the allocated table size
@@ -112,6 +114,9 @@ struct Ntl_Mod_t_
     // clocks of the model
     Vec_Ptr_t *        vClocks;        // the clock signals
     Vec_Vec_t *        vClockFlops;    // the flops of each clock
+    // resets of the model
+    Vec_Ptr_t *        vResets;        // the reset signals
+    Vec_Vec_t *        vResetFlops;    // the ASYNC flops of each reset
     // delay information
     Vec_Int_t *        vDelays;
     Vec_Int_t *        vTimeInputs;
@@ -121,7 +126,7 @@ struct Ntl_Mod_t_
     Ntl_Mod_t *        pNext;
     void *             pCopy;
     int                nUsed, nRems;
-}; 
+};  
 
 struct Ntl_Reg_t_
 {
@@ -139,6 +144,7 @@ struct Ntl_Obj_t_
     unsigned           Id     : 28;    // object ID
     int                nFanins;        // the number of fanins
     int                nFanouts;       // the number of fanouts
+    int                Reset;          // reset of the flop
     union {                            // functionality
         Ntl_Mod_t *    pImplem;        // model (for boxes)
         char *         pSop;           // SOP (for logic nodes)
@@ -162,9 +168,10 @@ struct Ntl_Net_t_
         int            iTemp;          // other data
     };
     Ntl_Obj_t *        pDriver;        // driver of the net
-    unsigned           NetId     : 28; // unique ID of the net
+    unsigned           NetId     : 27; // unique ID of the net
     unsigned           nVisits   :  2; // the number of times the net is visted
     unsigned           fMark     :  1; // temporary mark
+    unsigned           fMark2    :  1; // temporary mark
     unsigned           fFixed    :  1; // the fixed net
     char               pName[0];       // the name of this net
 };
@@ -329,11 +336,18 @@ extern ABC_DLL void            Ntl_ManFree( Ntl_Man_t * p );
 extern ABC_DLL void            Ntl_ManPrintStats( Ntl_Man_t * p );
 extern ABC_DLL Tim_Man_t *     Ntl_ManReadTimeMan( Ntl_Man_t * p );
 extern ABC_DLL void            Ntl_ManPrintTypes( Ntl_Man_t * p );
+extern ABC_DLL int             Ntl_ManCompareClockClasses( Vec_Ptr_t ** pp1, Vec_Ptr_t ** pp2 );
+extern ABC_DLL void            Ntl_ManPrintClocks( Ntl_Man_t * p );
+extern ABC_DLL void            Ntl_ManPrintResets( Ntl_Man_t * p );
 extern ABC_DLL Ntl_Mod_t *     Ntl_ModelAlloc( Ntl_Man_t * pMan, char * pName );
 extern ABC_DLL Ntl_Mod_t *     Ntl_ModelStartFrom( Ntl_Man_t * pManNew, Ntl_Mod_t * pModelOld );
 extern ABC_DLL Ntl_Mod_t *     Ntl_ModelDup( Ntl_Man_t * pManNew, Ntl_Mod_t * pModelOld );
 extern ABC_DLL void            Ntl_ModelFree( Ntl_Mod_t * p );
 extern ABC_DLL Ntl_Mod_t *     Ntl_ManCreateLatchModel( Ntl_Man_t * pMan, int Init );
+extern ABC_DLL int             Ntl_ModelCountLut0( Ntl_Mod_t * p );
+extern ABC_DLL int             Ntl_ModelCountLut1( Ntl_Mod_t * p );
+extern ABC_DLL int             Ntl_ModelCountBuf( Ntl_Mod_t * p );
+extern ABC_DLL int             Ntl_ModelCountInv( Ntl_Mod_t * p );
 /*=== ntlMap.c ============================================================*/
 extern ABC_DLL Vec_Ptr_t *     Ntl_MappingAlloc( int nLuts, int nVars );
 extern ABC_DLL Vec_Ptr_t *     Ntl_MappingFromAig( Aig_Man_t * p );
@@ -350,6 +364,7 @@ extern ABC_DLL Ntl_Obj_t *     Ntl_ModelCreatePiWithName( Ntl_Mod_t * pModel, ch
 extern ABC_DLL char *          Ntl_ManStoreName( Ntl_Man_t * p, char * pName );
 extern ABC_DLL char *          Ntl_ManStoreSop( Aig_MmFlex_t * pMan, char * pSop );
 extern ABC_DLL char *          Ntl_ManStoreFileName( Ntl_Man_t * p, char * pFileName );
+extern ABC_DLL int             Ntl_ManObjWhichFanout( Ntl_Obj_t * pNode, Ntl_Net_t * pFanout );
 /*=== ntlSweep.c ==========================================================*/
 extern ABC_DLL int             Ntl_ManSweep( Ntl_Man_t * p, int fVerbose );
 /*=== ntlTable.c ==========================================================*/
@@ -374,7 +389,6 @@ extern ABC_DLL Ntl_Man_t *     Ioa_ReadBlif( char * pFileName, int fCheck );
 extern ABC_DLL void            Ioa_WriteBlif( Ntl_Man_t * p, char * pFileName );
 extern ABC_DLL void            Ioa_WriteBlifLogic( Nwk_Man_t * pNtk, Ntl_Man_t * p, char * pFileName );
 /*=== ntlUtil.c ==========================================================*/
-extern ABC_DLL int             Ntl_ModelCountLut1( Ntl_Mod_t * pRoot );
 extern ABC_DLL int             Ntl_ModelGetFaninMax( Ntl_Mod_t * pRoot );
 extern ABC_DLL Ntl_Net_t *     Ntl_ModelFindSimpleNet( Ntl_Net_t * pNetCo );
 extern ABC_DLL int             Ntl_ManCountSimpleCoDrivers( Ntl_Man_t * p );

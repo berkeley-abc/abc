@@ -1223,6 +1223,7 @@ Aig_Man_t * Aig_ManChoicePartitioned( Vec_Ptr_t * vAigs, int nPartSize, int nCon
 //    extern void * Abc_FrameGetGlobalFrame();
     extern Aig_Man_t * Fra_FraigChoice( Aig_Man_t * pManAig, int nConfMax, int nLevelMax );
 
+    Vec_Ptr_t * vPios;
     Vec_Ptr_t * vOutsTotal, * vOuts;
     Aig_Man_t * pAigTotal, * pAigPart, * pAig, * pTemp;
     Vec_Int_t * vPart, * vPartSupp;
@@ -1323,8 +1324,10 @@ Aig_Man_t * Aig_ManChoicePartitioned( Vec_Ptr_t * vAigs, int nPartSize, int nCon
     // create the equivalent nodes lists
     Aig_ManMarkValidChoices( pAig );
     // reconstruct the network
-    pAig = Aig_ManDupDfsGuided( pTemp = pAig, Vec_PtrEntry(vAigs,0) );
+    vPios = Aig_ManOrderPios( pAig, Vec_PtrEntry(vAigs,0) );
+    pAig = Aig_ManDupDfsGuided( pTemp = pAig, vPios );
     Aig_ManStop( pTemp );
+    Vec_PtrFree( vPios );
     // duplicate the timing manager
     pTemp = Vec_PtrEntry( vAigs, 0 );
     if ( pTemp->pManTime )
@@ -1541,6 +1544,7 @@ void Aig_ManChoiceEval( Aig_Man_t * p )
 ***********************************************************************/
 Aig_Man_t * Aig_ManChoiceConstructive( Vec_Ptr_t * vAigs, int fVerbose )
 {
+    Vec_Ptr_t * vPios;
     Aig_Man_t * pNew, * pThis, * pPrev, * pTemp;
     int i;
     // start AIG with choices
@@ -1562,8 +1566,10 @@ Aig_Man_t * Aig_ManChoiceConstructive( Vec_Ptr_t * vAigs, int fVerbose )
     // create the equivalent nodes lists
     Aig_ManMarkValidChoices( pNew );
     // reconstruct the network
-    pNew = Aig_ManDupDfsGuided( pTemp = pNew, Vec_PtrEntry( vAigs, 0 ) );
+    vPios = Aig_ManOrderPios( pNew, Vec_PtrEntry( vAigs, 0 ) );
+    pNew = Aig_ManDupDfsGuided( pTemp = pNew, vPios );
     Aig_ManStop( pTemp );
+    Vec_PtrFree( vPios );
     // duplicate the timing manager
     pTemp = Vec_PtrEntry( vAigs, 0 );
     if ( pTemp->pManTime )
@@ -1572,6 +1578,12 @@ Aig_Man_t * Aig_ManChoiceConstructive( Vec_Ptr_t * vAigs, int fVerbose )
     Aig_ManChoiceLevel( pNew );
     return pNew;
 }
+
+/*
+    Vec_Ptr_t * vPios;
+    vPios = Aig_ManOrderPios( pMan, pAig );
+    Vec_PtrFree( vPios );
+*/
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

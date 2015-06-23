@@ -51,6 +51,7 @@ Ntl_Man_t * Ntl_ManAlloc()
     p->vVisNodes = Vec_PtrAlloc( 1000 );
     p->vBox1Cios = Vec_IntAlloc( 1000 );
     p->vRegClasses = Vec_IntAlloc( 1000 );
+    p->vRstClasses = Vec_IntAlloc( 1000 );
     // start the manager
     p->pMemObjs = Aig_MmFlexStart();
     p->pMemSops = Aig_MmFlexStart();
@@ -123,6 +124,7 @@ Ntl_Man_t * Ntl_ManStartFrom( Ntl_Man_t * pOld )
         {
             ((Ntl_Obj_t *)pBox->pCopy)->pImplem = pBox->pImplem->pCopy;
             ((Ntl_Obj_t *)pBox->pCopy)->iTemp = pBox->iTemp;
+            ((Ntl_Obj_t *)pBox->pCopy)->Reset = pBox->Reset;
         }
     Ntl_ManForEachCiNet( pOld, pNet, i )
         Vec_PtrPush( pNew->vCis, pNet->pCopy );
@@ -197,6 +199,7 @@ void Ntl_ManFree( Ntl_Man_t * p )
     if ( p->vCos )       Vec_PtrFree( p->vCos );
     if ( p->vVisNodes )  Vec_PtrFree( p->vVisNodes );
     if ( p->vRegClasses) Vec_IntFree( p->vRegClasses );
+    if ( p->vRstClasses) Vec_IntFree( p->vRstClasses );
     if ( p->vBox1Cios )  Vec_IntFree( p->vBox1Cios );
     if ( p->pMemObjs )   Aig_MmFlexStop( p->pMemObjs, 0 );
     if ( p->pMemSops )   Aig_MmFlexStop( p->pMemSops, 0 );
@@ -294,16 +297,32 @@ void Nwk_ManPrintStatsShort( Ntl_Man_t * p, Aig_Man_t * pAig, Nwk_Man_t * pNtk )
   SeeAlso     []
 
 ***********************************************************************/
-int Nwk_ManStatsRegs( Ntl_Man_t * p )
+int Ntl_ManStatsRegs( Ntl_Man_t * p )
 {
     Ntl_Mod_t * pRoot;
     Ntl_Obj_t * pObj;
     int i, Counter = 0;
     pRoot = Ntl_ManRootModel( p );
     Ntl_ModelForEachBox( pRoot, pObj, i )
-        if ( strcmp(pObj->pImplem->pName, "dff") == 0 )
+        if ( strcmp(pObj->pImplem->pName, "m_dff") == 0 )
             Counter++;
     return Counter;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Ntl_ManStatsLuts( Ntl_Man_t * p )
+{
+    return Ntl_ModelLut1Num( Ntl_ManRootModel(p) ) + Ntl_ModelNodeNum( Ntl_ManRootModel(p) );
 }
 
 /**Function*************************************************************
@@ -353,13 +372,13 @@ int Nwk_ManStatsLevs( Nwk_Man_t * pNtk )
 void Nwk_ManPrintStatsUpdate( Ntl_Man_t * p, Aig_Man_t * pAig, Nwk_Man_t * pNtk,
      int nRegInit, int nLutInit, int nLevInit, int Time )
 {
-    printf( "FF =%7d (%4.1f%%)  ",  Nwk_ManStatsRegs(p),    100.0*(nRegInit-Nwk_ManStatsRegs(p))/nRegInit );
+    printf( "FF =%7d (%5.1f%%)  ",  Ntl_ManStatsRegs(p),    nRegInit ? (100.0*(nRegInit-Ntl_ManStatsRegs(p))/nRegInit) : 0.0 );
     if ( pNtk == NULL )
-        printf( "Mapping is not available.                  " );
+        printf( "Mapping is not available.                    " );
     else
     {
-        printf( "Lut =%7d (%4.1f%%)  ", Nwk_ManStatsLuts(pNtk), 100.0*(nLutInit-Nwk_ManStatsLuts(pNtk))/nLutInit );
-        printf( "Lev =%4d (%4.1f%%)    ", Nwk_ManStatsLevs(pNtk), 100.0*(nLevInit-Nwk_ManStatsLevs(pNtk))/nLevInit );
+        printf( "Lut =%7d (%5.1f%%)  ", Ntl_ManStatsLuts(p), nLutInit ? (100.0*(nLutInit-Ntl_ManStatsLuts(p))/nLutInit) : 0.0 );
+        printf( "Lev =%4d (%5.1f%%)    ", Nwk_ManStatsLevs(pNtk), nLevInit ? (100.0*(nLevInit-Nwk_ManStatsLevs(pNtk))/nLevInit) : 0.0 );
     }
     ABC_PRT( "Time", clock() - Time );
 }
@@ -457,6 +476,101 @@ void Ntl_ManPrintTypes( Ntl_Man_t * p )
         }
     }
     printf( "\n" );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Procedure used for sorting the nodes in decreasing order of levels.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Ntl_ManCompareClockClasses( Vec_Ptr_t ** pp1, Vec_Ptr_t ** pp2 )
+{
+    int Diff = Vec_PtrSize(*pp1) - Vec_PtrSize(*pp2);
+    if ( Diff > 0 )
+        return -1;
+    if ( Diff < 0 ) 
+        return 1;
+    return 0; 
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Saves the model type.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Ntl_ManPrintClocks( Ntl_Man_t * p )
+{
+    Vec_Ptr_t * vFlops;
+    Ntl_Net_t * pNet;
+    Ntl_Mod_t * pModel;
+    int i;
+    pModel = Ntl_ManRootModel( p );
+    if ( Ntl_ModelBoxNum(pModel) == 0 )
+        return;
+    if ( pModel->vClockFlops )
+    {
+        printf( "CLOCK STATISTICS:\n" );
+        Vec_VecForEachLevel( pModel->vClockFlops, vFlops, i )
+        {
+            pNet = Vec_PtrEntry( pModel->vClocks, i );
+            printf( "Clock %2d :  Name = %30s   Flops = %6d.\n", i+1, pNet->pName, Vec_PtrSize(vFlops) );
+            if ( i == 10 )
+            {
+                printf( "Skipping... (the total is %d)\n", Vec_VecSize(pModel->vClockFlops) );
+                break;
+            }
+        }
+    }
+//    printf( "\n" );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Saves the model type.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Ntl_ManPrintResets( Ntl_Man_t * p )
+{
+    Vec_Ptr_t * vFlops;
+    Ntl_Net_t * pNet;
+    Ntl_Mod_t * pModel;
+    int i;
+    pModel = Ntl_ManRootModel( p );
+    if ( Ntl_ModelBoxNum(pModel) == 0 )
+        return;
+    if ( pModel->vResetFlops )
+    {
+        printf( "RESET STATISTICS:\n" );
+        Vec_VecForEachLevel( pModel->vResetFlops, vFlops, i )
+        {
+            pNet = Vec_PtrEntry( pModel->vResets, i );
+            printf( "Reset %2d :  Name = %30s   Flops = %6d.\n", i+1, pNet->pName, Vec_PtrSize(vFlops) );
+            if ( i == 10 )
+            {
+                printf( "Skipping... (the total is %d)\n", Vec_VecSize(pModel->vResetFlops) );
+                break;
+            }
+        }
+    }
+//    printf( "\n" );
 }
 
 /**Function*************************************************************
@@ -643,6 +757,8 @@ void Ntl_ModelFree( Ntl_Mod_t * p )
     if ( p->vDelays )       Vec_IntFree( p->vDelays );
     if ( p->vClocks )       Vec_PtrFree( p->vClocks );
     if ( p->vClockFlops )   Vec_VecFree( p->vClockFlops );
+    if ( p->vResets )       Vec_PtrFree( p->vResets );
+    if ( p->vResetFlops )   Vec_VecFree( p->vResetFlops );
     Vec_PtrFree( p->vNets );
     Vec_PtrFree( p->vObjs );
     Vec_PtrFree( p->vPis );
@@ -698,6 +814,90 @@ Ntl_Mod_t * Ntl_ManCreateLatchModel( Ntl_Man_t * pMan, int Init )
     return pModel;
 }
 
+
+/**Function*************************************************************
+
+  Synopsis    [Count constant nodes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Ntl_ModelCountLut0( Ntl_Mod_t * p )
+{
+    Ntl_Obj_t * pNode;
+    int i, Counter = 0;
+    Ntl_ModelForEachNode( p, pNode, i )
+        if ( Ntl_ObjFaninNum(pNode) == 0 )
+            Counter++;
+    return Counter;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Count single-output nodes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Ntl_ModelCountLut1( Ntl_Mod_t * p )
+{
+    Ntl_Obj_t * pNode;
+    int i, Counter = 0;
+    Ntl_ModelForEachNode( p, pNode, i )
+        if ( Ntl_ObjFaninNum(pNode) == 1 )
+            Counter++;
+    return Counter;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Count buffers]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Ntl_ModelCountBuf( Ntl_Mod_t * p )
+{
+    Ntl_Obj_t * pNode;
+    int i, Counter = 0;
+    Ntl_ModelForEachNode( p, pNode, i )
+        if ( Ntl_ObjFaninNum(pNode) == 1 && pNode->pSop[0] == '1' )
+            Counter++;
+    return Counter;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Count inverters.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Ntl_ModelCountInv( Ntl_Mod_t * p )
+{
+    Ntl_Obj_t * pNode;
+    int i, Counter = 0;
+    Ntl_ModelForEachNode( p, pNode, i )
+        if ( Ntl_ObjFaninNum(pNode) == 1 && pNode->pSop[0] == '0' )
+            Counter++;
+    return Counter;
+}
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

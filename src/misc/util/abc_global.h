@@ -153,6 +153,15 @@ typedef unsigned __int64 ABC_UINT64_T;
 #define ABC_MIN(a,b)        ((a) < (b) ? (a) : (b))
 #define ABC_INFINITY        (100000000)
 
+#define ABC_PRT(a,t)    (printf("%s = ", (a)), printf("%7.2f sec\n", (float)(t)/(float)(CLOCKS_PER_SEC)))
+#define ABC_PRTn(a,t)   (printf("%s = ", (a)), printf("%6.2f sec  ", (float)(t)/(float)(CLOCKS_PER_SEC)))
+#define ABC_PRTP(a,t,T) (printf("%s = ", (a)), printf("%7.2f sec (%6.2f %%)\n", (float)(t)/(float)(CLOCKS_PER_SEC), (T)? 100.0*(t)/(T) : 0.0))
+#define ABC_PRM(a,f)    (printf("%s = ", (a)), printf("%7.2f Mb  ",    1.0*(f)/(1<<20)))
+
+
+//#define ABC_USE_MEM_REC 1
+
+#ifndef ABC_USE_MEM_REC
 #define ABC_ALLOC(type, num)     ((type *) malloc(sizeof(type) * (num)))
 #define ABC_CALLOC(type, num)     ((type *) calloc((num), sizeof(type)))
 #define ABC_FALLOC(type, num)     ((type *) memset(malloc(sizeof(type) * (num)), 0xff, sizeof(type) * (num)))
@@ -160,11 +169,16 @@ typedef unsigned __int64 ABC_UINT64_T;
 #define ABC_REALLOC(type, obj, num)    \
         ((obj) ? ((type *) realloc((char *)(obj), sizeof(type) * (num))) : \
          ((type *) malloc(sizeof(type) * (num))))
-
-#define ABC_PRT(a,t)    (printf("%s = ", (a)), printf("%7.2f sec\n", (float)(t)/(float)(CLOCKS_PER_SEC)))
-#define ABC_PRTn(a,t)   (printf("%s = ", (a)), printf("%6.2f sec  ", (float)(t)/(float)(CLOCKS_PER_SEC)))
-#define ABC_PRTP(a,t,T) (printf("%s = ", (a)), printf("%7.2f sec (%6.2f %%)\n", (float)(t)/(float)(CLOCKS_PER_SEC), (T)? 100.0*(t)/(T) : 0.0))
-#define ABC_PRM(a,f)    (printf("%s = ", (a)), printf("%7.2f Mb  ",    1.0*(f)/(1<<20)))
+#else
+#include "utilMem.h"
+#define ABC_ALLOC(type, num)     ((type *) Util_MemRecAlloc(malloc(sizeof(type) * (num))))
+#define ABC_CALLOC(type, num)     ((type *) Util_MemRecAlloc(calloc((num), sizeof(type))))
+#define ABC_FALLOC(type, num)     ((type *) memset(Util_MemRecAlloc(malloc(sizeof(type) * (num))), 0xff, sizeof(type) * (num)))
+#define ABC_FREE(obj)             ((obj) ?  (free((char *) Util_MemRecFree(obj)), (obj) = 0) : 0)
+#define ABC_REALLOC(type, obj, num)    \
+        ((obj) ? ((type *) Util_MemRecAlloc(realloc((char *)(Util_MemRecFree(obj)), sizeof(type) * (num)))) : \
+         ((type *) Util_MemRecAlloc(malloc(sizeof(type) * (num)))))
+#endif
 
 #ifdef __cplusplus
 }

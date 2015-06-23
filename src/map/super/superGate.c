@@ -67,8 +67,8 @@ struct Super_ManStruct_t_
     int                 Time;         // the runtime of the generation procedure
     int                 TimeLimit;    // the runtime limit (in seconds)
     int                 TimeSec;      // the time passed (in seconds)
-    int                 TimeStop;     // the time to stop computation (in miliseconds)
-    int                 TimePrint;    // the time to print message
+    double              TimeStop;     // the time to stop computation (in miliseconds)
+    double              TimePrint;    // the time to print message
 };
 
 struct Super_GateStruct_t_
@@ -1107,9 +1107,11 @@ void Super_WriteLibrary( Super_Man_t * pMan )
 {
     Super_Gate_t * pGate, * pGateNext;
     FILE * pFile;
-    char FileName[100];
+    char * FileName;
     char * pNameGeneric;
     int i, Counter;
+
+    FileName = ABC_ALLOC( char, 10000 );
 
     // get the file name
     pNameGeneric = Extra_FileNameGeneric( pMan->pName );
@@ -1152,6 +1154,8 @@ if ( pMan->fVerbose )
     printf( "The supergates are written using old format \"%s\" ", FileName );
     printf( "(%0.3f Mb).\n", ((double)Extra_FileSize(FileName))/(1<<20) );
 }
+
+    ABC_FREE( FileName );
 }
 
 /**Function*************************************************************
@@ -1251,10 +1255,12 @@ void Super_WriteLibraryTree( Super_Man_t * pMan )
 {
     Super_Gate_t * pSuper;
     FILE * pFile;
-    char FileName[100];
+    char * FileName;
     char * pNameGeneric;
     int i, Counter;
     int posStart;
+
+    FileName = ABC_ALLOC( char, 10000 );
 
     // get the file name
     pNameGeneric = Extra_FileNameGeneric( pMan->pName );
@@ -1286,6 +1292,8 @@ if ( pMan->fVerbose )
     printf( "The supergates are written using new format \"%s\" ", FileName );
     printf( "(%0.3f Mb).\n", ((double)Extra_FileSize(FileName))/(1<<20) );
 }
+
+    ABC_FREE( FileName );
 }
 
 /**Function*************************************************************

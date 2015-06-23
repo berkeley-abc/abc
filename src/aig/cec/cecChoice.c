@@ -380,17 +380,17 @@ Gia_Man_t * Gia_ManChoiceMiter( Vec_Ptr_t * vGias )
   SeeAlso     []
 
 ***********************************************************************/
-Gia_Man_t * Cec_ManChoiceComputationVec( Vec_Ptr_t * vGias, Cec_ParChc_t * pPars )
+Gia_Man_t * Cec_ManChoiceComputationVec( Gia_Man_t * pGia, int nGias, Cec_ParChc_t * pPars )
 {
-    Gia_Man_t * pMiter, * pNew;
+    Gia_Man_t * pNew;
     int RetValue;
     // compute equivalences of the miter
-    pMiter = Gia_ManChoiceMiter( vGias );
-    RetValue = Cec_ManChoiceComputation_int( pMiter, pPars );
+//    pMiter = Gia_ManChoiceMiter( vGias );
+    RetValue = Cec_ManChoiceComputation_int( pGia, pPars );
     // derive AIG with choices
-    pNew = Gia_ManEquivToChoices( pMiter, Vec_PtrSize(vGias) );
+    pNew = Gia_ManEquivToChoices( pGia, nGias );
     Gia_ManHasChoices( pNew );
-    Gia_ManStop( pMiter );
+//    Gia_ManStop( pMiter );
     // report the results
     if ( pPars->fVerbose )
     {
@@ -422,11 +422,7 @@ Gia_Man_t * Cec_ManChoiceComputation( Gia_Man_t * pAig, Cec_ParChc_t * pParsChc 
     Gia_Man_t * pGia;
     if ( 0 ) 
     {
-        Vec_Ptr_t * vGias;
-        vGias = Vec_PtrAlloc( 1 );
-        Vec_PtrPush( vGias, pAig );
-        pGia = Cec_ManChoiceComputationVec( vGias, pParsChc );
-        Vec_PtrFree( vGias );
+        pGia = Cec_ManChoiceComputationVec( pAig, 3, pParsChc );
     }
     else
     {
@@ -439,7 +435,7 @@ Gia_Man_t * Cec_ManChoiceComputation( Gia_Man_t * pAig, Cec_ParChc_t * pParsChc 
         pManNew = Dar_ManChoiceNew( pMan, pPars );
         pGia = Gia_ManFromAig( pManNew );
         Aig_ManStop( pManNew );
-        Aig_ManStop( pMan );
+//        Aig_ManStop( pMan );
     }
     return pGia;
 }
@@ -455,13 +451,10 @@ Gia_Man_t * Cec_ManChoiceComputation( Gia_Man_t * pAig, Cec_ParChc_t * pParsChc 
   SeeAlso     []
 
 ***********************************************************************/
-Aig_Man_t * Cec_ComputeChoices( Vec_Ptr_t * vAigs, Dch_Pars_t * pPars )
+Aig_Man_t * Cec_ComputeChoices( Gia_Man_t * pGia, Dch_Pars_t * pPars )
 {
     Cec_ParChc_t ParsChc, * pParsChc = &ParsChc;
-    Vec_Ptr_t * vGias;
-    Gia_Man_t * pGia;
     Aig_Man_t * pAig;
-    int i;
     if ( pPars->fVerbose )
         ABC_PRT( "Synthesis time", pPars->timeSynth );
     Cec_ManChcSetDefaultParams( pParsChc );
@@ -470,14 +463,8 @@ Aig_Man_t * Cec_ComputeChoices( Vec_Ptr_t * vAigs, Dch_Pars_t * pPars )
     if ( pParsChc->fUseCSat && pParsChc->nBTLimit > 100 )
         pParsChc->nBTLimit = 100;
     pParsChc->fVerbose = pPars->fVerbose;
-    vGias = Vec_PtrAlloc( 10 );
-    Vec_PtrForEachEntry( vAigs, pAig, i )
-        Vec_PtrPush( vGias, Gia_ManFromAig(pAig) );
-    pGia = Cec_ManChoiceComputationVec( vGias, pParsChc );
-    Gia_ManSetRegNum( pGia, Gia_ManRegNum(Vec_PtrEntry(vGias, 0)) );
-    Vec_PtrForEachEntry( vGias, pAig, i )
-        Gia_ManStop( (Gia_Man_t *)pAig );
-    Vec_PtrFree( vGias );
+    pGia = Cec_ManChoiceComputationVec( pGia, 3, pParsChc );
+    Gia_ManSetRegNum( pGia, Gia_ManRegNum(pGia) );
     pAig = Gia_ManToAig( pGia, 1 );
     Gia_ManStop( pGia );
     return pAig;

@@ -162,6 +162,8 @@ Aig_Man_t * Saig_ManFramesBmcLimit( Aig_Man_t * pAig, int nFrames, int nSizeMax 
     return pFrames;
 }
 
+#include "utilMem.h"
+
 /**Function*************************************************************
 
   Synopsis    [Performs BMC for the given AIG.]
@@ -228,6 +230,8 @@ int Saig_ManBmcSimple( Aig_Man_t * pAig, int nFrames, int nSizeMax, int nConfLim
     // create the SAT solver
     clk = clock();
     pCnf = Cnf_Derive( pFrames, Aig_ManPoNum(pFrames) );  
+//if ( s_fInterrupt )
+//return -1;
     pSat = sat_solver_new();
     sat_solver_setnvars( pSat, pCnf->nVars );
     for ( i = 0; i < pCnf->nClauses; i++ )
@@ -255,6 +259,8 @@ int Saig_ManBmcSimple( Aig_Man_t * pAig, int nFrames, int nSizeMax, int nConfLim
         int clkPart = clock();
         Aig_ManForEachPo( pFrames, pObj, i )
         {
+//if ( s_fInterrupt )
+//return -1;
             Lit = toLitCond( pCnf->pVarNums[pObj->Id], 0 );
             if ( fVerbose )
             {

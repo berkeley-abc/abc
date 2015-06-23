@@ -30,27 +30,6 @@
 
 /**Function*************************************************************
 
-  Synopsis    [Counts COs that are connected to the internal nodes through invs/bufs.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Ntl_ModelCountLut1( Ntl_Mod_t * pRoot )
-{
-    Ntl_Obj_t * pObj;
-    int i, Counter = 0;
-    Ntl_ModelForEachNode( pRoot, pObj, i )
-        if ( Ntl_ObjFaninNum(pObj) == 1 )
-            Counter++;
-    return Counter;
-}
-
-/**Function*************************************************************
-
   Synopsis    [Reads the maximum number of fanins.]
 
   Description []
@@ -370,6 +349,7 @@ Vec_Vec_t * Ntl_ManTransformRegClasses( Ntl_Man_t * pMan, int nSizeMax, int fVer
     if ( Vec_IntSize(pMan->vRegClasses) == 0 )
     {
         printf( "Ntl_ManReportRegClasses(): Register classes are not defined.\n" );
+//        return (Vec_Vec_t *)Vec_PtrAlloc(0);
         return NULL;
     }
     // find the largest class

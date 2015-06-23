@@ -23,10 +23,12 @@
 // this line should be included in the library project
 //#define ABC_LIB
 
+//#define ABC_USE_BINARY 1
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
-
+ 
 static int TypeCheck( Abc_Frame_t * pAbc, char * s);
 
 ////////////////////////////////////////////////////////////////////////
@@ -46,7 +48,11 @@ static int TypeCheck( Abc_Frame_t * pAbc, char * s);
   SeeAlso     []
 
 ***********************************************************************/
+#if defined(ABC_USE_BINARY)
+int main_( int argc, char * argv[] )
+#else
 int main( int argc, char * argv[] )
+#endif
 {
     Abc_Frame_t * pAbc;
     char sCommandUsr[500], sCommandTmp[100], sReadCmd[20], sWriteCmd[20], c;
@@ -67,7 +73,7 @@ int main( int argc, char * argv[] )
     pAbc = Abc_FrameGetGlobalFrame();
 
     // default options
-    fBatch = 0;
+    fBatch      = 0;
     fInitSource = 1;
     fInitRead   = 0;
     fFinalWrite = 0;
@@ -312,127 +318,6 @@ static int TypeCheck( Abc_Frame_t * pAbc, char * s )
 
 
 
-
-/**Function*************************************************************
-
-  Synopsis    [Find the file name.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-char * Abc_MainFileName( char * pFileName )
-{
-    static char Buffer[200];
-    char * pExtension;
-    assert( strlen(pFileName) < 190 );
-    pExtension = Extra_FileNameExtension( pFileName );
-    if ( pExtension == NULL )
-        sprintf( Buffer, "%s.opt", pFileName );
-    else
-    {
-        strncpy( Buffer, pFileName, pExtension-pFileName-1 );
-        sprintf( Buffer+(pExtension-pFileName-1), ".opt.%s", pExtension );
-    }
-    return Buffer;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [The main() procedure.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int main_( int argc, char * argv[] )
-{
-    extern void Nwk_ManPrintStatsUpdate( void * p, void * pAig, void * pNtk,
-         int nRegInit, int nLutInit, int nLevInit, int Time );
-    char * pComs[20] = 
-    {
-/*00*/  "*r -am ",
-/*01*/  "*w -abc 1.aig",
-/*02*/  "*lcorr -nc",//; *ps",
-/*03*/  "*scorr -nc",//; *ps",
-/*04*/  "*dch; *if -K 4 -C 16 -F 3 -A 2; *sw -m",//; *ps",
-/*05*/  "*dch; *if -K 4 -C 16 -F 3 -A 2; *sw -m",//; *ps", 
-/*06*/  "*w ",
-/*07*/  "*w -abc 2.aig",
-/*08*/  "miter -mc 1.aig 2.aig; sim -F 4 -W 4 -mv"
-    };
-    char Command[1000];
-    int i, nComs;
-    Abc_Frame_t * pAbc;
-    FILE * pFile;
-    int nRegInit, nLutInit, nLevInit;
-    int clkStart = clock();
-
-    // added to detect memory leaks:
-#if defined(_DEBUG) && defined(_MSC_VER) 
-    _CrtSetDbgFlag( _CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF );
-#endif
-
-    // check that the file is present
-    if ( argc != 2 )
-    {
-        printf( "Expecting one command argument (file name).\n" );
-        return 0;
-    }
-    pFile = fopen( argv[1], "r" );
-    if ( pFile == NULL )
-    {
-        printf( "Cannot open file \"%s\".\n", argv[1] );
-        return 0;
-    }
-    fclose( pFile );
-
-    // count the number of commands
-    for ( nComs = 0; nComs < 20; nComs++ )
-        if ( pComs[nComs] == NULL )
-            break;
-    // perform the commands
-    printf( "Reading design \"%s\"...\n", argv[1] );
-    pAbc = Abc_FrameGetGlobalFrame();
-    for ( i = 0; i < nComs; i++ )
-    {
-
-        if ( i == 0 )
-            sprintf( Command, "%s%s", pComs[i], argv[1] );
-        else if ( i == 6 )
-            sprintf( Command, "%s%s", pComs[i], Abc_MainFileName(argv[1]) );
-        else 
-            sprintf( Command, "%s", pComs[i] );
-        if ( Cmd_CommandExecute( pAbc, Command ) )
-        {
-            printf( "Internal command %d failed.\n", i );
-            return 0;
-        }
-        if ( i == 0 )
-        {
-            extern int Nwk_ManStatsRegs( void * p );
-            extern int Nwk_ManStatsLuts( void * pNtk );
-            extern int Nwk_ManStatsLevs( void * pNtk );
-            nRegInit = Nwk_ManStatsRegs( pAbc->pAbc8Ntl );
-            nLutInit = Nwk_ManStatsLuts( pAbc->pAbc8Nwk );
-            nLevInit = Nwk_ManStatsLevs( pAbc->pAbc8Nwk );
-        }
-        if ( i >= 1 && i <= 5 )
-        Nwk_ManPrintStatsUpdate( pAbc->pAbc8Ntl, pAbc->pAbc8Aig, pAbc->pAbc8Nwk, 
-            nRegInit, nLutInit, nLevInit, clkStart );
-    }
-    Abc_Stop(); 
-    printf( "Writing optimized design \"%s\"...\n", Abc_MainFileName(argv[1]) );
-    ABC_PRT( "Total time", clock() - clkStart );
-    printf( "\n" );
-    return 0;  
-}
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

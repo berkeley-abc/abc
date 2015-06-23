@@ -373,8 +373,8 @@ void Aig_ManPrintStats( Aig_Man_t * p )
 {
     int nChoices = Aig_ManChoiceNum(p);
     printf( "%-15s : ",      p->pName );
-    printf( "pi = %5d  ",    Aig_ManPiNum(p) );
-    printf( "po = %5d  ",    Aig_ManPoNum(p) );
+    printf( "pi = %5d  ",    Aig_ManPiNum(p)-Aig_ManRegNum(p) );
+    printf( "po = %5d  ",    Aig_ManPoNum(p)-Aig_ManRegNum(p) );
     if ( Aig_ManRegNum(p) )
     printf( "lat = %5d  ", Aig_ManRegNum(p) );
     printf( "and = %7d  ",   Aig_ManAndNum(p) );

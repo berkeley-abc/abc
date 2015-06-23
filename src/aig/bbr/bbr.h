@@ -57,7 +57,7 @@ typedef struct Bbr_ImageTree_t_  Bbr_ImageTree_t;
 extern Bbr_ImageTree_t * Bbr_bddImageStart( 
     DdManager * dd, DdNode * bCare,
     int nParts, DdNode ** pbParts,
-    int nVars, DdNode ** pbVars, int fVerbose );
+    int nVars, DdNode ** pbVars, int nBddMax, int fVerbose );
 extern DdNode *    Bbr_bddImageCompute( Bbr_ImageTree_t * pTree, DdNode * bCare );
 extern void        Bbr_bddImageTreeDelete( Bbr_ImageTree_t * pTree );
 extern DdNode *    Bbr_bddImageRead( Bbr_ImageTree_t * pTree );
@@ -74,7 +74,7 @@ extern void        Aig_ManFreeGlobalBdds( Aig_Man_t * p, DdManager * dd );
 extern int         Aig_ManSizeOfGlobalBdds( Aig_Man_t * p );
 extern DdManager * Aig_ManComputeGlobalBdds( Aig_Man_t * p, int nBddSizeMax, int fDropInternal, int fReorder, int fVerbose );
 /*=== bbrReach.c ==========================================================*/
-extern int         Aig_ManVerifyUsingBdds( Aig_Man_t * p, int nBddMax, int nIterMax, int fPartition, int fReorder, int fVerbose, int fSilent );
+extern int         Aig_ManVerifyUsingBdds( Aig_Man_t * p, int nBddMax, int nIterMax, int fPartition, int fReorder, int fReorderImage, int fVerbose, int fSilent );
 
 #ifdef __cplusplus
 }

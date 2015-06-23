@@ -58,7 +58,7 @@ extern "C" {
 #     define ARGS(args)    args
 #  else
 #     define ARGS(args) ()
-# endif
+#  endif
 #endif
 
 extern long        Extra_CpuTime();

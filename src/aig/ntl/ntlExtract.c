@@ -371,6 +371,7 @@ int Ntl_ManCollapseBoxSeq1_rec( Ntl_Man_t * p, Ntl_Obj_t * pBox, int fSeq )
         pNet->nVisits = 2;
         // remember the class of this register
         Vec_IntPush( p->vRegClasses, p->pNal ? pBox->iTemp : pObj->LatchId.regClass );
+        Vec_IntPush( p->vRstClasses, p->pNal ? pBox->Reset : -1 );
     }
     // compute AIG for the internal nodes
     Ntl_ModelForEachPo( pModel, pObj, i )
@@ -505,6 +506,7 @@ Aig_Man_t * Ntl_ManCollapse( Ntl_Man_t * p, int fSeq )
     assert( Vec_PtrSize(p->vCos) != 0 );
     Vec_IntClear( p->vBox1Cios );
     Vec_IntClear( p->vRegClasses );
+    Vec_IntClear( p->vRstClasses );
     // clear net visited flags
     pRoot = Ntl_ManRootModel(p);
     assert( Ntl_ModelLatchNum(pRoot) == 0 );
@@ -797,6 +799,7 @@ Nwk_Man_t * Ntl_ManExtractNwk( Ntl_Man_t * p, Aig_Man_t * pAig, Tim_Man_t * pMan
             {
                 pNet->pCopy2 = Ntl_ManExtractNwk_rec( p, pNet, pNtk, vCover, vMemory ); 
                 Nwk_ObjAddFanin( pNode, pNet->pCopy2 );
+                pNode->fInvert = (Nwk_ObjFanin0(pNode)->pFunc == Hop_ManConst0(pNtk->pManHop)); // fixed on June 7, 2009
             }
         }
     }

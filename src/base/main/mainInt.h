@@ -82,6 +82,11 @@ struct Abc_Frame_t_
     void *          pAig;
     void *          pCex; 
 
+    void *          pSave1; 
+    void *          pSave2; 
+    void *          pSave3; 
+    void *          pSave4; 
+
     // the addition to keep the best Ntl that can be used to restore
     void *            pAbc8NtlBestDelay;    // the best delay, Ntl
     void *            pAbc8NtlBestArea;    // the best area

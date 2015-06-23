@@ -797,7 +797,7 @@ void Cec_ManLSCorrespondenceBmc( Gia_Man_t * pAig, Cec_ParCor_t * pPars, int nPr
         } 
         pParsSat->nBTLimit *= 10;
         if ( pPars->fUseCSat )
-            vCexStore = Cbs_ManSolveMiterNc( pSrm, pPars->nBTLimit, &vStatus, 0 );
+            vCexStore = Tas_ManSolveMiterNc( pSrm, pPars->nBTLimit, &vStatus, 0 );
         else
             vCexStore = Cec_ManSatSolveMiter( pSrm, pParsSat, &vStatus );
         // refine classes with these counter-examples
@@ -831,8 +831,9 @@ void Cec_ManLSCorrespondenceBmc( Gia_Man_t * pAig, Cec_ParCor_t * pPars, int nPr
 ***********************************************************************/
 int Cec_ManLSCorrespondenceClasses( Gia_Man_t * pAig, Cec_ParCor_t * pPars )
 {  
-    int nIterMax = 100000;
-    int nAddFrames = 1; // additional timeframes to simulate
+    int nIterMax     = 100000;
+    int nAddFrames   = 1; // additional timeframes to simulate
+    int fRunBmcFirst = 0;
     Vec_Str_t * vStatus;
     Vec_Int_t * vOutputs;
     Vec_Int_t * vCexStore;
@@ -875,8 +876,8 @@ int Cec_ManLSCorrespondenceClasses( Gia_Man_t * pAig, Cec_ParCor_t * pPars )
         Cec_ManRefinedClassPrintStats( pAig, NULL, 0, clock() - clk );
     }
     // check the base case
-    if ( !pPars->fLatchCorr || pPars->nFrames > 1 )
-            Cec_ManLSCorrespondenceBmc( pAig, pPars, 0 );
+    if ( fRunBmcFirst && (!pPars->fLatchCorr || pPars->nFrames > 1) )
+        Cec_ManLSCorrespondenceBmc( pAig, pPars, 0 );
     // perform refinement of equivalence classes
     for ( r = 0; r < nIterMax; r++ )
     { 
@@ -926,6 +927,9 @@ int Cec_ManLSCorrespondenceClasses( Gia_Man_t * pAig, Cec_ParCor_t * pPars )
     if ( r == nIterMax )
         printf( "The refinement was not finished. The result may be incorrect.\n" );
     Cec_ManSimStop( pSim );
+    // check the base case
+    if ( !fRunBmcFirst && (!pPars->fLatchCorr || pPars->nFrames > 1) )
+        Cec_ManLSCorrespondenceBmc( pAig, pPars, 0 );
     clkTotal = clock() - clkTotal;
     // report the results
     if ( pPars->fVerbose )

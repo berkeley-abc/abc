@@ -317,6 +317,25 @@ void Gia_ManSetPhase( Gia_Man_t * p )
 
 /**Function*************************************************************
 
+  Synopsis    [Sets phases of the internal nodes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_ManCleanPhase( Gia_Man_t * p )  
+{
+    Gia_Obj_t * pObj;
+    int i;
+    Gia_ManForEachObj( p, pObj, i )
+        pObj->fPhase = 0;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Assigns levels.]
 
   Description []
@@ -883,17 +902,32 @@ int Gia_ManHasChoices( Gia_Man_t * p )
     Gia_ManForEachObj( p, pObj, i )
     {
         if ( Gia_ObjReprObj( p, Gia_ObjId(p, pObj) ) )
+        {
+//            printf( "%d ", i );
             Counter1++;
-        if ( Gia_ObjNext( p, Gia_ObjId(p, pObj) ) )
-            Counter2++;
+        }
+//        if ( Gia_ObjNext( p, Gia_ObjId(p, pObj) ) )
+//            Counter2++;
     }
+//    printf( "\n" );
+    Gia_ManForEachObj( p, pObj, i )
+    {
+//        if ( Gia_ObjReprObj( p, Gia_ObjId(p, pObj) ) )
+//            Counter1++;
+        if ( Gia_ObjNext( p, Gia_ObjId(p, pObj) ) )
+        {
+//            printf( "%d ", i );
+            Counter2++;
+        }
+    }
+//    printf( "\n" );
     if ( Counter1 == 0 )
     {
         printf( "Warning: AIG has repr data-strucure but not reprs.\n" );
         return 0;
     }
-//    printf( "%d nodes have reprs.\n", Counter1 );
-//    printf( "%d nodes have nexts.\n", Counter2 );
+    printf( "%d nodes have reprs.\n", Counter1 );
+    printf( "%d nodes have nexts.\n", Counter2 );
     // check if there are any internal nodes without fanout
     // make sure all nodes without fanout have representatives
     // make sure all nodes with fanout have no representatives

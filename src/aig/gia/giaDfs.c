@@ -264,6 +264,33 @@ int Gia_ManConeSize( Gia_Man_t * p, int * pNodes, int nNodes )
     return Counter;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Levelizes the nodes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Vec_t * Gia_ManLevelize( Gia_Man_t * p )
+{
+    Gia_Obj_t * pObj;
+    Vec_Vec_t * vLevels;
+    int nLevels, Level, i;
+    nLevels = Gia_ManLevelNum( p );
+    vLevels = Vec_VecStart( nLevels + 1 );
+    Gia_ManForEachAnd( p, pObj, i )
+    {
+        Level = Gia_ObjLevel( p, pObj );
+        assert( Level <= nLevels );
+        Vec_VecPush( vLevels, Level, pObj );
+    }
+    return vLevels;
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

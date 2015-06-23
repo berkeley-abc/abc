@@ -128,13 +128,17 @@ struct Fra_Sec_t_
     int              fFraiging;         // enables fraiging at the beginning
     int              fInduction;        // enable the use of induction
     int              fInterpolation;    // enables interpolation
+    int              fInterSeparate;    // enables interpolation for each outputs separately
     int              fReachability;     // enables BDD based reachability
+    int              fReorderImage;     // enables BDD reordering during image computation
     int              fStopOnFirstFail;  // enables stopping after first output of a miter has failed to prove
     int              fUseNewProver;     // the new prover
     int              fSilent;           // disables all output
     int              fVerbose;          // enables verbose reporting of statistics
     int              fVeryVerbose;      // enables very verbose reporting  
     int              TimeLimit;         // enables the timeout
+    int              fReadUnsolved;     // inserts the unsolved model back
+    int              nSMnumber;         // the number of model written
     // internal parameters
     int              fRecursive;        // set to 1 when SEC is called recursively
     int              fReportSolution;   // enables report solution in a special form

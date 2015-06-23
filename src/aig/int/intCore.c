@@ -53,6 +53,7 @@ void Inter_ManSetDefaultParams( Inter_ManParams_t * p )
     p->fCheckKstep  = 1;     // check using K-step induction
     p->fUseBias     = 0;     // bias decisions to global variables
     p->fUseBackward = 0;     // perform backward interpolation
+    p->fUseSeparate = 0;     // solve each output separately
     p->fVerbose     = 0;     // print verbose statistics
 }
 

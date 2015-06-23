@@ -160,6 +160,7 @@ Ntl_Obj_t * Ntl_ModelCreateBox( Ntl_Mod_t * pModel, int nFanins, int nFanouts )
     p->Type     = NTL_OBJ_BOX;
     p->nFanins  = nFanins;
     p->nFanouts = nFanouts;
+    p->Reset    = -1;
     pModel->nObjs[NTL_OBJ_BOX]++;
     return p;
 }
@@ -284,6 +285,27 @@ char * Ntl_ManStoreFileName( Ntl_Man_t * p, char * pFileName )
     return pStore;
 }
 
+
+/**Function*************************************************************
+
+  Synopsis    [Returns the index of the fanin in the fanin list of the fanout.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Ntl_ManObjWhichFanout( Ntl_Obj_t * pNode, Ntl_Net_t * pFanout )
+{
+    Ntl_Net_t * pObj;
+    int i;
+    Ntl_ObjForEachFanout( pNode, pObj, i )
+        if ( pObj == pFanout )
+            return i;
+    return -1;
+}
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
