@@ -113,6 +113,14 @@ void Wlc_PrsStop( Wlc_Prs_t * p )
   SeeAlso     []
 
 ***********************************************************************/
+int Wlc_PrsFindLine( Wlc_Prs_t * p, char * pCur )
+{
+    int Entry, iLine = 0;
+    Vec_IntForEachEntry( p->vLines, Entry, iLine )
+        if ( Entry > pCur - p->pBuffer )
+            return iLine + 1;
+    return -1;
+}
 int Wlc_PrsWriteErrorMessage( Wlc_Prs_t * p, char * pCur, const char * format, ... )
 {
     char * pMessage;
@@ -128,11 +136,8 @@ int Wlc_PrsWriteErrorMessage( Wlc_Prs_t * p, char * pCur, const char * format, .
         sprintf( p->sError, "%s: %s\n", p->pFileName, pMessage );
     else                // print the error message with the line number
     {
-        int Entry, iLine = 0;
-        Vec_IntForEachEntry( p->vLines, Entry, iLine )
-            if ( Entry > pCur - p->pBuffer )
-                break;
-        sprintf( p->sError, "%s (line %d): %s\n", p->pFileName, iLine+1, pMessage );
+        int iLine = Wlc_PrsFindLine( p, pCur );
+        sprintf( p->sError, "%s (line %d): %s\n", p->pFileName, iLine, pMessage );
     }
     ABC_FREE( pMessage );
     return 0;
@@ -768,6 +773,9 @@ static inline int Wlc_PrsFindDefinition( Wlc_Prs_t * p, char * pStr, Vec_Int_t *
             else return Wlc_PrsWriteErrorMessage( p, pStr, "Unsupported operation (%c).", pStr[0] );
             if ( !(pStr = Wlc_PrsReadName(p, pStr+1, vFanins)) )
                 return 0;
+            pStr = Wlc_PrsSkipSpaces( pStr );
+            if ( pStr[0] )
+                printf( "Warning: Trailing symbols \"%s\" in line %d.\n", pStr, Wlc_PrsFindLine(p, pStr) );
         }
     }
     // make sure there is nothing left there
@@ -798,6 +806,8 @@ int Wlc_PrsReadDeclaration( Wlc_Prs_t * p, char * pStart )
     pStart = Wlc_PrsFindRange( pStart, &End, &Beg );
     if ( pStart == NULL )
         return Wlc_PrsWriteErrorMessage( p, pStart, "Cannot read range." );
+    if ( Beg != 0 )
+        printf( "Warning: Non-zero-based range ([%d:%d]) in line %d.\n", End, Beg, Wlc_PrsFindLine(p, pStart) );
     while ( 1 )
     {
         char * pName;
