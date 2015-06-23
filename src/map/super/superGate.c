@@ -706,7 +706,7 @@ void Super_TranferGatesToArray( Super_Man_t * pMan )
 {
     stmm_generator * gen;
     Super_Gate_t * pGate, * pList;
-    unsigned Key;
+    ABC_PTRUINT_T Key;
 
     // put the gates fron the table into the array
     ABC_FREE( pMan->pGates );
@@ -734,10 +734,10 @@ void Super_TranferGatesToArray( Super_Man_t * pMan )
 void Super_AddGateToTable( Super_Man_t * pMan, Super_Gate_t * pGate )
 {
     Super_Gate_t ** ppList;
-    unsigned Key;
+    ABC_PTRUINT_T Key;
 //    Key = pGate->uTruth[0] + 2003 * pGate->uTruth[1];
     Key = pGate->uTruth[0] ^ pGate->uTruth[1];
-    if ( !stmm_find_or_add( pMan->tTable, (char *)(ABC_PTRUINT_T)Key, (char ***)&ppList ) )
+    if ( !stmm_find_or_add( pMan->tTable, (char *)Key, (char ***)&ppList ) )
         *ppList = NULL;
     pGate->pNext = *ppList;
     *ppList = pGate;
@@ -761,7 +761,7 @@ bool Super_CompareGates( Super_Man_t * pMan, unsigned uTruth[], float Area, floa
 {
     Super_Gate_t ** ppList, * pPrev, * pGate, * pGate2;
     int i, fNewIsBetter, fGateIsBetter;
-    unsigned Key;
+    ABC_PTRUINT_T Key;
 
     // skip constant functions
     if ( pMan->nVarsMax < 6 )
@@ -778,7 +778,7 @@ bool Super_CompareGates( Super_Man_t * pMan, unsigned uTruth[], float Area, floa
     // get hold of the place where the entry is stored
 //    Key = uTruth[0] + 2003 * uTruth[1];
     Key = uTruth[0] ^ uTruth[1];
-    if ( !stmm_find( pMan->tTable, (char *)(ABC_PTRUINT_T)Key, (char ***)&ppList ) )
+    if ( !stmm_find( pMan->tTable, (char *)Key, (char ***)&ppList ) )
         return 1; 
     // the entry with this truth table is found
     pPrev = NULL;
@@ -918,7 +918,7 @@ void Super_Write( Super_Man_t * pMan )
     Super_Gate_t * pGateRoot, * pGate;
     stmm_generator * gen;
     int fZeroFound, clk, v;
-    unsigned Key;
+    ABC_PTRUINT_T Key;
 
     if ( pMan->nGates < 1 )
     {

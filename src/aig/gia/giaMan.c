@@ -66,6 +66,8 @@ Gia_Man_t * Gia_ManStart( int nObjsMax )
 ***********************************************************************/
 void Gia_ManStop( Gia_Man_t * p )  
 {
+    Vec_PtrFreeFree( p->vNamesIn );
+    Vec_PtrFreeFree( p->vNamesOut );
     if ( p->vFlopClasses )
     Vec_IntFree( p->vFlopClasses );
     Vec_IntFree( p->vCis );

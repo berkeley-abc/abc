@@ -136,6 +136,8 @@ struct Gia_Man_t_
     unsigned char* pSwitching;    // switching activity for each object
     Gia_Plc_t *    pPlacement;    // placement of the objects
     int *          pTravIds;      // separate traversal ID representation
+    Vec_Ptr_t *    vNamesIn;      // the input names 
+    Vec_Ptr_t *    vNamesOut;     // the output names
 };
 
 

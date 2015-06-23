@@ -465,6 +465,27 @@ static inline void Vec_PtrClear( Vec_Ptr_t * p )
 
 /**Function*************************************************************
 
+  Synopsis    [Deallocates array of memory pointers.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline void Vec_PtrFreeFree( Vec_Ptr_t * p )
+{
+    void * pTemp;
+    int i;
+    if ( p == NULL ) return;
+    Vec_PtrForEachEntry( p, pTemp, i )
+        ABC_FREE( pTemp );
+    Vec_PtrFree( p );
+}
+
+/**Function*************************************************************
+
   Synopsis    [Copies the interger array.]
 
   Description []

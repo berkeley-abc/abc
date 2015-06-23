@@ -587,6 +587,50 @@ Abc_Ntk_t * Abc_NtkFromDarSeq( Abc_Ntk_t * pNtkOld, Aig_Man_t * pMan )
 
 /**Function*************************************************************
 
+  Synopsis    [Collects CI of the network.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Ptr_t * Abc_NtkCollectCiNames( Abc_Ntk_t * pNtk )
+{
+    Abc_Obj_t * pObj;
+    int i;
+    Vec_Ptr_t * vNames;
+    vNames = Vec_PtrAlloc( 100 );
+    Abc_NtkForEachCi( pNtk, pObj, i )
+        Vec_PtrPush( vNames, Extra_UtilStrsav(Abc_ObjName(pObj)) );
+    return vNames;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Collects CO of the network.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Ptr_t * Abc_NtkCollectCoNames( Abc_Ntk_t * pNtk )
+{
+    Abc_Obj_t * pObj;
+    int i;
+    Vec_Ptr_t * vNames;
+    vNames = Vec_PtrAlloc( 100 );
+    Abc_NtkForEachCo( pNtk, pObj, i )
+        Vec_PtrPush( vNames, Extra_UtilStrsav(Abc_ObjName(pObj)) );
+    return vNames;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Collect latch values.]
 
   Description []

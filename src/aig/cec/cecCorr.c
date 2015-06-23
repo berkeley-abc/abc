@@ -990,6 +990,39 @@ unsigned * Cec_ManComputeInitState( Gia_Man_t * pAig, int nFrames )
 
 /**Function*************************************************************
 
+  Synopsis    [Prints flop equivalences.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Cec_ManPrintFlopEquivs( Gia_Man_t * p )
+{
+    Gia_Obj_t * pObj, * pRepr;
+    int i;
+    assert( p->vNamesIn != NULL );
+    Gia_ManForEachRo( p, pObj, i )
+    {
+        if ( Gia_ObjIsConst(p, Gia_ObjId(p, pObj)) )
+            printf( "Flop \"%s\" is equivalent to constant 0.\n", Vec_PtrEntry(p->vNamesIn, Gia_ObjCioId(pObj)) );
+        else if ( (pRepr = Gia_ObjReprObj(p, Gia_ObjId(p, pObj))) )
+        {
+            if ( Gia_ObjIsCi(pRepr) )
+                printf( "Flop \"%s\" is equivalent to flop \"%s\".\n", 
+                    Vec_PtrEntry( p->vNamesIn, Gia_ObjCioId(pObj)  ), 
+                    Vec_PtrEntry( p->vNamesIn, Gia_ObjCioId(pRepr) ) );
+            else
+                printf( "Flop \"%s\" is equivalent to internal node %d.\n", 
+                    Vec_PtrEntry( p->vNamesIn, Gia_ObjCioId(pObj) ), Gia_ObjId(p, pRepr) );
+        }
+    }
+}
+
+/**Function*************************************************************
+
   Synopsis    [Top-level procedure for register correspondence.]
 
   Description []
@@ -1060,6 +1093,14 @@ Gia_Man_t * Cec_ManLSCorrespondence( Gia_Man_t * pAig, Cec_ParCor_t * pPars )
     }
     if ( pPars->nPrefix && (Gia_ManAndNum(pNew) < Gia_ManAndNum(pAig) || Gia_ManRegNum(pNew) < Gia_ManRegNum(pAig)) )
         printf( "The reduced AIG was produced using %d-th invariants and will not verify.\n", pPars->nPrefix );
+    // print verbose info about equivalences
+    if ( pPars->fVerboseFlops )
+    {
+        if ( pAig->vNamesIn == NULL )
+            printf( "Flop output names are not available. Use command \"&get -n\".\n" );
+        else
+            Cec_ManPrintFlopEquivs( pAig );
+    }
     return pNew;
 }
 

@@ -609,7 +609,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
 
     Cmd_CommandAdd( pAbc, "ABC8",         "*cec",          Abc_CommandAbc8Cec,          0 );
     Cmd_CommandAdd( pAbc, "ABC8",         "*dsec",         Abc_CommandAbc8DSec,         0 );
-
+ 
     Cmd_CommandAdd( pAbc, "AIG",          "&get",          Abc_CommandAbc9Get,          0 );
     Cmd_CommandAdd( pAbc, "AIG",          "&put",          Abc_CommandAbc9Put,          0 );
     Cmd_CommandAdd( pAbc, "AIG",          "&r",            Abc_CommandAbc9Read,         0 );
@@ -22299,14 +22299,20 @@ int Abc_CommandAbc9Get( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     extern Aig_Man_t * Abc_NtkToDar( Abc_Ntk_t * pNtk, int fExors, int fRegisters );
     extern Aig_Man_t * Abc_NtkToDarChoices( Abc_Ntk_t * pNtk );
+    extern Vec_Ptr_t * Abc_NtkCollectCiNames( Abc_Ntk_t * pNtk );
+    extern Vec_Ptr_t * Abc_NtkCollectCoNames( Abc_Ntk_t * pNtk );
     Gia_Man_t * pAig;
     Aig_Man_t * pMan;
     int c, fVerbose = 0;
+    int fNames = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "nvh" ) ) != EOF )
     {
         switch ( c )
         {
+        case 'n':
+            fNames ^= 1;
+            break;
         case 'v':
             fVerbose ^= 1;
             break;
@@ -22343,11 +22349,17 @@ int Abc_CommandAbc9Get( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( pAbc->pAig )
         Gia_ManStop( pAbc->pAig );
     pAbc->pAig = pAig;
+    if ( fNames )
+    {
+        pAig->vNamesIn  = Abc_NtkCollectCiNames( pAbc->pNtkCur );
+        pAig->vNamesOut = Abc_NtkCollectCoNames( pAbc->pNtkCur );
+    }
     return 0;
 
 usage:
-    fprintf( stdout, "usage: &get [-vh] <file>\n" );
-    fprintf( stdout, "\t         transfer the current network from the old ABC\n" );
+    fprintf( stdout, "usage: &get [-nvh] <file>\n" );
+    fprintf( stdout, "\t         converts the network into an AIG and moves to the new ABC\n" );
+    fprintf( stdout, "\t-n     : toggles saving CI/CO names of the AIG [default = %s]\n", fNames? "yes": "no" );
     fprintf( stdout, "\t-v     : toggles additional verbose output [default = %s]\n", fVerbose? "yes": "no" );
     fprintf( stdout, "\t-h     : print the command usage\n");
     fprintf( stdout, "\t<file> : the file name\n");
@@ -24058,7 +24070,7 @@ int Abc_CommandAbc9Scorr( Abc_Frame_t * pAbc, int argc, char ** argv )
     int c;
     Cec_ManCorSetDefaultParams( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "FCPrecvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "FCPrecwvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -24104,6 +24116,9 @@ int Abc_CommandAbc9Scorr( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'c':
             pPars->fUseCSat ^= 1;
             break;
+        case 'w':
+            pPars->fVerboseFlops ^= 1;
+            break;
         case 'v':
             pPars->fVerbose ^= 1;
             break;
@@ -24127,7 +24142,7 @@ int Abc_CommandAbc9Scorr( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( stdout, "usage: &scorr [-FCP num] [-recvh]\n" );
+    fprintf( stdout, "usage: &scorr [-FCP num] [-recwvh]\n" );
     fprintf( stdout, "\t         performs signal correpondence computation\n" );
     fprintf( stdout, "\t-C num : the max number of conflicts at a node [default = %d]\n", pPars->nBTLimit );
     fprintf( stdout, "\t-F num : the number of timeframes in inductive case [default = %d]\n", pPars->nFrames );
@@ -24135,6 +24150,7 @@ usage:
     fprintf( stdout, "\t-r     : toggle using implication rings during refinement [default = %s]\n", pPars->fUseRings? "yes": "no" );
     fprintf( stdout, "\t-e     : toggle using equivalences as choices [default = %s]\n", pPars->fMakeChoices? "yes": "no" );
     fprintf( stdout, "\t-c     : toggle using circuit-based SAT solver [default = %s]\n", pPars->fUseCSat? "yes": "no" );
+    fprintf( stdout, "\t-w     : toggle printing verbose info about equivalent flops [default = %s]\n", pPars->fVerboseFlops? "yes": "no" );
     fprintf( stdout, "\t-v     : toggle printing verbose information [default = %s]\n", pPars->fVerbose? "yes": "no" );
     fprintf( stdout, "\t-h     : print the command usage\n");
     return 1;

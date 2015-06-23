@@ -263,7 +263,12 @@ Abc_Obj_t * Abc_NodeFromMap_rec( Abc_Ntk_t * pNtkNew, Map_Node_t * pNodeMap, int
 
     // check the case of constant node
     if ( Map_NodeIsConst(pNodeMap) )
-        return fPhase? Abc_NtkCreateNodeConst1(pNtkNew) : Abc_NtkCreateNodeConst0(pNtkNew);
+    {
+        pNodeNew = fPhase? Abc_NtkCreateNodeConst1(pNtkNew) : Abc_NtkCreateNodeConst0(pNtkNew);
+        if ( pNodeNew->pData == NULL )
+            printf( "Error creating mapped network: Library does not have a constant %d gate.\n", fPhase );
+        return pNodeNew;
+    }
 
     // check if the phase is already implemented
     pNodeNew = (Abc_Obj_t *)Map_NodeReadData( pNodeMap, fPhase );
