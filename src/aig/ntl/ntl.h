@@ -309,7 +309,7 @@ extern ABC_DLL Aig_Man_t *     Ntl_ManPrepareSec( char * pFileName1, char * pFil
 extern ABC_DLL Aig_Man_t *     Ntl_ManExtract( Ntl_Man_t * p );
 extern ABC_DLL Aig_Man_t *     Ntl_ManCollapse( Ntl_Man_t * p, int fSeq );
 extern ABC_DLL Aig_Man_t *     Ntl_ManCollapseComb( Ntl_Man_t * p );
-extern ABC_DLL Aig_Man_t *     Ntl_ManCollapseSeq( Ntl_Man_t * p, int nMinDomSize );
+extern ABC_DLL Aig_Man_t *     Ntl_ManCollapseSeq( Ntl_Man_t * p, int nMinDomSize, int fVerbose );
 extern ABC_DLL Nwk_Man_t *     Ntl_ManExtractNwk( Ntl_Man_t * p, Aig_Man_t * pAig, Tim_Man_t * pManTime );
 /*=== ntlInsert.c ==========================================================*/
 extern ABC_DLL Ntl_Man_t *     Ntl_ManInsertMapping( Ntl_Man_t * p, Vec_Ptr_t * vMapping, Aig_Man_t * pAig );
@@ -354,6 +354,7 @@ extern ABC_DLL char *          Ntl_ManStoreFileName( Ntl_Man_t * p, char * pFile
 extern ABC_DLL int             Ntl_ManSweep( Ntl_Man_t * p, int fVerbose );
 /*=== ntlTable.c ==========================================================*/
 extern ABC_DLL Ntl_Net_t *     Ntl_ModelFindNet( Ntl_Mod_t * p, const char * pName );
+extern ABC_DLL char *          Ntl_ModelCreateNetName( Ntl_Mod_t * p, const char * pName, int Num );
 extern ABC_DLL Ntl_Net_t *     Ntl_ModelFindOrCreateNet( Ntl_Mod_t * p, const char * pName );
 extern ABC_DLL Ntl_Net_t *     Ntl_ModelDontFindCreateNet( Ntl_Mod_t * p, const char * pName );
 extern ABC_DLL void            Ntl_ModelSetPioNumbers( Ntl_Mod_t * p );

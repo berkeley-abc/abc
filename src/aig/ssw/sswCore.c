@@ -280,8 +280,16 @@ Aig_Man_t * Ssw_SignalCorrespondence( Aig_Man_t * pAig, Ssw_Pars_t * pPars )
 
     if ( pPars->fScorrGia )
     {
-        extern Aig_Man_t * Cec_SignalCorrespondence( Aig_Man_t * pAig, int nConfs, int fUseCSat );
-        return Cec_SignalCorrespondence( pAig, pPars->nBTLimit, pPars->fUseCSat );
+        if ( pPars->fLatchCorrOpt )
+        {
+            extern Aig_Man_t * Cec_LatchCorrespondence( Aig_Man_t * pAig, int nConfs, int fUseCSat );
+            return Cec_LatchCorrespondence( pAig, pPars->nBTLimit, pPars->fUseCSat );
+        }
+        else
+        {
+            extern Aig_Man_t * Cec_SignalCorrespondence( Aig_Man_t * pAig, int nConfs, int fUseCSat );
+            return Cec_SignalCorrespondence( pAig, pPars->nBTLimit, pPars->fUseCSat );
+        }
     }
 
     // start the induction manager

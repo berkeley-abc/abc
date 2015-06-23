@@ -631,7 +631,7 @@ void Ioa_WriteBlif( Ntl_Man_t * p, char * pFileName )
     Ntl_Mod_t * pModel;
     int i, bzError;
     bz2file b;
-    if ( p->pNal )
+    if ( p->pNal && strncmp(pFileName+strlen(pFileName)-5,".blif",5) )
     {
         p->pNalW( p, pFileName );
         return;

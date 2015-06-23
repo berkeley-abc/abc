@@ -219,6 +219,8 @@ void Ntl_ManReduce( Ntl_Man_t * p, Aig_Man_t * pAig )
     Ntl_Mod_t * pRoot;
     Ntl_Obj_t * pNode, * pNodeOld;
     int i, fCompl, Counter = 0;
+    char * pNameNew;
+//    int Lenght;
     assert( pAig->pReprs );
     pRoot = Ntl_ManRootModel( p );
     Aig_ManForEachObj( pAig, pObj, i )
@@ -276,13 +278,17 @@ void Ntl_ManReduce( Ntl_Man_t * p, Aig_Man_t * pAig )
             printf( "Ntl_ManReduce(): Internal error! Net already has no driver.\n" );
         if ( !Ntl_ModelSetNetDriver( pNode, pNet ) )
             printf( "Ntl_ManReduce(): Internal error! Net already has a driver.\n" );
-
+/*
         // remove this net from the hash table (but do not remove from the array)
         Ntl_ModelDeleteNet( pRoot, pNet );
         // create new net with the same name
         pNetNew = Ntl_ModelFindOrCreateNet( pRoot, pNet->pName );
         // clean the name
         pNet->pName[0] = 0;
+*/
+        // create new net with a new name
+        pNameNew = Ntl_ModelCreateNetName( pRoot, "noname", (int)(ABC_PTRINT_T)pNet );
+        pNetNew = Ntl_ModelFindOrCreateNet( pRoot, pNameNew );
 
         // make the old node drive the new net without fanouts
         if ( !Ntl_ModelSetNetDriver( pNodeOld, pNetNew ) )
@@ -290,6 +296,7 @@ void Ntl_ManReduce( Ntl_Man_t * p, Aig_Man_t * pAig )
 
         Counter++;
     }
+//    printf( "Nets without names = %d.\n", Counter );
 }
 
 /**Function*************************************************************
@@ -373,7 +380,7 @@ if ( fVerbose )
   SeeAlso     []
 
 ***********************************************************************/
-Ntl_Man_t * Ntl_ManFraig( Ntl_Man_t * p, int nPartSize, int nConfLimit, int nLevelMax, int fVerbose )
+Ntl_Man_t * Ntl_ManFraig( Ntl_Man_t * p, int nPartSize, int nConfLimit, int nLevelMax, int fUseCSat, int fVerbose )
 {
     Ntl_Man_t * pNew, * pAux;
     Aig_Man_t * pAig, * pAigCol, * pTemp;
@@ -392,9 +399,19 @@ Ntl_Man_t * Ntl_ManFraig( Ntl_Man_t * p, int nPartSize, int nConfLimit, int nLev
     }
 
     // perform fraiging for the given design
-    nPartSize = nPartSize? nPartSize : Aig_ManPoNum(pAigCol);
-    pTemp = Aig_ManFraigPartitioned( pAigCol, nPartSize, nConfLimit, nLevelMax, fVerbose );
-    Aig_ManStop( pTemp );
+//    if ( fUseCSat )
+    if ( 0 )
+    {
+        extern Aig_Man_t * Cec_FraigCombinational( Aig_Man_t * pAig, int nConfs, int fVerbose );
+        pTemp = Cec_FraigCombinational( pAigCol, nConfLimit, fVerbose );
+        Aig_ManStop( pTemp );
+    }
+    else
+    {
+        nPartSize = nPartSize? nPartSize : Aig_ManPoNum(pAigCol);
+        pTemp = Aig_ManFraigPartitioned( pAigCol, nPartSize, nConfLimit, nLevelMax, fVerbose );
+        Aig_ManStop( pTemp );
+    }
 
     // finalize the transformation
     pNew = Ntl_ManFinalize( pAux = pNew, pAig, pAigCol, fVerbose );
@@ -425,7 +442,7 @@ Ntl_Man_t * Ntl_ManScl( Ntl_Man_t * p, int fLatchConst, int fLatchEqual, int fVe
 //Ntl_ManPrintStats( p );
 //Aig_ManPrintStats( pAig );
     pNew = Ntl_ManInsertAig( p, pAig );
-    pAigCol = Ntl_ManCollapseSeq( pNew, 0 );
+    pAigCol = Ntl_ManCollapseSeq( pNew, 0, fVerbose );
     if ( pAigCol == NULL )
     {
         Aig_ManStop( pAig );
@@ -457,7 +474,7 @@ Ntl_Man_t * Ntl_ManScl( Ntl_Man_t * p, int fLatchConst, int fLatchEqual, int fVe
   SeeAlso     []
 
 ***********************************************************************/
-Ntl_Man_t * Ntl_ManLcorr( Ntl_Man_t * p, int nConfMax, int fVerbose )
+Ntl_Man_t * Ntl_ManLcorr( Ntl_Man_t * p, int nConfMax, int fScorrGia, int fUseCSat, int fVerbose )
 {
     Ntl_Man_t * pNew, * pAux;
     Aig_Man_t * pAig, * pAigCol, * pTemp;
@@ -469,7 +486,7 @@ Ntl_Man_t * Ntl_ManLcorr( Ntl_Man_t * p, int nConfMax, int fVerbose )
     // collapse the AIG
     pAig = Ntl_ManExtract( p );
     pNew = Ntl_ManInsertAig( p, pAig );
-    pAigCol = Ntl_ManCollapseSeq( pNew, pPars->nMinDomSize );
+    pAigCol = Ntl_ManCollapseSeq( pNew, pPars->nMinDomSize, pPars->fVerbose );
     if ( pAigCol == NULL )
     {
         Aig_ManStop( pAig );
@@ -477,6 +494,8 @@ Ntl_Man_t * Ntl_ManLcorr( Ntl_Man_t * p, int nConfMax, int fVerbose )
     }
 
     // perform LCORR for the given design
+    pPars->fScorrGia = fScorrGia;
+    pPars->fUseCSat  = fUseCSat;
     pTemp = Ssw_LatchCorrespondence( pAigCol, pPars );
     Aig_ManStop( pTemp );
 
@@ -507,7 +526,7 @@ Ntl_Man_t * Ntl_ManSsw( Ntl_Man_t * p, Fra_Ssw_t * pPars )
     // collapse the AIG
     pAig = Ntl_ManExtract( p );
     pNew = Ntl_ManInsertAig( p, pAig );
-    pAigCol = Ntl_ManCollapseSeq( pNew, pPars->nMinDomSize );
+    pAigCol = Ntl_ManCollapseSeq( pNew, pPars->nMinDomSize, pPars->fVerbose );
     if ( pAigCol == NULL )
     {
         Aig_ManStop( pAig );
@@ -545,7 +564,7 @@ Ntl_Man_t * Ntl_ManScorr( Ntl_Man_t * p, Ssw_Pars_t * pPars )
     // collapse the AIG
     pAig = Ntl_ManExtract( p );
     pNew = Ntl_ManInsertAig( p, pAig );
-    pAigCol = Ntl_ManCollapseSeq( pNew, pPars->nMinDomSize );
+    pAigCol = Ntl_ManCollapseSeq( pNew, pPars->nMinDomSize, pPars->fVerbose );
     if ( pAigCol == NULL )
     {
         Aig_ManStop( pAig );
@@ -724,7 +743,7 @@ Ntl_Man_t * Ntl_ManSsw2( Ntl_Man_t * p, Fra_Ssw_t * pPars )
     Ntl_Man_t * pNew;
     Aig_Man_t * pAigRed, * pAigCol;
     // collapse the AIG
-    pAigCol = Ntl_ManCollapseSeq( p, pPars->nMinDomSize );
+    pAigCol = Ntl_ManCollapseSeq( p, pPars->nMinDomSize, pPars->fVerbose );
     // transform the collapsed AIG
     pAigRed = Fra_FraigInduction( pAigCol, pPars );
     Aig_ManStop( pAigRed );

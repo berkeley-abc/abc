@@ -65,6 +65,30 @@ Ntl_Net_t * Ntl_ModelCreateNet( Ntl_Mod_t * p, const char * pName )
 
 /**Function*************************************************************
 
+  Synopsis    [Allocates memory for the net.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+char * Ntl_ModelCreateNetName( Ntl_Mod_t * p, const char * pName, int Num )
+{
+    char * pResult;
+    char Buffer[1000];
+    assert( strlen(pName) < 900 );
+    do {
+        sprintf( Buffer, "%s%d", pName, Num++ );
+    } while ( Ntl_ModelFindNet( p, Buffer ) != NULL );
+    pResult = (char *)Aig_MmFlexEntryFetch( p->pMan->pMemObjs, strlen(Buffer) + 1 );
+    strcpy( pResult, Buffer );
+    return pResult;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Resizes the table.]
 
   Description []

@@ -20,6 +20,8 @@
 
 #include "abc.h"
 
+extern unsigned            Gia_ManRandom( int fReset );
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -50,13 +52,15 @@ static inline int  Abc_XsimAnd( int Value0, int Value1 )
 }
 static inline int  Abc_XsimRand2()   
 {
-    return (rand() & 1) ? XVS1 : XVS0;
+//    return (rand() & 1) ? XVS1 : XVS0;
+    return (Gia_ManRandom(0) & 1) ? XVS1 : XVS0;
 }
 static inline int  Abc_XsimRand3()   
 {
     int RetValue;
     do { 
-        RetValue = rand() & 3; 
+//        RetValue = rand() & 3; 
+        RetValue = Gia_ManRandom(0) & 3; 
     } while ( RetValue == 0 );
     return RetValue;
 }
@@ -108,7 +112,8 @@ void Abc_NtkXValueSimulate( Abc_Ntk_t * pNtk, int nFrames, int fXInputs, int fXS
     Abc_Obj_t * pObj;
     int i, f;
     assert( Abc_NtkIsStrash(pNtk) );
-    srand( 0x12341234 );
+//    srand( 0x12341234 );
+    Gia_ManRandom( 1 );
     // start simulation
     Abc_ObjSetXsim( Abc_AigConst1(pNtk), XVS1 );
     if ( fXInputs )
@@ -194,7 +199,8 @@ void Abc_NtkCycleInitState( Abc_Ntk_t * pNtk, int nFrames, int fUseXval, int fVe
     Abc_Obj_t * pObj;
     int i, f;
     assert( Abc_NtkIsStrash(pNtk) );
-    srand( 0x12341234 );
+//    srand( 0x12341234 );
+    Gia_ManRandom( 1 );
     // initialize the values
     Abc_ObjSetXsim( Abc_AigConst1(pNtk), XVS1 );
     Abc_NtkForEachLatch( pNtk, pObj, i )

@@ -310,6 +310,7 @@ static int Abc_CommandAbc9Cec        ( Abc_Frame_t * pAbc, int argc, char ** arg
 static int Abc_CommandAbc9Force      ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Embed      ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9If         ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9Era        ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Test       ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 static int Abc_CommandAbcTestNew     ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -629,6 +630,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "AIG",          "&force",        Abc_CommandAbc9Force,        0 );
     Cmd_CommandAdd( pAbc, "AIG",          "&embed",        Abc_CommandAbc9Embed,        0 );
     Cmd_CommandAdd( pAbc, "AIG",          "&if",           Abc_CommandAbc9If,           0 );
+    Cmd_CommandAdd( pAbc, "AIG",          "&era",          Abc_CommandAbc9Era,          0 );
     Cmd_CommandAdd( pAbc, "AIG",          "&test",         Abc_CommandAbc9Test,         0 );
 
     Cmd_CommandAdd( pAbc, "Various",      "testnew",         Abc_CommandAbcTestNew,     0 );
@@ -18973,8 +18975,8 @@ int Abc_CommandAbc8Read( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     else
     {
-//        extern void * Nal_ManRead( char * pFileName );
         pAbc->pAbc8Ntl = NULL;
+//        extern void * Nal_ManRead( char * pFileName );
 //        pAbc->pAbc8Ntl = Nal_ManRead( pFileName );
 //        Ioa_WriteBlif( pAbc->pAbc8Ntl, "test_boxes.blif" );
         if ( pAbc->pAbc8Ntl == NULL )
@@ -19104,7 +19106,7 @@ int Abc_CommandAbc8Write( Abc_Frame_t * pAbc, int argc, char ** argv )
     extern void * Ntl_ManInsertAig( void * p, Aig_Man_t * pAig );
     extern void * Ntl_ManDup( void * pOld );
     extern void Ntl_ManFree( void * p );
-    extern Aig_Man_t * Ntl_ManCollapseSeq( void * p, int nMinDomSize );
+    extern Aig_Man_t * Ntl_ManCollapseSeq( void * p, int nMinDomSize, int fVerbose );
 
     // set defaults
     fAig = 0;
@@ -19142,7 +19144,7 @@ int Abc_CommandAbc8Write( Abc_Frame_t * pAbc, int argc, char ** argv )
         if ( fCollapsed )
         {
             extern void Ioa_WriteAiger( Aig_Man_t * pMan, char * pFileName, int fWriteSymbols, int fCompact );
-            pTemp = Ntl_ManCollapseSeq( pAbc->pAbc8Ntl, 0 );
+            pTemp = Ntl_ManCollapseSeq( pAbc->pAbc8Ntl, 0, 0 );
             if ( fBlif )
                 Saig_ManDumpBlif( pTemp, pFileName );
             else
@@ -19632,7 +19634,7 @@ int Abc_CommandAbc8If( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     if ( pAbc->pAbc8Lib == NULL )
     {
-        printf( "LUT library is not given. Using default LUT library.\n" );
+//        printf( "LUT library is not given. Using default LUT library.\n" );
         pAbc->pAbc8Lib = If_SetSimpleLutLib( 6 );
     }
 
@@ -19774,7 +19776,7 @@ int Abc_CommandAbc8If( Abc_Frame_t * pAbc, int argc, char ** argv )
     // enable truth table computation if choices are selected
     if ( (c = Aig_ManChoiceNum( pAbc->pAbc8Aig )) )
     {
-        printf( "Performing LUT mapping with %d choices.\n", c );
+//        printf( "Performing LUT mapping with %d choices.\n", c );
         pPars->fExpRed = 0;
     }
     // enable truth table computation if cut minimization is selected
@@ -20813,17 +20815,19 @@ int Abc_CommandAbc8Fraig( Abc_Frame_t * pAbc, int argc, char ** argv )
     int nPartSize;
     int nConfLimit;
     int nLevelMax;
+    int fUseCSat;
     extern Aig_Man_t * Ntl_ManExtract( void * p );
-    extern void * Ntl_ManFraig( void * p, int nPartSize, int nConfLimit, int nLevelMax, int fVerbose );
+    extern void * Ntl_ManFraig( void * p, int nPartSize, int nConfLimit, int nLevelMax, int fUseCSat, int fVerbose );
     extern void Ntl_ManFree( void * p );
 
     // set defaults
     nPartSize    = 0;
     nConfLimit   = 100;   
     nLevelMax    = 0;
+    fUseCSat     = 0;
     fVerbose     = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "PCLvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "PCLcvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -20860,6 +20864,9 @@ int Abc_CommandAbc8Fraig( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( nLevelMax < 0 ) 
                 goto usage;
             break;
+        case 'c':
+            fUseCSat ^= 1;
+            break;
         case 'v':
             fVerbose ^= 1;
             break;
@@ -20877,7 +20884,7 @@ int Abc_CommandAbc8Fraig( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
 
     // get the input file name
-    pNtlNew = Ntl_ManFraig( pAbc->pAbc8Ntl, nPartSize, nConfLimit, nLevelMax, fVerbose );
+    pNtlNew = Ntl_ManFraig( pAbc->pAbc8Ntl, nPartSize, nConfLimit, nLevelMax, fUseCSat, fVerbose );
     if ( pNtlNew == NULL )
     {
         printf( "Abc_CommandAbc8Fraig(): Tranformation of the AIG has failed.\n" );
@@ -20905,6 +20912,7 @@ usage:
     fprintf( stdout, "\t-P num : partition size (0 = partitioning is not used) [default = %d]\n", nPartSize );
     fprintf( stdout, "\t-C num : limit on the number of conflicts [default = %d]\n", nConfLimit );
     fprintf( stdout, "\t-L num : limit on node level to fraig (0 = fraig all nodes) [default = %d]\n", nLevelMax );
+//    fprintf( stdout, "\t-c     : toggle using new AIG package and SAT solver [default = %s]\n", fUseCSat? "yes": "no" );
     fprintf( stdout, "\t-v     : toggle verbose printout [default = %s]\n", fVerbose? "yes": "no" );
     fprintf( stdout, "\t-h     : print the command usage\n");
     return 1;
@@ -21018,19 +21026,23 @@ int Abc_CommandAbc8Lcorr( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     void * pNtlNew;
     int c;
+    int fScorrGia;
+    int fUseCSat;
     int nFramesP;
     int nConfMax;
     int fVerbose;
     extern Aig_Man_t * Ntl_ManExtract( void * p );
-    extern void * Ntl_ManLcorr( void * p, int nConfMax, int fVerbose );
+    extern void * Ntl_ManLcorr( void * p, int nConfMax, int fScorrGia, int fUseCSat, int fVerbose );
     extern int Ntl_ManIsComb( void * p );
 
     // set defaults
+    fScorrGia  = 0;
+    fUseCSat   = 0;
     nFramesP   = 0;
     nConfMax   = 10000;
     fVerbose   = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "PCvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "PCncvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -21056,6 +21068,12 @@ int Abc_CommandAbc8Lcorr( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( nConfMax < 0 ) 
                 goto usage;
             break;
+        case 'n':
+            fScorrGia ^= 1;
+            break;
+        case 'c':
+            fUseCSat ^= 1;
+            break;
         case 'v':
             fVerbose ^= 1;
             break;
@@ -21079,7 +21097,7 @@ int Abc_CommandAbc8Lcorr( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
 
     // get the input file name
-    pNtlNew = Ntl_ManLcorr( pAbc->pAbc8Ntl, nConfMax, fVerbose );
+    pNtlNew = Ntl_ManLcorr( pAbc->pAbc8Ntl, nConfMax, fScorrGia, fUseCSat, fVerbose );
     if ( pNtlNew == NULL )
     {
         printf( "Abc_CommandAbc8Lcorr(): Tranformation of the AIG has failed.\n" );
@@ -21102,10 +21120,12 @@ int Abc_CommandAbc8Lcorr( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( stdout, "usage: *lcorr [-C num] [-vh]\n" );
+    fprintf( stdout, "usage: *lcorr [-C num] [-ncvh]\n" );
     fprintf( stdout, "\t         computes latch correspondence for the netlist\n" );
 //    fprintf( stdout, "\t-P num : number of time frames to use as the prefix [default = %d]\n", nFramesP );
     fprintf( stdout, "\t-C num : max conflict number when proving latch equivalence [default = %d]\n", nConfMax );
+    fprintf( stdout, "\t-n     : toggle using new AIG package [default = %s]\n", fScorrGia? "yes": "no" );
+    fprintf( stdout, "\t-c     : toggle using new AIG package and SAT solver [default = %s]\n", fUseCSat? "yes": "no" );
     fprintf( stdout, "\t-v     : toggle verbose output [default = %s]\n", fVerbose? "yes": "no" );
     fprintf( stdout, "\t-h     : print the command usage\n");
     return 1;
@@ -21625,7 +21645,7 @@ int Abc_CommandAbc8Sweep( Abc_Frame_t * pAbc, int argc, char ** argv )
  
     // sweep the current design
     Counter = Ntl_ManSweep( pAbc->pAbc8Ntl, fVerbose );
-    if ( Counter == 0 )
+    if ( Counter == 0 && fVerbose )
         printf( "The netlist is unchanged by sweep.\n" );
 
     // if mapped, create new AIG and new mapped network
@@ -24508,6 +24528,7 @@ usage:
     fprintf( stdout, "\t-h     : print the command usage\n");
     return 1;
 }
+
 /**Function*************************************************************
 
   Synopsis    []
@@ -24725,6 +24746,80 @@ usage:
     fprintf( stdout, "\t-b       : toggles deriving local AIGs using bi-decomposition [default = %s]\n", pPars->fBidec? "yes": "no" );
     fprintf( stdout, "\t-v       : toggles verbose output [default = %s]\n", pPars->fVerbose? "yes": "no" );
     fprintf( stdout, "\t-h       : prints the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc9Era( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    Gia_Man_t * pTemp = NULL;
+    int c, fVerbose = 0;
+    int fMiter = 0;
+    int nStatesMax = 1000000;
+    extern void Gia_ManCollectReachable( Gia_Man_t * pAig, int nStatesMax, int fMiter, int fVerbose );
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Smvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'S':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( stdout, "Command line switch \"-S\" should be followed by a positive integer.\n" );
+                goto usage;
+            }
+            nStatesMax = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nStatesMax < 0 ) 
+                goto usage;
+            break;
+        case 'm':
+            fMiter ^= 1;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pAbc->pAig == NULL )
+    {
+        printf( "Abc_CommandAbc9Era(): There is no AIG.\n" );
+        return 1;
+    } 
+    if ( Gia_ManPiNum(pAbc->pAig) > 12 )
+    {
+        printf( "Abc_CommandAbc9Era(): The number of PIs (%d) should be no more than 12.\n", Gia_ManPiNum(pAbc->pAig) );
+        return 1;
+    }
+    if ( Gia_ManRegNum(pAbc->pAig) == 0 )
+    {
+        printf( "Abc_CommandAbc9Era(): The network is combinational.\n" );
+        return 1;
+    }
+    Gia_ManCollectReachable( pAbc->pAig, nStatesMax, fMiter, fVerbose );
+    return 0;
+
+usage:
+    fprintf( stdout, "usage: &era [-S num] [-mvh]\n" );
+    fprintf( stdout, "\t          explicit reachability analysis for small sequential AIGs\n" );
+    fprintf( stdout, "\t-S num  : the max number of states to traverse (num > 0) [default = %d]\n", nStatesMax );
+    fprintf( stdout, "\t-m      : stop when the miter output is 1 [default = %s]\n", fMiter? "yes": "no" );
+    fprintf( stdout, "\t-v      : print verbose information [default = %s]\n", fVerbose? "yes": "no" );
+    fprintf( stdout, "\t-h      : print the command usage\n");
     return 1;
 }
 

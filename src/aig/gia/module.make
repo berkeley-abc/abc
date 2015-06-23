@@ -9,6 +9,7 @@ SRC +=    src/aig/gia/gia.c \
     src/aig/gia/giaEmbed.c \
     src/aig/gia/giaEnable.c \
     src/aig/gia/giaEquiv.c \
+    src/aig/gia/giaEra.c \
     src/aig/gia/giaFanout.c \
     src/aig/gia/giaForce.c \
     src/aig/gia/giaFrames.c \

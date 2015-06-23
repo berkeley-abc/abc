@@ -623,7 +623,7 @@ Aig_Man_t * Ntl_ManCollapseComb( Ntl_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-Aig_Man_t * Ntl_ManCollapseSeq( Ntl_Man_t * p, int nMinDomSize )
+Aig_Man_t * Ntl_ManCollapseSeq( Ntl_Man_t * p, int nMinDomSize, int fVerbose )
 {
     Aig_Man_t * pAig;
     Ntl_Mod_t * pRoot;
@@ -645,7 +645,7 @@ Aig_Man_t * Ntl_ManCollapseSeq( Ntl_Man_t * p, int nMinDomSize )
     // perform the traversal
     pAig = Ntl_ManCollapse( p, 1 );
     // check if there are register classes
-    pAig->vClockDoms = Ntl_ManTransformRegClasses( p, nMinDomSize, 1 );
+    pAig->vClockDoms = Ntl_ManTransformRegClasses( p, nMinDomSize, fVerbose );
     if ( pAig->vClockDoms )
     {
         if ( Vec_VecSize(pAig->vClockDoms) == 0 )
@@ -654,9 +654,10 @@ Aig_Man_t * Ntl_ManCollapseSeq( Ntl_Man_t * p, int nMinDomSize )
             Aig_ManStop( pAig );
             pAig = NULL;
         }
-        else
+        else if ( fVerbose )
             printf( "Performing seq synthesis for %d register classes.\n", Vec_VecSize(pAig->vClockDoms) );
-        printf( "\n" );
+        if ( fVerbose )
+            printf( "\n" );
     }
     return pAig;
 }
@@ -706,7 +707,7 @@ Nwk_Obj_t * Ntl_ManExtractNwk_rec( Ntl_Man_t * p, Ntl_Net_t * pNet, Nwk_Man_t * 
         Ntl_ManExtractNwk_rec( p, pFaninNet, pNtk, vCover, vMemory );
         Nwk_ObjAddFanin( pNode, pFaninNet->pCopy2 );
     }
-    if ( Ntl_ObjFaninNum(pNet->pDriver) == 0 )
+    if ( Ntl_ObjFaninNum(pNet->pDriver) == 0 || Kit_PlaGetVarNum(pNet->pDriver->pSop) == 0 )
         pNode->pFunc = Hop_NotCond( Hop_ManConst1(pNtk->pManHop), Kit_PlaIsConst0(pNet->pDriver->pSop) );
     else
     {

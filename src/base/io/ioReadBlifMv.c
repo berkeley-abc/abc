@@ -1828,6 +1828,7 @@ static char * Io_ReadBlifCleanName( char * pName )
 ***********************************************************************/
 static int Io_MvParseLineGateBlif( Io_MvMod_t * p, Vec_Ptr_t * vTokens )
 {
+    extern int Io_ReadBlifReorderFormalNames( Vec_Ptr_t * vTokens, Mio_Gate_t * pGate );
     Mio_Library_t * pGenlib; 
     Mio_Gate_t * pGate;
     Abc_Obj_t * pNode;
@@ -1866,6 +1867,13 @@ static int Io_MvParseLineGateBlif( Io_MvMod_t * p, Vec_Ptr_t * vTokens )
         p->pNtk->ntkFunc = ABC_FUNC_MAP;
         Extra_MmFlexStop( p->pNtk->pManFunc );
         p->pNtk->pManFunc = pGenlib;
+    }
+
+    // reorder the formal inputs to be in the same order as in the gate
+    if ( !Io_ReadBlifReorderFormalNames( vTokens, pGate ) )
+    {
+        sprintf( p->pMan->sError, "Line %d: Mismatch in the fanins of gate \"%s\".", Io_MvGetLine(p->pMan, pName), (char*)vTokens->pArray[1] );
+        return 0;
     }
 
     // remove the formal parameter names

@@ -285,6 +285,88 @@ void Nwk_ManPrintStatsShort( Ntl_Man_t * p, Aig_Man_t * pAig, Nwk_Man_t * pNtk )
 
 /**Function*************************************************************
 
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Nwk_ManStatsRegs( Ntl_Man_t * p )
+{
+    Ntl_Mod_t * pRoot;
+    Ntl_Obj_t * pObj;
+    int i, Counter = 0;
+    pRoot = Ntl_ManRootModel( p );
+    Ntl_ModelForEachBox( pRoot, pObj, i )
+        if ( strcmp(pObj->pImplem->pName, "dff") == 0 )
+            Counter++;
+    return Counter;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Nwk_ManStatsLuts( Nwk_Man_t * pNtk )
+{
+    return pNtk ? Nwk_ManNodeNum(pNtk) : -1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Nwk_ManStatsLevs( Nwk_Man_t * pNtk )
+{
+    return pNtk ? Nwk_ManLevel(pNtk) : -1;
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Nwk_ManPrintStatsUpdate( Ntl_Man_t * p, Aig_Man_t * pAig, Nwk_Man_t * pNtk,
+     int nRegInit, int nLutInit, int nLevInit, int Time )
+{
+    printf( "FF =%7d (%4.1f%%)  ",  Nwk_ManStatsRegs(p),    100.0*(nRegInit-Nwk_ManStatsRegs(p))/nRegInit );
+    if ( pNtk == NULL )
+        printf( "Mapping is not available.                  " );
+    else
+    {
+        printf( "Lut =%7d (%4.1f%%)  ", Nwk_ManStatsLuts(pNtk), 100.0*(nLutInit-Nwk_ManStatsLuts(pNtk))/nLutInit );
+        printf( "Lev =%4d (%4.1f%%)    ", Nwk_ManStatsLevs(pNtk), 100.0*(nLevInit-Nwk_ManStatsLevs(pNtk))/nLevInit );
+    }
+    ABC_PRT( "Time", clock() - Time );
+}
+
+
+/**Function*************************************************************
+
   Synopsis    [Deallocates the netlist manager.]
 
   Description []

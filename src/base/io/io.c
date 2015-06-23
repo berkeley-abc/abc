@@ -2343,13 +2343,17 @@ int IoCommandWriteTruth( Abc_Frame_t * pAbc, int argc, char **argv )
     char * pFileName;
     FILE * pFile;
     unsigned * pTruth;
+    int fReverse = 0;
     int c;
 
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "rh" ) ) != EOF )
     {
         switch ( c )
         {
+            case 'r':
+                fReverse ^= 1;
+                break;
             case 'h':
                 goto usage;
             default:
@@ -2394,7 +2398,7 @@ int IoCommandWriteTruth( Abc_Frame_t * pAbc, int argc, char **argv )
     // convert to logic
     Abc_NtkToAig( pNtk );
     vTruth = Vec_IntAlloc( 0 );
-    pTruth = Hop_ManConvertAigToTruth( pNtk->pManFunc, pNode->pData, Abc_ObjFaninNum(pNode), vTruth, 0 );
+    pTruth = Hop_ManConvertAigToTruth( pNtk->pManFunc, pNode->pData, Abc_ObjFaninNum(pNode), vTruth, fReverse );
     pFile = fopen( pFileName, "w" );
     if ( pFile == NULL )
     {
@@ -2408,8 +2412,9 @@ int IoCommandWriteTruth( Abc_Frame_t * pAbc, int argc, char **argv )
     return 0;
 
 usage:
-    fprintf( pAbc->Err, "usage: write_truth [-h] <file>\n" );
+    fprintf( pAbc->Err, "usage: write_truth [-rh] <file>\n" );
     fprintf( pAbc->Err, "\t         writes truth table into a file\n" );
+    fprintf( pAbc->Err, "\t-r     : toggle reversing bits in the truth table [default = %s]\n", fReverse? "yes":"no" );
     fprintf( pAbc->Err, "\t-h     : print the help massage\n" );
     fprintf( pAbc->Err, "\tfile   : the name of the file to write\n" );
     return 1;

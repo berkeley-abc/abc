@@ -3669,6 +3669,46 @@ SOURCE=.\src\aig\cgt\cgtSat.c
 # Begin Group "nal"
 
 # PROP Default_Filter ""
+# Begin Source File
+
+SOURCE=.\src\aig\nal090422\nal.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\nal090422\nalCore.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\nal090422\nalFlop.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\nal090422\nalFunc.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\nal090422\nalInt.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\nal090422\nalMan.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\nal090422\nalModels.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\nal090422\nalRead.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\nal090422\nalUtil.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\nal090422\nalWrite.c
+# End Source File
 # End Group
 # Begin Group "gia"
 
@@ -3724,6 +3764,10 @@ SOURCE=.\src\aig\gia\giaEnable.c
 # Begin Source File
 
 SOURCE=.\src\aig\gia\giaEquiv.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\gia\giaEra.c
 # End Source File
 # Begin Source File
 

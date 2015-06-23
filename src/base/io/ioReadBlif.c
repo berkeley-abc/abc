@@ -535,6 +535,71 @@ int Io_ReadBlifNetworkNames( Io_ReadBlif_t * p, Vec_Ptr_t ** pvTokens )
   SeeAlso     []
 
 ***********************************************************************/
+int Io_ReadBlifReorderFormalNames( Vec_Ptr_t * vTokens, Mio_Gate_t * pGate )
+{
+    Mio_Pin_t * pGatePin;
+    char * pName, * pNamePin;
+    int i, k, nSize, Length;
+    nSize = Vec_PtrSize(vTokens);
+    if ( nSize - 3 != Mio_GateReadInputs(pGate) )
+        return 0;
+    // check if the names are in order
+    for ( pGatePin = Mio_GateReadPins(pGate), i = 0; pGatePin; pGatePin = Mio_PinReadNext(pGatePin), i++ )
+    {
+        pNamePin = Mio_PinReadName(pGatePin);
+        Length = strlen(pNamePin);
+        pName = Vec_PtrEntry(vTokens, i+2);
+        if ( !strncmp( pNamePin, pName, Length ) && pName[Length] == '=' )
+            continue;
+        break;
+    }
+    if ( i == nSize - 3 )
+        return 1;
+    // reorder the pins
+    for ( pGatePin = Mio_GateReadPins(pGate), i = 0; pGatePin; pGatePin = Mio_PinReadNext(pGatePin), i++ )
+    {
+        pNamePin = Mio_PinReadName(pGatePin);
+        Length = strlen(pNamePin);
+        for ( k = 2; k < nSize; k++ )
+        {
+            pName = Vec_PtrEntry(vTokens, k);
+            if ( !strncmp( pNamePin, pName, Length ) && pName[Length] == '=' )
+            {
+                Vec_PtrPush( vTokens, pName );
+                break;
+            }
+        }
+    }
+    pNamePin = Mio_GateReadOutName(pGate);
+    Length = strlen(pNamePin);
+    for ( k = 2; k < nSize; k++ )
+    {
+        pName = Vec_PtrEntry(vTokens, k);
+        if ( !strncmp( pNamePin, pName, Length ) && pName[Length] == '=' )
+        {
+            Vec_PtrPush( vTokens, pName );
+            break;
+        }
+    }
+    if ( Vec_PtrSize(vTokens) - nSize != nSize - 2 )
+        return 0;
+    Vec_PtrForEachEntryStart( vTokens, pName, k, nSize )
+        Vec_PtrWriteEntry( vTokens, k - nSize + 2, pName );
+    Vec_PtrShrink( vTokens, nSize );
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 int Io_ReadBlifNetworkGate( Io_ReadBlif_t * p, Vec_Ptr_t * vTokens )
 {
     Mio_Library_t * pGenlib; 
@@ -580,6 +645,16 @@ int Io_ReadBlifNetworkGate( Io_ReadBlif_t * p, Vec_Ptr_t * vTokens )
         Extra_MmFlexStop( p->pNtkCur->pManFunc );
         p->pNtkCur->pManFunc = pGenlib;
     }
+
+    // reorder the formal inputs to be in the same order as in the gate
+    if ( !Io_ReadBlifReorderFormalNames( vTokens, pGate ) )
+    {
+        p->LineCur = Extra_FileReaderGetLineNumber(p->pReader, 0);
+        sprintf( p->sError, "Mismatch in the fanins of gate \"%s\".", (char*)vTokens->pArray[1] );
+        Io_ReadBlifPrintErrorMessage( p );
+        return 1;
+    }
+
 
     // remove the formal parameter names
     for ( i = 2; i < vTokens->nSize; i++ )
