@@ -264,6 +264,7 @@ static int Abc_CommandAbc8Balance            ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandAbc8Speedup            ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc8Merge              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc8Insert             ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc8ClpLut             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 static int Abc_CommandAbc8Fraig              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc8Scl                ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -598,6 +599,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "ABC8",         "*speedup",      Abc_CommandAbc8Speedup,      0 );
     Cmd_CommandAdd( pAbc, "ABC8",         "*merge",        Abc_CommandAbc8Merge,        0 );
     Cmd_CommandAdd( pAbc, "ABC8",         "*insert",       Abc_CommandAbc8Insert,       0 );
+    Cmd_CommandAdd( pAbc, "ABC8",         "*clplut",       Abc_CommandAbc8ClpLut,       0 );
 
     Cmd_CommandAdd( pAbc, "ABC8",         "*fraig",        Abc_CommandAbc8Fraig,        0 );
     Cmd_CommandAdd( pAbc, "ABC8",         "*scl",          Abc_CommandAbc8Scl,          0 );
@@ -21018,6 +21020,50 @@ usage:
 }
 
 
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc8ClpLut( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern void * Ntl_ManDupCollapseLuts( void * p );
+    void * pNtlNew;
+    int c;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pAbc->pAbc8Ntl == NULL )
+    {
+        printf( "Abc_CommandAbc8Insert(): There is no design.\n" );
+        return 1;
+    }
+    pNtlNew = Ntl_ManDupCollapseLuts( pAbc->pAbc8Ntl );
+    Abc_FrameClearDesign(); 
+    pAbc->pAbc8Ntl = pNtlNew;
+    pAbc->pAbc8Aig = Ntl_ManExtract( pAbc->pAbc8Ntl );
+    return 0;
+
+usage:
+    fprintf( stdout, "usage: *clplut [-h]\n" );
+    fprintf( stdout, "\t         collapses comb white boxes whose model name begins with \"LUT\"\n" );
+    fprintf( stdout, "\t-h     : print the command usage\n");
+    return 1;
+}
 /**Function*************************************************************
 
   Synopsis    []

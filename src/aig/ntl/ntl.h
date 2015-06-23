@@ -218,6 +218,7 @@ static inline int         Ntl_ObjIsPo( Ntl_Obj_t * p )            { return p->Ty
 static inline int         Ntl_ObjIsNode( Ntl_Obj_t * p )          { return p->Type == NTL_OBJ_NODE;             } 
 static inline int         Ntl_ObjIsLatch( Ntl_Obj_t * p )         { return p->Type == NTL_OBJ_LATCH;            } 
 static inline int         Ntl_ObjIsBox( Ntl_Obj_t * p )           { return p->Type == NTL_OBJ_BOX;              } 
+static inline int         Ntl_ObjIsLutBox( Ntl_Obj_t * p )        { return Ntl_ObjIsBox(p) && strncmp("LUT", p->pImplem->pName, 3) == 0;  } 
 
 static inline Ntl_Net_t * Ntl_ObjFanin0( Ntl_Obj_t * p )          { return p->pFanio[0];                        } 
 static inline Ntl_Net_t * Ntl_ObjFanout0( Ntl_Obj_t * p )         { return p->pFanio[p->nFanins];               } 
@@ -332,6 +333,7 @@ extern ABC_DLL Ntl_Man_t *     Ntl_ManAlloc();
 extern ABC_DLL void            Ntl_ManCleanup( Ntl_Man_t * p );
 extern ABC_DLL Ntl_Man_t *     Ntl_ManStartFrom( Ntl_Man_t * p );
 extern ABC_DLL Ntl_Man_t *     Ntl_ManDup( Ntl_Man_t * p );
+extern ABC_DLL Ntl_Man_t *     Ntl_ManDupCollapseLuts( Ntl_Man_t * p );
 extern ABC_DLL void            Ntl_ManFree( Ntl_Man_t * p );
 extern ABC_DLL void            Ntl_ManPrintStats( Ntl_Man_t * p );
 extern ABC_DLL Tim_Man_t *     Ntl_ManReadTimeMan( Ntl_Man_t * p );
@@ -342,6 +344,7 @@ extern ABC_DLL void            Ntl_ManPrintResets( Ntl_Man_t * p );
 extern ABC_DLL Ntl_Mod_t *     Ntl_ModelAlloc( Ntl_Man_t * pMan, char * pName );
 extern ABC_DLL Ntl_Mod_t *     Ntl_ModelStartFrom( Ntl_Man_t * pManNew, Ntl_Mod_t * pModelOld );
 extern ABC_DLL Ntl_Mod_t *     Ntl_ModelDup( Ntl_Man_t * pManNew, Ntl_Mod_t * pModelOld );
+extern ABC_DLL Ntl_Mod_t *     Ntl_ModelDupCollapseLuts( Ntl_Man_t * pManNew, Ntl_Mod_t * pModelOld );
 extern ABC_DLL void            Ntl_ModelFree( Ntl_Mod_t * p );
 extern ABC_DLL Ntl_Mod_t *     Ntl_ManCreateLatchModel( Ntl_Man_t * pMan, int Init );
 extern ABC_DLL int             Ntl_ModelCountLut0( Ntl_Mod_t * p );

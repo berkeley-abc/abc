@@ -107,10 +107,10 @@ int Abc_NtkMfsTryResubOnce( Mfs_Man_t * p, int * pCands, int nCands )
 p->timeGia += clock() - clk;
         return RetValue2;
     }
-
+ 
     p->nSatCalls++;
     RetValue = sat_solver_solve( p->pSat, pCands, pCands + nCands, (ABC_INT64_T)p->pPars->nBTLimit, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
-    assert( RetValue == l_False || RetValue == l_True );
+//    assert( RetValue == l_False || RetValue == l_True );
 
     if ( RetValue != l_Undef && RetValue2 != -1 )
     {

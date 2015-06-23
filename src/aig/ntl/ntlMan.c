@@ -176,6 +176,44 @@ Ntl_Man_t * Ntl_ManDup( Ntl_Man_t * pOld )
 
 /**Function*************************************************************
 
+  Synopsis    [Duplicates the design.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Ntl_Man_t * Ntl_ManDupCollapseLuts( Ntl_Man_t * pOld )
+{
+    Ntl_Man_t * pNew;
+    Ntl_Mod_t * pModel;
+    Ntl_Obj_t * pBox;
+//    Ntl_Net_t * pNet;
+    int i, k;
+    pNew = Ntl_ManAlloc();
+    pNew->pName = Ntl_ManStoreFileName( pNew, pOld->pName );
+    pNew->pSpec = Ntl_ManStoreName( pNew, pOld->pName );
+    Vec_PtrForEachEntry( pOld->vModels, pModel, i )
+        pModel->pCopy = Ntl_ModelDupCollapseLuts( pNew, pModel );
+    Vec_PtrForEachEntry( pOld->vModels, pModel, i )
+        Ntl_ModelForEachBox( pModel, pBox, k )
+            if ( pBox->pCopy )
+                ((Ntl_Obj_t *)pBox->pCopy)->pImplem = pBox->pImplem->pCopy;
+//    Ntl_ManForEachCiNet( pOld, pNet, i )
+//        Vec_PtrPush( pNew->vCis, pNet->pCopy );
+//    Ntl_ManForEachCoNet( pOld, pNet, i )
+//        Vec_PtrPush( pNew->vCos, pNet->pCopy );
+//    if ( pOld->pManTime )
+//        pNew->pManTime = Tim_ManDup( pOld->pManTime, 0 );
+    if ( !Ntl_ManCheck( pNew ) )
+        printf( "Ntl_ManDup: The check has failed for design %s.\n", pNew->pName );
+    return pNew;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Deallocates the netlist manager.]
 
   Description []
@@ -735,6 +773,119 @@ Ntl_Mod_t * Ntl_ModelDup( Ntl_Man_t * pManNew, Ntl_Mod_t * pModelOld )
     pModelNew->vDelays = pModelOld->vDelays? Vec_IntDup( pModelOld->vDelays ) : NULL;
     pModelNew->vTimeInputs = pModelOld->vTimeInputs? Vec_IntDup( pModelOld->vTimeInputs ) : NULL;
     pModelNew->vTimeOutputs = pModelOld->vTimeOutputs? Vec_IntDup( pModelOld->vTimeOutputs ) : NULL;
+    return pModelNew;
+}
+
+
+// *r x\large\club_u2.blif.bz2;     *ps; *clplut; *ps
+// *r x\large\amazon_core.blif.bz2; *ps; *clplut; *ps
+
+
+/**Function*************************************************************
+
+  Synopsis    [Duplicates the model.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Ntl_Mod_t * Ntl_ModelDupCollapseLuts( Ntl_Man_t * pManNew, Ntl_Mod_t * pModelOld )
+{
+    Ntl_Mod_t * pModelNew, * pModelBox;
+    Ntl_Net_t * pNet;
+    Ntl_Obj_t * pObj, * pObjBox;
+    char * pNameBuf = ABC_ALLOC( char, 10000 );
+    int i, k, m, Counter = 0;
+    pModelNew = Ntl_ModelAlloc( pManNew, pModelOld->pName );
+    pModelNew->attrWhite   = pModelOld->attrWhite;
+    pModelNew->attrBox       = pModelOld->attrBox;
+    pModelNew->attrComb       = pModelOld->attrComb;
+    pModelNew->attrKeep       = pModelOld->attrKeep;
+    pModelNew->attrNoMerge = pModelOld->attrNoMerge;
+    Ntl_ModelForEachObj( pModelOld, pObj, i )
+        if ( Ntl_ObjIsLutBox(pObj) ) // skip collapsible LUT boxes
+            pObj->pCopy = NULL;
+        else
+            pObj->pCopy = Ntl_ModelDupObj( pModelNew, pObj );
+    Ntl_ModelForEachNet( pModelOld, pNet, i )
+    {
+        pNet->pCopy = Ntl_ModelFindOrCreateNet( pModelNew, pNet->pName );
+        ((Ntl_Net_t *)pNet->pCopy)->fFixed = pNet->fFixed;
+        if ( pNet->pDriver == NULL )
+        {
+            assert( !pModelOld->attrWhite );
+            continue;
+        }
+        if ( Ntl_ObjIsLutBox(pNet->pDriver) ) 
+            continue;
+        ((Ntl_Net_t *)pNet->pCopy)->pDriver = pNet->pDriver->pCopy;
+        assert( pNet->pDriver->pCopy != NULL );
+    }
+    Ntl_ModelForEachObj( pModelOld, pObj, i )
+    {
+        if ( Ntl_ObjIsLutBox(pObj) ) // collapse LUT boxes
+        {
+            pModelBox = pObj->pImplem;
+            assert( pModelBox->attrComb );
+            assert( Ntl_ObjFaninNum(pObj) == Ntl_ModelPiNum(pModelBox) );
+            assert( Ntl_ObjFanoutNum(pObj) == Ntl_ModelPoNum(pModelBox) );
+            Ntl_ModelClearNets( pModelBox );
+            // attach PI/PO nets
+            Ntl_ModelForEachPi( pModelBox, pObjBox, k )
+                Ntl_ObjFanout0(pObjBox)->pCopy = Ntl_ObjFanin(pObj, k)->pCopy;
+            Ntl_ModelForEachPo( pModelBox, pObjBox, k )
+                Ntl_ObjFanin0(pObjBox)->pCopy = Ntl_ObjFanout(pObj, k)->pCopy;
+            // duplicate internal nodes
+            Ntl_ModelForEachNode( pModelBox, pObjBox, k )
+                pObjBox->pCopy = Ntl_ModelDupObj( pModelNew, pObjBox );
+            // duplicate and connect nets
+            Ntl_ModelForEachNet( pModelBox, pNet, k )
+            {
+                if ( pNet->pCopy != NULL )
+                    continue;
+                sprintf( pNameBuf, "box%d_%s", i, pNet->pName );
+                pNet->pCopy = Ntl_ModelFindOrCreateNet( pModelNew, pNameBuf ); // change name!!!
+                ((Ntl_Net_t *)pNet->pCopy)->pDriver = pNet->pDriver->pCopy;
+            }
+            // connect nodes
+            Ntl_ModelForEachNode( pModelBox, pObjBox, k )
+            {
+                Ntl_ObjForEachFanin( pObjBox, pNet, m )
+                    Ntl_ObjSetFanin( pObjBox->pCopy, pNet->pCopy, m );
+                Ntl_ObjForEachFanout( pObjBox, pNet, m )
+                    Ntl_ObjSetFanout( pObjBox->pCopy, pNet->pCopy, m );
+                ((Ntl_Obj_t *)pObjBox->pCopy)->pSop = Ntl_ManStoreSop( pManNew->pMemSops, pObjBox->pSop );
+            }
+            // connect the PO nets
+            Ntl_ModelForEachPo( pModelBox, pObjBox, k )
+                ((Ntl_Net_t *)Ntl_ObjFanin0(pObjBox)->pCopy)->pDriver = Ntl_ObjFanin0(pObjBox)->pDriver->pCopy;
+            assert( pObj->pCopy == NULL );
+            Counter++;
+        }
+        else
+        {
+            Ntl_ObjForEachFanin( pObj, pNet, k )
+                Ntl_ObjSetFanin( pObj->pCopy, pNet->pCopy, k );
+            Ntl_ObjForEachFanout( pObj, pNet, k )
+                Ntl_ObjSetFanout( pObj->pCopy, pNet->pCopy, k );
+            if ( Ntl_ObjIsLatch(pObj) )
+            {
+                ((Ntl_Obj_t *)pObj->pCopy)->LatchId = pObj->LatchId;
+                ((Ntl_Obj_t *)pObj->pCopy)->pClock = pObj->pClock? pObj->pClock->pCopy : NULL;
+            }
+            if ( Ntl_ObjIsNode(pObj) )
+                ((Ntl_Obj_t *)pObj->pCopy)->pSop = Ntl_ManStoreSop( pManNew->pMemSops, pObj->pSop );
+        }
+    }
+    pModelNew->vDelays = pModelOld->vDelays? Vec_IntDup( pModelOld->vDelays ) : NULL;
+    pModelNew->vTimeInputs = pModelOld->vTimeInputs? Vec_IntDup( pModelOld->vTimeInputs ) : NULL;
+    pModelNew->vTimeOutputs = pModelOld->vTimeOutputs? Vec_IntDup( pModelOld->vTimeOutputs ) : NULL;
+    ABC_FREE( pNameBuf );
+    if ( Counter )
+    printf( "Collapsed %d LUT boxes.\n", Counter );
     return pModelNew;
 }
 
