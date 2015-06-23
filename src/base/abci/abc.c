@@ -40,6 +40,7 @@
 #include "cgt.h"
 #include "amap.h"
 #include "cec.h"
+#include "giaAbs.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -321,6 +322,8 @@ extern int Abc_CommandAbcLivenessToSafety    ( Abc_Frame_t * pAbc, int argc, cha
 extern int Abc_CommandAbcLivenessToSafetySim ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 static int Abc_CommandAbcTestNew     ( Abc_Frame_t * pAbc, int argc, char ** argv );
+
+extern Aig_Man_t * Ntl_ManExtract( void * p );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -18807,40 +18810,18 @@ usage:
 ***********************************************************************/
 int Abc_CommandPBAbstraction( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
+    Gia_ParAbs_t Pars, * pPars = &Pars;
     FILE * pOut, * pErr;
     Abc_Ntk_t * pNtk, * pNtkRes;
-    int nFramesMax;
-    int nConfMax;
-    int fDynamic;
-    int fExtend;
-    int fSkipProof;
-    int nFramesBmc;
-    int nConfMaxBmc;
-    int nRatio;
-    int fUseBdds;
-    int fUseDprove;
-    int fUseStart;
-    int fVerbose;
     int c;
-    extern Abc_Ntk_t * Abc_NtkDarPBAbstraction( Abc_Ntk_t * pNtk, int nFramesMax, int nConfMax, int fDynamic, int fExtend, int fSkipProof, int nFramesBmc, int nConfMaxBmc, int nRatio, int fUseBdds, int fUseDprove, int fUseStart, int fVerbose );
+    extern Abc_Ntk_t * Abc_NtkDarPBAbstraction( Abc_Ntk_t * pNtk, Gia_ParAbs_t * pPars );
 
     pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
     // set defaults
-    nFramesMax  =    10;
-    nConfMax    = 10000;
-    fDynamic    =     1;
-    fExtend     =     0;
-    fSkipProof  =     0;
-    nFramesBmc  =  2000;
-    nConfMaxBmc =  5000;
-    nRatio      =    10;
-    fUseBdds    =     0;
-    fUseDprove  =     0;
-    fUseStart   =     1;
-    fVerbose    =     0;
+    Gia_ManAbsSetDefaultParams( pPars );
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "FCGDRdesrpfvh" ) ) != EOF )
     {
@@ -18852,9 +18833,9 @@ int Abc_CommandPBAbstraction( Abc_Frame_t * pAbc, int argc, char ** argv )
                 fprintf( pErr, "Command line switch \"-F\" should be followed by an integer.\n" );
                 goto usage;
             }
-            nFramesMax = atoi(argv[globalUtilOptind]);
+            pPars->nFramesMax = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nFramesMax < 0 ) 
+            if ( pPars->nFramesMax < 0 ) 
                 goto usage;
             break;
         case 'C':
@@ -18863,9 +18844,9 @@ int Abc_CommandPBAbstraction( Abc_Frame_t * pAbc, int argc, char ** argv )
                 fprintf( pErr, "Command line switch \"-C\" should be followed by an integer.\n" );
                 goto usage;
             }
-            nConfMax = atoi(argv[globalUtilOptind]);
+            pPars->nConfMax = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nConfMax < 0 ) 
+            if ( pPars->nConfMax < 0 ) 
                 goto usage;
             break;
         case 'G':
@@ -18874,9 +18855,9 @@ int Abc_CommandPBAbstraction( Abc_Frame_t * pAbc, int argc, char ** argv )
                 fprintf( pErr, "Command line switch \"-G\" should be followed by an integer.\n" );
                 goto usage;
             }
-            nFramesBmc = atoi(argv[globalUtilOptind]);
+            pPars->nFramesBmc = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nFramesBmc < 0 ) 
+            if ( pPars->nFramesBmc < 0 ) 
                 goto usage;
             break;
         case 'D':
@@ -18885,9 +18866,9 @@ int Abc_CommandPBAbstraction( Abc_Frame_t * pAbc, int argc, char ** argv )
                 fprintf( pErr, "Command line switch \"-D\" should be followed by an integer.\n" );
                 goto usage;
             }
-            nConfMaxBmc = atoi(argv[globalUtilOptind]);
+            pPars->nConfMaxBmc = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nConfMaxBmc < 0 ) 
+            if ( pPars->nConfMaxBmc < 0 ) 
                 goto usage;
             break;
         case 'R':
@@ -18896,31 +18877,31 @@ int Abc_CommandPBAbstraction( Abc_Frame_t * pAbc, int argc, char ** argv )
                 fprintf( pErr, "Command line switch \"-R\" should be followed by an integer.\n" );
                 goto usage;
             }
-            nRatio = atoi(argv[globalUtilOptind]);
+            pPars->nRatio = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nRatio < 0 ) 
+            if ( pPars->nRatio < 0 ) 
                 goto usage;
             break;
         case 'd':
-            fDynamic ^= 1;
+            pPars->fDynamic ^= 1;
             break;
         case 'e':
-            fExtend ^= 1;
+            pPars->fExtend ^= 1;
             break;
         case 's':
-            fSkipProof ^= 1;
+            pPars->fSkipProof ^= 1;
             break;
         case 'r':
-            fUseBdds ^= 1;
+            pPars->fUseBdds ^= 1;
             break;
         case 'p':
-            fUseDprove ^= 1;
+            pPars->fUseDprove ^= 1;
             break;
         case 'f':
-            fUseStart ^= 1;
+            pPars->fUseStart ^= 1;
             break;
         case 'v':
-            fVerbose ^= 1;
+            pPars->fVerbose ^= 1;
             break;
         case 'h':
             goto usage;
@@ -18943,18 +18924,18 @@ int Abc_CommandPBAbstraction( Abc_Frame_t * pAbc, int argc, char ** argv )
         fprintf( stdout, "Currently only works for structurally hashed circuits.\n" );
         return 0;
     }
-    if ( !(0 <= nRatio && nRatio <= 100) )
+    if ( !(0 <= pPars->nRatio && pPars->nRatio <= 100) )
     {
         fprintf( stdout, "Wrong value of parameter \"-R <num>\".\n" );
         return 0;
     }
 
     // modify the current network
-    pNtkRes = Abc_NtkDarPBAbstraction( pNtk, nFramesMax, nConfMax, fDynamic, fExtend, fSkipProof, nFramesBmc, nConfMaxBmc, nRatio, fUseBdds, fUseDprove, fUseStart, fVerbose );
+    pNtkRes = Abc_NtkDarPBAbstraction( pNtk, pPars );
     if ( pNtkRes == NULL )
     {
         if ( pNtk->pSeqModel == NULL )
-            printf( "Proof-based abstraction has failed.\n" );
+            printf( "Abstraction has failed.\n" );
         return 0;
     }
     // replace the current network
@@ -18964,18 +18945,18 @@ usage:
     fprintf( pErr, "usage: abs [-FCGDR num] [-desrpfvh]\n" );
     fprintf( pErr, "\t         proof-based abstraction (PBA) using UNSAT core of BMC\n" );
     fprintf( pErr, "\t         followed by counter-example-based abstraction\n" );
-    fprintf( pErr, "\t-F num : the max number of timeframes for PBA [default = %d]\n", nFramesMax );
-    fprintf( pErr, "\t-C num : the max number of conflicts by SAT solver for PBA [default = %d]\n", nConfMax );
-    fprintf( pErr, "\t-G num : the max number of timeframes for BMC [default = %d]\n", nFramesBmc );
-    fprintf( pErr, "\t-D num : the max number of conflicts by SAT solver for BMC [default = %d]\n", nConfMaxBmc );
-    fprintf( pErr, "\t-R num : the %% of abstracted flops when refinement stops (0<=num<=100) [default = %d]\n", nRatio );
-    fprintf( pErr, "\t-d     : toggle dynamic unrolling of timeframes [default = %s]\n", fDynamic? "yes": "no" );
-    fprintf( pErr, "\t-e     : toggle extending abstraction using COI of flops [default = %s]\n", fExtend? "yes": "no" );
-    fprintf( pErr, "\t-s     : toggle skipping proof-based abstraction [default = %s]\n", fSkipProof? "yes": "no" );
-    fprintf( pErr, "\t-r     : toggle using BDD-based reachability for filtering [default = %s]\n", fUseBdds? "yes": "no" );
-    fprintf( pErr, "\t-p     : toggle using \"dprove\" for filtering [default = %s]\n", fUseDprove? "yes": "no" );
-    fprintf( pErr, "\t-f     : toggle starting BMC from a later frame [default = %s]\n", fUseStart? "yes": "no" );
-    fprintf( pErr, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
+    fprintf( pErr, "\t-F num : the max number of timeframes for PBA [default = %d]\n", pPars->nFramesMax );
+    fprintf( pErr, "\t-C num : the max number of conflicts by SAT solver for PBA [default = %d]\n", pPars->nConfMax );
+    fprintf( pErr, "\t-G num : the max number of timeframes for BMC [default = %d]\n", pPars->nFramesBmc );
+    fprintf( pErr, "\t-D num : the max number of conflicts by SAT solver for BMC [default = %d]\n", pPars->nConfMaxBmc );
+    fprintf( pErr, "\t-R num : the %% of abstracted flops when refinement stops (0<=num<=100) [default = %d]\n", pPars->nRatio );
+    fprintf( pErr, "\t-d     : toggle dynamic unrolling of timeframes [default = %s]\n", pPars->fDynamic? "yes": "no" );
+    fprintf( pErr, "\t-e     : toggle extending abstraction using COI of flops [default = %s]\n", pPars->fExtend? "yes": "no" );
+    fprintf( pErr, "\t-s     : toggle skipping proof-based abstraction [default = %s]\n", pPars->fSkipProof? "yes": "no" );
+    fprintf( pErr, "\t-r     : toggle using BDD-based reachability for filtering [default = %s]\n", pPars->fUseBdds? "yes": "no" );
+    fprintf( pErr, "\t-p     : toggle using \"dprove\" for filtering [default = %s]\n", pPars->fUseDprove? "yes": "no" );
+    fprintf( pErr, "\t-f     : toggle starting BMC from a later frame [default = %s]\n", pPars->fUseStart? "yes": "no" );
+    fprintf( pErr, "\t-v     : toggle printing verbose information [default = %s]\n", pPars->fVerbose? "yes": "no" );
     fprintf( pErr, "\t-h     : print the command usage\n");
     return 1;
 }
@@ -19129,7 +19110,6 @@ int Abc_CommandAbc8Read( Abc_Frame_t * pAbc, int argc, char ** argv )
     int fAlter;
     extern void * Ioa_ReadBlif( char * pFileName, int fCheck );
     extern void Ioa_WriteBlif( void * p, char * pFileName );
-    extern Aig_Man_t * Ntl_ManExtract( void * p );
     extern void * Ntl_ManExtractNwk( void * p, Aig_Man_t * pAig, Tim_Man_t * pManTime );
     extern void Ntl_ManPrintStats( void * p );
 
@@ -21083,7 +21063,6 @@ int Abc_CommandAbc8Fraig( Abc_Frame_t * pAbc, int argc, char ** argv )
     int nConfLimit;
     int nLevelMax;
     int fUseCSat;
-    extern Aig_Man_t * Ntl_ManExtract( void * p );
     extern void * Ntl_ManFraig( void * p, int nPartSize, int nConfLimit, int nLevelMax, int fUseCSat, int fVerbose );
     extern void Ntl_ManFree( void * p );
 
@@ -21204,7 +21183,6 @@ int Abc_CommandAbc8Scl( Abc_Frame_t * pAbc, int argc, char ** argv )
     int fLatchConst;
     int fLatchEqual;
     int fVerbose;
-    extern Aig_Man_t * Ntl_ManExtract( void * p );
     extern void * Ntl_ManScl( void * p, int fLatchConst, int fLatchEqual, int fVerbose );
     extern int Ntl_ManIsComb( void * p );
 
@@ -21300,7 +21278,6 @@ int Abc_CommandAbc8Lcorr( Abc_Frame_t * pAbc, int argc, char ** argv )
     int nFramesP;
     int nConfMax;
     int fVerbose;
-    extern Aig_Man_t * Ntl_ManExtract( void * p );
     extern void * Ntl_ManLcorr( void * p, int nConfMax, int fScorrGia, int fUseCSat, int fVerbose );
     extern int Ntl_ManIsComb( void * p );
 
@@ -21417,7 +21394,6 @@ int Abc_CommandAbc8Ssw( Abc_Frame_t * pAbc, int argc, char ** argv )
     void * pNtlNew, * pNtlOld;
     Fra_Ssw_t Pars, * pPars = &Pars;
     int c;
-    extern Aig_Man_t * Ntl_ManExtract( void * p );
     extern void * Ntl_ManSsw( void * p, Fra_Ssw_t * pPars );
     extern int Ntl_ManIsComb( void * p );
 
@@ -21632,7 +21608,6 @@ int Abc_CommandAbc8Scorr( Abc_Frame_t * pAbc, int argc, char ** argv )
     void * pNtlNew, * pNtlOld;
     Ssw_Pars_t Pars, * pPars = &Pars;
     int c;
-    extern Aig_Man_t * Ntl_ManExtract( void * p );
     extern void * Ntl_ManScorr( void * p, Ssw_Pars_t * pPars );
     extern int Ntl_ManIsComb( void * p );
 
@@ -25186,11 +25161,14 @@ int Abc_CommandAbc9Era( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Gia_Man_t * pTemp = NULL;
     int c, fVerbose = 0;
+    int fUseCubes = 1;
     int fMiter = 0;
-    int nStatesMax = 10000000;
+    int nStatesMax = 1000000000;
     extern void Gia_ManCollectReachable( Gia_Man_t * pAig, int nStatesMax, int fMiter, int fVerbose );
+    extern void Gia_ManArePerform( Gia_Man_t * pAig, int nStatesMax, int fMiter, int fVerbose );
+
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "Smvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Smcvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -25208,6 +25186,9 @@ int Abc_CommandAbc9Era( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'm':
             fMiter ^= 1;
             break;
+        case 'c':
+            fUseCubes ^= 1;
+            break;
         case 'v':
             fVerbose ^= 1;
             break;
@@ -25222,24 +25203,31 @@ int Abc_CommandAbc9Era( Abc_Frame_t * pAbc, int argc, char ** argv )
         printf( "Abc_CommandAbc9Era(): There is no AIG.\n" );
         return 1;
     } 
-    if ( Gia_ManPiNum(pAbc->pAig) > 12 )
-    {
-        printf( "Abc_CommandAbc9Era(): The number of PIs (%d) should be no more than 12.\n", Gia_ManPiNum(pAbc->pAig) );
-        return 1;
-    }
     if ( Gia_ManRegNum(pAbc->pAig) == 0 )
     {
         printf( "Abc_CommandAbc9Era(): The network is combinational.\n" );
         return 1;
     }
-    Gia_ManCollectReachable( pAbc->pAig, nStatesMax, fMiter, fVerbose );
+    if ( !fUseCubes && Gia_ManPiNum(pAbc->pAig) > 12 )
+    {
+        printf( "Abc_CommandAbc9Era(): The number of PIs (%d) should be no more than 12 when cubes are not used.\n", Gia_ManPiNum(pAbc->pAig) );
+        return 1;
+    }
+    if ( fUseCubes )
+        Gia_ManArePerform( pAbc->pAig, nStatesMax, fMiter, fVerbose );
+    else
+        Gia_ManCollectReachable( pAbc->pAig, nStatesMax, fMiter, fVerbose );
+    pAbc->pCex = ((Gia_Man_t *)pAbc->pAig)->pCexSeq; // temporary ???
+    ((Gia_Man_t *)pAbc->pAig)->pCexSeq = NULL;
     return 0;
 
 usage:
-    fprintf( stdout, "usage: &era [-S num] [-mvh]\n" );
+    fprintf( stdout, "usage: &era [-S num] [-mcvh]\n" );
+//    fprintf( stdout, "usage: &era [-S num] [-mvh]\n" );
     fprintf( stdout, "\t          explicit reachability analysis for small sequential AIGs\n" );
-    fprintf( stdout, "\t-S num  : the max number of states to traverse (num > 0) [default = %d]\n", nStatesMax );
+    fprintf( stdout, "\t-S num  : the max number of states (num > 0) [default = %d]\n", nStatesMax );
     fprintf( stdout, "\t-m      : stop when the miter output is 1 [default = %s]\n", fMiter? "yes": "no" );
+    fprintf( stdout, "\t-c      : use state cubes instead of state minterms [default = %s]\n", fUseCubes? "yes": "no" );
     fprintf( stdout, "\t-v      : print verbose information [default = %s]\n", fVerbose? "yes": "no" );
     fprintf( stdout, "\t-h      : print the command usage\n");
     return 1;

@@ -32,6 +32,7 @@
 //#include "fsim.h"
 #include "gia.h"
 #include "cec.h"
+#include "giaAbs.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -442,6 +443,92 @@ Abc_Ntk_t * Abc_NtkFromAigPhase( Aig_Man_t * pMan )
         Abc_LatchSetInit0( pObjNew );
         Abc_ObjAssignName( pObjLi->pData, Abc_ObjName(pObjLi->pData), NULL );
         Abc_ObjAssignName( pObjLo->pData, Abc_ObjName(pObjLo->pData), NULL );
+    }
+    // rebuild the AIG
+    vNodes = Aig_ManDfs( pMan, 1 );
+    Vec_PtrForEachEntry( vNodes, pObj, i )
+        if ( Aig_ObjIsBuf(pObj) )
+            pObj->pData = (Abc_Obj_t *)Aig_ObjChild0Copy(pObj);
+        else
+            pObj->pData = Abc_AigAnd( pNtkNew->pManFunc, (Abc_Obj_t *)Aig_ObjChild0Copy(pObj), (Abc_Obj_t *)Aig_ObjChild1Copy(pObj) );
+    Vec_PtrFree( vNodes );
+    // connect the PO nodes
+    Aig_ManForEachPo( pMan, pObj, i )
+    {
+        pObjNew = (Abc_Obj_t *)Aig_ObjChild0Copy(pObj);
+        Abc_ObjAddFanin( Abc_NtkCo(pNtkNew, i), pObjNew );
+    }
+    // check the resulting AIG
+    if ( !Abc_NtkCheck( pNtkNew ) )
+        fprintf( stdout, "Abc_NtkFromAigPhase(): Network check has failed.\n" );
+    return pNtkNew;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Converts the network from the AIG manager into ABC.]
+
+  Description [This procedure should be called after seq sweeping, 
+  which changes the number of registers.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Ntk_t * Abc_NtkAfterTrim( Aig_Man_t * pMan, Abc_Ntk_t * pNtkOld )
+{
+    Vec_Ptr_t * vNodes; 
+    Abc_Ntk_t * pNtkNew;
+    Abc_Obj_t * pObjNew, * pObjOld;
+    Aig_Obj_t * pObj, * pObjLo, * pObjLi;
+    int i; 
+    assert( pMan->nAsserts == 0 );
+    assert( Aig_ManRegNum(pMan) <= Abc_NtkLatchNum(pNtkOld) );
+    assert( Saig_ManPiNum(pMan) <= Abc_NtkCiNum(pNtkOld) );
+    assert( Saig_ManPoNum(pMan) == Abc_NtkPoNum(pNtkOld) );
+    assert( pMan->vCiNumsOrig != NULL );
+    // perform strashing
+    pNtkNew = Abc_NtkAlloc( ABC_NTK_STRASH, ABC_FUNC_AIG, 1 );
+    // duplicate the name and the spec
+//    pNtkNew->pName = Extra_UtilStrsav(pMan->pName);
+//    pNtkNew->pSpec = Extra_UtilStrsav(pMan->pSpec);
+    Aig_ManConst1(pMan)->pData = Abc_AigConst1(pNtkNew);
+    // create PIs
+    Aig_ManForEachPiSeq( pMan, pObj, i )
+    {
+        pObjNew = Abc_NtkCreatePi( pNtkNew );
+        pObj->pData = pObjNew;
+        // find the name
+        pObjOld = Abc_NtkCi( pNtkOld, Vec_IntEntry(pMan->vCiNumsOrig, i) );
+        Abc_ObjAssignName( pObjNew, Abc_ObjName(pObjOld), NULL );
+    }
+    // create POs
+    Aig_ManForEachPoSeq( pMan, pObj, i )
+    {
+        pObjNew = Abc_NtkCreatePo( pNtkNew );
+        pObj->pData = pObjNew;
+        // find the name
+        pObjOld = Abc_NtkCo( pNtkOld, i );
+        Abc_ObjAssignName( pObjNew, Abc_ObjName(pObjOld), NULL );
+    }
+    assert( Abc_NtkCiNum(pNtkNew) == Aig_ManPiNum(pMan) - Aig_ManRegNum(pMan) );
+    assert( Abc_NtkCoNum(pNtkNew) == Aig_ManPoNum(pMan) - Aig_ManRegNum(pMan) );
+    // create as many latches as there are registers in the manager
+    Aig_ManForEachLiLoSeq( pMan, pObjLi, pObjLo, i )
+    {
+        pObjNew = Abc_NtkCreateLatch( pNtkNew );
+        pObjLi->pData = Abc_NtkCreateBi( pNtkNew );
+        pObjLo->pData = Abc_NtkCreateBo( pNtkNew );
+        Abc_ObjAddFanin( pObjNew, pObjLi->pData );
+        Abc_ObjAddFanin( pObjLo->pData, pObjNew );
+        Abc_LatchSetInit0( pObjNew );
+        // find the name
+        pObjOld = Abc_NtkCi( pNtkOld, Vec_IntEntry(pMan->vCiNumsOrig, Saig_ManPiNum(pMan)+i) );
+        Abc_ObjAssignName( pObjLo->pData, Abc_ObjName(pObjOld), NULL );
+        // find the name
+        pObjOld = Abc_NtkCo( pNtkOld, Saig_ManPoNum(pMan)+i );
+        Abc_ObjAssignName( pObjLi->pData, Abc_ObjName(pObjOld), NULL );
     }
     // rebuild the AIG
     vNodes = Aig_ManDfs( pMan, 1 );
@@ -1633,12 +1720,12 @@ int Abc_NtkDarBmc( Abc_Ntk_t * pNtk, int nStart, int nFrames, int nSizeMax, int 
             printf( "No output was asserted in %d frames. Reached conflict limit (%d). ", iFrame, nBTLimit );
         else // if ( RetValue == 0 )
         {
-            extern void Aig_ManCounterExampleValueTest( Aig_Man_t * pAig, Fra_Cex_t * pCex );
+//            extern void Aig_ManCounterExampleValueTest( Aig_Man_t * pAig, Fra_Cex_t * pCex );
 
             Fra_Cex_t * pCex = pNtk->pSeqModel;
             printf( "Output %d was asserted in frame %d (use \"write_counter\" to dump a witness). ", pCex->iPo, pCex->iFrame );
 
-            Aig_ManCounterExampleValueTest( pMan, pCex );
+//            Aig_ManCounterExampleValueTest( pMan, pCex );
         }
     }
     else
@@ -2714,7 +2801,7 @@ ABC_PRT( "Time", clock() - clkTotal );
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Ntk_t * Abc_NtkDarPBAbstraction( Abc_Ntk_t * pNtk, int nFramesMax, int nConfMax, int fDynamic, int fExtend, int fSkipProof, int nFramesBmc, int nConfMaxBmc, int nRatio, int fUseBdds, int fUseDprove, int fUseStart, int fVerbose )
+Abc_Ntk_t * Abc_NtkDarPBAbstraction( Abc_Ntk_t * pNtk, Gia_ParAbs_t * pPars )
 {
     Abc_Ntk_t * pNtkAig;
     Aig_Man_t * pMan, * pTemp;
@@ -2724,7 +2811,7 @@ Abc_Ntk_t * Abc_NtkDarPBAbstraction( Abc_Ntk_t * pNtk, int nFramesMax, int nConf
         return NULL;
 
     Aig_ManSetRegNum( pMan, pMan->nRegs );
-    pMan = Saig_ManProofAbstraction( pTemp = pMan, nFramesMax, nConfMax, fDynamic, fExtend, fSkipProof, nFramesBmc, nConfMaxBmc, nRatio, fUseBdds, fUseDprove, fUseStart, fVerbose );
+    pMan = Saig_ManProofAbstraction( pTemp = pMan, pPars );
     if ( pTemp->pSeqModel )
     {
         ABC_FREE( pNtk->pModel );
@@ -2735,7 +2822,7 @@ Abc_Ntk_t * Abc_NtkDarPBAbstraction( Abc_Ntk_t * pNtk, int nFramesMax, int nConf
     if ( pMan == NULL )
         return NULL;
 
-    pNtkAig = Abc_NtkFromAigPhase( pMan );
+    pNtkAig = Abc_NtkAfterTrim( pMan, pNtk );
 //    pNtkAig->pName = Extra_UtilStrsav(pNtk->pName);
 //    pNtkAig->pSpec = Extra_UtilStrsav(pNtk->pSpec);
     Aig_ManStop( pMan );

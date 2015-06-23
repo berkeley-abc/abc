@@ -313,6 +313,23 @@ static inline int Vec_IntEntry( Vec_Int_t * p, int i )
   SeeAlso     []
 
 ***********************************************************************/
+static inline int * Vec_IntEntryP( Vec_Int_t * p, int i )
+{
+    assert( i >= 0 && i < p->nSize );
+    return p->pArray + i;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 static inline void Vec_IntWriteEntry( Vec_Int_t * p, int i, int Entry )
 {
     assert( i >= 0 && i < p->nSize );
@@ -760,6 +777,27 @@ static inline void Vec_IntReverseOrder( Vec_Int_t * p )
         p->pArray[i] = p->pArray[p->nSize-1-i];
         p->pArray[p->nSize-1-i] = Temp;
     }
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline Vec_Int_t * Vec_IntInvert( Vec_Int_t * p ) 
+{
+    Vec_Int_t * vRes;
+    int Entry, i;
+    vRes = Vec_IntStart( Vec_IntFindMax(p) + 1 );
+    Vec_IntForEachEntry( p, Entry, i )
+        Vec_IntWriteEntry( vRes, Entry, i );
+    return vRes;
 }
 
 /**Function*************************************************************

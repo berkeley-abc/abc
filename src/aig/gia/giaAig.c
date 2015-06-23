@@ -361,6 +361,30 @@ void Gia_ManReprToAigRepr( Aig_Man_t * p, Gia_Man_t * pGia )
     }
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Applied DC2 to the GIA manager.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Gia_Man_t * Gia_ManCompress2( Gia_Man_t * p )
+{
+    extern Aig_Man_t * Dar_ManCompress2( Aig_Man_t * pAig, int fBalance, int fUpdateLevel, int fFanout, int fPower, int fVerbose );
+    Gia_Man_t * pGia;
+    Aig_Man_t * pNew, * pTemp;
+    pNew = Gia_ManToAig( p, 0 );
+    pNew = Dar_ManCompress2( pTemp = pNew, 1, 0, 1, 0, 0 );
+    Aig_ManStop( pTemp );
+    pGia = Gia_ManFromAig( pNew );
+    Aig_ManStop( pNew );
+    return pGia;
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

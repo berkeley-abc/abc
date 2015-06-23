@@ -45,6 +45,7 @@ struct Saig_Bmc_t_
     // node mapping
     int                   nObjs;          // the largest number of an AIG object
     Vec_Ptr_t *           vAig2Frm;       // mapping of AIG nodees into Frames nodes
+//    Vec_Str_t *           vAig2Frm2;      // mapping of AIG nodees into Frames nodes
     // SAT solver
     sat_solver *          pSat;           // SAT solver
     int                   nSatVars;       // the number of used SAT variables
@@ -70,6 +71,170 @@ static inline Aig_Obj_t * Saig_BmcObjChild1( Saig_Bmc_t * p, Aig_Obj_t * pObj, i
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
+
+#define ABS_ZER 1
+#define ABS_ONE 2
+#define ABS_UND 3
+
+static inline int Abs_ManSimInfoNot( int Value )
+{
+    if ( Value == ABS_ZER )
+        return ABS_ONE;
+    if ( Value == ABS_ONE )
+        return ABS_ZER;
+    return ABS_UND;
+}
+
+static inline int Abs_ManSimInfoAnd( int Value0, int Value1 )
+{
+    if ( Value0 == ABS_ZER || Value1 == ABS_ZER )
+        return ABS_ZER;
+    if ( Value0 == ABS_ONE && Value1 == ABS_ONE )
+        return ABS_ONE;
+    return ABS_UND;
+}
+
+static inline int Abs_ManSimInfoGet( Vec_Ptr_t * vSimInfo, Aig_Obj_t * pObj, int iFrame )
+{
+    unsigned * pInfo = Vec_PtrEntry( vSimInfo, iFrame );
+    return 3 & (pInfo[Aig_ObjId(pObj) >> 4] >> ((Aig_ObjId(pObj) & 15) << 1));
+}
+
+static inline void Abs_ManSimInfoSet( Vec_Ptr_t * vSimInfo, Aig_Obj_t * pObj, int iFrame, int Value )
+{
+    unsigned * pInfo = Vec_PtrEntry( vSimInfo, iFrame );
+    assert( Value >= ABS_ZER && Value <= ABS_UND );
+    Value ^= Abs_ManSimInfoGet( vSimInfo, pObj, iFrame );
+    pInfo[Aig_ObjId(pObj) >> 4] ^= (Value << ((Aig_ObjId(pObj) & 15) << 1));
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Performs ternary simulation for one node.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abs_ManExtendOneEval_rec( Vec_Ptr_t * vSimInfo, Aig_Man_t * p, Aig_Obj_t * pObj, int iFrame )
+{
+    int Value0, Value1, Value;
+    Value = Abs_ManSimInfoGet( vSimInfo, pObj, iFrame );
+    if ( Value )
+        return Value;
+    if ( Aig_ObjIsPi(pObj) )
+    {
+        assert( Saig_ObjIsLo(p, pObj) );
+        Value = Abs_ManExtendOneEval_rec( vSimInfo, p, Saig_ObjLoToLi(p, pObj), iFrame-1 );
+        Abs_ManSimInfoSet( vSimInfo, pObj, iFrame, Value );
+        return Value;
+    }
+    Value0 = Abs_ManExtendOneEval_rec( vSimInfo, p, Aig_ObjFanin0(pObj), iFrame );
+    if ( Aig_ObjFaninC0(pObj) )
+        Value0 = Abs_ManSimInfoNot( Value0 );
+    if ( Aig_ObjIsPo(pObj) )
+    {
+        Abs_ManSimInfoSet( vSimInfo, pObj, iFrame, Value0 );
+        return Value0;
+    }
+    assert( Aig_ObjIsNode(pObj) );
+    if ( Value0 == ABS_ZER )
+        Value = ABS_ZER;
+    else
+    {
+        Value1 = Abs_ManExtendOneEval_rec( vSimInfo, p, Aig_ObjFanin1(pObj), iFrame );
+        if ( Aig_ObjFaninC1(pObj) )
+            Value1 = Abs_ManSimInfoNot( Value1 );
+        Value = Abs_ManSimInfoAnd( Value0, Value1 );
+    }
+    Abs_ManSimInfoSet( vSimInfo, pObj, iFrame, Value );
+    assert( Value );
+    return Value;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Performs ternary simulation for one design.]
+
+  Description [The returned array contains the result of ternary 
+  simulation for all the frames where the output could be proved 0.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Ptr_t * Abs_ManTernarySimulate( Aig_Man_t * p, int nFramesMax, int fVerbose )
+{
+    Vec_Ptr_t * vSimInfo;
+    Aig_Obj_t * pObj;
+    int i, f, nFramesLimit, nFrameWords;
+    int clk = clock();
+    assert( Aig_ManRegNum(p) > 0 );
+    // the maximum number of frames will be determined to use at most 200Mb of RAM
+    nFramesLimit = 1 + (200000000 * 4)/Aig_ManObjNum(p);
+    nFramesLimit = ABC_MIN( nFramesLimit, nFramesMax );
+    nFrameWords  = Aig_BitWordNum( 2 * Aig_ManObjNum(p) );
+    // allocate simulation info
+    vSimInfo = Vec_PtrAlloc( nFramesLimit );
+    for ( f = 0; f < nFramesLimit; f++ )
+    {
+        Vec_PtrPush( vSimInfo, ABC_CALLOC(unsigned, nFrameWords) );
+        if ( f == 0 ) 
+        {
+            Saig_ManForEachLo( p, pObj, i )
+                Abs_ManSimInfoSet( vSimInfo, pObj, 0, ABS_ZER );
+        }
+        Abs_ManSimInfoSet( vSimInfo, Aig_ManConst1(p), f, ABS_ONE );
+        Saig_ManForEachPi( p, pObj, i )
+            Abs_ManSimInfoSet( vSimInfo, pObj, f, ABS_UND );
+        Saig_ManForEachPo( p, pObj, i )
+            Abs_ManExtendOneEval_rec( vSimInfo, p, pObj, f );
+        // check if simulation has derived at least one fail or unknown
+        Saig_ManForEachPo( p, pObj, i )
+            if ( Abs_ManSimInfoGet(vSimInfo, pObj, f) != ABS_ZER )
+            {
+                if ( fVerbose )
+                {
+                    printf( "Ternary sim found non-zero output in frame %d.  Used %5.2f Mb.  ", 
+                        f, 0.25 * (f+1) * Aig_ManObjNum(p) / (1<<20) );
+                    ABC_PRT( "Time", clock() - clk );
+                }
+                return vSimInfo;
+            }
+    }
+    if ( fVerbose )
+    {
+        printf( "Ternary sim proved all outputs in the first %d frames.  Used %5.2f Mb.  ", 
+            nFramesLimit, 0.25 * nFramesLimit * Aig_ManObjNum(p) / (1<<20) );
+        ABC_PRT( "Time", clock() - clk );
+    }
+    return vSimInfo;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Free the array of simulation info.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abs_ManFreeAray( Vec_Ptr_t * p )
+{
+    void * pTemp;
+    int i;
+    Vec_PtrForEachEntry( p, pTemp, i )
+        ABC_FREE( pTemp );
+    Vec_PtrFree( p );
+}
+
 
 /**Function*************************************************************
 
@@ -135,8 +300,32 @@ Saig_Bmc_t * Saig_BmcManStart( Aig_Man_t * pAig, int nFramesMax, int nNodesMax, 
 ***********************************************************************/
 void Saig_BmcManStop( Saig_Bmc_t * p )
 {
+//    Aig_Obj_t * pObj;
+//    int i, f, Counter = 0;
+//    int i, Counter = 0;
+//    for ( i = 0; i < p->vAig2Frm2->nSize; i++ )
+//        Counter += (p->vAig2Frm2->pArray[i] != 0);
+//    for ( i = 0; i < p->vAig2Frm->nSize; i++ )
+//        Counter += (p->vAig2Frm->pArray[i] != NULL);
+//    printf( "Objs = %d.  Nodes = %d.  Frames = %d.  Used = %d.  Non-empty = %d.\n", 
+//        p->nObjs, Aig_ManNodeNum(p->pAig), p->iFrameLast, p->vAig2Frm->nSize, Counter );
+
+/*
+    Aig_ManForEachObj( p->pAig, pObj, i )
+    {
+        int Last = -1;
+        for ( f = 0; f <= p->iFrameLast; f++ )
+            if ( Saig_BmcObjFrame( p, pObj, f ) )
+                Last = f;
+        if ( i % 50 == 0 )
+            printf( "%d ", Last );
+    }
+    printf( "\n" );
+*/
+
     Aig_ManStop( p->pFrm  );
     Vec_PtrFree( p->vAig2Frm );
+//    Vec_StrFree( p->vAig2Frm2 );
     Vec_IntFree( p->vObj2Var );
     sat_solver_delete( p->pSat );
     Vec_PtrFree( p->vTargets );
@@ -207,44 +396,6 @@ Aig_Obj_t * Saig_BmcIntervalExplore_rec( Saig_Bmc_t * p, Aig_Obj_t * pObj, int i
   SeeAlso     []
 
 ***********************************************************************/
-Aig_Obj_t * Saig_BmcIntervalConstruct_rec_OLD( Saig_Bmc_t * p, Aig_Obj_t * pObj, int i )
-{
-    Aig_Obj_t * pRes;
-    pRes = Saig_BmcObjFrame( p, pObj, i );
-    assert( pRes != NULL );
-    if ( pRes != AIG_VISITED )
-        return pRes;
-    if ( Saig_ObjIsPi( p->pAig, pObj ) )
-        pRes = Aig_ObjCreatePi(p->pFrm);
-    else if ( Saig_ObjIsLo( p->pAig, pObj ) )
-        pRes = Saig_BmcIntervalConstruct_rec_OLD( p, Saig_ObjLoToLi(p->pAig, pObj), i-1 );
-    else if ( Aig_ObjIsPo( pObj ) )
-    {
-        Saig_BmcIntervalConstruct_rec_OLD( p, Aig_ObjFanin0(pObj), i );
-        pRes = Saig_BmcObjChild0( p, pObj, i );
-    }
-    else 
-    {
-        Saig_BmcIntervalConstruct_rec_OLD( p, Aig_ObjFanin0(pObj), i );
-        Saig_BmcIntervalConstruct_rec_OLD( p, Aig_ObjFanin1(pObj), i );
-        pRes = Aig_And( p->pFrm, Saig_BmcObjChild0(p, pObj, i), Saig_BmcObjChild1(p, pObj, i) );
-    }
-    assert( pRes != AIG_VISITED );
-    Saig_BmcObjSetFrame( p, pObj, i, pRes );
-    return pRes;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Performs the actual construction of the output.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
 Aig_Obj_t * Saig_BmcIntervalConstruct_rec( Saig_Bmc_t * p, Aig_Obj_t * pObj, int i, Vec_Ptr_t * vVisited )
 {
     Aig_Obj_t * pRes;
@@ -263,8 +414,13 @@ Aig_Obj_t * Saig_BmcIntervalConstruct_rec( Saig_Bmc_t * p, Aig_Obj_t * pObj, int
     else 
     {
         Saig_BmcIntervalConstruct_rec( p, Aig_ObjFanin0(pObj), i, vVisited );
-        Saig_BmcIntervalConstruct_rec( p, Aig_ObjFanin1(pObj), i, vVisited );
-        pRes = Aig_And( p->pFrm, Saig_BmcObjChild0(p, pObj, i), Saig_BmcObjChild1(p, pObj, i) );
+        if ( Saig_BmcObjChild0(p, pObj, i) == Aig_ManConst0(p->pFrm) )
+            pRes = Aig_ManConst0(p->pFrm);
+        else
+        {
+            Saig_BmcIntervalConstruct_rec( p, Aig_ObjFanin1(pObj), i, vVisited );
+            pRes = Aig_And( p->pFrm, Saig_BmcObjChild0(p, pObj, i), Saig_BmcObjChild1(p, pObj, i) );
+        }
     }
     assert( pRes != NULL );
     Saig_BmcObjSetFrame( p, pObj, i, pRes );
@@ -288,7 +444,7 @@ void Saig_BmcInterval( Saig_Bmc_t * p )
 {
     Aig_Obj_t * pTarget;
     Aig_Obj_t * pObj, * pRes;
-    int i, iFrame;
+    int i, iFrame, Counter;
     int nNodes = Aig_ManObjNum( p->pFrm );
     Vec_PtrClear( p->vTargets );
     p->iFramePrev = p->iFrameLast;
@@ -309,13 +465,18 @@ void Saig_BmcInterval( Saig_Bmc_t * p )
             Aig_ObjCreatePo( p->pFrm, pTarget );
             Aig_ManCleanup( p->pFrm );
             // check if the node is gone
+            Counter = 0;
             Vec_PtrForEachEntry( p->vVisited, pObj, i )
             {
                 iFrame = (int)(ABC_PTRINT_T)Vec_PtrEntry( p->vVisited, 1+i++ );
                 pRes = Saig_BmcObjFrame( p, pObj, iFrame );
                 if ( Aig_ObjIsNone( Aig_Regular(pRes) ) )
+                {
                     Saig_BmcObjSetFrame( p, pObj, iFrame, NULL );
+                    Counter++;
+                }
             }
+//            printf( "%d ", Counter );
         }
     }
 }
@@ -564,7 +725,7 @@ void Saig_BmcAddTargetsAsPos( Saig_Bmc_t * p )
     Aig_ManPrintStats( p->pFrm );
     Aig_ManCleanup( p->pFrm );
     Aig_ManPrintStats( p->pFrm );
-}
+} 
 
 /**Function*************************************************************
 
@@ -584,6 +745,11 @@ void Saig_BmcPerform( Aig_Man_t * pAig, int nStart, int nFramesMax, int nNodesMa
     Cnf_Dat_t * pCnf;
     int nOutsSolved = 0;
     int Iter, RetValue, clk = clock(), clk2;
+/*
+    Vec_Ptr_t * vSimInfo;
+    vSimInfo = Abs_ManTernarySimulate( pAig, nFramesMax, fVerbose );
+    Abs_ManFreeAray( vSimInfo );
+*/
     p = Saig_BmcManStart( pAig, nFramesMax, nNodesMax, nConfMaxOne, nConfMaxAll, fVerbose );
     if ( fVerbose )
     {
@@ -593,6 +759,7 @@ void Saig_BmcPerform( Aig_Man_t * pAig, int nStart, int nFramesMax, int nNodesMa
         printf( "Params: FramesMax = %d. NodesDelta = %d. ConfMaxOne = %d. ConfMaxAll = %d.\n", 
             nFramesMax, nNodesMax, nConfMaxOne, nConfMaxAll );
     } 
+
     for ( Iter = 0; ; Iter++ )
     {
         clk2 = clock();

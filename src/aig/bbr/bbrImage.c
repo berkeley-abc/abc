@@ -232,6 +232,7 @@ Bbr_ImageTree_t * Bbr_bddImageStart(
     // clean the partitions
     Bbr_DeleteParts_rec( pTree->pRoot );
     ABC_FREE( pParts );
+
     return pTree;
 }
 
@@ -729,13 +730,26 @@ int Bbr_BuildTreeNode( DdManager * dd,
     iVarBest = Bbr_FindBestVariable( dd, nNodes, pNodes, nVars, pVars );
     if ( iVarBest == -1 )
         return 0;
-
+/*
+for ( v = 0; v < nVars; v++ )
+{
+    DdNode * bSupp;
+    if ( pVars[v] == NULL )
+        continue;
+    printf( "%3d :", v );
+    printf( "%3d ", pVars[v]->nParts );
+    bSupp = Cudd_Support( dd, pVars[v]->bParts );  Cudd_Ref( bSupp );
+    Bbr_bddPrint( dd, bSupp ); printf( "\n" );
+    Cudd_RecursiveDeref( dd, bSupp );
+}
+*/
     pVar = pVars[iVarBest];
 
     // this var cannot appear in one partition only
     nSupp = Cudd_SupportSize( dd, pVar->bParts );
     assert( nSupp == pVar->nParts );
     assert( nSupp != 1 );
+//printf( "var = %d  supp = %d\n\n", iVarBest, nSupp );
 
     // if it appears in only two partitions, quantify it
     if ( pVar->nParts == 2 )
@@ -773,6 +787,7 @@ int Bbr_BuildTreeNode( DdManager * dd,
         Bbr_FindBestPartitions( dd, pVar->bParts, nNodes, pNodes, &iNode1, &iNode2 );
         pNode1 = pNodes[iNode1];
         pNode2 = pNodes[iNode2];
+//printf( "smallest bdds with this var: %d %d\n", iNode1, iNode2 );
 /*
         // it is not possible that a var appears only in these two
         // otherwise, it would have a different cost
@@ -789,6 +804,7 @@ int Bbr_BuildTreeNode( DdManager * dd,
     // clean the old nodes
     pNodes[iNode1] = pNode;
     pNodes[iNode2] = NULL;
+//printf( "Removing node %d (leaving node %d)\n", iNode2, iNode1 );
     
     // update the variables that appear in pNode[iNode2]
     for ( bSuppTemp = pNode2->pPart->bSupp; bSuppTemp != b1; bSuppTemp = cuddT(bSuppTemp) )
@@ -941,9 +957,29 @@ int Bbr_FindBestVariable( DdManager * dd,
 
     CostBest = 100000000000000.0;
     iVarBest = -1;
+
+    // check if there are two-variable partitions
+    for ( v = 0; v < nVars; v++ )
+        if ( pVars[v] && pVars[v]->nParts == 2 )
+        {
+            CostCur = 0;
+            for ( bTemp = pVars[v]->bParts; bTemp != b1; bTemp = cuddT(bTemp) )
+                CostCur += pNodes[bTemp->index]->pPart->nNodes * 
+                           pNodes[bTemp->index]->pPart->nNodes;
+            if ( CostBest > CostCur )
+            {
+                CostBest = CostCur;
+                iVarBest = v;
+            }
+        }
+    if ( iVarBest >= 0 )
+        return iVarBest;
+
+    // find other partition
     for ( v = 0; v < nVars; v++ )
         if ( pVars[v] )
         {
+            assert( pVars[v]->nParts > 1 );
             CostCur = 0;
             for ( bTemp = pVars[v]->bParts; bTemp != b1; bTemp = cuddT(bTemp) )
                 CostCur += pNodes[bTemp->index]->pPart->nNodes * 

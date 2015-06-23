@@ -272,12 +272,12 @@ static Ioa_ReadMod_t * Ioa_ReadModAlloc()
     Ioa_ReadMod_t * p;
     p = ABC_ALLOC( Ioa_ReadMod_t, 1 );
     memset( p, 0, sizeof(Ioa_ReadMod_t) );
-    p->vInputs  = Vec_PtrAlloc( 8 );
-    p->vOutputs = Vec_PtrAlloc( 8 );
-    p->vLatches = Vec_PtrAlloc( 8 );
-    p->vNames   = Vec_PtrAlloc( 8 );
-    p->vSubckts = Vec_PtrAlloc( 8 );
-    p->vDelays  = Vec_PtrAlloc( 8 );
+    p->vInputs      = Vec_PtrAlloc( 8 );
+    p->vOutputs     = Vec_PtrAlloc( 8 );
+    p->vLatches     = Vec_PtrAlloc( 8 );
+    p->vNames       = Vec_PtrAlloc( 8 );
+    p->vSubckts     = Vec_PtrAlloc( 8 );
+    p->vDelays      = Vec_PtrAlloc( 8 );
     p->vTimeInputs  = Vec_PtrAlloc( 8 );
     p->vTimeOutputs = Vec_PtrAlloc( 8 );
     return p;

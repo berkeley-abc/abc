@@ -54,6 +54,7 @@ Ssw_Cex_t * Aig_ManVerifyUsingBddsCountExample( Aig_Man_t * p, DdManager * dd,
     int i, v, RetValue, nPiOffset;
     char * pValues;
     int clk = clock();
+//printf( "\nDeriving counter-example.\n" );
 
     // allocate room for the counter-example
     pCex = Ssw_SmlAllocCounterExample( Saig_ManRegNum(p), Saig_ManPiNum(p), Vec_PtrSize(vOnionRings)+1 );

@@ -70,7 +70,7 @@ Aig_Man_t * Said_ManDupOrpos( Aig_Man_t * pAig )
 
 /**Function*************************************************************
 
-  Synopsis    [Numbers of flops included in the abstraction.]
+  Synopsis    [Duplicates the AIG manager recursively.]
 
   Description []
                
@@ -79,55 +79,130 @@ Aig_Man_t * Said_ManDupOrpos( Aig_Man_t * pAig )
   SeeAlso     []
 
 ***********************************************************************/
-Aig_Man_t * Saig_ManAbstraction( Aig_Man_t * pAig, Vec_Int_t * vFlops )
+Aig_Obj_t * Saig_ManAbstractionDfs_rec( Aig_Man_t * pNew, Aig_Obj_t * pObj )
 {
-    Aig_Man_t * pAigNew;//, * pTemp;
+    if ( pObj->pData )
+        return pObj->pData;
+    Saig_ManAbstractionDfs_rec( pNew, Aig_ObjFanin0(pObj) );
+    Saig_ManAbstractionDfs_rec( pNew, Aig_ObjFanin1(pObj) );
+    return pObj->pData = Aig_And( pNew, Aig_ObjChild0Copy(pObj), Aig_ObjChild1Copy(pObj) );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Trims the model by removing PIs without fanout.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Aig_Man_t * Saig_ManTrimPis( Aig_Man_t * p )
+{
+    Aig_Man_t * pNew;
+    Aig_Obj_t * pObj;
+    int i, fAllPisHaveNoRefs;
+    // check the refs of PIs    
+    fAllPisHaveNoRefs = 1;
+    Saig_ManForEachPi( p, pObj, i )
+        if ( pObj->nRefs )
+            fAllPisHaveNoRefs = 0;
+    // start the new manager
+    pNew = Aig_ManStart( Aig_ManObjNum(p) );
+    pNew->pName = Aig_UtilStrsav( p->pName );
+    // start mapping of the CI numbers
+    pNew->vCiNumsOrig = Vec_IntAlloc( Aig_ManPiNum(p) );
+    // map const and primary inputs
+    Aig_ManCleanData( p );
+    Aig_ManConst1(p)->pData = Aig_ManConst1(pNew);
+    Aig_ManForEachPi( p, pObj, i )
+        if ( fAllPisHaveNoRefs || pObj->nRefs || Saig_ObjIsLo(p, pObj) )
+        {
+            pObj->pData = Aig_ObjCreatePi( pNew );
+            Vec_IntPush( pNew->vCiNumsOrig, Vec_IntEntry(p->vCiNumsOrig, i) );
+        }
+    Aig_ManForEachNode( p, pObj, i )
+        pObj->pData = Aig_And( pNew, Aig_ObjChild0Copy(pObj), Aig_ObjChild1Copy(pObj) );
+    Aig_ManForEachPo( p, pObj, i )
+        pObj->pData = Aig_ObjCreatePo( pNew, Aig_ObjChild0Copy(pObj) );
+    Aig_ManSetRegNum( pNew, Aig_ManRegNum(p) );
+    return pNew;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Performs abstraction of the AIG to preserve the included flops.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Aig_Man_t * Saig_ManAbstraction( Aig_Man_t * p, Vec_Int_t * vFlops )
+{ 
+    Aig_Man_t * pNew, * pTemp;
     Aig_Obj_t * pObj, * pObjLi, * pObjLo;
     int i, Entry;
+    Aig_ManCleanData( p );
     // start the new manager
-    pAigNew = Aig_ManStart( Aig_ManNodeNum(pAig) );
-    pAigNew->pName = Aig_UtilStrsav( pAig->pName );
+    pNew = Aig_ManStart( Aig_ManNodeNum(p) );
+    pNew->pName = Aig_UtilStrsav( p->pName );
     // map the constant node
-    Aig_ManConst1(pAig)->pData = Aig_ManConst1( pAigNew );
+    Aig_ManConst1(p)->pData = Aig_ManConst1( pNew );
     // label included flops
     Vec_IntForEachEntry( vFlops, Entry, i )
     {
-        pObjLi = Saig_ManLi( pAig, Entry );
+        pObjLi = Saig_ManLi( p, Entry );
         assert( pObjLi->fMarkA == 0 );
         pObjLi->fMarkA = 1;
-        pObjLo = Saig_ManLo( pAig, Entry );
+        pObjLo = Saig_ManLo( p, Entry );
         assert( pObjLo->fMarkA == 0 );
         pObjLo->fMarkA = 1;
     }
     // create variables for PIs
-    Aig_ManForEachPi( pAig, pObj, i )
+    assert( p->vCiNumsOrig == NULL );
+    pNew->vCiNumsOrig = Vec_IntAlloc( Aig_ManPiNum(p) );
+    Aig_ManForEachPi( p, pObj, i )
         if ( !pObj->fMarkA )
-            pObj->pData = Aig_ObjCreatePi( pAigNew );
+        {
+            pObj->pData = Aig_ObjCreatePi( pNew );
+            Vec_IntPush( pNew->vCiNumsOrig, i );
+        }
     // create variables for LOs
-    Aig_ManForEachPi( pAig, pObj, i )
+    Aig_ManForEachPi( p, pObj, i )
         if ( pObj->fMarkA )
         {
             pObj->fMarkA = 0;
-            pObj->pData = Aig_ObjCreatePi( pAigNew );
+            pObj->pData = Aig_ObjCreatePi( pNew );
+            Vec_IntPush( pNew->vCiNumsOrig, i );
         }
     // add internal nodes 
-    Aig_ManForEachNode( pAig, pObj, i )
-        pObj->pData = Aig_And( pAigNew, Aig_ObjChild0Copy(pObj), Aig_ObjChild1Copy(pObj) );
+//    Aig_ManForEachNode( p, pObj, i )
+//        pObj->pData = Aig_And( pNew, Aig_ObjChild0Copy(pObj), Aig_ObjChild1Copy(pObj) );
     // create POs
-    Saig_ManForEachPo( pAig, pObj, i )
-        Aig_ObjCreatePo( pAigNew, Aig_ObjChild0Copy(pObj) );
+    Saig_ManForEachPo( p, pObj, i )
+    {
+        Saig_ManAbstractionDfs_rec( pNew, Aig_ObjFanin0(pObj) );
+        Aig_ObjCreatePo( pNew, Aig_ObjChild0Copy(pObj) );
+    }
     // create LIs
-    Aig_ManForEachPo( pAig, pObj, i )
+    Aig_ManForEachPo( p, pObj, i )
         if ( pObj->fMarkA )
         {
             pObj->fMarkA = 0;
-            Aig_ObjCreatePo( pAigNew, Aig_ObjChild0Copy(pObj) );
+            Saig_ManAbstractionDfs_rec( pNew, Aig_ObjFanin0(pObj) );
+            Aig_ObjCreatePo( pNew, Aig_ObjChild0Copy(pObj) );
         }
-    Aig_ManSetRegNum( pAigNew, Vec_IntSize(vFlops) );
-    Aig_ManSeqCleanup( pAigNew );
-//    pAigNew = Aig_ManDupSimpleDfs( pTemp = pAigNew );
-//    Aig_ManStop( pTemp );
-    return pAigNew;
+    Aig_ManSetRegNum( pNew, Vec_IntSize(vFlops) );
+    Aig_ManSeqCleanup( pNew );
+    // remove PIs without fanout
+    pNew = Saig_ManTrimPis( pTemp = pNew );
+    Aig_ManStop( pTemp );
+    return pNew;
 }
 
 ////////////////////////////////////////////////////////////////////////

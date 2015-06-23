@@ -1285,7 +1285,7 @@ int Ssw_SmlRunCounterExample( Aig_Man_t * pAig, Ssw_Cex_t * p )
     Aig_Obj_t * pObj;
     int RetValue, i, k, iBit;
 //    assert( Aig_ManRegNum(pAig) > 0 );
-    assert( Aig_ManRegNum(pAig) < Aig_ManPiNum(pAig) );
+//    assert( Aig_ManRegNum(pAig) < Aig_ManPiNum(pAig) );
     // start a new sequential simulator
     pSml = Ssw_SmlStart( pAig, 0, p->iFrame+1, 1 );
     // assign simulation info for the registers

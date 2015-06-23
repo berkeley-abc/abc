@@ -247,7 +247,7 @@ void Saig_ManExtendUndo( Aig_Man_t * p, Vec_Ptr_t * vSimInfo, Vec_Int_t * vUndo 
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Int_t * Saig_ManExtendCounterExample( Aig_Man_t * p, int iFirstPi, Ssw_Cex_t * pCex, Vec_Ptr_t * vSimInfo, int fVerbose )
+Vec_Int_t * Saig_ManExtendCounterExample( Aig_Man_t * p, int iFirstFlopPi, Ssw_Cex_t * pCex, Vec_Ptr_t * vSimInfo, int fVerbose )
 {
     Vec_Int_t * vRes, * vResInv, * vUndo, * vVis, * vVis2;
     int i, f, Value;
@@ -262,7 +262,7 @@ Vec_Int_t * Saig_ManExtendCounterExample( Aig_Man_t * p, int iFirstPi, Ssw_Cex_t
     vVis = Vec_IntAlloc( 1000 );
     vVis2 = Vec_IntAlloc( 1000 );
     vUndo = Vec_IntAlloc( 1000 );
-    for ( i = iFirstPi; i < Saig_ManPiNum(p); i++ )
+    for ( i = iFirstFlopPi; i < Saig_ManPiNum(p); i++ )
     {
         Vec_IntClear( vUndo );
         for ( f = pCex->iFrame; f >= 0; f-- )
@@ -297,7 +297,7 @@ Vec_Int_t * Saig_ManExtendCounterExample( Aig_Man_t * p, int iFirstPi, Ssw_Cex_t
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Int_t * Saig_ManExtendCounterExampleTest( Aig_Man_t * p, int iFirstPi, Ssw_Cex_t * pCex, int fVerbose )
+Vec_Int_t * Saig_ManExtendCounterExampleTest( Aig_Man_t * p, int iFirstFlopPi, Ssw_Cex_t * pCex, int fVerbose )
 {
     Vec_Int_t * vRes;
     Vec_Ptr_t * vSimInfo;
@@ -305,10 +305,10 @@ Vec_Int_t * Saig_ManExtendCounterExampleTest( Aig_Man_t * p, int iFirstPi, Ssw_C
     Aig_ManFanoutStart( p );
     vSimInfo = Vec_PtrAllocSimInfo( Aig_ManObjNumMax(p), Aig_BitWordNum(2*(pCex->iFrame+1)) );
 clk = clock();
-    vRes = Saig_ManExtendCounterExample( p, iFirstPi, pCex, vSimInfo, fVerbose );
+    vRes = Saig_ManExtendCounterExample( p, iFirstFlopPi, pCex, vSimInfo, fVerbose );
     if ( fVerbose )
     {
-        printf( "Total new PIs = %3d. Non-removable PIs = %3d.  ", Saig_ManPiNum(p)-iFirstPi, Vec_IntSize(vRes) );
+        printf( "Total new PIs = %3d. Non-removable PIs = %3d.  ", Saig_ManPiNum(p)-iFirstFlopPi, Vec_IntSize(vRes) );
 ABC_PRT( "Time", clock() - clk );
     }
     Vec_PtrFree( vSimInfo );

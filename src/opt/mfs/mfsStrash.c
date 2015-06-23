@@ -30,6 +30,60 @@
 
 /**Function*************************************************************
 
+  Synopsis    [Recursively converts AIG from Aig_Man_t into Hop_Obj_t.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_MfsConvertAigToHop_rec( Aig_Obj_t * pObj, Hop_Man_t * pHop )
+{
+    assert( !Aig_IsComplement(pObj) );
+    if ( pObj->pData )
+        return;
+    Abc_MfsConvertAigToHop_rec( Aig_ObjFanin0(pObj), pHop ); 
+    Abc_MfsConvertAigToHop_rec( Aig_ObjFanin1(pObj), pHop );
+    pObj->pData = Hop_And( pHop, (Hop_Obj_t *)Aig_ObjChild0Copy(pObj), (Hop_Obj_t *)Aig_ObjChild1Copy(pObj) ); 
+    assert( !Hop_IsComplement(pObj->pData) );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Converts AIG from Aig_Man_t into Hop_Obj_t.]
+
+  Description [Assumes that Aig_Man_t has exactly one primary outputs.
+  Returns the pointer to the root node (Hop_Obj_t) in Hop_Man_t.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Hop_Obj_t * Abc_MfsConvertAigToHop( Aig_Man_t * pMan, Hop_Man_t * pHop )
+{
+    Aig_Obj_t * pRoot, * pObj;
+    int i;
+    assert( Aig_ManPoNum(pMan) == 1 );
+    pRoot = Aig_ManPo( pMan, 0 );
+    // check the case of a constant
+    if ( Aig_ObjIsConst1( Aig_ObjFanin0(pRoot) ) )
+        return Hop_NotCond( Hop_ManConst1(pHop), Aig_ObjFaninC0(pRoot) );
+    // set the PI mapping
+    Aig_ManCleanData( pMan );
+    Aig_ManForEachPi( pMan, pObj, i )
+        pObj->pData = Hop_IthVar( pHop, i );
+    // construct the AIG
+    Abc_MfsConvertAigToHop_rec( Aig_ObjFanin0(pRoot), pHop );
+    return Hop_NotCond( Aig_ObjFanin0(pRoot)->pData, Aig_ObjFaninC0(pRoot) );
+}
+
+// should be called as follows:   pNodeNew->pData = Abc_MfsConvertAigToHop( pAigManInterpol, pNodeNew->pNtk->pManFunc );
+
+/**Function*************************************************************
+
   Synopsis    [Construct BDDs and mark AIG nodes.]
 
   Description []

@@ -136,6 +136,7 @@ struct Gia_Man_t_
     unsigned char* pSwitching;    // switching activity for each object
     Gia_Plc_t *    pPlacement;    // placement of the objects
     int *          pTravIds;      // separate traversal ID representation
+    int            nTravIdsAlloc; // the number of trav IDs allocated
     Vec_Ptr_t *    vNamesIn;      // the input names 
     Vec_Ptr_t *    vNamesOut;     // the output names
 };
@@ -167,7 +168,6 @@ struct Gia_ParFra_t_
 };
 
 
-
 // simulation parameters
 typedef struct Gia_ParSim_t_ Gia_ParSim_t;
 struct Gia_ParSim_t_
@@ -197,6 +197,7 @@ static inline void         Gia_InfoSetBit( unsigned * p, int i )  { p[(i)>>5] |=
 static inline void         Gia_InfoXorBit( unsigned * p, int i )  { p[(i)>>5] ^= (1<<((i) & 31));                          }
 static inline unsigned     Gia_InfoMask( int nVar )               { return (~(unsigned)0) >> (32-nVar);                    }
 static inline unsigned     Gia_ObjCutSign( unsigned ObjId )       { return (1 << (ObjId & 31));                            }
+static inline int          Gia_WordHasOneBit( unsigned uWord )    { return (uWord & (uWord-1)) == 0;                       }
 static inline int          Gia_WordCountOnes( unsigned uWord )
 {
     uWord = (uWord & 0x55555555) + ((uWord>>1) & 0x55555555);
@@ -320,14 +321,29 @@ static inline void         Gia_ObjSetTravIdPrevious( Gia_Man_t * p, Gia_Obj_t * 
 static inline int          Gia_ObjIsTravIdCurrent( Gia_Man_t * p, Gia_Obj_t * pObj )        { return ((int)pObj->Value == p->nTravIds);      }
 static inline int          Gia_ObjIsTravIdPrevious( Gia_Man_t * p, Gia_Obj_t * pObj )       { return ((int)pObj->Value == p->nTravIds - 1);  }
 
-static inline void         Gia_ManResetTravIdArray( Gia_Man_t * p )                         { ABC_FREE( p->pTravIds ); p->pTravIds = ABC_CALLOC( int, Gia_ManObjNum(p) ); p->nTravIds = 1;  }
-static inline void         Gia_ManIncrementTravIdArray( Gia_Man_t * p )                     { p->nTravIds++;                                                    }
-static inline void         Gia_ObjSetTravIdCurrentArray( Gia_Man_t * p, Gia_Obj_t * pObj )  { p->pTravIds[Gia_ObjId(p, pObj)] = p->nTravIds;                    }
-static inline void         Gia_ObjSetTravIdPreviousArray( Gia_Man_t * p, Gia_Obj_t * pObj ) { p->pTravIds[Gia_ObjId(p, pObj)] = p->nTravIds - 1;                }
-static inline int          Gia_ObjIsTravIdCurrentArray( Gia_Man_t * p, Gia_Obj_t * pObj )   { return (p->pTravIds[Gia_ObjId(p, pObj)] == p->nTravIds);          }
-static inline int          Gia_ObjIsTravIdPreviousArray( Gia_Man_t * p, Gia_Obj_t * pObj )  { return (p->pTravIds[Gia_ObjId(p, pObj)] == p->nTravIds - 1);      }
-static inline void         Gia_ObjSetTravIdCurrentArrayId( Gia_Man_t * p, int Id )          { p->pTravIds[Id] = p->nTravIds;                 }
-static inline int          Gia_ObjIsTravIdCurrentArrayId( Gia_Man_t * p, int Id )           { return (p->pTravIds[Id] == p->nTravIds);       }
+static inline void         Gia_ManResetTravIdArray( Gia_Man_t * p )                         
+{ 
+    ABC_FREE( p->pTravIds ); 
+    p->nTravIdsAlloc = Gia_ManObjNum(p); 
+    p->pTravIds = ABC_CALLOC( int, p->nTravIdsAlloc ); 
+    p->nTravIds = 1;  
+}
+static inline void         Gia_ManIncrementTravIdArray( Gia_Man_t * p )                     
+{ 
+    while ( p->nTravIdsAlloc < Gia_ManObjNum(p) )
+    {
+        p->nTravIdsAlloc *= 2;
+        p->pTravIds = ABC_REALLOC( int, p->pTravIds, p->nTravIdsAlloc );
+        memset( p->pTravIds + p->nTravIdsAlloc/2, 0, sizeof(int) * p->nTravIdsAlloc/2 );
+    }
+    p->nTravIds++;                                                    
+}
+static inline void         Gia_ObjSetTravIdCurrentArray( Gia_Man_t * p, Gia_Obj_t * pObj )  { assert( Gia_ObjId(p, pObj) < p->nTravIdsAlloc ); p->pTravIds[Gia_ObjId(p, pObj)] = p->nTravIds;                    }
+static inline void         Gia_ObjSetTravIdPreviousArray( Gia_Man_t * p, Gia_Obj_t * pObj ) { assert( Gia_ObjId(p, pObj) < p->nTravIdsAlloc ); p->pTravIds[Gia_ObjId(p, pObj)] = p->nTravIds - 1;                }
+static inline int          Gia_ObjIsTravIdCurrentArray( Gia_Man_t * p, Gia_Obj_t * pObj )   { assert( Gia_ObjId(p, pObj) < p->nTravIdsAlloc ); return (p->pTravIds[Gia_ObjId(p, pObj)] == p->nTravIds);          }
+static inline int          Gia_ObjIsTravIdPreviousArray( Gia_Man_t * p, Gia_Obj_t * pObj )  { assert( Gia_ObjId(p, pObj) < p->nTravIdsAlloc ); return (p->pTravIds[Gia_ObjId(p, pObj)] == p->nTravIds - 1);      }
+static inline void         Gia_ObjSetTravIdCurrentArrayId( Gia_Man_t * p, int Id )          { assert( Id < p->nTravIdsAlloc ); p->pTravIds[Id] = p->nTravIds;                 }
+static inline int          Gia_ObjIsTravIdCurrentArrayId( Gia_Man_t * p, int Id )           { assert( Id < p->nTravIdsAlloc ); return (p->pTravIds[Id] == p->nTravIds);       }
 
 // AIG construction
 extern void Gia_ObjAddFanout( Gia_Man_t * p, Gia_Obj_t * pObj, Gia_Obj_t * pFanout );
