@@ -114,7 +114,6 @@ Vec_Int_t * Gia_GenCreateMuxes( Gia_Man_t * p, Gia_Man_t * pNew, Vec_Int_t * vFl
 {
     Vec_Int_t * vLits = Vec_IntAlloc( nLutNum );
     int i, k, iMux, iFlop, pCtrl[16];
-    int nPars = nLutNum * (1 << nLutSize);
     // add MUXes for each group of flops
     assert( Vec_IntSize(vFlops) == nLutNum * nLutSize );
     for ( i = 0; i < nLutNum; i++ )

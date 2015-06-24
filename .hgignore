@@ -15,6 +15,7 @@ lib/bip*
 docs/
 
 src/ext/
+src/ext2/
 src/xxx/
 src/aig/au/
 src/aig/ssm/
