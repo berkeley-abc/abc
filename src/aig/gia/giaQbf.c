@@ -56,6 +56,126 @@ extern Cnf_Dat_t * Mf_ManGenerateCnf( Gia_Man_t * pGia, int nLutSize, int fCnfOb
 
 /**Function*************************************************************
 
+  Synopsis    [Generating QBF miter to solve the induction problem.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Int_t * Gia_GenCollectFlopIndexes( char * pStr, int nLutNum, int nLutSize, int nFlops )
+{
+    int nDups;
+    char * pTemp;
+    Vec_Int_t * vFlops;
+    assert( nLutSize * nLutNum <= nFlops );
+    if ( pStr == NULL )
+        return Vec_IntStartNatural( nLutNum * nLutSize );
+    vFlops = Vec_IntAlloc( nLutNum * nLutSize );
+    pTemp = strtok( pStr, ", " );
+    while ( pTemp )
+    {
+        int iFlop = atoi(pTemp);
+        if ( iFlop >= nFlops )
+        {
+            printf( "Flop index (%d) exceeds the number of flops (%d).\n", iFlop, nFlops );
+            break;
+        }
+        Vec_IntPush( vFlops, iFlop );
+        pTemp = strtok( NULL, ", " );
+    }
+    if ( Vec_IntSize(vFlops) != nLutNum * nLutSize )
+    {
+        printf( "Gia_GenCollectFlopIndexes: Expecting %d flop indexes (instead of %d).\n", nLutNum * nLutSize, Vec_IntSize(vFlops) );
+        Vec_IntFree( vFlops );
+        return NULL;
+    }
+    nDups = Vec_IntCountDuplicates(vFlops);
+    if ( nDups )
+    {
+        printf( "Gia_GenCollectFlopIndexes: There are %d duplicated flops in the list.\n", nDups );
+        Vec_IntFree( vFlops );
+        return NULL;
+    }
+    return vFlops;
+}
+int Gia_GenCreateMux_rec( Gia_Man_t * pNew, int * pCtrl, int nCtrl, Vec_Int_t * vData, int Shift )
+{
+    int iLit0, iLit1;
+    if ( nCtrl == 0 )
+        return Vec_IntEntry( vData, Shift );
+    iLit0 = Gia_GenCreateMux_rec( pNew, pCtrl, nCtrl-1, vData, Shift );
+    iLit1 = Gia_GenCreateMux_rec( pNew, pCtrl, nCtrl-1, vData, Shift + (1<<(nCtrl-1)) );
+    return Gia_ManHashMux( pNew, pCtrl[nCtrl-1], iLit1, iLit0 );
+}
+Vec_Int_t * Gia_GenCreateMuxes( Gia_Man_t * p, Gia_Man_t * pNew, Vec_Int_t * vFlops, int nLutNum, int nLutSize, Vec_Int_t * vParLits, int fUseRi )
+{
+    Vec_Int_t * vLits = Vec_IntAlloc( nLutNum );
+    int i, k, iMux, iFlop, pCtrl[16];
+    int nPars = nLutNum * (1 << nLutSize);
+    // add MUXes for each group of flops
+    assert( Vec_IntSize(vFlops) == nLutNum * nLutSize );
+    for ( i = 0; i < nLutNum; i++ )
+    {
+        for ( k = 0; k < nLutSize; k++ )
+        {
+            iFlop = Vec_IntEntry(vFlops, i * nLutSize + k);
+            assert( iFlop >= 0 && iFlop < Gia_ManRegNum(p) );
+            if ( fUseRi )
+                pCtrl[k] = Gia_ManRi(p, iFlop)->Value;
+            else
+                pCtrl[k] = Gia_ManRo(p, iFlop)->Value;
+        }
+        iMux = Gia_GenCreateMux_rec( pNew, pCtrl, nLutSize, vParLits, i * (1 << nLutSize) );
+        Vec_IntPush( vLits, iMux );
+    }
+    return vLits;
+}
+Gia_Man_t * Gia_GenQbfMiter( Gia_Man_t * p, int nFrames, int nLutNum, int nLutSize, char * pStr, int fVerbose )
+{
+    Gia_Obj_t * pObj; 
+    Gia_Man_t * pTemp, * pNew;
+    int i, iMiter, nPars = nLutNum * (1 << nLutSize);
+    Vec_Int_t * vLits0, * vLits1, * vParLits;
+    Vec_Int_t * vFlops = Gia_GenCollectFlopIndexes( pStr, nLutNum, nLutSize, Gia_ManRegNum(p) );
+    // collect parameter literals (data vars)
+    vParLits = Vec_IntAlloc( nPars );
+    for ( i = 0; i < nPars; i++ )
+        Vec_IntPush( vParLits, i ? Abc_Var2Lit(i+1, 0) : 1 );
+    // create new manager
+    pNew = Gia_ManStart( Gia_ManObjNum(p) );
+    pNew->pName = Abc_UtilStrsav( p->pName );
+    pNew->pSpec = Abc_UtilStrsav( p->pSpec );
+    Gia_ManHashAlloc( pNew );
+    Gia_ManConst0(p)->Value = 0;
+    for ( i = 0; i < nPars; i++ )
+        Gia_ManAppendCi( pNew );
+    Gia_ManForEachCi( p, pObj, i )
+        pObj->Value = Gia_ManAppendCi( pNew );
+    Gia_ManForEachAnd( p, pObj, i )
+        pObj->Value = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+    Gia_ManForEachCo( p, pObj, i )
+        pObj->Value = Gia_ObjFanin0Copy(pObj);
+    vLits0 = Gia_GenCreateMuxes( p, pNew, vFlops, nLutNum, nLutSize, vParLits, 0 );
+    vLits1 = Gia_GenCreateMuxes( p, pNew, vFlops, nLutNum, nLutSize, vParLits, 1 );
+    // create miter output
+    iMiter = Gia_ManHashAnd( pNew, Vec_IntEntry(vLits0, 0), Abc_LitNot(Vec_IntEntry(vLits1, 0)) );
+    iMiter = Gia_ManHashAnd( pNew, Abc_LitNot(iMiter), Abc_Var2Lit(1, 0) );
+    Gia_ManAppendCo( pNew, iMiter );
+    // cleanup
+    Vec_IntFree( vLits0 );
+    Vec_IntFree( vLits1 );
+    Vec_IntFree( vFlops );
+    Vec_IntFree( vParLits );
+    pNew = Gia_ManCleanup( pTemp = pNew );
+    Gia_ManStop( pTemp );
+    return pNew;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Naive way to enumerate SAT assignments.]
 
   Description []
@@ -455,10 +575,11 @@ int Gia_QbfSolve( Gia_Man_t * pGia, int nPars, int nIterLimit, int nConfLimit, i
     }
     if ( RetValue == 0 )
     {
+        int nZeros = Vec_IntCountZero( p->vValues );
         printf( "Parameters: " );
         assert( Vec_IntSize(p->vValues) == nPars );
         Vec_IntPrintBinary( p->vValues );
-        printf( "\n" );
+        printf( "  Statistics: 0=%d 1=%d\n", nZeros, Vec_IntSize(p->vValues) - nZeros );
     }
     if ( RetValue == -1 && nTimeOut && (Abc_Clock() - p->clkStart)/CLOCKS_PER_SEC >= nTimeOut )
         printf( "The problem timed out after %d sec.  ", nTimeOut );

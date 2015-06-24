@@ -438,6 +438,7 @@ static int Abc_CommandAbc9ICheck             ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandAbc9SatTest            ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9FFTest             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Qbf                ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9GenQbf             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9SatFx              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Inse               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Maxi               ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -1046,6 +1047,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "ABC9",         "&sattest",      Abc_CommandAbc9SatTest,      0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&fftest",       Abc_CommandAbc9FFTest,       0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&qbf",          Abc_CommandAbc9Qbf,          0 );
+    Cmd_CommandAdd( pAbc, "ABC9",         "&genqbf",       Abc_CommandAbc9GenQbf,       0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&satfx",        Abc_CommandAbc9SatFx,        0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&inse",         Abc_CommandAbc9Inse,         0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&maxi",         Abc_CommandAbc9Maxi,         0 );
@@ -36747,6 +36749,121 @@ usage:
     Abc_Print( -2, "\t-T num : global timeout [default = %d]\n", nTimeOut );
     Abc_Print( -2, "\t-d     : toggle dumping QDIMACS file instead of solving [default = %s]\n", fDumpCnf? "yes": "no" );
     Abc_Print( -2, "\t-q     : toggle quantifying functions variables [default = %s]\n", fQuantX? "yes": "no" );
+    Abc_Print( -2, "\t-v     : toggle verbose output [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc9GenQbf( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern Gia_Man_t * Gia_GenQbfMiter( Gia_Man_t * pGia, int nFrames, int nLutNum, int nLutSize, char * pStr, int fVerbose );
+    int nFrames   =    1;
+    int nLutNum   =    1;
+    int nLutSize  =    6;
+    char * pStr   = NULL;
+    int fVerbose  =    0;
+    int c;
+    Gia_Man_t * pTemp;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "FKNSvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'F':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-F\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nFrames = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nFrames < 0 )
+                goto usage;
+            break;
+        case 'K':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-K\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nLutSize = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nLutSize < 0 )
+                goto usage;
+            break;
+        case 'N':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-N\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nLutNum = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nLutNum < 0 )
+                goto usage;
+            break;
+        case 'S':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-N\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pStr = Abc_UtilStrsav(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pStr == NULL )
+                goto usage;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pAbc->pGia == NULL )
+    {
+        Abc_Print( -1, "There is no current GIA.\n" );
+        return 1;
+    }
+    if ( Gia_ManRegNum(pAbc->pGia) == 0 )
+    {
+        Abc_Print( -1, "Works only for sequential networks.\n" );
+        return 1;
+    }
+    if ( Gia_ManRegNum(pAbc->pGia) < nLutSize * nLutNum )
+    {
+        Abc_Print( -1, "The number of flops (%d) is less than required (%d).\n", Gia_ManRegNum(pAbc->pGia), nLutSize * nLutNum );
+        return 1;
+    }
+    if ( nFrames != 1 || nLutNum != 1 )
+    {
+        Abc_Print( -1, "Currently this commands works for one frame and one LUT.\n" );
+        return 1;
+    }
+    pTemp = Gia_GenQbfMiter( pAbc->pGia, nFrames, nLutNum, nLutSize, pStr, fVerbose );
+    Abc_FrameUpdateGia( pAbc, pTemp );
+    ABC_FREE( pStr );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: &genqbf [-FKN num] [-vh]\n" );
+    Abc_Print( -2, "\t         generates QBF miter for computing an inductive invariant\n" );
+    Abc_Print( -2, "\t-F num : the number of time frames for induction [default = %d]\n", nFrames );
+    Abc_Print( -2, "\t-K num : the LUT size [default = %d]\n", nLutSize );
+    Abc_Print( -2, "\t-N num : the number of LUTs [default = %d]\n", nLutNum );
     Abc_Print( -2, "\t-v     : toggle verbose output [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
