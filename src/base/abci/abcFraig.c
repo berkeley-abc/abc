@@ -691,7 +691,7 @@ int Abc_NtkFraigStore( Abc_Ntk_t * pNtkAdd )
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Ntk_t * Abc_NtkFraigRestore()
+Abc_Ntk_t * Abc_NtkFraigRestore( int nPatsRand, int nPatsDyna, int nBTLimit )
 {
     extern Abc_Ntk_t * Abc_NtkFraigPartitioned( Vec_Ptr_t * vStore, void * pParams );
     Fraig_Params_t Params;
@@ -729,9 +729,9 @@ Abc_Ntk_t * Abc_NtkFraigRestore()
 
     // set parameters for fraiging
     Fraig_ParamsSetDefault( &Params );
-    Params.nPatsRand  = nWordsMin * 32;    // the number of words of random simulation info
-    Params.nPatsDyna  = nWordsMin * 32;    // the number of words of dynamic simulation info
-    Params.nBTLimit   = 1000;              // the max number of backtracks to perform
+    Params.nPatsRand  = nPatsRand ? nPatsRand : nWordsMin * 32;    // the number of words of random simulation info
+    Params.nPatsDyna  = nPatsDyna ? nPatsDyna : nWordsMin * 32;    // the number of words of dynamic simulation info
+    Params.nBTLimit   = nBTLimit;          // the max number of backtracks to perform
     Params.fFuncRed   =    1;              // performs only one level hashing
     Params.fFeedBack  =    1;              // enables solver feedback
     Params.fDist1Pats =    1;              // enables distance-1 patterns

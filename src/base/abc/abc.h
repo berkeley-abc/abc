@@ -650,7 +650,7 @@ extern ABC_DLL Abc_Ntk_t *        Abc_NtkFraig( Abc_Ntk_t * pNtk, void * pParams
 extern ABC_DLL void *             Abc_NtkToFraig( Abc_Ntk_t * pNtk, void * pParams, int fAllNodes, int fExdc );
 extern ABC_DLL Abc_Ntk_t *        Abc_NtkFraigTrust( Abc_Ntk_t * pNtk );
 extern ABC_DLL int                Abc_NtkFraigStore( Abc_Ntk_t * pNtk );
-extern ABC_DLL Abc_Ntk_t *        Abc_NtkFraigRestore();
+extern ABC_DLL Abc_Ntk_t *        Abc_NtkFraigRestore( int nPatsRand, int nPatsDyna, int nBTLimit );
 extern ABC_DLL void               Abc_NtkFraigStoreClean();
 /*=== abcFunc.c ==========================================================*/
 extern ABC_DLL int                Abc_NtkSopToBdd( Abc_Ntk_t * pNtk );

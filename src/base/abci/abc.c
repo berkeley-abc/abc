@@ -13673,18 +13673,49 @@ int Abc_CommandFraigRestore( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Abc_Ntk_t * pNtk, * pNtkRes;
     int c;
-    int fDuplicate;
+    int nPatsRand  =    0;    // the number of words of random simulation info
+    int nPatsDyna  =    0;    // the number of words of dynamic simulation info
+    int nBTLimit   = 1000;    // the max number of backtracks to perform
 
     pNtk = Abc_FrameReadNtk(pAbc);
     // set defaults
-    fDuplicate = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "dh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "RDCh" ) ) != EOF )
     {
         switch ( c )
         {
-        case 'd':
-            fDuplicate ^= 1;
+        case 'R':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-R\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nPatsRand = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nPatsRand < 0 )
+                goto usage;
+            break;
+        case 'D':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-D\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nPatsDyna = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nPatsDyna < 0 )
+                goto usage;
+            break;
+        case 'C':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-C\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nBTLimit = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nBTLimit < 0 )
+                goto usage;
             break;
         case 'h':
             goto usage;
@@ -13700,7 +13731,7 @@ int Abc_CommandFraigRestore( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
 
     // get the new network
-    pNtkRes = Abc_NtkFraigRestore();
+    pNtkRes = Abc_NtkFraigRestore( nPatsRand, nPatsDyna, nBTLimit );
     if ( pNtkRes == NULL )
     {
         Abc_Print( -1, "Fraig restoring has failed.\n" );
@@ -13711,10 +13742,12 @@ int Abc_CommandFraigRestore( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: fraig_restore [-h]\n" );
-    Abc_Print( -2, "\t        makes the current network by fraiging the AIG database\n" );
-//    Abc_Print( -2, "\t-d    : toggle duplication of logic [default = %s]\n", fDuplicate? "yes": "no" );
-    Abc_Print( -2, "\t-h    : print the command usage\n");
+    Abc_Print( -2, "usage: fraig_restore [-RDC num] [-h]\n" );
+    Abc_Print( -2, "\t         makes the current network by fraiging the AIG database\n" );
+    Abc_Print( -2, "\t-R num : number of random patterns (127 < num < 32769) [default = design-dependent]\n" );
+    Abc_Print( -2, "\t-D num : number of systematic patterns (127 < num < 32769) [default = design-dependent]\n" );
+    Abc_Print( -2, "\t-C num : number of backtracks for one SAT problem [default = %d]\n",  nBTLimit );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
 }
 
