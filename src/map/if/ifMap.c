@@ -192,8 +192,8 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
             continue;
         // check if the cut is a special AND-gate cut
         pCut->fAndCut = fUseAndCut && pCut->nLeaves == 2 && pCut->pLeaves[0] == pObj->pFanin0->Id && pCut->pLeaves[1] == pObj->pFanin1->Id;
-        assert( pCut->nLeaves != 2 || pCut->pLeaves[0] < pCut->pLeaves[1] );
-        assert( pCut->nLeaves != 2 || pObj->pFanin0->Id < pObj->pFanin1->Id );
+        //assert( pCut->nLeaves != 2 || pCut->pLeaves[0] < pCut->pLeaves[1] );
+        //assert( pCut->nLeaves != 2 || pObj->pFanin0->Id < pObj->pFanin1->Id );
         // compute the truth table
         pCut->iCutFunc = -1;
         pCut->fCompl = 0;
