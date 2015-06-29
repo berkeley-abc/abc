@@ -19,6 +19,7 @@
 ***********************************************************************/
 
 #include "abc.h"
+#include "misc/util/utilNam.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -297,7 +298,7 @@ char ** Abc_NtkCollectCioNames( Abc_Ntk_t * pNtk, int fCollectCos )
 
 /**Function*************************************************************
 
-  Synopsis    [Procedure used for sorting the nodes in decreasing order of levels.]
+  Synopsis    [Orders PIs/POs/latches alphabetically.]
 
   Description []
                
@@ -320,18 +321,6 @@ int Abc_NodeCompareNames( Abc_Obj_t ** pp1, Abc_Obj_t ** pp2 )
         return 1;
     return 0; 
 }
-
-/**Function*************************************************************
-
-  Synopsis    [Orders PIs/POs/latches alphabetically.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
 void Abc_NtkOrderObjsByName( Abc_Ntk_t * pNtk, int fComb )
 {
     Abc_Obj_t * pObj;
@@ -362,6 +351,102 @@ void Abc_NtkOrderObjsByName( Abc_Ntk_t * pNtk, int fComb )
         pObj->pCopy = NULL;
     Abc_NtkForEachBox( pNtk, pObj, i )
         pObj->pCopy = NULL;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Orders PIs/POs/latches alphabetically.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_NodeCompareIndexes( Abc_Obj_t ** pp1, Abc_Obj_t ** pp2 )
+{
+    int Diff = (*pp1)->iTemp - (*pp2)->iTemp;
+    if ( Diff < 0 )
+        return -1;
+    if ( Diff > 0 ) 
+        return 1;
+    return 0; 
+}
+void Abc_NtkTransferOrder( Abc_Ntk_t * pNtkOld, Abc_Ntk_t * pNtkNew )
+{
+    Abc_Obj_t * pObj;  int i;
+    Abc_Nam_t * pStrsCi = Abc_NamStart( Abc_NtkCiNum(pNtkOld), 24 );
+    Abc_Nam_t * pStrsCo = Abc_NamStart( Abc_NtkCoNum(pNtkOld), 24 );
+    assert( Abc_NtkPiNum(pNtkOld) == Abc_NtkPiNum(pNtkNew) );
+    assert( Abc_NtkPoNum(pNtkOld) == Abc_NtkPoNum(pNtkNew) );
+    assert( Abc_NtkLatchNum(pNtkOld) == Abc_NtkLatchNum(pNtkNew) );
+    // save IDs of the names
+    Abc_NtkForEachCi( pNtkOld, pObj, i )
+        Abc_NamStrFindOrAdd( pStrsCi, Abc_ObjName(pObj), NULL );
+    assert( Abc_NamObjNumMax(pStrsCi) == i + 1 );
+    Abc_NtkForEachCo( pNtkOld, pObj, i )
+        Abc_NamStrFindOrAdd( pStrsCo, Abc_ObjName(pObj), NULL );
+    assert( Abc_NamObjNumMax(pStrsCo) == i + 1 );
+    // transfer to the new network
+    Abc_NtkForEachCi( pNtkNew, pObj, i )
+    {
+        pObj->iTemp = Abc_NamStrFind(pStrsCi, Abc_ObjName(pObj));
+        assert( pObj->iTemp > 0 && pObj->iTemp <= Abc_NtkCiNum(pNtkNew) );
+    }
+    Abc_NtkForEachCo( pNtkNew, pObj, i )
+    {
+        pObj->iTemp = Abc_NamStrFind(pStrsCo, Abc_ObjName(pObj));
+        assert( pObj->iTemp > 0 && pObj->iTemp <= Abc_NtkCoNum(pNtkNew) );
+    }
+    Abc_NamDeref( pStrsCi );
+    Abc_NamDeref( pStrsCo );
+    // order PI/PO 
+    qsort( (void *)Vec_PtrArray(pNtkNew->vPis), Vec_PtrSize(pNtkNew->vPis), sizeof(Abc_Obj_t *), 
+        (int (*)(const void *, const void *)) Abc_NodeCompareIndexes );
+    qsort( (void *)Vec_PtrArray(pNtkNew->vPos), Vec_PtrSize(pNtkNew->vPos), sizeof(Abc_Obj_t *), 
+        (int (*)(const void *, const void *)) Abc_NodeCompareIndexes );
+    // order CI/CO 
+    qsort( (void *)Vec_PtrArray(pNtkNew->vCis), Vec_PtrSize(pNtkNew->vCis), sizeof(Abc_Obj_t *), 
+        (int (*)(const void *, const void *)) Abc_NodeCompareIndexes );
+    qsort( (void *)Vec_PtrArray(pNtkNew->vCos), Vec_PtrSize(pNtkNew->vCos), sizeof(Abc_Obj_t *), 
+        (int (*)(const void *, const void *)) Abc_NodeCompareIndexes );
+    // order CIs/COs first PIs/POs(Asserts) then latches
+    //Abc_NtkOrderCisCos( pNtk );
+    // clean the copy fields
+    Abc_NtkForEachCi( pNtkNew, pObj, i )
+        pObj->iTemp = 0;
+    Abc_NtkForEachCo( pNtkNew, pObj, i )
+        pObj->iTemp = 0;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Checks that the order and number of CI/CO is the same.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_NodeCompareCiCo( Abc_Ntk_t * pNtkOld, Abc_Ntk_t * pNtkNew )
+{
+    int i;
+    if ( Abc_NtkPiNum(pNtkOld) != Abc_NtkPiNum(pNtkNew) )
+        return 0;
+    if ( Abc_NtkPoNum(pNtkOld) != Abc_NtkPoNum(pNtkNew) )
+        return 0;
+    if ( Abc_NtkLatchNum(pNtkOld) != Abc_NtkLatchNum(pNtkNew) )
+        return 0;
+    for ( i = 0; i < Abc_NtkCiNum(pNtkOld); i++ )
+        if ( strcmp(Abc_ObjName(Abc_NtkCi(pNtkOld, i)), Abc_ObjName(Abc_NtkCi(pNtkNew, i))) )
+            return 0;
+    for ( i = 0; i < Abc_NtkCoNum(pNtkOld); i++ )
+        if ( strcmp(Abc_ObjName(Abc_NtkCo(pNtkOld, i)), Abc_ObjName(Abc_NtkCo(pNtkNew, i))) )
+            return 0;
+    return 1;
 }
 
 /**Function*************************************************************

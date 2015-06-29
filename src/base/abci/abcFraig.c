@@ -667,12 +667,16 @@ int Abc_NtkFraigStore( Abc_Ntk_t * pNtkAdd )
     if ( Vec_PtrSize(vStore) > 0 )
     {
         // check that the networks have the same PIs
-        // reorder PIs of pNtk2 according to pNtk1
-        if ( !Abc_NtkCompareSignals( pNtk, (Abc_Ntk_t *)Vec_PtrEntry(vStore, 0), 1, 1 ) )
+        extern int Abc_NodeCompareCiCo( Abc_Ntk_t * pNtkOld, Abc_Ntk_t * pNtkNew );
+        if ( !Abc_NodeCompareCiCo(pNtk, (Abc_Ntk_t *)Vec_PtrEntry(vStore, 0)) )
         {
-            printf( "Trying to store the network with different primary inputs.\n" );
-            printf( "The previously stored networks are deleted and this one is added.\n" );
-            Abc_NtkFraigStoreClean();
+            // reorder PIs of pNtk2 according to pNtk1
+            if ( !Abc_NtkCompareSignals( pNtk, (Abc_Ntk_t *)Vec_PtrEntry(vStore, 0), 1, 1 ) )
+            {
+                printf( "Trying to store the network with different primary inputs.\n" );
+                printf( "The previously stored networks are deleted and this one is added.\n" );
+                Abc_NtkFraigStoreClean();
+            }
         }
     }
     Vec_PtrPush( vStore, pNtk );

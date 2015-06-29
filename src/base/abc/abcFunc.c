@@ -408,6 +408,12 @@ int Abc_NtkBddToSop( Abc_Ntk_t * pNtk, int fMode, int nCubeLimit )
             Vec_StrFree( vCube );
             return 0;
         }
+        if ( Abc_ObjFaninNum(pNode) != Abc_SopGetVarNum((char *)pNode->pNext) )
+        {
+            printf( "Node %d with level %d has %d fanins but its SOP has support size %d.\n", 
+                pNode->Id, pNode->Level, Abc_ObjFaninNum(pNode), Abc_SopGetVarNum((char *)pNode->pNext) );
+            fflush( stdout );
+        }
         assert( Abc_ObjFaninNum(pNode) == Abc_SopGetVarNum((char *)pNode->pNext) );
     }
     Vec_IntFree( vGuide );

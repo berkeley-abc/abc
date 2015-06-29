@@ -16751,7 +16751,7 @@ int Abc_CommandInit( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     if ( Abc_NtkIsComb(pNtk) )
     {
-        Abc_Print( -1, "The current network is combinational.\n" );
+        Abc_Print( 0, "The current network is combinational.\n" );
         return 0;
     }
 
@@ -16882,7 +16882,7 @@ int Abc_CommandZero( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     if ( Abc_NtkIsComb(pNtk) )
     {
-        Abc_Print( -1, "The current network is combinational.\n" );
+        Abc_Print( 0, "The current network is combinational.\n" );
         return 0;
     }
 
@@ -16978,7 +16978,7 @@ int Abc_CommandUndc( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     if ( Abc_NtkIsComb(pNtk) )
     {
-        Abc_Print( -1, "The current network is combinational.\n" );
+        Abc_Print( 0, "The current network is combinational.\n" );
         return 0;
     }
 
@@ -17037,7 +17037,7 @@ int Abc_CommandOneHot( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     if ( Abc_NtkIsComb(pNtk) )
     {
-        Abc_Print( -1, "The current network is combinational.\n" );
+        Abc_Print( 0, "The current network is combinational.\n" );
         return 0;
     }
     if ( !Abc_NtkIsLogic(pNtk) )
@@ -17113,7 +17113,7 @@ int Abc_CommandPipe( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     if ( Abc_NtkIsComb(pNtk) )
     {
-        Abc_Print( -1, "The current network is combinational.\n" );
+        Abc_Print( 0, "The current network is combinational.\n" );
         return 0;
     }
 
@@ -23404,7 +23404,7 @@ int Abc_CommandTempor( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     if ( Abc_NtkLatchNum(pNtk) == 0 )
     {
-        Abc_Print( -2, "The current network is combinational.\n");
+        Abc_Print( 0, "The current network is combinational.\n");
         return 0;
     }
     if ( fUpdateCex )
@@ -24602,7 +24602,7 @@ int Abc_CommandPdr( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     if ( Abc_NtkLatchNum(pNtk) == 0 )
     {
-        Abc_Print( -2, "The current network is combinational.\n");
+        Abc_Print( 0, "The current network is combinational.\n");
         return 0;
     }
     if ( !Abc_NtkIsStrash(pNtk) )
