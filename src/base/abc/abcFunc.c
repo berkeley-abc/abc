@@ -408,6 +408,10 @@ int Abc_NtkBddToSop( Abc_Ntk_t * pNtk, int fMode, int nCubeLimit )
             Vec_StrFree( vCube );
             return 0;
         }
+        // it may happen that a constant node was created after structural mapping
+        if ( Abc_SopGetVarNum((char *)pNode->pNext) == 0 )
+            pNode->vFanins.nSize = 0;
+        // check the support
         if ( Abc_ObjFaninNum(pNode) != Abc_SopGetVarNum((char *)pNode->pNext) )
         {
             printf( "Node %d with level %d has %d fanins but its SOP has support size %d.\n", 
