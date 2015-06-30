@@ -290,7 +290,7 @@ static inline int Smt_PrsBuildConstant( Wlc_Ntk_t * pNtk, char * pStr, int nBits
     Vec_Int_t * vFanins = Vec_IntAlloc( 10 );
     if ( pStr[0] != '#' ) // decimal
     {
-        if ( pStr[0] >= 0 && pStr[0] <= 9 )
+        if ( pStr[0] >= '0' && pStr[0] <= '9' )
         {
             int Number = atoi( pStr );
             nBits = Abc_Base2Log( Number+1 );
