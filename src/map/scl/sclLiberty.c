@@ -457,6 +457,11 @@ int Scl_LibertyBuildItem( Scl_Tree_t * p, char ** ppPos, char * pEnd )
             goto exit;
         return Scl_LibertyItemId( p, pItem );
     }
+    if ( *pNext == ';' )
+    {
+        *ppPos = pNext + 1;
+        return Scl_LibertyBuildItem(p, ppPos, pEnd);
+    }
 exit:
     if ( p->pError == NULL )
     {
