@@ -951,6 +951,7 @@ Vec_Int_t * Abc_NtkNodeSupportInt( Abc_Ntk_t * pNtk, int iCo )
     pObj = Abc_NtkCo( pNtk, iCo );
     vNodes = Vec_IntAlloc( 100 );
     Abc_NtkNodeSupportInt_rec( Abc_ObjFanin0(pObj), vNodes );
+    Vec_IntSort( vNodes, 0 );
     return vNodes;
 }
 
