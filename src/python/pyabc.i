@@ -359,6 +359,31 @@ PyObject* eq_classes()
     return eq_classes;    
 }
 
+PyObject* co_supp( int iCo )
+{
+    PyObject* co_supp;
+    Vec_Int_t * vSupp;
+    Abc_Frame_t* pAbc = Abc_FrameGetGlobalFrame();
+    Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
+
+    if ( !pNtk )
+    {
+        Py_RETURN_NONE;
+    }
+
+    vSupp = Abc_NtkNodeSupportInt( pNtk, iCo );
+
+    if( !vSupp )
+    {
+        Py_RETURN_NONE;
+    }
+    
+    co_supp = VecInt_To_PyList( vSupp );
+    Vec_IntFree( vSupp );
+
+    return co_supp;    
+}
+
 void _pyabc_array_clear()
 {
     Abc_Frame_t* pAbc = Abc_FrameGetGlobalFrame();
@@ -715,6 +740,7 @@ int _cex_get_po(Abc_Cex_t* pCex);
 int _cex_get_frame(Abc_Cex_t* pCex);
 
 PyObject* eq_classes();
+PyObject* co_supp(int iCo);
 
 void _pyabc_array_clear();
 void _pyabc_array_push(int i);

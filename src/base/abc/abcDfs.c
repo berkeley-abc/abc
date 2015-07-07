@@ -905,6 +905,57 @@ Vec_Ptr_t * Abc_NtkNodeSupport( Abc_Ntk_t * pNtk, Abc_Obj_t ** ppNodes, int nNod
 
 /**Function*************************************************************
 
+  Synopsis    [Returns the set of CI node IDs in the support of the given node.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkNodeSupportInt_rec( Abc_Obj_t * pNode, Vec_Int_t * vNodes )
+{
+    Abc_Obj_t * pFanin;
+    int i;
+    assert( !Abc_ObjIsNet(pNode) );
+    // if this node is already visited, skip
+    if ( Abc_NodeIsTravIdCurrent( pNode ) )
+        return;
+    // mark the node as visited
+    Abc_NodeSetTravIdCurrent( pNode );
+    // collect the CI
+    if ( Abc_ObjIsCi(pNode) || (Abc_NtkIsStrash(pNode->pNtk) && Abc_ObjFaninNum(pNode) == 0) )
+    {
+        if ( Abc_ObjIsCi(pNode) )
+            Vec_IntPush( vNodes, pNode->iTemp );
+        return;
+    }
+    assert( Abc_ObjIsNode( pNode ) );
+    // visit the transitive fanin of the node
+    Abc_ObjForEachFanin( pNode, pFanin, i )
+        Abc_NtkNodeSupportInt_rec( Abc_ObjFanin0Ntk(pFanin), vNodes );
+}
+Vec_Int_t * Abc_NtkNodeSupportInt( Abc_Ntk_t * pNtk, int iCo )
+{
+    Vec_Int_t * vNodes;
+    Abc_Obj_t * pObj; 
+    int i;
+    if ( iCo < 0 || iCo >= Abc_NtkCoNum(pNtk) )
+        return NULL;
+    // save node indices in the CI nodes
+    Abc_NtkForEachCi( pNtk, pObj, i )
+        pObj->iTemp = i;
+    // collect the indexes of CI nodes in the TFI of the CO node
+    Abc_NtkIncrementTravId( pNtk );
+    pObj = Abc_NtkCo( pNtk, iCo );
+    vNodes = Vec_IntAlloc( 100 );
+    Abc_NtkNodeSupportInt_rec( Abc_ObjFanin0(pObj), vNodes );
+    return vNodes;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Computes support size of the node.]
 
   Description []
