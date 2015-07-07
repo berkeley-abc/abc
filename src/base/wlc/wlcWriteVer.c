@@ -381,7 +381,7 @@ void Wlc_WriteVerInt( FILE * pFile, Wlc_Ntk_t * p )
     assert( !p->vInits || iFanin == (int)strlen(p->pInits) );
     fprintf( pFile, "endmodule\n\n" );
 } 
-void Wlc_WriteVer( Wlc_Ntk_t * p, char * pFileName )
+void Wlc_WriteVer( Wlc_Ntk_t * p, char * pFileName, int fAddCos )
 {
     FILE * pFile;
     pFile = fopen( pFileName, "w" );
@@ -393,7 +393,8 @@ void Wlc_WriteVer( Wlc_Ntk_t * p, char * pFileName )
     fprintf( pFile, "// Benchmark \"%s\" written by ABC on %s\n", p->pName, Extra_TimeStamp() );
     fprintf( pFile, "\n" );
     Wlc_WriteTables( pFile, p );
-//    Wlc_WriteAddPos( p );
+    if ( fAddCos )
+        Wlc_WriteAddPos( p );
     Wlc_WriteVerInt( pFile, p );
     fprintf( pFile, "\n" );
     fclose( pFile );

@@ -270,7 +270,7 @@ extern int            Wlc_StdinProcessSmt( Abc_Frame_t * pAbc, char * pCmd );
 /*=== wlcReadVer.c ========================================================*/
 extern Wlc_Ntk_t *    Wlc_ReadVer( char * pFileName );
 /*=== wlcWriteVer.c ========================================================*/
-extern void           Wlc_WriteVer( Wlc_Ntk_t * p, char * pFileName );
+extern void           Wlc_WriteVer( Wlc_Ntk_t * p, char * pFileName, int fAddCos );
 
 
 ABC_NAMESPACE_HEADER_END

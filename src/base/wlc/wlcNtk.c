@@ -531,6 +531,8 @@ Wlc_Ntk_t * Wlc_NtkDupSingleNodes( Wlc_Ntk_t * p )
             continue;
         if ( pObj->Type == WLC_OBJ_ARI_MULTI )
             continue;
+        if ( pObj->Type == WLC_OBJ_MUX && Wlc_ObjFaninNum(pObj) > 3 )
+            continue;
         // create CIs for the fanins
         Wlc_ObjForEachFanin( pObj, iFanin, k )
         {
