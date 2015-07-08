@@ -29234,6 +29234,7 @@ int Abc_CommandAbc9Synch2( Abc_Frame_t * pAbc, int argc, char ** argv )
     int nRelaxRatio = 20;
     // set defaults
     Dch_ManSetDefaultParams( pPars );
+    pPars->nBTLimit = 100;
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "WCSKRfvh" ) ) != EOF )
     {
@@ -31259,7 +31260,7 @@ usage:
     Abc_Print( -2, "\t-s     : toggle using sequential verification [default = %s]\n",  fSeq? "yes":"no");
     Abc_Print( -2, "\t-v     : toggle verbose output [default = %s]\n",                 fVerbose? "yes":"no");
     Abc_Print( -2, "\t-h     : print the command usage\n");
-    Abc_Print( -2, "\t<file> : optional file name with the spec [default = not used\n" );
+    Abc_Print( -2, "\t<file> : optional file name with the spec [default = not used]\n" );
     return 1;
 }
 

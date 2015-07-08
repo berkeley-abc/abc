@@ -73,7 +73,7 @@ struct Ifn_Ntk_t_
     int                    nObjs;             // objects
     Ifn_Obj_t              Nodes[2*IFN_INS];  // nodes
     // constraints
-    int                    pConstr[IFN_INS];  // constraint pairs
+    int                    pConstr[IFN_INS*IFN_INS];  // constraint pairs
     int                    nConstr;           // number of pairs
     // user data
     int                    nVars;             // variables
@@ -429,6 +429,7 @@ void Ifn_NtkParseConstraints( char * pStr, Ifn_Ntk_t * p )
         for ( k = 0; pStr[k]; k++ )
             if ( pStr[k] == 'A' + i && pStr[k-1] == ';' )
             {
+                assert( p->nConstr < IFN_INS*IFN_INS );
                 p->pConstr[p->nConstr++] = ((int)(pStr[k] - 'A') << 16) | (int)(pStr[k+1] - 'A');
 //                printf( "Added constraint (%c < %c)\n", pStr[k], pStr[k+1] );
             }
