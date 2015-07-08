@@ -1083,6 +1083,8 @@ startword:
             pObj = Wlc_NtkObj( p->pNtk, Vec_IntEntry(p->vFanins, 0) );
             if ( (1 << Wlc_ObjRange(pObj)) != Vec_IntSize(p->vFanins) - 1 )
                 return Wlc_PrsWriteErrorMessage( p, pStart, "The number of values in the case statement is wrong.", pName );
+            if ( Wlc_ObjRange(pObj) == 1 )
+                return Wlc_PrsWriteErrorMessage( p, pStart, "Always-statement with 1-bit control is not bit-blasted correctly.", pName );
             pObj = Wlc_NtkObj( p->pNtk, NameIdOut );
             Wlc_ObjUpdateType( p->pNtk, pObj, WLC_OBJ_MUX );
             Wlc_ObjAddFanins( p->pNtk, pObj, p->vFanins );
@@ -1194,7 +1196,7 @@ void Io_ReadWordTest( char * pFileName )
     Wlc_Ntk_t * pNtk = Wlc_ReadVer( pFileName );
     if ( pNtk == NULL )
         return;
-    Wlc_WriteVer( pNtk, "test.v", 0 );
+    Wlc_WriteVer( pNtk, "test.v", 0, 0 );
 
     pNew = Wlc_NtkBitBlast( pNtk, NULL );
     Gia_AigerWrite( pNew, "test.aig", 0, 0 );

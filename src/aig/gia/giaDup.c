@@ -2462,6 +2462,7 @@ Gia_Man_t * Gia_ManDupZeroUndc( Gia_Man_t * p, char * pInit, int fVerbose )
     Gia_Obj_t * pObj;
     int CountPis = Gia_ManPiNum(p), * pPiLits;
     int i, iResetFlop = -1, Count1 = 0;
+    //printf( "Using %s\n", pInit );
     // map X-valued flops into new PIs
     assert( (int)strlen(pInit) == Gia_ManRegNum(p) );
     pPiLits = ABC_FALLOC( int, Gia_ManRegNum(p) );

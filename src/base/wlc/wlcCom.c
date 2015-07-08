@@ -180,9 +180,10 @@ int Abc_CommandWriteWlc( Abc_Frame_t * pAbc, int argc, char ** argv )
     char * pFileName = NULL;
     int fAddCos      =    0; 
     int fSplitNodes  =    0; 
+    int fNoFlops     =    0;
     int c, fVerbose  =    0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "anvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "anfvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -191,6 +192,9 @@ int Abc_CommandWriteWlc( Abc_Frame_t * pAbc, int argc, char ** argv )
             break;
         case 'n':
             fSplitNodes ^= 1;
+            break;
+        case 'f':
+            fNoFlops ^= 1;
             break;
         case 'v':
             fVerbose ^= 1;
@@ -218,18 +222,19 @@ int Abc_CommandWriteWlc( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( fSplitNodes )
     {
         pNtk = Wlc_NtkDupSingleNodes( pNtk );
-        Wlc_WriteVer( pNtk, pFileName, fAddCos );
+        Wlc_WriteVer( pNtk, pFileName, fAddCos, fNoFlops );
         Wlc_NtkFree( pNtk );
     }
     else
-        Wlc_WriteVer( pNtk, pFileName, fAddCos );
+        Wlc_WriteVer( pNtk, pFileName, fAddCos, fNoFlops );
 
     return 0;
 usage:
-    Abc_Print( -2, "usage: %%write [-anvh]\n" );
+    Abc_Print( -2, "usage: %%write [-anfvh]\n" );
     Abc_Print( -2, "\t         writes the design into a file\n" );
     Abc_Print( -2, "\t-a     : toggle adding a CO for each node [default = %s]\n",       fAddCos? "yes": "no" );
     Abc_Print( -2, "\t-n     : toggle splitting into individual nodes [default = %s]\n", fSplitNodes? "yes": "no" );
+    Abc_Print( -2, "\t-f     : toggle skipping flops when writing file [default = %s]\n",fNoFlops? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n",    fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;

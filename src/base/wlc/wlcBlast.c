@@ -411,7 +411,7 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Vec_Int_t * vBoxIds )
     int fVerbose = 0;
     Tim_Man_t * pManTime = NULL;
     Gia_Man_t * pTemp, * pNew, * pExtra = NULL;
-    Wlc_Obj_t * pObj, * pPrev = NULL;
+    Wlc_Obj_t * pObj;
     Vec_Int_t * vBits = &p->vBits, * vTemp0, * vTemp1, * vTemp2, * vRes;
     int nBits = Wlc_NtkPrepareBits( p );
     int nRange, nRange0, nRange1, nRange2;
@@ -541,6 +541,23 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Vec_Int_t * vBoxIds )
         }
         else if ( pObj->Type == WLC_OBJ_MUX )
         {
+            // It is strange and disturbing that Verilog standard treats these statements differently:
+            // Statement 1:   
+            //     assign o = i ? b : a;
+            // Statement 2:
+            //     always @( i or a or b )
+            //       begin
+            //         case ( i )
+            //           0 : o = a ;
+            //           1 : o = b ;
+            //         endcase
+            //       end
+            // If a is signed and b is unsigned,  Statement 1 does not sign-extend a, while Statement 2 does.
+            // The signedness of o does not matter.
+            //
+            // Below we (somewhat arbitrarily) distinguish these two by assuming that 
+            // Statement 1 has three fanins, while Statement 2 has more than three fanins.
+            //
             int fSigned = 1;
             assert( nRange0 >= 1 && Wlc_ObjFaninNum(pObj) >= 3 );
             assert( 1 + (1 << nRange0) == Wlc_ObjFaninNum(pObj) );
@@ -555,7 +572,10 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Vec_Int_t * vBoxIds )
                     {
                         nRange1 = Wlc_ObjRange( Wlc_NtkObj(p, iFanin) );
                         pFans1  = Vec_IntEntryP( vBits, Wlc_ObjCopy(p, iFanin) );
-                        Vec_IntPush( vTemp0, b < nRange1 ? pFans1[b] : (fSigned? pFans1[nRange1-1] : 0) );
+                        if ( Wlc_ObjFaninNum(pObj) == 3 ) // Statement 1
+                            Vec_IntPush( vTemp0, b < nRange1 ? pFans1[b] : (fSigned? pFans1[nRange1-1] : 0) );
+                        else // Statement 2
+                            Vec_IntPush( vTemp0, b < nRange1 ? pFans1[b] : (Wlc_NtkObj(p, iFanin)->Signed? pFans1[nRange1-1] : 0) );
                     }
                 Vec_IntPush( vRes, Wlc_NtkMuxTree_rec(pNew, pFans0, nRange0, vTemp0, 0) );
             }
@@ -765,7 +785,6 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Vec_Int_t * vBoxIds )
         else assert( 0 );
         assert( Vec_IntSize(vBits) == Wlc_ObjCopy(p, i) );
         Vec_IntAppend( vBits, vRes );
-        pPrev = pObj;
         p->nAnds[pObj->Type] += Gia_ManAndNum(pNew) - nAndPrev;
     }
     p->nAnds[0] = Gia_ManAndNum(pNew);
