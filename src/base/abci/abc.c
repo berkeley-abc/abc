@@ -31724,7 +31724,7 @@ int Abc_CommandAbc9Dsdb( Abc_Frame_t * pAbc, int argc, char ** argv )
         printf( "Abc_CommandAbc9Dsdb(): Size of the required DSD manager (%d) exceeds the precompiled limit (%d) (change parameter DAU_MAX_VAR).\n", nLutSize, DAU_MAX_VAR );
         return 0;
     }
-    if ( Abc_FrameReadManDsd2() && nLutSize > If_DsdManVarNum(Abc_FrameReadManDsd2()) )
+    if ( Abc_FrameReadManDsd2() && nLutSize > If_DsdManVarNum((If_DsdMan_t*)Abc_FrameReadManDsd2()) )
     {
         printf( "Abc_CommandAbc9Dsdb(): Incompatible size of the DSD manager (run \"dsd_free -b\").\n" );
         return 0;
