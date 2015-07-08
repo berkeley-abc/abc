@@ -450,7 +450,7 @@ Aig_Man_t * Saig_ManDupFoldConstrsFunc2( Aig_Man_t * pAig, int fCompl, int fVerb
       if( i + typeII_cc < Aig_ManRegNum(pAig)) {
         Aig_Obj_t *c = Aig_Mux(pAigNew, Aig_Not(pFlopIn), 
                                Aig_ObjChild0Copy(pObjLi) ,
-                               pObjLo->pData);
+                               (Aig_Obj_t*)pObjLo->pData);
         Aig_ObjCreateCo( pAigNew, c);
       } else {
         printf ( "skipping: reg%d\n", i);

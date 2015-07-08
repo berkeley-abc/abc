@@ -169,7 +169,7 @@ Vec_Ptr_t * Wlc_NtkSimulate( Wlc_Ntk_t * p, Vec_Int_t * vNodes, int nWords, int 
             for ( k = 0; k < nBits; k++ )
             {
                 int iLit = Vec_IntEntry( &p->vBits, iFirst + k );
-                word * pInfo = Vec_VecEntryEntry( (Vec_Vec_t *)vRes, i, k );
+                word * pInfo = (word*)Vec_VecEntryEntry( (Vec_Vec_t *)vRes, i, k );
                 if ( iLit == -1 )
                 {
                     Counter++;
@@ -220,7 +220,7 @@ void Wlc_NtkSimulatePrint( Wlc_Ntk_t * p, Vec_Int_t * vNodes, Vec_Ptr_t * vRes, 
                 int nBits = Wlc_ObjRange(pWlcObj);
                 for ( k = nBits-1; k >= 0; k-- )
                 {
-                    word * pInfo = Vec_VecEntryEntry( (Vec_Vec_t *)vRes, i, k );
+                    word * pInfo = (word*)Vec_VecEntryEntry( (Vec_Vec_t *)vRes, i, k );
                     printf( "%d", Abc_InfoHasBit((unsigned *)pInfo, iPat) );
                 }
                 printf( " " );

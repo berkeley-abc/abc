@@ -259,7 +259,7 @@ void Abc_EnumPrint_rec( Vec_Int_t * vGates, int i, int nVars )
 {
     int Fan0 = Vec_IntEntry(vGates, 2*i);
     int Fan1 = Vec_IntEntry(vGates, 2*i+1);
-    char * pOper = Fan0 < Fan1 ? "" : "+";
+    char * pOper = (char*)(Fan0 < Fan1 ? "" : "+");
     if ( Fan0 > Fan1 )
         ABC_SWAP( int, Fan0, Fan1 );
     if ( Fan0 < nVars )

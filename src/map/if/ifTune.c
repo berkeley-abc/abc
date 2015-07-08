@@ -709,7 +709,7 @@ int If_ManSatFindCofigBits( void * pSat, Vec_Int_t * vPiVars, Vec_Int_t * vPoVar
     Vec_IntClear( vValues );
     if ( RetValue == 0 )
         return 0;
-    Ifn_ManSatDeriveOne( pSat, vPiVars, vValues );
+    Ifn_ManSatDeriveOne( (sat_solver*)pSat, vPiVars, vValues );
     return 1;
 }
 int Ifn_ManSatFindCofigBitsTest( Ifn_Ntk_t * p, word * pTruth, int nVars, word Perm )

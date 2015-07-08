@@ -1469,7 +1469,7 @@ void Mf_ManComputeCuts( Mf_Man_t * p )
     Gia_ManForEachAndId( p->pGia, i )
         Mf_ObjMergeOrder( p, i );
     Mf_ManSetMapRefs( p );
-    Mf_ManPrintStats( p, p->fUseEla ? "Ela  " : (p->Iter ? "Area " : "Delay") );
+    Mf_ManPrintStats( p, (char *)(p->fUseEla ? "Ela  " : (p->Iter ? "Area " : "Delay")) );
 }
 
 /**Function*************************************************************
@@ -1570,7 +1570,7 @@ void Mf_ManComputeMapping( Mf_Man_t * p )
     Gia_ManForEachAndId( p->pGia, i )
         Mf_ObjComputeBestCut( p, i );
     Mf_ManSetMapRefs( p );
-    Mf_ManPrintStats( p, p->fUseEla ? "Ela  " : (p->Iter ? "Area " : "Delay") );
+    Mf_ManPrintStats( p, (char *)(p->fUseEla ? "Ela  " : (p->Iter ? "Area " : "Delay")) );
 }
 Gia_Man_t * Mf_ManPerformMapping( Gia_Man_t * pGia, Jf_Par_t * pPars )
 {
@@ -1641,7 +1641,7 @@ Cnf_Dat_t * Mf_ManGenerateCnf( Gia_Man_t * pGia, int nLutSize, int fCnfObjIds, i
     pNew = Mf_ManPerformMapping( pGia, pPars );
     Gia_ManStopP( &pNew );
 //    Cnf_DataPrint( (Cnf_Dat_t *)pGia->pData, 1 );
-    return pGia->pData;
+    return (Cnf_Dat_t*)pGia->pData;
 }
 void Mf_ManDumpCnf( Gia_Man_t * p, char * pFileName, int nLutSize, int fCnfObjIds, int fAddOrCla, int fVerbose )
 {

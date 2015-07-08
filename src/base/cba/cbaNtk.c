@@ -130,10 +130,10 @@ static inline int Cba_GetTypeId( Cba_ObjType_t Type )
 }
 void Cba_ManSetupTypes( char ** pNames, char ** pSymbs )
 {
-    int Type, Id;
+    Cba_ObjType_t Type;
     for ( Type = 1; Type < CBA_BOX_UNKNOWN; Type++ )
     {
-        Id = Cba_GetTypeId( Type );
+        int Id = Cba_GetTypeId( Type );
         pNames[Type] = s_Types[Id].pName;
         pSymbs[Type] = s_Types[Id].pSymb;
     }
@@ -160,7 +160,7 @@ char * Cba_NtkGenerateName( Cba_Ntk_t * p, Cba_ObjType_t Type, Vec_Int_t * vBits
 
 Cba_ObjType_t Cba_NameToType( char * pName )
 {
-    int i;
+    Cba_ObjType_t i;
     if ( strncmp(pName, s_Pref, strlen(s_Pref)) )
         return 0;
     pName += strlen(s_Pref);
@@ -332,7 +332,7 @@ void Cba_ManAssignInternWordNamesNtk( Cba_Ntk_t * p, Vec_Int_t * vMap )
         {
             //int Type = Cba_ObjType(p, iObj);
             int Range = Cba_ObjIsPi(p, iObj) ? Cba_ObjPiRange(p, iObj) : Cba_BoxBoRange(p, iObj);
-            iName = Cba_ManAssignInternTwo( p, nNames++, nDigits, Cba_ObjIsPi(p, iObj) ? "i":"n", vMap );
+            iName = Cba_ManAssignInternTwo( p, nNames++, nDigits, (char*)(Cba_ObjIsPi(p, iObj) ? "i":"n"), vMap );
             if ( Range == 1 )
                 Cba_ObjSetName( p, iObj, Abc_Var2Lit2(iName, CBA_NAME_BIN) );
             else

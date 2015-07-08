@@ -1379,7 +1379,7 @@ Gia_Man_t * Gia_ManLutBalance( Gia_Man_t * p, int nLutSize, int fUseMuxes, int f
     Str_Ntk_t * pNtk;
     Gia_Man_t * pNew;
     abctime clk = Abc_Clock();
-    if ( p->pManTime && Tim_ManBoxNum(p->pManTime) && Gia_ManIsNormalized(p) )
+    if ( p->pManTime && Tim_ManBoxNum((Tim_Man_t*)p->pManTime) && Gia_ManIsNormalized(p) )
     {
         Tim_Man_t * pTimOld = (Tim_Man_t *)p->pManTime;
         p->pManTime = Tim_ManDup( pTimOld, 16 );

@@ -91,7 +91,7 @@ static inline char * Smt_GetTypeName( Smt_LineType_t Type )
 }
 static inline void Smt_AddTypes( Abc_Nam_t * p )
 {
-    int Type;
+    Smt_LineType_t Type;
     for ( Type = 1; Type < SMT_PRS_END; Type++ )
         Abc_NamStrFindOrAdd( p, Smt_GetTypeName(Type), NULL );
     assert( Abc_NamObjNumMax(p) == SMT_PRS_END );

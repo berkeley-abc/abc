@@ -55,7 +55,7 @@ void Prs_ManWriteVerilogConcat( FILE * pFile, Prs_Ntk_t * p, int Con )
 void Prs_ManWriteVerilogSignal( FILE * pFile, Prs_Ntk_t * p, int Sig )
 {
     int Value = Abc_Lit2Var2( Sig );
-    Prs_ManType_t Type = Abc_Lit2Att2( Sig );
+    Prs_ManType_t Type = (Prs_ManType_t)Abc_Lit2Att2( Sig );
     if ( Type == CBA_PRS_NAME || Type == CBA_PRS_CONST )
         fprintf( pFile, "%s", Prs_NtkStr(p, Value) );
     else if ( Type == CBA_PRS_SLICE )
@@ -110,7 +110,7 @@ void Prs_ManWriteVerilogBoxes( FILE * pFile, Prs_Ntk_t * p )
     Vec_Int_t * vBox; int i;
     Prs_NtkForEachBox( p, vBox, i )
     {
-        int NtkId = Prs_BoxNtk(p, i);
+        Cba_ObjType_t NtkId = Prs_BoxNtk(p, i);
         if ( NtkId == CBA_BOX_MUX )
             Prs_ManWriteVerilogMux( pFile, p, vBox );
         else if ( Prs_BoxIsNode(p, i) ) // node   ------- check order of fanins

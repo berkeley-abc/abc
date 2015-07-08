@@ -121,10 +121,10 @@ Vec_Ptr_t * Ptr_AbcDeriveNode( Abc_Obj_t * pObj )
     assert( Abc_ObjFaninNum(pObj) <= 2 );
     Abc_ObjForEachFanin( pObj, pFanin, i )
     {
-        Vec_PtrPush( vNode, i ? "r" : "l" );
+        Vec_PtrPush( vNode, (void*)(i ? "r" : "l") );
         Vec_PtrPush( vNode, Ptr_AbcObjName(pFanin) );
     }
-    Vec_PtrPush( vNode, "o" );
+    Vec_PtrPush( vNode, (void*)("o") );
     Vec_PtrPush( vNode, Ptr_AbcObjName(pObj) );
     assert( Ptr_CheckArray(vNode) );
     return vNode;
@@ -305,7 +305,7 @@ int Cba_NtkDeriveFromPtr( Cba_Ntk_t * pNtk, Vec_Ptr_t * vNtk, Vec_Int_t * vMap, 
         int NtkId = Cba_ManNtkFindId( pNtk->pDesign, pBoxNtk );
         assert( Vec_PtrSize(vBox) % 2 == 0 );
         assert( nOutputs > 0 && 2*(nOutputs + 1) <= Vec_PtrSize(vBox) );
-        iObj = Cba_BoxAlloc( pNtk, Ptr_NameToType(pBoxNtk), nInputs, nOutputs, NtkId );
+        iObj = Cba_BoxAlloc( pNtk, (Cba_ObjType_t)Ptr_NameToType(pBoxNtk), nInputs, nOutputs, NtkId );
         if ( NtkId > 0 )
             Cba_NtkSetHost( Cba_ManNtk(pNtk->pDesign, NtkId), Cba_NtkId(pNtk), iObj );
         Cba_ObjSetName( pNtk, iObj, Abc_Var2Lit2(Abc_NamStrFindOrAdd(pNtk->pDesign->pStrs, pBoxName, NULL), CBA_NAME_BIN) );

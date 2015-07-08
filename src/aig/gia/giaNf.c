@@ -2126,7 +2126,7 @@ Gia_Man_t * Nf_ManPerformMapping( Gia_Man_t * pGia, Jf_Par_t * pPars )
     {
         Nf_ManComputeMapping( p );
         Nf_ManSetMapRefs( p );
-        Nf_ManPrintStats( p, p->Iter ? "Area " : "Delay" );
+        Nf_ManPrintStats( p, (char *)(p->Iter ? "Area " : "Delay") );
     }
 /*
     p->fUseEla = 1;

@@ -1511,12 +1511,12 @@ int Lf_ManSetMapRefs( Lf_Man_t * p )
     if ( p->pGia->pManTime != NULL )
     {
         assert( Gia_ManBufNum(p->pGia) );
-        Tim_ManIncrementTravId( p->pGia->pManTime );
+        Tim_ManIncrementTravId( (Tim_Man_t*)p->pGia->pManTime );
         if ( p->pPars->fDoAverage )
             for ( i = 0; i < Gia_ManCoNum(p->pGia); i++ )
-               Tim_ManSetCoRequired( p->pGia->pManTime, i, (int)(Lf_ObjCoArrival(p, i) * (100.0 + p->pPars->nRelaxRatio) / 100.0) );
+               Tim_ManSetCoRequired( (Tim_Man_t*)p->pGia->pManTime, i, (int)(Lf_ObjCoArrival(p, i) * (100.0 + p->pPars->nRelaxRatio) / 100.0) );
         else  
-            Tim_ManInitPoRequiredAll( p->pGia->pManTime, Delay );
+            Tim_ManInitPoRequiredAll( (Tim_Man_t*)p->pGia->pManTime, Delay );
         Gia_ManForEachObjReverse1( p->pGia, pObj, i )
         {
             if ( Gia_ObjIsBuf(pObj) )
@@ -1527,11 +1527,11 @@ int Lf_ManSetMapRefs( Lf_Man_t * p )
                     Lf_ManSetMapRefsOne( p, i );
             }
             else if ( Gia_ObjIsCi(pObj) )
-                Tim_ManSetCiRequired( p->pGia->pManTime, Gia_ObjCioId(pObj), Lf_ObjRequired(p, i) );
+                Tim_ManSetCiRequired( (Tim_Man_t*)p->pGia->pManTime, Gia_ObjCioId(pObj), Lf_ObjRequired(p, i) );
             else if ( Gia_ObjIsCo(pObj) )
             {
                 int iDriverId = Gia_ObjFaninId0(pObj, i);
-                int reqTime = Tim_ManGetCoRequired( p->pGia->pManTime, Gia_ObjCioId(pObj) );
+                int reqTime = Tim_ManGetCoRequired( (Tim_Man_t*)p->pGia->pManTime, Gia_ObjCioId(pObj) );
                 Lf_ObjSetRequired( p, iDriverId, reqTime );
                 if ( Gia_ObjIsAndNotBuf(Gia_ObjFanin0(pObj)) )
                     Lf_ObjMapRefInc( p, iDriverId );
@@ -1615,12 +1615,12 @@ void Lf_ManCountMapRefs( Lf_Man_t * p )
         Gia_ManCleanMark0(p->pGia);
     if ( p->pGia->pManTime != NULL )
     {
-        Tim_ManIncrementTravId( p->pGia->pManTime );
+        Tim_ManIncrementTravId( (Tim_Man_t*)p->pGia->pManTime );
         if ( p->pPars->fDoAverage )
             for ( i = 0; i < Gia_ManCoNum(p->pGia); i++ )
-               Tim_ManSetCoRequired( p->pGia->pManTime, i, (int)(Lf_ObjCoArrival(p, i) * (100.0 + p->pPars->nRelaxRatio) / 100.0) );
+               Tim_ManSetCoRequired( (Tim_Man_t*)p->pGia->pManTime, i, (int)(Lf_ObjCoArrival(p, i) * (100.0 + p->pPars->nRelaxRatio) / 100.0) );
         else  
-            Tim_ManInitPoRequiredAll( p->pGia->pManTime, Delay );
+            Tim_ManInitPoRequiredAll( (Tim_Man_t*)p->pGia->pManTime, Delay );
         Gia_ManForEachObjReverse1( p->pGia, pObj, i )
         {
             if ( Gia_ObjIsBuf(pObj) )
@@ -1631,10 +1631,10 @@ void Lf_ManCountMapRefs( Lf_Man_t * p )
                     Lf_ManCountMapRefsOne( p, i );
             }
             else if ( Gia_ObjIsCi(pObj) )
-                Tim_ManSetCiRequired( p->pGia->pManTime, Gia_ObjCioId(pObj), Lf_ObjRequired(p, i) );
+                Tim_ManSetCiRequired( (Tim_Man_t*)p->pGia->pManTime, Gia_ObjCioId(pObj), Lf_ObjRequired(p, i) );
             else if ( Gia_ObjIsCo(pObj) )
             {
-                int reqTime = Tim_ManGetCoRequired( p->pGia->pManTime, Gia_ObjCioId(pObj) );
+                int reqTime = Tim_ManGetCoRequired( (Tim_Man_t*)p->pGia->pManTime, Gia_ObjCioId(pObj) );
                 Lf_ObjSetRequired( p, Gia_ObjFaninId0(pObj, i), reqTime );
             }
             else assert( 0 );
@@ -2095,7 +2095,7 @@ void Lf_ManComputeMapping( Lf_Man_t * p )
     if ( p->pGia->pManTime != NULL )
     {
         assert( !Gia_ManBufNum(p->pGia) );
-        Tim_ManIncrementTravId( p->pGia->pManTime );
+        Tim_ManIncrementTravId( (Tim_Man_t*)p->pGia->pManTime );
         Gia_ManForEachObj1( p->pGia, pObj, i )
         {
             if ( Gia_ObjIsBuf(pObj) )
@@ -2104,13 +2104,13 @@ void Lf_ManComputeMapping( Lf_Man_t * p )
                 Lf_ObjMergeOrder( p, i );
             else if ( Gia_ObjIsCi(pObj) )
             {
-                arrTime = Tim_ManGetCiArrival( p->pGia->pManTime, Gia_ObjCioId(pObj) );
+                arrTime = Tim_ManGetCiArrival( (Tim_Man_t*)p->pGia->pManTime, Gia_ObjCioId(pObj) );
                 Lf_ObjSetCiArrival( p, Gia_ObjCioId(pObj), arrTime );
             }
             else if ( Gia_ObjIsCo(pObj) )
             {
                 arrTime = Lf_ObjCoArrival( p, Gia_ObjCioId(pObj) );
-                Tim_ManSetCoArrival( p->pGia->pManTime, Gia_ObjCioId(pObj), arrTime );
+                Tim_ManSetCoArrival( (Tim_Man_t*)p->pGia->pManTime, Gia_ObjCioId(pObj), arrTime );
             }
             else assert( 0 );
         }
@@ -2128,7 +2128,7 @@ void Lf_ManComputeMapping( Lf_Man_t * p )
         Lf_ManCountMapRefs( p );
     else
         Lf_ManSetMapRefs( p );
-    Lf_ManPrintStats( p, p->fUseEla ? "Ela  " : (p->Iter ? "Area " : "Delay") );
+    Lf_ManPrintStats( p, (char *)(p->fUseEla ? "Ela  " : (p->Iter ? "Area " : "Delay")) );
 }
 Gia_Man_t * Lf_ManPerformMappingInt( Gia_Man_t * pGia, Jf_Par_t * pPars )
 {
@@ -2193,7 +2193,7 @@ Gia_Man_t * Lf_ManPerformMappingInt( Gia_Man_t * pGia, Jf_Par_t * pPars )
 Gia_Man_t * Lf_ManPerformMapping( Gia_Man_t * p, Jf_Par_t * pPars )
 {
     Gia_Man_t * pNew;
-    if ( p->pManTime && Tim_ManBoxNum(p->pManTime) && Gia_ManIsNormalized(p) )
+    if ( p->pManTime && Tim_ManBoxNum((Tim_Man_t*)p->pManTime) && Gia_ManIsNormalized(p) )
     {
         Tim_Man_t * pTimOld = (Tim_Man_t *)p->pManTime;
         p->pManTime = Tim_ManDup( pTimOld, 1 );

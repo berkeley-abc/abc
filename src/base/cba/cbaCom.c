@@ -486,7 +486,7 @@ int Cba_CommandGet( Abc_Frame_t * pAbc, int argc, char ** argv )
             Abc_Print( 1, "Cba_CommandGet(): There is no current mapped design.\n" );
             return 0;
         }
-        pNew = Cba_ManInsertAbc( p, pAbc->pNtkCur );
+        pNew = (Cba_Man_t *)Cba_ManInsertAbc( p, pAbc->pNtkCur );
     }
     else
     {

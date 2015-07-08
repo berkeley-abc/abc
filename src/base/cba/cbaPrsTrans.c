@@ -167,7 +167,7 @@ static inline int Prs_ManRangeSizeConcat( Prs_Ntk_t * p, int Con )
 static inline int Prs_ManRangeSizeSignal( Prs_Ntk_t * p, int Sig )
 {
     int Value = Abc_Lit2Var2( Sig );
-    Prs_ManType_t Type = Abc_Lit2Att2( Sig );
+    Prs_ManType_t Type = (Prs_ManType_t)Abc_Lit2Att2( Sig );
     if ( Type == CBA_PRS_NAME )
         return Prs_ManRangeSizeName( p, Value );
     if ( Type == CBA_PRS_SLICE )

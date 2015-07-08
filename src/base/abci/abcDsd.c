@@ -665,7 +665,7 @@ Abc_Ntk_t * Abc_NtkSparsifyInternal( Abc_Ntk_t * pNtk, int nPerc, int fVerbose )
             pDriver->pCopy->pData = bFunc;
             Abc_NtkDupObj( pNtkNew, pObj, 0 );
             Abc_ObjAddFanin( pObj->pCopy, pDriver->pCopy );
-            Abc_ObjAssignName( pObj->pCopy, Abc_ObjName(pObj), c ? "_off" : "_on" );
+            Abc_ObjAssignName( pObj->pCopy, Abc_ObjName(pObj), (char*)(c ? "_off" : "_on") );
         }
     }
     Abc_NtkLogicMakeSimpleCos( pNtkNew, 0 );

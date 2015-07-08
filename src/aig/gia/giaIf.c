@@ -2123,7 +2123,7 @@ Gia_Man_t * Gia_ManPerformMappingInt( Gia_Man_t * p, If_Par_t * pPars )
 Gia_Man_t * Gia_ManPerformMapping( Gia_Man_t * p, void * pp )
 {
     Gia_Man_t * pNew;
-    if ( p->pManTime && Tim_ManBoxNum(p->pManTime) && Gia_ManIsNormalized(p) )
+    if ( p->pManTime && Tim_ManBoxNum((Tim_Man_t*)p->pManTime) && Gia_ManIsNormalized(p) )
     {
         pNew = Gia_ManDupUnnormalize( p );
         if ( pNew == NULL )

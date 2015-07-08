@@ -692,7 +692,7 @@ int Cec_GiaSplitTestInt( Gia_Man_t * p, int nProcs, int nTimeOut, int nIterMax, 
                 continue;
             // start a new thread
             assert( ThData[i].p == NULL );
-            ThData[i].p = Vec_PtrPop( vStack );
+            ThData[i].p = (Gia_Man_t*)Vec_PtrPop( vStack );
             ThData[i].pCnf = Cec_GiaDeriveGiaRemapped( ThData[i].p );
             ThData[i].fWorking = 1;
         }

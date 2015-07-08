@@ -235,7 +235,7 @@ void Prs_ManBuildNtk( Cba_Ntk_t * pNew, Vec_Ptr_t * vDes, Prs_Ntk_t * pNtk, Vec_
         }
         else
         {
-            iObj = Cba_BoxAlloc( pNew, Prs_BoxNtk(pNtk, iBox), Prs_BoxIONum(pNtk, iBox)-1, 1, -1 );
+            iObj = Cba_BoxAlloc( pNew, (Cba_ObjType_t)Prs_BoxNtk(pNtk, iBox), Prs_BoxIONum(pNtk, iBox)-1, 1, -1 );
             // consider box output 
             NameId = Vec_IntEntryLast( vSigs );
             NameId = Prs_NtkSigName( pNtk, NameId );

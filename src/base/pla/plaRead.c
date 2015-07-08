@@ -177,9 +177,9 @@ void Pla_ReadAddBody( Pla_Man_t * p, Vec_Str_t * vLits )
     Pla_ForEachCubeInOut( p, pCubeIn, pCubeOut, i )
     {
         Pla_CubeForEachLit( p->nIns, pCubeIn, Lit, k )
-            Pla_CubeSetLit( pCubeIn, k, (int)Vec_StrEntry(vLits, Count++) );
+            Pla_CubeSetLit( pCubeIn, k, (Pla_Lit_t)Vec_StrEntry(vLits, Count++) );
         Pla_CubeForEachLit( p->nOuts, pCubeOut, Lit, k )
-            Pla_CubeSetLit( pCubeOut, k, (int)Vec_StrEntry(vLits, Count++) );
+            Pla_CubeSetLit( pCubeOut, k, (Pla_Lit_t)Vec_StrEntry(vLits, Count++) );
     }
     assert( Count == Vec_StrSize(vLits) );
 }
@@ -195,13 +195,13 @@ Pla_Man_t * Pla_ReadPla( char * pFileName )
     Pla_ReadPlaRemoveComments( pBuffer, pLimit );
     if ( Pla_ReadPlaHeader( pBuffer, pLimit, &nIns, &nOuts, &nCubes, &Type ) )
     {
-        vLits = Pla_ReadPlaBody( pBuffer, pLimit, Type );
+        vLits = Pla_ReadPlaBody( pBuffer, pLimit, (Pla_File_t)Type );
         if ( Vec_StrSize(vLits) % (nIns + nOuts) == 0 )
         {
             if ( nCubes == -1 )
                 nCubes = Vec_StrSize(vLits) / (nIns + nOuts);
             p = Pla_ManAlloc( pFileName, nIns, nOuts, nCubes );
-            p->Type = Type;
+            p->Type = (Pla_File_t)Type;
             Pla_ReadAddBody( p, vLits );
             Vec_StrFree( vLits );
             ABC_FREE( pBuffer );
