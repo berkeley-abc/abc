@@ -33442,7 +33442,7 @@ int Abc_CommandAbc9Mf( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
     if ( pPars->fGenCnf )
-        Cnf_DataFree( pAbc->pGia->pData ), pAbc->pGia->pData = NULL;
+        Cnf_DataFree( (Cnf_Dat_t*)pAbc->pGia->pData ), pAbc->pGia->pData = NULL;
     Abc_FrameUpdateGia( pAbc, pNew );
     return 0;
 
