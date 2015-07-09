@@ -2074,6 +2074,8 @@ Gia_Man_t * Gia_ManPerformMappingInt( Gia_Man_t * p, If_Par_t * pPars )
     If_Man_t * pIfMan;
     assert( pPars->pTimesArr == NULL );
     assert( pPars->pTimesReq == NULL );
+    ABC_FREE( p->pCellStr );
+    Vec_IntFreeP( &p->vConfigs );
     // disable cut minimization when GIA strucure is needed
     if ( !pPars->fDelayOpt && !pPars->fDelayOptLut && !pPars->fDsdBalance && !pPars->fUserRecLib && !pPars->fDeriveLuts && !pPars->fUseDsd && !pPars->fUseTtPerm )
         pPars->fCutMin = 0;

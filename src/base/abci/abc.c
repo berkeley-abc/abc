@@ -26961,7 +26961,11 @@ int Abc_CommandAbc9Strash( Abc_Frame_t * pAbc, int argc, char ** argv )
 //            printf( "Rehashed the current AIG.\n" );
     }
     if ( !(fCollapse && pAbc->pGia->pAigExtra) )
+    {
         Gia_ManTransferTiming( pTemp, pAbc->pGia );
+        pAbc->pGia->vConfigs = pTemp->vConfigs;     pTemp->vConfigs = NULL;
+        pAbc->pGia->pCellStr = pTemp->pCellStr;     pTemp->pCellStr = NULL;
+    }
     Abc_FrameUpdateGia( pAbc, pTemp );
     return 0;
 
