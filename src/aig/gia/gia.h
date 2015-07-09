@@ -176,6 +176,8 @@ struct Gia_Man_t_
     int            iData2;        // various user data
     int            nAnd2Delay;    // AND2 delay scaled to match delay numbers used
     int            fVerbose;      // verbose reports
+    int            MappedArea;    // area after mapping
+    int            MappedDelay;   // delay after mapping
     // bit-parallel simulation
     int            iPatsPi;
     Vec_Wrd_t *    vSims;

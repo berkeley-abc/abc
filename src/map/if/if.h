@@ -159,6 +159,7 @@ struct If_Par_t_
     int                fUseCoAttrs;   // use CO attributes
     float              DelayTargetNew;// new delay target
     float              FinalDelay;    // final delay after mapping
+    float              FinalArea;     // final area after mapping
     If_LibLut_t *      pLutLib;       // the LUT library
     float *            pTimesArr;     // arrival times
     float *            pTimesReq;     // required times

@@ -499,7 +499,7 @@ void Gia_ManPrintMappingStats( Gia_Man_t * p, char * pDumpFile )
     if ( nMuxF )
         Gia_ManCountDupLut( p );
 
-    return;
+    //return;
     if ( pDumpFile )
     {
         static char FileNameOld[1000] = {0};
@@ -513,19 +513,24 @@ void Gia_ManPrintMappingStats( Gia_Man_t * p, char * pDumpFile )
 //            fprintf( pTable, "%d ", Gia_ManCiNum(p) );
 //            fprintf( pTable, "%d ", Gia_ManCoNum(p) );
 //            fprintf( pTable, "%d  ", Gia_ManAndNum(p) );
-            fprintf( pTable, "%d ", Gia_ManPiNum(p) - Gia_ManBoxCiNum(p) - Gia_ManRegBoxNum(p) );
-            fprintf( pTable, "%d ", Gia_ManPoNum(p) - Gia_ManBoxCoNum(p) - Gia_ManRegBoxNum(p) );
-            fprintf( pTable, "%d ", Gia_ManClockDomainNum(p) );
+//            fprintf( pTable, "%d ", Gia_ManPiNum(p) - Gia_ManBoxCiNum(p) - Gia_ManRegBoxNum(p) );
+//            fprintf( pTable, "%d ", Gia_ManPoNum(p) - Gia_ManBoxCoNum(p) - Gia_ManRegBoxNum(p) );
+//            fprintf( pTable, "%d ", Gia_ManClockDomainNum(p) );
 
             fprintf( pTable, " " );
-            fprintf( pTable, "%d ", nLuts           );
+            fprintf( pTable, "%d ", p->MappedDelay  );
+            fprintf( pTable, "%d ", p->MappedArea   );
+            fprintf( pTable, "%d ", nFanins         );
             fprintf( pTable, "%d ", LevelMax        );
-            fprintf( pTable, "%d ", Gia_ManRegBoxNum(p) );
-            fprintf( pTable, "%d ", Gia_ManNonRegBoxNum(p) );
+            fprintf( pTable, "%d ", nLuts           );
+//            fprintf( pTable, "%d ", Gia_ManRegBoxNum(p) );
+//            fprintf( pTable, "%d ", Gia_ManNonRegBoxNum(p) );
             clk = Abc_Clock();
         }
         else
         {
+            printf( "This part of the code is currently not used.\n" );
+            assert( 0 );
             fprintf( pTable, " " );
             fprintf( pTable, "%d ", nLuts           );
             fprintf( pTable, "%d ", LevelMax        );
@@ -2153,6 +2158,8 @@ Gia_Man_t * Gia_ManPerformMapping( Gia_Man_t * p, void * pp )
         pNew = Gia_ManPerformMappingInt( p, (If_Par_t *)pp );
         Gia_ManTransferTiming( pNew, p );
     }
+    pNew->MappedDelay = (int)((If_Par_t *)pp)->FinalDelay;
+    pNew->MappedArea  = (int)((If_Par_t *)pp)->FinalArea;
     return pNew;
 }
 

@@ -187,6 +187,7 @@ int If_ManPerformMappingComb( If_Man_t * p )
     }
 */
     p->pPars->FinalDelay = p->RequiredGlo;
+    p->pPars->FinalArea  = p->AreaGlo;
     return 1;
 }
 
