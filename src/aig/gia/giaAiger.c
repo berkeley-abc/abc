@@ -663,8 +663,8 @@ Gia_Man_t * Gia_AigerReadFromMemory( char * pContents, int nFileSize, int fSkipS
                 int i, nRegs;
                 pCur++;
                 pCurTemp = pCur + Gia_AigerReadInt(pCur) + 4;           pCur += 4;
-                //nRegs = Gia_AigerReadInt(pCur);                         pCur += 4;
-                nRegs = (pCurTemp - pCur)/4;
+                nRegs = Gia_AigerReadInt(pCur);                         pCur += 4;
+                //nRegs = (pCurTemp - pCur)/4;
                 pNew->vRegClasses = Vec_IntAlloc( nRegs );
                 for ( i = 0; i < nRegs; i++ )
                     Vec_IntPush( pNew->vRegClasses, Gia_AigerReadInt(pCur) ), pCur += 4;
