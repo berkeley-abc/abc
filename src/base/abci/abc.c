@@ -950,7 +950,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "ABC9",         "&pfan",         Abc_CommandAbc9PFan,         0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&psig",         Abc_CommandAbc9PSig,         0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&status",       Abc_CommandAbc9Status,       0 );
-    Cmd_CommandAdd( pAbc, "ABC9",         "&mux_profile",  Abc_CommandAbc9MuxProfile,   0 );
+    Cmd_CommandAdd( pAbc, "ABC9",         "&profile",      Abc_CommandAbc9MuxProfile,   0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&show",         Abc_CommandAbc9Show,         0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&setregnum",    Abc_CommandAbc9SetRegNum,    0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&st",           Abc_CommandAbc9Strash,       0 );
@@ -26726,12 +26726,27 @@ usage:
 int Abc_CommandAbc9MuxProfile( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     extern void Gia_ManMuxProfiling( Gia_Man_t * p );
-    int c;
+    extern void Gia_ManProfileStructures( Gia_Man_t * p, int nLimit, int fVerbose );
+    int c, nLimit = 0, fVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Nvh" ) ) != EOF )
     {
         switch ( c )
         {
+        case 'N':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-N\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nLimit = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nLimit < 0 )
+                goto usage;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
         case 'h':
             goto usage;
         default:
@@ -26743,12 +26758,17 @@ int Abc_CommandAbc9MuxProfile( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Abc_CommandAbc9MuxProfile(): There is no AIG.\n" );
         return 1;
     }
-    Gia_ManMuxProfiling( pAbc->pGia );
+    if ( nLimit == 0 )
+        Gia_ManMuxProfiling( pAbc->pGia );
+    else
+        Gia_ManProfileStructures( pAbc->pGia, nLimit, fVerbose );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &mux_profile [-h]\n" );
+    Abc_Print( -2, "usage: &profile [-N num] [-vh]\n" );
     Abc_Print( -2, "\t         profile MUXes appearing in the design\n" );
+    Abc_Print( -2, "\t-N num : limit on class size to show [default = %d]\n", nLimit );
+    Abc_Print( -2, "\t-v     : toggle verbose output [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
 }

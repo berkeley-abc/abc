@@ -21,6 +21,7 @@
 #include "gia.h"
 #include "misc/util/utilNam.h"
 #include "misc/vec/vecWec.h"
+#include "misc/vec/vecHsh.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -592,6 +593,294 @@ void Gia_ManMuxProfiling( Gia_Man_t * p )
     Gia_ManStop( pNew );
 }
 
+
+/**Function*************************************************************
+
+  Synopsis    [Compute one-level TFI/TFO structural signatures.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+
+// these are object/fanin/fanout attributes
+// http://stackoverflow.com/questions/9907160/how-to-convert-enum-names-to-string-in-c
+#define GIA_FOREACH_ITEM(ITEM) \
+    ITEM(C0)    \
+    ITEM(PO)    \
+    ITEM(PI)    \
+    ITEM(FF)    \
+    ITEM(XOR)   \
+    ITEM(MUX)   \
+    ITEM(AND)   \
+    ITEM(iC0)   \
+    ITEM(iC1)   \
+    ITEM(iPI)   \
+    ITEM(iFF)   \
+    ITEM(iXOR)  \
+    ITEM(iMUX)  \
+    ITEM(iAND)  \
+    ITEM(iANDn) \
+    ITEM(iANDp) \
+    ITEM(oPO)   \
+    ITEM(oFF)   \
+    ITEM(oXOR)  \
+    ITEM(oMUXc) \
+    ITEM(oMUXd) \
+    ITEM(oANDn) \
+    ITEM(oANDp) \
+    ITEM(GIA_END)
+
+#define GENERATE_ENUM(ENUM) ENUM,
+typedef enum { GIA_FOREACH_ITEM(GENERATE_ENUM) } Gia_ObjType_t;
+
+#define GENERATE_STRING(STRING) #STRING,
+static const char * GIA_TYPE_STRINGS[] = { GIA_FOREACH_ITEM(GENERATE_STRING) };
+
+void Gia_ManProfileStructuresTest( Gia_Man_t * p )
+{
+    int i;
+    for ( i = 0; i < GIA_END; i++ )
+        printf( "%d = %s\n", i, GIA_TYPE_STRINGS[i] );
+}
+
+
+
+// find object code
+int Gia_ManEncodeObj( Gia_Man_t * p, int i )
+{
+    Gia_Obj_t * pObj = Gia_ManObj( p, i );
+    assert( !Gia_ObjIsRi(p, pObj) );
+    if ( Gia_ObjIsConst0(pObj) )
+        return C0;
+    if ( Gia_ObjIsPo(p, pObj) )
+        return PO;
+    if ( Gia_ObjIsPi(p, pObj) )
+        return PI;
+    if ( Gia_ObjIsCi(pObj) )
+        return FF;
+    if ( Gia_ObjIsXor(pObj) )
+        return XOR;
+    if ( Gia_ObjIsMux(p, pObj) )
+        return MUX;
+    assert( Gia_ObjIsAnd(pObj) );
+    return AND;
+}
+// find fanin code
+int Gia_ManEncodeFanin( Gia_Man_t * p, int iLit )
+{
+    Gia_Obj_t * pObj = Gia_ManObj( p, Abc_Lit2Var(iLit) );
+    if ( Gia_ObjIsConst0(pObj) )
+        return iC0;
+    if ( Gia_ObjIsPi(p, pObj) )
+        return iPI;
+    if ( Gia_ObjIsCi(pObj) )
+        return iFF;
+    if ( Gia_ObjIsXor(pObj) )
+        return iXOR;
+    if ( Gia_ObjIsMux(p, pObj) )
+        return iMUX;
+    assert( Gia_ObjIsAnd(pObj) );
+    if ( Abc_LitIsCompl(iLit) )
+        return iANDn;
+    else
+        return iANDp;
+}
+// find fanout code
+int Gia_ManEncodeFanout( Gia_Man_t * p, Gia_Obj_t * pObj, int i )
+{
+    int iLit;
+    if ( Gia_ObjIsPo(p, pObj) )
+        return oPO;
+    if ( Gia_ObjIsCo(pObj) )
+        return oFF;
+    if ( Gia_ObjIsXor(pObj) )
+        return oXOR;
+    if ( Gia_ObjIsMux(p, pObj) )
+        return i == 2 ? oMUXc : oMUXd;
+    assert( Gia_ObjIsAnd(pObj) );
+    iLit = i ? Gia_ObjFaninLit1p(p, pObj) : Gia_ObjFaninLit0p(p, pObj);
+    if ( Abc_LitIsCompl(iLit) )
+        return oANDn;
+    else
+        return oANDp;
+}
+
+void Gia_ManProfileCollect( Gia_Man_t * p, int i, Vec_Int_t * vCode, Vec_Int_t * vCodeOffsets, Vec_Int_t * vArray )
+{
+    int k;
+    Vec_IntClear( vArray );
+    for ( k = Vec_IntEntry(vCodeOffsets, i); k < Vec_IntEntry(vCodeOffsets, i+1); k++ )
+        Vec_IntPush( vArray, Vec_IntEntry(vCode, k) );
+}
+
+void Gia_ManProfilePrintOne( Gia_Man_t * p, int i, Vec_Int_t * vArray )
+{
+    Gia_Obj_t * pObj = Gia_ManObj( p, i );
+    int k, nFanins, nFanouts;
+    if ( Gia_ObjIsRi(p, pObj) )
+        return;
+    nFanins = Gia_ObjFaninNum(p, pObj);
+    nFanouts = Gia_ObjFanoutNum(p, pObj);
+
+    printf( "%6d : ", i );
+    for ( k = 0; k < nFanins; k++ )
+        printf( "  %5s", GIA_TYPE_STRINGS[Vec_IntEntry(vArray, k + 1)] );
+    for (      ; k < 3; k++ )
+        printf( "  %5s", "" );
+    printf( "  ->" );
+    printf( " %5s", GIA_TYPE_STRINGS[Vec_IntEntry(vArray, 0)] );
+    printf( "  ->" );
+    for ( k = 0; k < nFanouts; k++ )
+        printf( "  %5s", GIA_TYPE_STRINGS[Vec_IntEntry(vArray, k + 1 + nFanins)] );
+    printf( "\n" );
+}
+
+Vec_Int_t * Gia_ManProfileHash( Gia_Man_t * p, Vec_Int_t * vCode, Vec_Int_t * vCodeOffsets )
+{
+    Hsh_VecMan_t * pHash;
+    Vec_Int_t * vRes, * vArray;
+    Gia_Obj_t * pObj;
+    int i;
+    vRes = Vec_IntAlloc( Gia_ManObjNum(p) );
+    pHash = Hsh_VecManStart( Gia_ManObjNum(p) );
+    // add empty entry
+    vArray = Vec_IntAlloc( 100 );
+    Hsh_VecManAdd( pHash, vArray );
+    // iterate through the entries
+    Gia_ManForEachObj( p, pObj, i )
+    {
+        Gia_ManProfileCollect( p, i, vCode, vCodeOffsets, vArray );
+        Vec_IntPush( vRes, Hsh_VecManAdd( pHash, vArray ) );
+    }
+    Hsh_VecManStop( pHash );
+    Vec_IntFree( vArray );
+    assert( Vec_IntSize(vRes) == Gia_ManObjNum(p) );
+    return vRes;
+}
+
+
+void Gia_ManProfileStructuresInt( Gia_Man_t * p, int nLimit, int fVerbose )
+{
+    Vec_Int_t * vRes, * vCount, * vFirst;
+    Vec_Int_t * vCode, * vCodeOffsets, * vArray;
+    Gia_Obj_t * pObj, * pFanout;
+    int i, k, nFanins, nFanouts, * pPerm, nClasses;
+    assert( p->pMuxes );
+    Gia_ManStaticFanoutStart( p );
+    // create fanout codes
+    vArray = Vec_IntAlloc( 100 );
+    vCode = Vec_IntAlloc( 5 * Gia_ManObjNum(p) );
+    vCodeOffsets = Vec_IntAlloc( Gia_ManObjNum(p) );
+    Gia_ManForEachObj( p, pObj, i )
+    {
+        Vec_IntPush( vCodeOffsets, Vec_IntSize(vCode) );
+        if ( Gia_ObjIsRi(p, pObj) )
+            continue;
+        nFanins = Gia_ObjFaninNum(p, pObj);
+        nFanouts = Gia_ObjFanoutNum(p, pObj);
+        Vec_IntPush( vCode, Gia_ManEncodeObj(p, i) );
+        if ( nFanins == 3 )
+        {
+            Vec_IntPush( vCode, Gia_ManEncodeFanin(p, Gia_ObjFaninLit0p(p, pObj)) );
+            Vec_IntPush( vCode, Gia_ManEncodeFanin(p, Gia_ObjFaninLit1p(p, pObj)) );
+            Vec_IntPush( vCode, Gia_ManEncodeFanin(p, Gia_ObjFaninLit2p(p, pObj)) );
+        }
+        else if ( nFanins == 2 )
+        {
+            int Code0 = Gia_ManEncodeFanin(p, Gia_ObjFaninLit0p(p, pObj));
+            int Code1 = Gia_ManEncodeFanin(p, Gia_ObjFaninLit1p(p, pObj));
+            Vec_IntPush( vCode, Code0 < Code1 ? Code0 : Code1 );
+            Vec_IntPush( vCode, Code0 < Code1 ? Code1 : Code0 );
+        }
+        else if ( nFanins == 1 )
+            Vec_IntPush( vCode, Gia_ManEncodeFanin(p, Gia_ObjFaninLit0p(p, pObj)) );
+        else if ( Gia_ObjIsRo(p, pObj) )
+            Vec_IntPush( vCode, Gia_ManEncodeFanin(p, Gia_ObjFaninLit0p(p, Gia_ObjRoToRi(p, pObj))) );
+
+        // add fanouts
+        Vec_IntClear( vArray );
+        Gia_ObjForEachFanoutStatic( p, pObj, pFanout, k )
+        {
+            int Index = Gia_ObjWhatFanin( p, pFanout, pObj );
+            Gia_ObjType_t Type = Gia_ManEncodeFanout( p, pFanout, Index );
+            Vec_IntPush( vArray, Type );
+        }
+        Vec_IntSort( vArray, 0 );
+        Vec_IntAppend( vCode, vArray );
+    }
+    assert( Vec_IntSize(vCodeOffsets) == Gia_ManObjNum(p) );
+    Vec_IntPush( vCodeOffsets, Vec_IntSize(vCode) );
+    // print the results
+    if ( fVerbose )
+    {
+        printf( "Showing TFI/node/TFO structures for all nodes:\n" );
+        Gia_ManForEachObj( p, pObj, i )
+        {
+            Gia_ManProfileCollect( p, i, vCode, vCodeOffsets, vArray );
+            Gia_ManProfilePrintOne( p, i, vArray );
+        }
+    }
+
+    // collect statistics
+    vRes = Gia_ManProfileHash( p, vCode, vCodeOffsets );
+    //Vec_IntPrint( vRes );
+
+    // count how many times each class appears
+    nClasses = Vec_IntFindMax(vRes) + 1;
+    vCount = Vec_IntStart( nClasses );
+    vFirst = Vec_IntStart( nClasses );
+    Gia_ManForEachObj( p, pObj, i )
+    {
+        int Entry = Vec_IntEntry( vRes, i );
+        if ( Gia_ObjIsRi(p, pObj) )
+            continue;
+        if ( Vec_IntEntry(vCount, Entry) == 0 )
+            Vec_IntWriteEntry( vFirst, Entry, i );
+        Vec_IntAddToEntry( vCount, Entry, -1 );
+    }
+    // sort the counts
+    pPerm = Abc_MergeSortCost( Vec_IntArray(vCount), Vec_IntSize(vCount) );
+    printf( "Showing TFI/node/TFO structures that appear more than %d times.\n", nLimit );
+    for ( i = 0; i < nClasses-1; i++ )
+    {
+        if ( nLimit > -Vec_IntEntry(vCount, pPerm[i]) )
+            break;
+        printf( "%6d : ", i );
+        printf( "%6d : ", pPerm[i] );
+        printf( "Weight =%6d  ",   -Vec_IntEntry(vCount, pPerm[i]) );
+        printf( "First obj =" );
+        // print the object
+        Gia_ManProfileCollect( p, Vec_IntEntry(vFirst, pPerm[i]), vCode, vCodeOffsets, vArray );
+        Gia_ManProfilePrintOne( p, Vec_IntEntry(vFirst, pPerm[i]), vArray );
+        //printf( "\n" );
+    }
+
+    // cleanup
+    ABC_FREE( pPerm );
+    Vec_IntFree( vRes );
+    Vec_IntFree( vCount );
+    Vec_IntFree( vFirst );
+
+    Vec_IntFree( vArray );
+    Vec_IntFree( vCode );
+    Vec_IntFree( vCodeOffsets );
+    Gia_ManStaticFanoutStop( p );
+}
+void Gia_ManProfileStructures( Gia_Man_t * p, int nLimit, int fVerbose )
+{
+    if ( p->pMuxes )
+        Gia_ManProfileStructuresInt( p, nLimit, fVerbose );
+    else
+    {
+        Gia_Man_t * pNew = Gia_ManDupMuxes( p, 2 );
+        Gia_ManProfileStructuresInt( pNew, nLimit, fVerbose );
+        Gia_ManStop( pNew );
+    }
+}
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
