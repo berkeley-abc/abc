@@ -384,6 +384,19 @@ PyObject* co_supp( int iCo )
     return co_supp;    
 }
 
+int is_func_iso( int iCo1, int iCo2 )
+{
+    Abc_Frame_t* pAbc = Abc_FrameGetGlobalFrame();
+    Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
+
+    if ( !pNtk )
+    {
+        return 0;
+    }
+
+    return Abc_NtkFunctionalIso( pNtk, iCo1, iCo2 );
+}
+
 void _pyabc_array_clear()
 {
     Abc_Frame_t* pAbc = Abc_FrameGetGlobalFrame();
@@ -741,6 +754,7 @@ int _cex_get_frame(Abc_Cex_t* pCex);
 
 PyObject* eq_classes();
 PyObject* co_supp(int iCo);
+int is_func_iso(int iCo1, int iCo2);
 
 void _pyabc_array_clear();
 void _pyabc_array_push(int i);

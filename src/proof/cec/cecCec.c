@@ -415,6 +415,27 @@ int Cec_ManVerify( Gia_Man_t * pInit, Cec_ParCec_t * pPars )
 
 /**Function*************************************************************
 
+  Synopsis    [Simple SAT run to check equivalence.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Cec_ManVerifySimple( Gia_Man_t * p )
+{
+    Cec_ParCec_t ParsCec, * pPars = &ParsCec;
+    Cec_ManCecSetDefaultParams( pPars );
+    pPars->fSilent = 1;
+    assert( Gia_ManCoNum(p) == 2 );
+    assert( Gia_ManRegNum(p) == 0 );
+    return Cec_ManVerify( p, pPars );
+}
+
+/**Function*************************************************************
+
   Synopsis    [New CEC engine applied to two circuits.]
 
   Description []

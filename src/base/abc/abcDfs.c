@@ -19,6 +19,7 @@
 ***********************************************************************/
 
 #include "abc.h"
+#include "proof/cec/cec.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -954,6 +955,97 @@ Vec_Int_t * Abc_NtkNodeSupportInt( Abc_Ntk_t * pNtk, int iCo )
     Vec_IntSort( vNodes, 0 );
     return vNodes;
 }
+
+/**Function*************************************************************
+
+  Synopsis    [Derives GIA comparing two outputs.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_NtkFunctionalIsoGia_rec( Gia_Man_t * pNew, Abc_Obj_t * pNode )
+{
+    int iLit0, iLit1;
+    if ( Abc_NodeIsTravIdCurrent(pNode) || Abc_ObjFaninNum(pNode) == 0 )
+        return pNode->iTemp;
+    assert( Abc_ObjIsNode( pNode ) );
+    Abc_NodeSetTravIdCurrent( pNode );
+    iLit0 = Abc_NtkFunctionalIsoGia_rec( pNew, Abc_ObjFanin0(pNode) );
+    iLit1 = Abc_NtkFunctionalIsoGia_rec( pNew, Abc_ObjFanin1(pNode) );
+    iLit0 = Abc_LitNotCond( iLit0, Abc_ObjFaninC0(pNode) );
+    iLit1 = Abc_LitNotCond( iLit1, Abc_ObjFaninC1(pNode) );
+    return (pNode->iTemp = Gia_ManHashAnd(pNew, iLit0, iLit1));
+}
+Gia_Man_t * Abc_NtkFunctionalIsoGia( Abc_Ntk_t * pNtk, int iCo1, int iCo2 )
+{
+    Gia_Man_t * pNew = NULL, * pTemp;
+    Vec_Int_t * vSupp1 = Abc_NtkNodeSupportInt( pNtk, iCo1 );
+    Vec_Int_t * vSupp2 = Abc_NtkNodeSupportInt( pNtk, iCo2 );
+    if ( Vec_IntSize(vSupp1) == Vec_IntSize(vSupp2) )
+    {
+        Abc_Obj_t * pObj;
+        int i, iCi, iLit1, iLit2;
+        pNew = Gia_ManStart( 1000 );
+        pNew->pName = Abc_UtilStrsav( pNtk->pName );
+        pNew->pSpec = Abc_UtilStrsav( pNtk->pSpec );
+        Gia_ManHashStart( pNew );
+        // primary inputs
+        Abc_AigConst1(pNtk)->iTemp = 1;
+        Vec_IntForEachEntry( vSupp1, iCi, i )
+            Abc_NtkCi(pNtk, iCi)->iTemp = Gia_ManAppendCi(pNew);
+        // create the first cone
+        Abc_NtkIncrementTravId( pNtk );
+        pObj = Abc_NtkCo( pNtk, iCo1 );
+        iLit1 = Abc_NtkFunctionalIsoGia_rec( pNew, Abc_ObjFanin0(pObj) );
+        iLit1 = Abc_LitNotCond( iLit1, Abc_ObjFaninC0(pObj) );
+        // primary inputs
+        Vec_IntForEachEntry( vSupp2, iCi, i )
+            Abc_NtkCi(pNtk, iCi)->iTemp = Gia_ManCiLit(pNew, i);
+        // create the second cone
+        Abc_NtkIncrementTravId( pNtk );
+        pObj = Abc_NtkCo( pNtk, iCo2 );
+        iLit2 = Abc_NtkFunctionalIsoGia_rec( pNew, Abc_ObjFanin0(pObj) );
+        iLit2 = Abc_LitNotCond( iLit2, Abc_ObjFaninC0(pObj) );
+        Gia_ManAppendCo( pNew, iLit1 );
+        Gia_ManAppendCo( pNew, iLit2 );
+        // perform cleanup
+        pNew = Gia_ManCleanup( pTemp = pNew );
+        Gia_ManStop( pTemp );
+    }
+    Vec_IntFree( vSupp1 );
+    Vec_IntFree( vSupp2 );
+    return pNew;
+}
+int Abc_NtkFunctionalIsoInt( Abc_Ntk_t * pNtk, int iCo1, int iCo2 )
+{
+    Gia_Man_t * pGia; int Value;
+    assert( Abc_NtkIsStrash(pNtk) );
+    if ( iCo1 < 0 || iCo1 >= Abc_NtkCoNum(pNtk) )
+        return 0;
+    if ( iCo2 < 0 || iCo2 >= Abc_NtkCoNum(pNtk) )
+        return 0;
+    pGia = Abc_NtkFunctionalIsoGia( pNtk, iCo1, iCo2 );
+    if ( pGia == NULL )
+        return 0;
+    Value = Cec_ManVerifySimple( pGia );
+    Gia_ManStop( pGia );
+    return (int)(Value == 1);
+}
+int Abc_NtkFunctionalIso( Abc_Ntk_t * pNtk, int iCo1, int iCo2 )
+{
+    Abc_Ntk_t * pNtkNew; int Result;
+    if ( Abc_NtkIsStrash(pNtk) )
+        return Abc_NtkFunctionalIsoInt( pNtk, iCo1, iCo2 );
+    pNtkNew = Abc_NtkStrash( pNtk, 0, 0, 0 );
+    Result = Abc_NtkFunctionalIsoInt( pNtkNew, iCo1, iCo2 );
+    Abc_NtkDelete( pNtkNew );
+    return Result;
+}
+
 
 /**Function*************************************************************
 
