@@ -26727,9 +26727,9 @@ int Abc_CommandAbc9MuxProfile( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     extern void Gia_ManMuxProfiling( Gia_Man_t * p );
     extern void Gia_ManProfileStructures( Gia_Man_t * p, int nLimit, int fVerbose );
-    int c, nLimit = 0, fVerbose = 0;
+    int c, fMuxes = 0, nLimit = 0, fVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "Nvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Nmvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -26743,6 +26743,9 @@ int Abc_CommandAbc9MuxProfile( Abc_Frame_t * pAbc, int argc, char ** argv )
             globalUtilOptind++;
             if ( nLimit < 0 )
                 goto usage;
+            break;
+        case 'm':
+            fMuxes ^= 1;
             break;
         case 'v':
             fVerbose ^= 1;
@@ -26758,16 +26761,17 @@ int Abc_CommandAbc9MuxProfile( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Abc_CommandAbc9MuxProfile(): There is no AIG.\n" );
         return 1;
     }
-    if ( nLimit == 0 )
+    if ( fMuxes )
         Gia_ManMuxProfiling( pAbc->pGia );
     else
         Gia_ManProfileStructures( pAbc->pGia, nLimit, fVerbose );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &profile [-N num] [-vh]\n" );
-    Abc_Print( -2, "\t         profile MUXes appearing in the design\n" );
+    Abc_Print( -2, "usage: &profile [-N num] [-mvh]\n" );
+    Abc_Print( -2, "\t         profile gate structures appearing in the AIG\n" );
     Abc_Print( -2, "\t-N num : limit on class size to show [default = %d]\n", nLimit );
+    Abc_Print( -2, "\t-m     : toggle profiling MUX structures [default = %s]\n", fMuxes? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle verbose output [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;

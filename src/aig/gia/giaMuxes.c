@@ -630,6 +630,7 @@ void Gia_ManMuxProfiling( Gia_Man_t * p )
     ITEM(oXOR)  \
     ITEM(oMUXc) \
     ITEM(oMUXd) \
+    ITEM(oAND)  \
     ITEM(oANDn) \
     ITEM(oANDp) \
     ITEM(GIA_END)
@@ -684,15 +685,16 @@ int Gia_ManEncodeFanin( Gia_Man_t * p, int iLit )
     if ( Gia_ObjIsMux(p, pObj) )
         return iMUX;
     assert( Gia_ObjIsAnd(pObj) );
-    if ( Abc_LitIsCompl(iLit) )
-        return iANDn;
-    else
-        return iANDp;
+    return iAND;
+//    if ( Abc_LitIsCompl(iLit) )
+//        return iANDn;
+//    else
+//        return iANDp;
 }
 // find fanout code
 int Gia_ManEncodeFanout( Gia_Man_t * p, Gia_Obj_t * pObj, int i )
 {
-    int iLit;
+//    int iLit;
     if ( Gia_ObjIsPo(p, pObj) )
         return oPO;
     if ( Gia_ObjIsCo(pObj) )
@@ -702,11 +704,12 @@ int Gia_ManEncodeFanout( Gia_Man_t * p, Gia_Obj_t * pObj, int i )
     if ( Gia_ObjIsMux(p, pObj) )
         return i == 2 ? oMUXc : oMUXd;
     assert( Gia_ObjIsAnd(pObj) );
-    iLit = i ? Gia_ObjFaninLit1p(p, pObj) : Gia_ObjFaninLit0p(p, pObj);
-    if ( Abc_LitIsCompl(iLit) )
-        return oANDn;
-    else
-        return oANDp;
+    return oAND;
+//    iLit = i ? Gia_ObjFaninLit1p(p, pObj) : Gia_ObjFaninLit0p(p, pObj);
+//    if ( Abc_LitIsCompl(iLit) )
+//        return oANDn;
+//    else
+//        return oANDp;
 }
 
 void Gia_ManProfileCollect( Gia_Man_t * p, int i, Vec_Int_t * vCode, Vec_Int_t * vCodeOffsets, Vec_Int_t * vArray )
@@ -723,7 +726,7 @@ void Gia_ManProfilePrintOne( Gia_Man_t * p, int i, Vec_Int_t * vArray )
     int k, nFanins, nFanouts;
     if ( Gia_ObjIsRi(p, pObj) )
         return;
-    nFanins = Gia_ObjFaninNum(p, pObj);
+    nFanins = Gia_ObjIsRo(p, pObj) ? 1 : Gia_ObjFaninNum(p, pObj);
     nFanouts = Gia_ObjFanoutNum(p, pObj);
 
     printf( "%6d : ", i );
@@ -734,8 +737,21 @@ void Gia_ManProfilePrintOne( Gia_Man_t * p, int i, Vec_Int_t * vArray )
     printf( "  ->" );
     printf( " %5s", GIA_TYPE_STRINGS[Vec_IntEntry(vArray, 0)] );
     printf( "  ->" );
-    for ( k = 0; k < nFanouts; k++ )
-        printf( "  %5s", GIA_TYPE_STRINGS[Vec_IntEntry(vArray, k + 1 + nFanins)] );
+    if ( nFanouts > 0 )
+    {
+        int Count = 1, Prev = Vec_IntEntry(vArray, 1 + nFanins);
+        for ( k = 1; k < nFanouts; k++ )
+        {
+            if ( Prev != Vec_IntEntry(vArray, k + 1 + nFanins) )
+            {
+                printf( "  %d x %s", Count, GIA_TYPE_STRINGS[Prev] );
+                Prev = Vec_IntEntry(vArray, k + 1 + nFanins);
+                Count = 0;
+            }
+            Count++;
+        }
+        printf( "  %d x %s", Count, GIA_TYPE_STRINGS[Prev] );
+    }
     printf( "\n" );
 }
 
@@ -785,9 +801,18 @@ void Gia_ManProfileStructuresInt( Gia_Man_t * p, int nLimit, int fVerbose )
         Vec_IntPush( vCode, Gia_ManEncodeObj(p, i) );
         if ( nFanins == 3 )
         {
-            Vec_IntPush( vCode, Gia_ManEncodeFanin(p, Gia_ObjFaninLit0p(p, pObj)) );
-            Vec_IntPush( vCode, Gia_ManEncodeFanin(p, Gia_ObjFaninLit1p(p, pObj)) );
-            Vec_IntPush( vCode, Gia_ManEncodeFanin(p, Gia_ObjFaninLit2p(p, pObj)) );
+            int iLit = Gia_ObjFaninLit2p(p, pObj);
+            Vec_IntPush( vCode, Gia_ManEncodeFanin(p, Abc_LitRegular(iLit)) );
+            if ( Abc_LitIsCompl(iLit) )
+            {
+                Vec_IntPush( vCode, Gia_ManEncodeFanin(p, Gia_ObjFaninLit0p(p, pObj)) );
+                Vec_IntPush( vCode, Gia_ManEncodeFanin(p, Gia_ObjFaninLit1p(p, pObj)) );
+            }
+            else
+            {
+                Vec_IntPush( vCode, Gia_ManEncodeFanin(p, Gia_ObjFaninLit1p(p, pObj)) );
+                Vec_IntPush( vCode, Gia_ManEncodeFanin(p, Gia_ObjFaninLit0p(p, pObj)) );
+            }
         }
         else if ( nFanins == 2 )
         {
@@ -856,7 +881,6 @@ void Gia_ManProfileStructuresInt( Gia_Man_t * p, int nLimit, int fVerbose )
         // print the object
         Gia_ManProfileCollect( p, Vec_IntEntry(vFirst, pPerm[i]), vCode, vCodeOffsets, vArray );
         Gia_ManProfilePrintOne( p, Vec_IntEntry(vFirst, pPerm[i]), vArray );
-        //printf( "\n" );
     }
 
     // cleanup
