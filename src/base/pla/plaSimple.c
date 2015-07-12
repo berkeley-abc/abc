@@ -44,7 +44,7 @@ ABC_NAMESPACE_IMPL_START
 void Pla_ManDumpPla( Pla_Man_t * p, char * pFileName )
 {
     // find the number of original variables
-    int nVarsInit = Pla_ManDivNum(p) ? Vec_IntCountZero(&p->vDivs) : Pla_ManInNum(p);
+    //int nVarsInit = Pla_ManDivNum(p) ? Vec_IntCountZero(&p->vDivs) : Pla_ManInNum(p);
     FILE * pFile = fopen( pFileName, "wb" );
     if ( pFile == NULL )
         printf( "Cannot open file \"%s\" for writing.\n", pFileName );
