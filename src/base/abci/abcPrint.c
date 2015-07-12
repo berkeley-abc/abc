@@ -1253,7 +1253,10 @@ void Abc_NtkPrintStrSupports( Abc_Ntk_t * pNtk, int fMatrix )
         Vec_PtrFree( vSupp );
     }
     if ( !fMatrix )
+    {
+        Abc_NtkCleanMarkA( pNtk );
         return;
+    }
 
     Abc_NtkForEachCi( pNtk, pObj, k )
         pObj->fMarkA = 0;
@@ -1273,7 +1276,7 @@ void Abc_NtkPrintStrSupports( Abc_Ntk_t * pNtk, int fMatrix )
         Abc_NtkForEachCi( pNtk, pObj, k )
             pObj->fMarkA = 0;
     }
-
+    Abc_NtkCleanMarkA( pNtk );
 }
 
 /**Function*************************************************************
