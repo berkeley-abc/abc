@@ -99,7 +99,7 @@ void Fxch_ManWriteBlif( char * pFileName, Vec_Wec_t * vCubes, Vec_Wrd_t * vDivs 
         printf( "Cannot open file \"%s\" for writing.\n", pFileName );
     else
     {
-        char * pLits = "-01?";
+        //char * pLits = "-01?";
         Vec_Str_t * vStr;
         Vec_Int_t * vCube;
         int i, k, Lit;
@@ -617,7 +617,7 @@ void Fxch_ManCreateDivisors( Fxch_Man_t * p )
 void Fxch_ManUpdate( Fxch_Man_t * p, int iDiv )
 {
     Vec_Int_t * vCube1, * vCube2, * vLitP, * vLitN;
-    int nLitsNew = p->nLits - (int)Vec_FltEntry(&p->vWeights, iDiv);
+    //int nLitsNew = p->nLits - (int)Vec_FltEntry(&p->vWeights, iDiv);
     int i, Lit0, Lit1, hCube1, hCube2, iVarNew;
     //float Diff = Vec_FltEntry(&p->vWeights, iDiv) - (float)((int)Vec_FltEntry(&p->vWeights, iDiv));
     //assert( Diff > 0.0 && Diff < 1.0 );

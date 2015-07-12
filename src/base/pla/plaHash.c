@@ -272,7 +272,7 @@ Vec_Int_t * Pla_ManComputeDistance1Int( Pla_Man_t * p )
     Vec_Int_t * vCounts = Vec_IntStart( Vec_WecSize(&p->vCubeLits) );
     Vec_Int_t * vEntries = Vec_IntAlloc( p->nIns );
     int nBits = Abc_Base2Log( Vec_WecSizeSize(&p->vCubeLits) ) + 2;
-    int v, i, k, Count = 0;
+    int v, i, k;//, Count = 0;
     int iCube1, iCube2, iVar1, iVar2;
     assert( nBits <= 26 );
     pTab = Tab_ManAlloc( nBits, p );

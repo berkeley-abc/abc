@@ -980,7 +980,7 @@ int Abc_NtkFunctionalIsoGia_rec( Gia_Man_t * pNew, Abc_Obj_t * pNode )
     iLit1 = Abc_LitNotCond( iLit1, Abc_ObjFaninC1(pNode) );
     return (pNode->iTemp = Gia_ManHashAnd(pNew, iLit0, iLit1));
 }
-Gia_Man_t * Abc_NtkFunctionalIsoGia( Abc_Ntk_t * pNtk, int iCo1, int iCo2 )
+Gia_Man_t * Abc_NtkFunctionalIsoGia( Abc_Ntk_t * pNtk, int iCo1, int iCo2, int fCommon )
 {
     Gia_Man_t * pNew = NULL, * pTemp;
     Vec_Int_t * vSupp1 = Abc_NtkNodeSupportInt( pNtk, iCo1 );
@@ -993,6 +993,16 @@ Gia_Man_t * Abc_NtkFunctionalIsoGia( Abc_Ntk_t * pNtk, int iCo1, int iCo2 )
         pNew->pName = Abc_UtilStrsav( pNtk->pName );
         pNew->pSpec = Abc_UtilStrsav( pNtk->pSpec );
         Gia_ManHashStart( pNew );
+        // put commom together
+        if ( fCommon )
+        {
+            Vec_Int_t * vCommon = Vec_IntAlloc( Vec_IntSize(vSupp1) );
+            Vec_IntTwoRemoveCommon( vSupp1, vSupp2, vCommon );
+            Vec_IntAppend( vSupp1, vCommon );
+            Vec_IntAppend( vSupp2, vCommon );
+            Vec_IntFree( vCommon );
+            assert( Vec_IntSize(vSupp1) == Vec_IntSize(vSupp2) );            
+        }
         // primary inputs
         Abc_AigConst1(pNtk)->iTemp = 1;
         Vec_IntForEachEntry( vSupp1, iCi, i )
@@ -1020,7 +1030,7 @@ Gia_Man_t * Abc_NtkFunctionalIsoGia( Abc_Ntk_t * pNtk, int iCo1, int iCo2 )
     Vec_IntFree( vSupp2 );
     return pNew;
 }
-int Abc_NtkFunctionalIsoInt( Abc_Ntk_t * pNtk, int iCo1, int iCo2 )
+int Abc_NtkFunctionalIsoInt( Abc_Ntk_t * pNtk, int iCo1, int iCo2, int fCommon )
 {
     Gia_Man_t * pGia; int Value;
     assert( Abc_NtkIsStrash(pNtk) );
@@ -1028,20 +1038,20 @@ int Abc_NtkFunctionalIsoInt( Abc_Ntk_t * pNtk, int iCo1, int iCo2 )
         return 0;
     if ( iCo2 < 0 || iCo2 >= Abc_NtkCoNum(pNtk) )
         return 0;
-    pGia = Abc_NtkFunctionalIsoGia( pNtk, iCo1, iCo2 );
+    pGia = Abc_NtkFunctionalIsoGia( pNtk, iCo1, iCo2, fCommon );
     if ( pGia == NULL )
         return 0;
     Value = Cec_ManVerifySimple( pGia );
     Gia_ManStop( pGia );
     return (int)(Value == 1);
 }
-int Abc_NtkFunctionalIso( Abc_Ntk_t * pNtk, int iCo1, int iCo2 )
+int Abc_NtkFunctionalIso( Abc_Ntk_t * pNtk, int iCo1, int iCo2, int fCommon )
 {
     Abc_Ntk_t * pNtkNew; int Result;
     if ( Abc_NtkIsStrash(pNtk) )
-        return Abc_NtkFunctionalIsoInt( pNtk, iCo1, iCo2 );
+        return Abc_NtkFunctionalIsoInt( pNtk, iCo1, iCo2, fCommon );
     pNtkNew = Abc_NtkStrash( pNtk, 0, 0, 0 );
-    Result = Abc_NtkFunctionalIsoInt( pNtkNew, iCo1, iCo2 );
+    Result = Abc_NtkFunctionalIsoInt( pNtkNew, iCo1, iCo2, fCommon );
     Abc_NtkDelete( pNtkNew );
     return Result;
 }

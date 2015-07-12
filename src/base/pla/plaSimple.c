@@ -50,7 +50,7 @@ void Pla_ManDumpPla( Pla_Man_t * p, char * pFileName )
         printf( "Cannot open file \"%s\" for writing.\n", pFileName );
     else
     {
-        char * pLits = "-01?";
+        //char * pLits = "-01?";
         Vec_Str_t * vStr;
         Vec_Int_t * vCube;
         int i, k, Lit;
@@ -89,7 +89,7 @@ void Pla_ManDumpBlif( Pla_Man_t * p, char * pFileName )
         printf( "Cannot open file \"%s\" for writing.\n", pFileName );
     else
     {
-        char * pLits = "-01?";
+        //char * pLits = "-01?";
         Vec_Str_t * vStr;
         Vec_Int_t * vCube;
         int i, k, Lit, Div;
