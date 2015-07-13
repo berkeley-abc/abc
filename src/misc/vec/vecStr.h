@@ -589,6 +589,26 @@ static inline char Vec_StrPop( Vec_Str_t * p )
   SeeAlso     []
 
 ***********************************************************************/
+static inline Vec_StrIntPrint( Vec_Str_t * p )
+{
+    int i;
+    printf( "Vector has %d entries: {", Vec_StrSize(p) );
+    for ( i = 0; i < Vec_StrSize(p); i++ )
+        printf( " %d", Vec_StrEntry(p, i) );
+    printf( " }\n" );
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 static inline void Vec_StrPrintNum( Vec_Str_t * p, int Num )
 {
     int i;
