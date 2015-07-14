@@ -218,9 +218,9 @@ void Wlc_BlastAdder( Gia_Man_t * pNew, int * pAdd0, int * pAdd1, int nBits ) // 
     {
         iSum   = Gia_ManHashXor( pNew, iCarry, Gia_ManHashXor(pNew, pAdd0[b], pAdd1[b]) );
         iTerm1 = Gia_ManHashAnd( pNew, pAdd0[b], pAdd1[b] );
-        iTerm2 = Gia_ManHashAnd( pNew, pAdd0[b], iCarry );
-        iTerm3 = Gia_ManHashAnd( pNew, pAdd1[b], iCarry );
-        iCarry = Gia_ManHashOr( pNew, iTerm1, Gia_ManHashOr(pNew, iTerm2, iTerm3) );
+        iTerm2 = Gia_ManHashOr ( pNew, pAdd0[b], pAdd1[b] );
+        iTerm3 = Gia_ManHashAnd( pNew, iTerm2, iCarry );
+        iCarry = Gia_ManHashOr( pNew, iTerm1, iTerm3 );
         pAdd0[b] = iSum;
     }
 }
@@ -256,6 +256,37 @@ void Wlc_BlastMultiplier( Gia_Man_t * pNew, int * pArg0, int * pArg1, int nBits,
         assert( Vec_IntSize(vTemp) == nBits );
         Wlc_BlastAdder( pNew, Vec_IntArray(vRes), Vec_IntArray(vTemp), nBits );
     }
+}
+void Wlc_BlastFullAdder( Gia_Man_t * pNew, int a, int b, int c, int s, int * pc, int * ps, int fNeg )
+{
+    int And  = Abc_LitNotCond( Gia_ManHashAnd(pNew, a, b), fNeg );
+    int Tmp1 = Gia_ManHashAnd(pNew, And,  s);
+    int Tmp2 = Gia_ManHashOr (pNew, And,  s);
+    int Tmp3 = Gia_ManHashAnd(pNew, Tmp2, c);
+    *pc      = Gia_ManHashOr (pNew, Tmp1, Tmp3);
+    *ps      = Gia_ManHashXor(pNew, c, Gia_ManHashXor(pNew, And,  s));
+}
+void Wlc_BlastMultiplier2( Gia_Man_t * pNew, int * pArgA, int * pArgB, int nArgA, int nArgB, Vec_Int_t * vTemp, Vec_Int_t * vRes, int fSigned )
+{
+    int * pRes, * pArgC, * pArgS, a, b, Carry = fSigned;
+    assert( nArgA > 0 && nArgB > 0 );
+    assert( fSigned == 0 || fSigned == 1 );
+    // prepare result
+    Vec_IntFill( vRes, nArgA + nArgB, 0 );
+    pRes = Vec_IntArray( vRes );
+    // prepare intermediate storage
+    Vec_IntFill( vTemp, 2 * nArgA, 0 );
+    pArgC = Vec_IntArray( vTemp );
+    pArgS = pArgC + nArgA;
+    // create matrix
+    for ( b = 0; b < nArgB; b++ )
+        for ( a = 0; a < nArgA; a++ )
+            Wlc_BlastFullAdder( pNew, pArgA[a], pArgB[b], pArgC[a], pArgS[a], 
+                &pArgC[a], a ? &pArgS[a-1] : &pRes[b], fSigned && ((a+1 == nArgA) ^ (b+1 == nArgB)) );
+    // final addition
+    pArgS[nArgA-1] = fSigned;
+    for ( a = 0; a < nArgA; a++ )
+        Wlc_BlastFullAdder( pNew, 1, pArgC[a], Carry, pArgS[a], &Carry, &pRes[nArgB+a], 0 );
 }
 void Wlc_BlastDivider( Gia_Man_t * pNew, int * pNum, int nNum, int * pDiv, int nDiv, int fQuo, Vec_Int_t * vRes )
 {
@@ -745,11 +776,23 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Vec_Int_t * vBoxIds )
         }
         else if ( pObj->Type == WLC_OBJ_ARI_MULTI )
         {
+/*
             int nRangeMax = Abc_MaxInt( nRange, Abc_MaxInt(nRange0, nRange1) );
             int * pArg0 = Wlc_VecLoadFanins( vTemp0, pFans0, nRange0, nRangeMax, Wlc_ObjIsSignedFanin01(p, pObj) );
             int * pArg1 = Wlc_VecLoadFanins( vTemp1, pFans1, nRange1, nRangeMax, Wlc_ObjIsSignedFanin01(p, pObj) );
             Wlc_BlastMultiplier( pNew, pArg0, pArg1, nRange, vTemp2, vRes );
             Vec_IntShrink( vRes, nRange );
+*/
+            int fSigned = Wlc_ObjIsSignedFanin01(p, pObj);
+            int nRangeMax = Abc_MaxInt(nRange0, nRange1);
+            int * pArg0 = Wlc_VecLoadFanins( vTemp0, pFans0, nRange0, nRangeMax, fSigned );
+            int * pArg1 = Wlc_VecLoadFanins( vTemp1, pFans1, nRange1, nRangeMax, fSigned );
+            Wlc_BlastMultiplier2( pNew, pArg0, pArg1, nRangeMax, nRangeMax, vTemp2, vRes, fSigned );
+            if ( nRange > nRangeMax + nRangeMax )
+                Vec_IntFillExtra( vRes, nRange, fSigned ? Vec_IntEntryLast(vRes) : 0 );
+            else
+                Vec_IntShrink( vRes, nRange );
+            assert( Vec_IntSize(vRes) == nRange );
         }
         else if ( pObj->Type == WLC_OBJ_ARI_DIVIDE || pObj->Type == WLC_OBJ_ARI_MODULUS )
         {
