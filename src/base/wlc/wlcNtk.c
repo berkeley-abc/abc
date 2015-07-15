@@ -73,9 +73,11 @@ static char * Wlc_Names[WLC_OBJ_NUMBER+1] = {
     "%",                   // 41: arithmetic modulus
     "**",                  // 42: arithmetic power
     "-",                   // 43: arithmetic minus
-    "table",               // 44: bit table
-    NULL                   // 45: unused
+    "sqrt",                // 44: integer square root
+    "table",               // 45: bit table
+    NULL                   // 46: unused
 };
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///

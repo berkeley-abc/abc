@@ -324,6 +324,8 @@ void Wlc_WriteVerInt( FILE * pFile, Wlc_Ntk_t * p, int fNoFlops )
                     fprintf( pFile, "%%" );
                 else if ( pObj->Type == WLC_OBJ_ARI_POWER )
                     fprintf( pFile, "**" );
+                else if ( pObj->Type == WLC_OBJ_ARI_SQRT )
+                    fprintf( pFile, "@" );
                 else assert( 0 );
                 fprintf( pFile, " %s", Wlc_ObjName(p, Wlc_ObjFaninId(pObj, 1)) );
             }
