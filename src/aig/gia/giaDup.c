@@ -2487,15 +2487,20 @@ Gia_Man_t * Gia_ManDupZeroUndc( Gia_Man_t * p, char * pInit, int fVerbose )
     if ( CountPis > Gia_ManPiNum(p) )
         iResetFlop = Gia_ManAppendCi( pNew );
     // update flop outputs
+    Gia_ManMarkFanoutDrivers( p );
     Gia_ManForEachRo( p, pObj, i )
     {
         if ( pInit[i] == '1' )
             pObj->Value = Abc_LitNot(pObj->Value), Count1++;
         else if ( pInit[i] == 'x' || pInit[i] == 'X' )
-            pObj->Value = Gia_ManAppendMux( pNew, iResetFlop, pObj->Value, Gia_Obj2Lit(pNew, Gia_ManPi(pNew, pPiLits[i])) );
+        {
+            if ( pObj->fMark0 ) // only add MUX if the flop has fanout
+                pObj->Value = Gia_ManAppendMux( pNew, iResetFlop, pObj->Value, Gia_Obj2Lit(pNew, Gia_ManPi(pNew, pPiLits[i])) );
+        }
         else if ( pInit[i] != '0' )
             assert( 0 );
     }
+    Gia_ManCleanMark0( p );
     ABC_FREE( pPiLits );
     // build internal nodes
     Gia_ManForEachAnd( p, pObj, i )
