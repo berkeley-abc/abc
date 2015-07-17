@@ -101,16 +101,16 @@ typedef enum {
 ////////////////////////////////////////////////////////////////////////
 
 typedef struct Wlc_Obj_t_  Wlc_Obj_t;
-struct Wlc_Obj_t_ // 16 bytes
+struct Wlc_Obj_t_ // 24 bytes
 {
     unsigned               Type    :  6;       // node type
     unsigned               Signed  :  1;       // signed
     unsigned               Mark    :  1;       // user mark
     unsigned               fIsPo   :  1;       // this is PO
     unsigned               fIsFi   :  1;       // this is FI
-    unsigned               nFanins : 22;       // fanin count
-    unsigned               End     : 16;       // range end
-    unsigned               Beg     : 16;       // range begin
+    unsigned               nFanins;            // fanin count
+    unsigned               End;                // range end
+    unsigned               Beg;                // range begin
     union { int            Fanins[2];          // fanin IDs
             int *          pFanins[1]; };
 };

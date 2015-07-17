@@ -43,6 +43,10 @@ struct Wlc_Prs_t_
     Mem_Flex_t *           pMemTable;
     Vec_Ptr_t *            vTables;
     int                    nConsts;
+    int                    nNonZeroCount;
+    int                    nNonZeroEnd;
+    int                    nNonZeroBeg;
+    int                    nNonZeroLine;
     char                   sError[WLV_PRS_MAX_LINE];
 };
 
@@ -809,7 +813,14 @@ int Wlc_PrsReadDeclaration( Wlc_Prs_t * p, char * pStart )
     if ( pStart == NULL )
         return Wlc_PrsWriteErrorMessage( p, pStart, "Cannot read range." );
     if ( Beg != 0 )
-        printf( "Warning: Non-zero-based range ([%d:%d]) in line %d.\n", End, Beg, Wlc_PrsFindLine(p, pStart) );
+    {
+        if ( p->nNonZeroCount++ == 0 )
+        {
+            p->nNonZeroEnd  = End;
+            p->nNonZeroBeg  = Beg;
+            p->nNonZeroLine = Wlc_PrsFindLine(p, pStart);
+        }
+    }
     while ( 1 )
     {
         char * pName;
@@ -1155,6 +1166,11 @@ startword:
             pStart = Wlc_PrsFindName( pStart, &pName );
             return Wlc_PrsWriteErrorMessage( p, pStart, "Cannot read line beginning with %s.", pName );
         }
+    }
+    if ( p->nNonZeroCount )
+    {
+        printf( "Warning: %d objects in the input file have non-zero-based ranges.\n", p->nNonZeroCount );
+        printf( "In particular, a signal with range [%d:%d] is declared in line %d.\n", p->nNonZeroEnd, p->nNonZeroBeg, p->nNonZeroLine );
     }
     return 1;
 }

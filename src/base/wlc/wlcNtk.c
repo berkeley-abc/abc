@@ -290,8 +290,9 @@ void Wlc_NtkPrintDistribSortOne( Vec_Ptr_t * vTypes, Vec_Ptr_t * vOccurs, int Ty
 }
 void Wlc_NtkPrintDistrib( Wlc_Ntk_t * p, int fVerbose )
 {
-    Wlc_Obj_t * pObj; 
+    Wlc_Obj_t * pObj, * pObjRange = NULL; int nCountRange = 0;
     Vec_Ptr_t * vTypes, * vOccurs;
+    Vec_Int_t * vAnds = Vec_IntStart( WLC_OBJ_NUMBER );
     word Sign;
     int i, k, s, s0, s1;
     // allocate statistics arrays
@@ -309,8 +310,12 @@ void Wlc_NtkPrintDistrib( Wlc_Ntk_t * p, int fVerbose )
             printf( "Object %6d has range %d, which is reduced to %d in the statistics.\n", 
                 i, Wlc_ObjRange(pObj), Wlc_ObjRange(pObj) & 0xFFFFF );
         if ( pObj->Beg )
-            printf( "Object %6d has non-standard range %d=[%d:%d]\n", i, Wlc_ObjRange(pObj), pObj->End, pObj->Beg );
-       // 0-input types
+        {
+            if ( pObjRange == NULL )
+                pObjRange = pObj;
+            nCountRange++;
+        }
+        // 0-input types
         if ( Wlc_ObjIsCi(pObj) || pObj->Type == WLC_OBJ_CONST || pObj->Type == WLC_OBJ_BIT_CONCAT )
             Sign = Wlc_NtkPrintDistribMakeSign( Wlc_ObjSign(pObj), 0, 0 );
         // 1-input types
@@ -328,23 +333,102 @@ void Wlc_NtkPrintDistrib( Wlc_Ntk_t * p, int fVerbose )
         }
         // add to storage
         Wlc_NtkPrintDistribAddOne( vTypes, vOccurs, pObj->Type, Sign );
+        // count the number of AIG nodes
+        if ( pObj->Type == WLC_OBJ_MUX )
+            Vec_IntAddToEntry( vAnds, WLC_OBJ_MUX,      3 * Wlc_ObjRange(pObj) * (Wlc_ObjFaninNum(pObj) - 2) );
+        else if ( pObj->Type == WLC_OBJ_SHIFT_R )      
+            Vec_IntAddToEntry( vAnds, WLC_OBJ_SHIFT_R,  Abc_MinInt(Wlc_ObjRange(Wlc_ObjFanin0(p, pObj)), Abc_Base2Log(Wlc_ObjRange(pObj))) * 3 );
+        else if ( pObj->Type == WLC_OBJ_SHIFT_RA )     
+            Vec_IntAddToEntry( vAnds, WLC_OBJ_SHIFT_RA, Wlc_ObjRange(pObj) * Abc_MinInt(Wlc_ObjRange(Wlc_ObjFanin0(p, pObj)), Abc_Base2Log(Wlc_ObjRange(pObj))) * 3 );
+        else if ( pObj->Type == WLC_OBJ_SHIFT_L )      
+            Vec_IntAddToEntry( vAnds, WLC_OBJ_SHIFT_L,  Wlc_ObjRange(pObj) * Abc_MinInt(Wlc_ObjRange(Wlc_ObjFanin0(p, pObj)), Abc_Base2Log(Wlc_ObjRange(pObj))) * 3 );
+        else if ( pObj->Type == WLC_OBJ_SHIFT_LA )     
+            Vec_IntAddToEntry( vAnds, WLC_OBJ_SHIFT_LA, Wlc_ObjRange(pObj) * Abc_MinInt(Wlc_ObjRange(Wlc_ObjFanin0(p, pObj)), Abc_Base2Log(Wlc_ObjRange(pObj))) * 3 );
+        else if ( pObj->Type == WLC_OBJ_ROTATE_R )     
+            Vec_IntAddToEntry( vAnds, WLC_OBJ_ROTATE_R, Wlc_ObjRange(pObj) * Abc_MinInt(Wlc_ObjRange(Wlc_ObjFanin0(p, pObj)), Abc_Base2Log(Wlc_ObjRange(pObj))) * 3 );
+        else if ( pObj->Type == WLC_OBJ_ROTATE_L )     
+            Vec_IntAddToEntry( vAnds, WLC_OBJ_ROTATE_L, Wlc_ObjRange(pObj) * Abc_MinInt(Wlc_ObjRange(Wlc_ObjFanin0(p, pObj)), Abc_Base2Log(Wlc_ObjRange(pObj))) * 3 );
+        else if ( pObj->Type == WLC_OBJ_BIT_NOT )     
+            Vec_IntAddToEntry( vAnds, WLC_OBJ_BIT_NOT, 0 );
+        else if ( pObj->Type == WLC_OBJ_BIT_AND )      
+            Vec_IntAddToEntry( vAnds, WLC_OBJ_BIT_AND,      Wlc_ObjRange(Wlc_ObjFanin0(p, pObj)) );
+        else if ( pObj->Type == WLC_OBJ_BIT_OR )       
+            Vec_IntAddToEntry( vAnds, WLC_OBJ_BIT_OR,       Wlc_ObjRange(Wlc_ObjFanin0(p, pObj)) );
+        else if ( pObj->Type == WLC_OBJ_BIT_XOR )      
+            Vec_IntAddToEntry( vAnds, WLC_OBJ_BIT_XOR,  3 * Wlc_ObjRange(Wlc_ObjFanin0(p, pObj)) );
+        else if ( pObj->Type == WLC_OBJ_BIT_SELECT )   
+            Vec_IntAddToEntry( vAnds, WLC_OBJ_BIT_SELECT, 0 );
+        else if ( pObj->Type == WLC_OBJ_BIT_CONCAT )   
+            Vec_IntAddToEntry( vAnds, WLC_OBJ_BIT_CONCAT, 0 );
+        else if ( pObj->Type == WLC_OBJ_BIT_ZEROPAD )  
+            Vec_IntAddToEntry( vAnds, WLC_OBJ_BIT_ZEROPAD, 0 );
+        else if ( pObj->Type == WLC_OBJ_BIT_SIGNEXT )  
+            Vec_IntAddToEntry( vAnds, WLC_OBJ_BIT_SIGNEXT, 0 );
+        else if ( pObj->Type == WLC_OBJ_LOGIC_NOT )    
+            Vec_IntAddToEntry( vAnds, WLC_OBJ_LOGIC_NOT,        Wlc_ObjRange(Wlc_ObjFanin0(p, pObj)) - 1 );
+        else if ( pObj->Type == WLC_OBJ_LOGIC_AND )    
+            Vec_IntAddToEntry( vAnds, WLC_OBJ_LOGIC_AND,        Wlc_ObjRange(Wlc_ObjFanin0(p, pObj)) + Wlc_ObjRange(Wlc_ObjFanin1(p, pObj)) - 1 );
+        else if ( pObj->Type == WLC_OBJ_LOGIC_OR )     
+            Vec_IntAddToEntry( vAnds, WLC_OBJ_LOGIC_OR,         Wlc_ObjRange(Wlc_ObjFanin0(p, pObj)) + Wlc_ObjRange(Wlc_ObjFanin1(p, pObj)) - 1 );
+        else if ( pObj->Type == WLC_OBJ_LOGIC_XOR )    
+            Vec_IntAddToEntry( vAnds, WLC_OBJ_LOGIC_XOR,        Wlc_ObjRange(Wlc_ObjFanin0(p, pObj)) + Wlc_ObjRange(Wlc_ObjFanin1(p, pObj)) + 1 );
+        else if ( pObj->Type == WLC_OBJ_COMP_EQU )     
+            Vec_IntAddToEntry( vAnds, WLC_OBJ_COMP_EQU,     4 * Wlc_ObjRange(Wlc_ObjFanin0(p, pObj)) - 1 );
+        else if ( pObj->Type == WLC_OBJ_COMP_NOTEQU )  
+            Vec_IntAddToEntry( vAnds, WLC_OBJ_COMP_NOTEQU,  4 * Wlc_ObjRange(Wlc_ObjFanin0(p, pObj)) - 1 );
+        else if ( pObj->Type == WLC_OBJ_COMP_LESS )    
+            Vec_IntAddToEntry( vAnds, WLC_OBJ_COMP_LESS,    6 * Wlc_ObjRange(Wlc_ObjFanin0(p, pObj)) - 6 );
+        else if ( pObj->Type == WLC_OBJ_COMP_MORE )    
+            Vec_IntAddToEntry( vAnds, WLC_OBJ_COMP_MORE,    6 * Wlc_ObjRange(Wlc_ObjFanin0(p, pObj)) - 6 );
+        else if ( pObj->Type == WLC_OBJ_COMP_LESSEQU ) 
+            Vec_IntAddToEntry( vAnds, WLC_OBJ_COMP_LESSEQU, 6 * Wlc_ObjRange(Wlc_ObjFanin0(p, pObj)) - 6 );
+        else if ( pObj->Type == WLC_OBJ_COMP_MOREEQU ) 
+            Vec_IntAddToEntry( vAnds, WLC_OBJ_COMP_MOREEQU, 6 * Wlc_ObjRange(Wlc_ObjFanin0(p, pObj)) - 6 );
+        else if ( pObj->Type == WLC_OBJ_REDUCT_AND )   
+            Vec_IntAddToEntry( vAnds, WLC_OBJ_REDUCT_AND,       Wlc_ObjRange(Wlc_ObjFanin0(p, pObj)) - 1 );
+        else if ( pObj->Type == WLC_OBJ_REDUCT_OR )    
+            Vec_IntAddToEntry( vAnds, WLC_OBJ_REDUCT_OR,        Wlc_ObjRange(Wlc_ObjFanin0(p, pObj)) - 1 );
+        else if ( pObj->Type == WLC_OBJ_REDUCT_XOR )   
+            Vec_IntAddToEntry( vAnds, WLC_OBJ_REDUCT_XOR,   3 * Wlc_ObjRange(Wlc_ObjFanin0(p, pObj)) - 3 );
+        else if ( pObj->Type == WLC_OBJ_ARI_ADD )       
+            Vec_IntAddToEntry( vAnds, WLC_OBJ_ARI_ADD,      9 * Wlc_ObjRange(Wlc_ObjFanin0(p, pObj)) );
+        else if ( pObj->Type == WLC_OBJ_ARI_SUB )       
+            Vec_IntAddToEntry( vAnds, WLC_OBJ_ARI_SUB,      9 * Wlc_ObjRange(Wlc_ObjFanin0(p, pObj)) );
+        else if ( pObj->Type == WLC_OBJ_ARI_MULTI )    
+            Vec_IntAddToEntry( vAnds, WLC_OBJ_ARI_MULTI,    9 * Wlc_ObjRange(Wlc_ObjFanin0(p, pObj)) * Wlc_ObjRange(Wlc_ObjFanin1(p, pObj)) );
+        else if ( pObj->Type == WLC_OBJ_ARI_DIVIDE )   
+            Vec_IntAddToEntry( vAnds, WLC_OBJ_ARI_DIVIDE,  13 * Wlc_ObjRange(Wlc_ObjFanin0(p, pObj)) * Wlc_ObjRange(Wlc_ObjFanin0(p, pObj)) - 19 * Wlc_ObjRange(Wlc_ObjFanin0(p, pObj)) + 10 );
+        else if ( pObj->Type == WLC_OBJ_ARI_MODULUS )  
+            Vec_IntAddToEntry( vAnds, WLC_OBJ_ARI_MODULUS, 13 * Wlc_ObjRange(Wlc_ObjFanin0(p, pObj)) * Wlc_ObjRange(Wlc_ObjFanin0(p, pObj)) - 7 * Wlc_ObjRange(Wlc_ObjFanin0(p, pObj)) - 2  );
+        else if ( pObj->Type == WLC_OBJ_ARI_POWER ) 
+            Vec_IntAddToEntry( vAnds, WLC_OBJ_ARI_POWER,   10 * (int)pow(Wlc_ObjRange(Wlc_ObjFanin0(p, pObj)),Wlc_ObjRange(Wlc_ObjFanin0(p, pObj))) );
+        else if ( pObj->Type == WLC_OBJ_ARI_MINUS )   
+            Vec_IntAddToEntry( vAnds, WLC_OBJ_ARI_MINUS,    4 * Wlc_ObjRange(Wlc_ObjFanin0(p, pObj)) );
+        else if ( pObj->Type == WLC_OBJ_ARI_SQRT )    
+            Vec_IntAddToEntry( vAnds, WLC_OBJ_ARI_SQRT,    11 * Wlc_ObjRange(Wlc_ObjFanin0(p, pObj)) * Wlc_ObjRange(Wlc_ObjFanin0(p, pObj)) / 8 + 5 * Wlc_ObjRange(Wlc_ObjFanin0(p, pObj)) / 2 - 5  );
+    }
+    if ( nCountRange )
+    {
+        printf( "Warning: %d objects of the design have non-zero-based ranges.\n", nCountRange );
+        printf( "In particular, object %6d with name \"%s\" has range %d=[%d:%d]\n", Wlc_ObjId(p, pObjRange), 
+            Abc_NamStr(p->pManName, Wlc_ObjNameId(p, Wlc_ObjId(p, pObjRange))), Wlc_ObjRange(pObjRange), pObjRange->End, pObjRange->Beg );
     }
     // print by occurrence
-    printf( "ID  :  name  occurrence (occurrence)<output_range>=<input_range>.<input_range> ...\n" );
+    printf( "ID  :  name  occurrence    and2 (occurrence)<output_range>=<input_range>.<input_range> ...\n" );
     for ( i = 0; i < WLC_OBJ_NUMBER; i++ )
     {
         Vec_Wrd_t * vType  = (Vec_Wrd_t *)Vec_PtrEntry( vTypes, i );
         Vec_Wrd_t * vOccur = (Vec_Wrd_t *)Vec_PtrEntry( vOccurs, i );
         if ( p->nObjs[i] == 0 )
             continue;
-        printf( "%2d  :  %-8s  %6d ", i, Wlc_Names[i], p->nObjs[i] );
+        printf( "%2d  :  %-8s  %6d%8d ", i, Wlc_Names[i], p->nObjs[i], Vec_IntEntry(vAnds, i) );
         // sort by occurence
         Wlc_NtkPrintDistribSortOne( vTypes, vOccurs, i );
         Vec_WrdForEachEntry( vType, Sign, k )
         {
             Wlc_NtkPrintDistribFromSign( Sign, &s, &s0, &s1 );
-            if ( ((k % 8) == 7 && s1) || ((k % 10) == 9 && !s1) )
-                printf( "\n                        " );
+            if ( ((k % 6) == 5 && s1) || ((k % 8) == 7 && !s1) )
+                printf( "\n                                " );
             printf( "(%d)", (int)Vec_WrdEntry( vOccur, k ) );
             printf( "%s%d",      Abc_LitIsCompl(s)?"-":"",  Abc_Lit2Var(s) );
             if ( s0 )
@@ -357,6 +441,7 @@ void Wlc_NtkPrintDistrib( Wlc_Ntk_t * p, int fVerbose )
     }
     Vec_VecFree( (Vec_Vec_t *)vTypes );
     Vec_VecFree( (Vec_Vec_t *)vOccurs );
+    Vec_IntFree( vAnds );
 }
 void Wlc_NtkPrintNodes( Wlc_Ntk_t * p, int Type )
 {
