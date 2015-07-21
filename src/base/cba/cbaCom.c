@@ -501,7 +501,7 @@ int Cba_CommandGet( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 usage:
     Abc_Print( -2, "usage: @get [-mvh]\n" );
-    Abc_Print( -2, "\t         extracts AIG or mapped network into the hierarchical design\n" );
+    Abc_Print( -2, "\t         inserts AIG or mapped network into the hierarchical design\n" );
     Abc_Print( -2, "\t-m     : toggle using mapped network from main-space [default = %s]\n", fMapped? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");

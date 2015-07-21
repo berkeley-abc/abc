@@ -1133,6 +1133,7 @@ extern Gia_Man_t *         Gia_ManDupTimes( Gia_Man_t * p, int nTimes );
 extern Gia_Man_t *         Gia_ManDupDfs( Gia_Man_t * p );  
 extern Gia_Man_t *         Gia_ManDupCofactorVar( Gia_Man_t * p, int iVar, int Value );  
 extern Gia_Man_t *         Gia_ManDupCofactorObj( Gia_Man_t * p, int iObj, int Value );  
+extern Gia_Man_t *         Gia_ManDupBlock( Gia_Man_t * p, int nBlock );
 extern Gia_Man_t *         Gia_ManDupExist( Gia_Man_t * p, int iVar );
 extern Gia_Man_t *         Gia_ManDupDfsSkip( Gia_Man_t * p );
 extern Gia_Man_t *         Gia_ManDupDfsCone( Gia_Man_t * p, Gia_Obj_t * pObj );

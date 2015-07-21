@@ -1417,6 +1417,42 @@ Gia_Man_t * Gia_ManDupCofactorObj( Gia_Man_t * p, int iObj, int Value )
 
 /**Function*************************************************************
 
+  Synopsis    [Reduce bit-width of GIA assuming it is Boolean.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Gia_Man_t * Gia_ManDupBlock( Gia_Man_t * p, int nBlock )
+{
+    Gia_Man_t * pNew, * pTemp;
+    Gia_Obj_t * pObj; int i;
+    assert( Gia_ManCiNum(p) % nBlock == 0 );
+    assert( Gia_ManCoNum(p) % nBlock == 0 );
+    pNew = Gia_ManStart( Gia_ManObjNum(p) );
+    pNew->pName = Abc_UtilStrsav( p->pName );
+    pNew->pSpec = Abc_UtilStrsav( p->pSpec );
+    Gia_ManFillValue( p );
+    Gia_ManConst0(p)->Value = 0;
+    Gia_ManForEachCi( p, pObj, i )
+        pObj->Value = (i % nBlock == 0) ? Gia_ManAppendCi(pNew) : 0;
+    Gia_ManHashAlloc( pNew );
+    Gia_ManForEachAnd( p, pObj, i )
+        pObj->Value = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+    Gia_ManForEachCo( p, pObj, i )
+        if ( i % nBlock == 0 )
+            Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
+    Gia_ManSetRegNum( pNew, Gia_ManRegNum(p)/nBlock );
+    pNew = Gia_ManCleanup( pTemp = pNew );
+    Gia_ManStop( pTemp );
+    return pNew;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Existentially quantified given variable.]
 
   Description []
