@@ -44,7 +44,7 @@ ABC_NAMESPACE_IMPL_START
   SeeAlso     []
 
 ***********************************************************************/
-void Prs_ManWriteVerilogConcat( FILE * pFile, Prs_Ntk_t * p, int Con )
+static void Prs_ManWriteVerilogConcat( FILE * pFile, Prs_Ntk_t * p, int Con )
 {
     extern void Prs_ManWriteVerilogArray( FILE * pFile, Prs_Ntk_t * p, Vec_Int_t * vSigs, int Start, int Stop, int fOdd );
     Vec_Int_t * vSigs = Prs_CatSignals(p, Con);
@@ -52,7 +52,7 @@ void Prs_ManWriteVerilogConcat( FILE * pFile, Prs_Ntk_t * p, int Con )
     Prs_ManWriteVerilogArray( pFile, p, vSigs, 0, Vec_IntSize(vSigs), 0 );
     fprintf( pFile, "}" );
 }
-void Prs_ManWriteVerilogSignal( FILE * pFile, Prs_Ntk_t * p, int Sig )
+static void Prs_ManWriteVerilogSignal( FILE * pFile, Prs_Ntk_t * p, int Sig )
 {
     int Value = Abc_Lit2Var2( Sig );
     Prs_ManType_t Type = (Prs_ManType_t)Abc_Lit2Att2( Sig );
@@ -64,7 +64,7 @@ void Prs_ManWriteVerilogSignal( FILE * pFile, Prs_Ntk_t * p, int Sig )
         Prs_ManWriteVerilogConcat( pFile, p, Value );
     else assert( 0 );
 }
-void Prs_ManWriteVerilogArray( FILE * pFile, Prs_Ntk_t * p, Vec_Int_t * vSigs, int Start, int Stop, int fOdd )
+static void Prs_ManWriteVerilogArray( FILE * pFile, Prs_Ntk_t * p, Vec_Int_t * vSigs, int Start, int Stop, int fOdd )
 {
     int i, Sig;
     assert( Vec_IntSize(vSigs) > 0 );
@@ -76,7 +76,7 @@ void Prs_ManWriteVerilogArray( FILE * pFile, Prs_Ntk_t * p, Vec_Int_t * vSigs, i
         fprintf( pFile, "%s", i == Stop - 1 ? "" : ", " );
     }
 }
-void Prs_ManWriteVerilogArray2( FILE * pFile, Prs_Ntk_t * p, Vec_Int_t * vSigs )
+static void Prs_ManWriteVerilogArray2( FILE * pFile, Prs_Ntk_t * p, Vec_Int_t * vSigs )
 {
     int i, FormId, ActSig;
     assert( Vec_IntSize(vSigs) % 2 == 0 );
@@ -89,7 +89,7 @@ void Prs_ManWriteVerilogArray2( FILE * pFile, Prs_Ntk_t * p, Vec_Int_t * vSigs )
         fprintf( pFile, ")%s", (i == Vec_IntSize(vSigs) - 2) ? "" : ", " );
     }
 }
-void Prs_ManWriteVerilogMux( FILE * pFile, Prs_Ntk_t * p, Vec_Int_t * vSigs )
+static void Prs_ManWriteVerilogMux( FILE * pFile, Prs_Ntk_t * p, Vec_Int_t * vSigs )
 {
     int i, FormId, ActSig;
     char * pStrs[4] = { " = ", " ? ", " : ", ";\n" };
@@ -105,7 +105,7 @@ void Prs_ManWriteVerilogMux( FILE * pFile, Prs_Ntk_t * p, Vec_Int_t * vSigs )
             break;
     }
 }
-void Prs_ManWriteVerilogBoxes( FILE * pFile, Prs_Ntk_t * p )
+static void Prs_ManWriteVerilogBoxes( FILE * pFile, Prs_Ntk_t * p )
 {
     Vec_Int_t * vBox; int i;
     Prs_NtkForEachBox( p, vBox, i )
@@ -131,7 +131,7 @@ void Prs_ManWriteVerilogBoxes( FILE * pFile, Prs_Ntk_t * p )
         }
     }
 }
-void Prs_ManWriteVerilogIos( FILE * pFile, Prs_Ntk_t * p, int SigType )
+static void Prs_ManWriteVerilogIos( FILE * pFile, Prs_Ntk_t * p, int SigType )
 {
     int NameId, RangeId, i;
     char * pSigNames[4]   = { "inout", "input", "output", "wire" }; 
@@ -142,13 +142,13 @@ void Prs_ManWriteVerilogIos( FILE * pFile, Prs_Ntk_t * p, int SigType )
     Vec_IntForEachEntryTwo( vSigs[SigType], vSigsR[SigType], NameId, RangeId, i )
         fprintf( pFile, "  %s %s%s;\n", pSigNames[SigType], RangeId ? Prs_NtkStr(p, RangeId) : "", Prs_NtkStr(p, NameId) );
 }
-void Prs_ManWriteVerilogIoOrder( FILE * pFile, Prs_Ntk_t * p, Vec_Int_t * vOrder )
+static void Prs_ManWriteVerilogIoOrder( FILE * pFile, Prs_Ntk_t * p, Vec_Int_t * vOrder )
 {
     int i, NameId;
     Vec_IntForEachEntry( vOrder, NameId, i )
         fprintf( pFile, "%s%s", Prs_NtkStr(p, NameId), i == Vec_IntSize(vOrder) - 1 ? "" : ", " );
 }
-void Prs_ManWriteVerilogNtk( FILE * pFile, Prs_Ntk_t * p )
+static void Prs_ManWriteVerilogNtk( FILE * pFile, Prs_Ntk_t * p )
 {
     int s;
     // write header
@@ -179,6 +179,7 @@ void Prs_ManWriteVerilog( char * pFileName, Vec_Ptr_t * vPrs )
 }
 
 
+#if 0
 
 /**Function*************************************************************
 
@@ -693,6 +694,7 @@ void Cba_ManWriteVerilog( char * pFileName, Cba_Man_t * p, int fUseAssign )
     Vec_StrFreeP( &p->vOut2 );
 }
 
+#endif
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

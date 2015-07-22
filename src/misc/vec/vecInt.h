@@ -1939,6 +1939,27 @@ static inline void Vec_IntAppendSkip( Vec_Int_t * vVec1, Vec_Int_t * vVec2, int 
             Vec_IntPush( vVec1, Entry );
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Remapping attributes after objects were duplicated.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline void Vec_IntRemapArray( Vec_Int_t * vOld2New, Vec_Int_t * vOld, Vec_Int_t * vNew, int nNew )
+{
+    int iOld, iNew;
+    if ( Vec_IntSize(vOld) == 0 )
+        return;
+    Vec_IntFill( vNew, nNew, 0 );
+    Vec_IntForEachEntry( vOld2New, iNew, iOld )
+        if ( iNew > 0 && iNew < nNew && Vec_IntEntry(vOld, iOld) != 0 )
+            Vec_IntWriteEntry( vNew, iNew, Vec_IntEntry(vOld, iOld) );
+}
 
 ABC_NAMESPACE_HEADER_END
 

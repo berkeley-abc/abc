@@ -47,48 +47,6 @@ static inline void        Cba_AbcUpdateMan( Abc_Frame_t * pAbc, Cba_Man_t * p ) 
 
 /**Function********************************************************************
 
-  Synopsis    [Accessing current Cba_Ntk_t.]
-
-  Description []
-
-  SideEffects []
-
-  SeeAlso     []
-
-******************************************************************************/
-void Abc_FrameImportPtr( Vec_Ptr_t * vPtr )
-{
-    Cba_Man_t * p;
-    if ( Abc_FrameGetGlobalFrame() == NULL )
-    {
-        printf( "ABC framework is not started.\n" );
-        return;
-    }
-    p = Cba_PtrTransformToCba( vPtr );
-    if ( p == NULL )
-        printf( "Converting from Ptr failed.\n" );
-    Cba_AbcUpdateMan( Abc_FrameGetGlobalFrame(), p );
-}
-Vec_Ptr_t * Abc_FrameExportPtr()
-{
-    Vec_Ptr_t * vPtr;
-    Cba_Man_t * p;
-    if ( Abc_FrameGetGlobalFrame() == NULL )
-    {
-        printf( "ABC framework is not started.\n" );
-        return NULL;
-    }
-    p = Cba_AbcGetMan( Abc_FrameGetGlobalFrame() );
-    if ( p == NULL )
-        printf( "There is no CBA design present.\n" );
-    vPtr = Cba_PtrDeriveFromCba( p );
-    if ( vPtr == NULL )
-        printf( "Converting to Ptr has failed.\n" );
-    return vPtr;
-}
-
-/**Function********************************************************************
-
   Synopsis    []
 
   Description []
@@ -181,6 +139,8 @@ int Cba_CommandRead( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 0;
     }
     fclose( pFile );
+
+#if 0
     // perform reading
     if ( fUseAbc || fUsePtr )
     {
@@ -230,6 +190,8 @@ int Cba_CommandRead( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 0;
     }
     Cba_AbcUpdateMan( pAbc, p );
+
+#endif
     return 0;
 usage:
     Abc_Print( -2, "usage: @read [-apvh] <file_name>\n" );
@@ -284,6 +246,8 @@ int Cba_CommandWrite( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( 1, "Cba_CommandWrite(): There is no current design.\n" );
         return 0;
     }
+
+#if 0
     if ( argc == globalUtilOptind + 1 )
         pFileName = argv[globalUtilOptind];
     else if ( argc == globalUtilOptind && p )
@@ -319,6 +283,8 @@ int Cba_CommandWrite( Abc_Frame_t * pAbc, int argc, char ** argv )
         printf( "Unrecognized output file extension.\n" );
         return 0;
     }
+
+#endif
     return 0;
 usage:
     Abc_Print( -2, "usage: @write [-apvh]\n" );
@@ -376,7 +342,11 @@ int Cba_CommandPs( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( 1, "Cba_CommandPs(): There is no current design.\n" );
         return 0;
     }
+
+#if 0
     Cba_ManPrintStats( p, nModules, fVerbose );
+
+#endif
     return 0;
 usage:
     Abc_Print( -2, "usage: @ps [-M num] [-vh]\n" );
@@ -425,6 +395,8 @@ int Cba_CommandPut( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( 1, "Cba_CommandPut(): There is no current design.\n" );
         return 0;
     }
+
+#if 0
     pGia = Cba_ManExtract( p, fBarBufs, fVerbose );
     if ( pGia == NULL )
     {
@@ -432,6 +404,8 @@ int Cba_CommandPut( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 0;
     }
     Abc_FrameUpdateGia( pAbc, pGia );
+
+#endif
     return 0;
 usage:
     Abc_Print( -2, "usage: @put [-bvh]\n" );
@@ -479,6 +453,8 @@ int Cba_CommandGet( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( 1, "Cba_CommandGet(): There is no current design.\n" );
         return 0;
     }
+
+#if 0
     if ( fMapped )
     {
         if ( pAbc->pNtkCur == NULL )
@@ -498,10 +474,12 @@ int Cba_CommandGet( Abc_Frame_t * pAbc, int argc, char ** argv )
         pNew = Cba_ManInsertGia( p, pAbc->pGia );
     }
     Cba_AbcUpdateMan( pAbc, pNew );
+
+#endif
     return 0;
 usage:
     Abc_Print( -2, "usage: @get [-mvh]\n" );
-    Abc_Print( -2, "\t         inserts AIG or mapped network into the hierarchical design\n" );
+    Abc_Print( -2, "\t         extracts AIG or mapped network into the hierarchical design\n" );
     Abc_Print( -2, "\t-m     : toggle using mapped network from main-space [default = %s]\n", fMapped? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
@@ -542,8 +520,12 @@ int Cba_CommandClp( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( 1, "Cba_CommandGet(): There is no current design.\n" );
         return 0;
     }
+
+#if 0
     pNew = Cba_ManCollapse( p );
     Cba_AbcUpdateMan( pAbc, pNew );
+
+#endif
     return 0;
 usage:
     Abc_Print( -2, "usage: @clp [-vh]\n" );
@@ -593,6 +575,8 @@ int Cba_CommandCec( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( 1, "Cba_CommandCec(): There is no current design.\n" );
         return 0;
     }
+
+#if 0
     pArgvNew = argv + globalUtilOptind;
     nArgcNew = argc - globalUtilOptind;
     if ( nArgcNew != 1 )
@@ -658,6 +642,8 @@ int Cba_CommandCec( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     Gia_ManStop( pFirst );
     Gia_ManStop( pSecond );
+
+#endif
     return 0;
 usage:
     Abc_Print( -2, "usage: @cec [-vh]\n" );
@@ -680,10 +666,7 @@ usage:
 ******************************************************************************/
 int Cba_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern void Prs_ManReadBlifTest();
-    extern void Prs_ManReadVerilogTest();
-    extern void Prs_SmtReadSmtTest();
-    //Cba_Man_t * p = Cba_AbcGetMan(pAbc);
+    Cba_Man_t * p = Cba_AbcGetMan(pAbc);
     int c, fVerbose  = 0;
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
@@ -699,16 +682,11 @@ int Cba_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
             goto usage;
         }
     }
-/*
     if ( p == NULL )
     {
         Abc_Print( 1, "Cba_CommandTest(): There is no current design.\n" );
         return 0;
     }
-*/
-    //Cba_PtrTransformTestTest();
-    //Prs_ManReadVerilogTest();
-    //Prs_SmtReadSmtTest();
     return 0;
 usage:
     Abc_Print( -2, "usage: @test [-vh]\n" );

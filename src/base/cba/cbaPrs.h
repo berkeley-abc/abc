@@ -288,6 +288,14 @@ static inline void Prs_NtkFree( Prs_Ntk_t * p )
     ABC_FREE( p );
 }
 
+static inline void Prs_ManVecFree( Vec_Ptr_t * vPrs )
+{
+    Prs_Ntk_t * pNtk; int i;
+    Vec_PtrForEachEntry( Prs_Ntk_t *, vPrs, pNtk, i )
+        Prs_NtkFree( pNtk );
+    Vec_PtrFree( vPrs );
+}
+
 static inline void Prs_ManFree( Prs_Man_t * p )
 {
     if ( p->pStrs )
@@ -332,6 +340,100 @@ static inline int Prs_ManMemory( Vec_Ptr_t * vPrs )
     return nMem;
 }
 
+
+/**Function*************************************************************
+
+  Synopsis    [Other APIs.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline Cba_ObjType_t Ptr_SopToType( char * pSop )
+{
+    if ( !strcmp(pSop, " 0\n") )         return CBA_BOX_CF;
+    if ( !strcmp(pSop, " 1\n") )         return CBA_BOX_CT;
+    if ( !strcmp(pSop, "1 1\n") )        return CBA_BOX_BUF;
+    if ( !strcmp(pSop, "0 1\n") )        return CBA_BOX_INV;
+    if ( !strcmp(pSop, "11 1\n") )       return CBA_BOX_AND;
+    if ( !strcmp(pSop, "00 1\n") )       return CBA_BOX_NOR;
+    if ( !strcmp(pSop, "00 0\n") )       return CBA_BOX_OR;
+    if ( !strcmp(pSop, "-1 1\n1- 1\n") ) return CBA_BOX_OR;
+    if ( !strcmp(pSop, "1- 1\n-1 1\n") ) return CBA_BOX_OR;
+    if ( !strcmp(pSop, "01 1\n10 1\n") ) return CBA_BOX_XOR;
+    if ( !strcmp(pSop, "10 1\n01 1\n") ) return CBA_BOX_XOR;
+    if ( !strcmp(pSop, "11 1\n00 1\n") ) return CBA_BOX_XNOR;
+    if ( !strcmp(pSop, "00 1\n11 1\n") ) return CBA_BOX_XNOR;
+    if ( !strcmp(pSop, "10 1\n") )       return CBA_BOX_SHARP;
+    if ( !strcmp(pSop, "01 1\n") )       return CBA_BOX_SHARPL;
+    assert( 0 );
+    return CBA_OBJ_NONE;
+}
+static inline char * Ptr_SopToTypeName( char * pSop )
+{
+    if ( !strcmp(pSop, " 0\n") )         return "CBA_BOX_C0";
+    if ( !strcmp(pSop, " 1\n") )         return "CBA_BOX_C1";
+    if ( !strcmp(pSop, "1 1\n") )        return "CBA_BOX_BUF";
+    if ( !strcmp(pSop, "0 1\n") )        return "CBA_BOX_INV";
+    if ( !strcmp(pSop, "11 1\n") )       return "CBA_BOX_AND";
+    if ( !strcmp(pSop, "00 1\n") )       return "CBA_BOX_NOR";
+    if ( !strcmp(pSop, "00 0\n") )       return "CBA_BOX_OR";
+    if ( !strcmp(pSop, "-1 1\n1- 1\n") ) return "CBA_BOX_OR";
+    if ( !strcmp(pSop, "1- 1\n-1 1\n") ) return "CBA_BOX_OR";
+    if ( !strcmp(pSop, "01 1\n10 1\n") ) return "CBA_BOX_XOR";
+    if ( !strcmp(pSop, "10 1\n01 1\n") ) return "CBA_BOX_XOR";
+    if ( !strcmp(pSop, "11 1\n00 1\n") ) return "CBA_BOX_XNOR";
+    if ( !strcmp(pSop, "00 1\n11 1\n") ) return "CBA_BOX_XNOR";
+    if ( !strcmp(pSop, "10 1\n") )       return "CBA_BOX_SHARP";
+    if ( !strcmp(pSop, "01 1\n") )       return "CBA_BOX_SHARPL";
+    assert( 0 );
+    return NULL;
+}
+static inline char * Ptr_TypeToName( Cba_ObjType_t Type )
+{
+    if ( Type == CBA_BOX_CF )    return "const0";
+    if ( Type == CBA_BOX_CT )    return "const1";
+    if ( Type == CBA_BOX_CX )    return "constX";
+    if ( Type == CBA_BOX_CZ )    return "constZ";
+    if ( Type == CBA_BOX_BUF )   return "buf";
+    if ( Type == CBA_BOX_INV )   return "not";
+    if ( Type == CBA_BOX_AND )   return "and";
+    if ( Type == CBA_BOX_NAND )  return "nand";
+    if ( Type == CBA_BOX_OR )    return "or";
+    if ( Type == CBA_BOX_NOR )   return "nor";
+    if ( Type == CBA_BOX_XOR )   return "xor";
+    if ( Type == CBA_BOX_XNOR )  return "xnor";
+    if ( Type == CBA_BOX_MUX )   return "mux";
+    if ( Type == CBA_BOX_MAJ )   return "maj";
+    if ( Type == CBA_BOX_SHARP ) return "sharp";
+    if ( Type == CBA_BOX_SHARPL) return "sharpl";
+    assert( 0 );
+    return "???";
+}
+static inline char * Ptr_TypeToSop( Cba_ObjType_t Type )
+{
+    if ( Type == CBA_BOX_CF )    return " 0\n";
+    if ( Type == CBA_BOX_CT )    return " 1\n";
+    if ( Type == CBA_BOX_CX )    return " 0\n";
+    if ( Type == CBA_BOX_CZ )    return " 0\n";
+    if ( Type == CBA_BOX_BUF )   return "1 1\n";
+    if ( Type == CBA_BOX_INV )   return "0 1\n";
+    if ( Type == CBA_BOX_AND )   return "11 1\n";
+    if ( Type == CBA_BOX_NAND )  return "11 0\n";
+    if ( Type == CBA_BOX_OR )    return "00 0\n";
+    if ( Type == CBA_BOX_NOR )   return "00 1\n";
+    if ( Type == CBA_BOX_XOR )   return "01 1\n10 1\n";
+    if ( Type == CBA_BOX_XNOR )  return "00 1\n11 1\n";
+    if ( Type == CBA_BOX_SHARP ) return "10 1\n";
+    if ( Type == CBA_BOX_SHARPL) return "01 1\n";
+    if ( Type == CBA_BOX_MUX )   return "11- 1\n0-1 1\n";
+    if ( Type == CBA_BOX_MAJ )   return "11- 1\n1-1 1\n-11 1\n";
+    assert( 0 );
+    return "???";
+}
 
 
 ////////////////////////////////////////////////////////////////////////

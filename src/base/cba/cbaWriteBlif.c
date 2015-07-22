@@ -44,14 +44,14 @@ ABC_NAMESPACE_IMPL_START
   SeeAlso     []
 
 ***********************************************************************/
-void Prs_ManWriteBlifArray( FILE * pFile, Prs_Ntk_t * p, Vec_Int_t * vFanins )
+static void Prs_ManWriteBlifArray( FILE * pFile, Prs_Ntk_t * p, Vec_Int_t * vFanins )
 {
     int i, NameId;
     Vec_IntForEachEntry( vFanins, NameId, i )
         fprintf( pFile, " %s", Prs_NtkStr(p, NameId) );
     fprintf( pFile, "\n" );
 }
-void Prs_ManWriteBlifLines( FILE * pFile, Prs_Ntk_t * p )
+static void Prs_ManWriteBlifLines( FILE * pFile, Prs_Ntk_t * p )
 {
     Vec_Int_t * vBox; 
     int i, k, FormId, ActId;
@@ -84,7 +84,7 @@ void Prs_ManWriteBlifLines( FILE * pFile, Prs_Ntk_t * p )
         }
     }
 }
-void Prs_ManWriteBlifNtk( FILE * pFile, Prs_Ntk_t * p )
+static void Prs_ManWriteBlifNtk( FILE * pFile, Prs_Ntk_t * p )
 {
     // write header
     fprintf( pFile, ".model %s\n", Prs_NtkStr(p, p->iModuleName) );
@@ -116,6 +116,7 @@ void Prs_ManWriteBlif( char * pFileName, Vec_Ptr_t * vPrs )
 }
 
 
+#if 0
 
 /**Function*************************************************************
 
@@ -226,6 +227,7 @@ void Cba_ManWriteBlif( char * pFileName, Cba_Man_t * p )
     fclose( pFile );
 }
 
+#endif
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

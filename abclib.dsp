@@ -782,82 +782,6 @@ SOURCE=.\src\base\wlc\wlcStdin.c
 SOURCE=.\src\base\wlc\wlcWriteVer.c
 # End Source File
 # End Group
-# Begin Group "cba"
-
-# PROP Default_Filter ""
-# Begin Source File
-
-SOURCE=.\src\base\cba\cba.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\base\cba\cbaBlast.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\base\cba\cbaCba.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\base\cba\cbaCom.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\base\cba\cbaLib.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\base\cba\cbaNtk.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\base\cba\cbaOper.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\base\cba\cbaPrs.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\base\cba\cbaPrsBuild.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\base\cba\cbaPrsTrans.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\base\cba\cbaPtr.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\base\cba\cbaPtrAbc.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\base\cba\cbaReadBlif.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\base\cba\cbaReadSmt.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\base\cba\cbaReadVer.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\base\cba\cbaWriteBlif.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\base\cba\cbaWriteSmt.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\base\cba\cbaWriteVer.c
-# End Source File
-# End Group
 # Begin Group "pla"
 
 # PROP Default_Filter ""
@@ -896,6 +820,134 @@ SOURCE=.\src\base\pla\plaSimple.c
 # Begin Source File
 
 SOURCE=.\src\base\pla\plaWrite.c
+# End Source File
+# End Group
+# Begin Group "bac"
+
+# PROP Default_Filter ""
+# Begin Source File
+
+SOURCE=.\src\base\bac\bac.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\bac\bac.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\bac\bacBac.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\bac\bacBlast.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\bac\bacCom.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\bac\bacLib.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\bac\bacNtk.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\bac\bacOper.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\bac\bacPrs.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\bac\bacPrsBuild.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\bac\bacPrsTrans.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\bac\bacPrtAbc.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\bac\bacPtr.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\bac\bacReadBlif.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\bac\bacReadSmt.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\bac\bacReadVec.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\bac\bacWriteBlif.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\bac\bacWriteSmt.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\bac\bacWriteVer.c
+# End Source File
+# End Group
+# Begin Group "cba"
+
+# PROP Default_Filter ""
+# Begin Source File
+
+SOURCE=.\src\base\cba\cba.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\cba\cba.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\cba\cbaBlast.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\cba\cbaCba.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\cba\cbaCom.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\cba\cbaNtk.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\cba\cbaPrs.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\cba\cbaReadBlif.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\cba\cbaReadVer.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\cba\cbaWriteBlif.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\cba\cbaWriteVer.c
 # End Source File
 # End Group
 # End Group

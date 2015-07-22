@@ -45,7 +45,7 @@ typedef enum {
     PRS_VER_UNKNOWN    // 13: unknown
 } Cba_VerType_t;
 
-const char * s_VerTypes[PRS_VER_UNKNOWN+1] = {
+static const char * s_VerTypes[PRS_VER_UNKNOWN+1] = {
     NULL,              // 0:  unused
     "input",           // 1:  input
     "output",          // 2:  output
@@ -101,7 +101,7 @@ static inline int Prs_ManIsDigit( Prs_Man_t * p )           { return Prs_CharIsD
 ***********************************************************************/
 
 // collect predefined modules names
-const char * s_VerilogModules[100] = 
+static const char * s_VerilogModules[100] = 
 {
     "const0", // CBA_BOX_CF,  
     "const1", // CBA_BOX_CT,  
@@ -120,7 +120,7 @@ const char * s_VerilogModules[100] =
     "maj",    // CBA_BOX_MAJ,  
     NULL
 };
-const char * s_KnownModules[100] = 
+static const char * s_KnownModules[100] = 
 {
     "VERIFIC_",
     "add_",                  
@@ -447,7 +447,7 @@ static inline int Prs_ManReadSignal( Prs_Man_t * p )
         return Abc_Var2Lit2( Item, CBA_PRS_NAME );
     }
 }
-int Prs_ManReadSignalList( Prs_Man_t * p, Vec_Int_t * vTemp, char LastSymb, int fAddForm )
+static int Prs_ManReadSignalList( Prs_Man_t * p, Vec_Int_t * vTemp, char LastSymb, int fAddForm )
 {
     Vec_IntClear( vTemp );
     while ( 1 )

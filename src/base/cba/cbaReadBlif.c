@@ -43,7 +43,7 @@ typedef enum {
     PRS_BLIF_UNKNOWN   // 11:  unknown
 } Cba_BlifType_t;
 
-const char * s_BlifTypes[PRS_BLIF_UNKNOWN+1] = {
+static const char * s_BlifTypes[PRS_BLIF_UNKNOWN+1] = {
     NULL,              // 0:   unused
     ".model",          // 1:   .model   
     ".inouts",         // 2:   .inputs
