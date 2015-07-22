@@ -1,6 +1,6 @@
 /**CFile****************************************************************
 
-  FileName    [cbaPtrAbc.c]
+  FileName    [bacPtrAbc.c]
 
   SystemName  [ABC: Logic synthesis and verification system.]
 
@@ -14,11 +14,11 @@
 
   Date        [Ver. 1.0. Started - November 29, 2014.]
 
-  Revision    [$Id: cbaPtrAbc.c,v 1.00 2014/11/29 00:00:00 alanmi Exp $]
+  Revision    [$Id: bacPtrAbc.c,v 1.00 2014/11/29 00:00:00 alanmi Exp $]
 
 ***********************************************************************/
 
-#include "cba.h"
+#include "bac.h"
 #include "base/abc/abc.h"
 #include "map/mio/mio.h"
 #include "base/main/mainInt.h"
@@ -54,16 +54,16 @@ char * Ptr_HopToType( Abc_Obj_t * pObj )
     assert( Abc_ObjIsNode(pObj) );
     uTruth = Hop_ManComputeTruth6( (Hop_Man_t *)Abc_ObjNtk(pObj)->pManFunc, (Hop_Obj_t *)pObj->pData, Abc_ObjFaninNum(pObj) );
 /*
-    if ( uTruth ==  0 )                           return "CBA_BOX_C0";
-    if ( uTruth == ~(word)0 )                     return "CBA_BOX_C1";
-    if ( uTruth ==  uTruths6[0] )                 return "CBA_BOX_BUF";
-    if ( uTruth == ~uTruths6[0] )                 return "CBA_BOX_INV";
-    if ( uTruth == (uTruths6[0] & uTruths6[1]) )  return "CBA_BOX_AND";
-    if ( uTruth ==~(uTruths6[0] & uTruths6[1]) )  return "CBA_BOX_NAND";
-    if ( uTruth == (uTruths6[0] | uTruths6[1]) )  return "CBA_BOX_OR";
-    if ( uTruth ==~(uTruths6[0] | uTruths6[1]) )  return "CBA_BOX_NOR";
-    if ( uTruth == (uTruths6[0] ^ uTruths6[1]) )  return "CBA_BOX_XOR";
-    if ( uTruth ==~(uTruths6[0] ^ uTruths6[1]) )  return "CBA_BOX_XNOR";
+    if ( uTruth ==  0 )                           return "BAC_BOX_C0";
+    if ( uTruth == ~(word)0 )                     return "BAC_BOX_C1";
+    if ( uTruth ==  uTruths6[0] )                 return "BAC_BOX_BUF";
+    if ( uTruth == ~uTruths6[0] )                 return "BAC_BOX_INV";
+    if ( uTruth == (uTruths6[0] & uTruths6[1]) )  return "BAC_BOX_AND";
+    if ( uTruth ==~(uTruths6[0] & uTruths6[1]) )  return "BAC_BOX_NAND";
+    if ( uTruth == (uTruths6[0] | uTruths6[1]) )  return "BAC_BOX_OR";
+    if ( uTruth ==~(uTruths6[0] | uTruths6[1]) )  return "BAC_BOX_NOR";
+    if ( uTruth == (uTruths6[0] ^ uTruths6[1]) )  return "BAC_BOX_XOR";
+    if ( uTruth ==~(uTruths6[0] ^ uTruths6[1]) )  return "BAC_BOX_XNOR";
 */
     if ( uTruth ==  0 )                           return "Const0T";
     if ( uTruth == ~(word)0 )                     return "Const1T";
@@ -219,17 +219,17 @@ void Ptr_ManExperiment( Abc_Ntk_t * pNtk )
     abctime clk = Abc_Clock();
     char * pFileName = Extra_FileNameGenericAppend(pNtk->pDesign->pName, "_out.blif");
     Vec_Ptr_t * vDes = Ptr_AbcDeriveDes( pNtk );
-    printf( "Converting to Ptr:  Memory = %6.3f MB  ", 1.0*Cba_PtrMemory(vDes)/(1<<20) );
+    printf( "Converting to Ptr:  Memory = %6.3f MB  ", 1.0*Bac_PtrMemory(vDes)/(1<<20) );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
-    Cba_PtrDumpBlif( pFileName, vDes );
+    Bac_PtrDumpBlif( pFileName, vDes );
     printf( "Finished writing output file \"%s\".  ", pFileName );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
-    Cba_PtrFree( vDes );
+    Bac_PtrFree( vDes );
 }
 
 /**Function*************************************************************
 
-  Synopsis    [Create Cba_Man_t from tech-ind Ptr.]
+  Synopsis    [Create Bac_Man_t from tech-ind Ptr.]
 
   Description []
                
@@ -240,17 +240,17 @@ void Ptr_ManExperiment( Abc_Ntk_t * pNtk )
 ***********************************************************************/
 static inline int Ptr_NameToType( char * pSop )
 {
-    if ( !strcmp(pSop, "Const0T") )      return CBA_BOX_CF;
-    if ( !strcmp(pSop, "Const1T") )      return CBA_BOX_CT;
-    if ( !strcmp(pSop, "BufT") )         return CBA_BOX_BUF;
-    if ( !strcmp(pSop, "InvT") )         return CBA_BOX_INV;
-    if ( !strcmp(pSop, "AndT") )         return CBA_BOX_AND;
-    if ( !strcmp(pSop, "NandT") )        return CBA_BOX_NAND;
-    if ( !strcmp(pSop, "OrT") )          return CBA_BOX_OR;
-    if ( !strcmp(pSop, "NorT") )         return CBA_BOX_NOR;
-    if ( !strcmp(pSop, "XorT") )         return CBA_BOX_XOR;
-    if ( !strcmp(pSop, "XnorT") )        return CBA_BOX_XNOR;
-    return CBA_OBJ_BOX;
+    if ( !strcmp(pSop, "Const0T") )      return BAC_BOX_CF;
+    if ( !strcmp(pSop, "Const1T") )      return BAC_BOX_CT;
+    if ( !strcmp(pSop, "BufT") )         return BAC_BOX_BUF;
+    if ( !strcmp(pSop, "InvT") )         return BAC_BOX_INV;
+    if ( !strcmp(pSop, "AndT") )         return BAC_BOX_AND;
+    if ( !strcmp(pSop, "NandT") )        return BAC_BOX_NAND;
+    if ( !strcmp(pSop, "OrT") )          return BAC_BOX_OR;
+    if ( !strcmp(pSop, "NorT") )         return BAC_BOX_NOR;
+    if ( !strcmp(pSop, "XorT") )         return BAC_BOX_XOR;
+    if ( !strcmp(pSop, "XnorT") )        return BAC_BOX_XNOR;
+    return BAC_OBJ_BOX;
 }
 int Ptr_ManCountNtk( Vec_Ptr_t * vNtk )
 {
@@ -266,14 +266,14 @@ int Ptr_ManCountNtk( Vec_Ptr_t * vNtk )
         Counter += Vec_PtrSize(vBox)/2;
     return Counter;
 }
-int Cba_BoxCountOutputs( Cba_Ntk_t * pNtk, char * pBoxNtk )
+int Bac_BoxCountOutputs( Bac_Ntk_t * pNtk, char * pBoxNtk )
 {
-    int ModuleId = Cba_ManNtkFindId( pNtk->pDesign, pBoxNtk );
+    int ModuleId = Bac_ManNtkFindId( pNtk->pDesign, pBoxNtk );
     if ( ModuleId == 0 )
         return 1;
-    return Cba_NtkPoNumAlloc( Cba_ManNtk(pNtk->pDesign, ModuleId) );
+    return Bac_NtkPoNumAlloc( Bac_ManNtk(pNtk->pDesign, ModuleId) );
 }
-int Cba_NtkDeriveFromPtr( Cba_Ntk_t * pNtk, Vec_Ptr_t * vNtk, Vec_Int_t * vMap, Vec_Int_t * vBox2Id )
+int Bac_NtkDeriveFromPtr( Bac_Ntk_t * pNtk, Vec_Ptr_t * vNtk, Vec_Int_t * vMap, Vec_Int_t * vBox2Id )
 {
     char * pName, * pModuleName = (char *)Vec_PtrEntry(vNtk, 0);
     Vec_Ptr_t * vInputs  = (Vec_Ptr_t *)Vec_PtrEntry(vNtk, 1);
@@ -282,17 +282,17 @@ int Cba_NtkDeriveFromPtr( Cba_Ntk_t * pNtk, Vec_Ptr_t * vNtk, Vec_Int_t * vMap, 
     int i, k, iObj, iTerm, NameId;
     // start network with the given name
     NameId = Abc_NamStrFindOrAdd( pNtk->pDesign->pStrs, pModuleName, NULL );
-    assert( Cba_NtkNameId(pNtk) == NameId );
+    assert( Bac_NtkNameId(pNtk) == NameId );
     // map driven NameIds into their ObjIds for PIs
     Vec_PtrForEachEntry( char *, vInputs, pName, i )
     {
         NameId = Abc_NamStrFindOrAdd( pNtk->pDesign->pStrs, pName, NULL );
         if ( Vec_IntGetEntryFull(vMap, NameId) != -1 )
             { printf( "PI with name \"%s\" is not unique module \"%s\".\n", pName, pModuleName ); return 0; }
-        iObj = Cba_ObjAlloc( pNtk, CBA_OBJ_PI, -1 );
-        Cba_ObjSetName( pNtk, iObj, Abc_Var2Lit2(NameId, CBA_NAME_BIN) );
+        iObj = Bac_ObjAlloc( pNtk, BAC_OBJ_PI, -1 );
+        Bac_ObjSetName( pNtk, iObj, Abc_Var2Lit2(NameId, BAC_NAME_BIN) );
         Vec_IntSetEntryFull( vMap, NameId, iObj );
-        Cba_NtkAddInfo( pNtk, Abc_Var2Lit2(NameId, 1), -1, -1 );
+        Bac_NtkAddInfo( pNtk, Abc_Var2Lit2(NameId, 1), -1, -1 );
     }
     // map driven NameIds into their ObjIds for BOs
     Vec_IntClear( vBox2Id );
@@ -300,22 +300,22 @@ int Cba_NtkDeriveFromPtr( Cba_Ntk_t * pNtk, Vec_Ptr_t * vNtk, Vec_Int_t * vMap, 
     {
         char * pBoxNtk = (char *)Vec_PtrEntry(vBox, 0);
         char * pBoxName = (char *)Vec_PtrEntry(vBox, 1);
-        int nOutputs = Cba_BoxCountOutputs( pNtk, pBoxNtk );
+        int nOutputs = Bac_BoxCountOutputs( pNtk, pBoxNtk );
         int nInputs = Vec_PtrSize(vBox)/2 - nOutputs - 1;
-        int NtkId = Cba_ManNtkFindId( pNtk->pDesign, pBoxNtk );
+        int NtkId = Bac_ManNtkFindId( pNtk->pDesign, pBoxNtk );
         assert( Vec_PtrSize(vBox) % 2 == 0 );
         assert( nOutputs > 0 && 2*(nOutputs + 1) <= Vec_PtrSize(vBox) );
-        iObj = Cba_BoxAlloc( pNtk, (Cba_ObjType_t)Ptr_NameToType(pBoxNtk), nInputs, nOutputs, NtkId );
+        iObj = Bac_BoxAlloc( pNtk, (Bac_ObjType_t)Ptr_NameToType(pBoxNtk), nInputs, nOutputs, NtkId );
         if ( NtkId > 0 )
-            Cba_NtkSetHost( Cba_ManNtk(pNtk->pDesign, NtkId), Cba_NtkId(pNtk), iObj );
-        Cba_ObjSetName( pNtk, iObj, Abc_Var2Lit2(Abc_NamStrFindOrAdd(pNtk->pDesign->pStrs, pBoxName, NULL), CBA_NAME_BIN) );
-        Cba_BoxForEachBo( pNtk, iObj, iTerm, k )
+            Bac_NtkSetHost( Bac_ManNtk(pNtk->pDesign, NtkId), Bac_NtkId(pNtk), iObj );
+        Bac_ObjSetName( pNtk, iObj, Abc_Var2Lit2(Abc_NamStrFindOrAdd(pNtk->pDesign->pStrs, pBoxName, NULL), BAC_NAME_BIN) );
+        Bac_BoxForEachBo( pNtk, iObj, iTerm, k )
         {
             pName = (char *)Vec_PtrEntry( vBox, Vec_PtrSize(vBox) - 2*(nOutputs - k) + 1 );
             NameId = Abc_NamStrFindOrAdd( pNtk->pDesign->pStrs, pName, NULL );
             if ( Vec_IntGetEntryFull(vMap, NameId) != -1 )
                 { printf( "Signal \"%s\" has multiple drivers in module \"%s\".\n", pName, pModuleName ); return 0; }
-            Cba_ObjSetName( pNtk, iTerm, Abc_Var2Lit2(NameId, CBA_NAME_BIN) );
+            Bac_ObjSetName( pNtk, iTerm, Abc_Var2Lit2(NameId, BAC_NAME_BIN) );
             Vec_IntSetEntryFull( vMap, NameId, iTerm );
         }
         Vec_IntPush( vBox2Id, iObj );
@@ -325,13 +325,13 @@ int Cba_NtkDeriveFromPtr( Cba_Ntk_t * pNtk, Vec_Ptr_t * vNtk, Vec_Int_t * vMap, 
     Vec_PtrForEachEntry( Vec_Ptr_t *, vBoxes, vBox, i )
     {
         iObj = Vec_IntEntry( vBox2Id, i );
-        Cba_BoxForEachBi( pNtk, iObj, iTerm, k )
+        Bac_BoxForEachBi( pNtk, iObj, iTerm, k )
         {
             pName = (char *)Vec_PtrEntry( vBox, 2*(k + 1) + 1 );
             NameId = Abc_NamStrFindOrAdd( pNtk->pDesign->pStrs, pName, NULL );
             if ( Vec_IntGetEntryFull(vMap, NameId) == -1 )
                 printf( "Signal \"%s\" in not driven in module \"%s\".\n", pName, pModuleName );
-            Cba_ObjSetFanin( pNtk, iTerm, Vec_IntGetEntryFull(vMap, NameId) );
+            Bac_ObjSetFanin( pNtk, iTerm, Vec_IntGetEntryFull(vMap, NameId) );
         }
     }
     // connect POs
@@ -340,44 +340,44 @@ int Cba_NtkDeriveFromPtr( Cba_Ntk_t * pNtk, Vec_Ptr_t * vNtk, Vec_Int_t * vMap, 
         NameId = Abc_NamStrFindOrAdd( pNtk->pDesign->pStrs, pName, NULL );
         if ( Vec_IntGetEntryFull(vMap, NameId) == -1 )
             printf( "PO with name \"%s\" in not driven in module \"%s\".\n", pName, pModuleName );
-        iObj = Cba_ObjAlloc( pNtk, CBA_OBJ_PO, Vec_IntGetEntryFull(vMap, NameId) );
-        Cba_NtkAddInfo( pNtk, Abc_Var2Lit2(NameId, 2), -1, -1 );
+        iObj = Bac_ObjAlloc( pNtk, BAC_OBJ_PO, Vec_IntGetEntryFull(vMap, NameId) );
+        Bac_NtkAddInfo( pNtk, Abc_Var2Lit2(NameId, 2), -1, -1 );
     }
     // update map
-    Cba_NtkForEachCi( pNtk, iObj )
-        Vec_IntSetEntryFull( vMap, Cba_ObjNameId(pNtk, iObj), -1 );
+    Bac_NtkForEachCi( pNtk, iObj )
+        Vec_IntSetEntryFull( vMap, Bac_ObjNameId(pNtk, iObj), -1 );
     // double check
     Vec_IntForEachEntry( vMap, iObj, i )
         assert( iObj == -1 );
-    assert( Cba_NtkObjNum(pNtk) == Vec_StrCap(&pNtk->vType) );
+    assert( Bac_NtkObjNum(pNtk) == Vec_StrCap(&pNtk->vType) );
     return 1;
 }
-Cba_Man_t * Cba_PtrTransformToCba( Vec_Ptr_t * vDes )
+Bac_Man_t * Bac_PtrTransformToCba( Vec_Ptr_t * vDes )
 {
     char * pName = (char *)Vec_PtrEntry(vDes, 0);
-    Cba_Man_t * pNew = Cba_ManAlloc( pName, Vec_PtrSize(vDes) - 1 );
+    Bac_Man_t * pNew = Bac_ManAlloc( pName, Vec_PtrSize(vDes) - 1 );
     Vec_Int_t * vMap = Vec_IntStartFull( 1000 );
     Vec_Int_t * vBox2Id = Vec_IntAlloc( 1000 );
     // create interfaces
-    Cba_Ntk_t * pNtk; int i;
-    Cba_ManForEachNtk( pNew, pNtk, i )
+    Bac_Ntk_t * pNtk; int i;
+    Bac_ManForEachNtk( pNew, pNtk, i )
     {
         Vec_Ptr_t * vNtk = (Vec_Ptr_t *)Vec_PtrEntry(vDes, i);
         Vec_Ptr_t * vInputs = (Vec_Ptr_t *)Vec_PtrEntry(vNtk, 1);
         Vec_Ptr_t * vOutputs = (Vec_Ptr_t *)Vec_PtrEntry(vNtk, 2);
         int NameId = Abc_NamStrFindOrAdd( pNew->pStrs, (char *)Vec_PtrEntry(vNtk, 0), NULL );
-        Cba_NtkAlloc( pNtk, NameId, Vec_PtrSize(vInputs), Vec_PtrSize(vOutputs), Ptr_ManCountNtk(vNtk) );
-        Cba_NtkStartNames( pNtk );
+        Bac_NtkAlloc( pNtk, NameId, Vec_PtrSize(vInputs), Vec_PtrSize(vOutputs), Ptr_ManCountNtk(vNtk) );
+        Bac_NtkStartNames( pNtk );
     }
     // parse the networks
-    Cba_ManForEachNtk( pNew, pNtk, i )
+    Bac_ManForEachNtk( pNew, pNtk, i )
     {
         Vec_Ptr_t * vNtk = (Vec_Ptr_t *)Vec_PtrEntry(vDes, i);
-        if ( !Cba_NtkDeriveFromPtr( pNtk, vNtk, vMap, vBox2Id ) )
+        if ( !Bac_NtkDeriveFromPtr( pNtk, vNtk, vMap, vBox2Id ) )
             break;
     }
-    if ( i <= Cba_ManNtkNum(pNew) )
-       Cba_ManFree(pNew), pNew = NULL;
+    if ( i <= Bac_ManNtkNum(pNew) )
+       Bac_ManFree(pNew), pNew = NULL;
     Vec_IntFree( vBox2Id );
     Vec_IntFree( vMap );
     return pNew;
@@ -386,7 +386,7 @@ Cba_Man_t * Cba_PtrTransformToCba( Vec_Ptr_t * vDes )
 
 /**Function*************************************************************
 
-  Synopsis    [Create Ptr from mapped Cba_Man_t.]
+  Synopsis    [Create Ptr from mapped Bac_Man_t.]
 
   Description []
                
@@ -395,71 +395,71 @@ Cba_Man_t * Cba_PtrTransformToCba( Vec_Ptr_t * vDes )
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Ptr_t * Cba_NtkTransformToPtrBox( Cba_Ntk_t * p, int iBox )
+Vec_Ptr_t * Bac_NtkTransformToPtrBox( Bac_Ntk_t * p, int iBox )
 {
-    int i, iTerm, fUser = Cba_ObjIsBoxUser( p, iBox );
-    Cba_Ntk_t * pBoxNtk = Cba_BoxNtk( p, iBox );
+    int i, iTerm, fUser = Bac_ObjIsBoxUser( p, iBox );
+    Bac_Ntk_t * pBoxNtk = Bac_BoxNtk( p, iBox );
     Mio_Library_t * pLib = (Mio_Library_t *)p->pDesign->pMioLib;
-    Mio_Gate_t * pGate = pLib ? Mio_LibraryReadGateByName( pLib, Cba_BoxNtkName(p, iBox), NULL ) : NULL;
-    Vec_Ptr_t * vBox = Vec_PtrAllocExact( 2*Cba_BoxSize(p, iBox) );
-    Vec_PtrPush( vBox, Cba_BoxNtkName(p, iBox) );
-    Vec_PtrPush( vBox, Cba_ObjNameStr(p, iBox) );
-    Cba_BoxForEachBi( p, iBox, iTerm, i )
+    Mio_Gate_t * pGate = pLib ? Mio_LibraryReadGateByName( pLib, Bac_BoxNtkName(p, iBox), NULL ) : NULL;
+    Vec_Ptr_t * vBox = Vec_PtrAllocExact( 2*Bac_BoxSize(p, iBox) );
+    Vec_PtrPush( vBox, Bac_BoxNtkName(p, iBox) );
+    Vec_PtrPush( vBox, Bac_ObjNameStr(p, iBox) );
+    Bac_BoxForEachBi( p, iBox, iTerm, i )
     {
-        Vec_PtrPush( vBox, fUser ? Cba_ObjNameStr(pBoxNtk, Cba_NtkPi(pBoxNtk, i)) : Mio_GateReadPinName(pGate, i) );
-        Vec_PtrPush( vBox, Cba_ObjNameStr(p, iTerm) );
+        Vec_PtrPush( vBox, fUser ? Bac_ObjNameStr(pBoxNtk, Bac_NtkPi(pBoxNtk, i)) : Mio_GateReadPinName(pGate, i) );
+        Vec_PtrPush( vBox, Bac_ObjNameStr(p, iTerm) );
     }
-    Cba_BoxForEachBo( p, iBox, iTerm, i )
+    Bac_BoxForEachBo( p, iBox, iTerm, i )
     {
-        Vec_PtrPush( vBox, fUser ? Cba_ObjNameStr(pBoxNtk, Cba_NtkPo(pBoxNtk, i)) : Mio_GateReadOutName(pGate) );
-        Vec_PtrPush( vBox, Cba_ObjNameStr(p, iTerm) );
+        Vec_PtrPush( vBox, fUser ? Bac_ObjNameStr(pBoxNtk, Bac_NtkPo(pBoxNtk, i)) : Mio_GateReadOutName(pGate) );
+        Vec_PtrPush( vBox, Bac_ObjNameStr(p, iTerm) );
     }
     assert( Ptr_CheckArray(vBox) );
     return vBox;
 }
-Vec_Ptr_t * Cba_NtkTransformToPtrBoxes( Cba_Ntk_t * p )
+Vec_Ptr_t * Bac_NtkTransformToPtrBoxes( Bac_Ntk_t * p )
 {
     int iBox;
-    Vec_Ptr_t * vBoxes = Vec_PtrAllocExact( Cba_NtkBoxNum(p) );
-    Cba_NtkForEachBox( p, iBox )
-        Vec_PtrPush( vBoxes, Cba_NtkTransformToPtrBox(p, iBox) );
+    Vec_Ptr_t * vBoxes = Vec_PtrAllocExact( Bac_NtkBoxNum(p) );
+    Bac_NtkForEachBox( p, iBox )
+        Vec_PtrPush( vBoxes, Bac_NtkTransformToPtrBox(p, iBox) );
     assert( Ptr_CheckArray(vBoxes) );
     return vBoxes;
 }
 
-Vec_Ptr_t * Cba_NtkTransformToPtrInputs( Cba_Ntk_t * p )
+Vec_Ptr_t * Bac_NtkTransformToPtrInputs( Bac_Ntk_t * p )
 {
     int i, iTerm;
-    Vec_Ptr_t * vSigs = Vec_PtrAllocExact( Cba_NtkPiNum(p) );
-    Cba_NtkForEachPi( p, iTerm, i )
-        Vec_PtrPush( vSigs, Cba_ObjNameStr(p, iTerm) );
+    Vec_Ptr_t * vSigs = Vec_PtrAllocExact( Bac_NtkPiNum(p) );
+    Bac_NtkForEachPi( p, iTerm, i )
+        Vec_PtrPush( vSigs, Bac_ObjNameStr(p, iTerm) );
     assert( Ptr_CheckArray(vSigs) );
     return vSigs;
 }
-Vec_Ptr_t * Cba_NtkTransformToPtrOutputs( Cba_Ntk_t * p )
+Vec_Ptr_t * Bac_NtkTransformToPtrOutputs( Bac_Ntk_t * p )
 {
     int i, iTerm;
-    Vec_Ptr_t * vSigs = Vec_PtrAllocExact( Cba_NtkPoNum(p) );
-    Cba_NtkForEachPo( p, iTerm, i )
-        Vec_PtrPush( vSigs, Cba_ObjNameStr(p, iTerm) );
+    Vec_Ptr_t * vSigs = Vec_PtrAllocExact( Bac_NtkPoNum(p) );
+    Bac_NtkForEachPo( p, iTerm, i )
+        Vec_PtrPush( vSigs, Bac_ObjNameStr(p, iTerm) );
     assert( Ptr_CheckArray(vSigs) );
     return vSigs;
 }
-Vec_Ptr_t * Cba_NtkTransformToPtr( Cba_Ntk_t * p )
+Vec_Ptr_t * Bac_NtkTransformToPtr( Bac_Ntk_t * p )
 {
     Vec_Ptr_t * vNtk = Vec_PtrAllocExact(5);
-    Vec_PtrPush( vNtk, Cba_NtkName(p) );
-    Vec_PtrPush( vNtk, Cba_NtkTransformToPtrInputs(p) );
-    Vec_PtrPush( vNtk, Cba_NtkTransformToPtrOutputs(p) );
+    Vec_PtrPush( vNtk, Bac_NtkName(p) );
+    Vec_PtrPush( vNtk, Bac_NtkTransformToPtrInputs(p) );
+    Vec_PtrPush( vNtk, Bac_NtkTransformToPtrOutputs(p) );
     Vec_PtrPush( vNtk, Vec_PtrAllocExact(0) );
-    Vec_PtrPush( vNtk, Cba_NtkTransformToPtrBoxes(p) );
+    Vec_PtrPush( vNtk, Bac_NtkTransformToPtrBoxes(p) );
     assert( Ptr_CheckArray(vNtk) );
     return vNtk;
 }
-Vec_Ptr_t * Cba_PtrDeriveFromCba( Cba_Man_t * p )
+Vec_Ptr_t * Bac_PtrDeriveFromCba( Bac_Man_t * p )
 {
     Vec_Ptr_t * vDes;
-    Cba_Ntk_t * pTemp; int i;
+    Bac_Ntk_t * pTemp; int i;
     if ( p == NULL )
         return NULL;
     if ( p->pMioLib == NULL )
@@ -467,11 +467,11 @@ Vec_Ptr_t * Cba_PtrDeriveFromCba( Cba_Man_t * p )
         printf( "Cannot transform CBA network into Ptr because it is not mapped.\n" );
         return NULL;
     }
-    Cba_ManAssignInternWordNames( p );
-    vDes = Vec_PtrAllocExact( 1 + Cba_ManNtkNum(p) );
+    Bac_ManAssignInternWordNames( p );
+    vDes = Vec_PtrAllocExact( 1 + Bac_ManNtkNum(p) );
     Vec_PtrPush( vDes, p->pName );
-    Cba_ManForEachNtk( p, pTemp, i )
-        Vec_PtrPush( vDes, Cba_NtkTransformToPtr(pTemp) );
+    Bac_ManForEachNtk( p, pTemp, i )
+        Vec_PtrPush( vDes, Bac_NtkTransformToPtr(pTemp) );
     assert( Ptr_CheckArray(vDes) );
     return vDes;
 }

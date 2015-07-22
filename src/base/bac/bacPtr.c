@@ -1,6 +1,6 @@
 /**CFile****************************************************************
 
-  FileName    [cbaPtr.c]
+  FileName    [bacPtr.c]
 
   SystemName  [ABC: Logic synthesis and verification system.]
 
@@ -14,14 +14,14 @@
 
   Date        [Ver. 1.0. Started - November 29, 2014.]
 
-  Revision    [$Id: cbaPtr.c,v 1.00 2014/11/29 00:00:00 alanmi Exp $]
+  Revision    [$Id: bacPtr.c,v 1.00 2014/11/29 00:00:00 alanmi Exp $]
 
 ***********************************************************************/
 
 #include "base/abc/abc.h"
 #include "base/main/mainInt.h"
 #include "map/mio/mio.h"
-#include "cba.h"
+#include "bac.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -83,7 +83,7 @@ typedef enum {
   SeeAlso     []
 
 ***********************************************************************/
-void Cba_PtrFreeNtk( Vec_Ptr_t * vNtk )
+void Bac_PtrFreeNtk( Vec_Ptr_t * vNtk )
 {
     Vec_PtrFree( (Vec_Ptr_t *)Vec_PtrEntry(vNtk, 1) );
     Vec_PtrFree( (Vec_Ptr_t *)Vec_PtrEntry(vNtk, 2) );
@@ -95,12 +95,12 @@ void Cba_PtrFreeNtk( Vec_Ptr_t * vNtk )
         Vec_FltFree( (Vec_Flt_t *)Vec_PtrEntry(vNtk, 6) );
     Vec_PtrFree( vNtk );
 }
-void Cba_PtrFree( Vec_Ptr_t * vDes )
+void Bac_PtrFree( Vec_Ptr_t * vDes )
 {
     Vec_Ptr_t * vNtk; int i;
     if ( !vDes ) return;
     Vec_PtrForEachEntryStart( Vec_Ptr_t *, vDes, vNtk, i, 1 )
-        Cba_PtrFreeNtk( vNtk );
+        Bac_PtrFreeNtk( vNtk );
     Vec_PtrFree( vDes );
 }
 
@@ -115,31 +115,31 @@ void Cba_PtrFree( Vec_Ptr_t * vDes )
   SeeAlso     []
 
 ***********************************************************************/
-int Cba_PtrMemoryArray( Vec_Ptr_t * vArray )
+int Bac_PtrMemoryArray( Vec_Ptr_t * vArray )
 {
     return (int)Vec_PtrMemory(vArray);
 }
-int Cba_PtrMemoryArrayArray( Vec_Ptr_t * vArrayArray )
+int Bac_PtrMemoryArrayArray( Vec_Ptr_t * vArrayArray )
 {
     Vec_Ptr_t * vArray; int i, nBytes = 0;
     Vec_PtrForEachEntry( Vec_Ptr_t *, vArrayArray, vArray, i )
-        nBytes += Cba_PtrMemoryArray(vArray);
+        nBytes += Bac_PtrMemoryArray(vArray);
     return nBytes;
 }
-int Cba_PtrMemoryNtk( Vec_Ptr_t * vNtk )
+int Bac_PtrMemoryNtk( Vec_Ptr_t * vNtk )
 {
     int nBytes = (int)Vec_PtrMemory(vNtk);
-    nBytes += Cba_PtrMemoryArray( (Vec_Ptr_t *)Vec_PtrEntry(vNtk, 1) );
-    nBytes += Cba_PtrMemoryArray( (Vec_Ptr_t *)Vec_PtrEntry(vNtk, 2) );
-    nBytes += Cba_PtrMemoryArrayArray( (Vec_Ptr_t *)Vec_PtrEntry(vNtk, 3) );
-    nBytes += Cba_PtrMemoryArrayArray( (Vec_Ptr_t *)Vec_PtrEntry(vNtk, 4) );
+    nBytes += Bac_PtrMemoryArray( (Vec_Ptr_t *)Vec_PtrEntry(vNtk, 1) );
+    nBytes += Bac_PtrMemoryArray( (Vec_Ptr_t *)Vec_PtrEntry(vNtk, 2) );
+    nBytes += Bac_PtrMemoryArrayArray( (Vec_Ptr_t *)Vec_PtrEntry(vNtk, 3) );
+    nBytes += Bac_PtrMemoryArrayArray( (Vec_Ptr_t *)Vec_PtrEntry(vNtk, 4) );
     return nBytes;
 }
-int Cba_PtrMemory( Vec_Ptr_t * vDes )
+int Bac_PtrMemory( Vec_Ptr_t * vDes )
 {
     Vec_Ptr_t * vNtk; int i, nBytes = (int)Vec_PtrMemory(vDes);
     Vec_PtrForEachEntryStart( Vec_Ptr_t *, vDes, vNtk, i, 1 )
-        nBytes += Cba_PtrMemoryNtk(vNtk);
+        nBytes += Bac_PtrMemoryNtk(vNtk);
     return nBytes;
 }
 
@@ -154,13 +154,13 @@ int Cba_PtrMemory( Vec_Ptr_t * vDes )
   SeeAlso     []
 
 ***********************************************************************/
-void Cba_PtrDumpSignalsBlif( FILE * pFile, Vec_Ptr_t * vSigs, int fSkipLastComma )
+void Bac_PtrDumpSignalsBlif( FILE * pFile, Vec_Ptr_t * vSigs, int fSkipLastComma )
 {
     char * pSig; int i;
     Vec_PtrForEachEntry( char *, vSigs, pSig, i )
         fprintf( pFile, " %s", pSig );
 }
-void Cba_PtrDumpBoxBlif( FILE * pFile, Vec_Ptr_t * vBox )
+void Bac_PtrDumpBoxBlif( FILE * pFile, Vec_Ptr_t * vBox )
 {
     char * pName; int i;
     fprintf( pFile, ".subckt" );
@@ -170,26 +170,26 @@ void Cba_PtrDumpBoxBlif( FILE * pFile, Vec_Ptr_t * vBox )
         fprintf( pFile, " %s=%s", pName, (char *)Vec_PtrEntry(vBox, i+1) ), i++;
     fprintf( pFile, "\n" );
 }
-void Cba_PtrDumpBoxesBlif( FILE * pFile, Vec_Ptr_t * vBoxes )
+void Bac_PtrDumpBoxesBlif( FILE * pFile, Vec_Ptr_t * vBoxes )
 {
     Vec_Ptr_t * vBox; int i;
     Vec_PtrForEachEntry( Vec_Ptr_t *, vBoxes, vBox, i )
-        Cba_PtrDumpBoxBlif( pFile, vBox );
+        Bac_PtrDumpBoxBlif( pFile, vBox );
 }
-void Cba_PtrDumpModuleBlif( FILE * pFile, Vec_Ptr_t * vNtk )
+void Bac_PtrDumpModuleBlif( FILE * pFile, Vec_Ptr_t * vNtk )
 {
     fprintf( pFile, ".model %s\n", (char *)Vec_PtrEntry(vNtk, 0) );
     fprintf( pFile, ".inputs" );
-    Cba_PtrDumpSignalsBlif( pFile, (Vec_Ptr_t *)Vec_PtrEntry(vNtk, 1), 0 );
+    Bac_PtrDumpSignalsBlif( pFile, (Vec_Ptr_t *)Vec_PtrEntry(vNtk, 1), 0 );
     fprintf( pFile, "\n" );
     fprintf( pFile, ".outputs" );
-    Cba_PtrDumpSignalsBlif( pFile, (Vec_Ptr_t *)Vec_PtrEntry(vNtk, 2), 1 );
+    Bac_PtrDumpSignalsBlif( pFile, (Vec_Ptr_t *)Vec_PtrEntry(vNtk, 2), 1 );
     fprintf( pFile, "\n" );
     assert( Vec_PtrSize((Vec_Ptr_t *)Vec_PtrEntry(vNtk, 3)) == 0 ); // no nodes; only boxes
-    Cba_PtrDumpBoxesBlif( pFile, (Vec_Ptr_t *)Vec_PtrEntry(vNtk, 4) );
+    Bac_PtrDumpBoxesBlif( pFile, (Vec_Ptr_t *)Vec_PtrEntry(vNtk, 4) );
     fprintf( pFile, ".end\n\n" );
 }
-void Cba_PtrDumpBlif( char * pFileName, Vec_Ptr_t * vDes )
+void Bac_PtrDumpBlif( char * pFileName, Vec_Ptr_t * vDes )
 {
     FILE * pFile;
     Vec_Ptr_t * vNtk; int i;
@@ -201,7 +201,7 @@ void Cba_PtrDumpBlif( char * pFileName, Vec_Ptr_t * vDes )
     }
     fprintf( pFile, "// Design \"%s\" written via Ptr in ABC on %s\n\n", (char *)Vec_PtrEntry(vDes, 0), Extra_TimeStamp() );
     Vec_PtrForEachEntryStart( Vec_Ptr_t *, vDes, vNtk, i, 1 )
-        Cba_PtrDumpModuleBlif( pFile, vNtk );
+        Bac_PtrDumpModuleBlif( pFile, vNtk );
     fclose( pFile );
 }
 
@@ -216,13 +216,13 @@ void Cba_PtrDumpBlif( char * pFileName, Vec_Ptr_t * vDes )
   SeeAlso     []
 
 ***********************************************************************/
-void Cba_PtrDumpSignalsVerilog( FILE * pFile, Vec_Ptr_t * vSigs, int fAlwaysComma )
+void Bac_PtrDumpSignalsVerilog( FILE * pFile, Vec_Ptr_t * vSigs, int fAlwaysComma )
 {
     char * pSig; int i;
     Vec_PtrForEachEntry( char *, vSigs, pSig, i )
         fprintf( pFile, " %s%s", pSig, (fAlwaysComma || i < Vec_PtrSize(vSigs) - 1) ? ",":"" );
 }
-void Cba_PtrDumpBoxVerilog( FILE * pFile, Vec_Ptr_t * vBox )
+void Bac_PtrDumpBoxVerilog( FILE * pFile, Vec_Ptr_t * vBox )
 {
     char * pName; int i;
     fprintf( pFile, "  %s", (char *)Vec_PtrEntry(vBox, 0) );
@@ -231,29 +231,29 @@ void Cba_PtrDumpBoxVerilog( FILE * pFile, Vec_Ptr_t * vBox )
         fprintf( pFile, ".%s(%s)%s", pName, (char *)Vec_PtrEntry(vBox, i+1), i < Vec_PtrSize(vBox) - 2 ? ", ":"" ), i++;
     fprintf( pFile, ");\n" );
 }
-void Cba_PtrDumpBoxesVerilog( FILE * pFile, Vec_Ptr_t * vBoxes )
+void Bac_PtrDumpBoxesVerilog( FILE * pFile, Vec_Ptr_t * vBoxes )
 {
     Vec_Ptr_t * vBox; int i;
     Vec_PtrForEachEntry( Vec_Ptr_t *, vBoxes, vBox, i )
-        Cba_PtrDumpBoxVerilog( pFile, vBox );
+        Bac_PtrDumpBoxVerilog( pFile, vBox );
 }
-void Cba_PtrDumpModuleVerilog( FILE * pFile, Vec_Ptr_t * vNtk )
+void Bac_PtrDumpModuleVerilog( FILE * pFile, Vec_Ptr_t * vNtk )
 {
     fprintf( pFile, "module %s (\n    ", (char *)Vec_PtrEntry(vNtk, 0) );
-    Cba_PtrDumpSignalsVerilog( pFile, (Vec_Ptr_t *)Vec_PtrEntry(vNtk, 1), 1 );
-    Cba_PtrDumpSignalsVerilog( pFile, (Vec_Ptr_t *)Vec_PtrEntry(vNtk, 2), 0 );
+    Bac_PtrDumpSignalsVerilog( pFile, (Vec_Ptr_t *)Vec_PtrEntry(vNtk, 1), 1 );
+    Bac_PtrDumpSignalsVerilog( pFile, (Vec_Ptr_t *)Vec_PtrEntry(vNtk, 2), 0 );
     fprintf( pFile, "\n  );\n" );
     fprintf( pFile, "  input" );
-    Cba_PtrDumpSignalsVerilog( pFile, (Vec_Ptr_t *)Vec_PtrEntry(vNtk, 1), 0 );
+    Bac_PtrDumpSignalsVerilog( pFile, (Vec_Ptr_t *)Vec_PtrEntry(vNtk, 1), 0 );
     fprintf( pFile, ";\n" );
     fprintf( pFile, "  output" );
-    Cba_PtrDumpSignalsVerilog( pFile, (Vec_Ptr_t *)Vec_PtrEntry(vNtk, 2), 0 );
+    Bac_PtrDumpSignalsVerilog( pFile, (Vec_Ptr_t *)Vec_PtrEntry(vNtk, 2), 0 );
     fprintf( pFile, ";\n" );
     assert( Vec_PtrSize((Vec_Ptr_t *)Vec_PtrEntry(vNtk, 3)) == 0 ); // no nodes; only boxes
-    Cba_PtrDumpBoxesVerilog( pFile, (Vec_Ptr_t *)Vec_PtrEntry(vNtk, 4) );
+    Bac_PtrDumpBoxesVerilog( pFile, (Vec_Ptr_t *)Vec_PtrEntry(vNtk, 4) );
     fprintf( pFile, "endmodule\n\n" );
 }
-void Cba_PtrDumpVerilog( char * pFileName, Vec_Ptr_t * vDes )
+void Bac_PtrDumpVerilog( char * pFileName, Vec_Ptr_t * vDes )
 {
     FILE * pFile;
     Vec_Ptr_t * vNtk; int i;
@@ -265,7 +265,7 @@ void Cba_PtrDumpVerilog( char * pFileName, Vec_Ptr_t * vDes )
     }
     fprintf( pFile, "// Design \"%s\" written via Ptr in ABC on %s\n\n", (char *)Vec_PtrEntry(vDes, 0), Extra_TimeStamp() );
     Vec_PtrForEachEntryStart( Vec_Ptr_t *, vDes, vNtk, i, 1 )
-        Cba_PtrDumpModuleVerilog( pFile, vNtk );
+        Bac_PtrDumpModuleVerilog( pFile, vNtk );
     fclose( pFile );
 }
 
@@ -281,13 +281,13 @@ void Cba_PtrDumpVerilog( char * pFileName, Vec_Ptr_t * vDes )
   SeeAlso     []
 
 ***********************************************************************/
-void Cba_ManCollectGateNameOne( Mio_Library_t * pLib, Ptr_ObjType_t Type, word Truth, Vec_Ptr_t * vGateNames )
+void Bac_ManCollectGateNameOne( Mio_Library_t * pLib, Ptr_ObjType_t Type, word Truth, Vec_Ptr_t * vGateNames )
 {
     Mio_Gate_t * pGate = Mio_LibraryReadGateByTruth( pLib, Truth );
     if ( pGate != NULL )
         Vec_PtrWriteEntry( vGateNames, Type, Mio_GateReadName(pGate) );
 }
-Vec_Ptr_t * Cba_ManCollectGateNamesByTruth( Mio_Library_t * pLib )
+Vec_Ptr_t * Bac_ManCollectGateNamesByTruth( Mio_Library_t * pLib )
 {
     static word uTruths6[3] = {
         ABC_CONST(0xAAAAAAAAAAAAAAAA),
@@ -295,16 +295,16 @@ Vec_Ptr_t * Cba_ManCollectGateNamesByTruth( Mio_Library_t * pLib )
         ABC_CONST(0xF0F0F0F0F0F0F0F0),
     };
     Vec_Ptr_t * vGateNames = Vec_PtrStart( PTR_GATE_UNKNOWN );
-    Cba_ManCollectGateNameOne( pLib, PTR_GATE_C0,              0,                 vGateNames );
-    Cba_ManCollectGateNameOne( pLib, PTR_GATE_C1,       ~(word)0,                 vGateNames );
-    Cba_ManCollectGateNameOne( pLib, PTR_GATE_BUF,    uTruths6[0],                vGateNames );
-    Cba_ManCollectGateNameOne( pLib, PTR_GATE_INV,   ~uTruths6[0],                vGateNames );
-    Cba_ManCollectGateNameOne( pLib, PTR_GATE_AND,   (uTruths6[0] & uTruths6[1]), vGateNames );
-    Cba_ManCollectGateNameOne( pLib, PTR_GATE_NAND, ~(uTruths6[0] & uTruths6[1]), vGateNames );
-    Cba_ManCollectGateNameOne( pLib, PTR_GATE_OR,    (uTruths6[0] | uTruths6[1]), vGateNames );
-    Cba_ManCollectGateNameOne( pLib, PTR_GATE_NOR,  ~(uTruths6[0] | uTruths6[1]), vGateNames );
-    Cba_ManCollectGateNameOne( pLib, PTR_GATE_XOR,   (uTruths6[0] ^ uTruths6[1]), vGateNames );
-    Cba_ManCollectGateNameOne( pLib, PTR_GATE_XNOR, ~(uTruths6[0] ^ uTruths6[1]), vGateNames );
+    Bac_ManCollectGateNameOne( pLib, PTR_GATE_C0,              0,                 vGateNames );
+    Bac_ManCollectGateNameOne( pLib, PTR_GATE_C1,       ~(word)0,                 vGateNames );
+    Bac_ManCollectGateNameOne( pLib, PTR_GATE_BUF,    uTruths6[0],                vGateNames );
+    Bac_ManCollectGateNameOne( pLib, PTR_GATE_INV,   ~uTruths6[0],                vGateNames );
+    Bac_ManCollectGateNameOne( pLib, PTR_GATE_AND,   (uTruths6[0] & uTruths6[1]), vGateNames );
+    Bac_ManCollectGateNameOne( pLib, PTR_GATE_NAND, ~(uTruths6[0] & uTruths6[1]), vGateNames );
+    Bac_ManCollectGateNameOne( pLib, PTR_GATE_OR,    (uTruths6[0] | uTruths6[1]), vGateNames );
+    Bac_ManCollectGateNameOne( pLib, PTR_GATE_NOR,  ~(uTruths6[0] | uTruths6[1]), vGateNames );
+    Bac_ManCollectGateNameOne( pLib, PTR_GATE_XOR,   (uTruths6[0] ^ uTruths6[1]), vGateNames );
+    Bac_ManCollectGateNameOne( pLib, PTR_GATE_XNOR, ~(uTruths6[0] ^ uTruths6[1]), vGateNames );
     return vGateNames;
 }
 
@@ -319,7 +319,7 @@ Vec_Ptr_t * Cba_ManCollectGateNamesByTruth( Mio_Library_t * pLib )
   SeeAlso     []
 
 ***********************************************************************/
-void Cba_PtrUpdateBox( Vec_Ptr_t * vBox, Vec_Ptr_t * vGatesNames )
+void Bac_PtrUpdateBox( Vec_Ptr_t * vBox, Vec_Ptr_t * vGatesNames )
 {
     Mio_Gate_t * pGate;  Mio_Pin_t * pPin; int i = 1;
     Mio_Library_t * pLib = (Mio_Library_t *)Abc_FrameReadLibGen();
@@ -368,7 +368,7 @@ void Cba_PtrUpdateBox( Vec_Ptr_t * vBox, Vec_Ptr_t * vGatesNames )
     Vec_PtrWriteEntry( vBox, 2 * i++, Abc_UtilStrsav(pNameNew) );
     assert( 2 * i == Vec_PtrSize(vBox) );
 }
-Vec_Ptr_t * Cba_PtrTransformSigs( Vec_Ptr_t * vSig )
+Vec_Ptr_t * Bac_PtrTransformSigs( Vec_Ptr_t * vSig )
 {
     char * pName; int i;
     Vec_Ptr_t * vNew = Vec_PtrAllocExact( Vec_PtrSize(vSig) );
@@ -376,25 +376,25 @@ Vec_Ptr_t * Cba_PtrTransformSigs( Vec_Ptr_t * vSig )
         Vec_PtrPush( vNew, Abc_UtilStrsav(pName) );
     return vNew;
 }
-Vec_Ptr_t * Cba_PtrTransformBox( Vec_Ptr_t * vBox, Vec_Ptr_t * vGatesNames )
+Vec_Ptr_t * Bac_PtrTransformBox( Vec_Ptr_t * vBox, Vec_Ptr_t * vGatesNames )
 {
     char * pName; int i;
     Vec_Ptr_t * vNew = Vec_PtrAllocExact( Vec_PtrSize(vBox) );
     Vec_PtrForEachEntry( char *, vBox, pName, i )
         Vec_PtrPush( vNew, Abc_UtilStrsav(pName) );
     if ( vGatesNames )
-        Cba_PtrUpdateBox( vNew, vGatesNames );
+        Bac_PtrUpdateBox( vNew, vGatesNames );
     return vNew;
 }
-Vec_Ptr_t * Cba_PtrTransformBoxes( Vec_Ptr_t * vBoxes, Vec_Ptr_t * vGatesNames )
+Vec_Ptr_t * Bac_PtrTransformBoxes( Vec_Ptr_t * vBoxes, Vec_Ptr_t * vGatesNames )
 {
     Vec_Ptr_t * vBox; int i;
     Vec_Ptr_t * vNew = Vec_PtrAllocExact( Vec_PtrSize(vBoxes) );
     Vec_PtrForEachEntry( Vec_Ptr_t *, vBoxes, vBox, i )
-        Vec_PtrPush( vNew, Cba_PtrTransformBox(vBox, vGatesNames) );
+        Vec_PtrPush( vNew, Bac_PtrTransformBox(vBox, vGatesNames) );
     return vNew;
 }
-Vec_Ptr_t * Cba_PtrTransformNtk( Vec_Ptr_t * vNtk, Vec_Ptr_t * vGatesNames )
+Vec_Ptr_t * Bac_PtrTransformNtk( Vec_Ptr_t * vNtk, Vec_Ptr_t * vGatesNames )
 {
     char * pName = (char *)Vec_PtrEntry(vNtk, 0);
     Vec_Ptr_t * vInputs  = (Vec_Ptr_t *)Vec_PtrEntry(vNtk, 1);
@@ -402,19 +402,19 @@ Vec_Ptr_t * Cba_PtrTransformNtk( Vec_Ptr_t * vNtk, Vec_Ptr_t * vGatesNames )
     Vec_Ptr_t * vBoxes   = (Vec_Ptr_t *)Vec_PtrEntry(vNtk, 4);
     Vec_Ptr_t * vNew     = Vec_PtrAllocExact( Vec_PtrSize(vNtk) );
     Vec_PtrPush( vNew, Abc_UtilStrsav(pName) );
-    Vec_PtrPush( vNew, Cba_PtrTransformSigs(vInputs) );
-    Vec_PtrPush( vNew, Cba_PtrTransformSigs(vOutputs) );
+    Vec_PtrPush( vNew, Bac_PtrTransformSigs(vInputs) );
+    Vec_PtrPush( vNew, Bac_PtrTransformSigs(vOutputs) );
     Vec_PtrPush( vNew, Vec_PtrAllocExact(0) );
-    Vec_PtrPush( vNew, Cba_PtrTransformBoxes(vBoxes, vGatesNames) );
+    Vec_PtrPush( vNew, Bac_PtrTransformBoxes(vBoxes, vGatesNames) );
     return vNew;
 }
-Vec_Ptr_t * Cba_PtrTransformTest( Vec_Ptr_t * vDes )
+Vec_Ptr_t * Bac_PtrTransformTest( Vec_Ptr_t * vDes )
 {
     Mio_Library_t * pLib;
     Vec_Ptr_t * vGatesNames;
     Vec_Ptr_t * vNtk, * vNew; int i;
     // dump BLIF before transformation
-    Cba_PtrDumpBlif( "test1.blif", vDes );
+    Bac_PtrDumpBlif( "test1.blif", vDes );
     if ( Abc_FrameGetGlobalFrame() == NULL )
     {
         printf( "ABC framework is not started.\n" );
@@ -426,14 +426,14 @@ Vec_Ptr_t * Cba_PtrTransformTest( Vec_Ptr_t * vDes )
         printf( "Standard cell library is not entered.\n" );
         return NULL;
     }
-    vGatesNames = Cba_ManCollectGateNamesByTruth( pLib );
+    vGatesNames = Bac_ManCollectGateNamesByTruth( pLib );
     // transform
     vNew = Vec_PtrAllocExact( Vec_PtrSize(vDes) );
     Vec_PtrPush( vNew, Abc_UtilStrsav((char *)Vec_PtrEntry(vDes, 0)) );
     Vec_PtrForEachEntryStart( Vec_Ptr_t *, vDes, vNtk, i, 1 )
-        Vec_PtrPush( vNew, Cba_PtrTransformNtk(vNtk, vGatesNames) );
+        Vec_PtrPush( vNew, Bac_PtrTransformNtk(vNtk, vGatesNames) );
     // dump BLIF after transformation
-    Cba_PtrDumpBlif( "test2.blif", vNew );
+    Bac_PtrDumpBlif( "test2.blif", vNew );
     Vec_PtrFree( vGatesNames );
     return vNew;
 }
@@ -449,15 +449,15 @@ Vec_Ptr_t * Cba_PtrTransformTest( Vec_Ptr_t * vDes )
   SeeAlso     []
 
 ***********************************************************************/
-void Cba_PtrTransformTestTest()
+void Bac_PtrTransformTestTest()
 {
     char * pFileName = "c/hie/dump/1/netlist_1.v";
     Abc_Ntk_t * pNtk = Io_ReadNetlist( pFileName, Io_ReadFileType(pFileName), 0 );
     extern Vec_Ptr_t * Ptr_AbcDeriveDes( Abc_Ntk_t * pNtk );
     Vec_Ptr_t * vDes = Ptr_AbcDeriveDes( pNtk );
-    Vec_Ptr_t * vNew = Cba_PtrTransformTest( vDes );
-    Cba_PtrFree( vDes );
-    Cba_PtrFree( vNew );
+    Vec_Ptr_t * vNew = Bac_PtrTransformTest( vDes );
+    Bac_PtrFree( vDes );
+    Bac_PtrFree( vNew );
 }
 
 

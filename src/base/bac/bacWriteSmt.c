@@ -1,12 +1,12 @@
 /**CFile****************************************************************
 
-  FileName    [cbaReadSmt.c]
+  FileName    [bacWriteSmt.c]
 
   SystemName  [ABC: Logic synthesis and verification system.]
 
   PackageName [Hierarchical word-level netlist.]
 
-  Synopsis    [BLIF parser.]
+  Synopsis    [Verilog parser.]
 
   Author      [Alan Mishchenko]
   
@@ -14,11 +14,11 @@
 
   Date        [Ver. 1.0. Started - November 29, 2014.]
 
-  Revision    [$Id: cbaReadSmt.c,v 1.00 2014/11/29 00:00:00 alanmi Exp $]
+  Revision    [$Id: bacWriteSmt.c,v 1.00 2014/11/29 00:00:00 alanmi Exp $]
 
 ***********************************************************************/
 
-#include "cba.h"
+#include "bac.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -26,11 +26,21 @@ ABC_NAMESPACE_IMPL_START
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 
 
 ////////////////////////////////////////////////////////////////////////

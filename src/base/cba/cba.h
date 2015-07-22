@@ -606,7 +606,7 @@ static inline Cba_Ntk_t * Cba_NtkDupOrder( Cba_Man_t * pMan, Cba_Ntk_t * p, Vec_
     Vec_IntFree( vObjs );
     return pNew;
 }
-static inline Cba_Ntk_t * Cba_NtkDupAttrs( Cba_Ntk_t * pNew, Cba_Ntk_t * p )
+static inline void Cba_NtkDupAttrs( Cba_Ntk_t * pNew, Cba_Ntk_t * p )
 {
     // transfer object attributes
     Vec_IntRemapArray( &p->vObjCopy, &p->vObjFunc,  &pNew->vObjFunc,  Cba_NtkObjNum(pNew) + 1 );
