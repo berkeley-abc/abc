@@ -871,11 +871,11 @@ SOURCE=.\src\base\bac\bacPrsTrans.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\base\bac\bacPrtAbc.c
+SOURCE=.\src\base\bac\bacPtr.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\base\bac\bacPtr.c
+SOURCE=.\src\base\bac\bacPtrAbc.c
 # End Source File
 # Begin Source File
 
@@ -887,7 +887,7 @@ SOURCE=.\src\base\bac\bacReadSmt.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\base\bac\bacReadVec.c
+SOURCE=.\src\base\bac\bacReadVer.c
 # End Source File
 # Begin Source File
 
