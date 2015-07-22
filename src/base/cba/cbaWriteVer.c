@@ -64,7 +64,7 @@ static void Prs_ManWriteVerilogSignal( FILE * pFile, Prs_Ntk_t * p, int Sig )
         Prs_ManWriteVerilogConcat( pFile, p, Value );
     else assert( 0 );
 }
-static void Prs_ManWriteVerilogArray( FILE * pFile, Prs_Ntk_t * p, Vec_Int_t * vSigs, int Start, int Stop, int fOdd )
+void Prs_ManWriteVerilogArray( FILE * pFile, Prs_Ntk_t * p, Vec_Int_t * vSigs, int Start, int Stop, int fOdd )
 {
     int i, Sig;
     assert( Vec_IntSize(vSigs) > 0 );
