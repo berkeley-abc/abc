@@ -522,7 +522,7 @@ int Cba_CommandClp( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
 
 #if 0
-    pNew = Cba_ManCollapse( p );
+    pNew = Cba_ManCollapse( p, CBA_BOX_BUF );
     Cba_AbcUpdateMan( pAbc, pNew );
 
 #endif

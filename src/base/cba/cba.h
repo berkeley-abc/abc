@@ -215,6 +215,7 @@ static inline int            Cba_NtkPi( Cba_Ntk_t * p, int i )               { r
 static inline int            Cba_NtkPo( Cba_Ntk_t * p, int i )               { return Vec_IntEntry(&p->vOutputs, i);                                                       }
 static inline char *         Cba_NtkStr( Cba_Ntk_t * p, int i )              { return Cba_ManStr(p->pDesign, i);                                                           }
 static inline char *         Cba_NtkName( Cba_Ntk_t * p )                    { return Cba_NtkStr(p, p->NameId);                                                            }
+static inline int            Cba_NtkNameId( Cba_Ntk_t * p )                  { return p->NameId;                                                                           }
 static inline int            Cba_NtkCopy( Cba_Ntk_t * p )                    { return p->iCopy;                                                                            }
 static inline Cba_Ntk_t *    Cba_NtkCopyNtk(Cba_Man_t * pNew, Cba_Ntk_t * p) { return Cba_ManNtk(pNew, Cba_NtkCopy(p));                                                    }
 static inline void           Cba_NtkSetCopy( Cba_Ntk_t * p, int i )          { assert(p->iCopy == 0); p->iCopy = i;                                                        }
@@ -235,33 +236,19 @@ static inline int            Cba_NtkBoxNum( Cba_Ntk_t * p )                  { r
 static inline int            Cba_NtkBoxUserNum( Cba_Ntk_t * p )              { return Cba_NtkTypeNum(p, CBA_OBJ_BOX);                                                      }
 static inline int            Cba_NtkBoxPrimNum( Cba_Ntk_t * p )              { return Vec_StrCountLarger(&p->vObjType, (char)CBA_OBJ_BOX);                                 }
 
-static inline void           Cba_NtkStartObjCopies( Cba_Ntk_t * p )          { Vec_IntFill(&p->vObjCopy, Vec_StrCap(&p->vObjType), -1);        }
-static inline void           Cba_NtkStartObjFuncs( Cba_Ntk_t * p )           { Vec_IntFill(&p->vObjFunc, Vec_StrCap(&p->vObjType),  0);        }
-static inline void           Cba_NtkStartObjNames( Cba_Ntk_t * p )           { Vec_IntFill(&p->vObjName, Vec_StrCap(&p->vObjType),  0);        }
-static inline void           Cba_NtkStartObjAttrs( Cba_Ntk_t * p )           { Vec_IntFill(&p->vObjAttr, Vec_StrCap(&p->vObjType),  0);        }
-static inline void           Cba_NtkStartFonCopies( Cba_Ntk_t * p )          { Vec_IntFill(&p->vFonCopy, Vec_IntCap(&p->vFonObj),   0);        }
-static inline void           Cba_NtkStartFonNames( Cba_Ntk_t * p )           { Vec_IntFill(&p->vFonName, Vec_IntCap(&p->vFonObj),   0);        }
-static inline void           Cba_NtkStartFonRanges( Cba_Ntk_t * p )          { Vec_IntFill(&p->vFonRange,Vec_IntCap(&p->vFonObj),   0);        }
-static inline void           Cba_NtkStartFonLefts( Cba_Ntk_t * p )           { Vec_IntFill(&p->vFonLeft, Vec_IntCap(&p->vFonObj),   0);        }
-static inline void           Cba_NtkStartFonRights( Cba_Ntk_t * p )          { Vec_IntFill(&p->vFonRight,Vec_IntCap(&p->vFonObj),   0);        }
-static inline void           Cba_NtkStartFonPrevs( Cba_Ntk_t * p )           { Vec_IntFill(&p->vFonPrev, Vec_IntCap(&p->vFonObj),   0);        }
-static inline void           Cba_NtkStartFonNexts( Cba_Ntk_t * p )           { Vec_IntFill(&p->vFonNext, Vec_IntCap(&p->vFonObj),   0);        }
-static inline void           Cba_NtkStartFinFon0( Cba_Ntk_t * p )            { Vec_IntFill(&p->vFinFon0, Vec_IntCap(&p->vFinFon),   0);        }
-static inline void           Cba_NtkStartFinObjs( Cba_Ntk_t * p )            { Vec_IntFill(&p->vFinObj,  Vec_IntCap(&p->vFinFon),   0);        }
-
-static inline void           Cba_NtkFreeObjCopies( Cba_Ntk_t * p )           { Vec_IntErase(&p->vObjCopy);   }
-static inline void           Cba_NtkFreeObjFuncs( Cba_Ntk_t * p )            { Vec_IntErase(&p->vObjFunc);   }
-static inline void           Cba_NtkFreeObjNames( Cba_Ntk_t * p )            { Vec_IntErase(&p->vObjName);   }
-static inline void           Cba_NtkFreeObjAttrs( Cba_Ntk_t * p )            { Vec_IntErase(&p->vObjAttr);   }
-static inline void           Cba_NtkFreeFonCopies( Cba_Ntk_t * p )           { Vec_IntErase(&p->vFonCopy);   }
-static inline void           Cba_NtkFreeFonNames( Cba_Ntk_t * p )            { Vec_IntErase(&p->vFonName);   }
-static inline void           Cba_NtkFreeFonRanges( Cba_Ntk_t * p )           { Vec_IntErase(&p->vFonRange);  }
-static inline void           Cba_NtkFreeFonLefts( Cba_Ntk_t * p )            { Vec_IntErase(&p->vFonLeft);   }
-static inline void           Cba_NtkFreeFonRights( Cba_Ntk_t * p )           { Vec_IntErase(&p->vFonRight);  }
-static inline void           Cba_NtkFreeFonPrevs( Cba_Ntk_t * p )            { Vec_IntErase(&p->vFonPrev);   }
-static inline void           Cba_NtkFreeFonNexts( Cba_Ntk_t * p )            { Vec_IntErase(&p->vFonNext);   }
-static inline void           Cba_NtkFreeFinFon0( Cba_Ntk_t * p )             { Vec_IntErase(&p->vFinFon0);   }
-static inline void           Cba_NtkFreeFinObjs( Cba_Ntk_t * p )             { Vec_IntErase(&p->vFinObj);    }
+static inline void           Cba_NtkCleanObjCopies( Cba_Ntk_t * p )          { Vec_IntFill(&p->vObjCopy, Vec_StrCap(&p->vObjType), -1);        }
+static inline void           Cba_NtkCleanObjFuncs( Cba_Ntk_t * p )           { Vec_IntFill(&p->vObjFunc, Vec_StrCap(&p->vObjType),  0);        }
+static inline void           Cba_NtkCleanObjNames( Cba_Ntk_t * p )           { Vec_IntFill(&p->vObjName, Vec_StrCap(&p->vObjType),  0);        }
+static inline void           Cba_NtkCleanObjAttrs( Cba_Ntk_t * p )           { Vec_IntFill(&p->vObjAttr, Vec_StrCap(&p->vObjType),  0); Vec_IntFill(&p->vAttrSto, 1, -1);  }
+static inline void           Cba_NtkCleanFonCopies( Cba_Ntk_t * p )          { Vec_IntFill(&p->vFonCopy, Vec_IntCap(&p->vFonObj),   0);        }
+static inline void           Cba_NtkCleanFonNames( Cba_Ntk_t * p )           { Vec_IntFill(&p->vFonName, Vec_IntCap(&p->vFonObj),   0);        }
+static inline void           Cba_NtkCleanFonRanges( Cba_Ntk_t * p )          { Vec_IntFill(&p->vFonRange,Vec_IntCap(&p->vFonObj),   0);        }
+static inline void           Cba_NtkCleanFonLefts( Cba_Ntk_t * p )           { Vec_IntFill(&p->vFonLeft, Vec_IntCap(&p->vFonObj),   0);        }
+static inline void           Cba_NtkCleanFonRights( Cba_Ntk_t * p )          { Vec_IntFill(&p->vFonRight,Vec_IntCap(&p->vFonObj),   0);        }
+static inline void           Cba_NtkCleanFonPrevs( Cba_Ntk_t * p )           { Vec_IntFill(&p->vFonPrev, Vec_IntCap(&p->vFonObj),   0);        }
+static inline void           Cba_NtkCleanFonNexts( Cba_Ntk_t * p )           { Vec_IntFill(&p->vFonNext, Vec_IntCap(&p->vFonObj),   0);        }
+static inline void           Cba_NtkCleanFinFon0( Cba_Ntk_t * p )            { Vec_IntFill(&p->vFinFon0, Vec_IntCap(&p->vFinFon),   0);        }
+static inline void           Cba_NtkCleanFinObjs( Cba_Ntk_t * p )            { Vec_IntFill(&p->vFinObj,  Vec_IntCap(&p->vFinFon),   0);        }
 
 static inline int            Cba_NtkHasObjCopies( Cba_Ntk_t * p )            { return Vec_IntSize(&p->vObjCopy) > 0; }
 static inline int            Cba_NtkHasObjFuncs( Cba_Ntk_t * p )             { return Vec_IntSize(&p->vObjFunc) > 0; }
@@ -277,9 +264,19 @@ static inline int            Cba_NtkHasFonNexts( Cba_Ntk_t * p )             { r
 static inline int            Cba_NtkHasFinFon0( Cba_Ntk_t * p )              { return Vec_IntSize(&p->vFinFon0) > 0; }
 static inline int            Cba_NtkHasFinObjs( Cba_Ntk_t * p )              { return Vec_IntSize(&p->vFinObj)  > 0; }
 
-static inline void           Cba_NtkCleanObjCopies( Cba_Ntk_t * p )          { Vec_IntFill(&p->vObjCopy, Vec_StrSize(&p->vObjType), -1);                                   }
-static inline void           Cba_NtkCleanFonCopies( Cba_Ntk_t * p )          { Vec_IntFill(&p->vFonCopy, Vec_IntSize(&p->vFonObj),  -1);                                   }
-static inline void           Cba_NtkCleanFonNames( Cba_Ntk_t * p )           { Vec_IntFill(&p->vFonName, Vec_IntSize(&p->vFonObj),   0);                                   }
+static inline void           Cba_NtkFreeObjCopies( Cba_Ntk_t * p )           { Vec_IntErase(&p->vObjCopy);   }
+static inline void           Cba_NtkFreeObjFuncs( Cba_Ntk_t * p )            { Vec_IntErase(&p->vObjFunc);   }
+static inline void           Cba_NtkFreeObjNames( Cba_Ntk_t * p )            { Vec_IntErase(&p->vObjName);   }
+static inline void           Cba_NtkFreeObjAttrs( Cba_Ntk_t * p )            { Vec_IntErase(&p->vObjAttr);   }
+static inline void           Cba_NtkFreeFonCopies( Cba_Ntk_t * p )           { Vec_IntErase(&p->vFonCopy);   }
+static inline void           Cba_NtkFreeFonNames( Cba_Ntk_t * p )            { Vec_IntErase(&p->vFonName);   }
+static inline void           Cba_NtkFreeFonRanges( Cba_Ntk_t * p )           { Vec_IntErase(&p->vFonRange);  }
+static inline void           Cba_NtkFreeFonLefts( Cba_Ntk_t * p )            { Vec_IntErase(&p->vFonLeft);   }
+static inline void           Cba_NtkFreeFonRights( Cba_Ntk_t * p )           { Vec_IntErase(&p->vFonRight);  }
+static inline void           Cba_NtkFreeFonPrevs( Cba_Ntk_t * p )            { Vec_IntErase(&p->vFonPrev);   }
+static inline void           Cba_NtkFreeFonNexts( Cba_Ntk_t * p )            { Vec_IntErase(&p->vFonNext);   }
+static inline void           Cba_NtkFreeFinFon0( Cba_Ntk_t * p )             { Vec_IntErase(&p->vFinFon0);   }
+static inline void           Cba_NtkFreeFinObjs( Cba_Ntk_t * p )             { Vec_IntErase(&p->vFinObj);    }
 
 static inline Cba_ObjType_t  Cba_ObjType( Cba_Ntk_t * p, int i )             { assert(i>0); return (Cba_ObjType_t)(int)(unsigned char)Vec_StrEntry(&p->vObjType, i);       }
 static inline void           Cba_ObjCleanType( Cba_Ntk_t * p, int i )        { assert(i>0); Vec_StrWriteEntry( &p->vObjType, i, (char)CBA_OBJ_NONE );                      }
@@ -300,22 +297,21 @@ static inline int            Cba_ObjFon( Cba_Ntk_t * p, int i, int k )       { a
 static inline int            Cba_ObjFinNum( Cba_Ntk_t * p, int i )           { assert(i>0); return Cba_ObjFin0(p, i+1) - Cba_ObjFin0(p, i);                                }
 static inline int            Cba_ObjFonNum( Cba_Ntk_t * p, int i )           { assert(i>0); return Cba_ObjFon0(p, i+1) - Cba_ObjFon0(p, i);                                }
 
-static inline int            Cba_ObjCopy( Cba_Ntk_t * p, int i )             { assert(i>0); return Vec_IntGetEntryFull(&p->vObjCopy, i);                                   }
-static inline int            Cba_ObjFunc( Cba_Ntk_t * p, int i )             { assert(i>0); return Vec_IntGetEntry(&p->vObjFunc, i);                                       }
-static inline int            Cba_ObjName( Cba_Ntk_t * p, int i )             { assert(i>0); return Vec_IntGetEntry(&p->vObjName, i);                                       }
+static inline int            Cba_ObjCopy( Cba_Ntk_t * p, int i )             { assert(i>0); assert( Cba_NtkHasObjCopies(p) ); return Vec_IntGetEntryFull(&p->vObjCopy, i); }
+static inline int            Cba_ObjFunc( Cba_Ntk_t * p, int i )             { assert(i>0); assert( Cba_NtkHasObjFuncs(p) );  return Vec_IntGetEntry(&p->vObjFunc, i);     }
+static inline int            Cba_ObjName( Cba_Ntk_t * p, int i )             { assert(i>0); assert( Cba_NtkHasObjNames(p) );  return Vec_IntGetEntry(&p->vObjName, i);     }
 static inline char *         Cba_ObjNameStr( Cba_Ntk_t * p, int i )          { assert(i>0); return Cba_NtkStr(p, Cba_ObjName(p, i));                                       }
-static inline int            Cba_ObjAttr( Cba_Ntk_t * p, int i )             { assert(i>0); return Vec_IntGetEntry(&p->vObjAttr, i);                                       }
-
-static inline int *          Cba_ObjAttrs( Cba_Ntk_t * p, int i )            { assert(i>0); return Vec_IntGetEntryP(&p->vObjAttr, i);                                      }
-static inline int            Cba_ObjAttrSize( Cba_Ntk_t * p, int i )         { assert(i>0); return Vec_IntEntry(&p->vAttrSto, Vec_IntGetEntry(&p->vObjAttr, i));           }
-static inline int *          Cba_ObjAttrArray( Cba_Ntk_t * p, int i )        { assert(i>0); return Vec_IntEntryP(&p->vAttrSto, Vec_IntGetEntry(&p->vObjAttr, i)+1);        }
+static inline int            Cba_ObjAttr( Cba_Ntk_t * p, int i )             { assert(i>=0); return Cba_NtkHasObjAttrs(p) ? Vec_IntGetEntry(&p->vObjAttr, i) : 0;          }
+static inline int            Cba_ObjAttrSize( Cba_Ntk_t * p, int i )         { assert(i>=0); return Cba_ObjAttr(p, i) ? Vec_IntEntry(&p->vAttrSto, Cba_ObjAttr(p, i)) : 0; }
+static inline int *          Cba_ObjAttrArray( Cba_Ntk_t * p, int i )        { assert(i>=0); return Cba_ObjAttr(p, i) ? Vec_IntEntryP(&p->vAttrSto, Cba_ObjAttr(p, i)+1) : NULL; }
 
 static inline void           Cba_ObjSetCopy( Cba_Ntk_t * p, int i, int x )   { assert(Cba_ObjCopy(p, i) == -1); Vec_IntSetEntry( &p->vObjCopy, i, x );                     }
 static inline void           Cba_ObjSetFunc( Cba_Ntk_t * p, int i, int x )   { assert(Cba_ObjFunc(p, i) ==  0); Vec_IntSetEntry( &p->vObjFunc, i, x );                     }
 static inline void           Cba_ObjSetName( Cba_Ntk_t * p, int i, int x )   { assert(Cba_ObjName(p, i) ==  0); Vec_IntSetEntry( &p->vObjName, i, x );                     }
-static inline void           Cba_ObjSetAttrs( Cba_Ntk_t * p, int i, int * a, int s )  { assert(Cba_ObjAttr(p, i) == 0); Vec_IntSetEntry(&p->vObjAttr, i, Vec_IntSize(&p->vAttrSto)); if (a) Vec_IntPushArray(&p->vAttrSto, a, s);  }
+static inline void           Cba_ObjSetAttrs( Cba_Ntk_t * p, int i, int * a, int s )  { assert(Cba_ObjAttr(p, i) == 0); if ( !a ) return; Vec_IntSetEntry(&p->vObjAttr, i, Vec_IntSize(&p->vAttrSto)); Vec_IntPush(&p->vAttrSto, s); Vec_IntPushArray(&p->vAttrSto, a, s);  }
 
 static inline int            Cba_FinFon( Cba_Ntk_t * p, int f )              { assert(f>0); return Vec_IntEntry(&p->vFinFon, f);                                           }
+static inline void           Cba_PatchFinFon( Cba_Ntk_t * p, int f, int x )  { assert(f>0); Vec_IntWriteEntry(&p->vFinFon, f, x);                                          }
 static inline int            Cba_ObjFinFon( Cba_Ntk_t * p, int i, int k )    { assert(i>0); return Cba_FinFon(p, Cba_ObjFin(p, i, k));                                     }
 static inline int *          Cba_ObjFinFons( Cba_Ntk_t * p, int i )          { assert(i>0); return Vec_IntEntryP(&p->vFinFon, Cba_ObjFin0(p, i));                          }
 
@@ -333,13 +329,13 @@ static inline int            Cba_FonConst( int f )                           { a
 static inline int            Cba_FonFromConst( int c )                       { assert(c >= 0); return -c-1;              }
 
 static inline int            Cba_FonObj( Cba_Ntk_t * p, int f )              { return Cba_FonIsReal(f) ? Vec_IntEntry(&p->vFonObj, f) : 0;                                 }
-static inline int            Cba_FonCopy( Cba_Ntk_t * p, int f )             { return Cba_FonIsReal(f) ? Vec_IntEntry( &p->vFonCopy, f ) : f;                              }
+static inline int            Cba_FonCopy( Cba_Ntk_t * p, int f )             { return Cba_FonIsReal(f) ? Vec_IntEntry(&p->vFonCopy, f) : f;                                }
 static inline void           Cba_FonSetCopy( Cba_Ntk_t * p, int f, int x )   { assert(Cba_FonIsReal(f)); assert(Cba_FonCopy(p, f) == 0); Vec_IntWriteEntry(&p->vFonCopy, f, x); }
-static inline int            Cba_FonName( Cba_Ntk_t * p, int f )             { assert(Cba_FonIsReal(f)); return Vec_IntGetEntry( &p->vFonName, f );                        }
-static inline char *         Cba_FonNameStr( Cba_Ntk_t * p, int f )          { assert(Cba_FonIsReal(f)); return Cba_NtkStr(p, Cba_FonName(p, f));                          }
-static inline void           Cba_FonSetName( Cba_Ntk_t * p, int f, int x )   { assert(Cba_FonIsReal(f)); assert(Cba_FonName(p, f) == 0); Vec_IntSetEntry(&p->vFonName, f, x);   }
-static inline void           Cba_FonCleanName( Cba_Ntk_t * p, int f )        { assert(Cba_FonIsReal(f)); assert(Cba_FonName(p, f) != 0); Vec_IntSetEntry(&p->vFonName, f, 0);   }
-static inline void           Cba_FonPatchName( Cba_Ntk_t * p, int f, int x)  { assert(Cba_FonIsReal(f)); Cba_FonCleanName(p, f); Cba_FonSetName(p, f, x);                  }
+static inline int            Cba_FonName( Cba_Ntk_t * p, int f )             { assert(Cba_NtkHasFonNames(p)); assert(Cba_FonIsReal(f)); return Vec_IntGetEntry( &p->vFonName, f );                        }
+static inline char *         Cba_FonNameStr( Cba_Ntk_t * p, int f )          { assert(Cba_NtkHasFonNames(p)); assert(Cba_FonIsReal(f)); return Cba_NtkStr(p, Cba_FonName(p, f));                          }
+static inline void           Cba_FonSetName( Cba_Ntk_t * p, int f, int x )   { assert(Cba_NtkHasFonNames(p)); assert(Cba_FonIsReal(f)); assert(Cba_FonName(p, f) == 0); Vec_IntSetEntry(&p->vFonName, f, x);   }
+static inline void           Cba_FonCleanName( Cba_Ntk_t * p, int f )        { assert(Cba_NtkHasFonNames(p)); assert(Cba_FonIsReal(f)); assert(Cba_FonName(p, f) != 0); Vec_IntSetEntry(&p->vFonName, f, 0);   }
+static inline void           Cba_FonPatchName( Cba_Ntk_t * p, int f, int x)  { assert(Cba_NtkHasFonNames(p)); assert(Cba_FonIsReal(f)); Cba_FonCleanName(p, f); Cba_FonSetName(p, f, x);                  }
 static inline int            Cba_FonIndex( Cba_Ntk_t * p, int f )            { assert(Cba_FonIsReal(f)); return f - Cba_ObjFon0( p, Cba_FonObj(p, f) );                    }
 static inline int            Cba_FonNtkId( Cba_Ntk_t * p, int f )            { assert(Cba_FonIsReal(f)); return Cba_ObjNtkId( p, Cba_FonObj(p, f) );                       }
 static inline Cba_Ntk_t *    Cba_FonNtk( Cba_Ntk_t * p, int f )              { assert(Cba_FonIsReal(f)); return Cba_ObjNtk( p, Cba_FonObj(p, f) );                         }
@@ -376,10 +372,10 @@ static inline int            Cba_ObjFanin( Cba_Ntk_t * p, int i, int k )     { a
 #define Cba_NtkForEachBoxPrim( p, i )                                     \
     for ( i = 1; i < Vec_StrSize(&p->vObjType); i++ ) if ( !Cba_ObjIsBoxPrim(p, i) ) {} else
 
-#define Cba_NtkForEachFinFon( p, iFon, i )                                \
-    for ( i = 0; i < Vec_IntSize(&p->vFinFon) && (((iFon) = Vec_IntEntry(&p->vFinFon, i)), 1); i++ ) if ( !iFon ) {} else   
-#define Cba_NtkForEachFonName( p, Name, i )                               \
-    for ( i = 0; i < Vec_IntSize(&p->vFonName) && (((Name) = Vec_IntEntry(&p->vFonName, i)), 1); i++ ) if ( !Name ) {} else   
+#define Cba_NtkForEachFinFon( p, iFon, iFin )                             \
+    for ( iFin = 0; iFin < Vec_IntSize(&p->vFinFon) && (((iFon) = Vec_IntEntry(&p->vFinFon, iFin)), 1); i++ ) if ( !iFon ) {} else   
+#define Cba_NtkForEachFonName( p, NameId, iFon )                          \
+    for ( iFon = 0; iFon < Vec_IntSize(&p->vFonName) && (((NameId) = Vec_IntEntry(&p->vFonName, iFon)), 1); i++ ) if ( !NameId ) {} else   
 
 #define Cba_ObjForEachFin( p, iObj, iFin, k )                             \
     for ( k = 0, iFin = Cba_ObjFin0(p, iObj); iFin < Cba_ObjFin0(p, iObj+1); iFin++, k++ )
@@ -471,13 +467,58 @@ static inline Cba_Ntk_t *  Cba_NtkAlloc( Cba_Man_t * p, int NameId, int nIns, in
     Vec_IntGrow( &pNew->vFonObj,  nFons+1 );  Vec_IntPush( &pNew->vFonObj,   0 );
     return pNew;
 }
+static inline void Cba_NtkFree( Cba_Ntk_t * p )
+{
+    // interface
+    Vec_IntErase( &p->vInputs );
+    Vec_IntErase( &p->vOutputs );
+    Vec_IntErase( &p->vOrder );
+    // stucture
+    Vec_StrErase( &p->vObjType );
+    Vec_IntErase( &p->vObjFin0 );    
+    Vec_IntErase( &p->vObjFon0 );
+    Vec_IntErase( &p->vFinFon );    
+    Vec_IntErase( &p->vFonObj );    
+    // optional
+    Vec_IntErase( &p->vObjCopy );    
+    Vec_IntErase( &p->vObjFunc );    
+    Vec_IntErase( &p->vObjName );    
+    Vec_IntErase( &p->vObjAttr );    
+    Vec_IntErase( &p->vAttrSto );    
+    Vec_IntErase( &p->vFonCopy );    
+    Vec_IntErase( &p->vFonName );    
+    Vec_IntErase( &p->vFonRange );    
+    Vec_IntErase( &p->vFonLeft );    
+    Vec_IntErase( &p->vFonRight );    
+    Vec_IntErase( &p->vFonPrev );    
+    Vec_IntErase( &p->vFonNext );    
+    Vec_IntErase( &p->vFinFon0 );    
+    Vec_IntErase( &p->vFinObj );    
+    Vec_IntErase( &p->vNtkObjs );    
+    // other
+    Vec_IntErase( &p->vArray0 );    
+    Vec_IntErase( &p->vArray1 );    
+    if ( p->vOther ) Vec_VecFree( (Vec_Vec_t *)p->vOther );
+    ABC_FREE( p );
+}
 static inline void Cba_NtkAdd( Cba_Man_t * p, Cba_Ntk_t * pNtk )
 {    
-    int fFound, NtkId = Abc_NamStrFindOrAdd( p->pMods, Cba_NtkStr(pNtk, pNtk->NameId), &fFound );
+    int fFound, NtkId = Abc_NamStrFindOrAdd( p->pMods, Cba_NtkName(pNtk), &fFound );
     if ( fFound )
-        printf( "Network with name \"%s\" already exists.\n", Cba_NtkStr(pNtk, pNtk->NameId) );
+        printf( "Network with name \"%s\" already exists.\n", Cba_NtkName(pNtk) );
     else
         assert( NtkId == pNtk->Id );
+}
+static inline void Cba_NtkUpdate( Cba_Man_t * p, Cba_Ntk_t * pNtk )
+{
+    int fFound, NtkId = Abc_NamStrFindOrAdd( p->pMods, Cba_NtkName(pNtk), &fFound );
+    if ( !fFound )
+        printf( "Network with name \"%s\" does not exist.\n", Cba_NtkName(pNtk) );
+    else
+    {
+        Cba_NtkFree( Cba_ManNtk(p, NtkId) );
+        Vec_PtrWriteEntry( &p->vNtks, NtkId, pNtk );
+    }
 }
 static inline Vec_Int_t * Cba_NtkCollect( Cba_Ntk_t * p )
 {
@@ -487,73 +528,31 @@ static inline Vec_Int_t * Cba_NtkCollect( Cba_Ntk_t * p )
         Vec_IntPush( vObjs, iObj );
     return vObjs;
 }
-static inline void Cba_NtkCollectDfs_rec( Cba_Ntk_t * p, int iObj, Vec_Int_t * vObjs )
-{
-    int iFin, iFanin, k;
-    if ( !Cba_ObjCopy(p, iObj) )
-        return;
-    Cba_ObjSetCopy( p, iObj, 0 );
-    Cba_ObjForEachFinFaninReal( p, iObj, iFin, iFanin, k )
-        Cba_NtkCollectDfs_rec( p, iFanin, vObjs );
-    Vec_IntPush( vObjs, iObj );
-}
-static inline Vec_Int_t * Cba_NtkCollectDfs( Cba_Ntk_t * p )
-{
-    int i, k, iObj, iFin, iFanin;
-    Vec_Int_t * vObjs = Vec_IntAlloc( Cba_NtkObjNum(p) );
-    // collect PIs
-    Cba_NtkForEachPi( p, iObj, i )
-        Vec_IntPush( vObjs, iObj );
-    // prepare leaves
-    Cba_NtkCleanObjCopies( p );
-    Vec_IntForEachEntry( vObjs, iObj, i )
-        Cba_ObjSetCopy( p, iObj, 0 );
-    // collect internal
-    Cba_NtkForEachPo( p, iObj, i )
-        Cba_ObjForEachFinFaninReal( p, iObj, iFin, iFanin, k )
-            Cba_NtkCollectDfs_rec( p, iFanin, vObjs );
-    // additionally collect user modules without outputs
-    Cba_NtkForEachBoxUser( p, iObj )
-        if ( Cba_ObjFonNum(p, iObj) == 0 )
-            Cba_ObjForEachFinFaninReal( p, iObj, iFin, iFanin, k )
-                Cba_NtkCollectDfs_rec( p, iFanin, vObjs );
-    // collect POs
-    Cba_NtkForEachPo( p, iObj, i )
-        Vec_IntPush( vObjs, iObj );
-    // collect user boxes without fanouts
-    Cba_NtkForEachBoxUser( p, iObj )
-        if ( Cba_ObjFonNum(p, iObj) == 0 )
-            Vec_IntPush( vObjs, iObj );
-    assert( Vec_IntSize(vObjs) <= Cba_NtkObjNum(p) );
-    if ( Vec_IntSize(vObjs) != Cba_NtkObjNum(p) )
-        printf( "Warning: DSF ordering collected %d out of %d objects.\n", Vec_IntSize(vObjs), Cba_NtkObjNum(p) );
-    return vObjs;
-}
 static inline void Cba_NtkCreateFonNames( Cba_Ntk_t * p, char * pPref )
 {
-    int i, iObj, NameId;
+    int i, iObj, iFon, NameId;
     Cba_NtkCleanFonNames( p );
-    Cba_NtkForEachPi( p, iObj, i )
-        Cba_FonSetName( p, Cba_ObjFon0(p, iObj), Cba_ObjName(p, iObj) );
-    Cba_NtkForEachPo( p, iObj, i )
-        Cba_FonSetName( p, Cba_ObjFinFon(p, iObj, 0), Cba_ObjName(p, iObj) );
-    Vec_IntForEachEntryStart( &p->vFonName, NameId, i, 1 )
+    Cba_NtkForEachPiFon( p, iObj, iFon, i )
+        Cba_FonSetName( p, iFon, Cba_ObjName(p, iFon) );
+    Cba_NtkForEachPoDriverFon( p, iObj, iFon, i )
+        if ( Cba_FonIsReal(iFon) && !Cba_FonName(p, iFon) )
+            Cba_FonSetName( p, iFon, Cba_ObjName(p, iFon) );
+    Vec_IntForEachEntryStart( &p->vFonName, NameId, iFon, 1 )
         if ( NameId == 0 )
-            Vec_IntWriteEntry( &p->vFonName, i, Cba_ManNewStrId(p->pDesign, pPref, i, NULL) );
+            Vec_IntWriteEntry( &p->vFonName, iFon, Cba_ManNewStrId(p->pDesign, pPref, iFon, NULL) );
 }
 static inline void Cba_NtkMissingFonNames( Cba_Ntk_t * p, char * pPref )
 {
-    int i, iObj, iFon;
-    Cba_NtkForEachPi( p, iObj, i )
-        if ( !Cba_FonName(p, Cba_ObjFon0(p, iObj)) )
-            Cba_FonSetName( p, Cba_ObjFon0(p, iObj), Cba_ObjName(p, iObj) );
-    Cba_NtkForEachPo( p, iObj, i )
-        if ( Cba_ObjFinFon(p, iObj, 0) > 0 && !Cba_FonName(p, Cba_ObjFinFon(p, iObj, 0)) )
-            Cba_FonSetName( p, Cba_ObjFinFon(p, iObj, 0), Cba_ObjName(p, iObj) );
-    Cba_NtkForEachObj( p, iObj )
-        Cba_ObjForEachFon( p, iObj, iFon, i )
-            if ( !Cba_FonName(p, iFon) )
-                Cba_FonSetName( p, iFon, Cba_ManNewStrId(p->pDesign, pPref, iFon, NULL) );
+    int i, iObj, iFon, NameId;
+    Cba_NtkForEachPiFon( p, iObj, iFon, i )
+        if ( !Cba_FonName(p, iFon) )
+            Cba_FonSetName( p, iFon, Cba_ObjName(p, iObj) );
+    Cba_NtkForEachPoDriverFon( p, iObj, iFon, i )
+        if ( Cba_FonIsReal(iFon) && !Cba_FonName(p, iFon) )
+            Cba_FonSetName( p, iFon, Cba_ObjName(p, iObj) );
+    Vec_IntForEachEntryStart( &p->vFonName, NameId, iFon, 1 )
+        if ( NameId == 0 )
+            Cba_FonSetName( p, iFon, Cba_ManNewStrId(p->pDesign, pPref, iFon, NULL) );
 }
 
 static inline void Cba_NtkCountParams( Cba_Ntk_t * p, Vec_Int_t * vObjs, int * nPis, int * nPos, int * nFins, int * nFons )
@@ -574,8 +573,7 @@ static inline Cba_Ntk_t * Cba_NtkDup( Cba_Man_t * pMan, Cba_Ntk_t * p, Vec_Int_t
     int i, k, iObj, iObjNew, iFin, iFon;
     int nPis, nPos, nFins, nFons;
     Cba_NtkCountParams( p, vObjs, &nPis, &nPos, &nFins, &nFons );
-    pNew = Cba_NtkAlloc( pMan, 0, nPis, nPos, Vec_IntSize(vObjs), nFins, nFons );
-    Cba_NtkAdd( pMan, pNew );
+    pNew = Cba_NtkAlloc( pMan, Cba_NtkNameId(p), nPis, nPos, Vec_IntSize(vObjs), nFins, nFons );
     Cba_NtkCleanObjCopies( p );
     Cba_NtkCleanFonCopies( p );
     Vec_IntForEachEntry( vObjs, iObj, i )
@@ -621,41 +619,6 @@ static inline void Cba_NtkDupAttrs( Cba_Ntk_t * pNew, Cba_Ntk_t * p )
     Vec_IntAppend( &pNew->vAttrSto, &p->vAttrSto );
     pNew->vOther = p->vOther ? (Vec_Ptr_t *)Vec_VecDup( (Vec_Vec_t *)p->vOther ) : NULL;
 }
-
-static inline void Cba_NtkFree( Cba_Ntk_t * p )
-{
-    // interface
-    Vec_IntErase( &p->vInputs );
-    Vec_IntErase( &p->vOutputs );
-    Vec_IntErase( &p->vOrder );
-    // stucture
-    Vec_StrErase( &p->vObjType );
-    Vec_IntErase( &p->vObjFin0 );    
-    Vec_IntErase( &p->vObjFon0 );
-    Vec_IntErase( &p->vFinFon );    
-    Vec_IntErase( &p->vFonObj );    
-    // optional
-    Vec_IntErase( &p->vObjCopy );    
-    Vec_IntErase( &p->vObjFunc );    
-    Vec_IntErase( &p->vObjName );    
-    Vec_IntErase( &p->vObjAttr );    
-    Vec_IntErase( &p->vAttrSto );    
-    Vec_IntErase( &p->vFonCopy );    
-    Vec_IntErase( &p->vFonName );    
-    Vec_IntErase( &p->vFonRange );    
-    Vec_IntErase( &p->vFonLeft );    
-    Vec_IntErase( &p->vFonRight );    
-    Vec_IntErase( &p->vFonPrev );    
-    Vec_IntErase( &p->vFonNext );    
-    Vec_IntErase( &p->vFinFon0 );    
-    Vec_IntErase( &p->vFinObj );    
-    Vec_IntErase( &p->vNtkObjs );    
-    // other
-    Vec_IntErase( &p->vArray0 );    
-    Vec_IntErase( &p->vArray1 );    
-    if ( p->vOther ) Vec_VecFree( (Vec_Vec_t *)p->vOther );
-    ABC_FREE( p );
-}
 static inline int Cba_NtkMemory( Cba_Ntk_t * p )
 {
     int nMem = sizeof(Cba_Ntk_t);
@@ -690,29 +653,14 @@ static inline int Cba_NtkMemory( Cba_Ntk_t * p )
     nMem += (int)Vec_IntMemory(&p->vArray1 );
     return nMem;
 }
-static inline int Cba_NtkIsTopoOrder( Cba_Ntk_t * p )
-{
-    int i, iObj, iFin, iFanin, fTopo = 1;
-    Vec_Bit_t * vVisited = Vec_BitStart( Cba_NtkObjNum(p) + 1 );
-    Cba_NtkForEachObj( p, iObj )
-    {
-        Cba_ObjForEachFinFaninReal( p, iObj, iFin, iFanin, i )
-            if ( !Vec_BitEntry(vVisited, iFanin) )
-                fTopo = 0;
-        if ( !fTopo )
-            break;
-        Vec_BitWriteEntry( vVisited, iObj, 1 );
-    }
-    Vec_BitFree( vVisited );
-    return fTopo;
-}
 static inline void Cba_NtkPrintStats( Cba_Ntk_t * p )
 {
     printf( "pi =%5d  ",   Cba_NtkPiNum(p) );
     printf( "po =%5d  ",   Cba_NtkPoNum(p) );
-    printf( "user =%6d  ", Cba_NtkBoxUserNum(p) );
-    printf( "prim =%6d  ", Cba_NtkBoxPrimNum(p) );
-    printf( "topo =%4s  ", Cba_NtkIsTopoOrder(p) ? "yes" : "no" );
+    printf( "box =%5d  ",  Cba_NtkBoxNum(p) );
+    printf( "prim =%5d  ", Cba_NtkBoxPrimNum(p) );
+    printf( "user =%5d  ", Cba_NtkBoxUserNum(p) );
+    //printf( "topo =%4s  ", Cba_NtkIsTopoOrder(p) ? "yes" : "no" );
     printf( "  %s ",       Cba_NtkName(p) );
     if ( Vec_IntSize(&p->vNtkObjs) )
         printf( "-> %s",   Cba_NtkName(Cba_NtkNtk(p, Vec_IntEntry(&p->vNtkObjs, 0))) );
@@ -761,10 +709,11 @@ static inline Cba_Man_t * Cba_ManAlloc( char * pFileName, int nNtks, Abc_Nam_t *
 static inline Cba_Man_t * Cba_ManDup( Cba_Man_t * p, Vec_Int_t*(* pFuncOrder)(Cba_Ntk_t*) )
 {
     Cba_Ntk_t * pNtk, * pNtkNew; int i;
-    Cba_Man_t * pNew = Cba_ManAlloc( p->pSpec, Cba_ManNtkNum(p), Abc_NamRef(p->pStrs), Abc_NamRef(p->pMods) );
+    Cba_Man_t * pNew = Cba_ManAlloc( p->pSpec, Cba_ManNtkNum(p), Abc_NamRef(p->pStrs), Abc_NamStart(100, 24) );
     Cba_ManForEachNtk( p, pNtk, i )
     {
         pNtkNew = Cba_NtkDupOrder( pNew, pNtk, pFuncOrder );
+        Cba_NtkAdd( pNew, pNtkNew );
         Cba_NtkDupAttrs( pNtkNew, pNtk );
     }
 //    Cba_ManForEachNtk( p, pNtk, i )
@@ -786,14 +735,6 @@ static inline void Cba_ManFree( Cba_Man_t * p )
     ABC_FREE( p->pName );
     ABC_FREE( p->pSpec );
     ABC_FREE( p );
-}
-static inline int Cba_ManIsTopOrder( Cba_Man_t * p )
-{
-    Cba_Ntk_t * pNtk; int i;
-    Cba_ManForEachNtk( p, pNtk, i )
-        if ( !Cba_NtkIsTopoOrder(pNtk) )
-            return 0;
-    return 1;
 }
 static inline int Cba_ManMemory( Cba_Man_t * p )
 {
@@ -880,6 +821,13 @@ static inline void Cba_ManPrintStats( Cba_Man_t * p, int nModules, int fVerbose 
 /*=== cbaCba.c ===============================================================*/
 /*=== cbaCom.c ===============================================================*/
 /*=== cbaNtk.c ===============================================================*/
+extern int           Cba_ManIsTopOrder( Cba_Man_t * p, int(* pFuncIsSeq)(Cba_Ntk_t*, int) );
+extern Vec_Int_t *   Cba_NtkCollectDfs( Cba_Ntk_t * p );
+extern Cba_Man_t *   Cba_ManCollapse( Cba_Man_t * p, int TypeBuf );
+extern Cba_Man_t *   Cba_ManExtractGroup( Cba_Man_t * p, Vec_Int_t * vObjs );
+extern Cba_Man_t *   Cba_ManDeriveFromGia( Gia_Man_t * pGia );
+extern Cba_Man_t *   Cba_ManInsertGroup( Cba_Man_t * p, Vec_Int_t * vObjs, Cba_Ntk_t * pSyn );
+
 /*=== cbaReadBlif.c ==========================================================*/
 extern Vec_Ptr_t *   Prs_ManReadBlif( char * pFileName );
 /*=== cbaReadVer.c ===========================================================*/
