@@ -373,9 +373,9 @@ static inline int            Cba_ObjFanin( Cba_Ntk_t * p, int i, int k )     { a
     for ( i = 1; i < Vec_StrSize(&p->vObjType); i++ ) if ( !Cba_ObjIsBoxPrim(p, i) ) {} else
 
 #define Cba_NtkForEachFinFon( p, iFon, iFin )                             \
-    for ( iFin = 0; iFin < Vec_IntSize(&p->vFinFon) && (((iFon) = Vec_IntEntry(&p->vFinFon, iFin)), 1); i++ ) if ( !iFon ) {} else   
+    for ( iFin = 0; iFin < Vec_IntSize(&p->vFinFon) && (((iFon) = Vec_IntEntry(&p->vFinFon, iFin)), 1); iFin++ ) if ( !iFon ) {} else   
 #define Cba_NtkForEachFonName( p, NameId, iFon )                          \
-    for ( iFon = 0; iFon < Vec_IntSize(&p->vFonName) && (((NameId) = Vec_IntEntry(&p->vFonName, iFon)), 1); i++ ) if ( !NameId ) {} else   
+    for ( iFon = 0; iFon < Vec_IntSize(&p->vFonName) && (((NameId) = Vec_IntEntry(&p->vFonName, iFon)), 1); iFon++ ) if ( !NameId ) {} else   
 
 #define Cba_ObjForEachFin( p, iObj, iFin, k )                             \
     for ( k = 0, iFin = Cba_ObjFin0(p, iObj); iFin < Cba_ObjFin0(p, iObj+1); iFin++, k++ )
@@ -533,10 +533,11 @@ static inline void Cba_NtkCreateFonNames( Cba_Ntk_t * p, char * pPref )
     int i, iObj, iFon, NameId;
     Cba_NtkCleanFonNames( p );
     Cba_NtkForEachPiFon( p, iObj, iFon, i )
-        Cba_FonSetName( p, iFon, Cba_ObjName(p, iFon) );
+        if ( !Cba_FonName(p, iFon) )
+            Cba_FonSetName( p, iFon, Cba_ObjName(p, iObj) );
     Cba_NtkForEachPoDriverFon( p, iObj, iFon, i )
         if ( Cba_FonIsReal(iFon) && !Cba_FonName(p, iFon) )
-            Cba_FonSetName( p, iFon, Cba_ObjName(p, iFon) );
+            Cba_FonSetName( p, iFon, Cba_ObjName(p, iObj) );
     Vec_IntForEachEntryStart( &p->vFonName, NameId, iFon, 1 )
         if ( NameId == 0 )
             Vec_IntWriteEntry( &p->vFonName, iFon, Cba_ManNewStrId(p->pDesign, pPref, iFon, NULL) );

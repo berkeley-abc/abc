@@ -132,7 +132,7 @@ Vec_Int_t * Cba_NtkCollectDfs( Cba_Ntk_t * p )
             Vec_IntPush( vObjs, iObj );
     assert( Vec_IntSize(vObjs) <= Cba_NtkObjNum(p) );
     if ( Vec_IntSize(vObjs) != Cba_NtkObjNum(p) )
-        printf( "Warning: DSF ordering collected %d out of %d objects.\n", Vec_IntSize(vObjs), Cba_NtkObjNum(p) );
+        printf( "Warning: DSF ordering for module \"%s\" collected %d out of %d objects.\n", Cba_NtkName(p), Vec_IntSize(vObjs), Cba_NtkObjNum(p) );
     return vObjs;
 }
 
@@ -503,7 +503,7 @@ static inline int Cba_NtkInsertGiaObj( Cba_Ntk_t * p, Gia_Man_t * pGia, int iObj
 Cba_Man_t * Cba_ManDeriveFromGia( Gia_Man_t * pGia )
 {
     Cba_Man_t * p = Cba_ManAlloc( pGia->pSpec, 1, NULL, NULL );
-    Cba_Ntk_t * pNtk = Cba_NtkAlloc( p, Abc_NamStrFindOrAdd(p->pStrs, pGia->pName, NULL), Gia_ManCiNum(pGia), Gia_ManCoNum(pGia), 1000, 2000, 1000 );
+    Cba_Ntk_t * pNtk = Cba_NtkAlloc( p, Abc_NamStrFindOrAdd(p->pStrs, pGia->pName, NULL), Gia_ManCiNum(pGia), Gia_ManCoNum(pGia), 1000, 2000, 2000 );
     Vec_Int_t * vLit2Fon = Vec_IntStartFull( 2*Gia_ManObjNum(pGia) );
     int i, iObj, iObjNew, NameId, iLit0, iFon0;
     Gia_Obj_t * pObj;
@@ -530,6 +530,9 @@ Cba_Man_t * Cba_ManDeriveFromGia( Gia_Man_t * pGia )
         pObj = Gia_ManObj( pGia, iObj );
         iLit0 = Gia_ObjFaninLit0( pObj, iObj );
         iFon0 = Cba_NtkInsertGiaLit( pNtk, iLit0, vLit2Fon ); // can be const!
+        iObjNew = Cba_ObjAlloc( pNtk, CBA_BOX_BUF, 1, 1 );
+        Cba_ObjSetFinFon( pNtk, iObjNew, 0, iFon0 );
+        iFon0 = Cba_ObjFon0(pNtk, iObjNew); // non-const fon unique for this output
         NameId = pGia->vNamesOut? Abc_NamStrFindOrAdd(p->pStrs, Vec_PtrEntry(pGia->vNamesOut, i), NULL) : Cba_ManNewStrId(p, "o", i, NULL);
         iObjNew = Cba_ObjAlloc( pNtk, CBA_OBJ_PO, 1, 0 );
         Cba_ObjSetName( pNtk, iObjNew, NameId );
@@ -557,34 +560,46 @@ void Cba_NtkInsertGroup( Cba_Ntk_t * p, Vec_Int_t * vObjs, Cba_Ntk_t * pSyn )
 {
     Vec_Int_t * vFonIns  = Cba_NtkCollectInFons( p, vObjs );
     Vec_Int_t * vFonOuts = Cba_NtkCollectOutFons( p, vObjs );
-    int i, iObj, iObjNew, iFin, iFon;
+    int k, iObj, iObjNew, iFin, iFon;
     assert( Cba_NtkPiNum(pSyn) == Vec_IntSize(vFonIns) );
     assert( Cba_NtkPoNum(pSyn) == Vec_IntSize(vFonOuts) );
     // mark AIG with the input fons
     Cba_NtkCleanFonCopies( pSyn );
-    Cba_NtkForEachPiFon( pSyn, iObj, iFon, i )
-        Cba_FonSetCopy( pSyn, iFon, Vec_IntEntry(vFonIns, i) );
+    Cba_NtkForEachPiFon( pSyn, iObj, iFon, k )
+        Cba_FonSetCopy( pSyn, iFon, Vec_IntEntry(vFonIns, k) );
     Vec_IntFree( vFonIns );
     // build up internal nodes
     Cba_NtkCleanObjCopies( pSyn );
     Cba_NtkForEachBox( pSyn, iObj )
     {
         iObjNew = Cba_ObjDup( p, pSyn, iObj );
-        Cba_ObjForEachFon( pSyn, iObj, iFon, i )
-            Cba_FonSetCopy( pSyn, iFon, Cba_ObjFon(p, iObjNew, i) );
+        Cba_ObjForEachFon( pSyn, iObj, iFon, k )
+            Cba_FonSetCopy( pSyn, iFon, Cba_ObjFon(p, iObjNew, k) );
     }
     // connect internal nodes
     Cba_NtkForEachBox( pSyn, iObj )
     {
         iObjNew = Cba_ObjCopy( pSyn, iObj );
-        Cba_ObjForEachFinFon( pSyn, iObj, iFin, iFon, i )
-            Cba_ObjSetFinFon( p, iObjNew, i, Cba_FonCopy(pSyn, iFon) );
+        Cba_ObjForEachFinFon( pSyn, iObj, iFin, iFon, k )
+            Cba_ObjSetFinFon( p, iObjNew, k, Cba_FonCopy(pSyn, iFon) );
     }
     // connect output fons
     Cba_NtkCleanFonCopies( p );
-    Cba_NtkForEachPoDriverFon( pSyn, iObj, iFon, i )
-        Cba_FonSetCopy( p, Vec_IntEntry(vFonOuts, i), Cba_FonCopy(pSyn, iFon) );
+    Cba_NtkForEachPoDriverFon( pSyn, iObj, iFon, k )
+    {
+        assert( Cba_FonIsReal(Cba_FonCopy(pSyn, iFon)) );
+        Cba_FonSetCopy( p, Vec_IntEntry(vFonOuts, k), Cba_FonCopy(pSyn, iFon) );
+        // transfer names
+        if ( Cba_NtkHasFonNames(p) )
+        {
+            Cba_FonSetName( p, Cba_FonCopy(pSyn, iFon), Cba_FonName(p, Vec_IntEntry(vFonOuts, k)) );
+            Cba_FonCleanName( p, Vec_IntEntry(vFonOuts, k) );
+        }
+    }
     Vec_IntFree( vFonOuts );
+    // delete nodes
+    Vec_IntForEachEntry( vObjs, iObj, k )
+        Cba_ObjDelete( p, iObj );
     // update fins pointing to output fons to point to the new fons
     if ( Cba_NtkHasFonNames(p) )
         Vec_IntFillExtra( &p->vFonName, Cba_NtkFonNum(p) + 1, 0 );
@@ -592,12 +607,18 @@ void Cba_NtkInsertGroup( Cba_Ntk_t * p, Vec_Int_t * vObjs, Cba_Ntk_t * pSyn )
         if ( Cba_FonIsReal(iFon) && Cba_FonCopy(p, iFon) )
         {
             Cba_PatchFinFon( p, iFin, Cba_FonCopy(p, iFon) );
+/*
             if ( Cba_NtkHasFonNames(p) && Cba_FonIsReal(Cba_FonCopy(p, iFon)) )
             {
-                Cba_FonSetName( p, Cba_FonCopy(p, iFon), Cba_FonName(p, iFon) );
-                Cba_FonCleanName( p, iFon );
+                if ( !Cba_FonName(p, Cba_FonCopy(p, iFon)) )
+                {
+                    Cba_FonSetName( p, Cba_FonCopy(p, iFon), Cba_FonName(p, iFon) );
+                    Cba_FonCleanName( p, iFon );
+                }
             }
+*/
         }
+
     Cba_NtkMissingFonNames( p, "j" );
 /*
     // duplicate in DFS order
@@ -610,8 +631,9 @@ void Cba_NtkInsertGroup( Cba_Ntk_t * p, Vec_Int_t * vObjs, Cba_Ntk_t * pSyn )
 }
 Cba_Man_t * Cba_ManInsertGroup( Cba_Man_t * p, Vec_Int_t * vObjs, Cba_Ntk_t * pSyn )
 {
+    extern Vec_Int_t * Clr_NtkCollectDfs( Cba_Ntk_t * p );
     Cba_NtkInsertGroup( Cba_ManRoot(p), vObjs, pSyn );
-    return Cba_ManDup( p, Cba_NtkCollectDfs );
+    return Cba_ManDup( p, Clr_NtkCollectDfs );
 }
 
 ////////////////////////////////////////////////////////////////////////
