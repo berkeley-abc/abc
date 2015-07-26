@@ -1957,7 +1957,7 @@ static inline void Vec_IntRemapArray( Vec_Int_t * vOld2New, Vec_Int_t * vOld, Ve
         return;
     Vec_IntFill( vNew, nNew, 0 );
     Vec_IntForEachEntry( vOld2New, iNew, iOld )
-        if ( iNew > 0 && iNew < nNew && Vec_IntEntry(vOld, iOld) != 0 )
+        if ( iNew > 0 && iNew < nNew && iOld < Vec_IntSize(vOld) && Vec_IntEntry(vOld, iOld) != 0 )
             Vec_IntWriteEntry( vNew, iNew, Vec_IntEntry(vOld, iOld) );
 }
 

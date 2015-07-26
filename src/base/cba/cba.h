@@ -822,6 +822,7 @@ static inline void Cba_ManPrintStats( Cba_Man_t * p, int nModules, int fVerbose 
 /*=== cbaCba.c ===============================================================*/
 /*=== cbaCom.c ===============================================================*/
 /*=== cbaNtk.c ===============================================================*/
+extern int           Cba_NtkCheckComboLoop( Cba_Ntk_t * p );
 extern int           Cba_ManIsTopOrder( Cba_Man_t * p, int(* pFuncIsSeq)(Cba_Ntk_t*, int) );
 extern Vec_Int_t *   Cba_NtkCollectDfs( Cba_Ntk_t * p );
 extern Cba_Man_t *   Cba_ManCollapse( Cba_Man_t * p, int TypeBuf );

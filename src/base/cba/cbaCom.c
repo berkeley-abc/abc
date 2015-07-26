@@ -28,6 +28,7 @@ ABC_NAMESPACE_IMPL_START
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
+/*
 static int  Cba_CommandRead     ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int  Cba_CommandWrite    ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int  Cba_CommandPs       ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -36,6 +37,7 @@ static int  Cba_CommandGet      ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int  Cba_CommandClp      ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int  Cba_CommandCec      ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int  Cba_CommandTest     ( Abc_Frame_t * pAbc, int argc, char ** argv );
+*/
 
 static inline Cba_Man_t * Cba_AbcGetMan( Abc_Frame_t * pAbc )                       { return (Cba_Man_t *)pAbc->pAbcCba;                        }
 static inline void        Cba_AbcFreeMan( Abc_Frame_t * pAbc )                      { if ( pAbc->pAbcCba ) Cba_ManFree(Cba_AbcGetMan(pAbc));    }
@@ -58,6 +60,7 @@ static inline void        Cba_AbcUpdateMan( Abc_Frame_t * pAbc, Cba_Man_t * p ) 
 ******************************************************************************/
 void Cba_Init( Abc_Frame_t * pAbc )
 {
+/*
     Cmd_CommandAdd( pAbc, "New word level", "@read",       Cba_CommandRead,      0 );
     Cmd_CommandAdd( pAbc, "New word level", "@write",      Cba_CommandWrite,     0 );
     Cmd_CommandAdd( pAbc, "New word level", "@ps",         Cba_CommandPs,        0 );
@@ -66,6 +69,7 @@ void Cba_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "New word level", "@clp",        Cba_CommandClp,       0 );
     Cmd_CommandAdd( pAbc, "New word level", "@cec",        Cba_CommandCec,       0 );
     Cmd_CommandAdd( pAbc, "New word level", "@test",       Cba_CommandTest,      0 );
+*/
 }
 
 /**Function********************************************************************
@@ -84,6 +88,8 @@ void Cba_End( Abc_Frame_t * pAbc )
     Cba_AbcFreeMan( pAbc );
 }
 
+
+#if 0
 
 /**Function********************************************************************
 
@@ -695,6 +701,8 @@ usage:
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
 }
+
+#endif
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

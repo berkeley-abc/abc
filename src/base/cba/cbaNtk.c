@@ -84,6 +84,49 @@ int Cba_ManIsTopOrder( Cba_Man_t * p, int(* pFuncIsSeq)(Cba_Ntk_t*, int) )
 
 /**Function*************************************************************
 
+  Synopsis    [Collects user boxes in the DFS order.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Cba_NtkCheckComboLoop_rec( Cba_Ntk_t * p, int iObj )
+{
+    int k, iFin, iFanin;
+    if ( Cba_ObjIsPi(p, iObj) )
+        return 1;
+    if ( Cba_ObjCopy(p, iObj) == 1 ) // visited
+        return 1;
+    if ( Cba_ObjCopy(p, iObj) == 0 ) // loop
+        return 0;
+    Cba_ObjSetCopy( p, iObj, 0 );
+    Cba_ObjForEachFinFaninReal( p, iObj, iFin, iFanin, k )
+//        if ( !Clr_NtkObjIsSeq(p, iFanin) )
+            if ( !Cba_NtkCheckComboLoop_rec( p, iFanin ) )
+                return 0;
+    //Cba_ObjSetCopy( p, iObj, 1 );
+    Vec_IntSetEntry( &p->vObjCopy, iObj, 1 );
+    return 1;
+}
+int Cba_NtkCheckComboLoop( Cba_Ntk_t * p )
+{
+    int iObj;
+    Cba_NtkCleanObjCopies( p ); // -1 = not visited; 0 = on the path; 1 = finished
+    Cba_NtkForEachBox( p, iObj )
+//        if ( !Clr_NtkObjIsSeq(p, iObj) )
+            if ( !Cba_NtkCheckComboLoop_rec( p, iObj ) )
+            {
+                printf( "Cyclic dependency of user boxes is detected.\n" );
+                return 0;
+            }
+    return 1;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Collect nodes in the DFS order.]
 
   Description []
@@ -585,6 +628,8 @@ void Cba_NtkInsertGroup( Cba_Ntk_t * p, Vec_Int_t * vObjs, Cba_Ntk_t * pSyn )
     }
     // connect output fons
     Cba_NtkCleanFonCopies( p );
+    if ( Cba_NtkHasFonNames(p) )
+        Vec_IntFillExtra( &p->vFonName, Cba_NtkFonNum(p) + 1, 0 );
     Cba_NtkForEachPoDriverFon( pSyn, iObj, iFon, k )
     {
         assert( Cba_FonIsReal(Cba_FonCopy(pSyn, iFon)) );
@@ -598,27 +643,12 @@ void Cba_NtkInsertGroup( Cba_Ntk_t * p, Vec_Int_t * vObjs, Cba_Ntk_t * pSyn )
     }
     Vec_IntFree( vFonOuts );
     // delete nodes
-    Vec_IntForEachEntry( vObjs, iObj, k )
-        Cba_ObjDelete( p, iObj );
+//    Vec_IntForEachEntry( vObjs, iObj, k )
+//        Cba_ObjDelete( p, iObj );
     // update fins pointing to output fons to point to the new fons
-    if ( Cba_NtkHasFonNames(p) )
-        Vec_IntFillExtra( &p->vFonName, Cba_NtkFonNum(p) + 1, 0 );
     Cba_NtkForEachFinFon( p, iFon, iFin )
         if ( Cba_FonIsReal(iFon) && Cba_FonCopy(p, iFon) )
-        {
             Cba_PatchFinFon( p, iFin, Cba_FonCopy(p, iFon) );
-/*
-            if ( Cba_NtkHasFonNames(p) && Cba_FonIsReal(Cba_FonCopy(p, iFon)) )
-            {
-                if ( !Cba_FonName(p, Cba_FonCopy(p, iFon)) )
-                {
-                    Cba_FonSetName( p, Cba_FonCopy(p, iFon), Cba_FonName(p, iFon) );
-                    Cba_FonCleanName( p, iFon );
-                }
-            }
-*/
-        }
-
     Cba_NtkMissingFonNames( p, "j" );
 /*
     // duplicate in DFS order
@@ -633,6 +663,8 @@ Cba_Man_t * Cba_ManInsertGroup( Cba_Man_t * p, Vec_Int_t * vObjs, Cba_Ntk_t * pS
 {
     extern Vec_Int_t * Clr_NtkCollectDfs( Cba_Ntk_t * p );
     Cba_NtkInsertGroup( Cba_ManRoot(p), vObjs, pSyn );
+//    if ( Cba_NtkCheckComboLoop( Cba_ManRoot(p) ) )
+//        printf( "There is no combo loop!\n" );
     return Cba_ManDup( p, Clr_NtkCollectDfs );
 }
 
