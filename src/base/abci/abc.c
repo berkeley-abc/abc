@@ -10260,6 +10260,7 @@ int Abc_CommandCover( Abc_Frame_t * pAbc, int argc, char ** argv )
 usage:
     Abc_Print( -2, "usage: cover [-N num] [-sxvh]\n" );
     Abc_Print( -2, "\t         decomposition into a network of SOP/ESOP PLAs\n" );
+    Abc_Print( -2, "\t         (this command is known to have bugs)\n");
     Abc_Print( -2, "\t-N num : maximum number of inputs [default = %d]\n", nFaninMax );
     Abc_Print( -2, "\t-s     : toggle the use of SOPs [default = %s]\n", fUseSop? "yes": "no" );
     Abc_Print( -2, "\t-x     : toggle the use of ESOPs [default = %s]\n", fUseEsop? "yes": "no" );

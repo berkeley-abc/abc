@@ -32,6 +32,127 @@ ABC_NAMESPACE_IMPL_START
 
 /**Function*************************************************************
 
+  Synopsis    [Order objects by box type and then by name.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+// compares two numbers with the first mismatching char in i-th position
+static inline int Cba_CharIsDigit( char c ) { return c >= '0' && c <= '9'; }
+int Cba_StrCmpInt( char * p1, char * p2, int i )
+{
+    // check if one of the mismatching chars is a digit
+    if ( Cba_CharIsDigit(p1[i]) || Cba_CharIsDigit(p2[i]) )
+    {
+        // if previous (equal) char was a digit or if this is first digit on both sides, scroll back
+        if ( (i > 0 && Cba_CharIsDigit(p1[i-1])) || (Cba_CharIsDigit(p1[i]) && Cba_CharIsDigit(p2[i])) )
+        {
+            int Num1, Num2;
+            // find the first digit
+            for ( --i; i >= 0; i-- )
+                if ( !Cba_CharIsDigit(p1[i]) )
+                    break;
+            i++;
+            // current char is digit
+            assert( Cba_CharIsDigit(p1[i]) );
+            assert( Cba_CharIsDigit(p2[i]) );
+            // previous char does not exist or is not a digit
+            assert( i == 0 || !Cba_CharIsDigit(p1[i-1]) );
+            assert( i == 0 || !Cba_CharIsDigit(p2[i-1]) );
+            // compare numbers
+            Num1 = atoi( p1 + i );
+            Num2 = atoi( p2 + i );
+            if ( Num1 < Num2 )
+                return -1;
+            if ( Num1 > Num2 ) 
+                return 1;
+            assert( 0 );
+            return 0;
+        }
+    }
+    // compare as usual
+    if ( p1[i] < p2[i] )
+        return -1;
+    if ( p1[i] > p2[i] )
+        return 1;
+    assert( 0 );
+    return 0;
+}
+int Cba_StrCmp( char ** pp1, char ** pp2 )
+{
+    char * p1 = *pp1;
+    char * p2 = *pp2; int i;
+    for ( i = 0; p1[i] && p2[i]; i++ )
+        if ( p1[i] != p2[i] )
+            return Cba_StrCmpInt( p1, p2, i );
+    assert( !p1[i] || !p2[i] );
+    return Cba_StrCmpInt( p1, p2, i );
+}
+void Cba_NtkObjOrder( Cba_Ntk_t * p, Vec_Int_t * vObjs, Vec_Int_t * vNameIds )
+{
+    char Buffer[1000], * pName;
+    Vec_Ptr_t * vNames;
+    int i, iObj;
+    if ( Vec_IntSize(vObjs) < 2 )
+        return;
+    vNames = Vec_PtrAlloc( Vec_IntSize(vObjs) );
+    Vec_IntForEachEntry( vObjs, iObj, i )
+    {
+        char * pTypeName = Cba_NtkTypeName( p, Cba_ObjType(p, iObj) );
+        char * pInstName = vNameIds ? Cba_NtkStr(p, Vec_IntEntry(vNameIds, i)) : Cba_ObjNameStr(p, iObj);
+        sprintf( Buffer, "%s_%s_%d", pTypeName, pInstName, iObj );
+        Vec_PtrPush( vNames, Abc_UtilStrsav(Buffer) );
+    }
+    // print before
+//    Vec_PtrForEachEntry( char *, vNames, pName, i )
+//        printf( "%s \n", pName );
+//    printf( "\n" );
+    // do the sorting
+    Vec_PtrSort( vNames, (int (*)(void))Cba_StrCmp );
+    // print after
+//    Vec_PtrForEachEntry( char *, vNames, pName, i )
+//        printf( "%s \n", pName );
+//    printf( "\n" );
+    // reload in a new order
+    Vec_IntClear( vObjs );
+    Vec_PtrForEachEntry( char *, vNames, pName, i )
+        Vec_IntPush( vObjs, atoi(strrchr(pName, '_')+1) );
+    Vec_PtrFreeFree( vNames );
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    [Returns the number of CI fons.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Cba_NtkCiFonNum( Cba_Ntk_t * p )
+{
+    int i, iObj, Count = Cba_NtkPiNum(p);
+    Cba_NtkForEachBoxSeq( p, iObj, i )
+        Count += Cba_ObjFonNum(p, iObj);
+    return Count;  
+}
+int Cba_NtkCoFinNum( Cba_Ntk_t * p )
+{
+    int i, iObj, Count = Cba_NtkPoNum(p);
+    Cba_NtkForEachBoxSeq( p, iObj, i )
+        Count += Cba_ObjFinNum(p, iObj);
+    return Count;  
+}
+
+/**Function*************************************************************
+
   Synopsis    [Returns 1 if the manager is in the topo order.]
 
   Description []
@@ -41,19 +162,20 @@ ABC_NAMESPACE_IMPL_START
   SeeAlso     []
 
 ***********************************************************************/
-int Cba_NtkIsTopoOrder( Cba_Ntk_t * p, int(* pFuncIsSeq)(Cba_Ntk_t*, int) )
+int Cba_NtkIsTopoOrder( Cba_Ntk_t * p )
 {
-    int i, iObj, iFin, iFanin, fTopo = 1;
+    int i, k, iObj, iFin, iFanin, fTopo = 1;
     Vec_Bit_t * vVisited = Vec_BitStart( Cba_NtkObjNum(p) + 1 );
     // mark PIs and seq objects
-    Cba_NtkForEachObj( p, iObj )
-        if ( Cba_ObjIsPi(p, iObj) || pFuncIsSeq(p, iObj) )
-            Vec_BitWriteEntry( vVisited, iObj, 1 );
+    Cba_NtkForEachPi( p, iObj, i )
+        Vec_BitWriteEntry( vVisited, iObj, 1 );
+    Cba_NtkForEachBoxSeq( p, iObj, i )
+        Vec_BitWriteEntry( vVisited, iObj, 1 );
     // visit combinational nodes
     Cba_NtkForEachBox( p, iObj )
-        if ( !pFuncIsSeq(p, iObj) )
+        if ( !Cba_ObjIsSeq(p, iObj) )
         {
-            Cba_ObjForEachFinFaninReal( p, iObj, iFin, iFanin, i )
+            Cba_ObjForEachFinFaninReal( p, iObj, iFin, iFanin, k )
                 if ( !Vec_BitEntry(vVisited, iFanin) )
                     fTopo = 0;
             if ( !fTopo )
@@ -61,23 +183,32 @@ int Cba_NtkIsTopoOrder( Cba_Ntk_t * p, int(* pFuncIsSeq)(Cba_Ntk_t*, int) )
             Vec_BitWriteEntry( vVisited, iObj, 1 );
         }
     // visit POs and seq objects
-    Cba_NtkForEachObj( p, iObj )
-        if ( Cba_ObjIsPo(p, iObj) || pFuncIsSeq(p, iObj) )
-        {
-            Cba_ObjForEachFinFaninReal( p, iObj, iFin, iFanin, i )
-                if ( !Vec_BitEntry(vVisited, iFanin) )
-                    fTopo = 0;
-            if ( !fTopo )
-                break;
-        }
+    if ( fTopo )
+    Cba_NtkForEachPo( p, iObj, i )
+    {
+        Cba_ObjForEachFinFaninReal( p, iObj, iFin, iFanin, k )
+            if ( !Vec_BitEntry(vVisited, iFanin) )
+                fTopo = 0;
+        if ( !fTopo )
+            break;
+    }
+    if ( fTopo )
+    Cba_NtkForEachBoxSeq( p, iObj, i )
+    {
+        Cba_ObjForEachFinFaninReal( p, iObj, iFin, iFanin, k )
+            if ( !Vec_BitEntry(vVisited, iFanin) )
+                fTopo = 0;
+        if ( !fTopo )
+            break;
+    }
     Vec_BitFree( vVisited );
     return fTopo;
 }
-int Cba_ManIsTopOrder( Cba_Man_t * p, int(* pFuncIsSeq)(Cba_Ntk_t*, int) )
+int Cba_ManIsTopoOrder( Cba_Man_t * p )
 {
     Cba_Ntk_t * pNtk; int i;
     Cba_ManForEachNtk( p, pNtk, i )
-        if ( !Cba_NtkIsTopoOrder(pNtk, pFuncIsSeq) )
+        if ( !Cba_NtkIsTopoOrder(pNtk) )
             return 0;
     return 1;
 }
@@ -104,7 +235,7 @@ int Cba_NtkCheckComboLoop_rec( Cba_Ntk_t * p, int iObj )
         return 0;
     Cba_ObjSetCopy( p, iObj, 0 );
     Cba_ObjForEachFinFaninReal( p, iObj, iFin, iFanin, k )
-//        if ( !Clr_NtkObjIsSeq(p, iFanin) )
+        if ( !Cba_ObjIsSeq(p, iFanin) )
             if ( !Cba_NtkCheckComboLoop_rec( p, iFanin ) )
                 return 0;
     //Cba_ObjSetCopy( p, iObj, 1 );
@@ -116,7 +247,7 @@ int Cba_NtkCheckComboLoop( Cba_Ntk_t * p )
     int iObj;
     Cba_NtkCleanObjCopies( p ); // -1 = not visited; 0 = on the path; 1 = finished
     Cba_NtkForEachBox( p, iObj )
-//        if ( !Clr_NtkObjIsSeq(p, iObj) )
+        if ( !Cba_ObjIsSeq(p, iObj) )
             if ( !Cba_NtkCheckComboLoop_rec( p, iObj ) )
             {
                 printf( "Cyclic dependency of user boxes is detected.\n" );
@@ -150,8 +281,10 @@ Vec_Int_t * Cba_NtkCollectDfs( Cba_Ntk_t * p )
 {
     int i, k, iObj, iFin, iFanin;
     Vec_Int_t * vObjs = Vec_IntAlloc( Cba_NtkObjNum(p) );
-    // collect PIs
+    // collect PIs and seq boxes
     Cba_NtkForEachPi( p, iObj, i )
+        Vec_IntPush( vObjs, iObj );
+    Cba_NtkForEachBoxSeq( p, iObj, i )
         Vec_IntPush( vObjs, iObj );
     // prepare leaves
     Cba_NtkCleanObjCopies( p );
@@ -161,18 +294,12 @@ Vec_Int_t * Cba_NtkCollectDfs( Cba_Ntk_t * p )
     Cba_NtkForEachPo( p, iObj, i )
         Cba_ObjForEachFinFaninReal( p, iObj, iFin, iFanin, k )
             Cba_NtkCollectDfs_rec( p, iFanin, vObjs );
-    // additionally collect user modules without outputs
-    Cba_NtkForEachBoxUser( p, iObj )
-        if ( Cba_ObjFonNum(p, iObj) == 0 )
-            Cba_ObjForEachFinFaninReal( p, iObj, iFin, iFanin, k )
-                Cba_NtkCollectDfs_rec( p, iFanin, vObjs );
+    Cba_NtkForEachBoxSeq( p, iObj, i )
+        Cba_ObjForEachFinFaninReal( p, iObj, iFin, iFanin, k )
+            Cba_NtkCollectDfs_rec( p, iFanin, vObjs );
     // collect POs
     Cba_NtkForEachPo( p, iObj, i )
         Vec_IntPush( vObjs, iObj );
-    // collect user boxes without fanouts
-    Cba_NtkForEachBoxUser( p, iObj )
-        if ( Cba_ObjFonNum(p, iObj) == 0 )
-            Vec_IntPush( vObjs, iObj );
     assert( Vec_IntSize(vObjs) <= Cba_NtkObjNum(p) );
     if ( Vec_IntSize(vObjs) != Cba_NtkObjNum(p) )
         printf( "Warning: DSF ordering for module \"%s\" collected %d out of %d objects.\n", Cba_NtkName(p), Vec_IntSize(vObjs), Cba_NtkObjNum(p) );
@@ -299,6 +426,7 @@ Cba_Man_t * Cba_ManCollapse( Cba_Man_t * p, int TypeBuf )
     Cba_Ntk_t * pRoot = Cba_ManRoot( p ), * pRootNew;
     Vec_Int_t * vSigs = Vec_IntAlloc( 1000 );
     int i, iObj, iObjNew, iFon, nObjs = 0, nFins = 0, nFons = 0;
+    Cba_ManDupTypeNames( pNew, p );
     Cba_ManGetClpStats( p, &nObjs, &nFins, &nFons    );
     pRootNew = Cba_NtkAlloc( pNew, Cba_NtkNameId(pRoot), Cba_NtkPiNum(pRoot), Cba_NtkPoNum(pRoot), nObjs, nFins, nFons );
     Cba_NtkAdd( pNew, pRootNew );
@@ -342,6 +470,7 @@ Cba_Man_t * Cba_ManCollapse( Cba_Man_t * p, int TypeBuf )
     assert( Cba_NtkFonNum(pRootNew) == Cba_NtkFonNumAlloc(pRootNew) );
     // create internal node names
     Cba_NtkMissingFonNames( pRootNew, "m" );
+    //Cba_NtkPrepareSeq( pRootNew );
     return pNew;
 }
 
@@ -469,6 +598,7 @@ Cba_Man_t * Cba_ManExtractGroup( Cba_Man_t * p, Vec_Int_t * vObjs )
     Vec_Int_t * vFonIns = Cba_NtkCollectInFons( pRoot, vObjs );
     Vec_Int_t * vFonOuts = Cba_NtkCollectOutFons( pRoot, vObjs );
     int nObjs, nFins, nFons;
+    Cba_ManDupTypeNames( pNew, p );
     // collect stats
     Cba_NtkCollectGroupStats( pRoot, vObjs, &nFins, &nFons );
     nObjs  = Vec_IntSize(vObjs) + Vec_IntSize(vFonIns) + Vec_IntSize(vFonOuts);
@@ -484,6 +614,7 @@ Cba_Man_t * Cba_ManExtractGroup( Cba_Man_t * p, Vec_Int_t * vObjs )
     // add group nodes
     Cba_ManExtractGroupInt( pRootNew, pRoot, vObjs, vFonIns, vFonOuts );
     Cba_NtkMissingFonNames( pRootNew, "b" );
+    //Cba_NtkPrepareSeq( pRootNew );
     // cleanup
     Vec_IntFree( vFonIns );
     Vec_IntFree( vFonOuts );
@@ -550,6 +681,7 @@ Cba_Man_t * Cba_ManDeriveFromGia( Gia_Man_t * pGia )
     Vec_Int_t * vLit2Fon = Vec_IntStartFull( 2*Gia_ManObjNum(pGia) );
     int i, iObj, iObjNew, NameId, iLit0, iFon0;
     Gia_Obj_t * pObj;
+    //Cba_ManPrepareTypeNames( p );
     Cba_NtkAdd( p, pNtk );
     Cba_NtkCleanObjNames( pNtk );
     Gia_ManForEachCiId( pGia, iObj, i )
@@ -661,11 +793,9 @@ void Cba_NtkInsertGroup( Cba_Ntk_t * p, Vec_Int_t * vObjs, Cba_Ntk_t * pSyn )
 }
 Cba_Man_t * Cba_ManInsertGroup( Cba_Man_t * p, Vec_Int_t * vObjs, Cba_Ntk_t * pSyn )
 {
-    extern Vec_Int_t * Clr_NtkCollectDfs( Cba_Ntk_t * p );
     Cba_NtkInsertGroup( Cba_ManRoot(p), vObjs, pSyn );
-//    if ( Cba_NtkCheckComboLoop( Cba_ManRoot(p) ) )
-//        printf( "There is no combo loop!\n" );
-    return Cba_ManDup( p, Clr_NtkCollectDfs );
+    Cba_NtkCheckComboLoop( Cba_ManRoot(p) );
+    return Cba_ManDup( p, Cba_NtkCollectDfs );
 }
 
 ////////////////////////////////////////////////////////////////////////
