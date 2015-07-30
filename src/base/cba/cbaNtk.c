@@ -422,7 +422,7 @@ void Cba_NtkCollapse_rec( Cba_Ntk_t * pNew, Cba_Ntk_t * p, Vec_Int_t * vSigs, in
 }
 Cba_Man_t * Cba_ManCollapse( Cba_Man_t * p, int TypeBuf )
 {
-    Cba_Man_t * pNew  = Cba_ManAlloc( p->pSpec, 1, Abc_NamRef(p->pStrs), Abc_NamStart(100, 24) );
+    Cba_Man_t * pNew  = Cba_ManAlloc( p->pSpec, 1, Abc_NamRef(p->pStrs), Abc_NamRef(p->pCons), Abc_NamStart(100, 24) );
     Cba_Ntk_t * pRoot = Cba_ManRoot( p ), * pRootNew;
     Vec_Int_t * vSigs = Vec_IntAlloc( 1000 );
     int i, iObj, iObjNew, iFon, nObjs = 0, nFins = 0, nFons = 0;
@@ -593,7 +593,7 @@ void Cba_ManExtractGroupInt( Cba_Ntk_t * pNew, Cba_Ntk_t * p, Vec_Int_t * vObjs,
 }
 Cba_Man_t * Cba_ManExtractGroup( Cba_Man_t * p, Vec_Int_t * vObjs )
 {
-    Cba_Man_t * pNew  = Cba_ManAlloc( p->pSpec, 1, Abc_NamRef(p->pStrs), Abc_NamStart(100, 24) );
+    Cba_Man_t * pNew  = Cba_ManAlloc( p->pSpec, 1, Abc_NamRef(p->pStrs), Abc_NamRef(p->pCons), Abc_NamStart(100, 24) );
     Cba_Ntk_t * pRoot = Cba_ManRoot( p ), * pRootNew;
     Vec_Int_t * vFonIns = Cba_NtkCollectInFons( pRoot, vObjs );
     Vec_Int_t * vFonOuts = Cba_NtkCollectOutFons( pRoot, vObjs );
@@ -676,7 +676,7 @@ static inline int Cba_NtkInsertGiaObj( Cba_Ntk_t * p, Gia_Man_t * pGia, int iObj
 }
 Cba_Man_t * Cba_ManDeriveFromGia( Gia_Man_t * pGia )
 {
-    Cba_Man_t * p = Cba_ManAlloc( pGia->pSpec, 1, NULL, NULL );
+    Cba_Man_t * p = Cba_ManAlloc( pGia->pSpec, 1, NULL, NULL, NULL );
     Cba_Ntk_t * pNtk = Cba_NtkAlloc( p, Abc_NamStrFindOrAdd(p->pStrs, pGia->pName, NULL), Gia_ManCiNum(pGia), Gia_ManCoNum(pGia), 1000, 2000, 2000 );
     Vec_Int_t * vLit2Fon = Vec_IntStartFull( 2*Gia_ManObjNum(pGia) );
     int i, iObj, iObjNew, NameId, iLit0, iFon0;
@@ -686,7 +686,7 @@ Cba_Man_t * Cba_ManDeriveFromGia( Gia_Man_t * pGia )
     Cba_NtkCleanObjNames( pNtk );
     Gia_ManForEachCiId( pGia, iObj, i )
     {
-        NameId = pGia->vNamesIn? Abc_NamStrFindOrAdd(p->pStrs, Vec_PtrEntry(pGia->vNamesIn, i), NULL) : Cba_ManNewStrId(p, "i", i, NULL);
+        NameId = pGia->vNamesIn? Abc_NamStrFindOrAdd(p->pStrs, Vec_PtrEntry(pGia->vNamesIn, i), NULL) : Cba_ManNewStrId_(p, "i", i, NULL);
         iObjNew = Cba_ObjAlloc( pNtk, CBA_OBJ_PI, 0, 1 );
         Cba_ObjSetName( pNtk, iObjNew, NameId );
         Vec_IntWriteEntry( vLit2Fon, Abc_Var2Lit(iObj, 0), Cba_ObjFon0(pNtk, iObjNew) );
@@ -708,7 +708,7 @@ Cba_Man_t * Cba_ManDeriveFromGia( Gia_Man_t * pGia )
         iObjNew = Cba_ObjAlloc( pNtk, CBA_BOX_BUF, 1, 1 );
         Cba_ObjSetFinFon( pNtk, iObjNew, 0, iFon0 );
         iFon0 = Cba_ObjFon0(pNtk, iObjNew); // non-const fon unique for this output
-        NameId = pGia->vNamesOut? Abc_NamStrFindOrAdd(p->pStrs, Vec_PtrEntry(pGia->vNamesOut, i), NULL) : Cba_ManNewStrId(p, "o", i, NULL);
+        NameId = pGia->vNamesOut? Abc_NamStrFindOrAdd(p->pStrs, Vec_PtrEntry(pGia->vNamesOut, i), NULL) : Cba_ManNewStrId_(p, "o", i, NULL);
         iObjNew = Cba_ObjAlloc( pNtk, CBA_OBJ_PO, 1, 0 );
         Cba_ObjSetName( pNtk, iObjNew, NameId );
         Cba_ObjSetFinFon( pNtk, iObjNew, 0, iFon0 );

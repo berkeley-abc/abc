@@ -498,17 +498,17 @@ Abc_Ntk_t * Io_ReadPlaNetwork( Extra_FileReader_t * p, int fZeros, int fBoth )
             }
             pCubeIn  = (char *)vTokens->pArray[0];
             pCubeOut = (char *)vTokens->pArray[1];
-            if ( strlen(pCubeIn) != (unsigned)nInputs )
+            if ( (int)strlen(pCubeIn) != nInputs )
             {
                 printf( "%s (line %d): Input cube length (%d) differs from the number of inputs (%d).\n",
-                    Extra_FileReaderGetFileName(p), iLine, strlen(pCubeIn), nInputs );
+                    Extra_FileReaderGetFileName(p), iLine, (int)strlen(pCubeIn), nInputs );
                 Abc_NtkDelete( pNtk );
                 return NULL;
             }
-            if ( strlen(pCubeOut) != (unsigned)nOutputs )
+            if ( (int)strlen(pCubeOut) != nOutputs )
             {
                 printf( "%s (line %d): Output cube length (%d) differs from the number of outputs (%d).\n",
-                    Extra_FileReaderGetFileName(p), iLine, strlen(pCubeOut), nOutputs );
+                    Extra_FileReaderGetFileName(p), iLine, (int)strlen(pCubeOut), nOutputs );
                 Abc_NtkDelete( pNtk );
                 Extra_ProgressBarStop( pProgress );
                 ABC_FREE( ppSops );
