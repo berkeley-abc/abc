@@ -146,7 +146,7 @@ static void Prs_ManWriteVerilogIoOrder( FILE * pFile, Prs_Ntk_t * p, Vec_Int_t *
 {
     int i, NameId;
     Vec_IntForEachEntry( vOrder, NameId, i )
-        fprintf( pFile, "%s%s", Prs_NtkStr(p, NameId), i == Vec_IntSize(vOrder) - 1 ? "" : ", " );
+        fprintf( pFile, "%s%s", Prs_NtkStr(p, Abc_Lit2Var2(NameId)), i == Vec_IntSize(vOrder) - 1 ? "" : ", " );
 }
 static void Prs_ManWriteVerilogNtk( FILE * pFile, Prs_Ntk_t * p )
 {

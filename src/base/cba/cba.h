@@ -692,8 +692,12 @@ static inline Cba_Ntk_t * Cba_NtkDupOrder( Cba_Man_t * pMan, Cba_Ntk_t * p, Vec_
 }
 static inline void Cba_NtkDupAttrs( Cba_Ntk_t * pNew, Cba_Ntk_t * p )
 {
-//    Vec_IntRemapArray( &p->vObjCopy, &p->vOrder,    &pNew->vOrder,    Cba_NtkPioOrderNum(pNew) );
-//    Vec_IntRemapArray( &p->vObjCopy, &p->vSeq,      &pNew->vSeq,      Cba_NtkBoxSeqNum(pNew) );
+    int i, iObj;
+    assert( Vec_IntSize(&pNew->vOrder) == 0 );
+    Cba_NtkForEachPioOrder( p, iObj, i )
+        Vec_IntPush( &pNew->vOrder, Cba_ObjCopy(p, iObj) );
+//    Vec_IntRemapArray( &p->vObjCopy, &p->vOrder,    &pNew->vOrder,    Cba_NtkPioOrderNum(p) );
+//    Vec_IntRemapArray( &p->vObjCopy, &p->vSeq,      &pNew->vSeq,      Cba_NtkBoxSeqNum(p) );
     // transfer object attributes
     Vec_IntRemapArray( &p->vObjCopy, &p->vObjFunc,  &pNew->vObjFunc,  Cba_NtkObjNum(pNew) + 1 );
     Vec_IntRemapArray( &p->vObjCopy, &p->vObjName,  &pNew->vObjName,  Cba_NtkObjNum(pNew) + 1 );

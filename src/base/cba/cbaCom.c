@@ -100,7 +100,6 @@ int Cba_CommandRead( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     FILE * pFile;
     Cba_Man_t * p = NULL;
-    Vec_Ptr_t * vDes = NULL;
     char * pFileName = NULL;
     int c, fUseAbc = 0, fUsePtr = 0, fVerbose  =    0;
     Extra_UtilGetoptReset();
@@ -603,9 +602,8 @@ usage:
 ******************************************************************************/
 int Cba_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern void Prs_ManReadBlifTest();
-
-    Cba_Man_t * p = Cba_AbcGetMan(pAbc);
+    extern void Prs_ManReadVerilogTest();
+    //Cba_Man_t * p = Cba_AbcGetMan(pAbc);
     int c, fVerbose  = 0;
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
@@ -628,7 +626,7 @@ int Cba_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 0;
     }
 */
-    Prs_ManReadBlifTest();
+    Prs_ManReadVerilogTest();
     return 0;
 usage:
     Abc_Print( -2, "usage: @test [-vh]\n" );

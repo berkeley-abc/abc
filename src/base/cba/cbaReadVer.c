@@ -122,6 +122,7 @@ static const char * s_VerilogModules[100] =
 };
 static const char * s_KnownModules[100] = 
 {
+    NULL,
     "VERIFIC_",
     "add_",                  
     "mult_",                 
@@ -189,7 +190,7 @@ static inline int Prs_ManIsVerilogModule( Prs_Man_t * p, char * pName )
 static inline int Prs_ManIsKnownModule( Prs_Man_t * p, char * pName )
 {
     int i;
-    for ( i = 0; s_KnownModules[i]; i++ )
+    for ( i = 1; s_KnownModules[i]; i++ )
         if ( !strncmp(pName, s_KnownModules[i], strlen(s_KnownModules[i])) )
             return i;
     return 0;
@@ -839,7 +840,7 @@ Vec_Ptr_t * Prs_ManReadVerilog( char * pFileName )
         return NULL;
     Prs_NtkAddVerilogDirectives( p );
     Prs_ManReadDesign( p );   
-    //Prs_ManPrintModules( p );
+    Prs_ManPrintModules( p );
     if ( Prs_ManErrorPrint(p) )
         ABC_SWAP( Vec_Ptr_t *, vPrs, p->vNtks );
     Prs_ManFree( p );
@@ -850,15 +851,17 @@ void Prs_ManReadVerilogTest( char * pFileName )
 {
     abctime clk = Abc_Clock();
     extern void Prs_ManWriteVerilog( char * pFileName, Vec_Ptr_t * p );
-    Vec_Ptr_t * vPrs = Prs_ManReadVerilog( "c/hie/dump/1/netlist_1.v" );
+//    Vec_Ptr_t * vPrs = Prs_ManReadVerilog( "c/hie/dump/1/netlist_1.v" );
 //    Vec_Ptr_t * vPrs = Prs_ManReadVerilog( "aga/me/me_wide.v" );
 //    Vec_Ptr_t * vPrs = Prs_ManReadVerilog( "aga/ray/ray_wide.v" );
+    Vec_Ptr_t * vPrs = Prs_ManReadVerilog( "aga/design/r4000/r4000_all_out.v" );
     if ( !vPrs ) return;
     printf( "Finished reading %d networks. ", Vec_PtrSize(vPrs) );
     printf( "NameIDs = %d. ", Abc_NamObjNumMax(Prs_ManNameMan(vPrs)) );
     printf( "Memory = %.2f MB. ", 1.0*Prs_ManMemory(vPrs)/(1<<20) );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
-    Prs_ManWriteVerilog( "c/hie/dump/1/netlist_1_out_new.v", vPrs );
+    Prs_ManWriteVerilog( "aga/design/r4000/r4000_all_out_out.v", vPrs );
+//    Prs_ManWriteVerilog( "c/hie/dump/1/netlist_1_out_new.v", vPrs );
 //    Prs_ManWriteVerilog( "aga/me/me_wide_out.v", vPrs );
 //    Prs_ManWriteVerilog( "aga/ray/ray_wide_out.v", vPrs );
 //    Abc_NamPrint( p->pStrs );

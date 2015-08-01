@@ -604,7 +604,7 @@ Cba_Man_t * Prs_ManBuildCbaBlif( char * pFileName, Vec_Ptr_t * vDes )
     // create networks
     Vec_PtrForEachEntry( Prs_Ntk_t *, vDes, pPrsNtk, i )
     {
-        printf( "Elaboration module \"%s\"...\n", Prs_NtkName(pPrsNtk), vDes );
+        printf( "Elaboration module \"%s\"...\n", Prs_NtkName(pPrsNtk) );
         fError = Prs_CreateBlifNtk( Cba_ManNtk(p, i+1), pPrsNtk );
         if ( fError )
             break;
