@@ -38,9 +38,9 @@ static int  Bac_CommandClp      ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int  Bac_CommandCec      ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int  Bac_CommandTest     ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
-static inline Bac_Man_t * Bac_AbcGetMan( Abc_Frame_t * pAbc )                       { return (Bac_Man_t *)pAbc->pAbcCba;                        }
-static inline void        Bac_AbcFreeMan( Abc_Frame_t * pAbc )                      { if ( pAbc->pAbcCba ) Bac_ManFree(Bac_AbcGetMan(pAbc));    }
-static inline void        Bac_AbcUpdateMan( Abc_Frame_t * pAbc, Bac_Man_t * p )     { Bac_AbcFreeMan(pAbc); pAbc->pAbcCba = p;                  }
+static inline Bac_Man_t * Bac_AbcGetMan( Abc_Frame_t * pAbc )                       { return (Bac_Man_t *)pAbc->pAbcBac;                        }
+static inline void        Bac_AbcFreeMan( Abc_Frame_t * pAbc )                      { if ( pAbc->pAbcBac ) Bac_ManFree(Bac_AbcGetMan(pAbc));    }
+static inline void        Bac_AbcUpdateMan( Abc_Frame_t * pAbc, Bac_Man_t * p )     { Bac_AbcFreeMan(pAbc); pAbc->pAbcBac = p;                  }
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///

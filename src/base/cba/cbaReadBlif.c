@@ -234,8 +234,8 @@ static inline void Prs_ManSaveCover( Prs_Man_t * p )
     }
     assert( Vec_StrSize(&p->vCover) > 0 );
     Vec_StrPush( &p->vCover, '\0' );
-    //iToken = Abc_NamStrFindOrAdd( p->pStrs, Vec_StrArray(&p->vCover), NULL );
-    iToken = Ptr_SopToType( Vec_StrArray(&p->vCover) );
+//    iToken = Ptr_SopToType( Vec_StrArray(&p->vCover) );
+    iToken = Abc_NamStrFindOrAdd( p->pSops, Vec_StrArray(&p->vCover), NULL );
     Vec_StrClear( &p->vCover );
     // set the cover to the module of this box
     assert( Prs_BoxNtk(p->pNtk, Prs_NtkBoxNum(p->pNtk)-1) == 1 ); // default const 0
@@ -433,15 +433,209 @@ void Prs_ManReadBlifTest()
     abctime clk = Abc_Clock();
     extern void Prs_ManWriteBlif( char * pFileName, Vec_Ptr_t * vPrs );
 //    Vec_Ptr_t * vPrs = Prs_ManReadBlif( "aga/ray/ray_hie_oper.blif" );
-    Vec_Ptr_t * vPrs = Prs_ManReadBlif( "c/hie/dump/1/netlist_1_out8.blif" );
+//    Vec_Ptr_t * vPrs = Prs_ManReadBlif( "c/hie/dump/1/netlist_1_out8.blif" );
+    Vec_Ptr_t * vPrs = Prs_ManReadBlif( "add2.blif" );
     if ( !vPrs ) return;
     printf( "Finished reading %d networks. ", Vec_PtrSize(vPrs) );
     printf( "NameIDs = %d. ", Abc_NamObjNumMax(Prs_ManNameMan(vPrs)) );
     printf( "Memory = %.2f MB. ", 1.0*Prs_ManMemory(vPrs)/(1<<20) );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
 //    Abc_NamPrint( p->pStrs );
-    Prs_ManWriteBlif( "c/hie/dump/1/netlist_1_out8_out.blif", vPrs );
+    Prs_ManWriteBlif( "add2_out.blif", vPrs );
     Prs_ManVecFree( vPrs );
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Prs_CreateBlifFindFon( Cba_Ntk_t * p, int NameId )
+{
+    int iFon = Cba_NtkGetMap( p, NameId );
+    if ( iFon )
+        return iFon;
+    printf( "Network \"%s\": Signal \"%s\" is not driven.\n", Cba_NtkName(p), Cba_NtkStr(p, NameId) );
+    return 0;
+}
+void Prs_CreateBlifPio( Cba_Ntk_t * p, Prs_Ntk_t * pNtk )
+{
+    int i, NameId, iObj, iFon;
+    Cba_NtkCleanObjFuncs( p );
+    Cba_NtkCleanObjNames( p );
+    Cba_NtkCleanFonNames( p );
+    // create inputs
+    Prs_NtkForEachPi( pNtk, NameId, i )
+    {
+        iObj = Cba_ObjAlloc( p, CBA_OBJ_PI, 0, 1 );
+        Cba_ObjSetName( p, iObj, NameId );
+        iFon = Cba_ObjFon0(p, iObj);
+        Cba_FonSetName( p, iFon, NameId );
+        Cba_NtkSetMap( p, NameId, iFon );
+        Vec_IntPush( &p->vOrder, iObj );
+    }
+    // create outputs
+    Prs_NtkForEachPo( pNtk, NameId, i )
+    {
+        iObj = Cba_ObjAlloc( p, CBA_OBJ_PO, 1, 0 );
+        Cba_ObjSetName( p, iObj, NameId );
+        Vec_IntPush( &p->vOrder, iObj );
+    }
+}
+int Prs_CreateBlifNtk( Cba_Ntk_t * p, Prs_Ntk_t * pNtk )
+{
+    Vec_Int_t * vBox;
+    int i, k, iObj, iTerm, iFon, FormId, ActId;
+    // map inputs
+    Cba_NtkCleanMap( p );
+    Cba_NtkForEachPi( p, iObj, i )
+        Cba_NtkSetMap( p, Cba_ObjName(p, iObj), Cba_ObjFon0(p, iObj) );
+    // create objects
+    Prs_NtkForEachBox( pNtk, vBox, i )
+    {
+        int FuncId = Prs_BoxNtk(pNtk, i);
+        assert( Prs_BoxIONum(pNtk, i) > 0 );
+        assert( Vec_IntSize(vBox) % 2 == 0 );
+        if ( FuncId == -1 ) // latch
+        {
+            iObj = Cba_ObjAlloc( p, CBA_BOX_DFFRS, 4, 1 );
+            Cba_NtkSetMap( p, Vec_IntEntry(vBox, 3), Cba_ObjFon0(p, iObj) ); // latch output
+            Cba_ObjSetFunc( p, iObj, Prs_BoxName(pNtk, i)+1 ); // init + 1
+        }
+        else if ( Prs_BoxIsNode(pNtk, i) ) // node
+        {
+            iObj = Cba_ObjAlloc( p, CBA_BOX_NODE, Prs_BoxIONum(pNtk, i)-1, 1 );
+            Cba_FonSetName( p, Cba_ObjFon0(p, iObj), Vec_IntEntryLast(vBox) ); // node output
+            Cba_NtkSetMap( p, Vec_IntEntryLast(vBox), Cba_ObjFon0(p, iObj) );
+            Cba_ObjSetFunc( p, iObj, FuncId );
+        }
+        else // box
+        {
+            Cba_Ntk_t * pBox = Cba_ManNtkFind( p->pDesign, Prs_NtkStr(pNtk, FuncId) );
+            iObj = Cba_ObjAlloc( p, CBA_OBJ_BOX, Cba_NtkPiNum(pBox), Cba_NtkPoNum(pBox) );
+            Cba_ObjSetFunc( p, iObj, Cba_NtkId(pBox) );
+            // mark PO objects
+            Cba_NtkCleanMap2( p );
+            Cba_NtkForEachPo( pBox, iTerm, k )
+                Cba_NtkSetMap2( p, Cba_ObjName(pBox, iTerm), k+1 );
+            // map box fons
+            Vec_IntForEachEntryDouble( vBox, FormId, ActId, k )
+                if ( Cba_NtkGetMap2(p, FormId) )
+                {
+                    iFon = Cba_ObjFon(p, iObj, Cba_NtkGetMap2(p, FormId)-1);
+                    Cba_FonSetName( p, iFon, ActId );
+                    Cba_NtkSetMap( p, ActId, iFon );
+                }
+        }
+    }
+    // connect objects
+    Prs_NtkForEachBox( pNtk, vBox, i )
+    {
+        iObj = Cba_NtkPiNum(p) + Cba_NtkPoNum(p) + i + 1;
+        if ( Prs_BoxNtk(pNtk, i) == -1 ) // latch
+        {
+            assert( Cba_ObjType(p, iObj) == CBA_BOX_DFFRS );
+            iFon = Prs_CreateBlifFindFon( p, Vec_IntEntry(vBox, 1) ); // latch input
+            if ( iFon )
+                Cba_ObjSetFinFon( p, iObj, 0, iFon );
+        }
+        else if ( Prs_BoxIsNode(pNtk, i) ) // node
+        {
+            assert( Cba_ObjType(p, iObj) == CBA_BOX_NODE );
+            Vec_IntForEachEntryDouble( vBox, FormId, ActId, k )
+            {
+                if ( k == 2 * Cba_ObjFinNum(p, iObj) ) // stop at node output
+                    break;
+                iFon = Prs_CreateBlifFindFon( p, ActId );
+                if ( iFon )
+                    Cba_ObjSetFinFon( p, iObj, k/2, iFon ); 
+            }
+        }
+        else // box
+        {
+            // mark PI objects
+            Cba_Ntk_t * pBox = Cba_ObjNtk(p, iObj);
+            assert( Cba_NtkPiNum(pBox) == Cba_ObjFinNum(p, iObj) );
+            assert( Cba_NtkPoNum(pBox) == Cba_ObjFonNum(p, iObj) );
+            Cba_NtkCleanMap2( p );
+            Cba_NtkForEachPi( pBox, iTerm, k )
+                Cba_NtkSetMap2( p, Cba_ObjName(pBox, iTerm), k+1 );
+            // connect box fins
+            Vec_IntForEachEntryDouble( vBox, FormId, ActId, k )
+                if ( Cba_NtkGetMap2(p, FormId) )
+                {
+                    iFon = Prs_CreateBlifFindFon( p, ActId );
+                    if ( iFon )
+                        Cba_ObjSetFinFon( p, iObj, Cba_NtkGetMap2(p, FormId)-1, iFon );
+                }
+        }
+    }
+    // connect outputs
+    Cba_NtkForEachPo( p, iObj, i )
+    {
+        iFon = Prs_CreateBlifFindFon( p, Cba_ObjName(p, iObj) );
+        if ( iFon )
+            Cba_ObjSetFinFon( p, iObj, 0, iFon );
+    }
+    return 0;
+}
+Cba_Man_t * Prs_ManBuildCbaBlif( char * pFileName, Vec_Ptr_t * vDes )
+{
+    Prs_Ntk_t * pPrsNtk; int i, fError = 0;
+    Prs_Ntk_t * pPrsRoot = Prs_ManRoot(vDes);
+    // start the manager
+    Abc_Nam_t * pStrs = Abc_NamRef(pPrsRoot->pStrs);
+    Abc_Nam_t * pCons = Abc_NamRef(pPrsRoot->pSops);
+    Abc_Nam_t * pMods = Abc_NamStart( 100, 24 );
+    Cba_Man_t * p = Cba_ManAlloc( pFileName, Vec_PtrSize(vDes), pStrs, pCons, pMods );
+    // initialize networks
+    Vec_PtrForEachEntry( Prs_Ntk_t *, vDes, pPrsNtk, i )
+    {
+        Cba_Ntk_t * pNtk = Cba_NtkAlloc( p, Prs_NtkId(pPrsNtk), Prs_NtkPiNum(pPrsNtk), Prs_NtkPoNum(pPrsNtk), Prs_NtkObjNum(pPrsNtk), 100, 100 );
+        Prs_CreateBlifPio( pNtk, pPrsNtk );
+        Cba_NtkAdd( p, pNtk );
+    }
+    // create networks
+    Vec_PtrForEachEntry( Prs_Ntk_t *, vDes, pPrsNtk, i )
+    {
+        printf( "Elaboration module \"%s\"...\n", Prs_NtkName(pPrsNtk), vDes );
+        fError = Prs_CreateBlifNtk( Cba_ManNtk(p, i+1), pPrsNtk );
+        if ( fError )
+            break;
+    }
+    if ( fError )
+        printf( "Quitting because of errors.\n" );
+    else
+        Cba_ManPrepareSeq( p );
+    return p;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Cba_Man_t * Cba_ManReadBlif( char * pFileName )
+{
+    Cba_Man_t * p = NULL;
+    Vec_Ptr_t * vDes = Prs_ManReadBlif( pFileName );
+    if ( vDes && Vec_PtrSize(vDes) )
+        p = Prs_ManBuildCbaBlif( pFileName, vDes );
+    if ( vDes )
+        Prs_ManVecFree( vDes );
+    return p;
 }
 
 ////////////////////////////////////////////////////////////////////////

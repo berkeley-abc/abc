@@ -28,7 +28,6 @@ ABC_NAMESPACE_IMPL_START
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-/*
 static int  Cba_CommandRead     ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int  Cba_CommandWrite    ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int  Cba_CommandPs       ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -37,11 +36,10 @@ static int  Cba_CommandGet      ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int  Cba_CommandClp      ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int  Cba_CommandCec      ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int  Cba_CommandTest     ( Abc_Frame_t * pAbc, int argc, char ** argv );
-*/
 
-static inline Cba_Man_t * Cba_AbcGetMan( Abc_Frame_t * pAbc )                       { return (Cba_Man_t *)pAbc->pAbcCba;                        }
-static inline void        Cba_AbcFreeMan( Abc_Frame_t * pAbc )                      { if ( pAbc->pAbcCba ) Cba_ManFree(Cba_AbcGetMan(pAbc));    }
-static inline void        Cba_AbcUpdateMan( Abc_Frame_t * pAbc, Cba_Man_t * p )     { Cba_AbcFreeMan(pAbc); pAbc->pAbcCba = p;                  }
+static inline Cba_Man_t * Cba_AbcGetMan( Abc_Frame_t * pAbc )                   { return (Cba_Man_t *)pAbc->pAbcCba;                        }
+static inline void        Cba_AbcFreeMan( Abc_Frame_t * pAbc )                  { if ( pAbc->pAbcCba ) Cba_ManFree(Cba_AbcGetMan(pAbc));    }
+static inline void        Cba_AbcUpdateMan( Abc_Frame_t * pAbc, Cba_Man_t * p ) { Cba_AbcFreeMan(pAbc); pAbc->pAbcCba = p;                  }
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -60,7 +58,6 @@ static inline void        Cba_AbcUpdateMan( Abc_Frame_t * pAbc, Cba_Man_t * p ) 
 ******************************************************************************/
 void Cba_Init( Abc_Frame_t * pAbc )
 {
-/*
     Cmd_CommandAdd( pAbc, "New word level", "@read",       Cba_CommandRead,      0 );
     Cmd_CommandAdd( pAbc, "New word level", "@write",      Cba_CommandWrite,     0 );
     Cmd_CommandAdd( pAbc, "New word level", "@ps",         Cba_CommandPs,        0 );
@@ -69,7 +66,6 @@ void Cba_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "New word level", "@clp",        Cba_CommandClp,       0 );
     Cmd_CommandAdd( pAbc, "New word level", "@cec",        Cba_CommandCec,       0 );
     Cmd_CommandAdd( pAbc, "New word level", "@test",       Cba_CommandTest,      0 );
-*/
 }
 
 /**Function********************************************************************
@@ -88,8 +84,6 @@ void Cba_End( Abc_Frame_t * pAbc )
     Cba_AbcFreeMan( pAbc );
 }
 
-
-#if 0
 
 /**Function********************************************************************
 
@@ -145,8 +139,7 @@ int Cba_CommandRead( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 0;
     }
     fclose( pFile );
-
-#if 0
+/*
     // perform reading
     if ( fUseAbc || fUsePtr )
     {
@@ -162,48 +155,26 @@ int Cba_CommandRead( Abc_Frame_t * pAbc, int argc, char ** argv )
         }
         Abc_NtkDelete( pAbcNtk );
     }
-    else if ( !strcmp( Extra_FileNameExtension(pFileName), "blif" )  )
-    {
-        vDes = Prs_ManReadBlif( pFileName );
-        if ( vDes && Vec_PtrSize(vDes) )
-            p = Prs_ManBuildCba( pFileName, vDes );
-        if ( vDes )
-            Prs_ManVecFree( vDes );
-    }
+    else 
+*/
+    if ( !strcmp( Extra_FileNameExtension(pFileName), "blif" )  )
+        p = Cba_ManReadBlif( pFileName );
     else if ( !strcmp( Extra_FileNameExtension(pFileName), "v" )  )
-    {
-        vDes = Prs_ManReadVerilog( pFileName );
-        if ( vDes && Vec_PtrSize(vDes) )
-            p = Prs_ManBuildCba( pFileName, vDes );
-        if ( vDes )
-            Prs_ManVecFree( vDes );
-    }
-    else if ( !strcmp( Extra_FileNameExtension(pFileName), "smt" )  )
-    {
-        vDes = NULL;//Prs_ManReadSmt( pFileName );
-        if ( vDes && Vec_PtrSize(vDes) )
-            p = Prs_ManBuildCba( pFileName, vDes );
-        if ( vDes )
-            Prs_ManVecFree( vDes );
-    }
+        p = Cba_ManReadVerilog( pFileName );
     else if ( !strcmp( Extra_FileNameExtension(pFileName), "cba" )  )
-    {
         p = Cba_ManReadCba( pFileName );
-    }
     else 
     {
         printf( "Unrecognized input file extension.\n" );
         return 0;
     }
     Cba_AbcUpdateMan( pAbc, p );
-
-#endif
     return 0;
 usage:
     Abc_Print( -2, "usage: @read [-apvh] <file_name>\n" );
-    Abc_Print( -2, "\t         reads hierarchical design in BLIF or Verilog\n" );
-    Abc_Print( -2, "\t-a     : toggle using old ABC parser [default = %s]\n", fUseAbc? "yes": "no" );
-    Abc_Print( -2, "\t-p     : toggle using Ptr construction [default = %s]\n", fUsePtr? "yes": "no" );
+    Abc_Print( -2, "\t         reads hierarchical design\n" );
+//    Abc_Print( -2, "\t-a     : toggle using old ABC parser [default = %s]\n", fUseAbc? "yes": "no" );
+//    Abc_Print( -2, "\t-p     : toggle using Ptr construction [default = %s]\n", fUsePtr? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
@@ -224,19 +195,15 @@ int Cba_CommandWrite( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Cba_Man_t * p = Cba_AbcGetMan(pAbc);
     char * pFileName = NULL;
-    int fUseAssign   =    1;
-    int fUsePtr      =    0; 
+    int fInclineCats =    1;
     int c, fVerbose  =    0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "apvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "cvh" ) ) != EOF )
     {
         switch ( c )
         {
-        case 'a':
-            fUseAssign ^= 1;
-            break;
-        case 'p':
-            fUsePtr ^= 1;
+        case 'c':
+            fInclineCats ^= 1;
             break;
         case 'v':
             fVerbose ^= 1;
@@ -253,7 +220,6 @@ int Cba_CommandWrite( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 0;
     }
 
-#if 0
     if ( argc == globalUtilOptind + 1 )
         pFileName = argv[globalUtilOptind];
     else if ( argc == globalUtilOptind && p )
@@ -267,21 +233,7 @@ int Cba_CommandWrite( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( !strcmp( Extra_FileNameExtension(pFileName), "blif" )  )
         Cba_ManWriteBlif( pFileName, p );
     else if ( !strcmp( Extra_FileNameExtension(pFileName), "v" )  )
-    {
-        if ( fUsePtr )
-        {
-            Vec_Ptr_t * vPtr = Cba_PtrDeriveFromCba( p );
-            if ( vPtr == NULL )
-                printf( "Converting to Ptr has failed.\n" );
-            else
-            {
-                Cba_PtrDumpVerilog( pFileName, vPtr );
-                Cba_PtrFree( vPtr ); 
-            }
-        }
-        else
-            Cba_ManWriteVerilog( pFileName, p, fUseAssign );        
-    }
+        Cba_ManWriteVerilog( pFileName, p, fInclineCats );
     else if ( !strcmp( Extra_FileNameExtension(pFileName), "cba" )  )
         Cba_ManWriteCba( pFileName, p );
     else 
@@ -289,14 +241,11 @@ int Cba_CommandWrite( Abc_Frame_t * pAbc, int argc, char ** argv )
         printf( "Unrecognized output file extension.\n" );
         return 0;
     }
-
-#endif
     return 0;
 usage:
-    Abc_Print( -2, "usage: @write [-apvh]\n" );
+    Abc_Print( -2, "usage: @write [-cvh]\n" );
     Abc_Print( -2, "\t         writes the design into a file in BLIF or Verilog\n" );
-    Abc_Print( -2, "\t-a     : toggle using assign-statement for primitives [default = %s]\n",  fUseAssign? "yes": "no" );
-    Abc_Print( -2, "\t-p     : toggle using Ptr construction (mapped Verilog only) [default = %s]\n", fUsePtr? "yes": "no" );
+    Abc_Print( -2, "\t-c     : toggle inlining input concatenations [default = %s]\n",  fInclineCats? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n",  fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
@@ -348,11 +297,7 @@ int Cba_CommandPs( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( 1, "Cba_CommandPs(): There is no current design.\n" );
         return 0;
     }
-
-#if 0
     Cba_ManPrintStats( p, nModules, fVerbose );
-
-#endif
     return 0;
 usage:
     Abc_Print( -2, "usage: @ps [-M num] [-vh]\n" );
@@ -401,17 +346,13 @@ int Cba_CommandPut( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( 1, "Cba_CommandPut(): There is no current design.\n" );
         return 0;
     }
-
-#if 0
-    pGia = Cba_ManExtract( p, fBarBufs, fVerbose );
+    pGia = Cba_ManBlast( p, fBarBufs, fVerbose );
     if ( pGia == NULL )
     {
         Abc_Print( 1, "Cba_CommandPut(): Conversion to AIG has failed.\n" );
         return 0;
     }
     Abc_FrameUpdateGia( pAbc, pGia );
-
-#endif
     return 0;
 usage:
     Abc_Print( -2, "usage: @put [-bvh]\n" );
@@ -460,7 +401,6 @@ int Cba_CommandGet( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 0;
     }
 
-#if 0
     if ( fMapped )
     {
         if ( pAbc->pNtkCur == NULL )
@@ -468,7 +408,7 @@ int Cba_CommandGet( Abc_Frame_t * pAbc, int argc, char ** argv )
             Abc_Print( 1, "Cba_CommandGet(): There is no current mapped design.\n" );
             return 0;
         }
-        pNew = (Cba_Man_t *)Cba_ManInsertAbc( p, pAbc->pNtkCur );
+        pNew = Cba_ManInsertAbc( p, pAbc->pNtkCur );
     }
     else
     {
@@ -480,8 +420,6 @@ int Cba_CommandGet( Abc_Frame_t * pAbc, int argc, char ** argv )
         pNew = Cba_ManInsertGia( p, pAbc->pGia );
     }
     Cba_AbcUpdateMan( pAbc, pNew );
-
-#endif
     return 0;
 usage:
     Abc_Print( -2, "usage: @get [-mvh]\n" );
@@ -526,12 +464,8 @@ int Cba_CommandClp( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( 1, "Cba_CommandGet(): There is no current design.\n" );
         return 0;
     }
-
-#if 0
     pNew = Cba_ManCollapse( p, CBA_BOX_BUF );
     Cba_AbcUpdateMan( pAbc, pNew );
-
-#endif
     return 0;
 usage:
     Abc_Print( -2, "usage: @clp [-vh]\n" );
@@ -554,11 +488,10 @@ usage:
 ******************************************************************************/
 int Cba_CommandCec( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    Cba_Man_t * p = Cba_AbcGetMan(pAbc);
+    Cba_Man_t * p = Cba_AbcGetMan(pAbc), * pTemp;
     Gia_Man_t * pFirst, * pSecond, * pMiter;
     Cec_ParCec_t ParsCec, * pPars = &ParsCec;
-    Vec_Ptr_t * vDes;
-    char * FileName, * pStr, ** pArgvNew;
+    char * pFileName, * pStr, ** pArgvNew;
     int c, nArgcNew, fDumpMiter = 0;
     FILE * pFile;
     Cec_ManCecSetDefaultParams( pPars );
@@ -582,7 +515,6 @@ int Cba_CommandCec( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 0;
     }
 
-#if 0
     pArgvNew = argv + globalUtilOptind;
     nArgcNew = argc - globalUtilOptind;
     if ( nArgcNew != 1 )
@@ -592,41 +524,42 @@ int Cba_CommandCec( Abc_Frame_t * pAbc, int argc, char ** argv )
             Abc_Print( -1, "File name is not given on the command line.\n" );
             return 1;
         }
-        FileName = p->pSpec;
+        pFileName = p->pSpec;
     }
     else
-        FileName = pArgvNew[0];
+        pFileName = pArgvNew[0];
     // fix the wrong symbol
-    for ( pStr = FileName; *pStr; pStr++ )
+    for ( pStr = pFileName; *pStr; pStr++ )
         if ( *pStr == '>' )
             *pStr = '\\';
-    if ( (pFile = fopen( FileName, "r" )) == NULL )
+    if ( (pFile = fopen( pFileName, "r" )) == NULL )
     {
-        Abc_Print( -1, "Cannot open input file \"%s\". ", FileName );
-        if ( (FileName = Extra_FileGetSimilarName( FileName, ".v", ".blif", NULL, NULL, NULL )) )
-            Abc_Print( 1, "Did you mean \"%s\"?", FileName );
+        Abc_Print( -1, "Cannot open input file \"%s\". ", pFileName );
+        if ( (pFileName = Extra_FileGetSimilarName( pFileName, ".v", ".blif", NULL, NULL, NULL )) )
+            Abc_Print( 1, "Did you mean \"%s\"?", pFileName );
         Abc_Print( 1, "\n" );
         return 1;
     }
     fclose( pFile );
 
     // extract AIG from the current design
-    pFirst = Cba_ManExtract( p, 0, 0 );
+    pFirst = Cba_ManBlast( p, 0, 0 );
     if ( pFirst == NULL )
     {
         Abc_Print( -1, "Extracting AIG from the current design has failed.\n" );
         return 0;
     }
     // extract AIG from the second design
-    if ( !strcmp( Extra_FileNameExtension(FileName), "blif" )  )
-        vDes = Prs_ManReadBlif( FileName );
-    else if ( !strcmp( Extra_FileNameExtension(FileName), "v" )  )
-        vDes = Prs_ManReadVerilog( FileName );
+
+    if ( !strcmp( Extra_FileNameExtension(pFileName), "blif" )  )
+        pTemp = Cba_ManReadBlif( pFileName );
+    else if ( !strcmp( Extra_FileNameExtension(pFileName), "v" )  )
+        pTemp = Cba_ManReadVerilog( pFileName );
+    else if ( !strcmp( Extra_FileNameExtension(pFileName), "cba" )  )
+        pTemp = Cba_ManReadCba( pFileName );
     else assert( 0 );
-    p = Prs_ManBuildCba( FileName, vDes );
-    Prs_ManVecFree( vDes );
-    pSecond = Cba_ManExtract( p, 0, 0 );
-    Cba_ManFree( p );
+    pSecond = Cba_ManBlast( pTemp, 0, 0 );
+    Cba_ManFree( pTemp );
     if ( pSecond == NULL )
     {
         Gia_ManStop( pFirst );
@@ -648,8 +581,6 @@ int Cba_CommandCec( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     Gia_ManStop( pFirst );
     Gia_ManStop( pSecond );
-
-#endif
     return 0;
 usage:
     Abc_Print( -2, "usage: @cec [-vh]\n" );
@@ -672,6 +603,8 @@ usage:
 ******************************************************************************/
 int Cba_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
+    extern void Prs_ManReadBlifTest();
+
     Cba_Man_t * p = Cba_AbcGetMan(pAbc);
     int c, fVerbose  = 0;
     Extra_UtilGetoptReset();
@@ -688,11 +621,14 @@ int Cba_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
             goto usage;
         }
     }
+/*
     if ( p == NULL )
     {
         Abc_Print( 1, "Cba_CommandTest(): There is no current design.\n" );
         return 0;
     }
+*/
+    Prs_ManReadBlifTest();
     return 0;
 usage:
     Abc_Print( -2, "usage: @test [-vh]\n" );
@@ -701,8 +637,6 @@ usage:
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
 }
-
-#endif
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

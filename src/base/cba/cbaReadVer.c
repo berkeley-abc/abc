@@ -865,6 +865,32 @@ void Prs_ManReadVerilogTest( char * pFileName )
     Prs_ManVecFree( vPrs );
 }
 
+Cba_Man_t * Prs_ManBuildCbaVerilog( char * pFileName, Vec_Ptr_t * vDes )
+{
+    return NULL;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Cba_Man_t * Cba_ManReadVerilog( char * pFileName )
+{
+    Cba_Man_t * p = NULL;
+    Vec_Ptr_t * vDes = Prs_ManReadVerilog( pFileName );
+    if ( vDes && Vec_PtrSize(vDes) )
+        p = Prs_ManBuildCbaVerilog( pFileName, vDes );
+    if ( vDes )
+        Prs_ManVecFree( vDes );
+    return p;
+}
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

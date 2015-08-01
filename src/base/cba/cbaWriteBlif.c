@@ -72,7 +72,7 @@ static void Prs_ManWriteBlifLines( FILE * pFile, Prs_Ntk_t * p )
             fprintf( pFile, ".names" );
             Vec_IntForEachEntryDouble( vBox, FormId, ActId, k )
                 fprintf( pFile, " %s", Prs_NtkStr(p, ActId) );
-            fprintf( pFile, "\n%s", Prs_NtkStr(p, NtkId) );
+            fprintf( pFile, "\n%s", Prs_NtkSop(p, NtkId) );
         }
         else // box
         {
@@ -116,8 +116,6 @@ void Prs_ManWriteBlif( char * pFileName, Vec_Ptr_t * vPrs )
 }
 
 
-#if 0
-
 /**Function*************************************************************
 
   Synopsis    [Write elaborated design.]
@@ -129,76 +127,59 @@ void Prs_ManWriteBlif( char * pFileName, Vec_Ptr_t * vPrs )
   SeeAlso     []
 
 ***********************************************************************/
-void Cba_ManWriteBlifGate( FILE * pFile, Cba_Ntk_t * p, Mio_Gate_t * pGate, Vec_Int_t * vFanins, int iObj )
-{
-    int iFanin, i;
-    Vec_IntForEachEntry( vFanins, iFanin, i )
-        fprintf( pFile, " %s=%s", Mio_GateReadPinName(pGate, i), Cba_ObjNameStr(p, iFanin) );
-    fprintf( pFile, " %s=%s", Mio_GateReadOutName(pGate), Cba_ObjNameStr(p, iObj) );
-    fprintf( pFile, "\n" );
-}
-void Cba_ManWriteBlifArray( FILE * pFile, Cba_Ntk_t * p, Vec_Int_t * vFanins, int iObj )
-{
-    int iFanin, i;
-    Vec_IntForEachEntry( vFanins, iFanin, i )
-        fprintf( pFile, " %s", Cba_ObjNameStr(p, iFanin) );
-    if ( iObj >= 0 )
-        fprintf( pFile, " %s", Cba_ObjNameStr(p, iObj) );
-    fprintf( pFile, "\n" );
-}
-void Cba_ManWriteBlifArray2( FILE * pFile, Cba_Ntk_t * p, int iObj )
-{
-    int iTerm, i;
-    Cba_Ntk_t * pModel = Cba_BoxNtk( p, iObj );
-    Cba_NtkForEachPi( pModel, iTerm, i )
-        fprintf( pFile, " %s=%s", Cba_ObjNameStr(pModel, iTerm), Cba_ObjNameStr(p, Cba_BoxBi(p, iObj, i)) );
-    Cba_NtkForEachPo( pModel, iTerm, i )
-        fprintf( pFile, " %s=%s", Cba_ObjNameStr(pModel, iTerm), Cba_ObjNameStr(p, Cba_BoxBo(p, iObj, i)) );
-    fprintf( pFile, "\n" );
-}
 void Cba_ManWriteBlifLines( FILE * pFile, Cba_Ntk_t * p )
 {
-    int i, k, iTerm;
-    Cba_NtkForEachBox( p, i )
+    int k, iObj, iFin, iFon;
+    Cba_NtkForEachBox( p, iObj )
     {
-        if ( Cba_ObjIsBoxUser(p, i) )
+        if ( Cba_ObjIsBoxUser(p, iObj) )
         {
+            Cba_Ntk_t * pNtk = Cba_ObjNtk( p, iObj );
             fprintf( pFile, ".subckt" );
-            fprintf( pFile, " %s", Cba_NtkName(Cba_BoxNtk(p, i)) );
-            Cba_ManWriteBlifArray2( pFile, p, i );
+            fprintf( pFile, " %s", Cba_NtkName(pNtk) );
+            Cba_ObjForEachFinFon( p, iObj, iFin, iFon, k )
+                fprintf( pFile, " %s=%s", Cba_ObjNameStr(pNtk, Cba_NtkPi(pNtk, k)), Cba_FonNameStr(p, iFon) );
+            Cba_ObjForEachFon( p, iObj, iFon, k )
+                fprintf( pFile, " %s=%s", Cba_ObjNameStr(pNtk, Cba_NtkPo(pNtk, k)), Cba_FonNameStr(p, iFon) );
+            fprintf( pFile, "\n" );
         }
-        else if ( Cba_ObjIsGate(p, i) )
+        else if ( Cba_ObjIsGate(p, iObj) )
         {
-            char * pGateName = Abc_NamStr(p->pDesign->pMods, Cba_BoxNtkId(p, i));
+            char * pGateName = Abc_NamStr(p->pDesign->pMods, Cba_ObjNtkId( p, iObj ));
             Mio_Library_t * pLib = (Mio_Library_t *)Abc_FrameReadLibGen();
             Mio_Gate_t * pGate = Mio_LibraryReadGateByName( pLib, pGateName, NULL );
             fprintf( pFile, ".gate %s", pGateName );
-            Cba_BoxForEachBi( p, i, iTerm, k )
-                fprintf( pFile, " %s=%s", Mio_GateReadPinName(pGate, k), Cba_ObjNameStr(p, iTerm) );
-            Cba_BoxForEachBo( p, i, iTerm, k )
-                fprintf( pFile, " %s=%s", Mio_GateReadOutName(pGate), Cba_ObjNameStr(p, iTerm) );
+            Cba_ObjForEachFinFon( p, iObj, iFin, iFon, k )
+                fprintf( pFile, " %s=%s", Mio_GateReadPinName(pGate, k), Cba_FonNameStr(p, iFon) );
+            Cba_ObjForEachFon( p, iObj, iFon, k )
+                fprintf( pFile, " %s=%s", Mio_GateReadOutName(pGate), Cba_FonNameStr(p, iFon) );
             fprintf( pFile, "\n" );
         }
         else
         {
             fprintf( pFile, ".names" );
-            Cba_BoxForEachBi( p, i, iTerm, k )
-                fprintf( pFile, " %s", Cba_ObjNameStr(p, Cba_ObjFanin(p, iTerm)) );
-            Cba_BoxForEachBo( p, i, iTerm, k )
-                fprintf( pFile, " %s", Cba_ObjNameStr(p, iTerm) );
-            fprintf( pFile, "\n%s",  Ptr_TypeToSop(Cba_ObjType(p, i)) );
+            Cba_ObjForEachFinFon( p, iObj, iFin, iFon, k )
+                fprintf( pFile, " %s", Cba_FonNameStr(p, iFon) );
+            fprintf( pFile, " %s", Cba_FonNameStr(p, Cba_ObjFon0(p, iObj)) );
+            fprintf( pFile, "\n%s",  Cba_NtkSop(p, Cba_ObjFunc(p, iObj)) );
         }
     }
 }
+void Cba_ManWriteBlifArray( FILE * pFile, Cba_Ntk_t * p, Vec_Int_t * vObjs )
+{
+    int iObj, i;
+    Vec_IntForEachEntry( vObjs, iObj, i )
+        fprintf( pFile, " %s", Cba_ObjNameStr(p, iObj) );
+    fprintf( pFile, "\n" );
+}
 void Cba_ManWriteBlifNtk( FILE * pFile, Cba_Ntk_t * p )
 {
-    assert( Vec_IntSize(&p->vFanin) == Cba_NtkObjNum(p) );
     // write header
     fprintf( pFile, ".model %s\n", Cba_NtkName(p) );
     fprintf( pFile, ".inputs" );
-    Cba_ManWriteBlifArray( pFile, p, &p->vInputs, -1 );
+    Cba_ManWriteBlifArray( pFile, p, &p->vInputs );
     fprintf( pFile, ".outputs" );
-    Cba_ManWriteBlifArray( pFile, p, &p->vOutputs, -1 );
+    Cba_ManWriteBlifArray( pFile, p, &p->vOutputs );
     // write objects
     Cba_ManWriteBlifLines( pFile, p );
     fprintf( pFile, ".end\n\n" );
@@ -221,13 +202,12 @@ void Cba_ManWriteBlif( char * pFileName, Cba_Man_t * p )
         return;
     }
     fprintf( pFile, "# Design \"%s\" written via CBA package in ABC on %s\n\n", Cba_ManName(p), Extra_TimeStamp() );
-    Cba_ManAssignInternWordNames( p );
+//    Cba_ManAssignInternWordNames( p );
     Cba_ManForEachNtk( p, pNtk, i )
         Cba_ManWriteBlifNtk( pFile, pNtk );
     fclose( pFile );
 }
 
-#endif
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

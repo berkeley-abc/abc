@@ -1,12 +1,12 @@
 /**CFile****************************************************************
 
-  FileName    [cba.c]
+  FileName    [cbaCba.c]
 
   SystemName  [ABC: Logic synthesis and verification system.]
 
-  PackageName [Verilog parser.]
+  PackageName [Hierarchical word-level netlist.]
 
-  Synopsis    [Parses several flavors of word-level Verilog.]
+  Synopsis    [Reading binary representation.]
 
   Author      [Alan Mishchenko]
   
@@ -14,7 +14,7 @@
 
   Date        [Ver. 1.0. Started - July 21, 2015.]
 
-  Revision    [$Id: cba.c,v 1.00 2014/11/29 00:00:00 alanmi Exp $]
+  Revision    [$Id: cbaCba.c,v 1.00 2014/11/29 00:00:00 alanmi Exp $]
 
 ***********************************************************************/
 
@@ -41,7 +41,13 @@ ABC_NAMESPACE_IMPL_START
   SeeAlso     []
 
 ***********************************************************************/
-
+Cba_Man_t * Cba_ManReadCba( char * pFileName )
+{
+    return NULL;
+}
+void Cba_ManWriteCba( char * pFileName, Cba_Man_t * p )
+{
+}
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

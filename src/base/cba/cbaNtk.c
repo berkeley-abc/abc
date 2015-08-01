@@ -1,12 +1,12 @@
 /**CFile****************************************************************
 
-  FileName    [cba.c]
+  FileName    [cbaNtk.c]
 
   SystemName  [ABC: Logic synthesis and verification system.]
 
-  PackageName [Verilog parser.]
+  PackageName [Hierarchical word-level netlist.]
 
-  Synopsis    [Parses several flavors of word-level Verilog.]
+  Synopsis    [Network manipulation.]
 
   Author      [Alan Mishchenko]
   
@@ -14,7 +14,7 @@
 
   Date        [Ver. 1.0. Started - July 21, 2015.]
 
-  Revision    [$Id: cba.c,v 1.00 2014/11/29 00:00:00 alanmi Exp $]
+  Revision    [$Id: cbaNtk.c,v 1.00 2014/11/29 00:00:00 alanmi Exp $]
 
 ***********************************************************************/
 
