@@ -493,6 +493,8 @@ static inline char * Wlc_PrsFindRange( char * pStr, int * End, int * Beg )
         if ( pStr == NULL )
             return NULL;
     }
+    if ( *End < *Beg )
+        return NULL;
     assert( *End >= *Beg );
     return pStr + 1;
 }
@@ -748,8 +750,10 @@ static inline int Wlc_PrsFindDefinition( Wlc_Prs_t * p, char * pStr, Vec_Int_t *
         }
         else if ( pStr[0] == '[' )
         {
-            int End, Beg;
+            int End, Beg; char * pLine = pStr;
             pStr = Wlc_PrsFindRange( pStr, &End, &Beg );
+            if ( pStr == NULL )
+                return Wlc_PrsWriteErrorMessage( p, pLine, "Non-standard range." );
             Vec_IntPush( vFanins, (End << 16) | Beg );
             Type = WLC_OBJ_BIT_SELECT;
         }
@@ -795,7 +799,7 @@ static inline int Wlc_PrsFindDefinition( Wlc_Prs_t * p, char * pStr, Vec_Int_t *
 }
 int Wlc_PrsReadDeclaration( Wlc_Prs_t * p, char * pStart )
 {
-    int fFound = 0, Type = WLC_OBJ_NONE, iObj; 
+    int fFound = 0, Type = WLC_OBJ_NONE, iObj; char * pLine;
     int Signed = 0, Beg = 0, End = 0, NameId, fIsPo = 0;
     if ( Wlc_PrsStrCmp( pStart, "input" ) )
         pStart += strlen("input"), Type = WLC_OBJ_PI;
@@ -809,9 +813,10 @@ int Wlc_PrsReadDeclaration( Wlc_Prs_t * p, char * pStart )
     // read 'signed'
     pStart = Wlc_PrsFindWord( pStart, "signed", &Signed );
     // read range
+    pLine = pStart;
     pStart = Wlc_PrsFindRange( pStart, &End, &Beg );
     if ( pStart == NULL )
-        return Wlc_PrsWriteErrorMessage( p, pStart, "Cannot read range." );
+        return Wlc_PrsWriteErrorMessage( p, pLine, "Non-standard range." );
     if ( Beg != 0 )
     {
         if ( p->nNonZeroCount++ == 0 )
