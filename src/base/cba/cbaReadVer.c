@@ -1207,7 +1207,7 @@ int Prs_CreateVerilogNtk( Cba_Ntk_t * p, Prs_Ntk_t * pNtk )
         else // box
         {
             Cba_Ntk_t * pBox = NULL; int nInputs, nOutputs = 1;
-            char ** pOutNames, * pNtkName = Prs_NtkStr(pNtk, Prs_BoxNtk(pNtk, i));
+            char ** pOutNames = NULL, * pNtkName = Prs_NtkStr(pNtk, Prs_BoxNtk(pNtk, i));
             Cba_ObjType_t Type = Prs_ManFindType( pNtkName, &nInputs, 1, &pOutNames );
             if ( Type == CBA_OBJ_BOX )
             {
@@ -1297,7 +1297,7 @@ int Prs_CreateVerilogNtk( Cba_Ntk_t * p, Prs_Ntk_t * pNtk )
         else // box
         {
             int nInputs = -1;
-            char ** pInNames, * pNtkName = Prs_NtkStr(pNtk, Prs_BoxNtk(pNtk, i));
+            char ** pInNames = NULL, * pNtkName = Prs_NtkStr(pNtk, Prs_BoxNtk(pNtk, i));
             Cba_ObjType_t Type = Prs_ManFindType( pNtkName, &nInputs, 0, &pInNames );
             assert( Type == Cba_ObjType(p, iObj) );
             // mark PI objects

@@ -397,16 +397,8 @@ int Cba_ManWriteLineFile( Cba_Ntk_t * p, int iObj, int FileAttr, int LineAttr )
     int FileId = 0, LineId = 0;
     if ( FileAttr && (FileId = Cba_ObjAttrValue(p, iObj, FileAttr)) )
     {
-/*
         LineId = Cba_ObjAttrValue(p, iObj, LineAttr);
-        Vec_StrPrintStr( vStr, "  // " );
-        Vec_StrPrintStr( vStr, Cba_NtkStr(p, FileId) );
-        Vec_StrPush( vStr, '(' );
-        Vec_StrPrintNum( vStr, LineId );
-        Vec_StrPush( vStr, ')' );
-*/
-        Vec_StrPrintF( vStr, "  // %s(%d)", Cba_NtkStr(p, FileId), Cba_ObjAttrValue(p, iObj, LineAttr) );
-
+        Vec_StrPrintF( vStr, "  // %s(%d)", Cba_NtkStr(p, FileId), LineId );
         return 1;
     }
     return 0;
