@@ -101,17 +101,14 @@ int Cba_CommandRead( Abc_Frame_t * pAbc, int argc, char ** argv )
     FILE * pFile;
     Cba_Man_t * p = NULL;
     char * pFileName = NULL;
-    int c, fUseAbc = 0, fUsePtr = 0, fVerbose  =    0;
+    int c, fTest = 0, fVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "apvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "tvh" ) ) != EOF )
     {
         switch ( c )
         {
-        case 'a':
-            fUseAbc ^= 1;
-            break;
-        case 'p':
-            fUsePtr ^= 1;
+        case 't':
+            fTest ^= 1;
             break;
         case 'v':
             fVerbose ^= 1;
@@ -127,7 +124,7 @@ int Cba_CommandRead( Abc_Frame_t * pAbc, int argc, char ** argv )
         printf( "Cba_CommandRead(): Input file name should be given on the command line.\n" );
         return 0;
     }
-    // get the file name
+        // get the file name
     pFileName = argv[globalUtilOptind];
     if ( (pFile = fopen( pFileName, "r" )) == NULL )
     {
@@ -138,24 +135,19 @@ int Cba_CommandRead( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 0;
     }
     fclose( pFile );
-/*
-    // perform reading
-    if ( fUseAbc || fUsePtr )
+    if ( fTest )
     {
-        extern Vec_Ptr_t * Ptr_AbcDeriveDes( Abc_Ntk_t * pNtk );
-        Abc_Ntk_t * pAbcNtk = Io_ReadNetlist( pFileName, Io_ReadFileType(pFileName), 0 );
-        Vec_Ptr_t * vDes = Ptr_AbcDeriveDes( pAbcNtk );
-        p = Cba_PtrTransformToCba( vDes );
-        Cba_PtrFree( vDes ); // points to names in pAbcNtk
-        if ( p )
+        if ( !strcmp( Extra_FileNameExtension(pFileName), "blif" )  )
+            Prs_ManReadBlifTest( pFileName );
+        else if ( !strcmp( Extra_FileNameExtension(pFileName), "v" )  )
+            Prs_ManReadVerilogTest( pFileName );
+        else 
         {
-            ABC_FREE( p->pSpec );
-            p->pSpec = Abc_UtilStrsav( pAbcNtk->pSpec );
+            printf( "Unrecognized input file extension.\n" );
+            return 0;
         }
-        Abc_NtkDelete( pAbcNtk );
+        return 0;
     }
-    else 
-*/
     if ( !strcmp( Extra_FileNameExtension(pFileName), "blif" )  )
         p = Cba_ManReadBlif( pFileName );
     else if ( !strcmp( Extra_FileNameExtension(pFileName), "v" )  )
@@ -170,10 +162,9 @@ int Cba_CommandRead( Abc_Frame_t * pAbc, int argc, char ** argv )
     Cba_AbcUpdateMan( pAbc, p );
     return 0;
 usage:
-    Abc_Print( -2, "usage: @read [-apvh] <file_name>\n" );
+    Abc_Print( -2, "usage: @read [-tvh] <file_name>\n" );
     Abc_Print( -2, "\t         reads hierarchical design\n" );
-//    Abc_Print( -2, "\t-a     : toggle using old ABC parser [default = %s]\n", fUseAbc? "yes": "no" );
-//    Abc_Print( -2, "\t-p     : toggle using Ptr construction [default = %s]\n", fUsePtr? "yes": "no" );
+    Abc_Print( -2, "\t-t     : toggle testing the parser [default = %s]\n", fTest? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
@@ -194,7 +185,7 @@ int Cba_CommandWrite( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Cba_Man_t * p = Cba_AbcGetMan(pAbc);
     char * pFileName = NULL;
-    int fInclineCats =    1;
+    int fInclineCats =    0;
     int c, fVerbose  =    0;
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "cvh" ) ) != EOF )
@@ -602,8 +593,7 @@ usage:
 ******************************************************************************/
 int Cba_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern void Prs_ManReadVerilogTest();
-    //Cba_Man_t * p = Cba_AbcGetMan(pAbc);
+    Cba_Man_t * p = Cba_AbcGetMan(pAbc);
     int c, fVerbose  = 0;
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
@@ -619,14 +609,11 @@ int Cba_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
             goto usage;
         }
     }
-/*
     if ( p == NULL )
     {
         Abc_Print( 1, "Cba_CommandTest(): There is no current design.\n" );
         return 0;
     }
-*/
-    Prs_ManReadVerilogTest();
     return 0;
 usage:
     Abc_Print( -2, "usage: @test [-vh]\n" );

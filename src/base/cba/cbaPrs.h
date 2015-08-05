@@ -60,7 +60,7 @@ struct Prs_Ntk_t_
     unsigned     fHasCXs : 1;
     unsigned     fHasCZs : 1;
     Abc_Nam_t *  pStrs;
-    Abc_Nam_t *  pSops;
+    Abc_Nam_t *  pFuns;
     // interface
     Vec_Int_t    vOrder;     // order of signals
     // signal names
@@ -90,7 +90,7 @@ struct Prs_Man_t_
     char *       pLimit;      // end of file
     char *       pCur;        // current position
     Abc_Nam_t *  pStrs;       // string manager
-    Abc_Nam_t *  pSops;       // cover manager
+    Abc_Nam_t *  pFuns;       // cover manager
     Prs_Ntk_t *  pNtk;        // current network
     Vec_Ptr_t *  vNtks;       // input networks
     // temporary data
@@ -109,7 +109,7 @@ struct Prs_Man_t_
 static inline Prs_Ntk_t * Prs_ManNtk( Vec_Ptr_t * vPrs, int i )        { return i >= 0 && i < Vec_PtrSize(vPrs) ? (Prs_Ntk_t *)Vec_PtrEntry(vPrs, i) : NULL; }
 static inline Prs_Ntk_t * Prs_ManRoot( Vec_Ptr_t * vPrs )              { return Prs_ManNtk(vPrs, 0);                             }
 static inline Abc_Nam_t * Prs_ManNameMan( Vec_Ptr_t * vPrs )           { return Prs_ManRoot(vPrs)->pStrs;                        }
-static inline Abc_Nam_t * Prs_ManFuncMan( Vec_Ptr_t * vPrs )           { return Prs_ManRoot(vPrs)->pSops;                        }
+static inline Abc_Nam_t * Prs_ManFuncMan( Vec_Ptr_t * vPrs )           { return Prs_ManRoot(vPrs)->pFuns;                        }
 
 static inline int         Prs_NtkId( Prs_Ntk_t * p )                   { return p->iModuleName;                                  }
 static inline int         Prs_NtkPioNum( Prs_Ntk_t * p )               { return Vec_IntSize(&p->vInouts);                        }
@@ -118,7 +118,8 @@ static inline int         Prs_NtkPoNum( Prs_Ntk_t * p )                { return 
 static inline int         Prs_NtkBoxNum( Prs_Ntk_t * p )               { return Vec_IntSize(&p->vObjs);                          }
 static inline int         Prs_NtkObjNum( Prs_Ntk_t * p )               { return Prs_NtkPioNum(p) + Prs_NtkPiNum(p) + Prs_NtkPoNum(p) + Prs_NtkBoxNum(p); }
 static inline char *      Prs_NtkStr( Prs_Ntk_t * p, int h )           { return Abc_NamStr(p->pStrs, h);                         }
-static inline char *      Prs_NtkSop( Prs_Ntk_t * p, int h )           { return Abc_NamStr(p->pSops, h);                         }
+static inline char *      Prs_NtkSop( Prs_Ntk_t * p, int h )           { return Abc_NamStr(p->pFuns, h);                         }
+static inline char *      Prs_NtkConst( Prs_Ntk_t * p, int h )         { return Abc_NamStr(p->pFuns, h);                         }
 static inline char *      Prs_NtkName( Prs_Ntk_t * p )                 { return Prs_NtkStr(p, Prs_NtkId(p));                     }
 static inline int         Prs_NtkSigName( Prs_Ntk_t * p, int i )       { if (!p->fSlices) return i; assert(Abc_Lit2Att2(i) == CBA_PRS_NAME); return Abc_Lit2Var2(i); }
 
@@ -186,7 +187,7 @@ static inline void Prs_ManInitializeNtk( Prs_Man_t * p, int iName, int fSlices )
     p->pNtk->iModuleName = iName;
     p->pNtk->fSlices = fSlices;
     p->pNtk->pStrs = Abc_NamRef( p->pStrs );
-    p->pNtk->pSops = Abc_NamRef( p->pSops );
+    p->pNtk->pFuns = Abc_NamRef( p->pFuns );
     Vec_PtrPush( p->vNtks, p->pNtk );
 }
 static inline void Prs_ManFinalizeNtk( Prs_Man_t * p )
@@ -229,6 +230,14 @@ static inline void Prs_NtkAddBox( Prs_Ntk_t * p, int ModName, int InstName, Vec_
     Vec_IntAppend( &p->vBoxes, vTemp );
 }
 
+// parsing range
+static inline void Prs_NtkParseRange( Prs_Ntk_t * p, int RangeId, int * pLeft, int * pRight )
+{
+    char * pRange = Prs_NtkStr(p, RangeId);
+    char * pPivot = strchr( pRange, ':' ); 
+    *pLeft  = atoi(pRange + 1);
+    *pRight = pPivot ? atoi(pPivot + 1) : *pLeft;
+}
 
 static inline char * Prs_ManLoadFile( char * pFileName, char ** ppLimit )
 {
@@ -269,17 +278,15 @@ static inline Prs_Man_t * Prs_ManAlloc( char * pFileName )
     p->pLimit  = pLimit;
     p->pCur    = pBuffer;
     p->pStrs   = Abc_NamStart( 1000, 24 );
-    p->pSops   = Abc_NamStart( 100, 24 );
+    p->pFuns   = Abc_NamStart( 100, 24 );
     p->vNtks   = Vec_PtrAlloc( 100 );
-    Abc_NamStrFindOrAdd( p->pSops, " 0\n", NULL );
-    Abc_NamStrFindOrAdd( p->pSops, " 1\n", NULL );
     return p;
 }
 
 static inline void Prs_NtkFree( Prs_Ntk_t * p )
 {
     if ( p->pStrs ) Abc_NamDeref( p->pStrs );
-    if ( p->pSops ) Abc_NamDeref( p->pSops );
+    if ( p->pFuns ) Abc_NamDeref( p->pFuns );
     Vec_IntErase( &p->vOrder );
     Vec_IntErase( &p->vInouts );
     Vec_IntErase( &p->vInputs );
@@ -307,7 +314,7 @@ static inline void Prs_ManVecFree( Vec_Ptr_t * vPrs )
 static inline void Prs_ManFree( Prs_Man_t * p )
 {
     if ( p->pStrs ) Abc_NamDeref( p->pStrs );
-    if ( p->pSops ) Abc_NamDeref( p->pSops );
+    if ( p->pFuns ) Abc_NamDeref( p->pFuns );
     if ( p->vNtks ) Prs_ManVecFree( p->vNtks );
     // temporary
     Vec_StrErase( &p->vCover );

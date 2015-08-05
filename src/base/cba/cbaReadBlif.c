@@ -235,7 +235,7 @@ static inline void Prs_ManSaveCover( Prs_Man_t * p )
     assert( Vec_StrSize(&p->vCover) > 0 );
     Vec_StrPush( &p->vCover, '\0' );
 //    iToken = Ptr_SopToType( Vec_StrArray(&p->vCover) );
-    iToken = Abc_NamStrFindOrAdd( p->pSops, Vec_StrArray(&p->vCover), NULL );
+    iToken = Abc_NamStrFindOrAdd( p->pFuns, Vec_StrArray(&p->vCover), NULL );
     Vec_StrClear( &p->vCover );
     // set the cover to the module of this box
     assert( Prs_BoxNtk(p->pNtk, Prs_NtkBoxNum(p->pNtk)-1) == 1 ); // default const 0
@@ -409,6 +409,8 @@ Vec_Ptr_t * Prs_ManReadBlif( char * pFileName )
     Prs_Man_t * p = Prs_ManAlloc( pFileName );
     if ( p == NULL )
         return NULL;
+    Abc_NamStrFindOrAdd( p->pFuns, " 0\n", NULL );
+    Abc_NamStrFindOrAdd( p->pFuns, " 1\n", NULL );
     Prs_NtkAddBlifDirectives( p );
     Prs_ManReadLines( p );
     if ( Prs_ManErrorPrint(p) )
@@ -428,20 +430,17 @@ Vec_Ptr_t * Prs_ManReadBlif( char * pFileName )
   SeeAlso     []
 
 ***********************************************************************/
-void Prs_ManReadBlifTest()
+void Prs_ManReadBlifTest( char * pFileName )
 {
     abctime clk = Abc_Clock();
-    extern void Prs_ManWriteBlif( char * pFileName, Vec_Ptr_t * vPrs );
-//    Vec_Ptr_t * vPrs = Prs_ManReadBlif( "aga/ray/ray_hie_oper.blif" );
-//    Vec_Ptr_t * vPrs = Prs_ManReadBlif( "c/hie/dump/1/netlist_1_out8.blif" );
-    Vec_Ptr_t * vPrs = Prs_ManReadBlif( "add2.blif" );
+    Vec_Ptr_t * vPrs = Prs_ManReadBlif( pFileName );
     if ( !vPrs ) return;
     printf( "Finished reading %d networks. ", Vec_PtrSize(vPrs) );
     printf( "NameIDs = %d. ", Abc_NamObjNumMax(Prs_ManNameMan(vPrs)) );
     printf( "Memory = %.2f MB. ", 1.0*Prs_ManMemory(vPrs)/(1<<20) );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
 //    Abc_NamPrint( p->pStrs );
-    Prs_ManWriteBlif( "add2_out.blif", vPrs );
+    Prs_ManWriteBlif( Extra_FileNameGenericAppend(pFileName, "_out.blif"), vPrs );
     Prs_ManVecFree( vPrs );
 }
 
@@ -591,9 +590,9 @@ Cba_Man_t * Prs_ManBuildCbaBlif( char * pFileName, Vec_Ptr_t * vDes )
     Prs_Ntk_t * pPrsRoot = Prs_ManRoot(vDes);
     // start the manager
     Abc_Nam_t * pStrs = Abc_NamRef(pPrsRoot->pStrs);
-    Abc_Nam_t * pCons = Abc_NamRef(pPrsRoot->pSops);
+    Abc_Nam_t * pFuns = Abc_NamRef(pPrsRoot->pFuns);
     Abc_Nam_t * pMods = Abc_NamStart( 100, 24 );
-    Cba_Man_t * p = Cba_ManAlloc( pFileName, Vec_PtrSize(vDes), pStrs, pCons, pMods );
+    Cba_Man_t * p = Cba_ManAlloc( pFileName, Vec_PtrSize(vDes), pStrs, pFuns, pMods );
     // initialize networks
     Vec_PtrForEachEntry( Prs_Ntk_t *, vDes, pPrsNtk, i )
     {

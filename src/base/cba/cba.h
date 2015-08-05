@@ -188,7 +188,7 @@ struct Cba_Man_t_
     char *       pName;    // design name
     char *       pSpec;    // spec file name
     Abc_Nam_t *  pStrs;    // string manager
-    Abc_Nam_t *  pCons;    // constant manager
+    Abc_Nam_t *  pFuns;    // constant manager
     Abc_Nam_t *  pMods;    // module name manager
     Vec_Int_t    vNameMap; // mapping names
     Vec_Int_t    vNameMap2;// mapping names
@@ -222,9 +222,9 @@ static inline int            Cba_ManStrId( Cba_Man_t * p, char * pStr )      { r
 static inline int            Cba_ManNewStrId( Cba_Man_t * p, char * pName )  { return Abc_NamStrFindOrAdd(p->pStrs, pName, NULL);                                          }
 static inline int            Cba_ManNewStrId_( Cba_Man_t * p, char * pPref, int n, char * pSuff ) { char pStr[100]; sprintf(pStr, "%s%d%s", pPref?pPref:"", n, pSuff?pSuff:""); return Abc_NamStrFindOrAdd(p->pStrs, pStr, NULL); }
 static inline int            Cba_ManNameIdMax( Cba_Man_t * p )               { return Abc_NamObjNumMax(p->pStrs) + 1;                                                      }
-static inline char *         Cba_ManConst( Cba_Man_t * p, int i )            { return Abc_NamStr(p->pCons, i);                                                             }
-static inline int            Cba_ManConstId( Cba_Man_t * p, char * pStr )    { return Abc_NamStrFind(p->pCons, pStr);                                                      }
-static inline int            Cba_ManConstIdMax( Cba_Man_t * p )              { return Abc_NamObjNumMax(p->pCons) + 1;                                                      }
+static inline char *         Cba_ManConst( Cba_Man_t * p, int i )            { return Abc_NamStr(p->pFuns, i);                                                             }
+static inline int            Cba_ManConstId( Cba_Man_t * p, char * pStr )    { return Abc_NamStrFind(p->pFuns, pStr);                                                      }
+static inline int            Cba_ManConstIdMax( Cba_Man_t * p )              { return Abc_NamObjNumMax(p->pFuns) + 1;                                                      }
 
 static inline Cba_Man_t *    Cba_NtkMan( Cba_Ntk_t * p )                     { return p->pDesign;                                                                          }
 static inline Cba_Ntk_t *    Cba_NtkNtk( Cba_Ntk_t * p, int i )              { return Cba_ManNtk(p->pDesign, i);                                                           }
@@ -789,20 +789,20 @@ static inline void Cba_NtkPrint( Cba_Ntk_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-static inline Cba_Man_t * Cba_ManAlloc( char * pFileName, int nNtks, Abc_Nam_t * pStrs, Abc_Nam_t * pCons, Abc_Nam_t * pMods )
+static inline Cba_Man_t * Cba_ManAlloc( char * pFileName, int nNtks, Abc_Nam_t * pStrs, Abc_Nam_t * pFuns, Abc_Nam_t * pMods )
 {
     Cba_Man_t * pNew = ABC_CALLOC( Cba_Man_t, 1 );
     pNew->pName = Extra_FileDesignName( pFileName );
     pNew->pSpec = Abc_UtilStrsav( pFileName );
     pNew->pStrs = pStrs ? pStrs : Abc_NamStart( 1000, 24 );
-    pNew->pCons = pCons ? pCons : Abc_NamStart( 100, 24 );
+    pNew->pFuns = pFuns ? pFuns : Abc_NamStart( 100, 24 );
     pNew->pMods = pMods ? pMods : Abc_NamStart( 100, 24 );
-    if ( pCons == NULL )
+    if ( pFuns == NULL )
     {
-        Abc_NamStrFindOrAdd(pNew->pCons, "1\'b0", NULL);
-        Abc_NamStrFindOrAdd(pNew->pCons, "1\'b1", NULL);
-        Abc_NamStrFindOrAdd(pNew->pCons, "1\'bx", NULL);
-        Abc_NamStrFindOrAdd(pNew->pCons, "1\'bz", NULL);
+        Abc_NamStrFindOrAdd(pNew->pFuns, "1\'b0", NULL);
+        Abc_NamStrFindOrAdd(pNew->pFuns, "1\'b1", NULL);
+        Abc_NamStrFindOrAdd(pNew->pFuns, "1\'bx", NULL);
+        Abc_NamStrFindOrAdd(pNew->pFuns, "1\'bz", NULL);
     }
     Vec_PtrGrow( &pNew->vNtks,  nNtks+1 ); Vec_PtrPush( &pNew->vNtks, NULL );
     // set default root module
@@ -816,7 +816,7 @@ static inline void Cba_ManDupTypeNames( Cba_Man_t * pNew, Cba_Man_t * p )
 static inline Cba_Man_t * Cba_ManDup( Cba_Man_t * p, Vec_Int_t*(* pFuncOrder)(Cba_Ntk_t*) )
 {
     Cba_Ntk_t * pNtk, * pNtkNew; int i;
-    Cba_Man_t * pNew = Cba_ManAlloc( p->pSpec, Cba_ManNtkNum(p), Abc_NamRef(p->pStrs), Abc_NamRef(p->pCons), Abc_NamStart(100, 24) );
+    Cba_Man_t * pNew = Cba_ManAlloc( p->pSpec, Cba_ManNtkNum(p), Abc_NamRef(p->pStrs), Abc_NamRef(p->pFuns), Abc_NamStart(100, 24) );
     Cba_ManDupTypeNames( pNew, p );
     Cba_ManForEachNtk( p, pNtk, i )
     {
@@ -843,7 +843,7 @@ static inline void Cba_ManFree( Cba_Man_t * p )
         Cba_NtkFree( pNtk );
     ABC_FREE( p->vNtks.pArray );
     Abc_NamDeref( p->pStrs );
-    Abc_NamDeref( p->pCons );
+    Abc_NamDeref( p->pFuns );
     Abc_NamDeref( p->pMods );
     Vec_IntErase( &p->vNameMap );
     Vec_IntErase( &p->vUsed );
@@ -909,7 +909,7 @@ static inline int Cba_ManNewConstId( Cba_Man_t * p, Vec_Str_t * vBits )
     Vec_StrForEachEntry( vBits, Symb, i )
         Vec_StrPush( vOut, Symb );
     Vec_StrPush( vOut, '\0' );
-    return Abc_NamStrFindOrAdd(p->pCons, Vec_StrArray(vOut), NULL);
+    return Abc_NamStrFindOrAdd(p->pFuns, Vec_StrArray(vOut), NULL);
 }
 static inline int Cba_ManMemory( Cba_Man_t * p )
 {
@@ -918,7 +918,7 @@ static inline int Cba_ManMemory( Cba_Man_t * p )
     nMem += p->pName ? (int)strlen(p->pName) : 0;
     nMem += p->pSpec ? (int)strlen(p->pSpec) : 0;
     nMem += Abc_NamMemUsed(p->pStrs);
-    nMem += Abc_NamMemUsed(p->pCons);
+    nMem += Abc_NamMemUsed(p->pFuns);
     nMem += Abc_NamMemUsed(p->pMods);
     nMem += (int)Vec_IntMemory(&p->vNameMap );   
     nMem += (int)Vec_IntMemory(&p->vUsed );  
@@ -1017,8 +1017,10 @@ extern Cba_Man_t *   Cba_ManExtractGroup( Cba_Man_t * p, Vec_Int_t * vObjs );
 extern Cba_Man_t *   Cba_ManDeriveFromGia( Gia_Man_t * pGia );
 extern Cba_Man_t *   Cba_ManInsertGroup( Cba_Man_t * p, Vec_Int_t * vObjs, Cba_Ntk_t * pSyn );
 /*=== cbaReadBlif.c ==========================================================*/
+extern void          Prs_ManReadBlifTest( char * pFileName );
 extern Cba_Man_t *   Cba_ManReadBlif( char * pFileName );
 /*=== cbaReadVer.c ===========================================================*/
+extern void          Prs_ManReadVerilogTest( char * pFileName );
 extern Cba_Man_t *   Cba_ManReadVerilog( char * pFileName );
 /*=== cbaWriteBlif.c =========================================================*/
 extern void          Prs_ManWriteBlif( char * pFileName, Vec_Ptr_t * p );
