@@ -1145,6 +1145,53 @@ int Prs_CreateBitSignal( Prs_Ntk_t * pNtk, int Sig )
     assert( SigOne >= 0 );
     return Abc_Var2Lit2( SigOne, CBA_PRS_NAME );
 }
+
+int Prs_CreateFlopSetReset( Cba_Ntk_t * p, Prs_Ntk_t * pNtk, Vec_Int_t * vBox, int * pIndexSet, int * pIndexRst, int * pBitSet, int * pBitRst )
+{
+    // handle constants
+
+    int iSigSet = -1, iSigRst = -1;
+    int IndexSet = -1, IndexRst = -1;
+    int FormId, ActId, k;
+    // mark set and reset
+    Cba_NtkCleanMap2( p );
+    Cba_NtkSetMap2( p, Cba_NtkStrId(p, "set"), 1 );
+    Cba_NtkSetMap2( p, Cba_NtkStrId(p, "reset"), 2 );
+    // check the inputs
+    Vec_IntForEachEntryDouble( vBox, FormId, ActId, k )
+        if ( Cba_NtkGetMap2(p, FormId) == 2 ) // plus 1
+            iSigSet = ActId, IndexSet = k+1;
+        else if ( Cba_NtkGetMap2(p, FormId) == 3 ) // plus 1
+            iSigRst = ActId, IndexRst = k+1;
+    assert( iSigSet >= 0 && iSigRst >= 0 );
+    if ( pIndexSet ) *pBitSet = 0;
+    if ( pIndexRst ) *pBitRst = 0;
+    if ( pBitSet )   *pBitSet = 0;
+    if ( pBitRst )   *pBitRst = 0;
+    if ( iSigSet == -1 || iSigRst == -1 )
+        return 0;
+    if ( pIndexSet ) *pIndexSet = IndexSet;
+    if ( pIndexRst ) *pIndexRst = IndexRst;
+    if ( pBitSet )   *pBitSet = iSigSet;
+    if ( pBitRst )   *pBitRst = iSigRst;
+    return 1;
+}
+Vec_Ptr_t * Prs_CreateDetectRams( Prs_Ntk_t * pNtk )
+{
+    Vec_Ptr_t * vRes = NULL; 
+    Vec_Int_t * vBox; int i;
+    Prs_NtkForEachBox( pNtk, vBox, i )
+    {
+        char * pNtkName;
+        if ( Prs_BoxIsNode(pNtk, i) ) // node
+            continue;
+        pNtkName = Prs_NtkStr(pNtk, Prs_BoxNtk(pNtk, i));
+        if ( !strncmp(pNtkName, "ClockedWritePort_", strlen("ClockedWritePort_")) )
+        {
+        }
+    }
+    return vRes;
+}
 void Prs_CreateVerilogPio( Cba_Ntk_t * p, Prs_Ntk_t * pNtk )
 {
     int i, NameId, RangeId, Left, Right, iObj, iFon;
@@ -1187,13 +1234,19 @@ void Prs_CreateVerilogPio( Cba_Ntk_t * p, Prs_Ntk_t * pNtk )
 }
 int Prs_CreateVerilogNtk( Cba_Ntk_t * p, Prs_Ntk_t * pNtk )
 {
-    Vec_Int_t * vBox;
+    Vec_Int_t * vBox;  Vec_Ptr_t * vRams, * vRam;
     int i, k, iObj, iTerm, iFon, FormId, ActId;
     int NameId, RangeId, Left, Right;
     // map inputs
     Cba_NtkCleanMap( p );
     Cba_NtkForEachPi( p, iObj, i )
         Cba_NtkSetMap( p, Cba_ObjName(p, iObj), Cba_ObjFon0(p, iObj) );
+    // collect RAMs and create boxes
+    vRams = Prs_CreateDetectRams( pNtk );
+    Vec_PtrForEachEntry( Vec_Ptr_t *, vRams, vRam, i )
+    {
+    }
+    Vec_VecFree( (Vec_Vec_t *)vRams );
     // create objects
     Prs_NtkForEachBox( pNtk, vBox, i )
     {
@@ -1226,6 +1279,8 @@ int Prs_CreateVerilogNtk( Cba_Ntk_t * p, Prs_Ntk_t * pNtk )
                 nInputs = 1 + (1 << atoi(pNtkName+strlen("wide_mux_")));
             else if ( Type == CBA_BOX_SEL )
                 nInputs = 1 + atoi(pNtkName+strlen("wide_select_"));
+            else if ( (Type == CBA_BOX_DFFRS || Type == CBA_BOX_LATCHRS) && !strncmp(pNtkName, "wide_", strlen("wide_")) && !Prs_CreateFlopSetReset(p, pNtk, vBox, NULL, NULL, NULL, NULL) )
+                Type = CBA_BOX_CATIN, nInputs = atoi(pNtkName+strlen(Type == CBA_BOX_DFFRS ? "wide_dffrs_" : "wide_latchrs_")), nOutputs = 1;
             // create object
             iObj = Cba_ObjAlloc( p, Type, nInputs, nOutputs );
             if ( pBox ) Cba_ObjSetFunc( p, iObj, Cba_NtkId(pBox) );
@@ -1299,7 +1354,7 @@ int Prs_CreateVerilogNtk( Cba_Ntk_t * p, Prs_Ntk_t * pNtk )
             int nInputs = -1;
             char ** pInNames = NULL, * pNtkName = Prs_NtkStr(pNtk, Prs_BoxNtk(pNtk, i));
             Cba_ObjType_t Type = Prs_ManFindType( pNtkName, &nInputs, 0, &pInNames );
-            assert( Type == Cba_ObjType(p, iObj) );
+            assert( Type == Cba_ObjType(p, iObj) || CBA_BOX_CATIN == Cba_ObjType(p, iObj) );
             // mark PI objects
             Cba_NtkCleanMap2( p );
             if ( Type == CBA_OBJ_BOX )
@@ -1316,29 +1371,60 @@ int Prs_CreateVerilogNtk( Cba_Ntk_t * p, Prs_Ntk_t * pNtk )
                 for ( k = 0; k < nInputs; k++ )
                     Cba_NtkSetMap2( p, Cba_NtkStrId(p, pInNames[k]), k+1 );
             }
-            if ( !strncmp(pNtkName, "wide_dffrs_", strlen("wide_dffrs_")) || !strncmp(pNtkName, "wide_dlatchrs_", strlen("wide_dlatchrs_")) )
+            if ( (Type == CBA_BOX_DFFRS || Type == CBA_BOX_LATCHRS) && !strncmp(pNtkName, "wide_", strlen("wide_")) )
             {
-                int iSigSet = -1, iSigRst = -1;
-                int IndexSet = -1, IndexRst = -1;
-                int iBitSet, iBitRst;
-                assert( Type == CBA_BOX_DFFRS || Type == CBA_BOX_LATCHRS );
-                Vec_IntForEachEntryDouble( vBox, FormId, ActId, k )
-                    if ( Cba_NtkGetMap2(p, FormId) == 2 ) // plus 1
-                        iSigSet = ActId, IndexSet = k+1;
-                    else if ( Cba_NtkGetMap2(p, FormId) == 3 ) // plus 1
-                        iSigRst = ActId, IndexRst = k+1;
-                assert( iSigSet >= 0 && iSigRst >= 0 );
-                iBitSet = Prs_CreateBitSignal( pNtk, iSigSet );
-                iBitRst = Prs_CreateBitSignal( pNtk, iSigRst );
-                if ( iBitSet == -1 || iBitSet == -1 )
+                int IndexSet = -1, IndexRst = -1,  iBitSet = -1, iBitRst = -1;
+                int Status = Prs_CreateFlopSetReset( p, pNtk, vBox, &IndexSet, &IndexRst, &iBitSet, &iBitRst );
+                if ( Status )
                 {
-                    // perform blasting of the flop/latch
-                    assert( 0 );
+                    Vec_IntWriteEntry( vBox, IndexSet, iBitSet );
+                    Vec_IntWriteEntry( vBox, IndexRst, iBitRst );
+                    // updated box should be fine
+                }
+                else
+                {
+                    int Width = atoi( pNtkName + strlen(Type == CBA_BOX_DFFRS ? "wide_dffrs_" : "wide_latchrs_") );
+                    assert( Cba_ObjType(p, iObj) == CBA_BOX_CATIN );
+                    for ( i = 0; i < Width; i++ )
+                    {
+                        // create bit-level flop
+                        int iObjNew = Cba_ObjAlloc( p, Type, 4, 1 );
+                        if ( Prs_BoxName(pNtk, i) )
+                        {
+                            char Buffer[1000];  sprintf( Buffer, "%s[%d]", Prs_NtkStr(pNtk, Prs_BoxName(pNtk, i)), i );
+                            NameId = Cba_NtkNewStrId( p, Buffer ); 
+                            Cba_ObjSetName( p, iObjNew, NameId );
+                        }
+                        //Cba_VerificSaveLineFile( p, iObjNew, pInst->Linefile() );
+                        // set output fon
+                        iFon = Cba_ObjFon0(p, iObjNew);
+                        {
+                            char Buffer[1000];  sprintf( Buffer, "%s[%d]", Cba_FonNameStr(p, Cba_ObjFon0(p, iObj)), i );
+                            NameId = Cba_NtkNewStrId( p, Buffer ); 
+                            Cba_FonSetName( p, iFon, NameId );
+                        }
+                        // no need to map this name because it may be produced elsewhere
+                        //Cba_NtkSetMap( p, NameId, iFon );
+                        // add the flop
+                        Cba_ObjSetFinFon( p, iObj, Width-1-i, iFon );
+                        // create bit-level flops
+                        Vec_IntForEachEntryDouble( vBox, FormId, ActId, k )
+                            if ( Cba_NtkGetMap2(p, FormId) )
+                            {
+                                int Index = Cba_NtkGetMap2(p, FormId)-1;
+                                iFon = Prs_CreateSignalIn( p, pNtk, ActId );  assert( iFon );
+                                // create bit-select node for data/set/reset (but not for clock)
+                                if ( Index < 3 ) // not clock
+                                {
+                                    int iObjNew2 = Prs_CreateSlice( p, iFon, pNtk, 1, 0 );
+                                    //Cba_VerificSaveLineFile( p, iObjNew, pInst->Linefile() );
+                                    iFon = Cba_ObjFon0( p, iObjNew2 );
+                                }
+                                Cba_ObjSetFinFon( p, iObjNew, Index, iFon );
+                            }
+                    }
                     continue;
                 }
-                // update box
-                Vec_IntWriteEntry( vBox, IndexSet, iBitSet );
-                Vec_IntWriteEntry( vBox, IndexRst, iBitRst );
             }
             // connect box fins
             Vec_IntForEachEntryDouble( vBox, FormId, ActId, k )
