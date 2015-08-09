@@ -193,14 +193,19 @@ void Prs_ManWriteVerilog( char * pFileName, Vec_Ptr_t * vPrs )
 void Cba_ManCreatePrimMap( char ** pMap )
 {
     memset( pMap, 0, sizeof(char *) * CBA_BOX_LAST );
+
+    pMap[ CBA_BOX_SLICE  ] = "sli";
+    pMap[ CBA_BOX_CATIN  ] = "icc";
+    pMap[ CBA_BOX_CATOUT ] = "occ";
+
     pMap[ CBA_BOX_BUF    ] = "";
     pMap[ CBA_BOX_INV    ] = "~";
     pMap[ CBA_BOX_AND    ] = "&"; 
-    pMap[ CBA_BOX_NAND   ] = "~&"; 
+    pMap[ CBA_BOX_NAND   ] = "&"; 
     pMap[ CBA_BOX_OR     ] = "|"; 
-    pMap[ CBA_BOX_NOR    ] = "~|"; 
+    pMap[ CBA_BOX_NOR    ] = "|"; 
     pMap[ CBA_BOX_XOR    ] = "^"; 
-    pMap[ CBA_BOX_XNOR   ] = "~^"; 
+    pMap[ CBA_BOX_XNOR   ] = "^"; 
     pMap[ CBA_BOX_SHARP  ] = "&"; 
     pMap[ CBA_BOX_SHARPL ] = "&"; 
     pMap[ CBA_BOX_MUX    ] = "?"; 
@@ -218,12 +223,12 @@ void Cba_ManCreatePrimMap( char ** pMap )
     pMap[ CBA_BOX_LNOR   ] = NULL; 
     pMap[ CBA_BOX_LXOR   ] = "^^"; 
     pMap[ CBA_BOX_LXNOR  ] = NULL; 
-    pMap[ CBA_BOX_NMUX   ] = NULL; 
-    pMap[ CBA_BOX_SEL    ] = NULL; 
+    pMap[ CBA_BOX_NMUX   ] = "nmux"; 
+    pMap[ CBA_BOX_SEL    ] = "sel"; 
     pMap[ CBA_BOX_PSEL   ] = NULL; 
     pMap[ CBA_BOX_ENC    ] = NULL; 
     pMap[ CBA_BOX_PENC   ] = NULL; 
-    pMap[ CBA_BOX_DEC    ] = NULL; 
+    pMap[ CBA_BOX_DEC    ] = "dec"; 
     pMap[ CBA_BOX_EDEC   ] = NULL; 
     pMap[ CBA_BOX_ADD    ] = "+"; 
     pMap[ CBA_BOX_SUB    ] = "-"; 
@@ -242,38 +247,22 @@ void Cba_ManCreatePrimMap( char ** pMap )
     pMap[ CBA_BOX_NEQU   ] = "!="; 
     pMap[ CBA_BOX_SHIL   ] = "<<"; 
     pMap[ CBA_BOX_SHIR   ] = ">>"; 
-    pMap[ CBA_BOX_ROTL   ] = NULL; 
-    pMap[ CBA_BOX_ROTR   ] = NULL; 
+    pMap[ CBA_BOX_ROTL   ] = "rotL"; 
+    pMap[ CBA_BOX_ROTR   ] = "rotR"; 
+
+    pMap[ CBA_BOX_TRI    ] = "tri";
+    pMap[ CBA_BOX_RAM    ] = "ram";
+    pMap[ CBA_BOX_RAMR   ] = "ramR";
+    pMap[ CBA_BOX_RAMW   ] = "ramW";
+    pMap[ CBA_BOX_RAMWC  ] = "ramWC";
+    pMap[ CBA_BOX_RAMBOX ] = "ramBox";
+
+    pMap[ CBA_BOX_LATCH  ] = "lat";
+    pMap[ CBA_BOX_LATCHRS] = "latrs";
+    pMap[ CBA_BOX_DFF    ] = "dff";
+    pMap[ CBA_BOX_DFFRS  ] = "dffrs";
 }
 
-
-#ifdef WIN32
-#define vsnprintf _vsnprintf
-#endif
-
-#include <stdio.h>
-
-//extern int vsnprintf(char * s, size_t n, const char * format, va_list arg);
-
-static inline void Vec_StrPrintF( Vec_Str_t * p, const char * format, ... )
-{
-    va_list args;
-    char * pBuffer;
-    int nBuffer, nSize = 1000; 
-    va_start( args, format );
-    Vec_StrGrow( p, Vec_StrSize(p) + nSize );
-    pBuffer = Vec_StrArray(p) + Vec_StrSize(p);
-    nBuffer = vsnprintf( pBuffer, nSize, format, args );
-    if ( nBuffer > nSize )
-    {
-        Vec_StrGrow( p, Vec_StrSize(p) + nBuffer + nSize );
-        pBuffer = Vec_StrArray(p) + Vec_StrSize(p);
-        nSize = vsnprintf( pBuffer, nBuffer, format, args );
-        assert( nSize == nBuffer );
-    }
-    p->nSize += nBuffer;
-    va_end( args );
-}
 
 
 static inline int Cba_NameIsLegalInVerilog( char * pName )
@@ -303,17 +292,22 @@ static inline char * Cba_NameLegal( char * pName )
 }
 char * Cba_ObjGetName( Cba_Ntk_t * p, int i )
 {
-    int fLegalize = 1;
-    char * pName = Cba_ObjNameStr(p, i); assert( pName );
-    return fLegalize ? Cba_NameLegal(pName) : pName;
+    char * pName = Cba_ObjNameStr(p, i);
+    if ( pName == NULL )
+        return pName;
+    if ( Cba_NameIsLegalInVerilog(pName) )
+        return pName;
+    return Vec_StrPrintF( Abc_NamBuffer(Cba_NtkNam(p)), "\\%s ", pName );
 }
 char * Cba_FonGetName( Cba_Ntk_t * p, int i )
 {
-    int fLegalize = 1;
-    char * pName = Cba_FonNameStr(p, i); assert( pName );
-    return fLegalize ? Cba_NameLegal(pName) : pName;
+    char * pName = Cba_FonNameStr(p, i);
+    if ( pName == NULL )
+        return pName;
+    if ( Cba_NameIsLegalInVerilog(pName) )
+        return pName;
+    return Vec_StrPrintF( Abc_NamBuffer(Cba_NtkNam(p)), "\\%s ", pName );
 }
-
 
 
 void Cba_ManWriteFonRange( Cba_Ntk_t * p, int iFon )
@@ -421,11 +415,7 @@ void Cba_ManWriteVerilogNtk( Cba_Ntk_t * p, int fInlineConcat )
         Vec_StrPrintStr( vStr, Cba_ObjIsPi(p, iObj) ? "input " : "output " );
         Cba_ManWriteFonRange( p, Cba_ObjIsPi(p, iObj) ? Cba_ObjFon0(p, iObj) : Cba_ObjFinFon(p, iObj, 0) );
         Vec_StrPrintStr( vStr, Cba_ObjGetName(p, iObj) );
-//        Vec_StrPush( vStr, ';' );
-//        for ( k = Vec_StrSize(vStr); k < Offset + 40; k++ )
-//            Vec_StrPush( vStr, ' ' );
         Vec_StrPrintF( vStr, ";%*s", Offset + 40 - Vec_StrSize(vStr), "" );
-
         Cba_ManWriteLineFile( p, iObj, FileAttr, LineAttr );
         Vec_StrPush( vStr, '\n' );
     }
@@ -433,6 +423,8 @@ void Cba_ManWriteVerilogNtk( Cba_Ntk_t * p, int fInlineConcat )
     // write objects
     Cba_NtkForEachBox( p, iObj )
     {
+//        char * pNameNtk = Cba_NtkName(p);
+//        char * pNameInst = Cba_ObjGetName(p, iObj);
         int Type = Cba_ObjType(p, iObj);
         if ( Cba_ObjIsSlice(p, iObj) )
             continue;
@@ -813,12 +805,17 @@ void Cba_ManWriteVerilogNtk( Cba_Ntk_t * p, int fInlineConcat )
             }
             else if ( Cba_NtkTypeName(p, Type) ) // binary operation
             {
+                int fCompl = (Type == CBA_BOX_NAND || Type == CBA_BOX_NOR || Type == CBA_BOX_XNOR);
                 Vec_StrPush( vStr, ' ' );
+                if ( fCompl )
+                    Vec_StrPrintStr( vStr, "!(" );
                 Cba_ManWriteFonName( p, Cba_ObjFinFon(p, iObj, 0), fInlineConcat, 0 );
                 Vec_StrPush( vStr, ' ' );
                 Vec_StrPrintStr( vStr, Cba_NtkTypeName(p, Type) );
                 Vec_StrPush( vStr, ' ' );
                 Cba_ManWriteFonName( p, Cba_ObjFinFon(p, iObj, 1), fInlineConcat, 0 );
+                if ( fCompl )
+                    Vec_StrPrintStr( vStr, ")" );
             }
             else // unknown
             {

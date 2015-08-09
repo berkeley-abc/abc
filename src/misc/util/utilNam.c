@@ -45,20 +45,22 @@ struct Abc_Nam_t_
     int              iHandle;      // the current free handle
     char *           pStore;       // storage for name objects
     // internal number mappings
-    Vec_Int_t *      vInt2Handle;  // mapping integers into handles
-    Vec_Int_t *      vInt2Next;    // mapping integers into nexts
+    Vec_Int_t        vInt2Handle;  // mapping integers into handles
+    Vec_Int_t        vInt2Next;    // mapping integers into nexts
     // hash table for names
     int *            pBins;        // the hash table bins 
     int              nBins;        // the number of bins 
     // manager recycling
     int              nRefs;        // reference counter for the manager
+    // internal buffer
+    Vec_Str_t        vBuffer;      
 };
 
 static inline char * Abc_NamHandleToStr( Abc_Nam_t * p, int h )        { return (char *)(p->pStore + h);                         }
-static inline int    Abc_NamIntToHandle( Abc_Nam_t * p, int i )        { return Vec_IntEntry(p->vInt2Handle, i);                 }
+static inline int    Abc_NamIntToHandle( Abc_Nam_t * p, int i )        { return Vec_IntEntry(&p->vInt2Handle, i);                }
 static inline char * Abc_NamIntToStr( Abc_Nam_t * p, int i )           { return Abc_NamHandleToStr(p, Abc_NamIntToHandle(p,i));  }
-static inline int    Abc_NamIntToNext( Abc_Nam_t * p, int i )          { return Vec_IntEntry(p->vInt2Next, i);                   }
-static inline int *  Abc_NamIntToNextP( Abc_Nam_t * p, int i )         { return Vec_IntEntryP(p->vInt2Next, i);                  }
+static inline int    Abc_NamIntToNext( Abc_Nam_t * p, int i )          { return Vec_IntEntry(&p->vInt2Next, i);                  }
+static inline int *  Abc_NamIntToNextP( Abc_Nam_t * p, int i )         { return Vec_IntEntryP(&p->vInt2Next, i);                 }
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -86,8 +88,8 @@ Abc_Nam_t * Abc_NamStart( int nObjs, int nAveSize )
     p->nBins       = Abc_PrimeCudd( nObjs );
     p->pBins       = ABC_CALLOC( int, p->nBins );
     // 0th object is unused
-    p->vInt2Handle = Vec_IntAlloc( nObjs );  Vec_IntPush( p->vInt2Handle, -1 );
-    p->vInt2Next   = Vec_IntAlloc( nObjs );  Vec_IntPush( p->vInt2Next,   -1 );
+    Vec_IntGrow( &p->vInt2Handle, nObjs );  Vec_IntPush( &p->vInt2Handle, -1 );
+    Vec_IntGrow( &p->vInt2Next,   nObjs );  Vec_IntPush( &p->vInt2Next,   -1 );
     p->iHandle     = 4;
     memset( p->pStore, 0, 4 );
 //Abc_Print( 1, "Starting nam with %d bins.\n", p->nBins );
@@ -110,8 +112,9 @@ Abc_Nam_t * Abc_NamStart( int nObjs, int nAveSize )
 void Abc_NamStop( Abc_Nam_t * p )
 {
 //Abc_Print( 1, "Starting nam with %d bins.\n", p->nBins );
-    Vec_IntFree( p->vInt2Handle );
-    Vec_IntFree( p->vInt2Next );
+    Vec_StrErase( &p->vBuffer );
+    Vec_IntErase( &p->vInt2Handle );
+    Vec_IntErase( &p->vInt2Next );
     ABC_FREE( p->pStore );
     ABC_FREE( p->pBins );
     ABC_FREE( p );
@@ -130,10 +133,13 @@ void Abc_NamStop( Abc_Nam_t * p )
 ***********************************************************************/
 void Abc_NamPrint( Abc_Nam_t * p )
 {
-    int h, i;
-    Vec_IntForEachEntryStart( p->vInt2Handle, h, i, 1 )
-        Abc_Print( 1, "%d=\n%s\n", i, Abc_NamHandleToStr(p, h) );
+    int h, i, Counter = 0;
+    Vec_IntForEachEntryStart( &p->vInt2Handle, h, i, 1 )
+        if ( Abc_NamHandleToStr(p, h)[0] == '[' )
+            Abc_Print( 1, "%s ",  Abc_NamHandleToStr(p, h) ), Counter++;
+//            Abc_Print( 1, "%d=\n%s\n", i, Abc_NamHandleToStr(p, h) );
 //    Abc_Print( 1, "\n" );
+    printf( "  %d\n", Counter );
 }
 
 /**Function*************************************************************
@@ -185,7 +191,7 @@ void Abc_NamDeref( Abc_Nam_t * p )
 ***********************************************************************/
 int Abc_NamObjNumMax( Abc_Nam_t * p )
 {
-    return Vec_IntSize(p->vInt2Handle);
+    return Vec_IntSize(&p->vInt2Handle);
 }
 
 /**Function*************************************************************
@@ -204,7 +210,7 @@ int Abc_NamMemUsed( Abc_Nam_t * p )
     if ( p == NULL )
         return 0;
     return sizeof(Abc_Nam_t) + p->iHandle + sizeof(int) * p->nBins + 
-        sizeof(int) * (p->vInt2Handle->nSize + p->vInt2Next->nSize);
+        sizeof(int) * (p->vInt2Handle.nSize + p->vInt2Next.nSize);
 }
 
 /**Function*************************************************************
@@ -223,7 +229,7 @@ int Abc_NamMemAlloc( Abc_Nam_t * p )
     if ( p == NULL )
         return 0;
     return sizeof(Abc_Nam_t) + p->nStore + sizeof(int) * p->nBins + 
-        sizeof(int) * (p->vInt2Handle->nCap + p->vInt2Next->nCap);
+        sizeof(int) * (p->vInt2Handle.nCap + p->vInt2Next.nCap);
 }
 
 /**Function*************************************************************
@@ -328,8 +334,7 @@ static inline int * Abc_NamStrHashFind( Abc_Nam_t * p, const char * pStr, const 
 ***********************************************************************/
 void Abc_NamStrHashResize( Abc_Nam_t * p )
 {
-    Vec_Int_t * vInt2HandleOld;
-    char * pThis;
+    Vec_Int_t vInt2HandleOld;  char * pThis; 
     int * piPlace, * pBinsOld, iHandleOld, i;//, clk = Abc_Clock();
     assert( p->pBins != NULL );
 //    Abc_Print( 1, "Resizing names manager hash table from %6d to %6d. ", p->nBins, Abc_PrimeCudd( 3 * p->nBins ) );
@@ -339,21 +344,22 @@ void Abc_NamStrHashResize( Abc_Nam_t * p )
     p->pBins = ABC_CALLOC( int, p->nBins );
     // replace the handles array
     vInt2HandleOld = p->vInt2Handle;
-    p->vInt2Handle = Vec_IntAlloc( 2 * Vec_IntSize(vInt2HandleOld) ); 
-    Vec_IntPush( p->vInt2Handle, -1 );
-    Vec_IntClear( p->vInt2Next );    Vec_IntPush( p->vInt2Next, -1 );
+    Vec_IntZero( &p->vInt2Handle );
+    Vec_IntGrow( &p->vInt2Handle, 2 * Vec_IntSize(&vInt2HandleOld) ); 
+    Vec_IntPush( &p->vInt2Handle, -1 );
+    Vec_IntClear( &p->vInt2Next );    Vec_IntPush( &p->vInt2Next, -1 );
     // rehash the entries from the old table
-    Vec_IntForEachEntryStart( vInt2HandleOld, iHandleOld, i, 1 )
+    Vec_IntForEachEntryStart( &vInt2HandleOld, iHandleOld, i, 1 )
     {
         pThis   = Abc_NamHandleToStr( p, iHandleOld );
         piPlace = Abc_NamStrHashFind( p, pThis, NULL );
         assert( *piPlace == 0 );
-        *piPlace = Vec_IntSize( p->vInt2Handle );
-        assert( Vec_IntSize( p->vInt2Handle ) == i );
-        Vec_IntPush( p->vInt2Handle, iHandleOld );
-        Vec_IntPush( p->vInt2Next,   0 );
+        *piPlace = Vec_IntSize( &p->vInt2Handle );
+        assert( Vec_IntSize( &p->vInt2Handle ) == i );
+        Vec_IntPush( &p->vInt2Handle, iHandleOld );
+        Vec_IntPush( &p->vInt2Next,   0 );
     }
-    Vec_IntFree( vInt2HandleOld );
+    Vec_IntErase( &vInt2HandleOld );
     ABC_FREE( pBinsOld );
 //    Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
 }
@@ -418,15 +424,15 @@ int Abc_NamStrFindOrAdd( Abc_Nam_t * p, char * pStr, int * pfFound )
     }
     assert( p->nStore >= iHandleNew );
     // create new handle
-    *piPlace = Vec_IntSize( p->vInt2Handle );
+    *piPlace = Vec_IntSize( &p->vInt2Handle );
     strcpy( Abc_NamHandleToStr( p, p->iHandle ), pStr );
-    Vec_IntPush( p->vInt2Handle, p->iHandle );
-    Vec_IntPush( p->vInt2Next, 0 );
+    Vec_IntPush( &p->vInt2Handle, p->iHandle );
+    Vec_IntPush( &p->vInt2Next, 0 );
     p->iHandle = iHandleNew;
     // extend the hash table
-    if ( Vec_IntSize(p->vInt2Handle) > 2 * p->nBins )
+    if ( Vec_IntSize(&p->vInt2Handle) > 2 * p->nBins )
         Abc_NamStrHashResize( p );
-    return Vec_IntSize(p->vInt2Handle) - 1;
+    return Vec_IntSize(&p->vInt2Handle) - 1;
 }
 int Abc_NamStrFindOrAddLim( Abc_Nam_t * p, char * pStr, char * pLim, int * pfFound )
 {
@@ -452,17 +458,32 @@ int Abc_NamStrFindOrAddLim( Abc_Nam_t * p, char * pStr, char * pLim, int * pfFou
     }
     assert( p->nStore >= iHandleNew );
     // create new handle
-    *piPlace = Vec_IntSize( p->vInt2Handle );
+    *piPlace = Vec_IntSize( &p->vInt2Handle );
     pStore = Abc_NamHandleToStr( p, p->iHandle );
     strncpy( pStore, pStr, pLim - pStr );
     pStore[pLim - pStr] = 0;
-    Vec_IntPush( p->vInt2Handle, p->iHandle );
-    Vec_IntPush( p->vInt2Next, 0 );
+    Vec_IntPush( &p->vInt2Handle, p->iHandle );
+    Vec_IntPush( &p->vInt2Next, 0 );
     p->iHandle = iHandleNew;
     // extend the hash table
-    if ( Vec_IntSize(p->vInt2Handle) > 2 * p->nBins )
+    if ( Vec_IntSize(&p->vInt2Handle) > 2 * p->nBins )
         Abc_NamStrHashResize( p );
-    return Vec_IntSize(p->vInt2Handle) - 1;
+    return Vec_IntSize(&p->vInt2Handle) - 1;
+}
+int Abc_NamStrFindOrAddF( Abc_Nam_t * p, const char * format, ...  )
+{
+    int nAdded, nSize = 1000; 
+    va_list args;  va_start( args, format );
+    Vec_StrGrow( &p->vBuffer, Vec_StrSize(&p->vBuffer) + nSize );
+    nAdded = vsnprintf( Vec_StrLimit(&p->vBuffer), nSize, format, args );
+    if ( nAdded > nSize )
+    {
+        Vec_StrGrow( &p->vBuffer, Vec_StrSize(&p->vBuffer) + nAdded + nSize );
+        nSize = vsnprintf( Vec_StrLimit(&p->vBuffer), nAdded, format, args );
+        assert( nSize == nAdded );
+    }
+    va_end( args );
+    return Abc_NamStrFindOrAddLim( p, Vec_StrLimit(&p->vBuffer), Vec_StrLimit(&p->vBuffer) + nAdded, NULL );
 }
 
 /**Function*************************************************************
@@ -479,6 +500,23 @@ int Abc_NamStrFindOrAddLim( Abc_Nam_t * p, char * pStr, char * pLim, int * pfFou
 char * Abc_NamStr( Abc_Nam_t * p, int NameId )
 {
     return NameId > 0 ? Abc_NamIntToStr(p, NameId) : NULL;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Returns internal buffer.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Str_t * Abc_NamBuffer( Abc_Nam_t * p )
+{
+    Vec_StrClear(&p->vBuffer);
+    return &p->vBuffer;
 }
 
 /**Function*************************************************************
@@ -500,7 +538,7 @@ Vec_Int_t * Abc_NamComputeIdMap( Abc_Nam_t * p1, Abc_Nam_t * p2 )
     if ( p1 == p2 )
         return Vec_IntStartNatural( Abc_NamObjNumMax(p1) );
     vMap = Vec_IntStart( Abc_NamObjNumMax(p1) );
-    Vec_IntForEachEntryStart( p1->vInt2Handle, iHandle1, i, 1 )
+    Vec_IntForEachEntryStart( &p1->vInt2Handle, iHandle1, i, 1 )
     {
         pThis = Abc_NamHandleToStr( p1, iHandle1 );
         piPlace = Abc_NamStrHashFind( p2, pThis, NULL );

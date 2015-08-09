@@ -81,6 +81,7 @@
 #include <stdarg.h>
 #include <stdlib.h>
 #include <assert.h>
+#include <stdio.h>
 
 ////////////////////////////////////////////////////////////////////////
 ///                         NAMESPACES                               ///

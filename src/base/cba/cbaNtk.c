@@ -32,6 +32,73 @@ ABC_NAMESPACE_IMPL_START
 
 /**Function*************************************************************
 
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Cba_NtkCollectDistrib( Cba_Ntk_t * p, int * pCounts, int * pUserCounts )
+{
+    int i;
+    Cba_NtkForEachBox( p, i )
+        if ( Cba_ObjIsBoxUser(p, i) )
+            pUserCounts[Cba_ObjNtkId(p, i)]++;
+        else
+            pCounts[Cba_ObjType(p, i)]++;
+}
+
+void Cba_NtkPrintDistribStat( Cba_Ntk_t * p, int * pCounts, int * pUserCounts )
+{
+    Cba_Ntk_t * pNtk; int i;
+    printf( "Primitives (%d):\n", Cba_NtkBoxPrimNum(p) );
+    for ( i = 0; i < CBA_BOX_LAST; i++ )
+        if ( pCounts[i] )
+            printf( "%-20s = %5d\n", Cba_NtkTypeName(p, i), pCounts[i] );
+    printf( "User hierarchy (%d):\n", Cba_NtkBoxUserNum(p) );
+    Cba_ManForEachNtk( p->pDesign, pNtk, i )
+        if ( pUserCounts[i] )
+            printf( "%-20s = %5d\n", Cba_NtkName(pNtk), pUserCounts[i] );
+}
+void Cba_NtkPrintDistrib( Cba_Ntk_t * p )
+{
+    int pCounts[CBA_BOX_LAST] = {0};
+    int * pUserCounts = ABC_CALLOC( int, Cba_ManNtkNum(p->pDesign) + 1 );
+    Cba_ManCreatePrimMap( p->pDesign->pTypeNames );
+    Cba_NtkCollectDistrib( p, pCounts, pUserCounts );
+    Cba_NtkPrintDistribStat( p, pCounts, pUserCounts );
+    ABC_FREE( pUserCounts );
+}
+
+void Cba_ManPrintDistribStat( Cba_Man_t * p, int * pCounts, int * pUserCounts )
+{
+    Cba_Ntk_t * pNtk = Cba_ManRoot(p); int i;
+    printf( "Primitives:\n" );
+    for ( i = 0; i < CBA_BOX_LAST; i++ )
+        if ( pCounts[i] )
+            printf( "%-20s = %5d\n", Cba_NtkTypeName(pNtk, i), pCounts[i] );
+    printf( "User hierarchy:\n" );
+    Cba_ManForEachNtk( p, pNtk, i )
+        if ( pUserCounts[i] )
+            printf( "%-20s = %5d\n", Cba_NtkName(pNtk), pUserCounts[i] );
+}
+void Cba_ManPrintDistrib( Cba_Man_t * p )
+{
+    Cba_Ntk_t * pNtk; int i;
+    int pCounts[CBA_BOX_LAST] = {0};
+    int * pUserCounts = ABC_CALLOC( int, Cba_ManNtkNum(p) + 1 );
+    Cba_ManCreatePrimMap( p->pTypeNames );
+    Cba_ManForEachNtk( p, pNtk, i )
+        Cba_NtkCollectDistrib( pNtk, pCounts, pUserCounts );
+    Cba_ManPrintDistribStat( p, pCounts, pUserCounts );
+    ABC_FREE( pUserCounts );
+}
+
+/**Function*************************************************************
+
   Synopsis    [Order objects by box type and then by name.]
 
   Description []
@@ -686,7 +753,7 @@ Cba_Man_t * Cba_ManDeriveFromGia( Gia_Man_t * pGia )
     Cba_NtkCleanObjNames( pNtk );
     Gia_ManForEachCiId( pGia, iObj, i )
     {
-        NameId = pGia->vNamesIn? Abc_NamStrFindOrAdd(p->pStrs, Vec_PtrEntry(pGia->vNamesIn, i), NULL) : Cba_ManNewStrId_(p, "i", i, NULL);
+        NameId = pGia->vNamesIn? Abc_NamStrFindOrAdd(p->pStrs, Vec_PtrEntry(pGia->vNamesIn, i), NULL) : Cba_NtkNewStrId(pNtk, "i%d", i);
         iObjNew = Cba_ObjAlloc( pNtk, CBA_OBJ_PI, 0, 1 );
         Cba_ObjSetName( pNtk, iObjNew, NameId );
         Vec_IntWriteEntry( vLit2Fon, Abc_Var2Lit(iObj, 0), Cba_ObjFon0(pNtk, iObjNew) );
@@ -708,7 +775,7 @@ Cba_Man_t * Cba_ManDeriveFromGia( Gia_Man_t * pGia )
         iObjNew = Cba_ObjAlloc( pNtk, CBA_BOX_BUF, 1, 1 );
         Cba_ObjSetFinFon( pNtk, iObjNew, 0, iFon0 );
         iFon0 = Cba_ObjFon0(pNtk, iObjNew); // non-const fon unique for this output
-        NameId = pGia->vNamesOut? Abc_NamStrFindOrAdd(p->pStrs, Vec_PtrEntry(pGia->vNamesOut, i), NULL) : Cba_ManNewStrId_(p, "o", i, NULL);
+        NameId = pGia->vNamesOut? Abc_NamStrFindOrAdd(p->pStrs, Vec_PtrEntry(pGia->vNamesOut, i), NULL) : Cba_NtkNewStrId(pNtk, "o%d", i);
         iObjNew = Cba_ObjAlloc( pNtk, CBA_OBJ_PO, 1, 0 );
         Cba_ObjSetName( pNtk, iObjNew, NameId );
         Cba_ObjSetFinFon( pNtk, iObjNew, 0, iFon0 );

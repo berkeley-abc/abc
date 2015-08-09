@@ -283,6 +283,10 @@ static inline char * Vec_StrArray( Vec_Str_t * p )
 {
     return p->pArray;
 }
+static inline char * Vec_StrLimit( Vec_Str_t * p )
+{
+    return p->pArray + p->nSize;
+}
 
 /**Function*************************************************************
 
@@ -298,6 +302,10 @@ static inline char * Vec_StrArray( Vec_Str_t * p )
 static inline int Vec_StrSize( Vec_Str_t * p )
 {
     return p->nSize;
+}
+static inline void Vec_StrSetSize( Vec_Str_t * p, int nSize )
+{
+    p->nSize = nSize;
 }
 
 /**Function*************************************************************
@@ -666,6 +674,39 @@ static inline void Vec_StrPrintStr( Vec_Str_t * p, const char * pStr )
     int i, Length = strlen(pStr);
     for ( i = 0; i < Length; i++ )
         Vec_StrPush( p, pStr[i] );
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+#ifdef WIN32
+#define vsnprintf _vsnprintf
+#endif
+
+static inline char * Vec_StrPrintF( Vec_Str_t * p, const char * format, ... )
+{
+    int nAdded, nSize = 1000; 
+    va_list args;  va_start( args, format );
+    Vec_StrGrow( p, Vec_StrSize(p) + nSize );
+    nAdded = vsnprintf( Vec_StrLimit(p), nSize, format, args );
+    if ( nAdded > nSize )
+    {
+        Vec_StrGrow( p, Vec_StrSize(p) + nAdded + nSize );
+        nSize = vsnprintf( Vec_StrLimit(p), nAdded, format, args );
+        assert( nSize == nAdded );
+    }
+    p->nSize += nAdded;
+    va_end( args );
+    return Vec_StrLimit(p) - nAdded;
 }
 
 /**Function*************************************************************
