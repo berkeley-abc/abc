@@ -53,6 +53,7 @@ struct Hash_IntMan_t_
 {
     Vec_Int_t *  vTable;      // hash table
     Vec_Int_t *  vObjs;       // hash objects
+    int          nRefs;       // reference counter for the manager
 };
 
 ////////////////////////////////////////////////////////////////////////
@@ -74,7 +75,7 @@ static inline void            Hash_Int2ObjSetData2( Hash_IntMan_t * p, int i, in
 
 /**Function*************************************************************
 
-  Synopsis    [Hashing data entries composed of nSize integers.]
+  Synopsis    [Hashes pairs of intergers.]
 
   Description []
                
@@ -90,6 +91,7 @@ static inline Hash_IntMan_t * Hash_IntManStart( int nSize )
     p->vTable = Vec_IntStart( Abc_PrimeCudd(nSize) );
     p->vObjs  = Vec_IntAlloc( 4*nSize );
     Vec_IntFill( p->vObjs, 4, 0 );
+    p->nRefs  = 1;
     return p;
 }
 static inline void Hash_IntManStop( Hash_IntMan_t * p )
@@ -97,6 +99,18 @@ static inline void Hash_IntManStop( Hash_IntMan_t * p )
     Vec_IntFree( p->vObjs );
     Vec_IntFree( p->vTable );
     ABC_FREE( p );
+}
+static inline Hash_IntMan_t * Hash_IntManRef( Hash_IntMan_t * p )
+{
+    p->nRefs++;
+    return p;
+}
+static inline void Hash_IntManDeref( Hash_IntMan_t * p )
+{
+    if ( p == NULL )
+        return;
+    if ( --p->nRefs == 0 )
+        Hash_IntManStop( p );
 }
 static inline int Hash_IntManEntryNum( Hash_IntMan_t * p )
 {
@@ -172,7 +186,7 @@ static inline int Hash_Int2ManInsert( Hash_IntMan_t * p, int iData0, int iData1,
 
 /**Function*************************************************************
 
-  Synopsis    []
+  Synopsis    [Hashes triples of intergers.]
 
   Description []
                

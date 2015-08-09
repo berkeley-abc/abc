@@ -489,7 +489,7 @@ void Cba_NtkCollapse_rec( Cba_Ntk_t * pNew, Cba_Ntk_t * p, Vec_Int_t * vSigs, in
 }
 Cba_Man_t * Cba_ManCollapse( Cba_Man_t * p, int TypeBuf )
 {
-    Cba_Man_t * pNew  = Cba_ManAlloc( p->pSpec, 1, Abc_NamRef(p->pStrs), Abc_NamRef(p->pFuns), Abc_NamStart(100, 24) );
+    Cba_Man_t * pNew  = Cba_ManAlloc( p->pSpec, 1, Abc_NamRef(p->pStrs), Abc_NamRef(p->pFuns), Abc_NamStart(100, 24), Hash_IntManRef(p->vHash) );
     Cba_Ntk_t * pRoot = Cba_ManRoot( p ), * pRootNew;
     Vec_Int_t * vSigs = Vec_IntAlloc( 1000 );
     int i, iObj, iObjNew, iFon, nObjs = 0, nFins = 0, nFons = 0;
@@ -660,7 +660,7 @@ void Cba_ManExtractGroupInt( Cba_Ntk_t * pNew, Cba_Ntk_t * p, Vec_Int_t * vObjs,
 }
 Cba_Man_t * Cba_ManExtractGroup( Cba_Man_t * p, Vec_Int_t * vObjs )
 {
-    Cba_Man_t * pNew  = Cba_ManAlloc( p->pSpec, 1, Abc_NamRef(p->pStrs), Abc_NamRef(p->pFuns), Abc_NamStart(100, 24) );
+    Cba_Man_t * pNew  = Cba_ManAlloc( p->pSpec, 1, Abc_NamRef(p->pStrs), Abc_NamRef(p->pFuns), Abc_NamStart(100, 24), Hash_IntManRef(p->vHash) );
     Cba_Ntk_t * pRoot = Cba_ManRoot( p ), * pRootNew;
     Vec_Int_t * vFonIns = Cba_NtkCollectInFons( pRoot, vObjs );
     Vec_Int_t * vFonOuts = Cba_NtkCollectOutFons( pRoot, vObjs );
@@ -743,7 +743,7 @@ static inline int Cba_NtkInsertGiaObj( Cba_Ntk_t * p, Gia_Man_t * pGia, int iObj
 }
 Cba_Man_t * Cba_ManDeriveFromGia( Gia_Man_t * pGia )
 {
-    Cba_Man_t * p = Cba_ManAlloc( pGia->pSpec, 1, NULL, NULL, NULL );
+    Cba_Man_t * p = Cba_ManAlloc( pGia->pSpec, 1, NULL, NULL, NULL, NULL );
     Cba_Ntk_t * pNtk = Cba_NtkAlloc( p, Abc_NamStrFindOrAdd(p->pStrs, pGia->pName, NULL), Gia_ManCiNum(pGia), Gia_ManCoNum(pGia), 1000, 2000, 2000 );
     Vec_Int_t * vLit2Fon = Vec_IntStartFull( 2*Gia_ManObjNum(pGia) );
     int i, iObj, iObjNew, NameId, iLit0, iFon0;

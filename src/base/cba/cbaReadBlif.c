@@ -592,7 +592,7 @@ Cba_Man_t * Prs_ManBuildCbaBlif( char * pFileName, Vec_Ptr_t * vDes )
     Abc_Nam_t * pStrs = Abc_NamRef(pPrsRoot->pStrs);
     Abc_Nam_t * pFuns = Abc_NamRef(pPrsRoot->pFuns);
     Abc_Nam_t * pMods = Abc_NamStart( 100, 24 );
-    Cba_Man_t * p = Cba_ManAlloc( pFileName, Vec_PtrSize(vDes), pStrs, pFuns, pMods );
+    Cba_Man_t * p = Cba_ManAlloc( pFileName, Vec_PtrSize(vDes), pStrs, pFuns, pMods, NULL );
     // initialize networks
     Vec_PtrForEachEntry( Prs_Ntk_t *, vDes, pPrsNtk, i )
     {

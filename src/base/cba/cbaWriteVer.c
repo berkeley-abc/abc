@@ -112,6 +112,7 @@ static void Prs_ManWriteVerilogBoxes( FILE * pFile, Prs_Ntk_t * p )
     Prs_NtkForEachBox( p, vBox, i )
     {
         Cba_ObjType_t NtkId = Prs_BoxNtk(p, i);
+        char * pNtkName = Prs_NtkStr(p, Prs_BoxName(p, i));
         if ( NtkId == CBA_BOX_MUX )
             Prs_ManWriteVerilogMux( pFile, p, vBox );
         else if ( Prs_BoxIsNode(p, i) ) // node   ------- check order of fanins
@@ -304,16 +305,31 @@ char * Cba_FonGetName( Cba_Ntk_t * p, int i )
     char * pName = Cba_FonNameStr(p, i);
     if ( pName == NULL )
         return pName;
+    if ( Cba_ObjType(p, Cba_FonObj(p, i)) == CBA_BOX_SLICE )
+        return pName;
     if ( Cba_NameIsLegalInVerilog(pName) )
         return pName;
     return Vec_StrPrintF( Abc_NamBuffer(Cba_NtkNam(p)), "\\%s ", pName );
 }
-
+char * Cba_ManGetSliceName( Cba_Ntk_t * p, int iFon, int Left, int Right )
+{
+    char * pName = Cba_FonNameStr(p, iFon);
+    if ( Cba_NameIsLegalInVerilog(pName) )
+        if ( Left == Right )
+            return Vec_StrPrintF( Abc_NamBuffer(Cba_NtkNam(p)), "%s[%d]", pName, Right );
+        else
+            return Vec_StrPrintF( Abc_NamBuffer(Cba_NtkNam(p)), "%s[%d:%d]", pName, Left, Right );
+    else
+        if ( Left == Right )
+            return Vec_StrPrintF( Abc_NamBuffer(Cba_NtkNam(p)), "\\%s [%d]", pName, Right );
+        else
+            return Vec_StrPrintF( Abc_NamBuffer(Cba_NtkNam(p)), "\\%s [%d:%d]", pName, Left, Right );
+}
 
 void Cba_ManWriteFonRange( Cba_Ntk_t * p, int iFon )
 {
     Vec_Str_t * vStr = &p->pDesign->vOut;
-    if ( Cba_FonIsConst(iFon) || (Cba_FonRange(p, iFon) == 1 && Cba_FonRight(p, iFon) == 0) )
+    if ( Cba_FonIsConst(iFon) || (Cba_FonRangeSize(p, iFon) == 1 && Cba_FonRight(p, iFon) == 0) )
         return;
     Vec_StrPrintF( vStr, "[%d:%d] ", Cba_FonLeft(p, iFon), Cba_FonRight(p, iFon) );
 
@@ -329,7 +345,7 @@ void Cba_ManWriteFonName( Cba_Ntk_t * p, int iFon, int fInlineConcat, int fInput
         Cba_ManWriteCatIn( p, Cba_FonObj(p, iFon) );
     else
     {
-        int Range = fInput ? Cba_FonRange( p, iFon ) : 0;
+        int Range = fInput ? Cba_FonRangeSize( p, iFon ) : 0;
         if ( fInput && Range > 1 )
             Vec_StrPush( vStr, '{' );
         Vec_StrPrintStr( vStr, Cba_FonIsConst(iFon) ? Cba_NtkConst(p, Cba_FonConst(iFon)) : Cba_FonGetName(p, iFon) );
@@ -590,8 +606,8 @@ void Cba_ManWriteVerilogNtk( Cba_Ntk_t * p, int fInlineConcat )
         {
             int iFonIn   = Cba_ObjFinFon(p, iObj, 0);
             int iFonOut  = Cba_ObjFon0(p, iObj);
-            int nBitsIn  = Cba_FonRange(p, iFonIn);
-            int nBitsOut = Cba_FonRange(p, iFonOut);
+            int nBitsIn  = Cba_FonRangeSize(p, iFonIn);
+            int nBitsOut = Cba_FonRangeSize(p, iFonOut);
             assert( (1 << nBitsIn) == nBitsOut );
             // function [15:0] res;
             Vec_StrPrintStr( vStr, "  function " );
@@ -606,12 +622,14 @@ void Cba_ManWriteVerilogNtk( Cba_Ntk_t * p, int fInlineConcat )
             // casez (i)
             Vec_StrPrintStr( vStr, "    casez(i)\n" );
             // 2'b00: res = 4'b0001;
-            Cba_ObjForEachFinFon( p, iObj, iFin, iFon, i )
+            for ( i = 0; i < (1 << nBitsIn); i++ )
             {
-                Vec_StrPrintF( vStr, "      %d\'b: ", nBitsIn );
+                Vec_StrPrintF( vStr, "      %d\'b", nBitsIn );
+                for ( k = nBitsIn-1; k >= 0; k-- )
+                    Vec_StrPrintNum( vStr, (i >> k) & 1 );
                 Vec_StrPrintStr( vStr, ": _func_" );
                 Cba_ManWriteFonName( p, iFonOut, 0, 0 );
-                Vec_StrPrintF( vStr, " = %d\'b%*d;\n", nBitsOut, nBitsOut, 0 );
+                Vec_StrPrintF( vStr, " = %d\'b%0*d;\n", nBitsOut, nBitsOut, 0 );
                 Vec_StrWriteEntry( vStr, Vec_StrSize(vStr) - i - 3, '1' );
             }
             Vec_StrPrintStr( vStr, "    endcase\n" );
@@ -639,8 +657,8 @@ void Cba_ManWriteVerilogNtk( Cba_Ntk_t * p, int fInlineConcat )
             int iFonSet  = Cba_ObjFinFon(p, iObj, 1);
             int iFonRst  = Cba_ObjFinFon(p, iObj, 2);
             int iFonC    = Cba_ObjFinFon(p, iObj, 3);
-            int Range    = Cba_FonRange( p, iFonQ );
-            assert( Cba_FonRange(p, iFonSet) == 1 && Cba_FonRange(p, iFonRst) == 1 );
+            int Range    = Cba_FonRangeSize( p, iFonQ );
+            assert( Cba_FonRangeSize(p, iFonSet) == 1 && Cba_FonRangeSize(p, iFonRst) == 1 );
             // reg    [3:0] Q;
             Vec_StrPrintStr( vStr, "  reg " );
             Cba_ManWriteFonRange( p, iFonQ );

@@ -52,32 +52,33 @@ typedef struct Prs_Ntk_t_ Prs_Ntk_t;
 struct Prs_Ntk_t_
 {
     // general info
-    int          iModuleName;
-    unsigned     fMapped : 1;
-    unsigned     fSlices : 1;
-    unsigned     fHasC0s : 1;
-    unsigned     fHasC1s : 1;
-    unsigned     fHasCXs : 1;
-    unsigned     fHasCZs : 1;
-    Abc_Nam_t *  pStrs;
-    Abc_Nam_t *  pFuns;
+    int             iModuleName;
+    unsigned        fMapped : 1;
+    unsigned        fSlices : 1;
+    unsigned        fHasC0s : 1;
+    unsigned        fHasC1s : 1;
+    unsigned        fHasCXs : 1;
+    unsigned        fHasCZs : 1;
+    Abc_Nam_t *     pStrs;
+    Abc_Nam_t *     pFuns;
+    Hash_IntMan_t * vHash;
     // interface
-    Vec_Int_t    vOrder;     // order of signals
+    Vec_Int_t       vOrder;     // order of signals
     // signal names
-    Vec_Int_t    vInouts;    // inouts 
-    Vec_Int_t    vInputs;    // inputs 
-    Vec_Int_t    vOutputs;   // outputs
-    Vec_Int_t    vWires;     // wires  
+    Vec_Int_t       vInouts;    // inouts 
+    Vec_Int_t       vInputs;    // inputs 
+    Vec_Int_t       vOutputs;   // outputs
+    Vec_Int_t       vWires;     // wires  
     // signal ranges
-    Vec_Int_t    vInoutsR;   // inouts 
-    Vec_Int_t    vInputsR;   // inputs 
-    Vec_Int_t    vOutputsR;  // outputs
-    Vec_Int_t    vWiresR;    // wires  
+    Vec_Int_t       vInoutsR;   // inouts 
+    Vec_Int_t       vInputsR;   // inputs 
+    Vec_Int_t       vOutputsR;  // outputs
+    Vec_Int_t       vWiresR;    // wires  
     // slices/concatenations/objects
-    Vec_Int_t    vSlices;    // NameId + RangeId
-    Vec_Int_t    vConcats;   // array of NameId/SliceId/ConstId
-    Vec_Int_t    vBoxes;     // ModuleId + InstId + array of pairs {FormNameId, ActSignalId(NameId/SliceId/ConstId/ConcatId)}
-    Vec_Int_t    vObjs;      // box handles
+    Vec_Int_t       vSlices;    // NameId + RangeId
+    Vec_Int_t       vConcats;   // array of NameId/SliceId/ConstId
+    Vec_Int_t       vBoxes;     // ModuleId + InstId + array of pairs {FormNameId, ActSignalId(NameId/SliceId/ConstId/ConcatId)}
+    Vec_Int_t       vObjs;      // box handles
 };
 
 // parser
@@ -85,24 +86,25 @@ typedef struct Prs_Man_t_ Prs_Man_t;
 struct Prs_Man_t_
 {
     // input data
-    char *       pName;       // file name
-    char *       pBuffer;     // file contents
-    char *       pLimit;      // end of file
-    char *       pCur;        // current position
-    Abc_Nam_t *  pStrs;       // string manager
-    Abc_Nam_t *  pFuns;       // cover manager
-    Prs_Ntk_t *  pNtk;        // current network
-    Vec_Ptr_t *  vNtks;       // input networks
+    char *          pName;       // file name
+    char *          pBuffer;     // file contents
+    char *          pLimit;      // end of file
+    char *          pCur;        // current position
+    Abc_Nam_t *     pStrs;       // string manager
+    Abc_Nam_t *     pFuns;       // cover manager
+    Hash_IntMan_t * vHash;       // variable ranges
+    Prs_Ntk_t *     pNtk;        // current network
+    Vec_Ptr_t *     vNtks;       // input networks
     // temporary data
-    Vec_Str_t    vCover;      // one SOP cover
-    Vec_Int_t    vTemp;       // array of tokens
-    Vec_Int_t    vTemp2;      // array of tokens
+    Vec_Str_t       vCover;      // one SOP cover
+    Vec_Int_t       vTemp;       // array of tokens
+    Vec_Int_t       vTemp2;      // array of tokens
     // statistics
-    Vec_Int_t    vKnown;
-    Vec_Int_t    vFailed;
-    Vec_Int_t    vSucceeded;
+    Vec_Int_t       vKnown;
+    Vec_Int_t       vFailed;
+    Vec_Int_t       vSucceeded;
     // error handling
-    int          fUsingTemp2; // vTemp2 is in use
+    int             fUsingTemp2; // vTemp2 is in use
     char ErrorStr[1000];      // error
 };
 
@@ -188,6 +190,7 @@ static inline void Prs_ManInitializeNtk( Prs_Man_t * p, int iName, int fSlices )
     p->pNtk->fSlices = fSlices;
     p->pNtk->pStrs = Abc_NamRef( p->pStrs );
     p->pNtk->pFuns = Abc_NamRef( p->pFuns );
+    p->pNtk->vHash = Hash_IntManRef( p->vHash );
     Vec_PtrPush( p->vNtks, p->pNtk );
 }
 static inline void Prs_ManFinalizeNtk( Prs_Man_t * p )
@@ -229,16 +232,6 @@ static inline void Prs_NtkAddBox( Prs_Ntk_t * p, int ModName, int InstName, Vec_
     Vec_IntPush( &p->vBoxes, InstName );
     Vec_IntAppend( &p->vBoxes, vTemp );
 }
-
-// parsing range
-static inline void Prs_NtkParseRange( Prs_Ntk_t * p, int RangeId, int * pLeft, int * pRight )
-{
-    char * pRange = Prs_NtkStr(p, RangeId);
-    char * pPivot = strchr( pRange, ':' ); 
-    *pLeft  = atoi(pRange + 1);
-    *pRight = pPivot ? atoi(pPivot + 1) : *pLeft;
-}
-
 static inline char * Prs_ManLoadFile( char * pFileName, char ** ppLimit )
 {
     char * pBuffer;
@@ -280,6 +273,8 @@ static inline Prs_Man_t * Prs_ManAlloc( char * pFileName )
     p->pStrs   = Abc_NamStart( 1000, 24 );
     p->pFuns   = Abc_NamStart( 100, 24 );
     p->vNtks   = Vec_PtrAlloc( 100 );
+    p->vHash   = Hash_IntManStart( 1000 );
+//    Hash_Int2ManInsert( p->vHash, 0, 0, 0 );
     return p;
 }
 
@@ -287,6 +282,7 @@ static inline void Prs_NtkFree( Prs_Ntk_t * p )
 {
     if ( p->pStrs ) Abc_NamDeref( p->pStrs );
     if ( p->pFuns ) Abc_NamDeref( p->pFuns );
+    if ( p->vHash ) Hash_IntManDeref( p->vHash );
     Vec_IntErase( &p->vOrder );
     Vec_IntErase( &p->vInouts );
     Vec_IntErase( &p->vInputs );
@@ -315,6 +311,7 @@ static inline void Prs_ManFree( Prs_Man_t * p )
 {
     if ( p->pStrs ) Abc_NamDeref( p->pStrs );
     if ( p->pFuns ) Abc_NamDeref( p->pFuns );
+    if ( p->vHash ) Hash_IntManDeref( p->vHash );
     if ( p->vNtks ) Prs_ManVecFree( p->vNtks );
     // temporary
     Vec_StrErase( &p->vCover );
@@ -424,6 +421,7 @@ static inline char * Ptr_TypeToName( Cba_ObjType_t Type )
     if ( Type == CBA_BOX_MAJ )   return "maj";
     if ( Type == CBA_BOX_SHARP ) return "sharp";
     if ( Type == CBA_BOX_SHARPL) return "sharpl";
+    if ( Type == CBA_BOX_TRI)    return "bufifl";
     assert( 0 );
     return "???";
 }

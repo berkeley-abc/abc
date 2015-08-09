@@ -133,13 +133,9 @@ void Abc_NamStop( Abc_Nam_t * p )
 ***********************************************************************/
 void Abc_NamPrint( Abc_Nam_t * p )
 {
-    int h, i, Counter = 0;
+    int h, i;
     Vec_IntForEachEntryStart( &p->vInt2Handle, h, i, 1 )
-        if ( Abc_NamHandleToStr(p, h)[0] == '[' )
-            Abc_Print( 1, "%s ",  Abc_NamHandleToStr(p, h) ), Counter++;
-//            Abc_Print( 1, "%d=\n%s\n", i, Abc_NamHandleToStr(p, h) );
-//    Abc_Print( 1, "\n" );
-    printf( "  %d\n", Counter );
+        Abc_Print( 1, "%d=\n%s\n", i, Abc_NamHandleToStr(p, h) );
 }
 
 /**Function*************************************************************
