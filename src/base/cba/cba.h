@@ -367,6 +367,7 @@ static inline int            Cba_FonLeft( Cba_Ntk_t * p, int f )             { r
 static inline int            Cba_FonRight( Cba_Ntk_t * p, int f )            { return Cba_NtkRangeRight(p, Cba_FonRange(p, f));                                            }
 static inline int            Cba_FonRangeSize( Cba_Ntk_t * p, int f )        { return Cba_FonIsConst(f) ? Cba_FonConstRange(p, f):Cba_NtkRangeSize(p, Cba_FonRange(p, f)); }
 static inline void           Cba_FonSetRange( Cba_Ntk_t * p, int f, int x )  { assert(Cba_NtkHasFonRanges(p));  Vec_IntSetEntry(&p->vFonRange, f, x);                      }
+static inline void           Cba_FonHashRange( Cba_Ntk_t * p, int f, int l, int r ) { Cba_FonSetRange( p, f, Cba_NtkHashRange(p, l, r) );                                  }
 static inline int            Cba_FonCopy( Cba_Ntk_t * p, int f )             { return Cba_FonIsReal(f) ? Vec_IntEntry(&p->vFonCopy, f) : f;                                }
 static inline void           Cba_FonSetCopy( Cba_Ntk_t * p, int f, int x )   { assert(Cba_FonIsReal(f)); assert(Cba_FonCopy(p, f) == 0); Vec_IntWriteEntry(&p->vFonCopy, f, x); }
 static inline int            Cba_FonName( Cba_Ntk_t * p, int f )             { assert(Cba_NtkHasFonNames(p)); assert(Cba_FonIsReal(f)); return Vec_IntGetEntry( &p->vFonName, f );                        }
@@ -1050,7 +1051,7 @@ extern void          Prs_ManWriteBlif( char * pFileName, Vec_Ptr_t * p );
 extern void          Cba_ManWriteBlif( char * pFileName, Cba_Man_t * p );
 /*=== cbaWriteVer.c ==========================================================*/
 extern void          Cba_ManCreatePrimMap( char ** pMap );
-extern char *        Cba_ManGetSliceName( Cba_Ntk_t * p, int iFon, int Left, int Right );
+extern char *        Cba_ManGetSliceName( Cba_Ntk_t * p, int iFon, int RangeId );
 extern void          Prs_ManWriteVerilog( char * pFileName, Vec_Ptr_t * p );
 extern void          Cba_ManWriteVerilog( char * pFileName, Cba_Man_t * p, int fInlineConcat );
 

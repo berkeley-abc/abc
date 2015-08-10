@@ -112,7 +112,7 @@ static void Prs_ManWriteVerilogBoxes( FILE * pFile, Prs_Ntk_t * p )
     Prs_NtkForEachBox( p, vBox, i )
     {
         Cba_ObjType_t NtkId = Prs_BoxNtk(p, i);
-        char * pNtkName = Prs_NtkStr(p, Prs_BoxName(p, i));
+        //char * pNtkName = Prs_NtkStr(p, Prs_BoxName(p, i));
         if ( NtkId == CBA_BOX_MUX )
             Prs_ManWriteVerilogMux( pFile, p, vBox );
         else if ( Prs_BoxIsNode(p, i) ) // node   ------- check order of fanins
@@ -123,7 +123,6 @@ static void Prs_ManWriteVerilogBoxes( FILE * pFile, Prs_Ntk_t * p )
         }
         else // box
         {
-            //char * s = Prs_NtkStr(p, Vec_IntEntry(vBox, 0));
             fprintf( pFile, "  %s %s (", Prs_NtkStr(p, NtkId), Prs_BoxName(p, i) ? Prs_NtkStr(p, Prs_BoxName(p, i)) : "" );
             Prs_ManWriteVerilogArray2( pFile, p, vBox );
             fprintf( pFile, ");\n" );
@@ -311,8 +310,10 @@ char * Cba_FonGetName( Cba_Ntk_t * p, int i )
         return pName;
     return Vec_StrPrintF( Abc_NamBuffer(Cba_NtkNam(p)), "\\%s ", pName );
 }
-char * Cba_ManGetSliceName( Cba_Ntk_t * p, int iFon, int Left, int Right )
+char * Cba_ManGetSliceName( Cba_Ntk_t * p, int iFon, int RangeId )
 {
+    int Left  = Cba_NtkRangeLeft(p, RangeId);
+    int Right = Cba_NtkRangeRight(p, RangeId);
     char * pName = Cba_FonNameStr(p, iFon);
     if ( Cba_NameIsLegalInVerilog(pName) )
         if ( Left == Right )

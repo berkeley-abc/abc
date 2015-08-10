@@ -1013,7 +1013,7 @@ int Prs_CreateSlice( Cba_Ntk_t * p, int iFon, Prs_Ntk_t * pNtk, int Range )
     int iObj, iFonNew, NameId;
     assert( Cba_FonIsReal(iFon) );
     // check existing slice
-    NameId = Cba_NtkNewStrId( p, Cba_ManGetSliceName(p, iFon, Cba_NtkRangeLeft(p, Range), Cba_NtkRangeRight(p, Range)) );
+    NameId = Cba_NtkNewStrId( p, Cba_ManGetSliceName(p, iFon, Range) );
     iFonNew = Cba_NtkGetMap( p, NameId );
     if ( iFonNew )
         return iFonNew;
