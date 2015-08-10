@@ -153,7 +153,7 @@ Gia_Man_t * Gia_ManFromAigChoices( Aig_Man_t * p )
     Aig_ManForEachCo( p, pObj, i )
         Gia_ManAppendCo( pNew, Gia_ObjChild0Copy(pObj) );
     Gia_ManSetRegNum( pNew, Aig_ManRegNum(p) );
-    assert( Gia_ManObjNum(pNew) == Aig_ManObjNum(p) );
+    //assert( Gia_ManObjNum(pNew) == Aig_ManObjNum(p) );
     return pNew;
 }
 
