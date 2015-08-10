@@ -44,6 +44,15 @@ ABC_NAMESPACE_IMPL_START
   SeeAlso     []
 
 ***********************************************************************/
+static inline char * Prs_ManWriteRange( Prs_Ntk_t * p, int RangeId, int fSlice )
+{
+    int Left  = RangeId ? Hash_IntObjData0( p->vHash, RangeId ) : 0;
+    int Right = RangeId ? Hash_IntObjData1( p->vHash, RangeId ) : 0;
+    if ( Left == Right && fSlice )
+        return Vec_StrPrintF( Abc_NamBuffer(p->pStrs), "[%d]", Right );
+    else
+        return Vec_StrPrintF( Abc_NamBuffer(p->pStrs), "[%d:%d]", Left, Right );
+}
 static void Prs_ManWriteVerilogConcat( FILE * pFile, Prs_Ntk_t * p, int Con )
 {
     extern void Prs_ManWriteVerilogArray( FILE * pFile, Prs_Ntk_t * p, Vec_Int_t * vSigs, int fOdd );
@@ -61,7 +70,7 @@ static void Prs_ManWriteVerilogSignal( FILE * pFile, Prs_Ntk_t * p, int Sig )
     else if ( Type == CBA_PRS_CONST )
         fprintf( pFile, "%s", Prs_NtkConst(p, Value) );
     else if ( Type == CBA_PRS_SLICE )
-        fprintf( pFile, "%s%s", Prs_NtkStr(p, Prs_SliceName(p, Value)), Prs_NtkStr(p, Prs_SliceRange(p, Value)) );
+        fprintf( pFile, "%s%s", Prs_NtkStr(p, Prs_SliceName(p, Value)), Prs_ManWriteRange(p, Prs_SliceRange(p, Value), 1) );
     else if ( Type == CBA_PRS_CONCAT )
         Prs_ManWriteVerilogConcat( pFile, p, Value );
     else assert( 0 );
@@ -138,7 +147,7 @@ static void Prs_ManWriteVerilogIos( FILE * pFile, Prs_Ntk_t * p, int SigType )
     if ( SigType == 3 )
         fprintf( pFile, "\n" );
     Vec_IntForEachEntryTwo( vSigs[SigType], vSigsR[SigType], NameId, RangeId, i )
-        fprintf( pFile, "  %s %s%s;\n", pSigNames[SigType], RangeId ? Prs_NtkStr(p, RangeId) : "", Prs_NtkStr(p, NameId) );
+        fprintf( pFile, "  %s %s%s;\n", pSigNames[SigType], RangeId ? Prs_ManWriteRange(p, RangeId, 0) : "", Prs_NtkStr(p, NameId) );
 }
 static void Prs_ManWriteVerilogIoOrder( FILE * pFile, Prs_Ntk_t * p, Vec_Int_t * vOrder )
 {
@@ -264,8 +273,7 @@ void Cba_ManCreatePrimMap( char ** pMap )
 }
 
 
-
-static inline int Cba_NameIsLegalInVerilog( char * pName )
+static inline int Cba_NameIsLegalInVerilog( char * pName, int NameId )
 {
     // identifier ::= simple_identifier | escaped_identifier
     // simple_identifier ::= [a-zA-Z_][a-zA-Z0-9_$]
@@ -274,6 +282,8 @@ static inline int Cba_NameIsLegalInVerilog( char * pName )
     assert( pName != NULL && *pName != '\0' );
     if ( *pName == '\\' )
         return 1;
+    if ( NameId < 13 ) // see PRS_VER_UNKNOWN in cbaReadVer.c
+        return 0;
     if ( (*pName < 'a' || *pName > 'z') && (*pName < 'A' || *pName > 'Z') && *pName != '_' )
         return 0;
     while ( *(++pName) )
@@ -281,21 +291,12 @@ static inline int Cba_NameIsLegalInVerilog( char * pName )
             return 0;
     return 1;
 }
-static inline char * Cba_NameLegal( char * pName )
-{
-    static char pNewName[1000];
-    if ( Cba_NameIsLegalInVerilog(pName) )
-        return pName;
-    assert( strlen(pName) < 1000 );
-    sprintf( pNewName, "\\%s ", pName );
-    return pNewName;
-}
 char * Cba_ObjGetName( Cba_Ntk_t * p, int i )
 {
     char * pName = Cba_ObjNameStr(p, i);
     if ( pName == NULL )
         return pName;
-    if ( Cba_NameIsLegalInVerilog(pName) )
+    if ( Cba_NameIsLegalInVerilog(pName, Cba_ObjName(p, i)) )
         return pName;
     return Vec_StrPrintF( Abc_NamBuffer(Cba_NtkNam(p)), "\\%s ", pName );
 }
@@ -306,7 +307,7 @@ char * Cba_FonGetName( Cba_Ntk_t * p, int i )
         return pName;
     if ( Cba_ObjType(p, Cba_FonObj(p, i)) == CBA_BOX_SLICE )
         return pName;
-    if ( Cba_NameIsLegalInVerilog(pName) )
+    if ( Cba_NameIsLegalInVerilog(pName, Cba_FonName(p, i)) )
         return pName;
     return Vec_StrPrintF( Abc_NamBuffer(Cba_NtkNam(p)), "\\%s ", pName );
 }
@@ -315,7 +316,7 @@ char * Cba_ManGetSliceName( Cba_Ntk_t * p, int iFon, int RangeId )
     int Left  = Cba_NtkRangeLeft(p, RangeId);
     int Right = Cba_NtkRangeRight(p, RangeId);
     char * pName = Cba_FonNameStr(p, iFon);
-    if ( Cba_NameIsLegalInVerilog(pName) )
+    if ( Cba_NameIsLegalInVerilog(pName, Cba_FonName(p, iFon)) )
         if ( Left == Right )
             return Vec_StrPrintF( Abc_NamBuffer(Cba_NtkNam(p)), "%s[%d]", pName, Right );
         else
@@ -330,7 +331,7 @@ char * Cba_ManGetSliceName( Cba_Ntk_t * p, int iFon, int RangeId )
 void Cba_ManWriteFonRange( Cba_Ntk_t * p, int iFon )
 {
     Vec_Str_t * vStr = &p->pDesign->vOut;
-    if ( Cba_FonIsConst(iFon) || (Cba_FonRangeSize(p, iFon) == 1 && Cba_FonRight(p, iFon) == 0) )
+    if ( !iFon || Cba_FonIsConst(iFon) || (Cba_FonRangeSize(p, iFon) == 1 && Cba_FonRight(p, iFon) == 0) )
         return;
     Vec_StrPrintF( vStr, "[%d:%d] ", Cba_FonLeft(p, iFon), Cba_FonRight(p, iFon) );
 
@@ -340,8 +341,8 @@ void Cba_ManWriteFonName( Cba_Ntk_t * p, int iFon, int fInlineConcat, int fInput
     extern void Cba_ManWriteCatIn( Cba_Ntk_t * p, int iObj );
     Vec_Str_t * vStr = &p->pDesign->vOut;
     if ( !iFon || (!Cba_FonIsConst(iFon) && !Cba_FonName(p, iFon)) ) 
-//        Vec_StrPrintF( vStr, "Open_%d", Cba_NtkMan(p)->nOpens++ );
-        Vec_StrPrintF( vStr, "1\'b0" );
+        Vec_StrPrintF( vStr, "Open_%d", Cba_NtkMan(p)->nOpens++ );
+//        Vec_StrPrintF( vStr, "1\'b0" );
     else if ( fInlineConcat && !Cba_FonIsConst(iFon) && Cba_ObjIsCatIn(p, Cba_FonObj(p, iFon)) )
         Cba_ManWriteCatIn( p, Cba_FonObj(p, iFon) );
     else
@@ -858,7 +859,7 @@ void Cba_ManWriteVerilogNtk( Cba_Ntk_t * p, int fInlineConcat )
     Cba_NtkForEachPo( p, iObj, i )
     {
         iFon = Cba_ObjFinFon(p, iObj, 0);
-        if ( !Cba_FonIsConst(iFon) && Cba_FonName(p, iFon) == Cba_ObjName(p, iObj) ) // already written
+        if ( !iFon || !Cba_FonIsConst(iFon) && Cba_FonName(p, iFon) == Cba_ObjName(p, iObj) ) // already written
             continue;
         Vec_StrPrintStr( vStr, "  assign " );
         Vec_StrPrintStr( vStr, Cba_ObjGetName(p, iObj) );

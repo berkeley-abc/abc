@@ -728,6 +728,19 @@ static inline void Vec_IntPushTwo( Vec_Int_t * p, int Entry1, int Entry2 )
     Vec_IntPush( p, Entry1 );
     Vec_IntPush( p, Entry2 );
 }
+static inline void Vec_IntPushThree( Vec_Int_t * p, int Entry1, int Entry2, int Entry3 )
+{
+    Vec_IntPush( p, Entry1 );
+    Vec_IntPush( p, Entry2 );
+    Vec_IntPush( p, Entry3 );
+}
+static inline void Vec_IntPushFour( Vec_Int_t * p, int Entry1, int Entry2, int Entry3, int Entry4 )
+{
+    Vec_IntPush( p, Entry1 );
+    Vec_IntPush( p, Entry2 );
+    Vec_IntPush( p, Entry3 );
+    Vec_IntPush( p, Entry4 );
+}
 static inline void Vec_IntPushArray( Vec_Int_t * p, int * pEntries, int nEntries )
 {
     int i;
@@ -1338,14 +1351,14 @@ static inline void Vec_IntSort( Vec_Int_t * p, int fReverse )
         qsort( (void *)p->pArray, p->nSize, sizeof(int), 
                 (int (*)(const void *, const void *)) Vec_IntSortCompare1 );
 }
-static inline void Vec_IntSortPairs( Vec_Int_t * p, int fReverse )
+static inline void Vec_IntSortMulti( Vec_Int_t * p, int nMulti, int fReverse )
 {
-    assert( Vec_IntSize(p) % 2 == 0 );
+    assert( Vec_IntSize(p) % nMulti == 0 );
     if ( fReverse ) 
-        qsort( (void *)p->pArray, p->nSize/2, 2*sizeof(int), 
+        qsort( (void *)p->pArray, p->nSize/nMulti, nMulti*sizeof(int), 
                 (int (*)(const void *, const void *)) Vec_IntSortCompare2 );
     else
-        qsort( (void *)p->pArray, p->nSize/2, 2*sizeof(int), 
+        qsort( (void *)p->pArray, p->nSize/nMulti, nMulti*sizeof(int), 
                 (int (*)(const void *, const void *)) Vec_IntSortCompare1 );
 }
 
@@ -1419,7 +1432,7 @@ static inline int Vec_IntUniqifyPairs( Vec_Int_t * p )
     assert( p->nSize % 2 == 0 );
     if ( p->nSize < 4 )
         return 0;
-    Vec_IntSortPairs( p, 0 );
+    Vec_IntSortMulti( p, 2, 0 );
     for ( i = k = 1; i < p->nSize/2; i++ )
         if ( p->pArray[2*i] != p->pArray[2*(i-1)] || p->pArray[2*i+1] != p->pArray[2*(i-1)+1] )
         {

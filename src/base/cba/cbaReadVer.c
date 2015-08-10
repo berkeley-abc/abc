@@ -668,8 +668,6 @@ static inline int Prs_ManReadAssign( Prs_Man_t * p )
     // check unary operator
     if ( Prs_ManIsChar(p, ';') )
     {
-        Vec_IntPush( &p->vTemp, 0 );
-        Vec_IntPush( &p->vTemp, OutItem );
         Oper = fCompl ? CBA_BOX_INV : CBA_BOX_BUF;
         Prs_NtkAddBox( p->pNtk, Oper, 0, &p->vTemp );
         return 1;
@@ -1072,7 +1070,7 @@ int Prs_CreateSignalIn( Cba_Ntk_t * p, Prs_Ntk_t * pNtk, int Sig )
     assert( Type == CBA_PRS_CONCAT );
     return Prs_CreateCatIn( p, pNtk, Value );
 }
-int Prs_CreateRange( Cba_Ntk_t * p, int iFon, Prs_Ntk_t * pNtk, int NameId )
+int Prs_CreateRange( Cba_Ntk_t * p, int iFon, int NameId )
 {
     int RangeId = -Cba_NtkGetMap(p, NameId);
     if ( RangeId < 0 ) // this variable is already created
@@ -1085,6 +1083,7 @@ int Prs_CreateRange( Cba_Ntk_t * p, int iFon, Prs_Ntk_t * pNtk, int NameId )
     Cba_FonSetRange( p, iFon, RangeId );
     return Cba_FonRangeSize( p, iFon );
 }
+/*
 int Prs_CreateCatOut( Cba_Ntk_t * p, int iFon, Prs_Ntk_t * pNtk, int Con )
 {
     int i, Sig, iObj, iFonNew, NameId, nBits = 0;
@@ -1106,14 +1105,14 @@ int Prs_CreateCatOut( Cba_Ntk_t * p, int iFon, Prs_Ntk_t * pNtk, int Con )
             pSigName = Prs_NtkStr(pNtk, Value);
             NameId = Cba_NtkNewStrId( p, pSigName ); 
             Cba_FonSetName( p, iFonNew, NameId );
-            nBits += Prs_CreateRange( p, iFonNew, pNtk, NameId );
+            nBits += Prs_CreateRange( p, iFonNew, NameId );
         }
         else if ( Type == CBA_PRS_SLICE )
         {
             pSigName = Prs_NtkStr(pNtk, Prs_SliceName(pNtk, Value));
             NameId = Cba_NtkNewStrId( p, pSigName );
             Cba_FonSetName( p, iFonNew, NameId );
-            Prs_CreateRange( p, iFonNew, pNtk, NameId );
+            Prs_CreateRange( p, iFonNew, NameId );
             // create slice of this concat
             Prs_CreateSlice( p, iFonNew, pNtk, Prs_SliceRange(pNtk, Value) );
             nBits += Cba_NtkRangeSize( p, Prs_SliceRange(pNtk, Value) );
@@ -1123,35 +1122,149 @@ int Prs_CreateCatOut( Cba_Ntk_t * p, int iFon, Prs_Ntk_t * pNtk, int Con )
     Cba_FonSetRange( p, iFon, Cba_NtkHashRange(p, nBits-1, 0) );
     return iObj;
 }
+*/
 void Prs_CreateSignalOut( Cba_Ntk_t * p, int iFon, Prs_Ntk_t * pNtk, int Sig )
 {
-    int iObj, NameId, Value = Abc_Lit2Var2( Sig );
-    Prs_ManType_t Type = (Prs_ManType_t)Abc_Lit2Att2( Sig );
+    int i, iFonNew, NameOut, RangeOut, NameId, RangeId, RangeSize, nBits = 0; 
+    Prs_ManType_t SigType = (Prs_ManType_t)Abc_Lit2Att2( Sig );
+    int SigValue = Abc_Lit2Var2( Sig );
     if ( !Sig ) return;
-    if ( Type == CBA_PRS_NAME )
+    if ( SigType == CBA_PRS_NAME )
     {
-        int NameId = Cba_NtkNewStrId(p, Prs_NtkStr(pNtk, Value));
+        NameId = SigValue;
+        if ( !strncmp(Cba_NtkStr(p, NameId), "Open_", 5) )
+            return;
         Cba_FonSetName( p, iFon, NameId );
-        Prs_CreateRange( p, iFon, pNtk, NameId );
+        Prs_CreateRange( p, iFon, NameId );
         return;
     }
-    if ( Type == CBA_PRS_SLICE )
+    // create name for this fan
+    NameOut = Cba_NtkNewStrId( p, "_occ%d_", iFon );
+    Cba_FonSetName( p, iFon, NameOut );
+    Cba_NtkSetMap( p, NameOut, iFon );
+    // consider special cases
+    if ( SigType == CBA_PRS_SLICE )
     {
-        char * pSigName = Prs_NtkStr(pNtk, Prs_SliceName(pNtk, Value));
-        // create buffer
-        iObj = Cba_ObjAlloc( p, CBA_BOX_BUF, 1, 1 );
-        Cba_ObjSetFinFon( p, iObj, 0, iFon );
-        iFon = Cba_ObjFon0( p, iObj );
-        NameId = Cba_NtkNewStrId( p, pSigName );
-        Cba_FonSetName( p, iFon, NameId );
-        Prs_CreateRange( p, iFon, pNtk, NameId );
-        // create slice of this concat
-        Prs_CreateSlice( p, iFon, pNtk, Prs_SliceRange(pNtk, Value) );
-        return;
+        NameId  = Prs_SliceName(pNtk, SigValue);
+        RangeId = Prs_SliceRange(pNtk, SigValue);
+        nBits   = Cba_NtkRangeSize(p, RangeId);
+        // save this slice
+        Vec_IntPushThree( &p->vArray0, NameId, RangeId, iFon );
     }
-    assert( Type == CBA_PRS_CONCAT );
-    Prs_CreateCatOut( p, iFon, pNtk, Value );
+    else if ( SigType == CBA_PRS_CONCAT )
+    {
+        Vec_Int_t * vSigs = Prs_CatSignals(pNtk, SigValue);
+        Vec_IntReverseOrder( vSigs );
+        Vec_IntForEachEntry( vSigs, Sig, i )
+        {
+            SigType = (Prs_ManType_t)Abc_Lit2Att2( Sig );
+            SigValue = Abc_Lit2Var2( Sig );
+            if ( SigType == CBA_PRS_NAME )
+            {
+                int iObjBuf, iFonBuf;
+                // create buffer
+                NameId = SigValue;
+                if ( !strncmp(Cba_NtkStr(p, NameId), "Open_", 5) )
+                {
+                    nBits++;
+                    continue;
+                }
+                iObjBuf   = Cba_ObjAlloc( p, CBA_BOX_BUF, 1, 1 );
+                iFonBuf   = Cba_ObjFon0(p, iObjBuf);
+                Cba_FonSetName( p, iFonBuf, NameId );
+                RangeSize = Prs_CreateRange( p, iFonBuf, NameId );
+                RangeOut  = Cba_NtkHashRange(p, nBits+RangeSize-1, nBits);
+                // create slice
+                iFonNew   = Prs_CreateSlice( p, iFon, pNtk, RangeOut );
+                Cba_ObjSetFinFon( p, iObjBuf, 0, iFonNew );
+            }
+            else if ( SigType == CBA_PRS_SLICE )
+            {
+                NameId    = Prs_SliceName(pNtk, SigValue);
+                RangeId   = Prs_SliceRange(pNtk, SigValue);
+                RangeSize = Cba_NtkRangeSize(p, RangeId);
+                RangeOut  = Cba_NtkHashRange(p, nBits+RangeSize-1, nBits);
+                // create slice
+                iFonNew   = Prs_CreateSlice( p, iFon, pNtk, RangeOut );
+                // save this slice
+                Vec_IntPushThree( &p->vArray0, NameId, RangeId, iFonNew );
+            }
+            else assert( 0 );
+            // increment complete range
+            nBits += RangeSize;
+        }
+        Vec_IntReverseOrder( vSigs );
+    }
+    else assert( 0 );
+    // set the range for the output
+    Cba_FonHashRange( p, iFon, nBits-1, 0 );
 }
+
+void Prs_CreateOutConcat( Cba_Ntk_t * p, int * pSlices, int nSlices )
+{
+    Vec_Int_t * vBits = &p->vArray1;
+    int NameId    = pSlices[0];
+    int RangeId   = -Cba_NtkGetMap(p, NameId);
+    int LeftId    = Cba_NtkRangeLeft( p, RangeId );
+    int RightId   = Cba_NtkRangeRight( p, RangeId );
+    int BotId     = Abc_MinInt( LeftId, RightId );
+    int TopId     = Abc_MaxInt( LeftId, RightId );
+    int RangeSize = Cba_NtkRangeSize( p, RangeId );
+    int i, k, iObj, iFon, nParts = 0, Prev = -1, nBits;
+    assert( RangeId > 0 );
+    Vec_IntFill( vBits, Abc_MaxInt(LeftId, RightId) + 1, 0 );
+    // fill up with slices
+    for ( i = 0; i < nSlices; i++ )
+    {
+        int Name  = pSlices[3*i+0];
+        int Range = pSlices[3*i+1];
+        int iFon  = pSlices[3*i+2];
+        int Size  = Cba_NtkRangeSize( p, Range );
+        int Left  = Cba_NtkRangeLeft( p, Range );
+        int Right = Cba_NtkRangeRight( p, Range );
+        int Bot   = Abc_MinInt( Left, Right );
+        int Top   = Abc_MaxInt( Left, Right );
+        assert( Name == NameId && iFon > 0 );
+        assert( TopId >= Top && Bot >= BotId );
+        for ( k = Bot; k <= Top; k++ )
+        {
+            assert( Vec_IntEntry(vBits, k) == 0 );
+            Vec_IntWriteEntry( vBits, k, iFon );
+        }
+    }
+    // check how many parts we have
+    Vec_IntForEachEntryStartStop( vBits, iFon, i, BotId, TopId+1 )
+    {
+        if ( Prev != iFon )
+            nParts++;
+        Prev = iFon;
+    }
+    // create new concatenation
+    iObj = Cba_ObjAlloc( p, CBA_BOX_CATIN, nParts, 1 );
+    iFon = Cba_ObjFon0(p, iObj);
+    Cba_FonSetName( p, iFon, NameId );
+    Prs_CreateRange( p, iFon, NameId );
+    // set inputs
+    k = 0; Prev = -1; nBits = 0;
+    Vec_IntForEachEntryStartStop( vBits, iFon, i, BotId, TopId+1 )
+    {
+        if ( Prev == -1 || Prev == iFon )
+            nBits++;
+        else
+        {
+            if ( Prev == 0 ) // create constant
+                Prev = Cba_ManNewConstZero( p, nBits );
+            assert( nBits == Cba_FonRangeSize(p, Prev) );
+            Cba_ObjSetFinFon( p, iObj, nParts-1-k++, Prev );
+            nBits = 1;
+        }
+        Prev = iFon;         
+    }
+    assert( nBits == Cba_FonRangeSize(p, Prev) );
+    Cba_ObjSetFinFon( p, iObj, nParts-1-k++, Prev );
+    assert( k == nParts );
+}
+
 // looks at multi-bit signal; if one bit is repeated, returns this bit; otherwise, returns -1
 int Prs_CreateBitSignal( Prs_Ntk_t * pNtk, int Sig )
 {
@@ -1354,7 +1467,7 @@ int Prs_CreateVerilogNtk( Cba_Ntk_t * p, Prs_Ntk_t * pNtk )
         iFon = Cba_ObjFon0(p, iObj);
         NameId = Cba_NtkNewStrId( p, pRamName ); 
         Cba_FonSetName( p, iFon, NameId );
-        Prs_CreateRange( p, iFon, pNtk, NameId );
+        Prs_CreateRange( p, iFon, NameId );
         assert( Cba_FonLeft(p, iFon) <= MemSize-1 );
         assert( Cba_FonRight(p, iFon) == 0 );
         //Cba_VerificSaveLineFile( p, iObj, pNet->Linefile() );
@@ -1384,6 +1497,7 @@ int Prs_CreateVerilogNtk( Cba_Ntk_t * p, Prs_Ntk_t * pNtk )
     Vec_PtrFreeP( &vAllRams );
 
     // create objects
+    Vec_IntClear( &p->vArray0 );
     Prs_NtkForEachBox( pNtk, vBox, i )
     {
         if ( Prs_BoxIsNode(pNtk, i) ) // node
@@ -1453,6 +1567,21 @@ int Prs_CreateVerilogNtk( Cba_Ntk_t * p, Prs_Ntk_t * pNtk )
         Vec_IntWriteEntry( vBox2Obj, i, iObj );
         if ( Prs_BoxName(pNtk, i) )
             Cba_ObjSetName( p, iObj, Prs_BoxName(pNtk, i) );
+        //Cba_VerificSaveLineFile( p, iObj, pInst->Linefile() );
+    }
+
+    // create concatenations for split signals
+    if ( Vec_IntSize(&p->vArray0) )
+    {
+        int Prev = -1, Index = 0;
+        Vec_IntSortMulti( &p->vArray0, 3, 0 );
+        Vec_IntForEachEntryTriple( &p->vArray0, NameId, RangeId, iFon, i )
+        {
+            if ( Prev != -1 && Prev != NameId )
+                Prs_CreateOutConcat( p, Vec_IntArray(&p->vArray0) + Index, (i - Index)/3 ), Index = i;
+            Prev = NameId;         
+        }
+        Prs_CreateOutConcat( p, Vec_IntArray(&p->vArray0) + Index, (i - Index)/3 ), Index = i;
         //Cba_VerificSaveLineFile( p, iObj, pInst->Linefile() );
     }
 

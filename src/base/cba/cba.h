@@ -562,6 +562,18 @@ static inline int Cba_NtkNewStrId( Cba_Ntk_t * pNtk, const char * format, ...  )
     va_end( args );
     return Abc_NamStrFindOrAddLim( p, Vec_StrLimit(vBuf), Vec_StrLimit(vBuf) + nAdded, NULL );
 }
+static inline int Cba_ManNewConstId( Cba_Ntk_t * p, Vec_Str_t * vBits ) 
+{ 
+    Vec_Str_t * vOut = Abc_NamBuffer(Cba_NtkNam(p)); 
+    Vec_StrPrintF( vOut, "%d\'b%s", Vec_StrSize(vBits)-1, Vec_StrArray(vBits) );
+    return Abc_NamStrFindOrAdd(p->pDesign->pFuns, Vec_StrArray(vOut), NULL);
+}
+static inline int Cba_ManNewConstZero( Cba_Ntk_t * p, int nBits ) 
+{ 
+    Vec_Str_t * vOut = Abc_NamBuffer(Cba_NtkNam(p)); 
+    Vec_StrPrintF( vOut, "%d\'b%0s", nBits, "" );
+    return Abc_NamStrFindOrAdd(p->pDesign->pFuns, Vec_StrArray(vOut), NULL);
+}
 static inline void Cba_NtkAdd( Cba_Man_t * p, Cba_Ntk_t * pNtk )
 {    
     int fFound, NtkId = Abc_NamStrFindOrAdd( p->pMods, Cba_NtkName(pNtk), &fFound );
@@ -919,20 +931,6 @@ static inline void Cba_NtkSetMap2( Cba_Ntk_t * p, int i, int x )   { Cba_ManSetM
 static inline void Cba_NtkUnsetMap2( Cba_Ntk_t * p, int i )        { Cba_ManUnsetMap2(p->pDesign, i);      }
 static inline void Cba_NtkCleanMap2( Cba_Ntk_t * p )               { Cba_ManCleanMap2(p->pDesign);         }
 
-static inline int Cba_ManNewConstId( Cba_Man_t * p, Vec_Str_t * vBits ) 
-{ 
-    Vec_Str_t * vOut = &p->vOut; 
-    char Symb; int i; 
-    assert( Vec_StrSize(vBits) > 0 );
-    Vec_StrClear( vOut );
-    Vec_StrPrintNum( vOut, Vec_StrSize(vBits) );
-    Vec_StrPush( vOut, '\'' );
-    Vec_StrPush( vOut, 'b' );
-    Vec_StrForEachEntry( vBits, Symb, i )
-        Vec_StrPush( vOut, Symb );
-    Vec_StrPush( vOut, '\0' );
-    return Abc_NamStrFindOrAdd(p->pFuns, Vec_StrArray(vOut), NULL);
-}
 static inline int Cba_ManMemory( Cba_Man_t * p )
 {
     Cba_Ntk_t * pNtk; int i;
