@@ -35,12 +35,30 @@
 
 ABC_NAMESPACE_HEADER_START 
 
+// Verilog keywords
+typedef enum { 
+    PRS_VER_NONE = 0,  // 0:  unused
+    PRS_VER_INPUT,     // 1:  input
+    PRS_VER_OUTPUT,    // 2:  output
+    PRS_VER_INOUT,     // 3:  inout
+    PRS_VER_WIRE,      // 4:  wire
+    PRS_VER_MODULE,    // 5:  module
+    PRS_VER_ASSIGN,    // 6:  assign
+    PRS_VER_REG,       // 7:  reg
+    PRS_VER_ALWAYS,    // 8:  always
+    PRS_VER_DEFPARAM,  // 9:  always
+    PRS_VER_BEGIN,     // 10: begin
+    PRS_VER_END,       // 11: end
+    PRS_VER_ENDMODULE, // 12: endmodule
+    PRS_VER_UNKNOWN    // 13: unknown
+} Cba_VerType_t;
+
 // parser name types
 typedef enum { 
-    CBA_PRS_NAME = 0,        // 0:  name/variable
-    CBA_PRS_SLICE,           // 1:  slice
-    CBA_PRS_CONST,           // 2:  constant
-    CBA_PRS_CONCAT,          // 3:  concatentation
+    CBA_PRS_NAME = 0,  // 0:  name/variable
+    CBA_PRS_SLICE,     // 1:  slice
+    CBA_PRS_CONST,     // 2:  constant
+    CBA_PRS_CONCAT,    // 3:  concatentation
 } Prs_ManType_t; 
 
 ////////////////////////////////////////////////////////////////////////
@@ -456,7 +474,8 @@ static inline char * Ptr_TypeToSop( Cba_ObjType_t Type )
 ///                    FUNCTION DECLARATIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
-/*=== cba.c ========================================================*/
+/*=== cbaReadVer.c ========================================================*/
+extern void Prs_NtkAddVerilogDirectives( Prs_Man_t * p );
 
 
 ABC_NAMESPACE_HEADER_END

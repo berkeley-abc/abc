@@ -27,24 +27,6 @@ ABC_NAMESPACE_IMPL_START
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-// Verilog keywords
-typedef enum { 
-    PRS_VER_NONE = 0,  // 0:  unused
-    PRS_VER_INPUT,     // 1:  input
-    PRS_VER_OUTPUT,    // 2:  output
-    PRS_VER_INOUT,     // 3:  inout
-    PRS_VER_WIRE,      // 4:  wire
-    PRS_VER_MODULE,    // 5:  module
-    PRS_VER_ASSIGN,    // 6:  assign
-    PRS_VER_REG,       // 7:  reg
-    PRS_VER_ALWAYS,    // 8:  always
-    PRS_VER_DEFPARAM,  // 9:  always
-    PRS_VER_BEGIN,     // 10: begin
-    PRS_VER_END,       // 11: end
-    PRS_VER_ENDMODULE, // 12: endmodule
-    PRS_VER_UNKNOWN    // 13: unknown
-} Cba_VerType_t;
-
 static const char * s_VerTypes[PRS_VER_UNKNOWN+1] = {
     NULL,              // 0:  unused
     "input",           // 1:  input
@@ -62,7 +44,7 @@ static const char * s_VerTypes[PRS_VER_UNKNOWN+1] = {
     NULL               // 13: unknown 
 };
 
-static inline void Prs_NtkAddVerilogDirectives( Prs_Man_t * p )
+void Prs_NtkAddVerilogDirectives( Prs_Man_t * p )
 {
     int i;
     for ( i = 1; s_VerTypes[i]; i++ )
@@ -1209,23 +1191,20 @@ void Prs_CreateOutConcat( Cba_Ntk_t * p, int * pSlices, int nSlices )
     int RightId   = Cba_NtkRangeRight( p, RangeId );
     int BotId     = Abc_MinInt( LeftId, RightId );
     int TopId     = Abc_MaxInt( LeftId, RightId );
-    int RangeSize = Cba_NtkRangeSize( p, RangeId );
-    int i, k, iObj, iFon, nParts = 0, Prev = -1, nBits;
+    int i, k, iObj, iFon, nParts, Prev, nBits;
     assert( RangeId > 0 );
     Vec_IntFill( vBits, Abc_MaxInt(LeftId, RightId) + 1, 0 );
     // fill up with slices
     for ( i = 0; i < nSlices; i++ )
     {
-        int Name  = pSlices[3*i+0];
         int Range = pSlices[3*i+1];
         int iFon  = pSlices[3*i+2];
-        int Size  = Cba_NtkRangeSize( p, Range );
         int Left  = Cba_NtkRangeLeft( p, Range );
         int Right = Cba_NtkRangeRight( p, Range );
         int Bot   = Abc_MinInt( Left, Right );
         int Top   = Abc_MaxInt( Left, Right );
-        assert( Name == NameId && iFon > 0 );
-        assert( TopId >= Top && Bot >= BotId );
+        assert( NameId == pSlices[3*i+0] && iFon > 0 );
+        assert( BotId <= Bot && Top <= TopId );
         for ( k = Bot; k <= Top; k++ )
         {
             assert( Vec_IntEntry(vBits, k) == 0 );
@@ -1233,6 +1212,7 @@ void Prs_CreateOutConcat( Cba_Ntk_t * p, int * pSlices, int nSlices )
         }
     }
     // check how many parts we have
+    Prev = -1; nParts = 0; 
     Vec_IntForEachEntryStartStop( vBits, iFon, i, BotId, TopId+1 )
     {
         if ( Prev != iFon )

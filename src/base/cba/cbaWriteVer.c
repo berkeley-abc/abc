@@ -859,7 +859,7 @@ void Cba_ManWriteVerilogNtk( Cba_Ntk_t * p, int fInlineConcat )
     Cba_NtkForEachPo( p, iObj, i )
     {
         iFon = Cba_ObjFinFon(p, iObj, 0);
-        if ( !iFon || !Cba_FonIsConst(iFon) && Cba_FonName(p, iFon) == Cba_ObjName(p, iObj) ) // already written
+        if ( !iFon || (!Cba_FonIsConst(iFon) && Cba_FonName(p, iFon) == Cba_ObjName(p, iObj)) ) // already written
             continue;
         Vec_StrPrintStr( vStr, "  assign " );
         Vec_StrPrintStr( vStr, Cba_ObjGetName(p, iObj) );
