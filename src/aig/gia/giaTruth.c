@@ -19,6 +19,9 @@
 ***********************************************************************/
 
 #include "gia.h"
+#include "misc/vec/vecMem.h"
+#include "misc/util/utilTruth.h"
+#include "opt/dau/dau.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -400,6 +403,64 @@ word * Gia_ObjComputeTruthTableCut( Gia_Man_t * p, Gia_Obj_t * pRoot, Vec_Int_t 
     Vec_IntForEachEntryStart( p->vTtNodes, iObj, i, 1 )
         Gia_ObjResetNumId( p, iObj );
     return pTruth;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Reduces GIA to contain isomorphic POs.]
+
+  Description [The root cannot be one of the leaves.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Gia_Man_t * Gia_ManIsoNpnReduce( Gia_Man_t * p, int fVerbose )
+{
+    char pCanonPerm[16];
+    int i, iObj, uCanonPhase, nVars, lastId, truthId;
+    word * pTruth;
+    Gia_Obj_t * pObj;
+    Vec_Mem_t * vTtMem[17];   // truth table memory and hash table
+    Gia_Man_t * pNew = NULL;
+    Vec_Int_t * vLeaves = Vec_IntAlloc( 16 );
+    Vec_Int_t * vCone = Vec_IntAlloc( Gia_ManCoNum(p) );
+    for ( i = 0; i < 17; i++ )
+    {
+        vTtMem[i] = Vec_MemAlloc( Abc_TtWordNum(i), 10 );
+        Vec_MemHashAlloc( vTtMem[i], 1000 );
+    }
+    Gia_ObjComputeTruthTableStart( p, 16 );
+    Gia_ManForEachPo( p, pObj, i )
+    {
+        iObj = Gia_ObjId(p, pObj);
+        Gia_ManCollectCis( p, &iObj, 1, vLeaves );
+        if ( Vec_IntSize(vLeaves) > 16 )
+        {
+            Vec_IntPush( vCone, i );
+            continue;
+        }
+        if ( !Gia_ObjIsAnd(Gia_ObjFanin0(pObj)) )
+            continue;
+        pTruth = Gia_ObjComputeTruthTableCut( p, Gia_ObjFanin0(pObj), vLeaves );
+        Abc_TtMinimumBase( pTruth, NULL, Vec_IntSize(vLeaves), &nVars );
+        uCanonPhase = Abc_TtCanonicize( pTruth, nVars, pCanonPerm );
+        lastId = Vec_MemEntryNum( vTtMem[nVars] );
+        truthId = Vec_MemHashInsert( vTtMem[nVars], pTruth );
+        if ( lastId != Vec_MemEntryNum( vTtMem[nVars] ) ) // new one
+            Vec_IntPush( vCone, i );
+    }
+    Vec_IntFree( vLeaves );
+    for ( i = 0; i < 17; i++ )
+    {
+        Vec_MemHashFree( vTtMem[i] );
+        Vec_MemFree( vTtMem[i] );
+    }
+    Gia_ObjComputeTruthTableStop( p );
+    pNew = Gia_ManDupSelectedOutputs( p, vCone );
+    Vec_IntFree( vCone );
+    return pNew;
 }
 
 ////////////////////////////////////////////////////////////////////////
