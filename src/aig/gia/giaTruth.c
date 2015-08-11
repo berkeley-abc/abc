@@ -20,6 +20,7 @@
 
 #include "gia.h"
 #include "misc/vec/vecMem.h"
+#include "misc/vec/vecWec.h"
 #include "misc/util/utilTruth.h"
 #include "opt/dau/dau.h"
 
@@ -416,20 +417,24 @@ word * Gia_ObjComputeTruthTableCut( Gia_Man_t * p, Gia_Obj_t * pRoot, Vec_Int_t 
   SeeAlso     []
 
 ***********************************************************************/
-Gia_Man_t * Gia_ManIsoNpnReduce( Gia_Man_t * p, int fVerbose )
+Gia_Man_t * Gia_ManIsoNpnReduce( Gia_Man_t * p, Vec_Ptr_t ** pvPosEquivs, int fVerbose )
 {
     char pCanonPerm[16];
     int i, iObj, uCanonPhase, nVars, lastId, truthId;
+    int IndexCon = -1, IndexVar = -1;
+    Vec_Wec_t * vPosEquivs = Vec_WecAlloc( 100 );
     word * pTruth;
     Gia_Obj_t * pObj;
     Vec_Mem_t * vTtMem[17];   // truth table memory and hash table
     Gia_Man_t * pNew = NULL;
     Vec_Int_t * vLeaves = Vec_IntAlloc( 16 );
-    Vec_Int_t * vCone = Vec_IntAlloc( Gia_ManCoNum(p) );
+    Vec_Int_t * vFirsts;
+    Vec_Int_t * vTt2Class[17];
     for ( i = 0; i < 17; i++ )
     {
         vTtMem[i] = Vec_MemAlloc( Abc_TtWordNum(i), 10 );
         Vec_MemHashAlloc( vTtMem[i], 1000 );
+        vTt2Class[i] = Vec_IntStartFull( Gia_ManCoNum(p)+1 );
     }
     Gia_ObjComputeTruthTableStart( p, 16 );
     Gia_ManForEachPo( p, pObj, i )
@@ -438,28 +443,87 @@ Gia_Man_t * Gia_ManIsoNpnReduce( Gia_Man_t * p, int fVerbose )
         Gia_ManCollectCis( p, &iObj, 1, vLeaves );
         if ( Vec_IntSize(vLeaves) > 16 )
         {
-            Vec_IntPush( vCone, i );
+            Vec_IntPush( Vec_WecPushLevel(vPosEquivs), i );
             continue;
         }
-        if ( !Gia_ObjIsAnd(Gia_ObjFanin0(pObj)) )
+        pObj = Gia_ObjFanin0(pObj);
+        if ( Gia_ObjIsConst0(pObj) )
+        {
+            if ( IndexCon == -1 )
+            {
+                IndexCon = Vec_WecSize(vPosEquivs);
+                Vec_WecPushLevel(vPosEquivs);
+            }
+            Vec_WecPush( vPosEquivs, IndexCon, i );
             continue;
-        pTruth = Gia_ObjComputeTruthTableCut( p, Gia_ObjFanin0(pObj), vLeaves );
+        }
+        if ( Gia_ObjIsCi(pObj) )
+        {
+            if ( IndexVar == -1 )
+            {
+                IndexVar = Vec_WecSize(vPosEquivs);
+                Vec_WecPushLevel(vPosEquivs);
+            }
+            Vec_WecPush( vPosEquivs, IndexVar, i );
+            continue;
+        }
+        assert( Gia_ObjIsAnd(pObj) );
+        pTruth = Gia_ObjComputeTruthTableCut( p, pObj, vLeaves );
         Abc_TtMinimumBase( pTruth, NULL, Vec_IntSize(vLeaves), &nVars );
+        if ( nVars == 0 )
+        {
+            if ( IndexCon == -1 )
+            {
+                IndexCon = Vec_WecSize(vPosEquivs);
+                Vec_WecPushLevel(vPosEquivs);
+            }
+            Vec_WecPush( vPosEquivs, IndexCon, i );
+            continue;
+        }
+        if ( nVars == 1 )
+        {
+            if ( IndexVar == -1 )
+            {
+                IndexVar = Vec_WecSize(vPosEquivs);
+                Vec_WecPushLevel(vPosEquivs);
+            }
+            Vec_WecPush( vPosEquivs, IndexVar, i );
+            continue;
+        }
         uCanonPhase = Abc_TtCanonicize( pTruth, nVars, pCanonPerm );
         lastId = Vec_MemEntryNum( vTtMem[nVars] );
         truthId = Vec_MemHashInsert( vTtMem[nVars], pTruth );
         if ( lastId != Vec_MemEntryNum( vTtMem[nVars] ) ) // new one
-            Vec_IntPush( vCone, i );
+        {
+            assert( Vec_IntEntry(vTt2Class[nVars], truthId) == -1 );
+            Vec_IntWriteEntry( vTt2Class[nVars], truthId, Vec_WecSize(vPosEquivs) );
+            Vec_WecPushLevel(vPosEquivs);
+        }
+        assert( Vec_IntEntry(vTt2Class[nVars], truthId) >= 0 );
+        Vec_WecPush( vPosEquivs, Vec_IntEntry(vTt2Class[nVars], truthId), i );
     }
+    Gia_ObjComputeTruthTableStop( p );
     Vec_IntFree( vLeaves );
     for ( i = 0; i < 17; i++ )
     {
         Vec_MemHashFree( vTtMem[i] );
         Vec_MemFree( vTtMem[i] );
+        Vec_IntFree( vTt2Class[i] );
     }
-    Gia_ObjComputeTruthTableStop( p );
-    pNew = Gia_ManDupSelectedOutputs( p, vCone );
-    Vec_IntFree( vCone );
+
+    // find the first outputs and derive GIA
+    vFirsts = Vec_WecCollectFirsts( vPosEquivs );
+    pNew = Gia_ManDupCones( p, Vec_IntArray(vFirsts), Vec_IntSize(vFirsts), 0 );
+    Vec_IntFree( vFirsts );
+    // report and return    
+    if ( fVerbose )
+    { 
+        printf( "Nontrivial classes:\n" );
+        Vec_WecPrint( vPosEquivs, 1 );
+    }
+    if ( pvPosEquivs )
+        *pvPosEquivs = Vec_WecConvertToVecPtr( vPosEquivs );
+    Vec_WecFree( vPosEquivs );
     return pNew;
 }
 

@@ -35150,9 +35150,9 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9IsoNpn( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern Gia_Man_t * Gia_ManIsoNpnReduce( Gia_Man_t * p, int fVerbose );
+    extern Gia_Man_t * Gia_ManIsoNpnReduce( Gia_Man_t * p, Vec_Ptr_t ** pvPosEquivs, int fVerbose );
     Gia_Man_t * pAig;
-    //Vec_Ptr_t * vPosEquivs;
+    Vec_Ptr_t * vPosEquivs;
     int c, fVerbose = 0;
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
@@ -35183,14 +35183,14 @@ int Abc_CommandAbc9IsoNpn( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Abc_CommandAbc9IsoNpn(): ISO-NPN does not work with sequential AIGs.\n" );
         return 1;
     }
-    pAig = Gia_ManIsoNpnReduce( pAbc->pGia, fVerbose );
+    pAig = Gia_ManIsoNpnReduce( pAbc->pGia, &vPosEquivs, fVerbose );
     if ( pAig == NULL )
     {
         Abc_Print( -1, "Abc_CommandAbc9IsoNpn(): Transformation has failed.\n" );
         return 1;
     }
     // update the internal storage of PO equivalences
-    //Abc_FrameReplacePoEquivs( pAbc, &vPosEquivs );
+    Abc_FrameReplacePoEquivs( pAbc, &vPosEquivs );
     // update the AIG
     Abc_FrameUpdateGia( pAbc, pAig );
     return 0;
