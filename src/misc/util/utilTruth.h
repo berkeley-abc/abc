@@ -2606,7 +2606,7 @@ static inline int Abc_Tt4CheckTwoLevel( int t )
     if ( (pair1 = Abc_Tt4Check2(t, 0, 3, f, r)) >= 0 && (pair2 = Abc_Tt4Check2(t, 1, 2, f, r)) >= 0 ) return (3 << 4) | (pair2 << 2) | pair1;
     return -1;
 }
-static inline Abc_Tt4CountOnes( int t )
+static inline int Abc_Tt4CountOnes( int t )
 {
     t = (t & (0x5555)) + ((t >> 1) & (0x5555));
     t = (t & (0x3333)) + ((t >> 2) & (0x3333));
