@@ -2567,6 +2567,75 @@ static inline void Abc_TtProcessBiDecExperiment()
     nVars = nSuppLim;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Truth table checking procedure.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     [] 
+
+***********************************************************************/
+static inline int Abc_Tt4Equal3( int c0, int c1, int c2, int c3 )
+{
+    if ( c0 == c1 && c0 == c2 ) return 3;
+    if ( c0 == c1 && c0 == c3 ) return 2;
+    if ( c0 == c3 && c0 == c2 ) return 1;
+    if ( c3 == c1 && c3 == c2 ) return 0;
+    return -1;
+}
+static inline int Abc_Tt4Check2( int t, int i, int j, int * f, int * r )
+{
+    int c0  =  t & r[j];
+    int c1  = (t & f[j]) >> (1 << j);
+    int c00 =  c0 & r[i];
+    int c01 = (c0 & f[i]) >> (1 << i);
+    int c10 =  c1 & r[i];
+    int c11 = (c1 & f[i]) >> (1 << i);
+    return Abc_Tt4Equal3( c00, c01, c10, c11 );
+}
+static inline int Abc_Tt4CheckTwoLevel( int t )
+{
+    int pair1, pair2;
+    int f[4] = { 0xAAAA, 0xCCCC, 0xF0F0, 0xFF00 };
+    int r[4] = { 0x5555, 0x3333, 0x0F0F, 0x00FF };
+    if ( (pair1 = Abc_Tt4Check2(t, 0, 1, f, r)) >= 0 && (pair2 = Abc_Tt4Check2(t, 2, 3, f, r)) >= 0 ) return (1 << 4) | (pair2 << 2) | pair1;
+    if ( (pair1 = Abc_Tt4Check2(t, 0, 2, f, r)) >= 0 && (pair2 = Abc_Tt4Check2(t, 1, 3, f, r)) >= 0 ) return (2 << 4) | (pair2 << 2) | pair1;
+    if ( (pair1 = Abc_Tt4Check2(t, 0, 3, f, r)) >= 0 && (pair2 = Abc_Tt4Check2(t, 1, 2, f, r)) >= 0 ) return (3 << 4) | (pair2 << 2) | pair1;
+    return -1;
+}
+static inline Abc_Tt4CountOnes( int t )
+{
+    t = (t & (0x5555)) + ((t >> 1) & (0x5555));
+    t = (t & (0x3333)) + ((t >> 2) & (0x3333));
+    t = (t & (0x0f0f)) + ((t >> 4) & (0x0f0f));
+    t = (t & (0x00ff)) + ((t >> 8) & (0x00ff));
+    return t;
+}
+static inline int Abc_Tt4FirstBit( int t )
+{
+    int n = 0;
+    if ( t == 0 ) return -1;
+    if ( (t & 0x00FF) == 0 ) { n +=  8; t >>=  8; }
+    if ( (t & 0x000F) == 0 ) { n +=  4; t >>=  4; }
+    if ( (t & 0x0003) == 0 ) { n +=  2; t >>=  2; }
+    if ( (t & 0x0001) == 0 ) { n++; }
+    return n;
+}
+static inline int Abc_Tt4Check( int t )
+{
+    int Count, tn = 0xFFFF & ~t;
+    if ( t == 0x6996 || tn == 0x6996 ) return 1;
+    if ( (t & (t-1)) == 0 )            return 1;
+    if ( (tn & (tn-1)) == 0 )          return 1;
+    Count = Abc_Tt4CountOnes( t );
+    if ( Count == 7 && Abc_Tt4CheckTwoLevel(t)  > 0 ) return 1;
+    if ( Count == 9 && Abc_Tt4CheckTwoLevel(tn) > 0 ) return 1;
+    return 0;
+}
+
 /*=== utilTruth.c ===========================================================*/
 
 

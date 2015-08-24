@@ -69,6 +69,14 @@ typedef enum {
     CBA_BOX_MUX,  
     CBA_BOX_MAJ,  
 
+    CBA_BOX_ABC,
+    CBA_BOX_BA,
+    CBA_BOX_BO,
+    CBA_BOX_BX,
+    CBA_BOX_BN,
+    CBA_BOX_BAO,
+    CBA_BOX_BOA,
+
     CBA_BOX_RAND,
     CBA_BOX_RNAND,
     CBA_BOX_ROR,
@@ -95,6 +103,7 @@ typedef enum {
     CBA_BOX_ADD,
     CBA_BOX_SUB,
     CBA_BOX_MUL,
+    CBA_BOX_SMUL,
     CBA_BOX_DIV,
     CBA_BOX_MOD,
     CBA_BOX_REM,
@@ -102,6 +111,7 @@ typedef enum {
     CBA_BOX_MIN,
     CBA_BOX_ABS,
 
+    CBA_BOX_SLTHAN,
     CBA_BOX_LTHAN,
     CBA_BOX_LETHAN,
     CBA_BOX_METHAN,
@@ -111,6 +121,7 @@ typedef enum {
 
     CBA_BOX_SHIL,
     CBA_BOX_SHIR,
+    CBA_BOX_SHIRA,
     CBA_BOX_ROTL,
     CBA_BOX_ROTR,
 
@@ -124,6 +135,8 @@ typedef enum {
     CBA_BOX_RAMR,
     CBA_BOX_RAMW,
     CBA_BOX_RAMWC,
+    CBA_BOX_RAML,
+    CBA_BOX_RAMS,
     CBA_BOX_RAMBOX,
 
     CBA_BOX_LATCH,
@@ -1036,7 +1049,7 @@ extern int           Cba_ManIsTopoOrder( Cba_Man_t * p );
 extern Vec_Int_t *   Cba_NtkCollectDfs( Cba_Ntk_t * p );
 extern Cba_Man_t *   Cba_ManCollapse( Cba_Man_t * p, int TypeBuf );
 extern Cba_Man_t *   Cba_ManExtractGroup( Cba_Man_t * p, Vec_Int_t * vObjs );
-extern Cba_Man_t *   Cba_ManDeriveFromGia( Gia_Man_t * pGia );
+extern Cba_Man_t *   Cba_ManDeriveFromGia( Gia_Man_t * pGia, int fUseXor );
 extern Cba_Man_t *   Cba_ManInsertGroup( Cba_Man_t * p, Vec_Int_t * vObjs, Cba_Ntk_t * pSyn );
 /*=== cbaReadBlif.c ==========================================================*/
 extern void          Prs_ManReadBlifTest( char * pFileName );

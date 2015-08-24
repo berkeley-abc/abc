@@ -32150,7 +32150,7 @@ int Abc_CommandAbc9If( Abc_Frame_t * pAbc, int argc, char ** argv )
             pPars->fDelayOptLut ^= 1;
             break;
         case 'd':
-            pPars->fBidec ^= 1;
+            pPars->fUse34Spec ^= 1;
             break;
         case 'b':
             pPars->fUseBat ^= 1;
@@ -32345,6 +32345,13 @@ int Abc_CommandAbc9If( Abc_Frame_t * pAbc, int argc, char ** argv )
         pPars->fCutMin = 1;
     }
 
+    if ( pPars->fUse34Spec )
+    {
+        pPars->fTruth    = 1;
+        pPars->fCutMin   = 1;
+        pPars->nLutSize  = 4;
+    }
+
     // enable truth table computation if cut minimization is selected
     if ( pPars->fCutMin || pPars->fDeriveLuts )
     {
@@ -32487,7 +32494,7 @@ usage:
     Abc_Print( -2, "\t-p       : uses power-aware cut selection heuristics [default = %s]\n", pPars->fPower? "yes": "no" );
     Abc_Print( -2, "\t-m       : enables cut minimization by removing vacuous variables [default = %s]\n", pPars->fCutMin? "yes": "no" );
     Abc_Print( -2, "\t-s       : toggles delay-oriented mapping used with -S <NN> [default = %s]\n", pPars->fDelayOptLut? "yes": "no" );
-    Abc_Print( -2, "\t-d       : toggles deriving local AIGs using bi-decomposition [default = %s]\n", pPars->fBidec? "yes": "no" );
+    Abc_Print( -2, "\t-d       : toggles deriving specialized matching step [default = %s]\n", pPars->fUse34Spec? "yes": "no" );
     Abc_Print( -2, "\t-b       : toggles the use of one special feature [default = %s]\n", pPars->fUseBat? "yes": "no" );
     Abc_Print( -2, "\t-g       : toggles delay optimization by SOP balancing [default = %s]\n", pPars->fDelayOpt? "yes": "no" );
     Abc_Print( -2, "\t-x       : toggles delay optimization by DSD balancing [default = %s]\n", pPars->fDsdBalance? "yes": "no" );

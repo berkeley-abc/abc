@@ -125,6 +125,7 @@ struct If_Par_t_
     int                fDsdBalance;   // special delay optimization
     int                fUserRecLib;   // use recorded library
     int                fBidec;        // use bi-decomposition
+    int                fUse34Spec;    // use specialized matching
     int                fUseBat;       // use one specialized feature
     int                fUseBuffs;     // use buffers to decouple outputs
     int                fEnableCheck07;// enable additional checking

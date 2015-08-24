@@ -700,7 +700,7 @@ Cba_Man_t * Cba_ManExtractGroup( Cba_Man_t * p, Vec_Int_t * vObjs )
   SeeAlso     []
 
 ***********************************************************************/
-static inline int Cba_NtkInsertGiaLit( Cba_Ntk_t * p, int iLit, Vec_Int_t * vLit2Fon )
+static inline int Cba_NtkInsertGiaLit( Cba_Ntk_t * p, int iLit, Vec_Int_t * vLit2Fon, int fUseXor )
 {
     int iObjNew;
     if ( iLit == 0 || iLit == 1 )
@@ -709,23 +709,34 @@ static inline int Cba_NtkInsertGiaLit( Cba_Ntk_t * p, int iLit, Vec_Int_t * vLit
         return Vec_IntEntry(vLit2Fon, iLit);
     assert( Abc_LitIsCompl(iLit) );
     assert( Vec_IntEntry(vLit2Fon, Abc_LitNot(iLit)) >= 0 );
-    iObjNew = Cba_ObjAlloc( p, CBA_BOX_INV, 1, 1 );
-    Cba_ObjSetFinFon( p, iObjNew, 0, Vec_IntEntry(vLit2Fon, Abc_LitNot(iLit)) );
+    // create inverter
+    if ( fUseXor )
+    {
+        iObjNew = Cba_ObjAlloc( p, CBA_BOX_XOR, 2, 1 );
+        Cba_ObjSetFinFon( p, iObjNew, 0, Vec_IntEntry(vLit2Fon, Abc_LitNot(iLit)) );
+        Cba_ObjSetFinFon( p, iObjNew, 1, Cba_FonFromConst(1) );
+    }
+    else
+    {
+        iObjNew = Cba_ObjAlloc( p, CBA_BOX_INV, 1, 1 );
+        Cba_ObjSetFinFon( p, iObjNew, 0, Vec_IntEntry(vLit2Fon, Abc_LitNot(iLit)) );
+    }
+    // save the result
     Vec_IntWriteEntry( vLit2Fon, iLit, Cba_ObjFon0(p, iObjNew) );
     return Cba_ObjFon0(p, iObjNew);
 }
-static inline int Cba_NtkInsertGiaObj( Cba_Ntk_t * p, Gia_Man_t * pGia, int iObj, Vec_Int_t * vLit2Fon )
+static inline int Cba_NtkInsertGiaObj( Cba_Ntk_t * p, Gia_Man_t * pGia, int iObj, Vec_Int_t * vLit2Fon, int fUseXor )
 {
     Gia_Obj_t * pObj = Gia_ManObj( pGia, iObj );
     int iLit0 = Gia_ObjFaninLit0( pObj, iObj );
     int iLit1 = Gia_ObjFaninLit1( pObj, iObj );
-    int iFon0 = Cba_NtkInsertGiaLit( p, iLit0, vLit2Fon );
-    int iFon1 = Cba_NtkInsertGiaLit( p, iLit1, vLit2Fon );
+    int iFon0 = Cba_NtkInsertGiaLit( p, iLit0, vLit2Fon, fUseXor );
+    int iFon1 = Cba_NtkInsertGiaLit( p, iLit1, vLit2Fon, fUseXor );
     int iObjNew;
     if ( Gia_ObjIsMux(pGia, pObj) )
     {
         int iLit2 = Gia_ObjFaninLit2( pGia, iObj );
-        int iFon2 = Cba_NtkInsertGiaLit( p, iLit2, vLit2Fon );
+        int iFon2 = Cba_NtkInsertGiaLit( p, iLit2, vLit2Fon, fUseXor );
         iObjNew = Cba_ObjAlloc( p, CBA_BOX_MUX, 3, 1 );
         Cba_ObjSetFinFon( p, iObjNew, 0, iFon2 );
         Cba_ObjSetFinFon( p, iObjNew, 1, iFon1 );
@@ -741,7 +752,7 @@ static inline int Cba_NtkInsertGiaObj( Cba_Ntk_t * p, Gia_Man_t * pGia, int iObj
     Vec_IntWriteEntry( vLit2Fon, Abc_Var2Lit(iObj, 0), Cba_ObjFon0(p, iObjNew) );
     return iObjNew;
 }
-Cba_Man_t * Cba_ManDeriveFromGia( Gia_Man_t * pGia )
+Cba_Man_t * Cba_ManDeriveFromGia( Gia_Man_t * pGia, int fUseXor )
 {
     Cba_Man_t * p = Cba_ManAlloc( pGia->pSpec, 1, NULL, NULL, NULL, NULL );
     Cba_Ntk_t * pNtk = Cba_NtkAlloc( p, Abc_NamStrFindOrAdd(p->pStrs, pGia->pName, NULL), Gia_ManCiNum(pGia), Gia_ManCoNum(pGia), 1000, 2000, 2000 );
@@ -759,19 +770,19 @@ Cba_Man_t * Cba_ManDeriveFromGia( Gia_Man_t * pGia )
         Vec_IntWriteEntry( vLit2Fon, Abc_Var2Lit(iObj, 0), Cba_ObjFon0(pNtk, iObjNew) );
     }
     Gia_ManForEachAndId( pGia, iObj )
-        Cba_NtkInsertGiaObj( pNtk, pGia, iObj, vLit2Fon );
+        Cba_NtkInsertGiaObj( pNtk, pGia, iObj, vLit2Fon, fUseXor );
     // create inverters if needed
     Gia_ManForEachCoId( pGia, iObj, i )
     {
         pObj = Gia_ManObj( pGia, iObj );
         iLit0 = Gia_ObjFaninLit0( pObj, iObj );
-        iFon0 = Cba_NtkInsertGiaLit( pNtk, iLit0, vLit2Fon ); // can be const!
+        iFon0 = Cba_NtkInsertGiaLit( pNtk, iLit0, vLit2Fon, fUseXor ); // can be const!
     }
     Gia_ManForEachCoId( pGia, iObj, i )
     {
         pObj = Gia_ManObj( pGia, iObj );
         iLit0 = Gia_ObjFaninLit0( pObj, iObj );
-        iFon0 = Cba_NtkInsertGiaLit( pNtk, iLit0, vLit2Fon ); // can be const!
+        iFon0 = Cba_NtkInsertGiaLit( pNtk, iLit0, vLit2Fon, fUseXor ); // can be const!
         iObjNew = Cba_ObjAlloc( pNtk, CBA_BOX_BUF, 1, 1 );
         Cba_ObjSetFinFon( pNtk, iObjNew, 0, iFon0 );
         iFon0 = Cba_ObjFon0(pNtk, iObjNew); // non-const fon unique for this output
