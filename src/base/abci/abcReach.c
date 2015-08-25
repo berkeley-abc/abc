@@ -19,7 +19,10 @@
 ***********************************************************************/
 
 #include "base/abc/abc.h"
+
+#ifdef ABC_USE_CUDD
 #include "misc/extra/extraBdd.h"
+#endif
 
 ABC_NAMESPACE_IMPL_START
 
@@ -31,6 +34,8 @@ ABC_NAMESPACE_IMPL_START
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
+
+#ifdef ABC_USE_CUDD
 
 /**Function*************************************************************
 
@@ -311,6 +316,7 @@ void Abc_NtkVerifyUsingBdds( Abc_Ntk_t * pNtk, int nBddMax, int nIterMax, int fP
     fflush( stdout );
 }
 
+#endif
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

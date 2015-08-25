@@ -19,7 +19,10 @@
 ***********************************************************************/
 
 #include "abc.h"
+
+#ifdef ABC_USE_CUDD
 #include "misc/extra/extraBdd.h"
+#endif
 
 ABC_NAMESPACE_IMPL_START
 
@@ -28,6 +31,8 @@ ABC_NAMESPACE_IMPL_START
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
  
+#ifdef ABC_USE_CUDD
+
 extern int Abc_NodeSupport( DdNode * bFunc, Vec_Str_t * vSupport, int nVars );
 
 ////////////////////////////////////////////////////////////////////////
@@ -815,6 +820,17 @@ int Abc_NtkEliminateSpecial( Abc_Ntk_t * pNtk, int nMaxSize, int fVerbose )
     ABC_FREE( pPermFanout );
     return 1;
 }
+
+#else
+
+int Abc_NtkMinimumBase( Abc_Ntk_t * pNtk )     { return 0; }
+int Abc_NodeMinimumBase( Abc_Obj_t * pNode )   { return 0; }
+int Abc_NtkRemoveDupFanins( Abc_Ntk_t * pNtk ) { return 0; }
+int Abc_NtkEliminateSpecial( Abc_Ntk_t * pNtk, int nMaxSize, int fVerbose ) { return 0; }
+int Abc_NtkEliminate( Abc_Ntk_t * pNtk, int nMaxSize, int fReverse, int fVerbose ) { return 0; }
+int Abc_NtkEliminate1( Abc_Ntk_t * pNtk, int ElimValue, int nMaxSize, int nIterMax, int fReverse, int fVerbose ) { return 0; }
+
+#endif
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

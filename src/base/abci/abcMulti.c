@@ -19,7 +19,10 @@
 ***********************************************************************/
 
 #include "base/abc/abc.h"
+
+#ifdef ABC_USE_CUDD
 #include "misc/extra/extraBdd.h"
+#endif
 
 ABC_NAMESPACE_IMPL_START
 
@@ -27,6 +30,8 @@ ABC_NAMESPACE_IMPL_START
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
+
+#ifdef ABC_USE_CUDD
 
 static void        Abc_NtkMultiInt( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkNew );
 static Abc_Obj_t * Abc_NtkMulti_rec( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pNodeOld );
@@ -639,6 +644,12 @@ void Abc_NtkMultiCone( Abc_Obj_t * pNode, Vec_Ptr_t * vCone )
     Abc_NtkMultiCone_rec( Abc_ObjFanin(pNode,0), vCone );
     Abc_NtkMultiCone_rec( Abc_ObjFanin(pNode,1), vCone );
 }
+
+#else
+
+Abc_Ntk_t * Abc_NtkMulti( Abc_Ntk_t * pNtk, int nThresh, int nFaninMax, int fCnf, int fMulti, int fSimple, int fFactor ) { return NULL; }
+
+#endif
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

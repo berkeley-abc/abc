@@ -19,7 +19,10 @@
 ***********************************************************************/
 
 #include "base/abc/abc.h"
+
+#ifdef ABC_USE_CUDD
 #include "misc/extra/extraBdd.h"
+#endif
 
 ABC_NAMESPACE_IMPL_START
 
@@ -27,6 +30,8 @@ ABC_NAMESPACE_IMPL_START
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
+
+#ifdef ABC_USE_CUDD
 
 typedef struct Mv_Man_t_ Mv_Man_t;
 struct Mv_Man_t_
@@ -365,6 +370,7 @@ void Abc_MvDecompose( Mv_Man_t * p )
 
     Cudd_RecursiveDeref( p->dd, bCube );
 }
+#endif
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

@@ -21,8 +21,11 @@
 #include "base/abc/abc.h"
 #include "bool/dec/dec.h"
 #include "opt/cut/cut.h"
+
+#ifdef ABC_USE_CUDD
 #include "misc/extra/extraBdd.h"
 #include "bdd/dsd/dsd.h"
+#endif
 
 ABC_NAMESPACE_IMPL_START
 
@@ -31,6 +34,8 @@ ABC_NAMESPACE_IMPL_START
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
   
+#ifdef ABC_USE_CUDD
+
 #define RST_RANDOM_UNSIGNED   ((((unsigned)rand()) << 24) ^ (((unsigned)rand()) << 12) ^ ((unsigned)rand()))
 
 typedef struct Abc_ManRst_t_   Abc_ManRst_t;
@@ -1490,6 +1495,12 @@ Dec_Graph_t * Abc_NodeResubstitute( Abc_ManRst_t * p, Abc_Obj_t * pNode, Cut_Cut
     }
     return pGraphBest;
 }
+
+#else
+
+int Abc_NtkRestructure( Abc_Ntk_t * pNtk, int nCutMax, int fUpdateLevel, int fUseZeros, int fVerbose ) { return 1; }
+
+#endif
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

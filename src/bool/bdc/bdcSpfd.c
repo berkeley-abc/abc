@@ -20,6 +20,7 @@
 
 #include "bdcInt.h"
 #include "aig/aig/aig.h"
+#include "misc/extra/extra.h"
 
 ABC_NAMESPACE_IMPL_START
 

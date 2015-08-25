@@ -30,8 +30,9 @@
 #include "aig/aig/aig.h"
 #include "aig/saig/saig.h"
 #include "proof/ssw/ssw.h"
-#include "misc/extra/extraBdd.h"
 #include "llb.h"
+
+#include "misc/extra/extraBdd.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                         PARAMETERS                               ///

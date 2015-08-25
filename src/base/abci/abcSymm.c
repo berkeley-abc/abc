@@ -20,7 +20,10 @@
 
 #include "base/abc/abc.h"
 #include "opt/sim/sim.h"
+
+#ifdef ABC_USE_CUDD
 #include "misc/extra/extraBdd.h"
+#endif
 
 ABC_NAMESPACE_IMPL_START
 
@@ -29,6 +32,8 @@ ABC_NAMESPACE_IMPL_START
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
  
+#ifdef ABC_USE_CUDD
+
 static void Abc_NtkSymmetriesUsingBdds( Abc_Ntk_t * pNtk, int fNaive, int fReorder, int fVerbose );
 static void Abc_NtkSymmetriesUsingSandS( Abc_Ntk_t * pNtk, int fVerbose );
 static void Ntk_NetworkSymmsBdd( DdManager * dd, Abc_Ntk_t * pNtk, int fNaive, int fVerbose );
@@ -226,6 +231,11 @@ void Ntk_NetworkSymmsPrint( Abc_Ntk_t * pNtk, Extra_SymmInfo_t * pSymms )
     ABC_FREE( pVarTaken );
 }
 
+#else
+
+void Abc_NtkSymmetries( Abc_Ntk_t * pNtk, int fUseBdds, int fNaive, int fReorder, int fVerbose ) {}
+
+#endif
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

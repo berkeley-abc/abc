@@ -20,7 +20,10 @@
 
 #include "base/abc/abc.h"
 #include "map/fpga/fpgaInt.h"
+
+#ifdef ABC_USE_CUDD
 #include "misc/extra/extraBdd.h"
+#endif
 
 ABC_NAMESPACE_IMPL_START
 

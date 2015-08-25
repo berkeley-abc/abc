@@ -19,10 +19,13 @@
 ***********************************************************************/
 
 #include "base/abc/abc.h"
-#include "bdd/reo/reo.h"
 #include "map/if/if.h"
 #include "bool/kit/kit.h"
+
+#ifdef ABC_USE_CUDD
 #include "misc/extra/extraBdd.h"
+#include "bdd/reo/reo.h"
+#endif
 
 ABC_NAMESPACE_IMPL_START
 
@@ -30,6 +33,8 @@ ABC_NAMESPACE_IMPL_START
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
+
+#ifdef ABC_USE_CUDD
 
 static int Abc_NtkRenodeEvalAig( If_Man_t * p, If_Cut_t * pCut );
 static int Abc_NtkRenodeEvalBdd( If_Man_t * p, If_Cut_t * pCut );
@@ -305,6 +310,12 @@ int Abc_NtkRenodeEvalMv( If_Man_t * p, If_Cut_t * pCut )
         return IF_COST_MAX;
     return RetValue;
 }
+
+#else
+
+Abc_Ntk_t * Abc_NtkRenode( Abc_Ntk_t * pNtk, int nFaninMax, int nCubeMax, int nFlowIters, int nAreaIters, int fArea, int fUseBdds, int fUseSops, int fUseCnfs, int fUseMv, int fVerbose ) { return NULL; }
+
+#endif
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

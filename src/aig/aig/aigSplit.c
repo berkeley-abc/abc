@@ -20,7 +20,10 @@
 
 #include "aig.h"
 #include "aig/saig/saig.h"
+
+#ifdef ABC_USE_CUDD
 #include "misc/extra/extraBdd.h"
+#endif
 
 ABC_NAMESPACE_IMPL_START
 
@@ -32,6 +35,8 @@ ABC_NAMESPACE_IMPL_START
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
+
+#ifdef ABC_USE_CUDD
 
 /**Function*************************************************************
 
@@ -306,6 +311,15 @@ Aig_Man_t * Aig_ManSplit( Aig_Man_t * p, int nVars, int fVerbose )
     Extra_StopManager( dd );
     return pRes;
 }
+
+#else
+
+Aig_Man_t * Aig_ManSplit( Aig_Man_t * p, int nVars, int fVerbose )
+{
+    return NULL;
+}
+
+#endif
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

@@ -21,9 +21,11 @@
 #include "base/abc/abc.h"
 #include "mainInt.h"
 #include "bool/dec/dec.h"
-#include "misc/extra/extraBdd.h"
 #include "map/if/if.h"
 
+#ifdef ABC_USE_CUDD
+#include "misc/extra/extraBdd.h"
+#endif
 
 ABC_NAMESPACE_IMPL_START
 
@@ -57,7 +59,9 @@ void *      Abc_FrameReadLibGen()                            { return s_GlobalFr
 void *      Abc_FrameReadLibGen2()                           { return s_GlobalFrame->pLibGen2;     } 
 void *      Abc_FrameReadLibSuper()                          { return s_GlobalFrame->pLibSuper;    } 
 void *      Abc_FrameReadLibScl()                            { return s_GlobalFrame->pLibScl;      } 
+#ifdef ABC_USE_CUDD
 void *      Abc_FrameReadManDd()                             { if ( s_GlobalFrame->dd == NULL )      s_GlobalFrame->dd = Cudd_Init( 0, 0, CUDD_UNIQUE_SLOTS, CUDD_CACHE_SLOTS, 0 );  return s_GlobalFrame->dd;      } 
+#endif
 void *      Abc_FrameReadManDec()                            { if ( s_GlobalFrame->pManDec == NULL ) s_GlobalFrame->pManDec = Dec_ManStart();                                        return s_GlobalFrame->pManDec; } 
 void *      Abc_FrameReadManDsd()                            { return s_GlobalFrame->pManDsd;      } 
 void *      Abc_FrameReadManDsd2()                           { return s_GlobalFrame->pManDsd2;     } 
@@ -190,7 +194,9 @@ void Abc_FrameDeallocate( Abc_Frame_t * p )
     if ( p->vPoEquivs )  Vec_VecFree( (Vec_Vec_t *)p->vPoEquivs );
     if ( p->vStatuses )  Vec_IntFree( p->vStatuses );
     if ( p->pManDec   )  Dec_ManStop( (Dec_Man_t *)p->pManDec );
+#ifdef ABC_USE_CUDD
     if ( p->dd        )  Extra_StopManager( p->dd );
+#endif
     if ( p->vStore    )  Vec_PtrFree( p->vStore );
     if ( p->pSave1    )  Aig_ManStop( (Aig_Man_t *)p->pSave1 );
     if ( p->pSave2    )  Aig_ManStop( (Aig_Man_t *)p->pSave2 );

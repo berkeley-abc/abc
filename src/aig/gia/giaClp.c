@@ -19,14 +19,19 @@
 ***********************************************************************/
 
 #include "gia.h"
+
+#ifdef ABC_USE_CUDD
 #include "misc/extra/extraBdd.h"
 #include "bdd/dsd/dsd.h"
+#endif
 
 ABC_NAMESPACE_IMPL_START
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
+
+#ifdef ABC_USE_CUDD
 
 extern int Abc_ConvertZddToSop( DdManager * dd, DdNode * zCover, char * pSop, int nFanins, Vec_Str_t * vCube, int fPhase );
 extern int Abc_CountZddCubes( DdManager * dd, DdNode * zCover );
@@ -398,6 +403,15 @@ void Gia_ManCollapseTestTest( Gia_Man_t * p )
     Gia_ManPrintStats( pNew, NULL );
     Gia_ManStop( pNew );
 }
+
+#else
+
+Gia_Man_t * Gia_ManCollapseTest( Gia_Man_t * p, int fVerbose )
+{
+    return NULL;
+}
+
+#endif
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

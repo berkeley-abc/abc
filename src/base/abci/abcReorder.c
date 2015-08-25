@@ -19,7 +19,10 @@
 ***********************************************************************/
 
 #include "base/abc/abc.h"
+
+#ifdef ABC_USE_CUDD
 #include "bdd/reo/reo.h"
+#endif
 
 ABC_NAMESPACE_IMPL_START
 
@@ -30,6 +33,8 @@ ABC_NAMESPACE_IMPL_START
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
+
+#ifdef ABC_USE_CUDD
 
 /**Function*************************************************************
 
@@ -96,6 +101,12 @@ void Abc_NtkBddReorder( Abc_Ntk_t * pNtk, int fVerbose )
     }
     Extra_ReorderQuit( p );
 }
+
+#else
+
+void Abc_NtkBddReorder( Abc_Ntk_t * pNtk, int fVerbose ) {}
+
+#endif
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

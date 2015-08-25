@@ -19,7 +19,10 @@
 ***********************************************************************/
 
 #include "abc.h"
+
+#ifdef ABC_USE_CUDD
 #include "misc/extra/extraBdd.h"
+#endif
 
 ABC_NAMESPACE_IMPL_START
 
@@ -953,6 +956,7 @@ Abc_Ntk_t * Abc_NtkInsertBlifMv( Abc_Ntk_t * pNtkBase, Abc_Ntk_t * pNtkLogic )
 ***********************************************************************/
 int Abc_NtkConvertToBlifMv( Abc_Ntk_t * pNtk )
 {
+#ifdef ABC_USE_CUDD
     Mem_Flex_t * pMmFlex;
     Abc_Obj_t * pNode;
     Vec_Str_t * vCube;
@@ -1011,6 +1015,7 @@ int Abc_NtkConvertToBlifMv( Abc_Ntk_t * pNtk )
     pNtk->pManFunc = pMmFlex;
 
     Vec_StrFree( vCube );
+#endif
     return 1;
 }
 

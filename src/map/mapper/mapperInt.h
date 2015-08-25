@@ -28,10 +28,11 @@
 #include <stdlib.h>
 #include <string.h>
 #include <float.h>
+#include <math.h>
+
 #include "base/main/main.h"
 #include "map/mio/mio.h"
 #include "mapper.h"
-#include "misc/extra/extraBdd.h"
 
 ABC_NAMESPACE_HEADER_START
 

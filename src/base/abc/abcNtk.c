@@ -23,7 +23,10 @@
 #include "base/main/main.h"
 #include "map/mio/mio.h"
 #include "aig/gia/gia.h"
+
+#ifdef ABC_USE_CUDD
 #include "misc/extra/extraBdd.h"
+#endif
 
 ABC_NAMESPACE_IMPL_START
 
@@ -75,8 +78,10 @@ Abc_Ntk_t * Abc_NtkAlloc( Abc_NtkType_t Type, Abc_NtkFunc_t Func, int fUseMemMan
         pNtk->pManFunc = Abc_AigAlloc( pNtk );
     else if ( Abc_NtkHasSop(pNtk) || Abc_NtkHasBlifMv(pNtk) )
         pNtk->pManFunc = Mem_FlexStart();
+#ifdef ABC_USE_CUDD
     else if ( Abc_NtkHasBdd(pNtk) )
         pNtk->pManFunc = Cudd_Init( 20, 0, CUDD_UNIQUE_SLOTS, CUDD_CACHE_SLOTS, 0 );
+#endif
     else if ( Abc_NtkHasAig(pNtk) )
         pNtk->pManFunc = Hop_ManStart();
     else if ( Abc_NtkHasMapping(pNtk) )
@@ -1292,8 +1297,10 @@ void Abc_NtkDelete( Abc_Ntk_t * pNtk )
     // dereference the BDDs
     if ( Abc_NtkHasBdd(pNtk) )
     {
+#ifdef ABC_USE_CUDD
         Abc_NtkForEachNode( pNtk, pObj, i )
             Cudd_RecursiveDeref( (DdManager *)pNtk->pManFunc, (DdNode *)pObj->pData );
+#endif
     }
     // make sure all the marks are clean
     Abc_NtkForEachObj( pNtk, pObj, i )
@@ -1356,8 +1363,10 @@ void Abc_NtkDelete( Abc_Ntk_t * pNtk )
         Abc_AigFree( (Abc_Aig_t *)pNtk->pManFunc );
     else if ( Abc_NtkHasSop(pNtk) || Abc_NtkHasBlifMv(pNtk) )
         Mem_FlexStop( (Mem_Flex_t *)pNtk->pManFunc, 0 );
+#ifdef ABC_USE_CUDD
     else if ( Abc_NtkHasBdd(pNtk) )
         Extra_StopManager( (DdManager *)pNtk->pManFunc );
+#endif
     else if ( Abc_NtkHasAig(pNtk) )
         { if ( pNtk->pManFunc ) Hop_ManStop( (Hop_Man_t *)pNtk->pManFunc ); }
     else if ( Abc_NtkHasMapping(pNtk) )

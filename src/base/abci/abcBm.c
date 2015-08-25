@@ -30,10 +30,12 @@
 #include "base/abc/abc.h"
 #include "opt/sim/sim.h"
 #include "sat/bsat/satSolver.h"
-#include "misc/extra/extraBdd.h"
+//#include "misc/extra/extraBdd.h"
 
 ABC_NAMESPACE_IMPL_START
 
+#define FALSE 0
+#define TRUE  1
 
 int match1by1(Abc_Ntk_t * pNtk1, Vec_Ptr_t ** nodesInLevel1, Vec_Int_t ** iMatch1, Vec_Int_t ** iDep1, Vec_Int_t * matchedInputs1, int * iGroup1, Vec_Int_t ** oMatch1, int * oGroup1,
                Abc_Ntk_t * pNtk2, Vec_Ptr_t ** nodesInLevel2, Vec_Int_t ** iMatch2, Vec_Int_t ** iDep2, Vec_Int_t * matchedInputs2, int * iGroup2, Vec_Int_t ** oMatch2, int * oGroup2,

@@ -25,7 +25,10 @@
 #include "proof/fraig/fraig.h"
 #include "map/mio/mio.h"
 #include "aig/aig/aig.h"
+
+#ifdef ABC_USE_CUDD
 #include "misc/extra/extraBdd.h"
+#endif
 
 ABC_NAMESPACE_IMPL_START
 
@@ -589,6 +592,7 @@ int Abc_NtkIvyProve( Abc_Ntk_t ** ppNtk, void * pPars )
     }
 
     // try to prove it using brute force BDDs
+#ifdef ABC_USE_CUDD
     if ( RetValue < 0 && pParams->fUseBdds )
     {
         if ( pParams->fVerbose )
@@ -605,6 +609,7 @@ int Abc_NtkIvyProve( Abc_Ntk_t ** ppNtk, void * pPars )
         else 
             pNtk = pNtkTemp;
     }
+#endif
 
     // return the result
     *ppNtk = pNtk;

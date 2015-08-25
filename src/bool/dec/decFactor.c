@@ -19,8 +19,11 @@
 #include "base/abc/abc.h"
 #include "base/main/main.h"
 #include "misc/mvc/mvc.h"
-#include "misc/extra/extraBdd.h"
 #include "dec.h"
+
+#ifdef ABC_USE_CUDD
+#include "misc/extra/extraBdd.h"
+#endif
 
 ABC_NAMESPACE_IMPL_START
 
@@ -352,6 +355,8 @@ Mvc_Cover_t * Dec_ConvertSopToMvc( char * pSop )
     return pMvc;
 }
 
+#ifdef ABC_USE_CUDD
+
 /**Function*************************************************************
 
   Synopsis    [Verifies that the factoring is correct.]
@@ -387,6 +392,7 @@ int Dec_FactorVerify( char * pSop, Dec_Graph_t * pFForm )
     return RetValue;
 }
 
+#endif
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

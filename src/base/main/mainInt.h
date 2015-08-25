@@ -33,9 +33,10 @@
 #include "aig/gia/gia.h"
 #include "proof/ssw/ssw.h"
 #include "proof/fra/fra.h"
-//#include "aig/nwk/nwkMerge.h"
-//#include "aig/ntl/ntlnwk.h"
+
+#ifdef ABC_USE_CUDD
 #include "misc/extra/extraBdd.h"
+#endif
 
 ABC_NAMESPACE_HEADER_START
 
@@ -86,7 +87,6 @@ struct Abc_Frame_t_
     void *          pManDec;       // decomposition manager
     void *          pManDsd;       // decomposition manager
     void *          pManDsd2;      // decomposition manager
-    DdManager *     dd;            // temporary BDD package
     // libraries for mapping
     void *          pLibLut;       // the current LUT library
     void *          pLibBox;       // the current box library
@@ -130,6 +130,9 @@ struct Abc_Frame_t_
     void *          pAbcBac;
     void *          pAbcCba;
     void *          pAbcPla;
+#ifdef ABC_USE_CUDD
+    DdManager *     dd;            // temporary BDD package
+#endif
 };
 
 typedef void (*Abc_Frame_Initialization_Func)( Abc_Frame_t * pAbc );

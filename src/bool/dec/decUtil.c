@@ -17,8 +17,11 @@
 ***********************************************************************/
 
 #include "base/abc/abc.h"
-#include "misc/extra/extraBdd.h"
 #include "dec.h"
+
+#ifdef ABC_USE_CUDD
+#include "misc/extra/extraBdd.h"
+#endif
 
 ABC_NAMESPACE_IMPL_START
 
@@ -30,6 +33,8 @@ ABC_NAMESPACE_IMPL_START
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
+
+#ifdef ABC_USE_CUDD
 
 /**Function*************************************************************
 
@@ -80,6 +85,8 @@ DdNode * Dec_GraphDeriveBdd( DdManager * dd, Dec_Graph_t * pGraph )
     // complement the result if necessary
     return Cudd_NotCond( bFunc, Dec_GraphIsComplement(pGraph) );
 }
+
+#endif
 
 /**Function*************************************************************
 

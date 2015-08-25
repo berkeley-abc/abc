@@ -28,7 +28,10 @@
 #include "abc.h"
 #include "base/main/main.h"
 #include "base/io/ioAbc.h"
+
+#ifdef ABC_USE_CUDD
 #include "misc/extra/extraBdd.h"
+#endif
 
 ABC_NAMESPACE_IMPL_START
 
@@ -43,6 +46,33 @@ static void Abc_ShowGetFileName( char * pName, char * pBuffer );
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
+
+#ifdef ABC_USE_CUDD
+
+/**Function*************************************************************
+
+  Synopsis    [Visualizes BDD of the node.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NodeShowBddOne( DdManager * dd, DdNode * bFunc )
+{
+    char * FileNameDot = "temp.dot";
+    FILE * pFile;
+    if ( (pFile = fopen( FileNameDot, "w" )) == NULL )
+    {
+        fprintf( stdout, "Cannot open the intermediate file \"%s\".\n", FileNameDot );
+        return;
+    }
+    Cudd_DumpDot( dd, 1, (DdNode **)&bFunc, NULL, NULL, pFile );
+    fclose( pFile );
+    Abc_ShowFile( FileNameDot );
+}
 
 /**Function*************************************************************
 
@@ -84,30 +114,10 @@ void Abc_NodeShowBdd( Abc_Obj_t * pNode )
     Abc_ShowFile( FileNameDot );
 }
 
-/**Function*************************************************************
+#else
+void Abc_NodeShowBdd( Abc_Obj_t * pNode ) {}
+#endif
 
-  Synopsis    [Visualizes BDD of the node.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Abc_NodeShowBddOne( DdManager * dd, DdNode * bFunc )
-{
-    char * FileNameDot = "temp.dot";
-    FILE * pFile;
-    if ( (pFile = fopen( FileNameDot, "w" )) == NULL )
-    {
-        fprintf( stdout, "Cannot open the intermediate file \"%s\".\n", FileNameDot );
-        return;
-    }
-    Cudd_DumpDot( dd, 1, (DdNode **)&bFunc, NULL, NULL, pFile );
-    fclose( pFile );
-    Abc_ShowFile( FileNameDot );
-}
 /**Function*************************************************************
 
   Synopsis    [Visualizes a reconvergence driven cut at the node.]

@@ -19,7 +19,10 @@
 ***********************************************************************/
 
 #include "abc.h"
+
+#ifdef ABC_USE_CUDD
 #include "misc/extra/extraBdd.h"
+#endif
 
 ABC_NAMESPACE_IMPL_START
 
@@ -292,8 +295,10 @@ void Abc_NtkNodeConvertToMux( Abc_Ntk_t * pNtk, Abc_Obj_t * pNodeC, Abc_Obj_t * 
     Abc_ObjAddFanin( pMux, pNode0 );
     if ( Abc_NtkHasSop(pNtk) )
         pMux->pData = Abc_SopRegister( (Mem_Flex_t *)pNtk->pManFunc, "11- 1\n0-1 1\n" );
+#ifdef ABC_USE_CUDD
     else if ( Abc_NtkHasBdd(pNtk) )
         pMux->pData = Cudd_bddIte((DdManager *)pNtk->pManFunc,Cudd_bddIthVar((DdManager *)pNtk->pManFunc,0),Cudd_bddIthVar((DdManager *)pNtk->pManFunc,1),Cudd_bddIthVar((DdManager *)pNtk->pManFunc,2)), Cudd_Ref( (DdNode *)pMux->pData );
+#endif
     else if ( Abc_NtkHasAig(pNtk) )
         pMux->pData = Hop_Mux((Hop_Man_t *)pNtk->pManFunc,Hop_IthVar((Hop_Man_t *)pNtk->pManFunc,0),Hop_IthVar((Hop_Man_t *)pNtk->pManFunc,1),Hop_IthVar((Hop_Man_t *)pNtk->pManFunc,2));
     else

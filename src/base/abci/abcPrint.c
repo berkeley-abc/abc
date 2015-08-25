@@ -25,7 +25,10 @@
 #include "map/mio/mio.h"
 #include "aig/aig/aig.h"
 #include "map/if/if.h"
+
+#ifdef ABC_USE_CUDD
 #include "misc/extra/extraBdd.h"
+#endif
 
 #ifdef WIN32
 #include <windows.h>
@@ -1030,6 +1033,7 @@ void Abc_NodePrintLevel( FILE * pFile, Abc_Obj_t * pNode )
 ***********************************************************************/
 void Abc_NodePrintKMap( Abc_Obj_t * pNode, int fUseRealNames )
 {
+#ifdef ABC_USE_CUDD
     Vec_Ptr_t * vNamesIn;
     if ( fUseRealNames )
     {
@@ -1041,7 +1045,7 @@ void Abc_NodePrintKMap( Abc_Obj_t * pNode, int fUseRealNames )
     else
         Extra_PrintKMap( stdout, (DdManager *)pNode->pNtk->pManFunc, (DdNode *)pNode->pData, Cudd_Not(pNode->pData),
             Abc_ObjFaninNum(pNode), NULL, 0, NULL );
-
+#endif
 }
 
 /**Function*************************************************************

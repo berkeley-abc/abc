@@ -22,7 +22,10 @@
 #include "abcInt.h"
 #include "base/main/main.h"
 #include "map/mio/mio.h"
+
+#ifdef ABC_USE_CUDD
 #include "misc/extra/extraBdd.h"
+#endif
 
 ABC_NAMESPACE_IMPL_START
 
@@ -213,8 +216,10 @@ void Abc_NtkDeleteObj( Abc_Obj_t * pObj )
         case ABC_OBJ_NET:  
             break;
         case ABC_OBJ_NODE: 
+#ifdef ABC_USE_CUDD
             if ( Abc_NtkHasBdd(pNtk) )
                 Cudd_RecursiveDeref( (DdManager *)pNtk->pManFunc, (DdNode *)pObj->pData );
+#endif
             pObj->pData = NULL;
             break;
         case ABC_OBJ_LATCH:     
@@ -372,8 +377,10 @@ Abc_Obj_t * Abc_NtkDupObj( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pObj, int fCopyName 
             {}
             else if ( Abc_NtkHasSop(pNtkNew) || Abc_NtkHasBlifMv(pNtkNew) )
                 pObjNew->pData = Abc_SopRegister( (Mem_Flex_t *)pNtkNew->pManFunc, (char *)pObj->pData );
+#ifdef ABC_USE_CUDD
             else if ( Abc_NtkHasBdd(pNtkNew) )
                 pObjNew->pData = Cudd_bddTransfer((DdManager *)pObj->pNtk->pManFunc, (DdManager *)pNtkNew->pManFunc, (DdNode *)pObj->pData), Cudd_Ref((DdNode *)pObjNew->pData);
+#endif
             else if ( Abc_NtkHasAig(pNtkNew) )
                 pObjNew->pData = Hop_Transfer((Hop_Man_t *)pObj->pNtk->pManFunc, (Hop_Man_t *)pNtkNew->pManFunc, (Hop_Obj_t *)pObj->pData, Abc_ObjFaninNum(pObj));
             else if ( Abc_NtkHasMapping(pNtkNew) )
@@ -608,8 +615,10 @@ Abc_Obj_t * Abc_NtkCreateNodeConst0( Abc_Ntk_t * pNtk )
     pNode = Abc_NtkCreateNode( pNtk );   
     if ( Abc_NtkHasSop(pNtk) || Abc_NtkHasBlifMv(pNtk) )
         pNode->pData = Abc_SopRegister( (Mem_Flex_t *)pNtk->pManFunc, " 0\n" );
+#ifdef ABC_USE_CUDD
     else if ( Abc_NtkHasBdd(pNtk) )
         pNode->pData = Cudd_ReadLogicZero((DdManager *)pNtk->pManFunc), Cudd_Ref( (DdNode *)pNode->pData );
+#endif
     else if ( Abc_NtkHasAig(pNtk) )
         pNode->pData = Hop_ManConst0((Hop_Man_t *)pNtk->pManFunc);
     else if ( Abc_NtkHasMapping(pNtk) )
@@ -637,8 +646,10 @@ Abc_Obj_t * Abc_NtkCreateNodeConst1( Abc_Ntk_t * pNtk )
     pNode = Abc_NtkCreateNode( pNtk );   
     if ( Abc_NtkHasSop(pNtk) || Abc_NtkHasBlifMv(pNtk) )
         pNode->pData = Abc_SopRegister( (Mem_Flex_t *)pNtk->pManFunc, " 1\n" );
+#ifdef ABC_USE_CUDD
     else if ( Abc_NtkHasBdd(pNtk) )
         pNode->pData = Cudd_ReadOne((DdManager *)pNtk->pManFunc), Cudd_Ref( (DdNode *)pNode->pData );
+#endif
     else if ( Abc_NtkHasAig(pNtk) )
         pNode->pData = Hop_ManConst1((Hop_Man_t *)pNtk->pManFunc);
     else if ( Abc_NtkHasMapping(pNtk) )
@@ -667,8 +678,10 @@ Abc_Obj_t * Abc_NtkCreateNodeInv( Abc_Ntk_t * pNtk, Abc_Obj_t * pFanin )
     if ( pFanin ) Abc_ObjAddFanin( pNode, pFanin );
     if ( Abc_NtkHasSop(pNtk) )
         pNode->pData = Abc_SopRegister( (Mem_Flex_t *)pNtk->pManFunc, "0 1\n" );
+#ifdef ABC_USE_CUDD
     else if ( Abc_NtkHasBdd(pNtk) )
         pNode->pData = Cudd_Not(Cudd_bddIthVar((DdManager *)pNtk->pManFunc,0)), Cudd_Ref( (DdNode *)pNode->pData );
+#endif
     else if ( Abc_NtkHasAig(pNtk) )
         pNode->pData = Hop_Not(Hop_IthVar((Hop_Man_t *)pNtk->pManFunc,0));
     else if ( Abc_NtkHasMapping(pNtk) )
@@ -697,8 +710,10 @@ Abc_Obj_t * Abc_NtkCreateNodeBuf( Abc_Ntk_t * pNtk, Abc_Obj_t * pFanin )
     if ( pFanin ) Abc_ObjAddFanin( pNode, pFanin );
     if ( Abc_NtkHasSop(pNtk) )
         pNode->pData = Abc_SopRegister( (Mem_Flex_t *)pNtk->pManFunc, "1 1\n" );
+#ifdef ABC_USE_CUDD
     else if ( Abc_NtkHasBdd(pNtk) )
         pNode->pData = Cudd_bddIthVar((DdManager *)pNtk->pManFunc,0), Cudd_Ref( (DdNode *)pNode->pData );
+#endif
     else if ( Abc_NtkHasAig(pNtk) )
         pNode->pData = Hop_IthVar((Hop_Man_t *)pNtk->pManFunc,0);
     else if ( Abc_NtkHasMapping(pNtk) )
@@ -729,8 +744,10 @@ Abc_Obj_t * Abc_NtkCreateNodeAnd( Abc_Ntk_t * pNtk, Vec_Ptr_t * vFanins )
         Abc_ObjAddFanin( pNode, (Abc_Obj_t *)vFanins->pArray[i] );
     if ( Abc_NtkHasSop(pNtk) )
         pNode->pData = Abc_SopCreateAnd( (Mem_Flex_t *)pNtk->pManFunc, Vec_PtrSize(vFanins), NULL );
+#ifdef ABC_USE_CUDD
     else if ( Abc_NtkHasBdd(pNtk) )
         pNode->pData = Extra_bddCreateAnd( (DdManager *)pNtk->pManFunc, Vec_PtrSize(vFanins) ), Cudd_Ref((DdNode *)pNode->pData); 
+#endif
     else if ( Abc_NtkHasAig(pNtk) )
         pNode->pData = Hop_CreateAnd( (Hop_Man_t *)pNtk->pManFunc, Vec_PtrSize(vFanins) ); 
     else
@@ -759,8 +776,10 @@ Abc_Obj_t * Abc_NtkCreateNodeOr( Abc_Ntk_t * pNtk, Vec_Ptr_t * vFanins )
         Abc_ObjAddFanin( pNode, (Abc_Obj_t *)vFanins->pArray[i] );
     if ( Abc_NtkHasSop(pNtk) )
         pNode->pData = Abc_SopCreateOr( (Mem_Flex_t *)pNtk->pManFunc, Vec_PtrSize(vFanins), NULL );
+#ifdef ABC_USE_CUDD
     else if ( Abc_NtkHasBdd(pNtk) )
         pNode->pData = Extra_bddCreateOr( (DdManager *)pNtk->pManFunc, Vec_PtrSize(vFanins) ), Cudd_Ref((DdNode *)pNode->pData); 
+#endif
     else if ( Abc_NtkHasAig(pNtk) )
         pNode->pData = Hop_CreateOr( (Hop_Man_t *)pNtk->pManFunc, Vec_PtrSize(vFanins) ); 
     else
@@ -789,8 +808,10 @@ Abc_Obj_t * Abc_NtkCreateNodeExor( Abc_Ntk_t * pNtk, Vec_Ptr_t * vFanins )
         Abc_ObjAddFanin( pNode, (Abc_Obj_t *)vFanins->pArray[i] );
     if ( Abc_NtkHasSop(pNtk) )
         pNode->pData = Abc_SopCreateXorSpecial( (Mem_Flex_t *)pNtk->pManFunc, Vec_PtrSize(vFanins) );
+#ifdef ABC_USE_CUDD
     else if ( Abc_NtkHasBdd(pNtk) )
         pNode->pData = Extra_bddCreateExor( (DdManager *)pNtk->pManFunc, Vec_PtrSize(vFanins) ), Cudd_Ref((DdNode *)pNode->pData); 
+#endif
     else if ( Abc_NtkHasAig(pNtk) )
         pNode->pData = Hop_CreateExor( (Hop_Man_t *)pNtk->pManFunc, Vec_PtrSize(vFanins) ); 
     else
@@ -819,8 +840,10 @@ Abc_Obj_t * Abc_NtkCreateNodeMux( Abc_Ntk_t * pNtk, Abc_Obj_t * pNodeC, Abc_Obj_
     Abc_ObjAddFanin( pNode, pNode0 );
     if ( Abc_NtkHasSop(pNtk) )
         pNode->pData = Abc_SopRegister( (Mem_Flex_t *)pNtk->pManFunc, "11- 1\n0-1 1\n" );
+#ifdef ABC_USE_CUDD
     else if ( Abc_NtkHasBdd(pNtk) )
         pNode->pData = Cudd_bddIte((DdManager *)pNtk->pManFunc,Cudd_bddIthVar((DdManager *)pNtk->pManFunc,0),Cudd_bddIthVar((DdManager *)pNtk->pManFunc,1),Cudd_bddIthVar((DdManager *)pNtk->pManFunc,2)), Cudd_Ref( (DdNode *)pNode->pData );
+#endif
     else if ( Abc_NtkHasAig(pNtk) )
         pNode->pData = Hop_Mux((Hop_Man_t *)pNtk->pManFunc,Hop_IthVar((Hop_Man_t *)pNtk->pManFunc,0),Hop_IthVar((Hop_Man_t *)pNtk->pManFunc,1),Hop_IthVar((Hop_Man_t *)pNtk->pManFunc,2));
     else
@@ -866,8 +889,10 @@ int Abc_NodeIsConst0( Abc_Obj_t * pNode )
         return 0;
     if ( Abc_NtkHasSop(pNtk) )
         return Abc_SopIsConst0((char *)pNode->pData);
+#ifdef ABC_USE_CUDD
     if ( Abc_NtkHasBdd(pNtk) )
         return Cudd_IsComplement(pNode->pData);
+#endif
     if ( Abc_NtkHasAig(pNtk) )
         return Hop_IsComplement((Hop_Obj_t *)pNode->pData)? 1:0;
     if ( Abc_NtkHasMapping(pNtk) )
@@ -896,8 +921,10 @@ int Abc_NodeIsConst1( Abc_Obj_t * pNode )
         return 0;
     if ( Abc_NtkHasSop(pNtk) )
         return Abc_SopIsConst1((char *)pNode->pData);
+#ifdef ABC_USE_CUDD
     if ( Abc_NtkHasBdd(pNtk) )
         return !Cudd_IsComplement(pNode->pData);
+#endif
     if ( Abc_NtkHasAig(pNtk) )
         return !Hop_IsComplement((Hop_Obj_t *)pNode->pData);
     if ( Abc_NtkHasMapping(pNtk) )
@@ -926,8 +953,10 @@ int Abc_NodeIsBuf( Abc_Obj_t * pNode )
         return 0;
     if ( Abc_NtkHasSop(pNtk) )
         return Abc_SopIsBuf((char *)pNode->pData);
+#ifdef ABC_USE_CUDD
     if ( Abc_NtkHasBdd(pNtk) )
         return !Cudd_IsComplement(pNode->pData);
+#endif
     if ( Abc_NtkHasAig(pNtk) )
         return !Hop_IsComplement((Hop_Obj_t *)pNode->pData);
     if ( Abc_NtkHasMapping(pNtk) )
@@ -956,8 +985,10 @@ int Abc_NodeIsInv( Abc_Obj_t * pNode )
         return 0;
     if ( Abc_NtkHasSop(pNtk) )
         return Abc_SopIsInv((char *)pNode->pData);
+#ifdef ABC_USE_CUDD
     if ( Abc_NtkHasBdd(pNtk) )
         return Cudd_IsComplement(pNode->pData);
+#endif
     if ( Abc_NtkHasAig(pNtk) )
         return Hop_IsComplement((Hop_Obj_t *)pNode->pData)? 1:0;
     if ( Abc_NtkHasMapping(pNtk) )
@@ -985,8 +1016,10 @@ void Abc_NodeComplement( Abc_Obj_t * pNode )
         Abc_SopComplement( (char *)pNode->pData );
     else if ( Abc_NtkHasAig(pNode->pNtk) )
         pNode->pData = Hop_Not( (Hop_Obj_t *)pNode->pData );
+#ifdef ABC_USE_CUDD
     else if ( Abc_NtkHasBdd(pNode->pNtk) )
         pNode->pData = Cudd_Not( pNode->pData );
+#endif
     else
         assert( 0 );
 }
@@ -1015,6 +1048,7 @@ void Abc_NodeComplementInput( Abc_Obj_t * pNode, Abc_Obj_t * pFanin )
         Abc_SopComplementVar( (char *)pNode->pData, iFanin );
     else if ( Abc_NtkHasAig(pNode->pNtk) )
         pNode->pData = Hop_Complement( (Hop_Man_t *)pNode->pNtk->pManFunc, (Hop_Obj_t *)pNode->pData, iFanin );
+#ifdef ABC_USE_CUDD
     else if ( Abc_NtkHasBdd(pNode->pNtk) )
     {
         DdManager * dd = (DdManager *)pNode->pNtk->pManFunc;
@@ -1027,6 +1061,7 @@ void Abc_NodeComplementInput( Abc_Obj_t * pNode, Abc_Obj_t * pFanin )
         Cudd_RecursiveDeref( dd, bCof0 );
         Cudd_RecursiveDeref( dd, bCof1 );
     }
+#endif
     else
         assert( 0 );
 }

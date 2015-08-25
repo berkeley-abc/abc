@@ -470,12 +470,16 @@ Abc_Obj_t * Abc_NodeFromIf_rec( Abc_Ntk_t * pNtkNew, If_Man_t * pIfMan, If_Obj_t
         if ( pIfMan->pPars->fUseBdds )
         { 
             // transform truth table into the BDD 
+#ifdef ABC_USE_CUDD
             pNodeNew->pData = Kit_TruthToBdd( (DdManager *)pNtkNew->pManFunc, If_CutTruth(pIfMan, pCutBest), If_CutLeaveNum(pCutBest), 0 );  Cudd_Ref((DdNode *)pNodeNew->pData); 
+#endif
         }
         else if ( pIfMan->pPars->fUseCnfs || pIfMan->pPars->fUseMv )
         { 
             // transform truth table into the BDD 
+#ifdef ABC_USE_CUDD
             pNodeNew->pData = Kit_TruthToBdd( (DdManager *)pNtkNew->pManFunc, If_CutTruth(pIfMan, pCutBest), If_CutLeaveNum(pCutBest), 1 );  Cudd_Ref((DdNode *)pNodeNew->pData); 
+#endif
         }
         else if ( pIfMan->pPars->fUseSops || pIfMan->pPars->nGateSize > 0 ) 
         {

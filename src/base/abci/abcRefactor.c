@@ -20,7 +20,10 @@
 
 #include "base/abc/abc.h"
 #include "bool/dec/dec.h"
+
+#ifdef ABC_USE_CUDD
 #include "misc/extra/extraBdd.h"
+#endif
 
 ABC_NAMESPACE_IMPL_START
 
@@ -28,7 +31,9 @@ ABC_NAMESPACE_IMPL_START
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
- 
+
+#ifdef ABC_USE_CUDD
+
 typedef struct Abc_ManRef_t_   Abc_ManRef_t;
 struct Abc_ManRef_t_
 {
@@ -381,6 +386,11 @@ void Abc_NtkManRefPrintStats( Abc_ManRef_t * p )
     ABC_PRT( "TOTAL      ", p->timeTotal );
 }
 
+#else
+
+int Abc_NtkRefactor( Abc_Ntk_t * pNtk, int nNodeSizeMax, int nConeSizeMax, int fUpdateLevel, int fUseZeros, int fUseDcs, int fVerbose ) { return 1; }
+
+#endif
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

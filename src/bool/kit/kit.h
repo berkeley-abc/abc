@@ -32,8 +32,11 @@
 #include <assert.h>
 
 #include "misc/vec/vec.h"
-#include "misc/extra/extraBdd.h"
 #include "cloud.h"
+
+#ifdef ABC_USE_CUDD
+#include "misc/extra/extraBdd.h"
+#endif
 
 ////////////////////////////////////////////////////////////////////////
 ///                         PARAMETERS                               ///
@@ -509,9 +512,11 @@ static inline void Kit_TruthIthVar( unsigned * pTruth, int nVars, int iVar )
 ////////////////////////////////////////////////////////////////////////
 
 /*=== kitBdd.c ==========================================================*/
+#ifdef ABC_USE_CUDD
 extern DdNode *        Kit_SopToBdd( DdManager * dd, Kit_Sop_t * cSop, int nVars );
 extern DdNode *        Kit_GraphToBdd( DdManager * dd, Kit_Graph_t * pGraph );
 extern DdNode *        Kit_TruthToBdd( DdManager * dd, unsigned * pTruth, int nVars, int fMSBonTop );
+#endif
 /*=== kitCloud.c ==========================================================*/
 extern CloudNode *     Kit_TruthToCloud( CloudManager * dd, unsigned * pTruth, int nVars );
 extern unsigned *      Kit_CloudToTruth( Vec_Int_t * vNodes, int nVars, Vec_Ptr_t * vStore, int fInv );

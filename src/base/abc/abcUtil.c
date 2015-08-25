@@ -22,8 +22,11 @@
 #include "base/main/main.h"
 #include "map/mio/mio.h"
 #include "bool/dec/dec.h"
-#include "misc/extra/extraBdd.h"
 #include "opt/fxu/fxu.h"
+
+#ifdef ABC_USE_CUDD
+#include "misc/extra/extraBdd.h"
+#endif
 
 ABC_NAMESPACE_IMPL_START
 
@@ -241,8 +244,10 @@ int Abc_NtkGetMultiRefNum( Abc_Ntk_t * pNtk )
 ***********************************************************************/
 int Abc_NtkGetBddNodeNum( Abc_Ntk_t * pNtk )
 {
+    int nNodes = 0;
+#ifdef ABC_USE_CUDD
     Abc_Obj_t * pNode;
-    int i, nNodes = 0;
+    int i;
     assert( Abc_NtkIsBddLogic(pNtk) );
     Abc_NtkForEachNode( pNtk, pNode, i )
     {
@@ -251,6 +256,7 @@ int Abc_NtkGetBddNodeNum( Abc_Ntk_t * pNtk )
             continue;
         nNodes += pNode->pData? -1 + Cudd_DagSize( (DdNode *)pNode->pData ) : 0;
     }
+#endif
     return nNodes;
 }
 
@@ -294,11 +300,13 @@ int Abc_NtkGetAigNodeNum( Abc_Ntk_t * pNtk )
 ***********************************************************************/
 int Abc_NtkGetClauseNum( Abc_Ntk_t * pNtk )
 {
+    int nClauses = 0;
+#ifdef ABC_USE_CUDD
     extern int Abc_CountZddCubes( DdManager * dd, DdNode * zCover );
     Abc_Obj_t * pNode;
     DdNode * bCover, * zCover, * bFunc;
     DdManager * dd = (DdManager *)pNtk->pManFunc;
-    int i, nClauses = 0;
+    int i;
     assert( Abc_NtkIsBddLogic(pNtk) );
     Abc_NtkForEachNode( pNtk, pNode, i )
     {
@@ -319,6 +327,7 @@ int Abc_NtkGetClauseNum( Abc_Ntk_t * pNtk )
         Cudd_RecursiveDeref( dd, bCover );
         Cudd_RecursiveDerefZdd( dd, zCover );
     }
+#endif
     return nClauses;
 }
 

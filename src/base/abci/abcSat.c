@@ -22,7 +22,10 @@
 #include "base/main/main.h"
 #include "base/cmd/cmd.h"
 #include "sat/bsat/satSolver.h"
+
+#ifdef ABC_USE_CUDD
 #include "misc/extra/extraBdd.h"
+#endif
 
 ABC_NAMESPACE_IMPL_START
 
@@ -657,6 +660,7 @@ sat_solver_store_mark_roots( pSat );
 
 
 
+#ifdef ABC_USE_CUDD
 
 /**Function*************************************************************
 
@@ -889,7 +893,11 @@ finish:
     return pSat;
 }
 
+#else
 
+sat_solver * Abc_NtkMiterSatCreateLogic( Abc_Ntk_t * pNtk, int fAllPrimes ) { return NULL; }
+
+#endif
 
 /**Function*************************************************************
 

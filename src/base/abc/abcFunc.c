@@ -21,7 +21,10 @@
 #include "abc.h"
 #include "base/main/main.h"
 #include "map/mio/mio.h"
+
+#ifdef ABC_USE_CUDD
 #include "misc/extra/extraBdd.h"
+#endif
 
 ABC_NAMESPACE_IMPL_START
 
@@ -32,10 +35,12 @@ ABC_NAMESPACE_IMPL_START
 
 #define ABC_MAX_CUBES   100000
 
-int Abc_ConvertZddToSop( DdManager * dd, DdNode * zCover, char * pSop, int nFanins, Vec_Str_t * vCube, int fPhase );
-static DdNode * Abc_ConvertAigToBdd( DdManager * dd, Hop_Obj_t * pRoot);
 static Hop_Obj_t * Abc_ConvertSopToAig( Hop_Man_t * pMan, char * pSop );
 
+#ifdef ABC_USE_CUDD
+
+int Abc_ConvertZddToSop( DdManager * dd, DdNode * zCover, char * pSop, int nFanins, Vec_Str_t * vCube, int fPhase );
+static DdNode * Abc_ConvertAigToBdd( DdManager * dd, Hop_Obj_t * pRoot);
 extern int Abc_CountZddCubes( DdManager * dd, DdNode * zCover );
 
 ////////////////////////////////////////////////////////////////////////
@@ -623,128 +628,6 @@ int Abc_CountZddCubes( DdManager * dd, DdNode * zCover )
     return nCubes;
 }
 
-
-/**Function*************************************************************
-
-  Synopsis    [Converts the network from SOP to AIG representation.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Abc_NtkSopToAig( Abc_Ntk_t * pNtk )
-{
-    Abc_Obj_t * pNode;
-    Hop_Man_t * pMan;
-    int i;
-
-    assert( Abc_NtkHasSop(pNtk) ); 
-
-    // make dist1-free and SCC-free
-//    Abc_NtkMakeLegit( pNtk );
-
-    // start the functionality manager
-    pMan = Hop_ManStart();
-
-    // convert each node from SOP to BDD
-    Abc_NtkForEachNode( pNtk, pNode, i )
-    {
-        if ( Abc_ObjIsBarBuf(pNode) )
-            continue;
-        assert( pNode->pData );
-        pNode->pData = Abc_ConvertSopToAig( pMan, (char *)pNode->pData );
-        if ( pNode->pData == NULL )
-        {
-            Hop_ManStop( pMan );
-            printf( "Abc_NtkSopToAig: Error while converting SOP into AIG.\n" );
-            return 0;
-        }
-    }
-    Mem_FlexStop( (Mem_Flex_t *)pNtk->pManFunc, 0 );
-    pNtk->pManFunc = pMan;
-
-    // update the network type
-    pNtk->ntkFunc = ABC_FUNC_AIG;
-    return 1;
-}
-
-
-/**Function*************************************************************
-
-  Synopsis    [Strashes one logic node using its SOP.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-Hop_Obj_t * Abc_ConvertSopToAigInternal( Hop_Man_t * pMan, char * pSop )
-{
-    Hop_Obj_t * pAnd, * pSum;
-    int i, Value, nFanins;
-    char * pCube;
-    // get the number of variables
-    nFanins = Abc_SopGetVarNum(pSop);
-    if ( Abc_SopIsExorType(pSop) )
-    {
-        pSum = Hop_ManConst0(pMan); 
-        for ( i = 0; i < nFanins; i++ )
-            pSum = Hop_Exor( pMan, pSum, Hop_IthVar(pMan,i) );
-    }
-    else
-    {
-        // go through the cubes of the node's SOP
-        pSum = Hop_ManConst0(pMan); 
-        Abc_SopForEachCube( pSop, nFanins, pCube )
-        {
-            // create the AND of literals
-            pAnd = Hop_ManConst1(pMan);
-            Abc_CubeForEachVar( pCube, Value, i )
-            {
-                if ( Value == '1' )
-                    pAnd = Hop_And( pMan, pAnd, Hop_IthVar(pMan,i) );
-                else if ( Value == '0' )
-                    pAnd = Hop_And( pMan, pAnd, Hop_Not(Hop_IthVar(pMan,i)) );
-            }
-            // add to the sum of cubes
-            pSum = Hop_Or( pMan, pSum, pAnd );
-        }
-    }
-    // decide whether to complement the result
-    if ( Abc_SopIsComplement(pSop) )
-        pSum = Hop_Not(pSum);
-    return pSum;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Converts the network from AIG to BDD representation.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-Hop_Obj_t * Abc_ConvertSopToAig( Hop_Man_t * pMan, char * pSop )
-{
-    extern Hop_Obj_t * Dec_GraphFactorSop( Hop_Man_t * pMan, char * pSop );
-    int fUseFactor = 1;
-    // consider the constant node
-    if ( Abc_SopGetVarNum(pSop) == 0 )
-        return Hop_NotCond( Hop_ManConst1(pMan), Abc_SopIsConst0(pSop) );
-    // decide when to use factoring
-    if ( fUseFactor && Abc_SopGetVarNum(pSop) > 2 && Abc_SopGetCubeNum(pSop) > 1 && !Abc_SopIsExorType(pSop) )
-        return Dec_GraphFactorSop( pMan, pSop );
-    return Abc_ConvertSopToAigInternal( pMan, pSop );
-}
-
 /**Function*************************************************************
 
   Synopsis    [Converts the network from AIG to BDD representation.]
@@ -903,6 +786,136 @@ DdNode * Abc_ConvertAigToBdd( DdManager * dd, Hop_Obj_t * pRoot )
     return bFunc;
 }
 
+#else
+
+int  Abc_NtkSopToBdd( Abc_Ntk_t * pNtk ) { return 1; }
+int  Abc_NtkBddToSop( Abc_Ntk_t * pNtk, int fMode, int nCubeLimit ) { return 1; }
+void Abc_NodeBddToCnf( Abc_Obj_t * pNode, Mem_Flex_t * pMmMan, Vec_Str_t * vCube, int fAllPrimes, char ** ppSop0, char ** ppSop1 ) {}
+void Abc_NtkLogicMakeDirectSops( Abc_Ntk_t * pNtk ) {}
+int  Abc_NtkAigToBdd( Abc_Ntk_t * pNtk ) { return 1; }
+
+#endif
+
+/**Function*************************************************************
+
+  Synopsis    [Converts the network from SOP to AIG representation.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_NtkSopToAig( Abc_Ntk_t * pNtk )
+{
+    Abc_Obj_t * pNode;
+    Hop_Man_t * pMan;
+    int i;
+
+    assert( Abc_NtkHasSop(pNtk) ); 
+
+    // make dist1-free and SCC-free
+//    Abc_NtkMakeLegit( pNtk );
+
+    // start the functionality manager
+    pMan = Hop_ManStart();
+
+    // convert each node from SOP to BDD
+    Abc_NtkForEachNode( pNtk, pNode, i )
+    {
+        if ( Abc_ObjIsBarBuf(pNode) )
+            continue;
+        assert( pNode->pData );
+        pNode->pData = Abc_ConvertSopToAig( pMan, (char *)pNode->pData );
+        if ( pNode->pData == NULL )
+        {
+            Hop_ManStop( pMan );
+            printf( "Abc_NtkSopToAig: Error while converting SOP into AIG.\n" );
+            return 0;
+        }
+    }
+    Mem_FlexStop( (Mem_Flex_t *)pNtk->pManFunc, 0 );
+    pNtk->pManFunc = pMan;
+
+    // update the network type
+    pNtk->ntkFunc = ABC_FUNC_AIG;
+    return 1;
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    [Strashes one logic node using its SOP.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Hop_Obj_t * Abc_ConvertSopToAigInternal( Hop_Man_t * pMan, char * pSop )
+{
+    Hop_Obj_t * pAnd, * pSum;
+    int i, Value, nFanins;
+    char * pCube;
+    // get the number of variables
+    nFanins = Abc_SopGetVarNum(pSop);
+    if ( Abc_SopIsExorType(pSop) )
+    {
+        pSum = Hop_ManConst0(pMan); 
+        for ( i = 0; i < nFanins; i++ )
+            pSum = Hop_Exor( pMan, pSum, Hop_IthVar(pMan,i) );
+    }
+    else
+    {
+        // go through the cubes of the node's SOP
+        pSum = Hop_ManConst0(pMan); 
+        Abc_SopForEachCube( pSop, nFanins, pCube )
+        {
+            // create the AND of literals
+            pAnd = Hop_ManConst1(pMan);
+            Abc_CubeForEachVar( pCube, Value, i )
+            {
+                if ( Value == '1' )
+                    pAnd = Hop_And( pMan, pAnd, Hop_IthVar(pMan,i) );
+                else if ( Value == '0' )
+                    pAnd = Hop_And( pMan, pAnd, Hop_Not(Hop_IthVar(pMan,i)) );
+            }
+            // add to the sum of cubes
+            pSum = Hop_Or( pMan, pSum, pAnd );
+        }
+    }
+    // decide whether to complement the result
+    if ( Abc_SopIsComplement(pSop) )
+        pSum = Hop_Not(pSum);
+    return pSum;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Converts the network from AIG to BDD representation.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Hop_Obj_t * Abc_ConvertSopToAig( Hop_Man_t * pMan, char * pSop )
+{
+    extern Hop_Obj_t * Dec_GraphFactorSop( Hop_Man_t * pMan, char * pSop );
+    int fUseFactor = 1;
+    // consider the constant node
+    if ( Abc_SopGetVarNum(pSop) == 0 )
+        return Hop_NotCond( Hop_ManConst1(pMan), Abc_SopIsConst0(pSop) );
+    // decide when to use factoring
+    if ( fUseFactor && Abc_SopGetVarNum(pSop) > 2 && Abc_SopGetCubeNum(pSop) > 1 && !Abc_SopIsExorType(pSop) )
+        return Dec_GraphFactorSop( pMan, pSop );
+    return Abc_ConvertSopToAigInternal( pMan, pSop );
+}
 
 
 /**Function*************************************************************

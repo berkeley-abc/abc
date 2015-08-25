@@ -19,7 +19,10 @@
 ***********************************************************************/
 
 #include "ioAbc.h"
+
+#ifdef ABC_USE_CUDD
 #include "misc/extra/extraBdd.h"
+#endif
 
 ABC_NAMESPACE_IMPL_START
 
@@ -191,6 +194,7 @@ int Io_WritePla( Abc_Ntk_t * pNtk, char * pFileName )
     return 1;
 }
 
+#ifdef ABC_USE_CUDD
 
 /**Function*************************************************************
 
@@ -440,6 +444,12 @@ int Io_WriteMoPla( Abc_Ntk_t * pNtk, char * pFileName )
     fclose( pFile );
     return 1;
 }
+
+#else
+
+int Io_WriteMoPla( Abc_Ntk_t * pNtk, char * pFileName ) { return 1; }
+
+#endif
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

@@ -19,14 +19,19 @@
 ***********************************************************************/
 
 #include "base/abc/abc.h"
+
+#ifdef ABC_USE_CUDD
 #include "bdd/reo/reo.h"
 #include "misc/extra/extraBdd.h"
+#endif
 
 ABC_NAMESPACE_IMPL_START
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
+
+#ifdef ABC_USE_CUDD
 
 #define BDD_FUNC_MAX 256
 
@@ -1041,6 +1046,12 @@ Abc_NtkExploreCofs( dd, bFunc, dd->vars, Abc_NtkCiNum(pNtk), 6 );
     Abc_NtkFreeGlobalBdds( pNtk, 1 );
     return pNtkNew;
 }
+
+#else
+
+Abc_Ntk_t * Abc_NtkBddDec( Abc_Ntk_t * pNtk, int fVerbose ) { return NULL; }
+
+#endif
 
 ABC_NAMESPACE_IMPL_END
 

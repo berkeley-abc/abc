@@ -20,7 +20,10 @@
 
 #include "abc.h"
 #include "base/main/main.h"
+
+#ifdef ABC_USE_CUDD
 #include "misc/extra/extraBdd.h"
+#endif
 
 ABC_NAMESPACE_IMPL_START
 
@@ -543,12 +546,14 @@ int Abc_NtkCheckNode( Abc_Ntk_t * pNtk, Abc_Obj_t * pNode )
     }
     else if ( Abc_NtkHasBdd(pNtk) )
     {
+#ifdef ABC_USE_CUDD
         int nSuppSize = Cudd_SupportSize((DdManager *)pNtk->pManFunc, (DdNode *)pNode->pData);
         if ( nSuppSize > Abc_ObjFaninNum(pNode) )
         {
             fprintf( stdout, "NodeCheck: BDD of the node \"%s\" has incorrect support size.\n", Abc_ObjNameNet(pNode) );
             return 0;
         }
+#endif
     }
     else if ( !Abc_NtkHasMapping(pNtk) && !Abc_NtkHasBlifMv(pNtk) && !Abc_NtkHasAig(pNtk) )
     {

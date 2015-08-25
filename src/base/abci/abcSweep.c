@@ -21,7 +21,10 @@
 #include "base/abc/abc.h"
 #include "base/main/main.h"
 #include "proof/fraig/fraig.h"
+
+#ifdef ABC_USE_CUDD
 #include "misc/extra/extraBdd.h"
+#endif
 
 ABC_NAMESPACE_IMPL_START
 
@@ -38,7 +41,6 @@ static int            Abc_NodeDroppingCost( Abc_Obj_t * pNode );
 
 static int            Abc_NtkReduceNodes( Abc_Ntk_t * pNtk, Vec_Ptr_t * vNodes );
 static void           Abc_NodeSweep( Abc_Obj_t * pNode, int fVerbose );
-static void           Abc_NodeConstantInput( Abc_Obj_t * pNode, Abc_Obj_t * pFanin, int fConst0 );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -560,6 +562,36 @@ int Abc_NtkReduceNodes( Abc_Ntk_t * pNtk, Vec_Ptr_t * vNodes )
 
 
 
+#ifdef ABC_USE_CUDD
+
+/**Function*************************************************************
+
+  Synopsis    [Replaces the local function by its cofactor.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NodeConstantInput( Abc_Obj_t * pNode, Abc_Obj_t * pFanin, int fConst0 )
+{
+    DdManager * dd = (DdManager *)pNode->pNtk->pManFunc;
+    DdNode * bVar, * bTemp;
+    int iFanin;
+    assert( Abc_NtkIsBddLogic(pNode->pNtk) ); 
+    if ( (iFanin = Vec_IntFind( &pNode->vFanins, pFanin->Id )) == -1 )
+    {
+        printf( "Node %s should be among", Abc_ObjName(pFanin) );
+        printf( " the fanins of node %s...\n", Abc_ObjName(pNode) );
+        return;
+    }
+    bVar = Cudd_NotCond( Cudd_bddIthVar(dd, iFanin), fConst0 );
+    pNode->pData = Cudd_Cofactor( dd, bTemp = (DdNode *)pNode->pData, bVar );   Cudd_Ref( (DdNode *)pNode->pData );
+    Cudd_RecursiveDeref( dd, bTemp );
+}
+
 /**Function*************************************************************
 
   Synopsis    [Tranditional sweep of the network.]
@@ -655,33 +687,11 @@ int Abc_NtkSweep( Abc_Ntk_t * pNtk, int fVerbose )
 }
 
 
-/**Function*************************************************************
+#else
 
-  Synopsis    [Replaces the local function by its cofactor.]
+int Abc_NtkSweep( Abc_Ntk_t * pNtk, int fVerbose ) { return 1; }
 
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Abc_NodeConstantInput( Abc_Obj_t * pNode, Abc_Obj_t * pFanin, int fConst0 )
-{
-    DdManager * dd = (DdManager *)pNode->pNtk->pManFunc;
-    DdNode * bVar, * bTemp;
-    int iFanin;
-    assert( Abc_NtkIsBddLogic(pNode->pNtk) ); 
-    if ( (iFanin = Vec_IntFind( &pNode->vFanins, pFanin->Id )) == -1 )
-    {
-        printf( "Node %s should be among", Abc_ObjName(pFanin) );
-        printf( " the fanins of node %s...\n", Abc_ObjName(pNode) );
-        return;
-    }
-    bVar = Cudd_NotCond( Cudd_bddIthVar(dd, iFanin), fConst0 );
-    pNode->pData = Cudd_Cofactor( dd, bTemp = (DdNode *)pNode->pData, bVar );   Cudd_Ref( (DdNode *)pNode->pData );
-    Cudd_RecursiveDeref( dd, bTemp );
-}
+#endif
 
 
 /**Function*************************************************************
@@ -1008,8 +1018,6 @@ int Abc_NtkSweepBufsInvs( Abc_Ntk_t * pNtk, int fVerbose )
         printf( "Removed %d single input nodes.\n", Counter );
     return Counter;
 }
-
-
 
 
 

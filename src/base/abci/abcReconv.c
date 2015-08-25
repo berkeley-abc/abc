@@ -19,7 +19,10 @@
 ***********************************************************************/
 
 #include "base/abc/abc.h"
+
+#ifdef ABC_USE_CUDD
 #include "misc/extra/extraBdd.h"
+#endif
 
 ABC_NAMESPACE_IMPL_START
 
@@ -484,6 +487,8 @@ void Abc_NodeConeMarkCollect_rec( Abc_Obj_t * pNode, Vec_Ptr_t * vVisited )
     Vec_PtrPush( vVisited, pNode );
 }
 
+#ifdef ABC_USE_CUDD
+
 /**Function*************************************************************
 
   Synopsis    [Returns BDD representing the logic function of the cone.]
@@ -574,6 +579,8 @@ DdNode * Abc_NodeConeDcs( DdManager * dd, DdNode ** pbVarsX, DdNode ** pbVarsY, 
     return bResult;
 }
  
+#endif
+
 /**Function*************************************************************
 
   Synopsis    [Starts the resynthesis manager.]

@@ -22,7 +22,10 @@
 
 #include "base/abc/abc.h"
 #include "proof/fraig/fraig.h"
+
+#ifdef ABC_USE_CUDD
 #include "misc/extra/extraBdd.h"
+#endif
 
 ABC_NAMESPACE_IMPL_START
 
@@ -189,6 +192,7 @@ int Abc_NtkMiterProve( Abc_Ntk_t ** ppNtk, void * pPars )
     }    
 
     // try to prove it using brute force SAT
+#ifdef ABC_USE_CUDD
     if ( RetValue < 0 && pParams->fUseBdds )
     {
         if ( pParams->fVerbose )
@@ -207,6 +211,7 @@ int Abc_NtkMiterProve( Abc_Ntk_t ** ppNtk, void * pPars )
             pNtk = pNtkTemp;
         Abc_NtkMiterPrint( pNtk, "BDD building", clk, pParams->fVerbose );
     }
+#endif
 
     if ( RetValue < 0 )
     {

@@ -19,7 +19,10 @@
 ***********************************************************************/
 
 #include "base/abc/abc.h"
+
+#ifdef ABC_USE_CUDD
 #include "misc/extra/extraBdd.h"
+#endif
 
 ABC_NAMESPACE_IMPL_START
 
@@ -27,6 +30,7 @@ ABC_NAMESPACE_IMPL_START
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
+#ifdef ABC_USE_CUDD
 
 static void Abc_NtkPrintUnateBdd( Abc_Ntk_t * pNtk, int fUseNaive, int fVerbose );
 static void Abc_NtkPrintUnateSat( Abc_Ntk_t * pNtk, int fVerbose );
@@ -152,6 +156,12 @@ clkUnate = Abc_Clock() - clk - clkBdd;
 void Abc_NtkPrintUnateSat( Abc_Ntk_t * pNtk, int fVerbose )
 {
 }
+
+#else
+
+void Abc_NtkPrintUnate( Abc_Ntk_t * pNtk, int fUseBdds, int fUseNaive, int fVerbose ){}
+
+#endif
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
