@@ -24,10 +24,8 @@
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
 
-
-#include <stdio.h>
-#include "misc/extra/extraBdd.h"
-#include "parse.h"
+#include "aig/hop/hop.h"
+#include "misc/vec/vec.h"
 
 ABC_NAMESPACE_HEADER_START
 

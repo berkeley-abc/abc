@@ -32,7 +32,7 @@
 #include "proof/ssw/ssw.h"
 #include "llb.h"
 
-#include "misc/extra/extraBdd.h"
+#include "bdd/extrab/extraBdd.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                         PARAMETERS                               ///
