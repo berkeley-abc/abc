@@ -152,6 +152,44 @@ void Abc_SclShortFormula( SC_Cell * pCell, char * pForm, char * pBuffer )
     }
     *pBuffer++ = 0;
 }
+static inline void Abc_SclTimingUpdate( SC_Cell * pCell, SC_Timing * p, char * Buffer )
+{
+    SC_Pin * pPin; int i;
+    SC_CellForEachPinIn( pCell, pPin, i )
+        if ( p->related_pin && !strcmp(p->related_pin, pPin->pName) )
+        {
+            ABC_FREE( p->related_pin );
+            sprintf( Buffer, "%c", 'a'+i );
+            p->related_pin = Abc_UtilStrsav( Buffer );
+        }
+}
+static inline void Abc_SclTimingsUpdate( SC_Cell * pCell, SC_Timings * p, char * Buffer )
+{
+    SC_Timing * pTemp; int i;
+    Vec_PtrForEachEntry( SC_Timing *, p->vTimings, pTemp, i )
+        Abc_SclTimingUpdate( pCell, pTemp, Buffer );
+}
+static inline void Abc_SclPinUpdate( SC_Cell * pCell, SC_Pin * p, char * Buffer )
+{
+    // update pin names in the timing
+    SC_Timings * pTemp; int i;
+    SC_PinForEachRTiming( p, pTemp, i )
+    {
+        SC_Pin * pPin; int k;
+        Abc_SclTimingsUpdate( pCell, pTemp, Buffer );
+        SC_CellForEachPinIn( pCell, pPin, k )
+            if ( pTemp->pName && !strcmp(pTemp->pName, pPin->pName) )
+            {
+                ABC_FREE( pTemp->pName );
+                sprintf( Buffer, "%c", 'a'+k );
+                pTemp->pName = Abc_UtilStrsav( Buffer );
+            }
+    }
+    // update formula
+    Abc_SclShortFormula( pCell, p->func_text, Buffer );
+    ABC_FREE( p->func_text );
+    p->func_text = Abc_UtilStrsav( Buffer );
+}
 void Abc_SclShortNames( SC_Lib * p )
 {
     char Buffer[10000];
@@ -169,11 +207,7 @@ void Abc_SclShortNames( SC_Lib * p )
             pCell->pName = Abc_UtilStrsav( Buffer );
             // formula
             SC_CellForEachPinOut( pCell, pPin, n )
-            {
-                Abc_SclShortFormula( pCell, pPin->func_text, Buffer );
-                ABC_FREE( pPin->func_text );
-                pPin->func_text = Abc_UtilStrsav( Buffer );
-            }
+                Abc_SclPinUpdate( pCell, pPin, Buffer );
             // pin names
             SC_CellForEachPinIn( pCell, pPin, n )
             {
@@ -192,6 +226,11 @@ void Abc_SclShortNames( SC_Lib * p )
     p->nBins = 0;
     ABC_FREE( p->pBins );
     Abc_SclHashCells( p );
+    // update library name
+    printf( "Renaming library \"%s\" into \"%s%d\".\n", p->pName, "lib", SC_LibCellNum(p) );
+    ABC_FREE( p->pName );
+    sprintf( Buffer, "lib%d", SC_LibCellNum(p) );
+    p->pName = Abc_UtilStrsav( Buffer );
 }
 /**Function*************************************************************
 
