@@ -4692,7 +4692,7 @@ Aig_ManPrintStats( pMan );
         extern void Llb_BddStructAnalysis( Aig_Man_t * pMan );
         extern void Llb_NonlinExperiment( Aig_Man_t * pAig, int Num );
 //        Llb_BddStructAnalysis( pMan );
-        Llb_ManMinCutTest( pMan, Num );
+//        Llb_ManMinCutTest( pMan, Num );
 //        Llb_NonlinExperiment( pMan, Num );
     }
 

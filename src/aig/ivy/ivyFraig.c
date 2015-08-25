@@ -2659,10 +2659,13 @@ p->timeTrav += Abc_Clock() - clk;
 
 ABC_NAMESPACE_IMPL_END
 
+#ifdef ABC_USE_CUDD
 #include "bdd/cudd/cuddInt.h"
+#endif
 
 ABC_NAMESPACE_IMPL_START
 
+#ifdef ABC_USE_CUDD
 
 /**Function*************************************************************
 
@@ -2814,6 +2817,7 @@ int Ivy_FraigNodesAreEquivBdd( Ivy_Obj_t * pObj1, Ivy_Obj_t * pObj2 )
     Vec_PtrFree( vFront );
     return RetValue;
 }
+#endif
 
 ABC_NAMESPACE_IMPL_END
 

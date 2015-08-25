@@ -313,7 +313,9 @@ static int Abc_CommandBm2                    ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandSaucy                  ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandTestCex                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandPdr                    ( Abc_Frame_t * pAbc, int argc, char ** argv );
+#ifdef ABC_USE_CUDD
 static int Abc_CommandReconcile              ( Abc_Frame_t * pAbc, int argc, char ** argv );
+#endif
 static int Abc_CommandCexSave                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandCexLoad                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandCexCut                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -417,10 +419,12 @@ static int Abc_CommandAbc9Dch                ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandAbc9Rpm                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9BackReach          ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Posplit            ( Abc_Frame_t * pAbc, int argc, char ** argv );
+#ifdef ABC_USE_CUDD
 static int Abc_CommandAbc9ReachM             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9ReachP             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9ReachN             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9ReachY             ( Abc_Frame_t * pAbc, int argc, char ** argv );
+#endif
 static int Abc_CommandAbc9Undo               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Iso                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9IsoNpn             ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -926,7 +930,9 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Verification", "saucy3",        Abc_CommandSaucy,            1 );
     Cmd_CommandAdd( pAbc, "Verification", "testcex",       Abc_CommandTestCex,          0 );
     Cmd_CommandAdd( pAbc, "Verification", "pdr",           Abc_CommandPdr,              0 );
+#ifdef ABC_USE_CUDD
     Cmd_CommandAdd( pAbc, "Verification", "reconcile",     Abc_CommandReconcile,        1 );
+#endif
     Cmd_CommandAdd( pAbc, "Verification", "cexsave",       Abc_CommandCexSave,          0 );
     Cmd_CommandAdd( pAbc, "Verification", "cexload",       Abc_CommandCexLoad,          0 );
     Cmd_CommandAdd( pAbc, "Verification", "cexcut",        Abc_CommandCexCut,           0 );
@@ -1027,10 +1033,12 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "ABC9",         "&rpm",          Abc_CommandAbc9Rpm,          0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&back_reach",   Abc_CommandAbc9BackReach,    0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&posplit",      Abc_CommandAbc9Posplit,      0 );
+#ifdef ABC_USE_CUDD
     Cmd_CommandAdd( pAbc, "ABC9",         "&reachm",       Abc_CommandAbc9ReachM,       0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&reachp",       Abc_CommandAbc9ReachP,       0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&reachn",       Abc_CommandAbc9ReachN,       0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&reachy",       Abc_CommandAbc9ReachY,       0 );
+#endif
     Cmd_CommandAdd( pAbc, "ABC9",         "&undo",         Abc_CommandAbc9Undo,         0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&iso",          Abc_CommandAbc9Iso,          0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&isonpn",       Abc_CommandAbc9IsoNpn,       0 );
@@ -24652,6 +24660,8 @@ usage:
     return 1;
 }
 
+#ifdef ABC_USE_CUDD
+
 /**Function*************************************************************
 
   Synopsis    []
@@ -24763,6 +24773,7 @@ usage:
     return 1;
 }
 
+#endif
 
 /**Function*************************************************************
 
@@ -34396,6 +34407,8 @@ usage:
     return 1;
 }
 
+#ifdef ABC_USE_CUDD
+
 /**Function*************************************************************
 
   Synopsis    []
@@ -35009,6 +35022,8 @@ usage:
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
 }
+
+#endif
 
 /**Function*************************************************************
 

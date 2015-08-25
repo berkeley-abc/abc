@@ -27,6 +27,8 @@ ABC_NAMESPACE_IMPL_START
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
+#ifdef ABC_USE_CUDD
+
 static Abc_Ntk_t * Io_ReadEqnNetwork( Extra_FileReader_t * p );
 static void        Io_ReadEqnStrCompact( char * pStr );
 static int         Io_ReadEqnStrFind( Vec_Ptr_t * vTokens, char * pName );
@@ -233,6 +235,11 @@ void Io_ReadEqnStrCutAt( char * pStr, char * pStop, int fUniqueOnly, Vec_Ptr_t *
             Vec_PtrPush( vTokens, pToken );
 }
 
+#else
+
+Abc_Ntk_t * Io_ReadEqn( char * pFileName, int fCheck ) { return NULL; }
+
+#endif
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
