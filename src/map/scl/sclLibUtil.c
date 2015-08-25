@@ -101,6 +101,100 @@ int Abc_SclLibClassNum( SC_Lib * pLib )
 
 /**Function*************************************************************
 
+  Synopsis    [Change cell names and pin names.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline int Abc_SclIsChar( char c )
+{
+    return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_';
+}
+static inline int Abc_SclIsName( char c )
+{
+    return Abc_SclIsChar(c) || (c >= '0' && c <= '9');
+}
+static inline char * Abc_SclFindLimit( char * pName )
+{
+    assert( Abc_SclIsChar(*pName) );
+    while ( Abc_SclIsName(*pName) )
+        pName++;
+    return pName;
+}
+static inline int Abc_SclAreEqual( char * pBase, char * pName, char * pLimit )
+{
+    return !strncmp( pBase, pName, pLimit - pName );
+}
+void Abc_SclShortFormula( SC_Cell * pCell, char * pForm, char * pBuffer )
+{
+    SC_Pin * pPin; int i;
+    char * pTemp, * pLimit;
+    for ( pTemp = pForm; *pTemp; )
+    {
+        if ( !Abc_SclIsChar(*pTemp) )
+        {
+            *pBuffer++ = *pTemp++;
+            continue;
+        }
+        pLimit = Abc_SclFindLimit( pTemp );
+        SC_CellForEachPinIn( pCell, pPin, i )
+            if ( Abc_SclAreEqual( pPin->pName, pTemp, pLimit ) )
+            {
+                *pBuffer++ = 'a' + i;
+                break;
+            }
+        assert( i < pCell->n_inputs );
+        pTemp = pLimit;
+    }
+    *pBuffer++ = 0;
+}
+void Abc_SclShortNames( SC_Lib * p )
+{
+    char Buffer[10000];
+    SC_Cell * pClass, * pCell; SC_Pin * pPin;
+    int i, k, n, nClasses = Abc_SclLibClassNum(p);
+    int nDigits = Abc_Base10Log( nClasses );
+    // itereate through classes
+    SC_LibForEachCellClass( p, pClass, i )
+    {
+        int nDigits2 = Abc_Base10Log( Abc_SclClassCellNum(pClass) );
+        SC_RingForEachCell( pClass, pCell, k )
+        {
+            ABC_FREE( pCell->pName );
+            sprintf( Buffer, "g%0*d_%0*d", nDigits, i, nDigits2, k );
+            pCell->pName = Abc_UtilStrsav( Buffer );
+            // formula
+            SC_CellForEachPinOut( pCell, pPin, n )
+            {
+                Abc_SclShortFormula( pCell, pPin->func_text, Buffer );
+                ABC_FREE( pPin->func_text );
+                pPin->func_text = Abc_UtilStrsav( Buffer );
+            }
+            // pin names
+            SC_CellForEachPinIn( pCell, pPin, n )
+            {
+                ABC_FREE( pPin->pName );
+                sprintf( Buffer, "%c", 'a'+n );
+                pPin->pName = Abc_UtilStrsav( Buffer );
+            }
+            SC_CellForEachPinOut( pCell, pPin, n )
+            {
+                ABC_FREE( pPin->pName );
+                sprintf( Buffer, "%c", 'z'-n+pCell->n_inputs );
+                pPin->pName = Abc_UtilStrsav( Buffer );
+            }
+        }
+    }
+    p->nBins = 0;
+    ABC_FREE( p->pBins );
+    Abc_SclHashCells( p );
+}
+/**Function*************************************************************
+
   Synopsis    [Links equal gates into rings while sorting them by area.]
 
   Description []

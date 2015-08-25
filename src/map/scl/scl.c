@@ -139,11 +139,12 @@ int Scl_CommandReadLib( Abc_Frame_t * pAbc, int argc, char ** argv )
     float Slew = 0;
     float Gain = 0;
     int nGatesMin = 0;
+    int fShortNames = 0;
     int fVerbose = 1;
     int fVeryVerbose = 0;
 
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "SGMdvwh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "SGMdnvwh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -183,6 +184,9 @@ int Scl_CommandReadLib( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'd':
             fDump ^= 1;
             break;
+        case 'n':
+            fShortNames ^= 1;
+            break;
         case 'v':
             fVerbose ^= 1;
             break;
@@ -219,6 +223,9 @@ int Scl_CommandReadLib( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 0;
     }
     Abc_SclLoad( pLib, (SC_Lib **)&pAbc->pLibScl );
+    // convert the library if needed
+    if ( fShortNames )
+        Abc_SclShortNames( pLib );
     // dump the resulting library
     if ( fDump && pAbc->pLibScl )
         Abc_SclWriteLiberty( Extra_FileNameGenericAppend(pFileName, "_temp.lib"), (SC_Lib *)pAbc->pLibScl );
@@ -228,12 +235,13 @@ int Scl_CommandReadLib( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( pAbc->Err, "usage: read_lib [-SG float] [-M num] [-dvwh] <file>\n" );
+    fprintf( pAbc->Err, "usage: read_lib [-SG float] [-M num] [-dnvwh] <file>\n" );
     fprintf( pAbc->Err, "\t           reads Liberty library from file\n" );
     fprintf( pAbc->Err, "\t-S float : the slew parameter used to generate the library [default = %.2f]\n", Slew );
     fprintf( pAbc->Err, "\t-G float : the gain parameter used to generate the library [default = %.2f]\n", Gain );
     fprintf( pAbc->Err, "\t-M num   : skip gate classes whose size is less than this [default = %d]\n", nGatesMin );
     fprintf( pAbc->Err, "\t-d       : toggle dumping the parsed library into file \"*_temp.lib\" [default = %s]\n", fDump? "yes": "no" );
+    fprintf( pAbc->Err, "\t-n       : toggle replacing gate/pin names by short strings [default = %s]\n", fShortNames? "yes": "no" );
     fprintf( pAbc->Err, "\t-v       : toggle writing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     fprintf( pAbc->Err, "\t-v       : toggle writing information about skipped gates [default = %s]\n", fVeryVerbose? "yes": "no" );
     fprintf( pAbc->Err, "\t-h       : prints the command summary\n" );

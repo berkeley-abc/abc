@@ -615,6 +615,7 @@ extern void          Abc_SclWriteLiberty( char * pFileName, SC_Lib * p );
 extern void          Abc_SclHashCells( SC_Lib * p );
 extern int           Abc_SclCellFind( SC_Lib * p, char * pName );
 extern int           Abc_SclClassCellNum( SC_Cell * pClass );
+extern void          Abc_SclShortNames( SC_Lib * p );
 extern int           Abc_SclLibClassNum( SC_Lib * pLib );
 extern void          Abc_SclLinkCells( SC_Lib * p );
 extern void          Abc_SclPrintCells( SC_Lib * p, float Slew, float Gain, int fInvOnly, int fShort );
