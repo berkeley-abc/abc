@@ -21,7 +21,7 @@
 #include "abs.h"
 #include "proof/ssw/ssw.h"
 #include "proof/fra/fra.h"
-#include "proof/bbr/bbr.h"
+#include "bdd/bbr/bbr.h"
 #include "proof/pdr/pdr.h"
 #include "sat/bmc/bmc.h"
 

@@ -23,7 +23,7 @@
 #include "bool/kit/kit.h"
 
 #ifdef ABC_USE_CUDD
-#include "misc/extra/extraBdd.h"
+#include "bdd/extrab/extraBdd.h"
 #include "bdd/reo/reo.h"
 #endif
 

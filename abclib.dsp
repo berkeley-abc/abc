@@ -1242,30 +1242,6 @@ SOURCE=.\src\bdd\mtr\mtrGroup.c
 SOURCE=.\src\bdd\mtr\mtrInt.h
 # End Source File
 # End Group
-# Begin Group "parse"
-
-# PROP Default_Filter ""
-# Begin Source File
-
-SOURCE=.\src\bdd\parse\parse.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\bdd\parse\parseCore.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\bdd\parse\parseEqn.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\bdd\parse\parseInt.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\bdd\parse\parseStack.c
-# End Source File
-# End Group
 # Begin Group "dsd"
 
 # PROP Default_Filter ""
@@ -1360,6 +1336,178 @@ SOURCE=.\src\bdd\cas\casCore.c
 # Begin Source File
 
 SOURCE=.\src\bdd\cas\casDec.c
+# End Source File
+# End Group
+# Begin Group "bbr"
+
+# PROP Default_Filter ""
+# Begin Source File
+
+SOURCE=.\src\bdd\bbr\bbr.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\bdd\bbr\bbrCex.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\bdd\bbr\bbrImage.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\bdd\bbr\bbrNtbdd.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\bdd\bbr\bbrReach.c
+# End Source File
+# End Group
+# Begin Group "llb"
+
+# PROP Default_Filter ""
+# Begin Source File
+
+SOURCE=.\src\bdd\llb\llb.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\bdd\llb\llb1Cluster.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\bdd\llb\llb1Constr.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\bdd\llb\llb1Core.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\bdd\llb\llb1Group.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\bdd\llb\llb1Hint.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\bdd\llb\llb1Man.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\bdd\llb\llb1Matrix.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\bdd\llb\llb1Pivot.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\bdd\llb\llb1Reach.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\bdd\llb\llb1Sched.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\bdd\llb\llb2Bad.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\bdd\llb\llb2Core.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\bdd\llb\llb2Driver.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\bdd\llb\llb2Dump.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\bdd\llb\llb2Flow.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\bdd\llb\llb2Image.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\bdd\llb\llb3Image.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\bdd\llb\llb3Nonlin.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\bdd\llb\llb4Cex.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\bdd\llb\llb4Cluster.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\bdd\llb\llb4Image.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\bdd\llb\llb4Map.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\bdd\llb\llb4Nonlin.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\bdd\llb\llb4Sweep.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\bdd\llb\llbInt.h
+# End Source File
+# End Group
+# Begin Group "extrab"
+
+# PROP Default_Filter ""
+# Begin Source File
+
+SOURCE=.\src\bdd\extrab\extraBdd.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\bdd\extrab\extraBddAuto.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\bdd\extrab\extraBddCas.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\bdd\extrab\extraBddImage.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\bdd\extrab\extraBddKmap.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\bdd\extrab\extraBddMisc.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\bdd\extrab\extraBddSymm.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\bdd\extrab\extraBddTime.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\bdd\extrab\extraBddUnate.c
 # End Source File
 # End Group
 # End Group
@@ -2899,42 +3047,6 @@ SOURCE=.\src\misc\extra\extra.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\misc\extra\extraBdd.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\misc\extra\extraBddAuto.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\misc\extra\extraBddCas.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\misc\extra\extraBddImage.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\misc\extra\extraBddKmap.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\misc\extra\extraBddMisc.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\misc\extra\extraBddSymm.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\misc\extra\extraBddTime.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\misc\extra\extraBddUnate.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\src\misc\extra\extraUtilBitMatrix.c
 # End Source File
 # Begin Source File
@@ -3484,6 +3596,22 @@ SOURCE=.\src\misc\tim\timTime.c
 # Begin Source File
 
 SOURCE=.\src\misc\tim\timTrav.c
+# End Source File
+# End Group
+# Begin Group "parse"
+
+# PROP Default_Filter ""
+# Begin Source File
+
+SOURCE=.\src\misc\parse\parseEqn.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\parse\parseInt.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\parse\parseStack.c
 # End Source File
 # End Group
 # End Group
@@ -4438,30 +4566,6 @@ SOURCE=.\src\bool\rpo\rpo.h
 # Begin Group "prove"
 
 # PROP Default_Filter ""
-# Begin Group "bbr"
-
-# PROP Default_Filter ""
-# Begin Source File
-
-SOURCE=.\src\proof\bbr\bbr.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\proof\bbr\bbrCex.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\proof\bbr\bbrImage.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\proof\bbr\bbrNtbdd.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\proof\bbr\bbrReach.c
-# End Source File
-# End Group
 # Begin Group "cec"
 
 # PROP Default_Filter ""
@@ -4808,118 +4912,6 @@ SOURCE=.\src\proof\live\ltl_parser.c
 # Begin Source File
 
 SOURCE=.\src\proof\live\monotone.c
-# End Source File
-# End Group
-# Begin Group "llb"
-
-# PROP Default_Filter ""
-# Begin Source File
-
-SOURCE=.\src\proof\llb\llb.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\proof\llb\llb.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\proof\llb\llb1Cluster.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\proof\llb\llb1Constr.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\proof\llb\llb1Core.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\proof\llb\llb1Group.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\proof\llb\llb1Hint.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\proof\llb\llb1Man.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\proof\llb\llb1Matrix.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\proof\llb\llb1Pivot.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\proof\llb\llb1Reach.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\proof\llb\llb1Sched.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\proof\llb\llb2Bad.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\proof\llb\llb2Core.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\proof\llb\llb2Driver.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\proof\llb\llb2Dump.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\proof\llb\llb2Flow.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\proof\llb\llb2Image.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\proof\llb\llb3Image.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\proof\llb\llb3Nonlin.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\proof\llb\llb4Cex.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\proof\llb\llb4Cluster.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\proof\llb\llb4Image.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\proof\llb\llb4Map.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\proof\llb\llb4Nonlin.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\proof\llb\llb4Sweep.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\proof\llb\llbInt.h
 # End Source File
 # End Group
 # Begin Group "pdr"

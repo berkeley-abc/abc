@@ -29,7 +29,7 @@
 #include "proof/dch/dch.h"
 #include "proof/ssw/ssw.h"
 #include "opt/cgt/cgt.h"
-#include "proof/bbr/bbr.h"
+#include "bdd/bbr/bbr.h"
 #include "aig/gia/gia.h"
 #include "proof/cec/cec.h"
 #include "opt/csw/csw.h"

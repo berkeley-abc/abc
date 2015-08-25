@@ -24,7 +24,7 @@
 
 #include "base/main/main.h"
 #include "base/cmd/cmd.h"
-#include "misc/extra/extraBdd.h"
+#include "bdd/extrab/extraBdd.h"
 #include "cas.h"
 
 ABC_NAMESPACE_IMPL_START

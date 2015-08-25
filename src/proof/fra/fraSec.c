@@ -23,7 +23,7 @@
 #include "proof/int/int.h"
 #include "proof/ssw/ssw.h"
 #include "aig/saig/saig.h"
-#include "proof/bbr/bbr.h"
+#include "bdd/bbr/bbr.h"
 #include "proof/pdr/pdr.h"
 
 ABC_NAMESPACE_IMPL_START

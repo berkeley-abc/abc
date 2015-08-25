@@ -20,7 +20,7 @@
 #define ABC__bdd__dsd__dsdInt_h
 
 
-#include "misc/extra/extraBdd.h"
+#include "bdd/extrab/extraBdd.h"
 #include "dsd.h"
 
 ABC_NAMESPACE_HEADER_START

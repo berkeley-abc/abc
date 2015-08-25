@@ -30,7 +30,7 @@
 #include "base/abc/abc.h"
 #include "opt/sim/sim.h"
 #include "sat/bsat/satSolver.h"
-//#include "misc/extra/extraBdd.h"
+//#include "bdd/extrab/extraBdd.h"
 
 ABC_NAMESPACE_IMPL_START
 

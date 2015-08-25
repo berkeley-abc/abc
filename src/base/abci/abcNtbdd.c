@@ -22,7 +22,7 @@
 #include "aig/saig/saig.h"
 
 #ifdef ABC_USE_CUDD
-#include "misc/extra/extraBdd.h"
+#include "bdd/extrab/extraBdd.h"
 #endif
 
 ABC_NAMESPACE_IMPL_START
@@ -607,8 +607,6 @@ ABC_PRT( "Time", Abc_Clock() - clk );
 double Abc_NtkSpacePercentage( Abc_Obj_t * pNode ) { return 0.0; }
 Abc_Ntk_t * Abc_NtkBddToMuxes( Abc_Ntk_t * pNtk ) { return NULL; }
 
-int Aig_ManVerifyUsingBdds( Aig_Man_t * pInit, Saig_ParBbr_t * pPars ) { return 0; }
-void Bbr_ManSetDefaultParams( Saig_ParBbr_t * p ) {}
 
 #endif
 

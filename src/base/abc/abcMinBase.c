@@ -21,7 +21,7 @@
 #include "abc.h"
 
 #ifdef ABC_USE_CUDD
-#include "misc/extra/extraBdd.h"
+#include "bdd/extrab/extraBdd.h"
 #endif
 
 ABC_NAMESPACE_IMPL_START

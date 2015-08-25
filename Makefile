@@ -15,22 +15,21 @@ MODULES := \
 	$(wildcard src/ext*) \
 	src/base/abc src/base/abci src/base/cmd src/base/io src/base/main \
 	src/base/ver src/base/wlc src/base/bac src/base/cba src/base/pla src/base/test \
-	src/bdd/cudd src/bdd/dsd src/bdd/epd src/bdd/mtr src/bdd/parse \
-	src/bdd/reo src/bdd/cas \
+	src/bdd/cudd src/bdd/extrab src/bdd/dsd src/bdd/epd src/bdd/mtr \
+	src/bdd/reo src/bdd/cas src/bdd/bbr src/bdd/llb \
 	src/map/mapper src/map/mio src/map/super src/map/if \
 	src/map/amap src/map/cov src/map/scl src/map/mpm \
 	src/misc/extra src/misc/mvc src/misc/st src/misc/util src/misc/nm \
 	src/misc/vec src/misc/hash src/misc/tim src/misc/bzlib src/misc/zlib \
-	src/misc/mem src/misc/bar src/misc/bbl \
+	src/misc/mem src/misc/bar src/misc/bbl src/misc/parse \
 	src/opt/cut src/opt/fxu src/opt/rwr src/opt/mfs src/opt/sim \
 	src/opt/ret src/opt/res src/opt/lpk src/opt/nwk src/opt/rwt \
 	src/opt/cgt src/opt/csw src/opt/dar src/opt/dau src/opt/sfm \
 	src/sat/bsat src/sat/csat src/sat/msat src/sat/psat src/sat/cnf src/sat/bmc \
 	src/bool/bdc src/bool/deco src/bool/dec src/bool/kit src/bool/lucky \
 	src/bool/rsb src/bool/rpo \
-	src/proof/pdr src/proof/abs src/proof/bbr src/proof/llb src/proof/live \
+	src/proof/pdr src/proof/abs src/proof/live src/proof/ssc src/proof/int \
 	src/proof/cec src/proof/dch src/proof/fraig src/proof/fra src/proof/ssw \
-	src/proof/ssc src/proof/int \
 	src/aig/aig src/aig/saig src/aig/gia src/aig/ioa src/aig/ivy src/aig/hop \
 	src/aig/miniaig \
 	src/python 

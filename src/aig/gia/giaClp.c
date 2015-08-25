@@ -21,7 +21,7 @@
 #include "gia.h"
 
 #ifdef ABC_USE_CUDD
-#include "misc/extra/extraBdd.h"
+#include "bdd/extrab/extraBdd.h"
 #include "bdd/dsd/dsd.h"
 #endif
 
