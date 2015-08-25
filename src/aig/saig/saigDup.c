@@ -586,7 +586,7 @@ Aig_Man_t * Saig_ManDupCones( Aig_Man_t * pAig, int * pPos, int nPos )
 
 }
 
-#ifdef ABC_USE_CUDD
+#ifndef ABC_USE_CUDD
 int Aig_ManVerifyUsingBdds( Aig_Man_t * pInit, Saig_ParBbr_t * pPars ) { return 0; }
 void Bbr_ManSetDefaultParams( Saig_ParBbr_t * p ) {}
 #endif

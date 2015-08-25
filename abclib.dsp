@@ -41,7 +41,7 @@ RSC=rc.exe
 # PROP Intermediate_Dir "ReleaseLib"
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_MBCS" /D "_LIB" /YX /FD /c
-# ADD CPP /nologo /MD /W3 /GX /O2 /I "src" /D "WIN32" /D "WINDOWS" /D "NDEBUG" /D "_CONSOLE" /D "_MBCS" /D ABC_DLL=ABC_DLLEXPORT /D "_CRT_SECURE_NO_DEPRECATE" /D "ABC_USE_PTHREADS" /FR /YX /FD /c
+# ADD CPP /nologo /MD /W3 /GX /O2 /I "src" /D "WIN32" /D "WINDOWS" /D "NDEBUG" /D "_CONSOLE" /D "_MBCS" /D ABC_DLL=ABC_DLLEXPORT /D "_CRT_SECURE_NO_DEPRECATE" /D "ABC_USE_PTHREADS" /D "ABC_USE_CUDD" /FR /YX /FD /c
 # ADD BASE RSC /l 0x409 /d "NDEBUG"
 # ADD RSC /l 0x409 /d "NDEBUG"
 BSC32=bscmake.exe
@@ -64,7 +64,7 @@ LIB32=link.exe -lib
 # PROP Intermediate_Dir "DebugLib"
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /Gm /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_MBCS" /D "_LIB" /YX /FD /GZ /c
-# ADD CPP /nologo /MDd /W3 /Gm /GX /ZI /Od /I "src" /D "WIN32" /D "WINDOWS" /D "_DEBUG" /D "_CONSOLE" /D "_MBCS" /D ABC_DLL=ABC_DLLEXPORT /D "_CRT_SECURE_NO_DEPRECATE" /D "ABC_USE_PTHREADS" /FR /YX /FD /GZ /c
+# ADD CPP /nologo /MDd /W3 /Gm /GX /ZI /Od /I "src" /D "WIN32" /D "WINDOWS" /D "_DEBUG" /D "_CONSOLE" /D "_MBCS" /D ABC_DLL=ABC_DLLEXPORT /D "_CRT_SECURE_NO_DEPRECATE" /D "ABC_USE_PTHREADS" /D "ABC_USE_CUDD" /FR /YX /FD /GZ /c
 # ADD BASE RSC /l 0x409 /d "_DEBUG"
 # ADD RSC /l 0x409 /d "_DEBUG"
 BSC32=bscmake.exe
@@ -954,6 +954,306 @@ SOURCE=.\src\base\cba\cbaWriteVer.c
 # Begin Group "bdd"
 
 # PROP Default_Filter ""
+# Begin Group "extrab"
+
+# PROP Default_Filter ""
+# Begin Source File
+
+SOURCE=.\src\bdd\extrab\extraBdd.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\bdd\extrab\extraBddAuto.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\bdd\extrab\extraBddCas.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\bdd\extrab\extraBddImage.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\bdd\extrab\extraBddKmap.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\bdd\extrab\extraBddMisc.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\bdd\extrab\extraBddSymm.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\bdd\extrab\extraBddTime.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\bdd\extrab\extraBddUnate.c
+# End Source File
+# End Group
+# Begin Group "llb"
+
+# PROP Default_Filter ""
+# Begin Source File
+
+SOURCE=.\src\bdd\llb\llb.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\bdd\llb\llb1Cluster.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\bdd\llb\llb1Constr.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\bdd\llb\llb1Core.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\bdd\llb\llb1Group.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\bdd\llb\llb1Hint.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\bdd\llb\llb1Man.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\bdd\llb\llb1Matrix.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\bdd\llb\llb1Pivot.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\bdd\llb\llb1Reach.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\bdd\llb\llb1Sched.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\bdd\llb\llb2Bad.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\bdd\llb\llb2Core.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\bdd\llb\llb2Driver.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\bdd\llb\llb2Dump.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\bdd\llb\llb2Flow.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\bdd\llb\llb2Image.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\bdd\llb\llb3Image.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\bdd\llb\llb3Nonlin.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\bdd\llb\llb4Cex.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\bdd\llb\llb4Cluster.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\bdd\llb\llb4Image.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\bdd\llb\llb4Map.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\bdd\llb\llb4Nonlin.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\bdd\llb\llb4Sweep.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\bdd\llb\llbInt.h
+# End Source File
+# End Group
+# Begin Group "bbr"
+
+# PROP Default_Filter ""
+# Begin Source File
+
+SOURCE=.\src\bdd\bbr\bbr.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\bdd\bbr\bbrCex.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\bdd\bbr\bbrImage.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\bdd\bbr\bbrNtbdd.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\bdd\bbr\bbrReach.c
+# End Source File
+# End Group
+# Begin Group "cas"
+
+# PROP Default_Filter ""
+# Begin Source File
+
+SOURCE=.\src\bdd\cas\cas.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\bdd\cas\casCore.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\bdd\cas\casDec.c
+# End Source File
+# End Group
+# Begin Group "reo"
+
+# PROP Default_Filter ""
+# Begin Source File
+
+SOURCE=.\src\bdd\reo\reo.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\bdd\reo\reoApi.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\bdd\reo\reoCore.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\bdd\reo\reoProfile.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\bdd\reo\reoShuffle.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\bdd\reo\reoSift.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\bdd\reo\reoSwap.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\bdd\reo\reoTest.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\bdd\reo\reoTransfer.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\bdd\reo\reoUnits.c
+# End Source File
+# End Group
+# Begin Group "dsd"
+
+# PROP Default_Filter ""
+# Begin Source File
+
+SOURCE=.\src\bdd\dsd\dsd.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\bdd\dsd\dsdApi.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\bdd\dsd\dsdCheck.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\bdd\dsd\dsdInt.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\bdd\dsd\dsdLocal.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\bdd\dsd\dsdMan.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\bdd\dsd\dsdProc.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\bdd\dsd\dsdTree.c
+# End Source File
+# End Group
+# Begin Group "mtr"
+
+# PROP Default_Filter ""
+# Begin Source File
+
+SOURCE=.\src\bdd\mtr\mtr.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\bdd\mtr\mtrBasic.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\bdd\mtr\mtrGroup.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\bdd\mtr\mtrInt.h
+# End Source File
+# End Group
+# Begin Group "epd"
+
+# PROP Default_Filter ""
+# Begin Source File
+
+SOURCE=.\src\bdd\epd\epd.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\bdd\epd\epd.h
+# End Source File
+# End Group
 # Begin Group "cudd"
 
 # PROP Default_Filter ""
@@ -1208,306 +1508,6 @@ SOURCE=.\src\bdd\cudd\cuddZddSymm.c
 # Begin Source File
 
 SOURCE=.\src\bdd\cudd\cuddZddUtil.c
-# End Source File
-# End Group
-# Begin Group "epd"
-
-# PROP Default_Filter ""
-# Begin Source File
-
-SOURCE=.\src\bdd\epd\epd.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\bdd\epd\epd.h
-# End Source File
-# End Group
-# Begin Group "mtr"
-
-# PROP Default_Filter ""
-# Begin Source File
-
-SOURCE=.\src\bdd\mtr\mtr.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\bdd\mtr\mtrBasic.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\bdd\mtr\mtrGroup.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\bdd\mtr\mtrInt.h
-# End Source File
-# End Group
-# Begin Group "dsd"
-
-# PROP Default_Filter ""
-# Begin Source File
-
-SOURCE=.\src\bdd\dsd\dsd.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\bdd\dsd\dsdApi.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\bdd\dsd\dsdCheck.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\bdd\dsd\dsdInt.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\bdd\dsd\dsdLocal.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\bdd\dsd\dsdMan.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\bdd\dsd\dsdProc.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\bdd\dsd\dsdTree.c
-# End Source File
-# End Group
-# Begin Group "reo"
-
-# PROP Default_Filter ""
-# Begin Source File
-
-SOURCE=.\src\bdd\reo\reo.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\bdd\reo\reoApi.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\bdd\reo\reoCore.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\bdd\reo\reoProfile.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\bdd\reo\reoShuffle.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\bdd\reo\reoSift.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\bdd\reo\reoSwap.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\bdd\reo\reoTest.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\bdd\reo\reoTransfer.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\bdd\reo\reoUnits.c
-# End Source File
-# End Group
-# Begin Group "cas"
-
-# PROP Default_Filter ""
-# Begin Source File
-
-SOURCE=.\src\bdd\cas\cas.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\bdd\cas\casCore.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\bdd\cas\casDec.c
-# End Source File
-# End Group
-# Begin Group "bbr"
-
-# PROP Default_Filter ""
-# Begin Source File
-
-SOURCE=.\src\bdd\bbr\bbr.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\bdd\bbr\bbrCex.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\bdd\bbr\bbrImage.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\bdd\bbr\bbrNtbdd.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\bdd\bbr\bbrReach.c
-# End Source File
-# End Group
-# Begin Group "llb"
-
-# PROP Default_Filter ""
-# Begin Source File
-
-SOURCE=.\src\bdd\llb\llb.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\bdd\llb\llb1Cluster.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\bdd\llb\llb1Constr.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\bdd\llb\llb1Core.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\bdd\llb\llb1Group.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\bdd\llb\llb1Hint.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\bdd\llb\llb1Man.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\bdd\llb\llb1Matrix.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\bdd\llb\llb1Pivot.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\bdd\llb\llb1Reach.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\bdd\llb\llb1Sched.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\bdd\llb\llb2Bad.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\bdd\llb\llb2Core.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\bdd\llb\llb2Driver.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\bdd\llb\llb2Dump.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\bdd\llb\llb2Flow.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\bdd\llb\llb2Image.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\bdd\llb\llb3Image.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\bdd\llb\llb3Nonlin.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\bdd\llb\llb4Cex.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\bdd\llb\llb4Cluster.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\bdd\llb\llb4Image.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\bdd\llb\llb4Map.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\bdd\llb\llb4Nonlin.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\bdd\llb\llb4Sweep.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\bdd\llb\llbInt.h
-# End Source File
-# End Group
-# Begin Group "extrab"
-
-# PROP Default_Filter ""
-# Begin Source File
-
-SOURCE=.\src\bdd\extrab\extraBdd.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\bdd\extrab\extraBddAuto.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\bdd\extrab\extraBddCas.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\bdd\extrab\extraBddImage.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\bdd\extrab\extraBddKmap.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\bdd\extrab\extraBddMisc.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\bdd\extrab\extraBddSymm.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\bdd\extrab\extraBddTime.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\bdd\extrab\extraBddUnate.c
 # End Source File
 # End Group
 # End Group

@@ -43,7 +43,7 @@ arch_flags : arch_flags.c
 ARCHFLAGS ?= $(shell $(CC) arch_flags.c -o arch_flags && ./arch_flags)
 ARCHFLAGS := $(ARCHFLAGS)
 
-OPTFLAGS  ?= -g -O #-DABC_NAMESPACE=xxx
+OPTFLAGS  ?= -g -O -DABC_USE_CUDD #-DABC_NAMESPACE=xxx
 
 CFLAGS    += -Wall -Wno-unused-function -Wno-write-strings -Wno-sign-compare $(OPTFLAGS) $(ARCHFLAGS) -Isrc
 ifneq ($(findstring arm,$(shell uname -m)),)
