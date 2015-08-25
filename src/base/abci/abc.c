@@ -5919,7 +5919,7 @@ int Abc_CommandRefactor( Abc_Frame_t * pAbc, int argc, char ** argv )
     fUseDcs      =  0;
     fVerbose     =  0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "NClzdvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Nlzvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -5979,6 +5979,11 @@ int Abc_CommandRefactor( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "AIG resynthesis cannot be applied to AIGs with choice nodes.\n" );
         return 1;
     }
+    if ( nNodeSizeMax > 15 )
+    {
+        Abc_Print( -1, "The cone size cannot exceed 15.\n" );
+        return 1;
+    }
 
     if ( fUseDcs && nNodeSizeMax >= nConeSizeMax )
     {
@@ -5995,13 +6000,13 @@ int Abc_CommandRefactor( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: refactor [-NC <num>] [-lzdvh]\n" );
+    Abc_Print( -2, "usage: refactor [-N <num>] [-lzvh]\n" );
     Abc_Print( -2, "\t           performs technology-independent refactoring of the AIG\n" );
     Abc_Print( -2, "\t-N <num> : the max support of the collapsed node [default = %d]\n", nNodeSizeMax );
-    Abc_Print( -2, "\t-C <num> : the max support of the containing cone [default = %d]\n", nConeSizeMax );
+//    Abc_Print( -2, "\t-C <num> : the max support of the containing cone [default = %d]\n", nConeSizeMax );
     Abc_Print( -2, "\t-l       : toggle preserving the number of levels [default = %s]\n", fUpdateLevel? "yes": "no" );
     Abc_Print( -2, "\t-z       : toggle using zero-cost replacements [default = %s]\n", fUseZeros? "yes": "no" );
-    Abc_Print( -2, "\t-d       : toggle using don't-cares [default = %s]\n", fUseDcs? "yes": "no" );
+//    Abc_Print( -2, "\t-d       : toggle using don't-cares [default = %s]\n", fUseDcs? "yes": "no" );
     Abc_Print( -2, "\t-v       : toggle verbose printout [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h       : print the command usage\n");
     return 1;
