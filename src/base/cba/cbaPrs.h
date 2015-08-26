@@ -217,6 +217,24 @@ static inline void Prs_ManFinalizeNtk( Prs_Man_t * p )
     p->pNtk = NULL;
 }
 
+static inline int Prs_NtkNewStrId( Prs_Ntk_t * pNtk, const char * format, ...  )
+{
+    Abc_Nam_t * p = pNtk->pStrs;
+    Vec_Str_t * vBuf = Abc_NamBuffer( p );
+    int nAdded, nSize = 1000; 
+    va_list args;   va_start( args, format );
+    Vec_StrGrow( vBuf, Vec_StrSize(vBuf) + nSize );
+    nAdded = vsnprintf( Vec_StrLimit(vBuf), nSize, format, args );
+    if ( nAdded > nSize )
+    {
+        Vec_StrGrow( vBuf, Vec_StrSize(vBuf) + nAdded + nSize );
+        nSize = vsnprintf( Vec_StrLimit(vBuf), nAdded, format, args );
+        assert( nSize == nAdded );
+    }
+    va_end( args );
+    return Abc_NamStrFindOrAddLim( p, Vec_StrLimit(vBuf), Vec_StrLimit(vBuf) + nAdded, NULL );
+}
+
 // parsing slice/concatentation/box
 static inline int Prs_NtkAddSlice( Prs_Ntk_t * p, int Name, int Range )
 {

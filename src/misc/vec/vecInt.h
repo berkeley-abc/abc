@@ -1013,7 +1013,7 @@ static inline void Vec_IntDrop( Vec_Int_t * p, int i )
 static inline void Vec_IntInsert( Vec_Int_t * p, int iHere, int Entry )
 {
     int i;
-    assert( iHere >= 0 && iHere < p->nSize );
+    assert( iHere >= 0 && iHere <= p->nSize );
     Vec_IntPush( p, 0 );
     for ( i = p->nSize - 1; i > iHere; i-- )
         p->pArray[i] = p->pArray[i-1];

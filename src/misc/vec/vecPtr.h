@@ -64,6 +64,8 @@ struct Vec_Ptr_t_
     for ( i = Vec_PtrSize(vVec) - 1; (i >= 0) && (((pEntry) = (Type)Vec_PtrEntry(vVec, i)), 1); i-- )
 #define Vec_PtrForEachEntryTwo( Type1, vVec1, Type2, vVec2, pEntry1, pEntry2, i )                  \
     for ( i = 0; (i < Vec_PtrSize(vVec1)) && (((pEntry1) = (Type1)Vec_PtrEntry(vVec1, i)), 1) && (((pEntry2) = (Type2)Vec_PtrEntry(vVec2, i)), 1); i++ )
+#define Vec_PtrForEachEntryDouble( Type1, Type2, vVec, Entry1, Entry2, i )                                \
+    for ( i = 0; (i+1 < Vec_IntSize(vVec)) && (((Entry1) = (Type1)Vec_PtrEntry(vVec, i)), 1) && (((Entry2) = (Type2)Vec_PtrEntry(vVec, i+1)), 1); i += 2 )
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -464,6 +466,14 @@ static inline void Vec_PtrFill( Vec_Ptr_t * p, int nSize, void * Entry )
         p->pArray[i] = Entry;
     p->nSize = nSize;
 }
+static inline void Vec_PtrFillTwo( Vec_Ptr_t * p, int nSize, void * EntryEven, void * EntryOdd )
+{
+    int i;
+    Vec_PtrGrow( p, nSize );
+    for ( i = 0; i < nSize; i++ )
+        p->pArray[i] = (i & 1) ? EntryOdd : EntryEven;
+    p->nSize = nSize;
+}
 
 /**Function*************************************************************
 
@@ -623,6 +633,11 @@ static inline void Vec_PtrPush( Vec_Ptr_t * p, void * Entry )
             Vec_PtrGrow( p, 2 * p->nCap );
     }
     p->pArray[p->nSize++] = Entry;
+}
+static inline void Vec_PtrPushTwo( Vec_Ptr_t * p, void * Entry1, void * Entry2 )
+{
+    Vec_PtrPush( p, Entry1 );
+    Vec_PtrPush( p, Entry2 );
 }
 
 /**Function*************************************************************
