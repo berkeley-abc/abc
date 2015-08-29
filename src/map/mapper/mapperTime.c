@@ -285,7 +285,7 @@ float Map_MatchComputeReqTimes( Map_Cut_t * pCut, int fPhase, Map_Time_t * ptArr
 void Map_TimePropagateRequired( Map_Man_t * p )
 {
     Map_Node_t * pNode;
-    Map_Time_t tReqOutTest, * ptReqOutTest = &tReqOutTest;
+    //Map_Time_t tReqOutTest, * ptReqOutTest = &tReqOutTest;
     Map_Time_t * ptReqIn, * ptReqOut;
     int fPhase, k;
 

@@ -288,6 +288,10 @@ void Wlc_BlastFullAdderCtrl( Gia_Man_t * pNew, int a, int ac, int b, int c, int 
     int And  = Abc_LitNotCond( Gia_ManHashAnd(pNew, a, ac), fNeg );
     Wlc_BlastFullAdder( pNew, And, b, c, pc, ps );
 }
+void Wlc_BlastFullAdderSubtr( Gia_Man_t * pNew, int a, int b, int c, int * pc, int * ps, int fSub )
+{
+    Wlc_BlastFullAdder( pNew, Gia_ManHashXor(pNew, a, fSub), b, c, pc, ps );
+}
 void Wlc_BlastMultiplier( Gia_Man_t * pNew, int * pArgA, int * pArgB, int nArgA, int nArgB, Vec_Int_t * vTemp, Vec_Int_t * vRes, int fSigned )
 {
     int * pRes, * pArgC, * pArgS, a, b, Carry = fSigned;
@@ -357,14 +361,45 @@ void Wlc_BlastDivider( Gia_Man_t * pNew, int * pNum, int nNum, int * pDiv, int n
         Wlc_VecCopy( vRes, pQuo, nNum );
     ABC_FREE( pQuo );
 }
+// non-restoring divider
+void Wlc_BlastDivider2( Gia_Man_t * pNew, int * pNum, int nNum, int * pDiv, int nDiv, int fQuo, Vec_Int_t * vRes )
+{
+    int i, * pRes  = Vec_IntArray(vRes);
+    int k, * pQuo  = ABC_ALLOC( int, nNum );
+    assert( nNum > 0 && nDiv > 0 );
+    assert( Vec_IntSize(vRes) < nNum + nDiv );
+    for ( i = 0; i < nNum + nDiv; i++ )
+        pRes[i] = i < nNum ? pNum[i] : 0;
+    for ( i = nNum-1; i >= 0; i-- )
+    {
+        int Cntrl = i == nNum-1 ? 1 : pQuo[i+1];
+        int Carry = Cntrl;
+        for ( k = 0; k <= nDiv; k++ )
+            Wlc_BlastFullAdderSubtr( pNew, k < nDiv ? pDiv[k] : 0, pRes[i+k], Carry, &Carry, &pRes[i+k], Cntrl );
+        pQuo[i] = Abc_LitNot(pRes[i+nDiv]);
+    }
+    if ( fQuo )
+        Wlc_VecCopy( vRes, pQuo, nNum );
+    else
+    {
+        int Carry = 0, Temp;
+        for ( k = 0; k < nDiv; k++ )
+        {
+            Wlc_BlastFullAdder( pNew, pDiv[k], pRes[k], Carry, &Carry, &Temp );
+            pRes[k] = Gia_ManHashMux( pNew, pQuo[0], pRes[k], Temp );
+        }
+        Vec_IntShrink( vRes, nDiv );
+    }
+    ABC_FREE( pQuo );
+}
 void Wlc_BlastDividerSigned( Gia_Man_t * pNew, int * pNum, int nNum, int * pDiv, int nDiv, int fQuo, Vec_Int_t * vRes )
 {
     Vec_Int_t * vNum   = Vec_IntAlloc( nNum );
     Vec_Int_t * vDiv   = Vec_IntAlloc( nDiv );
-    Vec_Int_t * vRes00 = Vec_IntAlloc( nNum );
-    Vec_Int_t * vRes01 = Vec_IntAlloc( nNum );
-    Vec_Int_t * vRes10 = Vec_IntAlloc( nNum );
-    Vec_Int_t * vRes11 = Vec_IntAlloc( nNum );
+    Vec_Int_t * vRes00 = Vec_IntAlloc( nNum + nDiv );
+    Vec_Int_t * vRes01 = Vec_IntAlloc( nNum + nDiv );
+    Vec_Int_t * vRes10 = Vec_IntAlloc( nNum + nDiv );
+    Vec_Int_t * vRes11 = Vec_IntAlloc( nNum + nDiv );
     Vec_Int_t * vRes2  = Vec_IntAlloc( nNum );
     int k, iDiffSign   = Gia_ManHashXor( pNew, pNum[nNum-1], pDiv[nDiv-1] );
     Wlc_BlastMinus( pNew, pNum, nNum, vNum );
