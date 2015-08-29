@@ -132,7 +132,7 @@ static inline int         Nf_ObjMapRefDec( Nf_Man_t * p, int i, int c )         
 static inline float       Nf_ObjFlowRefs( Nf_Man_t * p, int i, int c )              { return Vec_FltEntry(&p->vFlowRefs, Abc_Var2Lit(i,c));            }
 static inline float       Nf_ObjRequired( Nf_Man_t * p, int i, int c )              { return Vec_FltEntry(&p->vRequired, Abc_Var2Lit(i,c));            }
 static inline void        Nf_ObjSetRequired(Nf_Man_t * p,int i, int c, float f)     { Vec_FltWriteEntry(&p->vRequired, Abc_Var2Lit(i,c), f);           }
-static inline void        Nf_ObjUpdateRequired(Nf_Man_t * p,int i, int c, float f)  { if (Nf_ObjRequired(p, i, c) > f + p->pPars->Epsilon) Nf_ObjSetRequired(p, i, c, f);  }
+static inline void        Nf_ObjUpdateRequired(Nf_Man_t * p,int i, int c, float f)  { if (Nf_ObjRequired(p, i, c) > f) Nf_ObjSetRequired(p, i, c, f);  }
 
 static inline Nf_Mat_t *  Nf_ObjMatchD( Nf_Man_t * p, int i, int c )                { return &Nf_ManObj(p, i)->M[c][0];                                }
 static inline Nf_Mat_t *  Nf_ObjMatchA( Nf_Man_t * p, int i, int c )                { return &Nf_ManObj(p, i)->M[c][1];                                }
@@ -1310,7 +1310,7 @@ static inline float Nf_CutRequired( Nf_Man_t * p, Nf_Mat_t * pM, int * pCutSet )
         if ( Req < NF_INFINITY )
             Required = Abc_MaxFloat( Required, Req + pCell->Delays[i] );
     }
-    return Abc_MaxFloat( Required + 2*p->InvDelay, Arrival ); 
+    return Abc_MaxFloat( Required + p->pPars->nReqTimeFlex*p->InvDelay, Arrival ); 
 }
 static inline void Nf_ObjComputeRequired( Nf_Man_t * p, int iObj )
 {
@@ -1851,6 +1851,7 @@ void Nf_ManSetDefaultPars( Jf_Par_t * pPars )
     pPars->nRelaxRatio  =  0;
     pPars->nCoarseLimit =  3;
     pPars->nAreaTuner   =  1;
+    pPars->nReqTimeFlex =  0;
     pPars->nVerbLimit   =  5;
     pPars->DelayTarget  = -1;
     pPars->fAreaOnly    =  0;

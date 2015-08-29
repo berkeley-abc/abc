@@ -278,6 +278,7 @@ struct Jf_Par_t_
     int            nRelaxRatio;
     int            nCoarseLimit;
     int            nAreaTuner;
+    int            nReqTimeFlex;
     int            nVerbLimit;
     int            DelayTarget;
     int            fAreaOnly;

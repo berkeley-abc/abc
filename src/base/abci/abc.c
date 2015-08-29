@@ -33549,7 +33549,7 @@ int Abc_CommandAbc9Nf( Abc_Frame_t * pAbc, int argc, char ** argv )
     Gia_Man_t * pNew; int c;
     Nf_ManSetDefaultPars( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "KCFARLEDWapkvwh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "KCFARLEDQWapkvwh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -33606,7 +33606,7 @@ int Abc_CommandAbc9Nf( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'R':
             if ( globalUtilOptind >= argc )
             {
-                Abc_Print( 1, "Command line switch \"-R\" should be followed by a floating point number.\n" );
+                Abc_Print( 1, "Command line switch \"-R\" should be followed by an integer number.\n" );
                 return 0;
             }
             pPars->nRelaxRatio = atoi(argv[globalUtilOptind]);
@@ -33617,7 +33617,7 @@ int Abc_CommandAbc9Nf( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'L':
             if ( globalUtilOptind >= argc )
             {
-                Abc_Print( 1, "Command line switch \"-R\" should be followed by a floating point number.\n" );
+                Abc_Print( 1, "Command line switch \"-R\" should be followed by an integer number.\n" );
                 return 0;
             }
             pPars->nCoarseLimit = atoi(argv[globalUtilOptind]);
@@ -33628,7 +33628,7 @@ int Abc_CommandAbc9Nf( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'E':
             if ( globalUtilOptind >= argc )
             {
-                Abc_Print( 1, "Command line switch \"-E\" should be followed by a floating point number.\n" );
+                Abc_Print( 1, "Command line switch \"-E\" should be followed by an integer number.\n" );
                 return 0;
             }
             pPars->nAreaTuner = atoi(argv[globalUtilOptind]);
@@ -33639,12 +33639,23 @@ int Abc_CommandAbc9Nf( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'D':
             if ( globalUtilOptind >= argc )
             {
-                Abc_Print( -1, "Command line switch \"-D\" should be followed by a floating point number.\n" );
+                Abc_Print( -1, "Command line switch \"-D\" should be followed by an integer number.\n" );
                 goto usage;
             }
             pPars->DelayTarget = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->DelayTarget <= 0.0 )
+            if ( pPars->DelayTarget <= 0 )
+                goto usage;
+            break;
+        case 'Q':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-D\" should be followed by an integer number.\n" );
+                goto usage;
+            }
+            pPars->nReqTimeFlex = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nReqTimeFlex < 0 )
                 goto usage;
             break;
         case 'W':
@@ -33705,7 +33716,7 @@ usage:
         sprintf(Buffer, "best possible" );
     else
         sprintf(Buffer, "%d", pPars->DelayTarget );
-    Abc_Print( -2, "usage: &nf [-KCFARLED num] [-akpvwh]\n" );
+    Abc_Print( -2, "usage: &nf [-KCFARLEDQ num] [-akpvwh]\n" );
     Abc_Print( -2, "\t           performs technology mapping of the network\n" );
     Abc_Print( -2, "\t-K num   : LUT size for the mapping (2 <= K <= %d) [default = %d]\n", pPars->nLutSizeMax, pPars->nLutSize );
     Abc_Print( -2, "\t-C num   : the max number of priority cuts (1 <= C <= %d) [default = %d]\n", pPars->nCutNumMax, pPars->nCutNum );
@@ -33715,6 +33726,7 @@ usage:
     Abc_Print( -2, "\t-L num   : the fanout limit for coarsening XOR/MUX (num >= 2) [default = %d]\n", pPars->nCoarseLimit );
     Abc_Print( -2, "\t-E num   : the area/edge tradeoff parameter (0 <= num <= 100) [default = %d]\n", pPars->nAreaTuner );
     Abc_Print( -2, "\t-D num   : sets the delay constraint for the mapping [default = %s]\n", Buffer );
+    Abc_Print( -2, "\t-Q num   : internal parameter impacting area of the mapping [default = %s]\n", Buffer );
     Abc_Print( -2, "\t-a       : toggles area-oriented mapping [default = %s]\n", pPars->fAreaOnly? "yes": "no" );
     Abc_Print( -2, "\t-k       : toggles coarsening the subject graph [default = %s]\n", pPars->fCoarsen? "yes": "no" );
     Abc_Print( -2, "\t-p       : toggles pin-permutation (useful when pin-delays differ) [default = %s]\n", pPars->fPinPerm? "yes": "no" );

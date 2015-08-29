@@ -1202,7 +1202,7 @@ int Abc_NtkLogicMakeSimpleCos( Abc_Ntk_t * pNtk, int fDuplicate )
         {
             pDriver = Abc_ObjFanin0(pNode);
             // duplicate if critical
-            if ( fDuplicate && Abc_ObjIsNode(pDriver) && Abc_ObjLevel(pDriver) == LevelMax )
+            if ( fDuplicate && Abc_ObjIsNode(pDriver) && (Abc_NtkHasMapping(pNtk) || Abc_ObjLevel(pDriver) == LevelMax) )
             {
                 pDriverNew = Abc_NtkDupObj( pNtk, pDriver, 0 ); 
                 Abc_ObjForEachFanin( pDriver, pFanin, k )
