@@ -874,7 +874,7 @@ Abc_Ntk_t * Abc_NtkFromCellMappedGia( Gia_Man_t * p )
 {
     int fFixDrivers = 1;
     int fDuplicate = 1;
-    int fVerbose = 1;
+    int fVerbose = 0;
     Abc_Ntk_t * pNtkNew;
     Vec_Int_t * vCopyLits;
     Abc_Obj_t * pObjNew, * pObjNewLi, * pObjNewLo;
