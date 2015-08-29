@@ -349,7 +349,7 @@ void Map_TimePropagateRequired( Map_Man_t * p )
         if ( pNode->pCutBest[1] && pNode->tRequired[1].Worst < MAP_FLOAT_LARGE )
             Map_TimePropagateRequiredPhase( p, pNode, 1 );
     }
-
+/*
     // in the end, we verify the required times
     // for this, we compute the arrival times of the outputs of each phase 
     // of the supergates using the fanins' required times as the fanins' arrival times
@@ -377,6 +377,7 @@ void Map_TimePropagateRequired( Map_Man_t * p )
 //            assert( ptReqOutTest->Fall < pNode->tRequired[1].Fall + p->fEpsilon );
         }
     }
+*/
 }
 void Map_TimeComputeRequiredGlobal( Map_Man_t * p )
 {

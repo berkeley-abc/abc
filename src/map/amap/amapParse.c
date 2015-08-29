@@ -103,7 +103,7 @@ Hop_Obj_t * Amap_ParseFormulaOper( Hop_Man_t * pMan, Vec_Ptr_t * pStackFn, int O
   SeeAlso     []
 
 ***********************************************************************/
-Hop_Obj_t * Amap_ParseFormula( FILE * pOutput, char * pFormInit, Vec_Ptr_t * vVarNames, Hop_Man_t * pMan )
+Hop_Obj_t * Amap_ParseFormula( FILE * pOutput, char * pFormInit, Vec_Ptr_t * vVarNames, Hop_Man_t * pMan, char * pGateName )
 {
     char * pFormula;
     Vec_Ptr_t * pStackFn;
@@ -278,7 +278,7 @@ Hop_Obj_t * Amap_ParseFormula( FILE * pOutput, char * pFormInit, Vec_Ptr_t * vVa
                 }
             if ( !fFound )
             { 
-                fprintf( pOutput, "Amap_ParseFormula(): The parser cannot find var \"%s\" in the input var list.\n", pTemp ); 
+                fprintf( pOutput, "Amap_ParseFormula(): The parser cannot find var \"%s\" in the input var list of gate \"%s\".\n", pTemp, pGateName ); 
                 Flag = AMAP_EQN_FLAG_ERROR; 
                 break; 
             }
@@ -428,7 +428,7 @@ int Amap_LibParseEquations( Amap_Lib_t * p, int fVerbose )
         Vec_PtrClear( vNames );
         Amap_GateForEachPin( pGate, pPin )
             Vec_PtrPush( vNames, pPin->pName );
-        pObj = Amap_ParseFormula( stdout, pGate->pForm, vNames, pMan );
+        pObj = Amap_ParseFormula( stdout, pGate->pForm, vNames, pMan, pGate->pName );
         if ( pObj == NULL )
             break;
         pTruth = Hop_ManConvertAigToTruth( pMan, pObj, pGate->nPins, vTruth, 0 );

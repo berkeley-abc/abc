@@ -36,6 +36,7 @@ ABC_NAMESPACE_IMPL_START
 
 // these symbols (and no other) can appear in the formulas
 #define AMAP_SYMB_AND    '*'
+#define AMAP_SYMB_AND2   '&'
 #define AMAP_SYMB_OR1    '+'
 #define AMAP_SYMB_OR2    '|'
 #define AMAP_SYMB_XOR    '^'
@@ -236,7 +237,7 @@ int Amap_GateCollectNames( Aig_MmFlex_t * pMem, char * pForm, char * pPinNames[]
     for ( pTemp = Buffer; *pTemp; pTemp++ )
         if ( *pTemp == AMAP_SYMB_AND || *pTemp == AMAP_SYMB_OR1 || *pTemp == AMAP_SYMB_OR2 
           || *pTemp == AMAP_SYMB_XOR || *pTemp == AMAP_SYMB_NOT || *pTemp == AMAP_SYMB_OPEN 
-          || *pTemp == AMAP_SYMB_CLOSE || *pTemp == AMAP_SYMB_AFTNOT )
+          || *pTemp == AMAP_SYMB_CLOSE || *pTemp == AMAP_SYMB_AFTNOT || *pTemp == AMAP_SYMB_AND2 )
             *pTemp = ' ';
     // save the names
     nPins = 0;

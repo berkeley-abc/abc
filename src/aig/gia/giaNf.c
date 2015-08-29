@@ -132,7 +132,7 @@ static inline int         Nf_ObjMapRefDec( Nf_Man_t * p, int i, int c )         
 static inline float       Nf_ObjFlowRefs( Nf_Man_t * p, int i, int c )              { return Vec_FltEntry(&p->vFlowRefs, Abc_Var2Lit(i,c));            }
 static inline float       Nf_ObjRequired( Nf_Man_t * p, int i, int c )              { return Vec_FltEntry(&p->vRequired, Abc_Var2Lit(i,c));            }
 static inline void        Nf_ObjSetRequired(Nf_Man_t * p,int i, int c, float f)     { Vec_FltWriteEntry(&p->vRequired, Abc_Var2Lit(i,c), f);           }
-static inline void        Nf_ObjUpdateRequired(Nf_Man_t * p,int i, int c, float f)  { if (Nf_ObjRequired(p, i, c) > f) Nf_ObjSetRequired(p, i, c, f);  }
+static inline void        Nf_ObjUpdateRequired(Nf_Man_t * p,int i, int c, float f)  { if (Nf_ObjRequired(p, i, c) > f + p->pPars->Epsilon) Nf_ObjSetRequired(p, i, c, f);  }
 
 static inline Nf_Mat_t *  Nf_ObjMatchD( Nf_Man_t * p, int i, int c )                { return &Nf_ManObj(p, i)->M[c][0];                                }
 static inline Nf_Mat_t *  Nf_ObjMatchA( Nf_Man_t * p, int i, int c )                { return &Nf_ManObj(p, i)->M[c][1];                                }
@@ -1093,11 +1093,11 @@ float Nf_MatchRef2Area( Nf_Man_t * p, int i, int c, Nf_Mat_t * pM )
   SeeAlso     []
 
 ***********************************************************************/
-void Nf_ManCutMatchPrint( Nf_Man_t * p, int iObj, int fCompl, Nf_Mat_t * pM )
+void Nf_ManCutMatchPrint( Nf_Man_t * p, int iObj, char * pStr, Nf_Mat_t * pM )
 {
     Mio_Cell_t * pCell;
     int i, * pCut;
-    printf( "%5d %d : ", iObj, fCompl );
+    printf( "%5d %s : ", iObj, pStr );
     if ( pM->CutH == 0 )
     {
         printf( "Unassigned\n" );
@@ -1105,29 +1105,29 @@ void Nf_ManCutMatchPrint( Nf_Man_t * p, int iObj, int fCompl, Nf_Mat_t * pM )
     }
     pCell = Nf_ManCell( p, pM->Gate );
     pCut = Nf_CutFromHandle( Nf_ObjCutSet(p, iObj), pM->CutH );
-    printf( "D = %8.2f  ", pM->D );
-    printf( "A = %8.2f  ", pM->A );
+    printf( "D =%6.2f  ", pM->D );
+    printf( "A =%6.2f  ", pM->A );
     printf( "C = %d ", pM->fCompl );
 //    printf( "B = %d ", pM->fBest );
     printf( "  " );
     printf( "Cut = {" );
     for ( i = 0; i < (int)pCell->nFanins; i++ )
-        printf( "%5d ", Nf_CutLeaves(pCut)[i] );
+        printf( "%4d ", Nf_CutLeaves(pCut)[i] );
     for ( ; i < 6; i++ )
-        printf( "      " );
+        printf( "     " );
     printf( "}  " );
-    printf( "%12s  ", pCell->pName );
+    printf( "%10s ", pCell->pName );
     printf( "%d  ", pCell->nFanins );
     printf( "{" );
     for ( i = 0; i < (int)pCell->nFanins; i++ )
-        printf( "%7.2f ", pCell->Delays[i] );
+        printf( "%6.2f ", pCell->Delays[i] );
     for ( ; i < 6; i++ )
-        printf( "        " );
-    printf( " }  " );
+        printf( "       " );
+    printf( " } " );
     for ( i = 0; i < (int)pCell->nFanins; i++ )
-        printf( "%2d ", Nf_CutConfLit(pM->Conf, i) );
+        printf( "%d ", Nf_CutConfLit(pM->Conf, i) );
     for ( ; i < 6; i++ )
-        printf( "   " );
+        printf( "  " );
     Dau_DsdPrintFromTruth( &pCell->uTruth, pCell->nFanins );
 }
 void Nf_ManCutMatchOne( Nf_Man_t * p, int iObj, int * pCut, int * pCutSet )
@@ -1190,13 +1190,18 @@ void Nf_ManCutMatchOne( Nf_Man_t * p, int iObj, int * pCut, int * pCutSet )
         Nf_Mat_t * pA  = &pBest->M[fCompl][1];
         float Area = pC->Area, Delay = 0;
         assert( nFans == (int)pC->nFanins );
-        //char * pInfo   = Vec_StrEntryP( p->vMemStore, Offset );
-//        for ( k = 0; k < nFans; k++ )
-//            pInfo[k] = (char)Abc_Var2Lit( (Mat.Perm >> (3*k)) & 7, (Mat.Phase >> k) & 1 );
+/*
+        if ( p->Iter == 0 && iObj == 674 )
+        {
+            printf( "Gate = %s ", pC->pName );
+            printf( "In = %d ", pC->nFanins );
+            printf( "C = %d ", fCompl );
+            printf( "Off = %10d ", Offset );
+            printf( "\n" );
+        }
+*/
         for ( k = 0; k < nFans; k++ )
         {
-//            iFanin    = Abc_Lit2Var((int)pInfo[k]);
-//            fComplF   = Abc_LitIsCompl((int)pInfo[k]);
             iFanin    = (Mat.Perm >> (3*k)) & 7;
             fComplF   = (Mat.Phase >> k) & 1;
             ArrivalD  = pBestF[k]->M[fComplF][0].D;
@@ -1209,7 +1214,7 @@ void Nf_ManCutMatchOne( Nf_Man_t * p, int iObj, int * pCut, int * pCutSet )
             else 
             {
 //                    assert( ArrivalD + pC->Delays[iFanin] < Required + Epsilon );
-                if ( pD->D < NF_INFINITY && pA->D < NF_INFINITY && ArrivalD + pC->Delays[iFanin] >= Required + Epsilon )
+                if ( pD->D + Epsilon < NF_INFINITY && pA->D + Epsilon < NF_INFINITY && ArrivalD + pC->Delays[iFanin] >= Required + Epsilon )
                     break;
                 Delay = Abc_MaxFloat( Delay, ArrivalD + pC->Delays[iFanin] );
                 Area += pBestF[k]->M[fComplF][0].A;
@@ -1218,7 +1223,7 @@ void Nf_ManCutMatchOne( Nf_Man_t * p, int iObj, int * pCut, int * pCutSet )
         if ( k < nFans )
             continue;
         // select best match
-        if ( pD->D > Delay )//+ Epsilon )
+        if ( pD->D > Delay + Epsilon )
         {
             pD->D = Delay;
             pD->A = Area;
@@ -1226,29 +1231,26 @@ void Nf_ManCutMatchOne( Nf_Man_t * p, int iObj, int * pCut, int * pCutSet )
             pD->Gate = pC->Id;
             pD->Conf = 0;
             for ( k = 0; k < nFans; k++ )
-//                    pD->Conf |= ((int)pInfo[k] << (k << 2));
-//                pD->Conf |= (Abc_Var2Lit(k, Abc_LitIsCompl((int)pInfo[k])) << (Abc_Lit2Var((int)pInfo[k]) << 2));
                 pD->Conf |= (Abc_Var2Lit(k, (Mat.Phase >> k) & 1) << (((Mat.Perm >> (3*k)) & 7) << 2));
         }
-        if ( pA->A > Area )//+ Epsilon )
+
+        if ( pA->A > Area + Epsilon )
         {
+//if ( 674 == iObj && p->Iter == 0 && pA == &pBest->M[1][1] )
+//printf( "Comparing %.10f and %.10f   (%f)\n", pA->A, Area, Epsilon );
+
+//if ( 674 == iObj && p->Iter == 0 && pA == &pBest->M[1][1] )
+//printf( "   Updating\n" );
+
             pA->D = Delay;
             pA->A = Area;
             pA->CutH = Nf_CutHandle(pCutSet, pCut);
             pA->Gate = pC->Id;
             pA->Conf = 0;
             for ( k = 0; k < nFans; k++ )
-//                    pA->Conf |= ((int)pInfo[k] << (k << 2));
-//                pA->Conf |= (Abc_Var2Lit(k, Abc_LitIsCompl((int)pInfo[k])) << (Abc_Lit2Var((int)pInfo[k]) << 2));
                 pA->Conf |= (Abc_Var2Lit(k, (Mat.Phase >> k) & 1) << (((Mat.Perm >> (3*k)) & 7) << 2));
         }
     }
-/*
-    Nf_ManCutMatchPrint( p, iObj, 0, &pBest->M[0][0] );
-    Nf_ManCutMatchPrint( p, iObj, 0, &pBest->M[0][1] );
-    Nf_ManCutMatchPrint( p, iObj, 1, &pBest->M[1][0] );
-    Nf_ManCutMatchPrint( p, iObj, 1, &pBest->M[1][1] );
-*/
 }
 static inline void Nf_ObjPrepareCi( Nf_Man_t * p, int iObj, float Time )
 {
@@ -1304,9 +1306,9 @@ static inline float Nf_CutRequired( Nf_Man_t * p, Nf_Mat_t * pM, int * pCutSet )
         int fCompl = Abc_LitIsCompl( iLit );
         float Arr  = Nf_ManObj(p, iFanin)->M[fCompl][0].D + pCell->Delays[i];
         float Req  = Nf_ObjRequired(p, iFanin, fCompl);
-        Arrival = Abc_MaxInt( Arrival, Arr );
+        Arrival = Abc_MaxFloat( Arrival, Arr );
         if ( Req < NF_INFINITY )
-            Required = Abc_MaxInt( Required, Req + pCell->Delays[i] );
+            Required = Abc_MaxFloat( Required, Req + pCell->Delays[i] );
     }
     return Abc_MaxFloat( Required + 2*p->InvDelay, Arrival ); 
 }
@@ -1356,17 +1358,16 @@ void Nf_ManCutMatch( Nf_Man_t * p, int iObj )
     }
 
 /*
-    if ( 18687 == iObj )
+    if ( 461 == iObj && p->Iter == 0 )
     {
-        printf( "Obj %6d (%f %f):\n", iObj, Required[0], Required[1] );
-        Nf_ManCutMatchPrint( p, iObj, 0, &pBest->M[0][0] );
-        Nf_ManCutMatchPrint( p, iObj, 0, &pBest->M[0][1] );
-        Nf_ManCutMatchPrint( p, iObj, 1, &pBest->M[1][0] );
-        Nf_ManCutMatchPrint( p, iObj, 1, &pBest->M[1][1] );
+        printf( "\nObj %6d (%.2f %.2f):\n", iObj, Required[0], Required[1] );
+        Nf_ManCutMatchPrint( p, iObj, "Dp", &pBest->M[0][0] );
+        Nf_ManCutMatchPrint( p, iObj, "Dn", &pBest->M[1][0] );
+        Nf_ManCutMatchPrint( p, iObj, "Ap", &pBest->M[0][1] );
+        Nf_ManCutMatchPrint( p, iObj, "An", &pBest->M[1][1] );
         printf( "\n" );
     }
 */
-
     // divide by ref count
     pDp->A /= FlowRefP;
     pAp->A /= FlowRefP;
@@ -1445,9 +1446,6 @@ void Nf_ManCutMatch( Nf_Man_t * p, int iObj )
     assert( pAp->A < NF_INFINITY );
     assert( pAn->A < NF_INFINITY );
 
-    //printf( "%16f  %16f   %16f  %16f\n", pDp->A, pDn->A, pAp->A, pAn->A );
-//    assert ( pDp->A < 1000 );
-
     if ( p->fUseEla )
     {
         // set the first good cut
@@ -1468,6 +1466,22 @@ void Nf_ManCutMatch( Nf_Man_t * p, int iObj )
 //        assert( ValueBeg[0] > ValueEnd[0] - Epsilon );
 //        assert( ValueBeg[1] > ValueEnd[1] - Epsilon );
     }
+
+/*
+    if ( p->Iter && (pDp->D > Required[0] + 1 || pDn->D > Required[1] + 1) )
+    {
+        printf( "%5d : ", iObj );
+        printf( "Dp = %6.2f  ", pDp->D );
+        printf( "Dn = %6.2f  ", pDn->D );
+        printf( "  " );
+        printf( "Ap = %6.2f  ", pAp->D );
+        printf( "An = %6.2f  ", pAn->D );
+        printf( "  " );
+        printf( "Rp = %6.2f  ", Required[0] );
+        printf( "Rn = %6.2f  ", Required[1] );
+        printf( "\n" );
+    }
+*/
 }
 void Nf_ManComputeMapping( Nf_Man_t * p )
 {
@@ -1509,6 +1523,8 @@ void Nf_ManSetMapRefsGate( Nf_Man_t * p, int iObj, float Required, Nf_Mat_t * pM
     // update status of the gate
     assert( pM->fBest == 0 );
     pM->fBest = 1;
+
+    //printf( "Setting node %d with gate %s.\n", iObj, pCell->pName );
 }
 int Nf_ManSetMapRefs( Nf_Man_t * p )
 {
@@ -1522,6 +1538,31 @@ int Nf_ManSetMapRefs( Nf_Man_t * p )
     Nf_Mat_t * pDs[2], * pAs[2], * pMs[2];
     Gia_Obj_t * pObj;
     float Required = 0, Requireds[2];
+
+/*
+    if ( p->Iter == 0 )
+    Gia_ManForEachAnd( p->pGia, pObj, i )
+    {
+        Nf_Mat_t * pDp = Nf_ObjMatchD( p, i, 0 );
+        Nf_Mat_t * pAp = Nf_ObjMatchA( p, i, 0 );
+        Nf_Mat_t * pDn = Nf_ObjMatchD( p, i, 1 );
+        Nf_Mat_t * pAn = Nf_ObjMatchA( p, i, 1 );
+
+        printf( "%5d : ", i );
+        printf( "Dp = %6.2f  ", pDp->D );
+        printf( "Dn = %6.2f  ", pDn->D );
+        printf( "  " );
+        printf( "Ap = %6.2f  ", pAp->D );
+        printf( "An = %6.2f  ", pAn->D );
+        printf( "  " );
+        printf( "Dp = %8s ", Nf_ManCell(p, pDp->Gate)->pName );
+        printf( "Dn = %8s ", Nf_ManCell(p, pDn->Gate)->pName );
+        printf( "Ap = %8s ", Nf_ManCell(p, pAp->Gate)->pName );
+        printf( "An = %8s ", Nf_ManCell(p, pAn->Gate)->pName );
+        printf( "\n" );
+
+    }
+*/
     // check references
     assert( !p->fUseEla );
     memset( pMapRefs, 0, sizeof(int) * nLits );
@@ -1533,10 +1574,6 @@ int Nf_ManSetMapRefs( Nf_Man_t * p )
     Gia_ManForEachCo( p->pGia, pObj, i )
     {
         Required = Nf_ObjMatchD( p, Gia_ObjFaninId0p(p->pGia, pObj), Gia_ObjFaninC0(pObj) )->D;
-        if ( Required == NF_INFINITY )
-        {
-            Nf_ManCutMatchPrint( p, Gia_ObjFaninId0p(p->pGia, pObj), Gia_ObjFaninC0(pObj), Nf_ObjMatchD( p, Gia_ObjFaninId0p(p->pGia, pObj), Gia_ObjFaninC0(pObj) ) );
-        }
         p->pPars->MapDelay = Abc_MaxFloat( p->pPars->MapDelay, Required );
     }
     // check delay target
@@ -1555,7 +1592,7 @@ int Nf_ManSetMapRefs( Nf_Man_t * p )
         Required = Nf_ObjMatchD( p, Gia_ObjFaninId0p(p->pGia, pObj), Gia_ObjFaninC0(pObj) )->D;
         Required = p->pPars->fDoAverage ? Required * (100.0 + p->pPars->nRelaxRatio) / 100.0 : p->pPars->MapDelay;
         // if external required time can be achieved, use it
-        if ( p->pGia->vOutReqs && Vec_FltEntry(p->pGia->vOutReqs, i) > 0 && Required <= Vec_FltEntry(p->pGia->vOutReqs, i) )
+        if ( p->pGia->vOutReqs && Vec_FltEntry(p->pGia->vOutReqs, i) > 0 && Required + Epsilon <= Vec_FltEntry(p->pGia->vOutReqs, i) )
             Required = Vec_FltEntry(p->pGia->vOutReqs, i);
         // if external required cannot be achieved, set the earliest possible arrival time
 //        else if ( p->pGia->vOutReqs && Vec_FltEntry(p->pGia->vOutReqs, i) > 0 && Required > Vec_FltEntry(p->pGia->vOutReqs, i) )
@@ -1587,14 +1624,7 @@ int Nf_ManSetMapRefs( Nf_Man_t * p )
         }
         // skip if this node is not used
         for ( c = 0; c < 2; c++ )
-        {
             nRefs[c] = Nf_ObjMapRefNum(p, i, c);
-
-            //if ( Nf_ObjMatchD( p, i, c )->fCompl )
-            //    printf( "Match D of node %d has inv in phase %d.\n", i, c );
-            //if ( Nf_ObjMatchA( p, i, c )->fCompl )
-            //    printf( "Match A of node %d has inv in phase %d.\n", i, c );
-        }
         if ( !nRefs[0] && !nRefs[1] )
             continue;
 
@@ -1713,10 +1743,8 @@ int Nf_ManSetMapRefs( Nf_Man_t * p )
         }
     // blend references
     for ( i = 0; i < nLits; i++ )
-//        pFlowRefs[i] = Abc_MaxFloat(1.0, pMapRefs[i]);
         pFlowRefs[i] = Abc_MaxFloat(1.0, Coef * pFlowRefs[i] + (1.0 - Coef) * Abc_MaxFloat(1, pMapRefs[i]));
 //        pFlowRefs[i] = 0.2 * pFlowRefs[i] + 0.8 * Abc_MaxFloat(1, pMapRefs[i]);
-//    memset( pMapRefs, 0, sizeof(int) * nLits );
     return p->pPars->Area;
 }
 Gia_Man_t * Nf_ManDeriveMapping( Nf_Man_t * p )
@@ -1745,7 +1773,6 @@ Gia_Man_t * Nf_ManDeriveMapping( Nf_Man_t * p )
         for ( c = 0; c < 2; c++ )
         if ( Nf_ObjMapRefNum(p, i, c) )
         {
-    //        printf( "Using %d %d\n", i, c );
             pM = Nf_ObjMatchBest( p, i, c );
             // remember inverter
             if ( pM->fCompl )
@@ -1813,268 +1840,6 @@ void Nf_ManUpdateStats( Nf_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-
-/*
-static inline Nf_Mat_t *  Nf_ObjMatchBestReq( Nf_Man_t * p, int i, int c, float r ) 
-{ 
-    Nf_Mat_t * pD = Nf_ObjMatchD(p, i, c);
-    Nf_Mat_t * pA = Nf_ObjMatchA(p, i, c);
-    assert( !pD->fBest && !pA->fBest );
-    assert( Nf_ObjMapRefNum(p, i, c) == 0 );
-    if ( pA->D < r + p->pPars->Epsilon )
-        return pA;
-    return pD;
-}
-float Nf_MatchDeref_rec( Nf_Man_t * p, int i, int c, Nf_Mat_t * pM )
-{
-    int k, iVar, fCompl, * pCut;
-    float Area = 0;
-    int Value = pM->fBest;
-    pM->fBest = 0;
-    if ( pM->fCompl )
-    {
-        assert( Nf_ObjMapRefNum(p, i, !c) > 0 );
-        if ( !Nf_ObjMapRefDec(p, i, !c) )
-            Area += Nf_MatchDeref_rec( p, i, !c, Nf_ObjMatchBest(p, i, !c) );
-        return Area + p->InvArea;
-    }
-    if ( Nf_ObjCutSetId(p, i) == 0 )
-        return 0;
-    assert( Value == 1 );
-    pCut = Nf_CutFromHandle( Nf_ObjCutSet(p, i), pM->CutH );
-    Nf_CutForEachVar( pCut, pM->Conf, iVar, fCompl, k )
-    {
-        assert( Nf_ObjMapRefNum(p, iVar, fCompl) > 0 );
-        if ( !Nf_ObjMapRefDec(p, iVar, fCompl) )
-            Area += Nf_MatchDeref_rec( p, iVar, fCompl, Nf_ObjMatchBest(p, iVar, fCompl) );
-    }
-    return Area + Nf_ManCell(p, pM->Gate)->Area;
-}
-float Nf_MatchRef_rec( Nf_Man_t * p, int i, int c, Nf_Mat_t * pM, float Required, Vec_Int_t * vBackup )
-{
-    int k, iVar, fCompl, * pCut;
-    float ReqFanin, Area = 0;
-    assert( pM->fBest == 0 );
-    if ( vBackup == NULL )
-        pM->fBest = 1;
-    if ( pM->fCompl )
-    {
-        ReqFanin = Required - p->InvDelay;
-        if ( vBackup )
-            Vec_IntPush( vBackup, Abc_Var2Lit(i, !c) );
-        assert( Nf_ObjMapRefNum(p, i, !c) >= 0 );
-        if ( !Nf_ObjMapRefInc(p, i, !c) )
-            Area += Nf_MatchRef_rec( p, i, !c, Nf_ObjMatchBestReq(p, i, !c, ReqFanin), ReqFanin, vBackup );
-        return Area + p->InvArea;
-    }
-    if ( Nf_ObjCutSetId(p, i) == 0 )
-        return 0;
-    pCut = Nf_CutFromHandle( Nf_ObjCutSet(p, i), pM->CutH );
-    Nf_CutForEachVar( pCut, pM->Conf, iVar, fCompl, k )
-    {
-        ReqFanin = Required - Nf_ManCell(p, pM->Gate)->Delays[k];
-        if ( vBackup )
-            Vec_IntPush( vBackup, Abc_Var2Lit(iVar, fCompl) );
-        assert( Nf_ObjMapRefNum(p, iVar, fCompl) >= 0 );
-        if ( !Nf_ObjMapRefInc(p, iVar, fCompl) )
-            Area += Nf_MatchRef_rec( p, iVar, fCompl, Nf_ObjMatchBestReq(p, iVar, fCompl, ReqFanin), ReqFanin, vBackup );
-    }
-    return Area + Nf_ManCell(p, pM->Gate)->Area;
-}
-float Nf_MatchRefArea( Nf_Man_t * p, int i, int c, Nf_Mat_t * pM, float Required )
-{
-    float Area;  int iLit, k; 
-    Vec_IntClear( &p->vBackup );
-    Area = Nf_MatchRef_rec( p, i, c, pM, Required, &p->vBackup );
-    Vec_IntForEachEntry( &p->vBackup, iLit, k )
-    {
-        assert( Nf_ObjMapRefNum(p, Abc_Lit2Var(iLit), Abc_LitIsCompl(iLit)) > 0 );
-        Nf_ObjMapRefDec( p, Abc_Lit2Var(iLit), Abc_LitIsCompl(iLit) );
-    }
-    return Area;
-}
-void Nf_ManElaBestMatchOne( Nf_Man_t * p, int iObj, int c, int * pCut, int * pCutSet, Nf_Mat_t * pRes, float Required )
-{
-    Nf_Mat_t Mb, * pMb = &Mb;
-    Nf_Obj_t * pBest = Nf_ManObj(p, iObj);
-    int * pFans      = Nf_CutLeaves(pCut);
-    int nFans        = Nf_CutSize(pCut);
-    int iFuncLit     = Nf_CutFunc(pCut);
-    int fComplExt    = Abc_LitIsCompl(iFuncLit);
-    float Epsilon    = p->pPars->Epsilon;
-    Vec_Int_t * vArr = Vec_WecEntry( p->vTt2Match, Abc_Lit2Var(iFuncLit) );
-    int i, k, Info, Offset, iFanin, fComplF;
-    float ArrivalD, ArrivalA;
-    // assign fanins matches
-    Nf_Obj_t * pBestF[NF_LEAF_MAX];
-    for ( i = 0; i < nFans; i++ )
-        pBestF[i] = Nf_ManObj( p, pFans[i] );
-    // special cases
-    if ( nFans < 2 )
-    {
-        *pRes = *Nf_ObjMatchBestReq( p, iObj, c, Required );
-        return;
-    }
-    // consider matches of this function
-    memset( pMb, 0, sizeof(Nf_Mat_t) );
-    pMb->D = pMb->A = NF_INFINITY;
-    Vec_IntForEachEntryDouble( vArr, Info, Offset, i )
-    {
-        Mio_Cell_t* pC = Nf_ManCell( p, Info >> 8 );
-        int Type       = (Info >> 4) & 15;
-        int fCompl     = (Info & 1) ^ fComplExt;
-        char * pInfo   = Vec_StrEntryP( p->vMemStore, Offset );
-        Nf_Mat_t * pD  = &pBest->M[fCompl][0];
-        Nf_Mat_t * pA  = &pBest->M[fCompl][1];
-        assert( nFans == (int)pC->nFanins );
-        if ( fCompl != c )
-            continue;
-        if ( Type == NF_PRIME )
-        {
-            float Delay = 0;
-            for ( k = 0; k < nFans; k++ )
-            {
-                iFanin    = Abc_Lit2Var((int)pInfo[k]);
-                fComplF   = Abc_LitIsCompl((int)pInfo[k]);
-                ArrivalD  = pBestF[k]->M[fComplF][0].D;
-                ArrivalA  = pBestF[k]->M[fComplF][1].D;
-                if ( ArrivalA + pC->Delays[iFanin] < Required + Epsilon && Required != NF_INFINITY )
-                    Delay = Abc_MaxFloat( Delay, ArrivalA + pC->Delays[iFanin] );
-                else 
-                    Delay = Abc_MaxFloat( Delay, ArrivalD + pC->Delays[iFanin] );
-                if ( Delay > Required + Epsilon )
-                    break;
-            }
-            if ( k < nFans )
-                continue;
-            // create match
-            pMb->D = Delay;
-            pMb->A = -1;
-            pMb->CutH = Nf_CutHandle(pCutSet, pCut);
-            pMb->Gate = pC->Id;
-            pMb->Conf = 0;
-            for ( k = 0; k < nFans; k++ )
-//             pD->Conf |= ((int)pInfo[k] << (k << 2));
-                pMb->Conf |= (Abc_Var2Lit(k, Abc_LitIsCompl((int)pInfo[k])) << (Abc_Lit2Var((int)pInfo[k]) << 2));
-            // compute area
-            pMb->A = Nf_MatchRefArea( p, iObj, c, pMb, Required );
-            // compare
-            if ( pRes->A > pMb->A + Epsilon || (pRes->A == pMb->A && pRes->D > pMb->D + Epsilon) )
-                *pRes = *pMb;
-        }
-    }
-}
-void Nf_ManElaBestMatch( Nf_Man_t * p, int iObj, int c, Nf_Mat_t * pRes, float Required )
-{
-    int k, * pCut, * pCutSet = Nf_ObjCutSet( p, iObj );
-    memset( pRes, 0, sizeof(Nf_Mat_t) );
-    pRes->D = pRes->A = NF_INFINITY;
-    Nf_SetForEachCut( pCutSet, pCut, k )
-    {
-        if ( Abc_Lit2Var(Nf_CutFunc(pCut)) >= Vec_WecSize(p->vTt2Match) )
-            continue;
-        Nf_ManElaBestMatchOne( p, iObj, c, pCut, pCutSet, pRes, Required );
-    }
-}
-// the best match is stored in pA provided that it satisfies pA->D < req
-// area is never compared
-void Nf_ManComputeMappingEla( Nf_Man_t * p )
-{
-    Gia_Obj_t * pObj;
-    Mio_Cell_t * pCell;
-    Nf_Mat_t Mb, * pMb = &Mb, * pM;
-    float Epsilon = p->pPars->Epsilon;
-    float AreaBef, AreaAft, Required, MapArea;
-    int nLits = 2*Gia_ManObjNum(p->pGia);
-    int i, c, iVar, Id, fCompl, k, * pCut;
-    Vec_FltFill( &p->vRequired, nLits, NF_INFINITY );
-    // compute delay
-    p->pPars->MapDelay = 0;
-    Gia_ManForEachCo( p->pGia, pObj, i )
-    {
-        Required = Nf_ObjMatchD( p, Gia_ObjFaninId0p(p->pGia, pObj), Gia_ObjFaninC0(pObj) )->D;
-        p->pPars->MapDelay = Abc_MaxFloat( p->pPars->MapDelay, Required );
-    }
-    // check delay target
-    if ( p->pPars->MapDelayTarget == -1 && p->pPars->nRelaxRatio )
-        p->pPars->MapDelayTarget = (int)((float)p->pPars->MapDelay * (100.0 + p->pPars->nRelaxRatio) / 100.0);
-    if ( p->pPars->MapDelayTarget != -1 )
-    {
-        if ( p->pPars->MapDelay < p->pPars->MapDelayTarget + Epsilon )
-            p->pPars->MapDelay = p->pPars->MapDelayTarget;
-        else if ( p->pPars->nRelaxRatio == 0 )
-            Abc_Print( 0, "Relaxing user-specified delay target from %.2f to %.2f.\n", p->pPars->MapDelayTarget, p->pPars->MapDelay );
-    }
-    // set required times
-    Gia_ManForEachCo( p->pGia, pObj, i )
-    {
-        Required = Nf_ObjMatchD( p, Gia_ObjFaninId0p(p->pGia, pObj), Gia_ObjFaninC0(pObj) )->D;
-        Required = p->pPars->fDoAverage ? Required * (100.0 + p->pPars->nRelaxRatio) / 100.0 : p->pPars->MapDelay;
-        Nf_ObjUpdateRequired( p, Gia_ObjFaninId0p(p->pGia, pObj), Gia_ObjFaninC0(pObj), Required );
-        Nf_ObjMapRefInc( p, Gia_ObjFaninId0p(p->pGia, pObj), Gia_ObjFaninC0(pObj));
-    }
-    // compute area and edges
-    MapArea = p->pPars->MapArea;
-    p->pPars->MapArea = 0; 
-    p->pPars->Area = p->pPars->Edge = 0;
-    Gia_ManForEachAndReverseId( p->pGia, i )
-    for ( c = 0; c < 2; c++ )
-    if ( Nf_ObjMapRefNum(p, i, c) )
-    {
-        pM = Nf_ObjMatchBest( p, i, c );
-        Required = Nf_ObjRequired( p, i, c );
-        assert( pM->D < Required + Epsilon );
-        // try different cuts at this node and find best match
-        Vec_IntClear( &p->vBackup2 );
-        AreaBef = Nf_MatchDeref_rec( p, i, c, pM );
-        Nf_ManElaBestMatch( p, i, c, pMb, Required );
-        AreaAft = Nf_MatchRef_rec( p, i, c, pMb, Required, NULL );
-        assert( pMb->A == AreaAft );
-        assert( AreaBef + Epsilon > AreaAft );
-        MapArea += AreaAft - AreaBef;
-//        printf( "%8.2f %8.2f\n", AreaBef, AreaAft );
-        // set match
-        assert( pMb->D < Required + Epsilon );
-        assert( pMb->fBest == 0 );
-        *Nf_ObjMatchA(p, i, c) = *pMb;
-        assert( Nf_ObjMatchA(p, i, c) == Nf_ObjMatchBest( p, i, c ) );
-        // count status
-        pCell = Nf_ManCell( p, pMb->Gate );
-        pCut = Nf_CutFromHandle( Nf_ObjCutSet(p, i), pMb->CutH );
-        Nf_CutForEachVar( pCut, pMb->Conf, iVar, fCompl, k )
-            Nf_ObjUpdateRequired( p, iVar, fCompl, Required - pCell->Delays[k] );
-        p->pPars->MapArea += pCell->Area;
-        p->pPars->Edge += Nf_CutSize(pCut);
-        p->pPars->Area++;
-    }
-    Gia_ManForEachCiId( p->pGia, Id, i )
-        if ( Nf_ObjMapRefNum(p, Id, 1) )
-        {
-            Nf_ObjMapRefInc( p, Id, 0 );
-            Nf_ObjUpdateRequired( p, Id, 0, Required - p->InvDelay );
-            p->pPars->MapArea += p->InvArea;
-            p->pPars->Edge++;
-            p->pPars->Area++;
-        }
-//    Nf_ManUpdateStats( p );
-    if ( !(MapArea < p->pPars->MapArea + Epsilon && MapArea + Epsilon > p->pPars->MapArea) )
-        printf( "Mismatch:  Estimated = %.2f  Real = %.2f\n", MapArea, p->pPars->MapArea );
-//    assert( MapArea < p->pPars->MapArea + Epsilon && MapArea + Epsilon > p->pPars->MapArea );
-    Nf_ManPrintStats( p, "Ela  " );
-}
-*/
-
-/**Function*************************************************************
-
-  Synopsis    [Technology mappping.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
 void Nf_ManSetDefaultPars( Jf_Par_t * pPars )
 {
     memset( pPars, 0, sizeof(Jf_Par_t) );
@@ -2100,7 +1865,15 @@ void Nf_ManSetDefaultPars( Jf_Par_t * pPars )
     pPars->nLutSizeMax  =  NF_LEAF_MAX;
     pPars->nCutNumMax   =  NF_CUT_MAX;
     pPars->MapDelayTarget = -1;
-    pPars->Epsilon      = (float)0.01;
+    //pPars->Epsilon      = (float)0.01;
+    pPars->Epsilon      = (float)0.0094636;
+    // It was found that the value of Epsilon should be "non-trivial" for the mapper to work correctly.
+    // The reason for this is a weird behavior of floating-point operations and comparisons in general,
+    // and in particular, in the release and debug version of the code on Windows...
+    // Somehow, it ended up happening that two floating point numbers differed in very small fractional values
+    // and these values caused in one place one selection to be made, and another place another selection.
+    // When Epsilon was set to, say, 0.0100000, the difference between two delays or areas (say, 1.34 and 1.35)
+    // ended up producing weird mismatches, which causes the mapper to degrade quality in the middle of mapping
 }
 Gia_Man_t * Nf_ManPerformMapping( Gia_Man_t * pGia, Jf_Par_t * pPars )
 {

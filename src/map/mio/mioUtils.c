@@ -280,22 +280,40 @@ void Mio_WriteLibrary( FILE * pFile, Mio_Library_t * pLib, int fPrintSops )
 ***********************************************************************/
 int Mio_DelayCompare( Mio_Gate_t ** ppG1, Mio_Gate_t ** ppG2 )
 {
-    if ( (*ppG1)->dDelayMax < (*ppG2)->dDelayMax )
+    int Comp;
+    float Eps = (float)0.0094636;
+    if ( (*ppG1)->dDelayMax < (*ppG2)->dDelayMax - Eps )
         return -1;
-    if ( (*ppG1)->dDelayMax > (*ppG2)->dDelayMax )
+    if ( (*ppG1)->dDelayMax > (*ppG2)->dDelayMax + Eps )
         return 1;
+    // compare names
+    Comp = strcmp( (*ppG1)->pName, (*ppG2)->pName );
+    if ( Comp < 0 )
+        return -1;
+    if ( Comp > 0 )
+        return 1;
+    assert( 0 );
     return 0;
 }
 int Mio_AreaCompare( Mio_Cell_t * pG1, Mio_Cell_t * pG2 )
 {
-    if ( (pG1)->nFanins < (pG2)->nFanins )
+    int Comp;
+    float Eps = (float)0.0094636;
+    if ( pG1->nFanins < pG2->nFanins )
         return -1;
-    if ( (pG1)->nFanins > (pG2)->nFanins )
+    if ( pG1->nFanins > pG2->nFanins )
         return 1;
-    if ( (pG1)->Area < (pG2)->Area )
+    if ( pG1->Area < pG2->Area - Eps )
         return -1;
-    if ( (pG1)->Area > (pG2)->Area )
+    if ( pG1->Area > pG2->Area + Eps )
         return 1;
+    // compare names
+    Comp = strcmp( pG1->pName, pG2->pName );
+    if ( Comp < 0 )
+        return -1;
+    if ( Comp > 0 )
+        return 1;
+    assert( 0 );
     return 0;
 }
 
@@ -333,7 +351,7 @@ static inline float Mio_GateDelayAve( Mio_Gate_t * pGate )
 static inline int Mio_CompareTwoGates( Mio_Gate_t * pCell, Mio_Gate_t * pGate )
 {
     int Comp;
-    float Eps = (float)0.01;
+    float Eps = (float)0.0094636;
     float CellDelay, GateDelay;
     // compare areas
     if ( pCell->dArea > (float)pGate->dArea + Eps )
@@ -424,7 +442,7 @@ Mio_Gate_t ** Mio_CollectRoots( Mio_Library_t * pLib, int nInputs, float tDelay,
 static inline int Mio_CompareTwo( Mio_Cell_t * pCell, Mio_Gate_t * pGate )
 {
     int Comp;
-    float Eps = (float)0.01;
+    float Eps = (float)0.0094636;
     float CellDelay, GateDelay;
     // compare areas
     if ( pCell->Area > (float)pGate->dArea + Eps )
@@ -541,7 +559,7 @@ Mio_Cell_t * Mio_CollectRootsNew( Mio_Library_t * pLib, int nInputs, int * pnGat
             if ( pCell->pName == NULL )
                 printf( "None\n" );
             else
-                printf( "%-20s   In = %d   N = %3d   A = %7.2f   D = %7.2f\n", 
+                printf( "%-20s   In = %d   N = %3d   A = %12.6f   D = %12.6f\n", 
                     pCell->pName, pCell->nFanins, pCounts[i], pCell->Area, Mio_CellDelayAve(pCell) );
         }
         ABC_FREE( pCounts );
