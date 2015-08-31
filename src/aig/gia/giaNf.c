@@ -111,7 +111,7 @@ struct Nf_Man_t_
 
 static inline int          Pf_Mat2Int( Pf_Mat_t Mat )                                { union { int x; Pf_Mat_t y; } v; v.y = Mat; return v.x;           }
 static inline Pf_Mat_t     Pf_Int2Mat( int Int )                                     { union { int x; Pf_Mat_t y; } v; v.x = Int; return v.y;           }
-static inline float        Nf_Wrd2Flt( word w )                                      { return MIO_NUMINV*(unsigned)w;                                   }
+static inline float        Nf_Wrd2Flt( word w )                                      { return MIO_NUMINV*(unsigned)(w&0x3FFFFFFF) + MIO_NUMINV*(1<<30)*(unsigned)(w>>30); }
 
 static inline Nf_Obj_t *   Nf_ManObj( Nf_Man_t * p, int i )                          { return p->pNfObjs + i;                                           }
 static inline Mio_Cell2_t* Nf_ManCell( Nf_Man_t * p, int i )                         { return p->pCells + i;                                            }
