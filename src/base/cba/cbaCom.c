@@ -213,7 +213,10 @@ int Cba_CommandWrite( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( argc == globalUtilOptind + 1 )
         pFileName = argv[globalUtilOptind];
     else if ( argc == globalUtilOptind && p )
-        pFileName = Extra_FileNameGenericAppend( Cba_ManName(p), "_out.v" );
+    {
+        pFileName = Extra_FileNameGenericAppend( Cba_ManSpec(p) ? Cba_ManSpec(p) : Cba_ManName(p), "_out.v" );
+        printf( "Generated output file name \"%s\".\n", pFileName );
+    }
     else 
     {
         printf( "Output file name should be given on the command line.\n" );

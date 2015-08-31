@@ -42,15 +42,19 @@ typedef enum {
     PRS_VER_OUTPUT,    // 2:  output
     PRS_VER_INOUT,     // 3:  inout
     PRS_VER_WIRE,      // 4:  wire
-    PRS_VER_MODULE,    // 5:  module
-    PRS_VER_ASSIGN,    // 6:  assign
-    PRS_VER_REG,       // 7:  reg
+    PRS_VER_REG,       // 5:  reg
+    PRS_VER_MODULE,    // 6:  module
+    PRS_VER_ASSIGN,    // 7:  assign
     PRS_VER_ALWAYS,    // 8:  always
-    PRS_VER_DEFPARAM,  // 9:  always
-    PRS_VER_BEGIN,     // 10: begin
-    PRS_VER_END,       // 11: end
-    PRS_VER_ENDMODULE, // 12: endmodule
-    PRS_VER_UNKNOWN    // 13: unknown
+    PRS_VER_FUNCTION,  // 9:  function
+    PRS_VER_DEFPARAM,  // 10: defparam
+    PRS_VER_BEGIN,     // 11: begin
+    PRS_VER_END,       // 12: end
+    PRS_VER_CASE,      // 13: case
+    PRS_VER_ENDCASE,   // 14: endcase
+    PRS_VER_SIGNED,    // 15: signed
+    PRS_VER_ENDMODULE, // 16: endmodule
+    PRS_VER_UNKNOWN    // 17: unknown
 } Cba_VerType_t;
 
 // parser name types
@@ -117,13 +121,17 @@ struct Prs_Man_t_
     Vec_Str_t       vCover;      // one SOP cover
     Vec_Int_t       vTemp;       // array of tokens
     Vec_Int_t       vTemp2;      // array of tokens
+    Vec_Int_t       vTemp3;      // array of tokens
+    Vec_Int_t       vTemp4;      // array of tokens
     // statistics
     Vec_Int_t       vKnown;
     Vec_Int_t       vFailed;
     Vec_Int_t       vSucceeded;
     // error handling
     int             fUsingTemp2; // vTemp2 is in use
-    char ErrorStr[1000];      // error
+    int             FuncNameId;  // temp value
+    int             FuncRangeId; // temp value
+    char ErrorStr[1000];         // error
 };
 
 static inline Prs_Ntk_t * Prs_ManNtk( Vec_Ptr_t * vPrs, int i )        { return i >= 0 && i < Vec_PtrSize(vPrs) ? (Prs_Ntk_t *)Vec_PtrEntry(vPrs, i) : NULL; }
@@ -142,6 +150,7 @@ static inline char *      Prs_NtkSop( Prs_Ntk_t * p, int h )           { return 
 static inline char *      Prs_NtkConst( Prs_Ntk_t * p, int h )         { return Abc_NamStr(p->pFuns, h);                         }
 static inline char *      Prs_NtkName( Prs_Ntk_t * p )                 { return Prs_NtkStr(p, Prs_NtkId(p));                     }
 static inline int         Prs_NtkSigName( Prs_Ntk_t * p, int i )       { if (!p->fSlices) return i; assert(Abc_Lit2Att2(i) == CBA_PRS_NAME); return Abc_Lit2Var2(i); }
+static inline int         Ptr_NtkRangeSize( Prs_Ntk_t * p, int h )     { int l = Hash_IntObjData0(p->vHash, h), r = Hash_IntObjData1(p->vHash, h); return 1 + (l > r ? l-r : r-l); }
 
 static inline int         Prs_SliceName( Prs_Ntk_t * p, int h )        { return Vec_IntEntry(&p->vSlices, h);                    }
 static inline int         Prs_SliceRange( Prs_Ntk_t * p, int h )       { return Vec_IntEntry(&p->vSlices, h+1);                  }
@@ -353,6 +362,8 @@ static inline void Prs_ManFree( Prs_Man_t * p )
     Vec_StrErase( &p->vCover );
     Vec_IntErase( &p->vTemp );
     Vec_IntErase( &p->vTemp2 );
+    Vec_IntErase( &p->vTemp3 );
+    Vec_IntErase( &p->vTemp4 );
     Vec_IntErase( &p->vKnown );
     Vec_IntErase( &p->vFailed );
     Vec_IntErase( &p->vSucceeded );

@@ -34,6 +34,93 @@ ABC_NAMESPACE_IMPL_START
 ////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************
+  
+  Synopsis    []  
+  
+  Description []  
+                 
+  SideEffects []  
+  
+  SeeAlso     []  
+  
+***********************************************************************/
+void Cba_ManCreatePrimMap( char ** pMap )
+{
+    memset( pMap, 0, sizeof(char *) * CBA_BOX_LAST );
+
+    pMap[ CBA_BOX_SLICE  ] = "sli";
+    pMap[ CBA_BOX_CATIN  ] = "icc";
+    pMap[ CBA_BOX_CATOUT ] = "occ";
+
+    pMap[ CBA_BOX_BUF    ] = "";
+    pMap[ CBA_BOX_INV    ] = "~";
+    pMap[ CBA_BOX_AND    ] = "&"; 
+    pMap[ CBA_BOX_NAND   ] = "&"; 
+    pMap[ CBA_BOX_OR     ] = "|"; 
+    pMap[ CBA_BOX_NOR    ] = "|"; 
+    pMap[ CBA_BOX_XOR    ] = "^"; 
+    pMap[ CBA_BOX_XNOR   ] = "^"; 
+    pMap[ CBA_BOX_SHARP  ] = "&"; 
+    pMap[ CBA_BOX_SHARPL ] = "&"; 
+    pMap[ CBA_BOX_MUX    ] = "?"; 
+    pMap[ CBA_BOX_MAJ    ] = NULL; 
+    pMap[ CBA_BOX_RAND   ] = "&"; 
+    pMap[ CBA_BOX_RNAND  ] = "~&"; 
+    pMap[ CBA_BOX_ROR    ] = "|"; 
+    pMap[ CBA_BOX_RNOR   ] = "~|"; 
+    pMap[ CBA_BOX_RXOR   ] = "^"; 
+    pMap[ CBA_BOX_RXNOR  ] = "~^"; 
+    pMap[ CBA_BOX_LNOT   ] = "!"; 
+    pMap[ CBA_BOX_LAND   ] = "&&"; 
+    pMap[ CBA_BOX_LNAND  ] = NULL; 
+    pMap[ CBA_BOX_LOR    ] = "||"; 
+    pMap[ CBA_BOX_LNOR   ] = NULL; 
+    pMap[ CBA_BOX_LXOR   ] = "^^"; 
+    pMap[ CBA_BOX_LXNOR  ] = NULL; 
+    pMap[ CBA_BOX_NMUX   ] = "nmux"; 
+    pMap[ CBA_BOX_SEL    ] = "sel"; 
+    pMap[ CBA_BOX_PSEL   ] = NULL; 
+    pMap[ CBA_BOX_ENC    ] = NULL; 
+    pMap[ CBA_BOX_PENC   ] = NULL; 
+    pMap[ CBA_BOX_DEC    ] = "dec"; 
+    pMap[ CBA_BOX_EDEC   ] = NULL; 
+    pMap[ CBA_BOX_ADD    ] = "+"; 
+    pMap[ CBA_BOX_SUB    ] = "-"; 
+    pMap[ CBA_BOX_MUL    ] = "*"; 
+    pMap[ CBA_BOX_DIV    ] = "/"; 
+    pMap[ CBA_BOX_MOD    ] = "%"; 
+    pMap[ CBA_BOX_REM    ] = "%"; 
+    pMap[ CBA_BOX_POW    ] = "**"; 
+    pMap[ CBA_BOX_MIN    ] = "-"; 
+    pMap[ CBA_BOX_SQRT   ] = "@"; 
+    pMap[ CBA_BOX_ABS    ] = NULL; 
+    pMap[ CBA_BOX_LTHAN  ] = "<"; 
+    pMap[ CBA_BOX_LETHAN ] = "<="; 
+    pMap[ CBA_BOX_METHAN ] = ">="; 
+    pMap[ CBA_BOX_MTHAN  ] = ">"; 
+    pMap[ CBA_BOX_EQU    ] = "=="; 
+    pMap[ CBA_BOX_NEQU   ] = "!="; 
+    pMap[ CBA_BOX_SHIL   ] = "<<"; 
+    pMap[ CBA_BOX_SHIR   ] = ">>"; 
+    pMap[ CBA_BOX_SHILA  ] = "<<<"; 
+    pMap[ CBA_BOX_SHIRA  ] = ">>>"; 
+    pMap[ CBA_BOX_ROTL   ] = "rotL"; 
+    pMap[ CBA_BOX_ROTR   ] = "rotR"; 
+
+    pMap[ CBA_BOX_TRI    ] = "tri";
+    pMap[ CBA_BOX_RAM    ] = "ram";
+    pMap[ CBA_BOX_RAMR   ] = "ramR";
+    pMap[ CBA_BOX_RAMW   ] = "ramW";
+    pMap[ CBA_BOX_RAMWC  ] = "ramWC";
+    pMap[ CBA_BOX_RAMBOX ] = "ramBox";
+
+    pMap[ CBA_BOX_LATCH  ] = "lat";
+    pMap[ CBA_BOX_LATCHRS] = "latrs";
+    pMap[ CBA_BOX_DFF    ] = "dff";
+    pMap[ CBA_BOX_DFFRS  ] = "dffrs";
+}
+
+/**Function*************************************************************
 
   Synopsis    [Writing parser state into a file.]
 
@@ -115,26 +202,59 @@ static void Prs_ManWriteVerilogMux( FILE * pFile, Prs_Ntk_t * p, Vec_Int_t * vSi
         fprintf( pFile, "%s", pStrs[i/2] );
     }
 }
-static void Prs_ManWriteVerilogBoxes( FILE * pFile, Prs_Ntk_t * p )
+static void Prs_ManWriteVerilogBoxes( FILE * pFile, Prs_Ntk_t * p, char ** pTypeNames )
 {
-    Vec_Int_t * vBox; int i;
+    Vec_Int_t * vBox; int i, k;
     Prs_NtkForEachBox( p, vBox, i )
     {
         Cba_ObjType_t NtkId = Prs_BoxNtk(p, i);
         //char * pNtkName = Prs_NtkStr(p, Prs_BoxName(p, i));
         if ( NtkId == CBA_BOX_MUX )
             Prs_ManWriteVerilogMux( pFile, p, vBox );
-        else if ( Prs_BoxIsNode(p, i) ) // node   ------- check order of fanins
+        else if ( Prs_BoxIsNode(p, i) ) // node
         {
-            fprintf( pFile, "  %s (", Ptr_TypeToName(NtkId) );
-            Prs_ManWriteVerilogArray( pFile, p, vBox, 1 );
-            fprintf( pFile, ");\n" );
+            fprintf( pFile, "  assign " );
+            Prs_ManWriteVerilogSignal( pFile, p, Vec_IntEntry(vBox, 1) );
+            fprintf( pFile, " = " );
+            if ( Cba_TypeIsUnary(NtkId) )
+            {
+                fprintf( pFile, "%s", pTypeNames[NtkId] );
+                Prs_ManWriteVerilogSignal( pFile, p, Vec_IntEntry(vBox, 3) );
+            }
+            else if ( NtkId == CBA_BOX_NMUX )
+            {
+                Prs_ManWriteVerilogSignal( pFile, p, Vec_IntEntry(vBox, 3) );
+                fprintf( pFile, " ? " );
+                for ( k = 5; k < Vec_IntSize(vBox); k += 2 )
+                {
+                    if ( k > 5 ) fprintf( pFile, " : " );
+                    Prs_ManWriteVerilogSignal( pFile, p, Vec_IntEntry(vBox, k) );
+                }
+            }
+            else if ( NtkId == CBA_BOX_ADD )
+            {
+                if ( Vec_IntEntry(vBox, 3) )
+                {
+                    Prs_ManWriteVerilogSignal( pFile, p, Vec_IntEntry(vBox, 3) );
+                    fprintf( pFile, " %s ", pTypeNames[NtkId] );
+                }
+                Prs_ManWriteVerilogSignal( pFile, p, Vec_IntEntry(vBox, 5) );
+                fprintf( pFile, " %s ", pTypeNames[NtkId] );
+                Prs_ManWriteVerilogSignal( pFile, p, Vec_IntEntry(vBox, 7) );
+            }
+            else
+            {
+                Prs_ManWriteVerilogSignal( pFile, p, Vec_IntEntry(vBox, 3) );
+                fprintf( pFile, " %s ", pTypeNames[NtkId] );
+                Prs_ManWriteVerilogSignal( pFile, p, Vec_IntEntry(vBox, 5) );
+            }
+            fprintf( pFile, ";\n" );
         }
         else // box
         {
-            fprintf( pFile, "  %s %s (", Prs_NtkStr(p, NtkId), Prs_BoxName(p, i) ? Prs_NtkStr(p, Prs_BoxName(p, i)) : "" );
+            fprintf( pFile, "  %s %s ( ", Prs_NtkStr(p, NtkId), Prs_BoxName(p, i) ? Prs_NtkStr(p, Prs_BoxName(p, i)) : "" );
             Prs_ManWriteVerilogArray2( pFile, p, vBox );
-            fprintf( pFile, ");\n" );
+            fprintf( pFile, " );\n" );
         }
     }
 }
@@ -147,7 +267,7 @@ static void Prs_ManWriteVerilogIos( FILE * pFile, Prs_Ntk_t * p, int SigType )
     if ( SigType == 3 )
         fprintf( pFile, "\n" );
     Vec_IntForEachEntryTwo( vSigs[SigType], vSigsR[SigType], NameId, RangeId, i )
-        fprintf( pFile, "  %s %s%s;\n", pSigNames[SigType], RangeId ? Prs_ManWriteRange(p, RangeId, 0) : "", Prs_NtkStr(p, NameId) );
+        fprintf( pFile, "  %s %s%s%s;\n", pSigNames[SigType], Abc_LitIsCompl(RangeId) ? "signed " : "", RangeId ? Prs_ManWriteRange(p, Abc_Lit2Var(RangeId), 0) : "", Prs_NtkStr(p, NameId) );
 }
 static void Prs_ManWriteVerilogIoOrder( FILE * pFile, Prs_Ntk_t * p, Vec_Int_t * vOrder )
 {
@@ -155,7 +275,7 @@ static void Prs_ManWriteVerilogIoOrder( FILE * pFile, Prs_Ntk_t * p, Vec_Int_t *
     Vec_IntForEachEntry( vOrder, NameId, i )
         fprintf( pFile, "%s%s", Prs_NtkStr(p, Abc_Lit2Var2(NameId)), i == Vec_IntSize(vOrder) - 1 ? "" : ", " );
 }
-static void Prs_ManWriteVerilogNtk( FILE * pFile, Prs_Ntk_t * p )
+static void Prs_ManWriteVerilogNtk( FILE * pFile, Prs_Ntk_t * p, char ** pTypeNames )
 {
     int s;
     // write header
@@ -167,11 +287,12 @@ static void Prs_ManWriteVerilogNtk( FILE * pFile, Prs_Ntk_t * p )
         Prs_ManWriteVerilogIos( pFile, p, s );
     fprintf( pFile, "\n" );
     // write objects
-    Prs_ManWriteVerilogBoxes( pFile, p );
+    Prs_ManWriteVerilogBoxes( pFile, p, pTypeNames );
     fprintf( pFile, "endmodule\n\n" );
 }
 void Prs_ManWriteVerilog( char * pFileName, Vec_Ptr_t * vPrs )
 {
+    char * pTypeNames[CBA_BOX_LAST];
     Prs_Ntk_t * pNtk = Prs_ManRoot(vPrs); int i;
     FILE * pFile = fopen( pFileName, "wb" );
     if ( pFile == NULL )
@@ -179,98 +300,15 @@ void Prs_ManWriteVerilog( char * pFileName, Vec_Ptr_t * vPrs )
         printf( "Cannot open output file \"%s\".\n", pFileName );
         return;
     }
+    Cba_ManCreatePrimMap( pTypeNames );
     fprintf( pFile, "// Design \"%s\" written by ABC on %s\n\n", Prs_NtkStr(pNtk, pNtk->iModuleName), Extra_TimeStamp() );
     Vec_PtrForEachEntry( Prs_Ntk_t *, vPrs, pNtk, i )
-        Prs_ManWriteVerilogNtk( pFile, pNtk );
+        Prs_ManWriteVerilogNtk( pFile, pNtk, pTypeNames );
     fclose( pFile );
 }
 
 
 
-
-/**Function*************************************************************
-  
-  Synopsis    []  
-  
-  Description []  
-                 
-  SideEffects []  
-  
-  SeeAlso     []  
-  
-***********************************************************************/
-void Cba_ManCreatePrimMap( char ** pMap )
-{
-    memset( pMap, 0, sizeof(char *) * CBA_BOX_LAST );
-
-    pMap[ CBA_BOX_SLICE  ] = "sli";
-    pMap[ CBA_BOX_CATIN  ] = "icc";
-    pMap[ CBA_BOX_CATOUT ] = "occ";
-
-    pMap[ CBA_BOX_BUF    ] = "";
-    pMap[ CBA_BOX_INV    ] = "~";
-    pMap[ CBA_BOX_AND    ] = "&"; 
-    pMap[ CBA_BOX_NAND   ] = "&"; 
-    pMap[ CBA_BOX_OR     ] = "|"; 
-    pMap[ CBA_BOX_NOR    ] = "|"; 
-    pMap[ CBA_BOX_XOR    ] = "^"; 
-    pMap[ CBA_BOX_XNOR   ] = "^"; 
-    pMap[ CBA_BOX_SHARP  ] = "&"; 
-    pMap[ CBA_BOX_SHARPL ] = "&"; 
-    pMap[ CBA_BOX_MUX    ] = "?"; 
-    pMap[ CBA_BOX_MAJ    ] = NULL; 
-    pMap[ CBA_BOX_RAND   ] = "&"; 
-    pMap[ CBA_BOX_RNAND  ] = "~&"; 
-    pMap[ CBA_BOX_ROR    ] = "|"; 
-    pMap[ CBA_BOX_RNOR   ] = "~|"; 
-    pMap[ CBA_BOX_RXOR   ] = "^"; 
-    pMap[ CBA_BOX_RXNOR  ] = "~^"; 
-    pMap[ CBA_BOX_LNOT   ] = "!"; 
-    pMap[ CBA_BOX_LAND   ] = "&&"; 
-    pMap[ CBA_BOX_LNAND  ] = NULL; 
-    pMap[ CBA_BOX_LOR    ] = "||"; 
-    pMap[ CBA_BOX_LNOR   ] = NULL; 
-    pMap[ CBA_BOX_LXOR   ] = "^^"; 
-    pMap[ CBA_BOX_LXNOR  ] = NULL; 
-    pMap[ CBA_BOX_NMUX   ] = "nmux"; 
-    pMap[ CBA_BOX_SEL    ] = "sel"; 
-    pMap[ CBA_BOX_PSEL   ] = NULL; 
-    pMap[ CBA_BOX_ENC    ] = NULL; 
-    pMap[ CBA_BOX_PENC   ] = NULL; 
-    pMap[ CBA_BOX_DEC    ] = "dec"; 
-    pMap[ CBA_BOX_EDEC   ] = NULL; 
-    pMap[ CBA_BOX_ADD    ] = "+"; 
-    pMap[ CBA_BOX_SUB    ] = "-"; 
-    pMap[ CBA_BOX_MUL    ] = "*"; 
-    pMap[ CBA_BOX_DIV    ] = "/"; 
-    pMap[ CBA_BOX_MOD    ] = NULL; 
-    pMap[ CBA_BOX_REM    ] = "%%"; 
-    pMap[ CBA_BOX_POW    ] = "**"; 
-    pMap[ CBA_BOX_MIN    ] = "-"; 
-    pMap[ CBA_BOX_ABS    ] = NULL; 
-    pMap[ CBA_BOX_LTHAN  ] = "<"; 
-    pMap[ CBA_BOX_LETHAN ] = "<="; 
-    pMap[ CBA_BOX_METHAN ] = ">="; 
-    pMap[ CBA_BOX_MTHAN  ] = ">"; 
-    pMap[ CBA_BOX_EQU    ] = "=="; 
-    pMap[ CBA_BOX_NEQU   ] = "!="; 
-    pMap[ CBA_BOX_SHIL   ] = "<<"; 
-    pMap[ CBA_BOX_SHIR   ] = ">>"; 
-    pMap[ CBA_BOX_ROTL   ] = "rotL"; 
-    pMap[ CBA_BOX_ROTR   ] = "rotR"; 
-
-    pMap[ CBA_BOX_TRI    ] = "tri";
-    pMap[ CBA_BOX_RAM    ] = "ram";
-    pMap[ CBA_BOX_RAMR   ] = "ramR";
-    pMap[ CBA_BOX_RAMW   ] = "ramW";
-    pMap[ CBA_BOX_RAMWC  ] = "ramWC";
-    pMap[ CBA_BOX_RAMBOX ] = "ramBox";
-
-    pMap[ CBA_BOX_LATCH  ] = "lat";
-    pMap[ CBA_BOX_LATCHRS] = "latrs";
-    pMap[ CBA_BOX_DFF    ] = "dff";
-    pMap[ CBA_BOX_DFFRS  ] = "dffrs";
-}
 
 
 static inline int Cba_NameIsLegalInVerilog( char * pName, int NameId )
@@ -333,8 +371,9 @@ void Cba_ManWriteFonRange( Cba_Ntk_t * p, int iFon )
     Vec_Str_t * vStr = &p->pDesign->vOut;
     if ( !iFon || Cba_FonIsConst(iFon) || (Cba_FonRangeSize(p, iFon) == 1 && Cba_FonRight(p, iFon) == 0) )
         return;
+    if ( Cba_FonSigned(p, iFon) )
+        Vec_StrPrintF( vStr, "signed " );
     Vec_StrPrintF( vStr, "[%d:%d] ", Cba_FonLeft(p, iFon), Cba_FonRight(p, iFon) );
-
 }
 void Cba_ManWriteFonName( Cba_Ntk_t * p, int iFon, int fInlineConcat, int fInput )
 {
@@ -732,6 +771,47 @@ void Cba_ManWriteVerilogNtk( Cba_Ntk_t * p, int fInlineConcat )
             Cba_ManWriteFonName( p, iFonD, fInlineConcat, 0 );
             Vec_StrPrintStr( vStr, ";" );
         }
+        else if ( Type == CBA_BOX_DFFCPL )
+        {
+            // CPL_FF#32 inst_reg( .d(s1), .arstval(s2), .arst(s3), .clk(s4), .q(s5), .qbar(s6) );
+            int iFon0 = Cba_ObjFon0(p, iObj);
+            int iFon1 = Cba_ObjFon(p, iObj, 1);
+            int Range = Cba_FonRangeSize( p, iFon0 );
+            if ( !Vec_BitEntry(vPoFons, iFon0) )
+            {
+                Vec_StrPrintStr( vStr, "  wire " );
+                Cba_ManWriteFonRange( p, iFon0 );
+                Cba_ManWriteFonName( p, iFon0, 0, 0 );
+                Vec_StrPrintStr( vStr, ";\n" );
+            }
+            if ( !Vec_BitEntry(vPoFons, iFon1) && Cba_FonName(p, iFon1) )
+            {
+                Vec_StrPrintStr( vStr, "  wire " );
+                Cba_ManWriteFonRange( p, iFon1 );
+                Cba_ManWriteFonName( p, iFon1, 0, 0 );
+                Vec_StrPrintStr( vStr, ";\n" );
+            }
+            Vec_StrPrintStr( vStr, "  CPL_FF" );
+            if ( Range > 1 )
+                Vec_StrPrintF( vStr, "#%d", Range );
+            Vec_StrPrintStr( vStr, " " );
+            if ( Cba_ObjName(p, iObj) )
+                Vec_StrPrintStr( vStr, Cba_ObjGetName(p, iObj) );
+            Vec_StrPrintStr( vStr, " ( .d(" );
+            Cba_ManWriteFonName( p, Cba_ObjFinFon(p, iObj, 0), fInlineConcat, 0 );
+            Vec_StrPrintStr( vStr, "), .arstval(" );
+            Cba_ManWriteFonName( p, Cba_ObjFinFon(p, iObj, 1), fInlineConcat, 0 );
+            Vec_StrPrintStr( vStr, "), .arst(" );
+            Cba_ManWriteFonName( p, Cba_ObjFinFon(p, iObj, 2), fInlineConcat, 0 );
+            Vec_StrPrintStr( vStr, "), .clk(" );
+            Cba_ManWriteFonName( p, Cba_ObjFinFon(p, iObj, 3), fInlineConcat, 0 );
+            Vec_StrPrintStr( vStr, "), .q(" );
+            Cba_ManWriteFonName( p, iFon0, fInlineConcat, 0 );
+            Vec_StrPrintStr( vStr, "), .qbar(" );
+            if ( Cba_FonName(p, iFon1) )
+                Cba_ManWriteFonName( p, iFon1, fInlineConcat, 0 );
+            Vec_StrPrintStr( vStr, ") );" );
+        }
         else if ( Type == CBA_BOX_ADD )
         {
             int iFon0 = Cba_ObjFon0(p, iObj);
@@ -772,7 +852,7 @@ void Cba_ManWriteVerilogNtk( Cba_Ntk_t * p, int fInlineConcat )
                 Vec_StrPrintStr( vStr, " = " );
             }
             // write carry-in
-            if ( Cba_ObjFinFon(p, iObj, 0) != Cba_FonFromConst(1) )
+            if ( Cba_ObjFinFon(p, iObj, 0) && Cba_ObjFinFon(p, iObj, 0) != Cba_FonFromConst(1) )
             {
                 Vec_StrPush( vStr, ' ' );
                 Cba_ManWriteFonName( p, Cba_ObjFinFon(p, iObj, 0), fInlineConcat, 0 );
@@ -808,6 +888,33 @@ void Cba_ManWriteVerilogNtk( Cba_Ntk_t * p, int fInlineConcat )
                 Vec_StrPrintStr( vStr, " : " );
                 Cba_ManWriteFonName( p, Cba_ObjFinFon(p, iObj, 2), fInlineConcat, 0 );
             }
+            else if ( Type == CBA_BOX_ROTL || Type == CBA_BOX_ROTR )
+            {
+                //  wire [27:0] s4960 = (s57 >> 17) | (s57 << 11);
+                int Range = Cba_FonRangeSize( p, Cba_ObjFon0(p, iObj) );
+                int iFinFon1 = Cba_ObjFinFon(p, iObj, 1);
+                Vec_StrPush( vStr, '(' );
+                Cba_ManWriteFonName( p, Cba_ObjFinFon(p, iObj, 0), fInlineConcat, 0 );
+                Vec_StrPrintStr( vStr, Type == CBA_BOX_ROTL ? " << " : " >> " );
+                if ( Cba_FonIsConst(iFinFon1) )
+                    Vec_StrPrintNum( vStr, Cba_FonConst(iFinFon1) );
+                else
+                    Cba_ManWriteFonName( p, Cba_ObjFinFon(p, iObj, 1), fInlineConcat, 0 );
+                Vec_StrPrintStr( vStr, ") | (" );
+                Cba_ManWriteFonName( p, Cba_ObjFinFon(p, iObj, 0), fInlineConcat, 0 );
+                Vec_StrPrintStr( vStr, Type == CBA_BOX_ROTL ? " >> " : " << " );
+                if ( Cba_FonIsConst(iFinFon1) )
+                    Vec_StrPrintNum( vStr, Range - Cba_FonConst(iFinFon1) );
+                else
+                {
+                    Vec_StrPush( vStr, '(' );
+                    Vec_StrPrintNum( vStr, Range );
+                    Vec_StrPrintStr( vStr, " - " );
+                    Cba_ManWriteFonName( p, Cba_ObjFinFon(p, iObj, 1), fInlineConcat, 0 );
+                    Vec_StrPush( vStr, ')' );
+                }
+                Vec_StrPush( vStr, ')' );
+            }
             else if ( Type == CBA_BOX_LTHAN )
             {
                 int fLessThan = (Cba_ObjFinFon(p, iObj, 0) == Cba_FonFromConst(1)); // const0
@@ -826,7 +933,6 @@ void Cba_ManWriteVerilogNtk( Cba_Ntk_t * p, int fInlineConcat )
             else if ( Cba_NtkTypeName(p, Type) ) // binary operation
             {
                 int fCompl = (Type == CBA_BOX_NAND || Type == CBA_BOX_NOR || Type == CBA_BOX_XNOR);
-                Vec_StrPush( vStr, ' ' );
                 if ( fCompl )
                     Vec_StrPrintStr( vStr, "!(" );
                 Cba_ManWriteFonName( p, Cba_ObjFinFon(p, iObj, 0), fInlineConcat, 0 );
@@ -839,8 +945,9 @@ void Cba_ManWriteVerilogNtk( Cba_Ntk_t * p, int fInlineConcat )
             }
             else // unknown
             {
+                char * pName = Cba_FonGetName(p, Cba_ObjFon0(p, iObj));
                 Vec_StrPrintStr( vStr, "<unknown operator>" );
-                printf( "Cba_ManWriteVerilog(): In module \"%s\", cannot write object \"%s\".\n", Cba_NtkName(p), Cba_ObjGetName(p, iObj) );
+                printf( "Cba_ManWriteVerilog(): In module \"%s\", cannot write object \"%s\" with output name \"%s\".\n", Cba_NtkName(p), Cba_ObjGetName(p, iObj), pName );
             }
             Vec_StrPush( vStr, ';' );
         }

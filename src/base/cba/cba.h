@@ -109,6 +109,7 @@ typedef enum {
     CBA_BOX_REM,
     CBA_BOX_POW,
     CBA_BOX_MIN,
+    CBA_BOX_SQRT,
     CBA_BOX_ABS,
 
     CBA_BOX_SLTHAN,
@@ -121,6 +122,7 @@ typedef enum {
 
     CBA_BOX_SHIL,
     CBA_BOX_SHIR,
+    CBA_BOX_SHILA,
     CBA_BOX_SHIRA,
     CBA_BOX_ROTL,
     CBA_BOX_ROTR,
@@ -142,6 +144,7 @@ typedef enum {
     CBA_BOX_LATCH,
     CBA_BOX_LATCHRS,
     CBA_BOX_DFF,
+    CBA_BOX_DFFCPL,
     CBA_BOX_DFFRS,
 
     CBA_BOX_LAST   // 67
@@ -278,29 +281,29 @@ static inline int            Cba_NtkBoxUserNum( Cba_Ntk_t * p )              { r
 static inline int            Cba_NtkBoxPrimNum( Cba_Ntk_t * p )              { return Vec_StrCountLarger(&p->vObjType, (char)CBA_OBJ_BOX);                                 }
 static inline int            Cba_NtkBoxSeqNum( Cba_Ntk_t * p )               { return Vec_IntSize(&p->vSeq);                                                               }
 
-static inline void           Cba_NtkCleanObjCopies( Cba_Ntk_t * p )          { Vec_IntFill(&p->vObjCopy, Vec_StrCap(&p->vObjType), -1);        }
-static inline void           Cba_NtkCleanObjFuncs( Cba_Ntk_t * p )           { Vec_IntFill(&p->vObjFunc, Vec_StrCap(&p->vObjType),  0);        }
-static inline void           Cba_NtkCleanObjNames( Cba_Ntk_t * p )           { Vec_IntFill(&p->vObjName, Vec_StrCap(&p->vObjType),  0);        }
-static inline void           Cba_NtkCleanObjAttrs( Cba_Ntk_t * p )           { Vec_IntFill(&p->vObjAttr, Vec_StrCap(&p->vObjType),  0); Vec_IntFill(&p->vAttrSto, 1, -1);  }
-static inline void           Cba_NtkCleanFonCopies( Cba_Ntk_t * p )          { Vec_IntFill(&p->vFonCopy, Vec_IntCap(&p->vFonObj),   0);        }
-static inline void           Cba_NtkCleanFonNames( Cba_Ntk_t * p )           { Vec_IntFill(&p->vFonName, Vec_IntCap(&p->vFonObj),   0);        }
-static inline void           Cba_NtkCleanFonRanges( Cba_Ntk_t * p )          { Vec_IntFill(&p->vFonRange,Vec_IntCap(&p->vFonObj),   0);        }
-static inline void           Cba_NtkCleanFonPrevs( Cba_Ntk_t * p )           { Vec_IntFill(&p->vFonPrev, Vec_IntCap(&p->vFonObj),   0);        }
-static inline void           Cba_NtkCleanFonNexts( Cba_Ntk_t * p )           { Vec_IntFill(&p->vFonNext, Vec_IntCap(&p->vFonObj),   0);        }
-static inline void           Cba_NtkCleanFinFon0( Cba_Ntk_t * p )            { Vec_IntFill(&p->vFinFon0, Vec_IntCap(&p->vFinFon),   0);        }
-static inline void           Cba_NtkCleanFinObjs( Cba_Ntk_t * p )            { Vec_IntFill(&p->vFinObj,  Vec_IntCap(&p->vFinFon),   0);        }
+static inline void           Cba_NtkCleanObjCopies( Cba_Ntk_t * p )          { Vec_IntFill(&p->vObjCopy,  Vec_StrCap(&p->vObjType), -1);        }
+static inline void           Cba_NtkCleanObjFuncs( Cba_Ntk_t * p )           { Vec_IntFill(&p->vObjFunc,  Vec_StrCap(&p->vObjType),  0);        }
+static inline void           Cba_NtkCleanObjNames( Cba_Ntk_t * p )           { Vec_IntFill(&p->vObjName,  Vec_StrCap(&p->vObjType),  0);        }
+static inline void           Cba_NtkCleanObjAttrs( Cba_Ntk_t * p )           { Vec_IntFill(&p->vObjAttr,  Vec_StrCap(&p->vObjType),  0); Vec_IntFill(&p->vAttrSto, 1, -1); }
+static inline void           Cba_NtkCleanFonCopies( Cba_Ntk_t * p )          { Vec_IntFill(&p->vFonCopy,  Vec_IntCap(&p->vFonObj),   0);        }
+static inline void           Cba_NtkCleanFonNames( Cba_Ntk_t * p )           { Vec_IntFill(&p->vFonName,  Vec_IntCap(&p->vFonObj),   0);        }
+static inline void           Cba_NtkCleanFonRanges( Cba_Ntk_t * p )          { Vec_IntFill(&p->vFonRange, Vec_IntCap(&p->vFonObj),   0);        }
+static inline void           Cba_NtkCleanFonPrevs( Cba_Ntk_t * p )           { Vec_IntFill(&p->vFonPrev,  Vec_IntCap(&p->vFonObj),   0);        }
+static inline void           Cba_NtkCleanFonNexts( Cba_Ntk_t * p )           { Vec_IntFill(&p->vFonNext,  Vec_IntCap(&p->vFonObj),   0);        }
+static inline void           Cba_NtkCleanFinFon0( Cba_Ntk_t * p )            { Vec_IntFill(&p->vFinFon0,  Vec_IntCap(&p->vFinFon),   0);        }
+static inline void           Cba_NtkCleanFinObjs( Cba_Ntk_t * p )            { Vec_IntFill(&p->vFinObj,   Vec_IntCap(&p->vFinFon),   0);        }
 
-static inline int            Cba_NtkHasObjCopies( Cba_Ntk_t * p )            { return Vec_IntSize(&p->vObjCopy) > 0; }
-static inline int            Cba_NtkHasObjFuncs( Cba_Ntk_t * p )             { return Vec_IntSize(&p->vObjFunc) > 0; }
-static inline int            Cba_NtkHasObjNames( Cba_Ntk_t * p )             { return Vec_IntSize(&p->vObjName) > 0; }
-static inline int            Cba_NtkHasObjAttrs( Cba_Ntk_t * p )             { return Vec_IntSize(&p->vObjAttr) > 0; }
-static inline int            Cba_NtkHasFonCopies( Cba_Ntk_t * p )            { return Vec_IntSize(&p->vFonCopy) > 0; }
-static inline int            Cba_NtkHasFonNames( Cba_Ntk_t * p )             { return Vec_IntSize(&p->vFonName) > 0; }
-static inline int            Cba_NtkHasFonRanges( Cba_Ntk_t * p )            { return Vec_IntSize(&p->vFonRange)> 0; }
-static inline int            Cba_NtkHasFonPrevs( Cba_Ntk_t * p )             { return Vec_IntSize(&p->vFonPrev) > 0; }
-static inline int            Cba_NtkHasFonNexts( Cba_Ntk_t * p )             { return Vec_IntSize(&p->vFonNext) > 0; }
-static inline int            Cba_NtkHasFinFon0( Cba_Ntk_t * p )              { return Vec_IntSize(&p->vFinFon0) > 0; }
-static inline int            Cba_NtkHasFinObjs( Cba_Ntk_t * p )              { return Vec_IntSize(&p->vFinObj)  > 0; }
+static inline int            Cba_NtkHasObjCopies( Cba_Ntk_t * p )            { return Vec_IntSize(&p->vObjCopy)  > 0; }
+static inline int            Cba_NtkHasObjFuncs( Cba_Ntk_t * p )             { return Vec_IntSize(&p->vObjFunc)  > 0; }
+static inline int            Cba_NtkHasObjNames( Cba_Ntk_t * p )             { return Vec_IntSize(&p->vObjName)  > 0; }
+static inline int            Cba_NtkHasObjAttrs( Cba_Ntk_t * p )             { return Vec_IntSize(&p->vObjAttr)  > 0; }
+static inline int            Cba_NtkHasFonCopies( Cba_Ntk_t * p )            { return Vec_IntSize(&p->vFonCopy)  > 0; }
+static inline int            Cba_NtkHasFonNames( Cba_Ntk_t * p )             { return Vec_IntSize(&p->vFonName)  > 0; }
+static inline int            Cba_NtkHasFonRanges( Cba_Ntk_t * p )            { return Vec_IntSize(&p->vFonRange) > 0; }
+static inline int            Cba_NtkHasFonPrevs( Cba_Ntk_t * p )             { return Vec_IntSize(&p->vFonPrev)  > 0; }
+static inline int            Cba_NtkHasFonNexts( Cba_Ntk_t * p )             { return Vec_IntSize(&p->vFonNext)  > 0; }
+static inline int            Cba_NtkHasFinFon0( Cba_Ntk_t * p )              { return Vec_IntSize(&p->vFinFon0)  > 0; }
+static inline int            Cba_NtkHasFinObjs( Cba_Ntk_t * p )              { return Vec_IntSize(&p->vFinObj)   > 0; }
 
 static inline void           Cba_NtkFreeObjCopies( Cba_Ntk_t * p )           { Vec_IntErase(&p->vObjCopy);   }
 static inline void           Cba_NtkFreeObjFuncs( Cba_Ntk_t * p )            { Vec_IntErase(&p->vObjFunc);   }
@@ -318,7 +321,7 @@ static inline Cba_ObjType_t  Cba_ObjType( Cba_Ntk_t * p, int i )             { a
 static inline void           Cba_ObjCleanType( Cba_Ntk_t * p, int i )        { assert(i>0); Vec_StrWriteEntry( &p->vObjType, i, (char)CBA_OBJ_NONE );                      }
 static inline int            Cba_TypeIsBox( Cba_ObjType_t Type )             { return Type >= CBA_OBJ_BOX && Type < CBA_BOX_LAST;                                          }
 static inline int            Cba_TypeIsSeq( Cba_ObjType_t Type )             { return Type >= CBA_BOX_RAM && Type <= CBA_BOX_DFFRS;                                        }
-static inline int            Cba_TypeIsUnary( Cba_ObjType_t Type )           { return Type == CBA_BOX_BUF || Type == CBA_BOX_INV || Type == CBA_BOX_LNOT || Type == CBA_BOX_MIN || Type == CBA_BOX_ABS || (Type >= CBA_BOX_RAND && Type <= CBA_BOX_RXNOR);  }
+static inline int            Cba_TypeIsUnary( Cba_ObjType_t Type )           { return Type == CBA_BOX_BUF || Type == CBA_BOX_INV || Type == CBA_BOX_LNOT || Type == CBA_BOX_MIN || Type == CBA_BOX_SQRT || Type == CBA_BOX_ABS || (Type >= CBA_BOX_RAND && Type <= CBA_BOX_RXNOR);  }
 static inline int            Cba_TypeIsMux( Cba_ObjType_t Type )             { return Type == CBA_BOX_MUX || Type == CBA_BOX_NMUX || Type == CBA_BOX_SEL || Type == CBA_BOX_PSEL;  }
 
 static inline int            Cba_ObjIsPi( Cba_Ntk_t * p, int i )             { return Cba_ObjType(p, i) == CBA_OBJ_PI;                                                     }
@@ -375,18 +378,20 @@ static inline int            Cba_FonFromConst( int c )                       { a
 static inline int            Cba_FonConstRange( Cba_Ntk_t * p, int f )       { assert(Cba_FonIsConst(f)); return atoi(Cba_NtkConst(p, Cba_FonConst(f)));                   }
 
 static inline int            Cba_FonObj( Cba_Ntk_t * p, int f )              { return Cba_FonIsReal(f) ? Vec_IntEntry(&p->vFonObj, f) : 0;                                 }
-static inline int            Cba_FonRange( Cba_Ntk_t * p, int f )            { assert(Cba_FonIsReal(f)); return Cba_NtkHasFonRanges(p)?Vec_IntGetEntry(&p->vFonRange, f):0;}
+static inline int            Cba_FonRange( Cba_Ntk_t * p, int f )            { assert(Cba_FonIsReal(f)); return Cba_NtkHasFonRanges(p)?Abc_Lit2Var(Vec_IntGetEntry(&p->vFonRange, f)):0;    }
+static inline int            Cba_FonSigned( Cba_Ntk_t * p, int f )           { assert(Cba_FonIsReal(f)); return Cba_NtkHasFonRanges(p)?Abc_LitIsCompl(Vec_IntGetEntry(&p->vFonRange, f)):0; }
 static inline int            Cba_FonLeft( Cba_Ntk_t * p, int f )             { return Cba_NtkRangeLeft(p, Cba_FonRange(p, f));                                             }
 static inline int            Cba_FonRight( Cba_Ntk_t * p, int f )            { return Cba_NtkRangeRight(p, Cba_FonRange(p, f));                                            }
 static inline int            Cba_FonRangeSize( Cba_Ntk_t * p, int f )        { return Cba_FonIsConst(f) ? Cba_FonConstRange(p, f):Cba_NtkRangeSize(p, Cba_FonRange(p, f)); }
-static inline void           Cba_FonSetRange( Cba_Ntk_t * p, int f, int x )  { assert(Cba_NtkHasFonRanges(p));  Vec_IntSetEntry(&p->vFonRange, f, x);                      }
+static inline void           Cba_FonSetRangeSign( Cba_Ntk_t * p, int f, int x )  { assert(Cba_NtkHasFonRanges(p));  Vec_IntSetEntry(&p->vFonRange, f, x);                  }
+static inline void           Cba_FonSetRange( Cba_Ntk_t * p, int f, int x )  { assert(Cba_NtkHasFonRanges(p));  Vec_IntSetEntry(&p->vFonRange, Abc_Var2Lit(f,0), x);       }
 static inline void           Cba_FonHashRange( Cba_Ntk_t * p, int f, int l, int r ) { Cba_FonSetRange( p, f, Cba_NtkHashRange(p, l, r) );                                  }
 static inline int            Cba_FonCopy( Cba_Ntk_t * p, int f )             { return Cba_FonIsReal(f) ? Vec_IntEntry(&p->vFonCopy, f) : f;                                }
 static inline void           Cba_FonSetCopy( Cba_Ntk_t * p, int f, int x )   { assert(Cba_FonIsReal(f)); assert(Cba_FonCopy(p, f) == 0); Vec_IntWriteEntry(&p->vFonCopy, f, x); }
 static inline int            Cba_FonName( Cba_Ntk_t * p, int f )             { assert(Cba_NtkHasFonNames(p)); assert(Cba_FonIsReal(f)); return Vec_IntGetEntry( &p->vFonName, f );                        }
 static inline char *         Cba_FonNameStr( Cba_Ntk_t * p, int f )          { assert(Cba_NtkHasFonNames(p)); assert(Cba_FonIsReal(f)); return Cba_NtkStr(p, Cba_FonName(p, f));                          }
-static inline void           Cba_FonSetName( Cba_Ntk_t * p, int f, int x )   { assert(Cba_NtkHasFonNames(p)); assert(Cba_FonIsReal(f)); assert(Cba_FonName(p, f) == 0); Vec_IntSetEntry(&p->vFonName, f, x);   }
-static inline void           Cba_FonCleanName( Cba_Ntk_t * p, int f )        { assert(Cba_NtkHasFonNames(p)); assert(Cba_FonIsReal(f)); assert(Cba_FonName(p, f) != 0); Vec_IntSetEntry(&p->vFonName, f, 0);   }
+static inline void           Cba_FonSetName( Cba_Ntk_t * p, int f, int x )   { assert(Cba_NtkHasFonNames(p)); assert(Cba_FonIsReal(f)); assert(Cba_FonName(p, f) == 0); Vec_IntSetEntry(&p->vFonName, f, x); }
+static inline void           Cba_FonCleanName( Cba_Ntk_t * p, int f )        { assert(Cba_NtkHasFonNames(p)); assert(Cba_FonIsReal(f)); assert(Cba_FonName(p, f) != 0); Vec_IntSetEntry(&p->vFonName, f, 0); }
 static inline void           Cba_FonPatchName( Cba_Ntk_t * p, int f, int x)  { assert(Cba_NtkHasFonNames(p)); assert(Cba_FonIsReal(f)); Cba_FonCleanName(p, f); Cba_FonSetName(p, f, x);                  }
 static inline int            Cba_FonIndex( Cba_Ntk_t * p, int f )            { assert(Cba_FonIsReal(f)); return f - Cba_ObjFon0( p, Cba_FonObj(p, f) );                    }
 static inline int            Cba_FonNtkId( Cba_Ntk_t * p, int f )            { assert(Cba_FonIsReal(f)); return Cba_ObjNtkId( p, Cba_FonObj(p, f) );                       }

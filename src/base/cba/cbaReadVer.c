@@ -33,15 +33,19 @@ static const char * s_VerTypes[PRS_VER_UNKNOWN+1] = {
     "output",          // 2:  output
     "inout",           // 3:  inout
     "wire",            // 4:  wire
-    "module",          // 5:  module
-    "assign",          // 6:  assign
-    "reg",             // 7:  reg
+    "reg",             // 5:  reg
+    "module",          // 6:  module
+    "assign",          // 7:  assign
     "always",          // 8:  always
-    "defparam",        // 9:  defparam
-    "begin",           // 10: begin
-    "end",             // 11: end
-    "endmodule",       // 12: endmodule
-    NULL               // 13: unknown 
+    "function",        // 9:  function
+    "defparam",        // 10: defparam
+    "begin",           // 11: begin
+    "end",             // 12: end
+    "case",            // 13: case
+    "endcase",         // 14: endcase
+    "signed",          // 15: signed
+    "endmodule",       // 16: endmodule
+    NULL               // 17: unknown 
 };
 
 void Prs_NtkAddVerilogDirectives( Prs_Man_t * p )
@@ -157,7 +161,10 @@ static const char * s_VerNames[100] =
     "wide_prio_select_",     
     "pow_",                  
     "PrioEncoder_",          
-    "abs_",                   
+    "abs_",
+    "CPL_NMACROFF",
+    "CPL_MACROFF",
+    "CPL_FF",
     NULL
 };
 
@@ -252,6 +259,7 @@ static const Prs_VerInfo_t s_VerInfo[100] =
     {CBA_BOX_POW,     2, "pow_",                   /* "OPER_POW"                */ {"a","b","o"}},
     {CBA_BOX_PENC,    1, "PrioEncoder_",           /* "OPER_PRIO_ENCODER"       */ {"sel","o"}},
     {CBA_BOX_ABS,     1, "abs_",                   /* "OPER_ABS"                */ {"i","o"}},
+    {CBA_BOX_DFFCPL,  4, "CPL_FF",                 /* "OPER_WIDE_DFF - 2"       */ {"d","arstval","arst","clk","q","qbar"}},
     {-1,              0, NULL,                     /* "PRIM_END"                */ {NULL}}
 }; 
 
@@ -374,6 +382,40 @@ static inline int Prs_ManUtilSkipUntilWord( Prs_Man_t * p, char * pWord )
     p->pCur = pPlace + strlen(pWord);
     return 0;
 }
+// detect two symbols on the same line
+static inline int Prs_ManUtilDetectTwo( Prs_Man_t * p, char Sym1, char Sym2 )
+{
+    char * pTemp;
+    for ( pTemp = p->pCur; *pTemp != ';'; pTemp++ )
+        if ( *pTemp == Sym1 && *pTemp == Sym2 )
+            return 1;
+    return 0;
+}
+// find closing paren
+static inline char * Prs_ManFindClosingParenthesis( Prs_Man_t * p, char Open, char Close )
+{
+    char * pTemp;
+    int Counter = 0;
+    int fNotName = 1;
+    assert( Prs_ManIsChar(p, Open) );
+    for ( pTemp = p->pCur; *pTemp; pTemp++ )
+    {
+        if ( fNotName )
+        {
+            if ( *pTemp == Open )
+                Counter++;
+            if ( *pTemp == Close )
+                Counter--;
+            if ( Counter == 0 )
+                return pTemp;
+        }
+        if ( *pTemp == '\\' )
+            fNotName = 0;
+        else if ( !fNotName && *pTemp == ' ' )
+            fNotName = 1;
+    }
+    return NULL;
+}
 
 /**Function*************************************************************
 
@@ -429,8 +471,11 @@ static inline int Prs_ManReadConstant( Prs_Man_t * p )
     assert( Prs_ManIsDigit(p) );
     while ( Prs_ManIsDigit(p) ) 
         p->pCur++;
-    if ( !Prs_ManIsChar(p, '\'') )          return Prs_ManErrorSet(p, "Cannot read constant.", 0);
+    if ( !Prs_ManIsChar(p, '\'') )
+        return Abc_NamStrFindOrAddLim( p->pFuns, pStart, p->pCur, NULL );
     p->pCur++;
+    if ( Prs_ManIsChar(p, 's') )
+        p->pCur++;
     if ( Prs_ManIsChar(p, 'b') )
     {
         p->pCur++;
@@ -520,24 +565,51 @@ static inline int Prs_ManReadSignal( Prs_Man_t * p )
     if ( Prs_ManIsDigit(p) )
     {
         Item = Prs_ManReadConstant(p);
-        if ( Item == 0 )                    return Prs_ManErrorSet(p, "Error number 9.", 0);
+        if ( Item == 0 )                    return 0;
         if ( Prs_ManUtilSkipSpaces(p) )     return Prs_ManErrorSet(p, "Error number 10.", 0);
         return Abc_Var2Lit2( Item, CBA_PRS_CONST );
     }
     if ( Prs_ManIsChar(p, '{') )
     {
+        if ( Prs_CharIsDigit(p->pCur[1]) )
+        {
+            p->pCur++;
+            if ( Prs_ManIsDigit(p) )
+            {
+                int i, Num = atoi(p->pCur);
+                while ( Prs_ManIsDigit(p) )
+                    p->pCur++;
+                if ( Prs_ManUtilSkipSpaces(p) ) return Prs_ManErrorSet(p, "Error number 10.", 0);
+                assert( Prs_ManIsChar(p, '{') );
+                p->pCur++;
+                if ( Prs_ManUtilSkipSpaces(p) ) return Prs_ManErrorSet(p, "Error number 10.", 0);
+                Item = Prs_ManReadSignal( p );
+                assert( Prs_ManIsChar(p, '}') );
+                p->pCur++;
+                if ( Prs_ManUtilSkipSpaces(p) ) return Prs_ManErrorSet(p, "Error number 10.", 0);
+                // add to concat all, expect the last one
+                assert( p->fUsingTemp2 );
+                for ( i = 0; i < Num-1; i++ )
+                    Vec_IntPush( &p->vTemp2, Item );
+                if ( Prs_ManUtilSkipSpaces(p) ) return Prs_ManErrorSet(p, "Error number 10.", 0);
+                assert( Prs_ManIsChar(p, '}') );
+                p->pCur++;
+                if ( Prs_ManUtilSkipSpaces(p) ) return Prs_ManErrorSet(p, "Error number 10.", 0);
+                return Item;
+            }
+        }
         if ( p->fUsingTemp2 )               return Prs_ManErrorSet(p, "Cannot read nested concatenations.", 0);
         p->fUsingTemp2 = 1;
         Item = Prs_ManReadConcat(p, &p->vTemp2);
         p->fUsingTemp2 = 0;
-        if ( Item == 0 )                    return Prs_ManErrorSet(p, "Error number 11.", 0);
+        if ( Item == 0 )                    return 0;
         if ( Prs_ManUtilSkipSpaces(p) )     return Prs_ManErrorSet(p, "Error number 12.", 0);
         return Item;
     }
     else
     {
         Item = Prs_ManReadName( p );
-        if ( Item == 0 )                    return Prs_ManErrorSet(p, "Error number 13.", 0);    // was        return 1;                
+        if ( Item == 0 )                    return 1; // no actual name               
         if ( Prs_ManUtilSkipSpaces(p) )     return Prs_ManErrorSet(p, "Error number 14.", 0);
         if ( Prs_ManIsChar(p, '[') )
         {
@@ -580,10 +652,11 @@ static inline int Prs_ManReadSignalList2( Prs_Man_t * p, Vec_Int_t * vTemp )
         p->pCur++;
         if ( Prs_ManUtilSkipSpaces(p) )     return Prs_ManErrorSet(p, "Error number 17.", 0);
         ActItem = Prs_ManReadSignal( p );
-        if ( ActItem == 0 )                 return Prs_ManErrorSet(p, "Cannot read actual name of the instance.", 0);
+        if ( ActItem == 0 )                 return Prs_ManErrorSet(p, "Cannot read actual name of an instance.", 0);
         if ( !Prs_ManIsChar(p, ')') )       return Prs_ManErrorSet(p, "Cannot read \")\" in the instance.", 0);
         p->pCur++;
-        Vec_IntPushTwo( vTemp, FormId, ActItem );
+        if ( ActItem != 1 )
+            Vec_IntPushTwo( vTemp, FormId, ActItem );
         if ( Prs_ManUtilSkipSpaces(p) )     return Prs_ManErrorSet(p, "Error number 18.", 0);
         if ( Prs_ManIsChar(p, ')') )        break;
         if ( !Prs_ManIsChar(p, ',') )       return Prs_ManErrorSet(p, "Expecting comma in the instance.", 0);
@@ -606,33 +679,111 @@ static inline int Prs_ManReadSignalList2( Prs_Man_t * p, Vec_Int_t * vTemp )
   SeeAlso     []
 
 ***********************************************************************/
-static inline int Prs_ManReadDeclaration( Prs_Man_t * p, int Type )
+static inline int Prs_ManReadFunction( Prs_Man_t * p )
 {
-    int i, NameId, RangeId = 0;
-    Vec_Int_t * vNames[4]  = { &p->pNtk->vInputs,  &p->pNtk->vOutputs,  &p->pNtk->vInouts,  &p->pNtk->vWires };
-    Vec_Int_t * vNamesR[4] = { &p->pNtk->vInputsR, &p->pNtk->vOutputsR, &p->pNtk->vInoutsR, &p->pNtk->vWiresR };
-    assert( Type >= PRS_VER_INPUT && Type <= PRS_VER_WIRE );
-    if ( Prs_ManUtilSkipSpaces(p) )                                   return Prs_ManErrorSet(p, "Error number 20.", 0);
-    if ( Prs_ManIsChar(p, '[') && !(RangeId = Prs_ManReadRange(p)) )  return Prs_ManErrorSet(p, "Error number 21.", 0);
-    if ( !Prs_ManReadNameList( p, &p->vTemp, ';' ) )                  return Prs_ManErrorSet(p, "Error number 22.", 0);
-    Vec_IntForEachEntry( &p->vTemp, NameId, i )
+    // this is a hack to read functions produced by ABC Verilog writer
+    p->FuncNameId = p->FuncRangeId = 0;
+    if ( Prs_ManUtilSkipUntilWord( p, "_func_" ) ) return Prs_ManErrorSet(p, "Cannot find \"_func_\" keyword.", 0);
+    p->pCur -= 6;
+    p->FuncNameId = Prs_ManReadName( p );          
+    if ( p->FuncNameId == 0 )                      return Prs_ManErrorSet(p, "Error number 30a.", 0);
+    if ( Prs_ManUtilSkipUntilWord( p, "input" ) )  return Prs_ManErrorSet(p, "Cannot find \"input\" keyword.", 0);
+    if ( Prs_ManUtilSkipSpaces(p) )                return Prs_ManErrorSet(p, "Error number 30b.", 0);
+    if ( Prs_ManIsChar(p, '[') )
+        p->FuncRangeId = Prs_ManReadRange(p);
+    else if ( Prs_ManReadName(p) == PRS_VER_SIGNED ) 
     {
-        Vec_IntPush( vNames[Type - PRS_VER_INPUT], NameId );
-        Vec_IntPush( vNamesR[Type - PRS_VER_INPUT], RangeId );
-        if ( Type < PRS_VER_WIRE )
-            Vec_IntPush( &p->pNtk->vOrder, Abc_Var2Lit2(NameId, Type) );
+        if ( Prs_ManUtilSkipSpaces(p) )            return Prs_ManErrorSet(p, "Error number 30c.", 0);
+        if ( Prs_ManIsChar(p, '[') )
+            p->FuncRangeId = Prs_ManReadRange(p);
     }
+    if ( Prs_ManUtilSkipUntilWord( p, "endfunction" ) ) return Prs_ManErrorSet(p, "Cannot find \"endfunction\" keyword.", 0);
     return 1;
 }
-static inline int Prs_ManReadAssign( Prs_Man_t * p )
+static inline int Prs_ManReadAlways( Prs_Man_t * p )
 {
-    int OutItem, InItem, fCompl = 0, fCompl2 = 0, Oper = 0;
-    // read output name
-    OutItem = Prs_ManReadSignal( p );
-    if ( OutItem == 0 )                     return Prs_ManErrorSet(p, "Cannot read output in assign-statement.", 0);
-    if ( !Prs_ManIsChar(p, '=') )           return Prs_ManErrorSet(p, "Expecting \"=\" in assign-statement.", 0);
-    p->pCur++;
+    // this is a hack to read always-statement representing case-statement
+    int iToken;
+    char * pClose; 
     if ( Prs_ManUtilSkipSpaces(p) )         return Prs_ManErrorSet(p, "Error number 23.", 0);
+    if ( !Prs_ManIsChar(p, '@') )           return Prs_ManErrorSet(p, "Cannot parse always statement.", 0);
+    p->pCur++;
+    if ( Prs_ManUtilSkipSpaces(p) )         return Prs_ManErrorSet(p, "Error number 23a.", 0);
+    if ( !Prs_ManIsChar(p, '(') )           return Prs_ManErrorSet(p, "Cannot parse always statement.", 0);
+    pClose = Prs_ManFindClosingParenthesis( p, '(', ')' );
+    if ( pClose == NULL )
+        return Prs_ManErrorSet(p, "Expecting closing parenthesis 1.", 0); 
+    p->pCur = pClose;
+    if ( !Prs_ManIsChar(p, ')') )           return Prs_ManErrorSet(p, "Cannot parse always statement.", 0);
+    p->pCur++;
+    // read begin
+    if ( Prs_ManUtilSkipSpaces(p) )         return Prs_ManErrorSet(p, "Error number 23a.", 0);
+    iToken = Prs_ManReadName( p );
+    if ( iToken != PRS_VER_BEGIN )          return Prs_ManErrorSet(p, "Cannot read \"begin\" keyword.", 0);
+    // read case
+    if ( Prs_ManUtilSkipSpaces(p) )         return Prs_ManErrorSet(p, "Error number 23a.", 0);
+    iToken = Prs_ManReadName( p );
+    if ( iToken != PRS_VER_CASE )           return Prs_ManErrorSet(p, "Cannot read \"case\" keyword.", 0);
+    // read control
+    if ( Prs_ManUtilSkipSpaces(p) )         return Prs_ManErrorSet(p, "Error number 23a.", 0);
+    if ( !Prs_ManIsChar(p, '(') )           return Prs_ManErrorSet(p, "Cannot parse always statement.", 0);
+    p->pCur++;
+    if ( Prs_ManUtilSkipSpaces(p) )         return Prs_ManErrorSet(p, "Error number 23a.", 0);
+    iToken = Prs_ManReadSignal( p );
+    if ( iToken == 0 )                      return Prs_ManErrorSet(p, "Cannot read output in assign-statement.", 0);
+    if ( Prs_ManUtilSkipSpaces(p) )         return Prs_ManErrorSet(p, "Error number 23a.", 0);
+    if ( !Prs_ManIsChar(p, ')') )           return Prs_ManErrorSet(p, "Cannot parse always statement.", 0);
+    p->pCur++;
+    // save control
+    Vec_IntClear( &p->vTemp3 );
+    Vec_IntPushTwo( &p->vTemp3, 0, 0 );  // output will go here
+    Vec_IntPushTwo( &p->vTemp3, 0, iToken );
+    // read conditions
+    if ( Prs_ManUtilSkipSpaces(p) )         return Prs_ManErrorSet(p, "Error number 23a.", 0);
+    if ( !Prs_ManIsDigit(p) )               return Prs_ManErrorSet(p, "Cannot parse always statement.", 0);
+    while ( Prs_ManIsDigit(p) )
+    {
+        while ( Prs_ManIsDigit(p) )
+            p->pCur++;
+        if ( Prs_ManUtilSkipSpaces(p) )     return Prs_ManErrorSet(p, "Error number 23a.", 0);
+        if ( !Prs_ManIsChar(p, ':') )       return Prs_ManErrorSet(p, "Cannot parse always statement.", 0);
+        p->pCur++;
+        if ( Prs_ManUtilSkipSpaces(p) )     return Prs_ManErrorSet(p, "Error number 23a.", 0);
+        // read output
+        iToken = Prs_ManReadSignal( p );
+        if ( iToken == 0 )                  return Prs_ManErrorSet(p, "Cannot read output in assign-statement.", 0);
+        if ( Prs_ManUtilSkipSpaces(p) )     return Prs_ManErrorSet(p, "Error number 23a.", 0);
+        if ( !Prs_ManIsChar(p, '=') )       return Prs_ManErrorSet(p, "Cannot parse always statement.", 0);
+        p->pCur++;
+        // save output
+        Vec_IntWriteEntry( &p->vTemp3, 1, iToken );
+        // read input
+        iToken = Prs_ManReadSignal( p );
+        if ( iToken == 0 )                  return Prs_ManErrorSet(p, "Cannot read output in assign-statement.", 0);
+        if ( Prs_ManUtilSkipSpaces(p) )     return Prs_ManErrorSet(p, "Error number 23a.", 0);
+        if ( !Prs_ManIsChar(p, ';') )       return Prs_ManErrorSet(p, "Cannot parse always statement.", 0);
+        p->pCur++;
+        if ( Prs_ManUtilSkipSpaces(p) )     return Prs_ManErrorSet(p, "Error number 23a.", 0);
+        // save input
+        Vec_IntPushTwo( &p->vTemp3, 0, iToken );
+    }
+    // read endcase
+    if ( Prs_ManUtilSkipSpaces(p) )         return Prs_ManErrorSet(p, "Error number 23a.", 0);
+    iToken = Prs_ManReadName( p );
+    if ( iToken != PRS_VER_ENDCASE )        return Prs_ManErrorSet(p, "Cannot read \"endcase\" keyword.", 0);
+    // read end
+    if ( Prs_ManUtilSkipSpaces(p) )         return Prs_ManErrorSet(p, "Error number 23a.", 0);
+    iToken = Prs_ManReadName( p );
+    if ( iToken != PRS_VER_END )            return Prs_ManErrorSet(p, "Cannot read \"end\" keyword.", 0);
+    // save binary operator
+    Prs_NtkAddBox( p->pNtk, CBA_BOX_NMUX, 0, &p->vTemp3 );
+    return 1;
+}
+/*
+static inline int Prs_ManReadExpression( Prs_Man_t * p, int OutItem )
+{
+    int InItem, fCompl = 0, fCompl2 = 0, Oper = 0;
+    // read output name
     if ( Prs_ManIsChar(p, '~') ) 
     { 
         fCompl = 1; 
@@ -717,17 +868,248 @@ static inline int Prs_ManReadAssign( Prs_Man_t * p )
     Prs_NtkAddBox( p->pNtk, Oper, 0, &p->vTemp );
     return 1;
 }
+*/
+static inline int Prs_ManReadExpression( Prs_Man_t * p, int OutItem )
+{
+    char * pClose;
+    int Item, Type = CBA_OBJ_NONE;
+    int fRotating = 0;
+
+    // write output name
+    Vec_IntClear( &p->vTemp );
+    Vec_IntPush( &p->vTemp, 0 );
+    Vec_IntPush( &p->vTemp, OutItem );
+    if ( Prs_ManUtilSkipSpaces(p) )         return Prs_ManErrorSet(p, "Error number 24.", 0);
+    if ( Prs_ManIsChar(p, '(') )
+    {
+        // THIS IS A HACK TO DETECT rotating shifters:  try to find both << and >> on the same line
+        if ( Prs_ManUtilDetectTwo(p, '>', '>') && Prs_ManUtilDetectTwo(p, '<', '<') )
+            fRotating = 1;
+        pClose = Prs_ManFindClosingParenthesis( p, '(', ')' );
+        if ( pClose == NULL )
+            return Prs_ManErrorSet(p, "Expecting closing parenthesis 1.", 0); 
+        *p->pCur = *pClose = ' ';
+    }
+    if ( Prs_ManUtilSkipSpaces(p) )         return Prs_ManErrorSet(p, "Error number 24.", 0);
+    // read constant or concatenation
+    if ( Prs_ManIsDigit(p) || Prs_ManIsChar(p, '{') )
+    {
+        Item = Prs_ManReadSignal( p );
+        // write constant
+        Vec_IntPush( &p->vTemp, 0 );
+        Vec_IntPush( &p->vTemp, Item );
+        Type = CBA_BOX_BUF;
+    }
+    else if ( Prs_ManIsChar(p, '!') || Prs_ManIsChar(p, '~') || Prs_ManIsChar(p, '@') ||
+              Prs_ManIsChar(p, '&') || Prs_ManIsChar(p, '|') || Prs_ManIsChar(p, '^') || Prs_ManIsChar(p, '-') )
+    {
+        if ( Prs_ManIsChar(p, '!') )
+            Type = CBA_BOX_LNOT;
+        else if ( Prs_ManIsChar(p, '~') )
+            Type = CBA_BOX_INV;
+        else if ( Prs_ManIsChar(p, '@') )
+            Type = CBA_BOX_SQRT;
+        else if ( Prs_ManIsChar(p, '&') )
+            Type = CBA_BOX_RAND;
+        else if ( Prs_ManIsChar(p, '|') )
+            Type = CBA_BOX_ROR;
+        else if ( Prs_ManIsChar(p, '^') )
+            Type = CBA_BOX_RXOR;
+        else if ( Prs_ManIsChar(p, '-') )
+            Type = CBA_BOX_MIN;
+        else assert( 0 );
+        p->pCur++;
+        if ( Prs_ManUtilSkipSpaces(p) )         return Prs_ManErrorSet(p, "Error number 24.", 0);
+        // skip parentheses
+        if ( Prs_ManIsChar(p, '(') )
+        {
+            pClose = Prs_ManFindClosingParenthesis( p, '(', ')' );
+            if ( pClose == NULL )
+                return Prs_ManErrorSet(p, "Expecting closing parenthesis 2.", 0); 
+            *p->pCur = *pClose = ' ';
+        }
+        if ( Prs_ManUtilSkipSpaces(p) )         return Prs_ManErrorSet(p, "Error number 24.", 0);
+        // read first name
+        Item = Prs_ManReadSignal( p );
+        if ( Item == 0 )                        return Prs_ManErrorSet(p, "Cannot read name after a unary operator.", 0);
+        Vec_IntPush( &p->vTemp, 0 );
+        Vec_IntPush( &p->vTemp, Item );
+    }
+    else
+    {
+        // read first name
+        Item = Prs_ManReadSignal( p );
+        if ( Item == 0 )                        return Prs_ManErrorSet(p, "Cannot read name after a binary operator.", 0);
+        // check if this is a recent function
+        if ( Abc_Lit2Var2(Item) == p->FuncNameId )
+        {
+            int Status, nInputs, RangeSize;
+            if ( Prs_ManUtilSkipSpaces(p) )     return Prs_ManErrorSet(p, "Error number 24.", 0);
+            if ( !Prs_ManIsChar(p, '(') )       return Prs_ManErrorSet(p, "Error number 24.", 0);
+            p->pCur++;
+            Status = Prs_ManReadSignalList( p, &p->vTemp, ')', 1 );
+            nInputs = Vec_IntSize(&p->vTemp)/2;
+            RangeSize = p->FuncRangeId ? Ptr_NtkRangeSize(p->pNtk, p->FuncRangeId) : 1;
+            p->FuncNameId = p->FuncRangeId = 0;
+            if ( Status == 0 )                  return 0;
+            if ( nInputs == 1 )
+                Type = CBA_BOX_DEC;
+            else if ( nInputs == RangeSize + 1 )
+                Type = CBA_BOX_SEL;
+            else if ( nInputs == (1 << RangeSize) + 1 )
+                Type = CBA_BOX_NMUX;
+            else                                return Prs_ManErrorSet(p, "Cannot determine word-level operator.", 0);
+            p->pCur++;
+            if ( Prs_ManUtilSkipSpaces(p) )     return Prs_ManErrorSet(p, "Error number 24.", 0);
+            // save word-level operator
+            Vec_IntInsert( &p->vTemp, 0, 0 );
+            Vec_IntInsert( &p->vTemp, 1, OutItem );
+            Prs_NtkAddBox( p->pNtk, Type, 0, &p->vTemp );
+            return 1;
+        }
+        Vec_IntPush( &p->vTemp, 0 );
+        Vec_IntPush( &p->vTemp, Item );
+        if ( Prs_ManUtilSkipSpaces(p) )         return Prs_ManErrorSet(p, "Error number 24.", 0);
+        assert( !Prs_ManIsChar(p, '[') );
+
+        // get the next symbol
+        if ( Prs_ManIsChar(p, ',') || Prs_ManIsChar(p, ';') )
+            Type = CBA_BOX_BUF;
+        else if ( Prs_ManIsChar(p, '?') )
+        {
+            p->pCur++;
+            Item = Prs_ManReadSignal( p );
+            if ( Item == 0 )                    return 0;
+            Vec_IntPush( &p->vTemp, 0 );
+            Vec_IntPush( &p->vTemp, Item );
+            if ( Prs_ManUtilSkipSpaces(p) )     return Prs_ManErrorSet(p, "Error number 24.", 0);
+            if ( !Prs_ManIsChar(p, ':') )       return Prs_ManErrorSet(p, "MUX lacks the colon symbol (:).", 0);
+
+            p->pCur++;
+            Item = Prs_ManReadSignal( p );
+            if ( Item == 0 )                    return 0;
+            Vec_IntPush( &p->vTemp, 0 );
+            Vec_IntPush( &p->vTemp, Item );
+            if ( Prs_ManUtilSkipSpaces(p) )     return Prs_ManErrorSet(p, "Error number 24.", 0);
+            assert( Vec_IntSize(&p->vTemp) == 8 );
+            //ABC_SWAP( int, Vec_IntArray(&p->vTemp)[3], Vec_IntArray(&p->vTemp)[5] );
+            Type = CBA_BOX_MUX;
+        }
+        else 
+        {
+                 if ( p->pCur[0] == '>' && p->pCur[1] == '>' && p->pCur[2] != '>' )  p->pCur += 2, Type = fRotating ? CBA_BOX_ROTR : CBA_BOX_SHIR;
+            else if ( p->pCur[0] == '>' && p->pCur[1] == '>' && p->pCur[2] == '>' )  p->pCur += 3, Type = CBA_BOX_SHIRA;      
+            else if ( p->pCur[0] == '<' && p->pCur[1] == '<' && p->pCur[2] != '<' )  p->pCur += 2, Type = fRotating ? CBA_BOX_ROTL : CBA_BOX_SHIL;
+            else if ( p->pCur[0] == '<' && p->pCur[1] == '<' && p->pCur[2] == '<' )  p->pCur += 3, Type = CBA_BOX_SHILA;      
+            else if ( p->pCur[0] == '&' && p->pCur[1] != '&'                      )  p->pCur += 1, Type = CBA_BOX_AND;       
+            else if ( p->pCur[0] == '|' && p->pCur[1] != '|'                      )  p->pCur += 1, Type = CBA_BOX_OR;        
+            else if ( p->pCur[0] == '^' && p->pCur[1] != '^'                      )  p->pCur += 1, Type = CBA_BOX_XOR;       
+            else if ( p->pCur[0] == '&' && p->pCur[1] == '&'                      )  p->pCur += 2, Type = CBA_BOX_LAND;     
+            else if ( p->pCur[0] == '|' && p->pCur[1] == '|'                      )  p->pCur += 2, Type = CBA_BOX_LOR;      
+            else if ( p->pCur[0] == '=' && p->pCur[1] == '='                      )  p->pCur += 2, Type = CBA_BOX_EQU;      
+            else if ( p->pCur[0] == '!' && p->pCur[1] == '='                      )  p->pCur += 2, Type = CBA_BOX_NEQU;      
+            else if ( p->pCur[0] == '<' && p->pCur[1] != '='                      )  p->pCur += 1, Type = CBA_BOX_LTHAN;     
+            else if ( p->pCur[0] == '>' && p->pCur[1] != '='                      )  p->pCur += 1, Type = CBA_BOX_MTHAN;     
+            else if ( p->pCur[0] == '<' && p->pCur[1] == '='                      )  p->pCur += 2, Type = CBA_BOX_LETHAN;
+            else if ( p->pCur[0] == '>' && p->pCur[1] == '='                      )  p->pCur += 2, Type = CBA_BOX_METHAN;  
+            else if ( p->pCur[0] == '+'                                           )  p->pCur += 1, Type = CBA_BOX_ADD;       
+            else if ( p->pCur[0] == '-'                                           )  p->pCur += 1, Type = CBA_BOX_SUB;       
+            else if ( p->pCur[0] == '*' && p->pCur[1] != '*'                      )  p->pCur += 1, Type = CBA_BOX_MUL;     
+            else if ( p->pCur[0] == '/'                                           )  p->pCur += 1, Type = CBA_BOX_DIV;        
+            else if ( p->pCur[0] == '%'                                           )  p->pCur += 1, Type = CBA_BOX_MOD;   
+            else if ( p->pCur[0] == '*' && p->pCur[1] == '*'                      )  p->pCur += 2, Type = CBA_BOX_POW;
+            else return Prs_ManErrorSet(p, "Unsupported operation.", 0);
+
+            Item = Prs_ManReadSignal( p );
+            if ( Item == 0 )                    return 0;
+            Vec_IntPush( &p->vTemp, 0 );
+            Vec_IntPush( &p->vTemp, Item );
+            // for adder insert carry-in
+            if ( Type == CBA_BOX_ADD )
+                Vec_IntInsert( &p->vTemp, 2, 0 );
+            if ( Type == CBA_BOX_ADD )
+                Vec_IntInsert( &p->vTemp, 3, 0 );
+        }
+    }
+    if ( Prs_ManUtilSkipSpaces(p) )                              return Prs_ManErrorSet(p, "Error number 24.", 0);
+    // make sure there is nothing left there
+    if ( fRotating )
+    {
+        Prs_ManUtilSkipUntilWord(p, ";");
+        p->pCur--;
+    }
+    else if ( !Prs_ManIsChar(p, ',') && !Prs_ManIsChar(p, ';') ) return Prs_ManErrorSet(p, "Trailing symbols on this line.", 0);
+    // save binary operator
+    Prs_NtkAddBox( p->pNtk, Type, 0, &p->vTemp );
+    return 1;
+}
+static inline int Prs_ManReadDeclaration( Prs_Man_t * p, int Type )
+{
+    int i, Item = 0, NameId, RangeId = 0, fSigned = 0;
+    Vec_Int_t * vNames[4]  = { &p->pNtk->vInputs,  &p->pNtk->vOutputs,  &p->pNtk->vInouts,  &p->pNtk->vWires };
+    Vec_Int_t * vNamesR[4] = { &p->pNtk->vInputsR, &p->pNtk->vOutputsR, &p->pNtk->vInoutsR, &p->pNtk->vWiresR };
+    assert( Type >= PRS_VER_INPUT && Type <= PRS_VER_WIRE );
+    // read first word
+    if ( Prs_ManUtilSkipSpaces(p) )                                       return Prs_ManErrorSet(p, "Error number 20.", 0);
+    if ( Prs_ManIsChar(p, '[') && !(RangeId = Prs_ManReadRange(p)) )      return Prs_ManErrorSet(p, "Error number 21.", 0);
+    Item = Prs_ManReadName(p);
+    if ( Item == PRS_VER_SIGNED )
+    {
+        fSigned = 1;
+        if ( Prs_ManUtilSkipSpaces(p) )                                   return Prs_ManErrorSet(p, "Error number 20.", 0);
+        if ( Prs_ManIsChar(p, '[') && !(RangeId = Prs_ManReadRange(p)) )  return Prs_ManErrorSet(p, "Error number 21.", 0);
+        Item = Prs_ManReadName(p);
+    }
+    if ( Item == PRS_VER_WIRE )
+    {
+        if ( Prs_ManUtilSkipSpaces(p) )                                   return Prs_ManErrorSet(p, "Error number 20.", 0);
+        if ( Prs_ManIsChar(p, '[') && !(RangeId = Prs_ManReadRange(p)) )  return Prs_ManErrorSet(p, "Error number 21.", 0);
+        Item = Prs_ManReadName(p);
+    }
+    // read variable names
+    Vec_IntClear( &p->vTemp3 );
+    while ( 1 )
+    {
+        if ( Item == 0 )                    return Prs_ManErrorSet(p, "Cannot read name in the list.", 0);
+        if ( Prs_ManUtilSkipSpaces(p) )     return Prs_ManErrorSet(p, "Error number 22a", 0);
+        if ( Item == PRS_VER_WIRE  )
+            continue;
+        Vec_IntPush( &p->vTemp3, Item );
+        if ( Prs_ManIsChar(p, '=') )
+        {
+            if ( Type == PRS_VER_INPUT )    return Prs_ManErrorSet(p, "Input cannot be defined", 0);
+            p->pCur++;
+            if ( Prs_ManUtilSkipSpaces(p) ) return Prs_ManErrorSet(p, "Error number 23.", 0);
+            if ( !Prs_ManReadExpression(p, Abc_Var2Lit2(Item, CBA_PRS_NAME)) ) 
+                return 0;
+        }
+        if ( Prs_ManIsChar(p, ';') )   
+            break;
+        if ( !Prs_ManIsChar(p, ',') )       return Prs_ManErrorSet(p, "Expecting comma in the list.", 0);
+        p->pCur++;
+        if ( Prs_ManUtilSkipSpaces(p) )     return Prs_ManErrorSet(p, "Error number 22b.", 0);
+        Item = Prs_ManReadName(p);
+    }
+    Vec_IntForEachEntry( &p->vTemp3, NameId, i )
+    {
+        Vec_IntPush( vNames[Type - PRS_VER_INPUT],  NameId );
+        Vec_IntPush( vNamesR[Type - PRS_VER_INPUT], Abc_Var2Lit(RangeId, fSigned) );
+        if ( Type < PRS_VER_WIRE )
+            Vec_IntPush( &p->pNtk->vOrder, Abc_Var2Lit2(NameId, Type) );
+    }
+    return 1;
+}
 static inline int Prs_ManReadInstance( Prs_Man_t * p, int Func )
 {
     int InstId, Status;
-/*
-    static Counter = 0;
-    if ( ++Counter == 7 )
-    {
-        int s=0;
-    }
-*/
     if ( Prs_ManUtilSkipSpaces(p) )         return Prs_ManErrorSet(p, "Error number 25.", 0);
+    if ( Prs_ManIsChar(p, '#') )
+    {
+        p->pCur++;
+        while ( Prs_ManIsDigit(p) )
+            p->pCur++;
+        if ( Prs_ManUtilSkipSpaces(p) )     return Prs_ManErrorSet(p, "Error number 25.", 0);
+    }
     if ( (InstId = Prs_ManReadName(p)) )
         if (Prs_ManUtilSkipSpaces(p))       return Prs_ManErrorSet(p, "Error number 26.", 0);
     if ( !Prs_ManIsChar(p, '(') )           return Prs_ManErrorSet(p, "Expecting \"(\" in module instantiation.", 0);
@@ -767,6 +1149,7 @@ static inline int Prs_ManReadArguments( Prs_Man_t * p )
     {
         int fEscape = Prs_ManIsChar(p, '\\');
         int iName = Prs_ManReadName( p );
+        int fSigned = 0;
         if ( iName == 0 )                       return Prs_ManErrorSet(p, "Error number 31.", 0);
         if ( Prs_ManUtilSkipSpaces(p) )         return Prs_ManErrorSet(p, "Error number 32.", 0);
         if ( iName >= PRS_VER_INPUT && iName <= PRS_VER_INOUT && !fEscape ) // declaration
@@ -780,13 +1163,27 @@ static inline int Prs_ManReadArguments( Prs_Man_t * p )
             }
             iName = Prs_ManReadName( p );
             if ( iName == 0 )                   return Prs_ManErrorSet(p, "Error number 35.", 0);
+            if ( iName == PRS_VER_SIGNED )
+            {
+                fSigned = 1;
+                if ( Prs_ManUtilSkipSpaces(p) ) return Prs_ManErrorSet(p, "Error number 32.", 0);
+                if ( Prs_ManIsChar(p, '[') )
+                {
+                    iRange = Prs_ManReadRange(p);
+                    if ( iRange == 0 )              return Prs_ManErrorSet(p, "Error number 33.", 0);
+                    if ( Prs_ManUtilSkipSpaces(p) ) return Prs_ManErrorSet(p, "Error number 34.", 0);
+                }
+                iName = Prs_ManReadName( p );
+                if ( iName == 0 )               return Prs_ManErrorSet(p, "Error number 35.", 0);
+            }
         }
         if ( iType > 0 )
         {
             Vec_IntPush( vSigs[iType - PRS_VER_INPUT], iName );
-            Vec_IntPush( vSigsR[iType - PRS_VER_INPUT], iRange );
+            Vec_IntPush( vSigsR[iType - PRS_VER_INPUT], Abc_Var2Lit(iRange, fSigned) );
             Vec_IntPush( &p->pNtk->vOrder, Abc_Var2Lit2(iName, iType) );
         }
+        if ( Prs_ManUtilSkipSpaces(p) )         return Prs_ManErrorSet(p, "Error number 36.", 0);
         if ( Prs_ManIsChar(p, ')') )
             break;
         if ( !Prs_ManIsChar(p, ',') )           return Prs_ManErrorSet(p, "Expecting comma in the instance.", 0);
@@ -801,7 +1198,7 @@ static inline int Prs_ManReadArguments( Prs_Man_t * p )
 // 0 = reached end-of-file; 1 = successfully parsed; 2 = recognized as primitive; 3 = failed and skipped; 4 = error (failed and could not skip)
 static inline int Prs_ManReadModule( Prs_Man_t * p )
 {
-    int iToken, Status;
+    int iToken, Status, fAlways = 0;
     if ( p->pNtk != NULL )                  return Prs_ManErrorSet(p, "Parsing previous module is unfinished.", 4);
     if ( Prs_ManUtilSkipSpaces(p) )
     { 
@@ -809,6 +1206,15 @@ static inline int Prs_ManReadModule( Prs_Man_t * p )
         return 0; 
     }
     // read keyword
+    while ( Prs_ManIsChar(p, '`') )
+    {
+        Prs_ManUtilSkipUntilWord(p, "\n");
+        if ( Prs_ManUtilSkipSpaces(p) )
+        { 
+            Prs_ManErrorClear( p );       
+            return 0; 
+        }
+    }
     iToken = Prs_ManReadName( p );
     if ( iToken != PRS_VER_MODULE )         return Prs_ManErrorSet(p, "Cannot read \"module\" keyword.", 4);
     if ( Prs_ManUtilSkipSpaces(p) )         return 4;
@@ -831,9 +1237,10 @@ static inline int Prs_ManReadModule( Prs_Man_t * p )
     p->pCur++;
     if ( Prs_ManUtilSkipSpaces(p) )         return 4;
     // read declarations and instances
-    while ( Prs_ManIsChar(p, ';') )
+    while ( Prs_ManIsChar(p, ';') || fAlways )
     {
-        p->pCur++;
+        if ( !fAlways ) p->pCur++;
+        fAlways = 0;
         if ( Prs_ManUtilSkipSpaces(p) )     return 4;
         iToken = Prs_ManReadName( p );
         if ( iToken == PRS_VER_ENDMODULE )
@@ -842,18 +1249,47 @@ static inline int Prs_ManReadModule( Prs_Man_t * p )
             Prs_ManFinalizeNtk( p );
             return 1;
         }
-        if ( iToken >= PRS_VER_INPUT && iToken <= PRS_VER_WIRE ) // declaration
-            Status = Prs_ManReadDeclaration( p, iToken );
+        if ( iToken >= PRS_VER_INPUT && iToken <= PRS_VER_REG ) // declaration
+            Status = Prs_ManReadDeclaration( p, iToken == PRS_VER_REG ? PRS_VER_WIRE : iToken );
         else if ( iToken == PRS_VER_REG || iToken == PRS_VER_DEFPARAM ) // unsupported keywords
             Status = Prs_ManUtilSkipUntil( p, ';' );
         else // read instance
         {
             if ( iToken == PRS_VER_ASSIGN )
-                Status = Prs_ManReadAssign( p );
+            {
+                // read output name
+                int OutItem = Prs_ManReadSignal( p );
+                if ( OutItem == 0 )                     return Prs_ManErrorSet(p, "Cannot read output in assign-statement.", 0);
+                if ( !Prs_ManIsChar(p, '=') )           return Prs_ManErrorSet(p, "Expecting \"=\" in assign-statement.", 0);
+                p->pCur++;
+                if ( Prs_ManUtilSkipSpaces(p) )         return Prs_ManErrorSet(p, "Error number 23.", 0);
+                // read expression
+                while ( 1 )
+                {
+                    if ( !Prs_ManReadExpression(p, OutItem) )    return 0;
+                    if ( Prs_ManIsChar(p, ';') )
+                        break;
+                    assert( Prs_ManIsChar(p, ',') );
+                    p->pCur++;
+                    if ( Prs_ManUtilSkipSpaces(p) )     return Prs_ManErrorSet(p, "Error number 23a.", 0);
+                    // read output name
+                    OutItem = Prs_ManReadSignal( p );
+                    if ( OutItem == 0 )                 return Prs_ManErrorSet(p, "Cannot read output in assign-statement.", 0);
+                    if ( !Prs_ManIsChar(p, '=') )       return Prs_ManErrorSet(p, "Expecting \"=\" in assign-statement.", 0);
+                    p->pCur++;
+                    if ( Prs_ManUtilSkipSpaces(p) )     return Prs_ManErrorSet(p, "Error number 23.", 0);
+                }
+            }
+            else if ( iToken == PRS_VER_ALWAYS )
+                Status = Prs_ManReadAlways(p), fAlways = 1;
+            else if ( iToken == PRS_VER_FUNCTION )
+                Status = Prs_ManReadFunction(p), fAlways = 1;
             else
                 Status = Prs_ManReadInstance( p, iToken );
             if ( Status == 0 )
             {
+                return 4;
+
                 if ( Prs_ManUtilSkipUntilWord( p, "endmodule" ) ) return Prs_ManErrorSet(p, "Cannot find \"endmodule\" keyword.", 4);
                 //printf( "Warning! Failed to parse \"%s\". Adding module \"%s\" as blackbox.\n", 
                 //    Abc_NamStr(p->pStrs, iToken), Abc_NamStr(p->pStrs, p->pNtk->iModuleName) );
@@ -1062,7 +1498,7 @@ int Prs_CreateRange( Cba_Ntk_t * p, int iFon, int NameId )
     if ( RangeId == 0 )
         return 1;
     assert( RangeId > 0 );
-    Cba_FonSetRange( p, iFon, RangeId );
+    Cba_FonSetRangeSign( p, iFon, RangeId );
     return Cba_FonRangeSize( p, iFon );
 }
 /*
@@ -1396,7 +1832,7 @@ void Prs_CreateVerilogPio( Cba_Ntk_t * p, Prs_Ntk_t * pNtk )
         iObj = Cba_ObjAlloc( p, CBA_OBJ_PI, 0, 1 );
         Cba_ObjSetName( p, iObj, NameId ); // direct name
         iFon = Cba_ObjFon0(p, iObj);
-        Cba_FonSetRange( p, iFon, RangeId );
+        Cba_FonSetRangeSign( p, iFon, RangeId );
         Cba_FonSetName( p, iFon, NameId );
         Cba_NtkSetMap( p, NameId, iObj );
     }
@@ -1482,8 +1918,17 @@ int Prs_CreateVerilogNtk( Cba_Ntk_t * p, Prs_Ntk_t * pNtk )
     {
         if ( Prs_BoxIsNode(pNtk, i) ) // node
         {
+            int Type = Prs_BoxNtk(pNtk, i);
             int nSigs = Prs_BoxIONum( pNtk, i );
-            iObj = Cba_ObjAlloc( p, Prs_BoxNtk(pNtk, i), nSigs-1, 1 );
+/*
+            int NameId = Abc_Lit2Var2(Vec_IntEntry(vBox, 1));
+            char * pName = Cba_NtkStr( p, NameId );
+            if ( !strcmp(pName, "E_336717") )
+            {
+                int s = 0;
+            }
+*/
+            iObj = Cba_ObjAlloc( p, Type, nSigs-1, Type == CBA_BOX_ADD ? 2 : 1 );
             Prs_CreateSignalOut( p, Cba_ObjFon0(p, iObj), pNtk, Vec_IntEntry(vBox, 1) ); // node output
             //Cba_ObjSetFunc( p, iObj, FuncId );
         }
@@ -1505,7 +1950,7 @@ int Prs_CreateVerilogNtk( Cba_Ntk_t * p, Prs_Ntk_t * pNtk )
                 nInputs = Cba_NtkPiNum(pBox);
                 nOutputs = Cba_NtkPoNum(pBox);
             }
-            else if ( Type == CBA_BOX_ADD )
+            else if ( Type == CBA_BOX_ADD || Type == CBA_BOX_DFFCPL )
                 nOutputs = 2;
             else if ( Type == CBA_BOX_NMUX )
             {
@@ -1717,8 +2162,8 @@ int Prs_CreateVerilogNtk( Cba_Ntk_t * p, Prs_Ntk_t * pNtk )
         Cba_ObjSetFinFon( p, iObj, 0, iFon );
         if ( RangeId )
         {
-            assert( Cba_NtkRangeLeft(p, RangeId)  == Cba_FonLeft(p, iFon) );
-            assert( Cba_NtkRangeRight(p, RangeId) == Cba_FonRight(p, iFon) );
+            assert( Cba_NtkRangeLeft(p, Abc_Lit2Var(RangeId))  == Cba_FonLeft(p, iFon) );
+            assert( Cba_NtkRangeRight(p, Abc_Lit2Var(RangeId)) == Cba_FonRight(p, iFon) );
         }
     }
     return 0;
