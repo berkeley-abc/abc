@@ -307,6 +307,9 @@ struct Jf_Par_t_
     word           Edge;
     word           Clause;
     word           Mux7;
+    word           WordMapDelay;
+    word           WordMapArea;
+    word           WordMapDelayTarget;
     float          MapDelay;
     float          MapArea;
     float          MapDelayTarget;
