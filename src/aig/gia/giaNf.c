@@ -1760,7 +1760,7 @@ word Nf_MatchRefArea( Nf_Man_t * p, int i, int c, Nf_Mat_t * pM, word Required )
 void Nf_ManElaBestMatchOne( Nf_Man_t * p, int iObj, int c, int * pCut, int * pCutSet, Nf_Mat_t * pRes, word Required )
 {
     Nf_Mat_t Mb,*pMb = &Mb, * pMd, * pMa;
-    Nf_Obj_t * pBest = Nf_ManObj(p, iObj);
+    //Nf_Obj_t * pBest = Nf_ManObj(p, iObj);
     int * pFans      = Nf_CutLeaves(pCut);
     int nFans        = Nf_CutSize(pCut);
     int iFuncLit     = Nf_CutFunc(pCut);
@@ -1844,7 +1844,7 @@ void Nf_ManElaBestMatch( Nf_Man_t * p, int iObj, int c, Nf_Mat_t * pRes, word Re
 // area is never compared
 void Nf_ManComputeMappingEla( Nf_Man_t * p )
 {
-    int fVerbose = 1;
+    //int fVerbose = 1;
     Mio_Cell2_t * pCell;
     Nf_Mat_t Mb, * pMb = &Mb, * pM;
     word AreaBef, AreaAft, Required, WordMapArea, Gain = 0;
