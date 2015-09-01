@@ -1256,7 +1256,7 @@ void Nf_ManCutMatch( Nf_Man_t * p, int iObj )
     word FlowRefP  = (word)(MIO_NUM * Nf_ObjFlowRefs(p, iObj, 0));
     word FlowRefN  = (word)(MIO_NUM * Nf_ObjFlowRefs(p, iObj, 1));
     int i, * pCut, * pCutSet = Nf_ObjCutSet( p, iObj );
-    word ValueBeg[2] = {0}, ValueEnd[2] = {0}, Required[2] = {0};
+    word Required[2] = {0};
     if ( p->Iter )
     {
         Nf_ObjComputeRequired( p, iObj );
@@ -1787,9 +1787,9 @@ void Nf_ManElaBestMatchOne( Nf_Man_t * p, int iObj, int c, int * pCut, int * pCu
         Pf_Mat_t Mat   = Pf_Int2Mat(Offset);
         Mio_Cell2_t*pC = Nf_ManCell( p, Info );
         int fCompl     = Mat.fCompl ^ fComplExt;
-        Nf_Mat_t * pD  = &pBest->M[fCompl][0];
-        Nf_Mat_t * pA  = &pBest->M[fCompl][1];
-        word Area      = pC->Area, Arrival, Delay = 0;
+        //Nf_Mat_t * pD  = &pBest->M[fCompl][0];
+        //Nf_Mat_t * pA  = &pBest->M[fCompl][1];
+        word Arrival, Delay = 0;
         assert( nFans == (int)pC->nFanins );
         if ( fCompl != c )
             continue;
@@ -1879,7 +1879,7 @@ void Nf_ManComputeMappingEla( Nf_Man_t * p )
         assert( pMb->fBest == 1 );
         assert( pMb->A == AreaAft );
         Gain += AreaBef - AreaAft;
-
+/*
         if ( fVerbose && Nf_ManCell(p, pM->Gate)->pName != Nf_ManCell(p, pMb->Gate)->pName )
         {
             printf( "%4d (%d)  ", i, c );
@@ -1891,7 +1891,7 @@ void Nf_ManComputeMappingEla( Nf_Man_t * p )
             printf( "G: %7.2f (%7.2f) ",   AreaBef >= AreaAft ? Nf_Wrd2Flt(AreaBef - AreaAft) : -Nf_Wrd2Flt(AreaAft - AreaBef), Nf_Wrd2Flt(Gain) );
             printf( "\n" );
         }
-
+*/
         assert( AreaBef >= AreaAft );
         WordMapArea += AreaAft - AreaBef;
         // set match
@@ -1920,7 +1920,7 @@ void Nf_ManComputeMappingEla( Nf_Man_t * p )
     Gia_ManForEachCiId( p->pGia, Id, i )
         if ( Nf_ObjMapRefNum(p, Id, 1) )
         {
-            Nf_ObjMapRefInc( p, Id, 0 );
+            Required = Nf_ObjRequired( p, i, 1 );
             Nf_ObjUpdateRequired( p, Id, 0, Required - p->InvDelay );
             p->pPars->WordMapArea += p->InvArea;
             p->pPars->Edge++;
@@ -2053,7 +2053,7 @@ void Nf_ManSetDefaultPars( Jf_Par_t * pPars )
     pPars->nCutNum      = 16;
     pPars->nProcNum     =  0;
     pPars->nRounds      =  5;
-    pPars->nRoundsEla   =  3;
+    pPars->nRoundsEla   =  0;
     pPars->nRelaxRatio  =  0;
     pPars->nCoarseLimit =  3;
     pPars->nAreaTuner   =  1;
@@ -2099,7 +2099,7 @@ Gia_Man_t * Nf_ManPerformMapping( Gia_Man_t * pGia, Jf_Par_t * pPars )
         Nf_ManSetMapRefs( p );
         Nf_ManPrintStats( p, (char *)(p->Iter ? "Area " : "Delay") );
     }
-/*
+
     p->fUseEla = 1;
     for ( ; p->Iter < p->pPars->nRounds + pPars->nRoundsEla; p->Iter++ )
     {
@@ -2107,7 +2107,7 @@ Gia_Man_t * Nf_ManPerformMapping( Gia_Man_t * pGia, Jf_Par_t * pPars )
         Nf_ManUpdateStats( p );
         Nf_ManPrintStats( p, "Ela  " );
     }
-*/
+
     pNew = Nf_ManDeriveMapping( p );
 //    Gia_ManMappingVerify( pNew );
     Nf_StoDelete( p );
