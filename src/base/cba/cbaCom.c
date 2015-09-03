@@ -34,6 +34,7 @@ static int  Cba_CommandPs       ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int  Cba_CommandPut      ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int  Cba_CommandGet      ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int  Cba_CommandClp      ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int  Cba_CommandBlast    ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int  Cba_CommandCec      ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int  Cba_CommandTest     ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
@@ -64,6 +65,7 @@ void Cba_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "New word level", "@put",        Cba_CommandPut,       0 );
     Cmd_CommandAdd( pAbc, "New word level", "@get",        Cba_CommandGet,       0 );
     Cmd_CommandAdd( pAbc, "New word level", "@clp",        Cba_CommandClp,       0 );
+    Cmd_CommandAdd( pAbc, "New word level", "@blast",      Cba_CommandBlast,     0 );
     Cmd_CommandAdd( pAbc, "New word level", "@cec",        Cba_CommandCec,       0 );
     Cmd_CommandAdd( pAbc, "New word level", "@test",       Cba_CommandTest,      0 );
 }
@@ -101,14 +103,17 @@ int Cba_CommandRead( Abc_Frame_t * pAbc, int argc, char ** argv )
     FILE * pFile;
     Cba_Man_t * p = NULL;
     char * pFileName = NULL;
-    int c, fTest = 0, fVerbose = 0;
+    int c, fTest = 0, fDfs = 0, fVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "tvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "tdvh" ) ) != EOF )
     {
         switch ( c )
         {
         case 't':
             fTest ^= 1;
+            break;
+        case 'd':
+            fDfs ^= 1;
             break;
         case 'v':
             fVerbose ^= 1;
@@ -159,12 +164,19 @@ int Cba_CommandRead( Abc_Frame_t * pAbc, int argc, char ** argv )
         printf( "Unrecognized input file extension.\n" );
         return 0;
     }
+    if ( fDfs )
+    {
+        Cba_Man_t * pTemp;
+        p = Cba_ManDup( pTemp = p, Cba_NtkCollectDfs );
+        Cba_ManFree( pTemp );
+    }
     Cba_AbcUpdateMan( pAbc, p );
     return 0;
 usage:
-    Abc_Print( -2, "usage: @read [-tvh] <file_name>\n" );
+    Abc_Print( -2, "usage: @read [-tdvh] <file_name>\n" );
     Abc_Print( -2, "\t         reads hierarchical design\n" );
     Abc_Print( -2, "\t-t     : toggle testing the parser [default = %s]\n", fTest? "yes": "no" );
+    Abc_Print( -2, "\t-d     : toggle computing DFS ordering [default = %s]\n", fDfs? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
@@ -259,9 +271,13 @@ usage:
 int Cba_CommandPs( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Cba_Man_t * p = Cba_AbcGetMan(pAbc);
-    int c, nModules = 0, fVerbose  = 0;
+    int nModules     = 0;
+    int fShowMulti   = 0;
+    int fShowAdder   = 0;
+    int fDistrib     = 0;
+    int c, fVerbose  = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "Mvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Mmadvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -275,6 +291,15 @@ int Cba_CommandPs( Abc_Frame_t * pAbc, int argc, char ** argv )
             globalUtilOptind++;
             if ( nModules < 0 )
                 goto usage;
+            break;
+        case 'm':
+            fShowMulti ^= 1;
+            break;
+        case 'a':
+            fShowAdder ^= 1;
+            break;
+        case 'd':
+            fDistrib ^= 1;
             break;
         case 'v':
             fVerbose ^= 1;
@@ -290,12 +315,24 @@ int Cba_CommandPs( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( 1, "Cba_CommandPs(): There is no current design.\n" );
         return 0;
     }
-    Cba_ManPrintStats( p, nModules, fVerbose );
+    if ( nModules )
+    {
+        Cba_ManPrintStats( p, nModules, fVerbose );
+        return 0;
+    }
+    Cba_NtkPrintStatsFull( Cba_ManRoot(p), fDistrib, fVerbose );
+    if ( fShowMulti )
+        Cba_NtkPrintNodes( Cba_ManRoot(p), CBA_BOX_MUL );
+    if ( fShowAdder )
+        Cba_NtkPrintNodes( Cba_ManRoot(p), CBA_BOX_ADD );
     return 0;
 usage:
-    Abc_Print( -2, "usage: @ps [-M num] [-vh]\n" );
+    Abc_Print( -2, "usage: @ps [-M num] [-madvh]\n" );
     Abc_Print( -2, "\t         prints statistics\n" );
     Abc_Print( -2, "\t-M num : the number of first modules to report [default = %d]\n", nModules );
+    Abc_Print( -2, "\t-m     : toggle printing multipliers [default = %s]\n",         fShowMulti? "yes": "no" );
+    Abc_Print( -2, "\t-a     : toggle printing adders [default = %s]\n",              fShowAdder? "yes": "no" );
+    Abc_Print( -2, "\t-d     : toggle printing distrubition [default = %s]\n",        fDistrib? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
@@ -316,14 +353,17 @@ int Cba_CommandPut( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Cba_Man_t * p = Cba_AbcGetMan(pAbc);
     Gia_Man_t * pGia = NULL;
-    int c, fBarBufs = 1, fVerbose  = 0;
+    int c, fBarBufs = 1, fSeq = 0, fVerbose  = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "bvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "bsvh" ) ) != EOF )
     {
         switch ( c )
         {
         case 'b':
             fBarBufs ^= 1;
+            break;
+        case 's':
+            fSeq ^= 1;
             break;
         case 'v':
             fVerbose ^= 1;
@@ -339,7 +379,7 @@ int Cba_CommandPut( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( 1, "Cba_CommandPut(): There is no current design.\n" );
         return 0;
     }
-    pGia = Cba_ManBlast( p, fBarBufs, fVerbose );
+    pGia = Cba_ManBlast( p, fBarBufs, fSeq, fVerbose );
     if ( pGia == NULL )
     {
         Abc_Print( 1, "Cba_CommandPut(): Conversion to AIG has failed.\n" );
@@ -348,9 +388,10 @@ int Cba_CommandPut( Abc_Frame_t * pAbc, int argc, char ** argv )
     Abc_FrameUpdateGia( pAbc, pGia );
     return 0;
 usage:
-    Abc_Print( -2, "usage: @put [-bvh]\n" );
+    Abc_Print( -2, "usage: @put [-bsvh]\n" );
     Abc_Print( -2, "\t         extracts AIG from the hierarchical design\n" );
     Abc_Print( -2, "\t-b     : toggle using barrier buffers [default = %s]\n", fBarBufs? "yes": "no" );
+    Abc_Print( -2, "\t-s     : toggle blasting sequential elements [default = %s]\n", fSeq? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
@@ -479,6 +520,61 @@ usage:
   SeeAlso     []
 
 ******************************************************************************/
+int Cba_CommandBlast( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    Gia_Man_t * pNew = NULL;
+    Cba_Man_t * p = Cba_AbcGetMan(pAbc);
+    int c, fSeq = 0, fVerbose  = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "svh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 's':
+            fSeq ^= 1;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( p == NULL )
+    {
+        Abc_Print( 1, "Cba_CommandBlast(): There is no current design.\n" );
+        return 0;
+    }
+    pNew = Cba_ManBlast( p, 0, fSeq, fVerbose );
+    if ( pNew == NULL )
+    {
+        Abc_Print( 1, "Cba_CommandBlast(): Bit-blasting has failed.\n" );
+        return 0;
+    }
+    Abc_FrameUpdateGia( pAbc, pNew );
+    return 0;
+usage:
+    Abc_Print( -2, "usage: %%blast [-svh]\n" );
+    Abc_Print( -2, "\t         performs bit-blasting of the word-level design\n" );
+    Abc_Print( -2, "\t-s     : toggle blasting sequential elements [default = %s]\n", fSeq? "yes": "no" );
+    Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
+    return 1;
+}
+
+/**Function********************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+******************************************************************************/
 int Cba_CommandCec( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Cba_Man_t * p = Cba_AbcGetMan(pAbc), * pTemp;
@@ -536,7 +632,7 @@ int Cba_CommandCec( Abc_Frame_t * pAbc, int argc, char ** argv )
     fclose( pFile );
 
     // extract AIG from the current design
-    pFirst = Cba_ManBlast( p, 0, 0 );
+    pFirst = Cba_ManBlast( p, 0, 0, 0 );
     if ( pFirst == NULL )
     {
         Abc_Print( -1, "Extracting AIG from the current design has failed.\n" );
@@ -551,7 +647,7 @@ int Cba_CommandCec( Abc_Frame_t * pAbc, int argc, char ** argv )
     else if ( !strcmp( Extra_FileNameExtension(pFileName), "cba" )  )
         pTemp = Cba_ManReadCba( pFileName );
     else assert( 0 );
-    pSecond = Cba_ManBlast( pTemp, 0, 0 );
+    pSecond = Cba_ManBlast( pTemp, 0, 0, 0 );
     Cba_ManFree( pTemp );
     if ( pSecond == NULL )
     {

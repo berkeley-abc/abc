@@ -18,6 +18,7 @@
 
 ***********************************************************************/
 
+#include <math.h>
 #include "cba.h"
 
 ABC_NAMESPACE_IMPL_START
@@ -29,6 +30,269 @@ ABC_NAMESPACE_IMPL_START
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
+
+/**Function*************************************************************
+
+  Synopsis    [Prints distribution of operator types.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline void Vec_WrdSelectSortCost2( word * pArray, int nSize, word * pCosts )
+{
+    int i, j, best_i;
+    for ( i = 0; i < nSize-1; i++ )
+    {
+        best_i = i;
+        for ( j = i+1; j < nSize; j++ )
+            if ( pCosts[j] < pCosts[best_i] )
+                best_i = j;
+        ABC_SWAP( word, pArray[i], pArray[best_i] );
+        ABC_SWAP( word, pCosts[i], pCosts[best_i] );
+    }
+}
+static inline word Cba_NtkPrintDistribMakeSign( int s, int s0, int s1 )
+{
+    return ((word)s1 << 42) | ((word)s0 << 21) | (word)s;
+}
+static inline void Cba_NtkPrintDistribFromSign( word sss, int * s, int * s0, int * s1 )
+{
+    *s1 =  (int)(sss >> 42);  *s0 = (int)(sss >> 21) & 0x1FFFFF;  *s  =  (int)sss & 0x1FFFFF;
+}
+static inline void Cba_NtkPrintDistribAddOne( Vec_Ptr_t * vTypes, Vec_Ptr_t * vOccurs, int Type, word Sign )
+{
+    Vec_Wrd_t * vType  = (Vec_Wrd_t *)Vec_PtrEntry( vTypes, Type );
+    Vec_Wrd_t * vOccur = (Vec_Wrd_t *)Vec_PtrEntry( vOccurs, Type );
+    word Entry; int i;
+    Vec_WrdForEachEntry( vType, Entry, i )
+        if ( Entry == Sign )
+        {
+            Vec_WrdAddToEntry( vOccur, i, 1 );
+            return;
+        }
+    Vec_WrdPush( vType, Sign );
+    Vec_WrdPush( vOccur, 1 );
+}
+void Cba_NtkPrintDistribSortOne( Vec_Ptr_t * vTypes, Vec_Ptr_t * vOccurs, int Type )
+{
+    Vec_Wrd_t * vType  = (Vec_Wrd_t *)Vec_PtrEntry( vTypes, Type );
+    Vec_Wrd_t * vOccur = (Vec_Wrd_t *)Vec_PtrEntry( vOccurs, Type );
+    Vec_WrdSelectSortCost2( Vec_WrdArray(vType), Vec_WrdSize(vType), Vec_WrdArray(vOccur) );
+    Vec_WrdReverseOrder( vType );
+    Vec_WrdReverseOrder( vOccur );
+}
+void Cba_NtkPrintDistrib( Cba_Ntk_t * p, int fVerbose )
+{
+    Vec_Ptr_t * vTypes, * vOccurs;
+    Vec_Int_t * vAnds = Vec_IntStart( CBA_BOX_LAST );
+    int iRnObj = -1, nCountRange = 0;
+    int i, k, s, s0, s1, Type;  word Sign;
+    char * pTypeNames[CBA_BOX_LAST];
+    Cba_ManCreatePrimMap( pTypeNames );
+    // allocate statistics arrays
+    vTypes  = Vec_PtrStart( CBA_BOX_LAST );
+    vOccurs = Vec_PtrStart( CBA_BOX_LAST );
+    for ( i = 0; i < CBA_BOX_LAST; i++ )
+        Vec_PtrWriteEntry( vTypes, i, Vec_WrdAlloc(16) );
+    for ( i = 0; i < CBA_BOX_LAST; i++ )
+        Vec_PtrWriteEntry( vOccurs, i, Vec_WrdAlloc(16) );
+    // add nodes
+    Cba_NtkForEachObj( p, i )
+    {
+//        char * pName = Cba_ObjName(p, i);
+        Type = Cba_ObjType( p, i );
+        if ( Cba_ObjSign(p, i) > 0x1FFFFF )
+            printf( "Object %6d has range %d, which is reduced to %d in the statistics.\n", 
+                i, Cba_ObjRangeSize(p, i), Cba_ObjRangeSize(p, i) & 0xFFFFF );
+        if ( Cba_ObjLeft(p, i) && Cba_ObjRight(p, i) )
+        {
+            if ( iRnObj == -1 )
+                iRnObj = 1;
+            nCountRange++;
+        }
+        // 0-input types
+        if ( Cba_ObjIsPi(p, i) || (Type == CBA_BOX_BUF && Cba_FonIsConst(Cba_ObjFinFon(p, i, 0))) || Type == CBA_BOX_CONCAT )
+            Sign = Cba_NtkPrintDistribMakeSign( Cba_ObjSign(p, i), 0, 0 );
+        // 1-input types
+        else if ( Cba_TypeIsUnary(Type)  )
+            Sign = Cba_NtkPrintDistribMakeSign( Cba_ObjSign(p, i), Cba_ObjSign(p, Cba_ObjFinFon(p, i, 0)), 0 );
+        // 2-input types (including MUX)
+        else if ( Cba_ObjFinNum(p, i) == 1 )
+            Sign = Cba_NtkPrintDistribMakeSign( Cba_ObjSign(p, i), Cba_ObjSign(p, Cba_ObjFinFon(p, i, 0)), 0 );
+        else
+        {
+            assert( Cba_ObjFinNum(p, i) >= 2 );
+            Sign = Cba_NtkPrintDistribMakeSign( Cba_ObjSign(p, i), Cba_ObjSign(p, Cba_ObjFinFon(p, i, 0)), Cba_ObjSign(p, Cba_ObjFinFon(p, i, 1)) );
+        }
+        // add to storage
+        Cba_NtkPrintDistribAddOne( vTypes, vOccurs, Type, Sign );
+        // count the number of AIG nodes
+        if ( Type == CBA_BOX_MUX )
+            Vec_IntAddToEntry( vAnds, CBA_BOX_MUX,      3 * Cba_ObjRangeSize(p, i) * (Cba_ObjFinNum(p, i) - 2) );
+        else if ( Type == CBA_BOX_SHIR )      
+            Vec_IntAddToEntry( vAnds, CBA_BOX_SHIR,  Abc_MinInt(Cba_ObjRangeSize(p, Cba_ObjFinFon(p, i, 0)), Abc_Base2Log(Cba_ObjRangeSize(p, i))) * 3 );
+        else if ( Type == CBA_BOX_SHIRA )     
+            Vec_IntAddToEntry( vAnds, CBA_BOX_SHIRA, Cba_ObjRangeSize(p, i) * Abc_MinInt(Cba_ObjRangeSize(p, Cba_ObjFinFon(p, i, 0)), Abc_Base2Log(Cba_ObjRangeSize(p, i))) * 3 );
+        else if ( Type == CBA_BOX_SHIL )      
+            Vec_IntAddToEntry( vAnds, CBA_BOX_SHIL,  Cba_ObjRangeSize(p, i) * Abc_MinInt(Cba_ObjRangeSize(p, Cba_ObjFinFon(p, i, 0)), Abc_Base2Log(Cba_ObjRangeSize(p, i))) * 3 );
+        else if ( Type == CBA_BOX_SHILA )     
+            Vec_IntAddToEntry( vAnds, CBA_BOX_SHILA, Cba_ObjRangeSize(p, i) * Abc_MinInt(Cba_ObjRangeSize(p, Cba_ObjFinFon(p, i, 0)), Abc_Base2Log(Cba_ObjRangeSize(p, i))) * 3 );
+        else if ( Type == CBA_BOX_ROTR )     
+            Vec_IntAddToEntry( vAnds, CBA_BOX_ROTR,  Cba_ObjRangeSize(p, i) * Abc_MinInt(Cba_ObjRangeSize(p, Cba_ObjFinFon(p, i, 0)), Abc_Base2Log(Cba_ObjRangeSize(p, i))) * 3 );
+        else if ( Type == CBA_BOX_ROTL )     
+            Vec_IntAddToEntry( vAnds, CBA_BOX_ROTL,  Cba_ObjRangeSize(p, i) * Abc_MinInt(Cba_ObjRangeSize(p, Cba_ObjFinFon(p, i, 0)), Abc_Base2Log(Cba_ObjRangeSize(p, i))) * 3 );
+        else if ( Type == CBA_BOX_INV )     
+            Vec_IntAddToEntry( vAnds, CBA_BOX_INV, 0 );
+        else if ( Type == CBA_BOX_AND )      
+            Vec_IntAddToEntry( vAnds, CBA_BOX_AND,         Cba_ObjRangeSize(p, Cba_ObjFinFon(p, i, 0)) );
+        else if ( Type == CBA_BOX_OR )       
+            Vec_IntAddToEntry( vAnds, CBA_BOX_OR,          Cba_ObjRangeSize(p, Cba_ObjFinFon(p, i, 0)) );
+        else if ( Type == CBA_BOX_XOR )      
+            Vec_IntAddToEntry( vAnds, CBA_BOX_XOR,     3 * Cba_ObjRangeSize(p, Cba_ObjFinFon(p, i, 0)) );
+        else if ( Type == CBA_BOX_SLICE )   
+            Vec_IntAddToEntry( vAnds, CBA_BOX_SLICE, 0 );
+        else if ( Type == CBA_BOX_CONCAT )   
+            Vec_IntAddToEntry( vAnds, CBA_BOX_CONCAT, 0 );
+        else if ( Type == CBA_BOX_LNOT )    
+            Vec_IntAddToEntry( vAnds, CBA_BOX_LNOT,        Cba_ObjRangeSize(p, Cba_ObjFinFon(p, i, 0)) - 1 );
+        else if ( Type == CBA_BOX_LAND )    
+            Vec_IntAddToEntry( vAnds, CBA_BOX_LAND,        Cba_ObjRangeSize(p, Cba_ObjFinFon(p, i, 0)) + Cba_ObjRangeSize(p, Cba_ObjFinFon(p, i, 1)) - 1 );
+        else if ( Type == CBA_BOX_LOR )     
+            Vec_IntAddToEntry( vAnds, CBA_BOX_LOR,         Cba_ObjRangeSize(p, Cba_ObjFinFon(p, i, 0)) + Cba_ObjRangeSize(p, Cba_ObjFinFon(p, i, 1)) - 1 );
+        else if ( Type == CBA_BOX_LXOR )    
+            Vec_IntAddToEntry( vAnds, CBA_BOX_LXOR,        Cba_ObjRangeSize(p, Cba_ObjFinFon(p, i, 0)) + Cba_ObjRangeSize(p, Cba_ObjFinFon(p, i, 1)) + 1 );
+        else if ( Type == CBA_BOX_EQU )     
+            Vec_IntAddToEntry( vAnds, CBA_BOX_EQU,      4 * Cba_ObjRangeSize(p, Cba_ObjFinFon(p, i, 0)) - 1 );
+        else if ( Type == CBA_BOX_NEQU )    
+            Vec_IntAddToEntry( vAnds, CBA_BOX_NEQU,     4 * Cba_ObjRangeSize(p, Cba_ObjFinFon(p, i, 0)) - 1 );
+        else if ( Type == CBA_BOX_LTHAN )    
+            Vec_IntAddToEntry( vAnds, CBA_BOX_LTHAN,    6 * Cba_ObjRangeSize(p, Cba_ObjFinFon(p, i, 0)) - 6 );
+        else if ( Type == CBA_BOX_MTHAN )    
+            Vec_IntAddToEntry( vAnds, CBA_BOX_MTHAN,    6 * Cba_ObjRangeSize(p, Cba_ObjFinFon(p, i, 0)) - 6 );
+        else if ( Type == CBA_BOX_LETHAN ) 
+            Vec_IntAddToEntry( vAnds, CBA_BOX_LETHAN,   6 * Cba_ObjRangeSize(p, Cba_ObjFinFon(p, i, 0)) - 6 );
+        else if ( Type == CBA_BOX_METHAN ) 
+            Vec_IntAddToEntry( vAnds, CBA_BOX_METHAN,   6 * Cba_ObjRangeSize(p, Cba_ObjFinFon(p, i, 0)) - 6 );
+        else if ( Type == CBA_BOX_RAND )   
+            Vec_IntAddToEntry( vAnds, CBA_BOX_RAND,         Cba_ObjRangeSize(p, Cba_ObjFinFon(p, i, 0)) - 1 );
+        else if ( Type == CBA_BOX_ROR )    
+            Vec_IntAddToEntry( vAnds, CBA_BOX_ROR,          Cba_ObjRangeSize(p, Cba_ObjFinFon(p, i, 0)) - 1 );
+        else if ( Type == CBA_BOX_RXOR )   
+            Vec_IntAddToEntry( vAnds, CBA_BOX_RXOR,     3 * Cba_ObjRangeSize(p, Cba_ObjFinFon(p, i, 0)) - 3 );
+        else if ( Type == CBA_BOX_ADD )       
+            Vec_IntAddToEntry( vAnds, CBA_BOX_ADD,      9 * Cba_ObjRangeSize(p, Cba_ObjFinFon(p, i, 0)) );
+        else if ( Type == CBA_BOX_SUB )       
+            Vec_IntAddToEntry( vAnds, CBA_BOX_SUB,      9 * Cba_ObjRangeSize(p, Cba_ObjFinFon(p, i, 0)) );
+        else if ( Type == CBA_BOX_MUL )    
+            Vec_IntAddToEntry( vAnds, CBA_BOX_MUL,      9 * Cba_ObjRangeSize(p, Cba_ObjFinFon(p, i, 0)) * Cba_ObjRangeSize(p, Cba_ObjFinFon(p, i, 1)) );
+        else if ( Type == CBA_BOX_DIV )   
+            Vec_IntAddToEntry( vAnds, CBA_BOX_DIV,     13 * Cba_ObjRangeSize(p, Cba_ObjFinFon(p, i, 0)) * Cba_ObjRangeSize(p, Cba_ObjFinFon(p, i, 0)) - 19 * Cba_ObjRangeSize(p, Cba_ObjFinFon(p, i, 0)) + 10 );
+        else if ( Type == CBA_BOX_MOD )  
+            Vec_IntAddToEntry( vAnds, CBA_BOX_MOD,     13 * Cba_ObjRangeSize(p, Cba_ObjFinFon(p, i, 0)) * Cba_ObjRangeSize(p, Cba_ObjFinFon(p, i, 0)) - 7 * Cba_ObjRangeSize(p, Cba_ObjFinFon(p, i, 0)) - 2  );
+        else if ( Type == CBA_BOX_POW ) 
+            Vec_IntAddToEntry( vAnds, CBA_BOX_POW,     10 * (int)pow(Cba_ObjRangeSize(p, Cba_ObjFinFon(p, i, 0)),Cba_ObjRangeSize(p, Cba_ObjFinFon(p, i, 0))) );
+        else if ( Type == CBA_BOX_MIN )   
+            Vec_IntAddToEntry( vAnds, CBA_BOX_MIN,      4 * Cba_ObjRangeSize(p, Cba_ObjFinFon(p, i, 0)) );
+        else if ( Type == CBA_BOX_SQRT )    
+            Vec_IntAddToEntry( vAnds, CBA_BOX_SQRT,    11 * Cba_ObjRangeSize(p, Cba_ObjFinFon(p, i, 0)) * Cba_ObjRangeSize(p, Cba_ObjFinFon(p, i, 0)) / 8 + 5 * Cba_ObjRangeSize(p, Cba_ObjFinFon(p, i, 0)) / 2 - 5  );
+    }
+    if ( nCountRange )
+    {
+        printf( "Warning: %d objects of the design have non-zero-based ranges.\n", nCountRange );
+        printf( "In particular, object %6d with name \"%s\" has range %d=[%d:%d]\n", 
+            iRnObj, Cba_FonName(p, Cba_ObjFon0(p, iRnObj)), 
+            Cba_ObjRangeSize(p, iRnObj), Cba_ObjLeft(p, iRnObj), Cba_ObjRight(p, iRnObj) );
+    }
+    // print by occurrence
+    printf( "ID  :  name  occurrence    and2 (occurrence)<output_range>=<input_range>.<input_range> ...\n" );
+    for ( i = 0; i < CBA_BOX_LAST; i++ )
+    {
+        Vec_Wrd_t * vType  = (Vec_Wrd_t *)Vec_PtrEntry( vTypes, i );
+        Vec_Wrd_t * vOccur = (Vec_Wrd_t *)Vec_PtrEntry( vOccurs, i );
+        if ( p->pDesign->nObjs[i] == 0 )
+            continue;
+        printf( "%2d  :  %-8s  %6d%8d ", i, pTypeNames[i], p->pDesign->nObjs[i], Vec_IntEntry(vAnds, i) );
+        // sort by occurence
+        Cba_NtkPrintDistribSortOne( vTypes, vOccurs, i );
+        Vec_WrdForEachEntry( vType, Sign, k )
+        {
+            Cba_NtkPrintDistribFromSign( Sign, &s, &s0, &s1 );
+            if ( ((k % 6) == 5 && s1) || ((k % 8) == 7 && !s1) )
+                printf( "\n                                " );
+            printf( "(%d)", (int)Vec_WrdEntry( vOccur, k ) );
+            printf( "%s%d",      Abc_LitIsCompl(s)?"-":"",  Abc_Lit2Var(s) );
+            if ( s0 )
+                printf( "=%s%d", Abc_LitIsCompl(s0)?"-":"", Abc_Lit2Var(s0) );
+            if ( s1 )
+                printf( ".%s%d", Abc_LitIsCompl(s1)?"-":"", Abc_Lit2Var(s1) );
+            printf( " " );
+        }
+        printf( "\n" );
+    }
+    Vec_VecFree( (Vec_Vec_t *)vTypes );
+    Vec_VecFree( (Vec_Vec_t *)vOccurs );
+    Vec_IntFree( vAnds );
+}
+void Cba_NtkPrintNodes( Cba_Ntk_t * p, int Type )
+{
+    int i, iFon0, iFon1, Counter = 0;
+    char * pTypeNames[CBA_BOX_LAST];
+    Cba_ManCreatePrimMap( pTypeNames );
+    printf( "Operation %s\n", pTypeNames[Type] );
+    Cba_NtkForEachObj( p, i )
+    {
+        if ( (int)Type != Type )
+            continue;
+        iFon0 = Cba_ObjFinFon(p, i, 0);
+        iFon1 = Cba_ObjFinFon(p, i, 1);
+
+        printf( "%8d  :",      Counter++ );
+        printf( "%8d  :  ",    i );
+        printf( "%3d%s = ",    Cba_ObjRangeSize(p, i),                      Cba_ObjSigned(p, i) ? "s" : " " );
+        printf( "%3d%s  %s ",  Cba_ObjRangeSize(p, Cba_ObjFinFon(p, i, 0)), Cba_ObjSigned(p, iFon0) ? "s" : " ", pTypeNames[Type] );
+        printf( "%3d%s ",      Cba_ObjRangeSize(p, Cba_ObjFinFon(p, i, 1)), Cba_ObjSigned(p, iFon1) ? "s" : " " );
+        printf( " :    " );
+        printf( "%-12s =  ",   Cba_ObjName(p, i) );
+        printf( "%-12s  %s  ", Cba_FonIsConst(iFon0) ? Cba_NtkConst(p, Cba_FonConst(iFon0)) : Cba_FonNameStr(p, iFon0), pTypeNames[Type] );
+        printf( "%-12s ",      Cba_FonIsConst(iFon1) ? Cba_NtkConst(p, Cba_FonConst(iFon1)) : Cba_FonNameStr(p, iFon1) );
+        printf( "\n" );
+    }
+}
+void Cba_NtkPrintStatsFull( Cba_Ntk_t * p, int fDistrib, int fVerbose )
+{
+    int i;
+    char * pTypeNames[CBA_BOX_LAST];
+    Cba_ManCreatePrimMap( pTypeNames );
+    printf( "%-20s : ",        Cba_NtkName(p) );
+    printf( "PI = %4d  ",      Cba_NtkPiNum(p) );
+    printf( "PO = %4d  ",      Cba_NtkPoNum(p) );
+    printf( "FF = %4d  ",      Cba_NtkBoxSeqNum(p) );
+    printf( "Obj = %6d  ",     Cba_NtkObjNum(p) );
+    printf( "Mem = %.3f MB",   1.0*Cba_NtkMemory(p)/(1<<20) );
+    printf( "\n" );
+    if ( fDistrib )
+    {
+        Cba_NtkPrintDistrib( p, fVerbose );
+        return;
+    }
+    if ( !fVerbose )
+        return;
+    printf( "Node type statistics:\n" );
+    for ( i = 1; i < CBA_BOX_LAST; i++ )
+    {
+        if ( !p->pDesign->nObjs[i] )
+            continue;
+        if ( p->pDesign->nAnds[0] && p->pDesign->nAnds[i] )
+            printf( "%2d  :  %-8s  %6d  %7.2f %%\n", i, pTypeNames[i], p->pDesign->nObjs[i], 100.0*p->pDesign->nAnds[i]/p->pDesign->nAnds[0] );
+        else
+            printf( "%2d  :  %-8s  %6d\n", i, pTypeNames[i], p->pDesign->nObjs[i] );
+    }
+}
+
 
 /**Function*************************************************************
 
@@ -63,7 +327,7 @@ void Cba_NtkPrintDistribStat( Cba_Ntk_t * p, int * pCounts, int * pUserCounts )
         if ( pUserCounts[i] )
             printf( "%-20s = %5d\n", Cba_NtkName(pNtk), pUserCounts[i] );
 }
-void Cba_NtkPrintDistrib( Cba_Ntk_t * p )
+void Cba_NtkPrintDistribOld( Cba_Ntk_t * p )
 {
     int pCounts[CBA_BOX_LAST] = {0};
     int * pUserCounts = ABC_CALLOC( int, Cba_ManNtkNum(p->pDesign) + 1 );

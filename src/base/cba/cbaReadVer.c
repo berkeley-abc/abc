@@ -1449,7 +1449,7 @@ int Prs_CreateCatIn( Cba_Ntk_t * p, Prs_Ntk_t * pNtk, int Con )
     int i, Sig, iObj, iFon, NameId, nBits = 0;
     Vec_Int_t * vSigs = Prs_CatSignals(pNtk, Con);
     // create input concatenation
-    iObj = Cba_ObjAlloc( p, CBA_BOX_CATIN, Vec_IntSize(vSigs), 1 );
+    iObj = Cba_ObjAlloc( p, CBA_BOX_CONCAT, Vec_IntSize(vSigs), 1 );
     iFon = Cba_ObjFon0(p, iObj);
     //sprintf( Buffer, "_icc%d_", iObj );
     //NameId = Cba_NtkNewStrId( p, Buffer );
@@ -1501,46 +1501,6 @@ int Prs_CreateRange( Cba_Ntk_t * p, int iFon, int NameId )
     Cba_FonSetRangeSign( p, iFon, RangeId );
     return Cba_FonRangeSize( p, iFon );
 }
-/*
-int Prs_CreateCatOut( Cba_Ntk_t * p, int iFon, Prs_Ntk_t * pNtk, int Con )
-{
-    int i, Sig, iObj, iFonNew, NameId, nBits = 0;
-    Vec_Int_t * vSigs = Prs_CatSignals(pNtk, Con); char * pSigName;
-    NameId = Cba_NtkNewStrId( p, "_occ%d_", iFon );
-    Cba_FonSetName( p, iFon, NameId );
-    Cba_NtkSetMap( p, NameId, iFon );
-    // create output concatenation
-    iObj = Cba_ObjAlloc( p, CBA_BOX_CATOUT, 1, Vec_IntSize(vSigs) );
-    Cba_ObjSetFinFon( p, iObj, 0, iFon );
-    // set outputs
-    Vec_IntForEachEntry( vSigs, Sig, i )
-    {
-        int Value = Abc_Lit2Var2(Sig);
-        Prs_ManType_t Type = (Prs_ManType_t)Abc_Lit2Att2( Sig );
-        iFonNew = Cba_ObjFon( p, iObj, Vec_IntSize(vSigs)-1-i );
-        if ( Type == CBA_PRS_NAME  )
-        {
-            pSigName = Prs_NtkStr(pNtk, Value);
-            NameId = Cba_NtkNewStrId( p, pSigName ); 
-            Cba_FonSetName( p, iFonNew, NameId );
-            nBits += Prs_CreateRange( p, iFonNew, NameId );
-        }
-        else if ( Type == CBA_PRS_SLICE )
-        {
-            pSigName = Prs_NtkStr(pNtk, Prs_SliceName(pNtk, Value));
-            NameId = Cba_NtkNewStrId( p, pSigName );
-            Cba_FonSetName( p, iFonNew, NameId );
-            Prs_CreateRange( p, iFonNew, NameId );
-            // create slice of this concat
-            Prs_CreateSlice( p, iFonNew, pNtk, Prs_SliceRange(pNtk, Value) );
-            nBits += Cba_NtkRangeSize( p, Prs_SliceRange(pNtk, Value) );
-        }
-        else assert( 0 );
-    }
-    Cba_FonSetRange( p, iFon, Cba_NtkHashRange(p, nBits-1, 0) );
-    return iObj;
-}
-*/
 void Prs_CreateSignalOut( Cba_Ntk_t * p, int iFon, Prs_Ntk_t * pNtk, int Sig )
 {
     int i, iFonNew, NameOut, RangeOut, NameId, RangeId, RangeSize, nBits = 0; 
@@ -1656,7 +1616,7 @@ void Prs_CreateOutConcat( Cba_Ntk_t * p, int * pSlices, int nSlices )
         Prev = iFon;
     }
     // create new concatenation
-    iObj = Cba_ObjAlloc( p, CBA_BOX_CATIN, nParts, 1 );
+    iObj = Cba_ObjAlloc( p, CBA_BOX_CONCAT, nParts, 1 );
     iFon = Cba_ObjFon0(p, iObj);
     Cba_FonSetName( p, iFon, NameId );
     Prs_CreateRange( p, iFon, NameId );
@@ -1855,7 +1815,7 @@ int Prs_CreateVerilogNtk( Cba_Ntk_t * p, Prs_Ntk_t * pNtk )
 {
     Vec_Int_t * vBox2Obj = Vec_IntStart( Prs_NtkBoxNum(pNtk) );
     Vec_Int_t * vBox;  Vec_Ptr_t * vAllRams, * vRam;
-    int i, k, iObj, iTerm, iFon, FormId, ActId, RangeId, NameId;
+    int i, k, iObj, iTerm, iFon, FormId, ActId, RangeId, NameId, Type;
     // map inputs
     Cba_NtkCleanMap( p );
     Cba_NtkForEachPi( p, iObj, i )
@@ -1918,25 +1878,15 @@ int Prs_CreateVerilogNtk( Cba_Ntk_t * p, Prs_Ntk_t * pNtk )
     {
         if ( Prs_BoxIsNode(pNtk, i) ) // node
         {
-            int Type = Prs_BoxNtk(pNtk, i);
-            int nSigs = Prs_BoxIONum( pNtk, i );
-/*
-            int NameId = Abc_Lit2Var2(Vec_IntEntry(vBox, 1));
-            char * pName = Cba_NtkStr( p, NameId );
-            if ( !strcmp(pName, "E_336717") )
-            {
-                int s = 0;
-            }
-*/
-            iObj = Cba_ObjAlloc( p, Type, nSigs-1, Type == CBA_BOX_ADD ? 2 : 1 );
+            Type = Prs_BoxNtk(pNtk, i);
+            iObj = Cba_ObjAlloc( p, Type, Prs_BoxIONum(pNtk, i)-1, Type == CBA_BOX_ADD ? 2 : 1 );
             Prs_CreateSignalOut( p, Cba_ObjFon0(p, iObj), pNtk, Vec_IntEntry(vBox, 1) ); // node output
-            //Cba_ObjSetFunc( p, iObj, FuncId );
         }
         else // box
         {
             Cba_Ntk_t * pBox = NULL; int nInputs, nOutputs = 1;
             char ** pOutNames = NULL, * pNtkName = Prs_NtkStr(pNtk, Prs_BoxNtk(pNtk, i));
-            Cba_ObjType_t Type = Prs_ManFindType( pNtkName, &nInputs, 1, &pOutNames );
+            Type = Prs_ManFindType( pNtkName, &nInputs, 1, &pOutNames );
             if ( Type == CBA_BOX_RAMWC )
                 continue;
             if ( Type == CBA_OBJ_BOX )
@@ -1969,7 +1919,7 @@ int Prs_CreateVerilogNtk( Cba_Ntk_t * p, Prs_Ntk_t * pNtk )
                 else assert( 0 );
             }
             else if ( (Type == CBA_BOX_DFFRS || Type == CBA_BOX_LATCHRS) && !strncmp(pNtkName, "wide_", strlen("wide_")) && !Prs_CreateFlopSetReset(p, pNtk, vBox, NULL, NULL, NULL, NULL) )
-                nInputs = atoi(pNtkName+strlen(Type == CBA_BOX_DFFRS ? "wide_dffrs_" : "wide_latchrs_")), nOutputs = 1, Type = CBA_BOX_CATIN;
+                nInputs = atoi(pNtkName+strlen(Type == CBA_BOX_DFFRS ? "wide_dffrs_" : "wide_latchrs_")), nOutputs = 1, Type = CBA_BOX_CONCAT;
             // create object
             iObj = Cba_ObjAlloc( p, Type, nInputs, nOutputs );
             if ( pBox ) Cba_ObjSetFunc( p, iObj, Cba_NtkId(pBox) );
@@ -2013,16 +1963,10 @@ int Prs_CreateVerilogNtk( Cba_Ntk_t * p, Prs_Ntk_t * pNtk )
     // connect objects
     Prs_NtkForEachBox( pNtk, vBox, i )
     {
-//        char * pInstName = NULL;
-//        if ( Prs_BoxName(pNtk, i) )
-//            pInstName = Prs_NtkStr(pNtk, Prs_BoxName(pNtk, i));
-//        if ( pNtk->iModuleName == 291 && i == 0 )
-//        {
-//            int s = 0;
-//        }
         iObj = Vec_IntEntry( vBox2Obj, i );
         if ( Prs_BoxIsNode(pNtk, i) ) // node
         {
+            Type = Prs_BoxNtk(pNtk, i);
             Vec_IntForEachEntryDoubleStart( vBox, FormId, ActId, k, 2 )
             {
                 iFon = Prs_CreateSignalIn( p, pNtk, ActId );
@@ -2034,7 +1978,7 @@ int Prs_CreateVerilogNtk( Cba_Ntk_t * p, Prs_Ntk_t * pNtk )
         {
             int nInputs = -1;
             char ** pInNames = NULL, * pNtkName = Prs_NtkStr(pNtk, Prs_BoxNtk(pNtk, i));
-            Cba_ObjType_t Type = Prs_ManFindType( pNtkName, &nInputs, 0, &pInNames );
+            Type = Prs_ManFindType( pNtkName, &nInputs, 0, &pInNames );
             if ( (Type == CBA_BOX_DFFRS || Type == CBA_BOX_LATCHRS) && !strncmp(pNtkName, "wide_", strlen("wide_")) )
             {
                 int IndexSet = -1, IndexRst = -1,  iBitSet = -1, iBitRst = -1;
@@ -2048,7 +1992,7 @@ int Prs_CreateVerilogNtk( Cba_Ntk_t * p, Prs_Ntk_t * pNtk )
                 else
                 {
                     int w, Width = atoi( pNtkName + strlen(Type == CBA_BOX_DFFRS ? "wide_dffrs_" : "wide_latchrs_") );
-                    assert( Cba_ObjType(p, iObj) == CBA_BOX_CATIN );
+                    assert( Cba_ObjType(p, iObj) == CBA_BOX_CONCAT );
                     // prepare inputs
                     assert( nInputs >= 0 );
                     Cba_NtkCleanMap2( p );
@@ -2149,6 +2093,14 @@ int Prs_CreateVerilogNtk( Cba_Ntk_t * p, Prs_Ntk_t * pNtk )
                 }
             }
         }
+        // if carry-in is not supplied, use constant 0
+        if ( Type == CBA_BOX_ADD && Cba_ObjFinFon(p, iObj, 0) == 0 )
+            Cba_ObjSetFinFon( p, iObj, 0, Cba_FonFromConst(1) );
+        // if set or reset are not supplied, use constant 0
+        if ( Type == CBA_BOX_DFFRS && Cba_ObjFinFon(p, iObj, 1) == 0 )
+            Cba_ObjSetFinFon( p, iObj, 1, Cba_FonFromConst(1) );
+        if ( Type == CBA_BOX_DFFRS && Cba_ObjFinFon(p, iObj, 2) == 0 )
+            Cba_ObjSetFinFon( p, iObj, 2, Cba_FonFromConst(1) );
     }
     Vec_IntFree( vBox2Obj );
     // connect outputs

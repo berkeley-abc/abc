@@ -42,112 +42,111 @@ ABC_NAMESPACE_HEADER_START
 
 // network objects
 typedef enum { 
-    CBA_OBJ_NONE = 0,  // 0:  unused
-    CBA_OBJ_PI,        // 1:  input
-    CBA_OBJ_PO,        // 2:  output
-    CBA_OBJ_BOX,       // 3:  box
+    CBA_OBJ_NONE = 0,  // 00:  unused
+    CBA_OBJ_PI,        // 01:  input
+    CBA_OBJ_PO,        // 02:  output
+    CBA_OBJ_BOX,       // 03:  box
 
-    CBA_BOX_SLICE,  
-    CBA_BOX_CATIN,  
-    CBA_BOX_CATOUT,  
+    CBA_BOX_CF,        // 04: 
+    CBA_BOX_CT,        // 05:   
+    CBA_BOX_CX,        // 06:   
+    CBA_BOX_CZ,        // 07:  
 
-    CBA_BOX_CF,  
-    CBA_BOX_CT,  
-    CBA_BOX_CX,  
-    CBA_BOX_CZ,  
+    CBA_BOX_BUF,       // 08:    
+    CBA_BOX_INV,       // 09:    
+    CBA_BOX_AND,       // 10:    
+    CBA_BOX_NAND,      // 11:   
+    CBA_BOX_OR,        // 12:     
+    CBA_BOX_NOR,       // 13:    
+    CBA_BOX_XOR,       // 14:    
+    CBA_BOX_XNOR,      // 15:   
+    CBA_BOX_SHARP,     // 16:  
+    CBA_BOX_SHARPL,    // 17:  
+    CBA_BOX_MUX,       // 18:    
+    CBA_BOX_MAJ,       // 19:    
 
-    CBA_BOX_BUF,  
-    CBA_BOX_INV,  
-    CBA_BOX_AND,  
-    CBA_BOX_NAND, 
-    CBA_BOX_OR,   
-    CBA_BOX_NOR,  
-    CBA_BOX_XOR,  
-    CBA_BOX_XNOR, 
-    CBA_BOX_SHARP,
-    CBA_BOX_SHARPL,
-    CBA_BOX_MUX,  
-    CBA_BOX_MAJ,  
+    CBA_BOX_ABC,       // 20:
+    CBA_BOX_BA,        // 21:
+    CBA_BOX_BO,        // 22:
+    CBA_BOX_BX,        // 23:
+    CBA_BOX_BN,        // 24:
+    CBA_BOX_BAO,       // 25:
+    CBA_BOX_BOA,       // 26:
 
-    CBA_BOX_ABC,
-    CBA_BOX_BA,
-    CBA_BOX_BO,
-    CBA_BOX_BX,
-    CBA_BOX_BN,
-    CBA_BOX_BAO,
-    CBA_BOX_BOA,
+    CBA_BOX_RAND,      // 27:
+    CBA_BOX_RNAND,     // 28:
+    CBA_BOX_ROR,       // 29:
+    CBA_BOX_RNOR,      // 30:
+    CBA_BOX_RXOR,      // 31:
+    CBA_BOX_RXNOR,     // 32:
 
-    CBA_BOX_RAND,
-    CBA_BOX_RNAND,
-    CBA_BOX_ROR,
-    CBA_BOX_RNOR,
-    CBA_BOX_RXOR,
-    CBA_BOX_RXNOR,
+    CBA_BOX_LNOT,      // 33
+    CBA_BOX_LAND,      // 34:
+    CBA_BOX_LNAND,     // 35:
+    CBA_BOX_LOR,       // 36:
+    CBA_BOX_LNOR,      // 37:
+    CBA_BOX_LXOR,      // 38:
+    CBA_BOX_LXNOR,     // 39:
 
-    CBA_BOX_LNOT,
-    CBA_BOX_LAND,
-    CBA_BOX_LNAND,
-    CBA_BOX_LOR,
-    CBA_BOX_LNOR,
-    CBA_BOX_LXOR,
-    CBA_BOX_LXNOR,
+    CBA_BOX_NMUX,      // 40:  
+    CBA_BOX_SEL,       // 41:
+    CBA_BOX_PSEL,      // 42:
+    CBA_BOX_ENC,       // 43:
+    CBA_BOX_PENC,      // 44:
+    CBA_BOX_DEC,       // 45:
+    CBA_BOX_EDEC,      // 46:
 
-    CBA_BOX_NMUX,  
-    CBA_BOX_SEL,
-    CBA_BOX_PSEL,
-    CBA_BOX_ENC,
-    CBA_BOX_PENC,
-    CBA_BOX_DEC,
-    CBA_BOX_EDEC,
+    CBA_BOX_ADD,       // 47:
+    CBA_BOX_SUB,       // 48:
+    CBA_BOX_MUL,       // 49:
+    CBA_BOX_SMUL,      // 50:
+    CBA_BOX_DIV,       // 51:
+    CBA_BOX_MOD,       // 52:
+    CBA_BOX_REM,       // 53:
+    CBA_BOX_POW,       // 54:
+    CBA_BOX_MIN,       // 55:
+    CBA_BOX_SQRT,      // 56:
+    CBA_BOX_ABS,       // 57:
 
-    CBA_BOX_ADD,
-    CBA_BOX_SUB,
-    CBA_BOX_MUL,
-    CBA_BOX_SMUL,
-    CBA_BOX_DIV,
-    CBA_BOX_MOD,
-    CBA_BOX_REM,
-    CBA_BOX_POW,
-    CBA_BOX_MIN,
-    CBA_BOX_SQRT,
-    CBA_BOX_ABS,
+    CBA_BOX_SLTHAN,    // 58:
+    CBA_BOX_LTHAN,     // 59:
+    CBA_BOX_LETHAN,    // 60:
+    CBA_BOX_METHAN,    // 61:
+    CBA_BOX_MTHAN,     // 62:
+    CBA_BOX_EQU,       // 63:
+    CBA_BOX_NEQU,      // 64:
 
-    CBA_BOX_SLTHAN,
-    CBA_BOX_LTHAN,
-    CBA_BOX_LETHAN,
-    CBA_BOX_METHAN,
-    CBA_BOX_MTHAN,
-    CBA_BOX_EQU,
-    CBA_BOX_NEQU,
+    CBA_BOX_SHIL,      // 65:
+    CBA_BOX_SHIR,      // 66:
+    CBA_BOX_SHILA,     // 67:
+    CBA_BOX_SHIRA,     // 68:
+    CBA_BOX_ROTL,      // 69:
+    CBA_BOX_ROTR,      // 70:
 
-    CBA_BOX_SHIL,
-    CBA_BOX_SHIR,
-    CBA_BOX_SHILA,
-    CBA_BOX_SHIRA,
-    CBA_BOX_ROTL,
-    CBA_BOX_ROTR,
+    CBA_BOX_NODE,      // 71:  
+    CBA_BOX_LUT,       // 72: 
+    CBA_BOX_GATE,      // 73:  
+    CBA_BOX_TABLE,     // 74:  
 
-    CBA_BOX_NODE,  
-    CBA_BOX_LUT,  
-    CBA_BOX_GATE,  
-    CBA_BOX_ASSIGN,  
+    CBA_BOX_TRI,       // 75:
+    CBA_BOX_RAM,       // 76:
+    CBA_BOX_RAMR,      // 77:
+    CBA_BOX_RAMW,      // 78:
+    CBA_BOX_RAMWC,     // 79:
+    CBA_BOX_RAML,      // 80:
+    CBA_BOX_RAMS,      // 81:
+    CBA_BOX_RAMBOX,    // 82:
 
-    CBA_BOX_TRI,
-    CBA_BOX_RAM,
-    CBA_BOX_RAMR,
-    CBA_BOX_RAMW,
-    CBA_BOX_RAMWC,
-    CBA_BOX_RAML,
-    CBA_BOX_RAMS,
-    CBA_BOX_RAMBOX,
+    CBA_BOX_LATCH,     // 83:
+    CBA_BOX_LATCHRS,   // 84:
+    CBA_BOX_DFF,       // 85:
+    CBA_BOX_DFFCPL,    // 86:
+    CBA_BOX_DFFRS,     // 87:
 
-    CBA_BOX_LATCH,
-    CBA_BOX_LATCHRS,
-    CBA_BOX_DFF,
-    CBA_BOX_DFFCPL,
-    CBA_BOX_DFFRS,
+    CBA_BOX_SLICE,     // 88:
+    CBA_BOX_CONCAT,    // 89: 
 
-    CBA_BOX_LAST   // 67
+    CBA_BOX_LAST       // 90
 } Cba_ObjType_t; 
 
 
@@ -190,6 +189,7 @@ struct Cba_Ntk_t_
     Vec_Int_t       vFinFon0; // fanout: first fon
     Vec_Int_t       vFinObj;  // object
     Vec_Int_t       vNtkObjs; // instances
+    Vec_Int_t       vFonBits; // fon mapping into AIG nodes
     // other
     Vec_Ptr_t *     vOther;   // various data
     Vec_Int_t       vArray0;
@@ -211,6 +211,8 @@ struct Cba_Man_t_
     Vec_Int_t       vUsed;    // used map entries
     Vec_Int_t       vUsed2;   // used map entries
     char *          pTypeNames[CBA_BOX_LAST];
+    int             nObjs[CBA_BOX_LAST]; // counter of objects of each type
+    int             nAnds[CBA_BOX_LAST]; // counter of AND gates after blasting
     // internal data
     int             iRoot;    // root network
     Vec_Ptr_t       vNtks;    // networks
@@ -332,8 +334,7 @@ static inline int            Cba_ObjIsBoxUser( Cba_Ntk_t * p, int i )        { r
 static inline int            Cba_ObjIsBoxPrim( Cba_Ntk_t * p, int i )        { return Cba_ObjType(p, i) >  CBA_OBJ_BOX && Cba_ObjType(p, i) < CBA_BOX_LAST;                }
 static inline int            Cba_ObjIsGate( Cba_Ntk_t * p, int i )           { return Cba_ObjType(p, i) == CBA_BOX_GATE;                                                   }
 static inline int            Cba_ObjIsSlice( Cba_Ntk_t * p, int i )          { return Cba_ObjType(p, i) == CBA_BOX_SLICE;                                                  }
-static inline int            Cba_ObjIsCatIn( Cba_Ntk_t * p, int i )          { return Cba_ObjType(p, i) == CBA_BOX_CATIN;                                                  }
-static inline int            Cba_ObjIsCatOut( Cba_Ntk_t * p, int i )         { return Cba_ObjType(p, i) == CBA_BOX_CATOUT;                                                 }
+static inline int            Cba_ObjIsConcat( Cba_Ntk_t * p, int i )         { return Cba_ObjType(p, i) == CBA_BOX_CONCAT;                                                 }
 static inline int            Cba_ObjIsUnary( Cba_Ntk_t * p, int i )          { return Cba_TypeIsUnary(Cba_ObjType(p, i));                                                  }
 
 static inline int            Cba_ObjFin0( Cba_Ntk_t * p, int i )             { assert(i>0); return Vec_IntEntry(&p->vObjFin0, i);                                          }
@@ -375,16 +376,18 @@ static inline int            Cba_FonIsReal( int f )                          { r
 static inline int            Cba_FonIsConst( int f )                         { return f < 0;                             }
 static inline int            Cba_FonConst( int f )                           { assert(Cba_FonIsConst(f)); return -f-1;   }
 static inline int            Cba_FonFromConst( int c )                       { assert(c >= 0); return -c-1;              }
-static inline int            Cba_FonConstRange( Cba_Ntk_t * p, int f )       { assert(Cba_FonIsConst(f)); return atoi(Cba_NtkConst(p, Cba_FonConst(f)));                   }
+static inline int            Cba_FonConstRangeSize( Cba_Ntk_t * p, int f )   { assert(Cba_FonIsConst(f)); return atoi(Cba_NtkConst(p, Cba_FonConst(f)));                   }
+static inline int            Cba_FonConstSigned( Cba_Ntk_t * p, int f )      { assert(Cba_FonIsConst(f)); return strchr(Cba_NtkConst(p, Cba_FonConst(f)), 's') != NULL;    }
 
 static inline int            Cba_FonObj( Cba_Ntk_t * p, int f )              { return Cba_FonIsReal(f) ? Vec_IntEntry(&p->vFonObj, f) : 0;                                 }
-static inline int            Cba_FonRange( Cba_Ntk_t * p, int f )            { assert(Cba_FonIsReal(f)); return Cba_NtkHasFonRanges(p)?Abc_Lit2Var(Vec_IntGetEntry(&p->vFonRange, f)):0;    }
-static inline int            Cba_FonSigned( Cba_Ntk_t * p, int f )           { assert(Cba_FonIsReal(f)); return Cba_NtkHasFonRanges(p)?Abc_LitIsCompl(Vec_IntGetEntry(&p->vFonRange, f)):0; }
+static inline int            Cba_FonRangeId( Cba_Ntk_t * p, int f )          { assert(Cba_FonIsReal(f)); return Cba_NtkHasFonRanges(p)?Vec_IntGetEntry(&p->vFonRange, f):0;}
+static inline int            Cba_FonRange( Cba_Ntk_t * p, int f )            { assert(Cba_FonIsReal(f)); return Abc_Lit2Var( Cba_FonRangeId(p, f) );                       }
 static inline int            Cba_FonLeft( Cba_Ntk_t * p, int f )             { return Cba_NtkRangeLeft(p, Cba_FonRange(p, f));                                             }
 static inline int            Cba_FonRight( Cba_Ntk_t * p, int f )            { return Cba_NtkRangeRight(p, Cba_FonRange(p, f));                                            }
-static inline int            Cba_FonRangeSize( Cba_Ntk_t * p, int f )        { return Cba_FonIsConst(f) ? Cba_FonConstRange(p, f):Cba_NtkRangeSize(p, Cba_FonRange(p, f)); }
+static inline int            Cba_FonSigned( Cba_Ntk_t * p, int f )           { return Cba_FonIsConst(f) ? Cba_FonConstSigned(p, f) : Abc_LitIsCompl(Cba_FonRangeId(p, f)); }
+static inline int            Cba_FonRangeSize( Cba_Ntk_t * p, int f )        { return Cba_FonIsConst(f) ? Cba_FonConstRangeSize(p, f):Cba_NtkRangeSize(p, Cba_FonRange(p, f)); }
 static inline void           Cba_FonSetRangeSign( Cba_Ntk_t * p, int f, int x )  { assert(Cba_NtkHasFonRanges(p));  Vec_IntSetEntry(&p->vFonRange, f, x);                  }
-static inline void           Cba_FonSetRange( Cba_Ntk_t * p, int f, int x )  { assert(Cba_NtkHasFonRanges(p));  Vec_IntSetEntry(&p->vFonRange, Abc_Var2Lit(f,0), x);       }
+static inline void           Cba_FonSetRange( Cba_Ntk_t * p, int f, int x )  { assert(Cba_NtkHasFonRanges(p));  Vec_IntSetEntry(&p->vFonRange, f, Abc_Var2Lit(x,0));       }
 static inline void           Cba_FonHashRange( Cba_Ntk_t * p, int f, int l, int r ) { Cba_FonSetRange( p, f, Cba_NtkHashRange(p, l, r) );                                  }
 static inline int            Cba_FonCopy( Cba_Ntk_t * p, int f )             { return Cba_FonIsReal(f) ? Vec_IntEntry(&p->vFonCopy, f) : f;                                }
 static inline void           Cba_FonSetCopy( Cba_Ntk_t * p, int f, int x )   { assert(Cba_FonIsReal(f)); assert(Cba_FonCopy(p, f) == 0); Vec_IntWriteEntry(&p->vFonCopy, f, x); }
@@ -398,6 +401,11 @@ static inline int            Cba_FonNtkId( Cba_Ntk_t * p, int f )            { a
 static inline Cba_Ntk_t *    Cba_FonNtk( Cba_Ntk_t * p, int f )              { assert(Cba_FonIsReal(f)); return Cba_ObjNtk( p, Cba_FonObj(p, f) );                         }
 
 static inline int            Cba_ObjFanin( Cba_Ntk_t * p, int i, int k )     { assert(i>0); return Cba_FonObj( p, Cba_ObjFinFon(p, i, k) );                                }
+static inline int            Cba_ObjLeft( Cba_Ntk_t * p, int i )             { return Cba_FonLeft( p, Cba_ObjFon0(p, i) );                                                 }
+static inline int            Cba_ObjRight( Cba_Ntk_t * p, int i )            { return Cba_FonRight( p, Cba_ObjFon0(p, i) );                                                }
+static inline int            Cba_ObjRangeSize( Cba_Ntk_t * p, int i )        { return Cba_FonRangeSize( p, Cba_ObjFon0(p, i) );                                            }
+static inline int            Cba_ObjSigned( Cba_Ntk_t * p, int i )           { return Cba_FonSigned( p, Cba_ObjFon0(p, i) );                                               }
+static inline int            Cba_ObjSign( Cba_Ntk_t * p, int i )             { return Abc_Var2Lit( Cba_FonRangeSize(p, i), Cba_ObjSigned(p, i) );                          }
 
 ////////////////////////////////////////////////////////////////////////
 ///                          ITERATORS                               ///
@@ -435,10 +443,12 @@ static inline int            Cba_ObjFanin( Cba_Ntk_t * p, int i, int k )     { a
 #define Cba_NtkForEachBoxPrim( p, i )                                     \
     for ( i = 1; i < Vec_StrSize(&p->vObjType); i++ ) if ( !Cba_ObjIsBoxPrim(p, i) ) {} else
 
+#define Cba_NtkForEachFon( p, i )                                         \
+    for ( i = 1; i < Vec_IntSize(&p->vFonObj); i++ )
 #define Cba_NtkForEachFinFon( p, iFon, iFin )                             \
-    for ( iFin = 0; iFin < Vec_IntSize(&p->vFinFon) && (((iFon) = Vec_IntEntry(&p->vFinFon, iFin)), 1); iFin++ ) if ( !iFon ) {} else   
+    for ( iFin = 1; iFin < Vec_IntSize(&p->vFinFon) && (((iFon) = Vec_IntEntry(&p->vFinFon, iFin)), 1); iFin++ ) if ( !iFon ) {} else   
 #define Cba_NtkForEachFonName( p, NameId, iFon )                          \
-    for ( iFon = 0; iFon < Vec_IntSize(&p->vFonName) && (((NameId) = Vec_IntEntry(&p->vFonName, iFon)), 1); iFon++ ) if ( !NameId ) {} else   
+    for ( iFon = 1; iFon < Vec_IntSize(&p->vFonName) && (((NameId) = Vec_IntEntry(&p->vFonName, iFon)), 1); iFon++ ) if ( !NameId ) {} else   
 
 #define Cba_ObjForEachFin( p, iObj, iFin, k )                             \
     for ( k = 0, iFin = Cba_ObjFin0(p, iObj); iFin < Cba_ObjFin0(p, iObj+1); iFin++, k++ )
@@ -557,6 +567,7 @@ static inline void Cba_NtkFree( Cba_Ntk_t * p )
     Vec_IntErase( &p->vFinFon0 );    
     Vec_IntErase( &p->vFinObj );    
     Vec_IntErase( &p->vNtkObjs );    
+    Vec_IntErase( &p->vFonBits );    
     // other
     Vec_IntErase( &p->vArray0 );    
     Vec_IntErase( &p->vArray1 );    
@@ -779,6 +790,7 @@ static inline int Cba_NtkMemory( Cba_Ntk_t * p )
     nMem += (int)Vec_IntMemory(&p->vFinFon0 );  
     nMem += (int)Vec_IntMemory(&p->vFinObj );   
     nMem += (int)Vec_IntMemory(&p->vNtkObjs );  
+    nMem += (int)Vec_IntMemory(&p->vFonBits );  
     // other
     nMem += (int)Vec_IntMemory(&p->vArray1 );
     nMem += (int)Vec_IntMemory(&p->vArray1 );
@@ -1035,7 +1047,7 @@ static inline void Cba_ManPrintStats( Cba_Man_t * p, int nModules, int fVerbose 
 
 
 /*=== cbaBlast.c =============================================================*/
-extern Gia_Man_t *   Cba_ManBlast( Cba_Man_t * p, int fBarBufs, int fVerbose );
+extern Gia_Man_t *   Cba_ManBlast( Cba_Man_t * p, int fBarBufs, int fSeq, int fVerbose );
 extern Cba_Man_t *   Cba_ManInsertGia( Cba_Man_t * p, Gia_Man_t * pGia );
 extern Cba_Man_t *   Cba_ManInsertAbc( Cba_Man_t * p, void * pAbc );
 /*=== cbaCba.c ===============================================================*/
@@ -1043,8 +1055,10 @@ extern Cba_Man_t *   Cba_ManReadCba( char * pFileName );
 extern void          Cba_ManWriteCba( char * pFileName, Cba_Man_t * p );
 /*=== cbaCom.c ===============================================================*/
 /*=== cbaNtk.c ===============================================================*/
+extern void          Cba_NtkPrintStatsFull( Cba_Ntk_t * p, int fDistrib, int fVerbose );
+extern void          Cba_NtkPrintNodes( Cba_Ntk_t * p, int Type );
+extern void          Cba_NtkPrintDistribOld( Cba_Ntk_t * p );
 extern void          Cba_ManPrintDistrib( Cba_Man_t * p );
-extern void          Cba_NtkPrintDistrib( Cba_Ntk_t * p );
 //extern void           Cba_ManPrepareTypeNames( Cba_Man_t * p );
 extern void          Cba_NtkObjOrder( Cba_Ntk_t * p, Vec_Int_t * vObjs, Vec_Int_t * vNameIds );
 extern int           Cba_NtkCiFonNum( Cba_Ntk_t * p );
@@ -1057,9 +1071,11 @@ extern Cba_Man_t *   Cba_ManExtractGroup( Cba_Man_t * p, Vec_Int_t * vObjs );
 extern Cba_Man_t *   Cba_ManDeriveFromGia( Gia_Man_t * pGia, int fUseXor );
 extern Cba_Man_t *   Cba_ManInsertGroup( Cba_Man_t * p, Vec_Int_t * vObjs, Cba_Ntk_t * pSyn );
 /*=== cbaReadBlif.c ==========================================================*/
+extern Cba_Man_t *   Prs_ManBuildCbaBlif( char * pFileName, Vec_Ptr_t * vDes );
 extern void          Prs_ManReadBlifTest( char * pFileName );
 extern Cba_Man_t *   Cba_ManReadBlif( char * pFileName );
 /*=== cbaReadVer.c ===========================================================*/
+extern Cba_Man_t *   Prs_ManBuildCbaVerilog( char * pFileName, Vec_Ptr_t * vDes );
 extern void          Prs_ManReadVerilogTest( char * pFileName );
 extern Cba_Man_t *   Cba_ManReadVerilog( char * pFileName );
 /*=== cbaWriteBlif.c =========================================================*/

@@ -128,6 +128,7 @@ struct Prs_Man_t_
     Vec_Int_t       vFailed;
     Vec_Int_t       vSucceeded;
     // error handling
+    int             nOpens;      // open port counter
     int             fUsingTemp2; // vTemp2 is in use
     int             FuncNameId;  // temp value
     int             FuncRangeId; // temp value
@@ -226,10 +227,10 @@ static inline void Prs_ManFinalizeNtk( Prs_Man_t * p )
     p->pNtk = NULL;
 }
 
-static inline int Prs_NtkNewStrId( Prs_Ntk_t * pNtk, const char * format, ...  )
+static inline int Prs_ManNewStrId( Prs_Man_t * p, const char * format, ...  )
 {
-    Abc_Nam_t * p = pNtk->pStrs;
-    Vec_Str_t * vBuf = Abc_NamBuffer( p );
+    Abc_Nam_t * pStrs = p->pStrs;
+    Vec_Str_t * vBuf = Abc_NamBuffer( pStrs );
     int nAdded, nSize = 1000; 
     va_list args;   va_start( args, format );
     Vec_StrGrow( vBuf, Vec_StrSize(vBuf) + nSize );
@@ -241,7 +242,7 @@ static inline int Prs_NtkNewStrId( Prs_Ntk_t * pNtk, const char * format, ...  )
         assert( nSize == nAdded );
     }
     va_end( args );
-    return Abc_NamStrFindOrAddLim( p, Vec_StrLimit(vBuf), Vec_StrLimit(vBuf) + nAdded, NULL );
+    return Abc_NamStrFindOrAddLim( pStrs, Vec_StrLimit(vBuf), Vec_StrLimit(vBuf) + nAdded, NULL );
 }
 
 // parsing slice/concatentation/box
@@ -306,20 +307,22 @@ static inline char * Prs_ManLoadFile( char * pFileName, char ** ppLimit )
 static inline Prs_Man_t * Prs_ManAlloc( char * pFileName )
 {
     Prs_Man_t * p;
-    char * pBuffer, * pLimit;
-    pBuffer = Prs_ManLoadFile( pFileName, &pLimit );
-    if ( pBuffer == NULL )
-        return NULL;
     p = ABC_CALLOC( Prs_Man_t, 1 );
-    p->pName   = pFileName;
-    p->pBuffer = pBuffer;
-    p->pLimit  = pLimit;
-    p->pCur    = pBuffer;
-    p->pStrs   = Abc_NamStart( 1000, 24 );
-    p->pFuns   = Abc_NamStart( 100, 24 );
-    p->vNtks   = Vec_PtrAlloc( 100 );
-    p->vHash   = Hash_IntManStart( 1000 );
-//    Hash_Int2ManInsert( p->vHash, 0, 0, 0 );
+    if ( pFileName )
+    {
+        char * pBuffer, * pLimit;
+        pBuffer = Prs_ManLoadFile( pFileName, &pLimit );
+        if ( pBuffer == NULL )
+            return NULL;
+        p->pName   = pFileName;
+        p->pBuffer = pBuffer;
+        p->pLimit  = pLimit;
+        p->pCur    = pBuffer;
+    }
+    p->pStrs = Abc_NamStart( 1000, 24 );
+    p->pFuns = Abc_NamStart( 100, 24 );
+    p->vHash = Hash_IntManStart( 1000 );
+    p->vNtks = Vec_PtrAlloc( 100 );
     return p;
 }
 
