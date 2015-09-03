@@ -204,7 +204,7 @@ void Cba_NtkPrintDistrib( Cba_Ntk_t * p, int fVerbose )
     {
         printf( "Warning: %d objects of the design have non-zero-based ranges.\n", nCountRange );
         printf( "In particular, object %6d with name \"%s\" has range %d=[%d:%d]\n", 
-            iRnObj, Cba_FonName(p, Cba_ObjFon0(p, iRnObj)), 
+            iRnObj, Cba_FonNameStr(p, Cba_ObjFon0(p, iRnObj)), 
             Cba_ObjRangeSize(p, iRnObj), Cba_ObjLeft(p, iRnObj), Cba_ObjRight(p, iRnObj) );
     }
     // print by occurrence
@@ -256,7 +256,7 @@ void Cba_NtkPrintNodes( Cba_Ntk_t * p, int Type )
         printf( "%3d%s  %s ",  Cba_ObjRangeSize(p, Cba_ObjFinFon(p, i, 0)), Cba_ObjSigned(p, iFon0) ? "s" : " ", pTypeNames[Type] );
         printf( "%3d%s ",      Cba_ObjRangeSize(p, Cba_ObjFinFon(p, i, 1)), Cba_ObjSigned(p, iFon1) ? "s" : " " );
         printf( " :    " );
-        printf( "%-12s =  ",   Cba_ObjName(p, i) );
+        printf( "%-12s =  ",   Cba_ObjNameStr(p, i) );
         printf( "%-12s  %s  ", Cba_FonIsConst(iFon0) ? Cba_NtkConst(p, Cba_FonConst(iFon0)) : Cba_FonNameStr(p, iFon0), pTypeNames[Type] );
         printf( "%-12s ",      Cba_FonIsConst(iFon1) ? Cba_NtkConst(p, Cba_FonConst(iFon1)) : Cba_FonNameStr(p, iFon1) );
         printf( "\n" );

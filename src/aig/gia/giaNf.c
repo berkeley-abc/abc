@@ -2053,7 +2053,7 @@ void Nf_ManSetDefaultPars( Jf_Par_t * pPars )
     pPars->nCutNum      = 16;
     pPars->nProcNum     =  0;
     pPars->nRounds      =  5;
-    pPars->nRoundsEla   =  1;
+    pPars->nRoundsEla   =  0;
     pPars->nRelaxRatio  =  0;
     pPars->nCoarseLimit =  3;
     pPars->nAreaTuner   =  1;

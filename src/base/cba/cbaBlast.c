@@ -581,9 +581,8 @@ void Cba_BlastSqrt( Gia_Man_t * pNew, int * pNum, int nNum, Vec_Int_t * vTmp, Ve
 ***********************************************************************/
 Gia_Man_t * Cba_NtkBlast( Cba_Ntk_t * p, int fSeq )
 {
-    int fVerbose = 0;
     int fUseOldMultiplierBlasting = 0;
-    Gia_Man_t * pTemp, * pNew, * pExtra = NULL;
+    Gia_Man_t * pTemp, * pNew;
     Vec_Int_t * vTemp0, * vTemp1, * vTemp2, * vRes;
     Vec_Str_t * vInit = fSeq ? Vec_StrAlloc(100) : NULL;
     Vec_Int_t * vBits = &p->vFonBits;
@@ -855,7 +854,6 @@ Gia_Man_t * Cba_NtkBlast( Cba_Ntk_t * p, int fSeq )
             int nRangeMax = Abc_MaxInt( nRange, Abc_MaxInt(nRange0, nRange1) );
             int * pArg0 = Cba_VecLoadFanins( p, vRes,   iFon0, pFans0, nRange0, nRangeMax, fSigned01 );
             int * pArg1 = Cba_VecLoadFanins( p, vTemp1, iFon1, pFans1, nRange1, nRangeMax, fSigned01 );
-            int Carry = 0;
             Cba_BlastSubtract( pNew, pArg0, pArg1, nRange ); // result is in pFan0 (vRes)
             Vec_IntShrink( vRes, nRange );
         }
@@ -938,7 +936,7 @@ Gia_Man_t * Cba_NtkBlast( Cba_Ntk_t * p, int fSeq )
         {
             nRange = Cba_FonRangeSize( p, iFon );
             pFans0  = Cba_FonIsReal(iFon) ? Vec_IntEntryP( vBits, Cba_FonCopy(p, iFon) ) : NULL;
-            pFans0  = Cba_VecLoadFanins( p, vTemp0, iFon, pFans0, nRange0, nRange0, Cba_FonSigned(p, iFon) );
+            pFans0  = Cba_VecLoadFanins( p, vTemp0, iFon, pFans0, nRange, nRange, Cba_FonSigned(p, iFon) );
             for ( b = 0; b < nRange; b++ )
                 Gia_ManAppendCo( pNew, pFans0[b] );
         }
@@ -982,7 +980,7 @@ Gia_Man_t * Cba_NtkBlast( Cba_Ntk_t * p, int fSeq )
             {
                 nRange = Cba_FonRangeSize( p, iFon );
                 pFans0  = Cba_FonIsReal(iFon) ? Vec_IntEntryP( vBits, Cba_FonCopy(p, iFon) ) : NULL;
-                pFans0  = Cba_VecLoadFanins( p, vTemp0, iFon, pFans0, nRange0, nRange0, Cba_FonSigned(p, iFon) );
+                pFans0  = Cba_VecLoadFanins( p, vTemp0, iFon, pFans0, nRange, nRange, Cba_FonSigned(p, iFon) );
                 for ( b = 0; b < nRange; b++ )
                     Gia_ManAppendCo( pNew, pFans0[b] );
             }
