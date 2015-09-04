@@ -556,6 +556,8 @@ static void sat_solver_canceluntil(sat_solver* s, int level) {
 
     s->qhead = s->qtail = bound;
     veci_resize(&s->trail_lim,level);
+    // update decision level
+    s->iDeciVar = level;
 }
 
 static void sat_solver_canceluntil_rollback(sat_solver* s, int NewBound) {
@@ -1156,6 +1158,7 @@ void sat_solver_delete(sat_solver* s)
     veci_delete(&s->pivot_vars);
     veci_delete(&s->temp_clause);
     veci_delete(&s->conf_final);
+    veci_delete(&s->vDeciVars);    
 
     // delete arrays
     if (s->reasons != 0){
@@ -1577,8 +1580,8 @@ static lbool sat_solver_search(sat_solver* s, ABC_INT64_T nof_conflicts)
 //    double  var_decay       = 0.95;
 //    double  clause_decay    = 0.999;
     double  random_var_freq = s->fNotUseRandom ? 0.0 : 0.02;
-
-    ABC_INT64_T  conflictC       = 0;
+    int fGuided = (veci_size(&s->vDeciVars) > 0);
+    ABC_INT64_T  conflictC  = 0;
     veci    learnt_clause;
     int     i;
 
@@ -1590,6 +1593,15 @@ static lbool sat_solver_search(sat_solver* s, ABC_INT64_T nof_conflicts)
 //    s->cla_decay = (float)(1 / clause_decay);  // move this to sat_solver_new()
 //    veci_resize(&s->model,0);
     veci_new(&learnt_clause);
+
+    // update variable polarity
+    if ( fGuided )
+    {
+        int * pVars = veci_begin(&s->vDeciVars);
+        for ( i = 0; i < veci_size(&s->vDeciVars); i++ )
+            var_set_polar( s, pVars[i], 0 );
+        s->iDeciVar = 0;
+    }
 
     // use activity factors in every even restart
     if ( (s->nRestarts & 1) && veci_size(&s->act_vars) > 0 )
@@ -1639,11 +1651,14 @@ static lbool sat_solver_search(sat_solver* s, ABC_INT64_T nof_conflicts)
             int next;
  
             // Reached bound on number of conflicts:
-            if ((nof_conflicts >= 0 && conflictC >= nof_conflicts) || (s->nRuntimeLimit && (s->stats.conflicts & 63) == 0 && Abc_Clock() > s->nRuntimeLimit)){
-                s->progress_estimate = sat_solver_progress(s);
-                sat_solver_canceluntil(s,s->root_level);
-                veci_delete(&learnt_clause);
-                return l_Undef; }
+            if ( !fGuided )
+            {
+                if ((nof_conflicts >= 0 && conflictC >= nof_conflicts) || (s->nRuntimeLimit && (s->stats.conflicts & 63) == 0 && Abc_Clock() > s->nRuntimeLimit)){
+                    s->progress_estimate = sat_solver_progress(s);
+                    sat_solver_canceluntil(s,s->root_level);
+                    veci_delete(&learnt_clause);
+                    return l_Undef; }
+            }
 
             // Reached bound on number of conflicts:
             if ( (s->nConfLimit && s->stats.conflicts > s->nConfLimit) ||
@@ -1666,7 +1681,24 @@ static lbool sat_solver_search(sat_solver* s, ABC_INT64_T nof_conflicts)
 
             // New variable decision:
             s->stats.decisions++;
-            next = order_select(s,(float)random_var_freq);
+            if ( fGuided )
+            {
+                int nVars = veci_size(&s->vDeciVars);
+                int * pVars = veci_begin(&s->vDeciVars);
+                next = var_Undef;
+                assert( s->iDeciVar <= nVars );
+                while ( s->iDeciVar < nVars )
+                {
+                    int iVar = pVars[s->iDeciVar++];
+                    if ( var_value(s, iVar) == varX )
+                    {
+                        next = iVar;
+                        break;
+                    }
+                }
+            }
+            else
+                next = order_select(s,(float)random_var_freq);
 
             if (next == var_Undef){
                 // Model found:
