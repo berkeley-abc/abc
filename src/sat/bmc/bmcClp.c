@@ -47,51 +47,15 @@ extern Cnf_Dat_t * Mf_ManGenerateCnf( Gia_Man_t * pGia, int nLutSize, int fCnfOb
   SeeAlso     []
 
 ***********************************************************************/
-int Bmc_CollapseExpand2( sat_solver * pSat, Vec_Int_t * vLits, Vec_Int_t * vNums, Vec_Int_t * vTemp, int nBTLimit )
-{
-    int i, Index, status, nFinal, * pFinal;
-    // check against offset
-    status = sat_solver_solve( pSat, Vec_IntArray(vLits), Vec_IntLimit(vLits), nBTLimit, 0, 0, 0 );
-    if ( status == l_Undef )
-        return -1;
-    assert( status == l_False );
-    // get subset of literals
-    nFinal = sat_solver_final( pSat, &pFinal );
-    // collect literals
-    Vec_IntClear( vNums );
-    for ( i = 0; i < nFinal; i++ )
-    {
-        Index = Vec_IntFind( vLits, Abc_LitNot(pFinal[i]) );
-        assert( Index >= 0 );
-        Vec_IntPush( vNums, Index );
-    }
-/*
-    int i;
-    Vec_IntClear( vNums );
-    for ( i = 0; i < Vec_IntSize(vLits); i++ )
-        Vec_IntPush( vNums, i );
-*/
-    return 0;
-}
-
-/**Function*************************************************************
-
-  Synopsis    []
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Bmc_CollapseExpand( sat_solver * pSat, Vec_Int_t * vLits, Vec_Int_t * vNums, Vec_Int_t * vTemp, int nBTLimit )
+int Bmc_CollapseExpandCanon( sat_solver * pSat, Vec_Int_t * vLits, Vec_Int_t * vNums, Vec_Int_t * vTemp, int nBTLimit )
 {
     int k, n, iLit, status;
     // try removing one literal at a time
     for ( k = Vec_IntSize(vLits) - 1; k >= 0; k-- )
     {
         int Save = Vec_IntEntry( vLits, k );
+        if ( Save == -1 )
+            continue;
         Vec_IntWriteEntry( vLits, k, -1 );
         // put into new array
         Vec_IntClear( vTemp );
@@ -124,15 +88,67 @@ int Bmc_CollapseExpand( sat_solver * pSat, Vec_Int_t * vLits, Vec_Int_t * vNums,
   SeeAlso     []
 
 ***********************************************************************/
-int Bmc_CollapseOne( Gia_Man_t * p, int nCubeLim, int nBTLimit, int fVerbose )
+int Bmc_CollapseExpand( sat_solver * pSat, Vec_Int_t * vLits, Vec_Int_t * vNums, Vec_Int_t * vTemp, int nBTLimit )
 {
+    int i, k, iLit, status, nFinal, * pFinal;
+    // check against offset
+    status = sat_solver_solve( pSat, Vec_IntArray(vLits), Vec_IntLimit(vLits), nBTLimit, 0, 0, 0 );
+    if ( status == l_Undef )
+        return -1;
+    assert( status == l_False );
+    // get subset of literals
+    nFinal = sat_solver_final( pSat, &pFinal );
+/*
+    // collect literals
+    Vec_IntClear( vNums );
+    for ( i = 0; i < nFinal; i++ )
+    {
+        iLit = Vec_IntFind( vLits, Abc_LitNot(pFinal[i]) );
+        assert( iLit >= 0 );
+        Vec_IntPush( vNums, iLit );
+    }
+*/
+    // mark unused literals
+    Vec_IntForEachEntry( vLits, iLit, i )
+    {
+        for ( k = 0; k < nFinal; k++ )
+            if ( iLit == Abc_LitNot(pFinal[k]) )
+                break;
+        if ( k == nFinal )
+            Vec_IntWriteEntry( vLits, i, -1 );
+    }
+    Bmc_CollapseExpandCanon( pSat, vLits, vNums, vTemp, nBTLimit );
+
+/*
+    int i;
+    Vec_IntClear( vNums );
+    for ( i = 0; i < Vec_IntSize(vLits); i++ )
+        Vec_IntPush( vNums, i );
+*/
+    return 0;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Str_t * Bmc_CollapseOneInt( Gia_Man_t * p, int nCubeLim, int nBTLimit, int fCanon, int fVerbose, int fCompl )
+{
+    int fPrintMinterm = 0;
     int nVars = Gia_ManCiNum(p);
     Vec_Int_t * vVars = Vec_IntAlloc( nVars );
     Vec_Int_t * vLits = Vec_IntAlloc( nVars );
     Vec_Int_t * vNums = Vec_IntAlloc( nVars );
     Vec_Int_t * vCube = Vec_IntAlloc( nVars );
-    Vec_Str_t * vStr  = Vec_StrAlloc( nVars+1 );
-    int iOut = 0, iLit, iVar, status, n, Count;
+    Vec_Str_t * vSop  = Vec_StrAlloc( 100 );
+    int iOut = 0, iLit, iVar, status, n, Count, Start;
 
     // create SAT solver
     Cnf_Dat_t * pCnf = Mf_ManGenerateCnf( p, 8, 0, 0, 0 );
@@ -152,71 +168,132 @@ int Bmc_CollapseOne( Gia_Man_t * p, int nCubeLim, int nBTLimit, int fVerbose )
         iLit = Abc_Var2Lit( iOut + 1, n ); // n=0 => F=1   n=1 => F=0
         status = sat_solver_addclause( pSat[n], &iLit, &iLit + 1 );
         if ( status == 0 )
-            return -1; // const0/1
+        {
+            Vec_StrPrintStr( vSop, (n ^ fCompl) ? " 1\n" : " 0\n" );
+            Vec_StrPush( vSop, '\0' );
+            goto cleanup; // const0/1
+        }
         status = sat_solver_solve( pSat[n], NULL, NULL, nBTLimit, 0, 0, 0 );
         if ( status == l_Undef )
-            return -3; // timeout
+        {
+            Vec_StrFreeP( &vSop );
+            goto cleanup; // timeout
+        }
         if ( status == l_False )
-            return -1; // const0/1
+        {
+            Vec_StrPrintStr( vSop, (n ^ fCompl) ? " 1\n" : " 0\n" );
+            Vec_StrPush( vSop, '\0' );
+            goto cleanup; // const0/1
+        }
     }
+    Vec_StrPush( vSop, '\0' );
 
     // prepare on-set for solving
-    sat_solver_prepare_enum( pSat[0], Vec_IntArray(vVars), Vec_IntSize(vVars) );
-    for ( Count = 0; Count < nCubeLim; )
+    if ( fCanon )
+        sat_solver_prepare_enum( pSat[0], Vec_IntArray(vVars), Vec_IntSize(vVars) );
+    Count = 0;
+    while ( 1 )
     {
-        // get the smallest assignment
+        // get the assignment
         status = sat_solver_solve( pSat[0], NULL, NULL, 0, 0, 0, 0 );
         if ( status == l_Undef )
-            return -3; // timeout
+        {
+            Vec_StrFreeP( &vSop );
+            goto cleanup; // timeout
+        }
         if ( status == l_False )
             break;
+        // check number of cubes
+        if ( Count == nCubeLim )
+        {
+            //printf( "The number of cubes exceeded the limit (%d).\n", nCubeLim );
+            Vec_StrFreeP( &vSop );
+            goto cleanup; // cube out
+        }
         // collect values
         Vec_IntClear( vLits );
         Vec_IntForEachEntry( vVars, iVar, n )
             Vec_IntPush( vLits, Abc_Var2Lit(iVar, !sat_solver_var_value(pSat[0], iVar)) );
         // print minterm
-//        printf( "Mint: " );
-//        Vec_IntForEachEntry( vLits, iLit, n )
-//            printf( "%d", !Abc_LitIsCompl(iLit) );
-//        printf( "\n" );
-        // expand the values
-        status = Bmc_CollapseExpand( pSat[1], vLits, vNums, vCube, nBTLimit );
-        if ( status < 0 )
-            return -3; // timeout
-        Count++;
-        // print cube
-        if ( fVerbose )
+        if ( fPrintMinterm )
         {
-            Vec_StrFill( vStr, nVars, '-' );
-            Vec_StrPush( vStr, '\0' );
-            Vec_IntForEachEntry( vNums, iVar, n )
-                Vec_StrWriteEntry( vStr, iVar, (char)('0' + !Abc_LitIsCompl(Vec_IntEntry(vLits, iVar))) );
-            printf( "Cube: " );
-            printf( "%s\n", Vec_StrArray(vStr) );
+            printf( "Mint: " );
+            Vec_IntForEachEntry( vLits, iLit, n )
+                printf( "%d", !Abc_LitIsCompl(iLit) );
+            printf( "\n" );
+        }
+        // expand the values
+        if ( fCanon )
+            status = Bmc_CollapseExpandCanon( pSat[1], vLits, vNums, vCube, nBTLimit );
+        else
+            status = Bmc_CollapseExpand( pSat[1], vLits, vNums, vCube, nBTLimit );
+        if ( status < 0 )
+        {
+            Vec_StrFreeP( &vSop );
+            goto cleanup; // timeout
         }
         // collect cube
+        Vec_StrPop( vSop );
+        Start = Vec_StrSize( vSop );
+        Vec_StrFillExtra( vSop, Start + nVars + 4, '-' );
+        Vec_StrWriteEntry( vSop, Start + nVars + 0, ' ' );
+        Vec_StrWriteEntry( vSop, Start + nVars + 1, (char)(fCompl ? '0' : '1') );
+        Vec_StrWriteEntry( vSop, Start + nVars + 2, '\n' );
+        Vec_StrWriteEntry( vSop, Start + nVars + 3, '\0' );
         Vec_IntClear( vCube );
         Vec_IntForEachEntry( vNums, iVar, n )
-            Vec_IntPush( vCube, Abc_LitNot(Vec_IntEntry(vLits, iVar)) );
+        {
+            iLit = Vec_IntEntry( vLits, iVar );
+            Vec_IntPush( vCube, Abc_LitNot(iLit) );
+            Vec_StrWriteEntry( vSop, Start + iVar, (char)('0' + !Abc_LitIsCompl(iLit)) );
+        }
+        if ( fVerbose )
+            printf( "Cube %4d: %s", Count, Vec_StrArray(vSop) + Start );
+        Count++;
         // add cube
         status = sat_solver_addclause( pSat[0], Vec_IntArray(vCube), Vec_IntLimit(vCube) );
         if ( status == 0 )
             break;
     }
-    printf( "Finished enumerating %d assignments.\n", Count );
-
-    // cleanup
+    //printf( "Finished enumerating %d assignments.\n", Count );
+cleanup:
     Vec_IntFree( vVars );
     Vec_IntFree( vLits );
     Vec_IntFree( vNums );
     Vec_IntFree( vCube );
-    Vec_StrFree( vStr );
     sat_solver_delete( pSat[0] );
     sat_solver_delete( pSat[1] );
     Cnf_DataFree( pCnf );
-    return 1;
+    return vSop;
 }
-
+Vec_Str_t * Bmc_CollapseOne( Gia_Man_t * p, int nCubeLim, int nBTLimit, int fCanon, int fVerbose )
+{
+    Vec_Str_t * vSopOn, * vSopOff;
+    int nCubesOn = ABC_INFINITY;
+    int nCubesOff = ABC_INFINITY;
+    vSopOn = Bmc_CollapseOneInt( p, nCubeLim, nBTLimit, fCanon, fVerbose, 0 );
+    if ( vSopOn )
+        nCubesOn = Vec_StrCountEntry(vSopOn,'\n');
+    Gia_ObjFlipFaninC0( Gia_ManPo(p, 0) );
+    vSopOff = Bmc_CollapseOneInt( p, Abc_MinInt(nCubeLim, nCubesOn), nBTLimit, fCanon, fVerbose, 1 );
+    Gia_ObjFlipFaninC0( Gia_ManPo(p, 0) );
+    if ( vSopOff )
+        nCubesOff = Vec_StrCountEntry(vSopOff,'\n');
+    if ( vSopOn == NULL )
+        return vSopOff;
+    if ( vSopOff == NULL )
+        return vSopOn;
+    if ( nCubesOn <= nCubesOff )
+    {
+        Vec_StrFree( vSopOff );
+        return vSopOn;
+    }
+    else
+    {
+        Vec_StrFree( vSopOn );
+        return vSopOff;
+    }
+}
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

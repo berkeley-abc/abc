@@ -95,6 +95,7 @@ static int Abc_CommandShowBdd                ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandShowCut                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 static int Abc_CommandCollapse               ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandSatClp                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandStrash                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandBalance                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandMuxStruct              ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -714,6 +715,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Printing",     "show_cut",      Abc_CommandShowCut,          0 );
 
     Cmd_CommandAdd( pAbc, "Synthesis",    "collapse",      Abc_CommandCollapse,         1 );
+    Cmd_CommandAdd( pAbc, "Synthesis",    "satclp",        Abc_CommandSatClp,           1 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "strash",        Abc_CommandStrash,           1 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "balance",       Abc_CommandBalance,          1 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "mux_struct",    Abc_CommandMuxStruct,        1 );
@@ -3067,6 +3069,108 @@ usage:
     return 1;
 }
 
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandSatClp( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc), * pNtkRes;
+    int nCubeLim = 1000;
+    int nBTLimit = 1000000;
+    int fCanon   = 0;
+    int fVerbose = 0;
+    int c;
+
+    // set defaults
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "CLcvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'C':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-C\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nCubeLim = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nCubeLim < 0 )
+                goto usage;
+            break;
+        case 'L':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-L\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nBTLimit = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nBTLimit < 0 )
+                goto usage;
+            break;
+        case 'c':
+            fCanon ^= 1;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+
+    if ( pNtk == NULL )
+    {
+        Abc_Print( -1, "Empty network.\n" );
+        return 1;
+    }
+
+    if ( !Abc_NtkIsLogic(pNtk) && !Abc_NtkIsStrash(pNtk) )
+    {
+        Abc_Print( -1, "Can only collapse a logic network or an AIG.\n" );
+        return 1;
+    }
+
+    // get the new network
+    if ( Abc_NtkIsStrash(pNtk) )
+        pNtkRes = Abc_NtkCollapseSat( pNtk, nCubeLim, nBTLimit, fCanon, fVerbose );
+    else
+    {
+        pNtk = Abc_NtkStrash( pNtk, 0, 0, 0 );
+        pNtkRes = Abc_NtkCollapseSat( pNtk, nCubeLim, nBTLimit, fCanon, fVerbose );
+        Abc_NtkDelete( pNtk );
+    }
+    if ( pNtkRes == NULL )
+    {
+        Abc_Print( -1, "Collapsing has failed.\n" );
+        return 1;
+    }
+    // replace the current network
+    Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: satclp [-CL num] [-cvh]\n" );
+    Abc_Print( -2, "\t         performs SAT based collapsing\n" );
+    Abc_Print( -2, "\t-C num : the limit on the SOP size of one output [default = %d]\n", nCubeLim );
+    Abc_Print( -2, "\t-L num : the limit on the number of conflicts in one SAT call [default = %d]\n", nBTLimit );
+    Abc_Print( -2, "\t-c     : toggles using canonical ISOP computation [default = %s]\n", fCanon? "yes": "no" );
+    Abc_Print( -2, "\t-v     : toggles printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
+    return 1;
+}
 
 /**Function*************************************************************
 
@@ -37135,19 +37239,23 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9SatClp( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern int Bmc_CollapseOne( Gia_Man_t * p, int nCubeLim, int nBTLimit, int fVerbose );
+    extern Vec_Str_t * Bmc_CollapseOne( Gia_Man_t * p, int nCubeLim, int nBTLimit, int fCanon, int fVerbose );
     int nCubeLim = 1000;
     int nBTLimit = 1000000;
-    int c, fVerbose = 0;
+    int fCanon   = 0;
+    int fVerbose = 0;
+    int c;
+
+    Vec_Str_t * vSop;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "LCvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "CLcvh" ) ) != EOF )
     {
         switch ( c )
         {
-        case 'L':
+        case 'C':
             if ( globalUtilOptind >= argc )
             {
-                Abc_Print( -1, "Command line switch \"-L\" should be followed by an integer.\n" );
+                Abc_Print( -1, "Command line switch \"-C\" should be followed by an integer.\n" );
                 goto usage;
             }
             nCubeLim = atoi(argv[globalUtilOptind]);
@@ -37155,16 +37263,19 @@ int Abc_CommandAbc9SatClp( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( nCubeLim < 0 )
                 goto usage;
             break;
-        case 'C':
+        case 'L':
             if ( globalUtilOptind >= argc )
             {
-                Abc_Print( -1, "Command line switch \"-C\" should be followed by an integer.\n" );
+                Abc_Print( -1, "Command line switch \"-L\" should be followed by an integer.\n" );
                 goto usage;
             }
             nBTLimit = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
             if ( nBTLimit < 0 )
                 goto usage;
+            break;
+        case 'c':
+            fCanon ^= 1;
             break;
         case 'v':
             fVerbose ^= 1;
@@ -37180,14 +37291,16 @@ int Abc_CommandAbc9SatClp( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Abc_CommandAbc9SatClp(): There is no AIG.\n" );
         return 0;
     }
-    Bmc_CollapseOne( pAbc->pGia, nCubeLim, nBTLimit, fVerbose );
+    vSop = Bmc_CollapseOne( pAbc->pGia, nCubeLim, nBTLimit, fCanon, fVerbose );
+    Vec_StrFree( vSop );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &satclp [-LC num] [-vh]\n" );
+    Abc_Print( -2, "usage: &satclp [-CL num] [-cvh]\n" );
     Abc_Print( -2, "\t         performs SAT based collapsing\n" );
-    Abc_Print( -2, "\t-L num : the limit on the SOP size of one output [default = %d]\n", nCubeLim );
-    Abc_Print( -2, "\t-C num : the limit on the number of conflicts in one call [default = %d]\n", nBTLimit );
+    Abc_Print( -2, "\t-C num : the limit on the SOP size of one output [default = %d]\n", nCubeLim );
+    Abc_Print( -2, "\t-L num : the limit on the number of conflicts in one SAT call [default = %d]\n", nBTLimit );
+    Abc_Print( -2, "\t-c     : toggles using canonical ISOP computation [default = %s]\n", fCanon? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggles printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
