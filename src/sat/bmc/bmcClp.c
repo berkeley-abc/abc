@@ -38,7 +38,7 @@ extern Cnf_Dat_t * Mf_ManGenerateCnf( Gia_Man_t * pGia, int nLutSize, int fCnfOb
 
 /**Function*************************************************************
 
-  Synopsis    []
+  Synopsis    [Performs one round of removing literals.]
 
   Description []
                
@@ -47,7 +47,7 @@ extern Cnf_Dat_t * Mf_ManGenerateCnf( Gia_Man_t * pGia, int nLutSize, int fCnfOb
   SeeAlso     []
 
 ***********************************************************************/
-int Bmc_CollapseExpandCanon( sat_solver * pSat, Vec_Int_t * vLits, Vec_Int_t * vNums, Vec_Int_t * vTemp, int nBTLimit )
+int Bmc_CollapseExpandRound( sat_solver * pSat, sat_solver * pSatOn, Vec_Int_t * vLits, Vec_Int_t * vNums, Vec_Int_t * vTemp, int nBTLimit, int fCanon )
 {
     int k, n, iLit, status;
     // try removing one literal at a time
@@ -56,6 +56,26 @@ int Bmc_CollapseExpandCanon( sat_solver * pSat, Vec_Int_t * vLits, Vec_Int_t * v
         int Save = Vec_IntEntry( vLits, k );
         if ( Save == -1 )
             continue;
+        // check if this literal when expanded overlaps with the on-set
+        if ( pSatOn )
+        {
+            // it is ok to skip the first round if the literal is positive
+            if ( fCanon && !Abc_LitIsCompl(Save) )
+                continue;
+            // put into new array
+            Vec_IntClear( vTemp );
+            Vec_IntForEachEntry( vLits, iLit, n )
+                if ( iLit != -1 )
+                    Vec_IntPush( vTemp, Abc_LitNotCond(iLit, k==n) );
+            // check against onset
+            status = sat_solver_solve( pSatOn, Vec_IntArray(vTemp), Vec_IntLimit(vTemp), nBTLimit, 0, 0, 0 );
+            if ( status == l_Undef )
+                return -1;
+            //printf( "%d", status == l_True );
+            if ( status == l_False )
+                continue;
+            // otherwise keep trying to remove it
+        }
         Vec_IntWriteEntry( vLits, k, -1 );
         // put into new array
         Vec_IntClear( vTemp );
@@ -69,6 +89,8 @@ int Bmc_CollapseExpandCanon( sat_solver * pSat, Vec_Int_t * vLits, Vec_Int_t * v
         if ( status == l_True )
             Vec_IntWriteEntry( vLits, k, Save );
     }
+//    if ( pSatOn )
+//    printf( "\n" );
     // put into new array
     Vec_IntClear( vNums );
     Vec_IntForEachEntry( vLits, iLit, n )
@@ -79,7 +101,7 @@ int Bmc_CollapseExpandCanon( sat_solver * pSat, Vec_Int_t * vLits, Vec_Int_t * v
 
 /**Function*************************************************************
 
-  Synopsis    []
+  Synopsis    [Expends minterm into a cube.]
 
   Description []
                
@@ -88,44 +110,73 @@ int Bmc_CollapseExpandCanon( sat_solver * pSat, Vec_Int_t * vLits, Vec_Int_t * v
   SeeAlso     []
 
 ***********************************************************************/
-int Bmc_CollapseExpand( sat_solver * pSat, Vec_Int_t * vLits, Vec_Int_t * vNums, Vec_Int_t * vTemp, int nBTLimit )
+int Bmc_CollapseExpand( sat_solver * pSat, sat_solver * pSatOn, Vec_Int_t * vLits, Vec_Int_t * vNums, Vec_Int_t * vTemp, int nBTLimit, int fCanon )
 {
-    int i, k, iLit, status, nFinal, * pFinal;
-    // check against offset
-    status = sat_solver_solve( pSat, Vec_IntArray(vLits), Vec_IntLimit(vLits), nBTLimit, 0, 0, 0 );
-    if ( status == l_Undef )
-        return -1;
-    assert( status == l_False );
-    // get subset of literals
-    nFinal = sat_solver_final( pSat, &pFinal );
-/*
-    // collect literals
-    Vec_IntClear( vNums );
-    for ( i = 0; i < nFinal; i++ )
+    // perform one quick reduction if it is non-canonical
+    if ( !fCanon )
     {
-        iLit = Vec_IntFind( vLits, Abc_LitNot(pFinal[i]) );
-        assert( iLit >= 0 );
-        Vec_IntPush( vNums, iLit );
+        int i, k, iLit, status, nFinal, * pFinal;
+        // check against offset
+        status = sat_solver_solve( pSat, Vec_IntArray(vLits), Vec_IntLimit(vLits), nBTLimit, 0, 0, 0 );
+        if ( status == l_Undef )
+            return -1;
+        assert( status == l_False );
+        // get subset of literals
+        nFinal = sat_solver_final( pSat, &pFinal );
+        // mark unused literals
+        Vec_IntForEachEntry( vLits, iLit, i )
+        {
+            for ( k = 0; k < nFinal; k++ )
+                if ( iLit == Abc_LitNot(pFinal[k]) )
+                    break;
+            if ( k == nFinal )
+                Vec_IntWriteEntry( vLits, i, -1 );
+        }
     }
-*/
-    // mark unused literals
-    Vec_IntForEachEntry( vLits, iLit, i )
-    {
-        for ( k = 0; k < nFinal; k++ )
-            if ( iLit == Abc_LitNot(pFinal[k]) )
-                break;
-        if ( k == nFinal )
-            Vec_IntWriteEntry( vLits, i, -1 );
-    }
-    Bmc_CollapseExpandCanon( pSat, vLits, vNums, vTemp, nBTLimit );
-
-/*
-    int i;
-    Vec_IntClear( vNums );
-    for ( i = 0; i < Vec_IntSize(vLits); i++ )
-        Vec_IntPush( vNums, i );
-*/
+    Bmc_CollapseExpandRound( pSat, pSatOn, vLits, vNums, vTemp, nBTLimit, fCanon );
+    Bmc_CollapseExpandRound( pSat, NULL,   vLits, vNums, vTemp, nBTLimit, fCanon );
     return 0;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Returns SAT solver in the 'sat' state with the given assignment.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Bmc_ComputeCanonical( sat_solver * pSat, Vec_Int_t * vLits, Vec_Int_t * vTemp, int nBTLimit )
+{
+    int i, k, iLit, status = l_Undef;
+    for ( i = 0; i < Vec_IntSize(vLits); i++ )
+    {
+        // copy the first i+1 literals
+        Vec_IntClear( vTemp );
+        Vec_IntForEachEntryStop( vLits, iLit, k, i+1 )
+            Vec_IntPush( vTemp, iLit );
+        // check if it satisfies the on-set
+        status = sat_solver_solve( pSat, Vec_IntArray(vTemp), Vec_IntLimit(vTemp), nBTLimit, 0, 0, 0 );
+        if ( status == l_Undef )
+            return l_Undef;
+        if ( status == l_True )
+            continue;
+        // if it is UNSAT, try the opposite literal
+        iLit = Vec_IntEntry( vLits, i );
+        // if literal is positive, there is no way to flip it
+        if ( !Abc_LitIsCompl(iLit) )
+            return l_False;
+        Vec_IntWriteEntry( vLits, i, Abc_LitNot(iLit) );
+        Vec_IntForEachEntryStart( vLits, iLit, k, i+1 )
+            Vec_IntWriteEntry( vLits, k, Abc_LitNot(Abc_LitRegular(iLit)) );
+        // recheck
+        i--;
+    }
+    assert( status == l_True );
+    return status;
 }
 
 /**Function*************************************************************
@@ -145,6 +196,7 @@ Vec_Str_t * Bmc_CollapseOneInt( Gia_Man_t * p, int nCubeLim, int nBTLimit, int f
     int nVars = Gia_ManCiNum(p);
     Vec_Int_t * vVars = Vec_IntAlloc( nVars );
     Vec_Int_t * vLits = Vec_IntAlloc( nVars );
+    Vec_Int_t * vLitsC= Vec_IntAlloc( nVars );
     Vec_Int_t * vNums = Vec_IntAlloc( nVars );
     Vec_Int_t * vCube = Vec_IntAlloc( nVars );
     Vec_Str_t * vSop  = Vec_StrAlloc( 100 );
@@ -152,9 +204,10 @@ Vec_Str_t * Bmc_CollapseOneInt( Gia_Man_t * p, int nCubeLim, int nBTLimit, int f
 
     // create SAT solver
     Cnf_Dat_t * pCnf = Mf_ManGenerateCnf( p, 8, 0, 0, 0 );
-    sat_solver * pSat[2] = { 
+    sat_solver * pSat[3] = { 
         (sat_solver *)Cnf_DataWriteIntoSolver(pCnf, 1, 0), 
-        (sat_solver *)Cnf_DataWriteIntoSolver(pCnf, 1, 0) 
+        (sat_solver *)Cnf_DataWriteIntoSolver(pCnf, 1, 0),
+        fCanon ? (sat_solver *)Cnf_DataWriteIntoSolver(pCnf, 1, 0) : NULL
     };
 
     // collect CI variables
@@ -162,14 +215,18 @@ Vec_Str_t * Bmc_CollapseOneInt( Gia_Man_t * p, int nCubeLim, int nBTLimit, int f
     for ( n = 0; n < nVars; n++ )
         Vec_IntPush( vVars, iCiVarBeg + n );
 
+    // start with all negative literals
+    Vec_IntForEachEntry( vVars, iVar, n )
+        Vec_IntPush( vLitsC, Abc_Var2Lit(iVar, 1) );
+
     // check that on-set/off-set is sat
-    for ( n = 0; n < 2; n++ )
+    for ( n = 0; n < 2 + fCanon; n++ )
     {
-        iLit = Abc_Var2Lit( iOut + 1, n ); // n=0 => F=1   n=1 => F=0
+        iLit = Abc_Var2Lit( iOut + 1, n&1 ); // n=0 => F=1   n=1 => F=0
         status = sat_solver_addclause( pSat[n], &iLit, &iLit + 1 );
         if ( status == 0 )
         {
-            Vec_StrPrintStr( vSop, (n ^ fCompl) ? " 1\n" : " 0\n" );
+            Vec_StrPrintStr( vSop, ((n&1) ^ fCompl) ? " 1\n" : " 0\n" );
             Vec_StrPush( vSop, '\0' );
             goto cleanup; // const0/1
         }
@@ -181,7 +238,7 @@ Vec_Str_t * Bmc_CollapseOneInt( Gia_Man_t * p, int nCubeLim, int nBTLimit, int f
         }
         if ( status == l_False )
         {
-            Vec_StrPrintStr( vSop, (n ^ fCompl) ? " 1\n" : " 0\n" );
+            Vec_StrPrintStr( vSop, ((n&1) ^ fCompl) ? " 1\n" : " 0\n" );
             Vec_StrPush( vSop, '\0' );
             goto cleanup; // const0/1
         }
@@ -189,13 +246,19 @@ Vec_Str_t * Bmc_CollapseOneInt( Gia_Man_t * p, int nCubeLim, int nBTLimit, int f
     Vec_StrPush( vSop, '\0' );
 
     // prepare on-set for solving
-    if ( fCanon )
-        sat_solver_prepare_enum( pSat[0], Vec_IntArray(vVars), Vec_IntSize(vVars) );
+//    if ( fCanon )
+//        sat_solver_prepare_enum( pSat[0], Vec_IntArray(vVars), Vec_IntSize(vVars) );
     Count = 0;
     while ( 1 )
     {
         // get the assignment
-        status = sat_solver_solve( pSat[0], NULL, NULL, 0, 0, 0, 0 );
+        if ( fCanon )
+            status = Bmc_ComputeCanonical( pSat[0], vLitsC, vCube, nBTLimit );
+        else
+        {
+            sat_solver_clean_polarity( pSat[0], Vec_IntArray(vVars), Vec_IntSize(vVars) );
+            status = sat_solver_solve( pSat[0], NULL, NULL, 0, 0, 0, 0 );
+        }
         if ( status == l_Undef )
         {
             Vec_StrFreeP( &vSop );
@@ -212,8 +275,13 @@ Vec_Str_t * Bmc_CollapseOneInt( Gia_Man_t * p, int nCubeLim, int nBTLimit, int f
         }
         // collect values
         Vec_IntClear( vLits );
+        Vec_IntClear( vLitsC );
         Vec_IntForEachEntry( vVars, iVar, n )
-            Vec_IntPush( vLits, Abc_Var2Lit(iVar, !sat_solver_var_value(pSat[0], iVar)) );
+        {
+            iLit = Abc_Var2Lit(iVar, !sat_solver_var_value(pSat[0], iVar));
+            Vec_IntPush( vLits, iLit );
+            Vec_IntPush( vLitsC, iLit );
+        }
         // print minterm
         if ( fPrintMinterm )
         {
@@ -223,10 +291,7 @@ Vec_Str_t * Bmc_CollapseOneInt( Gia_Man_t * p, int nCubeLim, int nBTLimit, int f
             printf( "\n" );
         }
         // expand the values
-        if ( fCanon )
-            status = Bmc_CollapseExpandCanon( pSat[1], vLits, vNums, vCube, nBTLimit );
-        else
-            status = Bmc_CollapseExpand( pSat[1], vLits, vNums, vCube, nBTLimit );
+        status = Bmc_CollapseExpand( pSat[1], fCanon ? pSat[2] : pSat[0], vLits, vNums, vCube, nBTLimit, fCanon );
         if ( status < 0 )
         {
             Vec_StrFreeP( &vSop );
@@ -254,15 +319,22 @@ Vec_Str_t * Bmc_CollapseOneInt( Gia_Man_t * p, int nCubeLim, int nBTLimit, int f
         status = sat_solver_addclause( pSat[0], Vec_IntArray(vCube), Vec_IntLimit(vCube) );
         if ( status == 0 )
             break;
+        // add cube
+        if ( fCanon )
+            status = sat_solver_addclause( pSat[2], Vec_IntArray(vCube), Vec_IntLimit(vCube) );
+        assert( status == 1 );
     }
     //printf( "Finished enumerating %d assignments.\n", Count );
 cleanup:
     Vec_IntFree( vVars );
     Vec_IntFree( vLits );
+    Vec_IntFree( vLitsC );
     Vec_IntFree( vNums );
     Vec_IntFree( vCube );
     sat_solver_delete( pSat[0] );
     sat_solver_delete( pSat[1] );
+    if ( fCanon )
+    sat_solver_delete( pSat[2] );
     Cnf_DataFree( pCnf );
     return vSop;
 }

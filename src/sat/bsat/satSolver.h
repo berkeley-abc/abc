@@ -234,6 +234,13 @@ static void sat_solver_prepare_enum(sat_solver* s, int * pVars, int nVars )
     for ( v = 0; v < nVars; v++ )
         veci_push(&s->vDeciVars,pVars[v]);
 }
+static void sat_solver_clean_polarity(sat_solver* s, int * pVars, int nVars )
+{
+    int i;
+    assert( veci_size(&s->vDeciVars) == 0 );
+    for ( i = 0; i < nVars; i++ )
+        s->polarity[pVars[i]] = 0;
+}
 
 static int sat_solver_final(sat_solver* s, int ** ppArray)
 {

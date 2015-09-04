@@ -1861,7 +1861,7 @@ int sat_solver_solve(sat_solver* s, lit* begin, lit* end, ABC_INT64_T nConfLimit
             int fConfl = sat_solver_propagate(s);
             if (fConfl){
                 sat_solver_analyze_final(s, fConfl, 0);
-                assert(s->conf_final.size > 0);
+                //assert(s->conf_final.size > 0);
                 sat_solver_canceluntil(s, 0);
                 return l_False; }
         }

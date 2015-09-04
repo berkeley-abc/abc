@@ -970,7 +970,7 @@ Vec_Int_t * Abc_NtkNodeSupportInt( Abc_Ntk_t * pNtk, int iCo )
 int Abc_NtkFunctionalIsoGia_rec( Gia_Man_t * pNew, Abc_Obj_t * pNode )
 {
     int iLit0, iLit1;
-    if ( Abc_NodeIsTravIdCurrent(pNode) || Abc_ObjFaninNum(pNode) == 0 )
+    if ( Abc_NodeIsTravIdCurrent(pNode) || Abc_ObjFaninNum(pNode) == 0 || Abc_ObjIsCi(pNode) )
         return pNode->iTemp;
     assert( Abc_ObjIsNode( pNode ) );
     Abc_NodeSetTravIdCurrent( pNode );
