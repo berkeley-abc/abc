@@ -2208,7 +2208,12 @@ int * Extra_PermSchedule( int n )
     int nGroups = nFact / n / 2;
     int * pRes = ABC_ALLOC( int, nFact );
     int * pRes0, i, k, b = 0;
-    assert( n > 1 );
+    assert( n > 0 );
+    if ( n == 1 )
+    {
+        pRes[0] = 0;
+        return pRes;
+    }
     if ( n == 2 )
     {
         pRes[0] = pRes[1] = 0;
