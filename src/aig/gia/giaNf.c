@@ -1396,7 +1396,7 @@ void Nf_ManSetOutputRequireds( Nf_Man_t * p, int fPropCompl )
 {
     Gia_Obj_t * pObj;
     word Required = 0;
-    int i, nLits = 2*Gia_ManObjNum(p->pGia);
+    int i, iObj, fCompl, nLits = 2*Gia_ManObjNum(p->pGia);
     Vec_WrdFill( &p->vRequired, nLits, NF_INFINITY );
     // compute delay
     p->pPars->WordMapDelay = 0;
@@ -1419,7 +1419,9 @@ void Nf_ManSetOutputRequireds( Nf_Man_t * p, int fPropCompl )
     // set required times
     Gia_ManForEachCo( p->pGia, pObj, i )
     {
-        Required = Nf_ObjMatchD( p, Gia_ObjFaninId0p(p->pGia, pObj), Gia_ObjFaninC0(pObj) )->D;
+        iObj     = Gia_ObjFaninId0p(p->pGia, pObj);
+        fCompl   = Gia_ObjFaninC0(pObj);
+        Required = Nf_ObjMatchD(p, iObj, fCompl)->D;
         Required = p->pPars->fDoAverage ? Required * (100 + p->pPars->nRelaxRatio) / 100 : p->pPars->WordMapDelay;
         // if external required time can be achieved, use it
         if ( p->pGia->vOutReqs && Vec_FltEntry(p->pGia->vOutReqs, i) > 0 && Required <= (word)(MIO_NUM * Vec_FltEntry(p->pGia->vOutReqs, i)) )
@@ -1428,9 +1430,9 @@ void Nf_ManSetOutputRequireds( Nf_Man_t * p, int fPropCompl )
 //        else if ( p->pGia->vOutReqs && Vec_FltEntry(p->pGia->vOutReqs, i) > 0 && Required > Vec_FltEntry(p->pGia->vOutReqs, i) )
 //            ptTime->Rise = ptTime->Fall = ptTime->Worst = Required;
         // otherwise, set the global required time
-        Nf_ObjUpdateRequired( p, Gia_ObjFaninId0p(p->pGia, pObj), Gia_ObjFaninC0(pObj), Required );
-        if ( fPropCompl && Nf_ObjMatchBest(p, Gia_ObjFaninId0p(p->pGia, pObj), Gia_ObjFaninC0(pObj) )->fCompl )
-            Nf_ObjUpdateRequired( p, Gia_ObjFaninId0p(p->pGia, pObj), !Gia_ObjFaninC0(pObj), Required - p->InvDelay );
+        Nf_ObjUpdateRequired( p, iObj, fCompl, Required );
+        if ( fPropCompl && iObj > 0 && Nf_ObjMatchBest(p, iObj, fCompl)->fCompl )
+            Nf_ObjUpdateRequired( p, iObj, !fCompl, Required - p->InvDelay );
         //Nf_ObjMapRefInc( p, Gia_ObjFaninId0p(p->pGia, pObj), Gia_ObjFaninC0(pObj));
     }
 }
