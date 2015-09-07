@@ -1872,7 +1872,7 @@ void Nf_ManResetMatches( Nf_Man_t * p, int Round )
             else
             {
                 assert( Round > 0 || (!pDc->fBest && !pAc->fBest) );
-                if ( (Round & 1) )
+                if ( p->pPars->fAreaOnly || (Round & 1) )
                     ABC_SWAP( Nf_Mat_t, *pDc, *pAc );
                 pDc->fBest = 1;
                 pAc->fBest = 0;
