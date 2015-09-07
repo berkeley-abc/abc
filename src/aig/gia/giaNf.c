@@ -1415,7 +1415,7 @@ void Nf_ManSetOutputRequireds( Nf_Man_t * p, int fPropCompl )
         else if ( p->pPars->nRelaxRatio == 0 )
             Abc_Print( 0, "Relaxing user-specified delay target from %.2f to %.2f.\n", Nf_Wrd2Flt(p->pPars->WordMapDelayTarget), Nf_Wrd2Flt(p->pPars->WordMapDelay) );
     }
-    assert( p->pPars->WordMapDelayTarget == 0 );
+    //assert( p->pPars->WordMapDelayTarget == 0 );
     // set required times
     Gia_ManForEachCo( p->pGia, pObj, i )
     {
@@ -2067,26 +2067,39 @@ void Nf_ManUpdateStats( Nf_Man_t * p )
     }
     p->pPars->WordMapArea = 0; p->nInvs = 0;
     p->pPars->Area = p->pPars->Edge = 0;
-    Gia_ManForEachAndReverseId( p->pGia, i )
-    for ( c = 0; c < 2; c++ )
-    if ( Nf_ObjMapRefNum(p, i, c) )
+    Gia_ManForEachAndReverse( p->pGia, pObj, i )
     {
-        pM = Nf_ObjMatchBest( p, i, c );
-        if ( pM->fCompl )
+        if ( Gia_ObjIsBuf(pObj) )
         {
-            p->pPars->WordMapArea += p->InvArea;
-            p->pPars->Edge++;
-            p->pPars->Area++;
-            p->nInvs++;
+            if ( Nf_ObjMapRefNum(p, i, 1) )
+            {
+                p->pPars->WordMapArea += p->InvArea;
+                p->pPars->Edge++;
+                p->pPars->Area++;
+                p->nInvs++;
+            }
             continue;
         }
-        pCut = Nf_CutFromHandle( Nf_ObjCutSet(p, i), pM->CutH );
-        pCell = Nf_ManCell( p, pM->Gate );
-        assert( Nf_CutSize(pCut) == (int)pCell->nFanins );
-        p->pPars->WordMapArea += pCell->Area;
-        p->pPars->Edge += Nf_CutSize(pCut);
-        p->pPars->Area++;
-        //printf( "%5d (%d) : Gate = %7s \n", i, c, pCell->pName );
+        for ( c = 0; c < 2; c++ )
+        if ( Nf_ObjMapRefNum(p, i, c) )
+        {
+            pM = Nf_ObjMatchBest( p, i, c );
+            if ( pM->fCompl )
+            {
+                p->pPars->WordMapArea += p->InvArea;
+                p->pPars->Edge++;
+                p->pPars->Area++;
+                p->nInvs++;
+                continue;
+            }
+            pCut = Nf_CutFromHandle( Nf_ObjCutSet(p, i), pM->CutH );
+            pCell = Nf_ManCell( p, pM->Gate );
+            assert( Nf_CutSize(pCut) == (int)pCell->nFanins );
+            p->pPars->WordMapArea += pCell->Area;
+            p->pPars->Edge += Nf_CutSize(pCut);
+            p->pPars->Area++;
+            //printf( "%5d (%d) : Gate = %7s \n", i, c, pCell->pName );
+        }
     }
     Gia_ManForEachCiId( p->pGia, Id, i )
         if ( Nf_ObjMapRefNum(p, Id, 1) )
