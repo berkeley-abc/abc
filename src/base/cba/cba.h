@@ -630,33 +630,6 @@ static inline Vec_Int_t * Cba_NtkCollect( Cba_Ntk_t * p )
         Vec_IntPush( vObjs, iObj );
     return vObjs;
 }
-static inline void Cba_NtkCreateFonNames( Cba_Ntk_t * p, char * pPref )
-{
-    int i, iObj, iFon, NameId;
-    Cba_NtkCleanFonNames( p );
-    Cba_NtkForEachPiFon( p, iObj, iFon, i )
-        if ( !Cba_FonName(p, iFon) )
-            Cba_FonSetName( p, iFon, Cba_ObjName(p, iObj) );
-    Cba_NtkForEachPoDriverFon( p, iObj, iFon, i )
-        if ( Cba_FonIsReal(iFon) && !Cba_FonName(p, iFon) )
-            Cba_FonSetName( p, iFon, Cba_ObjName(p, iObj) );
-    Vec_IntForEachEntryStart( &p->vFonName, NameId, iFon, 1 )
-        if ( NameId == 0 )
-            Vec_IntWriteEntry( &p->vFonName, iFon, Cba_NtkNewStrId(p, "%s%d", pPref, iFon) );
-}
-static inline void Cba_NtkMissingFonNames( Cba_Ntk_t * p, char * pPref )
-{
-    int i, iObj, iFon, NameId;
-    Cba_NtkForEachPiFon( p, iObj, iFon, i )
-        if ( !Cba_FonName(p, iFon) )
-            Cba_FonSetName( p, iFon, Cba_ObjName(p, iObj) );
-    Cba_NtkForEachPoDriverFon( p, iObj, iFon, i )
-        if ( Cba_FonIsReal(iFon) && !Cba_FonName(p, iFon) )
-            Cba_FonSetName( p, iFon, Cba_ObjName(p, iObj) );
-    Vec_IntForEachEntryStart( &p->vFonName, NameId, iFon, 1 )
-        if ( NameId == 0 )
-            Cba_FonSetName( p, iFon, Cba_NtkNewStrId(p, "%s%d", pPref, iFon) );
-}
 static inline int Cba_NtkIsSeq( Cba_Ntk_t * p )
 {
     int iObj;
@@ -1046,6 +1019,68 @@ static inline void Cba_ManPrintStats( Cba_Man_t * p, int nModules, int fVerbose 
 }
 
 
+/**Function*************************************************************
+
+  Synopsis    [Name handling.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline void Cba_NtkAddMissingFonNames( Cba_Ntk_t * p, char * pPref )
+{
+    int iFon, NameId, Index;
+    // populate map
+    Cba_ManCleanMap( p->pDesign );
+    Vec_IntForEachEntryStart( &p->vFonName, NameId, iFon, 1 )
+        if ( NameId )
+            Cba_ManSetMap( p->pDesign, NameId, iFon );
+    // check remaining ones
+    Vec_IntForEachEntryStart( &p->vFonName, NameId, iFon, 1 )
+    {
+        if ( NameId )
+            continue;
+        NameId = Cba_NtkNewStrId(p, "%s%d", pPref, iFon);
+        for ( Index = 1; Cba_ManGetMap(p->pDesign, NameId); Index++ )
+            NameId = Cba_NtkNewStrId(p, "%s%d_%d", pPref, iFon, Index);
+        Cba_FonSetName( p, iFon, NameId );
+        Cba_ManSetMap( p->pDesign, NameId, iFon );
+    }
+}
+static inline void Cba_NtkCreateFonNames( Cba_Ntk_t * p, char * pPref )
+{
+    int i, iObj, iFon;//, NameId;
+    Cba_NtkCleanFonNames( p );
+    Cba_NtkForEachPiFon( p, iObj, iFon, i )
+        if ( !Cba_FonName(p, iFon) )
+            Cba_FonSetName( p, iFon, Cba_ObjName(p, iObj) );
+    Cba_NtkForEachPoDriverFon( p, iObj, iFon, i )
+        if ( Cba_FonIsReal(iFon) && !Cba_FonName(p, iFon) )
+            Cba_FonSetName( p, iFon, Cba_ObjName(p, iObj) );
+//    Vec_IntForEachEntryStart( &p->vFonName, NameId, iFon, 1 )
+//        if ( NameId == 0 )
+//            Vec_IntWriteEntry( &p->vFonName, iFon, Cba_NtkNewStrId(p, "%s%d", pPref, iFon) );
+    Cba_NtkAddMissingFonNames( p, pPref );
+}
+static inline void Cba_NtkMissingFonNames( Cba_Ntk_t * p, char * pPref )
+{
+    int i, iObj, iFon;//, NameId;
+    Cba_NtkForEachPiFon( p, iObj, iFon, i )
+        if ( !Cba_FonName(p, iFon) )
+            Cba_FonSetName( p, iFon, Cba_ObjName(p, iObj) );
+    Cba_NtkForEachPoDriverFon( p, iObj, iFon, i )
+        if ( Cba_FonIsReal(iFon) && !Cba_FonName(p, iFon) )
+            Cba_FonSetName( p, iFon, Cba_ObjName(p, iObj) );
+//    Vec_IntForEachEntryStart( &p->vFonName, NameId, iFon, 1 )
+//        if ( NameId == 0 )
+//            Cba_FonSetName( p, iFon, Cba_NtkNewStrId(p, "%s%d", pPref, iFon) );
+    Cba_NtkAddMissingFonNames( p, pPref );
+}
+
+
 /*=== cbaBlast.c =============================================================*/
 extern Gia_Man_t *   Cba_ManBlast( Cba_Man_t * p, int fBarBufs, int fSeq, int fVerbose );
 extern Cba_Man_t *   Cba_ManInsertGia( Cba_Man_t * p, Gia_Man_t * pGia );
@@ -1066,7 +1101,7 @@ extern int           Cba_NtkCoFinNum( Cba_Ntk_t * p );
 extern int           Cba_NtkCheckComboLoop( Cba_Ntk_t * p );
 extern int           Cba_ManIsTopoOrder( Cba_Man_t * p );
 extern Vec_Int_t *   Cba_NtkCollectDfs( Cba_Ntk_t * p );
-extern Cba_Man_t *   Cba_ManCollapse( Cba_Man_t * p, int TypeBuf );
+extern Cba_Man_t *   Cba_ManCollapse( Cba_Man_t * p );
 extern Cba_Man_t *   Cba_ManExtractGroup( Cba_Man_t * p, Vec_Int_t * vObjs );
 extern Cba_Man_t *   Cba_ManDeriveFromGia( Gia_Man_t * pGia, int fUseXor );
 extern Cba_Man_t *   Cba_ManInsertGroup( Cba_Man_t * p, Vec_Int_t * vObjs, Cba_Ntk_t * pSyn );

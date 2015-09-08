@@ -589,6 +589,33 @@ int Cba_NtkCheckComboLoop( Cba_Ntk_t * p )
 
 /**Function*************************************************************
 
+  Synopsis    [Find one missing object.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Cba_NtkFindMissing( Vec_Int_t * vObjs, int nObjs )
+{
+    Vec_Int_t * vMap = Vec_IntStartFull( nObjs + 1 );
+    int i, iObj;
+    Vec_IntForEachEntry( vObjs, iObj, i )
+        Vec_IntWriteEntry( vMap, iObj, i );
+    Vec_IntForEachEntryStart( vMap, i, iObj, 1 )
+        if ( i == -1 )
+        {
+            Vec_IntFree( vMap );
+            return iObj;
+        }
+    Vec_IntFree( vMap );
+    return -1;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Collect nodes in the DFS order.]
 
   Description []
@@ -633,7 +660,12 @@ Vec_Int_t * Cba_NtkCollectDfs( Cba_Ntk_t * p )
         Vec_IntPush( vObjs, iObj );
     assert( Vec_IntSize(vObjs) <= Cba_NtkObjNum(p) );
     if ( Vec_IntSize(vObjs) != Cba_NtkObjNum(p) )
+    {
+        int iObj = Cba_NtkFindMissing( vObjs, Cba_NtkObjNum(p) );
         printf( "Warning: DSF ordering for module \"%s\" collected %d out of %d objects.\n", Cba_NtkName(p), Vec_IntSize(vObjs), Cba_NtkObjNum(p) );
+        printf( "         For example, object %d with name \"%s\" is not reachable from outputs.\n", 
+            iObj, iObj > 0 ? Cba_FonNameStr( p, Cba_ObjFon0(p, iObj) ) : "<unknown>" );
+    }
     return vObjs;
 }
 
@@ -697,7 +729,7 @@ void Cba_ManGetClpStats( Cba_Man_t * p, int * nObjs, int * nFins, int * nFons )
   SeeAlso     []
 
 ***********************************************************************/
-void Cba_NtkCollapse_rec( Cba_Ntk_t * pNew, Cba_Ntk_t * p, Vec_Int_t * vSigs, int TypeBuf )
+void Cba_NtkCollapse_rec( Cba_Ntk_t * pNew, Cba_Ntk_t * p, Vec_Int_t * vSigs )
 {
     int i, iObj, iObjNew, iFin, iFon;
     Cba_NtkCleanObjCopies( p );
@@ -720,7 +752,7 @@ void Cba_NtkCollapse_rec( Cba_Ntk_t * pNew, Cba_Ntk_t * p, Vec_Int_t * vSigs, in
         {
             Cba_ObjForEachFon( p, iObj, iFon, i )
             {
-                iObjNew = Cba_ObjAlloc( pNew, TypeBuf, 1, 1 );
+                iObjNew = Cba_ObjAlloc( pNew, CBA_BOX_BUF, 1, 1 );
                 Cba_FonSetCopy( p, iFon, Cba_ObjFon0(pNew, iObjNew) );
             }
         }
@@ -738,7 +770,7 @@ void Cba_NtkCollapse_rec( Cba_Ntk_t * pNew, Cba_Ntk_t * p, Vec_Int_t * vSigs, in
             Cba_ObjForEachFinFon( p, iObj, iFin, iFon, i )
                 Vec_IntPush( vSigs, Cba_FonCopy(p, iFon) );
             assert( Vec_IntSize(vSigs) == Cba_ObjFinNum(p, iObj) );
-            Cba_NtkCollapse_rec( pNew, Cba_ObjNtk(p, iObj), vSigs, TypeBuf );
+            Cba_NtkCollapse_rec( pNew, Cba_ObjNtk(p, iObj), vSigs );
             assert( Vec_IntSize(vSigs) == Cba_ObjFonNum(p, iObj) );
             Cba_ObjForEachFon( p, iObj, iFon, i )
             {
@@ -751,7 +783,7 @@ void Cba_NtkCollapse_rec( Cba_Ntk_t * pNew, Cba_Ntk_t * p, Vec_Int_t * vSigs, in
     Cba_NtkForEachPoDriverFon( p, iObj, iFon, i )
         Vec_IntPush( vSigs, Cba_FonCopy(p, iFon) );
 }
-Cba_Man_t * Cba_ManCollapse( Cba_Man_t * p, int TypeBuf )
+Cba_Man_t * Cba_ManCollapse( Cba_Man_t * p )
 {
     Cba_Man_t * pNew  = Cba_ManAlloc( p->pSpec, 1, Abc_NamRef(p->pStrs), Abc_NamRef(p->pFuns), Abc_NamStart(100, 24), Hash_IntManRef(p->vHash) );
     Cba_Ntk_t * pRoot = Cba_ManRoot( p ), * pRootNew;
@@ -782,7 +814,7 @@ Cba_Man_t * Cba_ManCollapse( Cba_Man_t * p, int TypeBuf )
             Cba_ObjSetAttrs( pRootNew, iObjNew, Cba_ObjAttrArray(pRoot, iObj), Cba_ObjAttrSize(pRoot, iObj) );
     }
     assert( Vec_IntSize(vSigs) == Cba_NtkPiNum(pRoot) );
-    Cba_NtkCollapse_rec( pRootNew, pRoot, vSigs, TypeBuf );
+    Cba_NtkCollapse_rec( pRootNew, pRoot, vSigs );
     assert( Vec_IntSize(vSigs) == Cba_NtkPoNum(pRoot) );
     Cba_NtkForEachPoDriverFon( pRoot, iObj, iFon, i )
     {

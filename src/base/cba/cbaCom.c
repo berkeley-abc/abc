@@ -498,7 +498,7 @@ int Cba_CommandClp( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( 1, "Cba_CommandGet(): There is no current design.\n" );
         return 0;
     }
-    pNew = Cba_ManCollapse( p, CBA_BOX_BUF );
+    pNew = Cba_ManCollapse( p );
     Cba_AbcUpdateMan( pAbc, pNew );
     return 0;
 usage:
