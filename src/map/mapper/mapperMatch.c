@@ -18,6 +18,9 @@
 
 #include "mapperInt.h"
 
+#include "misc/util/utilNam.h"
+#include "map/scl/sclCon.h"
+
 ABC_NAMESPACE_IMPL_START
 
 
@@ -356,7 +359,15 @@ void Map_MappingSetPiArrivalTimes( Map_Man_t * p )
     {
         pNode = p->pInputs[i];
         // set the arrival time of the positive phase
-        pNode->tArrival[1] = p->pInputArrivals[i];
+        if ( Scl_ConIsRunning() )
+        {
+            float Time = Scl_ConGetInArrFloat( i );
+            pNode->tArrival[1].Fall  = Time;
+            pNode->tArrival[1].Rise  = Time;
+            pNode->tArrival[1].Worst = Time;
+        }
+        else
+            pNode->tArrival[1] = p->pInputArrivals[i];
         pNode->tArrival[1].Rise  += p->pNodeDelays ? p->pNodeDelays[pNode->Num] : 0;
         pNode->tArrival[1].Fall  += p->pNodeDelays ? p->pNodeDelays[pNode->Num] : 0;
         pNode->tArrival[1].Worst += p->pNodeDelays ? p->pNodeDelays[pNode->Num] : 0;

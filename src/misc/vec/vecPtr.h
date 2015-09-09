@@ -232,6 +232,18 @@ static inline Vec_Ptr_t * Vec_PtrDupArray( Vec_Ptr_t * pVec )
   SeeAlso     []
 
 ***********************************************************************/
+static inline void Vec_PtrZero( Vec_Ptr_t * p )
+{
+    p->pArray = NULL;
+    p->nSize = 0;
+    p->nCap = 0;
+}
+static inline void Vec_PtrErase( Vec_Ptr_t * p )
+{
+    ABC_FREE( p->pArray );
+    p->nSize = 0;
+    p->nCap = 0;
+}
 static inline void Vec_PtrFree( Vec_Ptr_t * p )
 {
     ABC_FREE( p->pArray );

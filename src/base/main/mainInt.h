@@ -94,6 +94,7 @@ struct Abc_Frame_t_
     void *          pLibGen2;      // the current genlib
     void *          pLibSuper;     // the current supergate library
     void *          pLibScl;       // the current Liberty library
+    void *          pAbcCon;       // constraint manager
     // timing constraints
     char *          pDrivingCell;  // name of the driving cell
     float           MaxLoad;       // maximum output load

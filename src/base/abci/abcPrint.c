@@ -123,6 +123,34 @@ int Abc_NtkCompareAndSaveBest( Abc_Ntk_t * pNtk )
 
 /**Function*************************************************************
 
+  Synopsis    [Collects memory usage.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+double Abc_NtkMemory( Abc_Ntk_t * p )
+{
+    Abc_Obj_t * pObj; int i;
+    double Memory = sizeof(Abc_Ntk_t);
+    Memory += sizeof(Abc_Obj_t) * Abc_NtkObjNum(p);
+    Memory += Vec_PtrMemory(p->vPis);
+    Memory += Vec_PtrMemory(p->vPos);
+    Memory += Vec_PtrMemory(p->vCis);
+    Memory += Vec_PtrMemory(p->vCos);
+    Memory += Vec_PtrMemory(p->vObjs);
+    Memory += Vec_IntMemory(&p->vTravIds);
+    Memory += Vec_IntMemory(p->vLevelsR);
+    Abc_NtkForEachObj( p, pObj, i )
+        Memory += sizeof(int) * (Vec_IntCap(&pObj->vFanins) + Vec_IntCap(&pObj->vFanouts));
+    return Memory;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Marks nodes for power-optimization.]
 
   Description []
@@ -207,7 +235,7 @@ float Abc_NtkGetArea( Abc_Ntk_t * pNtk )
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_NtkPrintStats( Abc_Ntk_t * pNtk, int fFactored, int fSaveBest, int fDumpResult, int fUseLutLib, int fPrintMuxes, int fPower, int fGlitch, int fSkipBuf )
+void Abc_NtkPrintStats( Abc_Ntk_t * pNtk, int fFactored, int fSaveBest, int fDumpResult, int fUseLutLib, int fPrintMuxes, int fPower, int fGlitch, int fSkipBuf, int fPrintMem )
 {
     int nSingles = fSkipBuf ? Abc_NtkGetBufNum(pNtk) : 0;
     if ( fPrintMuxes && Abc_NtkIsStrash(pNtk) )
@@ -329,6 +357,8 @@ void Abc_NtkPrintStats( Abc_Ntk_t * pNtk, int fFactored, int fSaveBest, int fDum
         else
             printf( "\nCurrently computes glitching only for K-LUT networks with K <= 6." );
     }
+    if ( fPrintMem )
+        Abc_Print( 1,"  mem =%5.2f MB", Abc_NtkMemory(pNtk)/(1<<20) );
     Abc_Print( 1,"\n" );
 
     // print the statistic into a file
@@ -425,7 +455,7 @@ void Abc_NtkPrintStats( Abc_Ntk_t * pNtk, int fFactored, int fSaveBest, int fDum
 
     fflush( stdout );
     if ( pNtk->pExdc )
-        Abc_NtkPrintStats( pNtk->pExdc, fFactored, fSaveBest, fDumpResult, fUseLutLib, fPrintMuxes, fPower, fGlitch, fSkipBuf );
+        Abc_NtkPrintStats( pNtk->pExdc, fFactored, fSaveBest, fDumpResult, fUseLutLib, fPrintMuxes, fPower, fGlitch, fSkipBuf, fPrintMem );
 }
 
 /**Function*************************************************************

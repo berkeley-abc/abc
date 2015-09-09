@@ -470,7 +470,7 @@ void Abc_NtkPrintBoxInfo( Abc_Ntk_t * pNtk )
             Vec_IntAddToEntry( vCounts, Num, 1 );
         }
 
-//        Abc_NtkPrintStats( pModel, 0, 0, 0, 0, 0, 0, 0, 0 );
+//        Abc_NtkPrintStats( pModel, 0, 0, 0, 0, 0, 0, 0, 0, 0 );
         printf( "MODULE  " );
         printf( "%-30s : ", Abc_NtkName(pModel) );
         printf( "PI=%6d ", Abc_NtkPiNum(pModel) );

@@ -163,6 +163,13 @@ double Gia_ManMemory( Gia_Man_t * p )
     Memory += sizeof(int) * Gia_ManCoNum(p);
     Memory += sizeof(int) * p->nHTable * (p->pHTable != NULL);
     Memory += sizeof(int) * Gia_ManObjNum(p) * (p->pRefs != NULL);
+    Memory += Vec_IntMemory( p->vLevels );
+    Memory += Vec_IntMemory( p->vCellMapping );
+    Memory += Vec_IntMemory( &p->vCopies );
+    Memory += Vec_FltMemory( p->vInArrs );
+    Memory += Vec_FltMemory( p->vOutReqs );
+    Memory += Vec_PtrMemory( p->vNamesIn );
+    Memory += Vec_PtrMemory( p->vNamesOut );
     return Memory;
 }
 

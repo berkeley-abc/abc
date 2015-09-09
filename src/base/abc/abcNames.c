@@ -355,6 +355,39 @@ void Abc_NtkOrderObjsByName( Abc_Ntk_t * pNtk, int fComb )
 
 /**Function*************************************************************
 
+  Synopsis    [Creates name manager storing input/output names.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Nam_t * Abc_NtkNameMan( Abc_Ntk_t * p, int fOuts )
+{
+    if ( fOuts )
+    {
+        Abc_Obj_t * pObj;  int i;
+        Abc_Nam_t * pStrsCo = Abc_NamStart( Abc_NtkCoNum(p), 24 );
+        Abc_NtkForEachCo( p, pObj, i )
+            Abc_NamStrFindOrAdd( pStrsCo, Abc_ObjName(pObj), NULL );
+        assert( Abc_NamObjNumMax(pStrsCo) == i + 1 );
+        return pStrsCo;
+    }
+    else
+    {
+        Abc_Obj_t * pObj;  int i;
+        Abc_Nam_t * pStrsCi = Abc_NamStart( Abc_NtkCiNum(p), 24 );
+        Abc_NtkForEachCi( p, pObj, i )
+            Abc_NamStrFindOrAdd( pStrsCi, Abc_ObjName(pObj), NULL );
+        assert( Abc_NamObjNumMax(pStrsCi) == i + 1 );
+        return pStrsCi;
+   }
+}
+
+/**Function*************************************************************
+
   Synopsis    [Orders PIs/POs/latches alphabetically.]
 
   Description []
@@ -376,18 +409,11 @@ int Abc_NodeCompareIndexes( Abc_Obj_t ** pp1, Abc_Obj_t ** pp2 )
 void Abc_NtkTransferOrder( Abc_Ntk_t * pNtkOld, Abc_Ntk_t * pNtkNew )
 {
     Abc_Obj_t * pObj;  int i;
-    Abc_Nam_t * pStrsCi = Abc_NamStart( Abc_NtkCiNum(pNtkOld), 24 );
-    Abc_Nam_t * pStrsCo = Abc_NamStart( Abc_NtkCoNum(pNtkOld), 24 );
+    Abc_Nam_t * pStrsCi = Abc_NtkNameMan( pNtkOld, 0 );
+    Abc_Nam_t * pStrsCo = Abc_NtkNameMan( pNtkOld, 1 );
     assert( Abc_NtkPiNum(pNtkOld) == Abc_NtkPiNum(pNtkNew) );
     assert( Abc_NtkPoNum(pNtkOld) == Abc_NtkPoNum(pNtkNew) );
     assert( Abc_NtkLatchNum(pNtkOld) == Abc_NtkLatchNum(pNtkNew) );
-    // save IDs of the names
-    Abc_NtkForEachCi( pNtkOld, pObj, i )
-        Abc_NamStrFindOrAdd( pStrsCi, Abc_ObjName(pObj), NULL );
-    assert( Abc_NamObjNumMax(pStrsCi) == i + 1 );
-    Abc_NtkForEachCo( pNtkOld, pObj, i )
-        Abc_NamStrFindOrAdd( pStrsCo, Abc_ObjName(pObj), NULL );
-    assert( Abc_NamObjNumMax(pStrsCo) == i + 1 );
     // transfer to the new network
     Abc_NtkForEachCi( pNtkNew, pObj, i )
     {

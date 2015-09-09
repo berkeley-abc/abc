@@ -21,6 +21,9 @@
 #include "sclSize.h"
 #include "base/main/mainInt.h"
 
+#include "misc/util/utilNam.h"
+#include "sclCon.h"
+
 ABC_NAMESPACE_IMPL_START
 
 
@@ -47,8 +50,14 @@ static int Scl_CommandUpsize     ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Scl_CommandDnsize     ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Scl_CommandPrintBuf   ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Scl_CommandReadConstr ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Scl_CommandWriteConstr( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Scl_CommandPrintConstr( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Scl_CommandResetConstr( Abc_Frame_t * pAbc, int argc, char ** argv );
+
+static inline Scl_Con_t * Scl_ConGetMan( Abc_Frame_t * pAbc )                    { return (Scl_Con_t *)pAbc->pAbcCon;                       }
+static inline void        Scl_ConFreeMan( Abc_Frame_t * pAbc )                   { if ( pAbc->pAbcCon ) Scl_ConFree(Scl_ConGetMan(pAbc));   }
+static inline void        Scl_ConUpdateMan( Abc_Frame_t * pAbc, Scl_Con_t * p )  { Scl_ConFreeMan(pAbc); pAbc->pAbcCon = p;                 }
+              Scl_Con_t * Scl_ConReadMan()                                       { return Scl_ConGetMan( Abc_FrameGetGlobalFrame() );       }
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -109,12 +118,14 @@ void Scl_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "SCL mapping",  "dnsize",        Scl_CommandDnsize,      1 ); 
     Cmd_CommandAdd( pAbc, "SCL mapping",  "print_buf",     Scl_CommandPrintBuf,    0 ); 
     Cmd_CommandAdd( pAbc, "SCL mapping",  "read_constr",   Scl_CommandReadConstr,  0 ); 
+    Cmd_CommandAdd( pAbc, "SCL mapping",  "write_constr",  Scl_CommandWriteConstr, 0 ); 
     Cmd_CommandAdd( pAbc, "SCL mapping",  "print_constr",  Scl_CommandPrintConstr, 0 ); 
     Cmd_CommandAdd( pAbc, "SCL mapping",  "reset_constr",  Scl_CommandResetConstr, 0 ); 
 }
 void Scl_End( Abc_Frame_t * pAbc )
 {
     Abc_SclLoad( NULL, (SC_Lib **)&pAbc->pLibScl );
+    Scl_ConUpdateMan( pAbc, NULL );
 }
 
 
@@ -1799,7 +1810,9 @@ usage:
 ***********************************************************************/
 int Scl_CommandReadConstr( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
+    extern Abc_Nam_t * Abc_NtkNameMan( Abc_Ntk_t * p, int fOuts );
     extern void Abc_SclReadTimingConstr( Abc_Frame_t * pAbc, char * pFileName, int fVerbose );
+    Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
     FILE * pFile;
     char * pFileName;
     int c, fVerbose = 0;
@@ -1830,6 +1843,13 @@ int Scl_CommandReadConstr( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     fclose( pFile );
     Abc_SclReadTimingConstr( pAbc, pFileName, fVerbose );
+
+    // input constraint manager
+    if ( pNtk )
+    {
+        Scl_Con_t * pCon = Scl_ConRead( pFileName, Abc_NtkNameMan(pNtk, 0), Abc_NtkNameMan(pNtk, 1) );
+        if ( pCon ) Scl_ConUpdateMan( pAbc, pCon );
+    }
     return 0;
 
 usage:
@@ -1852,8 +1872,10 @@ usage:
   SeeAlso     []
 
 ***********************************************************************/
-int Scl_CommandPrintConstr( Abc_Frame_t * pAbc, int argc, char ** argv )
+int Scl_CommandWriteConstr( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
+    Scl_Con_t * pCon = Scl_ConGetMan( pAbc );
+    char * pFileName = NULL;
     int c, fVerbose = 0;
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
@@ -1869,8 +1891,72 @@ int Scl_CommandPrintConstr( Abc_Frame_t * pAbc, int argc, char ** argv )
             goto usage;
         }
     }
-    printf( "Primary input driving cell = %s\n", Abc_FrameReadDrivingCell() );
-    printf( "Primary output maximum load = %f\n", Abc_FrameReadMaxLoad() );
+    if ( pCon == NULL )
+    {
+        Abc_Print( 1, "Scl_CommandWriteConstr(): There is no constraint manager.\n" );
+        return 0;
+    }
+    if ( argc == globalUtilOptind + 1 )
+        pFileName = argv[globalUtilOptind];
+    else if ( argc == globalUtilOptind && pCon )
+        pFileName = Extra_FileNameGenericAppend( pCon->pFileName, "_out.constr" );
+    else 
+    {
+        printf( "Output file name should be given on the command line.\n" );
+        return 0;
+    }
+    // perform writing
+    if ( !strcmp( Extra_FileNameExtension(pFileName), "constr" )  )
+        Scl_ConWrite( pCon, pFileName );
+    else 
+    {
+        printf( "Scl_CommandWriteConstr(): Unrecognized output file extension.\n" );
+        return 0;
+    }
+    return 0;
+
+usage:
+    fprintf( pAbc->Err, "usage: write_constr [-vh] <file>\n" );
+    fprintf( pAbc->Err, "\t         writes current timing constraints into a file\n" );
+    fprintf( pAbc->Err, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
+    fprintf( pAbc->Err, "\t-h     : prints the command summary\n" );
+    fprintf( pAbc->Err, "\t<file> : the name of a file to read\n" );
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Scl_CommandPrintConstr( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    Scl_Con_t * pCon = Scl_ConGetMan( pAbc );
+    int c, fVerbose = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    //printf( "Primary input driving cell = %s\n", Abc_FrameReadDrivingCell() );
+    //printf( "Primary output maximum load = %f\n", Abc_FrameReadMaxLoad() );
+
+    if ( pCon ) Scl_ConWrite( pCon, NULL );
     return 0;
 
 usage:
@@ -1912,6 +1998,8 @@ int Scl_CommandResetConstr( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     Abc_FrameSetDrivingCell( NULL );
     Abc_FrameSetMaxLoad( 0 );
+
+    Scl_ConUpdateMan( pAbc, NULL );
     return 0;
 
 usage:

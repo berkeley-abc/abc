@@ -28,6 +28,8 @@
 #include "misc/vec/vecMem.h"
 #include "misc/vec/vecWec.h"
 #include "opt/dau/dau.h"
+#include "misc/util/utilNam.h"
+#include "map/scl/sclCon.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -110,6 +112,8 @@ struct Nf_Man_t_
 
 static inline int          Pf_Mat2Int( Pf_Mat_t Mat )                                { union { int x; Pf_Mat_t y; } v; v.y = Mat; return v.x;           }
 static inline Pf_Mat_t     Pf_Int2Mat( int Int )                                     { union { int x; Pf_Mat_t y; } v; v.x = Int; return v.y;           }
+
+static inline word         Nf_Flt2Wrd( float w )                                     { return MIO_NUMINV*w;                                             }
 static inline float        Nf_Wrd2Flt( word w )                                      { return MIO_NUMINV*(unsigned)(w&0x3FFFFFFF) + MIO_NUMINV*(1<<30)*(unsigned)(w>>30); }
 
 static inline Nf_Obj_t *   Nf_ManObj( Nf_Man_t * p, int i )                          { return p->pNfObjs + i;                                           }
@@ -1396,6 +1400,7 @@ void Nf_ManSetOutputRequireds( Nf_Man_t * p, int fPropCompl )
 {
     Gia_Obj_t * pObj;
     word Required = 0;
+    int fUseConMan = Scl_ConIsRunning() && Scl_ConHasOutReqs();
     int i, iObj, fCompl, nLits = 2*Gia_ManObjNum(p->pGia);
     Vec_WrdFill( &p->vRequired, nLits, NF_INFINITY );
     // compute delay
@@ -1424,8 +1429,16 @@ void Nf_ManSetOutputRequireds( Nf_Man_t * p, int fPropCompl )
         Required = Nf_ObjMatchD(p, iObj, fCompl)->D;
         Required = p->pPars->fDoAverage ? Required * (100 + p->pPars->nRelaxRatio) / 100 : p->pPars->WordMapDelay;
         // if external required time can be achieved, use it
-        if ( p->pGia->vOutReqs && Vec_FltEntry(p->pGia->vOutReqs, i) > 0 && Required <= (word)(MIO_NUM * Vec_FltEntry(p->pGia->vOutReqs, i)) )
-            Required = (word)(MIO_NUM * Vec_FltEntry(p->pGia->vOutReqs, i));
+        if ( fUseConMan )
+        {
+            if ( Scl_ConGetOutReq(i) > 0 && Required <= Scl_ConGetOutReq(i) )
+                Required = Scl_ConGetOutReq(i);
+        }
+        else
+        {
+            if ( p->pGia->vOutReqs && Vec_FltEntry(p->pGia->vOutReqs, i) > 0 && Required <= Nf_Flt2Wrd(Vec_FltEntry(p->pGia->vOutReqs, i)) )
+                Required = Nf_Flt2Wrd(Vec_FltEntry(p->pGia->vOutReqs, i));
+        }
         // if external required cannot be achieved, set the earliest possible arrival time
 //        else if ( p->pGia->vOutReqs && Vec_FltEntry(p->pGia->vOutReqs, i) > 0 && Required > Vec_FltEntry(p->pGia->vOutReqs, i) )
 //            ptTime->Rise = ptTime->Fall = ptTime->Worst = Required;
@@ -2169,8 +2182,16 @@ Gia_Man_t * Nf_ManPerformMapping( Gia_Man_t * pGia, Jf_Par_t * pPars )
     Nf_ManPrintInit( p );
     Nf_ManComputeCuts( p );
     Nf_ManPrintQuit( p );
-    Gia_ManForEachCiId( p->pGia, Id, i )
-        Nf_ObjPrepareCi( p, Id, p->pGia->vInArrs ? Vec_FltEntry(p->pGia->vInArrs, i) : 0.0 );
+    if ( Scl_ConIsRunning() )
+    {
+        Gia_ManForEachCiId( p->pGia, Id, i )
+            Nf_ObjPrepareCi( p, Id, Scl_ConGetInArr(i) );
+    }
+    else
+    {
+        Gia_ManForEachCiId( p->pGia, Id, i )
+            Nf_ObjPrepareCi( p, Id, Nf_Flt2Wrd(p->pGia->vInArrs ? Vec_FltEntry(p->pGia->vInArrs, i) : 0.0) );
+    }
     for ( p->Iter = 0; p->Iter < p->pPars->nRounds; p->Iter++ )
     {
         Nf_ManComputeMapping( p );

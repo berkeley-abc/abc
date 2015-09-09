@@ -18,6 +18,9 @@
 
 #include "mapperInt.h"
 
+#include "misc/util/utilNam.h"
+#include "map/scl/sclCon.h"
+
 ABC_NAMESPACE_IMPL_START
 
 ////////////////////////////////////////////////////////////////////////
@@ -381,8 +384,9 @@ void Map_TimePropagateRequired( Map_Man_t * p )
 }
 void Map_TimeComputeRequiredGlobal( Map_Man_t * p )
 {
+    int fUseConMan = Scl_ConIsRunning() && Scl_ConHasOutReqs();
     Map_Time_t * ptTime, * ptTimeA;
-    int fPhase, i;
+    int fPhase, i; 
     // update the required times according to the target
     p->fRequiredGlo = Map_TimeComputeArrivalMax( p );
     if ( p->DelayTarget != -1 )
@@ -416,15 +420,31 @@ void Map_TimeComputeRequiredGlobal( Map_Man_t * p )
         ptTime  =  Map_Regular(p->pOutputs[i])->tRequired + fPhase;
         ptTimeA =  Map_Regular(p->pOutputs[i])->tArrival + fPhase;
 
-        // if external required time can be achieved, use it
-        if ( p->pOutputRequireds && p->pOutputRequireds[i].Worst > 0 && ptTimeA->Worst <= p->pOutputRequireds[i].Worst )//&& p->pOutputRequireds[i].Worst <= p->fRequiredGlo )
-            ptTime->Rise = ptTime->Fall = ptTime->Worst = p->pOutputRequireds[i].Worst;
-        // if external required cannot be achieved, set the earliest possible arrival time
-        else if ( p->pOutputRequireds && p->pOutputRequireds[i].Worst > 0 && ptTimeA->Worst > p->pOutputRequireds[i].Worst )
-            ptTime->Rise = ptTime->Fall = ptTime->Worst = ptTimeA->Worst;
-        // otherwise, set the global required time
+        if ( fUseConMan )
+        {
+            float Value = Scl_ConGetOutReqFloat(i);
+            // if external required time can be achieved, use it
+            if ( Value > 0 && ptTimeA->Worst <= Value )//&& Value <= p->fRequiredGlo )
+                ptTime->Rise = ptTime->Fall = ptTime->Worst = Value;
+            // if external required cannot be achieved, set the earliest possible arrival time
+            else if ( Value > 0 && ptTimeA->Worst > Value )
+                ptTime->Rise = ptTime->Fall = ptTime->Worst = ptTimeA->Worst;
+            // otherwise, set the global required time
+            else
+                ptTime->Rise = ptTime->Fall = ptTime->Worst = p->fRequiredGlo;
+        }
         else
-            ptTime->Rise = ptTime->Fall = ptTime->Worst = p->fRequiredGlo;
+        {
+            // if external required time can be achieved, use it
+            if ( p->pOutputRequireds && p->pOutputRequireds[i].Worst > 0 && ptTimeA->Worst <= p->pOutputRequireds[i].Worst )//&& p->pOutputRequireds[i].Worst <= p->fRequiredGlo )
+                ptTime->Rise = ptTime->Fall = ptTime->Worst = p->pOutputRequireds[i].Worst;
+            // if external required cannot be achieved, set the earliest possible arrival time
+            else if ( p->pOutputRequireds && p->pOutputRequireds[i].Worst > 0 && ptTimeA->Worst > p->pOutputRequireds[i].Worst )
+                ptTime->Rise = ptTime->Fall = ptTime->Worst = ptTimeA->Worst;
+            // otherwise, set the global required time
+            else
+                ptTime->Rise = ptTime->Fall = ptTime->Worst = p->fRequiredGlo;
+        }
     }
     // visit nodes in the reverse topological order
     Map_TimePropagateRequired( p );
