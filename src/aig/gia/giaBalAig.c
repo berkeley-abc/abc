@@ -342,7 +342,7 @@ Gia_Man_t * Gia_ManBalanceInt( Gia_Man_t * p )
         Gia_ManBalance_rec( pNew, p, Gia_ObjFanin0(pObj) );
         pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
     }
-    assert( Gia_ManObjNum(pNew) <= Gia_ManObjNum(p) );
+    //assert( Gia_ManObjNum(pNew) <= Gia_ManObjNum(p) );
     Gia_ManHashStop( pNew );
     Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
     // perform cleanup
