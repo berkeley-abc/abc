@@ -449,7 +449,7 @@ int Cnf_DataSolveFromFile( char * pFileName, int nConfLimit, int nLearnedStart, 
     //Abc_Print( -1, "\n" );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     // derive SAT assignment
-    if ( RetValue == 0 )
+    if ( RetValue == 0 && nPis > 0 )
     {
         *ppModel = ABC_ALLOC( int, nPis );
         for ( i = 0; i < nPis; i++ )

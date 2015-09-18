@@ -21839,7 +21839,7 @@ int Abc_CommandDSat( Abc_Frame_t * pAbc, int argc, char ** argv )
             return 0;
         }
         fclose( pFile );
-        Cnf_DataSolveFromFile( pFileName, nConfLimit, nLearnedStart, nLearnedDelta, nLearnedPerce, fVerbose, &pModel, Abc_NtkPiNum(pNtk) );
+        Cnf_DataSolveFromFile( pFileName, nConfLimit, nLearnedStart, nLearnedDelta, nLearnedPerce, fVerbose, &pModel, pNtk ? Abc_NtkPiNum(pNtk) : 0 );
         if ( pModel && pNtk )
         {
             int * pSimInfo = Abc_NtkVerifySimulatePattern( pNtk, pModel );
