@@ -330,31 +330,58 @@ void Gia_QbfFree( Qbf_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-Gia_Man_t * Gia_QbfQuantify( Gia_Man_t * p, int nPars )
+Gia_Man_t * Gia_QbfQuantifyOne( Gia_Man_t * p, int iVar, int fAndAll, int fOrAll )
 {
     Gia_Man_t * pNew, * pTemp;
     Gia_Obj_t * pObj; 
-    int i, m, nMints = (1 << (Gia_ManPiNum(p) - nPars));
-    assert( Gia_ManPoNum(p) == 1 );
+    Vec_Int_t * vCofs;
+    int i, c;
     pNew = Gia_ManStart( Gia_ManObjNum(p) );
     pNew->pName = Abc_UtilStrsav( p->pName );
     Gia_ManHashAlloc( pNew );
+    Gia_ManFillValue( p );
     Gia_ManConst0(p)->Value = 0;
-    for ( i = 0; i < nPars; i++ )
-        Gia_ManAppendCi(pNew);
-    for ( m = 0; m < nMints; m++ )
+    Gia_ManForEachPi( p, pObj, i )
+        pObj->Value = Gia_ManAppendCi(pNew);
+    // compute cofactors
+    vCofs = Vec_IntAlloc( 2 * Gia_ManPoNum(p) );
+    for ( c = 0; c < 2; c++ )
     {
-        Gia_ManForEachPi( p, pObj, i )
-            pObj->Value = (i < nPars) ? Gia_Obj2Lit(pNew, Gia_ManPi(pNew, i)) : ((m >> (i - nPars)) & 1);
+        Gia_ManPi(p, iVar)->Value = c;
         Gia_ManForEachAnd( p, pObj, i )
             pObj->Value = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
-        Gia_ManForEachCo( p, pObj, i )
-            pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
+        Gia_ManForEachPo( p, pObj, i )
+            Vec_IntPush( vCofs, Gia_ObjFanin0Copy(pObj) );
     }
+    if ( fAndAll )
+    {
+        for ( i = 0; i < Gia_ManPoNum(p); i++ )
+            Gia_ManAppendCo( pNew, Gia_ManHashAnd(pNew, Vec_IntEntry(vCofs, i), Vec_IntEntry(vCofs, Gia_ManPoNum(p)+i)) );
+    }
+    else if ( fOrAll )
+    {
+        for ( i = 0; i < Gia_ManPoNum(p); i++ )
+            Gia_ManAppendCo( pNew, Gia_ManHashOr(pNew, Vec_IntEntry(vCofs, i), Vec_IntEntry(vCofs, Gia_ManPoNum(p)+i)) );
+    }
+    else
+    {
+        Vec_IntForEachEntry( vCofs, c, i )
+            Gia_ManAppendCo( pNew, c );
+    }
+    Vec_IntFree( vCofs );
     pNew = Gia_ManCleanup( pTemp = pNew );
     Gia_ManStop( pTemp );
-    assert( Gia_ManPiNum(pNew) == nPars );
-    assert( Gia_ManPoNum(pNew) == nMints );
+    return pNew;
+}
+Gia_Man_t * Gia_QbfQuantifyAll( Gia_Man_t * p, int nPars, int fAndAll, int fOrAll )
+{
+    Gia_Man_t * pNew, * pTemp; int v;
+    pNew = Gia_ManDup( p );
+    for ( v = Gia_ManPiNum(p) - 1; v >= nPars; v-- )
+    {
+        pNew = Gia_QbfQuantifyOne( pTemp = pNew, v, fAndAll, fOrAll );
+        Gia_ManStop( pTemp );
+    }
     return pNew;
 }
 
@@ -396,6 +423,7 @@ Gia_Man_t * Gia_QbfCofactor( Gia_Man_t * p, int nPars, Vec_Int_t * vValues, Vec_
     assert( Gia_ManPiNum(pNew) == nPars );
     return pNew;
 }
+/*
 int Gia_QbfAddCofactor( Qbf_Man_t * p, Gia_Man_t * pCof )
 {
     Cnf_Dat_t * pCnf = Mf_ManGenerateCnf( pCof, 8, 0, 1, 0 );
@@ -413,6 +441,46 @@ int Gia_QbfAddCofactor( Qbf_Man_t * p, Gia_Man_t * pCof )
     for ( i = 0; i < Gia_ManPiNum(p->pGia); i++ )
         if ( !sat_solver_add_buffer( p->pSatSyn, i, iFirstVar+i, 0 ) )
             return 0;
+    return 1;
+}
+*/
+void Cnf_SpecialDataLift( Cnf_Dat_t * p, int nVarsPlus, int firstPiVar, int lastPiVar)
+{
+    int v, var;
+    for ( v = 0; v < p->nLiterals; v++ )
+    {
+        var = p->pClauses[0][v] / 2;
+        if (var < firstPiVar || var >= lastPiVar)
+            p->pClauses[0][v] += 2*nVarsPlus;
+        else 
+            p->pClauses[0][v] -= 2*firstPiVar;
+    }
+}
+
+int Gia_QbfAddCofactor( Qbf_Man_t * p, Gia_Man_t * pCof )
+{
+    Cnf_Dat_t * pCnf = Mf_ManGenerateCnf( pCof, 8, 0, 1, 0 );
+    int i, useold = 0;
+    int iFirstVar = useold ? sat_solver_nvars(p->pSatSyn) + pCnf->nVars - Gia_ManPiNum(pCof) : pCnf->nVars - Gia_ManPiNum(pCof); //-1   
+    pCnf->pMan = NULL;
+    
+    if (useold)    
+        Cnf_DataLift( pCnf, sat_solver_nvars(p->pSatSyn) );
+    else
+        Cnf_SpecialDataLift( pCnf, sat_solver_nvars(p->pSatSyn), iFirstVar, iFirstVar + Gia_ManPiNum(p->pGia) );
+
+    for ( i = 0; i < pCnf->nClauses; i++ )
+        if ( !sat_solver_addclause( p->pSatSyn, pCnf->pClauses[i], pCnf->pClauses[i+1] ) )
+        {
+            Cnf_DataFree( pCnf );
+            return 0;
+        }
+    Cnf_DataFree( pCnf );
+    // add connection clauses
+    if (useold)
+           for ( i = 0; i < Gia_ManPiNum(p->pGia); i++ )
+            if ( !sat_solver_add_buffer( p->pSatSyn, i, iFirstVar+i, 0 ) )
+                return 0;
     return 1;
 }
 
