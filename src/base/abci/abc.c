@@ -21828,7 +21828,8 @@ int Abc_CommandDSat( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     if ( argc == globalUtilOptind + 1 )
     {
-        extern int Cnf_DataSolveFromFile( char * pFileName, int nConfLimit, int fVerbose );
+        int * pModel = NULL;
+        extern int Cnf_DataSolveFromFile( char * pFileName, int nConfLimit, int nLearnedStart, int nLearnedDelta, int nLearnedPerce, int fVerbose, int ** ppModel );
         // get the input file name
         char * pFileName = argv[globalUtilOptind];
         FILE * pFile = fopen( pFileName, "rb" );
@@ -21838,10 +21839,18 @@ int Abc_CommandDSat( Abc_Frame_t * pAbc, int argc, char ** argv )
             return 0;
         }
         fclose( pFile );
-        Cnf_DataSolveFromFile( pFileName, nConfLimit, fVerbose );
+        Cnf_DataSolveFromFile( pFileName, nConfLimit, nLearnedStart, nLearnedDelta, nLearnedPerce, fVerbose, &pModel );
+        if ( pModel && pNtk )
+        {
+            int * pSimInfo = Abc_NtkVerifySimulatePattern( pNtk, pModel );
+            if ( pSimInfo[0] != 1 )
+                Abc_Print( 1, "ERROR in Abc_NtkMiterSat(): Generated counter example is invalid.\n" );
+            ABC_FREE( pSimInfo );
+            pAbc->pCex = Abc_CexCreate( 0, Abc_NtkPiNum(pNtk), pNtk->pModel, 0, 0, 0 );
+        }
+        ABC_FREE( pModel );
         return 0;
     }
-
     if ( pNtk == NULL )
     {
         Abc_Print( -1, "Empty network.\n" );

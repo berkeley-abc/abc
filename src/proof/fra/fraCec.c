@@ -194,7 +194,7 @@ int Fra_FraigSat( Aig_Man_t * pMan, ABC_INT64_T nConfLimit, ABC_INT64_T nInsLimi
         }
 
         if ( nLearnedStart )
-            pSat->nLearntStart = nLearnedStart;
+            pSat->nLearntStart = pSat->nLearntMax = nLearnedStart;
         if ( nLearnedDelta )
             pSat->nLearntDelta = nLearnedDelta;
         if ( nLearnedPerce )

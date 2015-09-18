@@ -399,7 +399,7 @@ finish:
   SeeAlso     []
 
 ***********************************************************************/
-int Cnf_DataSolveFromFile( char * pFileName, int nConfLimit, int fVerbose )
+int Cnf_DataSolveFromFile( char * pFileName, int nConfLimit, int nLearnedStart, int nLearnedDelta, int nLearnedPerce, int fVerbose, int ** ppModel )
 {
     abctime clk = Abc_Clock();
     Cnf_Dat_t * pCnf = Cnf_DataReadFromFile( pFileName );
@@ -420,9 +420,15 @@ int Cnf_DataSolveFromFile( char * pFileName, int nConfLimit, int fVerbose )
         printf( "The problem is trivially UNSAT.\n" );
         return 1;
     }
+    if ( nLearnedStart )
+        pSat->nLearntStart = pSat->nLearntMax = nLearnedStart;
+    if ( nLearnedDelta )
+        pSat->nLearntDelta = nLearnedDelta;
+    if ( nLearnedPerce )
+        pSat->nLearntRatio = nLearnedPerce;
+    if ( fVerbose )
+        pSat->fVerbose = fVerbose;
     // solve the miter
-//    if ( fVerbose )
-//        pSat->verbosity = 1;
     status = sat_solver_solve( pSat, NULL, NULL, (ABC_INT64_T)nConfLimit, 0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
     if ( status == l_Undef )
         RetValue = -1;
