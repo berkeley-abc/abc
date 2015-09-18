@@ -125,11 +125,11 @@ void Gia_ManSimplifyAnd( Vec_Int_t * vSuper )
   SeeAlso     []
 
 ***********************************************************************/
-void Gia_ManSuperCollectXor_rec( Gia_Man_t * p, Gia_Obj_t * pObj )
+void Gia_ManSuperCollectXor_rec( Gia_Man_t * p, Gia_Obj_t * pObj, int fStrict )
 {
     assert( !Gia_IsComplement(pObj) );
     if ( !Gia_ObjIsXor(pObj) || 
-//        Gia_ObjRefNum(p, pObj) > 1 || 
+        (fStrict && Gia_ObjRefNum(p, pObj) > 1) || 
         Gia_ObjRefNum(p, pObj) > 2 || 
         (Gia_ObjRefNum(p, pObj) == 2 && (Gia_ObjRefNum(p, Gia_ObjFanin0(pObj)) == 1 || Gia_ObjRefNum(p, Gia_ObjFanin1(pObj)) == 1)) || 
         Vec_IntSize(p->vSuper) > 100 )
@@ -138,14 +138,14 @@ void Gia_ManSuperCollectXor_rec( Gia_Man_t * p, Gia_Obj_t * pObj )
         return;
     }
     assert( !Gia_ObjFaninC0(pObj) && !Gia_ObjFaninC1(pObj) );
-    Gia_ManSuperCollectXor_rec( p, Gia_ObjFanin0(pObj) );
-    Gia_ManSuperCollectXor_rec( p, Gia_ObjFanin1(pObj) );
+    Gia_ManSuperCollectXor_rec( p, Gia_ObjFanin0(pObj), fStrict );
+    Gia_ManSuperCollectXor_rec( p, Gia_ObjFanin1(pObj), fStrict );
 }
-void Gia_ManSuperCollectAnd_rec( Gia_Man_t * p, Gia_Obj_t * pObj )
+void Gia_ManSuperCollectAnd_rec( Gia_Man_t * p, Gia_Obj_t * pObj, int fStrict )
 {
     if ( Gia_IsComplement(pObj) || 
         !Gia_ObjIsAndReal(p, pObj) || 
-//        Gia_ObjRefNum(p, pObj) > 1 || 
+        (fStrict && Gia_ObjRefNum(p, pObj) > 1) || 
         Gia_ObjRefNum(p, pObj) > 2 || 
         (Gia_ObjRefNum(p, pObj) == 2 && (Gia_ObjRefNum(p, Gia_ObjFanin0(pObj)) == 1 || Gia_ObjRefNum(p, Gia_ObjFanin1(pObj)) == 1)) || 
         Vec_IntSize(p->vSuper) > 100 )
@@ -153,10 +153,10 @@ void Gia_ManSuperCollectAnd_rec( Gia_Man_t * p, Gia_Obj_t * pObj )
         Vec_IntPush( p->vSuper, Gia_ObjToLit(p, pObj) );
         return;
     }
-    Gia_ManSuperCollectAnd_rec( p, Gia_ObjChild0(pObj) );
-    Gia_ManSuperCollectAnd_rec( p, Gia_ObjChild1(pObj) );
+    Gia_ManSuperCollectAnd_rec( p, Gia_ObjChild0(pObj), fStrict );
+    Gia_ManSuperCollectAnd_rec( p, Gia_ObjChild1(pObj), fStrict );
 }
-void Gia_ManSuperCollect( Gia_Man_t * p, Gia_Obj_t * pObj )
+void Gia_ManSuperCollect( Gia_Man_t * p, Gia_Obj_t * pObj, int fStrict )
 {
 //    int nSize;
     if ( p->vSuper == NULL )
@@ -166,8 +166,8 @@ void Gia_ManSuperCollect( Gia_Man_t * p, Gia_Obj_t * pObj )
     if ( Gia_ObjIsXor(pObj) )
     {
         assert( !Gia_ObjFaninC0(pObj) && !Gia_ObjFaninC1(pObj) );
-        Gia_ManSuperCollectXor_rec( p, Gia_ObjFanin0(pObj) );
-        Gia_ManSuperCollectXor_rec( p, Gia_ObjFanin1(pObj) );
+        Gia_ManSuperCollectXor_rec( p, Gia_ObjFanin0(pObj), fStrict );
+        Gia_ManSuperCollectXor_rec( p, Gia_ObjFanin1(pObj), fStrict );
 //        nSize = Vec_IntSize(vSuper);
         Vec_IntSort( p->vSuper, 0 );
         Gia_ManSimplifyXor( p->vSuper );
@@ -176,8 +176,8 @@ void Gia_ManSuperCollect( Gia_Man_t * p, Gia_Obj_t * pObj )
     }
     else if ( Gia_ObjIsAndReal(p, pObj) )
     {
-        Gia_ManSuperCollectAnd_rec( p, Gia_ObjChild0(pObj) );
-        Gia_ManSuperCollectAnd_rec( p, Gia_ObjChild1(pObj) );
+        Gia_ManSuperCollectAnd_rec( p, Gia_ObjChild0(pObj), fStrict );
+        Gia_ManSuperCollectAnd_rec( p, Gia_ObjChild1(pObj), fStrict );
 //        nSize = Vec_IntSize(vSuper);
         Vec_IntSort( p->vSuper, 0 );
         Gia_ManSimplifyAnd( p->vSuper );
@@ -275,7 +275,7 @@ int Gia_ManBalanceGate( Gia_Man_t * pNew, Gia_Obj_t * pObj, Vec_Int_t * vSuper, 
   SeeAlso     []
 
 ***********************************************************************/
-void Gia_ManBalance_rec( Gia_Man_t * pNew, Gia_Man_t * p, Gia_Obj_t * pObj )
+void Gia_ManBalance_rec( Gia_Man_t * pNew, Gia_Man_t * p, Gia_Obj_t * pObj, int fStrict )
 {
     int i, iLit, iBeg, iEnd;
     if ( ~pObj->Value )
@@ -285,15 +285,15 @@ void Gia_ManBalance_rec( Gia_Man_t * pNew, Gia_Man_t * p, Gia_Obj_t * pObj )
     // handle MUX
     if ( Gia_ObjIsMux(p, pObj) )
     {
-        Gia_ManBalance_rec( pNew, p, Gia_ObjFanin0(pObj) );
-        Gia_ManBalance_rec( pNew, p, Gia_ObjFanin1(pObj) );
-        Gia_ManBalance_rec( pNew, p, Gia_ObjFanin2(p, pObj) );
+        Gia_ManBalance_rec( pNew, p, Gia_ObjFanin0(pObj), fStrict );
+        Gia_ManBalance_rec( pNew, p, Gia_ObjFanin1(pObj), fStrict );
+        Gia_ManBalance_rec( pNew, p, Gia_ObjFanin2(p, pObj), fStrict );
         pObj->Value = Gia_ManHashMuxReal( pNew, Gia_ObjFanin2Copy(p, pObj), Gia_ObjFanin1Copy(pObj), Gia_ObjFanin0Copy(pObj) );
         Gia_ObjSetGateLevel( pNew, Gia_ManObj(pNew, Abc_Lit2Var(pObj->Value)) );
         return;
     }
     // find supergate
-    Gia_ManSuperCollect( p, pObj );
+    Gia_ManSuperCollect( p, pObj, fStrict );
     // save entries
     if ( p->vStore == NULL )
         p->vStore = Vec_IntAlloc( 1000 );
@@ -304,7 +304,7 @@ void Gia_ManBalance_rec( Gia_Man_t * pNew, Gia_Man_t * p, Gia_Obj_t * pObj )
     Vec_IntForEachEntryStartStop( p->vStore, iLit, i, iBeg, iEnd )
     {
         Gia_Obj_t * pTemp = Gia_ManObj( p, Abc_Lit2Var(iLit) );
-        Gia_ManBalance_rec( pNew, p, pTemp );
+        Gia_ManBalance_rec( pNew, p, pTemp, fStrict );
         Vec_IntWriteEntry( p->vStore, i, Abc_LitNotCond(pTemp->Value, Abc_LitIsCompl(iLit)) );
     }
     assert( Vec_IntSize(p->vStore) == iEnd );
@@ -312,7 +312,7 @@ void Gia_ManBalance_rec( Gia_Man_t * pNew, Gia_Man_t * p, Gia_Obj_t * pObj )
     pObj->Value = Gia_ManBalanceGate( pNew, pObj, p->vSuper, Vec_IntEntryP(p->vStore, iBeg), iEnd-iBeg );
     Vec_IntShrink( p->vStore, iBeg );
 }
-Gia_Man_t * Gia_ManBalanceInt( Gia_Man_t * p )
+Gia_Man_t * Gia_ManBalanceInt( Gia_Man_t * p, int fStrict )
 {
     Gia_Man_t * pNew, * pTemp;
     Gia_Obj_t * pObj;
@@ -333,16 +333,16 @@ Gia_Man_t * Gia_ManBalanceInt( Gia_Man_t * p )
     Gia_ManHashStart( pNew );
     Gia_ManForEachBuf( p, pObj, i )
     {
-        Gia_ManBalance_rec( pNew, p, Gia_ObjFanin0(pObj) );
+        Gia_ManBalance_rec( pNew, p, Gia_ObjFanin0(pObj), fStrict );
         pObj->Value = Gia_ManAppendBuf( pNew, Gia_ObjFanin0Copy(pObj) );
         Gia_ObjSetGateLevel( pNew, Gia_ManObj(pNew, Abc_Lit2Var(pObj->Value)) );
     }
     Gia_ManForEachCo( p, pObj, i )
     {
-        Gia_ManBalance_rec( pNew, p, Gia_ObjFanin0(pObj) );
+        Gia_ManBalance_rec( pNew, p, Gia_ObjFanin0(pObj), fStrict );
         pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
     }
-    //assert( Gia_ManObjNum(pNew) <= Gia_ManObjNum(p) );
+    assert( !fStrict || Gia_ManObjNum(pNew) <= Gia_ManObjNum(p) );
     Gia_ManHashStop( pNew );
     Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
     // perform cleanup
@@ -362,13 +362,13 @@ Gia_Man_t * Gia_ManBalanceInt( Gia_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-Gia_Man_t * Gia_ManBalance( Gia_Man_t * p, int fSimpleAnd, int fVerbose )
+Gia_Man_t * Gia_ManBalance( Gia_Man_t * p, int fSimpleAnd, int fStrict, int fVerbose )
 {
     Gia_Man_t * pNew, * pNew1, * pNew2;
     if ( fVerbose )      Gia_ManPrintStats( p, NULL );
     pNew = fSimpleAnd ? Gia_ManDup( p ) : Gia_ManDupMuxes( p, 2 );
     if ( fVerbose )      Gia_ManPrintStats( pNew, NULL );
-    pNew1 = Gia_ManBalanceInt( pNew );
+    pNew1 = Gia_ManBalanceInt( pNew, fStrict );
     if ( fVerbose )      Gia_ManPrintStats( pNew1, NULL );
     Gia_ManStop( pNew );
     pNew2 = Gia_ManDupNoMuxes( pNew1 );
@@ -453,7 +453,7 @@ void Dam_ManCollectSets_rec( Dam_Man_t * p, int Id )
         p->nAnds += 3;
         return;
     }
-    Gia_ManSuperCollect( p->pGia, pObj );
+    Gia_ManSuperCollect( p->pGia, pObj, 0 );
     Vec_IntWriteEntry( p->vNod2Set, Id, Vec_IntSize(p->vSetStore) );
     Vec_IntPush( p->vSetStore, Vec_IntSize(p->pGia->vSuper) );
     p->nAnds += (1 + 2 * Gia_ObjIsXor(pObj)) * (Vec_IntSize(p->pGia->vSuper) - 1);

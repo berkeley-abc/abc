@@ -29125,11 +29125,12 @@ int Abc_CommandAbc9Balance( Abc_Frame_t * pAbc, int argc, char ** argv )
     int nNewNodesMax = ABC_INFINITY;
     int fDelayOnly   = 0;
     int fSimpleAnd   = 0;
+    int fStrict      = 0;
     int fKeepLevel   = 0;
     int c, fVerbose  = 0;
     int fVeryVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "Ndalvwh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Ndaslvwh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -29149,6 +29150,9 @@ int Abc_CommandAbc9Balance( Abc_Frame_t * pAbc, int argc, char ** argv )
             break;
         case 'a':
             fSimpleAnd ^= 1;
+            break;
+        case 's':
+            fStrict ^= 1;
             break;
         case 'l':
             fKeepLevel ^= 1;
@@ -29171,19 +29175,19 @@ int Abc_CommandAbc9Balance( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
     if ( fDelayOnly )
-        pTemp = Gia_ManBalance( pAbc->pGia, fSimpleAnd, fVerbose );
+        pTemp = Gia_ManBalance( pAbc->pGia, fSimpleAnd, fStrict, fVerbose );
     else
         pTemp = Gia_ManAreaBalance( pAbc->pGia, fSimpleAnd, nNewNodesMax, fVerbose, fVeryVerbose );
     Abc_FrameUpdateGia( pAbc, pTemp );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &b [-N num] [-davwh]\n" );
+    Abc_Print( -2, "usage: &b [-N num] [-dasvwh]\n" );
     Abc_Print( -2, "\t         performs AIG balancing to reduce delay and area\n" );
     Abc_Print( -2, "\t-N num : the max fanout count to skip a divisor [default = %d]\n", nNewNodesMax );
     Abc_Print( -2, "\t-d     : toggle delay only balancing [default = %s]\n", fDelayOnly? "yes": "no" );
     Abc_Print( -2, "\t-a     : toggle using AND instead of AND/XOR/MUX [default = %s]\n", fSimpleAnd? "yes": "no" );
-//    Abc_Print( -2, "\t-l     : toggle level update during shrinking [default = %s]\n", fKeepLevel? "yes": "no" );
+    Abc_Print( -2, "\t-s     : toggle strict control of area in delay-mode (\"&b -d\") [default = %s]\n", fStrict? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-w     : toggle printing additional information [default = %s]\n", fVeryVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
