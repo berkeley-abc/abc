@@ -185,13 +185,15 @@ void Sat_Solver2WriteDimacs( sat_solver2 * p, char * pFileName, lit* assumpBegin
   SeeAlso     []
 
 ***********************************************************************/
+static inline double Sat_Wrd2Dbl( word w )  { return (double)(unsigned)(w&0x3FFFFFFF) + (double)(1<<30)*(unsigned)(w>>30); }
+
 void Sat_SolverPrintStats( FILE * pFile, sat_solver * p )
 {
 //    printf( "calls         : %10d (%d)\n", (int)p->nCalls, (int)p->nCalls2 );
-    printf( "starts        : %10d\n", (int)p->stats.starts );
-    printf( "conflicts     : %10d\n", (int)p->stats.conflicts );
-    printf( "decisions     : %10d\n", (int)p->stats.decisions );
-    printf( "propagations  : %10d\n", (int)p->stats.propagations );
+    printf( "starts        : %16.0f\n", Sat_Wrd2Dbl(p->stats.starts) );
+    printf( "conflicts     : %16.0f\n", Sat_Wrd2Dbl(p->stats.conflicts) );
+    printf( "decisions     : %16.0f\n", Sat_Wrd2Dbl(p->stats.decisions) );
+    printf( "propagations  : %16.0f\n", Sat_Wrd2Dbl(p->stats.propagations) );
 //    printf( "inspects      : %10d\n", (int)p->stats.inspects );
 //    printf( "inspects2     : %10d\n", (int)p->stats.inspects2 );
 }

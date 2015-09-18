@@ -399,12 +399,12 @@ finish:
   SeeAlso     []
 
 ***********************************************************************/
-int Cnf_DataSolveFromFile( char * pFileName, int nConfLimit, int nLearnedStart, int nLearnedDelta, int nLearnedPerce, int fVerbose, int ** ppModel )
+int Cnf_DataSolveFromFile( char * pFileName, int nConfLimit, int nLearnedStart, int nLearnedDelta, int nLearnedPerce, int fVerbose, int ** ppModel, int nPis )
 {
     abctime clk = Abc_Clock();
     Cnf_Dat_t * pCnf = Cnf_DataReadFromFile( pFileName );
     sat_solver * pSat;
-    int status, RetValue = -1;
+    int i, status, RetValue = -1;
     if ( pCnf == NULL )
         return -1;
     if ( fVerbose )
@@ -414,10 +414,10 @@ int Cnf_DataSolveFromFile( char * pFileName, int nConfLimit, int nLearnedStart, 
     }
     // convert into SAT solver
     pSat = (sat_solver *)Cnf_DataWriteIntoSolver( pCnf, 1, 0 );
-    Cnf_DataFree( pCnf );
     if ( pSat == NULL )
     {
         printf( "The problem is trivially UNSAT.\n" );
+        Cnf_DataFree( pCnf );
         return 1;
     }
     if ( nLearnedStart )
@@ -440,7 +440,6 @@ int Cnf_DataSolveFromFile( char * pFileName, int nConfLimit, int nLearnedStart, 
         assert( 0 );
     if ( fVerbose )
         Sat_SolverPrintStats( stdout, pSat );
-    sat_solver_delete( pSat );
     if ( RetValue == -1 )
         Abc_Print( 1, "UNDECIDED      " );
     else if ( RetValue == 0 )
@@ -449,6 +448,15 @@ int Cnf_DataSolveFromFile( char * pFileName, int nConfLimit, int nLearnedStart, 
         Abc_Print( 1, "UNSATISFIABLE  " );
     //Abc_Print( -1, "\n" );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
+    // derive SAT assignment
+    if ( RetValue == 0 )
+    {
+        *ppModel = ABC_ALLOC( int, nPis );
+        for ( i = 0; i < nPis; i++ )
+            (*ppModel)[i] = sat_solver_var_value( pSat, pCnf->nVars - nPis + i );
+    }
+    Cnf_DataFree( pCnf );
+    sat_solver_delete( pSat );
     return RetValue;
 }
 
