@@ -76,13 +76,17 @@ static inline int * Gia_ManHashFind( Gia_Man_t * p, int iLit0, int iLit1, int iL
   SeeAlso     []
 
 ***********************************************************************/
+int Gia_ManHashLookupInt( Gia_Man_t * p, int iLit0, int iLit1 )
+{
+    if ( iLit0 > iLit1 )
+        iLit0 ^= iLit1, iLit1 ^= iLit0, iLit0 ^= iLit1;
+    return *Gia_ManHashFind( p, iLit0, iLit1, -1 );
+}
 int Gia_ManHashLookup( Gia_Man_t * p, Gia_Obj_t * p0, Gia_Obj_t * p1 )
 {
     int iLit0 = Gia_ObjToLit( p, p0 );
     int iLit1 = Gia_ObjToLit( p, p1 );
-    if ( iLit0 > iLit1 )
-        iLit0 ^= iLit1, iLit1 ^= iLit0, iLit0 ^= iLit1;
-    return *Gia_ManHashFind( p, iLit0, iLit1, -1 );
+    return Gia_ManHashLookupInt( p, iLit0, iLit1 );
 }
 
 /**Function*************************************************************

@@ -128,11 +128,11 @@ void Gia_ManSimplifyAnd( Vec_Int_t * vSuper )
 void Gia_ManSuperCollectXor_rec( Gia_Man_t * p, Gia_Obj_t * pObj, int fStrict )
 {
     assert( !Gia_IsComplement(pObj) );
-    if ( !Gia_ObjIsXor(pObj) || 
+    if ( !Gia_ObjIsXor(pObj) ||     
         (fStrict && Gia_ObjRefNum(p, pObj) > 1) || 
         Gia_ObjRefNum(p, pObj) > 2 || 
         (Gia_ObjRefNum(p, pObj) == 2 && (Gia_ObjRefNum(p, Gia_ObjFanin0(pObj)) == 1 || Gia_ObjRefNum(p, Gia_ObjFanin1(pObj)) == 1)) || 
-        Vec_IntSize(p->vSuper) > 100 )
+        Vec_IntSize(p->vSuper) > 10000 )
     {
         Vec_IntPush( p->vSuper, Gia_ObjToLit(p, pObj) );
         return;
@@ -148,7 +148,7 @@ void Gia_ManSuperCollectAnd_rec( Gia_Man_t * p, Gia_Obj_t * pObj, int fStrict )
         (fStrict && Gia_ObjRefNum(p, pObj) > 1) || 
         Gia_ObjRefNum(p, pObj) > 2 || 
         (Gia_ObjRefNum(p, pObj) == 2 && (Gia_ObjRefNum(p, Gia_ObjFanin0(pObj)) == 1 || Gia_ObjRefNum(p, Gia_ObjFanin1(pObj)) == 1)) || 
-        Vec_IntSize(p->vSuper) > 100 )
+        Vec_IntSize(p->vSuper) > 10000 )
     {
         Vec_IntPush( p->vSuper, Gia_ObjToLit(p, pObj) );
         return;
@@ -201,10 +201,67 @@ void Gia_ManSuperCollect( Gia_Man_t * p, Gia_Obj_t * pObj, int fStrict )
   SeeAlso     []
 
 ***********************************************************************/
+int Gia_ManFindSharedNode( Gia_Man_t * pNew, Vec_Int_t * vSuper, int iLit0 )
+{
+    int i, iLit1 = Vec_IntEntryLast(vSuper);
+    // iterate through the nodes whose level is equal to that of the last one
+    int iLit1Level = Gia_ObjLevelId(pNew, Abc_Lit2Var(iLit1));
+    for ( i = Vec_IntSize(vSuper)-1; i >= 0; i-- )
+    {
+        int iLit2 = Vec_IntEntry(vSuper, i);
+        if ( iLit1Level != Gia_ObjLevelId(pNew, Abc_Lit2Var(iLit2)) )
+            break;
+        if ( Abc_Lit2Var(iLit0) != Abc_Lit2Var(iLit2) && !Gia_ManHashLookupInt(pNew, iLit0, iLit2) ) // new node
+            continue;
+        // swap iLit2 and iLit1
+        if ( iLit2 != iLit1 )
+        {
+            Vec_IntWriteEntry( vSuper, i, iLit1 );
+            Vec_IntWriteEntry( vSuper, Vec_IntSize(vSuper)-1, iLit2 );
+        }
+        break;
+    }
+    return Vec_IntPop(vSuper);    
+}
+void Gia_ManPrepareLastTwo( Gia_Man_t * pNew, Vec_Int_t * vSuper )
+{
+    int i, k, Stop, Lit1, Lit2, Level1, Level2, * pArray;
+    int nSize = Vec_IntSize(vSuper);
+    if ( nSize == 2 )
+        return;
+    assert( nSize > 2 );
+    Level1 = Gia_ObjLevelId( pNew, Abc_Lit2Var(Vec_IntEntry(vSuper, nSize-2)) );
+    // find the first one with Level1
+    for ( Stop = nSize-3; Stop >= 0; Stop-- )
+    {
+        Level2 = Gia_ObjLevelId( pNew, Abc_Lit2Var(Vec_IntEntry(vSuper, Stop)) );
+        if ( Level1 != Level2 )
+            break;
+    }
+    if ( Stop == nSize-3 )
+        return;
+    // avoid worst-case quadratic behavior by looking at the last 8 nodes
+    Stop = Abc_MaxInt( Stop, nSize - 9 );
+    for ( i = nSize - 1; i > Stop; i-- )
+        for ( k = i - 1; k > Stop; k-- )
+        {
+            Lit1 = Vec_IntEntry(vSuper, i);
+            Lit2 = Vec_IntEntry(vSuper, k);
+            if ( Abc_Lit2Var(Lit1) != Abc_Lit2Var(Lit2) && !Gia_ManHashLookupInt(pNew, Lit1, Lit2) ) // new node
+                continue;
+            // move Lit1 to be last and Lit2 to be the one before
+            pArray = Vec_IntArray( vSuper );
+            if ( i != nSize-1 )
+                ABC_SWAP( int, pArray[i], pArray[nSize-1] );
+            if ( k != nSize-2 )
+                ABC_SWAP( int, pArray[k], pArray[nSize-2] );
+        }
+}
 void Gia_ManCreateGate( Gia_Man_t * pNew, Gia_Obj_t * pObj, Vec_Int_t * vSuper )
 {
     int iLit0 = Vec_IntPop(vSuper);
     int iLit1 = Vec_IntPop(vSuper);
+//    int iLit1 = Gia_ManFindSharedNode(pNew, vSuper, iLit0);
     int iLit, i;
     if ( !Gia_ObjIsXor(pObj) )
         iLit = Gia_ManHashAnd( pNew, iLit0, iLit1 );
@@ -240,7 +297,7 @@ int Gia_ManBalanceGate( Gia_Man_t * pNew, Gia_Obj_t * pObj, Vec_Int_t * vSuper, 
     else if ( nLits > 2 )
     {
         // collect levels
-        int i, * pArray, * pPerm;
+        int i, * pArray, * pPerm; //int iLit;
         for ( i = 0; i < nLits; i++ )
             Vec_IntPush( vSuper, Gia_ObjLevelId(pNew, Abc_Lit2Var(pLits[i])) );
         // sort by level
@@ -252,12 +309,18 @@ int Gia_ManBalanceGate( Gia_Man_t * pNew, Gia_Obj_t * pObj, Vec_Int_t * vSuper, 
         for ( i = 0; i < nLits; i++ )
             Vec_IntWriteEntry( vSuper, i, pLits[pPerm[i]] );
         Vec_IntShrink( vSuper, nLits );
-//        Vec_IntForEachEntry( vSuper, iLit, i )
-//            printf( "%d ", Gia_ObjLevel(pNew, Gia_ManObj( pNew, Abc_Lit2Var(iLit) )) );
-//        printf( "\n" );
+/*            
+        Vec_IntForEachEntry( vSuper, iLit, i )
+            printf( "%d ", Gia_ObjLevel(pNew, Gia_ManObj( pNew, Abc_Lit2Var(iLit) )) );
+        printf( "\n" );
+*/
         // perform incremental extraction
         while ( Vec_IntSize(vSuper) > 1 )
+        {
+            if ( !Gia_ObjIsXor(pObj) )
+                Gia_ManPrepareLastTwo( pNew, vSuper );
             Gia_ManCreateGate( pNew, pObj, vSuper );
+        }
     }
     // consider trivial case
     assert( Vec_IntSize(vSuper) == 1 );
