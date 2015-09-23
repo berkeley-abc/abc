@@ -2761,9 +2761,10 @@ void Id_DsdManTuneStr( If_DsdMan_t * p, char * pStruct, int nConfls, int nProcs,
   SeeAlso     []
 
 ***********************************************************************/
-void Id_DsdManTuneThresh( If_DsdMan_t * p, int fUnate, int fThresh, int fVerbose )
+void Id_DsdManTuneThresh( If_DsdMan_t * p, int fUnate, int fThresh, int fThreshHeuristic, int fVerbose )
 {
     extern int Extra_ThreshCheck( word * t, int nVars, int * pW );
+    extern int Extra_ThreshHeuristic( word * t, int nVars, int * pW );
     int fVeryVerbose = 0;
     int pW[16];
     ProgressBar * pProgress = NULL;
@@ -2771,7 +2772,7 @@ void Id_DsdManTuneThresh( If_DsdMan_t * p, int fUnate, int fThresh, int fVerbose
     word * pTruth, Perm;
     int i, nVars, Value;
     abctime clk = Abc_Clock();
-    assert( fUnate != fThresh );
+    assert( fUnate != fThresh || fUnate != fThreshHeuristic );
     if ( p->nObjsPrev > 0 )
         printf( "Starting the tuning process from object %d (out of %d).\n", p->nObjsPrev, Vec_PtrSize(&p->vObjs) );
     // clean the attributes
@@ -2799,7 +2800,9 @@ void Id_DsdManTuneThresh( If_DsdMan_t * p, int fUnate, int fThresh, int fVerbose
             Value = Abc_TtIsUnate( pTruth, nVars );
         else if ( fThresh )
             Value = Extra_ThreshCheck( pTruth, nVars, pW );
-        else 
+        else if ( fThreshHeuristic )
+            Value = Extra_ThreshHeuristic( pTruth, nVars, pW );
+        else
             Value = 0;
         Perm = 0;
         if ( fVeryVerbose )
