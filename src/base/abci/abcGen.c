@@ -43,19 +43,42 @@ ABC_NAMESPACE_IMPL_START
 ***********************************************************************/
 void Abc_WriteFullAdder( FILE * pFile )
 {
+    int fNaive = 0;
     fprintf( pFile, ".model FA\n" );
     fprintf( pFile, ".inputs a b cin\n" ); 
     fprintf( pFile, ".outputs s cout\n" ); 
-    fprintf( pFile, ".names a b k\n" ); 
-    fprintf( pFile, "10 1\n" ); 
-    fprintf( pFile, "01 1\n" ); 
-    fprintf( pFile, ".names k cin s\n" ); 
-    fprintf( pFile, "10 1\n" ); 
-    fprintf( pFile, "01 1\n" ); 
-    fprintf( pFile, ".names a b cin cout\n" ); 
-    fprintf( pFile, "11- 1\n" ); 
-    fprintf( pFile, "1-1 1\n" ); 
-    fprintf( pFile, "-11 1\n" ); 
+    if ( fNaive )
+    {
+        fprintf( pFile, ".names a b k\n" ); 
+        fprintf( pFile, "10 1\n" ); 
+        fprintf( pFile, "01 1\n" ); 
+        fprintf( pFile, ".names k cin s\n" ); 
+        fprintf( pFile, "10 1\n" ); 
+        fprintf( pFile, "01 1\n" ); 
+        fprintf( pFile, ".names a b cin cout\n" ); 
+        fprintf( pFile, "11- 1\n" ); 
+        fprintf( pFile, "1-1 1\n" ); 
+        fprintf( pFile, "-11 1\n" ); 
+    }
+    else
+    {
+        fprintf( pFile, ".names a b and1\n" ); 
+        fprintf( pFile, "11 1\n" ); 
+        fprintf( pFile, ".names a b and1_\n" ); 
+        fprintf( pFile, "00 1\n" ); 
+        fprintf( pFile, ".names and1 and1_ xor\n" ); 
+        fprintf( pFile, "00 1\n" ); 
+
+        fprintf( pFile, ".names cin xor and2\n" ); 
+        fprintf( pFile, "11 1\n" ); 
+        fprintf( pFile, ".names cin xor and2_\n" ); 
+        fprintf( pFile, "00 1\n" ); 
+        fprintf( pFile, ".names and2 and2_ s\n" ); 
+        fprintf( pFile, "00 1\n" ); 
+
+        fprintf( pFile, ".names and1 and2 cout\n" ); 
+        fprintf( pFile, "00 0\n" ); 
+    }
     fprintf( pFile, ".end\n" ); 
     fprintf( pFile, "\n" ); 
 }

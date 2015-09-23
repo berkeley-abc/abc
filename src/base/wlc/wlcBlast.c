@@ -242,11 +242,25 @@ int Wlc_BlastLessSigned( Gia_Man_t * pNew, int * pArg0, int * pArg1, int nBits )
 }
 void Wlc_BlastFullAdder( Gia_Man_t * pNew, int a, int b, int c, int * pc, int * ps )
 {
-    int Xor  = Gia_ManHashXor(pNew, a, b);
-    int And1 = Gia_ManHashAnd(pNew, a, b);
-    int And2 = Gia_ManHashAnd(pNew, c, Xor);
-    *ps      = Gia_ManHashXor(pNew, c, Xor);
-    *pc      = Gia_ManHashOr (pNew, And1, And2);
+    int fUseXor = 0;
+    if ( fUseXor )
+    {
+        int Xor  = Gia_ManHashXor(pNew, a, b);
+        int And1 = Gia_ManHashAnd(pNew, a, b);
+        int And2 = Gia_ManHashAnd(pNew, c, Xor);
+        *ps      = Gia_ManHashXor(pNew, c, Xor);
+        *pc      = Gia_ManHashOr (pNew, And1, And2);
+    }
+    else
+    {
+        int And1 = Gia_ManHashAnd(pNew, a, b);
+        int And1_= Gia_ManHashAnd(pNew, Abc_LitNot(a), Abc_LitNot(b));
+        int Xor  = Abc_LitNot(Gia_ManHashOr(pNew, And1, And1_));
+        int And2 = Gia_ManHashAnd(pNew, c, Xor);
+        int And2_= Gia_ManHashAnd(pNew, Abc_LitNot(c), Abc_LitNot(Xor));
+        *ps      = Abc_LitNot(Gia_ManHashOr(pNew, And2, And2_));
+        *pc      = Gia_ManHashOr (pNew, And1, And2);
+    }
 }
 void Wlc_BlastAdder( Gia_Man_t * pNew, int * pAdd0, int * pAdd1, int nBits ) // result is in pAdd0
 {
