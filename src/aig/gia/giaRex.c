@@ -183,6 +183,7 @@ char * Gia_ManRexPreprocess( char * pStr )
     char * pCopy = ABC_CALLOC( char, strlen(pStr) * 2 + 10 );
     int i, k = 0;
     pCopy[k++] = '(';
+    pCopy[k++] = '(';
     for ( i = 0; pStr[i]; i++ )
     {
         if ( pStr[i] == '(' )
@@ -192,6 +193,7 @@ char * Gia_ManRexPreprocess( char * pStr )
         if ( pStr[i] != ' ' && pStr[i] != '\t' && pStr[i] != '\n' && pStr[i] != '\r' )
             pCopy[k++] = pStr[i];
     }
+    pCopy[k++] = ')';
     pCopy[k++] = ')';
     pCopy[k++] = '\0';
     return pCopy;
@@ -217,7 +219,7 @@ Gia_Man_t * Gia_ManRex2Gia( char * pStrInit, int fOrder, int fVerbose )
     }
     // start AIG
     pNew = Gia_ManStart( 1000 );
-    pNew->pName = Abc_UtilStrsav( pStr );
+    pNew->pName = Abc_UtilStrsav( pStrInit );
     for ( i = 0; i < Vec_IntSize(vAlphas) + nStates; i++ )
         Gia_ManAppendCi( pNew );
     // prepare automaton
