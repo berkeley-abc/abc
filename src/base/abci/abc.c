@@ -345,6 +345,7 @@ static int Abc_CommandAbc9PFan               ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandAbc9PSig               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Status             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9MuxProfile         ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9Rex2Gia            ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Show               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9SetRegNum          ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Strash             ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -962,6 +963,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "ABC9",         "&psig",         Abc_CommandAbc9PSig,         0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&status",       Abc_CommandAbc9Status,       0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&profile",      Abc_CommandAbc9MuxProfile,   0 );
+    Cmd_CommandAdd( pAbc, "ABC9",         "&rex2gia",      Abc_CommandAbc9Rex2Gia,      0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&show",         Abc_CommandAbc9Show,         0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&setregnum",    Abc_CommandAbc9SetRegNum,    0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&st",           Abc_CommandAbc9Strash,       0 );
@@ -26916,6 +26918,71 @@ usage:
     Abc_Print( -2, "\t-m     : toggle profiling MUX structures [default = %s]\n", fMuxes? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle verbose output [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc9Rex2Gia( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern Gia_Man_t * Gia_ManRex2Gia( char * pStr, int fOrder, int fVerbose );
+    Gia_Man_t * pGia = NULL;
+    char * pStr = NULL;
+    char ** pArgvNew;
+    int nArgcNew;
+    int c, fOrder = 1, fVerbose = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "avh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'a':
+            fOrder ^= 1;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    pArgvNew = argv + globalUtilOptind;
+    nArgcNew = argc - globalUtilOptind;
+    if ( nArgcNew != 1 )
+    {
+        Abc_Print( -1, "No regular expression is entered on the command line.\n" );
+        return 1;
+    }
+    pStr = pArgvNew[0];
+    pGia = Gia_ManRex2Gia( pStr, fOrder, fVerbose );
+    if ( pGia )
+        Abc_FrameUpdateGia( pAbc, pGia );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: &rex2gia [-avh] [string]\n" );
+    Abc_Print( -2, "\t         converts a regular expression into a sequential AIG\n" );
+    Abc_Print( -2, "\t-a     : toggle ordering input symbols alphabetically [default = %s]\n", fOrder? "yes": "no" );
+    Abc_Print( -2, "\t-v     : toggle verbose output [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
+    Abc_Print( -2, "\tstring : representation of a regular expression\n");
+    Abc_Print( -2, "\t         Special symbols: parentheses \'(\' and \')\', Kleene closure \'*\', union \'|'\n");
+    Abc_Print( -2, "\t         All other characters are treated as symbols of the input alphabet.\n");
+    Abc_Print( -2, "\t         For example, ((A*B|AC)D) is defined over the alphabet {A, B, C, D}\n");
+    Abc_Print( -2, "\t         and generates the following language: {BD, ABD, AABD, AAABD, ..., ACD}\n");
+    Abc_Print( -2, "\t         A known limitation:  For the command to work correctly, each two-input union\n");
+    Abc_Print( -2, "\t         should have a dedicated pair of parentheses: ((A|B)|C) rather than (A|B|C)\n");
     return 1;
 }
 

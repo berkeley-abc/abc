@@ -51,6 +51,7 @@ SRC +=    src/aig/gia/giaAig.c \
     src/aig/gia/giaQbf.c \
     src/aig/gia/giaResub.c \
     src/aig/gia/giaRetime.c \
+    src/aig/gia/giaRex.c \
     src/aig/gia/giaScl.c \
     src/aig/gia/giaScript.c \
     src/aig/gia/giaShrink.c \

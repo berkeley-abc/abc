@@ -4267,6 +4267,10 @@ SOURCE=.\src\aig\gia\giaRetime.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\aig\gia\giaRex.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\aig\gia\giaScl.c
 # End Source File
 # Begin Source File
