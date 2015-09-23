@@ -3068,6 +3068,11 @@ Gia_Man_t * Gia_ManDupWithConstr( Gia_Man_t * p )
         printf( "The miter's output is not AND-decomposable.\n" );
         return NULL;
     }
+    if ( Gia_ObjFaninId0p(p, pObj) == 0 )
+    {
+        printf( "The miter's output is a constant.\n" );
+        return NULL;
+    }
     vSuper = Vec_IntAlloc( 100 );
     Gia_ManDupWithConstrCollectAnd_rec( p, Gia_ObjChild0(pObj), vSuper, 1 );
     assert( Vec_IntSize(vSuper) > 1 );

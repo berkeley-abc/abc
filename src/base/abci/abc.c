@@ -23548,6 +23548,11 @@ int Abc_CommandTempor( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( 0, "The current network is combinational.\n");
         return 0;
     }
+    if ( Abc_NtkPiNum(pNtk) == 0 )
+    {
+        Abc_Print( 0, "The current network does not have primary inputs. Use \"addpi\".\n");
+        return 0;
+    }
     if ( fUpdateCex )
     {
         Abc_Cex_t * pCexNew;
@@ -24020,12 +24025,12 @@ int Abc_CommandUnfold( Abc_Frame_t * pAbc, int argc, char ** argv )
         Gia_Man_t * pGia = Gia_ManFromAigSimple( pAig );
         Aig_ManStop( pAig );
         pNew = Gia_ManDupWithConstr( pGia );
+        Gia_ManStop( pGia );
         if ( pNew == NULL )
         {
             Abc_Print( -1, "Cannot extract constrains from the miter.\n" );
             return 0;
         }
-        Gia_ManStop( pGia );
         pAig = Gia_ManToAigSimple( pNew );
         Gia_ManStop( pNew );
         pNtkRes = Abc_NtkFromAigPhase( pAig );
