@@ -169,6 +169,8 @@ Dec_Graph_t * Abc_NodeRefactor( Abc_ManRef_t * p, Abc_Obj_t * pNode, Vec_Ptr_t *
 clk = Abc_Clock();
     pTruth = Abc_NodeConeTruth( p->vVars, p->vFuncs, nWordsMax, pNode, vFanins, p->vVisited );
 p->timeTru += Abc_Clock() - clk;
+    if ( pTruth == NULL )
+        return NULL;
 
     // always accept the case of constant node
     if ( Abc_NodeConeIsConst0(pTruth, nVars) || Abc_NodeConeIsConst1(pTruth, nVars) )

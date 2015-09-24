@@ -75,12 +75,13 @@ char * Mio_SopRegister( Mem_Flex_t * pMan, char * pName )
 ***********************************************************************/
 int Mio_GateCollectNames( char * pFormula, char * pPinNames[] )
 {
-    char Buffer[1000];
+    char * Buffer;
     char * pTemp;
     int nPins, i;
 
     // save the formula as it was
-    strcpy( Buffer, pFormula );
+    //strcpy( Buffer, pFormula );
+    Buffer = Abc_UtilStrsav( pFormula );
 
     // remove the non-name symbols
     for ( pTemp = Buffer; *pTemp; pTemp++ )
@@ -106,6 +107,7 @@ int Mio_GateCollectNames( char * pFormula, char * pPinNames[] )
         // get the next name
         pTemp = strtok( NULL, " " );
     }
+    ABC_FREE( Buffer );
     return nPins;
 }
 

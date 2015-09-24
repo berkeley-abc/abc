@@ -1456,7 +1456,7 @@ int Abc_NtkLevel( Abc_Ntk_t * pNtk )
             pNode->Level = 0;
     else
         Abc_NtkForEachCi( pNtk, pNode, i )
-            pNode->Level = (int)(Abc_NodeReadArrivalWorst(pNode) / pNtk->AndGateDelay);
+            pNode->Level = (int)(Abc_MaxFloat(0, Abc_NodeReadArrivalWorst(pNode)) / pNtk->AndGateDelay);
     // perform the traversal
     LevelsMax = 0;
     Abc_NtkIncrementTravId( pNtk );
