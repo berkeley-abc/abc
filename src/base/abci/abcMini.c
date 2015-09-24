@@ -175,7 +175,17 @@ void * Abc_NtkOutputMiniAig( Abc_Frame_t * pAbc )
         printf( "Current network in ABC framework is not defined.\n" );
     return Abc_NtkToMiniAig( pNtk );
 }
-
+void Abc_NtkSetFlopNum( Abc_Frame_t * pAbc, int nFlops )
+{
+    extern void Abc_NtkMakeSeq( Abc_Ntk_t * pNtk, int nFlops );
+    Abc_Ntk_t * pNtk;
+    if ( pAbc == NULL )
+        printf( "ABC framework is not initialized by calling Abc_Start()\n" );
+    pNtk = Abc_FrameReadNtk( pAbc );
+    if ( pNtk == NULL )
+        printf( "Current network in ABC framework is not defined.\n" );
+    Abc_NtkMakeSeq( pNtk, nFlops );
+}
 
 /**Function*************************************************************
 

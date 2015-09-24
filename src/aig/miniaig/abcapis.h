@@ -52,6 +52,7 @@ extern int    Cmd_CommandExecute( void * pAbc, char * pCommandLine );
 // procedures to input/output 'mini AIG'
 extern void   Abc_NtkInputMiniAig( void * pAbc, void * pMiniAig );
 extern void * Abc_NtkOutputMiniAig( void * pAbc );
+extern void   Abc_NtkSetFlopNum( void * pAbc, int nFlops );
 
 // procedures to set CI/CO arrival/required times
 extern void   Abc_NtkSetCiArrivalTime( void * pAbc, int iCi, float Rise, float Fall );
