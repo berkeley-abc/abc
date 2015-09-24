@@ -166,7 +166,7 @@ static inline void Abc_SclTimingUpdate( SC_Cell * pCell, SC_Timing * p, char * B
 static inline void Abc_SclTimingsUpdate( SC_Cell * pCell, SC_Timings * p, char * Buffer )
 {
     SC_Timing * pTemp; int i;
-    Vec_PtrForEachEntry( SC_Timing *, p->vTimings, pTemp, i )
+    Vec_PtrForEachEntry( SC_Timing *, &p->vTimings, pTemp, i )
         Abc_SclTimingUpdate( pCell, pTemp, Buffer );
 }
 static inline void Abc_SclPinUpdate( SC_Cell * pCell, SC_Pin * p, char * Buffer )
@@ -264,7 +264,7 @@ void Abc_SclLinkCells( SC_Lib * p )
     Vec_Ptr_t * vList;
     SC_Cell * pCell, * pRepr = NULL;
     int i, k;
-    assert( Vec_PtrSize(p->vCellClasses) == 0 );
+    assert( Vec_PtrSize(&p->vCellClasses) == 0 );
     SC_LibForEachCell( p, pCell, i )
     {
         // find gate with the same function
@@ -273,9 +273,9 @@ void Abc_SclLinkCells( SC_Lib * p )
                  pCell->n_outputs == pRepr->n_outputs && 
                  Vec_WrdEqual(SC_CellFunc(pCell), SC_CellFunc(pRepr)) )
                 break;
-        if ( k == Vec_PtrSize(p->vCellClasses) )
+        if ( k == Vec_PtrSize(&p->vCellClasses) )
         {
-            Vec_PtrPush( p->vCellClasses, pCell );
+            Vec_PtrPush( &p->vCellClasses, pCell );
             pCell->pNext = pCell->pPrev = pCell;
             continue;
         }
@@ -284,7 +284,7 @@ void Abc_SclLinkCells( SC_Lib * p )
         pCell->pPrev = pRepr->pPrev; pRepr->pPrev = pCell;
     }
     // sort cells by size then by name
-    qsort( (void *)Vec_PtrArray(p->vCellClasses), Vec_PtrSize(p->vCellClasses), sizeof(void *), (int(*)(const void *,const void *))Abc_SclCompareCells );
+    qsort( (void *)Vec_PtrArray(&p->vCellClasses), Vec_PtrSize(&p->vCellClasses), sizeof(void *), (int(*)(const void *,const void *))Abc_SclCompareCells );
     // sort cell lists
     vList = Vec_PtrAlloc( 100 );
     SC_LibForEachCellClass( p, pRepr, k )
@@ -311,7 +311,7 @@ void Abc_SclLinkCells( SC_Lib * p )
             pCell->nGates = Vec_PtrSize(vList);
         }
         // update list
-        Vec_PtrWriteEntry( p->vCellClasses, k, pRepr );
+        Vec_PtrWriteEntry( &p->vCellClasses, k, pRepr );
     }
     Vec_PtrFree( vList );
 }
@@ -333,7 +333,7 @@ SC_Cell * Abc_SclFindInvertor( SC_Lib * p, int fFindBuff )
     word Truth = fFindBuff ? ABC_CONST(0xAAAAAAAAAAAAAAAA) : ABC_CONST(0x5555555555555555);
     int k;
     SC_LibForEachCellClass( p, pCell, k )
-        if ( pCell->n_inputs == 1 && Vec_WrdEntry(SC_CellPin(pCell, 1)->vFunc, 0) == Truth )
+        if ( pCell->n_inputs == 1 && Vec_WrdEntry(&SC_CellPin(pCell, 1)->vFunc, 0) == Truth )
             break;
     // take representative
     return pCell ? pCell->pRepr : NULL;
@@ -369,7 +369,7 @@ SC_WireLoad * Abc_SclFetchWireLoadModel( SC_Lib * p, char * pWLoadUsed )
     SC_LibForEachWireLoad( p, pWL, i )
         if ( !strcmp(pWL->pName, pWLoadUsed) )
             break;
-    if ( i == Vec_PtrSize(p->vWireLoads) )
+    if ( i == Vec_PtrSize(&p->vWireLoads) )
     {
         Abc_Print( -1, "Cannot find wire load model \"%s\".\n", pWLoadUsed );
         exit(1);
@@ -387,19 +387,19 @@ SC_WireLoad * Abc_SclFindWireLoadModel( SC_Lib * p, float Area )
         SC_LibForEachWireLoadSel( p, pWLS, i )
             if ( !strcmp(pWLS->pName, p->default_wire_load_sel) )
                 break;
-        if ( i == Vec_PtrSize(p->vWireLoadSels) )
+        if ( i == Vec_PtrSize(&p->vWireLoadSels) )
         {
             Abc_Print( -1, "Cannot find wire load selection model \"%s\".\n", p->default_wire_load_sel );
             exit(1);
         }
-        for ( i = 0; i < Vec_FltSize(pWLS->vAreaFrom); i++)
-            if ( Area >= Vec_FltEntry(pWLS->vAreaFrom, i) && Area <  Vec_FltEntry(pWLS->vAreaTo, i) )
+        for ( i = 0; i < Vec_FltSize(&pWLS->vAreaFrom); i++)
+            if ( Area >= Vec_FltEntry(&pWLS->vAreaFrom, i) && Area <  Vec_FltEntry(&pWLS->vAreaTo, i) )
             {
-                pWLoadUsed = (char *)Vec_PtrEntry(pWLS->vWireLoadModel, i);
+                pWLoadUsed = (char *)Vec_PtrEntry(&pWLS->vWireLoadModel, i);
                 break;
             }
-        if ( i == Vec_FltSize(pWLS->vAreaFrom) )
-            pWLoadUsed = (char *)Vec_PtrEntryLast(pWLS->vWireLoadModel);
+        if ( i == Vec_FltSize(&pWLS->vAreaFrom) )
+            pWLoadUsed = (char *)Vec_PtrEntryLast(&pWLS->vWireLoadModel);
     }
     else if ( p->default_wire_load && strlen(p->default_wire_load) )
         pWLoadUsed = p->default_wire_load;
@@ -458,7 +458,7 @@ float Abc_SclComputeAverageSlew( SC_Lib * p )
     pTime = Scl_CellPinTime( pCell, 0 );
     if ( pTime == NULL )
         return 0;
-    vIndex = pTime->pCellRise->vIndex0; // slew
+    vIndex = &pTime->pCellRise.vIndex0; // slew
     return Vec_FltEntry( vIndex, Vec_FltSize(vIndex)/3 );
 }
 
@@ -483,14 +483,14 @@ int Abc_SclComputeParametersPin( SC_Lib * p, SC_Cell * pCell, int iPin, float Sl
     SC_Pair ArrOut2 = { 0.0, 0.0 };
     SC_Pair SlewOut = { 0.0, 0.0 };
     SC_Timing * pTime = Scl_CellPinTime( pCell, iPin );
-    Vec_Flt_t * vIndex = pTime ? pTime->pCellRise->vIndex1 : NULL; // capacitance
+    Vec_Flt_t * vIndex = pTime ? &pTime->pCellRise.vIndex1 : NULL; // capacitance
     if ( vIndex == NULL )
         return 0;
     // handle constant table
     if ( Vec_FltSize(vIndex) == 1 )
     {
         *pLD = 0;
-        *pPD = Vec_FltEntry( (Vec_Flt_t *)Vec_PtrEntry(pTime->pCellRise->vData, 0), 0 );
+        *pPD = Vec_FltEntry( (Vec_Flt_t *)Vec_PtrEntry(&pTime->pCellRise.vData, 0), 0 );
         return 1;
     }
     // get load points
@@ -640,10 +640,10 @@ void Abc_SclPrintCells( SC_Lib * p, float SlewInit, float Gain, int fInvOnly, in
     int i, j, k, nLength = 0;
     float Slew = (SlewInit == 0) ? Abc_SclComputeAverageSlew(p) : SlewInit;
     float LD = 0, PD = 0;
-    assert( Vec_PtrSize(p->vCellClasses) > 0 );
+    assert( Vec_PtrSize(&p->vCellClasses) > 0 );
     printf( "Library \"%s\" ", p->pName );
     printf( "has %d cells in %d classes.  ", 
-        Vec_PtrSize(p->vCells), Vec_PtrSize(p->vCellClasses) );
+        Vec_PtrSize(&p->vCells), Vec_PtrSize(&p->vCellClasses) );
     if ( !fShort )
         printf( "Delay estimate is based on slew %.2f ps and gain %.2f.", Slew, Gain );
     printf( "\n" );
@@ -671,7 +671,7 @@ void Abc_SclPrintCells( SC_Lib * p, float SlewInit, float Gain, int fInvOnly, in
             if ( pPin->func_text )
                 printf( "%-30s", pPin->func_text  );
             printf( "    "  );
-            Kit_DsdPrintFromTruth( (unsigned *)Vec_WrdArray(pPin->vFunc), pRepr->n_inputs );
+            Kit_DsdPrintFromTruth( (unsigned *)Vec_WrdArray(&pPin->vFunc), pRepr->n_inputs );
             printf( "\n" );
             if ( fShort )
                 continue;
@@ -737,11 +737,11 @@ void Abc_SclLibNormalizeSurface( SC_Surface * p, float Time, float Load )
 {
     Vec_Flt_t * vArray;
     int i, k; float Entry;
-    Vec_FltForEachEntry( p->vIndex0, Entry, i ) // slew
-        Vec_FltWriteEntry( p->vIndex0, i, Time * Entry );
-    Vec_FltForEachEntry( p->vIndex1, Entry, i ) // load
-        Vec_FltWriteEntry( p->vIndex1, i, Load * Entry );
-    Vec_PtrForEachEntry( Vec_Flt_t *, p->vData, vArray, k )
+    Vec_FltForEachEntry( &p->vIndex0, Entry, i ) // slew
+        Vec_FltWriteEntry( &p->vIndex0, i, Time * Entry );
+    Vec_FltForEachEntry( &p->vIndex1, Entry, i ) // load
+        Vec_FltWriteEntry( &p->vIndex1, i, Load * Entry );
+    Vec_PtrForEachEntry( Vec_Flt_t *, &p->vData, vArray, k )
         Vec_FltForEachEntry( vArray, Entry, i ) // delay/slew
             Vec_FltWriteEntry( vArray, i, Time * Entry );
 }
@@ -772,12 +772,12 @@ void Abc_SclLibNormalize( SC_Lib * p )
         pPin->max_out_cap *= Load;
         pPin->max_out_slew *= Time;
         SC_PinForEachRTiming( pPin, pTimings, m )
-        Vec_PtrForEachEntry( SC_Timing *, pTimings->vTimings, pTiming, n )
+        Vec_PtrForEachEntry( SC_Timing *, &pTimings->vTimings, pTiming, n )
         {
-            Abc_SclLibNormalizeSurface( pTiming->pCellRise, Time, Load );
-            Abc_SclLibNormalizeSurface( pTiming->pCellFall, Time, Load );
-            Abc_SclLibNormalizeSurface( pTiming->pRiseTrans, Time, Load );
-            Abc_SclLibNormalizeSurface( pTiming->pFallTrans, Time, Load );
+            Abc_SclLibNormalizeSurface( &pTiming->pCellRise, Time, Load );
+            Abc_SclLibNormalizeSurface( &pTiming->pCellFall, Time, Load );
+            Abc_SclLibNormalizeSurface( &pTiming->pRiseTrans, Time, Load );
+            Abc_SclLibNormalizeSurface( &pTiming->pFallTrans, Time, Load );
         }
     }
 }

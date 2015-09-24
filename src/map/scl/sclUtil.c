@@ -192,7 +192,7 @@ Vec_Int_t * Abc_SclFindMinAreas( SC_Lib * pLib, int fUseMax )
     SC_Cell * pCell, * pRepr = NULL, * pBest = NULL;
     int i, k;
     // map each gate in the library into its min/max-size prototype
-    vMinCells = Vec_IntStartFull( Vec_PtrSize(pLib->vCells) );
+    vMinCells = Vec_IntStartFull( Vec_PtrSize(&pLib->vCells) );
     SC_LibForEachCellClass( pLib, pRepr, i )
     {
         pBest = fUseMax ? Abc_SclFindMaxAreaCell(pRepr) : pRepr;
@@ -211,9 +211,9 @@ void Abc_SclMinsizePerform( SC_Lib * pLib, Abc_Ntk_t * p, int fUseMax, int fVerb
     Abc_NtkForEachNodeNotBarBuf1( p, pObj, i )
     {
         gateId = Vec_IntEntry( p->vGates, i );
-        assert( gateId >= 0 && gateId < Vec_PtrSize(pLib->vCells) );
+        assert( gateId >= 0 && gateId < Vec_PtrSize(&pLib->vCells) );
         gateId = Vec_IntEntry( vMinCells, gateId );
-        assert( gateId >= 0 && gateId < Vec_PtrSize(pLib->vCells) );
+        assert( gateId >= 0 && gateId < Vec_PtrSize(&pLib->vCells) );
         Vec_IntWriteEntry( p->vGates, i, gateId );
     }
     Abc_SclSclGates2MioGates( pLib, p );

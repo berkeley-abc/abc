@@ -64,7 +64,7 @@ Vec_Wec_t * Mpm_ManFindDsdMatches( Mpm_Man_t * p, void * pScl )
             printf( "Skipping cell %s with %d inputs and %d outputs\n", pRepr->pName, pRepr->n_inputs, pRepr->n_outputs );
             continue;
         }
-        Truth = *Vec_WrdArray( SC_CellPin(pRepr, pRepr->n_inputs)->vFunc );
+        Truth = *Vec_WrdArray( &SC_CellPin(pRepr, pRepr->n_inputs)->vFunc );
         Config = Mpm_CutCheckDsd6( p, Truth );
         if ( Config == -1 )
         {

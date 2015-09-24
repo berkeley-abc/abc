@@ -50,12 +50,12 @@ Vec_Flt_t * Abc_SclFindWireCaps( SC_WireLoad * pWL, int nFanoutMax )
     assert( pWL != NULL );
     // find the biggest fanout count
     EntryMax = 0;
-    Vec_IntForEachEntry( pWL->vFanout, Entry, i )
+    Vec_IntForEachEntry( &pWL->vFanout, Entry, i )
         EntryMax = Abc_MaxInt( EntryMax, Entry );
     // create the array
     vCaps = Vec_FltStart( Abc_MaxInt(nFanoutMax, EntryMax) + 1 );
-    Vec_IntForEachEntry( pWL->vFanout, Entry, i )
-        Vec_FltWriteEntry( vCaps, Entry, Vec_FltEntry(pWL->vLen, i) * pWL->cap );
+    Vec_IntForEachEntry( &pWL->vFanout, Entry, i )
+        Vec_FltWriteEntry( vCaps, Entry, Vec_FltEntry(&pWL->vLen, i) * pWL->cap );
     if ( Vec_FltEntry(vCaps, 1) == 0 )
         return vCaps;
     // interpolate between the values

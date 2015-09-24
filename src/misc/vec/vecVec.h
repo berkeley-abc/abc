@@ -352,6 +352,14 @@ static inline void Vec_VecFree( Vec_Vec_t * p )
         if ( vVec ) Vec_PtrFree( vVec );
     Vec_PtrFree( (Vec_Ptr_t *)p );
 }
+static inline void Vec_VecErase( Vec_Vec_t * p )
+{
+    Vec_Ptr_t * vVec;
+    int i;
+    Vec_VecForEachLevel( p, vVec, i )
+        if ( vVec ) Vec_PtrFree( vVec );
+    Vec_PtrErase( (Vec_Ptr_t *)p );
+}
 
 /**Function*************************************************************
 

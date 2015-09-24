@@ -119,31 +119,31 @@ struct SC_WireLoad_
     char *         pName;
     float          cap;            // }- multiply estimation in 'fanout_len[].snd' with this value
     float          slope;          // used to extrapolate wireload for large fanout count
-    Vec_Int_t *    vFanout;        // Vec<Pair<uint,float> > -- pairs '(#fanouts, est-wire-len)'
-    Vec_Flt_t *    vLen;
+    Vec_Int_t      vFanout;        // Vec<Pair<uint,float> > -- pairs '(#fanouts, est-wire-len)'
+    Vec_Flt_t      vLen;
 };
 
 struct SC_WireLoadSel_
 {
     char *         pName;
-    Vec_Flt_t *    vAreaFrom;      // Vec<Trip<float,float,Str> > -- triplets '(from-area, upto-area, wire-load-model)'; range is [from, upto[
-    Vec_Flt_t *    vAreaTo;
-    Vec_Ptr_t *    vWireLoadModel;
+    Vec_Flt_t      vAreaFrom;      // Vec<Trip<float,float,Str> > -- triplets '(from-area, upto-area, wire-load-model)'; range is [from, upto[
+    Vec_Flt_t      vAreaTo;
+    Vec_Ptr_t      vWireLoadModel;
 };
 
 struct SC_TableTempl_ 
 {
     char *         pName;
-    Vec_Ptr_t *    vVars;          // Vec<Str>         -- name of variable (numbered from 0, not 1 as in the Liberty file) 
-    Vec_Ptr_t *    vIndex;         // Vec<Vec<float> > -- this is the point of measurement in table for the given variable 
+    Vec_Ptr_t      vVars;          // Vec<Str>         -- name of variable (numbered from 0, not 1 as in the Liberty file) 
+    Vec_Ptr_t      vIndex;         // Vec<Vec<float> > -- this is the point of measurement in table for the given variable 
 };
 
 struct SC_Surface_ 
 {
     char *         pName;
-    Vec_Flt_t *    vIndex0;        // Vec<float>       -- correspondes to "index_1" in the liberty file (for timing: slew)
-    Vec_Flt_t *    vIndex1;        // Vec<float>       -- correspondes to "index_2" in the liberty file (for timing: load)
-    Vec_Ptr_t *    vData;          // Vec<Vec<float> > -- 'data[i0][i1]' gives value at '(index0[i0], index1[i1])' 
+    Vec_Flt_t      vIndex0;        // Vec<float>       -- correspondes to "index_1" in the liberty file (for timing: slew)
+    Vec_Flt_t      vIndex1;        // Vec<float>       -- correspondes to "index_2" in the liberty file (for timing: load)
+    Vec_Ptr_t      vData;          // Vec<Vec<float> > -- 'data[i0][i1]' gives value at '(index0[i0], index1[i1])' 
     float          approx[3][6];
 };
 
@@ -152,16 +152,16 @@ struct SC_Timing_
     char *         related_pin;    // -- related pin
     SC_TSense      tsense;         // -- timing sense (positive_unate, negative_unate, non_unate)
     char *         when_text;      // -- logic condition on inputs triggering this delay model for the output (currently not used)
-    SC_Surface *   pCellRise;      // -- Used to compute pin-to-pin delay
-    SC_Surface *   pCellFall;
-    SC_Surface *   pRiseTrans;     // -- Used to compute output slew
-    SC_Surface *   pFallTrans;
+    SC_Surface     pCellRise;      // -- Used to compute pin-to-pin delay
+    SC_Surface     pCellFall;
+    SC_Surface     pRiseTrans;     // -- Used to compute output slew
+    SC_Surface     pFallTrans;
 };
 
 struct SC_Timings_ 
 {
     char *         pName;          // -- the 'related_pin' field
-    Vec_Ptr_t *    vTimings;       // structures of type SC_Timing
+    Vec_Ptr_t      vTimings;       // structures of type SC_Timing
 };
 
 struct SC_Pin_ 
@@ -174,8 +174,9 @@ struct SC_Pin_
     float          max_out_cap;    // } (not used)
     float          max_out_slew;   // }- used only for output pins (max values must not be exceeded or else mapping is illegal) (not used)
     char *         func_text;      // }
-    Vec_Wrd_t *    vFunc;          // }
-    Vec_Ptr_t *    vRTimings;      // -- for output pins
+    Vec_Wrd_t      vFunc;          // }
+    Vec_Ptr_t      vRTimings;      // -- for output pins
+//    SC_Timing      Timing;         // -- for output pins  
 };
 
 struct SC_Cell_ 
@@ -188,7 +189,7 @@ struct SC_Cell_
     float          area;
     float          leakage;
     int            drive_strength; // -- some library files provide this field (currently unused, but may be a good hint for sizing) (not used)
-    Vec_Ptr_t *    vPins;          // NamedSet<SC_Pin> 
+    Vec_Ptr_t      vPins;          // NamedSet<SC_Pin> 
     int            n_inputs;       // -- 'pins[0 .. n_inputs-1]' are input pins
     int            n_outputs;      // -- 'pins[n_inputs .. n_inputs+n_outputs-1]' are output pins
     SC_Cell *      pNext;          // same-functionality cells linked into a ring by area
@@ -209,11 +210,11 @@ struct SC_Lib_
     int            unit_time;      // -- Valid 9..12. Unit is '10^(-val)' seconds (e.g. 9=1ns, 10=100ps, 11=10ps, 12=1ps)
     float          unit_cap_fst;   // -- First part is a multiplier, second either 12 or 15 for 'pf' or 'ff'.
     int            unit_cap_snd;
-    Vec_Ptr_t *    vWireLoads;     // NamedSet<SC_WireLoad>
-    Vec_Ptr_t *    vWireLoadSels;  // NamedSet<SC_WireLoadSel>
-    Vec_Ptr_t *    vTempls;        // NamedSet<SC_TableTempl>  
-    Vec_Ptr_t *    vCells;         // NamedSet<SC_Cell>
-    Vec_Ptr_t *    vCellClasses;   // NamedSet<SC_Cell>
+    Vec_Ptr_t      vWireLoads;     // NamedSet<SC_WireLoad>
+    Vec_Ptr_t      vWireLoadSels;  // NamedSet<SC_WireLoadSel>
+    Vec_Ptr_t      vTempls;        // NamedSet<SC_TableTempl>  
+    Vec_Ptr_t      vCells;         // NamedSet<SC_Cell>
+    Vec_Ptr_t      vCellClasses;   // NamedSet<SC_Cell>
     int *          pBins;          // hashing gateName -> gateId
     int            nBins;
 };
@@ -236,26 +237,26 @@ static inline void        SC_PairAdd( SC_Pair * d, SC_Pair * s )    { d->rise +=
 static inline int         SC_PairEqual( SC_Pair * d, SC_Pair * s )  { return d->rise == s->rise && d->fall == s->fall;                }
 static inline int         SC_PairEqualE( SC_Pair * d, SC_Pair * s, float E )  { return d->rise - s->rise < E && s->rise - d->rise < E &&  d->fall - s->fall < E && s->fall - d->fall < E;    }
 
-static inline int         SC_LibCellNum( SC_Lib * p )               { return Vec_PtrSize(p->vCells);                                  }
-static inline SC_Cell *   SC_LibCell( SC_Lib * p, int i )           { return (SC_Cell *)Vec_PtrEntry(p->vCells, i);                   }
-static inline SC_Pin  *   SC_CellPin( SC_Cell * p, int i )          { return (SC_Pin *)Vec_PtrEntry(p->vPins, i);                     }
-static inline Vec_Wrd_t * SC_CellFunc( SC_Cell * p )                { return SC_CellPin(p, p->n_inputs)->vFunc;                       }
+static inline int         SC_LibCellNum( SC_Lib * p )               { return Vec_PtrSize(&p->vCells);                                  }
+static inline SC_Cell *   SC_LibCell( SC_Lib * p, int i )           { return (SC_Cell *)Vec_PtrEntry(&p->vCells, i);                   }
+static inline SC_Pin  *   SC_CellPin( SC_Cell * p, int i )          { return (SC_Pin *)Vec_PtrEntry(&p->vPins, i);                     }
+static inline Vec_Wrd_t * SC_CellFunc( SC_Cell * p )                { return &SC_CellPin(p, p->n_inputs)->vFunc;                       }
 static inline float       SC_CellPinCap( SC_Cell * p, int i )       { return 0.5 * SC_CellPin(p, i)->rise_cap + 0.5 * SC_CellPin(p, i)->fall_cap; }
 static inline float       SC_CellPinCapAve( SC_Cell * p )           { int i; float c = 0; for (i = 0; i < p->n_inputs; i++) c += SC_CellPinCap(p, i); return c / Abc_MaxInt(1, p->n_inputs); }
 static inline char *      SC_CellPinOutFunc( SC_Cell * p, int i )   { return SC_CellPin(p, p->n_inputs + i)->func_text;               }
 static inline char *      SC_CellPinName( SC_Cell * p, int i )      { return SC_CellPin(p, i)->pName;                                 }
 
-#define SC_LibForEachCell( p, pCell, i )         Vec_PtrForEachEntry( SC_Cell *, p->vCells, pCell, i )
-#define SC_LibForEachCellClass( p, pCell, i )    Vec_PtrForEachEntry( SC_Cell *, p->vCellClasses, pCell, i )
-#define SC_LibForEachWireLoad( p, pWL, i )       Vec_PtrForEachEntry( SC_WireLoad *, p->vWireLoads, pWL, i )
-#define SC_LibForEachWireLoadSel( p, pWLS, i )   Vec_PtrForEachEntry( SC_WireLoadSel *, p->vWireLoadSels, pWLS, i )
-#define SC_LibForEachTempl( p, pTempl, i )       Vec_PtrForEachEntry( SC_TableTempl *, p->vTempls, pTempl, i )
-#define SC_CellForEachPin( p, pPin, i )          Vec_PtrForEachEntry( SC_Pin *, p->vPins, pPin, i )
-#define SC_CellForEachPinIn( p, pPin, i )        Vec_PtrForEachEntryStop( SC_Pin *, p->vPins, pPin, i, p->n_inputs )
-#define SC_CellForEachPinOut( p, pPin, i )       Vec_PtrForEachEntryStart( SC_Pin *, p->vPins, pPin, i, p->n_inputs )
+#define SC_LibForEachCell( p, pCell, i )         Vec_PtrForEachEntry( SC_Cell *, &p->vCells, pCell, i )
+#define SC_LibForEachCellClass( p, pCell, i )    Vec_PtrForEachEntry( SC_Cell *, &p->vCellClasses, pCell, i )
+#define SC_LibForEachWireLoad( p, pWL, i )       Vec_PtrForEachEntry( SC_WireLoad *, &p->vWireLoads, pWL, i )
+#define SC_LibForEachWireLoadSel( p, pWLS, i )   Vec_PtrForEachEntry( SC_WireLoadSel *, &p->vWireLoadSels, pWLS, i )
+#define SC_LibForEachTempl( p, pTempl, i )       Vec_PtrForEachEntry( SC_TableTempl *, &p->vTempls, pTempl, i )
+#define SC_CellForEachPin( p, pPin, i )          Vec_PtrForEachEntry( SC_Pin *, &p->vPins, pPin, i )
+#define SC_CellForEachPinIn( p, pPin, i )        Vec_PtrForEachEntryStop( SC_Pin *, &p->vPins, pPin, i, p->n_inputs )
+#define SC_CellForEachPinOut( p, pPin, i )       Vec_PtrForEachEntryStart( SC_Pin *, &p->vPins, pPin, i, p->n_inputs )
 #define SC_RingForEachCell( pRing, pCell, i )    for ( i = 0, pCell = pRing; i == 0 || pCell != pRing; pCell = pCell->pNext, i++ )
 #define SC_RingForEachCellRev( pRing, pCell, i ) for ( i = 0, pCell = pRing; i == 0 || pCell != pRing; pCell = pCell->pPrev, i++ )
-#define SC_PinForEachRTiming( p, pRTime, i )     Vec_PtrForEachEntry( SC_Timings *, p->vRTimings, pRTime, i )
+#define SC_PinForEachRTiming( p, pRTime, i )     Vec_PtrForEachEntry( SC_Timings *, &p->vRTimings, pRTime, i )
 
 
 ////////////////////////////////////////////////////////////////////////
@@ -277,51 +278,36 @@ static inline SC_WireLoad * Abc_SclWireLoadAlloc()
 {
     SC_WireLoad * p;
     p = ABC_CALLOC( SC_WireLoad, 1 );
-    p->vFanout = Vec_IntAlloc( 0 );
-    p->vLen    = Vec_FltAlloc( 0 );
     return p;
 }
 static inline SC_WireLoadSel * Abc_SclWireLoadSelAlloc()
 {
     SC_WireLoadSel * p;
     p = ABC_CALLOC( SC_WireLoadSel, 1 );
-    p->vAreaFrom      = Vec_FltAlloc( 0 );
-    p->vAreaTo        = Vec_FltAlloc( 0 );
-    p->vWireLoadModel = Vec_PtrAlloc( 0 );
     return p;
 }
 static inline SC_TableTempl * Abc_SclTableTemplAlloc()
 {
     SC_TableTempl * p;
     p = ABC_CALLOC( SC_TableTempl, 1 );
-    p->vVars  = Vec_PtrAlloc( 0 );
-    p->vIndex = Vec_PtrAlloc( 0 );
     return p;
 }
 static inline SC_Surface * Abc_SclSurfaceAlloc()
 {
     SC_Surface * p;
     p = ABC_CALLOC( SC_Surface, 1 );
-    p->vIndex0   = Vec_FltAlloc( 0 );
-    p->vIndex1   = Vec_FltAlloc( 0 );
-    p->vData     = Vec_PtrAlloc( 0 );
     return p;
 }
 static inline SC_Timing * Abc_SclTimingAlloc()
 {
     SC_Timing * p;
     p = ABC_CALLOC( SC_Timing, 1 );
-    p->pCellRise  = Abc_SclSurfaceAlloc();  
-    p->pCellFall  = Abc_SclSurfaceAlloc();
-    p->pRiseTrans = Abc_SclSurfaceAlloc(); 
-    p->pFallTrans = Abc_SclSurfaceAlloc();
     return p;
 }
 static inline SC_Timings * Abc_SclTimingsAlloc()
 {
     SC_Timings * p;
     p = ABC_CALLOC( SC_Timings, 1 );
-    p->vTimings   = Vec_PtrAlloc( 0 );
     return p;
 }
 static inline SC_Pin * Abc_SclPinAlloc()
@@ -329,15 +315,12 @@ static inline SC_Pin * Abc_SclPinAlloc()
     SC_Pin * p;
     p = ABC_CALLOC( SC_Pin, 1 );
     p->max_out_slew = -1;
-    p->vFunc        = Vec_WrdAlloc( 0 );
-    p->vRTimings    = Vec_PtrAlloc( 0 );
     return p;
 }
 static inline SC_Cell * Abc_SclCellAlloc()
 {
     SC_Cell * p;
     p = ABC_CALLOC( SC_Cell, 1 );
-    p->vPins = Vec_PtrAlloc( 0 );
     return p;
 }
 static inline SC_Lib * Abc_SclLibAlloc()
@@ -348,11 +331,6 @@ static inline SC_Lib * Abc_SclLibAlloc()
     p->unit_time      = 9;
     p->unit_cap_fst   = 1;
     p->unit_cap_snd   = 12;
-    p->vWireLoads     = Vec_PtrAlloc( 0 );
-    p->vWireLoadSels  = Vec_PtrAlloc( 0 );
-    p->vTempls        = Vec_PtrAlloc( 0 );
-    p->vCells         = Vec_PtrAlloc( 0 );
-    p->vCellClasses   = Vec_PtrAlloc( 0 );
     return p;
 }
 
@@ -370,40 +348,40 @@ static inline SC_Lib * Abc_SclLibAlloc()
 ***********************************************************************/
 static inline void Abc_SclWireLoadFree( SC_WireLoad * p )
 {
-    Vec_IntFree( p->vFanout );
-    Vec_FltFree( p->vLen );
+    Vec_IntErase( &p->vFanout );
+    Vec_FltErase( &p->vLen );
     ABC_FREE( p->pName );
     ABC_FREE( p );
 }
 static inline void Abc_SclWireLoadSelFree( SC_WireLoadSel * p )
 {
-    Vec_FltFree( p->vAreaFrom );
-    Vec_FltFree( p->vAreaTo );
-    Vec_PtrFreeFree( p->vWireLoadModel );
+    Vec_FltErase( &p->vAreaFrom );
+    Vec_FltErase( &p->vAreaTo );
+    Vec_PtrFreeData( &p->vWireLoadModel );
     ABC_FREE( p->pName );
     ABC_FREE( p );
 }
 static inline void Abc_SclTableTemplFree( SC_TableTempl * p )
 {
-    Vec_PtrFreeFree( p->vVars );
-    Vec_VecFree( (Vec_Vec_t *)p->vIndex );
+    Vec_PtrFreeData( &p->vVars );
+    Vec_VecErase( (Vec_Vec_t *)&p->vIndex );
     ABC_FREE( p->pName );
     ABC_FREE( p );
 }
 static inline void Abc_SclSurfaceFree( SC_Surface * p )
 {
-    Vec_FltFree( p->vIndex0 );
-    Vec_FltFree( p->vIndex1 );
-    Vec_VecFree( (Vec_Vec_t *)p->vData );
+    Vec_FltErase( &p->vIndex0 );
+    Vec_FltErase( &p->vIndex1 );
+    Vec_VecErase( (Vec_Vec_t *)&p->vData );
     ABC_FREE( p->pName );
-    ABC_FREE( p );
+//    ABC_FREE( p );
 }
 static inline void Abc_SclTimingFree( SC_Timing * p )
 {
-    Abc_SclSurfaceFree( p->pCellRise );
-    Abc_SclSurfaceFree( p->pCellFall );
-    Abc_SclSurfaceFree( p->pRiseTrans );
-    Abc_SclSurfaceFree( p->pFallTrans );
+    Abc_SclSurfaceFree( &p->pCellRise );
+    Abc_SclSurfaceFree( &p->pCellFall );
+    Abc_SclSurfaceFree( &p->pRiseTrans );
+    Abc_SclSurfaceFree( &p->pFallTrans );
     ABC_FREE( p->related_pin );
     ABC_FREE( p->when_text );
     ABC_FREE( p );
@@ -412,9 +390,9 @@ static inline void Abc_SclTimingsFree( SC_Timings * p )
 {
     SC_Timing * pTemp;
     int i;
-    Vec_PtrForEachEntry( SC_Timing *, p->vTimings, pTemp, i )
+    Vec_PtrForEachEntry( SC_Timing *, &p->vTimings, pTemp, i )
         Abc_SclTimingFree( pTemp );
-    Vec_PtrFree( p->vTimings );
+    Vec_PtrErase( &p->vTimings );
     ABC_FREE( p->pName );
     ABC_FREE( p );
 }
@@ -424,8 +402,8 @@ static inline void Abc_SclPinFree( SC_Pin * p )
     int i;
     SC_PinForEachRTiming( p, pTemp, i )
         Abc_SclTimingsFree( pTemp );
-    Vec_PtrFree( p->vRTimings );
-    Vec_WrdFree( p->vFunc );
+    Vec_PtrErase( &p->vRTimings );
+    Vec_WrdErase( &p->vFunc );
     ABC_FREE( p->func_text );
     ABC_FREE( p->pName );
     ABC_FREE( p );
@@ -436,7 +414,7 @@ static inline void Abc_SclCellFree( SC_Cell * p )
     int i;
     SC_CellForEachPin( p, pTemp, i )
         Abc_SclPinFree( pTemp );
-    Vec_PtrFree( p->vPins );
+    Vec_PtrErase( &p->vPins );
     ABC_FREE( p->pName );
     ABC_FREE( p );
 }
@@ -449,17 +427,17 @@ static inline void Abc_SclLibFree( SC_Lib * p )
     int i;
     SC_LibForEachWireLoad( p, pWL, i )
         Abc_SclWireLoadFree( pWL );
-    Vec_PtrFree( p->vWireLoads );
+    Vec_PtrErase( &p->vWireLoads );
     SC_LibForEachWireLoadSel( p, pWLS, i )
         Abc_SclWireLoadSelFree( pWLS );
-    Vec_PtrFree( p->vWireLoadSels );
+    Vec_PtrErase( &p->vWireLoadSels );
     SC_LibForEachTempl( p, pTempl, i )
         Abc_SclTableTemplFree( pTempl );
-    Vec_PtrFree( p->vTempls );
+    Vec_PtrErase( &p->vTempls );
     SC_LibForEachCell( p, pCell, i )
         Abc_SclCellFree( pCell );
-    Vec_PtrFree( p->vCells );
-    Vec_PtrFree( p->vCellClasses );
+    Vec_PtrErase( &p->vCells );
+    Vec_PtrErase( &p->vCellClasses );
     ABC_FREE( p->pName );
     ABC_FREE( p->pFileName );
     ABC_FREE( p->default_wire_load );
@@ -487,23 +465,23 @@ static inline float Scl_LibLookup( SC_Surface * p, float slew, float load )
     int s, l;
 
     // handle constant table
-    if ( Vec_FltSize(p->vIndex0) == 1 && Vec_FltSize(p->vIndex1) == 1 )
+    if ( Vec_FltSize(&p->vIndex0) == 1 && Vec_FltSize(&p->vIndex1) == 1 )
     {
-        Vec_Flt_t * vTemp = (Vec_Flt_t *)Vec_PtrEntry(p->vData, 0);
-        assert( Vec_PtrSize(p->vData) == 1 );
+        Vec_Flt_t * vTemp = (Vec_Flt_t *)Vec_PtrEntry(&p->vData, 0);
+        assert( Vec_PtrSize(&p->vData) == 1 );
         assert( Vec_FltSize(vTemp) == 1 );
         return Vec_FltEntry(vTemp, 0);
     }
 
     // Find closest sample points in surface:
-    pIndex0 = Vec_FltArray(p->vIndex0);
-    for ( s = 1; s < Vec_FltSize(p->vIndex0)-1; s++ )
+    pIndex0 = Vec_FltArray(&p->vIndex0);
+    for ( s = 1; s < Vec_FltSize(&p->vIndex0)-1; s++ )
         if ( pIndex0[s] > slew )
             break;
     s--;
 
-    pIndex1 = Vec_FltArray(p->vIndex1);
-    for ( l = 1; l < Vec_FltSize(p->vIndex1)-1; l++ )
+    pIndex1 = Vec_FltArray(&p->vIndex1);
+    for ( l = 1; l < Vec_FltSize(&p->vIndex1)-1; l++ )
         if ( pIndex1[l] > load )
             break;
     l--;
@@ -512,8 +490,8 @@ static inline float Scl_LibLookup( SC_Surface * p, float slew, float load )
     sfrac = (slew - pIndex0[s]) / (pIndex0[s+1] - pIndex0[s]);
     lfrac = (load - pIndex1[l]) / (pIndex1[l+1] - pIndex1[l]);
 
-    pDataS  = Vec_FltArray( (Vec_Flt_t *)Vec_PtrEntry(p->vData, s) );
-    pDataS1 = Vec_FltArray( (Vec_Flt_t *)Vec_PtrEntry(p->vData, s+1) );
+    pDataS  = Vec_FltArray( (Vec_Flt_t *)Vec_PtrEntry(&p->vData, s) );
+    pDataS1 = Vec_FltArray( (Vec_Flt_t *)Vec_PtrEntry(&p->vData, s+1) );
 
     p0 = pDataS [l] + lfrac * (pDataS [l+1] - pDataS [l]);
     p1 = pDataS1[l] + lfrac * (pDataS1[l+1] - pDataS1[l]);
@@ -524,30 +502,30 @@ static inline void Scl_LibPinArrival( SC_Timing * pTime, SC_Pair * pArrIn, SC_Pa
 {
     if (pTime->tsense == sc_ts_Pos || pTime->tsense == sc_ts_Non)
     {
-        pArrOut->rise  = Abc_MaxFloat( pArrOut->rise,  pArrIn->rise + Scl_LibLookup(pTime->pCellRise,  pSlewIn->rise, pLoad->rise) );
-        pArrOut->fall  = Abc_MaxFloat( pArrOut->fall,  pArrIn->fall + Scl_LibLookup(pTime->pCellFall,  pSlewIn->fall, pLoad->fall) );
-        pSlewOut->rise = Abc_MaxFloat( pSlewOut->rise,                Scl_LibLookup(pTime->pRiseTrans, pSlewIn->rise, pLoad->rise) );
-        pSlewOut->fall = Abc_MaxFloat( pSlewOut->fall,                Scl_LibLookup(pTime->pFallTrans, pSlewIn->fall, pLoad->fall) );
+        pArrOut->rise  = Abc_MaxFloat( pArrOut->rise,  pArrIn->rise + Scl_LibLookup(&pTime->pCellRise,  pSlewIn->rise, pLoad->rise) );
+        pArrOut->fall  = Abc_MaxFloat( pArrOut->fall,  pArrIn->fall + Scl_LibLookup(&pTime->pCellFall,  pSlewIn->fall, pLoad->fall) );
+        pSlewOut->rise = Abc_MaxFloat( pSlewOut->rise,                Scl_LibLookup(&pTime->pRiseTrans, pSlewIn->rise, pLoad->rise) );
+        pSlewOut->fall = Abc_MaxFloat( pSlewOut->fall,                Scl_LibLookup(&pTime->pFallTrans, pSlewIn->fall, pLoad->fall) );
     }
     if (pTime->tsense == sc_ts_Neg || pTime->tsense == sc_ts_Non)
     {
-        pArrOut->rise  = Abc_MaxFloat( pArrOut->rise,  pArrIn->fall + Scl_LibLookup(pTime->pCellRise,  pSlewIn->fall, pLoad->rise) );
-        pArrOut->fall  = Abc_MaxFloat( pArrOut->fall,  pArrIn->rise + Scl_LibLookup(pTime->pCellFall,  pSlewIn->rise, pLoad->fall) );
-        pSlewOut->rise = Abc_MaxFloat( pSlewOut->rise,                Scl_LibLookup(pTime->pRiseTrans, pSlewIn->fall, pLoad->rise) );
-        pSlewOut->fall = Abc_MaxFloat( pSlewOut->fall,                Scl_LibLookup(pTime->pFallTrans, pSlewIn->rise, pLoad->fall) );
+        pArrOut->rise  = Abc_MaxFloat( pArrOut->rise,  pArrIn->fall + Scl_LibLookup(&pTime->pCellRise,  pSlewIn->fall, pLoad->rise) );
+        pArrOut->fall  = Abc_MaxFloat( pArrOut->fall,  pArrIn->rise + Scl_LibLookup(&pTime->pCellFall,  pSlewIn->rise, pLoad->fall) );
+        pSlewOut->rise = Abc_MaxFloat( pSlewOut->rise,                Scl_LibLookup(&pTime->pRiseTrans, pSlewIn->fall, pLoad->rise) );
+        pSlewOut->fall = Abc_MaxFloat( pSlewOut->fall,                Scl_LibLookup(&pTime->pFallTrans, pSlewIn->rise, pLoad->fall) );
     }
 }
 static inline void Scl_LibPinDeparture( SC_Timing * pTime, SC_Pair * pDepIn, SC_Pair * pSlewIn, SC_Pair * pLoad, SC_Pair * pDepOut )
 {
     if (pTime->tsense == sc_ts_Pos || pTime->tsense == sc_ts_Non)
     {
-        pDepIn->rise  = Abc_MaxFloat( pDepIn->rise,  pDepOut->rise + Scl_LibLookup(pTime->pCellRise,  pSlewIn->rise, pLoad->rise) );
-        pDepIn->fall  = Abc_MaxFloat( pDepIn->fall,  pDepOut->fall + Scl_LibLookup(pTime->pCellFall,  pSlewIn->fall, pLoad->fall) );
+        pDepIn->rise  = Abc_MaxFloat( pDepIn->rise,  pDepOut->rise + Scl_LibLookup(&pTime->pCellRise,  pSlewIn->rise, pLoad->rise) );
+        pDepIn->fall  = Abc_MaxFloat( pDepIn->fall,  pDepOut->fall + Scl_LibLookup(&pTime->pCellFall,  pSlewIn->fall, pLoad->fall) );
     }
     if (pTime->tsense == sc_ts_Neg || pTime->tsense == sc_ts_Non)
     {
-        pDepIn->fall  = Abc_MaxFloat( pDepIn->fall,  pDepOut->rise + Scl_LibLookup(pTime->pCellRise,  pSlewIn->fall, pLoad->rise) );
-        pDepIn->rise  = Abc_MaxFloat( pDepIn->rise,  pDepOut->fall + Scl_LibLookup(pTime->pCellFall,  pSlewIn->rise, pLoad->fall) );
+        pDepIn->fall  = Abc_MaxFloat( pDepIn->fall,  pDepOut->rise + Scl_LibLookup(&pTime->pCellRise,  pSlewIn->fall, pLoad->rise) );
+        pDepIn->rise  = Abc_MaxFloat( pDepIn->rise,  pDepOut->fall + Scl_LibLookup(&pTime->pCellFall,  pSlewIn->rise, pLoad->fall) );
     }
 }
 
@@ -568,12 +546,12 @@ static inline SC_Timing * Scl_CellPinTime( SC_Cell * pCell, int iPin )
     SC_Timings * pRTime;
     assert( iPin >= 0 && iPin < pCell->n_inputs );
     pPin = SC_CellPin( pCell, pCell->n_inputs );
-    assert( Vec_PtrSize(pPin->vRTimings) == pCell->n_inputs );
-    pRTime = (SC_Timings *)Vec_PtrEntry( pPin->vRTimings, iPin );
-    if ( Vec_PtrSize(pRTime->vTimings) == 0 )
+    assert( Vec_PtrSize(&pPin->vRTimings) == pCell->n_inputs );
+    pRTime = (SC_Timings *)Vec_PtrEntry( &pPin->vRTimings, iPin );
+    if ( Vec_PtrSize(&pRTime->vTimings) == 0 )
         return NULL;
-    assert( Vec_PtrSize(pRTime->vTimings) == 1 );
-    return (SC_Timing *)Vec_PtrEntry( pRTime->vTimings, 0 );
+    assert( Vec_PtrSize(&pRTime->vTimings) == 1 );
+    return (SC_Timing *)Vec_PtrEntry( &pRTime->vTimings, 0 );
 }
 static inline float Scl_LibPinArrivalEstimate( SC_Cell * pCell, int iPin, float Slew, float Load )
 {
