@@ -346,9 +346,14 @@ Abc_Ntk_t * Abc_NtkFromSops( Abc_Ntk_t * pNtk, int nCubeLim, int nBTLimit, int f
     ProgressBar * pProgress;
     Abc_Ntk_t * pNtkNew;
     Abc_Obj_t * pNode, * pDriver, * pNodeNew;
+    Vec_Ptr_t * vDriverCopy;
     int i;
     // start the new network
     pNtkNew = Abc_NtkStartFrom( pNtk, ABC_NTK_LOGIC, ABC_FUNC_SOP );
+    // collect driver copies
+    vDriverCopy = Vec_PtrAlloc( Abc_NtkCoNum(pNtk) );
+    Abc_NtkForEachCo( pNtk, pNode, i )
+        Vec_PtrPush( vDriverCopy, Abc_ObjFanin0(pNode)->pCopy );
     // process the POs
     pProgress = Extra_ProgressBarStart( stdout, Abc_NtkCoNum(pNtk) );
     Abc_NtkForEachCo( pNtk, pNode, i )
@@ -357,7 +362,7 @@ Abc_Ntk_t * Abc_NtkFromSops( Abc_Ntk_t * pNtk, int nCubeLim, int nBTLimit, int f
         pDriver = Abc_ObjFanin0(pNode);
         if ( Abc_ObjIsCi(pDriver) && !strcmp(Abc_ObjName(pNode), Abc_ObjName(pDriver)) )
         {
-            Abc_ObjAddFanin( pNode->pCopy, pDriver->pCopy );
+            Abc_ObjAddFanin( pNode->pCopy, (Abc_Obj_t *)Vec_PtrEntry(vDriverCopy, i) );
             continue;
         }
 /*
@@ -385,6 +390,7 @@ Abc_Ntk_t * Abc_NtkFromSops( Abc_Ntk_t * pNtk, int nCubeLim, int nBTLimit, int f
         }
         Abc_ObjAddFanin( pNode->pCopy, pNodeNew );
     }
+    Vec_PtrFree( vDriverCopy );
     Extra_ProgressBarStop( pProgress );
     return pNtkNew;
 }
