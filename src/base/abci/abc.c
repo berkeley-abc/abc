@@ -346,6 +346,7 @@ static int Abc_CommandAbc9PSig               ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandAbc9Status             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9MuxProfile         ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Rex2Gia            ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9RexWalk            ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Show               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9SetRegNum          ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Strash             ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -964,6 +965,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "ABC9",         "&status",       Abc_CommandAbc9Status,       0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&profile",      Abc_CommandAbc9MuxProfile,   0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&rex2gia",      Abc_CommandAbc9Rex2Gia,      0 );
+    Cmd_CommandAdd( pAbc, "ABC9",         "&rexwalk",      Abc_CommandAbc9RexWalk,      0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&show",         Abc_CommandAbc9Show,         0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&setregnum",    Abc_CommandAbc9SetRegNum,    0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&st",           Abc_CommandAbc9Strash,       0 );
@@ -26995,6 +26997,75 @@ usage:
     Abc_Print( -2, "\t         and generates the following language: {BD, ABD, AABD, AAABD, ..., ACD}\n");
     Abc_Print( -2, "\t         A known limitation:  For the command to work correctly, each two-input union\n");
     Abc_Print( -2, "\t         should have a dedicated pair of parentheses: ((A|B)|C) rather than (A|B|C)\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc9RexWalk( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern void Gia_ManAutomWalk( Gia_Man_t * p, int nSteps, int nWalks, int fVerbose );
+    int c, nSteps = 50, nWalks = 5, fVerbose = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "SRvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'S':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-S\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nSteps = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nSteps < 0 )
+                goto usage;
+            break;
+        case 'R':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-R\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nWalks = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nWalks < 0 )
+                goto usage;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pAbc->pGia == NULL )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9Show(): There is no AIG.\n" );
+        return 1;
+    }
+    Gia_ManAutomWalk( pAbc->pGia, nSteps, nWalks, fVerbose );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: &rexwalk [-SR] [-vh]\n" );
+    Abc_Print( -2, "\t         performs simulation of an AIG representing a regular expression\n" );
+    Abc_Print( -2, "\t-S num : the number of steps to take [default = %d]\n", nSteps );
+    Abc_Print( -2, "\t-R num : the number of walks to make [default = %d]\n", nWalks );
+    Abc_Print( -2, "\t-v     : toggle verbose output [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
 }
 

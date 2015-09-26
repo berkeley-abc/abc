@@ -338,6 +338,203 @@ Gia_Man_t * Gia_ManRex2Gia( char * pStrInit, int fOrder, int fVerbose )
     return pNew;
 }
 
+
+/**Function*************************************************************
+
+  Synopsis    [Transposing 64-bit matrix.]
+
+  Description [Borrowed from "Hacker's Delight", by Henry Warren.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_ManAutomTranspose64( word A[64] )
+{
+    int j, k;
+    word t, m = 0x00000000FFFFFFFF;
+    for ( j = 32; j != 0; j = j >> 1, m = m ^ (m << j) )
+    {
+        for ( k = 0; k < 64; k = (k + j + 1) & ~j )
+        {
+            t = (A[k] ^ (A[k+j] >> j)) & m;
+            A[k] = A[k] ^ t;
+            A[k+j] = A[k+j] ^ (t << j);
+        }
+    }
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Simulate AIG with the given sequence.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline word Gia_ManAutomSim0( Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Wrd_t * vTemp )
+{
+    return Gia_ObjFaninC0(pObj) ? ~Vec_WrdEntry(vTemp, Gia_ObjFaninId0p(p, pObj)) : Vec_WrdEntry(vTemp, Gia_ObjFaninId0p(p, pObj));
+}
+static inline word Gia_ManAutomSim1( Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Wrd_t * vTemp )
+{
+    return Gia_ObjFaninC1(pObj) ? ~Vec_WrdEntry(vTemp, Gia_ObjFaninId1p(p, pObj)) : Vec_WrdEntry(vTemp, Gia_ObjFaninId1p(p, pObj));
+}
+word Gia_ManAutomStep( Gia_Man_t * p, word Cur, word * pNext, Vec_Wrd_t * vTemp )
+{
+    Gia_Obj_t * pObj; int i;
+    assert( Gia_ManPoNum(p) == 1 );
+    assert( Vec_WrdSize(vTemp) >= Gia_ManObjNum(p) );
+    Vec_WrdWriteEntry( vTemp, 0, 0 );
+    Gia_ManForEachPi( p, pObj, i )
+        Vec_WrdWriteEntry( vTemp, Gia_ObjId(p, pObj), ((word)1) << (63-i) );
+    Gia_ManForEachRo( p, pObj, i )
+        Vec_WrdWriteEntry( vTemp, Gia_ObjId(p, pObj), ((Cur >> (63-i)) & 1) ? ~((word)0) : 0 );
+    Gia_ManForEachAnd( p, pObj, i )
+        Vec_WrdWriteEntry( vTemp, i, Gia_ManAutomSim0(p, pObj, vTemp) & Gia_ManAutomSim1(p, pObj, vTemp) );
+    Gia_ManForEachRi( p, pObj, i )
+        pNext[i] = Gia_ManAutomSim0(p, pObj, vTemp);
+    for ( ; i < 64; i++ )
+        pNext[i] = 0;
+    // transpose
+//    for ( i = 0; i < 64; i++ )
+//        Extra_PrintBinary( stdout, (unsigned *)&pNext[i], 64 ), Abc_Print( 1, "\n" );
+//    printf( "\n" );
+    Gia_ManAutomTranspose64( pNext );
+//    for ( i = 0; i < 64; i++ )
+//        Extra_PrintBinary( stdout, (unsigned *)&pNext[i], 64 ), Abc_Print( 1, "\n" );
+//    printf( "\n" );
+    // return output values
+    return Gia_ManAutomSim0(p, Gia_ManPo(p, 0), vTemp);
+}
+void Gia_ManAutomWalkOne( Gia_Man_t * p, int nSteps, Vec_Wrd_t * vStates, Vec_Int_t * vCounts, Vec_Wrd_t * vTemp, word Init )
+{
+    word iState = 0, Output, pNext[64]; 
+    int i, k, kMin, Index, IndexMin;
+    int Count, CountMin; 
+    for ( i = 0; i < nSteps; i++ )
+    {
+        Output = Gia_ManAutomStep( p, iState, pNext, vTemp );
+        // check visited states
+        kMin = -1;
+        IndexMin = -1;
+        CountMin = ABC_INFINITY;  
+        for ( k = 0; k < Gia_ManPiNum(p); k++ )
+        {
+            if ( pNext[k] == Init )
+                continue;
+            Index = Vec_WrdFind( vStates, pNext[k] );
+            Count = Index == -1 ? 0 : Vec_IntEntry( vCounts, Index );
+            if ( CountMin > Count || (CountMin != ABC_INFINITY && Count && ((float)CountMin / Count) > (float)rand()/RAND_MAX ) )
+            {
+                CountMin = Count;
+                IndexMin = Index;
+                kMin = k;
+            }
+            if ( CountMin == 0 )
+                break;
+        }
+        // choose the best state
+        if ( CountMin == ABC_INFINITY )
+        {
+            for ( k = 0; k < Gia_ManPiNum(p); k++ )
+                if ( (Output >> (63-k)) & 1 )
+                {
+                    printf( "%c", 'a' + k );
+                    printf( "!" );
+                }            
+            break;
+        }
+        assert( CountMin < ABC_INFINITY );
+        if ( IndexMin == -1 )
+        {
+            assert( CountMin == 0 );
+            IndexMin = Vec_IntSize(vCounts);
+            Vec_IntPush( vCounts, 0 );
+            Vec_WrdPush( vStates, pNext[kMin] );
+        }
+        Vec_IntAddToEntry( vCounts, IndexMin, 1 );
+        iState = pNext[kMin];
+//Extra_PrintBinary( stdout, (unsigned *)&iState, 64 ); printf( "\n" );
+        // print the transition
+        printf( "%c", 'a' + kMin );
+        if ( (Output >> (63-kMin)) & 1 )
+            printf( "!" );
+    }
+    printf( "\n" );
+}
+// find flop variables pointed to by negative edges
+word Gia_ManAutomInit( Gia_Man_t * p )
+{
+    Gia_Obj_t * pObj; 
+    int i, Index;
+    word Init = 0;
+    Gia_ManForEachAnd( p, pObj, i )
+    {
+        if ( Gia_ObjFaninC0(pObj) && Gia_ObjIsCi(Gia_ObjFanin0(pObj)) )
+        {
+            Index = Gia_ObjCioId(Gia_ObjFanin0(pObj)) - Gia_ManPiNum(p);
+            if ( Index >= 0 )
+                Init |= ((word)1 << (63-Index));
+        }
+        if ( Gia_ObjFaninC1(pObj) && Gia_ObjIsCi(Gia_ObjFanin1(pObj)) )
+        {
+            Index = Gia_ObjCioId(Gia_ObjFanin1(pObj)) - Gia_ManPiNum(p);
+            if ( Index >= 0 )
+                Init |= ((word)1 << (63-Index));
+        }
+    }
+    return Init;
+}
+void Gia_ManAutomWalk( Gia_Man_t * p, int nSteps, int nWalks, int fVerbose )
+{
+    Vec_Wrd_t * vTemp, * vStates;
+    Vec_Int_t * vCounts; int i; word Init;
+    if ( Gia_ManPoNum(p) != 1 )
+    {
+        printf( "AIG should have one primary output.\n" );
+        return;
+    }
+    if ( Gia_ManPiNum(p) > 64 )
+    {
+        printf( "Cannot simulate an automaton with more than 64 inputs.\n" );
+        return;
+    }
+    if ( Gia_ManRegNum(p) > 64 )
+    {
+        printf( "Cannot simulate an automaton with more than 63 states.\n" );
+        return;
+    }
+    vTemp   = Vec_WrdStart( Gia_ManObjNum(p) );
+    vStates = Vec_WrdAlloc( 1000 );
+    vCounts = Vec_IntAlloc( 1000 );
+    Vec_WrdPush( vStates, 0 );
+    Vec_IntPush( vCounts, 1 );
+    Init = Gia_ManAutomInit( p );
+    for ( i = 0; i < nWalks; i++ )
+        Gia_ManAutomWalkOne( p, nSteps, vStates, vCounts, vTemp, Init );
+    if ( fVerbose )
+    {
+        word State;
+        Vec_WrdForEachEntry( vStates, State, i )
+        {
+            State ^= Init;
+            printf( "%3d : ", i );
+            Extra_PrintBinary( stdout, (unsigned *)&State, 64 ); 
+            printf( " %d  ", Vec_IntEntry(vCounts, i) );
+            printf( "\n" );
+        }
+        printf( "\n" );
+    }
+    Vec_WrdFree( vTemp );
+    Vec_WrdFree( vStates );
+    Vec_IntFree( vCounts );
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
