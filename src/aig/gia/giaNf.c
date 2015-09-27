@@ -113,7 +113,7 @@ struct Nf_Man_t_
 static inline int          Pf_Mat2Int( Pf_Mat_t Mat )                                { union { int x; Pf_Mat_t y; } v; v.y = Mat; return v.x;           }
 static inline Pf_Mat_t     Pf_Int2Mat( int Int )                                     { union { int x; Pf_Mat_t y; } v; v.x = Int; return v.y;           }
 
-static inline word         Nf_Flt2Wrd( float w )                                     { return MIO_NUMINV*w;                                             }
+static inline word         Nf_Flt2Wrd( float w )                                     { return MIO_NUM*w;                                                }
 static inline float        Nf_Wrd2Flt( word w )                                      { return MIO_NUMINV*(unsigned)(w&0x3FFFFFFF) + MIO_NUMINV*(1<<30)*(unsigned)(w>>30); }
 
 static inline Nf_Obj_t *   Nf_ManObj( Nf_Man_t * p, int i )                          { return p->pNfObjs + i;                                           }
@@ -1555,8 +1555,12 @@ int Nf_ManSetMapRefs( Nf_Man_t * p )
             // swap complemented matches
             if ( pMs[0]->fCompl && pMs[1]->fCompl )
             {
-                pMs[0]->fCompl = pMs[1]->fCompl = 0;
-                ABC_SWAP( Nf_Mat_t *, pMs[0], pMs[1] );
+//                pMs[0]->fCompl = pMs[1]->fCompl = 0;
+//                ABC_SWAP( Nf_Mat_t *, pMs[0], pMs[1] );
+                // find best matches for both phases
+                pMs[0] = Nf_ObjMatchD( p, i, 0 );
+                pMs[1] = Nf_ObjMatchD( p, i, 1 );
+                assert( !pMs[0]->fCompl || !pMs[1]->fCompl );
             }
             // check if intervers are involved
             if ( !pMs[0]->fCompl && !pMs[1]->fCompl ) // no inverters
@@ -1885,7 +1889,7 @@ void Nf_ManResetMatches( Nf_Man_t * p, int Round )
             else
             {
                 assert( Round > 0 || (!pDc->fBest && !pAc->fBest) );
-                if ( p->pPars->fAreaOnly || (Round & 1) )
+                if ( (p->pPars->fAreaOnly || (Round & 1)) && !pAc->fCompl )
                     ABC_SWAP( Nf_Mat_t, *pDc, *pAc );
                 pDc->fBest = 1;
                 pAc->fBest = 0;
@@ -1898,8 +1902,9 @@ void Nf_ManResetMatches( Nf_Man_t * p, int Round )
         // swap complemented matches
         if ( pM[0]->fCompl && pM[1]->fCompl )
         {
-            pM[0]->fCompl = pM[1]->fCompl = 0;
-            ABC_SWAP( Nf_Mat_t *, pM[0], pM[1] );
+//            pM[0]->fCompl = pM[1]->fCompl = 0;
+//            ABC_SWAP( Nf_Mat_t *, pM[0], pM[1] );
+            assert( 0 );
         }
         if ( !pM[0]->fCompl && !pM[1]->fCompl )
         {
@@ -2190,7 +2195,7 @@ Gia_Man_t * Nf_ManPerformMapping( Gia_Man_t * pGia, Jf_Par_t * pPars )
     else
     {
         Gia_ManForEachCiId( p->pGia, Id, i )
-            Nf_ObjPrepareCi( p, Id, Nf_Flt2Wrd(p->pGia->vInArrs ? Vec_FltEntry(p->pGia->vInArrs, i) : 0.0) );
+            Nf_ObjPrepareCi( p, Id, Nf_Flt2Wrd(p->pGia->vInArrs ? Abc_MaxFloat(0.0, Vec_FltEntry(p->pGia->vInArrs, i)) : 0.0) );
     }
     for ( p->Iter = 0; p->Iter < p->pPars->nRounds; p->Iter++ )
     {

@@ -155,7 +155,7 @@ Abc_Ntk_t * Abc_NtkStartFrom( Abc_Ntk_t * pNtk, Abc_NtkType_t Type, Abc_NtkFunc_
     if ( pNtk->AndGateDelay != 0.0 && pNtk->pManTime != NULL && pNtk->ntkType != ABC_NTK_STRASH && Type == ABC_NTK_STRASH )
     {
         Abc_NtkForEachCi( pNtk, pObj, i )
-            pObj->pCopy->Level = (int)(Abc_NodeReadArrivalAve(pObj) / pNtk->AndGateDelay);
+            pObj->pCopy->Level = (int)(Abc_MaxFloat(0, Abc_NodeReadArrivalWorst(pObj)) / pNtk->AndGateDelay);
     }
     // check that the CI/CO/latches are copied correctly
     assert( Abc_NtkCiNum(pNtk)    == Abc_NtkCiNum(pNtkNew) );
@@ -232,7 +232,7 @@ Abc_Ntk_t * Abc_NtkStartFromWithLatches( Abc_Ntk_t * pNtk, Abc_NtkType_t Type, A
     if ( pNtk->AndGateDelay != 0.0 && pNtk->pManTime != NULL && pNtk->ntkType != ABC_NTK_STRASH && Type == ABC_NTK_STRASH )
     {
         Abc_NtkForEachCi( pNtk, pObj, i )
-            pObj->pCopy->Level = (int)(Abc_NodeReadArrivalAve(pObj) / pNtk->AndGateDelay);
+            pObj->pCopy->Level = (int)(Abc_MaxFloat(0, Abc_NodeReadArrivalWorst(pObj)) / pNtk->AndGateDelay);
     }
     // check that the CI/CO/latches are copied correctly
     assert( Abc_NtkCiNum(pNtk)    == Abc_NtkCiNum(pNtkNew) );
