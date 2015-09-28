@@ -4247,6 +4247,10 @@ SOURCE=.\src\aig\gia\giaNf.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\aig\gia\giaOf.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\aig\gia\giaPat.c
 # End Source File
 # Begin Source File

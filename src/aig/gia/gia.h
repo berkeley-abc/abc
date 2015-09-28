@@ -280,6 +280,9 @@ struct Jf_Par_t_
     int            nAreaTuner;
     int            nReqTimeFlex;
     int            nVerbLimit;
+    int            nDelayLut1;
+    int            nDelayLut2;
+    int            nFastEdges;
     int            DelayTarget;
     int            fAreaOnly;
     int            fPinPerm;

@@ -1843,6 +1843,20 @@ static inline void Vec_IntSelectSort( int * pArray, int nSize )
         pArray[best_i] = temp;
     }
 }
+static inline void Vec_IntSelectSortReverse( int * pArray, int nSize )
+{
+    int temp, i, j, best_i;
+    for ( i = 0; i < nSize-1; i++ )
+    {
+        best_i = i;
+        for ( j = i+1; j < nSize; j++ )
+            if ( pArray[j] > pArray[best_i] )
+                best_i = j;
+        temp = pArray[i]; 
+        pArray[i] = pArray[best_i]; 
+        pArray[best_i] = temp;
+    }
+}
 
 /**Function*************************************************************
 
@@ -1867,6 +1881,19 @@ static inline void Vec_IntSelectSortCost( int * pArray, int nSize, Vec_Int_t * v
         ABC_SWAP( int, pArray[i], pArray[best_i] );
     }
 }
+static inline void Vec_IntSelectSortCostReverse( int * pArray, int nSize, Vec_Int_t * vCosts )
+{
+    int i, j, best_i;
+    for ( i = 0; i < nSize-1; i++ )
+    {
+        best_i = i;
+        for ( j = i+1; j < nSize; j++ )
+            if ( Vec_IntEntry(vCosts, pArray[j]) > Vec_IntEntry(vCosts, pArray[best_i]) )
+                best_i = j;
+        ABC_SWAP( int, pArray[i], pArray[best_i] );
+    }
+}
+
 static inline void Vec_IntSelectSortCost2( int * pArray, int nSize, int * pCosts )
 {
     int i, j, best_i;
@@ -1875,6 +1902,19 @@ static inline void Vec_IntSelectSortCost2( int * pArray, int nSize, int * pCosts
         best_i = i;
         for ( j = i+1; j < nSize; j++ )
             if ( pCosts[j] < pCosts[best_i] )
+                best_i = j;
+        ABC_SWAP( int, pArray[i], pArray[best_i] );
+        ABC_SWAP( int, pCosts[i], pCosts[best_i] );
+    }
+}
+static inline void Vec_IntSelectSortCost2Reverse( int * pArray, int nSize, int * pCosts )
+{
+    int i, j, best_i;
+    for ( i = 0; i < nSize-1; i++ )
+    {
+        best_i = i;
+        for ( j = i+1; j < nSize; j++ )
+            if ( pCosts[j] > pCosts[best_i] )
                 best_i = j;
         ABC_SWAP( int, pArray[i], pArray[best_i] );
         ABC_SWAP( int, pCosts[i], pCosts[best_i] );
