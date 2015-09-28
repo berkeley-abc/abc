@@ -120,8 +120,8 @@ static inline void        Of_CutSetDelay2( int * pCut, int d )                  
 
 static inline int         Of_CutVar( int * pCut, int v )                            { return Abc_Lit2Var(Of_CutLeaves(pCut)[v]);                       } 
 static inline int         Of_CutFlag( int * pCut, int v )                           { return Abc_LitIsCompl(Of_CutLeaves(pCut)[v]);                    } 
-static inline int         Of_CutCleanFlag( int * pCut, int v )                      { Of_CutLeaves(pCut)[v] = Abc_LitRegular(Of_CutLeaves(pCut)[v]);   } 
-static inline int         Of_CutSetFlag( int * pCut, int v )                        { Of_CutLeaves(pCut)[v] |= 1;                                      } 
+static inline void        Of_CutCleanFlag( int * pCut, int v )                      { Of_CutLeaves(pCut)[v] = Abc_LitRegular(Of_CutLeaves(pCut)[v]);   } 
+static inline void        Of_CutSetFlag( int * pCut, int v )                        { Of_CutLeaves(pCut)[v] |= 1;                                      } 
 
 #define Of_SetForEachCut( pList, pCut, i )          for ( i = 0, pCut = pList + 1; i < pList[0]; i++, pCut += Of_CutSize(pCut) + OF_CUT_EXTRA )
 #define Of_ObjForEachCut( pCuts, i, nCuts )         for ( i = 0, i < nCuts; i++ )
@@ -829,7 +829,7 @@ void Of_ManCutMatch( Of_Man_t * p, int iObj, int * pCut, int * pDelay1, int * pD
     int Delays[6], Perm[6]; 
     int DelayLut1 = p->pPars->nDelayLut1;
     int DelayLut2 = p->pPars->nDelayLut2;
-    int k, iVar, Flag, Delay, DelayMax = 0;
+    int k, iVar, Flag, Delay;
     Of_CutForEachVarFlag( pCut, iVar, Flag, k )
     {
         Delays[k] = Of_ObjDelay1(p, iVar) + DelayLut1;
