@@ -53,6 +53,16 @@ struct Of_Cut_t_
     unsigned        nLeaves :  5;   // leaf number (OF_NO_LEAF)
     int             pLeaves[OF_LEAF_MAX+1]; // leaves
 };
+typedef struct Of_Obj_t_ Of_Obj_t; 
+struct Of_Obj_t_
+{
+    int             iCutH;          // best cut
+    int             Delay1;         // arrival time
+    int             Delay2;         // arrival time
+    int             Required;       // required
+    int             nRefs;          // references 
+    int             Flow;           // area flow
+};
 typedef struct Of_Man_t_ Of_Man_t; 
 struct Of_Man_t_
 {
@@ -61,19 +71,14 @@ struct Of_Man_t_
     Jf_Par_t *      pPars;          // parameters
     // cut data
     Vec_Mem_t *     vTtMem;         // truth tables
-    Vec_Int_t       vBests1;        // best cuts
-    Vec_Int_t       vBests2;        // best cuts
-    Vec_Int_t       vDelays1;       // node delays
-    Vec_Int_t       vDelays2;       // node delays
-    // cut storage
     Vec_Ptr_t       vPages;         // cut memory
     Vec_Int_t       vCutSets;       // cut offsets
     Vec_Flt_t       vCutFlows;      // temporary cut area
     Vec_Int_t       vCutDelays;     // temporary cut delay
     int             iCur;           // current position
     int             Iter;           // mapping iterations
-    int             fUseEla;        // use exact area
-    int             nInvs;          // the inverter count
+    // object data
+    Of_Obj_t *      pObjs;          
     // statistics
     abctime         clkStart;       // starting time
     double          CutCount[6];    // cut counts
@@ -85,16 +90,6 @@ struct Of_Man_t_
 
 static inline int         Of_Flt2Int( float f )                                     { return (int)(OF_NUM*f);                                          }
 static inline float       Of_Int2Flt( int i )                                       { return OF_NUMINV*i;                                              }
-
-static inline int         Of_ObjCutBest1( Of_Man_t * p, int i )                     { return Vec_IntEntry( &p->vBests1, i );                           }
-static inline int         Of_ObjCutBest2( Of_Man_t * p, int i )                     { return Vec_IntEntry( &p->vBests2, i );                           }
-static inline void        Of_ObjSetCutBest1( Of_Man_t * p, int i, int x )           { Vec_IntWriteEntry( &p->vBests1, i, x );                          }
-static inline void        Of_ObjSetCutBest2( Of_Man_t * p, int i, int x )           { Vec_IntWriteEntry( &p->vBests2, i, x );                          }
-
-static inline int         Of_ObjDelay1( Of_Man_t * p, int i )                       { return Vec_IntEntry( &p->vDelays1, i );                          }
-static inline int         Of_ObjDelay2( Of_Man_t * p, int i )                       { return Vec_IntEntry( &p->vDelays2, i );                          }
-static inline void        Of_ObjSetDelay1( Of_Man_t * p, int i, int x )             { Vec_IntWriteEntry( &p->vDelays1, i, x );                         }
-static inline void        Of_ObjSetDelay2( Of_Man_t * p, int i, int x )             { Vec_IntWriteEntry( &p->vDelays2, i, x );                         }
 
 static inline int *       Of_ManCutSet( Of_Man_t * p, int i )                       { return (int *)Vec_PtrEntry(&p->vPages, i >> 16) + (i & 0xFFFF);  }
 static inline int         Of_ObjCutSetId( Of_Man_t * p, int i )                     { return Vec_IntEntry( &p->vCutSets, i );                          }
@@ -123,6 +118,28 @@ static inline int         Of_CutFlag( int * pCut, int v )                       
 static inline void        Of_CutCleanFlag( int * pCut, int v )                      { Of_CutLeaves(pCut)[v] = Abc_LitRegular(Of_CutLeaves(pCut)[v]);   } 
 static inline void        Of_CutSetFlag( int * pCut, int v )                        { Of_CutLeaves(pCut)[v] |= 1;                                      } 
 
+static inline Of_Obj_t *  Of_ObjData( Of_Man_t * p, int i )                         { return p->pObjs + i;                                             }
+
+static inline int         Of_ObjCutBest( Of_Man_t * p, int i )                      { return Of_ObjData(p, i)->iCutH;                                  }
+static inline int         Of_ObjDelay1( Of_Man_t * p, int i )                       { return Of_ObjData(p, i)->Delay1;                                 }
+static inline int         Of_ObjDelay2( Of_Man_t * p, int i )                       { return Of_ObjData(p, i)->Delay2;                                 }
+static inline int         Of_ObjRequired( Of_Man_t * p, int i )                     { return Of_ObjData(p, i)->Required;                               }
+static inline int         Of_ObjRefNum( Of_Man_t * p, int i )                       { return Of_ObjData(p, i)->nRefs;                                  }
+static inline int         Of_ObjFlow( Of_Man_t * p, int i )                         { return Of_ObjData(p, i)->Flow;                                   }
+
+static inline void        Of_ObjSetCutBest( Of_Man_t * p, int i, int x )            { Of_ObjData(p, i)->iCutH = x;                                     }
+static inline void        Of_ObjSetDelay1( Of_Man_t * p, int i, int x )             { Of_ObjData(p, i)->Delay1 = x;                                    }
+static inline void        Of_ObjSetDelay2( Of_Man_t * p, int i, int x )             { Of_ObjData(p, i)->Delay2 = x;                                    }
+static inline void        Of_ObjSetRequired( Of_Man_t * p, int i, int x )           { Of_ObjData(p, i)->Required = x;                                  }
+static inline void        Of_ObjSetRefNum( Of_Man_t * p, int i, int x )             { Of_ObjData(p, i)->nRefs = x;                                     }
+static inline void        Of_ObjSetFlow( Of_Man_t * p, int i, int x )               { Of_ObjData(p, i)->Flow = x;                                      }
+static inline void        Of_ObjUpdateRequired( Of_Man_t * p,int i, int x )         { if ( Of_ObjRequired(p, i) > x ) Of_ObjSetRequired(p, i, x);      }
+static inline int         Of_ObjRefInc( Of_Man_t * p, int i )                       { return Of_ObjData(p, i)->nRefs++;                                }
+static inline int         Of_ObjRefDec( Of_Man_t * p, int i )                       { return --Of_ObjData(p, i)->nRefs;                                }
+
+static inline int *       Of_ObjCutBestP( Of_Man_t * p, int * pCutSet, int iObj )   { return Of_ObjCutBest(p, iObj) ? Of_CutFromHandle(pCutSet, Of_ObjCutBest(p, iObj)) : NULL;  }
+static inline void        Of_ObjSetCutBestP( Of_Man_t * p, int * pCutSet, int iObj, int * pCut ) { Of_ObjSetCutBest( p, iObj, Of_CutHandle(pCutSet, pCut) ); }
+
 #define Of_SetForEachCut( pList, pCut, i )          for ( i = 0, pCut = pList + 1; i < pList[0]; i++, pCut += Of_CutSize(pCut) + OF_CUT_EXTRA )
 #define Of_ObjForEachCut( pCuts, i, nCuts )         for ( i = 0, i < nCuts; i++ )
 #define Of_CutForEachVar( pCut, iVar, i )           for ( i = 0; i < Of_CutSize(pCut) && (iVar = Of_CutVar(pCut,i)); i++ )
@@ -131,6 +148,41 @@ static inline void        Of_CutSetFlag( int * pCut, int v )                    
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
+
+/**Function*************************************************************
+
+  Synopsis    [Area flow.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Of_ManAreaFlow( Of_Man_t * p )
+{
+    int AreaUnit = 1000;
+    int i, Id, Total = 0;
+    Gia_Obj_t * pObj;
+    assert( p->pGia->pRefs == NULL );
+    Gia_ManCreateRefs( p->pGia );
+    Of_ObjSetFlow( p, 0, 0 );
+    Gia_ManForEachCiId( p->pGia, Id, i )
+        Of_ObjSetFlow( p, Id, 0 );
+    Gia_ManForEachAnd( p->pGia, pObj, Id )
+        Of_ObjSetFlow( p, Id, (Gia_ObjFanin0(pObj)->Value + Gia_ObjFanin1(pObj)->Value + AreaUnit) / Gia_ObjRefNum(p->pGia, pObj) );
+    Gia_ManForEachCo( p->pGia, pObj, i )
+        Total += Gia_ObjFanin0(pObj)->Value;
+    ABC_FREE( p->pGia->pRefs );
+    if ( 1 )
+        return;
+    printf( "CI = %5d.  ", Gia_ManCiNum(p->pGia) );
+    printf( "CO = %5d.  ", Gia_ManCoNum(p->pGia) );
+    printf( "And = %8d.  ", Gia_ManAndNum(p->pGia) );
+    printf( "Area = %8d.  ", Total/AreaUnit );
+    printf( "\n" );
+}
 
 /**Function*************************************************************
 
@@ -148,6 +200,7 @@ Of_Man_t * Of_StoCreate( Gia_Man_t * pGia, Jf_Par_t * pPars )
     extern void Mf_ManSetFlowRefs( Gia_Man_t * p, Vec_Int_t * vRefs );
     Of_Man_t * p;
     Vec_Int_t * vFlowRefs;
+    int * pRefs = NULL;
     assert( pPars->nCutNum > 1  && pPars->nCutNum <= OF_CUT_MAX );
     assert( pPars->nLutSize > 1 && pPars->nLutSize <= OF_LEAF_MAX );
     ABC_FREE( pGia->pRefs );
@@ -165,17 +218,19 @@ Of_Man_t * Of_StoCreate( Gia_Man_t * pGia, Jf_Par_t * pPars )
     p->clkStart = Abc_Clock();
     p->pGia     = pGia;
     p->pPars    = pPars;
-    Vec_IntFill( &p->vBests1, Gia_ManObjNum(pGia), -1 );
-    Vec_IntFill( &p->vBests2, Gia_ManObjNum(pGia), -1 );
-    Vec_IntFill( &p->vDelays1, Gia_ManObjNum(pGia), -1 );
-    Vec_IntFill( &p->vDelays2, Gia_ManObjNum(pGia), -1 );
+    p->pObjs    = ABC_CALLOC( Of_Obj_t, Gia_ManObjNum(pGia) );
     p->iCur     = 2;
     // other
     Vec_PtrGrow( &p->vPages, 256 );                                    // cut memory
     Vec_IntFill( &p->vCutSets,  Gia_ManObjNum(pGia), 0 );              // cut offsets
     Vec_FltFill( &p->vCutFlows, Gia_ManObjNum(pGia), 0 );              // cut area
     Vec_IntFill( &p->vCutDelays,Gia_ManObjNum(pGia), 0 );              // cut delay
-    p->vTtMem    = Vec_MemAllocForTT( 6, 0 );          
+    if ( pPars->fCutMin )
+        p->vTtMem = Vec_MemAllocForTT( 6, 0 );          
+    // compute area flow
+    pRefs = pGia->pRefs; pGia->pRefs = NULL;
+    Of_ManAreaFlow( p );
+    pGia->pRefs = pRefs;
     return p;
 }
 void Of_StoDelete( Of_Man_t * p )
@@ -185,13 +240,12 @@ void Of_StoDelete( Of_Man_t * p )
     ABC_FREE( p->vCutSets.pArray );
     ABC_FREE( p->vCutFlows.pArray );
     ABC_FREE( p->vCutDelays.pArray );
-    Vec_IntErase( &p->vBests1 );
-    Vec_IntErase( &p->vBests2 );
-    Vec_IntErase( &p->vDelays1 );
-    Vec_IntErase( &p->vDelays2 );
+    ABC_FREE( p->pObjs );
     // matching
-    Vec_MemHashFree( p->vTtMem );
-    Vec_MemFree( p->vTtMem );
+    if ( p->pPars->fCutMin )
+        Vec_MemHashFree( p->vTtMem );
+    if ( p->pPars->fCutMin )
+        Vec_MemFree( p->vTtMem );
     ABC_FREE( p );
 }
 
@@ -649,7 +703,8 @@ void Of_ObjMergeOrder( Of_Man_t * p, int iObj )
         for ( pCut2 = pCuts2; pCut2 < pCut2Lim; pCut2++ )
         {
             *pCutsR[nCutsR] = *pCut2;
-            pCutsR[nCutsR]->iFunc = Abc_LitNotCond( pCutsR[nCutsR]->iFunc, fCompE );
+            if ( p->pPars->fCutMin )
+                pCutsR[nCutsR]->iFunc = Abc_LitNotCond( pCutsR[nCutsR]->iFunc, fCompE );
             Of_CutParams( p, pCutsR[nCutsR], nGiaRefs );
             nCutsR = Of_SetAddCut( pCutsR, nCutsR, nCutNum );
         }
@@ -673,7 +728,7 @@ void Of_ObjMergeOrder( Of_Man_t * p, int iObj )
             if ( Of_SetLastCutIsContained(pCutsR, nCutsR) )
                 continue;
             p->CutCount[2]++;
-            if ( Of_CutComputeTruthMux6(p, pCut0, pCut1, pCut2, fComp0, fComp1, fComp2, pCutsR[nCutsR]) )
+            if ( p->pPars->fCutMin && Of_CutComputeTruthMux6(p, pCut0, pCut1, pCut2, fComp0, fComp1, fComp2, pCutsR[nCutsR]) )
                 pCutsR[nCutsR]->Sign = Of_CutGetSign(pCutsR[nCutsR]->pLeaves, pCutsR[nCutsR]->nLeaves);
             Of_CutParams( p, pCutsR[nCutsR], nGiaRefs );
             nCutsR = Of_SetAddCut( pCutsR, nCutsR, nCutNum );
@@ -694,7 +749,7 @@ void Of_ObjMergeOrder( Of_Man_t * p, int iObj )
             if ( Of_SetLastCutIsContained(pCutsR, nCutsR) )
                 continue;
             p->CutCount[2]++;
-            if ( Of_CutComputeTruth6(p, pCut0, pCut1, fComp0, fComp1, pCutsR[nCutsR], fIsXor) )
+            if ( p->pPars->fCutMin && Of_CutComputeTruth6(p, pCut0, pCut1, fComp0, fComp1, pCutsR[nCutsR], fIsXor) )
                 pCutsR[nCutsR]->Sign = Of_CutGetSign(pCutsR[nCutsR]->pLeaves, pCutsR[nCutsR]->nLeaves);
             Of_CutParams( p, pCutsR[nCutsR], nGiaRefs );
             nCutsR = Of_SetAddCut( pCutsR, nCutsR, nCutNum );
@@ -758,11 +813,9 @@ void Of_ManPrintStats( Of_Man_t * p, char * pTitle )
     if ( !p->pPars->fVerbose )
         return;
     printf( "%s :  ", pTitle );
-    printf( "Delay =%8.2f  ",  p->pPars->MapDelay );
-    printf( "Area =%12.2f  ",  p->pPars->MapArea );
-    printf( "Gate =%6d  ",    (int)p->pPars->Area );
-    printf( "Inv =%6d  ",     (int)p->nInvs );
-    printf( "Edge =%7d  ",    (int)p->pPars->Edge );
+    printf( "Delay =%8.2f ", Of_Int2Flt((int)p->pPars->Delay) );
+    printf( "Area =%8d  ",   (int)p->pPars->Area );
+    printf( "Edge =%9d  ",   (int)p->pPars->Edge );
     Abc_PrintTime( 1, "Time", Abc_Clock() - p->clkStart );
     fflush( stdout );
 }
@@ -775,6 +828,7 @@ void Of_ManPrintInit( Of_Man_t * p )
     printf( "CutNum = %d  ",  p->pPars->nCutNum );
     printf( "Iter = %d  ",    p->pPars->nRounds + p->pPars->nRoundsEla );
     printf( "Coarse = %d   ", p->pPars->fCoarsen );
+    if ( p->pPars->fCutMin )
     printf( "Funcs = %d  ",   Vec_MemEntryNum(p->vTtMem) );
     nChoices = Gia_ManChoiceNum( p->pGia );
     if ( nChoices )
@@ -785,10 +839,10 @@ void Of_ManPrintInit( Of_Man_t * p )
 }
 void Of_ManPrintQuit( Of_Man_t * p )
 {
-    float MemGia   = Gia_ManMemory(p->pGia) / (1<<20);
-    float MemMan   = 16.0 * sizeof(int) * Gia_ManObjNum(p->pGia) / (1<<20);
-    float MemCuts  = 1.0 * sizeof(int) * (1 << 16) * Vec_PtrSize(&p->vPages) / (1<<20);
-    float MemTt    = p->vTtMem ? Vec_MemMemory(p->vTtMem) / (1<<20) : 0;
+    float MemGia  = Gia_ManMemory(p->pGia) / (1<<20);
+    float MemMan  = 1.0 * sizeof(Of_Obj_t) * Gia_ManObjNum(p->pGia) / (1<<20);
+    float MemCuts = 1.0 * sizeof(int) * (1 << 16) * Vec_PtrSize(&p->vPages) / (1<<20);
+    float MemTt   = p->vTtMem ? Vec_MemMemory(p->vTtMem) / (1<<20) : 0;
     if ( p->CutCount[0] == 0 )
         p->CutCount[0] = 1;
     if ( !p->pPars->fVerbose )
@@ -797,13 +851,14 @@ void Of_ManPrintQuit( Of_Man_t * p )
     printf( "Merge = %.0f (%.1f)  ",    p->CutCount[1], 1.0*p->CutCount[1]/Gia_ManAndNum(p->pGia) );
     printf( "Eval = %.0f (%.1f)  ",     p->CutCount[2], 1.0*p->CutCount[2]/Gia_ManAndNum(p->pGia) );
     printf( "Cut = %.0f (%.1f)  ",      p->CutCount[3], 1.0*p->CutCount[3]/Gia_ManAndNum(p->pGia) );
-    printf( "Use = %.0f (%.1f)  ",      p->CutCount[4], 1.0*p->CutCount[4]/Gia_ManAndNum(p->pGia) );
-    printf( "Mat = %.0f (%.1f)  ",      p->CutCount[5], 1.0*p->CutCount[5]/Gia_ManAndNum(p->pGia) );
+//    printf( "Use = %.0f (%.1f)  ",      p->CutCount[4], 1.0*p->CutCount[4]/Gia_ManAndNum(p->pGia) );
+//    printf( "Mat = %.0f (%.1f)  ",      p->CutCount[5], 1.0*p->CutCount[5]/Gia_ManAndNum(p->pGia) );
 //    printf( "Equ = %d (%.2f %%)  ",     p->nCutUseAll,  100.0*p->nCutUseAll /p->CutCount[0] );
     printf( "\n" );
     printf( "Gia = %.2f MB  ",          MemGia );
     printf( "Man = %.2f MB  ",          MemMan ); 
     printf( "Cut = %.2f MB   ",         MemCuts );
+    if ( p->pPars->fCutMin )
     printf( "TT = %.2f MB  ",           MemTt ); 
     printf( "Total = %.2f MB   ",       MemGia + MemMan + MemCuts + MemTt ); 
 //    printf( "\n" );
@@ -899,8 +954,146 @@ void Of_ManComputeMapping( Of_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-void Of_ManDeriveMapping( Of_Man_t * p )
+static inline int Of_ManComputeForwardCut( Of_Man_t * p, int iObj, int * pCut )
 {
+    int k, iVar, Delay = 0;
+    int DelayLut1 = p->pPars->nDelayLut1;
+    Of_CutForEachVar( pCut, iVar, k )
+        Delay = Abc_MaxInt( Delay, Of_ObjDelay1(p, iVar) + DelayLut1 );
+    Of_CutSetDelay1( pCut, Delay );
+    return Delay;
+}
+static inline int Of_ManComputeForwardObj( Of_Man_t * p, int iObj )
+{
+    int Delay1 = ABC_INFINITY;
+    int i, * pCut, * pList = Of_ObjCutSet(p, iObj);
+    // compute cut arrivals
+    Of_SetForEachCut( pList, pCut, i )
+        Delay1 = Abc_MinInt( Delay1, Of_ManComputeForwardCut(p, iObj, pCut) );
+    // if mapping is present, set object arrival equal to cut arrival
+    pCut = Of_ObjCutBestP( p, pList, iObj );
+    if ( pCut ) Delay1 = Of_CutDelay1( pCut );
+    Of_ObjSetDelay1( p, iObj, Delay1 );
+    return Delay1;
+}
+void Of_ManComputeForward( Of_Man_t * p )
+{
+    int Time = 0;
+    Gia_Obj_t * pObj; int i;
+    Gia_ManForEachAnd( p->pGia, pObj, i )
+        if ( Gia_ObjIsBuf(pObj) )
+            Of_ObjSetDelay1( p, i, Of_ObjDelay1(p, Gia_ObjFaninId0(pObj, i)) );
+        else
+            Time = Abc_MaxInt( Time, Of_ManComputeForwardObj(p, i) );
+//    printf( "Best delay = %.2f\n", Of_Int2Flt(Time) );
+}
+static inline int Of_ManComputeRequired( Of_Man_t * p )
+{
+    int i, Id, Delay = 0;
+    for ( i = 0; i < Gia_ManObjNum(p->pGia); i++ )
+        Of_ObjSetRequired( p, i, ABC_INFINITY );
+    Gia_ManForEachCoDriverId( p->pGia, Id, i )
+        Delay = Abc_MaxInt( Delay, Of_ObjDelay1(p, Id) );
+    Gia_ManForEachCoDriverId( p->pGia, Id, i )
+        Of_ObjUpdateRequired( p, Id, Delay );
+    if ( p->pPars->Delay && p->pPars->Delay < Delay )
+        printf( "Error: Delay violation.\n" );
+    p->pPars->Delay = Delay;
+    return Delay;
+}
+static inline int Of_ManComputeBackwardCut( Of_Man_t * p, int * pCut )
+{
+    int k, iVar, Cost = 0;
+    Of_CutForEachVar( pCut, iVar, k )
+        if ( !Of_ObjRefNum(p, iVar) )
+            Cost += Of_ObjFlow( p, iVar );
+    return Cost;
+}
+int Of_CutRef_rec( Of_Man_t * p, int * pCut )
+{
+    int i, Var, Count = Of_CutArea(p, Of_CutSize(pCut));
+    Of_CutForEachVar( pCut, Var, i )
+        if ( Of_ObjCutBest(p, Var) && !Of_ObjRefInc(p, Var) )
+            Count += Of_CutRef_rec( p, Of_ObjCutBestP(p, Of_ObjCutSet(p, i), Var) );
+    return Count;
+}
+int Of_CutDeref_rec( Of_Man_t * p, int * pCut )
+{
+    int i, Var, Count = Of_CutArea(p, Of_CutSize(pCut));
+    Of_CutForEachVar( pCut, Var, i )
+        if ( Of_ObjCutBest(p, Var) && !Of_ObjRefDec(p, Var) )
+            Count += Of_CutDeref_rec( p, Of_ObjCutBestP(p, Of_ObjCutSet(p, i), Var) );
+    return Count;
+}
+static inline int Of_CutAreaDerefed( Of_Man_t * p, int * pCut )
+{
+    int Ela1 = Of_CutRef_rec( p, pCut );
+    int Ela2 = Of_CutDeref_rec( p, pCut );
+    assert( Ela1 == Ela2 );
+    return Ela1;
+}
+void Of_ManComputeBackward( Of_Man_t * p )
+{
+    Gia_Obj_t * pObj; 
+    int fFirst = (int)(p->Iter == 0);
+    int DelayLut1 = p->pPars->nDelayLut1;
+    int i, k, Id, iVar, * pList, * pCut, * pCutMin;
+//    int Count0, Count1;
+    Of_ManComputeRequired( p );
+    // start references
+    if ( fFirst )
+        Gia_ManForEachCoDriverId( p->pGia, Id, i )
+            Of_ObjRefInc( p, Id );
+    // compute area and edges
+    p->pPars->Area = p->pPars->Edge = 0;
+    Gia_ManForEachAndReverse( p->pGia, pObj, i )
+    {
+        int CostMin, Cost, Required = Of_ObjRequired(p, i);
+        if ( Gia_ObjIsBuf(pObj) )
+        {
+            int FaninId = Gia_ObjFaninId0(pObj, i);
+            Of_ObjUpdateRequired( p, FaninId, Required );
+            if ( fFirst )
+                Of_ObjRefInc( p, FaninId );
+            continue;
+        }
+        if ( !Of_ObjRefNum(p, i) )
+            continue;
+        // deref best cut
+        if ( !fFirst )
+            Of_CutDeref_rec( p, Of_ObjCutBestP(p, Of_ObjCutSet(p, i), i) );        
+        // select the best cut
+//        Count0 = Count1 = 0;
+        pCutMin = NULL;
+        CostMin = ABC_INFINITY;
+        pList = Of_ObjCutSet( p, i );
+        Of_SetForEachCut( pList, pCut, k )
+        {
+//            Count0++;
+            if ( Of_CutDelay1(pCut) > Required )
+                continue;
+//            Count1++;
+            if ( fFirst )
+                Cost = Of_ManComputeBackwardCut( p, pCut );
+            else
+                Cost = Of_CutAreaDerefed( p, pCut );
+            if ( CostMin > Cost )
+            {
+                CostMin = Cost;
+                pCutMin = pCut;
+            }
+        }
+//        printf( "%5d : %5d %5d   %5d\n", i, Count0, Count1, Required );
+        // the cut is selected
+        Of_ObjSetCutBestP( p, pList, i, pCutMin );
+        Of_CutForEachVar( pCutMin, iVar, k )
+        {
+            Of_ObjUpdateRequired( p, iVar, Required - DelayLut1 );
+            Of_ObjRefInc( p, iVar );
+        }
+        p->pPars->Area++;
+        p->pPars->Edge += Of_CutSize(pCutMin);
+    }
 }
 
 /**Function*************************************************************
@@ -932,7 +1125,7 @@ void Of_ManSetDefaultPars( Jf_Par_t * pPars )
     pPars->fAreaOnly    =  0;
     pPars->fOptEdge     =  1; 
     pPars->fCoarsen     =  0;
-    pPars->fCutMin      =  1;
+    pPars->fCutMin      =  0;
     pPars->fGenCnf      =  0;
     pPars->fPureAig     =  0;
     pPars->fVerbose     =  0;
@@ -940,14 +1133,42 @@ void Of_ManSetDefaultPars( Jf_Par_t * pPars )
     pPars->nLutSizeMax  =  OF_LEAF_MAX;
     pPars->nCutNumMax   =  OF_CUT_MAX;
     pPars->MapDelayTarget = -1;
-    pPars->Epsilon      = (float)0.01;
+}
+Gia_Man_t * Of_ManDeriveMapping( Of_Man_t * p )
+{
+    Vec_Int_t * vMapping;
+    int i, k, iVar, * pCut;
+    assert( !p->pPars->fCutMin && p->pGia->vMapping == NULL );
+    vMapping = Vec_IntAlloc( Gia_ManObjNum(p->pGia) + (int)p->pPars->Edge + (int)p->pPars->Area * 2 );
+    Vec_IntFill( vMapping, Gia_ManObjNum(p->pGia), 0 );
+    Gia_ManForEachAndId( p->pGia, i )
+    {
+        if ( !Of_ObjRefNum(p, i) )
+            continue;
+        assert( !Gia_ObjIsBuf(Gia_ManObj(p->pGia,i)) );
+        pCut = Of_ObjCutBestP( p, Of_ObjCutSet(p, i), i );
+        Vec_IntWriteEntry( vMapping, i, Vec_IntSize(vMapping) );
+        Vec_IntPush( vMapping, Of_CutSize(pCut) );
+        Of_CutForEachVar( pCut, iVar, k )
+        {
+            Vec_IntPush( vMapping, iVar );
+//            printf( "%d ", iVar );
+        }
+//        printf( " -- %d\n", i );
+        Vec_IntPush( vMapping, i );
+    }
+    assert( Vec_IntCap(vMapping) == 16 || Vec_IntSize(vMapping) == Vec_IntCap(vMapping) );
+    p->pGia->vMapping = vMapping;
+    return p->pGia;
 }
 Gia_Man_t * Of_ManPerformMapping( Gia_Man_t * pGia, Jf_Par_t * pPars )
 {
     Gia_Man_t * pNew = NULL, * pCls;
     Of_Man_t * p; int i, Id;
+//    Of_ManAreaFlow( pGia );
+//    return NULL;
     if ( Gia_ManHasChoices(pGia) )
-        pPars->fCoarsen = 0; 
+        pPars->fCoarsen = 0, pPars->fCutMin = 1; 
     pCls = pPars->fCoarsen ? Gia_ManDupMuxes(pGia, pPars->nCoarseLimit) : pGia;
     p = Of_StoCreate( pCls, pPars );
     if ( pPars->fVerbose && pPars->fCoarsen )
@@ -968,20 +1189,13 @@ Gia_Man_t * Of_ManPerformMapping( Gia_Man_t * pGia, Jf_Par_t * pPars )
 
     for ( p->Iter = 0; p->Iter < p->pPars->nRounds; p->Iter++ )
     {
-        Of_ManComputeMapping( p );
-        //Of_ManSetMapRefs( p );
+        Of_ManComputeForward( p );
+        Of_ManComputeBackward( p );
         Of_ManPrintStats( p, p->Iter ? "Area " : "Delay" );
     }
-    p->fUseEla = 1;
-    for ( ; p->Iter < p->pPars->nRounds + pPars->nRoundsEla; p->Iter++ )
-    {
-        Of_ManComputeMapping( p );
-        //Of_ManUpdateStats( p );
-        Of_ManPrintStats( p, "Ela  " );
-    }
 
-    pNew = NULL; //Of_ManDeriveMapping( p );
-//    Gia_ManMappingVerify( pNew );
+    pNew = Of_ManDeriveMapping( p );
+    Gia_ManMappingVerify( pNew );
     Of_StoDelete( p );
     if ( pCls != pGia )
         Gia_ManStop( pCls );
