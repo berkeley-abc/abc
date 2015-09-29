@@ -137,8 +137,8 @@ static inline void        Of_ObjUpdateRequired( Of_Man_t * p,int i, int x )     
 static inline int         Of_ObjRefInc( Of_Man_t * p, int i )                       { return Of_ObjData(p, i)->nRefs++;                                }
 static inline int         Of_ObjRefDec( Of_Man_t * p, int i )                       { return --Of_ObjData(p, i)->nRefs;                                }
 
-static inline int *       Of_ObjCutBestP( Of_Man_t * p, int * pCutSet, int iObj )   { return Of_ObjCutBest(p, iObj) ? Of_CutFromHandle(pCutSet, Of_ObjCutBest(p, iObj)) : NULL;  }
-static inline void        Of_ObjSetCutBestP( Of_Man_t * p, int * pCutSet, int iObj, int * pCut ) { Of_ObjSetCutBest( p, iObj, Of_CutHandle(pCutSet, pCut) ); }
+static inline int *       Of_ObjCutBestP( Of_Man_t * p, int * pCutSet, int iObj )   { assert(iObj>0 && iObj<Gia_ManObjNum(p->pGia));return Of_ObjCutBest(p, iObj) ? Of_CutFromHandle(pCutSet, Of_ObjCutBest(p, iObj)) : NULL;  }
+static inline void        Of_ObjSetCutBestP( Of_Man_t * p, int * pCutSet, int iObj, int * pCut ) { Of_ObjSetCutBest( p, iObj, Of_CutHandle(pCutSet, pCut) ); /*printf( "Setting obj %d with cut %d.\n", iObj, Of_CutHandle(pCutSet, pCut));*/ }
 
 #define Of_SetForEachCut( pList, pCut, i )          for ( i = 0, pCut = pList + 1; i < pList[0]; i++, pCut += Of_CutSize(pCut) + OF_CUT_EXTRA )
 #define Of_ObjForEachCut( pCuts, i, nCuts )         for ( i = 0, i < nCuts; i++ )
@@ -418,6 +418,14 @@ static inline void Of_ManLiftCuts( Of_Man_t * p, int iObj )
         for ( k = 1; k <= Of_CutSize(pCut); k++ )
             pCut[k] = Abc_Var2Lit(pCut[k], 0);
     }
+}
+static inline void Of_CutPrint( Of_Man_t * p, int * pCut )
+{
+    int k, iVar;
+    printf( "Cut with %d inputs and function %3d : { ", Of_CutSize(pCut), Of_CutFunc(pCut) == OF_NO_FUNC ? 0 : Of_CutFunc(pCut) );
+    Of_CutForEachVar( pCut, iVar, k )
+        printf( "%d ", iVar );
+    printf( "}\n" );
 }
 
 /**Function*************************************************************
@@ -966,26 +974,33 @@ static inline int Of_ManComputeForwardCut( Of_Man_t * p, int iObj, int * pCut )
 static inline int Of_ManComputeForwardObj( Of_Man_t * p, int iObj )
 {
     int Delay1 = ABC_INFINITY;
-    int i, * pCut, * pList = Of_ObjCutSet(p, iObj);
+    int i, * pCut, * pCutMin = NULL, * pList = Of_ObjCutSet(p, iObj);
     // compute cut arrivals
     Of_SetForEachCut( pList, pCut, i )
-        Delay1 = Abc_MinInt( Delay1, Of_ManComputeForwardCut(p, iObj, pCut) );
+    {
+        int Delay1This = Of_ManComputeForwardCut(p, iObj, pCut);
+        if ( Delay1 > Delay1This )
+        {
+            Delay1  = Delay1This;
+            pCutMin = pCut;
+        }
+    }
     // if mapping is present, set object arrival equal to cut arrival
-    pCut = Of_ObjCutBestP( p, pList, iObj );
-    if ( pCut ) Delay1 = Of_CutDelay1( pCut );
+    if ( Of_ObjRefNum(p, iObj) )
+        Delay1 = Of_CutDelay1( Of_ObjCutBestP(p, pList, iObj) );
+    else
+        Of_ObjSetCutBestP( p, pList, iObj, pCutMin );
     Of_ObjSetDelay1( p, iObj, Delay1 );
     return Delay1;
 }
 void Of_ManComputeForward( Of_Man_t * p )
 {
-    int Time = 0;
     Gia_Obj_t * pObj; int i;
     Gia_ManForEachAnd( p->pGia, pObj, i )
         if ( Gia_ObjIsBuf(pObj) )
             Of_ObjSetDelay1( p, i, Of_ObjDelay1(p, Gia_ObjFaninId0(pObj, i)) );
         else
-            Time = Abc_MaxInt( Time, Of_ManComputeForwardObj(p, i) );
-//    printf( "Best delay = %.2f\n", Of_Int2Flt(Time) );
+            Of_ManComputeForwardObj( p, i );
 }
 static inline int Of_ManComputeRequired( Of_Man_t * p )
 {
@@ -1012,17 +1027,19 @@ static inline int Of_ManComputeBackwardCut( Of_Man_t * p, int * pCut )
 int Of_CutRef_rec( Of_Man_t * p, int * pCut )
 {
     int i, Var, Count = Of_CutArea(p, Of_CutSize(pCut));
+//printf( "Refing " );  Of_CutPrint( p, pCut );
     Of_CutForEachVar( pCut, Var, i )
         if ( Of_ObjCutBest(p, Var) && !Of_ObjRefInc(p, Var) )
-            Count += Of_CutRef_rec( p, Of_ObjCutBestP(p, Of_ObjCutSet(p, i), Var) );
+            Count += Of_CutRef_rec( p, Of_ObjCutBestP(p, Of_ObjCutSet(p, Var), Var) );
     return Count;
 }
 int Of_CutDeref_rec( Of_Man_t * p, int * pCut )
 {
     int i, Var, Count = Of_CutArea(p, Of_CutSize(pCut));
+//printf( "Derefing " );  Of_CutPrint( p, pCut );
     Of_CutForEachVar( pCut, Var, i )
         if ( Of_ObjCutBest(p, Var) && !Of_ObjRefDec(p, Var) )
-            Count += Of_CutDeref_rec( p, Of_ObjCutBestP(p, Of_ObjCutSet(p, i), Var) );
+            Count += Of_CutDeref_rec( p, Of_ObjCutBestP(p, Of_ObjCutSet(p, Var), Var) );
     return Count;
 }
 static inline int Of_CutAreaDerefed( Of_Man_t * p, int * pCut )
@@ -1038,6 +1055,7 @@ void Of_ManComputeBackward( Of_Man_t * p )
     int fFirst = (int)(p->Iter == 0);
     int DelayLut1 = p->pPars->nDelayLut1;
     int i, k, Id, iVar, * pList, * pCut, * pCutMin;
+    int AreaBef = 0, AreaAft = 0;
 //    int Count0, Count1;
     Of_ManComputeRequired( p );
     // start references
@@ -1061,7 +1079,7 @@ void Of_ManComputeBackward( Of_Man_t * p )
             continue;
         // deref best cut
         if ( !fFirst )
-            Of_CutDeref_rec( p, Of_ObjCutBestP(p, Of_ObjCutSet(p, i), i) );        
+            AreaBef = Of_CutDeref_rec( p, Of_ObjCutBestP(p, Of_ObjCutSet(p, i), i) );        
         // select the best cut
 //        Count0 = Count1 = 0;
         pCutMin = NULL;
@@ -1085,14 +1103,21 @@ void Of_ManComputeBackward( Of_Man_t * p )
         }
 //        printf( "%5d : %5d %5d   %5d\n", i, Count0, Count1, Required );
         // the cut is selected
+        assert( pCutMin != NULL );
         Of_ObjSetCutBestP( p, pList, i, pCutMin );
         Of_CutForEachVar( pCutMin, iVar, k )
         {
             Of_ObjUpdateRequired( p, iVar, Required - DelayLut1 );
-            Of_ObjRefInc( p, iVar );
+            if ( fFirst )
+                Of_ObjRefInc( p, iVar );
         }
-        p->pPars->Area++;
+        // ref best cut
+        if ( !fFirst )
+            AreaAft = Of_CutRef_rec( p, pCutMin );
+        assert( AreaAft <= AreaBef );
+        // update parameters
         p->pPars->Edge += Of_CutSize(pCutMin);
+        p->pPars->Area++;
     }
 }
 
@@ -1113,7 +1138,7 @@ void Of_ManSetDefaultPars( Jf_Par_t * pPars )
     pPars->nLutSize     =  4;
     pPars->nCutNum      = 16;
     pPars->nProcNum     =  0;
-    pPars->nRounds      =  1;
+    pPars->nRounds      =  4;
     pPars->nRoundsEla   =  0;
     pPars->nRelaxRatio  =  0;
     pPars->nCoarseLimit =  3;
@@ -1149,12 +1174,13 @@ Gia_Man_t * Of_ManDeriveMapping( Of_Man_t * p )
         pCut = Of_ObjCutBestP( p, Of_ObjCutSet(p, i), i );
         Vec_IntWriteEntry( vMapping, i, Vec_IntSize(vMapping) );
         Vec_IntPush( vMapping, Of_CutSize(pCut) );
+//        printf( "%3d : ", i );
         Of_CutForEachVar( pCut, iVar, k )
         {
             Vec_IntPush( vMapping, iVar );
-//            printf( "%d ", iVar );
+//            printf( "%3d ", iVar );
         }
-//        printf( " -- %d\n", i );
+//        printf( "\n" );
         Vec_IntPush( vMapping, i );
     }
     assert( Vec_IntCap(vMapping) == 16 || Vec_IntSize(vMapping) == Vec_IntCap(vMapping) );
