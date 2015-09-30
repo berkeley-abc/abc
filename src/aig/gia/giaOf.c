@@ -37,7 +37,7 @@ ABC_NAMESPACE_IMPL_START
 #define OF_LEAF_MAX  6
 #define OF_CUT_MAX  32
 #define OF_NO_LEAF  31
-#define OF_NO_FUNC  0x3FFFFFF
+#define OF_NO_FUNC  0x7FFFFFF
 #define OF_INFINITY FLT_MAX
 #define OF_CUT_EXTRA 4 // size; delay1, delay2; area
 
@@ -47,8 +47,7 @@ struct Of_Cut_t_
     word            Sign;           // signature
     int             Delay;          // delay
     int             Flow;           // flow
-    unsigned        iFunc   : 26;   // function (OF_NO_FUNC)
-    unsigned        Useless :  1;   // function
+    unsigned        iFunc   : 27;   // function (OF_NO_FUNC)
     unsigned        nLeaves :  5;   // leaf number (OF_NO_LEAF)
     int             pLeaves[OF_LEAF_MAX+1]; // leaves
 };
@@ -82,7 +81,6 @@ struct Of_Man_t_
     // statistics
     abctime         clkStart;       // starting time
     double          CutCount[6];    // cut counts
-    int             nCutUseAll;     // objects with useful cuts
 };
 
 #define OF_NUM       10
@@ -341,7 +339,6 @@ static inline int Of_CutCreateUnit( Of_Cut_t * p, int i )
     p->iFunc      = 2;
     p->nLeaves    = 1;
     p->pLeaves[0] = i;
-    p->Useless    = 0;
     p->Sign       = ((word)1) << (i & 0x3F);
     return 1;
 }
@@ -353,8 +350,8 @@ static inline void Of_Cutprintf( Of_Man_t * p, Of_Cut_t * pCut )
         printf( " %*d", nDigits, pCut->pLeaves[i] );
     for ( ; i < (int)p->pPars->nLutSize; i++ )
         printf( " %*s", nDigits, " " );
-    printf( "  }   Useless = %d. D = %4d  A = %9.4f  F = %6d  ", 
-        pCut->Useless, pCut->Delay, pCut->Flow, pCut->iFunc );
+    printf( "  }   D = %4d  A = %9d  F = %6d  ", 
+        pCut->Delay, pCut->Flow, pCut->iFunc );
     if ( p->vTtMem )
         Dau_DsdPrintFromTruth( Vec_MemReadEntry(p->vTtMem, Abc_Lit2Var(pCut->iFunc)), pCut->nLeaves );
     else
@@ -382,36 +379,27 @@ static inline int Of_ManPrepareCuts( Of_Cut_t * pCuts, Of_Man_t * p, int iObj, i
     }
     return Of_CutCreateUnit( pCuts, iObj );
 }
-static inline int Of_ManSaveCuts( Of_Man_t * p, Of_Cut_t ** pCuts, int nCuts, int fUseful )
+static inline int Of_ManSaveCuts( Of_Man_t * p, Of_Cut_t ** pCuts, int nCuts )
 {
     int i, * pPlace, iCur, nInts = 1, nCutsNew = 0;
     for ( i = 0; i < nCuts; i++ )
-        if ( !fUseful || !pCuts[i]->Useless )
-            nInts += pCuts[i]->nLeaves + OF_CUT_EXTRA, nCutsNew++;
+        nInts += pCuts[i]->nLeaves + OF_CUT_EXTRA, nCutsNew++;
     if ( (p->iCur & 0xFFFF) + nInts > 0xFFFF )
         p->iCur = ((p->iCur >> 16) + 1) << 16;
     if ( Vec_PtrSize(&p->vPages) == (p->iCur >> 16) )
-        Vec_PtrPush( &p->vPages, ABC_ALLOC(int, (1<<16)) );
+        Vec_PtrPush( &p->vPages, ABC_CALLOC(int, (1<<16)) );
     iCur = p->iCur; p->iCur += nInts;
     pPlace = Of_ManCutSet( p, iCur );
     *pPlace++ = nCutsNew;
     for ( i = 0; i < nCuts; i++ )
-        if ( !fUseful || !pCuts[i]->Useless )
-        {
-            *pPlace++ = Of_CutSetBoth( pCuts[i]->nLeaves, pCuts[i]->iFunc );
-            memcpy( pPlace, pCuts[i]->pLeaves, sizeof(int) * pCuts[i]->nLeaves );
-            pPlace += pCuts[i]->nLeaves;
-            memset( pPlace, 0xFF, sizeof(int) * (OF_CUT_EXTRA - 1) );
-            pPlace += OF_CUT_EXTRA - 1;
-        }
+    {
+        *pPlace++ = Of_CutSetBoth( pCuts[i]->nLeaves, pCuts[i]->iFunc );
+        memcpy( pPlace, pCuts[i]->pLeaves, sizeof(int) * pCuts[i]->nLeaves );
+        pPlace += pCuts[i]->nLeaves;
+        memset( pPlace, 0xFF, sizeof(int) * (OF_CUT_EXTRA - 1) );
+        pPlace += OF_CUT_EXTRA - 1;
+    }
     return iCur;
-}
-static inline int Of_ManCountUseful( Of_Cut_t ** pCuts, int nCuts )
-{
-    int i, Count = 0;
-    for ( i = 0; i < nCuts; i++ )
-        Count += !pCuts[i]->Useless;
-    return Count;
 }
 static inline void Of_ManLiftCuts( Of_Man_t * p, int iObj )
 {
@@ -640,8 +628,6 @@ static inline int Of_SetLastCutContainsArea( Of_Cut_t ** pCuts, int nCuts )
 }
 static inline int Of_CutCompareArea( Of_Cut_t * pCut0, Of_Cut_t * pCut1 )
 {
-    if ( pCut0->Useless < pCut1->Useless )  return -1;
-    if ( pCut0->Useless > pCut1->Useless )  return  1;
     if ( pCut0->Delay   < pCut1->Delay   )  return -1;
     if ( pCut0->Delay   > pCut1->Delay   )  return  1;
     if ( pCut0->Flow    < pCut1->Flow    )  return -1;
@@ -701,7 +687,7 @@ void Of_ObjMergeOrder( Of_Man_t * p, int iObj )
     int fComp1   = Gia_ObjFaninC1(pObj);
     int iSibl    = Gia_ObjSibl(p->pGia, iObj);
     Of_Cut_t * pCut0, * pCut1, * pCut0Lim = pCuts0 + nCuts0, * pCut1Lim = pCuts1 + nCuts1;
-    int i, nCutsUse, nCutsR = 0;
+    int i, nCutsR = 0;
     assert( !Gia_ObjIsBuf(pObj) );
     for ( i = 0; i < nCutNum; i++ )
         pCutsR[i] = pCuts + i;
@@ -769,10 +755,8 @@ void Of_ObjMergeOrder( Of_Man_t * p, int iObj )
     }
     // debug printout
     if ( 0 )
-//    if ( iObj % 10000 == 0 )
-//    if ( iObj == 1090 )
     {
-        printf( "*** Obj = %d  Useful = %d\n", iObj, Of_ManCountUseful(pCutsR, nCutsR) );
+        printf( "*** Obj = %d\n", iObj );
         for ( i = 0; i < nCutsR; i++ )
             Of_Cutprintf( p, pCutsR[i] );
         printf( "\n" );
@@ -783,11 +767,8 @@ void Of_ObjMergeOrder( Of_Man_t * p, int iObj )
     // store the cutset
     Of_ObjSetCutFlow( p, iObj, pCutsR[0]->Flow );
     Of_ObjSetCutDelay( p, iObj, pCutsR[0]->Delay );
-    *Vec_IntEntryP(&p->vCutSets, iObj) = Of_ManSaveCuts(p, pCutsR, nCutsR, 0);
+    *Vec_IntEntryP(&p->vCutSets, iObj) = Of_ManSaveCuts(p, pCutsR, nCutsR);
     p->CutCount[3] += nCutsR;
-    nCutsUse = Of_ManCountUseful(pCutsR, nCutsR);
-    p->CutCount[4] += nCutsUse;
-    p->nCutUseAll  += nCutsUse == nCutsR;
 }
 void Of_ManComputeCuts( Of_Man_t * p )
 {
