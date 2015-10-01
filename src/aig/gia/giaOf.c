@@ -38,7 +38,6 @@ ABC_NAMESPACE_IMPL_START
 #define OF_CUT_MAX  32
 #define OF_NO_LEAF  31
 #define OF_NO_FUNC  0x7FFFFFF
-#define OF_INFINITY FLT_MAX
 #define OF_CUT_EXTRA 4 // size; delay1, delay2; area
 
 typedef struct Of_Cut_t_ Of_Cut_t; 
@@ -55,11 +54,13 @@ typedef struct Of_Obj_t_ Of_Obj_t;
 struct Of_Obj_t_
 {
     int             iCutH;          // best cut
+    int             iCutH2;         // best cut
     int             Delay1;         // arrival time
     int             Delay2;         // arrival time
     int             Required;       // required
     int             nRefs;          // references 
     int             Flow;           // area flow
+    int             Temp;           // unused
 };
 typedef struct Of_Man_t_ Of_Man_t; 
 struct Of_Man_t_
@@ -116,11 +117,12 @@ static inline void        Of_CutSetAreaFlow( int * pCut, int d )                
 static inline int         Of_CutVar( int * pCut, int v )                            { return Abc_Lit2Var(Of_CutLeaves(pCut)[v]);                       } 
 static inline int         Of_CutFlag( int * pCut, int v )                           { return Abc_LitIsCompl(Of_CutLeaves(pCut)[v]);                    } 
 static inline void        Of_CutCleanFlag( int * pCut, int v )                      { Of_CutLeaves(pCut)[v] = Abc_LitRegular(Of_CutLeaves(pCut)[v]);   } 
-static inline void        Of_CutSetFlag( int * pCut, int v )                        { Of_CutLeaves(pCut)[v] |= 1;                                      } 
+static inline void        Of_CutSetFlag( int * pCut, int v, int x )                 { Of_CutLeaves(pCut)[v] = Abc_Var2Lit(Of_CutVar(pCut, v), x);      } 
 
 static inline Of_Obj_t *  Of_ObjData( Of_Man_t * p, int i )                         { return p->pObjs + i;                                             }
 
 static inline int         Of_ObjCutBest( Of_Man_t * p, int i )                      { return Of_ObjData(p, i)->iCutH;                                  }
+static inline int         Of_ObjCutBest2( Of_Man_t * p, int i )                     { return Of_ObjData(p, i)->iCutH2;                                 }
 static inline int         Of_ObjDelay1( Of_Man_t * p, int i )                       { return Of_ObjData(p, i)->Delay1;                                 }
 static inline int         Of_ObjDelay2( Of_Man_t * p, int i )                       { return Of_ObjData(p, i)->Delay2;                                 }
 static inline int         Of_ObjRequired( Of_Man_t * p, int i )                     { return Of_ObjData(p, i)->Required;                               }
@@ -128,6 +130,7 @@ static inline int         Of_ObjRefNum( Of_Man_t * p, int i )                   
 static inline int         Of_ObjFlow( Of_Man_t * p, int i )                         { return Of_ObjData(p, i)->Flow;                                   }
 
 static inline void        Of_ObjSetCutBest( Of_Man_t * p, int i, int x )            { Of_ObjData(p, i)->iCutH = x;                                     }
+static inline void        Of_ObjSetCutBest2( Of_Man_t * p, int i, int x )           { Of_ObjData(p, i)->iCutH2 = x;                                    }
 static inline void        Of_ObjSetDelay1( Of_Man_t * p, int i, int x )             { Of_ObjData(p, i)->Delay1 = x;                                    }
 static inline void        Of_ObjSetDelay2( Of_Man_t * p, int i, int x )             { Of_ObjData(p, i)->Delay2 = x;                                    }
 static inline void        Of_ObjSetRequired( Of_Man_t * p, int i, int x )           { Of_ObjData(p, i)->Required = x;                                  }
@@ -139,6 +142,9 @@ static inline int         Of_ObjRefDec( Of_Man_t * p, int i )                   
 
 static inline int *       Of_ObjCutBestP( Of_Man_t * p, int iObj )                  { assert(iObj>0 && iObj<Gia_ManObjNum(p->pGia));return Of_ManCutSet( p, Of_ObjCutBest(p, iObj) );  }
 static inline void        Of_ObjSetCutBestP( Of_Man_t * p, int * pCutSet, int iObj, int * pCut ) { Of_ObjSetCutBest( p, iObj, Of_ObjCutSetId(p, iObj) + Of_CutHandle(pCutSet, pCut) ); }
+
+static inline int *       Of_ObjCutBestP2( Of_Man_t * p, int iObj )                 { assert(iObj>0 && iObj<Gia_ManObjNum(p->pGia));return Of_ManCutSet( p, Of_ObjCutBest2(p, iObj) );  }
+static inline void        Of_ObjSetCutBestP2( Of_Man_t * p, int * pCutSet, int iObj, int * pCut ) { Of_ObjSetCutBest2( p, iObj, Of_ObjCutSetId(p, iObj) + Of_CutHandle(pCutSet, pCut) ); }
 
 #define Of_SetForEachCut( pList, pCut, i )          for ( i = 0, pCut = pList + 1; i < pList[0]; i++, pCut += Of_CutSize(pCut) + OF_CUT_EXTRA )
 #define Of_ObjForEachCut( pCuts, i, nCuts )         for ( i = 0, i < nCuts; i++ )
@@ -871,82 +877,6 @@ void Of_ManPrintQuit( Of_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-void Of_ManCutMatch( Of_Man_t * p, int iObj, int * pCut, int * pDelay1, int * pDelay2 )
-{
-    // Delay1 - main delay;  Delay2 - precomputed LUT delay in terms of Delay1 for the fanins
-    int Delays[6], Perm[6]; 
-    int DelayLut1 = p->pPars->nDelayLut1;
-    int DelayLut2 = p->pPars->nDelayLut2;
-    int k, iVar, Flag, Delay;
-    Of_CutForEachVarFlag( pCut, iVar, Flag, k )
-    {
-        Delays[k] = Of_ObjDelay1(p, iVar) + DelayLut1;
-        Perm[k] = iVar;
-//        printf( "%3d%s ", iVar, Flag ? "*" : " " );
-    }
-    for ( ; k < p->pPars->nLutSize; k++ )
-    {
-        Delays[k] = -ABC_INFINITY;
-        Perm[k] = -1;
-//        printf( "     " );
-    }
-
-    Vec_IntSelectSortCost2Reverse( Perm, Of_CutSize(pCut), Delays );
-    *pDelay1 = *pDelay2 = 0;
-    for ( k = 0; k < Of_CutSize(pCut); k++ )
-    {
-        Delay = (k < p->pPars->nFastEdges && Gia_ObjIsAndNotBuf(Gia_ManObj(p->pGia, Perm[k]))) ? Of_ObjDelay2(p, Perm[k]) + DelayLut2 : Delays[k];// + DelayLut2;
-        *pDelay1 = Abc_MaxInt( *pDelay1, Delay );
-        *pDelay2 = Abc_MaxInt( *pDelay2, Delays[k] );
-    }
-//    printf( "   %5.2f",   Of_Int2Flt(*pDelay1) );
-//    printf( "   %5.2f\n", Of_Int2Flt(*pDelay2) );
-    *pDelay1 = Abc_MinInt( *pDelay1, *pDelay2 );
-    assert( *pDelay1 <= *pDelay2 );
-    Of_CutSetDelay1( pCut, *pDelay1 );
-    Of_CutSetDelay2( pCut, *pDelay2 );
-}
-int Of_ManObjMatch( Of_Man_t * p, int iObj )
-{
-    int Delay1 = ABC_INFINITY, Delay2 = ABC_INFINITY;
-    int Delay1This, Delay2This;
-    int i, * pCut, * pList = Of_ObjCutSet(p, iObj);
-    Of_SetForEachCut( pList, pCut, i )
-    {
-        Of_ManCutMatch( p, iObj, pCut, &Delay1This, &Delay2This );
-        Delay1 = Abc_MinInt( Delay1, Delay1This );
-        Delay2 = Abc_MinInt( Delay2, Delay2This );
-    }
-    Of_ObjSetDelay1( p, iObj, Delay1 );
-    Of_ObjSetDelay2( p, iObj, Delay2 );
-    return Delay1;
-}
-void Of_ManComputeMapping( Of_Man_t * p )
-{
-    int Time = 0;
-    Gia_Obj_t * pObj; int i;
-    Gia_ManForEachAnd( p->pGia, pObj, i )
-        if ( Gia_ObjIsBuf(pObj) )
-        {
-            Of_ObjSetDelay1( p, i, Of_ObjDelay1(p, Gia_ObjFaninId0(pObj, i)) );
-            Of_ObjSetDelay2( p, i, Of_ObjDelay2(p, Gia_ObjFaninId0(pObj, i)) );
-        }
-        else
-            Time = Abc_MaxInt( Time, Of_ManObjMatch(p, i) );
-    printf( "Best delay = %.2f\n", Of_Int2Flt(Time) );
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Technology mappping.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
 /*
 static inline int Of_ManComputeForwardCut( Of_Man_t * p, int iObj, int * pCut )
 {
@@ -1102,7 +1032,7 @@ static inline void Of_ManComputeForwardObj( Of_Man_t * p, int iObj )
     if ( p->Iter )
         Of_ObjSetFlow( p, iObj, Of_ManComputeForwardCutArea(p, iObj, pCutMin) );
 }
-void Of_ManComputeForward( Of_Man_t * p )
+void Of_ManComputeForward1( Of_Man_t * p )
 {
     Gia_Obj_t * pObj; int i;
     Gia_ManForEachAnd( p->pGia, pObj, i )
@@ -1370,6 +1300,214 @@ void Of_ManComputeBackward3( Of_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
+void Of_ManComputeForwardDirconCut( Of_Man_t * p, int iObj, int * pCut, int * pDelay1, int * pDelay2 )
+{
+    // Delay1 - main delay;  Delay2 - precomputed LUT delay in terms of Delay1 for the fanins
+    int Delays[6], Perm[6] = {0, 1, 2, 3, 4, 5}; 
+    int DelayLut1 = p->pPars->nDelayLut1;
+    int DelayLut2 = p->pPars->nDelayLut2;
+    int nSize = Of_CutSize(pCut);
+    int k, iVar, Flag, SlowCon, Delay, DelayAfter, fDirConWorks;
+    Of_CutForEachVar( pCut, iVar, k )
+    {
+        Delays[k] = Of_ObjDelay1(p, iVar) + DelayLut1;
+//        printf( "%3d%s ", iVar, Flag ? "*" : " " );
+    }
+    for ( ; k < p->pPars->nLutSize; k++ )
+    {
+        Delays[k] = -ABC_INFINITY;
+//        printf( "     " );
+    }
+    Vec_IntSelectSortCost2Reverse( Perm, nSize, Delays );
+    assert( nSize < 2 || Delays[0] >= Delays[nSize-1] );
+    assert( Delays[0] >= 0 && Delays[nSize-1] >= 0 );
+    // consider speedup due to dircons
+    fDirConWorks = 1;
+    *pDelay1 = *pDelay2 = 0;
+    SlowCon = p->pPars->nFastEdges < nSize ? Delays[p->pPars->nFastEdges] : 0;
+    for ( k = 0; k < nSize; k++ )
+    {
+        // use dircon if the following is true
+        // - the input is eligible for dircon (does not exceed the limit)
+        // - there is an expected gain in delay, compared the largest delay without dircon
+        // - the dircon delay is indeed lower than the largest delay without dircon
+        // - all previous dircons worked out well
+        // - the node is an AND-gate 
+        iVar = Of_CutVar( pCut, Perm[k] );
+        assert( Delays[k] == Of_ObjDelay1(p, iVar) + DelayLut1 );
+        DelayAfter = Of_ObjDelay2(p, iVar) + DelayLut2;
+        if ( k < p->pPars->nFastEdges && Delays[k] > SlowCon && DelayAfter < Delays[k] && fDirConWorks && Gia_ObjIsAndNotBuf(Gia_ManObj(p->pGia, iVar)) )
+        {
+            Delay = DelayAfter;
+            Of_CutSetFlag( pCut, Perm[k], 1 );
+        }
+        else
+        {
+            Delay = Delays[k];// + DelayLut2;
+            Of_CutSetFlag( pCut, Perm[k], 0 );
+            fDirConWorks = 0;
+        }
+        *pDelay1 = Abc_MaxInt( *pDelay1, Delay );
+        *pDelay2 = Abc_MaxInt( *pDelay2, Delays[k] );
+    }
+//    printf( "   %5.2f",   Of_Int2Flt(*pDelay1) );
+//    printf( "   %5.2f\n", Of_Int2Flt(*pDelay2) );
+    // do not use the structure if simple LUT is better
+    if ( *pDelay1 > *pDelay2 )
+    {
+        for ( k = 0; k < nSize; k++ )
+            Of_CutSetFlag( pCut, k, 0 );
+        *pDelay1 = *pDelay2;
+    }
+    assert( *pDelay1 <= *pDelay2 );
+    Of_CutSetDelay1( pCut, *pDelay1 );
+    Of_CutSetDelay2( pCut, *pDelay2 );
+    // verify
+    Of_CutForEachVarFlag( pCut, iVar, Flag, k )
+    {
+        if ( Flag )
+            assert( Of_ObjDelay2(p, iVar) + DelayLut2 <= *pDelay1 );
+        else
+            assert( Of_ObjDelay1(p, iVar) + DelayLut1 <= *pDelay1 );
+        assert( Of_ObjDelay1(p, iVar) + DelayLut1 <= *pDelay2 );
+    }
+}
+int Of_ManComputeForwardDirconObj( Of_Man_t * p, int iObj )
+{
+    int Delay1 = ABC_INFINITY, Delay2 = ABC_INFINITY;
+    int i, * pCut, * pCutMin = NULL, * pCutMin2 = NULL, * pList = Of_ObjCutSet(p, iObj);
+    Of_SetForEachCut( pList, pCut, i )
+    {
+        int Delay1This, Delay2This;
+        Of_ManComputeForwardDirconCut( p, iObj, pCut, &Delay1This, &Delay2This );
+        if ( Delay1 > Delay1This )
+            pCutMin = pCut;
+        if ( Delay2 > Delay2This )
+            pCutMin2 = pCut;
+        Delay1 = Abc_MinInt( Delay1, Delay1This );
+        Delay2 = Abc_MinInt( Delay2, Delay2This );
+    }
+    Of_ObjSetDelay1( p, iObj, Delay1 );
+    Of_ObjSetDelay2( p, iObj, Delay2 );
+    Of_ObjSetCutBestP( p, pList, iObj, pCutMin );
+    Of_ObjSetCutBestP2( p, pList, iObj, pCutMin2 );
+    return Delay1;
+}
+void Of_ManComputeForwardDircon1( Of_Man_t * p )
+{
+    Gia_Obj_t * pObj; int i;
+    Gia_ManForEachAnd( p->pGia, pObj, i )
+        if ( Gia_ObjIsBuf(pObj) )
+        {
+            Of_ObjSetDelay1( p, i, Of_ObjDelay1(p, Gia_ObjFaninId0(pObj, i)) );
+            Of_ObjSetDelay2( p, i, Of_ObjDelay2(p, Gia_ObjFaninId0(pObj, i)) );
+        }
+        else
+            Of_ManComputeForwardDirconObj( p, i );
+}
+void Of_ManComputeBackwardDircon1( Of_Man_t * p )
+{
+    Gia_Obj_t * pObj; 
+    Vec_Bit_t * vPointed; 
+    int DelayLut1 = p->pPars->nDelayLut1;
+    int DelayLut2 = p->pPars->nDelayLut2;
+    int i, k, iVar, Flag, * pList, * pCutMin;
+    int CountNodes = 0, CountEdges = 0;
+    Of_ManComputeOutputRequired( p, 1 );
+    printf( "Global delay =%8.2f\n", Of_Int2Flt((int)p->pPars->Delay) );
+    //return;
+    // compute area and edges
+    vPointed = Vec_BitStart( Gia_ManObjNum(p->pGia) );
+    p->pPars->Area = p->pPars->Edge = 0;
+    Gia_ManForEachAndReverse( p->pGia, pObj, i )
+    {
+        int CostMin, fPointed, Required = Of_ObjRequired(p, i);
+        if ( Gia_ObjIsBuf(pObj) )
+        {
+            int FaninId = Gia_ObjFaninId0(pObj, i);
+            Of_ObjUpdateRequired( p, FaninId, Required );
+            Of_ObjRefInc( p, FaninId );
+            continue;
+        }
+        if ( !Of_ObjRefNum(p, i) )
+            continue;
+        // check if the LUT is has an outgoing dircon edge
+        fPointed = Vec_BitEntry(vPointed, i);
+        CountNodes += fPointed;
+
+/*
+        // select the best cut
+        {
+            int * pCut;
+            pCutMin = NULL;
+            CostMin = ABC_INFINITY;
+            pList = Of_ObjCutSet( p, i );
+            Of_SetForEachCut( pList, pCut, k )
+            {
+                int Cost;
+                if ( (fPointed ? Of_CutDelay2(pCut) : Of_CutDelay1(pCut)) > Required )
+                    continue;
+                Cost = Of_ManComputeBackwardCut( p, pCut );
+                if ( CostMin > Cost )
+                {
+                    CostMin = Cost;
+                    pCutMin = pCut;
+                }
+            }
+        }
+*/
+
+        if ( fPointed )
+        {
+            pCutMin = Of_ObjCutBestP2( p, i );
+            CostMin = Of_CutDelay2(pCutMin);
+            //assert( Of_CutDelay2(pCutMin) <= Required );
+        }
+        else
+        {
+            pCutMin = Of_ObjCutBestP( p, i );
+            CostMin = Of_CutDelay1(pCutMin);
+            //assert( Of_CutDelay1(pCutMin) <= Required );
+        }
+
+        // remove dircon markers
+        //if ( fPointed )
+        //    Of_CutForEachVarFlag( pCutMin, iVar, Flag, k )
+        //        Of_CutSetFlag( pCutMin, k, 0 );
+
+        // the cut is selected
+        assert( pCutMin != NULL );
+        pList = Of_ObjCutSet( p, i );
+        Of_ObjSetCutBestP( p, pList, i, pCutMin );  ///// SET THE BEST CUT
+        Of_CutForEachVarFlag( pCutMin, iVar, Flag, k )
+        {
+            Of_ObjUpdateRequired( p, iVar, Required - ((Flag && !fPointed) ? DelayLut2 : DelayLut1) );
+            Of_ObjRefInc( p, iVar );           
+            if ( Flag && !fPointed )
+            {             
+                Vec_BitWriteEntry( vPointed, iVar, 1 );
+                CountEdges++;
+            }
+        }
+        // update parameters
+        p->pPars->Edge += Of_CutSize(pCutMin);
+        p->pPars->Area++;
+    }
+    Vec_BitFree( vPointed );
+    //printf( "Dircon nodes = %d.  Dircon edges = %d.\n", CountNodes, CountEdges );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Technology mappping.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 void Of_ManSetDefaultPars( Jf_Par_t * pPars )
 {
     memset( pPars, 0, sizeof(Jf_Par_t) );
@@ -1384,7 +1522,7 @@ void Of_ManSetDefaultPars( Jf_Par_t * pPars )
     pPars->DelayTarget  = -1;
     pPars->nDelayLut1   = 10;
     pPars->nDelayLut2   =  2;
-    pPars->nFastEdges   =  1;
+    pPars->nFastEdges   =  0; //
     pPars->fAreaOnly    =  0;
     pPars->fOptEdge     =  1; 
     pPars->fCoarsen     =  0;
@@ -1399,11 +1537,18 @@ void Of_ManSetDefaultPars( Jf_Par_t * pPars )
 }
 Gia_Man_t * Of_ManDeriveMapping( Of_Man_t * p )
 {
-    Vec_Int_t * vMapping;
-    int i, k, iVar, * pCut;
+    Vec_Int_t * vMapping, * vPacking = NULL;
+    Vec_Bit_t * vPointed; 
+    int i, k, iVar, * pCut, Place, Flag;
     assert( !p->pPars->fCutMin && p->pGia->vMapping == NULL );
     vMapping = Vec_IntAlloc( Gia_ManObjNum(p->pGia) + (int)p->pPars->Edge + (int)p->pPars->Area * 2 );
     Vec_IntFill( vMapping, Gia_ManObjNum(p->pGia), 0 );
+    if ( p->pPars->nFastEdges )
+    {
+        vPacking = Vec_IntAlloc( 1000 );
+        Vec_IntPush( vPacking, 0 );
+    }
+    vPointed = Vec_BitStart( Gia_ManObjNum(p->pGia) );
     Gia_ManForEachAndId( p->pGia, i )
     {
         if ( !Of_ObjRefNum(p, i) )
@@ -1415,9 +1560,24 @@ Gia_Man_t * Of_ManDeriveMapping( Of_Man_t * p )
         Of_CutForEachVar( pCut, iVar, k )
             Vec_IntPush( vMapping, iVar );
         Vec_IntPush( vMapping, i );
+        if ( vPacking == NULL || Vec_BitEntry(vPointed, i) )
+            continue;
+        Place = Vec_IntSize( vPacking );
+        Vec_IntPush( vPacking, 0 );
+        Vec_IntPush( vPacking, i );
+        Of_CutForEachVarFlag( pCut, iVar, Flag, k )
+            if ( Flag )
+            {
+                Vec_IntPush( vPacking, iVar );
+                Vec_BitWriteEntry( vPointed, iVar, 1 );
+            }
+        Vec_IntAddToEntry( vPacking, Place, Vec_IntSize(vPacking)-Place-1 );
+        Vec_IntAddToEntry( vPacking, 0, 1 );
     }
     assert( Vec_IntCap(vMapping) == 16 || Vec_IntSize(vMapping) == Vec_IntCap(vMapping) );
     p->pGia->vMapping = vMapping;
+    p->pGia->vPacking = vPacking;
+    Vec_BitFree( vPointed );
     return p->pGia;
 }
 Gia_Man_t * Of_ManPerformMapping( Gia_Man_t * pGia, Jf_Par_t * pPars )
@@ -1444,34 +1604,56 @@ Gia_Man_t * Of_ManPerformMapping( Gia_Man_t * pGia, Jf_Par_t * pPars )
         Of_ObjSetDelay2( p, Id, Time );
     }
 
-    for ( p->Iter = 0; p->Iter < p->pPars->nRounds; p->Iter++ )
+    if ( p->pPars->nFastEdges )
     {
-        if ( p->Iter == 0 )
+        p->pPars->nRounds = 1;
+        for ( p->Iter = 0; p->Iter < p->pPars->nRounds; p->Iter++ )
         {
-            Of_ManComputeForward( p );
-            Of_ManComputeBackward1( p );
-            Of_ManPrintStats( p, "Delay" );
-        }
-        else 
-        {
-            Of_ManComputeForward( p );
-            Of_ManComputeBackward1( p );
-            Of_ManPrintStats( p, "Flow " );
+            if ( p->Iter == 0 )
+            {
+                Of_ManComputeForwardDircon1( p );
+                Of_ManComputeBackwardDircon1( p );
+                Of_ManPrintStats( p, "Delay" );
+            }
+            else 
+            {
+                Of_ManComputeForwardDircon1( p );
+                Of_ManComputeBackwardDircon1( p );
+                Of_ManPrintStats( p, "Flow " );
+            }
         }
     }
-    for ( ; p->Iter < p->pPars->nRounds + p->pPars->nRoundsEla; p->Iter++ )
+    else
     {
-        if ( p->Iter < p->pPars->nRounds + p->pPars->nRoundsEla - 1 )
+        for ( p->Iter = 0; p->Iter < p->pPars->nRounds; p->Iter++ )
         {
-            Of_ManComputeForward2( p );
-            Of_ManComputeBackward2( p );
-            Of_ManPrintStats( p, "Area " );
+            if ( p->Iter == 0 )
+            {
+                Of_ManComputeForward1( p );
+                Of_ManComputeBackward1( p );
+                Of_ManPrintStats( p, "Delay" );
+            }
+            else 
+            {
+                Of_ManComputeForward1( p );
+                Of_ManComputeBackward1( p );
+                Of_ManPrintStats( p, "Flow " );
+            }
         }
-        else
+        for ( ; p->Iter < p->pPars->nRounds + p->pPars->nRoundsEla; p->Iter++ )
         {
-            Of_ManComputeForward( p );
-            Of_ManComputeBackward3( p );
-            Of_ManPrintStats( p, "Area " );
+            if ( p->Iter < p->pPars->nRounds + p->pPars->nRoundsEla - 1 )
+            {
+                Of_ManComputeForward2( p );
+                Of_ManComputeBackward3( p );
+                Of_ManPrintStats( p, "Area " );
+            }
+            else
+            {
+                Of_ManComputeForward1( p );
+                Of_ManComputeBackward3( p );
+                Of_ManPrintStats( p, "Area " );
+            }
         }
     }
 

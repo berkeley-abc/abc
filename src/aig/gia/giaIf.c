@@ -560,7 +560,7 @@ void Gia_ManPrintPackingStats( Gia_Man_t * p )
     int fVerbose = 0;
     int nObjToShow = 200;
     int nNumStr[5] = {0};
-    int i, k, Entry, nEntries, nEntries2, MaxSize = -1;
+    int i, k, Entry, nEntries, nEntries2, MaxSize = -1, Count = 0;
     if ( p->vPacking == NULL )
         return;
     nEntries = Vec_IntEntry( p->vPacking, 0 );
@@ -586,8 +586,12 @@ void Gia_ManPrintPackingStats( Gia_Man_t * p )
         MaxSize = 1;
     Abc_Print( 1, "Packing (N=%d)  :  ", MaxSize );
     for ( i = 1; i <= MaxSize; i++ )
+    {
         Abc_Print( 1, "%d x LUT = %d   ", i, nNumStr[i] );
-    Abc_Print( 1, "Total = %d", nEntries2 );
+        Count += i * nNumStr[i];
+    }
+    Abc_Print( 1, "Total = %d   ", nEntries2 );
+    Abc_Print( 1, "Total LUT = %d", Count );
     Abc_Print( 1, "\n" );
 }
 

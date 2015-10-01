@@ -34282,6 +34282,7 @@ int Abc_CommandAbc9Unmap( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     Vec_IntFreeP( &pAbc->pGia->vMapping );
     Vec_IntFreeP( &pAbc->pGia->vPacking );
+    Vec_IntFreeP( &pAbc->pGia->vCellMapping );
     return 0;
 
 usage:
