@@ -1437,7 +1437,7 @@ void Nf_ManSetOutputRequireds( Nf_Man_t * p, int fPropCompl )
         else
         {
             if ( p->pGia->vOutReqs && Vec_FltEntry(p->pGia->vOutReqs, i) > 0 && Required <= Nf_Flt2Wrd(Vec_FltEntry(p->pGia->vOutReqs, i)) )
-                Required = Nf_Flt2Wrd(Vec_FltEntry(p->pGia->vOutReqs, i));
+                Required = Abc_MinWord( 2*Required, Nf_Flt2Wrd(Vec_FltEntry(p->pGia->vOutReqs, i)) );
         }
         // if external required cannot be achieved, set the earliest possible arrival time
 //        else if ( p->pGia->vOutReqs && Vec_FltEntry(p->pGia->vOutReqs, i) > 0 && Required > Vec_FltEntry(p->pGia->vOutReqs, i) )
@@ -2127,7 +2127,7 @@ void Nf_ManUpdateStats( Nf_Man_t * p )
             p->pPars->Area++;
             p->nInvs++;
         }
-    if ( p->Iter && WordMapDelayOld < p->pPars->WordMapDelay )
+    if ( p->Iter && WordMapDelayOld < p->pPars->WordMapDelay && p->pGia->vOutReqs == NULL )
         printf( "******** Critical delay violation %.2f -> %.2f ********\n", Nf_Wrd2Flt(WordMapDelayOld), Nf_Wrd2Flt(p->pPars->WordMapDelay) ); 
 }
 
