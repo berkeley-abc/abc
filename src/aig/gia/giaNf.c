@@ -1399,7 +1399,7 @@ void Nf_ManComputeMapping( Nf_Man_t * p )
 void Nf_ManSetOutputRequireds( Nf_Man_t * p, int fPropCompl )
 {
     Gia_Obj_t * pObj;
-    word Required = 0;
+    word Required = 0, WordMapDelayOld = p->pPars->WordMapDelay;
     int fUseConMan = Scl_ConIsRunning() && Scl_ConHasOutReqs();
     int i, iObj, fCompl, nLits = 2*Gia_ManObjNum(p->pGia);
     Vec_WrdFill( &p->vRequired, nLits, NF_INFINITY );
@@ -1410,6 +1410,9 @@ void Nf_ManSetOutputRequireds( Nf_Man_t * p, int fPropCompl )
         Required = Nf_ObjMatchD( p, Gia_ObjFaninId0p(p->pGia, pObj), Gia_ObjFaninC0(pObj) )->D;
         p->pPars->WordMapDelay = Abc_MaxWord( p->pPars->WordMapDelay, Required );
     }
+    if ( p->Iter && WordMapDelayOld < p->pPars->WordMapDelay && p->pGia->vOutReqs == NULL )
+        printf( "******** Critical delay violation %.2f -> %.2f ********\n", Nf_Wrd2Flt(WordMapDelayOld), Nf_Wrd2Flt(p->pPars->WordMapDelay) ); 
+    p->pPars->WordMapDelay = Abc_MaxWord( p->pPars->WordMapDelay, WordMapDelayOld );
     // check delay target
     if ( p->pPars->WordMapDelayTarget == 0 && p->pPars->nRelaxRatio )
         p->pPars->WordMapDelayTarget = p->pPars->WordMapDelay * (100 + p->pPars->nRelaxRatio) / 100;
@@ -2076,13 +2079,6 @@ void Nf_ManUpdateStats( Nf_Man_t * p )
     Gia_Obj_t * pObj;
     Mio_Cell2_t * pCell;
     int i, c, Id, * pCut;
-    word WordMapDelayOld = p->pPars->WordMapDelay;
-    p->pPars->WordMapDelay = 0;
-    Gia_ManForEachCo( p->pGia, pObj, i )
-    {
-        word Delay = Nf_ObjMatchD( p, Gia_ObjFaninId0p(p->pGia, pObj), Gia_ObjFaninC0(pObj) )->D;
-        p->pPars->WordMapDelay = Abc_MaxWord( p->pPars->WordMapDelay, Delay );
-    }
     p->pPars->WordMapArea = 0; p->nInvs = 0;
     p->pPars->Area = p->pPars->Edge = 0;
     Gia_ManForEachAndReverse( p->pGia, pObj, i )
@@ -2127,8 +2123,6 @@ void Nf_ManUpdateStats( Nf_Man_t * p )
             p->pPars->Area++;
             p->nInvs++;
         }
-    if ( p->Iter && WordMapDelayOld < p->pPars->WordMapDelay && p->pGia->vOutReqs == NULL )
-        printf( "******** Critical delay violation %.2f -> %.2f ********\n", Nf_Wrd2Flt(WordMapDelayOld), Nf_Wrd2Flt(p->pPars->WordMapDelay) ); 
 }
 
 /**Function*************************************************************
