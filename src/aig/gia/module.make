@@ -47,6 +47,7 @@ SRC +=    src/aig/gia/giaAig.c \
     src/aig/gia/giaMuxes.c \
     src/aig/gia/giaNf.c \
     src/aig/gia/giaOf.c \
+    src/aig/gia/giaPack.c \
     src/aig/gia/giaPat.c \
     src/aig/gia/giaPf.c \
     src/aig/gia/giaQbf.c \
