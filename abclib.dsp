@@ -2519,6 +2519,10 @@ SOURCE=.\src\opt\sfm\sfmCore.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\opt\sfm\sfmDec.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\opt\sfm\sfmInt.h
 # End Source File
 # Begin Source File
