@@ -842,6 +842,28 @@ Gia_Man_t * Gia_ManDupCollapse( Gia_Man_t * p, Gia_Man_t * pBoxes, Vec_Int_t * v
     Gia_ManStop( pTemp );
     assert( Tim_ManPoNum(pManTime) == Gia_ManCoNum(pNew) );
     assert( Tim_ManPiNum(pManTime) == Gia_ManCiNum(pNew) );
+    // implement initial state if given
+    if ( p->vRegInits && Vec_IntSum(p->vRegInits) )
+    {
+        char * pInit = ABC_ALLOC( char, Vec_IntSize(p->vRegInits) + 1 );
+        Gia_Obj_t * pObj;
+        int i;
+        assert( Vec_IntSize(p->vRegInits) == Gia_ManRegNum(pNew) );
+        Gia_ManForEachRo( pNew, pObj, i )
+        {
+            if ( Vec_IntEntry(p->vRegInits, i) == 0 )
+                pInit[i] = '0';
+            else if ( Vec_IntEntry(p->vRegInits, i) == 1 )
+                pInit[i] = '1';
+            else 
+                pInit[i] = 'X';
+        }
+        pInit[i] = 0;
+        pNew = Gia_ManDupZeroUndc( pTemp = pNew, pInit, 1 );
+        pNew->nConstrs = pTemp->nConstrs; pTemp->nConstrs = 0;
+        Gia_ManStop( pTemp );
+        ABC_FREE( pInit );
+    }
     return pNew;
 }
 

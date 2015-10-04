@@ -656,6 +656,8 @@ Gia_Man_t * Gia_ManDupWithAttributes( Gia_Man_t * p )
         pNew->nAnd2Delay = p->nAnd2Delay;
     if ( p->vRegClasses )
         pNew->vRegClasses = Vec_IntDup( p->vRegClasses );
+    if ( p->vRegInits )
+        pNew->vRegInits = Vec_IntDup( p->vRegInits );
     if ( p->vConfigs )
         pNew->vConfigs = Vec_IntDup( p->vConfigs );
     if ( p->pCellStr )

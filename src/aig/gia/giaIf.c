@@ -2062,6 +2062,7 @@ void Gia_ManTransferTiming( Gia_Man_t * p, Gia_Man_t * pGia )
     p->pManTime    = pGia->pManTime;    pGia->pManTime    = NULL;
     p->pAigExtra   = pGia->pAigExtra;   pGia->pAigExtra   = NULL;
     p->vRegClasses = pGia->vRegClasses; pGia->vRegClasses = NULL;
+    p->vRegInits   = pGia->vRegInits;   pGia->vRegInits = NULL;
     p->nAnd2Delay  = pGia->nAnd2Delay;  pGia->nAnd2Delay  = 0;
 }
 

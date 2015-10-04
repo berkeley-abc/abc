@@ -154,13 +154,24 @@ Gia_Man_t * Gia_ManDupWithBoxes( Gia_Man_t * p, int fSeq )
     if ( fSeq )
     {
         pNew->vRegClasses = Vec_IntAlloc( Gia_ManRegBoxNum(p) );
+        if ( p->vRegInits )
+            pNew->vRegInits = Vec_IntAlloc( Gia_ManRegBoxNum(p) );
         iShift = Gia_ManPoNum(p) - Gia_ManRegBoxNum(p);
         for ( i = 0; i < Gia_ManRegBoxNum(p); i++ )
             if ( Gia_ObjIsTravIdCurrent(p, Gia_ManCo(p, iShift + i)) )
+            {
                 Vec_IntPush( pNew->vRegClasses, Vec_IntEntry(p->vRegClasses, i) );
+                if ( p->vRegInits )
+                    Vec_IntPush( pNew->vRegInits, Vec_IntEntry(p->vRegInits, i) );
+            }
     }
-    else if ( p->vRegClasses )
-        pNew->vRegClasses = Vec_IntDup( p->vRegClasses );
+    else 
+    {
+        if ( p->vRegClasses )
+            pNew->vRegClasses = Vec_IntDup( p->vRegClasses );
+        if ( p->vRegInits )
+            pNew->vRegInits = Vec_IntDup( p->vRegInits );
+    }
     // collect remaining boxes
     vBoxesLeft = Vec_IntAlloc( Gia_ManBoxNum(p) );
     curCi = Tim_ManPiNum(pManTime);

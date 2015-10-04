@@ -671,6 +671,19 @@ Gia_Man_t * Gia_AigerReadFromMemory( char * pContents, int nFileSize, int fSkipS
                 assert( pCur == pCurTemp );
                 if ( fVerbose ) printf( "Finished reading extension \"r\".\n" );
             }
+            // read register inits
+            else if ( *pCur == 's' )
+            {
+                int i, nRegs;
+                pCur++;
+                pCurTemp = pCur + Gia_AigerReadInt(pCur) + 4;           pCur += 4;
+                nRegs = Gia_AigerReadInt(pCur);                         pCur += 4;
+                pNew->vRegInits = Vec_IntAlloc( nRegs );
+                for ( i = 0; i < nRegs; i++ )
+                    Vec_IntPush( pNew->vRegInits, Gia_AigerReadInt(pCur) ), pCur += 4;
+                assert( pCur == pCurTemp );
+                if ( fVerbose ) printf( "Finished reading extension \"s\".\n" );
+            }
             // read configuration data
             else if ( *pCur == 'b' )
             {
@@ -1284,6 +1297,16 @@ void Gia_AigerWrite( Gia_Man_t * pInit, char * pFileName, int fWriteSymbols, int
         Gia_FileWriteBufferSize( pFile, Vec_IntSize(p->vRegClasses) );
         for ( i = 0; i < Vec_IntSize(p->vRegClasses); i++ )
             Gia_FileWriteBufferSize( pFile, Vec_IntEntry(p->vRegClasses, i) );
+    }
+    // write register inits
+    if ( p->vRegInits )
+    {
+        int i;
+        fprintf( pFile, "s" );
+        Gia_FileWriteBufferSize( pFile, 4*(Vec_IntSize(p->vRegInits)+1) );
+        Gia_FileWriteBufferSize( pFile, Vec_IntSize(p->vRegInits) );
+        for ( i = 0; i < Vec_IntSize(p->vRegInits); i++ )
+            Gia_FileWriteBufferSize( pFile, Vec_IntEntry(p->vRegInits, i) );
     }
     // write configuration data
     if ( p->vConfigs )

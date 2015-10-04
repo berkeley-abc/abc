@@ -348,6 +348,9 @@ Gia_Man_t * Gia_ManInsertMfs( Gia_Man_t * p, Sfm_Ntk_t * pNtk )
     // duplicated flops
     if ( p->vRegClasses )
         pNew->vRegClasses = Vec_IntDup( p->vRegClasses );
+    // duplicated initial state
+    if ( p->vRegInits )
+        pNew->vRegInits = Vec_IntDup( p->vRegInits );
 
     // cleanup
     Vec_WecFree( vGroups );
