@@ -2527,6 +2527,10 @@ SOURCE=.\src\opt\sfm\sfmInt.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\opt\sfm\sfmLib.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\opt\sfm\sfmNtk.c
 # End Source File
 # Begin Source File

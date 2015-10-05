@@ -10820,11 +10820,11 @@ int Abc_CommandTestColor( Abc_Frame_t * pAbc, int argc, char ** argv )
 ***********************************************************************/
 int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-//    Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
+    Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
     int nCutMax      =  1;
     int nLeafMax     =  4;
     int nDivMax      =  2;
-    int nDecMax      = 20;
+    int nDecMax      = 70;
     int nNumOnes     =  4;
     int fNewAlgo     =  0;
     int fNewOrder    =  0;
@@ -10909,13 +10909,13 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
             goto usage;
         }
     }
-/*
+
     if ( pNtk == NULL )
     {
         Abc_Print( -1, "Empty network.\n" );
         return 1;
     }
-
+/*
     if ( Abc_NtkIsStrash(pNtk) )
     {
         Abc_Print( -1, "This command works only for logic networks.\n" );
@@ -11029,9 +11029,11 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     {
         extern void Tab_DecomposeTest();
+        extern void Sfm_DecTestBench( Abc_Ntk_t * pNtk, int iNode );
         //Tab_DecomposeTest();
         extern void Cnf_AddCardinConstrTest();
-        Cnf_AddCardinConstrTest();
+        //Cnf_AddCardinConstrTest();
+        Sfm_DecTestBench( pNtk, nDecMax );
     }
     return 0;
 usage:
