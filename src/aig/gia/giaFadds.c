@@ -538,7 +538,7 @@ Tim_Man_t * Gia_ManGenerateTim( int nPis, int nPos, int nBoxes, int nIns, int nO
     curPo = 0;
     for ( i = 0; i < nBoxes; i++ )
     {
-        Tim_ManCreateBox( pMan, curPo, nIns, curPi, nOuts, 0 );
+        Tim_ManCreateBox( pMan, curPo, nIns, curPi, nOuts, 0, 0 );
         curPi += nOuts;
         curPo += nIns;
     }

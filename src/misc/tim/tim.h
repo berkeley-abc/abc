@@ -110,7 +110,7 @@ typedef struct Tim_Man_t_  Tim_Man_t;
 ////////////////////////////////////////////////////////////////////////
 
 /*=== timBox.c ===========================================================*/
-extern void            Tim_ManCreateBox( Tim_Man_t * p, int firstIn, int nIns, int firstOut, int nOuts, int iDelayTable );
+extern void            Tim_ManCreateBox( Tim_Man_t * p, int firstIn, int nIns, int firstOut, int nOuts, int iDelayTable, int fBlack );
 extern int             Tim_ManBoxForCi( Tim_Man_t * p, int iCo );
 extern int             Tim_ManBoxForCo( Tim_Man_t * p, int iCi );
 extern int             Tim_ManBoxInputFirst( Tim_Man_t * p, int iBox );
@@ -147,6 +147,7 @@ extern int             Tim_ManPiNum( Tim_Man_t * p );
 extern int             Tim_ManPoNum( Tim_Man_t * p );
 extern int             Tim_ManBoxNum( Tim_Man_t * p );
 extern int             Tim_ManBlackBoxNum( Tim_Man_t * p );
+extern void            Tim_ManBlackBoxIoNum( Tim_Man_t * p, int * pnBbIns, int * pnBbOuts );
 extern int             Tim_ManDelayTableNum( Tim_Man_t * p );
 extern void            Tim_ManSetDelayTables( Tim_Man_t * p, Vec_Ptr_t * vDelayTables );
 extern void            Tim_ManTravIdDisable( Tim_Man_t * p );

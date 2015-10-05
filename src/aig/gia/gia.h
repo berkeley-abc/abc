@@ -1384,6 +1384,7 @@ extern Vec_Flt_t *         Gia_ManPrintOutputProb( Gia_Man_t * p );
 extern int                 Gia_ManBoxNum( Gia_Man_t * p );
 extern int                 Gia_ManRegBoxNum( Gia_Man_t * p );
 extern int                 Gia_ManNonRegBoxNum( Gia_Man_t * p );
+extern int                 Gia_ManBlackBoxNum( Gia_Man_t * p );
 extern int                 Gia_ManBoxCiNum( Gia_Man_t * p );
 extern int                 Gia_ManBoxCoNum( Gia_Man_t * p );
 extern int                 Gia_ManClockDomainNum( Gia_Man_t * p );

@@ -327,7 +327,7 @@ Gia_Man_t * Abc_NtkTestTimDeriveGia( Abc_Ntk_t * pNtk, int fVerbose )
         }
         // create box
         BoxUniqueId = Abc_ObjFaninNum(pObj); // in this case, the node size is the ID of its delay table
-        Tim_ManCreateBox( pTim, curPo, Abc_ObjFaninNum(pObj), curPi, 1, BoxUniqueId );
+        Tim_ManCreateBox( pTim, curPo, Abc_ObjFaninNum(pObj), curPi, 1, BoxUniqueId, 0 );
         curPo += Abc_ObjFaninNum(pObj);
 
         // handle box inputs

@@ -613,7 +613,7 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Vec_Int_t * vBoxIds )
             pObj->Mark = 0;
 
             // create new box
-            Tim_ManCreateBox( pManTime, curPo, nRange0 + nRange1, curPi, nRange, -1 );
+            Tim_ManCreateBox( pManTime, curPo, nRange0 + nRange1, curPi, nRange, -1, 0 );
             curPi += nRange;
             curPo += nRange0 + nRange1;
 

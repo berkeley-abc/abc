@@ -145,7 +145,7 @@ Tim_Man_t * Tim_ManDup( Tim_Man_t * p, int fUnitDelay )
         Tim_ManForEachBox( p, pBox, i )
         {
            Tim_ManCreateBox( pNew, pBox->Inouts[0], pBox->nInputs, 
-                pBox->Inouts[pBox->nInputs], pBox->nOutputs, pBox->iDelayTable );
+                pBox->Inouts[pBox->nInputs], pBox->nOutputs, pBox->iDelayTable, pBox->fBlack );
            Tim_ManBoxSetCopy( pNew, i, pBox->iCopy );
         }
     }
@@ -228,7 +228,7 @@ Tim_Man_t * Tim_ManTrim( Tim_Man_t * p, Vec_Int_t * vBoxPres )
         Tim_ManForEachBox( p, pBox, i )
             if ( Vec_IntEntry(vBoxPres, i) )
             {
-                Tim_ManCreateBox( pNew, curPo, pBox->nInputs, curPi, pBox->nOutputs, pBox->iDelayTable );
+                Tim_ManCreateBox( pNew, curPo, pBox->nInputs, curPi, pBox->nOutputs, pBox->iDelayTable, pBox->fBlack );
                 Tim_ManBoxSetCopy( pNew, Tim_ManBoxNum(pNew) - 1, Tim_ManBoxCopy(p, i) == -1 ? i : Tim_ManBoxCopy(p, i) );
                 curPi += pBox->nOutputs;
                 curPo += pBox->nInputs;
@@ -321,7 +321,7 @@ Tim_Man_t * Tim_ManReduce( Tim_Man_t * p, Vec_Int_t * vBoxesLeft, int nTermsDiff
         Vec_IntForEachEntry( vBoxesLeft, iBox, i )
         {
             pBox = Tim_ManBox( p, iBox );
-            Tim_ManCreateBox( pNew, curPo, pBox->nInputs, curPi, pBox->nOutputs, pBox->iDelayTable );
+            Tim_ManCreateBox( pNew, curPo, pBox->nInputs, curPi, pBox->nOutputs, pBox->iDelayTable, pBox->fBlack );
             Tim_ManBoxSetCopy( pNew, Tim_ManBoxNum(pNew) - 1, Tim_ManBoxCopy(p, iBox) == -1 ? iBox : Tim_ManBoxCopy(p, iBox) );
             curPi += pBox->nOutputs;
             curPo += pBox->nInputs;
@@ -729,6 +729,20 @@ int Tim_ManBlackBoxNum( Tim_Man_t * p )
         Tim_ManForEachBox( p, pBox, i )
             Counter += pBox->fBlack;
     return Counter;
+}
+void Tim_ManBlackBoxIoNum( Tim_Man_t * p, int * pnBbIns, int * pnBbOuts )
+{
+    Tim_Box_t * pBox;
+    int i;
+    *pnBbIns = *pnBbOuts = 0;
+    if ( Tim_ManBoxNum(p) )
+        Tim_ManForEachBox( p, pBox, i )
+        {
+            if ( !pBox->fBlack )
+                continue;
+            *pnBbIns  += Tim_ManBoxInputNum( p, i );
+            *pnBbOuts += Tim_ManBoxOutputNum( p, i );
+        }
 }
 int Tim_ManDelayTableNum( Tim_Man_t * p )
 {

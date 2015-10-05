@@ -70,6 +70,7 @@ Vec_Str_t * Tim_ManSave( Tim_Man_t * p, int fHieOnly )
         Vec_StrPutI_ne( vStr, Tim_ManBoxOutputNum(p, pBox->iBox) );
         Vec_StrPutI_ne( vStr, Tim_ManBoxDelayTableId(p, pBox->iBox) ); // can be -1 if delay table is not given
         Vec_StrPutI_ne( vStr, Tim_ManBoxCopy(p, pBox->iBox) );         // can be -1 if the copy is node defined
+        //Vec_StrPutI_ne( vStr, Tim_ManBoxIsBlack(p, pBox->iBox) );
     }
     if ( fHieOnly )
         return vStr;
@@ -114,7 +115,7 @@ Tim_Man_t * Tim_ManLoad( Vec_Str_t * p, int fHieOnly )
     Tim_Man_t * pMan;
     Tim_Obj_t * pObj;
     int VerNum, nCis, nCos, nPis, nPos;
-    int nBoxes, nBoxIns, nBoxOuts, CopyBox;
+    int nBoxes, nBoxIns, nBoxOuts, CopyBox, fBlack;
     int TableId, nTables, TableSize, TableX, TableY;
     int i, k, curPi, curPo, iStr = 0;
     float * pDelayTable;
@@ -143,7 +144,8 @@ Tim_Man_t * Tim_ManLoad( Vec_Str_t * p, int fHieOnly )
         nBoxOuts = Vec_StrGetI_ne( p, &iStr );
         TableId  = Vec_StrGetI_ne( p, &iStr );
         CopyBox  = Vec_StrGetI_ne( p, &iStr );
-        Tim_ManCreateBox( pMan, curPo, nBoxIns, curPi, nBoxOuts, TableId );
+        fBlack   = 0;//Vec_StrGetI_ne( p, &iStr );
+        Tim_ManCreateBox( pMan, curPo, nBoxIns, curPi, nBoxOuts, TableId, fBlack );
         Tim_ManBoxSetCopy( pMan, i, CopyBox );
         curPi += nBoxOuts;
         curPo += nBoxIns;

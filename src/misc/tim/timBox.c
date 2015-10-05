@@ -41,7 +41,7 @@ ABC_NAMESPACE_IMPL_START
   SeeAlso     []
 
 ***********************************************************************/
-void Tim_ManCreateBox( Tim_Man_t * p, int firstIn, int nIns, int firstOut, int nOuts, int iDelayTable )
+void Tim_ManCreateBox( Tim_Man_t * p, int firstIn, int nIns, int firstOut, int nOuts, int iDelayTable, int fBlack )
 {
     Tim_Box_t * pBox;
     int i;
@@ -54,6 +54,7 @@ void Tim_ManCreateBox( Tim_Man_t * p, int firstIn, int nIns, int firstOut, int n
     pBox->iDelayTable = iDelayTable;
     pBox->nInputs  = nIns;
     pBox->nOutputs = nOuts;
+    pBox->fBlack = fBlack;
     for ( i = 0; i < nIns; i++ )
     {
         assert( firstIn+i < p->nCos );
