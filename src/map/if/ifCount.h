@@ -141,9 +141,9 @@ static inline int If_LogCounterDelayXor( int * pTimes, int nTimes )
   SeeAlso     []
 
 ***********************************************************************/
-static inline int  If_CutPinDelayGet( word D, int v )           { assert(v >= 0 && v < IF_MAX_FUNC_LUTSIZE); return (int)((D >> (v << 2)) & 0xF);                             }
-static inline void If_CutPinDelaySet( word * pD, int v, int d ) { assert(v >= 0 && v < IF_MAX_FUNC_LUTSIZE); assert(d >= 0 && d < IF_MAX_FUNC_LUTSIZE); *pD |= ((word)d << (v << 2)); }
-static inline word If_CutPinDelayInit( int v )                  { assert(v >= 0 && v < IF_MAX_FUNC_LUTSIZE); return (word)1 << (v << 2);                                      }
+static inline int  If_CutPinDelayGet( word D, int v )           { assert(v >= 0 && v < 16); return (int)((D >> (v << 2)) & 0xF);                    }
+static inline void If_CutPinDelaySet( word * pD, int v, int d ) { assert(v >= 0 && v < 16); assert(d >= 0 && d < 16); *pD |= ((word)d << (v << 2)); }
+static inline word If_CutPinDelayInit( int v )                  { assert(v >= 0 && v < 16); return (word)1 << (v << 2);                             }
 static inline word If_CutPinDelayMax( word D1, word D2, int nVars, int AddOn )
 {
     int v, Max;
