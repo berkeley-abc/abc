@@ -2772,7 +2772,7 @@ void Id_DsdManTuneThresh( If_DsdMan_t * p, int fUnate, int fThresh, int fThreshH
     word * pTruth, Perm;
     int i, nVars, Value;
     abctime clk = Abc_Clock();
-    assert( fUnate != fThresh || fUnate != fThreshHeuristic );
+    assert( fUnate + fThresh + fThreshHeuristic <= 1 );
     if ( p->nObjsPrev > 0 )
         printf( "Starting the tuning process from object %d (out of %d).\n", p->nObjsPrev, Vec_PtrSize(&p->vObjs) );
     // clean the attributes

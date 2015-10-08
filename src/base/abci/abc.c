@@ -16805,7 +16805,8 @@ int Abc_CommandDsdFilter( Abc_Frame_t * pAbc, int argc, char ** argv )
         If_DsdManCleanMarks( pDsd, fVerbose );
     if ( fInvMarks )
         If_DsdManInvertMarks( pDsd, fVerbose );
-    Id_DsdManTuneThresh( pDsd, fUnate, fThresh, fThreshHeuristic, fVerbose );
+    else
+        Id_DsdManTuneThresh( pDsd, fUnate, fThresh, fThreshHeuristic, fVerbose );
     return 0;
 
 usage:
