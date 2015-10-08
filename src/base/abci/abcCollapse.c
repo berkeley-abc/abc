@@ -290,16 +290,16 @@ Gia_Man_t * Abc_NtkClpOneGia( Abc_Ntk_t * pNtk, int iCo, Vec_Int_t * vSupp )
     Gia_ManStop( pTemp );
     return pNew;
 }
-Vec_Str_t * Abc_NtkClpOne( Abc_Ntk_t * pNtk, int iCo, int nCubeLim, int nBTLimit, int fVerbose, int fCanon, Vec_Int_t ** pvSupp )
+Vec_Str_t * Abc_NtkClpOne( Abc_Ntk_t * pNtk, int iCo, int nCubeLim, int nBTLimit, int fVerbose, int fCanon, int fReverse, Vec_Int_t ** pvSupp )
 {
     extern Vec_Int_t * Abc_NtkNodeSupportInt( Abc_Ntk_t * pNtk, int iCo );
-    extern Vec_Str_t * Bmc_CollapseOne( Gia_Man_t * p, int nCubeLim, int nBTLimit, int fCanon, int fVerbose );
+    extern Vec_Str_t * Bmc_CollapseOne( Gia_Man_t * p, int nCubeLim, int nBTLimit, int fCanon, int fReverse, int fVerbose );
     Vec_Int_t * vSupp = Abc_NtkNodeSupportInt( pNtk, iCo );
     Gia_Man_t * pGia  = Abc_NtkClpOneGia( pNtk, iCo, vSupp );
     Vec_Str_t * vSop;
     if ( fVerbose )
         printf( "Output %d:\n", iCo );
-    vSop = Bmc_CollapseOne( pGia, nCubeLim, nBTLimit, fCanon, fVerbose );
+    vSop = Bmc_CollapseOne( pGia, nCubeLim, nBTLimit, fCanon, fReverse, fVerbose );
     Gia_ManStop( pGia );
     *pvSupp = vSupp;
     if ( vSop == NULL )
@@ -320,14 +320,14 @@ Vec_Str_t * Abc_NtkClpOne( Abc_Ntk_t * pNtk, int iCo, int nCubeLim, int nBTLimit
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Obj_t * Abc_NtkFromSopsOne( Abc_Ntk_t * pNtkNew, Abc_Ntk_t * pNtk, int iCo, int nCubeLim, int nBTLimit, int fCanon, int fVerbose )
+Abc_Obj_t * Abc_NtkFromSopsOne( Abc_Ntk_t * pNtkNew, Abc_Ntk_t * pNtk, int iCo, int nCubeLim, int nBTLimit, int fCanon, int fReverse, int fVerbose )
 {
     Abc_Obj_t * pNodeNew;
     Vec_Int_t * vSupp;
     Vec_Str_t * vSop;
     int i, iCi;
     // compute SOP of the node
-    vSop = Abc_NtkClpOne( pNtk, iCo, nCubeLim, nBTLimit, fVerbose, fCanon, &vSupp );
+    vSop = Abc_NtkClpOne( pNtk, iCo, nCubeLim, nBTLimit, fVerbose, fCanon, fReverse, &vSupp );
     if ( vSop == NULL )
         return NULL;
     // create a new node
@@ -341,7 +341,7 @@ Abc_Obj_t * Abc_NtkFromSopsOne( Abc_Ntk_t * pNtkNew, Abc_Ntk_t * pNtk, int iCo, 
     Vec_StrFree( vSop );
     return pNodeNew;
 }
-Abc_Ntk_t * Abc_NtkFromSops( Abc_Ntk_t * pNtk, int nCubeLim, int nBTLimit, int fCanon, int fVerbose )
+Abc_Ntk_t * Abc_NtkFromSops( Abc_Ntk_t * pNtk, int nCubeLim, int nBTLimit, int fCanon, int fReverse, int fVerbose )
 {
     ProgressBar * pProgress;
     Abc_Ntk_t * pNtkNew;
@@ -381,7 +381,7 @@ Abc_Ntk_t * Abc_NtkFromSops( Abc_Ntk_t * pNtk, int nCubeLim, int nBTLimit, int f
             Abc_ObjAddFanin( pNode->pCopy, pNodeNew );
             continue;
         }
-        pNodeNew = Abc_NtkFromSopsOne( pNtkNew, pNtk, i, nCubeLim, nBTLimit, fCanon, fVerbose );
+        pNodeNew = Abc_NtkFromSopsOne( pNtkNew, pNtk, i, nCubeLim, nBTLimit, fCanon, fReverse, fVerbose );
         if ( pNodeNew == NULL )
         {
             Abc_NtkDelete( pNtkNew );
@@ -394,12 +394,12 @@ Abc_Ntk_t * Abc_NtkFromSops( Abc_Ntk_t * pNtk, int nCubeLim, int nBTLimit, int f
     Extra_ProgressBarStop( pProgress );
     return pNtkNew;
 }
-Abc_Ntk_t * Abc_NtkCollapseSat( Abc_Ntk_t * pNtk, int nCubeLim, int nBTLimit, int fCanon, int fVerbose )
+Abc_Ntk_t * Abc_NtkCollapseSat( Abc_Ntk_t * pNtk, int nCubeLim, int nBTLimit, int fCanon, int fReverse, int fVerbose )
 {
     Abc_Ntk_t * pNtkNew;
     assert( Abc_NtkIsStrash(pNtk) );
     // create the new network
-    pNtkNew = Abc_NtkFromSops( pNtk, nCubeLim, nBTLimit, fCanon, fVerbose );
+    pNtkNew = Abc_NtkFromSops( pNtk, nCubeLim, nBTLimit, fCanon, fReverse, fVerbose );
     if ( pNtkNew == NULL )
         return NULL;
     if ( pNtk->pExdc )

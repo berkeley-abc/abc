@@ -190,7 +190,7 @@ int Bmc_ComputeCanonical( sat_solver * pSat, Vec_Int_t * vLits, Vec_Int_t * vTem
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Str_t * Bmc_CollapseOneInt( Gia_Man_t * p, int nCubeLim, int nBTLimit, int fCanon, int fVerbose, int fCompl )
+Vec_Str_t * Bmc_CollapseOneInt( Gia_Man_t * p, int nCubeLim, int nBTLimit, int fCanon, int fReverse, int fVerbose, int fCompl )
 {
     int fPrintMinterm = 0;
     int nVars = Gia_ManCiNum(p);
@@ -212,8 +212,12 @@ Vec_Str_t * Bmc_CollapseOneInt( Gia_Man_t * p, int nCubeLim, int nBTLimit, int f
 
     // collect CI variables
     int iCiVarBeg = pCnf->nVars - nVars;// - 1;
-    for ( n = 0; n < nVars; n++ )
-        Vec_IntPush( vVars, iCiVarBeg + n );
+    if ( fReverse )
+        for ( n = nVars - 1; n >= 0; n-- )
+            Vec_IntPush( vVars, iCiVarBeg + n );
+    else
+        for ( n = 0; n < nVars; n++ )
+            Vec_IntPush( vVars, iCiVarBeg + n );
 
     // start with all negative literals
     Vec_IntForEachEntry( vVars, iVar, n )
@@ -338,16 +342,16 @@ cleanup:
     Cnf_DataFree( pCnf );
     return vSop;
 }
-Vec_Str_t * Bmc_CollapseOne( Gia_Man_t * p, int nCubeLim, int nBTLimit, int fCanon, int fVerbose )
+Vec_Str_t * Bmc_CollapseOne( Gia_Man_t * p, int nCubeLim, int nBTLimit, int fCanon, int fReverse, int fVerbose )
 {
     Vec_Str_t * vSopOn, * vSopOff;
     int nCubesOn = ABC_INFINITY;
     int nCubesOff = ABC_INFINITY;
-    vSopOn = Bmc_CollapseOneInt( p, nCubeLim, nBTLimit, fCanon, fVerbose, 0 );
+    vSopOn = Bmc_CollapseOneInt( p, nCubeLim, nBTLimit, fCanon, fReverse, fVerbose, 0 );
     if ( vSopOn )
         nCubesOn = Vec_StrCountEntry(vSopOn,'\n');
     Gia_ObjFlipFaninC0( Gia_ManPo(p, 0) );
-    vSopOff = Bmc_CollapseOneInt( p, Abc_MinInt(nCubeLim, nCubesOn), nBTLimit, fCanon, fVerbose, 1 );
+    vSopOff = Bmc_CollapseOneInt( p, Abc_MinInt(nCubeLim, nCubesOn), nBTLimit, fCanon, fReverse, fVerbose, 1 );
     Gia_ObjFlipFaninC0( Gia_ManPo(p, 0) );
     if ( vSopOff )
         nCubesOff = Vec_StrCountEntry(vSopOff,'\n');

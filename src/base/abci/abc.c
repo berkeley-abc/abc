@@ -3103,12 +3103,13 @@ int Abc_CommandSatClp( Abc_Frame_t * pAbc, int argc, char ** argv )
     int nCubeLim = 1000;
     int nBTLimit = 1000000;
     int fCanon   = 0;
+    int fReverse = 0;
     int fVerbose = 0;
     int c;
 
     // set defaults
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "CLcvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "CLcrvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -3137,6 +3138,9 @@ int Abc_CommandSatClp( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'c':
             fCanon ^= 1;
             break;
+        case 'r':
+            fReverse ^= 1;
+            break;
         case 'v':
             fVerbose ^= 1;
             break;
@@ -3161,11 +3165,11 @@ int Abc_CommandSatClp( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     // get the new network
     if ( Abc_NtkIsStrash(pNtk) )
-        pNtkRes = Abc_NtkCollapseSat( pNtk, nCubeLim, nBTLimit, fCanon, fVerbose );
+        pNtkRes = Abc_NtkCollapseSat( pNtk, nCubeLim, nBTLimit, fCanon, fReverse, fVerbose );
     else
     {
         pNtk = Abc_NtkStrash( pNtk, 0, 0, 0 );
-        pNtkRes = Abc_NtkCollapseSat( pNtk, nCubeLim, nBTLimit, fCanon, fVerbose );
+        pNtkRes = Abc_NtkCollapseSat( pNtk, nCubeLim, nBTLimit, fCanon, fReverse, fVerbose );
         Abc_NtkDelete( pNtk );
     }
     if ( pNtkRes == NULL )
@@ -3178,11 +3182,12 @@ int Abc_CommandSatClp( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: satclp [-CL num] [-cvh]\n" );
+    Abc_Print( -2, "usage: satclp [-CL num] [-crvh]\n" );
     Abc_Print( -2, "\t         performs SAT based collapsing\n" );
     Abc_Print( -2, "\t-C num : the limit on the SOP size of one output [default = %d]\n", nCubeLim );
     Abc_Print( -2, "\t-L num : the limit on the number of conflicts in one SAT call [default = %d]\n", nBTLimit );
     Abc_Print( -2, "\t-c     : toggles using canonical ISOP computation [default = %s]\n", fCanon? "yes": "no" );
+    Abc_Print( -2, "\t-r     : toggles using reverse veriable ordering [default = %s]\n", fReverse? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggles printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
@@ -37807,7 +37812,7 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9SatClp( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern Vec_Str_t * Bmc_CollapseOne( Gia_Man_t * p, int nCubeLim, int nBTLimit, int fCanon, int fVerbose );
+    extern Vec_Str_t * Bmc_CollapseOne( Gia_Man_t * p, int nCubeLim, int nBTLimit, int fCanon, int fReverse, int fVerbose );
     int nCubeLim = 1000;
     int nBTLimit = 1000000;
     int fCanon   = 0;
@@ -37859,7 +37864,7 @@ int Abc_CommandAbc9SatClp( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Abc_CommandAbc9SatClp(): There is no AIG.\n" );
         return 0;
     }
-    vSop = Bmc_CollapseOne( pAbc->pGia, nCubeLim, nBTLimit, fCanon, fVerbose );
+    vSop = Bmc_CollapseOne( pAbc->pGia, nCubeLim, nBTLimit, fCanon, 0, fVerbose );
     Vec_StrFree( vSop );
     return 0;
 
