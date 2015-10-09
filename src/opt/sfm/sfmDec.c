@@ -72,6 +72,27 @@ struct Sfm_Dec_t_
     abctime           timeWin;
     abctime           timeCnf;
     abctime           timeSat;
+    abctime           timeOther;
+    abctime           timeStart;
+    abctime           timeTotal;
+    int               nTotalNodesBeg;
+    int               nTotalEdgesBeg;
+    int               nTotalNodesEnd;
+    int               nTotalEdgesEnd;
+    int               nNodesTried;
+    int               nNodesChanged;
+    int               nNodesConst0;
+    int               nNodesConst1;
+    int               nNodesBuf;
+    int               nNodesInv;
+    int               nNodesResyn;
+    int               nSatCalls;
+    int               nTimeOuts;
+    int               nNoDecs;
+    int               nMaxDivs;
+    int               nMaxWin;
+    word              nAllDivs;
+    word              nAllWin;
 };
 
 ////////////////////////////////////////////////////////////////////////
@@ -120,6 +141,7 @@ Sfm_Dec_t * Sfm_DecStart( Sfm_Par_t * pPars )
     Sfm_Dec_t * p = ABC_CALLOC( Sfm_Dec_t, 1 );
     p->pPars = pPars;
     p->pSat = sat_solver_new();
+    p->timeStart = Abc_Clock();
     return p;
 }
 void Sfm_DecStop( Sfm_Dec_t * p )
@@ -163,7 +185,6 @@ void Sfm_DecStop( Sfm_Dec_t * p )
 ***********************************************************************/
 int Sfm_DecPrepareSolver( Sfm_Dec_t * p )
 {
-    abctime clk = Abc_Clock();
     Vec_Int_t * vRoots = &p->vObjRoots;
     Vec_Int_t * vFaninVars = &p->vTemp2;
     Vec_Int_t * vLevel, * vClause;
@@ -235,7 +256,6 @@ int Sfm_DecPrepareSolver( Sfm_Dec_t * p )
     else assert( Vec_IntSize(vRoots) == 1 );
     // finalize
     RetValue = sat_solver_simplify( p->pSat );
-    p->timeCnf += Abc_Clock() - clk;
     return 1;
 }
 
@@ -259,7 +279,6 @@ int Sfm_DecPeformDecOne( Sfm_Dec_t * p, int * pfConst )
 {
     int fVerbose = p->pPars->fVeryVerbose;
     int nBTLimit = 0;
-    abctime clk = Abc_Clock();
     int i, k, c, Entry, status, Lits[3], RetValue;
     int iLitBest = -1, iCBest = -1, WeightBest = -1, Weight;
     *pfConst = -1;
@@ -275,9 +294,13 @@ int Sfm_DecPeformDecOne( Sfm_Dec_t * p, int * pfConst )
     for ( c = 0; c < 2; c++ )
     {
         Lits[0] = Abc_Var2Lit( p->iTarget, c );
+        p->nSatCalls++;
         status = sat_solver_solve( p->pSat, Lits, Lits + 1, nBTLimit, 0, 0, 0 );
         if ( status == l_Undef )
+        {
+            p->nTimeOuts++;
             return -2;
+        }
         if ( status == l_False )
         {
             *pfConst = c;
@@ -304,6 +327,7 @@ int Sfm_DecPeformDecOne( Sfm_Dec_t * p, int * pfConst )
             if ( Column != 0 && Column != p->uMask[c] ) // diff value is possible
                 continue;
             Lits[1] = Abc_Var2Lit( i, Column != 0 );
+            p->nSatCalls++;
             status = sat_solver_solve( p->pSat, Lits, Lits + 2, nBTLimit, 0, 0, 0 );
             if ( status == l_Undef )
                 return 0;
@@ -340,7 +364,10 @@ int Sfm_DecPeformDecOne( Sfm_Dec_t * p, int * pfConst )
         }
     }
     if ( WeightBest == -1 )
+    {
+        p->nNoDecs++;
         return -2;
+    }
 
     // add clause
     Lits[0] = Abc_Var2Lit( p->iTarget, iCBest );
@@ -350,7 +377,6 @@ int Sfm_DecPeformDecOne( Sfm_Dec_t * p, int * pfConst )
         return -1;
 
 
-    p->timeSat += Abc_Clock() - clk;
     // print the results
     if ( !fVerbose )
         return Abc_Var2Lit( iLitBest, iCBest );
@@ -390,7 +416,7 @@ int Sfm_DecPeformDecOne( Sfm_Dec_t * p, int * pfConst )
     }
     return Abc_Var2Lit( iLitBest, iCBest );
 }
-int Sfm_DecPeformDec( Sfm_Dec_t * p, Mio_Library_t * pLib )
+int Sfm_DecPeformDec( Sfm_Dec_t * p )
 {
     Vec_Int_t * vLevel;
     int i, Dec, Last, fCompl, Pol, fConst = -1, nNodes = Vec_IntSize(&p->vObjGates);
@@ -401,7 +427,7 @@ int Sfm_DecPeformDec( Sfm_Dec_t * p, Mio_Library_t * pLib )
         Dec = Sfm_DecPeformDecOne( p, &fConst );
         if ( Dec == -2 )
         {
-            if ( p->pPars->fVerbose )
+            if ( p->pPars->fVeryVerbose )
                 printf( "There is no decomposition (or time out occurred).\n" );
             return -1;
         }
@@ -411,20 +437,25 @@ int Sfm_DecPeformDec( Sfm_Dec_t * p, Mio_Library_t * pLib )
     }
     if ( i == p->nMffc + 1 )
     {
-        if ( p->pPars->fVerbose )
+        if ( p->pPars->fVeryVerbose )
         printf( "Area-reducing decomposition is not found.\n" );
         return -1;
     }
+    p->nNodesChanged++;
     // check constant
     if ( Vec_IntSize(&p->vObjDec) == 0 )
     {
         assert( fConst >= 0 );
-        // report
-        if ( p->pPars->fVerbose )
-        printf( "Create constant %d.\n", fConst );
         // add gate
         Vec_IntPush( &p->vObjGates, fConst ? p->GateConst1 : p->GateConst0 );
         vLevel = Vec_WecPushLevel( &p->vObjFanins );
+        if ( fConst ) 
+            p->nNodesConst1++;  
+        else 
+            p->nNodesConst0++;
+        // report
+        if ( p->pPars->fVeryVerbose )
+            printf( "Create constant %d.\n", fConst );
         return Vec_IntSize(&p->vObjDec);
     }
     // create network
@@ -433,25 +464,25 @@ int Sfm_DecPeformDec( Sfm_Dec_t * p, Mio_Library_t * pLib )
     Last = Abc_LitNotCond( Abc_Lit2Var(Last), fCompl );
     if ( Vec_IntSize(&p->vObjDec) == 0 )
     {
-        // report
-        if ( p->pPars->fVerbose )
-//        printf( "Create node %d = %s%d.\n", nNodes, (Abc_LitIsCompl(Last) ^ fCompl) ? "!":"", Abc_Lit2Var(Last) );
-        printf( "Create node %d = %s%d.\n", nNodes, Abc_LitIsCompl(Last) ? "!":"", Abc_Lit2Var(Last) );
         // add gate
-//        Vec_IntPush( &p->vObjGates, (Abc_LitIsCompl(Last) ^ fCompl) ? p->GateInvert : p->GateBuffer );
         Vec_IntPush( &p->vObjGates, Abc_LitIsCompl(Last) ? p->GateInvert : p->GateBuffer );
         vLevel = Vec_WecPushLevel( &p->vObjFanins );
         Vec_IntPush( vLevel, Abc_Lit2Var(Last) );
+        if ( Abc_LitIsCompl(Last) ) 
+            p->nNodesInv++;
+        else 
+            p->nNodesBuf++;  
+        // report
+        if ( p->pPars->fVeryVerbose )
+            printf( "Create buf/inv %d = %s%d.\n", nNodes, Abc_LitIsCompl(Last) ? "!":"", Abc_Lit2Var(Last) );
         return Vec_IntSize(&p->vObjDec);
     }
     Vec_IntForEachEntryReverse( &p->vObjDec, Dec, i )
     {
         fCompl = Abc_LitIsCompl(Dec);
-//        Dec = Abc_Lit2Var(Dec);
         Dec = Abc_LitNotCond( Abc_Lit2Var(Dec), fCompl );
         // add gate
         Pol = (Abc_LitIsCompl(Last) << 1) | Abc_LitIsCompl(Dec);
-//        Pol = Abc_LitIsCompl(Dec);
         if ( fCompl )
             Vec_IntPush( &p->vObjGates, p->GateOr[Pol] );
         else
@@ -460,16 +491,17 @@ int Sfm_DecPeformDec( Sfm_Dec_t * p, Mio_Library_t * pLib )
         Vec_IntPush( vLevel, Abc_Lit2Var(Dec) );
         Vec_IntPush( vLevel, Abc_Lit2Var(Last) );
         // report
-        if ( p->pPars->fVerbose )
-        printf( "Create node %s%d = %s%d and %s%d (gate %d).\n", 
-            fCompl? "!":"", nNodes,
-            Abc_LitIsCompl(Last)? "!":"", Abc_Lit2Var(Last),  
-            Abc_LitIsCompl(Dec)? "!":"", Abc_Lit2Var(Dec), 
-            Pol  );
+        if ( p->pPars->fVeryVerbose )
+            printf( "Create node %s%d = %s%d and %s%d (gate %d).\n", 
+                fCompl? "!":"", nNodes,
+                Abc_LitIsCompl(Last)? "!":"", Abc_Lit2Var(Last),  
+                Abc_LitIsCompl(Dec)? "!":"", Abc_Lit2Var(Dec), Pol  );
         // prepare for the next one
         Last = Abc_Var2Lit( nNodes, 0 );
         nNodes++;
     }
+    //printf( "\n" );
+    p->nNodesResyn++;
     return Vec_IntSize(&p->vObjDec);
 }
 
@@ -491,19 +523,14 @@ void Abc_NtkUpdateIncLevel_rec( Abc_Obj_t * pObj )
     if ( LevelNew == (int)pObj->Level )
         return;
     pObj->Level = LevelNew;
-    if ( Abc_ObjIsCo(pObj) )
-        return;
-    Abc_ObjForEachFanout( pObj, pFanout, i )
-        Abc_NtkUpdateIncLevel_rec( pFanout );
-}
-void Abc_NtkUpdateIncLevel( Abc_Obj_t * pObj )
-{
-    Abc_NtkUpdateIncLevel_rec( pObj );
+    if ( Abc_ObjIsNode(pObj) )
+        Abc_ObjForEachFanout( pObj, pFanout, i )
+            Abc_NtkUpdateIncLevel_rec( pFanout );
 }
 
 /**Function*************************************************************
 
-  Synopsis    [Testbench for the new AIG minimization.]
+  Synopsis    [Testbench for AIG minimization.]
 
   Description []
                
@@ -529,7 +556,7 @@ void Abc_NtkDfsReverseOne_rec( Abc_Obj_t * pObj, Vec_Int_t * vTfo, int nLevelMax
     if ( Abc_ObjFanoutNum(pObj) <= nFanoutMax )
     {
         Abc_ObjForEachFanout( pObj, pFanout, i )
-            if ( Abc_ObjIsCo(pFanout) )
+            if ( Abc_ObjIsCo(pFanout) || Abc_ObjLevel(pFanout) > nLevelMax )
                 break;
         if ( i == Abc_ObjFanoutNum(pObj) )
             Abc_ObjForEachFanout( pObj, pFanout, i )
@@ -565,7 +592,7 @@ void Sfm_DecAddNode( Abc_Obj_t * pObj, Vec_Int_t * vMap, Vec_Int_t * vGates, int
     Vec_IntPush( vMap, Abc_ObjId(pObj) );
     Vec_IntPush( vGates, fSkip ? -1 : Mio_GateReadValue((Mio_Gate_t *)pObj->pData) );
 }
-int Sfm_DecMarkMffc( Abc_Obj_t * pPivot, int nMffcMax, int fVeryVerbose )
+int Sfm_DecMarkMffc( Abc_Obj_t * pPivot, int nLevelMin, int nMffcMax, int fVeryVerbose )
 {
     Abc_Obj_t * pFanin, * pFanin2;
     int i, k, nMffc = 1;
@@ -573,7 +600,7 @@ int Sfm_DecMarkMffc( Abc_Obj_t * pPivot, int nMffcMax, int fVeryVerbose )
 if ( fVeryVerbose )
 printf( "Mffc = %d.\n", pPivot->Id );
     Abc_ObjForEachFanin( pPivot, pFanin, i )
-        if ( Abc_ObjIsNode(pFanin) && Abc_ObjFanoutNum(pFanin) == 1 && Abc_NodeIsTravIdCurrent(pFanin) )
+        if ( Abc_ObjIsNode(pFanin) && Abc_ObjLevel(pFanin) >= nLevelMin && Abc_ObjFanoutNum(pFanin) == 1 && Abc_NodeIsTravIdCurrent(pFanin) )
         {
             if ( nMffc == nMffcMax )
                 return nMffc;
@@ -583,12 +610,12 @@ if ( fVeryVerbose )
 printf( "Mffc = %d.\n", pFanin->Id );
         }
     Abc_ObjForEachFanin( pPivot, pFanin, i )
-        if ( Abc_ObjIsNode(pFanin) && Abc_ObjFanoutNum(pFanin) == 1 && Abc_NodeIsTravIdCurrent(pFanin) )
+        if ( Abc_ObjIsNode(pFanin) && Abc_ObjLevel(pFanin) >= nLevelMin && Abc_ObjFanoutNum(pFanin) == 1 && Abc_NodeIsTravIdCurrent(pFanin) )
         {
             if ( nMffc == nMffcMax )
                 return nMffc;
             Abc_ObjForEachFanin( pFanin, pFanin2, k )
-                if ( Abc_ObjIsNode(pFanin2) && Abc_ObjFanoutNum(pFanin2) == 1 && Abc_NodeIsTravIdCurrent(pFanin2) )
+                if ( Abc_ObjIsNode(pFanin2) && Abc_ObjLevel(pFanin2) >= nLevelMin && Abc_ObjFanoutNum(pFanin2) == 1 && Abc_NodeIsTravIdCurrent(pFanin2) )
                 {
                     if ( nMffc == nMffcMax )
                         return nMffc;
@@ -625,7 +652,7 @@ int Sfm_DecExtract( Abc_Ntk_t * pNtk, Sfm_Par_t * pPars, Abc_Obj_t * pPivot, Vec
     int nLevelMin = pPivot->Level - pPars->nTfiLevMax;
     int i, k, nTfiSize, nDivs = -1;
     assert( Abc_ObjIsNode(pPivot) );
-if ( pPars->fVerbose )
+if ( pPars->fVeryVerbose )
 printf( "\n\nTarget %d\n", Abc_ObjId(pPivot) );
     // collect TFO nodes
     Vec_IntClear( vTfo );
@@ -635,7 +662,7 @@ printf( "\n\nTarget %d\n", Abc_ObjId(pPivot) );
     Abc_NtkForEachObjVec( vTfo, pNtk, pObj, i )
         Abc_ObjForEachFanin( pObj, pFanin, k )
             pFanin->iTemp++;
-    // comput roots
+    // compute roots
     Vec_IntClear( vRoots );
     Abc_NtkForEachObjVec( vTfo, pNtk, pObj, i )
         if ( pObj->iTemp != Abc_ObjFanoutNum(pObj) )
@@ -647,9 +674,9 @@ printf( "\n\nTarget %d\n", Abc_ObjId(pPivot) );
     Abc_NtkDfsOne_rec( pPivot, vTfi, nLevelMin, SFM_MASK_PI );
     nTfiSize = Vec_IntSize(vTfi);
     // additinally mark MFFC
-    *pnMffc = Sfm_DecMarkMffc( pPivot, pPars->nMffcMax, pPars->fVeryVerbose );
+    *pnMffc = Sfm_DecMarkMffc( pPivot, nLevelMin, pPars->nMffcMax, pPars->fVeryVerbose );
     assert( *pnMffc <= pPars->nMffcMax );
-if ( pPars->fVerbose )
+if ( pPars->fVeryVerbose )
 printf( "Mffc size = %d.\n", *pnMffc );
     // collect TFI(TFO)
     Abc_NtkForEachObjVec( vTfo, pNtk, pObj, i )
@@ -661,27 +688,29 @@ printf( "Mffc size = %d.\n", *pnMffc );
                 if ( pFanin->iTemp == SFM_MASK_INPUT )
                     pFanin->iTemp = SFM_MASK_FANIN;
     // collect nodes supported only on TFI fanins and not MFFC
+if ( pPars->fVeryVerbose )
+printf( "\nDivs: " );
     Vec_IntClear( vMap );
     Vec_IntClear( vGates );
     Abc_NtkForEachObjVec( vTfi, pNtk, pObj, i )
         if ( pObj->iTemp == SFM_MASK_PI )
             Sfm_DecAddNode( pObj, vMap, vGates, Abc_ObjIsCi(pObj) || Abc_ObjLevel(pObj) < nLevelMin, pPars->fVeryVerbose );
     nDivs = Vec_IntSize(vMap);
-if ( pPars->fVeryVerbose )
-printf( "\nFinish divs\n" );
     // add other nodes that are not in TFO and not in MFFC
+if ( pPars->fVeryVerbose )
+printf( "\nSides: " );
     Abc_NtkForEachObjVec( vTfi, pNtk, pObj, i )
         if ( pObj->iTemp == (SFM_MASK_PI | SFM_MASK_INPUT) || pObj->iTemp == SFM_MASK_FANIN || pObj->iTemp == 0 ) // const
             Sfm_DecAddNode( pObj, vMap, vGates, pObj->iTemp == SFM_MASK_FANIN, pPars->fVeryVerbose );
-if ( pPars->fVeryVerbose )
-printf( "\nFinish side\n" );
     // add the TFO nodes
+if ( pPars->fVeryVerbose )
+printf( "\nTFO: " );
     Abc_NtkForEachObjVec( vTfi, pNtk, pObj, i )
         if ( pObj->iTemp >= SFM_MASK_MFFC )
             Sfm_DecAddNode( pObj, vMap, vGates, 0, pPars->fVeryVerbose );
     assert( Vec_IntSize(vMap) == Vec_IntSize(vGates) );
 if ( pPars->fVeryVerbose )
-printf( "\nFinish all\n" );
+printf( "\n" );
     // create node IDs
     Vec_WecClear( vFanins );
     Abc_NtkForEachObjVec( vMap, pNtk, pObj, i )
@@ -704,7 +733,7 @@ printf( "\nFinish all\n" );
         Abc_NtkIncrementTravId( pNtk );
         assert( Abc_NtkDfsCheck_rec(pObj, pPivot) );
     }
-*/
+*/  
     return nDivs;
 }
 void Sfm_DecInsert( Abc_Ntk_t * pNtk, Abc_Obj_t * pPivot, int Limit, Vec_Int_t * vGates, Vec_Wec_t * vFanins, Vec_Int_t * vMap, Vec_Ptr_t * vGateHandles )
@@ -730,7 +759,29 @@ void Sfm_DecInsert( Abc_Ntk_t * pNtk, Abc_Obj_t * pPivot, int Limit, Vec_Int_t *
     Abc_NtkDeleteObj_rec( pPivot, 1 );
     // update level
     Abc_NtkForEachObjVecStart( vMap, pNtk, pObjNew, i, Limit )
-        Abc_NtkUpdateIncLevel( pObjNew );
+        Abc_NtkUpdateIncLevel_rec( pObjNew );
+}
+void Sfm_DecPrintStats( Sfm_Dec_t * p )
+{
+    printf( "Node = %d. Try = %d. Change = %d.   Const0 = %d. Const1 = %d. Buf = %d. Inv = %d. Gate = %d.\n",
+        p->nTotalNodesBeg, p->nNodesTried, p->nNodesChanged, p->nNodesConst0, p->nNodesConst1, p->nNodesBuf, p->nNodesInv, p->nNodesResyn );
+    printf( "MaxDiv = %d. MaxWin = %d.   AveDiv = %d. AveWin = %d.   Calls = %d. T/O = %d. NoDec = %d.\n",
+        p->nMaxDivs, p->nMaxWin, (int)(p->nAllDivs/Abc_MaxInt(1, p->nNodesTried)), (int)(p->nAllWin/Abc_MaxInt(1, p->nNodesTried)), p->nSatCalls, p->nTimeOuts, p->nNoDecs );
+
+    p->timeTotal = Abc_Clock() - p->timeStart;
+    p->timeOther = p->timeTotal - p->timeWin - p->timeCnf - p->timeSat;
+
+    ABC_PRTP( "Win", p->timeWin  ,  p->timeTotal );
+    ABC_PRTP( "Cnf", p->timeCnf  ,  p->timeTotal );
+    ABC_PRTP( "Sat", p->timeSat  ,  p->timeTotal );
+    ABC_PRTP( "Oth", p->timeOther,  p->timeTotal );
+    ABC_PRTP( "ALL", p->timeTotal,  p->timeTotal );
+//    ABC_PRTP( "   ", p->time1    ,  p->timeTotal );
+
+    printf( "Reduction:   " );
+    printf( "Nodes  %6d out of %6d (%6.2f %%)   ", p->nTotalNodesBeg-p->nTotalNodesEnd, p->nTotalNodesBeg, 100.0*(p->nTotalNodesBeg-p->nTotalNodesEnd)/Abc_MaxInt(1, p->nTotalNodesBeg) );
+    printf( "Edges  %6d out of %6d (%6.2f %%)   ", p->nTotalEdgesBeg-p->nTotalEdgesEnd, p->nTotalEdgesBeg, 100.0*(p->nTotalEdgesBeg-p->nTotalEdgesEnd)/Abc_MaxInt(1, p->nTotalEdgesBeg) );
+    printf( "\n" );
 }
 void Abc_NtkPerformMfs3( Abc_Ntk_t * pNtk, Sfm_Par_t * pPars )
 {
@@ -738,8 +789,9 @@ void Abc_NtkPerformMfs3( Abc_Ntk_t * pNtk, Sfm_Par_t * pPars )
     Mio_Library_t * pLib = (Mio_Library_t *)pNtk->pManFunc;
     Sfm_Dec_t * p = Sfm_DecStart( pPars );
     Abc_Obj_t * pObj; 
-    int i, Limit, Count = 0, nStop = Abc_NtkObjNumMax(pNtk);
-    //int iNode = 2299;//8;//70;
+    abctime clk;
+    int i, Limit, RetValue, Count = 0, nStop = Abc_NtkObjNumMax(pNtk);
+    //int iNode = 2341;//8;//70;
     printf( "Running remapping with parameters: " );
     printf( "TFO = %d. ", pPars->nTfoLevMax );
     printf( "TFI = %d. ", pPars->nTfiLevMax );
@@ -761,29 +813,54 @@ void Abc_NtkPerformMfs3( Abc_Ntk_t * pNtk, Sfm_Par_t * pPars )
     p->GateOr[1] = Mio_GateReadValue( Mio_LibraryReadGateByName(pLib, "or01", NULL) );
     p->GateOr[2] = Mio_GateReadValue( Mio_LibraryReadGateByName(pLib, "or10", NULL) );
     p->GateOr[3] = Mio_GateReadValue( Mio_LibraryReadGateByName(pLib, "or11", NULL) );
+    if ( pPars->fVerbose )
+    p->nTotalNodesBeg = Abc_NtkNodeNum(pNtk);
+    if ( pPars->fVerbose )
+    p->nTotalEdgesBeg = Abc_NtkGetTotalFanins(pNtk);
     // iterate over nodes
     Abc_NtkLevel( pNtk );
     Abc_NtkForEachNode( pNtk, pObj, i )
-//    for ( ; (pObj = Abc_NtkObj(pNtk, iNode));  )
+    //for ( ; (pObj = Abc_NtkObj(pNtk, iNode));  )
     {
-        if ( i >= nStop )
+        if ( i >= nStop || (pPars->nNodesMax && i > pPars->nNodesMax) )
             break;
+        //if ( i == pPars->nNodesMax )
+        //    pPars->fVeryVerbose = 1;
         //if ( Abc_ObjFaninNum(pObj) == 0 || (Abc_ObjFaninNum(pObj) == 1 && Abc_ObjFanoutNum(Abc_ObjFanin0(pObj)) > 1) )
         //    continue;
+        p->nNodesTried++;
+clk = Abc_Clock();
         p->nDivs = Sfm_DecExtract( pNtk, pPars, pObj, &p->vObjRoots, &p->vObjGates, &p->vObjFanins, &p->vObjMap, &p->vTemp, &p->vTemp2, &p->nMffc );
+p->timeWin += Abc_Clock() - clk;
+        p->nMaxDivs = Abc_MaxInt( p->nMaxDivs, p->nDivs );
+        p->nAllDivs += p->nDivs;
         p->iTarget = pObj->iTemp;
         Limit = Vec_IntSize( &p->vObjGates );
-        if ( !Sfm_DecPrepareSolver( p ) )
+        p->nMaxWin = Abc_MaxInt( p->nMaxWin, Limit );
+        p->nAllWin += Limit;
+clk = Abc_Clock();
+        RetValue = Sfm_DecPrepareSolver( p );
+p->timeCnf += Abc_Clock() - clk;
+        if ( !RetValue )
             continue;
-        if ( Sfm_DecPeformDec( p, pLib ) == -1 )
+clk = Abc_Clock();
+        RetValue = Sfm_DecPeformDec( p );
+p->timeSat += Abc_Clock() - clk;
+        if ( RetValue == -1 )
             continue;
         Sfm_DecInsert( pNtk, pObj, Limit, &p->vObjGates, &p->vObjFanins, &p->vObjMap, &p->vGateHands );
-if ( pPars->fVerbose )
+if ( pPars->fVeryVerbose )
 printf( "This was modification %d\n", Count );
         //if ( Count == 2 )
         //    break;
         Count++;
     }
+    if ( pPars->fVerbose )
+    p->nTotalNodesEnd = Abc_NtkNodeNum(pNtk);
+    if ( pPars->fVerbose )
+    p->nTotalEdgesEnd = Abc_NtkGetTotalFanins(pNtk);
+    if ( pPars->fVerbose )
+    Sfm_DecPrintStats( p );
     Sfm_DecStop( p );
 }
 

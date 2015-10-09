@@ -5183,8 +5183,11 @@ int Abc_CommandMfs3( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nTfiLevMax = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nTfiLevMax < 0 )
+            if ( pPars->nTfiLevMax < 1 )
+            {
+                Abc_Print( -1, "The number of TFI levels (switch \"-I\") should be at least 1.\n" );
                 goto usage;
+            }
             break;
         case 'F':
             if ( globalUtilOptind >= argc )
@@ -5285,7 +5288,7 @@ usage:
     Abc_Print( -2, "usage: mfs3 [-OIFXMLCN <num>] [-avwh]\n" );
     Abc_Print( -2, "\t           performs don't-care-based optimization of mapped networks\n" );
     Abc_Print( -2, "\t-O <num> : the number of levels in the TFO cone (0 <= num) [default = %d]\n",             pPars->nTfoLevMax );
-    Abc_Print( -2, "\t-I <num> : the number of levels in the TFI cone (0 <= num) [default = %d]\n",             pPars->nTfiLevMax );
+    Abc_Print( -2, "\t-I <num> : the number of levels in the TFI cone (1 <= num) [default = %d]\n",             pPars->nTfiLevMax );
     Abc_Print( -2, "\t-F <num> : the max number of fanouts to skip (1 <= num) [default = %d]\n",                pPars->nFanoutMax );
     Abc_Print( -2, "\t-X <num> : the max size of max fanout-free cone (MFFC) [default = %d]\n",                 pPars->nMffcMax );
     Abc_Print( -2, "\t-M <num> : the max node count of windows to consider (0 = no limit) [default = %d]\n",    pPars->nWinSizeMax );
