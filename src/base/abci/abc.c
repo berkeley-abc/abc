@@ -112,6 +112,7 @@ static int Abc_CommandLutmin                 ( Abc_Frame_t * pAbc, int argc, cha
 //static int Abc_CommandImfs                   ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandMfs                    ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandMfs2                   ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandMfs3                   ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandTrace                  ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandSpeedup                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandPowerdown              ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -737,6 +738,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
 //    Cmd_CommandAdd( pAbc, "Synthesis",    "imfs",          Abc_CommandImfs,             1 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "mfs",           Abc_CommandMfs,              1 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "mfs2",          Abc_CommandMfs2,             1 );
+    Cmd_CommandAdd( pAbc, "Synthesis",    "mfs3",          Abc_CommandMfs3,             1 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "trace",         Abc_CommandTrace,            0 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "speedup",       Abc_CommandSpeedup,          1 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "powerdown",     Abc_CommandPowerdown,        1 );
@@ -5131,6 +5133,166 @@ usage:
     Abc_Print( -2, "\t-i       : toggle using inductive don't-cares [default = %s]\n",                          fIndDCs? "yes": "no" );
     Abc_Print( -2, "\t-j       : toggle using all flops when \"-i\" is enabled [default = %s]\n",               fUseAllFfs? "yes": "no" );
     Abc_Print( -2, "\t-I       : the number of additional frames inserted [default = %d]\n",                    nFramesAdd );
+    Abc_Print( -2, "\t-v       : toggle printing optimization summary [default = %s]\n",                        pPars->fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-w       : toggle printing detailed stats for each node [default = %s]\n",                pPars->fVeryVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h       : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandMfs3( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern void Abc_NtkPerformMfs3( Abc_Ntk_t * pNtk, Sfm_Par_t * pPars );
+    extern void Sfm_ParSetDefault3( Sfm_Par_t * pPars );
+    Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
+    Sfm_Par_t Pars, * pPars = &Pars;
+    int c;
+    // set defaults
+    Sfm_ParSetDefault3( pPars );
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "OIFXMLCNdavwh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'O':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-O\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nTfoLevMax = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nTfoLevMax < 0 )
+                goto usage;
+            break;
+        case 'I':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-I\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nTfiLevMax = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nTfiLevMax < 0 )
+                goto usage;
+            break;
+        case 'F':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-F\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nFanoutMax = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nFanoutMax < 0 )
+                goto usage;
+            break;
+        case 'X':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-X\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nMffcMax = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nMffcMax < 0 )
+                goto usage;
+            break;
+        case 'M':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-M\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nWinSizeMax = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nWinSizeMax < 0 )
+                goto usage;
+            break;
+        case 'L':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-L\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nGrowthLevel = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nGrowthLevel < -ABC_INFINITY || pPars->nGrowthLevel > ABC_INFINITY )
+                goto usage;
+            break;
+        case 'C':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-C\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nBTLimit = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nBTLimit < 0 )
+                goto usage;
+            break;
+        case 'N':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-N\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nNodesMax = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nNodesMax < 0 )
+                goto usage;
+            break;
+        case 'a':
+            pPars->fArea ^= 1;
+            break;
+        case 'v':
+            pPars->fVerbose ^= 1;
+            break;
+        case 'w':
+            pPars->fVeryVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pNtk == NULL )
+    {
+        Abc_Print( -1, "Empty network.\n" );
+        return 1;
+    }
+    if ( !Abc_NtkIsMappedLogic(pNtk) )
+    {
+        Abc_Print( -1, "This command can only be applied to a mapped logic network.\n" );
+        return 1;
+    }
+    // modify the current network
+    Abc_NtkPerformMfs3( pNtk, pPars );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: mfs3 [-OIFXMLCN <num>] [-avwh]\n" );
+    Abc_Print( -2, "\t           performs don't-care-based optimization of mapped networks\n" );
+    Abc_Print( -2, "\t-O <num> : the number of levels in the TFO cone (0 <= num) [default = %d]\n",             pPars->nTfoLevMax );
+    Abc_Print( -2, "\t-I <num> : the number of levels in the TFI cone (0 <= num) [default = %d]\n",             pPars->nTfiLevMax );
+    Abc_Print( -2, "\t-F <num> : the max number of fanouts to skip (1 <= num) [default = %d]\n",                pPars->nFanoutMax );
+    Abc_Print( -2, "\t-X <num> : the max size of max fanout-free cone (MFFC) [default = %d]\n",                 pPars->nMffcMax );
+    Abc_Print( -2, "\t-M <num> : the max node count of windows to consider (0 = no limit) [default = %d]\n",    pPars->nWinSizeMax );
+    Abc_Print( -2, "\t-L <num> : the max increase in node level after resynthesis (0 <= num) [default = %d]\n", pPars->nGrowthLevel );
+    Abc_Print( -2, "\t-C <num> : the max number of conflicts in one SAT run (0 = no limit) [default = %d]\n",   pPars->nBTLimit );
+    Abc_Print( -2, "\t-N <num> : the max number of nodes to try (0 = all) [default = %d]\n",                    pPars->nNodesMax );
+    Abc_Print( -2, "\t-a       : toggle minimizing area or area+edges [default = %s]\n",                        pPars->fArea? "area": "area+edges" );
     Abc_Print( -2, "\t-v       : toggle printing optimization summary [default = %s]\n",                        pPars->fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-w       : toggle printing detailed stats for each node [default = %s]\n",                pPars->fVeryVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h       : print the command usage\n");
@@ -10825,7 +10987,7 @@ int Abc_CommandTestColor( Abc_Frame_t * pAbc, int argc, char ** argv )
 ***********************************************************************/
 int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
+//    Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
     int nCutMax      =  1;
     int nLeafMax     =  4;
     int nDivMax      =  2;
@@ -10914,12 +11076,13 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
             goto usage;
         }
     }
-
+/*
     if ( pNtk == NULL )
     {
         Abc_Print( -1, "Empty network.\n" );
         return 1;
     }
+*/
 /*
     if ( Abc_NtkIsStrash(pNtk) )
     {
@@ -11031,14 +11194,6 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
 //        extern void Cba_PrsReadBlifTest();
 //        Cba_PrsReadBlifTest();
-    }
-    {
-        extern void Tab_DecomposeTest();
-        extern void Sfm_DecTestBench( Abc_Ntk_t * pNtk, int iNode );
-        //Tab_DecomposeTest();
-        extern void Cnf_AddCardinConstrTest();
-        //Cnf_AddCardinConstrTest();
-        Sfm_DecTestBench( pNtk, nDecMax );
     }
     return 0;
 usage:

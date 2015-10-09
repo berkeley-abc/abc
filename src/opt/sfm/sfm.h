@@ -43,8 +43,10 @@ typedef struct Sfm_Par_t_ Sfm_Par_t;
 struct Sfm_Par_t_
 {
     int             nTfoLevMax;    // the maximum fanout levels
+    int             nTfiLevMax;    // the maximum fanin levels
     int             nFanoutMax;    // the maximum number of fanouts
     int             nDepthMax;     // the maximum depth to try
+    int             nMffcMax;      // the maximum MFFC size
     int             nWinSizeMax;   // the maximum window size
     int             nGrowthLevel;  // the maximum allowed growth in level
     int             nBTLimit;      // the maximum number of conflicts in one SAT run

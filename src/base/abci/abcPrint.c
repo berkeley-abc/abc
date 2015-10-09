@@ -1382,6 +1382,8 @@ void Abc_ObjPrint( FILE * pFile, Abc_Obj_t * pObj )
     // print the logic function
     if ( Abc_ObjIsNode(pObj) && Abc_NtkIsSopLogic(pObj->pNtk) )
         fprintf( pFile, " %s", (char*)pObj->pData );
+    else if ( Abc_ObjIsNode(pObj) && Abc_NtkIsMappedLogic(pObj->pNtk) )
+        fprintf( pFile, " %s\n", Mio_GateReadName((Mio_Gate_t *)pObj->pData) );
     else
         fprintf( pFile, "\n" );
 }
