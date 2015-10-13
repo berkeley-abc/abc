@@ -189,10 +189,11 @@ extern Vec_Wec_t *  Sfm_CreateCnf( Sfm_Ntk_t * p );
 extern void         Sfm_TranslateCnf( Vec_Wec_t * vRes, Vec_Str_t * vCnf, Vec_Int_t * vFaninMap, int iPivotVar );
 /*=== sfmCore.c ==========================================================*/
 /*=== sfmLib.c ==========================================================*/
+extern int          Sfm_LibFindComplInputGate( Vec_Wrd_t * vFuncs, int iGate, int nFanins, int iFanin, int * piFaninNew );
 extern Sfm_Lib_t *  Sfm_LibPrepare( int nVars, int fTwo, int fVerbose );
 extern void         Sfm_LibPrint( Sfm_Lib_t * p );
 extern void         Sfm_LibStop( Sfm_Lib_t * p );
-extern int          Sfm_LibImplement( Sfm_Lib_t * p, word uTruth, int * pFanins, int nFanins, Vec_Int_t * vGates, Vec_Wec_t * vFanins );
+extern int          Sfm_LibImplement( Sfm_Lib_t * p, word uTruth, int * pFanins, int nFanins, int AreaMffc, Vec_Int_t * vGates, Vec_Wec_t * vFanins );
 /*=== sfmNtk.c ==========================================================*/
 extern Sfm_Ntk_t *  Sfm_ConstructNetwork( Vec_Wec_t * vFanins, int nPis, int nPos );
 extern void         Sfm_NtkPrepare( Sfm_Ntk_t * p );

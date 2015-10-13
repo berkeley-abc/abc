@@ -26,6 +26,7 @@
 #include "misc/extra/extra.h"
 #include "map/mio/exp.h"
 #include "opt/dau/dau.h"
+#include "base/main/main.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -124,6 +125,47 @@ void Sfm_LibPreprocess( Mio_Library_t * pLib, Vec_Int_t * vGateSizes, Vec_Wrd_t 
 }
 
 
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Sfm_LibFindComplInputGate( Vec_Wrd_t * vFuncs, int iGate, int nFanins, int iFanin, int * piFaninNew )
+{
+    word uTruthGate = Vec_WrdEntry(vFuncs, iGate);
+    word uTruth, uTruthNew = Abc_Tt6Flip( uTruthGate, iFanin ); 
+    int i;
+    assert( iFanin >= 0 && iFanin < nFanins );
+    if ( piFaninNew ) *piFaninNew = iFanin;
+    Vec_WrdForEachEntry( vFuncs, uTruth, i )
+        if ( uTruth == uTruthNew )
+            return i;
+    if ( iFanin-1 >= 0 && Abc_Tt6SwapAdjacent(uTruthGate, iFanin-1) == uTruthGate ) // symmetric with prev
+    {
+        if ( piFaninNew ) *piFaninNew = iFanin-1;
+        uTruthNew = Abc_Tt6Flip( uTruthGate, iFanin-1 );
+        Vec_WrdForEachEntry( vFuncs, uTruth, i )
+            if ( uTruth == uTruthNew )
+                return i;
+    }
+    if ( iFanin+1 < nFanins && Abc_Tt6SwapAdjacent(uTruthGate, iFanin) == uTruthGate ) // symmetric with next
+    {
+        if ( piFaninNew ) *piFaninNew = iFanin+1;
+        uTruthNew = Abc_Tt6Flip( uTruthGate, iFanin+1 );
+        Vec_WrdForEachEntry( vFuncs, uTruth, i )
+            if ( uTruth == uTruthNew )
+                return i;
+    }
+    if ( piFaninNew ) *piFaninNew = -1;
+    return -1;
+}
+
 
 /**Function*************************************************************
 
@@ -176,7 +218,10 @@ word Sfm_LibTruthTwo( Mio_Cell2_t * pCellBot, Mio_Cell2_t * pCellTop, int InTop 
     word uFanins[6]; int i, k;
     assert( InTop >= 0 && InTop < (int)pCellTop->nFanins );
     for ( i = 0, k = pCellBot->nFanins; i < (int)pCellTop->nFanins; i++ )
-        uFanins[i] = (i == InTop) ? uTruthBot : s_Truths6[k++];
+        if ( i == InTop )
+            uFanins[i] = uTruthBot;
+        else
+            uFanins[i] = s_Truths6[k++];
     assert( (int)pCellBot->nFanins + (int)pCellTop->nFanins == k + 1 );
     uTruthBot = Exp_Truth6( pCellTop->nFanins, pCellTop->vExpr, uFanins );
     return uTruthBot;
@@ -196,7 +241,7 @@ word Sfm_LibTruthTwo( Mio_Cell2_t * pCellBot, Mio_Cell2_t * pCellTop, int InTop 
 void Sfm_LibPrepareAdd( Sfm_Lib_t * p, word uTruth, int * Perm, int nFanins, Mio_Cell2_t * pCellBot, Mio_Cell2_t * pCellTop, int InTop )
 {
     Sfm_Fun_t * pObj;
-    int Area = (int)(pCellBot->Area / 1000) + (pCellTop ? (int)(pCellTop->Area / 1000) : 0);
+    int InvPerm[6], Area = (int)pCellBot->Area + (pCellTop ? (int)pCellTop->Area : 0);
     int i, k, iFunc = Vec_MemHashInsert( p->vTtMem, &uTruth );
     if ( iFunc == Vec_IntSize(&p->vLists) )
     {
@@ -210,6 +255,8 @@ void Sfm_LibPrepareAdd( Sfm_Lib_t * p, word uTruth, int * Perm, int nFanins, Mio
         if ( Area >= pObj->Area )
             return;
     }
+    for ( k = 0; k < nFanins; k++ )
+        InvPerm[Perm[k]] = k;
     // create new object
     if ( p->nObjs == p->nObjsAlloc )
     {
@@ -227,13 +274,13 @@ void Sfm_LibPrepareAdd( Sfm_Lib_t * p, word uTruth, int * Perm, int nFanins, Mio
     assert( pCellBot->Id < 128 );
     pObj->pFansB[0] = (char)pCellBot->Id;
     for ( k = 0; k < (int)pCellBot->nFanins; k++ )
-        pObj->pFansB[k+1] = Perm[k];
+        pObj->pFansB[k+1] = InvPerm[k];
     if ( pCellTop == NULL )
         return;
     assert( pCellTop->Id < 128 );
     pObj->pFansT[0] = (char)pCellTop->Id;
     for ( i = 0; i < (int)pCellTop->nFanins; i++ )
-        pObj->pFansT[i+1] = (char)(i == InTop ? 16 : Perm[k++]);
+        pObj->pFansT[i+1] = (char)(i == InTop ? 16 : InvPerm[k++]);
     assert( k == nFanins );
 }
 Sfm_Lib_t * Sfm_LibPrepare( int nVars, int fTwo, int fVerbose )
@@ -340,7 +387,7 @@ void Sfm_LibPrintObj( Sfm_Lib_t * p, Sfm_Fun_t * pObj )
     Mio_Cell2_t * pCellB = p->pCells + (int)pObj->pFansB[0];
     Mio_Cell2_t * pCellT = p->pCells + (int)pObj->pFansT[0];
     int nFanins = pCellB->nFanins + (pCellT == p->pCells ? 0 : pCellT->nFanins);
-    printf( "     Area = %6.2f  Fanins = %d  ", 0.001*pObj->Area, nFanins );
+    printf( "     Area = %6.2f  Fanins = %d  ", MIO_NUMINV*pObj->Area, nFanins );
     if ( pCellT == p->pCells )
         Sfm_LibPrintGate( pCellB, pObj->pFansB + 1, NULL, NULL );
     else
@@ -381,9 +428,61 @@ void Sfm_LibTest( int nVars, int fTwo, int fVerbose )
   SeeAlso     []
 
 ***********************************************************************/
-int Sfm_LibImplement( Sfm_Lib_t * p, word uTruth, int * pFanins, int nFanins, Vec_Int_t * vGates, Vec_Wec_t * vFanins )
+int Sfm_LibImplement( Sfm_Lib_t * p, word uTruth, int * pFanins, int nFanins, int AreaMffc, Vec_Int_t * vGates, Vec_Wec_t * vFanins )
 {
-    return 0;
+    Mio_Library_t * pLib = (Mio_Library_t *)Abc_FrameReadLibGen();
+    Mio_Gate_t * pGate;
+    Mio_Cell2_t * pCellB, * pCellT;
+    Vec_Int_t * vLevel;
+    Sfm_Fun_t * pObj, * pObjMin = NULL;
+    int i, iFunc;
+    if ( uTruth == 0 || uTruth == ~(word)0 )
+    {
+        assert( nFanins == 0 );
+        pGate = uTruth ? Mio_LibraryReadConst1(pLib) : Mio_LibraryReadConst0(pLib);
+        Vec_IntPush( vGates, Mio_GateReadValue(pGate) );
+        vLevel = Vec_WecPushLevel( vFanins );
+        return 1;
+    }
+    if ( uTruth == s_Truths6[0] || uTruth == ~s_Truths6[0] )
+    {
+        assert( nFanins == 1 );
+        pGate = uTruth == s_Truths6[0] ? Mio_LibraryReadBuf(pLib) : Mio_LibraryReadInv(pLib);
+        Vec_IntPush( vGates, Mio_GateReadValue(pGate) );
+        vLevel = Vec_WecPushLevel( vFanins );
+        Vec_IntPush( vLevel, pFanins[0] );
+        return 1;
+    }
+    // look for gate
+    iFunc = *Vec_MemHashLookup( p->vTtMem,  &uTruth );
+    if ( iFunc == -1 )
+        return -1;
+    Sfm_LibForEachSuper( p, pObj, iFunc )
+        if ( !pObjMin || pObjMin->Area > pObj->Area )
+            pObjMin = pObj;
+    if ( pObjMin == NULL || pObjMin->Area >= AreaMffc )
+        return -1;
+    // get the gates
+    pCellB = p->pCells + (int)pObjMin->pFansB[0];
+    pCellT = p->pCells + (int)pObjMin->pFansT[0];
+    // create bottom gate
+    pGate = Mio_LibraryReadGateByName( pLib, pCellB->pName, NULL );
+    Vec_IntPush( vGates, Mio_GateReadValue(pGate) );
+    vLevel = Vec_WecPushLevel( vFanins );
+    for ( i = 0; i < (int)pCellB->nFanins; i++ )
+        Vec_IntPush( vLevel, pFanins[(int)pObjMin->pFansB[i+1]] );
+    if ( pCellT == p->pCells )
+        return 1;
+    // create top gate
+    pGate = Mio_LibraryReadGateByName( pLib, pCellT->pName, NULL );
+    Vec_IntPush( vGates, Mio_GateReadValue(pGate) );
+    vLevel = Vec_WecPushLevel( vFanins );
+    for ( i = 0; i < (int)pCellT->nFanins; i++ )
+        if ( pObjMin->pFansT[i+1] == (char)16 )
+            Vec_IntPush( vLevel, Vec_WecSize(vFanins)-2 );
+        else
+            Vec_IntPush( vLevel, pFanins[(int)pObjMin->pFansT[i+1]] );
+    return 2;
 }
 
 ////////////////////////////////////////////////////////////////////////
