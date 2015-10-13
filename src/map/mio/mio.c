@@ -443,7 +443,7 @@ int Mio_CommandWriteGenlib( Abc_Frame_t * pAbc, int argc, char **argv )
         printf( "Error! Cannot open file \"%s\" for writing the library.\n", pFileName );
         return 1;
     }
-    Mio_WriteLibrary( pFile, (Mio_Library_t *)Abc_FrameReadLibGen(), 0 );
+    Mio_WriteLibrary( pFile, (Mio_Library_t *)Abc_FrameReadLibGen(), 0, 0 );
     fclose( pFile );
     printf( "The current genlib library is written into file \"%s\".\n", pFileName );
     return 0;
@@ -472,7 +472,8 @@ int Mio_CommandPrintGenlib( Abc_Frame_t * pAbc, int argc, char **argv )
 {
     FILE * pOut, * pErr;
     Abc_Ntk_t * pNet;
-    int fVerbose;
+    int fShort = 0;
+    int fVerbose = 0;
     int c;
 
     pNet = Abc_FrameReadNtk(pAbc);
@@ -480,12 +481,14 @@ int Mio_CommandPrintGenlib( Abc_Frame_t * pAbc, int argc, char **argv )
     pErr = Abc_FrameReadErr(pAbc);
 
     // set the defaults
-    fVerbose = 1;
     Extra_UtilGetoptReset();
-    while ( (c = Extra_UtilGetopt(argc, argv, "vh")) != EOF ) 
+    while ( (c = Extra_UtilGetopt(argc, argv, "svh")) != EOF ) 
     {
         switch (c) 
         {
+            case 's':
+                fShort ^= 1;
+                break;
             case 'v':
                 fVerbose ^= 1;
                 break;
@@ -501,12 +504,13 @@ int Mio_CommandPrintGenlib( Abc_Frame_t * pAbc, int argc, char **argv )
         printf( "Library is not available.\n" );
         return 1;
     }
-    Mio_WriteLibrary( stdout, (Mio_Library_t *)Abc_FrameReadLibGen(), 0 );
+    Mio_WriteLibrary( stdout, (Mio_Library_t *)Abc_FrameReadLibGen(), 0, fShort );
     return 0;
 
 usage:
-    fprintf( pErr, "\nusage: print_genlib [-vh]\n");
+    fprintf( pErr, "\nusage: print_genlib [-svh]\n");
     fprintf( pErr, "\t          print the current genlib library\n" );  
+    fprintf( pErr, "\t-s      : toggles writing short form [default = %s]\n", fShort? "yes" : "no" );
     fprintf( pErr, "\t-v      : toggles enabling of verbose output [default = %s]\n", fVerbose? "yes" : "no" );
     fprintf( pErr, "\t-h      : print the command usage\n");
     return 1;       

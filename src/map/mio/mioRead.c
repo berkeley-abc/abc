@@ -329,6 +329,16 @@ int Mio_LibraryReadInternal( Mio_Library_t * pLib, char * pBuffer, int fExtended
   SeeAlso     []
 
 ***********************************************************************/
+char * Mio_LibraryCleanStr( char * p )
+{
+    int i, k;
+    char * pRes = Abc_UtilStrsav( p );
+    for ( i = k = 0; pRes[i]; i++ )
+        if ( pRes[i] != ' ' && pRes[i] != '\t' && pRes[i] != '\r' && pRes[i] != '\n' )
+            pRes[k++] = pRes[i];
+    pRes[k] = 0;
+    return pRes;
+}
 Mio_Gate_t * Mio_LibraryReadGate( char ** ppToken, int fExtendedFormat )
 {
     Mio_Gate_t * pGate;
@@ -354,7 +364,7 @@ Mio_Gate_t * Mio_LibraryReadGate( char ** ppToken, int fExtendedFormat )
 
     // then rest of the expression 
     pToken = strtok( NULL, ";" );
-    pGate->pForm = chomp( pToken );
+    pGate->pForm = Mio_LibraryCleanStr( pToken );
 
     // read the pin info
     // start the linked list of pins

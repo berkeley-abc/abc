@@ -58,6 +58,7 @@ typedef struct Mio_Cell2_t_ Mio_Cell2_t;
 struct Mio_Cell2_t_
 {
     char *          pName;          // name
+    Vec_Int_t *     vExpr;          // expression
     unsigned        Id       : 28;  // gate ID
     unsigned        nFanins  :  4;  // gate fanins
     word            Area;           // area
@@ -177,7 +178,7 @@ extern void              Mio_LibraryDelete( Mio_Library_t * pLib );
 extern void              Mio_GateDelete( Mio_Gate_t * pGate );
 extern void              Mio_PinDelete( Mio_Pin_t * pPin );
 extern Mio_Pin_t *       Mio_PinDup( Mio_Pin_t * pPin );
-extern void              Mio_WriteLibrary( FILE * pFile, Mio_Library_t * pLib, int fPrintSops );
+extern void              Mio_WriteLibrary( FILE * pFile, Mio_Library_t * pLib, int fPrintSops, int fShort );
 extern Mio_Gate_t **     Mio_CollectRoots( Mio_Library_t * pLib, int nInputs, float tDelay, int fSkipInv, int * pnGates, int fVerbose );
 extern Mio_Cell_t *      Mio_CollectRootsNew( Mio_Library_t * pLib, int nInputs, int * pnGates, int fVerbose );
 extern Mio_Cell_t *      Mio_CollectRootsNewDefault( int nInputs, int * pnGates, int fVerbose );

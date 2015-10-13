@@ -45,9 +45,15 @@ ABC_NAMESPACE_HEADER_START
 #define SFM_SAT_UNDEC 0x1234567812345678
 #define SFM_SAT_SAT   0x8765432187654321
 
+#define SFM_SUPP_MAX  6
+#define SFM_WORD_MAX ((SFM_SUPP_MAX>6) ? (1<<(SFM_SUPP_MAX-6)) : 1)
+
 ////////////////////////////////////////////////////////////////////////
 ///                         BASIC TYPES                              ///
 ////////////////////////////////////////////////////////////////////////
+
+typedef struct Sfm_Fun_t_ Sfm_Fun_t; 
+typedef struct Sfm_Lib_t_ Sfm_Lib_t; 
 
 struct Sfm_Ntk_t_
 {
@@ -182,6 +188,11 @@ extern int          Sfm_TruthToCnf( word Truth, int nVars, Vec_Int_t * vCover, V
 extern Vec_Wec_t *  Sfm_CreateCnf( Sfm_Ntk_t * p );
 extern void         Sfm_TranslateCnf( Vec_Wec_t * vRes, Vec_Str_t * vCnf, Vec_Int_t * vFaninMap, int iPivotVar );
 /*=== sfmCore.c ==========================================================*/
+/*=== sfmLib.c ==========================================================*/
+extern Sfm_Lib_t *  Sfm_LibPrepare( int nVars, int fTwo, int fVerbose );
+extern void         Sfm_LibPrint( Sfm_Lib_t * p );
+extern void         Sfm_LibStop( Sfm_Lib_t * p );
+extern int          Sfm_LibImplement( Sfm_Lib_t * p, word uTruth, int * pFanins, int nFanins, Vec_Int_t * vGates, Vec_Wec_t * vFanins );
 /*=== sfmNtk.c ==========================================================*/
 extern Sfm_Ntk_t *  Sfm_ConstructNetwork( Vec_Wec_t * vFanins, int nPis, int nPos );
 extern void         Sfm_NtkPrepare( Sfm_Ntk_t * p );

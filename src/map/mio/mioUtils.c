@@ -200,10 +200,10 @@ void Mio_WritePin( FILE * pFile, Mio_Pin_t * pPin, int NameLen, int fAllPins )
     fprintf( pFile, "%7s ",   pPhaseNames[pPin->Phase] );
     fprintf( pFile, "%3d ",   (int)pPin->dLoadInput );
     fprintf( pFile, "%3d ",   (int)pPin->dLoadMax );
-    fprintf( pFile, "%6.2f ", pPin->dDelayBlockRise );
-    fprintf( pFile, "%6.2f ", pPin->dDelayFanoutRise );
-    fprintf( pFile, "%6.2f ", pPin->dDelayBlockFall );
-    fprintf( pFile, "%6.2f",  pPin->dDelayFanoutFall );
+    fprintf( pFile, "%8.2f ", pPin->dDelayBlockRise );
+    fprintf( pFile, "%8.2f ", pPin->dDelayFanoutRise );
+    fprintf( pFile, "%8.2f ", pPin->dDelayBlockFall );
+    fprintf( pFile, "%8.2f",  pPin->dDelayFanoutFall );
 }
 
 /**Function*************************************************************
@@ -225,7 +225,7 @@ void Mio_WriteGate( FILE * pFile, Mio_Gate_t * pGate, int GateLen, int NameLen, 
     sprintf( Buffer, "%s=%s;",    pGate->pOutName, pGate->pForm );
     fprintf( pFile, "GATE %-*s ", GateLen, pGate->pName );
     fprintf( pFile, "%8.2f  ",    pGate->dArea );
-    fprintf( pFile, "%-*s ",      Abc_MinInt(NameLen+FormLen+2, 30), Buffer );
+    fprintf( pFile, "%-*s ",      Abc_MinInt(NameLen+FormLen+2, 60), Buffer );
     // print the pins
     if ( fPrintSops )
         fprintf( pFile, "%s",       pGate->pSop? pGate->pSop : "unspecified\n" );
@@ -248,12 +248,12 @@ void Mio_WriteGate( FILE * pFile, Mio_Gate_t * pGate, int GateLen, int NameLen, 
   SeeAlso     []
 
 ***********************************************************************/
-void Mio_WriteLibrary( FILE * pFile, Mio_Library_t * pLib, int fPrintSops )
+void Mio_WriteLibrary( FILE * pFile, Mio_Library_t * pLib, int fPrintSops, int fShort )
 {
     Mio_Gate_t * pGate;
     Mio_Pin_t * pPin;
     int i, GateLen = 0, NameLen = 0, FormLen = 0;
-    int fAllPins = Mio_CheckGates( pLib );
+    int fAllPins = fShort || Mio_CheckGates( pLib );
     Mio_LibraryForEachGate( pLib, pGate )
     {
         GateLen = Abc_MaxInt( GateLen, strlen(pGate->pName) );
@@ -631,6 +631,7 @@ static inline void Mio_CollectCopy2( Mio_Cell2_t * pCell, Mio_Gate_t * pGate )
 {
     Mio_Pin_t * pPin;  int k;
     pCell->pName    = pGate->pName;
+    pCell->vExpr    = pGate->vExpr;
     pCell->uTruth   = pGate->uTruth;
     pCell->Area     = (word)(MIO_NUM * pGate->dArea);
     pCell->nFanins  = pGate->nInputs;
