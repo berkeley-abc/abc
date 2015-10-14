@@ -428,7 +428,7 @@ void Sfm_LibTest( int nVars, int fTwo, int fVerbose )
   SeeAlso     []
 
 ***********************************************************************/
-int Sfm_LibImplement( Sfm_Lib_t * p, word uTruth, int * pFanins, int nFanins, int AreaMffc, Vec_Int_t * vGates, Vec_Wec_t * vFanins )
+int Sfm_LibImplement( Sfm_Lib_t * p, word uTruth, int * pFanins, int nFanins, int AreaMffc, Vec_Int_t * vGates, Vec_Wec_t * vFanins, int fZeroCost )
 {
     Mio_Library_t * pLib = (Mio_Library_t *)Abc_FrameReadLibGen();
     Mio_Gate_t * pGate;
@@ -460,7 +460,7 @@ int Sfm_LibImplement( Sfm_Lib_t * p, word uTruth, int * pFanins, int nFanins, in
     Sfm_LibForEachSuper( p, pObj, iFunc )
         if ( !pObjMin || pObjMin->Area > pObj->Area )
             pObjMin = pObj;
-    if ( pObjMin == NULL || pObjMin->Area >= AreaMffc )
+    if ( pObjMin == NULL || (fZeroCost ? pObjMin->Area > AreaMffc : pObjMin->Area >= AreaMffc) )
         return -1;
     // get the gates
     pCellB = p->pCells + (int)pObjMin->pFansB[0];

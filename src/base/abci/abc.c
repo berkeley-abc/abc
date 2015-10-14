@@ -5160,7 +5160,7 @@ int Abc_CommandMfs3( Abc_Frame_t * pAbc, int argc, char ** argv )
     // set defaults
     Sfm_ParSetDefault3( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "OIFXMLCNdaovwh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "OIFLHMCNdazovwh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -5200,10 +5200,21 @@ int Abc_CommandMfs3( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( pPars->nFanoutMax < 0 )
                 goto usage;
             break;
-        case 'X':
+        case 'L':
             if ( globalUtilOptind >= argc )
             {
-                Abc_Print( -1, "Command line switch \"-X\" should be followed by an integer.\n" );
+                Abc_Print( -1, "Command line switch \"-L\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nMffcMin = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nMffcMin < 0 )
+                goto usage;
+            break;
+        case 'H':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-H\" should be followed by an integer.\n" );
                 goto usage;
             }
             pPars->nMffcMax = atoi(argv[globalUtilOptind]);
@@ -5220,17 +5231,6 @@ int Abc_CommandMfs3( Abc_Frame_t * pAbc, int argc, char ** argv )
             pPars->nWinSizeMax = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
             if ( pPars->nWinSizeMax < 0 )
-                goto usage;
-            break;
-        case 'L':
-            if ( globalUtilOptind >= argc )
-            {
-                Abc_Print( -1, "Command line switch \"-L\" should be followed by an integer.\n" );
-                goto usage;
-            }
-            pPars->nGrowthLevel = atoi(argv[globalUtilOptind]);
-            globalUtilOptind++;
-            if ( pPars->nGrowthLevel < -ABC_INFINITY || pPars->nGrowthLevel > ABC_INFINITY )
                 goto usage;
             break;
         case 'C':
@@ -5257,6 +5257,9 @@ int Abc_CommandMfs3( Abc_Frame_t * pAbc, int argc, char ** argv )
             break;
         case 'a':
             pPars->fArea ^= 1;
+            break;
+        case 'z':
+            pPars->fZeroCost ^= 1;
             break;
         case 'o':
             pPars->fRrOnly ^= 1;
@@ -5288,17 +5291,18 @@ int Abc_CommandMfs3( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: mfs3 [-OIFXMLCN <num>] [-aovwh]\n" );
+    Abc_Print( -2, "usage: mfs3 [-OIFLHMCN <num>] [-azovwh]\n" );
     Abc_Print( -2, "\t           performs don't-care-based optimization of mapped networks\n" );
     Abc_Print( -2, "\t-O <num> : the number of levels in the TFO cone (0 <= num) [default = %d]\n",             pPars->nTfoLevMax );
     Abc_Print( -2, "\t-I <num> : the number of levels in the TFI cone (1 <= num) [default = %d]\n",             pPars->nTfiLevMax );
     Abc_Print( -2, "\t-F <num> : the max number of fanouts to skip (1 <= num) [default = %d]\n",                pPars->nFanoutMax );
-    Abc_Print( -2, "\t-X <num> : the max size of max fanout-free cone (MFFC) [default = %d]\n",                 pPars->nMffcMax );
+    Abc_Print( -2, "\t-L <num> : the min size of max fanout-free cone (MFFC) [default = %d]\n",                 pPars->nMffcMin );
+    Abc_Print( -2, "\t-H <num> : the max size of max fanout-free cone (MFFC) [default = %d]\n",                 pPars->nMffcMax );
     Abc_Print( -2, "\t-M <num> : the max node count of windows to consider (0 = no limit) [default = %d]\n",    pPars->nWinSizeMax );
-    Abc_Print( -2, "\t-L <num> : the max increase in node level after resynthesis (0 <= num) [default = %d]\n", pPars->nGrowthLevel );
     Abc_Print( -2, "\t-C <num> : the max number of conflicts in one SAT run (0 = no limit) [default = %d]\n",   pPars->nBTLimit );
     Abc_Print( -2, "\t-N <num> : the max number of nodes to try (0 = all) [default = %d]\n",                    pPars->nNodesMax );
     Abc_Print( -2, "\t-a       : toggle minimizing area or area+edges [default = %s]\n",                        pPars->fArea? "area": "area+edges" );
+    Abc_Print( -2, "\t-z       : toggle zero-cost replacements [default = %s]\n",                               pPars->fZeroCost? "yes": "no" );
     Abc_Print( -2, "\t-o       : toggle using old implementation for comparison [default = %s]\n",              pPars->fRrOnly? "yes": "no" );
     Abc_Print( -2, "\t-v       : toggle printing optimization summary [default = %s]\n",                        pPars->fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-w       : toggle printing detailed stats for each node [default = %s]\n",                pPars->fVeryVerbose? "yes": "no" );

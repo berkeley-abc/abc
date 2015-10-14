@@ -46,6 +46,7 @@ struct Sfm_Par_t_
     int             nTfiLevMax;    // the maximum fanin levels
     int             nFanoutMax;    // the maximum number of fanouts
     int             nDepthMax;     // the maximum depth to try
+    int             nMffcMin;      // the minimum MFFC size
     int             nMffcMax;      // the maximum MFFC size
     int             nWinSizeMax;   // the maximum window size
     int             nGrowthLevel;  // the maximum allowed growth in level
@@ -55,6 +56,7 @@ struct Sfm_Par_t_
     int             fRrOnly;       // perform redundance removal
     int             fArea;         // performs optimization for area
     int             fMoreEffort;   // performs high-affort minimization
+    int             fZeroCost;     // enable zero-cost replacement
     int             fVerbose;      // enable basic stats
     int             fVeryVerbose;  // enable detailed stats
 };

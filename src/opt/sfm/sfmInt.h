@@ -47,6 +47,7 @@ ABC_NAMESPACE_HEADER_START
 
 #define SFM_SUPP_MAX  6
 #define SFM_WORD_MAX ((SFM_SUPP_MAX>6) ? (1<<(SFM_SUPP_MAX-6)) : 1)
+#define SFM_WIN_MAX   1000
 
 ////////////////////////////////////////////////////////////////////////
 ///                         BASIC TYPES                              ///
@@ -193,7 +194,7 @@ extern int          Sfm_LibFindComplInputGate( Vec_Wrd_t * vFuncs, int iGate, in
 extern Sfm_Lib_t *  Sfm_LibPrepare( int nVars, int fTwo, int fVerbose );
 extern void         Sfm_LibPrint( Sfm_Lib_t * p );
 extern void         Sfm_LibStop( Sfm_Lib_t * p );
-extern int          Sfm_LibImplement( Sfm_Lib_t * p, word uTruth, int * pFanins, int nFanins, int AreaMffc, Vec_Int_t * vGates, Vec_Wec_t * vFanins );
+extern int          Sfm_LibImplement( Sfm_Lib_t * p, word uTruth, int * pFanins, int nFanins, int AreaMffc, Vec_Int_t * vGates, Vec_Wec_t * vFanins, int fZeroCost );
 /*=== sfmNtk.c ==========================================================*/
 extern Sfm_Ntk_t *  Sfm_ConstructNetwork( Vec_Wec_t * vFanins, int nPis, int nPos );
 extern void         Sfm_NtkPrepare( Sfm_Ntk_t * p );

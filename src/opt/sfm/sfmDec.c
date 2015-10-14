@@ -89,6 +89,7 @@ struct Sfm_Dec_t_
     int               nNodesConst1;
     int               nNodesBuf;
     int               nNodesInv;
+    int               nNodesAndOr;
     int               nNodesResyn;
     int               nSatCalls;
     int               nTimeOuts;
@@ -120,6 +121,7 @@ void Sfm_ParSetDefault3( Sfm_Par_t * pPars )
     pPars->nTfoLevMax   = 1000;  // the maximum fanout levels
     pPars->nTfiLevMax   = 1000;  // the maximum fanin levels
     pPars->nFanoutMax   =   30;  // the maximum number of fanoutsp
+    pPars->nMffcMin     =    1;  // the maximum MFFC size
     pPars->nMffcMax     =    3;  // the maximum MFFC size
     pPars->nWinSizeMax  =  300;  // the maximum window size
     pPars->nGrowthLevel =    0;  // the maximum allowed growth in level
@@ -280,11 +282,11 @@ int Sfm_DecPrepareSolver( Sfm_Dec_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-int Sfm_DecFindWeight( Sfm_Dec_t * p, int c, int iLit, word Mask )
+int Sfm_DecFindCost( Sfm_Dec_t * p, int c, int iLit, word Mask )
 {
     int Value0 = Abc_TtCountOnes( Vec_WrdEntry(&p->vSets[!c], Abc_Lit2Var(iLit)) & Mask );
-    int Weight0 = Abc_LitIsCompl(iLit) ? Abc_TtCountOnes( p->uMask[!c] & Mask ) - Value0 : Value0;
-    return Weight0;
+    int Cost0 = Abc_LitIsCompl(iLit) ? Abc_TtCountOnes( p->uMask[!c] & Mask ) - Value0 : Value0;
+    return Cost0;
 }
 void Sfm_DecPrint( Sfm_Dec_t * p, word * Masks )
 {
@@ -292,7 +294,7 @@ void Sfm_DecPrint( Sfm_Dec_t * p, word * Masks )
     for ( c = 0; c < 2; c++ )
     {
         Vec_Int_t * vLevel = Vec_WecEntry( &p->vObjFanins, p->iTarget );
-        printf( "\n%s-SET of object %d (divs = %d) with gate \"%s\" and fanins: ", 
+        printf( "%s-SET of object %d (divs = %d) with gate \"%s\" and fanins: ", 
             c ? "OFF": "ON", p->iTarget, p->nDivs, 
             Mio_GateReadName((Mio_Gate_t *)Vec_PtrEntry(&p->vGateHands, Vec_IntEntry(&p->vObjGates,p->iTarget))) );
         Vec_IntForEachEntry( vLevel, Entry, i )
@@ -301,24 +303,24 @@ void Sfm_DecPrint( Sfm_Dec_t * p, word * Masks )
 
         printf( "Implications: " );
         Vec_IntForEachEntry( &p->vImpls[c], Entry, i )
-            printf( "%s%d(%d) ", Abc_LitIsCompl(Entry)? "!":"", Abc_Lit2Var(Entry), Sfm_DecFindWeight(p, c, Entry, Masks ? Masks[!c] : ~(word)0) );
+            printf( "%s%d(%d) ", Abc_LitIsCompl(Entry)? "!":"", Abc_Lit2Var(Entry), Sfm_DecFindCost(p, c, Entry, Masks ? Masks[!c] : ~(word)0) );
         printf( "\n" );
         printf( "     " );
-        for ( i = 0; i <= p->iTarget; i++ )
-            printf( "%d", i / 10 );
+        for ( i = 0; i < p->nDivs; i++ )
+            printf( "%d", (i / 10) % 10 );
         printf( "\n" );
         printf( "     " );
-        for ( i = 0; i <= p->iTarget; i++ )
+        for ( i = 0; i < p->nDivs; i++ )
             printf( "%d", i % 10 );
         printf( "\n" );
         for ( k = 0; k < p->nPats[c]; k++ )
         {
             printf( "%2d : ", k );
-            for ( i = 0; i <= p->iTarget; i++ )
+            for ( i = 0; i < p->nDivs; i++ )
                 printf( "%d", (int)((Vec_WrdEntry(&p->vSets[c], i) >> k) & 1) );
             printf( "\n" );
         }
-        printf( "\n" );
+        //printf( "\n" );
     }
 }
 int Sfm_DecPeformDecOne( Sfm_Dec_t * p, int * pfConst )
@@ -326,7 +328,7 @@ int Sfm_DecPeformDecOne( Sfm_Dec_t * p, int * pfConst )
     int fVerbose = p->pPars->fVeryVerbose;
     int nBTLimit = 0;
     int i, k, c, Entry, status, Lits[3], RetValue;
-    int iLitBest = -1, iCBest = -1, WeightBest = ABC_INFINITY, Weight;
+    int iLitBest = -1, iCBest = -1, CostMin = ABC_INFINITY, Cost;
     *pfConst = -1;
     // check stuck-at-0/1 (on/off-set empty)
     p->nPats[0] = p->nPats[1] = 0;
@@ -337,8 +339,8 @@ int Sfm_DecPeformDecOne( Sfm_Dec_t * p, int * pfConst )
     Vec_WrdClear( &p->vSets[1] );
     for ( c = 0; c < 2; c++ )
     {
-        Lits[0] = Abc_Var2Lit( p->iTarget, c );
         p->nSatCalls++;
+        Lits[0] = Abc_Var2Lit( p->iTarget, c );
         status = sat_solver_solve( p->pSat, Lits, Lits + 1, nBTLimit, 0, 0, 0 );
         if ( status == l_Undef )
         {
@@ -352,7 +354,7 @@ int Sfm_DecPeformDecOne( Sfm_Dec_t * p, int * pfConst )
         }
         assert( status == l_True );
         // record this status
-        for ( i = 0; i <= p->iTarget; i++ )
+        for ( i = 0; i < p->nDivs; i++ )
             Vec_WrdPush( &p->vSets[c], (word)sat_solver_var_value(p->pSat, i) );
         p->nPats[c]++;
         p->uMask[c] = 1;
@@ -366,8 +368,8 @@ int Sfm_DecPeformDecOne( Sfm_Dec_t * p, int * pfConst )
             word Column = Vec_WrdEntry(&p->vSets[c], i);
             if ( Column != 0 && Column != p->uMask[c] ) // diff value is possible
                 continue;
-            Lits[1] = Abc_Var2Lit( i, Column != 0 );
             p->nSatCalls++;
+            Lits[1] = Abc_Var2Lit( i, Column != 0 );
             status = sat_solver_solve( p->pSat, Lits, Lits + 2, nBTLimit, 0, 0, 0 );
             if ( status == l_Undef )
                 return 0;
@@ -391,16 +393,16 @@ int Sfm_DecPeformDecOne( Sfm_Dec_t * p, int * pfConst )
     {
         Vec_IntForEachEntry( &p->vImpls[c], Entry, i )
         {
-            Weight = Sfm_DecFindWeight(p, c, Entry, (~(word)0));
-            if ( WeightBest > Weight )
+            Cost = Sfm_DecFindCost(p, c, Entry, (~(word)0));
+            if ( CostMin > Cost )
             {
-                WeightBest = Weight;
+                CostMin = Cost;
                 iLitBest = Entry;
                 iCBest = c;
             }
         }
     }
-    if ( WeightBest == ABC_INFINITY )
+    if ( CostMin == ABC_INFINITY )
     {
         p->nNoDecs++;
         return -2;
@@ -416,7 +418,7 @@ int Sfm_DecPeformDecOne( Sfm_Dec_t * p, int * pfConst )
     // print the results
     if ( fVerbose )
     {
-        printf( "\nBest literal (%d; %s%d) with weight %d.\n\n", iCBest, Abc_LitIsCompl(iLitBest)? "!":"", Abc_Lit2Var(iLitBest), WeightBest );
+        printf( "\nBest literal (%d; %s%d) with weight %d.\n\n", iCBest, Abc_LitIsCompl(iLitBest)? "!":"", Abc_Lit2Var(iLitBest), CostMin );
         Sfm_DecPrint( p, NULL );
     }
     return Abc_Var2Lit( iLitBest, iCBest );
@@ -545,11 +547,28 @@ int Sfm_DecPeformDec_rec( Sfm_Dec_t * p, word * pTruth, int * pSupp, int * pAssu
 {
     int nBTLimit = 0;
 //    int fVerbose = p->pPars->fVeryVerbose;
-    int c, i, d, Var, WeightBest, status;
-//    Vec_Int_t vAss = { SFM_SUPP_MAX, nAssump, pAssump };
-//    if ( nAssump > SFM_SUPP_MAX )
+    int c, i, d, Var, iLit, CostMin, status;
+    assert( nAssump <= SFM_SUPP_MAX );
+    if ( p->pPars->fVeryVerbose )
+    {
+        printf( "\nObject %d\n", p->iTarget );
+        printf( "Divs = %d.  Nodes = %d.  Mffc = %d.  Mffc area = %.2f.    ", p->nDivs, Vec_IntSize(&p->vObjGates), p->nMffc, MIO_NUMINV*p->AreaMffc );
+        printf( "Pat0 = %d.  Pat1 = %d.    ", p->nPats[0], p->nPats[1] );
+        printf( "\n" );
+        if ( nAssump )
+        {
+            printf( "Cofactor: " );
+            for ( i = 0; i < nAssump; i++ )
+                printf( " %s%d", Abc_LitIsCompl(pAssump[i])? "!":"", Abc_Lit2Var(pAssump[i]) );
+            printf( "\n" );
+        }
+    }
     if ( nAssump > p->nMffc )
+    {
+        if ( p->pPars->fVeryVerbose )
+            printf( "The number of assumption is more than MFFC size.\n" );
         return -2;
+    }
     // check constant
     for ( c = 0; c < 2; c++ )
     {
@@ -563,12 +582,14 @@ int Sfm_DecPeformDec_rec( Sfm_Dec_t * p, word * pTruth, int * pSupp, int * pAssu
         if ( status == l_False )
         {
             pTruth[0] = c ? ~((word)0) : 0;
+            if ( p->pPars->fVeryVerbose )
+                printf( "Found constant %d.\n", c );
             return 0;
         }
         assert( status == l_True );
         if ( p->nPats[c] == 64 )
             return -2;//continue;
-        for ( i = 0; i <= p->iTarget; i++ )
+        for ( i = 0; i < p->nDivs; i++ )
             if ( sat_solver_var_value(p->pSat, i) )
                 *Vec_WrdEntryP(&p->vSets[c], i) |= ((word)1 << p->nPats[c]);
         p->uMask[c] |= ((word)1 << p->nPats[c]++);
@@ -586,9 +607,9 @@ int Sfm_DecPeformDec_rec( Sfm_Dec_t * p, word * pTruth, int * pSupp, int * pAssu
             assert( MaskAll );
             if ( MaskCur != 0 && MaskCur != MaskAll ) // has both ones and zeros
                 continue;
+            p->nSatCalls++;
             pAssump[nAssump]   = Abc_Var2Lit( p->iTarget, c );
             pAssump[nAssump+1] = Abc_Var2Lit( d, MaskCur != 0 );
-            p->nSatCalls++;
             status = sat_solver_solve( p->pSat, pAssump, pAssump + nAssump + 2, nBTLimit, 0, 0, 0 );
             if ( status == l_Undef )
                 return -2;
@@ -602,31 +623,97 @@ int Sfm_DecPeformDec_rec( Sfm_Dec_t * p, word * pTruth, int * pSupp, int * pAssu
             if ( p->nPats[c] == 64 )
                 return -2;//continue;
             // record this status
-            for ( i = 0; i <= p->iTarget; i++ )
+            for ( i = 0; i < p->nDivs; i++ )
                 if ( sat_solver_var_value(p->pSat, i) )
                     *Vec_WrdEntryP(&p->vSets[c], i) |= ((word)1 << p->nPats[c]);
             p->uMask[c] |= ((word)1 << p->nPats[c]++);
         }
-        if ( Impls[0] == -1 || Impls[1] == -1 || Impls[0] == Impls[1] )
+        if ( Impls[0] == -1 || Impls[1] == -1 )
             continue;
+        if ( Impls[0] == Impls[1] )
+        {
+            Vec_IntPop( &p->vImpls[0] );
+            Vec_IntPop( &p->vImpls[1] );
+            continue;
+        }
         assert( Abc_Lit2Var(Impls[0]) == Abc_Lit2Var(Impls[1]) );
         // found buffer/inverter
         pTruth[0] = Abc_LitIsCompl(Impls[0]) ? ~p->pTtElems[0][0] : p->pTtElems[0][0];
         pSupp[0] = Abc_Lit2Var(Impls[0]);
+        if ( p->pPars->fVeryVerbose )
+            printf( "Found variable %s%d.\n", Abc_LitIsCompl(Impls[0]) ? "!":"", pSupp[0] );
         return 1;        
     }
 
-    // find the best cofactoring variable
-    Var = -1, WeightBest = ABC_INFINITY;
+    // try using all implications at once
+//    if ( p->pPars->fVeryVerbose && p->iTarget == 56 )
     for ( c = 0; c < 2; c++ )
     {
-        int iLit, Weight;
+        if ( Vec_IntSize(&p->vImpls[!c]) < 2 )
+            continue;
+        p->nSatCalls++;
+        pAssump[nAssump] = Abc_Var2Lit( p->iTarget, c );
+        assert( Vec_IntSize(&p->vImpls[!c]) < SFM_WIN_MAX-10 );
+        Vec_IntForEachEntry( &p->vImpls[!c], iLit, i )
+            pAssump[nAssump+1+i] = iLit;
+        status = sat_solver_solve( p->pSat, pAssump, pAssump + nAssump+1+i, nBTLimit, 0, 0, 0 );
+        if ( status == l_Undef )
+            return -2;
+        if ( status == l_False )
+        {
+            int * pFinal, nFinal = sat_solver_final( p->pSat, &pFinal );
+            if ( nFinal - nAssump - 0 > p->nMffc )
+                continue;
+            // collect only relevant literals
+            for ( i = d = 0; i < nFinal; i++ )
+                if ( Vec_IntFind(&p->vImpls[!c], Abc_LitNot(pFinal[i])) >= 0 )
+                    pSupp[d++] = Abc_LitNot(pFinal[i]);
+            nFinal = d;
+            // create AND/OR gate
+            assert( nFinal <= 6 );
+            if ( c )
+            {
+                *pTruth = ~(word)0;
+                for ( i = 0; i < nFinal; i++ )
+                {
+                    *pTruth &= Abc_LitIsCompl(pSupp[i]) ? ~s_Truths6[i] : s_Truths6[i];
+                    pSupp[i] = Abc_Lit2Var(pSupp[i]);
+                }
+            }
+            else
+            {
+                *pTruth = 0;
+                for ( i = 0; i < nFinal; i++ )
+                {
+                    *pTruth |= Abc_LitIsCompl(pSupp[i]) ? s_Truths6[i] : ~s_Truths6[i];
+                    pSupp[i] = Abc_Lit2Var(pSupp[i]);
+                }
+            }
+            p->nNodesAndOr++;
+            if ( p->pPars->fVeryVerbose )
+                printf( "Found %d-input AND/OR gate.\n", nFinal );
+            return nFinal;
+        }
+        assert( status == l_True );
+        if ( p->nPats[c] == 64 )
+            return -2;//continue;
+        for ( i = 0; i < p->nDivs; i++ )
+            if ( sat_solver_var_value(p->pSat, i) )
+                *Vec_WrdEntryP(&p->vSets[c], i) |= ((word)1 << p->nPats[c]);
+        p->uMask[c] |= ((word)1 << p->nPats[c]++);
+    }
+
+
+    // find the best cofactoring variable
+    Var = -1, CostMin = ABC_INFINITY;
+    for ( c = 0; c < 2; c++ )
+    {
         Vec_IntForEachEntry( &p->vImpls[c], iLit, i )
         {
-            Weight = Sfm_DecFindWeight( p, c, iLit, Masks[!c] );
-            if ( WeightBest > Weight )
+            int Cost = Sfm_DecFindCost( p, c, iLit, Masks[!c] );
+            if ( CostMin > Cost )
             {
-                WeightBest = Weight;
+                CostMin = Cost;
                 Var = Abc_Lit2Var(iLit);
             }
         }
@@ -640,10 +727,14 @@ int Sfm_DecPeformDec_rec( Sfm_Dec_t * p, word * pTruth, int * pSupp, int * pAssu
         fCofactor = 0;
     }
 
-//    printf( "Assumptions: " );
-//    Vec_IntPrint( &vAss );
-//    Sfm_DecPrint( p, Masks );
-//printf( "Best var %d with weight %d.\n", Var, WeightBest );
+    if ( p->pPars->fVeryVerbose )
+    {
+        Sfm_DecPrint( p, Masks );
+        printf( "Best var %d with weight %d.  Cofactored = %s\n", Var, CostMin, Var == p->nDivs - 1 ? "yes" : "no" );
+        printf( "\n" );
+        //if ( Var == 14 )
+        //    Var = 13;
+    }
 
     // cofactor the problem
     if ( Var >= 0 )
@@ -666,40 +757,20 @@ int Sfm_DecPeformDec_rec( Sfm_Dec_t * p, word * pTruth, int * pSupp, int * pAssu
         nSuppAll = Sfm_DecCombineDec( p, uTruth[0], uTruth[1], Supp[0], Supp[1], nSupp[0], nSupp[1], pTruth, pSupp, Var );
         //if ( nSuppAll > p->nMffc )
         //    return -2;
+//        if ( p->pPars->fVeryVerbose )
+//        {
+//            int s = 0;
+//            ABC_SWAP( int, pSupp[0], pSupp[1] );
+//        }
         return nSuppAll;
     }
     return -2;
-}
-int Sfm_DecPeformDec2Int( Sfm_Dec_t * p )
-{
-    word uTruth[SFM_WORD_MAX];
-    word Masks[2] = { ~((word)0), ~((word)0) };
-    int pAssump[2*SFM_SUPP_MAX];
-    int pSupp[2*SFM_SUPP_MAX], nSupp;
-    p->nPats[0] = p->nPats[1] = 0;
-    p->uMask[0] = p->uMask[1] = 0;
-    Vec_WrdFill( &p->vSets[0], p->iTarget+1, 0 );
-    Vec_WrdFill( &p->vSets[1], p->iTarget+1, 0 );
-    nSupp = Sfm_DecPeformDec_rec( p, uTruth, pSupp, pAssump, 0, Masks, 1 );
-//printf( "%d %d  ", p->nPats[0], p->nPats[1] );
-
-//    printf( "Node %4d : ", p->iTarget );
-//    printf( "MFFC %2d  ", p->nMffc );
-    if ( nSupp == -2 )
-    {
-//        printf( "NO DEC.\n" );
-        p->nNoDecs++;
-        return -2;
-    }
-    // transform truth table
-    Dau_DsdPrintFromTruth( uTruth, nSupp );
-    return -1;
 }
 int Sfm_DecPeformDec2( Sfm_Dec_t * p )
 {
     word uTruth[SFM_WORD_MAX];
     word Masks[2] = { ~((word)0), ~((word)0) };
-    int pAssump[2*SFM_SUPP_MAX];
+    int pAssump[SFM_WIN_MAX];
     int pSupp[2*SFM_SUPP_MAX], nSupp, RetValue;
     p->nPats[0] = p->nPats[1] = 0;
     p->uMask[0] = p->uMask[1] = 0;
@@ -708,7 +779,7 @@ int Sfm_DecPeformDec2( Sfm_Dec_t * p )
     p->fUseLast = 1;
     nSupp = Sfm_DecPeformDec_rec( p, uTruth, pSupp, pAssump, 0, Masks, 1 );
     if ( p->pPars->fVeryVerbose )
-        printf( "Node %4d : ", p->iTarget );
+        printf( "\nNode %4d : ", p->iTarget );
     if ( p->pPars->fVeryVerbose )
         printf( "MFFC %2d  ", p->nMffc );
     if ( nSupp == -2 )
@@ -721,9 +792,9 @@ int Sfm_DecPeformDec2( Sfm_Dec_t * p )
     // transform truth table
     if ( p->pPars->fVeryVerbose )
         Dau_DsdPrintFromTruth( uTruth, nSupp );
-    RetValue = Sfm_LibImplement( p->pLib, uTruth[0], pSupp, nSupp, p->AreaMffc, &p->vObjGates, &p->vObjFanins );
+    RetValue = Sfm_LibImplement( p->pLib, uTruth[0], pSupp, nSupp, p->AreaMffc, &p->vObjGates, &p->vObjFanins, p->pPars->fZeroCost );
     if ( p->pPars->fVeryVerbose )
-        printf( "Implementation %sfound.\n", RetValue < 0 ? "NOT " : "" );
+        printf( "Area-reducing implementation %sfound.\n", RetValue < 0 ? "NOT " : "" );
     return RetValue;
 }
 
@@ -870,13 +941,14 @@ int Abc_NtkDfsCheck_rec( Abc_Obj_t * pObj, Abc_Obj_t * pPivot )
 }
 int Sfm_DecExtract( Abc_Ntk_t * pNtk, Sfm_Par_t * pPars, Abc_Obj_t * pPivot, Vec_Int_t * vRoots, Vec_Int_t * vGates, Vec_Wec_t * vFanins, Vec_Int_t * vMap, Vec_Int_t * vTfi, Vec_Int_t * vTfo, int * pnMffc, int * pnAreaMffc )
 {
+    int fVeryVerbose = 0; //pPars->fVeryVerbose;
     Vec_Int_t * vLevel;
     Abc_Obj_t * pObj, * pFanin;
     int nLevelMax = pPivot->Level + pPars->nTfoLevMax;
     int nLevelMin = pPivot->Level - pPars->nTfiLevMax;
     int i, k, nTfiSize, nDivs = -1;
     assert( Abc_ObjIsNode(pPivot) );
-if ( pPars->fVeryVerbose )
+if ( fVeryVerbose )
 printf( "\n\nTarget %d\n", Abc_ObjId(pPivot) );
     // collect TFO nodes
     Vec_IntClear( vTfo );
@@ -898,9 +970,9 @@ printf( "\n\nTarget %d\n", Abc_ObjId(pPivot) );
     Abc_NtkDfsOne_rec( pPivot, vTfi, nLevelMin, SFM_MASK_PI );
     nTfiSize = Vec_IntSize(vTfi);
     // additinally mark MFFC
-    *pnMffc = Sfm_DecMarkMffc( pPivot, nLevelMin, pPars->nMffcMax, pPars->fVeryVerbose, pnAreaMffc );
+    *pnMffc = Sfm_DecMarkMffc( pPivot, nLevelMin, pPars->nMffcMax, fVeryVerbose, pnAreaMffc );
     assert( *pnMffc <= pPars->nMffcMax );
-if ( pPars->fVeryVerbose )
+if ( fVeryVerbose )
 printf( "Mffc size = %d. Mffc area = %.2f\n", *pnMffc, *pnAreaMffc*MIO_NUMINV );
     // collect TFI(TFO)
     Abc_NtkForEachObjVec( vTfo, pNtk, pObj, i )
@@ -912,28 +984,28 @@ printf( "Mffc size = %d. Mffc area = %.2f\n", *pnMffc, *pnAreaMffc*MIO_NUMINV );
                 if ( pFanin->iTemp == SFM_MASK_INPUT )
                     pFanin->iTemp = SFM_MASK_FANIN;
     // collect nodes supported only on TFI fanins and not MFFC
-if ( pPars->fVeryVerbose )
+if ( fVeryVerbose )
 printf( "\nDivs: " );
     Vec_IntClear( vMap );
     Vec_IntClear( vGates );
     Abc_NtkForEachObjVec( vTfi, pNtk, pObj, i )
         if ( pObj->iTemp == SFM_MASK_PI )
-            Sfm_DecAddNode( pObj, vMap, vGates, Abc_ObjIsCi(pObj) || Abc_ObjLevel(pObj) < nLevelMin, pPars->fVeryVerbose );
+            Sfm_DecAddNode( pObj, vMap, vGates, Abc_ObjIsCi(pObj) || Abc_ObjLevel(pObj) < nLevelMin, fVeryVerbose );
     nDivs = Vec_IntSize(vMap);
     // add other nodes that are not in TFO and not in MFFC
-if ( pPars->fVeryVerbose )
+if ( fVeryVerbose )
 printf( "\nSides: " );
     Abc_NtkForEachObjVec( vTfi, pNtk, pObj, i )
         if ( pObj->iTemp == (SFM_MASK_PI | SFM_MASK_INPUT) || pObj->iTemp == SFM_MASK_FANIN || pObj->iTemp == 0 ) // const
-            Sfm_DecAddNode( pObj, vMap, vGates, pObj->iTemp == SFM_MASK_FANIN, pPars->fVeryVerbose );
+            Sfm_DecAddNode( pObj, vMap, vGates, pObj->iTemp == SFM_MASK_FANIN, fVeryVerbose );
     // add the TFO nodes
-if ( pPars->fVeryVerbose )
+if ( fVeryVerbose )
 printf( "\nTFO: " );
     Abc_NtkForEachObjVec( vTfi, pNtk, pObj, i )
         if ( pObj->iTemp >= SFM_MASK_MFFC )
-            Sfm_DecAddNode( pObj, vMap, vGates, 0, pPars->fVeryVerbose );
+            Sfm_DecAddNode( pObj, vMap, vGates, 0, fVeryVerbose );
     assert( Vec_IntSize(vMap) == Vec_IntSize(vGates) );
-if ( pPars->fVeryVerbose )
+if ( fVeryVerbose )
 printf( "\n" );
     // create node IDs
     Vec_WecClear( vFanins );
@@ -1033,8 +1105,8 @@ void Sfm_DecInsert( Abc_Ntk_t * pNtk, Abc_Obj_t * pPivot, int Limit, Vec_Int_t *
 }
 void Sfm_DecPrintStats( Sfm_Dec_t * p )
 {
-    printf( "Node = %d. Try = %d. Change = %d.   Const0 = %d. Const1 = %d. Buf = %d. Inv = %d. Gate = %d.\n",
-        p->nTotalNodesBeg, p->nNodesTried, p->nNodesChanged, p->nNodesConst0, p->nNodesConst1, p->nNodesBuf, p->nNodesInv, p->nNodesResyn );
+    printf( "Node = %d. Try = %d. Change = %d.   Const0 = %d. Const1 = %d. Buf = %d. Inv = %d. Gate = %d. AndOr = %d.\n",
+        p->nTotalNodesBeg, p->nNodesTried, p->nNodesChanged, p->nNodesConst0, p->nNodesConst1, p->nNodesBuf, p->nNodesInv, p->nNodesResyn, p->nNodesAndOr );
     printf( "MaxDiv = %d. MaxWin = %d.   AveDiv = %d. AveWin = %d.   Calls = %d. T/O = %d. NoDec = %d.\n",
         p->nMaxDivs, p->nMaxWin, (int)(p->nAllDivs/Abc_MaxInt(1, p->nNodesTried)), (int)(p->nAllWin/Abc_MaxInt(1, p->nNodesTried)), p->nSatCalls, p->nTimeOuts, p->nNoDecs );
 
@@ -1081,11 +1153,13 @@ void Abc_NtkPerformMfs3( Abc_Ntk_t * pNtk, Sfm_Par_t * pPars )
     abctime clk;
     int i = 0, Limit, RetValue, Count = 0, nStop = Abc_NtkObjNumMax(pNtk);
     //int iNode = 8;//70; //2341;//8;//70;
-    printf( "Running remapping with parameters: " );
+    printf( "Remapping parameters: " );
     printf( "TFO = %d. ", pPars->nTfoLevMax );
     printf( "TFI = %d. ", pPars->nTfiLevMax );
     printf( "FanMax = %d. ", pPars->nFanoutMax );
+    printf( "MffcMin = %d. ", pPars->nMffcMin );
     printf( "MffcMax = %d. ", pPars->nMffcMax );
+    printf( "Zero-cost = %s. ", pPars->fZeroCost ? "yes" : "no" );
     printf( "\n" );
     // enter library
     assert( Abc_NtkIsMappedLogic(pNtk) );
@@ -1113,9 +1187,13 @@ void Abc_NtkPerformMfs3( Abc_Ntk_t * pNtk, Sfm_Par_t * pPars )
     {
         if ( i >= nStop || (pPars->nNodesMax && i > pPars->nNodesMax) )
             break;
+        if ( pPars->nMffcMin > 1 && Abc_NodeMffcLabel(pObj) < pPars->nMffcMin )
+            continue;
+        p->nNodesTried++;
         //if ( i == pPars->nNodesMax )
         //    pPars->fVeryVerbose = 1;
-        p->nNodesTried++;
+        //pPars->fVeryVerbose = (i % 260 == 0);
+
 clk = Abc_Clock();
         p->nDivs = Sfm_DecExtract( pNtk, pPars, pObj, &p->vObjRoots, &p->vObjGates, &p->vObjFanins, &p->vObjMap, &p->vTemp, &p->vTemp2, &p->nMffc, &p->AreaMffc );
 p->timeWin += Abc_Clock() - clk;
@@ -1135,14 +1213,16 @@ clk = Abc_Clock();
             RetValue = Sfm_DecPeformDec( p );
         else
             RetValue = Sfm_DecPeformDec2( p );
+        if ( p->pPars->fVeryVerbose )
+            printf( "\n\n" );
 p->timeSat += Abc_Clock() - clk;
         if ( RetValue < 0 )
             continue;
         p->nNodesChanged++;
         Abc_NtkCountStats( p, Limit );
         Sfm_DecInsert( pNtk, pObj, Limit, &p->vObjGates, &p->vObjFanins, &p->vObjMap, &p->vGateHands, p->GateBuffer, p->GateInvert, &p->vGateFuncs );
-if ( pPars->fVeryVerbose )
-printf( "This was modification %d\n", Count );
+//if ( pPars->fVeryVerbose )
+//printf( "This was modification %d\n", Count );
         //if ( Count == 2 )
         //    break;
         Count++;
