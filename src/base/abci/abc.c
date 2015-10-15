@@ -5160,7 +5160,7 @@ int Abc_CommandMfs3( Abc_Frame_t * pAbc, int argc, char ** argv )
     // set defaults
     Sfm_ParSetDefault3( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "OIFLHMCNdazovwh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "OIFLHDMCNdazovwh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -5220,6 +5220,17 @@ int Abc_CommandMfs3( Abc_Frame_t * pAbc, int argc, char ** argv )
             pPars->nMffcMax = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
             if ( pPars->nMffcMax < 0 )
+                goto usage;
+            break;
+        case 'D':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-D\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nDecMax = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nDecMax < 0 )
                 goto usage;
             break;
         case 'M':
@@ -5291,13 +5302,14 @@ int Abc_CommandMfs3( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: mfs3 [-OIFLHMCN <num>] [-azovwh]\n" );
+    Abc_Print( -2, "usage: mfs3 [-OIFLHDMCN <num>] [-azovwh]\n" );
     Abc_Print( -2, "\t           performs don't-care-based optimization of mapped networks\n" );
     Abc_Print( -2, "\t-O <num> : the number of levels in the TFO cone (0 <= num) [default = %d]\n",             pPars->nTfoLevMax );
     Abc_Print( -2, "\t-I <num> : the number of levels in the TFI cone (1 <= num) [default = %d]\n",             pPars->nTfiLevMax );
     Abc_Print( -2, "\t-F <num> : the max number of fanouts to skip (1 <= num) [default = %d]\n",                pPars->nFanoutMax );
     Abc_Print( -2, "\t-L <num> : the min size of max fanout-free cone (MFFC) [default = %d]\n",                 pPars->nMffcMin );
     Abc_Print( -2, "\t-H <num> : the max size of max fanout-free cone (MFFC) [default = %d]\n",                 pPars->nMffcMax );
+    Abc_Print( -2, "\t-D <num> : the max number of decompositions to try (1 <= num <= 4) [default = %d]\n",     pPars->nDecMax );
     Abc_Print( -2, "\t-M <num> : the max node count of windows to consider (0 = no limit) [default = %d]\n",    pPars->nWinSizeMax );
     Abc_Print( -2, "\t-C <num> : the max number of conflicts in one SAT run (0 = no limit) [default = %d]\n",   pPars->nBTLimit );
     Abc_Print( -2, "\t-N <num> : the max number of nodes to try (0 = all) [default = %d]\n",                    pPars->nNodesMax );

@@ -48,6 +48,7 @@ struct Sfm_Par_t_
     int             nDepthMax;     // the maximum depth to try
     int             nMffcMin;      // the minimum MFFC size
     int             nMffcMax;      // the maximum MFFC size
+    int             nDecMax;       // the maximum number of decompositions
     int             nWinSizeMax;   // the maximum window size
     int             nGrowthLevel;  // the maximum allowed growth in level
     int             nBTLimit;      // the maximum number of conflicts in one SAT run
