@@ -174,6 +174,7 @@ Mio_Gate_t *      Mio_GateReadTwin    ( Mio_Gate_t * pGate )            { return
 int               Mio_GateReadPinNum  ( Mio_Gate_t * pGate )            { return pGate->nInputs;   }
 double            Mio_GateReadDelayMax( Mio_Gate_t * pGate )            { return pGate->dDelayMax; }
 char *            Mio_GateReadSop     ( Mio_Gate_t * pGate )            { return pGate->pSop;      }
+Vec_Int_t *       Mio_GateReadExpr    ( Mio_Gate_t * pGate )            { return pGate->vExpr;     }
 word              Mio_GateReadTruth   ( Mio_Gate_t * pGate )            { return pGate->nInputs <= 6 ? pGate->uTruth : 0;   }
 word *            Mio_GateReadTruthP  ( Mio_Gate_t * pGate )            { return pGate->nInputs <= 6 ? NULL: pGate->pTruth; }
 int               Mio_GateReadValue   ( Mio_Gate_t * pGate )            { return pGate->Value;     }
