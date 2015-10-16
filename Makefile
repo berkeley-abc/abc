@@ -15,8 +15,6 @@ MODULES := \
 	$(wildcard src/ext*) \
 	src/base/abc src/base/abci src/base/cmd src/base/io src/base/main \
 	src/base/ver src/base/wlc src/base/bac src/base/cba src/base/pla src/base/test \
-	src/bdd/cudd src/bdd/extrab src/bdd/dsd src/bdd/epd src/bdd/mtr \
-	src/bdd/reo src/bdd/cas src/bdd/bbr src/bdd/llb \
 	src/map/mapper src/map/mio src/map/super src/map/if \
 	src/map/amap src/map/cov src/map/scl src/map/mpm \
 	src/misc/extra src/misc/mvc src/misc/st src/misc/util src/misc/nm \
@@ -32,7 +30,7 @@ MODULES := \
 	src/proof/cec src/proof/dch src/proof/fraig src/proof/fra src/proof/ssw \
 	src/aig/aig src/aig/saig src/aig/gia src/aig/ioa src/aig/ivy src/aig/hop \
 	src/aig/miniaig \
-	src/python 
+	src/python
 
 all: $(PROG)
 default: $(PROG)
@@ -43,11 +41,39 @@ arch_flags : arch_flags.c
 ARCHFLAGS ?= $(shell $(CC) arch_flags.c -o arch_flags && ./arch_flags)
 ARCHFLAGS := $(ARCHFLAGS)
 
-OPTFLAGS  ?= -g -O -DABC_USE_CUDD #-DABC_NAMESPACE=xxx
+OPTFLAGS  ?= -g -O
 
 CFLAGS    += -Wall -Wno-unused-function -Wno-write-strings -Wno-sign-compare $(OPTFLAGS) $(ARCHFLAGS) -Isrc
 ifneq ($(findstring arm,$(shell uname -m)),)
 	CFLAGS += -DABC_MEMALIGN=4
+endif
+
+# compile ABC using the C++ comipler and put everything in the namespace $(ABC_NAMESPACE)
+ifdef ABC_USE_NAMESPACE
+  CFLAGS += -DABC_NAMESPACE=$(ABC_USE_NAMESPACE) -fpermissive
+  CC := $(CXX)
+  $(info $(MSG_PREFIX)Compiling in namespace $(ABC_NAMESPACE))
+endif
+
+# compile CUDD with ABC
+ifdef ABC_USE_CUDD
+  CFLAGS += -DABC_USE_CUDD=1
+  MODULES += src/bdd/cudd src/bdd/extrab src/bdd/dsd src/bdd/epd src/bdd/mtr src/bdd/reo src/bdd/cas src/bdd/bbr src/bdd/llb
+  $(info $(MSG_PREFIX)Compiling with CUDD)
+endif
+
+# whether to use libreadline
+ifndef ABC_USE_NO_READLINE
+  CFLAGS += -DABC_USE_READLINE
+  LIBS += -lreadline
+  $(info $(MSG_PREFIX)Using libreadline)
+endif
+
+# whether to compile with thread support
+ifdef ABC_USE_PTHREADS
+  CFLAGS += -DABC_USE_PTHREADS
+  LIBS += -lpthread
+  $(info $(MSG_PREFIX)Using pthreads)
 endif
 
 # Set -Wno-unused-bug-set-variable for GCC 4.6.0 and greater only
@@ -76,20 +102,11 @@ ifneq ($(findstring Darwin, $(shell uname)), Darwin)
    LIBS += -lrt
 endif
 
-ifneq ($(READLINE),0)
-CFLAGS += -DABC_USE_READLINE
-LIBS += -lreadline
-endif
-
-ifneq ($(PTHREADS),0)
-CFLAGS += -DABC_USE_PTHREADS
-LIBS += -lpthread
-endif
 
 $(info $(MSG_PREFIX)Using CFLAGS=$(CFLAGS))
-CXXFLAGS += $(CFLAGS) 
+CXXFLAGS += $(CFLAGS)
 
-SRC  := 
+SRC  :=
 GARBAGE := core core.* *.stackdump ./tags $(PROG) arch_flags
 
 .PHONY: all default tags clean docs
@@ -100,7 +117,7 @@ OBJ := \
 	$(patsubst %.cc, %.o, $(filter %.cc, $(SRC))) \
 	$(patsubst %.cpp, %.o, $(filter %.cpp, $(SRC))) \
 	$(patsubst %.c, %.o,  $(filter %.c, $(SRC)))  \
-	$(patsubst %.y, %.o,  $(filter %.y, $(SRC))) 
+	$(patsubst %.y, %.o,  $(filter %.y, $(SRC)))
 
 DEP := $(OBJ:.o=.d)
 
@@ -136,9 +153,9 @@ DEP := $(OBJ:.o=.d)
 
 depend: $(DEP)
 
-clean: 
+clean:
 	@echo "$(MSG_PREFIX)\`\` Cleaning up..."
-	@rm -rvf $(PROG) lib$(PROG).a $(OBJ) $(GARBAGE) $(OBJ:.o=.d) 
+	@rm -rvf $(PROG) lib$(PROG).a $(OBJ) $(GARBAGE) $(OBJ:.o=.d)
 
 tags:
 	etags `find . -type f -regex '.*\.\(c\|h\)'`
