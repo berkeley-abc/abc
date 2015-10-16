@@ -16,10 +16,6 @@
 ABC_NAMESPACE_HEADER_START
 
 
-#if defined(__cplusplus)
-extern "C" {
-#endif                /* __cplusplus */
-
   typedef float qps_float_t;
 
   typedef struct qps_problem {
@@ -137,11 +133,6 @@ extern "C" {
   /* call qps_clean() when finished with the qps_problem_t */
   /* this discards the private data structures assigned by qps_init() */
   extern void qps_clean(qps_problem_t *);
-
-#if defined(__cplusplus)
-}
-#endif                /* __cplusplus */
-
 
 ABC_NAMESPACE_HEADER_END
 

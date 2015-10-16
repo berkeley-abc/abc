@@ -89,10 +89,6 @@ static char rcsid[] DD_UNUSED = "$Id: cuddAddFind.c,v 1.8 2004/08/13 18:04:45 fa
 /* Macro declarations                                                        */
 /*---------------------------------------------------------------------------*/
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 /**AutomaticStart*************************************************************/
 
 /*---------------------------------------------------------------------------*/
@@ -102,10 +98,6 @@ extern "C" {
 static DdNode * addDoIthBit (DdManager *dd, DdNode *f, DdNode *index);
 
 /**AutomaticEnd***************************************************************/
-
-#ifdef __cplusplus
-}
-#endif
 
 /*---------------------------------------------------------------------------*/
 /* Definition of exported functions                                          */

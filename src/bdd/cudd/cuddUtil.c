@@ -158,10 +158,6 @@ static  long shuffleTable[STAB_SIZE];
 
 #define bang(f) ((Cudd_IsComplement(f)) ? '!' : ' ')
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 /**AutomaticStart*************************************************************/
 
 /*---------------------------------------------------------------------------*/
@@ -187,10 +183,6 @@ static int ddPickRepresentativeCube (DdManager *dd, DdNode *node, double *weight
 static enum st__retval ddEpdFree (char * key, char * value, char * arg);
 
 /**AutomaticEnd***************************************************************/
-
-#ifdef __cplusplus
-}
-#endif
 
 /*---------------------------------------------------------------------------*/
 /* Definition of exported functions                                          */

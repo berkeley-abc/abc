@@ -95,10 +95,6 @@ static char rcsid[] DD_UNUSED = "$Id: cuddZddCount.c,v 1.14 2004/08/13 18:04:53 
 /* Macro declarations                                                        */
 /*---------------------------------------------------------------------------*/
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 /**AutomaticStart*************************************************************/
 
 /*---------------------------------------------------------------------------*/
@@ -111,10 +107,6 @@ static enum st__retval st__zdd_countfree (char *key, char *value, char *arg);
 static enum st__retval st__zdd_count_dbl_free (char *key, char *value, char *arg);
 
 /**AutomaticEnd***************************************************************/
-
-#ifdef __cplusplus
-}
-#endif
 
 /*---------------------------------------------------------------------------*/
 /* Definition of exported functions                                          */

@@ -103,10 +103,6 @@ static  DdNode  *background, *zero;
 /* Macro declarations                                                        */
 /*---------------------------------------------------------------------------*/
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 /**AutomaticStart*************************************************************/
 
 /*---------------------------------------------------------------------------*/
@@ -117,10 +113,6 @@ static DdApaNumber cuddApaCountMintermAux (DdNode * node, int digits, DdApaNumbe
 static enum st__retval cuddApaStCountfree (char * key, char * value, char * arg);
 
 /**AutomaticEnd***************************************************************/
-
-#ifdef __cplusplus
-} /* end of extern "C" */
-#endif
 
 
 /*---------------------------------------------------------------------------*/

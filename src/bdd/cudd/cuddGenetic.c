@@ -134,10 +134,6 @@ static int cross;               /* the number of crossovers to perform */
 */
 #define STOREDD(i,j)    storedd[(i)*(numvars+1)+(j)]
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 /**AutomaticStart*************************************************************/
 
 /*---------------------------------------------------------------------------*/
@@ -159,10 +155,6 @@ static int PMX (int maxvar);
 static int roulette (int *p1, int *p2);
 
 /**AutomaticEnd***************************************************************/
-
-#ifdef __cplusplus
-}
-#endif
 
 /*---------------------------------------------------------------------------*/
 /* Definition of exported functions                                          */

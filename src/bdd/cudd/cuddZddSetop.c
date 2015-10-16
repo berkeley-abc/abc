@@ -107,10 +107,6 @@ static char rcsid[] DD_UNUSED = "$Id: cuddZddSetop.c,v 1.25 2004/08/13 18:04:54 
 /* Macro declarations                                                        */
 /*---------------------------------------------------------------------------*/
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 /**AutomaticStart*************************************************************/
 
 /*---------------------------------------------------------------------------*/
@@ -122,10 +118,6 @@ static DdNode * zdd_subset0_aux (DdManager *zdd, DdNode *P, DdNode *zvar);
 static void zddVarToConst (DdNode *f, DdNode **gp, DdNode **hp, DdNode *base, DdNode *empty);
 
 /**AutomaticEnd***************************************************************/
-
-#ifdef __cplusplus
-}
-#endif
 
 /*---------------------------------------------------------------------------*/
 /* Definition of exported functions                                          */

@@ -106,10 +106,6 @@ static char rcsid[] DD_UNUSED = "$Id: cuddBridge.c,v 1.19 2008/04/25 06:42:55 fa
 /*---------------------------------------------------------------------------*/
 
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 /**AutomaticStart*************************************************************/
 
 /*---------------------------------------------------------------------------*/
@@ -124,10 +120,6 @@ static DdNode * ddBddToAddRecur (DdManager *dd, DdNode *B);
 static DdNode * cuddBddTransferRecur (DdManager *ddS, DdManager *ddD, DdNode *f, st__table *table);
 
 /**AutomaticEnd***************************************************************/
-
-#ifdef __cplusplus
-}
-#endif
 
 
 /*---------------------------------------------------------------------------*/

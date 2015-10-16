@@ -103,13 +103,7 @@ ABC_NAMESPACE_IMPL_START
 /* Type declarations                                                         */
 /*---------------------------------------------------------------------------*/
 
-#ifdef __cplusplus
-extern "C" {
-#endif
     typedef int (*DD_CHKFP)(DdManager *, int, int);
-#ifdef __cplusplus
-}
-#endif
 
 /*---------------------------------------------------------------------------*/
 /* Variable declarations                                                     */
@@ -138,10 +132,6 @@ static unsigned int originalSize;
 /*---------------------------------------------------------------------------*/
 /* Macro declarations                                                        */
 /*---------------------------------------------------------------------------*/
-
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 /**AutomaticStart*************************************************************/
 
@@ -175,10 +165,6 @@ static int ddResetVarHandled (DdManager *dd, int index);
 static int ddIsVarHandled (DdManager *dd, int index);
 
 /**AutomaticEnd***************************************************************/
-
-#ifdef __cplusplus
-}
-#endif
 
 /*---------------------------------------------------------------------------*/
 /* Definition of exported functions                                          */

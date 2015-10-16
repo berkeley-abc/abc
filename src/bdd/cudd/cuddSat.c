@@ -111,10 +111,6 @@ static  DdNode  *one, *zero;
 
 #define WEIGHT(weight, col)     ((weight) == NULL ? 1 : weight[col])
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 /**AutomaticStart*************************************************************/
 
 /*---------------------------------------------------------------------------*/
@@ -128,10 +124,6 @@ static cuddPathPair getLargest (DdNode *root, st__table *visited);
 static DdNode * getCube (DdManager *manager, st__table *visited, DdNode *f, int cost);
 
 /**AutomaticEnd***************************************************************/
-
-#ifdef __cplusplus
-}
-#endif
 
 /*---------------------------------------------------------------------------*/
 /* Definition of exported functions                                          */

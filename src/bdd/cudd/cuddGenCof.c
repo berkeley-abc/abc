@@ -122,10 +122,6 @@ static char rcsid[] DD_UNUSED = "$Id: cuddGenCof.c,v 1.38 2005/05/14 17:27:11 fa
 /* Macro declarations                                                        */
 /*---------------------------------------------------------------------------*/
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 /**AutomaticStart*************************************************************/
 
 /*---------------------------------------------------------------------------*/
@@ -142,10 +138,6 @@ static enum st__retval MarkCacheCleanUp (char *key, char *value, char *arg);
 static DdNode * cuddBddSqueeze (DdManager *dd, DdNode *l, DdNode *u);
 
 /**AutomaticEnd***************************************************************/
-
-#ifdef __cplusplus
-}
-#endif
 
 /*---------------------------------------------------------------------------*/
 /* Definition of exported functions                                          */

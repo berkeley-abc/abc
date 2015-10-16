@@ -101,10 +101,6 @@ static  int     num_calls;
 /* Macro declarations                                                        */
 /*---------------------------------------------------------------------------*/
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 /**AutomaticStart*************************************************************/
 
 /*---------------------------------------------------------------------------*/
@@ -118,10 +114,6 @@ static int CorrelHash (const char *key, int modulus);
 static enum st__retval CorrelCleanUp (char *key, char *value, char *arg);
 
 /**AutomaticEnd***************************************************************/
-
-#ifdef __cplusplus
-}
-#endif
 
 
 /*---------------------------------------------------------------------------*/

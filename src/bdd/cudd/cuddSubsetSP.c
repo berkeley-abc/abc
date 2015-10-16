@@ -158,10 +158,6 @@ static  DdNode          **currentQueuePage; /* current page */
 /* Macro declarations                                                        */
 /*---------------------------------------------------------------------------*/
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 /**AutomaticStart*************************************************************/
 
 /*---------------------------------------------------------------------------*/
@@ -178,10 +174,6 @@ static DdNode * BuildSubsetBdd (DdManager *dd, st__table *pathTable, DdNode *nod
 static enum st__retval stPathTableDdFree (char *key, char *value, char *arg);
 
 /**AutomaticEnd***************************************************************/
-
-#ifdef __cplusplus
-}
-#endif
 
 /*---------------------------------------------------------------------------*/
 /* Definition of Exported functions                                          */
