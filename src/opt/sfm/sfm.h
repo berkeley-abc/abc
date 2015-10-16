@@ -58,6 +58,7 @@ struct Sfm_Par_t_
     int             fRrOnly;       // perform redundance removal
     int             fArea;         // performs optimization for area
     int             fMoreEffort;   // performs high-affort minimization
+    int             fUseAndOr;     // enable internal detection of AND/OR gates
     int             fZeroCost;     // enable zero-cost replacement
     int             fUseSim;       // enable simulation
     int             fPrintDecs;    // enable printing decompositions

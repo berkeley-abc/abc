@@ -147,6 +147,9 @@ void Sfm_ParSetDefault3( Sfm_Par_t * pPars )
     pPars->nWinSizeMax  =  300;  // the maximum window size
     pPars->nGrowthLevel =    0;  // the maximum allowed growth in level
     pPars->nBTLimit     = 5000;  // the maximum number of conflicts in one SAT run
+    pPars->fUseAndOr    =    0;  // enable internal detection of AND/OR gates
+    pPars->fZeroCost    =    0;  // enable zero-cost replacement
+    pPars->fUseSim      =    0;  // enable simulation
     pPars->fArea        =    0;  // performs optimization for area
     pPars->fVerbose     =    0;  // enable basic stats
     pPars->fVeryVerbose =    0;  // enable detailed stats
@@ -900,8 +903,9 @@ int Sfm_DecPeformDec_rec( Sfm_Dec_t * p, word * pTruth, int * pSupp, int * pAssu
             printf( "Found variable %s%d.\n", Abc_LitIsCompl(Impls[0]) ? "!":"", pSupp[0] );
         return 1;        
     }
-/*
+
     // try using all implications at once
+    if ( p->pPars->fUseAndOr )
     for ( c = 0; c < 2; c++ )
     {
         if ( Vec_IntSize(&p->vImpls[!c]) < 2 )
@@ -965,7 +969,7 @@ int Sfm_DecPeformDec_rec( Sfm_Dec_t * p, word * pTruth, int * pSupp, int * pAssu
                 *Vec_WrdEntryP(&p->vSets[c], i) |= ((word)1 << p->nPats[c]);
         p->uMask[c] |= ((word)1 << p->nPats[c]++);
     }
-*/
+
     // find the best cofactoring variable
     Var = -1, CostMin = ABC_INFINITY;
     for ( c = 0; c < 2; c++ )

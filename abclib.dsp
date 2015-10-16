@@ -2539,6 +2539,10 @@ SOURCE=.\src\opt\sfm\sfmSat.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\opt\sfm\sfmTime.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\opt\sfm\sfmWin.c
 # End Source File
 # End Group
