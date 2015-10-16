@@ -138,28 +138,28 @@ void Sfm_LibPreprocess( Mio_Library_t * pLib, Vec_Int_t * vGateSizes, Vec_Wrd_t 
 ***********************************************************************/
 int Sfm_LibFindComplInputGate( Vec_Wrd_t * vFuncs, int iGate, int nFanins, int iFanin, int * piFaninNew )
 {
-    word uTruthGate = Vec_WrdEntry(vFuncs, iGate);
-    word uTruth, uTruthNew = Abc_Tt6Flip( uTruthGate, iFanin ); 
-    int i;
+    word uTruthGate = Vec_WrdEntry( vFuncs, iGate );
+    word uTruthFlip = Abc_Tt6Flip( uTruthGate, iFanin ); 
+    word uTruth, uTruthSwap;  int i;
     assert( iFanin >= 0 && iFanin < nFanins );
     if ( piFaninNew ) *piFaninNew = iFanin;
     Vec_WrdForEachEntry( vFuncs, uTruth, i )
-        if ( uTruth == uTruthNew )
+        if ( uTruth == uTruthFlip )
             return i;
-    if ( iFanin-1 >= 0 && Abc_Tt6SwapAdjacent(uTruthGate, iFanin-1) == uTruthGate ) // symmetric with prev
+    if ( iFanin-1 >= 0 )
     {
         if ( piFaninNew ) *piFaninNew = iFanin-1;
-        uTruthNew = Abc_Tt6Flip( uTruthGate, iFanin-1 );
+        uTruthSwap = Abc_Tt6SwapAdjacent( uTruthFlip, iFanin-1 );
         Vec_WrdForEachEntry( vFuncs, uTruth, i )
-            if ( uTruth == uTruthNew )
+            if ( uTruth == uTruthSwap )
                 return i;
     }
-    if ( iFanin+1 < nFanins && Abc_Tt6SwapAdjacent(uTruthGate, iFanin) == uTruthGate ) // symmetric with next
+    if ( iFanin+1 < nFanins )
     {
         if ( piFaninNew ) *piFaninNew = iFanin+1;
-        uTruthNew = Abc_Tt6Flip( uTruthGate, iFanin+1 );
+        uTruthSwap = Abc_Tt6SwapAdjacent( uTruthFlip, iFanin );
         Vec_WrdForEachEntry( vFuncs, uTruth, i )
-            if ( uTruth == uTruthNew )
+            if ( uTruth == uTruthSwap )
                 return i;
     }
     if ( piFaninNew ) *piFaninNew = -1;

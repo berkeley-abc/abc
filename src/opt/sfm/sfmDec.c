@@ -138,15 +138,15 @@ static inline word        Sfm_DecObjSim2( Sfm_Dec_t * p, Abc_Obj_t * pObj )  { r
 void Sfm_ParSetDefault3( Sfm_Par_t * pPars )
 {
     memset( pPars, 0, sizeof(Sfm_Par_t) );
-    pPars->nTfoLevMax   = 1000;  // the maximum fanout levels
-    pPars->nTfiLevMax   = 1000;  // the maximum fanin levels
+    pPars->nTfoLevMax   =  100;  // the maximum fanout levels
+    pPars->nTfiLevMax   =  100;  // the maximum fanin levels
     pPars->nFanoutMax   =   30;  // the maximum number of fanoutsp
     pPars->nMffcMin     =    1;  // the maximum MFFC size
     pPars->nMffcMax     =    3;  // the maximum MFFC size
     pPars->nDecMax      =    1;  // the maximum number of decompositions
-    pPars->nWinSizeMax  =  300;  // the maximum window size
+    pPars->nWinSizeMax  =    0;  // the maximum window size
     pPars->nGrowthLevel =    0;  // the maximum allowed growth in level
-    pPars->nBTLimit     = 5000;  // the maximum number of conflicts in one SAT run
+    pPars->nBTLimit     =    0;  // the maximum number of conflicts in one SAT run
     pPars->fUseAndOr    =    0;  // enable internal detection of AND/OR gates
     pPars->fZeroCost    =    0;  // enable zero-cost replacement
     pPars->fUseSim      =    0;  // enable simulation
@@ -516,7 +516,7 @@ void Sfm_DecPrint( Sfm_Dec_t * p, word * Masks )
 int Sfm_DecPeformDecOne( Sfm_Dec_t * p, int * pfConst )
 {
     int fVerbose = p->pPars->fVeryVerbose;
-    int nBTLimit = 0;
+    int nBTLimit = p->pPars->nBTLimit;
     int i, k, c, Entry, status, Lits[3], RetValue;
     int iLitBest = -1, iCBest = -1, CostMin = ABC_INFINITY, Cost;
     abctime clk;
@@ -569,7 +569,10 @@ int Sfm_DecPeformDecOne( Sfm_Dec_t * p, int * pfConst )
             clk = Abc_Clock();
             status = sat_solver_solve( p->pSat, Lits, Lits + 2, nBTLimit, 0, 0, 0 );
             if ( status == l_Undef )
-                return 0;
+            {
+                p->nTimeOuts++;
+                return -2;
+            }
             if ( status == l_False )
             {
                 p->nSatCallsUnsat++;
@@ -749,7 +752,7 @@ int Sfm_DecCombineDec( Sfm_Dec_t * p, word * pTruth0, word * pTruth1, int * pSup
 }
 int Sfm_DecPeformDec_rec( Sfm_Dec_t * p, word * pTruth, int * pSupp, int * pAssump, int nAssump, word Masks[2], int fCofactor )
 {
-    int nBTLimit = 0;
+    int nBTLimit = p->pPars->nBTLimit;
 //    int fVerbose = p->pPars->fVeryVerbose;
     int c, i, d, Var, iLit, CostMin, Cost, status;
     abctime clk;
@@ -784,7 +787,10 @@ int Sfm_DecPeformDec_rec( Sfm_Dec_t * p, word * pTruth, int * pSupp, int * pAssu
         clk = Abc_Clock();
         status = sat_solver_solve( p->pSat, pAssump, pAssump + nAssump + 1, nBTLimit, 0, 0, 0 );
         if ( status == l_Undef )
+        {
+            p->nTimeOuts++;
             return -2;
+        }
         if ( status == l_False )
         {
             p->nSatCallsUnsat++;
@@ -823,7 +829,10 @@ int Sfm_DecPeformDec_rec( Sfm_Dec_t * p, word * pTruth, int * pSupp, int * pAssu
             clk = Abc_Clock();
             status = sat_solver_solve( p->pSat, pAssump, pAssump + nAssump + 2, nBTLimit, 0, 0, 0 );
             if ( status == l_Undef )
+            {
+                p->nTimeOuts++;
                 return -2;
+            }
             if ( status == l_False )
             {
                 p->nSatCallsUnsat++;
@@ -864,7 +873,10 @@ int Sfm_DecPeformDec_rec( Sfm_Dec_t * p, word * pTruth, int * pSupp, int * pAssu
             clk = Abc_Clock();
             status = sat_solver_solve( p->pSat, pAssump, pAssump + nAssump + 2, nBTLimit, 0, 0, 0 );
             if ( status == l_Undef )
+            {
+                p->nTimeOuts++;
                 return -2;
+            }
             if ( status == l_False )
             {
                 p->nSatCallsUnsat++;
@@ -918,7 +930,10 @@ int Sfm_DecPeformDec_rec( Sfm_Dec_t * p, word * pTruth, int * pSupp, int * pAssu
         clk = Abc_Clock();
         status = sat_solver_solve( p->pSat, pAssump, pAssump + nAssump+1+i, nBTLimit, 0, 0, 0 );
         if ( status == l_Undef )
+        {
+            p->nTimeOuts++;
             return -2;
+        }
         if ( status == l_False )
         {
             int * pFinal, nFinal = sat_solver_final( p->pSat, &pFinal );
@@ -1407,7 +1422,7 @@ void Sfm_DecInsert( Abc_Ntk_t * pNtk, Abc_Obj_t * pPivot, int Limit, Vec_Int_t *
                     // swap fanins
                     if ( iFanin != iFaninNew )
                     {
-                        int * pArray = Vec_IntArray( &pFanout->vFanouts );
+                        int * pArray = Vec_IntArray( &pFanout->vFanins );
                         ABC_SWAP( int, pArray[iFanin], pArray[iFaninNew] );
                     }
                 }
@@ -1486,18 +1501,31 @@ void Abc_NtkPerformMfs3( Abc_Ntk_t * pNtk, Sfm_Par_t * pPars )
     Abc_Obj_t * pObj; 
     abctime clk;
     int i = 0, Limit, RetValue, nStop = Abc_NtkObjNumMax(pNtk);
-    printf( "Remapping parameters: " );
-    printf( "TFO = %d. ", pPars->nTfoLevMax );
-    printf( "TFI = %d. ", pPars->nTfiLevMax );
-    printf( "FanMax = %d. ",  pPars->nFanoutMax );
-    printf( "MffcMin = %d. ", pPars->nMffcMin );
-    printf( "MffcMax = %d. ", pPars->nMffcMax );
-    printf( "DecMax = %d. ",  pPars->nDecMax );
-    printf( "Sim = %s. ",     pPars->fUseSim ? "yes" : "no" );
-    printf( "0-cost = %s. ",  pPars->fZeroCost ? "yes" : "no" );
-    if ( pPars->iNodeOne )
-        printf( "Pivot = %d. ", pPars->iNodeOne );
-    printf( "\n" );
+    if ( pPars->fVerbose )
+    {
+        printf( "Remapping parameters: " );
+        if ( pPars->nTfoLevMax )
+            printf( "TFO = %d. ",     pPars->nTfoLevMax );
+        if ( pPars->nTfiLevMax )
+            printf( "TFI = %d. ",     pPars->nTfiLevMax );
+        if ( pPars->nFanoutMax )
+            printf( "FanMax = %d. ",  pPars->nFanoutMax );
+        if ( pPars->nWinSizeMax )
+            printf( "WinMax = %d. ",  pPars->nWinSizeMax );
+        if ( pPars->nBTLimit )
+            printf( "Confl = %d. ",   pPars->nBTLimit );
+        if ( pPars->nMffcMin )
+            printf( "MffcMin = %d. ", pPars->nMffcMin );
+        if ( pPars->nMffcMax )
+            printf( "MffcMax = %d. ", pPars->nMffcMax );
+        if ( pPars->nDecMax )
+            printf( "DecMax = %d. ",  pPars->nDecMax );
+        if ( pPars->iNodeOne )
+            printf( "Pivot = %d. ",   pPars->iNodeOne );
+        printf( "Sim = %s. ",         pPars->fUseSim ? "yes" : "no" );
+        printf( "0-cost = %s. ",      pPars->fZeroCost ? "yes" : "no" );
+        printf( "\n" );
+    }
     // enter library
     assert( Abc_NtkIsMappedLogic(pNtk) );
     Sfm_LibPreprocess( pLib, &p->vGateSizes, &p->vGateFuncs, &p->vGateCnfs, &p->vGateHands );
@@ -1505,14 +1533,17 @@ void Abc_NtkPerformMfs3( Abc_Ntk_t * pNtk, Sfm_Par_t * pPars )
     p->GateConst1 = Mio_GateReadValue( Mio_LibraryReadConst1(pLib) );
     p->GateBuffer = Mio_GateReadValue( Mio_LibraryReadBuf(pLib) );
     p->GateInvert = Mio_GateReadValue( Mio_LibraryReadInv(pLib) );
-    p->GateAnd[0] = Mio_GateReadValue( Mio_LibraryReadGateByName(pLib, "and00", NULL) );
-    p->GateAnd[1] = Mio_GateReadValue( Mio_LibraryReadGateByName(pLib, "and01", NULL) );
-    p->GateAnd[2] = Mio_GateReadValue( Mio_LibraryReadGateByName(pLib, "and10", NULL) );
-    p->GateAnd[3] = Mio_GateReadValue( Mio_LibraryReadGateByName(pLib, "and11", NULL) );
-    p->GateOr[0] = Mio_GateReadValue( Mio_LibraryReadGateByName(pLib, "or00", NULL) );
-    p->GateOr[1] = Mio_GateReadValue( Mio_LibraryReadGateByName(pLib, "or01", NULL) );
-    p->GateOr[2] = Mio_GateReadValue( Mio_LibraryReadGateByName(pLib, "or10", NULL) );
-    p->GateOr[3] = Mio_GateReadValue( Mio_LibraryReadGateByName(pLib, "or11", NULL) );
+    if ( pPars->fRrOnly )
+    {
+        p->GateAnd[0] = Mio_GateReadValue( Mio_LibraryReadGateByName(pLib, "and00", NULL) );
+        p->GateAnd[1] = Mio_GateReadValue( Mio_LibraryReadGateByName(pLib, "and01", NULL) );
+        p->GateAnd[2] = Mio_GateReadValue( Mio_LibraryReadGateByName(pLib, "and10", NULL) );
+        p->GateAnd[3] = Mio_GateReadValue( Mio_LibraryReadGateByName(pLib, "and11", NULL) );
+        p->GateOr[0] = Mio_GateReadValue( Mio_LibraryReadGateByName(pLib, "or00", NULL) );
+        p->GateOr[1] = Mio_GateReadValue( Mio_LibraryReadGateByName(pLib, "or01", NULL) );
+        p->GateOr[2] = Mio_GateReadValue( Mio_LibraryReadGateByName(pLib, "or10", NULL) );
+        p->GateOr[3] = Mio_GateReadValue( Mio_LibraryReadGateByName(pLib, "or11", NULL) );
+    }
     if ( pPars->fVerbose )
     p->nTotalNodesBeg = Abc_NtkNodeNum(pNtk);
     if ( pPars->fVerbose )
@@ -1535,6 +1566,8 @@ void Abc_NtkPerformMfs3( Abc_Ntk_t * pNtk, Sfm_Par_t * pPars )
 clk = Abc_Clock();
         p->nDivs = Sfm_DecExtract( pNtk, pPars, pObj, &p->vObjRoots, &p->vObjGates, &p->vObjFanins, &p->vObjMap, &p->vTemp, &p->vTemp2, &p->vObjMffc, &p->vObjInMffc );
 p->timeWin += Abc_Clock() - clk;
+        if ( pPars->nWinSizeMax && pPars->nWinSizeMax < Vec_IntSize(&p->vObjGates) )
+            continue;
         p->nMffc = Vec_IntSize(&p->vObjMffc);
         p->AreaMffc = Sfm_DecMffcArea(pNtk, &p->vObjMffc);
         p->nMaxDivs = Abc_MaxInt( p->nMaxDivs, p->nDivs );
