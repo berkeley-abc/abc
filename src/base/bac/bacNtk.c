@@ -130,10 +130,10 @@ static inline int Bac_GetTypeId( Bac_ObjType_t Type )
 }
 void Bac_ManSetupTypes( char ** pNames, char ** pSymbs )
 {
-    Bac_ObjType_t Type;
+    int Type;
     for ( Type = 1; Type < BAC_BOX_UNKNOWN; Type++ )
     {
-        int Id = Bac_GetTypeId( Type );
+        int Id = Bac_GetTypeId( (Bac_ObjType_t)Type );
         pNames[Type] = s_Types[Id].pName;
         pSymbs[Type] = s_Types[Id].pSymb;
     }
@@ -160,14 +160,14 @@ char * Bac_NtkGenerateName( Bac_Ntk_t * p, Bac_ObjType_t Type, Vec_Int_t * vBits
 
 Bac_ObjType_t Bac_NameToType( char * pName )
 {
-    Bac_ObjType_t i;
+    int i;
     if ( strncmp(pName, s_Pref, strlen(s_Pref)) )
-        return 0;
+        return BAC_OBJ_NONE;
     pName += strlen(s_Pref);
     for ( i = 1; i < BAC_BOX_UNKNOWN; i++ )
         if ( !strncmp(pName, s_Types[i].pName, strlen(s_Types[i].pName)) )
             return s_Types[i].Type;
-    return 0;
+    return BAC_OBJ_NONE;
 }
 Vec_Int_t * Bac_NameToRanges( char * pName )
 {
@@ -601,4 +601,3 @@ Bac_Man_t * Bac_ManCollapse( Bac_Man_t * p )
 
 
 ABC_NAMESPACE_IMPL_END
-

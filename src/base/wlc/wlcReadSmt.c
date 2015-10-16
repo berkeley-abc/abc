@@ -91,9 +91,9 @@ static inline char * Smt_GetTypeName( Smt_LineType_t Type )
 }
 static inline void Smt_AddTypes( Abc_Nam_t * p )
 {
-    Smt_LineType_t Type;
+    int Type;
     for ( Type = 1; Type < SMT_PRS_END; Type++ )
-        Abc_NamStrFindOrAdd( p, Smt_GetTypeName(Type), NULL );
+        Abc_NamStrFindOrAdd( p, Smt_GetTypeName((Smt_LineType_t)Type), NULL );
     assert( Abc_NamObjNumMax(p) == SMT_PRS_END );
 }
 
@@ -911,4 +911,3 @@ Wlc_Ntk_t * Wlc_ReadSmt( char * pFileName )
 
 
 ABC_NAMESPACE_IMPL_END
-
