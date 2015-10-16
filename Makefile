@@ -56,7 +56,7 @@ ifdef ABC_USE_NAMESPACE
 endif
 
 # compile CUDD with ABC
-ifdef ABC_USE_CUDD
+ifndef ABC_USE_NO_CUDD
   CFLAGS += -DABC_USE_CUDD=1
   MODULES += src/bdd/cudd src/bdd/extrab src/bdd/dsd src/bdd/epd src/bdd/mtr src/bdd/reo src/bdd/cas src/bdd/bbr src/bdd/llb
   $(info $(MSG_PREFIX)Compiling with CUDD)
@@ -70,10 +70,24 @@ ifndef ABC_USE_NO_READLINE
 endif
 
 # whether to compile with thread support
-ifdef ABC_USE_PTHREADS
+ifdef ABC_USE_NO_PTHREADS
   CFLAGS += -DABC_USE_PTHREADS
   LIBS += -lpthread
   $(info $(MSG_PREFIX)Using pthreads)
+endif
+
+# whether to compile into position independent code
+ifdef ABC_USE_PIC
+  CFLAGS += --fPIC
+  LIBS += -fPIC
+  $(info $(MSG_PREFIX)Compiling position independent code)
+endif
+
+# whether to echo commands while building
+ifdef ABC_MAKE_VERBOSE
+  VERBOSE=
+else
+  VERBOSE=@
 endif
 
 # Set -Wno-unused-bug-set-variable for GCC 4.6.0 and greater only
@@ -125,27 +139,27 @@ DEP := $(OBJ:.o=.d)
 
 %.o: %.c
 	@echo "$(MSG_PREFIX)\`\` Compiling:" $(LOCAL_PATH)/$<
-	@$(CC) -c $(CFLAGS) $< -o $@
+	$(VERBOSE)$(CC) -c $(CFLAGS) $< -o $@
 
 %.o: %.cc
 	@echo "$(MSG_PREFIX)\`\` Compiling:" $(LOCAL_PATH)/$<
-	@$(CXX) -c $(CXXFLAGS) $< -o $@
+	$(VERBOSE)$(CXX) -c $(CXXFLAGS) $< -o $@
 
 %.o: %.cpp
 	@echo "$(MSG_PREFIX)\`\` Compiling:" $(LOCAL_PATH)/$<
-	@$(CXX) -c $(CXXFLAGS) $< -o $@
+	$(VERBOSE)$(CXX) -c $(CXXFLAGS) $< -o $@
 
 %.d: %.c
 	@echo "$(MSG_PREFIX)\`\` Generating dependency:" $(LOCAL_PATH)/$<
-	@./depends.sh $(CC) `dirname $*.c` $(CFLAGS) $*.c > $@
+	$(VERBOSE)./depends.sh $(CC) `dirname $*.c` $(CFLAGS) $*.c > $@
 
 %.d: %.cc
 	@echo "$(MSG_PREFIX)\`\` Generating dependency:" $(LOCAL_PATH)/$<
-	@./depends.sh $(CXX) `dirname $*.cc` $(CXXFLAGS) $*.cc > $@
+	$(VERBOSE)./depends.sh $(CXX) `dirname $*.cc` $(CXXFLAGS) $*.cc > $@
 
 %.d: %.cpp
 	@echo "$(MSG_PREFIX)\`\` Generating dependency:" $(LOCAL_PATH)/$<
-	@./depends.sh $(CXX) `dirname $*.cpp` $(CXXFLAGS) $*.cpp > $@
+	$(VERBOSE)./depends.sh $(CXX) `dirname $*.cpp` $(CXXFLAGS) $*.cpp > $@
 
 -include $(DEP)
 
@@ -155,20 +169,20 @@ depend: $(DEP)
 
 clean:
 	@echo "$(MSG_PREFIX)\`\` Cleaning up..."
-	@rm -rvf $(PROG) lib$(PROG).a $(OBJ) $(GARBAGE) $(OBJ:.o=.d)
+	$(VERBOSE)rm -rvf $(PROG) lib$(PROG).a $(OBJ) $(GARBAGE) $(OBJ:.o=.d)
 
 tags:
 	etags `find . -type f -regex '.*\.\(c\|h\)'`
 
 $(PROG): $(OBJ)
 	@echo "$(MSG_PREFIX)\`\` Building binary:" $(notdir $@)
-	@$(LD) -o $@ $^ $(LIBS)
+	$(VERBOSE)$(LD) -o $@ $^ $(LIBS)
 
 lib$(PROG).a: $(OBJ)
 	@echo "$(MSG_PREFIX)\`\` Linking:" $(notdir $@)
-	@ar rv $@ $?
-	@ranlib $@
+	$(VERBOSE)ar rv $@ $?
+	$(VERBOSE)ranlib $@
 
 docs:
 	@echo "$(MSG_PREFIX)\`\` Building documentation." $(notdir $@)
-	@doxygen doxygen.conf
+	$(VERBOSE)doxygen doxygen.conf
