@@ -1,6 +1,6 @@
 /**CFile****************************************************************
 
- FileName    [extraUtilThresh.c]
+ FileName    [extraBddThresh.c]
 
  SystemName  [ABC: Logic synthesis and verification system.]
 
@@ -14,7 +14,7 @@
 
  Date        [Ver. 1.0. Started - October 7, 2014.]
 
- Revision    [$Id: extraUtilThresh.c,v 1.0 2014/10/07 00:00:00 alanmi Exp $]
+ Revision    [$Id: extraBddThresh.c,v 1.0 2014/10/07 00:00:00 alanmi Exp $]
 
  ***********************************************************************/
 

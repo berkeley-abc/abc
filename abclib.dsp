@@ -987,6 +987,10 @@ SOURCE=.\src\bdd\extrab\extraBddSymm.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\bdd\extrab\extraBddThresh.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\bdd\extrab\extraBddTime.c
 # End Source File
 # Begin Source File
@@ -3116,10 +3120,6 @@ SOURCE=.\src\misc\extra\extraUtilReader.c
 # Begin Source File
 
 SOURCE=.\src\misc\extra\extraUtilSupp.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\misc\extra\extraUtilThresh.c
 # End Source File
 # Begin Source File
 

@@ -16941,7 +16941,6 @@ usage:
 ***********************************************************************/
 int Abc_CommandDsdFilter( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern void Id_DsdManTuneThresh( If_DsdMan_t * p, int fUnate, int fThresh, int fThreshHeuristic, int fVerbose );
     If_DsdMan_t * pDsd = (If_DsdMan_t *)Abc_FrameReadManDsd();
     int c, nLimit = 0, nLutSize = -1, fCleanOccur = 0, fCleanMarks = 0, fInvMarks = 0, fUnate = 0, fThresh = 0, fThreshHeuristic = 0, fVerbose = 0;
     Extra_UtilGetoptReset();
@@ -17009,8 +17008,10 @@ int Abc_CommandDsdFilter( Abc_Frame_t * pAbc, int argc, char ** argv )
         If_DsdManCleanMarks( pDsd, fVerbose );
     if ( fInvMarks )
         If_DsdManInvertMarks( pDsd, fVerbose );
+#ifdef ABC_USE_CUDD
     else
         Id_DsdManTuneThresh( pDsd, fUnate, fThresh, fThreshHeuristic, fVerbose );
+#endif
     return 0;
 
 usage:

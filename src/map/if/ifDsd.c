@@ -26,6 +26,10 @@
 #include "aig/gia/gia.h"
 #include "bool/kit/kit.h"
 
+#ifdef ABC_USE_CUDD
+#include "bdd/extrab/extraBdd.h"
+#endif
+
 #ifdef ABC_USE_PTHREADS
 
 #ifdef _WIN32
@@ -2761,6 +2765,8 @@ void Id_DsdManTuneStr( If_DsdMan_t * p, char * pStruct, int nConfls, int nProcs,
   SeeAlso     []
 
 ***********************************************************************/
+#ifdef ABC_USE_CUDD
+
 void Id_DsdManTuneThresh( If_DsdMan_t * p, int fUnate, int fThresh, int fThreshHeuristic, int fVerbose )
 {
     extern int Extra_ThreshCheck( word * t, int nVars, int * pW );
@@ -2820,6 +2826,8 @@ void Id_DsdManTuneThresh( If_DsdMan_t * p, int fUnate, int fThresh, int fThreshH
     if ( fVeryVerbose )
         If_DsdManPrintDistrib( p );
 }
+
+#endif // ABC_USE_CUDD are used
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
