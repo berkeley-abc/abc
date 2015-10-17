@@ -314,7 +314,10 @@ Vec_Str_t * Bmc_CollapseOneInt( Gia_Man_t * p, int nCubeLim, int nBTLimit, int f
         {
             iLit = Vec_IntEntry( vLits, iVar );
             Vec_IntPush( vCube, Abc_LitNot(iLit) );
-            Vec_StrWriteEntry( vSop, Start + iVar, (char)('0' + !Abc_LitIsCompl(iLit)) );
+            if ( fReverse )
+                Vec_StrWriteEntry( vSop, Start + nVars - iVar - 1, (char)('0' + !Abc_LitIsCompl(iLit)) );
+            else 
+                Vec_StrWriteEntry( vSop, Start + iVar, (char)('0' + !Abc_LitIsCompl(iLit)) );
         }
         if ( fVerbose )
             printf( "Cube %4d: %s", Count, Vec_StrArray(vSop) + Start );
