@@ -36,6 +36,83 @@ extern Cnf_Dat_t * Mf_ManGenerateCnf( Gia_Man_t * pGia, int nLutSize, int fCnfOb
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
+// enumerate cubes and literals
+#define Bmc_SopForEachCube( pSop, nVars, pCube )                        \
+    for ( pCube = (pSop); *pCube; pCube += (nVars) + 3 )
+
+/**Function*************************************************************
+
+  Synopsis    [Perform approximate irredundant step on the cover.]
+
+  Description [Iterate through the cubes in the reverse order and
+  check if each cube is contained in the previously seen cubes.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Bmc_CollapseIrredundant( Vec_Str_t * vSop, int nCubes, int nVars )
+{
+    int nBTLimit = 0;
+    sat_solver * pSat; 
+    int i, k, status, iLit, nRemoved = 0; 
+    Vec_Int_t * vLits = Vec_IntAlloc(nVars);
+    // collect cubes
+    char * pCube, * pSop = Vec_StrArray(vSop);
+    Vec_Ptr_t * vCubes = Vec_PtrAlloc(nCubes);
+    assert( Vec_StrSize(vSop) == nCubes * (nVars + 3) + 1 );
+    Bmc_SopForEachCube( pSop, nVars, pCube )
+        Vec_PtrPush( vCubes, pCube );
+    // create SAT solver
+    pSat = sat_solver_new();
+    sat_solver_setnvars( pSat, nVars );
+    // iterate through cubes in the reverse order
+    Vec_PtrForEachEntryReverse( char *, vCubes, pCube, i )
+    {
+        // collect literals
+        Vec_IntClear( vLits );
+        for ( k = 0; k < nVars; k++ )
+            if ( pCube[k] != '-' )
+                Vec_IntPush( vLits, Abc_Var2Lit(k, pCube[k] == '1') );
+        // check if this cube intersects with the complement of other cubes in the solver
+        // if it does not intersect, then it is redundant and can be skipped
+        // if it does, then it should be added
+        status = sat_solver_solve( pSat, Vec_IntArray(vLits), Vec_IntLimit(vLits), nBTLimit, 0, 0, 0 );
+        if ( status == l_Undef ) // timeout
+            break;
+        if ( status == l_False ) // unsat
+        {
+            Vec_PtrWriteEntry( vCubes, i, NULL );
+            nRemoved++;
+            continue;
+        }
+        assert( status == l_True );
+        // make a clause out of the cube by complementing its literals
+        Vec_IntForEachEntry( vLits, iLit, k )
+            Vec_IntWriteEntry( vLits, k, Abc_LitNot(iLit) );
+        // add it to the solver
+        status = sat_solver_addclause( pSat, Vec_IntArray(vLits), Vec_IntLimit(vLits) );
+        assert( status == 1 );
+    }
+    //printf( "Approximate irrendundant reduced %d cubes (out of %d).\n", nRemoved, nCubes );
+    // cleanup cover
+    if ( i == -1 && nRemoved > 0 ) // finished without timeout and removed some cubes
+    {
+        int j = 0;
+        Vec_PtrForEachEntry( char *, vCubes, pCube, i )
+            if ( pCube != NULL )
+                for ( k = 0; k < nVars + 3; k++ )
+                    Vec_StrWriteEntry( vSop, j++, pCube[k] );
+        Vec_StrWriteEntry( vSop, j++, '\0' );
+        Vec_StrShrink( vSop, j );
+    }
+    sat_solver_delete( pSat );
+    Vec_PtrFree( vCubes );
+    Vec_IntFree( vLits );
+    return i == -1 ? 1 : 0;
+}
+
 /**Function*************************************************************
 
   Synopsis    [Performs one round of removing literals.]
@@ -343,6 +420,9 @@ cleanup:
     if ( fCanon )
     sat_solver_delete( pSat[2] );
     Cnf_DataFree( pCnf );
+    // quickly reduce contained cubes
+    if ( vSop != NULL )
+        Bmc_CollapseIrredundant( vSop, Vec_StrSize(vSop)/(nVars +3), nVars );
     return vSop;
 }
 Vec_Str_t * Bmc_CollapseOne( Gia_Man_t * p, int nCubeLim, int nBTLimit, int fCanon, int fReverse, int fVerbose )
