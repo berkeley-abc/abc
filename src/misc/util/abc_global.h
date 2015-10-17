@@ -53,14 +53,6 @@
 #define ABC_DLL ABC_DLLIMPORT
 #endif
 
-// catch memory leaks in Visual Studio
-#ifdef WIN32
-  #ifdef _DEBUG
-    #define _CRTDBG_MAP_ALLOC
-    #include <crtdbg.h>
-  #endif
-#endif
-
 #if !defined(___unused)
 #if defined(__GNUC__)
 #define ___unused __attribute__ ((__unused__))
@@ -83,6 +75,14 @@
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
+
+// catch memory leaks in Visual Studio
+#ifdef WIN32
+  #ifdef _DEBUG
+    #define _CRTDBG_MAP_ALLOC
+    #include <crtdbg.h>
+  #endif
+#endif
 
 ////////////////////////////////////////////////////////////////////////
 ///                         NAMESPACES                               ///
