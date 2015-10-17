@@ -61,7 +61,10 @@ void Sat_SolverClauseWriteDimacs( FILE * pFile, clause * pC, int fIncrement )
 
   Synopsis    [Write the clauses in the solver into a file in DIMACS format.]
 
-  Description []
+  Description [This procedure by default does not print binary clauses. To enable 
+  printing of binary clauses, please set fUseBinaryClauses to 0 in the body of 
+  procedure sat_solver_clause_new(sat_solver* s, lit* begin, lit* end, int learnt)
+  in file "satSolver.c".]
                
   SideEffects []
 
