@@ -480,7 +480,7 @@ Vec_Str_t * Bmc_CollapseOne( Gia_Man_t * p, int nCubeLim, int nBTLimit, int fCan
     Vec_Int_t * vNums = Vec_IntAlloc( nVars );
     Vec_Int_t * vCube = Vec_IntAlloc( nVars );
     int n, v, iVar, iLit, iCiVarBeg, iCube, Start, status;
-    abctime clk, Time[2][2] = {{0}};
+    abctime clk = 0, Time[2][2] = {{0}};
     int fComplete[2] = {0};
 
     // collect CI variables
