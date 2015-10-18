@@ -20,6 +20,7 @@
 
 #include "base/abc/abc.h"
 #include "aig/gia/gia.h"
+#include "misc/vec/vecWec.h"
 
 #ifdef ABC_USE_CUDD
 #include "bdd/extrab/extraBdd.h"
@@ -290,23 +291,94 @@ Gia_Man_t * Abc_NtkClpOneGia( Abc_Ntk_t * pNtk, int iCo, Vec_Int_t * vSupp )
     Gia_ManStop( pTemp );
     return pNew;
 }
-Vec_Str_t * Abc_NtkClpOne( Abc_Ntk_t * pNtk, int iCo, int nCubeLim, int nBTLimit, int fVerbose, int fCanon, int fReverse, Vec_Int_t ** pvSupp )
+Vec_Str_t * Abc_NtkClpOne( Abc_Ntk_t * pNtk, int iCo, int nCubeLim, int nBTLimit, int fVerbose, int fCanon, int fReverse, Vec_Int_t * vSupp )
 {
-    extern Vec_Int_t * Abc_NtkNodeSupportInt( Abc_Ntk_t * pNtk, int iCo );
-    extern Vec_Str_t * Bmc_CollapseOne( Gia_Man_t * p, int nCubeLim, int nBTLimit, int fCanon, int fReverse, int fVerbose );
-    Vec_Int_t * vSupp = Abc_NtkNodeSupportInt( pNtk, iCo );
-    Gia_Man_t * pGia  = Abc_NtkClpOneGia( pNtk, iCo, vSupp );
     Vec_Str_t * vSop;
+    abctime clk = Abc_Clock();
+    extern Vec_Str_t * Bmc_CollapseOne( Gia_Man_t * p, int nCubeLim, int nBTLimit, int fCanon, int fReverse, int fVerbose );
+    Gia_Man_t * pGia  = Abc_NtkClpOneGia( pNtk, iCo, vSupp );
     if ( fVerbose )
-        printf( "Output %d:\n", iCo );
+        printf( "Output %d:  \n", iCo );
     vSop = Bmc_CollapseOne( pGia, nCubeLim, nBTLimit, fCanon, fReverse, fVerbose );
     Gia_ManStop( pGia );
-    *pvSupp = vSupp;
     if ( vSop == NULL )
-        Vec_IntFree(vSupp);
-    else if ( Vec_StrSize(vSop) == 4 ) // constant
+        return NULL;
+    if ( Vec_StrSize(vSop) == 4 ) // constant
         Vec_IntClear(vSupp);
+    if ( fVerbose )
+        Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     return vSop; 
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Collect structural support for all nodes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Wec_t * Abc_NtkCreateCoSupps( Abc_Ntk_t * pNtk, int fVerbose )
+{
+    abctime clk = Abc_Clock();
+    Abc_Obj_t * pNode; int i;
+    Vec_Wec_t * vSupps = Vec_WecStart( Abc_NtkObjNumMax(pNtk) );
+    Abc_NtkForEachCi( pNtk, pNode, i )
+        Vec_IntPush( Vec_WecEntry(vSupps, pNode->Id), i );
+    Abc_NtkForEachNode( pNtk, pNode, i )
+        Vec_IntTwoMerge2( Vec_WecEntry(vSupps, Abc_ObjFanin0(pNode)->Id), 
+                          Vec_WecEntry(vSupps, Abc_ObjFanin1(pNode)->Id), 
+                          Vec_WecEntry(vSupps, pNode->Id) ); 
+    if ( fVerbose )
+        Abc_PrintTime( 1, "Support computation", Abc_Clock() - clk );
+    return vSupps;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Derive array of COs sorted by cone size in the reverse order.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_NodeCompareByTemp( Abc_Obj_t ** pp1, Abc_Obj_t ** pp2 )
+{
+    int Diff = (*pp2)->iTemp - (*pp1)->iTemp;
+    if ( Diff < 0 )
+        return -1;
+    if ( Diff > 0 ) 
+        return 1;
+    Diff = strcmp( Abc_ObjName(*pp1), Abc_ObjName(*pp2) );
+    if ( Diff < 0 )
+        return -1;
+    if ( Diff > 0 ) 
+        return 1;
+    return 0; 
+}
+Vec_Ptr_t * Abc_NtkCreateCoOrder( Abc_Ntk_t * pNtk, Vec_Wec_t * vSupps )
+{
+    Abc_Obj_t * pNode; int i;
+    Vec_Ptr_t * vNodes = Vec_PtrAlloc( Abc_NtkCoNum(pNtk) );
+    Abc_NtkForEachCo( pNtk, pNode, i )
+    {
+        pNode->iTemp = Vec_IntSize( Vec_WecEntry(vSupps, Abc_ObjFanin0(pNode)->Id) );
+        Vec_PtrPush( vNodes, pNode );
+    }
+    // order objects alphabetically
+    qsort( (void *)Vec_PtrArray(vNodes), Vec_PtrSize(vNodes), sizeof(Abc_Obj_t *), 
+        (int (*)(const void *, const void *)) Abc_NodeCompareByTemp );
+    // cleanup
+//    Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pNode, i )
+//        printf( "%s %d ", Abc_ObjName(pNode), pNode->iTemp );
+//    printf( "\n" );
+    return vNodes;
 }
 
 /**Function*************************************************************
@@ -320,14 +392,13 @@ Vec_Str_t * Abc_NtkClpOne( Abc_Ntk_t * pNtk, int iCo, int nCubeLim, int nBTLimit
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Obj_t * Abc_NtkFromSopsOne( Abc_Ntk_t * pNtkNew, Abc_Ntk_t * pNtk, int iCo, int nCubeLim, int nBTLimit, int fCanon, int fReverse, int fVerbose )
+Abc_Obj_t * Abc_NtkFromSopsOne( Abc_Ntk_t * pNtkNew, Abc_Ntk_t * pNtk, int iCo, Vec_Int_t * vSupp, int nCubeLim, int nBTLimit, int fCanon, int fReverse, int fVerbose )
 {
     Abc_Obj_t * pNodeNew;
-    Vec_Int_t * vSupp;
     Vec_Str_t * vSop;
     int i, iCi;
     // compute SOP of the node
-    vSop = Abc_NtkClpOne( pNtk, iCo, nCubeLim, nBTLimit, fVerbose, fCanon, fReverse, &vSupp );
+    vSop = Abc_NtkClpOne( pNtk, iCo, nCubeLim, nBTLimit, fVerbose, fCanon, fReverse, vSupp );
     if ( vSop == NULL )
         return NULL;
     // create a new node
@@ -335,7 +406,6 @@ Abc_Obj_t * Abc_NtkFromSopsOne( Abc_Ntk_t * pNtkNew, Abc_Ntk_t * pNtk, int iCo, 
     // add fanins
     Vec_IntForEachEntry( vSupp, iCi, i )
         Abc_ObjAddFanin( pNodeNew, Abc_NtkCi(pNtkNew, iCi) );
-    Vec_IntFree( vSupp );
     // transfer the function
     pNodeNew->pData = Abc_SopRegister( (Mem_Flex_t *)pNtkNew->pManFunc, Vec_StrArray(vSop) );
     Vec_StrFree( vSop );
@@ -346,17 +416,37 @@ Abc_Ntk_t * Abc_NtkFromSops( Abc_Ntk_t * pNtk, int nCubeLim, int nBTLimit, int f
     ProgressBar * pProgress;
     Abc_Ntk_t * pNtkNew;
     Abc_Obj_t * pNode, * pDriver, * pNodeNew;
-    Vec_Ptr_t * vDriverCopy;
+    Vec_Ptr_t * vDriverCopy, * vCoNodes;
+    Vec_Int_t * vNodeCoIds;
+    Vec_Wec_t * vSupps;
     int i;
+
+//    Abc_NtkForEachCi( pNtk, pNode, i )
+//        printf( "%d ", Abc_ObjFanoutNum(pNode) );
+//    printf( "\n" );
+
+    // compute structural supports
+    vSupps = Abc_NtkCreateCoSupps( pNtk, fVerbose );
+    // order CO nodes by support size
+    vCoNodes = Abc_NtkCreateCoOrder( pNtk, vSupps );
+    // collect CO IDs in this order
+    vNodeCoIds = Vec_IntAlloc( Abc_NtkCoNum(pNtk) );
+    Abc_NtkForEachCo( pNtk, pNode, i )
+        pNode->iTemp = i;
+    Vec_PtrForEachEntry( Abc_Obj_t *, vCoNodes, pNode, i )
+        Vec_IntPush( vNodeCoIds, pNode->iTemp );
+
     // start the new network
     pNtkNew = Abc_NtkStartFrom( pNtk, ABC_NTK_LOGIC, ABC_FUNC_SOP );
     // collect driver copies
     vDriverCopy = Vec_PtrAlloc( Abc_NtkCoNum(pNtk) );
-    Abc_NtkForEachCo( pNtk, pNode, i )
+//    Abc_NtkForEachCo( pNtk, pNode, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, vCoNodes, pNode, i )
         Vec_PtrPush( vDriverCopy, Abc_ObjFanin0(pNode)->pCopy );
     // process the POs
     pProgress = Extra_ProgressBarStart( stdout, Abc_NtkCoNum(pNtk) );
-    Abc_NtkForEachCo( pNtk, pNode, i )
+//    Abc_NtkForEachCo( pNtk, pNode, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, vCoNodes, pNode, i )
     {
         Extra_ProgressBarUpdate( pProgress, i, NULL );
         pDriver = Abc_ObjFanin0(pNode);
@@ -365,15 +455,14 @@ Abc_Ntk_t * Abc_NtkFromSops( Abc_Ntk_t * pNtk, int nCubeLim, int nBTLimit, int f
             Abc_ObjAddFanin( pNode->pCopy, (Abc_Obj_t *)Vec_PtrEntry(vDriverCopy, i) );
             continue;
         }
-/*
         if ( Abc_ObjIsCi(pDriver) )
         {
             pNodeNew = Abc_NtkCreateNode( pNtkNew );
-            Abc_ObjAddFanin( pNodeNew, pDriver->pCopy ); // pDriver->pCopy is removed by GIA construction...
+            Abc_ObjAddFanin( pNodeNew, (Abc_Obj_t *)Vec_PtrEntry(vDriverCopy, i) ); 
             pNodeNew->pData = Abc_SopRegister( (Mem_Flex_t *)pNtkNew->pManFunc, Abc_ObjFaninC0(pNode) ? "0 1\n" : "1 1\n" );
+            Abc_ObjAddFanin( pNode->pCopy, pNodeNew );
             continue;
         }
-*/
         if ( pDriver == Abc_AigConst1(pNtk) )
         {
             pNodeNew = Abc_NtkCreateNode( pNtkNew );
@@ -381,7 +470,7 @@ Abc_Ntk_t * Abc_NtkFromSops( Abc_Ntk_t * pNtk, int nCubeLim, int nBTLimit, int f
             Abc_ObjAddFanin( pNode->pCopy, pNodeNew );
             continue;
         }
-        pNodeNew = Abc_NtkFromSopsOne( pNtkNew, pNtk, i, nCubeLim, nBTLimit, fCanon, fReverse, fVerbose );
+        pNodeNew = Abc_NtkFromSopsOne( pNtkNew, pNtk, Vec_IntEntry(vNodeCoIds, i), Vec_WecEntry(vSupps, Abc_ObjFanin0(pNode)->Id), nCubeLim, nBTLimit, fCanon, fReverse, fVerbose );
         if ( pNodeNew == NULL )
         {
             Abc_NtkDelete( pNtkNew );
@@ -391,6 +480,9 @@ Abc_Ntk_t * Abc_NtkFromSops( Abc_Ntk_t * pNtk, int nCubeLim, int nBTLimit, int f
         Abc_ObjAddFanin( pNode->pCopy, pNodeNew );
     }
     Vec_PtrFree( vDriverCopy );
+    Vec_PtrFree( vCoNodes );
+    Vec_IntFree( vNodeCoIds );
+    Vec_WecFree( vSupps );
     Extra_ProgressBarStop( pProgress );
     return pNtkNew;
 }

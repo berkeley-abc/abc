@@ -425,7 +425,7 @@ cleanup:
         Bmc_CollapseIrredundant( vSop, Vec_StrSize(vSop)/(nVars +3), nVars );
     return vSop;
 }
-Vec_Str_t * Bmc_CollapseOne( Gia_Man_t * p, int nCubeLim, int nBTLimit, int fCanon, int fReverse, int fVerbose )
+Vec_Str_t * Bmc_CollapseOne2( Gia_Man_t * p, int nCubeLim, int nBTLimit, int fCanon, int fReverse, int fVerbose )
 {
     Vec_Str_t * vSopOn, * vSopOff;
     int nCubesOn = ABC_INFINITY;
@@ -452,6 +452,167 @@ Vec_Str_t * Bmc_CollapseOne( Gia_Man_t * p, int nCubeLim, int nBTLimit, int fCan
         Vec_StrFree( vSopOn );
         return vSopOff;
     }
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    [This code computes on-set and off-set simultaneously.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Str_t * Bmc_CollapseOne( Gia_Man_t * p, int nCubeLim, int nBTLimit, int fCanon, int fReverse, int fVerbose )
+{
+    int fVeryVerbose = fVerbose;
+    int nVars = Gia_ManCiNum(p);
+    Cnf_Dat_t * pCnf = Mf_ManGenerateCnf( p, 8, 0, 0, 0 );
+    sat_solver * pSat[2]      = { (sat_solver *)Cnf_DataWriteIntoSolver(pCnf, 1, 0), (sat_solver *)Cnf_DataWriteIntoSolver(pCnf, 1, 0) };
+    sat_solver * pSatClean[2] = { (sat_solver *)Cnf_DataWriteIntoSolver(pCnf, 1, 0), (sat_solver *)Cnf_DataWriteIntoSolver(pCnf, 1, 0) };
+    Vec_Str_t * vSop[2]   = { Vec_StrAlloc(1000),  Vec_StrAlloc(1000)  }, * vRes = NULL;
+    Vec_Int_t * vLitsC[2] = { Vec_IntAlloc(nVars), Vec_IntAlloc(nVars) };
+    Vec_Int_t * vVars = Vec_IntAlloc( nVars );
+    Vec_Int_t * vLits = Vec_IntAlloc( nVars );
+    Vec_Int_t * vNums = Vec_IntAlloc( nVars );
+    Vec_Int_t * vCube = Vec_IntAlloc( nVars );
+    int n, v, iVar, iLit, iCiVarBeg, iCube, Start, status;
+    abctime clk, Time[2][2] = {{0}};
+    int fComplete[2] = {0};
+
+    // collect CI variables
+    iCiVarBeg = pCnf->nVars - nVars;// - 1;
+    if ( fReverse )
+        for ( v = nVars - 1; v >= 0; v-- )
+            Vec_IntPush( vVars, iCiVarBeg + v );
+    else
+        for ( v = 0; v < nVars; v++ )
+            Vec_IntPush( vVars, iCiVarBeg + v );
+
+    // check that on-set/off-set is sat
+    for ( n = 0; n < 2; n++ )
+    {
+        iLit = Abc_Var2Lit( 1, n ); // n=0 => F=1   n=1 => F=0
+        status = sat_solver_solve( pSat[n], &iLit, &iLit + 1, nBTLimit, 0, 0, 0 );
+        if ( status == l_Undef )
+            goto cleanup; // timeout
+        if ( status == l_False )
+        {
+            Vec_StrPrintStr( vSop[0], n ? " 1\n\0" : " 0\n\0" );
+            fComplete[0] = 1;
+            goto cleanup; // const0/1
+        }
+        // start with all negative literals
+        Vec_IntForEachEntry( vVars, iVar, v )
+            Vec_IntPush( vLitsC[n], Abc_Var2Lit(iVar, 1) );
+        // add literals to the solver
+        status = sat_solver_addclause( pSat[n], &iLit, &iLit + 1 );
+        assert( status );
+        status = sat_solver_addclause( pSatClean[n], &iLit, &iLit + 1 );
+        assert( status );
+        // start cover
+        Vec_StrPush( vSop[n], '\0' );
+    }
+
+    // compute cube pairs
+    for ( iCube = 0; iCube < nCubeLim; iCube++ )
+    {
+        for ( n = 0; n < 2; n++ )
+        {
+            if ( fVeryVerbose ) clk = Abc_Clock();
+            // get the assignment
+            if ( fCanon )
+                status = Bmc_ComputeCanonical( pSat[n], vLitsC[n], vCube, nBTLimit );
+            else
+            {
+                sat_solver_clean_polarity( pSat[n], Vec_IntArray(vVars), Vec_IntSize(vVars) );
+                status = sat_solver_solve( pSat[n], NULL, NULL, 0, 0, 0, 0 );
+            }
+            if ( fVeryVerbose ) Time[n][0] += Abc_Clock() - clk;
+            if ( status == l_Undef )
+                goto cleanup; // timeout
+            if ( status == l_False )
+            {
+                fComplete[n] = 1;
+                break;
+            }
+            // collect values
+            Vec_IntClear( vLits );
+            Vec_IntClear( vLitsC[n] );
+            Vec_IntForEachEntry( vVars, iVar, v )
+            {
+                iLit = Abc_Var2Lit(iVar, !sat_solver_var_value(pSat[n], iVar));
+                Vec_IntPush( vLits, iLit );
+                Vec_IntPush( vLitsC[n], iLit );
+            }
+            // expand the values
+            if ( fVeryVerbose ) clk = Abc_Clock();
+            status = Bmc_CollapseExpand( pSatClean[!n], pSat[n], vLits, vNums, vCube, nBTLimit, fCanon );
+            if ( fVeryVerbose ) Time[n][1] += Abc_Clock() - clk;
+            if ( status < 0 )
+                goto cleanup; // timeout
+            // collect cube
+            Vec_StrPop( vSop[n] );
+            Start = Vec_StrSize( vSop[n] );
+            Vec_StrFillExtra( vSop[n], Start + nVars + 4, '-' );
+            Vec_StrWriteEntry( vSop[n], Start + nVars + 0, ' ' );
+            Vec_StrWriteEntry( vSop[n], Start + nVars + 1, (char)(n ? '0' : '1') );
+            Vec_StrWriteEntry( vSop[n], Start + nVars + 2, '\n' );
+            Vec_StrWriteEntry( vSop[n], Start + nVars + 3, '\0' );
+            Vec_IntClear( vCube );
+            Vec_IntForEachEntry( vNums, iVar, v )
+            {
+                iLit = Vec_IntEntry( vLits, iVar );
+                Vec_IntPush( vCube, Abc_LitNot(iLit) );
+                if ( fReverse )
+                    Vec_StrWriteEntry( vSop[n], Start + nVars - iVar - 1, (char)('0' + !Abc_LitIsCompl(iLit)) );
+                else 
+                    Vec_StrWriteEntry( vSop[n], Start + iVar, (char)('0' + !Abc_LitIsCompl(iLit)) );
+            }
+            // add cube
+            status = sat_solver_addclause( pSat[n], Vec_IntArray(vCube), Vec_IntLimit(vCube) );
+            if ( status == 0 )
+            {
+                fComplete[n] = 1;
+                break;
+            }
+            assert( status == 1 );
+        }
+        if ( fComplete[0] || fComplete[1] )
+            break;
+    }
+cleanup:
+    Vec_IntFree( vVars );
+    Vec_IntFree( vLits );
+    Vec_IntFree( vLitsC[0] );
+    Vec_IntFree( vLitsC[1] );
+    Vec_IntFree( vNums );
+    Vec_IntFree( vCube );
+    Cnf_DataFree( pCnf );
+    sat_solver_delete( pSat[0] );
+    sat_solver_delete( pSat[1] );
+    sat_solver_delete( pSatClean[0] );
+    sat_solver_delete( pSatClean[1] );
+    assert( !fComplete[0] || !fComplete[1] );
+    if ( fComplete[0] || fComplete[1] ) // one of the cover is computed
+    {
+        vRes = vSop[fComplete[1]]; vSop[fComplete[1]] = NULL;
+        Bmc_CollapseIrredundant( vRes, Vec_StrSize(vRes)/(nVars +3), nVars );
+        if ( fVeryVerbose )
+        {
+            printf( "Processed output with %d supp vars and %d cubes.\n", nVars, Vec_StrSize(vRes)/(nVars +3) );
+            Abc_PrintTime( 1, "Onset  minterm", Time[0][0] );
+            Abc_PrintTime( 1, "Onset  expand ", Time[0][1] );
+            Abc_PrintTime( 1, "Offset minterm", Time[1][0] );
+            Abc_PrintTime( 1, "Offset expand ", Time[1][1] );
+        }
+    }
+    Vec_StrFreeP( &vSop[0] );
+    Vec_StrFreeP( &vSop[1] );
+    return vRes;
 }
 
 ////////////////////////////////////////////////////////////////////////

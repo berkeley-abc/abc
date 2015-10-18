@@ -2073,6 +2073,41 @@ void Abc_NtkPermute( Abc_Ntk_t * pNtk, int fInputs, int fOutputs, int fFlops, ch
   SeeAlso     []
 
 ***********************************************************************/
+int Abc_NodeCompareByFanoutCount( Abc_Obj_t ** pp1, Abc_Obj_t ** pp2 )
+{
+    int Diff = Abc_ObjFanoutNum(*pp2) - Abc_ObjFanoutNum(*pp1);
+    if ( Diff < 0 )
+        return -1;
+    if ( Diff > 0 ) 
+        return 1;
+    Diff = strcmp( Abc_ObjName(*pp1), Abc_ObjName(*pp2) );
+    if ( Diff < 0 )
+        return -1;
+    if ( Diff > 0 ) 
+        return 1;
+    return 0; 
+}
+void Abc_NtkPermutePiUsingFanout( Abc_Ntk_t * pNtk )
+{
+    Abc_Obj_t * pNode; int i;
+    qsort( (void *)Vec_PtrArray(pNtk->vPis), Vec_PtrSize(pNtk->vPis), sizeof(Abc_Obj_t *), 
+        (int (*)(const void *, const void *)) Abc_NodeCompareByFanoutCount );
+    Vec_PtrClear( pNtk->vCis );
+    Vec_PtrForEachEntry( Abc_Obj_t *, pNtk->vPis, pNode, i )
+        Vec_PtrPush( pNtk->vCis, pNode );
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 void Abc_NtkUnpermute( Abc_Ntk_t * pNtk )
 {
     Vec_Ptr_t * vTemp, * vTemp2, * vLatch;

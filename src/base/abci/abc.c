@@ -20558,15 +20558,17 @@ usage:
 int Abc_CommandPermute( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     extern Abc_Ntk_t * Abc_NtkRestrashRandom( Abc_Ntk_t * pNtk );
+    extern void Abc_NtkPermutePiUsingFanout( Abc_Ntk_t * pNtk );
     Abc_Ntk_t * pNtk = pAbc->pNtkCur, * pNtkRes = NULL;
     char * pFlopPermFile = NULL;
     int fInputs = 1;
     int fOutputs = 1;
     int fFlops = 1;
     int fNodes = 1;
+    int fFanout = 0;
     int c;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "Fiofnh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Fiofnxh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -20591,6 +20593,9 @@ int Abc_CommandPermute( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'n':
             fNodes ^= 1;
             break;
+        case 'x':
+            fFanout ^= 1;
+            break;
         case 'h':
             goto usage;
         default:
@@ -20602,6 +20607,16 @@ int Abc_CommandPermute( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
         Abc_Print( -1, "Empty network.\n" );
         return 1;
+    }
+    if ( fFanout )
+    {
+        if ( Abc_NtkLatchNum(pNtk) )
+        {
+            Abc_Print( -1, "Currently \"permute -x\" works only for combinational networks.\n" );
+            return 1;
+        }
+        Abc_NtkPermutePiUsingFanout( pNtk );
+        return 0;
     }
     if ( fNodes && !Abc_NtkIsStrash(pNtk) )
     {
@@ -20622,12 +20637,13 @@ int Abc_CommandPermute( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: permute [-iofnh] [-F filename]\n" );
+    Abc_Print( -2, "usage: permute [-iofnxh] [-F filename]\n" );
     Abc_Print( -2, "\t                performs random permutation of inputs/outputs/flops\n" );
     Abc_Print( -2, "\t-i            : toggle permuting primary inputs [default = %s]\n", fInputs? "yes": "no" );
     Abc_Print( -2, "\t-o            : toggle permuting primary outputs [default = %s]\n", fOutputs? "yes": "no" );
     Abc_Print( -2, "\t-f            : toggle permuting flip-flops [default = %s]\n", fFlops? "yes": "no" );
     Abc_Print( -2, "\t-n            : toggle deriving new topological ordering of nodes [default = %s]\n", fNodes? "yes": "no" );
+    Abc_Print( -2, "\t-x            : toggle permuting inputs based on their fanout count [default = %s]\n", fFanout? "yes": "no" );
     Abc_Print( -2, "\t-h            : print the command usage\n");
     Abc_Print( -2, "\t-F <filename> : (optional) file with the flop permutation\n" );
     return 1;
