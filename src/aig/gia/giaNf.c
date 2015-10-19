@@ -54,12 +54,12 @@ struct Nf_Cut_t_
     unsigned        nLeaves :  5;   // leaf number (NF_NO_LEAF)
     int             pLeaves[NF_LEAF_MAX+1]; // leaves
 };
-typedef struct Pf_Mat_t_ Pf_Mat_t; 
-struct Pf_Mat_t_
+typedef struct Nf_Cfg_t_ Nf_Cfg_t; 
+struct Nf_Cfg_t_
 {
-    unsigned        fCompl  :  8;   // complemented
-    unsigned        Phase   :  6;   // match phase
-    unsigned        Perm    : 18;   // match permutation
+    unsigned        fCompl  :  1;   // complemented
+    unsigned        Phase   :  7;   // match phase
+    unsigned        Perm    : 24;   // match permutation
 };
 typedef struct Nf_Mat_t_ Nf_Mat_t; 
 struct Nf_Mat_t_
@@ -68,7 +68,7 @@ struct Nf_Mat_t_
     unsigned        CutH    : 10;   // cut handle
     unsigned        fCompl  :  1;   // complemented
     unsigned        fBest   :  1;   // best cut
-    int             Conf;           // input literals
+    Nf_Cfg_t        Cfg;            // input literals
     word            D;              // delay
     word            A;              // area 
 };
@@ -110,8 +110,8 @@ struct Nf_Man_t_
     int             nCutUseAll;     // objects with useful cuts
 };
 
-static inline int          Pf_Mat2Int( Pf_Mat_t Mat )                                { union { int x; Pf_Mat_t y; } v; v.y = Mat; return v.x;           }
-static inline Pf_Mat_t     Pf_Int2Mat( int Int )                                     { union { int x; Pf_Mat_t y; } v; v.x = Int; return v.y;           }
+static inline int          Nf_Cfg2Int( Nf_Cfg_t Mat )                                { union { int x; Nf_Cfg_t y; } v; v.y = Mat; return v.x;           }
+static inline Nf_Cfg_t     Nf_Int2Cfg( int Int )                                     { union { int x; Nf_Cfg_t y; } v; v.x = Int; return v.y;           }
 
 static inline word         Nf_Flt2Wrd( float w )                                     { return MIO_NUM*w;                                                }
 static inline float        Nf_Wrd2Flt( word w )                                      { return MIO_NUMINV*(unsigned)(w&0x3FFFFFFF) + MIO_NUMINV*(1<<30)*(unsigned)(w>>30); }
@@ -141,34 +141,20 @@ static inline void         Nf_ObjUpdateRequired( Nf_Man_t * p,int i, int c, word
 static inline Nf_Mat_t *   Nf_ObjMatchD( Nf_Man_t * p, int i, int c )                { return &Nf_ManObj(p, i)->M[c][0];                                }
 static inline Nf_Mat_t *   Nf_ObjMatchA( Nf_Man_t * p, int i, int c )                { return &Nf_ManObj(p, i)->M[c][1];                                }
 
-static inline Nf_Mat_t *   Nf_ObjMatchBest( Nf_Man_t * p, int i, int c )             
-{
-    Nf_Mat_t * pD = Nf_ObjMatchD(p, i, c);
-    Nf_Mat_t * pA = Nf_ObjMatchA(p, i, c);
-    assert( pD->fBest != pA->fBest );
-    //assert( Nf_ObjMapRefNum(p, i, c) > 0 );
-    if ( pA->fBest )
-        return pA;
-    if ( pD->fBest )
-        return pD;
-    return NULL;
-}
+static inline int          Nf_CutSize( int * pCut )                                  { return pCut[0] & NF_NO_LEAF;                                     }
+static inline int          Nf_CutFunc( int * pCut )                                  { return ((unsigned)pCut[0] >> 5);                                 }
+static inline int *        Nf_CutLeaves( int * pCut )                                { return pCut + 1;                                                 }
+static inline int          Nf_CutSetBoth( int n, int f )                             { return n | (f << 5);                                             }
+static inline int          Nf_CutIsTriv( int * pCut, int i )                         { return Nf_CutSize(pCut) == 1 && pCut[1] == i;                    } 
+static inline int          Nf_CutHandle( int * pCutSet, int * pCut )                 { assert( pCut > pCutSet ); return pCut - pCutSet;                 } 
+static inline int *        Nf_CutFromHandle( int * pCutSet, int h )                  { assert( h > 0 ); return pCutSet + h;                             }
 
-static inline int         Nf_CutSize( int * pCut )                                  { return pCut[0] & NF_NO_LEAF;                                     }
-static inline int         Nf_CutFunc( int * pCut )                                  { return ((unsigned)pCut[0] >> 5);                                 }
-static inline int *       Nf_CutLeaves( int * pCut )                                { return pCut + 1;                                                 }
-static inline int         Nf_CutSetBoth( int n, int f )                             { return n | (f << 5);                                             }
-static inline int         Nf_CutIsTriv( int * pCut, int i )                         { return Nf_CutSize(pCut) == 1 && pCut[1] == i;                    } 
-static inline int         Nf_CutHandle( int * pCutSet, int * pCut )                 { assert( pCut > pCutSet ); return pCut - pCutSet;                 } 
-static inline int *       Nf_CutFromHandle( int * pCutSet, int h )                  { assert( h > 0 ); return pCutSet + h;                             }
-static inline int         Nf_CutConfLit( int Conf, int i )                          { return 15 & (Conf >> (i << 2));                                  }
-static inline int         Nf_CutConfVar( int Conf, int i )                          { return Abc_Lit2Var( Nf_CutConfLit(Conf, i) );                    }
-static inline int         Nf_CutConfC( int Conf, int i )                            { return Abc_LitIsCompl( Nf_CutConfLit(Conf, i) );                 }
+static inline int          Nf_CfgVar( Nf_Cfg_t Cfg, int i )                          { return (Cfg.Perm >> (i<<2)) & 15;                                }
+static inline int          Nf_CfgCompl( Nf_Cfg_t Cfg, int i )                        { return (Cfg.Phase >> i) & 1;                                     }
 
-#define Nf_SetForEachCut( pList, pCut, i )         for ( i = 0, pCut = pList + 1; i < pList[0]; i++, pCut += Nf_CutSize(pCut) + 1 )
-#define Nf_CutForEachLit( pCut, Conf, iLit, i )    for ( i = 0; i < Nf_CutSize(pCut) && (iLit = Abc_Lit2LitV(Nf_CutLeaves(pCut), Nf_CutConfLit(Conf, i))); i++ )
-#define Nf_CutForEachVar( pCut, Conf, iVar, c, i ) for ( i = 0; i < Nf_CutSize(pCut) && (iVar = Nf_CutLeaves(pCut)[Nf_CutConfVar(Conf, i)]) && ((c = Nf_CutConfC(Conf, i)), 1); i++ )
-
+#define Nf_SetForEachCut( pList, pCut, i )                   for ( i = 0, pCut = pList + 1; i < pList[0]; i++, pCut += Nf_CutSize(pCut) + 1 )
+#define Nf_CutForEachVarCompl( pCut, Cfg, iVar, fCompl, i )  for ( i = 0; i < Nf_CutSize(pCut) && (iVar = Nf_CutLeaves(pCut)[Nf_CfgVar(Cfg, i)]) && ((fCompl = Nf_CfgCompl(Cfg, i)), 1); i++ )
+#define Nf_CfgForEachVarCompl( Cfg, Size, iVar, fCompl, i )  for ( i = 0; i < Size && ((iVar = Nf_CfgVar(Cfg, i)), 1) && ((fCompl = Nf_CfgCompl(Cfg, i)), 1); i++ )
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -188,7 +174,7 @@ static inline int         Nf_CutConfC( int Conf, int i )                        
 void Nf_StoCreateGateAdd( Nf_Man_t * pMan, word uTruth, int * pFans, int nFans, int CellId )
 {
     Vec_Int_t * vArray;
-    Pf_Mat_t Mat = Pf_Int2Mat(0);
+    Nf_Cfg_t Mat = Nf_Int2Cfg(0);
     int i, GateId, Entry, fCompl = (int)(uTruth & 1);
     word uFunc = fCompl ? ~uTruth : uTruth;
     int iFunc = Vec_MemHashInsert( pMan->vTtMem, &uFunc );
@@ -199,23 +185,23 @@ void Nf_StoCreateGateAdd( Nf_Man_t * pMan, word uTruth, int * pFans, int nFans, 
     assert( nFans < 7 );
     for ( i = 0; i < nFans; i++ )
     {
-        Mat.Perm  |= (unsigned)(Abc_Lit2Var(pFans[i]) << (3*i));
-        Mat.Phase |= (unsigned)(Abc_LitIsCompl(pFans[i]) << i);
+        Mat.Perm  |= (unsigned)(i << (Abc_Lit2Var(pFans[i]) << 2));
+        Mat.Phase |= (unsigned)(Abc_LitIsCompl(pFans[i]) << Abc_Lit2Var(pFans[i]));
     }
     if ( pMan->pPars->fPinPerm ) // use pin-permutation (slower but good for delay when pin-delays differ)
     {
         Vec_IntPush( vArray, CellId );
-        Vec_IntPush( vArray, Pf_Mat2Int(Mat) );
+        Vec_IntPush( vArray, Nf_Cfg2Int(Mat) );
         return;
     }
     // check if the same one exists
     Vec_IntForEachEntryDouble( vArray, GateId, Entry, i )
-        if ( GateId == CellId && Pf_Int2Mat(Entry).Phase == Mat.Phase )
+        if ( GateId == CellId && Nf_Int2Cfg(Entry).Phase == Mat.Phase )
             break;
     if ( i == Vec_IntSize(vArray) )
     {
         Vec_IntPush( vArray, CellId );
-        Vec_IntPush( vArray, Pf_Mat2Int(Mat) );
+        Vec_IntPush( vArray, Nf_Cfg2Int(Mat) );
     }
 }
 void Nf_StoCreateGateMaches( Nf_Man_t * pMan, Mio_Cell2_t * pCell, int ** pComp, int ** pPerm, int * pnPerms )
@@ -271,7 +257,8 @@ void Nf_StoDeriveMatches( Nf_Man_t * p, int fVerbose )
         ABC_FREE( pPerm[i] );
 //    Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
 }
-void Nf_StoPrintOne( Nf_Man_t * p, int Count, int t, int i, int GateId, Pf_Mat_t Mat )
+//void Nf_StoPrintOne( Nf_Man_t * p, int Count, int t, int i, int GateId, Pf_Mat_t Mat )
+void Nf_StoPrintOne( Nf_Man_t * p, int Count, int t, int i, int GateId, Nf_Cfg_t Mat )
 {
     Mio_Cell2_t * pC = p->pCells + GateId;
     word * pTruth = Vec_MemReadEntry(p->vTtMem, t);
@@ -491,7 +478,7 @@ static inline int Nf_CutCreateUnit( Nf_Cut_t * p, int i )
     p->Sign       = ((word)1) << (i & 0x3F);
     return 1;
 }
-static inline void Nf_Cutprintf( Nf_Man_t * p, Nf_Cut_t * pCut )
+static inline void Nf_CutPrint( Nf_Man_t * p, Nf_Cut_t * pCut )
 {
     int i, nDigits = Abc_Base10Log(Gia_ManObjNum(p->pGia)); 
     printf( "%d  {", pCut->nLeaves );
@@ -909,7 +896,7 @@ void Nf_ObjMergeOrder( Nf_Man_t * p, int iObj )
     {
         printf( "*** Obj = %d  Useful = %d\n", iObj, Nf_ManCountUseful(pCutsR, nCutsR) );
         for ( i = 0; i < nCutsR; i++ )
-            Nf_Cutprintf( p, pCutsR[i] );
+            Nf_CutPrint( p, pCutsR[i] );
         printf( "\n" );
     } 
     // verify
@@ -1058,7 +1045,7 @@ void Nf_ManCutMatchPrint( Nf_Man_t * p, int iObj, char * pStr, Nf_Mat_t * pM )
         printf( "       " );
     printf( " } " );
     for ( i = 0; i < (int)pCell->nFanins; i++ )
-        printf( "%d ", Nf_CutConfLit(pM->Conf, i) );
+        printf( "%s%d ", Nf_CfgCompl(pM->Cfg, i) ? "!":" ", Nf_CfgVar(pM->Cfg, i) );
     for ( ; i < 6; i++ )
         printf( "  " );
     Dau_DsdPrintFromTruth( &pCell->uTruth, pCell->nFanins );
@@ -1091,70 +1078,50 @@ void Nf_ManCutMatchOne( Nf_Man_t * p, int iObj, int * pCut, int * pCutSet )
             pD->A = pA->A = p->pCells[c ^ Const].Area;
             pD->CutH = pA->CutH = Nf_CutHandle(pCutSet, pCut);
             pD->Gate = pA->Gate = c ^ Const;
-            pD->Conf = pA->Conf = 0;
+//            pD->Conf = pA->Conf = 0;
+            pD->Cfg = pA->Cfg = Nf_Int2Cfg(0);
         }
         return;
     }
-/*
-    if ( nFans == 1 )
-    {
-        int Const = (iFuncLit == 3);
-        assert( iFuncLit == 2 || iFuncLit == 3 );
-        for ( c = 0; c < 2; c++ )
-        { 
-            pD = Nf_ObjMatchD( p, iObj, c );
-            pA = Nf_ObjMatchA( p, iObj, c );
-            pD->D = pA->D = pBestF[0]->M[c ^ !Const][0].D + p->pCells[2 + (c ^ Const)].Delays[0];
-            pD->A = pA->A = pBestF[0]->M[c ^ !Const][0].A + p->pCells[2 + (c ^ Const)].Area;
-            pD->CutH = pA->CutH = Nf_CutHandle(pCutSet, pCut);
-            pD->Gate = pA->Gate = 2 + (c ^ Const);
-            pD->Conf = pA->Conf = 0;
-        }
-        return;
-    }
-*/
     // consider matches of this function
     Vec_IntForEachEntryDouble( vArr, Info, Offset, i )
     {
-        Pf_Mat_t Mat   = Pf_Int2Mat(Offset);
+        Nf_Cfg_t Cfg   = Nf_Int2Cfg(Offset);
         Mio_Cell2_t*pC = Nf_ManCell( p, Info );
-        int fCompl     = Mat.fCompl ^ fComplExt;
+        int fCompl     = Cfg.fCompl ^ fComplExt;
         word Required  = Nf_ObjRequired( p, iObj, fCompl );
         Nf_Mat_t * pD  = &pBest->M[fCompl][0];
         Nf_Mat_t * pA  = &pBest->M[fCompl][1];
         word Area      = pC->Area, Delay = 0;
         assert( nFans == (int)pC->nFanins );
-        for ( k = 0; k < nFans; k++ )
+        Nf_CfgForEachVarCompl( Cfg, nFans, iFanin, fComplF, k )
         {
-            iFanin    = (Mat.Perm >> (3*k)) & 7;
-            fComplF   = (Mat.Phase >> k) & 1;
-            ArrivalD  = pBestF[k]->M[fComplF][0].D;
-            ArrivalA  = pBestF[k]->M[fComplF][1].D;
-            if ( ArrivalA + pC->Delays[iFanin] <= Required && Required != NF_INFINITY )
+            ArrivalD  = pBestF[iFanin]->M[fComplF][0].D;
+            ArrivalA  = pBestF[iFanin]->M[fComplF][1].D;
+            if ( ArrivalA + pC->Delays[k] <= Required && Required != NF_INFINITY )
             {
-                Delay = Abc_MaxWord( Delay, ArrivalA + pC->Delays[iFanin] );
-                Area += pBestF[k]->M[fComplF][1].A;
+                Delay = Abc_MaxWord( Delay, ArrivalA + pC->Delays[k] );
+                Area += pBestF[iFanin]->M[fComplF][1].A;
             }
             else 
             {
-                if ( pD->D < NF_INFINITY && pA->D < NF_INFINITY && ArrivalD + pC->Delays[iFanin] > Required )
+                if ( pD->D < NF_INFINITY && pA->D < NF_INFINITY && ArrivalD + pC->Delays[k] > Required )
                     break;
-                Delay = Abc_MaxWord( Delay, ArrivalD + pC->Delays[iFanin] );
-                Area += pBestF[k]->M[fComplF][0].A;
+                Delay = Abc_MaxWord( Delay, ArrivalD + pC->Delays[k] );
+                Area += pBestF[iFanin]->M[fComplF][0].A;
             }
         }
         if ( k < nFans )
             continue;
-        // select best match
+        // select best Cfgch
         if ( pD->D > Delay )
         {
             pD->D = Delay;
             pD->A = Area;
             pD->CutH = Nf_CutHandle(pCutSet, pCut);
             pD->Gate = pC->Id;
-            pD->Conf = 0;
-            for ( k = 0; k < nFans; k++ )
-                pD->Conf |= (Abc_Var2Lit(k, (Mat.Phase >> k) & 1) << (((Mat.Perm >> (3*k)) & 7) << 2));
+            pD->Cfg = Cfg;
+            pD->Cfg.fCompl = 0;
         }
 
         if ( pA->A > Area )
@@ -1163,9 +1130,8 @@ void Nf_ManCutMatchOne( Nf_Man_t * p, int iObj, int * pCut, int * pCutSet )
             pA->A = Area;
             pA->CutH = Nf_CutHandle(pCutSet, pCut);
             pA->Gate = pC->Id;
-            pA->Conf = 0;
-            for ( k = 0; k < nFans; k++ )
-                pA->Conf |= (Abc_Var2Lit(k, (Mat.Phase >> k) & 1) << (((Mat.Perm >> (3*k)) & 7) << 2));
+            pA->Cfg = Cfg;
+            pA->Cfg.fCompl = 0;
         }
     }
 }
@@ -1215,15 +1181,13 @@ static inline word Nf_CutRequired( Nf_Man_t * p, Nf_Mat_t * pM, int * pCutSet )
     int * pCut   = Nf_CutFromHandle( pCutSet, pM->CutH );
     int * pFans  = Nf_CutLeaves(pCut);
     int i, nFans = Nf_CutSize(pCut);
-    word Arrival = 0, Required = 0;
-    for ( i = 0; i < nFans; i++ )
+    int iVar, fCompl;
+    word Arr, Req, Arrival = 0, Required = 0;
+    Nf_CutForEachVarCompl( pCut, pM->Cfg, iVar, fCompl, i )
     {
-        int iLit   = Nf_CutConfLit( pM->Conf, i );
-        int iFanin = pFans[ Abc_Lit2Var(iLit) ];
-        int fCompl = Abc_LitIsCompl( iLit );
-        word Arr   = Nf_ManObj(p, iFanin)->M[fCompl][0].D + pCell->Delays[i];
-        word Req   = Nf_ObjRequired(p, iFanin, fCompl);
-        Arrival    = Abc_MaxWord( Arrival, Arr );
+        Arr     = Nf_ManObj(p, iVar)->M[fCompl][0].D + pCell->Delays[i];
+        Req     = Nf_ObjRequired(p, iVar, fCompl);
+        Arrival = Abc_MaxWord( Arrival, Arr );
         if ( Req < NF_INFINITY )
             Required = Abc_MaxWord( Required, Req + pCell->Delays[i] );
     }
@@ -1396,6 +1360,18 @@ void Nf_ManComputeMapping( Nf_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
+static inline Nf_Mat_t * Nf_ObjMatchBest( Nf_Man_t * p, int i, int c )             
+{
+    Nf_Mat_t * pD = Nf_ObjMatchD(p, i, c);
+    Nf_Mat_t * pA = Nf_ObjMatchA(p, i, c);
+    assert( pD->fBest != pA->fBest );
+    //assert( Nf_ObjMapRefNum(p, i, c) > 0 );
+    if ( pA->fBest )
+        return pA;
+    if ( pD->fBest )
+        return pD;
+    return NULL;
+}
 void Nf_ManSetOutputRequireds( Nf_Man_t * p, int fPropCompl )
 {
     Gia_Obj_t * pObj;
@@ -1457,7 +1433,7 @@ void Nf_ManSetMapRefsGate( Nf_Man_t * p, int iObj, word Required, Nf_Mat_t * pM 
     int k, iVar, fCompl;
     Mio_Cell2_t * pCell = Nf_ManCell( p, pM->Gate );
     int * pCut = Nf_CutFromHandle( Nf_ObjCutSet(p, iObj), pM->CutH );
-    Nf_CutForEachVar( pCut, pM->Conf, iVar, fCompl, k )
+    Nf_CutForEachVarCompl( pCut, pM->Cfg, iVar, fCompl, k )
     {
         Nf_ObjMapRefInc( p, iVar, fCompl );
         Nf_ObjUpdateRequired( p, iVar, fCompl, Required - pCell->Delays[k] );
@@ -1684,7 +1660,7 @@ word Nf_MatchDeref_rec( Nf_Man_t * p, int i, int c, Nf_Mat_t * pM )
     if ( Nf_ObjCutSetId(p, i) == 0 )
         return 0;
     pCut = Nf_CutFromHandle( Nf_ObjCutSet(p, i), pM->CutH );
-    Nf_CutForEachVar( pCut, pM->Conf, iVar, fCompl, k )
+    Nf_CutForEachVarCompl( pCut, pM->Cfg, iVar, fCompl, k )
     {
         assert( Nf_ObjMapRefNum(p, iVar, fCompl) > 0 );
         if ( !Nf_ObjMapRefDec(p, iVar, fCompl) )
@@ -1711,7 +1687,7 @@ word Nf_MatchRef_rec( Nf_Man_t * p, int i, int c, Nf_Mat_t * pM, word Required, 
     if ( Nf_ObjCutSetId(p, i) == 0 )
         return 0;
     pCut = Nf_CutFromHandle( Nf_ObjCutSet(p, i), pM->CutH );
-    Nf_CutForEachVar( pCut, pM->Conf, iVar, fCompl, k )
+    Nf_CutForEachVarCompl( pCut, pM->Cfg, iVar, fCompl, k )
     {
         ReqFanin = Required - Nf_ManCell(p, pM->Gate)->Delays[k];
         if ( vBackup )
@@ -1760,63 +1736,43 @@ void Nf_ManElaBestMatchOne( Nf_Man_t * p, int iObj, int c, int * pCut, int * pCu
         pMb->A = p->pCells[c ^ Const].Area;
         pMb->CutH = Nf_CutHandle(pCutSet, pCut);
         pMb->Gate = c ^ Const;
-        pMb->Conf = 0;
+//        pMb->Conf = 0;
+        pMb->Cfg = Nf_Int2Cfg(0);
         pMb->fBest = 1;
         // compare
         if ( pRes->A > pMb->A || (pRes->A == pMb->A && pRes->D > pMb->D) )
             *pRes = *pMb;
         return;
     }
-/*
-    if ( nFans == 1 )
-    {
-        int Const = (iFuncLit == 3);
-        printf( "Node %d(%d) is inv/buf\n", iObj, c );
-        assert( iFuncLit == 2 || iFuncLit == 3 );
-        pMb->D = pBestF[0]->M[c ^ !Const][0].D + p->pCells[2 + (c ^ Const)].Delays[0];
-        pMb->A = pBestF[0]->M[c ^ !Const][0].A + p->pCells[2 + (c ^ Const)].Area;
-        pMb->CutH = Nf_CutHandle(pCutSet, pCut);
-        pMb->Gate = 2 + (c ^ Const);
-        pMb->Conf = 0;
-        pMb->fBest = 1;
-        // compare
-        if ( pRes->A > pMb->A || (pRes->A == pMb->A && pRes->D > pMb->D) )
-            *pRes = *pMb;
-        return;
-    }
-*/
     // consider matches of this function
     Vec_IntForEachEntryDouble( vArr, Info, Offset, i )
     {
-        Pf_Mat_t Mat   = Pf_Int2Mat(Offset);
+        Nf_Cfg_t Cfg   = Nf_Int2Cfg(Offset);
         Mio_Cell2_t*pC = Nf_ManCell( p, Info );
-        int fCompl     = Mat.fCompl ^ fComplExt;
+        int fCompl     = Cfg.fCompl ^ fComplExt;
         word Delay     = 0;
         assert( nFans == (int)pC->nFanins );
         if ( fCompl != c )
             continue;
-        for ( k = 0; k < nFans; k++ )
+        Nf_CfgForEachVarCompl( Cfg, nFans, iFanin, fComplF, k )
         {
-            iFanin  = (Mat.Perm >> (3*k)) & 7;
-            fComplF = (Mat.Phase >> k) & 1;
-            pMd     = &pBestF[k]->M[fComplF][0];
+            pMd     = &pBestF[iFanin]->M[fComplF][0];
             assert( pMd->fBest );
-            Delay = Abc_MaxWord( Delay, pMd->D + pC->Delays[iFanin] );
+            Delay = Abc_MaxWord( Delay, pMd->D + pC->Delays[k] );
             if ( Delay > Required )
                 break;
         }
         if ( k < nFans )
             continue;
-        // create match
+        // create Cfgch
         pMb->D = Delay;
         pMb->A = NF_INFINITY;
         pMb->fBest = 1;
         pMb->fCompl = 0;
         pMb->CutH = Nf_CutHandle(pCutSet, pCut);
         pMb->Gate = pC->Id;
-        pMb->Conf = 0;
-        for ( k = 0; k < nFans; k++ )
-            pMb->Conf |= (Abc_Var2Lit(k, (Mat.Phase >> k) & 1) << (((Mat.Perm >> (3*k)) & 7) << 2));
+        pMb->Cfg = Cfg;
+        pMb->Cfg.fCompl = 0;
         // compute area
         pMb->A = Nf_MatchRefArea( p, iObj, c, pMb, Required );
         // compare
@@ -1844,7 +1800,7 @@ word Nf_ManComputeArrival( Nf_Man_t * p, Nf_Mat_t * pM, int * pCutSet )
     Mio_Cell2_t * pCell = Nf_ManCell( p, pM->Gate );
     int * pCut = Nf_CutFromHandle( pCutSet, pM->CutH );
     assert( !pM->fCompl );
-    Nf_CutForEachVar( pCut, pM->Conf, iVar, fCompl, k )
+    Nf_CutForEachVarCompl( pCut, pM->Cfg, iVar, fCompl, k )
     {
         pMfan = Nf_ObjMatchBest( p, iVar, fCompl );
         Delay = Abc_MaxWord( Delay, pMfan->D + pCell->Delays[k] );
@@ -1994,7 +1950,7 @@ void Nf_ManComputeMappingEla( Nf_Man_t * p )
             // update timing
             pCell = Nf_ManCell( p, pMb->Gate );
             pCut = Nf_CutFromHandle( Nf_ObjCutSet(p, i), pMb->CutH );
-            Nf_CutForEachVar( pCut, pMb->Conf, iVar, fCompl, k )
+            Nf_CutForEachVarCompl( pCut, pMb->Cfg, iVar, fCompl, k )
             {
                 pM = Nf_ObjMatchBest( p, iVar, fCompl );
                 assert( pM->D <= Required - pCell->Delays[k] );
@@ -2031,7 +1987,7 @@ Gia_Man_t * Nf_ManDeriveMapping( Nf_Man_t * p )
 {
     Vec_Int_t * vMapping;
     Nf_Mat_t * pM;
-    int i, k, c, Id, iLit, * pCut;
+    int i, k, c, Id, iVar, fCompl, * pCut;
     assert( p->pGia->vCellMapping == NULL );
     vMapping = Vec_IntAlloc( 2*Gia_ManObjNum(p->pGia) + (int)p->pPars->Edge + (int)p->pPars->Area * 2 );
     Vec_IntFill( vMapping, 2*Gia_ManObjNum(p->pGia), 0 );
@@ -2064,8 +2020,8 @@ Gia_Man_t * Nf_ManDeriveMapping( Nf_Man_t * p )
             pCut = Nf_CutFromHandle( Nf_ObjCutSet(p, i), pM->CutH );
             Vec_IntWriteEntry( vMapping, Abc_Var2Lit(i, c), Vec_IntSize(vMapping) );
             Vec_IntPush( vMapping, Nf_CutSize(pCut) );
-            Nf_CutForEachLit( pCut, pM->Conf, iLit, k )
-                Vec_IntPush( vMapping, iLit );
+            Nf_CutForEachVarCompl( pCut, pM->Cfg, iVar, fCompl, k )
+                Vec_IntPush( vMapping, Abc_Var2Lit(iVar, fCompl) );
             Vec_IntPush( vMapping, pM->Gate );
         }
     }
