@@ -26490,15 +26490,15 @@ int Abc_CommandAbc9Put( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Empty network.\n" );
         return 1;
     }
-    if ( Gia_ManHasMapping(pAbc->pGia) || pAbc->pGia->pMuxes )
-    {
-        extern Abc_Ntk_t * Abc_NtkFromMappedGia( Gia_Man_t * p );
-        pNtk = Abc_NtkFromMappedGia( pAbc->pGia );
-    }
-    else if ( Gia_ManHasCellMapping(pAbc->pGia) )
+    if ( Gia_ManHasCellMapping(pAbc->pGia) )
     {
         extern Abc_Ntk_t * Abc_NtkFromCellMappedGia( Gia_Man_t * p );
         pNtk = Abc_NtkFromCellMappedGia( pAbc->pGia );
+    }
+    else if ( Gia_ManHasMapping(pAbc->pGia) || pAbc->pGia->pMuxes )
+    {
+        extern Abc_Ntk_t * Abc_NtkFromMappedGia( Gia_Man_t * p );
+        pNtk = Abc_NtkFromMappedGia( pAbc->pGia );
     }
     else if ( Gia_ManHasDangling(pAbc->pGia) == 0 )
     {
@@ -34059,7 +34059,7 @@ int Abc_CommandAbc9Nf( Abc_Frame_t * pAbc, int argc, char ** argv )
     Gia_Man_t * pNew; int c;
     Nf_ManSetDefaultPars( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "KCFARLEDQWapkvwh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "KCFARLEDQWakpqfvwh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -34182,11 +34182,17 @@ int Abc_CommandAbc9Nf( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'a':
             pPars->fAreaOnly ^= 1;
             break;
+        case 'k':
+            pPars->fCoarsen ^= 1;
+            break;
         case 'p':
             pPars->fPinPerm ^= 1;
             break;
-        case 'k':
-            pPars->fCoarsen ^= 1;
+        case 'q':
+            pPars->fPinQuick ^= 1;
+            break;
+        case 'f':
+            pPars->fPinFilter ^= 1;
             break;
         case 'v':
             pPars->fVerbose ^= 1;
@@ -34226,22 +34232,24 @@ usage:
         sprintf(Buffer, "best possible" );
     else
         sprintf(Buffer, "%d", pPars->DelayTarget );
-    Abc_Print( -2, "usage: &nf [-KCFARLEDQ num] [-akpvwh]\n" );
+    Abc_Print( -2, "usage: &nf [-KCFARLEDQ num] [-akpqfvwh]\n" );
     Abc_Print( -2, "\t           performs technology mapping of the network\n" );
-    Abc_Print( -2, "\t-K num   : LUT size for the mapping (2 <= K <= %d) [default = %d]\n", pPars->nLutSizeMax, pPars->nLutSize );
-    Abc_Print( -2, "\t-C num   : the max number of priority cuts (1 <= C <= %d) [default = %d]\n", pPars->nCutNumMax, pPars->nCutNum );
-    Abc_Print( -2, "\t-F num   : the number of area flow rounds [default = %d]\n", pPars->nRounds );
-    Abc_Print( -2, "\t-A num   : the number of exact area rounds (when \'-a\' is used) [default = %d]\n", pPars->nRoundsEla );
-    Abc_Print( -2, "\t-R num   : the delay relaxation ratio (num >= 0) [default = %d]\n", pPars->nRelaxRatio );
-    Abc_Print( -2, "\t-L num   : the fanout limit for coarsening XOR/MUX (num >= 2) [default = %d]\n", pPars->nCoarseLimit );
-    Abc_Print( -2, "\t-E num   : the area/edge tradeoff parameter (0 <= num <= 100) [default = %d]\n", pPars->nAreaTuner );
-    Abc_Print( -2, "\t-D num   : sets the delay constraint for the mapping [default = %s]\n", Buffer );
-    Abc_Print( -2, "\t-Q num   : internal parameter impacting area of the mapping [default = %s]\n", Buffer );
-    Abc_Print( -2, "\t-a       : toggles area-oriented mapping [default = %s]\n", pPars->fAreaOnly? "yes": "no" );
-    Abc_Print( -2, "\t-k       : toggles coarsening the subject graph [default = %s]\n", pPars->fCoarsen? "yes": "no" );
-    Abc_Print( -2, "\t-p       : toggles pin-permutation (useful when pin-delays differ) [default = %s]\n", pPars->fPinPerm? "yes": "no" );
-    Abc_Print( -2, "\t-v       : toggles verbose output [default = %s]\n", pPars->fVerbose? "yes": "no" );
-    Abc_Print( -2, "\t-w       : toggles very verbose output [default = %s]\n", pPars->fVeryVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-K num   : LUT size for the mapping (2 <= K <= %d) [default = %d]\n",                  pPars->nLutSizeMax, pPars->nLutSize );
+    Abc_Print( -2, "\t-C num   : the max number of priority cuts (1 <= C <= %d) [default = %d]\n",           pPars->nCutNumMax, pPars->nCutNum );
+    Abc_Print( -2, "\t-F num   : the number of area flow rounds [default = %d]\n",                           pPars->nRounds );
+    Abc_Print( -2, "\t-A num   : the number of exact area rounds (when \'-a\' is used) [default = %d]\n",    pPars->nRoundsEla );
+    Abc_Print( -2, "\t-R num   : the delay relaxation ratio (num >= 0) [default = %d]\n",                    pPars->nRelaxRatio );
+    Abc_Print( -2, "\t-L num   : the fanout limit for coarsening XOR/MUX (num >= 2) [default = %d]\n",       pPars->nCoarseLimit );
+    Abc_Print( -2, "\t-E num   : the area/edge tradeoff parameter (0 <= num <= 100) [default = %d]\n",       pPars->nAreaTuner );
+    Abc_Print( -2, "\t-D num   : sets the delay constraint for the mapping [default = %s]\n",                Buffer );
+    Abc_Print( -2, "\t-Q num   : internal parameter impacting area of the mapping [default = %d]\n",         pPars->nReqTimeFlex );
+    Abc_Print( -2, "\t-a       : toggles area-oriented mapping [default = %s]\n",                            pPars->fAreaOnly? "yes": "no" );
+    Abc_Print( -2, "\t-k       : toggles coarsening the subject graph [default = %s]\n",                     pPars->fCoarsen? "yes": "no" );
+    Abc_Print( -2, "\t-p       : toggles pin permutation (more matches - better quality) [default = %s]\n",  pPars->fPinPerm? "yes": "no" );
+    Abc_Print( -2, "\t-q       : toggles quick mapping (fewer matches - worse quality) [default = %s]\n",    pPars->fPinQuick? "yes": "no" );
+    Abc_Print( -2, "\t-f       : toggles filtering matches (useful with unit delay model) [default = %s]\n", pPars->fPinFilter? "yes": "no" );
+    Abc_Print( -2, "\t-v       : toggles verbose output [default = %s]\n",                                   pPars->fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-w       : toggles very verbose output [default = %s]\n",                              pPars->fVeryVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h       : prints the command usage\n");
     return 1;
 }

@@ -287,6 +287,8 @@ struct Jf_Par_t_
     int            DelayTarget;
     int            fAreaOnly;
     int            fPinPerm;
+    int            fPinQuick;
+    int            fPinFilter;
     int            fOptEdge;
     int            fUseMux7;
     int            fPower;
