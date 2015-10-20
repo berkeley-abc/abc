@@ -1227,10 +1227,8 @@ static inline void Nf_ObjPrepareBuf( Nf_Man_t * p, Gia_Obj_t * pObj )
 static inline word Nf_CutRequired( Nf_Man_t * p, Nf_Mat_t * pM, int * pCutSet )
 {
     Mio_Cell2_t * pCell = Nf_ManCell( p, pM->Gate );
-    int * pCut   = Nf_CutFromHandle( pCutSet, pM->CutH );
-    int * pFans  = Nf_CutLeaves(pCut);
-    int i, nFans = Nf_CutSize(pCut);
-    int iVar, fCompl;
+    int * pCut = Nf_CutFromHandle( pCutSet, pM->CutH );
+    int i, iVar, fCompl;
     word Arr, Req, Arrival = 0, Required = 0;
     Nf_CutForEachVarCompl( pCut, pM->Cfg, iVar, fCompl, i )
     {
