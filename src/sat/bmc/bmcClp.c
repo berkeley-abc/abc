@@ -36,6 +36,11 @@ extern Cnf_Dat_t * Mf_ManGenerateCnf( Gia_Man_t * pGia, int nLutSize, int fCnfOb
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
+static abctime clkCheck1 = 0;
+static abctime clkCheck2 = 0;
+static abctime clkCheckS = 0;
+static abctime clkCheckU = 0;
+
 // enumerate cubes and literals
 #define Bmc_SopForEachCube( pSop, nVars, pCube )                        \
     for ( pCube = (pSop); *pCube; pCube += (nVars) + 3 )
@@ -126,7 +131,9 @@ int Bmc_CollapseIrredundant( Vec_Str_t * vSop, int nCubes, int nVars )
 ***********************************************************************/
 int Bmc_CollapseExpandRound( sat_solver * pSat, sat_solver * pSatOn, Vec_Int_t * vLits, Vec_Int_t * vNums, Vec_Int_t * vTemp, int nBTLimit, int fCanon )
 {
+    int fProfile = 0;
     int k, n, iLit, status;
+    abctime clk;
     // try removing one literal at a time
     for ( k = Vec_IntSize(vLits) - 1; k >= 0; k-- )
     {
@@ -145,12 +152,18 @@ int Bmc_CollapseExpandRound( sat_solver * pSat, sat_solver * pSatOn, Vec_Int_t *
                 if ( iLit != -1 )
                     Vec_IntPush( vTemp, Abc_LitNotCond(iLit, k==n) );
             // check against onset
+            if ( fProfile ) clk = Abc_Clock();
             status = sat_solver_solve( pSatOn, Vec_IntArray(vTemp), Vec_IntLimit(vTemp), nBTLimit, 0, 0, 0 );
+            if ( fProfile ) clkCheck1 += Abc_Clock() - clk;
             if ( status == l_Undef )
                 return -1;
             //printf( "%d", status == l_True );
             if ( status == l_False )
+            {
+                if ( fProfile ) clkCheckU += Abc_Clock() - clk;
                 continue;
+            }
+            if ( fProfile ) clkCheckS += Abc_Clock() - clk;
             // otherwise keep trying to remove it
         }
         Vec_IntWriteEntry( vLits, k, -1 );
@@ -160,11 +173,18 @@ int Bmc_CollapseExpandRound( sat_solver * pSat, sat_solver * pSatOn, Vec_Int_t *
             if ( iLit != -1 )
                 Vec_IntPush( vTemp, iLit );
         // check against offset
+        if ( fProfile ) clk = Abc_Clock();
         status = sat_solver_solve( pSat, Vec_IntArray(vTemp), Vec_IntLimit(vTemp), nBTLimit, 0, 0, 0 );
+        if ( fProfile ) clkCheck2 += Abc_Clock() - clk;
         if ( status == l_Undef )
             return -1;
         if ( status == l_True )
+        {
             Vec_IntWriteEntry( vLits, k, Save );
+            if ( fProfile ) clkCheckS += Abc_Clock() - clk;
+        }
+        else
+            if ( fProfile ) clkCheckU += Abc_Clock() - clk;
     }
 //    if ( pSatOn )
 //    printf( "\n" );
@@ -608,6 +628,10 @@ cleanup:
             Abc_PrintTime( 1, "Onset  expand ", Time[0][1] );
             Abc_PrintTime( 1, "Offset minterm", Time[1][0] );
             Abc_PrintTime( 1, "Offset expand ", Time[1][1] );
+            //Abc_PrintTime( 1, "Expand check1 ", clkCheck1 ); clkCheck1 = 0;
+            //Abc_PrintTime( 1, "Expand check2 ", clkCheck2 ); clkCheck2 = 0;
+            //Abc_PrintTime( 1, "Expand sat    ", clkCheckS ); clkCheckS = 0;
+            //Abc_PrintTime( 1, "Expand unsat  ", clkCheckU ); clkCheckU = 0;
         }
     }
     Vec_StrFreeP( &vSop[0] );
