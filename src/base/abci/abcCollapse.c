@@ -404,8 +404,9 @@ Abc_Obj_t * Abc_NtkFromSopsOne( Abc_Ntk_t * pNtkNew, Abc_Ntk_t * pNtk, int iCo, 
     // create a new node
     pNodeNew = Abc_NtkCreateNode( pNtkNew );
     // add fanins
-    Vec_IntForEachEntry( vSupp, iCi, i )
-        Abc_ObjAddFanin( pNodeNew, Abc_NtkCi(pNtkNew, iCi) );
+    if ( Vec_StrSize(vSop) > 4 ) // non-constant SOP
+        Vec_IntForEachEntry( vSupp, iCi, i )
+            Abc_ObjAddFanin( pNodeNew, Abc_NtkCi(pNtkNew, iCi) );
     // transfer the function
     pNodeNew->pData = Abc_SopRegister( (Mem_Flex_t *)pNtkNew->pManFunc, Vec_StrArray(vSop) );
     Vec_StrFree( vSop );
