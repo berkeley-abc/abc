@@ -192,7 +192,7 @@ extern void         Sfm_TranslateCnf( Vec_Wec_t * vRes, Vec_Str_t * vCnf, Vec_In
 /*=== sfmCore.c ==========================================================*/
 /*=== sfmLib.c ==========================================================*/
 extern int          Sfm_LibFindComplInputGate( Vec_Wrd_t * vFuncs, int iGate, int nFanins, int iFanin, int * piFaninNew );
-extern Sfm_Lib_t *  Sfm_LibPrepare( int nVars, int fTwo, int fVerbose );
+extern Sfm_Lib_t *  Sfm_LibPrepare( int nVars, int fTwo, int fDelay, int fVerbose );
 extern void         Sfm_LibPrint( Sfm_Lib_t * p );
 extern void         Sfm_LibStop( Sfm_Lib_t * p );
 extern int          Sfm_LibImplement( Sfm_Lib_t * p, word uTruth, int * pFanins, int nFanins, int AreaMffc, Vec_Int_t * vGates, Vec_Wec_t * vFanins, int fZeroCost );

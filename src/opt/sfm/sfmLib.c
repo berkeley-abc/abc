@@ -46,15 +46,22 @@ struct Sfm_Lib_t_
 {
     Mio_Cell2_t *   pCells;        // library gates
     int             nCells;        // library gate count
+    int             fDelay;        // uses delay profile
     int             nObjs;         // object count
     int             nObjsAlloc;    // object count
     Sfm_Fun_t *     pObjs;         // objects  
     Vec_Mem_t *     vTtMem;        // truth tables
     Vec_Int_t       vLists;        // lists of funcs for each truth table
     Vec_Int_t       vCounts;       // counters of functions for each truth table
+    Vec_Int_t       vProfs;        // area/delay profiles
+    Vec_Int_t       vStore;        // storage for area/delay profiles
+    Vec_Int_t       vTemp;         // temporary storage for candidates
+    int             nObjSkipped;
+    int             nObjRemoved;
 };
 
-static inline Sfm_Fun_t * Sfm_LibFun( Sfm_Lib_t * p, int i ) { return i == -1 ? NULL : p->pObjs + i; }
+static inline Sfm_Fun_t * Sfm_LibFun( Sfm_Lib_t * p, int i )              { return i == -1 ? NULL : p->pObjs + i; }
+static inline int         Sfm_LibFunId( Sfm_Lib_t * p, Sfm_Fun_t * pFun ) { return pFun - p->pObjs;               }
 
 #define Sfm_LibForEachSuper( p, pObj, Func ) \
     for ( pObj = Sfm_LibFun(p, Vec_IntEntry(&p->vLists, Func)); pObj; pObj = Sfm_LibFun(p, pObj->Next) )
@@ -178,7 +185,7 @@ int Sfm_LibFindComplInputGate( Vec_Wrd_t * vFuncs, int iGate, int nFanins, int i
   SeeAlso     []
 
 ***********************************************************************/
-Sfm_Lib_t * Sfm_LibStart( int nVars )
+Sfm_Lib_t * Sfm_LibStart( int nVars, int fDelay )
 {
     Sfm_Lib_t * p = ABC_CALLOC( Sfm_Lib_t, 1 );
     p->vTtMem = Vec_MemAllocForTT( nVars, 0 );   
@@ -188,6 +195,10 @@ Sfm_Lib_t * Sfm_LibStart( int nVars )
     Vec_IntFill( &p->vCounts, 2, -1 );
     p->nObjsAlloc = (1 << 16);
     p->pObjs = ABC_CALLOC( Sfm_Fun_t, p->nObjsAlloc );
+    p->fDelay = fDelay;
+    if ( fDelay ) Vec_IntGrow( &p->vProfs,  (1 << 16) );
+    if ( fDelay ) Vec_IntGrow( &p->vStore,  (1 << 18) );
+    Vec_IntGrow( &p->vTemp, 16 );
     return p;
 }
 void Sfm_LibStop( Sfm_Lib_t * p )
@@ -196,6 +207,9 @@ void Sfm_LibStop( Sfm_Lib_t * p )
     Vec_MemFree( p->vTtMem );
     Vec_IntErase( &p->vLists );
     Vec_IntErase( &p->vCounts );
+    Vec_IntErase( &p->vProfs );
+    Vec_IntErase( &p->vStore );
+    Vec_IntErase( &p->vTemp );
     ABC_FREE( p->pCells );
     ABC_FREE( p->pObjs );
     ABC_FREE( p );
@@ -238,11 +252,43 @@ word Sfm_LibTruthTwo( Mio_Cell2_t * pCellBot, Mio_Cell2_t * pCellTop, int InTop 
   SeeAlso     []
 
 ***********************************************************************/
+static inline void Sfm_LibCellProfile( Mio_Cell2_t * pCellBot, Mio_Cell2_t * pCellTop, int InTop, int nFanins, int * Perm, int * pProf )
+{
+    int i, DelayAdd = (int)(pCellTop ? pCellTop->Delays[InTop] : 0);
+    for ( i = 0; i < nFanins; i++ )
+        if ( Perm[i] < (int)pCellBot->nFanins )
+            pProf[i] = (int)pCellBot->Delays[Perm[i]] + DelayAdd;
+        else if ( Perm[i] < (int)pCellBot->nFanins + InTop )
+            pProf[i] = (int)pCellTop->Delays[Perm[i] - (int)pCellBot->nFanins];
+        else // if ( Perm[i] >= (int)pCellBot->nFanins + InTop )
+            pProf[i] = (int)pCellTop->Delays[Perm[i] - (int)pCellBot->nFanins + 1];
+}
+static inline int Sfm_LibNewIsContained( Sfm_Fun_t * pObj, int * pProf, int Area, int * pProfNew, int nFanins )
+{
+    int k;
+    if ( Area < pObj->Area )
+        return 0;
+    for ( k = 0; k < nFanins; k++ )
+        if ( pProfNew[k] < pProf[k] )
+            return 0;
+    return 1;
+}
+static inline int Sfm_LibNewContains( Sfm_Fun_t * pObj, int * pProf, int Area, int * pProfNew, int nFanins )
+{
+    int k;
+    if ( Area > pObj->Area )
+        return 0;
+    for ( k = 0; k < nFanins; k++ )
+        if ( pProfNew[k] > pProf[k] )
+            return 0;
+    return 1;
+}
 void Sfm_LibPrepareAdd( Sfm_Lib_t * p, word uTruth, int * Perm, int nFanins, Mio_Cell2_t * pCellBot, Mio_Cell2_t * pCellTop, int InTop )
 {
     Sfm_Fun_t * pObj;
-    int InvPerm[6], Area = (int)pCellBot->Area + (pCellTop ? (int)pCellTop->Area : 0);
-    int i, k, iFunc = Vec_MemHashInsert( p->vTtMem, &uTruth );
+    int InvPerm[6], Profile[6];
+    int Area = (int)pCellBot->Area + (pCellTop ? (int)pCellTop->Area : 0);
+    int i, k, Id, Prev, Offset, * pProf, iFunc = Vec_MemHashInsert( p->vTtMem, &uTruth );
     if ( iFunc == Vec_IntSize(&p->vLists) )
     {
         Vec_IntPush( &p->vLists, -1 );
@@ -250,13 +296,69 @@ void Sfm_LibPrepareAdd( Sfm_Lib_t * p, word uTruth, int * Perm, int nFanins, Mio
     }
     assert( pCellBot != NULL );
     // iterate through the supergates of this truth table
-    Sfm_LibForEachSuper( p, pObj, iFunc )
+    if ( p->fDelay )
     {
-        if ( Area >= pObj->Area )
-            return;
+        assert( Vec_IntSize(&p->vProfs) == p->nObjs );
+        Sfm_LibCellProfile( pCellBot, pCellTop, InTop, nFanins, Perm, Profile );
+        // check if new one is contained in old ones
+        Vec_IntClear( &p->vTemp );
+        Sfm_LibForEachSuper( p, pObj, iFunc )
+        {
+            Vec_IntPush( &p->vTemp, Sfm_LibFunId(p, pObj) );
+            Offset = Vec_IntEntry( &p->vProfs, Sfm_LibFunId(p, pObj) );
+            pProf  = Vec_IntEntryP( &p->vStore, Offset );
+            if ( Sfm_LibNewIsContained(pObj, pProf, Area, Profile, nFanins) )
+            {
+                p->nObjSkipped++;
+                return;
+            }
+        }
+        // check if old ones are contained in new one
+        k = 0;
+        Vec_IntForEachEntry( &p->vTemp, Id, i )
+        {
+            Offset = Vec_IntEntry( &p->vProfs, Id );
+            pProf  = Vec_IntEntryP( &p->vStore, Offset );
+            if ( !Sfm_LibNewContains(Sfm_LibFun(p, Id), pProf, Area, Profile, nFanins) )
+                Vec_IntWriteEntry( &p->vTemp, k++, Id );
+            else
+                p->nObjRemoved++;
+        }
+        if ( k < i ) // change
+        {
+            if ( k == 0 )
+                Vec_IntWriteEntry( &p->vLists, iFunc, -1 );
+            else
+            {
+                Vec_IntShrink( &p->vTemp, k );
+                Prev = Vec_IntEntry(&p->vTemp, 0);
+                Vec_IntWriteEntry( &p->vLists, iFunc, Prev );
+                Vec_IntForEachEntryStart( &p->vTemp, Id, i, 1 )
+                {
+                    Sfm_LibFun(p, Prev)->Next = Id;
+                    Prev = Id;
+                }
+                Sfm_LibFun(p, Prev)->Next = -1;
+            }
+        }
+    }
+    else
+    {
+        Sfm_LibForEachSuper( p, pObj, iFunc )
+        {
+            if ( Area >= pObj->Area )
+                return;
+        }
     }
     for ( k = 0; k < nFanins; k++ )
         InvPerm[Perm[k]] = k;
+    // create delay profile
+    if ( p->fDelay )
+    {
+        Vec_IntPush( &p->vProfs, Vec_IntSize(&p->vStore) );
+        for ( k = 0; k < nFanins; k++ )
+            Vec_IntPush( &p->vStore, Profile[k] );
+    }
     // create new object
     if ( p->nObjs == p->nObjsAlloc )
     {
@@ -283,10 +385,10 @@ void Sfm_LibPrepareAdd( Sfm_Lib_t * p, word uTruth, int * Perm, int nFanins, Mio
         pObj->pFansT[i+1] = (char)(i == InTop ? 16 : InvPerm[k++]);
     assert( k == nFanins );
 }
-Sfm_Lib_t * Sfm_LibPrepare( int nVars, int fTwo, int fVerbose )
+Sfm_Lib_t * Sfm_LibPrepare( int nVars, int fTwo, int fDelay, int fVerbose )
 {
     abctime clk = Abc_Clock();
-    Sfm_Lib_t * p = Sfm_LibStart( nVars );
+    Sfm_Lib_t * p = Sfm_LibStart( nVars, fDelay );
     Mio_Cell2_t * pCell1, * pCell2, * pLimit;
     int * pPerm[7], * Perm1, * Perm2, Perm[6];
     int nPerms[7], i, f, n;
@@ -366,7 +468,10 @@ Sfm_Lib_t * Sfm_LibPrepare( int nVars, int fTwo, int fVerbose )
     Vec_IntFree( vUseful );
     if ( fVerbose )
     {
-        printf( "Library processing: Var = %d.  Cells = %d.  Func = %6d.  Obj = %8d.  Ave = %8.2f  ", nVars, p->nCells, Vec_MemEntryNum(p->vTtMem), p->nObjs, 1.0*p->nObjs/Vec_MemEntryNum(p->vTtMem) );
+        printf( "Library processing: Var = %d. Cell = %d.  Fun = %d. Obj = %d. Ave = %.2f.  Skip = %d. Rem = %d.  ", 
+            nVars, p->nCells, Vec_MemEntryNum(p->vTtMem)-2, 
+            p->nObjs-p->nObjRemoved, 1.0*(p->nObjs-p->nObjRemoved)/(Vec_MemEntryNum(p->vTtMem)-2), 
+            p->nObjSkipped, p->nObjRemoved );
         Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     }
     return p;
@@ -386,12 +491,20 @@ void Sfm_LibPrintObj( Sfm_Lib_t * p, Sfm_Fun_t * pObj )
 {
     Mio_Cell2_t * pCellB = p->pCells + (int)pObj->pFansB[0];
     Mio_Cell2_t * pCellT = p->pCells + (int)pObj->pFansT[0];
-    int nFanins = pCellB->nFanins + (pCellT == p->pCells ? 0 : pCellT->nFanins);
+    int i, nFanins = pCellB->nFanins + (pCellT == p->pCells ? 0 : pCellT->nFanins - 1);
     printf( "     Area = %6.2f  Fanins = %d  ", MIO_NUMINV*pObj->Area, nFanins );
     if ( pCellT == p->pCells )
         Sfm_LibPrintGate( pCellB, pObj->pFansB + 1, NULL, NULL );
     else
         Sfm_LibPrintGate( pCellT, pObj->pFansT + 1, pCellB, pObj->pFansB + 1 );
+    // get hold of delay info
+    if ( p->fDelay )
+    {
+        int Offset  = Vec_IntEntry( &p->vProfs, Sfm_LibFunId(p, pObj) );
+        int * pProf = Vec_IntEntryP( &p->vStore, Offset );
+        for ( i = 0; i < nFanins; i++ )
+            printf( "%6.2f ", MIO_NUMINV*pProf[i] );
+    }
     printf( "\n" );
 }
 void Sfm_LibPrint( Sfm_Lib_t * p )
@@ -409,11 +522,18 @@ void Sfm_LibPrint( Sfm_Lib_t * p )
             Sfm_LibPrintObj( p, pObj );
     }
 }
-void Sfm_LibTest( int nVars, int fTwo, int fVerbose )
+void Sfm_LibTest()
 {
-    Sfm_Lib_t * p = Sfm_LibPrepare( nVars, fTwo, 1 );
-    if ( fVerbose )
-        Sfm_LibPrint( p );
+    Sfm_Lib_t * p;
+    int fVerbose = 1;
+    if ( Abc_FrameReadLibGen() == NULL )
+    {
+        printf( "There is no current library.\n" );
+        return;
+    }
+    p = Sfm_LibPrepare( 6, 1, 1, fVerbose );
+    //if ( fVerbose )
+    //    Sfm_LibPrint( p );
     Sfm_LibStop( p );
 }
 

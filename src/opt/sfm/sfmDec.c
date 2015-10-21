@@ -175,7 +175,7 @@ Sfm_Dec_t * Sfm_DecStart( Sfm_Par_t * pPars )
     for ( i = 0; i < SFM_SUPP_MAX; i++ )
         p->pTtElems[i] = p->TtElems[i];
     Abc_TtElemInit( p->pTtElems, SFM_SUPP_MAX );
-    p->pLib = Sfm_LibPrepare( pPars->nMffcMax + 1, 1, pPars->fVerbose );
+    p->pLib = Sfm_LibPrepare( pPars->nMffcMax + 1, 1, !pPars->fArea, pPars->fVerbose );
     if ( pPars->fVeryVerbose )
 //    if ( pPars->fVerbose )
         Sfm_LibPrint( p->pLib );
