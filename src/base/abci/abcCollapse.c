@@ -298,7 +298,7 @@ Vec_Str_t * Abc_NtkClpOne( Abc_Ntk_t * pNtk, int iCo, int nCubeLim, int nBTLimit
     extern Vec_Str_t * Bmc_CollapseOne( Gia_Man_t * p, int nCubeLim, int nBTLimit, int fCanon, int fReverse, int fVerbose );
     Gia_Man_t * pGia  = Abc_NtkClpOneGia( pNtk, iCo, vSupp );
     if ( fVerbose )
-        printf( "Output %d:  \n", iCo );
+        printf( "Output %4d:  Supp = %4d. Cone =%6d.\n", iCo, Vec_IntSize(vSupp), Gia_ManAndNum(pGia) );
     vSop = Bmc_CollapseOne( pGia, nCubeLim, nBTLimit, fCanon, fReverse, fVerbose );
     Gia_ManStop( pGia );
     if ( vSop == NULL )

@@ -3177,7 +3177,7 @@ int Abc_CommandSatClp( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( pNtkRes == NULL )
     {
         Abc_Print( -1, "Collapsing has failed.\n" );
-        return 1;
+        return 0;
     }
     // replace the current network
     Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
@@ -8290,7 +8290,7 @@ int Abc_CommandSop( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( !Abc_NtkToSop(pNtk, fMode, nCubeLimit) )
     {
         Abc_Print( -1, "Converting to SOP has failed.\n" );
-        return 1;
+        return 0;
     }
     return 0;
 

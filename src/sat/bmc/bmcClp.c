@@ -624,17 +624,25 @@ cleanup:
         vRes = vSop[fComplete[1]]; vSop[fComplete[1]] = NULL;
         if ( iCube > 1 )
             Bmc_CollapseIrredundant( vRes, Vec_StrSize(vRes)/(nVars +3), nVars );
-        if ( fVeryVerbose )
+    }
+    if ( fVeryVerbose )
+    {
+        int fProfile = 0;
+        printf( "Processed output with %d supp vars. ", nVars );
+        if ( vRes == NULL )
+            printf( "The resulting SOP exceeded %d cubes.\n", nCubeLim );
+        else 
+            printf( "The best cover contains %d cubes.\n", iCube );
+        Abc_PrintTime( 1, "Onset  minterm", Time[0][0] );
+        Abc_PrintTime( 1, "Onset  expand ", Time[0][1] );
+        Abc_PrintTime( 1, "Offset minterm", Time[1][0] );
+        Abc_PrintTime( 1, "Offset expand ", Time[1][1] );
+        if ( fProfile )
         {
-            printf( "Processed output with %d supp vars and %d cubes.\n", nVars, Vec_StrSize(vRes)/(nVars +3) );
-            Abc_PrintTime( 1, "Onset  minterm", Time[0][0] );
-            Abc_PrintTime( 1, "Onset  expand ", Time[0][1] );
-            Abc_PrintTime( 1, "Offset minterm", Time[1][0] );
-            Abc_PrintTime( 1, "Offset expand ", Time[1][1] );
-            //Abc_PrintTime( 1, "Expand check1 ", clkCheck1 ); clkCheck1 = 0;
-            //Abc_PrintTime( 1, "Expand check2 ", clkCheck2 ); clkCheck2 = 0;
-            //Abc_PrintTime( 1, "Expand sat    ", clkCheckS ); clkCheckS = 0;
-            //Abc_PrintTime( 1, "Expand unsat  ", clkCheckU ); clkCheckU = 0;
+            Abc_PrintTime( 1, "Expand check1 ", clkCheck1 ); clkCheck1 = 0;
+            Abc_PrintTime( 1, "Expand check2 ", clkCheck2 ); clkCheck2 = 0;
+            Abc_PrintTime( 1, "Expand sat    ", clkCheckS ); clkCheckS = 0;
+            Abc_PrintTime( 1, "Expand unsat  ", clkCheckU ); clkCheckU = 0;
         }
     }
     Vec_StrFreeP( &vSop[0] );
