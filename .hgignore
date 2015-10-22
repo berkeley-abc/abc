@@ -46,6 +46,9 @@ src/python/bdist
 src/python/pyabc.py
 src/python/pyabc_wrap.*
 
+.idea/
+build/
+
 syntax: regexp
 
 ^libabc.a$

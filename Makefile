@@ -125,7 +125,7 @@ CXXFLAGS += $(CFLAGS)
 SRC  :=
 GARBAGE := core core.* *.stackdump ./tags $(PROG) arch_flags
 
-.PHONY: all default tags clean docs
+.PHONY: all default tags clean docs cmake_info
 
 include $(patsubst %, %/module.make, $(MODULES))
 
@@ -163,7 +163,9 @@ DEP := $(OBJ:.o=.d)
 	@echo "$(MSG_PREFIX)\`\` Generating dependency:" $(LOCAL_PATH)/$<
 	$(VERBOSE)./depends.sh $(CXX) `dirname $*.cpp` $(OPTFLAGS) $(INCLUDES) $(CXXFLAGS) $*.cpp > $@
 
+ifndef ABC_MAKE_NO_DEPS
 -include $(DEP)
+endif
 
 # Actual targets
 
@@ -188,3 +190,8 @@ lib$(PROG).a: $(OBJ)
 docs:
 	@echo "$(MSG_PREFIX)\`\` Building documentation." $(notdir $@)
 	$(VERBOSE)doxygen doxygen.conf
+
+cmake_info:
+	@echo SEPARATOR_CFLAGS $(CFLAGS) SEPARATOR_CFLAGS
+	@echo SEPARATOR_LIBS $(LIBS) SEPARATOR_LIBS
+	@echo SEPARATOR_SRC $(SRC) SEPARATOR_SRC
