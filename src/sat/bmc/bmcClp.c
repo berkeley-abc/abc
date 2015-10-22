@@ -499,7 +499,7 @@ Vec_Str_t * Bmc_CollapseOne( Gia_Man_t * p, int nCubeLim, int nBTLimit, int fCan
     Vec_Int_t * vLits = Vec_IntAlloc( nVars );
     Vec_Int_t * vNums = Vec_IntAlloc( nVars );
     Vec_Int_t * vCube = Vec_IntAlloc( nVars );
-    int n, v, iVar, iLit, iCiVarBeg, iCube, Start, status;
+    int n, v, iVar, iLit, iCiVarBeg, iCube = 0, Start, status;
     abctime clk = 0, Time[2][2] = {{0}};
     int fComplete[2] = {0};
 
@@ -521,7 +521,9 @@ Vec_Str_t * Bmc_CollapseOne( Gia_Man_t * p, int nCubeLim, int nBTLimit, int fCan
             goto cleanup; // timeout
         if ( status == l_False )
         {
-            Vec_StrPrintStr( vSop[0], n ? " 1\n\0" : " 0\n\0" );
+            Vec_StrClear( vSop[0] );
+            Vec_StrPrintStr( vSop[0], n ? " 1\n" : " 0\n" );
+            Vec_StrPush( vSop[0], '\0' );
             fComplete[0] = 1;
             goto cleanup; // const0/1
         }
@@ -620,7 +622,8 @@ cleanup:
     if ( fComplete[0] || fComplete[1] ) // one of the cover is computed
     {
         vRes = vSop[fComplete[1]]; vSop[fComplete[1]] = NULL;
-        Bmc_CollapseIrredundant( vRes, Vec_StrSize(vRes)/(nVars +3), nVars );
+        if ( iCube > 1 )
+            Bmc_CollapseIrredundant( vRes, Vec_StrSize(vRes)/(nVars +3), nVars );
         if ( fVeryVerbose )
         {
             printf( "Processed output with %d supp vars and %d cubes.\n", nVars, Vec_StrSize(vRes)/(nVars +3) );
