@@ -38,12 +38,14 @@ default: $(PROG)
 arch_flags : arch_flags.c
 	$(CC) arch_flags.c -o arch_flags
 
+INCLUDES += -Isrc
+
 ARCHFLAGS ?= $(shell $(CC) arch_flags.c -o arch_flags && ./arch_flags)
 ARCHFLAGS := $(ARCHFLAGS)
 
 OPTFLAGS  ?= -g -O
 
-CFLAGS    += -Wall -Wno-unused-function -Wno-write-strings -Wno-sign-compare $(OPTFLAGS) $(ARCHFLAGS) -Isrc
+CFLAGS    += -Wall -Wno-unused-function -Wno-write-strings -Wno-sign-compare $(ARCHFLAGS)
 ifneq ($(findstring arm,$(shell uname -m)),)
 	CFLAGS += -DABC_MEMALIGN=4
 endif
@@ -139,27 +141,27 @@ DEP := $(OBJ:.o=.d)
 
 %.o: %.c
 	@echo "$(MSG_PREFIX)\`\` Compiling:" $(LOCAL_PATH)/$<
-	$(VERBOSE)$(CC) -c $(CFLAGS) $< -o $@
+	$(VERBOSE)$(CC) -c $(OPTFLAGS) $(INCLUDES) $(CFLAGS) $< -o $@
 
 %.o: %.cc
 	@echo "$(MSG_PREFIX)\`\` Compiling:" $(LOCAL_PATH)/$<
-	$(VERBOSE)$(CXX) -c $(CXXFLAGS) $< -o $@
+	$(VERBOSE)$(CXX) -c $(OPTFLAGS) $(INCLUDES) $(CXXFLAGS) $< -o $@
 
 %.o: %.cpp
 	@echo "$(MSG_PREFIX)\`\` Compiling:" $(LOCAL_PATH)/$<
-	$(VERBOSE)$(CXX) -c $(CXXFLAGS) $< -o $@
+	$(VERBOSE)$(CXX) -c $(OPTFLAGS) $(INCLUDES) $(CXXFLAGS) $< -o $@
 
 %.d: %.c
 	@echo "$(MSG_PREFIX)\`\` Generating dependency:" $(LOCAL_PATH)/$<
-	$(VERBOSE)./depends.sh $(CC) `dirname $*.c` $(CFLAGS) $*.c > $@
+	$(VERBOSE)./depends.sh $(CC) `dirname $*.c` $(OPTFLAGS) $(INCLUDES) $(CFLAGS) $*.c > $@
 
 %.d: %.cc
 	@echo "$(MSG_PREFIX)\`\` Generating dependency:" $(LOCAL_PATH)/$<
-	$(VERBOSE)./depends.sh $(CXX) `dirname $*.cc` $(CXXFLAGS) $*.cc > $@
+	$(VERBOSE)./depends.sh $(CXX) `dirname $*.cc` $(OPTFLAGS) $(INCLUDES) $(CXXFLAGS) $*.cc > $@
 
 %.d: %.cpp
 	@echo "$(MSG_PREFIX)\`\` Generating dependency:" $(LOCAL_PATH)/$<
-	$(VERBOSE)./depends.sh $(CXX) `dirname $*.cpp` $(CXXFLAGS) $*.cpp > $@
+	$(VERBOSE)./depends.sh $(CXX) `dirname $*.cpp` $(OPTFLAGS) $(INCLUDES) $(CXXFLAGS) $*.cpp > $@
 
 -include $(DEP)
 
