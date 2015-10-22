@@ -421,9 +421,9 @@ static inline void       If_CutSetDataInt( If_Cut_t * pCut, int Data )       { *
 
 static inline int        If_CutTruthLit( If_Cut_t * pCut )                   { assert( pCut->iCutFunc >= 0 ); return pCut->iCutFunc;             }
 static inline int        If_CutTruthIsCompl( If_Cut_t * pCut )               { assert( pCut->iCutFunc >= 0 ); return Abc_LitIsCompl(pCut->iCutFunc);                               }
-static inline word *     If_CutTruthWR( If_Man_t * p, If_Cut_t * pCut )      { return p->vTtMem ? Vec_MemReadEntry(p->vTtMem[pCut->nLeaves], Abc_Lit2Var(pCut->iCutFunc)) : NULL;  }
+static inline word *     If_CutTruthWR( If_Man_t * p, If_Cut_t * pCut )      { return p->vTtMem[pCut->nLeaves] ? Vec_MemReadEntry(p->vTtMem[pCut->nLeaves], Abc_Lit2Var(pCut->iCutFunc)) : NULL;  }
 static inline unsigned * If_CutTruthUR( If_Man_t * p, If_Cut_t * pCut)       { return (unsigned *)If_CutTruthWR(p, pCut);                        }
-static inline word *     If_CutTruthW( If_Man_t * p, If_Cut_t * pCut )       { if ( p->vTtMem == NULL ) return NULL; assert( pCut->iCutFunc >= 0 ); Abc_TtCopy( p->puTempW, If_CutTruthWR(p, pCut), p->nTruth6Words[pCut->nLeaves], If_CutTruthIsCompl(pCut) ); return p->puTempW;  }
+static inline word *     If_CutTruthW( If_Man_t * p, If_Cut_t * pCut )       { assert( pCut->iCutFunc >= 0 ); Abc_TtCopy( p->puTempW, If_CutTruthWR(p, pCut), p->nTruth6Words[pCut->nLeaves], If_CutTruthIsCompl(pCut) ); return p->puTempW;  }
 static inline unsigned * If_CutTruth( If_Man_t * p, If_Cut_t * pCut )        { return (unsigned *)If_CutTruthW(p, pCut);                         }
 
 static inline int        If_CutDsdLit( If_Man_t * p, If_Cut_t * pCut )       { return Abc_Lit2LitL( Vec_IntArray(p->vTtDsds[pCut->nLeaves]), If_CutTruthLit(pCut) );               }

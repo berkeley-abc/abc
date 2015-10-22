@@ -281,7 +281,7 @@ int Ssc_GiaClassesRefine( Gia_Man_t * p )
     Vec_Int_t * vRefinedC;
     Gia_Obj_t * pObj;
     int i, Counter = 0;
-    if ( p->pReprs != NULL );
+    assert( p->pReprs != NULL );
     vRefinedC = Vec_IntAlloc( 100 );
     Gia_ManForEachCand( p, pObj, i )
         if ( Gia_ObjIsTail(p, i) )

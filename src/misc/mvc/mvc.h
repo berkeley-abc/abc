@@ -552,7 +552,7 @@ struct MvcManagerStruct
 // iterator through literals of the cube
 #define Mvc_CubeForEachBit( Cover, Cube, iBit, Value )\
     for ( iBit = 0;\
-          iBit < Cover->nBits && ((Value = Mvc_CubeBitValue(Cube,iBit))>=0);\
+          iBit < Cover->nBits && ((Value = Mvc_CubeBitValue(Cube,iBit)), 1);\
           iBit++ )
 // iterator through values of binary variables
 #define Mvc_CubeForEachVarValue( Cover, Cube, iVar, Value )\

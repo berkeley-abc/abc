@@ -369,7 +369,7 @@ static inline void           Cba_ObjPatchFinFon( Cba_Ntk_t * p, int i, int k, in
 
 static inline int            Cba_ObjNtkId( Cba_Ntk_t * p, int i )            { assert(i>0); return (Cba_ObjIsBoxUser(p, i) && Cba_NtkHasObjFuncs(p)) ? Cba_ObjFunc(p, i) : 0;}
 static inline Cba_Ntk_t *    Cba_ObjNtk( Cba_Ntk_t * p, int i )              { assert(i>0); return Cba_NtkNtk(p, Cba_ObjNtkId(p, i));                                      }
-static inline int            Cba_ObjSetNtkId( Cba_Ntk_t * p, int i, int x )  { assert(i>0); assert(Cba_ObjIsBoxUser(p, i)); Cba_ObjSetFunc( p, i, x );                     }
+static inline void           Cba_ObjSetNtkId( Cba_Ntk_t * p, int i, int x )  { assert(i>0); assert(Cba_ObjIsBoxUser(p, i)); Cba_ObjSetFunc( p, i, x );                     }
 static inline int            Cba_ObjIsSeq( Cba_Ntk_t * p, int i )            { assert(i>0); return Cba_ObjIsBoxUser(p, i) ? Cba_ObjNtk(p, i)->fSeq : Cba_TypeIsSeq(Cba_ObjType(p, i));  }
 
 static inline int            Cba_FonIsReal( int f )                          { return f > 0;                             }
