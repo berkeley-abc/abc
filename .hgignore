@@ -49,10 +49,12 @@ src/python/pyabc_wrap.*
 .idea/
 build/
 
+*.rej
+*.orig
+
 syntax: regexp
 
 ^libabc.a$
 ^abc$
 
 ^arch_flags$
-
