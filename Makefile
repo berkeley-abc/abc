@@ -78,7 +78,7 @@ endif
 
 # whether to compile into position independent code
 ifdef ABC_USE_PIC
-  CFLAGS += --fPIC
+  CFLAGS += -fPIC
   LIBS += -fPIC
   $(info $(MSG_PREFIX)Compiling position independent code)
 endif
