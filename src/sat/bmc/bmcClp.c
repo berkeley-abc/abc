@@ -120,6 +120,88 @@ int Bmc_CollapseIrredundant( Vec_Str_t * vSop, int nCubes, int nVars )
 
 /**Function*************************************************************
 
+  Synopsis    [Perform full irredundant step on the cover.]
+
+  Description [Iterate through the cubes in the direct order and
+  check if each cube is contained in all other cubes.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Bmc_CollapseIrredundantFull( Vec_Str_t * vSop, int nCubes, int nVars )
+{
+    int nBTLimit = 0;
+    sat_solver * pSat; 
+    int i, k, status, nRemoved = 0; 
+    Vec_Int_t * vLits = Vec_IntAlloc(nVars+nCubes);
+    // collect cubes
+    char * pCube, * pSop = Vec_StrArray(vSop);
+    Vec_Ptr_t * vCubes = Vec_PtrAlloc(nCubes);
+    assert( Vec_StrSize(vSop) == nCubes * (nVars + 3) + 1 );
+    Bmc_SopForEachCube( pSop, nVars, pCube )
+        Vec_PtrPush( vCubes, pCube );
+    // create SAT solver
+    pSat = sat_solver_new();
+    sat_solver_setnvars( pSat, nVars + nCubes );
+    // add cubes
+    Vec_PtrForEachEntry( char *, vCubes, pCube, i )
+    {
+        // collect literals
+        Vec_IntFill( vLits, 1, Abc_Var2Lit(nVars + i, 1) ); // neg literal
+        for ( k = 0; k < nVars; k++ )
+            if ( pCube[k] != '-' )
+                Vec_IntPush( vLits, Abc_Var2Lit(k, pCube[k] == '0') );
+        // add it to the solver
+        status = sat_solver_addclause( pSat, Vec_IntArray(vLits), Vec_IntLimit(vLits) );
+        assert( status == 1 );
+    }
+    // iterate through cubes in the direct order
+    Vec_PtrForEachEntry( char *, vCubes, pCube, i )
+    {
+        // collect literals
+        Vec_IntClear( vLits );
+        for ( k = 0; k < nCubes; k++ )
+            if ( k != i && Vec_PtrEntry(vCubes, k) ) // skip this cube and already removed cubes
+                Vec_IntPush( vLits, Abc_Var2Lit(nVars + k, 0) ); // pos literal
+        // collect cube
+        for ( k = 0; k < nVars; k++ )
+            if ( pCube[k] != '-' )
+                Vec_IntPush( vLits, Abc_Var2Lit(k, pCube[k] == '1') );
+        // check if this cube intersects with the complement of other cubes in the solver
+        // if it does not intersect, then it is redundant and can be skipped
+        status = sat_solver_solve( pSat, Vec_IntArray(vLits), Vec_IntLimit(vLits), nBTLimit, 0, 0, 0 );
+        if ( status == l_Undef ) // timeout
+            break;
+        if ( status == l_False ) // unsat
+        {
+            Vec_PtrWriteEntry( vCubes, i, NULL );
+            nRemoved++;
+            continue;
+        }
+        assert( status == l_True );
+    }
+    //printf( "Approximate irrendundant reduced %d cubes (out of %d).\n", nRemoved, nCubes );
+    // cleanup cover
+    if ( i == Vec_PtrSize(vCubes) && nRemoved > 0 ) // finished without timeout and removed some cubes
+    {
+        int j = 0;
+        Vec_PtrForEachEntry( char *, vCubes, pCube, i )
+            if ( pCube != NULL )
+                for ( k = 0; k < nVars + 3; k++ )
+                    Vec_StrWriteEntry( vSop, j++, pCube[k] );
+        Vec_StrWriteEntry( vSop, j++, '\0' );
+        Vec_StrShrink( vSop, j );
+    }
+    sat_solver_delete( pSat );
+    Vec_PtrFree( vCubes );
+    Vec_IntFree( vLits );
+    return i == -1 ? 1 : 0;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Performs one round of removing literals.]
 
   Description []
@@ -623,7 +705,8 @@ cleanup:
     {
         vRes = vSop[fComplete[1]]; vSop[fComplete[1]] = NULL;
         if ( iCube > 1 )
-            Bmc_CollapseIrredundant( vRes, Vec_StrSize(vRes)/(nVars +3), nVars );
+//            Bmc_CollapseIrredundant( vRes, Vec_StrSize(vRes)/(nVars +3), nVars );
+            Bmc_CollapseIrredundantFull( vRes, Vec_StrSize(vRes)/(nVars +3), nVars );
     }
     if ( fVeryVerbose )
     {
@@ -632,7 +715,7 @@ cleanup:
         if ( vRes == NULL )
             printf( "The resulting SOP exceeded %d cubes.\n", nCubeLim );
         else 
-            printf( "The best cover contains %d cubes.\n", iCube );
+            printf( "The best cover contains %d cubes.\n", Vec_StrSize(vRes)/(nVars +3) );
         Abc_PrintTime( 1, "Onset  minterm", Time[0][0] );
         Abc_PrintTime( 1, "Onset  expand ", Time[0][1] );
         Abc_PrintTime( 1, "Offset minterm", Time[1][0] );
