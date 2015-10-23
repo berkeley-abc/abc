@@ -368,7 +368,7 @@ Vec_Ptr_t * Abc_NtkCreateCoOrder( Abc_Ntk_t * pNtk, Vec_Wec_t * vSupps )
     Vec_Ptr_t * vNodes = Vec_PtrAlloc( Abc_NtkCoNum(pNtk) );
     Abc_NtkForEachCo( pNtk, pNode, i )
     {
-        pNode->iTemp = Vec_IntSize( Vec_WecEntry(vSupps, Abc_ObjFanin0(pNode)->Id) );
+        pNode->iTemp = Vec_IntSize( Vec_WecEntry(vSupps, Abc_ObjFaninId0(pNode)) );
         Vec_PtrPush( vNodes, pNode );
     }
     // order objects alphabetically
@@ -412,15 +412,15 @@ Abc_Obj_t * Abc_NtkFromSopsOne( Abc_Ntk_t * pNtkNew, Abc_Ntk_t * pNtk, int iCo, 
     Vec_StrFree( vSop );
     return pNodeNew;
 }
-Abc_Ntk_t * Abc_NtkFromSops( Abc_Ntk_t * pNtk, int nCubeLim, int nBTLimit, int fCanon, int fReverse, int fVerbose )
+Abc_Ntk_t * Abc_NtkFromSops( Abc_Ntk_t * pNtk, int nCubeLim, int nBTLimit, int nCostMax, int fCanon, int fReverse, int fVerbose )
 {
     ProgressBar * pProgress;
     Abc_Ntk_t * pNtkNew;
     Abc_Obj_t * pNode, * pDriver, * pNodeNew;
-    Vec_Ptr_t * vDriverCopy, * vCoNodes;
-    Vec_Int_t * vNodeCoIds;
+    Vec_Ptr_t * vDriverCopy, * vCoNodes, * vDfsNodes;
+    Vec_Int_t * vNodeCoIds, * vLevel;
     Vec_Wec_t * vSupps;
-    int i;
+    int i, Cost;
 
 //    Abc_NtkForEachCi( pNtk, pNode, i )
 //        printf( "%d ", Abc_ObjFanoutNum(pNode) );
@@ -430,6 +430,18 @@ Abc_Ntk_t * Abc_NtkFromSops( Abc_Ntk_t * pNtk, int nCubeLim, int nBTLimit, int f
     vSupps = Abc_NtkCreateCoSupps( pNtk, fVerbose );
     // order CO nodes by support size
     vCoNodes = Abc_NtkCreateCoOrder( pNtk, vSupps );
+    // compute cost of the largest node
+    pNode = (Abc_Obj_t *)Vec_PtrEntry( vCoNodes, 0 );
+    vDfsNodes = Abc_NtkDfsNodes( pNtk, &pNode, 1 );
+    vLevel = Vec_WecEntry( vSupps, Abc_ObjFaninId0(pNode) );
+    Cost = Vec_PtrSize(vDfsNodes) * Vec_IntSize(vLevel) * nCubeLim;
+    Vec_PtrFree( vDfsNodes );
+    if ( Cost > nCostMax )
+    {
+        Vec_PtrFree( vCoNodes );
+        Vec_WecFree( vSupps );
+        return NULL;
+    }
     // collect CO IDs in this order
     vNodeCoIds = Vec_IntAlloc( Abc_NtkCoNum(pNtk) );
     Abc_NtkForEachCo( pNtk, pNode, i )
@@ -487,12 +499,12 @@ Abc_Ntk_t * Abc_NtkFromSops( Abc_Ntk_t * pNtk, int nCubeLim, int nBTLimit, int f
     Extra_ProgressBarStop( pProgress );
     return pNtkNew;
 }
-Abc_Ntk_t * Abc_NtkCollapseSat( Abc_Ntk_t * pNtk, int nCubeLim, int nBTLimit, int fCanon, int fReverse, int fVerbose )
+Abc_Ntk_t * Abc_NtkCollapseSat( Abc_Ntk_t * pNtk, int nCubeLim, int nBTLimit, int nCostMax, int fCanon, int fReverse, int fVerbose )
 {
     Abc_Ntk_t * pNtkNew;
     assert( Abc_NtkIsStrash(pNtk) );
     // create the new network
-    pNtkNew = Abc_NtkFromSops( pNtk, nCubeLim, nBTLimit, fCanon, fReverse, fVerbose );
+    pNtkNew = Abc_NtkFromSops( pNtk, nCubeLim, nBTLimit, nCostMax, fCanon, fReverse, fVerbose );
     if ( pNtkNew == NULL )
         return NULL;
     if ( pNtk->pExdc )
