@@ -548,6 +548,64 @@ void Sfm_LibTest()
   SeeAlso     []
 
 ***********************************************************************/
+int Sfm_LibFindMatches( Sfm_Lib_t * p, word uTruth, int * pFanins, int nFanins, Vec_Ptr_t * vGates, Vec_Ptr_t * vFans )
+{
+    Mio_Cell2_t * pCellB, * pCellT;
+    Sfm_Fun_t * pObj;
+    int iFunc;
+    Vec_PtrClear( vGates );
+    Vec_PtrClear( vFans );
+    // look for gate
+    assert( uTruth != 0 && uTruth != ~(word)0 && uTruth != s_Truths6[0] && uTruth != ~s_Truths6[0] );
+    iFunc = *Vec_MemHashLookup( p->vTtMem,  &uTruth );
+    if ( iFunc == -1 )
+        return 0;
+    // collect matches
+    Sfm_LibForEachSuper( p, pObj, iFunc )
+    {
+        pCellB = p->pCells + (int)pObj->pFansB[0];
+        pCellT = p->pCells + (int)pObj->pFansT[0];
+        Vec_PtrPush( vGates, pCellB );
+        Vec_PtrPush( vGates, pCellT == p->pCells ? NULL : pCellT );
+        Vec_PtrPush( vFans, pObj->pFansB + 1 );
+        Vec_PtrPush( vFans, pCellT == p->pCells ? NULL : pObj->pFansT + 1 );
+    }
+    return Vec_PtrSize(vGates) / 2;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Sfm_LibAddNewGates( Sfm_Lib_t * p, int * pFanins, Mio_Gate_t * pGateB, Mio_Gate_t * pGateT, char * pFansB, char * pFansT, Vec_Int_t * vGates, Vec_Wec_t * vFanins )
+{
+    Vec_Int_t * vLevel;
+    int i, nFanins;
+    // create bottom gate
+    Vec_IntPush( vGates, Mio_GateReadValue(pGateB) );
+    vLevel = Vec_WecPushLevel( vFanins );
+    nFanins = Mio_GateReadPinNum( pGateB );
+    for ( i = 0; i < nFanins; i++ )
+        Vec_IntPush( vLevel, pFanins[(int)pFansB[i]] );
+    if ( pGateT == NULL )
+        return 1;
+    // create top gate
+    Vec_IntPush( vGates, Mio_GateReadValue(pGateT) );
+    vLevel = Vec_WecPushLevel( vFanins );
+    for ( i = 0; i < nFanins; i++ )
+        if ( pFansT[i] == (char)16 )
+            Vec_IntPush( vLevel, Vec_WecSize(vFanins)-2 );
+        else
+            Vec_IntPush( vLevel, pFanins[(int)pFansT[i]] );
+    return 2;
+}
 int Sfm_LibImplement( Sfm_Lib_t * p, word uTruth, int * pFanins, int nFanins, int AreaMffc, Vec_Int_t * vGates, Vec_Wec_t * vFanins, int fZeroCost )
 {
     Mio_Library_t * pLib = (Mio_Library_t *)Abc_FrameReadLibGen();
@@ -587,6 +645,7 @@ int Sfm_LibImplement( Sfm_Lib_t * p, word uTruth, int * pFanins, int nFanins, in
     pCellT = p->pCells + (int)pObjMin->pFansT[0];
     // create bottom gate
     pGate = Mio_LibraryReadGateByName( pLib, pCellB->pName, NULL );
+    assert( pGate == pCellB->pMioGate );
     Vec_IntPush( vGates, Mio_GateReadValue(pGate) );
     vLevel = Vec_WecPushLevel( vFanins );
     for ( i = 0; i < (int)pCellB->nFanins; i++ )
@@ -595,6 +654,7 @@ int Sfm_LibImplement( Sfm_Lib_t * p, word uTruth, int * pFanins, int nFanins, in
         return 1;
     // create top gate
     pGate = Mio_LibraryReadGateByName( pLib, pCellT->pName, NULL );
+    assert( pGate == pCellT->pMioGate );
     Vec_IntPush( vGates, Mio_GateReadValue(pGate) );
     vLevel = Vec_WecPushLevel( vFanins );
     for ( i = 0; i < (int)pCellT->nFanins; i++ )

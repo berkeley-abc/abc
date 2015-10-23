@@ -65,10 +65,11 @@ struct Mio_Cell2_t_
     word            uTruth;         // truth table
     word            DelayAve;       // average delay
     word            Delays[6];      // delay
+    void *          pMioGate;       // gate pointer
 };
 
-#define MIO_NUM     1000000
-#define MIO_NUMINV  0.000001
+#define MIO_NUM     1000
+#define MIO_NUMINV  0.001
 
 ////////////////////////////////////////////////////////////////////////
 ///                       GLOBAL VARIABLES                           ///

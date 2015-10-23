@@ -526,6 +526,10 @@ static inline void        Abc_ObjSetMvVar( Abc_Obj_t * pObj, void * pV) { Vec_At
     for ( i = 0; (i < Abc_ObjFaninNum(pObj)) && (((pFanin) = Abc_ObjFanin(pObj, i)), 1); i++ )
 #define Abc_ObjForEachFanout( pObj, pFanout, i )                                                   \
     for ( i = 0; (i < Abc_ObjFanoutNum(pObj)) && (((pFanout) = Abc_ObjFanout(pObj, i)), 1); i++ )
+#define Abc_ObjForEachFaninId( pObj, iFanin, i )                                                   \
+    for ( i = 0; (i < Abc_ObjFaninNum(pObj)) && (((iFanin) = Abc_ObjFaninId(pObj, i)), 1); i++ )
+#define Abc_ObjForEachFanoutId( pObj, iFanout, i )                                                 \
+    for ( i = 0; (i < Abc_ObjFanoutNum(pObj)) && (((iFanout) = Abc_ObjFanoutId(pObj, i)), 1); i++ )
 // cubes and literals
 #define Abc_CubeForEachVar( pCube, Value, i )                                                      \
     for ( i = 0; (pCube[i] != ' ') && (Value = pCube[i]); i++ )           

@@ -33,6 +33,11 @@
 
 #include "misc/vec/vec.h"
 #include "sat/bsat/satSolver.h"
+#include "misc/util/utilNam.h"
+#include "map/scl/sclCon.h"
+#include "misc/st/st.h"
+#include "map/mio/mio.h"
+#include "base/abc/abc.h"
 #include "sfm.h"
 
 ////////////////////////////////////////////////////////////////////////
@@ -56,6 +61,7 @@ ABC_NAMESPACE_HEADER_START
 
 typedef struct Sfm_Fun_t_ Sfm_Fun_t; 
 typedef struct Sfm_Lib_t_ Sfm_Lib_t; 
+typedef struct Sfm_Tim_t_ Sfm_Tim_t;
 
 struct Sfm_Ntk_t_
 {
@@ -195,6 +201,8 @@ extern int          Sfm_LibFindComplInputGate( Vec_Wrd_t * vFuncs, int iGate, in
 extern Sfm_Lib_t *  Sfm_LibPrepare( int nVars, int fTwo, int fDelay, int fVerbose );
 extern void         Sfm_LibPrint( Sfm_Lib_t * p );
 extern void         Sfm_LibStop( Sfm_Lib_t * p );
+extern int          Sfm_LibFindMatches( Sfm_Lib_t * p, word uTruth, int * pFanins, int nFanins, Vec_Ptr_t * vGates, Vec_Ptr_t * vFans );
+extern int          Sfm_LibAddNewGates( Sfm_Lib_t * p, int * pFanins, Mio_Gate_t * pGateB, Mio_Gate_t * pGateT, char * pFansB, char * pFansT, Vec_Int_t * vGates, Vec_Wec_t * vFanins );
 extern int          Sfm_LibImplement( Sfm_Lib_t * p, word uTruth, int * pFanins, int nFanins, int AreaMffc, Vec_Int_t * vGates, Vec_Wec_t * vFanins, int fZeroCost );
 /*=== sfmNtk.c ==========================================================*/
 extern Sfm_Ntk_t *  Sfm_ConstructNetwork( Vec_Wec_t * vFanins, int nPis, int nPos );
@@ -203,6 +211,16 @@ extern void         Sfm_NtkUpdate( Sfm_Ntk_t * p, int iNode, int f, int iFaninNe
 /*=== sfmSat.c ==========================================================*/
 extern int          Sfm_NtkWindowToSolver( Sfm_Ntk_t * p );
 extern word         Sfm_ComputeInterpolant( Sfm_Ntk_t * p );
+/*=== sfmTime.c ==========================================================*/
+extern Sfm_Tim_t *  Sfm_TimStart( Mio_Library_t * pLib, Scl_Con_t * pExt, Abc_Ntk_t * pNtk );
+extern void         Sfm_TimStop( Sfm_Tim_t * p );
+extern int          Sfm_TimReadNtkDelay( Sfm_Tim_t * p );
+extern int          Sfm_TimReadObjDelay( Sfm_Tim_t * p, int iObj );
+extern void         Sfm_TimUpdateTiming( Sfm_Tim_t * p, Vec_Int_t * vTimeNodes );
+extern int          Sfm_TimSortArrayByArrival( Sfm_Tim_t * p, Vec_Int_t * vNodes, int iPivot );
+extern int          Sfm_TimPriorityNodes( Sfm_Tim_t * p, Vec_Int_t * vCands );
+extern int          Sfm_TimNodeIsNonCritical( Sfm_Tim_t * p, Abc_Obj_t * pPivot, Abc_Obj_t * pNode );
+extern int          Sfm_TimEvalRemapping( Sfm_Tim_t * p, Vec_Int_t * vFanins, Mio_Gate_t * pGate1, char * pFans1, Mio_Gate_t * pGate2, char * pFans2 );
 /*=== sfmWin.c ==========================================================*/
 extern int          Sfm_ObjMffcSize( Sfm_Ntk_t * p, int iObj );
 extern int          Sfm_NtkCreateWindow( Sfm_Ntk_t * p, int iNode, int fVerbose );

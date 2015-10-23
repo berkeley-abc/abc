@@ -880,7 +880,7 @@ Abc_Ntk_t * Abc_NtkFromCellMappedGia( Gia_Man_t * p )
     Abc_Obj_t * pObjNew, * pObjNewLi, * pObjNewLo;
     Gia_Obj_t * pObj, * pObjLi, * pObjLo;
     int i, k, iLit, iFanLit, nCells, fNeedConst[2] = {0}; 
-    Mio_Cell_t * pCells = Mio_CollectRootsNewDefault( 6, &nCells, 0 );
+    Mio_Cell2_t * pCells = Mio_CollectRootsNewDefault2( 6, &nCells, 0 );
     assert( Gia_ManHasCellMapping(p) );
     // start network
     pNtkNew = Abc_NtkAlloc( ABC_NTK_LOGIC, ABC_FUNC_MAP, 1 );

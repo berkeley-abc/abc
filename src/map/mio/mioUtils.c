@@ -635,6 +635,7 @@ static inline void Mio_CollectCopy2( Mio_Cell2_t * pCell, Mio_Gate_t * pGate )
     pCell->uTruth   = pGate->uTruth;
     pCell->Area     = (word)(MIO_NUM * pGate->dArea);
     pCell->nFanins  = pGate->nInputs;
+    pCell->pMioGate = pGate;
     pCell->DelayAve = 0;
     for ( k = 0, pPin = pGate->pPins; pPin; pPin = pPin->pNext, k++ )
     {
