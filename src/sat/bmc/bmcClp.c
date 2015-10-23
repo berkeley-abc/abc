@@ -450,7 +450,7 @@ Vec_Str_t * Bmc_CollapseOneInt( Gia_Man_t * p, int nCubeLim, int nBTLimit, int f
         if ( status == l_False )
             break;
         // check number of cubes
-        if ( Count == nCubeLim )
+        if ( nCubeLim > 0 && Count == nCubeLim )
         {
             //printf( "The number of cubes exceeded the limit (%d).\n", nCubeLim );
             Vec_StrFreeP( &vSop );
@@ -622,7 +622,7 @@ Vec_Str_t * Bmc_CollapseOne( Gia_Man_t * p, int nCubeLim, int nBTLimit, int fCan
     }
 
     // compute cube pairs
-    for ( iCube = 0; iCube < nCubeLim; iCube++ )
+    for ( iCube = 0; nCubeLim == 0 || iCube < nCubeLim; iCube++ )
     {
         for ( n = 0; n < 2; n++ )
         {

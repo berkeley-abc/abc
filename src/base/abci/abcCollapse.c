@@ -431,16 +431,19 @@ Abc_Ntk_t * Abc_NtkFromSops( Abc_Ntk_t * pNtk, int nCubeLim, int nBTLimit, int n
     // order CO nodes by support size
     vCoNodes = Abc_NtkCreateCoOrder( pNtk, vSupps );
     // compute cost of the largest node
-    pNode = (Abc_Obj_t *)Vec_PtrEntry( vCoNodes, 0 );
-    vDfsNodes = Abc_NtkDfsNodes( pNtk, &pNode, 1 );
-    vLevel = Vec_WecEntry( vSupps, Abc_ObjFaninId0(pNode) );
-    Cost = Vec_PtrSize(vDfsNodes) * Vec_IntSize(vLevel) * nCubeLim;
-    Vec_PtrFree( vDfsNodes );
-    if ( Cost > nCostMax )
+    if ( nCubeLim > 0 )
     {
-        Vec_PtrFree( vCoNodes );
-        Vec_WecFree( vSupps );
-        return NULL;
+        pNode = (Abc_Obj_t *)Vec_PtrEntry( vCoNodes, 0 );
+        vDfsNodes = Abc_NtkDfsNodes( pNtk, &pNode, 1 );
+        vLevel = Vec_WecEntry( vSupps, Abc_ObjFaninId0(pNode) );
+        Cost = Vec_PtrSize(vDfsNodes) * Vec_IntSize(vLevel) * nCubeLim;
+        Vec_PtrFree( vDfsNodes );
+        if ( Cost > nCostMax )
+        {
+            Vec_PtrFree( vCoNodes );
+            Vec_WecFree( vSupps );
+            return NULL;
+        }
     }
     // collect CO IDs in this order
     vNodeCoIds = Vec_IntAlloc( Abc_NtkCoNum(pNtk) );

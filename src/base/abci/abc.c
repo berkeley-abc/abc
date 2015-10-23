@@ -3102,8 +3102,8 @@ usage:
 int Abc_CommandSatClp( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc), * pNtkRes;
-    int nCubeLim = 1000;
-    int nBTLimit = 1000000;
+    int nCubeLim =        0;
+    int nBTLimit =  1000000;
     int nCostMax = 20000000;
     int fCanon   = 0;
     int fReverse = 0;
