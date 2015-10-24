@@ -401,22 +401,24 @@ int Mio_CommandWriteGenlib( Abc_Frame_t * pAbc, int argc, char **argv )
     FILE * pOut, * pErr, * pFile;
     Abc_Ntk_t * pNet;
     char * pFileName;
-    int fVerbose;
+    int fSelected = 0;
+    int fVerbose = 0;
     int c;
 
     pNet = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
-    // set the defaults
-    fVerbose = 1;
     Extra_UtilGetoptReset();
-    while ( (c = Extra_UtilGetopt(argc, argv, "vh")) != EOF ) 
+    while ( (c = Extra_UtilGetopt(argc, argv, "vah")) != EOF ) 
     {
         switch (c) 
         {
             case 'v':
                 fVerbose ^= 1;
+                break;
+            case 'a':
+                fSelected ^= 1;
                 break;
             case 'h':
                 goto usage;
@@ -443,15 +445,16 @@ int Mio_CommandWriteGenlib( Abc_Frame_t * pAbc, int argc, char **argv )
         printf( "Error! Cannot open file \"%s\" for writing the library.\n", pFileName );
         return 1;
     }
-    Mio_WriteLibrary( pFile, (Mio_Library_t *)Abc_FrameReadLibGen(), 0, 0 );
+    Mio_WriteLibrary( pFile, (Mio_Library_t *)Abc_FrameReadLibGen(), 0, 0, fSelected );
     fclose( pFile );
     printf( "The current genlib library is written into file \"%s\".\n", pFileName );
     return 0;
 
 usage:
-    fprintf( pErr, "\nusage: write_genlib [-vh] <file>\n");
+    fprintf( pErr, "\nusage: write_genlib [-vah] <file>\n");
     fprintf( pErr, "\t          writes the current genlib library into a file\n" );  
     fprintf( pErr, "\t-v      : toggles enabling of verbose output [default = %s]\n", fVerbose? "yes" : "no" );
+    fprintf( pErr, "\t-a      : toggles writing min-area gates [default = %s]\n", fSelected? "yes" : "no" );
     fprintf( pErr, "\t-h      : print the command usage\n");
     fprintf( pErr, "\t<file>  : optional file name to write the library\n");
     return 1;       
@@ -473,6 +476,7 @@ int Mio_CommandPrintGenlib( Abc_Frame_t * pAbc, int argc, char **argv )
     FILE * pOut, * pErr;
     Abc_Ntk_t * pNet;
     int fShort = 0;
+    int fSelected = 0;
     int fVerbose = 0;
     int c;
 
@@ -482,12 +486,15 @@ int Mio_CommandPrintGenlib( Abc_Frame_t * pAbc, int argc, char **argv )
 
     // set the defaults
     Extra_UtilGetoptReset();
-    while ( (c = Extra_UtilGetopt(argc, argv, "svh")) != EOF ) 
+    while ( (c = Extra_UtilGetopt(argc, argv, "savh")) != EOF ) 
     {
         switch (c) 
         {
             case 's':
                 fShort ^= 1;
+                break;
+            case 'a':
+                fSelected ^= 1;
                 break;
             case 'v':
                 fVerbose ^= 1;
@@ -504,13 +511,14 @@ int Mio_CommandPrintGenlib( Abc_Frame_t * pAbc, int argc, char **argv )
         printf( "Library is not available.\n" );
         return 1;
     }
-    Mio_WriteLibrary( stdout, (Mio_Library_t *)Abc_FrameReadLibGen(), 0, fShort );
+    Mio_WriteLibrary( stdout, (Mio_Library_t *)Abc_FrameReadLibGen(), 0, fShort, fSelected );
     return 0;
 
 usage:
-    fprintf( pErr, "\nusage: print_genlib [-svh]\n");
+    fprintf( pErr, "\nusage: print_genlib [-savh]\n");
     fprintf( pErr, "\t          print the current genlib library\n" );  
     fprintf( pErr, "\t-s      : toggles writing short form [default = %s]\n", fShort? "yes" : "no" );
+    fprintf( pErr, "\t-a      : toggles writing min-area gates [default = %s]\n", fSelected? "yes" : "no" );
     fprintf( pErr, "\t-v      : toggles enabling of verbose output [default = %s]\n", fVerbose? "yes" : "no" );
     fprintf( pErr, "\t-h      : print the command usage\n");
     return 1;       

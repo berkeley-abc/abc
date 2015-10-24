@@ -248,13 +248,26 @@ void Mio_WriteGate( FILE * pFile, Mio_Gate_t * pGate, int GateLen, int NameLen, 
   SeeAlso     []
 
 ***********************************************************************/
-void Mio_WriteLibrary( FILE * pFile, Mio_Library_t * pLib, int fPrintSops, int fShort )
+void Mio_WriteLibrary( FILE * pFile, Mio_Library_t * pLib, int fPrintSops, int fShort, int fSelected )
 {
     Mio_Gate_t * pGate;
     Mio_Pin_t * pPin;
-    int i, GateLen = 0, NameLen = 0, FormLen = 0;
+    Vec_Ptr_t * vGates = Vec_PtrAlloc( 1000 );
+    int i, nCells, GateLen = 0, NameLen = 0, FormLen = 0;
     int fAllPins = fShort || Mio_CheckGates( pLib );
-    Mio_LibraryForEachGate( pLib, pGate )
+    if ( fSelected )
+    {
+        Mio_Cell2_t * pCells = Mio_CollectRootsNewDefault2( 6, &nCells, 0 );
+        for ( i = 0; i < nCells; i++ )
+            Vec_PtrPush( vGates, pCells[i].pMioGate );
+        ABC_FREE( pCells );
+    }
+    else
+    {
+        for ( i = 0; i < pLib->nGates; i++ )
+            Vec_PtrPush( vGates, pLib->ppGates0[i] );
+    }
+    Vec_PtrForEachEntry( Mio_Gate_t *, vGates, pGate, i )
     {
         GateLen = Abc_MaxInt( GateLen, strlen(pGate->pName) );
         NameLen = Abc_MaxInt( NameLen, strlen(pGate->pOutName) );
@@ -262,9 +275,10 @@ void Mio_WriteLibrary( FILE * pFile, Mio_Library_t * pLib, int fPrintSops, int f
         Mio_GateForEachPin( pGate, pPin )
             NameLen = Abc_MaxInt( NameLen, strlen(pPin->pName) );
     }
-    fprintf( pFile, "# The genlib library \"%s\" written by ABC on %s\n\n", pLib->pName, Extra_TimeStamp() );
-    for ( i = 0; i < pLib->nGates; i++ )
-        Mio_WriteGate( pFile, pLib->ppGates0[i], GateLen, NameLen, FormLen, fPrintSops, fAllPins );
+    fprintf( pFile, "# The genlib library \"%s\" with %d gates written by ABC on %s\n", pLib->pName, Vec_PtrSize(vGates), Extra_TimeStamp() );
+    Vec_PtrForEachEntry( Mio_Gate_t *, vGates, pGate, i )
+        Mio_WriteGate( pFile, pGate, GateLen, NameLen, FormLen, fPrintSops, fAllPins );
+    Vec_PtrFree( vGates );
 }
 
 /**Function*************************************************************
