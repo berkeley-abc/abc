@@ -218,9 +218,9 @@ extern int          Sfm_TimReadNtkDelay( Sfm_Tim_t * p );
 extern int          Sfm_TimReadObjDelay( Sfm_Tim_t * p, int iObj );
 extern void         Sfm_TimUpdateTiming( Sfm_Tim_t * p, Vec_Int_t * vTimeNodes );
 extern int          Sfm_TimSortArrayByArrival( Sfm_Tim_t * p, Vec_Int_t * vNodes, int iPivot );
-extern int          Sfm_TimPriorityNodes( Sfm_Tim_t * p, Vec_Int_t * vCands );
+extern int          Sfm_TimPriorityNodes( Sfm_Tim_t * p, Vec_Int_t * vCands, int Window );
 extern int          Sfm_TimNodeIsNonCritical( Sfm_Tim_t * p, Abc_Obj_t * pPivot, Abc_Obj_t * pNode );
-extern int          Sfm_TimEvalRemapping( Sfm_Tim_t * p, Vec_Int_t * vFanins, Mio_Gate_t * pGate1, char * pFans1, Mio_Gate_t * pGate2, char * pFans2 );
+extern int          Sfm_TimEvalRemapping( Sfm_Tim_t * p, Vec_Int_t * vFanins, Vec_Int_t * vMap, Mio_Gate_t * pGate1, char * pFans1, Mio_Gate_t * pGate2, char * pFans2 );
 /*=== sfmWin.c ==========================================================*/
 extern int          Sfm_ObjMffcSize( Sfm_Ntk_t * p, int iObj );
 extern int          Sfm_NtkCreateWindow( Sfm_Ntk_t * p, int iNode, int fVerbose );

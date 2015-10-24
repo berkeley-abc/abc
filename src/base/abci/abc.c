@@ -5173,7 +5173,7 @@ int Abc_CommandMfs3( Abc_Frame_t * pAbc, int argc, char ** argv )
     // set defaults
     Sfm_ParSetDefault3( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "OIFLHDMCNPdamzospvwh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "OIFLHDMCNPWdamzospvwh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -5290,6 +5290,17 @@ int Abc_CommandMfs3( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( pPars->iNodeOne < 0 )
                 goto usage;
             break;
+        case 'W':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-W\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nTimeWin = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nTimeWin < 0 || pPars->nTimeWin > 100 )
+                goto usage;
+            break;
         case 'a':
             pPars->fArea ^= 1;
             break;
@@ -5335,7 +5346,7 @@ int Abc_CommandMfs3( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: mfs3 [-OIFLHDMCNP <num>] [-amzospvwh]\n" );
+    Abc_Print( -2, "usage: mfs3 [-OIFLHDMCNPW <num>] [-amzospvwh]\n" );
     Abc_Print( -2, "\t           performs don't-care-based optimization of mapped networks\n" );
     Abc_Print( -2, "\t-O <num> : the number of levels in the TFO cone (0 <= num) [default = %d]\n",             pPars->nTfoLevMax );
     Abc_Print( -2, "\t-I <num> : the number of levels in the TFI cone (1 <= num) [default = %d]\n",             pPars->nTfiLevMax );
@@ -5347,6 +5358,7 @@ usage:
     Abc_Print( -2, "\t-C <num> : the max number of conflicts in one SAT run (0 = no limit) [default = %d]\n",   pPars->nBTLimit );
     Abc_Print( -2, "\t-N <num> : the max number of nodes to try (0 = all) [default = %d]\n",                    pPars->nNodesMax );
     Abc_Print( -2, "\t-P <num> : one particular node to try (0 = none) [default = %d]\n",                       pPars->iNodeOne );
+    Abc_Print( -2, "\t-W <num> : size of timing window in percents (0 <= num <= 100) [default = %d]\n",         pPars->nTimeWin );
     Abc_Print( -2, "\t-a       : toggle area minimization [default = %s]\n",                                    pPars->fArea? "yes": "no" );
     Abc_Print( -2, "\t-m       : toggle detecting multi-input AND/OR gates [default = %s]\n",                   pPars->fUseAndOr? "yes": "no" );
     Abc_Print( -2, "\t-z       : toggle zero-cost replacements [default = %s]\n",                               pPars->fZeroCost? "yes": "no" );

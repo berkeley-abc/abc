@@ -242,11 +242,11 @@ Sfm_Tim_t * Sfm_TimStart( Mio_Library_t * pLib, Scl_Con_t * pExt, Abc_Ntk_t * pN
     p->pLib = pLib;
     p->pExt = pExt;
     p->pNtk = pNtk;
-    Vec_IntFill( &p->vTimArrs,  2*Abc_NtkObjNumMax(pNtk), 0 );
-    Vec_IntFill( &p->vTimReqs,  2*Abc_NtkObjNumMax(pNtk), 0 );
-//    Vec_IntFill( &p->vTimSlews, 2*Abc_NtkObjNumMax(pNtk), 0 );
-//    Vec_IntFill( &p->vTimLoads, 2*Abc_NtkObjNumMax(pNtk), 0 );
-//    Vec_IntFill( &p->vObjOffs,  Abc_NtkObjNumMax(pNtk), 0 );
+    Vec_IntFill( &p->vTimArrs,  4*Abc_NtkObjNumMax(pNtk), 0 );
+    Vec_IntFill( &p->vTimReqs,  4*Abc_NtkObjNumMax(pNtk), 0 );
+//    Vec_IntFill( &p->vTimSlews, 4*Abc_NtkObjNumMax(pNtk), 0 );
+//    Vec_IntFill( &p->vTimLoads, 4*Abc_NtkObjNumMax(pNtk), 0 );
+//    Vec_IntFill( &p->vObjOffs,  2*Abc_NtkObjNumMax(pNtk), 0 );
 //    Abc_NtkForEachNode( pNtk, pObj, i )
 //    {
 //        Vec_IntWriteEntry( &p->vObjOffs, i, Vec_IntSize(Vec_IntSize(&p->vTimEdges)) );
@@ -264,7 +264,9 @@ void Sfm_TimStop( Sfm_Tim_t * p )
     Vec_IntErase( &p->vTimLoads );
     Vec_IntErase( &p->vObjOffs );
     Vec_IntErase( &p->vTimEdges );
+    Vec_WecErase( &p->vLevels );
     Vec_IntErase( &p->vPath );
+    Vec_WrdErase( &p->vSortData );
     ABC_FREE( p );
 }
 int Sfm_TimReadNtkDelay( Sfm_Tim_t * p )
@@ -384,13 +386,14 @@ int Sfm_TimSortArrayByArrival( Sfm_Tim_t * p, Vec_Int_t * vNodes, int iPivot )
   SeeAlso     []
 
 ***********************************************************************/
-int Sfm_TimPriorityNodes( Sfm_Tim_t * p, Vec_Int_t * vCands )
+int Sfm_TimPriorityNodes( Sfm_Tim_t * p, Vec_Int_t * vCands, int Window )
 {
     Vec_Int_t * vLevel;
     Abc_Obj_t * pObj;
-    int i;
+    int i, k;
+    assert( Window >= 0 && Window <= 100 );
     // collect critical path
-    Sfm_TimCriticalPath(p, 1);
+    Sfm_TimCriticalPath( p, Window );
     // add nodes to the levelized structure
     Sfm_TimUpdateClean( p );
     Abc_NtkForEachObjVec( &p->vPath, p->pNtk, pObj, i )
@@ -403,7 +406,7 @@ int Sfm_TimPriorityNodes( Sfm_Tim_t * p, Vec_Int_t * vCands )
     Vec_WecSort( &p->vLevels, 0 );
     Vec_IntClear( vCands );
     Vec_WecForEachLevel( &p->vLevels, vLevel, i )
-        Abc_NtkForEachObjVec( vLevel, p->pNtk, pObj, i )
+        Abc_NtkForEachObjVec( vLevel, p->pNtk, pObj, k )
             if ( !pObj->fMarkA )
                 Vec_IntPush( vCands, Abc_ObjId(pObj) );
     return Vec_IntSize(vCands) > 0;
@@ -436,7 +439,7 @@ int Sfm_TimNodeIsNonCritical( Sfm_Tim_t * p, Abc_Obj_t * pPivot, Abc_Obj_t * pNo
   SeeAlso     []
 
 ***********************************************************************/
-int Sfm_TimEvalRemapping( Sfm_Tim_t * p, Vec_Int_t * vFanins, Mio_Gate_t * pGate1, char * pFans1, Mio_Gate_t * pGate2, char * pFans2 )
+int Sfm_TimEvalRemapping( Sfm_Tim_t * p, Vec_Int_t * vFanins, Vec_Int_t * vMap, Mio_Gate_t * pGate1, char * pFans1, Mio_Gate_t * pGate2, char * pFans2 )
 {
     int TimeOut[2][2];
     int * pTimesIn1[6], * pTimesIn2[6];
@@ -444,7 +447,7 @@ int Sfm_TimEvalRemapping( Sfm_Tim_t * p, Vec_Int_t * vFanins, Mio_Gate_t * pGate
     // process the first gate
     nFanins1 = Mio_GateReadPinNum( pGate1 );
     for ( i = 0; i < nFanins1; i++ )
-        pTimesIn1[i] = Sfm_TimArrId( p, Vec_IntEntry(vFanins, (int)pFans1[i]) );
+        pTimesIn1[i] = Sfm_TimArrId( p, Vec_IntEntry(vMap, Vec_IntEntry(vFanins, (int)pFans1[i])) );
     Sfm_TimGateArrival( p, pGate1, pTimesIn1, TimeOut[0] );
     if ( pGate2 == NULL )
         return Abc_MaxInt(TimeOut[0][0], TimeOut[0][1]);
@@ -454,7 +457,7 @@ int Sfm_TimEvalRemapping( Sfm_Tim_t * p, Vec_Int_t * vFanins, Mio_Gate_t * pGate
         if ( (int)pFans2[i] == 16 )
             pTimesIn2[i] = TimeOut[0];
         else
-            pTimesIn2[i] = Sfm_TimArrId( p, Vec_IntEntry(vFanins, (int)pFans2[i]) );
+            pTimesIn2[i] = Sfm_TimArrId( p, Vec_IntEntry(vMap, Vec_IntEntry(vFanins, (int)pFans2[i])) );
     Sfm_TimGateArrival( p, pGate2, pTimesIn2, TimeOut[1] );
     return Abc_MaxInt(TimeOut[1][0], TimeOut[1][1]);
 }

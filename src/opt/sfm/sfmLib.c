@@ -509,15 +509,18 @@ void Sfm_LibPrintObj( Sfm_Lib_t * p, Sfm_Fun_t * pObj )
 }
 void Sfm_LibPrint( Sfm_Lib_t * p )
 {
-    word * pTruth; Sfm_Fun_t * pObj; int iFunc; 
+    word * pTruth; Sfm_Fun_t * pObj; int iFunc, nSupp; 
     Vec_MemForEachEntry( p->vTtMem, pTruth, iFunc )
     {
         if ( iFunc < 2 ) 
             continue;
+        nSupp = Abc_TtSupportSize(pTruth, 6);
+        if ( nSupp > 3 )
+            continue;        
         //if ( iFunc % 10000 )
         //    continue;
         printf( "%d : Count = %d   ", iFunc, Vec_IntEntry(&p->vCounts, iFunc) );
-        Dau_DsdPrintFromTruth( pTruth, Abc_TtSupportSize(pTruth, 6) );
+        Dau_DsdPrintFromTruth( pTruth, nSupp );
         Sfm_LibForEachSuper( p, pObj, iFunc )
             Sfm_LibPrintObj( p, pObj );
     }
@@ -565,8 +568,8 @@ int Sfm_LibFindMatches( Sfm_Lib_t * p, word uTruth, int * pFanins, int nFanins, 
     {
         pCellB = p->pCells + (int)pObj->pFansB[0];
         pCellT = p->pCells + (int)pObj->pFansT[0];
-        Vec_PtrPush( vGates, pCellB );
-        Vec_PtrPush( vGates, pCellT == p->pCells ? NULL : pCellT );
+        Vec_PtrPush( vGates, pCellB->pMioGate );
+        Vec_PtrPush( vGates, pCellT == p->pCells ? NULL : pCellT->pMioGate );
         Vec_PtrPush( vFans, pObj->pFansB + 1 );
         Vec_PtrPush( vFans, pCellT == p->pCells ? NULL : pObj->pFansT + 1 );
     }
@@ -590,7 +593,7 @@ int Sfm_LibAddNewGates( Sfm_Lib_t * p, int * pFanins, Mio_Gate_t * pGateB, Mio_G
     int i, nFanins;
     // create bottom gate
     Vec_IntPush( vGates, Mio_GateReadValue(pGateB) );
-    vLevel = Vec_WecPushLevel( vFanins );
+    vLevel  = Vec_WecPushLevel( vFanins );
     nFanins = Mio_GateReadPinNum( pGateB );
     for ( i = 0; i < nFanins; i++ )
         Vec_IntPush( vLevel, pFanins[(int)pFansB[i]] );
@@ -598,7 +601,8 @@ int Sfm_LibAddNewGates( Sfm_Lib_t * p, int * pFanins, Mio_Gate_t * pGateB, Mio_G
         return 1;
     // create top gate
     Vec_IntPush( vGates, Mio_GateReadValue(pGateT) );
-    vLevel = Vec_WecPushLevel( vFanins );
+    vLevel  = Vec_WecPushLevel( vFanins );
+    nFanins = Mio_GateReadPinNum( pGateT );
     for ( i = 0; i < nFanins; i++ )
         if ( pFansT[i] == (char)16 )
             Vec_IntPush( vLevel, Vec_WecSize(vFanins)-2 );

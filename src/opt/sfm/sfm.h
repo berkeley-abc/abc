@@ -55,6 +55,7 @@ struct Sfm_Par_t_
     int             nNodesMax;     // the maximum number of nodes to try
     int             iNodeOne;      // one particular node to try
     int             nFirstFixed;   // the number of first nodes to be treated as fixed
+    int             nTimeWin;      // the size of timing window in percents
     int             fRrOnly;       // perform redundance removal
     int             fArea;         // performs optimization for area
     int             fMoreEffort;   // performs high-affort minimization
