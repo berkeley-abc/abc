@@ -44,6 +44,8 @@ struct Sfm_Fun_t_
 };
 struct Sfm_Lib_t_
 {
+    int             nVars;         // variable count
+    int             fVerbose;      // verbose statistics
     Mio_Cell2_t *   pCells;        // library gates
     int             nCells;        // library gate count
     int             fDelay;        // uses delay profile
@@ -53,6 +55,7 @@ struct Sfm_Lib_t_
     Vec_Mem_t *     vTtMem;        // truth tables
     Vec_Int_t       vLists;        // lists of funcs for each truth table
     Vec_Int_t       vCounts;       // counters of functions for each truth table
+    Vec_Int_t       vHits;         // the number of times this function was used
     Vec_Int_t       vProfs;        // area/delay profiles
     Vec_Int_t       vStore;        // storage for area/delay profiles
     Vec_Int_t       vTemp;         // temporary storage for candidates
@@ -185,28 +188,47 @@ int Sfm_LibFindComplInputGate( Vec_Wrd_t * vFuncs, int iGate, int nFanins, int i
   SeeAlso     []
 
 ***********************************************************************/
-Sfm_Lib_t * Sfm_LibStart( int nVars, int fDelay )
+Sfm_Lib_t * Sfm_LibStart( int nVars, int fDelay, int fVerbose )
 {
     Sfm_Lib_t * p = ABC_CALLOC( Sfm_Lib_t, 1 );
     p->vTtMem = Vec_MemAllocForTT( nVars, 0 );   
     Vec_IntGrow( &p->vLists,  (1 << 16) );
     Vec_IntGrow( &p->vCounts, (1 << 16) );
+    Vec_IntGrow( &p->vHits,   (1 << 16) );
     Vec_IntFill( &p->vLists,  2, -1 );
     Vec_IntFill( &p->vCounts, 2, -1 );
+    Vec_IntFill( &p->vHits,   2, -1 );
     p->nObjsAlloc = (1 << 16);
     p->pObjs = ABC_CALLOC( Sfm_Fun_t, p->nObjsAlloc );
     p->fDelay = fDelay;
     if ( fDelay ) Vec_IntGrow( &p->vProfs,  (1 << 16) );
     if ( fDelay ) Vec_IntGrow( &p->vStore,  (1 << 18) );
     Vec_IntGrow( &p->vTemp, 16 );
+    p->nVars = nVars;
+    p->fVerbose = fVerbose;
     return p;
 }
 void Sfm_LibStop( Sfm_Lib_t * p )
 {
+    if ( p->fVerbose )
+    {
+        // print usage stats
+        int i, nFanins;  word * pTruth;
+        Vec_MemForEachEntry( p->vTtMem, pTruth, i )
+        {
+            if ( Vec_IntEntry(&p->vHits, i) == 0 )
+                continue;
+            nFanins = Abc_TtSupportSize(pTruth, p->nVars);
+            printf( "%8d : ", i );
+            printf( "%8d   ", Vec_IntEntry(&p->vHits, i) );
+            Dau_DsdPrintFromTruth( pTruth, nFanins );
+        }
+    }
     Vec_MemHashFree( p->vTtMem );
     Vec_MemFree( p->vTtMem );
     Vec_IntErase( &p->vLists );
     Vec_IntErase( &p->vCounts );
+    Vec_IntErase( &p->vHits );
     Vec_IntErase( &p->vProfs );
     Vec_IntErase( &p->vStore );
     Vec_IntErase( &p->vTemp );
@@ -293,6 +315,7 @@ void Sfm_LibPrepareAdd( Sfm_Lib_t * p, word uTruth, int * Perm, int nFanins, Mio
     {
         Vec_IntPush( &p->vLists, -1 );
         Vec_IntPush( &p->vCounts, 0 );
+        Vec_IntPush( &p->vHits,   0 );
     }
     assert( pCellBot != NULL );
     // iterate through the supergates of this truth table
@@ -388,7 +411,7 @@ void Sfm_LibPrepareAdd( Sfm_Lib_t * p, word uTruth, int * Perm, int nFanins, Mio
 Sfm_Lib_t * Sfm_LibPrepare( int nVars, int fTwo, int fDelay, int fVerbose )
 {
     abctime clk = Abc_Clock();
-    Sfm_Lib_t * p = Sfm_LibStart( nVars, fDelay );
+    Sfm_Lib_t * p = Sfm_LibStart( nVars, fDelay, fVerbose );
     Mio_Cell2_t * pCell1, * pCell2, * pLimit;
     int * pPerm[7], * Perm1, * Perm2, Perm[6];
     int nPerms[7], i, f, n;
@@ -407,7 +430,7 @@ Sfm_Lib_t * Sfm_LibPrepare( int nVars, int fTwo, int fDelay, int fVerbose )
         word uTruth = pCell1->uTruth;
         if ( Dau_DsdDecompose(&uTruth, pCell1->nFanins, 0, 0, pRes) <= 3 )
             Vec_IntWriteEntry( vUseful, pCell1 - p->pCells, 1 );
-        else
+        else if ( p->fVerbose )
             printf( "Skipping gate \"%s\" with non-DSD function %s\n", pCell1->pName, pRes );
     }
     // generate permutations
@@ -562,7 +585,12 @@ int Sfm_LibFindMatches( Sfm_Lib_t * p, word uTruth, int * pFanins, int nFanins, 
     assert( uTruth != 0 && uTruth != ~(word)0 && uTruth != s_Truths6[0] && uTruth != ~s_Truths6[0] );
     iFunc = *Vec_MemHashLookup( p->vTtMem,  &uTruth );
     if ( iFunc == -1 )
+    {
+        // print functions not found in the library
+        //Dau_DsdPrintFromTruth( &uTruth, nFanins );
         return 0;
+    }
+    Vec_IntAddToEntry( &p->vHits, iFunc, 1 );
     // collect matches
     Sfm_LibForEachSuper( p, pObj, iFunc )
     {
@@ -639,6 +667,7 @@ int Sfm_LibImplement( Sfm_Lib_t * p, word uTruth, int * pFanins, int nFanins, in
     iFunc = *Vec_MemHashLookup( p->vTtMem,  &uTruth );
     if ( iFunc == -1 )
         return -1;
+    Vec_IntAddToEntry( &p->vHits, iFunc, 1 );
     Sfm_LibForEachSuper( p, pObj, iFunc )
         if ( !pObjMin || pObjMin->Area > pObj->Area )
             pObjMin = pObj;

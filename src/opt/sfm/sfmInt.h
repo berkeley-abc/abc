@@ -212,7 +212,7 @@ extern void         Sfm_NtkUpdate( Sfm_Ntk_t * p, int iNode, int f, int iFaninNe
 extern int          Sfm_NtkWindowToSolver( Sfm_Ntk_t * p );
 extern word         Sfm_ComputeInterpolant( Sfm_Ntk_t * p );
 /*=== sfmTime.c ==========================================================*/
-extern Sfm_Tim_t *  Sfm_TimStart( Mio_Library_t * pLib, Scl_Con_t * pExt, Abc_Ntk_t * pNtk );
+extern Sfm_Tim_t *  Sfm_TimStart( Mio_Library_t * pLib, Scl_Con_t * pExt, Abc_Ntk_t * pNtk, int DeltaCrit );
 extern void         Sfm_TimStop( Sfm_Tim_t * p );
 extern int          Sfm_TimReadNtkDelay( Sfm_Tim_t * p );
 extern int          Sfm_TimReadObjDelay( Sfm_Tim_t * p, int iObj );

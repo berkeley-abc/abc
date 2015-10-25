@@ -46,6 +46,7 @@ struct Sfm_Par_t_
     int             nTfiLevMax;    // the maximum fanin levels
     int             nFanoutMax;    // the maximum number of fanouts
     int             nDepthMax;     // the maximum depth to try
+    int             nVarMax;       // the maximum variable count
     int             nMffcMin;      // the minimum MFFC size
     int             nMffcMax;      // the maximum MFFC size
     int             nDecMax;       // the maximum number of decompositions
@@ -63,6 +64,7 @@ struct Sfm_Par_t_
     int             fZeroCost;     // enable zero-cost replacement
     int             fUseSim;       // enable simulation
     int             fPrintDecs;    // enable printing decompositions
+    int             fLibVerbose;   // enable library stats
     int             fVerbose;      // enable basic stats
     int             fVeryVerbose;  // enable detailed stats
 };

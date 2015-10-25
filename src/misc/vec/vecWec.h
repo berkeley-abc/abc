@@ -286,7 +286,7 @@ static inline void Vec_WecPush( Vec_Wec_t * p, int Level, int Entry )
 {
     if ( p->nSize < Level + 1 )
     {
-        Vec_WecGrow( p, Abc_MaxInt(2*p->nCap, Level + 1) );
+        Vec_WecGrow( p, Abc_MaxInt(2*p->nSize, Level + 1) );
         p->nSize = Level + 1;
     }
     Vec_IntPush( Vec_WecEntry(p, Level), Entry );

@@ -34,7 +34,7 @@ struct Sfm_Tim_t_
     Scl_Con_t *       pExt;        // external timing
     Abc_Ntk_t *       pNtk;        // mapped network
     int               Delay;       // the largest delay
-    int               CritDelta;   // critical delay delta
+    int               DeltaCrit;   // critical delay delta
     // timing info
     Vec_Int_t         vTimArrs;    // arrivals (rise/fall)
     Vec_Int_t         vTimReqs;    // required (rise/fall)
@@ -235,7 +235,7 @@ int Sfm_TimTrace( Sfm_Tim_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-Sfm_Tim_t * Sfm_TimStart( Mio_Library_t * pLib, Scl_Con_t * pExt, Abc_Ntk_t * pNtk )
+Sfm_Tim_t * Sfm_TimStart( Mio_Library_t * pLib, Scl_Con_t * pExt, Abc_Ntk_t * pNtk, int DeltaCrit )
 {
 //    Abc_Obj_t * pObj; int i;
     Sfm_Tim_t * p = ABC_CALLOC( Sfm_Tim_t, 1 );
@@ -253,7 +253,8 @@ Sfm_Tim_t * Sfm_TimStart( Mio_Library_t * pLib, Scl_Con_t * pExt, Abc_Ntk_t * pN
 //        Vec_IntFillExtra( &p->vTimEdges, Vec_IntSize(Vec_IntSize(&p->vTimEdges)) + Abc_ObjFaninNum(pObj), 0 );
 //    }
     p->Delay = Sfm_TimTrace( p );
-    p->CritDelta = 3 * (int)(MIO_NUM*Mio_LibraryReadDelayInvMax(pLib));
+    assert( DeltaCrit > 0 && DeltaCrit < 10000 );
+    p->DeltaCrit = DeltaCrit;
     return p;
 }
 void Sfm_TimStop( Sfm_Tim_t * p )
@@ -292,7 +293,7 @@ int Sfm_TimReadObjDelay( Sfm_Tim_t * p, int iObj )
 void Sfm_TimTest( Abc_Ntk_t * pNtk )
 {
     Mio_Library_t * pLib = (Mio_Library_t *)pNtk->pManFunc;
-    Sfm_Tim_t * p = Sfm_TimStart( pLib, NULL, pNtk );
+    Sfm_Tim_t * p = Sfm_TimStart( pLib, NULL, pNtk, 100 );
     printf( "Max delay = %.2f.  Path = %d (%d).\n", MIO_NUMINV*p->Delay, Sfm_TimCriticalPath(p, 1), Abc_NtkNodeNum(p->pNtk) );
     Sfm_TimStop( p );
 }
@@ -357,7 +358,7 @@ int Sfm_TimSortArrayByArrival( Sfm_Tim_t * p, Vec_Int_t * vNodes, int iPivot )
     word Entry; 
     int i, Id, nDivNew = -1; 
     int MaxDelay = Sfm_TimArrMaxId(p, iPivot);
-    assert( p->CritDelta > 0 );
+    assert( p->DeltaCrit > 0 );
     // collect nodes
     Vec_WrdClear( &p->vSortData );
     Vec_IntForEachEntry( vNodes, Id, i )
@@ -369,7 +370,7 @@ int Sfm_TimSortArrayByArrival( Sfm_Tim_t * p, Vec_Int_t * vNodes, int iPivot )
     Vec_WrdForEachEntry( &p->vSortData, Entry, i )
     {
         Vec_IntPush( vNodes, (int)(Entry >> 32) );
-        if ( nDivNew == -1 && ((int)Entry) + p->CritDelta > MaxDelay )
+        if ( nDivNew == -1 && ((int)Entry) + p->DeltaCrit > MaxDelay )
             nDivNew = i;
     }
     return nDivNew;
@@ -406,9 +407,17 @@ int Sfm_TimPriorityNodes( Sfm_Tim_t * p, Vec_Int_t * vCands, int Window )
     Vec_WecSort( &p->vLevels, 0 );
     Vec_IntClear( vCands );
     Vec_WecForEachLevel( &p->vLevels, vLevel, i )
+    {
+//        printf( "%d ", Vec_IntSize(vLevel) );
         Abc_NtkForEachObjVec( vLevel, p->pNtk, pObj, k )
             if ( !pObj->fMarkA )
                 Vec_IntPush( vCands, Abc_ObjId(pObj) );
+//        if ( Vec_IntSize(vCands) > 10 )
+//            break;
+    }
+//    printf( "\n" );
+//    printf( "Path = %5d   ", Vec_IntSize(&p->vPath) );
+//    printf( "Cand = %5d   ", Vec_IntSize(vCands) );
     return Vec_IntSize(vCands) > 0;
 }
 
@@ -425,7 +434,7 @@ int Sfm_TimPriorityNodes( Sfm_Tim_t * p, Vec_Int_t * vCands, int Window )
 ***********************************************************************/
 int Sfm_TimNodeIsNonCritical( Sfm_Tim_t * p, Abc_Obj_t * pPivot, Abc_Obj_t * pNode )
 {
-    return Sfm_TimArrMax(p, pNode) + p->CritDelta <= Sfm_TimArrMax(p, pPivot);
+    return Sfm_TimArrMax(p, pNode) + p->DeltaCrit <= Sfm_TimArrMax(p, pPivot);
 }
 
 /**Function*************************************************************

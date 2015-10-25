@@ -58,6 +58,7 @@ struct Sfm_Dec_t_
     int               AreaMffc;    // the area of gates in MFFC
     int               DelayMin;    // temporary min delay
     int               iTarget;     // target node
+    int               DeltaCrit;   // critical delta
     word              uCareSet;    // computed careset
     Vec_Int_t         vObjRoots;   // roots of the window
     Vec_Int_t         vObjGates;   // functionality
@@ -84,11 +85,13 @@ struct Sfm_Dec_t_
     Vec_Int_t         vTemp2;
     Vec_Int_t         vCands;
     // statistics
+    abctime           timeLib;
     abctime           timeWin;
     abctime           timeCnf;
     abctime           timeSat;
     abctime           timeSatSat;
     abctime           timeSatUnsat;
+    abctime           timeTime;
     abctime           timeOther;
     abctime           timeStart;
     abctime           timeTotal;
@@ -150,7 +153,8 @@ void Sfm_ParSetDefault3( Sfm_Par_t * pPars )
     pPars->nTfiLevMax   =  100;  // the maximum fanin levels
     pPars->nFanoutMax   =   30;  // the maximum number of fanoutsp
     pPars->nMffcMin     =    1;  // the maximum MFFC size
-    pPars->nMffcMax     =    3;  // the maximum MFFC size
+    pPars->nMffcMax     =    8;  // the maximum MFFC size
+    pPars->nVarMax      =    6;  // the maximum variable count
     pPars->nDecMax      =    1;  // the maximum number of decompositions
     pPars->nWinSizeMax  =    0;  // the maximum window size
     pPars->nGrowthLevel =    0;  // the maximum allowed growth in level
@@ -159,7 +163,7 @@ void Sfm_ParSetDefault3( Sfm_Par_t * pPars )
     pPars->fUseAndOr    =    0;  // enable internal detection of AND/OR gates
     pPars->fZeroCost    =    0;  // enable zero-cost replacement
     pPars->fUseSim      =    0;  // enable simulation
-    pPars->fArea        =    1;  // performs optimization for area
+    pPars->fArea        =    0;  // performs optimization for area
     pPars->fVerbose     =    0;  // enable basic stats
     pPars->fVeryVerbose =    0;  // enable detailed stats
 }
@@ -179,16 +183,16 @@ Sfm_Dec_t * Sfm_DecStart( Sfm_Par_t * pPars, Mio_Library_t * pLib, Abc_Ntk_t * p
 {
     extern void Sfm_LibPreprocess( Mio_Library_t * pLib, Vec_Int_t * vGateSizes, Vec_Wrd_t * vGateFuncs, Vec_Wec_t * vGateCnfs, Vec_Ptr_t * vGateHands );
     Sfm_Dec_t * p = ABC_CALLOC( Sfm_Dec_t, 1 ); int i;
-    p->pPars = pPars;
-    p->pNtk = pNtk;
-    p->pSat = sat_solver_new();
     p->timeStart = Abc_Clock();
-    for ( i = 0; i < SFM_SUPP_MAX; i++ )
-        p->pTtElems[i] = p->TtElems[i];
-    Abc_TtElemInit( p->pTtElems, SFM_SUPP_MAX );
-    p->pLib = Sfm_LibPrepare( pPars->nMffcMax + 1, 1, !pPars->fArea, pPars->fVerbose );
+    p->pPars     = pPars;
+    p->pNtk      = pNtk;
+    p->pSat      = sat_solver_new();
+    p->DeltaCrit = 5 * (int)(MIO_NUM*Mio_LibraryReadDelayInvMax(pLib)) / 2;
+p->timeLib = Abc_Clock();
+    p->pLib = Sfm_LibPrepare( pPars->nVarMax, 1, !pPars->fArea, pPars->fLibVerbose );
+p->timeLib = Abc_Clock() - p->timeLib;
     if ( !pPars->fArea )
-        p->pTim = Sfm_TimStart( pLib, NULL, pNtk );
+        p->pTim = Sfm_TimStart( pLib, NULL, pNtk, p->DeltaCrit );
     if ( pPars->fVeryVerbose )
 //    if ( pPars->fVerbose )
         Sfm_LibPrint( p->pLib );
@@ -211,6 +215,10 @@ Sfm_Dec_t * Sfm_DecStart( Sfm_Par_t * pPars, Mio_Library_t * pLib, Abc_Ntk_t * p
         p->GateOr[2] = Mio_GateReadValue( Mio_LibraryReadGateByName(pLib, "or10", NULL) );
         p->GateOr[3] = Mio_GateReadValue( Mio_LibraryReadGateByName(pLib, "or11", NULL) );
     }
+    // elementary truth tables
+    for ( i = 0; i < SFM_SUPP_MAX; i++ )
+        p->pTtElems[i] = p->TtElems[i];
+    Abc_TtElemInit( p->pTtElems, SFM_SUPP_MAX );
     return p;
 }
 void Sfm_DecStop( Sfm_Dec_t * p )
@@ -1608,13 +1616,15 @@ void Sfm_DecPrintStats( Sfm_Dec_t * p )
         p->nMaxDivs, p->nMaxWin, (int)(p->nAllDivs/Abc_MaxInt(1, p->nNodesTried)), (int)(p->nAllWin/Abc_MaxInt(1, p->nNodesTried)), p->nSatCalls, p->nSatCallsSat, p->nSatCallsUnsat, p->nSatCallsOver, p->nTimeOuts );
 
     p->timeTotal = Abc_Clock() - p->timeStart;
-    p->timeOther = p->timeTotal - p->timeWin - p->timeCnf - p->timeSat;
+    p->timeOther = p->timeTotal - p->timeLib - p->timeWin - p->timeCnf - p->timeSat - p->timeTime;
 
+    ABC_PRTP( "Lib   ", p->timeLib  ,     p->timeTotal );
     ABC_PRTP( "Win   ", p->timeWin  ,     p->timeTotal );
     ABC_PRTP( "Cnf   ", p->timeCnf  ,     p->timeTotal );
     ABC_PRTP( "Sat   ", p->timeSat  ,     p->timeTotal );
     ABC_PRTP( " Sat  ", p->timeSatSat,    p->timeTotal );
     ABC_PRTP( " Unsat", p->timeSatUnsat,  p->timeTotal );
+    ABC_PRTP( "Timing", p->timeTime ,     p->timeTotal );
     ABC_PRTP( "Other ", p->timeOther,     p->timeTotal );
     ABC_PRTP( "ALL   ", p->timeTotal,     p->timeTotal );
 
@@ -1720,11 +1730,9 @@ p->timeSat += Abc_Clock() - clk;
 void Abc_NtkDelayOpt( Sfm_Dec_t * p )
 {
     Abc_Ntk_t * pNtk = p->pNtk;
-    Sfm_Par_t * pPars = p->pPars;
-
-    printf( "Initial    delay = %8.2f.\n", MIO_NUMINV*Sfm_TimReadNtkDelay(p->pTim) );
+    Sfm_Par_t * pPars = p->pPars; int n;
     Abc_NtkCleanMarkABC( pNtk );
-    while ( 1 )
+    for ( n = 0; pPars->nNodesMax == 0 || n < pPars->nNodesMax; n++ )
     {
         Abc_Obj_t * pObj, * pObjNew; abctime clk;
         int i = 0, Limit, RetValue;
@@ -1738,6 +1746,7 @@ void Abc_NtkDelayOpt( Sfm_Dec_t * p )
         {
             int OldId = Abc_ObjId(pObj);
             int DelayOld = Sfm_TimReadObjDelay(p->pTim, OldId);
+            assert( pObj->fMarkA == 0 );
 
             p->nNodesTried++;
 clk = Abc_Clock();
@@ -1745,7 +1754,6 @@ clk = Abc_Clock();
 p->timeWin += Abc_Clock() - clk;
             if ( p->nDivs < 2 || (pPars->nWinSizeMax && pPars->nWinSizeMax < Vec_IntSize(&p->vObjGates)) )
             {
-                assert( pObj->fMarkA == 0 );
                 pObj->fMarkA = 1;
                 continue;
             }
@@ -1762,7 +1770,6 @@ clk = Abc_Clock();
 p->timeCnf += Abc_Clock() - clk;
             if ( !RetValue )
             {
-                assert( pObj->fMarkA == 0 );
                 pObj->fMarkA = 1;
                 continue;
             }
@@ -1773,7 +1780,6 @@ clk = Abc_Clock();
 p->timeSat += Abc_Clock() - clk;
             if ( RetValue < 0 )
             {
-                assert( pObj->fMarkA == 0 );
                 pObj->fMarkA = 1;
                 continue;
             }
@@ -1781,14 +1787,18 @@ p->timeSat += Abc_Clock() - clk;
             assert( Vec_IntSize(&p->vObjGates) - Limit <= 2 );
             p->nNodesChanged++;
             Abc_NtkCountStats( p, Limit );
-            Sfm_DecInsert( pNtk, pObj, Limit, &p->vObjGates, &p->vObjFanins, &p->vObjMap, &p->vGateHands, p->GateBuffer, p->GateInvert, &p->vGateFuncs, &p->vCands );
-            Sfm_TimUpdateTiming( p->pTim, &p->vCands );
-
+            Sfm_DecInsert( pNtk, pObj, Limit, &p->vObjGates, &p->vObjFanins, &p->vObjMap, &p->vGateHands, p->GateBuffer, p->GateInvert, &p->vGateFuncs, &p->vTemp );
+clk = Abc_Clock();
+            Sfm_TimUpdateTiming( p->pTim, &p->vTemp );
+p->timeTime += Abc_Clock() - clk;
             pObjNew = Abc_NtkObj( pNtk, Abc_NtkObjNumMax(pNtk)-1 );
-            printf( "Node %5d : Old =%8.2f.  Predicted =%8.2f.  New =%8.2f.  Final =%8.2f\n", 
-                OldId, MIO_NUMINV*DelayOld, MIO_NUMINV*p->DelayMin, 
-                MIO_NUMINV*Sfm_TimReadObjDelay(p->pTim, Abc_ObjId(pObjNew)), 
-                MIO_NUMINV*Sfm_TimReadNtkDelay(p->pTim) );
+            assert( p->DelayMin == Sfm_TimReadObjDelay(p->pTim, Abc_ObjId(pObjNew)) );
+            // report
+            if ( pPars->fVerbose )
+                printf( "Node %5d :  I =%3d.  Cand = %5d (%6.2f %%)   Old =%8.2f.  New =%8.2f.  Final =%8.2f\n", 
+                    OldId, i, Vec_IntSize(&p->vCands), 100.0 * Vec_IntSize(&p->vCands) / Abc_NtkNodeNum(p->pNtk),
+                    MIO_NUMINV*DelayOld, MIO_NUMINV*Sfm_TimReadObjDelay(p->pTim, Abc_ObjId(pObjNew)), 
+                    MIO_NUMINV*Sfm_TimReadNtkDelay(p->pTim) );
             break;
         }
         if ( pPars->iNodeOne )
@@ -1812,9 +1822,9 @@ void Abc_NtkPerformMfs3( Abc_Ntk_t * pNtk, Sfm_Par_t * pPars )
             printf( "WinMax = %d. ",  pPars->nWinSizeMax );
         if ( pPars->nBTLimit )
             printf( "Confl = %d. ",   pPars->nBTLimit );
-        if ( pPars->nMffcMin )
+        if ( pPars->nMffcMin && pPars->fArea )
             printf( "MffcMin = %d. ", pPars->nMffcMin );
-        if ( pPars->nMffcMax )
+        if ( pPars->nMffcMax && pPars->fArea )
             printf( "MffcMax = %d. ", pPars->nMffcMax );
         if ( pPars->nDecMax )
             printf( "DecMax = %d. ",  pPars->nDecMax );
@@ -1822,8 +1832,11 @@ void Abc_NtkPerformMfs3( Abc_Ntk_t * pNtk, Sfm_Par_t * pPars )
             printf( "Pivot = %d. ",   pPars->iNodeOne );
         if ( !pPars->fArea )
             printf( "Win = %d. ",     pPars->nTimeWin );
+        if ( !pPars->fArea )
+            printf( "Delta = %.2f ps. ", MIO_NUMINV*p->DeltaCrit );
+        if ( pPars->fArea )
+            printf( "0-cost = %s. ",  pPars->fZeroCost ? "yes" : "no" );
         printf( "Sim = %s. ",         pPars->fUseSim ? "yes" : "no" );
-        printf( "0-cost = %s. ",      pPars->fZeroCost ? "yes" : "no" );
         printf( "\n" );
     }
     // preparation steps

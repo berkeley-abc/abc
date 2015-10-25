@@ -5168,26 +5168,14 @@ int Abc_CommandMfs3( Abc_Frame_t * pAbc, int argc, char ** argv )
     extern void Abc_NtkPerformMfs3( Abc_Ntk_t * pNtk, Sfm_Par_t * pPars );
     extern void Sfm_ParSetDefault3( Sfm_Par_t * pPars );
     Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
-    Sfm_Par_t Pars, * pPars = &Pars;
-    int c;
+    Sfm_Par_t Pars, * pPars = &Pars; int c;
     // set defaults
     Sfm_ParSetDefault3( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "OIFLHDMCNPWdamzospvwh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "IOVFKLHDMCNPWdamzosplvwh" ) ) != EOF )
     {
         switch ( c )
         {
-        case 'O':
-            if ( globalUtilOptind >= argc )
-            {
-                Abc_Print( -1, "Command line switch \"-O\" should be followed by an integer.\n" );
-                goto usage;
-            }
-            pPars->nTfoLevMax = atoi(argv[globalUtilOptind]);
-            globalUtilOptind++;
-            if ( pPars->nTfoLevMax < 0 )
-                goto usage;
-            break;
         case 'I':
             if ( globalUtilOptind >= argc )
             {
@@ -5202,6 +5190,28 @@ int Abc_CommandMfs3( Abc_Frame_t * pAbc, int argc, char ** argv )
                 goto usage;
             }
             break;
+        case 'O':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-O\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nTfoLevMax = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nTfoLevMax < 0 )
+                goto usage;
+            break;
+        case 'V':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-V\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nTfiLevMax = pPars->nTfoLevMax = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nTfiLevMax < 1 )
+                goto usage;
+            break;
         case 'F':
             if ( globalUtilOptind >= argc )
             {
@@ -5211,6 +5221,17 @@ int Abc_CommandMfs3( Abc_Frame_t * pAbc, int argc, char ** argv )
             pPars->nFanoutMax = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
             if ( pPars->nFanoutMax < 0 )
+                goto usage;
+            break;
+        case 'K':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-K\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nVarMax = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nVarMax < 2 || pPars->nVarMax > 6 )
                 goto usage;
             break;
         case 'L':
@@ -5319,6 +5340,9 @@ int Abc_CommandMfs3( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'p':
             pPars->fPrintDecs ^= 1;
             break;
+        case 'l':
+            pPars->fLibVerbose ^= 1;
+            break;
         case 'v':
             pPars->fVerbose ^= 1;
             break;
@@ -5346,13 +5370,15 @@ int Abc_CommandMfs3( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: mfs3 [-OIFLHDMCNPW <num>] [-amzospvwh]\n" );
+    Abc_Print( -2, "usage: mfs3 [-IOVFKLHDMCNPW <num>] [-amzosplvwh]\n" );
     Abc_Print( -2, "\t           performs don't-care-based optimization of mapped networks\n" );
-    Abc_Print( -2, "\t-O <num> : the number of levels in the TFO cone (0 <= num) [default = %d]\n",             pPars->nTfoLevMax );
     Abc_Print( -2, "\t-I <num> : the number of levels in the TFI cone (1 <= num) [default = %d]\n",             pPars->nTfiLevMax );
+    Abc_Print( -2, "\t-O <num> : the number of levels in the TFO cone (0 <= num) [default = %d]\n",             pPars->nTfoLevMax );
+    Abc_Print( -2, "\t-V <num> : the number of levels in the TFI/TFO cone (1 <= num) [default = %d]\n",         pPars->nTfiLevMax );
     Abc_Print( -2, "\t-F <num> : the max number of fanouts to skip (1 <= num) [default = %d]\n",                pPars->nFanoutMax );
-    Abc_Print( -2, "\t-L <num> : the min size of max fanout-free cone (MFFC) [default = %d]\n",                 pPars->nMffcMin );
-    Abc_Print( -2, "\t-H <num> : the max size of max fanout-free cone (MFFC) [default = %d]\n",                 pPars->nMffcMax );
+    Abc_Print( -2, "\t-K <num> : the max number of variables (2 <= num <= 6 ) [default = %d]\n",                pPars->nVarMax );
+    Abc_Print( -2, "\t-L <num> : the min size of max fanout-free cone (MFFC) (area-only) [default = %d]\n",     pPars->nMffcMin );
+    Abc_Print( -2, "\t-H <num> : the max size of max fanout-free cone (MFFC) (area-only) [default = %d]\n",     pPars->nMffcMax );
     Abc_Print( -2, "\t-D <num> : the max number of decompositions to try (1 <= num <= 4) [default = %d]\n",     pPars->nDecMax );
     Abc_Print( -2, "\t-M <num> : the max node count of windows to consider (0 = no limit) [default = %d]\n",    pPars->nWinSizeMax );
     Abc_Print( -2, "\t-C <num> : the max number of conflicts in one SAT run (0 = no limit) [default = %d]\n",   pPars->nBTLimit );
@@ -5365,6 +5391,7 @@ usage:
     Abc_Print( -2, "\t-o       : toggle using old implementation for comparison [default = %s]\n",              pPars->fRrOnly? "yes": "no" );
     Abc_Print( -2, "\t-s       : toggle using simulation [default = %s]\n",                                     pPars->fUseSim? "yes": "no" );
     Abc_Print( -2, "\t-p       : toggle printing decompositions [default = %s]\n",                              pPars->fPrintDecs? "yes": "no" );
+    Abc_Print( -2, "\t-l       : toggle printing library usage statistics [default = %s]\n",                    pPars->fLibVerbose? "yes": "no" );
     Abc_Print( -2, "\t-v       : toggle printing optimization summary [default = %s]\n",                        pPars->fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-w       : toggle printing detailed stats for each node [default = %s]\n",                pPars->fVeryVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h       : print the command usage\n");
