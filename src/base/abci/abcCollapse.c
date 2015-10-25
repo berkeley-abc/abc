@@ -420,7 +420,7 @@ Abc_Ntk_t * Abc_NtkFromSops( Abc_Ntk_t * pNtk, int nCubeLim, int nBTLimit, int n
     Vec_Ptr_t * vDriverCopy, * vCoNodes, * vDfsNodes;
     Vec_Int_t * vNodeCoIds, * vLevel;
     Vec_Wec_t * vSupps;
-    int i, Cost;
+    int i; 
 
 //    Abc_NtkForEachCi( pNtk, pNode, i )
 //        printf( "%d ", Abc_ObjFanoutNum(pNode) );
@@ -433,17 +433,21 @@ Abc_Ntk_t * Abc_NtkFromSops( Abc_Ntk_t * pNtk, int nCubeLim, int nBTLimit, int n
     // compute cost of the largest node
     if ( nCubeLim > 0 )
     {
-        pNode = (Abc_Obj_t *)Vec_PtrEntry( vCoNodes, 0 );
+        word Cost;
+        pNode     = (Abc_Obj_t *)Vec_PtrEntry( vCoNodes, 0 );
         vDfsNodes = Abc_NtkDfsNodes( pNtk, &pNode, 1 );
-        vLevel = Vec_WecEntry( vSupps, Abc_ObjFaninId0(pNode) );
-        Cost = Vec_PtrSize(vDfsNodes) * Vec_IntSize(vLevel) * nCubeLim;
-        Vec_PtrFree( vDfsNodes );
-        if ( Cost > nCostMax )
+        vLevel    = Vec_WecEntry( vSupps, Abc_ObjFaninId0(pNode) );
+        Cost      = (word)Vec_PtrSize(vDfsNodes) * (word)Vec_IntSize(vLevel) * (word)nCubeLim;
+        if ( Cost > (word)nCostMax )
         {
+            printf( "Cost of the largest output cone exceeded the limit (%d * %d * %d  >  %d).\n", 
+                Vec_PtrSize(vDfsNodes), Vec_IntSize(vLevel), nCubeLim, nCostMax );
+            Vec_PtrFree( vDfsNodes );
             Vec_PtrFree( vCoNodes );
             Vec_WecFree( vSupps );
             return NULL;
         }
+        Vec_PtrFree( vDfsNodes );
     }
     // collect CO IDs in this order
     vNodeCoIds = Vec_IntAlloc( Abc_NtkCoNum(pNtk) );
@@ -486,7 +490,7 @@ Abc_Ntk_t * Abc_NtkFromSops( Abc_Ntk_t * pNtk, int nCubeLim, int nBTLimit, int n
             Abc_ObjAddFanin( pNode->pCopy, pNodeNew );
             continue;
         }
-        pNodeNew = Abc_NtkFromSopsOne( pNtkNew, pNtk, Vec_IntEntry(vNodeCoIds, i), Vec_WecEntry(vSupps, Abc_ObjFanin0(pNode)->Id), nCubeLim, nBTLimit, fCanon, fReverse, fVerbose );
+        pNodeNew = Abc_NtkFromSopsOne( pNtkNew, pNtk, Vec_IntEntry(vNodeCoIds, i), Vec_WecEntry(vSupps, Abc_ObjFanin0(pNode)->Id), nCubeLim, nBTLimit, fCanon, fReverse, i ? 0 : fVerbose );
         if ( pNodeNew == NULL )
         {
             Abc_NtkDelete( pNtkNew );
