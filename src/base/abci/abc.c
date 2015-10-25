@@ -434,6 +434,7 @@ static int Abc_CommandAbc9ReachY             ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandAbc9Undo               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Iso                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9IsoNpn             ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9IsoSt              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9CexInfo            ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Cycle              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Cone               ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -1056,6 +1057,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "ABC9",         "&undo",         Abc_CommandAbc9Undo,         0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&iso",          Abc_CommandAbc9Iso,          0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&isonpn",       Abc_CommandAbc9IsoNpn,       0 );
+    Cmd_CommandAdd( pAbc, "ABC9",         "&isost",        Abc_CommandAbc9IsoSt,        0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&cexinfo",      Abc_CommandAbc9CexInfo,      0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&cycle",        Abc_CommandAbc9Cycle,        0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&cone",         Abc_CommandAbc9Cone,         0 );
@@ -25874,6 +25876,7 @@ int Abc_CommandIso( Abc_Frame_t * pAbc, int argc, char ** argv )
     pAig = Abc_NtkToDar( pNtk, 0, 1 );
     pTemp = Saig_ManIsoReduce( pAig, &vPosEquivs, fVerbose );
     pNtkNew = Abc_NtkFromAigPhase( pTemp );
+    pNtkNew->pName = Extra_UtilStrsav(pNtk->pName);
     Aig_ManStop( pTemp );
     Aig_ManStop( pAig );
 
@@ -36137,6 +36140,73 @@ usage:
     Abc_Print( -2, "usage: &isonpn [-vh]\n" );
     Abc_Print( -2, "\t         removes POs with functionally isomorphic combinational COI\n" );
     Abc_Print( -2, "\t         (currently ignores POs whose structural support is more than 16)\n" );
+    Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc9IsoSt( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern Gia_Man_t * Gia_ManIsoStrashReduce( Gia_Man_t * p, Vec_Ptr_t ** pvPosEquivs, int fVerbose );
+    Gia_Man_t * pAig;
+    Vec_Ptr_t * vPosEquivs;
+    int c, fVerbose = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pAbc->pGia == NULL )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9IsoSt(): There is no AIG.\n" );
+        return 1;
+    }
+    if ( Gia_ManPoNum(pAbc->pGia) == 1 )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9IsoSt(): The AIG has only one PO. Isomorphism detection is not performed.\n" );
+        return 1;
+    }
+    if ( Gia_ManRegNum(pAbc->pGia) )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9IsoSt(): ISO-ST does not work with sequential AIGs.\n" );
+        return 1;
+    }
+    pAig = Gia_ManIsoStrashReduce( pAbc->pGia, &vPosEquivs, fVerbose );
+    if ( pAig == NULL )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9IsoSt(): Transformation has failed.\n" );
+        return 1;
+    }
+    // update the internal storage of PO equivalences
+    Abc_FrameReplacePoEquivs( pAbc, &vPosEquivs );
+    // update the AIG
+    Abc_FrameUpdateGia( pAbc, pAig );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: &isost [-vh]\n" );
+    Abc_Print( -2, "\t         removes POs with functionally isomorphic combinational COI\n" );
+    Abc_Print( -2, "\t         (this command relies exclusively on structural hashing)\n" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
