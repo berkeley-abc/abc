@@ -242,6 +242,7 @@ Abc_Ntk_t * Abc_NtkCollapse( Abc_Ntk_t * pNtk, int fBddSizeMax, int fDualRail, i
 #endif
 
 
+#if 0
 
 /**Function*************************************************************
 
@@ -517,6 +518,233 @@ Abc_Ntk_t * Abc_NtkCollapseSat( Abc_Ntk_t * pNtk, int nCubeLim, int nBTLimit, in
     if ( pNtk->pExdc )
         pNtkNew->pExdc = Abc_NtkDup( pNtk->pExdc );
     // make sure that everything is okay
+    if ( !Abc_NtkCheck( pNtkNew ) )
+    {
+        printf( "Abc_NtkCollapseSat: The network check has failed.\n" );
+        Abc_NtkDelete( pNtkNew );
+        return NULL;
+    }
+    return pNtkNew;
+}
+
+#endif
+
+
+
+extern Vec_Wec_t * Gia_ManCreateCoSupps( Gia_Man_t * p, int fVerbose );
+extern int         Gia_ManCoLargestSupp( Gia_Man_t * p, Vec_Wec_t * vSupps );
+extern Vec_Wec_t * Gia_ManIsoStrashReduceInt( Gia_Man_t * p, Vec_Wec_t * vSupps, int fVerbose );
+
+/**Function*************************************************************
+
+  Synopsis    [Derives GIA for the network.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_NtkClpGia_rec( Gia_Man_t * pNew, Abc_Obj_t * pNode )
+{
+    int iLit0, iLit1;
+    if ( pNode->iTemp >= 0 )
+        return pNode->iTemp;
+    assert( Abc_ObjIsNode( pNode ) );
+    iLit0 = Abc_NtkClpGia_rec( pNew, Abc_ObjFanin0(pNode) );
+    iLit1 = Abc_NtkClpGia_rec( pNew, Abc_ObjFanin1(pNode) );
+    iLit0 = Abc_LitNotCond( iLit0, Abc_ObjFaninC0(pNode) );
+    iLit1 = Abc_LitNotCond( iLit1, Abc_ObjFaninC1(pNode) );
+    return (pNode->iTemp = Gia_ManAppendAnd(pNew, iLit0, iLit1));
+}
+Gia_Man_t * Abc_NtkClpGia( Abc_Ntk_t * pNtk )
+{
+    int i, iLit;
+    Gia_Man_t * pNew;
+    Abc_Obj_t * pNode;
+    assert( Abc_NtkIsStrash(pNtk) );
+    pNew = Gia_ManStart( 1000 );
+    pNew->pName = Abc_UtilStrsav( pNtk->pName );
+    pNew->pSpec = Abc_UtilStrsav( pNtk->pSpec );
+    Abc_NtkForEachObj( pNtk, pNode, i )
+        pNode->iTemp = -1;
+    Abc_AigConst1(pNtk)->iTemp = 1;
+    Abc_NtkForEachCi( pNtk, pNode, i )
+        pNode->iTemp = Gia_ManAppendCi(pNew);
+    Abc_NtkForEachCo( pNtk, pNode, i )
+    {
+        iLit = Abc_NtkClpGia_rec( pNew, Abc_ObjFanin0(pNode) );
+        iLit = Abc_LitNotCond( iLit, Abc_ObjFaninC0(pNode) );
+        Gia_ManAppendCo( pNew, iLit );
+    }
+    return pNew;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Computes SOPs for each output.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Str_t * Abc_NtkClpGiaOne( Gia_Man_t * p, int iCo, int nCubeLim, int nBTLimit, int fVerbose, int fCanon, int fReverse, Vec_Int_t * vSupp )
+{
+    Vec_Str_t * vSop;
+    abctime clk = Abc_Clock();
+    extern Vec_Str_t * Bmc_CollapseOne( Gia_Man_t * p, int nCubeLim, int nBTLimit, int fCanon, int fReverse, int fVerbose );
+    Gia_Man_t * pGia  = Gia_ManDupCones( p, &iCo, 1, 1 );
+    if ( fVerbose )
+        printf( "Output %4d:  Supp = %4d. Cone =%6d.\n", iCo, Vec_IntSize(vSupp), Gia_ManAndNum(pGia) );
+    vSop = Bmc_CollapseOne( pGia, nCubeLim, nBTLimit, fCanon, fReverse, fVerbose );
+    Gia_ManStop( pGia );
+    if ( vSop == NULL )
+        return NULL;
+    if ( Vec_StrSize(vSop) == 4 ) // constant
+        Vec_IntClear(vSupp);
+    if ( fVerbose )
+        Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
+    return vSop; 
+}
+Vec_Ptr_t * Abc_GiaDeriveSops( Abc_Ntk_t * pNtkNew, Gia_Man_t * p, Vec_Wec_t * vSupps, int nCubeLim, int nBTLimit, int nCostMax, int fCanon, int fReverse, int fVerbose )
+{
+    ProgressBar * pProgress;
+    Vec_Ptr_t * vSops = NULL, * vSopsRepr;
+    Vec_Int_t * vReprs, * vClass, * vReprSuppSizes;
+    int i, k, Entry, iCo, * pOrder;
+    Vec_Wec_t * vClasses;
+    // check the largest output
+    if ( nCubeLim > 0 && nCostMax > 0 )
+    {
+        int iCoMax   = Gia_ManCoLargestSupp( p, vSupps );
+        int iObjMax  = Gia_ObjId( p, Gia_ManCo(p, iCoMax) );
+        int nSuppMax = Vec_IntSize( Vec_WecEntry(vSupps, iCoMax) );
+        int nNodeMax = Gia_ManConeSize( p, &iObjMax, 1 );
+        word Cost = (word)nNodeMax * (word)nSuppMax * (word)nCubeLim;
+        if ( Cost > (word)nCostMax )
+        {
+            printf( "Cost of the largest output cone exceeded the limit (%d * %d * %d  >  %d).\n", 
+                nNodeMax, nSuppMax, nCubeLim, nCostMax );
+            return NULL;
+        }
+    }
+    // derive classes of outputs
+    vClasses = Gia_ManIsoStrashReduceInt( p, vSupps, 0 );
+    // derive representatives
+    vReprs = Vec_WecCollectFirsts( vClasses );
+    vReprSuppSizes = Vec_IntAlloc( Vec_IntSize(vReprs) );
+    Vec_IntForEachEntry( vReprs, Entry, i )
+        Vec_IntPush( vReprSuppSizes, Vec_IntSize(Vec_WecEntry(vSupps, Entry)) );
+    pOrder = Abc_MergeSortCost( Vec_IntArray(vReprSuppSizes), Vec_IntSize(vReprSuppSizes) );
+    Vec_IntFree( vReprSuppSizes );
+    // consider SOPs for representatives
+    vSopsRepr = Vec_PtrStart( Vec_IntSize(vReprs) );
+    pProgress = Extra_ProgressBarStart( stdout, Vec_IntSize(vReprs) );
+    Extra_ProgressBarUpdate( pProgress, 0, NULL );
+    for ( i = 0; i < Vec_IntSize(vReprs); i++ )
+    {
+        int iEntry        = pOrder[Vec_IntSize(vReprs) - 1 - i];
+        int iCoThis       = Vec_IntEntry( vReprs, iEntry );
+        Vec_Int_t * vSupp = Vec_WecEntry( vSupps, iCoThis );
+        Vec_Str_t * vSop  = Abc_NtkClpGiaOne( p, iCoThis, nCubeLim, nBTLimit, i ? 0 : fVerbose, fCanon, fReverse, vSupp );
+        if ( vSop == NULL )
+            goto finish;
+        assert( Vec_IntSize( Vec_WecEntry(vSupps, iCoThis) ) == Abc_SopGetVarNum(Vec_StrArray(vSop)) );
+        Extra_ProgressBarUpdate( pProgress, i, NULL );
+        Vec_PtrWriteEntry( vSopsRepr, iEntry, Abc_SopRegister( (Mem_Flex_t *)pNtkNew->pManFunc, Vec_StrArray(vSop) ) );
+        Vec_StrFree( vSop );
+    }
+    Extra_ProgressBarStop( pProgress );
+    // derive SOPs for each output
+    vSops = Vec_PtrStart( Gia_ManCoNum(p) );
+    Vec_WecForEachLevel ( vClasses, vClass, i )
+        Vec_IntForEachEntry( vClass, iCo, k )
+            Vec_PtrWriteEntry( vSops, iCo, Vec_PtrEntry(vSopsRepr, i) );
+    assert( Vec_PtrCountZero(vSops) == 0 );
+/*
+    // verify
+    for ( i = 0; i < Gia_ManCoNum(p); i++ )
+    {
+        Vec_Int_t * vSupp = Vec_WecEntry( vSupps, i );
+        char * pSop = (char *)Vec_PtrEntry( vSops, i );
+        assert( Vec_IntSize(vSupp) == Abc_SopGetVarNum(pSop) );
+    }
+*/
+    // cleanup
+finish:
+    ABC_FREE( pOrder );
+    Vec_IntFree( vReprs );
+    Vec_WecFree( vClasses );
+    Vec_PtrFree( vSopsRepr );
+    return vSops;
+}
+Abc_Ntk_t * Abc_NtkFromSopsInt( Abc_Ntk_t * pNtk, int nCubeLim, int nBTLimit, int nCostMax, int fCanon, int fReverse, int fVerbose )
+{
+    Abc_Ntk_t * pNtkNew;
+    Gia_Man_t * pGia;
+    Vec_Wec_t * vSupps;
+    Vec_Int_t * vSupp;
+    Vec_Ptr_t * vSops;
+    Abc_Obj_t * pNode, * pNodeNew, * pDriver;
+    int i, k, iCi; 
+    pGia    = Abc_NtkClpGia( pNtk );
+    vSupps  = Gia_ManCreateCoSupps( pGia, fVerbose );
+    pNtkNew = Abc_NtkStartFrom( pNtk, ABC_NTK_LOGIC, ABC_FUNC_SOP );
+    vSops   = Abc_GiaDeriveSops( pNtkNew, pGia, vSupps, nCubeLim, nBTLimit, nCostMax, fCanon, fReverse, fVerbose );
+    Gia_ManStop( pGia );
+    if ( vSops == NULL )
+    {
+        Vec_WecFree( vSupps );
+        Abc_NtkDelete( pNtkNew );
+        return NULL;
+    }
+    Abc_NtkForEachCo( pNtk, pNode, i )
+    {
+        pDriver = Abc_ObjFanin0(pNode);
+        if ( Abc_ObjIsCi(pDriver) && !strcmp(Abc_ObjName(pNode), Abc_ObjName(pDriver)) )
+        {
+            Abc_ObjAddFanin( pNode->pCopy, pDriver->pCopy );
+            continue;
+        }
+        if ( Abc_ObjIsCi(pDriver) )
+        {
+            pNodeNew = Abc_NtkCreateNode( pNtkNew );
+            Abc_ObjAddFanin( pNodeNew, pDriver->pCopy ); 
+            pNodeNew->pData = Abc_SopRegister( (Mem_Flex_t *)pNtkNew->pManFunc, Abc_ObjFaninC0(pNode) ? "0 1\n" : "1 1\n" );
+            Abc_ObjAddFanin( pNode->pCopy, pNodeNew );
+            continue;
+        }
+        if ( pDriver == Abc_AigConst1(pNtk) )
+        {
+            pNodeNew = Abc_NtkCreateNode( pNtkNew );
+            pNodeNew->pData = Abc_SopRegister( (Mem_Flex_t *)pNtkNew->pManFunc, Abc_ObjFaninC0(pNode) ? " 0\n" : " 1\n" );
+            Abc_ObjAddFanin( pNode->pCopy, pNodeNew );
+            continue;
+        }
+        pNodeNew = Abc_NtkCreateNode( pNtkNew );
+        vSupp = Vec_WecEntry( vSupps, i );
+        Vec_IntForEachEntry( vSupp, iCi, k )
+            Abc_ObjAddFanin( pNodeNew, Abc_NtkCi(pNtkNew, iCi) );
+        pNodeNew->pData = Vec_PtrEntry( vSops, i );
+        Abc_ObjAddFanin( pNode->pCopy, pNodeNew );
+    }
+    Vec_WecFree( vSupps );
+    Vec_PtrFree( vSops );
+    return pNtkNew;
+}
+Abc_Ntk_t * Abc_NtkCollapseSat( Abc_Ntk_t * pNtk, int nCubeLim, int nBTLimit, int nCostMax, int fCanon, int fReverse, int fVerbose )
+{
+    Abc_Ntk_t * pNtkNew;
+    assert( Abc_NtkIsStrash(pNtk) );
+    pNtkNew = Abc_NtkFromSopsInt( pNtk, nCubeLim, nBTLimit, nCostMax, fCanon, fReverse, fVerbose );
+    if ( pNtkNew == NULL )
+        return NULL;
+    if ( pNtk->pExdc )
+        pNtkNew->pExdc = Abc_NtkDup( pNtk->pExdc );
     if ( !Abc_NtkCheck( pNtkNew ) )
     {
         printf( "Abc_NtkCollapseSat: The network check has failed.\n" );
