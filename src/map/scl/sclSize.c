@@ -567,7 +567,7 @@ void Abc_SclTimeIncUpdateLevel_rec( Abc_Obj_t * pObj )
 {
     Abc_Obj_t * pFanout;
     int i, LevelNew = Abc_ObjLevelNew(pObj);
-    if ( LevelNew == (int)pObj->Level )
+    if ( LevelNew == (int)pObj->Level && Abc_ObjIsNode(pObj) && Abc_ObjFaninNum(pObj) > 0 )
         return;
     pObj->Level = LevelNew;
     Abc_ObjForEachFanout( pObj, pFanout, i )

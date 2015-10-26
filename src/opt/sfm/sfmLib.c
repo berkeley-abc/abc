@@ -225,20 +225,6 @@ Sfm_Lib_t * Sfm_LibStart( int nVars, int fDelay, int fVerbose )
 }
 void Sfm_LibStop( Sfm_Lib_t * p )
 {
-    if ( p->fVerbose )
-    {
-        // print usage stats
-        int i, nFanins;  word * pTruth;
-        Vec_MemForEachEntry( p->vTtMem, pTruth, i )
-        {
-            if ( i < 2 || Vec_IntEntry(&p->vHits, i) == 0 )
-                continue;
-            nFanins = Abc_TtSupportSize(pTruth, p->nVars);
-            printf( "%8d : ", i );
-            printf( "%8d   ", Vec_IntEntry(&p->vHits, i) );
-            Dau_DsdPrintFromTruth( pTruth, nFanins );
-        }
-    }
     Vec_MemHashFree( p->vTtMem );
     Vec_MemFree( p->vTtMem );
     Vec_IntErase( &p->vLists );
@@ -302,7 +288,7 @@ void Sfm_LibTruth8Two( Mio_Cell2_t * pCellBot, Mio_Cell2_t * pCellTop, int InTop
   SeeAlso     []
 
 ***********************************************************************/
-static inline void Sfm_LibCellProfile( Mio_Cell2_t * pCellBot, Mio_Cell2_t * pCellTop, int InTop, int nFanins, int * Perm, int * pProf )
+void Sfm_LibCellProfile( Mio_Cell2_t * pCellBot, Mio_Cell2_t * pCellTop, int InTop, int nFanins, int * Perm, int * pProf )
 {
     int i, DelayAdd = (int)(pCellTop ? pCellTop->Delays[InTop] : 0);
     for ( i = 0; i < nFanins; i++ )
@@ -436,10 +422,10 @@ void Sfm_LibPrepareAdd( Sfm_Lib_t * p, word * pTruth, int * Perm, int nFanins, M
         pObj->pFansT[i+1] = (char)(i == InTop ? 16 : InvPerm[k++]);
     assert( k == nFanins );
 }
-Sfm_Lib_t * Sfm_LibPrepare( int nVars, int fTwo, int fDelay, int fVerbose )
+Sfm_Lib_t * Sfm_LibPrepare( int nVars, int fTwo, int fDelay, int fVerbose, int fLibVerbose )
 {
     abctime clk = Abc_Clock();
-    Sfm_Lib_t * p = Sfm_LibStart( nVars, fDelay, fVerbose );
+    Sfm_Lib_t * p = Sfm_LibStart( nVars, fDelay, fLibVerbose );
     Mio_Cell2_t * pCell1, * pCell2, * pLimit;
     int * pPerm[SFM_SUPP_MAX+1], * Perm1, * Perm2, Perm[SFM_SUPP_MAX];
     int nPerms[SFM_SUPP_MAX+1], i, f, n;
@@ -458,7 +444,7 @@ Sfm_Lib_t * Sfm_LibPrepare( int nVars, int fTwo, int fDelay, int fVerbose )
             pCell1->Type = 1;
         else if ( Dau_DsdDecompose(&uTruth, pCell1->nFanins, 0, 0, pRes) <= 3 )
             pCell1->Type = 2;
-        else if ( p->fVerbose )
+        else if ( fLibVerbose )
             printf( "Skipping gate \"%s\" with non-DSD function %s\n", pCell1->pName, pRes );
     }
     // generate permutations
@@ -490,10 +476,10 @@ Sfm_Lib_t * Sfm_LibPrepare( int nVars, int fTwo, int fDelay, int fVerbose )
     }
     // add double cells
     if ( fTwo )
-    for ( pCell1 = p->pCells + 4; pCell1 < pLimit; pCell1++ )
+    for ( pCell1 = p->pCells + 4; pCell1 < pLimit; pCell1++ ) // Bot
     if ( pCell1->Type > 0 )
-    for ( pCell2 = p->pCells + 4; pCell2 < pLimit; pCell2++ )
-    if ( pCell2->Type > 0 && pCell1->Type + pCell2->Type <= 2 )
+    for ( pCell2 = p->pCells + 4; pCell2 < pLimit; pCell2++ ) // Top
+    if ( pCell2->Type > 0 )//&& pCell1->Type + pCell2->Type <= 2 )
     if ( (int)pCell1->nFanins + (int)pCell2->nFanins <= nVars + 1 )
     for ( f = 0; f < (int)pCell2->nFanins; f++ )
     {
@@ -512,6 +498,8 @@ Sfm_Lib_t * Sfm_LibPrepare( int nVars, int fTwo, int fDelay, int fVerbose )
         for ( n = 0; n < nPerms[nFanins]; n++ )
         {
             Sfm_LibPrepareAdd( p, tCur, Perm, nFanins, pCell1, pCell2, f );
+            if ( nFanins > 5 )
+                break;
             // update
             Abc_TtSwapAdjacent( tCur, p->nWords, pPerm[nFanins][n] );
             Perm1 = Perm + pPerm[nFanins][n];
@@ -536,7 +524,7 @@ Sfm_Lib_t * Sfm_LibPrepare( int nVars, int fTwo, int fDelay, int fVerbose )
 void Sfm_LibPrintGate( Mio_Cell2_t * pCell, char * pFanins, Mio_Cell2_t * pCell2, char * pFanins2 )
 {
     int k;
-    printf( " %s(", pCell->pName );
+    printf( " %-20s(", pCell->pName );
     for ( k = 0; k < (int)pCell->nFanins; k++ )
         if ( pFanins[k] == (char)16 )
             Sfm_LibPrintGate( pCell2, pFanins2, NULL, NULL );
@@ -549,7 +537,7 @@ void Sfm_LibPrintObj( Sfm_Lib_t * p, Sfm_Fun_t * pObj )
     Mio_Cell2_t * pCellB = p->pCells + (int)pObj->pFansB[0];
     Mio_Cell2_t * pCellT = p->pCells + (int)pObj->pFansT[0];
     int i, nFanins = pCellB->nFanins + (pCellT == p->pCells ? 0 : pCellT->nFanins - 1);
-    printf( "     Area = %6.2f  Fanins = %d  ", MIO_NUMINV*pObj->Area, nFanins );
+    printf( "F = %d  A =%6.2f  ", nFanins, MIO_NUMINV*pObj->Area );
     if ( pCellT == p->pCells )
         Sfm_LibPrintGate( pCellB, pObj->pFansB + 1, NULL, NULL );
     else
@@ -562,29 +550,25 @@ void Sfm_LibPrintObj( Sfm_Lib_t * p, Sfm_Fun_t * pObj )
         for ( i = 0; i < nFanins; i++ )
             printf( "%6.2f ", MIO_NUMINV*pProf[i] );
     }
-    printf( "\n" );
 }
 void Sfm_LibPrint( Sfm_Lib_t * p )
 {
-    word * pTruth; Sfm_Fun_t * pObj; int iFunc, nSupp, Count; 
-    Vec_MemForEachEntry( p->vTtMem, pTruth, iFunc )
+    Sfm_Fun_t * pObj; word * pTruth; int i, nFanins;   
+    Vec_MemForEachEntry( p->vTtMem, pTruth, i )
     {
-        if ( iFunc < 2 ) 
+        if ( i < 2 || Vec_IntEntry(&p->vHits, i) == 0 )
             continue;
-        nSupp = Abc_TtSupportSize(pTruth, p->nVars);
-        //if ( nSupp > 3 )
-        //    continue;        
-        //if ( iFunc % 10000 )
-        //    continue;
-        printf( "%d : Supp = %d   Count = %d   ", iFunc, nSupp, Vec_IntEntry(&p->vCounts, iFunc) );
-        Dau_DsdPrintFromTruth( pTruth, nSupp );
-        Count = 0;
-        Sfm_LibForEachSuper( p, pObj, iFunc )
+        nFanins = Abc_TtSupportSize(pTruth, p->nVars);
+        printf( "%8d : ", i );
+        printf( "Num =%5d  ", Vec_IntEntry(&p->vCounts, i) );
+        printf( "Hit =%4d  ", Vec_IntEntry(&p->vHits, i) );
+        Sfm_LibForEachSuper( p, pObj, i )
         {
             Sfm_LibPrintObj( p, pObj );
-            if ( Count++ == 5 )
-                break;
+            break;
         }
+        printf( "    " );
+        Dau_DsdPrintFromTruth( pTruth, nFanins );
     }
 }
 void Sfm_LibTest()
@@ -596,7 +580,7 @@ void Sfm_LibTest()
         printf( "There is no current library.\n" );
         return;
     }
-    p = Sfm_LibPrepare( 7, 1, 1, fVerbose );
+    p = Sfm_LibPrepare( 7, 1, 1, 1, fVerbose );
     if ( fVerbose )
         Sfm_LibPrint( p );
     Sfm_LibStop( p );
@@ -613,14 +597,28 @@ void Sfm_LibTest()
   SeeAlso     []
 
 ***********************************************************************/
-int Sfm_LibFindMatches( Sfm_Lib_t * p, word * pTruth, int * pFanins, int nFanins, Vec_Ptr_t * vGates, Vec_Ptr_t * vFans )
+int Sfm_LibFindAreaMatch( Sfm_Lib_t * p, word * pTruth, int nFanins, int * piObj )
+{
+    Sfm_Fun_t * pObj = NULL;
+    int iFunc = *Vec_MemHashLookup( p->vTtMem,  pTruth );
+    if ( iFunc == -1 )
+        return -1;
+    Sfm_LibForEachSuper( p, pObj, iFunc )
+        break;
+    *piObj = pObj - p->pObjs;
+    return pObj->Area;
+}
+int Sfm_LibFindDelayMatches( Sfm_Lib_t * p, word * pTruth, int * pFanins, int nFanins, Vec_Ptr_t * vGates, Vec_Ptr_t * vFans )
 {
     Sfm_Fun_t * pObj;
     Mio_Cell2_t * pCellB, * pCellT;
     int iFunc;
-//    word pCopy[4];
-//    Abc_TtCopy( pCopy, pTruth, 2, 0 );
-//    Dau_DsdPrintFromTruth( pCopy, 7 );
+    if ( nFanins > 6 )
+    {
+        word pCopy[4];
+        Abc_TtCopy( pCopy, pTruth, 4, 0 );
+        Dau_DsdPrintFromTruth( pCopy, p->nVars );
+    }
     Vec_PtrClear( vGates );
     Vec_PtrClear( vFans );
     // look for gate
@@ -632,7 +630,11 @@ int Sfm_LibFindMatches( Sfm_Lib_t * p, word * pTruth, int * pFanins, int nFanins
     if ( iFunc == -1 )
     {
         // print functions not found in the library
-        //Dau_DsdPrintFromTruth( pTruth, nFanins );
+        if ( p->fVerbose || nFanins > 6 )
+        {
+            printf( "Not found in the precomputed library: " );
+            Dau_DsdPrintFromTruth( pTruth, nFanins );
+        }
         return 0;
     }
     Vec_IntAddToEntry( &p->vHits, iFunc, 1 );
@@ -660,37 +662,11 @@ int Sfm_LibFindMatches( Sfm_Lib_t * p, word * pTruth, int * pFanins, int nFanins
   SeeAlso     []
 
 ***********************************************************************/
-int Sfm_LibAddNewGates( Sfm_Lib_t * p, int * pFanins, Mio_Gate_t * pGateB, Mio_Gate_t * pGateT, char * pFansB, char * pFansT, Vec_Int_t * vGates, Vec_Wec_t * vFanins )
-{
-    Vec_Int_t * vLevel;
-    int i, nFanins;
-    // create bottom gate
-    Vec_IntPush( vGates, Mio_GateReadValue(pGateB) );
-    vLevel  = Vec_WecPushLevel( vFanins );
-    nFanins = Mio_GateReadPinNum( pGateB );
-    for ( i = 0; i < nFanins; i++ )
-        Vec_IntPush( vLevel, pFanins[(int)pFansB[i]] );
-    if ( pGateT == NULL )
-        return 1;
-    // create top gate
-    Vec_IntPush( vGates, Mio_GateReadValue(pGateT) );
-    vLevel  = Vec_WecPushLevel( vFanins );
-    nFanins = Mio_GateReadPinNum( pGateT );
-    for ( i = 0; i < nFanins; i++ )
-        if ( pFansT[i] == (char)16 )
-            Vec_IntPush( vLevel, Vec_WecSize(vFanins)-2 );
-        else
-            Vec_IntPush( vLevel, pFanins[(int)pFansT[i]] );
-    return 2;
-}
-int Sfm_LibImplement( Sfm_Lib_t * p, word * pTruth, int * pFanins, int nFanins, int AreaMffc, Vec_Int_t * vGates, Vec_Wec_t * vFanins, int fZeroCost )
+int Sfm_LibImplementSimple( Sfm_Lib_t * p, word * pTruth, int * pFanins, int nFanins, Vec_Int_t * vGates, Vec_Wec_t * vFanins )
 {
     Mio_Library_t * pLib = (Mio_Library_t *)Abc_FrameReadLibGen();
     Mio_Gate_t * pGate;
-    Mio_Cell2_t * pCellB, * pCellT;
     Vec_Int_t * vLevel;
-    Sfm_Fun_t * pObj, * pObjMin = NULL;
-    int i, iFunc;
     if ( Abc_TtIsConst0(pTruth, p->nWords) || Abc_TtIsConst1(pTruth, p->nWords) )
     {
         assert( nFanins == 0 );
@@ -708,16 +684,17 @@ int Sfm_LibImplement( Sfm_Lib_t * p, word * pTruth, int * pFanins, int nFanins, 
         Vec_IntPush( vLevel, pFanins[0] );
         return 1;
     }
-    // look for gate
-    iFunc = *Vec_MemHashLookup( p->vTtMem, pTruth );
-    if ( iFunc == -1 )
-        return -1;
-    Vec_IntAddToEntry( &p->vHits, iFunc, 1 );
-    Sfm_LibForEachSuper( p, pObj, iFunc )
-        if ( !pObjMin || pObjMin->Area > pObj->Area )
-            pObjMin = pObj;
-    if ( pObjMin == NULL || (fZeroCost ? pObjMin->Area > AreaMffc : pObjMin->Area >= AreaMffc) )
-        return -1;
+    assert( 0 );
+    return -1;
+}
+int Sfm_LibImplementGatesArea( Sfm_Lib_t * p, int * pFanins, int nFanins, int iObj, Vec_Int_t * vGates, Vec_Wec_t * vFanins )
+{
+    Mio_Library_t * pLib = (Mio_Library_t *)Abc_FrameReadLibGen();
+    Sfm_Fun_t * pObjMin = p->pObjs + iObj;
+    Mio_Cell2_t * pCellB, * pCellT;
+    Mio_Gate_t * pGate;
+    Vec_Int_t * vLevel;
+    int i;
     // get the gates
     pCellB = p->pCells + (int)pObjMin->pFansB[0];
     pCellT = p->pCells + (int)pObjMin->pFansT[0];
@@ -740,6 +717,29 @@ int Sfm_LibImplement( Sfm_Lib_t * p, word * pTruth, int * pFanins, int nFanins, 
             Vec_IntPush( vLevel, Vec_WecSize(vFanins)-2 );
         else
             Vec_IntPush( vLevel, pFanins[(int)pObjMin->pFansT[i+1]] );
+    return 2;
+}
+int Sfm_LibImplementGatesDelay( Sfm_Lib_t * p, int * pFanins, Mio_Gate_t * pGateB, Mio_Gate_t * pGateT, char * pFansB, char * pFansT, Vec_Int_t * vGates, Vec_Wec_t * vFanins )
+{
+    Vec_Int_t * vLevel;
+    int i, nFanins;
+    // create bottom gate
+    Vec_IntPush( vGates, Mio_GateReadValue(pGateB) );
+    vLevel  = Vec_WecPushLevel( vFanins );
+    nFanins = Mio_GateReadPinNum( pGateB );
+    for ( i = 0; i < nFanins; i++ )
+        Vec_IntPush( vLevel, pFanins[(int)pFansB[i]] );
+    if ( pGateT == NULL )
+        return 1;
+    // create top gate
+    Vec_IntPush( vGates, Mio_GateReadValue(pGateT) );
+    vLevel  = Vec_WecPushLevel( vFanins );
+    nFanins = Mio_GateReadPinNum( pGateT );
+    for ( i = 0; i < nFanins; i++ )
+        if ( pFansT[i] == (char)16 )
+            Vec_IntPush( vLevel, Vec_WecSize(vFanins)-2 );
+        else
+            Vec_IntPush( vLevel, pFanins[(int)pFansT[i]] );
     return 2;
 }
 

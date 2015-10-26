@@ -57,6 +57,7 @@ struct Sfm_Par_t_
     int             iNodeOne;      // one particular node to try
     int             nFirstFixed;   // the number of first nodes to be treated as fixed
     int             nTimeWin;      // the size of timing window in percents
+    int             DeltaCrit;     // delay delta in picoseconds
     int             fRrOnly;       // perform redundance removal
     int             fArea;         // performs optimization for area
     int             fMoreEffort;   // performs high-affort minimization
@@ -65,6 +66,7 @@ struct Sfm_Par_t_
     int             fUseSim;       // enable simulation
     int             fPrintDecs;    // enable printing decompositions
     int             fLibVerbose;   // enable library stats
+    int             fDelayVerbose; // enable delay stats
     int             fVerbose;      // enable basic stats
     int             fVeryVerbose;  // enable detailed stats
 };

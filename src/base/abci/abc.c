@@ -5174,7 +5174,7 @@ int Abc_CommandMfs3( Abc_Frame_t * pAbc, int argc, char ** argv )
     // set defaults
     Sfm_ParSetDefault3( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "IOVFKLHDMCNPWdamzosplvwh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "IOVFKLHRMCNPWDdamzospdlvwh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -5258,10 +5258,10 @@ int Abc_CommandMfs3( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( pPars->nMffcMax < 0 )
                 goto usage;
             break;
-        case 'D':
+        case 'R':
             if ( globalUtilOptind >= argc )
             {
-                Abc_Print( -1, "Command line switch \"-D\" should be followed by an integer.\n" );
+                Abc_Print( -1, "Command line switch \"-R\" should be followed by an integer.\n" );
                 goto usage;
             }
             pPars->nDecMax = atoi(argv[globalUtilOptind]);
@@ -5324,6 +5324,17 @@ int Abc_CommandMfs3( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( pPars->nTimeWin < 0 || pPars->nTimeWin > 100 )
                 goto usage;
             break;
+        case 'D':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-D\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->DeltaCrit = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->DeltaCrit < 0 )
+                goto usage;
+            break;
         case 'a':
             pPars->fArea ^= 1;
             break;
@@ -5341,6 +5352,9 @@ int Abc_CommandMfs3( Abc_Frame_t * pAbc, int argc, char ** argv )
             break;
         case 'p':
             pPars->fPrintDecs ^= 1;
+            break;
+        case 'd':
+            pPars->fDelayVerbose ^= 1;
             break;
         case 'l':
             pPars->fLibVerbose ^= 1;
@@ -5372,7 +5386,7 @@ int Abc_CommandMfs3( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: mfs3 [-IOVFKLHDMCNPW <num>] [-amzosplvwh]\n" );
+    Abc_Print( -2, "usage: mfs3 [-IOVFKLHRMCNPWD <num>] [-amzospdlvwh]\n" );
     Abc_Print( -2, "\t           performs don't-care-based optimization of mapped networks\n" );
     Abc_Print( -2, "\t-I <num> : the number of levels in the TFI cone (1 <= num) [default = %d]\n",             pPars->nTfiLevMax );
     Abc_Print( -2, "\t-O <num> : the number of levels in the TFO cone (0 <= num) [default = %d]\n",             pPars->nTfoLevMax );
@@ -5381,18 +5395,20 @@ usage:
     Abc_Print( -2, "\t-K <num> : the max number of variables (2 <= num <= 8 ) [default = %d]\n",                pPars->nVarMax );
     Abc_Print( -2, "\t-L <num> : the min size of max fanout-free cone (MFFC) (area-only) [default = %d]\n",     pPars->nMffcMin );
     Abc_Print( -2, "\t-H <num> : the max size of max fanout-free cone (MFFC) (area-only) [default = %d]\n",     pPars->nMffcMax );
-    Abc_Print( -2, "\t-D <num> : the max number of decompositions to try (1 <= num <= 4) [default = %d]\n",     pPars->nDecMax );
+    Abc_Print( -2, "\t-R <num> : the max number of decomposition rounds (1 <= num <= 4) [default = %d]\n",      pPars->nDecMax );
     Abc_Print( -2, "\t-M <num> : the max node count of windows to consider (0 = no limit) [default = %d]\n",    pPars->nWinSizeMax );
     Abc_Print( -2, "\t-C <num> : the max number of conflicts in one SAT run (0 = no limit) [default = %d]\n",   pPars->nBTLimit );
     Abc_Print( -2, "\t-N <num> : the max number of nodes to try (0 = all) [default = %d]\n",                    pPars->nNodesMax );
     Abc_Print( -2, "\t-P <num> : one particular node to try (0 = none) [default = %d]\n",                       pPars->iNodeOne );
     Abc_Print( -2, "\t-W <num> : size of timing window in percents (0 <= num <= 100) [default = %d]\n",         pPars->nTimeWin );
+    Abc_Print( -2, "\t-D <num> : size of critical-timing delay-delta (in picoseconds) [default = %d]\n",        pPars->DeltaCrit );
     Abc_Print( -2, "\t-a       : toggle area minimization [default = %s]\n",                                    pPars->fArea? "yes": "no" );
     Abc_Print( -2, "\t-m       : toggle detecting multi-input AND/OR gates [default = %s]\n",                   pPars->fUseAndOr? "yes": "no" );
     Abc_Print( -2, "\t-z       : toggle zero-cost replacements [default = %s]\n",                               pPars->fZeroCost? "yes": "no" );
     Abc_Print( -2, "\t-o       : toggle using old implementation for comparison [default = %s]\n",              pPars->fRrOnly? "yes": "no" );
     Abc_Print( -2, "\t-s       : toggle using simulation [default = %s]\n",                                     pPars->fUseSim? "yes": "no" );
     Abc_Print( -2, "\t-p       : toggle printing decompositions [default = %s]\n",                              pPars->fPrintDecs? "yes": "no" );
+    Abc_Print( -2, "\t-d       : toggle printing delay profile statistics [default = %s]\n",                    pPars->fDelayVerbose? "yes": "no" );
     Abc_Print( -2, "\t-l       : toggle printing library usage statistics [default = %s]\n",                    pPars->fLibVerbose? "yes": "no" );
     Abc_Print( -2, "\t-v       : toggle printing optimization summary [default = %s]\n",                        pPars->fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-w       : toggle printing detailed stats for each node [default = %s]\n",                pPars->fVeryVerbose? "yes": "no" );
