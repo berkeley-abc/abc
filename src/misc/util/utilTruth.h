@@ -70,7 +70,7 @@ static word s_PMasks[5][3] = {
     { ABC_CONST(0xFFFF00000000FFFF), ABC_CONST(0x00000000FFFF0000), ABC_CONST(0x0000FFFF00000000) }
 };
 
-static word Ps_PMasks[5][6][3] = {
+static word s_PPMasks[5][6][3] = {
     { 
         { ABC_CONST(0x0000000000000000), ABC_CONST(0x0000000000000000), ABC_CONST(0x0000000000000000) }, // 0 0  
         { ABC_CONST(0x9999999999999999), ABC_CONST(0x2222222222222222), ABC_CONST(0x4444444444444444) }, // 0 1  
@@ -111,17 +111,6 @@ static word Ps_PMasks[5][6][3] = {
         { ABC_CONST(0x0000000000000000), ABC_CONST(0x0000000000000000), ABC_CONST(0x0000000000000000) }, // 4 4 
         { ABC_CONST(0xFFFF00000000FFFF), ABC_CONST(0x00000000FFFF0000), ABC_CONST(0x0000FFFF00000000) }  // 4 5 
     }
-};
-
-static word s_Truth8[8][4] = {
-    { ABC_CONST(0xAAAAAAAAAAAAAAAA),ABC_CONST(0xAAAAAAAAAAAAAAAA),ABC_CONST(0xAAAAAAAAAAAAAAAA),ABC_CONST(0xAAAAAAAAAAAAAAAA) },
-    { ABC_CONST(0xCCCCCCCCCCCCCCCC),ABC_CONST(0xCCCCCCCCCCCCCCCC),ABC_CONST(0xCCCCCCCCCCCCCCCC),ABC_CONST(0xCCCCCCCCCCCCCCCC) },
-    { ABC_CONST(0xF0F0F0F0F0F0F0F0),ABC_CONST(0xF0F0F0F0F0F0F0F0),ABC_CONST(0xF0F0F0F0F0F0F0F0),ABC_CONST(0xF0F0F0F0F0F0F0F0) },
-    { ABC_CONST(0xFF00FF00FF00FF00),ABC_CONST(0xFF00FF00FF00FF00),ABC_CONST(0xFF00FF00FF00FF00),ABC_CONST(0xFF00FF00FF00FF00) },
-    { ABC_CONST(0xFFFF0000FFFF0000),ABC_CONST(0xFFFF0000FFFF0000),ABC_CONST(0xFFFF0000FFFF0000),ABC_CONST(0xFFFF0000FFFF0000) },
-    { ABC_CONST(0xFFFFFFFF00000000),ABC_CONST(0xFFFFFFFF00000000),ABC_CONST(0xFFFFFFFF00000000),ABC_CONST(0xFFFFFFFF00000000) },
-    { ABC_CONST(0x0000000000000000),ABC_CONST(0xFFFFFFFFFFFFFFFF),ABC_CONST(0x0000000000000000),ABC_CONST(0xFFFFFFFFFFFFFFFF) },
-    { ABC_CONST(0x0000000000000000),ABC_CONST(0x0000000000000000),ABC_CONST(0xFFFFFFFFFFFFFFFF),ABC_CONST(0xFFFFFFFFFFFFFFFF) }
 };
 
 // the bit count for the first 256 integer numbers
@@ -1263,7 +1252,7 @@ static inline void Abc_TtSwapAdjacent( word * pTruth, int nWords, int iVar )
 }
 static inline word Abc_Tt6SwapVars( word t, int iVar, int jVar )
 {
-    word * s_PMasks = Ps_PMasks[iVar][jVar];
+    word * s_PMasks = s_PPMasks[iVar][jVar];
     int shift = (1 << jVar) - (1 << iVar);
     assert( iVar < jVar );
     return (t & s_PMasks[0]) | ((t & s_PMasks[1]) << shift) | ((t & s_PMasks[2]) >> shift);
@@ -1282,7 +1271,7 @@ static inline void Abc_TtSwapVars( word * pTruth, int nVars, int iVar, int jVar 
     }
     if ( jVar <= 5 )
     {
-        word * s_PMasks = Ps_PMasks[iVar][jVar];
+        word * s_PMasks = s_PPMasks[iVar][jVar];
         int nWords = Abc_TtWordNum(nVars);
         int w, shift = (1 << jVar) - (1 << iVar);
         for ( w = 0; w < nWords; w++ )
