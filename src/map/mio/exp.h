@@ -202,6 +202,65 @@ static inline word Exp_Truth6( int nVars, Vec_Int_t * p, word * puFanins )
     ABC_FREE( puNodes );
     return Res;
 }
+static inline void Exp_Truth8( int nVars, Vec_Int_t * p, word ** puFanins, word * puRes )
+{
+    word Truth8[8][4] = {
+        { ABC_CONST(0xAAAAAAAAAAAAAAAA),ABC_CONST(0xAAAAAAAAAAAAAAAA),ABC_CONST(0xAAAAAAAAAAAAAAAA),ABC_CONST(0xAAAAAAAAAAAAAAAA) },
+        { ABC_CONST(0xCCCCCCCCCCCCCCCC),ABC_CONST(0xCCCCCCCCCCCCCCCC),ABC_CONST(0xCCCCCCCCCCCCCCCC),ABC_CONST(0xCCCCCCCCCCCCCCCC) },
+        { ABC_CONST(0xF0F0F0F0F0F0F0F0),ABC_CONST(0xF0F0F0F0F0F0F0F0),ABC_CONST(0xF0F0F0F0F0F0F0F0),ABC_CONST(0xF0F0F0F0F0F0F0F0) },
+        { ABC_CONST(0xFF00FF00FF00FF00),ABC_CONST(0xFF00FF00FF00FF00),ABC_CONST(0xFF00FF00FF00FF00),ABC_CONST(0xFF00FF00FF00FF00) },
+        { ABC_CONST(0xFFFF0000FFFF0000),ABC_CONST(0xFFFF0000FFFF0000),ABC_CONST(0xFFFF0000FFFF0000),ABC_CONST(0xFFFF0000FFFF0000) },
+        { ABC_CONST(0xFFFFFFFF00000000),ABC_CONST(0xFFFFFFFF00000000),ABC_CONST(0xFFFFFFFF00000000),ABC_CONST(0xFFFFFFFF00000000) },
+        { ABC_CONST(0x0000000000000000),ABC_CONST(0xFFFFFFFFFFFFFFFF),ABC_CONST(0x0000000000000000),ABC_CONST(0xFFFFFFFFFFFFFFFF) },
+        { ABC_CONST(0x0000000000000000),ABC_CONST(0x0000000000000000),ABC_CONST(0xFFFFFFFFFFFFFFFF),ABC_CONST(0xFFFFFFFFFFFFFFFF) }
+    };
+    word * puFaninsInt[8], * pStore, * pThis = NULL;
+    int i, k, iRoot = Vec_IntEntryLast(p);
+    if ( puFanins == NULL )
+    {
+        puFanins = puFaninsInt;
+        for ( k = 0; k < 8; k++ )
+            puFanins[k] = Truth8[k];
+    }
+    if ( Exp_NodeNum(p) == 0 )
+    {
+        assert( iRoot < 2 * nVars );
+        if ( iRoot == EXP_CONST0 || iRoot == EXP_CONST1 )
+            for ( k = 0; k < 4; k++ )
+                puRes[k] = iRoot == EXP_CONST0 ? 0 : ~(word)0;
+        else
+            for ( k = 0; k < 4; k++ )
+                puRes[k] = Abc_LitIsCompl(iRoot) ? ~puFanins[Abc_Lit2Var(iRoot)][k] : puFanins[Abc_Lit2Var(iRoot)][k];
+        return;
+    }
+    pStore = ABC_CALLOC( word, 4 * Exp_NodeNum(p) );
+    for ( i = 0; i < Exp_NodeNum(p); i++ )
+    {
+        int iVar0 = Abc_Lit2Var( Vec_IntEntry(p, 2*i+0) );
+        int iVar1 = Abc_Lit2Var( Vec_IntEntry(p, 2*i+1) );
+        int fCompl0 = Abc_LitIsCompl( Vec_IntEntry(p, 2*i+0) );
+        int fCompl1 = Abc_LitIsCompl( Vec_IntEntry(p, 2*i+1) );
+        word * pIn0 = iVar0 < nVars ? puFanins[iVar0] : pStore + 4 * (iVar0 - nVars);
+        word * pIn1 = iVar1 < nVars ? puFanins[iVar1] : pStore + 4 * (iVar1 - nVars);
+        pThis = pStore + 4 * i;
+        if ( fCompl0 && fCompl1 )
+            for ( k = 0; k < 4; k++ )
+                pThis[k] = ~pIn0[k] & ~pIn1[k];
+        else if ( fCompl0 && !fCompl1 )
+            for ( k = 0; k < 4; k++ )
+                pThis[k] = ~pIn0[k] &  pIn1[k];
+        else if ( !fCompl0 && fCompl1 )
+            for ( k = 0; k < 4; k++ )
+                pThis[k] =  pIn0[k] & ~pIn1[k];
+        else //if ( !fCompl0 && !fCompl1 )
+            for ( k = 0; k < 4; k++ )
+                pThis[k] =  pIn0[k] &  pIn1[k];
+    }
+    assert( Abc_Lit2Var(iRoot) - nVars == i - 1 );
+    for ( k = 0; k < 4; k++ )
+        puRes[k] = Abc_LitIsCompl(iRoot) ? ~pThis[k] : pThis[k];
+    ABC_FREE( pStore );
+}
 static inline void Exp_TruthLit( int nVars, int Lit, word ** puFanins, word ** puNodes, word * pRes, int nWords )
 {
     int w;

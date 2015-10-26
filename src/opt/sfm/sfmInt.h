@@ -50,7 +50,7 @@ ABC_NAMESPACE_HEADER_START
 #define SFM_SAT_UNDEC 0x1234567812345678
 #define SFM_SAT_SAT   0x8765432187654321
 
-#define SFM_SUPP_MAX  6
+#define SFM_SUPP_MAX  8
 #define SFM_WORD_MAX ((SFM_SUPP_MAX>6) ? (1<<(SFM_SUPP_MAX-6)) : 1)
 #define SFM_WIN_MAX   1000
 #define SFM_DEC_MAX   4
@@ -201,9 +201,9 @@ extern int          Sfm_LibFindComplInputGate( Vec_Wrd_t * vFuncs, int iGate, in
 extern Sfm_Lib_t *  Sfm_LibPrepare( int nVars, int fTwo, int fDelay, int fVerbose );
 extern void         Sfm_LibPrint( Sfm_Lib_t * p );
 extern void         Sfm_LibStop( Sfm_Lib_t * p );
-extern int          Sfm_LibFindMatches( Sfm_Lib_t * p, word uTruth, int * pFanins, int nFanins, Vec_Ptr_t * vGates, Vec_Ptr_t * vFans );
+extern int          Sfm_LibFindMatches( Sfm_Lib_t * p, word * pTruth, int * pFanins, int nFanins, Vec_Ptr_t * vGates, Vec_Ptr_t * vFans );
 extern int          Sfm_LibAddNewGates( Sfm_Lib_t * p, int * pFanins, Mio_Gate_t * pGateB, Mio_Gate_t * pGateT, char * pFansB, char * pFansT, Vec_Int_t * vGates, Vec_Wec_t * vFanins );
-extern int          Sfm_LibImplement( Sfm_Lib_t * p, word uTruth, int * pFanins, int nFanins, int AreaMffc, Vec_Int_t * vGates, Vec_Wec_t * vFanins, int fZeroCost );
+extern int          Sfm_LibImplement( Sfm_Lib_t * p, word * pTruth, int * pFanins, int nFanins, int AreaMffc, Vec_Int_t * vGates, Vec_Wec_t * vFanins, int fZeroCost );
 /*=== sfmNtk.c ==========================================================*/
 extern Sfm_Ntk_t *  Sfm_ConstructNetwork( Vec_Wec_t * vFanins, int nPis, int nPos );
 extern void         Sfm_NtkPrepare( Sfm_Ntk_t * p );

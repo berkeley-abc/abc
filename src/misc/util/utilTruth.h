@@ -113,6 +113,17 @@ static word Ps_PMasks[5][6][3] = {
     }
 };
 
+static word s_Truth8[8][4] = {
+    { ABC_CONST(0xAAAAAAAAAAAAAAAA),ABC_CONST(0xAAAAAAAAAAAAAAAA),ABC_CONST(0xAAAAAAAAAAAAAAAA),ABC_CONST(0xAAAAAAAAAAAAAAAA) },
+    { ABC_CONST(0xCCCCCCCCCCCCCCCC),ABC_CONST(0xCCCCCCCCCCCCCCCC),ABC_CONST(0xCCCCCCCCCCCCCCCC),ABC_CONST(0xCCCCCCCCCCCCCCCC) },
+    { ABC_CONST(0xF0F0F0F0F0F0F0F0),ABC_CONST(0xF0F0F0F0F0F0F0F0),ABC_CONST(0xF0F0F0F0F0F0F0F0),ABC_CONST(0xF0F0F0F0F0F0F0F0) },
+    { ABC_CONST(0xFF00FF00FF00FF00),ABC_CONST(0xFF00FF00FF00FF00),ABC_CONST(0xFF00FF00FF00FF00),ABC_CONST(0xFF00FF00FF00FF00) },
+    { ABC_CONST(0xFFFF0000FFFF0000),ABC_CONST(0xFFFF0000FFFF0000),ABC_CONST(0xFFFF0000FFFF0000),ABC_CONST(0xFFFF0000FFFF0000) },
+    { ABC_CONST(0xFFFFFFFF00000000),ABC_CONST(0xFFFFFFFF00000000),ABC_CONST(0xFFFFFFFF00000000),ABC_CONST(0xFFFFFFFF00000000) },
+    { ABC_CONST(0x0000000000000000),ABC_CONST(0xFFFFFFFFFFFFFFFF),ABC_CONST(0x0000000000000000),ABC_CONST(0xFFFFFFFFFFFFFFFF) },
+    { ABC_CONST(0x0000000000000000),ABC_CONST(0x0000000000000000),ABC_CONST(0xFFFFFFFFFFFFFFFF),ABC_CONST(0xFFFFFFFFFFFFFFFF) }
+};
+
 // the bit count for the first 256 integer numbers
 static int Abc_TtBitCount8[256] = {
     0,1,1,2,1,2,2,3,1,2,2,3,2,3,3,4,1,2,2,3,2,3,3,4,2,3,3,4,3,4,4,5,
@@ -204,6 +215,12 @@ static inline word Abc_Tt6Mask( int nBits )       { assert( nBits >= 0 && nBits 
   SeeAlso     []
 
 ***********************************************************************/
+static inline void Abc_TtConst( word * pOut, int nWords, int fConst1 )
+{
+    int w;
+    for ( w = 0; w < nWords; w++ )
+        pOut[w] = fConst1 ? ~(word)0 : 0;
+}
 static inline void Abc_TtClear( word * pOut, int nWords )
 {
     int w;
@@ -216,11 +233,11 @@ static inline void Abc_TtFill( word * pOut, int nWords )
     for ( w = 0; w < nWords; w++ )
         pOut[w] = ~(word)0;
 }
-static inline void Abc_TtUnit( word * pOut, int nWords )
+static inline void Abc_TtUnit( word * pOut, int nWords, int fCompl )
 {
     int w;
     for ( w = 0; w < nWords; w++ )
-        pOut[w] = s_Truths6[0];
+        pOut[w] = fCompl ? ~s_Truths6[0] : s_Truths6[0];
 }
 static inline void Abc_TtNot( word * pOut, int nWords )
 {
@@ -281,6 +298,14 @@ static inline int Abc_TtEqual( word * pIn1, word * pIn2, int nWords )
     int w;
     for ( w = 0; w < nWords; w++ )
         if ( pIn1[w] != pIn2[w] )
+            return 0;
+    return 1;
+}
+static inline int Abc_TtOpposite( word * pIn1, word * pIn2, int nWords )
+{
+    int w;
+    for ( w = 0; w < nWords; w++ )
+        if ( pIn1[w] != ~pIn2[w] )
             return 0;
     return 1;
 }
@@ -1116,15 +1141,15 @@ static inline int Abc_TtOnlyOneOne( word t )
         return 0;
     return (t & (t-1)) == 0;
 }
-static inline int Gia_ManTtIsAndType( word t, int nVars )
+static inline int Abc_Tt6IsAndType( word t, int nVars )
 {
     return Abc_TtOnlyOneOne( t & Abc_Tt6Mask(1 << nVars) );
 }
-static inline int Gia_ManTtIsOrType( word t, int nVars )
+static inline int Abc_Tt6IsOrType( word t, int nVars )
 {
     return Abc_TtOnlyOneOne( ~t & Abc_Tt6Mask(1 << nVars) );
 }
-static inline int Gia_ManTtIsXorType( word t, int nVars )
+static inline int Abc_Tt6IsXorType( word t, int nVars )
 {
     return ((((t & 1) ? ~t : t) ^ s_TruthXors[nVars]) & Abc_Tt6Mask(1 << nVars)) == 0;
 }

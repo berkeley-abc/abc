@@ -117,8 +117,8 @@ struct Sfm_Dec_t_
     int               nMaxWin;
     word              nAllDivs;
     word              nAllWin;
-    int               nLuckySizes[10];
-    int               nLuckyGates[10];
+    int               nLuckySizes[SFM_SUPP_MAX+1];
+    int               nLuckyGates[SFM_SUPP_MAX+1];
 };
 
 #define SFM_MASK_PI     1  // supp(node) is contained in supp(TFI(pivot))
@@ -274,6 +274,7 @@ static inline word Sfm_ObjSimulate( Abc_Obj_t * pObj )
     Sfm_Dec_t * p = Sfm_DecMan( pObj );
     Vec_Int_t * vExpr = Mio_GateReadExpr( (Mio_Gate_t *)pObj->pData );
     Abc_Obj_t * pFanin; int i; word uFanins[6];
+    assert( Abc_ObjFaninNum(pObj) <= 6 );
     Abc_ObjForEachFanin( pObj, pFanin, i )
         uFanins[i] = Sfm_DecObjSim( p, pFanin );
     return Exp_Truth6( Abc_ObjFaninNum(pObj), vExpr, uFanins );
@@ -778,13 +779,14 @@ int Sfm_DecCombineDec( Sfm_Dec_t * p, word * pTruth0, word * pTruth1, int * pSup
     {
         memcpy( pSupp,  pSupp0,  sizeof(int)*nSupp0   );
         memcpy( pTruth, pTruth0, sizeof(word)*nWords0 );
+        Abc_TtStretch6( pTruth, nSupp0, p->pPars->nVarMax );
         return nSupp0;
     }
     // merge support variables
     Vec_IntTwoMerge2Int( &vVec0, &vVec1, &vVec );
     Vec_IntPushOrder( &vVec, Var );
     nSupp = Vec_IntSize( &vVec );
-    if ( nSupp > SFM_SUPP_MAX )
+    if ( nSupp > p->pPars->nVarMax )
         return -2;
     // expand truth tables
     Abc_TtStretch6( pTruth0, nSupp0, nSupp );
@@ -794,6 +796,7 @@ int Sfm_DecCombineDec( Sfm_Dec_t * p, word * pTruth0, word * pTruth1, int * pSup
     // perform operation
     iSuppVar = Vec_IntFind( &vVec, Var );
     Abc_TtMux( pTruth, p->pTtElems[iSuppVar], pTruth1, pTruth0, Abc_TtWordNum(nSupp) );
+    Abc_TtStretch6( pTruth, nSupp, p->pPars->nVarMax );
     return nSupp;
 }
 int Sfm_DecPeformDec_rec( Sfm_Dec_t * p, word * pTruth, int * pSupp, int * pAssump, int nAssump, word Masks[2], int fCofactor, int nSuppAdd )
@@ -835,7 +838,7 @@ int Sfm_DecPeformDec_rec( Sfm_Dec_t * p, word * pTruth, int * pSupp, int * pAssu
         {
             p->nSatCallsUnsat++;
             p->timeSatUnsat += Abc_Clock() - clk;
-            pTruth[0] = c ? ~((word)0) : 0;
+            Abc_TtConst( pTruth, Abc_TtWordNum(p->pPars->nVarMax), c );
             if ( p->pPars->fVeryVerbose )
                 printf( "Found constant %d.\n", c );
             return 0;
@@ -907,13 +910,13 @@ int Sfm_DecPeformDec_rec( Sfm_Dec_t * p, word * pTruth, int * pSupp, int * pAssu
         }
         assert( Abc_Lit2Var(Impls[0]) == Abc_Lit2Var(Impls[1]) );
         // found buffer/inverter
-        pTruth[0] = Abc_LitIsCompl(Impls[0]) ? ~p->pTtElems[0][0] : p->pTtElems[0][0];
+        Abc_TtUnit( pTruth, Abc_TtWordNum(p->pPars->nVarMax), Abc_LitIsCompl(Impls[0]) );
         pSupp[0] = Abc_Lit2Var(Impls[0]);
         if ( p->pPars->fVeryVerbose )
             printf( "Found variable %s%d.\n", Abc_LitIsCompl(Impls[0]) ? "!":"", pSupp[0] );
         return 1;        
     }
-    if ( nSuppAdd > 4 )
+    if ( nSuppAdd > p->pPars->nVarMax - 2 )
     {
         if ( p->pPars->fVeryVerbose )
             printf( "The number of assumption is more than MFFC size.\n" );
@@ -969,6 +972,7 @@ int Sfm_DecPeformDec_rec( Sfm_Dec_t * p, word * pTruth, int * pSupp, int * pAssu
                     pSupp[i] = Abc_Lit2Var(pSupp[i]);
                 }
             }
+            Abc_TtStretch6( pTruth, nFinal, p->pPars->nVarMax );
             p->nNodesAndOr++;
             if ( p->pPars->fVeryVerbose )
                 printf( "Found %d-input AND/OR gate.\n", nFinal );
@@ -1028,7 +1032,7 @@ int Sfm_DecPeformDec_rec( Sfm_Dec_t * p, word * pTruth, int * pSupp, int * pAssu
     if ( Var >= 0 )
     {
         word uTruth[2][SFM_WORD_MAX], MasksNext[2];
-        int Supp[2][2*SFM_SUPP_MAX], nSupp[2] = {0}, nSuppAll;
+        int Supp[2][2*SFM_SUPP_MAX], nSupp[2] = {0};
         Vec_IntPush( &p->vObjDec, Var );
         for ( i = 0; i < 2; i++ )
         {
@@ -1043,10 +1047,7 @@ int Sfm_DecPeformDec_rec( Sfm_Dec_t * p, word * pTruth, int * pSupp, int * pAssu
                 return -2;
         }
         // combine solutions
-        nSuppAll = Sfm_DecCombineDec( p, uTruth[0], uTruth[1], Supp[0], Supp[1], nSupp[0], nSupp[1], pTruth, pSupp, Var );
-        if ( nSuppAll > 6 )
-            return -2;
-        return nSuppAll;
+        return Sfm_DecCombineDec( p, uTruth[0], uTruth[1], Supp[0], Supp[1], nSupp[0], nSupp[1], pTruth, pSupp, Var );
     }
     return -2;
 }
@@ -1114,13 +1115,19 @@ int Sfm_DecPeformDec2( Sfm_Dec_t * p, Abc_Obj_t * pObj )
 //            Dau_DsdPrintFromTruth( uTruth[iBest], nSupp[iBest] );
     }
 //    return -1;
-    RetValue = Sfm_LibImplement( p->pLib, uTruth[iBest][0], pSupp[iBest], nSupp[iBest], p->AreaMffc, &p->vObjGates, &p->vObjFanins, p->pPars->fZeroCost );
+    RetValue = Sfm_LibImplement( p->pLib, uTruth[iBest], pSupp[iBest], nSupp[iBest], p->AreaMffc, &p->vObjGates, &p->vObjFanins, p->pPars->fZeroCost );
     if ( fVeryVerbose )
         printf( "Area-reducing implementation %sfound.\n", RetValue < 0 ? "NOT " : "" );
     if ( RetValue >= 0 )
+    {
+        assert( nSupp[iBest] <= p->pPars->nVarMax );
         p->nLuckySizes[nSupp[iBest]]++;
+    }
     if ( RetValue >= 0 )
+    {
+        assert( RetValue <= 2 );
         p->nLuckyGates[RetValue]++;
+    }
     return RetValue;
 }
 int Sfm_DecPeformDec3( Sfm_Dec_t * p, Abc_Obj_t * pObj )
@@ -1171,8 +1178,10 @@ int Sfm_DecPeformDec3( Sfm_Dec_t * p, Abc_Obj_t * pObj )
             Dau_DsdPrintFromTruth( uTruth[i], nSupp[i] );
         if ( nSupp[i] < 2 )
         {
-            RetValue = Sfm_LibImplement( p->pLib, uTruth[i][0], pSupp[i], nSupp[i], p->AreaMffc, &p->vObjGates, &p->vObjFanins, p->pPars->fZeroCost );
-            p->nLuckySizes[nSupp[i]]++;
+            RetValue = Sfm_LibImplement( p->pLib, uTruth[i], pSupp[i], nSupp[i], p->AreaMffc, &p->vObjGates, &p->vObjFanins, p->pPars->fZeroCost );
+            assert( nSupp[iBest] <= p->pPars->nVarMax );
+            p->nLuckySizes[nSupp[iBest]]++;
+            assert( RetValue <= 2 );
             p->nLuckyGates[RetValue]++;
             return RetValue;
         }
@@ -1182,7 +1191,7 @@ int Sfm_DecPeformDec3( Sfm_Dec_t * p, Abc_Obj_t * pObj )
         //}
 
         // try the delay
-        nMatches = Sfm_LibFindMatches( p->pLib, uTruth[i][0], pSupp[i], nSupp[i], &p->vMatchGates, &p->vMatchFans );
+        nMatches = Sfm_LibFindMatches( p->pLib, uTruth[i], pSupp[i], nSupp[i], &p->vMatchGates, &p->vMatchFans );
         DelayMin = DelayOrig = Sfm_TimReadObjDelay( p->pTim, Abc_ObjId(pObj) );
         for ( k = 0; k < nMatches; k++ )
         {
@@ -1217,7 +1226,9 @@ int Sfm_DecPeformDec3( Sfm_Dec_t * p, Abc_Obj_t * pObj )
 //    if ( fVeryVerbose )
 //        Dau_DsdPrintFromTruth( uTruth[iBest], nSupp[iBest] );
     RetValue = Sfm_LibAddNewGates( p->pLib, pSupp[iBest], pGate1Best, pGate2Best, pFans1Best, pFans2Best, &p->vObjGates, &p->vObjFanins );
+    assert( nSupp[iBest] <= p->pPars->nVarMax );
     p->nLuckySizes[nSupp[iBest]]++;
+    assert( RetValue <= 2 );
     p->nLuckyGates[RetValue]++;
     p->DelayMin = DelayMin;
     return 1;
@@ -1629,13 +1640,13 @@ void Sfm_DecPrintStats( Sfm_Dec_t * p )
     ABC_PRTP( "ALL   ", p->timeTotal,     p->timeTotal );
 
     printf( "Cone sizes:  " );
-    for ( i = 0; i < 10; i++ )
+    for ( i = 0; i <= SFM_SUPP_MAX; i++ )
         if ( p->nLuckySizes[i] )
             printf( "%d=%d  ", i, p->nLuckySizes[i] );
     printf( "  " );
 
     printf( "Gate sizes:  " );
-    for ( i = 0; i < 10; i++ )
+    for ( i = 0; i <= SFM_SUPP_MAX; i++ )
         if ( p->nLuckyGates[i] )
             printf( "%d=%d  ", i, p->nLuckyGates[i] );
     printf( "\n" );
@@ -1792,7 +1803,7 @@ clk = Abc_Clock();
             Sfm_TimUpdateTiming( p->pTim, &p->vTemp );
 p->timeTime += Abc_Clock() - clk;
             pObjNew = Abc_NtkObj( pNtk, Abc_NtkObjNumMax(pNtk)-1 );
-            assert( p->DelayMin == Sfm_TimReadObjDelay(p->pTim, Abc_ObjId(pObjNew)) );
+            assert( p->DelayMin == 0 || p->DelayMin == Sfm_TimReadObjDelay(p->pTim, Abc_ObjId(pObjNew)) );
             // report
             if ( pPars->fVerbose )
                 printf( "Node %5d :  I =%3d.  Cand = %5d (%6.2f %%)   Old =%8.2f.  New =%8.2f.  Final =%8.2f\n", 

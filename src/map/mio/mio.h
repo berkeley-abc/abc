@@ -59,7 +59,8 @@ struct Mio_Cell2_t_
 {
     char *          pName;          // name
     Vec_Int_t *     vExpr;          // expression
-    unsigned        Id       : 28;  // gate ID
+    unsigned        Id       : 26;  // gate ID
+    unsigned        Type     :  2;  // gate type
     unsigned        nFanins  :  4;  // gate fanins
     word            Area;           // area
     word            uTruth;         // truth table

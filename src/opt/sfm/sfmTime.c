@@ -253,7 +253,7 @@ Sfm_Tim_t * Sfm_TimStart( Mio_Library_t * pLib, Scl_Con_t * pExt, Abc_Ntk_t * pN
 //        Vec_IntFillExtra( &p->vTimEdges, Vec_IntSize(Vec_IntSize(&p->vTimEdges)) + Abc_ObjFaninNum(pObj), 0 );
 //    }
     p->Delay = Sfm_TimTrace( p );
-    assert( DeltaCrit > 0 && DeltaCrit < 10000 );
+    assert( DeltaCrit > 0 && DeltaCrit < MIO_NUM*1000 );
     p->DeltaCrit = DeltaCrit;
     return p;
 }

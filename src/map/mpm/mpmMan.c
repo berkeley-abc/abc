@@ -83,7 +83,7 @@ Mpm_Man_t * Mpm_ManStart( Mig_Man_t * pMig, Mpm_Par_t * pPars )
         p->vTtMem = Vec_MemAlloc( p->nTruWords, 12 ); // 32 KB/page for 6-var functions
         Vec_MemHashAlloc( p->vTtMem, 10000 );
         p->funcCst0 = Vec_MemHashInsert( p->vTtMem, p->Truth );
-        Abc_TtUnit( p->Truth, p->nTruWords );
+        Abc_TtUnit( p->Truth, p->nTruWords, 0 );
         p->funcVar0 = Vec_MemHashInsert( p->vTtMem, p->Truth );
     }
     else if ( p->pPars->fUseDsd )

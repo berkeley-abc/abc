@@ -5233,7 +5233,7 @@ int Abc_CommandMfs3( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nVarMax = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nVarMax < 2 || pPars->nVarMax > 6 )
+            if ( pPars->nVarMax < 2 || pPars->nVarMax > 8 )
                 goto usage;
             break;
         case 'L':
@@ -5378,7 +5378,7 @@ usage:
     Abc_Print( -2, "\t-O <num> : the number of levels in the TFO cone (0 <= num) [default = %d]\n",             pPars->nTfoLevMax );
     Abc_Print( -2, "\t-V <num> : the number of levels in the TFI/TFO cone (1 <= num) [default = %d]\n",         pPars->nTfiLevMax );
     Abc_Print( -2, "\t-F <num> : the max number of fanouts to skip (1 <= num) [default = %d]\n",                pPars->nFanoutMax );
-    Abc_Print( -2, "\t-K <num> : the max number of variables (2 <= num <= 6 ) [default = %d]\n",                pPars->nVarMax );
+    Abc_Print( -2, "\t-K <num> : the max number of variables (2 <= num <= 8 ) [default = %d]\n",                pPars->nVarMax );
     Abc_Print( -2, "\t-L <num> : the min size of max fanout-free cone (MFFC) (area-only) [default = %d]\n",     pPars->nMffcMin );
     Abc_Print( -2, "\t-H <num> : the max size of max fanout-free cone (MFFC) (area-only) [default = %d]\n",     pPars->nMffcMax );
     Abc_Print( -2, "\t-D <num> : the max number of decompositions to try (1 <= num <= 4) [default = %d]\n",     pPars->nDecMax );
