@@ -154,6 +154,7 @@ extern int               Mio_GateReadValue         ( Mio_Gate_t * pGate );
 extern char *            Mio_GateReadPinName       ( Mio_Gate_t * pGate, int iPin );
 extern float             Mio_GateReadPinDelay      ( Mio_Gate_t * pGate, int iPin );
 extern void              Mio_GateSetValue          ( Mio_Gate_t * pGate, int Value );
+extern int               Mio_GateIsInv             ( Mio_Gate_t * pGate );
 extern char *            Mio_PinReadName           ( Mio_Pin_t * pPin );  
 extern Mio_PinPhase_t    Mio_PinReadPhase          ( Mio_Pin_t * pPin );  
 extern double            Mio_PinReadInputLoad      ( Mio_Pin_t * pPin );  

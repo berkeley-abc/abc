@@ -605,7 +605,8 @@ int Sfm_LibFindAreaMatch( Sfm_Lib_t * p, word * pTruth, int nFanins, int * piObj
         return -1;
     Sfm_LibForEachSuper( p, pObj, iFunc )
         break;
-    *piObj = pObj - p->pObjs;
+    if ( piObj )
+        *piObj = pObj - p->pObjs;
     return pObj->Area;
 }
 int Sfm_LibFindDelayMatches( Sfm_Lib_t * p, word * pTruth, int * pFanins, int nFanins, Vec_Ptr_t * vGates, Vec_Ptr_t * vFans )

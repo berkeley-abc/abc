@@ -179,6 +179,7 @@ word              Mio_GateReadTruth   ( Mio_Gate_t * pGate )            { return
 word *            Mio_GateReadTruthP  ( Mio_Gate_t * pGate )            { return pGate->nInputs <= 6 ? NULL: pGate->pTruth; }
 int               Mio_GateReadValue   ( Mio_Gate_t * pGate )            { return pGate->Value;     }
 void              Mio_GateSetValue    ( Mio_Gate_t * pGate, int Value ) { pGate->Value = Value;    }
+int               Mio_GateIsInv       ( Mio_Gate_t * pGate )            { return pGate->uTruth == ABC_CONST(0x5555555555555555); }
 
 /**Function*************************************************************
 

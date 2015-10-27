@@ -242,10 +242,10 @@ Sfm_Tim_t * Sfm_TimStart( Mio_Library_t * pLib, Scl_Con_t * pExt, Abc_Ntk_t * pN
     p->pLib = pLib;
     p->pExt = pExt;
     p->pNtk = pNtk;
-    Vec_IntFill( &p->vTimArrs,  4*Abc_NtkObjNumMax(pNtk), 0 );
-    Vec_IntFill( &p->vTimReqs,  4*Abc_NtkObjNumMax(pNtk), 0 );
-//    Vec_IntFill( &p->vTimSlews, 4*Abc_NtkObjNumMax(pNtk), 0 );
-//    Vec_IntFill( &p->vTimLoads, 4*Abc_NtkObjNumMax(pNtk), 0 );
+    Vec_IntFill( &p->vTimArrs,  3*Abc_NtkObjNumMax(pNtk), 0 );
+    Vec_IntFill( &p->vTimReqs,  3*Abc_NtkObjNumMax(pNtk), 0 );
+//    Vec_IntFill( &p->vTimSlews, 3*Abc_NtkObjNumMax(pNtk), 0 );
+//    Vec_IntFill( &p->vTimLoads, 3*Abc_NtkObjNumMax(pNtk), 0 );
 //    Vec_IntFill( &p->vObjOffs,  2*Abc_NtkObjNumMax(pNtk), 0 );
 //    Abc_NtkForEachNode( pNtk, pObj, i )
 //    {
@@ -339,6 +339,8 @@ static inline void Sfm_TimUpdateClean( Sfm_Tim_t * p )
 void Sfm_TimUpdateTiming( Sfm_Tim_t * p, Vec_Int_t * vTimeNodes )
 {
     assert( Vec_IntSize(vTimeNodes) > 0 && Vec_IntSize(vTimeNodes) <= 2 );
+    Vec_IntFillExtra( &p->vTimArrs, 2*Abc_NtkObjNumMax(p->pNtk), 0 );
+    Vec_IntFillExtra( &p->vTimReqs, 2*Abc_NtkObjNumMax(p->pNtk), 0 );
     p->Delay = Sfm_TimTrace( p );
 }
 
