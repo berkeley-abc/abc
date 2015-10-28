@@ -1699,7 +1699,7 @@ printf( "\n" );
 */  
     return nDivs;
 }
-void Sfm_DecInsert( Abc_Ntk_t * pNtk, Abc_Obj_t * pPivot, int Limit, Vec_Int_t * vGates, Vec_Wec_t * vFanins, Vec_Int_t * vMap, Vec_Ptr_t * vGateHandles, int GateBuf, int GateInv, Vec_Wrd_t * vFuncs, Vec_Int_t * vTimeNodes )
+Abc_Obj_t * Sfm_DecInsert( Abc_Ntk_t * pNtk, Abc_Obj_t * pPivot, int Limit, Vec_Int_t * vGates, Vec_Wec_t * vFanins, Vec_Int_t * vMap, Vec_Ptr_t * vGateHandles, int GateBuf, int GateInv, Vec_Wrd_t * vFuncs, Vec_Int_t * vTimeNodes )
 {
     Abc_Obj_t * pObjNew = NULL; 
     Vec_Int_t * vLevel;
@@ -1722,7 +1722,7 @@ void Sfm_DecInsert( Abc_Ntk_t * pNtk, Abc_Obj_t * pPivot, int Limit, Vec_Int_t *
             Abc_NtkUpdateIncLevel_rec( pObjNew );
             if ( vTimeNodes )
                 Vec_IntPush( vTimeNodes, Abc_ObjId(pObjNew) );
-            return;
+            return pObjNew;
         }
         else if ( vTimeNodes == NULL && Gate == GateInv )
         {
@@ -1755,7 +1755,7 @@ void Sfm_DecInsert( Abc_Ntk_t * pNtk, Abc_Obj_t * pPivot, int Limit, Vec_Int_t *
                 // update level
                 pObjNew->Level = 0;
                 Abc_NtkUpdateIncLevel_rec( pObjNew );
-                return;
+                return pObjNew;
             }
         }
     }
@@ -1776,6 +1776,7 @@ void Sfm_DecInsert( Abc_Ntk_t * pNtk, Abc_Obj_t * pPivot, int Limit, Vec_Int_t *
     // update level
     Abc_NtkForEachObjVecStart( vMap, pNtk, pObjNew, i, Limit )
         Abc_NtkUpdateIncLevel_rec( pObjNew );
+    return pObjNew;
 }
 void Sfm_DecPrintStats( Sfm_Dec_t * p )
 {
@@ -1846,57 +1847,108 @@ void Abc_NtkCountStats( Sfm_Dec_t * p, int Limit )
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_NtkAreaOpt( Sfm_Dec_t * p )
+Abc_Obj_t * Abc_NtkAreaOptOne( Sfm_Dec_t * p, int i )
 {
+    abctime clk;
     Abc_Ntk_t * pNtk = p->pNtk;
     Sfm_Par_t * pPars = p->pPars;
-    Abc_Obj_t * pObj; 
-    abctime clk;
-    int i = 0, Limit, RetValue, nStop = Abc_NtkObjNumMax(pNtk);
-    Abc_NtkForEachNode( pNtk, pObj, i )
-    {
-        if ( i >= nStop || (pPars->nNodesMax && i > pPars->nNodesMax) )
-            break;
-        if ( pPars->nMffcMin > 1 && Abc_NodeMffcLabel(pObj) < pPars->nMffcMin )
-            continue;
-        if ( pPars->iNodeOne && i != pPars->iNodeOne )
-            continue;
-        if ( pPars->iNodeOne )
-            pPars->fVeryVerbose = (int)(i == pPars->iNodeOne);
-        p->nNodesTried++;
+    Abc_Obj_t * pObj = Abc_NtkObj( p->pNtk, i ); 
+    int Limit, RetValue, nStop = Abc_NtkObjNumMax(pNtk);
+    if ( pPars->nMffcMin > 1 && Abc_NodeMffcLabel(pObj) < pPars->nMffcMin )
+        return NULL;
+    if ( pPars->iNodeOne && i != pPars->iNodeOne )
+        return NULL;
+    if ( pPars->iNodeOne )
+        pPars->fVeryVerbose = (int)(i == pPars->iNodeOne);
+    p->nNodesTried++;
 clk = Abc_Clock();
-        p->nDivs = Sfm_DecExtract( pNtk, pPars, pObj, &p->vObjRoots, &p->vObjGates, &p->vObjFanins, &p->vObjMap, &p->vTemp, &p->vTemp2, &p->vObjMffc, &p->vObjInMffc, NULL );
+    p->nDivs = Sfm_DecExtract( pNtk, pPars, pObj, &p->vObjRoots, &p->vObjGates, &p->vObjFanins, &p->vObjMap, &p->vTemp, &p->vTemp2, &p->vObjMffc, &p->vObjInMffc, NULL );
 p->timeWin += Abc_Clock() - clk;
-        if ( pPars->nWinSizeMax && pPars->nWinSizeMax < Vec_IntSize(&p->vObjGates) )
-            continue;
-        p->nMffc = Vec_IntSize(&p->vObjMffc);
-        p->AreaMffc = Sfm_DecMffcArea(pNtk, &p->vObjMffc);
-        p->nMaxDivs = Abc_MaxInt( p->nMaxDivs, p->nDivs );
-        p->nAllDivs += p->nDivs;
-        p->iTarget = pObj->iTemp;
-        Limit = Vec_IntSize( &p->vObjGates );
-        p->nMaxWin = Abc_MaxInt( p->nMaxWin, Limit );
-        p->nAllWin += Limit;
+    if ( pPars->nWinSizeMax && pPars->nWinSizeMax < Vec_IntSize(&p->vObjGates) )
+        return NULL;
+    p->nMffc = Vec_IntSize(&p->vObjMffc);
+    p->AreaMffc = Sfm_DecMffcArea(pNtk, &p->vObjMffc);
+    p->nMaxDivs = Abc_MaxInt( p->nMaxDivs, p->nDivs );
+    p->nAllDivs += p->nDivs;
+    p->iTarget = pObj->iTemp;
+    Limit = Vec_IntSize( &p->vObjGates );
+    p->nMaxWin = Abc_MaxInt( p->nMaxWin, Limit );
+    p->nAllWin += Limit;
 clk = Abc_Clock();
-        RetValue = Sfm_DecPrepareSolver( p );
+    RetValue = Sfm_DecPrepareSolver( p );
 p->timeCnf += Abc_Clock() - clk;
-        if ( !RetValue )
-            continue;
+    if ( !RetValue )
+        return NULL;
 clk = Abc_Clock();
-        if ( pPars->fRrOnly )
-            RetValue = Sfm_DecPeformDec( p );
-        else
-            RetValue = Sfm_DecPeformDec2( p, pObj );
-        if ( p->pPars->fVeryVerbose )
-            printf( "\n\n" );
+    if ( pPars->fRrOnly )
+        RetValue = Sfm_DecPeformDec( p );
+    else
+        RetValue = Sfm_DecPeformDec2( p, pObj );
+    if ( p->pPars->fVeryVerbose )
+        printf( "\n\n" );
 p->timeSat += Abc_Clock() - clk;
-        if ( RetValue < 0 )
-            continue;
-        p->nNodesChanged++;
-        Abc_NtkCountStats( p, Limit );
-        Sfm_DecInsert( pNtk, pObj, Limit, &p->vObjGates, &p->vObjFanins, &p->vObjMap, &p->vGateHands, p->GateBuffer, p->GateInvert, &p->vGateFuncs, NULL );
+    if ( RetValue < 0 )
+        return NULL;
+    p->nNodesChanged++;
+    Abc_NtkCountStats( p, Limit );
+    return Sfm_DecInsert( pNtk, pObj, Limit, &p->vObjGates, &p->vObjFanins, &p->vObjMap, &p->vGateHands, p->GateBuffer, p->GateInvert, &p->vGateFuncs, NULL );
+}
+void Abc_NtkAreaOpt( Sfm_Dec_t * p )
+{
+    Abc_Obj_t * pObj; 
+    int i, nStop = Abc_NtkObjNumMax(p->pNtk);
+    Abc_NtkForEachNode( p->pNtk, pObj, i )
+    {
+        if ( i >= nStop || (p->pPars->nNodesMax && i > p->pPars->nNodesMax) )
+            break;
+        Abc_NtkAreaOptOne( p, i );
     }
 }
+void Abc_NtkAreaOpt2( Sfm_Dec_t * p )
+{
+    Abc_Obj_t * pObj, * pObjNew, * pFanin; 
+    int i, k, nStop = Abc_NtkObjNumMax(p->pNtk);
+    Vec_Ptr_t * vFront = Vec_PtrAlloc( 1000 );
+    Abc_NtkForEachObj( p->pNtk, pObj, i )
+        assert( pObj->fMarkB == 0 );
+    // start the queue of nodes to be tried
+    Abc_NtkForEachCo( p->pNtk, pObj, i )
+        if ( Abc_ObjIsNode(Abc_ObjFanin0(pObj)) && !Abc_ObjFanin0(pObj)->fMarkB )
+        {
+            Abc_ObjFanin0(pObj)->fMarkB = 1;
+            Vec_PtrPush( vFront, Abc_ObjFanin0(pObj) );
+        }
+    // process nodes in this order
+    Vec_PtrForEachEntry( Abc_Obj_t *, vFront, pObj, i )
+    {
+        if ( Abc_ObjIsNone(pObj) )
+            continue;
+        pObjNew = Abc_NtkAreaOptOne( p, Abc_ObjId(pObj) );
+        if ( pObjNew != NULL )
+        {
+            if ( !Abc_ObjIsNode(pObjNew) || Abc_ObjFaninNum(pObjNew) == 0 || pObjNew->fMarkB )
+                continue;
+            if ( (int)Abc_ObjId(pObjNew) < nStop )
+            {
+                pObjNew->fMarkB = 1;
+                Vec_PtrPush( vFront, pObjNew );
+                continue;
+            }
+        }
+        else
+            pObjNew = pObj;
+        Abc_ObjForEachFanin( pObjNew, pFanin, k )
+            if ( Abc_ObjIsNode(pFanin) && Abc_ObjFaninNum(pObjNew) > 0 && !pFanin->fMarkB )
+            {
+                pFanin->fMarkB = 1;
+                Vec_PtrPush( vFront, pFanin );
+            }
+    }
+    Abc_NtkForEachObj( p->pNtk, pObj, i )
+        pObj->fMarkB = 0;
+    Vec_PtrFree( vFront );
+}
+
 void Abc_NtkDelayOpt( Sfm_Dec_t * p )
 {
     Abc_Ntk_t * pNtk = p->pNtk;
@@ -2018,7 +2070,12 @@ void Abc_NtkPerformMfs3( Abc_Ntk_t * pNtk, Sfm_Par_t * pPars )
     if ( pPars->fVerbose ) p->nTotalEdgesBeg = Abc_NtkGetTotalFanins(pNtk);
     // perform optimization
     if ( pPars->fArea )
-        Abc_NtkAreaOpt( p );
+    {
+        if ( pPars->fAreaRev )
+            Abc_NtkAreaOpt2( p );
+        else
+            Abc_NtkAreaOpt( p );
+    }
     else
         Abc_NtkDelayOpt( p );
     // record statistics

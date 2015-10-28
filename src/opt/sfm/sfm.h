@@ -60,6 +60,7 @@ struct Sfm_Par_t_
     int             DeltaCrit;     // delay delta in picoseconds
     int             fRrOnly;       // perform redundance removal
     int             fArea;         // performs optimization for area
+    int             fAreaRev;      // performs optimization for area in reverse order
     int             fMoreEffort;   // performs high-affort minimization
     int             fUseAndOr;     // enable internal detection of AND/OR gates
     int             fZeroCost;     // enable zero-cost replacement
