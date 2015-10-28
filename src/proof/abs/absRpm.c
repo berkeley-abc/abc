@@ -19,6 +19,7 @@
 ***********************************************************************/
  
 #include "abs.h"
+#include "misc/vec/vecWec.h"
 
 ABC_NAMESPACE_IMPL_START 
 
@@ -106,6 +107,86 @@ void Gia_ManComputeDoms( Gia_Man_t * p )
         Gia_ManAddDom( p, Gia_ObjFanin1(pObj), i );
     }
 }
+
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Wec_t * Gia_ManCreateSupps( Gia_Man_t * p, int fVerbose )
+{
+    abctime clk = Abc_Clock();
+    Gia_Obj_t * pObj; int i, Id;
+    Vec_Wec_t * vSupps = Vec_WecStart( Gia_ManObjNum(p) );
+    Gia_ManForEachCiId( p, Id, i )
+        Vec_IntPush( Vec_WecEntry(vSupps, Id), i );
+    Gia_ManForEachAnd( p, pObj, Id )
+        Vec_IntTwoMerge2( Vec_WecEntry(vSupps, Gia_ObjFaninId0(pObj, Id)), 
+                          Vec_WecEntry(vSupps, Gia_ObjFaninId1(pObj, Id)), 
+                          Vec_WecEntry(vSupps, Id) ); 
+//    Gia_ManForEachCo( p, pObj, i )
+//        Vec_IntAppend( Vec_WecEntry(vSupps, Gia_ObjId(p, pObj)), Vec_WecEntry(vSupps, Gia_ObjFaninId0p(p, pObj)) );
+    if ( fVerbose )
+        Abc_PrintTime( 1, "Support computation", Abc_Clock() - clk );
+    return vSupps;
+}
+void Gia_ManDomTest( Gia_Man_t * p )
+{
+    Vec_Int_t * vDoms = Vec_IntAlloc( 100 );
+    Vec_Int_t * vSupp = Vec_IntAlloc( 100 );
+    Vec_Wec_t * vSupps = Gia_ManCreateSupps( p, 1 );
+    Vec_Wec_t * vDomeds = Vec_WecStart( Gia_ManObjNum(p) );
+    Gia_Obj_t * pObj, * pDom; int i, Id, nMffcSize;
+    Gia_ManCreateRefs( p );
+    Gia_ManComputeDoms( p );
+    Gia_ManForEachCi( p, pObj, i )
+    {
+        if ( Gia_ObjDom(p, pObj) == -1 )
+            continue;
+        for ( pDom = Gia_ManObj(p, Gia_ObjDom(p, pObj)); Gia_ObjIsAnd(pDom); pDom = Gia_ManObj(p, Gia_ObjDom(p, pDom)) )
+            Vec_IntPush( Vec_WecEntry(vDomeds, Gia_ObjId(p, pDom)), i );
+    }
+    Gia_ManForEachAnd( p, pObj, i )
+        if ( Vec_IntEqual(Vec_WecEntry(vSupps, i), Vec_WecEntry(vDomeds, i)) )
+            Vec_IntPush( vDoms, i );
+    Vec_WecFree( vSupps );
+    Vec_WecFree( vDomeds );
+
+    // check MFFC sizes
+    Vec_IntForEachEntry( vDoms, Id, i )
+        Gia_ObjRefInc( p, Gia_ManObj(p, Id) );
+    Vec_IntForEachEntry( vDoms, Id, i )
+    {
+        nMffcSize = Gia_NodeMffcSizeSupp( p, Gia_ManObj(p, Id), vSupp );
+        printf( "%d(%d:%d) ", Id, Vec_IntSize(vSupp), nMffcSize );
+    }
+    printf( "\n" );
+    Vec_IntForEachEntry( vDoms, Id, i )
+        Gia_ObjRefDec( p, Gia_ManObj(p, Id) );
+
+//    Vec_IntPrint( vDoms );
+    Vec_IntFree( vDoms );
+    Vec_IntFree( vSupp );
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 void Gia_ManTestDoms2( Gia_Man_t * p )
 {
     Vec_Int_t * vNodes;

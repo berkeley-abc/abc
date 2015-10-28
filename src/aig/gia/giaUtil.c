@@ -1143,6 +1143,47 @@ int Gia_NodeMffcSize( Gia_Man_t * p, Gia_Obj_t * pNode )
 
 /**Function*************************************************************
 
+  Synopsis    [Returns the number of internal nodes in the MFFC.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_NodeCollect_rec( Gia_Man_t * p, Gia_Obj_t * pNode, Vec_Int_t * vSupp )
+{
+    if ( Gia_ObjIsTravIdCurrent(p, pNode) )
+        return;
+    Gia_ObjSetTravIdCurrent(p, pNode);
+    if ( Gia_ObjRefNum(p, pNode) || Gia_ObjIsCi(pNode) )
+    {
+        Vec_IntPush( vSupp, Gia_ObjId(p, pNode) );
+        return;
+    }
+    assert( Gia_ObjIsAnd(pNode) );
+    Gia_NodeCollect_rec( p, Gia_ObjFanin0(pNode), vSupp );
+    Gia_NodeCollect_rec( p, Gia_ObjFanin1(pNode), vSupp );
+}
+int Gia_NodeMffcSizeSupp( Gia_Man_t * p, Gia_Obj_t * pNode, Vec_Int_t * vSupp )
+{
+    int ConeSize1, ConeSize2;
+    assert( !Gia_IsComplement(pNode) );
+    assert( Gia_ObjIsAnd(pNode) );
+    Vec_IntClear( vSupp );
+    Gia_ManIncrementTravId( p );
+    ConeSize1 = Gia_NodeDeref_rec( p, pNode );
+    Gia_NodeCollect_rec( p, Gia_ObjFanin0(pNode), vSupp );
+    Gia_NodeCollect_rec( p, Gia_ObjFanin1(pNode), vSupp );
+    ConeSize2 = Gia_NodeRef_rec( p, pNode );
+    assert( ConeSize1 == ConeSize2 );
+    assert( ConeSize1 >= 0 );
+    return ConeSize1;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Returns 1 if AIG has dangling nodes.]
 
   Description []

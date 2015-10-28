@@ -36,14 +36,158 @@ extern Cnf_Dat_t * Mf_ManGenerateCnf( Gia_Man_t * pGia, int nLutSize, int fCnfOb
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
+/**Function*************************************************************
+
+  Synopsis    [For a given random pattern, compute output change.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Bmc_ComputeSimDiff( Gia_Man_t * p, Vec_Int_t * vPat, Vec_Int_t * vPat2 )
+{
+    Gia_Obj_t * pObj;
+    int i, Id; word Sim, Sim0, Sim1;
+    Gia_ManForEachCiId( p, Id, i )
+    {
+        Sim = Vec_IntEntry(vPat, i) ? ~(word)0 : 0;
+        Sim ^= (word)1 << (i + 1);
+        Vec_WrdWriteEntry( p->vSims, Id, Sim );
+    }
+    Gia_ManForEachAnd( p, pObj, i )
+    {
+        Sim0 = Vec_WrdEntry( p->vSims, Gia_ObjFaninId0(pObj, i) );
+        Sim1 = Vec_WrdEntry( p->vSims, Gia_ObjFaninId1(pObj, i) );
+        Sim0 = Gia_ObjFaninC0(pObj) ? ~Sim0 : Sim0;
+        Sim1 = Gia_ObjFaninC1(pObj) ? ~Sim1 : Sim1;
+        Vec_WrdWriteEntry( p->vSims, i, Sim0 & Sim1 );
+    }
+    Gia_ManForEachCo( p, pObj, i )
+    {
+        Id = Gia_ObjId( p, pObj );
+        Sim0 = Vec_WrdEntry( p->vSims, Gia_ObjFaninId0(pObj, Id) );
+        Sim0 = Gia_ObjFaninC0(pObj) ? ~Sim0 : Sim0;
+        Vec_WrdWriteEntry( p->vSims, Id, Sim0 );
+    }
+    pObj = Gia_ManCo( p, 0 );
+    Sim = Vec_WrdEntry( p->vSims, Gia_ObjId(p, pObj) );
+    Vec_IntClear( vPat2 );
+    for ( i = 1; i <= Gia_ManCiNum(p); i++ )
+        Vec_IntPush( vPat2, (int)((Sim & 1) ^ ((Sim >> i) & 1)) );
+    return (int)(Sim & 1);
+}
+void Bmc_ComputeSimTest( Gia_Man_t * p )
+{
+    int i, v, w, Res, Bit, Bit2, nPats = 256;
+    int Count[2][64][64] = {{{0}}};
+    int PatCount[64][2][2] = {{{0}}};
+    int DiffCount[64] = {0};
+    Vec_Int_t * vPat = Vec_IntAlloc( Gia_ManCiNum(p) );
+    Vec_Int_t * vPat2 = Vec_IntAlloc( Gia_ManCiNum(p) );
+    Vec_WrdFreeP( &p->vSims );
+    p->vSims = Vec_WrdStart( Gia_ManObjNum(p) );
+    printf( "Number of patterns = %d.\n", nPats );
+    for ( i = 0; i < nPats; i++ )
+    {
+        Vec_IntClear( vPat );
+        for ( v = 0; v < Gia_ManCiNum(p); v++ )
+            Vec_IntPush( vPat, rand() & 1 );
+
+//        Vec_IntForEachEntry( vPat, Bit, v )
+//            printf( "%d", Bit );
+//        printf( "    " );
+
+        Res = Bmc_ComputeSimDiff( p, vPat, vPat2 );
+//        printf( "%d ", Res );
+
+//        Vec_IntForEachEntry( vPat2, Bit, v )
+//            printf( "%d", Bit );
+//        printf( "\n" );
+
+        Vec_IntForEachEntry( vPat, Bit, v )
+            PatCount[v][Res][Bit]++;
+
+        Vec_IntForEachEntry( vPat2, Bit, v )
+        {
+            if ( Bit )
+                DiffCount[v]++;
+            Vec_IntForEachEntryStart( vPat2, Bit2, w, v + 1 )
+                if ( Bit && Bit2 )
+                    Count[Res][v][w]++;
+        }
+    }
+    Vec_IntFree( vPat );
+    Vec_IntFree( vPat2 );
+    Vec_WrdFreeP( &p->vSims );
+
+
+    printf( "\n" );
+    printf( "      " );
+    for ( v = 0; v < Gia_ManCiNum(p); v++ )
+        printf( "%3c ", 'a'+v );
+    printf( "\n" );
+
+    printf( "Off0  " );
+    for ( v = 0; v < Gia_ManCiNum(p); v++ )
+        printf( "%3d ", PatCount[v][0][0] );
+    printf( "\n" );
+
+    printf( "Off1  " );
+    for ( v = 0; v < Gia_ManCiNum(p); v++ )
+        printf( "%3d ", PatCount[v][0][1] );
+    printf( "\n" );
+
+    printf( "On0   " );
+    for ( v = 0; v < Gia_ManCiNum(p); v++ )
+        printf( "%3d ", PatCount[v][1][0] );
+    printf( "\n" );
+
+    printf( "On1   " );
+    for ( v = 0; v < Gia_ManCiNum(p); v++ )
+        printf( "%3d ", PatCount[v][1][1] );
+    printf( "\n" );
+    printf( "\n" );
+
+    printf( "Diff  " );
+    for ( v = 0; v < Gia_ManCiNum(p); v++ )
+        printf( "%3d ", DiffCount[v] );
+    printf( "\n" );
+    printf( "\n" );
+
+    for ( i = 0; i < 2; i++ )
+    {
+        printf( "      " );
+        for ( v = 0; v < Gia_ManCiNum(p); v++ )
+            printf( "%3c ", 'a'+v );
+        printf( "\n" );
+
+        for ( v = 0; v < Gia_ManCiNum(p); v++ )
+        {
+            printf( " %c    ", 'a'+v );
+            for ( w = 0; w < Gia_ManCiNum(p); w++ )
+            {
+                if ( Count[i][v][w] )
+                    printf( "%3d ", Count[i][v][w] );
+                else
+                    printf( "  . " );
+            }
+            printf( "\n" );
+        }
+        printf( "\n" );
+    }
+}
+
+
 static abctime clkCheck1 = 0;
 static abctime clkCheck2 = 0;
 static abctime clkCheckS = 0;
 static abctime clkCheckU = 0;
 
-// enumerate cubes and literals
-#define Bmc_SopForEachCube( pSop, nVars, pCube )                        \
-    for ( pCube = (pSop); *pCube; pCube += (nVars) + 3 )
+// iterator thought the cubes
+#define Bmc_SopForEachCube( pSop, nVars, pCube )  for ( pCube = (pSop); *pCube; pCube += (nVars) + 3 )
 
 /**Function*************************************************************
 
@@ -270,11 +414,6 @@ int Bmc_CollapseExpandRound( sat_solver * pSat, sat_solver * pSatOn, Vec_Int_t *
     }
 //    if ( pSatOn )
 //    printf( "\n" );
-    // put into new array
-    Vec_IntClear( vNums );
-    Vec_IntForEachEntry( vLits, iLit, n )
-        if ( iLit != -1 )
-            Vec_IntPush( vNums, n );
     return 0;
 }
 
@@ -311,9 +450,21 @@ int Bmc_CollapseExpand( sat_solver * pSat, sat_solver * pSatOn, Vec_Int_t * vLit
             if ( k == nFinal )
                 Vec_IntWriteEntry( vLits, i, -1 );
         }
+        Bmc_CollapseExpandRound( pSat, NULL,   vLits, vNums, vTemp, nBTLimit, fCanon );
     }
-    Bmc_CollapseExpandRound( pSat, pSatOn, vLits, vNums, vTemp, nBTLimit, fCanon );
-    Bmc_CollapseExpandRound( pSat, NULL,   vLits, vNums, vTemp, nBTLimit, fCanon );
+    else
+    {
+        Bmc_CollapseExpandRound( pSat, pSatOn, vLits, vNums, vTemp, nBTLimit, fCanon );
+        Bmc_CollapseExpandRound( pSat, NULL,   vLits, vNums, vTemp, nBTLimit, fCanon );
+    }
+    {
+        // put into new array
+        int i, iLit;
+        Vec_IntClear( vNums );
+        Vec_IntForEachEntry( vLits, iLit, i )
+            if ( iLit != -1 )
+                Vec_IntPush( vNums, i );
+    }
     return 0;
 }
 

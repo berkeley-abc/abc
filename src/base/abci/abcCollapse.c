@@ -583,6 +583,51 @@ Gia_Man_t * Abc_NtkClpGia( Abc_Ntk_t * pNtk )
 
 /**Function*************************************************************
 
+  Synopsis    [Minimize SOP by removing redundant variables.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+#define Abc_NtkSopForEachCube( pSop, nVars, pCube )  for ( pCube = (pSop); *pCube; pCube += (nVars) + 3 )
+
+int Abc_NtkCollapseCountVars( Vec_Str_t * vSop, Vec_Int_t * vSupp )
+{
+    int j = 0, k, iVar, nVars = Vec_IntSize(vSupp);
+    char * pCube, * pSop = Vec_StrArray(vSop);
+    Vec_Int_t * vPres = Vec_IntStart( nVars );
+    Abc_NtkSopForEachCube( pSop, nVars, pCube )
+        for ( k = 0; k < nVars; k++ )
+            if ( pCube[k] != '-' )
+                Vec_IntWriteEntry( vPres, k, 1 );
+    if ( Vec_IntCountZero(vPres) == 0 )
+    {
+        Vec_IntFree( vPres );
+        return 0;
+    }
+    // reduce cubes
+    Abc_NtkSopForEachCube( pSop, nVars, pCube )
+        for ( k = 0; k < nVars + 3; k++ )
+            if ( k >= nVars || Vec_IntEntry(vPres, k) )
+                Vec_StrWriteEntry( vSop, j++, pCube[k] );
+    Vec_StrWriteEntry( vSop, j++, '\0' );
+    Vec_StrShrink( vSop, j );
+    // reduce support
+    j = 0;
+    Vec_IntForEachEntry( vSupp, iVar, k )
+        if ( Vec_IntEntry(vPres, k) )
+            Vec_IntWriteEntry( vSupp, j++, iVar );
+    Vec_IntShrink( vSupp, j );
+    Vec_IntFree( vPres );
+    return 1;
+}
+
+
+/**Function*************************************************************
+
   Synopsis    [Computes SOPs for each output.]
 
   Description []
@@ -606,6 +651,10 @@ Vec_Str_t * Abc_NtkClpGiaOne( Gia_Man_t * p, int iCo, int nCubeLim, int nBTLimit
         return NULL;
     if ( Vec_StrSize(vSop) == 4 ) // constant
         Vec_IntClear(vSupp);
+    else
+        Abc_NtkCollapseCountVars( vSop, vSupp );
+    if ( fVerbose )
+        printf( "Supp new = %4d. Sop = %4d.  ", Vec_IntSize(vSupp), Vec_StrSize(vSop)/(Vec_IntSize(vSupp) +3) );
     if ( fVerbose )
         Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     return vSop; 
@@ -613,27 +662,18 @@ Vec_Str_t * Abc_NtkClpGiaOne( Gia_Man_t * p, int iCo, int nCubeLim, int nBTLimit
 Vec_Ptr_t * Abc_GiaDeriveSops( Abc_Ntk_t * pNtkNew, Gia_Man_t * p, Vec_Wec_t * vSupps, int nCubeLim, int nBTLimit, int nCostMax, int fCanon, int fReverse, int fVerbose )
 {
     ProgressBar * pProgress;
+    abctime clk = Abc_Clock();
     Vec_Ptr_t * vSops = NULL, * vSopsRepr;
     Vec_Int_t * vReprs, * vClass, * vReprSuppSizes;
     int i, k, Entry, iCo, * pOrder;
     Vec_Wec_t * vClasses;
-    // check the largest output
-    if ( nCubeLim > 0 && nCostMax > 0 )
-    {
-        int iCoMax   = Gia_ManCoLargestSupp( p, vSupps );
-        int iObjMax  = Gia_ObjId( p, Gia_ManCo(p, iCoMax) );
-        int nSuppMax = Vec_IntSize( Vec_WecEntry(vSupps, iCoMax) );
-        int nNodeMax = Gia_ManConeSize( p, &iObjMax, 1 );
-        word Cost = (word)nNodeMax * (word)nSuppMax * (word)nCubeLim;
-        if ( Cost > (word)nCostMax )
-        {
-            printf( "Cost of the largest output cone exceeded the limit (%d * %d * %d  >  %d).\n", 
-                nNodeMax, nSuppMax, nCubeLim, nCostMax );
-            return NULL;
-        }
-    }
     // derive classes of outputs
     vClasses = Gia_ManIsoStrashReduceInt( p, vSupps, 0 );
+    if ( fVerbose )
+    {
+        printf( "Considering %d (out of %d) outputs. ", Vec_WecSize(vClasses), Gia_ManCoNum(p) );
+        Abc_PrintTime( 1, "Reduction time", Abc_Clock() - clk );
+    }
     // derive representatives
     vReprs = Vec_WecCollectFirsts( vClasses );
     vReprSuppSizes = Vec_IntAlloc( Vec_IntSize(vReprs) );
@@ -693,6 +733,23 @@ Abc_Ntk_t * Abc_NtkFromSopsInt( Abc_Ntk_t * pNtk, int nCubeLim, int nBTLimit, in
     int i, k, iCi; 
     pGia    = Abc_NtkClpGia( pNtk );
     vSupps  = Gia_ManCreateCoSupps( pGia, fVerbose );
+    // check the largest output
+    if ( nCubeLim > 0 && nCostMax > 0 )
+    {
+        int iCoMax   = Gia_ManCoLargestSupp( pGia, vSupps );
+        int iObjMax  = Gia_ObjId( pGia, Gia_ManCo(pGia, iCoMax) );
+        int nSuppMax = Vec_IntSize( Vec_WecEntry(vSupps, iCoMax) );
+        int nNodeMax = Gia_ManConeSize( pGia, &iObjMax, 1 );
+        word Cost = (word)nNodeMax * (word)nSuppMax * (word)nCubeLim;
+        if ( Cost > (word)nCostMax )
+        {
+            printf( "Cost of the largest output cone exceeded the limit (%d * %d * %d  >  %d).\n", 
+                nNodeMax, nSuppMax, nCubeLim, nCostMax );
+            Gia_ManStop( pGia );
+            Vec_WecFree( vSupps );
+            return NULL;
+        }
+    }
     pNtkNew = Abc_NtkStartFrom( pNtk, ABC_NTK_LOGIC, ABC_FUNC_SOP );
     vSops   = Abc_GiaDeriveSops( pNtkNew, pGia, vSupps, nCubeLim, nBTLimit, nCostMax, fCanon, fReverse, fVerbose );
     Gia_ManStop( pGia );
