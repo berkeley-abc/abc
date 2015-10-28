@@ -579,73 +579,306 @@ void Abc_NtkPrintLatch( FILE * pFile, Abc_Ntk_t * pNtk )
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_NtkPrintFanio( FILE * pFile, Abc_Ntk_t * pNtk, int fUsePis )
+void Abc_NtkFaninFanoutCounters( Abc_Ntk_t * pNtk, Vec_Int_t * vFan, Vec_Int_t * vFon, Vec_Int_t * vFanR, Vec_Int_t * vFonR )
 {
     Abc_Obj_t * pNode;
-    int i, k, nFanins, nFanouts;
-    Vec_Int_t * vFanins, * vFanouts;
-    int nOldSize, nNewSize;
+    int i, nFanins, nFanouts;
+    int nFaninsMax = 0, nFanoutsMax = 0;
+    Abc_NtkForEachObj( pNtk, pNode, i )
+    {
+        nFaninsMax  = Abc_MaxInt( nFaninsMax,  Abc_ObjFaninNum(pNode) );
+        nFanoutsMax = Abc_MaxInt( nFanoutsMax, Abc_ObjFanoutNum(pNode) );
+    }
+    Vec_IntFill( vFan, nFaninsMax + 1, 0 );
+    Vec_IntFill( vFon, nFanoutsMax + 1, 0 );
+    Vec_IntFill( vFanR, nFaninsMax + 1, 0 );
+    Vec_IntFill( vFonR, nFanoutsMax + 1, 0 );
+    Abc_NtkForEachObjReverse( pNtk, pNode, i )
+    {
+        nFanins  = Abc_ObjFaninNum( pNode );
+        nFanouts = Abc_ObjFanoutNum( pNode );
+        Vec_IntAddToEntry( vFan,  nFanins, 1 );
+        Vec_IntAddToEntry( vFon, nFanouts, 1 );
+        Vec_IntWriteEntry( vFanR, nFanins, i );
+        Vec_IntWriteEntry( vFonR, nFanouts, i );
+    }
+}
+void Abc_NtkInputOutputCounters( Abc_Ntk_t * pNtk, Vec_Int_t * vFan, Vec_Int_t * vFon, Vec_Int_t * vFanR, Vec_Int_t * vFonR )
+{
+    Abc_Obj_t * pNode;
+    int i, nFanins, nFanouts;
+    int nFaninsMax = 0, nFanoutsMax = 0;
+    Abc_NtkForEachCi( pNtk, pNode, i )
+        nFanoutsMax = Abc_MaxInt( nFanoutsMax, Abc_ObjFanoutNum(pNode) );
+    Abc_NtkForEachCo( pNtk, pNode, i )
+        nFaninsMax  = Abc_MaxInt( nFaninsMax,  Abc_ObjFaninNum(Abc_ObjFanin0(pNode)) );
+    Vec_IntFill( vFan, nFaninsMax + 1, 0 );
+    Vec_IntFill( vFon, nFanoutsMax + 1, 0 );
+    Vec_IntFill( vFanR, nFaninsMax + 1, 0 );
+    Vec_IntFill( vFonR, nFanoutsMax + 1, 0 );
+    Abc_NtkForEachCi( pNtk, pNode, i )
+    {
+        nFanouts = Abc_ObjFanoutNum( pNode );
+        Vec_IntAddToEntry( vFon, nFanouts, 1 );
+        Vec_IntWriteEntry( vFonR, nFanouts, Abc_ObjId(pNode) );
+    }
+    Abc_NtkForEachCo( pNtk, pNode, i )
+    {
+        nFanins  = Abc_ObjFaninNum( Abc_ObjFanin0(pNode) );
+        Vec_IntAddToEntry( vFan,  nFanins, 1 );
+        Vec_IntWriteEntry( vFanR, nFanins, Abc_ObjId(pNode) );
+    }
+}
+Vec_Int_t * Abc_NtkCollectCoSupps( Abc_Ntk_t * pNtk, int fVerbose )
+{
+    abctime clk = Abc_Clock();
+    Abc_Obj_t * pNode; int i, k;
+    Vec_Ptr_t * vNodes = Abc_NtkDfs( pNtk, 0 );
+    Vec_Int_t * vFanin, * vFanout, * vTemp = Vec_IntAlloc( 0 );
+    Vec_Int_t * vSuppsCo = Vec_IntAlloc( Abc_NtkCoNum(pNtk) );
+    Vec_Wec_t * vSupps = Vec_WecStart( Abc_NtkObjNumMax(pNtk) );
+    Abc_NtkForEachCi( pNtk, pNode, i )
+        Vec_IntPush( Vec_WecEntry(vSupps, Abc_ObjId(pNode)), i );
+    Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pNode, i )
+    {
+        vFanout = Vec_WecEntry(vSupps, Abc_ObjId(pNode));
+        for ( k = 0; k < Abc_ObjFaninNum(pNode); k++ )
+        {
+            vFanin = Vec_WecEntry(vSupps, Abc_ObjFaninId(pNode, k));
+            Vec_IntTwoMerge2( vFanout, vFanin, vTemp ); 
+            ABC_SWAP( Vec_Int_t, *vFanout, *vTemp );
+        }
+    }
+    Abc_NtkForEachCo( pNtk, pNode, i )
+        Vec_IntPush( vSuppsCo, Vec_IntSize(Vec_WecEntry(vSupps, Abc_ObjFaninId0(pNode))) );
+    Vec_WecFree( vSupps );
+    Vec_PtrFree( vNodes );
+    Vec_IntFree( vTemp );
+    if ( fVerbose )
+        Abc_PrintTime( 1, "Input  support computation", Abc_Clock() - clk );
+    //Vec_IntPrint( vSuppsCo );
+    return vSuppsCo;
+}
+Vec_Int_t * Abc_NtkCollectCiSupps( Abc_Ntk_t * pNtk, int fVerbose )
+{
+    abctime clk = Abc_Clock();
+    Abc_Obj_t * pNode; int i, k;
+    Vec_Ptr_t * vNodes = Abc_NtkDfs( pNtk, 0 );
+    Vec_Int_t * vFanin, * vFanout, * vTemp = Vec_IntAlloc( 0 );
+    Vec_Int_t * vSuppsCi = Vec_IntAlloc( Abc_NtkCiNum(pNtk) );
+    Vec_Wec_t * vSupps = Vec_WecStart( Abc_NtkObjNumMax(pNtk) );
+    Abc_NtkForEachCo( pNtk, pNode, i )
+    {
+        vFanout = Vec_WecEntry(vSupps, Abc_ObjId(pNode));
+        vFanin = Vec_WecEntry(vSupps, Abc_ObjFaninId0(pNode));
+        Vec_IntPush( vFanout, i );
+        Vec_IntTwoMerge2( vFanin, vFanout, vTemp );
+        ABC_SWAP( Vec_Int_t, *vFanin, *vTemp );
+    }
+    Vec_PtrForEachEntryReverse( Abc_Obj_t *, vNodes, pNode, i )
+    {
+        vFanout = Vec_WecEntry(vSupps, Abc_ObjId(pNode));
+        for ( k = 0; k < Abc_ObjFaninNum(pNode); k++ )
+        {
+            vFanin = Vec_WecEntry(vSupps, Abc_ObjFaninId(pNode, k));
+            Vec_IntTwoMerge2( vFanin, vFanout, vTemp );
+            ABC_SWAP( Vec_Int_t, *vFanin, *vTemp );
+        }
+    }
+    Abc_NtkForEachCi( pNtk, pNode, i )
+        Vec_IntPush( vSuppsCi, Vec_IntSize(Vec_WecEntry(vSupps, Abc_ObjId(pNode))) );
+    Vec_WecFree( vSupps );
+    Vec_PtrFree( vNodes );
+    Vec_IntFree( vTemp );
+    if ( fVerbose )
+        Abc_PrintTime( 1, "Output support computation", Abc_Clock() - clk );
+    //Vec_IntPrint( vSuppsCi );
+    return vSuppsCi;
+}
+void Abc_NtkInOutSupportCounters( Abc_Ntk_t * pNtk, Vec_Int_t * vFan, Vec_Int_t * vFon, Vec_Int_t * vFanR, Vec_Int_t * vFonR )
+{
+    Abc_Obj_t * pNode;
+    Vec_Int_t * vSuppsCo = Abc_NtkCollectCoSupps( pNtk, 1 );
+    Vec_Int_t * vSuppsCi = Abc_NtkCollectCiSupps( pNtk, 1 );
+    int i, nFanins, nFanouts;
+    int nFaninsMax  = Vec_IntFindMax( vSuppsCo );
+    int nFanoutsMax = Vec_IntFindMax( vSuppsCi );
+    Vec_IntFill( vFan, nFaninsMax + 1, 0 );
+    Vec_IntFill( vFon, nFanoutsMax + 1, 0 );
+    Vec_IntFill( vFanR, nFaninsMax + 1, 0 );
+    Vec_IntFill( vFonR, nFanoutsMax + 1, 0 );
+    Abc_NtkForEachCo( pNtk, pNode, i )
+    {
+        nFanins  = Vec_IntEntry( vSuppsCo, i );
+        Vec_IntAddToEntry( vFan,  nFanins, 1 );
+        Vec_IntWriteEntry( vFanR, nFanins, Abc_ObjId(pNode) );
+    }
+    Abc_NtkForEachCi( pNtk, pNode, i )
+    {
+        nFanouts = Vec_IntEntry( vSuppsCi, i );
+        Vec_IntAddToEntry( vFon, nFanouts, 1 );
+        Vec_IntWriteEntry( vFonR, nFanouts, Abc_ObjId(pNode) );
+    }
+    Vec_IntFree( vSuppsCo );
+    Vec_IntFree( vSuppsCi );
+}
 
-    vFanins  = Vec_IntAlloc( 0 );
-    vFanouts = Vec_IntAlloc( 0 );
-    Vec_IntFill( vFanins,  100, 0 );
-    Vec_IntFill( vFanouts, 100, 0 );
-    Abc_NtkForEachNode( pNtk, pNode, i )
+Vec_Int_t * Abc_NtkCollectCoCones( Abc_Ntk_t * pNtk, int fVerbose )
+{
+    abctime clk = Abc_Clock();
+    Abc_Obj_t * pNode; int i, k;
+    Vec_Ptr_t * vNodes = Abc_NtkDfs( pNtk, 0 );
+    Vec_Int_t * vFanin, * vFanout, * vTemp = Vec_IntAlloc( 0 );
+    Vec_Int_t * vSuppsCo = Vec_IntAlloc( Abc_NtkCoNum(pNtk) );
+    Vec_Wec_t * vSupps = Vec_WecStart( Abc_NtkObjNumMax(pNtk) );
+    Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pNode, i )
     {
-        nFanins  = Abc_ObjFaninNum(pNode);
-        if ( Abc_NtkIsNetlist(pNtk) )
-            nFanouts = Abc_ObjFanoutNum( Abc_ObjFanout0(pNode) );
-        else
-            nFanouts = Abc_ObjFanoutNum(pNode);
-//            nFanouts = Abc_NodeMffcSize(pNode);
-        if ( nFanins > vFanins->nSize || nFanouts > vFanouts->nSize )
+        vFanout = Vec_WecEntry(vSupps, Abc_ObjId(pNode));
+        for ( k = 0; k < Abc_ObjFaninNum(pNode); k++ )
         {
-            nOldSize = vFanins->nSize;
-            nNewSize = Abc_MaxInt(nFanins, nFanouts) + 10;
-            Vec_IntGrow( vFanins,  nNewSize  );
-            Vec_IntGrow( vFanouts, nNewSize );
-            for ( k = nOldSize; k < nNewSize; k++ )
-            {
-                Vec_IntPush( vFanins,  0  );
-                Vec_IntPush( vFanouts, 0 );
-            }
+            vFanin = Vec_WecEntry(vSupps, Abc_ObjFaninId(pNode, k));
+            Vec_IntTwoMerge2( vFanout, vFanin, vTemp ); 
+            ABC_SWAP( Vec_Int_t, *vFanout, *vTemp );
         }
-        vFanins->pArray[nFanins]++;
-        vFanouts->pArray[nFanouts]++;
+        Vec_IntPush( vFanout, i );
     }
-    if ( fUsePis )
+    Abc_NtkForEachCo( pNtk, pNode, i )
+        Vec_IntPush( vSuppsCo, Vec_IntSize(Vec_WecEntry(vSupps, Abc_ObjFaninId0(pNode))) );
+    Vec_WecFree( vSupps );
+    Vec_PtrFree( vNodes );
+    Vec_IntFree( vTemp );
+    if ( fVerbose )
+        Abc_PrintTime( 1, "Input  cone computation", Abc_Clock() - clk );
+    //Vec_IntPrint( vSuppsCo );
+    return vSuppsCo;
+}
+Vec_Int_t * Abc_NtkCollectCiCones( Abc_Ntk_t * pNtk, int fVerbose )
+{
+    abctime clk = Abc_Clock();
+    Abc_Obj_t * pNode; int i, k;
+    Vec_Ptr_t * vNodes = Abc_NtkDfs( pNtk, 0 );
+    Vec_Int_t * vFanin, * vFanout, * vTemp = Vec_IntAlloc( 0 );
+    Vec_Int_t * vSuppsCi = Vec_IntAlloc( Abc_NtkCiNum(pNtk) );
+    Vec_Wec_t * vSupps = Vec_WecStart( Abc_NtkObjNumMax(pNtk) );
+    Vec_PtrForEachEntryReverse( Abc_Obj_t *, vNodes, pNode, i )
     {
-        Vec_IntFill( vFanouts, Vec_IntSize(vFanouts), 0 );
-        Abc_NtkForEachCi( pNtk, pNode, i )
+        vFanout = Vec_WecEntry(vSupps, Abc_ObjId(pNode));
+        Vec_IntPush( vFanout, i );
+        for ( k = 0; k < Abc_ObjFaninNum(pNode); k++ )
         {
-            if ( Abc_NtkIsNetlist(pNtk) )
-                nFanouts = Abc_ObjFanoutNum( Abc_ObjFanout0(pNode) );
-            else
-                nFanouts = Abc_ObjFanoutNum(pNode);
-            vFanouts->pArray[nFanouts]++;
+            vFanin = Vec_WecEntry(vSupps, Abc_ObjFaninId(pNode, k));
+            Vec_IntTwoMerge2( vFanin, vFanout, vTemp );
+            ABC_SWAP( Vec_Int_t, *vFanin, *vTemp );
         }
     }
-    fprintf( pFile, "The distribution of fanins and fanouts in the network:\n" );
-    fprintf( pFile, "  Number   Nodes with fanin  Nodes with fanout\n" );
-    for ( k = 0; k < vFanins->nSize; k++ )
+    Abc_NtkForEachCi( pNtk, pNode, i )
+        Vec_IntPush( vSuppsCi, Vec_IntSize(Vec_WecEntry(vSupps, Abc_ObjId(pNode))) );
+    Vec_WecFree( vSupps );
+    Vec_PtrFree( vNodes );
+    Vec_IntFree( vTemp );
+    if ( fVerbose )
+        Abc_PrintTime( 1, "Output cone computation", Abc_Clock() - clk );
+    //Vec_IntPrint( vSuppsCi );
+    return vSuppsCi;
+}
+void Abc_NtkInOutConeCounters( Abc_Ntk_t * pNtk, Vec_Int_t * vFan, Vec_Int_t * vFon, Vec_Int_t * vFanR, Vec_Int_t * vFonR )
+{
+    Abc_Obj_t * pNode;
+    Vec_Int_t * vSuppsCo = Abc_NtkCollectCoCones( pNtk, 1 );
+    Vec_Int_t * vSuppsCi = Abc_NtkCollectCiCones( pNtk, 1 );
+    int i, nFanins, nFanouts;
+    int nFaninsMax  = Vec_IntFindMax( vSuppsCo );
+    int nFanoutsMax = Vec_IntFindMax( vSuppsCi );
+    Vec_IntFill( vFan, nFaninsMax + 1, 0 );
+    Vec_IntFill( vFon, nFanoutsMax + 1, 0 );
+    Vec_IntFill( vFanR, nFaninsMax + 1, 0 );
+    Vec_IntFill( vFonR, nFanoutsMax + 1, 0 );
+    Abc_NtkForEachCo( pNtk, pNode, i )
     {
-        if ( vFanins->pArray[k] == 0 && vFanouts->pArray[k] == 0 )
+        nFanins  = Vec_IntEntry( vSuppsCo, i );
+        Vec_IntAddToEntry( vFan,  nFanins, 1 );
+        Vec_IntWriteEntry( vFanR, nFanins, Abc_ObjId(pNode) );
+    }
+    Abc_NtkForEachCi( pNtk, pNode, i )
+    {
+        nFanouts = Vec_IntEntry( vSuppsCi, i );
+        Vec_IntAddToEntry( vFon, nFanouts, 1 );
+        Vec_IntWriteEntry( vFonR, nFanouts, Abc_ObjId(pNode) );
+    }
+    Vec_IntFree( vSuppsCo );
+    Vec_IntFree( vSuppsCi );
+}
+
+void Abc_NtkPrintDistribInternal( FILE * pFile, Abc_Ntk_t * pNtk, char * pFanins, char * pFanouts, char * pNode, char * pFanin, char * pFanout, 
+                                 Vec_Int_t * vFan, Vec_Int_t * vFon, Vec_Int_t * vFanR, Vec_Int_t * vFonR )
+{
+    int k, nSizeMax = Abc_MaxInt( Vec_IntSize(vFan), Vec_IntSize(vFon) );
+    fprintf( pFile, "The distribution of %s and %s in the network:\n", pFanins, pFanouts );
+    fprintf( pFile, "  Number   %s with %s  %s with %s          Repr1             Repr2\n", pNode, pFanin, pNode, pFanout );
+    for ( k = 0; k < nSizeMax; k++ )
+    {
+        int EntryFan = k < Vec_IntSize(vFan) ? Vec_IntEntry(vFan, k) : 0;
+        int EntryFon = k < Vec_IntSize(vFon) ? Vec_IntEntry(vFon, k) : 0;
+        if ( EntryFan == 0 && EntryFon == 0 )
             continue;
+
         fprintf( pFile, "%5d : ", k );
-        if ( vFanins->pArray[k] == 0 )
+        if ( EntryFan == 0 )
             fprintf( pFile, "              " );
         else
-            fprintf( pFile, "%12d  ", vFanins->pArray[k] );
+            fprintf( pFile, "%12d  ", EntryFan );
         fprintf( pFile, "    " );
-        if ( vFanouts->pArray[k] == 0 )
+        if ( EntryFon == 0 )
             fprintf( pFile, "              " );
         else
-            fprintf( pFile, "%12d  ", vFanouts->pArray[k] );
+            fprintf( pFile, "%12d  ", EntryFon );
+
+        fprintf( pFile, "        " );
+        if ( EntryFan == 0 )
+            fprintf( pFile, "              " );
+        else
+            fprintf( pFile, "%12s  ", Abc_ObjName(Abc_NtkObj(pNtk, Vec_IntEntry(vFanR, k))) );
+        fprintf( pFile, "    " );
+        if ( EntryFon == 0 )
+            fprintf( pFile, "              " );
+        else
+            fprintf( pFile, "%12s  ", Abc_ObjName(Abc_NtkObj(pNtk, Vec_IntEntry(vFonR, k))) );
         fprintf( pFile, "\n" );
     }
-    Vec_IntFree( vFanins );
-    Vec_IntFree( vFanouts );
 }
+void Abc_NtkPrintFanio( FILE * pFile, Abc_Ntk_t * pNtk, int fUseFanio, int fUsePio, int fUseSupp, int fUseCone )
+{
+    Vec_Int_t * vFan = Vec_IntAlloc( 0 );
+    Vec_Int_t * vFon = Vec_IntAlloc( 0 );
+    Vec_Int_t * vFanR = Vec_IntAlloc( 0 );
+    Vec_Int_t * vFonR = Vec_IntAlloc( 0 );
+    assert( fUseFanio + fUsePio + fUseSupp + fUseCone == 1 );
+    if ( fUseFanio )
+    {
+        Abc_NtkFaninFanoutCounters( pNtk, vFan, vFon, vFanR, vFonR );
+        Abc_NtkPrintDistribInternal( pFile, pNtk, "fanins", "fanouts", "Nodes", "fanin", "fanout", vFan, vFon, vFanR, vFonR ); 
+    }
+    else if ( fUsePio )
+    {
+        Abc_NtkInputOutputCounters( pNtk, vFan, vFon, vFanR, vFonR );
+        Abc_NtkPrintDistribInternal( pFile, pNtk, "fanins", "fanouts", "I/O", "fanin", "fanout", vFan, vFon, vFanR, vFonR ); 
+    }
+    else if ( fUseSupp )
+    {
+        Abc_NtkInOutSupportCounters( pNtk, vFan, vFon, vFanR, vFonR );
+        Abc_NtkPrintDistribInternal( pFile, pNtk, "input supports", "output supports", "I/O", "in-supp", "out-supp", vFan, vFon, vFanR, vFonR ); 
+    }
+    else if ( fUseCone )
+    {
+        Abc_NtkInOutConeCounters( pNtk, vFan, vFon, vFanR, vFonR );
+        Abc_NtkPrintDistribInternal( pFile, pNtk, "input cones", "output cones", "I/O", "in-cone", "out-cone", vFan, vFon, vFanR, vFonR ); 
+    }
+    Vec_IntFree( vFan );
+    Vec_IntFree( vFon );
+    Vec_IntFree( vFanR );
+    Vec_IntFree( vFonR );
+}
+
 
 /**Function*************************************************************
 
