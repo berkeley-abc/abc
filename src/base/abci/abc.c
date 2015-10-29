@@ -5194,7 +5194,7 @@ int Abc_CommandMfs3( Abc_Frame_t * pAbc, int argc, char ** argv )
     // set defaults
     Sfm_ParSetDefault3( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "IOVFKLHRMCNPWDarmzospdlvwh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "IOVFKLHRMCNPWDarmzoespdlvwh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -5370,6 +5370,9 @@ int Abc_CommandMfs3( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'o':
             pPars->fRrOnly ^= 1;
             break;
+        case 'e':
+            pPars->fMoreEffort ^= 1;
+            break;
         case 's':
             pPars->fUseSim ^= 1;
             break;
@@ -5409,7 +5412,7 @@ int Abc_CommandMfs3( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: mfs3 [-IOVFKLHRMCNPWD <num>] [-armzospdlvwh]\n" );
+    Abc_Print( -2, "usage: mfs3 [-IOVFKLHRMCNPWD <num>] [-armzoespdlvwh]\n" );
     Abc_Print( -2, "\t           performs don't-care-based optimization of mapped networks\n" );
     Abc_Print( -2, "\t-I <num> : the number of levels in the TFI cone (1 <= num) [default = %d]\n",             pPars->nTfiLevMax );
     Abc_Print( -2, "\t-O <num> : the number of levels in the TFO cone (0 <= num) [default = %d]\n",             pPars->nTfoLevMax );
@@ -5430,6 +5433,7 @@ usage:
     Abc_Print( -2, "\t-m       : toggle detecting multi-input AND/OR gates [default = %s]\n",                   pPars->fUseAndOr? "yes": "no" );
     Abc_Print( -2, "\t-z       : toggle zero-cost replacements [default = %s]\n",                               pPars->fZeroCost? "yes": "no" );
     Abc_Print( -2, "\t-o       : toggle using old implementation for comparison [default = %s]\n",              pPars->fRrOnly? "yes": "no" );
+    Abc_Print( -2, "\t-e       : toggle using more effort [default = %s]\n",                                    pPars->fMoreEffort? "yes": "no" );
     Abc_Print( -2, "\t-s       : toggle using simulation [default = %s]\n",                                     pPars->fUseSim? "yes": "no" );
     Abc_Print( -2, "\t-p       : toggle printing decompositions [default = %s]\n",                              pPars->fPrintDecs? "yes": "no" );
     Abc_Print( -2, "\t-d       : toggle printing delay profile statistics [default = %s]\n",                    pPars->fDelayVerbose? "yes": "no" );
