@@ -18037,18 +18037,10 @@ int Abc_CommandFlowRetime( Abc_Frame_t * pAbc, int argc, char ** argv )
     int fFastButConservative;
     int maxDelay;
 
-    if ( argc == 2 && !strcmp(argv[1], "-h") )
-    {
-        Abc_Print( -2, "The fretime command is temporarily disabled.\n" );
-        return 1;
-    }
-
-    Abc_Print( -1, "This command is temporarily disabled.\n" );
-    return 0;
-//    extern Abc_Ntk_t* Abc_FlowRetime_MinReg( Abc_Ntk_t * pNtk, int fVerbose,
-//                                             int fComputeInit, int fGuaranteeInit, int fBlockConst,
-//                                             int fForward, int fBackward, int nMaxIters,
-//                                             int maxDelay, int fFastButConservative);
+    extern Abc_Ntk_t* Abc_FlowRetime_MinReg( Abc_Ntk_t * pNtk, int fVerbose,
+                                             int fComputeInit, int fGuaranteeInit, int fBlockConst,
+                                             int fForward, int fBackward, int nMaxIters,
+                                             int maxDelay, int fFastButConservative);
 
     pNtk = Abc_FrameReadNtk(pAbc);
     // set defaults
@@ -18136,7 +18128,7 @@ int Abc_CommandFlowRetime( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     if ( !Abc_NtkLatchNum(pNtk) )
     {
-//        Abc_Print( -1, "The network has no latches. Retiming is not performed.\n" );
+        Abc_Print( -1, "The network has no latches. Retiming is not performed.\n" );
         return 0;
     }
 
@@ -18147,10 +18139,10 @@ int Abc_CommandFlowRetime( Abc_Frame_t * pAbc, int argc, char ** argv )
       }
 
     // perform the retiming
-//    pNtkRes = Abc_FlowRetime_MinReg( pNtk, fVerbose, fComputeInit,
-//                                     fGuaranteeInit, fBlockConst,
-//                                     fForward, fBackward,
-//                                     nMaxIters, maxDelay, fFastButConservative );
+    pNtkRes = Abc_FlowRetime_MinReg( pNtk, fVerbose, fComputeInit,
+                                     fGuaranteeInit, fBlockConst,
+                                     fForward, fBackward,
+                                     nMaxIters, maxDelay, fFastButConservative );
 
     if (pNtkRes != pNtk)
       Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
