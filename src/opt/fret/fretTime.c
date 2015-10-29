@@ -191,7 +191,7 @@ void Abc_FlowRetime_ConstrainConserv_forw( Abc_Ntk_t * pNtk ) {
     }
     pObj->Level += Abc_ObjIsNode(pObj) ? 1 : 0;
 
-    if (pObj->Level > pManMR->maxDelay) {
+    if ((int)pObj->Level > pManMR->maxDelay) {
       FSET(pObj, BLOCK);
     }
   }
@@ -242,7 +242,7 @@ void Abc_FlowRetime_ConstrainConserv_forw( Abc_Ntk_t * pNtk ) {
     pObj->Level += Abc_ObjIsNode(pObj) ? 1 : 0;
 
     // constrained?
-    if (pObj->Level > pManMR->maxDelay) {
+    if ((int)pObj->Level > pManMR->maxDelay) {
       FSET( pObj, CONSERVATIVE );
       pManMR->nConservConstraints++;
     } else
@@ -276,7 +276,7 @@ void Abc_FlowRetime_ConstrainConserv_back( Abc_Ntk_t * pNtk ) {
     {
       l = pNext->Level + (Abc_ObjIsNode(pObj) ? 1 : 0);
       if ( Abc_NodeIsTravIdCurrent(pNext) &&
-           pObj->Level < l )
+           (int)pObj->Level < l )
         pObj->Level = l;
     }
 
@@ -325,11 +325,11 @@ void Abc_FlowRetime_ConstrainConserv_back( Abc_Ntk_t * pNtk ) {
     {
       l = pNext->Level + (Abc_ObjIsNode(pObj) ? 1 : 0);
       if ( Abc_NodeIsTravIdCurrent(pNext) &&
-           pObj->Level < l )
+           (int)pObj->Level < l )
         pObj->Level = l;
     }
 
-    if (pObj->Level + (Abc_ObjIsNode(pObj)?1:0) > pManMR->maxDelay) {
+    if ((int)pObj->Level + (Abc_ObjIsNode(pObj)?1:0) > pManMR->maxDelay) {
       FSET(pObj, BLOCK);
     }
   }
@@ -347,7 +347,7 @@ void Abc_FlowRetime_ConstrainConserv_back( Abc_Ntk_t * pNtk ) {
     Abc_ObjForEachFanout( pObj, pNext, j ) {
       l = pNext->Level + (Abc_ObjIsNode(pObj) ? 1 : 0);
       if ( Abc_NodeIsTravIdCurrent(pNext) &&
-           pObj->Level < l )
+           (int)pObj->Level < l )
         pObj->Level = l;
     }
 
@@ -377,12 +377,12 @@ void Abc_FlowRetime_ConstrainConserv_back( Abc_Ntk_t * pNtk ) {
     Abc_ObjForEachFanout( pObj, pNext, j ) {
       l = pNext->Level + (Abc_ObjIsNode(pObj) ? 1 : 0);
       if ( Abc_NodeIsTravIdCurrent(pNext) &&
-           pObj->Level < l )
+           (int)pObj->Level < l )
         pObj->Level = l;
     }
 
     // constrained?
-    if (pObj->Level > pManMR->maxDelay) {
+    if ((int)pObj->Level > pManMR->maxDelay) {
       FSET( pObj, CONSERVATIVE );
       pManMR->nConservConstraints++;
     } else
@@ -482,7 +482,7 @@ void Abc_FlowRetime_ConstrainExact_forw( Abc_Obj_t * pObj ) {
         if (!Abc_ObjIsLatch(pNext))
           pNext->Level = MAX( pNext->Level, pReg->Level + (Abc_ObjIsNode(pReg)?1:0));
 
-      if (pReg->Level == pManMR->maxDelay) {
+      if ((int)pReg->Level == pManMR->maxDelay) {
         Vec_PtrPush( FTIMEEDGES(pObj), pReg);
         pManMR->nExactConstraints++;
       }
@@ -557,7 +557,7 @@ void Abc_FlowRetime_ConstrainExact_back( Abc_Obj_t * pObj ) {
         if (!Abc_ObjIsLatch(pNext))
           pNext->Level = MAX( pNext->Level, pReg->Level + (Abc_ObjIsNode(pReg)?1:0));
 
-      if (pReg->Level == pManMR->maxDelay) {
+      if ((int)pReg->Level == pManMR->maxDelay) {
         Vec_PtrPush( FTIMEEDGES(pObj), pReg);
         pManMR->nExactConstraints++;
       }

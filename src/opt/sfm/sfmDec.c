@@ -1201,7 +1201,7 @@ int Sfm_DecPeformDec2( Sfm_Dec_t * p, Abc_Obj_t * pObj )
     int nSupp[SFM_DEC_MAX], pAssump[SFM_WIN_MAX];
     int fVeryVerbose = p->pPars->fPrintDecs || p->pPars->fVeryVerbose;
     int nDecs = Abc_MaxInt(p->pPars->nDecMax, 1);
-    int fNeedInv, AreaGainInv = Sfm_DecComputeFlipInvGain(p, pObj, &fNeedInv);
+    //int fNeedInv, AreaGainInv = Sfm_DecComputeFlipInvGain(p, pObj, &fNeedInv);
     int i, RetValue, Prev = 0, iBest = -1, AreaThis, AreaNew;//, AreaNewInv;
     int GainThis, GainBest = -1, iLibObj, iLibObjBest = -1; 
     assert( p->pPars->fArea == 1 );
@@ -1895,7 +1895,7 @@ Abc_Obj_t * Abc_NtkAreaOptOne( Sfm_Dec_t * p, int i )
     Abc_Ntk_t * pNtk = p->pNtk;
     Sfm_Par_t * pPars = p->pPars;
     Abc_Obj_t * pObj = Abc_NtkObj( p->pNtk, i ); 
-    int Limit, RetValue, nStop = Abc_NtkObjNumMax(pNtk);
+    int Limit, RetValue;
     if ( pPars->nMffcMin > 1 && Abc_NodeMffcLabel(pObj) < pPars->nMffcMin )
         return NULL;
     if ( pPars->iNodeOne && i != pPars->iNodeOne )

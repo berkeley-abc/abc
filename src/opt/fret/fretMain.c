@@ -491,10 +491,10 @@ Abc_FlowRetime_PushFlows( Abc_Ntk_t * pNtk, int fVerbose ) {
     srcDist = MAX_DIST;
     Abc_NtkForEachLatch( pNtk, pObj, i )
       if (FDATA(pObj)->e_dist)    
-        srcDist = MIN(srcDist, FDATA(pObj)->e_dist);
+        srcDist = MIN(srcDist, (int)FDATA(pObj)->e_dist);
     
     Abc_NtkForEachLatch( pNtk, pObj, i ) {
-      if (srcDist == FDATA(pObj)->e_dist &&
+      if (srcDist == (int)FDATA(pObj)->e_dist &&
           dfsfast_e( pObj, NULL )) {
 #ifdef DEBUG_PRINT_FLOWS
         printf("\n\n");

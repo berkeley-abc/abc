@@ -2550,6 +2550,30 @@ SOURCE=.\src\opt\sfm\sfmTime.c
 SOURCE=.\src\opt\sfm\sfmWin.c
 # End Source File
 # End Group
+# Begin Group "fret"
+
+# PROP Default_Filter ""
+# Begin Source File
+
+SOURCE=.\src\opt\fret\fretFlow.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\fret\fretime.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\fret\fretInit.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\fret\fretMain.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\fret\fretTime.c
+# End Source File
+# End Group
 # End Group
 # Begin Group "map"
 
