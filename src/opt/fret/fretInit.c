@@ -94,7 +94,7 @@ Abc_FlowRetime_InitState( Abc_Ntk_t * pNtk ) {
   SeeAlso     []
 
 ***********************************************************************/
-inline int
+static inline int
 Abc_FlowRetime_ObjFirstNonLatchBox( Abc_Obj_t * pOrigObj, Abc_Obj_t ** pResult ) {
   int lag = 0;
   Abc_Ntk_t *pNtk;
