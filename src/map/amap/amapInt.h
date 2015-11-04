@@ -256,7 +256,7 @@ static inline int          Amap_ObjLevel( Amap_Obj_t * pObj )                   
 static inline void         Amap_ObjSetLevel( Amap_Obj_t * pObj, int Level )        { pObj->Level = Level;                               }
 static inline void         Amap_ObjSetCopy( Amap_Obj_t * pObj, void * pCopy )      { pObj->pData = pCopy;                               }
 static inline Amap_Obj_t * Amap_ObjChoice( Amap_Man_t * p, Amap_Obj_t * pObj )     { return pObj->Equiv? Amap_ManObj(p, pObj->Equiv) : NULL; }
-static inline void         Amap_ObjSetChoice( Amap_Obj_t * pObj, Amap_Obj_t * pEqu){ assert(pObj->Equiv==0); pObj->Equiv = pEqu->Id;                            }
+static inline void         Amap_ObjSetChoice( Amap_Obj_t * pObj, Amap_Obj_t * pEqu){ assert(pObj->Equiv==0); if (pObj->Id != pEqu->Id) pObj->Equiv = pEqu->Id; }
 static inline int          Amap_ObjPhaseReal( Amap_Obj_t * pObj )                  { return Amap_Regular(pObj)->fPhase ^ Amap_IsComplement(pObj);   }
 static inline int          Amap_ObjRefsTotal( Amap_Obj_t * pObj )                  { return pObj->nFouts[0] + pObj->nFouts[1];          }
 
