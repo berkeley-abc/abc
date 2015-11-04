@@ -918,7 +918,7 @@ void Abc_NtkTestMiniMapping( Abc_Ntk_t * p )
 
 /**Function*************************************************************
 
-  Synopsis    [These APIs set arriva/required times of CIs/COs.]
+  Synopsis    [These APIs set arrival/required times of CIs/COs.]
 
   Description []
                
@@ -933,12 +933,21 @@ void Abc_NtkSetCiArrivalTime( void * pAbc0, int iCi, float Rise, float Fall )
     Abc_Ntk_t * pNtk;
     Abc_Obj_t * pNode;
     if ( pAbc == NULL )
+    {
         printf( "ABC framework is not initialized by calling Abc_Start()\n" );
+        return;
+    }
     pNtk = Abc_FrameReadNtk( pAbc );
     if ( pNtk == NULL )
+    {
         printf( "Current network in ABC framework is not defined.\n" );
+        return;
+    }
     if ( iCi < 0 || iCi >= Abc_NtkCiNum(pNtk) )
+    {
         printf( "CI index is not valid.\n" );
+        return;
+    }
     pNode = Abc_NtkCi( pNtk, iCi );
     Abc_NtkTimeSetArrival( pNtk, Abc_ObjId(pNode), Rise, Fall );
 }
@@ -947,15 +956,53 @@ void Abc_NtkSetCoRequiredTime( void * pAbc0, int iCo, float Rise, float Fall )
     Abc_Frame_t * pAbc = (Abc_Frame_t *)pAbc0;
     Abc_Ntk_t * pNtk;
     Abc_Obj_t * pNode;
-    if ( pAbc == NULL )
+    if ( pAbc == NULL )\
+    {
         printf( "ABC framework is not initialized by calling Abc_Start()\n" );
+        return;
+    }
     pNtk = Abc_FrameReadNtk( pAbc );
     if ( pNtk == NULL )
+    {
         printf( "Current network in ABC framework is not defined.\n" );
+        return;
+    }
     if ( iCo < 0 || iCo >= Abc_NtkCoNum(pNtk) )
+    {
         printf( "CO index is not valid.\n" );
+        return;
+    }
     pNode = Abc_NtkCo( pNtk, iCo );
     Abc_NtkTimeSetRequired( pNtk, Abc_ObjId(pNode), Rise, Fall );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [This APIs set AND gate delay.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkSetAndGateDelay( void * pAbc0, float Delay )
+{
+    Abc_Frame_t * pAbc = (Abc_Frame_t *)pAbc0;
+    Abc_Ntk_t * pNtk;
+    if ( pAbc == NULL )
+    {
+        printf( "ABC framework is not initialized by calling Abc_Start()\n" );
+        return;
+    }
+    pNtk = Abc_FrameReadNtk( pAbc );
+    if ( pNtk == NULL )
+    {
+        printf( "Current network in ABC framework is not defined.\n" );
+        return;
+    }
+    pNtk->AndGateDelay = Delay;
 }
 
 ////////////////////////////////////////////////////////////////////////

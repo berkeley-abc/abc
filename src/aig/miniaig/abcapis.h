@@ -58,6 +58,9 @@ extern void   Abc_NtkSetFlopNum( void * pAbc, int nFlops );
 extern void   Abc_NtkSetCiArrivalTime( void * pAbc, int iCi, float Rise, float Fall );
 extern void   Abc_NtkSetCoRequiredTime( void * pAbc, int iCo, float Rise, float Fall );
 
+// procedure to set AND-gate delay to tech-independent synthesis and mapping
+extern void   Abc_NtkSetAndGateDelay( void * pAbc, float Delay );
+
 // procedures to return the mapped network
 extern int *  Abc_NtkOutputMiniMapping( void * pAbc );
 extern void   Abc_NtkPrintMiniMapping( int * pArray );
