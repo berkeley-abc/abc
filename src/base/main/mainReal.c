@@ -45,10 +45,6 @@ SUPPORT, UPDATES, ENHANCEMENTS, OR MODIFICATIONS.
 ***********************************************************************/
 
 
-#ifdef ABC_PYTHON_EMBED
-#include <Python.h>
-#endif /* ABC_PYTHON_EMBED */
-
 #include "base/abc/abc.h"
 #include "mainInt.h"
 #include "base/wlc/wlc.h"
@@ -107,29 +103,6 @@ int Abc_RealMain( int argc, char * argv[] )
     // will be initialized on first call
     pAbc = Abc_FrameGetGlobalFrame();
     pAbc->sBinary = argv[0];
-
-#ifdef ABC_PYTHON_EMBED
-    {
-        PyObject* pModule;
-        void init_pyabc(void);
-
-        Py_SetProgramName(argv[0]);
-        Py_NoSiteFlag = 1;
-        Py_Initialize();
-
-        init_pyabc();
-
-        pModule = PyImport_ImportModule("pyabc");
-        if (pModule)
-        {
-            Py_DECREF(pModule);
-        }
-        else
-        {
-            fprintf( pAbc->Err, "error: pyabc.py not found. PYTHONPATH may not be set properly.\n");
-        }
-    }
-#endif /* ABC_PYTHON_EMBED */
 
     // default options
     fBatch      = INTERACTIVE;
@@ -353,12 +326,6 @@ int Abc_RealMain( int argc, char * argv[] )
                 break;
         }
     }
-
-#ifdef ABC_PYTHON_EMBED
-    {
-        Py_Finalize();
-    }
-#endif /* ABC_PYTHON_EMBED */
 
     // if the memory should be freed, quit packages
 //    if ( fStatus < 0 ) 

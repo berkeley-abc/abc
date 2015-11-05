@@ -41,8 +41,6 @@ ABC_NAMESPACE_IMPL_START
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
-#ifndef ABC_PYTHON_EMBED
-
 int Util_SignalSystem(const char* cmd)
 {
     return system(cmd);
@@ -62,8 +60,6 @@ void Util_SignalTmpFileRemove(const char* fname, int fLeave)
         unlink(fname);
     }
 }
-
-#endif /* ABC_PYTHON_EMBED */
 
 ABC_NAMESPACE_IMPL_END
 

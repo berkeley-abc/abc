@@ -29,8 +29,7 @@ MODULES := \
 	src/proof/pdr src/proof/abs src/proof/live src/proof/ssc src/proof/int \
 	src/proof/cec src/proof/dch src/proof/fraig src/proof/fra src/proof/ssw \
 	src/aig/aig src/aig/saig src/aig/gia src/aig/ioa src/aig/ivy src/aig/hop \
-	src/aig/miniaig \
-	src/python
+	src/aig/miniaig
 
 all: $(PROG)
 default: $(PROG)
