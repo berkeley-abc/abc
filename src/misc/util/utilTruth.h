@@ -192,6 +192,18 @@ static inline int  Abc_TtHexDigitNum( int nVars ) { return nVars <= 2 ? 1 : 1 <<
 
 ***********************************************************************/
 static inline word Abc_Tt6Mask( int nBits )       { assert( nBits >= 0 && nBits <= 64 ); return (~(word)0) >> (64-nBits);        }
+static inline void Abc_TtMask( word * pTruth, int nWords, int nBits )
+{ 
+    int w;
+    assert( nBits >= 0 && nBits <= nWords * 64 );
+    for ( w = 0; w < nWords; w++ )
+        if ( nBits >= (w + 1) * 64 )
+            pTruth[w] = ~(word)0;
+        else if ( nBits > w * 64 )
+            pTruth[w] = Abc_Tt6Mask( nBits - w * 64 );
+        else
+            pTruth[w] = 0;
+}
 
 /**Function*************************************************************
 
@@ -254,6 +266,16 @@ static inline void Abc_TtAnd( word * pOut, word * pIn1, word * pIn2, int nWords,
         for ( w = 0; w < nWords; w++ )
             pOut[w] = pIn1[w] & pIn2[w];
 }
+static inline void Abc_TtAndSharp( word * pOut, word * pIn1, word * pIn2, int nWords, int fCompl )
+{
+    int w;
+    if ( fCompl )
+        for ( w = 0; w < nWords; w++ )
+            pOut[w] = pIn1[w] & ~pIn2[w];
+    else
+        for ( w = 0; w < nWords; w++ )
+            pOut[w] = pIn1[w] & pIn2[w];
+}
 static inline void Abc_TtSharp( word * pOut, word * pIn1, word * pIn2, int nWords )
 {
     int w;
@@ -281,6 +303,23 @@ static inline void Abc_TtMux( word * pOut, word * pCtrl, word * pIn1, word * pIn
     int w;
     for ( w = 0; w < nWords; w++ )
         pOut[w] = (pCtrl[w] & pIn1[w]) | (~pCtrl[w] & pIn0[w]);
+}
+static inline int Abc_TtIntersect( word * pIn1, word * pIn2, int nWords, int fCompl )
+{
+    int w;
+    if ( fCompl )
+    {
+        for ( w = 0; w < nWords; w++ )
+            if ( ~pIn1[w] & pIn2[w] )
+                return 1;
+    }
+    else
+    {
+        for ( w = 0; w < nWords; w++ )
+            if ( pIn1[w] & pIn2[w] )
+                return 1;
+    }
+    return 0;
 }
 static inline int Abc_TtEqual( word * pIn1, word * pIn2, int nWords )
 {
@@ -1508,6 +1547,24 @@ static inline int Abc_TtCountOnes( word x )
     x = x + (x >> 16);
     x = x + (x >> 32); 
     return (int)(x & 0xFF);
+}
+static inline int Abc_TtCountOnesVec( word * x, int nWords )
+{
+    int w, Count = 0;
+    for ( w = 0; w < nWords; w++ )
+        Count += Abc_TtCountOnes( x[w] );
+    return Count;
+}
+static inline int Abc_TtCountOnesVecMask( word * x, word * pMask, int nWords, int fCompl )
+{
+    int w, Count = 0;
+    if ( fCompl )
+        for ( w = 0; w < nWords; w++ )
+            Count += Abc_TtCountOnes( pMask[w] & ~x[w] );
+    else
+        for ( w = 0; w < nWords; w++ )
+            Count += Abc_TtCountOnes( pMask[w] & x[w] );
+    return Count;
 }
 
 /**Function*************************************************************

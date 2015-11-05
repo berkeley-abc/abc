@@ -54,6 +54,7 @@ ABC_NAMESPACE_HEADER_START
 #define SFM_WORD_MAX ((SFM_SUPP_MAX>6) ? (1<<(SFM_SUPP_MAX-6)) : 1)
 #define SFM_WIN_MAX   1000
 #define SFM_DEC_MAX   4
+#define SFM_SIM_WORDS 8
 
 ////////////////////////////////////////////////////////////////////////
 ///                         BASIC TYPES                              ///

@@ -790,7 +790,7 @@ word Abc_EsopCheck( word * pOn, int nVars, word CostLim, int * pCover )
   SeeAlso     []
 
 ***********************************************************************/
-static inline int Abc_TtIntersect( word * pIn1, word * pIn2, int nWords )
+static inline int Abc_TtIntersect2( word * pIn1, word * pIn2, int nWords )
 {
     int w;
     for ( w = 0; w < nWords; w++ )
@@ -963,7 +963,7 @@ word Abc_IsopNew( word * pOn, word * pOnDc, word * pRes, int nVars, word CostLim
         Abc_TtSetBit( pCube, iMint ^ (1 << uTwo) );
         Abc_TtSetBit( pCube, iMint ^ (1 << vTwo) ^ (1 << uTwo) );
         Cube &= ~(3 << Abc_Var2Lit(vTwo, 0)) & ~(3 << Abc_Var2Lit(uTwo, 0));
-        assert( !Abc_TtIntersect(pCube, pOffset, nWords) );        
+        assert( !Abc_TtIntersect2(pCube, pOffset, nWords) );        
         // expand against offset
         for ( v = 0; v < nVars; v++ )
         if ( v != vTwo && v != uTwo )

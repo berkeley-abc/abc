@@ -1322,7 +1322,7 @@ Abc_FlowRetime_UpdateLags( ) {
 int 
 Abc_FlowRetime_GetLag( Abc_Obj_t *pObj ) {
   assert( !Abc_ObjIsLatch(pObj) );
-  assert( Abc_ObjId(pObj) < Vec_IntSize(pManMR->vLags) );
+  assert( (int)Abc_ObjId(pObj) < Vec_IntSize(pManMR->vLags) );
 
   return Vec_IntEntry(pManMR->vLags, Abc_ObjId(pObj));
 }
@@ -1341,7 +1341,7 @@ Abc_FlowRetime_GetLag( Abc_Obj_t *pObj ) {
 void 
 Abc_FlowRetime_SetLag( Abc_Obj_t *pObj, int lag ) {
   assert( Abc_ObjIsNode(pObj) );
-  assert( Abc_ObjId(pObj) < Vec_IntSize(pManMR->vLags) );
+  assert( (int)Abc_ObjId(pObj) < Vec_IntSize(pManMR->vLags) );
 
   Vec_IntWriteEntry(pManMR->vLags, Abc_ObjId(pObj), lag);
 }

@@ -145,7 +145,7 @@ void Abc_FlowRetime_ConstrainConserv_forw( Abc_Ntk_t * pNtk ) {
     if ( Abc_ObjIsBi(pObj) )
       pObj->fMarkA = 1;
 
-    assert(pObj->Level <= pManMR->maxDelay);
+    assert((int)pObj->Level <= pManMR->maxDelay);
   }
 
   // collect TFO of latches
@@ -162,7 +162,7 @@ void Abc_FlowRetime_ConstrainConserv_forw( Abc_Ntk_t * pNtk ) {
     if (pBi->fMarkA) {
       pBi->fMarkA = 0;
       pObj->Level = pBi->Level;
-      assert(pObj->Level <= pManMR->maxDelay);
+      assert((int)pObj->Level <= pManMR->maxDelay);
     } else
       pObj->Level = 0;
   }
@@ -216,7 +216,7 @@ void Abc_FlowRetime_ConstrainConserv_forw( Abc_Ntk_t * pNtk ) {
     if ( Abc_ObjIsBi(pObj) )
       pObj->fMarkA = 1;
 
-    assert(pObj->Level <= pManMR->maxDelay);
+    assert((int)pObj->Level <= pManMR->maxDelay);
   }
 
   Abc_NtkForEachLatch(pNtk, pObj, i) {
@@ -226,7 +226,7 @@ void Abc_FlowRetime_ConstrainConserv_forw( Abc_Ntk_t * pNtk ) {
     if (pBi->fMarkA) {
       pBi->fMarkA = 0;
       pObj->Level = pBi->Level;
-      assert(pObj->Level <= pManMR->maxDelay);
+      assert((int)pObj->Level <= pManMR->maxDelay);
     } else
       pObj->Level = 0;
   }
@@ -283,7 +283,7 @@ void Abc_FlowRetime_ConstrainConserv_back( Abc_Ntk_t * pNtk ) {
     if ( Abc_ObjIsBo(pObj) )
       pObj->fMarkA = 1;
 
-    assert(pObj->Level <= pManMR->maxDelay);
+    assert((int)pObj->Level <= pManMR->maxDelay);
   }
 
   // collect TFO of latches
@@ -300,7 +300,7 @@ void Abc_FlowRetime_ConstrainConserv_back( Abc_Ntk_t * pNtk ) {
     if (pBo->fMarkA) {
       pBo->fMarkA = 0;
       pObj->Level = pBo->Level;
-      assert(pObj->Level <= pManMR->maxDelay);
+      assert((int)pObj->Level <= pManMR->maxDelay);
     } else
       pObj->Level = 0;
   }
@@ -355,7 +355,7 @@ void Abc_FlowRetime_ConstrainConserv_back( Abc_Ntk_t * pNtk ) {
       pObj->fMarkA = 1;
     }
          
-    assert(pObj->Level <= pManMR->maxDelay);
+    assert((int)pObj->Level <= pManMR->maxDelay);
   }
 
   Abc_NtkForEachLatch(pNtk, pObj, i) {
@@ -470,7 +470,7 @@ void Abc_FlowRetime_ConstrainExact_forw( Abc_Obj_t * pObj ) {
       assert(!Abc_ObjIsLatch(pReg));
       Abc_ObjForEachFanin(pReg, pNext, j)
         pNext->Level = MAX( pNext->Level, pReg->Level + (Abc_ObjIsNode(pReg)?1:0));
-      assert(pReg->Level <= pManMR->maxDelay);
+      assert((int)pReg->Level <= pManMR->maxDelay);
       pReg->Level = 0;
       pReg->fMarkA = pReg->fMarkB = 0;
     }
@@ -545,7 +545,7 @@ void Abc_FlowRetime_ConstrainExact_back( Abc_Obj_t * pObj ) {
       assert(!Abc_ObjIsLatch(pReg));
       Abc_ObjForEachFanout(pReg, pNext, j)
         pNext->Level = MAX( pNext->Level, pReg->Level + (Abc_ObjIsNode(pReg)?1:0));
-      assert(pReg->Level <= pManMR->maxDelay);
+      assert((int)pReg->Level <= pManMR->maxDelay);
       pReg->Level = 0;
       pReg->fMarkA = pReg->fMarkB = 0;
     }
