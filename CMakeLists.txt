@@ -32,15 +32,14 @@ execute_process(
   OUTPUT_VARIABLE MAKE_OUTPUT
 )
 
+# extract options from make output
 function(extract_var SEPARATOR DEST_VARIABLE MAKE_OUTPUT)
-
   string(REGEX MATCH "${SEPARATOR} .* ${SEPARATOR}" TMP "${MAKE_OUTPUT}")
   string(REGEX REPLACE "${SEPARATOR} (.*) ${SEPARATOR}" "\\1" TMP "${TMP}")
 
   separate_arguments(TMP)
 
   set(${DEST_VARIABLE} ${TMP} PARENT_SCOPE)
-
 endfunction()
 
 extract_var(SEPARATOR_SRC ABC_SRC ${MAKE_OUTPUT})
@@ -48,9 +47,12 @@ extract_var(SEPARATOR_LIBS ABC_LIBS ${MAKE_OUTPUT})
 extract_var(SEPARATOR_CFLAGS ABC_CFLAGS ${MAKE_OUTPUT})
 extract_var(SEPARATOR_CXXFLAGS ABC_CXXFLAGS ${MAKE_OUTPUT})
 
+function(abc_properties target visibility)
+    target_include_directories(${target} ${visibility} ${CMAKE_CURRENT_SOURCE_DIR}/src )
+    target_compile_options_filtered(${target} ${visibility} ${ABC_CFLAGS} ${ABC_CXXFLAGS} -Wno-unused-but-set-variable )
+    target_link_libraries(${target} ${visibility} ${ABC_LIBS})
+endfunction()
 
 add_executable(abc ${ABC_SRC})
+abc_properties(abc PRIVATE)
 
-target_include_directories(abc PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src )
-target_compile_options_filtered(abc PRIVATE ${ABC_CFLAGS} -Wno-unused-but-set-variable )
-target_link_libraries(abc PRIVATE ${ABC_LIBS})
