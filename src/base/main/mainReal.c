@@ -81,7 +81,8 @@ static int TypeCheck( Abc_Frame_t * pAbc, const char * s);
 int Abc_RealMain( int argc, char * argv[] )
 {
     Abc_Frame_t * pAbc;
-    char sCommandUsr[ABC_MAX_STR] = {0}, sCommandTmp[ABC_MAX_STR], sReadCmd[1000], sWriteCmd[1000];
+    Vec_Str_t* sCommandUsr = Vec_StrAlloc(1000);
+    char sCommandTmp[ABC_MAX_STR], sReadCmd[1000], sWriteCmd[1000];
     const char * sOutFile, * sInFile;
     char * sCommand;
     int  fStatus = 0;
@@ -143,32 +144,56 @@ int Abc_RealMain( int argc, char * argv[] )
     while ((c = Extra_UtilGetopt(argc, argv, "c:q:C:S:hf:F:o:st:T:xb")) != EOF) {
         switch(c) {
             case 'c':
-                strcpy( sCommandUsr, globalUtilOptarg );
+                if( Vec_StrSize(sCommandUsr) > 0 )
+                {
+                    Vec_StrAppend(sCommandUsr, " ; ");
+                }
+                Vec_StrAppend(sCommandUsr, globalUtilOptarg );
                 fBatch = BATCH;
                 break;
 
             case 'q':
-                strcpy( sCommandUsr, globalUtilOptarg );
+                if( Vec_StrSize(sCommandUsr) > 0 )
+                {
+                    Vec_StrAppend(sCommandUsr, " ; ");
+                }
+                Vec_StrAppend(sCommandUsr, globalUtilOptarg );
                 fBatch = BATCH_QUIET;
                 break;
 
             case 'C':
-                strcpy( sCommandUsr, globalUtilOptarg );
+                if( Vec_StrSize(sCommandUsr) > 0 )
+                {
+                    Vec_StrAppend(sCommandUsr, " ; ");
+                }
+                Vec_StrAppend(sCommandUsr, globalUtilOptarg );
                 fBatch = BATCH_THEN_INTERACTIVE;
                 break;
 
             case 'S':
-                strcpy( sCommandUsr, globalUtilOptarg );
+                if( Vec_StrSize(sCommandUsr) > 0 )
+                {
+                    Vec_StrAppend(sCommandUsr, " ; ");
+                }
+                Vec_StrAppend(sCommandUsr, globalUtilOptarg );
                 fBatch = BATCH_SMT;
                 break;
 
             case 'f':
-                sprintf(sCommandUsr, "source %s", globalUtilOptarg);
+                if( Vec_StrSize(sCommandUsr) > 0 )
+                {
+                    Vec_StrAppend(sCommandUsr, " ; ");
+                }
+                Vec_StrPrintF(sCommandUsr, "source %s", globalUtilOptarg );
                 fBatch = BATCH;
                 break;
 
             case 'F':
-                sprintf(sCommandUsr, "source -x %s", globalUtilOptarg);
+                if( Vec_StrSize(sCommandUsr) > 0 )
+                {
+                    Vec_StrAppend(sCommandUsr, " ; ");
+                }
+                Vec_StrPrintF(sCommandUsr, "source -x %s", globalUtilOptarg );
                 fBatch = BATCH;
                 break;
 
@@ -230,9 +255,11 @@ int Abc_RealMain( int argc, char * argv[] )
         }
     }
 
+    Vec_StrPush(sCommandUsr, '\0');
+
     if ( fBatch == BATCH_SMT )
     {
-        Wlc_StdinProcessSmt( pAbc, sCommandUsr );
+        Wlc_StdinProcessSmt( pAbc, Vec_StrArray(sCommandUsr) );
         Abc_Stop();
         return 0;
     }
@@ -242,8 +269,8 @@ int Abc_RealMain( int argc, char * argv[] )
         extern Gia_Man_t * Gia_ManFromBridge( FILE * pFile, Vec_Int_t ** pvInit );
         pAbc->pGia = Gia_ManFromBridge( stdin, NULL );
     }
-    else if ( fBatch!=INTERACTIVE && fBatch!=BATCH_QUIET && sCommandUsr[0] )
-        Abc_Print( 1, "ABC command line: \"%s\".\n\n", sCommandUsr );
+    else if ( fBatch!=INTERACTIVE && fBatch!=BATCH_QUIET && Vec_StrSize(sCommandUsr)>0 )
+        Abc_Print( 1, "ABC command line: \"%s\".\n\n", Vec_StrArray(sCommandUsr) );
 
     if ( fBatch!=INTERACTIVE )
     {
@@ -280,7 +307,7 @@ int Abc_RealMain( int argc, char * argv[] )
         if ( fStatus == 0 )
         {
             /* cmd line contains `source <file>' */
-            fStatus = Cmd_CommandExecute( pAbc, sCommandUsr );
+            fStatus = Cmd_CommandExecute( pAbc, Vec_StrArray(sCommandUsr) );
             if ( (fStatus == 0 || fStatus == -1) && fFinalWrite && sOutFile )
             {
                 sprintf( sCommandTmp, "%s %s", sWriteCmd, sOutFile );
@@ -292,8 +319,9 @@ int Abc_RealMain( int argc, char * argv[] )
             fBatch = INTERACTIVE;
             pAbc->fBatchMode = 0;
         }
-
     }
+
+    Vec_StrFreeP(&sCommandUsr);
 
     if ( fBatch==INTERACTIVE )
     {
