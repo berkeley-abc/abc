@@ -58,8 +58,11 @@ abc_properties(abc PRIVATE)
 
 list(REMOVE_ITEM ABC_SRC src/base/main/main.c)
 
+add_library(libabc EXCLUDE_FROM_ALL ${ABC_SRC})
+abc_properties(libabc PUBLIC)
+set_property(TARGET libabc PROPERTY OUTPUT_NAME abc)
+
 add_library(libabc-pic EXCLUDE_FROM_ALL ${ABC_SRC})
 abc_properties(libabc-pic PUBLIC)
-
 set_property(TARGET libabc-pic PROPERTY POSITION_INDEPENDENT_CODE ON)
 set_property(TARGET libabc-pic PROPERTY OUTPUT_NAME abc-pic)
