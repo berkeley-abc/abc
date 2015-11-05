@@ -33,11 +33,16 @@ elseif(READLINE_FOUND MATCHES FALSE)
     list(APPEND ABC_READLINE_FLAGS "ABC_USE_NO_READLINE=1")
 endif()
 
+if(ABC_USE_NAMESPACE)
+    set(ABC_USE_NAMESPACE "ABC_USE_NAMESPACE=${ABC_USE_NAMESPACE}")
+endif()
+
 # run make to extract compiler options, linker options and list of source files
 execute_process(
   COMMAND
     make
         ${ABC_READLINE_FLAGS}
+        ${ABC_USE_NAMESPACE}
         ABC_MAKE_NO_DEPS=1
         CC=${CMAKE_C_COMPILER}
         CXX=${CMAKE_CXX_COMPILER}
@@ -61,6 +66,10 @@ extract_var(SEPARATOR_SRC ABC_SRC ${MAKE_OUTPUT})
 extract_var(SEPARATOR_LIBS ABC_LIBS ${MAKE_OUTPUT})
 extract_var(SEPARATOR_CFLAGS ABC_CFLAGS ${MAKE_OUTPUT})
 extract_var(SEPARATOR_CXXFLAGS ABC_CXXFLAGS ${MAKE_OUTPUT})
+
+if(ABC_USE_NAMESPACE)
+    set_source_files_properties(${ABC_SRC} PROPERTIES LANGUAGE CXX)
+endif()
 
 function(abc_properties target visibility)
     target_include_directories(${target} ${visibility} ${CMAKE_CURRENT_SOURCE_DIR}/src )
