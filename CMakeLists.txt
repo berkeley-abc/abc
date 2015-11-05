@@ -27,7 +27,13 @@ project(abc)
 
 # run make to extract compiler options, linker options and list of source files
 execute_process(
-  COMMAND make ABC_MAKE_NO_DEPS=1 CC=${CMAKE_C_COMPILER} CXX=${CMAKE_CXX_COMPILER} LD=${CMAKE_CXX_COMPILER} cmake_info
+  COMMAND
+    make
+        ABC_MAKE_NO_DEPS=1
+        CC=${CMAKE_C_COMPILER}
+        CXX=${CMAKE_CXX_COMPILER}
+        LD=${CMAKE_CXX_COMPILER}
+        cmake_info
   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
   OUTPUT_VARIABLE MAKE_OUTPUT
 )
