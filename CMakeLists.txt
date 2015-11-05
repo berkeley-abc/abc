@@ -1,17 +1,23 @@
-cmake_minimum_required(VERSION 2.8.12)
+cmake_minimum_required(VERSION 3.3.0)
 
 include(CMakeParseArguments)
 include(CheckCCompilerFlag)
+include(CheckCXXCompilerFlag)
 
-# filter out flags that are not appropriate for the compiler used
+# filter out flags that are not appropriate for the compiler being used
 function(target_compile_options_filtered target visibility)
     foreach( flag ${ARGN} )
         if( flag MATCHES "^-D.*" )
             target_compile_options( ${target} ${visibility} ${flag} )
         else()
-            check_c_compiler_flag( ${flag} COMPILER_SUPPORTS__${flag} )
-            if( COMPILER_SUPPORTS__${flag} )
-                target_compile_options( ${target} ${visibility} ${flag} )
+            check_c_compiler_flag( ${flag} C_COMPILER_SUPPORTS__${flag} )
+            if( C_COMPILER_SUPPORTS__${flag} )
+                target_compile_options( ${target} ${visibility} $<$<COMPILE_LANGUAGE:C>:${flag}> )
+            endif()
+
+            check_cxx_compiler_flag( ${flag} CXX_COMPILER_SUPPORTS__${flag} )
+            if( CXX_COMPILER_SUPPORTS__${flag} )
+                target_compile_options( ${target} ${visibility} $<$<COMPILE_LANGUAGE:CXX>:${flag}>  )
             endif()
         endif()
     endforeach()
@@ -40,6 +46,8 @@ endfunction()
 extract_var(SEPARATOR_SRC ABC_SRC ${MAKE_OUTPUT})
 extract_var(SEPARATOR_LIBS ABC_LIBS ${MAKE_OUTPUT})
 extract_var(SEPARATOR_CFLAGS ABC_CFLAGS ${MAKE_OUTPUT})
+extract_var(SEPARATOR_CXXFLAGS ABC_CXXFLAGS ${MAKE_OUTPUT})
+
 
 add_executable(abc ${ABC_SRC})
 
