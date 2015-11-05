@@ -53,7 +53,7 @@ ABC_NAMESPACE_IMPL_START
   SeeAlso     []
 
 ***********************************************************************/
-char * Abc_SopRegister( Mem_Flex_t * pMan, char * pName )
+char * Abc_SopRegister( Mem_Flex_t * pMan, const char * pName )
 {
     char * pRegName;
     if ( pName == NULL ) return NULL;

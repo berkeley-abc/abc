@@ -295,10 +295,10 @@ void Abc_FlowRetime_SimulateNode( Abc_Obj_t * pObj ) {
   Abc_Obj_t * pFanin;
   int i, rAnd, rVar, dcAnd, dcVar;
 #ifdef ABC_USE_CUDD
-  DdManager * dd = pNtk->pManFunc;
-  DdNode *pBdd = pObj->pData, *pVar;
+  DdManager * dd = (DdManager*)pNtk->pManFunc;
+  DdNode *pBdd = (DdNode*)pObj->pData, *pVar;
 #endif
-  Hop_Man_t *pHop = pNtk->pManFunc;
+  Hop_Man_t *pHop = (Hop_Man_t*)pNtk->pManFunc;
   
   assert(!Abc_ObjIsLatch(pObj));
   assert(Abc_ObjRegular(pObj));
@@ -376,7 +376,7 @@ void Abc_FlowRetime_SimulateNode( Abc_Obj_t * pObj ) {
       Hop_ManPi(pHop, i)->fMarkB = FTEST(pFanin, INIT_CARE)?1:0;
     }
 
-    Abc_FlowRetime_EvalHop_rec( pHop, pObj->pData, &rVar, &dcVar );
+    Abc_FlowRetime_EvalHop_rec( pHop, (Hop_Obj_t*)pObj->pData, &rVar, &dcVar );
    
     Abc_FlowRetime_SetInitValue(pObj, rVar, dcVar);
 
@@ -415,7 +415,7 @@ void Abc_FlowRetime_SimulateNode( Abc_Obj_t * pObj ) {
 
   // ------ MAPPED network
   else if ( Abc_NtkHasMapping( pNtk )) {
-    Abc_FlowRetime_SimulateSop( pObj, (char *)Mio_GateReadSop(pObj->pData) );
+    Abc_FlowRetime_SimulateSop( pObj, (char *)Mio_GateReadSop((Mio_Gate_t*)pObj->pData) );
     return;
   }
 
@@ -622,7 +622,7 @@ int Abc_FlowRetime_SolveBackwardInit( Abc_Ntk_t * pNtk ) {
   // clear initial values, associate PIs to latches
   Abc_NtkForEachPi( pManMR->pInitNtk, pInitObj, i ) Abc_ObjSetCopy( pInitObj, NULL );
   Abc_NtkForEachLatch( pNtk, pObj, i ) {
-    pInitObj = Abc_ObjData( pObj );
+    pInitObj = (Abc_Obj_t*)Abc_ObjData( pObj );
     assert( Abc_ObjIsPi( pInitObj ));
     Abc_ObjSetCopy( pInitObj, pObj );
     Abc_LatchSetInitNone( pObj );
@@ -699,7 +699,7 @@ void Abc_FlowRetime_UpdateBackwardInit( Abc_Ntk_t * pNtk ) {
   // add PIs to to latches
   Abc_NtkForEachLatch( pNtk, pOrigObj, i ) {
     assert(Vec_PtrSize(vPi) > 0);
-    pInitObj = Vec_PtrPop(vPi);
+    pInitObj = (Abc_Obj_t*)Vec_PtrPop(vPi);
 
     // DEBUG
     // printf("update : mapping latch %d to PI %d\n", pOrigObj->Id, pInitObj->Id);
@@ -773,7 +773,7 @@ Abc_Obj_t *Abc_FlowRetime_CopyNodeToInitNtk( Abc_Obj_t *pOrigObj ) {
     
     pData =  Abc_SopCreateAnd( (Mem_Flex_t *)pInitNtk->pManFunc, 2, fCompl );
     assert(pData);
-    pInitObj->pData = Abc_SopRegister( (Mem_Flex_t *)pInitNtk->pManFunc, pData );
+    pInitObj->pData = Abc_SopRegister( (Mem_Flex_t *)pInitNtk->pManFunc, (const char*)pData );
   } 
 
   // (ii) mapped node -> SOP node
@@ -787,11 +787,11 @@ Abc_Obj_t *Abc_FlowRetime_CopyNodeToInitNtk( Abc_Obj_t *pOrigObj ) {
       return pInitObj;
     }
 
-    pInitObj = Abc_NtkCreateObj( pInitNtk, Abc_ObjType(pOrigObj) );
-    pData = Mio_GateReadSop(pOrigObj->pData);
-    assert( Abc_SopGetVarNum(pData) == Abc_ObjFaninNum(pOrigObj) );
+    pInitObj = Abc_NtkCreateObj( pInitNtk, (Abc_ObjType_t)Abc_ObjType(pOrigObj) );
+    pData = Mio_GateReadSop((Mio_Gate_t*)pOrigObj->pData);
+    assert( Abc_SopGetVarNum((char*)pData) == Abc_ObjFaninNum(pOrigObj) );
     
-    pInitObj->pData = Abc_SopRegister( (Mem_Flex_t *)pInitNtk->pManFunc, pData );
+    pInitObj->pData = Abc_SopRegister( (Mem_Flex_t *)pInitNtk->pManFunc, (const char*)pData );
   } 
 
   // (iii) otherwise, duplicate obj
@@ -1069,7 +1069,7 @@ void Abc_FlowRetime_ConstrainInit( ) {
 #endif
     
     // mark its TFO
-    pObj = Vec_PtrEntry( vNodes, low );
+    pObj = (Abc_Obj_t*)Vec_PtrEntry( vNodes, low );
     Abc_NtkMarkCone_rec( pObj, 1 );
     vprintf("   conflict term = %d ", low);
 
@@ -1170,7 +1170,7 @@ static void Abc_FlowRetime_ConnectBiasNode(Abc_Obj_t *pBiasNode, Abc_Obj_t *pObj
   Abc_NtkIncrementTravId( pNtk );
 
   while (Vec_PtrSize( vNodes )) {
-    pCur = Vec_PtrPop( vNodes );
+    pCur = (Abc_Obj_t*)Vec_PtrPop( vNodes );
     lag = Vec_IntPop( vLags );
 
     if (Abc_NodeIsTravIdCurrent( pCur )) continue;
@@ -1262,7 +1262,7 @@ void Abc_FlowRetime_ClearInitToOrig( Abc_Obj_t *pInit )
   if (id >= pManMR->sizeInitToOrig) {
     int oldSize = pManMR->sizeInitToOrig;
     pManMR->sizeInitToOrig = 1.5*id + 10;
-    pManMR->pInitToOrig = realloc(pManMR->pInitToOrig, sizeof(NodeLag_t)*pManMR->sizeInitToOrig);
+    pManMR->pInitToOrig = (NodeLag_t*)realloc(pManMR->pInitToOrig, sizeof(NodeLag_t)*pManMR->sizeInitToOrig);
     memset( &(pManMR->pInitToOrig[oldSize]), 0, sizeof(NodeLag_t)*(pManMR->sizeInitToOrig-oldSize) );
   }
   assert( pManMR->pInitToOrig );
@@ -1291,7 +1291,7 @@ void Abc_FlowRetime_SetInitToOrig( Abc_Obj_t *pInit, Abc_Obj_t *pOrig)
   if (id >= pManMR->sizeInitToOrig) {
     int oldSize = pManMR->sizeInitToOrig;
     pManMR->sizeInitToOrig = 1.5*id + 10;
-    pManMR->pInitToOrig = realloc(pManMR->pInitToOrig, sizeof(NodeLag_t)*pManMR->sizeInitToOrig);
+    pManMR->pInitToOrig = (NodeLag_t*)realloc(pManMR->pInitToOrig, sizeof(NodeLag_t)*pManMR->sizeInitToOrig);
     memset( &(pManMR->pInitToOrig[oldSize]), 0, sizeof(NodeLag_t)*(pManMR->sizeInitToOrig-oldSize) );
   }
   assert( pManMR->pInitToOrig );

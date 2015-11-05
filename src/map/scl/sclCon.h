@@ -236,7 +236,7 @@ static inline int    Scl_ConHasInLoads_( Scl_Con_t * p )        { return Vec_Wrd
 static inline int    Scl_ConHasOutReqs_( Scl_Con_t * p )        { return Vec_WrdCountZero(&p->vOutReqs)  != Vec_WrdSize(&p->vOutReqs);  }
 static inline int    Scl_ConHasOutLoads_( Scl_Con_t * p )       { return Vec_WrdCountZero(&p->vOutLoads) != Vec_WrdSize(&p->vOutLoads); }
 
-static inline char * Scl_ConGetInCell_( Scl_Con_t * p, int i )  { return Vec_PtrEntry( &p->vInCells,  i ); }
+static inline char * Scl_ConGetInCell_( Scl_Con_t * p, int i )  { return (char*)Vec_PtrEntry( &p->vInCells,  i ); }
 static inline word   Scl_ConGetInArr_( Scl_Con_t * p, int i )   { return Vec_WrdEntry( &p->vInArrs,   i ); }
 static inline word   Scl_ConGetInSlew_( Scl_Con_t * p, int i )  { return Vec_WrdEntry( &p->vInSlews,  i ); }
 static inline word   Scl_ConGetInLoad_( Scl_Con_t * p, int i )  { return Vec_WrdEntry( &p->vInLoads,  i ); }

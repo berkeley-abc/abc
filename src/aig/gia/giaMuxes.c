@@ -692,7 +692,7 @@ int Gia_ManEncodeFanin( Gia_Man_t * p, int iLit )
 //        return iANDp;
 }
 // find fanout code
-int Gia_ManEncodeFanout( Gia_Man_t * p, Gia_Obj_t * pObj, int i )
+Gia_ObjType_t Gia_ManEncodeFanout( Gia_Man_t * p, Gia_Obj_t * pObj, int i )
 {
 //    int iLit;
     if ( Gia_ObjIsPo(p, pObj) )

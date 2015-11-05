@@ -444,13 +444,13 @@ int Extra_ThreshAssignWeights(word * t, char * pIsop, char * pIsopFneg,
     unsigned long **pGreaters;
     unsigned long **pSmallers;
 
-    pGreaters = malloc(nCubesIsop * nCubesIsopFneg * sizeof *pGreaters);
+    pGreaters = (unsigned long **)malloc(nCubesIsop * nCubesIsopFneg * sizeof *pGreaters);
     for (i = 0; i < nCubesIsop * nCubesIsopFneg; i++) {
-        pGreaters[i] = malloc(nChows * sizeof *pGreaters[i]);
+        pGreaters[i] = (unsigned long *)malloc(nChows * sizeof *pGreaters[i]);
     }
-    pSmallers = malloc(nCubesIsop * nCubesIsopFneg * sizeof *pSmallers);
+    pSmallers = (unsigned long **)malloc(nCubesIsop * nCubesIsopFneg * sizeof *pSmallers);
     for (i = 0; i < nCubesIsop * nCubesIsopFneg; i++) {
-        pSmallers[i] = malloc(nChows * sizeof *pSmallers[i]);
+        pSmallers[i] = (unsigned long *)malloc(nChows * sizeof *pSmallers[i]);
     }
 
     //******************************

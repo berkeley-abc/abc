@@ -1879,7 +1879,7 @@ int Prs_CreateVerilogNtk( Cba_Ntk_t * p, Prs_Ntk_t * pNtk )
         if ( Prs_BoxIsNode(pNtk, i) ) // node
         {
             Type = Prs_BoxNtk(pNtk, i);
-            iObj = Cba_ObjAlloc( p, Type, Prs_BoxIONum(pNtk, i)-1, Type == CBA_BOX_ADD ? 2 : 1 );
+            iObj = Cba_ObjAlloc( p, (Cba_ObjType_t)Type, Prs_BoxIONum(pNtk, i)-1, Type == CBA_BOX_ADD ? 2 : 1 );
             Prs_CreateSignalOut( p, Cba_ObjFon0(p, iObj), pNtk, Vec_IntEntry(vBox, 1) ); // node output
         }
         else // box
@@ -1921,7 +1921,7 @@ int Prs_CreateVerilogNtk( Cba_Ntk_t * p, Prs_Ntk_t * pNtk )
             else if ( (Type == CBA_BOX_DFFRS || Type == CBA_BOX_LATCHRS) && !strncmp(pNtkName, "wide_", strlen("wide_")) && !Prs_CreateFlopSetReset(p, pNtk, vBox, NULL, NULL, NULL, NULL) )
                 nInputs = atoi(pNtkName+strlen(Type == CBA_BOX_DFFRS ? "wide_dffrs_" : "wide_latchrs_")), nOutputs = 1, Type = CBA_BOX_CONCAT;
             // create object
-            iObj = Cba_ObjAlloc( p, Type, nInputs, nOutputs );
+            iObj = Cba_ObjAlloc( p, (Cba_ObjType_t)Type, nInputs, nOutputs );
             if ( pBox ) Cba_ObjSetFunc( p, iObj, Cba_NtkId(pBox) );
             // mark PO objects
             Cba_NtkCleanMap2( p );
@@ -2002,7 +2002,7 @@ int Prs_CreateVerilogNtk( Cba_Ntk_t * p, Prs_Ntk_t * pNtk )
                     for ( w = 0; w < Width; w++ )
                     {
                         // create bit-level flop
-                        int iObjNew = Cba_ObjAlloc( p, Type, 4, 1 );
+                        int iObjNew = Cba_ObjAlloc( p, (Cba_ObjType_t)Type, 4, 1 );
                         if ( Prs_BoxName(pNtk, i) )
                         {
                             NameId = Cba_NtkNewStrId( p, "%s[%d]", Prs_NtkStr(pNtk, Prs_BoxName(pNtk, i)), w );

@@ -95,7 +95,7 @@ void Abc_FlowRetime_ConstrainConserv( Abc_Ntk_t * pNtk ) {
   // clear all exact constraints
   pManMR->nExactConstraints = 0;
   while( Vec_PtrSize( pManMR->vExactNodes )) {
-    pObj = Vec_PtrPop( pManMR->vExactNodes );
+    pObj = (Abc_Obj_t*)Vec_PtrPop( pManMR->vExactNodes );
     
     if ( Vec_PtrSize( FTIMEEDGES(pObj) )) {
       pArray =  Vec_PtrReleaseArray( FTIMEEDGES(pObj) );
@@ -619,7 +619,7 @@ void Abc_FlowRetime_FreeTiming( Abc_Ntk_t *pNtk ) {
   void *pArray;
 
   while( Vec_PtrSize( pManMR->vExactNodes )) {
-    pObj = Vec_PtrPop( pManMR->vExactNodes );
+    pObj = (Abc_Obj_t*)Vec_PtrPop( pManMR->vExactNodes );
     
     if ( Vec_PtrSize( FTIMEEDGES(pObj) )) {
       pArray =  Vec_PtrReleaseArray( FTIMEEDGES(pObj) );

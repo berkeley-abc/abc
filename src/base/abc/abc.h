@@ -869,7 +869,7 @@ extern ABC_DLL int                Abc_NtkRewrite( Abc_Ntk_t * pNtk, int fUpdateL
 extern ABC_DLL int                Abc_NtkMiterSat( Abc_Ntk_t * pNtk, ABC_INT64_T nConfLimit, ABC_INT64_T nInsLimit, int fVerbose, ABC_INT64_T * pNumConfs, ABC_INT64_T * pNumInspects );
 extern ABC_DLL void *             Abc_NtkMiterSatCreate( Abc_Ntk_t * pNtk, int fAllPrimes );
 /*=== abcSop.c ==========================================================*/
-extern ABC_DLL char *             Abc_SopRegister( Mem_Flex_t * pMan, char * pName );
+extern ABC_DLL char *             Abc_SopRegister( Mem_Flex_t * pMan, const char * pName );
 extern ABC_DLL char *             Abc_SopStart( Mem_Flex_t * pMan, int nCubes, int nVars );
 extern ABC_DLL char *             Abc_SopCreateConst0( Mem_Flex_t * pMan );
 extern ABC_DLL char *             Abc_SopCreateConst1( Mem_Flex_t * pMan );

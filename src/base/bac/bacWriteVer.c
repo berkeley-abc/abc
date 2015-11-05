@@ -110,7 +110,7 @@ static void Psr_ManWriteVerilogBoxes( FILE * pFile, Psr_Ntk_t * p )
     Vec_Int_t * vBox; int i;
     Psr_NtkForEachBox( p, vBox, i )
     {
-        Bac_ObjType_t NtkId = Psr_BoxNtk(p, i);
+        Bac_ObjType_t NtkId = (Bac_ObjType_t)Psr_BoxNtk(p, i);
         if ( NtkId == BAC_BOX_MUX )
             Psr_ManWriteVerilogMux( pFile, p, vBox );
         else if ( Psr_BoxIsNode(p, i) ) // node   ------- check order of fanins

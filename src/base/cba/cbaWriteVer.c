@@ -233,7 +233,7 @@ static void Prs_ManWriteVerilogBoxes( FILE * pFile, Prs_Ntk_t * p, char ** pType
     Vec_Int_t * vBox; int i, k;
     Prs_NtkForEachBox( p, vBox, i )
     {
-        Cba_ObjType_t NtkId = Prs_BoxNtk(p, i);
+        Cba_ObjType_t NtkId = (Cba_ObjType_t)Prs_BoxNtk(p, i);
         //char * pNtkName = Prs_ObjGetName(p, Prs_BoxName(p, i));
         if ( NtkId == CBA_BOX_MUX && Prs_BoxIsNode(p, i) )
             Prs_ManWriteVerilogMux( pFile, p, vBox );
@@ -918,7 +918,7 @@ void Cba_ManWriteVerilogNtk( Cba_Ntk_t * p, int fInlineConcat )
                 Vec_StrPush( vStr, ' ' );
                 Cba_ManWriteFonName( p, Cba_ObjFinFon(p, iObj, 2), fInlineConcat, 0 );
             }
-            else if ( Cba_TypeIsUnary(Type) )
+            else if ( Cba_TypeIsUnary((Cba_ObjType_t)Type) )
             {
                 Vec_StrPrintStr( vStr, Cba_NtkTypeName(p, Type) );
                 Cba_ManWriteFonName( p, Cba_ObjFinFon(p, iObj, 0), fInlineConcat, 0 );

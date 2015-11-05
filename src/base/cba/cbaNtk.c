@@ -90,7 +90,8 @@ void Cba_NtkPrintDistrib( Cba_Ntk_t * p, int fVerbose )
     Vec_Ptr_t * vTypes, * vOccurs;
     Vec_Int_t * vAnds = Vec_IntStart( CBA_BOX_LAST );
     int iRnObj = -1, nCountRange = 0;
-    int i, k, s, s0, s1, Type;  word Sign;
+    int i, k, s, s0, s1;  word Sign;
+    Cba_ObjType_t Type;
     char * pTypeNames[CBA_BOX_LAST];
     Cba_ManCreatePrimMap( pTypeNames );
     // allocate statistics arrays
@@ -1060,7 +1061,7 @@ Cba_Man_t * Cba_ManDeriveFromGia( Gia_Man_t * pGia, int fUseXor )
     Cba_NtkCleanObjNames( pNtk );
     Gia_ManForEachCiId( pGia, iObj, i )
     {
-        NameId = pGia->vNamesIn? Abc_NamStrFindOrAdd(p->pStrs, Vec_PtrEntry(pGia->vNamesIn, i), NULL) : Cba_NtkNewStrId(pNtk, "i%d", i);
+        NameId = pGia->vNamesIn? Abc_NamStrFindOrAdd(p->pStrs, (char*)Vec_PtrEntry(pGia->vNamesIn, i), NULL) : Cba_NtkNewStrId(pNtk, "i%d", i);
         iObjNew = Cba_ObjAlloc( pNtk, CBA_OBJ_PI, 0, 1 );
         Cba_ObjSetName( pNtk, iObjNew, NameId );
         Vec_IntWriteEntry( vLit2Fon, Abc_Var2Lit(iObj, 0), Cba_ObjFon0(pNtk, iObjNew) );
@@ -1082,7 +1083,7 @@ Cba_Man_t * Cba_ManDeriveFromGia( Gia_Man_t * pGia, int fUseXor )
         iObjNew = Cba_ObjAlloc( pNtk, CBA_BOX_BUF, 1, 1 );
         Cba_ObjSetFinFon( pNtk, iObjNew, 0, iFon0 );
         iFon0 = Cba_ObjFon0(pNtk, iObjNew); // non-const fon unique for this output
-        NameId = pGia->vNamesOut? Abc_NamStrFindOrAdd(p->pStrs, Vec_PtrEntry(pGia->vNamesOut, i), NULL) : Cba_NtkNewStrId(pNtk, "o%d", i);
+        NameId = pGia->vNamesOut? Abc_NamStrFindOrAdd(p->pStrs, (char*)Vec_PtrEntry(pGia->vNamesOut, i), NULL) : Cba_NtkNewStrId(pNtk, "o%d", i);
         iObjNew = Cba_ObjAlloc( pNtk, CBA_OBJ_PO, 1, 0 );
         Cba_ObjSetName( pNtk, iObjNew, NameId );
         Cba_ObjSetFinFon( pNtk, iObjNew, 0, iFon0 );

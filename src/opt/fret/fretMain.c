@@ -188,7 +188,7 @@ Abc_FlowRetime_MinReg( Abc_Ntk_t * pNtk, int fVerbose,
   if (pManMR->vSinkDistHist) Vec_IntFree(pManMR->vSinkDistHist);
   if (pManMR->maxDelay) Abc_FlowRetime_FreeTiming( pNtk );
   while( Vec_PtrSize( pManMR->vInitConstraints )) {
-    pData = Vec_PtrPop( pManMR->vInitConstraints );
+    pData = (InitConstraint_t*)Vec_PtrPop( pManMR->vInitConstraints );
     //assert( pData->pBiasNode );
     //Abc_NtkDeleteObj( pData->pBiasNode );
     ABC_FREE( pData->vNodes.pArray );
@@ -791,7 +791,7 @@ Abc_FlowRetime_CopyInitState( Abc_Obj_t * pSrc, Abc_Obj_t * pDest ) {
   }
   
   if (!pManMR->fIsForward) {
-    pObj = Abc_ObjData(pSrc);
+    pObj = (Abc_Obj_t*)Abc_ObjData(pSrc);
     assert(Abc_ObjIsPi(pObj));
     FDATA(pDest)->pInitObj = pObj;
   }
@@ -1373,7 +1373,7 @@ void Abc_ObjPrintNeighborhood( Abc_Obj_t *pObj, int depth ) {
   Abc_ObjPrintNeighborhood_rec( pObj, vNodes, depth );
 
   while(Vec_PtrSize(vNodes)) {
-    pObj2 = Vec_PtrPop(vNodes);
+    pObj2 = (Abc_Obj_t*)Vec_PtrPop(vNodes);
     pObj2->fMarkC = 0;
   }
 
