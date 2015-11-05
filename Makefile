@@ -64,6 +64,16 @@ ifndef ABC_USE_NO_CUDD
   $(info $(MSG_PREFIX)Compiling with CUDD)
 endif
 
+ABC_READLINE_INCLUDES ?=
+ABC_READLINE_LIBRARIES ?= -lreadline
+
+# whether to use libreadline
+ifndef ABC_USE_NO_READLINE
+  CFLAGS += -DABC_USE_READLINE $(ABC_READLINE_INCLUDES)
+  LIBS += $(ABC_READLINE_LIBRARIES)
+  $(info $(MSG_PREFIX)Using libreadline)
+endif
+
 # whether to use libreadline
 ifndef ABC_USE_NO_READLINE
   CFLAGS += -DABC_USE_READLINE

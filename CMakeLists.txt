@@ -25,10 +25,19 @@ endfunction()
 
 project(abc)
 
+if(READLINE_FOUND MATCHES TRUE)
+    addprefix(READLINE_INCLUDES_FLAGS "-I" ${READLINE_INCLUDES})
+    list(APPEND ABC_READLINE_FLAGS "ABC_READLINE_INCLUDES=${READLINE_INCLUDES_FLAGS}")
+    list(APPEND ABC_READLINE_FLAGS "ABC_READLINE_LIBRARIES=${READLINE_LIBRARIES}")
+elseif(READLINE_FOUND MATCHES FALSE)
+    list(APPEND ABC_READLINE_FLAGS "ABC_USE_NO_READLINE=1")
+endif()
+
 # run make to extract compiler options, linker options and list of source files
 execute_process(
   COMMAND
     make
+        ${ABC_READLINE_FLAGS}
         ABC_MAKE_NO_DEPS=1
         CC=${CMAKE_C_COMPILER}
         CXX=${CMAKE_CXX_COMPILER}
