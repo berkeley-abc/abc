@@ -1038,6 +1038,8 @@ static inline int         Gia_ObjCellId( Gia_Man_t * p, int iLit )          { re
     for ( i = 0; (i < Vec_IntSize(p->vCis)) && ((pObj) = Gia_ManCi(p, i)); i++ )
 #define Gia_ManForEachCiId( p, Id, i )                                  \
     for ( i = 0; (i < Vec_IntSize(p->vCis)) && ((Id) = Gia_ObjId(p, Gia_ManCi(p, i))); i++ )
+#define Gia_ManForEachCiVec( vVec, p, pObj, i )                         \
+    for ( i = 0; (i < Vec_IntSize(vVec)) && ((pObj) = Gia_ManCi(p, Vec_IntEntry(vVec,i))); i++ )
 #define Gia_ManForEachCiReverse( p, pObj, i )                           \
     for ( i = Vec_IntSize(p->vCis) - 1; (i >= 0) && ((pObj) = Gia_ManCi(p, i)); i-- )
 #define Gia_ManForEachCo( p, pObj, i )                                  \

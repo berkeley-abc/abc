@@ -355,7 +355,7 @@ int Bmc_CollapseIrredundantFull( Vec_Str_t * vSop, int nCubes, int nVars )
   SeeAlso     []
 
 ***********************************************************************/
-int Bmc_CollapseExpandRound( sat_solver * pSat, sat_solver * pSatOn, Vec_Int_t * vLits, Vec_Int_t * vNums, Vec_Int_t * vTemp, int nBTLimit, int fCanon )
+int Bmc_CollapseExpandRound( sat_solver * pSat, sat_solver * pSatOn, Vec_Int_t * vLits, Vec_Int_t * vNums, Vec_Int_t * vTemp, int nBTLimit, int fCanon, int fOnOffSetLit )
 {
     int fProfile = 0;
     int k, n, iLit, status;
@@ -369,6 +369,7 @@ int Bmc_CollapseExpandRound( sat_solver * pSat, sat_solver * pSatOn, Vec_Int_t *
         // check if this literal when expanded overlaps with the on-set
         if ( pSatOn )
         {
+            assert( fOnOffSetLit == -1 );
             // it is ok to skip the first round if the literal is positive
             if ( fCanon && !Abc_LitIsCompl(Save) )
                 continue;
@@ -399,9 +400,13 @@ int Bmc_CollapseExpandRound( sat_solver * pSat, sat_solver * pSatOn, Vec_Int_t *
             if ( iLit != -1 )
                 Vec_IntPush( vTemp, iLit );
         // check against offset
+        if ( fOnOffSetLit >= 0 )
+            Vec_IntPush( vTemp, fOnOffSetLit );
         if ( fProfile ) clk = Abc_Clock();
         status = sat_solver_solve( pSat, Vec_IntArray(vTemp), Vec_IntLimit(vTemp), nBTLimit, 0, 0, 0 );
         if ( fProfile ) clkCheck2 += Abc_Clock() - clk;
+        if ( fOnOffSetLit >= 0 )
+            Vec_IntPop( vTemp );
         if ( status == l_Undef )
             return -1;
         if ( status == l_True )
@@ -428,14 +433,18 @@ int Bmc_CollapseExpandRound( sat_solver * pSat, sat_solver * pSatOn, Vec_Int_t *
   SeeAlso     []
 
 ***********************************************************************/
-int Bmc_CollapseExpand( sat_solver * pSat, sat_solver * pSatOn, Vec_Int_t * vLits, Vec_Int_t * vNums, Vec_Int_t * vTemp, int nBTLimit, int fCanon )
+int Bmc_CollapseExpand( sat_solver * pSat, sat_solver * pSatOn, Vec_Int_t * vLits, Vec_Int_t * vNums, Vec_Int_t * vTemp, int nBTLimit, int fCanon, int fOnOffSetLit )
 {
     // perform one quick reduction if it is non-canonical
     if ( !fCanon )
     {
         int i, k, iLit, status, nFinal, * pFinal;
         // check against offset
+        if ( fOnOffSetLit >= 0 )
+            Vec_IntPush( vLits, fOnOffSetLit );
         status = sat_solver_solve( pSat, Vec_IntArray(vLits), Vec_IntLimit(vLits), nBTLimit, 0, 0, 0 );
+        if ( fOnOffSetLit >= 0 )
+            Vec_IntPop( vLits );
         if ( status == l_Undef )
             return -1;
         assert( status == l_False );
@@ -450,12 +459,12 @@ int Bmc_CollapseExpand( sat_solver * pSat, sat_solver * pSatOn, Vec_Int_t * vLit
             if ( k == nFinal )
                 Vec_IntWriteEntry( vLits, i, -1 );
         }
-        Bmc_CollapseExpandRound( pSat, NULL,   vLits, vNums, vTemp, nBTLimit, fCanon );
+        Bmc_CollapseExpandRound( pSat, NULL,   vLits, vNums, vTemp, nBTLimit, fCanon, fOnOffSetLit );
     }
     else
     {
-        Bmc_CollapseExpandRound( pSat, pSatOn, vLits, vNums, vTemp, nBTLimit, fCanon );
-        Bmc_CollapseExpandRound( pSat, NULL,   vLits, vNums, vTemp, nBTLimit, fCanon );
+        Bmc_CollapseExpandRound( pSat, pSatOn, vLits, vNums, vTemp, nBTLimit, fCanon, -1 );
+        Bmc_CollapseExpandRound( pSat, NULL,   vLits, vNums, vTemp, nBTLimit, fCanon, -1 );
     }
     {
         // put into new array
@@ -625,7 +634,7 @@ Vec_Str_t * Bmc_CollapseOneInt( Gia_Man_t * p, int nCubeLim, int nBTLimit, int f
             printf( "\n" );
         }
         // expand the values
-        status = Bmc_CollapseExpand( pSat[1], fCanon ? pSat[2] : pSat[0], vLits, vNums, vCube, nBTLimit, fCanon );
+        status = Bmc_CollapseExpand( pSat[1], fCanon ? pSat[2] : pSat[0], vLits, vNums, vCube, nBTLimit, fCanon, -1 );
         if ( status < 0 )
         {
             Vec_StrFreeP( &vSop );
@@ -719,7 +728,7 @@ Vec_Str_t * Bmc_CollapseOne2( Gia_Man_t * p, int nCubeLim, int nBTLimit, int fCa
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Str_t * Bmc_CollapseOne( Gia_Man_t * p, int nCubeLim, int nBTLimit, int fCanon, int fReverse, int fVerbose )
+Vec_Str_t * Bmc_CollapseOne3( Gia_Man_t * p, int nCubeLim, int nBTLimit, int fCanon, int fReverse, int fVerbose )
 {
     int fVeryVerbose = fVerbose;
     int nVars = Gia_ManCiNum(p);
@@ -805,7 +814,7 @@ Vec_Str_t * Bmc_CollapseOne( Gia_Man_t * p, int nCubeLim, int nBTLimit, int fCan
             }
             // expand the values
             if ( fVeryVerbose ) clk = Abc_Clock();
-            status = Bmc_CollapseExpand( pSatClean[!n], pSat[n], vLits, vNums, vCube, nBTLimit, fCanon );
+            status = Bmc_CollapseExpand( pSatClean[!n], pSat[n], vLits, vNums, vCube, nBTLimit, fCanon, -1 );
             if ( fVeryVerbose ) Time[n][1] += Abc_Clock() - clk;
             if ( status < 0 )
                 goto cleanup; // timeout
@@ -851,6 +860,333 @@ cleanup:
     sat_solver_delete( pSat[1] );
     sat_solver_delete( pSatClean[0] );
     sat_solver_delete( pSatClean[1] );
+    assert( !fComplete[0] || !fComplete[1] );
+    if ( fComplete[0] || fComplete[1] ) // one of the cover is computed
+    {
+        vRes = vSop[fComplete[1]]; vSop[fComplete[1]] = NULL;
+        if ( iCube > 1 )
+//            Bmc_CollapseIrredundant( vRes, Vec_StrSize(vRes)/(nVars +3), nVars );
+            Bmc_CollapseIrredundantFull( vRes, Vec_StrSize(vRes)/(nVars +3), nVars );
+    }
+    if ( fVeryVerbose )
+    {
+        int fProfile = 0;
+        printf( "Processed output with %d supp vars. ", nVars );
+        if ( vRes == NULL )
+            printf( "The resulting SOP exceeded %d cubes.\n", nCubeLim );
+        else 
+            printf( "The best cover contains %d cubes.\n", Vec_StrSize(vRes)/(nVars +3) );
+        Abc_PrintTime( 1, "Onset  minterm", Time[0][0] );
+        Abc_PrintTime( 1, "Onset  expand ", Time[0][1] );
+        Abc_PrintTime( 1, "Offset minterm", Time[1][0] );
+        Abc_PrintTime( 1, "Offset expand ", Time[1][1] );
+        if ( fProfile )
+        {
+            Abc_PrintTime( 1, "Expand check1 ", clkCheck1 ); clkCheck1 = 0;
+            Abc_PrintTime( 1, "Expand check2 ", clkCheck2 ); clkCheck2 = 0;
+            Abc_PrintTime( 1, "Expand sat    ", clkCheckS ); clkCheckS = 0;
+            Abc_PrintTime( 1, "Expand unsat  ", clkCheckU ); clkCheckU = 0;
+        }
+    }
+    Vec_StrFreeP( &vSop[0] );
+    Vec_StrFreeP( &vSop[1] );
+    return vRes;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [This code computes on-set and off-set simultaneously.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Str_t * Bmc_CollapseOne_int2( sat_solver * pSat, int nVars, int nCubeLim, int nBTLimit, int fCanon, int fReverse, int fVerbose )
+{
+    int fVeryVerbose = fVerbose;
+    Vec_Str_t * vSop[2]   = { Vec_StrAlloc(1000),  Vec_StrAlloc(1000)  }, * vRes = NULL;
+    Vec_Int_t * vVars = Vec_IntAlloc( nVars+1 );
+    Vec_Int_t * vLits = Vec_IntAlloc( nVars+1 );
+    Vec_Int_t * vNums = Vec_IntAlloc( nVars+1 );
+    Vec_Int_t * vCube = Vec_IntAlloc( nVars+1 );
+    int n, v, iVar, pLits[2], iCube = 0, Start, status;
+    abctime clk = 0, Time[2][2] = {{0}};
+    int fComplete[2] = {0};
+    // variables
+    int iOutVar    = 2;
+    int iOOVars[2] = {0, 1};
+//    int iOutVar    = 1;
+//    int iOOVars[2] = {sat_solver_nvars(pSat) - 5, sat_solver_nvars(pSat) - 5 + 1};
+
+    // collect CI variables (0 = onset enable, 1 = offset enable, 2 = output)
+    int iCiVarBeg = 3;
+//    int iCiVarBeg = sat_solver_nvars(pSat) - 5 - nVars;
+    if ( fReverse )
+        for ( v = nVars - 1; v >= 0; v-- )
+            Vec_IntPush( vVars, iCiVarBeg + v );
+    else
+        for ( v = 0; v < nVars; v++ )
+            Vec_IntPush( vVars, iCiVarBeg + v );
+
+    // check that on-set/off-set is sat
+    for ( n = 0; n < 2; n++ )
+    {
+        pLits[0] = Abc_Var2Lit( iOutVar, n ); // n=0 => F=1   n=1 => F=0
+        status = sat_solver_solve( pSat, pLits, pLits + 1, nBTLimit, 0, 0, 0 );
+        if ( status == l_Undef )
+            goto cleanup; // timeout
+        if ( status == l_False )
+        {
+            Vec_StrClear( vSop[0] );
+            Vec_StrPrintStr( vSop[0], n ? " 1\n" : " 0\n" );
+            Vec_StrPush( vSop[0], '\0' );
+            fComplete[0] = 1;
+            goto cleanup; // const0/1
+        }
+        // start cover
+        Vec_StrPush( vSop[n], '\0' );
+    }
+
+    // compute cube pairs
+    for ( iCube = 0; nCubeLim == 0 || iCube < nCubeLim; iCube++ )
+    {
+        for ( n = 0; n < 2; n++ )
+        {
+            if ( fVeryVerbose ) clk = Abc_Clock();
+            // get the assignment
+            sat_solver_clean_polarity( pSat, Vec_IntArray(vVars), Vec_IntSize(vVars) );
+            pLits[0] = Abc_Var2Lit( iOutVar, n );    // set output
+            pLits[1] = Abc_Var2Lit( iOOVars[n], 1 ); // enable clauses
+            status = sat_solver_solve( pSat, pLits, pLits + 2, 0, 0, 0, 0 );
+            if ( fVeryVerbose ) Time[n][0] += Abc_Clock() - clk;
+            if ( status == l_Undef )
+                goto cleanup; // timeout
+            if ( status == l_False )
+            {
+                fComplete[n] = 1;
+                break;
+            }
+            // collect values
+            Vec_IntClear( vLits );
+            Vec_IntForEachEntry( vVars, iVar, v )
+                Vec_IntPush( vLits, Abc_Var2Lit(iVar, !sat_solver_var_value(pSat, iVar)) );
+            // expand the values
+            if ( fVeryVerbose ) clk = Abc_Clock();
+            status = Bmc_CollapseExpand( pSat, NULL, vLits, vNums, vCube, nBTLimit, fCanon, Abc_Var2Lit(iOutVar, !n) );
+            if ( fVeryVerbose ) Time[n][1] += Abc_Clock() - clk;
+            if ( status < 0 )
+                goto cleanup; // timeout
+            // collect cube
+            Vec_StrPop( vSop[n] );
+            Start = Vec_StrSize( vSop[n] );
+            Vec_StrFillExtra( vSop[n], Start + nVars + 4, '-' );
+            Vec_StrWriteEntry( vSop[n], Start + nVars + 0, ' ' );
+            Vec_StrWriteEntry( vSop[n], Start + nVars + 1, (char)(n ? '0' : '1') );
+            Vec_StrWriteEntry( vSop[n], Start + nVars + 2, '\n' );
+            Vec_StrWriteEntry( vSop[n], Start + nVars + 3, '\0' );
+            Vec_IntClear( vCube );
+            Vec_IntForEachEntry( vNums, iVar, v )
+            {
+                int iLit = Vec_IntEntry( vLits, iVar );
+                Vec_IntPush( vCube, Abc_LitNot(iLit) );
+                if ( fReverse )
+                    Vec_StrWriteEntry( vSop[n], Start + nVars - iVar - 1, (char)('0' + !Abc_LitIsCompl(iLit)) );
+                else 
+                    Vec_StrWriteEntry( vSop[n], Start + iVar, (char)('0' + !Abc_LitIsCompl(iLit)) );
+            }
+            // add cube
+            Vec_IntPush( vCube, Abc_Var2Lit( iOOVars[n], 0 ) );
+            status = sat_solver_addclause( pSat, Vec_IntArray(vCube), Vec_IntLimit(vCube) );
+            if ( status == 0 )
+            {
+                fComplete[n] = 1;
+                break;
+            }
+            assert( status == 1 );
+        }
+        if ( fComplete[0] || fComplete[1] )
+            break;
+    }
+cleanup:
+    Vec_IntFree( vVars );
+    Vec_IntFree( vLits );
+    Vec_IntFree( vNums );
+    Vec_IntFree( vCube );
+    assert( !fComplete[0] || !fComplete[1] );
+    if ( fComplete[0] || fComplete[1] ) // one of the cover is computed
+    {
+        vRes = vSop[fComplete[1]]; vSop[fComplete[1]] = NULL;
+        if ( iCube > 1 )
+//            Bmc_CollapseIrredundant( vRes, Vec_StrSize(vRes)/(nVars +3), nVars );
+            Bmc_CollapseIrredundantFull( vRes, Vec_StrSize(vRes)/(nVars +3), nVars );
+    }
+    if ( fVeryVerbose )
+    {
+        int fProfile = 0;
+        printf( "Processed output with %d supp vars. ", nVars );
+        if ( vRes == NULL )
+            printf( "The resulting SOP exceeded %d cubes.\n", nCubeLim );
+        else 
+            printf( "The best cover contains %d cubes.\n", Vec_StrSize(vRes)/(nVars +3) );
+        Abc_PrintTime( 1, "Onset  minterm", Time[0][0] );
+        Abc_PrintTime( 1, "Onset  expand ", Time[0][1] );
+        Abc_PrintTime( 1, "Offset minterm", Time[1][0] );
+        Abc_PrintTime( 1, "Offset expand ", Time[1][1] );
+        if ( fProfile )
+        {
+            Abc_PrintTime( 1, "Expand check1 ", clkCheck1 ); clkCheck1 = 0;
+            Abc_PrintTime( 1, "Expand check2 ", clkCheck2 ); clkCheck2 = 0;
+            Abc_PrintTime( 1, "Expand sat    ", clkCheckS ); clkCheckS = 0;
+            Abc_PrintTime( 1, "Expand unsat  ", clkCheckU ); clkCheckU = 0;
+        }
+    }
+    Vec_StrFreeP( &vSop[0] );
+    Vec_StrFreeP( &vSop[1] );
+    return vRes;
+}
+Vec_Str_t * Bmc_CollapseOne( Gia_Man_t * p, int nCubeLim, int nBTLimit, int fCanon, int fReverse, int fVerbose )
+{
+    Cnf_Dat_t * pCnf = Mf_ManGenerateCnf( p, 8, 0, 0, 0 );
+    sat_solver * pSat = (sat_solver *)Cnf_DataWriteIntoSolver(pCnf, 1, 0);
+    Vec_Str_t * vSop = Bmc_CollapseOne_int2( pSat, Gia_ManCiNum(p), nCubeLim, nBTLimit, fCanon, fReverse, fVerbose );
+    sat_solver_delete( pSat );
+    Cnf_DataFree( pCnf );
+    return vSop;
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    [This code computes on-set and off-set simultaneously.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Str_t * Bmc_CollapseOne_int( sat_solver * pSat1, sat_solver * pSat2, int nVars, int nCubeLim, int nBTLimit, int fCanon, int fReverse, int fVerbose )
+{
+    int fVeryVerbose = fVerbose;
+    sat_solver * pSat[2] = { pSat1, pSat2 };
+    Vec_Str_t * vSop[2]  = { Vec_StrAlloc(1000),  Vec_StrAlloc(1000)  }, * vRes = NULL;
+    Vec_Int_t * vVars = Vec_IntAlloc( nVars+1 );
+    Vec_Int_t * vLits = Vec_IntAlloc( nVars+1 );
+    Vec_Int_t * vNums = Vec_IntAlloc( nVars+1 );
+    Vec_Int_t * vCube = Vec_IntAlloc( nVars+1 );
+    int n, v, iVar, pLits[2], iCube = 0, Start, status;
+    abctime clk = 0, Time[2][2] = {{0}};
+    int fComplete[2] = {0};
+    // variables
+    int iOutVar    = 2;
+    int iOOVars[2] = {0, 1};
+//    int iOutVar    = 1;
+//    int iOOVars[2] = {sat_solver_nvars(pSat) - 5, sat_solver_nvars(pSat) - 5 + 1};
+
+    // collect CI variables (0 = onset enable, 1 = offset enable, 2 = output)
+    int iCiVarBeg = 3;
+//    int iCiVarBeg = sat_solver_nvars(pSat) - 5 - nVars;
+    if ( fReverse )
+        for ( v = nVars - 1; v >= 0; v-- )
+            Vec_IntPush( vVars, iCiVarBeg + v );
+    else
+        for ( v = 0; v < nVars; v++ )
+            Vec_IntPush( vVars, iCiVarBeg + v );
+
+    // check that on-set/off-set is sat
+    for ( n = 0; n < 2; n++ )
+    {
+        pLits[0] = Abc_Var2Lit( iOutVar, n ); // n=0 => F=1   n=1 => F=0
+        status = sat_solver_solve( pSat[n], pLits, pLits + 1, nBTLimit, 0, 0, 0 );
+        if ( status == l_Undef )
+            goto cleanup; // timeout
+        if ( status == l_False )
+        {
+            Vec_StrClear( vSop[0] );
+            Vec_StrPrintStr( vSop[0], n ? " 1\n" : " 0\n" );
+            Vec_StrPush( vSop[0], '\0' );
+            fComplete[0] = 1;
+            goto cleanup; // const0/1
+        }
+        // add literals to the solver
+        status = sat_solver_addclause( pSat[n], pLits, pLits + 1 );
+        assert( status );
+        // start cover
+        Vec_StrPush( vSop[n], '\0' );
+    }
+
+    // compute cube pairs
+    for ( iCube = 0; nCubeLim == 0 || iCube < nCubeLim; iCube++ )
+    {
+        for ( n = 0; n < 2; n++ )
+        {
+            if ( fVeryVerbose ) clk = Abc_Clock();
+            // get the assignment
+            sat_solver_clean_polarity( pSat[n], Vec_IntArray(vVars), Vec_IntSize(vVars) );
+            pLits[0] = Abc_Var2Lit( iOOVars[n], 1 ); // enable clauses
+//            pLits[1] = Abc_Var2Lit( iOutVar, n );    // set output
+//            status = sat_solver_solve( pSat, pLits, pLits + 2, 0, 0, 0, 0 );
+            status = sat_solver_solve( pSat[n], pLits, pLits + 1, 0, 0, 0, 0 );
+            if ( fVeryVerbose ) Time[n][0] += Abc_Clock() - clk;
+            if ( status == l_Undef )
+                goto cleanup; // timeout
+            if ( status == l_False )
+            {
+                fComplete[n] = 1;
+                break;
+            }
+            // collect values
+            Vec_IntClear( vLits );
+            Vec_IntForEachEntry( vVars, iVar, v )
+                Vec_IntPush( vLits, Abc_Var2Lit(iVar, !sat_solver_var_value(pSat[n], iVar)) );
+            // expand the values
+            if ( fVeryVerbose ) clk = Abc_Clock();
+//            status = Bmc_CollapseExpand( pSat, NULL, vLits, vNums, vCube, nBTLimit, fCanon, Abc_Var2Lit(iOutVar, !n) );
+            status = Bmc_CollapseExpand( pSat[!n], NULL, vLits, vNums, vCube, nBTLimit, fCanon, -1 );
+            if ( fVeryVerbose ) Time[n][1] += Abc_Clock() - clk;
+            if ( status < 0 )
+                goto cleanup; // timeout
+            // collect cube
+            Vec_StrPop( vSop[n] );
+            Start = Vec_StrSize( vSop[n] );
+            Vec_StrFillExtra( vSop[n], Start + nVars + 4, '-' );
+            Vec_StrWriteEntry( vSop[n], Start + nVars + 0, ' ' );
+            Vec_StrWriteEntry( vSop[n], Start + nVars + 1, (char)(n ? '0' : '1') );
+            Vec_StrWriteEntry( vSop[n], Start + nVars + 2, '\n' );
+            Vec_StrWriteEntry( vSop[n], Start + nVars + 3, '\0' );
+            Vec_IntClear( vCube );
+            Vec_IntForEachEntry( vNums, iVar, v )
+            {
+                int iLit = Vec_IntEntry( vLits, iVar );
+                Vec_IntPush( vCube, Abc_LitNot(iLit) );
+                if ( fReverse )
+                    Vec_StrWriteEntry( vSop[n], Start + nVars - iVar - 1, (char)('0' + !Abc_LitIsCompl(iLit)) );
+                else 
+                    Vec_StrWriteEntry( vSop[n], Start + iVar, (char)('0' + !Abc_LitIsCompl(iLit)) );
+            }
+            // add cube
+            Vec_IntPush( vCube, Abc_Var2Lit( iOOVars[n], 0 ) );
+//            status = sat_solver_addclause( pSat, Vec_IntArray(vCube), Vec_IntLimit(vCube) );
+            status = sat_solver_addclause( pSat[n], Vec_IntArray(vCube), Vec_IntLimit(vCube) );
+            if ( status == 0 )
+            {
+                fComplete[n] = 1;
+                break;
+            }
+            assert( status == 1 );
+        }
+        if ( fComplete[0] || fComplete[1] )
+            break;
+    }
+cleanup:
+    Vec_IntFree( vVars );
+    Vec_IntFree( vLits );
+    Vec_IntFree( vNums );
+    Vec_IntFree( vCube );
     assert( !fComplete[0] || !fComplete[1] );
     if ( fComplete[0] || fComplete[1] ) // one of the cover is computed
     {
