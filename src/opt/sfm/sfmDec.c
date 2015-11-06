@@ -82,8 +82,11 @@ struct Sfm_Dec_t_
     Vec_Wrd_t         vSets[2];    // onset/offset patterns
     int               nPats[2];    // CEX count
     int               nPatWords[2];// CEX words
+    int               nDivWords;   // div words
+    int               nDivWordsAlloc; // div words
     word              TtElems[SFM_SUPP_MAX][SFM_WORD_MAX];
     word *            pTtElems[SFM_SUPP_MAX];
+    word *            pDivWords[SFM_SUPP_MAX];
     // temporary
     Vec_Int_t         vTemp;
     Vec_Int_t         vTemp2;
@@ -159,7 +162,7 @@ void Sfm_ParSetDefault3( Sfm_Par_t * pPars )
     memset( pPars, 0, sizeof(Sfm_Par_t) );
     pPars->nTfoLevMax   =  100;  // the maximum fanout levels
     pPars->nTfiLevMax   =  100;  // the maximum fanin levels
-    pPars->nFanoutMax   =    5;  // the maximum number of fanoutsp
+    pPars->nFanoutMax   =   10;  // the maximum number of fanouts
     pPars->nMffcMin     =    1;  // the maximum MFFC size
     pPars->nMffcMax     =    3;  // the maximum MFFC size
     pPars->nVarMax      =    6;  // the maximum variable count
@@ -233,6 +236,9 @@ void Sfm_DecStop( Sfm_Dec_t * p )
             printf( "Level count mismatch at node %d.\n", i );
     Sfm_LibStop( p->pLib );
     if ( p->pTim ) Sfm_TimStop( p->pTim );
+    // divisors
+    for ( i = 0; i < SFM_SUPP_MAX; i++ )
+        ABC_FREE( p->pDivWords[i] );
     // library
     Vec_IntErase( &p->vGateSizes );
     Vec_WrdErase( &p->vGateFuncs );
@@ -352,11 +358,21 @@ static inline word Sfm_ObjFindCareSet( Abc_Ntk_t * pNtk, Vec_Int_t * vRoots )
 }
 static inline void Sfm_ObjSetupSimInfo( Abc_Obj_t * pObj )
 {
-    Sfm_Dec_t * p = Sfm_DecMan( pObj );
+    Sfm_Dec_t * p = Sfm_DecMan( pObj ); int i;
     p->nPats[0]     = p->nPats[1] = 0;
     p->nPatWords[0] = p->nPatWords[1] = 0;
     Vec_WrdFill( &p->vSets[0], p->nDivs*SFM_SIM_WORDS, 0 );
     Vec_WrdFill( &p->vSets[1], p->nDivs*SFM_SIM_WORDS, 0 );
+    // alloc divwords
+    p->nDivWords = Abc_Bit6WordNum( 4 * p->nDivs );
+    if ( p->nDivWordsAlloc < p->nDivWords )
+    {
+        p->nDivWordsAlloc = Abc_MaxInt( 16, p->nDivWords );
+        for ( i = 0; i < SFM_SUPP_MAX; i++ )
+            p->pDivWords[i] = ABC_REALLOC( word, p->pDivWords[i], p->nDivWordsAlloc );
+    }
+    memset( p->pDivWords[0], 0, sizeof(word) * p->nDivWords );
+    // collect simulation info
     if ( p->pPars->fUseSim && p->uCareSet != 0 )
     {
         word uCareSet = p->uCareSet;
@@ -576,6 +592,68 @@ void Sfm_DecPrint( Sfm_Dec_t * p, word Masks[2][SFM_SIM_WORDS] )
   SeeAlso     []
 
 ***********************************************************************/
+void Sfm_DecVarCost( Sfm_Dec_t * p, word Masks[2][SFM_SIM_WORDS], int d, int Counts[2][2] )
+{
+    int c; 
+    for ( c = 0; c < 2; c++ )
+    {
+        word * pPats = Sfm_DecDivPats( p, d, c );
+        int Num = Abc_TtCountOnesVec( Masks[c], p->nPatWords[c] );
+        Counts[c][1] = Abc_TtCountOnesVecMask( pPats, Masks[c], p->nPatWords[c], 0 );
+        Counts[c][0] = Num - Counts[c][1];
+        assert( Counts[c][0] >= 0 && Counts[c][1] >= 0 );
+    }
+    //printf( "%5d %5d   %5d %5d \n", Counts[0][0], Counts[0][1], Counts[1][0], Counts[1][1] );
+}
+int Sfm_DecFindBestVar2( Sfm_Dec_t * p, word Masks[2][SFM_SIM_WORDS] )
+{
+    int Counts[2][2];
+    int d, VarBest = -1, CostBest = ABC_INFINITY, Cost;
+    for ( d = 0; d < p->nDivs; d++ )
+    {
+        Sfm_DecVarCost( p, Masks, d, Counts );
+        if ( (Counts[0][0] < Counts[0][1]) == (Counts[1][0] < Counts[1][1]) )
+            continue;
+        Cost = Abc_MinInt(Counts[0][0], Counts[0][1]) + Abc_MinInt(Counts[1][0], Counts[1][1]);
+        if ( CostBest > Cost )
+        {
+            CostBest = Cost;
+            VarBest = d;
+        }
+    }
+    return VarBest;
+}
+int Sfm_DecFindBestVar( Sfm_Dec_t * p, word Masks[2][SFM_SIM_WORDS] )
+{
+    int c, i, iLit, Var = -1, Cost, CostMin = ABC_INFINITY;
+    for ( c = 0; c < 2; c++ )
+    {
+        Vec_IntForEachEntry( &p->vImpls[c], iLit, i )
+        {
+            if ( Vec_IntSize(&p->vImpls[c]) > 1 && Vec_IntFind(&p->vObjDec, Abc_Lit2Var(iLit)) >= 0 )
+                continue;
+            Cost = Sfm_DecFindCost( p, c, iLit, Masks[!c] );
+            if ( CostMin > Cost )
+            {
+                CostMin = Cost;
+                Var = Abc_Lit2Var(iLit);
+            }
+        }
+    }
+    return Var;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 int Sfm_DecMffcArea( Abc_Ntk_t * pNtk, Vec_Int_t * vMffc )
 {
     Abc_Obj_t * pObj; 
@@ -710,8 +788,8 @@ int Sfm_DecPeformDec_rec( Sfm_Dec_t * p, word * pTruth, int * pSupp, int * pAssu
 {
     int nBTLimit = p->pPars->nBTLimit;
 //    int fVerbose = p->pPars->fVeryVerbose;
-    int Var = -1, CostMin = ABC_INFINITY;
-    int c, i, d, iLit, Cost, status;
+    int c, i, d, iLit, status, Var = -1;
+    word * pDivWords = p->pDivWords[nAssump];
     abctime clk;
     assert( nAssump <= SFM_SUPP_MAX );
     if ( p->pPars->fVeryVerbose )
@@ -786,11 +864,19 @@ int Sfm_DecPeformDec_rec( Sfm_Dec_t * p, word * pTruth, int * pSupp, int * pAssu
             int fHas1s = Abc_TtIntersect( pPats, Masks[c], p->nPatWords[c], 0 );
             if ( fHas0s && fHas1s )
                 continue;
-            p->nSatCalls++;
             pAssump[nAssump]   = Abc_Var2Lit( p->iTarget, c );
             pAssump[nAssump+1] = Abc_Var2Lit( d, fHas1s ); // if there are 1s, check if 0 is SAT
             clk = Abc_Clock();
-            status = sat_solver_solve( p->pSat, pAssump, pAssump + nAssump + 2, nBTLimit, 0, 0, 0 );
+            if ( Abc_TtGetBit( pDivWords, 4*d+2*c+fHas1s ) )
+            {
+                p->nSatCallsUnsat--;
+                status = l_False;
+            }
+            else
+            {
+                p->nSatCalls++;
+                status = sat_solver_solve( p->pSat, pAssump, pAssump + nAssump + 2, nBTLimit, 0, 0, 0 );
+            }
             if ( status == l_Undef )
             {
                 p->nTimeOuts++;
@@ -802,6 +888,7 @@ int Sfm_DecPeformDec_rec( Sfm_Dec_t * p, word * pTruth, int * pSupp, int * pAssu
                 p->timeSatUnsat += Abc_Clock() - clk;
                 Impls[c] = Abc_LitNot(pAssump[nAssump+1]);
                 Vec_IntPush( &p->vImpls[c], Abc_LitNot(pAssump[nAssump+1]) );
+                Abc_TtSetBit( pDivWords, 4*d+2*c+fHas1s );
                 continue;
             }
             assert( status == l_True );
@@ -914,20 +1001,9 @@ int Sfm_DecPeformDec_rec( Sfm_Dec_t * p, word * pTruth, int * pSupp, int * pAssu
 
     // find the best cofactoring variable
 //    if ( !fCofactor || Vec_IntSize(&p->vImpls[0]) + Vec_IntSize(&p->vImpls[1]) > 2 )
-    for ( c = 0; c < 2; c++ )
-    {
-        Vec_IntForEachEntry( &p->vImpls[c], iLit, i )
-        {
-            if ( Vec_IntSize(&p->vImpls[c]) > 1 && Vec_IntFind(&p->vObjDec, Abc_Lit2Var(iLit)) >= 0 )
-                continue;
-            Cost = Sfm_DecFindCost( p, c, iLit, Masks[!c] );
-            if ( CostMin > Cost )
-            {
-                CostMin = Cost;
-                Var = Abc_Lit2Var(iLit);
-            }
-        }
-    }
+    Var = Sfm_DecFindBestVar( p, Masks );
+//    if ( Var == -1 )
+//        Var = Sfm_DecFindBestVar2( p, Masks );
 
 /*
     {
@@ -962,7 +1038,7 @@ int Sfm_DecPeformDec_rec( Sfm_Dec_t * p, word * pTruth, int * pSupp, int * pAssu
     if ( p->pPars->fVeryVerbose )
     {
         Sfm_DecPrint( p, Masks );
-        printf( "Best var %d with weight %d.  Cofactored = %s\n", Var, CostMin, Var == p->nDivs - 1 ? "yes" : "no" );
+        printf( "Best var %d\n", Var );
         printf( "\n" );
     }
 cofactor:
@@ -981,6 +1057,7 @@ cofactor:
                     MasksNext[c][w] = 0;
             }
             pAssump[nAssump] = Abc_Var2Lit( Var, !i );
+            memcpy( p->pDivWords[nAssump+1], p->pDivWords[nAssump], sizeof(word) * p->nDivWords );
             nSupp[i] = Sfm_DecPeformDec_rec( p, uTruth[i], Supp[i], pAssump, nAssump+1, MasksNext, fCofactor, (i ? nSupp[0] : 0) + nSuppAdd + 1 );
             if ( nSupp[i] == -2 )
                 return -2;
