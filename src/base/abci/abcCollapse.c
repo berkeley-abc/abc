@@ -643,12 +643,15 @@ int Abc_NtkCollapseCountVars( Vec_Str_t * vSop, Vec_Int_t * vSupp )
   SeeAlso     []
 
 ***********************************************************************/
-sat_solver * Abc_NtkClpDeriveSatSolver( Cnf_Dat_t * pCnf, int iCoObjId, Vec_Int_t * vSupp, Vec_Int_t * vAnds, Vec_Int_t * vMap, sat_solver ** ppSat )
+sat_solver * Abc_NtkClpDeriveSatSolver( Cnf_Dat_t * pCnf, int iCoObjId, Vec_Int_t * vSupp, Vec_Int_t * vAnds, Vec_Int_t * vMap, sat_solver ** ppSat1, sat_solver ** ppSat2, sat_solver ** ppSat3 )
 {
     int i, k, iObj, status, nVars = 2;
+//    int i, k, iObj, status, nVars = 1;
     Vec_Int_t * vLits = Vec_IntAlloc( 16 );
     sat_solver * pSat = sat_solver_new();
-    if ( ppSat ) *ppSat = sat_solver_new();
+    if ( ppSat1 ) *ppSat1 = sat_solver_new();
+    if ( ppSat2 ) *ppSat2 = sat_solver_new();
+    if ( ppSat3 ) *ppSat3 = sat_solver_new();
     // assign SAT variable numbers
     Vec_IntWriteEntry( vMap, iCoObjId, nVars++ );
     Vec_IntForEachEntry( vSupp, iObj, k )
@@ -656,9 +659,13 @@ sat_solver * Abc_NtkClpDeriveSatSolver( Cnf_Dat_t * pCnf, int iCoObjId, Vec_Int_
     Vec_IntForEachEntry( vAnds, iObj, k )
         if ( pCnf->pObj2Clause[iObj] != -1 )
             Vec_IntWriteEntry( vMap, iObj, nVars++ );
+//    Vec_IntForEachEntry( vSupp, iObj, k )
+//        Vec_IntWriteEntry( vMap, iObj, nVars++ );
     // create clauses for the internal nodes and for the output
     sat_solver_setnvars( pSat, nVars );
-    if ( ppSat ) sat_solver_setnvars( *ppSat, nVars );
+    if ( ppSat1 ) sat_solver_setnvars( *ppSat1, nVars );
+    if ( ppSat2 ) sat_solver_setnvars( *ppSat2, nVars );
+    if ( ppSat3 ) sat_solver_setnvars( *ppSat3, nVars );
     Vec_IntPush( vAnds, iCoObjId );
     Vec_IntForEachEntry( vAnds, iObj, k )
     {
@@ -676,7 +683,9 @@ sat_solver * Abc_NtkClpDeriveSatSolver( Cnf_Dat_t * pCnf, int iCoObjId, Vec_Int_
             status = sat_solver_addclause( pSat, Vec_IntArray(vLits), Vec_IntArray(vLits)+Vec_IntSize(vLits) );
             assert( status );
             (void) status;
-            if ( ppSat ) sat_solver_addclause( *ppSat, Vec_IntArray(vLits), Vec_IntArray(vLits)+Vec_IntSize(vLits) );
+            if ( ppSat1 ) sat_solver_addclause( *ppSat1, Vec_IntArray(vLits), Vec_IntArray(vLits)+Vec_IntSize(vLits) );
+            if ( ppSat2 ) sat_solver_addclause( *ppSat2, Vec_IntArray(vLits), Vec_IntArray(vLits)+Vec_IntSize(vLits) );
+            if ( ppSat3 ) sat_solver_addclause( *ppSat3, Vec_IntArray(vLits), Vec_IntArray(vLits)+Vec_IntSize(vLits) );
         }
     }
     Vec_IntPop( vAnds );
@@ -696,15 +705,15 @@ sat_solver * Abc_NtkClpDeriveSatSolver( Cnf_Dat_t * pCnf, int iCoObjId, Vec_Int_
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Str_t * Abc_NtkClpGiaOne( Gia_Man_t * p, int iCo, int nCubeLim, int nBTLimit, int fVerbose, int fCanon, int fReverse, Vec_Int_t * vSupp )
+Vec_Str_t * Abc_NtkClpGiaOne( Gia_Man_t * p, int iCo, int nCubeLim, int nBTLimit, int fCanon, int fReverse, Vec_Int_t * vSupp, int fVerbose )
 {
     Vec_Str_t * vSop;
     abctime clk = Abc_Clock();
-    extern Vec_Str_t * Bmc_CollapseOne( Gia_Man_t * p, int nCubeLim, int nBTLimit, int fCanon, int fReverse, int fVerbose );
+    extern Vec_Str_t * Bmc_CollapseOneOld( Gia_Man_t * p, int nCubeLim, int nBTLimit, int fCanon, int fReverse, int fVerbose );
     Gia_Man_t * pGia  = Gia_ManDupCones( p, &iCo, 1, 1 );
     if ( fVerbose )
         printf( "Output %4d:  Supp = %4d. Cone =%6d.\n", iCo, Vec_IntSize(vSupp), Gia_ManAndNum(pGia) );
-    vSop = Bmc_CollapseOne( pGia, nCubeLim, nBTLimit, fCanon, fReverse, fVerbose );
+    vSop = Bmc_CollapseOneOld( pGia, nCubeLim, nBTLimit, fCanon, fReverse, fVerbose );
     Gia_ManStop( pGia );
     if ( vSop == NULL )
         return NULL;
@@ -718,13 +727,15 @@ Vec_Str_t * Abc_NtkClpGiaOne( Gia_Man_t * p, int iCo, int nCubeLim, int nBTLimit
         Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     return vSop; 
 }
-Vec_Str_t * Abc_NtkClpGiaOne2( Cnf_Dat_t * pCnf, Gia_Man_t * p, int iCo, int nCubeLim, int nBTLimit, int fVerbose, int fCanon, int fReverse, Vec_Int_t * vSupp, Vec_Int_t * vMap )
+Vec_Str_t * Abc_NtkClpGiaOne2( Cnf_Dat_t * pCnf, Gia_Man_t * p, int iCo, int nCubeLim, int nBTLimit, int fCanon, int fReverse, Vec_Int_t * vSupp, Vec_Int_t * vMap, int fVerbose )
 {
     Vec_Str_t * vSop;
-    sat_solver * pSat, * pSat2 = NULL;
+    sat_solver * pSat, * pSat1 = NULL, * pSat2 = NULL, * pSat3 = NULL;
     Gia_Obj_t * pObj;
     abctime clk = Abc_Clock();
-    extern Vec_Str_t * Bmc_CollapseOne_int( sat_solver * pSat, sat_solver * pSat2, int nVars, int nCubeLim, int nBTLimit, int fCanon, int fReverse, int fVerbose );
+    extern Vec_Str_t * Bmc_CollapseOne_int( sat_solver * pSat, int nVars, int nCubeLim, int nBTLimit, int fCanon, int fReverse, int fVerbose );
+    extern Vec_Str_t * Bmc_CollapseOne_int2( sat_solver * pSat, sat_solver * pSat2, int nVars, int nCubeLim, int nBTLimit, int fCanon, int fReverse, int fVerbose );
+    extern Vec_Str_t * Bmc_CollapseOne_int3( sat_solver * pSat, sat_solver * pSat1, sat_solver * pSat2, sat_solver * pSat3, int nVars, int nCubeLim, int nBTLimit, int fCanon, int fReverse, int fVerbose );
     int i, iCoObjId = Gia_ObjId( p, Gia_ManCo(p, iCo) );
     Vec_Int_t * vAnds = Vec_IntAlloc( 100 );
     Vec_Int_t * vSuppObjs = Vec_IntAlloc( 100 );
@@ -733,13 +744,18 @@ Vec_Str_t * Abc_NtkClpGiaOne2( Cnf_Dat_t * pCnf, Gia_Man_t * p, int iCo, int nCu
     Gia_ManIncrementTravId( p );
     Gia_ManCollectAnds( p, &iCoObjId, 1, vAnds );
     assert( Vec_IntSize(vAnds) > 0 );
-    pSat = Abc_NtkClpDeriveSatSolver( pCnf, iCoObjId, vSuppObjs, vAnds, vMap, &pSat2 );
+//    pSat = Abc_NtkClpDeriveSatSolver( pCnf, iCoObjId, vSuppObjs, vAnds, vMap, &pSat1, &pSat2, &pSat3 );
+    pSat = Abc_NtkClpDeriveSatSolver( pCnf, iCoObjId, vSuppObjs, vAnds, vMap, NULL, NULL, NULL );
     Vec_IntFree( vSuppObjs );
     if ( fVerbose )
         printf( "Output %4d:  Supp = %4d. Cone =%6d.\n", iCo, Vec_IntSize(vSupp), Vec_IntSize(vAnds) );
-    vSop = Bmc_CollapseOne_int( pSat, pSat2, Vec_IntSize(vSupp), nCubeLim, nBTLimit, fCanon, fReverse, fVerbose );
+//    vSop = Bmc_CollapseOne_int3( pSat, pSat1, pSat2, pSat3, Vec_IntSize(vSupp), nCubeLim, nBTLimit, fCanon, fReverse, fVerbose );
+//    vSop = Bmc_CollapseOne_int2( pSat, pSat1, Vec_IntSize(vSupp), nCubeLim, nBTLimit, fCanon, fReverse, fVerbose );
+    vSop = Bmc_CollapseOne_int( pSat, Vec_IntSize(vSupp), nCubeLim, nBTLimit, fCanon, fReverse, fVerbose );
     sat_solver_delete( pSat );
-    sat_solver_delete( pSat2 );
+    if ( pSat1 ) sat_solver_delete( pSat1 );
+    if ( pSat2 ) sat_solver_delete( pSat2 );
+    if ( pSat3 ) sat_solver_delete( pSat3 );
     Vec_IntFree( vAnds );
     if ( vSop == NULL )
         return NULL;
@@ -794,8 +810,8 @@ Vec_Ptr_t * Abc_GiaDeriveSops( Abc_Ntk_t * pNtkNew, Gia_Man_t * p, Vec_Wec_t * v
             Vec_PtrWriteEntry( vSopsRepr, iEntry, (void *)(ABC_PTRINT_T)1 );
             continue;
         }
-//        vSop  = Abc_NtkClpGiaOne( p, iCoThis, nCubeLim, nBTLimit, i ? 0 : fVerbose, fCanon, fReverse, vSupp );
-        vSop  = Abc_NtkClpGiaOne2( pCnf, p, iCoThis, nCubeLim, nBTLimit, i ? 0 : fVerbose, fCanon, fReverse, vSupp, vMap );
+      vSop  = Abc_NtkClpGiaOne( p, iCoThis, nCubeLim, nBTLimit, fCanon, fReverse, vSupp, i ? 0 : fVerbose );
+//      vSop  = Abc_NtkClpGiaOne2( pCnf, p, iCoThis, nCubeLim, nBTLimit, fCanon, fReverse, vSupp, vMap, i ? 0 : fVerbose );
         if ( vSop == NULL )
             goto finish;
         assert( Vec_IntSize( Vec_WecEntry(vSupps, iCoThis) ) == Abc_SopGetVarNum(Vec_StrArray(vSop)) );
