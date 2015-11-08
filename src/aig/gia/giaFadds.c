@@ -565,7 +565,7 @@ Gia_Man_t * Gia_ManGenerateExtraAig( int nBoxes, int nIns, int nOuts )
 void Gia_ManDupFadd( Gia_Man_t * pNew, Gia_Man_t * p, Vec_Int_t * vChain, Vec_Int_t * vFadds, Vec_Int_t * vMap, Vec_Wec_t * vChains, Vec_Int_t * vMap2Chain, Vec_Int_t * vTruths )
 {
     extern void Gia_ManDupWithFaddBoxes_rec( Gia_Man_t * pNew, Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Int_t * vFadds, Vec_Int_t * vMap, Vec_Wec_t * vChains, Vec_Int_t * vMap2Chain, Vec_Int_t * vTruths );
-    int i, k, iFadd, iCiLit, pLits[3];
+    int i, k, iFadd = -1, iCiLit, pLits[3];
     Gia_Obj_t * pObj;
     // construct FADD inputs
     Vec_IntForEachEntry( vChain, iFadd, i )

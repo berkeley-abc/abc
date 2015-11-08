@@ -55,6 +55,7 @@
 #include "opt/sfm/sfm.h"
 #include "bool/rpo/rpo.h"
 #include "map/mpm/mpm.h"
+#include "opt/fret/fretime.h"
 
 #ifndef _WIN32
 #include <unistd.h>
