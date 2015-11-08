@@ -34,6 +34,7 @@
 #include "misc/vec/vec.h"
 #include "sat/bsat/satSolver.h"
 #include "misc/util/utilNam.h"
+#include "map/scl/sclLib.h"
 #include "map/scl/sclCon.h"
 #include "misc/st/st.h"
 #include "map/mio/mio.h"
@@ -226,7 +227,7 @@ extern int          Sfm_TimPriorityNodes( Sfm_Tim_t * p, Vec_Int_t * vCands, int
 extern int          Sfm_TimNodeIsNonCritical( Sfm_Tim_t * p, Abc_Obj_t * pPivot, Abc_Obj_t * pNode );
 extern int          Sfm_TimEvalRemapping( Sfm_Tim_t * p, Vec_Int_t * vFanins, Vec_Int_t * vMap, Mio_Gate_t * pGate1, char * pFans1, Mio_Gate_t * pGate2, char * pFans2 );
 /*=== sfmMit.c ==========================================================*/
-extern Sfm_Mit_t *  Sfm_MitStart( Mio_Library_t * pLib, Scl_Con_t * pExt, Abc_Ntk_t * pNtk, int DeltaCrit );
+extern Sfm_Mit_t *  Sfm_MitStart( Mio_Library_t * pLib, SC_Lib * pScl, Scl_Con_t * pExt, Abc_Ntk_t * pNtk, int DeltaCrit );
 extern void         Sfm_MitStop( Sfm_Mit_t * p );
 extern int          Sfm_MitReadNtkDelay( Sfm_Mit_t * p );
 extern int          Sfm_MitReadObjDelay( Sfm_Mit_t * p, int iObj );

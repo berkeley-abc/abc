@@ -25,6 +25,8 @@
 #include "misc/util/utilTruth.h"
 #include "opt/dau/dau.h"
 #include "map/mio/exp.h"
+#include "map/scl/sclCon.h"
+#include "base/main/main.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -212,10 +214,10 @@ p->timeLib = Abc_Clock();
 p->timeLib = Abc_Clock() - p->timeLib;
     if ( !pPars->fArea )
     {
-        if ( p->pMit )
-            p->pMit = Sfm_MitStart( pLib, NULL, pNtk, p->DeltaCrit );
+        if ( Abc_FrameReadLibScl() )
+            p->pMit = Sfm_MitStart( pLib, (SC_Lib *)Abc_FrameReadLibScl(), Scl_ConReadMan(), pNtk, p->DeltaCrit );
         else
-            p->pTim = Sfm_TimStart( pLib, NULL, pNtk, p->DeltaCrit );
+            p->pTim = Sfm_TimStart( pLib, Scl_ConReadMan(), pNtk, p->DeltaCrit );
     }
     if ( pPars->fVeryVerbose )
 //    if ( pPars->fVerbose )

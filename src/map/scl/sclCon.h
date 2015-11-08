@@ -17,6 +17,9 @@
   Revision    [$Id: sclCon.h,v 1.0 2012/08/24 00:00:00 alanmi Exp $]
 
 ***********************************************************************/
+ 
+#ifndef ABC__scl_Con__h
+#define ABC__scl_Con__h
 
 ABC_NAMESPACE_HEADER_START
 
@@ -279,11 +282,11 @@ static inline float  Scl_ConGetOutReqFloat( int i )   { return Scl_Wrd2Flt( Scl_
 static inline float  Scl_ConGetOutLoadFloat( int i )  { return Scl_Wrd2Flt( Scl_ConGetOutLoad(i) );       }
 
 
+ABC_NAMESPACE_HEADER_END
+
+#endif
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
-
-
-ABC_NAMESPACE_HEADER_END
-
 
