@@ -73,13 +73,6 @@ ifndef ABC_USE_NO_READLINE
   $(info $(MSG_PREFIX)Using libreadline)
 endif
 
-# whether to use libreadline
-ifndef ABC_USE_NO_READLINE
-  CFLAGS += -DABC_USE_READLINE
-  LIBS += -lreadline
-  $(info $(MSG_PREFIX)Using libreadline)
-endif
-
 # whether to compile with thread support
 ifdef ABC_USE_NO_PTHREADS
   CFLAGS += -DABC_USE_PTHREADS
