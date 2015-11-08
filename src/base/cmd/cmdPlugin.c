@@ -641,38 +641,63 @@ int Cmd_CommandAbcPlugIn( Abc_Frame_t * pAbc, int argc, char ** argv )
 ***********************************************************************/
 int Cmd_CommandAbcLoadPlugIn( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    FILE * pFile;
+    int fPath, fVerbose;
+    int fd = -1, RetValue = -1, c;
+    FILE * pFile = NULL;
+    char * pStrDirBin = NULL, * pStrSection = NULL;
+    Vec_Str_t * sCommandLine = NULL;
+    char * pTempFile = NULL;
     char pBuffer[1000];
-    char * pCommandLine;
-    char * pTempFile;
-    char * pStrDirBin, * pStrSection;
-    int fd, RetValue;
 
-    if ( argc != 3 )
+    // set defaults
+    fPath = 0;
+    fVerbose = 0;
+
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "vph" ) ) != EOF )
     {
-        Abc_Print( -1, "Wrong number of arguments.\n" );
+        switch ( c )
+        {
+        case 'p':
+            fPath ^= 1;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        default:
         goto usage;
     }
-    // collect arguments
+    }
+
+    if ( argc != globalUtilOptind + 2 )
+        goto usage;
+
     pStrDirBin  = argv[argc-2];
     pStrSection = argv[argc-1];
 
     // check if the file exists
-    if ( (pFile = fopen( pStrDirBin, "r" )) == NULL )
+    if ( !fPath )
     {
-//        Abc_Print( -1, "Cannot run the binary \"%s\".\n", pStrDirBin );
-//        goto usage;
-        return 0;
+        FILE* pFile = fopen( pStrDirBin, "r" );
+
+        if ( !pFile )
+        {
+            Abc_Print( ABC_ERROR, "Cannot run the binary \"%s\". File does not exist.\n", pStrDirBin );
+            goto cleanup;
     }
+
     fclose( pFile );
+    }
 
     // create temp file
     fd = Util_SignalTmpFile( "__abctmp_", ".txt", &pTempFile );
+
     if ( fd == -1 )
     {
-        Abc_Print( -1, "Cannot create a temporary file.\n" );
-        goto usage;
+        Abc_Print( ABC_ERROR, "Cannot create a temporary file.\n" );
+        goto cleanup;
     }
+
 #ifdef WIN32
     _close( fd );
 #else
@@ -680,47 +705,76 @@ int Cmd_CommandAbcLoadPlugIn( Abc_Frame_t * pAbc, int argc, char ** argv )
 #endif
 
     // get command list
-    pCommandLine = ABC_ALLOC( char, 100 + strlen(pStrDirBin) + strlen(pTempFile) );
-//    sprintf( pCommandLine, "%s -abc -list-commands > %s", pStrDirBin, pTempFile );
-    sprintf( pCommandLine, "%s -abc -list-commands > %s", pStrDirBin, pTempFile );
-    RetValue = Util_SignalSystem( pCommandLine );
-    if ( RetValue == -1 )
+    sCommandLine = Vec_StrAlloc(1000);
+
+    Vec_StrPrintF(sCommandLine, "%s -abc -list-commands > %s", pStrDirBin, pTempFile );
+    Vec_StrPush(sCommandLine, '\0');
+
+    if(fVerbose)
     {
-        Abc_Print( -1, "Command \"%s\" did not succeed.\n", pCommandLine );
-        ABC_FREE( pCommandLine );
-        ABC_FREE( pTempFile );
-        goto usage;
+        Abc_Print(ABC_VERBOSE, "Running command %s\n", Vec_StrArray(sCommandLine));
     }
-    ABC_FREE( pCommandLine );
+
+    RetValue = Util_SignalSystem( Vec_StrArray(sCommandLine) );
+
+    if ( RetValue != 0 )
+    {
+        Abc_Print( ABC_ERROR, "Command \"%s\" failed.\n", Vec_StrArray(sCommandLine) );
+        goto cleanup;
+    }
 
     // create commands
     pFile = fopen( pTempFile, "r" );
+
     if ( pFile == NULL )
     {
         Abc_Print( -1, "Cannot open file with the list of commands.\n" );
-        ABC_FREE( pTempFile );
-        goto usage;
+
+        RetValue = -1;
+        goto cleanup;
     }
+
     while ( fgets( pBuffer, 1000, pFile ) != NULL )
     {
         if ( pBuffer[strlen(pBuffer)-1] == '\n' )
             pBuffer[strlen(pBuffer)-1] = 0;
+
         Cmd_CommandAdd( pAbc, pStrSection, pBuffer, Cmd_CommandAbcPlugIn, 1 );
-//        plugin_commands.push(Pair(cmd_name, binary_name));
+
         Vec_PtrPush( pAbc->vPlugInComBinPairs, Extra_UtilStrsav(pBuffer) );
         Vec_PtrPush( pAbc->vPlugInComBinPairs, Extra_UtilStrsav(pStrDirBin) );
-//        printf( "Creating command %s with binary %s\n", pBuffer, pStrDirBin );
+
+        if ( fVerbose )
+        {
+            Abc_Print(ABC_VERBOSE, "Creating command %s with binary %s\n", pBuffer, pStrDirBin);
     }
+    }
+
+cleanup:
+
+    if( pFile )
     fclose( pFile );
+
+    if( pTempFile )
     Util_SignalTmpFileRemove( pTempFile, 0 );
+
+    Vec_StrFreeP(&sCommandLine);
+
     ABC_FREE( pTempFile );
-    return 0;
+
+    return RetValue;
+
 usage:
-    Abc_Print( -2, "usage: load_plugin <plugin_dir\\binary_name> <section_name>\n" );
+
+    Abc_Print( -2, "usage: load_plugin [-pvh] <plugin_dir\\binary_name> <section_name>\n" );
     Abc_Print( -2, "\t        loads external binary as a plugin\n" );
+    Abc_Print( -2, "\t-p    : toggle searching the command in PATH [default = %s].\n", fPath? "yes": "no" );
+    Abc_Print( -2, "\t-v    : enable verbose output [default = %s].\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h    : print the command usage\n");
+
     return 1;
 }
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
@@ -728,4 +782,3 @@ usage:
 
 
 ABC_NAMESPACE_IMPL_END
-
