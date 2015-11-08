@@ -1,6 +1,6 @@
 /**CFile****************************************************************
 
-  FileName    [sfmTime.c]
+  FileName    [sfmMit.c]
 
   SystemName  [ABC: Logic synthesis and verification system.]
 
@@ -14,7 +14,7 @@
 
   Date        [Ver. 1.0. Started - June 20, 2005.]
 
-  Revision    [$Id: sfmTime.c,v 1.00 2005/06/20 00:00:00 alanmi Exp $]
+  Revision    [$Id: sfmMit.c,v 1.00 2005/06/20 00:00:00 alanmi Exp $]
 
 ***********************************************************************/
 
@@ -27,7 +27,7 @@ ABC_NAMESPACE_IMPL_START
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-struct Sfm_Tim_t_
+struct Sfm_Mit_t_
 {
     // external
     Mio_Library_t *   pLib;        // library
@@ -50,21 +50,21 @@ struct Sfm_Tim_t_
     Vec_Wrd_t         vSortData;   // node priority order
 };
 
-static inline int * Sfm_TimArrId( Sfm_Tim_t * p, int Id )                    { return Vec_IntEntryP( &p->vTimArrs,  Abc_Var2Lit(Id, 0) );               }
-static inline int * Sfm_TimReqId( Sfm_Tim_t * p, int Id )                    { return Vec_IntEntryP( &p->vTimReqs,  Abc_Var2Lit(Id, 0) );               }
-static inline int * Sfm_TimSlewId( Sfm_Tim_t * p, int Id )                   { return Vec_IntEntryP( &p->vTimSlews, Abc_Var2Lit(Id, 0) );               }
-static inline int * Sfm_TimLoadId( Sfm_Tim_t * p, int Id )                   { return Vec_IntEntryP( &p->vTimLoads, Abc_Var2Lit(Id, 0) );               }
+static inline int * Sfm_MitArrId( Sfm_Mit_t * p, int Id )                    { return Vec_IntEntryP( &p->vTimArrs,  Abc_Var2Lit(Id, 0) );               }
+static inline int * Sfm_MitReqId( Sfm_Mit_t * p, int Id )                    { return Vec_IntEntryP( &p->vTimReqs,  Abc_Var2Lit(Id, 0) );               }
+static inline int * Sfm_MitSlewId( Sfm_Mit_t * p, int Id )                   { return Vec_IntEntryP( &p->vTimSlews, Abc_Var2Lit(Id, 0) );               }
+static inline int * Sfm_MitLoadId( Sfm_Mit_t * p, int Id )                   { return Vec_IntEntryP( &p->vTimLoads, Abc_Var2Lit(Id, 0) );               }
 
-static inline int * Sfm_TimArr( Sfm_Tim_t * p, Abc_Obj_t * pNode )           { return Vec_IntEntryP( &p->vTimArrs,  Abc_Var2Lit(Abc_ObjId(pNode), 0) ); }
-static inline int * Sfm_TimReq( Sfm_Tim_t * p, Abc_Obj_t * pNode )           { return Vec_IntEntryP( &p->vTimReqs,  Abc_Var2Lit(Abc_ObjId(pNode), 0) ); }
-static inline int * Sfm_TimSlew( Sfm_Tim_t * p, Abc_Obj_t * pNode )          { return Vec_IntEntryP( &p->vTimSlews, Abc_Var2Lit(Abc_ObjId(pNode), 0) ); }
-static inline int * Sfm_TimLoad( Sfm_Tim_t * p, Abc_Obj_t * pNode )          { return Vec_IntEntryP( &p->vTimLoads, Abc_Var2Lit(Abc_ObjId(pNode), 0) ); }
+static inline int * Sfm_MitArr( Sfm_Mit_t * p, Abc_Obj_t * pNode )           { return Vec_IntEntryP( &p->vTimArrs,  Abc_Var2Lit(Abc_ObjId(pNode), 0) ); }
+static inline int * Sfm_MitReq( Sfm_Mit_t * p, Abc_Obj_t * pNode )           { return Vec_IntEntryP( &p->vTimReqs,  Abc_Var2Lit(Abc_ObjId(pNode), 0) ); }
+static inline int * Sfm_MitSlew( Sfm_Mit_t * p, Abc_Obj_t * pNode )          { return Vec_IntEntryP( &p->vTimSlews, Abc_Var2Lit(Abc_ObjId(pNode), 0) ); }
+static inline int * Sfm_MitLoad( Sfm_Mit_t * p, Abc_Obj_t * pNode )          { return Vec_IntEntryP( &p->vTimLoads, Abc_Var2Lit(Abc_ObjId(pNode), 0) ); }
 
-static inline int   Sfm_TimArrMaxId( Sfm_Tim_t * p, int Id )                 { int * a = Sfm_TimArrId(p, Id); return Abc_MaxInt(a[0], a[1]);            }
+static inline int   Sfm_MitArrMaxId( Sfm_Mit_t * p, int Id )                 { int * a = Sfm_MitArrId(p, Id); return Abc_MaxInt(a[0], a[1]);            }
 
-static inline int   Sfm_TimArrMax( Sfm_Tim_t * p, Abc_Obj_t * pNode )        { int * a = Sfm_TimArr(p, pNode); return Abc_MaxInt(a[0], a[1]);           }
-static inline void  Sfm_TimSetReq( Sfm_Tim_t * p, Abc_Obj_t * pNode, int t ) { int * r = Sfm_TimReq(p, pNode); r[0] = r[1] = t;                         }
-static inline int   Sfm_TimSlack( Sfm_Tim_t * p, Abc_Obj_t * pNode )         { int * r = Sfm_TimReq(p, pNode), * a = Sfm_TimArr(p, pNode); return Abc_MinInt(r[0]-a[0], r[1]-a[1]); }
+static inline int   Sfm_MitArrMax( Sfm_Mit_t * p, Abc_Obj_t * pNode )        { int * a = Sfm_MitArr(p, pNode); return Abc_MaxInt(a[0], a[1]);           }
+static inline void  Sfm_MitSetReq( Sfm_Mit_t * p, Abc_Obj_t * pNode, int t ) { int * r = Sfm_MitReq(p, pNode); r[0] = r[1] = t;                         }
+static inline int   Sfm_MitSlack( Sfm_Mit_t * p, Abc_Obj_t * pNode )         { int * r = Sfm_MitReq(p, pNode), * a = Sfm_MitArr(p, pNode); return Abc_MinInt(r[0]-a[0], r[1]-a[1]); }
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -81,7 +81,7 @@ static inline int   Sfm_TimSlack( Sfm_Tim_t * p, Abc_Obj_t * pNode )         { i
   SeeAlso     []
 
 ***********************************************************************/
-static inline void Sfm_TimEdgeArrival( Sfm_Tim_t * p, Mio_Pin_t * pPin, int * pTimeIn, int * pTimeOut )
+static inline void Sfm_MitEdgeArrival( Sfm_Mit_t * p, Mio_Pin_t * pPin, int * pTimeIn, int * pTimeOut )
 {
     Mio_PinPhase_t PinPhase = Mio_PinReadPhase(pPin);
     int tDelayBlockRise = (int)(MIO_NUM*Mio_PinReadDelayBlockRise(pPin));  
@@ -97,25 +97,25 @@ static inline void Sfm_TimEdgeArrival( Sfm_Tim_t * p, Mio_Pin_t * pPin, int * pT
         pTimeOut[1] = Abc_MaxInt( pTimeOut[1], pTimeIn[0] + tDelayBlockFall );
     }
 }
-static inline void Sfm_TimGateArrival( Sfm_Tim_t * p, Mio_Gate_t * pGate, int ** pTimesIn, int * pTimeOut )
+static inline void Sfm_MitGateArrival( Sfm_Mit_t * p, Mio_Gate_t * pGate, int ** pTimesIn, int * pTimeOut )
 {
     Mio_Pin_t * pPin;  int i = 0;
     pTimeOut[0] = pTimeOut[1] = 0;
     Mio_GateForEachPin( pGate, pPin )
-        Sfm_TimEdgeArrival( p, pPin, pTimesIn[i++], pTimeOut );
+        Sfm_MitEdgeArrival( p, pPin, pTimesIn[i++], pTimeOut );
     assert( i == Mio_GateReadPinNum(pGate) );
 }
-static inline void Sfm_TimNodeArrival( Sfm_Tim_t * p, Abc_Obj_t * pNode )
+static inline void Sfm_MitNodeArrival( Sfm_Mit_t * p, Abc_Obj_t * pNode )
 {
     int i, iFanin, * pTimesIn[6];
-    int * pTimeOut = Sfm_TimArr(p, pNode);
+    int * pTimeOut = Sfm_MitArr(p, pNode);
     assert( Abc_ObjFaninNum(pNode) <= 6 );
     Abc_ObjForEachFaninId( pNode, iFanin, i )
-        pTimesIn[i] = Sfm_TimArrId( p, iFanin );
-    Sfm_TimGateArrival( p, (Mio_Gate_t *)pNode->pData, pTimesIn, pTimeOut );
+        pTimesIn[i] = Sfm_MitArrId( p, iFanin );
+    Sfm_MitGateArrival( p, (Mio_Gate_t *)pNode->pData, pTimesIn, pTimeOut );
 }
 
-static inline void Sfm_TimEdgeRequired( Sfm_Tim_t * p, Mio_Pin_t * pPin, int * pTimeIn, int * pTimeOut )
+static inline void Sfm_MitEdgeRequired( Sfm_Mit_t * p, Mio_Pin_t * pPin, int * pTimeIn, int * pTimeOut )
 {
     Mio_PinPhase_t PinPhase = Mio_PinReadPhase(pPin);
     int tDelayBlockRise = (int)(MIO_NUM*Mio_PinReadDelayBlockRise(pPin));  
@@ -131,21 +131,21 @@ static inline void Sfm_TimEdgeRequired( Sfm_Tim_t * p, Mio_Pin_t * pPin, int * p
         pTimeIn[1] = Abc_MinInt( pTimeIn[1], pTimeOut[0] - tDelayBlockFall );
     }
 }
-static inline void Sfm_TimGateRequired( Sfm_Tim_t * p, Mio_Gate_t * pGate, int ** pTimesIn, int * pTimeOut )
+static inline void Sfm_MitGateRequired( Sfm_Mit_t * p, Mio_Gate_t * pGate, int ** pTimesIn, int * pTimeOut )
 {
     Mio_Pin_t * pPin;  int i = 0;
     Mio_GateForEachPin( pGate, pPin )
-        Sfm_TimEdgeRequired( p, pPin, pTimesIn[i++], pTimeOut );
+        Sfm_MitEdgeRequired( p, pPin, pTimesIn[i++], pTimeOut );
     assert( i == Mio_GateReadPinNum(pGate) );
 }
-void Sfm_TimNodeRequired( Sfm_Tim_t * p, Abc_Obj_t * pNode )
+void Sfm_MitNodeRequired( Sfm_Mit_t * p, Abc_Obj_t * pNode )
 {
     int i, iFanin, * pTimesIn[6];
-    int * pTimeOut = Sfm_TimReq(p, pNode);
+    int * pTimeOut = Sfm_MitReq(p, pNode);
     assert( Abc_ObjFaninNum(pNode) <= 6 );
     Abc_ObjForEachFaninId( pNode, iFanin, i )
-        pTimesIn[i] = Sfm_TimReqId( p, iFanin );
-    Sfm_TimGateRequired( p, (Mio_Gate_t *)pNode->pData, pTimesIn, pTimeOut );
+        pTimesIn[i] = Sfm_MitReqId( p, iFanin );
+    Sfm_MitGateRequired( p, (Mio_Gate_t *)pNode->pData, pTimesIn, pTimeOut );
 }
 
 
@@ -160,7 +160,7 @@ void Sfm_TimNodeRequired( Sfm_Tim_t * p, Abc_Obj_t * pNode )
   SeeAlso     []
 
 ***********************************************************************/
-void Sfm_TimCriticalPath_int( Sfm_Tim_t * p, Abc_Obj_t * pObj, Vec_Int_t * vPath, int SlackMax )
+void Sfm_MitCriticalPath_int( Sfm_Mit_t * p, Abc_Obj_t * pObj, Vec_Int_t * vPath, int SlackMax )
 {
     Abc_Obj_t * pNext; int i;
     if ( Abc_NodeIsTravIdCurrent( pObj ) )
@@ -172,13 +172,13 @@ void Sfm_TimCriticalPath_int( Sfm_Tim_t * p, Abc_Obj_t * pObj, Vec_Int_t * vPath
         if ( Abc_ObjIsCi(pNext) || Abc_ObjFaninNum(pNext) == 0 )
             continue;
         assert( Abc_ObjIsNode(pNext) );
-        if ( Sfm_TimSlack(p, pNext) <= SlackMax )
-            Sfm_TimCriticalPath_int( p, pNext, vPath, SlackMax );
+        if ( Sfm_MitSlack(p, pNext) <= SlackMax )
+            Sfm_MitCriticalPath_int( p, pNext, vPath, SlackMax );
     }
     if ( Abc_ObjFaninNum(pObj) > 0 )
         Vec_IntPush( vPath, Abc_ObjId(pObj) );
 }
-int Sfm_TimCriticalPath( Sfm_Tim_t * p, int Window )
+int Sfm_MitCriticalPath( Sfm_Mit_t * p, int Window )
 {
     int i, SlackMax = p->Delay * Window / 100;
     Abc_Obj_t * pObj, * pNext; 
@@ -190,8 +190,8 @@ int Sfm_TimCriticalPath( Sfm_Tim_t * p, int Window )
         if ( Abc_ObjIsCi(pNext) || Abc_ObjFaninNum(pNext) == 0 )
             continue;
         assert( Abc_ObjIsNode(pNext) );
-        if ( Sfm_TimSlack(p, pNext) <= SlackMax )
-            Sfm_TimCriticalPath_int( p, pNext, &p->vPath, SlackMax );
+        if ( Sfm_MitSlack(p, pNext) <= SlackMax )
+            Sfm_MitCriticalPath_int( p, pNext, &p->vPath, SlackMax );
     }
     return Vec_IntSize(&p->vPath);
 }
@@ -207,19 +207,19 @@ int Sfm_TimCriticalPath( Sfm_Tim_t * p, int Window )
   SeeAlso     []
 
 ***********************************************************************/
-int Sfm_TimTrace( Sfm_Tim_t * p )
+int Sfm_MitTrace( Sfm_Mit_t * p )
 {
     Abc_Obj_t * pObj; int i, Delay = 0;
     Vec_Ptr_t * vNodes = Abc_NtkDfs( p->pNtk, 1 );
     Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pObj, i )
-        Sfm_TimNodeArrival( p, pObj );
+        Sfm_MitNodeArrival( p, pObj );
     Abc_NtkForEachCo( p->pNtk, pObj, i )
-        Delay = Abc_MaxInt( Delay, Sfm_TimArrMax(p, Abc_ObjFanin0(pObj)) );
+        Delay = Abc_MaxInt( Delay, Sfm_MitArrMax(p, Abc_ObjFanin0(pObj)) );
     Vec_IntFill( &p->vTimReqs, 2*Abc_NtkObjNumMax(p->pNtk), ABC_INFINITY );
     Abc_NtkForEachCo( p->pNtk, pObj, i )
-        Sfm_TimSetReq( p, Abc_ObjFanin0(pObj), Delay );
+        Sfm_MitSetReq( p, Abc_ObjFanin0(pObj), Delay );
     Vec_PtrForEachEntryReverse( Abc_Obj_t *, vNodes, pObj, i )
-        Sfm_TimNodeRequired( p, pObj );
+        Sfm_MitNodeRequired( p, pObj );
     Vec_PtrFree( vNodes );
     return Delay;
 }
@@ -235,10 +235,10 @@ int Sfm_TimTrace( Sfm_Tim_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-Sfm_Tim_t * Sfm_TimStart( Mio_Library_t * pLib, Scl_Con_t * pExt, Abc_Ntk_t * pNtk, int DeltaCrit )
+Sfm_Mit_t * Sfm_MitStart( Mio_Library_t * pLib, Scl_Con_t * pExt, Abc_Ntk_t * pNtk, int DeltaCrit )
 {
 //    Abc_Obj_t * pObj; int i;
-    Sfm_Tim_t * p = ABC_CALLOC( Sfm_Tim_t, 1 );
+    Sfm_Mit_t * p = ABC_CALLOC( Sfm_Mit_t, 1 );
     p->pLib = pLib;
     p->pExt = pExt;
     p->pNtk = pNtk;
@@ -252,12 +252,12 @@ Sfm_Tim_t * Sfm_TimStart( Mio_Library_t * pLib, Scl_Con_t * pExt, Abc_Ntk_t * pN
 //        Vec_IntWriteEntry( &p->vObjOffs, i, Vec_IntSize(Vec_IntSize(&p->vTimEdges)) );
 //        Vec_IntFillExtra( &p->vTimEdges, Vec_IntSize(Vec_IntSize(&p->vTimEdges)) + Abc_ObjFaninNum(pObj), 0 );
 //    }
-    p->Delay = Sfm_TimTrace( p );
+    p->Delay = Sfm_MitTrace( p );
     assert( DeltaCrit > 0 && DeltaCrit < MIO_NUM*1000 );
     p->DeltaCrit = DeltaCrit;
     return p;
 }
-void Sfm_TimStop( Sfm_Tim_t * p )
+void Sfm_MitStop( Sfm_Mit_t * p )
 {
     Vec_IntErase( &p->vTimArrs );
     Vec_IntErase( &p->vTimReqs );
@@ -270,13 +270,13 @@ void Sfm_TimStop( Sfm_Tim_t * p )
     Vec_WrdErase( &p->vSortData );
     ABC_FREE( p );
 }
-int Sfm_TimReadNtkDelay( Sfm_Tim_t * p )
+int Sfm_MitReadNtkDelay( Sfm_Mit_t * p )
 {
     return p->Delay;
 }
-int Sfm_TimReadObjDelay( Sfm_Tim_t * p, int iObj )
+int Sfm_MitReadObjDelay( Sfm_Mit_t * p, int iObj )
 {
-    return Sfm_TimArrMaxId(p, iObj);
+    return Sfm_MitArrMaxId(p, iObj);
 }
 
 /**Function*************************************************************
@@ -290,12 +290,12 @@ int Sfm_TimReadObjDelay( Sfm_Tim_t * p, int iObj )
   SeeAlso     []
 
 ***********************************************************************/
-void Sfm_TimTest( Abc_Ntk_t * pNtk )
+void Sfm_MitTest( Abc_Ntk_t * pNtk )
 {
     Mio_Library_t * pLib = (Mio_Library_t *)pNtk->pManFunc;
-    Sfm_Tim_t * p = Sfm_TimStart( pLib, NULL, pNtk, 100 );
-    printf( "Max delay = %.2f.  Path = %d (%d).\n", MIO_NUMINV*p->Delay, Sfm_TimCriticalPath(p, 1), Abc_NtkNodeNum(p->pNtk) );
-    Sfm_TimStop( p );
+    Sfm_Mit_t * p = Sfm_MitStart( pLib, NULL, pNtk, 100 );
+    printf( "Max delay = %.2f.  Path = %d (%d).\n", MIO_NUMINV*p->Delay, Sfm_MitCriticalPath(p, 1), Abc_NtkNodeNum(p->pNtk) );
+    Sfm_MitStop( p );
 }
 
 /**Function*************************************************************
@@ -309,7 +309,7 @@ void Sfm_TimTest( Abc_Ntk_t * pNtk )
   SeeAlso     []
 
 ***********************************************************************/
-static inline void Sfm_TimUpdateClean( Sfm_Tim_t * p )
+static inline void Sfm_MitUpdateClean( Sfm_Mit_t * p )
 {
     Vec_Int_t * vLevel;
     Abc_Obj_t * pObj;
@@ -336,12 +336,12 @@ static inline void Sfm_TimUpdateClean( Sfm_Tim_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-void Sfm_TimUpdateTiming( Sfm_Tim_t * p, Vec_Int_t * vTimeNodes )
+void Sfm_MitUpdateTiming( Sfm_Mit_t * p, Vec_Int_t * vTimeNodes )
 {
     assert( Vec_IntSize(vTimeNodes) > 0 && Vec_IntSize(vTimeNodes) <= 2 );
     Vec_IntFillExtra( &p->vTimArrs, 2*Abc_NtkObjNumMax(p->pNtk), 0 );
     Vec_IntFillExtra( &p->vTimReqs, 2*Abc_NtkObjNumMax(p->pNtk), 0 );
-    p->Delay = Sfm_TimTrace( p );
+    p->Delay = Sfm_MitTrace( p );
 }
 
 /**Function*************************************************************
@@ -355,16 +355,16 @@ void Sfm_TimUpdateTiming( Sfm_Tim_t * p, Vec_Int_t * vTimeNodes )
   SeeAlso     []
 
 ***********************************************************************/
-int Sfm_TimSortArrayByArrival( Sfm_Tim_t * p, Vec_Int_t * vNodes, int iPivot )
+int Sfm_MitSortArrayByArrival( Sfm_Mit_t * p, Vec_Int_t * vNodes, int iPivot )
 {
     word Entry; 
     int i, Id, nDivNew = -1; 
-    int MaxDelay = Sfm_TimArrMaxId(p, iPivot);
+    int MaxDelay = Sfm_MitArrMaxId(p, iPivot);
     assert( p->DeltaCrit > 0 );
     // collect nodes
     Vec_WrdClear( &p->vSortData );
     Vec_IntForEachEntry( vNodes, Id, i )
-        Vec_WrdPush( &p->vSortData, ((word)Id << 32) | Sfm_TimArrMaxId(p, Id) );
+        Vec_WrdPush( &p->vSortData, ((word)Id << 32) | Sfm_MitArrMaxId(p, Id) );
     // sort nodes by delay
     Abc_QuickSort3( Vec_WrdArray(&p->vSortData), Vec_WrdSize(&p->vSortData), 0 );
     // collect sorted nodes and find place where divisors end
@@ -389,16 +389,16 @@ int Sfm_TimSortArrayByArrival( Sfm_Tim_t * p, Vec_Int_t * vNodes, int iPivot )
   SeeAlso     []
 
 ***********************************************************************/
-int Sfm_TimPriorityNodes( Sfm_Tim_t * p, Vec_Int_t * vCands, int Window )
+int Sfm_MitPriorityNodes( Sfm_Mit_t * p, Vec_Int_t * vCands, int Window )
 {
     Vec_Int_t * vLevel;
     Abc_Obj_t * pObj;
     int i, k;
     assert( Window >= 0 && Window <= 100 );
     // collect critical path
-    Sfm_TimCriticalPath( p, Window );
+    Sfm_MitCriticalPath( p, Window );
     // add nodes to the levelized structure
-    Sfm_TimUpdateClean( p );
+    Sfm_MitUpdateClean( p );
     Abc_NtkForEachObjVec( &p->vPath, p->pNtk, pObj, i )
     {
         assert( pObj->fMarkC == 0 );
@@ -434,9 +434,9 @@ int Sfm_TimPriorityNodes( Sfm_Tim_t * p, Vec_Int_t * vCands, int Window )
   SeeAlso     []
 
 ***********************************************************************/
-int Sfm_TimNodeIsNonCritical( Sfm_Tim_t * p, Abc_Obj_t * pPivot, Abc_Obj_t * pNode )
+int Sfm_MitNodeIsNonCritical( Sfm_Mit_t * p, Abc_Obj_t * pPivot, Abc_Obj_t * pNode )
 {
-    return Sfm_TimArrMax(p, pNode) + p->DeltaCrit <= Sfm_TimArrMax(p, pPivot);
+    return Sfm_MitArrMax(p, pNode) + p->DeltaCrit <= Sfm_MitArrMax(p, pPivot);
 }
 
 /**Function*************************************************************
@@ -450,7 +450,7 @@ int Sfm_TimNodeIsNonCritical( Sfm_Tim_t * p, Abc_Obj_t * pPivot, Abc_Obj_t * pNo
   SeeAlso     []
 
 ***********************************************************************/
-int Sfm_TimEvalRemapping( Sfm_Tim_t * p, Vec_Int_t * vFanins, Vec_Int_t * vMap, Mio_Gate_t * pGate1, char * pFans1, Mio_Gate_t * pGate2, char * pFans2 )
+int Sfm_MitEvalRemapping( Sfm_Mit_t * p, Vec_Int_t * vFanins, Vec_Int_t * vMap, Mio_Gate_t * pGate1, char * pFans1, Mio_Gate_t * pGate2, char * pFans2 )
 {
     int TimeOut[2][2];
     int * pTimesIn1[6], * pTimesIn2[6];
@@ -458,8 +458,8 @@ int Sfm_TimEvalRemapping( Sfm_Tim_t * p, Vec_Int_t * vFanins, Vec_Int_t * vMap, 
     // process the first gate
     nFanins1 = Mio_GateReadPinNum( pGate1 );
     for ( i = 0; i < nFanins1; i++ )
-        pTimesIn1[i] = Sfm_TimArrId( p, Vec_IntEntry(vMap, Vec_IntEntry(vFanins, (int)pFans1[i])) );
-    Sfm_TimGateArrival( p, pGate1, pTimesIn1, TimeOut[0] );
+        pTimesIn1[i] = Sfm_MitArrId( p, Vec_IntEntry(vMap, Vec_IntEntry(vFanins, (int)pFans1[i])) );
+    Sfm_MitGateArrival( p, pGate1, pTimesIn1, TimeOut[0] );
     if ( pGate2 == NULL )
         return Abc_MaxInt(TimeOut[0][0], TimeOut[0][1]);
     // process the second gate
@@ -468,8 +468,8 @@ int Sfm_TimEvalRemapping( Sfm_Tim_t * p, Vec_Int_t * vFanins, Vec_Int_t * vMap, 
         if ( (int)pFans2[i] == 16 )
             pTimesIn2[i] = TimeOut[0];
         else
-            pTimesIn2[i] = Sfm_TimArrId( p, Vec_IntEntry(vMap, Vec_IntEntry(vFanins, (int)pFans2[i])) );
-    Sfm_TimGateArrival( p, pGate2, pTimesIn2, TimeOut[1] );
+            pTimesIn2[i] = Sfm_MitArrId( p, Vec_IntEntry(vMap, Vec_IntEntry(vFanins, (int)pFans2[i])) );
+    Sfm_MitGateArrival( p, pGate2, pTimesIn2, TimeOut[1] );
     return Abc_MaxInt(TimeOut[1][0], TimeOut[1][1]);
 }
 

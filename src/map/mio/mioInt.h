@@ -93,6 +93,7 @@ struct  Mio_GateStruct_t_
     Mio_Gate_t *       pTwin;    
 
     // the derived information
+    int                Cell;        // cell id
     int                nInputs;     // the number of inputs
     double             dDelayMax;   // the maximum delay
     char *             pSop;        // sum-of-products

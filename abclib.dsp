@@ -2535,6 +2535,10 @@ SOURCE=.\src\opt\sfm\sfmLib.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\opt\sfm\sfmMit.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\opt\sfm\sfmNtk.c
 # End Source File
 # Begin Source File
@@ -2543,7 +2547,7 @@ SOURCE=.\src\opt\sfm\sfmSat.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\opt\sfm\sfmTime.c
+SOURCE=.\src\opt\sfm\sfmTim.c
 # End Source File
 # Begin Source File
 

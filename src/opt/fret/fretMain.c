@@ -350,7 +350,7 @@ Abc_FlowRetime_MainLoop( ) {
 
 //  assert(!pManMR->fComputeInitState || pManMR->pInitNtk);
   if (pManMR->fComputeInitState)   Abc_NtkDelete(pManMR->pInitNtk);
-  if (pManMR->fGuaranteeInitState) ; /* Abc_NtkDelete(pNtkCopy); note: original ntk deleted later */
+//  if (pManMR->fGuaranteeInitState) ; /* Abc_NtkDelete(pNtkCopy); note: original ntk deleted later */
 
   return pNtk;
 }

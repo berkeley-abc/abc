@@ -178,7 +178,9 @@ Vec_Int_t *       Mio_GateReadExpr    ( Mio_Gate_t * pGate )            { return
 word              Mio_GateReadTruth   ( Mio_Gate_t * pGate )            { return pGate->nInputs <= 6 ? pGate->uTruth : 0;   }
 word *            Mio_GateReadTruthP  ( Mio_Gate_t * pGate )            { return pGate->nInputs <= 6 ? NULL: pGate->pTruth; }
 int               Mio_GateReadValue   ( Mio_Gate_t * pGate )            { return pGate->Value;     }
+int               Mio_GateReadCell    ( Mio_Gate_t * pGate )            { return pGate->Cell;      }
 void              Mio_GateSetValue    ( Mio_Gate_t * pGate, int Value ) { pGate->Value = Value;    }
+void              Mio_GateSetCell     ( Mio_Gate_t * pGate, int Cell )  { pGate->Value = Cell;     }
 int               Mio_GateIsInv       ( Mio_Gate_t * pGate )            { return pGate->uTruth == ABC_CONST(0x5555555555555555); }
 
 /**Function*************************************************************

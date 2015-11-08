@@ -49,20 +49,35 @@ ABC_NAMESPACE_IMPL_START
 static void Abc_SclReadSurface( Vec_Str_t * vOut, int * pPos, SC_Surface * p )
 {
     Vec_Flt_t * vVec;
+    Vec_Int_t * vVecI;
     int i, j;
 
     for ( i = Vec_StrGetI(vOut, pPos); i != 0; i-- )
-        Vec_FltPush( &p->vIndex0, Vec_StrGetF(vOut, pPos) );
+    {
+        float Num = Vec_StrGetF(vOut, pPos);
+        Vec_FltPush( &p->vIndex0, Num );
+        Vec_IntPush( &p->vIndex0I, (int)(MIO_NUM*Num) );
+    }
 
     for ( i = Vec_StrGetI(vOut, pPos); i != 0; i-- )
-        Vec_FltPush( &p->vIndex1, Vec_StrGetF(vOut, pPos) );
+    {
+        float Num = Vec_StrGetF(vOut, pPos);
+        Vec_FltPush( &p->vIndex1, Num );
+        Vec_IntPush( &p->vIndex1I, (int)(MIO_NUM*Num) );
+    }
 
     for ( i = 0; i < Vec_FltSize(&p->vIndex0); i++ )
     {
         vVec = Vec_FltAlloc( Vec_FltSize(&p->vIndex1) );
         Vec_PtrPush( &p->vData, vVec );
+        vVecI = Vec_IntAlloc( Vec_FltSize(&p->vIndex1) );
+        Vec_PtrPush( &p->vDataI, vVecI );
         for ( j = 0; j < Vec_FltSize(&p->vIndex1); j++ )
-            Vec_FltPush( vVec, Vec_StrGetF(vOut, pPos) );
+        {
+            float Num = Vec_StrGetF(vOut, pPos);
+            Vec_FltPush( vVec, Num );
+            Vec_IntPush( vVecI, (int)(MIO_NUM*Num) );
+        }
     }
 
     for ( i = 0; i < 3; i++ ) 
@@ -138,6 +153,9 @@ static int Abc_SclReadLibrary( Vec_Str_t * vOut, int * pPos, SC_Lib * p )
 
         pCell->n_inputs       = Vec_StrGetI(vOut, pPos);
         pCell->n_outputs      = Vec_StrGetI(vOut, pPos);
+
+        pCell->areaI          = (int)(MIO_NUM*pCell->area);
+        pCell->leakageI       = (int)(MIO_NUM*pCell->leakage);
 /*
         printf( "%s\n", pCell->pName );
         if ( !strcmp( "XOR3_X4M_A9TL", pCell->pName ) )
@@ -154,6 +172,9 @@ static int Abc_SclReadLibrary( Vec_Str_t * vOut, int * pPos, SC_Lib * p )
             pPin->pName    = Vec_StrGetS(vOut, pPos); 
             pPin->rise_cap = Vec_StrGetF(vOut, pPos);
             pPin->fall_cap = Vec_StrGetF(vOut, pPos);
+
+            pPin->rise_capI = (int)(MIO_NUM*pPin->rise_capI);
+            pPin->fall_capI = (int)(MIO_NUM*pPin->fall_capI);
         }
 
         for ( j = 0; j < pCell->n_outputs; j++ )
