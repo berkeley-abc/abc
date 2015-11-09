@@ -685,18 +685,20 @@ int Sfm_MffcDeref_rec( Abc_Obj_t * pObj )
     }
     return Area;
 }
-int Sfm_MffcRef_rec( Abc_Obj_t * pObj )
+int Sfm_MffcRef_rec( Abc_Obj_t * pObj, Vec_Int_t * vMffc )
 {
     Abc_Obj_t * pFanin;
     int i, Area = (int)(MIO_NUM*Mio_GateReadArea((Mio_Gate_t *)pObj->pData));
     Abc_ObjForEachFanin( pObj, pFanin, i )
     {
         if ( pFanin->vFanouts.nSize++ == 0 && !Abc_ObjIsCi(pFanin) )
-            Area += Sfm_MffcRef_rec( pFanin );
+            Area += Sfm_MffcRef_rec( pFanin, vMffc );
     }
+    if ( vMffc )
+        Vec_IntPush( vMffc, Abc_ObjId(pObj) );
     return Area;
 }
-int Sfm_DecMffcAreaReal( Abc_Obj_t * pPivot, Vec_Int_t * vCut )
+int Sfm_DecMffcAreaReal( Abc_Obj_t * pPivot, Vec_Int_t * vCut, Vec_Int_t * vMffc )
 {
     Abc_Ntk_t * pNtk = pPivot->pNtk;
     Abc_Obj_t * pObj; 
@@ -705,7 +707,7 @@ int Sfm_DecMffcAreaReal( Abc_Obj_t * pPivot, Vec_Int_t * vCut )
     Abc_NtkForEachObjVec( vCut, pNtk, pObj, i )
         pObj->vFanouts.nSize++;
     Area1 = Sfm_MffcDeref_rec( pPivot );
-    Area2 = Sfm_MffcRef_rec( pPivot );
+    Area2 = Sfm_MffcRef_rec( pPivot, vMffc );
     Abc_NtkForEachObjVec( vCut, pNtk, pObj, i )
         pObj->vFanouts.nSize--;
     assert( Area1 == Area2 );
@@ -1149,7 +1151,7 @@ int Sfm_DecPeformDec2( Sfm_Dec_t * p, Abc_Obj_t * pObj )
 
         // compute area savings
         Sfm_DecPrepareVec( &p->vObjMap, pSupp[i], nSupp[i], &p->vTemp );
-        AreaThis = Sfm_DecMffcAreaReal(pObj, &p->vTemp);
+        AreaThis = Sfm_DecMffcAreaReal(pObj, &p->vTemp, NULL);
         assert( p->AreaMffc <= AreaThis );
         if ( p->pPars->fZeroCost ? (AreaNew > AreaThis) : (AreaNew >= AreaThis) )
             continue;
@@ -1243,6 +1245,13 @@ int Sfm_DecPeformDec3( Sfm_Dec_t * p, Abc_Obj_t * pObj )
             return RetValue;
         }
 
+        // get MFFC
+        if ( p->pMit )
+        {
+            Sfm_DecPrepareVec( &p->vObjMap, pSupp[i], nSupp[i], &p->vTemp );
+            Sfm_DecMffcAreaReal(pObj, &p->vTemp, &p->vTemp2 );
+        }
+
         // try the delay
         p->nSuppVars = nSupp[i];
         Abc_TtCopy( p->Copy, uTruth[i], SFM_WORD_MAX, 0 ); 
@@ -1256,17 +1265,31 @@ int Sfm_DecPeformDec3( Sfm_Dec_t * p, Abc_Obj_t * pObj )
             Vec_Int_t vFanins = { nSupp[i], nSupp[i], pSupp[i] };
             int Delay;
             if ( p->pMit )
-                Delay = Sfm_MitEvalRemapping( p->pMit, &vFanins, &p->vObjMap, pGate1, pFans1, pGate2, pFans2 );
-            else
-                Delay = Sfm_TimEvalRemapping( p->pTim, &vFanins, &p->vObjMap, pGate1, pFans1, pGate2, pFans2 );
-            if ( DelayMin > Delay )
             {
-                DelayMin   = Delay;
-                pGate1Best = pGate1;
-                pGate2Best = pGate2;
-                pFans1Best = pFans1;
-                pFans2Best = pFans2;
-                iBest      = i;
+                DelayMin = 0;
+                Delay = Sfm_MitEvalRemapping( p->pMit, &p->vTemp2, pObj, &vFanins, &p->vObjMap, pGate1, pFans1, pGate2, pFans2 );
+                if ( DelayMin < Delay )
+                {
+                    DelayMin   = Delay;
+                    pGate1Best = pGate1;
+                    pGate2Best = pGate2;
+                    pFans1Best = pFans1;
+                    pFans2Best = pFans2;
+                    iBest      = i;
+                }
+            }
+            else
+            {
+                Delay = Sfm_TimEvalRemapping( p->pTim, &vFanins, &p->vObjMap, pGate1, pFans1, pGate2, pFans2 );
+                if ( DelayMin > Delay )
+                {
+                    DelayMin   = Delay;
+                    pGate1Best = pGate1;
+                    pGate2Best = pGate2;
+                    pFans1Best = pFans1;
+                    pFans2Best = pFans2;
+                    iBest      = i;
+                }
             }
         }
     }
@@ -2004,7 +2027,11 @@ p->timeSat += Abc_Clock() - clk;
             assert( Vec_IntSize(&p->vObjGates) - Limit <= 2 );
             p->nNodesChanged++;
             Abc_NtkCountStats( p, Limit );
+            // reduce load due to removed MFFC
+            if ( p->pMit ) Sfm_MitUpdateLoad( p->pMit, &p->vTemp2, 0 ); // assuming &p->vTemp2 contains MFFC
             Sfm_DecInsert( pNtk, pObj, Limit, &p->vObjGates, &p->vObjFanins, &p->vObjMap, &p->vGateHands, p->GateBuffer, p->GateInvert, &p->vGateFuncs, &p->vTemp );
+            // increase load due to added new nodes
+            if ( p->pMit ) Sfm_MitUpdateLoad( p->pMit, &p->vTemp, 1 ); // assuming &p->vTemp contains new nodes
 clk = Abc_Clock();
             if ( p->pMit )
                 Sfm_MitUpdateTiming( p->pMit, &p->vTemp );

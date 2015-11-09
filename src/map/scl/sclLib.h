@@ -605,21 +605,34 @@ static inline int Scl_LibLookupI( SC_Surface * p, int slew, int load )
 //    return p0 + sfrac * (p1 - p0); 
     return p0 + (int)sFrac;   
 }
-static inline void Scl_LibPinArrivalI( SC_Timing * pTime, SC_PairI * pArrIn, SC_PairI * pSlewIn, SC_PairI * pLoad, SC_PairI * pArrOut, SC_PairI * pSlewOut )
+static inline void Scl_LibPinArrivalI( SC_Timing * pTime, SC_PairI * pArrIn, SC_PairI * pSlewIn, SC_PairI * pLoad, SC_PairI * pArrOut, SC_PairI * pSlewOut, int * pArray )
 {
     if (pTime->tsense == sc_ts_Pos || pTime->tsense == sc_ts_Non)
     {
-        pArrOut->rise  = Abc_MaxInt( pArrOut->rise,  pArrIn->rise + Scl_LibLookupI(&pTime->pCellRise,  pSlewIn->rise, pLoad->rise) );
-        pArrOut->fall  = Abc_MaxInt( pArrOut->fall,  pArrIn->fall + Scl_LibLookupI(&pTime->pCellFall,  pSlewIn->fall, pLoad->fall) );
-        pSlewOut->rise = Abc_MaxInt( pSlewOut->rise,                Scl_LibLookupI(&pTime->pRiseTrans, pSlewIn->rise, pLoad->rise) );
-        pSlewOut->fall = Abc_MaxInt( pSlewOut->fall,                Scl_LibLookupI(&pTime->pFallTrans, pSlewIn->fall, pLoad->fall) );
+        pArrOut->rise  = Abc_MaxInt( pArrOut->rise,  pArrIn->rise + (pArray[0] = Scl_LibLookupI(&pTime->pCellRise,  pSlewIn->rise, pLoad->rise)) );
+        pArrOut->fall  = Abc_MaxInt( pArrOut->fall,  pArrIn->fall + (pArray[1] = Scl_LibLookupI(&pTime->pCellFall,  pSlewIn->fall, pLoad->fall)) );
+        pSlewOut->rise = Abc_MaxInt( pSlewOut->rise,                             Scl_LibLookupI(&pTime->pRiseTrans, pSlewIn->rise, pLoad->rise) );
+        pSlewOut->fall = Abc_MaxInt( pSlewOut->fall,                             Scl_LibLookupI(&pTime->pFallTrans, pSlewIn->fall, pLoad->fall) );
     }
     if (pTime->tsense == sc_ts_Neg || pTime->tsense == sc_ts_Non)
     {
-        pArrOut->rise  = Abc_MaxInt( pArrOut->rise,  pArrIn->fall + Scl_LibLookupI(&pTime->pCellRise,  pSlewIn->fall, pLoad->rise) );
-        pArrOut->fall  = Abc_MaxInt( pArrOut->fall,  pArrIn->rise + Scl_LibLookupI(&pTime->pCellFall,  pSlewIn->rise, pLoad->fall) );
-        pSlewOut->rise = Abc_MaxInt( pSlewOut->rise,                Scl_LibLookupI(&pTime->pRiseTrans, pSlewIn->fall, pLoad->rise) );
-        pSlewOut->fall = Abc_MaxInt( pSlewOut->fall,                Scl_LibLookupI(&pTime->pFallTrans, pSlewIn->rise, pLoad->fall) );
+        pArrOut->rise  = Abc_MaxInt( pArrOut->rise,  pArrIn->fall + (pArray[2] = Scl_LibLookupI(&pTime->pCellRise,  pSlewIn->fall, pLoad->rise)) );
+        pArrOut->fall  = Abc_MaxInt( pArrOut->fall,  pArrIn->rise + (pArray[3] = Scl_LibLookupI(&pTime->pCellFall,  pSlewIn->rise, pLoad->fall)) );
+        pSlewOut->rise = Abc_MaxInt( pSlewOut->rise,                             Scl_LibLookupI(&pTime->pRiseTrans, pSlewIn->fall, pLoad->rise) );
+        pSlewOut->fall = Abc_MaxInt( pSlewOut->fall,                             Scl_LibLookupI(&pTime->pFallTrans, pSlewIn->rise, pLoad->fall) );
+    }
+}
+static inline void Scl_LibPinRequiredI( SC_Timing * pTime, SC_PairI * pReqIn, SC_PairI * pReqOut, int * pArray )
+{
+    if (pTime->tsense == sc_ts_Pos || pTime->tsense == sc_ts_Non)
+    {
+        pReqIn->rise  = Abc_MinInt( pReqIn->rise,  pReqOut->rise - pArray[0] );
+        pReqIn->fall  = Abc_MinInt( pReqIn->fall,  pReqOut->fall - pArray[1] );
+    }
+    if (pTime->tsense == sc_ts_Neg || pTime->tsense == sc_ts_Non)
+    {
+        pReqIn->fall  = Abc_MinInt( pReqIn->fall,  pReqOut->rise - pArray[2] );
+        pReqIn->rise  = Abc_MinInt( pReqIn->rise,  pReqOut->fall - pArray[3] );
     }
 }
 
@@ -689,6 +702,7 @@ static inline void Scl_LibHandleInputDriver( SC_Cell * pCell, SC_Pair * pLoadIn,
 ***********************************************************************/
 static inline int Scl_LibPinArrivalEstimateI( SC_Cell * pCell, int iPin, int Slew, int Load )
 {
+    int Arrray[4];
     SC_PairI LoadIn = { Load, Load };
     SC_PairI ArrIn  = { 0, 0 };
     SC_PairI ArrOut = { 0, 0 };
@@ -697,11 +711,12 @@ static inline int Scl_LibPinArrivalEstimateI( SC_Cell * pCell, int iPin, int Sle
 //    Vec_Flt_t * vIndex0 = pTime->pCellRise->vIndex0; // slew
 //    SlewIn.fall = SlewIn.rise = Vec_FltEntry( vIndex0, Vec_FltSize(vIndex0)/2 );
     SlewIn.fall = SlewIn.rise = Slew; 
-    Scl_LibPinArrivalI( Scl_CellPinTime(pCell, iPin), &ArrIn, &SlewIn, &LoadIn, &ArrOut, &SlewOut );
+    Scl_LibPinArrivalI( Scl_CellPinTime(pCell, iPin), &ArrIn, &SlewIn, &LoadIn, &ArrOut, &SlewOut, Arrray );
     return (ArrOut.fall + ArrOut.rise) >> 1;
 }
 static inline void Scl_LibHandleInputDriver2( SC_Cell * pCell, SC_PairI * pLoadIn, SC_PairI * pArrOut, SC_PairI * pSlewOut )
 {
+    int Arrray[4];
     SC_PairI LoadIn   = { 0, 0 }; // zero input load
     SC_PairI ArrIn    = { 0, 0 }; // zero input time
     SC_PairI SlewIn   = { 0, 0 }; // zero input slew
@@ -710,8 +725,8 @@ static inline void Scl_LibHandleInputDriver2( SC_Cell * pCell, SC_PairI * pLoadI
     SC_PairI SlewOut  = { 0, 0 }; // output slew under zero load 
     pSlewOut->fall = pSlewOut->rise = 0;
     assert( pCell->n_inputs == 1 );
-    Scl_LibPinArrivalI( Scl_CellPinTime(pCell, 0), &ArrIn, &SlewIn, &LoadIn, &ArrOut0, &SlewOut );
-    Scl_LibPinArrivalI( Scl_CellPinTime(pCell, 0), &ArrIn, &SlewIn, pLoadIn, &ArrOut1, pSlewOut );
+    Scl_LibPinArrivalI( Scl_CellPinTime(pCell, 0), &ArrIn, &SlewIn, &LoadIn, &ArrOut0, &SlewOut, Arrray );
+    Scl_LibPinArrivalI( Scl_CellPinTime(pCell, 0), &ArrIn, &SlewIn, pLoadIn, &ArrOut1, pSlewOut, Arrray );
     pArrOut->fall = ArrOut1.fall - ArrOut0.fall;
     pArrOut->rise = ArrOut1.rise - ArrOut0.rise;
 }

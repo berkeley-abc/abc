@@ -347,6 +347,7 @@ Mio_Gate_t * Mio_LibraryReadGate( char ** ppToken, int fExtendedFormat )
 
     // allocate the gate structure
     pGate = ABC_CALLOC( Mio_Gate_t, 1 );
+    pGate->Cell = -1;
 
     // read the name
     pToken = strtok( NULL, " \t\r\n" );

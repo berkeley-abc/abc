@@ -180,7 +180,7 @@ word *            Mio_GateReadTruthP  ( Mio_Gate_t * pGate )            { return
 int               Mio_GateReadValue   ( Mio_Gate_t * pGate )            { return pGate->Value;     }
 int               Mio_GateReadCell    ( Mio_Gate_t * pGate )            { return pGate->Cell;      }
 void              Mio_GateSetValue    ( Mio_Gate_t * pGate, int Value ) { pGate->Value = Value;    }
-void              Mio_GateSetCell     ( Mio_Gate_t * pGate, int Cell )  { pGate->Value = Cell;     }
+void              Mio_GateSetCell     ( Mio_Gate_t * pGate, int Cell )  { pGate->Cell  = Cell;     }
 int               Mio_GateIsInv       ( Mio_Gate_t * pGate )            { return pGate->uTruth == ABC_CONST(0x5555555555555555); }
 
 /**Function*************************************************************

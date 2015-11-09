@@ -231,11 +231,12 @@ extern Sfm_Mit_t *  Sfm_MitStart( Mio_Library_t * pLib, SC_Lib * pScl, Scl_Con_t
 extern void         Sfm_MitStop( Sfm_Mit_t * p );
 extern int          Sfm_MitReadNtkDelay( Sfm_Mit_t * p );
 extern int          Sfm_MitReadObjDelay( Sfm_Mit_t * p, int iObj );
+extern void         Sfm_MitUpdateLoad( Sfm_Mit_t * p, Vec_Int_t * vTimeNodes, int fAdd );
 extern void         Sfm_MitUpdateTiming( Sfm_Mit_t * p, Vec_Int_t * vTimeNodes );
 extern int          Sfm_MitSortArrayByArrival( Sfm_Mit_t * p, Vec_Int_t * vNodes, int iPivot );
 extern int          Sfm_MitPriorityNodes( Sfm_Mit_t * p, Vec_Int_t * vCands, int Window );
 extern int          Sfm_MitNodeIsNonCritical( Sfm_Mit_t * p, Abc_Obj_t * pPivot, Abc_Obj_t * pNode );
-extern int          Sfm_MitEvalRemapping( Sfm_Mit_t * p, Vec_Int_t * vFanins, Vec_Int_t * vMap, Mio_Gate_t * pGate1, char * pFans1, Mio_Gate_t * pGate2, char * pFans2 );
+extern int          Sfm_MitEvalRemapping( Sfm_Mit_t * p, Vec_Int_t * vMffc, Abc_Obj_t * pObj, Vec_Int_t * vFanins, Vec_Int_t * vMap, Mio_Gate_t * pGate1, char * pFans1, Mio_Gate_t * pGate2, char * pFans2 );
 /*=== sfmWin.c ==========================================================*/
 extern int          Sfm_ObjMffcSize( Sfm_Ntk_t * p, int iObj );
 extern int          Sfm_NtkCreateWindow( Sfm_Ntk_t * p, int iNode, int fVerbose );

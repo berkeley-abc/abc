@@ -24,6 +24,8 @@
 #include "misc/util/utilNam.h"
 #include "sclCon.h"
 
+#include "map/mio/mio.h"
+
 ABC_NAMESPACE_IMPL_START
 
 
@@ -242,7 +244,10 @@ int Scl_CommandReadLib( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_SclWriteLiberty( Extra_FileNameGenericAppend(pFileName, "_temp.lib"), (SC_Lib *)pAbc->pLibScl );
     // extract genlib library
     if ( pAbc->pLibScl )
+    {
         Abc_SclInstallGenlib( pAbc->pLibScl, Slew, Gain, nGatesMin );
+        Mio_LibraryTransferCellIds();
+    }
     return 0;
 
 usage:
@@ -522,7 +527,10 @@ int Scl_CommandReadScl( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_SclWriteLiberty( Extra_FileNameGenericAppend(pFileName, "_temp.lib"), (SC_Lib *)pAbc->pLibScl );
     // extract genlib library
     if ( pAbc->pLibScl )
+    {
         Abc_SclInstallGenlib( pAbc->pLibScl, 0, 0, 0 );
+        Mio_LibraryTransferCellIds();
+    }
     return 0;
 
 usage:

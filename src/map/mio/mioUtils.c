@@ -22,6 +22,7 @@
 #include "exp.h"
 #include "misc/util/utilTruth.h"
 #include "opt/dau/dau.h"
+#include "map/scl/sclLib.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -1303,6 +1304,45 @@ void Nf_ManPrepareLibraryTest2()
     else
         printf( "Standard cell library is not available.\n" );
 
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Install library.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Mio_LibraryTransferCellIds()
+{
+    Mio_Gate_t * pGate;
+    Mio_Library_t * pLib = (Mio_Library_t *)Abc_FrameReadLibGen();
+    SC_Lib * pScl = (SC_Lib *)Abc_FrameReadLibScl();
+    int CellId;
+    if ( pScl == NULL )
+    {
+        printf( "SC library cannot be found.\n" );
+        return;
+    }
+    if ( pLib == NULL )
+    {
+        printf( "Genlib library cannot be found.\n" );
+        return;
+    }
+    Mio_LibraryForEachGate( pLib, pGate )
+    {
+        if ( Mio_GateReadPinNum(pGate) == 0 )
+            continue;
+        CellId = Abc_SclCellFind( pScl, Mio_GateReadName(pGate) );
+        if ( CellId < 0 )
+            printf( "Cannot find cell ID of gate %s.\n", Mio_GateReadName(pGate) );
+        else
+            Mio_GateSetCell( pGate, CellId );
+    }
 }
 
 

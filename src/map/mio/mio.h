@@ -199,6 +199,7 @@ extern void              Mio_LibraryShiftDelay( Mio_Library_t * pLib, double Shi
 extern void              Mio_LibraryMultiArea( Mio_Library_t * pLib, double Multi );
 extern void              Mio_LibraryMultiDelay( Mio_Library_t * pLib, double Multi );
 extern void              Mio_LibraryTransferDelays( Mio_Library_t * pLibD, Mio_Library_t * pLibS );
+extern void              Mio_LibraryTransferCellIds();
 
 /*=== sclUtil.c =========================================================*/
 extern Mio_Library_t *   Abc_SclDeriveGenlibSimple( void * pScl );
