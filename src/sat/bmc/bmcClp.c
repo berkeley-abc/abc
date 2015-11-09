@@ -1103,6 +1103,7 @@ Vec_Str_t * Bmc_CollapseOne_int2( sat_solver * pSat1, sat_solver * pSat2, int nV
             Vec_StrWriteEntry( vSop[n], Start + nVars + 2, '\n' );
             Vec_StrWriteEntry( vSop[n], Start + nVars + 3, '\0' );
             Vec_IntClear( vCube );
+            Vec_IntPush( vCube, Abc_Var2Lit( iOOVars[n], 0 ) );
             Vec_IntForEachEntry( vNums, iVar, v )
             {
                 int iLit = Vec_IntEntry( vLits, iVar );
@@ -1113,7 +1114,6 @@ Vec_Str_t * Bmc_CollapseOne_int2( sat_solver * pSat1, sat_solver * pSat2, int nV
                     Vec_StrWriteEntry( vSop[n], Start + iVar, (char)('0' + !Abc_LitIsCompl(iLit)) );
             }
             // add cube
-            Vec_IntPush( vCube, Abc_Var2Lit( iOOVars[n], 0 ) );
 //            status = sat_solver_addclause( pSat, Vec_IntArray(vCube), Vec_IntLimit(vCube) );
             status = sat_solver_addclause( pSat[n], Vec_IntArray(vCube), Vec_IntLimit(vCube) );
             if ( status == 0 )
@@ -1230,8 +1230,8 @@ Vec_Str_t * Bmc_CollapseOne_int( sat_solver * pSat, int nVars, int nCubeLim, int
             if ( fVeryVerbose ) clk = Abc_Clock();
             // get the assignment
             sat_solver_clean_polarity( pSat, Vec_IntArray(vVars), Vec_IntSize(vVars) );
-            pLits[0] = Abc_Var2Lit( iOOVars[n], 1 ); // enable clauses
-            pLits[1] = Abc_Var2Lit( iOutVar, n );    // set output
+            pLits[0] = Abc_Var2Lit( iOutVar, n );    // set output
+            pLits[1] = Abc_Var2Lit( iOOVars[n], 1 ); // enable clauses
             status = sat_solver_solve( pSat, pLits, pLits + 2, 0, 0, 0, 0 );
             if ( fVeryVerbose ) Time[n][0] += Abc_Clock() - clk;
             if ( status == l_Undef )

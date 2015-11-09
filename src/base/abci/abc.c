@@ -3125,17 +3125,18 @@ usage:
 int Abc_CommandSatClp( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc), * pNtkRes;
-    int nCubeLim =        0;
-    int nBTLimit =  1000000;
-    int nCostMax = 20000000;
-    int fCanon   = 0;
-    int fReverse = 0;
-    int fVerbose = 0;
+    int nCubeLim   =        0;
+    int nBTLimit   =  1000000;
+    int nCostMax   = 20000000;
+    int fCanon     = 0;
+    int fReverse   = 0;
+    int fCnfShared = 1;
+    int fVerbose   = 0;
     int c;
 
     // set defaults
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "CLZcrvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "CLZcrsvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -3178,6 +3179,9 @@ int Abc_CommandSatClp( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'r':
             fReverse ^= 1;
             break;
+        case 's':
+            fCnfShared ^= 1;
+            break;
         case 'v':
             fVerbose ^= 1;
             break;
@@ -3202,11 +3206,11 @@ int Abc_CommandSatClp( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     // get the new network
     if ( Abc_NtkIsStrash(pNtk) )
-        pNtkRes = Abc_NtkCollapseSat( pNtk, nCubeLim, nBTLimit, nCostMax, fCanon, fReverse, fVerbose );
+        pNtkRes = Abc_NtkCollapseSat( pNtk, nCubeLim, nBTLimit, nCostMax, fCanon, fReverse, fCnfShared, fVerbose );
     else
     {
         pNtk = Abc_NtkStrash( pNtk, 0, 0, 0 );
-        pNtkRes = Abc_NtkCollapseSat( pNtk, nCubeLim, nBTLimit, nCostMax, fCanon, fReverse, fVerbose );
+        pNtkRes = Abc_NtkCollapseSat( pNtk, nCubeLim, nBTLimit, nCostMax, fCanon, fReverse, fCnfShared, fVerbose );
         Abc_NtkDelete( pNtk );
     }
     if ( pNtkRes == NULL )
@@ -3219,13 +3223,14 @@ int Abc_CommandSatClp( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: satclp [-CLZ num] [-crvh]\n" );
+    Abc_Print( -2, "usage: satclp [-CLZ num] [-crsvh]\n" );
     Abc_Print( -2, "\t         performs SAT based collapsing\n" );
     Abc_Print( -2, "\t-C num : the limit on the SOP size of one output [default = %d]\n", nCubeLim );
     Abc_Print( -2, "\t-L num : the limit on the number of conflicts in one SAT call [default = %d]\n", nBTLimit );
     Abc_Print( -2, "\t-Z num : the limit on the cost of the largest output [default = %d]\n", nCostMax );
     Abc_Print( -2, "\t-c     : toggles using canonical ISOP computation [default = %s]\n", fCanon? "yes": "no" );
     Abc_Print( -2, "\t-r     : toggles using reverse veriable ordering [default = %s]\n", fReverse? "yes": "no" );
+    Abc_Print( -2, "\t-s     : toggles shared CNF computation [default = %s]\n", fCnfShared? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggles printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;

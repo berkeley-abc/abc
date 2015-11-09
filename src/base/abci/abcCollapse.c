@@ -598,9 +598,9 @@ Gia_Man_t * Abc_NtkClpGia( Abc_Ntk_t * pNtk )
 ***********************************************************************/
 #define Abc_NtkSopForEachCube( pSop, nVars, pCube )  for ( pCube = (pSop); *pCube; pCube += (nVars) + 3 )
 
-int Abc_NtkCollapseCountVars( Vec_Str_t * vSop, Vec_Int_t * vSupp )
+int Abc_NtkCollapseReduce( Vec_Str_t * vSop, Vec_Int_t * vSupp, Vec_Int_t * vClass, Vec_Wec_t * vSupps )
 {
-    int j = 0, k, iVar, nVars = Vec_IntSize(vSupp);
+    int j = 0, i, k, iCo, iVar, nVars = Vec_IntSize(vSupp);
     char * pCube, * pSop = Vec_StrArray(vSop);
     Vec_Int_t * vPres = Vec_IntStart( nVars );
     Abc_NtkSopForEachCube( pSop, nVars, pCube )
@@ -620,11 +620,15 @@ int Abc_NtkCollapseCountVars( Vec_Str_t * vSop, Vec_Int_t * vSupp )
     Vec_StrWriteEntry( vSop, j++, '\0' );
     Vec_StrShrink( vSop, j );
     // reduce support
-    j = 0;
-    Vec_IntForEachEntry( vSupp, iVar, k )
-        if ( Vec_IntEntry(vPres, k) )
-            Vec_IntWriteEntry( vSupp, j++, iVar );
-    Vec_IntShrink( vSupp, j );
+    Vec_IntForEachEntry( vClass, iCo, i )
+    {
+        j = 0;
+        vSupp = Vec_WecEntry( vSupps, iCo );
+        Vec_IntForEachEntry( vSupp, iVar, k )
+            if ( Vec_IntEntry(vPres, k) )
+                Vec_IntWriteEntry( vSupp, j++, iVar );
+        Vec_IntShrink( vSupp, j );
+    }
     Vec_IntFree( vPres );
 //    if ( Vec_IntSize(vSupp) != Abc_SopGetVarNum(Vec_StrArray(vSop)) )
 //        printf( "Mismatch!!!\n" );
@@ -705,7 +709,7 @@ sat_solver * Abc_NtkClpDeriveSatSolver( Cnf_Dat_t * pCnf, int iCoObjId, Vec_Int_
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Str_t * Abc_NtkClpGiaOne( Gia_Man_t * p, int iCo, int nCubeLim, int nBTLimit, int fCanon, int fReverse, Vec_Int_t * vSupp, int fVerbose )
+Vec_Str_t * Abc_NtkClpGiaOne( Gia_Man_t * p, int iCo, int nCubeLim, int nBTLimit, int fCanon, int fReverse, Vec_Int_t * vSupp, int fVerbose, Vec_Int_t * vClass, Vec_Wec_t * vSupps )
 {
     Vec_Str_t * vSop;
     abctime clk = Abc_Clock();
@@ -719,15 +723,15 @@ Vec_Str_t * Abc_NtkClpGiaOne( Gia_Man_t * p, int iCo, int nCubeLim, int nBTLimit
         return NULL;
     if ( Vec_StrSize(vSop) == 4 ) // constant
         Vec_IntClear(vSupp);
-//    else
-//        Abc_NtkCollapseCountVars( vSop, vSupp );
+    else
+        Abc_NtkCollapseReduce( vSop, vSupp, vClass, vSupps );
     if ( fVerbose )
         printf( "Supp new = %4d. Sop = %4d.  ", Vec_IntSize(vSupp), Vec_StrSize(vSop)/(Vec_IntSize(vSupp) +3) );
     if ( fVerbose )
         Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     return vSop; 
 }
-Vec_Str_t * Abc_NtkClpGiaOne2( Cnf_Dat_t * pCnf, Gia_Man_t * p, int iCo, int nCubeLim, int nBTLimit, int fCanon, int fReverse, Vec_Int_t * vSupp, Vec_Int_t * vMap, int fVerbose )
+Vec_Str_t * Abc_NtkClpGiaOne2( Cnf_Dat_t * pCnf, Gia_Man_t * p, int iCo, int nCubeLim, int nBTLimit, int fCanon, int fReverse, Vec_Int_t * vSupp, Vec_Int_t * vMap, int fVerbose, Vec_Int_t * vClass, Vec_Wec_t * vSupps )
 {
     Vec_Str_t * vSop;
     sat_solver * pSat, * pSat1 = NULL, * pSat2 = NULL, * pSat3 = NULL;
@@ -761,15 +765,15 @@ Vec_Str_t * Abc_NtkClpGiaOne2( Cnf_Dat_t * pCnf, Gia_Man_t * p, int iCo, int nCu
         return NULL;
     if ( Vec_StrSize(vSop) == 4 ) // constant
         Vec_IntClear(vSupp);
-//    else
-//        Abc_NtkCollapseCountVars( vSop, vSupp );
+    else
+        Abc_NtkCollapseReduce( vSop, vSupp, vClass, vSupps );
     if ( fVerbose )
         printf( "Supp new = %4d. Sop = %4d.  ", Vec_IntSize(vSupp), Vec_StrSize(vSop)/(Vec_IntSize(vSupp) +3) );
     if ( fVerbose )
         Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     return vSop; 
 }
-Vec_Ptr_t * Abc_GiaDeriveSops( Abc_Ntk_t * pNtkNew, Gia_Man_t * p, Vec_Wec_t * vSupps, int nCubeLim, int nBTLimit, int nCostMax, int fCanon, int fReverse, int fVerbose )
+Vec_Ptr_t * Abc_GiaDeriveSops( Abc_Ntk_t * pNtkNew, Gia_Man_t * p, Vec_Wec_t * vSupps, int nCubeLim, int nBTLimit, int nCostMax, int fCanon, int fReverse, int fCnfShared, int fVerbose )
 {
     ProgressBar * pProgress;
     abctime clk = Abc_Clock();
@@ -777,8 +781,8 @@ Vec_Ptr_t * Abc_GiaDeriveSops( Abc_Ntk_t * pNtkNew, Gia_Man_t * p, Vec_Wec_t * v
     Vec_Int_t * vReprs, * vClass, * vReprSuppSizes;
     int i, k, Entry, iCo, * pOrder;
     Vec_Wec_t * vClasses;
-    Cnf_Dat_t * pCnf;
-    Vec_Int_t * vMap;
+    Cnf_Dat_t * pCnf = NULL;
+    Vec_Int_t * vMap = NULL;
     // derive classes of outputs
     vClasses = Gia_ManIsoStrashReduceInt( p, vSupps, 0 );
     if ( fVerbose )
@@ -794,8 +798,11 @@ Vec_Ptr_t * Abc_GiaDeriveSops( Abc_Ntk_t * pNtkNew, Gia_Man_t * p, Vec_Wec_t * v
     pOrder = Abc_MergeSortCost( Vec_IntArray(vReprSuppSizes), Vec_IntSize(vReprSuppSizes) );
     Vec_IntFree( vReprSuppSizes );
     // consider SOPs for representatives
-    vMap = Vec_IntStartFull( Gia_ManObjNum(p) );
-    pCnf = Mf_ManGenerateCnf( p, 8, 1, 0, 0 );
+    if ( fCnfShared )
+    {
+        vMap = Vec_IntStartFull( Gia_ManObjNum(p) );
+        pCnf = Mf_ManGenerateCnf( p, 8, 1, 0, 0 );
+    }
     vSopsRepr = Vec_PtrStart( Vec_IntSize(vReprs) );
     pProgress = Extra_ProgressBarStart( stdout, Vec_IntSize(vReprs) );
     Extra_ProgressBarUpdate( pProgress, 0, NULL );
@@ -810,8 +817,10 @@ Vec_Ptr_t * Abc_GiaDeriveSops( Abc_Ntk_t * pNtkNew, Gia_Man_t * p, Vec_Wec_t * v
             Vec_PtrWriteEntry( vSopsRepr, iEntry, (void *)(ABC_PTRINT_T)1 );
             continue;
         }
-      vSop  = Abc_NtkClpGiaOne( p, iCoThis, nCubeLim, nBTLimit, fCanon, fReverse, vSupp, i ? 0 : fVerbose );
-//      vSop  = Abc_NtkClpGiaOne2( pCnf, p, iCoThis, nCubeLim, nBTLimit, fCanon, fReverse, vSupp, vMap, i ? 0 : fVerbose );
+        if ( fCnfShared )
+            vSop = Abc_NtkClpGiaOne2( pCnf, p, iCoThis, nCubeLim, nBTLimit, fCanon, fReverse, vSupp, vMap, i ? 0 : fVerbose, Vec_WecEntry(vClasses, iEntry), vSupps );
+        else
+            vSop = Abc_NtkClpGiaOne( p, iCoThis, nCubeLim, nBTLimit, fCanon, fReverse, vSupp, i ? 0 : fVerbose, Vec_WecEntry(vClasses, iEntry), vSupps );
         if ( vSop == NULL )
             goto finish;
         assert( Vec_IntSize( Vec_WecEntry(vSupps, iCoThis) ) == Abc_SopGetVarNum(Vec_StrArray(vSop)) );
@@ -820,8 +829,11 @@ Vec_Ptr_t * Abc_GiaDeriveSops( Abc_Ntk_t * pNtkNew, Gia_Man_t * p, Vec_Wec_t * v
         Vec_StrFree( vSop );
     }
     Extra_ProgressBarStop( pProgress );
-    Cnf_DataFree( pCnf );
-    Vec_IntFree( vMap );
+    if ( fCnfShared )
+    {
+        Cnf_DataFree( pCnf );
+        Vec_IntFree( vMap );
+    }
     // derive SOPs for each output
     vSops = Vec_PtrStart( Gia_ManCoNum(p) );
     Vec_WecForEachLevel ( vClasses, vClass, i )
@@ -845,7 +857,7 @@ finish:
     Vec_PtrFree( vSopsRepr );
     return vSops;
 }
-Abc_Ntk_t * Abc_NtkFromSopsInt( Abc_Ntk_t * pNtk, int nCubeLim, int nBTLimit, int nCostMax, int fCanon, int fReverse, int fVerbose )
+Abc_Ntk_t * Abc_NtkFromSopsInt( Abc_Ntk_t * pNtk, int nCubeLim, int nBTLimit, int nCostMax, int fCanon, int fReverse, int fCnfShared, int fVerbose )
 {
     Abc_Ntk_t * pNtkNew;
     Gia_Man_t * pGia;
@@ -874,7 +886,7 @@ Abc_Ntk_t * Abc_NtkFromSopsInt( Abc_Ntk_t * pNtk, int nCubeLim, int nBTLimit, in
         }
     }
     pNtkNew = Abc_NtkStartFrom( pNtk, ABC_NTK_LOGIC, ABC_FUNC_SOP );
-    vSops   = Abc_GiaDeriveSops( pNtkNew, pGia, vSupps, nCubeLim, nBTLimit, nCostMax, fCanon, fReverse, fVerbose );
+    vSops   = Abc_GiaDeriveSops( pNtkNew, pGia, vSupps, nCubeLim, nBTLimit, nCostMax, fCanon, fReverse, fCnfShared, fVerbose );
     Gia_ManStop( pGia );
     if ( vSops == NULL )
     {
@@ -917,11 +929,11 @@ Abc_Ntk_t * Abc_NtkFromSopsInt( Abc_Ntk_t * pNtk, int nCubeLim, int nBTLimit, in
     Vec_PtrFree( vSops );
     return pNtkNew;
 }
-Abc_Ntk_t * Abc_NtkCollapseSat( Abc_Ntk_t * pNtk, int nCubeLim, int nBTLimit, int nCostMax, int fCanon, int fReverse, int fVerbose )
+Abc_Ntk_t * Abc_NtkCollapseSat( Abc_Ntk_t * pNtk, int nCubeLim, int nBTLimit, int nCostMax, int fCanon, int fReverse, int fCnfShared, int fVerbose )
 {
     Abc_Ntk_t * pNtkNew;
     assert( Abc_NtkIsStrash(pNtk) );
-    pNtkNew = Abc_NtkFromSopsInt( pNtk, nCubeLim, nBTLimit, nCostMax, fCanon, fReverse, fVerbose );
+    pNtkNew = Abc_NtkFromSopsInt( pNtk, nCubeLim, nBTLimit, nCostMax, fCanon, fReverse, fCnfShared, fVerbose );
     if ( pNtkNew == NULL )
         return NULL;
     if ( pNtk->pExdc )
