@@ -53,11 +53,12 @@ Sfm_Mit_t *  Sfm_MitStart( Mio_Library_t * pLib, SC_Lib * pScl, Scl_Con_t * pExt
 void         Sfm_MitStop( Sfm_Mit_t * p )                                                           {}
 int          Sfm_MitReadNtkDelay( Sfm_Mit_t * p )                                                   { return 0;}
 int          Sfm_MitReadObjDelay( Sfm_Mit_t * p, int iObj )                                         { return 0;}
+void         Sfm_MitUpdateLoad( Sfm_Mit_t * p, Vec_Int_t * vTimeNodes, int fAdd )                   {}
 void         Sfm_MitUpdateTiming( Sfm_Mit_t * p, Vec_Int_t * vTimeNodes )                           {}
 int          Sfm_MitSortArrayByArrival( Sfm_Mit_t * p, Vec_Int_t * vNodes, int iPivot )             { return 0;}
 int          Sfm_MitPriorityNodes( Sfm_Mit_t * p, Vec_Int_t * vCands, int Window )                  { return 0;}
 int          Sfm_MitNodeIsNonCritical( Sfm_Mit_t * p, Abc_Obj_t * pPivot, Abc_Obj_t * pNode )       { return 0;}
-int          Sfm_MitEvalRemapping( Sfm_Mit_t * p, Vec_Int_t * vFanins, Vec_Int_t * vMap, Mio_Gate_t * pGate1, char * pFans1, Mio_Gate_t * pGate2, char * pFans2 ) { return 0;}
+int          Sfm_MitEvalRemapping( Sfm_Mit_t * p, Vec_Int_t * vMffc, Abc_Obj_t * pObj, Vec_Int_t * vFanins, Vec_Int_t * vMap, Mio_Gate_t * pGate1, char * pFans1, Mio_Gate_t * pGate2, char * pFans2 ) { return 0;}
 
 
 ////////////////////////////////////////////////////////////////////////
