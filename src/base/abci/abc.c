@@ -3130,7 +3130,7 @@ int Abc_CommandSatClp( Abc_Frame_t * pAbc, int argc, char ** argv )
     int nCostMax   = 20000000;
     int fCanon     = 0;
     int fReverse   = 0;
-    int fCnfShared = 1;
+    int fCnfShared = 0;
     int fVerbose   = 0;
     int c;
 
@@ -3225,13 +3225,13 @@ int Abc_CommandSatClp( Abc_Frame_t * pAbc, int argc, char ** argv )
 usage:
     Abc_Print( -2, "usage: satclp [-CLZ num] [-crsvh]\n" );
     Abc_Print( -2, "\t         performs SAT based collapsing\n" );
-    Abc_Print( -2, "\t-C num : the limit on the SOP size of one output [default = %d]\n", nCubeLim );
+    Abc_Print( -2, "\t-C num : the limit on the SOP size of one output [default = %d]\n",              nCubeLim );
     Abc_Print( -2, "\t-L num : the limit on the number of conflicts in one SAT call [default = %d]\n", nBTLimit );
-    Abc_Print( -2, "\t-Z num : the limit on the cost of the largest output [default = %d]\n", nCostMax );
-    Abc_Print( -2, "\t-c     : toggles using canonical ISOP computation [default = %s]\n", fCanon? "yes": "no" );
-    Abc_Print( -2, "\t-r     : toggles using reverse veriable ordering [default = %s]\n", fReverse? "yes": "no" );
-    Abc_Print( -2, "\t-s     : toggles shared CNF computation [default = %s]\n", fCnfShared? "yes": "no" );
-    Abc_Print( -2, "\t-v     : toggles printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-Z num : the limit on the cost of the largest output [default = %d]\n",          nCostMax );
+    Abc_Print( -2, "\t-c     : toggles using canonical ISOP computation [default = %s]\n",             fCanon? "yes": "no" );
+    Abc_Print( -2, "\t-r     : toggles using reverse veriable ordering [default = %s]\n",              fReverse? "yes": "no" );
+    Abc_Print( -2, "\t-s     : toggles shared CNF computation (non-canonical only) [default = %s]\n",  fCnfShared? "yes": "no" );
+    Abc_Print( -2, "\t-v     : toggles printing verbose information [default = %s]\n",                 fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
 }
