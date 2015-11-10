@@ -458,12 +458,6 @@ int Cmd_CommandAbcPlugIn( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     // check if there is the binary
     pFileNameBinary = Abc_GetBinaryName( pAbc, argc, argv );
-    if ( (pFile = fopen( pFileNameBinary, "r" )) == NULL )
-    {
-        Abc_Print( -1, "Cannot run the binary \"%s\".\n\n", pFileNameBinary );
-        return 1;
-    }
-    fclose( pFile );
 
     // create temp file
     fd = Util_SignalTmpFile( "__abctmp_", ".aig", &pFileIn );
