@@ -412,7 +412,6 @@ Gia_Man_t * Abc_ManReadAig( char * pFileName, char * pToken )
 int Cmd_CommandAbcPlugIn( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     char * pFileIn, * pFileOut;
-    char * pFileNameBinary;
     Vec_Str_t * vCommand;
     Vec_Int_t * vCex;
     FILE * pFile;
@@ -440,8 +439,7 @@ int Cmd_CommandAbcPlugIn( Abc_Frame_t * pAbc, int argc, char ** argv )
         {
             // Run command to produce help string:
             vCommand = Vec_StrAlloc( 100 );
-            pFileNameBinary = Abc_GetBinaryName( pAbc, argc, argv );
-            Vec_StrAppend( vCommand, pFileNameBinary );
+            Vec_StrAppend( vCommand, Abc_GetBinaryName( pAbc, argc, argv ) );
             Vec_StrAppend( vCommand, " -abc " );
             Vec_StrAppend( vCommand, argv[0] );
             Vec_StrAppend( vCommand, " -h" );
@@ -455,9 +453,6 @@ int Cmd_CommandAbcPlugIn( Abc_Frame_t * pAbc, int argc, char ** argv )
         }
         return 1;
     }
-
-    // check if there is the binary
-    pFileNameBinary = Abc_GetBinaryName( pAbc, argc, argv );
 
     // create temp file
     fd = Util_SignalTmpFile( "__abctmp_", ".aig", &pFileIn );
@@ -511,7 +506,7 @@ int Cmd_CommandAbcPlugIn( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     // create command line
     vCommand = Vec_StrAlloc( 100 );
-    Vec_StrAppend( vCommand, pFileNameBinary );
+    Vec_StrAppend( vCommand, Abc_GetBinaryName( pAbc, argc, argv ) );
     // add input/output file
     Vec_StrAppend( vCommand, " -abc" );
 //    Vec_StrAppend( vCommand, " -input=C:/_projects/abc/_TEST/hwmcc/139442p0.aig" );
