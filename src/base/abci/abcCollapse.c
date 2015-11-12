@@ -602,7 +602,14 @@ int Abc_NtkCollapseReduce( Vec_Str_t * vSop, Vec_Int_t * vSupp, Vec_Int_t * vCla
 {
     int j = 0, i, k, iCo, iVar, nVars = Vec_IntSize(vSupp);
     char * pCube, * pSop = Vec_StrArray(vSop);
-    Vec_Int_t * vPres = Vec_IntStart( nVars );
+    Vec_Int_t * vPres;
+    if ( Vec_StrSize(vSop) == 4 ) // constant
+    {
+        Vec_IntForEachEntry( vClass, iCo, i )
+            Vec_IntClear( Vec_WecEntry(vSupps, iCo) );
+        return 1;
+    }
+    vPres = Vec_IntStart( nVars );
     Abc_NtkSopForEachCube( pSop, nVars, pCube )
         for ( k = 0; k < nVars; k++ )
             if ( pCube[k] != '-' )
@@ -721,10 +728,7 @@ Vec_Str_t * Abc_NtkClpGiaOne( Gia_Man_t * p, int iCo, int nCubeLim, int nBTLimit
     Gia_ManStop( pGia );
     if ( vSop == NULL )
         return NULL;
-    if ( Vec_StrSize(vSop) == 4 ) // constant
-        Vec_IntClear(vSupp);
-    else
-        Abc_NtkCollapseReduce( vSop, vSupp, vClass, vSupps );
+    Abc_NtkCollapseReduce( vSop, vSupp, vClass, vSupps );
     if ( fVerbose )
         printf( "Supp new = %4d. Sop = %4d.  ", Vec_IntSize(vSupp), Vec_StrSize(vSop)/(Vec_IntSize(vSupp) +3) );
     if ( fVerbose )
@@ -763,10 +767,7 @@ Vec_Str_t * Abc_NtkClpGiaOne2( Cnf_Dat_t * pCnf, Gia_Man_t * p, int iCo, int nCu
     Vec_IntFree( vAnds );
     if ( vSop == NULL )
         return NULL;
-    if ( Vec_StrSize(vSop) == 4 ) // constant
-        Vec_IntClear(vSupp);
-    else
-        Abc_NtkCollapseReduce( vSop, vSupp, vClass, vSupps );
+    Abc_NtkCollapseReduce( vSop, vSupp, vClass, vSupps );
     if ( fVerbose )
         printf( "Supp new = %4d. Sop = %4d.  ", Vec_IntSize(vSupp), Vec_StrSize(vSop)/(Vec_IntSize(vSupp) +3) );
     if ( fVerbose )
