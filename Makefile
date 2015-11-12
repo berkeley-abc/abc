@@ -34,12 +34,14 @@ MODULES := \
 all: $(PROG)
 default: $(PROG)
 
-arch_flags : arch_flags.c
-	$(CC) arch_flags.c -o arch_flags
+ARCHFLAGS_EXE ?= ./arch_flags
+
+$(ARCHFLAGS_EXE) : arch_flags.c
+	$(CC) arch_flags.c -o $(ARCHFLAGS_EXE)
 
 INCLUDES += -Isrc
 
-ARCHFLAGS ?= $(shell $(CC) arch_flags.c -o arch_flags && ./arch_flags)
+ARCHFLAGS ?= $(shell $(CC) arch_flags.c -o $(ARCHFLAGS_EXE) && $(ARCHFLAGS_EXE))
 ARCHFLAGS := $(ARCHFLAGS)
 
 OPTFLAGS  ?= -g -O

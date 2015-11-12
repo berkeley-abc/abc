@@ -53,6 +53,7 @@ execute_process(
     make
         ${ABC_READLINE_FLAGS}
         ${ABC_USE_NAMESPACE}
+        ARCHFLAGS_EXE=${CMAKE_CURRENT_BINARY_DIR}/abc_arch_flags_program.exe
         ABC_MAKE_NO_DEPS=1
         CC=${CMAKE_C_COMPILER}
         CXX=${CMAKE_CXX_COMPILER}
