@@ -180,8 +180,8 @@ struct SC_Pin_
     float          cap;            // -- this value is used if 'rise_cap' and 'fall_cap' is missing (copied by 'postProcess()'). (not used)
     float          rise_cap;       // }- used for input pins ('cap' too).
     float          fall_cap;       // }
-    float          rise_capI;      // }- used for input pins ('cap' too).
-    float          fall_capI;      // }
+    int            rise_capI;      // }- used for input pins ('cap' too).
+    int            fall_capI;      // }
     float          max_out_cap;    // } (not used)
     float          max_out_slew;   // }- used only for output pins (max values must not be exceeded or else mapping is illegal) (not used)
     char *         func_text;      // }
@@ -199,8 +199,8 @@ struct SC_Cell_
     int            unsupp;         // -- set to TRUE by parser if cell contains information we cannot handle
     float          area;
     float          leakage;
-    float          areaI;
-    float          leakageI;
+    int            areaI;
+    int            leakageI;
     int            drive_strength; // -- some library files provide this field (currently unused, but may be a good hint for sizing) (not used)
     Vec_Ptr_t      vPins;          // NamedSet<SC_Pin> 
     int            n_inputs;       // -- 'pins[0 .. n_inputs-1]' are input pins

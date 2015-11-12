@@ -211,6 +211,34 @@ void Abc_ObjPatchFanin( Abc_Obj_t * pObj, Abc_Obj_t * pFaninOld, Abc_Obj_t * pFa
 
 /**Function*************************************************************
 
+  Synopsis    [Replaces pObj by iObjNew in the fanin arrays of the fanouts.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_ObjPatchFanoutFanin( Abc_Obj_t * pObj, int iObjNew )
+{
+    Abc_Obj_t * pFanout;
+    int i, k, Entry;
+    // update fanouts of the node to point to this one
+    Abc_ObjForEachFanout( pObj, pFanout, i )
+    {
+        Vec_IntForEachEntry( &pFanout->vFanins, Entry, k )
+            if ( Entry == (int)Abc_ObjId(pObj) )
+            {
+                Vec_IntWriteEntry( &pFanout->vFanins, k, iObjNew );
+                break;
+            }
+        assert( k < Vec_IntSize(&pFanout->vFanins) );
+    }
+}
+
+/**Function*************************************************************
+
   Synopsis    [Inserts one-input node of the type specified between the nodes.]
 
   Description []

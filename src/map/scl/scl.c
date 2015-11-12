@@ -753,7 +753,7 @@ int Scl_CommandStime( Abc_Frame_t * pAbc, int argc, char **argv )
 {
     int c;
     int fShowAll      = 0;
-    int fUseWireLoads = 1;
+    int fUseWireLoads = 0;
     int fPrintPath    = 0;
     int fDumpStats    = 0;
     int nTreeCRatio   = 0;

@@ -173,8 +173,8 @@ static int Abc_SclReadLibrary( Vec_Str_t * vOut, int * pPos, SC_Lib * p )
             pPin->rise_cap = Vec_StrGetF(vOut, pPos);
             pPin->fall_cap = Vec_StrGetF(vOut, pPos);
 
-            pPin->rise_capI = (int)(MIO_NUM*pPin->rise_capI);
-            pPin->fall_capI = (int)(MIO_NUM*pPin->fall_capI);
+            pPin->rise_capI = (int)(MIO_NUM*pPin->rise_cap);
+            pPin->fall_capI = (int)(MIO_NUM*pPin->fall_cap);
         }
 
         for ( j = 0; j < pCell->n_outputs; j++ )

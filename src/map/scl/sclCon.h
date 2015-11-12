@@ -38,7 +38,8 @@ struct Scl_Con_t_
     word           tInLoadDef;  // default input load
     word           tOutReqDef;  // default output required time
     word           tOutLoadDef; // default output load
-    Vec_Ptr_t      vInCells;    // input driving gates
+    Vec_Ptr_t      vInCells;    // input driving gate names
+    Vec_Ptr_t      vInCellsPtr; // input driving gates
     Vec_Wrd_t      vInArrs;     // input arrival times
     Vec_Wrd_t      vInSlews;    // input slews
     Vec_Wrd_t      vInLoads;    // input loads
@@ -58,8 +59,8 @@ struct Scl_Con_t_
 #define SCL_DIRECTIVE(ITEM)     "."ITEM
 #define SCL_DEF_DIRECTIVE(ITEM) ".default_"ITEM
 
-#define SCL_NUM          1000000
-#define SCL_NUMINV      0.000001
+#define SCL_NUM          1000
+#define SCL_NUMINV      0.001
 #define SCL_INFINITY    (~(word)0)
 
 static inline word      Scl_Flt2Wrd( float w )   { return SCL_NUM*w; }
@@ -103,6 +104,7 @@ static inline Scl_Con_t * Scl_ConAlloc( char * pFileName, Abc_Nam_t * pNamI, Abc
 }
 static inline void Scl_ConFree( Scl_Con_t * p )
 {
+    Vec_PtrErase( &p->vInCellsPtr );
     Vec_PtrFreeData( &p->vInCells );
     Vec_PtrErase( &p->vInCells );
     Vec_WrdErase( &p->vInArrs );

@@ -93,6 +93,7 @@ struct Sfm_Dec_t_
     // temporary
     Vec_Int_t         vTemp;
     Vec_Int_t         vTemp2;
+    Vec_Int_t         vTemp3;
     Vec_Int_t         vCands;
     word              Copy[4];
     int               nSuppVars;
@@ -103,6 +104,7 @@ struct Sfm_Dec_t_
     abctime           timeSat;
     abctime           timeSatSat;
     abctime           timeSatUnsat;
+    abctime           timeEval;
     abctime           timeTime;
     abctime           timeOther;
     abctime           timeStart;
@@ -146,6 +148,9 @@ static inline word        Sfm_DecObjSim2( Sfm_Dec_t * p, Abc_Obj_t * pObj )  { r
 static inline word *      Sfm_DecDivPats( Sfm_Dec_t * p, int d, int c )      { return Vec_WrdEntryP(&p->vSets[c], d*SFM_SIM_WORDS); }
 
 static inline int         Sfm_ManReadObjDelay( Sfm_Dec_t * p, int Id )       { return p->pMit ? Sfm_MitReadObjDelay(p->pMit, Id) : Sfm_TimReadObjDelay(p->pTim, Id); }
+static inline int         Sfm_ManReadNtkDelay( Sfm_Dec_t * p )               { return p->pMit ? Sfm_MitReadNtkDelay(p->pMit)     : Sfm_TimReadNtkDelay(p->pTim);     }
+
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -216,7 +221,7 @@ p->timeLib = Abc_Clock() - p->timeLib;
     {
         if ( Abc_FrameReadLibScl() )
             p->pMit = Sfm_MitStart( pLib, (SC_Lib *)Abc_FrameReadLibScl(), Scl_ConReadMan(), pNtk, p->DeltaCrit );
-        else
+        if ( p->pMit == NULL )
             p->pTim = Sfm_TimStart( pLib, Scl_ConReadMan(), pNtk, p->DeltaCrit );
     }
     if ( pPars->fVeryVerbose )
@@ -277,6 +282,7 @@ void Sfm_DecStop( Sfm_Dec_t * p )
     // temporary
     Vec_IntErase( &p->vTemp );
     Vec_IntErase( &p->vTemp2 );
+    Vec_IntErase( &p->vTemp3 );
     Vec_IntErase( &p->vCands );
     ABC_FREE( p );
     pNtk->pData = NULL;
@@ -704,6 +710,8 @@ int Sfm_DecMffcAreaReal( Abc_Obj_t * pPivot, Vec_Int_t * vCut, Vec_Int_t * vMffc
     Abc_Obj_t * pObj; 
     int i, Area1, Area2;
     assert( Abc_ObjIsNode(pPivot) );
+    if ( vMffc )
+        Vec_IntClear( vMffc );
     Abc_NtkForEachObjVec( vCut, pNtk, pObj, i )
         pObj->vFanouts.nSize++;
     Area1 = Sfm_MffcDeref_rec( pPivot );
@@ -1194,7 +1202,7 @@ int Sfm_DecPeformDec3( Sfm_Dec_t * p, Abc_Obj_t * pObj )
     int nSupp[SFM_DEC_MAX], pAssump[SFM_WIN_MAX];
     int fVeryVerbose = p->pPars->fPrintDecs || p->pPars->fVeryVerbose;
     int nDecs = Abc_MaxInt(p->pPars->nDecMax, 1);
-    int i, k, DelayOrig = 0, DelayMin, nMatches, iBest = -1, RetValue, Prev = 0; 
+    int i, k, DelayOrig = 0, DelayMin, GainMax, nMatches, iBest = -1, RetValue, Prev = 0; 
     Mio_Gate_t * pGate1Best = NULL, * pGate2Best = NULL; 
     char * pFans1Best = NULL, * pFans2Best = NULL;
     assert( p->pPars->fArea == 0 );
@@ -1208,6 +1216,7 @@ int Sfm_DecPeformDec3( Sfm_Dec_t * p, Abc_Obj_t * pObj )
     Vec_IntClear( &p->vObjDec );
     for ( i = 0; i < nDecs; i++ )
     {
+        GainMax = 0;
         DelayMin = DelayOrig = Sfm_ManReadObjDelay( p, Abc_ObjId(pObj) );
         // reduce the variable array
         if ( Vec_IntSize(&p->vObjDec) > Prev )
@@ -1227,7 +1236,13 @@ int Sfm_DecPeformDec3( Sfm_Dec_t * p, Abc_Obj_t * pObj )
             printf( "Dec  %d: Pat0 = %2d  Pat1 = %2d  Supp = %d  ", i, p->nPats[0], p->nPats[1], nSupp[i] );
         if ( fVeryVerbose )
             Dau_DsdPrintFromTruth( uTruth[i], nSupp[i] );
-        if ( nSupp[i] == 1 && uTruth[i][0] == ABC_CONST(0x5555555555555555) && DelayMin <= p->DelayInv + Sfm_ManReadObjDelay(p, Vec_IntEntry(&p->vObjMap, pSupp[i][0])) )
+        if ( p->pTim && nSupp[i] == 1 && uTruth[i][0] == ABC_CONST(0x5555555555555555) && DelayMin <= p->DelayInv + Sfm_ManReadObjDelay(p, Vec_IntEntry(&p->vObjMap, pSupp[i][0])) )
+        {
+            if ( fVeryVerbose )
+                printf( "Dec  %d: Pat0 = %2d  Pat1 = %2d  NO DEC.\n", i, p->nPats[0], p->nPats[1] );
+            continue;
+        }
+        if ( p->pMit && nSupp[i] == 1 && uTruth[i][0] == ABC_CONST(0x5555555555555555) )
         {
             if ( fVeryVerbose )
                 printf( "Dec  %d: Pat0 = %2d  Pat1 = %2d  NO DEC.\n", i, p->nPats[0], p->nPats[1] );
@@ -1248,8 +1263,8 @@ int Sfm_DecPeformDec3( Sfm_Dec_t * p, Abc_Obj_t * pObj )
         // get MFFC
         if ( p->pMit )
         {
-            Sfm_DecPrepareVec( &p->vObjMap, pSupp[i], nSupp[i], &p->vTemp );
-            Sfm_DecMffcAreaReal(pObj, &p->vTemp, &p->vTemp2 );
+            Sfm_DecPrepareVec( &p->vObjMap, pSupp[i], nSupp[i], &p->vTemp ); // returns cut in p->vTemp
+            Sfm_DecMffcAreaReal(pObj, &p->vTemp, &p->vTemp3 ); // returns MFFC in p->vTemp3
         }
 
         // try the delay
@@ -1258,19 +1273,21 @@ int Sfm_DecPeformDec3( Sfm_Dec_t * p, Abc_Obj_t * pObj )
         nMatches = Sfm_LibFindDelayMatches( p->pLib, uTruth[i], pSupp[i], nSupp[i], &p->vMatchGates, &p->vMatchFans );
         for ( k = 0; k < nMatches; k++ )
         {
+            abctime clk = Abc_Clock();
             Mio_Gate_t * pGate1 = (Mio_Gate_t *)Vec_PtrEntry( &p->vMatchGates, 2*k+0 );
             Mio_Gate_t * pGate2 = (Mio_Gate_t *)Vec_PtrEntry( &p->vMatchGates, 2*k+1 );
             char * pFans1 = (char *)Vec_PtrEntry( &p->vMatchFans, 2*k+0 );
             char * pFans2 = (char *)Vec_PtrEntry( &p->vMatchFans, 2*k+1 );
             Vec_Int_t vFanins = { nSupp[i], nSupp[i], pSupp[i] };
-            int Delay;
+            // skip identical gate
+            //if ( pGate2 == NULL && pGate1 == (Mio_Gate_t *)pObj->pData )
+            //    continue;
             if ( p->pMit )
             {
-                DelayMin = 0;
-                Delay = Sfm_MitEvalRemapping( p->pMit, &p->vTemp2, pObj, &vFanins, &p->vObjMap, pGate1, pFans1, pGate2, pFans2 );
-                if ( DelayMin < Delay )
+                int Gain = Sfm_MitEvalRemapping( p->pMit, &p->vTemp3, pObj, &vFanins, &p->vObjMap, pGate1, pFans1, pGate2, pFans2 );
+                if ( GainMax < Gain )
                 {
-                    DelayMin   = Delay;
+                    GainMax    = Gain;
                     pGate1Best = pGate1;
                     pGate2Best = pGate2;
                     pFans1Best = pFans1;
@@ -1280,7 +1297,7 @@ int Sfm_DecPeformDec3( Sfm_Dec_t * p, Abc_Obj_t * pObj )
             }
             else
             {
-                Delay = Sfm_TimEvalRemapping( p->pTim, &vFanins, &p->vObjMap, pGate1, pFans1, pGate2, pFans2 );
+                int Delay = Sfm_TimEvalRemapping( p->pTim, &vFanins, &p->vObjMap, pGate1, pFans1, pGate2, pFans2 );
                 if ( DelayMin > Delay )
                 {
                     DelayMin   = Delay;
@@ -1291,8 +1308,10 @@ int Sfm_DecPeformDec3( Sfm_Dec_t * p, Abc_Obj_t * pObj )
                     iBest      = i;
                 }
             }
+            p->timeEval += Abc_Clock() - clk;
         }
     }
+//printf( "Gain max = %d.\n", GainMax );
     Sfm_ObjSetdownSimInfo( pObj );
     if ( iBest == -1 )
     {
@@ -1670,7 +1689,7 @@ printf( "\n" );
 */  
     return nDivs;
 }
-Abc_Obj_t * Sfm_DecInsert( Abc_Ntk_t * pNtk, Abc_Obj_t * pPivot, int Limit, Vec_Int_t * vGates, Vec_Wec_t * vFanins, Vec_Int_t * vMap, Vec_Ptr_t * vGateHandles, int GateBuf, int GateInv, Vec_Wrd_t * vFuncs, Vec_Int_t * vTimeNodes )
+Abc_Obj_t * Sfm_DecInsert( Abc_Ntk_t * pNtk, Abc_Obj_t * pPivot, int Limit, Vec_Int_t * vGates, Vec_Wec_t * vFanins, Vec_Int_t * vMap, Vec_Ptr_t * vGateHandles, int GateBuf, int GateInv, Vec_Wrd_t * vFuncs, Vec_Int_t * vTimeNodes, Sfm_Mit_t * pMit )
 {
     Abc_Obj_t * pObjNew = NULL; 
     Vec_Int_t * vLevel;
@@ -1687,6 +1706,10 @@ Abc_Obj_t * Sfm_DecInsert( Abc_Ntk_t * pNtk, Abc_Obj_t * pPivot, int Limit, Vec_
         {
             iObj = Vec_WecEntryEntry( vFanins, Limit, 0 );
             pObjNew = Abc_NtkObj( pNtk, Vec_IntEntry(vMap, iObj) );
+            // transfer load
+            if ( pMit )
+                Sfm_MitTransferLoad( pMit, pObjNew, pPivot );
+            // replace logic cone
             Abc_ObjReplace( pPivot, pObjNew );
             // update level
             pObjNew->Level = 0;
@@ -1743,6 +1766,13 @@ Abc_Obj_t * Sfm_DecInsert( Abc_Ntk_t * pNtk, Abc_Obj_t * pPivot, int Limit, Vec_
         if ( vTimeNodes )
             Vec_IntPush( vTimeNodes, Abc_ObjId(pObjNew) );
     }
+    // transfer load
+    if ( pMit )
+    {
+        Sfm_MitTimingGrow( pMit );
+        Sfm_MitTransferLoad( pMit, pObjNew, pPivot );
+    }
+    // replace logic cone
     Abc_ObjReplace( pPivot, pObjNew );
     // update level
     Abc_NtkForEachObjVecStart( vMap, pNtk, pObjNew, i, Limit )
@@ -1760,15 +1790,16 @@ void Sfm_DecPrintStats( Sfm_Dec_t * p )
     p->timeTotal = Abc_Clock() - p->timeStart;
     p->timeOther = p->timeTotal - p->timeLib - p->timeWin - p->timeCnf - p->timeSat - p->timeTime;
 
-    ABC_PRTP( "Lib   ", p->timeLib  ,     p->timeTotal );
-    ABC_PRTP( "Win   ", p->timeWin  ,     p->timeTotal );
-    ABC_PRTP( "Cnf   ", p->timeCnf  ,     p->timeTotal );
-    ABC_PRTP( "Sat   ", p->timeSat  ,     p->timeTotal );
-    ABC_PRTP( " Sat  ", p->timeSatSat,    p->timeTotal );
-    ABC_PRTP( " Unsat", p->timeSatUnsat,  p->timeTotal );
-    ABC_PRTP( "Timing", p->timeTime ,     p->timeTotal );
-    ABC_PRTP( "Other ", p->timeOther,     p->timeTotal );
-    ABC_PRTP( "ALL   ", p->timeTotal,     p->timeTotal );
+    ABC_PRTP( "Lib   ", p->timeLib  ,           p->timeTotal );
+    ABC_PRTP( "Win   ", p->timeWin  ,           p->timeTotal );
+    ABC_PRTP( "Cnf   ", p->timeCnf  ,           p->timeTotal );
+    ABC_PRTP( "Sat   ", p->timeSat-p->timeEval, p->timeTotal );
+    ABC_PRTP( " Sat  ", p->timeSatSat,          p->timeTotal );
+    ABC_PRTP( " Unsat", p->timeSatUnsat,        p->timeTotal );
+    ABC_PRTP( "Eval  ", p->timeEval ,           p->timeTotal );
+    ABC_PRTP( "Timing", p->timeTime ,           p->timeTotal );
+    ABC_PRTP( "Other ", p->timeOther,           p->timeTotal );
+    ABC_PRTP( "ALL   ", p->timeTotal,           p->timeTotal );
 
     printf( "Cone sizes:  " );
     for ( i = 0; i <= SFM_SUPP_MAX; i++ )
@@ -1883,7 +1914,7 @@ p->timeSat += Abc_Clock() - clk;
         return NULL;
     p->nNodesChanged++;
     Abc_NtkCountStats( p, Limit );
-    return Sfm_DecInsert( pNtk, pObj, Limit, &p->vObjGates, &p->vObjFanins, &p->vObjMap, &p->vGateHands, p->GateBuffer, p->GateInvert, &p->vGateFuncs, NULL );
+    return Sfm_DecInsert( pNtk, pObj, Limit, &p->vObjGates, &p->vObjFanins, &p->vObjMap, &p->vGateHands, p->GateBuffer, p->GateInvert, &p->vGateFuncs, NULL, p->pMit );
 }
 void Abc_NtkAreaOpt( Sfm_Dec_t * p )
 {
@@ -1963,7 +1994,6 @@ void Abc_NtkDelayOpt( Sfm_Dec_t * p )
             int OldId = Abc_ObjId(pObj);
             int DelayOld = Sfm_ManReadObjDelay(p, OldId);
             assert( pObj->fMarkA == 0 );
-
             p->nNodesTried++;
 clk = Abc_Clock();
             p->nDivs = Sfm_DecExtract( pNtk, pPars, pObj, &p->vObjRoots, &p->vObjGates, &p->vObjFanins, &p->vObjMap, &p->vTemp, &p->vTemp2, &p->vObjMffc, &p->vObjInMffc, p->pTim, p->pMit );
@@ -2028,8 +2058,8 @@ p->timeSat += Abc_Clock() - clk;
             p->nNodesChanged++;
             Abc_NtkCountStats( p, Limit );
             // reduce load due to removed MFFC
-            if ( p->pMit ) Sfm_MitUpdateLoad( p->pMit, &p->vTemp2, 0 ); // assuming &p->vTemp2 contains MFFC
-            Sfm_DecInsert( pNtk, pObj, Limit, &p->vObjGates, &p->vObjFanins, &p->vObjMap, &p->vGateHands, p->GateBuffer, p->GateInvert, &p->vGateFuncs, &p->vTemp );
+            if ( p->pMit ) Sfm_MitUpdateLoad( p->pMit, &p->vTemp3, 0 ); // assuming &p->vTemp3 contains MFFC
+            Sfm_DecInsert( pNtk, pObj, Limit, &p->vObjGates, &p->vObjFanins, &p->vObjMap, &p->vGateHands, p->GateBuffer, p->GateInvert, &p->vGateFuncs, &p->vTemp, p->pMit );
             // increase load due to added new nodes
             if ( p->pMit ) Sfm_MitUpdateLoad( p->pMit, &p->vTemp, 1 ); // assuming &p->vTemp contains new nodes
 clk = Abc_Clock();
@@ -2039,13 +2069,13 @@ clk = Abc_Clock();
                 Sfm_TimUpdateTiming( p->pTim, &p->vTemp );
 p->timeTime += Abc_Clock() - clk;
             pObjNew = Abc_NtkObj( pNtk, Abc_NtkObjNumMax(pNtk)-1 );
-            assert( p->DelayMin == 0 || p->DelayMin == Sfm_ManReadObjDelay(p, Abc_ObjId(pObjNew)) );
+            assert( p->pMit || p->DelayMin == 0 || p->DelayMin == Sfm_ManReadObjDelay(p, Abc_ObjId(pObjNew)) );
             // report
             if ( pPars->fDelayVerbose )
-                printf( "Node %5d :  I =%3d.  Cand = %5d (%6.2f %%)   Old =%8.2f.  New =%8.2f.  Final =%8.2f\n", 
-                    OldId, i, Vec_IntSize(&p->vCands), 100.0 * Vec_IntSize(&p->vCands) / Abc_NtkNodeNum(p->pNtk),
+                printf( "Node %5d  %5d :  I =%3d.  Cand = %5d (%6.2f %%)   Old =%8.2f.  New =%8.2f.  Final =%8.2f\n", 
+                    OldId, Abc_NtkObjNumMax(p->pNtk), i, Vec_IntSize(&p->vCands), 100.0 * Vec_IntSize(&p->vCands) / Abc_NtkNodeNum(p->pNtk),
                     MIO_NUMINV*DelayOld, MIO_NUMINV*Sfm_ManReadObjDelay(p, Abc_ObjId(pObjNew)), 
-                    MIO_NUMINV*Sfm_TimReadNtkDelay(p->pTim) );
+                    MIO_NUMINV*Sfm_ManReadNtkDelay(p) );
             break;
         }
         if ( pPars->iNodeOne )
