@@ -121,11 +121,12 @@ void Abc_UtilsPrintUsage( Abc_Frame_t * pAbc, char * ProgName )
 {
     fprintf( pAbc->Err, "\n" );
     fprintf( pAbc->Err,
-             "usage: %s [-c cmd] [-f script] [-h] [-o file] [-s] [-t type] [-T type] [-x] [-b] [file]\n", 
+             "usage: %s [-c cmd] [-q cmd] [-C cmd] [-Q cmd] [-f script] [-h] [-o file] [-s] [-t type] [-T type] [-x] [-b] [file]\n",
              ProgName);
     fprintf( pAbc->Err, "    -c cmd\texecute commands `cmd'\n");
     fprintf( pAbc->Err, "    -q cmd\texecute commands `cmd' quietly\n");
     fprintf( pAbc->Err, "    -C cmd\texecute commands `cmd', then continue in interactive mode\n");
+    fprintf( pAbc->Err, "    -Q cmd\texecute commands `cmd' quietly, then continue in interactive mode\n");
     fprintf( pAbc->Err, "    -F script\texecute commands from a script file and echo commands\n");
     fprintf( pAbc->Err, "    -f script\texecute commands from a script file\n");
     fprintf( pAbc->Err, "    -h\t\tprint the command usage\n");
@@ -291,4 +292,3 @@ char * DateReadFromDateString( char * datestr )
 
 
 ABC_NAMESPACE_IMPL_END
-

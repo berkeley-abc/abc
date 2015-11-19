@@ -89,6 +89,7 @@ int Abc_RealMain( int argc, char * argv[] )
         BATCH, // batch mode, run a command and quit
         BATCH_THEN_INTERACTIVE, // run a command, then back to interactive mode
         BATCH_QUIET, // as in batch mode, but don't echo the command
+        BATCH_QUIET_THEN_INTERACTIVE, // as in batch then interactive mode, but don't echo the command
         BATCH_SMT // special batch mode, which expends SMTLIB problem via stdin
     } fBatch;
 
@@ -114,7 +115,7 @@ int Abc_RealMain( int argc, char * argv[] )
     sprintf( sWriteCmd, "write" );
 
     Extra_UtilGetoptReset();
-    while ((c = Extra_UtilGetopt(argc, argv, "c:q:C:S:hf:F:o:st:T:xb")) != EOF) {
+    while ((c = Extra_UtilGetopt(argc, argv, "c:q:C:Q:S:hf:F:o:st:T:xb")) != EOF) {
         switch(c) {
             case 'c':
                 if( Vec_StrSize(sCommandUsr) > 0 )
@@ -132,6 +133,15 @@ int Abc_RealMain( int argc, char * argv[] )
                 }
                 Vec_StrAppend(sCommandUsr, globalUtilOptarg );
                 fBatch = BATCH_QUIET;
+                break;
+
+            case 'Q':
+                if( Vec_StrSize(sCommandUsr) > 0 )
+                {
+                    Vec_StrAppend(sCommandUsr, " ; ");
+                }
+                Vec_StrAppend(sCommandUsr, globalUtilOptarg );
+                fBatch = BATCH_QUIET_THEN_INTERACTIVE;
                 break;
 
             case 'C':
@@ -242,13 +252,12 @@ int Abc_RealMain( int argc, char * argv[] )
         extern Gia_Man_t * Gia_ManFromBridge( FILE * pFile, Vec_Int_t ** pvInit );
         pAbc->pGia = Gia_ManFromBridge( stdin, NULL );
     }
-    else if ( fBatch!=INTERACTIVE && fBatch!=BATCH_QUIET && Vec_StrSize(sCommandUsr)>0 )
+    else if ( fBatch!=INTERACTIVE && fBatch!=BATCH_QUIET && fBatch!=BATCH_QUIET_THEN_INTERACTIVE && Vec_StrSize(sCommandUsr)>0 )
         Abc_Print( 1, "ABC command line: \"%s\".\n\n", Vec_StrArray(sCommandUsr) );
 
     if ( fBatch!=INTERACTIVE )
     {
         pAbc->fBatchMode = 1;
-
 
         if (argc - globalUtilOptind == 0)
         {
@@ -288,7 +297,7 @@ int Abc_RealMain( int argc, char * argv[] )
             }
         }
 
-        if (fBatch == BATCH_THEN_INTERACTIVE){
+        if (fBatch == BATCH_THEN_INTERACTIVE || fBatch == BATCH_QUIET_THEN_INTERACTIVE){
             fBatch = INTERACTIVE;
             pAbc->fBatchMode = 0;
         }
@@ -375,4 +384,3 @@ static int TypeCheck( Abc_Frame_t * pAbc, const char * s )
 
 
 ABC_NAMESPACE_IMPL_END
-
