@@ -33,12 +33,14 @@
 #    define ABC_NAMESPACE_IMPL_START namespace ABC_NAMESPACE {
 #    define ABC_NAMESPACE_IMPL_END }
 #    define ABC_NAMESPACE_PREFIX ABC_NAMESPACE::
+#    define ABC_NAMESPACE_USING_NAMESPACE using namespace ABC_NAMESPACE;
 #  else
 #    define ABC_NAMESPACE_HEADER_START extern "C" {
 #    define ABC_NAMESPACE_HEADER_END }
 #    define ABC_NAMESPACE_IMPL_START
 #    define ABC_NAMESPACE_IMPL_END
 #    define ABC_NAMESPACE_PREFIX
+#    define ABC_NAMESPACE_USING_NAMESPACE
 #  endif // #ifdef ABC_NAMESPACE
 #else
 #  define ABC_NAMESPACE_HEADER_START
@@ -46,6 +48,7 @@
 #  define ABC_NAMESPACE_IMPL_START
 #  define ABC_NAMESPACE_IMPL_END
 #  define ABC_NAMESPACE_PREFIX
+#  define ABC_NAMESPACE_USING_NAMESPACE
 #endif // #ifdef __cplusplus
 
 #endif // #ifndef ABC__misc__util__abc_namespaces_h
