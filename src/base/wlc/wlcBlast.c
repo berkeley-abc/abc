@@ -1027,6 +1027,51 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Vec_Int_t * vBoxIds )
     return pNew;
 }
 
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Wlc_NtkPrintInvStats( Wlc_Ntk_t * pNtk, Vec_Int_t * vInv, int fVerbose )
+{
+    Wlc_Obj_t * pObj;
+    int i, k, nNum, nRange, nBits = 0;
+    Wlc_NtkForEachCi( pNtk, pObj, i )
+    {
+        if ( pObj->Type != WLC_OBJ_FO )
+            continue;
+        nRange = Wlc_ObjRange(pObj);
+        for ( k = 0; k < nRange; k++ )
+        {
+            nNum = Vec_IntEntry(vInv, nBits + k);
+            if ( nNum )
+                break;
+        }
+        if ( k == nRange )
+        {
+            nBits += nRange;
+            continue;
+        }
+        printf( "%s[%d:%d] : ", Wlc_ObjName(pNtk, Wlc_ObjId(pNtk, pObj)), pObj->End, pObj->Beg );
+        for ( k = 0; k < nRange; k++ )
+        {
+            nNum = Vec_IntEntry( vInv, nBits + k );
+            if ( nNum == 0 )
+                continue;
+            printf( "  [%d] -> %d", k, nNum );
+        }
+        printf( "\n");
+        nBits += nRange;
+    }
+    //printf( "%d %d\n", Vec_IntSize(vInv), nBits );
+    assert( Vec_IntSize(vInv) == nBits );
+}
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

@@ -19,6 +19,7 @@
 ***********************************************************************/
 
 #include "pdrInt.h"
+#include "base/main/main.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -910,6 +911,10 @@ int Pdr_ManSolve( Aig_Man_t * pAig, Pdr_Par_t * pPars )
     RetValue = Pdr_ManSolveInt( p );
     if ( RetValue == 0 )
         assert( pAig->pSeqModel != NULL || p->vCexes != NULL );
+    if ( RetValue == 1 )
+        Abc_FrameSetInv( Pdr_ManCountFlopsInv(p) );
+    else
+        Abc_FrameSetInv( NULL );
     if ( p->vCexes )
     {
         assert( p->pAig->vSeqModelVec == NULL );

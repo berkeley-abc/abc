@@ -32,11 +32,14 @@ static int  Abc_CommandReadWlc  ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int  Abc_CommandWriteWlc ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int  Abc_CommandPs       ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int  Abc_CommandBlast    ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int  Abc_CommandPsInv    ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int  Abc_CommandTest     ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 static inline Wlc_Ntk_t * Wlc_AbcGetNtk( Abc_Frame_t * pAbc )                       { return (Wlc_Ntk_t *)pAbc->pAbcWlc;                      }
 static inline void        Wlc_AbcFreeNtk( Abc_Frame_t * pAbc )                      { if ( pAbc->pAbcWlc ) Wlc_NtkFree(Wlc_AbcGetNtk(pAbc));  }
 static inline void        Wlc_AbcUpdateNtk( Abc_Frame_t * pAbc, Wlc_Ntk_t * pNtk )  { Wlc_AbcFreeNtk(pAbc); pAbc->pAbcWlc = pNtk;             }
+
+static inline Vec_Int_t * Wlc_AbcGetInv( Abc_Frame_t * pAbc )                       { return pAbc->pAbcWlcInv;                                }
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -59,6 +62,7 @@ void Wlc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Word level", "%write",      Abc_CommandWriteWlc,  0 );
     Cmd_CommandAdd( pAbc, "Word level", "%ps",         Abc_CommandPs,        0 );
     Cmd_CommandAdd( pAbc, "Word level", "%blast",      Abc_CommandBlast,     0 );
+    Cmd_CommandAdd( pAbc, "Word level", "%psinv",      Abc_CommandPsInv,     0 );
     Cmd_CommandAdd( pAbc, "Word level", "%test",       Abc_CommandTest,      0 );
 }
 
@@ -363,6 +367,56 @@ usage:
     Abc_Print( -2, "usage: %%blast [-mvh]\n" );
     Abc_Print( -2, "\t         performs bit-blasting of the word-level design\n" );
     Abc_Print( -2, "\t-m     : toggle creating boxes for all multipliers in the design [default = %s]\n", fMulti? "yes": "no" );
+    Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
+    return 1;
+}
+
+/**Function********************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+******************************************************************************/
+int Abc_CommandPsInv( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern void Wlc_NtkPrintInvStats( Wlc_Ntk_t * pNtk, Vec_Int_t * vInv, int fVerbose );
+    Wlc_Ntk_t * pNtk = Wlc_AbcGetNtk(pAbc);
+    int c, fVerbose  = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+            case 'v':
+                fVerbose ^= 1;
+                break;
+            case 'h':
+                goto usage;
+            default:
+                goto usage;
+        }
+    }
+    if ( pNtk == NULL )
+    {
+        Abc_Print( 1, "Abc_CommandPsInv(): There is no current design.\n" );
+        return 0;
+    }
+    if ( Wlc_AbcGetNtk(pAbc) == NULL )
+    {
+        Abc_Print( 1, "Abc_CommandPsInv(): There is no saved invariant.\n" );
+        return 0;
+    }
+    Wlc_NtkPrintInvStats( pNtk, Wlc_AbcGetInv(pAbc), fVerbose );
+    return 0;
+    usage:
+    Abc_Print( -2, "usage: %%psinv [-vh]\n" );
+    Abc_Print( -2, "\t         prints inductive invariant statistics\n" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;

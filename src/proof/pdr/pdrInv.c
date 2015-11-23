@@ -168,6 +168,26 @@ Vec_Ptr_t * Pdr_ManCollectCubes( Pdr_Man_t * p, int kStart )
 
 /**Function*************************************************************
 
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Int_t * Pdr_ManCountFlopsInv( Pdr_Man_t * p )
+{
+    int kStart = Pdr_ManFindInvariantStart(p);
+    Vec_Ptr_t *vCubes = Pdr_ManCollectCubes(p, kStart);
+    Vec_Int_t * vInv = Pdr_ManCountFlops( p, vCubes );
+    Vec_PtrFree(vCubes);
+    return vInv;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Counts the number of variables used in the clauses.]
 
   Description []
