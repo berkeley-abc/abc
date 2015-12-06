@@ -179,8 +179,10 @@ word              Mio_GateReadTruth   ( Mio_Gate_t * pGate )            { return
 word *            Mio_GateReadTruthP  ( Mio_Gate_t * pGate )            { return pGate->nInputs <= 6 ? NULL: pGate->pTruth; }
 int               Mio_GateReadValue   ( Mio_Gate_t * pGate )            { return pGate->Value;     }
 int               Mio_GateReadCell    ( Mio_Gate_t * pGate )            { return pGate->Cell;      }
+int               Mio_GateReadProfile ( Mio_Gate_t * pGate )            { return pGate->Profile;   }
 void              Mio_GateSetValue    ( Mio_Gate_t * pGate, int Value ) { pGate->Value = Value;    }
 void              Mio_GateSetCell     ( Mio_Gate_t * pGate, int Cell )  { pGate->Cell  = Cell;     }
+void              Mio_GateSetProfile  ( Mio_Gate_t * pGate, int Prof )  { pGate->Profile = Prof;   }
 int               Mio_GateIsInv       ( Mio_Gate_t * pGate )            { return pGate->uTruth == ABC_CONST(0x5555555555555555); }
 
 /**Function*************************************************************

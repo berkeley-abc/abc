@@ -1345,6 +1345,49 @@ void Mio_LibraryTransferCellIds()
     }
 }
 
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Mio_LibraryReadProfile( FILE * pFile, Mio_Library_t * pLib )
+{
+    Mio_Gate_t * pGate;    
+    char pBuffer[1000];
+    while ( fgets( pBuffer, 1000, pFile ) != NULL )
+    {
+        char * pToken = strtok( pBuffer, " \t\n" );
+        if ( pToken == NULL )
+            continue;
+        if ( pToken[0] == '#' )
+            continue;
+        // read gate
+        pGate = Mio_LibraryReadGateByName( pLib, pToken, NULL );
+        if ( pGate == NULL )
+        {
+            printf( "Cannot find gate \"%s\" in library \"%s\".\n", Mio_GateReadName(pGate), Mio_LibraryReadName(pLib) );
+            continue;
+        }
+        // read profile
+        pToken = strtok( NULL, " \t\n" );
+        Mio_GateSetProfile( pGate, atoi(pToken) );
+    }
+}
+
+void Mio_LibraryWriteProfile( FILE * pFile, Mio_Library_t * pLib )
+{
+    Mio_Gate_t * pGate;    
+    Mio_LibraryForEachGate( pLib, pGate )
+        if ( Mio_GateReadProfile(pGate) > 0 )
+            fprintf( pFile, "%-24s  %6d\n", Mio_GateReadName(pGate), Mio_GateReadProfile(pGate) );
+}
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

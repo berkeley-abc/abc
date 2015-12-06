@@ -38,6 +38,9 @@ static int Mio_CommandReadLiberty( Abc_Frame_t * pAbc, int argc, char **argv );
 static int Mio_CommandReadGenlib( Abc_Frame_t * pAbc, int argc, char **argv );
 static int Mio_CommandWriteGenlib( Abc_Frame_t * pAbc, int argc, char **argv );
 static int Mio_CommandPrintGenlib( Abc_Frame_t * pAbc, int argc, char **argv );
+static int Mio_CommandReadProfile( Abc_Frame_t * pAbc, int argc, char **argv );
+static int Mio_CommandWriteProfile( Abc_Frame_t * pAbc, int argc, char **argv );
+static int Mio_CommandPrintProfile( Abc_Frame_t * pAbc, int argc, char **argv );
 
 /*
 // internal version of genlib library
@@ -87,6 +90,10 @@ void Mio_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "SC mapping", "read_genlib",    Mio_CommandReadGenlib,  0 ); 
     Cmd_CommandAdd( pAbc, "SC mapping", "write_genlib",   Mio_CommandWriteGenlib, 0 ); 
     Cmd_CommandAdd( pAbc, "SC mapping", "print_genlib",   Mio_CommandPrintGenlib, 0 ); 
+
+    Cmd_CommandAdd( pAbc, "SC mapping", "read_profile",   Mio_CommandReadProfile,  0 ); 
+    Cmd_CommandAdd( pAbc, "SC mapping", "write_profile",  Mio_CommandWriteProfile, 0 ); 
+    Cmd_CommandAdd( pAbc, "SC mapping", "print_profile",  Mio_CommandPrintProfile, 0 ); 
 
     Cmd_CommandAdd( pAbc, "SC mapping", "read_library",   Mio_CommandReadGenlib,  0 ); 
     Cmd_CommandAdd( pAbc, "SC mapping", "write_library",  Mio_CommandWriteGenlib, 0 ); 
@@ -185,12 +192,10 @@ int Mio_CommandReadLiberty( Abc_Frame_t * pAbc, int argc, char **argv )
     char Command[1000];
     FILE * pFile;
     FILE * pOut, * pErr;
-    Abc_Ntk_t * pNet;
     char * pFileName;
     int fVerbose;
     int c;
 
-    pNet = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
@@ -279,14 +284,12 @@ int Mio_CommandReadGenlib( Abc_Frame_t * pAbc, int argc, char **argv )
     FILE * pOut, * pErr;
     Mio_Library_t * pLib;
     Amap_Lib_t * pLib2;
-    Abc_Ntk_t * pNet;
     char * pFileName;
     char * pExcludeFile = NULL;
     int fVerbose;
     double WireDelay;
     int c;
 
-    pNet = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
@@ -399,13 +402,11 @@ usage:
 int Mio_CommandWriteGenlib( Abc_Frame_t * pAbc, int argc, char **argv )
 {
     FILE * pOut, * pErr, * pFile;
-    Abc_Ntk_t * pNet;
     char * pFileName;
     int fSelected = 0;
     int fVerbose = 0;
     int c;
 
-    pNet = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
@@ -474,13 +475,11 @@ usage:
 int Mio_CommandPrintGenlib( Abc_Frame_t * pAbc, int argc, char **argv )
 {
     FILE * pOut, * pErr;
-    Abc_Ntk_t * pNet;
     int fShort = 0;
     int fSelected = 0;
     int fVerbose = 0;
     int c;
 
-    pNet = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
@@ -524,6 +523,198 @@ usage:
     return 1;       
 }
 
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Mio_CommandReadProfile( Abc_Frame_t * pAbc, int argc, char **argv )
+{
+    FILE * pFile, * pOut, * pErr;
+    Mio_Library_t * pLib;
+    char * pFileName;
+    int c;
+
+    pOut = Abc_FrameReadOut(pAbc);
+    pErr = Abc_FrameReadErr(pAbc);
+
+    // set the defaults
+    Extra_UtilGetoptReset();
+    while ( (c = Extra_UtilGetopt(argc, argv, "h")) != EOF ) 
+    {
+        switch (c) 
+        {
+            case 'h':
+                goto usage;
+                break;
+            default:
+                goto usage;
+        }
+    }
+    if ( argc != globalUtilOptind + 1 )
+    {
+        goto usage;
+    }
+
+    pLib = (Mio_Library_t *)Abc_FrameReadLibGen();
+    if ( pLib == NULL )
+    {
+        fprintf( pErr, "There is no Genlib library entered.\n" );
+        return 1;
+    }
+
+    // get the input file name
+    pFileName = argv[globalUtilOptind];
+    if ( (pFile = Io_FileOpen( pFileName, "open_path", "r", 0 )) == NULL )
+    {
+        fprintf( pErr, "Cannot open input file \"%s\". ", pFileName );
+        if ( (pFileName = Extra_FileGetSimilarName( pFileName, ".profile", NULL, NULL, NULL, NULL )) )
+            fprintf( pErr, "Did you mean \"%s\"?", pFileName );
+        fprintf( pErr, "\n" );
+        return 1;
+    }
+
+    // set the new network
+    Mio_LibraryReadProfile( pFile, pLib );
+    fclose( pFile );
+    return 0;
+
+usage:
+    fprintf( pErr, "usage: read_profile [-h] <file>\n");
+    fprintf( pErr, "\t          read a gate profile from a profile file\n" );  
+    fprintf( pErr, "\t-h      : enable verbose output\n");
+    fprintf( pErr, "\t<file>  : file name to read the profile\n");
+    return 1;       
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Command procedure to read LUT libraries.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Mio_CommandWriteProfile( Abc_Frame_t * pAbc, int argc, char **argv )
+{
+    FILE * pOut, * pErr, * pFile;
+    char * pFileName;
+    int c;
+
+    pOut = Abc_FrameReadOut(pAbc);
+    pErr = Abc_FrameReadErr(pAbc);
+
+    Extra_UtilGetoptReset();
+    while ( (c = Extra_UtilGetopt(argc, argv, "h")) != EOF ) 
+    {
+        switch (c) 
+        {
+            case 'h':
+                goto usage;
+                break;
+            default:
+                goto usage;
+        }
+    }
+    if ( Abc_FrameReadLibGen() == NULL )
+    {
+        printf( "Library is not available.\n" );
+        return 1;
+    }
+    if ( argc != globalUtilOptind + 1 )
+    {
+        printf( "The file name is not given.\n" );
+        return 1;
+    }
+
+    pFileName = argv[globalUtilOptind];
+    pFile = fopen( pFileName, "w" );
+    if ( pFile == NULL )
+    {
+        printf( "Error! Cannot open file \"%s\" for writing the library.\n", pFileName );
+        return 1;
+    }
+    Mio_LibraryWriteProfile( pFile, (Mio_Library_t *)Abc_FrameReadLibGen() );
+    fclose( pFile );
+    printf( "The current profile is written into file \"%s\".\n", pFileName );
+    return 0;
+
+usage:
+    fprintf( pErr, "\nusage: write_profile [-h] <file>\n");
+    fprintf( pErr, "\t          writes the current profile into a file\n" );  
+    fprintf( pErr, "\t-h      : print the command usage\n");
+    fprintf( pErr, "\t<file>  : file name to write the profile\n");
+    return 1;       
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Command procedure to read LUT libraries.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Mio_CommandPrintProfile( Abc_Frame_t * pAbc, int argc, char **argv )
+{
+    FILE * pOut, * pErr;
+    int fShort = 0;
+    int fSelected = 0;
+    int fVerbose = 0;
+    int c;
+
+    pOut = Abc_FrameReadOut(pAbc);
+    pErr = Abc_FrameReadErr(pAbc);
+
+    // set the defaults
+    Extra_UtilGetoptReset();
+    while ( (c = Extra_UtilGetopt(argc, argv, "savh")) != EOF ) 
+    {
+        switch (c) 
+        {
+            case 's':
+                fShort ^= 1;
+                break;
+            case 'a':
+                fSelected ^= 1;
+                break;
+            case 'v':
+                fVerbose ^= 1;
+                break;
+            case 'h':
+                goto usage;
+                break;
+            default:
+                goto usage;
+        }
+    }
+    if ( Abc_FrameReadLibGen() == NULL )
+    {
+        printf( "Library is not available.\n" );
+        return 1;
+    }
+    Mio_LibraryWriteProfile( stdout, (Mio_Library_t *)Abc_FrameReadLibGen() );
+    return 0;
+
+usage:
+    fprintf( pErr, "\nusage: print_profile [-h]\n");
+    fprintf( pErr, "\t          print the current gate profile\n" );  
+    fprintf( pErr, "\t-h      : print the command usage\n");
+    return 1;       
+}
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
