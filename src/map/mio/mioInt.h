@@ -96,6 +96,7 @@ struct  Mio_GateStruct_t_
     int                Cell;        // cell id
     int                nInputs;     // the number of inputs
     int                Profile;     // the number of occurrences
+    int                Profile2;    // the number of occurrences
     double             dDelayMax;   // the maximum delay
     char *             pSop;        // sum-of-products
     Vec_Int_t *        vExpr;       // boolean expression

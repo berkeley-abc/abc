@@ -413,15 +413,21 @@ Mio_Gate_t ** Mio_CollectRoots( Mio_Library_t * pLib, int nInputs, float tDelay,
 {
     Mio_Gate_t * pGate;
     Mio_Gate_t ** ppGates;
-    int i, nGates, iGate;
+    int i, nGates, iGate, fProfile;
     nGates = Mio_LibraryReadGateNum( pLib );
     ppGates = ABC_ALLOC( Mio_Gate_t *, nGates );
     iGate = 0;
+    // check if profile is entered
+    fProfile = Mio_LibraryHasProfile( pLib );
+    if ( fProfile )
+        printf( "Mio_CollectRoots(): Using gate profile to select gates for mapping.\n" );
     // for each functionality, select gate with the smallest area
     // if equal areas, select gate with lexicographically smaller name
     Mio_LibraryForEachGate( pLib, pGate )
     {
         if ( pGate->nInputs > nInputs )
+            continue;
+        if ( fProfile && Mio_GateReadProfile(pGate) == 0 && pGate->nInputs > 1 )
             continue;
         if ( tDelay > 0.0 && pGate->dDelayMax > (double)tDelay )
             continue;
@@ -1388,6 +1394,37 @@ void Mio_LibraryWriteProfile( FILE * pFile, Mio_Library_t * pLib )
             fprintf( pFile, "%-24s  %6d\n", Mio_GateReadName(pGate), Mio_GateReadProfile(pGate) );
 }
 
+int Mio_LibraryHasProfile( Mio_Library_t * pLib )
+{
+    Mio_Gate_t * pGate;    
+    Mio_LibraryForEachGate( pLib, pGate )
+        if ( Mio_GateReadProfile(pGate) > 0 )
+            return 1;
+    return 0;
+}
+
+void Mio_LibraryTransferProfile( Mio_Library_t * pLibDst, Mio_Library_t * pLibSrc )
+{
+    Mio_Gate_t * pGateSrc, * pGateDst;    
+    Mio_LibraryForEachGate( pLibSrc, pGateSrc )
+        if ( Mio_GateReadProfile(pGateSrc) > 0 )
+        {
+            pGateDst = Mio_LibraryReadGateByName( pLibDst, Mio_GateReadName(pGateSrc), NULL );
+            if ( pGateDst == NULL )
+            {
+                printf( "Cannot find gate \"%s\" in library \"%s\".\n", Mio_GateReadName(pGateSrc), Mio_LibraryReadName(pLibDst) );
+                continue;
+            }
+            Mio_GateSetProfile( pGateDst, Mio_GateReadProfile(pGateSrc) );
+        }
+}
+
+void Mio_LibraryCleanProfile2( Mio_Library_t * pLib )
+{
+    Mio_Gate_t * pGate;    
+    Mio_LibraryForEachGate( pLib, pGate )
+        Mio_GateSetProfile2( pGate, 0 );
+}
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

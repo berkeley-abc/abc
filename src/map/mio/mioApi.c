@@ -180,9 +180,13 @@ word *            Mio_GateReadTruthP  ( Mio_Gate_t * pGate )            { return
 int               Mio_GateReadValue   ( Mio_Gate_t * pGate )            { return pGate->Value;     }
 int               Mio_GateReadCell    ( Mio_Gate_t * pGate )            { return pGate->Cell;      }
 int               Mio_GateReadProfile ( Mio_Gate_t * pGate )            { return pGate->Profile;   }
+int               Mio_GateReadProfile2( Mio_Gate_t * pGate )            { return pGate->Profile2;  }
 void              Mio_GateSetValue    ( Mio_Gate_t * pGate, int Value ) { pGate->Value = Value;    }
 void              Mio_GateSetCell     ( Mio_Gate_t * pGate, int Cell )  { pGate->Cell  = Cell;     }
 void              Mio_GateSetProfile  ( Mio_Gate_t * pGate, int Prof )  { pGate->Profile = Prof;   }
+void              Mio_GateSetProfile2 ( Mio_Gate_t * pGate, int Prof )  { pGate->Profile2 = Prof;  }
+void              Mio_GateIncProfile2 ( Mio_Gate_t * pGate )            { pGate->Profile2++;       }
+void              Mio_GateDecProfile2 ( Mio_Gate_t * pGate )            { pGate->Profile2--;       }
 int               Mio_GateIsInv       ( Mio_Gate_t * pGate )            { return pGate->uTruth == ABC_CONST(0x5555555555555555); }
 
 /**Function*************************************************************

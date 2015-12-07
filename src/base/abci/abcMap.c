@@ -74,7 +74,10 @@ Abc_Ntk_t * Abc_NtkMap( Abc_Ntk_t * pNtk, double DelayTarget, double AreaMulti, 
     {
         pLib = Abc_SclDeriveGenlib( Abc_FrameReadLibScl(), Slew, Gain, nGatesMin, fVerbose );
         if ( Abc_FrameReadLibGen() )
+        {
             Mio_LibraryTransferDelays( (Mio_Library_t *)Abc_FrameReadLibGen(), pLib );
+            Mio_LibraryTransferProfile( pLib, (Mio_Library_t *)Abc_FrameReadLibGen() );
+        }
         // remove supergate library
         Map_SuperLibFree( (Map_SuperLib_t *)Abc_FrameReadLibSuper() );
         Abc_FrameSetLibSuper( NULL );
@@ -103,6 +106,8 @@ Abc_Ntk_t * Abc_NtkMap( Abc_Ntk_t * pNtk, double DelayTarget, double AreaMulti, 
             printf( "Converting \"%s\" into supergate library \"%s\".\n", 
                 Mio_LibraryReadName(pLib), Extra_FileNameGenericAppend(Mio_LibraryReadName(pLib), ".super") );
         // compute supergate library to be used for mapping
+        if ( Mio_LibraryHasProfile(pLib) )
+            printf( "Abc_NtkMap(): Genlib library has profile.\n" );
         Map_SuperLibDeriveFromGenlib( pLib, fVerbose );
     }
 
