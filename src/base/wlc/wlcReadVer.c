@@ -1033,7 +1033,7 @@ startword:
         else if ( Wlc_PrsStrCmp( pStart, "always" ) )
         {
             // THIS IS A HACK to detect always statement representing combinational MUX
-            int NameId, NameIdOut = -1, fFound;
+            int NameId, NameIdOut = -1, fFound, nValues, fDefaultFound = 0;
             // find control
             pStart = Wlc_PrsFindWord( pStart, "case", &fFound );
             if ( pStart == NULL )
@@ -1054,8 +1054,13 @@ startword:
             Vec_IntClear( p->vFanins );
             Vec_IntPush( p->vFanins, NameId );
             // read data inputs
+            pObj = Wlc_NtkObj( p->pNtk, NameId );
+            if ( pObj == NULL )
+                return Wlc_PrsWriteErrorMessage( p, pStart, "Cannot find the object in case statement." );
+            // remember the number of values
+            nValues = (1 << Wlc_ObjRange(pObj));
             while ( 1 )
-            {
+            {                
                 // find opening
                 pStart = Wlc_PrsFindSymbol( pStart, ':' );
                 if ( pStart == NULL )
@@ -1076,15 +1081,27 @@ startword:
                 pStart = Wlc_PrsReadName( p, pStart, p->vFanins );
                 if ( pStart == NULL )
                     return Wlc_PrsWriteErrorMessage( p, pStart, "Cannot read name inside case statement." );
-                // get next line and check its opening character
-                pStart = Wlc_PrsStr(p, Vec_IntEntry(p->vStarts, ++i));
-                pStart = Wlc_PrsSkipSpaces( pStart );
-                if ( Wlc_PrsIsDigit(pStart) )
-                    continue;
-                if ( Wlc_PrsStrCmp( pStart, "default" ) )
+                // consider default
+                if ( fDefaultFound )
                 {
-                    printf( "Ignoring default in Line %d.\n", i );
+                    int EntryLast = Vec_IntEntryLast( p->vFanins );
+                    Vec_IntFillExtra( p->vFanins, nValues + 1, EntryLast );
+                    // get next line and check its opening character
                     pStart = Wlc_PrsStr(p, Vec_IntEntry(p->vStarts, ++i));
+                    pStart = Wlc_PrsSkipSpaces( pStart );
+                }
+                else
+                {
+                    // get next line and check its opening character
+                    pStart = Wlc_PrsStr(p, Vec_IntEntry(p->vStarts, ++i));
+                    pStart = Wlc_PrsSkipSpaces( pStart );
+                    if ( Wlc_PrsIsDigit(pStart) )
+                        continue;
+                    if ( Wlc_PrsStrCmp( pStart, "default" ) )
+                    {
+                        fDefaultFound = 1;
+                        continue;
+                    }
                 }
                 // find closing
                 pStart = Wlc_PrsFindWord( pStart, "endcase", &fFound );
@@ -1098,8 +1115,7 @@ startword:
                 break;
             }
             // check range of the control
-            pObj = Wlc_NtkObj( p->pNtk, Vec_IntEntry(p->vFanins, 0) );
-            if ( (1 << Wlc_ObjRange(pObj)) != Vec_IntSize(p->vFanins) - 1 )
+            if ( nValues != Vec_IntSize(p->vFanins) - 1 )
                 return Wlc_PrsWriteErrorMessage( p, pStart, "The number of values in the case statement is wrong.", pName );
             if ( Wlc_ObjRange(pObj) == 1 )
                 return Wlc_PrsWriteErrorMessage( p, pStart, "Always-statement with 1-bit control is not bit-blasted correctly.", pName );
