@@ -226,7 +226,7 @@ float Map_CutGetAreaFlow( Map_Cut_t * pCut, int fPhase )
   seealso     []
 
 ***********************************************************************/
-float Map_CutRefDeref( Map_Cut_t * pCut, int fPhase, int fReference )
+float Map_CutRefDeref( Map_Cut_t * pCut, int fPhase, int fReference, int fUpdateProf )
 {
     Map_Node_t * pNodeChild;
     Map_Cut_t * pCutChild;
@@ -239,6 +239,13 @@ float Map_CutRefDeref( Map_Cut_t * pCut, int fPhase, int fReference )
         return 0;
     // start the area of this cut
     aArea = Map_CutGetRootArea( pCut, fPhase );
+    if ( fUpdateProf )
+    {
+        if ( fReference )
+            Mio_GateIncProfile2( pCut->M[fPhase].pSuperBest->pRoot );
+        else
+            Mio_GateDecProfile2( pCut->M[fPhase].pSuperBest->pRoot );
+    }
     // go through the children
     for ( i = 0; i < pCut->nLeaves; i++ )
     {
@@ -309,7 +316,7 @@ float Map_CutRefDeref( Map_Cut_t * pCut, int fPhase, int fReference )
             pCutChild   = pNodeChild->pCutBest[fPhaseChild];
         }
         // reference and compute area recursively
-        aArea += Map_CutRefDeref( pCutChild, fPhaseChild, fReference );
+        aArea += Map_CutRefDeref( pCutChild, fPhaseChild, fReference, fUpdateProf );
     }
     return aArea;
 }
@@ -328,8 +335,8 @@ float Map_CutRefDeref( Map_Cut_t * pCut, int fPhase, int fReference )
 float Map_CutGetAreaRefed( Map_Cut_t * pCut, int fPhase )
 {
     float aResult, aResult2;
-    aResult2 = Map_CutRefDeref( pCut, fPhase, 0 ); // dereference
-    aResult  = Map_CutRefDeref( pCut, fPhase, 1 ); // reference
+    aResult2 = Map_CutRefDeref( pCut, fPhase, 0, 0 ); // dereference
+    aResult  = Map_CutRefDeref( pCut, fPhase, 1, 0 ); // reference
 //    assert( aResult == aResult2 );
     return aResult;
 }
@@ -348,8 +355,8 @@ float Map_CutGetAreaRefed( Map_Cut_t * pCut, int fPhase )
 float Map_CutGetAreaDerefed( Map_Cut_t * pCut, int fPhase )
 {
     float aResult, aResult2;
-    aResult2 = Map_CutRefDeref( pCut, fPhase, 1 ); // reference
-    aResult  = Map_CutRefDeref( pCut, fPhase, 0 ); // dereference
+    aResult2 = Map_CutRefDeref( pCut, fPhase, 1, 0 ); // reference
+    aResult  = Map_CutRefDeref( pCut, fPhase, 0, 0 ); // dereference
 //    assert( aResult == aResult2 );
     return aResult;
 }
@@ -365,9 +372,9 @@ float Map_CutGetAreaDerefed( Map_Cut_t * pCut, int fPhase )
   seealso     []
 
 ***********************************************************************/
-float Map_CutRef( Map_Cut_t * pCut, int fPhase )
+float Map_CutRef( Map_Cut_t * pCut, int fPhase, int fProfile )
 {
-    return Map_CutRefDeref( pCut, fPhase, 1 ); // reference
+    return Map_CutRefDeref( pCut, fPhase, 1, fProfile ); // reference
 }
 
 /**function*************************************************************
@@ -381,9 +388,9 @@ float Map_CutRef( Map_Cut_t * pCut, int fPhase )
   seealso     []
 
 ***********************************************************************/
-float Map_CutDeref( Map_Cut_t * pCut, int fPhase )
+float Map_CutDeref( Map_Cut_t * pCut, int fPhase, int fProfile )
 {
-    return Map_CutRefDeref( pCut, fPhase, 0 ); // dereference
+    return Map_CutRefDeref( pCut, fPhase, 0, fProfile ); // dereference
 }
 
 
@@ -430,6 +437,8 @@ void Map_MappingSetRefs_rec( Map_Man_t * pMan, Map_Node_t * pNode )
         fPhase = !fPhase;
         pCut   = pNodeR->pCutBest[fPhase];
     }
+    if ( pMan->fUseProfile )
+        Mio_GateIncProfile2( pCut->M[fPhase].pSuperBest->pRoot );
     // visit the transitive fanin
     uPhase = pCut->M[fPhase].uPhaseBest;
     for ( i = 0; i < pCut->nLeaves; i++ )
@@ -442,6 +451,8 @@ void Map_MappingSetRefs( Map_Man_t * pMan )
 {
     Map_Node_t * pNode;
     int i;
+    if ( pMan->fUseProfile )
+        Mio_LibraryCleanProfile2( pMan->pSuperLib->pGenlib );
     // clean all references
     for ( i = 0; i < pMan->vMapObjs->nSize; i++ )
     {
@@ -476,6 +487,8 @@ float Map_MappingGetArea( Map_Man_t * pMan )
     Map_Node_t * pNode;
     float Area = 0.0;
     int i;
+    if ( pMan->fUseProfile )
+        Mio_LibraryCleanProfile2( pMan->pSuperLib->pGenlib );
     for ( i = 0; i < pMan->vMapObjs->nSize; i++ )
     {
         pNode = pMan->vMapObjs->pArray[i];
@@ -492,10 +505,18 @@ float Map_MappingGetArea( Map_Man_t * pMan )
         {
             // count area of the negative phase
             if ( pNode->pCutBest[0] && (pNode->nRefAct[0] > 0 || pNode->pCutBest[1] == NULL) )
+            {
                 Area += pNode->pCutBest[0]->M[0].pSuperBest->Area;
+                if ( pMan->fUseProfile )
+                    Mio_GateIncProfile2( pNode->pCutBest[0]->M[0].pSuperBest->pRoot );
+            }
             // count area of the positive phase
             if ( pNode->pCutBest[1] && (pNode->nRefAct[1] > 0 || pNode->pCutBest[0] == NULL) )
+            {
                 Area += pNode->pCutBest[1]->M[1].pSuperBest->Area;
+                if ( pMan->fUseProfile )
+                    Mio_GateIncProfile2( pNode->pCutBest[1]->M[1].pSuperBest->pRoot );
+            }
         }
         // count area of the interver if we need to implement one phase with another phase
         if ( (pNode->pCutBest[0] == NULL && pNode->nRefAct[0] > 0) || 

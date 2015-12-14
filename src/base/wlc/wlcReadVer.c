@@ -1085,7 +1085,10 @@ startword:
                 if ( fDefaultFound )
                 {
                     int EntryLast = Vec_IntEntryLast( p->vFanins );
-                    Vec_IntFillExtra( p->vFanins, nValues + 1, EntryLast );
+                    if (nValues != Vec_IntSize(p->vFanins)-2)
+                        Vec_IntFillExtra( p->vFanins, nValues + 1, EntryLast );
+                    else
+                        Vec_IntPop(p->vFanins);
                     // get next line and check its opening character
                     pStart = Wlc_PrsStr(p, Vec_IntEntry(p->vStarts, ++i));
                     pStart = Wlc_PrsSkipSpaces( pStart );

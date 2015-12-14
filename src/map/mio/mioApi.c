@@ -163,31 +163,33 @@ char * Mio_LibraryReadSopByName( Mio_Library_t * pLib, char * pName )
   SeeAlso     []
 
 ***********************************************************************/
-char *            Mio_GateReadName    ( Mio_Gate_t * pGate )            { return pGate->pName;     }
-char *            Mio_GateReadOutName ( Mio_Gate_t * pGate )            { return pGate->pOutName;  }
-double            Mio_GateReadArea    ( Mio_Gate_t * pGate )            { return pGate->dArea;     }
-char *            Mio_GateReadForm    ( Mio_Gate_t * pGate )            { return pGate->pForm;     }
-Mio_Pin_t *       Mio_GateReadPins    ( Mio_Gate_t * pGate )            { return pGate->pPins;     }
-Mio_Library_t *   Mio_GateReadLib     ( Mio_Gate_t * pGate )            { return pGate->pLib;      }
-Mio_Gate_t *      Mio_GateReadNext    ( Mio_Gate_t * pGate )            { return pGate->pNext;     }
-Mio_Gate_t *      Mio_GateReadTwin    ( Mio_Gate_t * pGate )            { return pGate->pTwin;     }
-int               Mio_GateReadPinNum  ( Mio_Gate_t * pGate )            { return pGate->nInputs;   }
-double            Mio_GateReadDelayMax( Mio_Gate_t * pGate )            { return pGate->dDelayMax; }
-char *            Mio_GateReadSop     ( Mio_Gate_t * pGate )            { return pGate->pSop;      }
-Vec_Int_t *       Mio_GateReadExpr    ( Mio_Gate_t * pGate )            { return pGate->vExpr;     }
-word              Mio_GateReadTruth   ( Mio_Gate_t * pGate )            { return pGate->nInputs <= 6 ? pGate->uTruth : 0;   }
-word *            Mio_GateReadTruthP  ( Mio_Gate_t * pGate )            { return pGate->nInputs <= 6 ? NULL: pGate->pTruth; }
-int               Mio_GateReadValue   ( Mio_Gate_t * pGate )            { return pGate->Value;     }
-int               Mio_GateReadCell    ( Mio_Gate_t * pGate )            { return pGate->Cell;      }
-int               Mio_GateReadProfile ( Mio_Gate_t * pGate )            { return pGate->Profile;   }
-int               Mio_GateReadProfile2( Mio_Gate_t * pGate )            { return pGate->Profile2;  }
-void              Mio_GateSetValue    ( Mio_Gate_t * pGate, int Value ) { pGate->Value = Value;    }
-void              Mio_GateSetCell     ( Mio_Gate_t * pGate, int Cell )  { pGate->Cell  = Cell;     }
-void              Mio_GateSetProfile  ( Mio_Gate_t * pGate, int Prof )  { pGate->Profile = Prof;   }
-void              Mio_GateSetProfile2 ( Mio_Gate_t * pGate, int Prof )  { pGate->Profile2 = Prof;  }
-void              Mio_GateIncProfile2 ( Mio_Gate_t * pGate )            { pGate->Profile2++;       }
-void              Mio_GateDecProfile2 ( Mio_Gate_t * pGate )            { pGate->Profile2--;       }
-int               Mio_GateIsInv       ( Mio_Gate_t * pGate )            { return pGate->uTruth == ABC_CONST(0x5555555555555555); }
+char *            Mio_GateReadName     ( Mio_Gate_t * pGate )            { return pGate->pName;     }
+char *            Mio_GateReadOutName  ( Mio_Gate_t * pGate )            { return pGate->pOutName;  }
+double            Mio_GateReadArea     ( Mio_Gate_t * pGate )            { return pGate->dArea;     }
+char *            Mio_GateReadForm     ( Mio_Gate_t * pGate )            { return pGate->pForm;     }
+Mio_Pin_t *       Mio_GateReadPins     ( Mio_Gate_t * pGate )            { return pGate->pPins;     }
+Mio_Library_t *   Mio_GateReadLib      ( Mio_Gate_t * pGate )            { return pGate->pLib;      }
+Mio_Gate_t *      Mio_GateReadNext     ( Mio_Gate_t * pGate )            { return pGate->pNext;     }
+Mio_Gate_t *      Mio_GateReadTwin     ( Mio_Gate_t * pGate )            { return pGate->pTwin;     }
+int               Mio_GateReadPinNum   ( Mio_Gate_t * pGate )            { return pGate->nInputs;   }
+double            Mio_GateReadDelayMax ( Mio_Gate_t * pGate )            { return pGate->dDelayMax; }
+char *            Mio_GateReadSop      ( Mio_Gate_t * pGate )            { return pGate->pSop;      }
+Vec_Int_t *       Mio_GateReadExpr     ( Mio_Gate_t * pGate )            { return pGate->vExpr;     }
+word              Mio_GateReadTruth    ( Mio_Gate_t * pGate )            { return pGate->nInputs <= 6 ? pGate->uTruth : 0;   }
+word *            Mio_GateReadTruthP   ( Mio_Gate_t * pGate )            { return pGate->nInputs <= 6 ? NULL: pGate->pTruth; }
+int               Mio_GateReadValue    ( Mio_Gate_t * pGate )            { return pGate->Value;     }
+int               Mio_GateReadCell     ( Mio_Gate_t * pGate )            { return pGate->Cell;      }
+int               Mio_GateReadProfile  ( Mio_Gate_t * pGate )            { return pGate->Profile;   }
+int               Mio_GateReadProfile2 ( Mio_Gate_t * pGate )            { return pGate->Profile2;  }
+void              Mio_GateSetValue     ( Mio_Gate_t * pGate, int Value ) { pGate->Value = Value;    }
+void              Mio_GateSetCell      ( Mio_Gate_t * pGate, int Cell )  { pGate->Cell  = Cell;     }
+void              Mio_GateSetProfile   ( Mio_Gate_t * pGate, int Prof )  { pGate->Profile = Prof;   }
+void              Mio_GateSetProfile2  ( Mio_Gate_t * pGate, int Prof )  { pGate->Profile2 = Prof;  }
+void              Mio_GateIncProfile2  ( Mio_Gate_t * pGate )            { pGate->Profile2++;       }
+void              Mio_GateDecProfile2  ( Mio_Gate_t * pGate )            { pGate->Profile2--;       }
+void              Mio_GateAddToProfile ( Mio_Gate_t * pGate, int Prof )  { pGate->Profile  += Prof; }
+void              Mio_GateAddToProfile2( Mio_Gate_t * pGate, int Prof )  { pGate->Profile2 += Prof; }
+int               Mio_GateIsInv        ( Mio_Gate_t * pGate )            { return pGate->uTruth == ABC_CONST(0x5555555555555555); }
 
 /**Function*************************************************************
 
@@ -208,7 +210,7 @@ double            Mio_PinReadDelayBlockRise ( Mio_Pin_t * pPin )      { return p
 double            Mio_PinReadDelayFanoutRise( Mio_Pin_t * pPin )      { return pPin->dDelayFanoutRise;}
 double            Mio_PinReadDelayBlockFall ( Mio_Pin_t * pPin )      { return pPin->dDelayBlockFall; }
 double            Mio_PinReadDelayFanoutFall( Mio_Pin_t * pPin )      { return pPin->dDelayFanoutFall;}
-double            Mio_PinReadDelayBlockMax  ( Mio_Pin_t * pPin )      { return pPin->dDelayBlockMax;          }
+double            Mio_PinReadDelayBlockMax  ( Mio_Pin_t * pPin )      { return pPin->dDelayBlockMax;  }
 Mio_Pin_t *       Mio_PinReadNext           ( Mio_Pin_t * pPin )      { return pPin->pNext;           }
 
 /**Function*************************************************************

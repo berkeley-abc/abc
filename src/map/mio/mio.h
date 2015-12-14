@@ -162,6 +162,8 @@ extern void              Mio_GateSetProfile        ( Mio_Gate_t * pGate, int Pro
 extern void              Mio_GateSetProfile2       ( Mio_Gate_t * pGate, int Prof );
 extern void              Mio_GateIncProfile2       ( Mio_Gate_t * pGate );
 extern void              Mio_GateDecProfile2       ( Mio_Gate_t * pGate );
+extern void              Mio_GateAddToProfile      ( Mio_Gate_t * pGate, int Prof );
+extern void              Mio_GateAddToProfile2     ( Mio_Gate_t * pGate, int Prof );
 extern int               Mio_GateIsInv             ( Mio_Gate_t * pGate );
 extern char *            Mio_PinReadName           ( Mio_Pin_t * pPin );  
 extern Mio_PinPhase_t    Mio_PinReadPhase          ( Mio_Pin_t * pPin );  
@@ -209,12 +211,13 @@ extern void              Mio_LibraryTransferCellIds();
 extern void              Mio_LibraryReadProfile( FILE * pFile, Mio_Library_t * pLib );
 extern void              Mio_LibraryWriteProfile( FILE * pFile, Mio_Library_t * pLib );
 extern void              Mio_LibraryTransferProfile( Mio_Library_t * pLibDst, Mio_Library_t * pLibSrc );
+extern void              Mio_LibraryTransferProfile2( Mio_Library_t * pLibDst, Mio_Library_t * pLibSrc );
 extern int               Mio_LibraryHasProfile( Mio_Library_t * pLib );
 extern void              Mio_LibraryCleanProfile2( Mio_Library_t * pLib );
 
 /*=== sclUtil.c =========================================================*/
 extern Mio_Library_t *   Abc_SclDeriveGenlibSimple( void * pScl );
-extern Mio_Library_t *   Abc_SclDeriveGenlib( void * pScl, float Slew, float Gain, int nGatesMin, int fVerbose );
+extern Mio_Library_t *   Abc_SclDeriveGenlib( void * pScl, void * pMio, float Slew, float Gain, int nGatesMin, int fVerbose );
 extern int               Abc_SclHasDelayInfo( void * pScl );
 
 

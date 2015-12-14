@@ -925,6 +925,74 @@ Vec_Str_t * Abc_SclProduceGenlibStr( SC_Lib * p, float Slew, float Gain, int nGa
         *pnCellCount = Count;
     return vStr;
 }
+Vec_Str_t * Abc_SclProduceGenlibStrProfile( SC_Lib * p, Mio_Library_t * pLib, float Slew, float Gain, int nGatesMin, int * pnCellCount )
+{
+    char Buffer[200];
+    Vec_Str_t * vStr;
+    SC_Cell * pRepr;
+    SC_Pin * pPin;
+    int i, k, Count = 2, nClassMax = 0;
+    // find the largest number of cells in a class
+    SC_LibForEachCellClass( p, pRepr, i )
+        if ( pRepr->n_outputs == 1 )
+            nClassMax = Abc_MaxInt( nClassMax, Abc_SclClassCellNum(pRepr) );
+    // update the number
+    if ( nGatesMin && nGatesMin >= nClassMax )
+        nGatesMin = 0;
+    // mark skipped cells
+    Abc_SclMarkSkippedCells( p );
+    vStr = Vec_StrAlloc( 1000 );
+    Vec_StrPrintStr( vStr, "GATE _const0_            0.00 z=CONST0;\n" );
+    Vec_StrPrintStr( vStr, "GATE _const1_            0.00 z=CONST1;\n" );
+    SC_LibForEachCell( p, pRepr, i )
+    {
+        if ( pRepr->n_inputs == 0 )
+            continue;
+        if ( pRepr->n_outputs > 1 )
+            continue;
+        if ( nGatesMin && pRepr->n_inputs > 2 && Abc_SclClassCellNum(pRepr) < nGatesMin )
+            continue;
+        // check if the gate is in the profile
+        if ( pRepr->n_inputs > 1 )
+        {
+            Mio_Gate_t * pGate = Mio_LibraryReadGateByName( pLib, pRepr->pName, NULL );
+            if ( pGate == NULL || Mio_GateReadProfile(pGate) == 0 )
+                continue;
+        }
+        // process gate
+        assert( strlen(pRepr->pName) < 200 );
+        Vec_StrPrintStr( vStr, "GATE " );
+        sprintf( Buffer, "%-16s", pRepr->pName );
+        Vec_StrPrintStr( vStr, Buffer );
+        Vec_StrPrintStr( vStr, " " );
+//        sprintf( Buffer, "%7.2f", Abc_SclComputeAreaClass(pRepr) );
+        sprintf( Buffer, "%7.2f", pRepr->area );
+        Vec_StrPrintStr( vStr, Buffer );
+        Vec_StrPrintStr( vStr, " " );
+        Vec_StrPrintStr( vStr, SC_CellPinName(pRepr, pRepr->n_inputs) );
+        Vec_StrPrintStr( vStr, "=" );
+        Vec_StrPrintStr( vStr, SC_CellPinOutFunc(pRepr, 0) ? SC_CellPinOutFunc(pRepr, 0) : "?" );
+        Vec_StrPrintStr( vStr, ";\n" );
+        SC_CellForEachPinIn( pRepr, pPin, k )
+        {
+            float Delay = Abc_SclComputeDelayClassPin( p, pRepr, k, Slew, Gain );
+            assert( Delay > 0 );
+            Vec_StrPrintStr( vStr, "         PIN " );
+            sprintf( Buffer, "%-4s", pPin->pName );
+            Vec_StrPrintStr( vStr, Buffer );
+            sprintf( Buffer, " UNKNOWN  1  999  %7.2f  0.00  %7.2f  0.00\n", Delay, Delay );
+            Vec_StrPrintStr( vStr, Buffer );
+        }
+        Count++;
+    }
+    Vec_StrPrintStr( vStr, "\n.end\n" );
+    Vec_StrPush( vStr, '\0' );
+//    printf( "GENLIB library with %d gates is produced:\n", Count );
+//    printf( "%s", Vec_StrArray(vStr) );
+    if ( pnCellCount )
+        *pnCellCount = Count;
+    return vStr;
+}
 void Abc_SclDumpGenlib( char * pFileName, SC_Lib * p, float SlewInit, float Gain, int nGatesMin )
 {
     int nCellCount = 0;
@@ -948,13 +1016,18 @@ void Abc_SclDumpGenlib( char * pFileName, SC_Lib * p, float SlewInit, float Gain
     fclose( pFile );
     printf( "Written GENLIB library with %d gates into file \"%s\".\n", nCellCount, FileName );
 }
-Mio_Library_t * Abc_SclDeriveGenlib( void * pScl, float SlewInit, float Gain, int nGatesMin, int fVerbose )
+Mio_Library_t * Abc_SclDeriveGenlib( void * pScl, void * pMio, float SlewInit, float Gain, int nGatesMin, int fVerbose )
 {
     int nCellCount = 0;
     SC_Lib * p = (SC_Lib *)pScl;
     float Slew = (SlewInit == 0) ? Abc_SclComputeAverageSlew(p) : SlewInit;
-    Vec_Str_t * vStr = Abc_SclProduceGenlibStr( p, Slew, Gain, nGatesMin, &nCellCount );
-    Mio_Library_t * pLib = Mio_LibraryRead( p->pFileName, Vec_StrArray(vStr), NULL, 0 );  
+    Vec_Str_t * vStr;
+    Mio_Library_t * pLib;
+    if ( pMio == NULL )
+        vStr = Abc_SclProduceGenlibStr( p, Slew, Gain, nGatesMin, &nCellCount );
+    else
+        vStr = Abc_SclProduceGenlibStrProfile( p, (Mio_Library_t *)pMio, Slew, Gain, nGatesMin, &nCellCount );
+    pLib = Mio_LibraryRead( p->pFileName, Vec_StrArray(vStr), NULL, 0 );  
     Vec_StrFree( vStr );
     if ( !pLib )
         printf( "Reading library has filed.\n" );

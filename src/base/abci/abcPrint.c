@@ -1322,11 +1322,11 @@ void Abc_NodePrintKMap( Abc_Obj_t * pNode, int fUseRealNames )
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_NtkPrintGates( Abc_Ntk_t * pNtk, int fUseLibrary )
+void Abc_NtkPrintGates( Abc_Ntk_t * pNtk, int fUseLibrary, int fUpdateProfile )
 {
     Abc_Obj_t * pObj;
     int fHasBdds, i;
-    int CountConst, CountBuf, CountInv, CountAnd, CountOr, CountOther, CounterTotal;
+    int CountConst, CountBuf, CountInv, CountAnd, CountOr, CountOther, CounterTotal, TotalDiff = 0;
     char * pSop;
 
     if ( fUseLibrary && Abc_NtkHasMapping(pNtk) )
@@ -1341,7 +1341,8 @@ void Abc_NtkPrintGates( Abc_Ntk_t * pNtk, int fUseLibrary )
         for ( i = 0; i < nGates; i++ )
         {
             Mio_GateSetValue( ppGates[i], 0 );
-            Mio_GateSetProfile2( ppGates[i], 0 );
+            if ( fUpdateProfile )
+                Mio_GateSetProfile2( ppGates[i], 0 );
         }
 
         // count the gates by name
@@ -1350,7 +1351,8 @@ void Abc_NtkPrintGates( Abc_Ntk_t * pNtk, int fUseLibrary )
         {
             if ( i == 0 ) continue;
             Mio_GateSetValue( (Mio_Gate_t *)pObj->pData, 1 + Mio_GateReadValue((Mio_Gate_t *)pObj->pData) );
-            Mio_GateIncProfile2( (Mio_Gate_t *)pObj->pData );
+            if ( fUpdateProfile )
+                Mio_GateIncProfile2( (Mio_Gate_t *)pObj->pData );
             CounterTotal++;
             // assuming that twin gates follow each other
             if ( Abc_NtkFetchTwinNode(pObj) )
@@ -1372,8 +1374,10 @@ void Abc_NtkPrintGates( Abc_Ntk_t * pNtk, int fUseLibrary )
         for ( i = 0; i < nGates; i++ )
         {
             Counter = Mio_GateReadValue( ppGates[i] );
-            if ( Counter == 0 )
+            if ( Counter == 0 && Mio_GateReadProfile(ppGates[i]) == 0 )
                 continue;
+            if ( Mio_GateReadPinNum(ppGates[i]) > 1 )
+                TotalDiff += Abc_AbsInt( Mio_GateReadProfile(ppGates[i]) - Mio_GateReadProfile2(ppGates[i]) );
             Area = Counter * Mio_GateReadArea( ppGates[i] );
             printf( "%-*s   Fanin = %2d   Instance = %8d   Area = %10.2f   %6.2f %%   %8d  %8d   %s\n",
                 nGateNameLen, Mio_GateReadName( ppGates[i] ),
@@ -1383,9 +1387,9 @@ void Abc_NtkPrintGates( Abc_Ntk_t * pNtk, int fUseLibrary )
                 Mio_GateReadProfile2(ppGates[i]),
                 Mio_GateReadForm(ppGates[i]) );
         }
-        printf( "%-*s                Instance = %8d   Area = %10.2f   %6.2f %%\n",
+        printf( "%-*s                Instance = %8d   Area = %10.2f   %6.2f %%   AbsDiff = %d\n",
             nGateNameLen, "TOTAL",
-            CounterTotal, AreaTotal, 100.0 );
+            CounterTotal, AreaTotal, 100.0, TotalDiff );
         return;
     }
 

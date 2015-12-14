@@ -1403,19 +1403,55 @@ int Mio_LibraryHasProfile( Mio_Library_t * pLib )
     return 0;
 }
 
+
 void Mio_LibraryTransferProfile( Mio_Library_t * pLibDst, Mio_Library_t * pLibSrc )
 {
     Mio_Gate_t * pGateSrc, * pGateDst;    
+    Mio_LibraryForEachGate( pLibDst, pGateDst )
+        Mio_GateSetProfile( pGateDst, 0 );
     Mio_LibraryForEachGate( pLibSrc, pGateSrc )
         if ( Mio_GateReadProfile(pGateSrc) > 0 )
         {
+            // find gate by name
             pGateDst = Mio_LibraryReadGateByName( pLibDst, Mio_GateReadName(pGateSrc), NULL );
             if ( pGateDst == NULL )
             {
-                printf( "Cannot find gate \"%s\" in library \"%s\".\n", Mio_GateReadName(pGateSrc), Mio_LibraryReadName(pLibDst) );
-                continue;
+                // find gate by function
+                Mio_LibraryForEachGate( pLibDst, pGateDst )
+                    if ( pGateDst->uTruth == pGateSrc->uTruth )
+                        break;
+                if ( pGateDst == NULL )
+                {
+                    printf( "Cannot find gate \"%s\" in library \"%s\".\n", Mio_GateReadName(pGateSrc), Mio_LibraryReadName(pLibDst) );
+                    continue;
+                }
             }
-            Mio_GateSetProfile( pGateDst, Mio_GateReadProfile(pGateSrc) );
+            Mio_GateAddToProfile( pGateDst, Mio_GateReadProfile(pGateSrc) );
+        }
+}
+void Mio_LibraryTransferProfile2( Mio_Library_t * pLibDst, Mio_Library_t * pLibSrc )
+{
+    Mio_Gate_t * pGateSrc, * pGateDst;    
+    Mio_LibraryForEachGate( pLibDst, pGateDst )
+        Mio_GateSetProfile2( pGateDst, 0 );
+    Mio_LibraryForEachGate( pLibSrc, pGateSrc )
+        if ( Mio_GateReadProfile2(pGateSrc) > 0 )
+        {
+            // find gate by name
+            pGateDst = Mio_LibraryReadGateByName( pLibDst, Mio_GateReadName(pGateSrc), NULL );
+            if ( pGateDst == NULL )
+            {
+                // find gate by function
+                Mio_LibraryForEachGate( pLibDst, pGateDst )
+                    if ( pGateDst->uTruth == pGateSrc->uTruth )
+                        break;
+                if ( pGateDst == NULL )
+                {
+                    printf( "Cannot find gate \"%s\" in library \"%s\".\n", Mio_GateReadName(pGateSrc), Mio_LibraryReadName(pLibDst) );
+                    continue;
+                }
+            }
+            Mio_GateAddToProfile2( pGateDst, Mio_GateReadProfile2(pGateSrc) );
         }
 }
 

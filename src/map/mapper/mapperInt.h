@@ -123,6 +123,7 @@ struct Map_ManStruct_t_
     int                 nTravIds;      // the traversal counter
     int                 fSwitching;    // use switching activity
     int                 fSkipFanout;   // skip large gates when mapping high-fanout nodes
+    int                 fUseProfile;   // use standard-cell profile
 
     // the supergate library
     Map_SuperLib_t *    pSuperLib;     // the current supergate library
@@ -385,8 +386,8 @@ extern void              Map_MappingEstimateRefs( Map_Man_t * p );
 extern float             Map_CutGetAreaFlow( Map_Cut_t * pCut, int fPhase );
 extern float             Map_CutGetAreaRefed( Map_Cut_t * pCut, int fPhase );
 extern float             Map_CutGetAreaDerefed( Map_Cut_t * pCut, int fPhase );
-extern float             Map_CutRef( Map_Cut_t * pCut, int fPhase );
-extern float             Map_CutDeref( Map_Cut_t * pCut, int fPhase );
+extern float             Map_CutRef( Map_Cut_t * pCut, int fPhase, int fProfile );
+extern float             Map_CutDeref( Map_Cut_t * pCut, int fPhase, int fProfile );
 extern void              Map_MappingSetRefs( Map_Man_t * pMan );
 extern float             Map_MappingGetArea( Map_Man_t * pMan );
 /*=== mapperSwitch.c =============================================================*/

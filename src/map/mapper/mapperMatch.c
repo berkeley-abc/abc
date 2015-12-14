@@ -76,6 +76,8 @@ void Map_MatchClean( Map_Match_t * pMatch )
 ***********************************************************************/
 int Map_MatchCompare( Map_Man_t * pMan, Map_Match_t * pM1, Map_Match_t * pM2, int fDoingArea )
 {
+//    if ( pM1->pSuperBest == pM2->pSuperBest )
+//        return 0;
     if ( !fDoingArea )
     {
         // compare the arrival times
@@ -108,6 +110,21 @@ int Map_MatchCompare( Map_Man_t * pMan, Map_Match_t * pM1, Map_Match_t * pM2, in
             return 0;
         if ( pM1->AreaFlow > pM2->AreaFlow + pMan->fEpsilon )
             return 1;
+
+        // make decision based on cell profile
+        if ( pMan->fUseProfile && pM1->pSuperBest && pM1->pSuperBest )
+        {
+            int M1req = Mio_GateReadProfile(pM1->pSuperBest->pRoot);
+            int M2req = Mio_GateReadProfile(pM2->pSuperBest->pRoot);
+            int M1act = Mio_GateReadProfile2(pM1->pSuperBest->pRoot);
+            int M2act = Mio_GateReadProfile2(pM2->pSuperBest->pRoot);
+            //printf( "%d %d  ", M1req, M2req );
+            if ( M1act < M1req && M2act > M2req )
+                return 0;
+            if ( M2act < M2req && M1act > M1req )
+                return 1;
+        }
+
         // compare the arrival times
         if ( pM1->tArrive.Worst < pM2->tArrive.Worst - pMan->fEpsilon )
             return 0;
@@ -266,7 +283,7 @@ int Map_MatchNodePhase( Map_Man_t * p, Map_Node_t * pNode, int fPhase )
         pMatch = pCutBest->M + fPhase;
         if ( pNode->nRefAct[fPhase] > 0 || 
             (pNode->pCutBest[!fPhase] == NULL && pNode->nRefAct[!fPhase] > 0) )
-            pMatch->AreaFlow = Area1 = Map_CutDeref( pCutBest, fPhase );
+            pMatch->AreaFlow = Area1 = Map_CutDeref( pCutBest, fPhase, p->fUseProfile );
         else
             pMatch->AreaFlow = Area1 = Map_CutGetAreaDerefed( pCutBest, fPhase );
     }
@@ -326,7 +343,7 @@ int Map_MatchNodePhase( Map_Man_t * p, Map_Node_t * pNode, int fPhase )
          (pNode->pCutBest[!fPhase] == NULL && pNode->nRefAct[!fPhase] > 0)) )
     {
         if ( p->fMappingMode == 2 || p->fMappingMode == 3 )
-            Area2 = Map_CutRef( pNode->pCutBest[fPhase], fPhase );
+            Area2 = Map_CutRef( pNode->pCutBest[fPhase], fPhase, p->fUseProfile );
         else if ( p->fMappingMode == 4 )
             Area2 = Map_SwitchCutRef( pNode, pNode->pCutBest[fPhase], fPhase );
         else 
@@ -479,23 +496,23 @@ void Map_NodeTryDroppingOnePhase( Map_Man_t * p, Map_Node_t * pNode )
     {
         // deref phase 1 cut if necessary
         if ( p->fMappingMode >= 2 && pNode->nRefAct[1] > 0 )
-            Map_CutDeref( pNode->pCutBest[1], 1 );
+            Map_CutDeref( pNode->pCutBest[1], 1, p->fUseProfile );
         // get rid of the cut
         pNode->pCutBest[1] = NULL;
         // ref phase 0 cut if necessary
         if ( p->fMappingMode >= 2 && pNode->nRefAct[0] == 0 )
-            Map_CutRef( pNode->pCutBest[0], 0 );
+            Map_CutRef( pNode->pCutBest[0], 0, p->fUseProfile );
     }
     else
     {
         // deref phase 0 cut if necessary
         if ( p->fMappingMode >= 2 && pNode->nRefAct[0] > 0 )
-            Map_CutDeref( pNode->pCutBest[0], 0 );
+            Map_CutDeref( pNode->pCutBest[0], 0, p->fUseProfile );
         // get rid of the cut
         pNode->pCutBest[0] = NULL;
         // ref phase 1 cut if necessary
         if ( p->fMappingMode >= 2 && pNode->nRefAct[1] == 0 )
-            Map_CutRef( pNode->pCutBest[1], 1 );
+            Map_CutRef( pNode->pCutBest[1], 1, p->fUseProfile );
     }
 }
 

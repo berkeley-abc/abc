@@ -74,6 +74,7 @@ void            Map_ManSetChoiceNum( Map_Man_t * p, int nChoices )         { p->
 void            Map_ManSetVerbose( Map_Man_t * p, int fVerbose )           { p->fVerbose = fVerbose;     }   
 void            Map_ManSetSwitching( Map_Man_t * p, int fSwitching )       { p->fSwitching = fSwitching; }   
 void            Map_ManSetSkipFanout( Map_Man_t * p, int fSkipFanout )     { p->fSkipFanout = fSkipFanout; }   
+void            Map_ManSetUseProfile( Map_Man_t * p )                      { p->fUseProfile = 1;         }   
 
 /**Function*************************************************************
 

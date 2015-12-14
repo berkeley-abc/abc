@@ -56,7 +56,7 @@ static Abc_Obj_t *  Abc_NodeFromMapSuperChoice_rec( Abc_Ntk_t * pNtkNew, Map_Sup
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Ntk_t * Abc_NtkMap( Abc_Ntk_t * pNtk, double DelayTarget, double AreaMulti, double DelayMulti, float LogFan, float Slew, float Gain, int nGatesMin, int fRecovery, int fSwitching, int fSkipFanout, int fVerbose )
+Abc_Ntk_t * Abc_NtkMap( Abc_Ntk_t * pNtk, double DelayTarget, double AreaMulti, double DelayMulti, float LogFan, float Slew, float Gain, int nGatesMin, int fRecovery, int fSwitching, int fSkipFanout, int fUseProfile, int fVerbose )
 {
     static int fUseMulti = 0;
     int fShowSwitching = 1;
@@ -72,7 +72,10 @@ Abc_Ntk_t * Abc_NtkMap( Abc_Ntk_t * pNtk, double DelayTarget, double AreaMulti, 
     // if the library is created here, it will be deleted when pSuperLib is deleted in Map_SuperLibFree()
     if ( Abc_FrameReadLibScl() && Abc_SclHasDelayInfo( Abc_FrameReadLibScl() ) )
     {
-        pLib = Abc_SclDeriveGenlib( Abc_FrameReadLibScl(), Slew, Gain, nGatesMin, fVerbose );
+        if ( pLib && Mio_LibraryHasProfile(pLib) )
+            pLib = Abc_SclDeriveGenlib( Abc_FrameReadLibScl(), pLib, Slew, Gain, nGatesMin, fVerbose );
+        else
+            pLib = Abc_SclDeriveGenlib( Abc_FrameReadLibScl(), NULL, Slew, Gain, nGatesMin, fVerbose );
         if ( Abc_FrameReadLibGen() )
         {
             Mio_LibraryTransferDelays( (Mio_Library_t *)Abc_FrameReadLibGen(), pLib );
@@ -138,6 +141,8 @@ Abc_Ntk_t * Abc_NtkMap( Abc_Ntk_t * pNtk, double DelayTarget, double AreaMulti, 
 clk = Abc_Clock();
     Map_ManSetSwitching( pMan, fSwitching );
     Map_ManSetSkipFanout( pMan, fSkipFanout );
+    if ( fUseProfile )
+        Map_ManSetUseProfile( pMan );
     if ( LogFan != 0 )
         Map_ManCreateNodeDelays( pMan, LogFan );
     if ( !Map_Mapping( pMan ) )
@@ -149,6 +154,8 @@ clk = Abc_Clock();
 
     // reconstruct the network after mapping
     pNtkNew = Abc_NtkFromMap( pMan, pNtk );
+    if ( Mio_LibraryHasProfile(pLib) )
+        Mio_LibraryTransferProfile2( (Mio_Library_t *)Abc_FrameReadLibGen(), pLib );
     Map_ManFree( pMan );
     if ( pNtkNew == NULL )
         return NULL;

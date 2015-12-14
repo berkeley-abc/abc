@@ -2209,18 +2209,23 @@ int Abc_CommandPrintGates( Abc_Frame_t * pAbc, int argc, char ** argv )
     Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
     int c;
     int fUseLibrary;
+    int fUpdateProfile;
 
-    extern void Abc_NtkPrintGates( Abc_Ntk_t * pNtk, int fUseLibrary );
+    extern void Abc_NtkPrintGates( Abc_Ntk_t * pNtk, int fUseLibrary, int fUpdateProfile );
 
     // set defaults
     fUseLibrary = 1;
+    fUpdateProfile = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "lh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "luh" ) ) != EOF )
     {
         switch ( c )
         {
         case 'l':
             fUseLibrary ^= 1;
+            break;
+        case 'u':
+            fUpdateProfile ^= 1;
             break;
         case 'h':
             goto usage;
@@ -2240,13 +2245,14 @@ int Abc_CommandPrintGates( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
 
-    Abc_NtkPrintGates( pNtk, fUseLibrary );
+    Abc_NtkPrintGates( pNtk, fUseLibrary, fUpdateProfile );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: print_gates [-lh]\n" );
+    Abc_Print( -2, "usage: print_gates [-luh]\n" );
     Abc_Print( -2, "\t        prints statistics about gates used in the network\n" );
     Abc_Print( -2, "\t-l    : used library gate names (if mapped) [default = %s]\n", fUseLibrary? "yes": "no" );
+    Abc_Print( -2, "\t-u    : update profile before printing it[default = %s]\n", fUpdateProfile? "yes": "no" );
     Abc_Print( -2, "\t-h    : print the command usage\n");
     return 1;
 }
@@ -14851,15 +14857,16 @@ int Abc_CommandMap( Abc_Frame_t * pAbc, int argc, char ** argv )
     float LogFan = 0;
     float Slew = 0; // choose based on the library
     float Gain = 250;
-    int nGatesMin = 4;
+    int nGatesMin = 0;
     int fAreaOnly;
     int fRecovery;
     int fSweep;
     int fSwitching;
     int fSkipFanout;
+    int fUseProfile;
     int fVerbose;
     int c;
-    extern Abc_Ntk_t * Abc_NtkMap( Abc_Ntk_t * pNtk, double DelayTarget, double AreaMulti, double DelayMulti, float LogFan, float Slew, float Gain, int nGatesMin, int fRecovery, int fSwitching, int fSkipFanout, int fVerbose );
+    extern Abc_Ntk_t * Abc_NtkMap( Abc_Ntk_t * pNtk, double DelayTarget, double AreaMulti, double DelayMulti, float LogFan, float Slew, float Gain, int nGatesMin, int fRecovery, int fSwitching, int fSkipFanout, int fUseProfile, int fVerbose );
     extern int Abc_NtkFraigSweep( Abc_Ntk_t * pNtk, int fUseInv, int fExdc, int fVerbose, int fVeryVerbose );
 
     pNtk = Abc_FrameReadNtk(pAbc);
@@ -14872,9 +14879,10 @@ int Abc_CommandMap( Abc_Frame_t * pAbc, int argc, char ** argv )
     fSweep      = 0;
     fSwitching  = 0;
     fSkipFanout = 0;
+    fUseProfile = 0;
     fVerbose    = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "DABFSGMarspfvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "DABFSGMarspfuvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -14966,6 +14974,9 @@ int Abc_CommandMap( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'f':
             fSkipFanout ^= 1;
             break;
+        case 'u':
+            fUseProfile ^= 1;
+            break;
         case 'v':
             fVerbose ^= 1;
             break;
@@ -15002,7 +15013,7 @@ int Abc_CommandMap( Abc_Frame_t * pAbc, int argc, char ** argv )
         }
         Abc_Print( 0, "The network was strashed and balanced before mapping.\n" );
         // get the new network
-        pNtkRes = Abc_NtkMap( pNtk, DelayTarget, AreaMulti, DelayMulti, LogFan, Slew, Gain, nGatesMin, fRecovery, fSwitching, fSkipFanout, fVerbose );
+        pNtkRes = Abc_NtkMap( pNtk, DelayTarget, AreaMulti, DelayMulti, LogFan, Slew, Gain, nGatesMin, fRecovery, fSwitching, fSkipFanout, fUseProfile, fVerbose );
         if ( pNtkRes == NULL )
         {
             Abc_NtkDelete( pNtk );
@@ -15014,7 +15025,7 @@ int Abc_CommandMap( Abc_Frame_t * pAbc, int argc, char ** argv )
     else
     {
         // get the new network
-        pNtkRes = Abc_NtkMap( pNtk, DelayTarget, AreaMulti, DelayMulti, LogFan, Slew, Gain, nGatesMin, fRecovery, fSwitching, fSkipFanout, fVerbose );
+        pNtkRes = Abc_NtkMap( pNtk, DelayTarget, AreaMulti, DelayMulti, LogFan, Slew, Gain, nGatesMin, fRecovery, fSwitching, fSkipFanout, fUseProfile, fVerbose );
         if ( pNtkRes == NULL )
         {
             Abc_Print( -1, "Mapping has failed.\n" );
@@ -15041,7 +15052,7 @@ usage:
         sprintf(Buffer, "not used" );
     else
         sprintf(Buffer, "%.3f", DelayTarget );
-    Abc_Print( -2, "usage: map [-DABFSG float] [-M num] [-arspfvh]\n" );
+    Abc_Print( -2, "usage: map [-DABFSG float] [-M num] [-arspfuvh]\n" );
     Abc_Print( -2, "\t           performs standard cell mapping of the current network\n" );
     Abc_Print( -2, "\t-D float : sets the global required times [default = %s]\n", Buffer );
     Abc_Print( -2, "\t-A float : \"area multiplier\" to bias gate selection [default = %.2f]\n", AreaMulti );
@@ -15055,6 +15066,7 @@ usage:
     Abc_Print( -2, "\t-s       : toggles sweep after mapping [default = %s]\n", fSweep? "yes": "no" );
     Abc_Print( -2, "\t-p       : optimizes power by minimizing switching [default = %s]\n", fSwitching? "yes": "no" );
     Abc_Print( -2, "\t-f       : do not use large gates to map high-fanout nodes [default = %s]\n", fSkipFanout? "yes": "no" );
+    Abc_Print( -2, "\t-u       : use standard-cell profile [default = %s]\n", fUseProfile? "yes": "no" );
     Abc_Print( -2, "\t-v       : toggles verbose output [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h       : print the command usage\n");
     return 1;
