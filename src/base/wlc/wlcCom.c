@@ -412,6 +412,11 @@ int Abc_CommandPsInv( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( 1, "Abc_CommandPsInv(): There is no saved invariant.\n" );
         return 0;
     }
+    if ( Wlc_AbcGetInv(pAbc) == NULL )
+    {
+        Abc_Print( 1, "Abc_CommandPsInv(): Invariant is not available.\n" );
+        return 0;
+    }
     Wlc_NtkPrintInvStats( pNtk, Wlc_AbcGetInv(pAbc), fVerbose );
     return 0;
     usage:
