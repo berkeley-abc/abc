@@ -378,7 +378,7 @@ void Pdr_ManDumpClauses( Pdr_Man_t * p, char * pFileName, int fProved )
     Vec_PtrForEachEntry( Pdr_Set_t *, vCubes, pCube, i )
     {
         Pdr_SetPrint( pFile, pCube, Aig_ManRegNum(p->pAig), vFlopCounts );  
-        fprintf( pFile, " 0\n" ); 
+        fprintf( pFile, " 1\n" ); 
     }
     fprintf( pFile, ".e\n\n" );
     fclose( pFile );
