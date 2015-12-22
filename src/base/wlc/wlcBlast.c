@@ -1024,6 +1024,40 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Vec_Int_t * vBoxIds )
         Gia_ManStop( pTemp );
         //Tim_ManPrint( pManTime );
     }
+    // create input names
+    pNew->vNamesIn = Vec_PtrAlloc( Gia_ManCiNum(pNew) );
+    Wlc_NtkForEachCi( p, pObj, i )
+    {
+        char * pName = Wlc_ObjName(p, Wlc_ObjId(p, pObj));
+        nRange = Wlc_ObjRange( pObj );
+        if ( nRange == 1 )
+            Vec_PtrPush( pNew->vNamesIn, Abc_UtilStrsav(pName) );
+        else
+            for ( k = 0; k < nRange; k++ )
+            {
+                char Buffer[1000];
+                sprintf( Buffer, "%s[%d]", pName, k );
+                Vec_PtrPush( pNew->vNamesIn, Abc_UtilStrsav(Buffer) );
+            }
+    }
+    assert( Vec_PtrSize(pNew->vNamesIn) == Gia_ManCiNum(pNew) );
+    // create output names
+    pNew->vNamesOut = Vec_PtrAlloc( Gia_ManCoNum(pNew) );
+    Wlc_NtkForEachCo( p, pObj, i )
+    {
+        char * pName = Wlc_ObjName(p, Wlc_ObjId(p, pObj));
+        nRange = Wlc_ObjRange( pObj );
+        if ( nRange == 1 )
+            Vec_PtrPush( pNew->vNamesOut, Abc_UtilStrsav(pName) );
+        else
+            for ( k = 0; k < nRange; k++ )
+            {
+                char Buffer[1000];
+                sprintf( Buffer, "%s[%d]", pName, k );
+                Vec_PtrPush( pNew->vNamesOut, Abc_UtilStrsav(Buffer) );
+            }
+    }
+    assert( Vec_PtrSize(pNew->vNamesOut) == Gia_ManCoNum(pNew) );
     return pNew;
 }
 
