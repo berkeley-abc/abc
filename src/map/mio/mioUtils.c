@@ -1377,7 +1377,7 @@ void Mio_LibraryReadProfile( FILE * pFile, Mio_Library_t * pLib )
         pGate = Mio_LibraryReadGateByName( pLib, pToken, NULL );
         if ( pGate == NULL )
         {
-            printf( "Cannot find gate \"%s\" in library \"%s\".\n", Mio_GateReadName(pGate), Mio_LibraryReadName(pLib) );
+            printf( "Cannot find gate \"%s\" in library \"%s\".\n", pToken, Mio_LibraryReadName(pLib) );
             continue;
         }
         // read profile
