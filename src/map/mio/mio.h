@@ -62,7 +62,8 @@ struct Mio_Cell2_t_
     unsigned        Id       : 26;  // gate ID
     unsigned        Type     :  2;  // gate type
     unsigned        nFanins  :  4;  // gate fanins
-    word            Area;           // area
+    float           AreaF;          // area
+    word            AreaW;          // area
     word            uTruth;         // truth table
     word            DelayAve;       // average delay
     word            Delays[6];      // delay

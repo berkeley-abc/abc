@@ -323,7 +323,7 @@ void Sfm_LibPrepareAdd( Sfm_Lib_t * p, word * pTruth, int * Perm, int nFanins, M
 {
     Sfm_Fun_t * pObj;
     int InvPerm[SFM_SUPP_MAX], Profile[SFM_SUPP_MAX];
-    int Area = (int)pCellBot->Area + (pCellTop ? (int)pCellTop->Area : 0);
+    int Area = (int)pCellBot->AreaW + (pCellTop ? (int)pCellTop->AreaW : 0);
     int i, k, Id, Prev, Offset, * pProf, iFunc = Vec_MemHashInsert( p->vTtMem, pTruth );
     if ( iFunc == Vec_IntSize(&p->vLists) )
     {

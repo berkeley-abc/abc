@@ -318,6 +318,7 @@ struct Jf_Par_t_
     word           WordMapDelayTarget;
     float          MapDelay;
     float          MapArea;
+    float          MapAreaF;
     float          MapDelayTarget;
     float          Epsilon;
     float *        pTimesArr;

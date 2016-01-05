@@ -338,9 +338,9 @@ int Mio_AreaCompare2( Mio_Cell2_t * pG1, Mio_Cell2_t * pG2 )
         return -1;
     if ( pG1->nFanins > pG2->nFanins )
         return 1;
-    if ( pG1->Area < pG2->Area )
+    if ( pG1->AreaW < pG2->AreaW )
         return -1;
-    if ( pG1->Area > pG2->Area )
+    if ( pG1->AreaW > pG2->AreaW )
         return 1;
     // compare names
     Comp = strcmp( pG1->pName, pG2->pName );
@@ -630,9 +630,9 @@ static inline int Mio_CompareTwo2( Mio_Cell2_t * pCell1, Mio_Cell2_t * pCell2 )
 {
     int Comp;
     // compare areas
-    if ( pCell1->Area > pCell2->Area )
+    if ( pCell1->AreaW > pCell2->AreaW )
         return 1;
-    if ( pCell1->Area < pCell2->Area )
+    if ( pCell1->AreaW < pCell2->AreaW )
         return 0;
     // compare delays
     if ( pCell1->DelayAve > pCell2->DelayAve )
@@ -654,7 +654,8 @@ static inline void Mio_CollectCopy2( Mio_Cell2_t * pCell, Mio_Gate_t * pGate )
     pCell->pName    = pGate->pName;
     pCell->vExpr    = pGate->vExpr;
     pCell->uTruth   = pGate->uTruth;
-    pCell->Area     = (word)(MIO_NUM * pGate->dArea);
+    pCell->AreaF    = pGate->dArea;
+    pCell->AreaW    = (word)(MIO_NUM * pGate->dArea);
     pCell->nFanins  = pGate->nInputs;
     pCell->pMioGate = pGate;
     pCell->DelayAve = 0;
@@ -757,7 +758,7 @@ Mio_Cell2_t * Mio_CollectRootsNew2( Mio_Library_t * pLib, int nInputs, int * pnG
                 printf( "None\n" );
             else
                 printf( "%-20s   In = %d   N = %3d   A = %12.6f   D = %12.6f\n", 
-                    pCell->pName, pCell->nFanins, pCounts[i], MIO_NUMINV*(unsigned)pCell->Area, MIO_NUMINV*(unsigned)pCell->DelayAve );
+                    pCell->pName, pCell->nFanins, pCounts[i], pCell->AreaF, MIO_NUMINV*(unsigned)pCell->DelayAve );
         }
         ABC_FREE( pCounts );
     }
