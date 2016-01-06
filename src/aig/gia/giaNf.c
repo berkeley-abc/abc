@@ -1460,10 +1460,10 @@ void Nf_ManSetOutputRequireds( Nf_Man_t * p, int fPropCompl )
             if ( Scl_ConGetOutReq(i) > 0 && Required <= Scl_ConGetOutReq(i) )
                 Required = Scl_ConGetOutReq(i);
         }
-        else
+        else if ( p->pGia->vOutReqs )
         {
             int NewRequired = Scl_Flt2Int(Vec_FltEntry(p->pGia->vOutReqs, i));
-            if ( p->pGia->vOutReqs && NewRequired > 0 && Required <= NewRequired )
+            if ( NewRequired > 0 && Required <= NewRequired )
                 Required = Abc_MinInt( 2*Required, NewRequired );
         }
         // if external required cannot be achieved, set the earliest possible arrival time
