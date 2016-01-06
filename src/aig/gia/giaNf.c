@@ -2041,10 +2041,15 @@ void Nf_ManFixPoDrivers( Nf_Man_t * p )
         // skip if arrival time exceeds the required time
         if ( pMc->D + p->InvDelayI > p->pPars->MapDelay )
             continue;
+        // update references
+        Nf_MatchDeref_rec( p, iDriver, Gia_ObjFaninC0(pObj), pM );
+        Nf_ObjMapRefInc( p, iDriver, !Gia_ObjFaninC0(pObj) );
         // add inverter
         *pM = *pMc;
         pM->D += p->InvDelayI;
         pM->fCompl = 1;
+        pM->fBest = 1;
+        pMc->fBest = 1;
         Count++;
     }
     //printf( "Fixed %d PO drivers.\n", Count );
