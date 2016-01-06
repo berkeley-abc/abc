@@ -2020,6 +2020,35 @@ void Nf_ManComputeMappingEla( Nf_Man_t * p )
             Nf_ObjUpdateRequired( p, Id, 0, Required - p->InvDelayI );
         }
 }
+void Nf_ManFixPoDrivers( Nf_Man_t * p )
+{
+    Gia_Obj_t * pObj;
+    Nf_Mat_t * pM, * pMc;
+    int i, iDriver, Count = 0;
+    Gia_ManForEachCo( p->pGia, pObj, i )
+    {
+        iDriver = Gia_ObjFaninId0p(p->pGia, pObj);
+        if ( !Gia_ObjIsAnd(Gia_ManObj(p->pGia, iDriver)) )
+            continue;
+        // skip unless both are used
+        if ( !Nf_ObjMapRefNum(p, iDriver, 0) || !Nf_ObjMapRefNum(p, iDriver, 1) )
+            continue;
+        pM  = Nf_ObjMatchD( p, iDriver,  Gia_ObjFaninC0(pObj) );
+        pMc = Nf_ObjMatchD( p, iDriver, !Gia_ObjFaninC0(pObj) );
+        // skip unless both are non-complemented
+        if ( pM->fCompl || pMc->fCompl )
+            continue;
+        // skip if arrival time exceeds the required time
+        if ( pMc->D + p->InvDelayI > p->pPars->MapDelay )
+            continue;
+        // add inverter
+        *pM = *pMc;
+        pM->D += p->InvDelayI;
+        pM->fCompl = 1;
+        Count++;
+    }
+    //printf( "Fixed %d PO drivers.\n", Count );
+}
 
 /**Function*************************************************************
 
@@ -2213,6 +2242,7 @@ Gia_Man_t * Nf_ManPerformMapping( Gia_Man_t * pGia, Jf_Par_t * pPars )
         Nf_ManUpdateStats( p );
         Nf_ManPrintStats( p, "Ela  " );
     }
+    Nf_ManFixPoDrivers( p );
     pNew = Nf_ManDeriveMapping( p );
     Nf_StoDelete( p );
     return pNew;
