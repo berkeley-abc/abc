@@ -41,7 +41,6 @@ ABC_NAMESPACE_IMPL_START
 #define NF_CUT_MAX  32
 #define NF_NO_LEAF  31
 #define NF_NO_FUNC  0x3FFFFFF
-#define NF_INFINITY (~(word)0)
 
 typedef struct Nf_Cut_t_ Nf_Cut_t; 
 struct Nf_Cut_t_
@@ -69,7 +68,7 @@ struct Nf_Mat_t_
     unsigned        fCompl  :  1;   // complemented
     unsigned        fBest   :  1;   // best cut
     Nf_Cfg_t        Cfg;            // input literals
-    word            D;              // delay
+    int             D;              // delay
     float           F;              // area 
 };
 typedef struct Nf_Obj_t_ Nf_Obj_t; 
@@ -94,7 +93,7 @@ struct Nf_Man_t_
     Vec_Int_t       vCutSets;       // cut offsets
     Vec_Int_t       vMapRefs;       // mapping refs   (2x)
     Vec_Flt_t       vFlowRefs;      // flow refs      (2x)
-    Vec_Wrd_t       vRequired;      // required times (2x)
+    Vec_Int_t       vRequired;      // required times (2x)
     Vec_Flt_t       vCutFlows;      // temporary cut area
     Vec_Int_t       vCutDelays;     // temporary cut delay
     Vec_Int_t       vBackup;        // backup literals
@@ -102,7 +101,7 @@ struct Nf_Man_t_
     int             Iter;           // mapping iterations
     int             fUseEla;        // use exact area
     int             nInvs;          // the inverter count
-    word            InvDelay;       // inverter delay
+    int             InvDelayI;      // inverter delay
     word            InvAreaW;       // inverter delay
     float           InvAreaF;       // inverter area 
     // statistics
@@ -113,9 +112,6 @@ struct Nf_Man_t_
 
 static inline int          Nf_Cfg2Int( Nf_Cfg_t Mat )                                { union { int x; Nf_Cfg_t y; } v; v.y = Mat; return v.x;           }
 static inline Nf_Cfg_t     Nf_Int2Cfg( int Int )                                     { union { int x; Nf_Cfg_t y; } v; v.x = Int; return v.y;           }
-
-static inline word         Nf_Flt2Wrd( float w )                                     { return MIO_NUM*w;                                                }
-static inline float        Nf_Wrd2Flt( word w )                                      { return MIO_NUMINV*(unsigned)(w&0x3FFFFFFF) + MIO_NUMINV*(1<<30)*(unsigned)(w>>30); }
 
 static inline Nf_Obj_t *   Nf_ManObj( Nf_Man_t * p, int i )                          { return p->pNfObjs + i;                                           }
 static inline Mio_Cell2_t* Nf_ManCell( Nf_Man_t * p, int i )                         { return p->pCells + i;                                            }
@@ -135,9 +131,9 @@ static inline int          Nf_ObjMapRefNum( Nf_Man_t * p, int i, int c )        
 static inline int          Nf_ObjMapRefInc( Nf_Man_t * p, int i, int c )             { return (*Vec_IntEntryP(&p->vMapRefs, Abc_Var2Lit(i,c)))++;       }
 static inline int          Nf_ObjMapRefDec( Nf_Man_t * p, int i, int c )             { return --(*Vec_IntEntryP(&p->vMapRefs, Abc_Var2Lit(i,c)));       }
 static inline float        Nf_ObjFlowRefs( Nf_Man_t * p, int i, int c )              { return Vec_FltEntry(&p->vFlowRefs, Abc_Var2Lit(i,c));            }
-static inline word         Nf_ObjRequired( Nf_Man_t * p, int i, int c )              { return Vec_WrdEntry(&p->vRequired, Abc_Var2Lit(i,c));            }
-static inline void         Nf_ObjSetRequired( Nf_Man_t * p,int i, int c, word f )    { Vec_WrdWriteEntry(&p->vRequired, Abc_Var2Lit(i,c), f);           }
-static inline void         Nf_ObjUpdateRequired( Nf_Man_t * p,int i, int c, word f ) { if (Nf_ObjRequired(p, i, c) > f) Nf_ObjSetRequired(p, i, c, f);  }
+static inline int          Nf_ObjRequired( Nf_Man_t * p, int i, int c )              { return Vec_IntEntry(&p->vRequired, Abc_Var2Lit(i,c));            }
+static inline void         Nf_ObjSetRequired( Nf_Man_t * p,int i, int c, int f )     { Vec_IntWriteEntry(&p->vRequired, Abc_Var2Lit(i,c), f);           }
+static inline void         Nf_ObjUpdateRequired( Nf_Man_t * p,int i, int c, int f )  { if (Nf_ObjRequired(p, i, c) > f) Nf_ObjSetRequired(p, i, c, f);  }
 
 static inline Nf_Mat_t *   Nf_ObjMatchD( Nf_Man_t * p, int i, int c )                { return &Nf_ManObj(p, i)->M[c][0];                                }
 static inline Nf_Mat_t *   Nf_ObjMatchA( Nf_Man_t * p, int i, int c )                { return &Nf_ManObj(p, i)->M[c][1];                                }
@@ -172,17 +168,17 @@ static inline int          Nf_CfgCompl( Nf_Cfg_t Cfg, int i )                   
   SeeAlso     []
 
 ***********************************************************************/
-int Nf_StoCellIsDominated( Mio_Cell2_t * pCell, int * pFans, word * pProf )
+int Nf_StoCellIsDominated( Mio_Cell2_t * pCell, int * pFans, int * pProf )
 {
     int k;
-    if ( pCell->AreaW < pProf[0] )
+    if ( pCell->AreaF < Abc_Int2Float(pProf[0]) )
         return 0;
     for ( k = 0; k < (int)pCell->nFanins; k++ )
-        if ( pCell->Delays[Abc_Lit2Var(pFans[k])] < pProf[k+1] )
+        if ( pCell->iDelays[Abc_Lit2Var(pFans[k])] < pProf[k+1] )
             return 0;
     return 1; // pCell is dominated
 }
-void Nf_StoCreateGateAdd( Nf_Man_t * pMan, word uTruth, int * pFans, int nFans, int CellId, Vec_Wec_t * vProfs, Vec_Wrd_t * vStore )
+void Nf_StoCreateGateAdd( Nf_Man_t * pMan, word uTruth, int * pFans, int nFans, int CellId, Vec_Wec_t * vProfs, Vec_Int_t * vStore )
 {
     Vec_Int_t * vArray, * vArrayProfs = NULL;
     Mio_Cell2_t * pCell = Nf_ManCell( pMan, CellId );
@@ -216,7 +212,7 @@ void Nf_StoCreateGateAdd( Nf_Man_t * pMan, word uTruth, int * pFans, int nFans, 
             if ( Nf_Int2Cfg(Entry).Phase == Mat.Phase && Nf_Int2Cfg(Entry).fCompl == Mat.fCompl )
             {
                 int Offset = Vec_IntEntry(vArrayProfs, i/2);
-                word * pProf = Vec_WrdEntryP(vStore, Offset);
+                int * pProf = Vec_IntEntryP(vStore, Offset);
                 if ( Nf_StoCellIsDominated(pCell, pFans, pProf) )
                     return;
             }
@@ -243,13 +239,13 @@ void Nf_StoCreateGateAdd( Nf_Man_t * pMan, word uTruth, int * pFans, int nFans, 
     // add delay profile
     if ( pMan->pPars->fPinFilter )
     {
-        Vec_IntPush( vArrayProfs, Vec_WrdSize(vStore) );
-        Vec_WrdPush( vStore, pCell->AreaW );
+        Vec_IntPush( vArrayProfs, Vec_IntSize(vStore) );
+        Vec_IntPush( vStore, Abc_Float2Int(pCell->AreaF) );
         for ( k = 0; k < nFans; k++ )
-            Vec_WrdPush( vStore, pCell->Delays[Abc_Lit2Var(pFans[k])] );
+            Vec_IntPush( vStore, pCell->iDelays[Abc_Lit2Var(pFans[k])] );
     }
 }
-void Nf_StoCreateGateMaches( Nf_Man_t * pMan, Mio_Cell2_t * pCell, int ** pComp, int ** pPerm, int * pnPerms, Vec_Wec_t * vProfs, Vec_Wrd_t * vStore )
+void Nf_StoCreateGateMaches( Nf_Man_t * pMan, Mio_Cell2_t * pCell, int ** pComp, int ** pPerm, int * pnPerms, Vec_Wec_t * vProfs, Vec_Int_t * vStore )
 {
     int Perm[NF_LEAF_MAX], * Perm1, * Perm2;
     int nPerms = pnPerms[pCell->nFanins];
@@ -286,7 +282,7 @@ void Nf_StoDeriveMatches( Nf_Man_t * p, int fVerbose )
 {
 //    abctime clk = Abc_Clock();
     Vec_Wec_t * vProfs = Vec_WecAlloc( 1000 );
-    Vec_Wrd_t * vStore = Vec_WrdAlloc( 10000 );
+    Vec_Int_t * vStore = Vec_IntAlloc( 10000 );
     int * pComp[7], * pPerm[7], nPerms[7], i;
     Vec_WecPushLevel( vProfs );
     Vec_WecPushLevel( vProfs );
@@ -304,7 +300,7 @@ void Nf_StoDeriveMatches( Nf_Man_t * p, int fVerbose )
     for ( i = 1; i <= 6; i++ )
         ABC_FREE( pPerm[i] );
     Vec_WecFree( vProfs );
-    Vec_WrdFree( vStore );
+    Vec_IntFree( vStore );
 //    Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
 }
 //void Nf_StoPrintOne( Nf_Man_t * p, int Count, int t, int i, int GateId, Pf_Mat_t Mat )
@@ -387,7 +383,7 @@ Nf_Man_t * Nf_StoCreate( Gia_Man_t * pGia, Jf_Par_t * pPars )
     Vec_PtrGrow( &p->vPages, 256 );                                    // cut memory
     Vec_IntFill( &p->vMapRefs,  2*Gia_ManObjNum(pGia), 0 );            // mapping refs   (2x)
     Vec_FltFill( &p->vFlowRefs, 2*Gia_ManObjNum(pGia), 0 );            // flow refs      (2x)
-    Vec_WrdFill( &p->vRequired, 2*Gia_ManObjNum(pGia), NF_INFINITY );  // required times (2x)
+    Vec_IntFill( &p->vRequired, 2*Gia_ManObjNum(pGia), SCL_INFINITY ); // required times (2x)
     Vec_IntFill( &p->vCutSets,  Gia_ManObjNum(pGia), 0 );              // cut offsets
     Vec_FltFill( &p->vCutFlows, Gia_ManObjNum(pGia), 0 );              // cut area
     Vec_IntFill( &p->vCutDelays,Gia_ManObjNum(pGia), 0 );              // cut delay
@@ -408,9 +404,9 @@ Nf_Man_t * Nf_StoCreate( Gia_Man_t * pGia, Jf_Par_t * pPars )
     Vec_WecPushLevel( p->vTt2Match );
     assert( Vec_WecSize(p->vTt2Match) == Vec_MemEntryNum(p->vTtMem) );
     Nf_StoDeriveMatches( p, 0 );//pPars->fVerbose );
-    p->InvDelay = p->pCells[3].Delays[0];
-    p->InvAreaW = p->pCells[3].AreaW;
-    p->InvAreaF = p->pCells[3].AreaF;
+    p->InvDelayI = p->pCells[3].iDelays[0];
+    p->InvAreaW  = p->pCells[3].AreaW;
+    p->InvAreaF  = p->pCells[3].AreaF;
     Nf_ObjMatchD(p, 0, 0)->Gate = 0;
     Nf_ObjMatchD(p, 0, 1)->Gate = 1;
     // prepare cuts
@@ -996,7 +992,7 @@ void Nf_ManPrintStats( Nf_Man_t * p, char * pTitle )
     if ( !p->pPars->fVerbose )
         return;
     printf( "%s :  ", pTitle );
-    printf( "Delay =%8.2f  ",  Nf_Wrd2Flt(p->pPars->WordMapDelay) );
+    printf( "Delay =%8.2f  ",  Scl_Flt2Int(p->pPars->MapDelay) );
     printf( "Area =%12.2f  ",  p->pPars->MapAreaF );
     printf( "Gate =%6d  ",    (int)p->pPars->Area );
     printf( "Inv =%6d  ",     (int)p->nInvs );
@@ -1076,7 +1072,7 @@ void Nf_ManCutMatchPrint( Nf_Man_t * p, int iObj, char * pStr, Nf_Mat_t * pM )
     }
     pCell = Nf_ManCell( p, pM->Gate );
     pCut = Nf_CutFromHandle( Nf_ObjCutSet(p, iObj), pM->CutH );
-    printf( "D =%6.2f  ", Nf_Wrd2Flt(pM->D) );
+    printf( "D =%6.2f  ", Scl_Flt2Int(pM->D) );
     printf( "A =%6.2f  ", pM->F );
     printf( "C = %d ", pM->fCompl );
 //    printf( "B = %d ", pM->fBest );
@@ -1091,7 +1087,7 @@ void Nf_ManCutMatchPrint( Nf_Man_t * p, int iObj, char * pStr, Nf_Mat_t * pM )
     printf( "%d  ", pCell->nFanins );
     printf( "{" );
     for ( i = 0; i < (int)pCell->nFanins; i++ )
-        printf( "%6.2f ", Nf_Wrd2Flt(pCell->Delays[i]) );
+        printf( "%6.2f ", Scl_Flt2Int(pCell->iDelays[i]) );
     for ( ; i < 6; i++ )
         printf( "       " );
     printf( " } " );
@@ -1110,7 +1106,7 @@ void Nf_ManCutMatchOne( Nf_Man_t * p, int iObj, int * pCut, int * pCutSet )
     int fComplExt    = Abc_LitIsCompl(iFuncLit);
     Vec_Int_t * vArr = Vec_WecEntry( p->vTt2Match, Abc_Lit2Var(iFuncLit) );
     int i, k, c, Info, Offset, iFanin, fComplF;
-    word ArrivalD, ArrivalA;
+    int ArrivalD, ArrivalA;
     Nf_Mat_t * pD, * pA;
     // assign fanins matches
     Nf_Obj_t * pBestF[NF_LEAF_MAX];
@@ -1140,26 +1136,25 @@ void Nf_ManCutMatchOne( Nf_Man_t * p, int iObj, int * pCut, int * pCutSet )
         Nf_Cfg_t Cfg   = Nf_Int2Cfg(Offset);
         Mio_Cell2_t*pC = Nf_ManCell( p, Info );
         int fCompl     = Cfg.fCompl ^ fComplExt;
-        word Required  = Nf_ObjRequired( p, iObj, fCompl );
+        int Required   = Nf_ObjRequired( p, iObj, fCompl ), Delay = 0;
         Nf_Mat_t * pD  = &pBest->M[fCompl][0];
         Nf_Mat_t * pA  = &pBest->M[fCompl][1];
         float AreaF    = pC->AreaF;
-        word Delay     = 0;
         assert( nFans == (int)pC->nFanins );
         Nf_CfgForEachVarCompl( Cfg, nFans, iFanin, fComplF, k )
         {
             ArrivalD  = pBestF[iFanin]->M[fComplF][0].D;
             ArrivalA  = pBestF[iFanin]->M[fComplF][1].D;
-            if ( ArrivalA + pC->Delays[k] <= Required && Required != NF_INFINITY )
+            if ( ArrivalA + pC->iDelays[k] <= Required && Required != SCL_INFINITY )
             {
-                Delay = Abc_MaxWord( Delay, ArrivalA + pC->Delays[k] );
+                Delay = Abc_MaxInt( Delay, ArrivalA + pC->iDelays[k] );
                 AreaF += pBestF[iFanin]->M[fComplF][1].F;
             }
             else 
             {
-                if ( pD->D < NF_INFINITY && pA->D < NF_INFINITY && ArrivalD + pC->Delays[k] > Required )
+                if ( pD->D < SCL_INFINITY && pA->D < SCL_INFINITY && ArrivalD + pC->iDelays[k] > Required )
                     break;
-                Delay = Abc_MaxWord( Delay, ArrivalD + pC->Delays[k] );
+                Delay = Abc_MaxInt( Delay, ArrivalD + pC->iDelays[k] );
                 AreaF += pBestF[iFanin]->M[fComplF][0].F;
             }
         }
@@ -1187,7 +1182,7 @@ void Nf_ManCutMatchOne( Nf_Man_t * p, int iObj, int * pCut, int * pCutSet )
         }
     }
 }
-static inline void Nf_ObjPrepareCi( Nf_Man_t * p, int iObj, word Time )
+static inline void Nf_ObjPrepareCi( Nf_Man_t * p, int iObj, int Time )
 {
     Nf_Mat_t * pD0 = Nf_ObjMatchD( p, iObj, 0 );
     Nf_Mat_t * pA0 = Nf_ObjMatchA( p, iObj, 0 );
@@ -1195,10 +1190,10 @@ static inline void Nf_ObjPrepareCi( Nf_Man_t * p, int iObj, word Time )
     Nf_Mat_t * pA = Nf_ObjMatchA( p, iObj, 1 );
     pD0->D = pA0->D = pD->D = pA->D = Time;
     pD->fCompl = 1;
-    pD->D += p->InvDelay;
+    pD->D += p->InvDelayI;
     pD->F = p->InvAreaF;
     pA->fCompl = 1;
-    pA->D += p->InvDelay;
+    pA->D += p->InvDelayI;
     pA->F = p->InvAreaF;
     Nf_ObjMatchD( p, iObj, 0 )->fBest = 1;
     Nf_ObjMatchD( p, iObj, 1 )->fBest = 1;
@@ -1222,33 +1217,33 @@ static inline void Nf_ObjPrepareBuf( Nf_Man_t * p, Gia_Obj_t * pObj )
     pDp->F = pAp->F = pDf->F; // do not pass flow???
     pDp->fBest = 1;
     // set the inverted phase
-    pDn->D = pAn->D = pDf->D + p->InvDelay;
+    pDn->D = pAn->D = pDf->D + p->InvDelayI;
     pDn->F = pAn->F = pDf->F + p->InvAreaF;
     pDn->fCompl = pAn->fCompl = 1;
     pDn->fBest = 1;
 }
-static inline word Nf_CutRequired( Nf_Man_t * p, Nf_Mat_t * pM, int * pCutSet )
+static inline int Nf_CutRequired( Nf_Man_t * p, Nf_Mat_t * pM, int * pCutSet )
 {
     Mio_Cell2_t * pCell = Nf_ManCell( p, pM->Gate );
     int * pCut = Nf_CutFromHandle( pCutSet, pM->CutH );
     int i, iVar, fCompl;
-    word Arr, Req, Arrival = 0, Required = 0;
+    int Arr, Req, Arrival = 0, Required = 0;
     Nf_CutForEachVarCompl( pCut, pM->Cfg, iVar, fCompl, i )
     {
-        Arr     = Nf_ManObj(p, iVar)->M[fCompl][0].D + pCell->Delays[i];
+        Arr     = Nf_ManObj(p, iVar)->M[fCompl][0].D + pCell->iDelays[i];
         Req     = Nf_ObjRequired(p, iVar, fCompl);
-        Arrival = Abc_MaxWord( Arrival, Arr );
-        if ( Req < NF_INFINITY )
-            Required = Abc_MaxWord( Required, Req + pCell->Delays[i] );
+        Arrival = Abc_MaxInt( Arrival, Arr );
+        if ( Req < SCL_INFINITY )
+            Required = Abc_MaxInt( Required, Req + pCell->iDelays[i] );
     }
-    return Abc_MaxWord( Required + p->pPars->nReqTimeFlex*p->InvDelay, Arrival ); 
+    return Abc_MaxInt( Required + p->pPars->nReqTimeFlex*p->InvDelayI, Arrival ); 
 }
 static inline void Nf_ObjComputeRequired( Nf_Man_t * p, int iObj )
 {
     Nf_Obj_t * pBest = Nf_ManObj(p, iObj);
     int c, * pCutSet = Nf_ObjCutSet( p, iObj );
     for ( c = 0; c < 2; c++ )
-        if ( Nf_ObjRequired(p, iObj, c) == NF_INFINITY )
+        if ( Nf_ObjRequired(p, iObj, c) == SCL_INFINITY )
             Nf_ObjSetRequired( p, iObj, c, Nf_CutRequired(p, &pBest->M[c][0], pCutSet) );
 }
 void Nf_ManCutMatch( Nf_Man_t * p, int iObj )
@@ -1263,7 +1258,7 @@ void Nf_ManCutMatch( Nf_Man_t * p, int iObj )
     float FlowRefPf  = Nf_ObjFlowRefs(p, iObj, 0);
     float FlowRefNf  = Nf_ObjFlowRefs(p, iObj, 1);
     int i, * pCut, * pCutSet = Nf_ObjCutSet( p, iObj );
-    word Required[2] = {0};
+    int Required[2] = {0};
     if ( p->Iter )
     {
         Nf_ObjComputeRequired( p, iObj );
@@ -1271,10 +1266,10 @@ void Nf_ManCutMatch( Nf_Man_t * p, int iObj )
         Required[1] = Nf_ObjRequired( p, iObj, 1 );
     }
     memset( pBest, 0, sizeof(Nf_Obj_t) );
-    pDp->D = NF_INFINITY; pDp->F = FLT_MAX;
-    pDn->D = NF_INFINITY; pDn->F = FLT_MAX;
-    pAp->D = NF_INFINITY; pAp->F = FLT_MAX;
-    pAn->D = NF_INFINITY; pAn->F = FLT_MAX;
+    pDp->D = SCL_INFINITY; pDp->F = FLT_MAX;
+    pDn->D = SCL_INFINITY; pDn->F = FLT_MAX;
+    pAp->D = SCL_INFINITY; pAp->F = FLT_MAX;
+    pAn->D = SCL_INFINITY; pAn->F = FLT_MAX;
     Nf_SetForEachCut( pCutSet, pCut, i )
     {
         if ( Abc_Lit2Var(Nf_CutFunc(pCut)) >= Vec_WecSize(p->vTt2Match) )
@@ -1288,7 +1283,7 @@ void Nf_ManCutMatch( Nf_Man_t * p, int iObj )
 /*
     if ( 461 == iObj && p->Iter == 0 )
     {
-        printf( "\nObj %6d (%.2f %.2f):\n", iObj, Nf_Wrd2Flt(Required[0]), Nf_Wrd2Flt(Required[1]) );
+        printf( "\nObj %6d (%.2f %.2f):\n", iObj, Scl_Flt2Int(Required[0]), Scl_Flt2Int(Required[1]) );
         Nf_ManCutMatchPrint( p, iObj, "Dp", &pBest->M[0][0] );
         Nf_ManCutMatchPrint( p, iObj, "Dn", &pBest->M[1][0] );
         Nf_ManCutMatchPrint( p, iObj, "Ap", &pBest->M[0][1] );
@@ -1303,71 +1298,71 @@ void Nf_ManCutMatch( Nf_Man_t * p, int iObj )
     pAn->F = pAn->F / FlowRefNf;
 
     // add the inverters
-    assert( pDp->D < NF_INFINITY || pDn->D < NF_INFINITY );
-    if ( pDp->D > pDn->D + p->InvDelay )
+    assert( pDp->D < SCL_INFINITY || pDn->D < SCL_INFINITY );
+    if ( pDp->D > pDn->D + p->InvDelayI )
     {
         *pDp = *pDn;
-        pDp->D += p->InvDelay;
+        pDp->D += p->InvDelayI;
         pDp->F += p->InvAreaF;
         pDp->fCompl = 1;
-        if ( pAp->D == NF_INFINITY )
+        if ( pAp->D == SCL_INFINITY )
             *pAp = *pDp;
         //printf( "Using inverter to improve delay at node %d in phase %d.\n", iObj, 1 );
     }
-    else if ( pDn->D > pDp->D + p->InvDelay )
+    else if ( pDn->D > pDp->D + p->InvDelayI )
     {
         *pDn = *pDp;
-        pDn->D += p->InvDelay;
+        pDn->D += p->InvDelayI;
         pDn->F += p->InvAreaF;
         pDn->fCompl = 1;
-        if ( pAn->D == NF_INFINITY )
+        if ( pAn->D == SCL_INFINITY )
             *pAn = *pDn;
         //printf( "Using inverter to improve delay at node %d in phase %d.\n", iObj, 0 );
     }
-    //assert( pAp->A < NF_INFINITY || pAn->A < NF_INFINITY );
+    //assert( pAp->F < FLT_MAX || pAn->F < FLT_MAX );
     // try replacing pos with neg
-    if ( pAp->D == NF_INFINITY || (pAp->F > pAn->F + p->InvAreaF && pAn->D + p->InvDelay <= Required[0]) )
+    if ( pAp->D == SCL_INFINITY || (pAp->F > pAn->F + p->InvAreaF && pAn->D + p->InvDelayI <= Required[0]) )
     {
         assert( p->Iter > 0 );
         *pAp = *pAn;
-        pAp->D += p->InvDelay;
+        pAp->D += p->InvDelayI;
         pAp->F += p->InvAreaF;
         pAp->fCompl = 1;
-        if ( pDp->D == NF_INFINITY )
+        if ( pDp->D == SCL_INFINITY )
             *pDp = *pAp;
         //printf( "Using inverter to improve area at node %d in phase %d.\n", iObj, 1 );
     }
     // try replacing neg with pos
-    else if ( pAn->D == NF_INFINITY || (pAn->F > pAp->F + p->InvAreaF && pAp->D + p->InvDelay <= Required[1]) )
+    else if ( pAn->D == SCL_INFINITY || (pAn->F > pAp->F + p->InvAreaF && pAp->D + p->InvDelayI <= Required[1]) )
     {
         assert( p->Iter > 0 );
         *pAn = *pAp;
-        pAn->D += p->InvDelay;
+        pAn->D += p->InvDelayI;
         pAn->F += p->InvAreaF;
         pAn->fCompl = 1;
-        if ( pDn->D == NF_INFINITY )
+        if ( pDn->D == SCL_INFINITY )
             *pDn = *pAn;
         //printf( "Using inverter to improve area at node %d in phase %d.\n", iObj, 0 );
     }
 
-    if ( pDp->D == NF_INFINITY )
+    if ( pDp->D == SCL_INFINITY )
         printf( "Object %d has pDp unassigned.\n", iObj );
-    if ( pDn->D == NF_INFINITY )
+    if ( pDn->D == SCL_INFINITY )
         printf( "Object %d has pDn unassigned.\n", iObj );
-    if ( pAp->D == NF_INFINITY )
+    if ( pAp->D == SCL_INFINITY )
         printf( "Object %d has pAp unassigned.\n", iObj );
-    if ( pAn->D == NF_INFINITY )
+    if ( pAn->D == SCL_INFINITY )
         printf( "Object %d has pAn unassigned.\n", iObj );
 /*
-    pDp->A = Abc_MinWord( pDp->A, NF_INFINITY/MIO_NUM );
-    pDn->A = Abc_MinWord( pDn->A, NF_INFINITY/MIO_NUM );
-    pAp->A = Abc_MinWord( pAp->A, NF_INFINITY/MIO_NUM );  
-    pAn->A = Abc_MinWord( pAn->A, NF_INFINITY/MIO_NUM );
+    pDp->F = Abc_MinFloat( pDp->F, FLT_MAX/MIO_NUM );
+    pDn->F = Abc_MinFloat( pDn->F, FLT_MAX/MIO_NUM );
+    pAp->F = Abc_MinFloat( pAp->F, FLT_MAX/MIO_NUM );  
+    pAn->F = Abc_MinFloat( pAn->F, FLT_MAX/MIO_NUM );
 */    
-    assert( pDp->D < NF_INFINITY );
-    assert( pDn->D < NF_INFINITY );
-    assert( pAp->D < NF_INFINITY );
-    assert( pAn->D < NF_INFINITY );
+    assert( pDp->D < SCL_INFINITY );
+    assert( pDn->D < SCL_INFINITY );
+    assert( pAp->D < SCL_INFINITY );
+    assert( pAn->D < SCL_INFINITY );
 
     assert( pDp->F < FLT_MAX );
     assert( pDn->F < FLT_MAX );
@@ -1378,14 +1373,14 @@ void Nf_ManCutMatch( Nf_Man_t * p, int iObj )
     if ( p->Iter && (pDp->D > Required[0] || pDn->D > Required[1]) )
     {
         printf( "%5d : ", iObj );
-        printf( "Dp = %6.2f  ", Nf_Wrd2Flt(pDp->D) );
-        printf( "Dn = %6.2f  ", Nf_Wrd2Flt(pDn->D) );
+        printf( "Dp = %6.2f  ", Scl_Flt2Int(pDp->D) );
+        printf( "Dn = %6.2f  ", Scl_Flt2Int(pDn->D) );
         printf( "  " );
-        printf( "Ap = %6.2f  ", Nf_Wrd2Flt(pAp->D) );
-        printf( "An = %6.2f  ", Nf_Wrd2Flt(pAn->D) );
+        printf( "Ap = %6.2f  ", Scl_Flt2Int(pAp->D) );
+        printf( "An = %6.2f  ", Scl_Flt2Int(pAn->D) );
         printf( "  " );
-        printf( "Rp = %6.2f  ", Nf_Wrd2Flt(Required[0]) );
-        printf( "Rn = %6.2f  ", Nf_Wrd2Flt(Required[1]) );
+        printf( "Rp = %6.2f  ", Scl_Flt2Int(Required[0]) );
+        printf( "Rn = %6.2f  ", Scl_Flt2Int(Required[1]) );
         printf( "\n" );
     }
 */
@@ -1427,38 +1422,38 @@ static inline Nf_Mat_t * Nf_ObjMatchBest( Nf_Man_t * p, int i, int c )
 void Nf_ManSetOutputRequireds( Nf_Man_t * p, int fPropCompl )
 {
     Gia_Obj_t * pObj;
-    word Required = 0, WordMapDelayOld = p->pPars->WordMapDelay;
+    int Required = 0, MapDelayOld = p->pPars->MapDelay;
     int fUseConMan = Scl_ConIsRunning() && Scl_ConHasOutReqs();
     int i, iObj, fCompl, nLits = 2*Gia_ManObjNum(p->pGia);
-    Vec_WrdFill( &p->vRequired, nLits, NF_INFINITY );
+    Vec_IntFill( &p->vRequired, nLits, SCL_INFINITY );
     // compute delay
-    p->pPars->WordMapDelay = 0;
+    p->pPars->MapDelay = 0;
     Gia_ManForEachCo( p->pGia, pObj, i )
     {
         Required = Nf_ObjMatchD( p, Gia_ObjFaninId0p(p->pGia, pObj), Gia_ObjFaninC0(pObj) )->D;
-        p->pPars->WordMapDelay = Abc_MaxWord( p->pPars->WordMapDelay, Required );
+        p->pPars->MapDelay = Abc_MaxInt( p->pPars->MapDelay, Required );
     }
-    if ( p->Iter && WordMapDelayOld < p->pPars->WordMapDelay && p->pGia->vOutReqs == NULL )
-        printf( "******** Critical delay violation %.2f -> %.2f ********\n", Nf_Wrd2Flt(WordMapDelayOld), Nf_Wrd2Flt(p->pPars->WordMapDelay) ); 
-    p->pPars->WordMapDelay = Abc_MaxWord( p->pPars->WordMapDelay, WordMapDelayOld );
+    if ( p->Iter && MapDelayOld < p->pPars->MapDelay && p->pGia->vOutReqs == NULL )
+        printf( "******** Critical delay violation %.2f -> %.2f ********\n", Scl_Flt2Int(MapDelayOld), Scl_Flt2Int(p->pPars->MapDelay) ); 
+    p->pPars->MapDelay = Abc_MaxInt( p->pPars->MapDelay, MapDelayOld );
     // check delay target
-    if ( p->pPars->WordMapDelayTarget == 0 && p->pPars->nRelaxRatio )
-        p->pPars->WordMapDelayTarget = p->pPars->WordMapDelay * (100 + p->pPars->nRelaxRatio) / 100;
-    if ( p->pPars->WordMapDelayTarget > 0 )
+    if ( p->pPars->MapDelayTarget == 0 && p->pPars->nRelaxRatio )
+        p->pPars->MapDelayTarget = p->pPars->MapDelay * (100 + p->pPars->nRelaxRatio) / 100;
+    if ( p->pPars->MapDelayTarget > 0 )
     {
-        if ( p->pPars->WordMapDelay < p->pPars->WordMapDelayTarget )
-            p->pPars->WordMapDelay = p->pPars->WordMapDelayTarget;
+        if ( p->pPars->MapDelay < p->pPars->MapDelayTarget )
+            p->pPars->MapDelay = p->pPars->MapDelayTarget;
         else if ( p->pPars->nRelaxRatio == 0 )
-            Abc_Print( 0, "Relaxing user-specified delay target from %.2f to %.2f.\n", Nf_Wrd2Flt(p->pPars->WordMapDelayTarget), Nf_Wrd2Flt(p->pPars->WordMapDelay) );
+            Abc_Print( 0, "Relaxing user-specified delay target from %.2f to %.2f.\n", Scl_Flt2Int(p->pPars->MapDelayTarget), Scl_Flt2Int(p->pPars->MapDelay) );
     }
-    //assert( p->pPars->WordMapDelayTarget == 0 );
+    //assert( p->pPars->MapDelayTarget == 0 );
     // set required times
     Gia_ManForEachCo( p->pGia, pObj, i )
     {
         iObj     = Gia_ObjFaninId0p(p->pGia, pObj);
         fCompl   = Gia_ObjFaninC0(pObj);
         Required = Nf_ObjMatchD(p, iObj, fCompl)->D;
-        Required = p->pPars->fDoAverage ? Required * (100 + p->pPars->nRelaxRatio) / 100 : p->pPars->WordMapDelay;
+        Required = p->pPars->fDoAverage ? Required * (100 + p->pPars->nRelaxRatio) / 100 : p->pPars->MapDelay;
         // if external required time can be achieved, use it
         if ( fUseConMan )
         {
@@ -1467,8 +1462,8 @@ void Nf_ManSetOutputRequireds( Nf_Man_t * p, int fPropCompl )
         }
         else
         {
-            if ( p->pGia->vOutReqs && Vec_FltEntry(p->pGia->vOutReqs, i) > 0 && Required <= Nf_Flt2Wrd(Vec_FltEntry(p->pGia->vOutReqs, i)) )
-                Required = Abc_MinWord( 2*Required, Nf_Flt2Wrd(Vec_FltEntry(p->pGia->vOutReqs, i)) );
+            if ( p->pGia->vOutReqs && Vec_FltEntry(p->pGia->vOutReqs, i) > 0 && Required <= Scl_Flt2Int(Vec_FltEntry(p->pGia->vOutReqs, i)) )
+                Required = Abc_MinInt( 2*Required, Scl_Flt2Int(Vec_FltEntry(p->pGia->vOutReqs, i)) );
         }
         // if external required cannot be achieved, set the earliest possible arrival time
 //        else if ( p->pGia->vOutReqs && Vec_FltEntry(p->pGia->vOutReqs, i) > 0 && Required > Vec_FltEntry(p->pGia->vOutReqs, i) )
@@ -1476,11 +1471,11 @@ void Nf_ManSetOutputRequireds( Nf_Man_t * p, int fPropCompl )
         // otherwise, set the global required time
         Nf_ObjUpdateRequired( p, iObj, fCompl, Required );
         if ( fPropCompl && iObj > 0 && Nf_ObjMatchBest(p, iObj, fCompl)->fCompl )
-            Nf_ObjUpdateRequired( p, iObj, !fCompl, Required - p->InvDelay );
+            Nf_ObjUpdateRequired( p, iObj, !fCompl, Required - p->InvDelayI );
         //Nf_ObjMapRefInc( p, Gia_ObjFaninId0p(p->pGia, pObj), Gia_ObjFaninC0(pObj));
     }
 }
-void Nf_ManSetMapRefsGate( Nf_Man_t * p, int iObj, word Required, Nf_Mat_t * pM )
+void Nf_ManSetMapRefsGate( Nf_Man_t * p, int iObj, int Required, Nf_Mat_t * pM )
 {
     int k, iVar, fCompl;
     Mio_Cell2_t * pCell = Nf_ManCell( p, pM->Gate );
@@ -1488,7 +1483,7 @@ void Nf_ManSetMapRefsGate( Nf_Man_t * p, int iObj, word Required, Nf_Mat_t * pM 
     Nf_CutForEachVarCompl( pCut, pM->Cfg, iVar, fCompl, k )
     {
         Nf_ObjMapRefInc( p, iVar, fCompl );
-        Nf_ObjUpdateRequired( p, iVar, fCompl, Required - pCell->Delays[k] );
+        Nf_ObjUpdateRequired( p, iVar, fCompl, Required - pCell->iDelays[k] );
     }
     assert( Nf_CutSize(pCut) == (int)pCell->nFanins );
     // update global stats
@@ -1510,11 +1505,11 @@ void Nf_ManPrintMatches( Nf_Man_t * p )
         Nf_Mat_t * pAn = Nf_ObjMatchA( p, i, 1 );
 
         printf( "%5d : ", i );
-        printf( "Dp = %6.2f  ", Nf_Wrd2Flt(pDp->D) );
-        printf( "Dn = %6.2f  ", Nf_Wrd2Flt(pDn->D) );
+        printf( "Dp = %6.2f  ", Scl_Flt2Int(pDp->D) );
+        printf( "Dn = %6.2f  ", Scl_Flt2Int(pDn->D) );
         printf( "  " );
-        printf( "Ap = %6.2f  ", Nf_Wrd2Flt(pAp->D) );
-        printf( "An = %6.2f  ", Nf_Wrd2Flt(pAn->D) );
+        printf( "Ap = %6.2f  ", Scl_Flt2Int(pAp->D) );
+        printf( "An = %6.2f  ", Scl_Flt2Int(pAn->D) );
         printf( "  " );
         printf( "Dp = %8s ", Nf_ManCell(p, pDp->Gate)->pName );
         printf( "Dn = %8s ", Nf_ManCell(p, pDn->Gate)->pName );
@@ -1526,8 +1521,7 @@ void Nf_ManPrintMatches( Nf_Man_t * p )
 }
 int Nf_ManSetMapRefs( Nf_Man_t * p )
 {
-//    float Coef = 1.0 / (1.0 + (p->Iter + 1) * (p->Iter + 1));
-    float Coef = 0.25;
+    float Coef = 1.0 / (1.0 + (p->Iter + 1) * (p->Iter + 1));
     float * pFlowRefs = Vec_FltArray( &p->vFlowRefs );
     int * pMapRefs = Vec_IntArray( &p->vMapRefs );
     int nLits = 2*Gia_ManObjNum(p->pGia);
@@ -1535,7 +1529,7 @@ int Nf_ManSetMapRefs( Nf_Man_t * p )
     Gia_Obj_t * pObj;
     Nf_Mat_t * pD, * pA, * pM;
     Nf_Mat_t * pDs[2], * pAs[2], * pMs[2];
-    word Required = 0, Requireds[2];
+    int Required = 0, Requireds[2];
     assert( !p->fUseEla );
 //    if ( p->Iter == 0 )
 //        Nf_ManPrintMatches( p );
@@ -1556,7 +1550,7 @@ int Nf_ManSetMapRefs( Nf_Man_t * p )
             if ( Nf_ObjMapRefNum(p, i, 1) )
             {
                 Nf_ObjMapRefInc( p, i, 0 );
-                Nf_ObjUpdateRequired( p, i, 0, Nf_ObjRequired(p, i, 1) - p->InvDelay );
+                Nf_ObjUpdateRequired( p, i, 0, Nf_ObjRequired(p, i, 1) - p->InvDelayI );
                 p->pPars->MapAreaF += p->InvAreaF;
                 p->pPars->Edge++;
                 p->pPars->Area++;
@@ -1579,7 +1573,7 @@ int Nf_ManSetMapRefs( Nf_Man_t * p )
             for ( c = 0; c < 2; c++ )
             {
                 Requireds[c] = Nf_ObjRequired( p, i, c );
-                //assert( Requireds[c] < NF_INFINITY );
+                //assert( Requireds[c] < SCL_INFINITY );
                 pDs[c] = Nf_ObjMatchD( p, i, c );
                 pAs[c] = Nf_ObjMatchA( p, i, c );
                 pMs[c] = (pAs[c]->D <= Requireds[c]) ? pAs[c] : pDs[c];
@@ -1613,10 +1607,10 @@ int Nf_ManSetMapRefs( Nf_Man_t * p )
                 Required = Requireds[c];
                 // update opposite phase
                 Nf_ObjMapRefInc( p, i, !c );
-                Nf_ObjUpdateRequired( p, i, !c, Required - p->InvDelay );
+                Nf_ObjUpdateRequired( p, i, !c, Required - p->InvDelayI );
                 // select opposite phase
                 Required = Nf_ObjRequired( p, i, !c );
-                //assert( Required < NF_INFINITY );
+                //assert( Required < SCL_INFINITY );
                 pD = Nf_ObjMatchD( p, i, !c );
                 pA = Nf_ObjMatchA( p, i, !c );
                 pM = (pA->D <= Required) ? pA : pD;
@@ -1636,7 +1630,7 @@ int Nf_ManSetMapRefs( Nf_Man_t * p )
             assert( nRefs[c] && !nRefs[!c] );
             // consider this phase
             Required = Nf_ObjRequired( p, i, c );
-            //assert( Required < NF_INFINITY );
+            //assert( Required < SCL_INFINITY );
             pD = Nf_ObjMatchD( p, i, c );
             pA = Nf_ObjMatchA( p, i, c );
             pM = (pA->D <= Required) ? pA : pD;
@@ -1647,10 +1641,10 @@ int Nf_ManSetMapRefs( Nf_Man_t * p )
                 pM->fBest = 1;
                 // update opposite phase
                 Nf_ObjMapRefInc( p, i, !c );
-                Nf_ObjUpdateRequired( p, i, !c, Required - p->InvDelay );
+                Nf_ObjUpdateRequired( p, i, !c, Required - p->InvDelayI );
                 // select opposite phase
                 Required = Nf_ObjRequired( p, i, !c );
-                //assert( Required < NF_INFINITY );
+                //assert( Required < SCL_INFINITY );
                 pD = Nf_ObjMatchD( p, i, !c );
                 pA = Nf_ObjMatchA( p, i, !c );
                 pM = (pA->D <= Required) ? pA : pD;
@@ -1672,7 +1666,7 @@ int Nf_ManSetMapRefs( Nf_Man_t * p )
         if ( Nf_ObjMapRefNum(p, Id, 1) )
         {
             Nf_ObjMapRefInc( p, Id, 0 );
-            Nf_ObjUpdateRequired( p, Id, 0, Required - p->InvDelay );
+            Nf_ObjUpdateRequired( p, Id, 0, Required - p->InvDelayI );
             p->pPars->MapAreaF += p->InvAreaF;
             p->pPars->Edge++;
             p->pPars->Area++;
@@ -1721,15 +1715,16 @@ word Nf_MatchDeref_rec( Nf_Man_t * p, int i, int c, Nf_Mat_t * pM )
     }
     return Area + Nf_ManCell(p, pM->Gate)->AreaW;
 }
-word Nf_MatchRef_rec( Nf_Man_t * p, int i, int c, Nf_Mat_t * pM, word Required, Vec_Int_t * vBackup )
+word Nf_MatchRef_rec( Nf_Man_t * p, int i, int c, Nf_Mat_t * pM, int Required, Vec_Int_t * vBackup )
 {
-    word Area = 0, ReqFanin;
+    word Area = 0;
+    int ReqFanin;
     int k, iVar, fCompl, * pCut;
     assert( pM->fBest );
     assert( pM->D <= Required );
     if ( pM->fCompl )
     {
-        ReqFanin = Required - p->InvDelay;
+        ReqFanin = Required - p->InvDelayI;
         if ( vBackup )
             Vec_IntPush( vBackup, Abc_Var2Lit(i, !c) );
         assert( Nf_ObjMapRefNum(p, i, !c) >= 0 );
@@ -1742,7 +1737,7 @@ word Nf_MatchRef_rec( Nf_Man_t * p, int i, int c, Nf_Mat_t * pM, word Required, 
     pCut = Nf_CutFromHandle( Nf_ObjCutSet(p, i), pM->CutH );
     Nf_CutForEachVarCompl( pCut, pM->Cfg, iVar, fCompl, k )
     {
-        ReqFanin = Required - Nf_ManCell(p, pM->Gate)->Delays[k];
+        ReqFanin = Required - Nf_ManCell(p, pM->Gate)->iDelays[k];
         if ( vBackup )
             Vec_IntPush( vBackup, Abc_Var2Lit(iVar, fCompl) );
         assert( Nf_ObjMapRefNum(p, iVar, fCompl) >= 0 );
@@ -1751,7 +1746,7 @@ word Nf_MatchRef_rec( Nf_Man_t * p, int i, int c, Nf_Mat_t * pM, word Required, 
     }
     return Area + Nf_ManCell(p, pM->Gate)->AreaW;
 }
-word Nf_MatchRefArea( Nf_Man_t * p, int i, int c, Nf_Mat_t * pM, word Required )
+word Nf_MatchRefArea( Nf_Man_t * p, int i, int c, Nf_Mat_t * pM, int Required )
 {
     word Area;  int iLit, k; 
     Vec_IntClear( &p->vBackup );
@@ -1763,7 +1758,7 @@ word Nf_MatchRefArea( Nf_Man_t * p, int i, int c, Nf_Mat_t * pM, word Required )
     }
     return Area;
 }
-void Nf_ManElaBestMatchOne( Nf_Man_t * p, int iObj, int c, int * pCut, int * pCutSet, Nf_Mat_t * pRes, word Required )
+void Nf_ManElaBestMatchOne( Nf_Man_t * p, int iObj, int c, int * pCut, int * pCutSet, Nf_Mat_t * pRes, int Required )
 {
     Nf_Mat_t Mb,*pMb = &Mb, * pMd;
     int * pFans      = Nf_CutLeaves(pCut);
@@ -1778,7 +1773,7 @@ void Nf_ManElaBestMatchOne( Nf_Man_t * p, int iObj, int c, int * pCut, int * pCu
         pBestF[i] = Nf_ManObj( p, pFans[i] );
     // consider matches of this function
     memset( pMb, 0, sizeof(Nf_Mat_t) );
-    pMb->D = NF_INFINITY; pMb->F = FLT_MAX;
+    pMb->D = SCL_INFINITY; pMb->F = FLT_MAX;
     // special cases
     if ( nFans == 0 )
     {
@@ -1803,7 +1798,7 @@ void Nf_ManElaBestMatchOne( Nf_Man_t * p, int iObj, int c, int * pCut, int * pCu
         Nf_Cfg_t Cfg   = Nf_Int2Cfg(Offset);
         Mio_Cell2_t*pC = Nf_ManCell( p, Info );
         int fCompl     = Cfg.fCompl ^ fComplExt;
-        word Delay     = 0;
+        int Delay      = 0;
         assert( nFans == (int)pC->nFanins );
         if ( fCompl != c )
             continue;
@@ -1811,7 +1806,7 @@ void Nf_ManElaBestMatchOne( Nf_Man_t * p, int iObj, int c, int * pCut, int * pCu
         {
             pMd     = &pBestF[iFanin]->M[fComplF][0];
             assert( pMd->fBest );
-            Delay = Abc_MaxWord( Delay, pMd->D + pC->Delays[k] );
+            Delay = Abc_MaxInt( Delay, pMd->D + pC->iDelays[k] );
             if ( Delay > Required )
                 break;
         }
@@ -1833,11 +1828,11 @@ void Nf_ManElaBestMatchOne( Nf_Man_t * p, int iObj, int c, int * pCut, int * pCu
             *pRes = *pMb;
     }
 }
-void Nf_ManElaBestMatch( Nf_Man_t * p, int iObj, int c, Nf_Mat_t * pRes, word Required )
+void Nf_ManElaBestMatch( Nf_Man_t * p, int iObj, int c, Nf_Mat_t * pRes, int Required )
 {
     int k, * pCut, * pCutSet = Nf_ObjCutSet( p, iObj );
     memset( pRes, 0, sizeof(Nf_Mat_t) );
-    pRes->D = NF_INFINITY; pRes->F = FLT_MAX;
+    pRes->D = SCL_INFINITY; pRes->F = FLT_MAX;
     Nf_SetForEachCut( pCutSet, pCut, k )
     {
         if ( Abc_Lit2Var(Nf_CutFunc(pCut)) >= Vec_WecSize(p->vTt2Match) )
@@ -1845,9 +1840,9 @@ void Nf_ManElaBestMatch( Nf_Man_t * p, int iObj, int c, Nf_Mat_t * pRes, word Re
         Nf_ManElaBestMatchOne( p, iObj, c, pCut, pCutSet, pRes, Required );
     }
 }
-word Nf_ManComputeArrival( Nf_Man_t * p, Nf_Mat_t * pM, int * pCutSet )
+int Nf_ManComputeArrival( Nf_Man_t * p, Nf_Mat_t * pM, int * pCutSet )
 {
-    word Delay = 0; 
+    int Delay = 0; 
     Nf_Mat_t * pMfan;
     int iVar, fCompl, k;
     Mio_Cell2_t * pCell = Nf_ManCell( p, pM->Gate );
@@ -1856,16 +1851,16 @@ word Nf_ManComputeArrival( Nf_Man_t * p, Nf_Mat_t * pM, int * pCutSet )
     Nf_CutForEachVarCompl( pCut, pM->Cfg, iVar, fCompl, k )
     {
         pMfan = Nf_ObjMatchBest( p, iVar, fCompl );
-        Delay = Abc_MaxWord( Delay, pMfan->D + pCell->Delays[k] );
+        Delay = Abc_MaxInt( Delay, pMfan->D + pCell->iDelays[k] );
     }
-    //if ( pM->fCompl ) Delay += p->InvDelay;
+    //if ( pM->fCompl ) Delay += p->InvDelayI;
     return Delay;
 }
 void Nf_ManResetMatches( Nf_Man_t * p, int Round )
 {
     Gia_Obj_t * pObj;
     Nf_Mat_t * pDc, * pAc, * pMfan, * pM[2]; 
-    word Arrival; int i, c;
+    int i, c, Arrival;
     // go through matches in the topo order
     Gia_ManForEachAnd( p->pGia, pObj, i )
     {
@@ -1877,7 +1872,7 @@ void Nf_ManResetMatches( Nf_Man_t * p, int Round )
                 pDc = Nf_ObjMatchD( p, i, c );
                 pAc = Nf_ObjMatchA( p, i, c );
                 pDc->F = pAc->F = 0;
-                pDc->D = pMfan->D + (c ? p->InvDelay : 0); 
+                pDc->D = pMfan->D + (c ? p->InvDelayI : 0); 
                 assert( pDc->fBest );
                 assert( !pAc->fBest );
                 assert( c==0 || pDc->fCompl );
@@ -1941,7 +1936,7 @@ void Nf_ManResetMatches( Nf_Man_t * p, int Round )
             // consider complemented match
             Arrival = pM[!c]->D;
             *pM[!c] = *pM[c];
-            pM[!c]->D += p->InvDelay;
+            pM[!c]->D += p->InvDelayI;
             pM[!c]->fCompl = 1;
             //if ( Nf_ObjMapRefNum(p, i, !c) )
             //    assert( Round || pM[!c]->D <= Arrival );
@@ -1954,8 +1949,9 @@ void Nf_ManComputeMappingEla( Nf_Man_t * p )
     Gia_Obj_t * pObj;
     Mio_Cell2_t * pCell;
     Nf_Mat_t Mb, * pMb = &Mb, * pM;
-    word AreaBef, AreaAft, Required, Gain = 0;
+    word AreaBef, AreaAft, Gain = 0;
     int i, c, iVar, Id, fCompl, k, * pCut;
+    int Required;
     Nf_ManSetOutputRequireds( p, 1 );
     Nf_ManResetMatches( p, p->Iter - p->pPars->nRounds );
     Gia_ManForEachAndReverse( p->pGia, pObj, i )
@@ -1963,7 +1959,7 @@ void Nf_ManComputeMappingEla( Nf_Man_t * p )
         if ( Gia_ObjIsBuf(pObj) )
         {
             if ( Nf_ObjMapRefNum(p, i, 1) )
-                Nf_ObjUpdateRequired( p, i, 0, Nf_ObjRequired(p, i, 1) - p->InvDelay );
+                Nf_ObjUpdateRequired( p, i, 0, Nf_ObjRequired(p, i, 1) - p->InvDelayI );
             Nf_ObjUpdateRequired( p, Gia_ObjFaninId0(pObj, i), Gia_ObjFaninC0(pObj), Nf_ObjRequired(p, i, 0) );
             continue;
         }
@@ -1988,10 +1984,10 @@ void Nf_ManComputeMappingEla( Nf_Man_t * p )
                 printf( "%4d (%d)  ", i, c );
                 printf( "%8s ->%8s  ",         Nf_ManCell(p, pM->Gate)->pName, Nf_ManCell(p, pMb->Gate)->pName );
                 printf( "%d -> %d  ",          Nf_ManCell(p, pM->Gate)->nFanins, Nf_ManCell(p, pMb->Gate)->nFanins );
-                printf( "D: %7.2f -> %7.2f  ", Nf_Wrd2Flt(pM->D), Nf_Wrd2Flt(pMb->D) );
-                printf( "R: %7.2f  ",          Required == NF_INFINITY ? 9999.99 : Nf_Wrd2Flt(Required) );
-                printf( "A: %7.2f -> %7.2f  ", Nf_Wrd2Flt(AreaBef), Nf_Wrd2Flt(AreaAft) );
-                printf( "G: %7.2f (%7.2f) ",   AreaBef >= AreaAft ? Nf_Wrd2Flt(AreaBef - AreaAft) : -Nf_Wrd2Flt(AreaAft - AreaBef), Nf_Wrd2Flt(Gain) );
+                printf( "D: %7.2f -> %7.2f  ", Scl_Flt2Int(pM->D), Scl_Flt2Int(pMb->D) );
+                printf( "R: %7.2f  ",          Required == SCL_INFINITY ? 9999.99 : Scl_Flt2Int(Required) );
+                printf( "A: %7.2f -> %7.2f  ", MIO_NUMINV * (ABC_INT64_T)AreaBef, MIO_NUMINV * (ABC_INT64_T)AreaAft );
+                printf( "G: %7.2f (%7.2f) ",   AreaBef >= AreaAft ? MIO_NUMINV * (ABC_INT64_T)(AreaBef - AreaAft) : -MIO_NUMINV * (ABC_INT64_T)(AreaAft - AreaBef), MIO_NUMINV * (ABC_INT64_T)(Gain) );
                 printf( "\n" );
             }
             // set best match
@@ -2006,13 +2002,13 @@ void Nf_ManComputeMappingEla( Nf_Man_t * p )
             Nf_CutForEachVarCompl( pCut, pMb->Cfg, iVar, fCompl, k )
             {
                 pM = Nf_ObjMatchBest( p, iVar, fCompl );
-                assert( pM->D <= Required - pCell->Delays[k] );
-                Nf_ObjUpdateRequired( p, iVar, fCompl, Required - pCell->Delays[k] );
+                assert( pM->D <= Required - pCell->iDelays[k] );
+                Nf_ObjUpdateRequired( p, iVar, fCompl, Required - pCell->iDelays[k] );
                 if ( pM->fCompl )
                 {
                     pM = Nf_ObjMatchBest( p, iVar, !fCompl );
-                    assert( pM->D <= Required - pCell->Delays[k] - p->InvDelay );
-                    Nf_ObjUpdateRequired( p, iVar, !fCompl, Required - pCell->Delays[k] - p->InvDelay );
+                    assert( pM->D <= Required - pCell->iDelays[k] - p->InvDelayI );
+                    Nf_ObjUpdateRequired( p, iVar, !fCompl, Required - pCell->iDelays[k] - p->InvDelayI );
                 }
             }
         }
@@ -2021,7 +2017,7 @@ void Nf_ManComputeMappingEla( Nf_Man_t * p )
         if ( Nf_ObjMapRefNum(p, Id, 1) )
         {
             Required = Nf_ObjRequired( p, i, 1 );
-            Nf_ObjUpdateRequired( p, Id, 0, Required - p->InvDelay );
+            Nf_ObjUpdateRequired( p, Id, 0, Required - p->InvDelayI );
         }
 }
 
@@ -2172,7 +2168,7 @@ void Nf_ManSetDefaultPars( Jf_Par_t * pPars )
     pPars->fVeryVerbose =  0;
     pPars->nLutSizeMax  =  NF_LEAF_MAX;
     pPars->nCutNumMax   =  NF_CUT_MAX;
-    pPars->WordMapDelayTarget = 0;
+    pPars->MapDelayTarget = 0;
 }
 Gia_Man_t * Nf_ManPerformMapping( Gia_Man_t * pGia, Jf_Par_t * pPars )
 {
@@ -2200,7 +2196,8 @@ Gia_Man_t * Nf_ManPerformMapping( Gia_Man_t * pGia, Jf_Par_t * pPars )
     else
     {
         Gia_ManForEachCiId( p->pGia, Id, i )
-            Nf_ObjPrepareCi( p, Id, Nf_Flt2Wrd(p->pGia->vInArrs ? Abc_MaxFloat(0.0, Vec_FltEntry(p->pGia->vInArrs, i)) : 0.0) );
+//            Nf_ObjPrepareCi( p, Id, Scl_Flt2Int(p->pGia->vInArrs ? Abc_MaxFloat(0.0, Vec_FltEntry(p->pGia->vInArrs, i)) : 0.0) );
+            Nf_ObjPrepareCi( p, Id, Scl_Flt2Int(p->pGia->vInArrs ? Vec_FltEntry(p->pGia->vInArrs, i) : 0.0) );
     }
     for ( p->Iter = 0; p->Iter < p->pPars->nRounds; p->Iter++ )
     {

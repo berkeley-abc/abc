@@ -635,9 +635,9 @@ static inline int Mio_CompareTwo2( Mio_Cell2_t * pCell1, Mio_Cell2_t * pCell2 )
     if ( pCell1->AreaW < pCell2->AreaW )
         return 0;
     // compare delays
-    if ( pCell1->DelayAve > pCell2->DelayAve )
+    if ( pCell1->iDelayAve > pCell2->iDelayAve )
         return 1;
-    if ( pCell1->DelayAve < pCell2->DelayAve )
+    if ( pCell1->iDelayAve < pCell2->iDelayAve )
         return 0;
     // compare names
     Comp = strcmp( pCell1->pName, pCell2->pName );
@@ -651,21 +651,21 @@ static inline int Mio_CompareTwo2( Mio_Cell2_t * pCell1, Mio_Cell2_t * pCell2 )
 static inline void Mio_CollectCopy2( Mio_Cell2_t * pCell, Mio_Gate_t * pGate )
 {
     Mio_Pin_t * pPin;  int k;
-    pCell->pName    = pGate->pName;
-    pCell->vExpr    = pGate->vExpr;
-    pCell->uTruth   = pGate->uTruth;
-    pCell->AreaF    = pGate->dArea;
-    pCell->AreaW    = (word)(MIO_NUM * pGate->dArea);
-    pCell->nFanins  = pGate->nInputs;
-    pCell->pMioGate = pGate;
-    pCell->DelayAve = 0;
+    pCell->pName     = pGate->pName;
+    pCell->vExpr     = pGate->vExpr;
+    pCell->uTruth    = pGate->uTruth;
+    pCell->AreaF     = pGate->dArea;
+    pCell->AreaW     = (word)(MIO_NUM * pGate->dArea);
+    pCell->nFanins   = pGate->nInputs;
+    pCell->pMioGate  = pGate;
+    pCell->iDelayAve = 0;
     for ( k = 0, pPin = pGate->pPins; pPin; pPin = pPin->pNext, k++ )
     {
-        pCell->Delays[k] = (word)(MIO_NUM/2 * pPin->dDelayBlockRise + MIO_NUM/2 * pPin->dDelayBlockFall);
-        pCell->DelayAve += pCell->Delays[k];
+        pCell->iDelays[k] = (int)(MIO_NUM/2 * pPin->dDelayBlockRise + MIO_NUM/2 * pPin->dDelayBlockFall);
+        pCell->iDelayAve += pCell->iDelays[k];
     }
     if ( pCell->nFanins )
-        pCell->DelayAve /= pCell->nFanins;
+        pCell->iDelayAve /= pCell->nFanins;
 }
 
 Mio_Cell2_t * Mio_CollectRootsNew2( Mio_Library_t * pLib, int nInputs, int * pnGates, int fVerbose )
@@ -758,7 +758,7 @@ Mio_Cell2_t * Mio_CollectRootsNew2( Mio_Library_t * pLib, int nInputs, int * pnG
                 printf( "None\n" );
             else
                 printf( "%-20s   In = %d   N = %3d   A = %12.6f   D = %12.6f\n", 
-                    pCell->pName, pCell->nFanins, pCounts[i], pCell->AreaF, MIO_NUMINV*(unsigned)pCell->DelayAve );
+                    pCell->pName, pCell->nFanins, pCounts[i], pCell->AreaF, MIO_NUMINV*pCell->iDelayAve );
         }
         ABC_FREE( pCounts );
     }

@@ -65,8 +65,8 @@ struct Mio_Cell2_t_
     float           AreaF;          // area
     word            AreaW;          // area
     word            uTruth;         // truth table
-    word            DelayAve;       // average delay
-    word            Delays[6];      // delay
+    int             iDelayAve;      // average delay
+    int             iDelays[6];     // delay
     void *          pMioGate;       // gate pointer
 };
 

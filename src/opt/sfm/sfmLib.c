@@ -290,14 +290,14 @@ void Sfm_LibTruth8Two( Mio_Cell2_t * pCellBot, Mio_Cell2_t * pCellTop, int InTop
 ***********************************************************************/
 void Sfm_LibCellProfile( Mio_Cell2_t * pCellBot, Mio_Cell2_t * pCellTop, int InTop, int nFanins, int * Perm, int * pProf )
 {
-    int i, DelayAdd = (int)(pCellTop ? pCellTop->Delays[InTop] : 0);
+    int i, DelayAdd = pCellTop ? pCellTop->iDelays[InTop] : 0;
     for ( i = 0; i < nFanins; i++ )
         if ( Perm[i] < (int)pCellBot->nFanins )
-            pProf[i] = (int)pCellBot->Delays[Perm[i]] + DelayAdd;
+            pProf[i] = pCellBot->iDelays[Perm[i]] + DelayAdd;
         else if ( Perm[i] < (int)pCellBot->nFanins + InTop )
-            pProf[i] = (int)pCellTop->Delays[Perm[i] - (int)pCellBot->nFanins];
+            pProf[i] = pCellTop->iDelays[Perm[i] - (int)pCellBot->nFanins];
         else // if ( Perm[i] >= (int)pCellBot->nFanins + InTop )
-            pProf[i] = (int)pCellTop->Delays[Perm[i] - (int)pCellBot->nFanins + 1];
+            pProf[i] = pCellTop->iDelays[Perm[i] - (int)pCellBot->nFanins + 1];
 }
 static inline int Sfm_LibNewIsContained( Sfm_Fun_t * pObj, int * pProf, int Area, int * pProfNew, int nFanins )
 {
