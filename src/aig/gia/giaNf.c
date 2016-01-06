@@ -992,7 +992,7 @@ void Nf_ManPrintStats( Nf_Man_t * p, char * pTitle )
     if ( !p->pPars->fVerbose )
         return;
     printf( "%s :  ", pTitle );
-    printf( "Delay =%8.2f  ",  Scl_Flt2Int(p->pPars->MapDelay) );
+    printf( "Delay =%8.2f  ",  Scl_Int2Flt(p->pPars->MapDelay) );
     printf( "Area =%12.2f  ",  p->pPars->MapAreaF );
     printf( "Gate =%6d  ",    (int)p->pPars->Area );
     printf( "Inv =%6d  ",     (int)p->nInvs );
@@ -1072,7 +1072,7 @@ void Nf_ManCutMatchPrint( Nf_Man_t * p, int iObj, char * pStr, Nf_Mat_t * pM )
     }
     pCell = Nf_ManCell( p, pM->Gate );
     pCut = Nf_CutFromHandle( Nf_ObjCutSet(p, iObj), pM->CutH );
-    printf( "D =%6.2f  ", Scl_Flt2Int(pM->D) );
+    printf( "D =%6.2f  ", Scl_Int2Flt(pM->D) );
     printf( "A =%6.2f  ", pM->F );
     printf( "C = %d ", pM->fCompl );
 //    printf( "B = %d ", pM->fBest );
@@ -1087,7 +1087,7 @@ void Nf_ManCutMatchPrint( Nf_Man_t * p, int iObj, char * pStr, Nf_Mat_t * pM )
     printf( "%d  ", pCell->nFanins );
     printf( "{" );
     for ( i = 0; i < (int)pCell->nFanins; i++ )
-        printf( "%6.2f ", Scl_Flt2Int(pCell->iDelays[i]) );
+        printf( "%6.2f ", Scl_Int2Flt(pCell->iDelays[i]) );
     for ( ; i < 6; i++ )
         printf( "       " );
     printf( " } " );
@@ -1283,7 +1283,7 @@ void Nf_ManCutMatch( Nf_Man_t * p, int iObj )
 /*
     if ( 461 == iObj && p->Iter == 0 )
     {
-        printf( "\nObj %6d (%.2f %.2f):\n", iObj, Scl_Flt2Int(Required[0]), Scl_Flt2Int(Required[1]) );
+        printf( "\nObj %6d (%.2f %.2f):\n", iObj, Scl_Int2Flt(Required[0]), Scl_Int2Flt(Required[1]) );
         Nf_ManCutMatchPrint( p, iObj, "Dp", &pBest->M[0][0] );
         Nf_ManCutMatchPrint( p, iObj, "Dn", &pBest->M[1][0] );
         Nf_ManCutMatchPrint( p, iObj, "Ap", &pBest->M[0][1] );
@@ -1373,14 +1373,14 @@ void Nf_ManCutMatch( Nf_Man_t * p, int iObj )
     if ( p->Iter && (pDp->D > Required[0] || pDn->D > Required[1]) )
     {
         printf( "%5d : ", iObj );
-        printf( "Dp = %6.2f  ", Scl_Flt2Int(pDp->D) );
-        printf( "Dn = %6.2f  ", Scl_Flt2Int(pDn->D) );
+        printf( "Dp = %6.2f  ", Scl_Int2Flt(pDp->D) );
+        printf( "Dn = %6.2f  ", Scl_Int2Flt(pDn->D) );
         printf( "  " );
-        printf( "Ap = %6.2f  ", Scl_Flt2Int(pAp->D) );
-        printf( "An = %6.2f  ", Scl_Flt2Int(pAn->D) );
+        printf( "Ap = %6.2f  ", Scl_Int2Flt(pAp->D) );
+        printf( "An = %6.2f  ", Scl_Int2Flt(pAn->D) );
         printf( "  " );
-        printf( "Rp = %6.2f  ", Scl_Flt2Int(Required[0]) );
-        printf( "Rn = %6.2f  ", Scl_Flt2Int(Required[1]) );
+        printf( "Rp = %6.2f  ", Scl_Int2Flt(Required[0]) );
+        printf( "Rn = %6.2f  ", Scl_Int2Flt(Required[1]) );
         printf( "\n" );
     }
 */
@@ -1434,7 +1434,7 @@ void Nf_ManSetOutputRequireds( Nf_Man_t * p, int fPropCompl )
         p->pPars->MapDelay = Abc_MaxInt( p->pPars->MapDelay, Required );
     }
     if ( p->Iter && MapDelayOld < p->pPars->MapDelay && p->pGia->vOutReqs == NULL )
-        printf( "******** Critical delay violation %.2f -> %.2f ********\n", Scl_Flt2Int(MapDelayOld), Scl_Flt2Int(p->pPars->MapDelay) ); 
+        printf( "******** Critical delay violation %.2f -> %.2f ********\n", Scl_Int2Flt(MapDelayOld), Scl_Int2Flt(p->pPars->MapDelay) ); 
     p->pPars->MapDelay = Abc_MaxInt( p->pPars->MapDelay, MapDelayOld );
     // check delay target
     if ( p->pPars->MapDelayTarget == 0 && p->pPars->nRelaxRatio )
@@ -1444,7 +1444,7 @@ void Nf_ManSetOutputRequireds( Nf_Man_t * p, int fPropCompl )
         if ( p->pPars->MapDelay < p->pPars->MapDelayTarget )
             p->pPars->MapDelay = p->pPars->MapDelayTarget;
         else if ( p->pPars->nRelaxRatio == 0 )
-            Abc_Print( 0, "Relaxing user-specified delay target from %.2f to %.2f.\n", Scl_Flt2Int(p->pPars->MapDelayTarget), Scl_Flt2Int(p->pPars->MapDelay) );
+            Abc_Print( 0, "Relaxing user-specified delay target from %.2f to %.2f.\n", Scl_Int2Flt(p->pPars->MapDelayTarget), Scl_Int2Flt(p->pPars->MapDelay) );
     }
     //assert( p->pPars->MapDelayTarget == 0 );
     // set required times
@@ -1462,8 +1462,9 @@ void Nf_ManSetOutputRequireds( Nf_Man_t * p, int fPropCompl )
         }
         else
         {
-            if ( p->pGia->vOutReqs && Vec_FltEntry(p->pGia->vOutReqs, i) > 0 && Required <= Scl_Flt2Int(Vec_FltEntry(p->pGia->vOutReqs, i)) )
-                Required = Abc_MinInt( 2*Required, Scl_Flt2Int(Vec_FltEntry(p->pGia->vOutReqs, i)) );
+            int NewRequired = Scl_Flt2Int(Vec_FltEntry(p->pGia->vOutReqs, i));
+            if ( p->pGia->vOutReqs && NewRequired > 0 && Required <= NewRequired )
+                Required = Abc_MinInt( 2*Required, NewRequired );
         }
         // if external required cannot be achieved, set the earliest possible arrival time
 //        else if ( p->pGia->vOutReqs && Vec_FltEntry(p->pGia->vOutReqs, i) > 0 && Required > Vec_FltEntry(p->pGia->vOutReqs, i) )
@@ -1505,11 +1506,11 @@ void Nf_ManPrintMatches( Nf_Man_t * p )
         Nf_Mat_t * pAn = Nf_ObjMatchA( p, i, 1 );
 
         printf( "%5d : ", i );
-        printf( "Dp = %6.2f  ", Scl_Flt2Int(pDp->D) );
-        printf( "Dn = %6.2f  ", Scl_Flt2Int(pDn->D) );
+        printf( "Dp = %6.2f  ", Scl_Int2Flt(pDp->D) );
+        printf( "Dn = %6.2f  ", Scl_Int2Flt(pDn->D) );
         printf( "  " );
-        printf( "Ap = %6.2f  ", Scl_Flt2Int(pAp->D) );
-        printf( "An = %6.2f  ", Scl_Flt2Int(pAn->D) );
+        printf( "Ap = %6.2f  ", Scl_Int2Flt(pAp->D) );
+        printf( "An = %6.2f  ", Scl_Int2Flt(pAn->D) );
         printf( "  " );
         printf( "Dp = %8s ", Nf_ManCell(p, pDp->Gate)->pName );
         printf( "Dn = %8s ", Nf_ManCell(p, pDn->Gate)->pName );
@@ -1984,8 +1985,8 @@ void Nf_ManComputeMappingEla( Nf_Man_t * p )
                 printf( "%4d (%d)  ", i, c );
                 printf( "%8s ->%8s  ",         Nf_ManCell(p, pM->Gate)->pName, Nf_ManCell(p, pMb->Gate)->pName );
                 printf( "%d -> %d  ",          Nf_ManCell(p, pM->Gate)->nFanins, Nf_ManCell(p, pMb->Gate)->nFanins );
-                printf( "D: %7.2f -> %7.2f  ", Scl_Flt2Int(pM->D), Scl_Flt2Int(pMb->D) );
-                printf( "R: %7.2f  ",          Required == SCL_INFINITY ? 9999.99 : Scl_Flt2Int(Required) );
+                printf( "D: %7.2f -> %7.2f  ", Scl_Int2Flt(pM->D), Scl_Int2Flt(pMb->D) );
+                printf( "R: %7.2f  ",          Required == SCL_INFINITY ? 9999.99 : Scl_Int2Flt(Required) );
                 printf( "A: %7.2f -> %7.2f  ", MIO_NUMINV * (ABC_INT64_T)AreaBef, MIO_NUMINV * (ABC_INT64_T)AreaAft );
                 printf( "G: %7.2f (%7.2f) ",   AreaBef >= AreaAft ? MIO_NUMINV * (ABC_INT64_T)(AreaBef - AreaAft) : -MIO_NUMINV * (ABC_INT64_T)(AreaAft - AreaBef), MIO_NUMINV * (ABC_INT64_T)(Gain) );
                 printf( "\n" );
