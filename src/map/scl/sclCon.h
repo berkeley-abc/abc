@@ -212,7 +212,7 @@ static inline void Scl_ConWrite( Scl_Con_t * p, char * pFileName )
     if ( p->tOutReqDef  != 0 )  fprintf( pFile, ".default_%s %.2f\n", SCL_OUTPUT_REQ,  Scl_Int2Flt(p->tOutReqDef) );
     if ( p->tOutLoadDef != 0 )  fprintf( pFile, ".default_%s %.2f\n", SCL_OUTPUT_LOAD, Scl_Int2Flt(p->tOutLoadDef) );
 
-    Vec_PtrForEachEntry(char *, &p->vInCells, pName, i) if ( pName )                   fprintf( pFile, ".%s %s %s\n",   SCL_INPUT_CELL,  Abc_NamStr(p->pNamI, i+1), pName );
+    Vec_PtrForEachEntry(char *, &p->vInCells, pName, i) if ( pName && (!p->pInCellDef || strcmp(pName,p->pInCellDef)) )  fprintf( pFile, ".%s %s %s\n",   SCL_INPUT_CELL,  Abc_NamStr(p->pNamI, i+1), pName );
     Vec_IntForEachEntry( &p->vInArrs, Value, i )        if ( Value != p->tInArrDef )   fprintf( pFile, ".%s %s %.2f\n", SCL_INPUT_ARR,   Abc_NamStr(p->pNamI, i+1), Scl_Int2Flt(Value) );
     Vec_IntForEachEntry( &p->vInSlews, Value, i )       if ( Value != p->tInSlewDef )  fprintf( pFile, ".%s %s %.2f\n", SCL_INPUT_SLEW,  Abc_NamStr(p->pNamI, i+1), Scl_Int2Flt(Value) );
     Vec_IntForEachEntry( &p->vInLoads, Value, i )       if ( Value != p->tInLoadDef )  fprintf( pFile, ".%s %s %.2f\n", SCL_INPUT_LOAD,  Abc_NamStr(p->pNamI, i+1), Scl_Int2Flt(Value) );

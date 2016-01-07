@@ -1850,7 +1850,13 @@ int Scl_CommandReadConstr( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
     fclose( pFile );
-    Abc_SclReadTimingConstr( pAbc, pFileName, fVerbose );
+//    Abc_SclReadTimingConstr( pAbc, pFileName, fVerbose );
+
+    if ( pNtk == NULL )
+    {
+        fprintf( pAbc->Err, "There is no current network.\n" );
+        return 1;
+    }
 
     // input constraint manager
     if ( pNtk )
