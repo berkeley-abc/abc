@@ -30199,9 +30199,10 @@ int Abc_CommandAbc9Miter( Abc_Frame_t * pAbc, int argc, char ** argv )
     int fDualOut = 0;
     int fSeq     = 0;
     int fTrans   = 0;
+    int fTransX  = 0;
     int fVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "Idstvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Idstxvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -30224,6 +30225,9 @@ int Abc_CommandAbc9Miter( Abc_Frame_t * pAbc, int argc, char ** argv )
             break;
         case 't':
             fTrans ^= 1;
+            break;
+        case 'x':
+            fTransX ^= 1;
             break;
         case 'v':
             fVerbose ^= 1;
@@ -30251,6 +30255,24 @@ int Abc_CommandAbc9Miter( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( 1, "The miter (current AIG) is transformed by XORing POs pair-wise.\n" );
         return 0;
     }
+    if ( fTransX )
+    {
+        if ( (Gia_ManPoNum(pAbc->pGia) & 1) == 1 )
+        {
+            Abc_Print( -1, "Abc_CommandAbc9Miter(): The number of outputs should be even.\n" );
+            return 0;
+        }
+        if ( pAbc->pGia == NULL )
+        {
+            Abc_Print( -1, "Abc_CommandAbc9Miter(): There is no AIG.\n" );
+            return 1;
+        }
+        pAux = Gia_ManTransformMiter2( pAbc->pGia );
+        Abc_FrameUpdateGia( pAbc, pAux );
+        Abc_Print( 1, "The miter (current AIG) is transformed by XORing POs of two word-level outputs.\n" );
+        return 0;
+    }
+
 
     pArgvNew = argv + globalUtilOptind;
     nArgcNew = argc - globalUtilOptind;
@@ -30288,12 +30310,13 @@ int Abc_CommandAbc9Miter( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &miter [-I num] [-dstvh] <file>\n" );
+    Abc_Print( -2, "usage: &miter [-I num] [-dstxvh] <file>\n" );
     Abc_Print( -2, "\t         creates miter of two designs (current AIG vs. <file>)\n" );
     Abc_Print( -2, "\t-I num : the number of last PIs to replicate [default = %d]\n", nInsDup );
     Abc_Print( -2, "\t-d     : toggle creating dual-output miter [default = %s]\n", fDualOut? "yes": "no" );
     Abc_Print( -2, "\t-s     : toggle creating sequential miter [default = %s]\n", fSeq? "yes": "no" );
     Abc_Print( -2, "\t-t     : toggle XORing pair-wise POs of the miter [default = %s]\n", fTrans? "yes": "no" );
+    Abc_Print( -2, "\t-x     : toggle XORing POs of two word-level outputs [default = %s]\n", fTransX? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     Abc_Print( -2, "\t<file> : AIGER file with the design to miter\n");
