@@ -52,6 +52,7 @@ struct Sfm_Mit_t_
 Sfm_Mit_t *  Sfm_MitStart( Mio_Library_t * pLib, SC_Lib * pScl, Scl_Con_t * pExt, Abc_Ntk_t * pNtk, int DeltaCrit ) { return NULL; }
 void         Sfm_MitStop( Sfm_Mit_t * p )                                                           {}
 int          Sfm_MitReadNtkDelay( Sfm_Mit_t * p )                                                   { return 0;}
+int          Sfm_MitReadNtkMinSlack( Sfm_Mit_t * p )                                                { return 0;}
 int          Sfm_MitReadObjDelay( Sfm_Mit_t * p, int iObj )                                         { return 0;}
 void         Sfm_MitTransferLoad( Sfm_Mit_t * p, Abc_Obj_t * pNew, Abc_Obj_t * pOld )               {};
 void         Sfm_MitTimingGrow( Sfm_Mit_t * p )                                                     {};

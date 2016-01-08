@@ -230,6 +230,7 @@ extern int          Sfm_TimEvalRemapping( Sfm_Tim_t * p, Vec_Int_t * vFanins, Ve
 extern Sfm_Mit_t *  Sfm_MitStart( Mio_Library_t * pLib, SC_Lib * pScl, Scl_Con_t * pExt, Abc_Ntk_t * pNtk, int DeltaCrit );
 extern void         Sfm_MitStop( Sfm_Mit_t * p );
 extern int          Sfm_MitReadNtkDelay( Sfm_Mit_t * p );
+extern int          Sfm_MitReadNtkMinSlack( Sfm_Mit_t * p );
 extern int          Sfm_MitReadObjDelay( Sfm_Mit_t * p, int iObj );
 extern void         Sfm_MitTransferLoad( Sfm_Mit_t * p, Abc_Obj_t * pNew, Abc_Obj_t * pOld );
 extern void         Sfm_MitTimingGrow( Sfm_Mit_t * p );

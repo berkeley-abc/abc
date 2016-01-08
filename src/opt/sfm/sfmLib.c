@@ -537,7 +537,7 @@ void Sfm_LibPrintObj( Sfm_Lib_t * p, Sfm_Fun_t * pObj )
     Mio_Cell2_t * pCellB = p->pCells + (int)pObj->pFansB[0];
     Mio_Cell2_t * pCellT = p->pCells + (int)pObj->pFansT[0];
     int i, nFanins = pCellB->nFanins + (pCellT == p->pCells ? 0 : pCellT->nFanins - 1);
-    printf( "F = %d  A =%6.2f  ", nFanins, MIO_NUMINV*pObj->Area );
+    printf( "F = %d  A =%6.2f  ", nFanins, Scl_Int2Flt(pObj->Area) );
     if ( pCellT == p->pCells )
         Sfm_LibPrintGate( pCellB, pObj->pFansB + 1, NULL, NULL );
     else
@@ -548,7 +548,7 @@ void Sfm_LibPrintObj( Sfm_Lib_t * p, Sfm_Fun_t * pObj )
         int Offset  = Vec_IntEntry( &p->vProfs, Sfm_LibFunId(p, pObj) );
         int * pProf = Vec_IntEntryP( &p->vStore, Offset );
         for ( i = 0; i < nFanins; i++ )
-            printf( "%6.2f ", MIO_NUMINV*pProf[i] );
+            printf( "%6.2f ", Scl_Int2Flt(pProf[i]) );
     }
 }
 void Sfm_LibPrint( Sfm_Lib_t * p )

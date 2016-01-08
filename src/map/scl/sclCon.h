@@ -60,11 +60,10 @@ struct Scl_Con_t_
 #define SCL_DEF_DIRECTIVE(ITEM) ".default_"ITEM
 
 #define SCL_NUM          1000
-#define SCL_NUMINV      0.001
 #define SCL_INFINITY    (0x3FFFFFFF)
 
-static inline int       Scl_Flt2Int( float w )   { return SCL_NUM*w;    }
-static inline float     Scl_Int2Flt( int i )     { return SCL_NUMINV*i; }
+static inline int       Scl_Flt2Int( float w )   { return SCL_NUM*w;        }
+static inline float     Scl_Int2Flt( int i )     { return (float)i/SCL_NUM; }
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///

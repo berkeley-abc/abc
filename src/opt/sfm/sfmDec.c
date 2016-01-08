@@ -149,6 +149,7 @@ static inline word *      Sfm_DecDivPats( Sfm_Dec_t * p, int d, int c )      { r
 
 static inline int         Sfm_ManReadObjDelay( Sfm_Dec_t * p, int Id )       { return p->pMit ? Sfm_MitReadObjDelay(p->pMit, Id) : Sfm_TimReadObjDelay(p->pTim, Id); }
 static inline int         Sfm_ManReadNtkDelay( Sfm_Dec_t * p )               { return p->pMit ? Sfm_MitReadNtkDelay(p->pMit)     : Sfm_TimReadNtkDelay(p->pTim);     }
+static inline int         Sfm_ManReadNtkMinSlack( Sfm_Dec_t * p )            { return p->pMit ? Sfm_MitReadNtkMinSlack(p->pMit)  : 0;                                }
 
 
 
@@ -211,9 +212,9 @@ Sfm_Dec_t * Sfm_DecStart( Sfm_Par_t * pPars, Mio_Library_t * pLib, Abc_Ntk_t * p
     p->pNtk      = pNtk;
     p->pSat      = sat_solver_new();
     p->pGateInv  = Mio_LibraryReadInv( pLib );
-    p->AreaInv   = MIO_NUM*Mio_GateReadArea( p->pGateInv );
-    p->DelayInv  = MIO_NUM*Mio_GateReadDelayMax( p->pGateInv );
-    p->DeltaCrit = pPars->DeltaCrit ? MIO_NUM*pPars->DeltaCrit : 5 * (int)(MIO_NUM*Mio_LibraryReadDelayInvMax(pLib)) / 2;
+    p->AreaInv   = Scl_Flt2Int(Mio_GateReadArea(p->pGateInv));
+    p->DelayInv  = Scl_Flt2Int(Mio_GateReadDelayMax(p->pGateInv));
+    p->DeltaCrit = pPars->DeltaCrit ? Scl_Flt2Int((float)pPars->DeltaCrit) : 5 * Scl_Flt2Int(Mio_LibraryReadDelayInvMax(pLib)) / 2;
 p->timeLib = Abc_Clock();
     p->pLib = Sfm_LibPrepare( pPars->nVarMax, 1, !pPars->fArea, pPars->fVerbose, pPars->fLibVerbose );
 p->timeLib = Abc_Clock() - p->timeLib;
@@ -676,13 +677,13 @@ int Sfm_DecMffcArea( Abc_Ntk_t * pNtk, Vec_Int_t * vMffc )
     Abc_Obj_t * pObj; 
     int i, nAreaMffc = 0;
     Abc_NtkForEachObjVec( vMffc, pNtk, pObj, i )
-        nAreaMffc += (int)(MIO_NUM * Mio_GateReadArea((Mio_Gate_t *)pObj->pData));
+        nAreaMffc += Scl_Flt2Int(Mio_GateReadArea((Mio_Gate_t *)pObj->pData));
     return nAreaMffc;
 }
 int Sfm_MffcDeref_rec( Abc_Obj_t * pObj )
 {
     Abc_Obj_t * pFanin;
-    int i, Area = (int)(MIO_NUM*Mio_GateReadArea((Mio_Gate_t *)pObj->pData));
+    int i, Area = Scl_Flt2Int(Mio_GateReadArea((Mio_Gate_t *)pObj->pData));
     Abc_ObjForEachFanin( pObj, pFanin, i )
     {
         assert( pFanin->vFanouts.nSize > 0 );
@@ -694,7 +695,7 @@ int Sfm_MffcDeref_rec( Abc_Obj_t * pObj )
 int Sfm_MffcRef_rec( Abc_Obj_t * pObj, Vec_Int_t * vMffc )
 {
     Abc_Obj_t * pFanin;
-    int i, Area = (int)(MIO_NUM*Mio_GateReadArea((Mio_Gate_t *)pObj->pData));
+    int i, Area = Scl_Flt2Int(Mio_GateReadArea((Mio_Gate_t *)pObj->pData));
     Abc_ObjForEachFanin( pObj, pFanin, i )
     {
         if ( pFanin->vFanouts.nSize++ == 0 && !Abc_ObjIsCi(pFanin) )
@@ -753,7 +754,7 @@ int Sfm_DecComputeFlipInvGain( Sfm_Dec_t * p, Abc_Obj_t * pPivot, int * pfNeedIn
             continue;
         }
         pGateNew = (Mio_Gate_t *)Vec_PtrEntry( &p->vGateHands, Handle );
-        Gain += MIO_NUM*Mio_GateReadArea(pGate) - MIO_NUM*Mio_GateReadArea(pGateNew);
+        Gain += Scl_Flt2Int(Mio_GateReadArea(pGate)) - Scl_Flt2Int(Mio_GateReadArea(pGateNew));
     }
     if ( fNeedInv )
         Gain -= p->AreaInv;
@@ -816,7 +817,7 @@ int Sfm_DecPeformDec_rec( Sfm_Dec_t * p, word * pTruth, int * pSupp, int * pAssu
     if ( p->pPars->fVeryVerbose )
     {
         printf( "\nObject %d\n", p->iTarget );
-        printf( "Divs = %d.  Nodes = %d.  Mffc = %d.  Mffc area = %.2f.    ", p->nDivs, Vec_IntSize(&p->vObjGates), p->nMffc, MIO_NUMINV*p->AreaMffc );
+        printf( "Divs = %d.  Nodes = %d.  Mffc = %d.  Mffc area = %.2f.    ", p->nDivs, Vec_IntSize(&p->vObjGates), p->nMffc, Scl_Int2Flt(p->AreaMffc) );
         printf( "Pat0 = %d.  Pat1 = %d.    ", p->nPats[0], p->nPats[1] );
         printf( "\n" );
         if ( nAssump )
@@ -1099,7 +1100,7 @@ int Sfm_DecPeformDec2( Sfm_Dec_t * p, Abc_Obj_t * pObj )
     int i, RetValue, Prev = 0, iBest = -1, AreaThis, AreaNew;//, AreaNewInv;
     int GainThis, GainBest = -1, iLibObj, iLibObjBest = -1; 
     assert( p->pPars->fArea == 1 );
-//printf( "AreaGainInv = %8.2f  ", MIO_NUMINV*AreaGainInv );
+//printf( "AreaGainInv = %8.2f  ", Scl_Int2Flt(AreaGainInv) );
     //Sfm_DecPrint( p, NULL );
     if ( fVeryVerbose )
         printf( "\nNode %4d : MFFC %2d\n", p->iTarget, p->nMffc );
@@ -1149,7 +1150,7 @@ int Sfm_DecPeformDec2( Sfm_Dec_t * p, Abc_Obj_t * pObj )
 
         if ( AreaNew > 0 && AreaNewInv > 0 && AreaNew - AreaNewInv + AreaGainInv > 0 )
             printf( "AreaNew = %8.2f   AreaNewInv = %8.2f   Gain = %8.2f   Total = %8.2f\n", 
-                MIO_NUMINV*AreaNew, MIO_NUMINV*AreaNewInv, MIO_NUMINV*(AreaNew - AreaNewInv), MIO_NUMINV*(AreaNew - AreaNewInv + AreaGainInv) );
+                Scl_Int2Flt(AreaNew), Scl_Int2Flt(AreaNewInv), Scl_Int2Flt(AreaNew - AreaNewInv), Scl_Int2Flt(AreaNew - AreaNewInv + AreaGainInv) );
         else
             printf( "\n" );
 */
@@ -1488,14 +1489,14 @@ void Sfm_DecMarkMffc( Abc_Obj_t * pPivot, int nLevelMin, int nMffcMax, int fVery
                         Vec_IntPushUnique( vInMffc, Abc_ObjId(pFanin3) );
 
 /*
-        printf( "Node %d: (%.2f)  ", pPivot->Id, MIO_NUMINV*Sfm_ManReadObjDelay(p, Abc_ObjId(pPivot))  );
+        printf( "Node %d: (%.2f)  ", pPivot->Id, Scl_Int2Flt(Sfm_ManReadObjDelay(p, Abc_ObjId(pPivot)))  );
         Abc_ObjForEachFanin( pPivot, pFanin, i )
-            printf( "%d: %.2f  ", Abc_ObjLevel(pFanin), MIO_NUMINV*Sfm_ManReadObjDelay(p, Abc_ObjId(pFanin)) );
+            printf( "%d: %.2f  ", Abc_ObjLevel(pFanin), Scl_Int2Flt(Sfm_ManReadObjDelay(p, Abc_ObjId(pFanin))) );
         printf( "\n" );
 
         printf( "Node %d: ", pPivot->Id );
         Abc_NtkForEachObjVec( vInMffc, pPivot->pNtk, pObj, i )
-            printf( "%d: %.2f  ", Abc_ObjLevel(pObj), MIO_NUMINV*Sfm_ManReadObjDelay(p, Abc_ObjId(pObj)) );
+            printf( "%d: %.2f  ", Abc_ObjLevel(pObj), Scl_Int2Flt(Sfm_ManReadObjDelay(p, Abc_ObjId(pObj))) );
         printf( "\n" );
 */
     }
@@ -1588,7 +1589,7 @@ printf( "\n\nTarget %d\n", Abc_ObjId(pPivot) );
     Sfm_DecMarkMffc( pPivot, nLevelMin, pPars->nMffcMax, fVeryVerbose, vMffc, vInMffc, pTim, pMit );
     assert( Vec_IntSize(vMffc) <= pPars->nMffcMax );
 if ( fVeryVerbose )
-printf( "Mffc size = %d. Mffc area = %.2f. InMffc size = %d.\n", Vec_IntSize(vMffc), Sfm_DecMffcArea(pNtk, vMffc)*MIO_NUMINV, Vec_IntSize(vInMffc) );
+printf( "Mffc size = %d. Mffc area = %.2f. InMffc size = %d.\n", Vec_IntSize(vMffc), Scl_Int2Flt(Sfm_DecMffcArea(pNtk, vMffc)), Vec_IntSize(vInMffc) );
     // collect TFI(TFO)
     Abc_NtkForEachObjVec( vRoots, pNtk, pObj, i )
         Abc_NtkDfsOne_rec( pObj, vTfi, nLevelMin, SFM_MASK_INPUT );
@@ -2072,10 +2073,10 @@ p->timeTime += Abc_Clock() - clk;
             assert( p->pMit || p->DelayMin == 0 || p->DelayMin == Sfm_ManReadObjDelay(p, Abc_ObjId(pObjNew)) );
             // report
             if ( pPars->fDelayVerbose )
-                printf( "Node %5d  %5d :  I =%3d.  Cand = %5d (%6.2f %%)   Old =%8.2f.  New =%8.2f.  Final =%8.2f\n", 
+                printf( "Node %5d  %5d :  I =%3d.  Cand = %5d (%6.2f %%)   Old =%8.2f.  New =%8.2f.  Final =%8.2f.  WNS =%8.2f.\n", 
                     OldId, Abc_NtkObjNumMax(p->pNtk), i, Vec_IntSize(&p->vCands), 100.0 * Vec_IntSize(&p->vCands) / Abc_NtkNodeNum(p->pNtk),
-                    MIO_NUMINV*DelayOld, MIO_NUMINV*Sfm_ManReadObjDelay(p, Abc_ObjId(pObjNew)), 
-                    MIO_NUMINV*Sfm_ManReadNtkDelay(p) );
+                    Scl_Int2Flt(DelayOld), Scl_Int2Flt(Sfm_ManReadObjDelay(p, Abc_ObjId(pObjNew))), 
+                    Scl_Int2Flt(Sfm_ManReadNtkDelay(p)), Scl_Int2Flt(Sfm_ManReadNtkMinSlack(p)) );
             break;
         }
         if ( pPars->iNodeOne )
@@ -2110,7 +2111,7 @@ void Abc_NtkPerformMfs3( Abc_Ntk_t * pNtk, Sfm_Par_t * pPars )
         if ( !pPars->fArea )
             printf( "Win = %d. ",     pPars->nTimeWin );
         if ( !pPars->fArea )
-            printf( "Delta = %.2f ps. ", MIO_NUMINV*p->DeltaCrit );
+            printf( "Delta = %.2f ps. ", Scl_Int2Flt(p->DeltaCrit) );
         if ( pPars->fArea )
             printf( "0-cost = %s. ",  pPars->fZeroCost ? "yes" : "no" );
         printf( "Effort = %s. ",      pPars->fMoreEffort ? "yes" : "no" );

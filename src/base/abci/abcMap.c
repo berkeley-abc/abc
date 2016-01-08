@@ -22,6 +22,8 @@
 #include "base/main/main.h"
 #include "map/mio/mio.h"
 #include "map/mapper/mapper.h"
+#include "misc/util/utilNam.h"
+#include "map/scl/sclCon.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -228,6 +230,34 @@ Map_Time_t * Abc_NtkMapCopyCoRequired( Abc_Ntk_t * pNtk, Abc_Time_t * ppTimes )
   SeeAlso     []
 
 ***********************************************************************/
+Map_Time_t * Abc_NtkMapCopyCiArrivalCon( Abc_Ntk_t * pNtk )
+{
+    Map_Time_t * p; int i;
+    p = ABC_CALLOC( Map_Time_t, Abc_NtkCiNum(pNtk) );
+    for ( i = 0; i < Abc_NtkCiNum(pNtk); i++ )
+        p[i].Fall = p[i].Rise = p[i].Worst = Scl_Int2Flt( Scl_ConGetInArr(i) );
+    return p;
+}
+Map_Time_t * Abc_NtkMapCopyCoRequiredCon( Abc_Ntk_t * pNtk )
+{
+    Map_Time_t * p; int i;
+    p = ABC_CALLOC( Map_Time_t, Abc_NtkCoNum(pNtk) );
+    for ( i = 0; i < Abc_NtkCoNum(pNtk); i++ )
+        p[i].Fall = p[i].Rise = p[i].Worst = Scl_Int2Flt( Scl_ConGetOutReq(i) );
+    return p;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Load the network into manager.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 Map_Man_t * Abc_NtkToMap( Abc_Ntk_t * pNtk, double DelayTarget, int fRecovery, float * pSwitching, int fVerbose )
 {
     Map_Man_t * pMan;
@@ -245,8 +275,16 @@ Map_Man_t * Abc_NtkToMap( Abc_Ntk_t * pNtk, double DelayTarget, int fRecovery, f
     Map_ManSetAreaRecovery( pMan, fRecovery );
     Map_ManSetOutputNames( pMan, Abc_NtkCollectCioNames(pNtk, 1) );
     Map_ManSetDelayTarget( pMan, (float)DelayTarget );
-    Map_ManSetInputArrivals( pMan, Abc_NtkMapCopyCiArrival(pNtk, Abc_NtkGetCiArrivalTimes(pNtk)) );
-    Map_ManSetOutputRequireds( pMan, Abc_NtkMapCopyCoRequired(pNtk, Abc_NtkGetCoRequiredTimes(pNtk)) );
+
+    // set arrival and requireds
+    if ( Scl_ConIsRunning() && Scl_ConHasInArrs() )
+        Map_ManSetInputArrivals( pMan, Abc_NtkMapCopyCiArrivalCon(pNtk) );
+    else
+        Map_ManSetInputArrivals( pMan, Abc_NtkMapCopyCiArrival(pNtk, Abc_NtkGetCiArrivalTimes(pNtk)) );
+    if ( Scl_ConIsRunning() && Scl_ConHasOutReqs() )
+        Map_ManSetOutputRequireds( pMan, Abc_NtkMapCopyCoRequiredCon(pNtk) );
+    else
+        Map_ManSetOutputRequireds( pMan, Abc_NtkMapCopyCoRequired(pNtk, Abc_NtkGetCoRequiredTimes(pNtk)) );
 
     // create PIs and remember them in the old nodes
     Abc_NtkCleanCopy( pNtk );

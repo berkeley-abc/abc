@@ -1253,8 +1253,6 @@ void Nf_ManCutMatch( Nf_Man_t * p, int iObj )
     Nf_Mat_t * pDn = &pBest->M[1][0];
     Nf_Mat_t * pAp = &pBest->M[0][1];
     Nf_Mat_t * pAn = &pBest->M[1][1];
-//    word FlowRefP  = (word)(MIO_NUM * Nf_ObjFlowRefs(p, iObj, 0));
-//    word FlowRefN  = (word)(MIO_NUM * Nf_ObjFlowRefs(p, iObj, 1));
     float FlowRefPf  = Nf_ObjFlowRefs(p, iObj, 0);
     float FlowRefNf  = Nf_ObjFlowRefs(p, iObj, 1);
     int i, * pCut, * pCutSet = Nf_ObjCutSet( p, iObj );
@@ -1354,10 +1352,10 @@ void Nf_ManCutMatch( Nf_Man_t * p, int iObj )
     if ( pAn->D == SCL_INFINITY )
         printf( "Object %d has pAn unassigned.\n", iObj );
 /*
-    pDp->F = Abc_MinFloat( pDp->F, FLT_MAX/MIO_NUM );
-    pDn->F = Abc_MinFloat( pDn->F, FLT_MAX/MIO_NUM );
-    pAp->F = Abc_MinFloat( pAp->F, FLT_MAX/MIO_NUM );  
-    pAn->F = Abc_MinFloat( pAn->F, FLT_MAX/MIO_NUM );
+    pDp->F = Abc_MinFloat( pDp->F, FLT_MAX/SCL_NUM );
+    pDn->F = Abc_MinFloat( pDn->F, FLT_MAX/SCL_NUM );
+    pAp->F = Abc_MinFloat( pAp->F, FLT_MAX/SCL_NUM );  
+    pAn->F = Abc_MinFloat( pAn->F, FLT_MAX/SCL_NUM );
 */    
     assert( pDp->D < SCL_INFINITY );
     assert( pDn->D < SCL_INFINITY );
@@ -1823,7 +1821,7 @@ void Nf_ManElaBestMatchOne( Nf_Man_t * p, int iObj, int c, int * pCut, int * pCu
         pMb->Cfg = Cfg;
         pMb->Cfg.fCompl = 0;
         // compute area
-        pMb->F = MIO_NUMINV * (ABC_INT64_T)Nf_MatchRefArea( p, iObj, c, pMb, Required );
+        pMb->F = Scl_Int2Flt((int)Nf_MatchRefArea(p, iObj, c, pMb, Required));
         // compare
         if ( pRes->F > pMb->F || (pRes->F == pMb->F && pRes->D > pMb->D) )
             *pRes = *pMb;
@@ -1987,14 +1985,14 @@ void Nf_ManComputeMappingEla( Nf_Man_t * p )
                 printf( "%d -> %d  ",          Nf_ManCell(p, pM->Gate)->nFanins, Nf_ManCell(p, pMb->Gate)->nFanins );
                 printf( "D: %7.2f -> %7.2f  ", Scl_Int2Flt(pM->D), Scl_Int2Flt(pMb->D) );
                 printf( "R: %7.2f  ",          Required == SCL_INFINITY ? 9999.99 : Scl_Int2Flt(Required) );
-                printf( "A: %7.2f -> %7.2f  ", MIO_NUMINV * (ABC_INT64_T)AreaBef, MIO_NUMINV * (ABC_INT64_T)AreaAft );
-                printf( "G: %7.2f (%7.2f) ",   AreaBef >= AreaAft ? MIO_NUMINV * (ABC_INT64_T)(AreaBef - AreaAft) : -MIO_NUMINV * (ABC_INT64_T)(AreaAft - AreaBef), MIO_NUMINV * (ABC_INT64_T)(Gain) );
+                printf( "A: %7.2f -> %7.2f  ", Scl_Int2Flt((int)AreaBef), Scl_Int2Flt((int)AreaAft) );
+                printf( "G: %7.2f (%7.2f) ",   Scl_Int2Flt((int)AreaBef - (int)AreaAft), Scl_Int2Flt((int)Gain) );
                 printf( "\n" );
             }
             // set best match
             assert( pMb->fBest );
             assert( pMb->D <= Required );
-            //assert( pMb->F == MIO_NUMINV * (ABC_INT64_T)AreaAft );
+            //assert( Scl_Flt2Int(pMb->F) == (int)AreaAft );
             assert( AreaBef >= AreaAft );
             *pM = *pMb;
             // update timing

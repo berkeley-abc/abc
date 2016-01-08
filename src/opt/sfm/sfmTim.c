@@ -75,8 +75,8 @@ static inline int   Sfm_TimSlack( Sfm_Tim_t * p, Abc_Obj_t * pNode )         { i
 static inline void Sfm_TimEdgeArrival( Sfm_Tim_t * p, Mio_Pin_t * pPin, int * pTimeIn, int * pTimeOut )
 {
     Mio_PinPhase_t PinPhase = Mio_PinReadPhase(pPin);
-    int tDelayBlockRise = (int)(MIO_NUM*Mio_PinReadDelayBlockRise(pPin));  
-    int tDelayBlockFall = (int)(MIO_NUM*Mio_PinReadDelayBlockFall(pPin));  
+    int tDelayBlockRise = Scl_Flt2Int(Mio_PinReadDelayBlockRise(pPin));  
+    int tDelayBlockFall = Scl_Flt2Int(Mio_PinReadDelayBlockFall(pPin));  
     if ( PinPhase != MIO_PHASE_INV )  // NONINV phase is present
     {
         pTimeOut[0] = Abc_MaxInt( pTimeOut[0], pTimeIn[0] + tDelayBlockRise );
@@ -109,8 +109,8 @@ static inline void Sfm_TimNodeArrival( Sfm_Tim_t * p, Abc_Obj_t * pNode )
 static inline void Sfm_TimEdgeRequired( Sfm_Tim_t * p, Mio_Pin_t * pPin, int * pTimeIn, int * pTimeOut )
 {
     Mio_PinPhase_t PinPhase = Mio_PinReadPhase(pPin);
-    int tDelayBlockRise = (int)(MIO_NUM*Mio_PinReadDelayBlockRise(pPin));  
-    int tDelayBlockFall = (int)(MIO_NUM*Mio_PinReadDelayBlockFall(pPin));  
+    int tDelayBlockRise = Scl_Flt2Int(Mio_PinReadDelayBlockRise(pPin));  
+    int tDelayBlockFall = Scl_Flt2Int(Mio_PinReadDelayBlockFall(pPin));  
     if ( PinPhase != MIO_PHASE_INV )  // NONINV phase is present
     {
         pTimeIn[0] = Abc_MinInt( pTimeIn[0], pTimeOut[0] - tDelayBlockRise );
@@ -235,7 +235,7 @@ Sfm_Tim_t * Sfm_TimStart( Mio_Library_t * pLib, Scl_Con_t * pExt, Abc_Ntk_t * pN
     Vec_IntFill( &p->vTimArrs,  3*Abc_NtkObjNumMax(pNtk), 0 );
     Vec_IntFill( &p->vTimReqs,  3*Abc_NtkObjNumMax(pNtk), 0 );
     p->Delay = Sfm_TimTrace( p );
-    assert( DeltaCrit > 0 && DeltaCrit < MIO_NUM*1000 );
+    assert( DeltaCrit > 0 && DeltaCrit < Scl_Flt2Int(1000.0) );
     p->DeltaCrit = DeltaCrit;
     return p;
 }
@@ -272,7 +272,7 @@ void Sfm_TimTest( Abc_Ntk_t * pNtk )
 {
     Mio_Library_t * pLib = (Mio_Library_t *)pNtk->pManFunc;
     Sfm_Tim_t * p = Sfm_TimStart( pLib, NULL, pNtk, 100 );
-    printf( "Max delay = %.2f.  Path = %d (%d).\n", MIO_NUMINV*p->Delay, Sfm_TimCriticalPath(p, 1), Abc_NtkNodeNum(p->pNtk) );
+    printf( "Max delay = %.2f.  Path = %d (%d).\n", Scl_Int2Flt(p->Delay), Sfm_TimCriticalPath(p, 1), Abc_NtkNodeNum(p->pNtk) );
     Sfm_TimStop( p );
 }
 

@@ -22,7 +22,9 @@
 #include "exp.h"
 #include "misc/util/utilTruth.h"
 #include "opt/dau/dau.h"
+#include "misc/util/utilNam.h"
 #include "map/scl/sclLib.h"
+#include "map/scl/sclCon.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -655,13 +657,13 @@ static inline void Mio_CollectCopy2( Mio_Cell2_t * pCell, Mio_Gate_t * pGate )
     pCell->vExpr     = pGate->vExpr;
     pCell->uTruth    = pGate->uTruth;
     pCell->AreaF     = pGate->dArea;
-    pCell->AreaW     = (word)(MIO_NUM * pGate->dArea);
+    pCell->AreaW     = (word)(SCL_NUM * pGate->dArea);
     pCell->nFanins   = pGate->nInputs;
     pCell->pMioGate  = pGate;
     pCell->iDelayAve = 0;
     for ( k = 0, pPin = pGate->pPins; pPin; pPin = pPin->pNext, k++ )
     {
-        pCell->iDelays[k] = (int)(MIO_NUM/2 * pPin->dDelayBlockRise + MIO_NUM/2 * pPin->dDelayBlockFall);
+        pCell->iDelays[k] = (int)(SCL_NUM/2 * pPin->dDelayBlockRise + SCL_NUM/2 * pPin->dDelayBlockFall);
         pCell->iDelayAve += pCell->iDelays[k];
     }
     if ( pCell->nFanins )
@@ -758,7 +760,7 @@ Mio_Cell2_t * Mio_CollectRootsNew2( Mio_Library_t * pLib, int nInputs, int * pnG
                 printf( "None\n" );
             else
                 printf( "%-20s   In = %d   N = %3d   A = %12.6f   D = %12.6f\n", 
-                    pCell->pName, pCell->nFanins, pCounts[i], pCell->AreaF, MIO_NUMINV*pCell->iDelayAve );
+                    pCell->pName, pCell->nFanins, pCounts[i], pCell->AreaF, Scl_Int2Flt(pCell->iDelayAve) );
         }
         ABC_FREE( pCounts );
     }
