@@ -399,7 +399,7 @@ finish:
   SeeAlso     []
 
 ***********************************************************************/
-int Cnf_DataSolveFromFile( char * pFileName, int nConfLimit, int nLearnedStart, int nLearnedDelta, int nLearnedPerce, int fVerbose, int ** ppModel, int nPis )
+int Cnf_DataSolveFromFile( char * pFileName, int nConfLimit, int nLearnedStart, int nLearnedDelta, int nLearnedPerce, int fVerbose, int fShowPattern, int ** ppModel, int nPis )
 {
     abctime clk = Abc_Clock();
     Cnf_Dat_t * pCnf = Cnf_DataReadFromFile( pFileName );
@@ -428,6 +428,9 @@ int Cnf_DataSolveFromFile( char * pFileName, int nConfLimit, int nLearnedStart, 
         pSat->nLearntRatio = nLearnedPerce;
     if ( fVerbose )
         pSat->fVerbose = fVerbose;
+
+//sat_solver_start_cardinality( pSat, 100 );
+
     // solve the miter
     status = sat_solver_solve( pSat, NULL, NULL, (ABC_INT64_T)nConfLimit, 0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
     if ( status == l_Undef )
@@ -454,6 +457,12 @@ int Cnf_DataSolveFromFile( char * pFileName, int nConfLimit, int nLearnedStart, 
         *ppModel = ABC_ALLOC( int, nPis );
         for ( i = 0; i < nPis; i++ )
             (*ppModel)[i] = sat_solver_var_value( pSat, pCnf->nVars - nPis + i );
+    }
+    if ( RetValue == 0 && fShowPattern )
+    {
+        for ( i = 0; i < pCnf->nVars; i++ )
+            printf( "%d", sat_solver_var_value(pSat,i) );
+        printf( "\n" );
     }
     Cnf_DataFree( pCnf );
     sat_solver_delete( pSat );

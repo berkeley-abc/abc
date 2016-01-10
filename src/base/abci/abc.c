@@ -22075,6 +22075,7 @@ int Abc_CommandDSat( Abc_Frame_t * pAbc, int argc, char ** argv )
     int fAndOuts;
     int fNewSolver;
     int fSilent;
+    int fShowPattern;
     int fVerbose;
     int nConfLimit;
     int nLearnedStart;
@@ -22096,7 +22097,7 @@ int Abc_CommandDSat( Abc_Frame_t * pAbc, int argc, char ** argv )
     nLearnedDelta = 0;
     nLearnedPerce = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "CILDEpansvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "CILDEpansvwh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -22170,6 +22171,9 @@ int Abc_CommandDSat( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'v':
             fVerbose ^= 1;
             break;
+        case 'w':
+            fShowPattern ^= 1;
+            break;
         case 'h':
             goto usage;
         default:
@@ -22180,7 +22184,7 @@ int Abc_CommandDSat( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( argc == globalUtilOptind + 1 )
     {
         int * pModel = NULL;
-        extern int Cnf_DataSolveFromFile( char * pFileName, int nConfLimit, int nLearnedStart, int nLearnedDelta, int nLearnedPerce, int fVerbose, int ** ppModel, int nPis );
+        extern int Cnf_DataSolveFromFile( char * pFileName, int nConfLimit, int nLearnedStart, int nLearnedDelta, int nLearnedPerce, int fVerbose, int fShowPattern, int ** ppModel, int nPis );
         // get the input file name
         char * pFileName = argv[globalUtilOptind];
         FILE * pFile = fopen( pFileName, "rb" );
@@ -22190,7 +22194,7 @@ int Abc_CommandDSat( Abc_Frame_t * pAbc, int argc, char ** argv )
             return 0;
         }
         fclose( pFile );
-        Cnf_DataSolveFromFile( pFileName, nConfLimit, nLearnedStart, nLearnedDelta, nLearnedPerce, fVerbose, &pModel, pNtk ? Abc_NtkPiNum(pNtk) : 0 );
+        Cnf_DataSolveFromFile( pFileName, nConfLimit, nLearnedStart, nLearnedDelta, nLearnedPerce, fVerbose, fShowPattern, &pModel, pNtk ? Abc_NtkPiNum(pNtk) : 0 );
         if ( pModel && pNtk )
         {
             int * pSimInfo = Abc_NtkVerifySimulatePattern( pNtk, pModel );

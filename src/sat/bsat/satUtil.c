@@ -195,6 +195,8 @@ void Sat_SolverPrintStats( FILE * pFile, sat_solver * p )
 //    printf( "calls         : %10d (%d)\n", (int)p->nCalls, (int)p->nCalls2 );
     printf( "starts        : %16.0f\n", Sat_Wrd2Dbl(p->stats.starts) );
     printf( "conflicts     : %16.0f\n", Sat_Wrd2Dbl(p->stats.conflicts) );
+    if ( p->nCardClauses )
+    printf( "conflictsCard : %16.0f\n", Sat_Wrd2Dbl((word)p->nCardClauses) );
     printf( "decisions     : %16.0f\n", Sat_Wrd2Dbl(p->stats.decisions) );
     printf( "propagations  : %16.0f\n", Sat_Wrd2Dbl(p->stats.propagations) );
 //    printf( "inspects      : %10d\n", (int)p->stats.inspects );
