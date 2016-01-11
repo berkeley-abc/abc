@@ -22090,6 +22090,7 @@ int Abc_CommandDSat( Abc_Frame_t * pAbc, int argc, char ** argv )
     fAndOuts   = 0;
     fNewSolver = 0;
     fSilent    = 0;
+    fShowPattern = 0;
     fVerbose   = 0;
     nConfLimit = 0;
     nInsLimit  = 0;
