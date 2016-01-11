@@ -27,6 +27,7 @@
 #include "misc/vec/vecMem.h"
 #include "misc/vec/vecWec.h"
 #include "opt/dau/dau.h"
+#include "sat/bsat/satStore.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -1499,6 +1500,159 @@ void Of_ManComputeBackwardDircon1( Of_Man_t * p )
 
 /**Function*************************************************************
 
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Of_ManCreateSat( Of_Man_t * p, int nCutsAll, Vec_Int_t * vFirst, Vec_Int_t * vCutNum, Vec_Int_t * vBest )
+{
+    Gia_Obj_t * pObj;
+    int * pCutSet, * pCut;
+    int i, k, v, c, Var, status, RetValue, nCutCount = 0;
+    Vec_Int_t * vLits = Vec_IntAlloc( 100 );
+    abctime clk = Abc_Clock();
+
+    // start solver
+    sat_solver * pSat = sat_solver_new();
+    sat_solver_setnvars( pSat, nCutsAll );
+    sat_solver_start_cardinality( pSat, Vec_IntSize(vBest) );
+    printf( "Setting candinality equal to %d.\n", pSat->nCard );
+
+    // set polarity
+//    Vec_IntPop( vBest );
+//    sat_solver_set_polarity( pSat, Vec_IntArray(vBest), Vec_IntSize(vBest) );
+    //Vec_IntPrint( vBest );
+
+    // mark CO drivers
+    Gia_ManForEachCo( p->pGia, pObj, i )
+        Gia_ObjFanin0(pObj)->fMark0 = 1;
+    // add clauses
+    Gia_ManForEachAnd( p->pGia, pObj, i )
+    {
+        if ( pObj->fMark0 )
+        {
+            int iFirst = Vec_IntEntry(vFirst, i);
+            int nCuts = Vec_IntEntry(vCutNum, i);
+            Vec_IntClear( vLits );
+            for ( c = 0; c < nCuts; c++ )
+                Vec_IntPush( vLits, Abc_Var2Lit(iFirst + c, 0) );
+            RetValue = sat_solver_addclause( pSat, Vec_IntArray(vLits), Vec_IntLimit(vLits) );
+            assert( RetValue );
+        }
+    }
+    // unmark CO drivers
+    Gia_ManForEachCo( p->pGia, pObj, i )
+        Gia_ObjFanin0(pObj)->fMark0 = 0;
+
+    // add clauses
+    Gia_ManForEachAnd( p->pGia, pObj, i )
+    {
+        pCutSet = Of_ObjCutSet(p, i);
+        Of_SetForEachCut( pCutSet, pCut, k )
+        {
+            Of_CutForEachVar( pCut, Var, v )
+            {
+                if ( Gia_ObjIsAnd(Gia_ManObj(p->pGia, Var)) )
+                {
+                    int iFirst = Vec_IntEntry(vFirst, Var);
+                    int nCuts = Vec_IntEntry(vCutNum, Var);
+                    Vec_IntClear( vLits );
+                    Vec_IntPush( vLits, Abc_Var2Lit(nCutCount, 1) );
+                    for ( c = 0; c < nCuts; c++ )
+                        Vec_IntPush( vLits, Abc_Var2Lit(iFirst + c, 0) );
+                    RetValue = sat_solver_addclause( pSat, Vec_IntArray(vLits), Vec_IntLimit(vLits) );
+                    assert( RetValue );
+                }
+            }
+            nCutCount++;
+        }
+    }
+    assert( nCutCount == nCutsAll );
+    // solve the problem
+    status = sat_solver_solve( pSat, NULL, NULL, 1000000, 0, 0, 0 );
+    if ( status == l_Undef )
+        printf( "Undecided.  " );
+    if ( status == l_True )
+        printf( "Satisfiable.  " );
+    if ( status == l_False )
+        printf( "Unsatisfiable. " );
+    Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
+    Sat_SolverPrintStats( stdout, pSat );
+    if ( status == l_True )
+    {
+        int nOnes = 0;
+        for ( v = 0; v < pSat->size; v++ )
+        {
+            printf( "%d", sat_solver_var_value(pSat, v) );
+            nOnes += sat_solver_var_value(pSat, v);
+        }
+        printf( " nOnes = %d\n", nOnes );
+    }
+
+    // cleanup
+    sat_solver_delete( pSat );
+    Vec_IntFree( vLits );
+}
+void Of_ManPrintCuts( Of_Man_t * p )
+{
+    int fVerbose = 0;
+    Gia_Obj_t * pObj;
+    int * pCutSet, * pCut, * pCutBest;
+    int i, k, v, Var, nCuts;
+    int nAndsAll = 0, nLutsAll = 0, nCutsAll = 0;
+    Vec_Int_t * vFirst  = Vec_IntStartFull( Gia_ManObjNum(p->pGia) );
+    Vec_Int_t * vCutNum = Vec_IntStartFull( Gia_ManObjNum(p->pGia) );
+    Vec_Int_t * vBest   = Vec_IntAlloc( 100 );
+    Gia_ManForEachAnd( p->pGia, pObj, i )
+    {
+        nAndsAll++;
+        // get the best cut
+        pCutBest = NULL;
+        if ( Of_ObjRefNum(p, i) )
+            pCutBest = Of_ObjCutBestP( p, i ), nLutsAll++;
+        // get the cutset
+        pCutSet = Of_ObjCutSet(p, i);
+        // count cuts
+        nCuts = 0;
+        Of_SetForEachCut( pCutSet, pCut, k )
+            nCuts++;
+        // save
+        Vec_IntWriteEntry( vFirst,  i, nCutsAll );
+        Vec_IntWriteEntry( vCutNum, i, nCuts );
+        // print cuts
+        if ( fVerbose )
+            printf( "Node %d. Cuts %d.\n", i, nCuts );
+        Of_SetForEachCut( pCutSet, pCut, k )
+        {
+            if ( fVerbose )
+            {
+                printf( "{ " );
+                Of_CutForEachVar( pCut, Var, v )
+                    printf( "%d ", Var );
+                printf( "} %s\n", pCutBest == pCut ? "best" :"" );
+            }
+            if ( pCutBest == pCut )
+                Vec_IntPush( vBest, nCutsAll );
+            nCutsAll++;
+        }
+    }
+    printf( "Total:   Ands = %d.  Luts = %d.  Cuts = %d.\n", nAndsAll, nLutsAll, nCutsAll );
+
+    // create SAT problem
+    Of_ManCreateSat( p, nCutsAll, vFirst, vCutNum, vBest );
+
+    Vec_IntFree( vFirst );
+    Vec_IntFree( vCutNum );
+    Vec_IntFree( vBest );
+}
+
+/**Function*************************************************************
+
   Synopsis    [Technology mappping.]
 
   Description []
@@ -1659,6 +1813,7 @@ Gia_Man_t * Of_ManPerformMapping( Gia_Man_t * pGia, Jf_Par_t * pPars )
 
     pNew = Of_ManDeriveMapping( p );
     Gia_ManMappingVerify( pNew );
+//    Of_ManPrintCuts( p );
     Of_StoDelete( p );
     if ( pCls != pGia )
         Gia_ManStop( pCls );

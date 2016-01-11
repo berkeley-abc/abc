@@ -301,6 +301,15 @@ static inline void sat_solver_start_cardinality(sat_solver* s, int nSize)
     s->nCard = nSize;
     s->nCardClauses = 0;
 }
+static void sat_solver_set_polarity(sat_solver* s, int * pVars, int nVars )
+{
+    int i;
+    for ( i = 0; i < s->size; i++ )
+        s->polarity[i] = 0;
+    for ( i = 0; i < nVars; i++ )
+        s->polarity[pVars[i]] = 1;
+}
+
 static inline int sat_solver_add_const( sat_solver * pSat, int iVar, int fCompl )
 {
     lit Lits[1];
