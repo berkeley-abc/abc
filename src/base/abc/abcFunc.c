@@ -358,7 +358,6 @@ char * Abc_ConvertBddToSop( Mem_Flex_t * pMan, DdManager * dd, DdNode * bFuncOn,
 ***********************************************************************/
 int Abc_NtkBddToSop( Abc_Ntk_t * pNtk, int fMode, int nCubeLimit )
 {
-    extern void Abc_NtkSortSops( Abc_Ntk_t * pNtk );
     Vec_Int_t * vGuide;
     Vec_Str_t * vCube;
     Abc_Obj_t * pNode;

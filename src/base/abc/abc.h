@@ -653,6 +653,7 @@ extern ABC_DLL void               Abc_ObjReplace( Abc_Obj_t * pObjOld, Abc_Obj_t
 extern ABC_DLL int                Abc_ObjFanoutFaninNum( Abc_Obj_t * pFanout, Abc_Obj_t * pFanin );
 /*=== abcFanOrder.c ==========================================================*/
 extern ABC_DLL int                Abc_NtkMakeLegit( Abc_Ntk_t * pNtk );
+extern ABC_DLL void               Abc_NtkSortSops( Abc_Ntk_t * pNtk );
 /*=== abcFraig.c ==========================================================*/
 extern ABC_DLL Abc_Ntk_t *        Abc_NtkFraig( Abc_Ntk_t * pNtk, void * pParams, int fAllNodes, int fExdc );
 extern ABC_DLL void *             Abc_NtkToFraig( Abc_Ntk_t * pNtk, void * pParams, int fAllNodes, int fExdc );

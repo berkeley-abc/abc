@@ -31,6 +31,7 @@ ABC_NAMESPACE_IMPL_START
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
+
 /**Function*************************************************************
 
   Synopsis    [Reorder fanins of the network.]
@@ -87,12 +88,64 @@ void Abc_NtkOrderFaninsById( Abc_Ntk_t * pNtk )
     Vec_IntFree( vOrder );
     Vec_StrFree( vStore );
 }
-void Abc_NtkOrderFaninsByLitCount( Abc_Ntk_t * pNtk )
+
+/**Function*************************************************************
+
+  Synopsis    [Returns fanin permutation to reorders columns lexicographically.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkSopTranspose( char * pSop, int nVars, Vec_Ptr_t * vCubes, Vec_Str_t * vStore )
+{
+    char * pCube; 
+    int nCubes, v, c;
+    // collect original cubes
+    Vec_PtrClear( vCubes );
+    Abc_SopForEachCube( pSop, nVars, pCube )
+        Vec_PtrPush( vCubes, pCube );
+    // rebuild the cubes
+    Vec_StrClear( vStore );
+    for ( v = 0; v < nVars; v++ )
+    {
+        Vec_PtrForEachEntry( char *, vCubes, pCube, c )
+            Vec_StrPush( vStore, pCube[v] );
+        Vec_StrPush( vStore, '\0' );
+    }
+    // get the cubes
+    nCubes = Vec_PtrSize( vCubes );
+    Vec_PtrClear( vCubes );
+    for ( v = 0; v < nVars; v++ )
+        Vec_PtrPush( vCubes, Vec_StrEntryP(vStore, v*(nCubes+1)) );
+}
+static inline void Vec_StrSelectSortCost( char ** pArray, int nSize, Vec_Int_t * vPerm )
+{
+    int i, j, best_i, * pPerm;
+    Vec_IntClear( vPerm );
+    for ( i = 0; i < nSize; i++ )
+        Vec_IntPush( vPerm, i );
+    pPerm = Vec_IntArray( vPerm );
+    for ( i = 0; i < nSize-1; i++ )
+    {
+        best_i = i;
+        for ( j = i+1; j < nSize; j++ )
+            if ( strcmp(pArray[j], pArray[best_i]) < 0 )
+                best_i = j;
+        ABC_SWAP( char *, pArray[i], pArray[best_i] );
+        ABC_SWAP( int,    pPerm[i],  pPerm[best_i] );
+    }
+}
+void Abc_NtkOrderFaninsBySortingColumns( Abc_Ntk_t * pNtk )
 {
     Vec_Int_t * vOrder;
     Vec_Int_t * vCounts;
     Vec_Int_t * vFanins;
     Vec_Str_t * vStore;
+    Vec_Ptr_t * vCubes;
     Abc_Obj_t * pNode;
     char * pSop, * pSopNew;
     char * pCube, * pCubeNew;
@@ -100,6 +153,7 @@ void Abc_NtkOrderFaninsByLitCount( Abc_Ntk_t * pNtk )
     assert( Abc_NtkHasSop(pNtk) );
     vOrder = Vec_IntAlloc( 100 );
     vStore = Vec_StrAlloc( 100 );
+    vCubes = Vec_PtrAlloc( 100 );
     vCounts = Vec_IntAlloc( 100 );
     vFanins = Vec_IntAlloc( 100 );
     Abc_NtkForEachNode( pNtk, pNode, i )
@@ -107,18 +161,11 @@ void Abc_NtkOrderFaninsByLitCount( Abc_Ntk_t * pNtk )
         pSop = (char *)pNode->pData;
         nVars = Abc_SopGetVarNum(pSop);
         assert( nVars == Abc_ObjFaninNum(pNode) );
-        // count literals
-        Vec_IntFill( vCounts, nVars, 0 );
-        Abc_SopForEachCube( pSop, nVars, pCube )
-            for ( v = 0; v < nVars; v++ )
-                if ( pCube[v] != '-' )
-                    Vec_IntAddToEntry( vCounts, v, 1 );
-        // find good order
-        Vec_IntClear( vOrder );
-        for ( v = 0; v < nVars; v++ )
-            Vec_IntPush( vOrder, v );
+        // create a transposed SOP
+        Abc_NtkSopTranspose( pSop, nVars, vCubes, vStore );
+        // create permutation
+        Vec_StrSelectSortCost( (char **)Vec_PtrArray(vCubes), nVars, vOrder );
         pOrder = Vec_IntArray(vOrder);
-        Vec_IntSelectSortCost( pOrder, nVars, vCounts );
         // copy the cover
         Vec_StrGrow( vStore, Abc_SopGetCubeNum(pSop) * (nVars + 3) + 1 );
         memcpy( Vec_StrArray(vStore), pSop, Abc_SopGetCubeNum(pSop) * (nVars + 3) + 1 );
@@ -148,6 +195,111 @@ void Abc_NtkOrderFaninsByLitCount( Abc_Ntk_t * pNtk )
     Vec_IntFree( vCounts );
     Vec_IntFree( vOrder );
     Vec_StrFree( vStore );
+    Vec_PtrFree( vCubes );
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    [Reorders columns by literal and then lexicographically.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline void Vec_StrSelectSortCost2( char ** pArray, int nSize, Vec_Int_t * vCounts, Vec_Int_t * vPerm )
+{
+    int i, j, best_i, * pPerm;
+    Vec_IntClear( vPerm );
+    for ( i = 0; i < nSize; i++ )
+        Vec_IntPush( vPerm, i );
+    pPerm = Vec_IntArray( vPerm );
+    for ( i = 0; i < nSize-1; i++ )
+    {
+        best_i = i;
+        for ( j = i+1; j < nSize; j++ )
+            if ( Vec_IntEntry(vCounts, pPerm[j]) <  Vec_IntEntry(vCounts, pPerm[best_i]) || 
+                (Vec_IntEntry(vCounts, pPerm[j]) == Vec_IntEntry(vCounts, pPerm[best_i]) && strcmp(pArray[j], pArray[best_i]) < 0) )
+                best_i = j;
+        ABC_SWAP( char *, pArray[i], pArray[best_i] );
+        ABC_SWAP( int,    pPerm[i],  pPerm[best_i] );
+    }
+}
+void Abc_NtkOrderFaninsByLitCount( Abc_Ntk_t * pNtk )
+{
+    Vec_Int_t * vOrder;
+    Vec_Int_t * vCounts;
+    Vec_Int_t * vFanins;
+    Vec_Str_t * vStore;
+    Vec_Ptr_t * vCubes;
+    Abc_Obj_t * pNode;
+    char * pSop, * pSopNew;
+    char * pCube, * pCubeNew;
+    int nVars, i, v, * pOrder;
+    assert( Abc_NtkHasSop(pNtk) );
+    vOrder = Vec_IntAlloc( 100 );
+    vStore = Vec_StrAlloc( 100 );
+    vCubes = Vec_PtrAlloc( 100 );
+    vCounts = Vec_IntAlloc( 100 );
+    vFanins = Vec_IntAlloc( 100 );
+    Abc_NtkForEachNode( pNtk, pNode, i )
+    {
+        pSop = (char *)pNode->pData;
+        nVars = Abc_SopGetVarNum(pSop);
+        assert( nVars == Abc_ObjFaninNum(pNode) );
+        // count literals
+        Vec_IntFill( vCounts, nVars, 0 );
+        Abc_SopForEachCube( pSop, nVars, pCube )
+            for ( v = 0; v < nVars; v++ )
+                if ( pCube[v] != '-' )
+                    Vec_IntAddToEntry( vCounts, v, 1 );
+
+        // create a transposed SOP
+        Abc_NtkSopTranspose( pSop, nVars, vCubes, vStore );
+        // create permutation
+        Vec_StrSelectSortCost2( (char **)Vec_PtrArray(vCubes), nVars, vCounts, vOrder );
+        pOrder = Vec_IntArray(vOrder);
+/*
+        // find good order
+        Vec_IntClear( vOrder );
+        for ( v = 0; v < nVars; v++ )
+            Vec_IntPush( vOrder, v );
+        pOrder = Vec_IntArray(vOrder);
+        Vec_IntSelectSortCost( pOrder, nVars, vCounts );
+*/
+        // copy the cover
+        Vec_StrGrow( vStore, Abc_SopGetCubeNum(pSop) * (nVars + 3) + 1 );
+        memcpy( Vec_StrArray(vStore), pSop, Abc_SopGetCubeNum(pSop) * (nVars + 3) + 1 );
+        pSopNew = pCubeNew = pSop;
+        pSop = Vec_StrArray(vStore);
+        // generate permuted one
+        Abc_SopForEachCube( pSop, nVars, pCube )
+        {
+            for ( v = 0; v < nVars; v++ )
+                pCubeNew[v] = '-';
+            for ( v = 0; v < nVars; v++ )
+                if ( pCube[pOrder[v]] == '0' )
+                    pCubeNew[v] = '0';
+                else if ( pCube[pOrder[v]] == '1' )
+                    pCubeNew[v] = '1';
+            pCubeNew += nVars + 3;
+        }
+        pNode->pData = pSopNew;
+        // generate the fanin order
+        Vec_IntClear( vFanins );
+        for ( v = 0; v < nVars; v++ )
+            Vec_IntPush( vFanins, Abc_ObjFaninId( pNode, pOrder[v] ) );
+        Vec_IntClear( &pNode->vFanins );
+        Vec_IntAppend( &pNode->vFanins, vFanins );
+    }
+    Vec_IntFree( vFanins );
+    Vec_IntFree( vCounts );
+    Vec_IntFree( vOrder );
+    Vec_StrFree( vStore );
+    Vec_PtrFree( vCubes );
 }
 void Abc_NtkOrderFaninsByLitCountAndCubeCount( Abc_Ntk_t * pNtk )
 {
@@ -291,11 +443,27 @@ void Abc_NtkSplitLarge( Abc_Ntk_t * pNtk, int nFaninsMax, int nCubesMax )
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_NodeCompareCubes( char ** pp1, char ** pp2 )
+int Abc_NodeCompareCubes1( char ** pp1, char ** pp2 )
 {
     return strcmp( *pp1, *pp2 );
 }
-void Abc_NodeSortCubes( Abc_Obj_t * pNode, Vec_Ptr_t * vCubes, Vec_Str_t * vStore )
+int Abc_NodeCompareCubes2( char ** pp1, char ** pp2 )
+{
+    char * pStr1 = *pp1;
+    char * pStr2 = *pp2;
+    int i, nNum1 = 0, nNum2 = 0;
+    for ( i = 0; pStr1[i]; i++ )
+    {
+        nNum1 += (pStr1[i] != '-');
+        nNum2 += (pStr2[i] != '-');
+    }
+    if ( nNum1 > nNum2 )
+        return -1;
+    if ( nNum1 < nNum2 )
+        return 1;
+    return strcmp( *pp1, *pp2 );
+}
+void Abc_NodeSortCubes( Abc_Obj_t * pNode, Vec_Ptr_t * vCubes, Vec_Str_t * vStore, int fWeight )
 {
     char * pCube, * pPivot;
     char * pSop = (char *)pNode->pData;
@@ -307,7 +475,10 @@ void Abc_NodeSortCubes( Abc_Obj_t * pNode, Vec_Ptr_t * vCubes, Vec_Str_t * vStor
         pCube[nVars] = 0;
         Vec_PtrPush( vCubes, pCube );
     }
-    Vec_PtrSort( vCubes, (int (*)())Abc_NodeCompareCubes );
+    if ( fWeight )
+        Vec_PtrSort( vCubes, (int (*)())Abc_NodeCompareCubes2 );
+    else
+        Vec_PtrSort( vCubes, (int (*)())Abc_NodeCompareCubes1 );
     Vec_StrGrow( vStore, Vec_PtrSize(vCubes) * (nVars + 3) );
     pPivot = Vec_StrArray( vStore );
     Vec_PtrForEachEntry( char *, vCubes, pCube, i )
@@ -319,7 +490,7 @@ void Abc_NodeSortCubes( Abc_Obj_t * pNode, Vec_Ptr_t * vCubes, Vec_Str_t * vStor
     }
     memcpy( pSop, Vec_StrArray(vStore), Vec_PtrSize(vCubes) * (nVars + 3) );
 }
-void Abc_NtkSortCubes( Abc_Ntk_t * pNtk )
+void Abc_NtkSortCubes( Abc_Ntk_t * pNtk, int fWeight )
 {
     Vec_Ptr_t * vCubes;
     Vec_Str_t * vStore;
@@ -329,10 +500,11 @@ void Abc_NtkSortCubes( Abc_Ntk_t * pNtk )
     vCubes = Vec_PtrAlloc( 1000 );
     vStore = Vec_StrAlloc( 1000 );
     Abc_NtkForEachNode( pNtk, pNode, i )
-        Abc_NodeSortCubes( pNode, vCubes, vStore );
+        Abc_NodeSortCubes( pNode, vCubes, vStore, fWeight );
     Vec_StrFree( vStore );
     Vec_PtrFree( vCubes );
 }
+
 
 /**Function*************************************************************
 
@@ -347,10 +519,11 @@ void Abc_NtkSortCubes( Abc_Ntk_t * pNtk )
 ***********************************************************************/
 void Abc_NtkSortSops( Abc_Ntk_t * pNtk )
 {
+    Abc_NtkSortCubes( pNtk, 1 );
     Abc_NtkOrderFaninsByLitCount( pNtk );
-    Abc_NtkSortCubes( pNtk );
+    Abc_NtkSortCubes( pNtk, 0 );
     Abc_NtkOrderFaninsByLitCountAndCubeCount( pNtk );
-    Abc_NtkSortCubes( pNtk );
+    Abc_NtkSortCubes( pNtk, 0 );
 }
 
 /**Function*************************************************************

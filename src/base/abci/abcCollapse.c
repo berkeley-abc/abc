@@ -922,12 +922,13 @@ Abc_Ntk_t * Abc_NtkFromSopsInt( Abc_Ntk_t * pNtk, int nCubeLim, int nBTLimit, in
         vSupp = Vec_WecEntry( vSupps, i );
         Vec_IntForEachEntry( vSupp, iCi, k )
             Abc_ObjAddFanin( pNodeNew, Abc_NtkCi(pNtkNew, iCi) );
-        pNodeNew->pData = Vec_PtrEntry( vSops, i );
+        pNodeNew->pData = Abc_SopRegister( (Mem_Flex_t *)pNtkNew->pManFunc, Vec_PtrEntry( vSops, i ) );
         assert( pNodeNew->pData != (void *)(ABC_PTRINT_T)1 );
         Abc_ObjAddFanin( pNode->pCopy, pNodeNew );
     }
     Vec_WecFree( vSupps );
     Vec_PtrFree( vSops );
+    Abc_NtkSortSops( pNtkNew );
     return pNtkNew;
 }
 Abc_Ntk_t * Abc_NtkCollapseSat( Abc_Ntk_t * pNtk, int nCubeLim, int nBTLimit, int nCostMax, int fCanon, int fReverse, int fCnfShared, int fVerbose )

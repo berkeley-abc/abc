@@ -56,7 +56,7 @@ void Abc_NtkSetDefaultFxParams( Fxu_Data_t * p )
     p->nPairsMax  =  30000;
     p->nNodesExt  =1000000;
     p->WeightMin  =      0;
-    p->LitCountMax=      0;
+    p->LitCountMax=      4;
     p->fOnlyS     =      0;
     p->fOnlyD     =      0;
     p->fUse0      =      0;
