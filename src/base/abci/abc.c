@@ -37132,10 +37132,11 @@ int Abc_CommandAbc9Bmc( Abc_Frame_t * pAbc, int argc, char ** argv )
     pPars->nFramesAdd    =   50;  // the number of additional frames
     pPars->nConfLimit    =    0;  // maximum number of conflicts at a node
     pPars->nTimeOut      =    0;  // timeout in seconds
+    pPars->nLutSize      =    6;  // max LUT size for CNF computation
     pPars->fLoadCnf      =    0;  // dynamic CNF loading
     pPars->fDumpFrames   =    0;  // dump unrolled timeframes
     pPars->fUseSynth     =    0;  // use synthesis
-    pPars->fUseOldCnf    =    1;  // use old CNF construction
+    pPars->fUseOldCnf    =    0;  // use old CNF construction
     pPars->fVerbose      =    0;  // verbose 
     pPars->fVeryVerbose  =    0;  // very verbose 
     pPars->fNotVerbose   =    0;  // skip line-by-line print-out 
@@ -37143,7 +37144,7 @@ int Abc_CommandAbc9Bmc( Abc_Frame_t * pAbc, int argc, char ** argv )
     pPars->nFailOuts     =    0;  // the number of failed outputs
     pPars->nDropOuts     =    0;  // the number of dropped outputs
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "SFATdscvwh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "SFATKdscvwh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -37191,6 +37192,17 @@ int Abc_CommandAbc9Bmc( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( pPars->nTimeOut < 0 )
                 goto usage;
             break;
+        case 'K':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-K\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nLutSize = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nLutSize < 0 )
+                goto usage;
+            break;
         case 'd':
             pPars->fDumpFrames ^= 1;
             break;
@@ -37217,23 +37229,19 @@ int Abc_CommandAbc9Bmc( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Abc_CommandAbc9Bmc(): There is no AIG.\n" );
         return 0;
     }
-    if ( !pPars->fUseOldCnf && !Sdm_ManCanRead() )
-    {
-        Abc_Print( -1, "Abc_CommandAbc9Bmc(): Cannot input precomputed DSD information.\n" );
-        return 0;
-    }
     pAbc->Status  = Gia_ManBmcPerform( pAbc->pGia, pPars );
     pAbc->nFrames = pPars->iFrame;
     Abc_FrameReplaceCex( pAbc, &pAbc->pGia->pCexSeq );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &bmc [-SFAT num] [-dscvwh]\n" );
+    Abc_Print( -2, "usage: &bmc [-SFATK num] [-dscvwh]\n" );
     Abc_Print( -2, "\t         performs bounded model checking\n" );
     Abc_Print( -2, "\t-S num : the starting timeframe [default = %d]\n",                      pPars->nStart );
     Abc_Print( -2, "\t-F num : the maximum number of timeframes [default = %d]\n",            pPars->nFramesMax );
     Abc_Print( -2, "\t-A num : the number of additional frames to unroll [default = %d]\n",   pPars->nFramesAdd );
     Abc_Print( -2, "\t-T num : approximate timeout in seconds [default = %d]\n",              pPars->nTimeOut );
+    Abc_Print( -2, "\t-K num : the maximum cut size for CNF computation [default = %d]\n",    pPars->nLutSize );
     Abc_Print( -2, "\t-d     : toggle dumping unfolded timeframes [default = %s]\n",          pPars->fDumpFrames?  "yes": "no" );
     Abc_Print( -2, "\t-s     : toggle synthesizing unrolled timeframes [default = %s]\n",     pPars->fUseSynth?    "yes": "no" );
     Abc_Print( -2, "\t-c     : toggle using old CNF computation [default = %s]\n",            pPars->fUseOldCnf?   "yes": "no" );

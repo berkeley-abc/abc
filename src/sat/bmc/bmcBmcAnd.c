@@ -868,14 +868,15 @@ int Gia_ManBmcPerform_old_cnf( Gia_Man_t * pGia, Bmc_AndPar_t * pPars )
 void Gia_ManBmcAddCnfNew_rec( Bmc_Mna_t * p, Gia_Obj_t * pObj )
 {
     int iObj = Gia_ObjId( p->pFrames, pObj );
+    if ( Vec_IntEntry(p->vId2Var, iObj) > 0 )
+        return;
+    Vec_IntWriteEntry(p->vId2Var, iObj, 1);
     if ( Gia_ObjIsAnd(pObj) && p->pCnf->pObj2Count[iObj] == -1 )
     {
         Gia_ManBmcAddCnfNew_rec( p, Gia_ObjFanin0(pObj) );
         Gia_ManBmcAddCnfNew_rec( p, Gia_ObjFanin1(pObj) );
         return;
     }
-    if ( Vec_IntEntry(p->vId2Var, iObj) > 0 )
-        return;
     Vec_IntWriteEntry(p->vId2Var, iObj, p->nSatVars++);
     if ( Gia_ObjIsAnd(pObj) || Gia_ObjIsPo(p->pFrames, pObj) )
     {
@@ -891,7 +892,7 @@ void Gia_ManBmcAddCnfNew_rec( Bmc_Mna_t * p, Gia_Obj_t * pObj )
         iCla  = p->pCnf->pObj2Clause[iObj];
         for ( i = 0; i < nClas; i++ )
         {
-            int nLits, pLits[8];
+            int nLits, pLits[10];
             int * pClauseThis = p->pCnf->pClauses[iCla+i];
             int * pClauseNext = p->pCnf->pClauses[iCla+i+1];
             for ( nLits = 0; pClauseThis + nLits < pClauseNext; nLits++ )
@@ -901,7 +902,7 @@ void Gia_ManBmcAddCnfNew_rec( Bmc_Mna_t * p, Gia_Obj_t * pObj )
                 assert( pClauseThis[nLits] > 1 && pClauseThis[nLits] < 2*Gia_ManObjNum(p->pFrames) );
                 pLits[nLits] = Abc_Lit2LitV( Vec_IntArray(p->vId2Var), pClauseThis[nLits] );
             }
-            assert( nLits < 8 );
+            assert( nLits <= 9 );
             if ( !sat_solver_addclause( p->pSat, pLits, pLits + nLits ) )
                 break;
         }
@@ -983,10 +984,10 @@ int Gia_ManBmcPerformInt( Gia_Man_t * pGia, Bmc_AndPar_t * pPars )
         p->pCnf = Cnf_DeriveGia( p->pFrames );
     else
     {
-        p->pFrames = Jf_ManDeriveCnf( pTemp = p->pFrames, 1 );  Gia_ManStop( pTemp );
-        p->pCnf = (Cnf_Dat_t *)p->pFrames->pData; p->pFrames->pData = NULL;
-//        extern Cnf_Dat_t * Mf_ManGenerateCnf( Gia_Man_t * pGia, int nLutSize, int fCnfObjIds, int fAddOrCla, int fVerbose );
-//        p->pCnf = Mf_ManGenerateCnf( p->pFrames, 6, 1, 0, 0 );
+//        p->pFrames = Jf_ManDeriveCnf( pTemp = p->pFrames, 1 );  Gia_ManStop( pTemp );
+//        p->pCnf = (Cnf_Dat_t *)p->pFrames->pData; p->pFrames->pData = NULL;
+        extern Cnf_Dat_t * Mf_ManGenerateCnf( Gia_Man_t * pGia, int nLutSize, int fCnfObjIds, int fAddOrCla, int fVerbose );
+        p->pCnf = Mf_ManGenerateCnf( p->pFrames, pPars->nLutSize, 1, 0, pPars->fVerbose );
     }
     Vec_IntFillExtra( p->vId2Var, Gia_ManObjNum(p->pFrames), 0 );
     // create clauses for constant node

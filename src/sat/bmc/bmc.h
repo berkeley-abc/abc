@@ -83,6 +83,7 @@ struct Bmc_AndPar_t_
     int         nFramesAdd;     // the number of additional frames
     int         nConfLimit;     // maximum number of conflicts at a node
     int         nTimeOut;       // timeout in seconds
+    int         nLutSize;       // LUT size for cut computation
     int         fLoadCnf;       // dynamic CNF loading
     int         fDumpFrames;    // dump unrolled timeframes
     int         fUseSynth;      // use synthesis
