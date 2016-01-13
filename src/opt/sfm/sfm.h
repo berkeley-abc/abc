@@ -58,6 +58,7 @@ struct Sfm_Par_t_
     int             nFirstFixed;   // the number of first nodes to be treated as fixed
     int             nTimeWin;      // the size of timing window in percents
     int             DeltaCrit;     // delay delta in picoseconds
+    int             DelAreaRatio;  // delay/area tradeoff (how many ps we trade for a unit of area)
     int             fRrOnly;       // perform redundance removal
     int             fArea;         // performs optimization for area
     int             fAreaRev;      // performs optimization for area in reverse order

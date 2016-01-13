@@ -977,7 +977,7 @@ int Scl_CommandBuffer( Abc_Frame_t * pAbc, int argc, char ** argv )
     pPars->fSizeOnly     =    0;
     pPars->fAddBufs      =    1;
     pPars->fBufPis       =    0;
-    pPars->fUseWireLoads =    1;
+    pPars->fUseWireLoads =    0;
     pPars->fVerbose      =    0;
     pPars->fVeryVerbose  =    0;
     Extra_UtilGetoptReset();
@@ -1384,7 +1384,7 @@ int Scl_CommandUpsize( Abc_Frame_t * pAbc, int argc, char **argv )
     pPars->BuffTreeEst   =    0;
     pPars->BypassFreq    =    0;
     pPars->fUseDept      =    1;
-    pPars->fUseWireLoads =    1;
+    pPars->fUseWireLoads =    0;
     pPars->fDumpStats    =    0;
     pPars->fVerbose      =    0;
     pPars->fVeryVerbose  =    0;
@@ -1594,7 +1594,7 @@ int Scl_CommandDnsize( Abc_Frame_t * pAbc, int argc, char **argv )
     pPars->TimeOut       =    0;
     pPars->BuffTreeEst   =    0;
     pPars->fUseDept      =    1;
-    pPars->fUseWireLoads =    1;
+    pPars->fUseWireLoads =    0;
     pPars->fDumpStats    =    0;
     pPars->fVerbose      =    0;
     pPars->fVeryVerbose  =    0;

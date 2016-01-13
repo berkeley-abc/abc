@@ -5206,7 +5206,7 @@ int Abc_CommandMfs3( Abc_Frame_t * pAbc, int argc, char ** argv )
     // set defaults
     Sfm_ParSetDefault3( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "IOVFKLHRMCNPWDarmzoespdlvwh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "IOVFKLHRMCNPWDEarmzoespdlvwh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -5367,6 +5367,17 @@ int Abc_CommandMfs3( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( pPars->DeltaCrit < 0 )
                 goto usage;
             break;
+        case 'E':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-E\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->DelAreaRatio = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->DelAreaRatio < 0 )
+                goto usage;
+            break;
         case 'a':
             pPars->fArea ^= 1;
             break;
@@ -5424,7 +5435,7 @@ int Abc_CommandMfs3( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: mfs3 [-IOVFKLHRMCNPWD <num>] [-armzespdlvwh]\n" );
+    Abc_Print( -2, "usage: mfs3 [-IOVFKLHRMCNPWDE <num>] [-armzespdlvwh]\n" );
     Abc_Print( -2, "\t           performs don't-care-based optimization of mapped networks\n" );
     Abc_Print( -2, "\t-I <num> : the number of levels in the TFI cone (1 <= num) [default = %d]\n",             pPars->nTfiLevMax );
     Abc_Print( -2, "\t-O <num> : the number of levels in the TFO cone (0 <= num) [default = %d]\n",             pPars->nTfoLevMax );
@@ -5440,6 +5451,7 @@ usage:
     Abc_Print( -2, "\t-P <num> : one particular node to try (0 = none) [default = %d]\n",                       pPars->iNodeOne );
     Abc_Print( -2, "\t-W <num> : size of timing window in percents (0 <= num <= 100) [default = %d]\n",         pPars->nTimeWin );
     Abc_Print( -2, "\t-D <num> : size of critical-timing delay-delta (in picoseconds) [default = %d]\n",        pPars->DeltaCrit );
+    Abc_Print( -2, "\t-E <num> : delay-area tradeoff (in picoseconds per area-unit) [default = %d]\n",          pPars->DelAreaRatio );
     Abc_Print( -2, "\t-a       : toggle area minimization [default = %s]\n",                                    pPars->fArea? "yes": "no" );
     Abc_Print( -2, "\t-r       : toggle using reverse topo order for area minimization [default = %s]\n",       pPars->fAreaRev? "yes": "no" );
     Abc_Print( -2, "\t-m       : toggle detecting multi-input AND/OR gates [default = %s]\n",                   pPars->fUseAndOr? "yes": "no" );
