@@ -75,11 +75,96 @@ void Gia_ParFfSetDefault( Bmc_ParFf_t * p )
   SeeAlso     []
 
 ***********************************************************************/
+static inline void Cnf_AddSorder( sat_solver * p, int * pVars, int i, int k, int * pnVars )
+{
+    int iVar1 = (*pnVars)++;
+    int iVar2 = (*pnVars)++;
+    sat_solver_add_and( p, iVar1, pVars[i], pVars[k], 1, 1, 1 );
+    sat_solver_add_and( p, iVar2, pVars[i], pVars[k], 0, 0, 0 );
+    pVars[i] = iVar1;
+    pVars[k] = iVar2;
+}
+static inline void Cnf_AddCardinConstrMerge( sat_solver * p, int * pVars, int lo, int hi, int r, int * pnVars )
+{
+    int i, step = r * 2;
+    if ( step < hi - lo )
+    {
+        Cnf_AddCardinConstrMerge( p, pVars, lo, hi-r, step, pnVars );
+        Cnf_AddCardinConstrMerge( p, pVars, lo+r, hi, step, pnVars );
+        for ( i = lo+r; i < hi-r; i += step )
+            Cnf_AddSorder( p, pVars, i, i+r, pnVars );
+    }
+}
+static inline void Cnf_AddCardinConstrRange( sat_solver * p, int * pVars, int lo, int hi, int * pnVars )
+{
+    if ( hi - lo >= 1 )
+    {
+        int i, mid = lo + (hi - lo) / 2;
+        for ( i = lo; i <= mid; i++ )
+            Cnf_AddSorder( p, pVars, i, i + (hi - lo + 1) / 2, pnVars );
+        Cnf_AddCardinConstrRange( p, pVars, lo, mid, pnVars );
+        Cnf_AddCardinConstrRange( p, pVars, mid+1, hi, pnVars );
+        Cnf_AddCardinConstrMerge( p, pVars, lo, hi, 1, pnVars );
+    }
+}
+void Cnf_AddCardinConstrPairWise( sat_solver * p, Vec_Int_t * vVars, int K, int fStrict )
+{
+    int nVars = sat_solver_nvars(p);
+    int nSizeOld = Vec_IntSize(vVars);
+    int i, iVar, nSize, Lit, nVarsOld;
+    assert( nSizeOld >= 2 );
+    // check that vars are ok
+    Vec_IntForEachEntry( vVars, iVar, i )
+        assert( iVar >= 0 && iVar < nVars );
+    // make the size a degree of two
+    for ( nSize = 1; nSize < nSizeOld; nSize *= 2 );
+    // extend
+    sat_solver_setnvars( p, nVars + 1 + nSize * nSize / 2 );
+    if ( nSize != nSizeOld )
+    {
+        // fill in with const0
+        Vec_IntFillExtra( vVars, nSize, nVars );
+        // add const0 variable
+        Lit = Abc_Var2Lit( nVars++, 1 );
+        if ( !sat_solver_addclause( p, &Lit, &Lit+1 ) )
+            assert( 0 );
+    }
+    // construct recursively
+    nVarsOld = nVars;
+    Cnf_AddCardinConstrRange( p, Vec_IntArray(vVars), 0, nSize - 1, &nVars );
+    // add final constraint
+    assert( K > 0 && K < nSizeOld );
+    Lit = Abc_Var2Lit( Vec_IntEntry(vVars, K), 1 );
+    if ( !sat_solver_addclause( p, &Lit, &Lit+1 ) )
+        assert( 0 );
+    if ( fStrict )
+    {
+        Lit = Abc_Var2Lit( Vec_IntEntry(vVars, K-1), 0 );
+        if ( !sat_solver_addclause( p, &Lit, &Lit+1 ) )
+            assert( 0 );
+    }
+    // return to the old size
+    Vec_IntShrink( vVars, 0 ); // make it unusable
+    //printf( "The %d input sorting network contains %d sorters.\n", nSize, (nVars - nVarsOld)/2 );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Adds a general cardinality constraint in terms of vVars.]
+
+  Description [Strict is "exactly K out of N". Non-strict is 
+  "less or equal than K out of N".]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 static inline int Cnf_AddCardinVar( int Level, int Base, Vec_Int_t * vVars, int k )
 {
     return Level ? Base + k : Vec_IntEntry( vVars, k );
 }
-static inline void Cnf_AddCardinConstrGeneral( sat_solver * p, Vec_Int_t * vVars, int K, int fStrict )
+void Cnf_AddCardinConstrGeneral( sat_solver * p, Vec_Int_t * vVars, int K, int fStrict )
 {
     int i, k, iCur, iNext, iVar, Lit;
     int nVars = sat_solver_nvars(p);
@@ -149,12 +234,12 @@ static inline int Cnf_AddCardinConstr( sat_solver * p, Vec_Int_t * vVars )
 }
 void Cnf_AddCardinConstrTest()
 {
-    int i, status, Count = 1, nVars = 6;
+    int i, status, Count = 1, nVars = 8;
     Vec_Int_t * vVars = Vec_IntStartNatural( nVars );
     sat_solver * pSat = sat_solver_new();
     sat_solver_setnvars( pSat, nVars );
-    Cnf_AddCardinConstr( pSat, vVars );
-    //Cnf_AddCardinConstrGeneral( pSat, vVars, 1, 1 );
+    //Cnf_AddCardinConstr( pSat, vVars );
+    Cnf_AddCardinConstrPairWise( pSat, vVars, 2, 1 );
     while ( 1 )
     {
         status = sat_solver_solve( pSat, NULL, NULL, 0, 0, 0, 0 );
