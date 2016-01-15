@@ -586,7 +586,6 @@ Vec_Int_t * Pdr_ManDeriveInfinityClauses( Pdr_Man_t * p, int fReduce )
     Vec_Ptr_t * vCubes;
     Pdr_Set_t * pCube;
     int i, v, kStart;
-    abctime clk = Abc_Clock();
     // collect cubes used in the inductive invariant
     kStart = Pdr_ManFindInvariantStart( p );
     vCubes = Pdr_ManCollectCubes( p, kStart );
