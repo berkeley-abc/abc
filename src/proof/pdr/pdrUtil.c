@@ -251,6 +251,46 @@ void Pdr_SetPrint( FILE * pFile, Pdr_Set_t * p, int nRegs, Vec_Int_t * vFlopCoun
 
 /**Function*************************************************************
 
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Pdr_SetPrintStr( Vec_Str_t * vStr, Pdr_Set_t * p, int nRegs, Vec_Int_t * vFlopCounts )
+{
+    char * pBuff;
+    int i, k = 0, Entry;
+    pBuff = ABC_ALLOC( char, nRegs + 1 );
+    for ( i = 0; i < nRegs; i++ )
+        pBuff[i] = '-';
+    pBuff[i] = 0;
+    for ( i = 0; i < p->nLits; i++ )
+    {
+        if ( p->Lits[i] == -1 )
+            continue;
+        pBuff[lit_var(p->Lits[i])] = (lit_sign(p->Lits[i])? '0':'1');
+    }
+    if ( vFlopCounts )
+    {
+        // skip some literals
+        Vec_IntForEachEntry( vFlopCounts, Entry, i )
+            if ( Entry ) 
+                pBuff[k++] = pBuff[i];
+        pBuff[k] = 0;
+    }
+    Vec_StrPushBuffer( vStr, pBuff, k );
+    Vec_StrPush( vStr, ' ' );
+    Vec_StrPush( vStr, '0' );
+    Vec_StrPush( vStr, '\n' );
+    ABC_FREE( pBuff );
+}
+
+/**Function*************************************************************
+
   Synopsis    [Return 1 if pOld set-theoretically contains pNew.]
 
   Description []

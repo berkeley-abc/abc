@@ -283,7 +283,7 @@ int Pdr_ManCheckCubeCs( Pdr_Man_t * p, int k, Pdr_Set_t * pCube )
   SeeAlso     []
 
 ***********************************************************************/
-int Pdr_ManCheckCube( Pdr_Man_t * p, int k, Pdr_Set_t * pCube, Pdr_Set_t ** ppPred, int nConfLimit )
+int Pdr_ManCheckCube( Pdr_Man_t * p, int k, Pdr_Set_t * pCube, Pdr_Set_t ** ppPred, int nConfLimit, int fTryConf )
 { 
     int fUseLit = 1;
     int fLitUsed = 0;
@@ -329,10 +329,15 @@ int Pdr_ManCheckCube( Pdr_Man_t * p, int k, Pdr_Set_t * pCube, Pdr_Set_t ** ppPr
         // solve 
         clk = Abc_Clock();
         Limit = sat_solver_set_runtime_limit( pSat, Pdr_ManTimeLimit(p) );
-        RetValue = sat_solver_solve( pSat, Vec_IntArray(vLits), Vec_IntArray(vLits) + Vec_IntSize(vLits), nConfLimit, 0, 0, 0 );
+        RetValue = sat_solver_solve( pSat, Vec_IntArray(vLits), Vec_IntArray(vLits) + Vec_IntSize(vLits), fTryConf ? p->pPars->nConfGenLimit : nConfLimit, 0, 0, 0 );
         sat_solver_set_runtime_limit( pSat, Limit );
         if ( RetValue == l_Undef )
-            return -1;
+        {
+            if ( fTryConf && p->pPars->nConfGenLimit )
+                RetValue = l_True;
+            else
+                return -1;
+        }
 /*
         if ( RetValue == l_True )
         {

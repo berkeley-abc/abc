@@ -163,6 +163,7 @@ void Pdr_ManStop( Pdr_Man_t * p )
     Vec_IntFree( p->vCi2Rem   );  // CIs to be removed
     Vec_IntFree( p->vRes      );  // final result
     Vec_IntFree( p->vSuppLits );  // support literals
+    Vec_PtrFreeP( &p->vInfCubes );
     ABC_FREE( p->pCubeJust );
     ABC_FREE( p->pTime4Outs );
     if ( p->vCexes )

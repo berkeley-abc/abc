@@ -129,6 +129,8 @@ struct Abc_Frame_t_
     void *          pAbc85Delay;
     void *          pAbcWlc;
     Vec_Int_t *     pAbcWlcInv;
+    Vec_Int_t *     pAbcWlcCnf;
+    Vec_Str_t *     pAbcWlcStr;
     void *          pAbcBac;
     void *          pAbcCba;
     void *          pAbcPla;

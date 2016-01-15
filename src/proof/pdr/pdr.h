@@ -44,6 +44,7 @@ struct Pdr_Par_t_
     int nRecycle;         // limit on vars for recycling
     int nFrameMax;        // limit on frame count
     int nConfLimit;       // limit on SAT solver conflicts
+    int nConfGenLimit;    // limit on SAT solver conflicts during generalization
     int nRestLimit;       // limit on the number of proof-obligations
     int nTimeOut;         // timeout in seconds
     int nTimeOutGap;      // approximate timeout in seconds since the last change

@@ -55,6 +55,7 @@ void Pdr_ManSetDefaultParams( Pdr_Par_t * pPars )
     pPars->nTimeOut       =       0;  // timeout in seconds
     pPars->nTimeOutGap    =       0;  // timeout in seconds since the last solved
     pPars->nConfLimit     =       0;  // limit on SAT solver conflicts
+    pPars->nConfGenLimit  =       0;  // limit on SAT solver conflicts during generalization
     pPars->nRestLimit     =       0;  // limit on the number of proof-obligations
     pPars->fTwoRounds     =       0;  // use two rounds for generalization
     pPars->fMonoCnf       =       0;  // monolythic CNF
@@ -115,7 +116,7 @@ Pdr_Set_t * Pdr_ManReduceClause( Pdr_Man_t * p, int k, Pdr_Set_t * pCube )
     // make sure the cube works
     {
     int RetValue;
-    RetValue = Pdr_ManCheckCube( p, k, pCubeMin, NULL, 0 );
+    RetValue = Pdr_ManCheckCube( p, k, pCubeMin, NULL, 0, 0 );
     assert( RetValue );
     }
 */
@@ -162,7 +163,7 @@ int Pdr_ManPushClauses( Pdr_Man_t * p )
             }
 
             // check if the clause can be moved to the next frame
-            RetValue2 = Pdr_ManCheckCube( p, k, pCubeK, NULL, 0 );
+            RetValue2 = Pdr_ManCheckCube( p, k, pCubeK, NULL, 0, 0 );
             if ( RetValue2 == -1 )
                 return -1;
             if ( !RetValue2 )
@@ -310,7 +311,7 @@ int Pdr_ManGeneralize( Pdr_Man_t * p, int k, Pdr_Set_t * pCube, Pdr_Set_t ** ppP
     int * pOrder;
     // if there is no induction, return
     *ppCubeMin = NULL;
-    RetValue = Pdr_ManCheckCube( p, k, pCube, ppPred, p->pPars->nConfLimit );
+    RetValue = Pdr_ManCheckCube( p, k, pCube, ppPred, p->pPars->nConfLimit, 0 );
     if ( RetValue == -1 )
         return -1;
     if ( RetValue == 0 )
@@ -343,7 +344,7 @@ int Pdr_ManGeneralize( Pdr_Man_t * p, int k, Pdr_Set_t * pCube, Pdr_Set_t ** ppP
                 continue;
             // try removing this literal
             Lit = pCubeMin->Lits[i]; pCubeMin->Lits[i] = -1;
-            RetValue = Pdr_ManCheckCube( p, k, pCubeMin, NULL, p->pPars->nConfLimit );
+            RetValue = Pdr_ManCheckCube( p, k, pCubeMin, NULL, p->pPars->nConfLimit, 1 );
             if ( RetValue == -1 )
             {
                 Pdr_SetDeref( pCubeMin );
@@ -381,7 +382,7 @@ int Pdr_ManGeneralize( Pdr_Man_t * p, int k, Pdr_Set_t * pCube, Pdr_Set_t ** ppP
                 continue;
             // try removing this literal
             Lit = pCubeMin->Lits[i]; pCubeMin->Lits[i] = -1;
-            RetValue = Pdr_ManCheckCube( p, k, pCubeMin, NULL, p->pPars->nConfLimit );
+            RetValue = Pdr_ManCheckCube( p, k, pCubeMin, NULL, p->pPars->nConfLimit, 0 );
             if ( RetValue == -1 )
             {
                 Pdr_SetDeref( pCubeMin );
@@ -494,7 +495,7 @@ int Pdr_ManBlockCube( Pdr_Man_t * p, Pdr_Set_t * pCube )
             assert( pPred == NULL );
             for ( k = pThis->iFrame; k < kMax; k++ )
             {
-                RetValue = Pdr_ManCheckCube( p, k, pCubeMin, NULL, 0 );
+                RetValue = Pdr_ManCheckCube( p, k, pCubeMin, NULL, 0, 0 );
                 if ( RetValue == -1 )
                 {
                     Pdr_OblDeref( pThis );
@@ -659,7 +660,7 @@ int Pdr_ManSolveInt( Pdr_Man_t * p )
                     p->pPars->iFrame = k;
                     return -1;
                 }
-                RetValue = Pdr_ManCheckCube( p, k, NULL, &pCube, p->pPars->nConfLimit );
+                RetValue = Pdr_ManCheckCube( p, k, NULL, &pCube, p->pPars->nConfLimit, 0 );
                 if ( RetValue == 1 )
                     break;
                 if ( RetValue == -1 )
@@ -911,10 +912,6 @@ int Pdr_ManSolve( Aig_Man_t * pAig, Pdr_Par_t * pPars )
     RetValue = Pdr_ManSolveInt( p );
     if ( RetValue == 0 )
         assert( pAig->pSeqModel != NULL || p->vCexes != NULL );
-    if ( RetValue == 1 )
-        Abc_FrameSetInv( Pdr_ManCountFlopsInv(p) );
-    else
-        Abc_FrameSetInv( NULL );
     if ( p->vCexes )
     {
         assert( p->pAig->vSeqModelVec == NULL );
@@ -922,7 +919,12 @@ int Pdr_ManSolve( Aig_Man_t * pAig, Pdr_Par_t * pPars )
         p->vCexes = NULL;
     }
     if ( p->pPars->fDumpInv )
+    {
+        Abc_FrameSetCnf( Pdr_ManDeriveInfinityClauses( p, RetValue!=1 ) );
+        Abc_FrameSetStr( Pdr_ManDumpString(p) );
+        Abc_FrameSetInv( Pdr_ManCountFlopsInv(p) );
         Pdr_ManDumpClauses( p, (char *)"inv.pla", RetValue==1 );
+    }
     p->tTotal += Abc_Clock() - clk;
     Pdr_ManStop( p );
     pPars->iFrame--;

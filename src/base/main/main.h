@@ -143,6 +143,8 @@ extern ABC_DLL void            Abc_FrameSetStatus( int Status );
 extern ABC_DLL void            Abc_FrameSetManDsd( void * pMan );
 extern ABC_DLL void            Abc_FrameSetManDsd2( void * pMan );
 extern ABC_DLL void            Abc_FrameSetInv( Vec_Int_t * vInv );
+extern ABC_DLL void            Abc_FrameSetCnf( Vec_Int_t * vInv );
+extern ABC_DLL void            Abc_FrameSetStr( Vec_Str_t * vInv );
 
 extern ABC_DLL int             Abc_FrameCheckPoConst( Abc_Frame_t * p, int iPoNum );
 

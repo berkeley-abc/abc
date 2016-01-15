@@ -33,6 +33,7 @@ static int  Abc_CommandWriteWlc ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int  Abc_CommandPs       ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int  Abc_CommandBlast    ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int  Abc_CommandPsInv    ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int  Abc_CommandGetInv   ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int  Abc_CommandTest     ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 static inline Wlc_Ntk_t * Wlc_AbcGetNtk( Abc_Frame_t * pAbc )                       { return (Wlc_Ntk_t *)pAbc->pAbcWlc;                      }
@@ -40,6 +41,8 @@ static inline void        Wlc_AbcFreeNtk( Abc_Frame_t * pAbc )                  
 static inline void        Wlc_AbcUpdateNtk( Abc_Frame_t * pAbc, Wlc_Ntk_t * pNtk )  { Wlc_AbcFreeNtk(pAbc); pAbc->pAbcWlc = pNtk;             }
 
 static inline Vec_Int_t * Wlc_AbcGetInv( Abc_Frame_t * pAbc )                       { return pAbc->pAbcWlcInv;                                }
+static inline Vec_Int_t * Wlc_AbcGetCnf( Abc_Frame_t * pAbc )                       { return pAbc->pAbcWlcCnf;                                }
+static inline Vec_Str_t * Wlc_AbcGetStr( Abc_Frame_t * pAbc )                       { return pAbc->pAbcWlcStr;                                }
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -63,6 +66,7 @@ void Wlc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Word level", "%ps",         Abc_CommandPs,        0 );
     Cmd_CommandAdd( pAbc, "Word level", "%blast",      Abc_CommandBlast,     0 );
     Cmd_CommandAdd( pAbc, "Word level", "%psinv",      Abc_CommandPsInv,     0 );
+    Cmd_CommandAdd( pAbc, "Word level", "%getinv",     Abc_CommandGetInv,    0 );
     Cmd_CommandAdd( pAbc, "Word level", "%test",       Abc_CommandTest,      0 );
 }
 
@@ -421,7 +425,68 @@ int Abc_CommandPsInv( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
     usage:
     Abc_Print( -2, "usage: %%psinv [-vh]\n" );
-    Abc_Print( -2, "\t         prints inductive invariant statistics\n" );
+    Abc_Print( -2, "\t         prints statistics for inductive invariant\n" );
+    Abc_Print( -2, "\t         (in the case of \'sat\' or \'undecided\', inifity clauses are used)\n" );
+    Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
+    return 1;
+}
+
+/**Function********************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+******************************************************************************/
+int Abc_CommandGetInv( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern Abc_Ntk_t * Wlc_NtkGetInv( Wlc_Ntk_t * pNtk, Vec_Int_t * vInv, Vec_Str_t * vSop, int fVerbose );
+    Abc_Ntk_t * pMainNtk;
+    Wlc_Ntk_t * pNtk = Wlc_AbcGetNtk(pAbc);
+    int c, fVerbose  = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+            case 'v':
+                fVerbose ^= 1;
+                break;
+            case 'h':
+                goto usage;
+            default:
+                goto usage;
+        }
+    }
+    if ( pNtk == NULL )
+    {
+        Abc_Print( 1, "Abc_CommandGetInv(): There is no current design.\n" );
+        return 0;
+    }
+    if ( Wlc_AbcGetNtk(pAbc) == NULL )
+    {
+        Abc_Print( 1, "Abc_CommandGetInv(): There is no saved invariant.\n" );
+        return 0;
+    }
+    if ( Wlc_AbcGetInv(pAbc) == NULL )
+    {
+        Abc_Print( 1, "Abc_CommandGetInv(): Invariant is not available.\n" );
+        return 0;
+    }
+    // derive the network
+    pMainNtk = Wlc_NtkGetInv( pNtk, Wlc_AbcGetInv(pAbc), Wlc_AbcGetStr(pAbc), fVerbose );
+    // replace the current network
+    Abc_FrameReplaceCurrentNetwork( pAbc, pMainNtk );
+    return 0;
+    usage:
+    Abc_Print( -2, "usage: %%getinv [-vh]\n" );
+    Abc_Print( -2, "\t         places invariant found by PDR as the current network in the main-space\n" );
+    Abc_Print( -2, "\t         (in the case of \'sat\' or \'undecided\', inifity clauses are used)\n" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
