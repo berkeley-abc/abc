@@ -1930,6 +1930,98 @@ Vec_Int_t * Gia_ManPoXSim( Gia_Man_t * p, int nFrames, int fVerbose )
     return vRes;
 }
 
+#define MAX_LUT_SIZE 8
+typedef struct Gia_MapLut_t_
+{
+    int        Type;          // node type: PI=1, PO=2, LUT=3
+    int        Out;           // ID
+    int        StartId;       // -1
+    int        nFans;         // fanin count
+    float      Delay;         // 0.0
+    int        pFans[MAX_LUT_SIZE];  // fanin IDs
+    unsigned   pTruth[MAX_LUT_SIZE<6?1:(1<<(MAX_LUT_SIZE-5))]; // the truth table
+} Gia_MapLut_t;
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_AigerWriteLut( Gia_Man_t * p, char * pFileName )
+{
+    Gia_Obj_t * pObj;
+    int i, k, iFan, iLut = 0;
+    int LutSizeMax = Gia_ManLutSizeMax( p );
+    int nUints = Abc_TruthWordNum(LutSizeMax);
+    int nLuts = 1 + Gia_ManCiNum(p) + Gia_ManCoNum(p) + Gia_ManLutNum(p);
+    Gia_MapLut_t * pLuts = ABC_CALLOC( Gia_MapLut_t, nLuts );
+    Vec_Wrd_t * vTruths = Vec_WrdStart( Gia_ManObjNum(p) );
+    assert( LutSizeMax <= 6 );
+    // set obj numbers
+    // constant
+    pLuts->Type = 3;
+    memset( pLuts->pTruth, 0xFF, sizeof(unsigned) * nUints );
+    Gia_ManFillValue(p);
+    Gia_ManConst0(p)->Value = pLuts[iLut].Out = Abc_Var2Lit( iLut, 0 );
+    iLut++;
+    // inputs
+    Gia_ManForEachCi( p, pObj, i )
+    {
+        pLuts[iLut].Type = 1;
+        memset( pLuts[iLut].pTruth, 0xAA, sizeof(unsigned) * nUints );
+        pObj->Value = pLuts[iLut].Out = Abc_Var2Lit( iLut, 0 );
+        iLut++;
+    }
+    // nodes
+    Gia_ManForEachObj( p, pObj, i )
+        if ( i && Gia_ObjIsLut(p, i) )
+        {
+            pLuts[iLut].Type = 3;
+            Gia_LutForEachFanin( p, i, iFan, k )
+                pLuts[iLut].pFans[k] = Gia_ManObj(p, iFan)->Value;
+            pLuts[iLut].nFans = k;
+            *(word *)pLuts[iLut].pTruth = Gia_LutComputeTruth6(p, i, vTruths);
+            pObj->Value = pLuts[iLut].Out = Abc_Var2Lit( iLut, 0 );
+            iLut++;
+        }
+    // outputs
+    Gia_ManForEachCo( p, pObj, i )
+    {
+        pLuts[iLut].Type = 2;
+        pLuts[iLut].pFans[0] = Gia_ObjFanin0(pObj)->Value;
+        if ( Gia_ObjFaninC0(pObj) ^ Gia_ObjIsConst0(Gia_ObjFanin0(pObj)) )
+            memset( pLuts[iLut].pTruth, 0x55, sizeof(unsigned) * nUints );
+        else
+            memset( pLuts[iLut].pTruth, 0xAA, sizeof(unsigned) * nUints );
+        pLuts[iLut].nFans = 1;
+        pObj->Value = pLuts[iLut].Out = Abc_Var2Lit( iLut, 0 );
+        iLut++;
+    }
+    assert( iLut == nLuts );
+    // dump into a file
+    {
+        FILE * pFile = fopen( pFileName, "wb" );
+        if ( pFile == NULL )
+            printf( "Cannot open file \"%s\" for writing.\n", pFileName );
+        else
+        {
+            int nSize1 = nLuts * sizeof(Gia_MapLut_t);
+            int nSize2 = fwrite( pLuts, 1, nSize1, pFile );
+            assert( nSize1 == nSize2 );
+            printf( "Successfully dumped %d bytes of binary data.\n", nSize1 );
+        }
+        fclose( pFile );
+    }
+    ABC_FREE( pLuts );
+    Vec_WrdFree( vTruths );
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

@@ -54,6 +54,48 @@ static inline word * Gla_ObjTruthDup( Gia_Man_t * p, word * pDst, word * pSrc, i
 
 /**Function*************************************************************
 
+  Synopsis    [Compute truth table.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+word Gia_LutComputeTruth6_rec( Gia_Man_t * p, int iNode, Vec_Wrd_t * vTruths )
+{
+    Gia_Obj_t * pObj;
+    word Truth0, Truth1;
+    if ( Gia_ObjIsTravIdCurrentId(p, iNode) )
+        return Vec_WrdEntry(vTruths, iNode);
+    Gia_ObjSetTravIdCurrentId(p, iNode);
+    pObj = Gia_ManObj( p, iNode );
+    assert( Gia_ObjIsAnd(pObj) );
+    Truth0 = Gia_LutComputeTruth6_rec( p, Gia_ObjFaninId0p(p, pObj), vTruths );
+    Truth1 = Gia_LutComputeTruth6_rec( p, Gia_ObjFaninId1p(p, pObj), vTruths );
+    if ( Gia_ObjFaninC0(pObj) )
+        Truth0 = ~Truth0;
+    if ( Gia_ObjFaninC1(pObj) )
+        Truth1 = ~Truth1;
+    Vec_WrdWriteEntry( vTruths, iNode, Truth0 & Truth1 );
+    return Truth0 & Truth1;
+}
+word Gia_LutComputeTruth6( Gia_Man_t * p, int iObj, Vec_Wrd_t * vTruths )
+{
+    int k, iFan;
+    assert( Gia_ObjIsLut(p, iObj) );
+    Gia_ManIncrementTravId( p );
+    Gia_LutForEachFanin( p, iObj, iFan, k )
+    {
+        Vec_WrdWriteEntry( vTruths, iFan, s_Truths6[k] );
+        Gia_ObjSetTravIdCurrentId( p, iFan );
+    }
+    return Gia_LutComputeTruth6_rec( p, iObj, vTruths );
+}
+
+/**Function*************************************************************
+
   Synopsis    [Computes truth table of a 6-LUT.]
 
   Description []
