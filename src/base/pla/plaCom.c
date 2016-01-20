@@ -290,15 +290,17 @@ usage:
 ******************************************************************************/
 int Abc_CommandGen( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
+    extern void Pla_GenSorter( int nVars );
     Pla_Man_t * p  = NULL;
     int nInputs      =  8;
     int nOutputs     =  1;
     int nCubes       = 20;
     int Seed         =  0;
+    int fSorter      =  0;
     int fPrimes      =  0;
     int c, fVerbose  =  0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "IOPSpvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "IOPSspvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -346,6 +348,9 @@ int Abc_CommandGen( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( Seed < 0 )
                 goto usage;
             break;
+        case 's':
+            fSorter ^= 1;
+            break;
         case 'p':
             fPrimes ^= 1;
             break;
@@ -358,7 +363,9 @@ int Abc_CommandGen( Abc_Frame_t * pAbc, int argc, char ** argv )
             goto usage;
         }
     }
-    if ( fPrimes )
+    if ( fSorter )
+        Pla_GenSorter( nInputs );
+    else if ( fPrimes )
         p = Pla_ManPrimesDetector( nInputs );
     else
     {
@@ -370,12 +377,13 @@ int Abc_CommandGen( Abc_Frame_t * pAbc, int argc, char ** argv )
     Pla_AbcUpdateMan( pAbc, p );
     return 0;
 usage:
-    Abc_Print( -2, "usage: |gen [-IOPS num] [-pvh]\n" );
+    Abc_Print( -2, "usage: |gen [-IOPS num] [-spvh]\n" );
     Abc_Print( -2, "\t         generate random or specialized SOP\n" );
     Abc_Print( -2, "\t-I num : the number of inputs [default = %d]\n", nInputs );
     Abc_Print( -2, "\t-O num : the number of outputs [default = %d]\n", nOutputs );
     Abc_Print( -2, "\t-P num : the number of products [default = %d]\n", nCubes );
     Abc_Print( -2, "\t-S num : ramdom seed (0 <= num <= 1000) [default = %d]\n", Seed );
+    Abc_Print( -2, "\t-s     : toggle generating sorter as a PLA file [default = %s]\n", fSorter? "yes": "no" );
     Abc_Print( -2, "\t-p     : toggle generating prime detector [default = %s]\n", fPrimes? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
