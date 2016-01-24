@@ -336,13 +336,17 @@ void Sfm_TimUpdateTiming( Sfm_Tim_t * p, Vec_Int_t * vTimeNodes )
 int Sfm_TimSortArrayByArrival( Sfm_Tim_t * p, Vec_Int_t * vNodes, int iPivot )
 {
     word Entry; 
-    int i, Id, nDivNew = -1; 
-    int MaxDelay = Sfm_TimArrMaxId(p, iPivot);
+    int i, Id, Time, nDivNew = -1; 
+    int MaxDelay = ABC_INFINITY/2+Sfm_TimArrMaxId(p, iPivot);
     assert( p->DeltaCrit > 0 );
     // collect nodes
     Vec_WrdClear( &p->vSortData );
     Vec_IntForEachEntry( vNodes, Id, i )
-        Vec_WrdPush( &p->vSortData, ((word)Id << 32) | Sfm_TimArrMaxId(p, Id) );
+    {
+        Time = Sfm_TimArrMaxId( p, Id );
+        assert( -ABC_INFINITY/2 < Time && Time < ABC_INFINITY/2 );
+        Vec_WrdPush( &p->vSortData, ((word)Id << 32) | (ABC_INFINITY/2+Time) );
+    }
     // sort nodes by delay
     Abc_QuickSort3( Vec_WrdArray(&p->vSortData), Vec_WrdSize(&p->vSortData), 0 );
     // collect sorted nodes and find place where divisors end
