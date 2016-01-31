@@ -1266,7 +1266,7 @@ void If_DsdManInvertMarks( If_DsdMan_t * p, int fVerbose )
     If_DsdObj_t * pObj; 
     int i;
     ABC_FREE( p->pCellStr );
-    Vec_WrdFreeP( &p->vConfigs );
+    //Vec_WrdFreeP( &p->vConfigs );
     If_DsdVecForEachObj( &p->vObjs, pObj, i )
         pObj->fMark = !pObj->fMark;
 }
