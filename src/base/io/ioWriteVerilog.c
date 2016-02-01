@@ -485,6 +485,7 @@ void Io_WriteVerilogLatches( FILE * pFile, Abc_Ntk_t * pNtk )
 ***********************************************************************/
 void Io_WriteVerilogObjects( FILE * pFile, Abc_Ntk_t * pNtk )
 {
+    int fUseSimpleGateNames = 0;
     Vec_Vec_t * vLevels;
     Abc_Ntk_t * pNtkBox;
     Abc_Obj_t * pObj, * pTerm, * pFanin;
@@ -529,17 +530,29 @@ void Io_WriteVerilogObjects( FILE * pFile, Abc_Ntk_t * pNtk )
                 continue;
             }
             // write the node
-            fprintf( pFile, "  %-*s g%0*d", Length, Mio_GateReadName(pGate), nDigits, Counter++ );
-            fprintf( pFile, "(" );
-            for ( pGatePin = Mio_GateReadPins(pGate), i = 0; pGatePin; pGatePin = Mio_PinReadNext(pGatePin), i++ )
+            if ( fUseSimpleGateNames )
             {
-                fprintf( pFile, ".%s", Io_WriteVerilogGetName(Mio_PinReadName(pGatePin)) );
-                fprintf( pFile, "(%s), ", Io_WriteVerilogGetName(Abc_ObjName( Abc_ObjFanin(pObj,i) )) );
+                fprintf( pFile, "%-*s ", Length, Mio_GateReadName(pGate) );
+                fprintf( pFile, "( %s", Io_WriteVerilogGetName(Abc_ObjName( Abc_ObjFanout0(pObj) )) );
+                for ( pGatePin = Mio_GateReadPins(pGate), i = 0; pGatePin; pGatePin = Mio_PinReadNext(pGatePin), i++ )
+                    fprintf( pFile, ", %s", Io_WriteVerilogGetName(Abc_ObjName( Abc_ObjFanin(pObj,i) )) );
+                assert ( i == Abc_ObjFaninNum(pObj) );
+                fprintf( pFile, " );\n" );
             }
-            assert ( i == Abc_ObjFaninNum(pObj) );
-            fprintf( pFile, ".%s", Io_WriteVerilogGetName(Mio_GateReadOutName(pGate)) );
-            fprintf( pFile, "(%s)", Io_WriteVerilogGetName(Abc_ObjName( Abc_ObjFanout0(pObj) )) );
-            fprintf( pFile, ");\n" );
+            else
+            {
+                fprintf( pFile, "  %-*s g%0*d", Length, Mio_GateReadName(pGate), nDigits, Counter++ );
+                fprintf( pFile, "(" );
+                for ( pGatePin = Mio_GateReadPins(pGate), i = 0; pGatePin; pGatePin = Mio_PinReadNext(pGatePin), i++ )
+                {
+                    fprintf( pFile, ".%s", Io_WriteVerilogGetName(Mio_PinReadName(pGatePin)) );
+                    fprintf( pFile, "(%s), ", Io_WriteVerilogGetName(Abc_ObjName( Abc_ObjFanin(pObj,i) )) );
+                }
+                assert ( i == Abc_ObjFaninNum(pObj) );
+                fprintf( pFile, ".%s", Io_WriteVerilogGetName(Mio_GateReadOutName(pGate)) );
+                fprintf( pFile, "(%s)", Io_WriteVerilogGetName(Abc_ObjName( Abc_ObjFanout0(pObj) )) );
+                fprintf( pFile, ");\n" );
+            }
         }
     }
     else
