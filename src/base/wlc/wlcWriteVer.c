@@ -202,6 +202,14 @@ void Wlc_WriteVerInt( FILE * pFile, Wlc_Ntk_t * p, int fNoFlops )
         else if ( pObj->Type == WLC_OBJ_CONST )
         {
             fprintf( pFile, "%-16s = %d\'%sh", Wlc_ObjName(p, i), Wlc_ObjRange(pObj), Wlc_ObjIsSigned(pObj) ? "s":"" );
+            if ( pObj->fXConst )
+            {
+                for ( k = 0; k < (Wlc_ObjRange(pObj) + 3) / 4; k++ )
+                    fprintf( pFile, "x" );
+            }
+            else
+                fprintf( pFile, "%-16s = %d\'%sh", Wlc_ObjName(p, i), Wlc_ObjRange(pObj), Wlc_ObjIsSigned(pObj) ? "s":"" );
+
             Abc_TtPrintHexArrayRev( pFile, (word *)Wlc_ObjConstValue(pObj), (Wlc_ObjRange(pObj) + 3) / 4 );
         }
         else if ( pObj->Type == WLC_OBJ_ROTATE_R || pObj->Type == WLC_OBJ_ROTATE_L )

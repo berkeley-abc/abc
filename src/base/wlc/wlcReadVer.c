@@ -440,14 +440,14 @@ char * Wlc_PrsConvertInitValues( Wlc_Ntk_t * p )
         Value = Wlc_ObjRange(pObj);
         while ( pObj->Type == WLC_OBJ_BUF )
             pObj = Wlc_NtkObj( p, Wlc_ObjFaninId0(pObj) );
-        pInits = pObj->Type == WLC_OBJ_CONST ? Wlc_ObjConstValue(pObj) : NULL;
+        pInits = (pObj->Type == WLC_OBJ_CONST && !pObj->fXConst) ? Wlc_ObjConstValue(pObj) : NULL;
         for ( k = 0; k < Abc_MinInt(Value, Wlc_ObjRange(pObj)); k++ )
             Vec_StrPush( vStr, (char)(pInits ? '0' + Abc_InfoHasBit((unsigned *)pInits, k) : 'X') );
         // extend values with zero, in case the init value signal has different range compared to constant used
         for ( ; k < Value; k++ )
             Vec_StrPush( vStr, '0' );
         // update vInits to contain either number of values or PI index
-        Vec_IntWriteEntry( p->vInits, i, pInits ? -Value : Wlc_ObjCiId(pObj) );
+        Vec_IntWriteEntry( p->vInits, i, (pInits || pObj->fXConst) ? -Value : Wlc_ObjCiId(pObj) );
     }
     Vec_StrPush( vStr, '\0' );
     pResult = Vec_StrReleaseArray( vStr );
@@ -530,11 +530,12 @@ static inline char * Wlc_PrsFindName( char * pStr, char ** ppPlace )
     *pThis = 0;
     return pStr;
 }
-static inline char * Wlc_PrsReadConstant( Wlc_Prs_t * p, char * pStr, Vec_Int_t * vFanins, int * pRange, int * pSigned )
+static inline char * Wlc_PrsReadConstant( Wlc_Prs_t * p, char * pStr, Vec_Int_t * vFanins, int * pRange, int * pSigned, int * pXValue )
 {
     int i, nDigits, nBits = atoi( pStr );
     *pRange = -1;
     *pSigned = 0;
+    *pXValue = 0;
     pStr = Wlc_PrsSkipSpaces( pStr );
     if ( Wlc_PrsFindSymbol( pStr, '\'' ) == NULL )
     {
@@ -567,6 +568,7 @@ static inline char * Wlc_PrsReadConstant( Wlc_Prs_t * p, char * pStr, Vec_Int_t 
     }
     if ( pStr[1] != 'h' )
         return (char *)(ABC_PTRINT_T)Wlc_PrsWriteErrorMessage( p, pStr, "Expecting hexadecimal constant and not \"%c\".", pStr[1] );
+    *pXValue = (pStr[2] == 'x' || pStr[2] == 'X');
     Vec_IntFill( vFanins, Abc_BitWordNum(nBits), 0 );
     nDigits = Abc_TtReadHexNumber( (word *)Vec_IntArray(vFanins), pStr+2 );
     if ( nDigits != (nBits + 3)/4 )
@@ -587,9 +589,9 @@ static inline char * Wlc_PrsReadName( Wlc_Prs_t * p, char * pStr, Vec_Int_t * vF
     if ( Wlc_PrsIsDigit(pStr) )
     {
         char Buffer[100];
-        int Range, Signed;
+        int Range, Signed, XValue = 0;
         Vec_Int_t * vFanins = Vec_IntAlloc(0);
-        pStr = Wlc_PrsReadConstant( p, pStr, vFanins, &Range, &Signed );
+        pStr = Wlc_PrsReadConstant( p, pStr, vFanins, &Range, &Signed, &XValue );
         if ( pStr == NULL )
         {
             Vec_IntFree( vFanins );
@@ -598,6 +600,7 @@ static inline char * Wlc_PrsReadName( Wlc_Prs_t * p, char * pStr, Vec_Int_t * vF
         // create new node
         iObj = Wlc_ObjAlloc( p->pNtk, WLC_OBJ_CONST, Signed, Range-1, 0 );
         Wlc_ObjAddFanins( p->pNtk, Wlc_NtkObj(p->pNtk, iObj), vFanins );
+        Wlc_NtkObj(p->pNtk, iObj)->fXConst = XValue;
         Vec_IntFree( vFanins );
         // add node's name
         sprintf( Buffer, "_c%d_", p->nConsts++ );
@@ -619,7 +622,7 @@ static inline char * Wlc_PrsReadName( Wlc_Prs_t * p, char * pStr, Vec_Int_t * vF
     Vec_IntPush( vFanins, NameId );
     return Wlc_PrsSkipSpaces( pStr );
 }
-static inline int Wlc_PrsFindDefinition( Wlc_Prs_t * p, char * pStr, Vec_Int_t * vFanins )
+static inline int Wlc_PrsFindDefinition( Wlc_Prs_t * p, char * pStr, Vec_Int_t * vFanins, int * pXValue )
 {
     char * pName;
     int Type = WLC_OBJ_NONE;
@@ -654,7 +657,7 @@ static inline int Wlc_PrsFindDefinition( Wlc_Prs_t * p, char * pStr, Vec_Int_t *
     if ( Wlc_PrsIsDigit(pStr) )
     {
         int Range, Signed;
-        pStr = Wlc_PrsReadConstant( p, pStr, vFanins, &Range, &Signed );
+        pStr = Wlc_PrsReadConstant( p, pStr, vFanins, &Range, &Signed, pXValue );
         if ( pStr == NULL )
             return 0;
         Type = WLC_OBJ_CONST;
@@ -828,7 +831,7 @@ int Wlc_PrsReadDeclaration( Wlc_Prs_t * p, char * pStart )
     }
     while ( 1 )
     {
-        char * pName;
+        char * pName; int XValue;
         // read name
         pStart = Wlc_PrsFindName( pStart, &pName );
         if ( pStart == NULL )
@@ -847,12 +850,13 @@ int Wlc_PrsReadDeclaration( Wlc_Prs_t * p, char * pStart )
             continue;
         }
         // check definition
-        Type = Wlc_PrsFindDefinition( p, pStart, p->vFanins );
+        Type = Wlc_PrsFindDefinition( p, pStart, p->vFanins, &XValue );
         if ( Type )
         {
             Wlc_Obj_t * pObj = Wlc_NtkObj( p->pNtk, iObj );
             Wlc_ObjUpdateType( p->pNtk, pObj, Type );
             Wlc_ObjAddFanins( p->pNtk, pObj, p->vFanins );
+            pObj->fXConst = XValue;
         }
         break;
     }
@@ -976,7 +980,7 @@ startword:
         }
         else if ( Wlc_PrsStrCmp( pStart, "assign" ) )
         {
-            int Type, NameId, fFound;
+            int Type, NameId, fFound, XValue = 0;
             pStart += strlen("assign");
             // read name
             pStart = Wlc_PrsFindName( pStart, &pName );
@@ -986,12 +990,13 @@ startword:
             if ( !fFound )
                 return Wlc_PrsWriteErrorMessage( p, pStart, "Name %s is not declared.", pName );
             // read definition
-            Type = Wlc_PrsFindDefinition( p, pStart, p->vFanins );
+            Type = Wlc_PrsFindDefinition( p, pStart, p->vFanins, &XValue );
             if ( Type )
             {
                 pObj = Wlc_NtkObj( p->pNtk, NameId );
                 Wlc_ObjUpdateType( p->pNtk, pObj, Type );
                 Wlc_ObjAddFanins( p->pNtk, pObj, p->vFanins );
+                pObj->fXConst = XValue;
             }
             else
                 return 0;

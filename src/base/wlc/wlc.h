@@ -108,6 +108,7 @@ struct Wlc_Obj_t_ // 24 bytes
     unsigned               Mark    :  1;       // user mark
     unsigned               fIsPo   :  1;       // this is PO
     unsigned               fIsFi   :  1;       // this is FI
+    unsigned               fXConst :  1;       // this is X-valued constant
     unsigned               nFanins;            // fanin count
     unsigned               End;                // range end
     unsigned               Beg;                // range begin

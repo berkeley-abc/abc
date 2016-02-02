@@ -534,6 +534,7 @@ int Wlc_ObjDup( Wlc_Ntk_t * pNew, Wlc_Ntk_t * p, int iObj, Vec_Int_t * vFanins )
     Wlc_ObjCollectCopyFanins( p, iObj, vFanins );
     Wlc_ObjAddFanins( pNew, pObjNew, vFanins );
     Wlc_ObjSetCopy( p, iObj, iFaninNew );
+    pObjNew->fXConst = pObj->fXConst;
     return iFaninNew;
 }
 void Wlc_NtkDupDfs_rec( Wlc_Ntk_t * pNew, Wlc_Ntk_t * p, int iObj, Vec_Int_t * vFanins )
