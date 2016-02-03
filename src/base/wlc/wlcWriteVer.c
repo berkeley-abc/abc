@@ -208,9 +208,7 @@ void Wlc_WriteVerInt( FILE * pFile, Wlc_Ntk_t * p, int fNoFlops )
                     fprintf( pFile, "x" );
             }
             else
-                fprintf( pFile, "%-16s = %d\'%sh", Wlc_ObjName(p, i), Wlc_ObjRange(pObj), Wlc_ObjIsSigned(pObj) ? "s":"" );
-
-            Abc_TtPrintHexArrayRev( pFile, (word *)Wlc_ObjConstValue(pObj), (Wlc_ObjRange(pObj) + 3) / 4 );
+                Abc_TtPrintHexArrayRev( pFile, (word *)Wlc_ObjConstValue(pObj), (Wlc_ObjRange(pObj) + 3) / 4 );
         }
         else if ( pObj->Type == WLC_OBJ_ROTATE_R || pObj->Type == WLC_OBJ_ROTATE_L )
         {
@@ -360,9 +358,18 @@ void Wlc_WriteVerInt( FILE * pFile, Wlc_Ntk_t * p, int fNoFlops )
                 fprintf( pFile, "%s", Wlc_ObjName(p, Wlc_ObjId(p, Wlc_NtkPi(p, Vec_IntEntry(p->vInits, i-Wlc_NtkPiNum(p))))));
             else
             {
-                fprintf( pFile, "%d\'b", Wlc_ObjRange(pObj) );
-                for ( k = Wlc_ObjRange(pObj)-1; k >= 0; k-- )
-                    fprintf( pFile, "%c", p->pInits[iFanin + k] );
+                if ( p->pInits[0] == 'x' || p->pInits[0] == 'X' )
+                {
+                    fprintf( pFile, "%d\'h", Wlc_ObjRange(pObj) );
+                    for ( k = 0; k < (Wlc_ObjRange(pObj) + 3) / 4; k++ )
+                        fprintf( pFile, "x" );
+                }
+                else
+                {
+                    fprintf( pFile, "%d\'b", Wlc_ObjRange(pObj) );
+                    for ( k = Wlc_ObjRange(pObj)-1; k >= 0; k-- )
+                        fprintf( pFile, "%c", p->pInits[iFanin + k] );
+                }
             }
             fprintf( pFile, ";\n" );
             iFanin += Wlc_ObjRange(pObj);
