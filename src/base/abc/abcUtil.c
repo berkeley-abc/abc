@@ -1212,6 +1212,7 @@ int Abc_NtkLogicMakeSimpleCos( Abc_Ntk_t * pNtk, int fDuplicate )
             else // add buffer
             {
                 pDriverNew = Abc_NtkCreateNodeBuf( pNtk, pDriver );
+                Abc_ObjAssignName( pDriverNew, Abc_ObjName(pDriver), "_buf" );
                 nDupBufs++;
             }
             // swing the PO

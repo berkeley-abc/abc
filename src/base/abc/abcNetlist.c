@@ -66,7 +66,10 @@ Abc_Ntk_t * Abc_NtkToLogic( Abc_Ntk_t * pNtk )
     pNtkNew = Abc_NtkStartFrom( pNtk, ABC_NTK_LOGIC, pNtk->ntkFunc );
     // duplicate the nodes 
     Abc_NtkForEachNode( pNtk, pObj, i )
+    {
         Abc_NtkDupObj(pNtkNew, pObj, 0);
+        Abc_ObjAssignName( pObj->pCopy, Abc_ObjName(Abc_ObjFanout0(pObj)), NULL );
+    }
     // reconnect the internal nodes in the new network
     Abc_NtkForEachNode( pNtk, pObj, i )
         Abc_ObjForEachFanin( pObj, pFanin, k )
@@ -195,6 +198,9 @@ Abc_Ntk_t * Abc_NtkLogicToNetlist( Abc_Ntk_t * pNtk )
         if ( pDriver->pCopy->pCopy == NULL )
         {
             // create the CO net and connect it to CO
+            //if ( Abc_NtkFindNet(pNtkNew, Abc_ObjName(pDriver)) == NULL )
+            //    pNet = Abc_NtkFindOrCreateNet( pNtkNew, Abc_ObjName(pDriver) );
+            //else
             pNet = Abc_NtkFindOrCreateNet( pNtkNew, Abc_ObjName(pObj) );
             Abc_ObjAddFanin( pObj->pCopy, pNet );
             // connect the CO net to the new driver and remember it in the new driver
