@@ -358,7 +358,7 @@ void Wlc_WriteVerInt( FILE * pFile, Wlc_Ntk_t * p, int fNoFlops )
                 fprintf( pFile, "%s", Wlc_ObjName(p, Wlc_ObjId(p, Wlc_NtkPi(p, Vec_IntEntry(p->vInits, i-Wlc_NtkPiNum(p))))));
             else
             {
-                if ( p->pInits[0] == 'x' || p->pInits[0] == 'X' )
+                if ( p->pInits[iFanin] == 'x' || p->pInits[iFanin] == 'X' )
                 {
                     fprintf( pFile, "%d\'h", Wlc_ObjRange(pObj) );
                     for ( k = 0; k < (Wlc_ObjRange(pObj) + 3) / 4; k++ )
