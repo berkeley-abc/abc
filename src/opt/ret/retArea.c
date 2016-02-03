@@ -447,6 +447,7 @@ void Abc_NtkRetimeMinAreaUpdateLatches( Abc_Ntk_t * pNtk, Vec_Ptr_t * vMinCut, i
             {
                 // add the buffer
                 pBuffer = Abc_NtkCreateNodeBuf( pNtk, Abc_ObjFanin0(pLatchIn) );
+                Abc_ObjAssignName( pBuffer, Abc_ObjName(pObj), "_buf" );
                 Abc_ObjPatchFanin( pLatchIn, Abc_ObjFanin0(pLatchIn), pBuffer );
                 Vec_PtrPush( vBuffers, pBuffer );
                 // redirect edges to the unvisited fanouts of the node
@@ -474,8 +475,8 @@ void Abc_NtkRetimeMinAreaUpdateLatches( Abc_Ntk_t * pNtk, Vec_Ptr_t * vMinCut, i
             pLatchOut = Abc_NtkCreateBo(pNtk);
             pLatch    = Abc_NtkCreateLatch(pNtk);
             pLatchIn  = Abc_NtkCreateBi(pNtk);
-            Abc_ObjAssignName( pLatchOut, Abc_ObjName(pLatch), "_out" );
-            Abc_ObjAssignName( pLatchIn,  Abc_ObjName(pLatch), "_in" );
+            Abc_ObjAssignName( pLatchOut, Abc_ObjName(pObj), "_out" );
+            Abc_ObjAssignName( pLatchIn,  Abc_ObjName(pObj), "_in" );
             // connect
             Abc_ObjAddFanin( pLatchOut, pLatch );
             Abc_ObjAddFanin( pLatch, pLatchIn );
