@@ -475,8 +475,8 @@ void Abc_NtkRetimeMinAreaUpdateLatches( Abc_Ntk_t * pNtk, Vec_Ptr_t * vMinCut, i
             pLatchOut = Abc_NtkCreateBo(pNtk);
             pLatch    = Abc_NtkCreateLatch(pNtk);
             pLatchIn  = Abc_NtkCreateBi(pNtk);
-            Abc_ObjAssignName( pLatchOut, Abc_ObjName(pObj), "_out" );
-            Abc_ObjAssignName( pLatchIn,  Abc_ObjName(pObj), "_in" );
+            Abc_ObjAssignName( pLatchOut, Abc_ObjName(pObj), "_o1" );
+            Abc_ObjAssignName( pLatchIn,  Abc_ObjName(pObj), "_i1" );
             // connect
             Abc_ObjAddFanin( pLatchOut, pLatch );
             Abc_ObjAddFanin( pLatch, pLatchIn );
