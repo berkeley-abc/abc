@@ -55,6 +55,7 @@ Mio_Library_t * Mio_LibraryRead( char * FileName, char * pBuffer, char * Exclude
 {
     Mio_Library_t * pLib;
     int num;
+    char * pBufferCopy;
 
     st__table * tExcludeGate = 0;
 
@@ -70,6 +71,7 @@ Mio_Library_t * Mio_LibraryRead( char * FileName, char * pBuffer, char * Exclude
         fprintf ( stdout, "Read %d gates from exclude file\n", num );
     }
 
+    pBufferCopy = Abc_UtilStrsav(pBuffer);
     if ( pBuffer == NULL )
         pLib = Mio_LibraryReadOne( FileName, 0, tExcludeGate, fVerbose );       // try normal format first ..
     else
@@ -84,13 +86,14 @@ Mio_Library_t * Mio_LibraryRead( char * FileName, char * pBuffer, char * Exclude
             pLib = Mio_LibraryReadOne( FileName, 1, tExcludeGate, fVerbose );       // try normal format first ..
         else
         {
-            pLib = Mio_LibraryReadBuffer( pBuffer, 1, tExcludeGate, fVerbose );       // try normal format first ..
+            pLib = Mio_LibraryReadBuffer( pBufferCopy, 1, tExcludeGate, fVerbose );       // try normal format first ..
             if ( pLib )
                 pLib->pName = Abc_UtilStrsav( Extra_FileNameGenericAppend(FileName, ".genlib") );
         }
         if ( pLib != NULL )
             printf ( "Warning: Read extended genlib format but ignoring extensions\n" );
     }
+    ABC_FREE( pBufferCopy );
     if ( tExcludeGate )
         st__free_table( tExcludeGate );
 
