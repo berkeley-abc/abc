@@ -335,13 +335,27 @@ int Mio_LibraryReadInternal( Mio_Library_t * pLib, char * pBuffer, int fExtended
 char * Mio_LibraryCleanStr( char * p )
 {
     int i, k;
+    int whitespace_state = 0;
     char * pRes = Abc_UtilStrsav( p );
     for ( i = k = 0; pRes[i]; i++ )
-        if ( pRes[i] != ' ' && pRes[i] != '\t' && pRes[i] != '\r' && pRes[i] != '\n' )
+        if ( pRes[i] != ' ' && pRes[i] != '\t' && pRes[i] != '\r' && pRes[i] != '\n' ) 
+        {
+            if ( pRes[i] != '(' && pRes[i] != ')' && pRes[i] != '+' && pRes[i] != '*' && pRes[i] != '|' && pRes[i] != '&' && pRes[i] != '^' && pRes[i] != '\'' && pRes[i] != '!' ) 
+            {
+                if (whitespace_state == 2)
+                    pRes[k++] = ' ';
+                whitespace_state = 1;
+            } 
+            else
+                whitespace_state = 0;
             pRes[k++] = pRes[i];
+        } 
+        else
+            whitespace_state = whitespace_state ? 2 : 0;
     pRes[k] = 0;
     return pRes;
 }
+
 Mio_Gate_t * Mio_LibraryReadGate( char ** ppToken, int fExtendedFormat )
 {
     Mio_Gate_t * pGate;

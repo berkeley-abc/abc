@@ -1517,6 +1517,8 @@ Vec_Str_t * Scl_LibertyReadSclStr( Scl_Tree_t * p, int fVerbose, int fVeryVerbos
             Vec_StrPutS_( vOut, pFormula );
             // write truth table
             vTruth = Mio_ParseFormulaTruth( pFormula, (char **)Vec_PtrArray(vNameIns), Vec_PtrSize(vNameIns) );
+            if ( vTruth == NULL )
+                return NULL;
             for ( i = 0; i < Abc_Truth6WordNum(Vec_PtrSize(vNameIns)); i++ )
                 Vec_StrPutW_( vOut, Vec_WrdEntry(vTruth, i) );
             Vec_WrdFree( vTruth );
