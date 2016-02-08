@@ -581,6 +581,29 @@ static inline int sat_solver_add_constraint( sat_solver * pSat, int iVar, int iV
     return 2;
 }
 
+static inline int sat_solver_add_half_sorter( sat_solver * pSat, int iVarA, int iVarB, int iVar0, int iVar1 )
+{
+    lit Lits[3];
+    int Cid;
+
+    Lits[0] = toLitCond( iVarA, 0 );
+    Lits[1] = toLitCond( iVar0, 1 );
+    Cid = sat_solver_addclause( pSat, Lits, Lits + 2 );
+    assert( Cid );
+
+    Lits[0] = toLitCond( iVarA, 0 );
+    Lits[1] = toLitCond( iVar1, 1 );
+    Cid = sat_solver_addclause( pSat, Lits, Lits + 2 );
+    assert( Cid );
+
+    Lits[0] = toLitCond( iVarB, 0 );
+    Lits[1] = toLitCond( iVar0, 1 );
+    Lits[2] = toLitCond( iVar1, 1 );
+    Cid = sat_solver_addclause( pSat, Lits, Lits + 3 );
+    assert( Cid );
+    return 3;
+}
+
 
 ABC_NAMESPACE_HEADER_END
 

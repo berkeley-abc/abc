@@ -2165,6 +2165,148 @@ void Nf_ManUpdateStats( Nf_Man_t * p )
 
 /**Function*************************************************************
 
+  Synopsis    [Extract window.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+
+/*
+    int              nInputs;   // the number of inputs
+    int              nObjs;     // number of all objects
+    Vec_Int_t *      vRoots;    // output drivers to be mapped (root -> obj lit)
+    Vec_Wec_t *      vCuts;     // cuts (cut -> obj lit + fanin lits)
+    Vec_Wec_t *      vObjCuts;  // cuts (obj lit -> obj lit + cut lits)
+    Vec_Int_t *      vSolCuts;  // current solution (index -> cut)
+    Vec_Int_t *      vCutGates; // gates (cut -> gate)
+*/
+
+int Nf_ManExtractWindow( void * pMan, Vec_Int_t * vRoots, Vec_Wec_t * vCuts, Vec_Wec_t * vObjCuts, Vec_Int_t * vSolCuts, Vec_Int_t * vCutGates, int StartVar )
+{
+    Nf_Man_t * p = (Nf_Man_t *)pMan;
+    int nInputs = Gia_ManCiNum(p->pGia);
+    Gia_Obj_t * pObj;
+    int c, iObj;
+    Vec_Int_t * vInvCuts = Vec_IntAlloc( Gia_ManAndNum(p->pGia) );
+    // save roots
+    Vec_IntClear( vRoots );
+    Gia_ManForEachCo( p->pGia, pObj, c )
+        Vec_IntPush( vRoots, Gia_ObjFaninLit0p(p->pGia, pObj)-2*nInputs-2 );
+    // prepare
+    Vec_WecClear( vCuts );
+    Vec_WecClear( vObjCuts );
+    Vec_IntClear( vSolCuts );
+    Vec_IntClear( vCutGates );
+    // collect cuts for each node
+    Gia_ManForEachAndId( p->pGia, iObj )
+    {
+        Vec_Int_t * vObj[2], * vCut;
+        int iCut, * pCut, * pCutSet;
+        int iCutInv[2] = {-1, -1};
+        // get matches
+        Nf_Mat_t * pM[2];
+        for ( c = 0; c < 2; c++ )
+            pM[c] = Nf_ObjMapRefNum(p, iObj, c) ? Nf_ObjMatchBest(p, iObj, c) : NULL;
+        // start collecting cuts of pos-obj and neg-obj
+        assert( Vec_WecSize(vObjCuts) == 2*(iObj-nInputs-1) );
+        for ( c = 0; c < 2; c++ )
+        {
+            vObj[c] = Vec_WecPushLevel( vObjCuts );
+            Vec_IntPush( vObj[c], Abc_Var2Lit(Abc_Var2Lit(iObj-nInputs-1, c), 1) );
+        }
+        // enumerate cuts
+        pCutSet = Nf_ObjCutSet( p, iObj );
+        Nf_SetForEachCut( pCutSet, pCut, iCut )
+        {
+            assert( !Nf_CutIsTriv(pCut, iObj) );
+            assert( Nf_CutSize(pCut) <= p->pPars->nLutSize );
+            if ( Abc_Lit2Var(Nf_CutFunc(pCut)) < Vec_WecSize(p->vTt2Match) )
+            {
+                int * pFans      = Nf_CutLeaves(pCut);
+                int nFans        = Nf_CutSize(pCut);
+                int iFuncLit     = Nf_CutFunc(pCut);
+                int fComplExt    = Abc_LitIsCompl(iFuncLit);
+                Vec_Int_t * vArr = Vec_WecEntry( p->vTt2Match, Abc_Lit2Var(iFuncLit) );
+                int i, k, c, Info, Offset, iFanin, fComplF, iCutLit;
+                Vec_IntForEachEntryDouble( vArr, Info, Offset, i )
+                {
+                    Nf_Cfg_t Cfg   = Nf_Int2Cfg(Offset);
+                    int fCompl     = Cfg.fCompl ^ fComplExt;
+                    Mio_Cell2_t*pC = Nf_ManCell( p, Info );
+                    assert( nFans == (int)pC->nFanins );
+                    Vec_IntPush( vCutGates, Info );
+                    // to make comparison possible
+                    Cfg.fCompl = 0;
+                    // add solution cut
+                    for ( c = 0; c < 2; c++ )
+                    {
+                        if ( pM[c] == NULL )
+                            continue;
+                        if ( pM[c]->fCompl )
+                        {
+                            assert( iCutInv[c] == -1 );
+                            iCutInv[c] = Vec_IntSize(vSolCuts);
+                            Vec_IntPush( vSolCuts, -1 );
+                            printf( "adding inv for %d\n", Abc_Var2Lit(iObj-nInputs-1, c) );
+                        }
+                        else if ( (int)pM[c]->CutH == Nf_CutHandle(pCutSet, pCut) && (int)pM[c]->Gate == Info && Nf_Cfg2Int(pM[c]->Cfg) == Nf_Cfg2Int(Cfg) )
+                        {
+                            Vec_IntPush( vSolCuts, Vec_WecSize(vCuts) );
+                            printf( "adding solution for %d\n", Abc_Var2Lit(iObj-nInputs-1, c) );
+                        }
+                    }
+                    // add new cut
+                    iCutLit = Abc_Var2Lit( StartVar + Vec_WecSize(vCuts), 0 );
+                    vCut = Vec_WecPushLevel( vCuts );
+                    // add literals
+                    Vec_IntPush( vCut, Abc_Var2Lit(iObj, fCompl) );
+                    Vec_IntPush( vObj[fCompl], iCutLit );
+                    Nf_CfgForEachVarCompl( Cfg, nFans, iFanin, fComplF, k )
+                        if ( pFans[iFanin] >= nInputs + 1 ) // and-node
+                        {
+                            Vec_IntPush( vCut, Abc_Var2Lit(pFans[iFanin], fComplF) );
+                            Vec_IntPush( Vec_WecEntry(vObjCuts, Abc_Var2Lit(pFans[iFanin]-nInputs-1, fComplF)), iCutLit );
+                        }
+                } 
+            }
+        }
+        assert( iCutInv[0] == -1 || iCutInv[1] == -1 );
+        // add inverter cut
+        for ( c = 0; c < 2; c++ )
+        {
+            if ( iCutInv[c] != -1 )
+                Vec_IntWriteEntry( vSolCuts, iCutInv[c], Vec_WecSize(vCuts) );
+            Vec_IntPush( vInvCuts, Abc_Var2Lit(StartVar + Vec_WecSize(vCuts), 0) );
+            vCut = Vec_WecPushLevel( vCuts );
+            Vec_IntPush( vCut, Abc_Var2Lit(iObj, c) );
+            Vec_IntPush( vCut, Abc_Var2Lit(iObj, !c) );
+            Vec_IntPush( vCutGates, 3 );
+        }
+    }
+    assert( Vec_WecSize(vObjCuts) == Vec_IntSize(vInvCuts) );
+    Gia_ManForEachAndId( p->pGia, iObj )
+    {
+        int iCutInv[2];
+        for ( c = 0; c < 2; c++ )
+            iCutInv[c] = Vec_IntEntry(vInvCuts, Abc_Var2Lit(iObj-nInputs-1, c));
+        for ( c = 0; c < 2; c++ )
+        {
+            Vec_IntPush( Vec_WecEntry(vObjCuts, Abc_Var2Lit(iObj-nInputs-1, c)), iCutInv[0] );
+            Vec_IntPush( Vec_WecEntry(vObjCuts, Abc_Var2Lit(iObj-nInputs-1, c)), iCutInv[1] );
+        }
+    }
+    Vec_IntFree( vInvCuts );
+    assert( Vec_WecSize(vCuts) == Vec_IntSize(vCutGates) );
+    assert( Vec_WecSize(vObjCuts) == 2*Gia_ManAndNum(p->pGia) );
+    return 2*nInputs+2;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Technology mappping.]
 
   Description []
@@ -2248,6 +2390,13 @@ Gia_Man_t * Nf_ManPerformMapping( Gia_Man_t * pGia, Jf_Par_t * pPars )
     }
     Nf_ManFixPoDrivers( p );
     pNew = Nf_ManDeriveMapping( p );
+
+    // experimental mapper
+    {
+//    extern int Sbm_ManTestSat( void * p );
+//    Sbm_ManTestSat( p );
+    }
+
     Nf_StoDelete( p );
     return pNew;
 }
