@@ -670,6 +670,8 @@ static inline int Wlc_PrsFindDefinition( Wlc_Prs_t * p, char * pStr, Vec_Int_t *
             Type = WLC_OBJ_BIT_NOT;
         else if ( pStr[0] == '@' )
             Type = WLC_OBJ_ARI_SQRT;
+        else if ( pStr[0] == '#' )
+            Type = WLC_OBJ_ARI_SQUARE;
         else assert( 0 );
         // skip parentheses
         pStr = Wlc_PrsSkipSpaces( pStr+1 );

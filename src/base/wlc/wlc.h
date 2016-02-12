@@ -86,8 +86,9 @@ typedef enum {
     WLC_OBJ_ARI_POWER,     // 42: arithmetic power
     WLC_OBJ_ARI_MINUS,     // 43: arithmetic minus
     WLC_OBJ_ARI_SQRT,      // 44: integer square root
-    WLC_OBJ_TABLE,         // 45: bit table
-    WLC_OBJ_NUMBER         // 46: unused
+    WLC_OBJ_ARI_SQUARE,    // 45: integer square root
+    WLC_OBJ_TABLE,         // 46: bit table
+    WLC_OBJ_NUMBER         // 47: unused
 } Wlc_ObjType_t;
 // when adding new types, remember to update table Wlc_Names in "wlcNtk.c"
 

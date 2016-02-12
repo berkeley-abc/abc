@@ -407,6 +407,8 @@ void Wlc_NtkPrintDistrib( Wlc_Ntk_t * p, int fVerbose )
             Vec_IntAddToEntry( vAnds, WLC_OBJ_ARI_MINUS,    4 * Wlc_ObjRange(Wlc_ObjFanin0(p, pObj)) );
         else if ( pObj->Type == WLC_OBJ_ARI_SQRT )    
             Vec_IntAddToEntry( vAnds, WLC_OBJ_ARI_SQRT,    11 * Wlc_ObjRange(Wlc_ObjFanin0(p, pObj)) * Wlc_ObjRange(Wlc_ObjFanin0(p, pObj)) / 8 + 5 * Wlc_ObjRange(Wlc_ObjFanin0(p, pObj)) / 2 - 5  );
+        else if ( pObj->Type == WLC_OBJ_ARI_SQUARE )    
+            Vec_IntAddToEntry( vAnds, WLC_OBJ_ARI_SQUARE,   5 * Wlc_ObjRange(Wlc_ObjFanin0(p, pObj)) * Wlc_ObjRange(Wlc_ObjFanin1(p, pObj))  );
     }
     if ( nCountRange )
     {
