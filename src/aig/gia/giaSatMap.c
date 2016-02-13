@@ -84,7 +84,7 @@ struct Sbm_Man_t_
 ***********************************************************************/
 int Sbm_ManCheckSol( Sbm_Man_t * p, Vec_Int_t * vSol )
 {
-    int K = Vec_IntSize(vSol) - 1;
+    //int K = Vec_IntSize(vSol) - 1;
     int i, j, Lit, Cut;
     int RetValue = 1;
     Vec_Int_t * vCut;

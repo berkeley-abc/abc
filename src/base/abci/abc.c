@@ -418,6 +418,7 @@ static int Abc_CommandAbc9Mf                 ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandAbc9Nf                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Of                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Pack               ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9SatLut             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Unmap              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Struct             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Trace              ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -1042,6 +1043,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "ABC9",         "&nf",           Abc_CommandAbc9Nf,           0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&of",           Abc_CommandAbc9Of,           0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&pack",         Abc_CommandAbc9Pack,         0 );
+    Cmd_CommandAdd( pAbc, "ABC9",         "&satlut",       Abc_CommandAbc9SatLut,       0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&unmap",        Abc_CommandAbc9Unmap,        0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&struct",       Abc_CommandAbc9Struct,       0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&trace",        Abc_CommandAbc9Trace,        0 );
@@ -34801,6 +34803,83 @@ usage:
     Abc_Print( -2, "\t-N num   : the number of LUTs in the block [default = %d]\n", nBlock );
     Abc_Print( -2, "\t-R num   : the routable delay of a LUT [default = %d]\n", DelayRoute );
     Abc_Print( -2, "\t-D num   : the direct (non-routable) delay of a LUT [default = %d]\n", DelayDir );
+    Abc_Print( -2, "\t-v       : toggles verbose output [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h       : prints the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc9SatLut( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern void Gia_ManLutSat( Gia_Man_t * p, int nNumber, int nConfl, int fVerbose );
+    int c, nNumber = 32, nConfl = 0, fVerbose = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "NCvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'N':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-N\" should be followed by a positive integer.\n" );
+                goto usage;
+            }
+            nNumber = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nNumber < 2 )
+            {
+                Abc_Print( -1, "Illigal number of AIG nodes.\n" );
+                goto usage;
+            }
+            break;
+        case 'C':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-C\" should be followed by a positive integer.\n" );
+                goto usage;
+            }
+            nConfl = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+        default:
+            goto usage;
+        }
+    }
+
+    if ( pAbc->pGia == NULL )
+    {
+        Abc_Print( -1, "Empty GIA network.\n" );
+        return 1;
+    }
+    if ( !Gia_ManHasMapping(pAbc->pGia) )
+    {
+        Abc_Print( -1, "Current AIG has no mapping. Run \"&if\".\n" );
+        return 1;
+    }
+    if ( Gia_ManLutSizeMax(pAbc->pGia) > 4 )
+        Abc_Print( 0, "Current AIG has mapping into %d-LUTs.\n", Gia_ManLutSizeMax(pAbc->pGia) );
+    Gia_ManLutSat( pAbc->pGia, nNumber, nConfl, fVerbose );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: &satlut [-NC num] [-vh]\n" );
+    Abc_Print( -2, "\t           performs SAT-based remapping of the 4-LUT network\n" );
+    Abc_Print( -2, "\t-N num   : the limit on the number of AIG nodes in the window [default = %d]\n", nNumber );
+    Abc_Print( -2, "\t-C num   : the limit on the number of conflicts [default = %d]\n", nNumber );
     Abc_Print( -2, "\t-v       : toggles verbose output [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h       : prints the command usage\n");
     return 1;

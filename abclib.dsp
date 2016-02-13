@@ -4323,6 +4323,10 @@ SOURCE=.\src\aig\gia\giaRex.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\aig\gia\giaSatLut.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\aig\gia\giaSatMap.c
 # End Source File
 # Begin Source File
