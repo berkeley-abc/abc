@@ -581,24 +581,18 @@ void Wlc_IntInsert( Vec_Int_t * vProd, Vec_Int_t * vLevel, int Node, int Level )
 {
     int i;
     for ( i = Vec_IntSize(vLevel) - 1; i >= 0; i-- )
-        if ( Vec_IntEntry(vLevel, i) > Level )
+        if ( Vec_IntEntry(vLevel, i) >= Level )
             break;
     Vec_IntInsert( vProd,  i + 1, Node  );
     Vec_IntInsert( vLevel, i + 1, Level );
 }
-void Wlc_BlastMultiplier3( Gia_Man_t * pNew, int * pArgA, int * pArgB, int nArgA, int nArgB, Vec_Int_t * vRes )
+void Wlc_BlastReduceMatrix( Gia_Man_t * pNew, Vec_Wec_t * vProds, Vec_Wec_t * vLevels, Vec_Int_t * vRes )
 {
     Vec_Int_t * vLevel, * vProd;
-    Vec_Wec_t * vProds  = Vec_WecStart( nArgA + nArgB );
-    Vec_Wec_t * vLevels = Vec_WecStart( nArgA + nArgB );
-    int i, k, NodeS, NodeC, LevelS, LevelC, Node1, Node2, Node3, Level1, Level2, Level3;
-    for ( i = 0; i < nArgA; i++ )
-        for ( k = 0; k < nArgB; k++ )
-        {
-            Vec_WecPush( vProds,  i+k, Gia_ManHashAnd(pNew, pArgA[i], pArgB[k]) );
-            Vec_WecPush( vLevels, i+k, 0 );
-        }
-    for ( i = 0; i < nArgA + nArgB; i++ )
+    int i, NodeS, NodeC, LevelS, LevelC, Node1, Node2, Node3, Level1, Level2, Level3;
+    int nSize = Vec_WecSize(vProds);
+    assert( nSize == Vec_WecSize(vLevels) );
+    for ( i = 0; i < nSize; i++ )
     {
         while ( 1 )
         {
@@ -630,7 +624,7 @@ void Wlc_BlastMultiplier3( Gia_Man_t * pNew, int * pArgA, int * pArgB, int nArgA
     }
 
     // make all ranks have two products
-    for ( i = 0; i < nArgA + nArgB; i++ )
+    for ( i = 0; i < nSize; i++ )
     {
         vProd  = Vec_WecEntry( vProds, i );
         while ( Vec_IntSize(vProd) < 2 )
@@ -641,19 +635,55 @@ void Wlc_BlastMultiplier3( Gia_Man_t * pNew, int * pArgA, int * pArgB, int nArgA
     vLevel = Vec_WecEntry( vLevels, 0 );
     Vec_IntClear( vRes );
     Vec_IntClear( vLevel );
-    for ( i = 0; i < nArgA + nArgB; i++ )
+    for ( i = 0; i < nSize; i++ )
     {
         vProd  = Vec_WecEntry( vProds, i );
         Vec_IntPush( vRes,   Vec_IntEntry(vProd, 0) );
         Vec_IntPush( vLevel, Vec_IntEntry(vProd, 1) );
     }
-    Wlc_BlastAdder( pNew, Vec_IntArray(vRes), Vec_IntArray(vLevel), nArgA + nArgB );
+    Wlc_BlastAdder( pNew, Vec_IntArray(vRes), Vec_IntArray(vLevel), nSize );
+}
+void Wlc_BlastMultiplier3( Gia_Man_t * pNew, int * pArgA, int * pArgB, int nArgA, int nArgB, Vec_Int_t * vRes )
+{
+    Vec_Wec_t * vProds  = Vec_WecStart( nArgA + nArgB );
+    Vec_Wec_t * vLevels = Vec_WecStart( nArgA + nArgB );
+    int i, k;
+    for ( i = 0; i < nArgA; i++ )
+        for ( k = 0; k < nArgB; k++ )
+        {
+            Vec_WecPush( vProds,  i+k, Gia_ManHashAnd(pNew, pArgA[i], pArgB[k]) );
+            Vec_WecPush( vLevels, i+k, 0 );
+        }
+
+    Wlc_BlastReduceMatrix( pNew, vProds, vLevels, vRes );
 
     Vec_WecFree( vProds );
     Vec_WecFree( vLevels );
 }
 void Wlc_BlastSquare( Gia_Man_t * pNew, int * pNum, int nNum, Vec_Int_t * vTmp, Vec_Int_t * vRes )
 {
+    Vec_Wec_t * vProds  = Vec_WecStart( 2*nNum );
+    Vec_Wec_t * vLevels = Vec_WecStart( 2*nNum );
+    int i, k;
+    for ( i = 0; i < nNum; i++ )
+        for ( k = 0; k < nNum; k++ )
+        {
+            if ( i == k )
+            {
+                Vec_WecPush( vProds,  i+k, pNum[i] );
+                Vec_WecPush( vLevels, i+k, 0 );
+            }
+            else if ( i < k )
+            {
+                Vec_WecPush( vProds,  i+k+1, Gia_ManHashAnd(pNew, pNum[i], pNum[k]) );
+                Vec_WecPush( vLevels, i+k+1, 0 );
+            }
+        }
+
+    Wlc_BlastReduceMatrix( pNew, vProds, vLevels, vRes );
+
+    Vec_WecFree( vProds );
+    Vec_WecFree( vLevels );
 }
 
 /**Function*************************************************************

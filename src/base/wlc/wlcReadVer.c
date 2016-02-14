@@ -662,7 +662,7 @@ static inline int Wlc_PrsFindDefinition( Wlc_Prs_t * p, char * pStr, Vec_Int_t *
             return 0;
         Type = WLC_OBJ_CONST;
     }
-    else if ( pStr[0] == '!' || pStr[0] == '~' || pStr[0] == '@' )
+    else if ( pStr[0] == '!' || pStr[0] == '~' || pStr[0] == '@' || pStr[0] == '#' )
     {
         if ( pStr[0] == '!' )
             Type = WLC_OBJ_LOGIC_NOT;
