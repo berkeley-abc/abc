@@ -169,8 +169,8 @@ int Abc_NtkRetimeFinalizeLatches( Abc_Ntk_t * pNtk, st__table * tLatches, int nI
             // this is a new latch 
             pLatchIn  = Abc_NtkCreateBi(pNtk);
             pLatchOut = Abc_NtkCreateBo(pNtk);
-            Abc_ObjAssignName( pLatchOut, Abc_ObjName(pLatch), "_out" );
-            Abc_ObjAssignName( pLatchIn,  Abc_ObjName(pLatch), "_in" );
+            Abc_ObjAssignName( pLatchOut, Abc_ObjName(Abc_ObjFanin0(pLatch)), "_o2" );
+            Abc_ObjAssignName( pLatchIn,  Abc_ObjName(Abc_ObjFanin0(pLatch)), "_i2" );
         }
         else
         {
