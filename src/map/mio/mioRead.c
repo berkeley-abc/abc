@@ -382,7 +382,8 @@ Mio_Gate_t * Mio_LibraryReadGate( char ** ppToken, int fExtendedFormat )
 
     // then rest of the expression 
     pToken = strtok( NULL, ";" );
-    pGate->pForm = Mio_LibraryCleanStr( pToken );
+//    pGate->pForm = Mio_LibraryCleanStr( pToken );
+    pGate->pForm = Abc_UtilStrsav( pToken );
 
     // read the pin info
     // start the linked list of pins
