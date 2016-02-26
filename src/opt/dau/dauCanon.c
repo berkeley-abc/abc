@@ -20,6 +20,7 @@
 
 #include "dauInt.h"
 #include "misc/util/utilTruth.h"
+#include "misc/vec/vecMem.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -1040,6 +1041,148 @@ unsigned Abc_TtCanonicizePhase( word * pTruth, int nVars )
     return uCanonPhase;
 }
 
+
+/**Function*************************************************************
+
+  Synopsis    [Hierarchical semi-canonical form computation.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+#define TT_NUM_TABLES 4
+
+struct Abc_TtMan_t_
+{
+    Vec_Mem_t *   vTtMem[TT_NUM_TABLES];   // truth table memory and hash tables
+};
+
+Abc_TtMan_t * Abc_TtManStart( int nVars )
+{
+    Abc_TtMan_t * p = ABC_CALLOC( Abc_TtMan_t, 1 );
+    int i, nWords = Abc_TtWordNum( nVars );
+    for ( i = 0; i < TT_NUM_TABLES; i++ )
+    {
+        p->vTtMem[i] = Vec_MemAlloc( nWords, 12 );
+        Vec_MemHashAlloc( p->vTtMem[i], 10000 );
+    }
+    return p;
+}
+void Abc_TtManStop( Abc_TtMan_t * p )
+{
+    int i;
+    for ( i = 0; i < TT_NUM_TABLES; i++ )
+    {
+        Vec_MemHashFree( p->vTtMem[i] );
+        Vec_MemFreeP( &p->vTtMem[i] );
+    }
+    ABC_FREE( p );
+}
+int Abc_TtManNumClasses( Abc_TtMan_t * p )
+{
+    return Vec_MemEntryNum( p->vTtMem[TT_NUM_TABLES-1] );
+}
+
+unsigned Abc_TtCanonicizeHie( Abc_TtMan_t * p, word * pTruthInit, int nVars, char * pCanonPerm )
+{
+    int fNaive = 1;
+    int pStore[17];
+    static word pTruth[1024];
+    unsigned uCanonPhase = 0;
+    int nOnes, nWords = Abc_TtWordNum( nVars );
+    int i, k, truthId;
+    int * pSpot;
+    assert( nVars <= 16 );
+
+    Abc_TtCopy( pTruth, pTruthInit, nWords, 0 );
+
+    for ( i = 0; i < nVars; i++ )
+        pCanonPerm[i] = i;
+
+    // normalize polarity    
+    nOnes = Abc_TtCountOnesInTruth( pTruth, nVars );
+    if ( nOnes > nWords * 32 )
+    {
+        Abc_TtNot( pTruth, nWords );
+        nOnes = nWords*64 - nOnes;
+        uCanonPhase |= (1 << nVars);
+    }
+    // check cache
+    pSpot = Vec_MemHashLookup( p->vTtMem[0], pTruth );
+    if ( *pSpot != -1 )
+        return 0;
+    truthId = Vec_MemHashInsert( p->vTtMem[0], pTruth );
+
+    // normalize phase
+    Abc_TtCountOnesInCofs( pTruth, nVars, pStore );
+    pStore[nVars] = nOnes;
+    for ( i = 0; i < nVars; i++ )
+    {
+        if ( pStore[i] >= nOnes - pStore[i] )
+            continue;
+        Abc_TtFlip( pTruth, nWords, i );
+        uCanonPhase |= (1 << i);
+        pStore[i] = nOnes - pStore[i]; 
+    }
+    // check cache
+    pSpot = Vec_MemHashLookup( p->vTtMem[1], pTruth );
+    if ( *pSpot != -1 )
+        return 0;
+    truthId = Vec_MemHashInsert( p->vTtMem[1], pTruth );
+
+    // normalize permutation
+    {
+        int k, BestK;
+        for ( i = 0; i < nVars - 1; i++ )
+        {
+            BestK = i + 1;
+            for ( k = i + 2; k < nVars; k++ )
+                if ( pStore[BestK] > pStore[k] )
+                    BestK = k;
+            if ( pStore[i] <= pStore[BestK] )
+                continue;
+            ABC_SWAP( int, pCanonPerm[i], pCanonPerm[BestK] );
+            ABC_SWAP( int, pStore[i], pStore[BestK] );
+            if ( ((uCanonPhase >> i) & 1) != ((uCanonPhase >> BestK) & 1) )
+            {
+                uCanonPhase ^= (1 << i);
+                uCanonPhase ^= (1 << BestK);
+            }
+            Abc_TtSwapVars( pTruth, nVars, i, BestK );
+        }
+    }
+    // check cache
+    pSpot = Vec_MemHashLookup( p->vTtMem[2], pTruth );
+    if ( *pSpot != -1 )
+        return 0;
+    truthId = Vec_MemHashInsert( p->vTtMem[2], pTruth );
+
+    // iterate TT permutations for tied variables
+    for ( k = 0; k < 5; k++ )
+    {
+        int fChanges = 0;
+        for ( i = nVars - 2; i >= 0; i-- )
+            if ( pStore[i] == pStore[i+1] )
+                fChanges |= Abc_TtCofactorPerm( pTruth, i, nWords, pStore[i] != pStore[nVars]/2, pCanonPerm, &uCanonPhase, fNaive );
+        if ( !fChanges )
+            break;
+        fChanges = 0;
+        for ( i = 1; i < nVars - 1; i++ )
+            if ( pStore[i] == pStore[i+1] )
+                fChanges |= Abc_TtCofactorPerm( pTruth, i, nWords, pStore[i] != pStore[nVars]/2, pCanonPerm, &uCanonPhase, fNaive );
+        if ( !fChanges )
+            break;
+    }
+    // check cache
+    pSpot = Vec_MemHashLookup( p->vTtMem[3], pTruth );
+    if ( *pSpot != -1 )
+        return 0;
+    truthId = Vec_MemHashInsert( p->vTtMem[3], pTruth );
+    return 0;
+}
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

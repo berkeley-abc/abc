@@ -181,7 +181,7 @@ void Abc_TruthNpnPerform( Abc_TtStore_t * p, int NpnType, int fVerbose )
     char pCanonPerm[16];
     unsigned uCanonPhase=0;
     abctime clk = Abc_Clock();
-    int i;
+    int i, nClasses = -1;
 
     char * pAlgoName = NULL;
     if ( NpnType == 0 )
@@ -198,6 +198,8 @@ void Abc_TruthNpnPerform( Abc_TtStore_t * p, int NpnType, int fVerbose )
         pAlgoName = "new hybrid fast    ";
     else if ( NpnType == 6 )
         pAlgoName = "new phase flipping ";
+    else if ( NpnType == 7 )
+        pAlgoName = "new hier. matching ";
 
     assert( p->nVars <= 16 );
     if ( pAlgoName )
@@ -289,9 +291,29 @@ void Abc_TruthNpnPerform( Abc_TtStore_t * p, int NpnType, int fVerbose )
                 Extra_PrintHex( stdout, (unsigned *)p->pFuncs[i], p->nVars ), Abc_TruthNpnPrint(NULL, uCanonPhase, p->nVars), printf( "\n" );
         }
     }
+    else if ( NpnType == 7 )
+    {
+        extern unsigned Abc_TtCanonicizeHie( Abc_TtMan_t * p, word * pTruth, int nVars, char * pCanonPerm );
+        extern Abc_TtMan_t * Abc_TtManStart( int nVars );
+        extern void Abc_TtManStop( Abc_TtMan_t * p );
+        extern int Abc_TtManNumClasses( Abc_TtMan_t * p );
+
+        Abc_TtMan_t * pMan = Abc_TtManStart( p->nVars );
+        for ( i = 0; i < p->nFuncs; i++ )
+        {
+            if ( fVerbose )
+                printf( "%7d : ", i );
+            uCanonPhase = Abc_TtCanonicizeHie( pMan, p->pFuncs[i], p->nVars, pCanonPerm );
+            if ( fVerbose )
+//                Extra_PrintHex( stdout, (unsigned *)p->pFuncs[i], p->nVars ), Abc_TruthNpnPrint(NULL, uCanonPhase, p->nVars), printf( "\n" );
+                printf( "\n" );
+        }
+        nClasses = Abc_TtManNumClasses( pMan );
+        Abc_TtManStop( pMan );
+    }
     else assert( 0 );
     clk = Abc_Clock() - clk;
-    printf( "Classes =%9d  ", Abc_TruthNpnCountUnique(p) );
+    printf( "Classes =%9d  ", nClasses == -1 ? Abc_TruthNpnCountUnique(p) : nClasses );
     Abc_PrintTime( 1, "Time", clk );
 }
 
@@ -352,7 +374,7 @@ int Abc_NpnTest( char * pFileName, int NpnType, int nVarNum, int fDumpRes, int f
 {
     if ( fVerbose )
         printf( "Using truth tables from file \"%s\"...\n", pFileName );
-    if ( NpnType >= 0 && NpnType <= 6 )
+    if ( NpnType >= 0 && NpnType <= 7 )
         Abc_TruthNpnTest( pFileName, NpnType, nVarNum, fDumpRes, fBinary, fVerbose );
     else
         printf( "Unknown canonical form value (%d).\n", NpnType );

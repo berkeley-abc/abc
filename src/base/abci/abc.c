@@ -6159,6 +6159,7 @@ usage:
     Abc_Print( -2, "\t               4: Jake's hybrid semi-canonical form (high-effort)\n" );
     Abc_Print( -2, "\t               5: new fast hybrid semi-canonical form\n" );
     Abc_Print( -2, "\t               6: new phase canonical form\n" );
+    Abc_Print( -2, "\t               7: new hierarchical matching\n" );
     Abc_Print( -2, "\t-N <num> : the number of support variables (binary files only) [default = unused]\n" );
     Abc_Print( -2, "\t-d       : toggle dumping resulting functions into a file [default = %s]\n", fDumpRes? "yes": "no" );
     Abc_Print( -2, "\t-b       : toggle dumping in binary format [default = %s]\n", fBinary? "yes": "no" );
