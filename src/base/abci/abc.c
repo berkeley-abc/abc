@@ -18904,13 +18904,13 @@ int Abc_CommandSeqSweep2( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     if ( Abc_NtkIsComb(pNtk) )
     {
-        Abc_Print( -1, "The network is combinational (run \"fraig\" or \"fraig_sweep\").\n" );
+        Abc_Print( 0, "The network is combinational (run \"fraig\" or \"fraig_sweep\").\n" );
         return 0;
     }
 
     if ( !Abc_NtkIsStrash(pNtk) )
     {
-        Abc_Print( -1, "This command works only for structrally hashed networks. Run \"st\".\n" );
+        Abc_Print( 0, "This command works only for structrally hashed networks. Run \"st\".\n" );
         return 0;
     }
 
