@@ -1281,6 +1281,11 @@ int Gia_ManFaultPrepare( Gia_Man_t * p, Gia_Man_t * pG, Bmc_ParFf_t * pPars, int
         Vec_IntPush( vLits, Abc_Var2Lit(pCnf->pVarNums[Gia_ObjId(pM, pObj)], 0) );
     sat_solver_addclause( pSat, Vec_IntArray(vLits), Vec_IntArray(vLits) + Vec_IntSize(vLits) );
 
+    // save return data
+    *ppMiter = pM;
+    *ppCnf = pCnf;
+    *ppSat = pSat;
+
     // add cardinality constraint
     if ( pPars->fBasic )
     {
@@ -1320,6 +1325,7 @@ int Gia_ManFaultPrepare( Gia_Man_t * p, Gia_Man_t * pG, Bmc_ParFf_t * pPars, int
                     if ( pPars->fVerbose )
                         printf( "\n" );
                     printf( "Timeout reached after %d seconds and adding %d tests.\n", pPars->nTimeOut, Iter );
+                    Vec_IntShrink( vTests, Iter * nFuncVars );
                     return 0;
                 }
                 if ( status == l_False )
@@ -1327,6 +1333,7 @@ int Gia_ManFaultPrepare( Gia_Man_t * p, Gia_Man_t * pG, Bmc_ParFf_t * pPars, int
                     if ( pPars->fVerbose )
                         printf( "\n" );
                     printf( "The problem is UNSAT after adding %d tests.\n", Iter );
+                    Vec_IntShrink( vTests, Iter * nFuncVars );
                     return 0;
                 }
             }
@@ -1339,6 +1346,7 @@ int Gia_ManFaultPrepare( Gia_Man_t * p, Gia_Man_t * pG, Bmc_ParFf_t * pPars, int
                 if ( pPars->fVerbose )
                     printf( "\n" );
                 printf( "The problem is UNSAT after adding %d tests.\n", Iter );
+                Vec_IntShrink( vTests, Iter * nFuncVars );
                 return 0;
             }
             if ( pPars->fVerbose )
@@ -1362,6 +1370,7 @@ int Gia_ManFaultPrepare( Gia_Man_t * p, Gia_Man_t * pG, Bmc_ParFf_t * pPars, int
                 if ( pPars->fVerbose )
                     printf( "\n" );
                 printf( "Timeout reached after %d seconds and %d iterations.\n", pPars->nTimeOut, Iter );
+                Vec_IntShrink( vTests, Iter * nFuncVars );
                 return 0;
             }
             if ( status == l_False )
@@ -1369,6 +1378,7 @@ int Gia_ManFaultPrepare( Gia_Man_t * p, Gia_Man_t * pG, Bmc_ParFf_t * pPars, int
                 if ( pPars->fVerbose )
                     printf( "\n" );
                 printf( "The problem is UNSAT after %d iterations.\n", Iter );
+                Vec_IntShrink( vTests, Iter * nFuncVars );
                 return 0;
             }
             // initialize simple pattern
@@ -1379,16 +1389,13 @@ int Gia_ManFaultPrepare( Gia_Man_t * p, Gia_Man_t * pG, Bmc_ParFf_t * pPars, int
                 if ( pPars->fVerbose )
                     printf( "\n" );
                 printf( "The problem is UNSAT after adding %d tests.\n", Iter );
+                Vec_IntShrink( vTests, Iter * nFuncVars );
                 return 0;
             }
         }
     }
 
     printf( "Using miter with:  AIG nodes = %6d.  CNF variables = %6d.  CNF clauses = %8d.\n", Gia_ManAndNum(pM), pCnf->nVars, pCnf->nClauses );
-
-    *ppMiter = pM;
-    *ppCnf = pCnf;
-    *ppSat = pSat;
     return 1;
 }
 
@@ -1412,7 +1419,7 @@ void Gia_ManFaultTest( Gia_Man_t * p, Gia_Man_t * pG, Bmc_ParFf_t * pPars )
     Gia_Man_t * pM;
     Gia_Obj_t * pObj;
     Cnf_Dat_t * pCnf;
-    sat_solver * pSat;
+    sat_solver * pSat = NULL;
 
     if ( pPars->Algo == 0 && Gia_FormStrCount( pPars->pFormStr, &nVars, &nPars ) )
         return;
@@ -1465,10 +1472,9 @@ void Gia_ManFaultTest( Gia_Man_t * p, Gia_Man_t * pG, Bmc_ParFf_t * pPars )
 
     // prepare SAT solver
     vLits = Vec_IntAlloc( Gia_ManCoNum(p) );
-    if ( !Gia_ManFaultPrepare(p, pG, pPars, nFuncVars, vMap, vTests, vLits, &pM, &pCnf, &pSat, 1) )
-        return;
 
-    // iterate through the test vectors
+    // add user-speicified test-vectors (if given) and create missing ones (if needed)
+    if ( Gia_ManFaultPrepare(p, pG, pPars, nFuncVars, vMap, vTests, vLits, &pM, &pCnf, &pSat, 1) )
     for ( Iter = pPars->fStartPats ? 2 : Vec_IntSize(vTests) / nFuncVars; Iter < nIterMax; Iter++ )
     {
         // collect parameter variables
@@ -1549,6 +1555,7 @@ void Gia_ManFaultTest( Gia_Man_t * p, Gia_Man_t * pG, Bmc_ParFf_t * pPars )
             break;
         }
     }
+    else Iter = Vec_IntSize(vTests) / nFuncVars;
 finish:
     // print results
 //    if ( status == l_False )
