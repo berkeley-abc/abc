@@ -78,6 +78,9 @@ typedef enum {
     WLC_OBJ_REDUCT_AND,    // 34: reduction AND
     WLC_OBJ_REDUCT_OR,     // 35: reduction OR
     WLC_OBJ_REDUCT_XOR,    // 36: reduction XOR
+    WLC_OBJ_REDUCT_NAND,   // 34: reduction NAND
+    WLC_OBJ_REDUCT_NOR,    // 35: reduction NOR
+    WLC_OBJ_REDUCT_NXOR,   // 36: reduction NXOR
     WLC_OBJ_ARI_ADD,       // 37: arithmetic addition
     WLC_OBJ_ARI_SUB,       // 38: arithmetic subtraction
     WLC_OBJ_ARI_MULTI,     // 39: arithmetic multiplier

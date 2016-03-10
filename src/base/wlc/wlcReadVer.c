@@ -685,16 +685,26 @@ static inline int Wlc_PrsFindDefinition( Wlc_Prs_t * p, char * pStr, Vec_Int_t *
         if ( !(pStr = Wlc_PrsReadName(p, pStr, vFanins)) )
             return Wlc_PrsWriteErrorMessage( p, pStr, "Cannot read name after !." );
     }
-    else if ( pStr[0] == '&' || pStr[0] == '|' || pStr[0] == '^' || pStr[0] == '-' )
+    else if ( pStr[0] == '-' || 
+              pStr[0] == '&' || pStr[0] == '|' || pStr[0] == '^' || 
+              (pStr[0] == '~' && pStr[1] == '&') || 
+              (pStr[0] == '~' && pStr[1] == '|') || 
+              (pStr[0] == '~' && pStr[1] == '^') )
     {
-        if ( pStr[0] == '&' )
+        if ( pStr[0] == '-' )
+            Type = WLC_OBJ_ARI_MINUS;
+        else if ( pStr[0] == '&' )
             Type = WLC_OBJ_REDUCT_AND;
         else if ( pStr[0] == '|' )
             Type = WLC_OBJ_REDUCT_OR;
         else if ( pStr[0] == '^' )
             Type = WLC_OBJ_REDUCT_XOR;
-        else if ( pStr[0] == '-' )
-            Type = WLC_OBJ_ARI_MINUS;
+        else if ( pStr[0] == '~' && pStr[1] == '&' )
+            Type = WLC_OBJ_REDUCT_NAND;
+        else if ( pStr[0] == '~' && pStr[1] == '|' )
+            Type = WLC_OBJ_REDUCT_NOR;
+        else if ( pStr[0] == '~' && pStr[1] == '^' )
+            Type = WLC_OBJ_REDUCT_NXOR;
         else assert( 0 );
         if ( !(pStr = Wlc_PrsReadName(p, pStr+1, vFanins)) )
             return Wlc_PrsWriteErrorMessage( p, pStr, "Cannot read name after a unary operator." );

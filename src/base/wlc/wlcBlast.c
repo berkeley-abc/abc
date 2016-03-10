@@ -170,26 +170,26 @@ void Wlc_BlastRotateLeft( Gia_Man_t * pNew, int * pNum, int nNum, int * pShift, 
 }
 int Wlc_BlastReduction( Gia_Man_t * pNew, int * pFans, int nFans, int Type )
 {
-    if ( Type == WLC_OBJ_REDUCT_AND )
+    if ( Type == WLC_OBJ_REDUCT_AND || Type == WLC_OBJ_REDUCT_NAND )
     {
         int k, iLit = 1;
         for ( k = 0; k < nFans; k++ )
             iLit = Gia_ManHashAnd( pNew, iLit, pFans[k] );
-        return iLit;
+        return Abc_LitNotCond( iLit, Type == WLC_OBJ_REDUCT_NAND );
     }
-    if ( Type == WLC_OBJ_REDUCT_OR )
+    if ( Type == WLC_OBJ_REDUCT_OR || Type == WLC_OBJ_REDUCT_NOR )
     {
         int k, iLit = 0;
         for ( k = 0; k < nFans; k++ )
             iLit = Gia_ManHashOr( pNew, iLit, pFans[k] );
-        return iLit;
+        return Abc_LitNotCond( iLit, Type == WLC_OBJ_REDUCT_NOR );
     }
-    if ( Type == WLC_OBJ_REDUCT_XOR )
+    if ( Type == WLC_OBJ_REDUCT_XOR || Type == WLC_OBJ_REDUCT_NXOR )
     {
         int k, iLit = 0;
         for ( k = 0; k < nFans; k++ )
             iLit = Gia_ManHashXor( pNew, iLit, pFans[k] );
-        return iLit;
+        return Abc_LitNotCond( iLit, Type == WLC_OBJ_REDUCT_NXOR );
     }
     assert( 0 );
     return -1;
@@ -1032,7 +1032,8 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Vec_Int_t * vBoxIds )
             for ( k = 1; k < nRange; k++ )
                 Vec_IntPush( vRes, 0 );
         }
-        else if ( pObj->Type == WLC_OBJ_REDUCT_AND || pObj->Type == WLC_OBJ_REDUCT_OR || pObj->Type == WLC_OBJ_REDUCT_XOR )
+        else if ( pObj->Type == WLC_OBJ_REDUCT_AND  || pObj->Type == WLC_OBJ_REDUCT_OR  || pObj->Type == WLC_OBJ_REDUCT_XOR ||
+                  pObj->Type == WLC_OBJ_REDUCT_NAND || pObj->Type == WLC_OBJ_REDUCT_NOR || pObj->Type == WLC_OBJ_REDUCT_NXOR )
         {
             Vec_IntPush( vRes, Wlc_BlastReduction( pNew, pFans0, nRange0, pObj->Type ) );
             for ( k = 1; k < nRange; k++ )

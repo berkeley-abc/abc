@@ -67,6 +67,9 @@ static char * Wlc_Names[WLC_OBJ_NUMBER+1] = {
     "&",                   // 34: reduction AND
     "|",                   // 35: reduction OR
     "^",                   // 36: reduction XOR
+    "~&",                  // 34: reduction NAND
+    "~|",                  // 35: reduction NOR
+    "~^",                  // 36: reduction NXOR
     "+",                   // 37: arithmetic addition
     "-",                   // 38: arithmetic subtraction
     "*",                   // 39: arithmetic multiplier
@@ -391,6 +394,12 @@ void Wlc_NtkPrintDistrib( Wlc_Ntk_t * p, int fVerbose )
             Vec_IntAddToEntry( vAnds, WLC_OBJ_REDUCT_OR,        Wlc_ObjRange(Wlc_ObjFanin0(p, pObj)) - 1 );
         else if ( pObj->Type == WLC_OBJ_REDUCT_XOR )   
             Vec_IntAddToEntry( vAnds, WLC_OBJ_REDUCT_XOR,   3 * Wlc_ObjRange(Wlc_ObjFanin0(p, pObj)) - 3 );
+        else if ( pObj->Type == WLC_OBJ_REDUCT_NAND )   
+            Vec_IntAddToEntry( vAnds, WLC_OBJ_REDUCT_NAND,       Wlc_ObjRange(Wlc_ObjFanin0(p, pObj)) - 1 );
+        else if ( pObj->Type == WLC_OBJ_REDUCT_NOR )    
+            Vec_IntAddToEntry( vAnds, WLC_OBJ_REDUCT_NOR,        Wlc_ObjRange(Wlc_ObjFanin0(p, pObj)) - 1 );
+        else if ( pObj->Type == WLC_OBJ_REDUCT_NXOR )   
+            Vec_IntAddToEntry( vAnds, WLC_OBJ_REDUCT_NXOR,   3 * Wlc_ObjRange(Wlc_ObjFanin0(p, pObj)) - 3 );
         else if ( pObj->Type == WLC_OBJ_ARI_ADD )       
             Vec_IntAddToEntry( vAnds, WLC_OBJ_ARI_ADD,      9 * Wlc_ObjRange(Wlc_ObjFanin0(p, pObj)) );
         else if ( pObj->Type == WLC_OBJ_ARI_SUB )       

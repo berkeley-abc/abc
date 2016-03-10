@@ -272,6 +272,12 @@ void Wlc_WriteVerInt( FILE * pFile, Wlc_Ntk_t * p, int fNoFlops )
                 fprintf( pFile, "|%s", Wlc_ObjName(p, Wlc_ObjFaninId0(pObj)) );
             else if ( pObj->Type == WLC_OBJ_REDUCT_XOR )
                 fprintf( pFile, "^%s", Wlc_ObjName(p, Wlc_ObjFaninId0(pObj)) );
+            else if ( pObj->Type == WLC_OBJ_REDUCT_NAND )
+                fprintf( pFile, "~&%s", Wlc_ObjName(p, Wlc_ObjFaninId0(pObj)) );
+            else if ( pObj->Type == WLC_OBJ_REDUCT_NOR )
+                fprintf( pFile, "~|%s", Wlc_ObjName(p, Wlc_ObjFaninId0(pObj)) );
+            else if ( pObj->Type == WLC_OBJ_REDUCT_NXOR )
+                fprintf( pFile, "~^%s", Wlc_ObjName(p, Wlc_ObjFaninId0(pObj)) );
             else if ( pObj->Type == WLC_OBJ_BIT_SELECT )
                 fprintf( pFile, "%s [%d:%d]", Wlc_ObjName(p, Wlc_ObjFaninId0(pObj)), Wlc_ObjRangeEnd(pObj), Wlc_ObjRangeBeg(pObj) );
             else if ( pObj->Type == WLC_OBJ_BIT_SIGNEXT )
