@@ -176,7 +176,7 @@ double            Mio_GateReadDelayMax ( Mio_Gate_t * pGate )            { retur
 char *            Mio_GateReadSop      ( Mio_Gate_t * pGate )            { return pGate->pSop;      }
 Vec_Int_t *       Mio_GateReadExpr     ( Mio_Gate_t * pGate )            { return pGate->vExpr;     }
 word              Mio_GateReadTruth    ( Mio_Gate_t * pGate )            { return pGate->nInputs <= 6 ? pGate->uTruth : 0;   }
-word *            Mio_GateReadTruthP   ( Mio_Gate_t * pGate )            { return pGate->nInputs <= 6 ? NULL: pGate->pTruth; }
+word *            Mio_GateReadTruthP   ( Mio_Gate_t * pGate )            { return pGate->nInputs <= 6 ? &pGate->uTruth: pGate->pTruth; }
 int               Mio_GateReadValue    ( Mio_Gate_t * pGate )            { return pGate->Value;     }
 int               Mio_GateReadCell     ( Mio_Gate_t * pGate )            { return pGate->Cell;      }
 int               Mio_GateReadProfile  ( Mio_Gate_t * pGate )            { return pGate->Profile;   }

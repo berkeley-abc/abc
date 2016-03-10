@@ -734,6 +734,7 @@ static inline void Scl_LibHandleInputDriver2( SC_Cell * pCell, SC_PairI * pLoadI
 /*=== sclLiberty.c ===============================================================*/
 extern SC_Lib *      Abc_SclReadLiberty( char * pFileName, int fVerbose, int fVeryVerbose );
 /*=== sclLibScl.c ===============================================================*/
+extern SC_Lib *      Abc_SclReadFromGenlib( void * pLib );
 extern SC_Lib *      Abc_SclReadFromStr( Vec_Str_t * vOut );
 extern SC_Lib *      Abc_SclReadFromFile( char * pFileName );
 extern void          Abc_SclWriteScl( char * pFileName, SC_Lib * p );

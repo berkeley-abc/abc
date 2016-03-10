@@ -148,6 +148,7 @@ extern double            Mio_GateReadDelayMax      ( Mio_Gate_t * pGate );
 extern char *            Mio_GateReadSop           ( Mio_Gate_t * pGate );      
 extern Vec_Int_t *       Mio_GateReadExpr          ( Mio_Gate_t * pGate );      
 extern word              Mio_GateReadTruth         ( Mio_Gate_t * pGate );
+extern word *            Mio_GateReadTruthP        ( Mio_Gate_t * pGate );
 extern int               Mio_GateReadValue         ( Mio_Gate_t * pGate );
 extern int               Mio_GateReadCell          ( Mio_Gate_t * pGate );
 extern int               Mio_GateReadProfile       ( Mio_Gate_t * pGate );

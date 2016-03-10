@@ -37,6 +37,148 @@ ABC_NAMESPACE_IMPL_START
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
+
+/**Function*************************************************************
+
+  Synopsis    [Reading library from file.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static void Abc_SclReadSurfaceGenlib( SC_Surface * p )
+{
+    Vec_Flt_t * vVec;
+    Vec_Int_t * vVecI;
+    int i, j;
+
+    Vec_FltPush( &p->vIndex0, 0 );
+    Vec_IntPush( &p->vIndex0I, Scl_Flt2Int(0) );
+
+    Vec_FltPush( &p->vIndex1, 0 );
+    Vec_IntPush( &p->vIndex1I, Scl_Flt2Int(0) );
+
+    for ( i = 0; i < Vec_FltSize(&p->vIndex0); i++ )
+    {
+        vVec = Vec_FltAlloc( Vec_FltSize(&p->vIndex1) );
+        Vec_PtrPush( &p->vData, vVec );
+        vVecI = Vec_IntAlloc( Vec_FltSize(&p->vIndex1) );
+        Vec_PtrPush( &p->vDataI, vVecI );
+        for ( j = 0; j < Vec_FltSize(&p->vIndex1); j++ )
+        {
+            Vec_FltPush( vVec, 1 );
+            Vec_IntPush( vVecI, Scl_Flt2Int(1) );
+        }
+    }
+}
+static int Abc_SclReadLibraryGenlib( SC_Lib * p, Mio_Library_t * pLib )
+{
+    Mio_Gate_t * pGate;
+    Mio_Pin_t * pGatePin;
+    int j, k;
+
+    // Read non-composite fields:
+    p->pName                 = Abc_UtilStrsav( Mio_LibraryReadName(pLib) );
+    p->default_wire_load     = 0;
+    p->default_wire_load_sel = 0;
+    p->default_max_out_slew  = 0;
+
+    p->unit_time             = 12;
+    p->unit_cap_fst          = 1.0;
+    p->unit_cap_snd          = 15;
+
+    Mio_LibraryForEachGate( pLib, pGate )
+    {
+        SC_Cell * pCell = Abc_SclCellAlloc();
+        pCell->Id = SC_LibCellNum(p);
+        Vec_PtrPush( &p->vCells, pCell );
+
+        pCell->pName          = Abc_UtilStrsav( Mio_GateReadName( pGate ) );     
+        pCell->area           = Mio_GateReadArea( pGate );
+        pCell->leakage        = 0;
+        pCell->drive_strength = 0;
+
+        pCell->n_inputs       = Mio_GateReadPinNum( pGate );    
+        pCell->n_outputs      = 1;
+
+        pCell->areaI          = Scl_Flt2Int(pCell->area);
+        pCell->leakageI       = Scl_Flt2Int(pCell->leakage);
+
+        Mio_GateForEachPin( pGate, pGatePin )
+        {
+            SC_Pin * pPin = Abc_SclPinAlloc();
+            Vec_PtrPush( &pCell->vPins, pPin );
+
+            pPin->dir      = sc_dir_Input;
+            pPin->pName    = Abc_UtilStrsav( Mio_PinReadName( pGatePin ) ); 
+            pPin->rise_cap = 0;
+            pPin->fall_cap = 0;
+
+            pPin->rise_capI = Scl_Flt2Int(pPin->rise_cap);
+            pPin->fall_capI = Scl_Flt2Int(pPin->fall_cap);
+        }
+
+        for ( j = 0; j < pCell->n_outputs; j++ )
+        {
+            word * pTruth = Mio_GateReadTruthP( pGate );
+            SC_Pin * pPin = Abc_SclPinAlloc();
+            Vec_PtrPush( &pCell->vPins, pPin );
+
+            pPin->dir          = sc_dir_Output;
+            pPin->pName        = Abc_UtilStrsav( Mio_GateReadOutName( pGate ) );
+            pPin->max_out_cap  = 0;
+            pPin->max_out_slew = 0;
+
+            // read function
+            pPin->func_text = Abc_UtilStrsav( Mio_GateReadForm( pGate ) );
+            Vec_WrdGrow( &pPin->vFunc, Abc_Truth6WordNum(pCell->n_inputs) );
+            for ( k = 0; k < Vec_WrdCap(&pPin->vFunc); k++ )
+                Vec_WrdPush( &pPin->vFunc, pTruth[k] );
+
+            // read pins
+            Mio_GateForEachPin( pGate, pGatePin )
+            {
+                Mio_PinPhase_t Value = Mio_PinReadPhase( pGatePin );
+                SC_Timings * pRTime = Abc_SclTimingsAlloc();
+                Vec_PtrPush( &pPin->vRTimings, pRTime );
+                pRTime->pName = Abc_UtilStrsav( Mio_PinReadName( pGatePin ) ); 
+                if ( 1 )
+                {
+                    SC_Timing * pTime = Abc_SclTimingAlloc();
+                    Vec_PtrPush( &pRTime->vTimings, pTime );
+                    if ( Value == MIO_PHASE_UNKNOWN )
+                        pTime->tsense = (SC_TSense)sc_ts_Non;
+                    else if ( Value == MIO_PHASE_INV )
+                        pTime->tsense = (SC_TSense)sc_ts_Neg;
+                    else if ( Value == MIO_PHASE_NONINV )
+                        pTime->tsense = (SC_TSense)sc_ts_Pos;
+                    else assert( 0 );
+                    Abc_SclReadSurfaceGenlib( &pTime->pCellRise );
+                    Abc_SclReadSurfaceGenlib( &pTime->pCellFall );
+                    Abc_SclReadSurfaceGenlib( &pTime->pRiseTrans );
+                    Abc_SclReadSurfaceGenlib( &pTime->pFallTrans );
+                }
+            }
+        }
+    }
+    return 1;
+}
+SC_Lib * Abc_SclReadFromGenlib( void * pLib0 )
+{
+    Mio_Library_t * pLib = (Mio_Library_t *)pLib0;
+    SC_Lib * p = Abc_SclLibAlloc();
+    if ( !Abc_SclReadLibraryGenlib( p, pLib ) )
+        return NULL;
+    // hash gates by name
+    Abc_SclHashCells( p );
+    Abc_SclLinkCells( p );
+    return p;
+}
+
+
 /**Function*************************************************************
 
   Synopsis    [Reading library from file.]
