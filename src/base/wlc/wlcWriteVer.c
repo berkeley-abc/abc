@@ -308,6 +308,8 @@ void Wlc_WriteVerInt( FILE * pFile, Wlc_Ntk_t * p, int fNoFlops )
                     fprintf( pFile, "|" );
                 else if ( pObj->Type == WLC_OBJ_BIT_XOR )
                     fprintf( pFile, "^" );
+                else if ( pObj->Type == WLC_OBJ_BIT_NXOR )
+                    fprintf( pFile, "~^" );
                 else if ( pObj->Type == WLC_OBJ_LOGIC_AND )
                     fprintf( pFile, "&&" );
                 else if ( pObj->Type == WLC_OBJ_LOGIC_OR )

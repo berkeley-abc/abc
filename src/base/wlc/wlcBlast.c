@@ -930,13 +930,13 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Vec_Int_t * vBoxIds )
             for ( k = 0; k < nRange; k++ )
                 Vec_IntPush( vRes, Gia_ManHashOr(pNew, pArg0[k], pArg1[k]) );
         }
-        else if ( pObj->Type == WLC_OBJ_BIT_XOR )
+        else if ( pObj->Type == WLC_OBJ_BIT_XOR || pObj->Type == WLC_OBJ_BIT_NXOR )
         {
             int nRangeMax = Abc_MaxInt( nRange, Abc_MaxInt(nRange0, nRange1) );
             int * pArg0 = Wlc_VecLoadFanins( vTemp0, pFans0, nRange0, nRangeMax, Wlc_ObjIsSignedFanin01(p, pObj) );
             int * pArg1 = Wlc_VecLoadFanins( vTemp1, pFans1, nRange1, nRangeMax, Wlc_ObjIsSignedFanin01(p, pObj) );
             for ( k = 0; k < nRange; k++ )
-                Vec_IntPush( vRes, Gia_ManHashXor(pNew, pArg0[k], pArg1[k]) );
+                Vec_IntPush( vRes, Abc_LitNotCond(Gia_ManHashXor(pNew, pArg0[k], pArg1[k]), pObj->Type == WLC_OBJ_BIT_NXOR) );
         }
         else if ( pObj->Type == WLC_OBJ_BIT_SELECT )
         {
