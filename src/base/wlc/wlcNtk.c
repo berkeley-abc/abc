@@ -50,7 +50,7 @@ static char * Wlc_Names[WLC_OBJ_NUMBER+1] = {
     "&",                   // 16: bitwise AND
     "|",                   // 17: bitwise OR
     "^",                   // 18: bitwise XOR
-    "~|",                  // 18: bitwise NXOR
+    "~^",                  // 18: bitwise NXOR
     "[:]",                 // 19: bit selection
     "{,}",                 // 20: bit concatenation
     "zeroPad",             // 21: zero padding
