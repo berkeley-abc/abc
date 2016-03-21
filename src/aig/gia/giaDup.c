@@ -896,6 +896,67 @@ Gia_Man_t * Gia_ManDupAppendNew( Gia_Man_t * pOne, Gia_Man_t * pTwo )
 
 /**Function*************************************************************
 
+  Synopsis    [Creates a miter for inductive checking of the invariant.]
+
+  Description [The first GIA (p) is a sequential AIG whose transition
+  relation is used. The second GIA (pInv) is a combinational AIG representing
+  the invariant over the register outputs. If the resulting combination miter
+  is UNSAT, the invariant holds by simple induction.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Gia_Man_t * Gia_ManDupInvMiter( Gia_Man_t * p, Gia_Man_t * pInv )
+{
+    Gia_Man_t * pNew, * pTemp;
+    Gia_Obj_t * pObj;
+    int i, Node1, Node2, Node;
+    assert( Gia_ManRegNum(p) > 0 );
+    assert( Gia_ManRegNum(pInv) == 0 );
+    assert( Gia_ManCoNum(pInv) == 1 );
+    assert( Gia_ManRegNum(p) == Gia_ManCiNum(pInv) );
+    Gia_ManFillValue(p);
+    pNew = Gia_ManStart( Gia_ManObjNum(p) + 2*Gia_ManObjNum(pInv) );
+    pNew->pName = Abc_UtilStrsav( p->pName );
+    pNew->pSpec = Abc_UtilStrsav( p->pSpec );
+    Gia_ManHashAlloc( pNew );
+    Gia_ManConst0(p)->Value = 0;
+    Gia_ManForEachObj1( p, pObj, i )
+    {
+        if ( Gia_ObjIsAnd(pObj) )
+            pObj->Value = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+        else if ( Gia_ObjIsCi(pObj) )
+            pObj->Value = Gia_ManAppendCi( pNew );
+        else if ( Gia_ObjIsCo(pObj) )
+            pObj->Value = Gia_ObjFanin0Copy(pObj);
+    }
+    // build invariant on top of register outputs in the first frame
+    Gia_ManForEachRo( p, pObj, i )
+        Gia_ManCi(pInv, i)->Value = pObj->Value;
+    Gia_ManForEachAnd( pInv, pObj, i )
+        pObj->Value = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+    pObj = Gia_ManCo( pInv, 0 );
+    Node1 = Gia_ObjFanin0Copy(pObj);
+    // build invariant on top of register outputs in the second frame
+    Gia_ManForEachRi( p, pObj, i )
+        Gia_ManCi(pInv, i)->Value = pObj->Value;
+    Gia_ManForEachAnd( pInv, pObj, i )
+        pObj->Value = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+    pObj = Gia_ManCo( pInv, 0 );
+    Node2 = Gia_ObjFanin0Copy(pObj);
+    // create miter output
+    Node = Gia_ManHashAnd( pNew, Node1, Abc_LitNot(Node2) );
+    Gia_ManAppendCo( pNew, Node );
+    // cleanup
+    pNew = Gia_ManCleanup( pTemp = pNew );
+    Gia_ManStop( pTemp );
+    return pNew;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Appends logic cones as additional property outputs.]
 
   Description []
