@@ -459,12 +459,15 @@ int Bmc_CollapseExpand( sat_solver * pSat, sat_solver * pSatOn, Vec_Int_t * vLit
             if ( k == nFinal )
                 Vec_IntWriteEntry( vLits, i, -1 );
         }
-        Bmc_CollapseExpandRound( pSat, NULL,   vLits, vNums, vTemp, nBTLimit, fCanon, fOnOffSetLit );
+        if ( Bmc_CollapseExpandRound( pSat, NULL,   vLits, vNums, vTemp, nBTLimit, fCanon, fOnOffSetLit ) == -1 )
+            return -1;
     }
     else
     {
-        Bmc_CollapseExpandRound( pSat, pSatOn, vLits, vNums, vTemp, nBTLimit, fCanon, -1 );
-        Bmc_CollapseExpandRound( pSat, NULL,   vLits, vNums, vTemp, nBTLimit, fCanon, -1 );
+        if ( Bmc_CollapseExpandRound( pSat, pSatOn, vLits, vNums, vTemp, nBTLimit, fCanon, -1 ) == -1 )
+            return -1;
+        if ( Bmc_CollapseExpandRound( pSat, NULL,   vLits, vNums, vTemp, nBTLimit, fCanon, -1 ) == -1 )
+            return -1;
     }
     {
         // put into new array
@@ -559,8 +562,10 @@ int Bmc_CollapseExpand2( sat_solver * pSat, sat_solver * pSatOn, Vec_Int_t * vLi
     }
     else
     {
-        Bmc_CollapseExpandRound( pSat, pSatOn, vLits, vNums, vTemp, nBTLimit, fCanon, -1 );
-        Bmc_CollapseExpandRound( pSat, NULL,   vLits, vNums, vTemp, nBTLimit, fCanon, -1 );
+        if ( Bmc_CollapseExpandRound( pSat, pSatOn, vLits, vNums, vTemp, nBTLimit, fCanon, -1 ) == -1 )
+            return -1;
+        if ( Bmc_CollapseExpandRound( pSat, NULL,   vLits, vNums, vTemp, nBTLimit, fCanon, -1 ) == -1 )
+            return -1;
     }
 /*
     {
