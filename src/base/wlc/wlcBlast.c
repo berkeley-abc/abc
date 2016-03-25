@@ -34,6 +34,25 @@ ABC_NAMESPACE_IMPL_START
 
 /**Function*************************************************************
 
+  Synopsis    [Counts constant bits.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Wlc_NtkCountConstBits( int * pArray, int nSize )
+{
+    int i, Counter = 0;
+    for ( i = 0; i < nSize; i++ )
+        Counter += (pArray[i] == 0 || pArray[i] == 1);
+    return Counter;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Helper functions.]
 
   Description []
@@ -1067,6 +1086,8 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Vec_Int_t * vBoxIds )
                 int nRangeMax = Abc_MaxInt(nRange0, nRange1);
                 int * pArg0 = Wlc_VecLoadFanins( vTemp0, pFans0, nRange0, nRangeMax, fSigned );
                 int * pArg1 = Wlc_VecLoadFanins( vTemp1, pFans1, nRange1, nRangeMax, fSigned );
+                if ( Wlc_NtkCountConstBits(pArg0, nRangeMax) < Wlc_NtkCountConstBits(pArg1, nRangeMax) )
+                    ABC_SWAP( int *, pArg0, pArg1 );
                 Wlc_BlastMultiplier( pNew, pArg0, pArg1, nRangeMax, nRangeMax, vTemp2, vRes, fSigned );
                 //Wlc_BlastMultiplier3( pNew, pArg0, pArg1, nRange0, nRange1, vRes );
                 if ( nRange > nRangeMax + nRangeMax )
