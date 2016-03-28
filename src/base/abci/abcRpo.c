@@ -96,7 +96,7 @@ static inline void Abc_TruthWriteHexDigit(FILE * pFile, int HexDigit) {
 
 static void Abc_TruthReadHex(word * pTruth, char * pString, int nVars) {
     int nWords = (nVars < 7) ? 1 : (1 << (nVars - 6));
-    int k, Digit, nDigits = (nWords << 4);
+    int k, Digit, nDigits = (nVars < 7) ? (1 << (nVars-2)) : (nWords << 4);
     char EndSymbol;
     // skip the first 2 symbols if they are "0x"
     if (pString[0] == '0' && pString[1] == 'x')
