@@ -257,6 +257,30 @@ void Gia_ManSetRefsMapped( Gia_Man_t * p )
 
 /**Function*************************************************************
 
+  Synopsis    [Assigns levels.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_ManSetLutRefs( Gia_Man_t * p )  
+{
+    Gia_Obj_t * pObj;
+    int i, k, iFan;
+    ABC_FREE( p->pLutRefs );
+    p->pLutRefs = ABC_CALLOC( int, Gia_ManObjNum(p) );
+    Gia_ManForEachCo( p, pObj, i )
+        Gia_ObjLutRefInc( p, Gia_ObjFanin0(pObj) );
+    Gia_ManForEachLut( p, i )
+        Gia_LutForEachFanin( p, i, iFan, k )
+            Gia_ObjLutRefInc( p, Gia_ManObj(p, iFan) );
+}
+
+/**Function*************************************************************
+
   Synopsis    [Calculate mapping overlap.]
 
   Description []

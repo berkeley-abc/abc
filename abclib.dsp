@@ -4367,6 +4367,10 @@ SOURCE=.\src\aig\gia\giaSpeedup.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\aig\gia\giaSplit.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\aig\gia\giaStg.c
 # End Source File
 # Begin Source File
