@@ -32,6 +32,7 @@
 #include <assert.h>
 
 #include "misc/vec/vec.h"
+#include "misc/vec/vecWec.h"
 #include "misc/util/utilCex.h"
 
 ////////////////////////////////////////////////////////////////////////
@@ -130,7 +131,9 @@ struct Gia_Man_t_
     Vec_Int_t *    vFanoutNums;   // static fanout
     Vec_Int_t *    vFanout;       // static fanout
     Vec_Int_t *    vMapping;      // mapping for each node
+    Vec_Wec_t *    vMapping2;     // mapping for each node
     Vec_Int_t *    vCellMapping;  // mapping for each node
+    void *         pSatlutWinman; // windowing for SAT-based mapping
     Vec_Int_t *    vPacking;      // packing information
     Vec_Int_t *    vConfigs;      // cell configurations
     char *         pCellStr;      // cell description
@@ -986,6 +989,12 @@ static inline int         Gia_ObjLutFanin( Gia_Man_t * p, int Id, int i )   { re
 static inline int         Gia_ObjLutMuxId( Gia_Man_t * p, int Id )          { return Gia_ObjLutFanins(p, Id)[Gia_ObjLutSize(p, Id)];                        }
 static inline int         Gia_ObjLutIsMux( Gia_Man_t * p, int Id )          { return (int)(Gia_ObjLutMuxId(p, Id) < 0);                                     }
 
+static inline int         Gia_ManHasMapping2( Gia_Man_t * p )               { return p->vMapping2 != NULL;                                                  }
+static inline int         Gia_ObjIsLut2( Gia_Man_t * p, int Id )            { return Vec_IntSize(Vec_WecEntry(p->vMapping2, Id)) != 0;                      }
+static inline int         Gia_ObjLutSize2( Gia_Man_t * p, int Id )          { return Vec_IntSize(Vec_WecEntry(p->vMapping2, Id));                           }
+static inline Vec_Int_t * Gia_ObjLutFanins2( Gia_Man_t * p, int Id )        { return Vec_WecEntry(p->vMapping2, Id);                                        }
+static inline int         Gia_ObjLutFanin2( Gia_Man_t * p, int Id, int i )  { return Vec_IntEntry(Vec_WecEntry(p->vMapping2, Id), i);                       }
+
 static inline int         Gia_ManHasCellMapping( Gia_Man_t * p )            { return p->vCellMapping != NULL;                                               }
 static inline int         Gia_ObjIsCell( Gia_Man_t * p, int iLit )          { return Vec_IntEntry(p->vCellMapping, iLit) != 0;                              }
 static inline int         Gia_ObjIsCellInv( Gia_Man_t * p, int iLit )       { return Vec_IntEntry(p->vCellMapping, iLit) == -1;                             }
@@ -1001,6 +1010,15 @@ static inline int         Gia_ObjCellId( Gia_Man_t * p, int iLit )          { re
     for ( k = 0; k < Gia_ObjLutSize(p,i) && ((iFan = Gia_ObjLutFanins(p,i)[k]),1); k++ )
 #define Gia_LutForEachFaninObj( p, i, pFanin, k )                       \
     for ( k = 0; k < Gia_ObjLutSize(p,i) && ((pFanin = Gia_ManObj(p, Gia_ObjLutFanins(p,i)[k])),1); k++ )
+
+#define Gia_ManForEachLut2( p, i )                                      \
+    for ( i = 1; i < Gia_ManObjNum(p); i++ ) if ( !Gia_ObjIsLut2(p, i) ) {} else
+#define Gia_LutForEachFanin2( p, i, iFan, k )                           \
+    for ( k = 0; k < Gia_ObjLutSize2(p,i) && ((iFan = Gia_ObjLutFanin2(p,i,k)),1); k++ )
+#define Gia_ManForEachLut2Vec( vIds, p, vVec, iObj, i )                 \
+    for ( i = 0; i < Vec_IntSize(vIds) && (vVec = Vec_WecEntry(p->vMapping2, (iObj = Vec_IntEntry(vIds, i)))); i++ )
+#define Gia_ManForEachLut2VecReverse( vIds, p, vVec, iObj, i )          \
+    for ( i = Vec_IntSize(vIds)-1; i >= 0 && (vVec = Vec_WecEntry(p->vMapping2, (iObj = Vec_IntEntry(vIds, i)))); i-- )
 
 #define Gia_ManForEachCell( p, i )                                      \
     for ( i = 2; i < 2*Gia_ManObjNum(p); i++ ) if ( !Gia_ObjIsCell(p, i) ) {} else
@@ -1118,7 +1136,7 @@ extern Gia_Man_t *         Gia_ManDupCofAllInt( Gia_Man_t * p, Vec_Int_t * vSigs
 extern Gia_Man_t *         Gia_ManDupCofAll( Gia_Man_t * p, int nFanLim, int fVerbose );
 /*=== giaDfs.c ============================================================*/
 extern void                Gia_ManCollectCis( Gia_Man_t * p, int * pNodes, int nNodes, Vec_Int_t * vSupp );
-extern void                Gia_ManCollectAnds( Gia_Man_t * p, int * pNodes, int nNodes, Vec_Int_t * vNodes );
+extern void                Gia_ManCollectAnds( Gia_Man_t * p, int * pNodes, int nNodes, Vec_Int_t * vNodes, Vec_Int_t * vLeaves );
 extern Vec_Int_t *         Gia_ManCollectNodesCis( Gia_Man_t * p, int * pNodes, int nNodes );
 extern int                 Gia_ManSuppSize( Gia_Man_t * p, int * pNodes, int nNodes );
 extern int                 Gia_ManConeSize( Gia_Man_t * p, int * pNodes, int nNodes );
@@ -1359,6 +1377,9 @@ extern void                Gia_ManSimulateRound( Gia_ManSim_t * p );
 extern float               Gia_ManDelayTraceLut( Gia_Man_t * p );
 extern float               Gia_ManDelayTraceLutPrint( Gia_Man_t * p, int fVerbose );
 extern Gia_Man_t *         Gia_ManSpeedup( Gia_Man_t * p, int Percentage, int Degree, int fVerbose, int fVeryVerbose );
+/*=== giaSplit.c ============================================================*/
+extern void                Gia_ManComputeOneWinStart( Gia_Man_t * p, int fReverse );
+extern int                 Gia_ManComputeOneWin( Gia_Man_t * p, int iPivot, Vec_Int_t ** pvRoots, Vec_Int_t ** pvNodes, Vec_Int_t ** pvLeaves, Vec_Int_t ** pvAnds );
 /*=== giaStg.c ============================================================*/
 extern void                Gia_ManStgPrint( FILE * pFile, Vec_Int_t * vLines, int nIns, int nOuts, int nStates );
 extern Gia_Man_t *         Gia_ManStgRead( char * pFileName, int kHot, int fVerbose );

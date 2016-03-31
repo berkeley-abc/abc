@@ -750,7 +750,7 @@ Vec_Str_t * Abc_NtkClpGiaOne2( Cnf_Dat_t * pCnf, Gia_Man_t * p, int iCo, int nCu
     Gia_ManForEachCiVec( vSupp, p, pObj, i )
         Vec_IntPush( vSuppObjs, Gia_ObjId(p, pObj) );
     Gia_ManIncrementTravId( p );
-    Gia_ManCollectAnds( p, &iCoObjId, 1, vAnds );
+    Gia_ManCollectAnds( p, &iCoObjId, 1, vAnds, NULL );
     assert( Vec_IntSize(vAnds) > 0 );
 //    pSat = Abc_NtkClpDeriveSatSolver( pCnf, iCoObjId, vSuppObjs, vAnds, vMap, &pSat1, &pSat2, &pSat3 );
     pSat = Abc_NtkClpDeriveSatSolver( pCnf, iCoObjId, vSuppObjs, vAnds, vMap, NULL, NULL, NULL );

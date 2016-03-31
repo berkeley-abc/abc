@@ -34822,10 +34822,10 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9SatLut( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern void Gia_ManLutSat( Gia_Man_t * p, int nNumber, int nConfl, int fVerbose );
-    int c, nNumber = 32, nConfl = 0, fVerbose = 0;
+    extern void Gia_ManLutSat( Gia_Man_t * p, int nNumber, int nConfl, int fReverse, int fVerbose );
+    int c, nNumber = 64, nConfl = 500, fReverse = 0, fVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "NCvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "NCrvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -34852,6 +34852,9 @@ int Abc_CommandAbc9SatLut( Abc_Frame_t * pAbc, int argc, char ** argv )
             nConfl = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
             break;
+        case 'r':
+            fReverse ^= 1;
+            break;
         case 'v':
             fVerbose ^= 1;
             break;
@@ -34873,14 +34876,15 @@ int Abc_CommandAbc9SatLut( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     if ( Gia_ManLutSizeMax(pAbc->pGia) > 4 )
         Abc_Print( 0, "Current AIG has mapping into %d-LUTs.\n", Gia_ManLutSizeMax(pAbc->pGia) );
-    Gia_ManLutSat( pAbc->pGia, nNumber, nConfl, fVerbose );
+    Gia_ManLutSat( pAbc->pGia, nNumber, nConfl, fReverse, fVerbose );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &satlut [-NC num] [-vh]\n" );
+    Abc_Print( -2, "usage: &satlut [-NC num] [-rvh]\n" );
     Abc_Print( -2, "\t           performs SAT-based remapping of the 4-LUT network\n" );
     Abc_Print( -2, "\t-N num   : the limit on the number of AIG nodes in the window [default = %d]\n", nNumber );
     Abc_Print( -2, "\t-C num   : the limit on the number of conflicts [default = %d]\n", nNumber );
+    Abc_Print( -2, "\t-r       : toggles using reverse search [default = %s]\n", fReverse? "yes": "no" );
     Abc_Print( -2, "\t-v       : toggles verbose output [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h       : prints the command usage\n");
     return 1;
@@ -40616,7 +40620,6 @@ int Abc_CommandAbc9Test( Abc_Frame_t * pAbc, int argc, char ** argv )
 //    Gia_ParTest( pAbc->pGia, nWords, nProcs );
     Gia_Iso3Test( pAbc->pGia );
 //    printf( "\nThis command is currently disabled.\n\n" );
-
     return 0;
 usage:
     Abc_Print( -2, "usage: &test [-FW num] [-svh]\n" );

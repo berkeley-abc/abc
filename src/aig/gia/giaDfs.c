@@ -96,17 +96,19 @@ void Gia_ManCollectCis( Gia_Man_t * p, int * pNodes, int nNodes, Vec_Int_t * vSu
   SeeAlso     []
 
 ***********************************************************************/
-void Gia_ManCollectAnds_rec( Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Int_t * vNodes )
+void Gia_ManCollectAnds_rec( Gia_Man_t * p, int iObj, Vec_Int_t * vNodes )
 {
-    if ( Gia_ObjIsTravIdCurrent(p, pObj) )
+    Gia_Obj_t * pObj;
+    if ( Gia_ObjIsTravIdCurrentId(p, iObj) )
         return;
-    Gia_ObjSetTravIdCurrent(p, pObj);
+    Gia_ObjSetTravIdCurrentId(p, iObj);
+    pObj = Gia_ManObj( p, iObj );
     if ( Gia_ObjIsCi(pObj) )
         return;
     assert( Gia_ObjIsAnd(pObj) );
-    Gia_ManCollectAnds_rec( p, Gia_ObjFanin0(pObj), vNodes );
-    Gia_ManCollectAnds_rec( p, Gia_ObjFanin1(pObj), vNodes );
-    Vec_IntPush( vNodes, Gia_ObjId(p, pObj) );
+    Gia_ManCollectAnds_rec( p, Gia_ObjFaninId0(pObj, iObj), vNodes );
+    Gia_ManCollectAnds_rec( p, Gia_ObjFaninId1(pObj, iObj), vNodes );
+    Vec_IntPush( vNodes, iObj );
 }
 
 /**Function*************************************************************
@@ -120,20 +122,22 @@ void Gia_ManCollectAnds_rec( Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Int_t * vNodes
   SeeAlso     []
 
 ***********************************************************************/
-void Gia_ManCollectAnds( Gia_Man_t * p, int * pNodes, int nNodes, Vec_Int_t * vNodes )
+void Gia_ManCollectAnds( Gia_Man_t * p, int * pNodes, int nNodes, Vec_Int_t * vNodes, Vec_Int_t * vLeaves )
 {
-    Gia_Obj_t * pObj;
-    int i; 
-    Vec_IntClear( vNodes );
+    int i, iLeaf; 
 //    Gia_ManIncrementTravId( p );
-    Gia_ObjSetTravIdCurrent( p, Gia_ManConst0(p) );
+    Gia_ObjSetTravIdCurrentId( p, 0 );
+    if ( vLeaves )
+        Vec_IntForEachEntry( vLeaves, iLeaf, i )
+            Gia_ObjSetTravIdCurrentId( p, iLeaf );
+    Vec_IntClear( vNodes );
     for ( i = 0; i < nNodes; i++ )
     {
-        pObj = Gia_ManObj( p, pNodes[i] );
+        Gia_Obj_t * pObj = Gia_ManObj( p, pNodes[i] );
         if ( Gia_ObjIsCo(pObj) )
-            Gia_ManCollectAnds_rec( p, Gia_ObjFanin0(pObj), vNodes );
+            Gia_ManCollectAnds_rec( p, Gia_ObjFaninId0(pObj, pNodes[i]), vNodes );
         else
-            Gia_ManCollectAnds_rec( p, pObj, vNodes );
+            Gia_ManCollectAnds_rec( p, pNodes[i], vNodes );
     }
 }
 
@@ -216,7 +220,7 @@ void Gia_ManCollectTest( Gia_Man_t * p )
     Gia_ManForEachCo( p, pObj, i )
     {
         iNode = Gia_ObjId(p, pObj);
-        Gia_ManCollectAnds( p, &iNode, 1, vNodes );
+        Gia_ManCollectAnds( p, &iNode, 1, vNodes, NULL );
     }
     Vec_IntFree( vNodes );
     ABC_PRT( "DFS from each output", Abc_Clock() - clk );

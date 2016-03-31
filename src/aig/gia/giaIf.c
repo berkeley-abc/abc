@@ -249,10 +249,10 @@ void Gia_ManSetRefsMapped( Gia_Man_t * p )
     ABC_FREE( p->pRefs );
     p->pRefs = ABC_CALLOC( int, Gia_ManObjNum(p) );
     Gia_ManForEachCo( p, pObj, i )
-        Gia_ObjRefInc( p, Gia_ObjFanin0(pObj) );
+        Gia_ObjRefIncId( p, Gia_ObjFaninId0p(p, pObj) );
     Gia_ManForEachLut( p, i )
         Gia_LutForEachFanin( p, i, iFan, k )
-            Gia_ObjRefInc( p, Gia_ManObj(p, iFan) );
+            Gia_ObjRefIncId( p, iFan );
 }
 
 /**Function*************************************************************
@@ -273,10 +273,10 @@ void Gia_ManSetLutRefs( Gia_Man_t * p )
     ABC_FREE( p->pLutRefs );
     p->pLutRefs = ABC_CALLOC( int, Gia_ManObjNum(p) );
     Gia_ManForEachCo( p, pObj, i )
-        Gia_ObjLutRefInc( p, Gia_ObjFanin0(pObj) );
+        Gia_ObjLutRefIncId( p, Gia_ObjFaninId0p(p, pObj) );
     Gia_ManForEachLut( p, i )
         Gia_LutForEachFanin( p, i, iFan, k )
-            Gia_ObjLutRefInc( p, Gia_ManObj(p, iFan) );
+            Gia_ObjLutRefIncId( p, iFan );
 }
 
 /**Function*************************************************************
@@ -1568,7 +1568,7 @@ int Gia_ManFromIfLogicFindCell( If_Man_t * pIfMan, Gia_Man_t * pNew, Gia_Man_t *
         // collect nodes
         Gia_ManIncrementTravId( pTemp );
         Id = Abc_Lit2Var( iLit );
-        Gia_ManCollectAnds( pTemp, &Id, 1, vCover );
+        Gia_ManCollectAnds( pTemp, &Id, 1, vCover, NULL );
         Vec_IntPrint( vCover );
         Gia_ManForEachObjVec( vCover, pTemp, pObj, i )
             Gia_ObjPrint( pTemp, pObj );

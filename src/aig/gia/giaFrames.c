@@ -706,7 +706,7 @@ void Gia_ManFraSupports( Gia_ManFra_t * p )
         vIns = Vec_IntAlloc( 100 );
         Gia_ManCollectCis( p->pAig, Vec_IntArray(vOuts), Vec_IntSize(vOuts), vIns );
         vAnds = Vec_IntAlloc( 100 );
-        Gia_ManCollectAnds( p->pAig, Vec_IntArray(vOuts), Vec_IntSize(vOuts), vAnds );
+        Gia_ManCollectAnds( p->pAig, Vec_IntArray(vOuts), Vec_IntSize(vOuts), vAnds, NULL );
         Vec_PtrWriteEntry( p->vIns,  f, vIns );
         Vec_PtrWriteEntry( p->vAnds, f, vAnds );
         Vec_PtrWriteEntry( p->vOuts, f, vOuts );
