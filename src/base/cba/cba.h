@@ -1103,7 +1103,7 @@ extern int           Cba_ManIsTopoOrder( Cba_Man_t * p );
 extern Vec_Int_t *   Cba_NtkCollectDfs( Cba_Ntk_t * p );
 extern Cba_Man_t *   Cba_ManCollapse( Cba_Man_t * p );
 extern Cba_Man_t *   Cba_ManExtractGroup( Cba_Man_t * p, Vec_Int_t * vObjs );
-extern Cba_Man_t *   Cba_ManDeriveFromGia( Gia_Man_t * pGia, int fUseXor );
+extern Cba_Man_t *   Cba_ManDeriveFromGia( Cba_Man_t * p, Gia_Man_t * pGia, int fUseXor );
 extern Cba_Man_t *   Cba_ManInsertGroup( Cba_Man_t * p, Vec_Int_t * vObjs, Cba_Ntk_t * pSyn );
 /*=== cbaReadBlif.c ==========================================================*/
 extern Cba_Man_t *   Prs_ManBuildCbaBlif( char * pFileName, Vec_Ptr_t * vDes );

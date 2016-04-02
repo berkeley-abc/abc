@@ -1049,9 +1049,9 @@ static inline int Cba_NtkInsertGiaObj( Cba_Ntk_t * p, Gia_Man_t * pGia, int iObj
     Vec_IntWriteEntry( vLit2Fon, Abc_Var2Lit(iObj, 0), Cba_ObjFon0(p, iObjNew) );
     return iObjNew;
 }
-Cba_Man_t * Cba_ManDeriveFromGia( Gia_Man_t * pGia, int fUseXor )
+Cba_Man_t * Cba_ManDeriveFromGia( Cba_Man_t * pOld, Gia_Man_t * pGia, int fUseXor )
 {
-    Cba_Man_t * p = Cba_ManAlloc( pGia->pSpec, 1, NULL, NULL, NULL, NULL );
+    Cba_Man_t * p = Cba_ManAlloc( pGia->pSpec, 1, pOld ? Abc_NamRef(pOld->pStrs) : NULL, pOld ? Abc_NamRef(pOld->pFuns) : NULL, NULL, NULL );
     Cba_Ntk_t * pNtk = Cba_NtkAlloc( p, Abc_NamStrFindOrAdd(p->pStrs, pGia->pName, NULL), Gia_ManCiNum(pGia), Gia_ManCoNum(pGia), 1000, 2000, 2000 );
     Vec_Int_t * vLit2Fon = Vec_IntStartFull( 2*Gia_ManObjNum(pGia) );
     int i, iObj, iObjNew, NameId, iLit0, iFon0;
