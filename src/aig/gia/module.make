@@ -58,6 +58,7 @@ SRC +=    src/aig/gia/giaAig.c \
     src/aig/gia/giaSatMap.c \
     src/aig/gia/giaScl.c \
     src/aig/gia/giaScript.c \
+    src/aig/gia/giaShow.c \
     src/aig/gia/giaShrink.c \
     src/aig/gia/giaShrink6.c \
     src/aig/gia/giaShrink7.c \

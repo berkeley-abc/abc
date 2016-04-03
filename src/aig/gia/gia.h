@@ -1013,12 +1013,14 @@ static inline int         Gia_ObjCellId( Gia_Man_t * p, int iLit )          { re
 
 #define Gia_ManForEachLut2( p, i )                                      \
     for ( i = 1; i < Gia_ManObjNum(p); i++ ) if ( !Gia_ObjIsLut2(p, i) ) {} else
-#define Gia_LutForEachFanin2( p, i, iFan, k )                           \
-    for ( k = 0; k < Gia_ObjLutSize2(p,i) && ((iFan = Gia_ObjLutFanin2(p,i,k)),1); k++ )
+#define Gia_ManForEachLut2Reverse( p, i )                               \
+    for ( i = Gia_ManObjNum(p) - 1; i > 0; i-- ) if ( !Gia_ObjIsLut2(p, i) ) {} else
 #define Gia_ManForEachLut2Vec( vIds, p, vVec, iObj, i )                 \
     for ( i = 0; i < Vec_IntSize(vIds) && (vVec = Vec_WecEntry(p->vMapping2, (iObj = Vec_IntEntry(vIds, i)))); i++ )
 #define Gia_ManForEachLut2VecReverse( vIds, p, vVec, iObj, i )          \
     for ( i = Vec_IntSize(vIds)-1; i >= 0 && (vVec = Vec_WecEntry(p->vMapping2, (iObj = Vec_IntEntry(vIds, i)))); i-- )
+#define Gia_LutForEachFanin2( p, i, iFan, k )                           \
+    for ( k = 0; k < Gia_ObjLutSize2(p,i) && ((iFan = Gia_ObjLutFanin2(p,i,k)),1); k++ )
 
 #define Gia_ManForEachCell( p, i )                                      \
     for ( i = 2; i < 2*Gia_ManObjNum(p); i++ ) if ( !Gia_ObjIsCell(p, i) ) {} else
@@ -1355,6 +1357,8 @@ extern Gia_Man_t *         Gia_ManCleanup( Gia_Man_t * p );
 extern Gia_Man_t *         Gia_ManCleanupOutputs( Gia_Man_t * p, int nOutputs );
 extern Gia_Man_t *         Gia_ManSeqCleanup( Gia_Man_t * p );
 extern Gia_Man_t *         Gia_ManSeqStructSweep( Gia_Man_t * p, int fConst, int fEquiv, int fVerbose );
+/*=== giaShow.c ===========================================================*/
+extern void                Gia_ManShow( Gia_Man_t * pMan, Vec_Int_t * vBold );
 /*=== giaShrink.c ===========================================================*/
 extern Gia_Man_t *         Gia_ManMapShrink4( Gia_Man_t * p, int fKeepLevel, int fVerbose );
 extern Gia_Man_t *         Gia_ManMapShrink6( Gia_Man_t * p, int nFanoutMax, int fKeepLevel, int fVerbose );

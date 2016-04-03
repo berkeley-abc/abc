@@ -4339,6 +4339,10 @@ SOURCE=.\src\aig\gia\giaScript.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\aig\gia\giaShow.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\aig\gia\giaShrink.c
 # End Source File
 # Begin Source File

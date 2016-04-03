@@ -27519,7 +27519,7 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9Show( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    Aig_Man_t * pMan;
+    Vec_Int_t * vBold = NULL;
     int c;
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
@@ -27542,14 +27542,19 @@ int Abc_CommandAbc9Show( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Abc_CommandAbc9Show(): Cannot show GIA with barrier buffers.\n" );
         return 1;
     }
-    pMan = Gia_ManToAigSimple( pAbc->pGia );
-    Aig_ManShow( pMan, 0, NULL );
-    Aig_ManStop( pMan );
+    if ( Gia_ManHasMapping(pAbc->pGia) )
+    {
+        vBold = Vec_IntAlloc( 100 );
+        Gia_ManForEachLut( pAbc->pGia, c )
+            Vec_IntPush( vBold, c );
+    }
+    Gia_ManShow( pAbc->pGia, vBold );
+    Vec_IntFreeP( &vBold );
     return 0;
 
 usage:
     Abc_Print( -2, "usage: &show [-h]\n" );
-    Abc_Print( -2, "\t        shows the current AIG using GSView\n" );
+    Abc_Print( -2, "\t        shows the current GIA using GSView\n" );
     Abc_Print( -2, "\t-h    : print the command usage\n");
     return 1;
 }
