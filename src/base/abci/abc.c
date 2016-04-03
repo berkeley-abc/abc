@@ -34827,10 +34827,11 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9SatLut( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern void Gia_ManLutSat( Gia_Man_t * p, int nNumber, int nConfl, int fReverse, int fVerbose );
-    int c, nNumber = 64, nConfl = 500, fReverse = 0, fVerbose = 0;
+    extern void Gia_ManLutSat( Gia_Man_t * p, int nNumber, int nBTLimit, int DelayMax, int fDelay, int fReverse, int fVeryVerbose, int fVerbose );
+    int c, nNumber = 64, nBTLimit = 500, DelayMax = 0;
+    int fDelay = 0, fReverse = 0, fVeryVerbose = 0, fVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "NCrvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "NCDdrwvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -34854,11 +34855,26 @@ int Abc_CommandAbc9SatLut( Abc_Frame_t * pAbc, int argc, char ** argv )
                 Abc_Print( -1, "Command line switch \"-C\" should be followed by a positive integer.\n" );
                 goto usage;
             }
-            nConfl = atoi(argv[globalUtilOptind]);
+            nBTLimit = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
+            break;
+        case 'D':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-D\" should be followed by a positive integer.\n" );
+                goto usage;
+            }
+            DelayMax = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            break;
+        case 'd':
+            fDelay ^= 1;
             break;
         case 'r':
             fReverse ^= 1;
+            break;
+        case 'w':
+            fVeryVerbose ^= 1;
             break;
         case 'v':
             fVerbose ^= 1;
@@ -34880,15 +34896,18 @@ int Abc_CommandAbc9SatLut( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
     if ( Gia_ManLutSizeMax(pAbc->pGia) > 4 )
-        Abc_Print( 0, "Current AIG has mapping into %d-LUTs.\n", Gia_ManLutSizeMax(pAbc->pGia) );
-    Gia_ManLutSat( pAbc->pGia, nNumber, nConfl, fReverse, fVerbose );
+        Abc_Print( 0, "Current AIG is mapped into %d-LUTs (only 4-LUT mapping is currently supported).\n", Gia_ManLutSizeMax(pAbc->pGia) );
+    else
+        Gia_ManLutSat( pAbc->pGia, nNumber, nBTLimit, DelayMax, fDelay, fReverse, fVeryVerbose, fVerbose );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &satlut [-NC num] [-rvh]\n" );
+    Abc_Print( -2, "usage: &satlut [-NCD num] [-drwvh]\n" );
     Abc_Print( -2, "\t           performs SAT-based remapping of the 4-LUT network\n" );
     Abc_Print( -2, "\t-N num   : the limit on the number of AIG nodes in the window [default = %d]\n", nNumber );
-    Abc_Print( -2, "\t-C num   : the limit on the number of conflicts [default = %d]\n", nNumber );
+    Abc_Print( -2, "\t-C num   : the limit on the number of conflicts [default = %d]\n", nBTLimit );
+    Abc_Print( -2, "\t-D num   : the user-specified required times at the outputs [default = %d]\n", DelayMax );
+    Abc_Print( -2, "\t-d       : toggles delay optimization [default = %s]\n", fDelay? "yes": "no" );
     Abc_Print( -2, "\t-r       : toggles using reverse search [default = %s]\n", fReverse? "yes": "no" );
     Abc_Print( -2, "\t-v       : toggles verbose output [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h       : prints the command usage\n");

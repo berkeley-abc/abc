@@ -209,12 +209,14 @@ void Spl_ManWinFindLeavesRoots( Spl_Man_t * p )
         iFan = Gia_ObjFaninId0( pObj, iObj );
         if ( !Vec_BitEntry(p->vMarksAnd, iFan) )
         {
+            assert( Gia_ObjIsLut2(p->pGia, iFan) || Vec_BitEntry(p->vMarksCIO, iFan) );
             Vec_BitWriteEntry(p->vMarksAnd, iFan, 1);
             Vec_IntPush( p->vLeaves, iFan );
         }
         iFan = Gia_ObjFaninId1( pObj, iObj );
         if ( !Vec_BitEntry(p->vMarksAnd, iFan) )
         {
+            assert( Gia_ObjIsLut2(p->pGia, iFan) || Vec_BitEntry(p->vMarksCIO, iFan) );
             Vec_BitWriteEntry(p->vMarksAnd, iFan, 1);
             Vec_IntPush( p->vLeaves, iFan );
         }
@@ -297,6 +299,28 @@ int Spl_ManCountMarkedFanins( Gia_Man_t * p, int iObj, Vec_Bit_t * vMarks )
             Count++;
     return Count;
 }
+int Spl_ManFindGoodCand( Spl_Man_t * p )
+{
+    int i, iObj;
+    int Res = 0, InCount, InCountMax = -1; 
+    // mark leaves
+    Vec_IntForEachEntry( p->vInputs, iObj, i )
+        Vec_BitWriteEntry( p->vMarksIn, iObj, 1 );
+    // find candidate with maximum input overlap
+    Vec_IntForEachEntry( p->vCands, iObj, i )
+    {
+        InCount = Spl_ManCountMarkedFanins( p->pGia, iObj, p->vMarksIn );
+        if ( InCountMax < InCount )
+        {
+            InCountMax = InCount;
+            Res = iObj;
+        }
+    }
+    // unmark leaves
+    Vec_IntForEachEntry( p->vInputs, iObj, i )
+        Vec_BitWriteEntry( p->vMarksIn, iObj, 0 );
+    return Res;
+}
 
 /**Function*************************************************************
 
@@ -313,44 +337,57 @@ int Spl_ManFindOne( Spl_Man_t * p )
 {
     Vec_Int_t * vVec;
     int nFanouts, iObj, iFan, i, k;
-    int Res = 0, InCount, InCountMax = -1; 
-    Vec_IntClear( p->vCands );
-    Vec_IntClear( p->vInputs );
+    int Res = 0; 
+
     // deref
     Gia_ManForEachLut2Vec( p->vNodes, p->pGia, vVec, iObj, i )
         Vec_IntForEachEntry( vVec, iFan, k )
             Gia_ObjLutRefDecId( p->pGia, iFan );
+
+    // collect external nodes
+    if ( p->fReverse && (Vec_IntSize(p->vNodes) & 1) )
+    {
+        Vec_IntForEachEntry( p->vNodes, iObj, i )
+        {
+            if ( Gia_ObjLutRefNumId(p->pGia, iObj) == 0 )
+                continue;
+            assert( Gia_ObjLutRefNumId(p->pGia, iObj) > 0 );
+            if ( Gia_ObjLutRefNumId(p->pGia, iObj) >= 5 )  // skip nodes with high fanout!
+                continue;
+            nFanouts = Spl_ManLutFanouts( p->pGia, iObj, p->vFanouts, p->vMarksNo, p->vMarksCIO );
+            if ( Gia_ObjLutRefNumId(p->pGia, iObj) == 1 && nFanouts == 1 )
+            {
+                Res = Vec_IntEntry(p->vFanouts, 0);
+                goto finish;
+            }
+            //Vec_IntAppend( p->vCands, p->vFanouts );
+        }
+    }
+
     // consider LUT inputs - get one that has no refs
-    if ( p->fReverse )
-    {
-        Gia_ManForEachLut2VecReverse( p->vNodes, p->pGia, vVec, iObj, i )
-            Vec_IntForEachEntry( vVec, iFan, k )
-                if ( !Vec_BitEntry(p->vMarksNo, iFan) && !Vec_BitEntry(p->vMarksCIO, iFan) )
-                {
-                    if ( !Gia_ObjLutRefNumId(p->pGia, iFan) )
-                    {
-                        Res = iFan;
-                        goto finish;
-                    }
-                    Vec_IntPush( p->vCands, iFan );
-                    Vec_IntPush( p->vInputs, iFan );
-                }
-    }
-    else
-    {
-        Gia_ManForEachLut2Vec( p->vNodes, p->pGia, vVec, iObj, i )
-            Vec_IntForEachEntry( vVec, iFan, k )
-                if ( !Vec_BitEntry(p->vMarksNo, iFan) && !Vec_BitEntry(p->vMarksCIO, iFan) )
-                {
-                    if ( !Gia_ObjLutRefNumId(p->pGia, iFan) )
-                    {
-                        Res = iFan;
-                        goto finish;
-                    }
-                    Vec_IntPush( p->vCands, iFan );
-                    Vec_IntPush( p->vInputs, iFan );
-                }
-    }
+    Vec_IntClear( p->vCands );
+    Vec_IntClear( p->vInputs );
+    Gia_ManForEachLut2Vec( p->vNodes, p->pGia, vVec, iObj, i )
+        Vec_IntForEachEntry( vVec, iFan, k )
+            if ( !Vec_BitEntry(p->vMarksNo, iFan) && !Vec_BitEntry(p->vMarksCIO, iFan) && !Gia_ObjLutRefNumId(p->pGia, iFan) )
+            {
+                Vec_IntPush( p->vCands, iFan );
+                Vec_IntPush( p->vInputs, iFan );
+            }
+    Res = Spl_ManFindGoodCand( p );
+    if ( Res )
+        goto finish;
+
+    // collect candidates
+    Vec_IntClear( p->vCands );
+    Vec_IntClear( p->vInputs );
+    Gia_ManForEachLut2Vec( p->vNodes, p->pGia, vVec, iObj, i )
+        Vec_IntForEachEntry( vVec, iFan, k )
+            if ( !Vec_BitEntry(p->vMarksNo, iFan) && !Vec_BitEntry(p->vMarksCIO, iFan) )
+            {
+                Vec_IntPush( p->vCands, iFan );
+                Vec_IntPush( p->vInputs, iFan );
+            }
 
     // all inputs have refs - collect external nodes
     Vec_IntForEachEntry( p->vNodes, iObj, i )
@@ -369,22 +406,10 @@ int Spl_ManFindOne( Spl_Man_t * p )
         Vec_IntAppend( p->vCands, p->vFanouts );
     }
 
-    // mark leaves
-    Vec_IntForEachEntry( p->vInputs, iObj, i )
-        Vec_BitWriteEntry( p->vMarksIn, iObj, 1 );
-    // find candidate with maximum input overlap
-    Vec_IntForEachEntry( p->vCands, iObj, i )
-    {
-        InCount = Spl_ManCountMarkedFanins( p->pGia, iObj, p->vMarksIn );
-        if ( InCountMax < InCount )
-        {
-            InCountMax = InCount;
-            Res = iObj;
-        }
-    }
-    // unmark leaves
-    Vec_IntForEachEntry( p->vInputs, iObj, i )
-        Vec_BitWriteEntry( p->vMarksIn, iObj, 0 );
+    // choose among not-so-good ones
+    Res = Spl_ManFindGoodCand( p );
+    if ( Res )
+        goto finish;
 
     // get the first candidate
     if ( Res == 0 && Vec_IntSize(p->vCands) > 0 )
