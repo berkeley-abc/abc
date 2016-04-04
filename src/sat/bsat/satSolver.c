@@ -1452,8 +1452,15 @@ void sat_solver_rollback( sat_solver* s )
     {
         cla* pArray = veci_begin(&s->wlists[i]);
         for ( j = k = 0; k < veci_size(&s->wlists[i]); k++ )
-            if ( Sat_MemClauseUsed(pMem, pArray[k]) )
+        {
+            if ( clause_is_lit(pArray[k]) )
+            {
+                if ( clause_read_lit(pArray[k]) < s->iVarPivot*2 )
+                    pArray[j++] = pArray[k];
+            }
+            else if ( Sat_MemClauseUsed(pMem, pArray[k]) )
                 pArray[j++] = pArray[k];
+        }
         veci_resize(&s->wlists[i],j);
     }
     // reset watcher lists

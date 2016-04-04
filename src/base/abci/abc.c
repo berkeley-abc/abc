@@ -34827,11 +34827,11 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9SatLut( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern void Gia_ManLutSat( Gia_Man_t * p, int nNumber, int nBTLimit, int DelayMax, int nEdges, int fDelay, int fReverse, int fVeryVerbose, int fVerbose );
-    int c, nNumber = 64, nBTLimit = 500, DelayMax = 0, nEdges = 0;
+    extern void Gia_ManLutSat( Gia_Man_t * p, int nNumber, int nImproves, int nBTLimit, int DelayMax, int nEdges, int fDelay, int fReverse, int fVeryVerbose, int fVerbose );
+    int c, nNumber = 64, nImproves = 0, nBTLimit = 500, DelayMax = 0, nEdges = 0;
     int fDelay = 0, fReverse = 0, fVeryVerbose = 0, fVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "NCDQdrwvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "NICDQdrwvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -34843,11 +34843,15 @@ int Abc_CommandAbc9SatLut( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nNumber = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nNumber < 2 )
+            break;
+        case 'I':
+            if ( globalUtilOptind >= argc )
             {
-                Abc_Print( -1, "Illigal number of AIG nodes.\n" );
+                Abc_Print( -1, "Command line switch \"-I\" should be followed by a positive integer.\n" );
                 goto usage;
             }
+            nImproves = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
             break;
         case 'C':
             if ( globalUtilOptind >= argc )
@@ -34907,13 +34911,14 @@ int Abc_CommandAbc9SatLut( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( Gia_ManLutSizeMax(pAbc->pGia) > 4 )
         Abc_Print( 0, "Current AIG is mapped into %d-LUTs (only 4-LUT mapping is currently supported).\n", Gia_ManLutSizeMax(pAbc->pGia) );
     else
-        Gia_ManLutSat( pAbc->pGia, nNumber, nBTLimit, DelayMax, nEdges, fDelay, fReverse, fVeryVerbose, fVerbose );
+        Gia_ManLutSat( pAbc->pGia, nNumber, nImproves, nBTLimit, DelayMax, nEdges, fDelay, fReverse, fVeryVerbose, fVerbose );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &satlut [-NCDQ num] [-drwvh]\n" );
+    Abc_Print( -2, "usage: &satlut [-NICDQ num] [-drwvh]\n" );
     Abc_Print( -2, "\t           performs SAT-based remapping of the 4-LUT network\n" );
     Abc_Print( -2, "\t-N num   : the limit on the number of AIG nodes in the window [default = %d]\n", nNumber );
+    Abc_Print( -2, "\t-I num   : the limit on the number of improved windows [default = %d]\n", nImproves );
     Abc_Print( -2, "\t-C num   : the limit on the number of conflicts [default = %d]\n", nBTLimit );
     Abc_Print( -2, "\t-D num   : the user-specified required times at the outputs [default = %d]\n", DelayMax );
     Abc_Print( -2, "\t-Q num   : the maximum number of edges [default = %d]\n", nEdges );
