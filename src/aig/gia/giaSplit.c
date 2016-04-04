@@ -538,10 +538,10 @@ int Gia_ManComputeOneWin( Gia_Man_t * pGia, int iPivot, Vec_Int_t ** pvRoots, Ve
     // Vec_IntPrint( p->vNodes );
     return Vec_IntSize(p->vAnds);
 }
-void Gia_ManComputeOneWinStart( Gia_Man_t * pGia, int fReverse )
+void Gia_ManComputeOneWinStart( Gia_Man_t * pGia, int nAnds, int fReverse )
 {
     assert( pGia->pSatlutWinman == NULL );
-    pGia->pSatlutWinman = Spl_ManAlloc( pGia, 64, fReverse );
+    pGia->pSatlutWinman = Spl_ManAlloc( pGia, nAnds, fReverse );
 }
 
 /**Function*************************************************************
@@ -558,7 +558,7 @@ void Gia_ManComputeOneWinStart( Gia_Man_t * pGia, int fReverse )
 void Spl_ManComputeOneTest( Gia_Man_t * pGia )
 {
     int iLut, Count;
-    Gia_ManComputeOneWinStart( pGia, 0 );
+    Gia_ManComputeOneWinStart( pGia, 64, 0 );
     Gia_ManForEachLut2( pGia, iLut )
     {
         Vec_Int_t * vRoots, * vNodes, * vLeaves, * vAnds;

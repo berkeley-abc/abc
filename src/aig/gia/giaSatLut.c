@@ -62,13 +62,17 @@ struct Sbl_Man_t_
     Vec_Int_t *    vPath;        // critical path (as SAT variables)
     Vec_Int_t *    vEdges;       // fanin edges
     // cuts
-    Vec_Wrd_t *    vCutsI;       // input bit patterns
-    Vec_Wrd_t *    vCutsN;       // node bit patterns
+    Vec_Wrd_t *    vCutsI1;      // input bit patterns
+    Vec_Wrd_t *    vCutsI2;      // input bit patterns
+    Vec_Wrd_t *    vCutsN1;      // node bit patterns
+    Vec_Wrd_t *    vCutsN2;      // node bit patterns
     Vec_Int_t *    vCutsNum;     // cut counts for each obj
     Vec_Int_t *    vCutsStart;   // starting cuts for each obj
     Vec_Int_t *    vCutsObj;     // object to which this cut belongs
-    Vec_Wrd_t *    vTempI;       // temporary cuts
-    Vec_Wrd_t *    vTempN;       // temporary cuts
+    Vec_Wrd_t *    vTempI1;       // temporary cuts
+    Vec_Wrd_t *    vTempI2;       // temporary cuts
+    Vec_Wrd_t *    vTempN1;       // temporary cuts
+    Vec_Wrd_t *    vTempN2;       // temporary cuts
     Vec_Int_t *    vSolInit;     // initial solution
     Vec_Int_t *    vSolCur;      // current solution
     Vec_Int_t *    vSolBest;     // best solution
@@ -129,16 +133,20 @@ Sbl_Man_t * Sbl_ManAlloc( Gia_Man_t * pGia, int Number )
     p->vPath      = Vec_IntAlloc( 32 );
     p->vEdges     = Vec_IntAlloc( 32 );
     // cuts
-    p->vCutsI     = Vec_WrdAlloc( 1000 );     // input bit patterns
-    p->vCutsN     = Vec_WrdAlloc( 1000 );     // node bit patterns
+    p->vCutsI1    = Vec_WrdAlloc( 1000 );     // input bit patterns
+    p->vCutsI2    = Vec_WrdAlloc( 1000 );     // input bit patterns
+    p->vCutsN1    = Vec_WrdAlloc( 1000 );     // node bit patterns
+    p->vCutsN2    = Vec_WrdAlloc( 1000 );     // node bit patterns
     p->vCutsNum   = Vec_IntAlloc( 64 );       // cut counts for each obj
     p->vCutsStart = Vec_IntAlloc( 64 );       // starting cuts for each obj
     p->vCutsObj   = Vec_IntAlloc( 1000 );
     p->vSolInit   = Vec_IntAlloc( 64 );
     p->vSolCur    = Vec_IntAlloc( 64 );
     p->vSolBest   = Vec_IntAlloc( 64 );
-    p->vTempI     = Vec_WrdAlloc( 32 ); 
-    p->vTempN     = Vec_WrdAlloc( 32 ); 
+    p->vTempI1    = Vec_WrdAlloc( 32 ); 
+    p->vTempI2    = Vec_WrdAlloc( 32 ); 
+    p->vTempN1    = Vec_WrdAlloc( 32 ); 
+    p->vTempN2    = Vec_WrdAlloc( 32 ); 
     // internal
     p->vLits      = Vec_IntAlloc( 64 );
     p->vAssump    = Vec_IntAlloc( 64 );
@@ -165,16 +173,20 @@ void Sbl_ManClean( Sbl_Man_t * p )
     Vec_IntClear( p->vPath );
     Vec_IntClear( p->vEdges );
     // cuts
-    Vec_WrdClear( p->vCutsI );
-    Vec_WrdClear( p->vCutsN );
+    Vec_WrdClear( p->vCutsI1 );
+    Vec_WrdClear( p->vCutsI2 );
+    Vec_WrdClear( p->vCutsN1 );
+    Vec_WrdClear( p->vCutsN2 );
     Vec_IntClear( p->vCutsNum );
     Vec_IntClear( p->vCutsStart );
     Vec_IntClear( p->vCutsObj );
     Vec_IntClear( p->vSolInit );
     Vec_IntClear( p->vSolCur );
     Vec_IntClear( p->vSolBest );
-    Vec_WrdClear( p->vTempI );
-    Vec_WrdClear( p->vTempN );
+    Vec_WrdClear( p->vTempI1 );
+    Vec_WrdClear( p->vTempI2 );
+    Vec_WrdClear( p->vTempN1 );
+    Vec_WrdClear( p->vTempN2 );
     // temporary
     Vec_IntClear( p->vLits );
     Vec_IntClear( p->vAssump );
@@ -200,16 +212,20 @@ void Sbl_ManStop( Sbl_Man_t * p )
     Vec_IntFree( p->vPath );
     Vec_IntFree( p->vEdges );
     // cuts
-    Vec_WrdFree( p->vCutsI );
-    Vec_WrdFree( p->vCutsN );
+    Vec_WrdFree( p->vCutsI1 );
+    Vec_WrdFree( p->vCutsI2 );
+    Vec_WrdFree( p->vCutsN1 );
+    Vec_WrdFree( p->vCutsN2 );
     Vec_IntFree( p->vCutsNum );
     Vec_IntFree( p->vCutsStart );
     Vec_IntFree( p->vCutsObj );
     Vec_IntFree( p->vSolInit );
     Vec_IntFree( p->vSolCur );
     Vec_IntFree( p->vSolBest );
-    Vec_WrdFree( p->vTempI );
-    Vec_WrdFree( p->vTempN );
+    Vec_WrdFree( p->vTempI1 );
+    Vec_WrdFree( p->vTempI2 );
+    Vec_WrdFree( p->vTempN1 );
+    Vec_WrdFree( p->vTempN2 );
     // temporary
     Vec_IntFree( p->vLits );
     Vec_IntFree( p->vAssump );
@@ -311,25 +327,33 @@ int Sbl_ManCreateTiming( Sbl_Man_t * p, int DelayStart, int * pnEdges )
 void Sbl_ManGetCurrentMapping( Sbl_Man_t * p )
 {
     Vec_Int_t * vObj;
-    word CutI, CutN;
+    word CutI1, CutI2, CutN1, CutN2;
     int i, c, b, iObj;
     Vec_WecClear( p->vWindow );
     Vec_WecInit( p->vWindow, Vec_IntSize(p->vAnds) );
     assert( Vec_IntSize(p->vSolCur) > 0 );
     Vec_IntForEachEntry( p->vSolCur, c, i )
     {
-        CutI = Vec_WrdEntry( p->vCutsI, c );
-        CutN = Vec_WrdEntry( p->vCutsN, c );
-        iObj = Vec_IntEntry( p->vCutsObj, c );
-        //iObj = Vec_IntEntry( p->vAnds, iObj );
-        vObj = Vec_WecEntry( p->vWindow, iObj );
+        CutI1 = Vec_WrdEntry( p->vCutsI1, c );
+        CutI2 = Vec_WrdEntry( p->vCutsI2, c );
+        CutN1 = Vec_WrdEntry( p->vCutsN1, c );
+        CutN2 = Vec_WrdEntry( p->vCutsN2, c );
+        iObj  = Vec_IntEntry( p->vCutsObj, c );
+        //iObj  = Vec_IntEntry( p->vAnds, iObj );
+        vObj  = Vec_WecEntry( p->vWindow, iObj );
         assert( Vec_IntSize(vObj) == 0 );
         for ( b = 0; b < 64; b++ )
-            if ( (CutI >> b) & 1 )
+            if ( (CutI1 >> b) & 1 )
                 Vec_IntPush( vObj, Vec_IntEntry(p->vLeaves, b) );
         for ( b = 0; b < 64; b++ )
-            if ( (CutN >> b) & 1 )
+            if ( (CutI2 >> b) & 1 )
+                Vec_IntPush( vObj, Vec_IntEntry(p->vLeaves, 64+b) );
+        for ( b = 0; b < 64; b++ )
+            if ( (CutN1 >> b) & 1 )
                 Vec_IntPush( vObj, Vec_IntEntry(p->vAnds, b) );
+        for ( b = 0; b < 64; b++ )
+            if ( (CutN2 >> b) & 1 )
+                Vec_IntPush( vObj, Vec_IntEntry(p->vAnds, 64+b) );
     }
 }
 
@@ -420,7 +444,7 @@ void Sbl_ManUpdateMapping( Sbl_Man_t * p )
 {
 //    Gia_Obj_t * pObj;
     Vec_Int_t * vObj;
-    word CutI, CutN;
+    word CutI1, CutI2, CutN1, CutN2;
     int i, c, b, iObj, iTemp; 
     assert( Vec_IntSize(p->vSolBest) < Vec_IntSize(p->vSolInit) );
     Vec_IntForEachEntry( p->vAnds, iObj, i )
@@ -432,18 +456,26 @@ void Sbl_ManUpdateMapping( Sbl_Man_t * p )
     }
     Vec_IntForEachEntry( p->vSolBest, c, i )
     {
-        CutI = Vec_WrdEntry( p->vCutsI, c );
-        CutN = Vec_WrdEntry( p->vCutsN, c );
+        CutI1 = Vec_WrdEntry( p->vCutsI1, c );
+        CutI2 = Vec_WrdEntry( p->vCutsI2, c );
+        CutN1 = Vec_WrdEntry( p->vCutsN1, c );
+        CutN2 = Vec_WrdEntry( p->vCutsN2, c );
         iObj = Vec_IntEntry( p->vCutsObj, c );
         iObj = Vec_IntEntry( p->vAnds, iObj );
         vObj = Vec_WecEntry( p->pGia->vMapping2, iObj );
         assert( Vec_IntSize(vObj) == 0 );
         for ( b = 0; b < 64; b++ )
-            if ( (CutI >> b) & 1 )
+            if ( (CutI1 >> b) & 1 )
                 Vec_IntPush( vObj, Vec_IntEntry(p->vLeaves, b) );
         for ( b = 0; b < 64; b++ )
-            if ( (CutN >> b) & 1 )
+            if ( (CutI2 >> b) & 1 )
+                Vec_IntPush( vObj, Vec_IntEntry(p->vLeaves, 64+b) );
+        for ( b = 0; b < 64; b++ )
+            if ( (CutN1 >> b) & 1 )
                 Vec_IntPush( vObj, Vec_IntEntry(p->vAnds, b) );
+        for ( b = 0; b < 64; b++ )
+            if ( (CutN2 >> b) & 1 )
+                Vec_IntPush( vObj, Vec_IntEntry(p->vAnds, 64+b) );
         Vec_IntForEachEntry( vObj, iTemp, b )
             Gia_ObjLutRefIncId( p->pGia, iTemp );
     }
@@ -478,81 +510,119 @@ void Sbl_ManUpdateMapping( Sbl_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-static int Sbl_ManPrintCut( word CutI, word CutN )
+static int Sbl_ManPrintCut( word CutI1, word CutI2, word CutN1, word CutN2 )
 {
     int b, Count = 0; 
     printf( "{ " );
     for ( b = 0; b < 64; b++ )
-        if ( (CutI >> b) & 1 )
+        if ( (CutI1 >> b) & 1 )
             printf( "i%d ", b ), Count++;
+    for ( b = 0; b < 64; b++ )
+        if ( (CutI2 >> b) & 1 )
+            printf( "i%d ", 64+b ), Count++;
     printf( " " );
     for ( b = 0; b < 64; b++ )
-        if ( (CutN >> b) & 1 )
+        if ( (CutN1 >> b) & 1 )
             printf( "n%d ", b ), Count++;
+    for ( b = 0; b < 64; b++ )
+        if ( (CutN2 >> b) & 1 )
+            printf( "n%d ", 64+b ), Count++;
     printf( "};\n" );
     return Count;
 }
 static int Sbl_ManFindAndPrintCut( Sbl_Man_t * p, int c )
 {
-    return Sbl_ManPrintCut( Vec_WrdEntry(p->vCutsI, c), Vec_WrdEntry(p->vCutsN, c) );
+    return Sbl_ManPrintCut( Vec_WrdEntry(p->vCutsI1, c), Vec_WrdEntry(p->vCutsI2, c), Vec_WrdEntry(p->vCutsN1, c), Vec_WrdEntry(p->vCutsN2, c) );
 }
-static inline int Sbl_CutIsFeasible( word CutI, word CutN )
+static inline int Sbl_CutIsFeasible( word CutI1, word CutI2, word CutN1, word CutN2 )
 {
-    int Count = (CutI != 0) + (CutN != 0);
-    CutI = CutI & (CutI-1);  CutN = CutN & (CutN-1);  Count += (CutI != 0) + (CutN != 0);
-    CutI = CutI & (CutI-1);  CutN = CutN & (CutN-1);  Count += (CutI != 0) + (CutN != 0);
-    CutI = CutI & (CutI-1);  CutN = CutN & (CutN-1);  Count += (CutI != 0) + (CutN != 0);  
-    CutI = CutI & (CutI-1);  CutN = CutN & (CutN-1);  Count += (CutI != 0) + (CutN != 0);
+    int Count = (CutI1 != 0) + (CutI2 != 0) + (CutN1 != 0) + (CutN2 != 0);
+    CutI1 &= CutI1-1; CutI2 &= CutI2-1;   CutN1 &= CutN1-1; CutN2 &= CutN2-1;   Count += (CutI1 != 0) + (CutI2 != 0) + (CutN1 != 0) + (CutN2 != 0);
+    CutI1 &= CutI1-1; CutI2 &= CutI2-1;   CutN1 &= CutN1-1; CutN2 &= CutN2-1;   Count += (CutI1 != 0) + (CutI2 != 0) + (CutN1 != 0) + (CutN2 != 0);
+    CutI1 &= CutI1-1; CutI2 &= CutI2-1;   CutN1 &= CutN1-1; CutN2 &= CutN2-1;   Count += (CutI1 != 0) + (CutI2 != 0) + (CutN1 != 0) + (CutN2 != 0);  
+    CutI1 &= CutI1-1; CutI2 &= CutI2-1;   CutN1 &= CutN1-1; CutN2 &= CutN2-1;   Count += (CutI1 != 0) + (CutI2 != 0) + (CutN1 != 0) + (CutN2 != 0);
     return Count <= 4;
 }
-static inline int Sbl_CutPushUncontained( Vec_Wrd_t * vCutsI, Vec_Wrd_t * vCutsN, word CutI, word CutN )
+static inline int Sbl_CutPushUncontained( Vec_Wrd_t * vCutsI1, Vec_Wrd_t * vCutsI2, Vec_Wrd_t * vCutsN1, Vec_Wrd_t * vCutsN2, word CutI1, word CutI2, word CutN1, word CutN2 )
 {
     int i, k = 0;
-    assert( vCutsI->nSize == vCutsN->nSize );
-    for ( i = 0; i < vCutsI->nSize; i++ )
-        if ( (vCutsI->pArray[i] & CutI) == vCutsI->pArray[i] && (vCutsN->pArray[i] & CutN) == vCutsN->pArray[i]  )
+    assert( vCutsI1->nSize == vCutsN1->nSize );
+    assert( vCutsI2->nSize == vCutsN2->nSize );
+    for ( i = 0; i < vCutsI1->nSize; i++ )
+        if ( (vCutsI1->pArray[i] & CutI1) == vCutsI1->pArray[i] && 
+             (vCutsI2->pArray[i] & CutI2) == vCutsI2->pArray[i] && 
+             (vCutsN1->pArray[i] & CutN1) == vCutsN1->pArray[i] && 
+             (vCutsN2->pArray[i] & CutN2) == vCutsN2->pArray[i]  )
             return 1;
-    for ( i = 0; i < vCutsI->nSize; i++ )
-        if ( (vCutsI->pArray[i] & CutI) != CutI || (vCutsN->pArray[i] & CutN) != CutN )
+    for ( i = 0; i < vCutsI1->nSize; i++ )
+        if ( (vCutsI1->pArray[i] & CutI1) != CutI1 ||
+             (vCutsI2->pArray[i] & CutI2) != CutI2 || 
+             (vCutsN1->pArray[i] & CutN1) != CutN1 || 
+             (vCutsN2->pArray[i] & CutN2) != CutN2 )
         {
-            Vec_WrdWriteEntry( vCutsI, k, vCutsI->pArray[i] );
-            Vec_WrdWriteEntry( vCutsN, k, vCutsN->pArray[i] );
+            Vec_WrdWriteEntry( vCutsI1, k, vCutsI1->pArray[i] );
+            Vec_WrdWriteEntry( vCutsI2, k, vCutsI2->pArray[i] );
+            Vec_WrdWriteEntry( vCutsN1, k, vCutsN1->pArray[i] );
+            Vec_WrdWriteEntry( vCutsN2, k, vCutsN2->pArray[i] );
             k++;
         }
-    Vec_WrdShrink( vCutsI, k );
-    Vec_WrdShrink( vCutsN, k );
-    Vec_WrdPush( vCutsI, CutI );
-    Vec_WrdPush( vCutsN, CutN );
+    Vec_WrdShrink( vCutsI1, k );
+    Vec_WrdShrink( vCutsI2, k );
+    Vec_WrdShrink( vCutsN1, k );
+    Vec_WrdShrink( vCutsN2, k );
+    Vec_WrdPush( vCutsI1, CutI1 );
+    Vec_WrdPush( vCutsI2, CutI2 );
+    Vec_WrdPush( vCutsN1, CutN1 );
+    Vec_WrdPush( vCutsN2, CutN2 );
     return 0;
 }
 static inline void Sbl_ManComputeCutsOne( Sbl_Man_t * p, int Fan0, int Fan1, int Obj )
 {
-    word * pCutsI = Vec_WrdArray(p->vCutsI);
-    word * pCutsN = Vec_WrdArray(p->vCutsN);
+    word * pCutsI1 = Vec_WrdArray(p->vCutsI1);
+    word * pCutsI2 = Vec_WrdArray(p->vCutsI2);
+    word * pCutsN1 = Vec_WrdArray(p->vCutsN1);
+    word * pCutsN2 = Vec_WrdArray(p->vCutsN2);
     int Start0 = Vec_IntEntry( p->vCutsStart, Fan0 );
     int Start1 = Vec_IntEntry( p->vCutsStart, Fan1 );
     int Limit0 = Start0 + Vec_IntEntry( p->vCutsNum, Fan0 );
     int Limit1 = Start1 + Vec_IntEntry( p->vCutsNum, Fan1 );
     int i, k;
-    Vec_WrdClear( p->vTempI );
-    Vec_WrdClear( p->vTempN );
+    assert( Obj >= 0 && Obj < 128 );
+    Vec_WrdClear( p->vTempI1 );
+    Vec_WrdClear( p->vTempI2 );
+    Vec_WrdClear( p->vTempN1 );
+    Vec_WrdClear( p->vTempN2 );
     for ( i = Start0; i < Limit0; i++ )
         for ( k = Start1; k < Limit1; k++ )
-            if ( Sbl_CutIsFeasible(pCutsI[i] | pCutsI[k], pCutsN[i] | pCutsN[k]) )
-                Sbl_CutPushUncontained( p->vTempI, p->vTempN, pCutsI[i] | pCutsI[k], pCutsN[i] | pCutsN[k] );
-    Vec_IntPush( p->vCutsStart, Vec_WrdSize(p->vCutsI) );
-    Vec_IntPush( p->vCutsNum, Vec_WrdSize(p->vTempI) + 1 );
-    Vec_WrdAppend( p->vCutsI, p->vTempI );
-    Vec_WrdAppend( p->vCutsN, p->vTempN );
-    Vec_WrdPush( p->vCutsI, 0 );
-    Vec_WrdPush( p->vCutsN, (((word)1) << Obj) );
-    for ( i = 0; i <= Vec_WrdSize(p->vTempI); i++ )
+            if ( Sbl_CutIsFeasible(pCutsI1[i] | pCutsI1[k], pCutsI2[i] | pCutsI2[k], pCutsN1[i] | pCutsN1[k], pCutsN2[i] | pCutsN2[k]) )
+                Sbl_CutPushUncontained( p->vTempI1, p->vTempI2, p->vTempN1, p->vTempN2, pCutsI1[i] | pCutsI1[k], pCutsI2[i] | pCutsI2[k], pCutsN1[i] | pCutsN1[k], pCutsN2[i] | pCutsN2[k] );
+    Vec_IntPush( p->vCutsStart, Vec_WrdSize(p->vCutsI1) );
+    Vec_IntPush( p->vCutsNum, Vec_WrdSize(p->vTempI1) + 1 );
+    Vec_WrdAppend( p->vCutsI1, p->vTempI1 );
+    Vec_WrdAppend( p->vCutsI2, p->vTempI2 );
+    Vec_WrdAppend( p->vCutsN1, p->vTempN1 );
+    Vec_WrdAppend( p->vCutsN2, p->vTempN2 );
+    Vec_WrdPush( p->vCutsI1, 0 );
+    Vec_WrdPush( p->vCutsI2, 0 );
+    if ( Obj < 64 )
+    {
+        Vec_WrdPush( p->vCutsN1, (((word)1) << Obj) );
+        Vec_WrdPush( p->vCutsN2, 0 );
+    }
+    else
+    {
+        Vec_WrdPush( p->vCutsN1, 0 );
+        Vec_WrdPush( p->vCutsN2, (((word)1) << (Obj-64)) );
+    }
+    for ( i = 0; i <= Vec_WrdSize(p->vTempI1); i++ )
         Vec_IntPush( p->vCutsObj, Obj );
 }
-static inline int Sbl_ManFindCut( Sbl_Man_t * p, int Obj, word CutI, word CutN )
+static inline int Sbl_ManFindCut( Sbl_Man_t * p, int Obj, word CutI1, word CutI2, word CutN1, word CutN2 )
 {
-    word * pCutsI = Vec_WrdArray(p->vCutsI);
-    word * pCutsN = Vec_WrdArray(p->vCutsN);
+    word * pCutsI1 = Vec_WrdArray(p->vCutsI1);
+    word * pCutsI2 = Vec_WrdArray(p->vCutsI2);
+    word * pCutsN1 = Vec_WrdArray(p->vCutsN1);
+    word * pCutsN2 = Vec_WrdArray(p->vCutsN2);
     int Start0 = Vec_IntEntry( p->vCutsStart, Obj );
     int Limit0 = Start0 + Vec_IntEntry( p->vCutsNum, Obj );
     int i;
@@ -562,7 +632,7 @@ static inline int Sbl_ManFindCut( Sbl_Man_t * p, int Obj, word CutI, word CutN )
     for ( i = Start0; i < Limit0; i++ )
     {
         //Sbl_ManPrintCut( pCutsI[i], pCutsN[i] );
-        if ( pCutsI[i] == CutI && pCutsN[i] == CutN )
+        if ( pCutsI1[i] == CutI1 && pCutsI2[i] == CutI2 && pCutsN1[i] == CutN1 && pCutsN2[i] == CutN2 )
             return i;
     }
     return -1;
@@ -577,15 +647,27 @@ int Sbl_ManComputeCuts( Sbl_Man_t * p )
     Vec_IntClear( p->vCutsStart );
     Vec_IntClear( p->vCutsObj );
     Vec_IntClear( p->vCutsNum );
-    Vec_WrdClear( p->vCutsI );
-    Vec_WrdClear( p->vCutsN );
+    Vec_WrdClear( p->vCutsI1 );
+    Vec_WrdClear( p->vCutsI2 );
+    Vec_WrdClear( p->vCutsN1 );
+    Vec_WrdClear( p->vCutsN2 );
     Gia_ManForEachObjVec( p->vLeaves, p->pGia, pObj, i )
     {
-        Vec_IntPush( p->vCutsStart, Vec_WrdSize(p->vCutsI) );
+        Vec_IntPush( p->vCutsStart, Vec_WrdSize(p->vCutsI1) );
         Vec_IntPush( p->vCutsObj, -1 );
         Vec_IntPush( p->vCutsNum, 1 );
-        Vec_WrdPush( p->vCutsI, (((word)1) << i) );
-        Vec_WrdPush( p->vCutsN, 0 );
+        if ( i < 64 )
+        {
+            Vec_WrdPush( p->vCutsI1, (((word)1) << i) );
+            Vec_WrdPush( p->vCutsI2, 0 );
+        }
+        else
+        {
+            Vec_WrdPush( p->vCutsI1, 0 );
+            Vec_WrdPush( p->vCutsI2, (((word)1) << (i-64)) );
+        }
+        Vec_WrdPush( p->vCutsN1, 0 );
+        Vec_WrdPush( p->vCutsN2, 0 );
         pObj->Value = i;
     }
     // assign internal cuts
@@ -599,8 +681,9 @@ int Sbl_ManComputeCuts( Sbl_Man_t * p )
     }
     assert( Vec_IntSize(p->vCutsStart) == nObjs );
     assert( Vec_IntSize(p->vCutsNum)   == nObjs );
-    assert( Vec_WrdSize(p->vCutsI)     == Vec_WrdSize(p->vCutsN) );
-    assert( Vec_WrdSize(p->vCutsI)     == Vec_IntSize(p->vCutsObj) );
+    assert( Vec_WrdSize(p->vCutsI1)    == Vec_WrdSize(p->vCutsN1) );
+    assert( Vec_WrdSize(p->vCutsI2)    == Vec_WrdSize(p->vCutsN2) );
+    assert( Vec_WrdSize(p->vCutsI1)    == Vec_IntSize(p->vCutsObj) );
     // check that roots are mapped nodes
     Vec_IntClear( p->vRootVars );
     Gia_ManForEachObjVec( p->vRoots, p->pGia, pObj, i )
@@ -617,7 +700,7 @@ int Sbl_ManComputeCuts( Sbl_Man_t * p )
     Vec_IntClear( p->vSolInit );
     Gia_ManForEachObjVec( p->vAnds, p->pGia, pObj, i )
     {
-        word CutI = 0, CutN = 0;
+        word CutI1 = 0, CutI2 = 0, CutN1 = 0, CutN2 = 0;
         int Obj = Gia_ObjId(p->pGia, pObj);
         if ( !Gia_ObjIsLut2(p->pGia, Obj) )
             continue;
@@ -638,12 +721,22 @@ int Sbl_ManComputeCuts( Sbl_Man_t * p )
                 continue;
             assert( ~pFanin->Value );
             if ( (int)pFanin->Value < Vec_IntSize(p->vLeaves) )
-                CutI |= ((word)1 << pFanin->Value);
+            {
+                if ( (int)pFanin->Value < 64 )
+                    CutI1 |= ((word)1 << pFanin->Value);
+                else
+                    CutI2 |= ((word)1 << (pFanin->Value - 64));
+            }
             else
-                CutN |= ((word)1 << (pFanin->Value - Vec_IntSize(p->vLeaves)));
+            {
+                if ( pFanin->Value - Vec_IntSize(p->vLeaves) < 64 )
+                    CutN1 |= ((word)1 << (pFanin->Value - Vec_IntSize(p->vLeaves)));
+                else
+                    CutN2 |= ((word)1 << (pFanin->Value - Vec_IntSize(p->vLeaves) - 64));
+            }
         }
         // find the new cut
-        Index = Sbl_ManFindCut( p, Vec_IntSize(p->vLeaves) + i, CutI, CutN );
+        Index = Sbl_ManFindCut( p, Vec_IntSize(p->vLeaves) + i, CutI1, CutI2, CutN1, CutN2 );
         if ( Index < 0 )
         {
             //printf( "Cannot find the available cut.\n" );
@@ -658,14 +751,15 @@ int Sbl_ManComputeCuts( Sbl_Man_t * p )
     Gia_ManForEachObjVec( p->vAnds, p->pGia, pObj, i )
         pObj->Value = ~0;
     p->timeCut += Abc_Clock() - clk;
-    return Vec_WrdSize(p->vCutsI);
+    return Vec_WrdSize(p->vCutsI1);
 }
 int Sbl_ManCreateCnf( Sbl_Man_t * p )
 {
     int i, k, c, pLits[2], value;
-    word * pCutsN = Vec_WrdArray(p->vCutsN);
+    word * pCutsN1 = Vec_WrdArray(p->vCutsN1);
+    word * pCutsN2 = Vec_WrdArray(p->vCutsN2);
     assert( p->FirstVar == sat_solver_nvars(p->pSat) );
-    sat_solver_setnvars( p->pSat, sat_solver_nvars(p->pSat) + Vec_WrdSize(p->vCutsI) );
+    sat_solver_setnvars( p->pSat, sat_solver_nvars(p->pSat) + Vec_WrdSize(p->vCutsI1) );
     //printf( "\n" );
     for ( i = 0; i < Vec_IntSize(p->vAnds); i++ )
     {
@@ -686,7 +780,8 @@ int Sbl_ManCreateCnf( Sbl_Man_t * p )
         // binary clauses
         for ( k = Start0; k < Limit0; k++ )
         {
-            word Cut = pCutsN[k];
+            word Cut1 = pCutsN1[k];
+            word Cut2 = pCutsN2[k];
             //printf( "Cut %d implies root node %d.\n", p->FirstVar+k, i );
             // root clause
             pLits[0] = Abc_Var2Lit( p->FirstVar+k, 1 );
@@ -694,12 +789,21 @@ int Sbl_ManCreateCnf( Sbl_Man_t * p )
             value = sat_solver_addclause( p->pSat, pLits, pLits + 2 );
             assert( value );
             // fanin clauses
-            for ( c = 0; c < 64 && Cut; c++, Cut >>= 1 )
+            for ( c = 0; c < 64 && Cut1; c++, Cut1 >>= 1 )
             {
-                if ( (Cut & 1) == 0 )
+                if ( (Cut1 & 1) == 0 )
                     continue;
                 //printf( "Cut %d implies fanin %d.\n", p->FirstVar+k, c );
                 pLits[1] = Abc_Var2Lit( c, 0 );
+                value = sat_solver_addclause( p->pSat, pLits, pLits + 2 );
+                assert( value );
+            }
+            for ( c = 0; c < 64 && Cut2; c++, Cut2 >>= 1 )
+            {
+                if ( (Cut2 & 1) == 0 )
+                    continue;
+                //printf( "Cut %d implies fanin %d.\n", p->FirstVar+k, c );
+                pLits[1] = Abc_Var2Lit( c+64, 0 );
                 value = sat_solver_addclause( p->pSat, pLits, pLits + 2 );
                 assert( value );
             }
@@ -772,14 +876,14 @@ int Sbl_ManTestSat( Sbl_Man_t * p, int iPivot )
     Count = Sbl_ManWindow2( p, iPivot );
     if ( Count == 0 )
     {
-        printf( "Obj %d: Window with less than %d inputs does not exist.\n", iPivot, 64 );
+        printf( "Obj %d: Window with less than %d nodes does not exist.\n", iPivot, p->nVars );
         return 0;
     }
     if ( p->fVerbose )
-    printf( "\nObj = %6d : Leaf = %2d.  LUT = %2d.  AND = %2d.  Root = %2d.\n", 
-        iPivot, Vec_IntSize(p->vLeaves), Vec_IntSize(p->vNodes), Vec_IntSize(p->vAnds), Vec_IntSize(p->vRoots) ); 
+    printf( "\nObj = %6d : Leaf = %2d.  AND = %2d.  Root = %2d.    LUT = %2d.\n", 
+        iPivot, Vec_IntSize(p->vLeaves), Vec_IntSize(p->vAnds), Vec_IntSize(p->vRoots), Vec_IntSize(p->vNodes) ); 
 
-    if ( Vec_IntSize(p->vLeaves) > p->nVars || Vec_IntSize(p->vAnds) > p->nVars )
+    if ( Vec_IntSize(p->vLeaves) > 128 || Vec_IntSize(p->vAnds) > p->nVars )
     {
         printf( "Obj %d: Encountered window with %d inputs and %d internal nodes.\n", iPivot, Vec_IntSize(p->vLeaves), Vec_IntSize(p->vAnds) );
         return 0;
@@ -797,12 +901,9 @@ int Sbl_ManTestSat( Sbl_Man_t * p, int iPivot )
     Sbl_ManCreateCnf( p );
 
     if ( p->fVeryVerbose )
-    Vec_IntPrint( p->vSolInit );
-
-    if ( p->fVeryVerbose )
     printf( "All clauses = %d.  Multi clauses = %d.  Binary clauses = %d.  Other clauses = %d.\n\n", 
-        sat_solver_nclauses(p->pSat), Vec_IntSize(p->vAnds), Vec_WrdSize(p->vCutsI) - Vec_IntSize(p->vAnds), 
-        sat_solver_nclauses(p->pSat) - Vec_WrdSize(p->vCutsI) );
+        sat_solver_nclauses(p->pSat), Vec_IntSize(p->vAnds), Vec_WrdSize(p->vCutsI1) - Vec_IntSize(p->vAnds), 
+        sat_solver_nclauses(p->pSat) - Vec_WrdSize(p->vCutsI1) );
 
     // create assumptions
     // cardinality
@@ -820,9 +921,10 @@ int Sbl_ManTestSat( Sbl_Man_t * p, int iPivot )
 //    StartSol = 30;
     while ( fKeepTrying && StartSol-fKeepTrying > 0 )
     {
+        int Count = 0, LitCount = 0;
         int nConfBef, nConfAft;
         if ( p->fVerbose )
-            printf( "Trying to find mapping with %d gates.\n", StartSol-fKeepTrying );
+            printf( "Trying to find mapping with %d LUTs.\n", StartSol-fKeepTrying );
     //    for ( i = Vec_IntSize(p->vSolInit)-5; i < nVars; i++ )
     //        Vec_IntPush( p->vAssump, Abc_Var2Lit(Vec_IntEntry(p->vCardVars, i), 1) );
         Vec_IntWriteEntry( p->vAssump, 0, Abc_Var2Lit(Vec_IntEntry(p->vCardVars, StartSol-fKeepTrying), 1) );
@@ -844,12 +946,8 @@ int Sbl_ManTestSat( Sbl_Man_t * p, int iPivot )
             break;
         if ( status == l_True )
         {
-            int Count = 0, LitCount = 0;
             if ( p->fVeryVerbose )
             {
-                printf( "Inputs = %d.  ANDs = %d.  Total = %d. All vars = %d.\n", 
-                    Vec_IntSize(p->vLeaves), Vec_IntSize(p->vAnds), 
-                    Vec_IntSize(p->vLeaves)+Vec_IntSize(p->vAnds), p->nVars );
                 for ( i = 0; i < Vec_IntSize(p->vAnds); i++ )
                     printf( "%d", sat_solver_var_value(p->pSat, i) );
                 printf( "\n" );
@@ -870,15 +968,12 @@ int Sbl_ManTestSat( Sbl_Man_t * p, int iPivot )
                 if ( sat_solver_var_value(p->pSat, i) )
                 {
                     if ( p->fVeryVerbose )
-                        printf( "Cut %3d : Node = %3d  Node = %6d  ", Count++, Vec_IntEntry(p->vCutsObj, i-p->FirstVar), Vec_IntEntry(p->vAnds, Vec_IntEntry(p->vCutsObj, i-p->FirstVar)) );
+                        printf( "Cut %3d : Node = %3d %6d  ", Count++, Vec_IntEntry(p->vCutsObj, i-p->FirstVar), Vec_IntEntry(p->vAnds, Vec_IntEntry(p->vCutsObj, i-p->FirstVar)) );
                     if ( p->fVeryVerbose )
                         LitCount += Sbl_ManFindAndPrintCut( p, i-p->FirstVar );
                     Vec_IntPush( p->vSolCur, i-p->FirstVar );
                 }
-            if ( p->fVeryVerbose )
-            printf( "LitCount = %d.\n", LitCount );
-            if ( p->fVeryVerbose )
-            Vec_IntPrint( p->vRootVars );
+            //Vec_IntPrint( p->vRootVars );
             //Vec_IntPrint( p->vRoots );
             //Vec_IntPrint( p->vAnds );
             //Vec_IntPrint( p->vLeaves );
@@ -925,6 +1020,8 @@ int Sbl_ManTestSat( Sbl_Man_t * p, int iPivot )
             printf( "Total " );
             printf( "confl =%8d.    ", nConfTotal );
             Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
+            if ( p->fVeryVerbose && status == l_True )
+                printf( "LitCount = %d.\n", LitCount );
             printf( "\n" );
         }
     }
@@ -935,7 +1032,7 @@ int Sbl_ManTestSat( Sbl_Man_t * p, int iPivot )
         int nDelayCur, nEdgesCur;
         nDelayCur = Sbl_ManCreateTiming( p, p->DelayMax, &nEdgesCur );
         Sbl_ManUpdateMapping( p );
-        printf( "Object %5d : Saved %d nodes  (Conf =%8d)  Iter =%3d  Delay = %d  Edges = %4d\n", 
+        printf( "Object %5d : Saved %2d nodes  (Conf =%8d)  Iter =%3d  Delay = %d  Edges = %4d\n", 
             iPivot, Vec_IntSize(p->vSolInit)-Vec_IntSize(p->vSolBest), nConfTotal, nIters, nDelayCur, nEdgesCur );
         p->timeTotal += Abc_Clock() - p->timeStart;
         return 2;
@@ -969,7 +1066,7 @@ void Gia_ManLutSat( Gia_Man_t * pGia, int nNumber, int nImproves, int nBTLimit, 
     p->fReverse     = fReverse;     // reverse windowing
     p->fVeryVerbose = fVeryVerbose; // verbose
     p->fVerbose     = fVerbose | fVeryVerbose;
-    Gia_ManComputeOneWinStart( pGia, fReverse );
+    Gia_ManComputeOneWinStart( pGia, nNumber, fReverse );
     Gia_ManForEachLut2( pGia, iLut )
     {
         if ( Sbl_ManTestSat( p, iLut ) != 2 )

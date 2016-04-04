@@ -1382,7 +1382,7 @@ extern float               Gia_ManDelayTraceLut( Gia_Man_t * p );
 extern float               Gia_ManDelayTraceLutPrint( Gia_Man_t * p, int fVerbose );
 extern Gia_Man_t *         Gia_ManSpeedup( Gia_Man_t * p, int Percentage, int Degree, int fVerbose, int fVeryVerbose );
 /*=== giaSplit.c ============================================================*/
-extern void                Gia_ManComputeOneWinStart( Gia_Man_t * p, int fReverse );
+extern void                Gia_ManComputeOneWinStart( Gia_Man_t * p, int nAnds, int fReverse );
 extern int                 Gia_ManComputeOneWin( Gia_Man_t * p, int iPivot, Vec_Int_t ** pvRoots, Vec_Int_t ** pvNodes, Vec_Int_t ** pvLeaves, Vec_Int_t ** pvAnds );
 /*=== giaStg.c ============================================================*/
 extern void                Gia_ManStgPrint( FILE * pFile, Vec_Int_t * vLines, int nIns, int nOuts, int nStates );

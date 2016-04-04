@@ -34828,7 +34828,7 @@ usage:
 int Abc_CommandAbc9SatLut( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     extern void Gia_ManLutSat( Gia_Man_t * p, int nNumber, int nImproves, int nBTLimit, int DelayMax, int nEdges, int fDelay, int fReverse, int fVeryVerbose, int fVerbose );
-    int c, nNumber = 64, nImproves = 0, nBTLimit = 500, DelayMax = 0, nEdges = 0;
+    int c, nNumber = 32, nImproves = 0, nBTLimit = 100, DelayMax = 0, nEdges = 0;
     int fDelay = 0, fReverse = 0, fVeryVerbose = 0, fVerbose = 0;
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "NICDQdrwvh" ) ) != EOF )
@@ -34842,6 +34842,11 @@ int Abc_CommandAbc9SatLut( Abc_Frame_t * pAbc, int argc, char ** argv )
                 goto usage;
             }
             nNumber = atoi(argv[globalUtilOptind]);
+            if ( nNumber > 128 )
+            {
+                Abc_Print( -1, "The number of AIG nodes should not exceed 128.\n" );
+                goto usage;
+            }
             globalUtilOptind++;
             break;
         case 'I':
@@ -34917,7 +34922,7 @@ int Abc_CommandAbc9SatLut( Abc_Frame_t * pAbc, int argc, char ** argv )
 usage:
     Abc_Print( -2, "usage: &satlut [-NICDQ num] [-drwvh]\n" );
     Abc_Print( -2, "\t           performs SAT-based remapping of the 4-LUT network\n" );
-    Abc_Print( -2, "\t-N num   : the limit on the number of AIG nodes in the window [default = %d]\n", nNumber );
+    Abc_Print( -2, "\t-N num   : the limit on AIG nodes in the window (num <= 128) [default = %d]\n", nNumber );
     Abc_Print( -2, "\t-I num   : the limit on the number of improved windows [default = %d]\n", nImproves );
     Abc_Print( -2, "\t-C num   : the limit on the number of conflicts [default = %d]\n", nBTLimit );
     Abc_Print( -2, "\t-D num   : the user-specified required times at the outputs [default = %d]\n", DelayMax );
