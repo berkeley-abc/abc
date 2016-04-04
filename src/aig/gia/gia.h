@@ -1499,6 +1499,7 @@ extern void                Gia_ObjPrint( Gia_Man_t * p, Gia_Obj_t * pObj );
 extern void                Gia_ManPrint( Gia_Man_t * p );
 extern void                Gia_ManPrintCo( Gia_Man_t * p, Gia_Obj_t * pObj );
 extern void                Gia_ManPrintCone( Gia_Man_t * p, Gia_Obj_t * pObj, int * pLeaves, int nLeaves, Vec_Int_t * vNodes );
+extern void                Gia_ManPrintConeMulti( Gia_Man_t * p, Vec_Int_t * vObjs, Vec_Int_t * vLeaves, Vec_Int_t * vNodes );
 extern void                Gia_ManPrintCone2( Gia_Man_t * p, Gia_Obj_t * pObj );
 extern void                Gia_ManInvertConstraints( Gia_Man_t * pAig );
 extern void                Gia_ManInvertPos( Gia_Man_t * pAig );

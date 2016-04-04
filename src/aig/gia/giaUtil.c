@@ -1341,6 +1341,22 @@ void Gia_ObjPrint( Gia_Man_t * p, Gia_Obj_t * pObj )
         printf( " mark0" );
     if ( pObj->fMark1 )
         printf( " mark1" );
+    if ( Gia_ManHasMapping(p) && Gia_ObjIsLut(p, Gia_ObjId(p, pObj)) )
+    {
+        int i, iFan;
+        printf( " Cut = { " );
+        Gia_LutForEachFanin( p, Gia_ObjId(p, pObj), iFan, i )
+            printf( "%d ", iFan );
+        printf( "}" );
+    }
+    if ( Gia_ManHasMapping2(p) && Gia_ObjIsLut2(p, Gia_ObjId(p, pObj)) )
+    {
+        int i, iFan;
+        printf( " Cut = { " );
+        Gia_LutForEachFanin2( p, Gia_ObjId(p, pObj), iFan, i )
+            printf( "%d ", iFan );
+        printf( "}" );
+    }
     printf( "\n" );
 /*
     if ( p->pRefs )
@@ -1414,6 +1430,18 @@ void Gia_ManPrintCone( Gia_Man_t * p, Gia_Obj_t * pObj, int * pLeaves, int nLeav
         Vec_IntPush( vNodes, pLeaves[i] );
     Gia_ManPrintCollect_rec( p, pObj, vNodes );
     printf( "GIA logic cone for node %d:\n", Gia_ObjId(p, pObj) );
+    Gia_ManForEachObjVec( vNodes, p, pObj, i )
+        Gia_ObjPrint( p, pObj );
+}
+void Gia_ManPrintConeMulti( Gia_Man_t * p, Vec_Int_t * vObjs, Vec_Int_t * vLeaves, Vec_Int_t * vNodes )
+{
+    Gia_Obj_t * pObj;
+    int i;
+    Vec_IntClear( vNodes );
+    Vec_IntAppend( vNodes, vLeaves );
+    Gia_ManForEachObjVec( vObjs, p, pObj, i )
+        Gia_ManPrintCollect_rec( p, pObj, vNodes );
+    printf( "GIA logic cone for %d nodes:\n", Vec_IntSize(vObjs) );
     Gia_ManForEachObjVec( vNodes, p, pObj, i )
         Gia_ObjPrint( p, pObj );
 }

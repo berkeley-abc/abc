@@ -39,6 +39,7 @@ struct Sbl_Man_t_
     int              FirstVar;   // first variable to be used
     int              LitShift;   // shift in terms of literals (2*Gia_ManCiNum(pGia)+2)
     int              nInputs;    // the number of inputs
+    int              nEdges;     // the number of edges
     // window
     Gia_Man_t *      pGia;
     Vec_Int_t *      vLeaves;    // leaf nodes
@@ -51,6 +52,7 @@ struct Sbl_Man_t_
     Vec_Int_t *      vReqs;      // required times  
     Vec_Wec_t *      vWindow;    // fanins of each node in the window
     Vec_Int_t *      vPath;      // critical path (as SAT variables)
+    Vec_Int_t *      vEdges;     // fanin edges
     // cuts
     Vec_Wrd_t *      vCutsI;     // input bit patterns
     Vec_Wrd_t *      vCutsN;     // node bit patterns
@@ -83,25 +85,52 @@ struct Sbl_Man_t_
   SeeAlso     []
 
 ***********************************************************************/
-int Sbl_ManComputeDelay( Sbl_Man_t * p, int iLut, Vec_Int_t * vFanins )
+int Sbl_ManComputeDelay( Sbl_Man_t * p, int iLut, Vec_Int_t * vFanins, int * pEdges )
 {
-    int k, iFan, Delay = 0;
+    int k, iFan, DelayMax = -1, Count = 0, iFanMax = -1;
+    *pEdges = -1;
     Vec_IntForEachEntry( vFanins, iFan, k )
-        Delay = Abc_MaxInt( Delay, Vec_IntEntry(p->vArrs, iFan) + 1 );
-    return Delay;
+    {
+        int Delay = Vec_IntEntry(p->vArrs, iFan) + 1;
+        if ( DelayMax < Delay )
+        {
+            DelayMax = Delay;
+            iFanMax = k;
+            Count = 1;
+        }
+        else if ( DelayMax == Delay )
+            Count++;
+    }
+    if ( p->nEdges == 0 )
+        return DelayMax;
+    if ( p->nEdges == 1 )
+    {
+        if ( Count == 1 )
+        {
+            *pEdges = iFanMax;
+            return DelayMax - 1;
+        }
+        return DelayMax;
+    }
+    assert( 0 );
+    return 0;
 }
-void Sbl_ManCreateTiming( Sbl_Man_t * p, int DelayStart )
+int Sbl_ManCreateTiming( Sbl_Man_t * p, int DelayStart, int * pnEdges )
 {
     Vec_Int_t * vFanins;
-    int DelayMax = DelayStart, Delay, iLut, iFan, k;
+    int DelayMax = DelayStart, Delay;
+    int iLut, iFan, k, Edges, nCountEdges = 0;
     // compute arrival times
     Vec_IntFill( p->vArrs,  Gia_ManObjNum(p->pGia), 0 );
+    Vec_IntFill( p->vEdges, Gia_ManObjNum(p->pGia), -1 );
     Gia_ManForEachLut2( p->pGia, iLut )
     {
         vFanins = Gia_ObjLutFanins2(p->pGia, iLut);
-        Delay = Sbl_ManComputeDelay( p, iLut, vFanins );
+        Delay = Sbl_ManComputeDelay( p, iLut, vFanins, &Edges );
         Vec_IntWriteEntry( p->vArrs,  iLut, Delay );
+        Vec_IntWriteEntry( p->vEdges, iLut, Edges );
         DelayMax = Abc_MaxInt( DelayMax, Delay );
+        nCountEdges += (Edges >= 0);
     }
     // compute required times
     Vec_IntFill( p->vReqs, Gia_ManObjNum(p->pGia), ABC_INFINITY );
@@ -110,10 +139,18 @@ void Sbl_ManCreateTiming( Sbl_Man_t * p, int DelayStart )
     Gia_ManForEachLut2Reverse( p->pGia, iLut )
     {
         Delay = Vec_IntEntry(p->vReqs, iLut) - 1;
+        Edges = Vec_IntEntry(p->vEdges, iLut);
+        assert( p->nEdges > 0 || Edges == -1 );
         vFanins = Gia_ObjLutFanins2(p->pGia, iLut);
         Vec_IntForEachEntry( vFanins, iFan, k )
-            Vec_IntDowndateEntry( p->vReqs, iFan, Delay );
+            if ( k != Edges )
+                Vec_IntDowndateEntry( p->vReqs, iFan, Delay );
+            else
+                Vec_IntDowndateEntry( p->vReqs, iFan, Delay + 1 );
     }
+    if ( pnEdges )
+        *pnEdges = nCountEdges;
+    return DelayMax;
 }
 
 /**Function*************************************************************
@@ -175,17 +212,18 @@ int Sbl_ManCriticalFanin( Sbl_Man_t * p, int iLut, Vec_Int_t * vFanins )
 int Sbl_ManEvaluateMapping( Sbl_Man_t * p, int DelayGlo )
 {
     Vec_Int_t * vFanins;
-    int i, iLut, iAnd, Delay, Required;
+    int i, iLut = -1, iAnd, Delay, Required, Edges;
     Vec_IntClear( p->vPath );
     // derive timing
-    Sbl_ManCreateTiming( p, DelayGlo );
+    Sbl_ManCreateTiming( p, DelayGlo, NULL );
     // update new timing
     Sbl_ManGetCurrentMapping( p );
     Vec_IntForEachEntry( p->vAnds, iLut, i )
     {
         vFanins = Vec_WecEntry( p->vWindow, i );
-        Delay   = Sbl_ManComputeDelay( p, iLut, vFanins );
+        Delay   = Sbl_ManComputeDelay( p, iLut, vFanins, &Edges );
         Vec_IntWriteEntry( p->vArrs, iLut, Delay );
+        Vec_IntWriteEntry( p->vEdges, iLut, Edges );
     }
     // compare timing at the root nodes
     Vec_IntForEachEntry( p->vRoots, iLut, i )
@@ -447,6 +485,10 @@ int Sbl_ManComputeCuts( Sbl_Man_t * p )
         {
             Gia_Obj_t * pFanin = Gia_ManObj( p->pGia, Fanin );
             assert( (int)pFanin->Value < Vec_IntSize(p->vLeaves) || Gia_ObjIsLut2(p->pGia, Fanin) );
+//            if ( ~pFanin->Value == 0 )
+//                Gia_ManPrintConeMulti( p->pGia, p->vAnds, p->vLeaves, p->vPath );
+            if ( ~pFanin->Value == 0 ) 
+                continue;
             assert( ~pFanin->Value );
             if ( (int)pFanin->Value < Vec_IntSize(p->vLeaves) )
                 CutI |= ((word)1 << pFanin->Value);
@@ -457,7 +499,7 @@ int Sbl_ManComputeCuts( Sbl_Man_t * p )
         Index = Sbl_ManFindCut( p, Vec_IntSize(p->vLeaves) + i, CutI, CutN );
         if ( Index < 0 )
         {
-            printf( "Cannot find the available cut.\n" );
+            //printf( "Cannot find the available cut.\n" );
             continue;
         }
         assert( Index >= 0 );
@@ -550,6 +592,7 @@ Sbl_Man_t * Sbl_ManAlloc( Gia_Man_t * pGia, int LogN )
     p->vReqs      = Vec_IntAlloc( 0 );
     p->vWindow    = Vec_WecAlloc( 128 );
     p->vPath      = Vec_IntAlloc( 32 );
+    p->vEdges     = Vec_IntAlloc( 32 );
     // cuts
     p->vCutsI     = Vec_WrdAlloc( 1000 );     // input bit patterns
     p->vCutsN     = Vec_WrdAlloc( 1000 );     // node bit patterns
@@ -585,6 +628,7 @@ void Sbl_ManStop( Sbl_Man_t * p )
     Vec_IntFree( p->vReqs );
     Vec_WecFree( p->vWindow );
     Vec_IntFree( p->vPath );
+    Vec_IntFree( p->vEdges );
     // cuts
     Vec_WrdFree( p->vCutsI );
     Vec_WrdFree( p->vCutsN );
@@ -640,15 +684,17 @@ int Sbl_ManWindow2( Sbl_Man_t * p, int iPivot )
     return Count;
 }
 
-int Sbl_ManTestSat( Gia_Man_t * pGia, int nBTLimit, int iPivot, int DelayMax, int fDelay, int fVeryVerbose, int fVerbose )
+int Sbl_ManTestSat( Gia_Man_t * pGia, int nBTLimit, int iPivot, int DelayMax, int nEdges, int fDelay, int fVeryVerbose, int fVerbose )
 {
     int fKeepTrying = 1;
     abctime clk = Abc_Clock(), clk2;
     int i, LogN = 6, nVars = 1 << LogN, status, Root;
     Sbl_Man_t * p = Sbl_ManAlloc( pGia, LogN );
-    int StartSol, Count, nConfTotal = 0;
-    Vec_IntClear( p->vSolBest );
+    int StartSol, Count, nConfTotal = 0, nIters = 0;
+
+    p->nEdges = nEdges;
     fVerbose |= fVeryVerbose;
+    Vec_IntClear( p->vSolBest );
 
     // compute one window
     Count = Sbl_ManWindow2( p, iPivot );
@@ -717,6 +763,7 @@ int Sbl_ManTestSat( Gia_Man_t * pGia, int nBTLimit, int iPivot, int DelayMax, in
         status = sat_solver_solve( p->pSat, Vec_IntArray(p->vAssump), Vec_IntLimit(p->vAssump), nBTLimit, 0, 0, 0 );
         nConfAft = (int)p->pSat->stats.conflicts;
         nConfTotal += nConfAft - nConfBef;
+        nIters++;
         if ( status == l_Undef )
             break;
         if ( status == l_True )
@@ -809,8 +856,11 @@ int Sbl_ManTestSat( Gia_Man_t * pGia, int nBTLimit, int iPivot, int DelayMax, in
     // update solution
     if ( Vec_IntSize(p->vSolBest) > 0 && Vec_IntSize(p->vSolBest) < Vec_IntSize(p->vSolInit) )
     {
+        int nDelay, nEdges;
+        nDelay = Sbl_ManCreateTiming( p, DelayMax, &nEdges );
         Sbl_ManUpdateMapping( p );
-        printf( "Object %5d : Saved %d nodes.  (Conf =%8d.)\n", iPivot, Vec_IntSize(p->vSolInit)-Vec_IntSize(p->vSolBest), nConfTotal );
+        printf( "Object %5d : Saved %d nodes  (Conf =%8d)  Iter =%3d  Delay = %d  Edges = %4d\n", 
+            iPivot, Vec_IntSize(p->vSolInit)-Vec_IntSize(p->vSolBest), nConfTotal, nIters, nDelay, nEdges );
         Sbl_ManStop( p );
         return 2;
     }
@@ -818,7 +868,7 @@ int Sbl_ManTestSat( Gia_Man_t * pGia, int nBTLimit, int iPivot, int DelayMax, in
     return 1;
 }
 
-void Gia_ManLutSat( Gia_Man_t * pGia, int nNumber, int nBTLimit, int DelayMax, int fDelay, int fReverse, int fVeryVerbose, int fVerbose )
+void Gia_ManLutSat( Gia_Man_t * pGia, int nNumber, int nBTLimit, int DelayMax, int nEdges, int fDelay, int fReverse, int fVeryVerbose, int fVerbose )
 {
     int iLut;
     Gia_ManComputeOneWinStart( pGia, fReverse );
@@ -826,7 +876,7 @@ void Gia_ManLutSat( Gia_Man_t * pGia, int nNumber, int nBTLimit, int DelayMax, i
     {
 //        if ( iLut > 259 )
 //            break;
-        if ( Sbl_ManTestSat( pGia, nBTLimit, iLut, DelayMax, fDelay, fVeryVerbose, fVerbose ) != 2 )
+        if ( Sbl_ManTestSat( pGia, nBTLimit, iLut, DelayMax, nEdges, fDelay, fVeryVerbose, fVerbose ) != 2 )
             continue;
 //        break;
     }
