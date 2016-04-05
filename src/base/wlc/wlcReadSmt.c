@@ -409,7 +409,7 @@ int Smt_PrsBuildNode( Wlc_Ntk_t * pNtk, Smt_Prs_t * p, int iNode, int RangeOut, 
             if ( Type == WLC_OBJ_BIT_SELECT )
             {
                 assert( Value1 >= 0 && Value2 >= 0 && Value1 >= Value2 );
-                Vec_IntPush( vFanins, (Value1 << 16) | Value2 );
+                Vec_IntPushTwo( vFanins, Value1, Value2 );
             }
             else if ( Type == WLC_OBJ_ROTATE_R || Type == WLC_OBJ_ROTATE_L )
             {

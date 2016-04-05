@@ -43,10 +43,9 @@ struct Wlc_Prs_t_
     Mem_Flex_t *           pMemTable;
     Vec_Ptr_t *            vTables;
     int                    nConsts;
-    int                    nNonZeroCount;
-    int                    nNonZeroEnd;
-    int                    nNonZeroBeg;
-    int                    nNonZeroLine;
+    int                    nNonZero[4];
+    int                    nNegative[4];
+    int                    nReverse[4];
     char                   sError[WLV_PRS_MAX_LINE];
 };
 
@@ -473,7 +472,7 @@ static inline char * Wlc_PrsFindRange( char * pStr, int * End, int * Beg )
     if ( pStr[0] != '[' )
         return pStr;
     pStr = Wlc_PrsSkipSpaces( pStr+1 );
-    if ( !Wlc_PrsIsDigit(pStr) )
+    if ( !Wlc_PrsIsDigit(pStr) && pStr[0] != '-' )
         return NULL;
     *End = *Beg = atoi( pStr );
     if ( Wlc_PrsFindSymbol( pStr, ':' ) == NULL )
@@ -486,16 +485,13 @@ static inline char * Wlc_PrsFindRange( char * pStr, int * End, int * Beg )
     {
         pStr = Wlc_PrsFindSymbol( pStr, ':' );
         pStr = Wlc_PrsSkipSpaces( pStr+1 );
-        if ( !Wlc_PrsIsDigit(pStr) )
+        if ( !Wlc_PrsIsDigit(pStr) && pStr[0] != '-' )
             return NULL;
         *Beg = atoi( pStr );
         pStr = Wlc_PrsFindSymbol( pStr, ']' );
         if ( pStr == NULL )
             return NULL;
     }
-    if ( *End < *Beg )
-        return NULL;
-    assert( *End >= *Beg );
     return pStr + 1;
 }
 static inline char * Wlc_PrsFindWord( char * pStr, char * pWord, int * fFound )
@@ -770,7 +766,7 @@ static inline int Wlc_PrsFindDefinition( Wlc_Prs_t * p, char * pStr, Vec_Int_t *
             pStr = Wlc_PrsFindRange( pStr, &End, &Beg );
             if ( pStr == NULL )
                 return Wlc_PrsWriteErrorMessage( p, pLine, "Non-standard range." );
-            Vec_IntPush( vFanins, (End << 16) | Beg );
+            Vec_IntPushTwo( vFanins, End, Beg );
             Type = WLC_OBJ_BIT_SELECT;
         }
         else 
@@ -834,13 +830,31 @@ int Wlc_PrsReadDeclaration( Wlc_Prs_t * p, char * pStart )
     pStart = Wlc_PrsFindRange( pStart, &End, &Beg );
     if ( pStart == NULL )
         return Wlc_PrsWriteErrorMessage( p, pLine, "Non-standard range." );
-    if ( Beg != 0 )
+    if ( End != 0 && Beg != 0 )
     {
-        if ( p->nNonZeroCount++ == 0 )
+        if ( p->nNonZero[0]++ == 0 )
         {
-            p->nNonZeroEnd  = End;
-            p->nNonZeroBeg  = Beg;
-            p->nNonZeroLine = Wlc_PrsFindLine(p, pStart);
+            p->nNonZero[1] = End;
+            p->nNonZero[2] = Beg;
+            p->nNonZero[3] = Wlc_PrsFindLine(p, pStart);
+        }
+    }
+    if ( End < 0 || Beg < 0  )
+    {
+        if ( p->nNegative[0]++ == 0 )
+        {
+            p->nNegative[1] = End;
+            p->nNegative[2] = Beg;
+            p->nNegative[3] = Wlc_PrsFindLine(p, pStart);
+        }
+    }
+    if ( End < Beg )
+    {
+        if ( p->nReverse[0]++ == 0 )
+        {
+            p->nReverse[1] = End;
+            p->nReverse[2] = Beg;
+            p->nReverse[3] = Wlc_PrsFindLine(p, pStart);
         }
     }
     while ( 1 )
@@ -1140,7 +1154,10 @@ startword:
             if ( nValues != Vec_IntSize(p->vFanins) - 1 )
                 return Wlc_PrsWriteErrorMessage( p, pStart, "The number of values in the case statement is wrong.", pName );
             if ( Wlc_ObjRange(pObj) == 1 )
-                return Wlc_PrsWriteErrorMessage( p, pStart, "Always-statement with 1-bit control is not bit-blasted correctly.", pName );
+            {
+//                return Wlc_PrsWriteErrorMessage( p, pStart, "Always-statement with 1-bit control is not bit-blasted correctly.", pName );
+                printf( "Warning:  Case-statement with 1-bit control is treated as a 2:1 MUX (correct for unsigned signals only).\n" );
+            }
             pObj = Wlc_NtkObj( p->pNtk, NameIdOut );
             Wlc_ObjUpdateType( p->pNtk, pObj, WLC_OBJ_MUX );
             Wlc_ObjAddFanins( p->pNtk, pObj, p->vFanins );
@@ -1210,10 +1227,20 @@ startword:
             return Wlc_PrsWriteErrorMessage( p, pStart, "Cannot read line beginning with %s.", pName );
         }
     }
-    if ( p->nNonZeroCount )
+    if ( p->nNonZero[0] )
     {
-        printf( "Warning: %d objects in the input file have non-zero-based ranges.\n", p->nNonZeroCount );
-        printf( "In particular, a signal with range [%d:%d] is declared in line %d.\n", p->nNonZeroEnd, p->nNonZeroBeg, p->nNonZeroLine );
+        printf( "Warning: Input file contains %d objects with non-zero-based ranges.\n", p->nNonZero[0] );
+        printf( "For example, signal with range [%d:%d] is declared in line %d.\n", p->nNonZero[1], p->nNonZero[2], p->nNonZero[3] );
+    }
+    if ( p->nNegative[0] )
+    {
+        printf( "Warning: Input file contains %d objects with negative ranges.\n", p->nNegative[0] );
+        printf( "For example, signal with range [%d:%d] is declared in line %d.\n", p->nNegative[1], p->nNegative[2], p->nNegative[3] );
+    }
+    if ( p->nReverse[0] )
+    {
+        printf( "Warning: Input file contains %d objects with reversed ranges.\n", p->nReverse[0] );
+        printf( "For example, signal with range [%d:%d] is declared in line %d.\n", p->nReverse[1], p->nReverse[2], p->nReverse[3] );
     }
     return 1;
 }

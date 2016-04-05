@@ -846,8 +846,18 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Vec_Int_t * vBoxIds )
         }
         else if ( Wlc_ObjIsCi(pObj) )
         {
-            for ( k = 0; k < nRange; k++ )
-                Vec_IntPush( vRes, Gia_ManAppendCi(pNew) );
+            if ( Wlc_ObjRangeIsReversed(pObj) )
+            {
+                for ( k = 0; k < nRange; k++ )
+                    Vec_IntPush( vRes, -1 );
+                for ( k = 0; k < nRange; k++ )
+                    Vec_IntWriteEntry( vRes, Vec_IntSize(vRes)-1-k, Gia_ManAppendCi(pNew) );
+            }
+            else
+            {
+                for ( k = 0; k < nRange; k++ )
+                    Vec_IntPush( vRes, Gia_ManAppendCi(pNew) );
+            }
             if ( pObj->Type == WLC_OBJ_FO )
                 nFFouts += Vec_IntSize(vRes);
         }
@@ -962,10 +972,20 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Vec_Int_t * vBoxIds )
             Wlc_Obj_t * pFanin = Wlc_ObjFanin0(p, pObj);
             int End = Wlc_ObjRangeEnd(pObj);
             int Beg = Wlc_ObjRangeBeg(pObj);
-            assert( nRange == End - Beg + 1 );
-            assert( (int)pFanin->Beg <= Beg && End <= (int)pFanin->End );
-            for ( k = Beg; k <= End; k++ )
-                Vec_IntPush( vRes, pFans0[k - pFanin->Beg] );
+            if ( End >= Beg )
+            {
+                assert( nRange == End - Beg + 1 );
+                assert( pFanin->Beg <= Beg && End <= pFanin->End );
+                for ( k = Beg; k <= End; k++ )
+                    Vec_IntPush( vRes, pFans0[k - pFanin->Beg] );
+            }
+            else
+            {
+                assert( nRange == Beg - End + 1 );
+                assert( pFanin->End <= End && Beg <= pFanin->Beg );
+                for ( k = End; k <= Beg; k++ )
+                    Vec_IntPush( vRes, pFans0[k - pFanin->End] );
+            }
         }
         else if ( pObj->Type == WLC_OBJ_BIT_CONCAT )
         {
@@ -1165,8 +1185,16 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Vec_Int_t * vBoxIds )
         pFans0 = Vec_IntEntryP( vBits, Wlc_ObjCopy(p, Wlc_ObjId(p, pObj)) );
         if ( fVerbose )
             printf( "%s(%d) ", Wlc_ObjName(p, Wlc_ObjId(p, pObj)), Gia_ManCoNum(pNew) );
-        for ( k = 0; k < nRange; k++ )
-            Gia_ManAppendCo( pNew, pFans0[k] );
+        if ( Wlc_ObjRangeIsReversed(pObj) )
+        {
+            for ( k = 0; k < nRange; k++ )
+                Gia_ManAppendCo( pNew, pFans0[nRange-1-k] );
+        }
+        else
+        {
+            for ( k = 0; k < nRange; k++ )
+                Gia_ManAppendCo( pNew, pFans0[k] );
+        }
         if ( pObj->fIsFi )
             nFFins += nRange;
     }

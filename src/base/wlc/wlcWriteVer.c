@@ -165,7 +165,7 @@ void Wlc_WriteVerInt( FILE * pFile, Wlc_Ntk_t * p, int fNoFlops )
             Wlc_ObjFanin1(p, pObj)->Mark = 1;
     Wlc_NtkForEachObj( p, pObj, i )
     {
-        int nDigits   = Abc_Base10Log(pObj->End+1) + Abc_Base10Log(pObj->Beg+1);
+        int nDigits   = Abc_Base10Log(Abc_AbsInt(pObj->End)+1) + Abc_Base10Log(Abc_AbsInt(pObj->Beg)+1) + (int)(pObj->End < 0) + (int)(pObj->Beg < 0);
         if ( pObj->Mark ) 
         {
             pObj->Mark = 0;

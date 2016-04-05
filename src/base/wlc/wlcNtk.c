@@ -33,10 +33,10 @@ ABC_NAMESPACE_IMPL_START
 static char * Wlc_Names[WLC_OBJ_NUMBER+1] = { 
     NULL,                  // 00: unknown
     "pi",                  // 01: primary input 
-    "po",                  // 02: primary output 
-    "ff",                  // 03: box output
-    "bi",                  // 04: box input
-    "ff",                  // 05: flop
+    "po",                  // 02: primary output (unused)
+    "ff",                  // 03: flop output
+    "bi",                  // 04: flop input (unused)
+    "ff",                  // 05: flop (unused)
     "const",               // 06: constant
     "buf",                 // 07: buffer
     "mux",                 // 08: multiplexer
@@ -44,45 +44,45 @@ static char * Wlc_Names[WLC_OBJ_NUMBER+1] = {
     ">>>",                 // 10: shift right (arithmetic)
     "<<",                  // 11: shift left
     "<<<",                 // 12: shift left (arithmetic)
-    "rotateR",             // 13: shift left (arithmetic)
-    "rotateL",             // 14: shift left (arithmetic)
+    "rotateR",             // 13: rotate right
+    "rotateL",             // 14: rotate left
     "~",                   // 15: bitwise NOT
     "&",                   // 16: bitwise AND
     "|",                   // 17: bitwise OR
     "^",                   // 18: bitwise XOR
-    "~^",                  // 18: bitwise NXOR
-    "[:]",                 // 19: bit selection
-    "{,}",                 // 20: bit concatenation
-    "zeroPad",             // 21: zero padding
-    "signExt",             // 22: sign extension
-    "!",                   // 23: logic NOT
-    "&&",                  // 24: logic AND
-    "||",                  // 25: logic OR
-    "^^",                  // 27: logic XOR
-    "==",                  // 28: compare equal
-    "!=",                  // 29: compare not equal
-    "<",                   // 30: compare less
-    ">",                   // 31: compare more
-    "<=",                  // 32: compare less or equal
-    ">=",                  // 33: compare more or equal
-    "&",                   // 34: reduction AND
-    "|",                   // 35: reduction OR
-    "^",                   // 36: reduction XOR
-    "~&",                  // 34: reduction NAND
-    "~|",                  // 35: reduction NOR
-    "~^",                  // 36: reduction NXOR
-    "+",                   // 37: arithmetic addition
-    "-",                   // 38: arithmetic subtraction
-    "*",                   // 39: arithmetic multiplier
-    "/",                   // 40: arithmetic division
-    "%",                   // 41: arithmetic modulus
-    "**",                  // 42: arithmetic power
-    "-",                   // 43: arithmetic minus
-    "sqrt",                // 44: integer square root
-    "table",               // 45: bit table
-    NULL                   // 46: unused
+    "~^",                  // 19: bitwise NXOR
+    "[:]",                 // 20: bit selection
+    "{,}",                 // 21: bit concatenation
+    "zeroPad",             // 22: zero padding
+    "signExt",             // 23: sign extension
+    "!",                   // 24: logic NOT
+    "&&",                  // 25: logic AND
+    "||",                  // 27: logic OR
+    "^^",                  // 28: logic XOR
+    "==",                  // 29: compare equal
+    "!=",                  // 30: compare not equal
+    "<",                   // 31: compare less
+    ">",                   // 32: compare more
+    "<=",                  // 33: compare less or equal
+    ">=",                  // 34: compare more or equal
+    "&",                   // 35: reduction AND
+    "|",                   // 36: reduction OR
+    "^",                   // 37: reduction XOR
+    "~&",                  // 38: reduction NAND
+    "~|",                  // 39: reduction NOR
+    "~^",                  // 40: reduction NXOR
+    "+",                   // 41: arithmetic addition
+    "-",                   // 42: arithmetic subtraction
+    "*",                   // 43: arithmetic multiplier
+    "/",                   // 44: arithmetic division
+    "%",                   // 45: arithmetic modulus
+    "**",                  // 46: arithmetic power
+    "-",                   // 47: arithmetic minus
+    "sqrt",                // 48: integer square root
+    "square",              // 49: integer square
+    "table",               // 50: bit table
+    NULL                   // 51: unused
 };
-
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -534,7 +534,12 @@ void Wlc_ObjCollectCopyFanins( Wlc_Ntk_t * p, int iObj, Vec_Int_t * vFanins )
         for ( i = 0; i < nInts; i++ )
             Vec_IntPush( vFanins, pInts[i] );
     }
-    else if ( pObj->Type == WLC_OBJ_BIT_SELECT || pObj->Type == WLC_OBJ_TABLE )
+    else if ( pObj->Type == WLC_OBJ_BIT_SELECT )
+    {
+        assert( Vec_IntSize(vFanins) == 1 );
+        Vec_IntPushTwo( vFanins, Wlc_ObjRangeEnd(pObj), Wlc_ObjRangeBeg(pObj) );
+    }
+    else if ( pObj->Type == WLC_OBJ_TABLE )
     {
         assert( Vec_IntSize(vFanins) == 1 );
         Vec_IntPush( vFanins, pObj->Fanins[1] );

@@ -61,38 +61,38 @@ typedef enum {
     WLC_OBJ_BIT_AND,       // 16: bitwise AND
     WLC_OBJ_BIT_OR,        // 17: bitwise OR
     WLC_OBJ_BIT_XOR,       // 18: bitwise XOR
-    WLC_OBJ_BIT_NXOR,      // 18: bitwise NXOR
-    WLC_OBJ_BIT_SELECT,    // 19: bit selection
-    WLC_OBJ_BIT_CONCAT,    // 20: bit concatenation
-    WLC_OBJ_BIT_ZEROPAD,   // 21: zero padding
-    WLC_OBJ_BIT_SIGNEXT,   // 22: sign extension
-    WLC_OBJ_LOGIC_NOT,     // 23: logic NOT
-    WLC_OBJ_LOGIC_AND,     // 24: logic AND
-    WLC_OBJ_LOGIC_OR,      // 25: logic OR
-    WLC_OBJ_LOGIC_XOR,     // 27: logic XOR
-    WLC_OBJ_COMP_EQU,      // 28: compare equal
-    WLC_OBJ_COMP_NOTEQU,   // 29: compare not equal
-    WLC_OBJ_COMP_LESS,     // 30: compare less
-    WLC_OBJ_COMP_MORE,     // 31: compare more
-    WLC_OBJ_COMP_LESSEQU,  // 32: compare less or equal
-    WLC_OBJ_COMP_MOREEQU,  // 33: compare more or equal
-    WLC_OBJ_REDUCT_AND,    // 34: reduction AND
-    WLC_OBJ_REDUCT_OR,     // 35: reduction OR
-    WLC_OBJ_REDUCT_XOR,    // 36: reduction XOR
-    WLC_OBJ_REDUCT_NAND,   // 34: reduction NAND
-    WLC_OBJ_REDUCT_NOR,    // 35: reduction NOR
-    WLC_OBJ_REDUCT_NXOR,   // 36: reduction NXOR
-    WLC_OBJ_ARI_ADD,       // 37: arithmetic addition
-    WLC_OBJ_ARI_SUB,       // 38: arithmetic subtraction
-    WLC_OBJ_ARI_MULTI,     // 39: arithmetic multiplier
-    WLC_OBJ_ARI_DIVIDE,    // 40: arithmetic division
-    WLC_OBJ_ARI_MODULUS,   // 41: arithmetic modulus
-    WLC_OBJ_ARI_POWER,     // 42: arithmetic power
-    WLC_OBJ_ARI_MINUS,     // 43: arithmetic minus
-    WLC_OBJ_ARI_SQRT,      // 44: integer square root
-    WLC_OBJ_ARI_SQUARE,    // 45: integer square root
-    WLC_OBJ_TABLE,         // 46: bit table
-    WLC_OBJ_NUMBER         // 47: unused
+    WLC_OBJ_BIT_NXOR,      // 19: bitwise NXOR
+    WLC_OBJ_BIT_SELECT,    // 20: bit selection
+    WLC_OBJ_BIT_CONCAT,    // 21: bit concatenation
+    WLC_OBJ_BIT_ZEROPAD,   // 22: zero padding
+    WLC_OBJ_BIT_SIGNEXT,   // 23: sign extension
+    WLC_OBJ_LOGIC_NOT,     // 24: logic NOT
+    WLC_OBJ_LOGIC_AND,     // 25: logic AND
+    WLC_OBJ_LOGIC_OR,      // 27: logic OR
+    WLC_OBJ_LOGIC_XOR,     // 28: logic XOR
+    WLC_OBJ_COMP_EQU,      // 29: compare equal
+    WLC_OBJ_COMP_NOTEQU,   // 30: compare not equal
+    WLC_OBJ_COMP_LESS,     // 31: compare less
+    WLC_OBJ_COMP_MORE,     // 32: compare more
+    WLC_OBJ_COMP_LESSEQU,  // 33: compare less or equal
+    WLC_OBJ_COMP_MOREEQU,  // 34: compare more or equal
+    WLC_OBJ_REDUCT_AND,    // 35: reduction AND
+    WLC_OBJ_REDUCT_OR,     // 36: reduction OR
+    WLC_OBJ_REDUCT_XOR,    // 37: reduction XOR
+    WLC_OBJ_REDUCT_NAND,   // 38: reduction NAND
+    WLC_OBJ_REDUCT_NOR,    // 39: reduction NOR
+    WLC_OBJ_REDUCT_NXOR,   // 40: reduction NXOR
+    WLC_OBJ_ARI_ADD,       // 41: arithmetic addition
+    WLC_OBJ_ARI_SUB,       // 42: arithmetic subtraction
+    WLC_OBJ_ARI_MULTI,     // 43: arithmetic multiplier
+    WLC_OBJ_ARI_DIVIDE,    // 44: arithmetic division
+    WLC_OBJ_ARI_MODULUS,   // 45: arithmetic modulus
+    WLC_OBJ_ARI_POWER,     // 46: arithmetic power
+    WLC_OBJ_ARI_MINUS,     // 47: arithmetic minus
+    WLC_OBJ_ARI_SQRT,      // 48: integer square root
+    WLC_OBJ_ARI_SQUARE,    // 49: integer square
+    WLC_OBJ_TABLE,         // 50: bit table
+    WLC_OBJ_NUMBER         // 51: unused
 } Wlc_ObjType_t;
 // when adding new types, remember to update table Wlc_Names in "wlcNtk.c"
 
@@ -115,8 +115,8 @@ struct Wlc_Obj_t_ // 24 bytes
     unsigned               fIsFi   :  1;       // this is FI
     unsigned               fXConst :  1;       // this is X-valued constant
     unsigned               nFanins;            // fanin count
-    unsigned               End;                // range end
-    unsigned               Beg;                // range begin
+    int                    End;                // range end
+    int                    Beg;                // range begin
     union { int            Fanins[2];          // fanin IDs
             int *          pFanins[1]; };
 };
@@ -175,7 +175,7 @@ static inline int          Wlc_ObjIsCo( Wlc_Obj_t * p )                         
 static inline int          Wlc_ObjId( Wlc_Ntk_t * p, Wlc_Obj_t * pObj )             { return pObj - p->pObjs;                                                  }
 static inline int          Wlc_ObjCiId( Wlc_Obj_t * p )                             { assert( Wlc_ObjIsCi(p) ); return p->Fanins[1];                           }
 static inline int          Wlc_ObjFaninNum( Wlc_Obj_t * p )                         { return p->nFanins;                                                       }
-static inline int          Wlc_ObjHasArray( Wlc_Obj_t * p )                         { return p->nFanins > 2 || p->Type == WLC_OBJ_CONST;                       }
+static inline int          Wlc_ObjHasArray( Wlc_Obj_t * p )                         { return p->nFanins > 2 || p->Type == WLC_OBJ_CONST || p->Type == WLC_OBJ_BIT_SELECT; }
 static inline int *        Wlc_ObjFanins( Wlc_Obj_t * p )                           { return Wlc_ObjHasArray(p) ? p->pFanins[0] : p->Fanins;                   }
 static inline int          Wlc_ObjFaninId( Wlc_Obj_t * p, int i )                   { return Wlc_ObjFanins(p)[i];                                              }
 static inline int          Wlc_ObjFaninId0( Wlc_Obj_t * p )                         { return Wlc_ObjFanins(p)[0];                                              }
@@ -186,9 +186,11 @@ static inline Wlc_Obj_t *  Wlc_ObjFanin0( Wlc_Ntk_t * p, Wlc_Obj_t * pObj )     
 static inline Wlc_Obj_t *  Wlc_ObjFanin1( Wlc_Ntk_t * p, Wlc_Obj_t * pObj )         { return Wlc_NtkObj( p, Wlc_ObjFaninId(pObj, 1) );                         }
 static inline Wlc_Obj_t *  Wlc_ObjFanin2( Wlc_Ntk_t * p, Wlc_Obj_t * pObj )         { return Wlc_NtkObj( p, Wlc_ObjFaninId(pObj, 2) );                         }
 
-static inline int          Wlc_ObjRange( Wlc_Obj_t * p )                            { return p->End - p->Beg + 1;                                              }
-static inline int          Wlc_ObjRangeEnd( Wlc_Obj_t * p )                         { assert(p->Type == WLC_OBJ_BIT_SELECT); return p->Fanins[1] >> 16;        }
-static inline int          Wlc_ObjRangeBeg( Wlc_Obj_t * p )                         { assert(p->Type == WLC_OBJ_BIT_SELECT); return p->Fanins[1] & 0xFFFF;     }
+static inline int          Wlc_ObjRange( Wlc_Obj_t * p )                            { return 1 + (p->End >= p->Beg ? p->End - p->Beg : p->Beg - p->End);       }
+static inline int          Wlc_ObjRangeEnd( Wlc_Obj_t * p )                         { assert(p->Type == WLC_OBJ_BIT_SELECT); return p->pFanins[0][1];          }
+static inline int          Wlc_ObjRangeBeg( Wlc_Obj_t * p )                         { assert(p->Type == WLC_OBJ_BIT_SELECT); return p->pFanins[0][2];          }
+static inline int          Wlc_ObjRangeIsReversed( Wlc_Obj_t * p )                  { return p->End < p->Beg;                                                  }
+
 static inline int          Wlc_ObjIsSigned( Wlc_Obj_t * p )                         { return p->Signed;                                                        }
 static inline int          Wlc_ObjIsSignedFanin01( Wlc_Ntk_t * p, Wlc_Obj_t * pObj ){ return Wlc_ObjFanin0(p, pObj)->Signed && Wlc_ObjFanin1(p, pObj)->Signed; }
 static inline int          Wlc_ObjSign( Wlc_Obj_t * p )                             { return Abc_Var2Lit( Wlc_ObjRange(p), Wlc_ObjIsSigned(p) );               }
