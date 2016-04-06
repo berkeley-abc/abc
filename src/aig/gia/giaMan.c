@@ -94,6 +94,9 @@ void Gia_ManStop( Gia_Man_t * p )
     Vec_VecFreeP( &p->vClockDoms );
     Vec_IntFreeP( &p->vCofVars );
     Vec_IntFreeP( &p->vLutConfigs );
+    Vec_IntFreeP( &p->vEdgeDelay );
+    Vec_IntFreeP( &p->vEdge1 );
+    Vec_IntFreeP( &p->vEdge2 );
     Vec_IntFreeP( &p->vUserPiIds );
     Vec_IntFreeP( &p->vUserPoIds );
     Vec_IntFreeP( &p->vUserFfIds );
@@ -387,6 +390,27 @@ void Gia_ManPrintChoiceStats( Gia_Man_t * p )
     Gia_ManCleanMark0( p );
 }
 
+
+/**Function*************************************************************
+
+  Synopsis    [Prints stats for the AIG.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Gia_ManPrintEdges( Gia_Man_t * p )
+{
+    printf( "Edges (Q=2)    :                " );
+    printf( "edge =%8d  ", (Vec_IntCountPositive(p->vEdge1) + Vec_IntCountPositive(p->vEdge2))/2 );
+    printf( "lut =%5d",    Gia_ManEvalEdgeDelay(p) );
+    printf( "\n" );
+    return 0;
+}
+
 /**Function*************************************************************
 
   Synopsis    [Prints stats for the AIG.]
@@ -477,6 +501,8 @@ void Gia_ManPrintStats( Gia_Man_t * p, Gps_Par_t * pPars )
         Gia_ManPrintNpnClasses( p );
     if ( p->vPacking )
         Gia_ManPrintPackingStats( p );
+    if ( p->vEdge1 )
+        Gia_ManPrintEdges( p );
     if ( pPars && pPars->fLutProf && Gia_ManHasMapping(p) )
         Gia_ManPrintLutStats( p );
     if ( p->pPlacement )

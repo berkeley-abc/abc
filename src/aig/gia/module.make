@@ -16,6 +16,7 @@ SRC +=    src/aig/gia/giaAig.c \
     src/aig/gia/giaCTas.c \
     src/aig/gia/giaDfs.c \
     src/aig/gia/giaDup.c \
+    src/aig/gia/giaEdge.c \
     src/aig/gia/giaEmbed.c \
     src/aig/gia/giaEnable.c \
     src/aig/gia/giaEquiv.c \

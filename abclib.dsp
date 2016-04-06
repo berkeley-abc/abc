@@ -4171,6 +4171,10 @@ SOURCE=.\src\aig\gia\giaDup.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\aig\gia\giaEdge.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\aig\gia\giaEmbed.c
 # End Source File
 # Begin Source File

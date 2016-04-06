@@ -750,6 +750,22 @@ Gia_Man_t * Gia_AigerReadFromMemory( char * pContents, int nFileSize, int fSkipS
                 pCur += 4*Vec_IntSize(pNew->vObjClasses);
                 if ( fVerbose ) printf( "Finished reading extension \"v\".\n" );
             }
+            // read edge information
+            else if ( *pCur == 'w' )
+            {
+                Vec_Int_t * vPairs;
+                int i, nPairs;
+                pCur++;
+                pCurTemp = pCur + Gia_AigerReadInt(pCur) + 4;           pCur += 4;
+                nPairs = Gia_AigerReadInt(pCur);                        pCur += 4;
+                vPairs = Vec_IntAlloc( 2*nPairs );
+                for ( i = 0; i < 2*nPairs; i++ )
+                    Vec_IntPush( vPairs, Gia_AigerReadInt(pCur) ),      pCur += 4;
+                assert( pCur == pCurTemp );
+                if ( fVerbose ) printf( "Finished reading extension \"w\".\n" );
+                Gia_ManEdgeFromArray( pNew, vPairs );
+                Vec_IntFree( vPairs );
+            }
             else break;
         }
     }
@@ -1307,6 +1323,18 @@ void Gia_AigerWrite( Gia_Man_t * pInit, char * pFileName, int fWriteSymbols, int
         Gia_FileWriteBufferSize( pFile, Vec_IntSize(p->vRegInits) );
         for ( i = 0; i < Vec_IntSize(p->vRegInits); i++ )
             Gia_FileWriteBufferSize( pFile, Vec_IntEntry(p->vRegInits, i) );
+    }
+    // write register inits
+    if ( p->vEdge1 )
+    {
+        Vec_Int_t * vPairs = Gia_ManEdgeToArray( p );
+        int i;
+        fprintf( pFile, "w" );
+        Gia_FileWriteBufferSize( pFile, 4*(Vec_IntSize(vPairs)+1) );
+        Gia_FileWriteBufferSize( pFile, Vec_IntSize(vPairs)/2 );
+        for ( i = 0; i < Vec_IntSize(vPairs); i++ )
+            Gia_FileWriteBufferSize( pFile, Vec_IntEntry(vPairs, i) );
+        Vec_IntFree( vPairs );
     }
     // write configuration data
     if ( p->vConfigs )

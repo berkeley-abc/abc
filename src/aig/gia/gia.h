@@ -138,6 +138,9 @@ struct Gia_Man_t_
     Vec_Int_t *    vConfigs;      // cell configurations
     char *         pCellStr;      // cell description
     Vec_Int_t *    vLutConfigs;   // LUT configurations
+    Vec_Int_t *    vEdgeDelay;    // special edge information
+    Vec_Int_t *    vEdge1;        // special edge information
+    Vec_Int_t *    vEdge2;        // special edge information
     Abc_Cex_t *    pCexComb;      // combinational counter-example
     Abc_Cex_t *    pCexSeq;       // sequential counter-example
     Vec_Ptr_t *    vSeqModelVec;  // sequential counter-examples
@@ -1200,6 +1203,12 @@ extern Gia_Man_t *         Gia_ManDupOneHot( Gia_Man_t * p );
 extern Gia_Man_t *         Gia_ManDupLevelized( Gia_Man_t * p );
 extern Gia_Man_t *         Gia_ManDupFromVecs( Gia_Man_t * p, Vec_Int_t * vCis, Vec_Int_t * vAnds, Vec_Int_t * vCos, int nRegs );
 extern Gia_Man_t *         Gia_ManDupSliced( Gia_Man_t * p, int nSuppMax );
+/*=== giaEdge.c ==========================================================*/
+extern void                Gia_ManEdgeFromArray( Gia_Man_t * p, Vec_Int_t * vArray );
+extern Vec_Int_t *         Gia_ManEdgeToArray( Gia_Man_t * p );
+extern int                 Gia_ManEvalEdgeDelay( Gia_Man_t * p );
+extern int                 Gia_ManComputeEdgeDelay( Gia_Man_t * p );
+extern int                 Gia_ManComputeEdgeDelay2( Gia_Man_t * p );
 /*=== giaEnable.c ==========================================================*/
 extern void                Gia_ManDetectSeqSignals( Gia_Man_t * p, int fSetReset, int fVerbose );
 extern Gia_Man_t *         Gia_ManUnrollAndCofactor( Gia_Man_t * p, int nFrames, int nFanMax, int fVerbose );
