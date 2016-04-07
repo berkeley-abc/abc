@@ -19,6 +19,7 @@
 ***********************************************************************/
 
 #include "gia.h"
+#include "misc/tim/tim.h"
 #include "sat/bsat/satStore.h"
 #include "misc/util/utilNam.h"
 #include "map/scl/sclCon.h"
@@ -303,26 +304,100 @@ int Sbl_ManCreateTiming( Sbl_Man_t * p, int DelayStart )
     int DelayMax = DelayStart, Delay, iLut, iFan, k;
     // compute arrival times
     Vec_IntFill( p->vArrs,  Gia_ManObjNum(p->pGia), 0 );
-    Gia_ManForEachLut2( p->pGia, iLut )
+    if ( p->pGia->pManTime != NULL && Tim_ManBoxNum((Tim_Man_t*)p->pGia->pManTime) )
     {
-        vFanins = Gia_ObjLutFanins2(p->pGia, iLut);
-        Delay = Sbl_ManComputeDelay( p, iLut, vFanins );
-        Vec_IntWriteEntry( p->vArrs,  iLut, Delay );
-        DelayMax = Abc_MaxInt( DelayMax, Delay );
+        Gia_Obj_t * pObj; 
+        Vec_Int_t * vNodes = Gia_ManOrderWithBoxes( p->pGia );
+        Tim_ManIncrementTravId( (Tim_Man_t*)p->pGia->pManTime );
+        Gia_ManForEachObjVec( vNodes, p->pGia, pObj, k )
+        {
+            iLut = Gia_ObjId( p->pGia, pObj );
+            if ( Gia_ObjIsAnd(pObj) )
+            {
+                if ( Gia_ObjIsLut2(p->pGia, iLut) )
+                {
+                    vFanins = Gia_ObjLutFanins2(p->pGia, iLut);
+                    Delay = Sbl_ManComputeDelay( p, iLut, vFanins );
+                    Vec_IntWriteEntry( p->vArrs,  iLut, Delay );
+                    DelayMax = Abc_MaxInt( DelayMax, Delay );
+                }
+            }
+            else if ( Gia_ObjIsCi(pObj) )
+            {
+                int arrTime = Tim_ManGetCiArrival( (Tim_Man_t*)p->pGia->pManTime, Gia_ObjCioId(pObj) );
+                Vec_IntWriteEntry( p->vArrs,  iLut, arrTime );
+            }
+            else if ( Gia_ObjIsCo(pObj) )
+            {
+                int arrTime = Vec_IntEntry( p->vArrs, Gia_ObjFaninId0(pObj, iLut) );
+                Tim_ManSetCoArrival( (Tim_Man_t*)p->pGia->pManTime, Gia_ObjCioId(pObj), arrTime );
+            }
+            else if ( !Gia_ObjIsConst0(pObj) ) 
+                assert( 0 );
+        }
+        Vec_IntFree( vNodes );
+    }
+    else
+    {
+        Gia_ManForEachLut2( p->pGia, iLut )
+        {
+            vFanins = Gia_ObjLutFanins2(p->pGia, iLut);
+            Delay = Sbl_ManComputeDelay( p, iLut, vFanins );
+            Vec_IntWriteEntry( p->vArrs,  iLut, Delay );
+            DelayMax = Abc_MaxInt( DelayMax, Delay );
+        }
     }
     // compute required times
     Vec_IntFill( p->vReqs, Gia_ManObjNum(p->pGia), ABC_INFINITY );
     Gia_ManForEachCoDriverId( p->pGia, iLut, k )
         Vec_IntDowndateEntry( p->vReqs, iLut, DelayMax );
-    Gia_ManForEachLut2Reverse( p->pGia, iLut )
+    if ( p->pGia->pManTime != NULL && Tim_ManBoxNum((Tim_Man_t*)p->pGia->pManTime) )
     {
-        Delay = Vec_IntEntry(p->vReqs, iLut) - 1;
-        vFanins = Gia_ObjLutFanins2(p->pGia, iLut);
-        Vec_IntForEachEntry( vFanins, iFan, k )
-            Vec_IntDowndateEntry( p->vReqs, iFan, Delay );
+        Gia_Obj_t * pObj; 
+        Vec_Int_t * vNodes = Gia_ManOrderWithBoxes( p->pGia );
+        Tim_ManIncrementTravId( (Tim_Man_t*)p->pGia->pManTime );
+        Tim_ManInitPoRequiredAll( (Tim_Man_t*)p->pGia->pManTime, DelayMax );
+        Gia_ManForEachObjVecReverse( vNodes, p->pGia, pObj, k )
+        {
+            iLut = Gia_ObjId( p->pGia, pObj );
+            if ( Gia_ObjIsAnd(pObj) )
+            {
+                if ( Gia_ObjIsLut2(p->pGia, iLut) )
+                {
+                    Delay = Vec_IntEntry(p->vReqs, iLut) - 1;
+                    vFanins = Gia_ObjLutFanins2(p->pGia, iLut);
+                    Vec_IntForEachEntry( vFanins, iFan, k )
+                        Vec_IntDowndateEntry( p->vReqs, iFan, Delay );
+                }
+            }
+            else if ( Gia_ObjIsCi(pObj) )
+            {
+                int reqTime = Vec_IntEntry( p->vReqs, iLut );
+                Tim_ManSetCiRequired( (Tim_Man_t*)p->pGia->pManTime, Gia_ObjCioId(pObj), reqTime );
+            }
+            else if ( Gia_ObjIsCo(pObj) )
+            {
+                int reqTime = Tim_ManGetCoRequired( (Tim_Man_t*)p->pGia->pManTime, Gia_ObjCioId(pObj) );
+                Vec_IntWriteEntry( p->vReqs, Gia_ObjFaninId0(pObj, iLut), reqTime );
+            }
+            else if ( !Gia_ObjIsConst0(pObj) ) 
+                assert( 0 );
+        }
+        Vec_IntFree( vNodes );
+    }
+    else
+    {
+        Gia_ManForEachLut2Reverse( p->pGia, iLut )
+        {
+            Delay = Vec_IntEntry(p->vReqs, iLut) - 1;
+            vFanins = Gia_ObjLutFanins2(p->pGia, iLut);
+            Vec_IntForEachEntry( vFanins, iFan, k )
+                Vec_IntDowndateEntry( p->vReqs, iFan, Delay );
+        }
     }
     return DelayMax;
 }
+
 
 /**Function*************************************************************
 
@@ -379,7 +454,7 @@ int Sbl_ManEvaluateMapping( Sbl_Man_t * p, int DelayGlo )
 {
     abctime clk = Abc_Clock();
     Vec_Int_t * vFanins;
-    int i, iLut, iAnd, Delay, Required;
+    int i, iLut = -1, iAnd, Delay, Required;
     if ( p->pGia->vEdge1 )
         return Sbl_ManEvaluateMappingEdge( p, DelayGlo );
     Vec_IntClear( p->vPath );

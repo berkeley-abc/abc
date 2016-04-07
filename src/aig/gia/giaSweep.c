@@ -421,6 +421,7 @@ void Gia_ManCheckIntegrityWithBoxes( Gia_Man_t * p )
     int i, nCountReg = 0, nCountCarry = 0;
     if ( p->pManTime == NULL )
         return;
+    ABC_FREE( p->pRefs );
     Gia_ManCreateRefs( p );
     for ( i = Gia_ManPoNum(p) - Gia_ManRegBoxNum(p); i < Gia_ManPoNum(p); i++ )
     {

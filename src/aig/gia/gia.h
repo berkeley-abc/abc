@@ -1447,6 +1447,7 @@ extern int                 Gia_ManBoxCoNum( Gia_Man_t * p );
 extern int                 Gia_ManClockDomainNum( Gia_Man_t * p );
 extern int                 Gia_ManIsSeqWithBoxes( Gia_Man_t * p );
 extern int                 Gia_ManIsNormalized( Gia_Man_t * p );
+extern Vec_Int_t *         Gia_ManOrderWithBoxes( Gia_Man_t * p );
 extern Gia_Man_t *         Gia_ManDupNormalize( Gia_Man_t * p );
 extern Gia_Man_t *         Gia_ManDupUnnormalize( Gia_Man_t * p );
 extern Gia_Man_t *         Gia_ManDupUnshuffleInputs( Gia_Man_t * p );

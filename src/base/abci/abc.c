@@ -34862,6 +34862,11 @@ int Abc_CommandAbc9Edge( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( 0, "Current AIG has mapping into %d-LUTs.\n", Gia_ManLutSizeMax(pAbc->pGia) );
         return 0;
     }
+    if ( pAbc->pGia->pManTime && fReverse )
+    {
+        Abc_Print( 0, "Reverse computation does not work when boxes are present.\n" );
+        return 0;
+    }
     if ( fReverse )
         DelayMax = Gia_ManComputeEdgeDelay2( pAbc->pGia );
     else 

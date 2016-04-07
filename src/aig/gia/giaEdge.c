@@ -19,6 +19,7 @@
 ***********************************************************************/
 
 #include "gia.h"
+#include "misc/tim/tim.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -196,11 +197,77 @@ int Gia_ManEvalEdgeDelay( Gia_Man_t * p )
     Vec_IntFreeP( &p->vEdgeDelay );
     p->vEdgeDelay = Vec_IntStart( Gia_ManObjNum(p) );
     if ( Gia_ManHasMapping(p) )
-        Gia_ManForEachLut( p, iLut )
-            Vec_IntWriteEntry( p->vEdgeDelay, iLut, Gia_ObjEvalEdgeDelay(p, iLut, p->vEdgeDelay) );
+    {
+        if ( p->pManTime != NULL && Tim_ManBoxNum((Tim_Man_t*)p->pManTime) )
+        {
+            Gia_Obj_t * pObj; 
+            Vec_Int_t * vNodes = Gia_ManOrderWithBoxes( p );
+            Tim_ManIncrementTravId( (Tim_Man_t*)p->pManTime );
+            Gia_ManForEachObjVec( vNodes, p, pObj, k )
+            {
+                iLut = Gia_ObjId( p, pObj );
+                if ( Gia_ObjIsAnd(pObj) )
+                {
+                    if ( Gia_ObjIsLut(p, iLut) )
+                        Vec_IntWriteEntry( p->vEdgeDelay, iLut, Gia_ObjEvalEdgeDelay(p, iLut, p->vEdgeDelay) );
+                }
+                else if ( Gia_ObjIsCi(pObj) )
+                {
+                    int arrTime = Tim_ManGetCiArrival( (Tim_Man_t*)p->pManTime, Gia_ObjCioId(pObj) );
+                    Vec_IntWriteEntry( p->vEdgeDelay,  iLut, arrTime );
+                }
+                else if ( Gia_ObjIsCo(pObj) )
+                {
+                    int arrTime = Vec_IntEntry( p->vEdgeDelay, Gia_ObjFaninId0(pObj, iLut) );
+                    Tim_ManSetCoArrival( (Tim_Man_t*)p->pManTime, Gia_ObjCioId(pObj), arrTime );
+                }
+                else if ( !Gia_ObjIsConst0(pObj) ) 
+                    assert( 0 );
+            }
+            Vec_IntFree( vNodes );
+        }
+        else
+        {
+            Gia_ManForEachLut( p, iLut )
+                Vec_IntWriteEntry( p->vEdgeDelay, iLut, Gia_ObjEvalEdgeDelay(p, iLut, p->vEdgeDelay) );
+        }
+    }
     else if ( Gia_ManHasMapping2(p) )
-        Gia_ManForEachLut2( p, iLut )
-            Vec_IntWriteEntry( p->vEdgeDelay, iLut, Gia_ObjEvalEdgeDelay(p, iLut, p->vEdgeDelay) );
+    {
+        if ( p->pManTime != NULL && Tim_ManBoxNum((Tim_Man_t*)p->pManTime) )
+        {
+            Gia_Obj_t * pObj; 
+            Vec_Int_t * vNodes = Gia_ManOrderWithBoxes( p );
+            Tim_ManIncrementTravId( (Tim_Man_t*)p->pManTime );
+            Gia_ManForEachObjVec( vNodes, p, pObj, k )
+            {
+                iLut = Gia_ObjId( p, pObj );
+                if ( Gia_ObjIsAnd(pObj) )
+                {
+                    if ( Gia_ObjIsLut2(p, iLut) )
+                        Vec_IntWriteEntry( p->vEdgeDelay, iLut, Gia_ObjEvalEdgeDelay(p, iLut, p->vEdgeDelay) );
+                }
+                else if ( Gia_ObjIsCi(pObj) )
+                {
+                    int arrTime = Tim_ManGetCiArrival( (Tim_Man_t*)p->pManTime, Gia_ObjCioId(pObj) );
+                    Vec_IntWriteEntry( p->vEdgeDelay,  iLut, arrTime );
+                }
+                else if ( Gia_ObjIsCo(pObj) )
+                {
+                    int arrTime = Vec_IntEntry( p->vEdgeDelay, Gia_ObjFaninId0(pObj, iLut) );
+                    Tim_ManSetCoArrival( (Tim_Man_t*)p->pManTime, Gia_ObjCioId(pObj), arrTime );
+                }
+                else if ( !Gia_ObjIsConst0(pObj) ) 
+                    assert( 0 );
+            }
+            Vec_IntFree( vNodes );
+        }
+        else
+        {
+            Gia_ManForEachLut2( p, iLut )
+                Vec_IntWriteEntry( p->vEdgeDelay, iLut, Gia_ObjEvalEdgeDelay(p, iLut, p->vEdgeDelay) );
+        }
+    }
     else assert( 0 );
     Gia_ManForEachCoDriverId( p, iLut, k )
         DelayMax = Abc_MaxInt( DelayMax, Vec_IntEntry(p->vEdgeDelay, iLut) );
@@ -310,11 +377,77 @@ int Gia_ManComputeEdgeDelay( Gia_Man_t * p )
     p->vEdge2 = Vec_IntStart( Gia_ManObjNum(p) );
     p->vEdgeDelay = Vec_IntStart( Gia_ManObjNum(p) );
     if ( Gia_ManHasMapping(p) )
-        Gia_ManForEachLut( p, iLut )
-            Gia_ObjComputeEdgeDelay( p, iLut, p->vEdgeDelay, p->vEdge1, p->vEdge2 );
+    {
+        if ( p->pManTime != NULL && Tim_ManBoxNum((Tim_Man_t*)p->pManTime) )
+        {
+            Gia_Obj_t * pObj; 
+            Vec_Int_t * vNodes = Gia_ManOrderWithBoxes( p );
+            Tim_ManIncrementTravId( (Tim_Man_t*)p->pManTime );
+            Gia_ManForEachObjVec( vNodes, p, pObj, k )
+            {
+                iLut = Gia_ObjId( p, pObj );
+                if ( Gia_ObjIsAnd(pObj) )
+                {
+                    if ( Gia_ObjIsLut(p, iLut) )
+                        Gia_ObjComputeEdgeDelay( p, iLut, p->vEdgeDelay, p->vEdge1, p->vEdge2 );
+                }
+                else if ( Gia_ObjIsCi(pObj) )
+                {
+                    int arrTime = Tim_ManGetCiArrival( (Tim_Man_t*)p->pManTime, Gia_ObjCioId(pObj) );
+                    Vec_IntWriteEntry( p->vEdgeDelay,  iLut, arrTime );
+                }
+                else if ( Gia_ObjIsCo(pObj) )
+                {
+                    int arrTime = Vec_IntEntry( p->vEdgeDelay, Gia_ObjFaninId0(pObj, iLut) );
+                    Tim_ManSetCoArrival( (Tim_Man_t*)p->pManTime, Gia_ObjCioId(pObj), arrTime );
+                }
+                else if ( !Gia_ObjIsConst0(pObj) ) 
+                    assert( 0 );
+            }
+            Vec_IntFree( vNodes );
+        }
+        else
+        {
+            Gia_ManForEachLut( p, iLut )
+                Gia_ObjComputeEdgeDelay( p, iLut, p->vEdgeDelay, p->vEdge1, p->vEdge2 );
+        }
+    }
     else if ( Gia_ManHasMapping2(p) )
-        Gia_ManForEachLut2( p, iLut )
-            Gia_ObjComputeEdgeDelay( p, iLut, p->vEdgeDelay, p->vEdge1, p->vEdge2 );
+    {
+        if ( p->pManTime != NULL && Tim_ManBoxNum((Tim_Man_t*)p->pManTime) )
+        {
+            Gia_Obj_t * pObj; 
+            Vec_Int_t * vNodes = Gia_ManOrderWithBoxes( p );
+            Tim_ManIncrementTravId( (Tim_Man_t*)p->pManTime );
+            Gia_ManForEachObjVec( vNodes, p, pObj, k )
+            {
+                iLut = Gia_ObjId( p, pObj );
+                if ( Gia_ObjIsAnd(pObj) )
+                {
+                    if ( Gia_ObjIsLut2(p, iLut) )
+                        Gia_ObjComputeEdgeDelay( p, iLut, p->vEdgeDelay, p->vEdge1, p->vEdge2 );
+                }
+                else if ( Gia_ObjIsCi(pObj) )
+                {
+                    int arrTime = Tim_ManGetCiArrival( (Tim_Man_t*)p->pManTime, Gia_ObjCioId(pObj) );
+                    Vec_IntWriteEntry( p->vEdgeDelay,  iLut, arrTime );
+                }
+                else if ( Gia_ObjIsCo(pObj) )
+                {
+                    int arrTime = Vec_IntEntry( p->vEdgeDelay, Gia_ObjFaninId0(pObj, iLut) );
+                    Tim_ManSetCoArrival( (Tim_Man_t*)p->pManTime, Gia_ObjCioId(pObj), arrTime );
+                }
+                else if ( !Gia_ObjIsConst0(pObj) ) 
+                    assert( 0 );
+            }
+            Vec_IntFree( vNodes );
+        }
+        else
+        {
+            Gia_ManForEachLut2( p, iLut )
+                Gia_ObjComputeEdgeDelay( p, iLut, p->vEdgeDelay, p->vEdge1, p->vEdge2 );
+        }
+    }
     else assert( 0 );
     Gia_ManForEachCoDriverId( p, iLut, k )
         DelayMax = Abc_MaxInt( DelayMax, Vec_IntEntry(p->vEdgeDelay, iLut) );
@@ -414,10 +547,11 @@ int Gia_ObjComputeEdgeDelay2( Gia_Man_t * p, int iObj, Vec_Int_t * vDelay, Vec_I
 }
 int Gia_ManComputeEdgeDelay2( Gia_Man_t * p )
 {
-    int k, iLut, DelayMax = 0, EdgeCount = 0;
+    int k, iLut, DelayMax = 0;
     Vec_Int_t * vFanMax1 = Vec_IntStart( Gia_ManObjNum(p) );
     Vec_Int_t * vFanMax2 = Vec_IntStart( Gia_ManObjNum(p) );
     Vec_Int_t * vCountMax = Vec_IntStart( Gia_ManObjNum(p) );
+    assert( p->pManTime == NULL );
     Vec_IntFreeP( &p->vEdgeDelay );
     Vec_IntFreeP( &p->vEdge1 );
     Vec_IntFreeP( &p->vEdge2 );
