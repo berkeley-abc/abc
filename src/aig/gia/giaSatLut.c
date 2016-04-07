@@ -69,10 +69,10 @@ struct Sbl_Man_t_
     Vec_Int_t *    vCutsNum;     // cut counts for each obj
     Vec_Int_t *    vCutsStart;   // starting cuts for each obj
     Vec_Int_t *    vCutsObj;     // object to which this cut belongs
-    Vec_Wrd_t *    vTempI1;       // temporary cuts
-    Vec_Wrd_t *    vTempI2;       // temporary cuts
-    Vec_Wrd_t *    vTempN1;       // temporary cuts
-    Vec_Wrd_t *    vTempN2;       // temporary cuts
+    Vec_Wrd_t *    vTempI1;      // temporary cuts
+    Vec_Wrd_t *    vTempI2;      // temporary cuts
+    Vec_Wrd_t *    vTempN1;      // temporary cuts
+    Vec_Wrd_t *    vTempN2;      // temporary cuts
     Vec_Int_t *    vSolInit;     // initial solution
     Vec_Int_t *    vSolCur;      // current solution
     Vec_Int_t *    vSolBest;     // best solution
@@ -236,85 +236,6 @@ void Sbl_ManStop( Sbl_Man_t * p )
 
 /**Function*************************************************************
 
-  Synopsis    [Timing computation.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Sbl_ManComputeDelay( Sbl_Man_t * p, int iLut, Vec_Int_t * vFanins, int * pEdges )
-{
-    int k, iFan, DelayMax = -1, Count = 0, iFanMax = -1;
-    *pEdges = -1;
-    Vec_IntForEachEntry( vFanins, iFan, k )
-    {
-        int Delay = Vec_IntEntry(p->vArrs, iFan) + 1;
-        if ( DelayMax < Delay )
-        {
-            DelayMax = Delay;
-            iFanMax = k;
-            Count = 1;
-        }
-        else if ( DelayMax == Delay )
-            Count++;
-    }
-    if ( p->nEdges == 0 )
-        return DelayMax;
-    if ( p->nEdges == 1 )
-    {
-        if ( Count == 1 )
-        {
-            *pEdges = iFanMax;
-            return DelayMax - 1;
-        }
-        return DelayMax;
-    }
-    assert( 0 );
-    return 0;
-}
-int Sbl_ManCreateTiming( Sbl_Man_t * p, int DelayStart, int * pnEdges )
-{
-    Vec_Int_t * vFanins;
-    int DelayMax = DelayStart, Delay;
-    int iLut, iFan, k, Edges, nCountEdges = 0;
-    // compute arrival times
-    Vec_IntFill( p->vArrs,  Gia_ManObjNum(p->pGia), 0 );
-    Vec_IntFill( p->vEdges, Gia_ManObjNum(p->pGia), -1 );
-    Gia_ManForEachLut2( p->pGia, iLut )
-    {
-        vFanins = Gia_ObjLutFanins2(p->pGia, iLut);
-        Delay = Sbl_ManComputeDelay( p, iLut, vFanins, &Edges );
-        Vec_IntWriteEntry( p->vArrs,  iLut, Delay );
-        Vec_IntWriteEntry( p->vEdges, iLut, Edges );
-        DelayMax = Abc_MaxInt( DelayMax, Delay );
-        nCountEdges += (Edges >= 0);
-    }
-    // compute required times
-    Vec_IntFill( p->vReqs, Gia_ManObjNum(p->pGia), ABC_INFINITY );
-    Gia_ManForEachCoDriverId( p->pGia, iLut, k )
-        Vec_IntDowndateEntry( p->vReqs, iLut, DelayMax );
-    Gia_ManForEachLut2Reverse( p->pGia, iLut )
-    {
-        Delay = Vec_IntEntry(p->vReqs, iLut) - 1;
-        Edges = Vec_IntEntry(p->vEdges, iLut);
-        assert( p->nEdges > 0 || Edges == -1 );
-        vFanins = Gia_ObjLutFanins2(p->pGia, iLut);
-        Vec_IntForEachEntry( vFanins, iFan, k )
-            if ( k != Edges )
-                Vec_IntDowndateEntry( p->vReqs, iFan, Delay );
-            else
-                Vec_IntDowndateEntry( p->vReqs, iFan, Delay + 1 );
-    }
-    if ( pnEdges )
-        *pnEdges = nCountEdges;
-    return DelayMax;
-}
-
-/**Function*************************************************************
-
   Synopsis    [For each node in the window, create fanins.]
 
   Description []
@@ -357,6 +278,83 @@ void Sbl_ManGetCurrentMapping( Sbl_Man_t * p )
     }
 }
 
+
+/**Function*************************************************************
+
+  Synopsis    [Timing computation.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Sbl_ManComputeDelay( Sbl_Man_t * p, int iLut, Vec_Int_t * vFanins )
+{
+    int k, iFan, Delay = 0;
+    Vec_IntForEachEntry( vFanins, iFan, k )
+        Delay = Abc_MaxInt( Delay, Vec_IntEntry(p->vArrs, iFan) + 1 );
+    return Delay;
+}
+int Sbl_ManCreateTiming( Sbl_Man_t * p, int DelayStart )
+{
+    Vec_Int_t * vFanins;
+    int DelayMax = DelayStart, Delay, iLut, iFan, k;
+    // compute arrival times
+    Vec_IntFill( p->vArrs,  Gia_ManObjNum(p->pGia), 0 );
+    Gia_ManForEachLut2( p->pGia, iLut )
+    {
+        vFanins = Gia_ObjLutFanins2(p->pGia, iLut);
+        Delay = Sbl_ManComputeDelay( p, iLut, vFanins );
+        Vec_IntWriteEntry( p->vArrs,  iLut, Delay );
+        DelayMax = Abc_MaxInt( DelayMax, Delay );
+    }
+    // compute required times
+    Vec_IntFill( p->vReqs, Gia_ManObjNum(p->pGia), ABC_INFINITY );
+    Gia_ManForEachCoDriverId( p->pGia, iLut, k )
+        Vec_IntDowndateEntry( p->vReqs, iLut, DelayMax );
+    Gia_ManForEachLut2Reverse( p->pGia, iLut )
+    {
+        Delay = Vec_IntEntry(p->vReqs, iLut) - 1;
+        vFanins = Gia_ObjLutFanins2(p->pGia, iLut);
+        Vec_IntForEachEntry( vFanins, iFan, k )
+            Vec_IntDowndateEntry( p->vReqs, iFan, Delay );
+    }
+    return DelayMax;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Given mapping in p->vSolCur, check if mapping meets delay.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Sbl_ManEvaluateMappingEdge( Sbl_Man_t * p, int DelayGlo )
+{
+    abctime clk = Abc_Clock();
+    Vec_Int_t * vArray; 
+    int i, DelayMax;
+    Vec_IntClear( p->vPath );
+    // update new timing
+    Sbl_ManGetCurrentMapping( p );
+    // derive new timing
+    DelayMax = Gia_ManEvalWindow( p->pGia, p->vLeaves, p->vAnds, p->vWindow, p->vPolar );
+    p->timeTime += Abc_Clock() - clk;
+    if ( DelayMax <= DelayGlo )
+        return 1;
+    // create critical path composed of all nodes
+    Vec_WecForEachLevel( p->vWindow, vArray, i )
+        if ( Vec_IntSize(vArray) > 0 )
+            Vec_IntPush( p->vPath, i );
+    return 0;
+}
+
 /**Function*************************************************************
 
   Synopsis    [Given mapping in p->vSolCur, check the critical path.]
@@ -381,18 +379,19 @@ int Sbl_ManEvaluateMapping( Sbl_Man_t * p, int DelayGlo )
 {
     abctime clk = Abc_Clock();
     Vec_Int_t * vFanins;
-    int i, iLut = -1, iAnd, Delay, Required, Edges;
+    int i, iLut, iAnd, Delay, Required;
+    if ( p->pGia->vEdge1 )
+        return Sbl_ManEvaluateMappingEdge( p, DelayGlo );
     Vec_IntClear( p->vPath );
     // derive timing
-    Sbl_ManCreateTiming( p, DelayGlo, NULL );
+    Sbl_ManCreateTiming( p, DelayGlo );
     // update new timing
     Sbl_ManGetCurrentMapping( p );
     Vec_IntForEachEntry( p->vAnds, iLut, i )
     {
         vFanins = Vec_WecEntry( p->vWindow, i );
-        Delay   = Sbl_ManComputeDelay( p, iLut, vFanins, &Edges );
+        Delay   = Sbl_ManComputeDelay( p, iLut, vFanins );
         Vec_IntWriteEntry( p->vArrs, iLut, Delay );
-        Vec_IntWriteEntry( p->vEdges, iLut, Edges );
     }
     // compare timing at the root nodes
     Vec_IntForEachEntry( p->vRoots, iLut, i )
@@ -1029,9 +1028,15 @@ int Sbl_ManTestSat( Sbl_Man_t * p, int iPivot )
     // update solution
     if ( Vec_IntSize(p->vSolBest) > 0 && Vec_IntSize(p->vSolBest) < Vec_IntSize(p->vSolInit) )
     {
-        int nDelayCur, nEdgesCur;
-        nDelayCur = Sbl_ManCreateTiming( p, p->DelayMax, &nEdgesCur );
+        int nDelayCur, nEdgesCur = 0;
         Sbl_ManUpdateMapping( p );
+        if ( p->pGia->vEdge1 )
+        {
+            nDelayCur = Gia_ManEvalEdgeDelay( p->pGia );
+            nEdgesCur = Gia_ManEvalEdgeCount( p->pGia );
+        }
+        else
+            nDelayCur = Sbl_ManCreateTiming( p, p->DelayMax );
         printf( "Object %5d : Saved %2d nodes  (Conf =%8d)  Iter =%3d  Delay = %d  Edges = %4d\n", 
             iPivot, Vec_IntSize(p->vSolInit)-Vec_IntSize(p->vSolBest), nConfTotal, nIters, nDelayCur, nEdgesCur );
         p->timeTotal += Abc_Clock() - p->timeStart;
@@ -1066,6 +1071,10 @@ void Gia_ManLutSat( Gia_Man_t * pGia, int nNumber, int nImproves, int nBTLimit, 
     p->fReverse     = fReverse;     // reverse windowing
     p->fVeryVerbose = fVeryVerbose; // verbose
     p->fVerbose     = fVerbose | fVeryVerbose;
+    // determine delay limit
+    if ( fDelay && pGia->vEdge1 && p->DelayMax == 0 )
+        p->DelayMax = Gia_ManEvalEdgeDelay( pGia );
+    // iterate through the internal nodes
     Gia_ManComputeOneWinStart( pGia, nNumber, fReverse );
     Gia_ManForEachLut2( pGia, iLut )
     {

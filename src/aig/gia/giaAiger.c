@@ -762,8 +762,13 @@ Gia_Man_t * Gia_AigerReadFromMemory( char * pContents, int nFileSize, int fSkipS
                 for ( i = 0; i < 2*nPairs; i++ )
                     Vec_IntPush( vPairs, Gia_AigerReadInt(pCur) ),      pCur += 4;
                 assert( pCur == pCurTemp );
-                if ( fVerbose ) printf( "Finished reading extension \"w\".\n" );
-                Gia_ManEdgeFromArray( pNew, vPairs );
+                if ( fSkipStrash )
+                {
+                    Gia_ManEdgeFromArray( pNew, vPairs );
+                    if ( fVerbose ) printf( "Finished reading extension \"w\".\n" );
+                }
+                else
+                    printf( "Cannot read extension \"w\" because AIG is rehashed. Use \"&r -s <file.aig>\".\n" );
                 Vec_IntFree( vPairs );
             }
             else break;

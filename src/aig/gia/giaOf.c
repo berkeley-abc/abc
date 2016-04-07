@@ -1846,6 +1846,8 @@ Gia_Man_t * Of_ManPerformMapping( Gia_Man_t * pGia, Jf_Par_t * pPars )
 
     pNew = Of_ManDeriveMapping( p );
     Gia_ManMappingVerify( pNew );
+    if ( pNew->vPacking )
+        Gia_ManConvertPackingToEdges( pNew );
     //Of_ManPrintCuts( p );
     Of_StoDelete( p );
     if ( pCls != pGia )

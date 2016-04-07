@@ -418,6 +418,7 @@ static int Abc_CommandAbc9Mf                 ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandAbc9Nf                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Of                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Pack               ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9Edge               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9SatLut             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Unmap              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Struct             ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -1043,6 +1044,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "ABC9",         "&nf",           Abc_CommandAbc9Nf,           0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&of",           Abc_CommandAbc9Of,           0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&pack",         Abc_CommandAbc9Pack,         0 );
+    Cmd_CommandAdd( pAbc, "ABC9",         "&edge",         Abc_CommandAbc9Edge,         0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&satlut",       Abc_CommandAbc9SatLut,       0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&unmap",        Abc_CommandAbc9Unmap,        0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&struct",       Abc_CommandAbc9Struct,       0 );
@@ -34800,7 +34802,8 @@ int Abc_CommandAbc9Pack( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     if ( Gia_ManLutSizeMax(pAbc->pGia) > 6 )
         Abc_Print( 0, "Current AIG has mapping into %d-LUTs.\n", Gia_ManLutSizeMax(pAbc->pGia) );
-    Gia_ManLutPacking( pAbc->pGia, nBlock, DelayRoute, DelayDir, fVerbose );
+    else
+        Gia_ManLutPacking( pAbc->pGia, nBlock, DelayRoute, DelayDir, fVerbose );
     return 0;
 
 usage:
@@ -34809,6 +34812,67 @@ usage:
     Abc_Print( -2, "\t-N num   : the number of LUTs in the block [default = %d]\n", nBlock );
     Abc_Print( -2, "\t-R num   : the routable delay of a LUT [default = %d]\n", DelayRoute );
     Abc_Print( -2, "\t-D num   : the direct (non-routable) delay of a LUT [default = %d]\n", DelayDir );
+    Abc_Print( -2, "\t-v       : toggles verbose output [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h       : prints the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc9Edge( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    int c, DelayMax = 0, fReverse = 0, fVerbose = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "rvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+            case 'r':
+                fReverse ^= 1;
+                break;
+            case 'v':
+                fVerbose ^= 1;
+                break;
+            case 'h':
+            default:
+            goto usage;
+        }
+    }
+    if ( pAbc->pGia == NULL )
+    {
+        Abc_Print( -1, "Empty GIA network.\n" );
+        return 1;
+    }
+    if ( !Gia_ManHasMapping(pAbc->pGia) )
+    {
+        Abc_Print( -1, "Current AIG has no mapping. Run \"&if\".\n" );
+        return 1;
+    }
+    if ( Gia_ManLutSizeMax(pAbc->pGia) > 6 )
+    {
+        Abc_Print( 0, "Current AIG has mapping into %d-LUTs.\n", Gia_ManLutSizeMax(pAbc->pGia) );
+        return 0;
+    }
+    if ( fReverse )
+        DelayMax = Gia_ManComputeEdgeDelay2( pAbc->pGia );
+    else 
+        DelayMax = Gia_ManComputeEdgeDelay( pAbc->pGia );
+    printf( "The number of edges = %d.  Delay = %d.\n", Gia_ManEvalEdgeCount(pAbc->pGia), DelayMax );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: &edge [-rvh]\n" );
+    Abc_Print( -2, "\t           find edge assignment of the LUT-mapped network\n" );
+    Abc_Print( -2, "\t-r       : toggles using reverse order [default = %s]\n", fReverse? "yes": "no" );
     Abc_Print( -2, "\t-v       : toggles verbose output [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h       : prints the command usage\n");
     return 1;
@@ -40558,8 +40622,7 @@ int Abc_CommandAbc9Test( Abc_Frame_t * pAbc, int argc, char ** argv )
 //    extern void Gia_ManCheckFalseTest( Gia_Man_t * p, int nSlackMax );
 //    extern void Gia_ParTest( Gia_Man_t * p, int nWords, int nProcs );
 //    extern void Gia_ManTisTest( Gia_Man_t * pInit );
-//    extern void Gia_Iso3Test( Gia_Man_t * p );
-    extern int Gia_ManEvalEdgeDelay( Gia_Man_t * p );
+    extern void Gia_Iso3Test( Gia_Man_t * p );
 
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "WPFsvh" ) ) != EOF )
@@ -40663,9 +40726,7 @@ int Abc_CommandAbc9Test( Abc_Frame_t * pAbc, int argc, char ** argv )
 //    Jf_ManTestCnf( pAbc->pGia );
 //    Gia_ManCheckFalseTest( pAbc->pGia, nFrames );
 //    Gia_ParTest( pAbc->pGia, nWords, nProcs );
-//    Gia_Iso3Test( pAbc->pGia );
-    Gia_ManEvalEdgeDelay( pAbc->pGia );
-
+    Gia_Iso3Test( pAbc->pGia );
 //    printf( "\nThis command is currently disabled.\n\n" );
     return 0;
 usage:

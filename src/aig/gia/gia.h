@@ -1009,6 +1009,8 @@ static inline int         Gia_ObjCellId( Gia_Man_t * p, int iLit )          { re
 
 #define Gia_ManForEachLut( p, i )                                       \
     for ( i = 1; i < Gia_ManObjNum(p); i++ ) if ( !Gia_ObjIsLut(p, i) ) {} else
+#define Gia_ManForEachLutReverse( p, i )                                \
+    for ( i = Gia_ManObjNum(p) - 1; i > 0; i-- ) if ( !Gia_ObjIsLut(p, i) ) {} else
 #define Gia_LutForEachFanin( p, i, iFan, k )                            \
     for ( k = 0; k < Gia_ObjLutSize(p,i) && ((iFan = Gia_ObjLutFanins(p,i)[k]),1); k++ )
 #define Gia_LutForEachFaninObj( p, i, pFanin, k )                       \
@@ -1147,6 +1149,8 @@ extern int                 Gia_ManSuppSize( Gia_Man_t * p, int * pNodes, int nNo
 extern int                 Gia_ManConeSize( Gia_Man_t * p, int * pNodes, int nNodes );
 extern Vec_Vec_t *         Gia_ManLevelize( Gia_Man_t * p );
 extern Vec_Int_t *         Gia_ManOrderReverse( Gia_Man_t * p );
+extern void                Gia_ManCollectTfi( Gia_Man_t * p, Vec_Int_t * vRoots, Vec_Int_t * vNodes );
+extern void                Gia_ManCollectTfo( Gia_Man_t * p, Vec_Int_t * vRoots, Vec_Int_t * vNodes );
 /*=== giaDup.c ============================================================*/
 extern void                Gia_ManDupRemapLiterals( Vec_Int_t * vLits, Gia_Man_t * p );
 extern void                Gia_ManDupRemapEquiv( Gia_Man_t * pNew, Gia_Man_t * p );
@@ -1206,9 +1210,13 @@ extern Gia_Man_t *         Gia_ManDupSliced( Gia_Man_t * p, int nSuppMax );
 /*=== giaEdge.c ==========================================================*/
 extern void                Gia_ManEdgeFromArray( Gia_Man_t * p, Vec_Int_t * vArray );
 extern Vec_Int_t *         Gia_ManEdgeToArray( Gia_Man_t * p );
+extern void                Gia_ManConvertPackingToEdges( Gia_Man_t * p );
 extern int                 Gia_ManEvalEdgeDelay( Gia_Man_t * p );
+extern int                 Gia_ManEvalEdgeCount( Gia_Man_t * p );
 extern int                 Gia_ManComputeEdgeDelay( Gia_Man_t * p );
 extern int                 Gia_ManComputeEdgeDelay2( Gia_Man_t * p );
+extern void                Gia_ManUpdateMapping( Gia_Man_t * p, Vec_Int_t * vNodes, Vec_Wec_t * vWin );
+extern int                 Gia_ManEvalWindow( Gia_Man_t * p, Vec_Int_t * vLeaves, Vec_Int_t * vNodes, Vec_Wec_t * vWin, Vec_Int_t * vTemp );
 /*=== giaEnable.c ==========================================================*/
 extern void                Gia_ManDetectSeqSignals( Gia_Man_t * p, int fSetReset, int fVerbose );
 extern Gia_Man_t *         Gia_ManUnrollAndCofactor( Gia_Man_t * p, int nFrames, int nFanMax, int fVerbose );

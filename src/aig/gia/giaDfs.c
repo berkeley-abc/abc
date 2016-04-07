@@ -505,6 +505,74 @@ void Gia_ManCollectSeqTest( Gia_Man_t * p )
 
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Collect TFI nodes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_ManCollectTfi_rec( Gia_Man_t * p, int iObj, Vec_Int_t * vNodes )
+{
+    Gia_Obj_t * pObj;
+    if ( Gia_ObjIsTravIdCurrentId(p, iObj) )
+        return;
+    Gia_ObjSetTravIdCurrentId(p, iObj);
+    pObj = Gia_ManObj( p, iObj );
+    if ( Gia_ObjIsCi(pObj) )
+        return;
+    assert( Gia_ObjIsAnd(pObj) );
+    Gia_ManCollectTfi_rec( p, Gia_ObjFaninId0(pObj, iObj), vNodes );
+    Gia_ManCollectTfi_rec( p, Gia_ObjFaninId1(pObj, iObj), vNodes );
+    Vec_IntPush( vNodes, iObj );
+}
+void Gia_ManCollectTfi( Gia_Man_t * p, Vec_Int_t * vRoots, Vec_Int_t * vNodes )
+{
+    int i, iRoot; 
+    Vec_IntClear( vNodes );
+    Gia_ManIncrementTravId( p );
+    Vec_IntForEachEntry( vRoots, iRoot, i )
+        Gia_ManCollectTfi_rec( p, iRoot, vNodes );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Collect TFI nodes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_ManCollectTfo_rec( Gia_Man_t * p, int iObj, Vec_Int_t * vNodes )
+{
+    Gia_Obj_t * pObj; int i, iFan;
+    if ( Gia_ObjIsTravIdCurrentId(p, iObj) )
+        return;
+    Gia_ObjSetTravIdCurrentId(p, iObj);
+    pObj = Gia_ManObj( p, iObj );
+    if ( Gia_ObjIsCo(pObj) )
+        return;
+    assert( Gia_ObjIsAnd(pObj) );
+    Gia_ObjForEachFanoutStaticId( p, iObj, iFan, i )
+        Gia_ManCollectTfo_rec( p, iFan, vNodes );
+    Vec_IntPush( vNodes, iObj );
+}
+void Gia_ManCollectTfo( Gia_Man_t * p, Vec_Int_t * vRoots, Vec_Int_t * vNodes )
+{
+    int i, iRoot; 
+    Vec_IntClear( vNodes );
+    Gia_ManIncrementTravId( p );
+    Vec_IntForEachEntry( vRoots, iRoot, i )
+        Gia_ManCollectTfo_rec( p, iRoot, vNodes );
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
