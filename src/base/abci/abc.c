@@ -27682,10 +27682,7 @@ int Abc_CommandAbc9Strash( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
     if ( Gia_ManHasMapping(pAbc->pGia) && fRehashMap )
-    {
-        extern Gia_Man_t * Gia_ManDupHashMapping( Gia_Man_t * p );
         pTemp = Gia_ManDupHashMapping( pAbc->pGia );
-    }
     else if ( Gia_ManHasMapping(pAbc->pGia) && pAbc->pGia->vConfigs )
         pTemp = (Gia_Man_t *)If_ManDeriveGiaFromCells( pAbc->pGia );
     else if ( Gia_ManHasMapping(pAbc->pGia) )
