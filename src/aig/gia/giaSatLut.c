@@ -23,6 +23,7 @@
 #include "sat/bsat/satStore.h"
 #include "misc/util/utilNam.h"
 #include "map/scl/sclCon.h"
+#include "misc/vec/vecHsh.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -44,6 +45,7 @@ struct Sbl_Man_t_
     int            nTried;       // nodes tried
     int            nImproved;    // nodes improved
     int            nRuns;        // the number of runs
+    int            nHashWins;    // the number of hashed windows
     int            nSmallWins;   // the number of small windows
     int            nLargeWins;   // the number of large windows
     int            nIterOuts;    // the number of iters exceeded
@@ -63,6 +65,7 @@ struct Sbl_Man_t_
     Vec_Int_t *    vNodes;       // internal LUTs
     Vec_Int_t *    vRoots;       // driver nodes (a subset of vAnds)
     Vec_Int_t *    vRootVars;    // driver nodes (as SAT variables)
+    Hsh_VecMan_t * pHash;        // hash table for windows
     // timing 
     Vec_Int_t *    vArrs;        // arrival times  
     Vec_Int_t *    vReqs;        // required times  
@@ -134,6 +137,7 @@ Sbl_Man_t * Sbl_ManAlloc( Gia_Man_t * pGia, int Number )
     p->vNodes     = Vec_IntAlloc( p->nVars );
     p->vRoots     = Vec_IntAlloc( p->nVars );
     p->vRootVars  = Vec_IntAlloc( p->nVars );
+    p->pHash      = Hsh_VecManStart( 1000 );
     // timing
     p->vArrs      = Vec_IntAlloc( 0 );
     p->vReqs      = Vec_IntAlloc( 0 );
@@ -212,6 +216,7 @@ void Sbl_ManStop( Sbl_Man_t * p )
     Vec_IntFree( p->vNodes );
     Vec_IntFree( p->vRoots );
     Vec_IntFree( p->vRootVars );
+    Hsh_VecManStop( p->pHash );
     // timing
     Vec_IntFree( p->vArrs );
     Vec_IntFree( p->vReqs );
@@ -269,6 +274,7 @@ void Sbl_ManGetCurrentMapping( Sbl_Man_t * p )
         iObj  = Vec_IntEntry( p->vCutsObj, c );
         //iObj  = Vec_IntEntry( p->vAnds, iObj );
         vObj  = Vec_WecEntry( p->vWindow, iObj );
+        Vec_IntClear( vObj );
         assert( Vec_IntSize(vObj) == 0 );
         for ( b = 0; b < 64; b++ )
             if ( (CutI1 >> b) & 1 )
@@ -543,6 +549,7 @@ void Sbl_ManUpdateMapping( Sbl_Man_t * p )
         iObj = Vec_IntEntry( p->vCutsObj, c );
         iObj = Vec_IntEntry( p->vAnds, iObj );
         vObj = Vec_WecEntry( p->pGia->vMapping2, iObj );
+        Vec_IntClear( vObj );
         assert( Vec_IntSize(vObj) == 0 );
         for ( b = 0; b < 64; b++ )
             if ( (CutI1 >> b) & 1 )
@@ -722,7 +729,7 @@ int Sbl_ManComputeCuts( Sbl_Man_t * p )
     abctime clk = Abc_Clock();
     Gia_Obj_t * pObj; Vec_Int_t * vFanins;
     int i, k, Index, Fanin, nObjs = Vec_IntSize(p->vLeaves) + Vec_IntSize(p->vAnds);
-    assert( Vec_IntSize(p->vLeaves) <= p->nVars && Vec_IntSize(p->vAnds) <= p->nVars );
+    assert( Vec_IntSize(p->vLeaves) <= 128 && Vec_IntSize(p->vAnds) <= p->nVars );
     // assign leaf cuts
     Vec_IntClear( p->vCutsStart );
     Vec_IntClear( p->vCutsObj );
@@ -949,6 +956,7 @@ int Sbl_ManTestSat( Sbl_Man_t * p, int iPivot )
     int fKeepTrying = 1;
     abctime clk = Abc_Clock(), clk2;
     int i, status, Root, Count, StartSol, nConfTotal = 0, nIters = 0;
+    int nEntries = Hsh_VecSize( p->pHash );
     p->nTried++;
 
     Sbl_ManClean( p );
@@ -960,6 +968,14 @@ int Sbl_ManTestSat( Sbl_Man_t * p, int iPivot )
         if ( p->fVeryVerbose )
         printf( "Obj %d: Window with less than %d nodes does not exist.\n", iPivot, p->nVars );
         p->nSmallWins++;
+        return 0;
+    }
+    Hsh_VecManAdd( p->pHash, p->vAnds );
+    if ( nEntries == Hsh_VecSize(p->pHash) )
+    {
+        if ( p->fVeryVerbose )
+        printf( "Obj %d: This window was already tried.\n", iPivot );
+        p->nHashWins++;
         return 0;
     }
     if ( p->fVeryVerbose )
@@ -1185,8 +1201,8 @@ void Gia_ManLutSat( Gia_Man_t * pGia, int nNumber, int nImproves, int nBTLimit, 
     }
     Gia_ManComputeOneWin( pGia, -1, NULL, NULL, NULL, NULL );
     if ( p->fVerbose )
-    printf( "Tried = %d. Improved = %d. SmallWin = %d. LargeWin = %d. IterOut = %d.  SAT runs = %d.\n", 
-        p->nTried, p->nImproved, p->nSmallWins, p->nLargeWins, p->nIterOuts, p->nRuns );
+    printf( "Tried = %d. Used = %d. HashWin = %d. SmallWin = %d. LargeWin = %d. IterOut = %d.  SAT runs = %d.\n", 
+        p->nTried, p->nImproved, p->nHashWins, p->nSmallWins, p->nLargeWins, p->nIterOuts, p->nRuns );
     if ( p->fVerbose )
     Sbl_ManPrintRuntime( p );
     Sbl_ManStop( p );
