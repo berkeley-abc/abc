@@ -27641,8 +27641,9 @@ int Abc_CommandAbc9Strash( Abc_Frame_t * pAbc, int argc, char ** argv )
     int fAddStrash = 0;
     int fCollapse = 0;
     int fAddMuxes = 0;
+    int fRehashMap = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "Lacmh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Lacmrh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -27666,6 +27667,9 @@ int Abc_CommandAbc9Strash( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'm':
             fAddMuxes ^= 1;
             break;
+        case 'r':
+            fRehashMap ^= 1;
+            break;
         case 'h':
             goto usage;
         default:
@@ -27677,7 +27681,12 @@ int Abc_CommandAbc9Strash( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Abc_CommandAbc9Strash(): There is no AIG.\n" );
         return 1;
     }
-    if ( Gia_ManHasMapping(pAbc->pGia) && pAbc->pGia->vConfigs )
+    if ( Gia_ManHasMapping(pAbc->pGia) && fRehashMap )
+    {
+        extern Gia_Man_t * Gia_ManDupHashMapping( Gia_Man_t * p );
+        pTemp = Gia_ManDupHashMapping( pAbc->pGia );
+    }
+    else if ( Gia_ManHasMapping(pAbc->pGia) && pAbc->pGia->vConfigs )
         pTemp = (Gia_Man_t *)If_ManDeriveGiaFromCells( pAbc->pGia );
     else if ( Gia_ManHasMapping(pAbc->pGia) )
         pTemp = (Gia_Man_t *)Dsm_ManDeriveGia( pAbc->pGia, fAddMuxes ); // delay-oriented unmapping
@@ -27730,12 +27739,13 @@ int Abc_CommandAbc9Strash( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &st [-L num] [-acmh]\n" );
+    Abc_Print( -2, "usage: &st [-L num] [-acmrh]\n" );
     Abc_Print( -2, "\t         performs structural hashing\n" );
     Abc_Print( -2, "\t-a     : toggle additional hashing [default = %s]\n", fAddStrash? "yes": "no" );
     Abc_Print( -2, "\t-c     : toggle collapsing hierarchical AIG [default = %s]\n", fCollapse? "yes": "no" );
     Abc_Print( -2, "\t-m     : toggle converting to larger gates [default = %s]\n", fAddMuxes? "yes": "no" );
     Abc_Print( -2, "\t-L num : create MUX when sum of refs does not exceed this limit [default = %d]\n", Limit );
+    Abc_Print( -2, "\t-r     : toggle rehashing AIG while preserving mapping [default = %s]\n", fRehashMap? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
 }

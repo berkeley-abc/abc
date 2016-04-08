@@ -137,6 +137,7 @@ int Gia_ManIsNormalized( Gia_Man_t * p )
 ***********************************************************************/
 Gia_Man_t * Gia_ManDupNormalize( Gia_Man_t * p )
 {
+    int fHash = 1;
     Gia_Man_t * pNew;
     Gia_Obj_t * pObj;
     int i;
@@ -170,11 +171,15 @@ Gia_Man_t * Gia_ManDupNormalize( Gia_Man_t * p )
             Gia_ManCi(p, i)->Value = Gia_ManAppendCi(pNew);
         printf( "Warning: Shuffled CI order to be correct sequential AIG.\n" );
     }
+    if ( fHash ) Gia_ManHashAlloc( pNew );
     Gia_ManForEachAnd( p, pObj, i )
         if ( Gia_ObjIsBuf(pObj) )
             pObj->Value = Gia_ManAppendBuf( pNew, Gia_ObjFanin0Copy(pObj) );
-        else 
+        else if ( fHash )
+            pObj->Value = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+        else
             pObj->Value = Gia_ManAppendAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+    if ( fHash ) Gia_ManHashStop( pNew );
     Gia_ManForEachCo( p, pObj, i )
         pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
     Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );

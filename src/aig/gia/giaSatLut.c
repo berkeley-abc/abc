@@ -46,6 +46,7 @@ struct Sbl_Man_t_
     int            nRuns;        // the number of runs
     int            nSmallWins;   // the number of small windows
     int            nLargeWins;   // the number of large windows
+    int            nIterOuts;    // the number of iters exceeded
     // parameters
     int            nBTLimit;     // conflicts
     int            DelayMax;     // external delay
@@ -1109,9 +1110,10 @@ int Sbl_ManTestSat( Sbl_Man_t * p, int iPivot )
                 printf( "LitCount = %d.\n", LitCount );
             printf( "\n" );
         }
-        if ( nIters == 20 )
+        if ( nIters == 10 )
         {
-            printf( "Obj %d : Quitting after %d iterations.\n", iPivot, nIters );
+            p->nIterOuts++;
+            //printf( "Obj %d : Quitting after %d iterations.\n", iPivot, nIters );
             break;
         }
     }
@@ -1183,8 +1185,8 @@ void Gia_ManLutSat( Gia_Man_t * pGia, int nNumber, int nImproves, int nBTLimit, 
     }
     Gia_ManComputeOneWin( pGia, -1, NULL, NULL, NULL, NULL );
     if ( p->fVerbose )
-    printf( "Tried = %d. Improved = %d.  Small win = %d. Large win = %d.  Total SAT runs = %d.\n", 
-        p->nTried, p->nImproved, p->nSmallWins, p->nLargeWins, p->nRuns );
+    printf( "Tried = %d. Improved = %d. SmallWin = %d. LargeWin = %d. IterOut = %d.  SAT runs = %d.\n", 
+        p->nTried, p->nImproved, p->nSmallWins, p->nLargeWins, p->nIterOuts, p->nRuns );
     if ( p->fVerbose )
     Sbl_ManPrintRuntime( p );
     Sbl_ManStop( p );

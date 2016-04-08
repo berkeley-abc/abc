@@ -2183,9 +2183,15 @@ Gia_Man_t * Gia_ManPerformMapping( Gia_Man_t * p, void * pp )
     }
     else 
     {
-        // mapping
+        int fHashMapping = 1;
         pNew = Gia_ManPerformMappingInt( p, (If_Par_t *)pp );
         Gia_ManTransferTiming( pNew, p );
+        if ( fHashMapping )
+        {
+            pNew = Gia_ManDupHashMapping( p = pNew );
+            Gia_ManTransferTiming( pNew, p );
+            Gia_ManStop( p );
+        }
     }
     pNew->MappedDelay = (int)((If_Par_t *)pp)->FinalDelay;
     pNew->MappedArea  = (int)((If_Par_t *)pp)->FinalArea;
@@ -2311,6 +2317,55 @@ void Gia_ManTestStruct( Gia_Man_t * p )
     printf( "LUT6 = %d  NonDec = %d (%.2f %%)    ", LutCount[6], LutNDecomp[6], 100.0 * LutNDecomp[6]/Abc_MaxInt(LutCount[6], 1) );
     printf( "LUT7 = %d  NonDec = %d (%.2f %%)    ", LutCount[7], LutNDecomp[7], 100.0 * LutNDecomp[7]/Abc_MaxInt(LutCount[7], 1) );
     printf( "\n" );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Performs hashing for a mapped AIG.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     [] 
+
+***********************************************************************/
+Gia_Man_t * Gia_ManDupHashMapping( Gia_Man_t * p )
+{
+    Gia_Man_t * pNew; 
+    Vec_Int_t * vMapping; 
+    Gia_Obj_t * pObj, * pFanin;
+    int i, k;
+    assert( Gia_ManHasMapping(p) );
+    // copy the old manager with hashing
+    pNew = Gia_ManStart( Gia_ManObjNum(p) );
+    pNew->pName = Abc_UtilStrsav( p->pName );
+    pNew->pSpec = Abc_UtilStrsav( p->pSpec );
+    Gia_ManHashAlloc( pNew );
+    Gia_ManFillValue( p );
+    Gia_ManConst0(p)->Value = 0;
+    Gia_ManForEachCi( p, pObj, i )
+        pObj->Value = Gia_ManAppendCi( pNew );
+    Gia_ManForEachAnd( p, pObj, i )
+        pObj->Value = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+    Gia_ManForEachCo( p, pObj, i )
+        Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
+    Gia_ManHashStop( pNew );
+    Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
+    // recreate mapping
+    vMapping = Vec_IntAlloc( Vec_IntSize(p->vMapping) );
+    Vec_IntFill( vMapping, Gia_ManObjNum(p), 0 );
+    Gia_ManForEachLut( p, i )
+    {
+        pObj = Gia_ManObj( p, i );
+        Vec_IntWriteEntry( vMapping, Abc_Lit2Var(pObj->Value), Vec_IntSize(vMapping) );
+        Vec_IntPush( vMapping, Gia_ObjLutSize(p, i) );
+        Gia_LutForEachFaninObj( p, i, pFanin, k )
+            Vec_IntPush( vMapping, Abc_Lit2Var(pFanin->Value)  );
+        Vec_IntPush( vMapping, Abc_Lit2Var(pObj->Value) );
+    }
+    pNew->vMapping = vMapping;
+    return pNew;
 }
 
 
