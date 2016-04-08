@@ -34896,7 +34896,7 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9SatLut( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern void Gia_ManLutSat( Gia_Man_t * p, int nNumber, int nImproves, int nBTLimit, int DelayMax, int nEdges, int fDelay, int fReverse, int fVeryVerbose, int fVerbose );
+    extern void Gia_ManLutSat( Gia_Man_t * p, int nNumber, int nImproves, int nBTLimit, int DelayMax, int nEdges, int fDelay, int fReverse, int fVerbose, int fVeryVerbose );
     int c, nNumber = 32, nImproves = 0, nBTLimit = 100, DelayMax = 0, nEdges = 0;
     int fDelay = 0, fReverse = 0, fVeryVerbose = 0, fVerbose = 0;
     Extra_UtilGetoptReset();
@@ -34985,7 +34985,7 @@ int Abc_CommandAbc9SatLut( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( Gia_ManLutSizeMax(pAbc->pGia) > 4 )
         Abc_Print( 0, "Current AIG is mapped into %d-LUTs (only 4-LUT mapping is currently supported).\n", Gia_ManLutSizeMax(pAbc->pGia) );
     else
-        Gia_ManLutSat( pAbc->pGia, nNumber, nImproves, nBTLimit, DelayMax, nEdges, fDelay, fReverse, fVeryVerbose, fVerbose );
+        Gia_ManLutSat( pAbc->pGia, nNumber, nImproves, nBTLimit, DelayMax, nEdges, fDelay, fReverse, fVerbose, fVeryVerbose );
     return 0;
 
 usage:

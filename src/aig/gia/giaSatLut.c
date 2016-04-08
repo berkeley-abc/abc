@@ -40,15 +40,21 @@ struct Sbl_Man_t_
     int            LogN;         // base-2 log of max vars
     int            Power2;       // power-2 of LogN
     int            FirstVar;     // first variable to be used
+    // statistics
+    int            nTried;       // nodes tried
+    int            nImproved;    // nodes improved
     int            nRuns;        // the number of runs
+    int            nSmallWins;   // the number of small windows
+    int            nLargeWins;   // the number of large windows
     // parameters
     int            nBTLimit;     // conflicts
     int            DelayMax;     // external delay
     int            nEdges;       // the number of edges
     int            fDelay;       // delay mode
     int            fReverse;     // reverse windowing
-    int            fVeryVerbose; // verbose
     int            fVerbose;     // verbose
+    int            fVeryVerbose; // verbose
+    int            fVeryVeryVerbose; // verbose
     // window
     Gia_Man_t *    pGia;
     Vec_Int_t *    vLeaves;      // leaf nodes
@@ -194,7 +200,6 @@ void Sbl_ManClean( Sbl_Man_t * p )
     Vec_IntClear( p->vPolar );
     // other
     Gia_ManFillValue( p->pGia );
-    p->nRuns++;
 }
 void Sbl_ManStop( Sbl_Man_t * p )
 {
@@ -426,7 +431,7 @@ int Sbl_ManEvaluateMappingEdge( Sbl_Man_t * p, int DelayGlo )
     // create critical path composed of all nodes
     Vec_WecForEachLevel( p->vWindow, vArray, i )
         if ( Vec_IntSize(vArray) > 0 )
-            Vec_IntPush( p->vPath, i );
+            Vec_IntPush( p->vPath, Abc_Var2Lit(i, 1) );
     return 0;
 }
 
@@ -943,6 +948,7 @@ int Sbl_ManTestSat( Sbl_Man_t * p, int iPivot )
     int fKeepTrying = 1;
     abctime clk = Abc_Clock(), clk2;
     int i, status, Root, Count, StartSol, nConfTotal = 0, nIters = 0;
+    p->nTried++;
 
     Sbl_ManClean( p );
 
@@ -950,21 +956,25 @@ int Sbl_ManTestSat( Sbl_Man_t * p, int iPivot )
     Count = Sbl_ManWindow2( p, iPivot );
     if ( Count == 0 )
     {
+        if ( p->fVeryVerbose )
         printf( "Obj %d: Window with less than %d nodes does not exist.\n", iPivot, p->nVars );
+        p->nSmallWins++;
         return 0;
     }
-    if ( p->fVerbose )
+    if ( p->fVeryVerbose )
     printf( "\nObj = %6d : Leaf = %2d.  AND = %2d.  Root = %2d.    LUT = %2d.\n", 
         iPivot, Vec_IntSize(p->vLeaves), Vec_IntSize(p->vAnds), Vec_IntSize(p->vRoots), Vec_IntSize(p->vNodes) ); 
 
     if ( Vec_IntSize(p->vLeaves) > 128 || Vec_IntSize(p->vAnds) > p->nVars )
     {
+        if ( p->fVeryVerbose )
         printf( "Obj %d: Encountered window with %d inputs and %d internal nodes.\n", iPivot, Vec_IntSize(p->vLeaves), Vec_IntSize(p->vAnds) );
+        p->nLargeWins++;
         return 0;
     }
     if ( Vec_IntSize(p->vAnds) < 10 )
     {
-        if ( p->fVerbose )
+        if ( p->fVeryVerbose )
         printf( "Skipping.\n" );
         return 0;
     }
@@ -974,7 +984,7 @@ int Sbl_ManTestSat( Sbl_Man_t * p, int iPivot )
     // derive SAT instance
     Sbl_ManCreateCnf( p );
 
-    if ( p->fVeryVerbose )
+    if ( p->fVeryVeryVerbose )
     printf( "All clauses = %d.  Multi clauses = %d.  Binary clauses = %d.  Other clauses = %d.\n\n", 
         sat_solver_nclauses(p->pSat), Vec_IntSize(p->vAnds), Vec_WrdSize(p->vCutsI1) - Vec_IntSize(p->vAnds), 
         sat_solver_nclauses(p->pSat) - Vec_WrdSize(p->vCutsI1) );
@@ -997,7 +1007,7 @@ int Sbl_ManTestSat( Sbl_Man_t * p, int iPivot )
     {
         int Count = 0, LitCount = 0;
         int nConfBef, nConfAft;
-        if ( p->fVerbose )
+        if ( p->fVeryVerbose )
             printf( "Trying to find mapping with %d LUTs.\n", StartSol-fKeepTrying );
     //    for ( i = Vec_IntSize(p->vSolInit)-5; i < nVars; i++ )
     //        Vec_IntPush( p->vAssump, Abc_Var2Lit(Vec_IntEntry(p->vCardVars, i), 1) );
@@ -1010,6 +1020,7 @@ int Sbl_ManTestSat( Sbl_Man_t * p, int iPivot )
         nConfAft = (int)p->pSat->stats.conflicts;
         nConfTotal += nConfAft - nConfBef;
         nIters++;
+        p->nRuns++;
         if ( status == l_True )
             p->timeSatSat += Abc_Clock() - clk2;
         else if ( status == l_False )
@@ -1020,7 +1031,7 @@ int Sbl_ManTestSat( Sbl_Man_t * p, int iPivot )
             break;
         if ( status == l_True )
         {
-            if ( p->fVeryVerbose )
+            if ( p->fVeryVeryVerbose )
             {
                 for ( i = 0; i < Vec_IntSize(p->vAnds); i++ )
                     printf( "%d", sat_solver_var_value(p->pSat, i) );
@@ -1041,9 +1052,9 @@ int Sbl_ManTestSat( Sbl_Man_t * p, int iPivot )
             for ( i = p->FirstVar; i < sat_solver_nvars(p->pSat); i++ )
                 if ( sat_solver_var_value(p->pSat, i) )
                 {
-                    if ( p->fVeryVerbose )
+                    if ( p->fVeryVeryVerbose )
                         printf( "Cut %3d : Node = %3d %6d  ", Count++, Vec_IntEntry(p->vCutsObj, i-p->FirstVar), Vec_IntEntry(p->vAnds, Vec_IntEntry(p->vCutsObj, i-p->FirstVar)) );
-                    if ( p->fVeryVerbose )
+                    if ( p->fVeryVeryVerbose )
                         LitCount += Sbl_ManFindAndPrintCut( p, i-p->FirstVar );
                     Vec_IntPush( p->vSolCur, i-p->FirstVar );
                 }
@@ -1060,7 +1071,7 @@ int Sbl_ManTestSat( Sbl_Man_t * p, int iPivot )
             if ( p->fDelay && !Sbl_ManEvaluateMapping(p, p->DelayMax) )
             {
                 int iLit, value;
-                if ( p->fVerbose )
+                if ( p->fVeryVerbose )
                 {
                     printf( "Critical path of length (%d) is detected:   ", Vec_IntSize(p->vPath) );
                     Vec_IntForEachEntry( p->vPath, iLit, i )
@@ -1080,7 +1091,7 @@ int Sbl_ManTestSat( Sbl_Man_t * p, int iPivot )
         }
         else
             fKeepTrying = 0;
-        if ( p->fVerbose )
+        if ( p->fVeryVerbose )
         {
             if ( status == l_False )
                 printf( "UNSAT " );
@@ -1094,9 +1105,14 @@ int Sbl_ManTestSat( Sbl_Man_t * p, int iPivot )
             printf( "Total " );
             printf( "confl =%8d.    ", nConfTotal );
             Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
-            if ( p->fVeryVerbose && status == l_True )
+            if ( p->fVeryVeryVerbose && status == l_True )
                 printf( "LitCount = %d.\n", LitCount );
             printf( "\n" );
+        }
+        if ( nIters == 20 )
+        {
+            printf( "Obj %d : Quitting after %d iterations.\n", iPivot, nIters );
+            break;
         }
     }
 
@@ -1112,18 +1128,24 @@ int Sbl_ManTestSat( Sbl_Man_t * p, int iPivot )
         }
         else
             nDelayCur = Sbl_ManCreateTiming( p, p->DelayMax );
+        if ( p->fVerbose )
         printf( "Object %5d : Saved %2d nodes  (Conf =%8d)  Iter =%3d  Delay = %d  Edges = %4d\n", 
             iPivot, Vec_IntSize(p->vSolInit)-Vec_IntSize(p->vSolBest), nConfTotal, nIters, nDelayCur, nEdgesCur );
         p->timeTotal += Abc_Clock() - p->timeStart;
+        p->nImproved++;
         return 2;
+    }
+    else
+    {
+//        printf( "Object %5d : Saved %2d nodes  (Conf =%8d)  Iter =%3d\n", iPivot, 0, nConfTotal, nIters );
     }
     p->timeTotal += Abc_Clock() - p->timeStart;
     return 1;
 }
 void Sbl_ManPrintRuntime( Sbl_Man_t * p )
 {
+    printf( "Runtime breakdown:\n" );
     p->timeOther = p->timeTotal - p->timeWin - p->timeCut - p->timeSat - p->timeTime;
-
     ABC_PRTP( "Win   ", p->timeWin  ,   p->timeTotal );
     ABC_PRTP( "Cut   ", p->timeCut  ,   p->timeTotal );
     ABC_PRTP( "Sat   ", p->timeSat,     p->timeTotal );
@@ -1133,9 +1155,8 @@ void Sbl_ManPrintRuntime( Sbl_Man_t * p )
     ABC_PRTP( "Timing", p->timeTime ,   p->timeTotal );
     ABC_PRTP( "Other ", p->timeOther,   p->timeTotal );
     ABC_PRTP( "ALL   ", p->timeTotal,   p->timeTotal );
-    printf( "Total runs = %d.\n", p->nRuns );
 }
-void Gia_ManLutSat( Gia_Man_t * pGia, int nNumber, int nImproves, int nBTLimit, int DelayMax, int nEdges, int fDelay, int fReverse, int fVeryVerbose, int fVerbose )
+void Gia_ManLutSat( Gia_Man_t * pGia, int nNumber, int nImproves, int nBTLimit, int DelayMax, int nEdges, int fDelay, int fReverse, int fVerbose, int fVeryVerbose )
 {
     int iLut, nImproveCount = 0;
     Sbl_Man_t * p   = Sbl_ManAlloc( pGia, nNumber );
@@ -1144,8 +1165,10 @@ void Gia_ManLutSat( Gia_Man_t * pGia, int nNumber, int nImproves, int nBTLimit, 
     p->nEdges       = nEdges;       // the number of edges
     p->fDelay       = fDelay;       // delay mode
     p->fReverse     = fReverse;     // reverse windowing
-    p->fVeryVerbose = fVeryVerbose; // verbose
     p->fVerbose     = fVerbose | fVeryVerbose;
+    p->fVeryVerbose = fVeryVerbose;
+    if ( p->fVerbose )
+    printf( "Parameters: WinSize = %d AIG nodes.  Conf = %d.  DelayMax = %d.\n", p->nVars, p->nBTLimit, p->DelayMax );
     // determine delay limit
     if ( fDelay && pGia->vEdge1 && p->DelayMax == 0 )
         p->DelayMax = Gia_ManEvalEdgeDelay( pGia );
@@ -1159,6 +1182,10 @@ void Gia_ManLutSat( Gia_Man_t * pGia, int nNumber, int nImproves, int nBTLimit, 
             break;
     }
     Gia_ManComputeOneWin( pGia, -1, NULL, NULL, NULL, NULL );
+    if ( p->fVerbose )
+    printf( "Tried = %d. Improved = %d.  Small win = %d. Large win = %d.  Total SAT runs = %d.\n", 
+        p->nTried, p->nImproved, p->nSmallWins, p->nLargeWins, p->nRuns );
+    if ( p->fVerbose )
     Sbl_ManPrintRuntime( p );
     Sbl_ManStop( p );
 }
