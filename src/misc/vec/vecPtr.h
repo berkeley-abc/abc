@@ -770,6 +770,26 @@ static inline void Vec_PtrRemove( Vec_Ptr_t * p, void * Entry )
 
 /**Function*************************************************************
 
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline void Vec_PtrDrop( Vec_Ptr_t * p, int i )
+{
+    int k;
+    assert( i >= 0 && i < Vec_PtrSize(p) );
+    p->nSize--;
+    for ( k = i; k < p->nSize; k++ )
+        p->pArray[k] = p->pArray[k+1];
+}
+
+/**Function*************************************************************
+
   Synopsis    [Interts entry at the index iHere. Shifts other entries.]
 
   Description []

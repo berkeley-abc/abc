@@ -79,6 +79,8 @@ struct Hsh_VecMan_t_
     Vec_Int_t *  vData;       // data storage
     Vec_Int_t *  vMap;        // mapping entries into data;
     Vec_Int_t    vTemp;       // temporary array
+    Vec_Int_t    vTemp1;      // temporary array
+    Vec_Int_t    vTemp2;      // temporary array
 };
 
 ////////////////////////////////////////////////////////////////////////
@@ -305,12 +307,30 @@ static inline void Hsh_VecManStop( Hsh_VecMan_t * p )
     Vec_IntFree( p->vMap );
     ABC_FREE( p );
 }
+static inline int * Hsh_VecReadArray( Hsh_VecMan_t * p, int i )
+{
+    return (int*)Hsh_VecObj(p, i) + 2;
+}
 static inline Vec_Int_t * Hsh_VecReadEntry( Hsh_VecMan_t * p, int i )
 {
     Hsh_VecObj_t * pObj = Hsh_VecObj( p, i );
     p->vTemp.nSize = p->vTemp.nCap = pObj->nSize;
     p->vTemp.pArray = (int*)pObj + 2;
     return &p->vTemp;
+}
+static inline Vec_Int_t * Hsh_VecReadEntry1( Hsh_VecMan_t * p, int i )
+{
+    Hsh_VecObj_t * pObj = Hsh_VecObj( p, i );
+    p->vTemp1.nSize = p->vTemp1.nCap = pObj->nSize;
+    p->vTemp1.pArray = (int*)pObj + 2;
+    return &p->vTemp1;
+}
+static inline Vec_Int_t * Hsh_VecReadEntry2( Hsh_VecMan_t * p, int i )
+{
+    Hsh_VecObj_t * pObj = Hsh_VecObj( p, i );
+    p->vTemp2.nSize = p->vTemp2.nCap = pObj->nSize;
+    p->vTemp2.pArray = (int*)pObj + 2;
+    return &p->vTemp2;
 }
 static inline int Hsh_VecSize( Hsh_VecMan_t * p )
 {
