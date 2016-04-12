@@ -74,9 +74,9 @@ If the bug still persists, please provide the following information:
  1. If compilation does not start because of the cyclic dependency check, 
 try touching all files as follows: `find ./ -type f -exec touch "{}" \;`
  1. If compilation fails because readline is missing, install 'readline' library or
-compile with `make READLINE=0`
+compile with `make ABC_USE_NO_READLINE=1`
  1. If compilation fails because pthreads are missing, install 'pthread' library or
-compile with `make PTHREADS=0`
+compile with `make ABC_USE_NO_PTHREADS=1`
     * See http://sourceware.org/pthreads-win32/ for pthreads on Windows
     * Precompiled DLLs are available from ftp://sourceware.org/pub/pthreads-win32/dll-latest
  1. If compilation fails in file "src/base/main/libSupport.c", try the following:
