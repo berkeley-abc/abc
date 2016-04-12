@@ -76,7 +76,7 @@ ifndef ABC_USE_NO_READLINE
 endif
 
 # whether to compile with thread support
-ifdef ABC_USE_NO_PTHREADS
+ifndef ABC_USE_NO_PTHREADS
   CFLAGS += -DABC_USE_PTHREADS
   LIBS += -lpthread
   $(info $(MSG_PREFIX)Using pthreads)
