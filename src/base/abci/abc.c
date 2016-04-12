@@ -27684,7 +27684,11 @@ int Abc_CommandAbc9Strash( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
     if ( Gia_ManHasMapping(pAbc->pGia) && fRehashMap )
+    {
         pTemp = Gia_ManDupHashMapping( pAbc->pGia );
+        Gia_ManTransferPacking( pTemp, pAbc->pGia );
+        Gia_ManTransferTiming( pTemp, pAbc->pGia );
+    }
     else if ( Gia_ManHasMapping(pAbc->pGia) && pAbc->pGia->vConfigs )
         pTemp = (Gia_Man_t *)If_ManDeriveGiaFromCells( pAbc->pGia );
     else if ( Gia_ManHasMapping(pAbc->pGia) )
@@ -34839,14 +34843,20 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9Edge( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    int c, DelayMax = 0, fReverse = 0, fVerbose = 0;
+    int c, DelayMax = 0, fReverse = 0, fUseTwo = 1, fUsePack = 0, fVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "rvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "repvh" ) ) != EOF )
     {
         switch ( c )
         {
             case 'r':
                 fReverse ^= 1;
+                break;
+            case 'e':
+                fUseTwo ^= 1;
+                break;
+            case 'p':
+                fUsePack ^= 1;
                 break;
             case 'v':
                 fVerbose ^= 1;
@@ -34876,17 +34886,24 @@ int Abc_CommandAbc9Edge( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( 0, "Reverse computation does not work when boxes are present.\n" );
         return 0;
     }
+    if ( fUsePack )
+    {
+        Gia_ManConvertPackingToEdges( pAbc->pGia );
+        return 0;
+    }
     if ( fReverse )
         DelayMax = Gia_ManComputeEdgeDelay2( pAbc->pGia );
     else 
-        DelayMax = Gia_ManComputeEdgeDelay( pAbc->pGia );
-    printf( "The number of edges = %d.  Delay = %d.\n", Gia_ManEvalEdgeCount(pAbc->pGia), DelayMax );
+        DelayMax = Gia_ManComputeEdgeDelay( pAbc->pGia, fUseTwo );
+    //printf( "The number of edges = %d.  Delay = %d.\n", Gia_ManEvalEdgeCount(pAbc->pGia), DelayMax );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &edge [-rvh]\n" );
+    Abc_Print( -2, "usage: &edge [-repvh]\n" );
     Abc_Print( -2, "\t           find edge assignment of the LUT-mapped network\n" );
     Abc_Print( -2, "\t-r       : toggles using reverse order [default = %s]\n", fReverse? "yes": "no" );
+    Abc_Print( -2, "\t-e       : toggles different edge assignments [default = %s]\n", fUseTwo? "yes": "no" );
+    Abc_Print( -2, "\t-p       : toggles deriving edges from packing [default = %s]\n", fUsePack? "yes": "no" );
     Abc_Print( -2, "\t-v       : toggles verbose output [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h       : prints the command usage\n");
     return 1;

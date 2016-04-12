@@ -2183,12 +2183,13 @@ Gia_Man_t * Gia_ManPerformMapping( Gia_Man_t * p, void * pp )
     }
     else 
     {
-        int fHashMapping = 1;
+        int fHashMapping = 0;
         pNew = Gia_ManPerformMappingInt( p, (If_Par_t *)pp );
         Gia_ManTransferTiming( pNew, p );
         if ( fHashMapping )
         {
             pNew = Gia_ManDupHashMapping( p = pNew );
+            Gia_ManTransferPacking( pNew, p );
             Gia_ManTransferTiming( pNew, p );
             Gia_ManStop( p );
         }

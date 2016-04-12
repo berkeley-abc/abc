@@ -148,7 +148,8 @@ void Gia_ManConvertPackingToEdges( Gia_Man_t * p )
         }
     }
     assert( nEntries == nEntries2 );
-    printf( "Skipped %d illegal edges.\n", Count );
+    if ( Count )
+        printf( "Skipped %d illegal edges.\n", Count );
 }
 
 /**Function*************************************************************
@@ -174,7 +175,7 @@ static inline int Gia_ObjEvalEdgeDelay( Gia_Man_t * p, int iObj, Vec_Int_t * vDe
         assert( Gia_ObjLutSize(p, iObj) <= 4 );
         Gia_LutForEachFanin( p, iObj, iFan, i )
         {
-            Delay = Vec_IntEntry(vDelay, iFan) + !Gia_ObjHaveEdge(p, iObj, iFan);
+            Delay = Vec_IntEntry(vDelay, iFan) + (Gia_ObjHaveEdge(p, iObj, iFan) ? 2 : 10);
             DelayMax = Abc_MaxInt( DelayMax, Delay );
         }
     }
@@ -183,7 +184,7 @@ static inline int Gia_ObjEvalEdgeDelay( Gia_Man_t * p, int iObj, Vec_Int_t * vDe
         assert( Gia_ObjLutSize2(p, iObj) <= 4 );
         Gia_LutForEachFanin2( p, iObj, iFan, i )
         {
-            Delay = Vec_IntEntry(vDelay, iFan) + !Gia_ObjHaveEdge(p, iObj, iFan);
+            Delay = Vec_IntEntry(vDelay, iFan) + (Gia_ObjHaveEdge(p, iObj, iFan) ? 2 : 10);
             DelayMax = Abc_MaxInt( DelayMax, Delay );
         }
     }
@@ -290,10 +291,10 @@ int Gia_ManEvalEdgeCount( Gia_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-int Gia_ObjComputeEdgeDelay( Gia_Man_t * p, int iObj, Vec_Int_t * vDelay, Vec_Int_t * vEdge1, Vec_Int_t * vEdge2 )
+int Gia_ObjComputeEdgeDelay( Gia_Man_t * p, int iObj, Vec_Int_t * vDelay, Vec_Int_t * vEdge1, Vec_Int_t * vEdge2, int fUseTwo )
 {
     int i, iFan, Delay, Status1, Status2;
-    int DelayMax = 0, nCountMax = 0;
+    int DelayMax = 0, DelayMax2 = 0, nCountMax = 0;
     int iFanMax1 = -1, iFanMax2 = -1;
     Vec_IntWriteEntry(vEdge1, iObj, 0);
     Vec_IntWriteEntry(vEdge2, iObj, 0);
@@ -302,9 +303,10 @@ int Gia_ObjComputeEdgeDelay( Gia_Man_t * p, int iObj, Vec_Int_t * vDelay, Vec_In
         assert( Gia_ObjLutSize(p, iObj) <= 4 );
         Gia_LutForEachFanin( p, iObj, iFan, i )
         {
-            Delay = Vec_IntEntry( vDelay, iFan ) + 1;
+            Delay = Vec_IntEntry( vDelay, iFan ) + 10;
             if ( DelayMax < Delay )
             {
+                DelayMax2 = DelayMax;
                 DelayMax  = Delay;
                 iFanMax1  = iFan;
                 nCountMax = 1;
@@ -313,7 +315,11 @@ int Gia_ObjComputeEdgeDelay( Gia_Man_t * p, int iObj, Vec_Int_t * vDelay, Vec_In
             {
                 iFanMax2  = iFan;
                 nCountMax++;
+                if ( !fUseTwo )
+                    DelayMax2 = DelayMax;
             }
+            else
+                DelayMax2 = Abc_MaxInt( DelayMax2, Delay );
         }
     }
     else if ( Gia_ObjIsLut2(p, iObj) )
@@ -321,9 +327,10 @@ int Gia_ObjComputeEdgeDelay( Gia_Man_t * p, int iObj, Vec_Int_t * vDelay, Vec_In
         assert( Gia_ObjLutSize2(p, iObj) <= 4 );
         Gia_LutForEachFanin2( p, iObj, iFan, i )
         {
-            Delay = Vec_IntEntry( vDelay, iFan ) + 1;
+            Delay = Vec_IntEntry( vDelay, iFan ) + 10;
             if ( DelayMax < Delay )
             {
+                DelayMax2 = DelayMax;
                 DelayMax  = Delay;
                 iFanMax1  = iFan;
                 nCountMax = 1;
@@ -332,12 +339,16 @@ int Gia_ObjComputeEdgeDelay( Gia_Man_t * p, int iObj, Vec_Int_t * vDelay, Vec_In
             {
                 iFanMax2  = iFan;
                 nCountMax++;
+                if ( !fUseTwo )
+                    DelayMax2 = DelayMax;
             }
+            else
+                DelayMax2 = Abc_MaxInt( DelayMax2, Delay );
         }
     }
     else assert( 0 );
     assert( nCountMax > 0 );
-    if ( DelayMax == 1 )
+    if ( DelayMax <= 10 )
     {} // skip first level
     else if ( nCountMax == 1 )
     {
@@ -346,11 +357,12 @@ int Gia_ObjComputeEdgeDelay( Gia_Man_t * p, int iObj, Vec_Int_t * vDelay, Vec_In
         {
             Gia_ObjEdgeAdd( iFanMax1, iObj, vEdge1, vEdge2 );
             Gia_ObjEdgeAdd( iObj, iFanMax1, vEdge1, vEdge2 );
-            Vec_IntWriteEntry( vDelay, iObj, DelayMax-1 );
-            return DelayMax-1;
+            DelayMax = Abc_MaxInt( DelayMax2, DelayMax - 8 );
+            Vec_IntWriteEntry( vDelay, iObj, DelayMax );
+            return DelayMax;
         }
     }
-    else if ( nCountMax == 2 )
+    else if ( fUseTwo && nCountMax == 2 )
     {
         Status1 = Gia_ObjEdgeCount( iFanMax1, vEdge1, vEdge2 );
         Status2 = Gia_ObjEdgeCount( iFanMax2, vEdge1, vEdge2 );
@@ -360,14 +372,15 @@ int Gia_ObjComputeEdgeDelay( Gia_Man_t * p, int iObj, Vec_Int_t * vDelay, Vec_In
             Gia_ObjEdgeAdd( iFanMax2, iObj, vEdge1, vEdge2 );
             Gia_ObjEdgeAdd( iObj, iFanMax1, vEdge1, vEdge2 );
             Gia_ObjEdgeAdd( iObj, iFanMax2, vEdge1, vEdge2 );
-            Vec_IntWriteEntry( vDelay, iObj, DelayMax-1 );
-            return DelayMax-1;
+            DelayMax = Abc_MaxInt( DelayMax2, DelayMax - 8 );
+            Vec_IntWriteEntry( vDelay, iObj, DelayMax );
+            return DelayMax;
         }
     }
     Vec_IntWriteEntry( vDelay, iObj, DelayMax );
     return DelayMax;
 }
-int Gia_ManComputeEdgeDelay( Gia_Man_t * p )
+int Gia_ManComputeEdgeDelay( Gia_Man_t * p, int fUseTwo )
 {
     int k, iLut, DelayMax = 0;
     Vec_IntFreeP( &p->vEdgeDelay );
@@ -389,7 +402,7 @@ int Gia_ManComputeEdgeDelay( Gia_Man_t * p )
                 if ( Gia_ObjIsAnd(pObj) )
                 {
                     if ( Gia_ObjIsLut(p, iLut) )
-                        Gia_ObjComputeEdgeDelay( p, iLut, p->vEdgeDelay, p->vEdge1, p->vEdge2 );
+                        Gia_ObjComputeEdgeDelay( p, iLut, p->vEdgeDelay, p->vEdge1, p->vEdge2, fUseTwo );
                 }
                 else if ( Gia_ObjIsCi(pObj) )
                 {
@@ -409,7 +422,7 @@ int Gia_ManComputeEdgeDelay( Gia_Man_t * p )
         else
         {
             Gia_ManForEachLut( p, iLut )
-                Gia_ObjComputeEdgeDelay( p, iLut, p->vEdgeDelay, p->vEdge1, p->vEdge2 );
+                Gia_ObjComputeEdgeDelay( p, iLut, p->vEdgeDelay, p->vEdge1, p->vEdge2, fUseTwo );
         }
     }
     else if ( Gia_ManHasMapping2(p) )
@@ -425,7 +438,7 @@ int Gia_ManComputeEdgeDelay( Gia_Man_t * p )
                 if ( Gia_ObjIsAnd(pObj) )
                 {
                     if ( Gia_ObjIsLut2(p, iLut) )
-                        Gia_ObjComputeEdgeDelay( p, iLut, p->vEdgeDelay, p->vEdge1, p->vEdge2 );
+                        Gia_ObjComputeEdgeDelay( p, iLut, p->vEdgeDelay, p->vEdge1, p->vEdge2, fUseTwo );
                 }
                 else if ( Gia_ObjIsCi(pObj) )
                 {
@@ -445,7 +458,7 @@ int Gia_ManComputeEdgeDelay( Gia_Man_t * p )
         else
         {
             Gia_ManForEachLut2( p, iLut )
-                Gia_ObjComputeEdgeDelay( p, iLut, p->vEdgeDelay, p->vEdge1, p->vEdge2 );
+                Gia_ObjComputeEdgeDelay( p, iLut, p->vEdgeDelay, p->vEdge1, p->vEdge2, fUseTwo );
         }
     }
     else assert( 0 );
@@ -593,7 +606,7 @@ void Gia_ManUpdateMapping( Gia_Man_t * p, Vec_Int_t * vNodes, Vec_Wec_t * vWin )
     Vec_IntForEachEntry( vNodes, iNode, i )
         ABC_SWAP( Vec_Int_t, *Vec_WecEntry(p->vMapping2, iNode), *Vec_WecEntry(vWin, i) );
 }
-int Gia_ManEvalWindowInc( Gia_Man_t * p, Vec_Int_t * vLeaves, Vec_Int_t * vNodes, Vec_Wec_t * vWin, Vec_Int_t * vTemp )
+int Gia_ManEvalWindowInc( Gia_Man_t * p, Vec_Int_t * vLeaves, Vec_Int_t * vNodes, Vec_Wec_t * vWin, Vec_Int_t * vTemp, int fUseTwo )
 {
     int i, iLut, Delay, DelayMax = 0;
     assert( Vec_IntSize(vNodes) == Vec_WecSize(vWin) );
@@ -604,18 +617,18 @@ int Gia_ManEvalWindowInc( Gia_Man_t * p, Vec_Int_t * vLeaves, Vec_Int_t * vNodes
     {
         if ( !Gia_ObjIsLut(p, iLut) )
             continue;
-        Delay = Gia_ObjComputeEdgeDelay( p, iLut, p->vEdgeDelay, p->vEdge1, p->vEdge2 );
+        Delay = Gia_ObjComputeEdgeDelay( p, iLut, p->vEdgeDelay, p->vEdge1, p->vEdge2, fUseTwo );
         DelayMax = Abc_MaxInt( DelayMax, Delay );
     }
     Gia_ManUpdateMapping( p, vNodes, vWin );
     return DelayMax;
 }
-int Gia_ManEvalWindow( Gia_Man_t * p, Vec_Int_t * vLeaves, Vec_Int_t * vNodes, Vec_Wec_t * vWin, Vec_Int_t * vTemp )
+int Gia_ManEvalWindow( Gia_Man_t * p, Vec_Int_t * vLeaves, Vec_Int_t * vNodes, Vec_Wec_t * vWin, Vec_Int_t * vTemp, int fUseTwo )
 {
     int DelayMax;
     assert( Vec_IntSize(vNodes) == Vec_WecSize(vWin) );
     Gia_ManUpdateMapping( p, vNodes, vWin );
-    DelayMax = Gia_ManComputeEdgeDelay( p );
+    DelayMax = Gia_ManComputeEdgeDelay( p, fUseTwo );
     Gia_ManUpdateMapping( p, vNodes, vWin );
     return DelayMax;
 }

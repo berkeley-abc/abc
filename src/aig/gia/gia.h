@@ -1213,10 +1213,10 @@ extern Vec_Int_t *         Gia_ManEdgeToArray( Gia_Man_t * p );
 extern void                Gia_ManConvertPackingToEdges( Gia_Man_t * p );
 extern int                 Gia_ManEvalEdgeDelay( Gia_Man_t * p );
 extern int                 Gia_ManEvalEdgeCount( Gia_Man_t * p );
-extern int                 Gia_ManComputeEdgeDelay( Gia_Man_t * p );
+extern int                 Gia_ManComputeEdgeDelay( Gia_Man_t * p, int fUseTwo );
 extern int                 Gia_ManComputeEdgeDelay2( Gia_Man_t * p );
 extern void                Gia_ManUpdateMapping( Gia_Man_t * p, Vec_Int_t * vNodes, Vec_Wec_t * vWin );
-extern int                 Gia_ManEvalWindow( Gia_Man_t * p, Vec_Int_t * vLeaves, Vec_Int_t * vNodes, Vec_Wec_t * vWin, Vec_Int_t * vTemp );
+extern int                 Gia_ManEvalWindow( Gia_Man_t * p, Vec_Int_t * vLeaves, Vec_Int_t * vNodes, Vec_Wec_t * vWin, Vec_Int_t * vTemp, int fUseTwo );
 /*=== giaEnable.c ==========================================================*/
 extern void                Gia_ManDetectSeqSignals( Gia_Man_t * p, int fSetReset, int fVerbose );
 extern Gia_Man_t *         Gia_ManUnrollAndCofactor( Gia_Man_t * p, int nFrames, int nFanMax, int fVerbose );

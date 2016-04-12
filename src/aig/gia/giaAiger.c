@@ -1289,6 +1289,18 @@ void Gia_AigerWrite( Gia_Man_t * pInit, char * pFileName, int fWriteSymbols, int
         Vec_StrFree( vStrExt );
         if ( fVerbose ) printf( "Finished writing extension \"k\".\n" );
     }
+    // write edges
+    if ( p->vEdge1 )
+    {
+        Vec_Int_t * vPairs = Gia_ManEdgeToArray( p );
+        int i;
+        fprintf( pFile, "w" );
+        Gia_FileWriteBufferSize( pFile, 4*(Vec_IntSize(vPairs)+1) );
+        Gia_FileWriteBufferSize( pFile, Vec_IntSize(vPairs)/2 );
+        for ( i = 0; i < Vec_IntSize(vPairs); i++ )
+            Gia_FileWriteBufferSize( pFile, Vec_IntEntry(vPairs, i) );
+        Vec_IntFree( vPairs );
+    }
     // write mapping
     if ( Gia_ManHasMapping(p) )
     {
@@ -1328,18 +1340,6 @@ void Gia_AigerWrite( Gia_Man_t * pInit, char * pFileName, int fWriteSymbols, int
         Gia_FileWriteBufferSize( pFile, Vec_IntSize(p->vRegInits) );
         for ( i = 0; i < Vec_IntSize(p->vRegInits); i++ )
             Gia_FileWriteBufferSize( pFile, Vec_IntEntry(p->vRegInits, i) );
-    }
-    // write register inits
-    if ( p->vEdge1 )
-    {
-        Vec_Int_t * vPairs = Gia_ManEdgeToArray( p );
-        int i;
-        fprintf( pFile, "w" );
-        Gia_FileWriteBufferSize( pFile, 4*(Vec_IntSize(vPairs)+1) );
-        Gia_FileWriteBufferSize( pFile, Vec_IntSize(vPairs)/2 );
-        for ( i = 0; i < Vec_IntSize(vPairs); i++ )
-            Gia_FileWriteBufferSize( pFile, Vec_IntEntry(vPairs, i) );
-        Vec_IntFree( vPairs );
     }
     // write configuration data
     if ( p->vConfigs )

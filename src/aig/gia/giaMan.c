@@ -406,7 +406,7 @@ int Gia_ManPrintEdges( Gia_Man_t * p )
 {
     printf( "Edges (Q=2)    :                " );
     printf( "edge =%8d  ", (Vec_IntCountPositive(p->vEdge1) + Vec_IntCountPositive(p->vEdge2))/2 );
-    printf( "lut =%5d",    Gia_ManEvalEdgeDelay(p) );
+    printf( "lev =%5.1f",  0.1*Gia_ManEvalEdgeDelay(p) );
     printf( "\n" );
     return 0;
 }

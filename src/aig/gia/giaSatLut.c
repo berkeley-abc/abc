@@ -431,7 +431,7 @@ int Sbl_ManEvaluateMappingEdge( Sbl_Man_t * p, int DelayGlo )
     // update new timing
     Sbl_ManGetCurrentMapping( p );
     // derive new timing
-    DelayMax = Gia_ManEvalWindow( p->pGia, p->vLeaves, p->vAnds, p->vWindow, p->vPolar );
+    DelayMax = Gia_ManEvalWindow( p->pGia, p->vLeaves, p->vAnds, p->vWindow, p->vPolar, 1 );
     p->timeTime += Abc_Clock() - clk;
     if ( DelayMax <= DelayGlo )
         return 1;
