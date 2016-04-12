@@ -83,7 +83,6 @@ int ReduceEsopCover()
     // SIMPLIFICATION
     ////////////////////////////////////////////////////////////////////
 
-    long clk1 = clock();
     int nIterWithoutImprovement = 0;
     int nIterCount = 0;
     int GainTotal;
@@ -186,7 +185,7 @@ int ReduceEsopCover()
     printf( "\nShallow simplification time is ";
     cout << (float)(clk2 - clk1)/(float)(CLOCKS_PER_SEC) << " sec\n" );
     printf( "Deep simplification time is ";
-    cout << (float)(clock() - clk2)/(float)(CLOCKS_PER_SEC) << " sec\n" );
+    cout << (float)(Abc_Clock() - clk2)/(float)(CLOCKS_PER_SEC) << " sec\n" );
     printf( "Cover after iterative simplification = " << s_nCubesInUse << endl;
     printf( "Reduced by initial cube writing      = " << g_CoverInfo.nCubesBefore-nCubesAfterWriting << endl;
     printf( "Reduced by shallow simplification    = " << nCubesAfterWriting-nCubesAfterShallow << endl;
@@ -212,7 +211,7 @@ int ReduceEsopCover()
 // quite a good script
 //////////////////////////////////////////////////////////////////
 /*
-    long clk1 = clock();
+    long clk1 = Abc_Clock();
     int nIterWithoutImprovement = 0;
     do
     {
@@ -254,7 +253,7 @@ int ReduceEsopCover()
 
 /*
     // alu4 - 439
-    long clk1 = clock();
+    long clk1 = Abc_Clock();
     int nIterWithoutImprovement = 0;
     do
     {
@@ -296,7 +295,7 @@ int ReduceEsopCover()
 /*
 // alu4 - 412 cubes, 700 sec
 
-    long clk1 = clock();
+    long clk1 = Abc_Clock();
     int nIterWithoutImprovement = 0;
     int nIterCount = 0;
     do
@@ -351,7 +350,7 @@ int ReduceEsopCover()
 // pretty good script
 // alu4 = 424   in 250 sec
 
-    long clk1 = clock();
+    long clk1 = Abc_Clock();
     int nIterWithoutImprovement = 0;
     int nIterCount = 0;
     do
@@ -406,7 +405,7 @@ int ReduceEsopCover()
 /*
 alu4 = 435   70 secs
 
-    long clk1 = clock();
+    long clk1 = Abc_Clock();
     int nIterWithoutImprovement = 0;
     int nIterCount = 0;
 
@@ -445,7 +444,7 @@ alu4 = 435   70 secs
 /*
   // the best previous
   
-    long clk1 = clock();
+    long clk1 = Abc_Clock();
     int nIterWithoutImprovement = 0;
     int nIterCount = 0;
     int GainTotal;
@@ -510,7 +509,7 @@ alu4 = 435   70 secs
 /*
 // the last tried
 
-    long clk1 = clock();
+    long clk1 = Abc_Clock();
     int nIterWithoutImprovement = 0;
     int nIterCount = 0;
     int GainTotal;
@@ -653,7 +652,7 @@ void AddCubesToStartingCover( Vec_Wec_t * vEsop )
 ***********************************************************************/
 int Exorcism( Vec_Wec_t * vEsop, int nIns, int nOuts, char * pFileNameOut )
 {
-    long clk1;
+    abctime clk1;
     int RemainderBits;
     int TotalWords;
     int MemTemp, MemTotal;
@@ -678,10 +677,10 @@ int Exorcism( Vec_Wec_t * vEsop, int nIns, int nOuts, char * pFileNameOut )
     g_CoverInfo.cIDs = 1;
 
     // cubes
-    clk1 = clock();
+    clk1 = Abc_Clock();
 //  g_CoverInfo.nCubesBefore = CountTermsInPseudoKroneckerCover( g_Func.dd, nOuts );
     g_CoverInfo.nCubesBefore = Vec_WecSize(vEsop);
-    g_CoverInfo.TimeStart = clock() - clk1;
+    g_CoverInfo.TimeStart = Abc_Clock() - clk1;
 
     if ( g_CoverInfo.Verbosity )
     {
@@ -738,7 +737,7 @@ int Exorcism( Vec_Wec_t * vEsop, int nIns, int nOuts, char * pFileNameOut )
     // STEP 3: write the cube cover into the allocated storage
     ///////////////////////////////////////////////////////////////////////
     ///////////////////////////////////////////////////////////////////////
-    clk1 = clock();
+    clk1 = Abc_Clock();
     if ( g_CoverInfo.Verbosity )
     printf( "Generating the starting cover...\n" );
     AddCubesToStartingCover( vEsop );
@@ -749,10 +748,10 @@ int Exorcism( Vec_Wec_t * vEsop, int nIns, int nOuts, char * pFileNameOut )
     ///////////////////////////////////////////////////////////////////////
     if ( g_CoverInfo.Verbosity )
     printf( "Performing minimization...\n" );
-    clk1 = clock();
+    clk1 = Abc_Clock();
     ReduceEsopCover();
-    g_CoverInfo.TimeMin = clock() - clk1;
-//  g_Func.TimeMin = (float)(clock() - clk1)/(float)(CLOCKS_PER_SEC);
+    g_CoverInfo.TimeMin = Abc_Clock() - clk1;
+//  g_Func.TimeMin = (float)(Abc_Clock() - clk1)/(float)(CLOCKS_PER_SEC);
     if ( g_CoverInfo.Verbosity )
     {
     printf( "\nMinimization time is %.2f sec\n", TICKS_TO_SECONDS(g_CoverInfo.TimeMin) );

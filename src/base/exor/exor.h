@@ -111,9 +111,9 @@ typedef struct cinfo_tag
     int Verbosity;      // verbosity level
     int Quality;        // quality
 
-    int TimeRead;       // reading time
-    int TimeStart;      // starting cover computation time
-    int TimeMin;        // pure minimization time
+    abctime TimeRead;   // reading time
+    abctime TimeStart;  // starting cover computation time
+    abctime TimeMin;    // pure minimization time
 } cinfo;
 
 // representation of one cube (24 bytes + bit info)
