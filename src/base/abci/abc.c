@@ -465,6 +465,7 @@ static int Abc_CommandAbc9PoXsim             ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandAbc9Demiter            ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Fadds              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Esop               ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9Exorcism           ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Mfs                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 //static int Abc_CommandAbc9PoPart2            ( Abc_Frame_t * pAbc, int argc, char ** argv );
 //static int Abc_CommandAbc9CexCut             ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -1092,6 +1093,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "ABC9",         "&demiter",      Abc_CommandAbc9Demiter,      0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&fadds",        Abc_CommandAbc9Fadds,        0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&esop",         Abc_CommandAbc9Esop,         0 );
+    Cmd_CommandAdd( pAbc, "ABC9",         "&exorcism",     Abc_CommandAbc9Exorcism,     0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&mfs",          Abc_CommandAbc9Mfs,          0 );
 //    Cmd_CommandAdd( pAbc, "ABC9",         "&popart2",      Abc_CommandAbc9PoPart2,      0 );
 //    Cmd_CommandAdd( pAbc, "ABC9",         "&cexcut",       Abc_CommandAbc9CexCut,       0 );
@@ -8826,17 +8828,20 @@ usage:
 ***********************************************************************/
 int Abc_CommandCubes( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern Abc_Ntk_t * Abc_NtkSopToCubes( Abc_Ntk_t * pNtk );
+    extern Abc_Ntk_t * Abc_NtkSopToCubes( Abc_Ntk_t * pNtk, int fXor );
     Abc_Ntk_t * pNtk, * pNtkRes;
-    int c;
+    int c, fXor = 0;
 
     pNtk = Abc_FrameReadNtk(pAbc);
     // set defaults
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "xh" ) ) != EOF )
     {
         switch ( c )
         {
+        case 'x':
+            fXor ^= 1;
+            break;
         case 'h':
             goto usage;
         default:
@@ -8857,7 +8862,7 @@ int Abc_CommandCubes( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
 
     // get the new network
-    pNtkRes = Abc_NtkSopToCubes( pNtk );
+    pNtkRes = Abc_NtkSopToCubes( pNtk, fXor );
     if ( pNtkRes == NULL )
     {
         Abc_Print( -1, "Converting to cubes has failed.\n" );
@@ -8868,9 +8873,10 @@ int Abc_CommandCubes( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: cubes [-h]\n" );
+    Abc_Print( -2, "usage: cubes [-xh]\n" );
     Abc_Print( -2, "\t        converts the current network into a network derived by creating\n" );
     Abc_Print( -2, "\t        a separate node for each product and sum in the local SOPs\n" );
+    Abc_Print( -2, "\t-v    : toggle using XOR instead of OR [default = %s]\n", fXor? "yes": "no" );
     Abc_Print( -2, "\t-h    : print the command usage\n");
     return 1;
 }
@@ -39186,7 +39192,7 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9Esop( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern Gia_Man_t * Eso_ManCompute( Gia_Man_t * pGia, int fVerbose );
+    extern Gia_Man_t * Eso_ManCompute( Gia_Man_t * pGia, int fVerbose, Vec_Wec_t ** pvRes );
     Gia_Man_t * pTemp;
     int c, fVerbose = 0;
     Extra_UtilGetoptReset();
@@ -39208,7 +39214,7 @@ int Abc_CommandAbc9Esop( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Abc_CommandAbc9Esop(): There is no AIG.\n" );
         return 0;
     }
-    pTemp = Eso_ManCompute( pAbc->pGia, fVerbose );
+    pTemp = Eso_ManCompute( pAbc->pGia, fVerbose, NULL );
     Abc_FrameUpdateGia( pAbc, pTemp );
     return 0;
 
@@ -39217,6 +39223,86 @@ usage:
     Abc_Print( -2, "\t         derives Exclusive Sum of Products from AIG\n" );
     Abc_Print( -2, "\t-v     : toggles printing verbose information [default = %s]\n",  fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc9Exorcism( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern int Abc_ExorcismMain( Vec_Wec_t * vEsop, int nIns, int nOuts, char * pFileNameOut, int Quality, int Verbosity );
+    extern Gia_Man_t * Eso_ManCompute( Gia_Man_t * pGia, int fVerbose, Vec_Wec_t ** pvRes );
+    Vec_Wec_t * vEsop = NULL;
+    char * pFileNameOut = NULL;
+    int c, Quality = 2, Verbosity = 0, fVerbose = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "QVvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'Q':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-Q\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            Quality = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( Quality < 0 )
+                goto usage;
+            break;
+        case 'V':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-V\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            Verbosity = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( Verbosity < 0 )
+                goto usage;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pAbc->pGia == NULL )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9Exorcism(): There is no AIG.\n" );
+        return 0;
+    }
+    // get the output file name
+    if ( argc == globalUtilOptind + 1 )
+        pFileNameOut = argv[globalUtilOptind];
+    // generate starting cover and run minimization
+    Eso_ManCompute( pAbc->pGia, fVerbose, &vEsop );
+    Abc_ExorcismMain( vEsop, Gia_ManCiNum(pAbc->pGia), Gia_ManCoNum(pAbc->pGia), pFileNameOut, Quality, Verbosity );
+    Vec_WecFree( vEsop );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: &exorcism [-Q N] [-V N] <file>\n" );
+    Abc_Print( -2, "                performs heuristic exclusive sum-of-project minimization\n" );
+    Abc_Print( -2, "        -Q N  : minimization quality [default = 0]\n");
+    Abc_Print( -2, "                increasing this number improves quality and adds to runtime\n");
+    Abc_Print( -2, "        -Q N  : verbosity level [default = 0]\n");
+    Abc_Print( -2, "                0 = no output; 1 = outline; 2 = verbose\n");
+    Abc_Print( -2, "        <file>: the output file name in ESOP-PLA format\n");
+    Abc_Print( -2, "\n" );
     return 1;
 }
 

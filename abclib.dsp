@@ -954,6 +954,38 @@ SOURCE=.\src\base\cba\cbaWriteBlif.c
 SOURCE=.\src\base\cba\cbaWriteVer.c
 # End Source File
 # End Group
+# Begin Group "exor"
+
+# PROP Default_Filter ""
+# Begin Source File
+
+SOURCE=.\src\base\exor\exor.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\exor\exor.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\exor\exorBits.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\exor\exorCubes.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\exor\exorLink.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\exor\exorList.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\exor\exorUtil.c
+# End Source File
+# End Group
 # End Group
 # Begin Group "bdd"
 

@@ -144,7 +144,7 @@ Abc_Ntk_t * Io_ReadNetlist( char * pFileName, Io_FileType_t FileType, int fCheck
     else if ( FileType == IO_FILE_EQN )
         pNtk = Io_ReadEqn( pFileName, fCheck );
     else if ( FileType == IO_FILE_PLA )
-        pNtk = Io_ReadPla( pFileName, 0, 0, fCheck );
+        pNtk = Io_ReadPla( pFileName, 0, 0, 0, fCheck );
     else if ( FileType == IO_FILE_VERILOG )
         pNtk = Io_ReadVerilog( pFileName, fCheck );
     else 

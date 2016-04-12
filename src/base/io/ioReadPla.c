@@ -28,7 +28,7 @@ ABC_NAMESPACE_IMPL_START
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-static Abc_Ntk_t * Io_ReadPlaNetwork( Extra_FileReader_t * p, int fZeros, int fBoth );
+static Abc_Ntk_t * Io_ReadPlaNetwork( Extra_FileReader_t * p, int fZeros, int fBoth, int fSkipPrepro );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -326,7 +326,7 @@ void Io_ReadPlaCubePreprocess( Vec_Str_t * vSop, int iCover, int fVerbose )
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Ntk_t * Io_ReadPla( char * pFileName, int fZeros, int fBoth, int fCheck )
+Abc_Ntk_t * Io_ReadPla( char * pFileName, int fZeros, int fBoth, int fSkipPrepro, int fCheck )
 {
     Extra_FileReader_t * p;
     Abc_Ntk_t * pNtk;
@@ -338,7 +338,7 @@ Abc_Ntk_t * Io_ReadPla( char * pFileName, int fZeros, int fBoth, int fCheck )
         return NULL;
 
     // read the network
-    pNtk = Io_ReadPlaNetwork( p, fZeros, fBoth );
+    pNtk = Io_ReadPlaNetwork( p, fZeros, fBoth, fSkipPrepro );
     Extra_FileReaderFree( p );
     if ( pNtk == NULL )
         return NULL;
@@ -363,7 +363,7 @@ Abc_Ntk_t * Io_ReadPla( char * pFileName, int fZeros, int fBoth, int fCheck )
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Ntk_t * Io_ReadPlaNetwork( Extra_FileReader_t * p, int fZeros, int fBoth )
+Abc_Ntk_t * Io_ReadPlaNetwork( Extra_FileReader_t * p, int fZeros, int fBoth, int fSkipPrepro )
 {
     ProgressBar * pProgress;
     Vec_Ptr_t * vTokens;
@@ -567,7 +567,8 @@ Abc_Ntk_t * Io_ReadPlaNetwork( Extra_FileReader_t * p, int fZeros, int fBoth )
             continue;
         }
         Vec_StrPush( ppSops[i], 0 );
-        Io_ReadPlaCubePreprocess( ppSops[i], i, 0 );
+        if ( !fSkipPrepro )
+            Io_ReadPlaCubePreprocess( ppSops[i], i, 0 );
         pNode->pData = Abc_SopRegister( (Mem_Flex_t *)pNtk->pManFunc, ppSops[i]->pArray );
         Vec_StrFree( ppSops[i] );
     }

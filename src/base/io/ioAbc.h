@@ -93,7 +93,7 @@ extern Abc_Ntk_t *        Io_ReadEdif( char * pFileName, int fCheck );
 /*=== abcReadEqn.c ============================================================*/
 extern Abc_Ntk_t *        Io_ReadEqn( char * pFileName, int fCheck );
 /*=== abcReadPla.c ============================================================*/
-extern Abc_Ntk_t *        Io_ReadPla( char * pFileName, int fZeros, int fBoth, int fCheck );
+extern Abc_Ntk_t *        Io_ReadPla( char * pFileName, int fZeros, int fBoth, int fSkipPrepro, int fCheck );
 /*=== abcReadVerilog.c ========================================================*/
 extern Abc_Ntk_t *        Io_ReadVerilog( char * pFileName, int fCheck );
 /*=== abcWriteAiger.c =========================================================*/

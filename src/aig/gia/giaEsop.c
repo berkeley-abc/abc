@@ -143,6 +143,33 @@ void Eso_ManCoverPrint( Eso_Man_t * p, Vec_Int_t * vEsop )
     printf( "\n" );
     Vec_StrFree( vStr );
 }
+Vec_Wec_t * Eso_ManCoverDerive( Eso_Man_t * p, Vec_Ptr_t * vCover )
+{
+    Vec_Wec_t * vRes;
+    Vec_Int_t * vEsop, * vLevel;  int i;
+    vRes = Vec_WecAlloc( Vec_VecSizeSize((Vec_Vec_t *)vCover) );
+    Vec_PtrForEachEntry( Vec_Int_t *, vCover, vEsop, i )
+    {
+        if ( Vec_IntSize(vEsop) > 0 )
+        {
+            int c, Cube;
+            Vec_IntForEachEntry( vEsop, Cube, c )
+            {
+                vLevel = Vec_WecPushLevel( vRes );
+                if ( Cube != p->Cube1 )
+                {
+                    int k, Lit;
+                    Vec_Int_t * vCube = Eso_ManCube( p, Cube );
+                    Vec_IntForEachEntry( vCube, Lit, k )
+                        Vec_IntPush( vLevel, Lit );
+                }
+                Vec_IntPush( vLevel, -i-1 );
+            }
+        }
+    }
+    assert( Vec_WecSize(vRes) == Vec_WecCap(vRes) );
+    return vRes;
+}
 Gia_Man_t * Eso_ManCoverConvert( Eso_Man_t * p, Vec_Ptr_t * vCover )
 {
     Vec_Int_t * vEsop;
@@ -459,14 +486,15 @@ Vec_Int_t * Eso_ManTransformOne( Eso_Man_t * p, Vec_Int_t * vEsop, int fCompl, V
   SeeAlso     []
 
 ***********************************************************************/
-Gia_Man_t * Eso_ManCompute( Gia_Man_t * pGia, int fVerbose )
+Gia_Man_t * Eso_ManCompute( Gia_Man_t * pGia, int fVerbose, Vec_Wec_t ** pvRes )
 {
     abctime clk = Abc_Clock();
     Vec_Ptr_t * vCover;
-    Gia_Man_t * pNew;
-    Gia_Obj_t * pObj; int i, nCubes = 0, nCubesUsed = 0;
+    Gia_Man_t * pNew = NULL;
+    Gia_Obj_t * pObj; 
+    int i, nCubes = 0, nCubesUsed = 0;
     Vec_Int_t * vEsop1, * vEsop2, * vEsop;
-    Eso_Man_t * p = Eso_ManAlloc( pGia );
+    Eso_Man_t * p = Eso_ManAlloc( pGia ); 
     Gia_ManForEachAnd( pGia, pObj, i )
     {
         vEsop1 = Vec_WecEntry( p->vEsops, Gia_ObjFaninId0(pObj, i) );
@@ -482,16 +510,23 @@ Gia_Man_t * Eso_ManCompute( Gia_Man_t * pGia, int fVerbose )
     {
         vEsop1 = Vec_WecEntry( p->vEsops, Gia_ObjFaninId0p(pGia, pObj) );
         vEsop1 = Eso_ManTransformOne( p, vEsop1, Gia_ObjFaninC0(pObj), p->vCube1 );
-        printf( "Output %3d:  ESOP has %5d cubes\n", i, Vec_IntSize(vEsop1) );
         if ( fVerbose )
-            Eso_ManCoverPrint( p, vEsop1 );
+            printf( "Output %3d:  ESOP has %5d cubes\n", i, Vec_IntSize(vEsop1) );
+//        if ( fVerbose )
+//            Eso_ManCoverPrint( p, vEsop1 );
         Vec_PtrPush( vCover, Vec_IntDup(vEsop1) );
         nCubesUsed += Vec_IntSize(vEsop1);
     }
-    printf( "Outs = %d.  Cubes = %d.  Used = %d.  Hashed = %d. ", 
-        Gia_ManCoNum(pGia), nCubes, nCubesUsed, Hsh_VecSize(p->pHash) );
-    Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
-    pNew = Eso_ManCoverConvert( p, vCover );
+    if ( fVerbose )
+    {
+        printf( "Outs = %d.  Cubes = %d.  Used = %d.  Hashed = %d. ", 
+            Gia_ManCoNum(pGia), nCubes, nCubesUsed, Hsh_VecSize(p->pHash) );
+        Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
+    }
+    if ( pvRes )
+        *pvRes = Eso_ManCoverDerive( p, vCover );
+    else
+        pNew = Eso_ManCoverConvert( p, vCover );
     Vec_VecFree( (Vec_Vec_t *)vCover );
     Eso_ManStop( p );
     return pNew;

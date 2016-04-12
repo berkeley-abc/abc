@@ -903,10 +903,10 @@ int IoCommandReadPla( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Abc_Ntk_t * pNtk;
     char * pFileName;
-    int c, fZeros = 0, fBoth = 0, fCheck = 1;
+    int c, fZeros = 0, fBoth = 0, fSkipPrepro = 0, fCheck = 1;
 
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "zbch" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "zbxch" ) ) != EOF )
     {
         switch ( c )
         {
@@ -915,6 +915,9 @@ int IoCommandReadPla( Abc_Frame_t * pAbc, int argc, char ** argv )
                 break;
             case 'b':
                 fBoth ^= 1;
+                break;
+            case 'x':
+                fSkipPrepro ^= 1;
                 break;
             case 'c':
                 fCheck ^= 1;
@@ -930,10 +933,10 @@ int IoCommandReadPla( Abc_Frame_t * pAbc, int argc, char ** argv )
     // get the input file name
     pFileName = argv[globalUtilOptind];
     // read the file using the corresponding file reader
-    if ( fZeros || fBoth )
+    if ( fZeros || fBoth || fSkipPrepro )
     {
         Abc_Ntk_t * pTemp;
-        pNtk = Io_ReadPla( pFileName, fZeros, fBoth, fCheck );
+        pNtk = Io_ReadPla( pFileName, fZeros, fBoth, fSkipPrepro, fCheck );
         if ( pNtk == NULL )
         {
             printf( "Reading PLA file has failed.\n" );
@@ -952,10 +955,11 @@ int IoCommandReadPla( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( pAbc->Err, "usage: read_pla [-zbch] <file>\n" );
+    fprintf( pAbc->Err, "usage: read_pla [-zbxch] <file>\n" );
     fprintf( pAbc->Err, "\t         reads the network in PLA\n" );
     fprintf( pAbc->Err, "\t-z     : toggle reading on-set and off-set [default = %s]\n", fZeros? "off-set":"on-set" );
     fprintf( pAbc->Err, "\t-b     : toggle reading both on-set and off-set as on-set [default = %s]\n", fBoth? "off-set":"on-set" );
+    fprintf( pAbc->Err, "\t-x     : toggle reading Exclusive SOP rather than SOP [default = %s]\n", fSkipPrepro? "yes":"no" );
     fprintf( pAbc->Err, "\t-c     : toggle network check after reading [default = %s]\n", fCheck? "yes":"no" );
     fprintf( pAbc->Err, "\t-h     : prints the command summary\n" );
     fprintf( pAbc->Err, "\tfile   : the name of a file to read\n" );

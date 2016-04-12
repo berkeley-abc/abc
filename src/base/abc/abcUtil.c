@@ -2501,7 +2501,7 @@ float Abc_NtkComputeDelay( Abc_Ntk_t * pNtk )
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_NodeSopToCubes( Abc_Obj_t * pNodeOld, Abc_Ntk_t * pNtkNew )
+void Abc_NodeSopToCubes( Abc_Obj_t * pNodeOld, Abc_Ntk_t * pNtkNew, int fXor )
 {
     Abc_Obj_t * pNodeOr, * pNodeNew, * pFanin;
     char * pCube, * pSop = (char *)pNodeOld->pData;
@@ -2517,7 +2517,10 @@ void Abc_NodeSopToCubes( Abc_Obj_t * pNodeOld, Abc_Ntk_t * pNtkNew )
     }
     // add the OR gate
     pNodeOr = Abc_NtkCreateNode( pNtkNew );
-    pNodeOr->pData = Abc_SopCreateOr( (Mem_Flex_t *)pNtkNew->pManFunc, Abc_SopGetCubeNum(pSop), NULL );
+    if ( fXor )
+        pNodeOr->pData = Abc_SopCreateXorSpecial( (Mem_Flex_t *)pNtkNew->pManFunc, Abc_SopGetCubeNum(pSop) );
+    else 
+        pNodeOr->pData = Abc_SopCreateOr( (Mem_Flex_t *)pNtkNew->pManFunc, Abc_SopGetCubeNum(pSop), NULL );
     // check the logic function of the node
     Abc_SopForEachCube( pSop, nVars, pCube )
     {
@@ -2525,6 +2528,12 @@ void Abc_NodeSopToCubes( Abc_Obj_t * pNodeOld, Abc_Ntk_t * pNtkNew )
         Abc_CubeForEachVar( pCube, Value, v )
             if ( Value == '0' || Value == '1' )
                 nFanins++;
+        if ( nFanins == 0 ) // const1 cube in ESOP
+        {
+            pNodeNew = Abc_NtkCreateNodeConst1( pNtkNew );
+            Abc_ObjAddFanin( pNodeOr, pNodeNew );
+            continue;
+        }
         assert( nFanins > 0 );
         // create node
         pNodeNew = Abc_NtkCreateNode( pNtkNew );
@@ -2548,7 +2557,7 @@ void Abc_NodeSopToCubes( Abc_Obj_t * pNodeOld, Abc_Ntk_t * pNtkNew )
     assert( pNodeOld->pCopy == NULL );
     pNodeOld->pCopy = pNodeOr;
 }
-Abc_Ntk_t * Abc_NtkSopToCubes( Abc_Ntk_t * pNtk )
+Abc_Ntk_t * Abc_NtkSopToCubes( Abc_Ntk_t * pNtk, int fXor )
 {
     Abc_Ntk_t * pNtkNew;
     Abc_Obj_t * pNode;
@@ -2560,7 +2569,7 @@ Abc_Ntk_t * Abc_NtkSopToCubes( Abc_Ntk_t * pNtk )
     // perform conversion in the topological order
     vNodes = Abc_NtkDfs( pNtk, 0 );
     Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pNode, i )
-        Abc_NodeSopToCubes( pNode, pNtkNew );
+        Abc_NodeSopToCubes( pNode, pNtkNew, fXor );
     Vec_PtrFree( vNodes );
     // make sure everything is okay
     Abc_NtkFinalize( pNtk, pNtkNew );
