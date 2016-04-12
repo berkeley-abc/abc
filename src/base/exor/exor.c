@@ -801,16 +801,14 @@ int Exorcism( Vec_Wec_t * vEsop, int nIns, int nOuts, char * pFileNameOut )
 int Abc_ExorcismMain( Vec_Wec_t * vEsop, int nIns, int nOuts, char * pFileNameOut, int Quality, int Verbosity )
 {
     memset( &g_CoverInfo, 0, sizeof(cinfo) );
-
     g_CoverInfo.Quality = Quality;
     g_CoverInfo.Verbosity = Verbosity;
-
-    printf( "EXORCISM, Ver.4.7: Exclusive Sum-of-Product Minimizer\n" );
-    printf( "by Alan Mishchenko, Portland State University, July-September 2000\n" );
-
     if ( g_CoverInfo.Verbosity )
+    {
+        printf( "\nEXORCISM, Ver.4.7: Exclusive Sum-of-Product Minimizer\n" );
+        printf( "by Alan Mishchenko, Portland State University, July-September 2000\n\n" );
         printf( "Incoming ESOP has %d inputs, %d outputs, and %d cubes.\n", nIns, nOuts, Vec_WecSize(vEsop) );
-
+    }
     PrepareBitSetModule();
     if ( Exorcism( vEsop, nIns, nOuts, pFileNameOut ) == 0 )
     {
