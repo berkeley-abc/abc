@@ -179,9 +179,6 @@ struct sat_solver_t
     // clause store
     void *      pStore;
     int         fSolved;
-    // decision variables
-    veci        vDeciVars;
-    int         iDeciVar;
 
     // trace recording
     FILE *      pFile;
@@ -226,18 +223,9 @@ static void sat_solver_compress(sat_solver* s)
         (void) RetValue;
     }
 }
-static void sat_solver_prepare_enum(sat_solver* s, int * pVars, int nVars )
-{
-    int v;
-    assert( veci_size(&s->vDeciVars) == 0 );
-    veci_new(&s->vDeciVars);
-    for ( v = 0; v < nVars; v++ )
-        veci_push(&s->vDeciVars,pVars[v]);
-}
 static void sat_solver_clean_polarity(sat_solver* s, int * pVars, int nVars )
 {
     int i;
-    assert( veci_size(&s->vDeciVars) == 0 );
     for ( i = 0; i < nVars; i++ )
         s->polarity[pVars[i]] = 0;
 }
