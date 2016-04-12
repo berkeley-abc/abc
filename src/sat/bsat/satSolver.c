@@ -508,12 +508,6 @@ static inline int sat_solver_enqueue(sat_solver* s, lit l, int from)
         s->reasons[v] = from;
         s->trail[s->qtail++] = l;
         order_assigned(s, v);
-        // if cardinality clause is present, add positive literals
-        if ( s->cardinality && !lit_sign(l) && s->nCard >= (int)s->cardinality->size )
-        {
-//printf( "setting trail[%d] = %d\n", s->qtail-1, l );
-            s->cardinality->lits[s->nCard - s->cardinality->size++] = lit_neg(l);
-        }
         return true;
     }
 }
@@ -555,13 +549,6 @@ static void sat_solver_canceluntil(sat_solver* s, int level) {
         s->reasons[x] = 0;
         if ( c < lastLev )
             var_set_polar( s, x, !lit_sign(s->trail[c]) );
-        // if cardinality clause is present, remove positive
-        if ( s->cardinality && s->cardinality->lits[s->nCard+1 - s->cardinality->size] == lit_neg(s->trail[c]) )
-        {
-//printf( "undoing trail[%d] = %d\n", c, s->trail[c] );
-            assert( s->cardinality->size > 0 );
-            s->cardinality->size--;
-        }
     }
     //printf( "\n" );
 
@@ -795,7 +782,7 @@ static void sat_solver_analyze(sat_solver* s, int h, veci* learnt)
     lit      p       = lit_Undef;
     int      ind     = s->qtail-1;
     lit*     lits;
-    int      i, j, minl;// int hTemp = h;
+    int      i, j, minl;
     veci_push(learnt,lit_Undef);
     do{
         assert(h != 0);
@@ -810,7 +797,7 @@ static void sat_solver_analyze(sat_solver* s, int h, veci* learnt)
                     veci_push(learnt,clause_read_lit(h));
             }
         }else{
-            clause* c = h == -2 ? s->cardinality : clause_read(s, h);
+            clause* c = clause_read(s, h);
             
             if (clause_learnt(c))
                 act_clause_bump(s,c);
@@ -893,8 +880,6 @@ static void sat_solver_analyze(sat_solver* s, int h, veci* learnt)
         printf(" } at level %d\n", lev);
     }
 #endif
-//    if ( hTemp == -2 )
-//        printf( "%d ", veci_size(learnt) );
 }
 
 //#define TEST_CNF_LOAD
@@ -1200,7 +1185,6 @@ void sat_solver_delete(sat_solver* s)
     }
 
     sat_solver_store_free(s);
-    ABC_FREE(s->cardinality);
     ABC_FREE(s);
 }
 
@@ -1641,8 +1625,6 @@ static lbool sat_solver_search(sat_solver* s, ABC_INT64_T nof_conflicts)
 
     for (;;){
         int hConfl = sat_solver_propagate(s);
-        if ( hConfl == 0 && s->cardinality && (int)s->cardinality->size == s->nCard+1 )
-            hConfl = -2, s->nCardClauses++;
         if (hConfl != 0){
             // CONFLICT
             int blevel;
@@ -1925,7 +1907,6 @@ int sat_solver_solve(sat_solver* s, lit* begin, lit* end, ABC_INT64_T nConfLimit
             fflush(stdout);
         }
         nof_conflicts = (ABC_INT64_T)( 100 * luby(2, restart_iter++) );
-//        assert( s->cardinality->size == 0 );
         status = sat_solver_search(s, nof_conflicts);
 //        nof_learnts    = nof_learnts * 11 / 10; //*= 1.1;
         // quit the loop if reached an external limit

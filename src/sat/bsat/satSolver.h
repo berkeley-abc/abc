@@ -100,9 +100,6 @@ struct sat_solver_t
     int         hLearnts;      // the first learnt clause
     int         hBinary;       // the special binary clause
     clause *    binary;
-    clause *    cardinality;   // cardinality clause
-    int         nCard;         // cardinality size
-    int         nCardClauses;  // cardinality conflicts
     veci*       wlists;        // watcher lists
     veci        act_clas;      // contain clause activities
 
@@ -293,13 +290,6 @@ static inline int sat_solver_count_usedvars(sat_solver* s)
             nVars++;
         }
     return nVars;
-}
-static inline void sat_solver_start_cardinality(sat_solver* s, int nSize)
-{
-    assert( s->cardinality == NULL );
-    s->cardinality = (clause*)ABC_CALLOC(int, nSize+2);
-    s->nCard = nSize;
-    s->nCardClauses = 0;
 }
 static void sat_solver_set_polarity(sat_solver* s, int * pVars, int nVars )
 {
