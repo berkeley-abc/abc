@@ -13,7 +13,7 @@ PROG := abc
 
 MODULES := \
 	$(wildcard src/ext*) \
-	src/base/abc src/base/abci src/base/cmd src/base/io src/base/main \
+	src/base/abc src/base/abci src/base/cmd src/base/io src/base/main /src/base/exor \
 	src/base/ver src/base/wlc src/base/bac src/base/cba src/base/pla src/base/test \
 	src/map/mapper src/map/mio src/map/super src/map/if \
 	src/map/amap src/map/cov src/map/scl src/map/mpm \
