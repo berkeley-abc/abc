@@ -192,7 +192,6 @@ static inline double Sat_Wrd2Dbl( word w )  { return (double)(unsigned)(w&0x3FFF
 
 void Sat_SolverPrintStats( FILE * pFile, sat_solver * p )
 {
-//    printf( "calls         : %10d (%d)\n", (int)p->nCalls, (int)p->nCalls2 );
     printf( "starts        : %16.0f\n", Sat_Wrd2Dbl(p->stats.starts) );
     printf( "conflicts     : %16.0f\n", Sat_Wrd2Dbl(p->stats.conflicts) );
     printf( "decisions     : %16.0f\n", Sat_Wrd2Dbl(p->stats.decisions) );

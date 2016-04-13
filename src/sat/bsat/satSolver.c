@@ -513,7 +513,7 @@ static inline int sat_solver_enqueue(sat_solver* s, lit l, int from)
 }
 
 
-static inline int sat_solver_assume(sat_solver* s, lit l){
+static inline int sat_solver_decision(sat_solver* s, lit l){
     assert(s->qtail == s->qhead);
     assert(var_value(s, lit_var(l)) == varX);
 #ifdef VERBOSEDEBUG
@@ -1689,42 +1689,119 @@ static lbool sat_solver_search(sat_solver* s, ABC_INT64_T nof_conflicts)
             }
 
             if ( var_polar(s, next) ) // positive polarity
-                sat_solver_assume(s,toLit(next));
+                sat_solver_decision(s,toLit(next));
             else
-                sat_solver_assume(s,lit_neg(toLit(next)));
+                sat_solver_decision(s,lit_neg(toLit(next)));
         }
     }
 
     return l_Undef; // cannot happen
 }
 
-int sat_solver_solve(sat_solver* s, lit* begin, lit* end, ABC_INT64_T nConfLimit, ABC_INT64_T nInsLimit, ABC_INT64_T nConfLimitGlobal, ABC_INT64_T nInsLimitGlobal)
+// internal call to the SAT solver
+int sat_solver_solve_internal(sat_solver* s)
 {
+    lbool status = l_Undef;
     int restart_iter = 0;
-    ABC_INT64_T  nof_conflicts;
-//    ABC_INT64_T  nof_learnts   = sat_solver_nclauses(s) / 3;
-    lbool   status        = l_Undef;
-    lit*    i;
-
-    if ( s->fVerbose )
-        printf( "Running SAT solver with parameters %d and %d and %d.\n", s->nLearntStart, s->nLearntDelta, s->nLearntRatio );
-
-    ////////////////////////////////////////////////
-    if ( s->fSolved )
-    {
-        if ( s->pStore )
-        {
-            int RetValue = Sto_ManAddClause( (Sto_Man_t *)s->pStore, NULL, NULL );
-            assert( RetValue );
-            (void) RetValue;
-        }
-        return l_False;
-    }
-    ////////////////////////////////////////////////
     veci_resize(&s->unit_lits, 0);
-
-    // set the external limits
     s->nCalls++;
+
+    if (s->verbosity >= 1){
+        printf("==================================[MINISAT]===================================\n");
+        printf("| Conflicts |     ORIGINAL     |              LEARNT              | Progress |\n");
+        printf("|           | Clauses Literals |   Limit Clauses Literals  Lit/Cl |          |\n");
+        printf("==============================================================================\n");
+    }
+
+    while (status == l_Undef){
+        ABC_INT64_T nof_conflicts;
+        double Ratio = (s->stats.learnts == 0)? 0.0 :
+            s->stats.learnts_literals / (double)s->stats.learnts;
+        if ( s->nRuntimeLimit && Abc_Clock() > s->nRuntimeLimit )
+            break;
+        if (s->verbosity >= 1)
+        {
+            printf("| %9.0f | %7.0f %8.0f | %7.0f %7.0f %8.0f %7.1f | %6.3f %% |\n", 
+                (double)s->stats.conflicts,
+                (double)s->stats.clauses, 
+                (double)s->stats.clauses_literals,
+                (double)0, 
+                (double)s->stats.learnts, 
+                (double)s->stats.learnts_literals,
+                Ratio,
+                s->progress_estimate*100);
+            fflush(stdout);
+        }
+        nof_conflicts = (ABC_INT64_T)( 100 * luby(2, restart_iter++) );
+        status = sat_solver_search(s, nof_conflicts);
+        // quit the loop if reached an external limit
+        if ( s->nConfLimit && s->stats.conflicts > s->nConfLimit )
+            break;
+        if ( s->nInsLimit  && s->stats.propagations > s->nInsLimit )
+            break;
+        if ( s->nRuntimeLimit && Abc_Clock() > s->nRuntimeLimit )
+            break;
+    }
+    if (s->verbosity >= 1)
+        printf("==============================================================================\n");
+
+    sat_solver_canceluntil(s,s->root_level);
+    return status;
+}
+
+// pushing one assumption to the stack of assumptions
+int sat_solver_push(sat_solver* s, int p)
+{
+    assert(lit_var(p) < s->size);
+    veci_push(&s->trail_lim,s->qtail);
+    s->root_level++;
+    if (!sat_solver_enqueue(s,p,0))
+    {
+        int h = s->reasons[lit_var(p)];
+        if (h)
+        {
+            if (clause_is_lit(h))
+            {
+                (clause_begin(s->binary))[1] = lit_neg(p);
+                (clause_begin(s->binary))[0] = clause_read_lit(h);
+                h = s->hBinary;
+            }
+            sat_solver_analyze_final(s, h, 1);
+            veci_push(&s->conf_final, lit_neg(p));
+        }
+        else
+        {
+            veci_resize(&s->conf_final,0);
+            veci_push(&s->conf_final, lit_neg(p));
+            // the two lines below are a bug fix by Siert Wieringa 
+            if (var_level(s, lit_var(p)) > 0)
+                veci_push(&s->conf_final, p);
+        }
+        //sat_solver_canceluntil(s, 0);
+        return false; 
+    }
+    else
+    {
+        int fConfl = sat_solver_propagate(s);
+        if (fConfl){
+            sat_solver_analyze_final(s, fConfl, 0);
+            //assert(s->conf_final.size > 0);
+            //sat_solver_canceluntil(s, 0);
+            return false; }
+    }
+    return true;
+}
+
+// removing one assumption from the stack of assumptions
+void sat_solver_pop(sat_solver* s)
+{
+    assert( sat_solver_dl(s) > 0 );
+    sat_solver_canceluntil(s, --s->root_level);
+}
+
+void sat_solver_set_resource_limits(sat_solver* s, ABC_INT64_T nConfLimit, ABC_INT64_T nInsLimit, ABC_INT64_T nConfLimitGlobal, ABC_INT64_T nInsLimitGlobal)
+{
+    // set the external limits
     s->nRestarts  = 0;
     s->nConfLimit = 0;
     s->nInsLimit  = 0;
@@ -1737,9 +1814,42 @@ int sat_solver_solve(sat_solver* s, lit* begin, lit* end, ABC_INT64_T nConfLimit
         s->nConfLimit = nConfLimitGlobal;
     if ( nInsLimitGlobal && (s->nInsLimit == 0 || s->nInsLimit > nInsLimitGlobal) )
         s->nInsLimit = nInsLimitGlobal;
+}
 
-#ifndef SAT_USE_ANALYZE_FINAL
+int sat_solver_solve(sat_solver* s, lit* begin, lit* end, ABC_INT64_T nConfLimit, ABC_INT64_T nInsLimit, ABC_INT64_T nConfLimitGlobal, ABC_INT64_T nInsLimitGlobal)
+{
+    lbool status;
+    lit * i;
+    ////////////////////////////////////////////////
+    if ( s->fSolved )
+    {
+        if ( s->pStore )
+        {
+            int RetValue = Sto_ManAddClause( (Sto_Man_t *)s->pStore, NULL, NULL );
+            assert( RetValue );
+            (void) RetValue;
+        }
+        return l_False;
+    }
+    ////////////////////////////////////////////////
 
+    if ( s->fVerbose )
+        printf( "Running SAT solver with parameters %d and %d and %d.\n", s->nLearntStart, s->nLearntDelta, s->nLearntRatio );
+
+    sat_solver_set_resource_limits( s, nConfLimit, nInsLimit, nConfLimitGlobal, nInsLimitGlobal );
+
+#ifdef SAT_USE_ANALYZE_FINAL
+    // Perform assumptions:
+    s->root_level = 0;
+    for ( i = begin; i < end; i++ )
+        if ( !sat_solver_push(s, *i) )
+        {
+            sat_solver_canceluntil(s,0);
+            s->root_level = 0;
+            return l_False;
+        }
+    assert(s->root_level == sat_solver_dl(s));
+#else
     //printf("solve: "); printlits(begin, end); printf("\n");
     for (i = begin; i < end; i++){
 //        switch (lit_sign(*i) ? -s->assignss[lit_var(*i)] : s->assignss[lit_var(*i)]){
@@ -1747,7 +1857,7 @@ int sat_solver_solve(sat_solver* s, lit* begin, lit* end, ABC_INT64_T nConfLimit
         case var1: // l_True: 
             break;
         case varX: // l_Undef
-            sat_solver_assume(s, *i);
+            sat_solver_decision(s, *i);
             if (sat_solver_propagate(s) == 0)
                 break;
             // fallthrough
@@ -1757,130 +1867,12 @@ int sat_solver_solve(sat_solver* s, lit* begin, lit* end, ABC_INT64_T nConfLimit
         }
     }
     s->root_level = sat_solver_dl(s);
-
 #endif
 
-/*
-    // Perform assumptions:
-    root_level = assumps.size();
-    for (int i = 0; i < assumps.size(); i++){
-        Lit p = assumps[i];
-        assert(var(p) < nVars());
-        if (!sat_solver_assume(p)){
-            GClause r = reason[var(p)];
-            if (r != GClause_NULL){
-                Clause* confl;
-                if (r.isLit()){
-                    confl = propagate_tmpbin;
-                    (*confl)[1] = ~p;
-                    (*confl)[0] = r.lit();
-                }else
-                    confl = r.clause();
-                analyzeFinal(confl, true);
-                conflict.push(~p);
-            }else
-                conflict.clear(),
-                conflict.push(~p);
-            cancelUntil(0);
-            return false; }
-        Clause* confl = propagate();
-        if (confl != NULL){
-            analyzeFinal(confl), assert(conflict.size() > 0);
-            cancelUntil(0);
-            return false; }
-    }
-    assert(root_level == decisionLevel());
-*/
-
-#ifdef SAT_USE_ANALYZE_FINAL
-    // Perform assumptions:
-    s->root_level = end - begin;
-    for ( i = begin; i < end; i++ )
-    {
-        lit p = *i;
-        assert(lit_var(p) < s->size);
-        veci_push(&s->trail_lim,s->qtail);
-        if (!sat_solver_enqueue(s,p,0))
-        {
-            int h = s->reasons[lit_var(p)];
-            if (h)
-            {
-                if (clause_is_lit(h))
-                {
-                    (clause_begin(s->binary))[1] = lit_neg(p);
-                    (clause_begin(s->binary))[0] = clause_read_lit(h);
-                    h = s->hBinary;
-                }
-                sat_solver_analyze_final(s, h, 1);
-                veci_push(&s->conf_final, lit_neg(p));
-            }
-            else
-            {
-                veci_resize(&s->conf_final,0);
-                veci_push(&s->conf_final, lit_neg(p));
-                // the two lines below are a bug fix by Siert Wieringa 
-                if (var_level(s, lit_var(p)) > 0)
-                    veci_push(&s->conf_final, p);
-            }
-            sat_solver_canceluntil(s, 0);
-            return l_False; 
-        }
-        else
-        {
-            int fConfl = sat_solver_propagate(s);
-            if (fConfl){
-                sat_solver_analyze_final(s, fConfl, 0);
-                //assert(s->conf_final.size > 0);
-                sat_solver_canceluntil(s, 0);
-                return l_False; }
-        }
-    }
-    assert(s->root_level == sat_solver_dl(s));
-#endif
-
-    s->nCalls2++;
-
-    if (s->verbosity >= 1){
-        printf("==================================[MINISAT]===================================\n");
-        printf("| Conflicts |     ORIGINAL     |              LEARNT              | Progress |\n");
-        printf("|           | Clauses Literals |   Limit Clauses Literals  Lit/Cl |          |\n");
-        printf("==============================================================================\n");
-    }
-
-    while (status == l_Undef){
-        double Ratio = (s->stats.learnts == 0)? 0.0 :
-            s->stats.learnts_literals / (double)s->stats.learnts;
-        if ( s->nRuntimeLimit && Abc_Clock() > s->nRuntimeLimit )
-            break;
-        if (s->verbosity >= 1)
-        {
-            printf("| %9.0f | %7.0f %8.0f | %7.0f %7.0f %8.0f %7.1f | %6.3f %% |\n", 
-                (double)s->stats.conflicts,
-                (double)s->stats.clauses, 
-                (double)s->stats.clauses_literals,
-//                (double)nof_learnts, 
-                (double)0, 
-                (double)s->stats.learnts, 
-                (double)s->stats.learnts_literals,
-                Ratio,
-                s->progress_estimate*100);
-            fflush(stdout);
-        }
-        nof_conflicts = (ABC_INT64_T)( 100 * luby(2, restart_iter++) );
-        status = sat_solver_search(s, nof_conflicts);
-//        nof_learnts    = nof_learnts * 11 / 10; //*= 1.1;
-        // quit the loop if reached an external limit
-        if ( s->nConfLimit && s->stats.conflicts > s->nConfLimit )
-            break;
-        if ( s->nInsLimit  && s->stats.propagations > s->nInsLimit )
-            break;
-        if ( s->nRuntimeLimit && Abc_Clock() > s->nRuntimeLimit )
-            break;
-    }
-    if (s->verbosity >= 1)
-        printf("==============================================================================\n");
+    status = sat_solver_solve_internal(s);
 
     sat_solver_canceluntil(s,0);
+    s->root_level = 0;
 
     ////////////////////////////////////////////////
     if ( status == l_False && s->pStore )

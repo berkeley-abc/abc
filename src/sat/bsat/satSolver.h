@@ -48,6 +48,10 @@ extern int         sat_solver_addclause(sat_solver* s, lit* begin, lit* end);
 extern int         sat_solver_clause_new(sat_solver* s, lit* begin, lit* end, int learnt);
 extern int         sat_solver_simplify(sat_solver* s);
 extern int         sat_solver_solve(sat_solver* s, lit* begin, lit* end, ABC_INT64_T nConfLimit, ABC_INT64_T nInsLimit, ABC_INT64_T nConfLimitGlobal, ABC_INT64_T nInsLimitGlobal);
+extern int         sat_solver_solve_internal(sat_solver* s);
+extern int         sat_solver_push(sat_solver* s, int p);
+extern void        sat_solver_pop(sat_solver* s);
+extern void        sat_solver_set_resource_limits(sat_solver* s, ABC_INT64_T nConfLimit, ABC_INT64_T nInsLimit, ABC_INT64_T nConfLimitGlobal, ABC_INT64_T nInsLimitGlobal);
 extern void        sat_solver_restart( sat_solver* s );
 extern void        sat_solver_rollback( sat_solver* s );
 
@@ -223,11 +227,26 @@ static void sat_solver_compress(sat_solver* s)
         (void) RetValue;
     }
 }
+
 static void sat_solver_clean_polarity(sat_solver* s, int * pVars, int nVars )
 {
     int i;
     for ( i = 0; i < nVars; i++ )
         s->polarity[pVars[i]] = 0;
+}
+static void sat_solver_set_polarity(sat_solver* s, int * pVars, int nVars )
+{
+    int i;
+    for ( i = 0; i < s->size; i++ )
+        s->polarity[i] = 0;
+    for ( i = 0; i < nVars; i++ )
+        s->polarity[pVars[i]] = 1;
+}
+static void sat_solver_set_literal_polarity(sat_solver* s, int * pLits, int nLits )
+{
+    int i;
+    for ( i = 0; i < nLits; i++ )
+        s->polarity[Abc_Lit2Var(pLits[i])] = !Abc_LitIsCompl(pLits[i]);
 }
 
 static int sat_solver_final(sat_solver* s, int ** ppArray)
@@ -278,14 +297,6 @@ static inline int sat_solver_count_usedvars(sat_solver* s)
             nVars++;
         }
     return nVars;
-}
-static void sat_solver_set_polarity(sat_solver* s, int * pVars, int nVars )
-{
-    int i;
-    for ( i = 0; i < s->size; i++ )
-        s->polarity[i] = 0;
-    for ( i = 0; i < nVars; i++ )
-        s->polarity[pVars[i]] = 1;
 }
 
 static inline int sat_solver_add_const( sat_solver * pSat, int iVar, int fCompl )
