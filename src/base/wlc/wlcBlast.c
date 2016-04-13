@@ -1271,8 +1271,6 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Vec_Int_t * vBoxIds )
             Vec_PtrPush( pNew->vNamesIn, Abc_UtilStrsav(Buffer) );
             fAdded = 1;
         }
-        if ( fAdded )
-            Vec_PtrPush( pNew->vNamesIn, Abc_UtilStrsav("abc_reset_flop") );
     }
     Wlc_NtkForEachCi( p, pObj, i )
     if ( !Wlc_ObjIsPi(pObj) )
@@ -1289,6 +1287,8 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Vec_Int_t * vBoxIds )
                 Vec_PtrPush( pNew->vNamesIn, Abc_UtilStrsav(Buffer) );
             }
     }
+    if ( p->pInits && fAdded )
+        Vec_PtrPush( pNew->vNamesIn, Abc_UtilStrsav("abc_reset_flop") );
     assert( Vec_PtrSize(pNew->vNamesIn) == Gia_ManCiNum(pNew) );
     // create output names
 /*
