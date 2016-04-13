@@ -34849,20 +34849,35 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9Edge( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    int c, DelayMax = 0, fReverse = 0, fUseTwo = 1, fUsePack = 0, fVerbose = 0;
+    extern int Edg_ManAssignEdgeNew( Gia_Man_t * p, int nEdges, int fVerbose );
+    int c, DelayMax = 0, nEdges = 1, fReverse = 0, fUsePack = 0, fUseOld = 0, fVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "repvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Erpovh" ) ) != EOF )
     {
         switch ( c )
         {
+            case 'E':
+                if ( globalUtilOptind >= argc )
+                {
+                    Abc_Print( -1, "Command line switch \"-E\" should be followed by a positive integer.\n" );
+                    goto usage;
+                }
+                nEdges = atoi(argv[globalUtilOptind]);
+                globalUtilOptind++;
+                if ( nEdges != 1 && nEdges != 2 )
+                {
+                    Abc_Print( -1, "Edge limit (%d) should be 1 or 2.\n", nEdges );
+                    goto usage;
+                }
+                break;
             case 'r':
                 fReverse ^= 1;
                 break;
-            case 'e':
-                fUseTwo ^= 1;
-                break;
             case 'p':
                 fUsePack ^= 1;
+                break;
+            case 'o':
+                fUseOld ^= 1;
                 break;
             case 'v':
                 fVerbose ^= 1;
@@ -34887,29 +34902,45 @@ int Abc_CommandAbc9Edge( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( 0, "Current AIG has mapping into %d-LUTs.\n", Gia_ManLutSizeMax(pAbc->pGia) );
         return 0;
     }
+    if ( fUsePack )
+    {
+        if ( pAbc->pGia->vPacking == NULL )
+        {
+            Abc_Print( -1, "Packing information is not present.\n" );
+            return 0;
+        }
+        Gia_ManConvertPackingToEdges( pAbc->pGia );
+        return 0;
+    }
+    if ( !fUseOld )
+    {
+        if ( pAbc->pGia->pManTime != NULL && Tim_ManBoxNum((Tim_Man_t*)pAbc->pGia->pManTime) )
+        {
+            printf( "Currently this version of the algorithm does not work for designs with boxes.\n" );
+            return 0;
+        }
+        Edg_ManAssignEdgeNew( pAbc->pGia, nEdges, fVerbose );
+        return 0;        
+    }
     if ( pAbc->pGia->pManTime && fReverse )
     {
         Abc_Print( 0, "Reverse computation does not work when boxes are present.\n" );
         return 0;
     }
-    if ( fUsePack )
-    {
-        Gia_ManConvertPackingToEdges( pAbc->pGia );
-        return 0;
-    }
     if ( fReverse )
         DelayMax = Gia_ManComputeEdgeDelay2( pAbc->pGia );
     else 
-        DelayMax = Gia_ManComputeEdgeDelay( pAbc->pGia, fUseTwo );
+        DelayMax = Gia_ManComputeEdgeDelay( pAbc->pGia, nEdges == 2 );
     //printf( "The number of edges = %d.  Delay = %d.\n", Gia_ManEvalEdgeCount(pAbc->pGia), DelayMax );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &edge [-repvh]\n" );
+    Abc_Print( -2, "usage: &edge [-E num] [-rpovh]\n" );
     Abc_Print( -2, "\t           find edge assignment of the LUT-mapped network\n" );
+    Abc_Print( -2, "\t-E num   : the limit on the number of edges (1 <= num <= 2) [default = %d]\n", nEdges );
     Abc_Print( -2, "\t-r       : toggles using reverse order [default = %s]\n", fReverse? "yes": "no" );
-    Abc_Print( -2, "\t-e       : toggles different edge assignments [default = %s]\n", fUseTwo? "yes": "no" );
     Abc_Print( -2, "\t-p       : toggles deriving edges from packing [default = %s]\n", fUsePack? "yes": "no" );
+    Abc_Print( -2, "\t-o       : toggles using old algorithm [default = %s]\n", fUseOld? "yes": "no" );
     Abc_Print( -2, "\t-v       : toggles verbose output [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h       : prints the command usage\n");
     return 1;

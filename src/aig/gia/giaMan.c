@@ -95,6 +95,7 @@ void Gia_ManStop( Gia_Man_t * p )
     Vec_IntFreeP( &p->vCofVars );
     Vec_IntFreeP( &p->vLutConfigs );
     Vec_IntFreeP( &p->vEdgeDelay );
+    Vec_IntFreeP( &p->vEdgeDelayR );
     Vec_IntFreeP( &p->vEdge1 );
     Vec_IntFreeP( &p->vEdge2 );
     Vec_IntFreeP( &p->vUserPiIds );
@@ -117,6 +118,7 @@ void Gia_ManStop( Gia_Man_t * p )
     Vec_PtrFreeP( &p->vTtInputs );
     Vec_IntFreeP( &p->vMapping );
     Vec_WecFreeP( &p->vMapping2 );
+    Vec_WecFreeP( &p->vFanouts2 );
     Vec_IntFreeP( &p->vCellMapping );
     Vec_IntFreeP( &p->vPacking );
     Vec_IntFreeP( &p->vConfigs );

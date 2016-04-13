@@ -633,6 +633,357 @@ int Gia_ManEvalWindow( Gia_Man_t * p, Vec_Int_t * vLeaves, Vec_Int_t * vNodes, V
     return DelayMax;
 }
 
+
+
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Edg_ManToMapping( Gia_Man_t * p )
+{
+    int iObj, iFanin, k;
+    assert( Gia_ManHasMapping(p) );
+    Vec_WecFreeP( &p->vMapping2 );
+    Vec_WecFreeP( &p->vFanouts2 );
+    p->vMapping2 = Vec_WecStart( Gia_ManObjNum(p) );
+    p->vFanouts2 = Vec_WecStart( Gia_ManObjNum(p) );
+    Gia_ManForEachLut( p, iObj )
+    {
+        assert( Gia_ObjLutSize(p, iObj) <= 4 );
+        Gia_LutForEachFanin( p, iObj, iFanin, k )
+        {
+            Vec_WecPush( p->vMapping2, iObj, iFanin );
+            Vec_WecPush( p->vFanouts2, iFanin, iObj );
+        }
+    }
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Computes delay for the given edge assignment.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline int Edg_ObjEvalEdgeDelay( Gia_Man_t * p, int iObj, Vec_Int_t * vDelay )
+{
+    int DelayEdge = 0; // 2;
+    int DelayNoEdge = 1;
+    int i, iFan, Delay, DelayMax = 0;
+    assert( Gia_ObjIsLut2(p, iObj) );
+    Gia_LutForEachFanin2( p, iObj, iFan, i )
+    {
+        Delay = Vec_IntEntry(vDelay, iFan) + (Gia_ObjHaveEdge(p, iObj, iFan) ? DelayEdge : DelayNoEdge);
+        DelayMax = Abc_MaxInt( DelayMax, Delay );
+    }
+    //printf( "Obj %d - Level %d\n", iObj, DelayMax );
+    return DelayMax;
+}
+int Edg_ManEvalEdgeDelay( Gia_Man_t * p )
+{
+    int iLut, Delay, DelayMax = 0;
+    assert( p->vEdge1 && p->vEdge2 );
+    if ( p->vEdgeDelay == NULL )
+        p->vEdgeDelay = Vec_IntStart( Gia_ManObjNum(p) );
+    else
+        Vec_IntFill( p->vEdgeDelay, Gia_ManObjNum(p), 0 );
+    Gia_ManForEachLut2( p, iLut )
+    {
+        Delay = Edg_ObjEvalEdgeDelay(p, iLut, p->vEdgeDelay);
+        Vec_IntWriteEntry( p->vEdgeDelay, iLut, Delay );
+        DelayMax = Abc_MaxInt( DelayMax, Delay );
+    }
+    return DelayMax;
+}
+
+static inline int Edg_ObjEvalEdgeDelayR( Gia_Man_t * p, int iObj, Vec_Int_t * vDelay )
+{
+    int DelayEdge = 0; // 2;
+    int DelayNoEdge = 1;
+    int i, iFan, Delay, DelayMax = 0;
+    assert( Gia_ObjIsLut2(p, iObj) );
+    Gia_LutForEachFanout2( p, iObj, iFan, i )
+    {
+        Delay = Vec_IntEntry(vDelay, iFan) + (Gia_ObjHaveEdge(p, iObj, iFan) ? DelayEdge : DelayNoEdge);
+        DelayMax = Abc_MaxInt( DelayMax, Delay );
+    }
+    //printf( "Obj %d - LevelR %d\n", iObj, DelayMax );
+    return DelayMax;
+}
+int Edg_ManEvalEdgeDelayR( Gia_Man_t * p )
+{
+//    int k, DelayNoEdge = 1;
+    int iLut, Delay, DelayMax = 0;
+    assert( p->vEdge1 && p->vEdge2 );
+    if ( p->vEdgeDelayR == NULL )
+        p->vEdgeDelayR = Vec_IntStart( Gia_ManObjNum(p) );
+    else
+        Vec_IntFill( p->vEdgeDelayR, Gia_ManObjNum(p), 0 );
+//    Gia_ManForEachCoDriverId( p, iLut, k )
+//        Vec_IntWriteEntry( p->vEdgeDelayR, iLut, DelayNoEdge );
+    Gia_ManForEachLut2Reverse( p, iLut )
+    {
+        Delay = Edg_ObjEvalEdgeDelayR(p, iLut, p->vEdgeDelayR);
+        Vec_IntWriteEntry( p->vEdgeDelayR, iLut, Delay );
+        DelayMax = Abc_MaxInt( DelayMax, Delay );
+    }
+    return DelayMax;
+}
+
+void Edg_ManCollectCritEdges( Gia_Man_t * p, Vec_Wec_t * vEdges, int DelayMax )
+{
+    Vec_Int_t * vLevel;
+    int k, iLut, Delay1, Delay2;
+    assert( p->vEdge1 && p->vEdge2 );
+    Vec_WecClear( vEdges );
+    Vec_WecInit( vEdges, DelayMax + 1 );
+    Gia_ManForEachLut2( p, iLut )
+    {
+        Delay1 = Vec_IntEntry( p->vEdgeDelay, iLut );
+        Delay2 = Vec_IntEntry( p->vEdgeDelayR, iLut );
+        assert( Delay1 + Delay2 <= DelayMax );
+        if ( Delay1 + Delay2 == DelayMax )
+            Vec_WecPush( vEdges, Delay1, iLut );
+    }
+    // every level should have critical nodes, except the first one
+    //Vec_WecPrint( vEdges, 0 );
+    Vec_WecForEachLevelStart( vEdges, vLevel, k, 1 )
+        assert( Vec_IntSize(vLevel) > 0 );
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    [Update one node.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Edg_ObjImprove( Gia_Man_t * p, int iObj, int nEdgeLimit, int DelayMax, int fVerbose )
+{
+    int nFaninsC = 0,   nFanoutsC = 0;    // critical
+    int nFaninsEC = 0,  nFanoutsEC = 0;   // edge-critical
+    int nFaninsENC = 0, nFanoutsENC = 0;  // edge-non-critial
+    int pFanins[4], pFanouts[4];
+    int nEdgeDiff, nEdges = 0, Count = 0;
+    int i, iNext, Delay1, Delay2;
+    // count how many fanins have critical edge
+    Delay1 = Vec_IntEntry( p->vEdgeDelayR, iObj );
+    //if ( Delay1 > 1 )
+    Gia_LutForEachFanin2( p, iObj, iNext, i )
+    {
+        if ( !Gia_ObjIsAnd(Gia_ManObj(p, iNext)) )
+            continue;
+        Delay2 = Vec_IntEntry( p->vEdgeDelay, iNext );
+        if ( Gia_ObjHaveEdge(p, iObj, iNext) )
+        {
+            nEdges++;
+            assert( Delay1 + Delay2 <= DelayMax );
+            if ( Delay1 + Delay2 == DelayMax )
+                nFaninsEC++;
+            else
+                nFaninsENC++;
+        }
+        else
+        {
+            assert( Delay1 + Delay2 + 1 <= DelayMax );
+            if ( Delay1 + Delay2 + 1 == DelayMax )
+                pFanins[nFaninsC++] = iNext;
+        }
+    }
+    // count how many fanouts have critical edge
+    Delay1 = Vec_IntEntry( p->vEdgeDelay, iObj );
+    //if ( Delay2 < DelayMax - 1 )
+    Gia_LutForEachFanout2( p, iObj, iNext, i )
+    {
+        //if ( !Gia_ObjIsAnd(Gia_ManObj(p, iNext)) )
+        //    continue;
+        assert( Gia_ObjIsAnd(Gia_ManObj(p, iNext)) );
+        Delay2 = Vec_IntEntry( p->vEdgeDelayR, iNext );
+        if ( Gia_ObjHaveEdge(p, iObj, iNext) )
+        {
+            nEdges++;
+            assert( Delay1 + Delay2 <= DelayMax );
+            if ( Delay1 + Delay2 == DelayMax )
+                nFanoutsEC++;
+            else
+                nFanoutsENC++;
+        }
+        else
+        {
+            assert( Delay1 + Delay2 + 1 <= DelayMax );
+            if ( Delay1 + Delay2 + 1 == DelayMax )
+            {
+                if ( nFanoutsC < nEdgeLimit )
+                    pFanouts[nFanoutsC] = iNext;
+                nFanoutsC++;
+            }
+        }
+    }
+    if ( fVerbose )
+    {
+        printf( "%8d : ", iObj );
+        printf( "Edges = %d  ", nEdges );
+        printf( "Fanins (all %d  EC %d  ENC %d  C %d)  ", 
+            Gia_ObjLutSize2(p, iObj), nFaninsEC, nFaninsENC, nFaninsC );
+        printf( "Fanouts (all %d  EC %d  ENC %d  C %d)  ", 
+            Gia_ObjLutFanoutNum2(p, iObj), nFanoutsEC, nFanoutsENC, nFanoutsC );
+    }
+    // consider simple cases
+    assert( nEdges <= nEdgeLimit );
+    if ( nEdges == nEdgeLimit )
+    {
+        if ( fVerbose )
+            printf( "Full\n" );
+        return 0;
+    }
+    nEdgeDiff = nEdgeLimit - nEdges;
+    // check if fanins or fanouts could be improved
+    if ( nFaninsEC == 0 && nFaninsC && nFaninsC <= nEdgeDiff )
+    {
+        for ( i = 0; i < nFaninsC; i++ )
+            if ( Gia_ObjEdgeCount(pFanins[i], p->vEdge1, p->vEdge2) == nEdgeLimit )
+                break;
+        if ( i == nFaninsC )
+        {
+            for ( i = 0; i < nFaninsC; i++ )
+            {
+                Count += Gia_ObjEdgeAdd( iObj, pFanins[i], p->vEdge1, p->vEdge2 );
+                Count += Gia_ObjEdgeAdd( pFanins[i], iObj, p->vEdge1, p->vEdge2 );
+            }
+            if ( Count )
+                printf( "Wrong number of edges.\n" );
+            if ( fVerbose )
+                printf( "Fixed %d critical fanins\n", nFaninsC );
+            return 1;
+        }
+    }
+    if ( nFanoutsEC == 0 && nFanoutsC && nFanoutsC <= nEdgeDiff )
+    {
+        for ( i = 0; i < nFanoutsC; i++ )
+            if ( Gia_ObjEdgeCount(pFanouts[i], p->vEdge1, p->vEdge2) == nEdgeLimit )
+                break;
+        if ( i == nFanoutsC )
+        {
+            for ( i = 0; i < nFanoutsC; i++ )
+            {
+                Count += Gia_ObjEdgeAdd( iObj, pFanouts[i], p->vEdge1, p->vEdge2 );
+                Count += Gia_ObjEdgeAdd( pFanouts[i], iObj, p->vEdge1, p->vEdge2 );
+            }
+            if ( Count )
+                printf( "Wrong number of edges.\n" );
+            if ( fVerbose )
+                printf( "Fixed %d critical fanouts\n", nFanoutsC );
+            return 1;
+        }
+    }
+    if ( fVerbose )
+        printf( "Cannot fix\n" );
+    return 0;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Finds edge assignment.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Edg_ManAssignEdgeNew( Gia_Man_t * p, int nEdges, int fVerbose )
+{
+    int DelayNoEdge = 1;
+    int fLevelVerbose = 0;
+    Vec_Int_t * vLevel;
+    Vec_Wec_t * vEdges = Vec_WecStart(0);
+    Vec_Int_t * vEdge1 = NULL, * vEdge2 = NULL;
+    int DelayD = 0, DelayR = 0, DelayPrev = ABC_INFINITY;
+    int k, j, i, iLast = -1, iObj;
+    if ( fVerbose )
+        printf( "Running edge assignment with E = %d.\n", nEdges );
+    // create fanouts
+    Edg_ManToMapping( p );
+    // create empty assignment
+    Vec_IntFreeP( &p->vEdge1 );
+    Vec_IntFreeP( &p->vEdge2 );
+    p->vEdge1 = Vec_IntStart( Gia_ManObjNum(p) );
+    p->vEdge2 = Vec_IntStart( Gia_ManObjNum(p) );
+    // perform optimization
+    for ( i = 0; i < 10000; i++ )
+    {
+        // if there is no improvement after 10 iterations, quit
+        if ( i > iLast + 50 )
+            break;
+        // create delay information
+        DelayD = Edg_ManEvalEdgeDelay( p );
+        DelayR = Edg_ManEvalEdgeDelayR( p );
+        assert( DelayD == DelayR + DelayNoEdge );
+        if ( DelayPrev > DelayD )
+        {
+            //printf( "Saving backup point at %d levels.\n", DelayD );
+            Vec_IntFreeP( &vEdge1 );  vEdge1 = Vec_IntDup( p->vEdge1 );
+            Vec_IntFreeP( &vEdge2 );  vEdge2 = Vec_IntDup( p->vEdge2 );
+            DelayPrev = DelayD;
+            iLast = i;
+        }
+        if ( fVerbose )
+            printf( "\nIter %4d : Delay = %4d\n", i, DelayD );
+        // collect critical nodes (nodes with critical edges)
+        Edg_ManCollectCritEdges( p, vEdges, DelayD );
+        // sort levels according to the number of critical edges
+        if ( fLevelVerbose )
+        {
+            Vec_WecForEachLevel( vEdges, vLevel, k )
+                Vec_IntPush( vLevel, k );
+        }
+        Vec_WecSort( vEdges, 0 );
+        if ( fLevelVerbose )
+        {
+            Vec_WecForEachLevel( vEdges, vLevel, k )
+            {
+                int Level = Vec_IntPop( vLevel );
+                printf( "%d: Level %2d : ", k, Level );
+                Vec_IntPrint( vLevel );
+            }
+        }
+        Vec_WecForEachLevel( vEdges, vLevel, k )
+        {
+            Vec_IntForEachEntry( vLevel, iObj, j )
+                if ( Edg_ObjImprove(p, iObj, nEdges, DelayD, fVerbose) ) // improved
+                    break;
+            if ( j < Vec_IntSize(vLevel) )
+                break;
+        }
+        if ( k == Vec_WecSize(vEdges) ) // if we could not improve anything, quit
+            break;
+    }
+    Vec_WecFree( vEdges );
+    // update to the saved version
+    Vec_IntFreeP( &p->vEdge1 );  p->vEdge1 = vEdge1;
+    Vec_IntFreeP( &p->vEdge2 );  p->vEdge2 = vEdge2;
+    return DelayD;
+}
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

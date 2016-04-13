@@ -364,7 +364,7 @@ Vec_Int_t * Gia_ManOrderWithBoxes( Gia_Man_t * p )
     // verify counts
     assert( curCi == Gia_ManCiNum(p) );
     assert( curCo == Gia_ManCoNum(p) );
-    assert( Vec_IntSize(vNodes) == Gia_ManObjNum(p) );
+    //assert( Vec_IntSize(vNodes) == Gia_ManObjNum(p) );
     return vNodes;
 }
 

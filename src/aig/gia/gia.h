@@ -132,6 +132,7 @@ struct Gia_Man_t_
     Vec_Int_t *    vFanout;       // static fanout
     Vec_Int_t *    vMapping;      // mapping for each node
     Vec_Wec_t *    vMapping2;     // mapping for each node
+    Vec_Wec_t *    vFanouts2;     // mapping fanouts 
     Vec_Int_t *    vCellMapping;  // mapping for each node
     void *         pSatlutWinman; // windowing for SAT-based mapping
     Vec_Int_t *    vPacking;      // packing information
@@ -139,6 +140,7 @@ struct Gia_Man_t_
     char *         pCellStr;      // cell description
     Vec_Int_t *    vLutConfigs;   // LUT configurations
     Vec_Int_t *    vEdgeDelay;    // special edge information
+    Vec_Int_t *    vEdgeDelayR;   // special edge information
     Vec_Int_t *    vEdge1;        // special edge information
     Vec_Int_t *    vEdge2;        // special edge information
     Abc_Cex_t *    pCexComb;      // combinational counter-example
@@ -997,6 +999,8 @@ static inline int         Gia_ObjIsLut2( Gia_Man_t * p, int Id )            { re
 static inline int         Gia_ObjLutSize2( Gia_Man_t * p, int Id )          { return Vec_IntSize(Vec_WecEntry(p->vMapping2, Id));                           }
 static inline Vec_Int_t * Gia_ObjLutFanins2( Gia_Man_t * p, int Id )        { return Vec_WecEntry(p->vMapping2, Id);                                        }
 static inline int         Gia_ObjLutFanin2( Gia_Man_t * p, int Id, int i )  { return Vec_IntEntry(Vec_WecEntry(p->vMapping2, Id), i);                       }
+static inline int         Gia_ObjLutFanoutNum2( Gia_Man_t * p, int Id )     { return Vec_IntSize(Vec_WecEntry(p->vFanouts2, Id));                           }
+static inline int         Gia_ObjLutFanout2( Gia_Man_t * p, int Id, int i ) { return Vec_IntEntry(Vec_WecEntry(p->vFanouts2, Id), i);                       }
 
 static inline int         Gia_ManHasCellMapping( Gia_Man_t * p )            { return p->vCellMapping != NULL;                                               }
 static inline int         Gia_ObjIsCell( Gia_Man_t * p, int iLit )          { return Vec_IntEntry(p->vCellMapping, iLit) != 0;                              }
@@ -1026,6 +1030,8 @@ static inline int         Gia_ObjCellId( Gia_Man_t * p, int iLit )          { re
     for ( i = Vec_IntSize(vIds)-1; i >= 0 && (vVec = Vec_WecEntry(p->vMapping2, (iObj = Vec_IntEntry(vIds, i)))); i-- )
 #define Gia_LutForEachFanin2( p, i, iFan, k )                           \
     for ( k = 0; k < Gia_ObjLutSize2(p,i) && ((iFan = Gia_ObjLutFanin2(p,i,k)),1); k++ )
+#define Gia_LutForEachFanout2( p, i, iFan, k )                          \
+    for ( k = 0; k < Gia_ObjLutFanoutNum2(p,i) && ((iFan = Gia_ObjLutFanout2(p,i,k)),1); k++ )
 
 #define Gia_ManForEachCell( p, i )                                      \
     for ( i = 2; i < 2*Gia_ManObjNum(p); i++ ) if ( !Gia_ObjIsCell(p, i) ) {} else
