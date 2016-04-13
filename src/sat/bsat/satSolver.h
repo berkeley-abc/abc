@@ -49,6 +49,7 @@ extern int         sat_solver_clause_new(sat_solver* s, lit* begin, lit* end, in
 extern int         sat_solver_simplify(sat_solver* s);
 extern int         sat_solver_solve(sat_solver* s, lit* begin, lit* end, ABC_INT64_T nConfLimit, ABC_INT64_T nInsLimit, ABC_INT64_T nConfLimitGlobal, ABC_INT64_T nInsLimitGlobal);
 extern int         sat_solver_solve_internal(sat_solver* s);
+extern int         sat_solver_solve_lexsat(sat_solver* s, int * pLits, int nLits);
 extern int         sat_solver_push(sat_solver* s, int p);
 extern void        sat_solver_pop(sat_solver* s);
 extern void        sat_solver_set_resource_limits(sat_solver* s, ABC_INT64_T nConfLimit, ABC_INT64_T nInsLimit, ABC_INT64_T nConfLimitGlobal, ABC_INT64_T nInsLimitGlobal);

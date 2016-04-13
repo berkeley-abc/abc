@@ -592,7 +592,7 @@ int Bmc_CollapseExpand2( sat_solver * pSat, sat_solver * pSatOn, Vec_Int_t * vLi
   SeeAlso     []
 
 ***********************************************************************/
-int Bmc_ComputeCanonical( sat_solver * pSat, Vec_Int_t * vLits, Vec_Int_t * vTemp, int nBTLimit )
+int Bmc_ComputeCanonical2( sat_solver * pSat, Vec_Int_t * vLits, Vec_Int_t * vTemp, int nBTLimit )
 {
     int i, k, iLit, status = l_Undef;
     for ( i = 0; i < Vec_IntSize(vLits); i++ )
@@ -620,6 +620,11 @@ int Bmc_ComputeCanonical( sat_solver * pSat, Vec_Int_t * vLits, Vec_Int_t * vTem
     }
     assert( status == l_True );
     return status;
+}
+int Bmc_ComputeCanonical( sat_solver * pSat, Vec_Int_t * vLits, Vec_Int_t * vTemp, int nBTLimit )
+{
+    sat_solver_set_resource_limits( pSat, nBTLimit, 0, 0, 0 );
+    return sat_solver_solve_lexsat( pSat, Vec_IntArray(vLits), Vec_IntSize(vLits) );
 }
 
 /**Function*************************************************************
