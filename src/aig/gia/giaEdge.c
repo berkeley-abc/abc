@@ -71,7 +71,7 @@ static inline void Gia_ObjEdgeClean( int iObj, Vec_Int_t * vEdge1, Vec_Int_t * v
 ***********************************************************************/
 void Gia_ManEdgeFromArray( Gia_Man_t * p, Vec_Int_t * vArray )
 {
-    int i, iObj1, iObj2;
+    int i, iObj1, iObj2, Count = 0;
     Vec_IntFreeP( &p->vEdge1 );
     Vec_IntFreeP( &p->vEdge2 );
     p->vEdge1 = Vec_IntStart( Gia_ManObjNum(p) );
@@ -79,9 +79,11 @@ void Gia_ManEdgeFromArray( Gia_Man_t * p, Vec_Int_t * vArray )
     Vec_IntForEachEntryDouble( vArray, iObj1, iObj2, i )
     {
         assert( iObj1 < iObj2 );
-        Gia_ObjEdgeAdd( iObj1, iObj2, p->vEdge1, p->vEdge2 );
-        Gia_ObjEdgeAdd( iObj2, iObj1, p->vEdge1, p->vEdge2 );
+        Count += Gia_ObjEdgeAdd( iObj1, iObj2, p->vEdge1, p->vEdge2 );
+        Count += Gia_ObjEdgeAdd( iObj2, iObj1, p->vEdge1, p->vEdge2 );
     }
+    if ( Count ) 
+        printf( "Found %d violations during edge conversion.\n", Count );
 }
 Vec_Int_t * Gia_ManEdgeToArray( Gia_Man_t * p )
 {

@@ -4363,6 +4363,10 @@ SOURCE=.\src\aig\gia\giaRex.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\aig\gia\giaSatEdge.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\aig\gia\giaSatLut.c
 # End Source File
 # Begin Source File

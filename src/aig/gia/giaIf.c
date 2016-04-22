@@ -160,7 +160,7 @@ int Gia_ManLutNum( Gia_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-int Gia_ManLutLevel( Gia_Man_t * p )
+int Gia_ManLutLevel( Gia_Man_t * p, int ** ppLevels )
 {
     Gia_Obj_t * pObj;
     int i, k, iFan, Level;
@@ -177,7 +177,10 @@ int Gia_ManLutLevel( Gia_Man_t * p )
     Gia_ManForEachCo( p, pObj, k )
         if ( Level < pLevels[Gia_ObjFaninId0p(p, pObj)] )
             Level = pLevels[Gia_ObjFaninId0p(p, pObj)];
-    ABC_FREE( pLevels );
+    if ( ppLevels )
+        *ppLevels = pLevels;
+    else
+        ABC_FREE( pLevels );
     return Level;
 }
 

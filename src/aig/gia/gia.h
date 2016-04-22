@@ -1299,7 +1299,7 @@ extern void                Gia_ManPrintLutStats( Gia_Man_t * p );
 extern int                 Gia_ManLutFaninCount( Gia_Man_t * p );
 extern int                 Gia_ManLutSizeMax( Gia_Man_t * p );
 extern int                 Gia_ManLutNum( Gia_Man_t * p );
-extern int                 Gia_ManLutLevel( Gia_Man_t * p );
+extern int                 Gia_ManLutLevel( Gia_Man_t * p, int ** ppLevels );
 extern void                Gia_ManLutParams( Gia_Man_t * p, int * pnCurLuts, int * pnCurEdges, int * pnCurLevels );
 extern void                Gia_ManSetRefsMapped( Gia_Man_t * p );
 extern void                Gia_ManSetLutRefs( Gia_Man_t * p );  

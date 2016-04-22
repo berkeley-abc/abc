@@ -453,7 +453,7 @@ float Gia_ManDelayTraceLutPrint( Gia_Man_t * p, int fVerbose )
         return -ABC_INFINITY;
     }
     // decide how many steps
-    nSteps = pLutLib ? 20 : Gia_ManLutLevel(p);
+    nSteps = pLutLib ? 20 : Gia_ManLutLevel(p, NULL);
     pCounters = ABC_ALLOC( int, nSteps + 1 );
     memset( pCounters, 0, sizeof(int)*(nSteps + 1) );
     // perform delay trace

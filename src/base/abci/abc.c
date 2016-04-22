@@ -34850,12 +34850,23 @@ usage:
 int Abc_CommandAbc9Edge( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     extern int Edg_ManAssignEdgeNew( Gia_Man_t * p, int nEdges, int fVerbose );
+    extern void Seg_ManComputeDelay( Gia_Man_t * pGia, int Delay, int fTwo, int fVerbose );
+
     int c, DelayMax = 0, nEdges = 1, fReverse = 0, fUsePack = 0, fUseOld = 0, fVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "Erpovh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "DErpovh" ) ) != EOF )
     {
         switch ( c )
         {
+            case 'D':
+                if ( globalUtilOptind >= argc )
+                {
+                    Abc_Print( -1, "Command line switch \"-D\" should be followed by a positive integer.\n" );
+                    goto usage;
+                }
+                DelayMax = atoi(argv[globalUtilOptind]);
+                globalUtilOptind++;
+                break;
             case 'E':
                 if ( globalUtilOptind >= argc )
                 {
@@ -34912,6 +34923,11 @@ int Abc_CommandAbc9Edge( Abc_Frame_t * pAbc, int argc, char ** argv )
         Gia_ManConvertPackingToEdges( pAbc->pGia );
         return 0;
     }
+    if ( DelayMax )
+    {
+        Seg_ManComputeDelay( pAbc->pGia, DelayMax, nEdges==2, fVerbose );
+        return 0;
+    }
     if ( !fUseOld )
     {
         if ( pAbc->pGia->pManTime != NULL && Tim_ManBoxNum((Tim_Man_t*)pAbc->pGia->pManTime) )
@@ -34935,8 +34951,9 @@ int Abc_CommandAbc9Edge( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &edge [-E num] [-rpovh]\n" );
+    Abc_Print( -2, "usage: &edge [-DE num] [-rpovh]\n" );
     Abc_Print( -2, "\t           find edge assignment of the LUT-mapped network\n" );
+    Abc_Print( -2, "\t-D num   : the upper bound on delay [default = %d]\n", DelayMax );
     Abc_Print( -2, "\t-E num   : the limit on the number of edges (1 <= num <= 2) [default = %d]\n", nEdges );
     Abc_Print( -2, "\t-r       : toggles using reverse order [default = %s]\n", fReverse? "yes": "no" );
     Abc_Print( -2, "\t-p       : toggles deriving edges from packing [default = %s]\n", fUsePack? "yes": "no" );
@@ -40922,6 +40939,7 @@ int Abc_CommandAbc9Test( Abc_Frame_t * pAbc, int argc, char ** argv )
 //    Gia_ManCheckFalseTest( pAbc->pGia, nFrames );
 //    Gia_ParTest( pAbc->pGia, nWords, nProcs );
     Gia_Iso3Test( pAbc->pGia );
+
 //    printf( "\nThis command is currently disabled.\n\n" );
     return 0;
 usage:
