@@ -33,7 +33,7 @@ typedef struct Seg_Man_t_ Seg_Man_t;
 struct Seg_Man_t_
 {
     sat_solver *   pSat;         // SAT solver
-    Vec_Int_t *    vCardVars;    // candinality variables
+    //Vec_Int_t *    vCardVars;    // candinality variables
     int            nVars;        // max vars (edge num)
     int            LogN;         // base-2 log of max vars
     int            Power2;       // power-2 of LogN
@@ -82,11 +82,7 @@ Vec_Int_t * Seg_ManCountIntEdges( Gia_Man_t * p )
     Gia_ManForEachLut( p, iLut )
         Gia_LutForEachFanin( p, iLut, iFanin, i )
             if ( Gia_ObjIsAnd(Gia_ManObj(p, iFanin)) )
-            {
-                //printf( "Var %d:  %d -> %d\n", Vec_IntSize(vEdges)/2, iFanin, iLut );
-
                 Vec_IntPushTwo( vEdges, iFanin, iLut );
-            }
     return vEdges;
 }
 Vec_Wec_t * Seg_ManCollectObjEdges( Vec_Int_t * vEdges, int nObjs )
@@ -149,7 +145,6 @@ Seg_Man_t * Seg_ManAlloc( Gia_Man_t * pGia )
     p->vLits      = Vec_IntAlloc( 0 ); 
     nVarsAll      = Seg_ManCountIntLevels( p, p->FirstVar );
     sat_solver_setnvars( p->pSat, nVarsAll );
-printf( "Edges = %d.  Total = %d.\n", p->FirstVar, nVarsAll );
     // other
     Gia_ManFillValue( pGia );
     return p;
@@ -192,7 +187,7 @@ void Seg_ManStop( Seg_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-void Seg_ManCreateCnf( Seg_Man_t * p, int fTwo )
+void Seg_ManCreateCnf( Seg_Man_t * p, int fTwo, int fVerbose )
 {
     Gia_Obj_t * pObj;
     Vec_Wec_t * vObjEdges;
@@ -247,6 +242,7 @@ void Seg_ManCreateCnf( Seg_Man_t * p, int fTwo )
             }
     }
     assert( Count == p->nVars );
+    if ( fVerbose )
     printf( "Delay constraints = %d. ", sat_solver_nclauses(p->pSat) - nConstr );
     nConstr = sat_solver_nclauses(p->pSat);
 /*
@@ -295,7 +291,9 @@ void Seg_ManCreateCnf( Seg_Man_t * p, int fTwo )
         }
     }
     Vec_WecFree( vObjEdges );
+    if ( fVerbose )
     printf( "Edge constraints = %d. ", sat_solver_nclauses(p->pSat) - nConstr );
+    if ( fVerbose )
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
 }
 
@@ -310,15 +308,14 @@ void Seg_ManCreateCnf( Seg_Man_t * p, int fTwo )
   SeeAlso     []
 
 ***********************************************************************/
-void Seg_ManConvertResult( Seg_Man_t * p )
+Vec_Int_t * Seg_ManConvertResult( Seg_Man_t * p )
 {
     int iFanin, iObj, i;
     Vec_Int_t * vEdges2 = Vec_IntAlloc( 1000 );
     Vec_IntForEachEntryDouble( p->vEdges, iFanin, iObj, i )
         if ( sat_solver_var_value(p->pSat, i/2) )
             Vec_IntPushTwo( vEdges2, iFanin, iObj );
-    Gia_ManEdgeFromArray( p->pGia, vEdges2 );
-    Vec_IntFree( vEdges2 );
+    return vEdges2;
 }
 
 /**Function*************************************************************
@@ -332,23 +329,34 @@ void Seg_ManConvertResult( Seg_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-void Seg_ManComputeDelay( Gia_Man_t * pGia, int Delay, int fTwo, int fVerbose )
+void Seg_ManComputeDelay( Gia_Man_t * pGia, int DelayInit, int fTwo, int fVerbose )
 {
+    int nBTLimit = 0;
+    int nTimeOut = 0;
+    int fVeryVerbose = 0;
+
     Gia_Obj_t * pObj;
     abctime clk = Abc_Clock();
-    int i, d, iLut, iFirst, nVars, status, Limit;//, value;
+    Vec_Int_t * vEdges2 = NULL;
+    int i, iLut, iFirst, nVars, status, Delay, nConfs;
     Seg_Man_t * p = Seg_ManAlloc( pGia );
+    Vec_Int_t * vVars = Vec_IntStartNatural( p->nVars );
+    int DelayStart = DelayInit ? DelayInit : p->DelayMax;
 
-    //if ( fVerbose )
-    printf( "Running SatEdge with delay %d and edge %d\n", Delay, fTwo+1 );
-
-    Seg_ManCreateCnf( p, fTwo );
+    if ( fVerbose )
+    printf( "Running SatEdge with starting delay %d and edge %d (edge vars %d, total vars %d)\n", 
+        DelayStart, fTwo+1, p->FirstVar, sat_solver_nvars(p->pSat) );
+    Seg_ManCreateCnf( p, fTwo, fVerbose );
     //Sat_SolverWriteDimacs( p->pSat, "test_edge.cnf", NULL, NULL, 0 );
-
-//    for ( Delay = p->DelayMax; Delay >= 2; Delay-- )
+    // set resource limits
+    sat_solver_set_resource_limits( p->pSat, nBTLimit, 0, 0, 0 );
+    sat_solver_set_runtime_limit( p->pSat, nTimeOut ? nTimeOut * CLOCKS_PER_SEC + Abc_Clock(): 0 );
+    sat_solver_set_random( p->pSat, 1 );
+    sat_solver_set_var_activity( p->pSat, Vec_IntArray(vVars), Vec_IntSize(vVars) );
+    Vec_IntFree( vVars );
+    // increment delay gradually
+    for ( Delay = p->DelayMax; Delay >= 0; Delay-- )
     {
-        // collect assumptions
-        Vec_IntClear( p->vLits );
         Gia_ManForEachCoDriver( p->pGia, pObj, i )
         {
             if ( !Gia_ObjIsAnd(pObj) )
@@ -356,35 +364,31 @@ void Seg_ManComputeDelay( Gia_Man_t * pGia, int Delay, int fTwo, int fVerbose )
             iLut   = Gia_ObjId( p->pGia, pObj );
             iFirst = Vec_IntEntry( p->vFirsts, iLut );
             nVars  = Vec_IntEntry( p->vNvars, iLut );
-            Limit  = Abc_MinInt( nVars, Delay );
-
-//            for ( d = 0; d < Limit; d++ )
-//                Vec_IntPush( p->vLits, Abc_Var2Lit(iFirst + d, 0) );
-//            value = sat_solver_addclause( p->pSat, Vec_IntArray(p->vLits), Vec_IntLimit(p->vLits) );
-//            assert( value );
-
-            for ( d = Delay; d < nVars; d++ )
-                Vec_IntPush( p->vLits, Abc_Var2Lit(iFirst + d, 1) );
+            if ( Delay < nVars )
+                sat_solver_push( p->pSat, Abc_Var2Lit(iFirst + Delay, 1) );
 
         }
+        if ( Delay > DelayStart )
+            continue;
         // solve with assumptions
-        status = sat_solver_solve( p->pSat, Vec_IntArray(p->vLits), Vec_IntLimit(p->vLits), 0, 0, 0, 0 );
-
-        //if ( status != l_True )
-        //    break;
-
+        //clk = Abc_Clock();
+        nConfs = sat_solver_nconflicts( p->pSat );
+        status = sat_solver_solve_internal( p->pSat );
+        nConfs = sat_solver_nconflicts( p->pSat ) - nConfs;
         if ( status == l_True )
         {
-            int Count = 0;
-            for ( i = 0; i < p->nVars; i++ )
-                Count += sat_solver_var_value(p->pSat, i);
-
-            //printf( "\n" );
-            //Vec_IntPrint( p->vLits );
-            printf( "Solution with delay %d exists.  Edges = %d.  ", Delay, Count );
-            Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
-
             if ( fVerbose )
+            {
+                int Count = 0;
+                for ( i = 0; i < p->nVars; i++ )
+                    Count += sat_solver_var_value(p->pSat, i);
+                printf( "Solution with delay %2d and %5d edges exists. Conf = %8d.  ", Delay, Count, nConfs );
+                Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
+            }
+            // save the result
+            Vec_IntFreeP( &vEdges2 );
+            vEdges2 = Seg_ManConvertResult( p );
+            if ( fVeryVerbose )
             {
                 for ( i = 0; i < p->nVars; i++ )
                     printf( "%d=%d ", i, sat_solver_var_value(p->pSat, i) );
@@ -397,13 +401,19 @@ void Seg_ManComputeDelay( Gia_Man_t * pGia, int Delay, int fTwo, int fVerbose )
         }
         else
         {
-            printf( "Proved UNSAT for delay %d.  ", Delay );
-            Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
+            if ( fVerbose )
+            {
+                if ( status == l_False )
+                    printf( "Proved UNSAT for delay %d.  ", Delay );
+                else
+                    printf( "Resource limit reached for delay %d.  ", Delay );
+                Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
+            }
+            break;
         }
     }
-    // convert and quit
-    if ( status == l_True ) 
-        Seg_ManConvertResult( p );
+    Gia_ManEdgeFromArray( p->pGia, vEdges2 );
+    Vec_IntFreeP( &vEdges2 );
     Seg_ManStop( p );
 }
 

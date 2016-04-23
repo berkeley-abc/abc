@@ -64,7 +64,7 @@ extern int         sat_solver_count_assigned(sat_solver* s);
 
 extern void        sat_solver_setnvars(sat_solver* s,int n);
 extern int         sat_solver_get_var_value(sat_solver* s, int v);
-
+extern void        sat_solver_set_var_activity(sat_solver* s, int * pVars, int nVars);
 
 extern void        Sat_SolverWriteDimacs( sat_solver * p, char * pFileName, lit* assumptionsBegin, lit* assumptionsEnd, int incrementVars );
 extern void        Sat_SolverPrintStats( FILE * pFile, sat_solver * p );

@@ -211,6 +211,19 @@ static inline int  order_select(sat_solver* s, float random_var_freq) // selectv
     return var_Undef;
 }
 
+void sat_solver_set_var_activity(sat_solver* s, int * pVars, int nVars) 
+{
+    int i;
+    for (i = 0; i < s->size; i++)
+        s->activity[i] = 0;
+    s->var_inc = 1;
+    for ( i = 0; i < nVars; i++ )
+    {
+        s->activity[pVars[i]] = nVars-i;
+        order_update( s, pVars[i] );
+    }
+}
+
 //=================================================================================================
 // Activity functions:
 
