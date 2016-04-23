@@ -8450,17 +8450,20 @@ usage:
 int Abc_CommandBdd( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
-    int fReorder = 1;
+    int fReorder = 1, fBdd2Sop = 0;
     int c;
 
     // set defaults
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "rh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "rsh" ) ) != EOF )
     {
         switch ( c )
         {
         case 'r':
             fReorder ^= 1;
+            break;
+        case 's':
+            fBdd2Sop ^= 1;
             break;
         case 'h':
             goto usage;
@@ -8478,6 +8481,8 @@ int Abc_CommandBdd( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Converting to BDD is possible only for logic networks.\n" );
         return 1;
     }
+    if ( fBdd2Sop && Abc_NtkHasSop(pNtk) )
+        return !Abc_NtkSopToBdd(pNtk);
     if ( Abc_NtkIsBddLogic(pNtk) )
     {
         Abc_Print( -1, "The logic network is already in the BDD form.\n" );
@@ -8491,9 +8496,10 @@ int Abc_CommandBdd( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: bdd [-rh]\n" );
+    Abc_Print( -2, "usage: bdd [-rsh]\n" );
     Abc_Print( -2, "\t         converts node functions to BDD\n" );
     Abc_Print( -2, "\t-r     : toggles enabling dynamic variable reordering [default = %s]\n", fReorder? "yes": "no" );
+    Abc_Print( -2, "\t-s     : toggles constructing BDDs directly from SOPs [default = %s]\n", fBdd2Sop? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
 }
