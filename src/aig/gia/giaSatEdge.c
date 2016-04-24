@@ -345,7 +345,7 @@ void Seg_ManCreateCnf( Seg_Man_t * p, int fTwo, int fVerbose )
     Vec_WecForEachLevel( vObjEdges, vLevel, i )
     {
         int v1, v2, v3, Var1, Var2, Var3;
-        if ( !fTwo && Vec_IntSize(vLevel) >= 2 )
+        if ( (!fTwo && Vec_IntSize(vLevel) >= 2) || (fTwo && Vec_IntSize(vLevel) > 10) )
         {
             Vec_IntForEachEntry( vLevel, Var1, v1 )
             Vec_IntForEachEntryStart( vLevel, Var2, v2, v1 + 1 )
