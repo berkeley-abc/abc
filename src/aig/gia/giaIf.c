@@ -175,8 +175,11 @@ int Gia_ManLutLevel( Gia_Man_t * p, int ** ppLevels )
     }
     Level = 0;
     Gia_ManForEachCo( p, pObj, k )
-        if ( Level < pLevels[Gia_ObjFaninId0p(p, pObj)] )
-            Level = pLevels[Gia_ObjFaninId0p(p, pObj)];
+    {
+        int LevelFan = pLevels[Gia_ObjFaninId0p(p, pObj)];
+        Level = Abc_MaxInt( Level, LevelFan );
+        pLevels[Gia_ObjId(p, pObj)] = LevelFan;
+    }
     if ( ppLevels )
         *ppLevels = pLevels;
     else

@@ -34931,11 +34931,6 @@ int Abc_CommandAbc9Edge( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     if ( !fUseOld )
     {
-        if ( pAbc->pGia->pManTime != NULL && Tim_ManBoxNum((Tim_Man_t*)pAbc->pGia->pManTime) )
-        {
-            printf( "Currently this version of the algorithm does not work for designs with boxes.\n" );
-            return 0;
-        }
         //Edg_ManAssignEdgeNew( pAbc->pGia, nEdges, fVerbose );
         Seg_ManComputeDelay( pAbc->pGia, DelayMax, nEdges==2, fVerbose );
         return 0;        

@@ -98,16 +98,29 @@ Vec_Wec_t * Seg_ManCollectObjEdges( Vec_Int_t * vEdges, int nObjs )
 }
 int Seg_ManCountIntLevels( Seg_Man_t * p, int iStartVar )
 {
+    Gia_Obj_t * pObj;
     int iLut, nVars;
     Vec_IntFill( p->vFirsts, Gia_ManObjNum(p->pGia), -1 );
     Vec_IntFill( p->vNvars,  Gia_ManObjNum(p->pGia), 0 );
     ABC_FREE( p->pLevels );
-    p->DelayMax = Gia_ManLutLevel( p->pGia, &p->pLevels );
-    Gia_ManForEachLut( p->pGia, iLut )
+    if ( p->pGia->pManTime )
     {
+        p->DelayMax = Gia_ManLutLevelWithBoxes( p->pGia );
+        p->pLevels = Vec_IntReleaseArray( p->pGia->vLevels );
+        Vec_IntFreeP( &p->pGia->vLevels );
+    }
+    else
+        p->DelayMax = Gia_ManLutLevel( p->pGia, &p->pLevels );
+    Gia_ManForEachObj1( p->pGia, pObj, iLut )
+    {
+        if ( Gia_ObjIsCo(pObj) )
+            continue;
+        if ( Gia_ObjIsAnd(pObj) && !Gia_ObjIsLut(p->pGia, iLut) )
+            continue;
+        assert( Gia_ObjIsCi(pObj) || Gia_ObjIsLut(p->pGia, iLut) );
         Vec_IntWriteEntry( p->vFirsts, iLut, iStartVar );
-        assert( p->pLevels[iLut] > 0 );
-        nVars = p->pLevels[iLut] == 1 ? 0 : p->pLevels[iLut];
+        //assert( p->pLevels[iLut] > 0 );
+        nVars = p->pLevels[iLut] < 2 ? 0 : p->pLevels[iLut];
         Vec_IntWriteEntry( p->vNvars,  iLut, nVars );
         iStartVar += nVars;
     }
@@ -189,6 +202,7 @@ void Seg_ManStop( Seg_Man_t * p )
 ***********************************************************************/
 void Seg_ManCreateCnf( Seg_Man_t * p, int fTwo, int fVerbose )
 {
+    Tim_Man_t * pTim = (Tim_Man_t *)p->pGia->pManTime;
     Gia_Obj_t * pObj;
     Vec_Wec_t * vObjEdges;
     Vec_Int_t * vLevel;
@@ -202,10 +216,76 @@ void Seg_ManCreateCnf( Seg_Man_t * p, int fTwo, int fVerbose )
     {
         int iFirstLut = Vec_IntEntry( p->vFirsts, iLut );
         int nVarsLut  = Vec_IntEntry( p->vNvars, iLut );
+        if ( pTim && Gia_ObjIsCi(pObj) )
+        {
+            int iBox = Tim_ManBoxForCi( pTim, Gia_ObjCioId(pObj) );
+            if ( nVarsLut > 0 && iBox >= 0 )
+            {
+                int iCiId = Tim_ManBoxOutputFirst( pTim, iBox );
+                if ( iCiId == Gia_ObjCioId(pObj) ) // first input
+                {
+                    int nIns = Tim_ManBoxInputNum( pTim, iBox );
+                    int iIn0 = Tim_ManBoxInputFirst( pTim, iBox );
+                    for ( i = 0; i < nIns-1; i++ ) // skip carry-in pin
+                    {
+                        Gia_Obj_t * pOut = Gia_ManCo( p->pGia, iIn0+i );
+                        int iDriverId = Gia_ObjFaninId0p( p->pGia, pOut );
+                        int AddOn;
+
+                        iFirst = Vec_IntEntry( p->vFirsts, iDriverId );
+                        nVars  = Vec_IntEntry( p->vNvars, iDriverId );
+                        assert( nVars < nVarsLut );
+                        AddOn = (int)(nVars < nVarsLut);
+                        for ( k = 0; k < nVars; k++ )
+                        {
+                            pLits[0] = Abc_Var2Lit( iFirst+k, 1 );
+                            pLits[1] = Abc_Var2Lit( iFirstLut+k+AddOn, 0 );
+                            value = sat_solver_addclause( p->pSat, pLits, pLits+2 );
+                            assert( value );
+                        }
+                    }
+                }
+                else // intermediate input
+                {
+                    Gia_Obj_t * pIn = Gia_ManCi( p->pGia, iCiId );
+                    int iObjId = Gia_ObjId( p->pGia, pIn );
+
+                    iFirst = Vec_IntEntry( p->vFirsts, iObjId );
+                    nVars  = Vec_IntEntry( p->vNvars, iObjId );
+                    if ( nVars > 0 )
+                    {
+                        for ( k = 0; k < nVars; k++ )
+                        {
+                            pLits[0] = Abc_Var2Lit( iFirst+k, 1 );
+                            pLits[1] = Abc_Var2Lit( iFirstLut+k, 0 );
+                            value = sat_solver_addclause( p->pSat, pLits, pLits+2 );
+                            assert( value );
+                        }
+                    }
+                }
+            }
+            continue;
+        }
         if ( !Gia_ObjIsLut(p->pGia, iLut) )
             continue;
         Gia_LutForEachFanin( p->pGia, iLut, iFanin, i )
-            if ( Gia_ObjIsAnd(Gia_ManObj(p->pGia, iFanin)) )
+            if ( pTim && Gia_ObjIsCi(Gia_ManObj(p->pGia, iFanin)) )
+            {
+                iFirst = Vec_IntEntry( p->vFirsts, iFanin );
+                nVars  = Vec_IntEntry( p->vNvars, iFanin );
+                assert( nVars <= nVarsLut );
+                if ( nVars > 0 )
+                {
+                    for ( k = 0; k < nVars; k++ )
+                    {
+                        pLits[0] = Abc_Var2Lit( iFirst+k, 1 );
+                        pLits[1] = Abc_Var2Lit( iFirstLut+k, 0 );
+                        value = sat_solver_addclause( p->pSat, pLits, pLits+2 );
+                        assert( value );
+                    }
+                }
+            }
+            else if ( Gia_ObjIsAnd(Gia_ManObj(p->pGia, iFanin)) )
             {
                 iFirst = Vec_IntEntry( p->vFirsts, iFanin );
                 nVars  = Vec_IntEntry( p->vNvars, iFanin );
