@@ -47,6 +47,7 @@ struct Seg_Man_t_
     int            fVerbose;     // verbose
     // window
     Gia_Man_t *    pGia;
+    Vec_Int_t *    vPolars;      // polarity
     Vec_Int_t *    vEdges;       // edges as fanin/fanout pairs 
     Vec_Int_t *    vFirsts;      // first SAT variable
     Vec_Int_t *    vNvars;       // number of SAT variables
@@ -74,15 +75,20 @@ extern sat_solver * Sbm_AddCardinSolver( int LogN, Vec_Int_t ** pvVars );
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Int_t * Seg_ManCountIntEdges( Gia_Man_t * p )
+Vec_Int_t * Seg_ManCountIntEdges( Gia_Man_t * p, Vec_Int_t * vPolars )
 {
     int i, iLut, iFanin;
     Vec_Int_t * vEdges = Vec_IntAlloc( 1000 );
     assert( Gia_ManHasMapping(p) );
+    Vec_IntClear( vPolars );
     Gia_ManForEachLut( p, iLut )
         Gia_LutForEachFanin( p, iLut, iFanin, i )
             if ( Gia_ObjIsAnd(Gia_ManObj(p, iFanin)) )
+            {
+                if ( p->vEdge1 && Gia_ObjCheckEdge(p, iFanin, iLut) )
+                    Vec_IntPush( vPolars, Vec_IntSize(vEdges)/2 );
                 Vec_IntPushTwo( vEdges, iFanin, iLut );
+            }
     return vEdges;
 }
 Vec_Wec_t * Seg_ManCollectObjEdges( Vec_Int_t * vEdges, int nObjs )
@@ -142,7 +148,8 @@ Seg_Man_t * Seg_ManAlloc( Gia_Man_t * pGia )
 {
     int nVarsAll;
     Seg_Man_t * p = ABC_CALLOC( Seg_Man_t, 1 );
-    p->vEdges     = Seg_ManCountIntEdges( pGia );
+    p->vPolars    = Vec_IntAlloc( 1000 ); 
+    p->vEdges     = Seg_ManCountIntEdges( pGia, p->vPolars );
     p->nVars      = Vec_IntSize(p->vEdges)/2;
     p->LogN       = Abc_Base2Log(p->nVars);
     p->Power2     = 1 << p->LogN;
@@ -172,6 +179,7 @@ void Seg_ManClean( Seg_Man_t * p )
     Vec_IntClear( p->vFirsts );
     Vec_IntClear( p->vNvars );
     Vec_IntClear( p->vLits );
+    Vec_IntClear( p->vPolars );
     // other
     Gia_ManFillValue( p->pGia );
 }
@@ -184,6 +192,7 @@ void Seg_ManStop( Seg_Man_t * p )
     Vec_IntFree( p->vFirsts );
     Vec_IntFree( p->vNvars );
     Vec_IntFree( p->vLits );
+    Vec_IntFree( p->vPolars );
     ABC_FREE( p->pLevels );
     // other
     ABC_FREE( p );
@@ -432,6 +441,7 @@ void Seg_ManComputeDelay( Gia_Man_t * pGia, int DelayInit, int fTwo, int fVerbos
     sat_solver_set_resource_limits( p->pSat, nBTLimit, 0, 0, 0 );
     sat_solver_set_runtime_limit( p->pSat, nTimeOut ? nTimeOut * CLOCKS_PER_SEC + Abc_Clock(): 0 );
     sat_solver_set_random( p->pSat, 1 );
+    sat_solver_set_polarity( p->pSat, Vec_IntArray(p->vPolars), Vec_IntSize(p->vPolars) );
     sat_solver_set_var_activity( p->pSat, Vec_IntArray(vVars), Vec_IntSize(vVars) );
     Vec_IntFree( vVars );
     // increment delay gradually

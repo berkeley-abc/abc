@@ -169,6 +169,10 @@ static inline int Gia_ObjHaveEdge( Gia_Man_t * p, int iObj, int iNext )
 {
     return Vec_IntEntry(p->vEdge1, iObj) == iNext || Vec_IntEntry(p->vEdge2, iObj) == iNext;
 }
+int Gia_ObjCheckEdge( Gia_Man_t * p, int iObj, int iNext )
+{
+    return Gia_ObjHaveEdge( p, iObj, iNext );
+}
 static inline int Gia_ObjEvalEdgeDelay( Gia_Man_t * p, int iObj, Vec_Int_t * vDelay )
 {
     int i, iFan, Delay, DelayMax = 0;

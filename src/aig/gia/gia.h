@@ -1217,6 +1217,7 @@ extern Gia_Man_t *         Gia_ManDupSliced( Gia_Man_t * p, int nSuppMax );
 extern void                Gia_ManEdgeFromArray( Gia_Man_t * p, Vec_Int_t * vArray );
 extern Vec_Int_t *         Gia_ManEdgeToArray( Gia_Man_t * p );
 extern void                Gia_ManConvertPackingToEdges( Gia_Man_t * p );
+extern int                 Gia_ObjCheckEdge( Gia_Man_t * p, int iObj, int iNext );
 extern int                 Gia_ManEvalEdgeDelay( Gia_Man_t * p );
 extern int                 Gia_ManEvalEdgeCount( Gia_Man_t * p );
 extern int                 Gia_ManComputeEdgeDelay( Gia_Man_t * p, int fUseTwo );
