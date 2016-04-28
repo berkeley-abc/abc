@@ -135,9 +135,8 @@ int Gia_ManIsNormalized( Gia_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-Gia_Man_t * Gia_ManDupNormalize( Gia_Man_t * p )
+Gia_Man_t * Gia_ManDupNormalize( Gia_Man_t * p, int fHashMapping )
 {
-    int fHashMapping = 0;
     Gia_Man_t * pNew;
     Gia_Obj_t * pObj;
     int i;

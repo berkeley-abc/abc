@@ -726,7 +726,7 @@ Gia_Man_t * Gia_ManDupWithNaturalBoxes( Gia_Man_t * p, int nFaddMin, int fVerbos
     pNew->pAigExtra = Gia_ManGenerateExtraAig( nBoxes, 3, 2 );
 /*
     // normalize
-    pNew = Gia_ManDupNormalize( pTemp = pNew );
+    pNew = Gia_ManDupNormalize( pTemp = pNew, 0 );
     pNew->pManTime  = pTemp->pManTime;  pTemp->pManTime  = NULL;
     pNew->pAigExtra = pTemp->pAigExtra; pTemp->pAigExtra = NULL;
     Gia_ManStop( pTemp );

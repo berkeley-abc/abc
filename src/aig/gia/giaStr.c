@@ -1394,7 +1394,7 @@ Gia_Man_t * Gia_ManLutBalance( Gia_Man_t * p, int nLutSize, int fUseMuxes, int f
         Gia_ManTransferTiming( pNew, p );
         Gia_ManStop( p );
         // normalize
-        pNew = Gia_ManDupNormalize( p = pNew );
+        pNew = Gia_ManDupNormalize( p = pNew, 0 );
         Gia_ManTransferTiming( pNew, p );
         Gia_ManStop( p );
         // cleanup

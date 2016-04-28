@@ -2180,7 +2180,7 @@ Gia_Man_t * Gia_ManPerformMapping( Gia_Man_t * p, void * pp )
             Gia_ManStop( p );
         }
         // normalize
-        pNew = Gia_ManDupNormalize( p = pNew );
+        pNew = Gia_ManDupNormalize( p = pNew, ((If_Par_t *)pp)->fHashMapping );
         Gia_ManTransferMapping( pNew, p );
         Gia_ManTransferPacking( pNew, p );
         Gia_ManTransferTiming( pNew, p );
@@ -2189,10 +2189,9 @@ Gia_Man_t * Gia_ManPerformMapping( Gia_Man_t * p, void * pp )
     }
     else 
     {
-        int fHashMapping = 0;
         pNew = Gia_ManPerformMappingInt( p, (If_Par_t *)pp );
         Gia_ManTransferTiming( pNew, p );
-        if ( fHashMapping )
+        if ( ((If_Par_t *)pp)->fHashMapping )
         {
             pNew = Gia_ManDupHashMapping( p = pNew );
             Gia_ManTransferPacking( pNew, p );

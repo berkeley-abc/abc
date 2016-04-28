@@ -2165,7 +2165,7 @@ Gia_Man_t * Gia_ManDupTopAnd_iter( Gia_Man_t * p, int fVerbose )
             printf( "The AIG cannot be decomposed using AND-decomposition.\n" );
         Vec_IntFree( vFront );
         Vec_IntFree( vLeaves );
-        return Gia_ManDupNormalize( p );
+        return Gia_ManDupNormalize( p, 0 );
     }
     // expand the frontier
     Gia_ManForEachObjVec( vFront, p, pObj, i )
@@ -2210,7 +2210,7 @@ Gia_Man_t * Gia_ManDupTopAnd_iter( Gia_Man_t * p, int fVerbose )
         ABC_FREE( pCi2Lit );
         ABC_FREE( pVar2Val );
         Vec_IntFree( vLeaves );
-        return Gia_ManDupNormalize( p );
+        return Gia_ManDupNormalize( p, 0 );
     }
     // create array of input literals
     Vec_IntClear( vLeaves );
@@ -2245,7 +2245,7 @@ Gia_Man_t * Gia_ManDupTopAnd( Gia_Man_t * p, int fVerbose )
 {
     Gia_Man_t * pNew, * pTemp;
     int fContinue, iIter = 0;
-    pNew = Gia_ManDupNormalize( p );
+    pNew = Gia_ManDupNormalize( p, 0 );
     for ( fContinue = 1; fContinue; )
     {
         pNew = Gia_ManDupTopAnd_iter( pTemp = pNew, fVerbose );
@@ -2425,7 +2425,7 @@ Gia_Man_t * Gia_ManMiter( Gia_Man_t * p0, Gia_Man_t * p1, int nInsDup, int fDual
     pNew = Gia_ManCleanup( pTemp = pNew );
     Gia_ManStop( pTemp );
 
-    pNew = Gia_ManDupNormalize( pTemp = pNew );
+    pNew = Gia_ManDupNormalize( pTemp = pNew, 0 );
     Gia_ManStop( pTemp );
     return pNew;
 }

@@ -691,7 +691,7 @@ Gia_Man_t * Gia_ManSweepWithBoxesAndDomains( Gia_Man_t * p, void * pParsS, int f
         }
     }
     // normalize the result
-    pNew = Gia_ManDupNormalize( pTemp = pNew );
+    pNew = Gia_ManDupNormalize( pTemp = pNew, 0 );
     Gia_ManTransferTiming( pNew, pTemp );
     Gia_ManStop( pTemp );
     // check integrity
@@ -757,7 +757,7 @@ Gia_Man_t * Gia_ManSweepWithBoxes( Gia_Man_t * p, void * pParsC, void * pParsS, 
             pFlopTypes[0], pFlopTypes[1], Abc_MaxInt(0, pFlopTypes[2]), Abc_MaxInt(0, -pFlopTypes[2]) );
     }
     // normalize the result
-    pNew = Gia_ManDupNormalize( pTemp = pNew );
+    pNew = Gia_ManDupNormalize( pTemp = pNew, 0 );
     Gia_ManTransferTiming( pNew, pTemp );
     Gia_ManStop( pTemp );
     // check integrity

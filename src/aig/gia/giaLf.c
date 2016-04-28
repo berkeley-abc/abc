@@ -2210,7 +2210,7 @@ Gia_Man_t * Lf_ManPerformMapping( Gia_Man_t * p, Jf_Par_t * pPars )
             Gia_ManStop( p );
         }
         // normalize
-        pNew = Gia_ManDupNormalize( p = pNew );
+        pNew = Gia_ManDupNormalize( p = pNew, 0 );
         Gia_ManTransferMapping( pNew, p );
 //        Gia_ManTransferPacking( pNew, p );
         Gia_ManTransferTiming( pNew, p );
@@ -2279,7 +2279,7 @@ Gia_Man_t * Gia_ManPerformLfMapping( Gia_Man_t * p, Jf_Par_t * pPars, int fNorma
         Gia_ManStop( p );
     }
     // normalize and transfer mapping
-    pNew = Gia_ManDupNormalize( p = pNew );
+    pNew = Gia_ManDupNormalize( p = pNew, 0 );
     Gia_ManTransferMapping( pNew, p );
 //    Gia_ManTransferPacking( pNew, p );
     Gia_ManTransferTiming( pNew, p );

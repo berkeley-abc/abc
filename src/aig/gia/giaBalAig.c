@@ -1055,7 +1055,7 @@ Gia_Man_t * Gia_ManAreaBalance( Gia_Man_t * p, int fSimpleAnd, int nNewNodesMax,
     // normalize if needed
     if ( !Gia_ManIsNormalized(pNew2) )
     {
-        pNew2 = Gia_ManDupNormalize( pNew1 = pNew2 );
+        pNew2 = Gia_ManDupNormalize( pNew1 = pNew2, 0 );
         Gia_ManStop( pNew1 );
     }
     Gia_ManTransferTiming( pNew2, p );

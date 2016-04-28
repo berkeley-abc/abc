@@ -140,6 +140,7 @@ struct If_Par_t_
     int                fUseTtPerm;    // compute truth tables of the cut functions
     int                fDeriveLuts;   // enables deriving LUT structures
     int                fDoAverage;    // optimize average rather than maximum level
+    int                fHashMapping;  // perform AIG hashing after mapping
     int                fVerbose;      // the verbosity flag
     char *             pLutStruct;    // LUT structure
     float              WireDelay;     // wire delay

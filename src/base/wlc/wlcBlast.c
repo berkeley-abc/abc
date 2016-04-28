@@ -1238,7 +1238,7 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Vec_Int_t * vBoxIds )
         pNew->pAigExtra = pExtra;
         pNew->pManTime = pManTime;
         // normalize AIG
-        pNew = Gia_ManDupNormalize( pTemp = pNew );
+        pNew = Gia_ManDupNormalize( pTemp = pNew, 0 );
         Gia_ManTransferTiming( pNew, pTemp );
         Gia_ManStop( pTemp );
         //Tim_ManPrint( pManTime );
