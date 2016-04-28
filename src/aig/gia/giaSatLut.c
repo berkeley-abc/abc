@@ -50,6 +50,7 @@ struct Sbl_Man_t_
     int            nLargeWins;   // the number of large windows
     int            nIterOuts;    // the number of iters exceeded
     // parameters
+    int            LutSize;      // LUT size
     int            nBTLimit;     // conflicts
     int            DelayMax;     // external delay
     int            nEdges;       // the number of edges
@@ -621,14 +622,19 @@ static int Sbl_ManFindAndPrintCut( Sbl_Man_t * p, int c )
 {
     return Sbl_ManPrintCut( Vec_WrdEntry(p->vCutsI1, c), Vec_WrdEntry(p->vCutsI2, c), Vec_WrdEntry(p->vCutsN1, c), Vec_WrdEntry(p->vCutsN2, c) );
 }
-static inline int Sbl_CutIsFeasible( word CutI1, word CutI2, word CutN1, word CutN2 )
+static inline int Sbl_CutIsFeasible( word CutI1, word CutI2, word CutN1, word CutN2, int LutSize )
 {
     int Count = (CutI1 != 0) + (CutI2 != 0) + (CutN1 != 0) + (CutN2 != 0);
+    assert( LutSize <= 6 );
     CutI1 &= CutI1-1; CutI2 &= CutI2-1;   CutN1 &= CutN1-1; CutN2 &= CutN2-1;   Count += (CutI1 != 0) + (CutI2 != 0) + (CutN1 != 0) + (CutN2 != 0);
     CutI1 &= CutI1-1; CutI2 &= CutI2-1;   CutN1 &= CutN1-1; CutN2 &= CutN2-1;   Count += (CutI1 != 0) + (CutI2 != 0) + (CutN1 != 0) + (CutN2 != 0);
     CutI1 &= CutI1-1; CutI2 &= CutI2-1;   CutN1 &= CutN1-1; CutN2 &= CutN2-1;   Count += (CutI1 != 0) + (CutI2 != 0) + (CutN1 != 0) + (CutN2 != 0);  
     CutI1 &= CutI1-1; CutI2 &= CutI2-1;   CutN1 &= CutN1-1; CutN2 &= CutN2-1;   Count += (CutI1 != 0) + (CutI2 != 0) + (CutN1 != 0) + (CutN2 != 0);
-    return Count <= 4;
+    if ( LutSize <= 4 )
+        return Count <= 4;
+    CutI1 &= CutI1-1; CutI2 &= CutI2-1;   CutN1 &= CutN1-1; CutN2 &= CutN2-1;   Count += (CutI1 != 0) + (CutI2 != 0) + (CutN1 != 0) + (CutN2 != 0);  
+    CutI1 &= CutI1-1; CutI2 &= CutI2-1;   CutN1 &= CutN1-1; CutN2 &= CutN2-1;   Count += (CutI1 != 0) + (CutI2 != 0) + (CutN1 != 0) + (CutN2 != 0);
+    return Count <= 6;
 }
 static inline int Sbl_CutPushUncontained( Vec_Wrd_t * vCutsI1, Vec_Wrd_t * vCutsI2, Vec_Wrd_t * vCutsN1, Vec_Wrd_t * vCutsN2, word CutI1, word CutI2, word CutN1, word CutN2 )
 {
@@ -681,7 +687,7 @@ static inline void Sbl_ManComputeCutsOne( Sbl_Man_t * p, int Fan0, int Fan1, int
     Vec_WrdClear( p->vTempN2 );
     for ( i = Start0; i < Limit0; i++ )
         for ( k = Start1; k < Limit1; k++ )
-            if ( Sbl_CutIsFeasible(pCutsI1[i] | pCutsI1[k], pCutsI2[i] | pCutsI2[k], pCutsN1[i] | pCutsN1[k], pCutsN2[i] | pCutsN2[k]) )
+            if ( Sbl_CutIsFeasible(pCutsI1[i] | pCutsI1[k], pCutsI2[i] | pCutsI2[k], pCutsN1[i] | pCutsN1[k], pCutsN2[i] | pCutsN2[k], p->LutSize) )
                 Sbl_CutPushUncontained( p->vTempI1, p->vTempI2, p->vTempN1, p->vTempN2, pCutsI1[i] | pCutsI1[k], pCutsI2[i] | pCutsI2[k], pCutsN1[i] | pCutsN1[k], pCutsN2[i] | pCutsN2[k] );
     Vec_IntPush( p->vCutsStart, Vec_WrdSize(p->vCutsI1) );
     Vec_IntPush( p->vCutsNum, Vec_WrdSize(p->vTempI1) + 1 );
@@ -1174,10 +1180,11 @@ void Sbl_ManPrintRuntime( Sbl_Man_t * p )
     ABC_PRTP( "Other ", p->timeOther,   p->timeTotal );
     ABC_PRTP( "ALL   ", p->timeTotal,   p->timeTotal );
 }
-void Gia_ManLutSat( Gia_Man_t * pGia, int nNumber, int nImproves, int nBTLimit, int DelayMax, int nEdges, int fDelay, int fReverse, int fVerbose, int fVeryVerbose )
+void Gia_ManLutSat( Gia_Man_t * pGia, int LutSize, int nNumber, int nImproves, int nBTLimit, int DelayMax, int nEdges, int fDelay, int fReverse, int fVerbose, int fVeryVerbose )
 {
     int iLut, nImproveCount = 0;
     Sbl_Man_t * p   = Sbl_ManAlloc( pGia, nNumber );
+    p->LutSize      = LutSize;      // LUT size
     p->nBTLimit     = nBTLimit;     // conflicts
     p->DelayMax     = DelayMax;     // external delay
     p->nEdges       = nEdges;       // the number of edges

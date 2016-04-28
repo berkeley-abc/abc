@@ -34973,8 +34973,8 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9SatLut( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern void Gia_ManLutSat( Gia_Man_t * p, int nNumber, int nImproves, int nBTLimit, int DelayMax, int nEdges, int fDelay, int fReverse, int fVerbose, int fVeryVerbose );
-    int c, nNumber = 32, nImproves = 0, nBTLimit = 100, DelayMax = 0, nEdges = 0;
+    extern void Gia_ManLutSat( Gia_Man_t * p, int LutSize, int nNumber, int nImproves, int nBTLimit, int DelayMax, int nEdges, int fDelay, int fReverse, int fVerbose, int fVeryVerbose );
+    int c, LutSize = 0, nNumber = 32, nImproves = 0, nBTLimit = 100, DelayMax = 0, nEdges = 0;
     int fDelay = 0, fReverse = 0, fVeryVerbose = 0, fVerbose = 0;
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "NICDQdrwvh" ) ) != EOF )
@@ -35059,10 +35059,11 @@ int Abc_CommandAbc9SatLut( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Current AIG has no mapping. Run \"&if\".\n" );
         return 1;
     }
-    if ( Gia_ManLutSizeMax(pAbc->pGia) > 4 )
-        Abc_Print( 0, "Current AIG is mapped into %d-LUTs (only 4-LUT mapping is currently supported).\n", Gia_ManLutSizeMax(pAbc->pGia) );
+    LutSize = Gia_ManLutSizeMax(pAbc->pGia);
+    if ( LutSize > 6 )
+        Abc_Print( 0, "Current AIG is mapped into %d-LUTs (only 6-LUT mapping is currently supported).\n", Gia_ManLutSizeMax(pAbc->pGia) );
     else
-        Gia_ManLutSat( pAbc->pGia, nNumber, nImproves, nBTLimit, DelayMax, nEdges, fDelay, fReverse, fVerbose, fVeryVerbose );
+        Gia_ManLutSat( pAbc->pGia, LutSize, nNumber, nImproves, nBTLimit, DelayMax, nEdges, fDelay, fReverse, fVerbose, fVeryVerbose );
     return 0;
 
 usage:
