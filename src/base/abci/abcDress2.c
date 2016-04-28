@@ -406,6 +406,70 @@ void Abc_NtkDressPrintStats( Vec_Ptr_t * vRes, int nNodes0, int nNodes1, abctime
 
 /**Function*************************************************************
 
+  Synopsis    [Transfers IDs from pNtk1 to pNtk2 using equivalence classes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkDress2Transfer( Abc_Ntk_t * pNtk0, Abc_Ntk_t * pNtk1, Vec_Ptr_t * vRes, int fVerbose )
+{
+    Vec_Int_t * vClass;
+    Abc_Obj_t * pObj0, * pObj1;
+    int i, k, fComp0, fComp1, Entry;
+    int CounterInv = 0, Counter = 0;
+    char * pName;
+    Vec_PtrForEachEntry( Vec_Int_t *, vRes, vClass, i )
+    {
+        pObj0 = pObj1 = NULL;
+        fComp0 = fComp1 = 0;
+        Vec_IntForEachEntry( vClass, Entry, k )
+        {
+            if ( Abc_ObjEquivId2NtkId(Entry) )
+            {
+                pObj1 = Abc_NtkObj( pNtk1, Abc_ObjEquivId2ObjId(Entry) );
+                fComp1 = Abc_ObjEquivId2Polar(Entry);
+            }
+            else
+            {
+                pObj0 = Abc_NtkObj( pNtk0, Abc_ObjEquivId2ObjId(Entry) );
+                fComp0 = Abc_ObjEquivId2Polar(Entry);
+            }
+        }
+        if ( pObj0 == NULL || pObj1 == NULL )
+            continue;
+        // if the node already has a name, quit
+        pName = Nm_ManFindNameById( pNtk0->pManName, pObj0->Id );
+        if ( pName != NULL )
+            continue;
+        // if the other node has no name, quit
+        pName = Nm_ManFindNameById( pNtk1->pManName, pObj1->Id );
+        if ( pName == NULL )
+            continue;
+        // assign name
+        if ( fComp0 ^ fComp1 )
+        {
+            Abc_ObjAssignName( pObj0, pName, "_inv" );
+            CounterInv++;
+        }
+        else
+        {
+            Abc_ObjAssignName( pObj0, pName, NULL );
+            Counter++;
+        }
+    }
+    if ( fVerbose )
+    {
+        printf( "Total number of names assigned  = %5d. (Dir = %5d. Compl = %5d.)\n", 
+            Counter + CounterInv, Counter, CounterInv );
+    }
+}
+
+/**Function*************************************************************
+
   Synopsis    [Transfers names from pNtk1 to pNtk2.]
 
   Description [Internally calls new procedure for mapping node IDs of
@@ -423,6 +487,7 @@ void Abc_NtkDress2( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nConflictLimit, in
     vRes = Abc_NtkDressComputeEquivs( pNtk1, pNtk2, nConflictLimit, fVerbose );
 //    Abc_NtkDressPrintEquivs( vRes );
     Abc_NtkDressPrintStats( vRes, Abc_NtkNodeNum(pNtk1), Abc_NtkNodeNum(pNtk1), Abc_Clock() - clk );
+    Abc_NtkDress2Transfer( pNtk1, pNtk2, vRes, fVerbose );
     Vec_VecFree( (Vec_Vec_t *)vRes );
 }
 
