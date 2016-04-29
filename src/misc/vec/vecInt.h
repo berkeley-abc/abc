@@ -1991,6 +1991,13 @@ static inline void Vec_IntAppendSkip( Vec_Int_t * vVec1, Vec_Int_t * vVec2, int 
         if ( i != iVar )
             Vec_IntPush( vVec1, Entry );
 }
+static inline void Vec_IntAppendMinus( Vec_Int_t * vVec1, Vec_Int_t * vVec2, int fMinus )
+{
+    int Entry, i;
+    Vec_IntClear( vVec1 );
+    Vec_IntForEachEntry( vVec2, Entry, i )
+        Vec_IntPush( vVec1, fMinus ? -Entry : Entry );
+}
 
 /**Function*************************************************************
 

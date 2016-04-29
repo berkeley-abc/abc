@@ -52,6 +52,7 @@ SRC +=    src/aig/gia/giaAig.c \
     src/aig/gia/giaPack.c \
     src/aig/gia/giaPat.c \
     src/aig/gia/giaPf.c \
+    src/aig/gia/giaPolyn.c \
     src/aig/gia/giaQbf.c \
     src/aig/gia/giaResub.c \
     src/aig/gia/giaRetime.c \

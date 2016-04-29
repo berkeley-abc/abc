@@ -1583,10 +1583,10 @@ int Abc_CommandPrintFanio( Abc_Frame_t * pAbc, int argc, char ** argv )
 usage:
     Abc_Print( -2, "usage: print_fanio [-fiscmvh]\n" );
     Abc_Print( -2, "\t        prints the statistics about different objects in the network\n" );
-    Abc_Print( -2, "\t-f    : toggles considering fanins/outputs of all nodes [default = %s]\n", fUseFanio? "yes": "no" );
-    Abc_Print( -2, "\t-i    : toggles considering fanins/outputs of CI/CO [default = %s]\n", fUsePio? "yes": "no" );
-    Abc_Print( -2, "\t-s    : toggles considering input/output supports of CI/CO [default = %s]\n", fUseSupp? "yes": "no" );
-    Abc_Print( -2, "\t-c    : toggles considering input/output cones of CI/CO [default = %s]\n", fUseCone? "yes": "no" );
+    Abc_Print( -2, "\t-f    : toggles considering fanins/fanouts of all nodes [default = %s]\n", fUseFanio? "yes": "no" );
+    Abc_Print( -2, "\t-i    : toggles considering fanins/fanouts of CI/CO [default = %s]\n", fUsePio? "yes": "no" );
+    Abc_Print( -2, "\t-s    : toggles considering TFO/TFI support sizes of CI/CO [default = %s]\n", fUseSupp? "yes": "no" );
+    Abc_Print( -2, "\t-c    : toggles considering TFO/TFI cone sizes of CI/CO [default = %s]\n", fUseCone? "yes": "no" );
     Abc_Print( -2, "\t-m    : toggles printing MFFC sizes instead of fanouts [default = %s]\n", fMffc? "yes": "no" );
     Abc_Print( -2, "\t-v    : toggles verbose way of printing the stats [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h    : print the command usage\n");
