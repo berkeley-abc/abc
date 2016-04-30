@@ -117,7 +117,7 @@ alias choice      "fraig_store; resyn; fraig_store; resyn2; fraig_store; fraig_r
 alias choice2     "fraig_store; balance; fraig_store; resyn; fraig_store; resyn2; fraig_store; resyn2; fraig_store; fraig_restore"
 alias rwsat       "st; rw -l; b -l; rw -l; rf -l"
 alias drwsat2     "st; drw; b -l; drw; drf; ifraig -C 20; drw; b -l; drw; drf"
-alias share       "st; multi -m; fx; resyn2"
+alias share       "st; multi -m; sop; fx; resyn2"
 alias addinit     "read_init; undc; strash; zero"
 alias blif2aig    "undc; strash; zero"
 alias v2p         "&vta_gla; &ps; &gla_derive; &put; w 1.aig; pdr -v"
