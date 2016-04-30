@@ -448,14 +448,13 @@ int
 int
  st__strhash(const char *string, int modulus)
 {
-    int val = 0;
-    int c;
-    
-    while ((c = *string++) != '\0') {
-    val = val*997 + c;
+    unsigned char * ustring = (unsigned char *)string;
+    unsigned c, val = 0;
+    assert( modulus > 0 );    
+    while ((c = *ustring++) != '\0') {
+        val = val*997 + c;
     }
-
-    return ((val < 0) ? -val : val)%modulus;
+    return (int)(val%modulus);
 }
 
 int
