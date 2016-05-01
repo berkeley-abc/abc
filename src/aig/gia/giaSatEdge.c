@@ -48,6 +48,7 @@ struct Seg_Man_t_
     // window
     Gia_Man_t *    pGia;
     Vec_Int_t *    vPolars;      // polarity
+    Vec_Int_t *    vToSkip;      // edges to skip
     Vec_Int_t *    vEdges;       // edges as fanin/fanout pairs 
     Vec_Int_t *    vFirsts;      // first SAT variable
     Vec_Int_t *    vNvars;       // number of SAT variables
@@ -75,20 +76,27 @@ extern sat_solver * Sbm_AddCardinSolver( int LogN, Vec_Int_t ** pvVars );
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Int_t * Seg_ManCountIntEdges( Gia_Man_t * p, Vec_Int_t * vPolars )
+Vec_Int_t * Seg_ManCountIntEdges( Gia_Man_t * p, Vec_Int_t * vPolars, Vec_Int_t * vToSkip, int nFanouts )
 {
     int i, iLut, iFanin;
     Vec_Int_t * vEdges = Vec_IntAlloc( 1000 );
     assert( Gia_ManHasMapping(p) );
     Vec_IntClear( vPolars );
+    Vec_IntClear( vToSkip );
+    if ( nFanouts )
+        Gia_ManSetLutRefs( p );
     Gia_ManForEachLut( p, iLut )
         Gia_LutForEachFanin( p, iLut, iFanin, i )
             if ( Gia_ObjIsAnd(Gia_ManObj(p, iFanin)) )
             {
                 if ( p->vEdge1 && Gia_ObjCheckEdge(p, iFanin, iLut) )
                     Vec_IntPush( vPolars, Vec_IntSize(vEdges)/2 );
+                if ( nFanouts && Gia_ObjLutRefNumId(p, iFanin) >= nFanouts )
+                    Vec_IntPush( vToSkip, Vec_IntSize(vEdges)/2 );
                 Vec_IntPushTwo( vEdges, iFanin, iLut );
             }
+    if ( nFanouts )
+        ABC_FREE( p->pLutRefs );
     return vEdges;
 }
 Vec_Wec_t * Seg_ManCollectObjEdges( Vec_Int_t * vEdges, int nObjs )
@@ -144,12 +152,13 @@ int Seg_ManCountIntLevels( Seg_Man_t * p, int iStartVar )
   SeeAlso     []
 
 ***********************************************************************/
-Seg_Man_t * Seg_ManAlloc( Gia_Man_t * pGia )
+Seg_Man_t * Seg_ManAlloc( Gia_Man_t * pGia, int nFanouts )
 {
     int nVarsAll;
     Seg_Man_t * p = ABC_CALLOC( Seg_Man_t, 1 );
     p->vPolars    = Vec_IntAlloc( 1000 ); 
-    p->vEdges     = Seg_ManCountIntEdges( pGia, p->vPolars );
+    p->vToSkip    = Vec_IntAlloc( 1000 ); 
+    p->vEdges     = Seg_ManCountIntEdges( pGia, p->vPolars, p->vToSkip, nFanouts );
     p->nVars      = Vec_IntSize(p->vEdges)/2;
     p->LogN       = Abc_Base2Log(p->nVars);
     p->Power2     = 1 << p->LogN;
@@ -180,6 +189,7 @@ void Seg_ManClean( Seg_Man_t * p )
     Vec_IntClear( p->vNvars );
     Vec_IntClear( p->vLits );
     Vec_IntClear( p->vPolars );
+    Vec_IntClear( p->vToSkip );
     // other
     Gia_ManFillValue( p->pGia );
 }
@@ -193,6 +203,7 @@ void Seg_ManStop( Seg_Man_t * p )
     Vec_IntFree( p->vNvars );
     Vec_IntFree( p->vLits );
     Vec_IntFree( p->vPolars );
+    Vec_IntFree( p->vToSkip );
     ABC_FREE( p->pLevels );
     // other
     ABC_FREE( p );
@@ -217,7 +228,7 @@ void Seg_ManCreateCnf( Seg_Man_t * p, int fTwo, int fVerbose )
     Vec_Int_t * vLevel;
     int iLut, iFanin, iFirst;
     int pLits[3], Count = 0;
-    int i, k, nVars, value;
+    int i, k, nVars, Edge, value;
     abctime clk = Abc_Clock();
     // edge delay constraints
     int nConstr = sat_solver_nclauses(p->pSat);
@@ -380,6 +391,13 @@ void Seg_ManCreateCnf( Seg_Man_t * p, int fTwo, int fVerbose )
         }
     }
     Vec_WecFree( vObjEdges );
+    // block forbidden edges
+    Vec_IntForEachEntry( p->vToSkip, Edge, i )
+    {
+        pLits[0] = Abc_Var2Lit( Edge, 1 );
+        value = sat_solver_addclause( p->pSat, pLits, pLits+1 );
+        assert( value );
+    }
     if ( fVerbose )
     printf( "Edge constraints = %d. ", sat_solver_nclauses(p->pSat) - nConstr );
     if ( fVerbose )
@@ -418,7 +436,7 @@ Vec_Int_t * Seg_ManConvertResult( Seg_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-void Seg_ManComputeDelay( Gia_Man_t * pGia, int DelayInit, int fTwo, int fVerbose )
+void Seg_ManComputeDelay( Gia_Man_t * pGia, int DelayInit, int nFanouts, int fTwo, int fVerbose )
 {
     int nBTLimit = 0;
     int nTimeOut = 0;
@@ -428,7 +446,7 @@ void Seg_ManComputeDelay( Gia_Man_t * pGia, int DelayInit, int fTwo, int fVerbos
     abctime clk = Abc_Clock();
     Vec_Int_t * vEdges2 = NULL;
     int i, iLut, iFirst, nVars, status, Delay, nConfs;
-    Seg_Man_t * p = Seg_ManAlloc( pGia );
+    Seg_Man_t * p = Seg_ManAlloc( pGia, nFanouts );
     Vec_Int_t * vVars = Vec_IntStartNatural( p->nVars );
     int DelayStart = DelayInit ? DelayInit : p->DelayMax;
 
@@ -447,16 +465,20 @@ void Seg_ManComputeDelay( Gia_Man_t * pGia, int DelayInit, int fTwo, int fVerbos
     // increment delay gradually
     for ( Delay = p->DelayMax; Delay >= 0; Delay-- )
     {
+        // we constrain COs, although it would be fine to constrain only POs
         Gia_ManForEachCoDriver( p->pGia, pObj, i )
         {
-            if ( !Gia_ObjIsAnd(pObj) )
-                continue;
             iLut   = Gia_ObjId( p->pGia, pObj );
             iFirst = Vec_IntEntry( p->vFirsts, iLut );
             nVars  = Vec_IntEntry( p->vNvars, iLut );
-            if ( Delay < nVars )
-                sat_solver_push( p->pSat, Abc_Var2Lit(iFirst + Delay, 1) );
-
+            if ( Delay < nVars && !sat_solver_push(p->pSat, Abc_Var2Lit(iFirst + Delay, 1)) )
+                break;
+        }
+        if ( i < Gia_ManCoNum(p->pGia) )
+        {
+            printf( "Proved UNSAT for delay %d.  ", Delay );
+            Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
+            break;
         }
         if ( Delay > DelayStart )
             continue;
