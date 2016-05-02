@@ -1205,7 +1205,7 @@ int IoCommandReadGig( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     // set the new network
     pAig = Gia_ManReadGig( pFileName );
-    //Abc_FrameUpdateGia( pAbc, pAig );
+    Abc_FrameUpdateGia( pAbc, pAig );
     return 0;
 
 usage:

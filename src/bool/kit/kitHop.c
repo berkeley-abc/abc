@@ -62,7 +62,7 @@ int Kit_GraphToGiaInternal( Gia_Man_t * pMan, Kit_Graph_t * pGraph, int fHash )
         if ( fHash )
             pNode->iFunc = Gia_ManHashAnd( pMan, pAnd0, pAnd1 );
         else
-            pNode->iFunc = Gia_ManAppendAnd( pMan, pAnd0, pAnd1 );
+            pNode->iFunc = Gia_ManAppendAnd2( pMan, pAnd0, pAnd1 );
     }
     // complement the result if necessary
     return Abc_LitNotCond( pNode->iFunc, Kit_GraphIsComplement(pGraph) );
