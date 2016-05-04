@@ -5,9 +5,7 @@ ABC is always changing but the current snapshot is believed to be stable.
 ## Compiling:
 
 To compile ABC as a binary, download and unzip the code, then type `make`.
-
-To compile ABC as a static library, comment out `#define ABC_LIB` in file 
-"src/base/main/main.c", then type `make libabc.a`.
+To compile ABC as a static library, type `make libabc.a`.
 
 When ABC is used as a static library, two additional procedures, `Abc_Start()` 
 and `Abc_Stop()`, are provided for starting and quitting the ABC framework in 
