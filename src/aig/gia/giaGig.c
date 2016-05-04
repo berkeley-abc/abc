@@ -358,6 +358,7 @@ int Gls_ManParse( FILE * pFile, Gls_Man_t * p )
             iItem = atoi(pLine);
             Vec_IntPush( p->vDelays, iItem );
             Vec_IntPush( p->vOrderDelays, iObj );
+            vOuts = vIns; // harmless use to prevent a compiler warning
         }
         else assert( 0 );
     }
