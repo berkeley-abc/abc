@@ -39357,7 +39357,7 @@ usage:
     Abc_Print( -2, "                performs heuristic exclusive sum-of-project minimization\n" );
     Abc_Print( -2, "        -Q N  : minimization quality [default = 0]\n");
     Abc_Print( -2, "                increasing this number improves quality and adds to runtime\n");
-    Abc_Print( -2, "        -Q N  : verbosity level [default = 0]\n");
+    Abc_Print( -2, "        -V N  : verbosity level [default = 0]\n");
     Abc_Print( -2, "                0 = no output; 1 = outline; 2 = verbose\n");
     Abc_Print( -2, "        <file>: the output file name in ESOP-PLA format\n");
     Abc_Print( -2, "\n" );
@@ -40948,7 +40948,7 @@ int Abc_CommandAbc9Test( Abc_Frame_t * pAbc, int argc, char ** argv )
 //    Jf_ManTestCnf( pAbc->pGia );
 //    Gia_ManCheckFalseTest( pAbc->pGia, nFrames );
 //    Gia_ParTest( pAbc->pGia, nWords, nProcs );
-    Gia_Iso3Test( pAbc->pGia );
+    Gia_PolynExplore( pAbc->pGia );
 
 //    printf( "\nThis command is currently disabled.\n\n" );
     return 0;

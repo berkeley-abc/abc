@@ -65,6 +65,10 @@ void Gia_WriteDotAig( Gia_Man_t * pMan, char * pFileName, Vec_Int_t * vBold )
     if ( vBold )
         Gia_ManForEachObjVec( vBold, pMan, pNode, i )
             pNode->fMark0 = 1;
+    else if ( pMan->nXors || pMan->nMuxes )
+        Gia_ManForEachObj( pMan, pNode, i )
+            if ( Gia_ObjIsXor(pNode) || Gia_ObjIsMux(pMan, pNode) )
+                pNode->fMark0 = 1;
 
     // compute levels
     LevelMax = 1 + Gia_ManLevelNum( pMan );
@@ -203,8 +207,14 @@ void Gia_WriteDotAig( Gia_Man_t * pMan, char * pFileName, Vec_Int_t * vBold )
 */
             fprintf( pFile, "  Node%d [label = \"%d\"", i, i ); 
 
-            fprintf( pFile, ", shape = ellipse" );
-            if ( vBold && pNode->fMark0 )
+            if ( Gia_ObjIsXor(pNode) )
+                fprintf( pFile, ", shape = doublecircle" );
+            else if ( Gia_ObjIsMux(pMan, pNode) )
+                fprintf( pFile, ", shape = trapezium" );
+            else
+                fprintf( pFile, ", shape = ellipse" );
+
+            if ( pNode->fMark0 )
                 fprintf( pFile, ", style = filled" );
             fprintf( pFile, "];\n" );
         }
@@ -289,6 +299,20 @@ void Gia_WriteDotAig( Gia_Man_t * pMan, char * pFileName, Vec_Int_t * vBold )
 //        fprintf( pFile, ", label = \"%s\"", Seq_ObjFaninGetInitPrintable(pNode,1) );
         fprintf( pFile, "]" );
         fprintf( pFile, ";\n" );
+
+        if ( !Gia_ObjIsMux(pMan, pNode) )
+            continue;
+        // generate the edge from this node to the next
+        fprintf( pFile, "Node%d",  i );
+        fprintf( pFile, " -> " );
+        fprintf( pFile, "Node%d",  Gia_ObjFaninId2(pMan, i) );
+        fprintf( pFile, " [" );
+        fprintf( pFile, "style = %s", Gia_ObjFaninC2(pMan, pNode)? "dotted" : "bold" );
+//        if ( Gia_NtkIsSeq(pNode->pMan) && Seq_ObjFaninL1(pNode) > 0 )
+//        fprintf( pFile, ", label = \"%s\"", Seq_ObjFaninGetInitPrintable(pNode,1) );
+        fprintf( pFile, "]" );
+        fprintf( pFile, ";\n" );
+
 /*
         // generate the edges between the equivalent nodes
         if ( fHaig && pNode->pEquiv && Gia_ObjRefs(pNode) > 0 )
@@ -322,6 +346,8 @@ void Gia_WriteDotAig( Gia_Man_t * pMan, char * pFileName, Vec_Int_t * vBold )
     if ( vBold )
         Gia_ManForEachObjVec( vBold, pMan, pNode, i )
             pNode->fMark0 = 0;
+    else if ( pMan->nXors || pMan->nMuxes )
+        Gia_ManCleanMark0( pMan );
 
     Vec_IntFreeP( &pMan->vLevels );
 }
