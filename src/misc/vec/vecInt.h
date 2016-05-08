@@ -804,6 +804,24 @@ static inline void Vec_IntPushOrder( Vec_Int_t * p, int Entry )
             break;
     p->pArray[i+1] = Entry;
 }
+static inline void Vec_IntPushOrderCost( Vec_Int_t * p, int Entry, Vec_Int_t * vCost )
+{
+    int i;
+    if ( p->nSize == p->nCap )
+    {
+        if ( p->nCap < 16 )
+            Vec_IntGrow( p, 16 );
+        else
+            Vec_IntGrow( p, 2 * p->nCap );
+    }
+    p->nSize++;
+    for ( i = p->nSize-2; i >= 0; i-- )
+        if ( Vec_IntEntry(vCost, p->pArray[i]) > Vec_IntEntry(vCost, Entry) )
+            p->pArray[i+1] = p->pArray[i];
+        else
+            break;
+    p->pArray[i+1] = Entry;
+}
 
 /**Function*************************************************************
 
@@ -853,6 +871,15 @@ static inline int Vec_IntPushUniqueOrder( Vec_Int_t * p, int Entry )
         if ( p->pArray[i] == Entry )
             return 1;
     Vec_IntPushOrder( p, Entry );
+    return 0;
+}
+static inline int Vec_IntPushUniqueOrderCost( Vec_Int_t * p, int Entry, Vec_Int_t * vCost )
+{
+    int i;
+    for ( i = 0; i < p->nSize; i++ )
+        if ( p->pArray[i] == Entry )
+            return 1;
+    Vec_IntPushOrderCost( p, Entry, vCost );
     return 0;
 }
 

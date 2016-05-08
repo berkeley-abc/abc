@@ -125,6 +125,7 @@ typedef struct Wlc_Ntk_t_  Wlc_Ntk_t;
 struct Wlc_Ntk_t_ 
 {
     char *                 pName;              // model name
+    char *                 pSpec;              // input file name
     Vec_Int_t              vPis;               // primary inputs 
     Vec_Int_t              vPos;               // primary outputs
     Vec_Int_t              vCis;               // combinational inputs

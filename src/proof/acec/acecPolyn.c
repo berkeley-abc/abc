@@ -1,12 +1,12 @@
 /**CFile****************************************************************
 
-  FileName    [giaPolyn.c]
+  FileName    [acecPolyn.c]
 
   SystemName  [ABC: Logic synthesis and verification system.]
 
-  PackageName [Scalable AIG package.]
+  PackageName [CEC for arithmetic circuits.]
 
-  Synopsis    [Polynomial manipulation.]
+  Synopsis    [Polynomial extraction.]
 
   Author      [Alan Mishchenko]
   
@@ -14,11 +14,11 @@
 
   Date        [Ver. 1.0. Started - June 20, 2005.]
 
-  Revision    [$Id: giaPolyn.c,v 1.00 2005/06/20 00:00:00 alanmi Exp $]
+  Revision    [$Id: acecPolyn.c,v 1.00 2005/06/20 00:00:00 alanmi Exp $]
 
 ***********************************************************************/
 
-#include "gia.h"
+#include "acecInt.h"
 #include "misc/vec/vecWec.h"
 #include "misc/vec/vecHsh.h"
 #include "misc/vec/vecQue.h"
@@ -40,187 +40,7 @@ MUX(a, b, c)  ->   ab | (1 - a)c = ab + (1-a)c - ab(1-a)c = ab + c - ac
 !a & b        ->   (1 - a)b = b - ab
  a & !b       ->   a(1 - b) = a - ab
 !a & !b       ->   1 - a - b + ab
-!(a & b)      ->   1 - ab
 */
-
-////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFINITIONS                         ///
-////////////////////////////////////////////////////////////////////////
-
-/**Function*************************************************************
-
-  Synopsis    []
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Gia_PolynAddNew( Hsh_VecMan_t * pHash, Vec_Int_t * vCoef, int Coef, Vec_Int_t * vProd, Vec_Wec_t * vMap )
-{
-    int i, Lit, Value;
-    //Vec_IntPrint( vProd );
-
-    Value = Hsh_VecManAdd( pHash, vProd );
-    if ( Value == Vec_IntSize(vCoef) )
-    {
-        Vec_IntPush( vCoef, 0 );
-        Vec_IntForEachEntry( vProd, Lit, i )
-            Vec_WecPush( vMap, Abc_Lit2Var(Lit), Value );
-    }
-    assert( Value < Vec_IntSize(vCoef) );
-    Vec_IntAddToEntry( vCoef, Value, Coef );
-}
-int Gia_PolynTransform1( Hsh_VecMan_t * pHash, Vec_Int_t * vCoef, int Coef, Vec_Int_t * vProd, Vec_Wec_t * vMap, int Id )
-{
-    int i, Lit;
-    Vec_IntForEachEntry( vProd, Lit, i )
-        if ( Abc_Lit2Var(Lit) == Id )
-            break;
-    assert( i < Vec_IntSize(vProd) );
-    if ( !Abc_LitIsCompl(Lit) )
-        return 0;
-    // update array
-    Vec_IntWriteEntry( vProd, i, Abc_LitNot(Lit) );
-    Gia_PolynAddNew( pHash, vCoef, Coef, vProd, vMap );
-    Vec_IntWriteEntry( vProd, i, Lit );
-    return 1;
-}
-void Gia_PolynTransform( Hsh_VecMan_t * pHash, Vec_Int_t * vCoef, int Coef, Vec_Int_t * vProd, Vec_Wec_t * vMap, int Id, int Lit0, int Lit1, Vec_Int_t * vTemp )
-{
-    int pArray[2] = { Lit0, Lit1 };
-    Vec_Int_t vTwo = { 2, 2, pArray };
-
-    int Var0 = Abc_Lit2Var( Lit0 );
-    int Var1 = Abc_Lit2Var( Lit1 );
-    int i, Lit = Vec_IntPop(vProd);
-
-    assert( Abc_Lit2Var(Lit) == Id );
-    if ( Abc_LitIsCompl(Lit) )
-    {
-        Gia_PolynAddNew( pHash, vCoef, Coef, vProd, vMap );
-        Coef = -Coef;
-    }
-
-    assert( Var0 < Var1 );
-    Vec_IntForEachEntry( vProd, Lit, i )
-        if ( Abc_LitNot(Lit) == Lit0 || Abc_LitNot(Lit) == Lit1 )
-            return;
-    assert( Vec_IntCap(vTemp) >= Vec_IntSize(vTemp) + 2 );
-
-    // merge inputs
-    Vec_IntTwoMerge2Int( vProd, &vTwo, vTemp );
-/*
-    printf( "\n" );
-    Vec_IntPrint( vProd );
-    Vec_IntPrint( &vTwo );
-    Vec_IntPrint( vTemp );
-    printf( "\n" );
-*/
-    // create new
-    Gia_PolynAddNew( pHash, vCoef, Coef, vTemp, vMap );
-}
-int Gia_PolynPrint( Hsh_VecMan_t * pHash, Vec_Int_t * vCoef )
-{
-    Vec_Int_t * vProd;
-    int Value, Coef, Lit, i, Count = 0;
-    Vec_IntForEachEntry( vCoef, Coef, Value )
-    {
-        if ( Coef == 0 )
-            continue;
-        vProd = Hsh_VecReadEntry( pHash, Value );
-        printf( "(%d)", Coef );
-        Vec_IntForEachEntry( vProd, Lit, i )
-            printf( "*%d", Lit );
-        printf( " " );
-        Count++;
-    }
-    printf( "\n" );
-    return Count;
-}
-void Gia_PolynTest( Gia_Man_t * pGia )
-{
-    Hsh_VecMan_t * pHash = Hsh_VecManStart( 1000000 );
-    Vec_Int_t * vCoef = Vec_IntAlloc( 1000000 );
-    Vec_Wec_t * vMap = Vec_WecStart( Gia_ManObjNum(pGia) );
-    Vec_Int_t * vTemp = Vec_IntAlloc( 100000 );
-    Vec_Int_t * vThisOne, * vProd;
-    Gia_Obj_t * pObj;
-    int i, k, Value, Coef, Count;
-    abctime clk = Abc_Clock();
-
-    assert( Gia_ManPoNum(pGia) < 32 );
-
-    // add constant
-    Value = Hsh_VecManAdd( pHash, vTemp );
-    assert( Value == 0 );
-    Vec_IntPush( vCoef, 0 );
-
-    // start the outputs
-    Gia_ManForEachPo( pGia, pObj, i )
-    {
-        assert( Gia_ObjFaninId0p(pGia, pObj) > 0 );
-        Vec_IntFill( vTemp, 1, Gia_ObjFaninLit0p(pGia, pObj) );
-        Value = Hsh_VecManAdd( pHash, vTemp );
-        //assert( Value == i + 1 );
-        Vec_IntPush( vCoef, 1 << i );
-        Vec_WecPush( vMap, Gia_ObjFaninId0p(pGia, pObj), Value );
-    }
-    assert( Vec_IntSize(vCoef) == Hsh_VecSize(pHash) );
-
-    Gia_PolynPrint( pHash, vCoef );
-
-    // substitute
-    Gia_ManForEachAndReverse( pGia, pObj, i )
-    {
-        vThisOne = Vec_WecEntry( vMap, i );
-        assert( Vec_IntSize(vThisOne) > 0 );
-        Vec_IntForEachEntry( vThisOne, Value, k )
-        {
-            vProd = Hsh_VecReadEntry( pHash, Value );
-            Coef = Vec_IntEntry( vCoef, Value );
-            if ( Coef == 0 )
-                continue;
-            Gia_PolynTransform( pHash, vCoef, Coef, vProd, vMap, i, Gia_ObjFaninLit0p(pGia, pObj), Gia_ObjFaninLit1p(pGia, pObj), vTemp );
-            Vec_IntWriteEntry( vCoef, Value, 0 );
-        }
-        Vec_IntErase( vThisOne );
-    }
-
-    // inputs
-    Gia_ManForEachCiReverse( pGia, pObj, i )
-    {
-        vThisOne = Vec_WecEntry( vMap, Gia_ObjId(pGia, pObj) );
-        if ( Vec_IntSize(vThisOne) == 0 )
-            continue;
-        assert( Vec_IntSize(vThisOne) > 0 );
-        Vec_IntForEachEntry( vThisOne, Value, k )
-        {
-            vProd = Hsh_VecReadEntry( pHash, Value );
-            Coef = Vec_IntEntry( vCoef, Value );
-            if ( Coef == 0 )
-                continue;
-            if ( Gia_PolynTransform1( pHash, vCoef, Coef, vProd, vMap, Gia_ObjId(pGia, pObj) ) )
-                Vec_IntWriteEntry( vCoef, Value, 0 );
-        }
-        Vec_IntErase( vThisOne );
-    }
-
-    Count = Gia_PolynPrint( pHash, vCoef );
-    printf( "Entries = %d. Useful = %d.  ", Vec_IntSize(vCoef), Count );
-    Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
-
-    Hsh_VecManStop( pHash );
-    Vec_IntFree( vCoef );
-    Vec_WecFree( vMap );
-    Vec_IntFree( vTemp );
-}
-
-
-
-
 
 typedef struct Pln_Man_t_ Pln_Man_t;
 struct Pln_Man_t_
@@ -233,9 +53,16 @@ struct Pln_Man_t_
     Vec_Int_t *    vCoefs;    // coefficients for each monomial
     Vec_Int_t *    vTempC[2]; // polynomial representation
     Vec_Int_t *    vTempM[4]; // polynomial representation
+    Vec_Int_t *    vOrder;    // order of collapsing
     int            nBuilds;   // builds
 };
-    
+
+////////////////////////////////////////////////////////////////////////
+///                     FUNCTION DEFINITIONS                         ///
+////////////////////////////////////////////////////////////////////////
+
+
+
 /**Function*************************************************************
 
   Synopsis    [Computation manager.]
@@ -247,7 +74,7 @@ struct Pln_Man_t_
   SeeAlso     []
 
 ***********************************************************************/
-Pln_Man_t * Pln_ManAlloc( Gia_Man_t * pGia )
+Pln_Man_t * Pln_ManAlloc( Gia_Man_t * pGia, Vec_Int_t * vOrder )
 {
     Pln_Man_t * p = ABC_CALLOC( Pln_Man_t, 1 );
     p->pGia      = pGia;
@@ -262,6 +89,8 @@ Pln_Man_t * Pln_ManAlloc( Gia_Man_t * pGia )
     p->vTempM[1] = Vec_IntAlloc( 100 );
     p->vTempM[2] = Vec_IntAlloc( 100 );
     p->vTempM[3] = Vec_IntAlloc( 100 );
+    p->vOrder    = vOrder ? vOrder : Vec_IntStartNatural( Gia_ManObjNum(pGia) );
+    assert( Vec_IntSize(p->vOrder) == Gia_ManObjNum(pGia) );
     Vec_QueSetPriority( p->vQue, Vec_FltArrayP(p->vCounts) );
     // add 0-constant and 1-monomial
     Hsh_VecManAdd( p->pHashC, p->vTempC[0] );
@@ -283,6 +112,7 @@ void Pln_ManStop( Pln_Man_t * p )
     Vec_IntFree( p->vTempM[1] );
     Vec_IntFree( p->vTempM[2] );
     Vec_IntFree( p->vTempM[3] );
+    Vec_IntFree( p->vOrder );
     ABC_FREE( p );
 }
 void Pln_ManPrintFinal( Pln_Man_t * p )
@@ -296,12 +126,12 @@ void Pln_ManPrintFinal( Pln_Man_t * p )
 
         Count++;
 
-        if ( Vec_IntSize(p->vCoefs) > 1000 )
+        if ( Count > 40 )
             continue;
 
         vArray = Hsh_VecReadEntry( p->pHashC, iConst );
         Vec_IntForEachEntry( vArray, Entry, k )
-            printf( "%s%s2^%d", k ? " + " : "", Entry < 0 ? "-" : "+", Abc_AbsInt(Entry)-1 );
+            printf( "%s%d", Entry < 0 ? "-" : "+", (1 << (Abc_AbsInt(Entry)-1)) );
 
         vArray = Hsh_VecReadEntry( p->pHashM, iMono );
         Vec_IntForEachEntry( vArray, Entry, k )
@@ -368,7 +198,8 @@ static inline void Gia_PolynBuildAdd( Pln_Man_t * p, Vec_Int_t * vTempC, Vec_Int
     {
         iConst = Hsh_VecManAdd( p->pHashC, vTempC );
         Vec_IntPush( p->vCoefs, iConst );
-        Vec_FltPush( p->vCounts, Vec_IntEntryLast(vTempM) );
+//        Vec_FltPush( p->vCounts, Vec_IntEntryLast(vTempM) );
+        Vec_FltPush( p->vCounts, (float)Vec_IntEntry(p->vOrder, Vec_IntEntryLast(vTempM)) );
         Vec_QuePush( p->vQue, iMono );
 //        Vec_QueUpdate( p->vQue, iMono );
         return;
@@ -407,9 +238,11 @@ void Gia_PolynBuildOne( Pln_Man_t * p, int iMono )
         Vec_IntAppend( p->vTempM[k], vArray );
         Vec_IntPop( p->vTempM[k] );
         if ( k == 1 || k == 3 )
-            Vec_IntPushUniqueOrder( p->vTempM[k], iFan0 );    // x
+            Vec_IntPushUniqueOrderCost( p->vTempM[k], iFan0, p->vOrder );    // x
+//            Vec_IntPushUniqueOrder( p->vTempM[k], iFan0 );    // x
         if ( k == 2 || k == 3 )
-            Vec_IntPushUniqueOrder( p->vTempM[k], iFan1 );    // y
+            Vec_IntPushUniqueOrderCost( p->vTempM[k], iFan1, p->vOrder );    // y
+//            Vec_IntPushUniqueOrder( p->vTempM[k], iFan1 );    // y
     }
 
     vConst = Hsh_VecReadEntry( p->pHashC, iConst );
@@ -468,12 +301,13 @@ int Gia_PolyFindNext( Pln_Man_t * p )
     //Vec_IntPrint( Hsh_VecReadEntry(p->pHashM, iBest) );
     return iBest;
 }
-void Gia_PolynBuildTest( Gia_Man_t * pGia )
+void Gia_PolynBuild( Gia_Man_t * pGia, Vec_Int_t * vOrder, int fVerbose )
 {
     abctime clk = Abc_Clock();//, clk2 = 0;
     Gia_Obj_t * pObj; 
-    int i, iMono, iDriver;
-    Pln_Man_t * p = Pln_ManAlloc( pGia );
+    Vec_Bit_t * vPres = Vec_BitStart( Gia_ManObjNum(pGia) );
+    int i, iMono, iDriver, LevPrev, LevCur, Iter, Line = 0;
+    Pln_Man_t * p = Pln_ManAlloc( pGia, vOrder );
     Gia_ManForEachCoReverse( pGia, pObj, i )
     {
         Vec_IntFill( p->vTempC[0], 1,  i+1 );      //  2^i
@@ -490,12 +324,33 @@ void Gia_PolynBuildTest( Gia_Man_t * pGia )
         else
             Gia_PolynBuildAdd( p, p->vTempC[0], p->vTempM[0] );   //  C * Driver
     }
-    while ( 1 )
+    LevPrev = -1;
+    for ( Iter = 0; ; Iter++ )
     {
+        Vec_Int_t * vTempM;
         //abctime temp = Abc_Clock();
         iMono = Gia_PolyFindNext(p);
         if ( !iMono )
             break;
+
+        // report
+        vTempM = Hsh_VecReadEntry( p->pHashM, iMono );
+        //printf( "Removing var %d\n", Vec_IntEntryLast(vTempM) );
+
+//        LevCur = Vec_IntEntryLast(vTempM);
+        LevCur = Vec_IntEntry(p->vOrder, Vec_IntEntryLast(vTempM));
+        if ( LevPrev != LevCur )
+        {
+            if ( Vec_BitEntry( vPres, LevCur & 0xFF ) )
+                printf( "Repeating entry %d\n", LevCur & 0xFF );
+            else
+                Vec_BitSetEntry( vPres, LevCur & 0xFF, 1 );
+
+            printf( "Line %5d   Iter %6d : Cur = %8x. Obj = %5d.  HashC =%8d. HashM =%8d.  Total =%8d. Used =%8d.\n", 
+                Line++, Iter, LevCur, LevCur & 0xFF,  Hsh_VecSize(p->pHashC), Hsh_VecSize(p->pHashM), p->nBuilds, -1 );
+        }
+        LevPrev = LevCur;
+
         Gia_PolynBuildOne( p, iMono );
         //clk2 += Abc_Clock() - temp;
     }
@@ -503,8 +358,8 @@ void Gia_PolynBuildTest( Gia_Man_t * pGia )
     //Abc_PrintTime( 1, "Time2", clk2 );
     Pln_ManPrintFinal( p );
     Pln_ManStop( p );
+    Vec_BitFree( vPres );
 }
-
 
 
 ////////////////////////////////////////////////////////////////////////

@@ -136,7 +136,7 @@ void Gia_ManCollectAnds( Gia_Man_t * p, int * pNodes, int nNodes, Vec_Int_t * vN
         Gia_Obj_t * pObj = Gia_ManObj( p, pNodes[i] );
         if ( Gia_ObjIsCo(pObj) )
             Gia_ManCollectAnds_rec( p, Gia_ObjFaninId0(pObj, pNodes[i]), vNodes );
-        else
+        else if ( Gia_ObjIsAnd(pObj) )
             Gia_ManCollectAnds_rec( p, pNodes[i], vNodes );
     }
 }

@@ -568,7 +568,7 @@ static inline void Vec_IntSelectSortCostLit( Vec_Int_t * vSuper, Vec_Int_t * vCo
         ABC_SWAP( int, pArray[i], pArray[best_i] );
     }
 }
-static inline void Vec_IntPushOrderCost( Vec_Int_t * vSuper, Vec_Int_t * vCosts, int iLit )
+static inline void Vec_IntPushOrderCost2( Vec_Int_t * vSuper, Vec_Int_t * vCosts, int iLit )
 {
     int i, nSize, * pArray;
     Vec_IntPush( vSuper, iLit );
@@ -853,7 +853,7 @@ static inline int Gia_ManBalanceGate( Gia_Man_t * pNew, Gia_Obj_t * pObj, Vec_In
             else 
                 iLit = Gia_ManHashAnd( pNew, iBest, kBest );
             Bal_ManSetGateLevel( p, pObj, iLit );
-            Vec_IntPushOrderCost( vSuper, p->vCosts, iLit );
+            Vec_IntPushOrderCost2( vSuper, p->vCosts, iLit );
         }
     }
     // consider trivial case

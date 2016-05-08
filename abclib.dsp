@@ -4231,10 +4231,6 @@ SOURCE=.\src\aig\gia\giaEsop.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\aig\gia\giaFadds.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\src\aig\gia\giaFalse.c
 # End Source File
 # Begin Source File
@@ -4344,10 +4340,6 @@ SOURCE=.\src\aig\gia\giaPat.c
 # Begin Source File
 
 SOURCE=.\src\aig\gia\giaPf.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\aig\gia\giaPolyn.c
 # End Source File
 # Begin Source File
 
@@ -5297,6 +5289,38 @@ SOURCE=.\src\proof\ssc\sscUtil.c
 # Begin Group "int2"
 
 # PROP Default_Filter ""
+# End Group
+# Begin Group "acec"
+
+# PROP Default_Filter ""
+# Begin Source File
+
+SOURCE=.\src\proof\acec\acec.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\proof\acec\acecCore.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\proof\acec\acecFadds.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\proof\acec\acecInt.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\proof\acec\acecOrder.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\proof\acec\acecPolyn.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\proof\acec\acecUtil.c
+# End Source File
 # End Group
 # End Group
 # End Group

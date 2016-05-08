@@ -1,12 +1,12 @@
 /**CFile****************************************************************
 
-  FileName    [giaFadds.c]
+  FileName    [acecFadds.c]
 
   SystemName  [ABC: Logic synthesis and verification system.]
 
-  PackageName [Scalable AIG package.]
+  PackageName [CEC for arithmetic circuits.]
 
-  Synopsis    [Extraction of full-adders.]
+  Synopsis    [Detecting half-adders and full-adders.]
 
   Author      [Alan Mishchenko]
   
@@ -14,11 +14,11 @@
 
   Date        [Ver. 1.0. Started - June 20, 2005.]
 
-  Revision    [$Id: giaFadds.c,v 1.00 2005/06/20 00:00:00 alanmi Exp $]
+  Revision    [$Id: acecFadds.c,v 1.00 2005/06/20 00:00:00 alanmi Exp $]
 
 ***********************************************************************/
 
-#include "gia.h"
+#include "acecInt.h"
 #include "misc/vec/vecWec.h"
 #include "misc/tim/tim.h"
 
@@ -35,6 +35,70 @@ ABC_NAMESPACE_IMPL_START
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
+
+/**Function*************************************************************
+
+  Synopsis    [Detecting HADDs in the AIG.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Int_t * Gia_ManDetectHalfAdders( Gia_Man_t * p, int fVerbose )
+{
+    Vec_Int_t * vHadds = Vec_IntAlloc( 1000 );
+    Gia_Obj_t * pObj, * pFan0, * pFan1; 
+    int i, iLit, iFan0, iFan1, fComplDiff, Count, Counts[5] = {0};
+    ABC_FREE( p->pRefs );
+    Gia_ManCreateRefs( p );
+    Gia_ManHashStart( p );
+    Gia_ManForEachAnd( p, pObj, i )
+    {
+        if ( !Gia_ObjRecognizeExor(pObj, &pFan0, &pFan1) )
+            continue;
+        Count = 0;
+        if ( Gia_ObjRefNumId(p, Gia_ObjFaninId0(pObj, i)) > 1 )
+            Vec_IntPushTwo( vHadds, i, Gia_ObjFaninId0(pObj, i) ), Count++;
+        if ( Gia_ObjRefNumId(p, Gia_ObjFaninId1(pObj, i)) > 1 )
+            Vec_IntPushTwo( vHadds, i, Gia_ObjFaninId1(pObj, i) ), Count++;
+        iFan0 = Gia_ObjId( p, pFan0 );
+        iFan1 = Gia_ObjId( p, pFan1 );
+        fComplDiff =          (Gia_ObjFaninC0(Gia_ObjFanin0(pObj)) ^ Gia_ObjFaninC1(Gia_ObjFanin0(pObj)));
+        assert( fComplDiff == (Gia_ObjFaninC0(Gia_ObjFanin1(pObj)) ^ Gia_ObjFaninC1(Gia_ObjFanin1(pObj))) );
+        if ( fComplDiff )
+        {
+            if ( (iLit = Gia_ManHashLookupInt(p, Abc_Var2Lit(iFan0, 0), Abc_Var2Lit(iFan1, 0))) )
+                Vec_IntPushTwo( vHadds, i, Abc_Lit2Var(iLit) ), Count++;
+            if ( (iLit = Gia_ManHashLookupInt(p, Abc_Var2Lit(iFan0, 1), Abc_Var2Lit(iFan1, 1))) )
+                Vec_IntPushTwo( vHadds, i, Abc_Lit2Var(iLit) ), Count++;
+        }
+        else
+        {
+            if ( (iLit = Gia_ManHashLookupInt(p, Abc_Var2Lit(iFan0, 0), Abc_Var2Lit(iFan1, 1))) )
+                Vec_IntPushTwo( vHadds, i, Abc_Lit2Var(iLit) ), Count++;
+            if ( (iLit = Gia_ManHashLookupInt(p, Abc_Var2Lit(iFan0, 1), Abc_Var2Lit(iFan1, 0))) )
+                Vec_IntPushTwo( vHadds, i, Abc_Lit2Var(iLit) ), Count++;
+        }
+        Counts[Count]++;
+    }
+    Gia_ManHashStop( p );
+    ABC_FREE( p->pRefs );
+    if ( fVerbose )
+    {
+        int iXor, iAnd;
+        printf( "Found %d half-adders with XOR gates: ", Vec_IntSize(vHadds)/2 );
+        for ( i = 0; i <= 4; i++ )
+            printf( "%d=%d ", i, Counts[i] );
+        printf( "\n" );
+
+        Vec_IntForEachEntryDouble( vHadds, iXor, iAnd, i )
+            printf( "%3d : %5d %5d\n", i, iXor, iAnd );
+    }
+    return vHadds;
+}
 
 /**Function*************************************************************
 
@@ -176,6 +240,7 @@ int Dtc_ObjComputeTruth( Gia_Man_t * p, int iObj, int * pCut, int * pTruth )
 }
 void Dtc_ManCutMerge( Gia_Man_t * p, int iObj, int * pList0, int * pList1, Vec_Int_t * vCuts, Vec_Int_t * vCutsXor, Vec_Int_t * vCutsMaj )
 {
+    int fVerbose = 0;
     Vec_Int_t * vTemp;
     int i, k, c, Type, * pCut0, * pCut1, pCut[4];
     Vec_IntFill( vCuts, 2, 1 );
@@ -196,8 +261,16 @@ void Dtc_ManCutMerge( Gia_Man_t * p, int iObj, int * pList0, int * pList1, Vec_I
         if ( Type == 0 )
             continue;
         vTemp = Type == 1 ? vCutsXor : vCutsMaj;
+        if ( fVerbose )
+            printf( "%d = %s(", iObj, Type == 1 ? "XOR" : "MAJ" );
         for ( c = 1; c <= pCut[0]; c++ )
+        {
+            if ( fVerbose )
+                printf( " %d", pCut[c] );
             Vec_IntPush( vTemp, pCut[c] );
+        }
+        if ( fVerbose )
+            printf( " )\n" );
         Vec_IntPush( vTemp, iObj );
     }
 }
@@ -307,7 +380,8 @@ Vec_Int_t * Gia_ManDetectFullAdders( Gia_Man_t * p, int fVerbose )
     qsort( Vec_IntArray(vFadds), Vec_IntSize(vFadds)/5, 20, (int (*)(const void *, const void *))Dtc_ManCompare2 );
     if ( fVerbose )
         printf( "XOR3 cuts = %d.  MAJ cuts = %d.  Full-adders = %d.\n", Vec_IntSize(vCutsXor)/4, Vec_IntSize(vCutsMaj)/4, Vec_IntSize(vFadds)/5 );
-    //Dtc_ManPrintFadds( vFadds );
+    if ( fVerbose )
+        Dtc_ManPrintFadds( vFadds );
     Vec_IntFree( vCutsXor );
     Vec_IntFree( vCutsMaj );
     return vFadds;

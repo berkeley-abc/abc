@@ -1264,6 +1264,7 @@ Wlc_Ntk_t * Wlc_ReadVer( char * pFileName )
 finish:
     Wlc_PrsPrintErrorMessage( p );
     Wlc_PrsStop( p );
+    pNtk->pSpec = Abc_UtilStrsav( pFileName );
     return pNtk;
 }
 

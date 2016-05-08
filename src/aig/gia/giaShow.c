@@ -50,9 +50,9 @@ void Gia_WriteDotAig( Gia_Man_t * pMan, char * pFileName, Vec_Int_t * vBold )
     int LevelMax, Prev, Level, i;
     int fConstIsUsed = 0;
 
-    if ( Gia_ManAndNum(pMan) > 200 )
+    if ( Gia_ManAndNum(pMan) > 300 )
     {
-        fprintf( stdout, "Cannot visualize AIG with more than 200 nodes.\n" );
+        fprintf( stdout, "Cannot visualize AIG with more than 300 nodes.\n" );
         return;
     }
     if ( (pFile = fopen( pFileName, "w" )) == NULL )

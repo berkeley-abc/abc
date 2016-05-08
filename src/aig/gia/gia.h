@@ -1149,6 +1149,7 @@ extern Gia_Man_t *         Gia_ManDupCofAllInt( Gia_Man_t * p, Vec_Int_t * vSigs
 extern Gia_Man_t *         Gia_ManDupCofAll( Gia_Man_t * p, int nFanLim, int fVerbose );
 /*=== giaDfs.c ============================================================*/
 extern void                Gia_ManCollectCis( Gia_Man_t * p, int * pNodes, int nNodes, Vec_Int_t * vSupp );
+extern void                Gia_ManCollectAnds_rec( Gia_Man_t * p, int iObj, Vec_Int_t * vNodes );
 extern void                Gia_ManCollectAnds( Gia_Man_t * p, int * pNodes, int nNodes, Vec_Int_t * vNodes, Vec_Int_t * vLeaves );
 extern Vec_Int_t *         Gia_ManCollectNodesCis( Gia_Man_t * p, int * pNodes, int nNodes );
 extern int                 Gia_ManSuppSize( Gia_Man_t * p, int * pNodes, int nNodes );
@@ -1209,10 +1210,15 @@ extern Gia_Man_t *         Gia_ManTransformToDual( Gia_Man_t * p );
 extern Gia_Man_t *         Gia_ManChoiceMiter( Vec_Ptr_t * vGias );
 extern Gia_Man_t *         Gia_ManDupWithConstraints( Gia_Man_t * p, Vec_Int_t * vPoTypes );
 extern Gia_Man_t *         Gia_ManDupCones( Gia_Man_t * p, int * pPos, int nPos, int fTrimPis );
+extern Gia_Man_t *         Gia_ManDupAndCones( Gia_Man_t * p, int * pAnds, int nAnds, int fTrimPis );
 extern Gia_Man_t *         Gia_ManDupOneHot( Gia_Man_t * p );
 extern Gia_Man_t *         Gia_ManDupLevelized( Gia_Man_t * p );
 extern Gia_Man_t *         Gia_ManDupFromVecs( Gia_Man_t * p, Vec_Int_t * vCis, Vec_Int_t * vAnds, Vec_Int_t * vCos, int nRegs );
 extern Gia_Man_t *         Gia_ManDupSliced( Gia_Man_t * p, int nSuppMax );
+extern Gia_Man_t *         Gia_ManDupDemiter( Gia_Man_t * p, int fVerbose );
+extern Gia_Man_t *         Gia_ManDemiterToDual( Gia_Man_t * p );
+extern int                 Gia_ManDemiterDual( Gia_Man_t * p, Gia_Man_t ** pp0, Gia_Man_t ** pp1 );
+extern int                 Gia_ManDemiterTwoWords( Gia_Man_t * p, Gia_Man_t ** pp0, Gia_Man_t ** pp1 );
 /*=== giaEdge.c ==========================================================*/
 extern void                Gia_ManEdgeFromArray( Gia_Man_t * p, Vec_Int_t * vArray );
 extern Vec_Int_t *         Gia_ManEdgeToArray( Gia_Man_t * p );

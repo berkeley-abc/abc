@@ -1327,6 +1327,7 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Vec_Int_t * vBoxIds )
     }
     assert( Vec_PtrSize(pNew->vNamesOut) == Gia_ManCoNum(pNew) );
 */
+    pNew->pSpec = Abc_UtilStrsav( p->pSpec ? p->pSpec : p->pName );
     return pNew;
 }
 

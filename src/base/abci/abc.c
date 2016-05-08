@@ -43,6 +43,7 @@
 #include "opt/ret/retInt.h"
 #include "sat/cnf/cnf.h"
 #include "proof/cec/cec.h"
+#include "proof/acec/acec.h"
 #include "proof/pdr/pdr.h"
 #include "misc/tim/tim.h"
 #include "bdd/llb/llb.h"
@@ -464,6 +465,8 @@ static int Abc_CommandAbc9Bmci               ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandAbc9PoXsim             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Demiter            ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Fadds              ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9Polyn              ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9Acec               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Esop               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Exorcism           ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Mfs                ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -1092,6 +1095,8 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "ABC9",         "&poxsim",       Abc_CommandAbc9PoXsim,       0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&demiter",      Abc_CommandAbc9Demiter,      0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&fadds",        Abc_CommandAbc9Fadds,        0 );
+    Cmd_CommandAdd( pAbc, "ABC9",         "&polyn",        Abc_CommandAbc9Polyn,        0 );
+    Cmd_CommandAdd( pAbc, "ABC9",         "&acec",         Abc_CommandAbc9Acec,         0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&esop",         Abc_CommandAbc9Esop,         0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&exorcism",     Abc_CommandAbc9Exorcism,     0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&mfs",          Abc_CommandAbc9Mfs,          0 );
@@ -27760,6 +27765,7 @@ usage:
     Abc_Print( -2, "\t-c     : toggle collapsing hierarchical AIG [default = %s]\n", fCollapse? "yes": "no" );
     Abc_Print( -2, "\t-m     : toggle converting to larger gates [default = %s]\n", fAddMuxes? "yes": "no" );
     Abc_Print( -2, "\t-L num : create MUX when sum of refs does not exceed this limit [default = %d]\n", Limit );
+    Abc_Print( -2, "\t         (use L = 1 to create AIG with XORs but without MUXes)\n" );
     Abc_Print( -2, "\t-r     : toggle rehashing AIG while preserving mapping [default = %s]\n", fRehashMap? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
@@ -39054,14 +39060,22 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9Demiter( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern Gia_Man_t * Gia_ManDupDemiter( Gia_Man_t * p, int fVerbose );
     Gia_Man_t * pTemp;
-    int c, fVerbose = 0;
+    int c, fDumpFiles = 0, fDumpFilesTwo = 0, fDual = 0, fVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "ftdvh" ) ) != EOF )
     {
         switch ( c )
         {
+        case 'f':
+            fDumpFiles ^= 1;
+            break;
+        case 't':
+            fDumpFilesTwo ^= 1;
+            break;
+        case 'd':
+            fDual ^= 1;
+            break;
         case 'v':
             fVerbose ^= 1;
             break;
@@ -39076,20 +39090,57 @@ int Abc_CommandAbc9Demiter( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Abc_CommandAbc9Demiter(): There is no AIG.\n" );
         return 0;
     }
+    if ( fDumpFiles || fDumpFilesTwo )
+    {
+        char pName0[1000] = "miter_part0.aig";
+        char pName1[1000] = "miter_part1.aig";
+        Gia_Man_t * pPart1, * pPart2; 
+        if ( Gia_ManPoNum(pAbc->pGia) % 2 != 0 )
+        {
+            Abc_Print( -1, "Abc_CommandAbc9Demiter(): Does not look like a dual-output miter.\n" );
+            return 0;
+        }
+        if ( fDumpFilesTwo )
+            Gia_ManDemiterTwoWords( pAbc->pGia, &pPart1, &pPart2 );
+        else
+            Gia_ManDemiterDual( pAbc->pGia, &pPart1, &pPart2 );
+        if ( pAbc->pGia->pSpec )
+        {
+            char * pGen = Extra_FileNameGeneric(pAbc->pGia->pSpec);
+            sprintf( pName0, "%s_1.aig", pGen );
+            sprintf( pName1, "%s_2.aig", pGen );
+            ABC_FREE( pGen );
+        }
+        Gia_AigerWrite( pPart1, pName0, 0, 0 );
+        Gia_AigerWrite( pPart2, pName1, 0, 0 );
+        Gia_ManStop( pPart1 );
+        Gia_ManStop( pPart2 );
+        if ( fDumpFilesTwo )
+            printf( "Two parts of the two-word miter are dumped into files \"%s\" and \"%s\".\n", pName0, pName1 );
+        else
+            printf( "Two parts of the dual-output miter are dumped into files \"%s\" and \"%s\".\n", pName0, pName1 );
+        return 0;
+    }
     if ( Gia_ManPoNum(pAbc->pGia) != 1 )
     {
         Abc_Print( -1, "Abc_CommandAbc9Demiter(): Miter should have one output.\n" );
         return 0;
     }
-    pTemp = Gia_ManDupDemiter( pAbc->pGia, fVerbose );
+    if ( fDual )
+        pTemp = Gia_ManDemiterToDual( pAbc->pGia );
+    else
+        pTemp = Gia_ManDupDemiter( pAbc->pGia, fVerbose );
     Abc_FrameUpdateGia( pAbc, pTemp );
     if ( fVerbose )
         Gia_ManPrintStatsMiter( pTemp, 0 );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &demiter [-vh]\n" );
-    Abc_Print( -2, "\t         decomposes a single-output miter\n" );
+    Abc_Print( -2, "usage: &demiter [-ftdvh]\n" );
+    Abc_Print( -2, "\t         decomposes a miter (by default, tries to extract an OR gate)\n" );
+    Abc_Print( -2, "\t-f     : write files with two sides of a dual-output miter [default = %s]\n",  fDumpFiles? "yes": "no" );
+    Abc_Print( -2, "\t-t     : write files with two sides of a two-word miter [default = %s]\n",  fDumpFilesTwo? "yes": "no" );
+    Abc_Print( -2, "\t-d     : take single-output and decompose into dual-output [default = %s]\n",  fDual? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggles printing verbose information [default = %s]\n",  fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
@@ -39233,6 +39284,217 @@ usage:
     Abc_Print( -2, "\t-x     : toggles using XOR to generate fanouts in artificial chains [default = %s]\n",   fUseXorTrick? "yes": "no" );
     Abc_Print( -2, "\t-b     : toggles ignoring boxes when computing delays [default = %s]\n",             fIgnoreBoxDelays? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggles printing verbose information [default = %s]\n",                     fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc9Polyn( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern void Gia_PolynBuild( Gia_Man_t * pGia, Vec_Int_t * vOrder, int fVerbose );
+    int c, fVerbose = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pAbc->pGia == NULL )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9Esop(): There is no AIG.\n" );
+        return 0;
+    }
+    Gia_PolynBuild( pAbc->pGia, NULL, fVerbose );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: &polyn [-vh]\n" );
+    Abc_Print( -2, "\t         derives algebraic polynomial from AIG\n" );
+    Abc_Print( -2, "\t-v     : toggles printing verbose information [default = %s]\n",  fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc9Acec( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    FILE * pFile;
+    Cec_ParCec_t ParsCec, * pPars = &ParsCec;
+    Gia_Man_t * pSecond;
+    char * FileName, * pTemp;
+    char ** pArgvNew;
+    int c, nArgcNew, fMiter = 0, fDualOutput = 0, fTwoOutput = 0;
+    Cec_ManCecSetDefaultParams( pPars );
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "CTnmdtvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'C':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-C\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nBTLimit = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nBTLimit < 0 )
+                goto usage;
+            break;
+        case 'T':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-T\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->TimeLimit = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->TimeLimit < 0 )
+                goto usage;
+            break;
+        case 'n':
+            pPars->fNaive ^= 1;
+            break;
+        case 'm':
+            fMiter ^= 1;
+            break;
+        case 'd':
+            fDualOutput ^= 1;
+            break;
+        case 't':
+            fTwoOutput ^= 1;
+            break;
+        case 'v':
+            pPars->fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( fMiter )
+    {
+        Gia_Man_t * pGia0, * pGia1, * pDual;
+        if ( pAbc->pGia == NULL )
+        {
+            Abc_Print( -1, "Abc_CommandAbc9Acec(): There is no AIG.\n" );
+            return 1;
+        }
+        if ( fDualOutput )
+        {
+            if ( Gia_ManPoNum(pAbc->pGia) & 1 )
+            {
+                Abc_Print( -1, "The dual-output miter should have an even number of outputs.\n" );
+                return 1;
+            }
+            if ( !pPars->fSilent )
+            Abc_Print( 1, "Assuming the current network is a double-output miter. (Conflict limit = %d.)\n", pPars->nBTLimit );
+            Gia_ManDemiterDual( pAbc->pGia, &pGia0, &pGia1 );
+            pAbc->Status = Gia_PolynCec( pGia0, pGia1, pPars );
+        }
+        else if ( fTwoOutput )
+        {
+            if ( Gia_ManPoNum(pAbc->pGia) & 1 )
+            {
+                Abc_Print( -1, "The dual-output miter should have an even number of outputs.\n" );
+                return 1;
+            }
+            if ( !pPars->fSilent )
+            Abc_Print( 1, "Assuming the current network is a two-word miter. (Conflict limit = %d.)\n", pPars->nBTLimit );
+            Gia_ManDemiterTwoWords( pAbc->pGia, &pGia0, &pGia1 );
+            pAbc->Status = Gia_PolynCec( pGia0, pGia1, pPars );
+        }
+        else
+        {
+            if ( !pPars->fSilent )
+            Abc_Print( 1, "Assuming the current network is a single-output miter. (Conflict limit = %d.)\n", pPars->nBTLimit );
+            pDual = Gia_ManDemiterToDual( pAbc->pGia );
+            Gia_ManDemiterDual( pDual, &pGia0, &pGia1 );
+            Gia_ManStop( pDual );
+            pAbc->Status = Gia_PolynCec( pGia0, pGia1, pPars );
+        }        
+        Abc_FrameReplaceCex( pAbc, &pGia0->pCexComb );
+        Gia_ManStop( pGia0 );
+        Gia_ManStop( pGia1 );
+        return 0;
+    }
+
+    pArgvNew = argv + globalUtilOptind;
+    nArgcNew = argc - globalUtilOptind;
+    if ( nArgcNew != 1 )
+    {
+        if ( pAbc->pGia->pSpec == NULL )
+        {
+            Abc_Print( -1, "File name is not given on the command line.\n" );
+            return 1;
+        }
+        FileName = pAbc->pGia->pSpec;
+    }
+    else
+        FileName = pArgvNew[0];
+    // fix the wrong symbol
+    for ( pTemp = FileName; *pTemp; pTemp++ )
+        if ( *pTemp == '>' )
+            *pTemp = '\\';
+    if ( (pFile = fopen( FileName, "r" )) == NULL )
+    {
+        Abc_Print( -1, "Cannot open input file \"%s\". ", FileName );
+        if ( (FileName = Extra_FileGetSimilarName( FileName, ".aig", NULL, NULL, NULL, NULL )) )
+            Abc_Print( 1, "Did you mean \"%s\"?", FileName );
+        Abc_Print( 1, "\n" );
+        return 1;
+    }
+    fclose( pFile );
+    pSecond = Gia_AigerRead( FileName, 0, 0 );
+    if ( pSecond == NULL )
+    {
+        Abc_Print( -1, "Reading AIGER has failed.\n" );
+        return 0;
+    }
+    pAbc->Status = Gia_PolynCec( pAbc->pGia, pSecond, pPars );
+    Abc_FrameReplaceCex( pAbc, &pAbc->pGia->pCexComb );
+    Gia_ManStop( pSecond );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: &acec [-CT num] [-nmdtvh]\n" );
+    Abc_Print( -2, "\t         combinational equivalence checking for arithmetic circuits\n" );
+    Abc_Print( -2, "\t-C num : the max number of conflicts at a node [default = %d]\n", pPars->nBTLimit );
+    Abc_Print( -2, "\t-T num : approximate runtime limit in seconds [default = %d]\n", pPars->TimeLimit );
+    Abc_Print( -2, "\t-n     : toggle using naive SAT-based checking [default = %s]\n", pPars->fNaive? "yes":"no");
+    Abc_Print( -2, "\t-m     : toggle miter vs. two circuits [default = %s]\n", fMiter? "miter":"two circuits");
+    Abc_Print( -2, "\t-d     : toggle using dual output miter [default = %s]\n", fDualOutput? "yes":"no");
+    Abc_Print( -2, "\t-t     : toggle using two-word miter [default = %s]\n", fTwoOutput? "yes":"no");
+    Abc_Print( -2, "\t-v     : toggle verbose output [default = %s]\n", pPars->fVerbose? "yes":"no");
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
 }

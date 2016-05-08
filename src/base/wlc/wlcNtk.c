@@ -223,6 +223,7 @@ void Wlc_NtkFree( Wlc_Ntk_t * p )
     ABC_FREE( p->pInits );
     ABC_FREE( p->pObjs );
     ABC_FREE( p->pName );
+    ABC_FREE( p->pSpec );
     ABC_FREE( p );
 }
 int Wlc_NtkMemUsage( Wlc_Ntk_t * p )
@@ -587,6 +588,8 @@ Wlc_Ntk_t * Wlc_NtkDupDfs( Wlc_Ntk_t * p )
     if ( p->pInits )
     pNew->pInits = Abc_UtilStrsav( p->pInits );
     Vec_IntFree( vFanins );
+    if ( p->pSpec )
+    pNew->pSpec = Abc_UtilStrsav( p->pSpec );
     return pNew;
 }
 void Wlc_NtkTransferNames( Wlc_Ntk_t * pNew, Wlc_Ntk_t * p )
@@ -658,6 +661,8 @@ Wlc_Ntk_t * Wlc_NtkDupSingleNodes( Wlc_Ntk_t * p )
     }
     Vec_IntFree( vFanins );
     Wlc_NtkTransferNames( pNew, p );
+    if ( p->pSpec )
+    pNew->pSpec = Abc_UtilStrsav( p->pSpec );
     return pNew;
 }
 
