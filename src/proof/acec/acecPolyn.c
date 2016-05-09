@@ -61,7 +61,25 @@ struct Pln_Man_t_
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
+/**Function*************************************************************
 
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Int_t * Pln_ManSimpleOrder( Gia_Man_t * p )
+{
+    Vec_Int_t * vOrder; int Id;
+    vOrder = Vec_IntStart( Gia_ManObjNum(p) );
+    Gia_ManForEachAndId( p, Id )
+        Vec_IntWriteEntry( vOrder, Id, Id );
+    return vOrder;
+}
 
 /**Function*************************************************************
 
@@ -112,10 +130,10 @@ void Pln_ManStop( Pln_Man_t * p )
     Vec_IntFree( p->vTempM[1] );
     Vec_IntFree( p->vTempM[2] );
     Vec_IntFree( p->vTempM[3] );
-    Vec_IntFree( p->vOrder );
+    //Vec_IntFree( p->vOrder );
     ABC_FREE( p );
 }
-void Pln_ManPrintFinal( Pln_Man_t * p )
+void Pln_ManPrintFinal( Pln_Man_t * p, int fVerbose, int fVeryVerbose )
 {
     Vec_Int_t * vArray;
     int k, Entry, iMono, iConst, Count = 0;
@@ -126,7 +144,7 @@ void Pln_ManPrintFinal( Pln_Man_t * p )
 
         Count++;
 
-        if ( Count > 40 )
+        if ( !fVeryVerbose )
             continue;
 
         vArray = Hsh_VecReadEntry( p->pHashC, iConst );
@@ -301,7 +319,7 @@ int Gia_PolyFindNext( Pln_Man_t * p )
     //Vec_IntPrint( Hsh_VecReadEntry(p->pHashM, iBest) );
     return iBest;
 }
-void Gia_PolynBuild( Gia_Man_t * pGia, Vec_Int_t * vOrder, int fVerbose )
+void Gia_PolynBuild( Gia_Man_t * pGia, Vec_Int_t * vOrder, int fVerbose, int fVeryVerbose )
 {
     abctime clk = Abc_Clock();//, clk2 = 0;
     Gia_Obj_t * pObj; 
@@ -336,18 +354,20 @@ void Gia_PolynBuild( Gia_Man_t * pGia, Vec_Int_t * vOrder, int fVerbose )
         // report
         vTempM = Hsh_VecReadEntry( p->pHashM, iMono );
         //printf( "Removing var %d\n", Vec_IntEntryLast(vTempM) );
+        LevCur = Vec_IntEntryLast(vTempM);
+        if ( !Gia_ObjIsAnd(Gia_ManObj(pGia, LevCur)) )
+            continue;
 
-//        LevCur = Vec_IntEntryLast(vTempM);
-        LevCur = Vec_IntEntry(p->vOrder, Vec_IntEntryLast(vTempM));
         if ( LevPrev != LevCur )
         {
-            if ( Vec_BitEntry( vPres, LevCur & 0xFF ) )
-                printf( "Repeating entry %d\n", LevCur & 0xFF );
+            if ( Vec_BitEntry( vPres, LevCur ) && fVerbose )
+                printf( "Repeating entry %d\n", LevCur );
             else
-                Vec_BitSetEntry( vPres, LevCur & 0xFF, 1 );
+                Vec_BitSetEntry( vPres, LevCur, 1 );
 
-            printf( "Line %5d   Iter %6d : Cur = %8x. Obj = %5d.  HashC =%8d. HashM =%8d.  Total =%8d. Used =%8d.\n", 
-                Line++, Iter, LevCur, LevCur & 0xFF,  Hsh_VecSize(p->pHashC), Hsh_VecSize(p->pHashM), p->nBuilds, -1 );
+            if ( fVerbose )
+                printf( "Line%5d   Iter%10d : Obj =%6d.  Order =%6d.  HashC =%6d. HashM =%10d.  Total =%10d. Used =%6d.\n", 
+                    Line++, Iter, LevCur, Vec_IntEntry(p->vOrder, LevCur), Hsh_VecSize(p->pHashC), Hsh_VecSize(p->pHashM), p->nBuilds, -1 );
         }
         LevPrev = LevCur;
 
@@ -356,7 +376,7 @@ void Gia_PolynBuild( Gia_Man_t * pGia, Vec_Int_t * vOrder, int fVerbose )
     }
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     //Abc_PrintTime( 1, "Time2", clk2 );
-    Pln_ManPrintFinal( p );
+    Pln_ManPrintFinal( p, fVerbose, fVeryVerbose );
     Pln_ManStop( p );
     Vec_BitFree( vPres );
 }

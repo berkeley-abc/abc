@@ -44,10 +44,12 @@ ABC_NAMESPACE_IMPL_START
 ***********************************************************************/
 int Gia_PolynCec( Gia_Man_t * pGia0, Gia_Man_t * pGia1, Cec_ParCec_t * pPars )
 {
-    Vec_Int_t * vOrder0 = Gia_PolynReorder( pGia0, pPars->fVerbose );
-    Vec_Int_t * vOrder1 = Gia_PolynReorder( pGia1, pPars->fVerbose );
-    Gia_PolynBuild( pGia0, vOrder0, pPars->fVerbose );
-    Gia_PolynBuild( pGia1, vOrder1, pPars->fVerbose );
+    Vec_Int_t * vOrder0 = Gia_PolynReorder( pGia0, pPars->fVerbose, pPars->fVeryVerbose );
+    Vec_Int_t * vOrder1 = Gia_PolynReorder( pGia1, pPars->fVerbose, pPars->fVeryVerbose );
+    Gia_PolynBuild( pGia0, vOrder0, pPars->fVerbose, pPars->fVeryVerbose );
+    Gia_PolynBuild( pGia1, vOrder1, pPars->fVerbose, pPars->fVeryVerbose );
+    Vec_IntFree( vOrder0 );
+    Vec_IntFree( vOrder1 );
     return 1;
 }
 

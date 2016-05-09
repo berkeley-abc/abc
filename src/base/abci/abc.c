@@ -27541,12 +27541,15 @@ usage:
 int Abc_CommandAbc9Show( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Vec_Int_t * vBold = NULL;
-    int c;
+    int c, fAdders = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "ah" ) ) != EOF )
     {
         switch ( c )
         {
+        case 'a':
+            fAdders ^= 1;
+            break;
         case 'h':
             goto usage;
         default:
@@ -27563,19 +27566,20 @@ int Abc_CommandAbc9Show( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Abc_CommandAbc9Show(): Cannot show GIA with barrier buffers.\n" );
         return 1;
     }
-    if ( Gia_ManHasMapping(pAbc->pGia) )
+    if ( !fAdders && Gia_ManHasMapping(pAbc->pGia) )
     {
         vBold = Vec_IntAlloc( 100 );
         Gia_ManForEachLut( pAbc->pGia, c )
             Vec_IntPush( vBold, c );
     }
-    Gia_ManShow( pAbc->pGia, vBold );
+    Gia_ManShow( pAbc->pGia, vBold, fAdders );
     Vec_IntFreeP( &vBold );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &show [-h]\n" );
+    Abc_Print( -2, "usage: &show [-ah]\n" );
     Abc_Print( -2, "\t        shows the current GIA using GSView\n" );
+    Abc_Print( -2, "\t-a    : toggle visualazing adders [default = %s]\n", fAdders? "yes": "no" );
     Abc_Print( -2, "\t-h    : print the command usage\n");
     return 1;
 }
@@ -39301,15 +39305,21 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9Polyn( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern void Gia_PolynBuild( Gia_Man_t * pGia, Vec_Int_t * vOrder, int fVerbose );
-    int c, fVerbose = 0;
+    Vec_Int_t * vOrder = NULL;
+    int c, fSimple = 0, fVerbose = 0, fVeryVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "svwh" ) ) != EOF )
     {
         switch ( c )
         {
+        case 's':
+            fSimple ^= 1;
+            break;
         case 'v':
             fVerbose ^= 1;
+            break;
+        case 'w':
+            fVeryVerbose ^= 1;
             break;
         case 'h':
             goto usage;
@@ -39322,13 +39332,17 @@ int Abc_CommandAbc9Polyn( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Abc_CommandAbc9Esop(): There is no AIG.\n" );
         return 0;
     }
-    Gia_PolynBuild( pAbc->pGia, NULL, fVerbose );
+    vOrder = fSimple ? NULL : Gia_PolynReorder( pAbc->pGia, fVerbose, fVeryVerbose );
+    Gia_PolynBuild( pAbc->pGia, vOrder, fVerbose, fVeryVerbose );
+    Vec_IntFreeP( &vOrder );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &polyn [-vh]\n" );
+    Abc_Print( -2, "usage: &polyn [-svwh]\n" );
     Abc_Print( -2, "\t         derives algebraic polynomial from AIG\n" );
+    Abc_Print( -2, "\t-s     : toggles simple computation [default = %s]\n",  fSimple? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggles printing verbose information [default = %s]\n",  fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-w     : toggles printing very verbose information [default = %s]\n",  fVeryVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
 }

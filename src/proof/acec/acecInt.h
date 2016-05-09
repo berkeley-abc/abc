@@ -54,13 +54,6 @@ ABC_NAMESPACE_HEADER_START
 ///                    FUNCTION DECLARATIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
-/*=== acecFadds.c ========================================================*/
-extern Vec_Int_t *   Gia_ManDetectFullAdders( Gia_Man_t * p, int fVerbose );
-extern Vec_Int_t *   Gia_ManDetectHalfAdders( Gia_Man_t * p, int fVerbose );
-/*=== acecOrder.c ========================================================*/
-extern Vec_Int_t *   Gia_PolynReorder( Gia_Man_t * pGia, int fVerbose );
-/*=== acecPolyn.c ========================================================*/
-extern void          Gia_PolynBuild( Gia_Man_t * pGia, Vec_Int_t * vOrder, int fVerbose );
 /*=== acecUtil.c ========================================================*/
 extern void          Gia_PolynAnalyzeXors( Gia_Man_t * pGia, int fVerbose );
 

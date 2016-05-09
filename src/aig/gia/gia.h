@@ -1389,7 +1389,7 @@ extern Gia_Man_t *         Gia_ManCleanupOutputs( Gia_Man_t * p, int nOutputs );
 extern Gia_Man_t *         Gia_ManSeqCleanup( Gia_Man_t * p );
 extern Gia_Man_t *         Gia_ManSeqStructSweep( Gia_Man_t * p, int fConst, int fEquiv, int fVerbose );
 /*=== giaShow.c ===========================================================*/
-extern void                Gia_ManShow( Gia_Man_t * pMan, Vec_Int_t * vBold );
+extern void                Gia_ManShow( Gia_Man_t * pMan, Vec_Int_t * vBold, int fAdders );
 /*=== giaShrink.c ===========================================================*/
 extern Gia_Man_t *         Gia_ManMapShrink4( Gia_Man_t * p, int fKeepLevel, int fVerbose );
 extern Gia_Man_t *         Gia_ManMapShrink6( Gia_Man_t * p, int nFanoutMax, int fKeepLevel, int fVerbose );

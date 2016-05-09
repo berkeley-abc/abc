@@ -51,10 +51,15 @@ ABC_NAMESPACE_HEADER_START
 ////////////////////////////////////////////////////////////////////////
 
 /*=== acecCore.c ========================================================*/
-extern int       Gia_PolynCec( Gia_Man_t * pGia0, Gia_Man_t * pGia1, Cec_ParCec_t * pPars );
-/*=== acecMiter.c ========================================================*/
-extern int       Gia_ManDemiterDual( Gia_Man_t * p, Gia_Man_t ** pp0, Gia_Man_t ** pp1 );
-extern int       Gia_ManDemiterXor( Gia_Man_t * p, Gia_Man_t ** pp0, Gia_Man_t ** pp1 );
+extern int           Gia_PolynCec( Gia_Man_t * pGia0, Gia_Man_t * pGia1, Cec_ParCec_t * pPars );
+/*=== acecFadds.c ========================================================*/
+extern Vec_Int_t *   Gia_ManDetectFullAdders( Gia_Man_t * p, int fVerbose );
+extern Vec_Int_t *   Gia_ManDetectHalfAdders( Gia_Man_t * p, int fVerbose );
+/*=== acecOrder.c ========================================================*/
+extern Vec_Int_t *   Gia_PolynReorder( Gia_Man_t * pGia, int fVerbose, int fVeryVerbose );
+extern Vec_Int_t *   Gia_PolynFindOrder( Gia_Man_t * pGia, Vec_Int_t * vFadds, Vec_Int_t * vHadds, int fVerbose, int fVeryVerbose );
+/*=== acecPolyn.c ========================================================*/
+extern void          Gia_PolynBuild( Gia_Man_t * pGia, Vec_Int_t * vOrder, int fVerbose, int fVeryVerbose );
 
 
 ABC_NAMESPACE_HEADER_END

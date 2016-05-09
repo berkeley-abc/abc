@@ -52,40 +52,61 @@ Vec_Int_t * Gia_ManDetectHalfAdders( Gia_Man_t * p, int fVerbose )
     Vec_Int_t * vHadds = Vec_IntAlloc( 1000 );
     Gia_Obj_t * pObj, * pFan0, * pFan1; 
     int i, iLit, iFan0, iFan1, fComplDiff, Count, Counts[5] = {0};
-    ABC_FREE( p->pRefs );
-    Gia_ManCreateRefs( p );
     Gia_ManHashStart( p );
-    Gia_ManForEachAnd( p, pObj, i )
+    if ( p->nXors )
     {
-        if ( !Gia_ObjRecognizeExor(pObj, &pFan0, &pFan1) )
-            continue;
-        Count = 0;
-        if ( Gia_ObjRefNumId(p, Gia_ObjFaninId0(pObj, i)) > 1 )
-            Vec_IntPushTwo( vHadds, i, Gia_ObjFaninId0(pObj, i) ), Count++;
-        if ( Gia_ObjRefNumId(p, Gia_ObjFaninId1(pObj, i)) > 1 )
-            Vec_IntPushTwo( vHadds, i, Gia_ObjFaninId1(pObj, i) ), Count++;
-        iFan0 = Gia_ObjId( p, pFan0 );
-        iFan1 = Gia_ObjId( p, pFan1 );
-        fComplDiff =          (Gia_ObjFaninC0(Gia_ObjFanin0(pObj)) ^ Gia_ObjFaninC1(Gia_ObjFanin0(pObj)));
-        assert( fComplDiff == (Gia_ObjFaninC0(Gia_ObjFanin1(pObj)) ^ Gia_ObjFaninC1(Gia_ObjFanin1(pObj))) );
-        if ( fComplDiff )
+        Gia_ManForEachAnd( p, pObj, i )
         {
+            if ( !Gia_ObjIsXor(pObj) )
+                continue;
+            iFan0 = Gia_ObjFaninId0(pObj, i);
+            iFan1 = Gia_ObjFaninId1(pObj, i);
             if ( (iLit = Gia_ManHashLookupInt(p, Abc_Var2Lit(iFan0, 0), Abc_Var2Lit(iFan1, 0))) )
                 Vec_IntPushTwo( vHadds, i, Abc_Lit2Var(iLit) ), Count++;
             if ( (iLit = Gia_ManHashLookupInt(p, Abc_Var2Lit(iFan0, 1), Abc_Var2Lit(iFan1, 1))) )
                 Vec_IntPushTwo( vHadds, i, Abc_Lit2Var(iLit) ), Count++;
-        }
-        else
-        {
             if ( (iLit = Gia_ManHashLookupInt(p, Abc_Var2Lit(iFan0, 0), Abc_Var2Lit(iFan1, 1))) )
                 Vec_IntPushTwo( vHadds, i, Abc_Lit2Var(iLit) ), Count++;
             if ( (iLit = Gia_ManHashLookupInt(p, Abc_Var2Lit(iFan0, 1), Abc_Var2Lit(iFan1, 0))) )
                 Vec_IntPushTwo( vHadds, i, Abc_Lit2Var(iLit) ), Count++;
         }
-        Counts[Count]++;
+    }
+    else
+    {
+        ABC_FREE( p->pRefs );
+        Gia_ManCreateRefs( p );
+        Gia_ManForEachAnd( p, pObj, i )
+        {
+            if ( !Gia_ObjRecognizeExor(pObj, &pFan0, &pFan1) )
+                continue;
+            Count = 0;
+            if ( Gia_ObjRefNumId(p, Gia_ObjFaninId0(pObj, i)) > 1 )
+                Vec_IntPushTwo( vHadds, i, Gia_ObjFaninId0(pObj, i) ), Count++;
+            if ( Gia_ObjRefNumId(p, Gia_ObjFaninId1(pObj, i)) > 1 )
+                Vec_IntPushTwo( vHadds, i, Gia_ObjFaninId1(pObj, i) ), Count++;
+            iFan0 = Gia_ObjId( p, pFan0 );
+            iFan1 = Gia_ObjId( p, pFan1 );
+            fComplDiff =          (Gia_ObjFaninC0(Gia_ObjFanin0(pObj)) ^ Gia_ObjFaninC1(Gia_ObjFanin0(pObj)));
+            assert( fComplDiff == (Gia_ObjFaninC0(Gia_ObjFanin1(pObj)) ^ Gia_ObjFaninC1(Gia_ObjFanin1(pObj))) );
+            if ( fComplDiff )
+            {
+                if ( (iLit = Gia_ManHashLookupInt(p, Abc_Var2Lit(iFan0, 0), Abc_Var2Lit(iFan1, 0))) )
+                    Vec_IntPushTwo( vHadds, i, Abc_Lit2Var(iLit) ), Count++;
+                if ( (iLit = Gia_ManHashLookupInt(p, Abc_Var2Lit(iFan0, 1), Abc_Var2Lit(iFan1, 1))) )
+                    Vec_IntPushTwo( vHadds, i, Abc_Lit2Var(iLit) ), Count++;
+            }
+            else
+            {
+                if ( (iLit = Gia_ManHashLookupInt(p, Abc_Var2Lit(iFan0, 0), Abc_Var2Lit(iFan1, 1))) )
+                    Vec_IntPushTwo( vHadds, i, Abc_Lit2Var(iLit) ), Count++;
+                if ( (iLit = Gia_ManHashLookupInt(p, Abc_Var2Lit(iFan0, 1), Abc_Var2Lit(iFan1, 0))) )
+                    Vec_IntPushTwo( vHadds, i, Abc_Lit2Var(iLit) ), Count++;
+            }
+            Counts[Count]++;
+        }
+        ABC_FREE( p->pRefs );
     }
     Gia_ManHashStop( p );
-    ABC_FREE( p->pRefs );
     if ( fVerbose )
     {
         int iXor, iAnd;
@@ -210,7 +231,10 @@ int Dtc_ObjComputeTruth_rec( Gia_Obj_t * pObj )
     assert( Gia_ObjIsAnd(pObj) );
     Truth0 = Dtc_ObjComputeTruth_rec( Gia_ObjFanin0(pObj) );
     Truth1 = Dtc_ObjComputeTruth_rec( Gia_ObjFanin1(pObj) );
-    return (pObj->Value = (Gia_ObjFaninC0(pObj) ? ~Truth0 : Truth0) & (Gia_ObjFaninC1(pObj) ? ~Truth1 : Truth1));
+    if ( Gia_ObjIsXor(pObj) )
+        return (pObj->Value = (Gia_ObjFaninC0(pObj) ? ~Truth0 : Truth0) ^ (Gia_ObjFaninC1(pObj) ? ~Truth1 : Truth1));
+    else
+        return (pObj->Value = (Gia_ObjFaninC0(pObj) ? ~Truth0 : Truth0) & (Gia_ObjFaninC1(pObj) ? ~Truth1 : Truth1));
 }
 void Dtc_ObjCleanTruth_rec( Gia_Obj_t * pObj )
 {
