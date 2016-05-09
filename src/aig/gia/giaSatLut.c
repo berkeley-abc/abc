@@ -1213,6 +1213,7 @@ void Gia_ManLutSat( Gia_Man_t * pGia, int LutSize, int nNumber, int nImproves, i
     if ( p->fVerbose )
     Sbl_ManPrintRuntime( p );
     Sbl_ManStop( p );
+    Vec_IntFreeP( &pGia->vPacking );
 }
 
 ////////////////////////////////////////////////////////////////////////
