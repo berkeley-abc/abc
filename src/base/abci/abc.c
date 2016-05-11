@@ -23,6 +23,7 @@
 #include "base/main/mainInt.h"
 #include "proof/fraig/fraig.h"
 #include "opt/fxu/fxu.h"
+#include "opt/fxch/Fxch.h"
 #include "opt/cut/cut.h"
 #include "map/fpga/fpga.h"
 #include "map/if/if.h"
@@ -106,6 +107,7 @@ static int Abc_CommandRenode                 ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandCleanup                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandSweep                  ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandFastExtract            ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandFxch                   ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandEliminate              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandDisjoint               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandSparsify               ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -740,6 +742,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Synthesis",    "cleanup",       Abc_CommandCleanup,          1 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "sweep",         Abc_CommandSweep,            1 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "fx",            Abc_CommandFastExtract,      1 );
+    Cmd_CommandAdd( pAbc, "Synthesis",    "fxch",          Abc_CommandFxch,             1 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "eliminate",     Abc_CommandEliminate,        1 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "dsd",           Abc_CommandDisjoint,         1 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "sparsify",      Abc_CommandSparsify,         1 );
@@ -4115,6 +4118,103 @@ usage:
     Abc_Print( -2, "\t-n       : use new implementation of fast extract [default = %s]\n", fNewAlgo? "yes": "no" );
     Abc_Print( -2, "\t-v       : print verbose information [default = %s]\n", p->fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-w       : print additional information [default = %s]\n", p->fVeryVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h       : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static int Abc_CommandFxch( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern int Abc_NtkFxchPerform( Abc_Ntk_t * pNtk, int nMaxDivExt, int SMode, int fVerbose, int fVeryVerbose );
+    Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
+
+    int c,
+        nMaxDivExt,
+        SMode = 0,
+        fVerbose = 0,
+        fVeryVerbose = 0;
+
+    Extra_UtilGetoptReset();
+    while ( (c = Extra_UtilGetopt(argc, argv, "NSvwh")) != EOF )
+    {
+        switch (c)
+        {
+            case 'N':
+                if ( globalUtilOptind >= argc )
+                {
+                    Abc_Print( -1, "Command line switch \"-N\" should be followed by an integer.\n" );
+                    goto usage;
+                }
+                nMaxDivExt = atoi( argv[globalUtilOptind] );
+                globalUtilOptind++;
+
+                if ( nMaxDivExt < 0 )
+                    goto usage;
+                break;
+
+            case 'S':
+                SMode ^= 1;
+                break;
+
+            case 'v':
+                fVerbose ^= 1;
+                break;
+
+            case 'w':
+                fVeryVerbose ^= 1;
+                break;
+
+            case 'h':
+                goto usage;
+                break;
+
+            default:
+                goto usage;
+        }
+    }
+
+    if ( pNtk == NULL )
+    {
+        Abc_Print( -1, "Empty network.\n" );
+        return 1;
+    }
+    if ( Abc_NtkNodeNum( pNtk ) == 0 )
+    {
+        Abc_Print( -1, "The network does not have internal nodes.\n" );
+        return 1;
+    }
+    if ( !Abc_NtkIsLogic( pNtk ) )
+    {
+        Abc_Print( -1, "Fast extract can only be applied to a logic network (run \"renode\" or \"if\").\n" );
+        return 1;
+    }
+    if ( !Abc_NtkIsSopLogic( pNtk ) )
+    {
+        Abc_Print( -1, "Fast extract can only be applied to a logic network with SOP local functions (run \"bdd; sop\").\n" );
+        return 1;
+    }
+
+    Abc_NtkFxchPerform( pNtk, nMaxDivExt, SMode, fVerbose, fVeryVerbose );
+
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: fxch [-N <num>] [-vwh]\n");
+    Abc_Print( -2, "\t           performs fast extract with cube hashing on the current network\n");
+    Abc_Print( -2, "\t-N <num> : max number of divisors to extract during this run [default = %d]\n", nMaxDivExt );
+    Abc_Print( -2, "\t-S       : memory saving mode (slower) [default = %d]\n", SMode );
+    Abc_Print( -2, "\t-v       : print verbose information [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-w       : print additional information [default = %s]\n", fVeryVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h       : print the command usage\n");
     return 1;
 }

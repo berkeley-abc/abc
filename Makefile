@@ -20,7 +20,7 @@ MODULES := \
 	src/misc/extra src/misc/mvc src/misc/st src/misc/util src/misc/nm \
 	src/misc/vec src/misc/hash src/misc/tim src/misc/bzlib src/misc/zlib \
 	src/misc/mem src/misc/bar src/misc/bbl src/misc/parse \
-	src/opt/cut src/opt/fxu src/opt/rwr src/opt/mfs src/opt/sim \
+	src/opt/cut src/opt/fxu src/opt/fxch src/opt/rwr src/opt/mfs src/opt/sim \
 	src/opt/ret src/opt/fret src/opt/res src/opt/lpk src/opt/nwk src/opt/rwt \
 	src/opt/cgt src/opt/csw src/opt/dar src/opt/dau src/opt/sfm \
 	src/sat/bsat src/sat/csat src/sat/msat src/sat/psat src/sat/cnf src/sat/bmc \
