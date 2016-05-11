@@ -156,6 +156,7 @@ struct Gia_Man_t_
     Vec_Int_t *    vRegInits;     // initial state
     Vec_Int_t *    vDoms;         // dominators
     Vec_Int_t *    vBarBufs;      // barrier buffers
+    Vec_Int_t *    vXors;         // temporary XORs
     unsigned char* pSwitching;    // switching activity for each object
     Gia_Plc_t *    pPlacement;    // placement of the objects
     Gia_Man_t *    pAigExtra;     // combinational logic of holes

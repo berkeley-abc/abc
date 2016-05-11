@@ -48,11 +48,23 @@ void Gia_PolynCollectXors_rec( Gia_Man_t * pGia, int iObj, Vec_Int_t * vXors )
     if ( Gia_ObjIsTravIdCurrent(pGia, pObj) )
         return;
     Gia_ObjSetTravIdCurrent(pGia, pObj);
-    if ( !Gia_ObjIsAnd(pObj) || !Gia_ObjIsXor(pObj) )
+    if ( !Gia_ObjIsAnd(pObj) || !Gia_ObjIsXor(pObj) || Gia_ObjRefNum(pGia, pObj) > 1 )
         return;
-    Vec_IntPush( vXors, iObj );
     Gia_PolynCollectXors_rec( pGia, Gia_ObjFaninId0(pObj, iObj), vXors );
     Gia_PolynCollectXors_rec( pGia, Gia_ObjFaninId1(pObj, iObj), vXors );
+    Vec_IntPushUnique( vXors, iObj );
+}
+Vec_Int_t * Gia_PolynCollectLastXor( Gia_Man_t * pGia, int fVerbose )
+{
+    Vec_Int_t * vXors = Vec_IntAlloc( 100 );
+    Gia_Obj_t * pObj = Gia_ManCo( pGia, Gia_ManCoNum(pGia)-1 );
+    ABC_FREE( pGia->pRefs );
+    Gia_ManCreateRefs( pGia );
+    Gia_ManIncrementTravId( pGia );
+    Gia_PolynCollectXors_rec( pGia, Gia_ObjFaninId0p(pGia, pObj), vXors );
+    Vec_IntReverseOrder( vXors );
+    ABC_FREE( pGia->pRefs );
+    return vXors;
 }
 void Gia_PolynAnalyzeXors( Gia_Man_t * pGia, int fVerbose )
 {

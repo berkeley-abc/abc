@@ -54,7 +54,8 @@ struct Pln_Man_t_
     Vec_Int_t *    vTempC[2]; // polynomial representation
     Vec_Int_t *    vTempM[4]; // polynomial representation
     Vec_Int_t *    vOrder;    // order of collapsing
-    int            nBuilds;   // builds
+    int            nBuilds;   // built monomials
+    int            nUsed;     // used monomials
 };
 
 ////////////////////////////////////////////////////////////////////////
@@ -144,7 +145,10 @@ void Pln_ManPrintFinal( Pln_Man_t * p, int fVerbose, int fVeryVerbose )
 
         Count++;
 
-        if ( !fVeryVerbose )
+        if ( !fVerbose )
+            continue;
+
+        if ( Count > 25 )
             continue;
 
         vArray = Hsh_VecReadEntry( p->pHashC, iConst );
@@ -157,6 +161,25 @@ void Pln_ManPrintFinal( Pln_Man_t * p, int fVerbose, int fVeryVerbose )
         printf( "\n" );
     }
     printf( "HashC = %d. HashM = %d.  Total = %d. Used = %d.\n", Hsh_VecSize(p->pHashC), Hsh_VecSize(p->pHashM), p->nBuilds, Count );
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline void Vec_IntAppendMinus2x( Vec_Int_t * vVec1, Vec_Int_t * vVec2 )
+{
+    int Entry, i;
+    Vec_IntClear( vVec1 );
+    Vec_IntForEachEntry( vVec2, Entry, i )
+        Vec_IntPush( vVec1, Entry > 0 ? -Entry-1 : -Entry+1 );
 }
 
 /**Function*************************************************************
@@ -210,7 +233,7 @@ static inline void Gia_PolynMergeConst( Vec_Int_t * vConst, Pln_Man_t * p, int i
 }
 static inline void Gia_PolynBuildAdd( Pln_Man_t * p, Vec_Int_t * vTempC, Vec_Int_t * vTempM )
 {
-    int iConst, iMono = vTempM ? Hsh_VecManAdd(p->pHashM, vTempM) : 0;
+    int iConst, iConstNew, iMono = vTempM ? Hsh_VecManAdd(p->pHashM, vTempM) : 0;
     p->nBuilds++;
     if ( iMono == Vec_IntSize(p->vCoefs) ) // new monomial
     {
@@ -220,14 +243,21 @@ static inline void Gia_PolynBuildAdd( Pln_Man_t * p, Vec_Int_t * vTempC, Vec_Int
         Vec_FltPush( p->vCounts, (float)Vec_IntEntry(p->vOrder, Vec_IntEntryLast(vTempM)) );
         Vec_QuePush( p->vQue, iMono );
 //        Vec_QueUpdate( p->vQue, iMono );
+        if ( iConst )
+            p->nUsed++;
         return;
     }
     // this monomial exists
     iConst = Vec_IntEntry( p->vCoefs, iMono );
     if ( iConst )
         Gia_PolynMergeConst( vTempC, p, iConst );
-    iConst = Hsh_VecManAdd( p->pHashC, vTempC );
-    Vec_IntWriteEntry( p->vCoefs, iMono, iConst );
+    iConstNew = Hsh_VecManAdd( p->pHashC, vTempC );
+    Vec_IntWriteEntry( p->vCoefs, iMono, iConstNew );
+    if ( iConst && !iConstNew )
+        p->nUsed--;
+    else if ( !iConst && iConstNew )
+        p->nUsed++;
+    //assert( p->nUsed == Vec_IntSize(p->vCoefs) - Vec_IntCountZero(p->vCoefs) );
 }
 void Gia_PolynBuildOne( Pln_Man_t * p, int iMono )
 {
@@ -242,11 +272,13 @@ void Gia_PolynBuildOne( Pln_Man_t * p, int iMono )
     pObj    = Gia_ManObj( p->pGia, iDriver );
     if ( !Gia_ObjIsAnd(pObj) )
         return;
+    assert( !Gia_ObjIsMux(p->pGia, pObj) );
 
     iConst = Vec_IntEntry( p->vCoefs, iMono );
     if ( iConst == 0 )
         return;
     Vec_IntWriteEntry( p->vCoefs, iMono, 0 );
+    p->nUsed--;
 
     iFan0 = Gia_ObjFaninId0p(p->pGia, pObj);
     iFan1 = Gia_ObjFaninId1p(p->pGia, pObj);
@@ -264,10 +296,29 @@ void Gia_PolynBuildOne( Pln_Man_t * p, int iMono )
     }
 
     vConst = Hsh_VecReadEntry( p->pHashC, iConst );
-    for ( k = 0; k < 2; k++ )
-        Vec_IntAppendMinus( p->vTempC[k], vConst, k );
 
-    if ( Gia_ObjFaninC0(pObj) && Gia_ObjFaninC1(pObj) )       //  C * (1 - x) * (1 - y)
+    if ( !Gia_ObjIsXor(pObj) )
+        for ( k = 0; k < 2; k++ )
+            Vec_IntAppendMinus( p->vTempC[k], vConst, k );
+
+    if ( Gia_ObjIsXor(pObj) )
+    {
+        vConst = Hsh_VecReadEntry( p->pHashC, iConst );
+        Vec_IntAppendMinus( p->vTempC[0], vConst, 0 );
+        Gia_PolynBuildAdd( p, p->vTempC[0], p->vTempM[1] );   //  C * x 
+
+        vConst = Hsh_VecReadEntry( p->pHashC, iConst );
+        Vec_IntAppendMinus( p->vTempC[0], vConst, 0 );
+        Gia_PolynBuildAdd( p, p->vTempC[0], p->vTempM[2] );   //  C * y 
+
+        //if ( !p->pGia->vXors || Vec_IntFind(p->pGia->vXors, iDriver) > 0 )
+        {
+            vConst = Hsh_VecReadEntry( p->pHashC, iConst );
+            Vec_IntAppendMinus2x( p->vTempC[0], vConst );
+            Gia_PolynBuildAdd( p, p->vTempC[0], p->vTempM[3] );   // -C * x * y 
+        }
+    }
+    else if ( Gia_ObjFaninC0(pObj) && Gia_ObjFaninC1(pObj) )  //  C * (1 - x) * (1 - y)
     {
         Gia_PolynBuildAdd( p, p->vTempC[0], p->vTempM[0] );   //  C * 1
         Gia_PolynBuildAdd( p, p->vTempC[1], p->vTempM[1] );   // -C * x
@@ -290,36 +341,7 @@ void Gia_PolynBuildOne( Pln_Man_t * p, int iMono )
     else   
         Gia_PolynBuildAdd( p, p->vTempC[0], p->vTempM[3] );   //  C * x * y
 }
-int Gia_PolyFindNext2( Pln_Man_t * p )
-{
-    Gia_Obj_t * pObj; 
-    Vec_Int_t * vArray;
-    int Max = 0, iBest = 0, iConst, iMono, iDriver;
-    Vec_IntForEachEntryStart( p->vCoefs, iConst, iMono, 1 )
-    {
-        if ( iConst == 0 ) 
-            continue;
-        vArray  = Hsh_VecReadEntry( p->pHashM, iMono );
-        iDriver = Vec_IntEntryLast( vArray );
-        pObj    = Gia_ManObj( p->pGia, iDriver );
-        if ( !Gia_ObjIsAnd(pObj) )
-            continue;
-        if ( Max < Vec_IntEntryLast(vArray) )
-        {
-            Max   = Vec_IntEntryLast(vArray);
-            iBest = iMono;
-        }
-    }
-    //Vec_IntPrint( Hsh_VecReadEntry(p->pHashM, iBest) );
-    return iBest;
-}
-int Gia_PolyFindNext( Pln_Man_t * p )
-{
-    int iBest = Vec_QueSize(p->vQue) ?  Vec_QuePop(p->vQue) : 0;
-    //Vec_IntPrint( Hsh_VecReadEntry(p->pHashM, iBest) );
-    return iBest;
-}
-void Gia_PolynBuild( Gia_Man_t * pGia, Vec_Int_t * vOrder, int fVerbose, int fVeryVerbose )
+void Gia_PolynBuild( Gia_Man_t * pGia, Vec_Int_t * vOrder, int fSigned, int fVerbose, int fVeryVerbose )
 {
     abctime clk = Abc_Clock();//, clk2 = 0;
     Gia_Obj_t * pObj; 
@@ -334,22 +356,35 @@ void Gia_PolynBuild( Gia_Man_t * pGia, Vec_Int_t * vOrder, int fVerbose, int fVe
         iDriver = Gia_ObjFaninId0p( pGia, pObj );
         Vec_IntFill( p->vTempM[0], 1, iDriver );   //  Driver
 
-        if ( Gia_ObjFaninC0(pObj) )
+        if ( fSigned && i == Gia_ManCoNum(pGia)-1 )
         {
-            Gia_PolynBuildAdd( p, p->vTempC[0], NULL );           //  C
-            Gia_PolynBuildAdd( p, p->vTempC[1], p->vTempM[0] );   // -C * Driver
+            if ( Gia_ObjFaninC0(pObj) )
+            {
+                Gia_PolynBuildAdd( p, p->vTempC[1], NULL );           // -C
+                Gia_PolynBuildAdd( p, p->vTempC[0], p->vTempM[0] );   //  C * Driver
+            }
+            else
+                Gia_PolynBuildAdd( p, p->vTempC[1], p->vTempM[0] );   // -C * Driver
         }
-        else
-            Gia_PolynBuildAdd( p, p->vTempC[0], p->vTempM[0] );   //  C * Driver
+        else 
+        {
+            if ( Gia_ObjFaninC0(pObj) )
+            {
+                Gia_PolynBuildAdd( p, p->vTempC[0], NULL );           //  C
+                Gia_PolynBuildAdd( p, p->vTempC[1], p->vTempM[0] );   // -C * Driver
+            }
+            else
+                Gia_PolynBuildAdd( p, p->vTempC[0], p->vTempM[0] );   //  C * Driver
+        }
     }
     LevPrev = -1;
     for ( Iter = 0; ; Iter++ )
     {
         Vec_Int_t * vTempM;
         //abctime temp = Abc_Clock();
-        iMono = Gia_PolyFindNext(p);
-        if ( !iMono )
+        if ( Vec_QueSize(p->vQue) == 0 )
             break;
+        iMono = Vec_QuePop(p->vQue);
 
         // report
         vTempM = Hsh_VecReadEntry( p->pHashM, iMono );
@@ -366,8 +401,8 @@ void Gia_PolynBuild( Gia_Man_t * pGia, Vec_Int_t * vOrder, int fVerbose, int fVe
                 Vec_BitSetEntry( vPres, LevCur, 1 );
 
             if ( fVerbose )
-                printf( "Line%5d   Iter%10d : Obj =%6d.  Order =%6d.  HashC =%6d. HashM =%10d.  Total =%10d. Used =%6d.\n", 
-                    Line++, Iter, LevCur, Vec_IntEntry(p->vOrder, LevCur), Hsh_VecSize(p->pHashC), Hsh_VecSize(p->pHashM), p->nBuilds, -1 );
+                printf( "Line%5d   Iter%10d : Obj =%6d.  Order =%6d.  HashC =%6d. HashM =%10d.  Total =%10d. Used =%10d.\n", 
+                    Line++, Iter, LevCur, Vec_IntEntry(p->vOrder, LevCur), Hsh_VecSize(p->pHashC), Hsh_VecSize(p->pHashM), p->nBuilds, p->nUsed );
         }
         LevPrev = LevCur;
 

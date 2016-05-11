@@ -56,6 +56,7 @@ ABC_NAMESPACE_HEADER_START
 
 /*=== acecUtil.c ========================================================*/
 extern void          Gia_PolynAnalyzeXors( Gia_Man_t * pGia, int fVerbose );
+extern Vec_Int_t *   Gia_PolynCollectLastXor( Gia_Man_t * pGia, int fVerbose );
 
 ABC_NAMESPACE_HEADER_END
 

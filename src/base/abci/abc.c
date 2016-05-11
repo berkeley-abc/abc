@@ -39306,14 +39306,17 @@ usage:
 int Abc_CommandAbc9Polyn( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Vec_Int_t * vOrder = NULL;
-    int c, fSimple = 0, fVerbose = 0, fVeryVerbose = 0;
+    int c, fSimple = 0, fSigned = 0, fVerbose = 0, fVeryVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "svwh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "asvwh" ) ) != EOF )
     {
         switch ( c )
         {
-        case 's':
+        case 'a':
             fSimple ^= 1;
+            break;
+        case 's':
+            fSigned ^= 1;
             break;
         case 'v':
             fVerbose ^= 1;
@@ -39333,14 +39336,15 @@ int Abc_CommandAbc9Polyn( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 0;
     }
     vOrder = fSimple ? NULL : Gia_PolynReorder( pAbc->pGia, fVerbose, fVeryVerbose );
-    Gia_PolynBuild( pAbc->pGia, vOrder, fVerbose, fVeryVerbose );
+    Gia_PolynBuild( pAbc->pGia, vOrder, fSigned, fVerbose, fVeryVerbose );
     Vec_IntFreeP( &vOrder );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &polyn [-svwh]\n" );
+    Abc_Print( -2, "usage: &polyn [-asvwh]\n" );
     Abc_Print( -2, "\t         derives algebraic polynomial from AIG\n" );
-    Abc_Print( -2, "\t-s     : toggles simple computation [default = %s]\n",  fSimple? "yes": "no" );
+    Abc_Print( -2, "\t-a     : toggles simple computation [default = %s]\n",  fSimple? "yes": "no" );
+    Abc_Print( -2, "\t-s     : toggles signed computation [default = %s]\n",  fSigned? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggles printing verbose information [default = %s]\n",  fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-w     : toggles printing very verbose information [default = %s]\n",  fVeryVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");

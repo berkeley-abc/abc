@@ -156,7 +156,7 @@ int Gia_WriteDotAigLevel( Gia_Man_t * p, Vec_Int_t * vFadds, Vec_Int_t * vHadds,
             Vec_IntWriteEntry( vRemap, pFanins[0], pFanins[1] );
             //printf( "Making HA output %d.\n", pFanins[1] );
         }
-        else
+        else // if ( Attr == 3 || Attr == 0 )
         {
             Gia_Obj_t * pObj = Gia_ManObj( p, Node );
             int pFaninsIn[2] = { Gia_ObjFaninId0(pObj, Node), Gia_ObjFaninId1(pObj, Node) };
