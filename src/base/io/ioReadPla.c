@@ -28,7 +28,7 @@ ABC_NAMESPACE_IMPL_START
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-static Abc_Ntk_t * Io_ReadPlaNetwork( Extra_FileReader_t * p, int fZeros, int fBoth, int fSkipPrepro );
+static Abc_Ntk_t * Io_ReadPlaNetwork( Extra_FileReader_t * p, int fZeros, int fBoth, int fOnDc, int fSkipPrepro );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -326,7 +326,7 @@ void Io_ReadPlaCubePreprocess( Vec_Str_t * vSop, int iCover, int fVerbose )
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Ntk_t * Io_ReadPla( char * pFileName, int fZeros, int fBoth, int fSkipPrepro, int fCheck )
+Abc_Ntk_t * Io_ReadPla( char * pFileName, int fZeros, int fBoth, int fOnDc, int fSkipPrepro, int fCheck )
 {
     Extra_FileReader_t * p;
     Abc_Ntk_t * pNtk;
@@ -338,7 +338,7 @@ Abc_Ntk_t * Io_ReadPla( char * pFileName, int fZeros, int fBoth, int fSkipPrepro
         return NULL;
 
     // read the network
-    pNtk = Io_ReadPlaNetwork( p, fZeros, fBoth, fSkipPrepro );
+    pNtk = Io_ReadPlaNetwork( p, fZeros, fBoth, fOnDc, fSkipPrepro );
     Extra_FileReaderFree( p );
     if ( pNtk == NULL )
         return NULL;
@@ -363,7 +363,7 @@ Abc_Ntk_t * Io_ReadPla( char * pFileName, int fZeros, int fBoth, int fSkipPrepro
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Ntk_t * Io_ReadPlaNetwork( Extra_FileReader_t * p, int fZeros, int fBoth, int fSkipPrepro )
+Abc_Ntk_t * Io_ReadPlaNetwork( Extra_FileReader_t * p, int fZeros, int fBoth, int fOnDc, int fSkipPrepro )
 {
     ProgressBar * pProgress;
     Vec_Ptr_t * vTokens;
@@ -514,18 +514,7 @@ Abc_Ntk_t * Io_ReadPlaNetwork( Extra_FileReader_t * p, int fZeros, int fBoth, in
                 ABC_FREE( ppSops );
                 return NULL;
             }
-            if ( fBoth )
-            {
-                for ( i = 0; i < nOutputs; i++ )
-                {
-                    if ( pCubeOut[i] == '0' || pCubeOut[i] == '1' )
-                    {
-                        Vec_StrPrintStr( ppSops[i], pCubeIn );
-                        Vec_StrPrintStr( ppSops[i], " 1\n" );
-                    }
-                }
-            }
-            else if ( fZeros )
+            if ( fZeros )
             {
                 for ( i = 0; i < nOutputs; i++ )
                 {
@@ -536,7 +525,29 @@ Abc_Ntk_t * Io_ReadPlaNetwork( Extra_FileReader_t * p, int fZeros, int fBoth, in
                     }
                 }
             }
-            else
+            else if ( fBoth )
+            {
+                for ( i = 0; i < nOutputs; i++ )
+                {
+                    if ( pCubeOut[i] == '0' || pCubeOut[i] == '1' )
+                    {
+                        Vec_StrPrintStr( ppSops[i], pCubeIn );
+                        Vec_StrPrintStr( ppSops[i], " 1\n" );
+                    }
+                }
+            }
+            else if ( fOnDc )
+            {
+                for ( i = 0; i < nOutputs; i++ )
+                {
+                    if ( pCubeOut[i] == '-' || pCubeOut[i] == '1' )
+                    {
+                        Vec_StrPrintStr( ppSops[i], pCubeIn );
+                        Vec_StrPrintStr( ppSops[i], " 1\n" );
+                    }
+                }
+            }
+            else 
             {
                 for ( i = 0; i < nOutputs; i++ )
                 {
