@@ -343,7 +343,7 @@ int Fxch_SCHashTableRemove( Fxch_SCHashTable_t* pSCHashTable,
         return 0;
     }
 
-    for ( (int)iNextEntry = pEntry->iNext; iNextEntry != (int)iEntry; iNextEntry = pNextEntry->iNext, fStart = 0 )
+    for ( iNextEntry = (int)pEntry->iNext; iNextEntry != (int)iEntry; iNextEntry = pNextEntry->iNext, fStart = 0 )
     {
         int Base, 
             iDiv;
