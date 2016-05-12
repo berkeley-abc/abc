@@ -9,7 +9,7 @@
   Synopsis    [Scalable SOP transformations.]
 
   Author      [Alan Mishchenko]
-  
+
   Affiliation [UC Berkeley]
 
   Date        [Ver. 1.0. Started - March 18, 2015.]
@@ -396,7 +396,7 @@ usage:
 
   Description []
 
-  SideEffects []    
+  SideEffects []
 
   SeeAlso     []
 
@@ -488,7 +488,7 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     //Pla_ManFxPerformSimple( nVars );
     //Pla_ManConvertFromBits( p );
     //Pla_ManConvertToBits( p );
-    Pla_ManPerformFxch( p );
+    //Pla_ManPerformFxch( p );
     return 0;
 usage:
     Abc_Print( -2, "usage: |test [-N num] [-vh]\n" );
@@ -505,4 +505,3 @@ usage:
 
 
 ABC_NAMESPACE_IMPL_END
-

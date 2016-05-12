@@ -9,7 +9,7 @@
   Synopsis    [Scalable SOP transformations.]
 
   Author      [Alan Mishchenko]
-  
+
   Affiliation [UC Berkeley]
 
   Date        [Ver. 1.0. Started - March 18, 2015.]
@@ -34,7 +34,7 @@
 ///                         PARAMETERS                               ///
 ////////////////////////////////////////////////////////////////////////
 
-ABC_NAMESPACE_HEADER_START 
+ABC_NAMESPACE_HEADER_START
 
 #define MASK55 ABC_CONST(0x5555555555555555)
 
@@ -43,25 +43,25 @@ ABC_NAMESPACE_HEADER_START
 ////////////////////////////////////////////////////////////////////////
 
 // file types
-typedef enum { 
-    PLA_FILE_FD = 0, 
-    PLA_FILE_F,      
-    PLA_FILE_FR,     
-    PLA_FILE_FDR,      
-    PLA_FILE_NONE     
-} Pla_File_t; 
+typedef enum {
+    PLA_FILE_FD = 0,
+    PLA_FILE_F,
+    PLA_FILE_FR,
+    PLA_FILE_FDR,
+    PLA_FILE_NONE
+} Pla_File_t;
 
 // literal types
-typedef enum { 
-    PLA_LIT_DASH = 0, 
-    PLA_LIT_ZERO,     
-    PLA_LIT_ONE,      
-    PLA_LIT_FULL      
-} Pla_Lit_t; 
+typedef enum {
+    PLA_LIT_DASH = 0,
+    PLA_LIT_ZERO,
+    PLA_LIT_ONE,
+    PLA_LIT_FULL
+} Pla_Lit_t;
 
 
 typedef struct Pla_Man_t_ Pla_Man_t;
-struct Pla_Man_t_ 
+struct Pla_Man_t_
 {
     char *           pName;      // model name
     char *           pSpec;      // input file
@@ -112,17 +112,17 @@ static inline void   Pla_CubeXorLit( word * p, int i, Pla_Lit_t d )  { p[i>>5] ^
 ////////////////////////////////////////////////////////////////////////
 
 #define Pla_ForEachCubeIn( p, pCube, i )                            \
-    for ( i = 0; (i < Pla_ManCubeNum(p))  && (((pCube) = Pla_CubeIn(p, i)), 1); i++ ) 
+    for ( i = 0; (i < Pla_ManCubeNum(p))  && (((pCube) = Pla_CubeIn(p, i)), 1); i++ )
 #define Pla_ForEachCubeInStart( p, pCube, i, Start )                \
-    for ( i = Start; (i < Pla_ManCubeNum(p))  && (((pCube) = Pla_CubeIn(p, i)), 1); i++ ) 
+    for ( i = Start; (i < Pla_ManCubeNum(p))  && (((pCube) = Pla_CubeIn(p, i)), 1); i++ )
 
 #define Pla_ForEachCubeOut( p, pCube, i )                           \
-    for ( i = 0; (i < Pla_ManCubeNum(p))  && (((pCube) = Pla_CubeOut(p, i)), 1); i++ ) 
+    for ( i = 0; (i < Pla_ManCubeNum(p))  && (((pCube) = Pla_CubeOut(p, i)), 1); i++ )
 #define Pla_ForEachCubeInOut( p, pCubeIn, pCubeOut, i )             \
-    for ( i = 0; (i < Pla_ManCubeNum(p))  && (((pCubeIn) = Pla_CubeIn(p, i)), 1)  && (((pCubeOut) = Pla_CubeOut(p, i)), 1); i++ ) 
+    for ( i = 0; (i < Pla_ManCubeNum(p))  && (((pCubeIn) = Pla_CubeIn(p, i)), 1)  && (((pCubeOut) = Pla_CubeOut(p, i)), 1); i++ )
 
 #define Pla_CubeForEachLit( nVars, pCube, Lit, i )                  \
-    for ( i = 0; (i < nVars)  && (((Lit) = Pla_CubeGetLit(pCube, i)), 1); i++ ) 
+    for ( i = 0; (i < nVars)  && (((Lit) = Pla_CubeGetLit(pCube, i)), 1); i++ )
 #define Pla_CubeForEachLitIn( p, pCube, Lit, i )                    \
     Pla_CubeForEachLit( Pla_ManInNum(p), pCube, Lit, i )
 #define Pla_CubeForEachLitOut( p, pCube, Lit, i )                   \
@@ -138,7 +138,7 @@ static inline void   Pla_CubeXorLit( word * p, int i, Pla_Lit_t d )  { p[i>>5] ^
   Synopsis    [Checks if cubes are distance-1.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -175,7 +175,7 @@ static inline int Pla_CubesAreConsensus( word * p, word * q, int nWords, int * p
         if ( fFound )
             return 0;
         // check if the number of 1s is one, which means exactly one opposite literal (0/1) but may have other diffs (-/0 or -/1)
-        Test = ((p[c] ^ q[c]) & ((p[c] ^ q[c]) >> 1)) & MASK55; 
+        Test = ((p[c] ^ q[c]) & ((p[c] ^ q[c]) >> 1)) & MASK55;
         if ( !Pla_OnlyOneOne(Test) )
             return 0;
         fFound = 1;
@@ -185,12 +185,12 @@ static inline int Pla_CubesAreConsensus( word * p, word * q, int nWords, int * p
 }
 static inline int Pla_TtCountOnesOne( word x )
 {
-    x = x - ((x >> 1) & ABC_CONST(0x5555555555555555));   
-    x = (x & ABC_CONST(0x3333333333333333)) + ((x >> 2) & ABC_CONST(0x3333333333333333));    
-    x = (x + (x >> 4)) & ABC_CONST(0x0F0F0F0F0F0F0F0F);    
+    x = x - ((x >> 1) & ABC_CONST(0x5555555555555555));
+    x = (x & ABC_CONST(0x3333333333333333)) + ((x >> 2) & ABC_CONST(0x3333333333333333));
+    x = (x + (x >> 4)) & ABC_CONST(0x0F0F0F0F0F0F0F0F);
     x = x + (x >> 8);
     x = x + (x >> 16);
-    x = x + (x >> 32); 
+    x = x + (x >> 32);
     return (int)(x & 0xFF);
 }
 static inline int Pla_TtCountOnes( word * p, int nWords )
@@ -200,13 +200,13 @@ static inline int Pla_TtCountOnes( word * p, int nWords )
         Count += Pla_TtCountOnesOne( p[i] );
     return Count;
 }
-            
+
 /**Function*************************************************************
 
   Synopsis    [Manager APIs.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -268,8 +268,7 @@ static inline void Pla_ManPrintStats( Pla_Man_t * p, int fVerbose )
 }
 
 
-/*=== plaFxch.c ========================================================*/
-extern int                 Pla_ManPerformFxch( Pla_Man_t * p );
+
 /*=== plaHash.c ========================================================*/
 extern int                 Pla_ManHashDist1NumTest( Pla_Man_t * p );
 extern void                Pla_ManComputeDist1Test( Pla_Man_t * p );
@@ -296,4 +295,3 @@ ABC_NAMESPACE_HEADER_END
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
-
