@@ -451,7 +451,7 @@ usage:
 ******************************************************************************/
 int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    Pla_Man_t * p = Pla_AbcGetMan(pAbc);
+//    Pla_Man_t * p = Pla_AbcGetMan(pAbc);
     int c, nVars = 4, fVerbose  = 0;
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "Nvh" ) ) != EOF )

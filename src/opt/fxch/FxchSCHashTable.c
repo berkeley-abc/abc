@@ -19,10 +19,10 @@
 
 ABC_NAMESPACE_IMPL_START
 
-#ifdef _WIN32
+//#ifdef _WIN32
 typedef unsigned int uint32_t;
 typedef unsigned char uint8_t;
-#endif
+//#endif
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
