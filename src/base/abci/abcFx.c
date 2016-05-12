@@ -664,8 +664,8 @@ int Fx_ManDivFindCubeFree( Vec_Int_t * vArr1, Vec_Int_t * vArr2, Vec_Int_t * vCu
         printf( "The SOP has duplicated cubes.\n" );
     else if ( Vec_IntSize(vCubeFree) == 1 )
         printf( "The SOP has contained cubes.\n" );
-    else if ( Vec_IntSize(vCubeFree) == 2 && Abc_Lit2Var(Abc_Lit2Var(Vec_IntEntry(vCubeFree, 0))) == Abc_Lit2Var(Abc_Lit2Var(Vec_IntEntry(vCubeFree, 1))) && !*fWarning )
-        printf( "The SOP has distance-1 cubes or it is not a prime cover.  Please make sure the result verifies.\n" ), *fWarning = 1;
+//    else if ( Vec_IntSize(vCubeFree) == 2 && Abc_Lit2Var(Abc_Lit2Var(Vec_IntEntry(vCubeFree, 0))) == Abc_Lit2Var(Abc_Lit2Var(Vec_IntEntry(vCubeFree, 1))) && !*fWarning )
+//        printf( "The SOP has distance-1 cubes or it is not a prime cover.  Please make sure the result verifies.\n" ), *fWarning = 1;
     assert( !Abc_LitIsCompl(Vec_IntEntry(vCubeFree, 0)) );
     return Counter;
 }

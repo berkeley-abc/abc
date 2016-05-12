@@ -4139,13 +4139,13 @@ static int Abc_CommandFxch( Abc_Frame_t * pAbc, int argc, char ** argv )
     Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
 
     int c,
-        nMaxDivExt,
+        nMaxDivExt = 0,
         SMode = 0,
         fVerbose = 0,
         fVeryVerbose = 0;
 
     Extra_UtilGetoptReset();
-    while ( (c = Extra_UtilGetopt(argc, argv, "NSvwh")) != EOF )
+    while ( (c = Extra_UtilGetopt(argc, argv, "Nsvwh")) != EOF )
     {
         switch (c)
         {
@@ -4162,7 +4162,7 @@ static int Abc_CommandFxch( Abc_Frame_t * pAbc, int argc, char ** argv )
                     goto usage;
                 break;
 
-            case 'S':
+            case 's':
                 SMode ^= 1;
                 break;
 
@@ -4209,13 +4209,16 @@ static int Abc_CommandFxch( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: fxch [-N <num>] [-vwh]\n");
+    Abc_Print( -2, "usage: fxch [-N <num>] [-svwh]\n");
     Abc_Print( -2, "\t           performs fast extract with cube hashing on the current network\n");
-    Abc_Print( -2, "\t-N <num> : max number of divisors to extract during this run [default = %d]\n", nMaxDivExt );
-    Abc_Print( -2, "\t-S       : memory saving mode (slower) [default = %d]\n", SMode );
+    Abc_Print( -2, "\t-N <num> : max number of divisors to extract during this run [default = unused]\n" );
+    Abc_Print( -2, "\t-s       : memory saving mode (slower) [default = %d]\n", SMode? "yes": "no" );
     Abc_Print( -2, "\t-v       : print verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-w       : print additional information [default = %s]\n", fVeryVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h       : print the command usage\n");
+    Abc_Print( -2, "\t\n" );
+    Abc_Print( -2, "\t           This command was contributed by Bruno Schmitt from UFRGS in May 2016.\n" );
+    Abc_Print( -2, "\t           The author can be contacted as boschmitt at inf.ufrgs.br\n" );
     return 1;
 }
 

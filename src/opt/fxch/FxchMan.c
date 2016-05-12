@@ -108,7 +108,7 @@ static inline void Fxch_ManDivDoubleCube( Fxch_Man_t* pFxchMan,
     Fxch_ManSCAddRemove( pFxchMan,
                          SubCubeID, nHashedSC++,
                          iCube, 0, 0,
-                         fAdd, fUpdate );
+                         (char)fAdd, (char)fUpdate );
 
     Vec_IntForEachEntryStart( vCube, Lit0, iLit0, 1)
     {
@@ -118,7 +118,7 @@ static inline void Fxch_ManDivDoubleCube( Fxch_Man_t* pFxchMan,
         pFxchMan->nPairsD += Fxch_ManSCAddRemove( pFxchMan,
                                                   SubCubeID, nHashedSC++,
                                                   iCube, iLit0, 0,
-                                                  fAdd, fUpdate );
+                                                  (char)fAdd, (char)fUpdate );
 
         if ( Vec_IntSize( vCube ) > 3 )
         {
@@ -133,7 +133,7 @@ static inline void Fxch_ManDivDoubleCube( Fxch_Man_t* pFxchMan,
                 pFxchMan->nPairsD += Fxch_ManSCAddRemove( pFxchMan,
                                                           SubCubeID, nHashedSC++,
                                                           iCube, iLit0, iLit1,
-                                                          fAdd, fUpdate );
+                                                          (char)fAdd, (char)fUpdate );
 
                 SubCubeID += Vec_IntEntry( vLitHashKeys, Lit1 );
             }
@@ -246,10 +246,11 @@ void Fxch_ManMapLiteralsIntoCubes( Fxch_Man_t* pFxchMan,
 
 void Fxch_ManGenerateLitHashKeys( Fxch_Man_t* pFxchMan )
 {
+    int i;
     /* Generates the random number which will be used for hashing cubes */
     Gia_ManRandom( 1 );
     pFxchMan->vLitHashKeys = Vec_IntAlloc( ( 2 * pFxchMan->nVars ) );
-    for ( int i = 0; i < (2 * pFxchMan->nVars); i++ )
+    for ( i = 0; i < (2 * pFxchMan->nVars); i++ )
         Vec_IntPush( pFxchMan->vLitHashKeys, Gia_ManRandom(0) & 0x3FFFFFF );
 }
 
@@ -355,10 +356,14 @@ void Fxch_ManUpdate( Fxch_Man_t* pFxchMan,
                      int iDiv )
 {
     int i,
+        k,
         iCube0, 
         iCube1,
         Lit0 = -1, 
-        Lit1 = -1;
+        Lit1 = -1,
+        iVarNew, 
+        Level,
+        nCompls;
 
     Vec_Int_t* vCube0,
              * vCube1,
@@ -439,7 +444,7 @@ void Fxch_ManUpdate( Fxch_Man_t* pFxchMan,
     }
 
     /* Create a new variable */
-    int iVarNew = pFxchMan->nVars;
+    iVarNew = pFxchMan->nVars;
     pFxchMan->nVars++;
 
     /* Create new Lit hash keys */
@@ -450,7 +455,6 @@ void Fxch_ManUpdate( Fxch_Man_t* pFxchMan,
     vCube0 = Vec_WecPushLevel( pFxchMan->vCubes );
     Vec_IntPush( vCube0, iVarNew );
 
-    int Level;
     if ( Vec_IntSize( pFxchMan->vDiv ) == 2 )
     {
         if ( Lit0 > Lit1 )
@@ -497,8 +501,8 @@ void Fxch_ManUpdate( Fxch_Man_t* pFxchMan,
 
     /* For each pair (Ci, Cj) */
     /* Extract divisor from cube pairs */
-    int k = 0,
-        nCompls = 0;
+    k = 0;
+    nCompls = 0;
     Vec_IntForEachEntryDouble( pFxchMan->vPairs, iCube0, iCube1, i )
     {
         int RetValue, fCompl = 0;

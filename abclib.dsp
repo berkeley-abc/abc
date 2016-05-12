@@ -799,10 +799,6 @@ SOURCE=.\src\base\pla\plaCom.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\base\pla\plaFxch.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\src\base\pla\plaHash.c
 # End Source File
 # Begin Source File
@@ -2612,6 +2608,30 @@ SOURCE=.\src\opt\fret\fretMain.c
 # Begin Source File
 
 SOURCE=.\src\opt\fret\fretTime.c
+# End Source File
+# End Group
+# Begin Group "fxch"
+
+# PROP Default_Filter ""
+# Begin Source File
+
+SOURCE=.\src\opt\fxch\Fxch.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\fxch\Fxch.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\fxch\FxchDiv.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\fxch\FxchMan.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\fxch\FxchSCHashTable.c
 # End Source File
 # End Group
 # End Group

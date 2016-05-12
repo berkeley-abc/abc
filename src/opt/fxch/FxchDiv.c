@@ -115,12 +115,15 @@ int Fxch_DivCreate( Fxch_Man_t* pFxchMan,
 {
     int Base = 0;
 
-    Vec_IntClear( pFxchMan->vCubeFree );
-
     int SC0_Lit0,
         SC0_Lit1,
         SC1_Lit0,
         SC1_Lit1;
+
+    int Cube0Size,
+        Cube1Size;
+
+    Vec_IntClear( pFxchMan->vCubeFree );
 
     SC0_Lit0 = Fxch_ManGetLit( pFxchMan, pSubCube0->iCube, pSubCube0->iLit0 );
     SC0_Lit1 = 0;
@@ -134,6 +137,8 @@ int Fxch_DivCreate( Fxch_Man_t* pFxchMan,
     }
     else if ( pSubCube0->iLit1 > 0 && pSubCube1->iLit1 > 0 )
     {
+        int RetValue;
+
         SC0_Lit1 = Fxch_ManGetLit( pFxchMan, pSubCube0->iCube, pSubCube0->iLit1 );
         SC1_Lit1 = Fxch_ManGetLit( pFxchMan, pSubCube1->iCube, pSubCube1->iLit1 );
 
@@ -142,7 +147,7 @@ int Fxch_DivCreate( Fxch_Man_t* pFxchMan,
         Vec_IntPush( pFxchMan->vCubeFree, Abc_Var2Lit( SC0_Lit1, 0 ) );
         Vec_IntPush( pFxchMan->vCubeFree, Abc_Var2Lit( SC1_Lit1, 1 ) );
 
-        int RetValue = Fxch_DivNormalize( pFxchMan->vCubeFree );
+        RetValue = Fxch_DivNormalize( pFxchMan->vCubeFree );
         if ( RetValue == -1 )
             return -1;
     } 
@@ -181,8 +186,8 @@ int Fxch_DivCreate( Fxch_Man_t* pFxchMan,
         Vec_IntWriteEntry( pFxchMan->vCubeFree, 1, Abc_Var2Lit( Vec_IntEntry( pFxchMan->vCubeFree, 1 ), 1 ) );
     }
 
-    int Cube0Size = Vec_IntSize( Fxch_ManGetCube( pFxchMan, pSubCube0->iCube ) ),
-        Cube1Size = Vec_IntSize( Fxch_ManGetCube( pFxchMan, pSubCube1->iCube ) );
+    Cube0Size = Vec_IntSize( Fxch_ManGetCube( pFxchMan, pSubCube0->iCube ) );
+    Cube1Size = Vec_IntSize( Fxch_ManGetCube( pFxchMan, pSubCube1->iCube ) );
     if ( Vec_IntSize( pFxchMan->vCubeFree ) % 2 == 0 )
     {
         Base = Abc_MinInt( Cube0Size, Cube1Size )
@@ -535,7 +540,7 @@ void Fxch_DivFindCubePairs( Fxch_Man_t* pFxchMan,
     {
         int CubeId1 = Fxch_ManGetLit( pFxchMan, *pBeg1, 0 ),
             CubeId2 = Fxch_ManGetLit( pFxchMan, *pBeg2, 0 ),
-            i, k;
+            i, k, i_, k_;
 
         if ( CubeId1 == CubeId2 )
         {
@@ -547,8 +552,8 @@ void Fxch_DivFindCubePairs( Fxch_Man_t* pFxchMan,
                 if ( CubeId1 != Fxch_ManGetLit( pFxchMan, pBeg2[k], 0) )
                     break;
 
-            for ( int i_ = 0; i_ < i; i_++ )
-            for ( int k_ = 0; k_ < k; k_++ )
+            for ( i_ = 0; i_ < i; i_++ )
+            for ( k_ = 0; k_ < k; k_++ )
             {
                 if ( pBeg1[i_] == pBeg2[k_] )
                     continue;

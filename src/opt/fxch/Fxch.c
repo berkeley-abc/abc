@@ -44,7 +44,8 @@ int Fxch_FastExtract( Vec_Wec_t* vCubes,
                       int fVeryVerbose )
 {
     abctime TempTime;
-    Fxch_Man_t* pFxchMan = Fxch_ManAlloc( vCubes, SMode );
+    Fxch_Man_t* pFxchMan = Fxch_ManAlloc( vCubes, (char)SMode );
+    int i;
 
     TempTime = Abc_Clock();
     Fxch_ManMapLiteralsIntoCubes( pFxchMan, ObjIdMax );
@@ -61,7 +62,7 @@ int Fxch_FastExtract( Vec_Wec_t* vCubes,
         Fxch_ManPrintStats( pFxchMan );
 
     TempTime = Abc_Clock();
-    for ( int i = 0; i < nMaxDivExt && Vec_QueTopPriority( pFxchMan->vDivPrio ) > 0.0; i++ )
+    for ( i = 0; (!nMaxDivExt || i < nMaxDivExt) && Vec_QueTopPriority( pFxchMan->vDivPrio ) > 0.0; i++ )
     {
         int iDiv = Vec_QuePop( pFxchMan->vDivPrio );
 

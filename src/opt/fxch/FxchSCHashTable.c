@@ -19,6 +19,11 @@
 
 ABC_NAMESPACE_IMPL_START
 
+#ifdef _WIN32
+typedef unsigned int uint32_t;
+typedef unsigned char uint8_t;
+#endif
+
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
@@ -35,12 +40,16 @@ static inline void MurmurHash3_x86_32 ( const void* key,
     const uint32_t c1 = 0xcc9e2d51;
     const uint32_t c2 = 0x1b873593;
 
+    const uint8_t * tail;
+    uint32_t k1;
+
     //----------
     // body
 
     const uint32_t * blocks = (const uint32_t *)(data + nblocks*4);
+    int i;
 
-    for(int i = -nblocks; i; i++)
+    for(i = -nblocks; i; i++)
     {
         uint32_t k1 = blocks[i];
 
@@ -56,9 +65,9 @@ static inline void MurmurHash3_x86_32 ( const void* key,
     //----------
     // tail
 
-    const uint8_t * tail = (const uint8_t*)(data + nblocks*4);
+    tail = (const uint8_t*)(data + nblocks*4);
 
-    uint32_t k1 = 0;
+    k1 = 0;
 
     switch(len & 3)
     {
@@ -146,9 +155,9 @@ static inline void Fxch_SCHashTableRemoveLink( Fxch_SCHashTable_t* pSCHashTable,
                             * pEntry1 = Fxch_SCHashTableEntry( pSCHashTable, iEntry1 ),
                             * pEntry1Next = Fxch_SCHashTableEntry( pSCHashTable, pEntry1->iNext );
 
-    assert( pEntry0->iNext == iEntry1 );
-    assert( pEntry1->iPrev == iEntry0 );
-    assert( pEntry1Next->iPrev == iEntry1 );
+    assert( (int)pEntry0->iNext == iEntry1 );
+    assert( (int)pEntry1->iPrev == iEntry0 );
+    assert( (int)pEntry1Next->iPrev == iEntry1 );
 
     pEntry0->iNext = pEntry1->iNext;
     pEntry1->iNext = 0;
@@ -220,11 +229,19 @@ int Fxch_SCHashTableInsert( Fxch_SCHashTable_t* pSCHashTable,
                             char fUpdate )
 {
     unsigned int BinID;
+    unsigned int iNewEntry;
+    Fxch_SCHashTable_Entry_t* pBin,* pNewEntry;
+
+    Fxch_SCHashTable_Entry_t* pEntry;
+    unsigned int iEntry;
+    char Pairs = 0,
+         fStart = 1;
+
     MurmurHash3_x86_32( ( void* ) &SubCubeID, sizeof( int ), 0x9747b28c, &BinID);
     
-    unsigned int iNewEntry = ( unsigned int )( Vec_IntEntry( pSCHashTable->vCubeLinks, iCube ) ) + iSubCube;
-    Fxch_SCHashTable_Entry_t* pBin = Fxch_SCHashTableBin( pSCHashTable, BinID ),
-                            * pNewEntry = Fxch_SCHashTableEntry( pSCHashTable, iNewEntry );
+    iNewEntry = ( unsigned int )( Vec_IntEntry( pSCHashTable->vCubeLinks, iCube ) ) + iSubCube;
+    pBin = Fxch_SCHashTableBin( pSCHashTable, BinID );
+    pNewEntry = Fxch_SCHashTableEntry( pSCHashTable, iNewEntry );
 
     assert( pNewEntry->Used == 0 );
 
@@ -243,12 +260,11 @@ int Fxch_SCHashTableInsert( Fxch_SCHashTable_t* pSCHashTable,
         return 0;
     }
 
-    Fxch_SCHashTable_Entry_t* pEntry;
-    unsigned int iEntry;
-    char Pairs = 0,
-         fStart = 1;
     for ( iEntry = pBin->iTable; iEntry != pBin->iTable || fStart; iEntry = pEntry->iNext, fStart = 0 )
     {
+        int Base;
+        int iNewDiv;
+
         pEntry = Fxch_SCHashTableBin( pSCHashTable, iEntry );
 
         if ( !Fxch_SCHashTableEntryCompare( pSCHashTable, vCubes, &( pEntry->SCData ), &( pNewEntry->SCData ) ) )
@@ -265,7 +281,6 @@ int Fxch_SCHashTableInsert( Fxch_SCHashTable_t* pSCHashTable,
             continue;
         }
 
-        int Base;
         if ( pEntry->SCData.iCube < pNewEntry->SCData.iCube )
             Base = Fxch_DivCreate( pSCHashTable->pFxchMan, &( pEntry->SCData ), &( pNewEntry->SCData ) );
         else
@@ -274,7 +289,7 @@ int Fxch_SCHashTableInsert( Fxch_SCHashTable_t* pSCHashTable,
         if ( Base < 0 ) 
             continue;
 
-        int iNewDiv = Fxch_DivAdd( pSCHashTable->pFxchMan, fUpdate, 0, Base );
+        iNewDiv = Fxch_DivAdd( pSCHashTable->pFxchMan, fUpdate, 0, Base );
 
         if ( pSCHashTable->pFxchMan->SMode == 0 )
         {
@@ -302,11 +317,18 @@ int Fxch_SCHashTableRemove( Fxch_SCHashTable_t* pSCHashTable,
                             char fUpdate )
 {
     unsigned int BinID;
+    unsigned int iEntry;
+    Fxch_SCHashTable_Entry_t* pBin,* pEntry;
+    Fxch_SCHashTable_Entry_t* pNextEntry;
+    int iNextEntry,
+        Pairs = 0,
+        fStart = 1;
+
     MurmurHash3_x86_32( ( void* ) &SubCubeID, sizeof( int ), 0x9747b28c, &BinID);
     
-    unsigned int iEntry = ( unsigned int )( Vec_IntEntry( pSCHashTable->vCubeLinks, iCube ) ) + iSubCube;
-    Fxch_SCHashTable_Entry_t* pBin = Fxch_SCHashTableBin( pSCHashTable, BinID ),
-                            * pEntry = Fxch_SCHashTableEntry( pSCHashTable, iEntry );
+    iEntry = ( unsigned int )( Vec_IntEntry( pSCHashTable->vCubeLinks, iCube ) ) + iSubCube;
+    pBin = Fxch_SCHashTableBin( pSCHashTable, BinID );
+    pEntry = Fxch_SCHashTableEntry( pSCHashTable, iEntry );
     
     assert( pEntry->Used == 1 );
     assert( pEntry->SCData.iCube == iCube );
@@ -321,12 +343,11 @@ int Fxch_SCHashTableRemove( Fxch_SCHashTable_t* pSCHashTable,
         return 0;
     }
 
-    Fxch_SCHashTable_Entry_t* pNextEntry;
-    int iNextEntry,
-        Pairs = 0,
-        fStart = 1;
-    for ( iNextEntry = pEntry->iNext; iNextEntry != iEntry; iNextEntry = pNextEntry->iNext, fStart = 0 )
+    for ( (int)iNextEntry = pEntry->iNext; iNextEntry != (int)iEntry; iNextEntry = pNextEntry->iNext, fStart = 0 )
     {
+        int Base, 
+            iDiv;
+
         pNextEntry = Fxch_SCHashTableBin( pSCHashTable, iNextEntry );
 
         if ( !Fxch_SCHashTableEntryCompare( pSCHashTable, vCubes, &( pEntry->SCData ), &( pNextEntry->SCData ) ) 
@@ -334,7 +355,6 @@ int Fxch_SCHashTableRemove( Fxch_SCHashTable_t* pSCHashTable,
              || pNextEntry->SCData.iLit0 == 0 )
             continue;
 
-        int Base;
         if ( pNextEntry->SCData.iCube < pEntry->SCData.iCube )
             Base = Fxch_DivCreate( pSCHashTable->pFxchMan, &( pNextEntry->SCData ), &( pEntry->SCData ) );
         else
@@ -343,7 +363,7 @@ int Fxch_SCHashTableRemove( Fxch_SCHashTable_t* pSCHashTable,
         if ( Base < 0 ) 
             continue;
 
-        int iDiv = Fxch_DivRemove( pSCHashTable->pFxchMan, fUpdate, 0, Base );
+        iDiv = Fxch_DivRemove( pSCHashTable->pFxchMan, fUpdate, 0, Base );
 
         if ( pSCHashTable->pFxchMan->SMode == 0 )
         {
@@ -353,8 +373,8 @@ int Fxch_SCHashTableRemove( Fxch_SCHashTable_t* pSCHashTable,
 
             Vec_Int_t* vDivCubePairs = Vec_WecEntry( pSCHashTable->pFxchMan->vDivCubePairs, iDiv );
             Vec_IntForEachEntryDouble( vDivCubePairs, iCube0, iCube1, i )
-                if ( ( iCube0 == pNextEntry->SCData.iCube &&  iCube1 == pEntry->SCData.iCube )  ||
-                     ( iCube0 == pEntry->SCData.iCube &&  iCube1 == pNextEntry->SCData.iCube ) )
+                if ( ( iCube0 == (int)pNextEntry->SCData.iCube &&  iCube1 == (int)pEntry->SCData.iCube )  ||
+                     ( iCube0 == (int)pEntry->SCData.iCube &&  iCube1 == (int)pNextEntry->SCData.iCube ) )
                 {
                     Vec_IntDrop( vDivCubePairs, i+1 );
                     Vec_IntDrop( vDivCubePairs, i );
@@ -386,11 +406,12 @@ unsigned int Fxch_SCHashTableMemory( Fxch_SCHashTable_t* pHashTable )
 
 void Fxch_SCHashTablePrint( Fxch_SCHashTable_t* pHashTable )
 {
+    int Memory;
     printf( "SubCube Hash Table at %p\n", ( void* )pHashTable );
     printf("%20s %20s\n", "nEntries",
                           "Memory Usage (MB)" );
 
-    int Memory = Fxch_SCHashTableMemory( pHashTable );
+    Memory = Fxch_SCHashTableMemory( pHashTable );
     printf("%20d %18.2f\n", pHashTable->nEntries,
                             ( ( double ) Memory / 1048576 ) );
 }
