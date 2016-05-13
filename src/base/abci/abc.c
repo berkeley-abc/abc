@@ -9013,7 +9013,7 @@ int Abc_CommandExpand( Abc_Frame_t * pAbc, int argc, char ** argv )
     extern Gia_Man_t * Abc_NtkClpGia( Abc_Ntk_t * pNtk );
     extern void Abc_NtkExpandCubes( Abc_Ntk_t * pNtk, Gia_Man_t * pGia, int fVerbose );
     Abc_Ntk_t * pStrash, * pNtk2, * pNtk = Abc_FrameReadNtk(pAbc);
-    Gia_Man_t * pGia; int c, fVerbose;
+    Gia_Man_t * pGia; int c, fVerbose = 0;
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
     {
@@ -35661,7 +35661,7 @@ int Abc_CommandAbc9Dch( Abc_Frame_t * pAbc, int argc, char ** argv )
     // set defaults
     Dch_ManSetDefaultParams( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "WCSsptfvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "WCSsptfrvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -35710,6 +35710,9 @@ int Abc_CommandAbc9Dch( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'f':
             pPars->fLightSynth ^= 1;
             break;
+        case 'r':
+            pPars->fSkipRedSupp ^= 1;
+            break;
         case 'v':
             pPars->fVerbose ^= 1;
             break;
@@ -35734,7 +35737,7 @@ int Abc_CommandAbc9Dch( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &dch [-WCS num] [-sptfvh]\n" );
+    Abc_Print( -2, "usage: &dch [-WCS num] [-sptfrvh]\n" );
     Abc_Print( -2, "\t         computes structural choices using a new approach\n" );
     Abc_Print( -2, "\t-W num : the max number of simulation words [default = %d]\n", pPars->nWords );
     Abc_Print( -2, "\t-C num : the max number of conflicts at a node [default = %d]\n", pPars->nBTLimit );
@@ -35743,6 +35746,7 @@ usage:
     Abc_Print( -2, "\t-p     : toggle power-aware rewriting [default = %s]\n", pPars->fPower? "yes": "no" );
     Abc_Print( -2, "\t-t     : toggle simulation of the TFO classes [default = %s]\n", pPars->fSimulateTfo? "yes": "no" );
     Abc_Print( -2, "\t-f     : toggle using lighter logic synthesis [default = %s]\n", pPars->fLightSynth? "yes": "no" );
+    Abc_Print( -2, "\t-r     : toggle skipping choices with redundant support [default = %s]\n", pPars->fSkipRedSupp? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle verbose printout [default = %s]\n", pPars->fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
