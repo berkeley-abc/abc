@@ -1863,6 +1863,10 @@ SOURCE=.\src\sat\bmc\bmcEco.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\sat\bmc\bmcExpand.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\sat\bmc\bmcFault.c
 # End Source File
 # Begin Source File

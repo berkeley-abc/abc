@@ -158,6 +158,7 @@ static int Abc_CommandBidec                  ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandOrder                  ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandMuxes                  ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandCubes                  ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandExpand                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandSplitSop               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandExtSeqDcs              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandReach                  ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -793,6 +794,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Various",      "order",         Abc_CommandOrder,            0 );
     Cmd_CommandAdd( pAbc, "Various",      "muxes",         Abc_CommandMuxes,            1 );
     Cmd_CommandAdd( pAbc, "Various",      "cubes",         Abc_CommandCubes,            1 );
+    Cmd_CommandAdd( pAbc, "Various",      "expand",        Abc_CommandExpand,           1 );
     Cmd_CommandAdd( pAbc, "Various",      "splitsop",      Abc_CommandSplitSop,         1 );
     Cmd_CommandAdd( pAbc, "Various",      "ext_seq_dcs",   Abc_CommandExtSeqDcs,        0 );
     Cmd_CommandAdd( pAbc, "Various",      "reach",         Abc_CommandReach,            0 );
@@ -8990,8 +8992,92 @@ usage:
     Abc_Print( -2, "usage: cubes [-xh]\n" );
     Abc_Print( -2, "\t        converts the current network into a network derived by creating\n" );
     Abc_Print( -2, "\t        a separate node for each product and sum in the local SOPs\n" );
-    Abc_Print( -2, "\t-v    : toggle using XOR instead of OR [default = %s]\n", fXor? "yes": "no" );
+    Abc_Print( -2, "\t-x    : toggle using XOR instead of OR [default = %s]\n", fXor? "yes": "no" );
     Abc_Print( -2, "\t-h    : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandExpand( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern Gia_Man_t * Abc_NtkClpGia( Abc_Ntk_t * pNtk );
+    extern void Abc_NtkExpandCubes( Abc_Ntk_t * pNtk, Gia_Man_t * pGia, int fVerbose );
+    Abc_Ntk_t * pStrash, * pNtk2, * pNtk = Abc_FrameReadNtk(pAbc);
+    Gia_Man_t * pGia; int c, fVerbose;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pNtk == NULL )
+    {
+        Abc_Print( -1, "Empty network.\n" );
+        return 1;
+    }
+    if ( !Abc_NtkIsSopLogic(pNtk) )
+    {
+        Abc_Print( -1, "Only a SOP logic network can be transformed into cubes.\n" );
+        return 1;
+    }
+    if ( Abc_NtkLevel(pNtk) > 1 )
+    {
+        Abc_Print( -1, "The number of logic levels is more than 1 (collapse the network and try again).\n" );
+        return 1;
+    }
+    // read the offset representation
+    if ( argc != globalUtilOptind + 1 )
+    {
+        Abc_Print( 0, "Using the complement of the current network as its offset.\n" );
+        pNtk2 = Abc_NtkDup( pNtk );
+    }
+    else
+    {
+        char * FileName = argv[globalUtilOptind];
+        pNtk2 = Io_Read( FileName, Io_ReadFileType(FileName), 1, 0 );
+        if ( pNtk2 == NULL )
+        {
+            Abc_Print( -1, "Failed to read the current network from file \"%s\".\n", FileName );
+            return 1;
+        }
+    }
+    // strash the network
+    pStrash = Abc_NtkStrash( pNtk2, 0, 1, 0 );
+    Abc_NtkDelete( pNtk2 );
+    // convert it into an AIG
+    pGia = Abc_NtkClpGia( pStrash );
+    //Gia_AigerWrite( pGia, "aig_dump.aig", 0, 0 );
+    Abc_NtkDelete( pStrash );
+    // get the new network
+    Abc_NtkExpandCubes( pNtk, pGia, fVerbose );
+    Gia_ManStop( pGia );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: expand [-vh] <file>\n" );
+    Abc_Print( -2, "\t        expands cubes against the offset\n" );
+    Abc_Print( -2, "\t-v    : toggle verbose output [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h    : print the command usage\n");
+    Abc_Print( -2, "\tfile  : (optional) representation of on-set plus dc-set\n");
+
     return 1;
 }
 
