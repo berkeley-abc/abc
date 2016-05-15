@@ -1875,6 +1875,10 @@ SOURCE=.\src\sat\bmc\bmcFx.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\sat\bmc\bmcGen.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\sat\bmc\bmcICheck.c
 # End Source File
 # Begin Source File

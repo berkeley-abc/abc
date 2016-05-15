@@ -163,10 +163,6 @@ void Wlc_BlastFullAdderCtrlCnf( sat_solver * pSat, int a, int ac, int b, int c, 
     int i, v, nLits, pLits[6];
     for ( i = 0; i < 12; i++ )
     {
-        if ( i == 7 )
-        {
-            int x = 0;
-        }
         nLits = 0;
         for ( v = 0; v < 6; v++ )
         {
