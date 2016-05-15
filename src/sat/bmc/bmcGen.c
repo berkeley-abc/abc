@@ -165,7 +165,7 @@ int Gia_ManTestSatEnum( Gia_Man_t * p )
             Vec_IntPush( vVars, pCnf->pVarNums[v] );
         }
         //sat_solver_act_var_clear( pSat );
-        sat_solver_set_polarity( pSat, Vec_IntArray(vVars), Vec_IntSize(vVars) );
+        //sat_solver_set_polarity( pSat, Vec_IntArray(vVars), Vec_IntSize(vVars) );
 
         clk2 = Abc_Clock();
         status = sat_solver_solve( pSat, NULL, NULL, 0, 0, 0, 0 );
