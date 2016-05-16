@@ -53,6 +53,7 @@ void Mio_LibraryDelete( Mio_Library_t * pLib )
     Mio_Gate_t * pGate, * pGate2;
     if ( pLib == NULL )
         return;
+    Mio_LibraryMatchesStop( pLib );
     // free the bindings of nodes to gates from this library for all networks
     Abc_FrameUnmapAllNetworks( Abc_FrameGetGlobalFrame() );
     // free the library
@@ -1588,6 +1589,52 @@ void Mio_LibraryShortNames( Mio_Library_t * pLib )
     ABC_FREE( pLib->pName );
     sprintf( Buffer, "lib%d", Mio_LibraryReadGateNum(pLib) );
     pLib->pName = Abc_UtilStrsav( Buffer );
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Mio_LibraryMatchesStop( Mio_Library_t * pLib )
+{
+    if ( !pLib->vTtMem )
+        return;
+    Vec_WecFree( pLib->vTt2Match );
+    Vec_MemHashFree( pLib->vTtMem );
+    Vec_MemFree( pLib->vTtMem );
+    ABC_FREE( pLib->pCells );
+}
+void Mio_LibraryMatchesStart( Mio_Library_t * pLib, int fPinFilter, int fPinPerm, int fPinQuick )
+{
+    extern Mio_Cell2_t * Nf_StoDeriveMatches( Vec_Mem_t * vTtMem, Vec_Wec_t * vTt2Match, int * pnCells, int fPinFilter, int fPinPerm, int fPinQuick );
+    if ( pLib->vTtMem && pLib->fPinFilter == fPinFilter && pLib->fPinPerm == fPinPerm && pLib->fPinQuick == fPinQuick )
+        return;
+    if ( pLib->vTtMem )
+        Mio_LibraryMatchesStop( pLib );
+    pLib->fPinFilter = fPinFilter;  // pin filtering
+    pLib->fPinPerm   = fPinPerm;    // pin permutation
+    pLib->fPinQuick  = fPinQuick;   // pin permutation
+    pLib->vTtMem     = Vec_MemAllocForTT( 6, 0 );          
+    pLib->vTt2Match  = Vec_WecAlloc( 1000 ); 
+    Vec_WecPushLevel( pLib->vTt2Match );
+    Vec_WecPushLevel( pLib->vTt2Match );
+    assert( Vec_WecSize(pLib->vTt2Match) == Vec_MemEntryNum(pLib->vTtMem) );
+    pLib->pCells = Nf_StoDeriveMatches( pLib->vTtMem, pLib->vTt2Match, &pLib->nCells, fPinFilter, fPinPerm, fPinQuick );
+}
+void Mio_LibraryMatchesFetch( Mio_Library_t * pLib, Vec_Mem_t ** pvTtMem, Vec_Wec_t ** pvTt2Match, Mio_Cell2_t ** ppCells, int * pnCells, int fPinFilter, int fPinPerm, int fPinQuick )
+{
+    Mio_LibraryMatchesStart( pLib, fPinFilter, fPinPerm, fPinQuick );
+    *pvTtMem    = pLib->vTtMem;     // truth tables
+    *pvTt2Match = pLib->vTt2Match;  // matches for truth tables
+    *ppCells    = pLib->pCells;     // library gates
+    *pnCells    = pLib->nCells;     // library gate count
 }
 
 ////////////////////////////////////////////////////////////////////////

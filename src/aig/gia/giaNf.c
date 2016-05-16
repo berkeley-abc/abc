@@ -178,18 +178,17 @@ int Nf_StoCellIsDominated( Mio_Cell2_t * pCell, int * pFans, int * pProf )
             return 0;
     return 1; // pCell is dominated
 }
-void Nf_StoCreateGateAdd( Nf_Man_t * pMan, word uTruth, int * pFans, int nFans, int CellId, Vec_Wec_t * vProfs, Vec_Int_t * vStore )
+void Nf_StoCreateGateAdd( Vec_Mem_t * vTtMem, Vec_Wec_t * vTt2Match, Mio_Cell2_t * pCell, word uTruth, int * pFans, int nFans, Vec_Wec_t * vProfs, Vec_Int_t * vStore, int fPinFilter, int fPinPerm, int fPinQuick )
 {
     Vec_Int_t * vArray, * vArrayProfs = NULL;
-    Mio_Cell2_t * pCell = Nf_ManCell( pMan, CellId );
     int i, k, GateId, Entry, fCompl = (int)(uTruth & 1);
     word uFunc = fCompl ? ~uTruth : uTruth;
-    int iFunc = Vec_MemHashInsert( pMan->vTtMem, &uFunc );
+    int iFunc = Vec_MemHashInsert( vTtMem, &uFunc );
     Nf_Cfg_t Mat = Nf_Int2Cfg(0);
     // get match array
-    if ( iFunc == Vec_WecSize(pMan->vTt2Match) )
-        Vec_WecPushLevel( pMan->vTt2Match );
-    vArray = Vec_WecEntry( pMan->vTt2Match, iFunc );
+    if ( iFunc == Vec_WecSize(vTt2Match) )
+        Vec_WecPushLevel( vTt2Match );
+    vArray = Vec_WecEntry( vTt2Match, iFunc );
     // create match
     Mat.fCompl = fCompl;
     assert( nFans == (int)pCell->nFanins );
@@ -199,10 +198,10 @@ void Nf_StoCreateGateAdd( Nf_Man_t * pMan, word uTruth, int * pFans, int nFans, 
         Mat.Phase |= (unsigned)(Abc_LitIsCompl(pFans[i]) << Abc_Lit2Var(pFans[i]));
     }
     // check other profiles
-    if ( pMan->pPars->fPinFilter )
+    if ( fPinFilter )
     {
         // get profile array
-        assert( Vec_WecSize(pMan->vTt2Match) == Vec_WecSize(vProfs) );
+        assert( Vec_WecSize(vTt2Match) == Vec_WecSize(vProfs) );
         if ( iFunc == Vec_WecSize(vProfs) )
             Vec_WecPushLevel( vProfs );
         vArrayProfs = Vec_WecEntry( vProfs, iFunc );
@@ -218,26 +217,26 @@ void Nf_StoCreateGateAdd( Nf_Man_t * pMan, word uTruth, int * pFans, int nFans, 
             }
     }
     // check pin permutation
-    if ( !pMan->pPars->fPinPerm ) // do not use  pin-permutation (improves delay when pin-delays differ)
+    if ( !fPinPerm ) // do not use  pin-permutation (improves delay when pin-delays differ)
     {
-        if ( pMan->pPars->fPinQuick ) // reduce the number of matches agressively
+        if ( fPinQuick ) // reduce the number of matches agressively
         {
             Vec_IntForEachEntryDouble( vArray, GateId, Entry, i )
-                if ( GateId == CellId && Abc_TtBitCount8[Nf_Int2Cfg(Entry).Phase] == Abc_TtBitCount8[Mat.Phase] )
+                if ( GateId == (int)pCell->Id && Abc_TtBitCount8[Nf_Int2Cfg(Entry).Phase] == Abc_TtBitCount8[Mat.Phase] )
                     return;
         }
         else // reduce the number of matches less agressively
         {
             Vec_IntForEachEntryDouble( vArray, GateId, Entry, i )
-                if ( GateId == CellId && Nf_Int2Cfg(Entry).Phase == Mat.Phase )
+                if ( GateId == (int)pCell->Id && Nf_Int2Cfg(Entry).Phase == Mat.Phase )
                     return;
         }
     }
     // save data and profile
-    Vec_IntPush( vArray, CellId );
+    Vec_IntPush( vArray, pCell->Id );
     Vec_IntPush( vArray, Nf_Cfg2Int(Mat) );
     // add delay profile
-    if ( pMan->pPars->fPinFilter )
+    if ( fPinFilter )
     {
         Vec_IntPush( vArrayProfs, Vec_IntSize(vStore) );
         Vec_IntPush( vStore, Abc_Float2Int(pCell->AreaF) );
@@ -245,7 +244,7 @@ void Nf_StoCreateGateAdd( Nf_Man_t * pMan, word uTruth, int * pFans, int nFans, 
             Vec_IntPush( vStore, pCell->iDelays[Abc_Lit2Var(pFans[k])] );
     }
 }
-void Nf_StoCreateGateMaches( Nf_Man_t * pMan, Mio_Cell2_t * pCell, int ** pComp, int ** pPerm, int * pnPerms, Vec_Wec_t * vProfs, Vec_Int_t * vStore )
+void Nf_StoCreateGateMaches( Vec_Mem_t * vTtMem, Vec_Wec_t * vTt2Match, Mio_Cell2_t * pCell, int ** pComp, int ** pPerm, int * pnPerms, Vec_Wec_t * vProfs, Vec_Int_t * vStore, int fPinFilter, int fPinPerm, int fPinQuick )
 {
     int Perm[NF_LEAF_MAX], * Perm1, * Perm2;
     int nPerms = pnPerms[pCell->nFanins];
@@ -261,7 +260,7 @@ void Nf_StoCreateGateMaches( Nf_Man_t * pMan, Mio_Cell2_t * pCell, int ** pComp,
         tTemp2 = tCur;
         for ( c = 0; c < nMints; c++ )
         {
-            Nf_StoCreateGateAdd( pMan, tCur, Perm, pCell->nFanins, pCell->Id, vProfs, vStore );
+            Nf_StoCreateGateAdd( vTtMem, vTt2Match, pCell, tCur, Perm, pCell->nFanins, vProfs, vStore, fPinFilter, fPinPerm, fPinQuick );
             // update
             tCur  = Abc_Tt6Flip( tCur, pComp[pCell->nFanins][c] );
             Perm1 = Perm + pComp[pCell->nFanins][c];
@@ -278,12 +277,14 @@ void Nf_StoCreateGateMaches( Nf_Man_t * pMan, Mio_Cell2_t * pCell, int ** pComp,
     }
     assert( tTemp1 == tCur );
 }
-void Nf_StoDeriveMatches( Nf_Man_t * p, int fVerbose )
+Mio_Cell2_t * Nf_StoDeriveMatches( Vec_Mem_t * vTtMem, Vec_Wec_t * vTt2Match, int * pnCells, int fPinFilter, int fPinPerm, int fPinQuick )
 {
-//    abctime clk = Abc_Clock();
+    int fVerbose = 0;
+    //abctime clk = Abc_Clock();
     Vec_Wec_t * vProfs = Vec_WecAlloc( 1000 );
     Vec_Int_t * vStore = Vec_IntAlloc( 10000 );
     int * pComp[7], * pPerm[7], nPerms[7], i;
+    Mio_Cell2_t * pCells;
     Vec_WecPushLevel( vProfs );
     Vec_WecPushLevel( vProfs );
     for ( i = 1; i <= 6; i++ )
@@ -292,18 +293,18 @@ void Nf_StoDeriveMatches( Nf_Man_t * p, int fVerbose )
         pPerm[i] = Extra_PermSchedule( i );
     for ( i = 1; i <= 6; i++ )
         nPerms[i] = Extra_Factorial( i );
-    p->pCells = Mio_CollectRootsNewDefault2( 6, &p->nCells, fVerbose );
-    for ( i = 2; i < p->nCells; i++ )
-        Nf_StoCreateGateMaches( p, p->pCells + i, pComp, pPerm, nPerms, vProfs, vStore );
+    pCells = Mio_CollectRootsNewDefault2( 6, pnCells, fVerbose );
+    for ( i = 2; i < *pnCells; i++ )
+        Nf_StoCreateGateMaches( vTtMem, vTt2Match, pCells+i, pComp, pPerm, nPerms, vProfs, vStore, fPinFilter, fPinPerm, fPinQuick );
     for ( i = 1; i <= 6; i++ )
         ABC_FREE( pComp[i] );
     for ( i = 1; i <= 6; i++ )
         ABC_FREE( pPerm[i] );
     Vec_WecFree( vProfs );
     Vec_IntFree( vStore );
-//    Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
+    //Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
+    return pCells;
 }
-//void Nf_StoPrintOne( Nf_Man_t * p, int Count, int t, int i, int GateId, Pf_Mat_t Mat )
 void Nf_StoPrintOne( Nf_Man_t * p, int Count, int t, int i, int GateId, Nf_Cfg_t Mat )
 {
     Mio_Cell2_t * pC = p->pCells + GateId;
@@ -398,12 +399,7 @@ Nf_Man_t * Nf_StoCreate( Gia_Man_t * pGia, Jf_Par_t * pPars )
     }
     Vec_IntFree(vFlowRefs);
     // matching
-    p->vTtMem    = Vec_MemAllocForTT( 6, 0 );          
-    p->vTt2Match = Vec_WecAlloc( 1000 ); 
-    Vec_WecPushLevel( p->vTt2Match );
-    Vec_WecPushLevel( p->vTt2Match );
-    assert( Vec_WecSize(p->vTt2Match) == Vec_MemEntryNum(p->vTtMem) );
-    Nf_StoDeriveMatches( p, 0 );//pPars->fVerbose );
+    Mio_LibraryMatchesFetch( (Mio_Library_t *)Abc_FrameReadLibGen(), &p->vTtMem, &p->vTt2Match, &p->pCells, &p->nCells, p->pPars->fPinFilter, p->pPars->fPinPerm, p->pPars->fPinQuick );
     p->InvDelayI = p->pCells[3].iDelays[0];
     p->InvAreaW  = p->pCells[3].AreaW;
     p->InvAreaF  = p->pCells[3].AreaF;
@@ -424,11 +420,6 @@ void Nf_StoDelete( Nf_Man_t * p )
     ABC_FREE( p->vCutDelays.pArray );
     ABC_FREE( p->vBackup.pArray );
     ABC_FREE( p->pNfObjs );
-    // matching
-    Vec_WecFree( p->vTt2Match );
-    Vec_MemHashFree( p->vTtMem );
-    Vec_MemFree( p->vTtMem );
-    ABC_FREE( p->pCells );
     ABC_FREE( p );
 }
 
