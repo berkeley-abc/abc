@@ -213,6 +213,7 @@ extern void              Mio_LibraryTransferProfile( Mio_Library_t * pLibDst, Mi
 extern void              Mio_LibraryTransferProfile2( Mio_Library_t * pLibDst, Mio_Library_t * pLibSrc );
 extern int               Mio_LibraryHasProfile( Mio_Library_t * pLib );
 extern void              Mio_LibraryCleanProfile2( Mio_Library_t * pLib );
+extern void              Mio_LibraryShortNames( Mio_Library_t * pLib );
 
 /*=== sclUtil.c =========================================================*/
 extern Mio_Library_t *   Abc_SclDeriveGenlibSimple( void * pScl );

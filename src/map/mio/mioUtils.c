@@ -1465,6 +1465,131 @@ void Mio_LibraryCleanProfile2( Mio_Library_t * pLib )
         Mio_GateSetProfile2( pGate, 0 );
 }
 
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Mio_LibraryHashGates( Mio_Library_t * pLib )
+{
+    Mio_Gate_t * pGate;    
+    Mio_LibraryForEachGate( pLib, pGate )
+        if ( pGate->pTwin )
+        {
+            printf( "Gates with multiple outputs are not supported.\n" );
+            return;
+        }
+    if ( pLib->tName2Gate )
+        st__free_table( pLib->tName2Gate );
+    pLib->tName2Gate = st__init_table(strcmp, st__strhash);
+    Mio_LibraryForEachGate( pLib, pGate )
+        st__insert( pLib->tName2Gate, pGate->pName, (char *)pGate );
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline int Abc_SclIsChar( char c )
+{
+    return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_';
+}
+static inline int Abc_SclIsName( char c )
+{
+    return Abc_SclIsChar(c) || (c >= '0' && c <= '9');
+}
+static inline char * Abc_SclFindLimit( char * pName )
+{
+    assert( Abc_SclIsChar(*pName) );
+    while ( Abc_SclIsName(*pName) )
+        pName++;
+    return pName;
+}
+static inline int Abc_SclAreEqual( char * pBase, char * pName, char * pLimit )
+{
+    return !strncmp( pBase, pName, pLimit - pName );
+}
+void Mio_LibraryShortFormula( Mio_Gate_t * pCell, char * pForm, char * pBuffer )
+{
+    Mio_Pin_t * pPin; 
+    char * pTemp, * pLimit; int i;
+    if ( !strncmp(pForm, "CONST", 5) )
+    {
+        sprintf( pBuffer, "%s", pForm );
+        return;
+    }
+    for ( pTemp = pForm; *pTemp; )
+    {
+        if ( !Abc_SclIsChar(*pTemp) )
+        {
+            *pBuffer++ = *pTemp++;
+            continue;
+        }
+        pLimit = Abc_SclFindLimit( pTemp );
+        i = 0;
+        Mio_GateForEachPin( pCell, pPin )
+        {
+            if ( Abc_SclAreEqual( pPin->pName, pTemp, pLimit ) )
+            {
+                *pBuffer++ = 'a' + i;
+                break;
+            }
+            i++;
+        }
+        pTemp = pLimit;
+    }
+    *pBuffer++ = 0;
+}
+void Mio_LibraryShortNames( Mio_Library_t * pLib )
+{
+    char Buffer[10000];
+    Mio_Gate_t * pGate; Mio_Pin_t * pPin;
+    int c = 0, i, nDigits = Abc_Base10Log( Mio_LibraryReadGateNum(pLib) );
+    // itereate through classes
+    Mio_LibraryForEachGate( pLib, pGate )
+    {
+        ABC_FREE( pGate->pName );
+        sprintf( Buffer, "g%0*d", nDigits, ++c );
+        pGate->pName = Abc_UtilStrsav( Buffer );
+        // update formula
+        Mio_LibraryShortFormula( pGate, pGate->pForm, Buffer );
+        ABC_FREE( pGate->pForm );
+        pGate->pForm = Abc_UtilStrsav( Buffer );
+        // pin names
+        i = 0;
+        Mio_GateForEachPin( pGate, pPin )
+        {
+            ABC_FREE( pPin->pName );
+            sprintf( Buffer, "%c", 'a'+i );
+            pPin->pName = Abc_UtilStrsav( Buffer );
+            i++;
+        }
+        // output pin
+        ABC_FREE( pGate->pOutName );
+        sprintf( Buffer, "z" );
+        pGate->pOutName = Abc_UtilStrsav( Buffer );
+    }
+    Mio_LibraryHashGates( pLib );
+    // update library name
+    printf( "Renaming library \"%s\" into \"%s%d\".\n", pLib->pName, "lib", Mio_LibraryReadGateNum(pLib) );
+    ABC_FREE( pLib->pName );
+    sprintf( Buffer, "lib%d", Mio_LibraryReadGateNum(pLib) );
+    pLib->pName = Abc_UtilStrsav( Buffer );
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
