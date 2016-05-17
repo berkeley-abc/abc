@@ -3747,21 +3747,17 @@ void Gia_ManCollectTopXors_rec( Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Int_t * vXo
     else
         Gia_ManCollectTopXors_rec( p, Gia_ObjFanin1(pObj), vXors );
 }
-Vec_Int_t * Gia_ManCollectTopXors( Gia_Man_t * p, Vec_Int_t * vPolar )
+Vec_Int_t * Gia_ManCollectTopXors( Gia_Man_t * p )
 {
     int i, iObj, iObj2, fFlip, * pPerm, Count1 = 0;
     Vec_Int_t * vXors, * vSizes, * vPart[2], * vOrder; 
     Gia_Obj_t * pFan[2], * pObj = Gia_ManCo(p, 0);
     assert( Gia_ManCoNum(p) == 1 );
-    Vec_IntClear( vPolar );
-    if ( !Gia_ObjFaninC0(pObj) )
-        return NULL;
     vXors = Vec_IntAlloc( 100 );
-    pObj = Gia_ObjFanin0(pObj);
-    if ( Gia_ObjIsAnd(pObj) )
-        Gia_ManCollectTopXors_rec( p, pObj, vXors );
+    if ( Gia_ObjFaninC0(pObj) )
+        Gia_ManCollectTopXors_rec( p, Gia_ObjFanin0(pObj), vXors );
     else
-        Vec_IntPush( vXors, Gia_ObjId(p, pObj) );
+        Vec_IntPush( vXors, Gia_ObjId(p, Gia_ObjFanin0(pObj)) );
     // order by support size
     vSizes = Vec_IntAlloc( 100 );
     Vec_IntForEachEntry( vXors, iObj, i )
@@ -3791,7 +3787,6 @@ Vec_Int_t * Gia_ManCollectTopXors( Gia_Man_t * p, Vec_Int_t * vPolar )
             pFan[0] = Gia_Regular(pFan[0]);
             pFan[1] = Gia_Regular(pFan[1]);
         }
-        Vec_IntPushTwo( vPolar, 0, fCompl );
         fFlip = Gia_ManDecideWhereToAdd( p, vPart, pFan );
         Vec_IntPush( vPart[0], Gia_ObjId(p, pFan[fFlip]) );
         Vec_IntPush( vPart[1], Gia_ObjId(p, pFan[!fFlip]) );
@@ -3808,22 +3803,20 @@ Vec_Int_t * Gia_ManCollectTopXors( Gia_Man_t * p, Vec_Int_t * vPolar )
     Vec_IntFree( vPart[0] );
     Vec_IntFree( vPart[1] );
     Vec_IntReverseOrder( vOrder ); // from LSB to MSB
-    Vec_IntReverseOrder( vPolar ); 
     //Vec_IntPrint( vOrder );
     return vOrder;
 }
 Gia_Man_t * Gia_ManDemiterToDual( Gia_Man_t * p )
 {
     Gia_Man_t * pNew; Gia_Obj_t * pObj; int i;
-    Vec_Int_t * vNodes, * vPolar = Vec_IntAlloc( 100 );
-    Vec_Int_t * vOrder = Gia_ManCollectTopXors( p, vPolar );
+    Vec_Int_t * vNodes;
+    Vec_Int_t * vOrder = Gia_ManCollectTopXors( p );
     if ( vOrder == NULL )
     {
-        Vec_IntFree( vPolar );
         printf( "Cannot demiter because the top-most gate is an AND-gate.\n" );
         return NULL;
     }
-    assert( Vec_IntSize(vOrder) == Vec_IntSize(vPolar) );
+    assert( Vec_IntSize(vOrder) % 2 == 0 );
     vNodes = Vec_IntAlloc( Gia_ManObjNum(p) );
     Gia_ManIncrementTravId( p );
     Gia_ManCollectAnds( p, Vec_IntArray(vOrder), Vec_IntSize(vOrder), vNodes, NULL );
@@ -3835,9 +3828,9 @@ Gia_Man_t * Gia_ManDemiterToDual( Gia_Man_t * p )
         pObj->Value = Gia_ManAppendCi( pNew );
     Gia_ManForEachObjVec( vNodes, p, pObj, i )
         pObj->Value = Gia_ManAppendAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+    Gia_ManSetPhase( p );
     Gia_ManForEachObjVec( vOrder, p, pObj, i )
-        Gia_ManAppendCo( pNew, Abc_LitNotCond(pObj->Value, Vec_IntEntry(vPolar, i)) );
-    Vec_IntFree( vPolar );
+        Gia_ManAppendCo( pNew, Abc_LitNotCond(pObj->Value, pObj->fPhase) );
     Vec_IntFree( vNodes );
     Vec_IntFree( vOrder );
     return pNew;

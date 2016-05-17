@@ -41422,7 +41422,7 @@ int Abc_CommandAbc9Test( Abc_Frame_t * pAbc, int argc, char ** argv )
 //    Gia_ManCheckFalseTest( pAbc->pGia, nFrames );
 //    Gia_ParTest( pAbc->pGia, nWords, nProcs );
 //    Gia_PolynExplore( pAbc->pGia );
-    Gia_ManTestSatEnum( pAbc->pGia );
+//    Gia_ManTestSatEnum( pAbc->pGia );
 
 //    printf( "\nThis command is currently disabled.\n\n" );
     return 0;
