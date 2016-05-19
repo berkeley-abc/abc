@@ -2555,6 +2555,10 @@ SOURCE=.\src\opt\sfm\sfm.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\opt\sfm\sfmArea.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\opt\sfm\sfmCnf.c
 # End Source File
 # Begin Source File

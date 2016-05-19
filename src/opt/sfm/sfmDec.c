@@ -2152,6 +2152,11 @@ void Abc_NtkPerformMfs3( Abc_Ntk_t * pNtk, Sfm_Par_t * pPars )
     if ( pPars->fLibVerbose )
         Sfm_LibPrint( p->pLib );
     Sfm_DecStop( p );
+    if ( pPars->fArea )
+    {
+        extern void Abc_NtkChangePerform( Abc_Ntk_t * pNtk, int fVerbose );
+        Abc_NtkChangePerform( pNtk, pPars->fVerbose );
+    }
 }
 
 ////////////////////////////////////////////////////////////////////////

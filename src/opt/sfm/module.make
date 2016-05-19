@@ -1,4 +1,5 @@
-SRC +=    src/opt/sfm/sfmCnf.c \
+SRC +=    src/opt/sfm/sfmArea.c \
+    src/opt/sfm/sfmCnf.c \
     src/opt/sfm/sfmCore.c \
     src/opt/sfm/sfmDec.c \
     src/opt/sfm/sfmLib.c \

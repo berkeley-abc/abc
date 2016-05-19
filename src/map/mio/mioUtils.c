@@ -733,8 +733,13 @@ Mio_Cell2_t * Mio_CollectRootsNew2( Mio_Library_t * pLib, int nInputs, int * pnG
         assert( Mio_AreaCompare2( ppCells + 4, ppCells + iCell - 1 ) <= 0 );
     }
     // assign IDs
+    Mio_LibraryForEachGate( pLib, pGate0 )
+        Mio_GateSetCell( pGate0, -1 );
     for ( i = 0; i < iCell; i++ )
+    {
         ppCells[i].Id = ppCells[i].pName ? i : -1;
+        Mio_GateSetCell( (Mio_Gate_t *)ppCells[i].pMioGate, i );
+    }
 
     // report
     if ( fVerbose )
