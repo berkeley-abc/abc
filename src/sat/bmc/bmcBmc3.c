@@ -1415,6 +1415,7 @@ int Saig_ManBmcScalable( Aig_Man_t * pAig, Saig_ParBmc_t * pPars )
     p->pSat->nLearntDelta = p->pPars->nLearnedDelta;
     p->pSat->nLearntRatio = p->pPars->nLearnedPerce;
     p->pSat->nLearntMax   = p->pSat->nLearntStart;
+    p->pSat->fNoRestarts  = p->pPars->fNoRestarts;
     if ( pPars->fSolveAll && p->vCexes == NULL )
         p->vCexes = Vec_PtrStart( Saig_ManPoNum(pAig) );
     if ( pPars->fVerbose )

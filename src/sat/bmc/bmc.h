@@ -60,6 +60,7 @@ struct Saig_ParBmc_t_
     int         fDropSatOuts;   // replace sat outputs by constant 0
     int         nFfToAddMax;    // max number of flops to add during CBA
     int         fSkipRand;      // skip random decisions
+    int         fNoRestarts;    // disables periodic restarts
     int         nLearnedStart;  // starting learned clause limit
     int         nLearnedDelta;  // delta of learned clause limit
     int         nLearnedPerce;  // ratio of learned clause limit

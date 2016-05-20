@@ -179,6 +179,7 @@ struct sat_solver_t
 
     int         fSkipSimplify; // set to one to skip simplification of the clause database
     int         fNotUseRandom; // do not allow random decisions with a fixed probability
+    int         fNoRestarts;   // disables periodic restarts
 
     int *       pGlobalVars;   // for experiments with global vars during interpolation
     // clause store

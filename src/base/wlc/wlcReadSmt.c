@@ -738,7 +738,7 @@ int Smt_PrsBuild2_rec( Wlc_Ntk_t * pNtk, Smt_Prs_t * p, int iNode )
         if ( Smt_EntryIsName(iRoot0) )
         {
             char * pName, * pStr0 = Abc_NamStr(p->pStrs, Abc_Lit2Var(iRoot0));
-            int fSigned = 0, iObj;
+            int iObj;
             if ( pStr0[0] == 'l' && pStr0[1] == 'e' && pStr0[2] == 't' && pStr0[3] == '\0' )
             {
                 // let ((s35550 (bvor s48 s35549)))
@@ -809,8 +809,8 @@ int Smt_PrsBuild2_rec( Wlc_Ntk_t * pNtk, Smt_Prs_t * p, int iNode )
                         int iRoot3 = Vec_IntEntry( vRoots, 3 );
                         char * pStr2 = Abc_NamStr(p->pStrs, Abc_Lit2Var(iRoot2));
                         char * pStr3 = Abc_NamStr(p->pStrs, Abc_Lit2Var(iRoot3));
-                        int Num1 = atoi( pStr1 );
-                        int Num2 = atoi( pStr2 );
+                        int Num1 = atoi( pStr2 );
+                        int Num2 = atoi( pStr3 );
                         assert( Num1 >= Num2 );
                         fSigned = (Type1 == WLC_OBJ_BIT_SIGNEXT);
                         Range = (Num1 - Num2 + 1) + Wlc_ObjRange( Wlc_NtkObj(pNtk, iObj) );

@@ -1660,7 +1660,7 @@ static lbool sat_solver_search(sat_solver* s, ABC_INT64_T nof_conflicts)
             int next;
 
             // Reached bound on number of conflicts:
-            if ((nof_conflicts >= 0 && conflictC >= nof_conflicts) || (s->nRuntimeLimit && (s->stats.conflicts & 63) == 0 && Abc_Clock() > s->nRuntimeLimit)){
+            if ( (!s->fNoRestarts && nof_conflicts >= 0 && conflictC >= nof_conflicts) || (s->nRuntimeLimit && (s->stats.conflicts & 63) == 0 && Abc_Clock() > s->nRuntimeLimit)){
                 s->progress_estimate = sat_solver_progress(s);
                 sat_solver_canceluntil(s,s->root_level);
                 veci_delete(&learnt_clause);
