@@ -14737,7 +14737,7 @@ int Abc_CommandRecStart3( Abc_Frame_t * pAbc, int argc, char ** argv )
             return 1;
         }
         fclose( pFile );
-        pGia = Gia_AigerRead( FileName, 1, 0 );
+        pGia = Gia_AigerRead( FileName, 0, 1, 0 );
         if ( pGia == NULL )
         {
             Abc_Print( -1, "Reading AIGER has failed.\n" );
@@ -15043,7 +15043,7 @@ int Abc_CommandRecMerge3( Abc_Frame_t * pAbc, int argc, char ** argv )
             return 1;
         }
         fclose( pFile );
-        pGia = Gia_AigerRead( FileName, 1, 0 );
+        pGia = Gia_AigerRead( FileName, 0, 1, 0 );
         if ( pGia == NULL )
         {
             Abc_Print( -1, "Reading AIGER has failed.\n" );
@@ -26331,12 +26331,16 @@ int Abc_CommandAbc9Read( Abc_Frame_t * pAbc, int argc, char ** argv )
     int c, nArgcNew;
     int fUseMini = 0;
     int fVerbose = 0;
+    int fGiaSimple = 0;
     int fSkipStrash = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "smvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "csmvh" ) ) != EOF )
     {
         switch ( c )
         {
+        case 'c':
+            fGiaSimple ^= 1;
+            break;
         case 's':
             fSkipStrash ^= 1;
             break;
@@ -26379,14 +26383,15 @@ int Abc_CommandAbc9Read( Abc_Frame_t * pAbc, int argc, char ** argv )
 //    else if ( Extra_FileIsType( FileName, ".v", NULL, NULL ) )
 //        Abc3_ReadShowHie( FileName, fSkipStrash );
     else 
-        pAig = Gia_AigerRead( FileName, fSkipStrash, 0 );
+        pAig = Gia_AigerRead( FileName, fGiaSimple, fSkipStrash, 0 );
     if ( pAig )
         Abc_FrameUpdateGia( pAbc, pAig );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &r [-smvh] <file>\n" );
+    Abc_Print( -2, "usage: &r [-csmvh] <file>\n" );
     Abc_Print( -2, "\t         reads the current AIG from the AIGER file\n" );
+    Abc_Print( -2, "\t-c     : toggles reading simple AIG [default = %s]\n", fGiaSimple? "yes": "no" );
     Abc_Print( -2, "\t-s     : toggles structural hashing while reading [default = %s]\n", !fSkipStrash? "yes": "no" );
     Abc_Print( -2, "\t-m     : toggles reading MiniAIG rather than AIGER file [default = %s]\n", fUseMini? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggles additional verbose output [default = %s]\n", fVerbose? "yes": "no" );
@@ -30628,7 +30633,7 @@ int Abc_CommandAbc9Miter( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
     fclose( pFile );
-    pSecond = Gia_AigerRead( FileName, 0, 0 );
+    pSecond = Gia_AigerRead( FileName, 0, 0, 0 );
     if ( pSecond == NULL )
     {
         Abc_Print( -1, "Reading AIGER has failed.\n" );
@@ -30791,7 +30796,7 @@ int Abc_CommandAbc9Append( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
     fclose( pFile );
-    pSecond = Gia_AigerRead( FileName, 0, 0 );
+    pSecond = Gia_AigerRead( FileName, 0, 0, 0 );
     if ( pSecond == NULL )
     {
         Abc_Print( -1, "Reading AIGER has failed.\n" );
@@ -32171,7 +32176,7 @@ int Abc_CommandAbc9Cec( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
     fclose( pFile );
-    pSecond = Gia_AigerRead( FileName, 0, 0 );
+    pSecond = Gia_AigerRead( FileName, 0, 0, 0 );
     if ( pSecond == NULL )
     {
         Abc_Print( -1, "Reading AIGER has failed.\n" );
@@ -38359,7 +38364,7 @@ int Abc_CommandAbc9FFTest( Abc_Frame_t * pAbc, int argc, char ** argv )
             return 0;
         }
         fclose( pFile );
-        pGold = Gia_AigerRead( pFileName, 0, 0 );
+        pGold = Gia_AigerRead( pFileName, 0, 0, 0 );
         if ( pGold == NULL )
         {
             Abc_Print( -1, "Abc_CommandAbc9FFTest(): Cannot read file \"%s\" with golden model.\n", pFileName );
@@ -39689,7 +39694,7 @@ int Abc_CommandAbc9Acec( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
     fclose( pFile );
-    pSecond = Gia_AigerRead( FileName, 0, 0 );
+    pSecond = Gia_AigerRead( FileName, 0, 0, 0 );
     if ( pSecond == NULL )
     {
         Abc_Print( -1, "Reading AIGER has failed.\n" );

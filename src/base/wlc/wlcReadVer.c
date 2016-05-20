@@ -1287,7 +1287,7 @@ void Io_ReadWordTest( char * pFileName )
         return;
     Wlc_WriteVer( pNtk, "test.v", 0, 0 );
 
-    pNew = Wlc_NtkBitBlast( pNtk, NULL );
+    pNew = Wlc_NtkBitBlast( pNtk, NULL, 0 );
     Gia_AigerWrite( pNew, "test.aig", 0, 0 );
     Gia_ManStop( pNew );
 

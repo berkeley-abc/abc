@@ -173,7 +173,7 @@ Vec_Str_t * Gia_AigerWriteLiterals( Vec_Int_t * vLits )
   SeeAlso     []
 
 ***********************************************************************/
-Gia_Man_t * Gia_AigerReadFromMemory( char * pContents, int nFileSize, int fSkipStrash, int fCheck )
+Gia_Man_t * Gia_AigerReadFromMemory( char * pContents, int nFileSize, int fGiaSimple, int fSkipStrash, int fCheck )
 {
     Gia_Man_t * pNew, * pTemp;
     Vec_Int_t * vLits = NULL, * vPoTypes = NULL;
@@ -255,6 +255,7 @@ Gia_Man_t * Gia_AigerReadFromMemory( char * pContents, int nFileSize, int fSkipS
     // allocate the empty AIG
     pNew = Gia_ManStart( nTotal + nLatches + nOutputs + 1 );
     pNew->nConstrs = nConstr;
+    pNew->fGiaSimple = fGiaSimple;
 
     // prepare the array of nodes
     vNodes = Vec_IntAlloc( 1 + nTotal );
@@ -282,7 +283,7 @@ Gia_Man_t * Gia_AigerReadFromMemory( char * pContents, int nFileSize, int fSkipS
     }
 
     // create the AND gates
-    if ( !fSkipStrash )
+    if ( !fGiaSimple && !fSkipStrash )
         Gia_ManHashAlloc( pNew );
     for ( i = 0; i < nAnds; i++ )
     {
@@ -293,7 +294,7 @@ Gia_Man_t * Gia_AigerReadFromMemory( char * pContents, int nFileSize, int fSkipS
         iNode0 = Abc_LitNotCond( Vec_IntEntry(vNodes, uLit0 >> 1), uLit0 & 1 );
         iNode1 = Abc_LitNotCond( Vec_IntEntry(vNodes, uLit1 >> 1), uLit1 & 1 );
         assert( Vec_IntSize(vNodes) == i + 1 + nInputs + nLatches );
-        if ( fSkipStrash )
+        if ( !fGiaSimple && fSkipStrash )
         {
             if ( iNode0 == iNode1 )
                 Vec_IntPush( vNodes, Gia_ManAppendBuf(pNew, iNode0) );
@@ -303,7 +304,7 @@ Gia_Man_t * Gia_AigerReadFromMemory( char * pContents, int nFileSize, int fSkipS
         else
             Vec_IntPush( vNodes, Gia_ManHashAnd(pNew, iNode0, iNode1) );
     }
-    if ( !fSkipStrash )
+    if ( !fGiaSimple && !fSkipStrash )
         Gia_ManHashStop( pNew );
 
     // remember the place where symbols begin
@@ -526,7 +527,7 @@ Gia_Man_t * Gia_AigerReadFromMemory( char * pContents, int nFileSize, int fSkipS
                 vStr = Vec_StrStart( Gia_AigerReadInt(pCur) );             pCur += 4;
                 memcpy( Vec_StrArray(vStr), pCur, Vec_StrSize(vStr) );
                 pCur += Vec_StrSize(vStr);
-                pNew->pAigExtra = Gia_AigerReadFromMemory( Vec_StrArray(vStr), Vec_StrSize(vStr), 0, 0 );
+                pNew->pAigExtra = Gia_AigerReadFromMemory( Vec_StrArray(vStr), Vec_StrSize(vStr), 0, 0, 0 );
                 Vec_StrFree( vStr );
                 if ( fVerbose ) printf( "Finished reading extension \"a\".\n" );
             }
@@ -790,7 +791,7 @@ Gia_Man_t * Gia_AigerReadFromMemory( char * pContents, int nFileSize, int fSkipS
         Vec_IntFreeP( &vPoTypes );
     }
 
-    if ( !fSkipStrash && Gia_ManHasDangling(pNew) )
+    if ( !fGiaSimple && !fSkipStrash && Gia_ManHasDangling(pNew) )
     {
         Tim_Man_t * pManTime;
         Vec_Int_t * vFlopMap, * vGateMap, * vObjMap;
@@ -853,7 +854,7 @@ Gia_Man_t * Gia_AigerReadFromMemory( char * pContents, int nFileSize, int fSkipS
         ABC_FREE( pInit );
     }
     Vec_IntFreeP( &vInits );
-    if ( !fSkipStrash && pNew->vMapping )
+    if ( !fGiaSimple && !fSkipStrash && pNew->vMapping )
     {
         Abc_Print( 0, "Structural hashing enabled while reading AIGER invalidated the mapping.  Consider using \"&r -s\".\n" );
         Vec_IntFreeP( &pNew->vMapping );
@@ -872,7 +873,7 @@ Gia_Man_t * Gia_AigerReadFromMemory( char * pContents, int nFileSize, int fSkipS
   SeeAlso     []
 
 ***********************************************************************/
-Gia_Man_t * Gia_AigerRead( char * pFileName, int fSkipStrash, int fCheck )
+Gia_Man_t * Gia_AigerRead( char * pFileName, int fGiaSimple, int fSkipStrash, int fCheck )
 {
     FILE * pFile;
     Gia_Man_t * pNew;
@@ -888,7 +889,7 @@ Gia_Man_t * Gia_AigerRead( char * pFileName, int fSkipStrash, int fCheck )
     RetValue = fread( pContents, nFileSize, 1, pFile );
     fclose( pFile );
 
-    pNew = Gia_AigerReadFromMemory( pContents, nFileSize, fSkipStrash, fCheck );
+    pNew = Gia_AigerReadFromMemory( pContents, nFileSize, fGiaSimple, fSkipStrash, fCheck );
     ABC_FREE( pContents );
     if ( pNew )
     {

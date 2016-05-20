@@ -112,6 +112,7 @@ struct Gia_Man_t_
     int            nHTable;       // hash table size 
     int            fAddStrash;    // performs additional structural hashing
     int            fSweeper;      // sweeper is running
+    int            fGiaSimple;    // simple mode (no const-propagation and strashing)
     int *          pRefs;         // the reference count
     int *          pLutRefs;      // the reference count
     Vec_Int_t *    vLevels;       // levels of the nodes
@@ -632,7 +633,7 @@ static inline int Gia_ManAppendAnd( Gia_Man_t * p, int iLit0, int iLit1 )
     Gia_Obj_t * pObj = Gia_ManAppendObj( p );
     assert( iLit0 >= 0 && Abc_Lit2Var(iLit0) < Gia_ManObjNum(p) );
     assert( iLit1 >= 0 && Abc_Lit2Var(iLit1) < Gia_ManObjNum(p) );
-    assert( Abc_Lit2Var(iLit0) != Abc_Lit2Var(iLit1) );
+    assert( p->fGiaSimple || Abc_Lit2Var(iLit0) != Abc_Lit2Var(iLit1) );
     if ( iLit0 < iLit1 )
     {
         pObj->iDiff0  = Gia_ObjId(p, pObj) - Abc_Lit2Var(iLit0);
@@ -1112,8 +1113,8 @@ static inline int         Gia_ObjCellId( Gia_Man_t * p, int iLit )          { re
 
 /*=== giaAiger.c ===========================================================*/
 extern int                 Gia_FileSize( char * pFileName );
-extern Gia_Man_t *         Gia_AigerReadFromMemory( char * pContents, int nFileSize, int fSkipStrash, int fCheck );
-extern Gia_Man_t *         Gia_AigerRead( char * pFileName, int fSkipStrash, int fCheck );
+extern Gia_Man_t *         Gia_AigerReadFromMemory( char * pContents, int nFileSize, int fGiaSimple, int fSkipStrash, int fCheck );
+extern Gia_Man_t *         Gia_AigerRead( char * pFileName, int fGiaSimple, int fSkipStrash, int fCheck );
 extern void                Gia_AigerWrite( Gia_Man_t * p, char * pFileName, int fWriteSymbols, int fCompact );
 extern void                Gia_DumpAiger( Gia_Man_t * p, char * pFilePrefix, int iFileNum, int nFileNumDigits );
 extern Vec_Str_t *         Gia_AigerWriteIntoMemoryStr( Gia_Man_t * p );

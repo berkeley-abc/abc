@@ -566,7 +566,7 @@ void Abc_NtkTestTimByWritingFile( Gia_Man_t * pGia, char * pFileName )
         Gia_ManReverseClasses( pGia, 1 );
 
     // read file
-    pGia2 = Gia_AigerRead( pFileName, 1, 1 );
+    pGia2 = Gia_AigerRead( pFileName, 0, 1, 1 );
 
     // normalize choices
     if ( Gia_ManHasChoices(pGia2) )

@@ -283,8 +283,8 @@ void Bmc_EcoMiterTest()
     }
     fclose( pFile );
     // read files
-    pGold = Gia_AigerRead( pFileGold, 0, 0 );
-    pOld  = Gia_AigerRead( pFileOld, 0, 0 );
+    pGold = Gia_AigerRead( pFileGold, 0, 0, 0 );
+    pOld  = Gia_AigerRead( pFileOld, 0, 0, 0 );
     // create ECO miter
     vFans = Vec_IntAlloc( Gia_ManCiNum(pOld) );
     Gia_ManForEachCi( pOld, pObj, i )

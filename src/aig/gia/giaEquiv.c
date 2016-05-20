@@ -1185,7 +1185,7 @@ void Gia_ManEquivMark( Gia_Man_t * p, char * pFileName, int fSkipSome, int fVerb
         return;
     }
     // read AIGER file
-    pMiter = Gia_AigerRead( pFileName, 0, 0 );
+    pMiter = Gia_AigerRead( pFileName, 0, 0, 0 );
     if ( pMiter == NULL )
     {
         Abc_Print( 1, "Gia_ManEquivMark(): Input file %s could not be read.\n", pFileName );
@@ -1869,13 +1869,13 @@ int Gia_ManFilterEquivsForSpeculation( Gia_Man_t * pGia, char * pName1, char * p
         Abc_Print( 1, "Equivalences are not defined.\n" );
         return 0;
     }
-    pGia1 = Gia_AigerRead( pName1, 0, 0 );
+    pGia1 = Gia_AigerRead( pName1, 0, 0, 0 );
     if ( pGia1 == NULL )
     {
         Abc_Print( 1, "Cannot read first file %s.\n", pName1 );
         return 0;
     }
-    pGia2 = Gia_AigerRead( pName2, 0, 0 );
+    pGia2 = Gia_AigerRead( pName2, 0, 0, 0 );
     if ( pGia2 == NULL )
     {
         Gia_ManStop( pGia2 );
@@ -2008,13 +2008,13 @@ int Gia_ManFilterEquivsUsingParts( Gia_Man_t * pGia, char * pName1, char * pName
         Abc_Print( 1, "Equivalences are not defined.\n" );
         return 0;
     }
-    pGia1 = Gia_AigerRead( pName1, 0, 0 );
+    pGia1 = Gia_AigerRead( pName1, 0, 0, 0 );
     if ( pGia1 == NULL )
     {
         Abc_Print( 1, "Cannot read first file %s.\n", pName1 );
         return 0;
     }
-    pGia2 = Gia_AigerRead( pName2, 0, 0 );
+    pGia2 = Gia_AigerRead( pName2, 0, 0, 0 );
     if ( pGia2 == NULL )
     {
         Gia_ManStop( pGia2 );

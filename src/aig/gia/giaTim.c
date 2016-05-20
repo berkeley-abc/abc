@@ -906,7 +906,7 @@ int Gia_ManVerifyWithBoxes( Gia_Man_t * pGia, int nBTLimit, int nTimeLim, int fS
         return Status;
     }
     // read original AIG
-    pSpec = Gia_AigerRead( pFileSpec ? pFileSpec : pGia->pSpec, 0, 0 );
+    pSpec = Gia_AigerRead( pFileSpec ? pFileSpec : pGia->pSpec, 0, 0, 0 );
     if ( Gia_ManBoxNum(pSpec) && pSpec->pAigExtra == NULL )
     {
         Gia_ManStop( pSpec );

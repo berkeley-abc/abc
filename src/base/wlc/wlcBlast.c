@@ -716,7 +716,7 @@ void Wlc_BlastSquare( Gia_Man_t * pNew, int * pNum, int nNum, Vec_Int_t * vTmp, 
   SeeAlso     []
 
 ***********************************************************************/
-Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Vec_Int_t * vBoxIds )
+Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Vec_Int_t * vBoxIds, int fGiaSimple )
 {
     int fVerbose = 0;
     int fUseOldMultiplierBlasting = 0;
@@ -740,7 +740,9 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Vec_Int_t * vBoxIds )
     // create AIG manager
     pNew = Gia_ManStart( 5 * Wlc_NtkObjNum(p) + 1000 );
     pNew->pName = Abc_UtilStrsav( p->pName );
-    Gia_ManHashAlloc( pNew );
+    pNew->fGiaSimple = fGiaSimple;
+    if ( !fGiaSimple )
+        Gia_ManHashAlloc( pNew );
     // prepare for AIG with boxes
     if ( vBoxIds )
     {
@@ -770,6 +772,7 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Vec_Int_t * vBoxIds )
         // create AIG manager for logic of the boxes
         pExtra = Gia_ManStart( Wlc_NtkObjNum(p) );
         Gia_ManHashAlloc( pExtra );
+        assert( !fGiaSimple );
     }
     // blast in the topological order
     Wlc_NtkForEachObj( p, pObj, i )

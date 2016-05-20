@@ -129,7 +129,7 @@ Vec_Ptr_t * Wlc_NtkSimulate( Wlc_Ntk_t * p, Vec_Int_t * vNodes, int nWords, int 
 {
     Gia_Obj_t * pObj; 
     Vec_Ptr_t * vOne, * vRes;
-    Gia_Man_t * pGia = Wlc_NtkBitBlast( p, NULL );
+    Gia_Man_t * pGia = Wlc_NtkBitBlast( p, NULL, 0 );
     Wlc_Obj_t * pWlcObj;
     int f, i, k, w, nBits, Counter = 0;
     // allocate simulation info for one timeframe
