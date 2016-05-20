@@ -274,10 +274,10 @@ void Wlc_BlastFullAdder( Gia_Man_t * pNew, int a, int b, int c, int * pc, int * 
     {
         int And1 = Gia_ManHashAnd(pNew, a, b);
         int And1_= Gia_ManHashAnd(pNew, Abc_LitNot(a), Abc_LitNot(b));
-        int Xor  = Abc_LitNot(Gia_ManHashOr(pNew, And1, And1_));
+        int Xor  = Gia_ManHashAnd(pNew, Abc_LitNot(And1), Abc_LitNot(And1_));
         int And2 = Gia_ManHashAnd(pNew, c, Xor);
         int And2_= Gia_ManHashAnd(pNew, Abc_LitNot(c), Abc_LitNot(Xor));
-        *ps      = Abc_LitNot(Gia_ManHashOr(pNew, And2, And2_));
+        *ps      = Gia_ManHashAnd(pNew, Abc_LitNot(And2), Abc_LitNot(And2_));
         *pc      = Gia_ManHashOr (pNew, And1, And2);
     }
 }
@@ -1209,9 +1209,12 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Vec_Int_t * vBoxIds, int fGiaSimple 
     assert( nFFins == nFFouts );
     Gia_ManSetRegNum( pNew, nFFins );
     // finalize AIG
-    pNew = Gia_ManCleanup( pTemp = pNew );
-    Gia_ManDupRemapLiterals( vBits, pTemp );
-    Gia_ManStop( pTemp );
+    if ( !fGiaSimple )
+    {
+        pNew = Gia_ManCleanup( pTemp = pNew );
+        Gia_ManDupRemapLiterals( vBits, pTemp );
+        Gia_ManStop( pTemp );
+    }
     // transform AIG with init state
     if ( p->pInits )
     {
@@ -1222,7 +1225,7 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Vec_Int_t * vBoxIds, int fGiaSimple 
         }
         else
         {
-            pNew = Gia_ManDupZeroUndc( pTemp = pNew, p->pInits, 1 );
+            pNew = Gia_ManDupZeroUndc( pTemp = pNew, p->pInits, fGiaSimple, 1 );
             Gia_ManDupRemapLiterals( vBits, pTemp );
             Gia_ManStop( pTemp );
         }

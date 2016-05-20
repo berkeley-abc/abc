@@ -848,7 +848,7 @@ Gia_Man_t * Gia_AigerReadFromMemory( char * pContents, int nFileSize, int fGiaSi
             }
         }
         pInit[i] = 0;
-        pNew = Gia_ManDupZeroUndc( pTemp = pNew, pInit, 1 );
+        pNew = Gia_ManDupZeroUndc( pTemp = pNew, pInit, fGiaSimple, 1 );
         pNew->nConstrs = pTemp->nConstrs; pTemp->nConstrs = 0;
         Gia_ManStop( pTemp );
         ABC_FREE( pInit );

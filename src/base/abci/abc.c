@@ -26761,7 +26761,7 @@ int Abc_CommandAbc9Get( Abc_Frame_t * pAbc, int argc, char ** argv )
             Aig_ManStop( pAig );
             // perform undc/zero
             pInits = Abc_NtkCollectLatchValuesStr( pAbc->pNtkCur );
-            pGia = Gia_ManDupZeroUndc( pTemp = pGia, pInits, fVerbose );
+            pGia = Gia_ManDupZeroUndc( pTemp = pGia, pInits, 0, fVerbose );
             Gia_ManStop( pTemp );
             ABC_FREE( pInits );
         }
@@ -32141,7 +32141,7 @@ int Abc_CommandAbc9Cec( Abc_Frame_t * pAbc, int argc, char ** argv )
             Gia_Man_t * pTemp;
             if ( !pPars->fSilent )
             Abc_Print( 1, "Assuming the current network is a single-output miter. (Conflict limit = %d.)\n", pPars->nBTLimit );
-            pTemp = Gia_ManTransformToDual( pAbc->pGia );
+            pTemp = Gia_ManDemiterToDual( pAbc->pGia );
             pAbc->Status = Cec_ManVerify( pTemp, pPars );
             ABC_SWAP( Abc_Cex_t *, pAbc->pGia->pCexComb, pTemp->pCexComb );
             Gia_ManStop( pTemp );

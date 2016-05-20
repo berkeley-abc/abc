@@ -666,10 +666,15 @@ int Gia_ManHashAndTry( Gia_Man_t * p, int iLit0, int iLit1 )
 ***********************************************************************/
 int Gia_ManHashXor( Gia_Man_t * p, int iLit0, int iLit1 )  
 { 
-    int fCompl = Abc_LitIsCompl(iLit0) ^ Abc_LitIsCompl(iLit1);
-    int iTemp0 = Gia_ManHashAnd( p, Abc_LitRegular(iLit0), Abc_LitNot(Abc_LitRegular(iLit1)) );
-    int iTemp1 = Gia_ManHashAnd( p, Abc_LitRegular(iLit1), Abc_LitNot(Abc_LitRegular(iLit0)) );
-    return Abc_LitNotCond( Gia_ManHashAnd( p, Abc_LitNot(iTemp0), Abc_LitNot(iTemp1) ), !fCompl );
+    if ( p->fGiaSimple )
+        return Gia_ManHashOr(p, Gia_ManHashAnd(p, iLit0, Abc_LitNot(iLit1)), Gia_ManHashAnd(p, Abc_LitNot(iLit0), iLit1) );
+    else
+    {
+        int fCompl = Abc_LitIsCompl(iLit0) ^ Abc_LitIsCompl(iLit1);
+        int iTemp0 = Gia_ManHashAnd( p, Abc_LitRegular(iLit0), Abc_LitNot(Abc_LitRegular(iLit1)) );
+        int iTemp1 = Gia_ManHashAnd( p, Abc_LitRegular(iLit1), Abc_LitNot(Abc_LitRegular(iLit0)) );
+        return Abc_LitNotCond( Gia_ManHashAnd( p, Abc_LitNot(iTemp0), Abc_LitNot(iTemp1) ), !fCompl );
+    }
 }
 
 /**Function*************************************************************
@@ -685,14 +690,19 @@ int Gia_ManHashXor( Gia_Man_t * p, int iLit0, int iLit1 )
 ***********************************************************************/
 int Gia_ManHashMux( Gia_Man_t * p, int iCtrl, int iData1, int iData0 )  
 { 
-    int iTemp0, iTemp1, fCompl = 0;
-    if ( iData0 > iData1 )
-        iData0 ^= iData1, iData1 ^= iData0, iData0 ^= iData1, iCtrl = Abc_LitNot(iCtrl);
-    if ( Abc_LitIsCompl(iData1) )
-        iData0 = Abc_LitNot(iData0), iData1 = Abc_LitNot(iData1), fCompl = 1;
-    iTemp0 = Gia_ManHashAnd( p, Abc_LitNot(iCtrl), iData0 );
-    iTemp1 = Gia_ManHashAnd( p, iCtrl, iData1 );
-    return Abc_LitNotCond( Gia_ManHashAnd( p, Abc_LitNot(iTemp0), Abc_LitNot(iTemp1) ), !fCompl );
+    if ( p->fGiaSimple )
+        return Gia_ManHashOr(p, Gia_ManHashAnd(p, iCtrl, iData1), Gia_ManHashAnd(p, Abc_LitNot(iCtrl), iData0) );
+    else
+    {
+        int iTemp0, iTemp1, fCompl = 0;
+        if ( iData0 > iData1 )
+            iData0 ^= iData1, iData1 ^= iData0, iData0 ^= iData1, iCtrl = Abc_LitNot(iCtrl);
+        if ( Abc_LitIsCompl(iData1) )
+            iData0 = Abc_LitNot(iData0), iData1 = Abc_LitNot(iData1), fCompl = 1;
+        iTemp0 = Gia_ManHashAnd( p, Abc_LitNot(iCtrl), iData0 );
+        iTemp1 = Gia_ManHashAnd( p, iCtrl, iData1 );
+        return Abc_LitNotCond( Gia_ManHashAnd( p, Abc_LitNot(iTemp0), Abc_LitNot(iTemp1) ), !fCompl );
+    }
 }
 
 /**Function*************************************************************

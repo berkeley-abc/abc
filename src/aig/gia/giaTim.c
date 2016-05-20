@@ -871,7 +871,7 @@ Gia_Man_t * Gia_ManDupCollapse( Gia_Man_t * p, Gia_Man_t * pBoxes, Vec_Int_t * v
                 pInit[i] = 'X';
         }
         pInit[i] = 0;
-        pNew = Gia_ManDupZeroUndc( pTemp = pNew, pInit, 1 );
+        pNew = Gia_ManDupZeroUndc( pTemp = pNew, pInit, 0, 1 );
         pNew->nConstrs = pTemp->nConstrs; pTemp->nConstrs = 0;
         Gia_ManStop( pTemp );
         ABC_FREE( pInit );
