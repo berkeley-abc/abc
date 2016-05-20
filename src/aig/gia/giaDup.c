@@ -2575,6 +2575,37 @@ Gia_Man_t * Gia_ManTransformToDual( Gia_Man_t * p )
     Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
     return pNew;
 }
+Gia_Man_t * Gia_ManTransformTwoWord2DualOutput( Gia_Man_t * p )
+{
+    Gia_Man_t * pNew, * pTemp;
+    Gia_Obj_t * pObj, * pObj2;
+    int i, nPart = Gia_ManPoNum(p)/2;
+    assert( (Gia_ManPoNum(p) & 1) == 0 );
+    pNew = Gia_ManStart( Gia_ManObjNum(p) );
+    pNew->pName = Abc_UtilStrsav( p->pName );
+    pNew->pSpec = Abc_UtilStrsav( p->pSpec );
+    Gia_ManConst0(p)->Value = 0;
+    Gia_ManHashAlloc( pNew );
+    Gia_ManForEachCi( p, pObj, i )
+        pObj->Value = Gia_ManAppendCi( pNew );
+    Gia_ManForEachAnd( p, pObj, i )
+        pObj->Value = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+    Gia_ManForEachPo( p, pObj, i )
+    {
+        if ( i == nPart )
+            break;
+        pObj2 = Gia_ManPo( p, nPart + i );
+        Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
+        Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj2) );
+    }
+    Gia_ManForEachRi( p, pObj, i )
+        pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
+    Gia_ManHashStop( pNew );
+    Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
+    pNew = Gia_ManCleanup( pTemp = pNew );
+    Gia_ManStop( pTemp );
+    return pNew;
+}
 
 /**Function*************************************************************
 

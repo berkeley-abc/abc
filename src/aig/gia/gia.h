@@ -1209,6 +1209,7 @@ extern Gia_Man_t *         Gia_ManMiter2( Gia_Man_t * p, char * pInit, int fVerb
 extern Gia_Man_t *         Gia_ManTransformMiter( Gia_Man_t * p );
 extern Gia_Man_t *         Gia_ManTransformMiter2( Gia_Man_t * p );
 extern Gia_Man_t *         Gia_ManTransformToDual( Gia_Man_t * p );
+extern Gia_Man_t *         Gia_ManTransformTwoWord2DualOutput( Gia_Man_t * p );
 extern Gia_Man_t *         Gia_ManChoiceMiter( Vec_Ptr_t * vGias );
 extern Gia_Man_t *         Gia_ManDupWithConstraints( Gia_Man_t * p, Vec_Int_t * vPoTypes );
 extern Gia_Man_t *         Gia_ManDupCones( Gia_Man_t * p, int * pPos, int nPos, int fTrimPis );

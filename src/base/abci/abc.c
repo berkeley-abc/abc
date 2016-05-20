@@ -30536,9 +30536,10 @@ int Abc_CommandAbc9Miter( Abc_Frame_t * pAbc, int argc, char ** argv )
     int fSeq     = 0;
     int fTrans   = 0;
     int fTransX  = 0;
+    int fConvert = 0;
     int fVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "Idstxvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Idstxyvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -30565,6 +30566,9 @@ int Abc_CommandAbc9Miter( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'x':
             fTransX ^= 1;
             break;
+        case 'y':
+            fConvert ^= 1;
+            break;
         case 'v':
             fVerbose ^= 1;
             break;
@@ -30574,41 +30578,36 @@ int Abc_CommandAbc9Miter( Abc_Frame_t * pAbc, int argc, char ** argv )
             goto usage;
         }
     }
-    if ( fTrans )
+    if ( fTrans || fTransX || fConvert )
     {
-        if ( (Gia_ManPoNum(pAbc->pGia) & 1) == 1 )
-        {
-            Abc_Print( -1, "Abc_CommandAbc9Miter(): The number of outputs should be even.\n" );
-            return 0;
-        }
         if ( pAbc->pGia == NULL )
         {
             Abc_Print( -1, "Abc_CommandAbc9Miter(): There is no AIG.\n" );
             return 1;
         }
-        pAux = Gia_ManTransformMiter( pAbc->pGia );
-        Abc_FrameUpdateGia( pAbc, pAux );
-        Abc_Print( 1, "The miter (current AIG) is transformed by XORing POs pair-wise.\n" );
-        return 0;
-    }
-    if ( fTransX )
-    {
         if ( (Gia_ManPoNum(pAbc->pGia) & 1) == 1 )
         {
             Abc_Print( -1, "Abc_CommandAbc9Miter(): The number of outputs should be even.\n" );
             return 0;
         }
-        if ( pAbc->pGia == NULL )
+        if ( fTrans )
         {
-            Abc_Print( -1, "Abc_CommandAbc9Miter(): There is no AIG.\n" );
-            return 1;
+            pAux = Gia_ManTransformMiter( pAbc->pGia );
+            Abc_Print( 1, "The miter (current AIG) is transformed by XORing POs pair-wise.\n" );
         }
-        pAux = Gia_ManTransformMiter2( pAbc->pGia );
+        else if ( fTransX )
+        {
+            pAux = Gia_ManTransformMiter2( pAbc->pGia );
+            Abc_Print( 1, "The miter (current AIG) is transformed by XORing POs of two word-level outputs.\n" );
+        }
+        else
+        {
+            pAux = Gia_ManTransformTwoWord2DualOutput( pAbc->pGia );
+            Abc_Print( 1, "The miter (current AIG) is transformed from two-word to dual-output.\n" );
+        }
         Abc_FrameUpdateGia( pAbc, pAux );
-        Abc_Print( 1, "The miter (current AIG) is transformed by XORing POs of two word-level outputs.\n" );
         return 0;
     }
-
 
     pArgvNew = argv + globalUtilOptind;
     nArgcNew = argc - globalUtilOptind;
@@ -30646,13 +30645,14 @@ int Abc_CommandAbc9Miter( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &miter [-I num] [-dstxvh] <file>\n" );
+    Abc_Print( -2, "usage: &miter [-I num] [-dstxyvh] <file>\n" );
     Abc_Print( -2, "\t         creates miter of two designs (current AIG vs. <file>)\n" );
     Abc_Print( -2, "\t-I num : the number of last PIs to replicate [default = %d]\n", nInsDup );
     Abc_Print( -2, "\t-d     : toggle creating dual-output miter [default = %s]\n", fDualOut? "yes": "no" );
     Abc_Print( -2, "\t-s     : toggle creating sequential miter [default = %s]\n", fSeq? "yes": "no" );
-    Abc_Print( -2, "\t-t     : toggle XORing pair-wise POs of the miter [default = %s]\n", fTrans? "yes": "no" );
-    Abc_Print( -2, "\t-x     : toggle XORing POs of two word-level outputs [default = %s]\n", fTransX? "yes": "no" );
+    Abc_Print( -2, "\t-t     : toggle XORing POs of dual-output miter [default = %s]\n", fTrans? "yes": "no" );
+    Abc_Print( -2, "\t-x     : toggle XORing POs of two-word miter [default = %s]\n", fTransX? "yes": "no" );
+    Abc_Print( -2, "\t-y     : toggle convering two-word miter into dual-output miter [default = %s]\n", fConvert? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     Abc_Print( -2, "\t<file> : AIGER file with the design to miter\n");
