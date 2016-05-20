@@ -219,7 +219,7 @@ int Abc_ObjHasDupFanouts( Abc_Obj_t * pObj )
 int Abc_ObjChangeEval( Abc_Obj_t * pObj, Vec_Int_t * vInfo, Vec_Int_t * vFirst, int InvArea, int * pfUseInv )
 {
     Abc_Obj_t * pNext;
-    Mio_Gate_t * pGate = (Mio_Gate_t *)pObj->pData;
+    //Mio_Gate_t * pGate = (Mio_Gate_t *)pObj->pData;
     int iFanCell, iNodeCell = Mio_GateReadCell( (Mio_Gate_t *)pObj->pData );
     int * pFanInfo, * pNodeInfo = Vec_IntEntryP( vInfo, Vec_IntEntry(vFirst, iNodeCell) );
     int i, fNeedInv = 0, Gain = 0, iFanin = Abc_ObjFaninNum(pObj), fUseInv = Abc_NodeIsInv(pObj);
@@ -267,7 +267,7 @@ int Abc_ObjChangeEval( Abc_Obj_t * pObj, Vec_Int_t * vInfo, Vec_Int_t * vFirst, 
 void Abc_ObjChangeUpdate( Abc_Obj_t * pObj, int iFanin, Mio_Cell2_t * pCells, int * pNodeInfo, Vec_Int_t * vTemp )
 {
     int v, Perm, iNodeCell = pNodeInfo[3*iFanin];
-    Mio_Gate_t * pGate = (Mio_Gate_t *)pObj->pData;
+    //Mio_Gate_t * pGate = (Mio_Gate_t *)pObj->pData;
     //Abc_ObjPrint( stdout, pObj );
     //printf( "Replacing fanout %d with %s by %s with fanin %d.\n", Abc_ObjId(pObj), Mio_GateReadName(pGate), Mio_GateReadName((Mio_Gate_t *)pCells[iNodeCell].pMioGate), iFanin );
     pObj->pData = (Mio_Gate_t *)pCells[iNodeCell].pMioGate;
