@@ -120,7 +120,7 @@ static inline void Fxch_ManDivDoubleCube( Fxch_Man_t* pFxchMan,
                                                   iCube, iLit0, 0,
                                                   (char)fAdd, (char)fUpdate );
 
-        if ( Vec_IntSize( vCube ) > 3 )
+        if ( Vec_IntSize( vCube ) >= 3 )
         {
             int Lit1,
                 iLit1;
@@ -266,7 +266,7 @@ void Fxch_ManSCHashTablesInit( Fxch_Man_t* pFxchMan )
     Vec_WecForEachLevel( vCubes, vCube, iCube )
     {
         int nLits = Vec_IntSize( vCube ) - 1,
-            nSubCubes = nLits == 2? nLits : ( nLits * nLits + nLits ) / 2;
+            nSubCubes = nLits <= 2? nLits + 1: ( nLits * nLits + nLits ) / 2;
 
         Vec_IntPush( vCubeLinks, ( nTotalHashed + 1 ) );
         nTotalHashed += nSubCubes + 1;
