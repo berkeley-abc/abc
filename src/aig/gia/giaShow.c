@@ -392,7 +392,7 @@ void Gia_WriteDotAig( Gia_Man_t * pMan, char * pFileName, Vec_Int_t * vBold, int
     // the labeling node of this level
     fprintf( pFile, "  Level%d;\n",  0 );
     // generate constant node
-    if ( fConstIsUsed )
+    if ( fConstIsUsed || pMan->fGiaSimple )
     {
         // check if the costant node is present
         fprintf( pFile, "  Node%d [label = \"Const0\"", 0 );

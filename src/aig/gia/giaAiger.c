@@ -1159,7 +1159,7 @@ void Gia_AigerWrite( Gia_Man_t * pInit, char * pFileName, int fWriteSymbols, int
         uLit  = Abc_Var2Lit( i, 0 );
         uLit0 = Gia_ObjFaninLit0( pObj, i );
         uLit1 = Gia_ObjFaninLit1( pObj, i );
-        assert( Gia_ManBufNum(p) || uLit0 < uLit1 );
+        assert( p->fGiaSimple || Gia_ManBufNum(p) || uLit0 < uLit1 );
         Pos = Gia_AigerWriteUnsignedBuffer( pBuffer, Pos, uLit  - uLit1 );
         Pos = Gia_AigerWriteUnsignedBuffer( pBuffer, Pos, uLit1 - uLit0 );
         if ( Pos > nBufferSize - 10 )
