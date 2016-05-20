@@ -76,6 +76,14 @@ struct  Mio_LibraryStruct_t_
     st__table *         tName2Gate;  // the mapping of gate names into their pointer
     Mem_Flex_t *       pMmFlex;     // the memory manaqer for SOPs
     Vec_Str_t *        vCube;       // temporary cube
+    // matching
+    int                fPinFilter;  // pin filtering
+    int                fPinPerm;    // pin permutation
+    int                fPinQuick;   // pin permutation
+    Vec_Mem_t *        vTtMem;      // truth tables
+    Vec_Wec_t *        vTt2Match;   // matches for truth tables
+    Mio_Cell2_t *      pCells;      // library gates
+    int                nCells;      // library gate count
 }; 
 
 struct  Mio_GateStruct_t_

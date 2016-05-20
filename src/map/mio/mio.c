@@ -286,18 +286,14 @@ int Mio_CommandReadGenlib( Abc_Frame_t * pAbc, int argc, char **argv )
     Amap_Lib_t * pLib2;
     char * pFileName;
     char * pExcludeFile = NULL;
-    int fVerbose;
-    double WireDelay;
-    int c;
+    double WireDelay = 0.0;
+    int fShortNames = 0;
+    int c, fVerbose = 1;
 
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
-
-    // set the defaults
-    WireDelay   = 0.0;
-    fVerbose = 1;
     Extra_UtilGetoptReset();
-    while ( (c = Extra_UtilGetopt(argc, argv, "WEvh")) != EOF ) 
+    while ( (c = Extra_UtilGetopt(argc, argv, "WEnvh")) != EOF ) 
     {
         switch (c) 
         {
@@ -320,6 +316,9 @@ int Mio_CommandReadGenlib( Abc_Frame_t * pAbc, int argc, char **argv )
                 }
                 pExcludeFile = argv[globalUtilOptind];
                 globalUtilOptind++;
+                break;
+            case 'n':
+                fShortNames ^= 1;
                 break;
             case 'v':
                 fVerbose ^= 1;
@@ -358,6 +357,10 @@ int Mio_CommandReadGenlib( Abc_Frame_t * pAbc, int argc, char **argv )
     if ( fVerbose )
         printf( "Entered genlib library with %d gates from file \"%s\".\n", Mio_LibraryReadGateNum(pLib), pFileName );
 
+    // convert the library if needed
+    if ( fShortNames )
+        Mio_LibraryShortNames( pLib );
+
     // add the fixed number (wire delay) to all delays in the library
     if ( WireDelay != 0.0 )
         Mio_LibraryShiftDelay( pLib, WireDelay );
@@ -376,13 +379,14 @@ int Mio_CommandReadGenlib( Abc_Frame_t * pAbc, int argc, char **argv )
     return 0;
 
 usage:
-    fprintf( pErr, "usage: read_genlib [-W float] [-E filename] [-vh]\n");
+    fprintf( pErr, "usage: read_genlib [-W float] [-E filename] [-nvh]\n");
     fprintf( pErr, "\t           read the library from a genlib file\n" );  
     fprintf( pErr, "\t           (if the library contains more than one gate\n" );  
     fprintf( pErr, "\t           with the same Boolean function, only the gate\n" );  
     fprintf( pErr, "\t           with the smallest area will be used)\n" );  
     fprintf( pErr, "\t-W float : wire delay (added to pin-to-pin gate delays) [default = %g]\n", WireDelay );  
     fprintf( pErr, "\t-E file :  the file name with gates to be excluded [default = none]\n" );
+    fprintf( pErr, "\t-n       : toggle replacing gate/pin names by short strings [default = %s]\n", fShortNames? "yes": "no" );
     fprintf( pErr, "\t-v       : toggle verbose printout [default = %s]\n", fVerbose? "yes": "no" );
     fprintf( pErr, "\t-h       : enable verbose output\n");
     return 1;       

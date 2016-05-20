@@ -213,6 +213,11 @@ extern void              Mio_LibraryTransferProfile( Mio_Library_t * pLibDst, Mi
 extern void              Mio_LibraryTransferProfile2( Mio_Library_t * pLibDst, Mio_Library_t * pLibSrc );
 extern int               Mio_LibraryHasProfile( Mio_Library_t * pLib );
 extern void              Mio_LibraryCleanProfile2( Mio_Library_t * pLib );
+extern void              Mio_LibraryShortNames( Mio_Library_t * pLib );
+
+extern void              Mio_LibraryMatchesStop( Mio_Library_t * pLib );
+extern void              Mio_LibraryMatchesStart( Mio_Library_t * pLib, int fPinFilter, int fPinPerm, int fPinQuick );
+extern void              Mio_LibraryMatchesFetch( Mio_Library_t * pLib, Vec_Mem_t ** pvTtMem, Vec_Wec_t ** pvTt2Match, Mio_Cell2_t ** ppCells, int * pnCells, int fPinFilter, int fPinPerm, int fPinQuick );
 
 /*=== sclUtil.c =========================================================*/
 extern Mio_Library_t *   Abc_SclDeriveGenlibSimple( void * pScl );

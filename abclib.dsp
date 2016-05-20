@@ -1875,6 +1875,10 @@ SOURCE=.\src\sat\bmc\bmcFx.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\sat\bmc\bmcGen.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\sat\bmc\bmcICheck.c
 # End Source File
 # Begin Source File
@@ -2548,6 +2552,10 @@ SOURCE=.\src\opt\dau\dauTree.c
 # Begin Source File
 
 SOURCE=.\src\opt\sfm\sfm.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\sfm\sfmArea.c
 # End Source File
 # Begin Source File
 
