@@ -308,12 +308,18 @@ void Wlc_WriteVerInt( FILE * pFile, Wlc_Ntk_t * p, int fNoFlops )
                     fprintf( pFile, "|" );
                 else if ( pObj->Type == WLC_OBJ_BIT_XOR )
                     fprintf( pFile, "^" );
+                else if ( pObj->Type == WLC_OBJ_BIT_NAND )
+                    fprintf( pFile, "~&" );
+                else if ( pObj->Type == WLC_OBJ_BIT_NOR )
+                    fprintf( pFile, "~|" );
                 else if ( pObj->Type == WLC_OBJ_BIT_NXOR )
                     fprintf( pFile, "~^" );
                 else if ( pObj->Type == WLC_OBJ_LOGIC_AND )
                     fprintf( pFile, "&&" );
                 else if ( pObj->Type == WLC_OBJ_LOGIC_OR )
                     fprintf( pFile, "||" );
+                else if ( pObj->Type == WLC_OBJ_LOGIC_XOR )
+                    fprintf( pFile, "^^" );
                 else if ( pObj->Type == WLC_OBJ_COMP_EQU )
                     fprintf( pFile, "==" );
                 else if ( pObj->Type == WLC_OBJ_COMP_NOTEQU )
@@ -333,7 +339,7 @@ void Wlc_WriteVerInt( FILE * pFile, Wlc_Ntk_t * p, int fNoFlops )
                 else if ( pObj->Type == WLC_OBJ_ARI_MULTI )
                     fprintf( pFile, "*" );
                 else if ( pObj->Type == WLC_OBJ_ARI_DIVIDE )
-                    fprintf( pFile, "//" );
+                    fprintf( pFile, "/" );
                 else if ( pObj->Type == WLC_OBJ_ARI_MODULUS )
                     fprintf( pFile, "%%" );
                 else if ( pObj->Type == WLC_OBJ_ARI_POWER )
@@ -343,6 +349,7 @@ void Wlc_WriteVerInt( FILE * pFile, Wlc_Ntk_t * p, int fNoFlops )
                 else if ( pObj->Type == WLC_OBJ_ARI_SQUARE )
                     fprintf( pFile, "#" );
                 else assert( 0 );
+                    //fprintf( pFile, "???" );
                 fprintf( pFile, " %s", Wlc_ObjName(p, Wlc_ObjFaninId(pObj, 1)) );
             }
         }

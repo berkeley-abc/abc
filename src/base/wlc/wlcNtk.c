@@ -50,6 +50,8 @@ static char * Wlc_Names[WLC_OBJ_NUMBER+1] = {
     "&",                   // 16: bitwise AND
     "|",                   // 17: bitwise OR
     "^",                   // 18: bitwise XOR
+    "~&",                  // 16: bitwise NAND
+    "~|",                  // 17: bitwise NOR
     "~^",                  // 19: bitwise NXOR
     "[:]",                 // 20: bit selection
     "{,}",                 // 21: bit concatenation
@@ -362,6 +364,10 @@ void Wlc_NtkPrintDistrib( Wlc_Ntk_t * p, int fVerbose )
             Vec_IntAddToEntry( vAnds, WLC_OBJ_BIT_OR,       Wlc_ObjRange(Wlc_ObjFanin0(p, pObj)) );
         else if ( pObj->Type == WLC_OBJ_BIT_XOR )      
             Vec_IntAddToEntry( vAnds, WLC_OBJ_BIT_XOR,  3 * Wlc_ObjRange(Wlc_ObjFanin0(p, pObj)) );
+        else if ( pObj->Type == WLC_OBJ_BIT_NAND )      
+            Vec_IntAddToEntry( vAnds, WLC_OBJ_BIT_NAND,     Wlc_ObjRange(Wlc_ObjFanin0(p, pObj)) );
+        else if ( pObj->Type == WLC_OBJ_BIT_NOR )       
+            Vec_IntAddToEntry( vAnds, WLC_OBJ_BIT_NOR,      Wlc_ObjRange(Wlc_ObjFanin0(p, pObj)) );
         else if ( pObj->Type == WLC_OBJ_BIT_NXOR )      
             Vec_IntAddToEntry( vAnds, WLC_OBJ_BIT_NXOR, 3 * Wlc_ObjRange(Wlc_ObjFanin0(p, pObj)) );
         else if ( pObj->Type == WLC_OBJ_BIT_SELECT )   

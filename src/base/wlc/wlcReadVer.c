@@ -778,9 +778,12 @@ static inline int Wlc_PrsFindDefinition( Wlc_Prs_t * p, char * pStr, Vec_Int_t *
             else if ( pStr[0] == '&' && pStr[1] != '&'                   ) pStr += 1, Type = WLC_OBJ_BIT_AND;       
             else if ( pStr[0] == '|' && pStr[1] != '|'                   ) pStr += 1, Type = WLC_OBJ_BIT_OR;        
             else if ( pStr[0] == '^' && pStr[1] != '^'                   ) pStr += 1, Type = WLC_OBJ_BIT_XOR;       
+            else if ( pStr[0] == '~' && pStr[1] == '&'                   ) pStr += 2, Type = WLC_OBJ_BIT_NAND;       
+            else if ( pStr[0] == '~' && pStr[1] == '|'                   ) pStr += 2, Type = WLC_OBJ_BIT_NOR;       
             else if ( pStr[0] == '~' && pStr[1] == '^'                   ) pStr += 2, Type = WLC_OBJ_BIT_NXOR;       
             else if ( pStr[0] == '&' && pStr[1] == '&'                   ) pStr += 2, Type = WLC_OBJ_LOGIC_AND;     
             else if ( pStr[0] == '|' && pStr[1] == '|'                   ) pStr += 2, Type = WLC_OBJ_LOGIC_OR;      
+            else if ( pStr[0] == '^' && pStr[1] == '^'                   ) pStr += 2, Type = WLC_OBJ_LOGIC_XOR;      
             else if ( pStr[0] == '=' && pStr[1] == '='                   ) pStr += 2, Type = WLC_OBJ_COMP_EQU;      
             else if ( pStr[0] == '!' && pStr[1] == '='                   ) pStr += 2, Type = WLC_OBJ_COMP_NOTEQU;      
             else if ( pStr[0] == '<' && pStr[1] != '='                   ) pStr += 1, Type = WLC_OBJ_COMP_LESS;     

@@ -61,6 +61,8 @@ typedef enum {
     WLC_OBJ_BIT_AND,       // 16: bitwise AND
     WLC_OBJ_BIT_OR,        // 17: bitwise OR
     WLC_OBJ_BIT_XOR,       // 18: bitwise XOR
+    WLC_OBJ_BIT_NAND,      // 16: bitwise AND
+    WLC_OBJ_BIT_NOR,       // 17: bitwise OR
     WLC_OBJ_BIT_NXOR,      // 19: bitwise NXOR
     WLC_OBJ_BIT_SELECT,    // 20: bit selection
     WLC_OBJ_BIT_CONCAT,    // 21: bit concatenation
