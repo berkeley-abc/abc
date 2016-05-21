@@ -668,7 +668,7 @@ extern ABC_DLL void               Abc_NodeBddToCnf( Abc_Obj_t * pNode, Mem_Flex_
 extern ABC_DLL void               Abc_NtkLogicMakeDirectSops( Abc_Ntk_t * pNtk );
 extern ABC_DLL int                Abc_NtkSopToAig( Abc_Ntk_t * pNtk );
 extern ABC_DLL int                Abc_NtkAigToBdd( Abc_Ntk_t * pNtk );
-extern ABC_DLL Gia_Man_t *        Abc_NtkAigToGia( Abc_Ntk_t * p );
+extern ABC_DLL Gia_Man_t *        Abc_NtkAigToGia( Abc_Ntk_t * p, int fGiaSimple );
 extern ABC_DLL int                Abc_NtkMapToSop( Abc_Ntk_t * pNtk );
 extern ABC_DLL int                Abc_NtkToSop( Abc_Ntk_t * pNtk, int fMode, int nCubeLimit );
 extern ABC_DLL int                Abc_NtkToBdd( Abc_Ntk_t * pNtk );

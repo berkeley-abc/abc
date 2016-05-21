@@ -510,7 +510,7 @@ int Gia_ManLevelNum( Gia_Man_t * p )
     p->nLevels = 0;
     Gia_ManForEachObj( p, pObj, i )
     {
-        if ( Gia_ObjIsBuf(pObj) )
+        if ( !p->fGiaSimple && Gia_ObjIsBuf(pObj) )
             Gia_ObjSetBufLevel( p, pObj );
         else if ( Gia_ObjIsAnd(pObj) )
             Gia_ObjSetGateLevel( p, pObj );

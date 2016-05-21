@@ -26719,12 +26719,15 @@ int Abc_CommandAbc9Get( Abc_Frame_t * pAbc, int argc, char ** argv )
     Aig_Man_t * pAig;
     Gia_Man_t * pGia, * pTemp;
     char * pInits;
-    int c, fMapped = 0, fNames = 0, fVerbose = 0;
+    int c, fGiaSimple = 0, fMapped = 0, fNames = 0, fVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "mnvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "cmnvh" ) ) != EOF )
     {
         switch ( c )
         {
+        case 'c':
+            fGiaSimple ^= 1;
+            break;
         case 'm':
             fMapped ^= 1;
             break;
@@ -26745,11 +26748,11 @@ int Abc_CommandAbc9Get( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     if ( !Abc_NtkIsStrash( pAbc->pNtkCur ) )
     {
-        if ( fMapped )
+        if ( fGiaSimple || fMapped )
         {
             assert( Abc_NtkIsLogic(pAbc->pNtkCur) );
             Abc_NtkToAig( pAbc->pNtkCur );
-            pGia = Abc_NtkAigToGia( pAbc->pNtkCur );
+            pGia = Abc_NtkAigToGia( pAbc->pNtkCur, fGiaSimple );
         }
         else
         {
@@ -26796,10 +26799,11 @@ int Abc_CommandAbc9Get( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &get [-mnvh] <file>\n" );
+    Abc_Print( -2, "usage: &get [-cmnvh] <file>\n" );
     Abc_Print( -2, "\t         converts the current network into GIA and moves it to the &-space\n" );
     Abc_Print( -2, "\t         (if the network is a sequential logic network, normalizes the flops\n" );
     Abc_Print( -2, "\t         to have const-0 initial values, equivalent to \"undc; st; zero\")\n" );
+    Abc_Print( -2, "\t-c     : toggles allowing simple GIA to be improved [default = %s]\n", fGiaSimple? "yes": "no" );
     Abc_Print( -2, "\t-m     : toggles preserving the current mapping [default = %s]\n", fMapped? "yes": "no" );
     Abc_Print( -2, "\t-n     : toggles saving CI/CO names of the AIG [default = %s]\n", fNames? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggles additional verbose output [default = %s]\n", fVerbose? "yes": "no" );

@@ -538,7 +538,7 @@ static inline void         Gia_ObjSetBufLevel( Gia_Man_t * p, Gia_Obj_t * pObj )
 static inline void         Gia_ObjSetAndLevel( Gia_Man_t * p, Gia_Obj_t * pObj ) { assert( Gia_ObjIsAnd(pObj) ); Gia_ObjSetLevel( p, pObj, 1+Abc_MaxInt(Gia_ObjLevel(p,Gia_ObjFanin0(pObj)),Gia_ObjLevel(p,Gia_ObjFanin1(pObj))) ); }
 static inline void         Gia_ObjSetXorLevel( Gia_Man_t * p, Gia_Obj_t * pObj ) { assert( Gia_ObjIsXor(pObj) ); Gia_ObjSetLevel( p, pObj, 2+Abc_MaxInt(Gia_ObjLevel(p,Gia_ObjFanin0(pObj)),Gia_ObjLevel(p,Gia_ObjFanin1(pObj))) ); }
 static inline void         Gia_ObjSetMuxLevel( Gia_Man_t * p, Gia_Obj_t * pObj ) { assert( Gia_ObjIsMux(p,pObj) ); Gia_ObjSetLevel( p, pObj, 2+Abc_MaxInt( Abc_MaxInt(Gia_ObjLevel(p,Gia_ObjFanin0(pObj)),Gia_ObjLevel(p,Gia_ObjFanin1(pObj))), Gia_ObjLevel(p,Gia_ObjFanin2(p,pObj))) ); }
-static inline void         Gia_ObjSetGateLevel( Gia_Man_t * p, Gia_Obj_t * pObj ){ if ( Gia_ObjIsBuf(pObj) ) Gia_ObjSetBufLevel(p, pObj); else if ( Gia_ObjIsMux(p,pObj) ) Gia_ObjSetMuxLevel(p, pObj); else if ( Gia_ObjIsXor(pObj) ) Gia_ObjSetXorLevel(p, pObj); else if ( Gia_ObjIsAnd(pObj) ) Gia_ObjSetAndLevel(p, pObj); }
+static inline void         Gia_ObjSetGateLevel( Gia_Man_t * p, Gia_Obj_t * pObj ){ if ( !p->fGiaSimple && Gia_ObjIsBuf(pObj) ) Gia_ObjSetBufLevel(p, pObj); else if ( Gia_ObjIsMux(p,pObj) ) Gia_ObjSetMuxLevel(p, pObj); else if ( Gia_ObjIsXor(pObj) ) Gia_ObjSetXorLevel(p, pObj); else if ( Gia_ObjIsAnd(pObj) ) Gia_ObjSetAndLevel(p, pObj); }
 
 static inline int          Gia_ObjHasNumId( Gia_Man_t * p, int Id )                { return Vec_IntEntry(p->vTtNums, Id) > -ABC_INFINITY;     }
 static inline int          Gia_ObjNumId( Gia_Man_t * p, int Id )                   { return Vec_IntEntry(p->vTtNums, Id);                     }
@@ -665,14 +665,17 @@ static inline int Gia_ManAppendAnd( Gia_Man_t * p, int iLit0, int iLit1 )
 }
 static inline int Gia_ManAppendAnd2( Gia_Man_t * p, int iLit0, int iLit1 )  
 { 
-    if ( iLit0 < 2 )
-        return iLit0 ? iLit1 : 0;
-    if ( iLit1 < 2 )
-        return iLit1 ? iLit0 : 0;
-    if ( iLit0 == iLit1 )
-        return iLit1;
-    if ( iLit0 == Abc_LitNot(iLit1) )
-        return 0;
+    if ( !p->fGiaSimple )
+    {
+        if ( iLit0 < 2 )
+            return iLit0 ? iLit1 : 0;
+        if ( iLit1 < 2 )
+            return iLit1 ? iLit0 : 0;
+        if ( iLit0 == iLit1 )
+            return iLit1;
+        if ( iLit0 == Abc_LitNot(iLit1) )
+            return 0;
+    }
     return Gia_ManAppendAnd( p, iLit0, iLit1 );
 }
 static inline int Gia_ManAppendXorReal( Gia_Man_t * p, int iLit0, int iLit1 )  

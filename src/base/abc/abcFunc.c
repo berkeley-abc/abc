@@ -971,12 +971,12 @@ int Abc_ConvertAigToGia( Gia_Man_t * p, Hop_Obj_t * pRoot )
   SeeAlso     []
 
 ***********************************************************************/
-Gia_Man_t * Abc_NtkAigToGia( Abc_Ntk_t * p )
+Gia_Man_t * Abc_NtkAigToGia( Abc_Ntk_t * p, int fGiaSimple )
 {
     Gia_Man_t * pNew;
     Hop_Man_t * pHopMan;
     Hop_Obj_t * pHopObj;
-    Vec_Int_t * vMapping;
+    Vec_Int_t * vMapping = NULL;
     Vec_Ptr_t * vNodes;
     Abc_Obj_t * pNode, * pFanin;
     int i, k, nObjs;
@@ -986,6 +986,7 @@ Gia_Man_t * Abc_NtkAigToGia( Abc_Ntk_t * p )
     pNew = Gia_ManStart( 10000 );
     pNew->pName = Abc_UtilStrsav( Abc_NtkName(p) );
     pNew->pSpec = Abc_UtilStrsav( Abc_NtkSpec(p) );
+    pNew->fGiaSimple = fGiaSimple;
     Abc_NtkCleanCopy( p );
     Hop_ManConst1(pHopMan)->iData = 1;
     // create primary inputs
@@ -995,7 +996,8 @@ Gia_Man_t * Abc_NtkAigToGia( Abc_Ntk_t * p )
     nObjs = 1 + Abc_NtkCiNum(p) + Abc_NtkCoNum(p);
     Abc_NtkForEachNode( p, pNode, i )
         nObjs += Abc_ObjIsBarBuf(pNode) ? 1 : Hop_DagSize( (Hop_Obj_t *)pNode->pData );
-    vMapping = Vec_IntStart( nObjs );
+    if ( !fGiaSimple )
+        vMapping = Vec_IntStart( nObjs );
     // iterate through nodes used in the mapping
     vNodes = Abc_NtkDfs( p, 0 );
     Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pNode, i )
@@ -1015,13 +1017,14 @@ Gia_Man_t * Abc_NtkAigToGia( Abc_Ntk_t * p )
             Abc_ConvertAigToGia( pNew, pHopObj );
             if ( !Gia_ObjIsAnd(Gia_ManObj(pNew, Abc_Lit2Var(pHopObj->iData))) )
                 continue;
-            if ( Vec_IntEntry(vMapping, Abc_Lit2Var(pHopObj->iData)) )
-                continue;
-            Vec_IntWriteEntry( vMapping, Abc_Lit2Var(pHopObj->iData), Vec_IntSize(vMapping) );
-            Vec_IntPush( vMapping, Abc_ObjFaninNum(pNode) );
-            Abc_ObjForEachFanin( pNode, pFanin, k )
-                Vec_IntPush( vMapping, Abc_Lit2Var(pFanin->iTemp)  );
-            Vec_IntPush( vMapping, Abc_Lit2Var(pHopObj->iData) );
+            if ( vMapping && !Vec_IntEntry(vMapping, Abc_Lit2Var(pHopObj->iData)) )
+            {
+                Vec_IntWriteEntry( vMapping, Abc_Lit2Var(pHopObj->iData), Vec_IntSize(vMapping) );
+                Vec_IntPush( vMapping, Abc_ObjFaninNum(pNode) );
+                Abc_ObjForEachFanin( pNode, pFanin, k )
+                    Vec_IntPush( vMapping, Abc_Lit2Var(pFanin->iTemp)  );
+                Vec_IntPush( vMapping, Abc_Lit2Var(pHopObj->iData) );
+            }
         }
         pNode->iTemp = Abc_LitNotCond( pHopObj->iData, Hop_IsComplement( (Hop_Obj_t *)pNode->pData ) );
     }
