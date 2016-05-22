@@ -192,7 +192,7 @@ int Wlc_StdinProcessSmt( Abc_Frame_t * pAbc, char * pCmd )
     // collect stdin until (check-sat)
     Vec_Str_t * vInput = Wlc_StdinCollectProblem( "(check-sat)" );
     // parse input
-    Wlc_Ntk_t * pNtk = Wlc_ReadSmtBuffer( NULL, Vec_StrArray(vInput), Vec_StrArray(vInput) + Vec_StrSize(vInput) );
+    Wlc_Ntk_t * pNtk = Wlc_ReadSmtBuffer( NULL, Vec_StrArray(vInput), Vec_StrArray(vInput) + Vec_StrSize(vInput), 0, 0 );
     Vec_StrFree( vInput );
     // install current network
     Wlc_SetNtk( pAbc, pNtk );

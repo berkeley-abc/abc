@@ -169,6 +169,8 @@ static inline int Smt_StrToType( char * pName, int * pfSigned )
         Type = WLC_OBJ_BIT_SIGNEXT, *pfSigned = 1;   // 22: sign extension
     else if ( !strcmp(pName, "not") )
         Type = WLC_OBJ_LOGIC_NOT;     // 23: logic NOT
+    else if ( !strcmp(pName, "=>") )
+        Type = WLC_OBJ_LOGIC_IMPL;    // 24: logic AND
     else if ( !strcmp(pName, "and") )
         Type = WLC_OBJ_LOGIC_AND;     // 24: logic AND
     else if ( !strcmp(pName, "or") )
@@ -701,17 +703,28 @@ char * Smt_PrsGenName( Smt_Prs_t * p )
     sprintf( Buffer, "_%0*X_", p->nDigits, ++p->NameCount );
     return Buffer;
 }
-int Smt_PrsBuild2_rec( Wlc_Ntk_t * pNtk, Smt_Prs_t * p, int iNode, int iObjPrev )
+int Smt_PrsBuild2_rec( Wlc_Ntk_t * pNtk, Smt_Prs_t * p, int iNode, int iObjPrev, char * pName )
 {
     if ( Smt_EntryIsName(iNode) )
     {
         char * pStr = Abc_NamStr(p->pStrs, Abc_Lit2Var(iNode));
+        // handle built-in constants
+        if ( !strcmp(pStr, "false") )
+            pStr = "#b0";
+        else if ( !strcmp(pStr, "true") )
+            pStr = "#b1";
         if ( pStr[0] == '#' )
-            return Smt_PrsBuildConstant( pNtk, pStr, -1, Smt_PrsGenName(p) );
+            return Smt_PrsBuildConstant( pNtk, pStr, -1, pName ? pName : Smt_PrsGenName(p) );
         else
         {
             int fFound, iObj = Abc_NamStrFindOrAdd( pNtk->pManName, pStr, &fFound );
             assert( fFound );
+            // create buffer if the name of the fanin has different name
+            if ( pName && strcmp(Wlc_ObjName(pNtk, iObj), pName) )
+            {
+                Vec_IntFill( &p->vTempFans, 1, iObj );
+                iObj = Smt_PrsCreateNode( pNtk, WLC_OBJ_BUF, 0, Wlc_ObjRange(Wlc_NtkObj(pNtk, iObj)), &p->vTempFans, pName );
+            }
             return iObj;
         }
      }
@@ -724,7 +737,7 @@ int Smt_PrsBuild2_rec( Wlc_Ntk_t * pNtk, Smt_Prs_t * p, int iNode, int iObjPrev 
         iRoot0 = Vec_IntEntry( vRoots, 0 );
         if ( Smt_EntryIsName(iRoot0) )
         {
-            char * pName, * pStr0 = Abc_NamStr(p->pStrs, Abc_Lit2Var(iRoot0));
+            char * pName2, * pStr0 = Abc_NamStr(p->pStrs, Abc_Lit2Var(iRoot0));
             if ( Abc_Lit2Var(iRoot0) == SMT_PRS_LET )
             {
                 // let ((s35550 (bvor s48 s35549)))
@@ -744,21 +757,21 @@ int Smt_PrsBuild2_rec( Wlc_Ntk_t * pNtk, Smt_Prs_t * p, int iNode, int iObjPrev 
                     // get the name
                     Fan3 = Vec_IntEntry(vFans3, 0);
                     assert( Smt_EntryIsName(Fan3) );
-                    pName = Smt_EntryName(p, Fan3);
+                    pName2 = Smt_EntryName(p, Fan3);
                     // get function
                     Fan3 = Vec_IntEntry(vFans3, 1);
-                    assert( !Smt_EntryIsName(Fan3) );
+                    //assert( !Smt_EntryIsName(Fan3) );
                     // solve the problem
-                    iObj = Smt_PrsBuild2_rec( pNtk, p, Fan3, -1 );
+                    iObj = Smt_PrsBuild2_rec( pNtk, p, Fan3, -1, pName2 ); // NULL ); //pName2 );
                     if ( iObj == 0 )
                         return 0;
                     // create buffer
-                    Vec_IntFill( &p->vTempFans, 1, iObj );
-                    Smt_PrsCreateNode( pNtk, WLC_OBJ_BUF, 0, 1, &p->vTempFans, pName );
+                    //Vec_IntFill( &p->vTempFans, 1, iObj );
+                    //Smt_PrsCreateNode( pNtk, WLC_OBJ_BUF, 0, Wlc_ObjRange(Wlc_NtkObj(pNtk, iObj)), &p->vTempFans, pName2 );
                 }
-                // pricess the final part of let
+                // process the final part of let
                 iRoot2 = Vec_IntEntry(vRoots, 2);
-                return Smt_PrsBuild2_rec( pNtk, p, iRoot2, -1 );
+                return Smt_PrsBuild2_rec( pNtk, p, iRoot2, -1, pName );
             }
             else if ( pStr0[0] == '_' )
             {
@@ -768,7 +781,7 @@ int Smt_PrsBuild2_rec( Wlc_Ntk_t * pNtk, Smt_Prs_t * p, int iNode, int iObjPrev 
                     // (_ bv1 32)
                     char * pStr2 = Smt_VecEntryName( p, vRoots, 2 );
                     assert( Vec_IntSize(vRoots) == 3 );
-                    return Smt_PrsBuildConstant( pNtk, pStr1+2, atoi(pStr2), Smt_PrsGenName(p) );
+                    return Smt_PrsBuildConstant( pNtk, pStr1+2, atoi(pStr2), pName ? pName : Smt_PrsGenName(p) );
                 }
                 else
                 {
@@ -777,16 +790,23 @@ int Smt_PrsBuild2_rec( Wlc_Ntk_t * pNtk, Smt_Prs_t * p, int iNode, int iObjPrev 
                     Type1 = Smt_StrToType( pStr1, &fSigned );
                     if ( Type1 == 0 )
                         return 0;
-                    Vec_IntFill( &p->vTempFans, 1, iObjPrev );
                     // find out this branch
+                    Vec_IntFill( &p->vTempFans, 1, iObjPrev );
                     if ( Type1 == WLC_OBJ_BIT_SIGNEXT || Type1 == WLC_OBJ_BIT_ZEROPAD || Type1 == WLC_OBJ_ROTATE_R || Type1 == WLC_OBJ_ROTATE_L )
                     {
                         int iRoot2 = Vec_IntEntry(vRoots, 2);
                         char * pStr2 = Abc_NamStr(p->pStrs, Abc_Lit2Var(iRoot2));
                         int Num = atoi( pStr2 );
                         fSigned = (Type1 == WLC_OBJ_BIT_SIGNEXT);
-                        Range = Num + Wlc_ObjRange( Wlc_NtkObj(pNtk, iObjPrev) );
-                        Vec_IntPush( &p->vTempFans, Num );
+                        if ( Type1 == WLC_OBJ_ROTATE_R || Type1 == WLC_OBJ_ROTATE_L )
+                        {
+                            int iConst = Smt_PrsBuildConstant( pNtk, pStr2, -1, Smt_PrsGenName(p) );
+                            Vec_IntClear( &p->vTempFans );
+                            Vec_IntPushTwo( &p->vTempFans, iObjPrev, iConst );
+                            Range = Wlc_ObjRange( Wlc_NtkObj(pNtk, iObjPrev) );
+                        }
+                        else
+                            Range = Num + Wlc_ObjRange( Wlc_NtkObj(pNtk, iObjPrev) );
                     }
                     else if ( Type1 == WLC_OBJ_BIT_SELECT )
                     {
@@ -797,12 +817,11 @@ int Smt_PrsBuild2_rec( Wlc_Ntk_t * pNtk, Smt_Prs_t * p, int iNode, int iObjPrev 
                         int Num1 = atoi( pStr2 );
                         int Num2 = atoi( pStr3 );
                         assert( Num1 >= Num2 );
-                        fSigned = (Type1 == WLC_OBJ_BIT_SIGNEXT);
                         Range = Num1 - Num2 + 1;
                         Vec_IntPushTwo( &p->vTempFans, Num1, Num2 );
                     }
                     else assert( 0 );
-                    iObj = Smt_PrsCreateNode( pNtk, Type1, fSigned, Range, &p->vTempFans, Smt_PrsGenName(p) );
+                    iObj = Smt_PrsCreateNode( pNtk, Type1, fSigned, Range, &p->vTempFans, pName ? pName : Smt_PrsGenName(p) );
                     return iObj;
                 }
             }
@@ -822,7 +841,7 @@ int Smt_PrsBuild2_rec( Wlc_Ntk_t * pNtk, Smt_Prs_t * p, int iNode, int iObjPrev 
                 vFanins = Vec_IntAlloc( 100 );
                 Vec_IntForEachEntryStart( vRoots, Fan, i, 1 )
                 {
-                    iObj = Smt_PrsBuild2_rec( pNtk, p, Fan, -1 );
+                    iObj = Smt_PrsBuild2_rec( pNtk, p, Fan, -1, NULL );
                     if ( iObj == 0 )
                     {
                         Vec_IntFree( vFanins );
@@ -854,17 +873,17 @@ int Smt_PrsBuild2_rec( Wlc_Ntk_t * pNtk, Smt_Prs_t * p, int iNode, int iObjPrev 
                 }
                 // create node
                 assert( Range > 0 );
-                iObj = Smt_PrsCreateNode( pNtk, Type0, fSigned, Range, vFanins, Smt_PrsGenName(p) );
+                iObj = Smt_PrsCreateNode( pNtk, Type0, fSigned, Range, vFanins, pName ? pName : Smt_PrsGenName(p) );
                 Vec_IntFree( vFanins );
                 return iObj;
             }
         }
-        else if ( Vec_IntSize(vRoots) == 2 ) // possible   ((_ extract 48 16) (bvmul ?v_5 ?v_12))
+        else if ( Vec_IntSize(vRoots) == 2 ) // could be   ((_ extract 48 16) (bvmul ?v_5 ?v_12))
         {
-            int iObjPrev = Smt_PrsBuild2_rec( pNtk, p, Vec_IntEntry(vRoots, 1), -1 );
+            int iObjPrev = Smt_PrsBuild2_rec( pNtk, p, Vec_IntEntry(vRoots, 1), -1, NULL );
             if ( iObjPrev == 0 )
                 return 0;
-            return Smt_PrsBuild2_rec( pNtk, p, Vec_IntEntry(vRoots, 0), iObjPrev );
+            return Smt_PrsBuild2_rec( pNtk, p, Vec_IntEntry(vRoots, 0), iObjPrev, pName );
         }
         else assert( 0 ); // return Smt_PrsBuild2_rec( pNtk, p, iRoot0 );
         return 0;
@@ -992,7 +1011,7 @@ Wlc_Ntk_t * Smt_PrsBuild2( Smt_Prs_t * p )
             //(assert (not (= s0 #x00)))
             assert( Vec_IntSize(vFans) == 2 );
             assert( Smt_VecEntryIsType(vFans, 0, SMT_PRS_ASSERT) );
-            iObj = Smt_PrsBuild2_rec( pNtk, p, Vec_IntEntry(vFans, 1), -1 );
+            iObj = Smt_PrsBuild2_rec( pNtk, p, Vec_IntEntry(vFans, 1), -1, NULL );
             if ( iObj == 0 )
             {
                 Wlc_NtkFree( pNtk ); pNtk = NULL;
@@ -1083,14 +1102,16 @@ static inline char * Smt_PrsLoadFile( char * pFileName, char ** ppLimit )
 }
 static inline int Smt_PrsRemoveComments( char * pBuffer, char * pLimit )
 {
-    char * pTemp; int nCount1 = 0, nCount2 = 0;
+    char * pTemp; int nCount1 = 0, nCount2 = 0, fHaveBar = 0;
     for ( pTemp = pBuffer; pTemp < pLimit; pTemp++ )
     {
         if ( *pTemp == '(' )
             nCount1++;
         else if ( *pTemp == ')' )
             nCount2++;
-        else if ( *pTemp == ';' )
+        else if ( *pTemp == '|' )
+            fHaveBar ^= 1;
+        else if ( *pTemp == ';' && !fHaveBar )
             while ( *pTemp && *pTemp != '\n' )
                 *pTemp++ = ' ';
     }
@@ -1191,8 +1212,16 @@ void Smt_PrsReadLines( Smt_Prs_t * p )
             Smt_PrsSkipNonSpaces( p );
             if ( p->pCur < p->pLimit )
             {
-                // add fanin
-                int iToken = Abc_NamStrFindOrAddLim( p->pStrs, pStart, p->pCur--, NULL );
+                // remove strange characters (this can lead to name clashes)
+                int iToken;
+                char * pTemp;
+                if ( *pStart == '?' )
+                    *pStart = '_';
+                for ( pTemp = pStart; pTemp < p->pCur; pTemp++ )
+                    if ( *pTemp == '.' )
+                        *pTemp = '_';
+                // create and save token for this string
+                iToken = Abc_NamStrFindOrAddLim( p->pStrs, pStart, p->pCur--, NULL );
                 Vec_IntPush( Vec_WecEntry(&p->vObjs, Vec_IntEntryLast(&p->vStack)), Abc_Var2Lit(iToken, 1) );
             }
         }
@@ -1235,7 +1264,7 @@ void Smt_PrsPrintParser( Smt_Prs_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-Wlc_Ntk_t * Wlc_ReadSmtBuffer( char * pFileName, char * pBuffer, char * pLimit )
+Wlc_Ntk_t * Wlc_ReadSmtBuffer( char * pFileName, char * pBuffer, char * pLimit, int fOldParser, int fPrintTree )
 {
     Wlc_Ntk_t * pNtk = NULL;
     int nCount = Smt_PrsRemoveComments( pBuffer, pLimit );
@@ -1243,20 +1272,21 @@ Wlc_Ntk_t * Wlc_ReadSmtBuffer( char * pFileName, char * pBuffer, char * pLimit )
     if ( p == NULL )
         return NULL;
     Smt_PrsReadLines( p );
-    //Smt_PrsPrintParser( p );
+    if ( fPrintTree )
+        Smt_PrsPrintParser( p );
     if ( Smt_PrsErrorPrint(p) )
-        pNtk = Smt_PrsBuild2( p );
+        pNtk = fOldParser ? Smt_PrsBuild(p) : Smt_PrsBuild2(p);
     Smt_PrsFree( p );
     return pNtk;
 }
-Wlc_Ntk_t * Wlc_ReadSmt( char * pFileName )
+Wlc_Ntk_t * Wlc_ReadSmt( char * pFileName, int fOldParser, int fPrintTree )
 {
     Wlc_Ntk_t * pNtk = NULL;
     char * pBuffer, * pLimit; 
     pBuffer = Smt_PrsLoadFile( pFileName, &pLimit );
     if ( pBuffer == NULL )
         return NULL;
-    pNtk = Wlc_ReadSmtBuffer( pFileName, pBuffer, pLimit );
+    pNtk = Wlc_ReadSmtBuffer( pFileName, pBuffer, pLimit, fOldParser, fPrintTree );
     ABC_FREE( pBuffer );
     return pNtk;
 }

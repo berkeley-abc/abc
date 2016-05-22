@@ -119,12 +119,20 @@ int Abc_CommandReadWlc( Abc_Frame_t * pAbc, int argc, char ** argv )
     FILE * pFile;
     Wlc_Ntk_t * pNtk = NULL;
     char * pFileName = NULL;
+    int fOldParser   =    0;
+    int fPrintTree   =    0;
     int c, fVerbose  =    0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "opvh" ) ) != EOF )
     {
         switch ( c )
         {
+        case 'o':
+            fPrintTree ^= 1;
+            break;
+        case 'p':
+            fOldParser ^= 1;
+            break;
         case 'v':
             fVerbose ^= 1;
             break;
@@ -155,7 +163,7 @@ int Abc_CommandReadWlc( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( !strcmp( Extra_FileNameExtension(pFileName), "v" )  )
         pNtk = Wlc_ReadVer( pFileName );
     else if ( !strcmp( Extra_FileNameExtension(pFileName), "smt" ) || !strcmp( Extra_FileNameExtension(pFileName), "smt2" )  )
-        pNtk = Wlc_ReadSmt( pFileName );
+        pNtk = Wlc_ReadSmt( pFileName, fOldParser, fPrintTree );
     else
     {
         printf( "Abc_CommandReadWlc(): Unknown file extension.\n" );
@@ -164,8 +172,10 @@ int Abc_CommandReadWlc( Abc_Frame_t * pAbc, int argc, char ** argv )
     Wlc_AbcUpdateNtk( pAbc, pNtk );
     return 0;
 usage:
-    Abc_Print( -2, "usage: %%read [-vh] <file_name>\n" );
+    Abc_Print( -2, "usage: %%read [-opvh] <file_name>\n" );
     Abc_Print( -2, "\t         reads word-level design from Verilog file\n" );
+    Abc_Print( -2, "\t-o     : toggle using old SMT-LIB parser [default = %s]\n", fOldParser? "yes": "no" );
+    Abc_Print( -2, "\t-p     : toggle printing parse SMT-LIB tree [default = %s]\n", fPrintTree? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;

@@ -61,40 +61,41 @@ typedef enum {
     WLC_OBJ_BIT_AND,       // 16: bitwise AND
     WLC_OBJ_BIT_OR,        // 17: bitwise OR
     WLC_OBJ_BIT_XOR,       // 18: bitwise XOR
-    WLC_OBJ_BIT_NAND,      // 16: bitwise AND
-    WLC_OBJ_BIT_NOR,       // 17: bitwise OR
-    WLC_OBJ_BIT_NXOR,      // 19: bitwise NXOR
-    WLC_OBJ_BIT_SELECT,    // 20: bit selection
-    WLC_OBJ_BIT_CONCAT,    // 21: bit concatenation
-    WLC_OBJ_BIT_ZEROPAD,   // 22: zero padding
-    WLC_OBJ_BIT_SIGNEXT,   // 23: sign extension
-    WLC_OBJ_LOGIC_NOT,     // 24: logic NOT
-    WLC_OBJ_LOGIC_AND,     // 25: logic AND
-    WLC_OBJ_LOGIC_OR,      // 27: logic OR
-    WLC_OBJ_LOGIC_XOR,     // 28: logic XOR
-    WLC_OBJ_COMP_EQU,      // 29: compare equal
-    WLC_OBJ_COMP_NOTEQU,   // 30: compare not equal
-    WLC_OBJ_COMP_LESS,     // 31: compare less
-    WLC_OBJ_COMP_MORE,     // 32: compare more
-    WLC_OBJ_COMP_LESSEQU,  // 33: compare less or equal
-    WLC_OBJ_COMP_MOREEQU,  // 34: compare more or equal
-    WLC_OBJ_REDUCT_AND,    // 35: reduction AND
-    WLC_OBJ_REDUCT_OR,     // 36: reduction OR
-    WLC_OBJ_REDUCT_XOR,    // 37: reduction XOR
-    WLC_OBJ_REDUCT_NAND,   // 38: reduction NAND
-    WLC_OBJ_REDUCT_NOR,    // 39: reduction NOR
-    WLC_OBJ_REDUCT_NXOR,   // 40: reduction NXOR
-    WLC_OBJ_ARI_ADD,       // 41: arithmetic addition
-    WLC_OBJ_ARI_SUB,       // 42: arithmetic subtraction
-    WLC_OBJ_ARI_MULTI,     // 43: arithmetic multiplier
-    WLC_OBJ_ARI_DIVIDE,    // 44: arithmetic division
-    WLC_OBJ_ARI_MODULUS,   // 45: arithmetic modulus
-    WLC_OBJ_ARI_POWER,     // 46: arithmetic power
-    WLC_OBJ_ARI_MINUS,     // 47: arithmetic minus
-    WLC_OBJ_ARI_SQRT,      // 48: integer square root
-    WLC_OBJ_ARI_SQUARE,    // 49: integer square
-    WLC_OBJ_TABLE,         // 50: bit table
-    WLC_OBJ_NUMBER         // 51: unused
+    WLC_OBJ_BIT_NAND,      // 19: bitwise AND
+    WLC_OBJ_BIT_NOR,       // 20: bitwise OR
+    WLC_OBJ_BIT_NXOR,      // 21: bitwise NXOR
+    WLC_OBJ_BIT_SELECT,    // 22: bit selection
+    WLC_OBJ_BIT_CONCAT,    // 23: bit concatenation
+    WLC_OBJ_BIT_ZEROPAD,   // 24: zero padding
+    WLC_OBJ_BIT_SIGNEXT,   // 25: sign extension
+    WLC_OBJ_LOGIC_NOT,     // 26: logic NOT
+    WLC_OBJ_LOGIC_IMPL,    // 27: logic implication
+    WLC_OBJ_LOGIC_AND,     // 28: logic AND
+    WLC_OBJ_LOGIC_OR,      // 29: logic OR
+    WLC_OBJ_LOGIC_XOR,     // 30: logic XOR
+    WLC_OBJ_COMP_EQU,      // 31: compare equal
+    WLC_OBJ_COMP_NOTEQU,   // 32: compare not equal
+    WLC_OBJ_COMP_LESS,     // 33: compare less
+    WLC_OBJ_COMP_MORE,     // 34: compare more
+    WLC_OBJ_COMP_LESSEQU,  // 35: compare less or equal
+    WLC_OBJ_COMP_MOREEQU,  // 36: compare more or equal
+    WLC_OBJ_REDUCT_AND,    // 37: reduction AND
+    WLC_OBJ_REDUCT_OR,     // 38: reduction OR
+    WLC_OBJ_REDUCT_XOR,    // 39: reduction XOR
+    WLC_OBJ_REDUCT_NAND,   // 40: reduction NAND
+    WLC_OBJ_REDUCT_NOR,    // 41: reduction NOR
+    WLC_OBJ_REDUCT_NXOR,   // 42: reduction NXOR
+    WLC_OBJ_ARI_ADD,       // 43: arithmetic addition
+    WLC_OBJ_ARI_SUB,       // 44: arithmetic subtraction
+    WLC_OBJ_ARI_MULTI,     // 45: arithmetic multiplier
+    WLC_OBJ_ARI_DIVIDE,    // 46: arithmetic division
+    WLC_OBJ_ARI_MODULUS,   // 47: arithmetic modulus
+    WLC_OBJ_ARI_POWER,     // 48: arithmetic power
+    WLC_OBJ_ARI_MINUS,     // 49: arithmetic minus
+    WLC_OBJ_ARI_SQRT,      // 50: integer square root
+    WLC_OBJ_ARI_SQUARE,    // 51: integer square
+    WLC_OBJ_TABLE,         // 52: bit table
+    WLC_OBJ_NUMBER         // 53: unused
 } Wlc_ObjType_t;
 // when adding new types, remember to update table Wlc_Names in "wlcNtk.c"
 
@@ -273,8 +274,8 @@ extern Wlc_Ntk_t *    Wlc_NtkDupDfs( Wlc_Ntk_t * p );
 extern void           Wlc_NtkTransferNames( Wlc_Ntk_t * pNew, Wlc_Ntk_t * p );
 extern Wlc_Ntk_t *    Wlc_NtkDupSingleNodes( Wlc_Ntk_t * p );
 /*=== wlcReadSmt.c ========================================================*/
-extern Wlc_Ntk_t *    Wlc_ReadSmtBuffer( char * pFileName, char * pBuffer, char * pLimit );
-extern Wlc_Ntk_t *    Wlc_ReadSmt( char * pFileName );
+extern Wlc_Ntk_t *    Wlc_ReadSmtBuffer( char * pFileName, char * pBuffer, char * pLimit, int fOldParser, int fPrintTree );
+extern Wlc_Ntk_t *    Wlc_ReadSmt( char * pFileName, int fOldParser, int fPrintTree );
 /*=== wlcSim.c ========================================================*/
 extern Vec_Ptr_t *    Wlc_NtkSimulate( Wlc_Ntk_t * p, Vec_Int_t * vNodes, int nWords, int nFrames );
 extern void           Wlc_NtkDeleteSim( Vec_Ptr_t * p );

@@ -781,6 +781,7 @@ static inline int Wlc_PrsFindDefinition( Wlc_Prs_t * p, char * pStr, Vec_Int_t *
             else if ( pStr[0] == '~' && pStr[1] == '&'                   ) pStr += 2, Type = WLC_OBJ_BIT_NAND;       
             else if ( pStr[0] == '~' && pStr[1] == '|'                   ) pStr += 2, Type = WLC_OBJ_BIT_NOR;       
             else if ( pStr[0] == '~' && pStr[1] == '^'                   ) pStr += 2, Type = WLC_OBJ_BIT_NXOR;       
+            else if ( pStr[0] == '=' && pStr[1] == '>'                   ) pStr += 2, Type = WLC_OBJ_LOGIC_IMPL;     
             else if ( pStr[0] == '&' && pStr[1] == '&'                   ) pStr += 2, Type = WLC_OBJ_LOGIC_AND;     
             else if ( pStr[0] == '|' && pStr[1] == '|'                   ) pStr += 2, Type = WLC_OBJ_LOGIC_OR;      
             else if ( pStr[0] == '^' && pStr[1] == '^'                   ) pStr += 2, Type = WLC_OBJ_LOGIC_XOR;      

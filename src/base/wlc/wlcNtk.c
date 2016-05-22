@@ -50,40 +50,41 @@ static char * Wlc_Names[WLC_OBJ_NUMBER+1] = {
     "&",                   // 16: bitwise AND
     "|",                   // 17: bitwise OR
     "^",                   // 18: bitwise XOR
-    "~&",                  // 16: bitwise NAND
-    "~|",                  // 17: bitwise NOR
-    "~^",                  // 19: bitwise NXOR
-    "[:]",                 // 20: bit selection
-    "{,}",                 // 21: bit concatenation
-    "zeroPad",             // 22: zero padding
-    "signExt",             // 23: sign extension
-    "!",                   // 24: logic NOT
-    "&&",                  // 25: logic AND
-    "||",                  // 27: logic OR
-    "^^",                  // 28: logic XOR
-    "==",                  // 29: compare equal
-    "!=",                  // 30: compare not equal
-    "<",                   // 31: compare less
-    ">",                   // 32: compare more
-    "<=",                  // 33: compare less or equal
-    ">=",                  // 34: compare more or equal
-    "&",                   // 35: reduction AND
-    "|",                   // 36: reduction OR
-    "^",                   // 37: reduction XOR
-    "~&",                  // 38: reduction NAND
-    "~|",                  // 39: reduction NOR
-    "~^",                  // 40: reduction NXOR
-    "+",                   // 41: arithmetic addition
-    "-",                   // 42: arithmetic subtraction
-    "*",                   // 43: arithmetic multiplier
-    "/",                   // 44: arithmetic division
-    "%",                   // 45: arithmetic modulus
-    "**",                  // 46: arithmetic power
-    "-",                   // 47: arithmetic minus
-    "sqrt",                // 48: integer square root
-    "square",              // 49: integer square
-    "table",               // 50: bit table
-    NULL                   // 51: unused
+    "~&",                  // 19: bitwise NAND
+    "~|",                  // 20: bitwise NOR
+    "~^",                  // 21: bitwise NXOR
+    "[:]",                 // 22: bit selection
+    "{,}",                 // 23: bit concatenation
+    "zeroPad",             // 24: zero padding
+    "signExt",             // 25: sign extension
+    "!",                   // 26: logic NOT
+    "=>",                  // 27: logic implication
+    "&&",                  // 28: logic AND
+    "||",                  // 29: logic OR
+    "^^",                  // 30: logic XOR
+    "==",                  // 31: compare equal
+    "!=",                  // 32: compare not equal
+    "<",                   // 33: compare less
+    ">",                   // 34: compare more
+    "<=",                  // 35: compare less or equal
+    ">=",                  // 36: compare more or equal
+    "&",                   // 37: reduction AND
+    "|",                   // 38: reduction OR
+    "^",                   // 39: reduction XOR
+    "~&",                  // 40: reduction NAND
+    "~|",                  // 41: reduction NOR
+    "~^",                  // 42: reduction NXOR
+    "+",                   // 43: arithmetic addition
+    "-",                   // 44: arithmetic subtraction
+    "*",                   // 45: arithmetic multiplier
+    "/",                   // 46: arithmetic division
+    "%",                   // 47: arithmetic modulus
+    "**",                  // 48: arithmetic power
+    "-",                   // 49: arithmetic minus
+    "sqrt",                // 50: integer square root
+    "square",              // 51: integer square
+    "table",               // 52: bit table
+    NULL                   // 53: unused
 };
 
 ////////////////////////////////////////////////////////////////////////
@@ -380,6 +381,8 @@ void Wlc_NtkPrintDistrib( Wlc_Ntk_t * p, int fVerbose )
             Vec_IntAddToEntry( vAnds, WLC_OBJ_BIT_SIGNEXT, 0 );
         else if ( pObj->Type == WLC_OBJ_LOGIC_NOT )    
             Vec_IntAddToEntry( vAnds, WLC_OBJ_LOGIC_NOT,        Wlc_ObjRange(Wlc_ObjFanin0(p, pObj)) - 1 );
+        else if ( pObj->Type == WLC_OBJ_LOGIC_IMPL )    
+            Vec_IntAddToEntry( vAnds, WLC_OBJ_LOGIC_IMPL,       Wlc_ObjRange(Wlc_ObjFanin0(p, pObj)) + Wlc_ObjRange(Wlc_ObjFanin1(p, pObj)) - 1 );
         else if ( pObj->Type == WLC_OBJ_LOGIC_AND )    
             Vec_IntAddToEntry( vAnds, WLC_OBJ_LOGIC_AND,        Wlc_ObjRange(Wlc_ObjFanin0(p, pObj)) + Wlc_ObjRange(Wlc_ObjFanin1(p, pObj)) - 1 );
         else if ( pObj->Type == WLC_OBJ_LOGIC_OR )     

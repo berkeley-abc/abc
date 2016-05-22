@@ -777,7 +777,9 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Vec_Int_t * vBoxIds, int fGiaSimple 
     // blast in the topological order
     Wlc_NtkForEachObj( p, pObj, i )
     {
-//        char * pName = Wlc_ObjName(p, i);
+//        char * pName1 = Wlc_ObjName(p, i);
+//        char * pName2 = Wlc_ObjFaninNum(pObj) ? Wlc_ObjName(p, Wlc_ObjFaninId0(pObj)) : NULL;
+
         nAndPrev = Gia_ManAndNum(pNew);
         nRange  = Wlc_ObjRange( pObj );
         nRange0 = Wlc_ObjFaninNum(pObj) > 0 ? Wlc_ObjRange( Wlc_ObjFanin0(p, pObj) ) : -1;
@@ -1007,7 +1009,7 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Vec_Int_t * vBoxIds, int fGiaSimple 
         else if ( pObj->Type == WLC_OBJ_BIT_ZEROPAD || pObj->Type == WLC_OBJ_BIT_SIGNEXT )
         {
             int Pad = pObj->Type == WLC_OBJ_BIT_ZEROPAD ? 0 : pFans0[nRange0-1];
-            assert( nRange0 < nRange );
+            assert( nRange0 <= nRange );
             for ( k = 0; k < nRange0; k++ )
                 Vec_IntPush( vRes, pFans0[k] );
             for (      ; k < nRange; k++ )
@@ -1017,6 +1019,14 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Vec_Int_t * vBoxIds, int fGiaSimple 
         {
             iLit = Wlc_BlastReduction( pNew, pFans0, nRange0, WLC_OBJ_REDUCT_OR );
             Vec_IntFill( vRes, 1, Abc_LitNot(iLit) );
+            for ( k = 1; k < nRange; k++ )
+                Vec_IntPush( vRes, 0 );
+        }
+        else if ( pObj->Type == WLC_OBJ_LOGIC_IMPL )
+        {
+            int iLit0 = Wlc_BlastReduction( pNew, pFans0, nRange0, WLC_OBJ_REDUCT_OR );
+            int iLit1 = Wlc_BlastReduction( pNew, pFans1, nRange1, WLC_OBJ_REDUCT_OR );
+            Vec_IntFill( vRes, 1, Gia_ManHashOr(pNew, Abc_LitNot(iLit0), iLit1) );
             for ( k = 1; k < nRange; k++ )
                 Vec_IntPush( vRes, 0 );
         }
