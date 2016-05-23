@@ -795,7 +795,7 @@ static inline int Wlc_PrsFindDefinition( Wlc_Prs_t * p, char * pStr, Vec_Int_t *
             else if ( pStr[0] == '-'                                     ) pStr += 1, Type = WLC_OBJ_ARI_SUB;       
             else if ( pStr[0] == '*' && pStr[1] != '*'                   ) pStr += 1, Type = WLC_OBJ_ARI_MULTI;     
             else if ( pStr[0] == '/'                                     ) pStr += 1, Type = WLC_OBJ_ARI_DIVIDE;        
-            else if ( pStr[0] == '%'                                     ) pStr += 1, Type = WLC_OBJ_ARI_MODULUS;   
+            else if ( pStr[0] == '%'                                     ) pStr += 1, Type = WLC_OBJ_ARI_REM;   
             else if ( pStr[0] == '*' && pStr[1] == '*'                   ) pStr += 2, Type = WLC_OBJ_ARI_POWER;
             else return Wlc_PrsWriteErrorMessage( p, pStr, "Unsupported operation (%c).", pStr[0] );
             if ( !(pStr = Wlc_PrsReadName(p, pStr+1, vFanins)) )

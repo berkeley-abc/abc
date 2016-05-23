@@ -171,7 +171,7 @@ void Wlc_WriteVerInt( FILE * pFile, Wlc_Ntk_t * p, int fNoFlops )
             pObj->Mark = 0;
             continue;
         }
-        sprintf( Range, "%s[%d:%d]%*s", Wlc_ObjIsSigned(pObj) ? "signed ":"       ", pObj->End, pObj->Beg, 8-nDigits, "" );
+        sprintf( Range, "%s[%d:%d]%*s", (!p->fSmtLib && Wlc_ObjIsSigned(pObj)) ? "signed ":"       ", pObj->End, pObj->Beg, 8-nDigits, "" );
         fprintf( pFile, "  " );
         if ( pObj->Type == WLC_OBJ_PI || (fNoFlops && pObj->Type == WLC_OBJ_FO) )
             fprintf( pFile, "input  " );
@@ -342,6 +342,8 @@ void Wlc_WriteVerInt( FILE * pFile, Wlc_Ntk_t * p, int fNoFlops )
                     fprintf( pFile, "*" );
                 else if ( pObj->Type == WLC_OBJ_ARI_DIVIDE )
                     fprintf( pFile, "/" );
+                else if ( pObj->Type == WLC_OBJ_ARI_REM )
+                    fprintf( pFile, "%%" );
                 else if ( pObj->Type == WLC_OBJ_ARI_MODULUS )
                     fprintf( pFile, "%%" );
                 else if ( pObj->Type == WLC_OBJ_ARI_POWER )
@@ -355,7 +357,7 @@ void Wlc_WriteVerInt( FILE * pFile, Wlc_Ntk_t * p, int fNoFlops )
                 fprintf( pFile, " %s", Wlc_ObjName(p, Wlc_ObjFaninId(pObj, 1)) );
             }
         }
-        fprintf( pFile, " ;\n" );
+        fprintf( pFile, " ;%s\n", (p->fSmtLib && Wlc_ObjIsSigned(pObj)) ? " // signed SMT-LIB operator" : "" );
     }
     iFanin = 0;
     assert( !p->vInits || Wlc_NtkFfNum(p) == Vec_IntSize(p->vInits) );

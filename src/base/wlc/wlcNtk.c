@@ -78,13 +78,14 @@ static char * Wlc_Names[WLC_OBJ_NUMBER+1] = {
     "-",                   // 44: arithmetic subtraction
     "*",                   // 45: arithmetic multiplier
     "/",                   // 46: arithmetic division
-    "%",                   // 47: arithmetic modulus
-    "**",                  // 48: arithmetic power
-    "-",                   // 49: arithmetic minus
-    "sqrt",                // 50: integer square root
-    "square",              // 51: integer square
-    "table",               // 52: bit table
-    NULL                   // 53: unused
+    "%",                   // 47: arithmetic reminder
+    "mod",                 // 48: arithmetic modulus
+    "**",                  // 49: arithmetic power
+    "-",                   // 50: arithmetic minus
+    "sqrt",                // 51: integer square root
+    "square",              // 52: integer square
+    "table",               // 53: bit table
+    NULL                   // 54: unused
 };
 
 ////////////////////////////////////////////////////////////////////////
@@ -421,6 +422,8 @@ void Wlc_NtkPrintDistrib( Wlc_Ntk_t * p, int fVerbose )
             Vec_IntAddToEntry( vAnds, WLC_OBJ_ARI_MULTI,    9 * Wlc_ObjRange(Wlc_ObjFanin0(p, pObj)) * Wlc_ObjRange(Wlc_ObjFanin1(p, pObj)) );
         else if ( pObj->Type == WLC_OBJ_ARI_DIVIDE )   
             Vec_IntAddToEntry( vAnds, WLC_OBJ_ARI_DIVIDE,  13 * Wlc_ObjRange(Wlc_ObjFanin0(p, pObj)) * Wlc_ObjRange(Wlc_ObjFanin0(p, pObj)) - 19 * Wlc_ObjRange(Wlc_ObjFanin0(p, pObj)) + 10 );
+        else if ( pObj->Type == WLC_OBJ_ARI_REM )  
+            Vec_IntAddToEntry( vAnds, WLC_OBJ_ARI_REM,     13 * Wlc_ObjRange(Wlc_ObjFanin0(p, pObj)) * Wlc_ObjRange(Wlc_ObjFanin0(p, pObj)) - 7 * Wlc_ObjRange(Wlc_ObjFanin0(p, pObj)) - 2  );
         else if ( pObj->Type == WLC_OBJ_ARI_MODULUS )  
             Vec_IntAddToEntry( vAnds, WLC_OBJ_ARI_MODULUS, 13 * Wlc_ObjRange(Wlc_ObjFanin0(p, pObj)) * Wlc_ObjRange(Wlc_ObjFanin0(p, pObj)) - 7 * Wlc_ObjRange(Wlc_ObjFanin0(p, pObj)) - 2  );
         else if ( pObj->Type == WLC_OBJ_ARI_POWER ) 
@@ -586,6 +589,7 @@ Wlc_Ntk_t * Wlc_NtkDupDfs( Wlc_Ntk_t * p )
     Wlc_NtkCleanCopy( p );
     vFanins = Vec_IntAlloc( 100 );
     pNew = Wlc_NtkAlloc( p->pName, p->nObjsAlloc );
+    pNew->fSmtLib = p->fSmtLib;
     Wlc_NtkForEachCi( p, pObj, i )
         Wlc_ObjDup( pNew, p, Wlc_ObjId(p, pObj), vFanins );
     Wlc_NtkForEachCo( p, pObj, i )
@@ -645,6 +649,7 @@ Wlc_Ntk_t * Wlc_NtkDupSingleNodes( Wlc_Ntk_t * p )
     Wlc_NtkCleanCopy( p );
     vFanins = Vec_IntAlloc( 100 );
     pNew = Wlc_NtkAlloc( p->pName, p->nObjsAlloc );
+    pNew->fSmtLib = p->fSmtLib;
     Wlc_NtkForEachObj( p, pObj, i )
     {
         if ( Wlc_ObjIsCi(pObj) )

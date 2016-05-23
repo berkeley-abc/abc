@@ -1130,7 +1130,7 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Vec_Int_t * vBoxIds, int fGiaSimple 
                 assert( Vec_IntSize(vRes) == nRange );
             }
         }
-        else if ( pObj->Type == WLC_OBJ_ARI_DIVIDE || pObj->Type == WLC_OBJ_ARI_MODULUS )
+        else if ( pObj->Type == WLC_OBJ_ARI_DIVIDE || pObj->Type == WLC_OBJ_ARI_REM || pObj->Type == WLC_OBJ_ARI_MODULUS )
         {
             int nRangeMax = Abc_MaxInt( nRange, Abc_MaxInt(nRange0, nRange1) );
             int fSigned = Wlc_ObjIsSignedFanin01(p, pObj);

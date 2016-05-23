@@ -166,7 +166,7 @@ static inline int Smt_StrToType( char * pName, int * pfSigned )
     else if ( !strcmp(pName, "zero_extend") )
         Type = WLC_OBJ_BIT_ZEROPAD;   // 21: zero padding
     else if ( !strcmp(pName, "sign_extend") )
-        Type = WLC_OBJ_BIT_SIGNEXT, *pfSigned = 1;   // 22: sign extension
+        Type = WLC_OBJ_BIT_SIGNEXT;   // 22: sign extension
     else if ( !strcmp(pName, "not") )
         Type = WLC_OBJ_LOGIC_NOT;     // 23: logic NOT
     else if ( !strcmp(pName, "=>") )
@@ -212,11 +212,11 @@ static inline int Smt_StrToType( char * pName, int * pfSigned )
     else if ( !strcmp(pName, "bvudiv") )
         Type = WLC_OBJ_ARI_DIVIDE;    // 39: arithmetic division
     else if ( !strcmp(pName, "bvurem") )
-        Type = WLC_OBJ_ARI_MODULUS;   // 40: arithmetic modulus
+        Type = WLC_OBJ_ARI_REM;       // 40: arithmetic remainder
     else if ( !strcmp(pName, "bvsdiv") )
         Type = WLC_OBJ_ARI_DIVIDE, *pfSigned = 1;    // 39: arithmetic division
     else if ( !strcmp(pName, "bvsrem") )
-        Type = WLC_OBJ_ARI_MODULUS, *pfSigned = 1;   // 40: arithmetic modulus
+        Type = WLC_OBJ_ARI_REM, *pfSigned = 1;       // 40: arithmetic remainder
     else if ( !strcmp(pName, "bvsmod") )
         Type = WLC_OBJ_ARI_MODULUS, *pfSigned = 1;   // 40: arithmetic modulus
 //    else if ( !strcmp(pName, "") )
@@ -278,10 +278,10 @@ static inline int Smt_PrsCreateNode( Wlc_Ntk_t * pNtk, int Type, int fSigned, in
     if ( fSigned )
     {
         Wlc_NtkObj(pNtk, iObj)->Signed = fSigned;
-        if ( Vec_IntSize(vFanins) > 0 )
-            Wlc_NtkObj(pNtk, Vec_IntEntry(vFanins, 0))->Signed = fSigned;
-        if ( Vec_IntSize(vFanins) > 1 )
-            Wlc_NtkObj(pNtk, Vec_IntEntry(vFanins, 1))->Signed = fSigned;
+//        if ( Vec_IntSize(vFanins) > 0 )
+//            Wlc_NtkObj(pNtk, Vec_IntEntry(vFanins, 0))->Signed = fSigned;
+//        if ( Vec_IntSize(vFanins) > 1 )
+//            Wlc_NtkObj(pNtk, Vec_IntEntry(vFanins, 1))->Signed = fSigned;
     }
     if ( pName == NULL )
     {
@@ -499,6 +499,7 @@ Wlc_Ntk_t * Smt_PrsBuild( Smt_Prs_t * p )
     // start network and create primary inputs
     pNtk = Wlc_NtkAlloc( p->pName, 1000 );
     pNtk->pManName = Abc_NamStart( 1000, 24 );
+    pNtk->fSmtLib = 1;
     Smt_ManForEachDir( p, SMT_PRS_DECLARE_FUN, vFans, i )
     {
         assert( Vec_IntSize(vFans) == 4 );
@@ -797,7 +798,7 @@ int Smt_PrsBuild2_rec( Wlc_Ntk_t * pNtk, Smt_Prs_t * p, int iNode, int iObjPrev,
                         int iRoot2 = Vec_IntEntry(vRoots, 2);
                         char * pStr2 = Abc_NamStr(p->pStrs, Abc_Lit2Var(iRoot2));
                         int Num = atoi( pStr2 );
-                        fSigned = (Type1 == WLC_OBJ_BIT_SIGNEXT);
+                        //fSigned = (Type1 == WLC_OBJ_BIT_SIGNEXT);
                         if ( Type1 == WLC_OBJ_ROTATE_R || Type1 == WLC_OBJ_ROTATE_L )
                         {
                             int iConst = Smt_PrsBuildConstant( pNtk, pStr2, -1, Smt_PrsGenName(p) );
@@ -899,6 +900,7 @@ Wlc_Ntk_t * Smt_PrsBuild2( Smt_Prs_t * p )
     // start network and create primary inputs
     pNtk = Wlc_NtkAlloc( p->pName, 1000 );
     pNtk->pManName = Abc_NamStart( 1000, 24 );
+    pNtk->fSmtLib = 1;
     // collect top-level asserts
     vFansRoot = Vec_WecEntry( &p->vObjs, 0 );
     Vec_IntForEachEntry( vFansRoot, Root, i )

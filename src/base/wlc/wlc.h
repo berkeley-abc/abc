@@ -89,13 +89,14 @@ typedef enum {
     WLC_OBJ_ARI_SUB,       // 44: arithmetic subtraction
     WLC_OBJ_ARI_MULTI,     // 45: arithmetic multiplier
     WLC_OBJ_ARI_DIVIDE,    // 46: arithmetic division
-    WLC_OBJ_ARI_MODULUS,   // 47: arithmetic modulus
-    WLC_OBJ_ARI_POWER,     // 48: arithmetic power
-    WLC_OBJ_ARI_MINUS,     // 49: arithmetic minus
-    WLC_OBJ_ARI_SQRT,      // 50: integer square root
-    WLC_OBJ_ARI_SQUARE,    // 51: integer square
-    WLC_OBJ_TABLE,         // 52: bit table
-    WLC_OBJ_NUMBER         // 53: unused
+    WLC_OBJ_ARI_REM,       // 47: arithmetic remainder
+    WLC_OBJ_ARI_MODULUS,   // 48: arithmetic modulus
+    WLC_OBJ_ARI_POWER,     // 49: arithmetic power
+    WLC_OBJ_ARI_MINUS,     // 50: arithmetic minus
+    WLC_OBJ_ARI_SQRT,      // 51: integer square root
+    WLC_OBJ_ARI_SQUARE,    // 52: integer square
+    WLC_OBJ_TABLE,         // 53: bit table
+    WLC_OBJ_NUMBER         // 54: unused
 } Wlc_ObjType_t;
 // when adding new types, remember to update table Wlc_Names in "wlcNtk.c"
 
@@ -138,6 +139,7 @@ struct Wlc_Ntk_t_
     char *                 pInits;             // initial values
     int                    nObjs[WLC_OBJ_NUMBER]; // counter of objects of each type
     int                    nAnds[WLC_OBJ_NUMBER]; // counter of AND gates after blasting
+    int                    fSmtLib;            // the network comes from an SMT-LIB file
     // memory for objects
     Wlc_Obj_t *            pObjs;
     int                    iObj;
@@ -196,7 +198,7 @@ static inline int          Wlc_ObjRangeBeg( Wlc_Obj_t * p )                     
 static inline int          Wlc_ObjRangeIsReversed( Wlc_Obj_t * p )                  { return p->End < p->Beg;                                                  }
 
 static inline int          Wlc_ObjIsSigned( Wlc_Obj_t * p )                         { return p->Signed;                                                        }
-static inline int          Wlc_ObjIsSignedFanin01( Wlc_Ntk_t * p, Wlc_Obj_t * pObj ){ return Wlc_ObjFanin0(p, pObj)->Signed && Wlc_ObjFanin1(p, pObj)->Signed; }
+static inline int          Wlc_ObjIsSignedFanin01( Wlc_Ntk_t * p, Wlc_Obj_t * pObj ){ return p->fSmtLib ? Wlc_ObjIsSigned(pObj) : (Wlc_ObjFanin0(p, pObj)->Signed && Wlc_ObjFanin1(p, pObj)->Signed); }
 static inline int          Wlc_ObjSign( Wlc_Obj_t * p )                             { return Abc_Var2Lit( Wlc_ObjRange(p), Wlc_ObjIsSigned(p) );               }
 static inline int *        Wlc_ObjConstValue( Wlc_Obj_t * p )                       { assert(p->Type == WLC_OBJ_CONST);      return Wlc_ObjFanins(p);          }
 static inline int          Wlc_ObjTableId( Wlc_Obj_t * p )                          { assert(p->Type == WLC_OBJ_TABLE);      return p->Fanins[1];              }
