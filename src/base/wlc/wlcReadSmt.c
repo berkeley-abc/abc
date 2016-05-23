@@ -157,7 +157,7 @@ static inline int Smt_StrToType( char * pName, int * pfSigned )
         Type = WLC_OBJ_BIT_NAND;      // 16: bitwise NAND
     else if ( !strcmp(pName, "bvnor") )
         Type = WLC_OBJ_BIT_NOR;       // 17: bitwise NOR
-    else if ( !strcmp(pName, "bvnxor") )
+    else if ( !strcmp(pName, "bvxnor") )
         Type = WLC_OBJ_BIT_NXOR;      // 18: bitwise NXOR
     else if ( !strcmp(pName, "extract") )
         Type = WLC_OBJ_BIT_SELECT;    // 19: bit selection
