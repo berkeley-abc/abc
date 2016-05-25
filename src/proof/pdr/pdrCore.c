@@ -61,6 +61,7 @@ void Pdr_ManSetDefaultParams( Pdr_Par_t * pPars )
     pPars->fMonoCnf       =       0;  // monolythic CNF
     pPars->fDumpInv       =       0;  // dump inductive invariant
     pPars->fShortest      =       0;  // forces bug traces to be shortest
+    pPars->fUsePropOut    =       1;  // use property output
     pPars->fVerbose       =       0;  // verbose output
     pPars->fVeryVerbose   =       0;  // very verbose output
     pPars->fNotVerbose    =       0;  // not printing line-by-line progress

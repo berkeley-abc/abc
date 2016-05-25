@@ -179,6 +179,8 @@ void Pdr_ManSetPropertyOutput( Pdr_Man_t * p, int k )
     sat_solver * pSat;
     Aig_Obj_t * pObj;
     int Lit, RetValue, i;
+    if ( !p->pPars->fUsePropOut )
+        return;
     pSat = Pdr_ManSolver(p, k);
     Saig_ManForEachPo( p->pAig, pObj, i )
     {
