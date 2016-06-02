@@ -39,12 +39,11 @@ ABC_NAMESPACE_IMPL_START
 int Fxch_FastExtract( Vec_Wec_t* vCubes,
                       int ObjIdMax,
                       int nMaxDivExt,
-                      int SMode, 
                       int fVerbose,
                       int fVeryVerbose )
 {
     abctime TempTime;
-    Fxch_Man_t* pFxchMan = Fxch_ManAlloc( vCubes, (char)SMode );
+    Fxch_Man_t* pFxchMan = Fxch_ManAlloc( vCubes );
     int i;
 
     TempTime = Abc_Clock();
@@ -102,7 +101,6 @@ int Fxch_FastExtract( Vec_Wec_t* vCubes,
 ***********************************************************************/
 int Abc_NtkFxchPerform( Abc_Ntk_t* pNtk,
                         int nMaxDivExt,
-                        int SMode,
                         int fVerbose,
                         int fVeryVerbose )
 {
@@ -117,7 +115,7 @@ int Abc_NtkFxchPerform( Abc_Ntk_t* pNtk,
     }
 
     vCubes = Abc_NtkFxRetrieve( pNtk );
-    if ( Fxch_FastExtract( vCubes, Abc_NtkObjNumMax( pNtk ), nMaxDivExt, SMode, fVerbose, fVeryVerbose ) > 0 )
+    if ( Fxch_FastExtract( vCubes, Abc_NtkObjNumMax( pNtk ), nMaxDivExt, fVerbose, fVeryVerbose ) > 0 )
     {
         Abc_NtkFxInsert( pNtk, vCubes );
         Vec_WecFree( vCubes );

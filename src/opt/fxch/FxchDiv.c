@@ -225,8 +225,7 @@ int Fxch_DivAdd( Fxch_Man_t* pFxchMan,
     /* Verify if the divisor already exist */ 
     if ( iDiv == Vec_FltSize( pFxchMan->vDivWeights ) )
     {
-        if ( pFxchMan->SMode == 0 )
-            Vec_WecPushLevel( pFxchMan->vDivCubePairs );
+        Vec_WecPushLevel( pFxchMan->vDivCubePairs );
 
         /* Assign initial weight */
         if ( fSingleCube )
@@ -456,128 +455,6 @@ void Fxch_DivPrint( Fxch_Man_t* pFxchMan,
 
     printf( " Lits =%7d  ", pFxchMan->nLits );
     printf( "Divs =%8d  \n", Hsh_VecSize( pFxchMan->pDivHash ) );
-}
-
-/* XXX: The following functions were adapted from "fx" to be used by the Saving Memory mode */ 
-void Fxch_DivFindPivots( Vec_Int_t* vDiv, 
-                         int* pLit0, 
-                         int* pLit1 )
-{
-    int  i, 
-         Lit;
-       * pLit0 = -1;
-       * pLit1 = -1;
- 
-    Vec_IntForEachEntry( vDiv, Lit, i )
-    {
-        if ( Abc_LitIsCompl( Lit ) )
-        {
-            if ( *pLit1 == -1 )
-                *pLit1 = Abc_Lit2Var( Lit );
-        }
-        else
-        {
-            if ( *pLit0 == -1 )
-                *pLit0 = Abc_Lit2Var( Lit );
-        }
-        if ( *pLit0 >= 0 && *pLit1 >= 0 )
-            return;
-    }
-}
-
-int Fxch_DivFind( Vec_Int_t* vCube0,
-                  Vec_Int_t* vCube1,
-                  Vec_Int_t* vCubeFree )
-{
-    int Counter = 0, 
-        fAttr0 = 0,
-        fAttr1 = 1;
-    int* pBeg1 = vCube0->pArray + 1,
-       * pBeg2 = vCube1->pArray + 1,
-       * pEnd1 = vCube0->pArray + vCube0->nSize,
-       * pEnd2 = vCube1->pArray + vCube1->nSize;
- 
-    Vec_IntClear( vCubeFree );
-
-    while ( pBeg1 < pEnd1 && pBeg2 < pEnd2 )
-    {
-        if ( *pBeg1 == *pBeg2 )
-        {
-            pBeg1++;
-            pBeg2++;
-            Counter++;
-        }
-        else if ( *pBeg1 < *pBeg2 )
-            Vec_IntPush( vCubeFree, Abc_Var2Lit( *pBeg1++, fAttr0 ) );
-        else  
-        {
-            if ( Vec_IntSize( vCubeFree ) == 0 )
-                fAttr0 = 1, fAttr1 = 0;
-            Vec_IntPush( vCubeFree, Abc_Var2Lit( *pBeg2++, fAttr1) );
-        }
-    }
-    while ( pBeg1 < pEnd1 )
-        Vec_IntPush( vCubeFree, Abc_Var2Lit( *pBeg1++, fAttr0 ) );
-    while ( pBeg2 < pEnd2 )
-        Vec_IntPush( vCubeFree, Abc_Var2Lit( *pBeg2++, fAttr1 ) );
-
-    assert( !Abc_LitIsCompl( Vec_IntEntry(vCubeFree, 0) ) );
-    return Counter;
-}
-
-void Fxch_DivFindCubePairs( Fxch_Man_t* pFxchMan,
-                            Vec_Int_t* vCubes_Lit0, 
-                            Vec_Int_t* vCubes_Lit1 )
-{
-    int* pBeg1 = vCubes_Lit0->pArray + 1,
-       * pBeg2 = vCubes_Lit1->pArray + 1,
-       * pEnd1 = vCubes_Lit0->pArray + vCubes_Lit0->nSize,
-       * pEnd2 = vCubes_Lit1->pArray + vCubes_Lit1->nSize;
- 
-    Vec_IntClear( pFxchMan->vPairs );
-
-    while ( pBeg1 < pEnd1 && pBeg2 < pEnd2 )
-    {
-        int CubeId1 = Fxch_ManGetLit( pFxchMan, *pBeg1, 0 ),
-            CubeId2 = Fxch_ManGetLit( pFxchMan, *pBeg2, 0 ),
-            i, k, i_, k_;
-
-        if ( CubeId1 == CubeId2 )
-        {
-            for ( i = 1; pBeg1+i < pEnd1; i++ )
-                if ( CubeId1 != Fxch_ManGetLit( pFxchMan, pBeg1[i], 0) )
-                    break;
-
-            for ( k = 1; pBeg2+k < pEnd2; k++ )
-                if ( CubeId1 != Fxch_ManGetLit( pFxchMan, pBeg2[k], 0) )
-                    break;
-
-            for ( i_ = 0; i_ < i; i_++ )
-            for ( k_ = 0; k_ < k; k_++ )
-            {
-                if ( pBeg1[i_] == pBeg2[k_] )
-                    continue;
-                Fxch_DivFind( Vec_WecEntry( pFxchMan->vCubes, pBeg1[i_] ),
-                              Vec_WecEntry( pFxchMan->vCubes, pBeg2[k_] ), 
-                              pFxchMan->vCubeFree );
-
-                if ( Vec_IntSize( pFxchMan->vCubeFree ) == 4 )
-                    Fxch_DivNormalize( pFxchMan->vCubeFree );
-
-                if ( !Vec_IntEqual( pFxchMan->vDiv, pFxchMan->vCubeFree ) )
-                    continue;
-
-                Vec_IntPush( pFxchMan->vPairs, pBeg1[i_] );
-                Vec_IntPush( pFxchMan->vPairs, pBeg2[k_] );
-            }
-            pBeg1 += i;
-            pBeg2 += k;
-        }
-        else if ( CubeId1 < CubeId2 )
-            pBeg1++;
-        else 
-            pBeg2++;
-    }
 }
 
 ////////////////////////////////////////////////////////////////////////

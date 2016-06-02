@@ -160,23 +160,18 @@ static inline void Fxch_ManCompressCubes( Vec_Wec_t* vCubes,
 ////////////////////////////////////////////////////////////////////////
 ///                     PUBLIC INTERFACE                             ///
 ////////////////////////////////////////////////////////////////////////
-Fxch_Man_t* Fxch_ManAlloc( Vec_Wec_t* vCubes,
-                           char SMode )
+Fxch_Man_t* Fxch_ManAlloc( Vec_Wec_t* vCubes )
 {
     Fxch_Man_t* pFxchMan = ABC_CALLOC( Fxch_Man_t, 1 );
 
     pFxchMan->vCubes = vCubes;
-    pFxchMan->pDivHash    = Hsh_VecManStart( 1000 );
+    pFxchMan->pDivHash = Hsh_VecManStart( 1000 );
     pFxchMan->vDivWeights = Vec_FltAlloc( 1000 );
-
-    pFxchMan->SMode = SMode;
-    if ( pFxchMan->SMode == 0 )
-        pFxchMan->vDivCubePairs = Vec_WecAlloc( 1000 );
-
+    pFxchMan->vDivCubePairs = Vec_WecAlloc( 1000 );
     pFxchMan->vCubeFree = Vec_IntAlloc( 100 );
-    pFxchMan->vDiv      = Vec_IntAlloc( 100 );
-    pFxchMan->vCubesS   = Vec_IntAlloc( 100 );
-    pFxchMan->vPairs    = Vec_IntAlloc( 100 );
+    pFxchMan->vDiv = Vec_IntAlloc( 100 );
+    pFxchMan->vCubesS = Vec_IntAlloc( 100 );
+    pFxchMan->vPairs = Vec_IntAlloc( 100 );
 
     return pFxchMan;
 }
@@ -186,21 +181,15 @@ void Fxch_ManFree( Fxch_Man_t* pFxchMan )
     Vec_WecFree( pFxchMan->vLits );
     Vec_IntFree( pFxchMan->vLitCount );
     Vec_IntFree( pFxchMan->vLitHashKeys );
-
     Hsh_VecManStop( pFxchMan->pDivHash );
     Vec_FltFree( pFxchMan->vDivWeights );
     Vec_QueFree( pFxchMan->vDivPrio );
-
-    if ( pFxchMan->SMode == 0 )
-        Vec_WecFree( pFxchMan->vDivCubePairs );
-
+    Vec_WecFree( pFxchMan->vDivCubePairs );
     Vec_IntFree( pFxchMan->vLevels );
-
     Vec_IntFree( pFxchMan->vCubeFree );
     Vec_IntFree( pFxchMan->vDiv );
     Vec_IntFree( pFxchMan->vCubesS );
     Vec_IntFree( pFxchMan->vPairs );
-
     ABC_FREE( pFxchMan );
 }
 
@@ -381,6 +370,7 @@ void Fxch_ManUpdate( Fxch_Man_t* pFxchMan,
     {
         Lit0 = Abc_Lit2Var( Vec_IntEntry( pFxchMan->vDiv, 0 ) );
         Lit1 = Abc_Lit2Var( Vec_IntEntry( pFxchMan->vDiv, 1 ) );
+        assert( Lit0 >= 0 && Lit1 >= 0 );
 
         Fxch_ManCompressCubes( pFxchMan->vCubes, Vec_WecEntry( pFxchMan->vLits, Abc_LitNot( Lit0 ) ) );
         Fxch_ManCompressCubes( pFxchMan->vCubes, Vec_WecEntry( pFxchMan->vLits, Abc_LitNot( Lit1 ) ) );
@@ -388,25 +378,13 @@ void Fxch_ManUpdate( Fxch_Man_t* pFxchMan,
                                 Vec_WecEntry( pFxchMan->vLits, Abc_LitNot( Lit1 ) ),
                                 pFxchMan->vCubesS );
     }
-    else
-        Fxch_DivFindPivots( pFxchMan->vDiv, &Lit0, &Lit1 );
 
-    assert( Lit0 >= 0 && Lit1 >= 0 );
 
     /* Find pairs associated with the divisor */
     Vec_IntClear( pFxchMan->vPairs );
-    if ( pFxchMan->SMode == 1 )
-    {
-        Fxch_ManCompressCubes( pFxchMan->vCubes, Vec_WecEntry(pFxchMan->vLits, Lit0) );
-        Fxch_ManCompressCubes( pFxchMan->vCubes, Vec_WecEntry(pFxchMan->vLits, Lit1) );
-        Fxch_DivFindCubePairs( pFxchMan, Vec_WecEntry( pFxchMan->vLits, Lit0 ), Vec_WecEntry( pFxchMan->vLits, Lit1 ) );
-    }
-    else
-    {
-        vDivCubePairs = Vec_WecEntry( pFxchMan->vDivCubePairs, iDiv );
-        Vec_IntAppend( pFxchMan->vPairs, vDivCubePairs );
-        Vec_IntErase( vDivCubePairs );
-    }
+    vDivCubePairs = Vec_WecEntry( pFxchMan->vDivCubePairs, iDiv );
+    Vec_IntAppend( pFxchMan->vPairs, vDivCubePairs );
+    Vec_IntErase( vDivCubePairs );
 
     Vec_IntForEachEntryDouble( pFxchMan->vPairs, iCube0, iCube1, i )
     {

@@ -4137,17 +4137,16 @@ usage:
 ***********************************************************************/
 static int Abc_CommandFxch( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern int Abc_NtkFxchPerform( Abc_Ntk_t * pNtk, int nMaxDivExt, int SMode, int fVerbose, int fVeryVerbose );
+    extern int Abc_NtkFxchPerform( Abc_Ntk_t * pNtk, int nMaxDivExt, int fVerbose, int fVeryVerbose );
     Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
 
     int c,
         nMaxDivExt = 0,
-        SMode = 0,
         fVerbose = 0,
         fVeryVerbose = 0;
 
     Extra_UtilGetoptReset();
-    while ( (c = Extra_UtilGetopt(argc, argv, "Nsvwh")) != EOF )
+    while ( (c = Extra_UtilGetopt(argc, argv, "Nvwh")) != EOF )
     {
         switch (c)
         {
@@ -4162,10 +4161,6 @@ static int Abc_CommandFxch( Abc_Frame_t * pAbc, int argc, char ** argv )
 
                 if ( nMaxDivExt < 0 )
                     goto usage;
-                break;
-
-            case 's':
-                SMode ^= 1;
                 break;
 
             case 'v':
@@ -4206,7 +4201,7 @@ static int Abc_CommandFxch( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
 
-    Abc_NtkFxchPerform( pNtk, nMaxDivExt, SMode, fVerbose, fVeryVerbose );
+    Abc_NtkFxchPerform( pNtk, nMaxDivExt, fVerbose, fVeryVerbose );
 
     return 0;
 
@@ -4214,7 +4209,6 @@ usage:
     Abc_Print( -2, "usage: fxch [-N <num>] [-svwh]\n");
     Abc_Print( -2, "\t           performs fast extract with cube hashing on the current network\n");
     Abc_Print( -2, "\t-N <num> : max number of divisors to extract during this run [default = unused]\n" );
-    Abc_Print( -2, "\t-s       : memory saving mode (slower) [default = %d]\n", SMode? "yes": "no" );
     Abc_Print( -2, "\t-v       : print verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-w       : print additional information [default = %s]\n", fVeryVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h       : print the command usage\n");

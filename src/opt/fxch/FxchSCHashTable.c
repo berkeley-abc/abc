@@ -291,11 +291,8 @@ int Fxch_SCHashTableInsert( Fxch_SCHashTable_t* pSCHashTable,
 
         iNewDiv = Fxch_DivAdd( pSCHashTable->pFxchMan, fUpdate, 0, Base );
 
-        if ( pSCHashTable->pFxchMan->SMode == 0 )
-        {
         Vec_WecPush( pSCHashTable->pFxchMan->vDivCubePairs, iNewDiv, pEntry->SCData.iCube );
         Vec_WecPush( pSCHashTable->pFxchMan->vDivCubePairs, iNewDiv, pNewEntry->SCData.iCube );
-        }
 
         Pairs++;
     }
@@ -365,8 +362,6 @@ int Fxch_SCHashTableRemove( Fxch_SCHashTable_t* pSCHashTable,
 
         iDiv = Fxch_DivRemove( pSCHashTable->pFxchMan, fUpdate, 0, Base );
 
-        if ( pSCHashTable->pFxchMan->SMode == 0 )
-        {
         int i,
             iCube0,
             iCube1;
@@ -381,7 +376,6 @@ int Fxch_SCHashTableRemove( Fxch_SCHashTable_t* pSCHashTable,
             }
         if ( Vec_IntSize( vDivCubePairs ) == 0 )
             Vec_IntErase( vDivCubePairs );
-        }
 
         Pairs++;
     }

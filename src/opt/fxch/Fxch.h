@@ -113,9 +113,6 @@ struct Fxch_Man_t_
     Vec_Int_t*     vCubeFree;  // cube-free divisor
     Vec_Int_t*     vDiv;       // selected divisor
 
-    /* Config */
-    char    SMode;        /* Saving Memory mode */
-
     /* Statistics */
     abctime timeInit;   /* Initialization time */
     abctime timeExt;    /* Extraction time */
@@ -138,8 +135,8 @@ extern void       Abc_NtkFxInsert( Abc_Ntk_t* pNtk, Vec_Wec_t* vCubes );
 extern int        Abc_NtkFxCheck( Abc_Ntk_t* pNtk );
 
 /*===== Fxch.c =======================================================*/
-int Abc_NtkFxchPerform( Abc_Ntk_t* pNtk, int nMaxDivExt, int SMode, int fVerbose, int fVeryVerbose );
-int Fxch_FastExtract( Vec_Wec_t* vCubes, int ObjIdMax, int nMaxDivExt, int SMode, int fVerbose, int fVeryVerbose );
+int Abc_NtkFxchPerform( Abc_Ntk_t* pNtk, int nMaxDivExt, int fVerbose, int fVeryVerbose );
+int Fxch_FastExtract( Vec_Wec_t* vCubes, int ObjIdMax, int nMaxDivExt, int fVerbose, int fVeryVerbose );
 
 /*===== FxchDiv.c ====================================================================================================*/
 int  Fxch_DivCreate( Fxch_Man_t* pFxchMan,  Fxch_SubCube_t* pSubCube0, Fxch_SubCube_t* pSubCube1 );
@@ -149,13 +146,8 @@ void Fxch_DivSepareteCubes( Vec_Int_t* vDiv, Vec_Int_t* vCube0, Vec_Int_t* vCube
 int  Fxch_DivRemoveLits( Vec_Int_t* vCube0, Vec_Int_t* vCube1, Vec_Int_t* vDiv, int *fCompl );
 void Fxch_DivPrint( Fxch_Man_t* pFxchMan, int iDiv );
 
-/* XXX: The following functions were adapted from "fx" to be used by the Saving Memory mode */ 
-void Fxch_DivFindPivots( Vec_Int_t* vDiv, int* pLit0, int* pLit1 );
-int  Fxch_DivFind( Vec_Int_t* vCube0, Vec_Int_t* vCube1, Vec_Int_t* vCubeFree );
-void Fxch_DivFindCubePairs( Fxch_Man_t* pFxchMan, Vec_Int_t* vCubes_Lit0, Vec_Int_t* vCubes_Lit1 );
-
 /*===== FxchMan.c ====================================================================================================*/
-Fxch_Man_t* Fxch_ManAlloc( Vec_Wec_t* vCubes, char SMode );
+Fxch_Man_t* Fxch_ManAlloc( Vec_Wec_t* vCubes );
 void  Fxch_ManFree( Fxch_Man_t* pFxchMan );
 void  Fxch_ManMapLiteralsIntoCubes( Fxch_Man_t* pFxchMan, int nVars );
 void  Fxch_ManGenerateLitHashKeys( Fxch_Man_t* pFxchMan );
