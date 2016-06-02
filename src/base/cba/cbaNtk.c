@@ -20,6 +20,7 @@
 
 #include <math.h>
 #include "cba.h"
+#include "base/main/main.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -660,7 +661,7 @@ Vec_Int_t * Cba_NtkCollectDfs( Cba_Ntk_t * p )
     Cba_NtkForEachPo( p, iObj, i )
         Vec_IntPush( vObjs, iObj );
     assert( Vec_IntSize(vObjs) <= Cba_NtkObjNum(p) );
-    if ( Vec_IntSize(vObjs) != Cba_NtkObjNum(p) )
+    if ( Vec_IntSize(vObjs) != Cba_NtkObjNum(p) && !Abc_FrameReadFlag("silentmode") )
     {
         int iObj = Cba_NtkFindMissing( vObjs, Cba_NtkObjNum(p) );
         printf( "Warning: DSF ordering for module \"%s\" collected %d out of %d objects.\n", Cba_NtkName(p), Vec_IntSize(vObjs), Cba_NtkObjNum(p) );
