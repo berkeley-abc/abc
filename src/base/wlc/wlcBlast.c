@@ -1344,6 +1344,25 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Vec_Int_t * vBoxIds, int fGiaSimple 
     assert( Vec_PtrSize(pNew->vNamesOut) == Gia_ManCoNum(pNew) );
 */
     pNew->pSpec = Abc_UtilStrsav( p->pSpec ? p->pSpec : p->pName );
+    // dump the miter parts
+    if ( 0 )
+    {
+        char pFileName0[1000], pFileName1[1000];
+        char * pNameGeneric = Extra_FileNameGeneric( p->pSpec );
+        Vec_Int_t * vOrder = Vec_IntStartNatural( Gia_ManPoNum(pNew) );
+        Gia_Man_t * pGia0 = Gia_ManDupCones( pNew, Vec_IntArray(vOrder),                         Vec_IntSize(vOrder)/2, 0 );
+        Gia_Man_t * pGia1 = Gia_ManDupCones( pNew, Vec_IntArray(vOrder) + Vec_IntSize(vOrder)/2, Vec_IntSize(vOrder)/2, 0 );
+        assert( Gia_ManPoNum(pNew) % 2 == 0 );
+        sprintf( pFileName0, "%s_lhs_.aig", pNameGeneric );
+        sprintf( pFileName1, "%s_rhs_.aig", pNameGeneric );
+        Gia_AigerWrite( pGia0, pFileName0, 0, 0 );
+        Gia_AigerWrite( pGia1, pFileName1, 0, 0 );
+        Gia_ManStop( pGia0 );
+        Gia_ManStop( pGia1 );
+        Vec_IntFree( vOrder );
+        ABC_FREE( pNameGeneric );
+        printf( "Dumped two parts of the miter into files \"%s\" and \"%s\".\n", pFileName0, pFileName1 );
+    }
     return pNew;
 }
 

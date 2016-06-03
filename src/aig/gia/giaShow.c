@@ -362,20 +362,29 @@ void Gia_WriteDotAig( Gia_Man_t * pMan, char * pFileName, Vec_Int_t * vBold, int
                 fprintf( pFile, "  Node%d [label = \"%d(%d%s)\"", pNode->Id, pNode->Id, 
                     Gia_Regular(pNode->pEquiv)->Id, Gia_IsComplement(pNode->pEquiv)? "\'":"" );
 */
-            fprintf( pFile, "  Node%d [label = \"%d\"", i, i ); 
             if ( vMarks && Vec_IntEntry(vMarks, i) > 0 )
             {
+                fprintf( pFile, "  Node%d [label = \"%d_%d\"", i, Vec_IntFind(vRemap, i), i ); 
                 if ( Abc_Lit2Att2(Vec_IntEntry(vMarks, i)) == 2 )
                     fprintf( pFile, ", shape = doubleoctagon" );
                 else 
                     fprintf( pFile, ", shape = octagon" );
             }
             else if ( Gia_ObjIsXor(pNode) )
+            {
+                fprintf( pFile, "  Node%d [label = \"%d\"", i, i ); 
                 fprintf( pFile, ", shape = doublecircle" );
+            }
             else if ( Gia_ObjIsMux(pMan, pNode) )
+            {
+                fprintf( pFile, "  Node%d [label = \"%d\"", i, i ); 
                 fprintf( pFile, ", shape = trapezium" );
+            }
             else
+            {
+                fprintf( pFile, "  Node%d [label = \"%d\"", i, i ); 
                 fprintf( pFile, ", shape = ellipse" );
+            }
 
             if ( pNode->fMark0 )
                 fprintf( pFile, ", style = filled" );

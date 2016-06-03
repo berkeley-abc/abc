@@ -311,8 +311,8 @@ void Gia_PolynBuildOne( Pln_Man_t * p, int iMono )
         Vec_IntAppendMinus( p->vTempC[0], vConst, 0 );
         Gia_PolynBuildAdd( p, p->vTempC[0], p->vTempM[2] );   //  C * y 
 
-        //if ( !p->pGia->vXors || Vec_IntFind(p->pGia->vXors, iDriver) > 0 )
-        {
+        //if ( !p->pGia->vXors || Vec_IntFind(p->pGia->vXors, iDriver) == -1 || Vec_IntFind(p->pGia->vXors, iDriver) == 5 )
+        { 
             vConst = Hsh_VecReadEntry( p->pHashC, iConst );
             Vec_IntAppendMinus2x( p->vTempC[0], vConst );
             Gia_PolynBuildAdd( p, p->vTempC[0], p->vTempM[3] );   // -C * x * y 

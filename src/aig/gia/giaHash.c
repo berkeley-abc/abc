@@ -575,11 +575,6 @@ int Gia_ManHashMuxReal( Gia_Man_t * p, int iLitC, int iLit1, int iLit0 )
 ***********************************************************************/
 int Gia_ManHashAnd( Gia_Man_t * p, int iLit0, int iLit1 )  
 { 
-    if ( p->fGiaSimple )
-    {
-        assert( p->nHTable == 0 );
-        return Gia_ManAppendAnd( p, iLit0, iLit1 );
-    }
     if ( iLit0 < 2 )
         return iLit0 ? iLit1 : 0;
     if ( iLit1 < 2 )
@@ -588,6 +583,11 @@ int Gia_ManHashAnd( Gia_Man_t * p, int iLit0, int iLit1 )
         return iLit1;
     if ( iLit0 == Abc_LitNot(iLit1) )
         return 0;
+    if ( p->fGiaSimple )
+    {
+        assert( p->nHTable == 0 );
+        return Gia_ManAppendAnd( p, iLit0, iLit1 );
+    }
     if ( (p->nObjs & 0xFF) == 0 && 2 * p->nHTable < Gia_ManAndNum(p) )
         Gia_ManHashResize( p );
     if ( p->fAddStrash )

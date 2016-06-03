@@ -6878,6 +6878,12 @@ int Abc_CommandRr( Abc_Frame_t * pAbc, int argc, char ** argv )
         }
     }
 
+    printf( "This command is obsolete." );
+    printf( "To perform pure redudancy removal, try \"mfs -r\".\n" );
+    printf( "To perform something a little stronger try \"mfs2\"\n" );
+    printf( "When working with an AIG, use \"logic\" before and \"strash\" after this command.\n" );
+    return 0;
+
     if ( pNtk == NULL )
     {
         Abc_Print( -1, "Empty network.\n" );
