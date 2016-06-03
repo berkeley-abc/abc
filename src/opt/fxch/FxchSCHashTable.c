@@ -345,6 +345,12 @@ int Fxch_SCHashTableRemove( Fxch_SCHashTable_t* pSCHashTable,
         int Base,
             iDiv;
 
+        int i,
+            iCube0,
+            iCube1;
+
+        Vec_Int_t* vDivCubePairs;
+
         pNextEntry = Fxch_SCHashTableBin( pSCHashTable, iNextEntry );
 
         if ( !Fxch_SCHashTableEntryCompare( pSCHashTable, vCubes, &( pEntry->SCData ), &( pNextEntry->SCData ) )
@@ -362,11 +368,7 @@ int Fxch_SCHashTableRemove( Fxch_SCHashTable_t* pSCHashTable,
 
         iDiv = Fxch_DivRemove( pSCHashTable->pFxchMan, fUpdate, 0, Base );
 
-        int i,
-            iCube0,
-            iCube1;
-
-        Vec_Int_t* vDivCubePairs = Vec_WecEntry( pSCHashTable->pFxchMan->vDivCubePairs, iDiv );
+        vDivCubePairs = Vec_WecEntry( pSCHashTable->pFxchMan->vDivCubePairs, iDiv );
         Vec_IntForEachEntryDouble( vDivCubePairs, iCube0, iCube1, i )
             if ( ( iCube0 == (int)pNextEntry->SCData.iCube &&  iCube1 == (int)pEntry->SCData.iCube )  ||
                  ( iCube0 == (int)pEntry->SCData.iCube &&  iCube1 == (int)pNextEntry->SCData.iCube ) )
