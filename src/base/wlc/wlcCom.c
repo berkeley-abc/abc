@@ -338,14 +338,17 @@ int Abc_CommandBlast( Abc_Frame_t * pAbc, int argc, char ** argv )
     Wlc_Ntk_t * pNtk = Wlc_AbcGetNtk(pAbc);
     Vec_Int_t * vBoxIds = NULL;
     Gia_Man_t * pNew = NULL;
-    int c, fGiaSimple = 0, fMulti = 0, fVerbose  = 0;
+    int c, fGiaSimple = 0, fAddOutputs = 0, fMulti = 0, fVerbose  = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "cmvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "comvh" ) ) != EOF )
     {
         switch ( c )
         {
         case 'c':
             fGiaSimple ^= 1;
+            break;
+        case 'o':
+            fAddOutputs ^= 1;
             break;
         case 'm':
             fMulti ^= 1;
@@ -371,7 +374,7 @@ int Abc_CommandBlast( Abc_Frame_t * pAbc, int argc, char ** argv )
             Abc_Print( 1, "Warning:  There is no multipliers in the design.\n" );
     }
     // transform
-    pNew = Wlc_NtkBitBlast( pNtk, vBoxIds, fGiaSimple );
+    pNew = Wlc_NtkBitBlast( pNtk, vBoxIds, fGiaSimple, fAddOutputs );
     Vec_IntFreeP( &vBoxIds );
     if ( pNew == NULL )
     {
@@ -381,9 +384,10 @@ int Abc_CommandBlast( Abc_Frame_t * pAbc, int argc, char ** argv )
     Abc_FrameUpdateGia( pAbc, pNew );
     return 0;
 usage:
-    Abc_Print( -2, "usage: %%blast [-cmvh]\n" );
+    Abc_Print( -2, "usage: %%blast [-comvh]\n" );
     Abc_Print( -2, "\t         performs bit-blasting of the word-level design\n" );
     Abc_Print( -2, "\t-c     : toggle using AIG w/o const propagation and strashing [default = %s]\n", fGiaSimple? "yes": "no" );
+    Abc_Print( -2, "\t-o     : toggle using additional POs on the word-level boundaries [default = %s]\n", fAddOutputs? "yes": "no" );
     Abc_Print( -2, "\t-m     : toggle creating boxes for all multipliers in the design [default = %s]\n", fMulti? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");

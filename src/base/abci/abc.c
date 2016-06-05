@@ -2626,13 +2626,18 @@ usage:
 ***********************************************************************/
 int Abc_CommandPrintStatus( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    int c, fShort = 1;
+    extern void Abc_NtkPrintPoEquivs( Abc_Ntk_t * pNtk );
+    Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
+    int c, fOutStatus = 0, fShort = 1;
     // set defaults
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "sh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "osh" ) ) != EOF )
     {
         switch ( c )
         {
+        case 'o':
+            fOutStatus ^= 1;
+            break;
         case 's':
             fShort ^= 1;
             break;
@@ -2641,6 +2646,16 @@ int Abc_CommandPrintStatus( Abc_Frame_t * pAbc, int argc, char ** argv )
         default:
             goto usage;
         }
+    }
+    if ( fOutStatus )
+    {
+        if ( pNtk == NULL )
+        {
+            Abc_Print( -1, "Empty network.\n" );
+            return 1;
+        }
+        Abc_NtkPrintPoEquivs( pNtk );
+        return 0;
     }
     Abc_Print( 1,"Status = %d  Frames = %d   ", pAbc->Status, pAbc->nFrames );
     if ( pAbc->pCex == NULL && pAbc->vCexVec == NULL )
@@ -2691,8 +2706,9 @@ int Abc_CommandPrintStatus( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: print_status [-sh]\n" );
+    Abc_Print( -2, "usage: print_status [-osh]\n" );
     Abc_Print( -2, "\t        prints verification status\n" );
+    Abc_Print( -2, "\t-o    : toggle printing output status [default = %s]\n", fOutStatus? "yes": "no" );
     Abc_Print( -2, "\t-s    : toggle using short print-out [default = %s]\n", fShort? "yes": "no" );
     Abc_Print( -2, "\t-h    : print the command usage\n");
     return 1;

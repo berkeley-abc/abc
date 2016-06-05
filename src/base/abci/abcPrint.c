@@ -1695,6 +1695,46 @@ void Abc_NtkPrintMiter( Abc_Ntk_t * pNtk )
         printf( "The first satisfiable output is number %d (%s).\n", iOut, Abc_ObjName( Abc_NtkPo(pNtk, iOut) ) );
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Checks the status of the miter.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkPrintPoEquivs( Abc_Ntk_t * pNtk )
+{
+    Abc_Obj_t * pObj, * pDriver, * pRepr;  int i, iRepr;
+    Vec_Int_t * vMap = Vec_IntStartFull( Abc_NtkObjNumMax(pNtk) );
+    Abc_NtkForEachPo( pNtk, pObj, i )
+    {
+        pDriver = Abc_ObjFanin0(pObj);
+        if ( Abc_NtkIsStrash(pNtk) && pDriver == Abc_AigConst1(pNtk) )
+        {
+            printf( "%s = Const%d\n", Abc_ObjName(pObj), !Abc_ObjFaninC0(pObj) );
+            continue;
+        }
+        else if ( !Abc_NtkIsStrash(pNtk) && Abc_NodeIsConst(pDriver) )
+        {
+            printf( "%s = Const%d\n", Abc_ObjName(pObj), Abc_NodeIsConst1(pDriver) );
+            continue;
+        }
+        iRepr = Vec_IntEntry( vMap, Abc_ObjId(pDriver) );
+        if ( iRepr == -1 )
+        {
+            Vec_IntWriteEntry( vMap, Abc_ObjId(pDriver), i );
+            continue;
+        }
+        pRepr = Abc_NtkCo(pNtk, iRepr);
+        printf( "%s = %s%s\n", Abc_ObjName(pObj), Abc_ObjFaninC0(pRepr) == Abc_ObjFaninC0(pObj) ? "" : "!", Abc_ObjName(pRepr) );
+    }
+    Vec_IntFree( vMap );
+}
+
 
 
 

@@ -716,14 +716,14 @@ void Wlc_BlastSquare( Gia_Man_t * pNew, int * pNum, int nNum, Vec_Int_t * vTmp, 
   SeeAlso     []
 
 ***********************************************************************/
-Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Vec_Int_t * vBoxIds, int fGiaSimple )
+Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Vec_Int_t * vBoxIds, int fGiaSimple, int fAddOutputs )
 {
     int fVerbose = 0;
     int fUseOldMultiplierBlasting = 0;
     Tim_Man_t * pManTime = NULL;
     Gia_Man_t * pTemp, * pNew, * pExtra = NULL;
     Wlc_Obj_t * pObj;
-    Vec_Int_t * vBits = &p->vBits, * vTemp0, * vTemp1, * vTemp2, * vRes;
+    Vec_Int_t * vBits = &p->vBits, * vTemp0, * vTemp1, * vTemp2, * vRes, * vAddOutputs = NULL, * vAddObjs = NULL;
     int nBits = Wlc_NtkPrepareBits( p );
     int nRange, nRange0, nRange1, nRange2;
     int i, k, b, iFanin, iLit, nAndPrev, * pFans0, * pFans1, * pFans2;
@@ -743,6 +743,10 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Vec_Int_t * vBoxIds, int fGiaSimple 
     pNew->fGiaSimple = fGiaSimple;
     if ( !fGiaSimple )
         Gia_ManHashAlloc( pNew );
+    if ( fAddOutputs )
+        vAddOutputs = Vec_IntAlloc( 100 );
+    if ( fAddOutputs )
+        vAddObjs = Vec_IntAlloc( 100 );
     // prepare for AIG with boxes
     if ( vBoxIds )
     {
@@ -1183,6 +1187,17 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Vec_Int_t * vBoxIds, int fGiaSimple 
         else assert( 0 );
         assert( Vec_IntSize(vBits) == Wlc_ObjCopy(p, i) );
         Vec_IntAppend( vBits, vRes );
+        if ( vAddOutputs && !Wlc_ObjIsCo(pObj) && 
+            (
+             (pObj->Type >= WLC_OBJ_MUX      && pObj->Type <= WLC_OBJ_ROTATE_L)     || 
+             (pObj->Type >= WLC_OBJ_COMP_EQU && pObj->Type <= WLC_OBJ_COMP_MOREEQU) || 
+             (pObj->Type >= WLC_OBJ_ARI_ADD  && pObj->Type <= WLC_OBJ_ARI_SQUARE)
+            )
+           )
+        {
+            Vec_IntAppend( vAddOutputs, vRes );
+            Vec_IntPush( vAddObjs, Wlc_ObjId(p, pObj) );
+        }
         p->nAnds[pObj->Type] += Gia_ManAndNum(pNew) - nAndPrev;
     }
     p->nAnds[0] = Gia_ManAndNum(pNew);
@@ -1194,6 +1209,14 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Vec_Int_t * vBoxIds, int fGiaSimple 
     // create COs
     Wlc_NtkForEachCo( p, pObj, i )
     {
+        // create additional PO literals
+        if ( vAddOutputs && pObj->fIsFi )
+        {
+            Vec_IntForEachEntry( vAddOutputs, iLit, k )
+                Gia_ManAppendCo( pNew, iLit );
+            printf( "Created %d additional POs for %d interesting internal word-level variables.\n", Vec_IntSize(vAddOutputs), Vec_IntSize(vAddObjs) );
+            Vec_IntFreeP( &vAddOutputs );
+        }
         nRange = Wlc_ObjRange( pObj );
         pFans0 = Vec_IntEntryP( vBits, Wlc_ObjCopy(p, Wlc_ObjId(p, pObj)) );
         if ( fVerbose )
@@ -1307,42 +1330,62 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Vec_Int_t * vBoxIds, int fGiaSimple 
         Vec_PtrPush( pNew->vNamesIn, Abc_UtilStrsav("abc_reset_flop") );
     assert( Vec_PtrSize(pNew->vNamesIn) == Gia_ManCiNum(pNew) );
     // create output names
-/*
-    pNew->vNamesOut = Vec_PtrAlloc( Gia_ManCoNum(pNew) );
-    Wlc_NtkForEachCo( p, pObj, i )
-    if ( Wlc_ObjIsPo(pObj) )
+    if ( vAddObjs )
     {
-        char * pName = Wlc_ObjName(p, Wlc_ObjId(p, pObj));
-        nRange = Wlc_ObjRange( pObj );
-        if ( nRange == 1 )
-            Vec_PtrPush( pNew->vNamesOut, Abc_UtilStrsav(pName) );
-        else
-            for ( k = 0; k < nRange; k++ )
-            {
-                char Buffer[1000];
-                sprintf( Buffer, "%s[%d]", pName, k );
-                Vec_PtrPush( pNew->vNamesOut, Abc_UtilStrsav(Buffer) );
-            }
+        // add real primary outputs
+        pNew->vNamesOut = Vec_PtrAlloc( Gia_ManCoNum(pNew) );
+        Wlc_NtkForEachCo( p, pObj, i )
+        if ( Wlc_ObjIsPo(pObj) )
+        {
+            char * pName = Wlc_ObjName(p, Wlc_ObjId(p, pObj));
+            nRange = Wlc_ObjRange( pObj );
+            if ( nRange == 1 )
+                Vec_PtrPush( pNew->vNamesOut, Abc_UtilStrsav(pName) );
+            else
+                for ( k = 0; k < nRange; k++ )
+                {
+                    char Buffer[1000];
+                    sprintf( Buffer, "%s[%d]", pName, k );
+                    Vec_PtrPush( pNew->vNamesOut, Abc_UtilStrsav(Buffer) );
+                }
+        }
+        // add internal primary outputs
+        Wlc_NtkForEachObjVec( vAddObjs, p, pObj, i )
+        {
+            char * pName = Wlc_ObjName(p, Wlc_ObjId(p, pObj));
+            nRange = Wlc_ObjRange( pObj );
+            if ( nRange == 1 )
+                Vec_PtrPush( pNew->vNamesOut, Abc_UtilStrsav(pName) );
+            else
+                for ( k = 0; k < nRange; k++ )
+                {
+                    char Buffer[1000];
+                    sprintf( Buffer, "%s[%d]", pName, k );
+                    Vec_PtrPush( pNew->vNamesOut, Abc_UtilStrsav(Buffer) );
+                }
+        }
+        Vec_IntFreeP( &vAddObjs );
+        // add flop outputs
+        if ( fAdded )
+            Vec_PtrPush( pNew->vNamesOut, Abc_UtilStrsav("abc_reset_flop_in") );
+        Wlc_NtkForEachCo( p, pObj, i )
+        if ( !Wlc_ObjIsPo(pObj) )
+        {
+            char * pName = Wlc_ObjName(p, Wlc_ObjId(p, pObj));
+            nRange = Wlc_ObjRange( pObj );
+            if ( nRange == 1 )
+                Vec_PtrPush( pNew->vNamesOut, Abc_UtilStrsav(pName) );
+            else
+                for ( k = 0; k < nRange; k++ )
+                {
+                    char Buffer[1000];
+                    sprintf( Buffer, "%s[%d]", pName, k );
+                    Vec_PtrPush( pNew->vNamesOut, Abc_UtilStrsav(Buffer) );
+                }
+        }
+        assert( Vec_PtrSize(pNew->vNamesOut) == Gia_ManCoNum(pNew) );
     }
-    if ( fAdded )
-        Vec_PtrPush( pNew->vNamesOut, Abc_UtilStrsav("abc_reset_flop_in") );
-    Wlc_NtkForEachCo( p, pObj, i )
-    if ( !Wlc_ObjIsPo(pObj) )
-    {
-        char * pName = Wlc_ObjName(p, Wlc_ObjId(p, pObj));
-        nRange = Wlc_ObjRange( pObj );
-        if ( nRange == 1 )
-            Vec_PtrPush( pNew->vNamesOut, Abc_UtilStrsav(pName) );
-        else
-            for ( k = 0; k < nRange; k++ )
-            {
-                char Buffer[1000];
-                sprintf( Buffer, "%s[%d]", pName, k );
-                Vec_PtrPush( pNew->vNamesOut, Abc_UtilStrsav(Buffer) );
-            }
-    }
-    assert( Vec_PtrSize(pNew->vNamesOut) == Gia_ManCoNum(pNew) );
-*/
+
     pNew->pSpec = Abc_UtilStrsav( p->pSpec ? p->pSpec : p->pName );
     // dump the miter parts
     if ( 0 )
