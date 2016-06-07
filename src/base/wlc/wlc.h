@@ -199,6 +199,8 @@ static inline int          Wlc_ObjRangeIsReversed( Wlc_Obj_t * p )              
 
 static inline int          Wlc_ObjIsSigned( Wlc_Obj_t * p )                         { return p->Signed;                                                        }
 static inline int          Wlc_ObjIsSignedFanin01( Wlc_Ntk_t * p, Wlc_Obj_t * pObj ){ return p->fSmtLib ? Wlc_ObjIsSigned(pObj) : (Wlc_ObjFanin0(p, pObj)->Signed && Wlc_ObjFanin1(p, pObj)->Signed); }
+static inline int          Wlc_ObjIsSignedFanin0( Wlc_Ntk_t * p, Wlc_Obj_t * pObj ) { return p->fSmtLib ? Wlc_ObjIsSigned(pObj) : Wlc_ObjFanin0(p, pObj)->Signed; }
+static inline int          Wlc_ObjIsSignedFanin1( Wlc_Ntk_t * p, Wlc_Obj_t * pObj ) { return p->fSmtLib ? Wlc_ObjIsSigned(pObj) : Wlc_ObjFanin1(p, pObj)->Signed; }
 static inline int          Wlc_ObjSign( Wlc_Obj_t * p )                             { return Abc_Var2Lit( Wlc_ObjRange(p), Wlc_ObjIsSigned(p) );               }
 static inline int *        Wlc_ObjConstValue( Wlc_Obj_t * p )                       { assert(p->Type == WLC_OBJ_CONST);      return Wlc_ObjFanins(p);          }
 static inline int          Wlc_ObjTableId( Wlc_Obj_t * p )                          { assert(p->Type == WLC_OBJ_TABLE);      return p->Fanins[1];              }
