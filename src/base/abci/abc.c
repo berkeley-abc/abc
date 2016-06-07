@@ -3980,7 +3980,7 @@ usage:
 ***********************************************************************/
 int Abc_CommandFastExtract( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern int Abc_NtkFxPerform( Abc_Ntk_t * pNtk, int nNewNodesMax, int nLitCountMax, int fVerbose, int fVeryVerbose );
+    extern int Abc_NtkFxPerform( Abc_Ntk_t * pNtk, int nNewNodesMax, int nLitCountMax, int fCanonDivs, int fVerbose, int fVeryVerbose );
     Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
     Fxu_Data_t Params, * p = &Params;
     int c, fNewAlgo = 1;
@@ -3988,7 +3988,7 @@ int Abc_CommandFastExtract( Abc_Frame_t * pAbc, int argc, char ** argv )
     // set the defaults
     Abc_NtkSetDefaultFxParams( p );
     Extra_UtilGetoptReset();
-    while ( (c = Extra_UtilGetopt(argc, argv, "SDNWMPsdzcnvwh")) != EOF )
+    while ( (c = Extra_UtilGetopt(argc, argv, "SDNWMPsdzcnxvwh")) != EOF )
     {
         switch (c)
         {
@@ -4073,6 +4073,9 @@ int Abc_CommandFastExtract( Abc_Frame_t * pAbc, int argc, char ** argv )
             case 'n':
                 fNewAlgo ^= 1;
                 break;
+            case 'x':
+                p->fCanonDivs ^= 1;
+                break;
             case 'v':
                 p->fVerbose ^= 1;
                 break;
@@ -4114,14 +4117,14 @@ int Abc_CommandFastExtract( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     // the nodes to be merged are linked into the special linked list
     if ( fNewAlgo )
-        Abc_NtkFxPerform( pNtk, p->nNodesExt, p->LitCountMax, p->fVerbose, p->fVeryVerbose );
+        Abc_NtkFxPerform( pNtk, p->nNodesExt, p->LitCountMax, p->fCanonDivs, p->fVerbose, p->fVeryVerbose );
     else
         Abc_NtkFastExtract( pNtk, p );
     Abc_NtkFxuFreeInfo( p );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: fx [-SDNWMP <num>] [-sdzcnvwh]\n");
+    Abc_Print( -2, "usage: fx [-SDNWMP <num>] [-sdzcnxvwh]\n");
     Abc_Print( -2, "\t           performs unate fast extract on the current network\n");
     Abc_Print( -2, "\t-S <num> : max number of single-cube divisors to consider [default = %d]\n", p->nSingleMax );
     Abc_Print( -2, "\t-D <num> : max number of double-cube divisors to consider [default = %d]\n", p->nPairsMax );
@@ -4134,6 +4137,7 @@ usage:
     Abc_Print( -2, "\t-z       : use zero-weight divisors [default = %s]\n", p->fUse0? "yes": "no" );
     Abc_Print( -2, "\t-c       : use complement in the binary case [default = %s]\n", p->fUseCompl? "yes": "no" );
     Abc_Print( -2, "\t-n       : use new implementation of fast extract [default = %s]\n", fNewAlgo? "yes": "no" );
+    Abc_Print( -2, "\t-x       : use only canonical divisors (AND, XOR, MUX) [default = %s]\n", p->fCanonDivs? "yes": "no" );
     Abc_Print( -2, "\t-v       : print verbose information [default = %s]\n", p->fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-w       : print additional information [default = %s]\n", p->fVeryVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h       : print the command usage\n");

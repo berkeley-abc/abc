@@ -56,6 +56,7 @@ struct FxuDataStruct
     int               nPairsMax;        // the max number of double-cube divisors to consider
     int               WeightMin;        // the min weight of a divisor to extract
     int               LitCountMax;      // the max literal count of a divisor to consider
+    int               fCanonDivs;       // use only canonical divisors (AND/XOR/MUX) 
     // the input information
     Vec_Ptr_t *       vSops;            // the SOPs for each node in the network
     Vec_Ptr_t *       vFanins;          // the fanins of each node in the network
