@@ -121,13 +121,11 @@ int Wlc_NtkMuxTree_rec( Gia_Man_t * pNew, int * pCtrl, int nCtrl, Vec_Int_t * vD
   SeeAlso     []
 
 ***********************************************************************/
-void Wlc_BlastShiftRight( Gia_Man_t * pNew, int * pNum, int nNum, int * pShift, int nShift, int fSticky, Vec_Int_t * vRes )
+void Wlc_BlastShiftRightInt( Gia_Man_t * pNew, int * pNum, int nNum, int * pShift, int nShift, int fSticky, Vec_Int_t * vRes )
 {
     int * pRes = Wlc_VecCopy( vRes, pNum, nNum );
     int Fill = fSticky ? pNum[nNum-1] : 0;
     int i, j, fShort = 0;
-    if ( nShift > 32 )
-        nShift = 32;
     assert( nShift <= 32 );
     for( i = 0; i < nShift; i++ ) 
         for( j = 0; j < nNum - fSticky; j++ ) 
@@ -142,13 +140,25 @@ void Wlc_BlastShiftRight( Gia_Man_t * pNew, int * pNum, int nNum, int * pShift, 
                 pRes[j] = Gia_ManHashMux( pNew, pShift[i], pRes[j+(1<<i)], pRes[j] );
         }
 }
-void Wlc_BlastShiftLeft( Gia_Man_t * pNew, int * pNum, int nNum, int * pShift, int nShift, int fSticky, Vec_Int_t * vRes )
+void Wlc_BlastShiftRight( Gia_Man_t * pNew, int * pNum, int nNum, int * pShift, int nShift, int fSticky, Vec_Int_t * vRes )
+{
+    int nShiftMax = Abc_Base2Log(nNum);
+    if ( nShiftMax < nShift )
+    {
+        int i, iRes = pShift[nShiftMax];
+        for ( i = nShiftMax + 1; i < nShift; i++ )
+            iRes = Gia_ManHashOr( pNew, iRes, pShift[i] );
+        pShift[nShiftMax] = iRes;
+    }
+    else 
+        nShiftMax = nShift;
+    Wlc_BlastShiftRightInt( pNew, pNum, nNum, pShift, nShiftMax, fSticky, vRes );
+}
+void Wlc_BlastShiftLeftInt( Gia_Man_t * pNew, int * pNum, int nNum, int * pShift, int nShift, int fSticky, Vec_Int_t * vRes )
 {
     int * pRes = Wlc_VecCopy( vRes, pNum, nNum );
     int Fill = fSticky ? pNum[0] : 0;
     int i, j, fShort = 0;
-    if ( nShift > 32 )
-        nShift = 32;
     assert( nShift <= 32 );
     for( i = 0; i < nShift; i++ ) 
         for( j = nNum-1; j >= fSticky; j-- ) 
@@ -162,6 +172,20 @@ void Wlc_BlastShiftLeft( Gia_Man_t * pNew, int * pNum, int nNum, int * pShift, i
             else 
                 pRes[j] = Gia_ManHashMux( pNew, pShift[i], pRes[j-(1<<i)], pRes[j] );
         }
+}
+void Wlc_BlastShiftLeft( Gia_Man_t * pNew, int * pNum, int nNum, int * pShift, int nShift, int fSticky, Vec_Int_t * vRes )
+{
+    int nShiftMax = Abc_Base2Log(nNum);
+    if ( nShiftMax < nShift )
+    {
+        int i, iRes = pShift[nShiftMax];
+        for ( i = nShiftMax + 1; i < nShift; i++ )
+            iRes = Gia_ManHashOr( pNew, iRes, pShift[i] );
+        pShift[nShiftMax] = iRes;
+    }
+    else 
+        nShiftMax = nShift;
+    Wlc_BlastShiftLeftInt( pNew, pNum, nNum, pShift, nShiftMax, fSticky, vRes );
 }
 void Wlc_BlastRotateRight( Gia_Man_t * pNew, int * pNum, int nNum, int * pShift, int nShift, Vec_Int_t * vRes )
 {
