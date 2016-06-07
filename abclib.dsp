@@ -251,6 +251,10 @@ SOURCE=.\src\base\abci\abcDec.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\base\abci\abcDetect.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\base\abci\abcDress.c
 # End Source File
 # Begin Source File
