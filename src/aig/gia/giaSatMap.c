@@ -314,6 +314,12 @@ static inline void Sbm_AddCardinConstrMerge( sat_solver * p, int * pVars, int lo
         Sbm_AddCardinConstrMerge( p, pVars, lo+r, hi, step, pnVars );
         for ( i = lo+r; i < hi-r; i += step )
             Sbm_AddSorter( p, pVars, i, i+r, pnVars );
+        for ( i = lo+r; i < hi-r-1; i += r )
+        {
+            lit Lits[2] = { Abc_Var2Lit(pVars[i], 0), Abc_Var2Lit(pVars[i+r], 1) };
+            int Cid = sat_solver_addclause( p, Lits, Lits + 2 );
+            assert( Cid );
+        }
     }
 }
 static inline void Sbm_AddCardinConstrRange( sat_solver * p, int * pVars, int lo, int hi, int * pnVars )
