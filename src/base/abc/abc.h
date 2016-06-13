@@ -213,6 +213,7 @@ struct Abc_Ntk_t_
     Vec_Int_t *       vTopo;
     Vec_Ptr_t *       vAttrs;        // managers of various node attributes (node functionality, global BDDs, etc)
     Vec_Int_t *       vNameIds;      // name IDs
+    Vec_Int_t *       vFins;         // obj/type info
 };
 
 struct Abc_Des_t_ 
