@@ -556,7 +556,7 @@ int Cba_CommandBlast( Abc_Frame_t * pAbc, int argc, char ** argv )
     Abc_FrameUpdateGia( pAbc, pNew );
     return 0;
 usage:
-    Abc_Print( -2, "usage: %%blast [-svh]\n" );
+    Abc_Print( -2, "usage: @blast [-svh]\n" );
     Abc_Print( -2, "\t         performs bit-blasting of the word-level design\n" );
     Abc_Print( -2, "\t-s     : toggle blasting sequential elements [default = %s]\n", fSeq? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );

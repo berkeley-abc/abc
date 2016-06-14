@@ -7216,7 +7216,7 @@ usage:
 ***********************************************************************/
 int Abc_CommandDetect( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern void Abc_NtkDetectClassesTest( Abc_Ntk_t * pNtk );
+    extern void Abc_NtkDetectClassesTest( Abc_Ntk_t * pNtk, int fVerbose );
     Abc_Ntk_t * pNtk;
     int c, fVerbose = 0;
     pNtk = Abc_FrameReadNtk(pAbc);
@@ -7244,7 +7244,7 @@ int Abc_CommandDetect( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Only applicable to a logic network.\n" );
         return 1;
     }
-    Abc_NtkDetectClassesTest( pNtk );
+    Abc_NtkDetectClassesTest( pNtk, fVerbose );
     return 0;
 
 usage:
