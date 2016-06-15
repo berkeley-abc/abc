@@ -88,9 +88,9 @@ extern Abc_Ntk_t * Abc_NtkCovDerive( Cov_Man_t * p, Abc_Ntk_t * pNtk );
 extern Abc_Ntk_t * Abc_NtkCovDeriveClean( Cov_Man_t * p, Abc_Ntk_t * pNtk );
 extern Abc_Ntk_t * Abc_NtkCovDeriveRegular( Cov_Man_t * p, Abc_Ntk_t * pNtk );
 /*=== covCore.c ===========================================================*/
-extern Abc_Ntk_t * Abc_NtkSopEsopCover( Abc_Ntk_t * pNtk, int nFaninMax, int fUseEsop, int fUseSop, int fUseInvs, int fVerbose );
+extern Abc_Ntk_t * Abc_NtkSopEsopCover( Abc_Ntk_t * pNtk, int nFaninMax, int nCubesMax, int fUseEsop, int fUseSop, int fUseInvs, int fVerbose );
 /*=== covMan.c ============================================================*/
-extern Cov_Man_t * Cov_ManAlloc( Abc_Ntk_t * pNtk, int nFaninMax );
+extern Cov_Man_t * Cov_ManAlloc( Abc_Ntk_t * pNtk, int nFaninMax, int nCubesMax );
 extern void        Cov_ManFree( Cov_Man_t * p );
 extern void        Abc_NodeCovDropData( Cov_Man_t * p, Abc_Obj_t * pObj );
 /*=== covTest.c ===========================================================*/

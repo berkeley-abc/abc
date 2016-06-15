@@ -57,7 +57,7 @@ static Min_Cube_t * Abc_NodeCovSum( Cov_Man_t * p, Min_Cube_t * pCover0, Min_Cub
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Ntk_t * Abc_NtkSopEsopCover( Abc_Ntk_t * pNtk, int nFaninMax, int fUseEsop, int fUseSop, int fUseInvs, int fVerbose )
+Abc_Ntk_t * Abc_NtkSopEsopCover( Abc_Ntk_t * pNtk, int nFaninMax, int nCubesMax, int fUseEsop, int fUseSop, int fUseInvs, int fVerbose )
 {
     Abc_Ntk_t * pNtkNew;
     Cov_Man_t * p;
@@ -65,7 +65,7 @@ Abc_Ntk_t * Abc_NtkSopEsopCover( Abc_Ntk_t * pNtk, int nFaninMax, int fUseEsop, 
     assert( Abc_NtkIsStrash(pNtk) );
 
     // create the manager
-    p = Cov_ManAlloc( pNtk, nFaninMax );
+    p = Cov_ManAlloc( pNtk, nFaninMax, nCubesMax );
     p->fUseEsop = fUseEsop;
     p->fUseSop  = fUseSop;
     pNtk->pManCut = p;

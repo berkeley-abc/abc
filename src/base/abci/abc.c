@@ -10952,6 +10952,7 @@ int Abc_CommandCover( Abc_Frame_t * pAbc, int argc, char ** argv )
     int fUseEsop;
     int fUseInvs;
     int nFaninMax;
+    int nCubesMax;
     pNtk = Abc_FrameReadNtk(pAbc);
 
     // set defaults
@@ -10960,20 +10961,32 @@ int Abc_CommandCover( Abc_Frame_t * pAbc, int argc, char ** argv )
     fVerbose  =  0;
     fUseInvs  =  1;
     nFaninMax =  8;
+    nCubesMax =  8;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "Nsxivh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "IPsxivh" ) ) != EOF )
     {
         switch ( c )
         {
-        case 'N':
+        case 'I':
             if ( globalUtilOptind >= argc )
             {
-                Abc_Print( -1, "Command line switch \"-N\" should be followed by an integer.\n" );
+                Abc_Print( -1, "Command line switch \"-I\" should be followed by an integer.\n" );
                 goto usage;
             }
             nFaninMax = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
             if ( nFaninMax < 0 )
+                goto usage;
+            break;
+        case 'P':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-P\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nCubesMax = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nCubesMax < 0 )
                 goto usage;
             break;
         case 's':
@@ -11007,7 +11020,7 @@ int Abc_CommandCover( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
 
     // run the command
-    pNtkRes = Abc_NtkSopEsopCover( pNtk, nFaninMax, fUseEsop, fUseSop, fUseInvs, fVerbose );
+    pNtkRes = Abc_NtkSopEsopCover( pNtk, nFaninMax, nCubesMax, fUseEsop, fUseSop, fUseInvs, fVerbose );
     if ( pNtkRes == NULL )
     {
         Abc_Print( -1, "Command has failed.\n" );
@@ -11018,10 +11031,11 @@ int Abc_CommandCover( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: cover [-N num] [-sxvh]\n" );
+    Abc_Print( -2, "usage: cover [-IP num] [-sxvh]\n" );
     Abc_Print( -2, "\t         decomposition into a network of SOP/ESOP PLAs\n" );
     Abc_Print( -2, "\t         (this command is known to have bugs)\n");
-    Abc_Print( -2, "\t-N num : maximum number of inputs [default = %d]\n", nFaninMax );
+    Abc_Print( -2, "\t-I num : maximum number of inputs [default = %d]\n", nFaninMax );
+    Abc_Print( -2, "\t-P num : maximum number of products [default = %d]\n", nCubesMax );
     Abc_Print( -2, "\t-s     : toggle the use of SOPs [default = %s]\n", fUseSop? "yes": "no" );
     Abc_Print( -2, "\t-x     : toggle the use of ESOPs [default = %s]\n", fUseEsop? "yes": "no" );
 //    Abc_Print( -2, "\t-i     : toggle the use of interters [default = %s]\n", fUseInvs? "yes": "no" );

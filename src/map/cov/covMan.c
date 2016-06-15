@@ -42,7 +42,7 @@ ABC_NAMESPACE_IMPL_START
   SeeAlso     []
 
 ***********************************************************************/
-Cov_Man_t * Cov_ManAlloc( Abc_Ntk_t * pNtk, int nFaninMax )
+Cov_Man_t * Cov_ManAlloc( Abc_Ntk_t * pNtk, int nFaninMax, int nCubesMax )
 {
     Cov_Man_t * pMan;
     Cov_Obj_t * pMem;
@@ -54,7 +54,7 @@ Cov_Man_t * Cov_ManAlloc( Abc_Ntk_t * pNtk, int nFaninMax )
     pMan = ABC_ALLOC( Cov_Man_t, 1 );
     memset( pMan, 0, sizeof(Cov_Man_t) );
     pMan->nFaninMax = nFaninMax;
-    pMan->nCubesMax = 2 * pMan->nFaninMax;
+    pMan->nCubesMax = nCubesMax;
     pMan->nWords    = Abc_BitWordNum( nFaninMax * 2 );
 
     // get the cubes
