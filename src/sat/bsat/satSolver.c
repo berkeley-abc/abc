@@ -219,8 +219,9 @@ void sat_solver_set_var_activity(sat_solver* s, int * pVars, int nVars)
     s->var_inc = 1;
     for ( i = 0; i < nVars; i++ )
     {
-        s->activity[pVars[i]] = nVars-i;
-        order_update( s, pVars[i] );
+        int iVar = pVars ? pVars[i] : i;
+        s->activity[iVar] = nVars-i;
+        order_update( s, iVar );
     }
 }
 

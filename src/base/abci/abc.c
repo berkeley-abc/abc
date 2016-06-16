@@ -35163,10 +35163,11 @@ int Abc_CommandAbc9Edge( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     extern int Edg_ManAssignEdgeNew( Gia_Man_t * p, int nEdges, int fVerbose );
     extern void Seg_ManComputeDelay( Gia_Man_t * pGia, int Delay, int nFanouts, int fTwo, int fVerbose );
+    extern void Sle_ManExplore( Gia_Man_t * pGia, int DelayInit, int fVerbose );
 
-    int c, DelayMax = 0, nFanouts = 0, nEdges = 1, fReverse = 0, fUsePack = 0, fUseOld = 0, fVerbose = 0;
+    int c, DelayMax = 0, nFanouts = 0, nEdges = 1, fReverse = 0, fUsePack = 0, fUseOld = 0, fMapping = 0, fVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "DFErpovh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "DFErpomvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -35211,6 +35212,9 @@ int Abc_CommandAbc9Edge( Abc_Frame_t * pAbc, int argc, char ** argv )
             case 'o':
                 fUseOld ^= 1;
                 break;
+            case 'm':
+                fMapping ^= 1;
+                break;
             case 'v':
                 fVerbose ^= 1;
                 break;
@@ -35228,6 +35232,11 @@ int Abc_CommandAbc9Edge( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
         Abc_Print( -1, "Current AIG has no mapping. Run \"&if\".\n" );
         return 1;
+    }
+    if ( fMapping )
+    {
+        Sle_ManExplore( pAbc->pGia, DelayMax, fVerbose );
+        return 0;
     }
     if ( Gia_ManLutSizeMax(pAbc->pGia) > 6 )
     {
@@ -35263,7 +35272,7 @@ int Abc_CommandAbc9Edge( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &edge [-DFE num] [-rpovh]\n" );
+    Abc_Print( -2, "usage: &edge [-DFE num] [-rpomvh]\n" );
     Abc_Print( -2, "\t           find edge assignment of the LUT-mapped network\n" );
     Abc_Print( -2, "\t-D num   : the upper bound on delay [default = %d]\n", DelayMax );
     Abc_Print( -2, "\t-F num   : skip using edge if fanout higher than this [default = %d]\n", nFanouts );
@@ -35271,6 +35280,7 @@ usage:
     Abc_Print( -2, "\t-r       : toggles using reverse order [default = %s]\n", fReverse? "yes": "no" );
     Abc_Print( -2, "\t-p       : toggles deriving edges from packing [default = %s]\n", fUsePack? "yes": "no" );
     Abc_Print( -2, "\t-o       : toggles using old algorithm [default = %s]\n", fUseOld? "yes": "no" );
+    Abc_Print( -2, "\t-m       : toggles combining edge assignment with mapping [default = %s]\n", fMapping? "yes": "no" );
     Abc_Print( -2, "\t-v       : toggles verbose output [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h       : prints the command usage\n");
     return 1;
