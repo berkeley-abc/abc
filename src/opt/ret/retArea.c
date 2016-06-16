@@ -27,11 +27,11 @@ ABC_NAMESPACE_IMPL_START
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-static Abc_Ntk_t * Abc_NtkRetimeMinAreaOne( Abc_Ntk_t * pNtk, int fForward, int fVerbose );
+static Abc_Ntk_t * Abc_NtkRetimeMinAreaOne( Abc_Ntk_t * pNtk, int fForward, int fUseOldNames, int fVerbose );
 static void        Abc_NtkRetimeMinAreaPrepare( Abc_Ntk_t * pNtk, int fForward );
 static void        Abc_NtkRetimeMinAreaInitValues( Abc_Ntk_t * pNtk, Vec_Ptr_t * vMinCut );
 static Abc_Ntk_t * Abc_NtkRetimeMinAreaConstructNtk( Abc_Ntk_t * pNtk, Vec_Ptr_t * vMinCut );
-static void        Abc_NtkRetimeMinAreaUpdateLatches( Abc_Ntk_t * pNtk, Vec_Ptr_t * vMinCut, int fForward );
+static void        Abc_NtkRetimeMinAreaUpdateLatches( Abc_Ntk_t * pNtk, Vec_Ptr_t * vMinCut, int fForward, int fUseOldNames );
 
 extern Abc_Ntk_t * Abc_NtkAttachBottom( Abc_Ntk_t * pNtkTop, Abc_Ntk_t * pNtkBottom );
 
@@ -50,7 +50,7 @@ extern Abc_Ntk_t * Abc_NtkAttachBottom( Abc_Ntk_t * pNtkTop, Abc_Ntk_t * pNtkBot
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_NtkRetimeMinArea( Abc_Ntk_t * pNtk, int fForwardOnly, int fBackwardOnly, int fVerbose )
+int Abc_NtkRetimeMinArea( Abc_Ntk_t * pNtk, int fForwardOnly, int fBackwardOnly, int fUseOldNames, int fVerbose )
 {
     Abc_Ntk_t * pNtkTotal = NULL, * pNtkBottom;
     Vec_Int_t * vValuesNew = NULL, * vValues;
@@ -66,9 +66,9 @@ int Abc_NtkRetimeMinArea( Abc_Ntk_t * pNtk, int fForwardOnly, int fBackwardOnly,
     if ( !fBackwardOnly )
     {
         if ( fOneFrame )
-            Abc_NtkRetimeMinAreaOne( pNtk, 1, fVerbose );
+            Abc_NtkRetimeMinAreaOne( pNtk, 1, fUseOldNames, fVerbose );
         else
-            while ( Abc_NtkRetimeMinAreaOne( pNtk, 1, fVerbose ) );
+            while ( Abc_NtkRetimeMinAreaOne( pNtk, 1, fUseOldNames, fVerbose ) );
     }
     // remember initial values
     vValues = Abc_NtkCollectLatchValues( pNtk );
@@ -76,9 +76,9 @@ int Abc_NtkRetimeMinArea( Abc_Ntk_t * pNtk, int fForwardOnly, int fBackwardOnly,
     if ( !fForwardOnly )
     {
         if ( fOneFrame )
-            pNtkTotal = Abc_NtkRetimeMinAreaOne( pNtk, 0, fVerbose );
+            pNtkTotal = Abc_NtkRetimeMinAreaOne( pNtk, 0, fUseOldNames, fVerbose );
         else
-            while ( (pNtkBottom = Abc_NtkRetimeMinAreaOne( pNtk, 0, fVerbose )) )
+            while ( (pNtkBottom = Abc_NtkRetimeMinAreaOne( pNtk, 0, fUseOldNames, fVerbose )) )
                 pNtkTotal = Abc_NtkAttachBottom( pNtkTotal, pNtkBottom );  
     }
     // compute initial values
@@ -108,7 +108,7 @@ int Abc_NtkRetimeMinArea( Abc_Ntk_t * pNtk, int fForwardOnly, int fBackwardOnly,
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Ntk_t * Abc_NtkRetimeMinAreaOne( Abc_Ntk_t * pNtk, int fForward, int fVerbose )
+Abc_Ntk_t * Abc_NtkRetimeMinAreaOne( Abc_Ntk_t * pNtk, int fForward, int fUseOldNames, int fVerbose )
 { 
     Abc_Ntk_t * pNtkNew = NULL;
     Vec_Ptr_t * vMinCut;
@@ -125,7 +125,7 @@ Abc_Ntk_t * Abc_NtkRetimeMinAreaOne( Abc_Ntk_t * pNtk, int fForward, int fVerbos
             Abc_NtkRetimeMinAreaInitValues( pNtk, vMinCut );
         else
             pNtkNew = Abc_NtkRetimeMinAreaConstructNtk( pNtk, vMinCut );
-        Abc_NtkRetimeMinAreaUpdateLatches( pNtk, vMinCut, fForward );
+        Abc_NtkRetimeMinAreaUpdateLatches( pNtk, vMinCut, fForward, fUseOldNames );
     }
     // clean up
     Vec_PtrFree( vMinCut );
@@ -408,7 +408,7 @@ Abc_Ntk_t * Abc_NtkRetimeMinAreaConstructNtk( Abc_Ntk_t * pNtk, Vec_Ptr_t * vMin
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_NtkRetimeMinAreaUpdateLatches( Abc_Ntk_t * pNtk, Vec_Ptr_t * vMinCut, int fForward )
+void Abc_NtkRetimeMinAreaUpdateLatches( Abc_Ntk_t * pNtk, Vec_Ptr_t * vMinCut, int fForward, int fUseOldNames )
 {
     Vec_Ptr_t * vCis, * vCos, * vBoxes, * vBoxesNew, * vNodes, * vBuffers;
     Abc_Obj_t * pObj, * pLatch, * pLatchIn, * pLatchOut, * pNext, * pBuffer;
@@ -475,8 +475,17 @@ void Abc_NtkRetimeMinAreaUpdateLatches( Abc_Ntk_t * pNtk, Vec_Ptr_t * vMinCut, i
             pLatchOut = Abc_NtkCreateBo(pNtk);
             pLatch    = Abc_NtkCreateLatch(pNtk);
             pLatchIn  = Abc_NtkCreateBi(pNtk);
-            Abc_ObjAssignName( pLatchOut, Abc_ObjName(pObj), "_o1" );
-            Abc_ObjAssignName( pLatchIn,  Abc_ObjName(pObj), "_i1" );
+
+            if ( fUseOldNames )
+            {
+                Abc_ObjAssignName( pLatchOut, Abc_ObjName(pLatch), "_out" );
+                Abc_ObjAssignName( pLatchIn,  Abc_ObjName(pLatch), "_in" );
+            }
+            else
+            {
+                Abc_ObjAssignName( pLatchOut, Abc_ObjName(pObj), "_o1" );
+                Abc_ObjAssignName( pLatchIn,  Abc_ObjName(pObj), "_i1" );
+            }
             // connect
             Abc_ObjAddFanin( pLatchOut, pLatch );
             Abc_ObjAddFanin( pLatch, pLatchIn );

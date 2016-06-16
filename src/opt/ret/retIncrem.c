@@ -44,7 +44,7 @@ static int Abc_NtkRetimeOneWay( Abc_Ntk_t * pNtk, int fForward, int fVerbose );
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_NtkRetimeIncremental( Abc_Ntk_t * pNtk, int nDelayLim, int fForward, int fMinDelay, int fOneStep, int fVerbose )
+int Abc_NtkRetimeIncremental( Abc_Ntk_t * pNtk, int nDelayLim, int fForward, int fMinDelay, int fOneStep, int fUseOldNames, int fVerbose )
 {
     Abc_Ntk_t * pNtkCopy = NULL;
     Vec_Ptr_t * vBoxes;
@@ -82,7 +82,7 @@ int Abc_NtkRetimeIncremental( Abc_Ntk_t * pNtk, int nDelayLim, int fForward, int
     // restore boxes
     pNtk->vBoxes = vBoxes;
     // finalize the latches
-    RetValue = Abc_NtkRetimeFinalizeLatches( pNtk, tLatches, nIdMaxStart );
+    RetValue = Abc_NtkRetimeFinalizeLatches( pNtk, tLatches, nIdMaxStart, fUseOldNames );
     st__free_table( tLatches );
     if ( RetValue == 0 )
         return 0;
@@ -143,7 +143,7 @@ int Abc_NtkRetimeIncremental( Abc_Ntk_t * pNtk, int nDelayLim, int fForward, int
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_NtkRetimeFinalizeLatches( Abc_Ntk_t * pNtk, st__table * tLatches, int nIdMaxStart )
+int Abc_NtkRetimeFinalizeLatches( Abc_Ntk_t * pNtk, st__table * tLatches, int nIdMaxStart, int fUseOldNames )
 {
     Vec_Ptr_t * vCisOld, * vCosOld, * vBoxesOld, * vCisNew, * vCosNew, * vBoxesNew;
     Abc_Obj_t * pObj, * pLatch, * pLatchIn, * pLatchOut;
@@ -169,8 +169,17 @@ int Abc_NtkRetimeFinalizeLatches( Abc_Ntk_t * pNtk, st__table * tLatches, int nI
             // this is a new latch 
             pLatchIn  = Abc_NtkCreateBi(pNtk);
             pLatchOut = Abc_NtkCreateBo(pNtk);
-            Abc_ObjAssignName( pLatchOut, Abc_ObjName(Abc_ObjFanin0(pLatch)), "_o2" );
-            Abc_ObjAssignName( pLatchIn,  Abc_ObjName(Abc_ObjFanin0(pLatch)), "_i2" );
+
+            if ( fUseOldNames )
+            {
+                Abc_ObjAssignName( pLatchOut, Abc_ObjName(pLatch), "_out" );
+                Abc_ObjAssignName( pLatchIn,  Abc_ObjName(pLatch), "_in" );
+            }
+            else
+            {
+                Abc_ObjAssignName( pLatchOut, Abc_ObjName(Abc_ObjFanin0(pLatch)), "_o2" );
+                Abc_ObjAssignName( pLatchIn,  Abc_ObjName(Abc_ObjFanin0(pLatch)), "_i2" );
+            }
         }
         else
         {

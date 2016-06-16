@@ -48,18 +48,18 @@ ABC_NAMESPACE_HEADER_START
 ////////////////////////////////////////////////////////////////////////
 
 /*=== retArea.c ========================================================*/
-extern int         Abc_NtkRetimeMinArea( Abc_Ntk_t * pNtk, int fForwardOnly, int fBackwardOnly, int fVerbose );
+extern int         Abc_NtkRetimeMinArea( Abc_Ntk_t * pNtk, int fForwardOnly, int fBackwardOnly, int fUseOldNames, int fVerbose );
 /*=== retCore.c ========================================================*/
-extern int         Abc_NtkRetime( Abc_Ntk_t * pNtk, int Mode, int nDelayLim, int fForwardOnly, int fBackwardOnly, int fOneStep, int fVerbose );
+extern int         Abc_NtkRetime( Abc_Ntk_t * pNtk, int Mode, int nDelayLim, int fForwardOnly, int fBackwardOnly, int fOneStep, int fUseOldNames, int fVerbose );
 /*=== retDelay.c ========================================================*/
 extern int         Abc_NtkRetimeMinDelay( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkCopy, int nDelayLim, int nIterLimit, int fForward, int fVerbose );
 /*=== retDirect.c ========================================================*/
-extern int         Abc_NtkRetimeIncremental( Abc_Ntk_t * pNtk, int nDelayLim, int fForward, int fMinDelay, int fOneStep, int fVerbose );
+extern int         Abc_NtkRetimeIncremental( Abc_Ntk_t * pNtk, int nDelayLim, int fForward, int fMinDelay, int fOneStep, int fUseOldNames, int fVerbose );
 extern void        Abc_NtkRetimeShareLatches( Abc_Ntk_t * pNtk, int fInitial );
 extern int         Abc_NtkRetimeNodeIsEnabled( Abc_Obj_t * pObj, int fForward );
 extern void        Abc_NtkRetimeNode( Abc_Obj_t * pObj, int fForward, int fInitial );
 extern st__table *  Abc_NtkRetimePrepareLatches( Abc_Ntk_t * pNtk );
-extern int         Abc_NtkRetimeFinalizeLatches( Abc_Ntk_t * pNtk, st__table * tLatches, int nIdMaxStart );
+extern int         Abc_NtkRetimeFinalizeLatches( Abc_Ntk_t * pNtk, st__table * tLatches, int nIdMaxStart, int fUseOldNames );
 /*=== retFlow.c ========================================================*/
 extern void        Abc_NtkMaxFlowTest( Abc_Ntk_t * pNtk );
 extern Vec_Ptr_t * Abc_NtkMaxFlow( Abc_Ntk_t * pNtk, int fForward, int fVerbose );

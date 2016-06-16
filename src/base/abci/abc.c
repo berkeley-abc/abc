@@ -18072,6 +18072,7 @@ int Abc_CommandRetime( Abc_Frame_t * pAbc, int argc, char ** argv )
     int fForward;
     int fBackward;
     int fOneStep;
+    int fUseOldNames;
     int fVerbose;
     int Mode;
     int nDelayLim;
@@ -18083,10 +18084,11 @@ int Abc_CommandRetime( Abc_Frame_t * pAbc, int argc, char ** argv )
     fForward  =  0;
     fBackward =  0;
     fOneStep  =  0;
+    fUseOldNames = 0;
     fVerbose  =  0;
     nMaxIters = 15;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "MDfbsvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "MDfbsovh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -18120,6 +18122,9 @@ int Abc_CommandRetime( Abc_Frame_t * pAbc, int argc, char ** argv )
             break;
         case 's':
             fOneStep ^= 1;
+            break;
+        case 'o':
+            fUseOldNames ^= 1;
             break;
         case 'v':
             fVerbose ^= 1;
@@ -18165,7 +18170,7 @@ int Abc_CommandRetime( Abc_Frame_t * pAbc, int argc, char ** argv )
         // convert the network into an SOP network
         pNtkRes = Abc_NtkToLogic( pNtk );
         // perform the retiming
-        Abc_NtkRetime( pNtkRes, Mode, nDelayLim, fForward, fBackward, fOneStep, fVerbose );
+        Abc_NtkRetime( pNtkRes, Mode, nDelayLim, fForward, fBackward, fOneStep, fUseOldNames, fVerbose );
         // replace the current network
         Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
         return 0;
@@ -18185,11 +18190,11 @@ int Abc_CommandRetime( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
 
     // perform the retiming
-    Abc_NtkRetime( pNtk, Mode, nDelayLim, fForward, fBackward, fOneStep, fVerbose );
+    Abc_NtkRetime( pNtk, Mode, nDelayLim, fForward, fBackward, fOneStep, fUseOldNames, fVerbose );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: retime [-MD num] [-fbvh]\n" );
+    Abc_Print( -2, "usage: retime [-MD num] [-fbsovh]\n" );
     Abc_Print( -2, "\t         retimes the current network using one of the algorithms:\n" );
     Abc_Print( -2, "\t             1: most forward retiming\n" );
     Abc_Print( -2, "\t             2: most backward retiming\n" );
@@ -18202,6 +18207,7 @@ usage:
     Abc_Print( -2, "\t-f     : enables forward-only retiming in modes 3,4,5 [default = %s]\n", fForward? "yes": "no" );
     Abc_Print( -2, "\t-b     : enables backward-only retiming in modes 3,4,5 [default = %s]\n", fBackward? "yes": "no" );
     Abc_Print( -2, "\t-s     : enables retiming one step only in mode 4 [default = %s]\n", fOneStep? "yes": "no" );
+    Abc_Print( -2, "\t-o     : enables usind old flop naming conventions [default = %s]\n", fUseOldNames? "yes": "no" );
     Abc_Print( -2, "\t-v     : enables verbose output [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
