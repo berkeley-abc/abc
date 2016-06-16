@@ -121,14 +121,37 @@ Abc_Ntk_t * Io_ReadBenchNetwork( Extra_FileReader_t * p )
             pType = (char *)vTokens->pArray[1];
             if ( strncmp(pType, "DFF", 3) == 0 ) // works for both DFF and DFFRSE
             {
-                pNode = Io_ReadCreateLatch( pNtk, (char *)vTokens->pArray[2], (char *)vTokens->pArray[0] );
-//                Abc_LatchSetInit0( pNode );
-                if ( pType[3] == '0' )
-                    Abc_LatchSetInit0( pNode );
-                else if ( pType[3] == '1' )
-                    Abc_LatchSetInit1( pNode );
+                if ( Vec_PtrSize(vTokens) == 6 )
+                {
+                    // create primary input to represent flop output
+                    char pNetName[1000]; char * pName; int i;
+                    char * pFlopOut   = (char *)vTokens->pArray[0];
+                    Abc_Obj_t * pNet  = Abc_NtkFindOrCreateNet( pNtk, pFlopOut );
+                    Abc_Obj_t * pTerm = Abc_NtkCreatePi( pNtk );
+                    Abc_ObjAddFanin( pNet, pTerm );
+                    // create four primary outputs to represent flop inputs
+                    Vec_PtrForEachEntryStart( char *, vTokens, pName, i, 2 )
+                    {
+                        sprintf( pNetName, "%s_%s", pFlopOut, pName );
+                        pNet  = Abc_NtkFindOrCreateNet( pNtk, pName );
+                        pTerm = Abc_NtkCreateNodeBuf( pNtk, pNet );
+                        pNet  = Abc_NtkFindOrCreateNet( pNtk, pNetName );
+                        Abc_ObjAddFanin( pNet, pTerm );
+                        pTerm = Abc_NtkCreatePo( pNtk );
+                        Abc_ObjAddFanin( pTerm, pNet );
+                    }
+                }
                 else
-                    Abc_LatchSetInitDc( pNode );
+                {
+                    pNode = Io_ReadCreateLatch( pNtk, (char *)vTokens->pArray[2], (char *)vTokens->pArray[0] );
+    //                Abc_LatchSetInit0( pNode );
+                    if ( pType[3] == '0' )
+                        Abc_LatchSetInit0( pNode );
+                    else if ( pType[3] == '1' )
+                        Abc_LatchSetInit1( pNode );
+                    else
+                        Abc_LatchSetInitDc( pNode );
+                }
             }
             else if ( strcmp(pType, "LUT") == 0 )
             {
