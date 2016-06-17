@@ -1043,14 +1043,17 @@ usage:
 ***********************************************************************/
 int IoCommandReadPlaMo( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern Abc_Ntk_t * Mop_ManTest( char * pFileName, int fVerbose );
+    extern Abc_Ntk_t * Mop_ManTest( char * pFileName, int fMerge, int fVerbose );
     Abc_Ntk_t * pNtk;
-    int c, fVerbose = 0;
+    int c, fMerge = 0, fVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "mvh" ) ) != EOF )
     {
         switch ( c )
         {
+            case 'm':
+                fMerge ^= 1;
+                break;
             case 'v':
                 fVerbose ^= 1;
                 break;
@@ -1063,7 +1066,7 @@ int IoCommandReadPlaMo( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( argc != globalUtilOptind + 1 )
         goto usage;
     // get the input file name
-    pNtk = Mop_ManTest( argv[globalUtilOptind], fVerbose );
+    pNtk = Mop_ManTest( argv[globalUtilOptind], fMerge, fVerbose );
     if ( pNtk == NULL )
         return 1;
     // replace the current network
@@ -1072,8 +1075,9 @@ int IoCommandReadPlaMo( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( pAbc->Err, "usage: read_plamo [-vh] <file>\n" );
+    fprintf( pAbc->Err, "usage: read_plamo [-mvh] <file>\n" );
     fprintf( pAbc->Err, "\t         reads the network in multi-output PLA\n" );
+    fprintf( pAbc->Err, "\t-m     : toggle dist-1 merge for cubes with identical outputs [default = %s]\n", fMerge? "yes":"no" );
     fprintf( pAbc->Err, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes":"no" );
     fprintf( pAbc->Err, "\t-h     : prints the command summary\n" );
     fprintf( pAbc->Err, "\tfile   : the name of a file to read\n" );
