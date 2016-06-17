@@ -182,10 +182,6 @@ static inline int Fxch_SCHashTableEntryCompare( Fxch_SCHashTable_t* pSCHashTable
     Vec_IntClear( &pSCHashTable->vSubCube0 );
     Vec_IntClear( &pSCHashTable->vSubCube1 );
 
-    if ( pSCData0->iLit1 == 0 && pSCData1->iLit1 == 0 &&
-         Vec_IntEntry( vCube0, pSCData0->iLit0 ) == Abc_LitNot( Vec_IntEntry( vCube1, pSCData1->iLit0 ) ) )
-        return 0;
-
     if ( pSCData0->iLit1 > 0 && pSCData1->iLit1 > 0 &&
          ( Vec_IntEntry( vCube0, pSCData0->iLit0 ) == Vec_IntEntry( vCube1, pSCData1->iLit0 ) ||
            Vec_IntEntry( vCube0, pSCData0->iLit0 ) == Vec_IntEntry( vCube1, pSCData1->iLit1 ) ||
@@ -270,14 +266,16 @@ int Fxch_SCHashTableInsert( Fxch_SCHashTable_t* pSCHashTable,
         if ( !Fxch_SCHashTableEntryCompare( pSCHashTable, vCubes, &( pEntry->SCData ), &( pNewEntry->SCData ) ) )
             continue;
 
-        if ( pEntry->SCData.iLit0 == 0 )
+        if ( ( pEntry->SCData.iLit0 == 0 ) || ( pNewEntry->SCData.iLit0 == 0 ) )
         {
-            printf("[FXCH] SCC detected\n");
-            continue;
-        }
-        if ( pNewEntry->SCData.iLit0 == 0 )
-        {
-            printf("[FXCH] SCC detected\n");
+            Vec_Int_t* vCube0 = Fxch_ManGetCube( pSCHashTable->pFxchMan, pEntry->SCData.iCube ),
+                     * vCube1 = Fxch_ManGetCube( pSCHashTable->pFxchMan, pEntry->SCData.iCube );
+ 
+            if ( Vec_IntSize( vCube0 ) > Vec_IntSize( vCube1 ) )
+                Vec_IntPush( pSCHashTable->pFxchMan->vSCC, pEntry->SCData.iCube );
+            else
+                Vec_IntPush( pSCHashTable->pFxchMan->vSCC, pNewEntry->SCData.iCube );
+
             continue;
         }
 

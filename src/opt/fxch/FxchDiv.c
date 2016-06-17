@@ -457,6 +457,17 @@ void Fxch_DivPrint( Fxch_Man_t* pFxchMan,
     printf( "Divs =%8d  \n", Hsh_VecSize( pFxchMan->pDivHash ) );
 }
 
+int Fxch_DivIsNotConstant1( Vec_Int_t* vDiv )
+{
+    int Lit0 = Abc_Lit2Var( Vec_IntEntry( vDiv, 0 ) ),
+        Lit1 = Abc_Lit2Var( Vec_IntEntry( vDiv, 1 ) );
+
+    if ( ( Vec_IntSize( vDiv ) == 2 )  && ( Lit0 == Abc_LitNot( Lit1 ) ) )
+            return 0;
+
+    return 1;
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
