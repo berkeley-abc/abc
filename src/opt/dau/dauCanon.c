@@ -21,6 +21,7 @@
 #include "dauInt.h"
 #include "misc/util/utilTruth.h"
 #include "misc/vec/vecMem.h"
+#include "bool/lucky/lucky.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -1053,7 +1054,7 @@ unsigned Abc_TtCanonicizePhase( word * pTruth, int nVars )
   SeeAlso     []
 
 ***********************************************************************/
-#define TT_NUM_TABLES 4
+#define TT_NUM_TABLES 5
 
 struct Abc_TtMan_t_
 {
@@ -1086,7 +1087,7 @@ int Abc_TtManNumClasses( Abc_TtMan_t * p )
     return Vec_MemEntryNum( p->vTtMem[TT_NUM_TABLES-1] );
 }
 
-unsigned Abc_TtCanonicizeHie( Abc_TtMan_t * p, word * pTruthInit, int nVars, char * pCanonPerm )
+unsigned Abc_TtCanonicizeHie( Abc_TtMan_t * p, word * pTruthInit, int nVars, char * pCanonPerm, int fExact )
 {
     int fNaive = 1;
     int pStore[17];
@@ -1181,6 +1182,52 @@ unsigned Abc_TtCanonicizeHie( Abc_TtMan_t * p, word * pTruthInit, int nVars, cha
     if ( *pSpot != -1 )
         return 0;
     truthId = Vec_MemHashInsert( p->vTtMem[3], pTruth );
+
+    // perform exact NPN using groups
+    if ( fExact ) {
+        extern void simpleMinimalGroups(word* x, word* pAux, word* minimal, int* pGroups, int nGroups, permInfo** pis, int nVars, int fFlipOutput, int fFlipInput);
+        word pAuxWord[1024], pAuxWord1[1024];
+        int pGroups[nVars];
+        int nGroups = 0;
+        // get groups
+        pGroups[0] = 0;
+        for (i = 0; i < nVars - 1; i++) {
+            if (pStore[i] == pStore[i + 1]) {
+                pGroups[nGroups]++;
+            } else {
+                pGroups[nGroups]++;
+                nGroups++;
+                pGroups[nGroups] = 0;
+            }
+        }
+        pGroups[nGroups]++;
+        nGroups++;
+
+        // compute permInfo from 0 to nVars  (incl.)
+        permInfo * pis[nVars+1];
+        for (i = 0; i <= nVars; i++) {
+            pis[i] = setPermInfoPtr(i);
+        }
+
+        // do the exact matching
+        if (nOnes == nWords * 32) /* balanced output */
+            simpleMinimalGroups(pTruth, pAuxWord, pAuxWord1, pGroups, nGroups, pis, nVars, 1, 1);
+        else if (pStore[0] != pStore[1] && pStore[0] == (nOnes - pStore[0])) /* balanced singleton input */
+            simpleMinimalGroups(pTruth, pAuxWord, pAuxWord1, pGroups, nGroups, pis, nVars, 0, 1);
+        else
+            simpleMinimalGroups(pTruth, pAuxWord, pAuxWord1, pGroups, nGroups, pis, nVars, 0, 0);
+
+        // cleanup
+        for (i = 0; i <= nVars; i++) {
+            freePermInfoPtr(pis[i]);
+        }
+    }
+    // check cache
+    pSpot = Vec_MemHashLookup( p->vTtMem[4], pTruth );
+    if ( *pSpot != -1 )
+        return 0;
+    truthId = Vec_MemHashInsert( p->vTtMem[4], pTruth );
+
     return 0;
 }
 

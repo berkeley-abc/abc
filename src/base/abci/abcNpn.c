@@ -293,17 +293,18 @@ void Abc_TruthNpnPerform( Abc_TtStore_t * p, int NpnType, int fVerbose )
     }
     else if ( NpnType == 7 )
     {
-        extern unsigned Abc_TtCanonicizeHie( Abc_TtMan_t * p, word * pTruth, int nVars, char * pCanonPerm );
+        extern unsigned Abc_TtCanonicizeHie( Abc_TtMan_t * p, word * pTruth, int nVars, char * pCanonPerm, int fExact );
         extern Abc_TtMan_t * Abc_TtManStart( int nVars );
         extern void Abc_TtManStop( Abc_TtMan_t * p );
         extern int Abc_TtManNumClasses( Abc_TtMan_t * p );
 
+        int fExact = 0;
         Abc_TtMan_t * pMan = Abc_TtManStart( p->nVars );
         for ( i = 0; i < p->nFuncs; i++ )
         {
             if ( fVerbose )
                 printf( "%7d : ", i );
-            uCanonPhase = Abc_TtCanonicizeHie( pMan, p->pFuncs[i], p->nVars, pCanonPerm );
+            uCanonPhase = Abc_TtCanonicizeHie( pMan, p->pFuncs[i], p->nVars, pCanonPerm, fExact );
             if ( fVerbose )
 //                Extra_PrintHex( stdout, (unsigned *)p->pFuncs[i], p->nVars ), Abc_TruthNpnPrint(NULL, uCanonPhase, p->nVars), printf( "\n" );
                 printf( "\n" );
