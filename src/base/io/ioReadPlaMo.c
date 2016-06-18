@@ -480,6 +480,55 @@ int Mop_ManMergeDist1Pairs( Mop_Man_t * p, Vec_Int_t * vGroup, Vec_Int_t * vGrou
     Vec_IntFree( vPairsNew );
     return nCubes - Vec_IntSize(vGroup) - Vec_IntSize(vGroupPrev);
 }
+// merge distance-1 with contained output part
+int Mop_ManMergeDist1Pairs2( Mop_Man_t * p, Vec_Int_t * vGroup, Vec_Int_t * vGroupPrev )
+{
+    int w, c1, c2, iCube1, iCube2, Count = 0;
+    Vec_IntForEachEntry( vGroup, iCube1, c1 )
+    if ( iCube1 != -1 )
+    {
+        word * pCube1Out, * pCube1 = Mop_ManCubeIn( p, iCube1 );
+        Vec_IntForEachEntryStart( vGroup, iCube2, c2, c1+1 )
+        if ( iCube2 != -1 )
+        {
+            word * pCube2Out, * pCube2 = Mop_ManCubeIn( p, iCube2 );
+            if ( !Mop_ManCheckDist1(pCube1, pCube2, p->nWordsIn) )
+                continue;
+            pCube1Out = Mop_ManCubeOut( p, iCube1 );
+            pCube2Out = Mop_ManCubeOut( p, iCube2 );
+            assert( memcmp(pCube1Out, pCube2Out, sizeof(word)*p->nWordsOut) );
+            if ( Mop_ManCheckContain(pCube1Out, pCube2Out, p->nWordsOut) ) // pCube1 has more outputs
+            {
+                // update the input part
+                for ( w = 0; w < p->nWordsIn; w++ )
+                    pCube2[w] &= pCube1[w];
+                // sharp the output part
+                for ( w = 0; w < p->nWordsOut; w++ )
+                    pCube1Out[w] &= ~pCube2Out[w];
+                // move to another group
+                Vec_IntPush( vGroupPrev, iCube2 );
+                Vec_IntWriteEntry( vGroup, c2, -1 );
+                Count++;
+            }
+            else if ( Mop_ManCheckContain(pCube2Out, pCube1Out, p->nWordsOut) ) // pCube2 has more outputs
+            {
+                // update the input part
+                for ( w = 0; w < p->nWordsIn; w++ )
+                    pCube1[w] &= pCube2[w];
+                // sharp the output part
+                for ( w = 0; w < p->nWordsOut; w++ )
+                    pCube2Out[w] &= ~pCube1Out[w];
+                // move to another group
+                Vec_IntPush( vGroupPrev, iCube1 );
+                Vec_IntWriteEntry( vGroup, c1, -1 );
+                Count++;
+            }
+        }
+    }
+    if ( Count )
+        Map_ManGroupCompact( vGroup );
+    return Count;
+}
 int Mop_ManMergeDist1All( Mop_Man_t * p, Vec_Wec_t * vGroups )
 {
     Vec_Int_t * vGroup;
@@ -496,6 +545,7 @@ int Mop_ManMergeDist1All( Mop_Man_t * p, Vec_Wec_t * vGroups )
         }
         nEqual  = Mop_ManRemoveIdentical( p, vGroup );
         nReduce = Mop_ManMergeDist1Pairs( p, vGroup, Vec_WecEntry(vGroups, i-1) );
+        //Mop_ManMergeDist1Pairs2( p, vGroup, Vec_WecEntry(vGroups, i-1) );
         Count  += nEqual + nReduce;
         //printf( "Group %3d : Equal =%5d. Reduce =%5d.\n", i, nEqual, nReduce );
     }
@@ -554,13 +604,15 @@ void Mop_ManReduce2( Mop_Man_t * p )
     int Count1    = Mop_ManMergeContainAll( p, vGroups );
     int Count2    = Mop_ManMergeDist1All( p, vGroups );
     int Count3    = Mop_ManMergeContainAll( p, vGroups );
+    int Count4    = Mop_ManMergeDist1All( p, vGroups );
+    int Count5    = Mop_ManMergeContainAll( p, vGroups );
     int Removed   = Mop_ManUnCreateGroups( p, vGroups );
     int nOutLits2 = Mop_ManCountOutputLits( p );
     Vec_WecFree( vGroups );
     assert( Removed == Count1 + Count2 + Count3 );
     // report
-    printf( "Cubes: %d -> %d.  Contain = %d.  Merge = %d.  Contain = %d.  Output lits: %d -> %d.   ", 
-        nCubes, Vec_IntSize(p->vCubes), Count1, Count2, Count3, nOutLits, nOutLits2 );
+    printf( "Cubes: %d -> %d.  C = %d.  M = %d.  C = %d.  M = %d.  C = %d.  Output lits: %d -> %d.   ", 
+        nCubes, Vec_IntSize(p->vCubes), Count1, Count2, Count3, Count4, Count5, nOutLits, nOutLits2 );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
 }
 
