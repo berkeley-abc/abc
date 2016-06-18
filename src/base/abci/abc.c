@@ -242,6 +242,7 @@ static int Abc_CommandRecMerge3              ( Abc_Frame_t * pAbc, int argc, cha
 
 static int Abc_CommandMap                    ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAmap                   ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandPhaseMap               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandUnmap                  ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAttach                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandSuperChoice            ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -876,6 +877,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
 
     Cmd_CommandAdd( pAbc, "SC mapping",   "map",           Abc_CommandMap,              1 );
     Cmd_CommandAdd( pAbc, "SC mapping",   "amap",          Abc_CommandAmap,             1 );
+    Cmd_CommandAdd( pAbc, "SC mapping",   "phase_map",     Abc_CommandPhaseMap,         1 );
     Cmd_CommandAdd( pAbc, "SC mapping",   "unmap",         Abc_CommandUnmap,            1 );
     Cmd_CommandAdd( pAbc, "SC mapping",   "attach",        Abc_CommandAttach,           1 );
     Cmd_CommandAdd( pAbc, "SC mapping",   "superc",        Abc_CommandSuperChoice,      1 );
@@ -15562,6 +15564,59 @@ usage:
     Abc_Print( -2, "\t-s       : toggles sweep after mapping [default = %s]\n", fSweep? "yes": "no" );
     Abc_Print( -2, "\t-v       : toggles verbose output [default = %s]\n", pPars->fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h       : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandPhaseMap( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern void Abc_NtkChangePerform( Abc_Ntk_t * pNtk, int fVerbose );
+    Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
+    int fVerbose = 0, c;
+    // set defaults
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+
+    if ( pNtk == NULL )
+    {
+        Abc_Print( -1, "Empty network.\n" );
+        return 1;
+    }
+    if ( !Abc_NtkHasMapping(pNtk) )
+    {
+        Abc_Print( -1, "Cannot unmap the network that is not mapped.\n" );
+        return 1;
+    }
+    Abc_NtkChangePerform( pNtk, fVerbose );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: phase_map [-vh]\n" );
+    Abc_Print( -2, "\t        tries to replace each gate by its complement (area-only)\n" );
+    Abc_Print( -2, "\t-v    : toggles verbose output [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h    : print the command usage\n");
     return 1;
 }
 

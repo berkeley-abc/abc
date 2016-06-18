@@ -295,7 +295,7 @@ void Abc_ObjChangePerform( Abc_Obj_t * pObj, Vec_Int_t * vInfo, Vec_Int_t * vFir
         assert( Abc_ObjFanoutNum(pObj) == 0 );
         Abc_NtkDeleteObj(pObj);
         pObj = pFanin;
-        assert( fUseInv == 0 );
+//        assert( fUseInv == 0 );
     }
     else
         Abc_ObjChangeUpdate( pObj, iFanin, pCells, pNodeInfo, vTemp );
