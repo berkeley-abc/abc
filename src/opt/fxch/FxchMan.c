@@ -470,7 +470,7 @@ static inline int Fxch_ManCreateCube( Fxch_Man_t* pFxchMan,
 void Fxch_ManUpdate( Fxch_Man_t* pFxchMan,
                      int iDiv )
 {
-    int i, iCube0, iCube1,
+    int i, k, iCube0, iCube1,
         Lit0 = -1,
         Lit1 = -1,
         iVarNew;
@@ -534,7 +534,7 @@ void Fxch_ManUpdate( Fxch_Man_t* pFxchMan,
         if ( iCube0 < Vec_IntSize(pFxchMan->pSCHashTable->vCubeLinks) )
             Fxch_ManDivDoubleCube( pFxchMan, iCube0, 0, 1 ); /* remove (fAdd = 0) - fUpdate = 1 */
 
-    int k = 0;
+    k = 0;
     if ( Fxch_DivIsNotConstant1( pFxchMan->vDiv ) )
     {
         iVarNew = Fxch_ManCreateCube( pFxchMan, Lit0, Lit1 );
