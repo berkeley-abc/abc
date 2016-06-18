@@ -181,7 +181,7 @@ void Abc_TruthNpnPerform( Abc_TtStore_t * p, int NpnType, int fVerbose )
     char pCanonPerm[16];
     unsigned uCanonPhase=0;
     abctime clk = Abc_Clock();
-    int i, nClasses = -1;
+    int i;
 
     char * pAlgoName = NULL;
     if ( NpnType == 0 )
@@ -309,12 +309,12 @@ void Abc_TruthNpnPerform( Abc_TtStore_t * p, int NpnType, int fVerbose )
 //                Extra_PrintHex( stdout, (unsigned *)p->pFuncs[i], p->nVars ), Abc_TruthNpnPrint(NULL, uCanonPhase, p->nVars), printf( "\n" );
                 printf( "\n" );
         }
-        nClasses = Abc_TtManNumClasses( pMan );
+        // nClasses = Abc_TtManNumClasses( pMan );
         Abc_TtManStop( pMan );
     }
     else assert( 0 );
     clk = Abc_Clock() - clk;
-    printf( "Classes =%9d  ", nClasses == -1 ? Abc_TruthNpnCountUnique(p) : nClasses );
+    printf( "Classes =%9d  ", Abc_TruthNpnCountUnique(p) );
     Abc_PrintTime( 1, "Time", clk );
 }
 
