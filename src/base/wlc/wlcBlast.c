@@ -143,7 +143,7 @@ void Wlc_BlastShiftRightInt( Gia_Man_t * pNew, int * pNum, int nNum, int * pShif
 void Wlc_BlastShiftRight( Gia_Man_t * pNew, int * pNum, int nNum, int * pShift, int nShift, int fSticky, Vec_Int_t * vRes )
 {
     int nShiftMax = Abc_Base2Log(nNum);
-    if ( nShiftMax < nShift )
+    if ( nShiftMax < nShift && nShift > 30 )
     {
         int i, iRes = pShift[nShiftMax];
         for ( i = nShiftMax + 1; i < nShift; i++ )
@@ -176,7 +176,7 @@ void Wlc_BlastShiftLeftInt( Gia_Man_t * pNew, int * pNum, int nNum, int * pShift
 void Wlc_BlastShiftLeft( Gia_Man_t * pNew, int * pNum, int nNum, int * pShift, int nShift, int fSticky, Vec_Int_t * vRes )
 {
     int nShiftMax = Abc_Base2Log(nNum);
-    if ( nShiftMax < nShift )
+    if ( nShiftMax < nShift && nShift > 30 )
     {
         int i, iRes = pShift[nShiftMax];
         for ( i = nShiftMax + 1; i < nShift; i++ )
