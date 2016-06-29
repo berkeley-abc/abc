@@ -145,7 +145,7 @@ void Wlc_BlastShiftRight( Gia_Man_t * pNew, int * pNum, int nNum, int * pShift, 
     int nShiftMax = Abc_Base2Log(nNum);
     int * pShiftNew = ABC_ALLOC( int, nShift );
     memcpy( pShiftNew, pShift, sizeof(int)*nShift );
-    if ( nShiftMax < nShift && nShift > 30 )
+    if ( nShiftMax < nShift )
     {
         int i, iRes = pShiftNew[nShiftMax];
         for ( i = nShiftMax + 1; i < nShift; i++ )
