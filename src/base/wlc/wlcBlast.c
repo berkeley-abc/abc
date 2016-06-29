@@ -143,16 +143,19 @@ void Wlc_BlastShiftRightInt( Gia_Man_t * pNew, int * pNum, int nNum, int * pShif
 void Wlc_BlastShiftRight( Gia_Man_t * pNew, int * pNum, int nNum, int * pShift, int nShift, int fSticky, Vec_Int_t * vRes )
 {
     int nShiftMax = Abc_Base2Log(nNum);
+    int * pShiftNew = ABC_ALLOC( int, nShift );
+    memcpy( pShiftNew, pShift, sizeof(int)*nShift );
     if ( nShiftMax < nShift && nShift > 30 )
     {
-        int i, iRes = pShift[nShiftMax];
+        int i, iRes = pShiftNew[nShiftMax];
         for ( i = nShiftMax + 1; i < nShift; i++ )
-            iRes = Gia_ManHashOr( pNew, iRes, pShift[i] );
-        pShift[nShiftMax++] = iRes;
+            iRes = Gia_ManHashOr( pNew, iRes, pShiftNew[i] );
+        pShiftNew[nShiftMax++] = iRes;
     }
     else 
         nShiftMax = nShift;
-    Wlc_BlastShiftRightInt( pNew, pNum, nNum, pShift, nShiftMax, fSticky, vRes );
+    Wlc_BlastShiftRightInt( pNew, pNum, nNum, pShiftNew, nShiftMax, fSticky, vRes );
+    ABC_FREE( pShiftNew );
 }
 void Wlc_BlastShiftLeftInt( Gia_Man_t * pNew, int * pNum, int nNum, int * pShift, int nShift, int fSticky, Vec_Int_t * vRes )
 {
@@ -176,16 +179,19 @@ void Wlc_BlastShiftLeftInt( Gia_Man_t * pNew, int * pNum, int nNum, int * pShift
 void Wlc_BlastShiftLeft( Gia_Man_t * pNew, int * pNum, int nNum, int * pShift, int nShift, int fSticky, Vec_Int_t * vRes )
 {
     int nShiftMax = Abc_Base2Log(nNum);
-    if ( nShiftMax < nShift && nShift > 30 )
+    int * pShiftNew = ABC_ALLOC( int, nShift );
+    memcpy( pShiftNew, pShift, sizeof(int)*nShift );
+    if ( nShiftMax < nShift )
     {
-        int i, iRes = pShift[nShiftMax];
+        int i, iRes = pShiftNew[nShiftMax];
         for ( i = nShiftMax + 1; i < nShift; i++ )
-            iRes = Gia_ManHashOr( pNew, iRes, pShift[i] );
-        pShift[nShiftMax++] = iRes;
+            iRes = Gia_ManHashOr( pNew, iRes, pShiftNew[i] );
+        pShiftNew[nShiftMax++] = iRes;
     }
     else 
         nShiftMax = nShift;
-    Wlc_BlastShiftLeftInt( pNew, pNum, nNum, pShift, nShiftMax, fSticky, vRes );
+    Wlc_BlastShiftLeftInt( pNew, pNum, nNum, pShiftNew, nShiftMax, fSticky, vRes );
+    ABC_FREE( pShiftNew );
 }
 void Wlc_BlastRotateRight( Gia_Man_t * pNew, int * pNum, int nNum, int * pShift, int nShift, Vec_Int_t * vRes )
 {
