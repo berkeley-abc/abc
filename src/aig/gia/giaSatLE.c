@@ -31,8 +31,8 @@ ABC_NAMESPACE_IMPL_START
 ////////////////////////////////////////////////////////////////////////
 
 static inline int   Sle_CutSize( int * pCut )          { return pCut[0] & 0xF;  }  //  4 bits
-static inline int   Sle_CutSign( int * pCut )          { return pCut[0] >> 4;   }  // 28 bits
-static inline int   Sle_CutSetSizeSign( int s, int S ) { return (S << 28) | s;  }
+static inline int   Sle_CutSign( int * pCut )          { return ((unsigned)pCut[0]) >> 4;   }  // 28 bits
+static inline int   Sle_CutSetSizeSign( int s, int S ) { return (S << 4) | s;   }
 static inline int * Sle_CutLeaves( int * pCut )        { return pCut + 1;       } 
 
 static inline int   Sle_CutIsUsed( int * pCut )        { return pCut[1] != 0;   }
@@ -197,7 +197,7 @@ int Sle_ManCutMerge( Gia_Man_t * p, int iObj, Vec_Int_t * vCuts, Vec_Int_t * vTe
         nCuts++;
     }
     // add unit cut
-    Vec_IntPush( vCuts, Sle_CutSetSizeSign(1, iObj % 28) );
+    Vec_IntPush( vCuts, Sle_CutSetSizeSign(1, 1<<(iObj % 28)) );
     Vec_IntPush( vCuts, iObj );
     Vec_IntWriteEntry( vCuts, Vec_IntEntry(vCuts, iObj), nCuts );
     return nCuts;
@@ -213,7 +213,7 @@ Vec_Int_t * Sle_ManComputeCuts( Gia_Man_t * p, int nLutSize, int fVerbose )
     {
         Vec_IntWriteEntry( vCuts, iObj, Vec_IntSize(vCuts) );
         Vec_IntPush( vCuts, 0 );
-        Vec_IntPush( vCuts, Sle_CutSetSizeSign(1, iObj % 28) );
+        Vec_IntPush( vCuts, Sle_CutSetSizeSign(1, 1<<(iObj % 28)) );
         Vec_IntPush( vCuts, iObj );
     }
     Gia_ManForEachAndId( p, iObj )
@@ -226,6 +226,64 @@ Vec_Int_t * Sle_ManComputeCuts( Gia_Man_t * p, int nLutSize, int fVerbose )
     Vec_IntFree( vTemp );
     return vCuts;
 }
+
+/**Function*************************************************************
+
+  Synopsis    [Cut delay computation.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Sle_ManComputeDelayCut( Gia_Man_t * p, int * pCut, Vec_Int_t * vTime )
+{
+    int nSize   = Sle_CutSize(pCut);
+    int k, * pC = Sle_CutLeaves(pCut);
+    int DelayMax = 0;
+    for ( k = 0; k < nSize; k++ )
+        DelayMax = Abc_MaxInt( DelayMax, Vec_IntEntry(vTime, pC[k]) );
+    return DelayMax + 1;
+}
+int Sle_ManComputeDelayOne( Gia_Man_t * p, int iObj, Vec_Int_t * vCuts, Vec_Int_t * vTime )
+{
+    int i, * pCut, Delay, DelayMin = ABC_INFINITY;
+    int * pList = Vec_IntEntryP( vCuts, Vec_IntEntry(vCuts, iObj) );
+    Sle_ForEachCut( pList, pCut, i )
+    {
+        Delay = Sle_ManComputeDelayCut( p, pCut, vTime );
+        DelayMin = Abc_MinInt( DelayMin, Delay );
+    }
+    Vec_IntWriteEntry( vTime, iObj, DelayMin );
+    return DelayMin;
+}
+int Sle_ManComputeDelay( Gia_Man_t * p, Vec_Int_t * vCuts )
+{
+    int iObj, Delay, DelayMax = 0;
+    Vec_Int_t * vTime = Vec_IntStart( Gia_ManObjNum(p) );
+    Gia_ManForEachAndId( p, iObj )
+    {
+        Delay = Sle_ManComputeDelayOne( p, iObj, vCuts, vTime );
+        DelayMax = Abc_MaxInt( DelayMax, Delay );
+    }
+    Vec_IntFree( vTime );
+    //printf( "Delay = %d.\n", DelayMax );
+    return DelayMax;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Cut printing.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 void Sle_ManPrintCut( int * pCut )
 {
     int nSize   = Sle_CutSize(pCut);
@@ -347,6 +405,7 @@ struct Sle_Man_t_
     Gia_Man_t *    pGia;         // user's manager (with mapping and edges)
     int            nLevels;      // total number of levels
     int            fVerbose;     // verbose flag
+    int            nSatCalls;    // the number of SAT calls
     // SAT variables
     int            nNodeVars;    // node variables (Gia_ManAndNum(pGia))
     int            nCutVars;     // cut variables (total number of non-trivial cuts)
@@ -405,6 +464,7 @@ Sle_Man_t * Sle_ManAlloc( Gia_Man_t * pGia, int nLevels, int fVerbose )
     p->vDelayFirst  = Vec_IntStartFull( Gia_ManObjNum(pGia) );
     p->vPolars      = Vec_IntAlloc( 100 );
     p->vLits        = Vec_IntAlloc( 100 );
+    p->nLevels      = Sle_ManComputeDelay( pGia, p->vCuts );
     return p;
 }
 void Sle_ManStop( Sle_Man_t * p )
@@ -462,8 +522,6 @@ void Sle_ManMarkupVariables( Sle_Man_t * p )
     }
     p->nDelayVars = Counter - p->nEdgeVars - p->nCutVars - p->nNodeVars;
     p->nVarsTotal = Counter;
-    printf( "Vars:  Total = %d.  Node = %d. Cut = %d. Edge = %d. Delay = %d.\n", 
-        p->nVarsTotal, p->nNodeVars, p->nCutVars, p->nEdgeVars, p->nDelayVars );
 }
 
 
@@ -552,9 +610,8 @@ void Sle_ManDeriveInit( Sle_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-void Sle_ManDeriveCnf( Sle_Man_t * p )
+void Sle_ManDeriveCnf( Sle_Man_t * p, int nBTLimit, int fDynamic )
 {
-    int nBTLimit = 0;
     int nTimeOut = 0;
     int i, iObj, value;
     Vec_Int_t * vArray;
@@ -580,7 +637,7 @@ void Sle_ManDeriveCnf( Sle_Man_t * p )
     // add cover clauses and edge-to-cut clauses
     Gia_ManForEachAndId( p->pGia, iObj )
     {
-        int e, iEdge, nEdges = 0, Entry;
+        int iEdge, nEdges = 0, Entry;
         int iCutVar0  = Vec_IntEntry( p->vCutFirst, iObj );
         int iEdgeVar0 = Vec_IntEntry( p->vEdgeFirst, iObj );
         int * pCut, * pList  = Sle_ManList( p, iObj );
@@ -609,14 +666,16 @@ void Sle_ManDeriveCnf( Sle_Man_t * p )
                 // find the edge ID between pC[k] and iObj
                 iEdge = Vec_IntEntry(p->vObjMap, pC[k]);
                 if ( iEdge == -1 )
+                {
                     Vec_IntWriteEntry( p->vObjMap, pC[k], (iEdge = nEdges++) );
+                    Vec_WecPush( p->vFanoutEdges, pC[k], iEdgeVar0 + iEdge );
+                }
                 Vec_WecPush( p->vEdgeCuts, iEdge, iCutVar0 + i );
-                Vec_WecPush( p->vFanoutEdges, pC[k], iEdgeVar0 + iEdge );
                 p->nCutClas++;
             }
         }
         assert( nEdges == Vec_IntSize(vCutFans) );
-
+/*
         // edge requires one of the fanout cuts
         Vec_WecForEachLevel( p->vEdgeCuts, vArray, e )
         {
@@ -628,7 +687,7 @@ void Sle_ManDeriveCnf( Sle_Man_t * p )
             assert( value );
             p->nEdgeClas++;
         }
-
+*/
         // clean object map
         Vec_IntForEachEntry( vCutFans, Entry, i )
             Vec_IntWriteEntry( p->vObjMap, Entry, -1 );
@@ -644,6 +703,8 @@ void Sle_ManDeriveCnf( Sle_Man_t * p )
         for ( i = 0; i < Vec_IntSize(vCutFans); i++ )
             Vec_IntPush( vArray, iEdgeVar0 + i );
         // generate pairs
+        if ( fDynamic )
+            continue;
         Vec_IntForEachEntry( vArray, EdgeJ, j )
             Vec_IntForEachEntryStart( vArray, EdgeK, k, j+1 )
             {
@@ -667,6 +728,7 @@ void Sle_ManDeriveCnf( Sle_Man_t * p )
             if ( Sle_ManCutHasPisOnly(pCut, p->vMask) )
             {
                 Vec_IntFill( p->vLits, 1, Abc_Var2Lit(iDelayVar0, 0) ); // pos lit
+//                Vec_IntFillTwo( p->vLits, 2, Abc_Var2Lit(iObj, 1), Abc_Var2Lit(iDelayVar0, 0) );
                 value = sat_solver_addclause( p->pSat, Vec_IntArray(p->vLits), Vec_IntLimit(p->vLits)  );
                 assert( value );
                 break;
@@ -680,6 +742,7 @@ void Sle_ManDeriveCnf( Sle_Man_t * p )
             for ( d = 0; d < p->nLevels; d++ )
             {
                 Vec_IntClear( p->vLits );
+                Vec_IntPush( p->vLits, Abc_Var2Lit(iObj, 1) );
                 Vec_IntPush( p->vLits, Abc_Var2Lit(iFanin, 1) );
                 Vec_IntPush( p->vLits, Abc_Var2Lit(iDelayVarIn + d, 1) );
                 Vec_IntPush( p->vLits, Abc_Var2Lit(iEdgeVar0 + e, 0) );
@@ -689,6 +752,7 @@ void Sle_ManDeriveCnf( Sle_Man_t * p )
                 assert( value );
 
                 Vec_IntClear( p->vLits );
+                Vec_IntPush( p->vLits, Abc_Var2Lit(iObj, 1) );
                 Vec_IntPush( p->vLits, Abc_Var2Lit(iFanin, 1) );
                 Vec_IntPush( p->vLits, Abc_Var2Lit(iDelayVarIn + d, 1) );
                 if ( d < p->nLevels-1 )
@@ -700,8 +764,68 @@ void Sle_ManDeriveCnf( Sle_Man_t * p )
             p->nDelayClas += 2*p->nLevels;
         }
     }
-    printf( "Clas:  Total = %d.  Cut = %d. Edge = %d. EdgeEx = %d. Delay = %d.\n", 
-        sat_solver_nclauses(p->pSat), p->nCutClas, p->nEdgeClas, p->nEdgeClas2, p->nDelayClas );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Add edge compatibility constraints.]
+
+  Description [Returns 1 if constraints have been added.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Sle_ManAddEdgeConstraints( Sle_Man_t * p, int nEdges )
+{
+    Vec_Int_t * vArray;
+    Vec_Int_t * vTemp = Vec_IntAlloc( 100 );
+    int value, iObj, nAdded = 0;
+    assert( nEdges == 1 || nEdges == 2 );
+    Vec_WecForEachLevel( p->vFanoutEdges, vArray, iObj )
+    {
+        int j, k, EdgeJ, EdgeK;
+        // check if they are incompatible
+        Vec_IntClear( vTemp );
+        Vec_IntForEachEntry( vArray, EdgeJ, j )
+            if ( sat_solver_var_value(p->pSat, EdgeJ) )
+                Vec_IntPush( vTemp, EdgeJ );
+        if ( Vec_IntSize(vTemp) <= nEdges )
+            continue;
+        nAdded++;
+        if ( nEdges == 1 )
+        {
+            // generate pairs
+            Vec_IntForEachEntry( vTemp, EdgeJ, j )
+                Vec_IntForEachEntryStart( vTemp, EdgeK, k, j+1 )
+                {
+                    Vec_IntFillTwo( p->vLits, 2, Abc_Var2Lit(EdgeJ, 1), Abc_Var2Lit(EdgeK, 1) );
+                    value = sat_solver_addclause( p->pSat, Vec_IntArray(p->vLits), Vec_IntLimit(p->vLits)  );
+                    assert( value );
+                }
+            p->nEdgeClas2 += Vec_IntSize(vTemp) * (Vec_IntSize(vTemp) - 1) / 2;
+        }
+        else if ( nEdges == 2 )
+        {
+            int m, EdgeM;
+            // generate triples
+            Vec_IntForEachEntry( vTemp, EdgeJ, j )
+                Vec_IntForEachEntryStart( vTemp, EdgeK, k, j+1 )
+                    Vec_IntForEachEntryStart( vTemp, EdgeM, m, k+1 )
+                    {
+                        Vec_IntFillTwo( p->vLits, 2, Abc_Var2Lit(EdgeJ, 1), Abc_Var2Lit(EdgeK, 1) );
+                        Vec_IntPush( p->vLits, Abc_Var2Lit(EdgeM, 1) );
+                        value = sat_solver_addclause( p->pSat, Vec_IntArray(p->vLits), Vec_IntLimit(p->vLits)  );
+                        assert( value );
+                    }
+            p->nEdgeClas2 += Vec_IntSize(vTemp) * (Vec_IntSize(vTemp) - 1) * (Vec_IntSize(vTemp) - 2) / 6;
+        }
+        else assert( 0 );
+    }
+    Vec_IntFree( vTemp );
+    //printf( "Added clauses to %d nodes.\n", nAdded );
+    return nAdded;
 }
 
 /**Function*************************************************************
@@ -761,23 +885,31 @@ void Sle_ManDeriveResult( Sle_Man_t * p, Vec_Int_t * vEdge2, Vec_Int_t * vMappin
   SeeAlso     []
 
 ***********************************************************************/
-void Sle_ManExplore( Gia_Man_t * pGia, int DelayInit, int fVerbose )
+void Sle_ManExplore( Gia_Man_t * pGia, int nBTLimit, int DelayInit, int fDynamic, int fTwoEdges, int fVerbose )
 {
     int fVeryVerbose = 0;
     abctime clk = Abc_Clock();
     Vec_Int_t * vEdges2  = Vec_IntAlloc(1000);
     Vec_Int_t * vMapping = Vec_IntAlloc(1000);
     int i, iLut, nConfs, status, Delay, iFirstVar;
-    int DelayStart = DelayInit ? DelayInit : Gia_ManLutLevel(pGia, NULL);
+    int DelayStart = (DelayInit || !Gia_ManHasMapping(pGia)) ? DelayInit : Gia_ManLutLevel(pGia, NULL);
     Sle_Man_t * p = Sle_ManAlloc( pGia, DelayStart, fVerbose );
+    if ( fVerbose )
+        printf( "Running solver with %d conflicts, %d initial delay, and %d edges. Dynamic constraints = %s.\n", nBTLimit, DelayInit, 1+fTwoEdges, fDynamic?"yes":"no" );
     Sle_ManMarkupVariables( p );
+    if ( fVerbose )
+        printf( "Vars:  Total = %d.  Node = %d. Cut = %d. Edge = %d. Delay = %d.\n", 
+            p->nVarsTotal, p->nNodeVars, p->nCutVars, p->nEdgeVars, p->nDelayVars );
     Sle_ManDeriveInit( p );
-    Sle_ManDeriveCnf( p );
+    Sle_ManDeriveCnf( p, nBTLimit, fDynamic || fTwoEdges );
+    if ( fVerbose )
+        printf( "Clas:  Total = %d.  Cut = %d. Edge = %d. EdgeEx = %d. Delay = %d.\n", 
+            sat_solver_nclauses(p->pSat), p->nCutClas, p->nEdgeClas, p->nEdgeClas2, p->nDelayClas );
     //Sat_SolverWriteDimacs( p->pSat, "temp.cnf", NULL, NULL, 0 );
-    for ( Delay = DelayStart; Delay >= 0; Delay-- )
+    for ( Delay = p->nLevels; Delay >= 0; Delay-- )
     {
         // we constrain COs, although it would be fine to constrain only POs
-        if ( Delay < DelayStart )
+        if ( Delay < p->nLevels )
         {
             Gia_ManForEachCoDriverId( p->pGia, iLut, i )
                 if ( Vec_BitEntry(p->vMask, iLut) ) // internal node
@@ -788,15 +920,26 @@ void Sle_ManExplore( Gia_Man_t * pGia, int DelayInit, int fVerbose )
                 }
             if ( i < Gia_ManCoNum(p->pGia) )
             {
-                printf( "Proved UNSAT for delay %d.  ", Delay );
-                Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
+                if ( fVerbose )
+                {
+                    printf( "Proved UNSAT for delay %d.  ", Delay );
+                    Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
+                }
                 break;
             }
         }
         // solve with assumptions
         //clk = Abc_Clock();
         nConfs = sat_solver_nconflicts( p->pSat );
-        status = sat_solver_solve_internal( p->pSat );
+        while ( 1 )
+        {
+            p->nSatCalls++;
+            status = sat_solver_solve_internal( p->pSat );
+            if ( status != l_True )
+                break;
+            if ( !Sle_ManAddEdgeConstraints(p, 1+fTwoEdges) )
+                break;
+        }
         nConfs = sat_solver_nconflicts( p->pSat ) - nConfs;
         if ( status == l_True )
         {
@@ -851,14 +994,17 @@ void Sle_ManExplore( Gia_Man_t * pGia, int DelayInit, int fVerbose )
             if ( fVerbose )
             {
                 if ( status == l_False )
-                    printf( "Proved UNSAT for delay %d.  ", Delay );
+                    printf( "Proved UNSAT for delay %d. Conf = %8d.  ", Delay, nConfs );
                 else
-                    printf( "Resource limit reached for delay %d.  ", Delay );
+                    printf( "Resource limit reached for delay %d. Conf = %8d.  ", Delay, nConfs );
                 Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
             }
             break;
         }
     }
+    if ( fVerbose )
+        printf( "Clas:  Total = %d.  Cut = %d. Edge = %d. EdgeEx = %d. Delay = %d.  Calls = %d.\n", 
+            sat_solver_nclauses(p->pSat), p->nCutClas, p->nEdgeClas, p->nEdgeClas2, p->nDelayClas, p->nSatCalls );
     if ( Vec_IntSize(vMapping) > 0 )
     {
         Gia_ManEdgeFromArray( p->pGia, vEdges2 );

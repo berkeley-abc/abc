@@ -175,13 +175,14 @@ int Gia_ObjCheckEdge( Gia_Man_t * p, int iObj, int iNext )
 }
 static inline int Gia_ObjEvalEdgeDelay( Gia_Man_t * p, int iObj, Vec_Int_t * vDelay )
 {
+    int nEdgeDelay = 2;
     int i, iFan, Delay, DelayMax = 0;
     if ( Gia_ManHasMapping(p) && Gia_ObjIsLut(p, iObj) )
     {
         assert( Gia_ObjLutSize(p, iObj) <= 4 );
         Gia_LutForEachFanin( p, iObj, iFan, i )
         {
-            Delay = Vec_IntEntry(vDelay, iFan) + (Gia_ObjHaveEdge(p, iObj, iFan) ? 2 : 10);
+            Delay = Vec_IntEntry(vDelay, iFan) + (Gia_ObjHaveEdge(p, iObj, iFan) ? nEdgeDelay : 10);
             DelayMax = Abc_MaxInt( DelayMax, Delay );
         }
     }
@@ -190,7 +191,7 @@ static inline int Gia_ObjEvalEdgeDelay( Gia_Man_t * p, int iObj, Vec_Int_t * vDe
         assert( Gia_ObjLutSize2(p, iObj) <= 4 );
         Gia_LutForEachFanin2( p, iObj, iFan, i )
         {
-            Delay = Vec_IntEntry(vDelay, iFan) + (Gia_ObjHaveEdge(p, iObj, iFan) ? 2 : 10);
+            Delay = Vec_IntEntry(vDelay, iFan) + (Gia_ObjHaveEdge(p, iObj, iFan) ? nEdgeDelay : 10);
             DelayMax = Abc_MaxInt( DelayMax, Delay );
         }
     }

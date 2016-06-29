@@ -35224,14 +35224,23 @@ int Abc_CommandAbc9Edge( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     extern int Edg_ManAssignEdgeNew( Gia_Man_t * p, int nEdges, int fVerbose );
     extern void Seg_ManComputeDelay( Gia_Man_t * pGia, int Delay, int nFanouts, int fTwo, int fVerbose );
-    extern void Sle_ManExplore( Gia_Man_t * pGia, int DelayInit, int fVerbose );
+    extern void Sle_ManExplore( Gia_Man_t * pGia, int nBTLimit, int DelayInit, int fDynamic, int fTwoEdges, int fVerbose );
 
-    int c, DelayMax = 0, nFanouts = 0, nEdges = 1, fReverse = 0, fUsePack = 0, fUseOld = 0, fMapping = 0, fVerbose = 0;
+    int c, nBTLimit = 0, DelayMax = 0, nFanouts = 0, nEdges = 1, fReverse = 0, fUsePack = 0, fUseOld = 0, fMapping = 0, fDynamic = 1, fVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "DFErpomvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "CDFErpomdvh" ) ) != EOF )
     {
         switch ( c )
         {
+            case 'C':
+                if ( globalUtilOptind >= argc )
+                {
+                    Abc_Print( -1, "Command line switch \"-C\" should be followed by a positive integer.\n" );
+                    goto usage;
+                }
+                nBTLimit = atoi(argv[globalUtilOptind]);
+                globalUtilOptind++;
+                break;
             case 'D':
                 if ( globalUtilOptind >= argc )
                 {
@@ -35276,6 +35285,9 @@ int Abc_CommandAbc9Edge( Abc_Frame_t * pAbc, int argc, char ** argv )
             case 'm':
                 fMapping ^= 1;
                 break;
+            case 'd':
+                fDynamic ^= 1;
+                break;
             case 'v':
                 fVerbose ^= 1;
                 break;
@@ -35289,15 +35301,15 @@ int Abc_CommandAbc9Edge( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Empty GIA network.\n" );
         return 1;
     }
+    if ( fMapping )
+    {
+        Sle_ManExplore( pAbc->pGia, nBTLimit, DelayMax, fDynamic, nEdges==2, fVerbose );
+        return 0;
+    }
     if ( !Gia_ManHasMapping(pAbc->pGia) )
     {
         Abc_Print( -1, "Current AIG has no mapping. Run \"&if\".\n" );
         return 1;
-    }
-    if ( fMapping )
-    {
-        Sle_ManExplore( pAbc->pGia, DelayMax, fVerbose );
-        return 0;
     }
     if ( Gia_ManLutSizeMax(pAbc->pGia) > 6 )
     {
@@ -35333,8 +35345,9 @@ int Abc_CommandAbc9Edge( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &edge [-DFE num] [-rpomvh]\n" );
+    Abc_Print( -2, "usage: &edge [-CDFE num] [-rpomdvh]\n" );
     Abc_Print( -2, "\t           find edge assignment of the LUT-mapped network\n" );
+    Abc_Print( -2, "\t-C num   : the SAT solver conflict limit (0 = unused) [default = %d]\n", nBTLimit );
     Abc_Print( -2, "\t-D num   : the upper bound on delay [default = %d]\n", DelayMax );
     Abc_Print( -2, "\t-F num   : skip using edge if fanout higher than this [default = %d]\n", nFanouts );
     Abc_Print( -2, "\t-E num   : the limit on the number of edges (1 <= num <= 2) [default = %d]\n", nEdges );
@@ -35342,6 +35355,7 @@ usage:
     Abc_Print( -2, "\t-p       : toggles deriving edges from packing [default = %s]\n", fUsePack? "yes": "no" );
     Abc_Print( -2, "\t-o       : toggles using old algorithm [default = %s]\n", fUseOld? "yes": "no" );
     Abc_Print( -2, "\t-m       : toggles combining edge assignment with mapping [default = %s]\n", fMapping? "yes": "no" );
+    Abc_Print( -2, "\t-d       : toggles dynamic addition of clauses [default = %s]\n", fDynamic? "yes": "no" );
     Abc_Print( -2, "\t-v       : toggles verbose output [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h       : prints the command usage\n");
     return 1;
@@ -35505,6 +35519,8 @@ int Abc_CommandAbc9Unmap( Abc_Frame_t * pAbc, int argc, char ** argv )
     Vec_IntFreeP( &pAbc->pGia->vMapping );
     Vec_IntFreeP( &pAbc->pGia->vPacking );
     Vec_IntFreeP( &pAbc->pGia->vCellMapping );
+    Vec_IntFreeP( &pAbc->pGia->vEdge1 );
+    Vec_IntFreeP( &pAbc->pGia->vEdge2 );
     return 0;
 
 usage:
