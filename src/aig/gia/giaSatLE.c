@@ -536,10 +536,25 @@ void Sle_ManMarkupVariables( Sle_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
+// returns 1 if Cut can represent LUT (Cut is equal or is contained in LUT)
+static inline int Sle_ManCheckContained( int * pCutLeaves, int nCutLeaves, int * pLutFanins, int nLutFanins )
+{
+    int i, k;
+    if ( nCutLeaves > nLutFanins )
+        return 0;
+    for ( i = 0; i < nCutLeaves; i++ )
+    {
+        for ( k = 0; k < nLutFanins; k++ )
+            if ( pCutLeaves[i] == pLutFanins[k] )
+                break;
+        if ( k == nLutFanins ) // not found
+            return 0;
+    }
+    return 1;
+}
 void Sle_ManDeriveInit( Sle_Man_t * p )
 {
     Vec_Int_t * vEdges;
-    int pFaninsCopy[16];
     int i, iObj, iFanin, iEdge;
     if ( !Gia_ManHasMapping(p->pGia) )
         return;
@@ -553,13 +568,10 @@ void Sle_ManDeriveInit( Sle_Man_t * p )
         Vec_IntPush( p->vPolars, iObj ); // node var
         nFanins = Gia_ObjLutSize( p->pGia, iObj );
         pFanins = Gia_ObjLutFanins( p->pGia, iObj );
-        // duplicate and sort fanins
-        memcpy( pFaninsCopy, pFanins, sizeof(int)*nFanins );
-        Vec_IntSelectSort( pFaninsCopy, nFanins );
         // find cut
         pList = Sle_ManList( p, iObj );
         Sle_ForEachCut( pList, pCut, i )
-            if ( nFanins == Sle_CutSize(pCut) && !memcmp(pFaninsCopy, Sle_CutLeaves(pCut), sizeof(int)*Sle_CutSize(pCut)) )
+            if ( Sle_ManCheckContained( Sle_CutLeaves(pCut), Sle_CutSize(pCut), pFanins, nFanins ) )
             {
                 iFound = i;
                 break;
@@ -568,7 +580,7 @@ void Sle_ManDeriveInit( Sle_Man_t * p )
         {
             printf( "Cannot find the following cut at node %d: {", iObj );
             for ( i = 0; i < nFanins; i++ )
-                printf( " %d", pFaninsCopy[i] );
+                printf( " %d", pFanins[i] );
             printf( " }\n" );
             Sle_ManPrintCuts( p->pGia, p->vCuts, iObj );
             fflush( stdout );
