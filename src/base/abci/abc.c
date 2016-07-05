@@ -33363,7 +33363,7 @@ int Abc_CommandAbc9If( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
         if ( !Abc_FrameReadFlag("silentmode") )
         Abc_Print( -1, "Empty GIA network.\n" );
-        return 1;
+        return 0;
     }
     if ( Gia_ManBufNum(pAbc->pGia) )
     {
