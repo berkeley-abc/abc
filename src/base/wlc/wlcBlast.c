@@ -635,7 +635,7 @@ void Wlc_IntInsert( Vec_Int_t * vProd, Vec_Int_t * vLevel, int Node, int Level )
     Vec_IntInsert( vProd,  i + 1, Node  );
     Vec_IntInsert( vLevel, i + 1, Level );
 }
-void Wlc_BlastReduceMatrix( Gia_Man_t * pNew, Vec_Wec_t * vProds, Vec_Wec_t * vLevels, Vec_Int_t * vRes )
+void Wlc_BlastReduceMatrix( Gia_Man_t * pNew, Vec_Wec_t * vProds, Vec_Wec_t * vLevels, Vec_Int_t * vRes, int nSizeMax )
 {
     Vec_Int_t * vLevel, * vProd;
     int i, NodeS, NodeC, LevelS, LevelC, Node1, Node2, Node3, Level1, Level2, Level3;
@@ -680,6 +680,7 @@ void Wlc_BlastReduceMatrix( Gia_Man_t * pNew, Vec_Wec_t * vProds, Vec_Wec_t * vL
             Vec_IntPush( vProd, 0 );
         assert( Vec_IntSize(vProd) == 2 );
     }
+//    Vec_WecPrint( vProds, 0 );
 
     vLevel = Vec_WecEntry( vLevels, 0 );
     Vec_IntClear( vRes );
@@ -690,7 +691,7 @@ void Wlc_BlastReduceMatrix( Gia_Man_t * pNew, Vec_Wec_t * vProds, Vec_Wec_t * vL
         Vec_IntPush( vRes,   Vec_IntEntry(vProd, 0) );
         Vec_IntPush( vLevel, Vec_IntEntry(vProd, 1) );
     }
-    Wlc_BlastAdder( pNew, Vec_IntArray(vRes), Vec_IntArray(vLevel), nSize );
+    Wlc_BlastAdder( pNew, Vec_IntArray(vRes), Vec_IntArray(vLevel), nSizeMax );
 }
 void Wlc_BlastMultiplier3( Gia_Man_t * pNew, int * pArgA, int * pArgB, int nArgA, int nArgB, Vec_Int_t * vRes )
 {
@@ -704,7 +705,7 @@ void Wlc_BlastMultiplier3( Gia_Man_t * pNew, int * pArgA, int * pArgB, int nArgA
             Vec_WecPush( vLevels, i+k, 0 );
         }
 
-    Wlc_BlastReduceMatrix( pNew, vProds, vLevels, vRes );
+    Wlc_BlastReduceMatrix( pNew, vProds, vLevels, vRes, nArgA + nArgB );
 
     Vec_WecFree( vProds );
     Vec_WecFree( vLevels );
@@ -729,11 +730,84 @@ void Wlc_BlastSquare( Gia_Man_t * pNew, int * pNum, int nNum, Vec_Int_t * vTmp, 
             }
         }
 
-    Wlc_BlastReduceMatrix( pNew, vProds, vLevels, vRes );
+    Wlc_BlastReduceMatrix( pNew, vProds, vLevels, vRes, 2*nNum );
 
     Vec_WecFree( vProds );
     Vec_WecFree( vLevels );
 }
+void Wlc_BlastBooth( Gia_Man_t * pNew, int * pArgA, int * pArgB, int nArgA, int nArgB, Vec_Int_t * vRes, int fSigned )
+{
+    Vec_Wec_t * vProds  = Vec_WecStart( nArgA + nArgB );
+    Vec_Wec_t * vLevels = Vec_WecStart( nArgA + nArgB );
+    int FillA = fSigned ? pArgA[nArgA-1] : 0;
+    int FillB = fSigned ? pArgB[nArgB-1] : 0;
+    int i, k, Sign;
+    // create new arguments
+    Vec_Int_t * vArgB = Vec_IntAlloc( nArgB + 3 );
+    Vec_IntPush( vArgB, 0 );
+    for ( i = 0; i < nArgB; i++ )
+        Vec_IntPush( vArgB, pArgB[i] );
+    Vec_IntPush( vArgB, FillB );
+    if ( Vec_IntSize(vArgB) % 2 == 0 )
+        Vec_IntPush( vArgB, FillB );
+    assert( Vec_IntSize(vArgB) % 2 == 1 );
+    // iterate through bit-pairs
+    for ( k = 0; k+2 < Vec_IntSize(vArgB); k+=2 )
+    {
+        int pp    = -1;
+        int Q2jM1 = Vec_IntEntry(vArgB, k);   // q(2*j-1)
+        int Q2j   = Vec_IntEntry(vArgB, k+1); // q(2*j+0)
+        int Q2jP1 = Vec_IntEntry(vArgB, k+2); // q(2*j+1)
+        int Neg   = Q2jP1;
+        int One   = Gia_ManHashXor( pNew, Q2j, Q2jM1 );
+        int Two   = Gia_ManHashMux( pNew, Neg, Gia_ManHashAnd(pNew, Abc_LitNot(Q2j), Abc_LitNot(Q2jM1)), Gia_ManHashAnd(pNew, Q2j, Q2jM1) );
+        for ( i = 0; i <= nArgA; i++ )
+        {
+            int This = i == nArgA ? FillA : pArgA[i];
+            int Prev = i ? pArgA[i-1] : 0;
+            int Part = Gia_ManHashOr( pNew, Gia_ManHashAnd(pNew, One, This), Gia_ManHashAnd(pNew, Two, Prev) );
+            
+            pp = Gia_ManHashXor( pNew, Part, Neg );
+
+            Vec_WecPush( vProds,  k+i, pp );
+            Vec_WecPush( vLevels, k+i, 0 );
+        }
+        // perform sign extension
+        Sign = fSigned ? pp : Neg;
+        if ( k == 0 )
+        {
+            Vec_WecPush( vProds,  k+i, Sign );
+            Vec_WecPush( vLevels, k+i, 0 );
+
+            Vec_WecPush( vProds,  k+i+1, Sign );
+            Vec_WecPush( vLevels, k+i+1, 0 );
+
+            Vec_WecPush( vProds,  k+i+2, Abc_LitNot(Sign) );
+            Vec_WecPush( vLevels, k+i+2, 0 );
+        }
+        else
+        {
+            Vec_WecPush( vProds,  k+i, Abc_LitNot(Sign) );
+            Vec_WecPush( vLevels, k+i, 0 );
+
+            Vec_WecPush( vProds,  k+i+1, 1 );
+            Vec_WecPush( vLevels, k+i+1, 0 );
+        }
+        // add neg to the first column
+        if ( Neg == 0 )
+            continue;
+        Vec_WecPush( vProds,  k, Neg );
+        Vec_WecPush( vLevels, k, 0 );
+    }
+//    Vec_WecPrint( vProds, 0 );
+
+    Wlc_BlastReduceMatrix( pNew, vProds, vLevels, vRes, nArgA + nArgB );
+
+    Vec_WecFree( vProds );
+    Vec_WecFree( vLevels );
+    Vec_IntFree( vArgB );
+}
+
 
 /**Function*************************************************************
 
@@ -1156,6 +1230,7 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Vec_Int_t * vBoxIds, int fGiaSimple,
                 if ( Wlc_NtkCountConstBits(pArg0, nRangeMax) < Wlc_NtkCountConstBits(pArg1, nRangeMax) )
                     ABC_SWAP( int *, pArg0, pArg1 );
                 Wlc_BlastMultiplier( pNew, pArg0, pArg1, nRangeMax, nRangeMax, vTemp2, vRes, fSigned );
+                //Wlc_BlastBooth( pNew, pArg0, pArg1, nRange0, nRange1, vRes, fSigned );
                 //Wlc_BlastMultiplier3( pNew, pArg0, pArg1, nRange0, nRange1, vRes );
                 if ( nRange > nRangeMax + nRangeMax )
                     Vec_IntFillExtra( vRes, nRange, fSigned ? Vec_IntEntryLast(vRes) : 0 );
