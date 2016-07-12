@@ -276,13 +276,9 @@ static inline int Smt_PrsCreateNode( Wlc_Ntk_t * pNtk, int Type, int fSigned, in
     assert( fSigned >= 0 );
     Wlc_ObjAddFanins( pNtk, Wlc_NtkObj(pNtk, iObj), vFanins );
     if ( fSigned )
-    {
         Wlc_NtkObj(pNtk, iObj)->Signed = fSigned;
-//        if ( Vec_IntSize(vFanins) > 0 )
-//            Wlc_NtkObj(pNtk, Vec_IntEntry(vFanins, 0))->Signed = fSigned;
-//        if ( Vec_IntSize(vFanins) > 1 )
-//            Wlc_NtkObj(pNtk, Vec_IntEntry(vFanins, 1))->Signed = fSigned;
-    }
+    if ( Type == WLC_OBJ_SHIFT_RA )
+        Wlc_NtkObj(pNtk, iObj)->Signed = 1;
     if ( pName == NULL )
     {
         sprintf( Buffer, "_n%d_", iObj );
@@ -511,6 +507,13 @@ Wlc_Ntk_t * Smt_PrsBuild( Smt_Prs_t * p )
         // skip ()
         Fan = Vec_IntEntry(vFans, 2);
         assert( !Smt_EntryIsName(Fan) );
+        vFans2 = Smt_VecEntryNode(p, vFans, 2);
+        if ( Vec_IntSize(vFans2) > 0 )
+        {
+            printf( "File parsing error: Uninterpreted functions are not supported.\n" );
+            Wlc_NtkFree( pNtk ); pNtk = NULL;
+            goto finish;
+        }
         // check type (Bool or BitVec)
         Fan = Vec_IntEntry(vFans, 3);
         if ( Smt_EntryIsName(Fan) ) 
@@ -921,6 +924,13 @@ Wlc_Ntk_t * Smt_PrsBuild2( Smt_Prs_t * p )
             // skip ()
             Fan = Vec_IntEntry(vFans, 2);
             assert( !Smt_EntryIsName(Fan) );
+            vFans2 = Smt_VecEntryNode(p, vFans, 2);
+            if ( Vec_IntSize(vFans2) > 0 )
+            {
+                printf( "File parsing error: Uninterpreted functions are not supported.\n" );
+                Wlc_NtkFree( pNtk ); pNtk = NULL;
+                goto finish;
+            }
             // check type (Bool or BitVec)
             Fan = Vec_IntEntry(vFans, 3);
             if ( Smt_EntryIsName(Fan) ) 

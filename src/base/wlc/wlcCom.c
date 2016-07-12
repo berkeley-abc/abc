@@ -128,10 +128,10 @@ int Abc_CommandReadWlc( Abc_Frame_t * pAbc, int argc, char ** argv )
         switch ( c )
         {
         case 'o':
-            fPrintTree ^= 1;
+            fOldParser ^= 1;
             break;
         case 'p':
-            fOldParser ^= 1;
+            fPrintTree ^= 1;
             break;
         case 'v':
             fVerbose ^= 1;
