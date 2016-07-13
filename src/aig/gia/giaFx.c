@@ -455,7 +455,7 @@ Gia_Man_t * Gia_ManFxInsert( Gia_Man_t * p, Vec_Wec_t * vCubes, Vec_Str_t * vCom
 ***********************************************************************/
 Gia_Man_t * Gia_ManPerformFx( Gia_Man_t * p, int nNewNodesMax, int LitCountMax, int fReverse, int fVerbose, int fVeryVerbose )
 {
-    extern int Fx_FastExtract( Vec_Wec_t * vCubes, int ObjIdMax, int nNewNodesMax, int LitCountMax, int fVerbose, int fVeryVerbose );
+    extern int Fx_FastExtract( Vec_Wec_t * vCubes, int ObjIdMax, int nNewNodesMax, int LitCountMax, int fCanonDivs, int fVerbose, int fVeryVerbose );
     Gia_Man_t * pNew = NULL;
     Vec_Wec_t * vCubes;
     Vec_Str_t * vCompl;
@@ -467,7 +467,7 @@ Gia_Man_t * Gia_ManPerformFx( Gia_Man_t * p, int nNewNodesMax, int LitCountMax, 
     vCubes = Gia_ManFxRetrieve( p, &vCompl, fReverse );
     // call the fast extract procedure
 //    clk = Abc_Clock();
-    Fx_FastExtract( vCubes, Vec_StrSize(vCompl), nNewNodesMax, LitCountMax, fVerbose, fVeryVerbose );
+    Fx_FastExtract( vCubes, Vec_StrSize(vCompl), nNewNodesMax, LitCountMax, 0, fVerbose, fVeryVerbose );
 //    Abc_PrintTime( 1, "Fx runtime", Abc_Clock() - clk );
     // insert information
     pNew = Gia_ManFxInsert( p, vCubes, vCompl );

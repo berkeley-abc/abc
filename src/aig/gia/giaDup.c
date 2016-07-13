@@ -3825,7 +3825,7 @@ Vec_Int_t * Gia_ManCollectTopXors( Gia_Man_t * p )
         Gia_ManSetMark0Dfs_rec( p, Gia_ObjId(p, pFan[fFlip]) );
         Gia_ManSetMark1Dfs_rec( p, Gia_ObjId(p, pFan[!fFlip]) );
     }
-    printf( "Detected %d single-output XOR miters and %d other miters.\n", Vec_IntSize(vXors) - Count1, Count1 );
+    //printf( "Detected %d single-output XOR miters and %d other miters.\n", Vec_IntSize(vXors) - Count1, Count1 );
     Vec_IntFree( vXors );
     Gia_ManCleanMark01(p);
     // create new order
