@@ -247,6 +247,14 @@ void Mf_ManProfileTruths( Mf_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
+static inline void Mf_CutPrintOne( int * pCut )
+{
+    int i; 
+    printf( "%d {", Mf_CutSize(pCut) );
+    for ( i = 1; i <= Mf_CutSize(pCut); i++ )
+        printf( " %d", pCut[i] );
+    printf( " }\n" );
+}
 static inline int Mf_CubeLit( int Cube, int iVar ) { return (Cube >> (iVar << 1)) & 3; }
 static inline int Mf_ManCountLits( int * pCnf, int nCubes, int nVars )
 {
@@ -287,6 +295,7 @@ Vec_Int_t * Mf_ManDeriveCnfs( Mf_Man_t * p, int * pnVars, int * pnClas, int * pn
         if ( !Mf_ObjMapRefNum(p, i) )
             continue;
         pCut = Mf_ObjCutBest( p, i );
+        //Mf_CutPrintOne( pCut );
         iFunc = Abc_Lit2Var( Mf_CutFunc(pCut) );
         if ( Vec_IntEntry(vCnfs, iFunc) == -1 )
         {
