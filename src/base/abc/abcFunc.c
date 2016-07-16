@@ -810,7 +810,7 @@ int Abc_NtkSopToAig( Abc_Ntk_t * pNtk )
 {
     Abc_Obj_t * pNode;
     Hop_Man_t * pMan;
-    int i;
+    int i, Max;
 
     assert( Abc_NtkHasSop(pNtk) ); 
 
@@ -819,7 +819,8 @@ int Abc_NtkSopToAig( Abc_Ntk_t * pNtk )
 
     // start the functionality manager
     pMan = Hop_ManStart();
-    Hop_IthVar( pMan, Abc_NtkGetFaninMax(pNtk)-1 );
+    Max = Abc_NtkGetFaninMax(pNtk);
+    if ( Max ) Hop_IthVar( pMan, Max-1 );
 
     // convert each node from SOP to BDD
     Abc_NtkForEachNode( pNtk, pNode, i )

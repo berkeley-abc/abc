@@ -1265,10 +1265,10 @@ Wlc_Ntk_t * Wlc_ReadVer( char * pFileName )
     // derive topological order
     pNtk = Wlc_NtkDupDfs( p->pNtk );
     Wlc_NtkTransferNames( pNtk, p->pNtk );
+    pNtk->pSpec = Abc_UtilStrsav( pFileName );
 finish:
     Wlc_PrsPrintErrorMessage( p );
     Wlc_PrsStop( p );
-    pNtk->pSpec = Abc_UtilStrsav( pFileName );
     return pNtk;
 }
 

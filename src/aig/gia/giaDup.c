@@ -3860,9 +3860,18 @@ Gia_Man_t * Gia_ManDemiterToDual( Gia_Man_t * p )
         pObj->Value = Gia_ManAppendCi( pNew );
     Gia_ManForEachObjVec( vNodes, p, pObj, i )
         pObj->Value = Gia_ManAppendAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
-    Gia_ManSetPhase( p );
-    Gia_ManForEachObjVec( vOrder, p, pObj, i )
-        Gia_ManAppendCo( pNew, Abc_LitNotCond(pObj->Value, pObj->fPhase) );
+    pObj = Gia_ManCo(p, 0);
+    if ( Gia_ObjFanin0(pObj) == Gia_ManConst0(p) )
+    {
+        Gia_ManAppendCo( pNew, 0 );
+        Gia_ManAppendCo( pNew, Gia_ObjFaninC0(pObj) );
+    }
+    else
+    {
+        Gia_ManSetPhase( p );
+        Gia_ManForEachObjVec( vOrder, p, pObj, i )
+            Gia_ManAppendCo( pNew, Abc_LitNotCond(pObj->Value, pObj->fPhase) );
+    }
     Vec_IntFree( vNodes );
     Vec_IntFree( vOrder );
     return pNew;
