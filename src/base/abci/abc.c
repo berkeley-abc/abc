@@ -135,6 +135,7 @@ static int Abc_CommandCascade                ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandExtract                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandVarMin                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandDetect                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandExact                  ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 static int Abc_CommandLogic                  ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandComb                   ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -773,6 +774,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Synthesis",    "extract",       Abc_CommandExtract,          1 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "varmin",        Abc_CommandVarMin,           0 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "detect",        Abc_CommandDetect,           0 );
+    Cmd_CommandAdd( pAbc, "Synthesis",    "exact",         Abc_CommandExact,            1 );
 
     Cmd_CommandAdd( pAbc, "Various",      "logic",         Abc_CommandLogic,            1 );
     Cmd_CommandAdd( pAbc, "Various",      "comb",          Abc_CommandComb,             1 );
@@ -7260,6 +7262,61 @@ usage:
     Abc_Print( -2, "\t           detects properties of internal nodes\n" );
     Abc_Print( -2, "\t-v       : toggle verbose printout [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h       : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandExact( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    int c, fVerbose = 0, nVars;
+    word pTruth[1];
+    Abc_Ntk_t * pNtkRes;
+
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+
+    if ( argc != globalUtilOptind + 1 )
+    {
+        goto usage;
+    }
+
+    nVars = Abc_TtReadHex( pTruth, argv[globalUtilOptind] );
+    pNtkRes = Abc_NtkFindExact( pTruth, nVars, 1, fVerbose );
+    assert( pNtkRes != NULL );
+    Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
+    Abc_FrameClearVerifStatus( pAbc );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: exact [-vh] <truth>\n" );
+    Abc_Print( -2, "\t           finds optimum networks using SAT-based exact synthesis\n" );
+    Abc_Print( -2, "\t-v       : toggle verbose printout [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h       : print the command usage\n");
+    Abc_Print( -2, "\t\n" );
+    Abc_Print( -2, "\t           This command was contributed by Mathias Soeken from EPFL in July 2016.\n" );
+    Abc_Print( -2, "\t           The author can be contacted as mathias.soeken at epfl.ch\n" );
     return 1;
 }
 
