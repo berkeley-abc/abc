@@ -881,7 +881,7 @@ void Sle_ManDeriveResult( Sle_Man_t * p, Vec_Int_t * vEdge2, Vec_Int_t * vMappin
         if ( !sat_solver_var_value(p->pSat, iObj) )
             continue;
         Vec_IntForEachEntry( vCutFans, iFanin, i )
-            if ( sat_solver_var_value(p->pSat, iEdgeVar0 + i) )
+            if ( sat_solver_var_value(p->pSat, iFanin) && sat_solver_var_value(p->pSat, iEdgeVar0 + i) )
                 Vec_IntPushTwo( vEdge2, iFanin, iObj );
     }
 }
@@ -1029,6 +1029,7 @@ void Sle_ManExplore( Gia_Man_t * pGia, int nBTLimit, int DelayInit, int fDynamic
         Vec_IntFree( vEdges2 );
         Vec_IntFree( vMapping );
     }
+    Vec_IntFreeP( &p->pGia->vPacking );
     Sle_ManStop( p );
 }
 
