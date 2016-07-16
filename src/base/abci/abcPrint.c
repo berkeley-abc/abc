@@ -235,7 +235,7 @@ float Abc_NtkGetArea( Abc_Ntk_t * pNtk )
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_NtkPrintStats( Abc_Ntk_t * pNtk, int fFactored, int fSaveBest, int fDumpResult, int fUseLutLib, int fPrintMuxes, int fPower, int fGlitch, int fSkipBuf, int fPrintMem )
+void Abc_NtkPrintStats( Abc_Ntk_t * pNtk, int fFactored, int fSaveBest, int fDumpResult, int fUseLutLib, int fPrintMuxes, int fPower, int fGlitch, int fSkipBuf, int fSkipSmall, int fPrintMem )
 {
     int nSingles = fSkipBuf ? Abc_NtkGetBufNum(pNtk) : 0;
     if ( fPrintMuxes && Abc_NtkIsStrash(pNtk) )
@@ -283,7 +283,7 @@ void Abc_NtkPrintStats( Abc_Ntk_t * pNtk, int fFactored, int fSaveBest, int fDum
     if ( Abc_NtkIsNetlist(pNtk) )
     {
         Abc_Print( 1,"  net =%5d", Abc_NtkNetNum(pNtk) );
-        Abc_Print( 1,"  nd =%5d",  Abc_NtkNodeNum(pNtk) - nSingles );
+        Abc_Print( 1,"  nd =%5d",  fSkipSmall ? Abc_NtkGetLargeNodeNum(pNtk) : Abc_NtkNodeNum(pNtk) - nSingles );
         Abc_Print( 1,"  wbox =%3d", Abc_NtkWhiteboxNum(pNtk) );
         Abc_Print( 1,"  bbox =%3d", Abc_NtkBlackboxNum(pNtk) );
     }
@@ -295,7 +295,7 @@ void Abc_NtkPrintStats( Abc_Ntk_t * pNtk, int fFactored, int fSaveBest, int fDum
     }
     else
     {
-        Abc_Print( 1,"  nd =%6d", Abc_NtkNodeNum(pNtk) - nSingles );
+        Abc_Print( 1,"  nd =%6d", fSkipSmall ? Abc_NtkGetLargeNodeNum(pNtk) : Abc_NtkNodeNum(pNtk) - nSingles );
         Abc_Print( 1,"  edge =%7d", Abc_NtkGetTotalFanins(pNtk) - nSingles );
     }
 
@@ -455,7 +455,7 @@ void Abc_NtkPrintStats( Abc_Ntk_t * pNtk, int fFactored, int fSaveBest, int fDum
 
     fflush( stdout );
     if ( pNtk->pExdc )
-        Abc_NtkPrintStats( pNtk->pExdc, fFactored, fSaveBest, fDumpResult, fUseLutLib, fPrintMuxes, fPower, fGlitch, fSkipBuf, fPrintMem );
+        Abc_NtkPrintStats( pNtk->pExdc, fFactored, fSaveBest, fDumpResult, fUseLutLib, fPrintMuxes, fPower, fGlitch, fSkipBuf, fSkipSmall, fPrintMem );
 }
 
 /**Function*************************************************************

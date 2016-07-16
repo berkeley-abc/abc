@@ -67,7 +67,7 @@ Sfm_Ntk_t * Gia_ManExtractMfs( Gia_Man_t * p )
     int i, j, k, curCi, curCo, nBoxIns, nBoxOuts;
     int Id, iFan, nMfsVars, nBbIns = 0, nBbOuts = 0, Counter = 0;
     assert( !p->pAigExtra || Gia_ManPiNum(p->pAigExtra) <= 6 );
-    Tim_ManBlackBoxIoNum( pManTime, &nBbIns, &nBbOuts );
+    if ( pManTime ) Tim_ManBlackBoxIoNum( pManTime, &nBbIns, &nBbOuts );
     // skip PIs due to box outputs
     Counter += nBbOuts;
     // prepare storage
@@ -252,7 +252,7 @@ Gia_Man_t * Gia_ManInsertMfs( Gia_Man_t * p, Sfm_Ntk_t * pNtk )
     Vec_Int_t * vArray, * vLeaves;
     Vec_Int_t * vMapping, * vMapping2;
     int nBbIns = 0, nBbOuts = 0;
-    Tim_ManBlackBoxIoNum( pManTime, &nBbIns, &nBbOuts );
+    if ( pManTime ) Tim_ManBlackBoxIoNum( pManTime, &nBbIns, &nBbOuts );
     nMfsNodes = 1 + Gia_ManCiNum(p) + Gia_ManLutNum(p) + Gia_ManCoNum(p) + nBbIns + nBbOuts;
     vMfs2Gia  = Vec_IntStartFull( nMfsNodes );
     vGroupMap = Vec_IntStartFull( nMfsNodes );

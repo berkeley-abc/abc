@@ -1223,6 +1223,7 @@ int Abc_CommandPrintStats( Abc_Frame_t * pAbc, int argc, char ** argv )
     int fPower;
     int fGlitch;
     int fSkipBuf;
+    int fSkipSmall;
     int fPrintMem;
     int c;
 
@@ -1238,9 +1239,10 @@ int Abc_CommandPrintStats( Abc_Frame_t * pAbc, int argc, char ** argv )
     fPower = 0;
     fGlitch = 0;
     fSkipBuf = 0;
+    fSkipSmall = 0;
     fPrintMem = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "fbdltmpgsuh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "fbdltmpgscuh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -1271,6 +1273,9 @@ int Abc_CommandPrintStats( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 's':
             fSkipBuf ^= 1;
             break;
+        case 'c':
+            fSkipSmall ^= 1;
+            break;
         case 'u':
             fPrintMem ^= 1;
             break;
@@ -1291,7 +1296,7 @@ int Abc_CommandPrintStats( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Cannot print LUT delay for a non-logic network.\n" );
         return 1;
     }
-    Abc_NtkPrintStats( pNtk, fFactor, fSaveBest, fDumpResult, fUseLutLib, fPrintMuxes, fPower, fGlitch, fSkipBuf, fPrintMem );
+    Abc_NtkPrintStats( pNtk, fFactor, fSaveBest, fDumpResult, fUseLutLib, fPrintMuxes, fPower, fGlitch, fSkipBuf, fSkipSmall, fPrintMem );
     if ( fPrintTime )
     {
         pAbc->TimeTotal += pAbc->TimeCommand;
@@ -1301,7 +1306,7 @@ int Abc_CommandPrintStats( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: print_stats [-fbdltmpgsuh]\n" );
+    Abc_Print( -2, "usage: print_stats [-fbdltmpgscuh]\n" );
     Abc_Print( -2, "\t        prints the network statistics\n" );
     Abc_Print( -2, "\t-f    : toggles printing the literal count in the factored forms [default = %s]\n", fFactor? "yes": "no" );
     Abc_Print( -2, "\t-b    : toggles saving the best logic network in \"best.blif\" [default = %s]\n", fSaveBest? "yes": "no" );
@@ -1312,6 +1317,7 @@ usage:
     Abc_Print( -2, "\t-p    : toggles printing power dissipation due to switching [default = %s]\n", fPower? "yes": "no" );
     Abc_Print( -2, "\t-g    : toggles printing percentage of increased power due to glitching [default = %s]\n", fGlitch? "yes": "no" );
     Abc_Print( -2, "\t-s    : toggles not counting single-output nodes as nodes [default = %s]\n", fSkipBuf? "yes": "no" );
+    Abc_Print( -2, "\t-c    : toggles not counting constants and single-output nodes as nodes [default = %s]\n", fSkipSmall? "yes": "no" );
     Abc_Print( -2, "\t-u    : toggles printing memory usage [default = %s]\n", fPrintMem? "yes": "no" );
     Abc_Print( -2, "\t-h    : print the command usage\n");
     return 1;
@@ -1393,7 +1399,7 @@ int Abc_CommandPrintExdc( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     else
         Abc_Print( 1, "EXDC network statistics: \n" );
-    Abc_NtkPrintStats( pNtk->pExdc, 0, 0, 0, 0, 0, 0, 0, 0, 0 );
+    Abc_NtkPrintStats( pNtk->pExdc, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 );
     return 0;
 
 usage:
@@ -27110,7 +27116,7 @@ usage:
   SeeAlso     []
 
 ***********************************************************************/
-static inline int Gia_ManCompareWithBest( Gia_Man_t * pBest, Gia_Man_t * p, int * pnBestLuts, int * pnBestEdges, int * pnBestLevels )
+static inline int Gia_ManCompareWithBest( Gia_Man_t * pBest, Gia_Man_t * p, int * pnBestLuts, int * pnBestEdges, int * pnBestLevels, int fArea )
 {
     int nCurLuts, nCurEdges, nCurLevels;
     Gia_ManLutParams( p, &nCurLuts, &nCurEdges, &nCurLevels );
@@ -27119,8 +27125,9 @@ static inline int Gia_ManCompareWithBest( Gia_Man_t * pBest, Gia_Man_t * p, int 
          Gia_ManPoNum(pBest) != Gia_ManPoNum(p) || 
          Gia_ManRegNum(pBest) != Gia_ManRegNum(p) ||
          strcmp(Gia_ManName(pBest), Gia_ManName(p)) ||
-        (*pnBestLevels > nCurLevels) ||
-        (*pnBestLevels == nCurLevels && 2*(*pnBestLuts) + *pnBestEdges > 2*nCurLuts + nCurEdges) )
+         (!fArea && (*pnBestLevels > nCurLevels || (*pnBestLevels == nCurLevels && 2*(*pnBestLuts) + *pnBestEdges > 2*nCurLuts + nCurEdges))) || 
+         ( fArea && (*pnBestLuts   > nCurLuts   || (*pnBestLuts   == nCurLuts   && *pnBestLevels > nCurLevels)))
+       )
     {
         *pnBestLuts = nCurLuts;
         *pnBestEdges = nCurEdges;
@@ -27143,12 +27150,15 @@ static inline int Gia_ManCompareWithBest( Gia_Man_t * pBest, Gia_Man_t * p, int 
 ***********************************************************************/
 int Abc_CommandAbc9Save( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    int c;
+    int c, fArea = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "ah" ) ) != EOF )
     {
         switch ( c )
         {
+        case 'a':
+            fArea ^= 1;
+            break;
         case 'h':
             goto usage;
         default:
@@ -27165,7 +27175,7 @@ int Abc_CommandAbc9Save( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "GIA has no mapping.\n" );
         return 1;
     }
-    if ( !Gia_ManCompareWithBest( pAbc->pGiaBest, pAbc->pGia, &pAbc->nBestLuts, &pAbc->nBestEdges, &pAbc->nBestLevels ) )
+    if ( !Gia_ManCompareWithBest( pAbc->pGiaBest, pAbc->pGia, &pAbc->nBestLuts, &pAbc->nBestEdges, &pAbc->nBestLevels, fArea ) )
         return 0;
     // save the design as best
     Gia_ManStopP( &pAbc->pGiaBest );
@@ -27173,8 +27183,9 @@ int Abc_CommandAbc9Save( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0; 
 
 usage:
-    Abc_Print( -2, "usage: &save [-h]\n" );
+    Abc_Print( -2, "usage: &save [-ah]\n" );
     Abc_Print( -2, "\t        compares and possibly saves AIG with mapping\n" );
+    Abc_Print( -2, "\t-a    : toggle using area as the primary metric [default = %s]\n", fArea? "yes": "no" );
     Abc_Print( -2, "\t-h    : print the command usage\n");
     return 1;
 }

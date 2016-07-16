@@ -820,7 +820,7 @@ extern ABC_DLL void               Abc_NtkDontCareFree( Odc_Man_t * p );
 extern ABC_DLL int                Abc_NtkDontCareCompute( Odc_Man_t * p, Abc_Obj_t * pNode, Vec_Ptr_t * vLeaves, unsigned * puTruth );
 /*=== abcPrint.c ==========================================================*/
 extern ABC_DLL float              Abc_NtkMfsTotalSwitching( Abc_Ntk_t * pNtk );
-extern ABC_DLL void               Abc_NtkPrintStats( Abc_Ntk_t * pNtk, int fFactored, int fSaveBest, int fDumpResult, int fUseLutLib, int fPrintMuxes, int fPower, int fGlitch, int fSkipBuf, int fPrintMem );
+extern ABC_DLL void               Abc_NtkPrintStats( Abc_Ntk_t * pNtk, int fFactored, int fSaveBest, int fDumpResult, int fUseLutLib, int fPrintMuxes, int fPower, int fGlitch, int fSkipBuf, int fSkipSmall, int fPrintMem );
 extern ABC_DLL void               Abc_NtkPrintIo( FILE * pFile, Abc_Ntk_t * pNtk, int fPrintFlops );
 extern ABC_DLL void               Abc_NtkPrintLatch( FILE * pFile, Abc_Ntk_t * pNtk );
 extern ABC_DLL void               Abc_NtkPrintFanio( FILE * pFile, Abc_Ntk_t * pNtk, int fUseFanio, int fUsePio, int fUseSupp, int fUseCone );
@@ -986,6 +986,7 @@ extern ABC_DLL double             Abc_NtkGetMappedArea( Abc_Ntk_t * pNtk );
 extern ABC_DLL int                Abc_NtkGetExorNum( Abc_Ntk_t * pNtk );
 extern ABC_DLL int                Abc_NtkGetMuxNum( Abc_Ntk_t * pNtk );
 extern ABC_DLL int                Abc_NtkGetBufNum( Abc_Ntk_t * pNtk );
+extern ABC_DLL int                Abc_NtkGetLargeNodeNum( Abc_Ntk_t * pNtk );
 extern ABC_DLL int                Abc_NtkGetChoiceNum( Abc_Ntk_t * pNtk );
 extern ABC_DLL int                Abc_NtkGetFaninMax( Abc_Ntk_t * pNtk );
 extern ABC_DLL int                Abc_NtkGetFanoutMax( Abc_Ntk_t * pNtk );

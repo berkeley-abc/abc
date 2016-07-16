@@ -429,6 +429,26 @@ int Abc_NtkGetBufNum( Abc_Ntk_t * pNtk )
 
 /**Function*************************************************************
 
+  Synopsis    [Counts the number of exors.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_NtkGetLargeNodeNum( Abc_Ntk_t * pNtk )
+{
+    Abc_Obj_t * pNode;
+    int i, Counter = 0;
+    Abc_NtkForEachNode( pNtk, pNode, i )
+        Counter += (Abc_ObjFaninNum(pNode) > 1);
+    return Counter;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Returns 1 if it is an AIG with choice nodes.]
 
   Description []

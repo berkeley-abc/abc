@@ -205,7 +205,7 @@ void Abc_NtkMiniAigTest( Abc_Ntk_t * pNtk )
     p = Abc_NtkToMiniAig( pNtk );
     pNtkNew = Abc_NtkFromMiniAig( p );
     Mini_AigStop( p );
-    Abc_NtkPrintStats( pNtkNew, 0, 0, 0, 0, 0, 0, 0, 0, 0 );
+    Abc_NtkPrintStats( pNtkNew, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 );
     Abc_NtkDelete( pNtkNew );
 
     // test dumping
