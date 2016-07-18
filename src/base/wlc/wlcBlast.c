@@ -820,7 +820,7 @@ void Wlc_BlastBooth( Gia_Man_t * pNew, int * pArgA, int * pArgB, int nArgA, int 
   SeeAlso     []
 
 ***********************************************************************/
-Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Vec_Int_t * vBoxIds, int fGiaSimple, int fAddOutputs )
+Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Vec_Int_t * vBoxIds, int iOutput, int nOutputRange, int fGiaSimple, int fAddOutputs )
 {
     int fVerbose = 0;
     int fUseOldMultiplierBlasting = 0;
@@ -1314,6 +1314,9 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Vec_Int_t * vBoxIds, int fGiaSimple,
     // create COs
     Wlc_NtkForEachCo( p, pObj, i )
     {
+        // skip all outputs except the given ones
+        if ( iOutput >= 0 && (i < iOutput || i >= iOutput + nOutputRange) )
+            continue;
         // create additional PO literals
         if ( vAddOutputs && pObj->fIsFi )
         {

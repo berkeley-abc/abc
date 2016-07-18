@@ -338,12 +338,34 @@ int Abc_CommandBlast( Abc_Frame_t * pAbc, int argc, char ** argv )
     Wlc_Ntk_t * pNtk = Wlc_AbcGetNtk(pAbc);
     Vec_Int_t * vBoxIds = NULL;
     Gia_Man_t * pNew = NULL;
-    int c, fGiaSimple = 0, fAddOutputs = 0, fMulti = 0, fVerbose  = 0;
+    int c, iOutput = -1, nOutputRange = 2, fGiaSimple = 0, fAddOutputs = 0, fMulti = 0, fVerbose  = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "comvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "ORcomvh" ) ) != EOF )
     {
         switch ( c )
         {
+        case 'O':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-O\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            iOutput = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( iOutput < 0 )
+                goto usage;
+            break;
+        case 'R':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-R\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nOutputRange = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nOutputRange < 0 )
+                goto usage;
+            break;
         case 'c':
             fGiaSimple ^= 1;
             break;
@@ -373,8 +395,13 @@ int Abc_CommandBlast( Abc_Frame_t * pAbc, int argc, char ** argv )
         if ( vBoxIds == NULL )
             Abc_Print( 1, "Warning:  There is no multipliers in the design.\n" );
     }
+    if ( iOutput >= 0 && iOutput + nOutputRange > Wlc_NtkPoNum(pNtk) )
+    {
+        Abc_Print( 1, "Abc_CommandBlast(): The output range [%d:%d] is incorrect.\n", iOutput, iOutput + nOutputRange - 1 );
+        return 0;
+    }
     // transform
-    pNew = Wlc_NtkBitBlast( pNtk, vBoxIds, fGiaSimple, fAddOutputs );
+    pNew = Wlc_NtkBitBlast( pNtk, vBoxIds, iOutput, nOutputRange, fGiaSimple, fAddOutputs );
     Vec_IntFreeP( &vBoxIds );
     if ( pNew == NULL )
     {
@@ -384,8 +411,10 @@ int Abc_CommandBlast( Abc_Frame_t * pAbc, int argc, char ** argv )
     Abc_FrameUpdateGia( pAbc, pNew );
     return 0;
 usage:
-    Abc_Print( -2, "usage: %%blast [-comvh]\n" );
+    Abc_Print( -2, "usage: %%blast [-OR num] [-comvh]\n" );
     Abc_Print( -2, "\t         performs bit-blasting of the word-level design\n" );
+    Abc_Print( -2, "\t-O num : zero-based index of the first word-level PO to bit-blast [default = %d]\n", iOutput );
+    Abc_Print( -2, "\t-R num : the total number of word-level POs to bit-blast [default = %d]\n", nOutputRange );
     Abc_Print( -2, "\t-c     : toggle using AIG w/o const propagation and strashing [default = %s]\n", fGiaSimple? "yes": "no" );
     Abc_Print( -2, "\t-o     : toggle using additional POs on the word-level boundaries [default = %s]\n", fAddOutputs? "yes": "no" );
     Abc_Print( -2, "\t-m     : toggle creating boxes for all multipliers in the design [default = %s]\n", fMulti? "yes": "no" );
