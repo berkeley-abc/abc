@@ -30,6 +30,7 @@ ABC_NAMESPACE_IMPL_START
 ////////////////////////////////////////////////////////////////////////
 
 #define STR_SUPER  100
+#define MAX_TREE 10000
 
 enum { 
     STR_NONE   =  0,
@@ -1301,7 +1302,7 @@ Gia_Man_t * Str_NtkBalance( Gia_Man_t * pGia, Str_Ntk_t * p, int nLutSize, int f
         pNew->vSuper = Vec_IntAlloc( 1000 );
     if ( pNew->vStore == NULL )
         pNew->vStore = Vec_IntAlloc( 1000 );
-    vDelay = Vec_IntStart( pNew->nObjsAlloc );
+    vDelay = Vec_IntStart( 2*pNew->nObjsAlloc );
     Gia_ManHashStart( pNew );
     if ( pGia->pManTime != NULL ) // Tim_Man with unit delay 16
     {
@@ -1646,7 +1647,7 @@ Str_Mux_t * Str_MuxFindBranching( Str_Mux_t * pRoot, int i )
 }
 int Str_MuxTryOnce( Gia_Man_t * pNew, Str_Ntk_t * pNtk, Str_Mux_t * pTree, Str_Mux_t * pRoot, int Edge, Vec_Int_t * vDelay, int fVerbose )
 {
-    int pPath[500];
+    int pPath[MAX_TREE];
     Str_Mux_t pBackup[3];
     int Delay, DelayBest = Str_MuxDelayEdge_rec( pRoot, Edge ), DelayInit = DelayBest;
     int i, k, nLength = 0, ForkBest = -1, nChecks = 0;
@@ -1696,8 +1697,8 @@ int Str_MuxRestruct_rec( Gia_Man_t * pNew, Str_Ntk_t * pNtk, Str_Mux_t * pTree, 
 }
 int Str_MuxRestructure2( Gia_Man_t * pNew, Str_Ntk_t * pNtk, int iMux, int nMuxes, Vec_Int_t * vDelay, int nLutSize, int fVerbose )
 {
-    int Limit = 500;
-    Str_Mux_t pTree[500];
+    int Limit = MAX_TREE;
+    Str_Mux_t pTree[MAX_TREE];
     int Delay, Delay2, fChanges = 0;
     if ( nMuxes >= Limit )
         return -1;
@@ -1719,8 +1720,8 @@ int Str_MuxRestructure2( Gia_Man_t * pNew, Str_Ntk_t * pNtk, int iMux, int nMuxe
 }
 int Str_MuxRestructure1( Gia_Man_t * pNew, Str_Ntk_t * pNtk, int iMux, int nMuxes, Vec_Int_t * vDelay, int nLutSize, int fVerbose )
 {
-    int Limit = 500;
-    Str_Mux_t pTree[500];
+    int Limit = MAX_TREE;
+    Str_Mux_t pTree[MAX_TREE];
     int Delay, Delay2, fChanges = 0;
     if ( nMuxes >= Limit )
         return -1;
@@ -1843,8 +1844,8 @@ int Str_MuxRestructArea_rec( Gia_Man_t * pNew, Str_Mux_t * pTree, Str_Mux_t * pR
 }
 int Str_MuxRestructureArea( Gia_Man_t * pNew, Str_Ntk_t * pNtk, int iMux, int nMuxes, Vec_Int_t * vDelay, int nLutSize, int fVerbose )
 {
-    int Limit = 500;
-    Str_Mux_t pTree[500];
+    int Limit = MAX_TREE;
+    Str_Mux_t pTree[MAX_TREE];
     int Result;
     if ( nMuxes >= Limit )
         return -1;
