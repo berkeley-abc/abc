@@ -605,6 +605,8 @@ void Sle_ManDeriveInit( Sle_Man_t * p )
         assert( Gia_ObjIsAnd(Gia_ManObj(p->pGia, iObj)) );
         // find edge
         iEdge = Vec_IntFind( Vec_WecEntry(p->vCutFanins, iObj), iFanin );
+        if ( iEdge < 0 )
+            continue;
         assert( iEdge >= 0 );
         Vec_IntPush( p->vPolars, Vec_IntEntry(p->vEdgeFirst, iObj) + iEdge ); // edge
     }
