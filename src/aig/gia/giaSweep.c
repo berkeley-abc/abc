@@ -665,6 +665,8 @@ Gia_Man_t * Gia_ManSweepWithBoxesAndDomains( Gia_Man_t * p, void * pParsS, int f
             continue;
         // find global equivalences
         pClp = Gia_ManDupCollapse( pNew, pNew->pAigExtra, NULL, 1 );
+        //Gia_DumpAiger( pClp, p->pSpec, iDom, 2 );
+        //Gia_ManPrintStats( pClp, NULL );
         // compute equivalences
         Gia_ManSweepComputeOneDomainEquivs( pClp, pNew->vRegClasses, iDom, pParsS, fConst, fEquiv, fVerbose );
         // transfer equivalences
@@ -728,6 +730,7 @@ Gia_Man_t * Gia_ManSweepWithBoxes( Gia_Man_t * p, void * pParsC, void * pParsS, 
     nFlops = Vec_IntCountEntry(pNew->vRegClasses, 1);
     // find global equivalences
     pClp = Gia_ManDupCollapse( pNew, pNew->pAigExtra, NULL, pParsC ? 0 : 1 );
+    //Gia_DumpAiger( pClp, p->pSpec, 1, 1 );
     // compute equivalences
     if ( pParsC )
         Gia_ManFraigSweepPerform( pClp, pParsC );

@@ -7226,15 +7226,18 @@ usage:
 ***********************************************************************/
 int Abc_CommandDetect( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern void Abc_NtkDetectClassesTest( Abc_Ntk_t * pNtk, int fVerbose );
+    extern void Abc_NtkDetectClassesTest( Abc_Ntk_t * pNtk, int fSeq, int fVerbose );
     Abc_Ntk_t * pNtk;
-    int c, fVerbose = 0;
+    int c, fSeq = 0, fVerbose = 0;
     pNtk = Abc_FrameReadNtk(pAbc);
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "svh" ) ) != EOF )
     {
         switch ( c )
         {
+        case 's':
+            fSeq ^= 1;
+            break;
         case 'v':
             fVerbose ^= 1;
             break;
@@ -7254,12 +7257,13 @@ int Abc_CommandDetect( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Only applicable to a logic network.\n" );
         return 1;
     }
-    Abc_NtkDetectClassesTest( pNtk, fVerbose );
+    Abc_NtkDetectClassesTest( pNtk, fSeq, fVerbose );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: detect [-vh]\n" );
+    Abc_Print( -2, "usage: detect [-svh]\n" );
     Abc_Print( -2, "\t           detects properties of internal nodes\n" );
+    Abc_Print( -2, "\t-s       : toggle using sequential circuit information [default = %s]\n", fSeq? "yes": "no" );
     Abc_Print( -2, "\t-v       : toggle verbose printout [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h       : print the command usage\n");
     return 1;

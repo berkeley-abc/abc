@@ -94,6 +94,7 @@ Abc_Ntk_t * Io_ReadBenchNetwork( Extra_FileReader_t * p )
     
     // allocate the empty network
     pNtk = Abc_NtkStartRead( Extra_FileReaderGetFileName(p) );
+    pNtk->nConstrs = 0;
 
     // go through the lines of the file
     vString = Vec_StrAlloc( 100 );
@@ -140,6 +141,7 @@ Abc_Ntk_t * Io_ReadBenchNetwork( Extra_FileReader_t * p )
                         pTerm = Abc_NtkCreatePo( pNtk );
                         Abc_ObjAddFanin( pTerm, pNet );
                     }
+                    pNtk->nConstrs++;
                 }
                 else
                 {

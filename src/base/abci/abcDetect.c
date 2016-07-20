@@ -193,7 +193,7 @@ finish:
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_NtkDetectClassesTest( Abc_Ntk_t * pNtk, int fVerbose )
+void Abc_NtkDetectClassesTest( Abc_Ntk_t * pNtk, int fSeq, int fVerbose )
 {
     printf( "This procedure is currently not used.\n" );
 }
