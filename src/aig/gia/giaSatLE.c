@@ -651,7 +651,7 @@ void Sle_ManDeriveCnf( Sle_Man_t * p, int nBTLimit, int fDynamic )
     // add cover clauses and edge-to-cut clauses
     Gia_ManForEachAndId( p->pGia, iObj )
     {
-        int iEdge, nEdges = 0, Entry;
+        int e, iEdge, nEdges = 0, Entry;
         int iCutVar0  = Vec_IntEntry( p->vCutFirst, iObj );
         int iEdgeVar0 = Vec_IntEntry( p->vEdgeFirst, iObj );
         int * pCut, * pList  = Sle_ManList( p, iObj );
@@ -663,7 +663,15 @@ void Sle_ManDeriveCnf( Sle_Man_t * p, int nBTLimit, int fDynamic )
             Vec_IntPush( p->vLits, Abc_Var2Lit(iCutVar0 + i, 0) );
         value = sat_solver_addclause( p->pSat, Vec_IntArray(p->vLits), Vec_IntLimit(p->vLits)  );
         assert( value );
-        // cut required fanin nodes
+        // cuts are mutually exclusive
+        for ( i = 0; i < Sle_ListCutNum(pList); i++ )
+            for ( e = i+1; e < Sle_ListCutNum(pList); e++ )
+            {
+                Vec_IntFillTwo( p->vLits, 2, Abc_Var2Lit(iCutVar0 + i, 1), Abc_Var2Lit(iCutVar0 + e, 1) );
+                value = sat_solver_addclause( p->pSat, Vec_IntArray(p->vLits), Vec_IntLimit(p->vLits)  );
+                assert( value );
+            }
+        // cut requires fanin nodes
         Vec_WecInit( p->vEdgeCuts, Vec_IntSize(vCutFans) );
         Sle_ForEachCut( pList, pCut, i )
         {
@@ -687,9 +695,13 @@ void Sle_ManDeriveCnf( Sle_Man_t * p, int nBTLimit, int fDynamic )
                 Vec_WecPush( p->vEdgeCuts, iEdge, iCutVar0 + i );
                 p->nCutClas++;
             }
+            // cut requires the node
+            Vec_IntFillTwo( p->vLits, 2, Abc_Var2Lit(iCutVar0 + i, 1), Abc_Var2Lit(iObj, 0) );
+            value = sat_solver_addclause( p->pSat, Vec_IntArray(p->vLits), Vec_IntLimit(p->vLits)  );
+            assert( value );
         }
         assert( nEdges == Vec_IntSize(vCutFans) );
-/*
+
         // edge requires one of the fanout cuts
         Vec_WecForEachLevel( p->vEdgeCuts, vArray, e )
         {
@@ -701,7 +713,7 @@ void Sle_ManDeriveCnf( Sle_Man_t * p, int nBTLimit, int fDynamic )
             assert( value );
             p->nEdgeClas++;
         }
-*/
+
         // clean object map
         Vec_IntForEachEntry( vCutFans, Entry, i )
             Vec_IntWriteEntry( p->vObjMap, Entry, -1 );
@@ -880,11 +892,31 @@ void Sle_ManDeriveResult( Sle_Man_t * p, Vec_Int_t * vEdge2, Vec_Int_t * vMappin
     {
         int i, iFanin, iEdgeVar0 = Vec_IntEntry( p->vEdgeFirst, iObj );
         Vec_Int_t * vCutFans = Vec_WecEntry( p->vCutFanins, iObj );
+        //int * pCut, * pList  = Sle_ManList( p, iObj );
+        // int iCutVar0  = Vec_IntEntry( p->vCutFirst, iObj );
         if ( !sat_solver_var_value(p->pSat, iObj) )
             continue;
+        //for ( i = 0; i < Sle_ListCutNum(pList); i++ )
+        //    printf( "%d", sat_solver_var_value(p->pSat, iCutVar0 + i) );
+        //printf( "\n" );
         Vec_IntForEachEntry( vCutFans, iFanin, i )
             if ( sat_solver_var_value(p->pSat, iFanin) && sat_solver_var_value(p->pSat, iEdgeVar0 + i) )
+            {
+                // verify edge
+                int * pFanins = Gia_ObjLutFanins( p->pGia, iObj );
+                int k, nFanins = Gia_ObjLutSize( p->pGia, iObj );
+                for ( k = 0; k < nFanins; k++ )
+                {
+                    //printf( "%d ", pFanins[k] );
+                    if ( pFanins[k] == iFanin )
+                        break;
+                }
+                //printf( "\n" );
+                if ( k == nFanins )
+//                    printf( "Cannot find LUT with input %d at node %d.\n", iFanin, iObj );
+                    continue;
                 Vec_IntPushTwo( vEdge2, iFanin, iObj );
+            }
     }
 }
 
