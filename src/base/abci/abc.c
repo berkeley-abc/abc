@@ -233,6 +233,7 @@ static int Abc_CommandFraigRestore           ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandFraigClean             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandFraigSweep             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandFraigDress             ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandDumpEquiv              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 static int Abc_CommandRecStart3              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandRecStop3               ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -869,6 +870,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Fraiging",     "fraig_clean",   Abc_CommandFraigClean,       0 );
     Cmd_CommandAdd( pAbc, "Fraiging",     "fraig_sweep",   Abc_CommandFraigSweep,       1 );
     Cmd_CommandAdd( pAbc, "Fraiging",     "dress",         Abc_CommandFraigDress,       1 );
+    Cmd_CommandAdd( pAbc, "Fraiging",     "dump_equiv",    Abc_CommandDumpEquiv,        0 );
 
     Cmd_CommandAdd( pAbc, "Choicing",     "rec_start3",    Abc_CommandRecStart3,        0 );
     Cmd_CommandAdd( pAbc, "Choicing",     "rec_stop3",     Abc_CommandRecStop3,         0 );
@@ -14812,6 +14814,81 @@ usage:
   SeeAlso     []
 
 ***********************************************************************/
+int Abc_CommandDumpEquiv( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern void Abc_NtkDumpEquiv( Abc_Ntk_t * pNtks[2], char * pFileName, int nConfs, int fVerbose );
+    FILE * pFile = NULL;
+    Abc_Ntk_t * pNtks[2] = {NULL};
+    char * pFileName[2], * pFileNameOut;
+    int c, nConfs = 1000, fVerbose = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Cvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'C':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-C\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nConfs = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nConfs < 0 )
+                goto usage;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( argc != globalUtilOptind + 3 )
+    {
+        Abc_Print( -1, "Expecting three file names on the command line.\n" );
+        goto usage;
+    }
+    pFileName[0] = argv[globalUtilOptind];
+    pFileName[1] = argv[globalUtilOptind+1];
+    pFileNameOut = argv[globalUtilOptind+2];
+    for ( c = 0; c < 2; c++ )
+    {
+        pNtks[c] = Io_Read( pFileName[c], Io_ReadFileType(pFileName[c]), 1, 0 );
+        if ( pNtks[c] == NULL )
+            goto usage;
+        Abc_NtkToAig( pNtks[c] );
+    }
+    Abc_NtkDumpEquiv( pNtks, pFileNameOut, nConfs, fVerbose );
+    Abc_NtkDelete( pNtks[0] );
+    Abc_NtkDelete( pNtks[1] );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: dump_equiv [-C num] [-vh] <file1.blif> <file2.blif> <file_dump_equiv.txt>\n" );
+    Abc_Print( -2, "\t          computes equivalence classes of nodes in <file1> and <file2>\n" );
+    Abc_Print( -2, "\t-C num  : the maximum number of conflicts at each node [default = %d]\n", nConfs );
+    Abc_Print( -2, "\t-v      : prints verbose information [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h      : print the command usage\n");
+    Abc_Print( -2, "\t<file1> : first network whose nodes are considered\n" );
+    Abc_Print( -2, "\t<file2> : second network whose nodes are considered\n" );
+    Abc_Print( -2, "\t<file_dump_equiv> : text file with node equivalence classes\n" );
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 int Abc_CommandRecStart3( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     char * FileName, * pTemp;
@@ -27022,7 +27099,7 @@ usage:
     Abc_Print( -2, "\t         converts the current network into GIA and moves it to the &-space\n" );
     Abc_Print( -2, "\t         (if the network is a sequential logic network, normalizes the flops\n" );
     Abc_Print( -2, "\t         to have const-0 initial values, equivalent to \"undc; st; zero\")\n" );
-    Abc_Print( -2, "\t-c     : toggles allowing simple GIA to be improved [default = %s]\n", fGiaSimple? "yes": "no" );
+    Abc_Print( -2, "\t-c     : toggles allowing simple GIA to be imported [default = %s]\n", fGiaSimple? "yes": "no" );
     Abc_Print( -2, "\t-m     : toggles preserving the current mapping [default = %s]\n", fMapped? "yes": "no" );
     Abc_Print( -2, "\t-n     : toggles saving CI/CO names of the AIG [default = %s]\n", fNames? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggles additional verbose output [default = %s]\n", fVerbose? "yes": "no" );

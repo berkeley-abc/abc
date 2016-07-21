@@ -93,6 +93,8 @@ void Gia_ManStop( Gia_Man_t * p )
     Vec_FltFreeP( &p->vTiming );
     Vec_VecFreeP( &p->vClockDoms );
     Vec_IntFreeP( &p->vCofVars );
+    Vec_IntFreeP( &p->vIdsOrig );
+    Vec_IntFreeP( &p->vIdsEquiv );
     Vec_IntFreeP( &p->vLutConfigs );
     Vec_IntFreeP( &p->vEdgeDelay );
     Vec_IntFreeP( &p->vEdgeDelayR );

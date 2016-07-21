@@ -1383,7 +1383,7 @@ Gia_Man_t * Gia_ManDupDfs( Gia_Man_t * p )
     Gia_ManForEachCo( p, pObj, i )
         Gia_ManDupDfs_rec( pNew, p, Gia_ObjFanin0(pObj) );
     Gia_ManForEachCo( p, pObj, i )
-        Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
+        pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
     Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
     pNew->nConstrs = p->nConstrs;
     if ( p->pCexSeq )

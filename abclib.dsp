@@ -263,6 +263,10 @@ SOURCE=.\src\base\abci\abcDress2.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\base\abci\abcDress3.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\base\abci\abcDsd.c
 # End Source File
 # Begin Source File

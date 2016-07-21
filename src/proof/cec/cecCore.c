@@ -236,7 +236,7 @@ Gia_Man_t * Cec_ManSatSolving( Gia_Man_t * pAig, Cec_ParSat_t * pPars )
     Gia_Man_t * pNew;
     Cec_ManPat_t * pPat;
     pPat = Cec_ManPatStart();
-    Cec_ManSatSolve( pPat, pAig, pPars );
+    Cec_ManSatSolve( pPat, pAig, pPars, NULL, NULL, NULL );
 //    pNew = Gia_ManDupDfsSkip( pAig );
     pNew = Gia_ManDup( pAig );
     Cec_ManPatStop( pPat );
@@ -351,6 +351,12 @@ Gia_Man_t * Cec_ManSatSweeping( Gia_Man_t * pAig, Cec_ParFra_t * pPars, int fSil
     pIni = Gia_ManDup(pAig);
     pIni->pReprs = pAig->pReprs; pAig->pReprs = NULL;
     pIni->pNexts = pAig->pNexts; pAig->pNexts = NULL;
+    if ( pPars->fUseOrigIds )
+    {
+        Gia_ManOrigIdsInit( pIni );
+        Vec_IntFreeP( &pAig->vIdsEquiv );
+        pAig->vIdsEquiv = Vec_IntAlloc( 1000 );
+    }
 
     // prepare the managers
     // SAT sweeping
@@ -429,7 +435,7 @@ clk = Abc_Clock();
         if ( pPars->fRunCSat )
             Cec_ManSatSolveCSat( pPat, pSrm, pParsSat ); 
         else
-            Cec_ManSatSolve( pPat, pSrm, pParsSat ); 
+            Cec_ManSatSolve( pPat, pSrm, pParsSat, p->pAig->vIdsOrig, p->vXorNodes, pAig->vIdsEquiv ); 
 p->timeSat += Abc_Clock() - clk;
         if ( Cec_ManFraClassesUpdate( p, pSim, pPat, pSrm ) )
         {

@@ -980,7 +980,7 @@ Gia_Man_t * Abc_NtkAigToGia( Abc_Ntk_t * p, int fGiaSimple )
     Vec_Int_t * vMapping = NULL;
     Vec_Ptr_t * vNodes;
     Abc_Obj_t * pNode, * pFanin;
-    int i, k, nObjs;
+    int i, k, nObjs, iGiaObj;
     assert( Abc_NtkIsAigLogic(p) );
     pHopMan = (Hop_Man_t *)p->pManFunc;
     // create new manager
@@ -1016,15 +1016,14 @@ Gia_Man_t * Abc_NtkAigToGia( Abc_Ntk_t * p, int fGiaSimple )
         {
             assert( Abc_ObjFaninNum(pNode) <= Hop_ManPiNum(pHopMan) );
             Abc_ConvertAigToGia( pNew, pHopObj );
-            if ( !Gia_ObjIsAnd(Gia_ManObj(pNew, Abc_Lit2Var(pHopObj->iData))) )
-                continue;
-            if ( vMapping && !Vec_IntEntry(vMapping, Abc_Lit2Var(pHopObj->iData)) )
+            iGiaObj = Abc_Lit2Var( pHopObj->iData );
+            if ( vMapping && Gia_ObjIsAnd(Gia_ManObj(pNew, iGiaObj)) && !Vec_IntEntry(vMapping, iGiaObj) )
             {
-                Vec_IntWriteEntry( vMapping, Abc_Lit2Var(pHopObj->iData), Vec_IntSize(vMapping) );
+                Vec_IntWriteEntry( vMapping, iGiaObj, Vec_IntSize(vMapping) );
                 Vec_IntPush( vMapping, Abc_ObjFaninNum(pNode) );
                 Abc_ObjForEachFanin( pNode, pFanin, k )
                     Vec_IntPush( vMapping, Abc_Lit2Var(pFanin->iTemp)  );
-                Vec_IntPush( vMapping, Abc_Lit2Var(pHopObj->iData) );
+                Vec_IntPush( vMapping, iGiaObj );
             }
         }
         pNode->iTemp = Abc_LitNotCond( pHopObj->iData, Hop_IsComplement( (Hop_Obj_t *)pNode->pData ) );

@@ -15,6 +15,7 @@ SRC +=    src/base/abci/abc.c \
     src/base/abci/abcDetect.c \
     src/base/abci/abcDress.c \
     src/base/abci/abcDress2.c \
+    src/base/abci/abcDress3.c \
     src/base/abci/abcDsd.c \
     src/base/abci/abcExact.c \
     src/base/abci/abcExtract.c \

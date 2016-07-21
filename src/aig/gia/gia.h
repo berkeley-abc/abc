@@ -175,6 +175,8 @@ struct Gia_Man_t_
     Vec_Int_t *    vUserFfIds;    // numbers assigned to FFs by the user
     Vec_Int_t *    vCiNumsOrig;   // original CI names
     Vec_Int_t *    vCoNumsOrig;   // original CO names
+    Vec_Int_t *    vIdsOrig;      // original object IDs
+    Vec_Int_t *    vIdsEquiv;     // original object IDs proved equivalent
     Vec_Int_t *    vCofVars;      // cofactoring variables
     Vec_Vec_t *    vClockDoms;    // clock domains
     Vec_Flt_t *    vTiming;       // arrival/required/slack
@@ -1241,6 +1243,10 @@ extern void                Gia_ManDetectSeqSignals( Gia_Man_t * p, int fSetReset
 extern Gia_Man_t *         Gia_ManUnrollAndCofactor( Gia_Man_t * p, int nFrames, int nFanMax, int fVerbose );
 extern Gia_Man_t *         Gia_ManRemoveEnables( Gia_Man_t * p );
 /*=== giaEquiv.c ==========================================================*/
+extern void                Gia_ManOrigIdsInit( Gia_Man_t * p );
+extern void                Gia_ManOrigIdsStart( Gia_Man_t * p );
+extern void                Gia_ManOrigIdsRemap( Gia_Man_t * p, Gia_Man_t * pNew );
+extern Gia_Man_t *         Gia_ManOrigIdsReduce( Gia_Man_t * p, Vec_Int_t * vPairs );
 extern void                Gia_ManEquivFixOutputPairs( Gia_Man_t * p );
 extern int                 Gia_ManCheckTopoOrder( Gia_Man_t * p );
 extern int *               Gia_ManDeriveNexts( Gia_Man_t * p );

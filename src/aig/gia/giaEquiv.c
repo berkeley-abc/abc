@@ -34,6 +34,143 @@ ABC_NAMESPACE_IMPL_START
 
 /**Function*************************************************************
 
+  Synopsis    [Manipulating original IDs.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_ManOrigIdsInit( Gia_Man_t * p )
+{
+    Vec_IntFreeP( &p->vIdsOrig );
+    p->vIdsOrig = Vec_IntStartNatural( Gia_ManObjNum(p) );
+}
+void Gia_ManOrigIdsStart( Gia_Man_t * p )
+{
+    Vec_IntFreeP( &p->vIdsOrig );
+    p->vIdsOrig = Vec_IntStartFull( Gia_ManObjNum(p) );
+}
+void Gia_ManOrigIdsRemap( Gia_Man_t * p, Gia_Man_t * pNew )
+{
+    Gia_Obj_t * pObj; int i;
+    if ( p->vIdsOrig == NULL )
+        return;
+    Gia_ManOrigIdsStart( pNew );
+    Vec_IntWriteEntry( pNew->vIdsOrig, 0, 0 );
+    Gia_ManForEachObj1( p, pObj, i )
+        if ( ~pObj->Value && Abc_Lit2Var(pObj->Value) && Vec_IntEntry(p->vIdsOrig, i) != -1 && Vec_IntEntry(pNew->vIdsOrig, Abc_Lit2Var(pObj->Value)) == -1 )
+            Vec_IntWriteEntry( pNew->vIdsOrig, Abc_Lit2Var(pObj->Value), Vec_IntEntry(p->vIdsOrig, i) );
+    Gia_ManForEachObj( pNew, pObj, i )
+        assert( Vec_IntEntry(pNew->vIdsOrig, i) >= 0 );
+}
+// input is a set of equivalent node pairs in any order
+// output is the mapping of each node into the equiv node with the smallest ID
+void Gia_ManOrigIdsRemapPairsInsert( Vec_Int_t * vMap, int One, int Two )
+{
+    int Smo = One < Two ? One : Two;
+    int Big = One < Two ? Two : One;
+    assert( Smo != Big );
+    if ( Vec_IntEntry(vMap, Big) == -1 )
+        Vec_IntWriteEntry( vMap, Big, Smo );
+    else
+        Gia_ManOrigIdsRemapPairsInsert( vMap, Smo, Vec_IntEntry(vMap, Big) );
+}
+int Gia_ManOrigIdsRemapPairsExtract( Vec_Int_t * vMap, int One )
+{
+    if ( Vec_IntEntry(vMap, One) == -1 )
+        return One;
+    return Gia_ManOrigIdsRemapPairsExtract( vMap, Vec_IntEntry(vMap, One) );
+}
+Vec_Int_t * Gia_ManOrigIdsRemapPairs( Vec_Int_t * vEquivPairs, int nObjs )
+{
+    Vec_Int_t * vMapResult;
+    Vec_Int_t * vMap2Smaller;
+    int i, One, Two;
+    // map bigger into smaller one
+    vMap2Smaller = Vec_IntStartFull( nObjs );
+    Vec_IntForEachEntryDouble( vEquivPairs, One, Two, i )
+        Gia_ManOrigIdsRemapPairsInsert( vMap2Smaller, One, Two );
+    // collect results in the topo order
+    vMapResult = Vec_IntStartFull( nObjs );
+    Vec_IntForEachEntry( vMap2Smaller, One, i )
+        if ( One >= 0 )
+            Vec_IntWriteEntry( vMapResult, i, Gia_ManOrigIdsRemapPairsExtract(vMap2Smaller, One) );
+    Vec_IntFree( vMap2Smaller );
+    return vMapResult;
+}
+// remap the AIG using the equivalent pairs proved
+// returns the reduced AIG and the equivalence classes of the original AIG
+Gia_Man_t * Gia_ManOrigIdsReduce( Gia_Man_t * p, Vec_Int_t * vPairs )
+{
+    Gia_Man_t * pNew = NULL;
+    Gia_Obj_t * pObj, * pRepr; int i;
+    Vec_Int_t * vMap = Gia_ManOrigIdsRemapPairs( vPairs, Gia_ManObjNum(p) );
+    Gia_ManSetPhase( p );
+    pNew = Gia_ManStart( Gia_ManObjNum(p) );
+    pNew->pSpec = Abc_UtilStrsav( p->pSpec );
+    pNew->pName = Abc_UtilStrsav( p->pName );
+    Gia_ManFillValue(p);
+    Gia_ManConst0(p)->Value = 0;
+    Gia_ManForEachCi( p, pObj, i )
+        pObj->Value = Gia_ManAppendCi(pNew);
+    Gia_ManHashAlloc( pNew );
+    Gia_ManForEachAnd( p, pObj, i )
+    {
+        if ( Vec_IntEntry(vMap, i) == -1 )
+            pObj->Value = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+        else
+        {
+            pRepr = Gia_ManObj( p, Vec_IntEntry(vMap, i) );
+            pObj->Value = Abc_LitNotCond( pRepr->Value, pRepr->fPhase ^ pObj->fPhase );
+        }
+    }
+    Gia_ManHashStop( pNew );
+    Gia_ManForEachCo( p, pObj, i )
+        Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
+    Vec_IntFree( vMap );
+    // compute equivalences
+    assert( !p->pReprs && !p->pNexts );
+    p->pReprs = ABC_CALLOC( Gia_Rpr_t, Gia_ManObjNum(p) );
+    for ( i = 0; i < Gia_ManObjNum(p); i++ )
+        Gia_ObjSetRepr( p, i, GIA_VOID );
+    Gia_ManFillValue(pNew);
+    Gia_ManForEachAnd( p, pObj, i )
+    {
+        int iRepr = Abc_Lit2Var(pObj->Value);
+        if ( iRepr == 0 )
+        {
+            Gia_ObjSetRepr( p, i, 0 );
+            continue;
+        }
+        pRepr = Gia_ManObj( pNew, iRepr );
+        if ( !~pRepr->Value ) // first time
+        {
+            pRepr->Value = i;
+            continue;
+        }
+        // add equivalence
+        Gia_ObjSetRepr( p, i, pRepr->Value );
+    }
+    p->pNexts = Gia_ManDeriveNexts( p );
+    return pNew;
+}
+Gia_Man_t * Gia_ManOrigIdsReduceTest( Gia_Man_t * p, Vec_Int_t * vPairs )
+{
+    Gia_Man_t * pTemp, * pNew = Gia_ManOrigIdsReduce( p, vPairs );
+    Gia_ManPrintStats( p, NULL );
+    Gia_ManPrintStats( pNew, NULL );
+    //Gia_ManStop( pNew );
+    // cleanup the resulting one
+    pNew = Gia_ManCleanup( pTemp = pNew );
+    Gia_ManStop( pTemp );
+    return pNew;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Returns 1 if AIG is not in the required topo order.]
 
   Description []
@@ -460,7 +597,7 @@ Gia_Man_t * Gia_ManEquivReduce( Gia_Man_t * p, int fUseAll, int fDualOut, int fS
     Gia_ManForEachCo( p, pObj, i )
         Gia_ManEquivReduce_rec( pNew, p, Gia_ObjFanin0(pObj), fUseAll, fDualOut );
     Gia_ManForEachCo( p, pObj, i )
-        Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
+        pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
     Gia_ManHashStop( pNew );
     Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
     return pNew;
@@ -641,6 +778,7 @@ Gia_Man_t * Gia_ManEquivReduceAndRemap( Gia_Man_t * p, int fSeq, int fMiterPairs
     pNew = Gia_ManEquivReduce( p, 0, 0, 0, 0 );
     if ( pNew == NULL )
         return NULL;
+    Gia_ManOrigIdsRemap( p, pNew );
     if ( fMiterPairs )
         Gia_ManEquivFixOutputPairs( pNew );
     if ( fSeq )
@@ -649,9 +787,11 @@ Gia_Man_t * Gia_ManEquivReduceAndRemap( Gia_Man_t * p, int fSeq, int fMiterPairs
         Gia_ManCombMarkUsed( pNew );
     Gia_ManEquivUpdatePointers( p, pNew );
     pFinal = Gia_ManDupMarked( pNew );
+    Gia_ManOrigIdsRemap( pNew, pFinal );
     Gia_ManEquivDeriveReprs( p, pNew, pFinal );
     Gia_ManStop( pNew );
     pFinal = Gia_ManEquivRemapDfs( pNew = pFinal );
+    Gia_ManOrigIdsRemap( pNew, pFinal );
     Gia_ManStop( pNew );
     return pFinal;
 }

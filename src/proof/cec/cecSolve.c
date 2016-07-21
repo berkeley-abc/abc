@@ -673,7 +673,7 @@ p->timeSatUndec += Abc_Clock() - clk;
   SeeAlso     []
 
 ***********************************************************************/
-void Cec_ManSatSolve( Cec_ManPat_t * pPat, Gia_Man_t * pAig, Cec_ParSat_t * pPars )
+void Cec_ManSatSolve( Cec_ManPat_t * pPat, Gia_Man_t * pAig, Cec_ParSat_t * pPars, Vec_Int_t * vIdsOrig, Vec_Int_t * vMiterPairs, Vec_Int_t * vEquivPairs )
 {
     Bar_Progress_t * pProgress = NULL;
     Cec_ManSat_t * p;
@@ -706,6 +706,16 @@ clk2 = Abc_Clock();
         status = Cec_ManSatCheckNode( p, Gia_ObjChild0(pObj) );
         pObj->fMark0 = (status == 0);
         pObj->fMark1 = (status == 1);
+        if ( status == 1 && vIdsOrig )
+        {
+            int iObj1 = Vec_IntEntry(vMiterPairs, 2*i);
+            int iObj2 = Vec_IntEntry(vMiterPairs, 2*i+1);
+            int OrigId1 = Vec_IntEntry(vIdsOrig, iObj1);
+            int OrigId2 = Vec_IntEntry(vIdsOrig, iObj2);
+            assert( OrigId1 >= 0 && OrigId2 >= 0 );
+            Vec_IntPushTwo( vEquivPairs, OrigId1, OrigId2 );
+        }
+
 /*
         if ( status == -1 )
         {
