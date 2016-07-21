@@ -14817,7 +14817,6 @@ usage:
 int Abc_CommandDumpEquiv( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     extern void Abc_NtkDumpEquiv( Abc_Ntk_t * pNtks[2], char * pFileName, int nConfs, int fVerbose );
-    FILE * pFile = NULL;
     Abc_Ntk_t * pNtks[2] = {NULL};
     char * pFileName[2], * pFileNameOut;
     int c, nConfs = 1000, fVerbose = 0;
@@ -14861,7 +14860,12 @@ int Abc_CommandDumpEquiv( Abc_Frame_t * pAbc, int argc, char ** argv )
             goto usage;
         Abc_NtkToAig( pNtks[c] );
     }
-    Abc_NtkDumpEquiv( pNtks, pFileNameOut, nConfs, fVerbose );
+    if ( Abc_NtkCiNum(pNtks[0]) != Abc_NtkCiNum(pNtks[1]) )
+        Abc_Print( -1, "The number of primary inputs of networks \"%s\" and \"%s\" does not match.\n", Abc_NtkName(pNtks[0]), Abc_NtkName(pNtks[1]) );
+//    else if ( Abc_NtkCoNum(pNtks[0]) != Abc_NtkCoNum(pNtks[1]) )
+//        Abc_Print( -1, "The number of primary outputs of networks \"%s\" and \"%s\" does not match.\n", Abc_NtkName(pNtks[0]), Abc_NtkName(pNtks[1]) );
+    else
+        Abc_NtkDumpEquiv( pNtks, pFileNameOut, nConfs, fVerbose );
     Abc_NtkDelete( pNtks[0] );
     Abc_NtkDelete( pNtks[1] );
     return 0;
