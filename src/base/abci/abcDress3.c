@@ -61,6 +61,48 @@ void Abc_NtkComputeGiaEquivs( Gia_Man_t * pGia, int nConfs, int fVerbose )
 
 /**Function*************************************************************
 
+  Synopsis    [Converts AIG from HOP to GIA.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_ConvertHopToGia_rec1( Gia_Man_t * p, Hop_Obj_t * pObj )
+{
+    assert( !Hop_IsComplement(pObj) );
+    if ( !Hop_ObjIsNode(pObj) || Hop_ObjIsMarkA(pObj) )
+        return;
+    Abc_ConvertHopToGia_rec1( p, Hop_ObjFanin0(pObj) ); 
+    Abc_ConvertHopToGia_rec1( p, Hop_ObjFanin1(pObj) );
+    pObj->iData = Gia_ManHashAnd( p, Hop_ObjChild0CopyI(pObj), Hop_ObjChild1CopyI(pObj) );
+    assert( !Hop_ObjIsMarkA(pObj) ); // loop detection
+    Hop_ObjSetMarkA( pObj );
+}
+void Abc_ConvertHopToGia_rec2( Hop_Obj_t * pObj )
+{
+    assert( !Hop_IsComplement(pObj) );
+    if ( !Hop_ObjIsNode(pObj) || !Hop_ObjIsMarkA(pObj) )
+        return;
+    Abc_ConvertHopToGia_rec2( Hop_ObjFanin0(pObj) ); 
+    Abc_ConvertHopToGia_rec2( Hop_ObjFanin1(pObj) );
+    assert( Hop_ObjIsMarkA(pObj) ); // loop detection
+    Hop_ObjClearMarkA( pObj );
+}
+int Abc_ConvertHopToGia( Gia_Man_t * p, Hop_Obj_t * pRoot )
+{
+    assert( !Hop_IsComplement(pRoot) );
+    if ( Hop_ObjIsConst1( pRoot ) )
+        return 1;
+    Abc_ConvertHopToGia_rec1( p, pRoot );
+    Abc_ConvertHopToGia_rec2( pRoot );
+    return pRoot->iData;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Add logic from pNtk to the AIG manager p.]
 
   Description []
@@ -72,7 +114,6 @@ void Abc_NtkComputeGiaEquivs( Gia_Man_t * pGia, int nConfs, int fVerbose )
 ***********************************************************************/
 void Abc_NtkAigToGiaOne( Gia_Man_t * p, Abc_Ntk_t * pNtk )
 {
-    extern int Abc_ConvertAigToGia( Gia_Man_t * p, Hop_Obj_t * pRoot );
     Hop_Man_t * pHopMan;
     Hop_Obj_t * pHopObj;
     Vec_Ptr_t * vNodes;
@@ -86,7 +127,7 @@ void Abc_NtkAigToGiaOne( Gia_Man_t * p, Abc_Ntk_t * pNtk )
     Abc_NtkForEachCi( pNtk, pNode, i )
         pNode->iTemp = Gia_ManCiLit(p, i);
     // iterate through nodes used in the mapping
-    vNodes = Abc_NtkDfs( pNtk, 0 );
+    vNodes = Abc_NtkDfs( pNtk, 1 );
     Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pNode, i )
     {
         Abc_ObjForEachFanin( pNode, pFanin, k )
@@ -94,7 +135,7 @@ void Abc_NtkAigToGiaOne( Gia_Man_t * p, Abc_Ntk_t * pNtk )
         pHopObj = Hop_Regular( (Hop_Obj_t *)pNode->pData );
         assert( Abc_ObjFaninNum(pNode) <= Hop_ManPiNum(pHopMan) );
         if ( Hop_DagSize(pHopObj) > 0 )
-            Abc_ConvertAigToGia( p, pHopObj );
+            Abc_ConvertHopToGia( p, pHopObj );
         pNode->iTemp = Abc_LitNotCond( pHopObj->iData, Hop_IsComplement( (Hop_Obj_t *)pNode->pData ) );
     }
     Vec_PtrFree( vNodes );
