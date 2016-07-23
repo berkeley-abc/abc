@@ -7284,15 +7284,26 @@ usage:
 ***********************************************************************/
 int Abc_CommandExact( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    int c, fVerbose = 0, nVars;
+    int c, nMaxDepth = -1, fVerbose = 0, nVars;
     word pTruth[1];
     Abc_Ntk_t * pNtkRes;
 
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Dvh" ) ) != EOF )
     {
         switch ( c )
         {
+        case 'D':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-D\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nMaxDepth = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nMaxDepth < 0 )
+                goto usage;
+            break;
         case 'v':
             fVerbose ^= 1;
             break;
@@ -7309,7 +7320,7 @@ int Abc_CommandExact( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
 
     nVars = Abc_TtReadHex( pTruth, argv[globalUtilOptind] );
-    pNtkRes = Abc_NtkFindExact( pTruth, nVars, 1, fVerbose );
+    pNtkRes = Abc_NtkFindExact( pTruth, nVars, 1, nMaxDepth, fVerbose );
     assert( pNtkRes != NULL );
     Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
     Abc_FrameClearVerifStatus( pAbc );
@@ -7317,9 +7328,10 @@ int Abc_CommandExact( Abc_Frame_t * pAbc, int argc, char ** argv )
 
 usage:
     Abc_Print( -2, "usage: exact [-vh] <truth>\n" );
-    Abc_Print( -2, "\t           finds optimum networks using SAT-based exact synthesis\n" );
-    Abc_Print( -2, "\t-v       : toggle verbose printout [default = %s]\n", fVerbose? "yes": "no" );
-    Abc_Print( -2, "\t-h       : print the command usage\n");
+    Abc_Print( -2, "\t           finds optimum networks using SAT-based exact synthesis for hex truth table <truth>\n" );
+    Abc_Print( -2, "\t-D <num> : constrain maximum depth\n" );
+    Abc_Print( -2, "\t-v       : toggle verbose printout [default = %s]\n", fVerbose ? "yes": "no" );
+    Abc_Print( -2, "\t-h       : print the command usage\n" );
     Abc_Print( -2, "\t\n" );
     Abc_Print( -2, "\t           This command was contributed by Mathias Soeken from EPFL in July 2016.\n" );
     Abc_Print( -2, "\t           The author can be contacted as mathias.soeken at epfl.ch\n" );

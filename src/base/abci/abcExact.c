@@ -46,6 +46,7 @@ struct Ses_Man_t_
     int          nSpecVars;     /* number of variables in specification */
     int          nSpecFunc;     /* number of functions to synthesize */
     int          nRows;         /* number of rows in the specification (without 0) */
+    int          nMaxDepth;     /* maximum depth (-1 if depth is not constrained) */
     int          fVerbose;      /* be verbose */
     int          fVeryVerbose;  /* be very verbose */
 
@@ -54,11 +55,13 @@ struct Ses_Man_t_
     int          nSimVars;      /* number of simulation vars x(i, t) */
     int          nOutputVars;   /* number of output variables g(h, i) */
     int          nGateVars;     /* number of gate variables f(i, p, q) */
-    int          nSelectVars;   /* number of select variables s(i, j, k ) */
+    int          nSelectVars;   /* number of select variables s(i, j, k) */
+    int          nDepthVars;    /* number of depth variables d(i, j) */
 
     int          nOutputOffset; /* offset where output variables start */
     int          nGateOffset;   /* offset where gate variables start */
     int          nSelectOffset; /* offset where select variables start */
+    int          nDepthOffset;  /* offset where depth variables start */
 
     abctime      timeSat;       /* SAT runtime */
     abctime      timeSatSat;    /* SAT runtime (sat instance) */
@@ -70,7 +73,7 @@ struct Ses_Man_t_
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
-static inline Ses_Man_t * Ses_ManAlloc( word * pTruth, int nVars, int nFunc, int fVerbose )
+static inline Ses_Man_t * Ses_ManAlloc( word * pTruth, int nVars, int nFunc, int nMaxDepth, int fVerbose )
 {
     int h;
 
@@ -87,6 +90,7 @@ static inline Ses_Man_t * Ses_ManAlloc( word * pTruth, int nVars, int nFunc, int
     p->nSpecVars    = nVars;
     p->nSpecFunc    = nFunc;
     p->nRows        = ( 1 << nVars ) - 1;
+    p->nMaxDepth    = nMaxDepth;
     p->fVerbose     = fVerbose;
     p->fVeryVerbose = 0;
 
@@ -102,7 +106,7 @@ static inline void Ses_ManClean( Ses_Man_t * pSes )
 
     if ( pSes->pSat )
         sat_solver_delete( pSes->pSat );
-    
+
     ABC_FREE( pSes );
 }
 
@@ -153,6 +157,14 @@ static inline int Ses_ManSelectVar( Ses_Man_t * pSes, int i, int j, int k )
     return offset + ( -j * ( 1 + j - 2 * ( pSes->nSpecVars + i ) ) ) / 2 + ( k - j - 1 );
 }
 
+static inline int Ses_ManDepthVar( Ses_Man_t * pSes, int i, int j )
+{
+    assert( i < pSes->nGates );
+    assert( j <= i );
+
+    return pSes->nDepthOffset + ( ( i * ( i + 1 ) ) / 2 ) + j;
+}
+
 /**Function*************************************************************
 
   Synopsis    [Setup variables to find network with nGates gates.]
@@ -174,15 +186,17 @@ static void Ses_ManCreateVars( Ses_Man_t * pSes, int nGates )
     pSes->nSelectVars = 0;
     for ( i = pSes->nSpecVars; i < pSes->nSpecVars + nGates; ++i )
         pSes->nSelectVars += ( i * ( i - 1 ) ) / 2;
+    pSes->nDepthVars = pSes->nMaxDepth > 0 ? ( nGates * ( nGates + 1 ) ) / 2 : 0;
 
     pSes->nOutputOffset = pSes->nSimVars;
     pSes->nGateOffset   = pSes->nSimVars + pSes->nOutputVars;
     pSes->nSelectOffset = pSes->nSimVars + pSes->nOutputVars + pSes->nGateVars;
+    pSes->nDepthOffset  = pSes->nSimVars + pSes->nOutputVars + pSes->nGateVars + pSes->nSelectVars;
 
     if ( pSes->pSat )
         sat_solver_delete( pSes->pSat );
     pSes->pSat = sat_solver_new();
-    sat_solver_setnvars( pSes->pSat, pSes->nSimVars + pSes->nOutputVars + pSes->nGateVars + pSes->nSelectVars );
+    sat_solver_setnvars( pSes->pSat, pSes->nSimVars + pSes->nOutputVars + pSes->nGateVars + pSes->nSelectVars + pSes->nDepthVars );
 }
 
 /**Function*************************************************************
@@ -225,7 +239,7 @@ static void Ses_ManCreateClauses( Ses_Man_t * pSes )
     extern int Extra_TruthVarsSymm( unsigned * pTruth, int nVars, int iVar0, int iVar1 );
 
     int h, i, j, k, t, ii, jj, kk, p, q;
-    int pLits[2];
+    int pLits[3];
     Vec_Int_t * vLits;
 
     for ( t = 0; t < pSes->nRows; ++t )
@@ -337,6 +351,55 @@ static void Ses_ManCreateClauses( Ses_Man_t * pSes )
                             Vec_IntFree( vLits );
                         }
                 }
+
+    /* DEPTH clauses */
+    if ( pSes->nMaxDepth > 0 )
+    {
+        for ( i = 0; i < pSes->nGates; ++i )
+        {
+            for ( k = 1; k < i; ++k )
+                for ( j = 0; j < k; ++j )
+                {
+                    pLits[0] = Abc_Var2Lit( Ses_ManSelectVar( pSes, i, pSes->nSpecVars + j, pSes->nSpecVars + k ), 1 );
+                    for ( jj = 0; jj <= j; ++jj )
+                    {
+                        pLits[1] = Abc_Var2Lit( Ses_ManDepthVar( pSes, j, jj ), 1 );
+                        pLits[2] = Abc_Var2Lit( Ses_ManDepthVar( pSes, i, jj + 1 ), 0 );
+                        assert( sat_solver_addclause( pSes->pSat, pLits, pLits + 3 ) );
+                    }
+                }
+
+            for ( k = 0; k < i; ++k )
+                for ( j = 0; j < pSes->nSpecVars + k; ++j )
+                {
+                    pLits[0] = Abc_Var2Lit( Ses_ManSelectVar( pSes, i, j, pSes->nSpecVars + k ), 1 );
+                    for ( kk = 0; kk <= k; ++kk )
+                    {
+                        pLits[1] = Abc_Var2Lit( Ses_ManDepthVar( pSes, k, kk ), 1 );
+                        pLits[2] = Abc_Var2Lit( Ses_ManDepthVar( pSes, i, kk + 1 ), 0 );
+                        assert( sat_solver_addclause( pSes->pSat, pLits, pLits + 3 ) );
+                    }
+                }
+
+            pLits[0] = Abc_Var2Lit( Ses_ManDepthVar( pSes, i, 0 ), 0 );
+            assert( sat_solver_addclause( pSes->pSat, pLits, pLits + 1 ) );
+
+            for ( j = 1; j <= i; ++j )
+            {
+                pLits[0] = Abc_Var2Lit( Ses_ManDepthVar( pSes, i, j ), 1 );
+                pLits[1] = Abc_Var2Lit( Ses_ManDepthVar( pSes, i, j - 1 ), 0 );
+                assert( sat_solver_addclause( pSes->pSat, pLits, pLits + 2 ) );
+            }
+
+            if ( pSes->nMaxDepth < i )
+                for ( h = 0; h < pSes->nSpecFunc; ++h )
+                {
+                    pLits[0] = Abc_Var2Lit( Ses_ManOutputVar( pSes, h, i ), 1 );
+                    pLits[1] = Abc_Var2Lit( Ses_ManDepthVar( pSes, i, pSes->nMaxDepth ), 1 );
+                    assert( sat_solver_addclause( pSes->pSat, pLits, pLits + 2 ) );
+                }
+        }
+    }
 }
 
 /**Function*************************************************************
@@ -433,11 +496,22 @@ static Abc_Ntk_t * Ses_ManExtractSolution( Ses_Man_t * pSes )
                 if ( sat_solver_var_value( pSes->pSat, Ses_ManSelectVar( pSes, i, j, k ) ) )
                 {
                     if ( pSes->fVeryVerbose )
-                        printf( " with children %d and %d\n", j, k );
+                        printf( " with children %d and %d", j, k );
                     Abc_ObjAddFanin( pObj, (Abc_Obj_t *)Vec_PtrEntry( pGates, j ) );
                     Abc_ObjAddFanin( pObj, (Abc_Obj_t *)Vec_PtrEntry( pGates, k ) );
                     break;
                 }
+
+        if ( pSes->fVeryVerbose )
+        {
+            if ( pSes->nMaxDepth > 0 )
+            {
+                printf( " and depth vector " );
+                for ( j = 0; j <= i; ++j )
+                    printf( "%d", sat_solver_var_value( pSes->pSat, Ses_ManDepthVar( pSes, i, j ) ) );
+            }
+            printf( "\n" );
+        }
     }
 
     /* outputs */
@@ -449,11 +523,20 @@ static Abc_Ntk_t * Ses_ManExtractSolution( Ses_Man_t * pSes )
         {
             if ( sat_solver_var_value( pSes->pSat, Ses_ManOutputVar( pSes, h, i ) ) )
             {
+                if ( pSes->fVeryVerbose )
+                    printf( "output %d points to gate %d", h, pSes->nSpecVars + i );
                 /* if output has been inverted, we need to add an inverter */
                 if ( ( pSes->bSpecInv >> h ) & 1 )
+                {
                     Abc_ObjAddFanin( pObj, Abc_NtkCreateNodeInv( pNtk, (Abc_Obj_t *)Vec_PtrEntry( pGates, pSes->nSpecVars + i ) ) );
+                    if ( pSes->fVeryVerbose )
+                        printf( " and needs to be inverted" );
+                }
                 else
                     Abc_ObjAddFanin( pObj, (Abc_Obj_t *)Vec_PtrEntry( pGates, pSes->nSpecVars + i ) );
+
+                if ( pSes->fVeryVerbose )
+                    printf( "\n" );
             }
         }
     }
@@ -466,33 +549,6 @@ static Abc_Ntk_t * Ses_ManExtractSolution( Ses_Man_t * pSes )
 
 
     return pNtk;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Synthesis algorithm.]
-
-***********************************************************************/
-static Abc_Ntk_t * Ses_ManFindMinimumSize( Ses_Man_t * pSes )
-{
-    int nGates = 0;
-    abctime timeStart;
-    Abc_Ntk_t * pNtk;
-
-    timeStart = Abc_Clock();
-
-    while ( true )
-    {
-        ++nGates;
-        Ses_ManCreateVars( pSes, nGates );
-        Ses_ManCreateClauses( pSes );
-        if ( Ses_ManSolve( pSes ) )
-        {
-            pNtk = Ses_ManExtractSolution( pSes );
-            pSes->timeTotal = Abc_Clock() - timeStart;
-            return pNtk;
-        }
-    }
 }
 
 /**Function*************************************************************
@@ -534,6 +590,39 @@ static inline void Ses_ManPrintVars( Ses_Man_t * pSes )
             for ( k = j + 1; k < pSes->nSpecVars + i; ++k )
                 printf( "s(%d, %d, %d) : %d\n", i, j, k, Ses_ManSelectVar( pSes, i, j, k ) );
 
+    if ( pSes->nMaxDepth > 0 )
+        for ( i = 0; i < pSes->nGates; ++i )
+            for ( j = 0; j <= i; ++j )
+                printf( "d(%d, %d) : %d\n", i, j, Ses_ManDepthVar( pSes, i, j ) );
+
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Synthesis algorithm.]
+
+***********************************************************************/
+static Abc_Ntk_t * Ses_ManFindMinimumSize( Ses_Man_t * pSes )
+{
+    int nGates = 0;
+    abctime timeStart;
+    Abc_Ntk_t * pNtk;
+
+    timeStart = Abc_Clock();
+
+    while ( true )
+    {
+        ++nGates;
+        Ses_ManCreateVars( pSes, nGates );
+        Ses_ManCreateClauses( pSes );
+
+        if ( Ses_ManSolve( pSes ) )
+        {
+            pNtk = Ses_ManExtractSolution( pSes );
+            pSes->timeTotal = Abc_Clock() - timeStart;
+            return pNtk;
+        }
+    }
 }
 
 /**Function*************************************************************
@@ -547,7 +636,7 @@ static inline void Ses_ManPrintVars( Ses_Man_t * pSes )
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Ntk_t * Abc_NtkFindExact( word * pTruth, int nVars, int nFunc, int fVerbose )
+Abc_Ntk_t * Abc_NtkFindExact( word * pTruth, int nVars, int nFunc, int nMaxDepth, int fVerbose )
 {
     int i, j;
     Ses_Man_t * pSes;
@@ -568,7 +657,7 @@ Abc_Ntk_t * Abc_NtkFindExact( word * pTruth, int nVars, int nFunc, int fVerbose 
         }
     }
 
-    pSes = Ses_ManAlloc( pTruth, nVars, nFunc, fVerbose );
+    pSes = Ses_ManAlloc( pTruth, nVars, nFunc, nMaxDepth, fVerbose );
     pNtk = Ses_ManFindMinimumSize( pSes );
 
     if ( fVerbose )
