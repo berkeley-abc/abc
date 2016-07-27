@@ -435,39 +435,16 @@ void Fx_ManComputeLevel( Fx_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-static inline char Fx_PrintDivLit( int Lit ) { return (Abc_LitIsCompl(Lit) ? 'A' : 'a') + Abc_Lit2Var(Lit); }
-static inline void Fx_PrintDivOneReal( Vec_Int_t * vDiv )
-{
-    int i, Lit;
-    Vec_IntForEachEntry( vDiv, Lit, i )
-        if ( !Abc_LitIsCompl(Lit) )
-            printf( "%c", Fx_PrintDivLit(Abc_Lit2Var(Lit)) );
-    printf( " + " );
-    Vec_IntForEachEntry( vDiv, Lit, i )
-        if ( Abc_LitIsCompl(Lit) )
-            printf( "%c", Fx_PrintDivLit(Abc_Lit2Var(Lit)) );
-}
-static inline void Fx_PrintDivOne( Vec_Int_t * vDiv )
-{
-    int i, Lit;
-    Vec_IntForEachEntry( vDiv, Lit, i )
-        if ( !Abc_LitIsCompl(Lit) )
-            printf( "%c", Fx_PrintDivLit( Abc_Var2Lit(i, Abc_LitIsCompl(Lit)) ) );
-    printf( " + " );
-    Vec_IntForEachEntry( vDiv, Lit, i )
-        if ( Abc_LitIsCompl(Lit) )
-            printf( "%c", Fx_PrintDivLit( Abc_Var2Lit(i, Abc_LitIsCompl(Lit)) ) );
-}
 static inline void Fx_PrintDivArray( Vec_Int_t * vDiv )
 {
     int i, Lit;
     Vec_IntForEachEntry( vDiv, Lit, i )
         if ( !Abc_LitIsCompl(Lit) )
-            printf( "%d(1) ", Abc_Lit2Var(Lit) );
+            printf( "%d(1)", Abc_Lit2Var(Lit) );
     printf( " + " );
     Vec_IntForEachEntry( vDiv, Lit, i )
         if ( Abc_LitIsCompl(Lit) )
-            printf( "%d(2) ", Abc_Lit2Var(Lit) );
+            printf( "%d(2)", Abc_Lit2Var(Lit) );
 }
 static inline void Fx_PrintDiv( Fx_Man_t * p, int iDiv )
 {
@@ -475,8 +452,7 @@ static inline void Fx_PrintDiv( Fx_Man_t * p, int iDiv )
     printf( "%4d : ", p->nDivs );
     printf( "Div %7d : ", iDiv );
     printf( "Weight %12.5f  ", Vec_FltEntry(p->vWeights, iDiv) );
-//    printf( "Compl %4d  ", p->nCompls );
-    Fx_PrintDivOne( Hsh_VecReadEntry(p->pHash, iDiv) );
+    Fx_PrintDivArray( Hsh_VecReadEntry(p->pHash, iDiv) );
     for ( i = Vec_IntSize(Hsh_VecReadEntry(p->pHash, iDiv)) + 3; i < 16; i++ )
         printf( " " );
     printf( "Lits =%7d  ", p->nLits );
@@ -489,45 +465,6 @@ static void Fx_PrintDivisors( Fx_Man_t * p )
     for ( iDiv = 0; iDiv < Vec_FltSize(p->vWeights); iDiv++ )
         Fx_PrintDiv( p, iDiv );
 }
-static void Fx_PrintLiterals( Fx_Man_t * p )
-{
-    Vec_Int_t * vTemp;
-    int i;
-    Vec_WecForEachLevel( p->vLits, vTemp, i )
-    {
-        printf( "%c : ", Fx_PrintDivLit(i) );
-        Vec_IntPrint( vTemp );
-    }
-}
-static void Fx_PrintMatrix( Fx_Man_t * p )
-{
-    Vec_Int_t * vCube;
-    int i, v, Lit, nObjs;
-    char * pLine;
-    if ( Vec_WecSize(p->vLits)/2 > 26 )
-        return;
-    printf( "         " );
-    nObjs = Vec_WecSize(p->vLits)/2;
-    for ( i = 0; i < Abc_MinInt(nObjs, 26); i++ )
-        printf( "%c", 'a' + i );
-    printf( "\n" );
-    pLine = ABC_CALLOC( char, nObjs+1 );
-    Vec_WecForEachLevel( p->vCubes, vCube, i )
-    {
-        if ( Vec_IntSize(vCube) == 0 )
-            continue;
-        memset( pLine, '-', nObjs );
-        Vec_IntForEachEntryStart( vCube, Lit, v, 1 )
-        {
-            assert( Abc_Lit2Var(Lit) < nObjs );
-            pLine[Abc_Lit2Var(Lit)] = Abc_LitIsCompl(Lit) ? '0' : '1';
-        }
-        printf( "%6d : %s %4d\n", i, pLine, Vec_IntEntry(vCube, 0) );
-    }
-    ABC_FREE( pLine );
-    Fx_PrintLiterals( p );
-    Fx_PrintDivisors( p );
-}
 static void Fx_PrintStats( Fx_Man_t * p, abctime clk )
 {
     printf( "Cubes =%8d  ", Vec_WecSizeUsed(p->vCubes) );
@@ -536,11 +473,7 @@ static void Fx_PrintStats( Fx_Man_t * p, abctime clk )
     printf( "Divs+ =%8d  ", Vec_QueSize(p->vPrio) );
     printf( "Compl =%8d  ", p->nDivMux[1] );
     printf( "Extr  =%7d  ", p->nDivs );
-//    printf( "DivsS =%6d  ", p->nDivsS );
-//    printf( "PairS =%6d  ", p->nPairsS );
-//    printf( "PairD =%6d  ", p->nPairsD );
     Abc_PrintTime( 1, "Time", clk );
-//    printf( "\n" );
 }
 
 /**Function*************************************************************
@@ -665,8 +598,37 @@ int Fx_ManDivFindCubeFree( Vec_Int_t * vArr1, Vec_Int_t * vArr2, Vec_Int_t * vCu
         printf( "The SOP has duplicated cubes.\n" );
     else if ( Vec_IntSize(vCubeFree) == 1 )
         printf( "The SOP has contained cubes.\n" );
-//    else if ( Vec_IntSize(vCubeFree) == 2 && Abc_Lit2Var(Abc_Lit2Var(Vec_IntEntry(vCubeFree, 0))) == Abc_Lit2Var(Abc_Lit2Var(Vec_IntEntry(vCubeFree, 1))) && !*fWarning )
-//        printf( "The SOP has distance-1 cubes or it is not a prime cover.  Please make sure the result verifies.\n" ), *fWarning = 1;
+    else if ( Vec_IntSize( vCubeFree ) == 3 )
+    {
+        int * pArray = Vec_IntArray( vCubeFree ); 
+
+        if ( Abc_Lit2Var( pArray[0] ) == Abc_LitNot( Abc_Lit2Var( pArray[1] ) ) )
+        {
+            if ( Abc_LitIsCompl( pArray[0] ) == Abc_LitIsCompl( pArray[2] ) )
+                Vec_IntDrop( vCubeFree, 0 );
+            else
+                Vec_IntDrop( vCubeFree, 1 );
+        }
+        else if ( Abc_Lit2Var( pArray[1] ) == Abc_LitNot( Abc_Lit2Var( pArray[2] ) ) )
+        {
+            if ( Abc_LitIsCompl( pArray[1] ) == Abc_LitIsCompl( pArray[0] ) )
+                Vec_IntDrop( vCubeFree, 1 );
+            else
+                Vec_IntDrop( vCubeFree, 2 );
+        }
+
+        if ( Vec_IntSize( vCubeFree ) == 2 )
+        {
+            int Lit0 = Abc_Lit2Var( pArray[0] ),
+                Lit1 = Abc_Lit2Var( pArray[1] );
+
+            if ( Lit0 > Lit1 )
+                ABC_SWAP( int, Lit0, Lit1 );
+
+            Vec_IntWriteEntry( vCubeFree, 0, Abc_Var2Lit( Lit0, 0 ) );
+            Vec_IntWriteEntry( vCubeFree, 1, Abc_Var2Lit( Lit1, 1 ) );
+        }
+    }
     assert( !Abc_LitIsCompl(Vec_IntEntry(vCubeFree, 0)) );
     return Counter;
 }
@@ -708,7 +670,11 @@ static inline int Fx_ManDivRemoveLits( Vec_Int_t * vCube, Vec_Int_t * vDiv, int 
     int i, Lit, Count = 0;
     assert( !fCompl || Vec_IntSize(vDiv) == 4 );
     Vec_IntForEachEntry( vDiv, Lit, i )
+    {
         Count += Vec_IntRemove1( vCube, Abc_Lit2Var(Lit) ^ (fCompl && i > 1) );  // the last two lits can be complemented
+        if ( Vec_IntSize( vDiv ) == 2 )
+            Count += Vec_IntRemove1( vCube, Abc_LitNot( Abc_Lit2Var(Lit) ) );
+    }
     return Count;
 }
 static inline void Fx_ManDivAddLits( Vec_Int_t * vCube, Vec_Int_t * vCube2, Vec_Int_t * vDiv )
@@ -990,8 +956,7 @@ void Fx_ManUpdate( Fx_Man_t * p, int iDiv, int * fWarning )
 {
     Vec_Int_t * vCube, * vCube2, * vLitP, * vLitN;
     Vec_Int_t * vDiv = p->vDiv;
-    int nLitsNew = p->nLits - (int)Vec_FltEntry(p->vWeights, iDiv);
-    int i, k, Lit0, Lit1, iVarNew, RetValue, Level;
+    int i, k, Lit0, Lit1, iVarNew = 0, RetValue, Level;
     float Diff = Vec_FltEntry(p->vWeights, iDiv) - (float)((int)Vec_FltEntry(p->vWeights, iDiv));
     assert( Diff > 0.0 && Diff < 1.0 );
 
@@ -1002,10 +967,6 @@ void Fx_ManUpdate( Fx_Man_t * p, int iDiv, int * fWarning )
     Fx_ManDivFindPivots( vDiv, &Lit0, &Lit1 );
     assert( Lit0 >= 0 && Lit1 >= 0 );
 
-    // if the input cover is not prime, it may happen that we are extracting divisor (x + !x)
-    // although it is not strictly correct, it seems to be fine to just skip such divisors
-    if ( Abc_Lit2Var(Lit0) == Abc_Lit2Var(Lit1) && Vec_IntSize(Hsh_VecReadEntry(p->pHash, iDiv)) == 2 )
-        return;
 
     // collect single-cube-divisor cubes
     Vec_IntClear( p->vCubesS );
@@ -1040,6 +1001,9 @@ void Fx_ManUpdate( Fx_Man_t * p, int iDiv, int * fWarning )
     // unmark the cubes to be removed
     Vec_WecUnmarkLevels( p->vCubes, p->vCubesS );
     Vec_WecUnmarkLevels( p->vCubes, p->vCubesD );
+
+    if ( Abc_Lit2Var(Lit0) == Abc_Lit2Var(Lit1) && Vec_IntSize(Hsh_VecReadEntry(p->pHash, iDiv)) == 2 )
+        goto ExtractFromPairs;
 
     // create new divisor
     iVarNew = Vec_WecSize( p->vLits ) / 2;
@@ -1080,6 +1044,7 @@ void Fx_ManUpdate( Fx_Man_t * p, int iDiv, int * fWarning )
         p->nLits--;
     }
     // create updated double-cube divisor cube pairs
+ExtractFromPairs:
     k = 0;
     p->nCompls = 0;
     assert( Vec_IntSize(p->vCubesD) % 2 == 0 );
@@ -1092,18 +1057,22 @@ void Fx_ManUpdate( Fx_Man_t * p, int iDiv, int * fWarning )
         vCube2 = Vec_WecEntry( p->vCubes, Vec_IntEntry(p->vCubesD, i+1) );
         RetValue  = Fx_ManDivRemoveLits( vCube, vDiv, fCompl );  // cube 2*i
         RetValue += Fx_ManDivRemoveLits( vCube2, vDiv, fCompl ); // cube 2*i+1
-        assert( RetValue == Vec_IntSize(vDiv) );
-        if ( Vec_IntSize(vDiv) == 2 || fCompl )
+        assert( RetValue == Vec_IntSize(vDiv) || RetValue == Vec_IntSize( vDiv ) + 1);
+        if ( iVarNew > 0 )
         {
-            Vec_IntPush( vCube, Abc_Var2Lit(iVarNew, 1) );
-            Vec_IntPush( vLitN, Vec_WecLevelId(p->vCubes, vCube) ); // MAKE SURE vCube IS SORTED BY ID
-        }
-        else 
-        {
-            Vec_IntPush( vCube, Abc_Var2Lit(iVarNew, 0) );
-            Vec_IntPush( vLitP, Vec_WecLevelId(p->vCubes, vCube) ); // MAKE SURE vCube IS SORTED BY ID
+            if ( Vec_IntSize(vDiv) == 2 || fCompl )
+            {
+                Vec_IntPush( vCube, Abc_Var2Lit(iVarNew, 1) );
+                Vec_IntPush( vLitN, Vec_WecLevelId(p->vCubes, vCube) ); // MAKE SURE vCube IS SORTED BY ID
+            }
+            else 
+            {
+                Vec_IntPush( vCube, Abc_Var2Lit(iVarNew, 0) );
+                Vec_IntPush( vLitP, Vec_WecLevelId(p->vCubes, vCube) ); // MAKE SURE vCube IS SORTED BY ID
+            }
         }
         p->nLits -= Vec_IntSize(vDiv) + Vec_IntSize(vCube2) - 2;
+
         // remove second cube
         Vec_IntWriteEntry( p->vCubesD, k++, Vec_WecLevelId(p->vCubes, vCube) );
         Vec_IntClear( vCube2 ); 
@@ -1151,12 +1120,9 @@ void Fx_ManUpdate( Fx_Man_t * p, int iDiv, int * fWarning )
     Vec_IntForEachEntry( vDiv, Lit0, i )
     {
         Vec_IntTwoRemove( Vec_WecEntry(p->vLits, Abc_Lit2Var(Lit0)), p->vCubesD );
-        if ( p->nCompls && i > 1 ) // the last two lits are possibly complemented
+        if ( (p->nCompls && i > 1) || Vec_IntSize( vDiv ) == 2 ) // the last two lits are possibly complemented
             Vec_IntTwoRemove( Vec_WecEntry(p->vLits, Abc_LitNot(Abc_Lit2Var(Lit0))), p->vCubesD );
     }
-    
-    // check predicted improvement: (new SOP lits == old SOP lits - divisor weight)
-    assert( p->nLits == nLitsNew );
 }
 
 /**Function*************************************************************
@@ -1186,7 +1152,7 @@ int Fx_FastExtract( Vec_Wec_t * vCubes, int ObjIdMax, int nNewNodesMax, int LitC
     Fx_ManComputeLevel( p );
     Fx_ManCreateDivisors( p );
     if ( fVeryVerbose )
-        Fx_PrintMatrix( p );
+        Fx_PrintDivisors( p );
     if ( fVerbose )
         Fx_PrintStats( p, Abc_Clock() - clk );
     // perform extraction
@@ -1198,7 +1164,7 @@ int Fx_FastExtract( Vec_Wec_t * vCubes, int ObjIdMax, int nNewNodesMax, int LitC
             Fx_PrintDiv( p, iDiv );
         Fx_ManUpdate( p, iDiv, &fWarning );
         if ( fVeryVeryVerbose )
-            Fx_PrintMatrix( p );
+            Fx_PrintDivisors( p );
     }
     if ( fVerbose )
         Fx_PrintStats( p, Abc_Clock() - clk );
