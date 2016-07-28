@@ -90,6 +90,10 @@ LINK32=link.exe
 
 SOURCE=.\src\base\main\main.c
 # End Source File
+# Begin Source File
+
+SOURCE=.\src\proof\ssw\sswSat.c
+# End Source File
 # End Group
 # Begin Group "Header Files"
 

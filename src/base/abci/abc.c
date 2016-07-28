@@ -14893,7 +14893,7 @@ usage:
     Abc_Print( -2, "\t          There is no effort to match primary outputs. Indeed, if two outputs\n" );
     Abc_Print( -2, "\t          are equivalent, they will belong to the same equivalence class in the end.\n" );
     Abc_Print( -2, "\t-C num  : the maximum number of conflicts at each node [default = %d]\n", nConfs );
-    Abc_Print( -2, "\t-n      : enable matching of primary inputs by order [default = %s]\n", fByName? "yes": "no" );
+    Abc_Print( -2, "\t-n      : enable matching of primary inputs by name [default = %s]\n", fByName? "yes": "no" );
     Abc_Print( -2, "\t-v      : prints verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h      : print the command usage\n");
     Abc_Print( -2, "\t<file1> : first network whose nodes are considered\n" );
