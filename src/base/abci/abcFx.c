@@ -103,6 +103,7 @@ struct Fx_Man_t_
     Vec_Int_t *     vCompls;    // complemented attribute of each cube pair
     Vec_Int_t *     vCubeFree;  // cube-free divisor
     Vec_Int_t *     vDiv;       // selected divisor
+    Vec_Int_t *     vSCC;       // single cubes containment cubes
     // statistics 
     abctime         timeStart;  // starting time
     int             nVars;      // original problem variables
@@ -312,11 +313,6 @@ int Abc_NtkFxPerform( Abc_Ntk_t * pNtk, int nNewNodesMax, int LitCountMax, int f
         printf( "Abc_NtkFastExtract: Nodes have duplicated fanins. FX is not performed.\n" );
         return 0;
     }
-    // sweep removes useless nodes
-    Abc_NtkCleanup( pNtk, 0 );
-//    Abc_NtkOrderFanins( pNtk );
-    // makes sure the SOPs are SCC-free and D1C-free
-    Abc_NtkMakeLegit( pNtk );
     // collect information about the covers
     vCubes = Abc_NtkFxRetrieve( pNtk );
     // call the fast extract procedure
@@ -359,6 +355,7 @@ Fx_Man_t * Fx_ManStart( Vec_Wec_t * vCubes )
     p->vCompls   = Vec_IntAlloc( 100 );
     p->vCubeFree = Vec_IntAlloc( 100 );
     p->vDiv      = Vec_IntAlloc( 100 );
+    p->vSCC      = Vec_IntAlloc( 100 );
     return p;
 }
 void Fx_ManStop( Fx_Man_t * p )
@@ -377,6 +374,7 @@ void Fx_ManStop( Fx_Man_t * p )
     Vec_IntFree( p->vCompls );
     Vec_IntFree( p->vCubeFree );
     Vec_IntFree( p->vDiv );
+    Vec_IntFree( p->vSCC );
     ABC_FREE( p );
 }
 
@@ -571,10 +569,10 @@ static int Fx_ManDivNormalize( Vec_Int_t * vCubeFree ) // return 1 if complement
 ***********************************************************************/
 int Fx_ManDivFindCubeFree( Vec_Int_t * vArr1, Vec_Int_t * vArr2, Vec_Int_t * vCubeFree, int * fWarning )
 {
-    int * pBeg1 = vArr1->pArray + 1;  // skip variable ID
-    int * pBeg2 = vArr2->pArray + 1;  // skip variable ID
-    int * pEnd1 = vArr1->pArray + vArr1->nSize;
-    int * pEnd2 = vArr2->pArray + vArr2->nSize;
+    int * pBeg1 = Vec_IntArray( vArr1 ) + 1;  // skip variable ID
+    int * pBeg2 = Vec_IntArray( vArr2 ) + 1;  // skip variable ID
+    int * pEnd1 = Vec_IntLimit( vArr1 );
+    int * pEnd2 = Vec_IntLimit( vArr2 );
     int Counter = 0, fAttr0 = 0, fAttr1 = 1;
     Vec_IntClear( vCubeFree );
     while ( pBeg1 < pEnd1 && pBeg2 < pEnd2 )
@@ -597,7 +595,7 @@ int Fx_ManDivFindCubeFree( Vec_Int_t * vArr1, Vec_Int_t * vArr2, Vec_Int_t * vCu
     if ( Vec_IntSize(vCubeFree) == 0 )
         printf( "The SOP has duplicated cubes.\n" );
     else if ( Vec_IntSize(vCubeFree) == 1 )
-        printf( "The SOP has contained cubes.\n" );
+        return -1;
     else if ( Vec_IntSize( vCubeFree ) == 3 )
     {
         int * pArray = Vec_IntArray( vCubeFree ); 
@@ -799,6 +797,17 @@ void Fx_ManCubeDoubleCubeDivisors( Fx_Man_t * p, int iFirst, Vec_Int_t * vPivot,
         if ( Vec_IntEntry(vCube, 0) != Vec_IntEntry(vPivot, 0) )
             break;
         Base = Fx_ManDivFindCubeFree( vCube, vPivot, p->vCubeFree, fWarning );
+        if ( Base == -1 ) 
+        {
+            if ( fRemove == 0 )
+            {
+                if ( Vec_IntSize( vCube ) > Vec_IntSize( vPivot ) )
+                    Vec_IntPush( p->vSCC, Vec_WecLevelId( p->vCubes, vCube ) );
+                else
+                    Vec_IntPush( p->vSCC, Vec_WecLevelId( p->vCubes, vPivot ) );
+            }
+            continue;
+        }
         if ( Vec_IntSize(p->vCubeFree) == 4 )
         { 
             int Value = Fx_ManDivNormalize( p->vCubeFree );
@@ -1103,6 +1112,17 @@ ExtractFromPairs:
     Vec_WecUnmarkLevels( p->vCubes, p->vCubesS );
     Vec_WecUnmarkLevels( p->vCubes, p->vCubesD );
 
+    // Deal with SCC
+    if ( Vec_IntSize( p->vSCC ) )
+    {
+        Vec_IntUniqify( p->vSCC );
+        Fx_ManForEachCubeVec( p->vSCC, p->vCubes, vCube, i )
+        {
+            Fx_ManCubeDoubleCubeDivisors( p, Fx_ManGetFirstVarCube(p, vCube), vCube, 1, 1, fWarning );  // remove - update
+            Vec_IntClear( vCube );
+        }
+        Vec_IntClear( p->vSCC );
+    }
     // add cost of the new divisor
     if ( Vec_IntSize(vDiv) > 2 )
     {
@@ -1123,6 +1143,7 @@ ExtractFromPairs:
         if ( (p->nCompls && i > 1) || Vec_IntSize( vDiv ) == 2 ) // the last two lits are possibly complemented
             Vec_IntTwoRemove( Vec_WecEntry(p->vLits, Abc_LitNot(Abc_Lit2Var(Lit0))), p->vCubesD );
     }
+
 }
 
 /**Function*************************************************************
