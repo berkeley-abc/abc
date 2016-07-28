@@ -7284,12 +7284,15 @@ usage:
 ***********************************************************************/
 int Abc_CommandExact( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    int c, nMaxDepth = -1, fVerbose = 0, nVars;
-    word pTruth[1];
+    extern Gia_Man_t * Gia_ManFindExact( word * pTruth, int nVars, int nFunc, int nMaxDepth, int * pArrivalTimes, int fVerbose );
+
+    int c, nMaxDepth = -1, fMakeAIG = 0, fTest = 0, fVerbose = 0, nVars = 0, nVarsTmp, nFunc = 0;
+    word pTruth[64];
     Abc_Ntk_t * pNtkRes;
+    Gia_Man_t * pGiaRes;
 
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "Dvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Datvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -7304,6 +7307,12 @@ int Abc_CommandExact( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( nMaxDepth < 0 )
                 goto usage;
             break;
+        case 'a':
+            fMakeAIG ^= 1;
+            break;
+        case 't':
+            fTest ^= 1;
+            break;
         case 'v':
             fVerbose ^= 1;
             break;
@@ -7314,23 +7323,64 @@ int Abc_CommandExact( Abc_Frame_t * pAbc, int argc, char ** argv )
         }
     }
 
-    if ( argc != globalUtilOptind + 1 )
+    if ( fTest )
     {
-        goto usage;
+        extern void Abc_ExactTest();
+
+        printf( "run test suite, ignore all other settings\n" );
+        Abc_ExactTest( fVerbose );
+        return 0;
     }
 
-    nVars = Abc_TtReadHex( pTruth, argv[globalUtilOptind] );
-    pNtkRes = Abc_NtkFindExact( pTruth, nVars, 1, nMaxDepth, fVerbose );
-    assert( pNtkRes != NULL );
-    Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
-    Abc_FrameClearVerifStatus( pAbc );
+    if ( argc == globalUtilOptind )
+        goto usage;
+
+    memset( pTruth, 0, 64 );
+    while ( globalUtilOptind < argc )
+    {
+        if ( nFunc == 16 )
+        {
+            Abc_Print( -1, "Too many functions (at most 16 supported).\n" );
+            goto usage;
+        }
+        nVarsTmp = Abc_TtReadHex( &pTruth[nFunc << 2], argv[globalUtilOptind++] );
+        nFunc++;
+        if ( nVars == 0 )
+            nVars = nVarsTmp;
+        else if ( nVars > 8 )
+        {
+            Abc_Print( -1, "Only 8-variable functions are supported.\n" );
+            goto usage;
+        }
+        else if ( nVars != nVarsTmp )
+        {
+            Abc_Print( -1, "All functions need to have the same size.\n" );
+            goto usage;
+        }
+    }
+
+    if ( fMakeAIG )
+    {
+        pGiaRes = Gia_ManFindExact( pTruth, nVars, nFunc, nMaxDepth, NULL, fVerbose );
+        assert( pGiaRes != NULL );
+        Abc_FrameUpdateGia( pAbc, pGiaRes );
+    }
+    else
+    {
+        pNtkRes = Abc_NtkFindExact( pTruth, nVars, nFunc, nMaxDepth, NULL, fVerbose );
+        assert( pNtkRes != NULL );
+        Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
+        Abc_FrameClearVerifStatus( pAbc );
+    }
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: exact [-vh] <truth>\n" );
-    Abc_Print( -2, "\t           finds optimum networks using SAT-based exact synthesis for hex truth table <truth>\n" );
-    Abc_Print( -2, "\t-D <num> : constrain maximum depth\n" );
-    Abc_Print( -2, "\t-v       : toggle verbose printout [default = %s]\n", fVerbose ? "yes": "no" );
+    Abc_Print( -2, "usage: exact [-D <num>] [-atvh] <truth1> <truth2> ...\n" );
+    Abc_Print( -2, "\t           finds optimum networks using SAT-based exact synthesis for hex truth tables <truth1> <truth2> ...\n" );
+    Abc_Print( -2, "\t-D <num> : constrain maximum depth (if too low, algorithm may not terminate)\n" );
+    Abc_Print( -2, "\t-a       : create AIG [default = %s]\n", fMakeAIG ? "yes" : "no" );
+    Abc_Print( -2, "\t-t       : run test suite\n" );
+    Abc_Print( -2, "\t-v       : toggle verbose printout [default = %s]\n", fVerbose ? "yes" : "no" );
     Abc_Print( -2, "\t-h       : print the command usage\n" );
     Abc_Print( -2, "\t\n" );
     Abc_Print( -2, "\t           This command was contributed by Mathias Soeken from EPFL in July 2016.\n" );
