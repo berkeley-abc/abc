@@ -533,8 +533,10 @@ clk = Abc_Clock();
                 continue;
             }
             Ssw_NodesAreConstrained( p, pObjNew, Aig_ManConst0(p->pFrames) );
-        }
-
+        }        
+        // sweep flops
+        Saig_ManForEachLo( p->pAig, pObj, i )
+            p->fRefined |= Ssw_ManSweepNodeConstr( p, pObj, f, 1 );
         // sweep internal nodes
         Aig_ManForEachNode( p->pAig, pObj, i )
         {
