@@ -653,22 +653,35 @@ void Aig_ObjPrintVerilog( FILE * pFile, Aig_Obj_t * pObj, Vec_Vec_t * vLevels, i
 void Aig_ObjPrintVerbose( Aig_Obj_t * pObj, int fHaig )
 {
     assert( !Aig_IsComplement(pObj) );
-    printf( "Node %p : ", pObj );
+    printf( "Node %d : ", pObj->Id );
     if ( Aig_ObjIsConst1(pObj) )
         printf( "constant 1" );
     else if ( Aig_ObjIsCi(pObj) )
-        printf( "PI" );
+        printf( "CI" );
     else if ( Aig_ObjIsCo(pObj) )
     {
-        printf( "PO" );
-        printf( "%p%s", 
-            Aig_ObjFanin0(pObj), (Aig_ObjFaninC0(pObj)? "\'" : " ") );
+        printf( "CO( " );
+        printf( "%d%s )", 
+            Aig_ObjFanin0(pObj)->Id, (Aig_ObjFaninC0(pObj)? "\'" : " ") );
     }
     else
-        printf( "AND( %p%s, %p%s )", 
-            Aig_ObjFanin0(pObj), (Aig_ObjFaninC0(pObj)? "\'" : " "), 
-            Aig_ObjFanin1(pObj), (Aig_ObjFaninC1(pObj)? "\'" : " ") );
+        printf( "AND( %d%s, %d%s )", 
+            Aig_ObjFanin0(pObj)->Id, (Aig_ObjFaninC0(pObj)? "\'" : " "), 
+            Aig_ObjFanin1(pObj)->Id, (Aig_ObjFaninC1(pObj)? "\'" : " ") );
     printf( " (refs = %3d)", Aig_ObjRefs(pObj) );
+}
+void Aig_ObjPrintVerboseCone( Aig_Man_t * p, Aig_Obj_t * pRoot, int fHaig )
+{
+    extern Vec_Ptr_t * Aig_ManDfsArray( Aig_Man_t * p, Aig_Obj_t ** pNodes, int nNodes );
+    Vec_Ptr_t * vNodes;
+    Aig_Obj_t * pObj;
+    int i;
+    vNodes = Aig_ManDfsArray( p, &pRoot, 1 );
+    Vec_PtrForEachEntry( Aig_Obj_t *, vNodes, pObj, i )
+        Aig_ObjPrintVerbose( pObj, fHaig ), printf( "\n" );
+    printf( "\n" );
+    Vec_PtrFree( vNodes );
+
 }
 
 /**Function*************************************************************

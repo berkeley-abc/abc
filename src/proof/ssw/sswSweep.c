@@ -287,6 +287,9 @@ clk = Abc_Clock();
         Ssw_ObjSetFrame( p, Aig_ManConst1(p->pAig), f, Aig_ManConst1(p->pFrames) );
         Saig_ManForEachPi( p->pAig, pObj, i )
             Ssw_ObjSetFrame( p, pObj, f, Aig_ObjCreateCi(p->pFrames) );
+        // sweep flops
+        Saig_ManForEachLo( p->pAig, pObj, i )
+            p->fRefined |= Ssw_ManSweepNode( p, pObj, f, 1, NULL );
         // sweep internal nodes
         Aig_ManForEachNode( p->pAig, pObj, i )
         {

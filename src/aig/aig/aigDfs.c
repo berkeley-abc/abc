@@ -199,6 +199,20 @@ void Aig_ManDfsAll_rec( Aig_Man_t * p, Aig_Obj_t * pObj, Vec_Ptr_t * vNodes )
     Aig_ManDfsAll_rec( p, Aig_ObjFanin1(pObj), vNodes );
     Vec_PtrPush( vNodes, pObj );
 }
+Vec_Ptr_t * Aig_ManDfsArray( Aig_Man_t * p, Aig_Obj_t ** pNodes, int nNodes )
+{
+    Vec_Ptr_t * vNodes;
+    int i;
+    Aig_ManIncrementTravId( p );
+    vNodes = Vec_PtrAlloc( Aig_ManObjNumMax(p) );
+    // add constant
+    Aig_ObjSetTravIdCurrent( p, Aig_ManConst1(p) );
+    Vec_PtrPush( vNodes, Aig_ManConst1(p) );
+    // collect nodes reachable in the DFS order
+    for ( i = 0; i < nNodes; i++ )
+        Aig_ManDfsAll_rec( p, pNodes[i], vNodes );
+    return vNodes;
+}
 
 /**Function*************************************************************
 
