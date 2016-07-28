@@ -112,7 +112,7 @@ int Abc_ConvertHopToGia( Gia_Man_t * p, Hop_Obj_t * pRoot )
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_NtkAigToGiaOne( Gia_Man_t * p, Abc_Ntk_t * pNtk )
+void Abc_NtkAigToGiaOne( Gia_Man_t * p, Abc_Ntk_t * pNtk, Vec_Int_t * vMap )
 {
     Hop_Man_t * pHopMan;
     Hop_Obj_t * pHopObj;
@@ -125,7 +125,7 @@ void Abc_NtkAigToGiaOne( Gia_Man_t * p, Abc_Ntk_t * pNtk )
     // image primary inputs
     Abc_NtkCleanCopy( pNtk );
     Abc_NtkForEachCi( pNtk, pNode, i )
-        pNode->iTemp = Gia_ManCiLit(p, i);
+        pNode->iTemp = Gia_ManCiLit(p, Vec_IntEntry(vMap, i));
     // iterate through nodes used in the mapping
     vNodes = Abc_NtkDfs( pNtk, 1 );
     Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pNode, i )
@@ -143,25 +143,68 @@ void Abc_NtkAigToGiaOne( Gia_Man_t * p, Abc_Ntk_t * pNtk )
     Abc_NtkForEachCo( pNtk, pNode, i )
         Gia_ManAppendCo( p, Abc_ObjFanin0(pNode)->iTemp );
 }
-Gia_Man_t * Abc_NtkAigToGiaTwo( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2 )
+Gia_Man_t * Abc_NtkAigToGiaTwo( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int fByName )
 {
     Gia_Man_t * p;
     Gia_Obj_t * pObj;
     Abc_Obj_t * pNode;
-    int i;
+    Vec_Int_t * vMap1, * vMap2;
+    int i, Index = 0;
     assert( Abc_NtkIsAigLogic(pNtk1) );
     assert( Abc_NtkIsAigLogic(pNtk2) );
+    // find common variables
+    if ( fByName )
+    {
+        int nCommon = 0;
+        vMap1 = Vec_IntStartNatural( Abc_NtkCiNum(pNtk1) );
+        vMap2 = Vec_IntAlloc( Abc_NtkCiNum(pNtk2) );
+        Abc_NtkForEachCi( pNtk1, pNode, i )
+            pNode->iTemp = Index++;
+        assert( Index == Abc_NtkCiNum(pNtk1) );
+        Abc_NtkForEachCi( pNtk2, pNode, i )
+        {
+            int Num = Nm_ManFindIdByName( pNtk1->pManName, Abc_ObjName(pNode), ABC_OBJ_PI );
+            if ( Num < 0 )
+                Num = Nm_ManFindIdByName( pNtk1->pManName, Abc_ObjName(pNode), ABC_OBJ_BO );
+            assert( Num < 0 || Abc_ObjIsCi(Abc_NtkObj(pNtk1, Num)) );
+            if ( Num >= 0 )
+                Vec_IntPush( vMap2, Abc_NtkObj(pNtk1, Num)->iTemp ), nCommon++;
+            else
+                Vec_IntPush( vMap2, Index++ );
+        }
+        // report
+        printf( "Matched %d vars by name.", nCommon );
+        if ( nCommon != Abc_NtkCiNum(pNtk1) )
+            printf( " Netlist1 has %d unmatched vars.", Abc_NtkCiNum(pNtk1) - nCommon );
+        if ( nCommon != Abc_NtkCiNum(pNtk2) )
+            printf( " Netlist2 has %d unmatched vars.", Abc_NtkCiNum(pNtk2) - nCommon );
+        printf( "\n" );
+    }
+    else
+    {
+        vMap1 = Vec_IntStartNatural( Abc_NtkCiNum(pNtk1) );
+        vMap2 = Vec_IntStartNatural( Abc_NtkCiNum(pNtk2) );
+        // report
+        printf( "Matched %d vars by order.", Abc_MinInt(Abc_NtkCiNum(pNtk1), Abc_NtkCiNum(pNtk2)) );
+        if ( Abc_NtkCiNum(pNtk1) < Abc_NtkCiNum(pNtk2) )
+            printf( " The last %d vars of Netlist2 are unmatched vars.", Abc_NtkCiNum(pNtk2) - Abc_NtkCiNum(pNtk1) );
+        if ( Abc_NtkCiNum(pNtk1) > Abc_NtkCiNum(pNtk2) )
+            printf( " The last %d vars of Netlist1 are unmatched vars.", Abc_NtkCiNum(pNtk1) - Abc_NtkCiNum(pNtk2) );
+        printf( "\n" );
+    }
     // create new manager
     p = Gia_ManStart( 10000 );
     p->pName = Abc_UtilStrsav( Abc_NtkName(pNtk1) );
     p->pSpec = Abc_UtilStrsav( Abc_NtkSpec(pNtk1) );
-    Abc_NtkForEachCi( pNtk1, pNode, i )
+    for ( i = 0; i < Index; i++ )
         Gia_ManAppendCi(p);
     // add logic
     Gia_ManHashAlloc( p );
-    Abc_NtkAigToGiaOne( p, pNtk1 );
-    Abc_NtkAigToGiaOne( p, pNtk2 );
+    Abc_NtkAigToGiaOne( p, pNtk1, vMap1 );
+    Abc_NtkAigToGiaOne( p, pNtk2, vMap2 );
     Gia_ManHashStop( p );
+    Vec_IntFree( vMap1 );
+    Vec_IntFree( vMap2 );
     // add extra POs to dangling nodes
     Gia_ManCreateValueRefs( p );
     Gia_ManForEachAnd( p, pObj, i )
@@ -268,12 +311,12 @@ void Abc_NtkDumpEquivFile( char * pFileName, Vec_Int_t * vClasses, Abc_Ntk_t * p
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_NtkDumpEquiv( Abc_Ntk_t * pNtks[2], char * pFileName, int nConfs, int fVerbose )
+void Abc_NtkDumpEquiv( Abc_Ntk_t * pNtks[2], char * pFileName, int nConfs, int fByName, int fVerbose )
 {
     //abctime clk = Abc_Clock();
     Vec_Int_t * vClasses;
     // derive shared AIG for the two networks
-    Gia_Man_t * pGia = Abc_NtkAigToGiaTwo( pNtks[0], pNtks[1] );
+    Gia_Man_t * pGia = Abc_NtkAigToGiaTwo( pNtks[0], pNtks[1], fByName );
     if ( fVerbose )
         printf( "Computing equivalences for networks \"%s\" and \"%s\" with conflict limit %d.\n", Abc_NtkName(pNtks[0]), Abc_NtkName(pNtks[1]), nConfs );
     // compute equivalences in this AIG

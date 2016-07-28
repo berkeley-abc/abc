@@ -14828,12 +14828,12 @@ usage:
 ***********************************************************************/
 int Abc_CommandDumpEquiv( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern void Abc_NtkDumpEquiv( Abc_Ntk_t * pNtks[2], char * pFileName, int nConfs, int fVerbose );
+    extern void Abc_NtkDumpEquiv( Abc_Ntk_t * pNtks[2], char * pFileName, int nConfs, int fByName, int fVerbose );
     Abc_Ntk_t * pNtks[2] = {NULL};
     char * pFileName[2], * pFileNameOut;
-    int c, nConfs = 1000, fVerbose = 0;
+    int c, nConfs = 1000, fByName = 1, fVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "Cvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Cnvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -14847,6 +14847,9 @@ int Abc_CommandDumpEquiv( Abc_Frame_t * pAbc, int argc, char ** argv )
             globalUtilOptind++;
             if ( nConfs < 0 )
                 goto usage;
+            break;
+        case 'n':
+            fByName ^= 1;
             break;
         case 'v':
             fVerbose ^= 1;
@@ -14872,20 +14875,25 @@ int Abc_CommandDumpEquiv( Abc_Frame_t * pAbc, int argc, char ** argv )
             goto usage;
         Abc_NtkToAig( pNtks[c] );
     }
-    if ( Abc_NtkCiNum(pNtks[0]) != Abc_NtkCiNum(pNtks[1]) )
-        Abc_Print( -1, "The number of primary inputs of networks \"%s\" and \"%s\" does not match.\n", Abc_NtkName(pNtks[0]), Abc_NtkName(pNtks[1]) );
+//    if ( Abc_NtkCiNum(pNtks[0]) != Abc_NtkCiNum(pNtks[1]) )
+//        Abc_Print( -1, "The number of primary inputs of networks \"%s\" and \"%s\" does not match.\n", Abc_NtkName(pNtks[0]), Abc_NtkName(pNtks[1]) );
 //    else if ( Abc_NtkCoNum(pNtks[0]) != Abc_NtkCoNum(pNtks[1]) )
 //        Abc_Print( -1, "The number of primary outputs of networks \"%s\" and \"%s\" does not match.\n", Abc_NtkName(pNtks[0]), Abc_NtkName(pNtks[1]) );
-    else
-        Abc_NtkDumpEquiv( pNtks, pFileNameOut, nConfs, fVerbose );
+//    else
+        Abc_NtkDumpEquiv( pNtks, pFileNameOut, nConfs, fByName, fVerbose );
     Abc_NtkDelete( pNtks[0] );
     Abc_NtkDelete( pNtks[1] );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: dump_equiv [-C num] [-vh] <file1.blif> <file2.blif> <file_dump_equiv.txt>\n" );
+    Abc_Print( -2, "usage: dump_equiv [-C num] [-nvh] <file1.blif> <file2.blif> <file_dump_equiv.txt>\n" );
     Abc_Print( -2, "\t          computes equivalence classes of nodes in <file1> and <file2>\n" );
+    Abc_Print( -2, "\t          By default this procedure performs matching of primary inputs by name.\n" );
+    Abc_Print( -2, "\t          Those inputs that cannot be matched are treated as free variables.\n" );
+    Abc_Print( -2, "\t          There is no effort to match primary outputs. Indeed, if two outputs\n" );
+    Abc_Print( -2, "\t          are equivalent, they will belong to the same equivalence class in the end.\n" );
     Abc_Print( -2, "\t-C num  : the maximum number of conflicts at each node [default = %d]\n", nConfs );
+    Abc_Print( -2, "\t-n      : enable matching of primary inputs by order [default = %s]\n", fByName? "yes": "no" );
     Abc_Print( -2, "\t-v      : prints verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h      : print the command usage\n");
     Abc_Print( -2, "\t<file1> : first network whose nodes are considered\n" );
