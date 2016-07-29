@@ -452,7 +452,9 @@ Abc_Obj_t * Abc_NodeFromIf_rec( Abc_Ntk_t * pNtkNew, If_Man_t * pIfMan, If_Obj_t
         Abc_Obj_t * pFanins[IF_MAX_FUNC_LUTSIZE];
         If_CutForEachLeaf( pIfMan, pCutBest, pIfLeaf, i )
             pFanins[i] = Abc_NodeFromIf_rec(pNtkNew, pIfMan, pIfLeaf, vCover);
-        return Abc_ExactBuildNode( If_CutTruthW(pIfMan, pCutBest), If_CutLeaveNum(pCutBest), If_CutArrTimeProfile(pIfMan, pCutBest), pFanins );
+        pNodeNew = Abc_ExactBuildNode( If_CutTruthW(pIfMan, pCutBest), If_CutLeaveNum(pCutBest), If_CutArrTimeProfile(pIfMan, pCutBest), pFanins );
+        If_ObjSetCopy( pIfObj, pNodeNew );
+        return pNodeNew;
     }
     // create a new node 
     pNodeNew = Abc_NtkCreateNode( pNtkNew );
