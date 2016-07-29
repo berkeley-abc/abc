@@ -116,7 +116,7 @@ Abc_Ntk_t * Abc_NtkIf( Abc_Ntk_t * pNtk, If_Par_t * pPars )
     pPars->pTimesReq = Abc_NtkGetCoRequiredFloats(pNtk);
 
     // update timing info to reflect logic level
-    if ( (pPars->fDelayOpt || pPars->fDsdBalance || pPars->fUserRecLib) && pNtk->pManTime )
+    if ( (pPars->fDelayOpt || pPars->fDsdBalance || pPars->fUserRecLib || pPars->fUserSesLib) && pNtk->pManTime )
     {
         int c;
         if ( pNtk->AndGateDelay == 0.0 )
@@ -318,7 +318,7 @@ Abc_Ntk_t * Abc_NtkFromIf( If_Man_t * pIfMan, Abc_Ntk_t * pNtk )
     // create the new network
     if ( pIfMan->pPars->fUseBdds || pIfMan->pPars->fUseCnfs || pIfMan->pPars->fUseMv )
         pNtkNew = Abc_NtkStartFrom( pNtk, ABC_NTK_LOGIC, ABC_FUNC_BDD );
-    else if ( pIfMan->pPars->fUseSops || pIfMan->pPars->nGateSize > 0 )
+    else if ( pIfMan->pPars->fUseSops || pIfMan->pPars->fUserSesLib || pIfMan->pPars->nGateSize > 0 )
         pNtkNew = Abc_NtkStartFrom( pNtk, ABC_NTK_LOGIC, ABC_FUNC_SOP );
     else
         pNtkNew = Abc_NtkStartFrom( pNtk, ABC_NTK_LOGIC, ABC_FUNC_AIG );
@@ -445,12 +445,20 @@ Abc_Obj_t * Abc_NodeFromIf_rec( Abc_Ntk_t * pNtkNew, If_Man_t * pIfMan, If_Obj_t
         return pNodeNew;
     assert( pIfObj->Type == IF_AND );
     // get the parameters of the best cut
+    pCutBest = If_ObjCutBest( pIfObj );
+    if ( pIfMan->pPars->fUserSesLib )
+    {
+        // create the subgraph composed of Abc_Obj_t nodes based on the given cut
+        Abc_Obj_t * pFanins[IF_MAX_FUNC_LUTSIZE];
+        If_CutForEachLeaf( pIfMan, pCutBest, pIfLeaf, i )
+            pFanins[i] = Abc_NodeFromIf_rec(pNtkNew, pIfMan, pIfLeaf, vCover);
+        return Abc_ExactBuildNode( If_CutTruthW(pIfMan, pCutBest), If_CutLeaveNum(pCutBest), If_CutArrTimeProfile(pIfMan, pCutBest), pFanins );
+    }
     // create a new node 
     pNodeNew = Abc_NtkCreateNode( pNtkNew );
-    pCutBest = If_ObjCutBest( pIfObj );
-//    printf( "%d 0x%02X %d\n", pCutBest->nLeaves, 0xff & *If_CutTruth(pCutBest), pIfMan->pPars->pFuncCost(pCutBest) );
 //    if ( pIfMan->pPars->pLutLib && pIfMan->pPars->pLutLib->fVarPinDelays )
-    if ( !pIfMan->pPars->fDelayOpt && !pIfMan->pPars->fDelayOptLut && !pIfMan->pPars->fDsdBalance && !pIfMan->pPars->fUseTtPerm && !pIfMan->pPars->pLutStruct && !pIfMan->pPars->fUserRecLib && !pIfMan->pPars->nGateSize )
+    if ( !pIfMan->pPars->fDelayOpt && !pIfMan->pPars->fDelayOptLut && !pIfMan->pPars->fDsdBalance && !pIfMan->pPars->fUseTtPerm && 
+         !pIfMan->pPars->pLutStruct && !pIfMan->pPars->fUserRecLib && !pIfMan->pPars->fUserSesLib && !pIfMan->pPars->nGateSize )
         If_CutRotatePins( pIfMan, pCutBest );
     if ( pIfMan->pPars->fUseCnfs || pIfMan->pPars->fUseMv )
     {

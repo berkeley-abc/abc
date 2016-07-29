@@ -926,7 +926,7 @@ Gia_Man_t * Gia_ManFromIfAig( If_Man_t * pIfMan )
     Vec_Int_t * vAig;
     int i, k;
     assert( pIfMan->pPars->pLutStruct == NULL );
-    assert( pIfMan->pPars->fDelayOpt || pIfMan->pPars->fDsdBalance || pIfMan->pPars->fUserRecLib );
+    assert( pIfMan->pPars->fDelayOpt || pIfMan->pPars->fDsdBalance || pIfMan->pPars->fUserRecLib || pIfMan->pPars->fUserSesLib );
     // create new manager
     pNew = Gia_ManStart( If_ManObjNum(pIfMan) );
     Gia_ManHashAlloc( pNew );
@@ -1783,8 +1783,8 @@ Gia_Man_t * Gia_ManFromIfLogic( If_Man_t * pIfMan )
             pCutBest = If_ObjCutBest( pIfObj );
             // perform sorting of cut leaves by delay, so that the slowest pin drives the fastest input of the LUT
             if ( !pIfMan->pPars->fUseTtPerm && !pIfMan->pPars->fDelayOpt && !pIfMan->pPars->fDelayOptLut && !pIfMan->pPars->fDsdBalance && 
-                 !pIfMan->pPars->pLutStruct && !pIfMan->pPars->fUserRecLib && !pIfMan->pPars->nGateSize && !pIfMan->pPars->fEnableCheck75 && 
-                 !pIfMan->pPars->fEnableCheck75u && !pIfMan->pPars->fEnableCheck07 && !pIfMan->pPars->fUseDsdTune && 
+                 !pIfMan->pPars->pLutStruct && !pIfMan->pPars->fUserRecLib && !pIfMan->pPars->fUserSesLib && !pIfMan->pPars->nGateSize && 
+                 !pIfMan->pPars->fEnableCheck75 && !pIfMan->pPars->fEnableCheck75u && !pIfMan->pPars->fEnableCheck07 && !pIfMan->pPars->fUseDsdTune && 
                  !pIfMan->pPars->fUseCofVars && !pIfMan->pPars->fUseAndVars )
                 If_CutRotatePins( pIfMan, pCutBest );
             // collect leaves of the best cut
@@ -2117,7 +2117,7 @@ Gia_Man_t * Gia_ManPerformMappingInt( Gia_Man_t * p, If_Par_t * pPars )
     ABC_FREE( p->pCellStr );
     Vec_IntFreeP( &p->vConfigs );
     // disable cut minimization when GIA strucure is needed
-    if ( !pPars->fDelayOpt && !pPars->fDelayOptLut && !pPars->fDsdBalance && !pPars->fUserRecLib && !pPars->fDeriveLuts && !pPars->fUseDsd && !pPars->fUseTtPerm )
+    if ( !pPars->fDelayOpt && !pPars->fDelayOptLut && !pPars->fDsdBalance && !pPars->fUserRecLib && !pPars->fUserSesLib && !pPars->fDeriveLuts && !pPars->fUseDsd && !pPars->fUseTtPerm )
         pPars->fCutMin = 0;
     // translate into the mapper
     pIfMan = Gia_ManToIf( p, pPars );    
@@ -2142,7 +2142,7 @@ Gia_Man_t * Gia_ManPerformMappingInt( Gia_Man_t * p, If_Par_t * pPars )
             Abc_Print( 0, "Switching activity computation for designs with boxes is disabled.\n" );
     }
     if ( p->pManTime )
-        pIfMan->pManTim = Tim_ManDup( (Tim_Man_t *)p->pManTime, pPars->fDelayOpt || pPars->fDelayOptLut || pPars->fDsdBalance || pPars->fUserRecLib );
+        pIfMan->pManTim = Tim_ManDup( (Tim_Man_t *)p->pManTime, pPars->fDelayOpt || pPars->fDelayOptLut || pPars->fDsdBalance || pPars->fUserRecLib || pPars->fUserSesLib );
 //    Tim_ManPrint( pIfMan->pManTim );
     if ( !If_ManPerformMapping( pIfMan ) )
     {
@@ -2150,7 +2150,7 @@ Gia_Man_t * Gia_ManPerformMappingInt( Gia_Man_t * p, If_Par_t * pPars )
         return NULL;
     }
     // transform the result of mapping into the new network
-    if ( pIfMan->pPars->fDelayOpt || pIfMan->pPars->fDsdBalance || pIfMan->pPars->fUserRecLib )
+    if ( pIfMan->pPars->fDelayOpt || pIfMan->pPars->fDsdBalance || pIfMan->pPars->fUserRecLib || pIfMan->pPars->fUserSesLib )
         pNew = Gia_ManFromIfAig( pIfMan );
     else
         pNew = Gia_ManFromIfLogic( pIfMan );

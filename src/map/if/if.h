@@ -124,6 +124,7 @@ struct If_Par_t_
     int                fDelayOptLut;  // delay optimization for LUTs
     int                fDsdBalance;   // special delay optimization
     int                fUserRecLib;   // use recorded library
+    int                fUserSesLib;   // use SAT-based synthesis
     int                fBidec;        // use bi-decomposition
     int                fUse34Spec;    // use specialized matching
     int                fUseBat;       // use one specialized feature
@@ -263,6 +264,7 @@ struct If_Man_t_
     int                nBestCutSmall[2];
     int                nCountNonDec[2];
     Vec_Int_t *        vCutData;      // cut data storage
+    int                pArrTimeProfile[IF_MAX_FUNC_LUTSIZE];
 
     // timing manager
     Tim_Man_t *        pManTim;
@@ -616,6 +618,7 @@ extern void            If_ManDerefNodeCutSet( If_Man_t * p, If_Obj_t * pObj );
 extern void            If_ManDerefChoiceCutSet( If_Man_t * p, If_Obj_t * pObj );
 extern void            If_ManSetupSetAll( If_Man_t * p, int nCrossCut );
 /*=== ifMap.c =============================================================*/
+extern int *           If_CutArrTimeProfile( If_Man_t * p, If_Cut_t * pCut );
 extern void            If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPreprocess, int fFirst );
 extern void            If_ObjPerformMappingChoice( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPreprocess );
 extern int             If_ManPerformMappingRound( If_Man_t * p, int nCutsUsed, int Mode, int fPreprocess, int fFirst, char * pLabel );

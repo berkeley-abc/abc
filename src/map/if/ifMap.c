@@ -28,7 +28,8 @@ ABC_NAMESPACE_IMPL_START
 ////////////////////////////////////////////////////////////////////////
 
 extern char * Dau_DsdMerge( char * pDsd0i, int * pPerm0, char * pDsd1i, int * pPerm1, int fCompl0, int fCompl1, int nVars );
-extern int    If_CutDelayRecCost3(If_Man_t* p, If_Cut_t* pCut, If_Obj_t * pObj);
+extern int    If_CutDelayRecCost3( If_Man_t* p, If_Cut_t* pCut, If_Obj_t * pObj );
+extern int    Abc_ExactDelayCost( int nVars, word * pTruth, int * pArrTimeProfile );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -80,6 +81,25 @@ float If_CutDelaySpecial( If_Man_t * p, If_Cut_t * pCut, int fCarry )
     return Delay;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Returns arrival time profile of the cut.]
+
+  Description [The procedure returns static storage, which should not be
+  deallocated and is only valid until before the procedure is called again.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int * If_CutArrTimeProfile( If_Man_t * p, If_Cut_t * pCut )
+{
+    int i;
+    for ( i = 0; i < If_CutLeaveNum(pCut); i++ )
+        p->pArrTimeProfile[i] = (int)If_ObjCutBest(If_CutLeaf(p, pCut, i))->Delay;
+    return p->pArrTimeProfile;
+}
 
 /**Function*************************************************************
 
@@ -99,7 +119,8 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
     If_Cut_t * pCut0R, * pCut1R;
     int fFunc0R, fFunc1R;
     int i, k, v, iCutDsd, fChange;
-    int fSave0 = p->pPars->fDelayOpt || p->pPars->fDelayOptLut || p->pPars->fDsdBalance || p->pPars->fUserRecLib || p->pPars->fUseDsdTune || p->pPars->fUseCofVars || p->pPars->fUseAndVars || p->pPars->fUse34Spec || p->pPars->pLutStruct != NULL;
+    int fSave0 = p->pPars->fDelayOpt || p->pPars->fDelayOptLut || p->pPars->fDsdBalance || p->pPars->fUserRecLib || p->pPars->fUserSesLib || 
+        p->pPars->fUseDsdTune || p->pPars->fUseCofVars || p->pPars->fUseAndVars || p->pPars->fUse34Spec || p->pPars->pLutStruct != NULL;
     int fUseAndCut = (p->pPars->nAndDelay > 0) || (p->pPars->nAndArea > 0);
     assert( !If_ObjIsAnd(pObj->pFanin0) || pObj->pFanin0->pCutSet->nCuts > 0 );
     assert( !If_ObjIsAnd(pObj->pFanin1) || pObj->pFanin1->pCutSet->nCuts > 0 );
@@ -127,6 +148,8 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
             pCut->Delay = If_CutDsdBalanceEval( p, pCut, NULL );
         else if ( p->pPars->fUserRecLib )
             pCut->Delay = If_CutDelayRecCost3( p, pCut, pObj ); 
+        else if ( p->pPars->fUserSesLib )
+            pCut->Delay = Abc_ExactDelayCost( If_CutLeaveNum(pCut), If_CutTruthW(p, pCut), If_CutArrTimeProfile(p, pCut) ); 
         else if ( p->pPars->fDelayOptLut )
             pCut->Delay = If_CutLutBalanceEval( p, pCut );
         else if( p->pPars->nGateSize > 0 )
@@ -333,23 +356,13 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
             continue;
         // check if the cut satisfies the required times
         if ( p->pPars->fDelayOpt )
-        {
             pCut->Delay = If_CutSopBalanceEval( p, pCut, NULL );
-//            if ( pCut->Delay >= pObj->Level && pCut->nLeaves > 2 )
-//                pCut->Delay += 1;
-        }
         else if ( p->pPars->fDsdBalance )
-        {
             pCut->Delay = If_CutDsdBalanceEval( p, pCut, NULL );
-//            if ( pCut->Delay >= pObj->Level && pCut->nLeaves > 2 )
-//                pCut->Delay += 1;
-        }
         else if ( p->pPars->fUserRecLib )
-        {
             pCut->Delay = If_CutDelayRecCost3( p, pCut, pObj ); 
-//            if ( pCut->Delay >= pObj->Level && pCut->nLeaves > 2 )
-//                pCut->Delay += 1;
-        }
+        else if ( p->pPars->fUserSesLib )
+            pCut->Delay = Abc_ExactDelayCost( If_CutLeaveNum(pCut), If_CutTruthW(p, pCut), If_CutArrTimeProfile(p, pCut) ); 
         else if ( p->pPars->fDelayOptLut )
             pCut->Delay = If_CutLutBalanceEval( p, pCut );
         else if( p->pPars->nGateSize > 0 )
@@ -378,7 +391,7 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
     if ( !fPreprocess || pCutSet->ppCuts[0]->Delay <= pObj->Required + p->fEpsilon )
     {
         If_CutCopy( p, If_ObjCutBest(pObj), pCutSet->ppCuts[0] );
-        if(p->pPars->fUserRecLib)
+        if ( p->pPars->fUserRecLib || p->pPars->fUserSesLib )
             assert(If_ObjCutBest(pObj)->Cost < IF_COST_MAX && If_ObjCutBest(pObj)->Delay < ABC_INFINITY);
     }
     // add the trivial cut to the set
@@ -421,7 +434,7 @@ void If_ObjPerformMappingChoice( If_Man_t * p, If_Obj_t * pObj, int Mode, int fP
     If_Set_t * pCutSet;
     If_Obj_t * pTemp;
     If_Cut_t * pCutTemp, * pCut;
-    int i, fSave0 = p->pPars->fDelayOpt || p->pPars->fDelayOptLut || p->pPars->fDsdBalance || p->pPars->fUserRecLib || p->pPars->fUse34Spec;
+    int i, fSave0 = p->pPars->fDelayOpt || p->pPars->fDelayOptLut || p->pPars->fDsdBalance || p->pPars->fUserRecLib || p->pPars->fUserSesLib || p->pPars->fUse34Spec;
     assert( pObj->pEquiv != NULL );
 
     // prepare

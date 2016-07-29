@@ -1003,6 +1003,36 @@ void Abc_ExactTest( int fVerbose )
 }
 
 
+/**Function*************************************************************
+
+  Synopsis    [APIs for integraging with the mapper.]
+
+***********************************************************************/
+// may need to have a static pointer to the SAT-based synthesis engine and/or loaded library
+// this procedure should return 1, if the engine/library are available, and 0 otherwise
+int Abc_ExactIsRunning()
+{
+    return 0;
+}
+// this procedure returns the number of inputs of the library
+// for example, somebody may try to map into 10-cuts while the library only contains 8-functions
+int Abc_ExactInputNum()
+{
+    return 0;
+}
+// this procedure takes input arrival times (pArrTimeProfile) and 
+// return the output smallest possible output arrival time
+int Abc_ExactDelayCost( int nVars, word * pTruth, int * pArrTimeProfile )
+{
+    return 0;
+}
+// this procedure returns a new node whose output in terms of the given fanins whose output 
+// has the smallest possible arrival time (in agreement with the above Abc_ExactDelayCost)
+Abc_Obj_t * Abc_ExactBuildNode( word * pTruth, int nVars, int * pArrTimeProfile, Abc_Obj_t ** pFanins )
+{
+    return NULL;
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

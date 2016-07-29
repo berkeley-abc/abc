@@ -643,6 +643,9 @@ extern ABC_DLL int                Abc_NtkIsAcyclic( Abc_Ntk_t * pNtk );
 extern ABC_DLL int                Abc_NtkIsAcyclicWithBoxes( Abc_Ntk_t * pNtk );
 extern ABC_DLL Vec_Ptr_t *        Abc_AigGetLevelizedOrder( Abc_Ntk_t * pNtk, int fCollectCis );
 /*=== abcExact.c ==========================================================*/
+extern ABC_DLL int                Abc_ExactInputNum();
+extern ABC_DLL int                Abc_ExactIsRunning();
+extern ABC_DLL Abc_Obj_t *        Abc_ExactBuildNode( word * pTruth, int nVars, int * pArrTimeProfile, Abc_Obj_t ** pFanins );
 extern ABC_DLL Abc_Ntk_t *        Abc_NtkFindExact( word * pTruth, int nVars, int nFunc, int nMaxDepth, int * pArrivalTimes, int fVerbose );
 /*=== abcFanio.c ==========================================================*/
 extern ABC_DLL void               Abc_ObjAddFanin( Abc_Obj_t * pObj, Abc_Obj_t * pFanin );
