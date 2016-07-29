@@ -29,7 +29,7 @@ ABC_NAMESPACE_IMPL_START
 
 extern char * Dau_DsdMerge( char * pDsd0i, int * pPerm0, char * pDsd1i, int * pPerm1, int fCompl0, int fCompl1, int nVars );
 extern int    If_CutDelayRecCost3( If_Man_t* p, If_Cut_t* pCut, If_Obj_t * pObj );
-extern int    Abc_ExactDelayCost( int nVars, word * pTruth, int * pArrTimeProfile );
+extern int    Abc_ExactDelayCost( word * pTruth, int nVars, int * pArrTimeProfile, char * pPerm, int * Cost );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -149,7 +149,18 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
         else if ( p->pPars->fUserRecLib )
             pCut->Delay = If_CutDelayRecCost3( p, pCut, pObj ); 
         else if ( p->pPars->fUserSesLib )
-            pCut->Delay = Abc_ExactDelayCost( If_CutLeaveNum(pCut), If_CutTruthW(p, pCut), If_CutArrTimeProfile(p, pCut) ); 
+        {
+            int Cost = 0;
+            pCut->fUser = 1;
+            pCut->Delay = (float)Abc_ExactDelayCost( If_CutTruthW(p, pCut), If_CutLeaveNum(pCut), If_CutArrTimeProfile(p, pCut), If_CutPerm(pCut), &Cost ); 
+            if ( Cost == ABC_INFINITY )
+            {
+                for ( v = 0; v < If_CutLeaveNum(pCut); v++ )
+                    If_CutPerm(pCut)[v] = IF_BIG_CHAR;
+                pCut->Cost = IF_COST_MAX;
+                pCut->fUseless = 1;
+            }
+        }
         else if ( p->pPars->fDelayOptLut )
             pCut->Delay = If_CutLutBalanceEval( p, pCut );
         else if( p->pPars->nGateSize > 0 )
@@ -362,7 +373,18 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
         else if ( p->pPars->fUserRecLib )
             pCut->Delay = If_CutDelayRecCost3( p, pCut, pObj ); 
         else if ( p->pPars->fUserSesLib )
-            pCut->Delay = Abc_ExactDelayCost( If_CutLeaveNum(pCut), If_CutTruthW(p, pCut), If_CutArrTimeProfile(p, pCut) ); 
+        {
+            int Cost = 0;
+            pCut->fUser = 1;
+            pCut->Delay = (float)Abc_ExactDelayCost( If_CutTruthW(p, pCut), If_CutLeaveNum(pCut), If_CutArrTimeProfile(p, pCut), If_CutPerm(pCut), &Cost ); 
+            if ( Cost == ABC_INFINITY )
+            {
+                for ( v = 0; v < If_CutLeaveNum(pCut); v++ )
+                    If_CutPerm(pCut)[v] = IF_BIG_CHAR;
+                pCut->Cost = IF_COST_MAX;
+                pCut->fUseless = 1;
+            }
+        }
         else if ( p->pPars->fDelayOptLut )
             pCut->Delay = If_CutLutBalanceEval( p, pCut );
         else if( p->pPars->nGateSize > 0 )
