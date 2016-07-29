@@ -8,9 +8,9 @@
 
   Synopsis    [Implementation of traditional "fast_extract" algorithm.]
 
-  Author      [Alan Mishchenko]
+  Author      [Alan Mishchenko, Bruno Schmitt]
   
-  Affiliation [UC Berkeley]
+  Affiliation [UC Berkeley, UFRGS]
 
   Date        [Ver. 1.0. Started - April 26, 2013.]
 
@@ -963,7 +963,7 @@ void Fx_ManFindCommonPairs( Vec_Wec_t * vCubes, Vec_Int_t * vPart0, Vec_Int_t * 
 ***********************************************************************/
 void Fx_ManUpdate( Fx_Man_t * p, int iDiv, int * fWarning )
 {
-    Vec_Int_t * vCube, * vCube2, * vLitP, * vLitN;
+    Vec_Int_t * vCube, * vCube2, * vLitP = NULL, * vLitN = NULL;
     Vec_Int_t * vDiv = p->vDiv;
     int i, k, Lit0, Lit1, iVarNew = 0, RetValue, Level;
     float Diff = Vec_FltEntry(p->vWeights, iDiv) - (float)((int)Vec_FltEntry(p->vWeights, iDiv));
