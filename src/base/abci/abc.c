@@ -7362,15 +7362,21 @@ int Abc_CommandExact( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( fMakeAIG )
     {
         pGiaRes = Gia_ManFindExact( pTruth, nVars, nFunc, nMaxDepth, NULL, fVerbose );
-        assert( pGiaRes != NULL );
-        Abc_FrameUpdateGia( pAbc, pGiaRes );
+        if ( pGiaRes )
+            Abc_FrameUpdateGia( pAbc, pGiaRes );
+        else
+            Abc_Print( 0, "Could not find AIG within given resource constraints.\n" );
     }
     else
     {
         pNtkRes = Abc_NtkFindExact( pTruth, nVars, nFunc, nMaxDepth, NULL, fVerbose );
-        assert( pNtkRes != NULL );
-        Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
-        Abc_FrameClearVerifStatus( pAbc );
+        if ( pNtkRes )
+        {
+            Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
+            Abc_FrameClearVerifStatus( pAbc );
+        }
+        else
+            Abc_Print( 0, "Could not find network within given resource constraints.\n" );
     }
     return 0;
 
