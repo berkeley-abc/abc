@@ -1109,8 +1109,40 @@ int Abc_ExactInputNum()
 // the area cost should not exceed 2048, if the cut is implementable; otherwise, it should be ABC_INFINITY
 int Abc_ExactDelayCost( word * pTruth, int nVars, int * pArrTimeProfile, char * pPerm, int * Cost )
 {
-    *Cost = ABC_INFINITY;
-    return ABC_INFINITY;
+    int l;
+    Ses_Man_t * pSes;
+    char * pSol, * p;
+    int Delay;
+    abctime timeStart;
+
+    /* some checks */
+    assert( nVars >= 2 && nVars <= 8 );
+
+    timeStart = Abc_Clock();
+
+    pSes = Ses_ManAlloc( pTruth, nVars, 1, nVars - 1, pArrTimeProfile, 1, 0 );
+
+    if ( Ses_ManFindMinimumSize( pSes ) )
+    {
+        pSol = Ses_ManExtractSolution( pSes );
+
+        *Cost = pSol[ABC_EXACT_SOL_NGATES];
+        p = pSol + 3 + 4 * ABC_EXACT_SOL_NGATES + 1;
+        Delay = *p++;
+        for ( l = 0; l < nVars; ++l )
+            pPerm[l] = *p++;
+
+        ABC_FREE( pSol );
+    }
+    else
+        *Cost = Delay = ABC_INFINITY;
+
+    pSes->timeTotal = Abc_Clock() - timeStart;
+
+    /* cleanup */
+    Ses_ManClean( pSes );
+
+    return Delay;
 }
 // this procedure returns a new node whose output in terms of the given fanins 
 // has the smallest possible arrival time (in agreement with the above Abc_ExactDelayCost)
