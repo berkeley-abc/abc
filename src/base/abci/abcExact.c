@@ -1111,8 +1111,8 @@ int Abc_ExactDelayCost( word * pTruth, int nVars, int * pArrTimeProfile, char * 
 {
     int l;
     Ses_Man_t * pSes;
-    char * pSol, * p;
-    int Delay;
+    char * pSol = NULL, * p;
+    int Delay = ABC_INFINITY, nMaxDepth = nVars - 1;
     abctime timeStart;
 
     /* some checks */
@@ -1120,12 +1120,25 @@ int Abc_ExactDelayCost( word * pTruth, int nVars, int * pArrTimeProfile, char * 
 
     timeStart = Abc_Clock();
 
-    pSes = Ses_ManAlloc( pTruth, nVars, 1, nVars - 1, pArrTimeProfile, 1, 0 );
+    *Cost = ABC_INFINITY;
 
-    if ( Ses_ManFindMinimumSize( pSes ) )
+    pSes = Ses_ManAlloc( pTruth, nVars, 1 /* fSpecFunc */, nMaxDepth, pArrTimeProfile, 1 /* fMakeAIG */, 0 );
+
+    while ( 1 ) /* there is improvement */
     {
-        pSol = Ses_ManExtractSolution( pSes );
+        if ( Ses_ManFindMinimumSize( pSes ) )
+        {
+            if ( pSol )
+                ABC_FREE( pSol );
+            pSol = Ses_ManExtractSolution( pSes );
+            pSes->nMaxDepth--;
+        }
+        else
+            break;
+    }
 
+    if ( pSol )
+    {
         *Cost = pSol[ABC_EXACT_SOL_NGATES];
         p = pSol + 3 + 4 * ABC_EXACT_SOL_NGATES + 1;
         Delay = *p++;
@@ -1134,8 +1147,6 @@ int Abc_ExactDelayCost( word * pTruth, int nVars, int * pArrTimeProfile, char * 
 
         ABC_FREE( pSol );
     }
-    else
-        *Cost = Delay = ABC_INFINITY;
 
     pSes->timeTotal = Abc_Clock() - timeStart;
 
