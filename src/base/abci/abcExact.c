@@ -52,48 +52,48 @@ static word s_Truths8[32] = {
 typedef struct Ses_Man_t_ Ses_Man_t;
 struct Ses_Man_t_
 {
-    sat_solver * pSat;          /* SAT solver */
+    sat_solver * pSat;            /* SAT solver */
 
-    word *       pSpec;         /* specification */
-    int          bSpecInv;      /* remembers whether spec was inverted for normalization */
-    int          nSpecVars;     /* number of variables in specification */
-    int          nSpecFunc;     /* number of functions to synthesize */
-    int          nRows;         /* number of rows in the specification (without 0) */
-    int          nMaxDepth;     /* maximum depth (-1 if depth is not constrained) */
-    int *        pArrivalTimes; /* arrival times of inputs (NULL if arrival times are ignored) */
-    int          nArrivalDelta; /* delta to the original arrival times (arrival times are normalized to have 0 as minimum element) */
-    int          nArrivalMax;   /* maximum normalized arrival time */
-    int          nBTLimit;      /* conflict limit */
-    int          fMakeAIG;      /* create AIG instead of general network */
-    int          fVerbose;      /* be verbose */
-    int          fVeryVerbose;  /* be very verbose */
+    word *       pSpec;           /* specification */
+    int          bSpecInv;        /* remembers whether spec was inverted for normalization */
+    int          nSpecVars;       /* number of variables in specification */
+    int          nSpecFunc;       /* number of functions to synthesize */
+    int          nRows;           /* number of rows in the specification (without 0) */
+    int          nMaxDepth;       /* maximum depth (-1 if depth is not constrained) */
+    int *        pArrTimeProfile; /* arrival times of inputs (NULL if arrival times are ignored) */
+    int          nArrTimeDelta;   /* delta to the original arrival times (arrival times are normalized to have 0 as minimum element) */
+    int          nArrTimeMax;     /* maximum normalized arrival time */
+    int          nBTLimit;        /* conflict limit */
+    int          fMakeAIG;        /* create AIG instead of general network */
+    int          fVerbose;        /* be verbose */
+    int          fVeryVerbose;    /* be very verbose */
 
-    int          nGates;        /* number of gates */
+    int          nGates;          /* number of gates */
 
-    int          nSimVars;      /* number of simulation vars x(i, t) */
-    int          nOutputVars;   /* number of output variables g(h, i) */
-    int          nGateVars;     /* number of gate variables f(i, p, q) */
-    int          nSelectVars;   /* number of select variables s(i, j, k) */
-    int          nDepthVars;    /* number of depth variables d(i, j) */
+    int          nSimVars;        /* number of simulation vars x(i, t) */
+    int          nOutputVars;     /* number of output variables g(h, i) */
+    int          nGateVars;       /* number of gate variables f(i, p, q) */
+    int          nSelectVars;     /* number of select variables s(i, j, k) */
+    int          nDepthVars;      /* number of depth variables d(i, j) */
 
-    int          nOutputOffset; /* offset where output variables start */
-    int          nGateOffset;   /* offset where gate variables start */
-    int          nSelectOffset; /* offset where select variables start */
-    int          nDepthOffset;  /* offset where depth variables start */
+    int          nOutputOffset;   /* offset where output variables start */
+    int          nGateOffset;     /* offset where gate variables start */
+    int          nSelectOffset;   /* offset where select variables start */
+    int          nDepthOffset;    /* offset where depth variables start */
 
-    abctime      timeSat;       /* SAT runtime */
-    abctime      timeSatSat;    /* SAT runtime (sat instance) */
-    abctime      timeSatUnsat;  /* SAT runtime (unsat instance) */
-    abctime      timeTotal;     /* all runtime */
+    abctime      timeSat;         /* SAT runtime */
+    abctime      timeSatSat;      /* SAT runtime (sat instance) */
+    abctime      timeSatUnsat;    /* SAT runtime (unsat instance) */
+    abctime      timeTotal;       /* all runtime */
 };
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
-int NormalizeArrivalTimes( int * pArrivalTimes, int nVars, int * maxNormalized )
+int NormalizeArrivalTimes( int * pArrTimeProfile, int nVars, int * maxNormalized )
 {
-    int * p = pArrivalTimes, * pEnd = pArrivalTimes + nVars;
+    int * p = pArrTimeProfile, * pEnd = pArrTimeProfile + nVars;
     int delta = *p;
 
     while ( ++p < pEnd )
@@ -101,7 +101,7 @@ int NormalizeArrivalTimes( int * pArrivalTimes, int nVars, int * maxNormalized )
             delta = *p;
 
     *maxNormalized = 0;
-    p = pArrivalTimes;
+    p = pArrTimeProfile;
     while ( p < pEnd )
     {
         *p -= delta;
@@ -115,7 +115,7 @@ int NormalizeArrivalTimes( int * pArrivalTimes, int nVars, int * maxNormalized )
     return delta;
 }
 
-static inline Ses_Man_t * Ses_ManAlloc( word * pTruth, int nVars, int nFunc, int nMaxDepth, int * pArrivalTimes, int fMakeAIG, int fVerbose )
+static inline Ses_Man_t * Ses_ManAlloc( word * pTruth, int nVars, int nFunc, int nMaxDepth, int * pArrTimeProfile, int fMakeAIG, int fVerbose )
 {
     int h, i;
 
@@ -134,11 +134,11 @@ static inline Ses_Man_t * Ses_ManAlloc( word * pTruth, int nVars, int nFunc, int
     p->nSpecFunc     = nFunc;
     p->nRows         = ( 1 << nVars ) - 1;
     p->nMaxDepth     = nMaxDepth;
-    p->pArrivalTimes = nMaxDepth >= 0 ? pArrivalTimes : NULL;
-    if ( p->pArrivalTimes )
-        p->nArrivalDelta = NormalizeArrivalTimes( p->pArrivalTimes, nVars, &p->nArrivalMax );
+    p->pArrTimeProfile = nMaxDepth >= 0 ? pArrTimeProfile : NULL;
+    if ( p->pArrTimeProfile )
+        p->nArrTimeDelta = NormalizeArrivalTimes( p->pArrTimeProfile, nVars, &p->nArrTimeMax );
     else
-        p->nArrivalDelta = p->nArrivalMax = 0;
+        p->nArrTimeDelta = p->nArrTimeMax = 0;
     p->fMakeAIG      = fMakeAIG;
     p->nBTLimit      = nMaxDepth >= 0 ? 50000 : 0;
     p->fVerbose      = fVerbose;
@@ -155,9 +155,9 @@ static inline void Ses_ManClean( Ses_Man_t * pSes )
             for ( i = 0; i < 4; ++i )
                 pSes->pSpec[(h << 2) + i] = ~( pSes->pSpec[(h << 2) + i] );
 
-    if ( pSes->pArrivalTimes )
+    if ( pSes->pArrTimeProfile )
         for ( i = 0; i < pSes->nSpecVars; ++i )
-            pSes->pArrivalTimes[i] += pSes->nArrivalDelta;
+            pSes->pArrTimeProfile[i] += pSes->nArrTimeDelta;
 
     if ( pSes->pSat )
         sat_solver_delete( pSes->pSat );
@@ -215,9 +215,9 @@ static inline int Ses_ManSelectVar( Ses_Man_t * pSes, int i, int j, int k )
 static inline int Ses_ManDepthVar( Ses_Man_t * pSes, int i, int j )
 {
     assert( i < pSes->nGates );
-    assert( j <= pSes->nArrivalMax + i );
+    assert( j <= pSes->nArrTimeMax + i );
 
-    return pSes->nDepthOffset + i * pSes->nArrivalMax + ( ( i * ( i + 1 ) ) / 2 ) + j;
+    return pSes->nDepthOffset + i * pSes->nArrTimeMax + ( ( i * ( i + 1 ) ) / 2 ) + j;
 }
 
 /**Function*************************************************************
@@ -241,7 +241,7 @@ static void Ses_ManCreateVars( Ses_Man_t * pSes, int nGates )
     pSes->nSelectVars = 0;
     for ( i = pSes->nSpecVars; i < pSes->nSpecVars + nGates; ++i )
         pSes->nSelectVars += ( i * ( i - 1 ) ) / 2;
-    pSes->nDepthVars = pSes->nMaxDepth > 0 ? nGates * pSes->nArrivalMax + ( nGates * ( nGates + 1 ) ) / 2 : 0;
+    pSes->nDepthVars = pSes->nMaxDepth > 0 ? nGates * pSes->nArrTimeMax + ( nGates * ( nGates + 1 ) ) / 2 : 0;
 
     pSes->nOutputOffset = pSes->nSimVars;
     pSes->nGateOffset   = pSes->nSimVars + pSes->nOutputVars;
@@ -440,7 +440,7 @@ static void Ses_ManCreateClauses( Ses_Man_t * pSes )
                 for ( j = 0; j < k; ++j )
                 {
                     pLits[0] = Abc_Var2Lit( Ses_ManSelectVar( pSes, i, pSes->nSpecVars + j, pSes->nSpecVars + k ), 1 );
-                    for ( jj = 0; jj <= pSes->nArrivalMax + j; ++jj )
+                    for ( jj = 0; jj <= pSes->nArrTimeMax + j; ++jj )
                     {
                         pLits[1] = Abc_Var2Lit( Ses_ManDepthVar( pSes, j, jj ), 1 );
                         pLits[2] = Abc_Var2Lit( Ses_ManDepthVar( pSes, i, jj + 1 ), 0 );
@@ -452,7 +452,7 @@ static void Ses_ManCreateClauses( Ses_Man_t * pSes )
                 for ( j = 0; j < pSes->nSpecVars + k; ++j )
                 {
                     pLits[0] = Abc_Var2Lit( Ses_ManSelectVar( pSes, i, j, pSes->nSpecVars + k ), 1 );
-                    for ( kk = 0; kk <= pSes->nArrivalMax + k; ++kk )
+                    for ( kk = 0; kk <= pSes->nArrTimeMax + k; ++kk )
                     {
                         pLits[1] = Abc_Var2Lit( Ses_ManDepthVar( pSes, k, kk ), 1 );
                         pLits[2] = Abc_Var2Lit( Ses_ManDepthVar( pSes, i, kk + 1 ), 0 );
@@ -461,14 +461,14 @@ static void Ses_ManCreateClauses( Ses_Man_t * pSes )
                 }
 
             /* propagate depths from arrival times at PIs */
-            if ( pSes->pArrivalTimes )
+            if ( pSes->pArrTimeProfile )
             {
                 for ( k = 1; k < pSes->nSpecVars + i; ++k )
                     for ( j = 0; j < ( ( k < pSes->nSpecVars ) ? k : pSes->nSpecVars ); ++j )
                     {
-                        d = pSes->pArrivalTimes[j];
-                        if ( k < pSes->nSpecVars && pSes->pArrivalTimes[k] > d )
-                            d = pSes->pArrivalTimes[k];
+                        d = pSes->pArrTimeProfile[j];
+                        if ( k < pSes->nSpecVars && pSes->pArrTimeProfile[k] > d )
+                            d = pSes->pArrTimeProfile[k];
 
                         pLits[0] = Abc_Var2Lit( Ses_ManSelectVar( pSes, i, j, k ), 1 );
                         pLits[1] = Abc_Var2Lit( Ses_ManDepthVar( pSes, i, d + 1 ), 0 );
@@ -483,7 +483,7 @@ static void Ses_ManCreateClauses( Ses_Man_t * pSes )
             }
 
             /* reverse order encoding of depth variables */
-            for ( j = 1; j <= pSes->nArrivalMax + i; ++j )
+            for ( j = 1; j <= pSes->nArrTimeMax + i; ++j )
             {
                 pLits[0] = Abc_Var2Lit( Ses_ManDepthVar( pSes, i, j ), 1 );
                 pLits[1] = Abc_Var2Lit( Ses_ManDepthVar( pSes, i, j - 1 ), 0 );
@@ -491,7 +491,7 @@ static void Ses_ManCreateClauses( Ses_Man_t * pSes )
             }
 
             /* constrain maximum depth */
-            if ( pSes->nMaxDepth < pSes->nArrivalMax + i )
+            if ( pSes->nMaxDepth < pSes->nArrTimeMax + i )
                 for ( h = 0; h < pSes->nSpecFunc; ++h )
                 {
                     pLits[0] = Abc_Var2Lit( Ses_ManOutputVar( pSes, h, i ), 1 );
@@ -548,9 +548,82 @@ static inline int Ses_ManSolve( Ses_Man_t * pSes )
   Synopsis    [Extract solution.]
 
 ***********************************************************************/
-static Abc_Ntk_t * Ses_ManExtractNtk( Ses_Man_t * pSes )
+// char is an array of short integers that stores the synthesized network
+// using the following format
+// | nvars | nfunc | ngates | gate1 | ... | gaten | func1 | .. | funcm |
+// nvars:    integer with number of variables
+// nfunc:    integer with number of functions
+// ngates:   integer with number of gates
+// gate:     | op | nfanin | fanin1 | ... | faninl |
+//   op:     integer of gate's truth table (divided by 2, because gate is normal)
+//   nfanin: integer with number of fanins
+//   fanin:  integer to primary input or other gate
+// func:     integer as literal to some gate (not primary input), can be complemented
+#define ABC_EXACT_SOL_NVARS  0
+#define ABC_EXACT_SOL_NFUNC  1
+#define ABC_EXACT_SOL_NGATES 2
+static char * Ses_ManExtractSolution( Ses_Man_t * pSes )
 {
-    int h, i, j, k;
+    int nSol, h, i, j, k, nOp;
+    char * pSol, * p;
+
+    /* compute length of solution, for now all gates have 2 inputs */
+    nSol = 3 + pSes->nGates * 4 + pSes->nSpecFunc;
+
+    p = pSol = ABC_CALLOC( char, nSol );
+
+    /* header */
+    *p++ = pSes->nSpecVars;
+    *p++ = pSes->nSpecFunc;
+    *p++ = pSes->nGates;
+
+    /* gates */
+    for ( i = 0; i < pSes->nGates; ++i )
+    {
+        nOp  = sat_solver_var_value( pSes->pSat, Ses_ManGateVar( pSes, i, 0, 1 ) );
+        nOp |= sat_solver_var_value( pSes->pSat, Ses_ManGateVar( pSes, i, 1, 0 ) ) << 1;
+        nOp |= sat_solver_var_value( pSes->pSat, Ses_ManGateVar( pSes, i, 1, 1 ) ) << 2;
+
+        *p++ = nOp;
+        *p++ = 2;
+
+        for ( k = 0; k < pSes->nSpecVars + i; ++k )
+            for ( j = 0; j < k; ++j )
+                if ( sat_solver_var_value( pSes->pSat, Ses_ManSelectVar( pSes, i, j, k ) ) )
+                {
+                    *p++ = j;
+                    *p++ = k;
+                    break;
+                }
+
+        /* if ( pSes->fVeryVerbose ) */
+        /* { */
+        /*     if ( pSes->nMaxDepth > 0 ) */
+        /*     { */
+        /*         printf( " and depth vector " ); */
+        /*         for ( j = 0; j <= pSes->nArrTimeMax + i; ++j ) */
+        /*             printf( "%d", sat_solver_var_value( pSes->pSat, Ses_ManDepthVar( pSes, i, j ) ) ); */
+        /*     } */
+        /*     printf( "\n" ); */
+        /* } */
+    }
+
+    /* outputs */
+    for ( h = 0; h < pSes->nSpecFunc; ++h )
+        for ( i = 0; i < pSes->nGates; ++i )
+            if ( sat_solver_var_value( pSes->pSat, Ses_ManOutputVar( pSes, h, i ) ) )
+                *p++ = Abc_Var2Lit( i, ( pSes->bSpecInv >> h ) & 1 );
+
+    /* have we used all the fields? */
+    assert( ( p - pSol ) == nSol );
+
+    return pSol;
+}
+
+static Abc_Ntk_t * Ses_ManExtractNtk( char const * pSol )
+{
+    int h, i;
+    char const * p;
     Abc_Ntk_t * pNtk;
     Abc_Obj_t * pObj;
     Vec_Ptr_t * pGates, * vNames;
@@ -559,14 +632,14 @@ static Abc_Ntk_t * Ses_ManExtractNtk( Ses_Man_t * pSes )
 
     pNtk = Abc_NtkAlloc( ABC_NTK_LOGIC, ABC_FUNC_SOP, 1 );
     pNtk->pName = Extra_UtilStrsav( "exact" );
-    pGates = Vec_PtrAlloc( pSes->nSpecVars + pSes->nGates );
+    pGates = Vec_PtrAlloc( pSol[ABC_EXACT_SOL_NVARS] + pSol[ABC_EXACT_SOL_NGATES] );
     pGateTruth[3] = '0';
     pGateTruth[4] = '\0';
-    vNames = Abc_NodeGetFakeNames( pSes->nSpecVars + pSes->nSpecFunc );
+    vNames = Abc_NodeGetFakeNames( pSol[ABC_EXACT_SOL_NVARS] + pSol[ABC_EXACT_SOL_NFUNC] );
 
     /* primary inputs */
     Vec_PtrPush( pNtk->vObjs, NULL );
-    for ( i = 0; i < pSes->nSpecVars; ++i )
+    for ( i = 0; i < pSol[ABC_EXACT_SOL_NVARS]; ++i )
     {
         pObj = Abc_NtkCreatePi( pNtk );
         Abc_ObjAssignName( pObj, (char*)Vec_PtrEntry( vNames, i ), NULL );
@@ -574,16 +647,16 @@ static Abc_Ntk_t * Ses_ManExtractNtk( Ses_Man_t * pSes )
     }
 
     /* gates */
-    for ( i = 0; i < pSes->nGates; ++i )
+    p = pSol + 3;
+    for ( i = 0; i < pSol[ABC_EXACT_SOL_NGATES]; ++i )
     {
-        pGateTruth[2] = '0' + sat_solver_var_value( pSes->pSat, Ses_ManGateVar( pSes, i, 0, 1 ) );
-        pGateTruth[1] = '0' + sat_solver_var_value( pSes->pSat, Ses_ManGateVar( pSes, i, 1, 0 ) );
-        pGateTruth[0] = '0' + sat_solver_var_value( pSes->pSat, Ses_ManGateVar( pSes, i, 1, 1 ) );
+        pGateTruth[2] = '0' + ( *p & 1 );
+        pGateTruth[1] = '0' + ( ( *p >> 1 ) & 1 );
+        pGateTruth[0] = '0' + ( ( *p >> 2 ) & 1 );
+        ++p;
 
-        if ( pSes->fVeryVerbose )
-        {
-            printf( "gate %d has truth table %s", pSes->nSpecVars + i, pGateTruth );
-        }
+        assert( *p == 2 ); /* binary gate */
+        ++p;
 
         pSopCover = Abc_SopFromTruthBin( pGateTruth );
         pObj = Abc_NtkCreateNode( pNtk );
@@ -591,54 +664,19 @@ static Abc_Ntk_t * Ses_ManExtractNtk( Ses_Man_t * pSes )
         Vec_PtrPush( pGates, pObj );
         ABC_FREE( pSopCover );
 
-        for ( k = 0; k < pSes->nSpecVars + i; ++k )
-            for ( j = 0; j < k; ++j )
-                if ( sat_solver_var_value( pSes->pSat, Ses_ManSelectVar( pSes, i, j, k ) ) )
-                {
-                    if ( pSes->fVeryVerbose )
-                        printf( " with children %d and %d", j, k );
-                    Abc_ObjAddFanin( pObj, (Abc_Obj_t *)Vec_PtrEntry( pGates, j ) );
-                    Abc_ObjAddFanin( pObj, (Abc_Obj_t *)Vec_PtrEntry( pGates, k ) );
-                    break;
-                }
-
-        if ( pSes->fVeryVerbose )
-        {
-            if ( pSes->nMaxDepth > 0 )
-            {
-                printf( " and depth vector " );
-                for ( j = 0; j <= pSes->nArrivalMax + i; ++j )
-                    printf( "%d", sat_solver_var_value( pSes->pSat, Ses_ManDepthVar( pSes, i, j ) ) );
-            }
-            printf( "\n" );
-        }
+        Abc_ObjAddFanin( pObj, (Abc_Obj_t *)Vec_PtrEntry( pGates, *p++ ) );
+        Abc_ObjAddFanin( pObj, (Abc_Obj_t *)Vec_PtrEntry( pGates, *p++ ) );
     }
 
     /* outputs */
-    for ( h = 0; h < pSes->nSpecFunc; ++h )
+    for ( h = 0; h < pSol[ABC_EXACT_SOL_NFUNC]; ++h, ++p )
     {
         pObj = Abc_NtkCreatePo( pNtk );
-        Abc_ObjAssignName( pObj, (char*)Vec_PtrEntry( vNames, pSes->nSpecVars + h ), NULL );
-        for ( i = 0; i < pSes->nGates; ++i )
-        {
-            if ( sat_solver_var_value( pSes->pSat, Ses_ManOutputVar( pSes, h, i ) ) )
-            {
-                if ( pSes->fVeryVerbose )
-                    printf( "output %d points to gate %d", h, pSes->nSpecVars + i );
-                /* if output has been inverted, we need to add an inverter */
-                if ( ( pSes->bSpecInv >> h ) & 1 )
-                {
-                    Abc_ObjAddFanin( pObj, Abc_NtkCreateNodeInv( pNtk, (Abc_Obj_t *)Vec_PtrEntry( pGates, pSes->nSpecVars + i ) ) );
-                    if ( pSes->fVeryVerbose )
-                        printf( " and needs to be inverted" );
-                }
-                else
-                    Abc_ObjAddFanin( pObj, (Abc_Obj_t *)Vec_PtrEntry( pGates, pSes->nSpecVars + i ) );
-
-                if ( pSes->fVeryVerbose )
-                    printf( "\n" );
-            }
-        }
+        Abc_ObjAssignName( pObj, (char*)Vec_PtrEntry( vNames, pSol[ABC_EXACT_SOL_NVARS] + h ), NULL );
+        if ( Abc_LitIsCompl( *p ) )
+            Abc_ObjAddFanin( pObj, Abc_NtkCreateNodeInv( pNtk, (Abc_Obj_t *)Vec_PtrEntry( pGates, pSol[ABC_EXACT_SOL_NVARS] + Abc_Lit2Var( *p ) ) ) );
+        else
+            Abc_ObjAddFanin( pObj, (Abc_Obj_t *)Vec_PtrEntry( pGates, pSol[ABC_EXACT_SOL_NVARS] + Abc_Lit2Var( *p ) ) );
     }
     Abc_NodeFreeNames( vNames );
 
@@ -647,28 +685,28 @@ static Abc_Ntk_t * Ses_ManExtractNtk( Ses_Man_t * pSes )
     if ( !Abc_NtkCheck( pNtk ) )
         printf( "Ses_ManExtractSolution(): Network check has failed.\n" );
 
-
     return pNtk;
 }
 
-static Gia_Man_t * Ses_ManExtractGia( Ses_Man_t * pSes )
+static Gia_Man_t * Ses_ManExtractGia( char const * pSol )
 {
-    int h, i, j, k;
+    int h, i;
+    char const * p;
     Gia_Man_t * pGia;
     Vec_Int_t * pGates;
     Vec_Ptr_t * vNames;
     int nObj, nChild1, nChild2, fChild1Comp, fChild2Comp;
 
-    pGia = Gia_ManStart( pSes->nSpecVars + pSes->nGates + pSes->nSpecFunc + 1 );
+    pGia = Gia_ManStart( pSol[ABC_EXACT_SOL_NVARS] + pSol[ABC_EXACT_SOL_NGATES] + pSol[ABC_EXACT_SOL_NFUNC] + 1 );
     pGia->nConstrs = 0;
     pGia->pName = Extra_UtilStrsav( "exact" );
 
-    pGates = Vec_IntAlloc( pSes->nSpecVars + pSes->nGates );
-    vNames = Abc_NodeGetFakeNames( pSes->nSpecVars + pSes->nSpecFunc );
+    pGates = Vec_IntAlloc( pSol[ABC_EXACT_SOL_NVARS] + pSol[ABC_EXACT_SOL_NGATES] );
+    vNames = Abc_NodeGetFakeNames( pSol[ABC_EXACT_SOL_NVARS] + pSol[ABC_EXACT_SOL_NFUNC] );
 
     /* primary inputs */
-    pGia->vNamesIn = Vec_PtrStart( pSes->nSpecVars );
-    for ( i = 0; i < pSes->nSpecVars; ++i )
+    pGia->vNamesIn = Vec_PtrStart( pSol[ABC_EXACT_SOL_NVARS] );
+    for ( i = 0; i < pSol[ABC_EXACT_SOL_NVARS]; ++i )
     {
         nObj = Gia_ManAppendCi( pGia );
         Vec_IntPush( pGates, nObj );
@@ -676,55 +714,45 @@ static Gia_Man_t * Ses_ManExtractGia( Ses_Man_t * pSes )
     }
 
     /* gates */
-    for ( i = 0; i < pSes->nGates; ++i )
+    p = pSol + 3;
+    for ( i = 0; i < pSol[ABC_EXACT_SOL_NGATES]; ++i )
     {
-        for ( k = 0; k < pSes->nSpecVars + i; ++k )
-            for ( j = 0; j < k; ++j )
-                if ( sat_solver_var_value( pSes->pSat, Ses_ManSelectVar( pSes, i, j, k ) ) )
-                {
-                    nChild1 = Vec_IntEntry( pGates, j );
-                    nChild2 = Vec_IntEntry( pGates, k );
-                    fChild1Comp = fChild2Comp = 0;
+        assert( p[1] == 2 );
+        nChild1 = Vec_IntEntry( pGates, p[2] );
+        nChild2 = Vec_IntEntry( pGates, p[3] );
+        fChild1Comp = fChild2Comp = 0;
 
-                    if ( sat_solver_var_value( pSes->pSat, Ses_ManGateVar( pSes, i, 0, 1 ) ) )
-                    {
-                        nChild1 = Abc_LitNot( nChild1 );
-                        fChild1Comp = 1;
-                    }
-                    if ( sat_solver_var_value( pSes->pSat, Ses_ManGateVar( pSes, i, 1, 0 ) ) )
-                    {
-                        nChild2 = Abc_LitNot( nChild2 );
-                        fChild2Comp = 1;
-                    }
-                    nObj = Gia_ManAppendAnd( pGia, nChild1, nChild2 );
-                    if ( fChild1Comp && fChild2Comp )
-                    {
-                        assert( sat_solver_var_value( pSes->pSat, Ses_ManGateVar( pSes, i, 1, 1 ) ) );
-                        nObj = Abc_LitNot( nObj );
-                    }
+        if ( *p & 1 )
+        {
+            nChild1 = Abc_LitNot( nChild1 );
+            fChild1Comp = 1;
+        }
+        if ( ( *p >> 1 ) & 1 )
+        {
+            nChild2 = Abc_LitNot( nChild2 );
+            fChild2Comp = 1;
+        }
+        nObj = Gia_ManAppendAnd( pGia, nChild1, nChild2 );
+        if ( fChild1Comp && fChild2Comp )
+        {
+            assert( ( *p >> 2 ) & 1 );
+            nObj = Abc_LitNot( nObj );
+        }
 
-                    Vec_IntPush( pGates, nObj );
+        Vec_IntPush( pGates, nObj );
 
-                    break;
-                }
+        p += 4;
     }
 
     /* outputs */
-    pGia->vNamesOut = Vec_PtrStart( pSes->nSpecFunc );
-    for ( h = 0; h < pSes->nSpecFunc; ++h )
+    pGia->vNamesOut = Vec_PtrStart( pSol[ABC_EXACT_SOL_NFUNC] );
+    for ( h = 0; h < pSol[ABC_EXACT_SOL_NFUNC]; ++h, ++p )
     {
-        for ( i = 0; i < pSes->nGates; ++i )
-        {
-            if ( sat_solver_var_value( pSes->pSat, Ses_ManOutputVar( pSes, h, i ) ) )
-            {
-                nObj = Vec_IntEntry( pGates, pSes->nSpecVars + i );
-                /* if output has been inverted, we need to add an inverter */
-                if ( ( pSes->bSpecInv >> h ) & 1 )
-                    nObj = Abc_LitNot( nObj );
-                Gia_ManAppendCo( pGia, nObj );
-                Vec_PtrSetEntry( pGia->vNamesOut, h, Extra_UtilStrsav( Vec_PtrEntry( vNames, pSes->nSpecVars + h ) ) );
-            }
-        }
+        nObj = Vec_IntEntry( pGates, pSol[ABC_EXACT_SOL_NVARS] + Abc_Lit2Var( *p ) );
+        if ( Abc_LitIsCompl( *p ) )
+            nObj = Abc_LitNot( nObj );
+        Gia_ManAppendCo( pGia, nObj );
+        Vec_PtrSetEntry( pGia->vNamesOut, h, Extra_UtilStrsav( Vec_PtrEntry( vNames, pSol[ABC_EXACT_SOL_NVARS] + h ) ) );
     }
     Abc_NodeFreeNames( vNames );
 
@@ -827,17 +855,18 @@ static int Ses_ManFindMinimumSize( Ses_Man_t * pSes )
   Synopsis    [Find minimum size networks with a SAT solver.]
 
   Description [If nMaxDepth is -1, then depth constraints are ignored.
-               If nMaxDepth is not -1, one can set pArrivalTimes which should have the length of nVars.
-               One can ignore pArrivalTimes by setting it to NULL.]
+               If nMaxDepth is not -1, one can set pArrTimeProfile which should have the length of nVars.
+               One can ignore pArrTimeProfile by setting it to NULL.]
 
   SideEffects []
 
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Ntk_t * Abc_NtkFindExact( word * pTruth, int nVars, int nFunc, int nMaxDepth, int * pArrivalTimes, int fVerbose )
+Abc_Ntk_t * Abc_NtkFindExact( word * pTruth, int nVars, int nFunc, int nMaxDepth, int * pArrTimeProfile, int fVerbose )
 {
     Ses_Man_t * pSes;
+    char * pSol;
     Abc_Ntk_t * pNtk = NULL;
     abctime timeStart;
 
@@ -846,12 +875,16 @@ Abc_Ntk_t * Abc_NtkFindExact( word * pTruth, int nVars, int nFunc, int nMaxDepth
 
     timeStart = Abc_Clock();
 
-    pSes = Ses_ManAlloc( pTruth, nVars, nFunc, nMaxDepth, pArrivalTimes, 0, fVerbose );
+    pSes = Ses_ManAlloc( pTruth, nVars, nFunc, nMaxDepth, pArrTimeProfile, 0, fVerbose );
     if ( fVerbose )
         Ses_ManPrintFuncs( pSes );
 
     if ( Ses_ManFindMinimumSize( pSes ) )
-        pNtk = Ses_ManExtractNtk( pSes );
+    {
+        pSol = Ses_ManExtractSolution( pSes );
+        pNtk = Ses_ManExtractNtk( pSol );
+        ABC_FREE( pSol );
+    }
 
     pSes->timeTotal = Abc_Clock() - timeStart;
 
@@ -864,9 +897,10 @@ Abc_Ntk_t * Abc_NtkFindExact( word * pTruth, int nVars, int nFunc, int nMaxDepth
     return pNtk;
 }
 
-Gia_Man_t * Gia_ManFindExact( word * pTruth, int nVars, int nFunc, int nMaxDepth, int * pArrivalTimes, int fVerbose )
+Gia_Man_t * Gia_ManFindExact( word * pTruth, int nVars, int nFunc, int nMaxDepth, int * pArrTimeProfile, int fVerbose )
 {
     Ses_Man_t * pSes;
+    char * pSol;
     Gia_Man_t * pGia = NULL;
     abctime timeStart;
 
@@ -875,12 +909,16 @@ Gia_Man_t * Gia_ManFindExact( word * pTruth, int nVars, int nFunc, int nMaxDepth
 
     timeStart = Abc_Clock();
 
-    pSes = Ses_ManAlloc( pTruth, nVars, nFunc, nMaxDepth, pArrivalTimes, 1, fVerbose );
+    pSes = Ses_ManAlloc( pTruth, nVars, nFunc, nMaxDepth, pArrTimeProfile, 1, fVerbose );
     if ( fVerbose )
         Ses_ManPrintFuncs( pSes );
 
     if ( Ses_ManFindMinimumSize( pSes ) )
-        pGia = Ses_ManExtractGia( pSes );
+    {
+        pSol = Ses_ManExtractSolution( pSes );
+        pGia = Ses_ManExtractGia( pSol );
+        ABC_FREE( pSol );
+    }
 
     pSes->timeTotal = Abc_Clock() - timeStart;
 
@@ -920,7 +958,7 @@ void Abc_ExactTestSingleOutput( int fVerbose )
 
     word pTruth[4] = {0xcafe, 0, 0, 0};
     Abc_Ntk_t * pNtk, * pNtk2, * pNtk3, * pNtk4;
-    int pArrivalTimes[4] = {6, 2, 8, 5};
+    int pArrTimeProfile[4] = {6, 2, 8, 5};
 
     pNtk = Abc_NtkFromTruthTable( pTruth, 4 );
 
@@ -938,7 +976,7 @@ void Abc_ExactTestSingleOutput( int fVerbose )
     assert( Abc_NtkLevel( pNtk3 ) <= 3 );
     Abc_NtkDelete( pNtk3 );
 
-    pNtk4 = Abc_NtkFindExact( pTruth, 4, 1, 9, pArrivalTimes, fVerbose );
+    pNtk4 = Abc_NtkFindExact( pTruth, 4, 1, 9, pArrTimeProfile, fVerbose );
     Abc_NtkShortNames( pNtk4 );
     Abc_NtkCecSat( pNtk, pNtk4, 10000, 0 );
     assert( pNtk4 );
@@ -947,7 +985,7 @@ void Abc_ExactTestSingleOutput( int fVerbose )
 
     assert( !Abc_NtkFindExact( pTruth, 4, 1, 2, NULL, fVerbose ) );
 
-    assert( !Abc_NtkFindExact( pTruth, 4, 1, 8, pArrivalTimes, fVerbose ) );
+    assert( !Abc_NtkFindExact( pTruth, 4, 1, 8, pArrTimeProfile, fVerbose ) );
 
     Abc_NtkDelete( pNtk );
 }
@@ -958,7 +996,7 @@ void Abc_ExactTestSingleOutputAIG( int fVerbose )
     Abc_Ntk_t * pNtk;
     Gia_Man_t * pGia, * pGia2, * pGia3, * pGia4, * pMiter;
     Cec_ParCec_t ParsCec, * pPars = &ParsCec;
-    int pArrivalTimes[4] = {6, 2, 8, 5};
+    int pArrTimeProfile[4] = {6, 2, 8, 5};
 
     Cec_ManCecSetDefaultParams( pPars );
 
@@ -978,7 +1016,7 @@ void Abc_ExactTestSingleOutputAIG( int fVerbose )
     Cec_ManVerify( pMiter, pPars );
     Gia_ManStop( pMiter );
 
-    pGia4 = Gia_ManFindExact( pTruth, 4, 1, 9, pArrivalTimes, fVerbose );
+    pGia4 = Gia_ManFindExact( pTruth, 4, 1, 9, pArrTimeProfile, fVerbose );
     pMiter = Gia_ManMiter( pGia, pGia4, 0, 1, 0, 0, 1 );
     assert( pMiter );
     Cec_ManVerify( pMiter, pPars );
@@ -986,7 +1024,7 @@ void Abc_ExactTestSingleOutputAIG( int fVerbose )
 
     assert( !Gia_ManFindExact( pTruth, 4, 1, 2, NULL, fVerbose ) );
 
-    assert( !Gia_ManFindExact( pTruth, 4, 1, 8, pArrivalTimes, fVerbose ) );
+    assert( !Gia_ManFindExact( pTruth, 4, 1, 8, pArrTimeProfile, fVerbose ) );
 
     Gia_ManStop( pGia );
     Gia_ManStop( pGia2 );
