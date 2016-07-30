@@ -550,25 +550,30 @@ static inline int Ses_ManSolve( Ses_Man_t * pSes )
 ***********************************************************************/
 // char is an array of short integers that stores the synthesized network
 // using the following format
-// | nvars | nfunc | ngates | gate1 | ... | gaten | func1 | .. | funcm |
-// nvars:    integer with number of variables
-// nfunc:    integer with number of functions
-// ngates:   integer with number of gates
-// gate:     | op | nfanin | fanin1 | ... | faninl |
-//   op:     integer of gate's truth table (divided by 2, because gate is normal)
-//   nfanin: integer with number of fanins
-//   fanin:  integer to primary input or other gate
-// func:     integer as literal to some gate (not primary input), can be complemented
+// | nvars | nfunc | ngates | gate[1] | ... | gate[ngates] | func[1] | .. | func[nfunc] |
+// nvars:       integer with number of variables
+// nfunc:       integer with number of functions
+// ngates:      integer with number of gates
+// gate[i]:     | op | nfanin | fanin[1] | ... | fanin[nfanin] |
+//   op:        integer of gate's truth table (divided by 2, because gate is normal)
+//   nfanin[i]: integer with number of fanins
+//   fanin:     integer to primary input or other gate
+// func[i]:     | fanin | delay | pin[1] | ... | pin[nvars] |
+//   fanin:     integer as literal to some gate (not primary input), can be complemented
+//   delay:     maximum delay to output (taking arrival times into account, not normalized) or 0 if not specified
+//   pin[i]:    pin to pin delay to input i or 0 if not specified or if there is no connection to input i
+// NOTE: since outputs can only point to gates, delay and pin-to-pin times cannot be 0
 #define ABC_EXACT_SOL_NVARS  0
 #define ABC_EXACT_SOL_NFUNC  1
 #define ABC_EXACT_SOL_NGATES 2
 static char * Ses_ManExtractSolution( Ses_Man_t * pSes )
 {
-    int nSol, h, i, j, k, nOp;
+    int nSol, h, i, j, k, l, aj, ak, d, nOp;
     char * pSol, * p;
+    int * pPerm; /* will be a 2d array [i][l] where is is gate id and l is PI id */
 
     /* compute length of solution, for now all gates have 2 inputs */
-    nSol = 3 + pSes->nGates * 4 + pSes->nSpecFunc;
+    nSol = 3 + pSes->nGates * 4 + pSes->nSpecFunc * ( 2 + pSes->nSpecVars );
 
     p = pSol = ABC_CALLOC( char, nSol );
 
@@ -608,11 +613,50 @@ static char * Ses_ManExtractSolution( Ses_Man_t * pSes )
         /* } */
     }
 
+    /* pin-to-pin delay */
+    if ( pSes->nMaxDepth != -1 )
+    {
+        pPerm = ABC_CALLOC( int, pSes->nGates * pSes->nSpecVars );
+        for ( i = 0; i < pSes->nGates; ++i )
+        {
+            /* since all gates are binary for now */
+            j = pSol[3 + i * 4 + 2];
+            k = pSol[3 + i * 4 + 2];
+
+            for ( l = 0; l < pSes->nSpecVars; ++l )
+            {
+                /* pin-to-pin delay to input l of child nodes */
+                aj = j < pSes->nGates ? 0 : pPerm[j * pSes->nSpecVars + l];
+                ak = k < pSes->nGates ? 0 : pPerm[k * pSes->nSpecVars + l];
+
+                if ( aj == 0 && ak == 0 )
+                    pPerm[i * pSes->nSpecVars + l] = 0;
+                else
+                    pPerm[i * pSes->nSpecVars + l] = ( ( aj > ak ) ? aj : ak ) + 1;
+            }
+        }
+    }
+
     /* outputs */
     for ( h = 0; h < pSes->nSpecFunc; ++h )
         for ( i = 0; i < pSes->nGates; ++i )
             if ( sat_solver_var_value( pSes->pSat, Ses_ManOutputVar( pSes, h, i ) ) )
+            {
                 *p++ = Abc_Var2Lit( i, ( pSes->bSpecInv >> h ) & 1 );
+                d = 0;
+                if ( pSes->nMaxDepth != -1 )
+                    while ( d < pSes->nArrTimeMax + i && sat_solver_var_value( pSes->pSat, Ses_ManDepthVar( pSes, i, d ) ) )
+                        ++d;
+                *p++ = d + pSes->nArrTimeDelta;
+                for ( l = 0; l < pSes->nSpecVars; ++l )
+                    *p++ = ( pSes->nMaxDepth != -1 ) ? pPerm[i * pSes->nSpecVars + l] : 0;
+                if ( pSes->fVeryVerbose )
+                    printf( "output %d points to %d and has normalized delay %d\n", h, i, d );
+            }
+
+    /* pin-to-pin delays */
+    if ( pSes->nMaxDepth != -1 )
+        ABC_FREE( pPerm );
 
     /* have we used all the fields? */
     assert( ( p - pSol ) == nSol );
@@ -669,7 +713,7 @@ static Abc_Ntk_t * Ses_ManExtractNtk( char const * pSol )
     }
 
     /* outputs */
-    for ( h = 0; h < pSol[ABC_EXACT_SOL_NFUNC]; ++h, ++p )
+    for ( h = 0; h < pSol[ABC_EXACT_SOL_NFUNC]; ++h )
     {
         pObj = Abc_NtkCreatePo( pNtk );
         Abc_ObjAssignName( pObj, (char*)Vec_PtrEntry( vNames, pSol[ABC_EXACT_SOL_NVARS] + h ), NULL );
@@ -677,6 +721,7 @@ static Abc_Ntk_t * Ses_ManExtractNtk( char const * pSol )
             Abc_ObjAddFanin( pObj, Abc_NtkCreateNodeInv( pNtk, (Abc_Obj_t *)Vec_PtrEntry( pGates, pSol[ABC_EXACT_SOL_NVARS] + Abc_Lit2Var( *p ) ) ) );
         else
             Abc_ObjAddFanin( pObj, (Abc_Obj_t *)Vec_PtrEntry( pGates, pSol[ABC_EXACT_SOL_NVARS] + Abc_Lit2Var( *p ) ) );
+        p += ( 2 + pSol[ABC_EXACT_SOL_NVARS] );
     }
     Abc_NodeFreeNames( vNames );
 
@@ -746,13 +791,14 @@ static Gia_Man_t * Ses_ManExtractGia( char const * pSol )
 
     /* outputs */
     pGia->vNamesOut = Vec_PtrStart( pSol[ABC_EXACT_SOL_NFUNC] );
-    for ( h = 0; h < pSol[ABC_EXACT_SOL_NFUNC]; ++h, ++p )
+    for ( h = 0; h < pSol[ABC_EXACT_SOL_NFUNC]; ++h )
     {
         nObj = Vec_IntEntry( pGates, pSol[ABC_EXACT_SOL_NVARS] + Abc_Lit2Var( *p ) );
         if ( Abc_LitIsCompl( *p ) )
             nObj = Abc_LitNot( nObj );
         Gia_ManAppendCo( pGia, nObj );
         Vec_PtrSetEntry( pGia->vNamesOut, h, Extra_UtilStrsav( Vec_PtrEntry( vNames, pSol[ABC_EXACT_SOL_NVARS] + h ) ) );
+        p += ( 2 + pSol[ABC_EXACT_SOL_NVARS] );
     }
     Abc_NodeFreeNames( vNames );
 
