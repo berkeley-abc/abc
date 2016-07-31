@@ -29,7 +29,7 @@ ABC_NAMESPACE_IMPL_START
 
 extern char * Dau_DsdMerge( char * pDsd0i, int * pPerm0, char * pDsd1i, int * pPerm1, int fCompl0, int fCompl1, int nVars );
 extern int    If_CutDelayRecCost3( If_Man_t* p, If_Cut_t* pCut, If_Obj_t * pObj );
-extern int    Abc_ExactDelayCost( word * pTruth, int nVars, int * pArrTimeProfile, char * pPerm, int * Cost );
+extern int    Abc_ExactDelayCost( word * pTruth, int nVars, int * pArrTimeProfile, char * pPerm, int * Cost, int AigLevel );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -152,7 +152,7 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
         {
             int Cost = 0;
             pCut->fUser = 1;
-            pCut->Delay = (float)Abc_ExactDelayCost( If_CutTruthW(p, pCut), If_CutLeaveNum(pCut), If_CutArrTimeProfile(p, pCut), If_CutPerm(pCut), &Cost ); 
+            pCut->Delay = (float)Abc_ExactDelayCost( If_CutTruthW(p, pCut), If_CutLeaveNum(pCut), If_CutArrTimeProfile(p, pCut), If_CutPerm(pCut), &Cost, (int)pObj->Level ); 
             if ( Cost == ABC_INFINITY )
             {
                 for ( v = 0; v < If_CutLeaveNum(pCut); v++ )
@@ -376,7 +376,7 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
         {
             int Cost = 0;
             pCut->fUser = 1;
-            pCut->Delay = (float)Abc_ExactDelayCost( If_CutTruthW(p, pCut), If_CutLeaveNum(pCut), If_CutArrTimeProfile(p, pCut), If_CutPerm(pCut), &Cost ); 
+            pCut->Delay = (float)Abc_ExactDelayCost( If_CutTruthW(p, pCut), If_CutLeaveNum(pCut), If_CutArrTimeProfile(p, pCut), If_CutPerm(pCut), &Cost, (int)pObj->Level ); 
             if ( Cost == ABC_INFINITY )
             {
                 for ( v = 0; v < If_CutLeaveNum(pCut); v++ )

@@ -1023,7 +1023,7 @@ int Abc_ExactInputNum()
 // this procedure takes TT and input arrival times (pArrTimeProfile) and return the smallest output arrival time;
 // it also returns the pin-to-pin delays (pPerm) between each cut leaf and the cut output and the cut area cost (Cost)
 // the area cost should not exceed 2048, if the cut is implementable; otherwise, it should be ABC_INFINITY
-int Abc_ExactDelayCost( word * pTruth, int nVars, int * pArrTimeProfile, char * pPerm, int * Cost )
+int Abc_ExactDelayCost( word * pTruth, int nVars, int * pArrTimeProfile, char * pPerm, int * Cost, int AigLevel )
 {
     *Cost = ABC_INFINITY;
     return ABC_INFINITY;
