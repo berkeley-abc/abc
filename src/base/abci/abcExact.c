@@ -25,6 +25,7 @@
 #include "base/abc/abc.h"
 
 #include "aig/gia/gia.h"
+#include "bool/kit/kit.h"
 #include "misc/util/utilTruth.h"
 #include "misc/vec/vecInt.h"
 #include "misc/vec/vecPtr.h"
@@ -153,6 +154,45 @@ static int Abc_NormalizeArrivalTimes( int * pArrTimeProfile, int nVars, int * ma
     return delta;
 }
 
+static inline Ses_Store_t * Ses_StoreAlloc( int nVars )
+{
+    Ses_Store_t * pStore = ABC_CALLOC( Ses_Store_t, 1 );
+    pStore->nNumVars = nVars;
+    pStore->nWords = Kit_TruthWordNum( nVars );
+
+    return pStore;
+}
+
+static inline void Ses_StoreClean( Ses_Store_t * pStore )
+{
+    int i;
+    Ses_TruthEntry_t * pTEntry, * pTEntry2;
+    Ses_TimesEntry_t * pTiEntry, * pTiEntry2;
+
+    for ( i = 0; i < SES_STORE_TABLE_SIZE; ++i )
+        if ( pStore->pEntries[i] )
+        {
+            pTEntry = pStore->pEntries[i];
+
+            while ( pTEntry )
+            {
+                pTiEntry = pTEntry->head;
+                while ( pTiEntry )
+                {
+                    ABC_FREE( pTiEntry->pNetwork );
+                    pTiEntry2 = pTiEntry;
+                    pTiEntry = pTiEntry->next;
+                    ABC_FREE( pTiEntry2 );
+                }
+                pTEntry2 = pTEntry;
+                pTEntry = pTEntry->next;
+                ABC_FREE( pTEntry2 );
+            }
+        }
+
+    ABC_FREE( pStore );
+}
+
 static inline int Ses_StoreTableHash( Ses_Store_t * pStore, word * pTruth )
 {
     static int s_Primes[4] = { 1291, 1699, 1999, 2357 };
@@ -199,14 +239,14 @@ static inline void Ses_StoreTimesCopy( Ses_Store_t * pStore, int * pTimesDest, i
 // returns 1 if and only if a new TimesEntry has been created
 int Ses_StoreAddEntry( Ses_Store_t * pStore, word * pTruth, int nVars, int * pArrTimeProfile, char * pSol )
 {
-    int maxNormalized, key;
+    int i, nDelta, maxNormalized, key, fAdded;
     Ses_TruthEntry_t * pTEntry;
     Ses_TimesEntry_t * pTiEntry;
 
     if ( pStore->nNumVars != nVars )
         return 0;
 
-    Abc_NormalizeArrivalTimes( pArrTimeProfile, nVars, &maxNormalized );
+    nDelta = Abc_NormalizeArrivalTimes( pArrTimeProfile, nVars, &maxNormalized );
 
     key = Ses_StoreTableHash( pStore, pTruth );
     pTEntry = pStore->pEntries[key];
@@ -249,25 +289,27 @@ int Ses_StoreAddEntry( Ses_Store_t * pStore, word * pTruth, int nVars, int * pAr
         pTEntry->head = pTiEntry;
 
         /* item has been added */
-        return 1;
+        fAdded = 1;
     }
     else
         /* item was already present */
-        return 0;
+        fAdded = 0;
+
+    for ( i = 0; i < nVars; ++i )
+        pArrTimeProfile[i] += nDelta;
+    return fAdded;
 }
 
 // pArrTimeProfile is not normalized
 // returns 0 if no solution was found
 char * Ses_StoreGetEntry( Ses_Store_t * pStore, word * pTruth, int nVars, int * pArrTimeProfile )
 {
-    int maxNormalized, key;
+    int i, nDelta, maxNormalized, key;
     Ses_TruthEntry_t * pTEntry;
     Ses_TimesEntry_t * pTiEntry;
 
     if ( pStore->nNumVars != nVars )
         return 0;
-
-    Abc_NormalizeArrivalTimes( pArrTimeProfile, nVars, &maxNormalized );
 
     key = Ses_StoreTableHash( pStore, pTruth );
     pTEntry = pStore->pEntries[key];
@@ -285,6 +327,8 @@ char * Ses_StoreGetEntry( Ses_Store_t * pStore, word * pTruth, int nVars, int * 
     if ( !pTEntry )
         return 0;
 
+    nDelta = Abc_NormalizeArrivalTimes( pArrTimeProfile, nVars, &maxNormalized );
+
     /* find times entry */
     pTiEntry = pTEntry->head;
     while ( pTiEntry )
@@ -294,6 +338,9 @@ char * Ses_StoreGetEntry( Ses_Store_t * pStore, word * pTruth, int nVars, int * 
         else
             pTiEntry = pTiEntry->next;
     }
+
+    for ( i = 0; i < nVars; ++i )
+        pArrTimeProfile[i] += nDelta;
 
     /* no entry found? */
     if ( !pTiEntry )
