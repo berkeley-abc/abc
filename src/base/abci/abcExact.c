@@ -87,11 +87,49 @@ struct Ses_Man_t_
     abctime      timeTotal;       /* all runtime */
 };
 
+/***********************************************************************
+
+  Synopsis    [Store truth tables based on normalized arrival times.]
+
+***********************************************************************/
+
+// The hash table is a list of pointers to Ses_TruthEntry_t elements, which
+// are arranged in a linked list, each of which pointing to a linked list
+// of Ses_TimesEntry_t elements which contain the char* representation of the
+// optimum netlist according to then normalized arrival times:
+
+typedef struct Ses_TimesEntry_t_ Ses_TimesEntry_t;
+struct Ses_TimesEntry_t_
+{
+    int                pArrTimeProfile[8]; /* normalized arrival time profile */
+    Ses_TimesEntry_t * next;               /* linked list pointer */
+    char *             pNetwork;           /* pointer to char array representation of optimum network */
+};
+
+typedef struct Ses_TruthEntry_t_ Ses_TruthEntry_t;
+struct Ses_TruthEntry_t_
+{
+    word               pTruth[4]; /* truth table for comparison */
+    Ses_TruthEntry_t * next;      /* linked list pointer */
+    Ses_TimesEntry_t * head;      /* pointer to head of sub list with arrival times */
+};
+
+#define SES_STORE_TABLE_SIZE 1024
+typedef struct Ses_Store_t_ Ses_Store_t;
+struct Ses_Store_t_
+{
+    int                nNumVars;                       /* store has been allocated for this number of variables */
+    int                nWords;                         /* number of truth table words */
+    Ses_TruthEntry_t * pEntries[SES_STORE_TABLE_SIZE]; /* hash table for truth table entries */
+};
+
+static Ses_Store_t * s_pSesStore = NULL;
+
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
-int NormalizeArrivalTimes( int * pArrTimeProfile, int nVars, int * maxNormalized )
+static int Abc_NormalizeArrivalTimes( int * pArrTimeProfile, int nVars, int * maxNormalized )
 {
     int * p = pArrTimeProfile, * pEnd = pArrTimeProfile + nVars;
     int delta = *p;
@@ -115,6 +153,110 @@ int NormalizeArrivalTimes( int * pArrTimeProfile, int nVars, int * maxNormalized
     return delta;
 }
 
+static inline int Ses_StoreTableHash( Ses_Store_t * pStore, word * pTruth )
+{
+    static int s_Primes[4] = { 1291, 1699, 1999, 2357 };
+    int i;
+    unsigned uHash = 0;
+    for ( i = 0; i < pStore->nWords; ++i )
+        uHash ^= pTruth[i] * s_Primes[i & 0xf];
+    return (int)(uHash % SES_STORE_TABLE_SIZE );
+}
+
+static inline int Ses_StoreTruthEqual( Ses_Store_t * pStore, word * pTruth1, word * pTruth2 )
+{
+    int i;
+    for ( i = 0; i < pStore->nWords; ++i )
+        if ( pTruth1[i] != pTruth2[i] )
+            return 0;
+    return 1;
+}
+
+static inline void Ses_StoreTruthCopy( Ses_Store_t * pStore, word * pTruthDest, word * pTruthSrc )
+{
+    int i;
+    for ( i = 0; i < pStore->nWords; ++i )
+        pTruthDest[i] = pTruthSrc[i];
+}
+
+static inline int Ses_StoreTimesEqual( Ses_Store_t * pStore, int * pTimes1, int * pTimes2 )
+{
+    int i;
+    for ( i = 0; i < pStore->nNumVars; ++i )
+        if ( pTimes1[i] != pTimes2[i] )
+            return 0;
+    return 1;
+}
+
+static inline void Ses_StoreTimesCopy( Ses_Store_t * pStore, int * pTimesDest, int * pTimesSrc )
+{
+    int i;
+    for ( i = 0; i < pStore->nNumVars; ++i )
+        pTimesDest[i] = pTimesSrc[i];
+}
+
+// pArrTimeProfile is not normalized
+// returns 1 if and only if a new TimesEntry has been created
+int Ses_StoreAddEntry( Ses_Store_t * pStore, word * pTruth, int nVars, int * pArrTimeProfile, char * pSol )
+{
+    int maxNormalized, key;
+    Ses_TruthEntry_t * pTEntry;
+    Ses_TimesEntry_t * pTiEntry;
+
+    if ( pStore->nNumVars != nVars )
+        return 0;
+
+    Abc_NormalizeArrivalTimes( pArrTimeProfile, nVars, &maxNormalized );
+
+    key = Ses_StoreTableHash( pStore, pTruth );
+    pTEntry = pStore->pEntries[key];
+
+    /* does truth table already exist? */
+    while ( pTEntry )
+    {
+        if ( Ses_StoreTruthEqual( pStore, pTruth, pTEntry->pTruth ) )
+            break;
+        else
+            pTEntry = pTEntry->next;
+    }
+
+    /* entry does not yet exist, so create new one and enqueue */
+    if ( !pTEntry )
+    {
+        pTEntry = ABC_CALLOC( Ses_TruthEntry_t, 1 );
+        Ses_StoreTruthCopy( pStore, pTEntry->pTruth, pTruth );
+        pTEntry->next = pStore->pEntries[key];
+        pStore->pEntries[key] = pTEntry;
+    }
+
+    /* does arrival time already exist? */
+    pTiEntry = pTEntry->head;
+    while ( pTiEntry )
+    {
+        if ( Ses_StoreTimesEqual( pStore, pArrTimeProfile, pTiEntry->pArrTimeProfile ) )
+            break;
+        else
+            pTiEntry = pTiEntry->next;
+    }
+
+    /* entry does not yet exist, so create new one and enqueue */
+    if ( !pTiEntry )
+    {
+        pTiEntry = ABC_CALLOC( Ses_TimesEntry_t, 1 );
+        Ses_StoreTimesCopy( pStore, pTiEntry->pArrTimeProfile, pArrTimeProfile );
+        pTiEntry->pNetwork = pSol;
+        pTiEntry->next = pTEntry->head;
+        pTEntry->head = pTiEntry;
+
+        /* item has been added */
+        return 1;
+    }
+    else
+        /* item was already present */
+        return 0;
+}
+
+
 static inline Ses_Man_t * Ses_ManAlloc( word * pTruth, int nVars, int nFunc, int nMaxDepth, int * pArrTimeProfile, int fMakeAIG, int fVerbose )
 {
     int h, i;
@@ -136,7 +278,7 @@ static inline Ses_Man_t * Ses_ManAlloc( word * pTruth, int nVars, int nFunc, int
     p->nMaxDepth     = nMaxDepth;
     p->pArrTimeProfile = nMaxDepth >= 0 ? pArrTimeProfile : NULL;
     if ( p->pArrTimeProfile )
-        p->nArrTimeDelta = NormalizeArrivalTimes( p->pArrTimeProfile, nVars, &p->nArrTimeMax );
+        p->nArrTimeDelta = Abc_NormalizeArrivalTimes( p->pArrTimeProfile, nVars, &p->nArrTimeMax );
     else
         p->nArrTimeDelta = p->nArrTimeMax = 0;
     p->fMakeAIG      = fMakeAIG;
@@ -1096,13 +1238,14 @@ void Abc_ExactTest( int fVerbose )
 // this procedure should return 1, if the engine/library are available, and 0 otherwise
 int Abc_ExactIsRunning()
 {
-    return 0;
+    return s_pSesStore != NULL;
 }
 // this procedure returns the number of inputs of the library
 // for example, somebody may try to map into 10-cuts while the library only contains 8-functions
 int Abc_ExactInputNum()
 {
-    return 0;
+    assert( s_pSesStore );
+    return s_pSesStore->nNumVars;
 }
 // this procedure takes TT and input arrival times (pArrTimeProfile) and return the smallest output arrival time;
 // it also returns the pin-to-pin delays (pPerm) between each cut leaf and the cut output and the cut area cost (Cost)
@@ -1145,7 +1288,9 @@ int Abc_ExactDelayCost( word * pTruth, int nVars, int * pArrTimeProfile, char * 
         for ( l = 0; l < nVars; ++l )
             pPerm[l] = *p++;
 
-        ABC_FREE( pSol );
+        /* store solution */
+        if ( !Ses_StoreAddEntry( s_pSesStore, pTruth, nVars, pArrTimeProfile, pSol ) )
+            ABC_FREE( pSol ); /* store entry already exists, so free solution */
     }
 
     pSes->timeTotal = Abc_Clock() - timeStart;
