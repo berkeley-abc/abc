@@ -256,6 +256,51 @@ int Ses_StoreAddEntry( Ses_Store_t * pStore, word * pTruth, int nVars, int * pAr
         return 0;
 }
 
+// pArrTimeProfile is not normalized
+// returns 0 if no solution was found
+char * Ses_StoreGetEntry( Ses_Store_t * pStore, word * pTruth, int nVars, int * pArrTimeProfile )
+{
+    int maxNormalized, key;
+    Ses_TruthEntry_t * pTEntry;
+    Ses_TimesEntry_t * pTiEntry;
+
+    if ( pStore->nNumVars != nVars )
+        return 0;
+
+    Abc_NormalizeArrivalTimes( pArrTimeProfile, nVars, &maxNormalized );
+
+    key = Ses_StoreTableHash( pStore, pTruth );
+    pTEntry = pStore->pEntries[key];
+
+    /* find truth table entry */
+    while ( pTEntry )
+    {
+        if ( Ses_StoreTruthEqual( pStore, pTruth, pTEntry->pTruth ) )
+            break;
+        else
+            pTEntry = pTEntry->next;
+    }
+
+    /* no entry found? */
+    if ( !pTEntry )
+        return 0;
+
+    /* find times entry */
+    pTiEntry = pTEntry->head;
+    while ( pTiEntry )
+    {
+        if ( Ses_StoreTimesEqual( pStore, pArrTimeProfile, pTiEntry->pArrTimeProfile ) )
+            break;
+        else
+            pTiEntry = pTiEntry->next;
+    }
+
+    /* no entry found? */
+    if ( !pTiEntry )
+        return 0;
+
+    return pTiEntry->pNetwork;
+}
 
 static inline Ses_Man_t * Ses_ManAlloc( word * pTruth, int nVars, int nFunc, int nMaxDepth, int * pArrTimeProfile, int fMakeAIG, int fVerbose )
 {
@@ -1300,11 +1345,68 @@ int Abc_ExactDelayCost( word * pTruth, int nVars, int * pArrTimeProfile, char * 
 
     return Delay;
 }
-// this procedure returns a new node whose output in terms of the given fanins 
+// this procedure returns a new node whose output in terms of the given fanins
 // has the smallest possible arrival time (in agreement with the above Abc_ExactDelayCost)
 Abc_Obj_t * Abc_ExactBuildNode( word * pTruth, int nVars, int * pArrTimeProfile, Abc_Obj_t ** pFanins )
 {
-    return NULL;
+    char * pSol;
+    int i;
+    char const * p;
+    Abc_Obj_t * pObj;
+    Vec_Ptr_t * pGates;
+    char pGateTruth[5];
+    char * pSopCover;
+
+    Abc_Ntk_t * pNtk = NULL; /* need that to create node */
+
+    pSol = Ses_StoreGetEntry( s_pSesStore, pTruth, nVars, pArrTimeProfile );
+    if ( !pSol )
+        return NULL;
+
+    assert( pSol[ABC_EXACT_SOL_NVARS] == nVars );
+    assert( pSol[ABC_EXACT_SOL_NFUNC] == 1 );
+
+    pGates = Vec_PtrAlloc( nVars + pSol[ABC_EXACT_SOL_NGATES] );
+    pGateTruth[3] = '0';
+    pGateTruth[4] = '\0';
+
+    /* primary inputs */
+    for ( i = 0; i < nVars; ++i )
+    {
+        Vec_PtrPush( pGates, pFanins[i] );
+    }
+
+    /* gates */
+    p = pSol + 3;
+    for ( i = 0; i < pSol[ABC_EXACT_SOL_NGATES]; ++i )
+    {
+        pGateTruth[2] = '0' + ( *p & 1 );
+        pGateTruth[1] = '0' + ( ( *p >> 1 ) & 1 );
+        pGateTruth[0] = '0' + ( ( *p >> 2 ) & 1 );
+        ++p;
+
+        assert( *p == 2 ); /* binary gate */
+        ++p;
+
+        pSopCover = Abc_SopFromTruthBin( pGateTruth );
+        pObj = Abc_NtkCreateNode( pNtk );
+        pObj->pData = Abc_SopRegister( (Mem_Flex_t*)pNtk->pManFunc, pSopCover );
+        Vec_PtrPush( pGates, pObj );
+        ABC_FREE( pSopCover );
+
+        Abc_ObjAddFanin( pObj, (Abc_Obj_t *)Vec_PtrEntry( pGates, *p++ ) );
+        Abc_ObjAddFanin( pObj, (Abc_Obj_t *)Vec_PtrEntry( pGates, *p++ ) );
+    }
+
+    /* output */
+    if ( Abc_LitIsCompl( *p ) )
+        pObj = Abc_NtkCreateNodeInv( pNtk, (Abc_Obj_t *)Vec_PtrEntry( pGates, nVars + Abc_Lit2Var( *p ) ) );
+    else
+        pObj = (Abc_Obj_t *)Vec_PtrEntry( pGates, nVars + Abc_Lit2Var( *p ) );
+
+    Vec_PtrFree( pGates );
+
+    return pObj;
 }
 
 ////////////////////////////////////////////////////////////////////////
