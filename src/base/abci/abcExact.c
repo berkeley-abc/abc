@@ -1353,6 +1353,9 @@ int Abc_ExactDelayCost( word * pTruth, int nVars, int * pArrTimeProfile, char * 
     /* some checks */
     assert( nVars >= 2 && nVars <= 8 );
 
+    if ( AigLevel < nMaxDepth )
+        nMaxDepth = AigLevel;
+
     timeStart = Abc_Clock();
 
     *Cost = ABC_INFINITY;
@@ -1404,7 +1407,7 @@ Abc_Obj_t * Abc_ExactBuildNode( word * pTruth, int nVars, int * pArrTimeProfile,
     char pGateTruth[5];
     char * pSopCover;
 
-    Abc_Ntk_t * pNtk = NULL; /* need that to create node */
+    Abc_Ntk_t * pNtk = Abc_ObjNtk( pFanins[0] );
 
     pSol = Ses_StoreGetEntry( s_pSesStore, pTruth, nVars, pArrTimeProfile );
     if ( !pSol )
