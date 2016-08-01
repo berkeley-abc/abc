@@ -37,7 +37,8 @@ ABC_NAMESPACE_IMPL_START
 void Fxch_CubesGruping(Fxch_Man_t* pFxchMan)
 {
     Vec_Int_t* vCube;
-    int iCube;
+    int iCube, nOutputs, SizeOutputID;
+    Hsh_VecMan_t* pCubeHash;
 
     /* Identify the number of Outputs and create the translation table */
     pFxchMan->vTranslation = Vec_IntAlloc( 32 );
@@ -49,30 +50,31 @@ void Fxch_CubesGruping(Fxch_Man_t* pFxchMan)
         if ( iTranslation == -1 )
             Vec_IntPush( pFxchMan->vTranslation, Id );
     }
-    int nOutputs = Vec_IntSize( pFxchMan->vTranslation );
+    nOutputs = Vec_IntSize( pFxchMan->vTranslation );
 
     /* Size of the OutputID in number o ints */
-    int SizeOutputID = ( nOutputs >> 5 ) + ( ( nOutputs & 31 ) > 0 );
+    SizeOutputID = ( nOutputs >> 5 ) + ( ( nOutputs & 31 ) > 0 );
 
     /* Initialize needed structures */
     pFxchMan->vOutputID = Vec_IntAlloc( 4096 );
     pFxchMan->pTempOutputID = ABC_CALLOC( int, SizeOutputID );
     pFxchMan->nSizeOutputID = SizeOutputID;
 
-    Hsh_VecMan_t* pCubeHash =  Hsh_VecManStart( 1024 );
+    pCubeHash =  Hsh_VecManStart( 1024 );
 
     /* Identify equal cubes */
     Vec_WecForEachLevel( pFxchMan->vCubes, vCube, iCube )
     {
         int Id = Vec_IntEntry( vCube, 0 );
         int iTranslation = Vec_IntFind( pFxchMan->vTranslation, Id );
+        int i, iCubeNoID, Temp, * pEntry;
         Vec_IntWriteEntry( vCube, 0, 0 ); // Clear ID, Outputs will be identified by it later
 
-        int iCubeNoID = Hsh_VecManAdd( pCubeHash, vCube );
-        int Temp = ( 1 << ( iTranslation & 31 ) );
+        iCubeNoID = Hsh_VecManAdd( pCubeHash, vCube );
+        Temp = ( 1 << ( iTranslation & 31 ) );
         if ( iCubeNoID == Vec_IntSize( pFxchMan->vOutputID ) / SizeOutputID )
         {
-            for ( int i = 0; i < SizeOutputID; i++ )
+            for ( i = 0; i < SizeOutputID; i++ )
                 pFxchMan->pTempOutputID[i] = 0;
 
             pFxchMan->pTempOutputID[ iTranslation >> 5 ] = Temp;
@@ -81,7 +83,7 @@ void Fxch_CubesGruping(Fxch_Man_t* pFxchMan)
         else
         {
             Vec_IntClear( vCube );
-            int* pEntry = Vec_IntEntryP( pFxchMan->vOutputID, ( iCubeNoID * SizeOutputID ) + ( iTranslation >> 5 ) );
+            pEntry = Vec_IntEntryP( pFxchMan->vOutputID, ( iCubeNoID * SizeOutputID ) + ( iTranslation >> 5 ) );
             *pEntry |= Temp;
         }
     }
@@ -111,11 +113,12 @@ void Fxch_CubesUnGruping(Fxch_Man_t* pFxchMan)
     assert( Vec_WecSize( pFxchMan->vCubes ) == ( Vec_IntSize( pFxchMan->vOutputID ) / pFxchMan->nSizeOutputID ) );
     Vec_WecForEachLevel( pFxchMan->vCubes, vCube, iCube )
     {
+        int * pOutputID, nOnes;
         if ( Vec_IntSize( vCube ) == 0 || Vec_IntEntry( vCube, 0 ) != 0 )
             continue;
 
-        int* pOutputID = Vec_IntEntryP( pFxchMan->vOutputID, iCube * pFxchMan->nSizeOutputID );
-        int nOnes = 0;
+        pOutputID = Vec_IntEntryP( pFxchMan->vOutputID, iCube * pFxchMan->nSizeOutputID );
+        nOnes = 0;
 
         for ( i = 0; i < pFxchMan->nSizeOutputID; i++ )
             nOnes += Fxch_CountOnes( (unsigned int) pOutputID[i] );

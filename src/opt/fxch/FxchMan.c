@@ -67,16 +67,17 @@ static inline int Fxch_ManDivSingleCube( Fxch_Man_t* pFxchMan,
     Vec_IntForEachEntryStart( vCube, Lit0, i, 1)
     Vec_IntForEachEntryStart( vCube, Lit1, k, (i + 1) )
     {
+        int * pOutputID, nOnes, j, z;
         assert( Lit0 < Lit1 );
 
         Vec_IntClear( pFxchMan->vCubeFree );
         Vec_IntPush( pFxchMan->vCubeFree, Abc_Var2Lit( Abc_LitNot( Lit0 ), 0 ) );
         Vec_IntPush( pFxchMan->vCubeFree, Abc_Var2Lit( Abc_LitNot( Lit1 ), 1 ) );
 
-        int* pOutputID = Vec_IntEntryP( pFxchMan->vOutputID, iCube * pFxchMan->nSizeOutputID );
-        int nOnes = 0;
+        pOutputID = Vec_IntEntryP( pFxchMan->vOutputID, iCube * pFxchMan->nSizeOutputID );
+        nOnes = 0;
 
-        for ( int j = 0; j < pFxchMan->nSizeOutputID; j++ )
+        for ( j = 0; j < pFxchMan->nSizeOutputID; j++ )
             nOnes += Fxch_CountOnes( pOutputID[j] );
 
         if ( nOnes == 0 )
@@ -84,13 +85,13 @@ static inline int Fxch_ManDivSingleCube( Fxch_Man_t* pFxchMan,
 
         if (fAdd)
         {
-            for ( int z = 0; z < nOnes; z++ )
+            for ( z = 0; z < nOnes; z++ )
                 Fxch_DivAdd( pFxchMan, fUpdate, fSingleCube, fBase );
             pFxchMan->nPairsS++;
         }
         else
         {
-            for ( int z = 0; z < nOnes; z++ )
+            for ( z = 0; z < nOnes; z++ )
                 Fxch_DivRemove( pFxchMan, fUpdate, fSingleCube, fBase );
             pFxchMan->nPairsS--;
         }
@@ -396,6 +397,7 @@ static inline void Fxch_ManExtractDivFromCubePairs( Fxch_Man_t* pFxchMan,
         int j, Lit,
             RetValue,  
             fCompl = 0;
+        int * pOutputID0, * pOutputID1;
 
         Vec_Int_t* vCube = NULL,
                  * vCube0 = Fxch_ManGetCube( pFxchMan, iCube0 ),
@@ -410,8 +412,8 @@ static inline void Fxch_ManExtractDivFromCubePairs( Fxch_Man_t* pFxchMan,
         pFxchMan->nLits -= Vec_IntSize( pFxchMan->vDiv ) + Vec_IntSize( vCube1 ) - 2;
 
         /* Identify type of Extraction */
-        int* pOutputID0 = Vec_IntEntryP( pFxchMan->vOutputID, iCube0 * pFxchMan->nSizeOutputID );
-        int* pOutputID1 = Vec_IntEntryP( pFxchMan->vOutputID, iCube1 * pFxchMan->nSizeOutputID );
+        pOutputID0 = Vec_IntEntryP( pFxchMan->vOutputID, iCube0 * pFxchMan->nSizeOutputID );
+        pOutputID1 = Vec_IntEntryP( pFxchMan->vOutputID, iCube1 * pFxchMan->nSizeOutputID );
         RetValue = 1;
         for ( j = 0; j < pFxchMan->nSizeOutputID && RetValue; j++ )
             RetValue = ( pOutputID0[j] == pOutputID1[j] );
@@ -512,7 +514,8 @@ static inline int Fxch_ManCreateCube( Fxch_Man_t* pFxchMan,
                                       int Lit1 )
 {
     int Level,
-        iVarNew;
+        iVarNew, 
+        j;
     Vec_Int_t* vCube0,
              * vCube1;
  
@@ -521,7 +524,7 @@ static inline int Fxch_ManCreateCube( Fxch_Man_t* pFxchMan,
     pFxchMan->nVars++;
 
     /* Clear temporary outputID vector */
-    for ( int j = 0; j < pFxchMan->nSizeOutputID; j++ )
+    for ( j = 0; j < pFxchMan->nSizeOutputID; j++ )
         pFxchMan->pTempOutputID[j] = 0;
     
     /* Create new Lit hash keys */
@@ -674,6 +677,7 @@ void Fxch_ManUpdate( Fxch_Man_t* pFxchMan,
 
         Vec_IntForEachEntryDouble( pFxchMan->vSCC, iCube0, iCube1, i )
         {
+            int j, RetValue = 1;
             int* pOutputID0 = Vec_IntEntryP( pFxchMan->vOutputID, iCube0 * pFxchMan->nSizeOutputID );
             int* pOutputID1 = Vec_IntEntryP( pFxchMan->vOutputID, iCube1 * pFxchMan->nSizeOutputID );
             vCube0 = Vec_WecEntry( pFxchMan->vCubes, iCube0 );
@@ -695,7 +699,7 @@ void Fxch_ManUpdate( Fxch_Man_t* pFxchMan,
 
             if ( Vec_IntSize( vCube0 ) == Vec_IntSize( vCube1 ) )
             {
-                for ( int j = 0; j < pFxchMan->nSizeOutputID; j++ )
+                for ( j = 0; j < pFxchMan->nSizeOutputID; j++ )
                 {
                     pOutputID1[j] |= pOutputID0[j];
                     pOutputID0[j] = 0;
@@ -705,8 +709,7 @@ void Fxch_ManUpdate( Fxch_Man_t* pFxchMan,
                 continue;
             }
 
-            int RetValue = 1;
-            for ( int j = 0; j < pFxchMan->nSizeOutputID && RetValue; j++ )
+            for ( j = 0; j < pFxchMan->nSizeOutputID && RetValue; j++ )
                 RetValue = ( pOutputID0[j] == pOutputID1[j] );
 
             if ( RetValue )
@@ -717,7 +720,7 @@ void Fxch_ManUpdate( Fxch_Man_t* pFxchMan,
             else
             {
                 RetValue = 0;
-                for ( int j = 0; j < pFxchMan->nSizeOutputID; j++ )
+                for ( j = 0; j < pFxchMan->nSizeOutputID; j++ )
                 {
                     RetValue |= ( pOutputID0[j] & ~( pOutputID1[j] ) );
                     pOutputID0[j] &= ~( pOutputID1[j] );

@@ -124,7 +124,7 @@ static inline int Fxch_SCHashTableEntryCompare( Fxch_SCHashTable_t* pSCHashTable
 
     int* pOutputID0 = Vec_IntEntryP( pSCHashTable->pFxchMan->vOutputID, pSCData0->iCube * pSCHashTable->pFxchMan->nSizeOutputID ),
        * pOutputID1 = Vec_IntEntryP( pSCHashTable->pFxchMan->vOutputID, pSCData1->iCube * pSCHashTable->pFxchMan->nSizeOutputID );
-    int Result = 0;
+    int i, Result = 0;
 
     if ( !Vec_IntSize( vCube0 ) ||
          !Vec_IntSize( vCube1 ) ||
@@ -132,7 +132,7 @@ static inline int Fxch_SCHashTableEntryCompare( Fxch_SCHashTable_t* pSCHashTable
          pSCData0->Id != pSCData1->Id )
         return 0;
 
-    for ( int i = 0; i < pSCHashTable->pFxchMan->nSizeOutputID && Result == 0; i++ )
+    for ( i = 0; i < pSCHashTable->pFxchMan->nSizeOutputID && Result == 0; i++ )
         Result = ( pOutputID0[i] & pOutputID1[i] );
 
     if ( Result == 0 )
@@ -181,6 +181,8 @@ int Fxch_SCHashTableInsert( Fxch_SCHashTable_t* pSCHashTable,
     int Pairs = 0;
     uint32_t BinID;
     Fxch_SCHashTable_Entry_t* pBin;
+    Fxch_SubCube_t* pNewEntry;
+    int iEntry;
 
     MurmurHash3_x86_32( ( void* ) &SubCubeID, sizeof( int ), 0x9747b28c, &BinID);
     pBin = Fxch_SCHashTableBin( pSCHashTable, BinID );
@@ -207,15 +209,15 @@ int Fxch_SCHashTableInsert( Fxch_SCHashTable_t* pSCHashTable,
     if ( pBin->Size == 1 )
         return 0;
 
-    Fxch_SubCube_t* pNewEntry = &( pBin->vSCData[iNewEntry] );
-    for ( int iEntry = 0; iEntry < pBin->Size - 1; iEntry++ )
+    pNewEntry = &( pBin->vSCData[iNewEntry] );
+    for ( iEntry = 0; iEntry < (int)pBin->Size - 1; iEntry++ )
     {
         Fxch_SubCube_t* pEntry = &( pBin->vSCData[iEntry] );
         int* pOutputID0 = Vec_IntEntryP( pSCHashTable->pFxchMan->vOutputID, pEntry->iCube * pSCHashTable->pFxchMan->nSizeOutputID );
         int* pOutputID1 = Vec_IntEntryP( pSCHashTable->pFxchMan->vOutputID, pNewEntry->iCube * pSCHashTable->pFxchMan->nSizeOutputID );
         int Result = 0;
         int Base;
-        int iNewDiv;
+        int iNewDiv, i, z;
 
         if ( !Fxch_SCHashTableEntryCompare( pSCHashTable, vCubes, pEntry, pNewEntry ) )
             continue;
@@ -244,10 +246,10 @@ int Fxch_SCHashTableInsert( Fxch_SCHashTable_t* pSCHashTable,
         if ( Base < 0 )
             continue;
 
-        for ( int i = 0; i < pSCHashTable->pFxchMan->nSizeOutputID; i++ )
+        for ( i = 0; i < pSCHashTable->pFxchMan->nSizeOutputID; i++ )
             Result += Fxch_CountOnes( pOutputID0[i] & pOutputID1[i] );
 
-        for ( int z = 0; z < Result; z++ )
+        for ( z = 0; z < Result; z++ )
             iNewDiv = Fxch_DivAdd( pSCHashTable->pFxchMan, fUpdate, 0, Base );
 
         Vec_WecPush( pSCHashTable->pFxchMan->vDivCubePairs, iNewDiv, pEntry->iCube );
@@ -271,6 +273,8 @@ int Fxch_SCHashTableRemove( Fxch_SCHashTable_t* pSCHashTable,
     int Pairs = 0;
     uint32_t BinID;
     Fxch_SCHashTable_Entry_t* pBin;
+    Fxch_SubCube_t* pEntry;
+    int idx;
 
     MurmurHash3_x86_32( ( void* ) &SubCubeID, sizeof( int ), 0x9747b28c, &BinID);
 
@@ -282,22 +286,20 @@ int Fxch_SCHashTableRemove( Fxch_SCHashTable_t* pSCHashTable,
         return 0;
     }
 
-    for ( iEntry = 0; iEntry < pBin->Size; iEntry++ )
+    for ( iEntry = 0; iEntry < (int)pBin->Size; iEntry++ )
         if ( pBin->vSCData[iEntry].iCube == iCube )
             break;
 
     assert( ( iEntry != pBin->Size ) && ( pBin->Size != 0 ) );
 
-    Fxch_SubCube_t* pEntry = &( pBin->vSCData[iEntry] );
-    for ( int idx = 0; idx < pBin->Size; idx++ )
+    pEntry = &( pBin->vSCData[iEntry] );
+    for ( idx = 0; idx < (int)pBin->Size; idx++ )
+    if ( idx != iEntry )
     {
-        if ( idx == iEntry )
-            continue;
-
         int Base,
             iDiv;
 
-        int i,
+        int i, z,
             iCube0,
             iCube1;
 
@@ -317,10 +319,10 @@ int Fxch_SCHashTableRemove( Fxch_SCHashTable_t* pSCHashTable,
         if ( Base < 0 )
             continue;
 
-        for ( int i = 0; i < pSCHashTable->pFxchMan->nSizeOutputID; i++ )
+        for ( i = 0; i < pSCHashTable->pFxchMan->nSizeOutputID; i++ )
             Result += Fxch_CountOnes( pOutputID0[i] & pOutputID1[i] );
 
-        for ( int z = 0; z < Result; z++ )
+        for ( z = 0; z < Result; z++ )
             iDiv = Fxch_DivRemove( pSCHashTable->pFxchMan, fUpdate, 0, Base );
 
         vDivCubePairs = Vec_WecEntry( pSCHashTable->pFxchMan->vDivCubePairs, iDiv );
