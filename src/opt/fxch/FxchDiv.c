@@ -142,10 +142,20 @@ int Fxch_DivCreate( Fxch_Man_t* pFxchMan,
         SC0_Lit1 = Fxch_ManGetLit( pFxchMan, pSubCube0->iCube, pSubCube0->iLit1 );
         SC1_Lit1 = Fxch_ManGetLit( pFxchMan, pSubCube1->iCube, pSubCube1->iLit1 );
 
-        Vec_IntPush( pFxchMan->vCubeFree, Abc_Var2Lit( SC0_Lit0, 0 ) );
-        Vec_IntPush( pFxchMan->vCubeFree, Abc_Var2Lit( SC1_Lit0, 1 ) );
-        Vec_IntPush( pFxchMan->vCubeFree, Abc_Var2Lit( SC0_Lit1, 0 ) );
-        Vec_IntPush( pFxchMan->vCubeFree, Abc_Var2Lit( SC1_Lit1, 1 ) );
+        if ( SC0_Lit0 < SC1_Lit0 )
+        {
+            Vec_IntPush( pFxchMan->vCubeFree, Abc_Var2Lit( SC0_Lit0, 0 ) );
+            Vec_IntPush( pFxchMan->vCubeFree, Abc_Var2Lit( SC1_Lit0, 1 ) );
+            Vec_IntPush( pFxchMan->vCubeFree, Abc_Var2Lit( SC0_Lit1, 0 ) );
+            Vec_IntPush( pFxchMan->vCubeFree, Abc_Var2Lit( SC1_Lit1, 1 ) );
+        }
+        else
+        {
+            Vec_IntPush( pFxchMan->vCubeFree, Abc_Var2Lit( SC1_Lit0, 0 ) );
+            Vec_IntPush( pFxchMan->vCubeFree, Abc_Var2Lit( SC0_Lit0, 1 ) );
+            Vec_IntPush( pFxchMan->vCubeFree, Abc_Var2Lit( SC1_Lit1, 0 ) );
+            Vec_IntPush( pFxchMan->vCubeFree, Abc_Var2Lit( SC0_Lit1, 1 ) );
+        }
 
         RetValue = Fxch_DivNormalize( pFxchMan->vCubeFree );
         if ( RetValue == -1 )

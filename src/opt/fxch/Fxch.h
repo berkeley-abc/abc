@@ -52,25 +52,22 @@ typedef struct Fxch_SCHashTable_Entry_t_ Fxch_SCHashTable_Entry_t;
  *   its literals.
  *
  */
+
 struct Fxch_SubCube_t_
 {
-    unsigned int Id,
-                 iCube;
-    unsigned int iLit0 : 16,
-                 iLit1 : 16;
+    uint32_t Id,
+             iCube;
+    uint32_t iLit0 : 16,
+             iLit1 : 16;
 };
 
 /* Sub-cube Hash Table
- *
  */
 struct Fxch_SCHashTable_Entry_t_
 {
-    Fxch_SubCube_t SCData;
-
-    unsigned int iTable : 31,
-                 Used   :  1;
-    unsigned int iPrev,
-                 iNext;
+    Fxch_SubCube_t* vSCData;
+    uint32_t Size : 16,
+             Cap : 16;
 };
 
 struct Fxch_SCHashTable_t_
@@ -80,7 +77,6 @@ struct Fxch_SCHashTable_t_
     Fxch_SCHashTable_Entry_t* pBins;
     unsigned int nEntries,
                  SizeMask;
-    Vec_Int_t*   vCubeLinks;
 
     /* Temporary data */
     Vec_Int_t    vSubCube0;
@@ -91,6 +87,7 @@ struct Fxch_Man_t_
 {
     /* user's data */
     Vec_Wec_t* vCubes;
+    int nCubesInit;
     int LitCountMax;
 
     /* internal data */
@@ -107,12 +104,21 @@ struct Fxch_Man_t_
 
     Vec_Int_t*    vLevels;       /* variable levels */
 
+    // Cube Grouping
+    Vec_Int_t* vTranslation;
+    Vec_Int_t* vOutputID;
+    int* pTempOutputID;
+    int  nSizeOutputID;
+
     // temporary data to update the data-structure when a divisor is extracted
-    Vec_Int_t*     vCubesS;     /* cubes for the given single cube divisor */
-    Vec_Int_t*     vPairs;     /* cube pairs for the given double cube divisor */
-    Vec_Int_t*     vCubeFree;  // cube-free divisor
-    Vec_Int_t*     vDiv;       // selected divisor
-    Vec_Int_t*     vSCC;
+    Vec_Int_t* vCubesS;    /* cubes for the given single cube divisor */
+    Vec_Int_t* vPairs;     /* cube pairs for the given double cube divisor */
+    Vec_Int_t* vCubeFree;  // cube-free divisor
+    Vec_Int_t* vDiv;       // selected divisor
+
+    Vec_Int_t* vCubesToRemove;
+    Vec_Int_t* vCubesToUpdate;
+    Vec_Int_t* vSCC;
 
     /* Statistics */
     abctime timeInit;   /* Initialization time */
@@ -134,6 +140,15 @@ struct Fxch_Man_t_
 extern Vec_Wec_t* Abc_NtkFxRetrieve( Abc_Ntk_t* pNtk );
 extern void       Abc_NtkFxInsert( Abc_Ntk_t* pNtk, Vec_Wec_t* vCubes );
 extern int        Abc_NtkFxCheck( Abc_Ntk_t* pNtk );
+
+static inline int Fxch_CountOnes( unsigned num )
+{
+    num = ( num & 0x55555555 ) + ( ( num >> 1) & 0x55555555 );
+    num = ( num & 0x33333333 ) + ( ( num >> 2) & 0x33333333 );
+    num = ( num & 0x0F0F0F0F ) + ( ( num >> 4) & 0x0F0F0F0F );
+    num = ( num & 0x00FF00FF ) + ( ( num >> 8) & 0x00FF00FF );
+    return  ( num & 0x0000FFFF ) + ( num >> 16 );
+}
 
 /*===== Fxch.c =======================================================*/
 int Abc_NtkFxchPerform( Abc_Ntk_t* pNtk, int nMaxDivExt, int fVerbose, int fVeryVerbose );
@@ -177,26 +192,25 @@ static inline int Fxch_ManGetLit( Fxch_Man_t* pFxchMan,
 }
 
 /*===== FxchSCHashTable.c ============================================*/
-Fxch_SCHashTable_t* Fxch_SCHashTableCreate( Fxch_Man_t* pFxchMan, Vec_Int_t* vCubeLinks, int nEntries );
+Fxch_SCHashTable_t* Fxch_SCHashTableCreate( Fxch_Man_t* pFxchMan, int nEntries );
 
 void Fxch_SCHashTableDelete( Fxch_SCHashTable_t* );
 
 int Fxch_SCHashTableInsert( Fxch_SCHashTable_t* pSCHashTable,
                             Vec_Wec_t* vCubes,
-                            unsigned int SubCubeID,
-                            unsigned int iSubCube,
-                            unsigned int iCube,
-                            unsigned int iLit0,
-                            unsigned int iLit1,
+                            uint32_t SubCubeID,
+                            uint32_t iCube,
+                            uint32_t iLit0,
+                            uint32_t iLit1,
                             char fUpdate );
+
 
 int Fxch_SCHashTableRemove( Fxch_SCHashTable_t* pSCHashTable,
                             Vec_Wec_t* vCubes,
-                            unsigned int SubCubeID,
-                            unsigned int iSubCube,
-                            unsigned int iCube,
-                            unsigned int iLit0,
-                            unsigned int iLit1,
+                            uint32_t SubCubeID,
+                            uint32_t iCube,
+                            uint32_t iLit0,
+                            uint32_t iLit1,
                             char fUpdate );
 
 unsigned int Fxch_SCHashTableMemory( Fxch_SCHashTable_t* );
