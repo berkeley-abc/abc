@@ -111,6 +111,7 @@ typedef struct Ses_TruthEntry_t_ Ses_TruthEntry_t;
 struct Ses_TruthEntry_t_
 {
     word               pTruth[4]; /* truth table for comparison */
+    int                nVars;     /* number of variables */
     Ses_TruthEntry_t * next;      /* linked list pointer */
     Ses_TimesEntry_t * head;      /* pointer to head of sub list with arrival times */
 };
@@ -119,8 +120,6 @@ struct Ses_TruthEntry_t_
 typedef struct Ses_Store_t_ Ses_Store_t;
 struct Ses_Store_t_
 {
-    int                nNumVars;                       /* store has been allocated for this number of variables */
-    int                nWords;                         /* number of truth table words */
     Ses_TruthEntry_t * pEntries[SES_STORE_TABLE_SIZE]; /* hash table for truth table entries */
 };
 
@@ -154,11 +153,10 @@ static int Abc_NormalizeArrivalTimes( int * pArrTimeProfile, int nVars, int * ma
     return delta;
 }
 
-static inline Ses_Store_t * Ses_StoreAlloc( int nVars )
+static inline Ses_Store_t * Ses_StoreAlloc()
 {
     Ses_Store_t * pStore = ABC_CALLOC( Ses_Store_t, 1 );
-    pStore->nNumVars = nVars;
-    pStore->nWords = Kit_TruthWordNum( nVars );
+    memset( pStore->pEntries, 0, SES_STORE_TABLE_SIZE );
 
     return pStore;
 }
@@ -193,45 +191,50 @@ static inline void Ses_StoreClean( Ses_Store_t * pStore )
     ABC_FREE( pStore );
 }
 
-static inline int Ses_StoreTableHash( Ses_Store_t * pStore, word * pTruth )
+static inline int Ses_StoreTableHash( word * pTruth, int nVars )
 {
     static int s_Primes[4] = { 1291, 1699, 1999, 2357 };
     int i;
     unsigned uHash = 0;
-    for ( i = 0; i < pStore->nWords; ++i )
+    for ( i = 0; i < Kit_TruthWordNum( nVars ); ++i )
         uHash ^= pTruth[i] * s_Primes[i & 0xf];
     return (int)(uHash % SES_STORE_TABLE_SIZE );
 }
 
-static inline int Ses_StoreTruthEqual( Ses_Store_t * pStore, word * pTruth1, word * pTruth2 )
+static inline int Ses_StoreTruthEqual( Ses_TruthEntry_t * pEntry, word * pTruth, int nVars )
 {
     int i;
-    for ( i = 0; i < pStore->nWords; ++i )
-        if ( pTruth1[i] != pTruth2[i] )
+
+    if ( pEntry->nVars != nVars )
+        return 0;
+
+    for ( i = 0; i < Kit_TruthWordNum( nVars ); ++i )
+        if ( pEntry->pTruth[i] != pTruth[i] )
             return 0;
     return 1;
 }
 
-static inline void Ses_StoreTruthCopy( Ses_Store_t * pStore, word * pTruthDest, word * pTruthSrc )
+static inline void Ses_StoreTruthCopy( Ses_TruthEntry_t * pEntry, word * pTruthSrc, int nVars )
 {
     int i;
-    for ( i = 0; i < pStore->nWords; ++i )
-        pTruthDest[i] = pTruthSrc[i];
+    pEntry->nVars = nVars;
+    for ( i = 0; i < Kit_TruthWordNum( nVars ); ++i )
+        pEntry->pTruth[i] = pTruthSrc[i];
 }
 
-static inline int Ses_StoreTimesEqual( Ses_Store_t * pStore, int * pTimes1, int * pTimes2 )
+static inline int Ses_StoreTimesEqual( int * pTimes1, int * pTimes2, int nVars )
 {
     int i;
-    for ( i = 0; i < pStore->nNumVars; ++i )
+    for ( i = 0; i < nVars; ++i )
         if ( pTimes1[i] != pTimes2[i] )
             return 0;
     return 1;
 }
 
-static inline void Ses_StoreTimesCopy( Ses_Store_t * pStore, int * pTimesDest, int * pTimesSrc )
+static inline void Ses_StoreTimesCopy( int * pTimesDest, int * pTimesSrc, int nVars )
 {
     int i;
-    for ( i = 0; i < pStore->nNumVars; ++i )
+    for ( i = 0; i < nVars; ++i )
         pTimesDest[i] = pTimesSrc[i];
 }
 
@@ -243,18 +246,15 @@ int Ses_StoreAddEntry( Ses_Store_t * pStore, word * pTruth, int nVars, int * pAr
     Ses_TruthEntry_t * pTEntry;
     Ses_TimesEntry_t * pTiEntry;
 
-    if ( pStore->nNumVars != nVars )
-        return 0;
-
     nDelta = Abc_NormalizeArrivalTimes( pArrTimeProfile, nVars, &maxNormalized );
 
-    key = Ses_StoreTableHash( pStore, pTruth );
+    key = Ses_StoreTableHash( pTruth, nVars );
     pTEntry = pStore->pEntries[key];
 
     /* does truth table already exist? */
     while ( pTEntry )
     {
-        if ( Ses_StoreTruthEqual( pStore, pTruth, pTEntry->pTruth ) )
+        if ( Ses_StoreTruthEqual( pTEntry, pTruth, nVars ) )
             break;
         else
             pTEntry = pTEntry->next;
@@ -264,7 +264,7 @@ int Ses_StoreAddEntry( Ses_Store_t * pStore, word * pTruth, int nVars, int * pAr
     if ( !pTEntry )
     {
         pTEntry = ABC_CALLOC( Ses_TruthEntry_t, 1 );
-        Ses_StoreTruthCopy( pStore, pTEntry->pTruth, pTruth );
+        Ses_StoreTruthCopy( pTEntry, pTruth, nVars );
         pTEntry->next = pStore->pEntries[key];
         pStore->pEntries[key] = pTEntry;
     }
@@ -273,7 +273,7 @@ int Ses_StoreAddEntry( Ses_Store_t * pStore, word * pTruth, int nVars, int * pAr
     pTiEntry = pTEntry->head;
     while ( pTiEntry )
     {
-        if ( Ses_StoreTimesEqual( pStore, pArrTimeProfile, pTiEntry->pArrTimeProfile ) )
+        if ( Ses_StoreTimesEqual( pArrTimeProfile, pTiEntry->pArrTimeProfile, nVars ) )
             break;
         else
             pTiEntry = pTiEntry->next;
@@ -283,7 +283,7 @@ int Ses_StoreAddEntry( Ses_Store_t * pStore, word * pTruth, int nVars, int * pAr
     if ( !pTiEntry )
     {
         pTiEntry = ABC_CALLOC( Ses_TimesEntry_t, 1 );
-        Ses_StoreTimesCopy( pStore, pTiEntry->pArrTimeProfile, pArrTimeProfile );
+        Ses_StoreTimesCopy( pTiEntry->pArrTimeProfile, pArrTimeProfile, nVars );
         pTiEntry->pNetwork = pSol;
         pTiEntry->next = pTEntry->head;
         pTEntry->head = pTiEntry;
@@ -308,16 +308,13 @@ char * Ses_StoreGetEntry( Ses_Store_t * pStore, word * pTruth, int nVars, int * 
     Ses_TruthEntry_t * pTEntry;
     Ses_TimesEntry_t * pTiEntry;
 
-    if ( pStore->nNumVars != nVars )
-        return 0;
-
-    key = Ses_StoreTableHash( pStore, pTruth );
+    key = Ses_StoreTableHash( pTruth, nVars );
     pTEntry = pStore->pEntries[key];
 
     /* find truth table entry */
     while ( pTEntry )
     {
-        if ( Ses_StoreTruthEqual( pStore, pTruth, pTEntry->pTruth ) )
+        if ( Ses_StoreTruthEqual( pTEntry, pTruth, nVars ) )
             break;
         else
             pTEntry = pTEntry->next;
@@ -333,7 +330,7 @@ char * Ses_StoreGetEntry( Ses_Store_t * pStore, word * pTruth, int nVars, int * 
     pTiEntry = pTEntry->head;
     while ( pTiEntry )
     {
-        if ( Ses_StoreTimesEqual( pStore, pArrTimeProfile, pTiEntry->pArrTimeProfile ) )
+        if ( Ses_StoreTimesEqual( pArrTimeProfile, pTiEntry->pArrTimeProfile, nVars ) )
             break;
         else
             pTiEntry = pTiEntry->next;
@@ -1336,23 +1333,43 @@ int Abc_ExactIsRunning()
 // for example, somebody may try to map into 10-cuts while the library only contains 8-functions
 int Abc_ExactInputNum()
 {
-    assert( s_pSesStore );
-    return s_pSesStore->nNumVars;
+    return 8;
+}
+// start exact store manager
+void Abc_ExactStart()
+{
+    if ( !s_pSesStore )
+        s_pSesStore = Ses_StoreAlloc();
+    else
+        printf( "exact store manager already started\n" );
+}
+// stop exact store manager
+void Abc_ExactStop()
+{
+    if ( s_pSesStore )
+        Ses_StoreClean( s_pSesStore );
+    else
+        printf( "exact store manager has not been started\n" );
 }
 // this procedure takes TT and input arrival times (pArrTimeProfile) and return the smallest output arrival time;
 // it also returns the pin-to-pin delays (pPerm) between each cut leaf and the cut output and the cut area cost (Cost)
 // the area cost should not exceed 2048, if the cut is implementable; otherwise, it should be ABC_INFINITY
 int Abc_ExactDelayCost( word * pTruth, int nVars, int * pArrTimeProfile, char * pPerm, int * Cost, int AigLevel )
 {
-    int l;
+    int i, l;
     Ses_Man_t * pSes;
     char * pSol = NULL, * p;
-    int Delay = ABC_INFINITY, nMaxDepth = nVars - 1;
+    int Delay = ABC_INFINITY, nMaxDepth;
     abctime timeStart;
 
     /* some checks */
     assert( nVars >= 2 && nVars <= 8 );
 
+    nMaxDepth = pArrTimeProfile[0];
+    for ( i = 1; i < nVars; ++i )
+        if ( pArrTimeProfile[i] > nMaxDepth )
+            nMaxDepth = pArrTimeProfile[i];
+    nMaxDepth += nVars + 1;
     if ( AigLevel < nMaxDepth )
         nMaxDepth = AigLevel;
 
@@ -1364,6 +1381,7 @@ int Abc_ExactDelayCost( word * pTruth, int nVars, int * pArrTimeProfile, char * 
 
     while ( 1 ) /* there is improvement */
     {
+        printf( "try with %d\n", pSes->nMaxDepth );
         if ( Ses_ManFindMinimumSize( pSes ) )
         {
             if ( pSol )
@@ -1457,6 +1475,39 @@ Abc_Obj_t * Abc_ExactBuildNode( word * pTruth, int nVars, int * pArrTimeProfile,
     Vec_PtrFree( pGates );
 
     return pObj;
+}
+
+void Abc_ExactStoreTest( int fVerbose )
+{
+    int i;
+    word pTruth[4] = {0xcafe, 0, 0, 0};
+    int pArrTimeProfile[4] = {6, 2, 8, 5};
+    Abc_Ntk_t * pNtk;
+    Abc_Obj_t * pFanins[4];
+    Vec_Ptr_t * vNames;
+    char pPerm[4];
+    int Cost;
+
+    pNtk = Abc_NtkAlloc( ABC_NTK_LOGIC, ABC_FUNC_SOP, 1 );
+    pNtk->pName = Extra_UtilStrsav( "exact" );
+    vNames = Abc_NodeGetFakeNames( 4u );
+
+    /* primary inputs */
+    Vec_PtrPush( pNtk->vObjs, NULL );
+    for ( i = 0; i < 4; ++i )
+    {
+        pFanins[i] = Abc_NtkCreatePi( pNtk );
+        Abc_ObjAssignName( pFanins[i], (char*)Vec_PtrEntry( vNames, i ), NULL );
+    }
+    Abc_NodeFreeNames( vNames );
+
+    Abc_ExactStart();
+
+    assert( !Abc_ExactBuildNode( pTruth, 4, pArrTimeProfile, pFanins ) );
+
+    printf( "%d\n", Abc_ExactDelayCost( pTruth, 4, pArrTimeProfile, pPerm, &Cost, 12 ) );
+
+    Abc_ExactStop();
 }
 
 ////////////////////////////////////////////////////////////////////////
