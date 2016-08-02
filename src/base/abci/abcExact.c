@@ -120,6 +120,8 @@ struct Ses_TruthEntry_t_
 typedef struct Ses_Store_t_ Ses_Store_t;
 struct Ses_Store_t_
 {
+    int                fVerbose;                       /* be verbose */
+    int                nBTLimit;                       /* conflict limit */
     Ses_TruthEntry_t * pEntries[SES_STORE_TABLE_SIZE]; /* hash table for truth table entries */
 };
 
@@ -153,9 +155,11 @@ static int Abc_NormalizeArrivalTimes( int * pArrTimeProfile, int nVars, int * ma
     return delta;
 }
 
-static inline Ses_Store_t * Ses_StoreAlloc()
+static inline Ses_Store_t * Ses_StoreAlloc( int nBTLimit, int fVerbose )
 {
     Ses_Store_t * pStore = ABC_CALLOC( Ses_Store_t, 1 );
+    pStore->fVerbose = fVerbose;
+    pStore->nBTLimit = nBTLimit;
     memset( pStore->pEntries, 0, SES_STORE_TABLE_SIZE );
 
     return pStore;
@@ -823,25 +827,30 @@ static char * Ses_ManExtractSolution( Ses_Man_t * pSes )
         *p++ = nOp;
         *p++ = 2;
 
+        if ( pSes->fVeryVerbose )
+            printf( "add gate %d with operation %d", pSes->nSpecVars + i, nOp );
+
         for ( k = 0; k < pSes->nSpecVars + i; ++k )
             for ( j = 0; j < k; ++j )
                 if ( sat_solver_var_value( pSes->pSat, Ses_ManSelectVar( pSes, i, j, k ) ) )
                 {
+                    if ( pSes->fVeryVerbose )
+                        printf( " and operands %d and %d", j, k );
                     *p++ = j;
                     *p++ = k;
                     break;
                 }
 
-        /* if ( pSes->fVeryVerbose ) */
-        /* { */
-        /*     if ( pSes->nMaxDepth > 0 ) */
-        /*     { */
-        /*         printf( " and depth vector " ); */
-        /*         for ( j = 0; j <= pSes->nArrTimeMax + i; ++j ) */
-        /*             printf( "%d", sat_solver_var_value( pSes->pSat, Ses_ManDepthVar( pSes, i, j ) ) ); */
-        /*     } */
-        /*     printf( "\n" ); */
-        /* } */
+        if ( pSes->fVeryVerbose )
+        {
+            if ( pSes->nMaxDepth > 0 )
+            {
+                printf( " and depth vector " );
+                for ( j = 0; j <= pSes->nArrTimeMax + i; ++j )
+                    printf( "%d", sat_solver_var_value( pSes->pSat, Ses_ManDepthVar( pSes, i, j ) ) );
+            }
+            printf( "\n" );
+        }
     }
 
     /* pin-to-pin delay */
@@ -852,18 +861,18 @@ static char * Ses_ManExtractSolution( Ses_Man_t * pSes )
         {
             /* since all gates are binary for now */
             j = pSol[3 + i * 4 + 2];
-            k = pSol[3 + i * 4 + 2];
+            k = pSol[3 + i * 4 + 3];
 
             for ( l = 0; l < pSes->nSpecVars; ++l )
             {
                 /* pin-to-pin delay to input l of child nodes */
-                aj = j < pSes->nGates ? 0 : pPerm[j * pSes->nSpecVars + l];
-                ak = k < pSes->nGates ? 0 : pPerm[k * pSes->nSpecVars + l];
+                aj = j < pSes->nSpecVars ? 0 : pPerm[(j - pSes->nSpecVars) * pSes->nSpecVars + l];
+                ak = k < pSes->nSpecVars ? 0 : pPerm[(k - pSes->nSpecVars) * pSes->nSpecVars + l];
 
                 if ( aj == 0 && ak == 0 )
-                    pPerm[i * pSes->nSpecVars + l] = 0;
+                    pPerm[i * pSes->nSpecVars + l] = ( l == j || l == k ) ? 1 : 0;
                 else
-                    pPerm[i * pSes->nSpecVars + l] = ( ( aj > ak ) ? aj : ak ) + 1;
+                    pPerm[i * pSes->nSpecVars + l] = Abc_MaxInt( aj, ak ) + 1;
             }
         }
     }
@@ -879,10 +888,15 @@ static char * Ses_ManExtractSolution( Ses_Man_t * pSes )
                     while ( d < pSes->nArrTimeMax + i && sat_solver_var_value( pSes->pSat, Ses_ManDepthVar( pSes, i, d ) ) )
                         ++d;
                 *p++ = d + pSes->nArrTimeDelta;
-                for ( l = 0; l < pSes->nSpecVars; ++l )
-                    *p++ = ( pSes->nMaxDepth != -1 ) ? pPerm[i * pSes->nSpecVars + l] : 0;
                 if ( pSes->fVeryVerbose )
                     printf( "output %d points to %d and has normalized delay %d\n", h, i, d );
+                for ( l = 0; l < pSes->nSpecVars; ++l )
+                {
+                    d = ( pSes->nMaxDepth != -1 ) ? pPerm[i * pSes->nSpecVars + l] : 0;
+                    if ( pSes->fVeryVerbose )
+                        printf( "  pin-to-pin arrival time from input %d is %d\n", l, d );
+                    *p++ = d;
+                }
             }
 
     /* pin-to-pin delays */
@@ -1336,10 +1350,10 @@ int Abc_ExactInputNum()
     return 8;
 }
 // start exact store manager
-void Abc_ExactStart()
+void Abc_ExactStart( int nBTLimit, int fVerbose )
 {
     if ( !s_pSesStore )
-        s_pSesStore = Ses_StoreAlloc();
+        s_pSesStore = Ses_StoreAlloc( nBTLimit, fVerbose );
     else
         printf( "exact store manager already started\n" );
 }
@@ -1367,17 +1381,15 @@ int Abc_ExactDelayCost( word * pTruth, int nVars, int * pArrTimeProfile, char * 
 
     nMaxDepth = pArrTimeProfile[0];
     for ( i = 1; i < nVars; ++i )
-        if ( pArrTimeProfile[i] > nMaxDepth )
-            nMaxDepth = pArrTimeProfile[i];
-    nMaxDepth += nVars + 1;
-    if ( AigLevel < nMaxDepth )
-        nMaxDepth = AigLevel;
+        nMaxDepth = Abc_MaxInt( nMaxDepth, pArrTimeProfile[i] );
+    nMaxDepth = Abc_MinInt( AigLevel, nMaxDepth + nVars + 1 );
 
     timeStart = Abc_Clock();
 
     *Cost = ABC_INFINITY;
 
-    pSes = Ses_ManAlloc( pTruth, nVars, 1 /* fSpecFunc */, nMaxDepth, pArrTimeProfile, 1 /* fMakeAIG */, 0 );
+    pSes = Ses_ManAlloc( pTruth, nVars, 1 /* fSpecFunc */, nMaxDepth, pArrTimeProfile, 1 /* fMakeAIG */, s_pSesStore->fVerbose );
+    pSes->nBTLimit = s_pSesStore->nBTLimit;
 
     while ( 1 ) /* there is improvement */
     {
@@ -1396,7 +1408,7 @@ int Abc_ExactDelayCost( word * pTruth, int nVars, int * pArrTimeProfile, char * 
     if ( pSol )
     {
         *Cost = pSol[ABC_EXACT_SOL_NGATES];
-        p = pSol + 3 + 4 * ABC_EXACT_SOL_NGATES + 1;
+        p = pSol + 3 + 4 * pSol[ABC_EXACT_SOL_NGATES] + 1;
         Delay = *p++;
         for ( l = 0; l < nVars; ++l )
             pPerm[l] = *p++;
@@ -1501,11 +1513,17 @@ void Abc_ExactStoreTest( int fVerbose )
     }
     Abc_NodeFreeNames( vNames );
 
-    Abc_ExactStart();
+    Abc_ExactStart( 10000, fVerbose );
 
     assert( !Abc_ExactBuildNode( pTruth, 4, pArrTimeProfile, pFanins ) );
 
-    printf( "%d\n", Abc_ExactDelayCost( pTruth, 4, pArrTimeProfile, pPerm, &Cost, 12 ) );
+    assert( Abc_ExactDelayCost( pTruth, 4, pArrTimeProfile, pPerm, &Cost, 12 ) == 1 );
+
+    assert( Abc_ExactBuildNode( pTruth, 4, pArrTimeProfile, pFanins ) );
+
+    (*pArrTimeProfile)++;
+    assert( !Abc_ExactBuildNode( pTruth, 4, pArrTimeProfile, pFanins ) );
+    (*pArrTimeProfile)--;
 
     Abc_ExactStop();
 }

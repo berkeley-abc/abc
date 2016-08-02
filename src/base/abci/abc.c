@@ -7325,10 +7325,12 @@ int Abc_CommandExact( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     if ( fTest )
     {
-        extern void Abc_ExactTest();
+        extern void Abc_ExactTest( int fVerbose );
+        extern void Abc_ExactStoreTest( int fVerbose );
 
         printf( "run test suite, ignore all other settings\n" );
         Abc_ExactTest( fVerbose );
+        Abc_ExactStoreTest( fVerbose );
         return 0;
     }
 
