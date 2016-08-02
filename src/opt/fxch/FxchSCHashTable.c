@@ -19,11 +19,6 @@
 
 ABC_NAMESPACE_IMPL_START
 
-//#ifdef _WIN32
-typedef unsigned int uint32_t;
-typedef unsigned char uint8_t;
-//#endif
-
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
@@ -92,7 +87,6 @@ static inline void MurmurHash3_x86_32 ( const void* key,
 }
 
 Fxch_SCHashTable_t* Fxch_SCHashTableCreate( Fxch_Man_t* pFxchMan,
-                                            Vec_Int_t* vCubeLinks,
                                             int nEntries )
 {
     Fxch_SCHashTable_t* pSCHashTable = ABC_CALLOC( Fxch_SCHashTable_t, 1 );
@@ -101,7 +95,6 @@ Fxch_SCHashTable_t* Fxch_SCHashTableCreate( Fxch_Man_t* pFxchMan,
 
     pSCHashTable->pFxchMan = pFxchMan;
     pSCHashTable->SizeMask = (1 << nBits) - 1;
-    pSCHashTable->vCubeLinks = vCubeLinks;
     pSCHashTable->pBins = ABC_CALLOC( Fxch_SCHashTable_Entry_t, pSCHashTable->SizeMask + 1 );
 
     return pSCHashTable;
@@ -109,7 +102,6 @@ Fxch_SCHashTable_t* Fxch_SCHashTableCreate( Fxch_Man_t* pFxchMan,
 
 void Fxch_SCHashTableDelete( Fxch_SCHashTable_t* pSCHashTable )
 {
-    Vec_IntFree( pSCHashTable->vCubeLinks );
     Vec_IntErase( &pSCHashTable->vSubCube0 );
     Vec_IntErase( &pSCHashTable->vSubCube1 );
     ABC_FREE( pSCHashTable->pBins );
@@ -122,49 +114,6 @@ static inline Fxch_SCHashTable_Entry_t* Fxch_SCHashTableBin( Fxch_SCHashTable_t*
     return pSCHashTable->pBins + (SubCubeID & pSCHashTable->SizeMask);
 }
 
-static inline Fxch_SCHashTable_Entry_t* Fxch_SCHashTableEntry( Fxch_SCHashTable_t* pSCHashTable,
-                                                               unsigned int iEntry )
-{
-    if ( ( iEntry > 0 ) && ( iEntry < ( pSCHashTable->SizeMask + 1 ) ) )
-        return pSCHashTable->pBins + iEntry;
-
-    return NULL;
-}
-
-static inline void Fxch_SCHashTableInsertLink( Fxch_SCHashTable_t* pSCHashTable,
-                                               unsigned int iEntry0,
-                                               unsigned int iEntry1 )
-{
-    Fxch_SCHashTable_Entry_t* pEntry0 = Fxch_SCHashTableEntry( pSCHashTable, iEntry0 ),
-                            * pEntry1 = Fxch_SCHashTableEntry( pSCHashTable, iEntry1 ),
-                            * pEntry0Next = Fxch_SCHashTableEntry( pSCHashTable, pEntry0->iNext );
-
-    assert( pEntry0Next->iPrev == iEntry0 );
-
-    pEntry1->iNext = pEntry0->iNext;
-    pEntry0->iNext = iEntry1;
-    pEntry1->iPrev = iEntry0;
-    pEntry0Next->iPrev = iEntry1;
-}
-
-static inline void Fxch_SCHashTableRemoveLink( Fxch_SCHashTable_t* pSCHashTable,
-                                               int iEntry0,
-                                               int iEntry1 )
-{
-    Fxch_SCHashTable_Entry_t* pEntry0 = Fxch_SCHashTableEntry( pSCHashTable, iEntry0 ),
-                            * pEntry1 = Fxch_SCHashTableEntry( pSCHashTable, iEntry1 ),
-                            * pEntry1Next = Fxch_SCHashTableEntry( pSCHashTable, pEntry1->iNext );
-
-    assert( (int)pEntry0->iNext == iEntry1 );
-    assert( (int)pEntry1->iPrev == iEntry0 );
-    assert( (int)pEntry1Next->iPrev == iEntry1 );
-
-    pEntry0->iNext = pEntry1->iNext;
-    pEntry1->iNext = 0;
-    pEntry1Next->iPrev = pEntry1->iPrev;
-    pEntry1->iPrev = 0;
-}
-
 static inline int Fxch_SCHashTableEntryCompare( Fxch_SCHashTable_t* pSCHashTable,
                                                 Vec_Wec_t* vCubes,
                                                 Fxch_SubCube_t* pSCData0,
@@ -173,10 +122,20 @@ static inline int Fxch_SCHashTableEntryCompare( Fxch_SCHashTable_t* pSCHashTable
     Vec_Int_t* vCube0 = Vec_WecEntry( vCubes, pSCData0->iCube ),
              * vCube1 = Vec_WecEntry( vCubes, pSCData1->iCube );
 
+    int* pOutputID0 = Vec_IntEntryP( pSCHashTable->pFxchMan->vOutputID, pSCData0->iCube * pSCHashTable->pFxchMan->nSizeOutputID ),
+       * pOutputID1 = Vec_IntEntryP( pSCHashTable->pFxchMan->vOutputID, pSCData1->iCube * pSCHashTable->pFxchMan->nSizeOutputID );
+    int i, Result = 0;
+
     if ( !Vec_IntSize( vCube0 ) ||
          !Vec_IntSize( vCube1 ) ||
          Vec_IntEntry( vCube0, 0 ) != Vec_IntEntry( vCube1, 0 ) ||
          pSCData0->Id != pSCData1->Id )
+        return 0;
+
+    for ( i = 0; i < pSCHashTable->pFxchMan->nSizeOutputID && Result == 0; i++ )
+        Result = ( pOutputID0[i] & pOutputID1[i] );
+
+    if ( Result == 0 )
         return 0;
 
     Vec_IntClear( &pSCHashTable->vSubCube0 );
@@ -189,7 +148,6 @@ static inline int Fxch_SCHashTableEntryCompare( Fxch_SCHashTable_t* pSCHashTable
            Vec_IntEntry( vCube0, pSCData0->iLit1 ) == Vec_IntEntry( vCube1, pSCData1->iLit1 ) ) )
         return 0;
 
-
     if ( pSCData0->iLit0 > 0 )
         Vec_IntAppendSkip( &pSCHashTable->vSubCube0, vCube0, pSCData0->iLit0 );
     else
@@ -200,7 +158,6 @@ static inline int Fxch_SCHashTableEntryCompare( Fxch_SCHashTable_t* pSCHashTable
     else
         Vec_IntAppend( &pSCHashTable->vSubCube1, vCube1 );
 
-
     if ( pSCData0->iLit1 > 0)
         Vec_IntDrop( &pSCHashTable->vSubCube0,
                        pSCData0->iLit0 < pSCData0->iLit1 ? pSCData0->iLit1 - 1 : pSCData0->iLit1 );
@@ -209,167 +166,169 @@ static inline int Fxch_SCHashTableEntryCompare( Fxch_SCHashTable_t* pSCHashTable
         Vec_IntDrop( &pSCHashTable->vSubCube1,
                        pSCData1->iLit0 < pSCData1->iLit1 ? pSCData1->iLit1 - 1 : pSCData1->iLit1 );
 
-    Vec_IntDrop( &pSCHashTable->vSubCube0, 0 );
-    Vec_IntDrop( &pSCHashTable->vSubCube1, 0 );
-
     return Vec_IntEqual( &pSCHashTable->vSubCube0, &pSCHashTable->vSubCube1 );
 }
 
 int Fxch_SCHashTableInsert( Fxch_SCHashTable_t* pSCHashTable,
                             Vec_Wec_t* vCubes,
-                            unsigned int SubCubeID,
-                            unsigned int iSubCube,
-                            unsigned int iCube,
-                            unsigned int iLit0,
-                            unsigned int iLit1,
+                            uint32_t SubCubeID,
+                            uint32_t iCube,
+                            uint32_t iLit0,
+                            uint32_t iLit1,
                             char fUpdate )
 {
-    unsigned int BinID;
-    unsigned int iNewEntry;
-    Fxch_SCHashTable_Entry_t* pBin,* pNewEntry;
-
-    Fxch_SCHashTable_Entry_t* pEntry;
-    unsigned int iEntry;
-    char Pairs = 0,
-         fStart = 1;
+    int iNewEntry;
+    int Pairs = 0;
+    uint32_t BinID;
+    Fxch_SCHashTable_Entry_t* pBin;
+    Fxch_SubCube_t* pNewEntry;
+    int iEntry;
 
     MurmurHash3_x86_32( ( void* ) &SubCubeID, sizeof( int ), 0x9747b28c, &BinID);
-
-    iNewEntry = ( unsigned int )( Vec_IntEntry( pSCHashTable->vCubeLinks, iCube ) ) + iSubCube;
     pBin = Fxch_SCHashTableBin( pSCHashTable, BinID );
-    pNewEntry = Fxch_SCHashTableEntry( pSCHashTable, iNewEntry );
-
-    assert( pNewEntry->Used == 0 );
-
-    pNewEntry->SCData.Id = SubCubeID;
-    pNewEntry->SCData.iCube = iCube;
-    pNewEntry->SCData.iLit0 = iLit0;
-    pNewEntry->SCData.iLit1 = iLit1;
-
-    pNewEntry->Used = 1;
-    pSCHashTable->nEntries++;
-    if ( pBin->iTable == 0 )
+    
+    if ( pBin->vSCData == NULL )
     {
-        pBin->iTable = iNewEntry;
-        pNewEntry->iNext = iNewEntry;
-        pNewEntry->iPrev = iNewEntry;
-        return 0;
+        pBin->vSCData = ABC_CALLOC( Fxch_SubCube_t, 16 );
+        pBin->Size = 0;
+        pBin->Cap = 16;
+    }
+    else if ( pBin->Size == pBin->Cap )
+    {
+        pBin->Cap = 2 * pBin->Size;
+        pBin->vSCData = ABC_REALLOC( Fxch_SubCube_t, pBin->vSCData, pBin->Cap );
     }
 
-    for ( iEntry = pBin->iTable; iEntry != pBin->iTable || fStart; iEntry = pEntry->iNext, fStart = 0 )
+    iNewEntry = pBin->Size++;
+    pBin->vSCData[iNewEntry].Id = SubCubeID;
+    pBin->vSCData[iNewEntry].iCube = iCube;
+    pBin->vSCData[iNewEntry].iLit0 = iLit0;
+    pBin->vSCData[iNewEntry].iLit1 = iLit1;
+    pSCHashTable->nEntries++;
+
+    if ( pBin->Size == 1 )
+        return 0;
+
+    pNewEntry = &( pBin->vSCData[iNewEntry] );
+    for ( iEntry = 0; iEntry < (int)pBin->Size - 1; iEntry++ )
     {
+        Fxch_SubCube_t* pEntry = &( pBin->vSCData[iEntry] );
+        int* pOutputID0 = Vec_IntEntryP( pSCHashTable->pFxchMan->vOutputID, pEntry->iCube * pSCHashTable->pFxchMan->nSizeOutputID );
+        int* pOutputID1 = Vec_IntEntryP( pSCHashTable->pFxchMan->vOutputID, pNewEntry->iCube * pSCHashTable->pFxchMan->nSizeOutputID );
+        int Result = 0;
         int Base;
-        int iNewDiv;
+        int iNewDiv, i, z;
 
-        pEntry = Fxch_SCHashTableBin( pSCHashTable, iEntry );
-
-        if ( !Fxch_SCHashTableEntryCompare( pSCHashTable, vCubes, &( pEntry->SCData ), &( pNewEntry->SCData ) ) )
+        if ( !Fxch_SCHashTableEntryCompare( pSCHashTable, vCubes, pEntry, pNewEntry ) )
             continue;
 
-        if ( ( pEntry->SCData.iLit0 == 0 ) || ( pNewEntry->SCData.iLit0 == 0 ) )
+        if ( ( pEntry->iLit0 == 0 ) || ( pNewEntry->iLit0 == 0 ) )
         {
-            Vec_Int_t* vCube0 = Fxch_ManGetCube( pSCHashTable->pFxchMan, pEntry->SCData.iCube ),
-                     * vCube1 = Fxch_ManGetCube( pSCHashTable->pFxchMan, pEntry->SCData.iCube );
+            Vec_Int_t* vCube0 = Fxch_ManGetCube( pSCHashTable->pFxchMan, pEntry->iCube ),
+                     * vCube1 = Fxch_ManGetCube( pSCHashTable->pFxchMan, pNewEntry->iCube );
  
             if ( Vec_IntSize( vCube0 ) > Vec_IntSize( vCube1 ) )
-                Vec_IntPush( pSCHashTable->pFxchMan->vSCC, pEntry->SCData.iCube );
+            {
+                Vec_IntPush( pSCHashTable->pFxchMan->vSCC, pEntry->iCube );
+                Vec_IntPush( pSCHashTable->pFxchMan->vSCC, pNewEntry->iCube );
+            }
             else
-                Vec_IntPush( pSCHashTable->pFxchMan->vSCC, pNewEntry->SCData.iCube );
+            {
+                Vec_IntPush( pSCHashTable->pFxchMan->vSCC, pNewEntry->iCube );
+                Vec_IntPush( pSCHashTable->pFxchMan->vSCC, pEntry->iCube );
+            }
 
             continue;
         }
 
-        if ( pEntry->SCData.iCube < pNewEntry->SCData.iCube )
-            Base = Fxch_DivCreate( pSCHashTable->pFxchMan, &( pEntry->SCData ), &( pNewEntry->SCData ) );
-        else
-            Base = Fxch_DivCreate( pSCHashTable->pFxchMan, &( pNewEntry->SCData ), &( pEntry->SCData ) );
+        Base = Fxch_DivCreate( pSCHashTable->pFxchMan, pEntry, pNewEntry );
 
         if ( Base < 0 )
             continue;
 
-        iNewDiv = Fxch_DivAdd( pSCHashTable->pFxchMan, fUpdate, 0, Base );
+        for ( i = 0; i < pSCHashTable->pFxchMan->nSizeOutputID; i++ )
+            Result += Fxch_CountOnes( pOutputID0[i] & pOutputID1[i] );
 
-        Vec_WecPush( pSCHashTable->pFxchMan->vDivCubePairs, iNewDiv, pEntry->SCData.iCube );
-        Vec_WecPush( pSCHashTable->pFxchMan->vDivCubePairs, iNewDiv, pNewEntry->SCData.iCube );
+        for ( z = 0; z < Result; z++ )
+            iNewDiv = Fxch_DivAdd( pSCHashTable->pFxchMan, fUpdate, 0, Base );
+
+        Vec_WecPush( pSCHashTable->pFxchMan->vDivCubePairs, iNewDiv, pEntry->iCube );
+        Vec_WecPush( pSCHashTable->pFxchMan->vDivCubePairs, iNewDiv, pNewEntry->iCube );
 
         Pairs++;
     }
-    assert( iEntry == (unsigned int)( pBin->iTable ) );
-
-    pEntry = Fxch_SCHashTableBin( pSCHashTable, iEntry );
-    Fxch_SCHashTableInsertLink( pSCHashTable, pEntry->iPrev, iNewEntry );
 
     return Pairs;
 }
 
 int Fxch_SCHashTableRemove( Fxch_SCHashTable_t* pSCHashTable,
                             Vec_Wec_t* vCubes,
-                            unsigned int SubCubeID,
-                            unsigned int iSubCube,
-                            unsigned int iCube,
-                            unsigned int iLit0,
-                            unsigned int iLit1,
+                            uint32_t SubCubeID,
+                            uint32_t iCube,
+                            uint32_t iLit0,
+                            uint32_t iLit1,
                             char fUpdate )
 {
-    unsigned int BinID;
-    unsigned int iEntry;
-    Fxch_SCHashTable_Entry_t* pBin,* pEntry;
-    Fxch_SCHashTable_Entry_t* pNextEntry;
-    int iNextEntry,
-        Pairs = 0,
-        fStart = 1;
+    int iEntry;
+    int Pairs = 0;
+    uint32_t BinID;
+    Fxch_SCHashTable_Entry_t* pBin;
+    Fxch_SubCube_t* pEntry;
+    int idx;
 
     MurmurHash3_x86_32( ( void* ) &SubCubeID, sizeof( int ), 0x9747b28c, &BinID);
 
-    iEntry = ( unsigned int )( Vec_IntEntry( pSCHashTable->vCubeLinks, iCube ) ) + iSubCube;
     pBin = Fxch_SCHashTableBin( pSCHashTable, BinID );
-    pEntry = Fxch_SCHashTableEntry( pSCHashTable, iEntry );
 
-    assert( pEntry->Used == 1 );
-    assert( pEntry->SCData.iCube == iCube );
-
-    if ( pEntry->iNext == iEntry )
+    if ( pBin->Size == 1 )
     {
-        assert( pEntry->iPrev == iEntry );
-        pBin->iTable = 0;
-        pEntry->iNext = 0;
-        pEntry->iPrev = 0;
-        pEntry->Used = 0;
+        pBin->Size = 0;
         return 0;
     }
 
-    for ( iNextEntry = (int)pEntry->iNext; iNextEntry != (int)iEntry; iNextEntry = pNextEntry->iNext, fStart = 0 )
+    for ( iEntry = 0; iEntry < (int)pBin->Size; iEntry++ )
+        if ( pBin->vSCData[iEntry].iCube == iCube )
+            break;
+
+    assert( ( iEntry != pBin->Size ) && ( pBin->Size != 0 ) );
+
+    pEntry = &( pBin->vSCData[iEntry] );
+    for ( idx = 0; idx < (int)pBin->Size; idx++ )
+    if ( idx != iEntry )
     {
         int Base,
             iDiv;
 
-        int i,
+        int i, z,
             iCube0,
             iCube1;
 
+        Fxch_SubCube_t* pNextEntry = &( pBin->vSCData[idx] );
         Vec_Int_t* vDivCubePairs;
+        int* pOutputID0 = Vec_IntEntryP( pSCHashTable->pFxchMan->vOutputID, pEntry->iCube * pSCHashTable->pFxchMan->nSizeOutputID );
+        int* pOutputID1 = Vec_IntEntryP( pSCHashTable->pFxchMan->vOutputID, pNextEntry->iCube * pSCHashTable->pFxchMan->nSizeOutputID );
+        int Result = 0;
 
-        pNextEntry = Fxch_SCHashTableBin( pSCHashTable, iNextEntry );
-
-        if ( !Fxch_SCHashTableEntryCompare( pSCHashTable, vCubes, &( pEntry->SCData ), &( pNextEntry->SCData ) )
-             || pEntry->SCData.iLit0 == 0
-             || pNextEntry->SCData.iLit0 == 0 )
+        if ( !Fxch_SCHashTableEntryCompare( pSCHashTable, vCubes, pEntry, pNextEntry )
+             || pEntry->iLit0 == 0
+             || pNextEntry->iLit0 == 0 )
             continue;
 
-        if ( pNextEntry->SCData.iCube < pEntry->SCData.iCube )
-            Base = Fxch_DivCreate( pSCHashTable->pFxchMan, &( pNextEntry->SCData ), &( pEntry->SCData ) );
-        else
-            Base = Fxch_DivCreate( pSCHashTable->pFxchMan, &( pEntry->SCData ), &( pNextEntry->SCData ) );
+        Base = Fxch_DivCreate( pSCHashTable->pFxchMan, pNextEntry, pEntry );
 
         if ( Base < 0 )
             continue;
 
-        iDiv = Fxch_DivRemove( pSCHashTable->pFxchMan, fUpdate, 0, Base );
+        for ( i = 0; i < pSCHashTable->pFxchMan->nSizeOutputID; i++ )
+            Result += Fxch_CountOnes( pOutputID0[i] & pOutputID1[i] );
+
+        for ( z = 0; z < Result; z++ )
+            iDiv = Fxch_DivRemove( pSCHashTable->pFxchMan, fUpdate, 0, Base );
 
         vDivCubePairs = Vec_WecEntry( pSCHashTable->pFxchMan->vDivCubePairs, iDiv );
         Vec_IntForEachEntryDouble( vDivCubePairs, iCube0, iCube1, i )
-            if ( ( iCube0 == (int)pNextEntry->SCData.iCube &&  iCube1 == (int)pEntry->SCData.iCube )  ||
-                 ( iCube0 == (int)pEntry->SCData.iCube &&  iCube1 == (int)pNextEntry->SCData.iCube ) )
+            if ( ( iCube0 == (int)pNextEntry->iCube && iCube1 == (int)pEntry->iCube )  ||
+                 ( iCube0 == (int)pEntry->iCube && iCube1 == (int)pNextEntry->iCube ) )
             {
                 Vec_IntDrop( vDivCubePairs, i+1 );
                 Vec_IntDrop( vDivCubePairs, i );
@@ -379,12 +338,10 @@ int Fxch_SCHashTableRemove( Fxch_SCHashTable_t* pSCHashTable,
 
         Pairs++;
     }
+    
+    memmove(pBin->vSCData + iEntry, pBin->vSCData + iEntry + 1, (pBin->Size - iEntry - 1) * sizeof(*pBin->vSCData));
+    pBin->Size -= 1;
 
-    if ( pBin->iTable == iEntry )
-        pBin->iTable = ( pEntry->iNext != iEntry ) ? pEntry->iNext : 0;
-
-    pEntry->Used = 0;
-    Fxch_SCHashTableRemoveLink( pSCHashTable, pEntry->iPrev, iEntry );
     return Pairs;
 }
 
@@ -392,7 +349,6 @@ unsigned int Fxch_SCHashTableMemory( Fxch_SCHashTable_t* pHashTable )
 {
     unsigned int Memory = sizeof ( Fxch_SCHashTable_t );
 
-    Memory += Vec_IntMemory( pHashTable->vCubeLinks );
     Memory += sizeof( Fxch_SubCube_t ) * ( pHashTable->SizeMask + 1 );
 
     return Memory;
