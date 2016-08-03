@@ -184,6 +184,7 @@ Gia_Man_t * Abc_NtkAigToGiaTwo( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int fByNam
     {
         vMap1 = Vec_IntStartNatural( Abc_NtkCiNum(pNtk1) );
         vMap2 = Vec_IntStartNatural( Abc_NtkCiNum(pNtk2) );
+        Index = Abc_MaxInt( Vec_IntSize(vMap1), Vec_IntSize(vMap2) );
         // report
         printf( "Matched %d vars by order.", Abc_MinInt(Abc_NtkCiNum(pNtk1), Abc_NtkCiNum(pNtk2)) );
         if ( Abc_NtkCiNum(pNtk1) < Abc_NtkCiNum(pNtk2) )
