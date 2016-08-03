@@ -1526,6 +1526,8 @@ void Abc_ExactStoreTest( int fVerbose )
     (*pArrTimeProfile)--;
 
     Abc_ExactStop();
+
+    Abc_NtkDelete( pNtk );
 }
 
 ////////////////////////////////////////////////////////////////////////
