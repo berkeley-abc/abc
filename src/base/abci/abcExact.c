@@ -50,6 +50,10 @@ static word s_Truths8[32] = {
     ABC_CONST(0x0000000000000000), ABC_CONST(0x0000000000000000), ABC_CONST(0xFFFFFFFFFFFFFFFF), ABC_CONST(0xFFFFFFFFFFFFFFFF)
 };
 
+#define ABC_EXACT_SOL_NVARS  0
+#define ABC_EXACT_SOL_NFUNC  1
+#define ABC_EXACT_SOL_NGATES 2
+
 typedef struct Ses_Man_t_ Ses_Man_t;
 struct Ses_Man_t_
 {
@@ -120,8 +124,10 @@ struct Ses_TruthEntry_t_
 typedef struct Ses_Store_t_ Ses_Store_t;
 struct Ses_Store_t_
 {
+    int                fMakeAIG;                       /* create AIG instead of general network */
     int                fVerbose;                       /* be verbose */
     int                nBTLimit;                       /* conflict limit */
+    int                nEntriesCount;                  /* number of entries */
     Ses_TruthEntry_t * pEntries[SES_STORE_TABLE_SIZE]; /* hash table for truth table entries */
 
     unsigned long      nCutCount;
@@ -159,11 +165,13 @@ static int Abc_NormalizeArrivalTimes( int * pArrTimeProfile, int nVars, int * ma
     return delta;
 }
 
-static inline Ses_Store_t * Ses_StoreAlloc( int nBTLimit, int fVerbose )
+static inline Ses_Store_t * Ses_StoreAlloc( int nBTLimit, int fMakeAIG, int fVerbose )
 {
     Ses_Store_t * pStore = ABC_CALLOC( Ses_Store_t, 1 );
-    pStore->fVerbose = fVerbose;
-    pStore->nBTLimit = nBTLimit;
+    pStore->fMakeAIG      = fMakeAIG;
+    pStore->fVerbose      = fVerbose;
+    pStore->nBTLimit      = nBTLimit;
+    pStore->nEntriesCount = 0;
     memset( pStore->pEntries, 0, SES_STORE_TABLE_SIZE );
 
     pStore->nCutCount = 0;
@@ -302,6 +310,7 @@ int Ses_StoreAddEntry( Ses_Store_t * pStore, word * pTruth, int nVars, int * pAr
 
         /* item has been added */
         fAdded = 1;
+        pStore->nEntriesCount++;
     }
     else
         /* item was already present */
@@ -356,6 +365,85 @@ char * Ses_StoreGetEntry( Ses_Store_t * pStore, word * pTruth, int nVars, int * 
         return 0;
 
     return pTiEntry->pNetwork;
+}
+
+static void Ses_StoreWrite( Ses_Store_t * pStore, const char * pFilename )
+{
+    int i;
+    Ses_TruthEntry_t * pTEntry;
+    Ses_TimesEntry_t * pTiEntry;
+    FILE * pFile;
+
+    pFile = fopen( pFilename, "wb" );
+    if (pFile == NULL)
+    {
+        printf( "cannot open file \"%s\" for writing\n", pFilename );
+        return;
+    }
+
+    fwrite( &pStore->nEntriesCount, sizeof( int ), 1, pFile );
+
+    for ( i = 0; i < SES_STORE_TABLE_SIZE; ++i )
+        if ( pStore->pEntries[i] )
+        {
+            pTEntry = pStore->pEntries[i];
+
+            while ( pTEntry )
+            {
+                pTiEntry = pTEntry->head;
+                while ( pTiEntry )
+                {
+                    fwrite( pTEntry->pTruth, sizeof( word ), 4, pFile );
+                    fwrite( &pTEntry->nVars, sizeof( int ), 1, pFile );
+                    fwrite( pTiEntry->pArrTimeProfile, sizeof( int ), 8, pFile );
+                    fwrite( pTiEntry->pNetwork, sizeof( char ), 3 + 4 * pTiEntry->pNetwork[ABC_EXACT_SOL_NGATES] + 2 + pTiEntry->pNetwork[ABC_EXACT_SOL_NVARS], pFile );
+                    pTiEntry = pTiEntry->next;
+                }
+                pTEntry = pTEntry->next;
+            }
+        }
+
+
+    fclose( pFile );
+}
+
+static void Ses_StoreRead( Ses_Store_t * pStore, const char * pFilename )
+{
+    int i, nEntries;
+    word pTruth[4];
+    int nVars;
+    int pArrTimeProfile[8];
+    char pHeader[3];
+    char * pNetwork;
+    FILE * pFile;
+
+    pFile = fopen( pFilename, "rb" );
+    if (pFile == NULL)
+    {
+        printf( "cannot open file \"%s\" for reading\n", pFilename );
+        return;
+    }
+
+    fread( &nEntries, sizeof( int ), 1, pFile );
+
+    for ( i = 0; i < nEntries; ++i )
+    {
+        fread( pTruth, sizeof( word ), 4, pFile );
+        fread( &nVars, sizeof( int ), 1, pFile );
+        fread( pArrTimeProfile, sizeof( int ), 8, pFile );
+        fread( pHeader, sizeof( char ), 3, pFile );
+
+        pNetwork = ABC_CALLOC( char, 3 + 4 * pHeader[ABC_EXACT_SOL_NGATES] + 2 + pHeader[ABC_EXACT_SOL_NVARS] );
+        pNetwork[0] = pHeader[0];
+        pNetwork[1] = pHeader[1];
+        pNetwork[2] = pHeader[2];
+
+        fread( pNetwork + 3, sizeof( char ), 4 * pHeader[ABC_EXACT_SOL_NGATES] + 2 + pHeader[ABC_EXACT_SOL_NVARS], pFile );
+
+        Ses_StoreAddEntry( pStore, pTruth, nVars, pArrTimeProfile, pNetwork );
+    }
+
+    fclose( pFile );
 }
 
 static inline Ses_Man_t * Ses_ManAlloc( word * pTruth, int nVars, int nFunc, int nMaxDepth, int * pArrTimeProfile, int fMakeAIG, int fVerbose )
@@ -809,9 +897,6 @@ static inline int Ses_ManSolve( Ses_Man_t * pSes )
 //   delay:     maximum delay to output (taking arrival times into account, not normalized) or 0 if not specified
 //   pin[i]:    pin to pin delay to input i or 0 if not specified or if there is no connection to input i
 // NOTE: since outputs can only point to gates, delay and pin-to-pin times cannot be 0
-#define ABC_EXACT_SOL_NVARS  0
-#define ABC_EXACT_SOL_NFUNC  1
-#define ABC_EXACT_SOL_NGATES 2
 static char * Ses_ManExtractSolution( Ses_Man_t * pSes )
 {
     int nSol, h, i, j, k, l, aj, ak, d, nOp;
@@ -1362,18 +1447,26 @@ int Abc_ExactInputNum()
     return 8;
 }
 // start exact store manager
-void Abc_ExactStart( int nBTLimit, int fVerbose )
+void Abc_ExactStart( int nBTLimit, int fMakeAIG, int fVerbose, const char * pFilename )
 {
     if ( !s_pSesStore )
-        s_pSesStore = Ses_StoreAlloc( nBTLimit, fVerbose );
+    {
+        s_pSesStore = Ses_StoreAlloc( nBTLimit, fMakeAIG, fVerbose );
+        if ( pFilename )
+            Ses_StoreRead( s_pSesStore, pFilename );
+    }
     else
         printf( "BMS manager already started\n" );
 }
 // stop exact store manager
-void Abc_ExactStop()
+void Abc_ExactStop( const char * pFilename )
 {
     if ( s_pSesStore )
+    {
+        if ( pFilename )
+            Ses_StoreWrite( s_pSesStore, pFilename );
         Ses_StoreClean( s_pSesStore );
+    }
     else
         printf( "BMS manager has not been started\n" );
 }
@@ -1393,6 +1486,7 @@ void Abc_ExactStats()
         printf( " %d = %lu  ", i, s_pSesStore->pCutCount[i] );
     printf( " total = %lu\n", s_pSesStore->nCutCount );
     printf( "cache hits                : %lu\n", s_pSesStore->nCacheHit );
+    printf( "number of entries         : %d\n", s_pSesStore->nEntriesCount );
 }
 // this procedure takes TT and input arrival times (pArrTimeProfile) and return the smallest output arrival time;
 // it also returns the pin-to-pin delays (pPerm) between each cut leaf and the cut output and the cut area cost (Cost)
@@ -1433,7 +1527,7 @@ int Abc_ExactDelayCost( word * pTruth, int nVars, int * pArrTimeProfile, char * 
 
         *Cost = ABC_INFINITY;
 
-        pSes = Ses_ManAlloc( pTruth, nVars, 1 /* fSpecFunc */, nMaxDepth, pArrTimeProfile, 1 /* fMakeAIG */, s_pSesStore->fVerbose );
+        pSes = Ses_ManAlloc( pTruth, nVars, 1 /* fSpecFunc */, nMaxDepth, pArrTimeProfile, s_pSesStore->fMakeAIG, s_pSesStore->fVerbose );
         pSes->nBTLimit = s_pSesStore->nBTLimit;
 
         while ( 1 ) /* there is improvement */
@@ -1529,9 +1623,6 @@ Abc_Obj_t * Abc_ExactBuildNode( word * pTruth, int nVars, int * pArrTimeProfile,
     }
 
     /* output */
-    //if ( Abc_LitIsCompl( *p ) )
-    //    pObj = Abc_NtkCreateNodeInv( pNtk, (Abc_Obj_t *)Vec_PtrEntry( pGates, nVars + Abc_Lit2Var( *p ) ) );
-    //else
     pObj = (Abc_Obj_t *)Vec_PtrEntry( pGates, nVars + Abc_Lit2Var( *p ) );
 
     Vec_PtrFree( pGates );
@@ -1563,7 +1654,7 @@ void Abc_ExactStoreTest( int fVerbose )
     }
     Abc_NodeFreeNames( vNames );
 
-    Abc_ExactStart( 10000, fVerbose );
+    Abc_ExactStart( 10000, 1, fVerbose, NULL );
 
     assert( !Abc_ExactBuildNode( pTruth, 4, pArrTimeProfile, pFanins ) );
 
@@ -1575,7 +1666,7 @@ void Abc_ExactStoreTest( int fVerbose )
     assert( !Abc_ExactBuildNode( pTruth, 4, pArrTimeProfile, pFanins ) );
     (*pArrTimeProfile)--;
 
-    Abc_ExactStop();
+    Abc_ExactStop( NULL );
 
     Abc_NtkDelete( pNtk );
 }
