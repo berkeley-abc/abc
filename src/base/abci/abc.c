@@ -136,6 +136,9 @@ static int Abc_CommandExtract                ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandVarMin                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandDetect                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandExact                  ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandBmsStart               ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandBmsStop                ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandBmsPs                  ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 static int Abc_CommandLogic                  ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandComb                   ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -776,6 +779,10 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Synthesis",    "varmin",        Abc_CommandVarMin,           0 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "detect",        Abc_CommandDetect,           0 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "exact",         Abc_CommandExact,            1 );
+
+    Cmd_CommandAdd( pAbc, "Exact synthesis", "bms_start",  Abc_CommandBmsStart,         0 );
+    Cmd_CommandAdd( pAbc, "Exact synthesis", "bms_stop",   Abc_CommandBmsStop,          0 );
+    Cmd_CommandAdd( pAbc, "Exact synthesis", "bms_ps",     Abc_CommandBmsPs,            0 );
 
     Cmd_CommandAdd( pAbc, "Various",      "logic",         Abc_CommandLogic,            1 );
     Cmd_CommandAdd( pAbc, "Various",      "comb",          Abc_CommandComb,             1 );
@@ -7386,9 +7393,188 @@ usage:
     Abc_Print( -2, "usage: exact [-D <num>] [-atvh] <truth1> <truth2> ...\n" );
     Abc_Print( -2, "\t           finds optimum networks using SAT-based exact synthesis for hex truth tables <truth1> <truth2> ...\n" );
     Abc_Print( -2, "\t-D <num> : constrain maximum depth (if too low, algorithm may not terminate)\n" );
-    Abc_Print( -2, "\t-a       : create AIG [default = %s]\n", fMakeAIG ? "yes" : "no" );
+    Abc_Print( -2, "\t-a       : toggle create AIG [default = %s]\n", fMakeAIG ? "yes" : "no" );
     Abc_Print( -2, "\t-t       : run test suite\n" );
     Abc_Print( -2, "\t-v       : toggle verbose printout [default = %s]\n", fVerbose ? "yes" : "no" );
+    Abc_Print( -2, "\t-h       : print the command usage\n" );
+    Abc_Print( -2, "\t\n" );
+    Abc_Print( -2, "\t           This command was contributed by Mathias Soeken from EPFL in July 2016.\n" );
+    Abc_Print( -2, "\t           The author can be contacted as mathias.soeken at epfl.ch\n" );
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandBmsStart( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern int Abc_ExactIsRunning();
+    extern void Abc_ExactStart( int nBTLimit, int fMakeAIG, int fVerbose, const char *pFilename );
+
+    int c, fMakeAIG = 0, fVerbose = 0, nBTLimit = 10000;
+    char * pFilename = NULL;
+
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Cavh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'C':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-C\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nBTLimit = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            break;
+        case 'a':
+            fMakeAIG ^= 1;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+
+    if ( argc > globalUtilOptind )
+    {
+        pFilename = argv[globalUtilOptind++];
+    }
+
+    if ( Abc_ExactIsRunning() )
+    {
+        Abc_Print( -1, "BMS manager is already started." );
+        return 1;
+    }
+
+    Abc_ExactStart( nBTLimit, fMakeAIG, fVerbose, pFilename );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: bms_start [-C <num>] [-avh] [<file>]\n" );
+    Abc_Print( -2, "\t           starts BMS manager for recording optimum networks\n" );
+    Abc_Print( -2, "\t           if <file> is specified, store entries are read from that file\n" );
+    Abc_Print( -2, "\t-C <num> : the limit on the number of conflicts [default = %d]\n", nBTLimit );
+    Abc_Print( -2, "\t-a       : toggle create AIG [default = %s]\n", fMakeAIG ? "yes" : "no" );
+    Abc_Print( -2, "\t-v       : toggle verbose printout [default = %s]\n", fVerbose ? "yes" : "no" );
+    Abc_Print( -2, "\t-h       : print the command usage\n" );
+    Abc_Print( -2, "\t\n" );
+    Abc_Print( -2, "\t           This command was contributed by Mathias Soeken from EPFL in July 2016.\n" );
+    Abc_Print( -2, "\t           The author can be contacted as mathias.soeken at epfl.ch\n" );
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandBmsStop( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern int Abc_ExactIsRunning();
+    extern void Abc_ExactStop( const char *pFilename );
+
+    int c;
+    char * pFilename = NULL;
+
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+
+    if ( argc > globalUtilOptind )
+    {
+        pFilename = argv[globalUtilOptind++];
+    }
+
+    if ( !Abc_ExactIsRunning() )
+    {
+        Abc_Print( -1, "BMS manager is not started." );
+        return 1;
+    }
+
+    Abc_ExactStop( pFilename );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: bms_stop [-C <num>] [-vh] [<file>]\n" );
+    Abc_Print( -2, "\t           stops BMS manager for recording optimum networks\n" );
+    Abc_Print( -2, "\t           if <file> is specified, store entries are written to that file\n" );
+    Abc_Print( -2, "\t-h       : print the command usage\n" );
+    Abc_Print( -2, "\t\n" );
+    Abc_Print( -2, "\t           This command was contributed by Mathias Soeken from EPFL in July 2016.\n" );
+    Abc_Print( -2, "\t           The author can be contacted as mathias.soeken at epfl.ch\n" );
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandBmsPs( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern int Abc_ExactIsRunning();
+    extern void Abc_ExactStats();
+
+    int c;
+
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+
+    if ( !Abc_ExactIsRunning() )
+    {
+        Abc_Print( -1, "BMS manager is not started." );
+        return 1;
+    }
+
+    Abc_ExactStats();
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: bms_ps [-h]\n" );
+    Abc_Print( -2, "\t           shows statistics about BMS manager\n" );
     Abc_Print( -2, "\t-h       : print the command usage\n" );
     Abc_Print( -2, "\t\n" );
     Abc_Print( -2, "\t           This command was contributed by Mathias Soeken from EPFL in July 2016.\n" );
@@ -16928,7 +17114,7 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
         }
         if ( Abc_NtkRecInputNum3() != pPars->nLutSize )
         {
-            printf( "The number of library inputs (%d) different from the K parameters (%d).\n", Abc_NtkRecInputNum3(), pPars->nLutSize );
+            printf( "The number of library inputs (%d) is different from the K parameters (%d).\n", Abc_NtkRecInputNum3(), pPars->nLutSize );
             return 0;
         }
     }
@@ -16937,12 +17123,12 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
         if ( !Abc_ExactIsRunning() )
         {
-            printf( "LMS manager is not running (use \"rec_start3\").\n" );
+            printf( "BMS manager is not running (use \"bms_start\").\n" );
             return 0;
         }
-        if ( Abc_ExactInputNum() != pPars->nLutSize )
+        if ( Abc_ExactInputNum() < pPars->nLutSize )
         {
-            printf( "The number of library inputs (%d) different from the K parameters (%d).\n", Abc_ExactInputNum(), pPars->nLutSize );
+            printf( "The number of library inputs (%d) is smaller than the K parameters (%d).\n", Abc_ExactInputNum(), pPars->nLutSize );
             return 0;
         }
     }
