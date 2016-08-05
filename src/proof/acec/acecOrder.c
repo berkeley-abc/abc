@@ -198,7 +198,7 @@ Vec_Int_t * Gia_PolynFindOrder( Gia_Man_t * pGia, Vec_Int_t * vFadds, Vec_Int_t 
 ***********************************************************************/
 Vec_Int_t * Gia_PolynReorder( Gia_Man_t * pGia, int fVerbose, int fVeryVerbose )
 {
-    Vec_Int_t * vFadds  = Gia_ManDetectFullAdders( pGia, fVeryVerbose );
+    Vec_Int_t * vFadds  = Gia_ManDetectFullAdders( pGia, fVeryVerbose, NULL );
     Vec_Int_t * vHadds  = Gia_ManDetectHalfAdders( pGia, fVeryVerbose );
     Vec_Int_t * vRecord = Gia_PolynFindOrder( pGia, vFadds, vHadds, fVerbose, fVeryVerbose );
     Vec_Int_t * vOrder  = Vec_IntAlloc( Gia_ManAndNum(pGia) );

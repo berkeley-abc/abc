@@ -114,11 +114,12 @@ int Gia_WriteDotAigLevel( Gia_Man_t * p, Vec_Int_t * vFadds, Vec_Int_t * vHadds,
     return Level;
 }
 */
-int Gia_WriteDotAigLevel( Gia_Man_t * p, Vec_Int_t * vFadds, Vec_Int_t * vHadds, Vec_Int_t * vRecord, Vec_Int_t ** pvLevel, Vec_Int_t ** pvMarks, Vec_Int_t ** pvRemap )
+int Gia_WriteDotAigLevel( Gia_Man_t * p, Vec_Int_t * vFadds, Vec_Int_t * vHadds, Vec_Int_t * vRecord, Vec_Int_t ** pvLevel, Vec_Int_t ** pvMarks, Vec_Int_t ** pvRemap, Vec_Int_t ** pvRemap2 )
 {
     Vec_Int_t * vLevel = Vec_IntStart( Gia_ManObjNum(p) );
     Vec_Int_t * vMarks = Vec_IntStart( Gia_ManObjNum(p) );
     Vec_Int_t * vRemap = Vec_IntStartNatural( Gia_ManObjNum(p) );
+    Vec_Int_t * vRemap2 = Vec_IntStartNatural( Gia_ManObjNum(p) );
     int i, k, Id, Entry, LevelMax = 0;
 
     Vec_IntWriteEntry( vMarks, 0, -1 );
@@ -141,6 +142,7 @@ int Gia_WriteDotAigLevel( Gia_Man_t * p, Vec_Int_t * vFadds, Vec_Int_t * vHadds,
             Vec_IntWriteEntry( vLevel, pFanins[4], Level+1 );
             Vec_IntWriteEntry( vMarks, pFanins[4], Entry );
             Vec_IntWriteEntry( vRemap, pFanins[3], pFanins[4] );
+            Vec_IntWriteEntry( vRemap2, pFanins[4], pFanins[3] );
             //printf( "Making FA output %d.\n", pFanins[4] );
         }
         else if ( Attr == 1 )
@@ -154,7 +156,8 @@ int Gia_WriteDotAigLevel( Gia_Man_t * p, Vec_Int_t * vFadds, Vec_Int_t * vHadds,
             Vec_IntWriteEntry( vLevel, pFanins[1], Level+1 );
             Vec_IntWriteEntry( vMarks, pFanins[1], Entry );
             Vec_IntWriteEntry( vRemap, pFanins[0], pFanins[1] );
-            //printf( "Making HA output %d.\n", pFanins[1] );
+            Vec_IntWriteEntry( vRemap2, pFanins[1], pFanins[0] );
+            //printf( "Making HA output %d %d.\n", pFanins[0], pFanins[1] );
         }
         else // if ( Attr == 3 || Attr == 0 )
         {
@@ -171,6 +174,7 @@ int Gia_WriteDotAigLevel( Gia_Man_t * p, Vec_Int_t * vFadds, Vec_Int_t * vHadds,
     *pvLevel = vLevel;
     *pvMarks = vMarks;
     *pvRemap = vRemap;
+    *pvRemap2 = vRemap2;
     return LevelMax;
 }
 
@@ -188,7 +192,7 @@ int Gia_WriteDotAigLevel( Gia_Man_t * p, Vec_Int_t * vFadds, Vec_Int_t * vHadds,
 ***********************************************************************/
 void Gia_WriteDotAig( Gia_Man_t * pMan, char * pFileName, Vec_Int_t * vBold, int fAdders )
 {
-    Vec_Int_t * vFadds = NULL, * vHadds = NULL, * vRecord = NULL, * vMarks = NULL, * vRemap = NULL;
+    Vec_Int_t * vFadds = NULL, * vHadds = NULL, * vRecord = NULL, * vMarks = NULL, * vRemap = NULL, * vRemap2 = NULL;
     FILE * pFile;
     Gia_Obj_t * pNode;//, * pTemp, * pPrev;
     int LevelMax, Prev, Level, i;
@@ -218,10 +222,10 @@ void Gia_WriteDotAig( Gia_Man_t * pMan, char * pFileName, Vec_Int_t * vBold, int
     if ( fAdders )
     {
         Vec_IntFreeP( &pMan->vLevels );
-        vFadds   = Gia_ManDetectFullAdders( pMan, 0 );
+        vFadds   = Gia_ManDetectFullAdders( pMan, 0, NULL );
         vHadds   = Gia_ManDetectHalfAdders( pMan, 0 );
         vRecord  = Gia_PolynFindOrder( pMan, vFadds, vHadds, 0, 0 );
-        LevelMax = 1 + Gia_WriteDotAigLevel( pMan, vFadds, vHadds, vRecord, &pMan->vLevels, &vMarks, &vRemap );
+        LevelMax = 1 + Gia_WriteDotAigLevel( pMan, vFadds, vHadds, vRecord, &pMan->vLevels, &vMarks, &vRemap, &vRemap2 );
     }
     else
         LevelMax = 1 + Gia_ManLevelNum( pMan );
@@ -364,7 +368,7 @@ void Gia_WriteDotAig( Gia_Man_t * pMan, char * pFileName, Vec_Int_t * vBold, int
 */
             if ( vMarks && Vec_IntEntry(vMarks, i) > 0 )
             {
-                fprintf( pFile, "  Node%d [label = \"%d_%d\"", i, Vec_IntFind(vRemap, i), i ); 
+                fprintf( pFile, "  Node%d [label = \"%d_%d\"", i, Vec_IntEntry(vRemap2, i), i ); 
                 if ( Abc_Lit2Att2(Vec_IntEntry(vMarks, i)) == 2 )
                     fprintf( pFile, ", shape = doubleoctagon" );
                 else 

@@ -53,7 +53,7 @@ ABC_NAMESPACE_HEADER_START
 /*=== acecCore.c ========================================================*/
 extern int           Gia_PolynCec( Gia_Man_t * pGia0, Gia_Man_t * pGia1, Cec_ParCec_t * pPars );
 /*=== acecFadds.c ========================================================*/
-extern Vec_Int_t *   Gia_ManDetectFullAdders( Gia_Man_t * p, int fVerbose );
+extern Vec_Int_t *   Gia_ManDetectFullAdders( Gia_Man_t * p, int fVerbose, Vec_Int_t ** vCutsXor2 );
 extern Vec_Int_t *   Gia_ManDetectHalfAdders( Gia_Man_t * p, int fVerbose );
 /*=== acecOrder.c ========================================================*/
 extern Vec_Int_t *   Gia_PolynReorder( Gia_Man_t * pGia, int fVerbose, int fVeryVerbose );

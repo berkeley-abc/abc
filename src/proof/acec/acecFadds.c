@@ -59,6 +59,7 @@ Vec_Int_t * Gia_ManDetectHalfAdders( Gia_Man_t * p, int fVerbose )
         {
             if ( !Gia_ObjIsXor(pObj) )
                 continue;
+            Count = 0;
             iFan0 = Gia_ObjFaninId0(pObj, i);
             iFan1 = Gia_ObjFaninId1(pObj, i);
             if ( (iLit = Gia_ManHashLookupInt(p, Abc_Var2Lit(iFan0, 0), Abc_Var2Lit(iFan1, 0))) )
@@ -69,6 +70,7 @@ Vec_Int_t * Gia_ManDetectHalfAdders( Gia_Man_t * p, int fVerbose )
                 Vec_IntPushTwo( vHadds, i, Abc_Lit2Var(iLit) ), Count++;
             if ( (iLit = Gia_ManHashLookupInt(p, Abc_Var2Lit(iFan0, 1), Abc_Var2Lit(iFan1, 0))) )
                 Vec_IntPushTwo( vHadds, i, Abc_Lit2Var(iLit) ), Count++;
+            Counts[Count]++;
         }
     }
     else
@@ -116,7 +118,10 @@ Vec_Int_t * Gia_ManDetectHalfAdders( Gia_Man_t * p, int fVerbose )
         printf( "\n" );
 
         Vec_IntForEachEntryDouble( vHadds, iXor, iAnd, i )
-            printf( "%3d : %5d %5d\n", i, iXor, iAnd );
+        {
+            pObj = Gia_ManObj( p, iXor );
+            printf( "%3d : %5d %5d -> %5d %5d\n", i, Gia_ObjFaninId0(pObj, iXor), Gia_ObjFaninId1(pObj, iXor), iXor, iAnd );
+        }
     }
     return vHadds;
 }
@@ -255,6 +260,8 @@ int Dtc_ObjComputeTruth( Gia_Man_t * p, int iObj, int * pCut, int * pTruth )
     Dtc_ObjCleanTruth_rec( Gia_ManObj(p, iObj) );
     if ( pTruth ) 
         *pTruth = Truth;
+    if ( Truth == 0x66 || Truth == 0x99 )
+        return 3;
     if ( Truth == 0x96 || Truth == 0x69 )
         return 1;
     if ( Truth == 0xE8 || Truth == 0xD4 || Truth == 0xB2 || Truth == 0x71 ||
@@ -262,11 +269,13 @@ int Dtc_ObjComputeTruth( Gia_Man_t * p, int iObj, int * pCut, int * pTruth )
         return 2;
     return 0;
 }
-void Dtc_ManCutMerge( Gia_Man_t * p, int iObj, int * pList0, int * pList1, Vec_Int_t * vCuts, Vec_Int_t * vCutsXor, Vec_Int_t * vCutsMaj )
+void Dtc_ManCutMerge( Gia_Man_t * p, int iObj, int * pList0, int * pList1, Vec_Int_t * vCuts, Vec_Int_t * vCutsXor2, Vec_Int_t * vCutsXor, Vec_Int_t * vCutsMaj )
 {
     int fVerbose = 0;
     Vec_Int_t * vTemp;
     int i, k, c, Type, * pCut0, * pCut1, pCut[4];
+    if ( fVerbose )
+        printf( "Object %d = :\n", iObj );
     Vec_IntFill( vCuts, 2, 1 );
     Vec_IntPush( vCuts, iObj );
     Dtc_ForEachCut( pList0, pCut0, i )
@@ -277,8 +286,28 @@ void Dtc_ManCutMerge( Gia_Man_t * p, int iObj, int * pList0, int * pList1, Vec_I
         if ( Dtc_ManCutCheckEqual(vCuts, pCut) )
             continue;
         Vec_IntAddToEntry( vCuts, 0, 1 );  
+        if ( fVerbose )
+            printf( "%d : ", pCut[0] );
         for ( c = 0; c <= pCut[0]; c++ )
+        {
             Vec_IntPush( vCuts, pCut[c] );
+            if ( fVerbose && c )
+                printf( "%d ", pCut[c] );
+        }
+        if ( fVerbose )
+            printf( "\n" );
+        if ( pCut[0] == 2 )
+        {
+            int Value = Dtc_ObjComputeTruth( p, iObj, pCut, NULL );
+            assert( Value == 3 || Value == 0 );
+            if ( Value == 3 )
+            {
+                Vec_IntPush( vCutsXor2, pCut[1] );
+                Vec_IntPush( vCutsXor2, pCut[2] );
+                Vec_IntPush( vCutsXor2, iObj );
+            }
+            continue;
+        }
         if ( pCut[0] != 3 )
             continue;
         Type = Dtc_ObjComputeTruth( p, iObj, pCut, NULL );
@@ -298,11 +327,12 @@ void Dtc_ManCutMerge( Gia_Man_t * p, int iObj, int * pList0, int * pList1, Vec_I
         Vec_IntPush( vTemp, iObj );
     }
 }
-void Dtc_ManComputeCuts( Gia_Man_t * p, Vec_Int_t ** pvCutsXor, Vec_Int_t ** pvCutsMaj, int fVerbose )
+void Dtc_ManComputeCuts( Gia_Man_t * p, Vec_Int_t ** pvCutsXor2, Vec_Int_t ** pvCutsXor, Vec_Int_t ** pvCutsMaj, int fVerbose )
 {
     Gia_Obj_t * pObj; 
     int * pList0, * pList1, i, nCuts = 0;
     Vec_Int_t * vTemp = Vec_IntAlloc( 1000 );
+    Vec_Int_t * vCutsXor2 = Vec_IntAlloc( Gia_ManAndNum(p) );
     Vec_Int_t * vCutsXor = Vec_IntAlloc( Gia_ManAndNum(p) );
     Vec_Int_t * vCutsMaj = Vec_IntAlloc( Gia_ManAndNum(p) );
     Vec_Int_t * vCuts = Vec_IntAlloc( 30 * Gia_ManAndNum(p) );
@@ -319,7 +349,7 @@ void Dtc_ManComputeCuts( Gia_Man_t * p, Vec_Int_t ** pvCutsXor, Vec_Int_t ** pvC
     {
         pList0 = Vec_IntEntryP( vCuts, Vec_IntEntry(vCuts, Gia_ObjFaninId0(pObj, i)) );
         pList1 = Vec_IntEntryP( vCuts, Vec_IntEntry(vCuts, Gia_ObjFaninId1(pObj, i)) );
-        Dtc_ManCutMerge( p, i, pList0, pList1, vTemp, vCutsXor, vCutsMaj );
+        Dtc_ManCutMerge( p, i, pList0, pList1, vTemp, vCutsXor2, vCutsXor, vCutsMaj );
         Vec_IntWriteEntry( vCuts, i, Vec_IntSize(vCuts) );
         Vec_IntAppend( vCuts, vTemp );
         nCuts += Vec_IntEntry( vTemp, 0 );
@@ -329,6 +359,10 @@ void Dtc_ManComputeCuts( Gia_Man_t * p, Vec_Int_t ** pvCutsXor, Vec_Int_t ** pvC
             Gia_ManAndNum(p), nCuts, 1.0*nCuts/Gia_ManAndNum(p), 1.0*Vec_IntSize(vCuts)/Gia_ManAndNum(p) );
     Vec_IntFree( vTemp );
     Vec_IntFree( vCuts );
+    if ( pvCutsXor2 )
+        *pvCutsXor2 = vCutsXor2;
+    else
+        Vec_IntFree( vCutsXor2 );
     *pvCutsXor = vCutsXor;
     *pvCutsMaj = vCutsMaj;
 }
@@ -375,6 +409,12 @@ void Dtc_ManPrintFadds( Vec_Int_t * vFadds )
         printf( "%6d ", Vec_IntEntry(vFadds, 5*i+3) );
         printf( "%6d ", Vec_IntEntry(vFadds, 5*i+4) );
         printf( "\n" );
+
+        if ( i == 100 )
+        {
+            printf( "Skipping other FADDs.\n" );
+            break;
+        }
     }
 }
 int Dtc_ManCompare( int * pCut0, int * pCut1 )
@@ -394,10 +434,10 @@ int Dtc_ManCompare2( int * pCut0, int * pCut1 )
     return 0;
 }
 // returns array of 5-tuples containing inputs/sum/cout of each full adder
-Vec_Int_t * Gia_ManDetectFullAdders( Gia_Man_t * p, int fVerbose )
+Vec_Int_t * Gia_ManDetectFullAdders( Gia_Man_t * p, int fVerbose, Vec_Int_t ** pvCutsXor2 )
 {
     Vec_Int_t * vCutsXor, * vCutsMaj, * vFadds;
-    Dtc_ManComputeCuts( p, &vCutsXor, &vCutsMaj, fVerbose );
+    Dtc_ManComputeCuts( p, pvCutsXor2, &vCutsXor, &vCutsMaj, fVerbose );
     qsort( Vec_IntArray(vCutsXor), Vec_IntSize(vCutsXor)/4, 16, (int (*)(const void *, const void *))Dtc_ManCompare );
     qsort( Vec_IntArray(vCutsMaj), Vec_IntSize(vCutsMaj)/4, 16, (int (*)(const void *, const void *))Dtc_ManCompare );
     vFadds = Dtc_ManFindCommonCuts( p, vCutsXor, vCutsMaj );
@@ -762,7 +802,7 @@ Gia_Man_t * Gia_ManDupWithNaturalBoxes( Gia_Man_t * p, int nFaddMin, int fVerbos
     assert( Gia_ManBoxNum(p) == 0 );
 
     // detect FADDs
-    vFadds = Gia_ManDetectFullAdders( p, fVerbose );
+    vFadds = Gia_ManDetectFullAdders( p, fVerbose, NULL );
     assert( Vec_IntSize(vFadds) % 5 == 0 );
     // map MAJ into its FADD
     vMap = Gia_ManCreateMap( p, vFadds );
