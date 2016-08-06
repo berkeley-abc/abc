@@ -416,6 +416,7 @@ static void Ses_StoreRead( Ses_Store_t * pStore, const char * pFilename )
     char pHeader[3];
     char * pNetwork;
     FILE * pFile;
+    int value;
 
     pFile = fopen( pFilename, "rb" );
     if (pFile == NULL)
@@ -424,21 +425,21 @@ static void Ses_StoreRead( Ses_Store_t * pStore, const char * pFilename )
         return;
     }
 
-    fread( &nEntries, sizeof( int ), 1, pFile );
+    value = fread( &nEntries, sizeof( int ), 1, pFile );
 
     for ( i = 0; i < nEntries; ++i )
     {
-        fread( pTruth, sizeof( word ), 4, pFile );
-        fread( &nVars, sizeof( int ), 1, pFile );
-        fread( pArrTimeProfile, sizeof( int ), 8, pFile );
-        fread( pHeader, sizeof( char ), 3, pFile );
+        value = fread( pTruth, sizeof( word ), 4, pFile );
+        value = fread( &nVars, sizeof( int ), 1, pFile );
+        value = fread( pArrTimeProfile, sizeof( int ), 8, pFile );
+        value = fread( pHeader, sizeof( char ), 3, pFile );
 
         pNetwork = ABC_CALLOC( char, 3 + 4 * pHeader[ABC_EXACT_SOL_NGATES] + 2 + pHeader[ABC_EXACT_SOL_NVARS] );
         pNetwork[0] = pHeader[0];
         pNetwork[1] = pHeader[1];
         pNetwork[2] = pHeader[2];
 
-        fread( pNetwork + 3, sizeof( char ), 4 * pHeader[ABC_EXACT_SOL_NGATES] + 2 + pHeader[ABC_EXACT_SOL_NVARS], pFile );
+        value = fread( pNetwork + 3, sizeof( char ), 4 * pHeader[ABC_EXACT_SOL_NGATES] + 2 + pHeader[ABC_EXACT_SOL_NVARS], pFile );
 
         Ses_StoreAddEntry( pStore, pTruth, nVars, pArrTimeProfile, pNetwork );
     }
@@ -901,7 +902,7 @@ static char * Ses_ManExtractSolution( Ses_Man_t * pSes )
 {
     int nSol, h, i, j, k, l, aj, ak, d, nOp;
     char * pSol, * p;
-    int * pPerm; /* will be a 2d array [i][l] where is is gate id and l is PI id */
+    int * pPerm = NULL; /* will be a 2d array [i][l] where is is gate id and l is PI id */
 
     /* compute length of solution, for now all gates have 2 inputs */
     nSol = 3 + pSes->nGates * 4 + pSes->nSpecFunc * ( 2 + pSes->nSpecVars );
@@ -1654,8 +1655,8 @@ void Abc_ExactStoreTest( int fVerbose )
     Abc_Ntk_t * pNtk;
     Abc_Obj_t * pFanins[4];
     Vec_Ptr_t * vNames;
-    char pPerm[4];
-    int Cost;
+    //char pPerm[4];
+    //int Cost;
 
     pNtk = Abc_NtkAlloc( ABC_NTK_LOGIC, ABC_FUNC_SOP, 1 );
     pNtk->pName = Extra_UtilStrsav( "exact" );
