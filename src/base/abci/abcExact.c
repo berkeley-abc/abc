@@ -1500,10 +1500,23 @@ int Abc_ExactDelayCost( word * pTruth, int nVars, int * pArrTimeProfile, char * 
     abctime timeStart;
 
     /* some checks */
-    if ( nVars < 2 || nVars > 8 )
+    if ( nVars < 0 || nVars > 8 )
     {
         printf( "invalid truth table size %d\n", nVars );
         assert( 0 );
+    }
+
+    if ( nVars == 0 )
+    {
+        *Cost = 0;
+        return 0;
+    }
+
+    if ( nVars == 1 )
+    {
+        *Cost = 0;
+        pPerm[0] = (char)0;
+        return pArrTimeProfile[0];
     }
 
     /* statistics */
@@ -1566,7 +1579,7 @@ int Abc_ExactDelayCost( word * pTruth, int nVars, int * pArrTimeProfile, char * 
 }
 // this procedure returns a new node whose output in terms of the given fanins
 // has the smallest possible arrival time (in agreement with the above Abc_ExactDelayCost)
-Abc_Obj_t * Abc_ExactBuildNode( word * pTruth, int nVars, int * pArrTimeProfile, Abc_Obj_t ** pFanins )
+Abc_Obj_t * Abc_ExactBuildNode( word * pTruth, int nVars, int * pArrTimeProfile, Abc_Obj_t ** pFanins, Abc_Ntk_t * pNtk )
 {
     char * pSol;
     int i, j;
@@ -1576,7 +1589,10 @@ Abc_Obj_t * Abc_ExactBuildNode( word * pTruth, int nVars, int * pArrTimeProfile,
     char pGateTruth[5];
     char * pSopCover;
 
-    Abc_Ntk_t * pNtk = Abc_ObjNtk( pFanins[0] );
+    if ( nVars == 0 )
+        return (pTruth[0] & 1) ? Abc_NtkCreateNodeConst1(pNtk) : Abc_NtkCreateNodeConst0(pNtk);
+    if ( nVars == 1 )
+        return (pTruth[0] & 1) ? Abc_NtkCreateNodeInv(pNtk, pFanins[0]) : Abc_NtkCreateNodeBuf(pNtk, pFanins[0]);
 
     pSol = Ses_StoreGetEntry( s_pSesStore, pTruth, nVars, pArrTimeProfile );
     if ( !pSol )
@@ -1656,14 +1672,14 @@ void Abc_ExactStoreTest( int fVerbose )
 
     Abc_ExactStart( 10000, 1, fVerbose, NULL );
 
-    assert( !Abc_ExactBuildNode( pTruth, 4, pArrTimeProfile, pFanins ) );
+    assert( !Abc_ExactBuildNode( pTruth, 4, pArrTimeProfile, pFanins, pNtk ) );
 
     assert( Abc_ExactDelayCost( pTruth, 4, pArrTimeProfile, pPerm, &Cost, 12 ) == 1 );
 
-    assert( Abc_ExactBuildNode( pTruth, 4, pArrTimeProfile, pFanins ) );
+    assert( Abc_ExactBuildNode( pTruth, 4, pArrTimeProfile, pFanins, pNtk ) );
 
     (*pArrTimeProfile)++;
-    assert( !Abc_ExactBuildNode( pTruth, 4, pArrTimeProfile, pFanins ) );
+    assert( !Abc_ExactBuildNode( pTruth, 4, pArrTimeProfile, pFanins, pNtk ) );
     (*pArrTimeProfile)--;
 
     Abc_ExactStop( NULL );
