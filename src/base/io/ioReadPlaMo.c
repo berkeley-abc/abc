@@ -297,6 +297,32 @@ static inline void Mop_ManRemoveEmpty( Mop_Man_t * p )
 
 /**Function*************************************************************
 
+  Synopsis    [Count how many times each variable appears in the input parts.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Int_t * Mop_ManCollectStats( Mop_Man_t * p )
+{
+    int i, v, iCube, nVars = 32 * p->nWordsIn;
+    Vec_Int_t * vStats = Vec_IntStart( nVars );
+    Vec_IntForEachEntry( p->vCubes, iCube, i )
+    {
+        word * pCube = Mop_ManCubeIn(p, iCube);
+        int nOutLits = Mop_ManCountOnes( Mop_ManCubeOut(p, iCube), p->nWordsOut );
+        for ( v = 0; v < nVars; v++ )
+            if ( Abc_TtGetQua(pCube, v) )
+                Vec_IntAddToEntry( vStats, v, nOutLits );
+    }
+    return vStats;
+}
+
+/**Function*************************************************************
+
   Synopsis    []
 
   Description []
@@ -306,6 +332,20 @@ static inline void Mop_ManRemoveEmpty( Mop_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
+// knowing that cubes are distance-1, find the different input variable
+static inline int Mop_ManFindDiffVar( word * pCube1, word * pCube2, int nWords )
+{
+    int w, i;
+    for ( w = 0; w < nWords; w++ )
+    {
+        word Xor = pCube1[w] ^ pCube2[w];
+        for ( i = 0; i < 32; i++ )
+            if ( (Xor >> (i << 1)) & 0x3 )
+                return w * 32 + i;
+    }
+    assert( 0 );
+    return -1;
+}
 // check containment of input parts of two cubes
 static inline int Mop_ManCheckDist1( word * pCube1, word * pCube2, int nWords )
 {
@@ -439,21 +479,30 @@ Vec_Int_t * Mop_ManFindDist1Pairs( Mop_Man_t * p, Vec_Int_t * vGroup )
     return vPairs;
 }
 // merge distance-1 with identical output part
-int Mop_ManMergeDist1Pairs( Mop_Man_t * p, Vec_Int_t * vGroup, Vec_Int_t * vGroupPrev )
+int Mop_ManMergeDist1Pairs( Mop_Man_t * p, Vec_Int_t * vGroup, Vec_Int_t * vGroupPrev, Vec_Int_t * vStats, int nLimit )
 {
     Vec_Int_t * vPairs    = Mop_ManFindDist1Pairs( p, vGroup );
     Vec_Int_t * vPairsNew = Mop_ManCompatiblePairs( vPairs, Vec_IntSize(vGroup) );
-    int w, i, c1, c2, nCubes = Vec_IntSize(vGroup) + Vec_IntSize(vGroupPrev);
+    int nCubes = Vec_IntSize(vGroup) + Vec_IntSize(vGroupPrev);
+    int w, i, c1, c2, iCubeNew, iVar;
     // move cubes to the previous group
+    word * pCube, * pCube1, * pCube2;
+    Vec_Int_t * vToFree = Vec_IntAlloc( Vec_IntSize(vPairsNew) );
     Vec_IntForEachEntryDouble( vPairsNew, c1, c2, i )
     {
-        int iCubeNew  = Vec_IntPop( p->vFree );
-
-        word * pCube  = Mop_ManCubeIn( p, iCubeNew );
-        word * pCube1 = Mop_ManCubeIn( p, Vec_IntEntry(vGroup, c1) );
-        word * pCube2 = Mop_ManCubeIn( p, Vec_IntEntry(vGroup, c2) );
-
+        pCube1 = Mop_ManCubeIn( p, Vec_IntEntry(vGroup, c1) );
+        pCube2 = Mop_ManCubeIn( p, Vec_IntEntry(vGroup, c2) );
         assert( Mop_ManCheckDist1(pCube1, pCube2, p->nWordsIn) );
+
+        // skip those cubes that have frequently appearing variables
+        iVar = Mop_ManFindDiffVar( pCube1, pCube2, p->nWordsIn );
+        if ( Vec_IntEntry( vStats, iVar ) > nLimit )
+            continue;
+        Vec_IntPush( vToFree, c1 );
+        Vec_IntPush( vToFree, c2 );
+
+        iCubeNew  = Vec_IntPop( p->vFree );
+        pCube  = Mop_ManCubeIn( p, iCubeNew );
         for ( w = 0; w < p->nWordsIn; w++ )
             pCube[w] = pCube1[w] & pCube2[w];
 
@@ -467,13 +516,15 @@ int Mop_ManMergeDist1Pairs( Mop_Man_t * p, Vec_Int_t * vGroup, Vec_Int_t * vGrou
 
         Vec_IntPush( vGroupPrev, iCubeNew );
     }
-    Vec_IntForEachEntry( vPairsNew, c1, i )
+//    Vec_IntForEachEntry( vPairsNew, c1, i )
+    Vec_IntForEachEntry( vToFree, c1, i )
     {
         if ( Vec_IntEntry(vGroup, c1) == -1 )
             continue;
         Vec_IntPush( p->vFree, Vec_IntEntry(vGroup, c1) );
         Vec_IntWriteEntry( vGroup, c1, -1 );
     }
+    Vec_IntFree( vToFree );
     if ( Vec_IntSize(vPairsNew) > 0 )
         Map_ManGroupCompact( vGroup );
     Vec_IntFree( vPairs );
@@ -529,7 +580,7 @@ int Mop_ManMergeDist1Pairs2( Mop_Man_t * p, Vec_Int_t * vGroup, Vec_Int_t * vGro
         Map_ManGroupCompact( vGroup );
     return Count;
 }
-int Mop_ManMergeDist1All( Mop_Man_t * p, Vec_Wec_t * vGroups )
+int Mop_ManMergeDist1All( Mop_Man_t * p, Vec_Wec_t * vGroups, Vec_Int_t * vStats, int nLimit )
 {
     Vec_Int_t * vGroup;
     int i, nEqual, nReduce, Count = 0;
@@ -544,7 +595,7 @@ int Mop_ManMergeDist1All( Mop_Man_t * p, Vec_Wec_t * vGroups )
             return -1;
         }
         nEqual  = Mop_ManRemoveIdentical( p, vGroup );
-        nReduce = Mop_ManMergeDist1Pairs( p, vGroup, Vec_WecEntry(vGroups, i-1) );
+        nReduce = Mop_ManMergeDist1Pairs( p, vGroup, Vec_WecEntry(vGroups, i-1), vStats, nLimit );
         //Mop_ManMergeDist1Pairs2( p, vGroup, Vec_WecEntry(vGroups, i-1) );
         Count  += nEqual + nReduce;
         //printf( "Group %3d : Equal =%5d. Reduce =%5d.\n", i, nEqual, nReduce );
@@ -599,16 +650,20 @@ void Mop_ManReduce2( Mop_Man_t * p )
 {
     abctime clk = Abc_Clock();
     int nCubes  = Vec_IntSize(p->vCubes);
+    Vec_Int_t * vStats = Mop_ManCollectStats( p );
     Vec_Wec_t * vGroups = Mop_ManCreateGroups( p );
+    int nLimit    = ABC_INFINITY; // 5 * Vec_IntSum(vStats) / Vec_IntSize(vStats) + 1;
     int nOutLits  = Mop_ManCountOutputLits( p );
     int Count1    = Mop_ManMergeContainAll( p, vGroups );
-    int Count2    = Mop_ManMergeDist1All( p, vGroups );
+    int Count2    = Mop_ManMergeDist1All( p, vGroups, vStats, nLimit );
     int Count3    = Mop_ManMergeContainAll( p, vGroups );
-    int Count4    = Mop_ManMergeDist1All( p, vGroups );
+    int Count4    = Mop_ManMergeDist1All( p, vGroups, vStats, nLimit );
     int Count5    = Mop_ManMergeContainAll( p, vGroups );
     int Removed   = Mop_ManUnCreateGroups( p, vGroups );
     int nOutLits2 = Mop_ManCountOutputLits( p );
     Vec_WecFree( vGroups );
+//Vec_IntPrint( vStats );
+    Vec_IntFree( vStats );
     assert( Removed == Count1 + Count2 + Count3 );
     // report
     printf( "Cubes: %d -> %d.  C = %d.  M = %d.  C = %d.  M = %d.  C = %d.  Output lits: %d -> %d.   ", 
