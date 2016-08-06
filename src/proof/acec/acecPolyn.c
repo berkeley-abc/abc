@@ -64,26 +64,6 @@ struct Pln_Man_t_
 
 /**Function*************************************************************
 
-  Synopsis    []
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-Vec_Int_t * Pln_ManSimpleOrder( Gia_Man_t * p )
-{
-    Vec_Int_t * vOrder; int Id;
-    vOrder = Vec_IntStart( Gia_ManObjNum(p) );
-    Gia_ManForEachAndId( p, Id )
-        Vec_IntWriteEntry( vOrder, Id, Id );
-    return vOrder;
-}
-
-/**Function*************************************************************
-
   Synopsis    [Computation manager.]
 
   Description []
@@ -108,7 +88,7 @@ Pln_Man_t * Pln_ManAlloc( Gia_Man_t * pGia, Vec_Int_t * vOrder )
     p->vTempM[1] = Vec_IntAlloc( 100 );
     p->vTempM[2] = Vec_IntAlloc( 100 );
     p->vTempM[3] = Vec_IntAlloc( 100 );
-    p->vOrder    = vOrder ? vOrder : Vec_IntStartNatural( Gia_ManObjNum(pGia) );
+    p->vOrder    = vOrder ? Vec_IntDup(vOrder) : Vec_IntStartNatural( Gia_ManObjNum(pGia) );
     assert( Vec_IntSize(p->vOrder) == Gia_ManObjNum(pGia) );
     Vec_QueSetPriority( p->vQue, Vec_FltArrayP(p->vCounts) );
     // add 0-constant and 1-monomial
@@ -131,36 +111,52 @@ void Pln_ManStop( Pln_Man_t * p )
     Vec_IntFree( p->vTempM[1] );
     Vec_IntFree( p->vTempM[2] );
     Vec_IntFree( p->vTempM[3] );
-    //Vec_IntFree( p->vOrder );
+    Vec_IntFree( p->vOrder );
     ABC_FREE( p );
+}
+int Pln_ManCompare3( int * pData0, int * pData1 )
+{
+    if ( pData0[0] < pData1[0] ) return -1;
+    if ( pData0[0] > pData1[0] ) return  1;
+    if ( pData0[1] < pData1[1] ) return -1;
+    if ( pData0[1] > pData1[1] ) return  1;
+    return 0;
 }
 void Pln_ManPrintFinal( Pln_Man_t * p, int fVerbose, int fVeryVerbose )
 {
     Vec_Int_t * vArray;
-    int k, Entry, iMono, iConst, Count = 0;
+    int i, k, Entry, iMono, iConst;
+    // collect triples
+    Vec_Int_t * vPairs = Vec_IntAlloc( 100 );
     Vec_IntForEachEntry( p->vCoefs, iConst, iMono )
     {
         if ( iConst == 0 ) 
             continue;
-
-        Count++;
-
-        if ( !fVerbose )
+        vArray = Hsh_VecReadEntry( p->pHashC, iConst );
+        Vec_IntPush( vPairs, Vec_IntEntry(vArray, 0) );
+        vArray = Hsh_VecReadEntry( p->pHashM, iMono );
+        Vec_IntPush( vPairs, Vec_IntSize(vArray) ? Vec_IntEntry(vArray, 0) : 0 );
+        Vec_IntPushTwo( vPairs, iConst, iMono );
+    }
+    // sort triples
+    qsort( Vec_IntArray(vPairs), Vec_IntSize(vPairs)/4, 16, (int (*)(const void *, const void *))Pln_ManCompare3 );
+    // print
+    if ( fVerbose )
+    Vec_IntForEachEntryDouble( vPairs, iConst, iMono, i )
+    {
+        if ( i % 4 == 0 )
             continue;
-
-        if ( Count > 25 )
-            continue;
-
+        printf( "%-6d : ", i/4 );
         vArray = Hsh_VecReadEntry( p->pHashC, iConst );
         Vec_IntForEachEntry( vArray, Entry, k )
             printf( "%s%d", Entry < 0 ? "-" : "+", (1 << (Abc_AbsInt(Entry)-1)) );
-
         vArray = Hsh_VecReadEntry( p->pHashM, iMono );
         Vec_IntForEachEntry( vArray, Entry, k )
             printf( " * %d", Entry );
         printf( "\n" );
     }
-    printf( "HashC = %d. HashM = %d.  Total = %d. Used = %d.\n", Hsh_VecSize(p->pHashC), Hsh_VecSize(p->pHashM), p->nBuilds, Count );
+    printf( "HashC = %d. HashM = %d.  Total = %d. Used = %d.  ", Hsh_VecSize(p->pHashC), Hsh_VecSize(p->pHashM), p->nBuilds, Vec_IntSize(vPairs)/4 );
+    Vec_IntFree( vPairs );
 }
 
 /**Function*************************************************************
@@ -400,7 +396,7 @@ void Gia_PolynBuild( Gia_Man_t * pGia, Vec_Int_t * vOrder, int fSigned, int fVer
             else
                 Vec_BitSetEntry( vPres, LevCur, 1 );
 
-            if ( fVerbose )
+            if ( fVeryVerbose )
                 printf( "Line%5d   Iter%10d : Obj =%6d.  Order =%6d.  HashC =%6d. HashM =%10d.  Total =%10d. Used =%10d.\n", 
                     Line++, Iter, LevCur, Vec_IntEntry(p->vOrder, LevCur), Hsh_VecSize(p->pHashC), Hsh_VecSize(p->pHashM), p->nBuilds, p->nUsed );
         }
@@ -409,11 +405,34 @@ void Gia_PolynBuild( Gia_Man_t * pGia, Vec_Int_t * vOrder, int fSigned, int fVer
         Gia_PolynBuildOne( p, iMono );
         //clk2 += Abc_Clock() - temp;
     }
-    Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     //Abc_PrintTime( 1, "Time2", clk2 );
     Pln_ManPrintFinal( p, fVerbose, fVeryVerbose );
+    Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     Pln_ManStop( p );
     Vec_BitFree( vPres );
+}
+
+
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_PolynBuild2( Gia_Man_t * pGia, int fSigned, int fVerbose, int fVeryVerbose )
+{
+    Hsh_VecMan_t * pHashC = Hsh_VecManStart( 1000 );    // hash table for constants
+    Hsh_VecMan_t * pHashM = Hsh_VecManStart( 1000 );    // hash table for monomials
+    Vec_Wec_t * vLit2Mono = Vec_WecStart( Gia_ManObjNum(pGia) * 2 );
+
+    Hsh_VecManStop( pHashC );
+    Hsh_VecManStop( pHashM );
 }
 
 

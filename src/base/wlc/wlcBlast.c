@@ -635,7 +635,7 @@ void Wlc_IntInsert( Vec_Int_t * vProd, Vec_Int_t * vLevel, int Node, int Level )
     Vec_IntInsert( vProd,  i + 1, Node  );
     Vec_IntInsert( vLevel, i + 1, Level );
 }
-void Wlc_BlastReduceMatrix( Gia_Man_t * pNew, Vec_Wec_t * vProds, Vec_Wec_t * vLevels, Vec_Int_t * vRes, int nSizeMax )
+void Wlc_BlastReduceMatrix( Gia_Man_t * pNew, Vec_Wec_t * vProds, Vec_Wec_t * vLevels, Vec_Int_t * vRes )
 {
     Vec_Int_t * vLevel, * vProd;
     int i, NodeS, NodeC, LevelS, LevelC, Node1, Node2, Node3, Level1, Level2, Level3;
@@ -691,7 +691,9 @@ void Wlc_BlastReduceMatrix( Gia_Man_t * pNew, Vec_Wec_t * vProds, Vec_Wec_t * vL
         Vec_IntPush( vRes,   Vec_IntEntry(vProd, 0) );
         Vec_IntPush( vLevel, Vec_IntEntry(vProd, 1) );
     }
-    Wlc_BlastAdder( pNew, Vec_IntArray(vRes), Vec_IntArray(vLevel), nSizeMax );
+    Vec_IntPush( vRes,   0 );
+    Vec_IntPush( vLevel, 0 );
+    Wlc_BlastAdder( pNew, Vec_IntArray(vRes), Vec_IntArray(vLevel), Vec_IntSize(vRes) );
 }
 void Wlc_BlastMultiplier3( Gia_Man_t * pNew, int * pArgA, int * pArgB, int nArgA, int nArgB, Vec_Int_t * vRes )
 {
@@ -705,7 +707,7 @@ void Wlc_BlastMultiplier3( Gia_Man_t * pNew, int * pArgA, int * pArgB, int nArgA
             Vec_WecPush( vLevels, i+k, 0 );
         }
 
-    Wlc_BlastReduceMatrix( pNew, vProds, vLevels, vRes, nArgA + nArgB );
+    Wlc_BlastReduceMatrix( pNew, vProds, vLevels, vRes );
 
     Vec_WecFree( vProds );
     Vec_WecFree( vLevels );
@@ -730,15 +732,15 @@ void Wlc_BlastSquare( Gia_Man_t * pNew, int * pNum, int nNum, Vec_Int_t * vTmp, 
             }
         }
 
-    Wlc_BlastReduceMatrix( pNew, vProds, vLevels, vRes, 2*nNum );
+    Wlc_BlastReduceMatrix( pNew, vProds, vLevels, vRes );
 
     Vec_WecFree( vProds );
     Vec_WecFree( vLevels );
 }
 void Wlc_BlastBooth( Gia_Man_t * pNew, int * pArgA, int * pArgB, int nArgA, int nArgB, Vec_Int_t * vRes, int fSigned )
 {
-    Vec_Wec_t * vProds  = Vec_WecStart( nArgA + nArgB );
-    Vec_Wec_t * vLevels = Vec_WecStart( nArgA + nArgB );
+    Vec_Wec_t * vProds  = Vec_WecStart( nArgA + nArgB + 3 );
+    Vec_Wec_t * vLevels = Vec_WecStart( nArgA + nArgB + 3 );
     int FillA = fSigned ? pArgA[nArgA-1] : 0;
     int FillB = fSigned ? pArgB[nArgB-1] : 0;
     int i, k, Sign;
@@ -769,6 +771,8 @@ void Wlc_BlastBooth( Gia_Man_t * pNew, int * pArgA, int * pArgB, int nArgA, int 
             
             pp = Gia_ManHashXor( pNew, Part, Neg );
 
+            if ( pp == 0 )
+                continue;
             Vec_WecPush( vProds,  k+i, pp );
             Vec_WecPush( vLevels, k+i, 0 );
         }
@@ -799,9 +803,9 @@ void Wlc_BlastBooth( Gia_Man_t * pNew, int * pArgA, int * pArgB, int nArgA, int 
         Vec_WecPush( vProds,  k, Neg );
         Vec_WecPush( vLevels, k, 0 );
     }
-//    Vec_WecPrint( vProds, 0 );
+    //Vec_WecPrint( vProds, 0 );
 
-    Wlc_BlastReduceMatrix( pNew, vProds, vLevels, vRes, nArgA + nArgB );
+    Wlc_BlastReduceMatrix( pNew, vProds, vLevels, vRes );
 
     Vec_WecFree( vProds );
     Vec_WecFree( vLevels );
@@ -820,7 +824,7 @@ void Wlc_BlastBooth( Gia_Man_t * pNew, int * pArgA, int * pArgB, int nArgA, int 
   SeeAlso     []
 
 ***********************************************************************/
-Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Vec_Int_t * vBoxIds, int iOutput, int nOutputRange, int fGiaSimple, int fAddOutputs )
+Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Vec_Int_t * vBoxIds, int iOutput, int nOutputRange, int fGiaSimple, int fAddOutputs, int fBooth )
 {
     int fVerbose = 0;
     int fUseOldMultiplierBlasting = 0;
@@ -1229,10 +1233,12 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Vec_Int_t * vBoxIds, int iOutput, in
                 int * pArg1 = Wlc_VecLoadFanins( vTemp1, pFans1, nRange1, nRangeMax, fSigned );
                 if ( Wlc_NtkCountConstBits(pArg0, nRangeMax) < Wlc_NtkCountConstBits(pArg1, nRangeMax) )
                     ABC_SWAP( int *, pArg0, pArg1 );
-                Wlc_BlastMultiplier( pNew, pArg0, pArg1, nRangeMax, nRangeMax, vTemp2, vRes, fSigned );
-                //Wlc_BlastBooth( pNew, pArg0, pArg1, nRange0, nRange1, vRes, fSigned );
+                if ( fBooth )
+                    Wlc_BlastBooth( pNew, pArg0, pArg1, nRange0, nRange1, vRes, fSigned );
+                else
+                    Wlc_BlastMultiplier( pNew, pArg0, pArg1, nRangeMax, nRangeMax, vTemp2, vRes, fSigned );
                 //Wlc_BlastMultiplier3( pNew, pArg0, pArg1, nRange0, nRange1, vRes );
-                if ( nRange > nRangeMax + nRangeMax )
+                if ( nRange > Vec_IntSize(vRes) )
                     Vec_IntFillExtra( vRes, nRange, fSigned ? Vec_IntEntryLast(vRes) : 0 );
                 else
                     Vec_IntShrink( vRes, nRange );

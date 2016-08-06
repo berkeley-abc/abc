@@ -40126,7 +40126,7 @@ usage:
 int Abc_CommandAbc9Polyn( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Vec_Int_t * vOrder = NULL;
-    int c, fSimple = 0, fSigned = 0, fVerbose = 0, fVeryVerbose = 0;
+    int c, fSimple = 1, fSigned = 0, fVerbose = 0, fVeryVerbose = 0;
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "asvwh" ) ) != EOF )
     {

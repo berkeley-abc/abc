@@ -5355,6 +5355,10 @@ SOURCE=.\src\proof\acec\acecCore.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\proof\acec\acecCover.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\proof\acec\acecFadds.c
 # End Source File
 # Begin Source File
