@@ -148,6 +148,11 @@ static inline void minWord3(word* a, word* b, word* minimal, int nVars)
     if (memCompare(b, minimal, nVars) <= 0)
         Kit_TruthCopy_64bit( minimal, b, nVars );
 }
+static inline void minWord1(word* a, word* minimal, int nVars)
+{
+    if (memCompare(a, minimal, nVars) <= 0)
+        Kit_TruthCopy_64bit( minimal, a, nVars );
+}
 void simpleMinimal(word* x, word* pAux,word* minimal, permInfo* pi, int nVars)
 {
     int i,j=0;
@@ -179,5 +184,119 @@ void simpleMinimal(word* x, word* pAux,word* minimal, permInfo* pi, int nVars)
     Kit_TruthCopy_64bit( x, minimal, nVars );    
 }
 
+/**
+ * pGroups: we assume that the variables are merged into adjacent groups,
+ *          the size of each group is stored in pGroups
+ * nGroups: the number of groups
+ *
+ * pis:     we compute all permInfos from 0 to nVars (incl.)
+ */
+void simpleMinimalGroups(word* x, word* pAux, word* minimal, int* pGroups, int nGroups, permInfo** pis, int nVars, int fFlipOutput, int fFlipInput)
+{
+    /* variables */
+    int i, j, o, nn;
+    permInfo* pi;
+
+    /* reorder groups and calculate group offsets */
+    int offset[nGroups];
+    o = 0;
+    j = 0;
+
+    for ( i = 0; i < nGroups; ++i )
+    {
+        offset[j] = o;
+        o += pGroups[j];
+        ++j;
+    }
+
+    if ( fFlipOutput )
+    {
+        /* keep regular and inverted version of x */
+        Kit_TruthCopy_64bit( pAux, x, nVars );
+        Kit_TruthNot_64bit( x, nVars );
+
+        minWord(x, pAux, minimal, nVars);
+    }
+    else
+    {
+        Kit_TruthCopy_64bit( minimal, x, nVars );
+    }
+
+    /* iterate through all combinations of pGroups using mixed radix enumeration */
+    nn = ( nGroups << 1 ) + 1;
+    int a[nn];
+    int c[nn];
+    int m[nn];
+
+    /* fill a and m arrays */
+    m[0] = 2;
+    for ( i = 1; i <= nGroups; ++i ) { m[i]           = pis[pGroups[i - 1]]->totalFlips + 1; }
+    for ( i = 1; i <= nGroups; ++i ) { m[nGroups + i] = pis[pGroups[i - 1]]->totalSwaps + 1; }
+    for ( i = 0; i < nn; ++i )       { a[i] = c[i] = 0; }
+
+    while ( 1 )
+    {
+        /* consider all flips */
+        for ( i = 1; i <= nGroups; ++i )
+        {
+            if ( !c[i] ) { continue; }
+            if ( !fFlipInput && pGroups[i - 1] == 1 ) { continue; }
+
+            pi = pis[pGroups[i - 1]];
+            j = a[i] == 0 ? 0 : pi->totalFlips - a[i];
+
+            Kit_TruthChangePhase_64bit(x, nVars, offset[i - 1] + pi->flipArray[j]);
+            if ( fFlipOutput )
+            {
+                Kit_TruthChangePhase_64bit(pAux, nVars, offset[i - 1] + pi->flipArray[j]);
+                minWord3(x, pAux, minimal, nVars);
+            }
+            else
+            {
+                minWord1(x, minimal, nVars);
+            }
+        }
+
+        /* consider all swaps */
+        for ( i = 1; i <= nGroups; ++i )
+        {
+            if ( !c[nGroups + i] ) { continue; }
+            if ( pGroups[i - 1] == 1 ) { continue; }
+
+            pi = pis[pGroups[i - 1]];
+            if ( a[nGroups + i] == pi->totalSwaps )
+            {
+                j = 0;
+            }
+            else
+            {
+                j = pi->swapArray[pi->totalSwaps - a[nGroups + i] - 1];
+            }
+            Kit_TruthSwapAdjacentVars_64bit(x, nVars, offset[i - 1] + j);
+            if ( fFlipOutput )
+            {
+                Kit_TruthSwapAdjacentVars_64bit(pAux, nVars, offset[i - 1] + j);
+                minWord3(x, pAux, minimal, nVars);
+            }
+            else
+            {
+                minWord1(x, minimal, nVars);
+            }
+        }
+
+        /* update a's */
+        memset(c, 0, sizeof(int) * nn);
+        j = nn - 1;
+        while ( a[j] == m[j] - 1 ) { c[j] = 1; a[j--] = 0; }
+
+        /* done? */
+        if ( j == 0 ) { break; }
+
+        c[j] = 1;
+        a[j]++;
+    }
+
+    Kit_TruthCopy_64bit( x, minimal, nVars );
+}
 
 ABC_NAMESPACE_IMPL_END

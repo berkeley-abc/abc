@@ -21,6 +21,7 @@
 #include "dauInt.h"
 #include "misc/util/utilTruth.h"
 #include "misc/vec/vecMem.h"
+#include "bool/lucky/lucky.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -1053,12 +1054,31 @@ unsigned Abc_TtCanonicizePhase( word * pTruth, int nVars )
   SeeAlso     []
 
 ***********************************************************************/
-#define TT_NUM_TABLES 4
+#define TT_NUM_TABLES 5
 
 struct Abc_TtMan_t_
 {
     Vec_Mem_t *   vTtMem[TT_NUM_TABLES];   // truth table memory and hash tables
+    Vec_Int_t **  vRepres;                 // pointers to the representatives from the last hierarchical level
 };
+
+Vec_Int_t ** Abc_TtRepresStart() {
+    Vec_Int_t ** vRepres = ABC_ALLOC(Vec_Int_t *, TT_NUM_TABLES - 1);
+    int i;
+    // create a list of pointers for each level of the hierarchy
+    for (i = 0; i < (TT_NUM_TABLES - 1); i++) {
+        vRepres[i] = Vec_IntAlloc(1);
+    }
+    return vRepres;
+}
+
+void Abc_TtRepresStop(Vec_Int_t ** vRepres) {
+    int i;
+    for (i = 0; i < (TT_NUM_TABLES - 1); i++) {
+        Vec_IntFree(vRepres[i]);
+    }
+    ABC_FREE( vRepres );
+}
 
 Abc_TtMan_t * Abc_TtManStart( int nVars )
 {
@@ -1069,6 +1089,7 @@ Abc_TtMan_t * Abc_TtManStart( int nVars )
         p->vTtMem[i] = Vec_MemAlloc( nWords, 12 );
         Vec_MemHashAlloc( p->vTtMem[i], 10000 );
     }
+    p->vRepres = Abc_TtRepresStart();
     return p;
 }
 void Abc_TtManStop( Abc_TtMan_t * p )
@@ -1079,6 +1100,7 @@ void Abc_TtManStop( Abc_TtMan_t * p )
         Vec_MemHashFree( p->vTtMem[i] );
         Vec_MemFreeP( &p->vTtMem[i] );
     }
+    Abc_TtRepresStop(p->vRepres);
     ABC_FREE( p );
 }
 int Abc_TtManNumClasses( Abc_TtMan_t * p )
@@ -1086,7 +1108,7 @@ int Abc_TtManNumClasses( Abc_TtMan_t * p )
     return Vec_MemEntryNum( p->vTtMem[TT_NUM_TABLES-1] );
 }
 
-unsigned Abc_TtCanonicizeHie( Abc_TtMan_t * p, word * pTruthInit, int nVars, char * pCanonPerm )
+unsigned Abc_TtCanonicizeHie( Abc_TtMan_t * p, word * pTruthInit, int nVars, char * pCanonPerm, int fExact )
 {
     int fNaive = 1;
     int pStore[17];
@@ -1095,6 +1117,9 @@ unsigned Abc_TtCanonicizeHie( Abc_TtMan_t * p, word * pTruthInit, int nVars, cha
     int nOnes, nWords = Abc_TtWordNum( nVars );
     int i, k, truthId;
     int * pSpot;
+    int vTruthId[TT_NUM_TABLES-1];
+    int fLevelFound;
+    word * pRepTruth;
     assert( nVars <= 16 );
 
     Abc_TtCopy( pTruth, pTruthInit, nWords, 0 );
@@ -1112,9 +1137,11 @@ unsigned Abc_TtCanonicizeHie( Abc_TtMan_t * p, word * pTruthInit, int nVars, cha
     }
     // check cache
     pSpot = Vec_MemHashLookup( p->vTtMem[0], pTruth );
-    if ( *pSpot != -1 )
-        return 0;
-    truthId = Vec_MemHashInsert( p->vTtMem[0], pTruth );
+    if ( *pSpot != -1 ) {
+        fLevelFound = 0;
+        goto end_repres;
+    }
+    vTruthId[0] = Vec_MemHashInsert( p->vTtMem[0], pTruth );
 
     // normalize phase
     Abc_TtCountOnesInCofs( pTruth, nVars, pStore );
@@ -1129,9 +1156,11 @@ unsigned Abc_TtCanonicizeHie( Abc_TtMan_t * p, word * pTruthInit, int nVars, cha
     }
     // check cache
     pSpot = Vec_MemHashLookup( p->vTtMem[1], pTruth );
-    if ( *pSpot != -1 )
-        return 0;
-    truthId = Vec_MemHashInsert( p->vTtMem[1], pTruth );
+    if ( *pSpot != -1 ) {
+        fLevelFound = 1;
+        goto end_repres;
+    }
+    vTruthId[1] = Vec_MemHashInsert( p->vTtMem[1], pTruth );
 
     // normalize permutation
     {
@@ -1156,9 +1185,11 @@ unsigned Abc_TtCanonicizeHie( Abc_TtMan_t * p, word * pTruthInit, int nVars, cha
     }
     // check cache
     pSpot = Vec_MemHashLookup( p->vTtMem[2], pTruth );
-    if ( *pSpot != -1 )
-        return 0;
-    truthId = Vec_MemHashInsert( p->vTtMem[2], pTruth );
+    if ( *pSpot != -1 ) {
+        fLevelFound = 2;
+        goto end_repres;
+    }
+    vTruthId[2] = Vec_MemHashInsert( p->vTtMem[2], pTruth );
 
     // iterate TT permutations for tied variables
     for ( k = 0; k < 5; k++ )
@@ -1178,9 +1209,69 @@ unsigned Abc_TtCanonicizeHie( Abc_TtMan_t * p, word * pTruthInit, int nVars, cha
     }
     // check cache
     pSpot = Vec_MemHashLookup( p->vTtMem[3], pTruth );
-    if ( *pSpot != -1 )
-        return 0;
-    truthId = Vec_MemHashInsert( p->vTtMem[3], pTruth );
+    if ( *pSpot != -1 ) {
+        fLevelFound = 3;
+        goto end_repres;
+    }
+    vTruthId[3] = Vec_MemHashInsert( p->vTtMem[3], pTruth );
+
+    // perform exact NPN using groups
+    if ( fExact ) {
+        extern void simpleMinimalGroups(word* x, word* pAux, word* minimal, int* pGroups, int nGroups, permInfo** pis, int nVars, int fFlipOutput, int fFlipInput);
+        word pAuxWord[1024], pAuxWord1[1024];
+        int pGroups[nVars];
+        int nGroups = 0;
+        // get groups
+        pGroups[0] = 0;
+        for (i = 0; i < nVars - 1; i++) {
+            if (pStore[i] == pStore[i + 1]) {
+                pGroups[nGroups]++;
+            } else {
+                pGroups[nGroups]++;
+                nGroups++;
+                pGroups[nGroups] = 0;
+            }
+        }
+        pGroups[nGroups]++;
+        nGroups++;
+
+        // compute permInfo from 0 to nVars  (incl.)
+        permInfo * pis[nVars+1];
+        for (i = 0; i <= nVars; i++) {
+            pis[i] = setPermInfoPtr(i);
+        }
+
+        // do the exact matching
+        if (nOnes == nWords * 32) /* balanced output */
+            simpleMinimalGroups(pTruth, pAuxWord, pAuxWord1, pGroups, nGroups, pis, nVars, 1, 1);
+        else if (pStore[0] != pStore[1] && pStore[0] == (nOnes - pStore[0])) /* balanced singleton input */
+            simpleMinimalGroups(pTruth, pAuxWord, pAuxWord1, pGroups, nGroups, pis, nVars, 0, 1);
+        else
+            simpleMinimalGroups(pTruth, pAuxWord, pAuxWord1, pGroups, nGroups, pis, nVars, 0, 0);
+
+        // cleanup
+        for (i = 0; i <= nVars; i++) {
+            freePermInfoPtr(pis[i]);
+        }
+    }
+    // check cache
+    pSpot = Vec_MemHashLookup( p->vTtMem[4], pTruth );
+    fLevelFound = 4;
+    if ( *pSpot != -1 ) {
+        goto end_repres;
+    }
+    *pSpot = Vec_MemHashInsert( p->vTtMem[4], pTruth );
+
+end_repres:
+    // return the class representative
+    if(fLevelFound < (TT_NUM_TABLES - 1))
+        truthId = Vec_IntEntry(p->vRepres[fLevelFound], *pSpot);
+    else truthId = *pSpot;
+    for(i = 0; i < fLevelFound; i++)
+        Vec_IntSetEntry(p->vRepres[i], vTruthId[i], truthId);
+    pRepTruth = Vec_MemReadEntry(p->vTtMem[TT_NUM_TABLES-1], truthId);
+    Abc_TtCopy( pTruthInit, pRepTruth, nWords, 0 );
+
     return 0;
 }
 
