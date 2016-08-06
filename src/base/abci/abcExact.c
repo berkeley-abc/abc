@@ -1655,8 +1655,8 @@ void Abc_ExactStoreTest( int fVerbose )
     Abc_Ntk_t * pNtk;
     Abc_Obj_t * pFanins[4];
     Vec_Ptr_t * vNames;
-    //char pPerm[4];
-    //int Cost;
+    char pPerm[4];
+    int Cost;
 
     pNtk = Abc_NtkAlloc( ABC_NTK_LOGIC, ABC_FUNC_SOP, 1 );
     pNtk->pName = Extra_UtilStrsav( "exact" );
