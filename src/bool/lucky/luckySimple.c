@@ -196,9 +196,10 @@ void simpleMinimalGroups(word* x, word* pAux, word* minimal, int* pGroups, int n
     /* variables */
     int i, j, o, nn;
     permInfo* pi;
+    int * a, * c, * m;
 
     /* reorder groups and calculate group offsets */
-    int offset[nGroups];
+    int * offset = ABC_ALLOC( int, nGroups );
     o = 0;
     j = 0;
 
@@ -224,9 +225,9 @@ void simpleMinimalGroups(word* x, word* pAux, word* minimal, int* pGroups, int n
 
     /* iterate through all combinations of pGroups using mixed radix enumeration */
     nn = ( nGroups << 1 ) + 1;
-    int a[nn];
-    int c[nn];
-    int m[nn];
+    a = ABC_ALLOC( int, nn );
+    c = ABC_ALLOC( int, nn );
+    m = ABC_ALLOC( int, nn );
 
     /* fill a and m arrays */
     m[0] = 2;
@@ -295,6 +296,10 @@ void simpleMinimalGroups(word* x, word* pAux, word* minimal, int* pGroups, int n
         c[j] = 1;
         a[j]++;
     }
+    ABC_FREE( offset );
+    ABC_FREE( a );
+    ABC_FREE( c );
+    ABC_FREE( m );
 
     Kit_TruthCopy_64bit( x, minimal, nVars );
 }

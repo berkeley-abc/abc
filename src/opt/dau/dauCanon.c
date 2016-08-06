@@ -1219,8 +1219,9 @@ unsigned Abc_TtCanonicizeHie( Abc_TtMan_t * p, word * pTruthInit, int nVars, cha
     if ( fExact ) {
         extern void simpleMinimalGroups(word* x, word* pAux, word* minimal, int* pGroups, int nGroups, permInfo** pis, int nVars, int fFlipOutput, int fFlipInput);
         word pAuxWord[1024], pAuxWord1[1024];
-        int pGroups[nVars];
+        int pGroups[16];
         int nGroups = 0;
+        permInfo * pis[17];
         // get groups
         pGroups[0] = 0;
         for (i = 0; i < nVars - 1; i++) {
@@ -1236,7 +1237,6 @@ unsigned Abc_TtCanonicizeHie( Abc_TtMan_t * p, word * pTruthInit, int nVars, cha
         nGroups++;
 
         // compute permInfo from 0 to nVars  (incl.)
-        permInfo * pis[nVars+1];
         for (i = 0; i <= nVars; i++) {
             pis[i] = setPermInfoPtr(i);
         }
