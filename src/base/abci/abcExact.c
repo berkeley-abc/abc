@@ -485,7 +485,7 @@ static inline Ses_Man_t * Ses_ManAlloc( word * pTruth, int nVars, int nFunc, int
     p->fVerbose        = fVerbose;
     p->fVeryVerbose    = 0;
     p->fExtractVerbose = 0;
-    p->fSatVerbose     = 1;
+    p->fSatVerbose     = 0;
 
     return p;
 }
