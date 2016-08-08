@@ -19,7 +19,7 @@
 ***********************************************************************/
 
 #include "if.h"
-
+#include "misc/extra/extra.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -537,7 +537,7 @@ void If_ObjPerformMappingChoice( If_Man_t * p, If_Obj_t * pObj, int Mode, int fP
 ***********************************************************************/
 int If_ManPerformMappingRound( If_Man_t * p, int nCutsUsed, int Mode, int fPreprocess, int fFirst, char * pLabel )
 {
-//    ProgressBar * pProgress;
+    ProgressBar * pProgress;
     If_Obj_t * pObj;
     int i;
     abctime clk = Abc_Clock();
@@ -590,16 +590,16 @@ int If_ManPerformMappingRound( If_Man_t * p, int nCutsUsed, int Mode, int fPrepr
     }
     else
     {
-    //    pProgress = Extra_ProgressBarStart( stdout, If_ManObjNum(p) );
+        pProgress = Extra_ProgressBarStart( stdout, If_ManObjNum(p) );
         If_ManForEachNode( p, pObj, i )
         {
-    //        Extra_ProgressBarUpdate( pProgress, i, pLabel );
+            Extra_ProgressBarUpdate( pProgress, i, pLabel );
             If_ObjPerformMappingAnd( p, pObj, Mode, fPreprocess, fFirst );
             if ( pObj->fRepr )
                 If_ObjPerformMappingChoice( p, pObj, Mode, fPreprocess );
         }
     }
-//    Extra_ProgressBarStop( pProgress );
+    Extra_ProgressBarStop( pProgress );
     // make sure the visit counters are all zero
     If_ManForEachNode( p, pObj, i )
         assert( pObj->nVisits == 0 );
