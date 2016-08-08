@@ -72,6 +72,8 @@ struct Ses_Man_t_
     int          fMakeAIG;        /* create AIG instead of general network */
     int          fVerbose;        /* be verbose */
     int          fVeryVerbose;    /* be very verbose */
+    int          fExtractVerbose; /* be verbose about solution extraction */
+    int          fSatVerbose;     /* be verbose about SAT solving */
 
     int          nGates;          /* number of gates */
 
@@ -126,8 +128,10 @@ struct Ses_Store_t_
 {
     int                fMakeAIG;                       /* create AIG instead of general network */
     int                fVerbose;                       /* be verbose */
+    int                fVeryVerbose;                   /* be very verbose */
     int                nBTLimit;                       /* conflict limit */
     int                nEntriesCount;                  /* number of entries */
+    int                nValidEntriesCount;             /* number of entries with network */
     Ses_TruthEntry_t * pEntries[SES_STORE_TABLE_SIZE]; /* hash table for truth table entries */
 
     unsigned long      nCutCount;
@@ -266,7 +270,7 @@ static inline void Ses_StoreTimesCopy( int * pTimesDest, int * pTimesSrc, int nV
         pTimesDest[i] = pTimesSrc[i];
 }
 
-// pArrTimeProfile is not normalized
+// pArrTimeProfile is normalized
 // returns 1 if and only if a new TimesEntry has been created
 int Ses_StoreAddEntry( Ses_Store_t * pStore, word * pTruth, int nVars, int * pArrTimeProfile, char * pSol )
 {
@@ -317,6 +321,8 @@ int Ses_StoreAddEntry( Ses_Store_t * pStore, word * pTruth, int nVars, int * pAr
         /* item has been added */
         fAdded = 1;
         pStore->nEntriesCount++;
+        if ( pSol )
+            pStore->nValidEntriesCount++;
     }
     else
         /* item was already present */
@@ -325,9 +331,9 @@ int Ses_StoreAddEntry( Ses_Store_t * pStore, word * pTruth, int nVars, int * pAr
     return fAdded;
 }
 
-// pArrTimeProfile is not normalized
-// returns 0 if no solution was found
-char * Ses_StoreGetEntry( Ses_Store_t * pStore, word * pTruth, int nVars, int * pArrTimeProfile )
+// pArrTimeProfile is normalized
+// returns 1 if entry was in store, pSol may still be 0 if it couldn't be computed
+int Ses_StoreGetEntry( Ses_Store_t * pStore, word * pTruth, int nVars, int * pArrTimeProfile, char ** pSol )
 {
     int key;
     Ses_TruthEntry_t * pTEntry;
@@ -363,7 +369,8 @@ char * Ses_StoreGetEntry( Ses_Store_t * pStore, word * pTruth, int nVars, int * 
     if ( !pTiEntry )
         return 0;
 
-    return pTiEntry->pNetwork;
+    *pSol = pTiEntry->pNetwork;
+    return 1;
 }
 
 static void Ses_StoreWrite( Ses_Store_t * pStore, const char * pFilename )
@@ -380,7 +387,7 @@ static void Ses_StoreWrite( Ses_Store_t * pStore, const char * pFilename )
         return;
     }
 
-    fwrite( &pStore->nEntriesCount, sizeof( int ), 1, pFile );
+    fwrite( &pStore->nValidEntriesCount, sizeof( int ), 1, pFile );
 
     for ( i = 0; i < SES_STORE_TABLE_SIZE; ++i )
         if ( pStore->pEntries[i] )
@@ -392,10 +399,13 @@ static void Ses_StoreWrite( Ses_Store_t * pStore, const char * pFilename )
                 pTiEntry = pTEntry->head;
                 while ( pTiEntry )
                 {
-                    fwrite( pTEntry->pTruth, sizeof( word ), 4, pFile );
-                    fwrite( &pTEntry->nVars, sizeof( int ), 1, pFile );
-                    fwrite( pTiEntry->pArrTimeProfile, sizeof( int ), 8, pFile );
-                    fwrite( pTiEntry->pNetwork, sizeof( char ), 3 + 4 * pTiEntry->pNetwork[ABC_EXACT_SOL_NGATES] + 2 + pTiEntry->pNetwork[ABC_EXACT_SOL_NVARS], pFile );
+                    if ( pTiEntry->pNetwork )
+                    {
+                        fwrite( pTEntry->pTruth, sizeof( word ), 4, pFile );
+                        fwrite( &pTEntry->nVars, sizeof( int ), 1, pFile );
+                        fwrite( pTiEntry->pArrTimeProfile, sizeof( int ), 8, pFile );
+                        fwrite( pTiEntry->pNetwork, sizeof( char ), 3 + 4 * pTiEntry->pNetwork[ABC_EXACT_SOL_NGATES] + 2 + pTiEntry->pNetwork[ABC_EXACT_SOL_NVARS], pFile );
+                    }
                     pTiEntry = pTiEntry->next;
                 }
                 pTEntry = pTEntry->next;
@@ -560,7 +570,7 @@ static void Ses_ManCreateVars( Ses_Man_t * pSes, int nGates )
 {
     int i;
 
-    if ( pSes->fVerbose )
+    if ( pSes->fSatVerbose )
     {
         printf( "create variables for network with %d functions over %d variables and %d gates\n", pSes->nSpecFunc, pSes->nSpecVars, nGates );
     }
@@ -846,7 +856,7 @@ static inline int Ses_ManSolve( Ses_Man_t * pSes )
     int status;
     abctime timeStart, timeDelta;
 
-    if ( pSes->fVeryVerbose )
+    if ( pSes->fSatVerbose )
     {
         printf( "solve SAT instance with %d clauses and %d variables\n", sat_solver_nclauses( pSes->pSat ), sat_solver_nvars( pSes->pSat ) );
     }
@@ -869,7 +879,7 @@ static inline int Ses_ManSolve( Ses_Man_t * pSes )
     }
     else
     {
-        if ( pSes->fVerbose )
+        if ( pSes->fSatVerbose )
         {
             printf( "resource limit reached\n" );
         }
@@ -923,21 +933,21 @@ static char * Ses_ManExtractSolution( Ses_Man_t * pSes )
         *p++ = nOp;
         *p++ = 2;
 
-        if ( pSes->fVeryVerbose )
+        if ( pSes->fExtractVerbose )
             printf( "add gate %d with operation %d", pSes->nSpecVars + i, nOp );
 
         for ( k = 0; k < pSes->nSpecVars + i; ++k )
             for ( j = 0; j < k; ++j )
                 if ( sat_solver_var_value( pSes->pSat, Ses_ManSelectVar( pSes, i, j, k ) ) )
                 {
-                    if ( pSes->fVeryVerbose )
+                    if ( pSes->fExtractVerbose )
                         printf( " and operands %d and %d", j, k );
                     *p++ = j;
                     *p++ = k;
                     break;
                 }
 
-        if ( pSes->fVeryVerbose )
+        if ( pSes->fExtractVerbose )
         {
             if ( pSes->nMaxDepth > 0 )
             {
@@ -986,12 +996,12 @@ static char * Ses_ManExtractSolution( Ses_Man_t * pSes )
                     for ( l = 0; l < pSes->nSpecVars; ++l )
                         d = Abc_MaxInt( d, pSes->pArrTimeProfile[l] + pPerm[i * pSes->nSpecVars + l] );
                 *p++ = d;
-                if ( pSes->fVeryVerbose )
+                if ( pSes->fExtractVerbose )
                     printf( "output %d points to %d and has normalized delay %d (nArrTimeDelta = %d)\n", h, i, d, pSes->nArrTimeDelta );
                 for ( l = 0; l < pSes->nSpecVars; ++l )
                 {
                     d = ( pSes->nMaxDepth != -1 ) ? pPerm[i * pSes->nSpecVars + l] : 0;
-                    if ( pSes->fVeryVerbose )
+                    if ( pSes->fExtractVerbose )
                         printf( "  pin-to-pin arrival time from input %d is %d (pArrTimeProfile = %d)\n", l, d, pSes->pArrTimeProfile[l] );
                     *p++ = d;
                 }
@@ -1449,11 +1459,12 @@ int Abc_ExactInputNum()
     return 8;
 }
 // start exact store manager
-void Abc_ExactStart( int nBTLimit, int fMakeAIG, int fVerbose, const char * pFilename )
+void Abc_ExactStart( int nBTLimit, int fMakeAIG, int fVerbose, int fVeryVerbose, const char * pFilename )
 {
     if ( !s_pSesStore )
     {
         s_pSesStore = Ses_StoreAlloc( nBTLimit, fMakeAIG, fVerbose );
+        s_pSesStore->fVeryVerbose = fVeryVerbose;
         if ( pFilename )
             Ses_StoreRead( s_pSesStore, pFilename );
     }
@@ -1489,13 +1500,14 @@ void Abc_ExactStats()
     printf( " total = %lu\n", s_pSesStore->nCutCount );
     printf( "cache hits                : %lu\n", s_pSesStore->nCacheHit );
     printf( "number of entries         : %d\n", s_pSesStore->nEntriesCount );
+    printf( "number of valid entries   : %d\n", s_pSesStore->nValidEntriesCount );
 }
 // this procedure takes TT and input arrival times (pArrTimeProfile) and return the smallest output arrival time;
 // it also returns the pin-to-pin delays (pPerm) between each cut leaf and the cut output and the cut area cost (Cost)
 // the area cost should not exceed 2048, if the cut is implementable; otherwise, it should be ABC_INFINITY
 int Abc_ExactDelayCost( word * pTruth, int nVars, int * pArrTimeProfile, char * pPerm, int * Cost, int AigLevel )
 {
-    int i, nDelta, nMaxArrival, l, fExists = 0;
+    int i, nDelta, nMaxArrival, l;
     Ses_Man_t * pSes = NULL;
     char * pSol = NULL, * p;
     int Delay = ABC_INFINITY, nMaxDepth;
@@ -1523,60 +1535,74 @@ int Abc_ExactDelayCost( word * pTruth, int nVars, int * pArrTimeProfile, char * 
 
     nDelta = Abc_NormalizeArrivalTimes( pArrTimeProfile, nVars, &nMaxArrival );
 
-    if ( s_pSesStore->fVerbose )
+    if ( s_pSesStore->fVeryVerbose )
     {
         printf( "compute delay for nontrivial truth table " );
         Abc_TtPrintHexRev( stdout, pTruth, nVars );
         printf( " with arrival times" );
         for ( l = 0; l < nVars; ++l )
             printf( " %d", pArrTimeProfile[l] );
-        printf( "\n" );
+        printf( " at level %d\n", AigLevel );
     }
 
     /* statistics */
     s_pSesStore->nCutCount++;
     s_pSesStore->pCutCount[nVars]++;
 
-    pSol = Ses_StoreGetEntry( s_pSesStore, pTruth, nVars, pArrTimeProfile );
-    if ( pSol )
+    *Cost = ABC_INFINITY;
+
+    if ( Ses_StoreGetEntry( s_pSesStore, pTruth, nVars, pArrTimeProfile, &pSol ) )
     {
-        if ( s_pSesStore->fVerbose )
+        if ( s_pSesStore->fVeryVerbose )
             printf( "  truth table already in store\n" );
         s_pSesStore->nCacheHit++;
-        fExists = 1;
     }
     else
     {
         nMaxDepth = pArrTimeProfile[0];
         for ( i = 1; i < nVars; ++i )
             nMaxDepth = Abc_MaxInt( nMaxDepth, pArrTimeProfile[i] );
-        nMaxDepth = Abc_MinInt( AigLevel, nMaxDepth + nVars + 1 );
+        nMaxDepth += nVars + 1;
+        //nMaxDepth = Abc_MinInt( AigLevel, nMaxDepth + nVars + 1 );
 
         timeStart = Abc_Clock();
 
-        *Cost = ABC_INFINITY;
-
-        pSes = Ses_ManAlloc( pTruth, nVars, 1 /* fSpecFunc */, nMaxDepth, pArrTimeProfile, s_pSesStore->fMakeAIG, s_pSesStore->fVerbose );
+        pSes = Ses_ManAlloc( pTruth, nVars, 1 /* nSpecFunc */, nMaxDepth, pArrTimeProfile, s_pSesStore->fMakeAIG, s_pSesStore->fVerbose );
         pSes->nBTLimit = s_pSesStore->nBTLimit;
-        pSes->fVeryVerbose = 0;
+        pSes->fVeryVerbose = s_pSesStore->fVeryVerbose;
 
-        while ( 1 ) /* there is improvement */
+        while ( pSes->nMaxDepth ) /* there is improvement */
         {
+            if ( s_pSesStore->fVeryVerbose )
+            {
+                printf( "  try to compute network starting with depth %d ", pSes->nMaxDepth );
+                fflush( stdout );
+            }
+
             if ( Ses_ManFindMinimumSize( pSes ) )
             {
+                if ( s_pSesStore->fVeryVerbose )
+                    printf( " FOUND\n" );
                 if ( pSol )
                     ABC_FREE( pSol );
                 pSol = Ses_ManExtractSolution( pSes );
                 pSes->nMaxDepth--;
             }
             else
+            {
+                if ( s_pSesStore->fVeryVerbose )
+                    printf( " NOT FOUND\n" );
                 break;
+            }
         }
 
         pSes->timeTotal = Abc_Clock() - timeStart;
 
         /* cleanup */
         Ses_ManClean( pSes );
+
+        /* store solution */
+        Ses_StoreAddEntry( s_pSesStore, pTruth, nVars, pArrTimeProfile, pSol );
     }
 
     if ( pSol )
@@ -1586,31 +1612,24 @@ int Abc_ExactDelayCost( word * pTruth, int nVars, int * pArrTimeProfile, char * 
         Delay = *p++;
         for ( l = 0; l < nVars; ++l )
             pPerm[l] = *p++;
-
-        /* store solution */
-        if ( !fExists )
-            Ses_StoreAddEntry( s_pSesStore, pTruth, nVars, pArrTimeProfile, pSol );
     }
 
-    //for ( l = 0; l < nVars; ++l )
-    //    printf( "pArrTimeProfile[%d] = %d\n", l, pArrTimeProfile[l] );
-
-    if ( pSol )
-    {
-        int Delay2 = 0;
-        for ( l = 0; l < nVars; ++l )
-        {
-            //printf( "%d ", pPerm[l] );
-            Delay2 = Abc_MaxInt( Delay2, pArrTimeProfile[l] + pPerm[l] );
-        }
-        //printf( "  output arrival = %d    recomputed = %d\n", Delay, Delay2 );
-        if ( Delay != Delay2 )
-        {
-            printf( "^--- BUG!\n" );
-            assert( 0 );
-        }
-        //Delay = Delay2;
-    }
+    /* if ( pSol ) */
+    /* { */
+    /*     int Delay2 = 0; */
+    /*     for ( l = 0; l < nVars; ++l ) */
+    /*     { */
+    /*         //printf( "%d ", pPerm[l] ); */
+    /*         Delay2 = Abc_MaxInt( Delay2, pArrTimeProfile[l] + pPerm[l] ); */
+    /*     } */
+    /*     //printf( "  output arrival = %d    recomputed = %d\n", Delay, Delay2 ); */
+    /*     if ( Delay != Delay2 ) */
+    /*     { */
+    /*         printf( "^--- BUG!\n" ); */
+    /*         assert( 0 ); */
+    /*     } */
+    /*     //Delay = Delay2; */
+    /* } */
 
     Abc_UnnormalizeArrivalTimes( pArrTimeProfile, nVars, nDelta );
 
@@ -1620,7 +1639,7 @@ int Abc_ExactDelayCost( word * pTruth, int nVars, int * pArrTimeProfile, char * 
 // has the smallest possible arrival time (in agreement with the above Abc_ExactDelayCost)
 Abc_Obj_t * Abc_ExactBuildNode( word * pTruth, int nVars, int * pArrTimeProfile, Abc_Obj_t ** pFanins, Abc_Ntk_t * pNtk )
 {
-    char * pSol;
+    char * pSol = NULL;
     int i, j, nDelta, nMaxArrival;
     char const * p;
     Abc_Obj_t * pObj;
@@ -1634,7 +1653,7 @@ Abc_Obj_t * Abc_ExactBuildNode( word * pTruth, int nVars, int * pArrTimeProfile,
         return (pTruth[0] & 1) ? Abc_NtkCreateNodeInv(pNtk, pFanins[0]) : Abc_NtkCreateNodeBuf(pNtk, pFanins[0]);
 
     nDelta = Abc_NormalizeArrivalTimes( pArrTimeProfile, nVars, &nMaxArrival );
-    pSol = Ses_StoreGetEntry( s_pSesStore, pTruth, nVars, pArrTimeProfile );
+    Ses_StoreGetEntry( s_pSesStore, pTruth, nVars, pArrTimeProfile, &pSol );
     Abc_UnnormalizeArrivalTimes( pArrTimeProfile, nVars, nDelta );
     if ( !pSol )
         return NULL;
@@ -1711,7 +1730,7 @@ void Abc_ExactStoreTest( int fVerbose )
     }
     Abc_NodeFreeNames( vNames );
 
-    Abc_ExactStart( 10000, 1, fVerbose, NULL );
+    Abc_ExactStart( 10000, 1, fVerbose, 0, NULL );
 
     assert( !Abc_ExactBuildNode( pTruth, 4, pArrTimeProfile, pFanins, pNtk ) );
 

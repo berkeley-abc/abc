@@ -7417,13 +7417,13 @@ usage:
 int Abc_CommandBmsStart( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     extern int Abc_ExactIsRunning();
-    extern void Abc_ExactStart( int nBTLimit, int fMakeAIG, int fVerbose, const char *pFilename );
+    extern void Abc_ExactStart( int nBTLimit, int fMakeAIG, int fVerbose, int fVeryVerbose, const char *pFilename );
 
-    int c, fMakeAIG = 0, fVerbose = 0, nBTLimit = 10000;
+    int c, fMakeAIG = 0, fVerbose = 0, fVeryVerbose = 0, nBTLimit = 100;
     char * pFilename = NULL;
 
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "Cavh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Cavwh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -7441,6 +7441,9 @@ int Abc_CommandBmsStart( Abc_Frame_t * pAbc, int argc, char ** argv )
             break;
         case 'v':
             fVerbose ^= 1;
+            break;
+        case 'w':
+            fVeryVerbose ^= 1;
             break;
         case 'h':
             goto usage;
@@ -7460,16 +7463,17 @@ int Abc_CommandBmsStart( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
 
-    Abc_ExactStart( nBTLimit, fMakeAIG, fVerbose, pFilename );
+    Abc_ExactStart( nBTLimit, fMakeAIG, fVerbose, fVeryVerbose, pFilename );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: bms_start [-C <num>] [-avh] [<file>]\n" );
+    Abc_Print( -2, "usage: bms_start [-C <num>] [-avwh] [<file>]\n" );
     Abc_Print( -2, "\t           starts BMS manager for recording optimum networks\n" );
     Abc_Print( -2, "\t           if <file> is specified, store entries are read from that file\n" );
     Abc_Print( -2, "\t-C <num> : the limit on the number of conflicts [default = %d]\n", nBTLimit );
     Abc_Print( -2, "\t-a       : toggle create AIG [default = %s]\n", fMakeAIG ? "yes" : "no" );
     Abc_Print( -2, "\t-v       : toggle verbose printout [default = %s]\n", fVerbose ? "yes" : "no" );
+    Abc_Print( -2, "\t-w       : toggle very verbose printout [default = %s]\n", fVeryVerbose ? "yes" : "no" );
     Abc_Print( -2, "\t-h       : print the command usage\n" );
     Abc_Print( -2, "\t\n" );
     Abc_Print( -2, "\t           This command was contributed by Mathias Soeken from EPFL in July 2016.\n" );
