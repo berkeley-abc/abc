@@ -265,6 +265,7 @@ struct If_Man_t_
     int                nCountNonDec[2];
     Vec_Int_t *        vCutData;      // cut data storage
     int                pArrTimeProfile[IF_MAX_FUNC_LUTSIZE];
+    Vec_Ptr_t *        vVisited;
 
     // timing manager
     Tim_Man_t *        pManTim;

@@ -61,6 +61,7 @@ If_Man_t * If_ManStart( If_Par_t * pPars )
     p->vCos     = Vec_PtrAlloc( 100 );
     p->vObjs    = Vec_PtrAlloc( 100 );
     p->vTemp    = Vec_PtrAlloc( 100 );
+    p->vVisited = Vec_PtrAlloc( 100 );
     // prepare the memory manager
     if ( p->pPars->fTruth )
     {
@@ -264,6 +265,7 @@ void If_ManStop( If_Man_t * p )
     Vec_IntFreeP( &p->vCutData );
     Vec_IntFreeP( &p->vPairRes );
     Vec_StrFreeP( &p->vPairPerms );
+    Vec_PtrFreeP( &p->vVisited );
     if ( p->vPairHash )
         Hash_IntManStop( p->vPairHash );
     for ( i = 6; i <= Abc_MaxInt(6,p->pPars->nLutSize); i++ )

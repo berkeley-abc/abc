@@ -37,6 +37,53 @@ extern int    Abc_ExactDelayCost( word * pTruth, int nVars, int * pArrTimeProfil
 
 /**Function*************************************************************
 
+  Synopsis    [Compute delay of the cut's output in terms of logic levels.]
+
+  Description [Uses the best arrival time of the fanins of the cut
+  to compute the arrival times of the output of the cut.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int If_ManCutAigDelay_rec( If_Man_t * p, If_Obj_t * pObj, Vec_Ptr_t * vVisited )
+{
+    int Delay0, Delay1;
+    if ( pObj->fVisit )
+        return pObj->iCopy;
+    if ( If_ObjIsCi(pObj) || If_ObjIsConst1(pObj) )
+        return -1;
+    // store the node in the structure by level
+    assert( If_ObjIsAnd(pObj) );
+    pObj->fVisit = 1;
+    Vec_PtrPush( vVisited, pObj );
+    Delay0 = If_ManCutAigDelay_rec( p, pObj->pFanin0, vVisited );
+    Delay1 = If_ManCutAigDelay_rec( p, pObj->pFanin1, vVisited );
+    pObj->iCopy = (Delay0 >= 0 && Delay1 >= 0) ? 1 + Abc_MaxInt(Delay0, Delay1) : -1;
+    return pObj->iCopy;
+}
+int If_ManCutAigDelay( If_Man_t * p, If_Obj_t * pObj, If_Cut_t * pCut )
+{
+    If_Obj_t * pLeaf;
+    int i, Delay;
+    Vec_PtrClear( p->vVisited );
+    If_CutForEachLeaf( p, pCut, pLeaf, i )
+    {
+        assert( pLeaf->fVisit == 0 );
+        pLeaf->fVisit = 1;
+        Vec_PtrPush( p->vVisited, pLeaf );
+        pLeaf->iCopy = If_ObjCutBest(pLeaf)->Delay;
+    }
+    Delay = If_ManCutAigDelay_rec( p, pObj, p->vVisited );
+    Vec_PtrForEachEntry( If_Obj_t *, p->vVisited, pLeaf, i )
+        pLeaf->fVisit = 0;
+//    assert( Delay <= (int)pObj->Level );
+    return Delay;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Counts the number of 1s in the signature.]
 
   Description []
@@ -152,7 +199,7 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
         {
             int Cost = 0;
             pCut->fUser = 1;
-            pCut->Delay = (float)Abc_ExactDelayCost( If_CutTruthW(p, pCut), If_CutLeaveNum(pCut), If_CutArrTimeProfile(p, pCut), If_CutPerm(pCut), &Cost, (int)pObj->Level ); 
+            pCut->Delay = (float)Abc_ExactDelayCost( If_CutTruthW(p, pCut), If_CutLeaveNum(pCut), If_CutArrTimeProfile(p, pCut), If_CutPerm(pCut), &Cost, If_ManCutAigDelay(p, pObj, pCut) ); 
             if ( Cost == ABC_INFINITY )
             {
                 for ( v = 0; v < If_CutLeaveNum(pCut); v++ )
@@ -376,7 +423,7 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
         {
             int Cost = 0;
             pCut->fUser = 1;
-            pCut->Delay = (float)Abc_ExactDelayCost( If_CutTruthW(p, pCut), If_CutLeaveNum(pCut), If_CutArrTimeProfile(p, pCut), If_CutPerm(pCut), &Cost, (int)pObj->Level ); 
+            pCut->Delay = (float)Abc_ExactDelayCost( If_CutTruthW(p, pCut), If_CutLeaveNum(pCut), If_CutArrTimeProfile(p, pCut), If_CutPerm(pCut), &Cost, If_ManCutAigDelay(p, pObj, pCut) ); 
             if ( Cost == ABC_INFINITY )
             {
                 for ( v = 0; v < If_CutLeaveNum(pCut); v++ )
