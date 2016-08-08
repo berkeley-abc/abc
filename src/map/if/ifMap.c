@@ -584,7 +584,7 @@ void If_ObjPerformMappingChoice( If_Man_t * p, If_Obj_t * pObj, int Mode, int fP
 ***********************************************************************/
 int If_ManPerformMappingRound( If_Man_t * p, int nCutsUsed, int Mode, int fPreprocess, int fFirst, char * pLabel )
 {
-    ProgressBar * pProgress;
+    ProgressBar * pProgress = NULL;
     If_Obj_t * pObj;
     int i;
     abctime clk = Abc_Clock();
