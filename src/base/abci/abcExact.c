@@ -456,7 +456,7 @@ static void Ses_StoreRead( Ses_Store_t * pStore, const char * pFilename )
     fclose( pFile );
 }
 
-static inline Ses_Man_t * Ses_ManAlloc( word * pTruth, int nVars, int nFunc, int nMaxDepth, int * pArrTimeProfile, int fMakeAIG, int fVerbose )
+static inline Ses_Man_t * Ses_ManAlloc( word * pTruth, int nVars, int nFunc, int nMaxDepth, int * pArrTimeProfile, int fMakeAIG, int nBTLimit, int fVerbose )
 {
     int h, i;
 
@@ -470,20 +470,22 @@ static inline Ses_Man_t * Ses_ManAlloc( word * pTruth, int nVars, int nFunc, int
                 pTruth[(h << 2) + i] = ~pTruth[(h << 2) + i];
             p->bSpecInv |= ( 1 << h );
         }
-    p->pSpec         = pTruth;
-    p->nSpecVars     = nVars;
-    p->nSpecFunc     = nFunc;
-    p->nRows         = ( 1 << nVars ) - 1;
-    p->nMaxDepth     = nMaxDepth;
+    p->pSpec           = pTruth;
+    p->nSpecVars       = nVars;
+    p->nSpecFunc       = nFunc;
+    p->nRows           = ( 1 << nVars ) - 1;
+    p->nMaxDepth       = nMaxDepth;
     p->pArrTimeProfile = nMaxDepth >= 0 ? pArrTimeProfile : NULL;
     if ( p->pArrTimeProfile )
         p->nArrTimeDelta = Abc_NormalizeArrivalTimes( p->pArrTimeProfile, nVars, &p->nArrTimeMax );
     else
         p->nArrTimeDelta = p->nArrTimeMax = 0;
-    p->fMakeAIG      = fMakeAIG;
-    p->nBTLimit      = nMaxDepth >= 0 ? 50000 : 0;
-    p->fVerbose      = fVerbose;
-    p->fVeryVerbose  = 0;
+    p->fMakeAIG        = fMakeAIG;
+    p->nBTLimit        = nBTLimit;
+    p->fVerbose        = fVerbose;
+    p->fVeryVerbose    = 0;
+    p->fExtractVerbose = 0;
+    p->fSatVerbose     = 1;
 
     return p;
 }
@@ -772,7 +774,7 @@ static int Ses_ManCreateClauses( Ses_Man_t * pSes )
                 }
 
     /* DEPTH clauses */
-    if ( pSes->nMaxDepth > 0 )
+    if ( pSes->nMaxDepth >= 0 )
     {
         for ( i = 0; i < pSes->nGates; ++i )
         {
@@ -1185,6 +1187,18 @@ static inline void Ses_ManPrintFuncs( Ses_Man_t * pSes )
         Abc_TtPrintHexRev( stdout, &pSes->pSpec[h >> 2], pSes->nSpecVars );
         printf( "\n" );
     }
+
+    if ( pSes->nMaxDepth != -1 )
+    {
+        printf( "  max depth = %d\n", pSes->nMaxDepth );
+        if ( pSes->pArrTimeProfile )
+        {
+            printf( "  arrival times =" );
+            for ( h = 0; h < pSes->nSpecVars; ++h )
+                printf( " %d", pSes->pArrTimeProfile[h] );
+            printf( "\n" );
+        }
+    }
 }
 
 static inline void Ses_ManPrintVars( Ses_Man_t * pSes )
@@ -1236,6 +1250,10 @@ static int Ses_ManFindMinimumSize( Ses_Man_t * pSes )
         if ( pSes->nMaxDepth != -1 && nGates >= ( 1 << pSes->nMaxDepth ) )
             return 0;
 
+        /* give up if number of gates gets practically too large */
+        if ( nGates >= ( 1 << pSes->nSpecVars ) )
+            return 0;
+
         Ses_ManCreateVars( pSes, nGates );
         if ( !Ses_ManCreateClauses( pSes ) )
             return 0; /* proven UNSAT while creating clauses */
@@ -1263,7 +1281,7 @@ static int Ses_ManFindMinimumSize( Ses_Man_t * pSes )
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Ntk_t * Abc_NtkFindExact( word * pTruth, int nVars, int nFunc, int nMaxDepth, int * pArrTimeProfile, int fVerbose )
+Abc_Ntk_t * Abc_NtkFindExact( word * pTruth, int nVars, int nFunc, int nMaxDepth, int * pArrTimeProfile, int nBTLimit, int fVerbose )
 {
     Ses_Man_t * pSes;
     char * pSol;
@@ -1275,7 +1293,7 @@ Abc_Ntk_t * Abc_NtkFindExact( word * pTruth, int nVars, int nFunc, int nMaxDepth
 
     timeStart = Abc_Clock();
 
-    pSes = Ses_ManAlloc( pTruth, nVars, nFunc, nMaxDepth, pArrTimeProfile, 0, fVerbose );
+    pSes = Ses_ManAlloc( pTruth, nVars, nFunc, nMaxDepth, pArrTimeProfile, 0, nBTLimit, fVerbose );
     if ( fVerbose )
         Ses_ManPrintFuncs( pSes );
 
@@ -1297,7 +1315,7 @@ Abc_Ntk_t * Abc_NtkFindExact( word * pTruth, int nVars, int nFunc, int nMaxDepth
     return pNtk;
 }
 
-Gia_Man_t * Gia_ManFindExact( word * pTruth, int nVars, int nFunc, int nMaxDepth, int * pArrTimeProfile, int fVerbose )
+Gia_Man_t * Gia_ManFindExact( word * pTruth, int nVars, int nFunc, int nMaxDepth, int * pArrTimeProfile, int nBTLimit, int fVerbose )
 {
     Ses_Man_t * pSes;
     char * pSol;
@@ -1309,7 +1327,7 @@ Gia_Man_t * Gia_ManFindExact( word * pTruth, int nVars, int nFunc, int nMaxDepth
 
     timeStart = Abc_Clock();
 
-    pSes = Ses_ManAlloc( pTruth, nVars, nFunc, nMaxDepth, pArrTimeProfile, 1, fVerbose );
+    pSes = Ses_ManAlloc( pTruth, nVars, nFunc, nMaxDepth, pArrTimeProfile, 1, nBTLimit, fVerbose );
     if ( fVerbose )
         Ses_ManPrintFuncs( pSes );
 
@@ -1362,30 +1380,30 @@ void Abc_ExactTestSingleOutput( int fVerbose )
 
     pNtk = Abc_NtkFromTruthTable( pTruth, 4 );
 
-    pNtk2 = Abc_NtkFindExact( pTruth, 4, 1, -1, NULL, fVerbose );
+    pNtk2 = Abc_NtkFindExact( pTruth, 4, 1, -1, NULL, 0, fVerbose );
     Abc_NtkShortNames( pNtk2 );
     Abc_NtkCecSat( pNtk, pNtk2, 10000, 0 );
     assert( pNtk2 );
     assert( Abc_NtkNodeNum( pNtk2 ) == 6 );
     Abc_NtkDelete( pNtk2 );
 
-    pNtk3 = Abc_NtkFindExact( pTruth, 4, 1, 3, NULL, fVerbose );
+    pNtk3 = Abc_NtkFindExact( pTruth, 4, 1, 3, NULL, 0, fVerbose );
     Abc_NtkShortNames( pNtk3 );
     Abc_NtkCecSat( pNtk, pNtk3, 10000, 0 );
     assert( pNtk3 );
     assert( Abc_NtkLevel( pNtk3 ) <= 3 );
     Abc_NtkDelete( pNtk3 );
 
-    pNtk4 = Abc_NtkFindExact( pTruth, 4, 1, 9, pArrTimeProfile, fVerbose );
+    pNtk4 = Abc_NtkFindExact( pTruth, 4, 1, 9, pArrTimeProfile, 50000, fVerbose );
     Abc_NtkShortNames( pNtk4 );
     Abc_NtkCecSat( pNtk, pNtk4, 10000, 0 );
     assert( pNtk4 );
     assert( Abc_NtkLevel( pNtk4 ) <= 9 );
     Abc_NtkDelete( pNtk4 );
 
-    assert( !Abc_NtkFindExact( pTruth, 4, 1, 2, NULL, fVerbose ) );
+    assert( !Abc_NtkFindExact( pTruth, 4, 1, 2, NULL, 50000, fVerbose ) );
 
-    assert( !Abc_NtkFindExact( pTruth, 4, 1, 8, pArrTimeProfile, fVerbose ) );
+    assert( !Abc_NtkFindExact( pTruth, 4, 1, 8, pArrTimeProfile, 50000, fVerbose ) );
 
     Abc_NtkDelete( pNtk );
 }
@@ -1404,27 +1422,27 @@ void Abc_ExactTestSingleOutputAIG( int fVerbose )
     Abc_NtkToAig( pNtk );
     pGia = Abc_NtkAigToGia( pNtk, 1 );
 
-    pGia2 = Gia_ManFindExact( pTruth, 4, 1, -1, NULL, fVerbose );
+    pGia2 = Gia_ManFindExact( pTruth, 4, 1, -1, NULL, 0, fVerbose );
     pMiter = Gia_ManMiter( pGia, pGia2, 0, 1, 0, 0, 1 );
     assert( pMiter );
     Cec_ManVerify( pMiter, pPars );
     Gia_ManStop( pMiter );
 
-    pGia3 = Gia_ManFindExact( pTruth, 4, 1, 3, NULL, fVerbose );
+    pGia3 = Gia_ManFindExact( pTruth, 4, 1, 3, NULL, 0, fVerbose );
     pMiter = Gia_ManMiter( pGia, pGia3, 0, 1, 0, 0, 1 );
     assert( pMiter );
     Cec_ManVerify( pMiter, pPars );
     Gia_ManStop( pMiter );
 
-    pGia4 = Gia_ManFindExact( pTruth, 4, 1, 9, pArrTimeProfile, fVerbose );
+    pGia4 = Gia_ManFindExact( pTruth, 4, 1, 9, pArrTimeProfile, 50000, fVerbose );
     pMiter = Gia_ManMiter( pGia, pGia4, 0, 1, 0, 0, 1 );
     assert( pMiter );
     Cec_ManVerify( pMiter, pPars );
     Gia_ManStop( pMiter );
 
-    assert( !Gia_ManFindExact( pTruth, 4, 1, 2, NULL, fVerbose ) );
+    assert( !Gia_ManFindExact( pTruth, 4, 1, 2, NULL, 50000, fVerbose ) );
 
-    assert( !Gia_ManFindExact( pTruth, 4, 1, 8, pArrTimeProfile, fVerbose ) );
+    assert( !Gia_ManFindExact( pTruth, 4, 1, 8, pArrTimeProfile, 50000, fVerbose ) );
 
     Gia_ManStop( pGia );
     Gia_ManStop( pGia2 );
@@ -1567,8 +1585,7 @@ int Abc_ExactDelayCost( word * pTruth, int nVars, int * pArrTimeProfile, char * 
 
         timeStart = Abc_Clock();
 
-        pSes = Ses_ManAlloc( pTruth, nVars, 1 /* nSpecFunc */, nMaxDepth, pArrTimeProfile, s_pSesStore->fMakeAIG, s_pSesStore->fVerbose );
-        pSes->nBTLimit = s_pSesStore->nBTLimit;
+        pSes = Ses_ManAlloc( pTruth, nVars, 1 /* nSpecFunc */, nMaxDepth, pArrTimeProfile, s_pSesStore->fMakeAIG, s_pSesStore->nBTLimit, s_pSesStore->fVerbose );
         pSes->fVeryVerbose = s_pSesStore->fVeryVerbose;
 
         while ( pSes->nMaxDepth ) /* there is improvement */

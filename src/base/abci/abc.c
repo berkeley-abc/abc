@@ -7291,15 +7291,17 @@ usage:
 ***********************************************************************/
 int Abc_CommandExact( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern Gia_Man_t * Gia_ManFindExact( word * pTruth, int nVars, int nFunc, int nMaxDepth, int * pArrivalTimes, int fVerbose );
+    extern Gia_Man_t * Gia_ManFindExact( word * pTruth, int nVars, int nFunc, int nMaxDepth, int * pArrivalTimes, int nBTLimit, int fVerbose );
 
-    int c, nMaxDepth = -1, fMakeAIG = 0, fTest = 0, fVerbose = 0, nVars = 0, nVarsTmp, nFunc = 0;
+    int c, nMaxDepth = -1, fMakeAIG = 0, fTest = 0, fVerbose = 0, nVars = 0, nVarsTmp, nFunc = 0, nBTLimit = 100;
+    char * p1, * p2;
     word pTruth[64];
+    int pArrTimeProfile[8], fHasArrTimeProfile = 0;
     Abc_Ntk_t * pNtkRes;
     Gia_Man_t * pGiaRes;
 
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "Datvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "DACatvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -7313,6 +7315,40 @@ int Abc_CommandExact( Abc_Frame_t * pAbc, int argc, char ** argv )
             globalUtilOptind++;
             if ( nMaxDepth < 0 )
                 goto usage;
+            break;
+        case 'A':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-A\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            fHasArrTimeProfile = 1;
+            p1 = p2 = argv[globalUtilOptind++];
+            while ( true ) {
+                if ( *p2 == ',' )
+                {
+                    *p2 = '\0';
+                    pArrTimeProfile[nVars++] = atoi( p1 );
+                    *p2++ = ',';
+                    p1 = p2;
+                }
+                else if ( *p2 == '\0' )
+                {
+                    pArrTimeProfile[nVars++] = atoi( p1 );
+                    break;
+                }
+                else
+                    ++p2;
+            }
+            break;
+        case 'C':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-C\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nBTLimit = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
             break;
         case 'a':
             fMakeAIG ^= 1;
@@ -7370,7 +7406,7 @@ int Abc_CommandExact( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     if ( fMakeAIG )
     {
-        pGiaRes = Gia_ManFindExact( pTruth, nVars, nFunc, nMaxDepth, NULL, fVerbose );
+        pGiaRes = Gia_ManFindExact( pTruth, nVars, nFunc, nMaxDepth, fHasArrTimeProfile ? pArrTimeProfile : NULL, nBTLimit, fVerbose );
         if ( pGiaRes )
             Abc_FrameUpdateGia( pAbc, pGiaRes );
         else
@@ -7378,7 +7414,7 @@ int Abc_CommandExact( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     else
     {
-        pNtkRes = Abc_NtkFindExact( pTruth, nVars, nFunc, nMaxDepth, NULL, fVerbose );
+        pNtkRes = Abc_NtkFindExact( pTruth, nVars, nFunc, nMaxDepth, fHasArrTimeProfile ? pArrTimeProfile : NULL, nBTLimit, fVerbose );
         if ( pNtkRes )
         {
             Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
@@ -7392,14 +7428,16 @@ int Abc_CommandExact( Abc_Frame_t * pAbc, int argc, char ** argv )
 usage:
     Abc_Print( -2, "usage: exact [-D <num>] [-atvh] <truth1> <truth2> ...\n" );
     Abc_Print( -2, "\t           finds optimum networks using SAT-based exact synthesis for hex truth tables <truth1> <truth2> ...\n" );
-    Abc_Print( -2, "\t-D <num> : constrain maximum depth (if too low, algorithm may not terminate)\n" );
-    Abc_Print( -2, "\t-a       : toggle create AIG [default = %s]\n", fMakeAIG ? "yes" : "no" );
-    Abc_Print( -2, "\t-t       : run test suite\n" );
-    Abc_Print( -2, "\t-v       : toggle verbose printout [default = %s]\n", fVerbose ? "yes" : "no" );
-    Abc_Print( -2, "\t-h       : print the command usage\n" );
+    Abc_Print( -2, "\t-D <num>  : constrain maximum depth (if too low, algorithm may not terminate)\n" );
+    Abc_Print( -2, "\t-A <list> : input arrival times (comma separated list)\n" );
+    Abc_Print( -2, "\t-C <num>  : the limit on the number of conflicts [default = %d]\n", nBTLimit );
+    Abc_Print( -2, "\t-a        : toggle create AIG [default = %s]\n", fMakeAIG ? "yes" : "no" );
+    Abc_Print( -2, "\t-t        : run test suite\n" );
+    Abc_Print( -2, "\t-v        : toggle verbose printout [default = %s]\n", fVerbose ? "yes" : "no" );
+    Abc_Print( -2, "\t-h        : print the command usage\n" );
     Abc_Print( -2, "\t\n" );
-    Abc_Print( -2, "\t           This command was contributed by Mathias Soeken from EPFL in July 2016.\n" );
-    Abc_Print( -2, "\t           The author can be contacted as mathias.soeken at epfl.ch\n" );
+    Abc_Print( -2, "\t            This command was contributed by Mathias Soeken from EPFL in July 2016.\n" );
+    Abc_Print( -2, "\t            The author can be contacted as mathias.soeken at epfl.ch\n" );
     return 1;
 }
 
