@@ -244,10 +244,15 @@ p->timeCache[3] += Abc_Clock() - clk;
     else
         assert( pCut->uSign == If_ObjCutSignCompute( pCut ) );
 
+    assert( Vec_IntSize(p->vTtOccurs[pCut->nLeaves]) == Vec_MemEntryNum(p->vTtMem[pCut->nLeaves]) );
     // hash function
     fCompl         = ((p->uCanonPhase >> pCut->nLeaves) & 1);
     truthId        = Vec_MemHashInsert( p->vTtMem[pCut->nLeaves], pTruth );
     pCut->iCutFunc = Abc_Var2Lit( truthId, fCompl );
+    // count how many time this truth table is used
+    if ( Vec_IntSize(p->vTtOccurs[pCut->nLeaves]) < Vec_MemEntryNum(p->vTtMem[pCut->nLeaves]) )
+        Vec_IntPush( p->vTtOccurs[pCut->nLeaves], 0 );
+    Vec_IntAddToEntry( p->vTtOccurs[pCut->nLeaves], truthId, 1 );
 
 if ( fVerbose )
 {
