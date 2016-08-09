@@ -253,6 +253,7 @@ struct If_Man_t_
     Vec_Str_t *        vTtPerms[IF_MAX_FUNC_LUTSIZE+1]; // mapping of truth table into permutations
     Vec_Str_t *        vTtVars[IF_MAX_FUNC_LUTSIZE+1];  // mapping of truth table into selected vars
     Vec_Int_t *        vTtDecs[IF_MAX_FUNC_LUTSIZE+1];  // mapping of truth table into decomposition pattern
+    Vec_Int_t *        vTtOccurs[IF_MAX_FUNC_LUTSIZE+1];// truth table occurange counters
     Hash_IntMan_t *    vPairHash;     // hashing pairs of truth tables
     Vec_Int_t *        vPairRes;      // resulting truth table
     Vec_Str_t *        vPairPerms;    // resulting permutation

@@ -125,6 +125,12 @@ If_Man_t * If_ManStart( If_Par_t * pPars )
         Vec_StrFill( p->vPairPerms, p->pPars->nLutSize, 0 );
         p->vPairRes = Vec_IntAlloc( 1000 );
         Vec_IntPush( p->vPairRes, -1 );
+        for ( v = 6; v <= Abc_MaxInt(6,p->pPars->nLutSize); v++ )
+            p->vTtOccurs[v] = Vec_IntAlloc( 1000 );
+        for ( v = 0; v < 6; v++ )
+            p->vTtOccurs[v] = p->vTtOccurs[6];
+        for ( v = 6; v <= Abc_MaxInt(6,p->pPars->nLutSize); v++ )
+            Vec_IntPushTwo( p->vTtOccurs[v], 0, 0 );
     }
     if ( pPars->fUseCofVars )
     {
@@ -274,6 +280,8 @@ void If_ManStop( If_Man_t * p )
         Vec_MemFreeP( &p->vTtMem[i] );
     for ( i = 6; i <= Abc_MaxInt(6,p->pPars->nLutSize); i++ )
         Vec_WecFreeP( &p->vTtIsops[i] );
+    for ( i = 6; i <= Abc_MaxInt(6,p->pPars->nLutSize); i++ )
+        Vec_IntFreeP( &p->vTtOccurs[i] );
     Mem_FixedStop( p->pMemObj, 0 );
     ABC_FREE( p->pMemCi );
     ABC_FREE( p->pMemAnd );
