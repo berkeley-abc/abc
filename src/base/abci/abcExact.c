@@ -88,6 +88,8 @@ struct Ses_Man_t_
     int          nSelectOffset;   /* offset where select variables start */
     int          nDepthOffset;    /* offset where depth variables start */
 
+    int          fHitResLimit;    /* SAT solver gave up due to resource limit */
+
     abctime      timeSat;         /* SAT runtime */
     abctime      timeSatSat;      /* SAT runtime (sat instance) */
     abctime      timeSatUnsat;    /* SAT runtime (unsat instance) */
@@ -134,9 +136,21 @@ struct Ses_Store_t_
     int                nValidEntriesCount;             /* number of entries with network */
     Ses_TruthEntry_t * pEntries[SES_STORE_TABLE_SIZE]; /* hash table for truth table entries */
 
-    unsigned long      nCutCount;
-    unsigned long      pCutCount[9];
-    unsigned long      nCacheHit;
+    /* statistics */
+    unsigned long      nCutCount;                      /* number of cuts investigated */
+    unsigned long      pCutCount[9];                   /* -> per cut size */
+    unsigned long      nUnsynthesizedImp;              /* number of cuts which couldn't be optimized at all, opt. stopped because of imp. constraints */
+    unsigned long      pUnsynthesizedImp[9];           /* -> per cut size */
+    unsigned long      nUnsynthesizedRL;               /* number of cuts which couldn't be optimized at all, opt. stopped because of resource limits */
+    unsigned long      pUnsynthesizedRL[9];            /* -> per cut size */
+    unsigned long      nSynthesizedTrivial;            /* number of cuts which could be synthesized trivially (n < 2) */
+    unsigned long      pSynthesizedTrivial[9];         /* -> per cut size */
+    unsigned long      nSynthesizedImp;                /* number of cuts which could be synthesized, opt. stopped because of imp. constraints */
+    unsigned long      pSynthesizedImp[9];             /* -> per cut size */
+    unsigned long      nSynthesizedRL;                 /* number of cuts which could be synthesized, opt. stopped because of resource limits */
+    unsigned long      pSynthesizedRL[9];              /* -> per cut size */
+    unsigned long      nCacheHits;                     /* number of cache hits */
+    unsigned long      pCacheHits[9];                  /* -> per cut size */
 };
 
 static Ses_Store_t * s_pSesStore = NULL;
@@ -180,15 +194,10 @@ static inline void Abc_UnnormalizeArrivalTimes( int * pArrTimeProfile, int nVars
 static inline Ses_Store_t * Ses_StoreAlloc( int nBTLimit, int fMakeAIG, int fVerbose )
 {
     Ses_Store_t * pStore = ABC_CALLOC( Ses_Store_t, 1 );
-    pStore->fMakeAIG      = fMakeAIG;
-    pStore->fVerbose      = fVerbose;
-    pStore->nBTLimit      = nBTLimit;
-    pStore->nEntriesCount = 0;
+    pStore->fMakeAIG           = fMakeAIG;
+    pStore->fVerbose           = fVerbose;
+    pStore->nBTLimit           = nBTLimit;
     memset( pStore->pEntries, 0, SES_STORE_TABLE_SIZE );
-
-    pStore->nCutCount = 0;
-    memset( pStore->pCutCount, 0, 9 );
-    pStore->nCacheHit = 0;
 
     return pStore;
 }
@@ -325,8 +334,11 @@ int Ses_StoreAddEntry( Ses_Store_t * pStore, word * pTruth, int nVars, int * pAr
             pStore->nValidEntriesCount++;
     }
     else
+    {
+        assert( 0 );
         /* item was already present */
         fAdded = 0;
+    }
 
     return fAdded;
 }
@@ -1242,6 +1254,9 @@ static int Ses_ManFindMinimumSize( Ses_Man_t * pSes )
 {
     int nGates = 0;
 
+    /* store whether call was unsuccessful due to resource limit and not due to impossible constraint */
+    pSes->fHitResLimit = 0;
+
     while ( true )
     {
         ++nGates;
@@ -1256,12 +1271,14 @@ static int Ses_ManFindMinimumSize( Ses_Man_t * pSes )
 
         Ses_ManCreateVars( pSes, nGates );
         if ( !Ses_ManCreateClauses( pSes ) )
-            return 0; /* proven UNSAT while creating clauses */
+            continue; /* proven UNSAT while creating clauses */
 
         switch ( Ses_ManSolve( pSes ) )
         {
         case 1: return 1; /* SAT */
-        case 2: return 0; /* resource limit */
+        case 2:
+            pSes->fHitResLimit = 1;
+            return 0; /* resource limit */
         }
     }
 
@@ -1512,13 +1529,41 @@ void Abc_ExactStats()
         return;
     }
 
+    printf( "-------------------------------------------------------------------------------------------------------------------------------\n" );
+    printf( "                                    0         1         2         3         4         5         6         7         8     total\n" );
+    printf( "-------------------------------------------------------------------------------------------------------------------------------\n" );
     printf( "number of considered cuts :" );
-    for ( i = 2; i < 9; ++i )
-        printf( " %d = %lu  ", i, s_pSesStore->pCutCount[i] );
-    printf( " total = %lu\n", s_pSesStore->nCutCount );
-    printf( "cache hits                : %lu\n", s_pSesStore->nCacheHit );
+    for ( i = 0; i < 9; ++i )
+        printf( "%10lu", s_pSesStore->pCutCount[i] );
+    printf( "%10lu\n", s_pSesStore->nCutCount );
+    printf( " - trivial                :" );
+    for ( i = 0; i < 9; ++i )
+        printf( "%10lu", s_pSesStore->pSynthesizedTrivial[i] );
+    printf( "%10lu\n", s_pSesStore->nSynthesizedTrivial );
+    printf( " - synth (imp)            :" );
+    for ( i = 0; i < 9; ++i )
+        printf( "%10lu", s_pSesStore->pSynthesizedImp[i] );
+    printf( "%10lu\n", s_pSesStore->nSynthesizedImp );
+    printf( " - synth (res)            :" );
+    for ( i = 0; i < 9; ++i )
+        printf( "%10lu", s_pSesStore->pSynthesizedRL[i] );
+    printf( "%10lu\n", s_pSesStore->nSynthesizedRL );
+    printf( " - not synth (imp)        :" );
+    for ( i = 0; i < 9; ++i )
+        printf( "%10lu", s_pSesStore->pUnsynthesizedImp[i] );
+    printf( "%10lu\n", s_pSesStore->nUnsynthesizedImp );
+    printf( " - not synth (res)        :" );
+    for ( i = 0; i < 9; ++i )
+        printf( "%10lu", s_pSesStore->pUnsynthesizedRL[i] );
+    printf( "%10lu\n", s_pSesStore->nUnsynthesizedRL );
+    printf( " - cache hits             :" );
+    for ( i = 0; i < 9; ++i )
+        printf( "%10lu", s_pSesStore->pCacheHits[i] );
+    printf( "%10lu\n", s_pSesStore->nCacheHits );
+    printf( "-------------------------------------------------------------------------------------------------------------------------------\n" );
     printf( "number of entries         : %d\n", s_pSesStore->nEntriesCount );
     printf( "number of valid entries   : %d\n", s_pSesStore->nValidEntriesCount );
+    printf( "number of invalid entries : %d\n", s_pSesStore->nEntriesCount - s_pSesStore->nValidEntriesCount );
 }
 // this procedure takes TT and input arrival times (pArrTimeProfile) and return the smallest output arrival time;
 // it also returns the pin-to-pin delays (pPerm) between each cut leaf and the cut output and the cut area cost (Cost)
@@ -1538,14 +1583,24 @@ int Abc_ExactDelayCost( word * pTruth, int nVars, int * pArrTimeProfile, char * 
         assert( 0 );
     }
 
+    /* statistics */
+    s_pSesStore->nCutCount++;
+    s_pSesStore->pCutCount[nVars]++;
+
     if ( nVars == 0 )
     {
+        s_pSesStore->nSynthesizedTrivial++;
+        s_pSesStore->pSynthesizedTrivial[0]++;
+
         *Cost = 0;
         return 0;
     }
 
     if ( nVars == 1 )
     {
+        s_pSesStore->nSynthesizedTrivial++;
+        s_pSesStore->pSynthesizedTrivial[1]++;
+
         *Cost = 0;
         pPerm[0] = (char)0;
         return pArrTimeProfile[0];
@@ -1563,17 +1618,15 @@ int Abc_ExactDelayCost( word * pTruth, int nVars, int * pArrTimeProfile, char * 
         printf( " at level %d\n", AigLevel );
     }
 
-    /* statistics */
-    s_pSesStore->nCutCount++;
-    s_pSesStore->pCutCount[nVars]++;
-
     *Cost = ABC_INFINITY;
 
     if ( Ses_StoreGetEntry( s_pSesStore, pTruth, nVars, pArrTimeProfile, &pSol ) )
     {
         if ( s_pSesStore->fVeryVerbose )
             printf( "  truth table already in store\n" );
-        s_pSesStore->nCacheHit++;
+
+        s_pSesStore->nCacheHits++;
+        s_pSesStore->pCacheHits[nVars]++;
     }
     else
     {
@@ -1610,6 +1663,33 @@ int Abc_ExactDelayCost( word * pTruth, int nVars, int * pArrTimeProfile, char * 
                 if ( s_pSesStore->fVeryVerbose )
                     printf( " NOT FOUND\n" );
                 break;
+            }
+        }
+
+        if ( pSol )
+        {
+            if ( pSes->fHitResLimit )
+            {
+                s_pSesStore->nSynthesizedRL++;
+                s_pSesStore->pSynthesizedRL[nVars]++;
+            }
+            else
+            {
+                s_pSesStore->nSynthesizedImp++;
+                s_pSesStore->pSynthesizedImp[nVars]++;
+            }
+        }
+        else
+        {
+            if ( pSes->fHitResLimit )
+            {
+                s_pSesStore->nUnsynthesizedRL++;
+                s_pSesStore->pUnsynthesizedRL[nVars]++;
+            }
+            else
+            {
+                s_pSesStore->nUnsynthesizedImp++;
+                s_pSesStore->pUnsynthesizedImp[nVars]++;
             }
         }
 
@@ -1685,6 +1765,7 @@ Abc_Obj_t * Abc_ExactBuildNode( word * pTruth, int nVars, int * pArrTimeProfile,
     /* primary inputs */
     for ( i = 0; i < nVars; ++i )
     {
+        assert( pFanins[i] );
         Vec_PtrPush( pGates, pFanins[i] );
     }
 
@@ -1707,6 +1788,7 @@ Abc_Obj_t * Abc_ExactBuildNode( word * pTruth, int nVars, int * pArrTimeProfile,
 
         pSopCover = Abc_SopFromTruthBin( pGateTruth );
         pObj = Abc_NtkCreateNode( pNtk );
+        assert( pObj );
         pObj->pData = Abc_SopRegister( (Mem_Flex_t*)pNtk->pManFunc, pSopCover );
         Vec_PtrPush( pGates, pObj );
         ABC_FREE( pSopCover );

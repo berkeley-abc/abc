@@ -7399,7 +7399,7 @@ int Abc_CommandExact( Abc_Frame_t * pAbc, int argc, char ** argv )
         }
         else if ( nVars != nVarsTmp )
         {
-            Abc_Print( -1, "All functions need to have the same size.\n" );
+            Abc_Print( -1, "All functions need to have the same size (nVars = %d, nVarsTmp = %d, base = %d).\n", nVars, nVarsTmp, Abc_Base2Log( 2 ) );
             goto usage;
         }
     }
