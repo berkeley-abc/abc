@@ -867,25 +867,31 @@ int Sle_ManAddEdgeConstraints( Sle_Man_t * p, int nEdges )
 ***********************************************************************/
 void Sle_ManDeriveResult( Sle_Man_t * p, Vec_Int_t * vEdge2, Vec_Int_t * vMapping )
 {
+    Vec_Int_t * vMapTemp;
     int iObj;
     // create mapping
     Vec_IntFill( vMapping, Gia_ManObjNum(p->pGia), 0 );
     Gia_ManForEachAndId( p->pGia, iObj )
     {
         int i, iCut, iCutVar0 = Vec_IntEntry( p->vCutFirst, iObj );
-        int * pCut, * pList = Sle_ManList( p, iObj );
+        int * pCut, * pCutThis = NULL, * pList = Sle_ManList( p, iObj );
         if ( !sat_solver_var_value(p->pSat, iObj) )
             continue;
         Sle_ForEachCut( pList, pCut, iCut )
             if ( sat_solver_var_value(p->pSat, iCutVar0 + iCut) )
-                break;
-        assert( iCut < Sle_ListCutNum(pList) );
+            {
+                assert( pCutThis == NULL );
+                pCutThis = pCut;
+            }
+        assert( pCutThis != NULL );
         Vec_IntWriteEntry( vMapping, iObj, Vec_IntSize(vMapping) );
-        Vec_IntPush( vMapping, Sle_CutSize(pCut) );
-        for ( i = 0; i < Sle_CutSize(pCut); i++ )
-            Vec_IntPush( vMapping, Sle_CutLeaves(pCut)[i] );
+        Vec_IntPush( vMapping, Sle_CutSize(pCutThis) );
+        for ( i = 0; i < Sle_CutSize(pCutThis); i++ )
+            Vec_IntPush( vMapping, Sle_CutLeaves(pCutThis)[i] );
         Vec_IntPush( vMapping, iObj );
     }
+    vMapTemp = p->pGia->vMapping;
+    p->pGia->vMapping = vMapping;
     // collect edges
     Vec_IntClear( vEdge2 );
     Gia_ManForEachAndId( p->pGia, iObj )
@@ -918,6 +924,7 @@ void Sle_ManDeriveResult( Sle_Man_t * p, Vec_Int_t * vEdge2, Vec_Int_t * vMappin
                 Vec_IntPushTwo( vEdge2, iFanin, iObj );
             }
     }
+    p->pGia->vMapping = vMapTemp;
 }
 
 /**Function*************************************************************
