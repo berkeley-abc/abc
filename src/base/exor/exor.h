@@ -105,11 +105,14 @@ typedef struct cinfo_tag
     int nCubesInUse;    // number of cubes after simplification
     int nCubesFree;     // number of free cubes
     int nLiteralsBefore;// number of literals before
-    int nLiteralsAfter; // number of literals before
+    int nLiteralsAfter; // number of literals after
+    int QCostBefore;    // q-cost before
+    int QCostAfter;     // q-cost after
     int cIDs;           // the counter of cube IDs
 
     int Verbosity;      // verbosity level
     int Quality;        // quality
+    int fUseQCost;      // use q-cost instead of literal count
 
     abctime TimeRead;   // reading time
     abctime TimeStart;  // starting cover computation time
@@ -125,6 +128,7 @@ typedef struct cube
     byte  ID;           // (almost) unique ID of the cube
     short a;            // the number of literals
     short z;            // the number of 1's in the output part
+    short q;            // user cost
     drow* pCubeDataIn;  // a pointer to the bit string representing literals
     drow* pCubeDataOut; // a pointer to the bit string representing literals
     struct cube* Prev;  // pointers to the previous/next cubes in the list/ring 

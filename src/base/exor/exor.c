@@ -66,6 +66,57 @@ extern int s_fDecreaseLiterals;
 ///                        FUNCTION main()                           ///
 ////////////////////////////////////////////////////////////////////////
 
+
+/**Function*************************************************************
+
+  Synopsis    [Number of negative literals.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static int QCost[16][16] = 
+{
+    {  1}, // 0
+    {  1,   2}, // 1
+    {  5,   5,   6}, // 2
+    { 14,  14,  16,  18}, // 3
+    { 20,  20,  20,  22,  24}, // 4
+    { 32,  32,  32,  34,  36,  38}, // 5
+    { 44,  44,  44,  44,  46,  48,  50}, // 6
+    { 56,  56,  56,  56,  58,  60,  62,  64}, // 7
+    { 0 }
+};
+int CountNegLits( Vec_Int_t * vCube )
+{
+    int i, Entry, nLits = 0;
+    Vec_IntForEachEntry( vCube, Entry, i )
+        nLits += Abc_LitIsCompl(Entry);
+    return nLits;
+}
+int ComputeQCost( Vec_Int_t * vCube )
+{
+    return QCost[Abc_MinInt(Vec_IntSize(vCube), 7)][Abc_MinInt(CountNegLits(vCube), 7)];
+}
+int ComputeQCostBits( Cube * p )
+{
+    extern varvalue GetVar( Cube* pC, int Var );
+    int v, nLits = 0, nLitsN = 0;
+    for ( v = 0; v < g_CoverInfo.nVarsIn; v++ )
+    {
+        int Value = GetVar( p, v );
+        if ( Value == VAR_NEG )
+            nLitsN++;
+        else if ( Value == VAR_POS )
+            nLits++;
+    }
+    nLits += nLitsN;
+    return QCost[Abc_MinInt(nLits, 7)][Abc_MinInt(nLitsN, 7)];
+}
+
 /**Function*************************************************************
 
   Synopsis    []
@@ -591,6 +642,7 @@ void AddCubesToStartingCover( Vec_Wec_t * vEsop )
         s_Level2Var[i] = i;
 
     g_CoverInfo.nLiteralsBefore = 0;
+    g_CoverInfo.QCostBefore = 0;
     Vec_WecForEachLevel( vEsop, vCube, c )
     {
         // get the output of this cube
@@ -622,6 +674,7 @@ void AddCubesToStartingCover( Vec_Wec_t * vEsop )
         // set literal counts
         pNew->a = Vec_IntSize(vCube);
         pNew->z = 1;
+        pNew->q = ComputeQCost(vCube);
         // set the ID
         pNew->ID = g_CoverInfo.cIDs++;
         // skip through zero-ID
@@ -632,6 +685,7 @@ void AddCubesToStartingCover( Vec_Wec_t * vEsop )
         CheckForCloseCubes( pNew, 1 );
 
         g_CoverInfo.nLiteralsBefore += Vec_IntSize(vCube);
+        g_CoverInfo.QCostBefore += ComputeQCost(vCube);
     }
     ABC_FREE( s_Level2Var );
     ABC_FREE( s_LevelValues );
@@ -798,11 +852,12 @@ int Exorcism( Vec_Wec_t * vEsop, int nIns, int nOuts, char * pFileNameOut )
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_ExorcismMain( Vec_Wec_t * vEsop, int nIns, int nOuts, char * pFileNameOut, int Quality, int Verbosity )
+int Abc_ExorcismMain( Vec_Wec_t * vEsop, int nIns, int nOuts, char * pFileNameOut, int Quality, int Verbosity, int fUseQCost )
 {
     memset( &g_CoverInfo, 0, sizeof(cinfo) );
     g_CoverInfo.Quality = Quality;
     g_CoverInfo.Verbosity = Verbosity;
+    g_CoverInfo.fUseQCost = fUseQCost;
     if ( g_CoverInfo.Verbosity )
     {
         printf( "\nEXORCISM, Ver.4.7: Exclusive Sum-of-Product Minimizer\n" );
