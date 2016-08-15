@@ -108,6 +108,23 @@ int CountLiterals()
     return LitCounter;
 }
 
+int CountQCost()
+// nCubesAlloc is the number of allocated cubes 
+{
+    extern int ComputeQCostBits( Cube * p );
+    Cube* p;
+    int QCost = 0;
+    int QCostControl = 0;
+    for ( p = IterCubeSetStart( ); p; p = IterCubeSetNext() )
+    {
+        QCostControl += p->q;
+        QCost += ComputeQCostBits( p );
+    }
+//    if ( QCostControl != QCost )
+//        printf( "Warning! The recorded number of literals (%d) differs from the actual number (%d)\n", QCostControl, QCost );
+    return QCost;
+}
+
 
 void WriteTableIntoFile( FILE * pFile )
 // nCubesAlloc is the number of allocated cubes 
@@ -175,13 +192,14 @@ int WriteResultIntoFile( char * pFileName )
     TimeStr = asctime( localtime( &ltime ) );
     // get the number of literals
     g_CoverInfo.nLiteralsAfter = CountLiterals();
+    g_CoverInfo.QCostAfter = CountQCost();
     fprintf( pFile, "# EXORCISM-4 output for command line arguments: " );
     fprintf( pFile, "\"-Q %d -V %d\"\n", g_CoverInfo.Quality, g_CoverInfo.Verbosity );
     fprintf( pFile, "# Minimization performed %s", TimeStr );
     fprintf( pFile, "# Initial statistics: " );
-    fprintf( pFile, "Cubes = %d  Literals = %d\n", g_CoverInfo.nCubesBefore, g_CoverInfo.nLiteralsBefore );
+    fprintf( pFile, "Cubes = %d  Literals = %d  QCost = %d\n", g_CoverInfo.nCubesBefore, g_CoverInfo.nLiteralsBefore, g_CoverInfo.QCostBefore );
     fprintf( pFile, "# Final   statistics: " );
-    fprintf( pFile, "Cubes = %d  Literals = %d\n", g_CoverInfo.nCubesInUse, g_CoverInfo.nLiteralsAfter );
+    fprintf( pFile, "Cubes = %d  Literals = %d  QCost = %d\n", g_CoverInfo.nCubesInUse, g_CoverInfo.nLiteralsAfter, g_CoverInfo.QCostAfter );
     fprintf( pFile, "# File reading and reordering time = %.2f sec\n", TICKS_TO_SECONDS(g_CoverInfo.TimeRead) );
     fprintf( pFile, "# Starting cover generation time   = %.2f sec\n", TICKS_TO_SECONDS(g_CoverInfo.TimeStart) );
     fprintf( pFile, "# Pure ESOP minimization time      = %.2f sec\n", TICKS_TO_SECONDS(g_CoverInfo.TimeMin) );

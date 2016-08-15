@@ -222,6 +222,8 @@ static struct
     Cube* p;      // the pointer to the modified cube
     int PrevQa;
     int PrevPa;
+    int PrevQq;
+    int PrevPq;
     int PrevPz;
     int Var;      // the number of variable that was changed
     int Value;    // the value what was there
@@ -345,7 +347,9 @@ int IterativelyApplyExorLink2( char fDistEnable )
             // decide whether to accept the second group, depending on literals
             if ( s_fDecreaseLiterals )
             {
-                if ( s_CubeGroup[0]->a + s_CubeGroup[1]->a >= s_pC1->a + s_pC2->a ) 
+                if ( g_CoverInfo.fUseQCost ? 
+                     s_CubeGroup[0]->q + s_CubeGroup[1]->q >= s_pC1->q + s_pC2->q :
+                     s_CubeGroup[0]->a + s_CubeGroup[1]->a >= s_pC1->a + s_pC2->a ) 
                 // the group increases literals
                 { // do not take the last group
                             
@@ -441,8 +445,10 @@ int IterativelyApplyExorLink3( char fDistEnable )
 
                         // decide whether to accept this group based on literal count
                         if ( s_fDecreaseLiterals && s_Gain == 1 )
-                        if ( s_CubeGroup[0]->a + s_CubeGroup[1]->a + s_CubeGroup[2]->a >
-                             s_pC1->a + s_pC2->a + s_ChangeStore.PrevQa ) // the group increases literals
+                        if ( g_CoverInfo.fUseQCost ?
+                             s_CubeGroup[0]->q + s_CubeGroup[1]->q + s_CubeGroup[2]->q > s_pC1->q + s_pC2->q + s_ChangeStore.PrevQq :
+                             s_CubeGroup[0]->a + s_CubeGroup[1]->a + s_CubeGroup[2]->a > s_pC1->a + s_pC2->a + s_ChangeStore.PrevQa 
+                           ) // the group increases literals
                         { // do not take this group
                             // remember the group
                             s_GroupBest = s_GroupCounter;
@@ -669,6 +675,8 @@ int CheckForCloseCubes( Cube* p, int fAddCube )
             s_ChangeStore.p      = p;
             s_ChangeStore.PrevQa = s_q->a;
             s_ChangeStore.PrevPa = p->a;
+            s_ChangeStore.PrevQq = s_q->q;
+            s_ChangeStore.PrevPq = p->q;
             s_ChangeStore.PrevPz = p->z;
             s_ChangeStore.Var    = s_DiffVarNum;
             s_ChangeStore.Value  = s_DiffVarValueQ;
@@ -750,6 +758,7 @@ void UndoRecentChanges()
     {
         ExorVar( p, s_ChangeStore.Var, (varvalue)s_ChangeStore.Value );
         p->a = s_ChangeStore.PrevPa;
+        p->q = s_ChangeStore.PrevPq;
         // p->z did not change
     }
     else // if ( s_ChangeStore.fInput ) // the output has changed

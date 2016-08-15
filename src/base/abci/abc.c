@@ -40401,13 +40401,13 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9Exorcism( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern int Abc_ExorcismMain( Vec_Wec_t * vEsop, int nIns, int nOuts, char * pFileNameOut, int Quality, int Verbosity );
+    extern int Abc_ExorcismMain( Vec_Wec_t * vEsop, int nIns, int nOuts, char * pFileNameOut, int Quality, int Verbosity, int fUseQCost );
     extern Gia_Man_t * Eso_ManCompute( Gia_Man_t * pGia, int fVerbose, Vec_Wec_t ** pvRes );
     Vec_Wec_t * vEsop = NULL;
     char * pFileNameOut = NULL;
-    int c, Quality = 2, Verbosity = 0, fVerbose = 0;
+    int c, Quality = 2, Verbosity = 0, fUseQCost = 0, fVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "QVvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "QVqvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -40433,6 +40433,9 @@ int Abc_CommandAbc9Exorcism( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( Verbosity < 0 )
                 goto usage;
             break;
+        case 'q':
+            fUseQCost ^= 1;
+            break;
         case 'v':
             fVerbose ^= 1;
             break;
@@ -40452,7 +40455,7 @@ int Abc_CommandAbc9Exorcism( Abc_Frame_t * pAbc, int argc, char ** argv )
         pFileNameOut = argv[globalUtilOptind];
     // generate starting cover and run minimization
     Eso_ManCompute( pAbc->pGia, fVerbose, &vEsop );
-    Abc_ExorcismMain( vEsop, Gia_ManCiNum(pAbc->pGia), Gia_ManCoNum(pAbc->pGia), pFileNameOut, Quality, Verbosity );
+    Abc_ExorcismMain( vEsop, Gia_ManCiNum(pAbc->pGia), Gia_ManCoNum(pAbc->pGia), pFileNameOut, Quality, Verbosity, fUseQCost );
     Vec_WecFree( vEsop );
     return 0;
 
@@ -40463,6 +40466,7 @@ usage:
     Abc_Print( -2, "                increasing this number improves quality and adds to runtime\n");
     Abc_Print( -2, "        -V N  : verbosity level [default = %d]\n", Verbosity);
     Abc_Print( -2, "                0 = no output; 1 = outline; 2 = verbose\n");
+//    Abc_Print( -2, "        -q    : toggle using quantum cost [default = %s]\n", fUseQCost? "yes": "no" );
     Abc_Print( -2, "        <file>: the output file name in ESOP-PLA format\n");
     Abc_Print( -2, "\n" );
     return 1;

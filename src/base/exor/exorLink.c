@@ -335,6 +335,7 @@ static int DiffVarBits[5];
 static drow MaskLiterals;
 // the base for counting literals
 static int StartingLiterals;
+static int StartingQCost;
 // the number of literals in each cube
 static int CubeLiterals[32];
 static int BitShift;
