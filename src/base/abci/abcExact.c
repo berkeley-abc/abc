@@ -826,7 +826,7 @@ static int Ses_ManCreateClauses( Ses_Man_t * pSes )
                             d = pSes->pArrTimeProfile[k];
 
                         pLits[0] = Abc_Var2Lit( Ses_ManSelectVar( pSes, i, j, k ), 1 );
-                        pLits[1] = Abc_Var2Lit( Ses_ManDepthVar( pSes, i, d + 1 ), 0 );
+                        pLits[1] = Abc_Var2Lit( Ses_ManDepthVar( pSes, i, d ), 0 );
                         assert( sat_solver_addclause( pSes->pSat, pLits, pLits + 2 ) );
                     }
             }
@@ -1005,17 +1005,20 @@ static char * Ses_ManExtractSolution( Ses_Man_t * pSes )
                 *p++ = Abc_Var2Lit( i, ( pSes->bSpecInv >> h ) & 1 );
                 d = 0;
                 if ( pSes->nMaxDepth != -1 )
-                    /* while ( d < pSes->nArrTimeMax + i && sat_solver_var_value( pSes->pSat, Ses_ManDepthVar( pSes, i, d ) ) ) */
-                    /*     ++d; */
                     for ( l = 0; l < pSes->nSpecVars; ++l )
-                        d = Abc_MaxInt( d, pSes->pArrTimeProfile[l] + pPerm[i * pSes->nSpecVars + l] );
+                    {
+                        if ( pSes->pArrTimeProfile )
+                            d = Abc_MaxInt( d, pSes->pArrTimeProfile[l] + pPerm[i * pSes->nSpecVars + l] );
+                        else
+                            d = Abc_MaxInt( d, pPerm[i * pSes->nSpecVars + l] );
+                    }
                 *p++ = d;
-                if ( pSes->fExtractVerbose )
+                if ( pSes->pArrTimeProfile && pSes->fExtractVerbose )
                     printf( "output %d points to %d and has normalized delay %d (nArrTimeDelta = %d)\n", h, i, d, pSes->nArrTimeDelta );
                 for ( l = 0; l < pSes->nSpecVars; ++l )
                 {
                     d = ( pSes->nMaxDepth != -1 ) ? pPerm[i * pSes->nSpecVars + l] : 0;
-                    if ( pSes->fExtractVerbose )
+                    if ( pSes->pArrTimeProfile && pSes->fExtractVerbose )
                         printf( "  pin-to-pin arrival time from input %d is %d (pArrTimeProfile = %d)\n", l, d, pSes->pArrTimeProfile[l] );
                     *p++ = d;
                 }
@@ -1263,11 +1266,19 @@ static int Ses_ManFindMinimumSize( Ses_Man_t * pSes )
 
         /* give up if number of gates is impossible for given depth */
         if ( pSes->nMaxDepth != -1 && nGates >= ( 1 << pSes->nMaxDepth ) )
+        {
+            if ( pSes->fVeryVerbose )
+                printf( "give up due to impossible depth (depth = %d, gates = %d)\n", pSes->nMaxDepth, nGates );
             return 0;
+        }
 
         /* give up if number of gates gets practically too large */
         if ( nGates >= ( 1 << pSes->nSpecVars ) )
+        {
+            if ( pSes->fVeryVerbose )
+                printf( "give up due to impossible number of gates\n" );
             return 0;
+        }
 
         Ses_ManCreateVars( pSes, nGates );
         if ( !Ses_ManCreateClauses( pSes ) )
@@ -1606,6 +1617,14 @@ int Abc_ExactDelayCost( word * pTruth, int nVars, int * pArrTimeProfile, char * 
         return pArrTimeProfile[0];
     }
 
+    if ( s_pSesStore->fVeryVerbose )
+    {
+        printf( "arrival times input:" );
+        for ( l = 0; l < nVars; ++l )
+            printf( " %d", pArrTimeProfile[l] );
+        printf( "\n" );
+    }
+
     nDelta = Abc_NormalizeArrivalTimes( pArrTimeProfile, nVars, &nMaxArrival );
 
     if ( s_pSesStore->fVeryVerbose )
@@ -1615,7 +1634,7 @@ int Abc_ExactDelayCost( word * pTruth, int nVars, int * pArrTimeProfile, char * 
         printf( " with arrival times" );
         for ( l = 0; l < nVars; ++l )
             printf( " %d", pArrTimeProfile[l] );
-        printf( " at level %d\n", AigLevel );
+        printf( " at level %d (nDelta = %d)\n", AigLevel, nDelta );
     }
 
     *Cost = ABC_INFINITY;
@@ -1634,7 +1653,8 @@ int Abc_ExactDelayCost( word * pTruth, int nVars, int * pArrTimeProfile, char * 
         for ( i = 1; i < nVars; ++i )
             nMaxDepth = Abc_MaxInt( nMaxDepth, pArrTimeProfile[i] );
         nMaxDepth += nVars + 1;
-        //nMaxDepth = Abc_MinInt( AigLevel, nMaxDepth + nVars + 1 );
+        if ( AigLevel != -1 )
+            nMaxDepth = Abc_MinInt( AigLevel, nMaxDepth + nVars + 1 );
 
         timeStart = Abc_Clock();
 
@@ -1661,7 +1681,7 @@ int Abc_ExactDelayCost( word * pTruth, int nVars, int * pArrTimeProfile, char * 
             else
             {
                 if ( s_pSesStore->fVeryVerbose )
-                    printf( " NOT FOUND\n" );
+                    printf( " NOT FOUND (%d)\n", pSes->fHitResLimit );
                 break;
             }
         }
@@ -1711,26 +1731,31 @@ int Abc_ExactDelayCost( word * pTruth, int nVars, int * pArrTimeProfile, char * 
             pPerm[l] = *p++;
     }
 
-    /* if ( pSol ) */
-    /* { */
-    /*     int Delay2 = 0; */
-    /*     for ( l = 0; l < nVars; ++l ) */
-    /*     { */
-    /*         //printf( "%d ", pPerm[l] ); */
-    /*         Delay2 = Abc_MaxInt( Delay2, pArrTimeProfile[l] + pPerm[l] ); */
-    /*     } */
-    /*     //printf( "  output arrival = %d    recomputed = %d\n", Delay, Delay2 ); */
-    /*     if ( Delay != Delay2 ) */
-    /*     { */
-    /*         printf( "^--- BUG!\n" ); */
-    /*         assert( 0 ); */
-    /*     } */
-    /*     //Delay = Delay2; */
-    /* } */
+    if ( pSol )
+    {
+        int Delay2 = 0;
+        for ( l = 0; l < nVars; ++l )
+        {
+            //printf( "%d ", pPerm[l] );
+            Delay2 = Abc_MaxInt( Delay2, pArrTimeProfile[l] + pPerm[l] );
+        }
+        //printf( "  output arrival = %d    recomputed = %d\n", Delay, Delay2 );
+        if ( Delay != Delay2 )
+        {
+            printf( "^--- BUG!\n" );
+            assert( 0 );
+        }
+        //Delay = Delay2;
+    }
 
     Abc_UnnormalizeArrivalTimes( pArrTimeProfile, nVars, nDelta );
 
-    return nDelta + Delay;
+    if ( !pSol )
+    {
+        assert( *Cost == ABC_INFINITY );
+    }
+
+    return pSol ? nDelta + Delay : ABC_INFINITY;
 }
 // this procedure returns a new node whose output in terms of the given fanins
 // has the smallest possible arrival time (in agreement with the above Abc_ExactDelayCost)
