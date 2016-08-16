@@ -22,6 +22,7 @@
 #include "misc/vec/vecWec.h"
 #include "misc/vec/vecQue.h"
 #include "misc/vec/vecHsh.h"
+#include "opt/fxch/Fxch.h"
 
 ABC_NAMESPACE_IMPL_START
 
