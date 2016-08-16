@@ -237,7 +237,7 @@ static inline int Ses_StoreTableHash( word * pTruth, int nVars )
     static int s_Primes[4] = { 1291, 1699, 1999, 2357 };
     int i;
     unsigned uHash = 0;
-    for ( i = 0; i < Kit_TruthWordNum( nVars ); ++i )
+    for ( i = 0; i < Abc_TtWordNum( nVars ); ++i )
         uHash ^= pTruth[i] * s_Primes[i & 0xf];
     return (int)(uHash % SES_STORE_TABLE_SIZE );
 }
@@ -249,7 +249,7 @@ static inline int Ses_StoreTruthEqual( Ses_TruthEntry_t * pEntry, word * pTruth,
     if ( pEntry->nVars != nVars )
         return 0;
 
-    for ( i = 0; i < Kit_TruthWordNum( nVars ); ++i )
+    for ( i = 0; i < Abc_TtWordNum( nVars ); ++i )
         if ( pEntry->pTruth[i] != pTruth[i] )
             return 0;
     return 1;
@@ -259,7 +259,7 @@ static inline void Ses_StoreTruthCopy( Ses_TruthEntry_t * pEntry, word * pTruthS
 {
     int i;
     pEntry->nVars = nVars;
-    for ( i = 0; i < Kit_TruthWordNum( nVars ); ++i )
+    for ( i = 0; i < Abc_TtWordNum( nVars ); ++i )
         pEntry->pTruth[i] = pTruthSrc[i];
 }
 
