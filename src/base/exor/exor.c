@@ -116,6 +116,43 @@ int ComputeQCostBits( Cube * p )
     nLits += nLitsN;
     return QCost[Abc_MinInt(nLits, 7)][Abc_MinInt(nLitsN, 7)];
 }
+int ToffoliGateCount( int controls, int lines )
+{
+    switch ( controls )
+    {
+    case 0u:
+    case 1u:
+        return 0;
+        break;
+    case 2u:
+        return 1;
+        break;
+    case 3u:
+        return 4;
+        break;
+    case 4u:
+        return ( ( ( lines + 1 ) / 2 ) >= controls ) ? 8 : 10;
+        break;
+    default:
+        return ( ( ( lines + 1 ) / 2 ) >= controls ) ? 4 * ( controls - 2 ) : 8 * ( controls - 3 );
+    }
+}
+int ComputeQCostTcount( Vec_Int_t * vCube )
+{
+    return 7 * ToffoliGateCount( Vec_IntSize( vCube ), g_CoverInfo.nVarsIn + 1 );
+}
+int ComputeQCostTcountBits( Cube * p )
+{
+    extern varvalue GetVar( Cube* pC, int Var );
+    int v, nLits = 0;
+    for ( v = 0; v < g_CoverInfo.nVarsIn; v++ )
+        if ( GetVar( p, v ) != VAR_ABS )
+            nLits++;
+    return 7 * ToffoliGateCount( nLits, g_CoverInfo.nVarsIn + 1 );
+
+    /* maybe just: 7 * ToffoliGateCount( p->a, g_CoverInfo.nVarsIn + 1 ); */
+}
+
 
 /**Function*************************************************************
 
