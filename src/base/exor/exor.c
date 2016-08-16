@@ -825,8 +825,8 @@ int Exorcism( Vec_Wec_t * vEsop, int nIns, int nOuts, char * pFileNameOut )
         char Buffer[1000];
         sprintf( Buffer, "%s", pFileNameOut ? pFileNameOut : "temp.esop" );
         WriteResultIntoFile( Buffer );
-        //if ( g_CoverInfo.Verbosity )
-        printf( "Minimized cover has been written into file <%s>\n", Buffer );
+        if ( g_CoverInfo.Verbosity )
+            printf( "Minimized cover has been written into file <%s>\n", Buffer );
     }
 
     ///////////////////////////////////////////////////////////////////////
