@@ -112,6 +112,7 @@ typedef struct cinfo_tag
 
     int Verbosity;      // verbosity level
     int Quality;        // quality
+    int nCubesMax;      // maximum number of cubes in starting cover
     int fUseQCost;      // use q-cost instead of literal count
 
     abctime TimeRead;   // reading time

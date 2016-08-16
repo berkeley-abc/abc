@@ -742,9 +742,9 @@ int Exorcism( Vec_Wec_t * vEsop, int nIns, int nOuts, char * pFileNameOut )
     printf( "The number of cubes in the starting cover is %d\n", g_CoverInfo.nCubesBefore );
     }
 
-    if ( g_CoverInfo.nCubesBefore > 20000 )
+    if ( g_CoverInfo.nCubesBefore > g_CoverInfo.nCubesMax )
     {
-        printf( "\nThe size of the starting cover is more than 20000 cubes. Quitting...\n" );
+        printf( "\nThe size of the starting cover is more than %d cubes. Quitting...\n", g_CoverInfo.nCubesMax );
         return 0;
     }
 
@@ -852,11 +852,12 @@ int Exorcism( Vec_Wec_t * vEsop, int nIns, int nOuts, char * pFileNameOut )
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_ExorcismMain( Vec_Wec_t * vEsop, int nIns, int nOuts, char * pFileNameOut, int Quality, int Verbosity, int fUseQCost )
+int Abc_ExorcismMain( Vec_Wec_t * vEsop, int nIns, int nOuts, char * pFileNameOut, int Quality, int Verbosity, int nCubesMax, int fUseQCost )
 {
     memset( &g_CoverInfo, 0, sizeof(cinfo) );
     g_CoverInfo.Quality = Quality;
     g_CoverInfo.Verbosity = Verbosity;
+    g_CoverInfo.nCubesMax = nCubesMax;
     g_CoverInfo.fUseQCost = fUseQCost;
     if ( g_CoverInfo.Verbosity )
     {
