@@ -40460,13 +40460,13 @@ int Abc_CommandAbc9Exorcism( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &exorcism [-Q N] [-V N] <file>\n" );
+    Abc_Print( -2, "usage: &exorcism [-Q N] [-V N] [-q] <file>\n" );
     Abc_Print( -2, "                performs heuristic exclusive sum-of-project minimization\n" );
     Abc_Print( -2, "        -Q N  : minimization quality [default = %d]\n", Quality);
     Abc_Print( -2, "                increasing this number improves quality and adds to runtime\n");
     Abc_Print( -2, "        -V N  : verbosity level [default = %d]\n", Verbosity);
     Abc_Print( -2, "                0 = no output; 1 = outline; 2 = verbose\n");
-//    Abc_Print( -2, "        -q    : toggle using quantum cost [default = %s]\n", fUseQCost? "yes": "no" );
+    Abc_Print( -2, "        -q    : toggle using quantum cost [default = %s]\n", fUseQCost? "yes": "no" );
     Abc_Print( -2, "        <file>: the output file name in ESOP-PLA format\n");
     Abc_Print( -2, "\n" );
     return 1;

@@ -167,6 +167,12 @@ extern int FindDiffVars( int *pDiffVars, Cube* pC1, Cube* pC2 );
 // determines the variables that are different in cubes pC1 and pC2
 // returns the number of variables
 
+extern int ComputeQCost( Vec_Int_t * vCube );
+extern int ComputeQCostBits( Cube * p );
+
+extern int CountLiterals();
+extern int CountQCost();
+
 ////////////////////////////////////////////////////////////////////////
 ///              VARVALUE and CUBEDIST enum typedefs                 ///
 ////////////////////////////////////////////////////////////////////////
