@@ -335,7 +335,6 @@ static int DiffVarBits[5];
 static drow MaskLiterals;
 // the base for counting literals
 static int StartingLiterals;
-static int StartingQCost;
 // the number of literals in each cube
 static int CubeLiterals[32];
 static int BitShift;
@@ -525,9 +524,6 @@ int ExorLinkCubeIteratorStart( Cube** pGroup, Cube* pC1, Cube* pC2, cubedist Dis
                     NewZ += BIT_COUNT(Temp);
                 }
         }
-        // set the number of literals
-        ELCubes[CubeNum]->a = StartingLiterals + CubeLiterals[CubeNum];
-        ELCubes[CubeNum]->z = NewZ;
 
         // set the variables that should be there
         for ( i = 0; i < nDiffVarsIn; i++ )
@@ -535,6 +531,11 @@ int ExorLinkCubeIteratorStart( Cube** pGroup, Cube* pC1, Cube* pC2, cubedist Dis
             Value = DiffVarValues[i][ s_ELCubeRules[Dist][CubeNum][i] ];
             ELCubes[CubeNum]->pCubeDataIn[ DiffVarWords[i] ] |= ( Value << DiffVarBits[i] );
         }
+
+        // set the number of literals
+        ELCubes[CubeNum]->a = StartingLiterals + CubeLiterals[CubeNum];
+        ELCubes[CubeNum]->z = NewZ;
+        ELCubes[CubeNum]->q = ComputeQCostBits( ELCubes[CubeNum] );
 
         // assign the ID
         ELCubes[CubeNum]->ID = g_CoverInfo.cIDs++;
@@ -645,11 +646,6 @@ int ExorLinkCubeIteratorNext( Cube** pGroup )
                         NewZ += BIT_COUNT(Temp);
                     }
             }
-            // set the number of literals and output ones
-            ELCubes[CubeNum]->a = StartingLiterals + CubeLiterals[CubeNum];
-            ELCubes[CubeNum]->z = NewZ;
-
-            assert( NewZ != 255 );
 
             // set the variables that should be there
             for ( i = 0; i < nDiffVarsIn; i++ )
@@ -657,6 +653,12 @@ int ExorLinkCubeIteratorNext( Cube** pGroup )
                 Value = DiffVarValues[i][ s_ELCubeRules[nDist][CubeNum][i] ];
                 ELCubes[CubeNum]->pCubeDataIn[ DiffVarWords[i] ] |= ( Value << DiffVarBits[i] );
             }
+
+            // set the number of literals and output ones
+            ELCubes[CubeNum]->a = StartingLiterals + CubeLiterals[CubeNum];
+            ELCubes[CubeNum]->z = NewZ;
+            ELCubes[CubeNum]->q = ComputeQCostBits( ELCubes[CubeNum] );
+            assert( NewZ != 255 );
 
             // assign the ID
             ELCubes[CubeNum]->ID = g_CoverInfo.cIDs++;

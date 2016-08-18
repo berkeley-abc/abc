@@ -393,6 +393,8 @@ SUCCESS:
     printf( "  NoResh= %4d", s_cAttempts - s_cReshapes );
     printf( "  Cubes= %3d", g_CoverInfo.nCubesInUse );
     printf( "  (%d)", s_nCubesBefore - g_CoverInfo.nCubesInUse );
+    printf( "  Lits= %5d", CountLiterals() );
+    printf( "  QCost = %6d", CountQCost() );
     printf( "\n" );
     }
 
@@ -510,6 +512,8 @@ END_OF_LOOP: {}
     printf( "  NoResh= %4d", s_cAttempts - s_cReshapes );
     printf( "  Cubes= %3d", g_CoverInfo.nCubesInUse );
     printf( "  (%d)", s_nCubesBefore - g_CoverInfo.nCubesInUse );
+    printf( "  Lits= %5d", CountLiterals() );
+    printf( "  QCost = %6d", CountQCost() );
     printf( "\n" );
     }
 
@@ -619,6 +623,8 @@ END_OF_LOOP: {}
     printf( "  NoResh= %4d", s_cAttempts - s_cReshapes );
     printf( "  Cubes= %3d", g_CoverInfo.nCubesInUse );
     printf( "  (%d)", s_nCubesBefore - g_CoverInfo.nCubesInUse );
+    printf( "  Lits= %5d", CountLiterals() );
+    printf( "  QCost = %6d", CountQCost() );
     printf( "\n" );
     }
 
@@ -709,6 +715,7 @@ int CheckForCloseCubes( Cube* p, int fAddCube )
                     p->a--;
                 if ( s_DiffVarValueP_new == VAR_NEG || s_DiffVarValueP_new == VAR_POS )
                     p->a++;
+                p->q = ComputeQCostBits(p);
             }
 
             // move q to the free cube list
