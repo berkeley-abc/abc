@@ -922,7 +922,7 @@ Abc_Ntk_t * Abc_NtkFromSopsInt( Abc_Ntk_t * pNtk, int nCubeLim, int nBTLimit, in
         vSupp = Vec_WecEntry( vSupps, i );
         Vec_IntForEachEntry( vSupp, iCi, k )
             Abc_ObjAddFanin( pNodeNew, Abc_NtkCi(pNtkNew, iCi) );
-        pNodeNew->pData = Abc_SopRegister( (Mem_Flex_t *)pNtkNew->pManFunc, Vec_PtrEntry( vSops, i ) );
+        pNodeNew->pData = Abc_SopRegister( (Mem_Flex_t *)pNtkNew->pManFunc, (const char*)Vec_PtrEntry( vSops, i ) );
         assert( pNodeNew->pData != (void *)(ABC_PTRINT_T)1 );
         Abc_ObjAddFanin( pNode->pCopy, pNodeNew );
     }
