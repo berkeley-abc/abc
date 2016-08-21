@@ -395,7 +395,7 @@ static inline void Fxch_ManExtractDivFromCubePairs( Fxch_Man_t* pFxchMan,
     Vec_IntForEachEntryDouble( pFxchMan->vPairs, iCube0, iCube1, i )
     {
         int j, Lit,
-            RetValue,  
+            RetValue,
             fCompl = 0;
         int * pOutputID0, * pOutputID1;
 
@@ -431,9 +431,9 @@ static inline void Fxch_ManExtractDivFromCubePairs( Fxch_Man_t* pFxchMan,
             /* Update Lit -> Cube mapping */
             Vec_IntForEachEntry( pFxchMan->vDiv, Lit, j )
             {
-                Vec_IntRemove( Vec_WecEntry( pFxchMan->vLits, Abc_Lit2Var( Lit ) ), 
+                Vec_IntRemove( Vec_WecEntry( pFxchMan->vLits, Abc_Lit2Var( Lit ) ),
                                Vec_WecLevelId( pFxchMan->vCubes, vCube0 ) );
-                Vec_IntRemove( Vec_WecEntry( pFxchMan->vLits, Abc_LitNot( Abc_Lit2Var( Lit ) ) ), 
+                Vec_IntRemove( Vec_WecEntry( pFxchMan->vLits, Abc_LitNot( Abc_Lit2Var( Lit ) ) ),
                                Vec_WecLevelId( pFxchMan->vCubes, vCube0 ) );
             }
 
@@ -447,7 +447,7 @@ static inline void Fxch_ManExtractDivFromCubePairs( Fxch_Man_t* pFxchMan,
             /* Create new cube */
             vCube = Vec_WecPushLevel( pFxchMan->vCubes );
             Vec_IntAppend( vCube, vCube0Copy );
-            Vec_IntPushArray( pFxchMan->vOutputID, pFxchMan->pTempOutputID, pFxchMan->nSizeOutputID ); 
+            Vec_IntPushArray( pFxchMan->vOutputID, pFxchMan->pTempOutputID, pFxchMan->nSizeOutputID );
             Vec_IntPush( pFxchMan->vCubesToUpdate, Vec_WecLevelId( pFxchMan->vCubes, vCube ) );
 
             /* Update Lit -> Cube mapping */
@@ -489,7 +489,7 @@ static inline void Fxch_ManExtractDivFromCubePairs( Fxch_Man_t* pFxchMan,
         {
             Vec_Int_t* vLitP = Vec_WecEntry( pFxchMan->vLits, Vec_WecSize( pFxchMan->vLits ) - 2 ),
                      * vLitN = Vec_WecEntry( pFxchMan->vLits, Vec_WecSize( pFxchMan->vLits ) - 1 );
- 
+
             assert( vCube );
             if ( Vec_IntSize( pFxchMan->vDiv ) == 2 || fCompl )
             {
@@ -514,11 +514,11 @@ static inline int Fxch_ManCreateCube( Fxch_Man_t* pFxchMan,
                                       int Lit1 )
 {
     int Level,
-        iVarNew, 
+        iVarNew,
         j;
     Vec_Int_t* vCube0,
              * vCube1;
- 
+
     /* Create a new variable */
     iVarNew = pFxchMan->nVars;
     pFxchMan->nVars++;
@@ -526,7 +526,7 @@ static inline int Fxch_ManCreateCube( Fxch_Man_t* pFxchMan,
     /* Clear temporary outputID vector */
     for ( j = 0; j < pFxchMan->nSizeOutputID; j++ )
         pFxchMan->pTempOutputID[j] = 0;
-    
+
     /* Create new Lit hash keys */
     Vec_IntPush( pFxchMan->vLitHashKeys, Gia_ManRandom(0) & 0x3FFFFFF );
     Vec_IntPush( pFxchMan->vLitHashKeys, Gia_ManRandom(0) & 0x3FFFFFF );
@@ -657,7 +657,7 @@ void Fxch_ManUpdate( Fxch_Man_t* pFxchMan,
     }
     else
         Fxch_ManExtractDivFromCubePairs( pFxchMan, 0 );
- 
+
     assert( Vec_IntSize( pFxchMan->vCubesToUpdate ) );
 
     /* Add cost */
@@ -670,7 +670,7 @@ void Fxch_ManUpdate( Fxch_Man_t* pFxchMan,
     }
 
     /* Deal with SCC */
-    if ( Vec_IntSize( pFxchMan->vSCC ) && pFxchMan->nExtDivs < 17 )
+    if ( Vec_IntSize( pFxchMan->vSCC ) )
     {
         Vec_IntUniqifyPairs( pFxchMan->vSCC );
         assert( Vec_IntSize( pFxchMan->vSCC ) % 2 == 0 );

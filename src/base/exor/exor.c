@@ -90,16 +90,48 @@ static int QCost[16][16] =
     { 56,  56,  56,  56,  58,  60,  62,  64}, // 7
     { 0 }
 };
-int CountNegLits( Vec_Int_t * vCube )
+int GetQCost( int nVars, int nNegs )
 {
-    int i, Entry, nLits = 0;
-    Vec_IntForEachEntry( vCube, Entry, i )
-        nLits += Abc_LitIsCompl(Entry);
-    return nLits;
+    int Extra;
+    assert( nVars >= nNegs );
+    if ( nVars == 0 )  
+        return 1;
+    if ( nVars == 1 )  
+    {
+        if ( nNegs == 0 )  return 1;
+        if ( nNegs == 1 )  return 2;
+    }
+    if ( nVars == 2 )
+    {
+        if ( nNegs <= 1 )  return 5;
+        if ( nNegs == 2 )  return 6;
+    }
+    if ( nVars == 3 )
+    {
+        if ( nNegs <= 1 )  return 14;
+        if ( nNegs == 2 )  return 16;
+        if ( nNegs == 3 )  return 18;
+    }
+    Extra = nNegs - nVars/2;
+    return 20 + 12 * (nVars - 4) + (Extra > 0 ? 2 * Extra : 0);
+
+}
+void GetQCostTest()
+{
+    int i, k, Limit = 10;
+    for ( i = 0; i < Limit; i++ )
+    {
+        for ( k = 0; k <= i; k++ )
+            printf( "%4d ", GetQCost(i, k) );
+        printf( "\n" );
+    }
 }
 int ComputeQCost( Vec_Int_t * vCube )
 {
-    return QCost[Abc_MinInt(Vec_IntSize(vCube), 7)][Abc_MinInt(CountNegLits(vCube), 7)];
+    int i, Entry, nLitsN = 0;
+    Vec_IntForEachEntry( vCube, Entry, i )
+        nLitsN += Abc_LitIsCompl(Entry);
+    return GetQCost( Vec_IntSize(vCube), nLitsN );
 }
 int ComputeQCostBits( Cube * p )
 {
@@ -114,8 +146,45 @@ int ComputeQCostBits( Cube * p )
             nLits++;
     }
     nLits += nLitsN;
-    return QCost[Abc_MinInt(nLits, 7)][Abc_MinInt(nLitsN, 7)];
+    return GetQCost( nLits, nLitsN );
 }
+int ToffoliGateCount( int controls, int lines )
+{
+    switch ( controls )
+    {
+    case 0u:
+    case 1u:
+        return 0;
+        break;
+    case 2u:
+        return 1;
+        break;
+    case 3u:
+        return 4;
+        break;
+    case 4u:
+        return ( ( ( lines + 1 ) / 2 ) >= controls ) ? 8 : 10;
+        break;
+    default:
+        return ( ( ( lines + 1 ) / 2 ) >= controls ) ? 4 * ( controls - 2 ) : 8 * ( controls - 3 );
+    }
+}
+int ComputeQCostTcount( Vec_Int_t * vCube )
+{
+    return 7 * ToffoliGateCount( Vec_IntSize( vCube ), g_CoverInfo.nVarsIn + 1 );
+}
+int ComputeQCostTcountBits( Cube * p )
+{
+    extern varvalue GetVar( Cube* pC, int Var );
+    int v, nLits = 0;
+    for ( v = 0; v < g_CoverInfo.nVarsIn; v++ )
+        if ( GetVar( p, v ) != VAR_ABS )
+            nLits++;
+    return 7 * ToffoliGateCount( nLits, g_CoverInfo.nVarsIn + 1 );
+
+    /* maybe just: 7 * ToffoliGateCount( p->a, g_CoverInfo.nVarsIn + 1 ); */
+}
+
 
 /**Function*************************************************************
 
@@ -742,9 +811,9 @@ int Exorcism( Vec_Wec_t * vEsop, int nIns, int nOuts, char * pFileNameOut )
     printf( "The number of cubes in the starting cover is %d\n", g_CoverInfo.nCubesBefore );
     }
 
-    if ( g_CoverInfo.nCubesBefore > 20000 )
+    if ( g_CoverInfo.nCubesBefore > g_CoverInfo.nCubesMax )
     {
-        printf( "\nThe size of the starting cover is more than 20000 cubes. Quitting...\n" );
+        printf( "\nThe size of the starting cover is more than %d cubes. Quitting...\n", g_CoverInfo.nCubesMax );
         return 0;
     }
 
@@ -825,8 +894,8 @@ int Exorcism( Vec_Wec_t * vEsop, int nIns, int nOuts, char * pFileNameOut )
         char Buffer[1000];
         sprintf( Buffer, "%s", pFileNameOut ? pFileNameOut : "temp.esop" );
         WriteResultIntoFile( Buffer );
-        //if ( g_CoverInfo.Verbosity )
-        printf( "Minimized cover has been written into file <%s>\n", Buffer );
+        if ( g_CoverInfo.Verbosity )
+            printf( "Minimized cover has been written into file <%s>\n", Buffer );
     }
 
     ///////////////////////////////////////////////////////////////////////
@@ -852,12 +921,15 @@ int Exorcism( Vec_Wec_t * vEsop, int nIns, int nOuts, char * pFileNameOut )
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_ExorcismMain( Vec_Wec_t * vEsop, int nIns, int nOuts, char * pFileNameOut, int Quality, int Verbosity, int fUseQCost )
+int Abc_ExorcismMain( Vec_Wec_t * vEsop, int nIns, int nOuts, char * pFileNameOut, int Quality, int Verbosity, int nCubesMax, int fUseQCost )
 {
     memset( &g_CoverInfo, 0, sizeof(cinfo) );
     g_CoverInfo.Quality = Quality;
     g_CoverInfo.Verbosity = Verbosity;
+    g_CoverInfo.nCubesMax = nCubesMax;
     g_CoverInfo.fUseQCost = fUseQCost;
+    if ( fUseQCost )
+        s_fDecreaseLiterals = 1;
     if ( g_CoverInfo.Verbosity )
     {
         printf( "\nEXORCISM, Ver.4.7: Exclusive Sum-of-Product Minimizer\n" );

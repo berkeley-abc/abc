@@ -75,7 +75,15 @@ extern varvalue GetVar( Cube* pC, int Var );
 ///////////////////////////////////////////////////////////////////
 
 int CountLiterals()
-// nCubesAlloc is the number of allocated cubes 
+{
+    Cube* p;
+    int LitCounter = 0;
+    for ( p = IterCubeSetStart( ); p; p = IterCubeSetNext() )
+        LitCounter += p->a;
+    return LitCounter;
+}
+
+int CountLiteralsCheck()
 {
     Cube* p;
     int Value, v;
@@ -109,9 +117,7 @@ int CountLiterals()
 }
 
 int CountQCost()
-// nCubesAlloc is the number of allocated cubes 
 {
-    extern int ComputeQCostBits( Cube * p );
     Cube* p;
     int QCost = 0;
     int QCostControl = 0;
@@ -191,7 +197,7 @@ int WriteResultIntoFile( char * pFileName )
     time( &ltime );
     TimeStr = asctime( localtime( &ltime ) );
     // get the number of literals
-    g_CoverInfo.nLiteralsAfter = CountLiterals();
+    g_CoverInfo.nLiteralsAfter = CountLiteralsCheck();
     g_CoverInfo.QCostAfter = CountQCost();
     fprintf( pFile, "# EXORCISM-4 output for command line arguments: " );
     fprintf( pFile, "\"-Q %d -V %d\"\n", g_CoverInfo.Quality, g_CoverInfo.Verbosity );
