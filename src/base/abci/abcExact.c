@@ -25,7 +25,6 @@
 #include "base/abc/abc.h"
 
 #include "aig/gia/gia.h"
-#include "bool/kit/kit.h"
 #include "misc/util/utilTruth.h"
 #include "misc/vec/vecInt.h"
 #include "misc/vec/vecPtr.h"
@@ -38,17 +37,6 @@ ABC_NAMESPACE_IMPL_START
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
-
-static word s_Truths8[32] = {
-    ABC_CONST(0xAAAAAAAAAAAAAAAA), ABC_CONST(0xAAAAAAAAAAAAAAAA), ABC_CONST(0xAAAAAAAAAAAAAAAA), ABC_CONST(0xAAAAAAAAAAAAAAAA),
-    ABC_CONST(0xCCCCCCCCCCCCCCCC), ABC_CONST(0xCCCCCCCCCCCCCCCC), ABC_CONST(0xCCCCCCCCCCCCCCCC), ABC_CONST(0xCCCCCCCCCCCCCCCC),
-    ABC_CONST(0xF0F0F0F0F0F0F0F0), ABC_CONST(0xF0F0F0F0F0F0F0F0), ABC_CONST(0xF0F0F0F0F0F0F0F0), ABC_CONST(0xF0F0F0F0F0F0F0F0),
-    ABC_CONST(0xFF00FF00FF00FF00), ABC_CONST(0xFF00FF00FF00FF00), ABC_CONST(0xFF00FF00FF00FF00), ABC_CONST(0xFF00FF00FF00FF00),
-    ABC_CONST(0xFFFF0000FFFF0000), ABC_CONST(0xFFFF0000FFFF0000), ABC_CONST(0xFFFF0000FFFF0000), ABC_CONST(0xFFFF0000FFFF0000),
-    ABC_CONST(0xFFFFFFFF00000000), ABC_CONST(0xFFFFFFFF00000000), ABC_CONST(0xFFFFFFFF00000000), ABC_CONST(0xFFFFFFFF00000000),
-    ABC_CONST(0x0000000000000000), ABC_CONST(0xFFFFFFFFFFFFFFFF), ABC_CONST(0x0000000000000000), ABC_CONST(0xFFFFFFFFFFFFFFFF),
-    ABC_CONST(0x0000000000000000), ABC_CONST(0x0000000000000000), ABC_CONST(0xFFFFFFFFFFFFFFFF), ABC_CONST(0xFFFFFFFFFFFFFFFF)
-};
 
 #define ABC_EXACT_SOL_NVARS  0
 #define ABC_EXACT_SOL_NFUNC  1
@@ -93,7 +81,13 @@ struct Ses_Man_t_
     abctime      timeSat;         /* SAT runtime */
     abctime      timeSatSat;      /* SAT runtime (sat instance) */
     abctime      timeSatUnsat;    /* SAT runtime (unsat instance) */
+    abctime      timeSatUndef;    /* SAT runtime (undef instance) */
+    abctime      timeInstance;    /* creating instance runtime */
     abctime      timeTotal;       /* all runtime */
+
+    int          nSatCalls;       /* number of SAT calls */
+    int          nUnsatCalls;     /* number of UNSAT calls */
+    int          nUndefCalls;     /* number of UNDEF calls */
 };
 
 /***********************************************************************
@@ -151,6 +145,18 @@ struct Ses_Store_t_
     unsigned long      pSynthesizedRL[9];              /* -> per cut size */
     unsigned long      nCacheHits;                     /* number of cache hits */
     unsigned long      pCacheHits[9];                  /* -> per cut size */
+
+    unsigned long      nSatCalls;                      /* number of total SAT calls */
+    unsigned long      nUnsatCalls;                    /* number of total UNSAT calls */
+    unsigned long      nUndefCalls;                    /* number of total UNDEF calls */
+
+    abctime            timeExact;                      /* Exact synthesis runtime */
+    abctime            timeSat;                        /* SAT runtime */
+    abctime            timeSatSat;                     /* SAT runtime (sat instance) */
+    abctime            timeSatUnsat;                   /* SAT runtime (unsat instance) */
+    abctime            timeSatUndef;                   /* SAT runtime (undef instance) */
+    abctime            timeInstance;                   /* creating instance runtime */
+    abctime            timeTotal;                      /* all runtime */
 };
 
 static Ses_Store_t * s_pSesStore = NULL;
@@ -181,14 +187,6 @@ static int Abc_NormalizeArrivalTimes( int * pArrTimeProfile, int nVars, int * ma
     *maxNormalized += 1;
 
     return delta;
-}
-
-static inline void Abc_UnnormalizeArrivalTimes( int * pArrTimeProfile, int nVars, int nDelta )
-{
-    int l;
-
-    for ( l = 0; l < nVars; ++l )
-        pArrTimeProfile[l] += nDelta;
 }
 
 static inline Ses_Store_t * Ses_StoreAlloc( int nBTLimit, int fMakeAIG, int fVerbose )
@@ -623,7 +621,7 @@ static inline void Ses_ManCreateMainClause( Ses_Man_t * pSes, int t, int i, int 
 
     if ( j < pSes->nSpecVars )
     {
-        if ( Abc_TtGetBit( s_Truths8 + ( j << 2 ), t + 1 ) != b ) /* 1 in clause, we can omit the clause */
+        if ( ( ( ( t + 1 ) & ( 1 << j ) ) ? 1 : 0 ) != b )
             return;
     }
     else
@@ -631,7 +629,7 @@ static inline void Ses_ManCreateMainClause( Ses_Man_t * pSes, int t, int i, int 
 
     if ( k < pSes->nSpecVars )
     {
-        if ( Abc_TtGetBit( s_Truths8 + ( k << 2 ), t + 1 ) != c ) /* 1 in clause, we can omit the clause */
+        if ( ( ( ( t + 1 ) & ( 1 << k ) ) ? 1 : 0 ) != c )
             return;
     }
     else
@@ -883,16 +881,20 @@ static inline int Ses_ManSolve( Ses_Man_t * pSes )
 
     if ( status == l_True )
     {
+        pSes->nSatCalls++;
         pSes->timeSatSat += timeDelta;
         return 1;
     }
     else if ( status == l_False )
     {
+        pSes->nUnsatCalls++;
         pSes->timeSatUnsat += timeDelta;
         return 0;
     }
     else
     {
+        pSes->nUndefCalls++;
+        pSes->timeSatUndef += timeDelta;
         if ( pSes->fSatVerbose )
         {
             printf( "resource limit reached\n" );
@@ -1185,10 +1187,12 @@ static Gia_Man_t * Ses_ManExtractGia( char const * pSol )
 static void Ses_ManPrintRuntime( Ses_Man_t * pSes )
 {
     printf( "Runtime breakdown:\n" );
-    ABC_PRTP( "Sat   ", pSes->timeSat,      pSes->timeTotal );
-    ABC_PRTP( " Sat  ", pSes->timeSatSat,   pSes->timeTotal );
-    ABC_PRTP( " Unsat", pSes->timeSatUnsat, pSes->timeTotal );
-    ABC_PRTP( "ALL   ", pSes->timeTotal,    pSes->timeTotal );
+    ABC_PRTP( "Sat    ",  pSes->timeSat,      pSes->timeTotal );
+    ABC_PRTP( " Sat   ",  pSes->timeSatSat,   pSes->timeTotal );
+    ABC_PRTP( " Unsat ",  pSes->timeSatUnsat, pSes->timeTotal );
+    ABC_PRTP( " Undef ",  pSes->timeSatUndef, pSes->timeTotal );
+    ABC_PRTP( "Instance", pSes->timeInstance, pSes->timeTotal );
+    ABC_PRTP( "ALL    ",  pSes->timeTotal,    pSes->timeTotal );
 }
 
 static inline void Ses_ManPrintFuncs( Ses_Man_t * pSes )
@@ -1255,7 +1259,8 @@ static inline void Ses_ManPrintVars( Ses_Man_t * pSes )
 ***********************************************************************/
 static int Ses_ManFindMinimumSize( Ses_Man_t * pSes )
 {
-    int nGates = 0;
+    int nGates = 0, f;
+    abctime timeStart;
 
     /* store whether call was unsuccessful due to resource limit and not due to impossible constraint */
     pSes->fHitResLimit = 0;
@@ -1280,8 +1285,11 @@ static int Ses_ManFindMinimumSize( Ses_Man_t * pSes )
             return 0;
         }
 
+        timeStart = Abc_Clock();
         Ses_ManCreateVars( pSes, nGates );
-        if ( !Ses_ManCreateClauses( pSes ) )
+        f = Ses_ManCreateClauses( pSes );
+        pSes->timeInstance += ( Abc_Clock() - timeStart );
+        if ( !f )
             continue; /* proven UNSAT while creating clauses */
 
         switch ( Ses_ManSolve( pSes ) )
@@ -1575,17 +1583,33 @@ void Abc_ExactStats()
     printf( "number of entries         : %d\n", s_pSesStore->nEntriesCount );
     printf( "number of valid entries   : %d\n", s_pSesStore->nValidEntriesCount );
     printf( "number of invalid entries : %d\n", s_pSesStore->nEntriesCount - s_pSesStore->nValidEntriesCount );
+    printf( "-------------------------------------------------------------------------------------------------------------------------------\n" );
+    printf( "number of SAT calls       : %lu\n", s_pSesStore->nSatCalls );
+    printf( "number of UNSAT calls     : %lu\n", s_pSesStore->nUnsatCalls );
+    printf( "number of UNDEF calls     : %lu\n", s_pSesStore->nUndefCalls );
+
+    printf( "-------------------------------------------------------------------------------------------------------------------------------\n" );
+    printf( "Runtime breakdown:\n" );
+    ABC_PRTP( "Exact    ", s_pSesStore->timeExact,                          s_pSesStore->timeTotal );
+    ABC_PRTP( " Sat     ", s_pSesStore->timeSat,                            s_pSesStore->timeTotal );
+    ABC_PRTP( "  Sat    ", s_pSesStore->timeSatSat,                         s_pSesStore->timeTotal );
+    ABC_PRTP( "  Unsat  ", s_pSesStore->timeSatUnsat,                       s_pSesStore->timeTotal );
+    ABC_PRTP( "  Undef  ", s_pSesStore->timeSatUndef,                       s_pSesStore->timeTotal );
+    ABC_PRTP( " Instance", s_pSesStore->timeInstance,                       s_pSesStore->timeTotal );
+    ABC_PRTP( "Other    ", s_pSesStore->timeTotal - s_pSesStore->timeExact, s_pSesStore->timeTotal );
+    ABC_PRTP( "ALL      ", s_pSesStore->timeTotal,                          s_pSesStore->timeTotal );
 }
 // this procedure takes TT and input arrival times (pArrTimeProfile) and return the smallest output arrival time;
 // it also returns the pin-to-pin delays (pPerm) between each cut leaf and the cut output and the cut area cost (Cost)
 // the area cost should not exceed 2048, if the cut is implementable; otherwise, it should be ABC_INFINITY
 int Abc_ExactDelayCost( word * pTruth, int nVars, int * pArrTimeProfile, char * pPerm, int * Cost, int AigLevel )
 {
-    int i, nDelta, nMaxArrival, l;
+    int i, nMaxArrival, l;
     Ses_Man_t * pSes = NULL;
     char * pSol = NULL, * p;
+    int pNormalArrTime[8];
     int Delay = ABC_INFINITY, nMaxDepth;
-    abctime timeStart;
+    abctime timeStart = Abc_Clock(), timeStartExact;
 
     /* some checks */
     if ( nVars < 0 || nVars > 8 )
@@ -1604,6 +1628,7 @@ int Abc_ExactDelayCost( word * pTruth, int nVars, int * pArrTimeProfile, char * 
         s_pSesStore->pSynthesizedTrivial[0]++;
 
         *Cost = 0;
+        s_pSesStore->timeTotal += ( Abc_Clock() - timeStart );
         return 0;
     }
 
@@ -1614,6 +1639,7 @@ int Abc_ExactDelayCost( word * pTruth, int nVars, int * pArrTimeProfile, char * 
 
         *Cost = 0;
         pPerm[0] = (char)0;
+        s_pSesStore->timeTotal += ( Abc_Clock() - timeStart );
         return pArrTimeProfile[0];
     }
 
@@ -1625,7 +1651,10 @@ int Abc_ExactDelayCost( word * pTruth, int nVars, int * pArrTimeProfile, char * 
         printf( "\n" );
     }
 
-    nDelta = Abc_NormalizeArrivalTimes( pArrTimeProfile, nVars, &nMaxArrival );
+    for ( l = 0; l < nVars; ++l )
+        pNormalArrTime[l] = pArrTimeProfile[l];
+
+    Abc_NormalizeArrivalTimes( pNormalArrTime, nVars, &nMaxArrival );
 
     if ( s_pSesStore->fVeryVerbose )
     {
@@ -1633,13 +1662,13 @@ int Abc_ExactDelayCost( word * pTruth, int nVars, int * pArrTimeProfile, char * 
         Abc_TtPrintHexRev( stdout, pTruth, nVars );
         printf( " with arrival times" );
         for ( l = 0; l < nVars; ++l )
-            printf( " %d", pArrTimeProfile[l] );
-        printf( " at level %d (nDelta = %d)\n", AigLevel, nDelta );
+            printf( " %d", pNormalArrTime[l] );
+        printf( " at level %d\n", AigLevel );
     }
 
     *Cost = ABC_INFINITY;
 
-    if ( Ses_StoreGetEntry( s_pSesStore, pTruth, nVars, pArrTimeProfile, &pSol ) )
+    if ( Ses_StoreGetEntry( s_pSesStore, pTruth, nVars, pNormalArrTime, &pSol ) )
     {
         if ( s_pSesStore->fVeryVerbose )
             printf( "  truth table already in store\n" );
@@ -1649,16 +1678,16 @@ int Abc_ExactDelayCost( word * pTruth, int nVars, int * pArrTimeProfile, char * 
     }
     else
     {
-        nMaxDepth = pArrTimeProfile[0];
+        nMaxDepth = pNormalArrTime[0];
         for ( i = 1; i < nVars; ++i )
-            nMaxDepth = Abc_MaxInt( nMaxDepth, pArrTimeProfile[i] );
+            nMaxDepth = Abc_MaxInt( nMaxDepth, pNormalArrTime[i] );
         nMaxDepth += nVars + 1;
         if ( AigLevel != -1 )
             nMaxDepth = Abc_MinInt( AigLevel, nMaxDepth + nVars + 1 );
 
-        timeStart = Abc_Clock();
+        timeStartExact = Abc_Clock();
 
-        pSes = Ses_ManAlloc( pTruth, nVars, 1 /* nSpecFunc */, nMaxDepth, pArrTimeProfile, s_pSesStore->fMakeAIG, s_pSesStore->nBTLimit, s_pSesStore->fVerbose );
+        pSes = Ses_ManAlloc( pTruth, nVars, 1 /* nSpecFunc */, nMaxDepth, pNormalArrTime, s_pSesStore->fMakeAIG, s_pSesStore->nBTLimit, s_pSesStore->fVerbose );
         pSes->fVeryVerbose = s_pSesStore->fVeryVerbose;
 
         while ( pSes->nMaxDepth ) /* there is improvement */
@@ -1686,6 +1715,9 @@ int Abc_ExactDelayCost( word * pTruth, int nVars, int * pArrTimeProfile, char * 
             }
         }
 
+        pSes->timeTotal = Abc_Clock() - timeStartExact;
+
+        /* statistics */
         if ( pSol )
         {
             if ( pSes->fHitResLimit )
@@ -1713,13 +1745,22 @@ int Abc_ExactDelayCost( word * pTruth, int nVars, int * pArrTimeProfile, char * 
             }
         }
 
-        pSes->timeTotal = Abc_Clock() - timeStart;
+        s_pSesStore->nSatCalls += pSes->nSatCalls;
+        s_pSesStore->nUnsatCalls += pSes->nUnsatCalls;
+        s_pSesStore->nUndefCalls += pSes->nUndefCalls;
+
+        s_pSesStore->timeSat += pSes->timeSat;
+        s_pSesStore->timeSatSat += pSes->timeSatSat;
+        s_pSesStore->timeSatUnsat += pSes->timeSatUnsat;
+        s_pSesStore->timeSatUndef += pSes->timeSatUndef;
+        s_pSesStore->timeInstance += pSes->timeInstance;
+        s_pSesStore->timeExact += pSes->timeTotal;
 
         /* cleanup */
         Ses_ManClean( pSes );
 
         /* store solution */
-        Ses_StoreAddEntry( s_pSesStore, pTruth, nVars, pArrTimeProfile, pSol );
+        Ses_StoreAddEntry( s_pSesStore, pTruth, nVars, pNormalArrTime, pSol );
     }
 
     if ( pSol )
@@ -1740,45 +1781,57 @@ int Abc_ExactDelayCost( word * pTruth, int nVars, int * pArrTimeProfile, char * 
             Delay2 = Abc_MaxInt( Delay2, pArrTimeProfile[l] + pPerm[l] );
         }
         //printf( "  output arrival = %d    recomputed = %d\n", Delay, Delay2 );
-        if ( Delay != Delay2 )
-        {
-            printf( "^--- BUG!\n" );
-            assert( 0 );
-        }
-        //Delay = Delay2;
+        //if ( Delay != Delay2 )
+        //{
+        //    printf( "^--- BUG!\n" );
+        //    assert( 0 );
+        //}
+
+        s_pSesStore->timeTotal += ( Abc_Clock() - timeStart );
+        return Delay2;
     }
-
-    Abc_UnnormalizeArrivalTimes( pArrTimeProfile, nVars, nDelta );
-
-    if ( !pSol )
+    else
     {
         assert( *Cost == ABC_INFINITY );
-    }
 
-    return pSol ? nDelta + Delay : ABC_INFINITY;
+        s_pSesStore->timeTotal += ( Abc_Clock() - timeStart );
+        return ABC_INFINITY;
+    }
 }
 // this procedure returns a new node whose output in terms of the given fanins
 // has the smallest possible arrival time (in agreement with the above Abc_ExactDelayCost)
 Abc_Obj_t * Abc_ExactBuildNode( word * pTruth, int nVars, int * pArrTimeProfile, Abc_Obj_t ** pFanins, Abc_Ntk_t * pNtk )
 {
     char * pSol = NULL;
-    int i, j, nDelta, nMaxArrival;
+    int i, j, nMaxArrival;
+    int pNormalArrTime[8];
     char const * p;
     Abc_Obj_t * pObj;
     Vec_Ptr_t * pGates;
     char pGateTruth[5];
     char * pSopCover;
+    abctime timeStart = Abc_Clock();
 
     if ( nVars == 0 )
+    {
+        s_pSesStore->timeTotal += ( Abc_Clock() - timeStart );
         return (pTruth[0] & 1) ? Abc_NtkCreateNodeConst1(pNtk) : Abc_NtkCreateNodeConst0(pNtk);
+    }
     if ( nVars == 1 )
+    {
+        s_pSesStore->timeTotal += ( Abc_Clock() - timeStart );
         return (pTruth[0] & 1) ? Abc_NtkCreateNodeInv(pNtk, pFanins[0]) : Abc_NtkCreateNodeBuf(pNtk, pFanins[0]);
+    }
 
-    nDelta = Abc_NormalizeArrivalTimes( pArrTimeProfile, nVars, &nMaxArrival );
-    Ses_StoreGetEntry( s_pSesStore, pTruth, nVars, pArrTimeProfile, &pSol );
-    Abc_UnnormalizeArrivalTimes( pArrTimeProfile, nVars, nDelta );
+    for ( i = 0; i < nVars; ++i )
+        pNormalArrTime[i] = pArrTimeProfile[i];
+    Abc_NormalizeArrivalTimes( pNormalArrTime, nVars, &nMaxArrival );
+    Ses_StoreGetEntry( s_pSesStore, pTruth, nVars, pNormalArrTime, &pSol );
     if ( !pSol )
+    {
+        s_pSesStore->timeTotal += ( Abc_Clock() - timeStart );
         return NULL;
+    }
 
     assert( pSol[ABC_EXACT_SOL_NVARS] == nVars );
     assert( pSol[ABC_EXACT_SOL_NFUNC] == 1 );
@@ -1827,6 +1880,7 @@ Abc_Obj_t * Abc_ExactBuildNode( word * pTruth, int nVars, int * pArrTimeProfile,
 
     Vec_PtrFree( pGates );
 
+    s_pSesStore->timeTotal += ( Abc_Clock() - timeStart );
     return pObj;
 }
 
