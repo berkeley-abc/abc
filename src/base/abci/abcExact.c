@@ -129,6 +129,7 @@ struct Ses_Store_t_
     int                nEntriesCount;                  /* number of entries */
     int                nValidEntriesCount;             /* number of entries with network */
     Ses_TruthEntry_t * pEntries[SES_STORE_TABLE_SIZE]; /* hash table for truth table entries */
+    sat_solver       * pSat;                           /* own SAT solver instance to reuse when calling exact algorithm */
 
     /* statistics */
     unsigned long      nCutCount;                      /* number of cuts investigated */
@@ -197,6 +198,8 @@ static inline Ses_Store_t * Ses_StoreAlloc( int nBTLimit, int fMakeAIG, int fVer
     pStore->nBTLimit           = nBTLimit;
     memset( pStore->pEntries, 0, SES_STORE_TABLE_SIZE );
 
+    pStore->pSat = sat_solver_new();
+
     return pStore;
 }
 
@@ -227,6 +230,7 @@ static inline void Ses_StoreClean( Ses_Store_t * pStore )
             }
         }
 
+    sat_solver_delete( pStore->pSat );
     ABC_FREE( pStore );
 }
 
@@ -500,7 +504,7 @@ static inline Ses_Man_t * Ses_ManAlloc( word * pTruth, int nVars, int nFunc, int
     return p;
 }
 
-static inline void Ses_ManClean( Ses_Man_t * pSes )
+static inline void Ses_ManCleanLight( Ses_Man_t * pSes )
 {
     int h, i;
     for ( h = 0; h < pSes->nSpecFunc; ++h )
@@ -512,10 +516,14 @@ static inline void Ses_ManClean( Ses_Man_t * pSes )
         for ( i = 0; i < pSes->nSpecVars; ++i )
             pSes->pArrTimeProfile[i] += pSes->nArrTimeDelta;
 
+    ABC_FREE( pSes );
+}
+
+static inline void Ses_ManClean( Ses_Man_t * pSes )
+{
     if ( pSes->pSat )
         sat_solver_delete( pSes->pSat );
-
-    ABC_FREE( pSes );
+    Ses_ManCleanLight( pSes );
 }
 
 /**Function*************************************************************
@@ -601,9 +609,11 @@ static void Ses_ManCreateVars( Ses_Man_t * pSes, int nGates )
     pSes->nSelectOffset = pSes->nSimVars + pSes->nOutputVars + pSes->nGateVars;
     pSes->nDepthOffset  = pSes->nSimVars + pSes->nOutputVars + pSes->nGateVars + pSes->nSelectVars;
 
+    /* if we already have a SAT solver, then restart it (this saves a lot of time) */
     if ( pSes->pSat )
-        sat_solver_delete( pSes->pSat );
-    pSes->pSat = sat_solver_new();
+        sat_solver_restart( pSes->pSat );
+    else
+        pSes->pSat = sat_solver_new();
     sat_solver_setnvars( pSes->pSat, pSes->nSimVars + pSes->nOutputVars + pSes->nGateVars + pSes->nSelectVars + pSes->nDepthVars );
 }
 
@@ -614,7 +624,7 @@ static void Ses_ManCreateVars( Ses_Man_t * pSes, int nGates )
 ***********************************************************************/
 static inline void Ses_ManCreateMainClause( Ses_Man_t * pSes, int t, int i, int j, int k, int a, int b, int c )
 {
-    int pLits[5], ctr = 0, value;
+    int pLits[5], ctr = 0;
 
     pLits[ctr++] = Abc_Var2Lit( Ses_ManSelectVar( pSes, i, j, k ), 1 );
     pLits[ctr++] = Abc_Var2Lit( Ses_ManSimVar( pSes, i, t ), a );
@@ -638,8 +648,7 @@ static inline void Ses_ManCreateMainClause( Ses_Man_t * pSes, int t, int i, int 
     if ( b > 0 || c > 0 )
         pLits[ctr++] = Abc_Var2Lit( Ses_ManGateVar( pSes, i, b, c ), 1 - a );
 
-    value = sat_solver_addclause( pSes->pSat, pLits, pLits + ctr );
-    assert( value );
+    sat_solver_addclause( pSes->pSat, pLits, pLits + ctr );
 }
 
 static int Ses_ManCreateClauses( Ses_Man_t * pSes )
@@ -648,7 +657,7 @@ static int Ses_ManCreateClauses( Ses_Man_t * pSes )
 
     int h, i, j, k, t, ii, jj, kk, p, q, d;
     int pLits[3];
-    Vec_Int_t * vLits;
+    Vec_Int_t * vLits = Vec_IntAlloc( 0u );
 
     for ( t = 0; t < pSes->nRows; ++t )
         for ( i = 0; i < pSes->nGates; ++i )
@@ -671,29 +680,28 @@ static int Ses_ManCreateClauses( Ses_Man_t * pSes )
             {
                 pLits[0] = Abc_Var2Lit( Ses_ManOutputVar( pSes, h, i ), 1 );
                 pLits[1] = Abc_Var2Lit( Ses_ManSimVar( pSes, i, t ), 1 - Abc_TtGetBit( &pSes->pSpec[h << 2], t + 1 ) );
-                assert( sat_solver_addclause( pSes->pSat, pLits, pLits + 2 ) );
+                sat_solver_addclause( pSes->pSat, pLits, pLits + 2 );
             }
         }
 
     /* some output is selected */
     for ( h = 0; h < pSes->nSpecFunc; ++h )
     {
-        vLits = Vec_IntAlloc( pSes->nGates );
+        Vec_IntGrowResize( vLits, pSes->nGates );
         for ( i = 0; i < pSes->nGates; ++i )
-            Vec_IntPush( vLits, Abc_Var2Lit( Ses_ManOutputVar( pSes, h, i ), 0 ) );
-        assert( sat_solver_addclause( pSes->pSat, Vec_IntArray( vLits ), Vec_IntLimit( vLits ) ) );
-        Vec_IntFree( vLits );
+            Vec_IntSetEntry( vLits, i, Abc_Var2Lit( Ses_ManOutputVar( pSes, h, i ), 0 ) );
+        sat_solver_addclause( pSes->pSat, Vec_IntArray( vLits ), Vec_IntArray( vLits ) + pSes->nGates );
     }
 
     /* each gate has two operands */
     for ( i = 0; i < pSes->nGates; ++i )
     {
-        vLits = Vec_IntAlloc( ( ( pSes->nSpecVars + i ) * ( pSes->nSpecVars + i - 1 ) ) / 2 );
+        Vec_IntGrowResize( vLits, ( ( pSes->nSpecVars + i ) * ( pSes->nSpecVars + i - 1 ) ) / 2 );
+        jj = 0;
         for ( j = 0; j < pSes->nSpecVars + i; ++j )
             for ( k = j + 1; k < pSes->nSpecVars + i; ++k )
-                Vec_IntPush( vLits, Abc_Var2Lit( Ses_ManSelectVar( pSes, i, j, k ), 0 ) );
-        assert( sat_solver_addclause( pSes->pSat, Vec_IntArray( vLits ), Vec_IntLimit( vLits ) ) );
-        Vec_IntFree( vLits );
+                Vec_IntSetEntry( vLits, jj++, Abc_Var2Lit( Ses_ManSelectVar( pSes, i, j, k ), 0 ) );
+        sat_solver_addclause( pSes->pSat, Vec_IntArray( vLits ), Vec_IntArray( vLits ) + jj );
     }
 
     /* only AIG */
@@ -705,36 +713,37 @@ static int Ses_ManCreateClauses( Ses_Man_t * pSes )
             pLits[0] = Abc_Var2Lit( Ses_ManGateVar( pSes, i, 0, 1 ), 1 );
             pLits[1] = Abc_Var2Lit( Ses_ManGateVar( pSes, i, 1, 0 ), 1 );
             pLits[2] = Abc_Var2Lit( Ses_ManGateVar( pSes, i, 1, 1 ), 0 );
-            assert( sat_solver_addclause( pSes->pSat, pLits, pLits + 3 ) );
+            sat_solver_addclause( pSes->pSat, pLits, pLits + 3 );
 
             pLits[0] = Abc_Var2Lit( Ses_ManGateVar( pSes, i, 0, 1 ), 1 );
             pLits[1] = Abc_Var2Lit( Ses_ManGateVar( pSes, i, 1, 0 ), 0 );
             pLits[2] = Abc_Var2Lit( Ses_ManGateVar( pSes, i, 1, 1 ), 1 );
-            assert( sat_solver_addclause( pSes->pSat, pLits, pLits + 3 ) );
+            sat_solver_addclause( pSes->pSat, pLits, pLits + 3 );
 
             pLits[0] = Abc_Var2Lit( Ses_ManGateVar( pSes, i, 0, 1 ), 0 );
             pLits[1] = Abc_Var2Lit( Ses_ManGateVar( pSes, i, 1, 0 ), 1 );
             pLits[2] = Abc_Var2Lit( Ses_ManGateVar( pSes, i, 1, 1 ), 1 );
-            assert( sat_solver_addclause( pSes->pSat, pLits, pLits + 3 ) );
+            sat_solver_addclause( pSes->pSat, pLits, pLits + 3 );
         }
     }
 
     /* EXTRA clauses: use gate i at least once */
+    Vec_IntGrowResize( vLits, pSes->nSpecFunc + pSes->nGates * ( pSes->nSpecVars + pSes->nGates - 2 ) );
     for ( i = 0; i < pSes->nGates; ++i )
     {
-        vLits = Vec_IntAlloc( 0 );
+        jj = 0;
         for ( h = 0; h < pSes->nSpecFunc; ++h )
-            Vec_IntPush( vLits, Abc_Var2Lit( Ses_ManOutputVar( pSes, h, i ), 0 ) );
+            Vec_IntSetEntry( vLits, jj++, Abc_Var2Lit( Ses_ManOutputVar( pSes, h, i ), 0 ) );
         for ( ii = i + 1; ii < pSes->nGates; ++ii )
         {
             for ( j = 0; j < pSes->nSpecVars + i; ++j )
-                Vec_IntPush( vLits, Abc_Var2Lit( Ses_ManSelectVar( pSes, ii, j, pSes->nSpecVars + i ), 0 ) );
+                Vec_IntSetEntry( vLits, jj++, Abc_Var2Lit( Ses_ManSelectVar( pSes, ii, j, pSes->nSpecVars + i ), 0 ) );
             for ( j = pSes->nSpecVars + i + 1; j < pSes->nSpecVars + ii; ++j )
-                Vec_IntPush( vLits, Abc_Var2Lit( Ses_ManSelectVar( pSes, ii, pSes->nSpecVars + i, j ), 0 ) );
+                Vec_IntSetEntry( vLits, jj++, Abc_Var2Lit( Ses_ManSelectVar( pSes, ii, pSes->nSpecVars + i, j ), 0 ) );
         }
-        assert( sat_solver_addclause( pSes->pSat, Vec_IntArray( vLits ), Vec_IntLimit( vLits ) ) );
-        Vec_IntFree( vLits );
+        sat_solver_addclause( pSes->pSat, Vec_IntArray( vLits ), Vec_IntArray( vLits ) + jj );
     }
+    Vec_IntFree( vLits );
 
     /* EXTRA clauses: co-lexicographic order */
     for ( i = 0; i < pSes->nGates - 1; ++i )
@@ -778,7 +787,7 @@ static int Ses_ManCreateClauses( Ses_Man_t * pSes )
                                     for ( jj = 0; jj < kk; ++jj )
                                         if ( jj == p || kk == p )
                                             Vec_IntPush( vLits, Abc_Var2Lit( Ses_ManSelectVar( pSes, ii, jj, kk ), 0 ) );
-                            assert( sat_solver_addclause( pSes->pSat, Vec_IntArray( vLits ), Vec_IntLimit( vLits ) ) );
+                            sat_solver_addclause( pSes->pSat, Vec_IntArray( vLits ), Vec_IntLimit( vLits ) );
                             Vec_IntFree( vLits );
                         }
                 }
@@ -797,7 +806,7 @@ static int Ses_ManCreateClauses( Ses_Man_t * pSes )
                     {
                         pLits[1] = Abc_Var2Lit( Ses_ManDepthVar( pSes, j, jj ), 1 );
                         pLits[2] = Abc_Var2Lit( Ses_ManDepthVar( pSes, i, jj + 1 ), 0 );
-                        assert( sat_solver_addclause( pSes->pSat, pLits, pLits + 3 ) );
+                        sat_solver_addclause( pSes->pSat, pLits, pLits + 3 );
                     }
                 }
 
@@ -809,7 +818,7 @@ static int Ses_ManCreateClauses( Ses_Man_t * pSes )
                     {
                         pLits[1] = Abc_Var2Lit( Ses_ManDepthVar( pSes, k, kk ), 1 );
                         pLits[2] = Abc_Var2Lit( Ses_ManDepthVar( pSes, i, kk + 1 ), 0 );
-                        assert( sat_solver_addclause( pSes->pSat, pLits, pLits + 3 ) );
+                        sat_solver_addclause( pSes->pSat, pLits, pLits + 3 );
                     }
                 }
 
@@ -825,14 +834,14 @@ static int Ses_ManCreateClauses( Ses_Man_t * pSes )
 
                         pLits[0] = Abc_Var2Lit( Ses_ManSelectVar( pSes, i, j, k ), 1 );
                         pLits[1] = Abc_Var2Lit( Ses_ManDepthVar( pSes, i, d ), 0 );
-                        assert( sat_solver_addclause( pSes->pSat, pLits, pLits + 2 ) );
+                        sat_solver_addclause( pSes->pSat, pLits, pLits + 2 );
                     }
             }
             else
             {
                 /* arrival times are 0 */
                 pLits[0] = Abc_Var2Lit( Ses_ManDepthVar( pSes, i, 0 ), 0 );
-                assert( sat_solver_addclause( pSes->pSat, pLits, pLits + 1 ) );
+                sat_solver_addclause( pSes->pSat, pLits, pLits + 1 );
             }
 
             /* reverse order encoding of depth variables */
@@ -840,7 +849,7 @@ static int Ses_ManCreateClauses( Ses_Man_t * pSes )
             {
                 pLits[0] = Abc_Var2Lit( Ses_ManDepthVar( pSes, i, j ), 1 );
                 pLits[1] = Abc_Var2Lit( Ses_ManDepthVar( pSes, i, j - 1 ), 0 );
-                assert( sat_solver_addclause( pSes->pSat, pLits, pLits + 2 ) );
+                sat_solver_addclause( pSes->pSat, pLits, pLits + 2 );
             }
 
             /* constrain maximum depth */
@@ -1689,6 +1698,7 @@ int Abc_ExactDelayCost( word * pTruth, int nVars, int * pArrTimeProfile, char * 
 
         pSes = Ses_ManAlloc( pTruth, nVars, 1 /* nSpecFunc */, nMaxDepth, pNormalArrTime, s_pSesStore->fMakeAIG, s_pSesStore->nBTLimit, s_pSesStore->fVerbose );
         pSes->fVeryVerbose = s_pSesStore->fVeryVerbose;
+        pSes->pSat = s_pSesStore->pSat;
 
         while ( pSes->nMaxDepth ) /* there is improvement */
         {
@@ -1757,7 +1767,7 @@ int Abc_ExactDelayCost( word * pTruth, int nVars, int * pArrTimeProfile, char * 
         s_pSesStore->timeExact += pSes->timeTotal;
 
         /* cleanup */
-        Ses_ManClean( pSes );
+        Ses_ManCleanLight( pSes );
 
         /* store solution */
         Ses_StoreAddEntry( s_pSesStore, pTruth, nVars, pNormalArrTime, pSol );
