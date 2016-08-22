@@ -38,6 +38,17 @@ ABC_NAMESPACE_IMPL_START
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
+static word s_Truths8[32] = {
+    ABC_CONST(0xAAAAAAAAAAAAAAAA), ABC_CONST(0xAAAAAAAAAAAAAAAA), ABC_CONST(0xAAAAAAAAAAAAAAAA), ABC_CONST(0xAAAAAAAAAAAAAAAA),
+    ABC_CONST(0xCCCCCCCCCCCCCCCC), ABC_CONST(0xCCCCCCCCCCCCCCCC), ABC_CONST(0xCCCCCCCCCCCCCCCC), ABC_CONST(0xCCCCCCCCCCCCCCCC),
+    ABC_CONST(0xF0F0F0F0F0F0F0F0), ABC_CONST(0xF0F0F0F0F0F0F0F0), ABC_CONST(0xF0F0F0F0F0F0F0F0), ABC_CONST(0xF0F0F0F0F0F0F0F0),
+    ABC_CONST(0xFF00FF00FF00FF00), ABC_CONST(0xFF00FF00FF00FF00), ABC_CONST(0xFF00FF00FF00FF00), ABC_CONST(0xFF00FF00FF00FF00),
+    ABC_CONST(0xFFFF0000FFFF0000), ABC_CONST(0xFFFF0000FFFF0000), ABC_CONST(0xFFFF0000FFFF0000), ABC_CONST(0xFFFF0000FFFF0000),
+    ABC_CONST(0xFFFFFFFF00000000), ABC_CONST(0xFFFFFFFF00000000), ABC_CONST(0xFFFFFFFF00000000), ABC_CONST(0xFFFFFFFF00000000),
+    ABC_CONST(0x0000000000000000), ABC_CONST(0xFFFFFFFFFFFFFFFF), ABC_CONST(0x0000000000000000), ABC_CONST(0xFFFFFFFFFFFFFFFF),
+    ABC_CONST(0x0000000000000000), ABC_CONST(0x0000000000000000), ABC_CONST(0xFFFFFFFFFFFFFFFF), ABC_CONST(0xFFFFFFFFFFFFFFFF)
+};
+
 #define ABC_EXACT_SOL_NVARS  0
 #define ABC_EXACT_SOL_NFUNC  1
 #define ABC_EXACT_SOL_NGATES 2
@@ -51,6 +62,7 @@ struct Ses_Man_t_
     int          bSpecInv;        /* remembers whether spec was inverted for normalization */
     int          nSpecVars;       /* number of variables in specification */
     int          nSpecFunc;       /* number of functions to synthesize */
+    int          nSpecWords;      /* number of words for function */
     int          nRows;           /* number of rows in the specification (without 0) */
     int          nMaxDepth;       /* maximum depth (-1 if depth is not constrained) */
     int *        pArrTimeProfile; /* arrival times of inputs (NULL if arrival times are ignored) */
@@ -105,6 +117,7 @@ typedef struct Ses_TimesEntry_t_ Ses_TimesEntry_t;
 struct Ses_TimesEntry_t_
 {
     int                pArrTimeProfile[8]; /* normalized arrival time profile */
+    int                fResLimit;          /* solution found after resource limit */
     Ses_TimesEntry_t * next;               /* linked list pointer */
     char *             pNetwork;           /* pointer to char array representation of optimum network */
 };
@@ -130,6 +143,7 @@ struct Ses_Store_t_
     int                nValidEntriesCount;             /* number of entries with network */
     Ses_TruthEntry_t * pEntries[SES_STORE_TABLE_SIZE]; /* hash table for truth table entries */
     sat_solver       * pSat;                           /* own SAT solver instance to reuse when calling exact algorithm */
+    FILE             * pDebugEntries;                  /* debug unsynth. (rl) entries */
 
     /* statistics */
     unsigned long      nCutCount;                      /* number of cuts investigated */
@@ -281,9 +295,36 @@ static inline void Ses_StoreTimesCopy( int * pTimesDest, int * pTimesSrc, int nV
         pTimesDest[i] = pTimesSrc[i];
 }
 
+static inline void Ses_StorePrintEntry( Ses_TruthEntry_t * pEntry, Ses_TimesEntry_t * pTiEntry )
+{
+    int i;
+
+    printf( "f = " );
+    Abc_TtPrintHexRev( stdout, pEntry->pTruth, pEntry->nVars );
+    printf( ", n = %d", pEntry->nVars );
+    printf( ", arrival =" );
+    for ( i = 0; i < pEntry->nVars; ++i )
+        printf( " %d", pTiEntry->pArrTimeProfile[i] );
+    printf( "\n" );
+}
+
+static inline void Ses_StorePrintDebugEntry( Ses_Store_t * pStore, word * pTruth, int nVars, int * pNormalArrTime, int nMaxDepth )
+{
+    int l;
+
+    fprintf( pStore->pDebugEntries, "abc -c \"exact -v -C %d", pStore->nBTLimit );
+    if ( s_pSesStore->fMakeAIG ) fprintf( pStore->pDebugEntries, " -a" );
+    fprintf( pStore->pDebugEntries, " -D %d -A", nMaxDepth );
+    for ( l = 0; l < nVars; ++l )
+        fprintf( pStore->pDebugEntries, "%c%d", ( l == 0 ? ' ' : ',' ), pNormalArrTime[l] );
+    fprintf( pStore->pDebugEntries, " " );
+    Abc_TtPrintHexRev( pStore->pDebugEntries, pTruth, nVars );
+    fprintf( pStore->pDebugEntries, "\"\n" );
+}
+
 // pArrTimeProfile is normalized
 // returns 1 if and only if a new TimesEntry has been created
-int Ses_StoreAddEntry( Ses_Store_t * pStore, word * pTruth, int nVars, int * pArrTimeProfile, char * pSol )
+int Ses_StoreAddEntry( Ses_Store_t * pStore, word * pTruth, int nVars, int * pArrTimeProfile, char * pSol, int fResLimit )
 {
     int key, fAdded;
     Ses_TruthEntry_t * pTEntry;
@@ -326,6 +367,7 @@ int Ses_StoreAddEntry( Ses_Store_t * pStore, word * pTruth, int nVars, int * pAr
         pTiEntry = ABC_CALLOC( Ses_TimesEntry_t, 1 );
         Ses_StoreTimesCopy( pTiEntry->pArrTimeProfile, pArrTimeProfile, nVars );
         pTiEntry->pNetwork = pSol;
+        pTiEntry->fResLimit = fResLimit;
         pTiEntry->next = pTEntry->head;
         pTEntry->head = pTiEntry;
 
@@ -340,6 +382,34 @@ int Ses_StoreAddEntry( Ses_Store_t * pStore, word * pTruth, int nVars, int * pAr
         assert( 0 );
         /* item was already present */
         fAdded = 0;
+    }
+
+    /* statistics */
+    if ( pSol )
+    {
+        if ( fResLimit )
+        {
+            s_pSesStore->nSynthesizedRL++;
+            s_pSesStore->pSynthesizedRL[nVars]++;
+        }
+        else
+        {
+            s_pSesStore->nSynthesizedImp++;
+            s_pSesStore->pSynthesizedImp[nVars]++;
+        }
+    }
+    else
+    {
+        if ( fResLimit )
+        {
+            s_pSesStore->nUnsynthesizedRL++;
+            s_pSesStore->pUnsynthesizedRL[nVars]++;
+        }
+        else
+        {
+            s_pSesStore->nUnsynthesizedImp++;
+            s_pSesStore->pUnsynthesizedImp[nVars]++;
+        }
     }
 
     return fAdded;
@@ -387,9 +457,11 @@ int Ses_StoreGetEntry( Ses_Store_t * pStore, word * pTruth, int nVars, int * pAr
     return 1;
 }
 
-static void Ses_StoreWrite( Ses_Store_t * pStore, const char * pFilename )
+static void Ses_StoreWrite( Ses_Store_t * pStore, const char * pFilename, int fSynthImp, int fSynthRL, int fUnsynthImp, int fUnsynthRL )
 {
     int i;
+    char zero = '\0';
+    unsigned long nEntries = 0;
     Ses_TruthEntry_t * pTEntry;
     Ses_TimesEntry_t * pTiEntry;
     FILE * pFile;
@@ -401,7 +473,11 @@ static void Ses_StoreWrite( Ses_Store_t * pStore, const char * pFilename )
         return;
     }
 
-    fwrite( &pStore->nValidEntriesCount, sizeof( int ), 1, pFile );
+    if ( fSynthImp )   nEntries += pStore->nSynthesizedImp;
+    if ( fSynthRL )    nEntries += pStore->nSynthesizedRL;
+    if ( fUnsynthImp ) nEntries += pStore->nUnsynthesizedImp;
+    if ( fUnsynthRL )  nEntries += pStore->nUnsynthesizedRL;
+    fwrite( &nEntries, sizeof( unsigned long ), 1, pFile );
 
     for ( i = 0; i < SES_STORE_TABLE_SIZE; ++i )
         if ( pStore->pEntries[i] )
@@ -413,13 +489,30 @@ static void Ses_StoreWrite( Ses_Store_t * pStore, const char * pFilename )
                 pTiEntry = pTEntry->head;
                 while ( pTiEntry )
                 {
+                    if ( pStore->fVeryVerbose && !pTiEntry->pNetwork && pTiEntry->fResLimit )
+                        Ses_StorePrintEntry( pTEntry, pTiEntry );
+
+                    if ( !fSynthImp && pTiEntry->pNetwork && !pTiEntry->fResLimit )    { pTiEntry = pTiEntry->next; continue; }
+                    if ( !fSynthRL && pTiEntry->pNetwork && pTiEntry->fResLimit )      { pTiEntry = pTiEntry->next; continue; }
+                    if ( !fUnsynthImp && !pTiEntry->pNetwork && !pTiEntry->fResLimit ) { pTiEntry = pTiEntry->next; continue; }
+                    if ( !fUnsynthRL && !pTiEntry->pNetwork && pTiEntry->fResLimit )   { pTiEntry = pTiEntry->next; continue; }
+
+                    fwrite( pTEntry->pTruth, sizeof( word ), 4, pFile );
+                    fwrite( &pTEntry->nVars, sizeof( int ), 1, pFile );
+                    fwrite( pTiEntry->pArrTimeProfile, sizeof( int ), 8, pFile );
+                    fwrite( &pTiEntry->fResLimit, sizeof( int ), 1, pFile );
+
                     if ( pTiEntry->pNetwork )
                     {
-                        fwrite( pTEntry->pTruth, sizeof( word ), 4, pFile );
-                        fwrite( &pTEntry->nVars, sizeof( int ), 1, pFile );
-                        fwrite( pTiEntry->pArrTimeProfile, sizeof( int ), 8, pFile );
                         fwrite( pTiEntry->pNetwork, sizeof( char ), 3 + 4 * pTiEntry->pNetwork[ABC_EXACT_SOL_NGATES] + 2 + pTiEntry->pNetwork[ABC_EXACT_SOL_NVARS], pFile );
                     }
+                    else
+                    {
+                        fwrite( &zero, sizeof( char ), 1, pFile );
+                        fwrite( &zero, sizeof( char ), 1, pFile );
+                        fwrite( &zero, sizeof( char ), 1, pFile );
+                    }
+
                     pTiEntry = pTiEntry->next;
                 }
                 pTEntry = pTEntry->next;
@@ -430,11 +523,12 @@ static void Ses_StoreWrite( Ses_Store_t * pStore, const char * pFilename )
     fclose( pFile );
 }
 
-static void Ses_StoreRead( Ses_Store_t * pStore, const char * pFilename )
+static void Ses_StoreRead( Ses_Store_t * pStore, const char * pFilename, int fSynthImp, int fSynthRL, int fUnsynthImp, int fUnsynthRL )
 {
-    int i, nEntries;
+    int i;
+    unsigned long nEntries;
     word pTruth[4];
-    int nVars;
+    int nVars, fResLimit;
     int pArrTimeProfile[8];
     char pHeader[3];
     char * pNetwork;
@@ -448,26 +542,39 @@ static void Ses_StoreRead( Ses_Store_t * pStore, const char * pFilename )
         return;
     }
 
-    value = fread( &nEntries, sizeof( int ), 1, pFile );
+    value = fread( &nEntries, sizeof( unsigned long ), 1, pFile );
 
     for ( i = 0; i < nEntries; ++i )
     {
         value = fread( pTruth, sizeof( word ), 4, pFile );
         value = fread( &nVars, sizeof( int ), 1, pFile );
         value = fread( pArrTimeProfile, sizeof( int ), 8, pFile );
+        value = fread( &fResLimit, sizeof( int ), 1, pFile );
         value = fread( pHeader, sizeof( char ), 3, pFile );
 
-        pNetwork = ABC_CALLOC( char, 3 + 4 * pHeader[ABC_EXACT_SOL_NGATES] + 2 + pHeader[ABC_EXACT_SOL_NVARS] );
-        pNetwork[0] = pHeader[0];
-        pNetwork[1] = pHeader[1];
-        pNetwork[2] = pHeader[2];
+        if ( pHeader[0] == '\0' )
+            pNetwork = NULL;
+        else
+        {
+            pNetwork = ABC_CALLOC( char, 3 + 4 * pHeader[ABC_EXACT_SOL_NGATES] + 2 + pHeader[ABC_EXACT_SOL_NVARS] );
+            pNetwork[0] = pHeader[0];
+            pNetwork[1] = pHeader[1];
+            pNetwork[2] = pHeader[2];
 
-        value = fread( pNetwork + 3, sizeof( char ), 4 * pHeader[ABC_EXACT_SOL_NGATES] + 2 + pHeader[ABC_EXACT_SOL_NVARS], pFile );
+            value = fread( pNetwork + 3, sizeof( char ), 4 * pHeader[ABC_EXACT_SOL_NGATES] + 2 + pHeader[ABC_EXACT_SOL_NVARS], pFile );
+        }
 
-        Ses_StoreAddEntry( pStore, pTruth, nVars, pArrTimeProfile, pNetwork );
+        if ( !fSynthImp && pNetwork && !fResLimit )    continue;
+        if ( !fSynthRL && pNetwork && fResLimit )      continue;
+        if ( !fUnsynthImp && !pNetwork && !fResLimit ) continue;
+        if ( !fUnsynthRL && !pNetwork && fResLimit )   continue;
+
+        Ses_StoreAddEntry( pStore, pTruth, nVars, pArrTimeProfile, pNetwork, fResLimit );
     }
 
     fclose( pFile );
+
+    printf( "read %lu entries from file\n", nEntries );
 }
 
 static inline Ses_Man_t * Ses_ManAlloc( word * pTruth, int nVars, int nFunc, int nMaxDepth, int * pArrTimeProfile, int fMakeAIG, int nBTLimit, int fVerbose )
@@ -487,6 +594,7 @@ static inline Ses_Man_t * Ses_ManAlloc( word * pTruth, int nVars, int nFunc, int
     p->pSpec           = pTruth;
     p->nSpecVars       = nVars;
     p->nSpecFunc       = nFunc;
+    p->nSpecWords      = Abc_TtWordNum( nVars );
     p->nRows           = ( 1 << nVars ) - 1;
     p->nMaxDepth       = nMaxDepth;
     p->pArrTimeProfile = nMaxDepth >= 0 ? pArrTimeProfile : NULL;
@@ -684,13 +792,35 @@ static int Ses_ManCreateClauses( Ses_Man_t * pSes )
             }
         }
 
-    /* some output is selected */
-    for ( h = 0; h < pSes->nSpecFunc; ++h )
+    /* if there is only one output, we know it must point to the last gate  */
+    if ( pSes->nSpecFunc == 1 )
     {
-        Vec_IntGrowResize( vLits, pSes->nGates );
-        for ( i = 0; i < pSes->nGates; ++i )
-            Vec_IntSetEntry( vLits, i, Abc_Var2Lit( Ses_ManOutputVar( pSes, h, i ), 0 ) );
-        sat_solver_addclause( pSes->pSat, Vec_IntArray( vLits ), Vec_IntArray( vLits ) + pSes->nGates );
+        for ( i = 0; i < pSes->nGates - 1; ++i )
+        {
+            pLits[0] = Abc_Var2Lit( Ses_ManOutputVar( pSes, 0, i ), 1 );
+            if ( !sat_solver_addclause( pSes->pSat, pLits, pLits + 1 ) )
+            {
+                Vec_IntFree( vLits );
+                return 0;
+            }
+        }
+        pLits[0] = Abc_Var2Lit( Ses_ManOutputVar( pSes, 0, pSes->nGates - 1 ), 0 );
+        if ( !sat_solver_addclause( pSes->pSat, pLits, pLits + 1 ) )
+        {
+            Vec_IntFree( vLits );
+            return 0;
+        }
+    }
+    else
+    {
+        /* some output is selected */
+        for ( h = 0; h < pSes->nSpecFunc; ++h )
+        {
+            Vec_IntGrowResize( vLits, pSes->nGates );
+            for ( i = 0; i < pSes->nGates; ++i )
+                Vec_IntSetEntry( vLits, i, Abc_Var2Lit( Ses_ManOutputVar( pSes, h, i ), 0 ) );
+            sat_solver_addclause( pSes->pSat, Vec_IntArray( vLits ), Vec_IntArray( vLits ) + pSes->nGates );
+        }
     }
 
     /* each gate has two operands */
@@ -1196,12 +1326,12 @@ static Gia_Man_t * Ses_ManExtractGia( char const * pSol )
 static void Ses_ManPrintRuntime( Ses_Man_t * pSes )
 {
     printf( "Runtime breakdown:\n" );
-    ABC_PRTP( "Sat    ",  pSes->timeSat,      pSes->timeTotal );
-    ABC_PRTP( " Sat   ",  pSes->timeSatSat,   pSes->timeTotal );
-    ABC_PRTP( " Unsat ",  pSes->timeSatUnsat, pSes->timeTotal );
-    ABC_PRTP( " Undef ",  pSes->timeSatUndef, pSes->timeTotal );
-    ABC_PRTP( "Instance", pSes->timeInstance, pSes->timeTotal );
-    ABC_PRTP( "ALL    ",  pSes->timeTotal,    pSes->timeTotal );
+    ABC_PRTP( "Sat     ",  pSes->timeSat,      pSes->timeTotal );
+    ABC_PRTP( " Sat    ",  pSes->timeSatSat,   pSes->timeTotal );
+    ABC_PRTP( " Unsat  ",  pSes->timeSatUnsat, pSes->timeTotal );
+    ABC_PRTP( " Undef  ",  pSes->timeSatUndef, pSes->timeTotal );
+    ABC_PRTP( "Instance", pSes->timeInstance,  pSes->timeTotal );
+    ABC_PRTP( "ALL     ",  pSes->timeTotal,    pSes->timeTotal );
 }
 
 static inline void Ses_ManPrintFuncs( Ses_Man_t * pSes )
@@ -1268,8 +1398,64 @@ static inline void Ses_ManPrintVars( Ses_Man_t * pSes )
 ***********************************************************************/
 static int Ses_ManFindMinimumSize( Ses_Man_t * pSes )
 {
-    int nGates = 0, f;
+    int nGates = 0, f, i, l, mask = ~0;
+    int fAndDecStructure = 0; /* network must be f = AND(x_i, g) or f = AND(!x_i, g) structure */
+    int fMaxGatesLevel2 = 1;
     abctime timeStart;
+
+    /* do the arrival times allow for a network? */
+    if ( pSes->nMaxDepth != -1 )
+    {
+        for ( l = 0; l < pSes->nSpecVars; ++l )
+        {
+            if ( pSes->pArrTimeProfile[l] >= pSes->nMaxDepth )
+            {
+                if ( pSes->fVeryVerbose )
+                    printf( "give up due to impossible arrival time (depth = %d, input = %d, arrival time = %d)", pSes->nMaxDepth, l, pSes->pArrTimeProfile[l] );
+                return 0;
+            }
+            else if ( pSes->nSpecFunc == 1 && pSes->fMakeAIG && pSes->pArrTimeProfile[l] + 1 == pSes->nMaxDepth )
+            {
+                if ( ( fAndDecStructure == 1 && pSes->nSpecVars > 2 ) || fAndDecStructure == 2 )
+                {
+                    if ( pSes->fVeryVerbose )
+                        printf( "give up due to impossible decomposition (depth = %d, input = %d, arrival time = %d)", pSes->nMaxDepth, l, pSes->pArrTimeProfile[l] );
+                    return 0;
+                }
+
+                fAndDecStructure++;
+
+                if ( pSes->nSpecVars < 6u )
+                    mask = ( 1 << pSes->nSpecVars ) - 1u;
+
+                /* A subset B <=> A and B = A */
+                for ( i = 0; i < pSes->nSpecWords; ++i )
+                    if ( ( ( s_Truths8[(l << 2) + i] & pSes->pSpec[i] & mask ) != ( pSes->pSpec[i] & mask ) ) &&
+                         ( ( ~( s_Truths8[(l << 2) + i] ) & pSes->pSpec[i] & mask ) != ( pSes->pSpec[i] & mask ) ) )
+                    {
+                        if ( pSes->fVeryVerbose )
+                            printf( "give up due to impossible decomposition (depth = %d, input = %d, arrival time = %d)", pSes->nMaxDepth, l, pSes->pArrTimeProfile[l] );
+                        return 0;
+                    }
+            }
+        }
+
+        /* check if depth's match with structure at second level from top */
+        if ( fAndDecStructure )
+            fMaxGatesLevel2 = ( pSes->nSpecVars == 3 ) ? 2 : 1;
+        else
+            fMaxGatesLevel2 = ( pSes->nSpecVars == 4 ) ? 4 : 3;
+
+        i = 0;
+        for ( l = 0; l < pSes->nSpecVars; ++l )
+            if ( pSes->pArrTimeProfile[l] + 2 == pSes->nMaxDepth )
+                if ( ++i > fMaxGatesLevel2 )
+                {
+                    if ( pSes->fVeryVerbose )
+                        printf( "give up due to impossible decomposition at second level (depth = %d, input = %d, arrival time = %d)", pSes->nMaxDepth, l, pSes->pArrTimeProfile[l] );
+                    return 0;
+                }
+    }
 
     /* store whether call was unsuccessful due to resource limit and not due to impossible constraint */
     pSes->fHitResLimit = 0;
@@ -1279,10 +1465,17 @@ static int Ses_ManFindMinimumSize( Ses_Man_t * pSes )
         ++nGates;
 
         /* give up if number of gates is impossible for given depth */
-        if ( pSes->nMaxDepth != -1 && nGates >= ( 1 << pSes->nMaxDepth ) )
+        if ( pSes->nMaxDepth != -1 && nGates >= (1 << pSes->nMaxDepth ) )
         {
             if ( pSes->fVeryVerbose )
-                printf( "give up due to impossible depth (depth = %d, gates = %d)\n", pSes->nMaxDepth, nGates );
+                printf( "give up due to impossible depth (depth = %d, gates = %d)", pSes->nMaxDepth, nGates );
+            return 0;
+        }
+
+        if ( fAndDecStructure && nGates >= ( 1 << ( pSes->nMaxDepth - 1 ) ) + 1 )
+        {
+            if ( pSes->fVeryVerbose )
+                printf( "give up due to impossible depth in AND-dec structure (depth = %d, gates = %d)", pSes->nMaxDepth, nGates );
             return 0;
         }
 
@@ -1290,7 +1483,7 @@ static int Ses_ManFindMinimumSize( Ses_Man_t * pSes )
         if ( nGates >= ( 1 << pSes->nSpecVars ) )
         {
             if ( pSes->fVeryVerbose )
-                printf( "give up due to impossible number of gates\n" );
+                printf( "give up due to impossible number of gates" );
             return 0;
         }
 
@@ -1373,6 +1566,8 @@ Gia_Man_t * Gia_ManFindExact( word * pTruth, int nVars, int nFunc, int nMaxDepth
     timeStart = Abc_Clock();
 
     pSes = Ses_ManAlloc( pTruth, nVars, nFunc, nMaxDepth, pArrTimeProfile, 1, nBTLimit, fVerbose );
+    pSes->fVeryVerbose = 1;
+    pSes->fSatVerbose = 1;
     if ( fVerbose )
         Ses_ManPrintFuncs( pSes );
 
@@ -1529,7 +1724,11 @@ void Abc_ExactStart( int nBTLimit, int fMakeAIG, int fVerbose, int fVeryVerbose,
         s_pSesStore = Ses_StoreAlloc( nBTLimit, fMakeAIG, fVerbose );
         s_pSesStore->fVeryVerbose = fVeryVerbose;
         if ( pFilename )
-            Ses_StoreRead( s_pSesStore, pFilename );
+            Ses_StoreRead( s_pSesStore, pFilename, 1, 0, 0, 0 );
+        if ( s_pSesStore->fVeryVerbose )
+        {
+            s_pSesStore->pDebugEntries = fopen( "bms.debug", "w" );
+        }
     }
     else
         printf( "BMS manager already started\n" );
@@ -1540,7 +1739,9 @@ void Abc_ExactStop( const char * pFilename )
     if ( s_pSesStore )
     {
         if ( pFilename )
-            Ses_StoreWrite( s_pSesStore, pFilename );
+            Ses_StoreWrite( s_pSesStore, pFilename, 1, 0, 0, 0 );
+        if ( s_pSesStore->pDebugEntries )
+            fclose( s_pSesStore->pDebugEntries );
         Ses_StoreClean( s_pSesStore );
     }
     else
@@ -1617,7 +1818,7 @@ int Abc_ExactDelayCost( word * pTruth, int nVars, int * pArrTimeProfile, char * 
     Ses_Man_t * pSes = NULL;
     char * pSol = NULL, * p;
     int pNormalArrTime[8];
-    int Delay = ABC_INFINITY, nMaxDepth;
+    int Delay = ABC_INFINITY, nMaxDepth, fResLimit;
     abctime timeStart = Abc_Clock(), timeStartExact;
 
     /* some checks */
@@ -1725,36 +1926,13 @@ int Abc_ExactDelayCost( word * pTruth, int nVars, int * pArrTimeProfile, char * 
             }
         }
 
+        /* log unsuccessful case for debugging */
+        if ( s_pSesStore->pDebugEntries && pSes->fHitResLimit )
+            Ses_StorePrintDebugEntry( s_pSesStore, pTruth, nVars, pNormalArrTime, pSes->nMaxDepth );
+
         pSes->timeTotal = Abc_Clock() - timeStartExact;
 
         /* statistics */
-        if ( pSol )
-        {
-            if ( pSes->fHitResLimit )
-            {
-                s_pSesStore->nSynthesizedRL++;
-                s_pSesStore->pSynthesizedRL[nVars]++;
-            }
-            else
-            {
-                s_pSesStore->nSynthesizedImp++;
-                s_pSesStore->pSynthesizedImp[nVars]++;
-            }
-        }
-        else
-        {
-            if ( pSes->fHitResLimit )
-            {
-                s_pSesStore->nUnsynthesizedRL++;
-                s_pSesStore->pUnsynthesizedRL[nVars]++;
-            }
-            else
-            {
-                s_pSesStore->nUnsynthesizedImp++;
-                s_pSesStore->pUnsynthesizedImp[nVars]++;
-            }
-        }
-
         s_pSesStore->nSatCalls += pSes->nSatCalls;
         s_pSesStore->nUnsatCalls += pSes->nUnsatCalls;
         s_pSesStore->nUndefCalls += pSes->nUndefCalls;
@@ -1766,11 +1944,12 @@ int Abc_ExactDelayCost( word * pTruth, int nVars, int * pArrTimeProfile, char * 
         s_pSesStore->timeInstance += pSes->timeInstance;
         s_pSesStore->timeExact += pSes->timeTotal;
 
-        /* cleanup */
+        /* cleanup (we need to clean before adding since pTruth may have been modified by pSes) */
+        fResLimit = pSes->fHitResLimit;
         Ses_ManCleanLight( pSes );
 
         /* store solution */
-        Ses_StoreAddEntry( s_pSesStore, pTruth, nVars, pNormalArrTime, pSol );
+        Ses_StoreAddEntry( s_pSesStore, pTruth, nVars, pNormalArrTime, pSol, fResLimit );
     }
 
     if ( pSol )
