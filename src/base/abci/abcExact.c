@@ -720,10 +720,10 @@ static inline void Ses_ManComputeTopDec( Ses_Man_t * pSes )
 
         for ( i = 0; i < pSes->nSpecWords; ++i )
         {
-            fAnd  &= (  pVar[i] & pSes->pSpec[i] & mask ) != ( pSes->pSpec[i] & mask );
-            fAndC &= ( ~pVar[i] & pSes->pSpec[i] & mask ) != ( pSes->pSpec[i] & mask );
-            fOr   &= (  pVar[i] & pSes->pSpec[i] & mask ) != (  pVar[i]       & mask );
-            fOrC  &= ( ~pVar[i] & pSes->pSpec[i] & mask ) != ( ~pVar[i]       & mask );
+            fAnd  &= (  pVar[i] & pSes->pSpec[i] & mask ) == ( pSes->pSpec[i] & mask );
+            fAndC &= ( ~pVar[i] & pSes->pSpec[i] & mask ) == ( pSes->pSpec[i] & mask );
+            fOr   &= (  pVar[i] & pSes->pSpec[i] & mask ) == (  pVar[i]       & mask );
+            fOrC  &= ( ~pVar[i] & pSes->pSpec[i] & mask ) == ( ~pVar[i]       & mask );
         }
 
         pSes->pDecVars |= ( fAnd | fAndC | fOr | fOrC ) << l;
@@ -924,6 +924,7 @@ static int Ses_ManCreateClauses( Ses_Man_t * pSes )
     Vec_Int_t * vLits = NULL;
 
     for ( t = 0; t < pSes->nRows; ++t )
+    {
         for ( i = 0; i < pSes->nGates; ++i )
         {
             /* main clauses */
@@ -950,6 +951,14 @@ static int Ses_ManCreateClauses( Ses_Man_t * pSes )
                 }
         }
 
+        if ( pSes->nSpecFunc == 1 )
+        {
+            pLits[0] = Abc_Var2Lit( Ses_ManSimVar( pSes, pSes->nGates - 1, t ), 1 - Abc_TtGetBit( pSes->pSpec, t + 1 ) );
+            if ( !sat_solver_addclause( pSes->pSat, pLits, pLits + 1 ) )
+                return 0;
+        }
+    }
+
     /* if there is only one output, we know it must point to the last gate  */
     if ( pSes->nSpecFunc == 1 )
     {
@@ -967,13 +976,6 @@ static int Ses_ManCreateClauses( Ses_Man_t * pSes )
         {
             Vec_IntFree( vLits );
             return 0;
-        }
-
-        for ( t = 0; t < pSes->nRows; ++t )
-        {
-            pLits[0] = Abc_Var2Lit( Ses_ManSimVar( pSes, pSes->nGates - 1, t ), 1 - Abc_TtGetBit( pSes->pSpec, t + 1 ) );
-            if ( !sat_solver_addclause( pSes->pSat, pLits, pLits + 1 ) )
-                return 0;
         }
 
         vLits = Vec_IntAlloc( 0u );
@@ -1093,7 +1095,7 @@ static int Ses_ManCreateClauses( Ses_Man_t * pSes )
     if ( pSes->nMaxDepth == -1 && pSes->nSpecFunc == 1 ) /* only check if there is one output function */
         for ( q = 1; q < pSes->nSpecVars; ++q )
             for ( p = 0; p < q; ++p )
-                if ( Extra_TruthVarsSymm( (unsigned*)( &pSes->pSpec[h << 2] ), pSes->nSpecVars, p, q ) )
+                if ( Extra_TruthVarsSymm( (unsigned*)( pSes->pSpec ), pSes->nSpecVars, p, q ) )
                 {
                     if ( pSes->fVeryVerbose )
                         printf( "variables %d and %d are symmetric\n", p, q );
