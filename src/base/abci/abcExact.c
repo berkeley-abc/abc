@@ -56,50 +56,53 @@ static word s_Truths8[32] = {
 typedef struct Ses_Man_t_ Ses_Man_t;
 struct Ses_Man_t_
 {
-    sat_solver * pSat;            /* SAT solver */
+    sat_solver * pSat;                  /* SAT solver */
 
-    word *       pSpec;           /* specification */
-    int          bSpecInv;        /* remembers whether spec was inverted for normalization */
-    int          nSpecVars;       /* number of variables in specification */
-    int          nSpecFunc;       /* number of functions to synthesize */
-    int          nSpecWords;      /* number of words for function */
-    int          nRows;           /* number of rows in the specification (without 0) */
-    int          nMaxDepth;       /* maximum depth (-1 if depth is not constrained) */
-    int *        pArrTimeProfile; /* arrival times of inputs (NULL if arrival times are ignored) */
-    int          nArrTimeDelta;   /* delta to the original arrival times (arrival times are normalized to have 0 as minimum element) */
-    int          nArrTimeMax;     /* maximum normalized arrival time */
-    int          nBTLimit;        /* conflict limit */
-    int          fMakeAIG;        /* create AIG instead of general network */
-    int          fVerbose;        /* be verbose */
-    int          fVeryVerbose;    /* be very verbose */
-    int          fExtractVerbose; /* be verbose about solution extraction */
-    int          fSatVerbose;     /* be verbose about SAT solving */
+    word *       pSpec;                 /* specification */
+    int          bSpecInv;              /* remembers whether spec was inverted for normalization */
+    int          nSpecVars;             /* number of variables in specification */
+    int          nSpecFunc;             /* number of functions to synthesize */
+    int          nSpecWords;            /* number of words for function */
+    int          nRows;                 /* number of rows in the specification (without 0) */
+    int          nMaxDepth;             /* maximum depth (-1 if depth is not constrained) */
+    int          nMaxDepthTmp;          /* temporary copy to modify nMaxDepth temporarily */
+    int *        pArrTimeProfile;       /* arrival times of inputs (NULL if arrival times are ignored) */
+    int          pArrTimeProfileTmp[8]; /* temporary copy to modify pArrTimeProfile temporarily */
+    int          nArrTimeDelta;         /* delta to the original arrival times (arrival times are normalized to have 0 as minimum element) */
+    int          nArrTimeMax;           /* maximum normalized arrival time */
+    int          nBTLimit;              /* conflict limit */
+    int          fMakeAIG;              /* create AIG instead of general network */
+    int          fVerbose;              /* be verbose */
+    int          fVeryVerbose;          /* be very verbose */
+    int          fExtractVerbose;       /* be verbose about solution extraction */
+    int          fSatVerbose;           /* be verbose about SAT solving */
 
-    int          nGates;          /* number of gates */
+    int          nGates;                /* number of gates */
+    int          fDecStructure;         /* set to 1 or higher if nSpecFunc = 1 and f = x_i OP g(X \ {x_i}), otherwise 0 (determined when solving) */
 
-    int          nSimVars;        /* number of simulation vars x(i, t) */
-    int          nOutputVars;     /* number of output variables g(h, i) */
-    int          nGateVars;       /* number of gate variables f(i, p, q) */
-    int          nSelectVars;     /* number of select variables s(i, j, k) */
-    int          nDepthVars;      /* number of depth variables d(i, j) */
+    int          nSimVars;              /* number of simulation vars x(i, t) */
+    int          nOutputVars;           /* number of output variables g(h, i) */
+    int          nGateVars;             /* number of gate variables f(i, p, q) */
+    int          nSelectVars;           /* number of select variables s(i, j, k) */
+    int          nDepthVars;            /* number of depth variables d(i, j) */
 
-    int          nOutputOffset;   /* offset where output variables start */
-    int          nGateOffset;     /* offset where gate variables start */
-    int          nSelectOffset;   /* offset where select variables start */
-    int          nDepthOffset;    /* offset where depth variables start */
+    int          nOutputOffset;         /* offset where output variables start */
+    int          nGateOffset;           /* offset where gate variables start */
+    int          nSelectOffset;         /* offset where select variables start */
+    int          nDepthOffset;          /* offset where depth variables start */
 
-    int          fHitResLimit;    /* SAT solver gave up due to resource limit */
+    int          fHitResLimit;          /* SAT solver gave up due to resource limit */
 
-    abctime      timeSat;         /* SAT runtime */
-    abctime      timeSatSat;      /* SAT runtime (sat instance) */
-    abctime      timeSatUnsat;    /* SAT runtime (unsat instance) */
-    abctime      timeSatUndef;    /* SAT runtime (undef instance) */
-    abctime      timeInstance;    /* creating instance runtime */
-    abctime      timeTotal;       /* all runtime */
+    abctime      timeSat;               /* SAT runtime */
+    abctime      timeSatSat;            /* SAT runtime (sat instance) */
+    abctime      timeSatUnsat;          /* SAT runtime (unsat instance) */
+    abctime      timeSatUndef;          /* SAT runtime (undef instance) */
+    abctime      timeInstance;          /* creating instance runtime */
+    abctime      timeTotal;             /* all runtime */
 
-    int          nSatCalls;       /* number of SAT calls */
-    int          nUnsatCalls;     /* number of UNSAT calls */
-    int          nUndefCalls;     /* number of UNDEF calls */
+    int          nSatCalls;             /* number of SAT calls */
+    int          nUnsatCalls;           /* number of UNSAT calls */
+    int          nUndefCalls;           /* number of UNDEF calls */
 };
 
 /***********************************************************************
@@ -322,6 +325,60 @@ static inline void Ses_StorePrintDebugEntry( Ses_Store_t * pStore, word * pTruth
     fprintf( pStore->pDebugEntries, "\"\n" );
 }
 
+static void Abc_ExactNormalizeArrivalTimesForNetwork( int nVars, int * pArrTimeProfile, char * pSol )
+{
+    int nGates, i, j, k, nMax;
+    Vec_Int_t * vLevels;
+
+    nGates = pSol[ABC_EXACT_SOL_NGATES];
+
+    /* printf( "NORMALIZE\n" ); */
+    /* printf( "  #vars  = %d\n", nVars ); */
+    /* printf( "  #gates = %d\n", nGates ); */
+
+    vLevels = Vec_IntAllocArrayCopy( pArrTimeProfile, nVars );
+
+    /* compute level of each gate based on arrival time profile (to compute depth) */
+    for ( i = 0; i < nGates; ++i )
+    {
+        j = pSol[3 + i * 4 + 2];
+        k = pSol[3 + i * 4 + 3];
+
+        Vec_IntPush( vLevels, Abc_MaxInt( Vec_IntEntry( vLevels, j ), Vec_IntEntry( vLevels, k ) ) + 1 );
+
+        /* printf( "  gate %d = (%d,%d)\n", nVars + i, j, k ); */
+    }
+
+    /* Vec_IntPrint( vLevels ); */
+
+    /* reset all levels except for the last one */
+    for ( i = 0; i < nVars + nGates - 1; ++i )
+        Vec_IntSetEntry( vLevels, i, Vec_IntEntry( vLevels, nVars + nGates - 1 ) );
+
+    /* Vec_IntPrint( vLevels ); */
+
+    /* compute levels from top to bottom */
+    for ( i = nGates - 1; i >= 0; --i )
+    {
+        j = pSol[3 + i * 4 + 2];
+        k = pSol[3 + i * 4 + 3];
+
+        Vec_IntSetEntry( vLevels, j, Abc_MinInt( Vec_IntEntry( vLevels, j ), Vec_IntEntry( vLevels, nVars + i ) - 1 ) );
+        Vec_IntSetEntry( vLevels, k, Abc_MinInt( Vec_IntEntry( vLevels, k ), Vec_IntEntry( vLevels, nVars + i ) - 1 ) );
+    }
+
+    /* Vec_IntPrint( vLevels ); */
+
+    /* normalize arrival times */
+    Abc_NormalizeArrivalTimes( Vec_IntArray( vLevels ), nVars, &nMax );
+    memcpy( pArrTimeProfile, Vec_IntArray( vLevels ), sizeof(int) * nVars );
+
+    /* printf( "  nMax = %d\n", nMax ); */
+    /* Vec_IntPrint( vLevels ); */
+
+    Vec_IntFree( vLevels );
+}
+
 // pArrTimeProfile is normalized
 // returns 1 if and only if a new TimesEntry has been created
 int Ses_StoreAddEntry( Ses_Store_t * pStore, word * pTruth, int nVars, int * pArrTimeProfile, char * pSol, int fResLimit )
@@ -329,6 +386,9 @@ int Ses_StoreAddEntry( Ses_Store_t * pStore, word * pTruth, int nVars, int * pAr
     int key, fAdded;
     Ses_TruthEntry_t * pTEntry;
     Ses_TimesEntry_t * pTiEntry;
+
+    if ( pSol )
+        Abc_ExactNormalizeArrivalTimesForNetwork( nVars, pArrTimeProfile, pSol );
 
     key = Ses_StoreTableHash( pTruth, nVars );
     pTEntry = pStore->pEntries[key];
@@ -417,7 +477,7 @@ int Ses_StoreAddEntry( Ses_Store_t * pStore, word * pTruth, int nVars, int * pAr
 
 // pArrTimeProfile is normalized
 // returns 1 if entry was in store, pSol may still be 0 if it couldn't be computed
-int Ses_StoreGetEntry( Ses_Store_t * pStore, word * pTruth, int nVars, int * pArrTimeProfile, char ** pSol )
+int Ses_StoreGetEntrySimple( Ses_Store_t * pStore, word * pTruth, int nVars, int * pArrTimeProfile, char ** pSol )
 {
     int key;
     Ses_TruthEntry_t * pTEntry;
@@ -444,6 +504,57 @@ int Ses_StoreGetEntry( Ses_Store_t * pStore, word * pTruth, int nVars, int * pAr
     while ( pTiEntry )
     {
         if ( Ses_StoreTimesEqual( pArrTimeProfile, pTiEntry->pArrTimeProfile, nVars ) )
+            break;
+        else
+            pTiEntry = pTiEntry->next;
+    }
+
+    /* no entry found? */
+    if ( !pTiEntry )
+        return 0;
+
+    *pSol = pTiEntry->pNetwork;
+    return 1;
+}
+
+int Ses_StoreGetEntry( Ses_Store_t * pStore, word * pTruth, int nVars, int * pArrTimeProfile, char ** pSol )
+{
+    int key;
+    Ses_TruthEntry_t * pTEntry;
+    Ses_TimesEntry_t * pTiEntry;
+    int pTimes[8];
+
+    key = Ses_StoreTableHash( pTruth, nVars );
+    pTEntry = pStore->pEntries[key];
+
+    /* find truth table entry */
+    while ( pTEntry )
+    {
+        if ( Ses_StoreTruthEqual( pTEntry, pTruth, nVars ) )
+            break;
+        else
+            pTEntry = pTEntry->next;
+    }
+
+    /* no entry found? */
+    if ( !pTEntry )
+        return 0;
+
+    /* find times entry */
+    pTiEntry = pTEntry->head;
+    while ( pTiEntry )
+    {
+        /* found after normalization wrt. to network */
+        if ( pTiEntry->pNetwork )
+        {
+            memcpy( pTimes, pArrTimeProfile, sizeof(int) * nVars );
+            Abc_ExactNormalizeArrivalTimesForNetwork( nVars, pTimes, pTiEntry->pNetwork );
+
+            if ( Ses_StoreTimesEqual( pTimes, pTiEntry->pArrTimeProfile, nVars ) )
+                break;
+        }
+        /* found for non synthesized network */
+        else if ( Ses_StoreTimesEqual( pArrTimeProfile, pTiEntry->pArrTimeProfile, nVars ) )
             break;
         else
             pTiEntry = pTiEntry->next;
@@ -763,7 +874,7 @@ static int Ses_ManCreateClauses( Ses_Man_t * pSes )
 {
     extern int Extra_TruthVarsSymm( unsigned * pTruth, int nVars, int iVar0, int iVar1 );
 
-    int h, i, j, k, t, ii, jj, kk, p, q, d;
+    int h, i, j, k, t, ii, jj, kk, p, q;
     int pLits[3];
     Vec_Int_t * vLits = Vec_IntAlloc( 0u );
 
@@ -833,6 +944,29 @@ static int Ses_ManCreateClauses( Ses_Man_t * pSes )
                 Vec_IntSetEntry( vLits, jj++, Abc_Var2Lit( Ses_ManSelectVar( pSes, i, j, k ), 0 ) );
         sat_solver_addclause( pSes->pSat, Vec_IntArray( vLits ), Vec_IntArray( vLits ) + jj );
     }
+
+    /* gate decomposition (makes it worse) */
+    /* if ( fDecVariable >= 0 && pSes->nGates >= 2 ) */
+    /* { */
+    /*     pLits[0] = Abc_Var2Lit( Ses_ManSelectVar( pSes, pSes->nGates - 1, fDecVariable, pSes->nSpecVars + pSes->nGates - 2 ), 0 ); */
+    /*     if ( !sat_solver_addclause( pSes->pSat, pLits, pLits + 1 ) ) */
+    /*     { */
+    /*         Vec_IntFree( vLits ); */
+    /*         return 0; */
+    /*     } */
+
+    /*     for ( k = 1; k < pSes->nSpecVars + pSes->nGates - 1; ++k ) */
+    /*         for ( j = 0; j < k; ++j ) */
+    /*             if ( j != fDecVariable || k != pSes->nSpecVars + pSes->nGates - 2 ) */
+    /*             { */
+    /*                 pLits[0] = Abc_Var2Lit( Ses_ManSelectVar( pSes, pSes->nGates - 1, j, k ), 1 ); */
+    /*                 if ( !sat_solver_addclause( pSes->pSat, pLits, pLits + 1 ) ) */
+    /*                 { */
+    /*                     Vec_IntFree( vLits ); */
+    /*                     return 0; */
+    /*                 } */
+    /*             } */
+    /* } */
 
     /* only AIG */
     if ( pSes->fMakeAIG )
@@ -922,76 +1056,80 @@ static int Ses_ManCreateClauses( Ses_Man_t * pSes )
                         }
                 }
 
-    /* DEPTH clauses */
-    if ( pSes->nMaxDepth >= 0 )
+    return 1;
+}
+
+static int Ses_ManCreateDepthClauses( Ses_Man_t * pSes )
+{
+    int i, j, k, jj, kk, d, h;
+    int pLits[3];
+
+    for ( i = 0; i < pSes->nGates; ++i )
     {
-        for ( i = 0; i < pSes->nGates; ++i )
+        /* propagate depths from children */
+        for ( k = 1; k < i; ++k )
+            for ( j = 0; j < k; ++j )
+            {
+                pLits[0] = Abc_Var2Lit( Ses_ManSelectVar( pSes, i, pSes->nSpecVars + j, pSes->nSpecVars + k ), 1 );
+                for ( jj = 0; jj <= pSes->nArrTimeMax + j; ++jj )
+                {
+                    pLits[1] = Abc_Var2Lit( Ses_ManDepthVar( pSes, j, jj ), 1 );
+                    pLits[2] = Abc_Var2Lit( Ses_ManDepthVar( pSes, i, jj + 1 ), 0 );
+                    sat_solver_addclause( pSes->pSat, pLits, pLits + 3 );
+                }
+            }
+
+        for ( k = 0; k < i; ++k )
+            for ( j = 0; j < pSes->nSpecVars + k; ++j )
+            {
+                pLits[0] = Abc_Var2Lit( Ses_ManSelectVar( pSes, i, j, pSes->nSpecVars + k ), 1 );
+                for ( kk = 0; kk <= pSes->nArrTimeMax + k; ++kk )
+                {
+                    pLits[1] = Abc_Var2Lit( Ses_ManDepthVar( pSes, k, kk ), 1 );
+                    pLits[2] = Abc_Var2Lit( Ses_ManDepthVar( pSes, i, kk + 1 ), 0 );
+                    sat_solver_addclause( pSes->pSat, pLits, pLits + 3 );
+                }
+            }
+
+        /* propagate depths from arrival times at PIs */
+        if ( pSes->pArrTimeProfile )
         {
-            /* propagate depths from children */
-            for ( k = 1; k < i; ++k )
-                for ( j = 0; j < k; ++j )
+            for ( k = 1; k < pSes->nSpecVars + i; ++k )
+                for ( j = 0; j < ( ( k < pSes->nSpecVars ) ? k : pSes->nSpecVars ); ++j )
                 {
-                    pLits[0] = Abc_Var2Lit( Ses_ManSelectVar( pSes, i, pSes->nSpecVars + j, pSes->nSpecVars + k ), 1 );
-                    for ( jj = 0; jj <= pSes->nArrTimeMax + j; ++jj )
-                    {
-                        pLits[1] = Abc_Var2Lit( Ses_ManDepthVar( pSes, j, jj ), 1 );
-                        pLits[2] = Abc_Var2Lit( Ses_ManDepthVar( pSes, i, jj + 1 ), 0 );
-                        sat_solver_addclause( pSes->pSat, pLits, pLits + 3 );
-                    }
-                }
+                    d = pSes->pArrTimeProfile[j];
+                    if ( k < pSes->nSpecVars && pSes->pArrTimeProfile[k] > d )
+                        d = pSes->pArrTimeProfile[k];
 
-            for ( k = 0; k < i; ++k )
-                for ( j = 0; j < pSes->nSpecVars + k; ++j )
-                {
-                    pLits[0] = Abc_Var2Lit( Ses_ManSelectVar( pSes, i, j, pSes->nSpecVars + k ), 1 );
-                    for ( kk = 0; kk <= pSes->nArrTimeMax + k; ++kk )
-                    {
-                        pLits[1] = Abc_Var2Lit( Ses_ManDepthVar( pSes, k, kk ), 1 );
-                        pLits[2] = Abc_Var2Lit( Ses_ManDepthVar( pSes, i, kk + 1 ), 0 );
-                        sat_solver_addclause( pSes->pSat, pLits, pLits + 3 );
-                    }
-                }
-
-            /* propagate depths from arrival times at PIs */
-            if ( pSes->pArrTimeProfile )
-            {
-                for ( k = 1; k < pSes->nSpecVars + i; ++k )
-                    for ( j = 0; j < ( ( k < pSes->nSpecVars ) ? k : pSes->nSpecVars ); ++j )
-                    {
-                        d = pSes->pArrTimeProfile[j];
-                        if ( k < pSes->nSpecVars && pSes->pArrTimeProfile[k] > d )
-                            d = pSes->pArrTimeProfile[k];
-
-                        pLits[0] = Abc_Var2Lit( Ses_ManSelectVar( pSes, i, j, k ), 1 );
-                        pLits[1] = Abc_Var2Lit( Ses_ManDepthVar( pSes, i, d ), 0 );
-                        sat_solver_addclause( pSes->pSat, pLits, pLits + 2 );
-                    }
-            }
-            else
-            {
-                /* arrival times are 0 */
-                pLits[0] = Abc_Var2Lit( Ses_ManDepthVar( pSes, i, 0 ), 0 );
-                sat_solver_addclause( pSes->pSat, pLits, pLits + 1 );
-            }
-
-            /* reverse order encoding of depth variables */
-            for ( j = 1; j <= pSes->nArrTimeMax + i; ++j )
-            {
-                pLits[0] = Abc_Var2Lit( Ses_ManDepthVar( pSes, i, j ), 1 );
-                pLits[1] = Abc_Var2Lit( Ses_ManDepthVar( pSes, i, j - 1 ), 0 );
-                sat_solver_addclause( pSes->pSat, pLits, pLits + 2 );
-            }
-
-            /* constrain maximum depth */
-            if ( pSes->nMaxDepth < pSes->nArrTimeMax + i )
-                for ( h = 0; h < pSes->nSpecFunc; ++h )
-                {
-                    pLits[0] = Abc_Var2Lit( Ses_ManOutputVar( pSes, h, i ), 1 );
-                    pLits[1] = Abc_Var2Lit( Ses_ManDepthVar( pSes, i, pSes->nMaxDepth ), 1 );
-                    if ( !sat_solver_addclause( pSes->pSat, pLits, pLits + 2 ) )
-                        return 0;
+                    pLits[0] = Abc_Var2Lit( Ses_ManSelectVar( pSes, i, j, k ), 1 );
+                    pLits[1] = Abc_Var2Lit( Ses_ManDepthVar( pSes, i, d ), 0 );
+                    sat_solver_addclause( pSes->pSat, pLits, pLits + 2 );
                 }
         }
+        else
+        {
+            /* arrival times are 0 */
+            pLits[0] = Abc_Var2Lit( Ses_ManDepthVar( pSes, i, 0 ), 0 );
+            sat_solver_addclause( pSes->pSat, pLits, pLits + 1 );
+        }
+
+        /* reverse order encoding of depth variables */
+        for ( j = 1; j <= pSes->nArrTimeMax + i; ++j )
+        {
+            pLits[0] = Abc_Var2Lit( Ses_ManDepthVar( pSes, i, j ), 1 );
+            pLits[1] = Abc_Var2Lit( Ses_ManDepthVar( pSes, i, j - 1 ), 0 );
+            sat_solver_addclause( pSes->pSat, pLits, pLits + 2 );
+        }
+
+        /* constrain maximum depth */
+        if ( pSes->nMaxDepth < pSes->nArrTimeMax + i )
+            for ( h = 0; h < pSes->nSpecFunc; ++h )
+            {
+                pLits[0] = Abc_Var2Lit( Ses_ManOutputVar( pSes, h, i ), 1 );
+                pLits[1] = Abc_Var2Lit( Ses_ManDepthVar( pSes, i, pSes->nMaxDepth ), 1 );
+                if ( !sat_solver_addclause( pSes->pSat, pLits, pLits + 2 ) )
+                    return 0;
+            }
     }
 
     return 1;
@@ -1099,6 +1237,7 @@ static char * Ses_ManExtractSolution( Ses_Man_t * pSes )
                         printf( " and operands %d and %d", j, k );
                     *p++ = j;
                     *p++ = k;
+                    k = pSes->nSpecVars + i;
                     break;
                 }
 
@@ -1155,7 +1294,7 @@ static char * Ses_ManExtractSolution( Ses_Man_t * pSes )
                     }
                 *p++ = d;
                 if ( pSes->pArrTimeProfile && pSes->fExtractVerbose )
-                    printf( "output %d points to %d and has normalized delay %d (nArrTimeDelta = %d)\n", h, i, d, pSes->nArrTimeDelta );
+                    printf( "output %d points to gate %d and has normalized delay %d (nArrTimeDelta = %d)\n", h, pSes->nSpecVars + i, d, pSes->nArrTimeDelta );
                 for ( l = 0; l < pSes->nSpecVars; ++l )
                 {
                     d = ( pSes->nMaxDepth != -1 ) ? pPerm[i * pSes->nSpecVars + l] : 0;
@@ -1396,114 +1535,215 @@ static inline void Ses_ManPrintVars( Ses_Man_t * pSes )
   Synopsis    [Synthesis algorithm.]
 
 ***********************************************************************/
-static int Ses_ManFindMinimumSize( Ses_Man_t * pSes )
+// returns 0, if current max depth and arrival times are not consistent
+static int Ses_CheckDepthConsistency( Ses_Man_t * pSes )
 {
-    int nGates = 0, f, i, l, mask = ~0;
-    int fAndDecStructure = 0; /* network must be f = AND(x_i, g) or f = AND(!x_i, g) structure */
+    int l, i, mask = ~0;
     int fMaxGatesLevel2 = 1;
-    abctime timeStart;
 
-    /* do the arrival times allow for a network? */
-    if ( pSes->nMaxDepth != -1 )
+    pSes->fDecStructure = 0;
+
+    for ( l = 0; l < pSes->nSpecVars; ++l )
     {
-        for ( l = 0; l < pSes->nSpecVars; ++l )
+        if ( pSes->pArrTimeProfile[l] >= pSes->nMaxDepth )
         {
-            if ( pSes->pArrTimeProfile[l] >= pSes->nMaxDepth )
+            if ( pSes->fVeryVerbose )
+                printf( "give up due to impossible arrival time (depth = %d, input = %d, arrival time = %d)", pSes->nMaxDepth, l, pSes->pArrTimeProfile[l] );
+            return 0;
+        }
+        else if ( pSes->nSpecFunc == 1 && pSes->fMakeAIG && pSes->pArrTimeProfile[l] + 1 == pSes->nMaxDepth )
+        {
+            if ( ( pSes->fDecStructure == 1 && pSes->nSpecVars > 2 ) || pSes->fDecStructure == 2 )
             {
                 if ( pSes->fVeryVerbose )
-                    printf( "give up due to impossible arrival time (depth = %d, input = %d, arrival time = %d)", pSes->nMaxDepth, l, pSes->pArrTimeProfile[l] );
+                    printf( "give up due to impossible decomposition (depth = %d, input = %d, arrival time = %d)", pSes->nMaxDepth, l, pSes->pArrTimeProfile[l] );
                 return 0;
             }
-            else if ( pSes->nSpecFunc == 1 && pSes->fMakeAIG && pSes->pArrTimeProfile[l] + 1 == pSes->nMaxDepth )
-            {
-                if ( ( fAndDecStructure == 1 && pSes->nSpecVars > 2 ) || fAndDecStructure == 2 )
+
+            pSes->fDecStructure++;
+
+            if ( pSes->nSpecVars < 6u )
+                mask = Abc_Tt6Mask( 1u << pSes->nSpecVars );
+
+            /* A subset B <=> A and B = A */
+            for ( i = 0; i < pSes->nSpecWords; ++i )
+                if ( ( ( s_Truths8[(l << 2) + i] & pSes->pSpec[i] & mask ) != ( pSes->pSpec[i] & mask ) ) &&
+                     ( ( ~( s_Truths8[(l << 2) + i] ) & pSes->pSpec[i] & mask ) != ( pSes->pSpec[i] & mask ) ) &&
+                     ( ( ( s_Truths8[(l << 2) + i] | pSes->pSpec[i] ) & mask ) != ( pSes->pSpec[i] & mask ) ) &&
+                     ( ( ( ~( s_Truths8[(l << 2) + i] ) | pSes->pSpec[i] ) & mask ) != ( pSes->pSpec[i] & mask ) ) )
                 {
                     if ( pSes->fVeryVerbose )
                         printf( "give up due to impossible decomposition (depth = %d, input = %d, arrival time = %d)", pSes->nMaxDepth, l, pSes->pArrTimeProfile[l] );
                     return 0;
                 }
-
-                fAndDecStructure++;
-
-                if ( pSes->nSpecVars < 6u )
-                    mask = ( 1 << pSes->nSpecVars ) - 1u;
-
-                /* A subset B <=> A and B = A */
-                for ( i = 0; i < pSes->nSpecWords; ++i )
-                    if ( ( ( s_Truths8[(l << 2) + i] & pSes->pSpec[i] & mask ) != ( pSes->pSpec[i] & mask ) ) &&
-                         ( ( ~( s_Truths8[(l << 2) + i] ) & pSes->pSpec[i] & mask ) != ( pSes->pSpec[i] & mask ) ) )
-                    {
-                        if ( pSes->fVeryVerbose )
-                            printf( "give up due to impossible decomposition (depth = %d, input = %d, arrival time = %d)", pSes->nMaxDepth, l, pSes->pArrTimeProfile[l] );
-                        return 0;
-                    }
-            }
         }
+    }
 
-        /* check if depth's match with structure at second level from top */
-        if ( fAndDecStructure )
-            fMaxGatesLevel2 = ( pSes->nSpecVars == 3 ) ? 2 : 1;
-        else
-            fMaxGatesLevel2 = ( pSes->nSpecVars == 4 ) ? 4 : 3;
+    /* check if depth's match with structure at second level from top */
+    if ( pSes->fDecStructure )
+        fMaxGatesLevel2 = ( pSes->nSpecVars == 3 ) ? 2 : 1;
+    else
+        fMaxGatesLevel2 = ( pSes->nSpecVars == 4 ) ? 4 : 3;
 
+    i = 0;
+    for ( l = 0; l < pSes->nSpecVars; ++l )
+        if ( pSes->pArrTimeProfile[l] + 2 == pSes->nMaxDepth )
+            if ( ++i > fMaxGatesLevel2 )
+            {
+                if ( pSes->fVeryVerbose )
+                    printf( "give up due to impossible decomposition at second level (depth = %d, input = %d, arrival time = %d)", pSes->nMaxDepth, l, pSes->pArrTimeProfile[l] );
+                return 0;
+            }
+
+    /* check if depth's match with structure at third level from top */
+    if ( pSes->nSpecVars > 4 && pSes->fDecStructure && i == 1 ) /* we have f = AND(x_i, AND(x_j, g)) (x_i and x_j may be complemented) */
+    {
         i = 0;
         for ( l = 0; l < pSes->nSpecVars; ++l )
-            if ( pSes->pArrTimeProfile[l] + 2 == pSes->nMaxDepth )
-                if ( ++i > fMaxGatesLevel2 )
+            if ( pSes->pArrTimeProfile[l] + 3 == pSes->nMaxDepth )
+                if ( ++i > 1 )
                 {
                     if ( pSes->fVeryVerbose )
-                        printf( "give up due to impossible decomposition at second level (depth = %d, input = %d, arrival time = %d)", pSes->nMaxDepth, l, pSes->pArrTimeProfile[l] );
+                        printf( "give up due to impossible decomposition at third level (depth = %d, input = %d, arrival time = %d)", pSes->nMaxDepth, l, pSes->pArrTimeProfile[l] );
                     return 0;
                 }
     }
 
+    return 1;
+}
+
+// returns 0, if current max depth and #gates are not consistent
+static int Ses_CheckGatesConsistency( Ses_Man_t * pSes, int nGates )
+{
+    /* give up if number of gates is impossible for given depth */
+    if ( pSes->nMaxDepth != -1 && nGates >= (1 << pSes->nMaxDepth ) )
+    {
+        if ( pSes->fVeryVerbose )
+            printf( "give up due to impossible depth (depth = %d, gates = %d)", pSes->nMaxDepth, nGates );
+        return 0;
+    }
+
+    if ( pSes->fDecStructure && nGates >= ( 1 << ( pSes->nMaxDepth - 1 ) ) + 1 )
+    {
+        if ( pSes->fVeryVerbose )
+            printf( "give up due to impossible depth in AND-dec structure (depth = %d, gates = %d)", pSes->nMaxDepth, nGates );
+        return 0;
+    }
+
+    /* give up if number of gates gets practically too large */
+    if ( nGates >= ( 1 << pSes->nSpecVars ) )
+    {
+        if ( pSes->fVeryVerbose )
+            printf( "give up due to impossible number of gates" );
+        return 0;
+    }
+
+    return 1;
+}
+
+static void Abc_ExactCopyDepthAndArrivalTimes( int nVars, int nDepthFrom, int * nDepthTo, int * pTimesFrom, int * pTimesTo )
+{
+    int l;
+
+    *nDepthTo = nDepthFrom;
+    for ( l = 0; l < nVars; ++l )
+        pTimesTo[l] = pTimesFrom[l];
+}
+
+static void Ses_ManStoreDepthAndArrivalTimes( Ses_Man_t * pSes )
+{
+    if ( pSes->nMaxDepth == -1 ) return;
+    Abc_ExactCopyDepthAndArrivalTimes( pSes->nSpecVars, pSes->nMaxDepth, &pSes->nMaxDepthTmp, pSes->pArrTimeProfile, pSes->pArrTimeProfileTmp );
+}
+
+static void Ses_ManRestoreDepthAndArrivalTimes( Ses_Man_t * pSes )
+{
+    if ( pSes->nMaxDepth == -1 ) return;
+    Abc_ExactCopyDepthAndArrivalTimes( pSes->nSpecVars, pSes->nMaxDepthTmp, &pSes->nMaxDepth, pSes->pArrTimeProfileTmp, pSes->pArrTimeProfile );
+}
+
+static void Abc_ExactAdjustDepthAndArrivalTimes( int nVars, int nGates, int nDepthFrom, int * nDepthTo, int * pTimesFrom, int * pTimesTo, int nTimesMax )
+{
+    int l;
+
+    *nDepthTo = Abc_MinInt( nDepthFrom, nGates );
+    for ( l = 0; l < nVars; ++l )
+        pTimesTo[l] = Abc_MinInt( pTimesFrom[l], Abc_MaxInt( 0, nGates - 1 - nTimesMax + pTimesFrom[l] ) );
+}
+
+static void Ses_AdjustDepthAndArrivalTimes( Ses_Man_t * pSes, int nGates )
+{
+    Abc_ExactAdjustDepthAndArrivalTimes( pSes->nSpecVars, nGates, pSes->nMaxDepthTmp, &pSes->nMaxDepth, pSes->pArrTimeProfileTmp, pSes->pArrTimeProfile, pSes->nArrTimeMax - 1 );
+}
+
+static int Ses_ManFindMinimumSize( Ses_Man_t * pSes )
+{
+    int nGates = 0, f, fRes, fSat;
+    abctime timeStart;
+
     /* store whether call was unsuccessful due to resource limit and not due to impossible constraint */
     pSes->fHitResLimit = 0;
+
+    /* do the arrival times allow for a network? */
+    if ( pSes->nMaxDepth != -1 && !Ses_CheckDepthConsistency( pSes ) )
+        return 0;
+
+    //Ses_ManStoreDepthAndArrivalTimes( pSes );
 
     while ( true )
     {
         ++nGates;
 
-        /* give up if number of gates is impossible for given depth */
-        if ( pSes->nMaxDepth != -1 && nGates >= (1 << pSes->nMaxDepth ) )
+        //Ses_AdjustDepthAndArrivalTimes( pSes, nGates );
+
+        /* do #gates and max depth allow for a network? */
+        if ( !Ses_CheckGatesConsistency( pSes, nGates ) )
         {
-            if ( pSes->fVeryVerbose )
-                printf( "give up due to impossible depth (depth = %d, gates = %d)", pSes->nMaxDepth, nGates );
-            return 0;
+            fRes = 0;
+            break;
         }
 
-        if ( fAndDecStructure && nGates >= ( 1 << ( pSes->nMaxDepth - 1 ) ) + 1 )
-        {
-            if ( pSes->fVeryVerbose )
-                printf( "give up due to impossible depth in AND-dec structure (depth = %d, gates = %d)", pSes->nMaxDepth, nGates );
-            return 0;
-        }
+        /* solve */
+        timeStart = Abc_Clock();
+        Ses_ManCreateVars( pSes, nGates );
+        f = Ses_ManCreateDepthClauses( pSes );
+        pSes->timeInstance += ( Abc_Clock() - timeStart );
+        if ( !f ) continue; /* proven UNSAT while creating clauses */
 
-        /* give up if number of gates gets practically too large */
-        if ( nGates >= ( 1 << pSes->nSpecVars ) )
+        /* first solve */
+        fSat = Ses_ManSolve( pSes );
+        if ( fSat == 0 )
+            continue; /* UNSAT, continue with next # of gates */
+        else if ( fSat == 2 )
         {
-            if ( pSes->fVeryVerbose )
-                printf( "give up due to impossible number of gates" );
-            return 0;
+            pSes->fHitResLimit = 1;
+            fRes = 0;
+            break;
         }
 
         timeStart = Abc_Clock();
-        Ses_ManCreateVars( pSes, nGates );
         f = Ses_ManCreateClauses( pSes );
         pSes->timeInstance += ( Abc_Clock() - timeStart );
-        if ( !f )
-            continue; /* proven UNSAT while creating clauses */
+        if ( !f ) continue; /* proven UNSAT while creating clauses */
 
-        switch ( Ses_ManSolve( pSes ) )
+        fSat = Ses_ManSolve( pSes );
+        if ( fSat == 1 )
         {
-        case 1: return 1; /* SAT */
-        case 2:
-            pSes->fHitResLimit = 1;
-            return 0; /* resource limit */
+            fRes = 1;
+            break;
         }
+        else if ( fSat == 2 )
+        {
+            pSes->fHitResLimit = 1;
+            fRes = 0;
+            break;
+        }
+
+        /* UNSAT => continue */
     }
 
-    return 0;
+    //Ses_ManRestoreDepthAndArrivalTimes( pSes );
+    return fRes;
 }
 
 /**Function*************************************************************
@@ -1567,6 +1807,7 @@ Gia_Man_t * Gia_ManFindExact( word * pTruth, int nVars, int nFunc, int nMaxDepth
 
     pSes = Ses_ManAlloc( pTruth, nVars, nFunc, nMaxDepth, pArrTimeProfile, 1, nBTLimit, fVerbose );
     pSes->fVeryVerbose = 1;
+    pSes->fExtractVerbose = 1;
     pSes->fSatVerbose = 1;
     if ( fVerbose )
         Ses_ManPrintFuncs( pSes );
@@ -1814,7 +2055,7 @@ void Abc_ExactStats()
 // the area cost should not exceed 2048, if the cut is implementable; otherwise, it should be ABC_INFINITY
 int Abc_ExactDelayCost( word * pTruth, int nVars, int * pArrTimeProfile, char * pPerm, int * Cost, int AigLevel )
 {
-    int i, nMaxArrival, l;
+    int i, nMaxArrival, nDelta, l;
     Ses_Man_t * pSes = NULL;
     char * pSol = NULL, * p;
     int pNormalArrTime[8];
@@ -1864,7 +2105,7 @@ int Abc_ExactDelayCost( word * pTruth, int nVars, int * pArrTimeProfile, char * 
     for ( l = 0; l < nVars; ++l )
         pNormalArrTime[l] = pArrTimeProfile[l];
 
-    Abc_NormalizeArrivalTimes( pNormalArrTime, nVars, &nMaxArrival );
+    nDelta = Abc_NormalizeArrivalTimes( pNormalArrTime, nVars, &nMaxArrival );
 
     if ( s_pSesStore->fVeryVerbose )
     {
@@ -1893,7 +2134,7 @@ int Abc_ExactDelayCost( word * pTruth, int nVars, int * pArrTimeProfile, char * 
             nMaxDepth = Abc_MaxInt( nMaxDepth, pNormalArrTime[i] );
         nMaxDepth += nVars + 1;
         if ( AigLevel != -1 )
-            nMaxDepth = Abc_MinInt( AigLevel, nMaxDepth + nVars + 1 );
+            nMaxDepth = Abc_MinInt( AigLevel - nDelta, nMaxDepth + nVars + 1 );
 
         timeStartExact = Abc_Clock();
 
@@ -2015,7 +2256,7 @@ Abc_Obj_t * Abc_ExactBuildNode( word * pTruth, int nVars, int * pArrTimeProfile,
     for ( i = 0; i < nVars; ++i )
         pNormalArrTime[i] = pArrTimeProfile[i];
     Abc_NormalizeArrivalTimes( pNormalArrTime, nVars, &nMaxArrival );
-    Ses_StoreGetEntry( s_pSesStore, pTruth, nVars, pNormalArrTime, &pSol );
+    assert( Ses_StoreGetEntry( s_pSesStore, pTruth, nVars, pNormalArrTime, &pSol ) );
     if ( !pSol )
     {
         s_pSesStore->timeTotal += ( Abc_Clock() - timeStart );
