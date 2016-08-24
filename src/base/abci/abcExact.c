@@ -1266,7 +1266,7 @@ static Gia_Man_t * Ses_ManExtractGia( char const * pSol )
     {
         nObj = Gia_ManAppendCi( pGia );
         Vec_IntPush( pGates, nObj );
-        Vec_PtrSetEntry( pGia->vNamesIn, i, Extra_UtilStrsav( Vec_PtrEntry( vNames, i ) ) );
+        Vec_PtrSetEntry( pGia->vNamesIn, i, Extra_UtilStrsav( (const char*)Vec_PtrEntry( vNames, i ) ) );
     }
 
     /* gates */
@@ -1308,7 +1308,7 @@ static Gia_Man_t * Ses_ManExtractGia( char const * pSol )
         if ( Abc_LitIsCompl( *p ) )
             nObj = Abc_LitNot( nObj );
         Gia_ManAppendCo( pGia, nObj );
-        Vec_PtrSetEntry( pGia->vNamesOut, h, Extra_UtilStrsav( Vec_PtrEntry( vNames, pSol[ABC_EXACT_SOL_NVARS] + h ) ) );
+        Vec_PtrSetEntry( pGia->vNamesOut, h, Extra_UtilStrsav( (const char*)Vec_PtrEntry( vNames, pSol[ABC_EXACT_SOL_NVARS] + h ) ) );
         p += ( 2 + pSol[ABC_EXACT_SOL_NVARS] );
     }
     Abc_NodeFreeNames( vNames );
