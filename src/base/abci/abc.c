@@ -7291,9 +7291,9 @@ usage:
 ***********************************************************************/
 int Abc_CommandExact( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern Gia_Man_t * Gia_ManFindExact( word * pTruth, int nVars, int nFunc, int nMaxDepth, int * pArrivalTimes, int nBTLimit, int fVerbose );
+    extern Gia_Man_t * Gia_ManFindExact( word * pTruth, int nVars, int nFunc, int nMaxDepth, int * pArrivalTimes, int nBTLimit, int nStartGates, int fVerbose );
 
-    int c, nMaxDepth = -1, fMakeAIG = 0, fTest = 0, fVerbose = 0, nVars = 0, nVarsTmp, nFunc = 0, nBTLimit = 100;
+    int c, nMaxDepth = -1, fMakeAIG = 0, fTest = 0, fVerbose = 0, nVars = 0, nVarsTmp, nFunc = 0, nStartGates = 1, nBTLimit = 100;
     char * p1, * p2;
     word pTruth[64];
     int pArrTimeProfile[8], fHasArrTimeProfile = 0;
@@ -7301,7 +7301,7 @@ int Abc_CommandExact( Abc_Frame_t * pAbc, int argc, char ** argv )
     Gia_Man_t * pGiaRes;
 
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "DACatvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "DASCatvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -7340,6 +7340,17 @@ int Abc_CommandExact( Abc_Frame_t * pAbc, int argc, char ** argv )
                 else
                     ++p2;
             }
+            break;
+        case 'S':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-S\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nStartGates = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nStartGates < 1 )
+                goto usage;
             break;
         case 'C':
             if ( globalUtilOptind >= argc )
@@ -7406,7 +7417,7 @@ int Abc_CommandExact( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     if ( fMakeAIG )
     {
-        pGiaRes = Gia_ManFindExact( pTruth, nVars, nFunc, nMaxDepth, fHasArrTimeProfile ? pArrTimeProfile : NULL, nBTLimit, fVerbose );
+        pGiaRes = Gia_ManFindExact( pTruth, nVars, nFunc, nMaxDepth, fHasArrTimeProfile ? pArrTimeProfile : NULL, nBTLimit, nStartGates - 1, fVerbose );
         if ( pGiaRes )
             Abc_FrameUpdateGia( pAbc, pGiaRes );
         else
@@ -7414,7 +7425,7 @@ int Abc_CommandExact( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     else
     {
-        pNtkRes = Abc_NtkFindExact( pTruth, nVars, nFunc, nMaxDepth, fHasArrTimeProfile ? pArrTimeProfile : NULL, nBTLimit, fVerbose );
+        pNtkRes = Abc_NtkFindExact( pTruth, nVars, nFunc, nMaxDepth, fHasArrTimeProfile ? pArrTimeProfile : NULL, nBTLimit, nStartGates - 1, fVerbose );
         if ( pNtkRes )
         {
             Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
@@ -7426,10 +7437,11 @@ int Abc_CommandExact( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: exact [-D <num>] [-atvh] <truth1> <truth2> ...\n" );
+    Abc_Print( -2, "usage: exact [-DSC <num>] [-A <list>] [-atvh] <truth1> <truth2> ...\n" );
     Abc_Print( -2, "\t           finds optimum networks using SAT-based exact synthesis for hex truth tables <truth1> <truth2> ...\n" );
     Abc_Print( -2, "\t-D <num>  : constrain maximum depth (if too low, algorithm may not terminate)\n" );
     Abc_Print( -2, "\t-A <list> : input arrival times (comma separated list)\n" );
+    Abc_Print( -2, "\t-S <num>  : number of start gates in search [default = %s]\n", nStartGates );
     Abc_Print( -2, "\t-C <num>  : the limit on the number of conflicts [default = %d]\n", nBTLimit );
     Abc_Print( -2, "\t-a        : toggle create AIG [default = %s]\n", fMakeAIG ? "yes" : "no" );
     Abc_Print( -2, "\t-t        : run test suite\n" );

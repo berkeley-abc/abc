@@ -966,17 +966,11 @@ static int Ses_ManCreateClauses( Ses_Man_t * pSes )
         {
             pLits[0] = Abc_Var2Lit( Ses_ManOutputVar( pSes, 0, i ), 1 );
             if ( !sat_solver_addclause( pSes->pSat, pLits, pLits + 1 ) )
-            {
-                Vec_IntFree( vLits );
                 return 0;
-            }
         }
         pLits[0] = Abc_Var2Lit( Ses_ManOutputVar( pSes, 0, pSes->nGates - 1 ), 0 );
         if ( !sat_solver_addclause( pSes->pSat, pLits, pLits + 1 ) )
-        {
-            Vec_IntFree( vLits );
             return 0;
-        }
 
         vLits = Vec_IntAlloc( 0u );
     }
@@ -1744,7 +1738,7 @@ static int Ses_ManFindMinimumSize( Ses_Man_t * pSes )
     pSes->fHitResLimit = 0;
 
     /* do the arrival times allow for a network? */
-    if ( pSes->nMaxDepth != -1 && !Ses_CheckDepthConsistency( pSes ) )
+    if ( pSes->nMaxDepth != -1 && pSes->pArrTimeProfile && !Ses_CheckDepthConsistency( pSes ) )
         return 0;
 
     //Ses_ManStoreDepthAndArrivalTimes( pSes );
@@ -1818,7 +1812,7 @@ static int Ses_ManFindMinimumSize( Ses_Man_t * pSes )
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Ntk_t * Abc_NtkFindExact( word * pTruth, int nVars, int nFunc, int nMaxDepth, int * pArrTimeProfile, int nBTLimit, int fVerbose )
+Abc_Ntk_t * Abc_NtkFindExact( word * pTruth, int nVars, int nFunc, int nMaxDepth, int * pArrTimeProfile, int nBTLimit, int nStartGates, int fVerbose )
 {
     Ses_Man_t * pSes;
     char * pSol;
@@ -1831,6 +1825,7 @@ Abc_Ntk_t * Abc_NtkFindExact( word * pTruth, int nVars, int nFunc, int nMaxDepth
     timeStart = Abc_Clock();
 
     pSes = Ses_ManAlloc( pTruth, nVars, nFunc, nMaxDepth, pArrTimeProfile, 0, nBTLimit, fVerbose );
+    pSes->nStartGates = nStartGates;
     if ( fVerbose )
         Ses_ManPrintFuncs( pSes );
 
@@ -1852,7 +1847,7 @@ Abc_Ntk_t * Abc_NtkFindExact( word * pTruth, int nVars, int nFunc, int nMaxDepth
     return pNtk;
 }
 
-Gia_Man_t * Gia_ManFindExact( word * pTruth, int nVars, int nFunc, int nMaxDepth, int * pArrTimeProfile, int nBTLimit, int fVerbose )
+Gia_Man_t * Gia_ManFindExact( word * pTruth, int nVars, int nFunc, int nMaxDepth, int * pArrTimeProfile, int nBTLimit, int nStartGates, int fVerbose )
 {
     Ses_Man_t * pSes;
     char * pSol;
@@ -1865,6 +1860,7 @@ Gia_Man_t * Gia_ManFindExact( word * pTruth, int nVars, int nFunc, int nMaxDepth
     timeStart = Abc_Clock();
 
     pSes = Ses_ManAlloc( pTruth, nVars, nFunc, nMaxDepth, pArrTimeProfile, 1, nBTLimit, fVerbose );
+    pSes->nStartGates = nStartGates;
     pSes->fVeryVerbose = 1;
     pSes->fExtractVerbose = 1;
     pSes->fSatVerbose = 1;
@@ -1920,30 +1916,30 @@ void Abc_ExactTestSingleOutput( int fVerbose )
 
     pNtk = Abc_NtkFromTruthTable( pTruth, 4 );
 
-    pNtk2 = Abc_NtkFindExact( pTruth, 4, 1, -1, NULL, 0, fVerbose );
+    pNtk2 = Abc_NtkFindExact( pTruth, 4, 1, -1, NULL, 0, 0, fVerbose );
     Abc_NtkShortNames( pNtk2 );
     Abc_NtkCecSat( pNtk, pNtk2, 10000, 0 );
     assert( pNtk2 );
     assert( Abc_NtkNodeNum( pNtk2 ) == 6 );
     Abc_NtkDelete( pNtk2 );
 
-    pNtk3 = Abc_NtkFindExact( pTruth, 4, 1, 3, NULL, 0, fVerbose );
+    pNtk3 = Abc_NtkFindExact( pTruth, 4, 1, 3, NULL, 0, 0, fVerbose );
     Abc_NtkShortNames( pNtk3 );
     Abc_NtkCecSat( pNtk, pNtk3, 10000, 0 );
     assert( pNtk3 );
     assert( Abc_NtkLevel( pNtk3 ) <= 3 );
     Abc_NtkDelete( pNtk3 );
 
-    pNtk4 = Abc_NtkFindExact( pTruth, 4, 1, 9, pArrTimeProfile, 50000, fVerbose );
+    pNtk4 = Abc_NtkFindExact( pTruth, 4, 1, 9, pArrTimeProfile, 50000, 0, fVerbose );
     Abc_NtkShortNames( pNtk4 );
     Abc_NtkCecSat( pNtk, pNtk4, 10000, 0 );
     assert( pNtk4 );
     assert( Abc_NtkLevel( pNtk4 ) <= 9 );
     Abc_NtkDelete( pNtk4 );
 
-    assert( !Abc_NtkFindExact( pTruth, 4, 1, 2, NULL, 50000, fVerbose ) );
+    assert( !Abc_NtkFindExact( pTruth, 4, 1, 2, NULL, 50000, 0, fVerbose ) );
 
-    assert( !Abc_NtkFindExact( pTruth, 4, 1, 8, pArrTimeProfile, 50000, fVerbose ) );
+    assert( !Abc_NtkFindExact( pTruth, 4, 1, 8, pArrTimeProfile, 50000, 0, fVerbose ) );
 
     Abc_NtkDelete( pNtk );
 }
@@ -1962,27 +1958,27 @@ void Abc_ExactTestSingleOutputAIG( int fVerbose )
     Abc_NtkToAig( pNtk );
     pGia = Abc_NtkAigToGia( pNtk, 1 );
 
-    pGia2 = Gia_ManFindExact( pTruth, 4, 1, -1, NULL, 0, fVerbose );
+    pGia2 = Gia_ManFindExact( pTruth, 4, 1, -1, NULL, 0, 0, fVerbose );
     pMiter = Gia_ManMiter( pGia, pGia2, 0, 1, 0, 0, 1 );
     assert( pMiter );
     Cec_ManVerify( pMiter, pPars );
     Gia_ManStop( pMiter );
 
-    pGia3 = Gia_ManFindExact( pTruth, 4, 1, 3, NULL, 0, fVerbose );
+    pGia3 = Gia_ManFindExact( pTruth, 4, 1, 3, NULL, 0, 0, fVerbose );
     pMiter = Gia_ManMiter( pGia, pGia3, 0, 1, 0, 0, 1 );
     assert( pMiter );
     Cec_ManVerify( pMiter, pPars );
     Gia_ManStop( pMiter );
 
-    pGia4 = Gia_ManFindExact( pTruth, 4, 1, 9, pArrTimeProfile, 50000, fVerbose );
+    pGia4 = Gia_ManFindExact( pTruth, 4, 1, 9, pArrTimeProfile, 50000, 0, fVerbose );
     pMiter = Gia_ManMiter( pGia, pGia4, 0, 1, 0, 0, 1 );
     assert( pMiter );
     Cec_ManVerify( pMiter, pPars );
     Gia_ManStop( pMiter );
 
-    assert( !Gia_ManFindExact( pTruth, 4, 1, 2, NULL, 50000, fVerbose ) );
+    assert( !Gia_ManFindExact( pTruth, 4, 1, 2, NULL, 50000, 0, fVerbose ) );
 
-    assert( !Gia_ManFindExact( pTruth, 4, 1, 8, pArrTimeProfile, 50000, fVerbose ) );
+    assert( !Gia_ManFindExact( pTruth, 4, 1, 8, pArrTimeProfile, 50000, 0, fVerbose ) );
 
     Gia_ManStop( pGia );
     Gia_ManStop( pGia2 );
