@@ -38,6 +38,12 @@ ABC_NAMESPACE_IMPL_START
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
+/***********************************************************************
+
+  Synopsis    [Some truth table helper functions.]
+
+***********************************************************************/
+
 static word s_Truths8[32] = {
     ABC_CONST(0xAAAAAAAAAAAAAAAA), ABC_CONST(0xAAAAAAAAAAAAAAAA), ABC_CONST(0xAAAAAAAAAAAAAAAA), ABC_CONST(0xAAAAAAAAAAAAAAAA),
     ABC_CONST(0xCCCCCCCCCCCCCCCC), ABC_CONST(0xCCCCCCCCCCCCCCCC), ABC_CONST(0xCCCCCCCCCCCCCCCC), ABC_CONST(0xCCCCCCCCCCCCCCCC),
@@ -48,6 +54,120 @@ static word s_Truths8[32] = {
     ABC_CONST(0x0000000000000000), ABC_CONST(0xFFFFFFFFFFFFFFFF), ABC_CONST(0x0000000000000000), ABC_CONST(0xFFFFFFFFFFFFFFFF),
     ABC_CONST(0x0000000000000000), ABC_CONST(0x0000000000000000), ABC_CONST(0xFFFFFFFFFFFFFFFF), ABC_CONST(0xFFFFFFFFFFFFFFFF)
 };
+
+static word s_Truths8Neg[32] = {
+    ABC_CONST(0x5555555555555555), ABC_CONST(0x5555555555555555), ABC_CONST(0x5555555555555555), ABC_CONST(0x5555555555555555),
+    ABC_CONST(0x3333333333333333), ABC_CONST(0x3333333333333333), ABC_CONST(0x3333333333333333), ABC_CONST(0x3333333333333333),
+    ABC_CONST(0x0F0F0F0F0F0F0F0F), ABC_CONST(0x0F0F0F0F0F0F0F0F), ABC_CONST(0x0F0F0F0F0F0F0F0F), ABC_CONST(0x0F0F0F0F0F0F0F0F),
+    ABC_CONST(0x00FF00FF00FF00FF), ABC_CONST(0x00FF00FF00FF00FF), ABC_CONST(0x00FF00FF00FF00FF), ABC_CONST(0x00FF00FF00FF00FF),
+    ABC_CONST(0x0000FFFF0000FFFF), ABC_CONST(0x0000FFFF0000FFFF), ABC_CONST(0x0000FFFF0000FFFF), ABC_CONST(0x0000FFFF0000FFFF),
+    ABC_CONST(0x00000000FFFFFFFF), ABC_CONST(0x00000000FFFFFFFF), ABC_CONST(0x00000000FFFFFFFF), ABC_CONST(0x00000000FFFFFFFF),
+    ABC_CONST(0xFFFFFFFFFFFFFFFF), ABC_CONST(0x0000000000000000), ABC_CONST(0xFFFFFFFFFFFFFFFF), ABC_CONST(0x0000000000000000),
+    ABC_CONST(0xFFFFFFFFFFFFFFFF), ABC_CONST(0xFFFFFFFFFFFFFFFF), ABC_CONST(0x0000000000000000), ABC_CONST(0x0000000000000000)
+};
+
+static int Abc_TtIsSubsetWithMask( word * pSmall, word * pLarge, word * pMask, int nWords )
+{
+    int w;
+    for ( w = 0; w < nWords; ++w )
+        if ( ( pSmall[w] & pLarge[w] & pMask[w] ) != ( pSmall[w] & pMask[w] ) )
+            return 0;
+    return 1;
+}
+
+// checks whether we can decompose as OP(x^p, g) where OP in {AND, OR} and p in {0, 1}
+// returns p if OP = AND, and 2 + p if OP = OR
+static int Abc_TtIsTopDecomposable( word * pTruth, word * pMask, int nWords, int nVar )
+{
+    assert( nVar < 8 );
+
+    if ( Abc_TtIsSubsetWithMask( pTruth, &s_Truths8[nVar << 2], pMask, nWords ) ) return 1;
+    if ( Abc_TtIsSubsetWithMask( pTruth, &s_Truths8Neg[nVar << 2], pMask, nWords ) ) return 2;
+    if ( Abc_TtIsSubsetWithMask( &s_Truths8[nVar << 2], pTruth, pMask, nWords ) ) return 3;
+    if ( Abc_TtIsSubsetWithMask( &s_Truths8Neg[nVar << 2], pTruth, pMask, nWords ) ) return 4;
+
+    return 0;
+}
+
+// checks whether we can decompose as OP(x1, OP(x2, OP(x3, ...))) where pVars = {x1, x2, x3, ...}
+// OP can be different and vars can be complemented
+static int Abc_TtIsStairDecomposable( word * pTruth, int nWords, int * pVars, int nSize )
+{
+    int i, d;
+    word pMask[4];
+
+    Abc_TtMask( pMask, nWords, nWords * 64 );
+
+    for ( i = 0; i < nSize; ++i )
+    {
+        d = Abc_TtIsTopDecomposable( pTruth, pMask, nWords, pVars[i] );
+        if ( !d ) return 0; /* not decomposable */
+
+        switch ( d )
+        {
+        case 1: /* AND(x, g) */
+        case 4: /* OR(!x, g) */
+            Abc_TtAnd( pMask, pMask, &s_Truths8[pVars[i] << 2], nWords, 0 );
+            break;
+        case 2: /* AND(!x, g) */
+        case 3: /* OR(x, g) */
+            Abc_TtAnd( pMask, pMask, &s_Truths8Neg[pVars[i] << 2], nWords, 0 );
+            break;
+        }
+    }
+
+    return 1; /* decomposable */
+}
+
+/***********************************************************************
+
+  Synopsis    [Some printing utilities.]
+
+***********************************************************************/
+
+static inline void Abc_DebugPrint( const char* str, int fCond )
+{
+    if ( fCond )
+    {
+        printf( "%s", str );
+        fflush( stdout );
+    }
+}
+
+static inline void Abc_DebugPrintInt( const char* fmt, int n, int fCond )
+{
+    if ( fCond )
+    {
+        printf( fmt, n );
+        fflush( stdout );
+    }
+}
+
+static inline void Abc_DebugPrintIntInt( const char* fmt, int n1, int n2, int fCond )
+{
+    if ( fCond )
+    {
+        printf( fmt, n1, n2 );
+        fflush( stdout );
+    }
+}
+
+static inline void Abc_DebugErase( int n, int fCond )
+{
+    int i;
+    if ( fCond )
+    {
+        for ( i = 0; i < n; ++i )
+            printf( "\b" );
+        fflush( stdout );
+    }
+}
+
+/***********************************************************************
+
+  Synopsis    [BMS.]
+
+***********************************************************************/
 
 #define ABC_EXACT_SOL_NVARS  0
 #define ABC_EXACT_SOL_NFUNC  1
@@ -88,6 +208,7 @@ struct Ses_Man_t_
 
     int          nGates;                /* number of gates */
     int          nStartGates;           /* number of gates to start search (-1), i.e., to start from 1 gate, one needs to specify 0 */
+    int          nMaxGates;             /* maximum number of gates given max. delay and arrival times */
     int          fDecStructure;         /* set to 1 or higher if nSpecFunc = 1 and f = x_i OP g(X \ {x_i}), otherwise 0 (determined when solving) */
     int          pDecVars;              /* mask of variables that can be decomposed at top-level */
 
@@ -322,13 +443,13 @@ static inline void Ses_StorePrintEntry( Ses_TruthEntry_t * pEntry, Ses_TimesEntr
     printf( "\n" );
 }
 
-static inline void Ses_StorePrintDebugEntry( Ses_Store_t * pStore, word * pTruth, int nVars, int * pNormalArrTime, int nMaxDepth, char * pSol )
+static inline void Ses_StorePrintDebugEntry( Ses_Store_t * pStore, word * pTruth, int nVars, int * pNormalArrTime, int nMaxDepth, char * pSol, int nStartGates )
 {
     int l;
 
     fprintf( pStore->pDebugEntries, "abc -c \"exact -v -C %d", pStore->nBTLimit );
     if ( s_pSesStore->fMakeAIG ) fprintf( pStore->pDebugEntries, " -a" );
-    fprintf( pStore->pDebugEntries, " -D %d -A", nMaxDepth );
+    fprintf( pStore->pDebugEntries, " -S %d -D %d -A", nStartGates + 1, nMaxDepth );
     for ( l = 0; l < nVars; ++l )
         fprintf( pStore->pDebugEntries, "%c%d", ( l == 0 ? ' ' : ',' ), pNormalArrTime[l] );
     fprintf( pStore->pDebugEntries, " " );
@@ -615,9 +736,6 @@ static void Ses_StoreWrite( Ses_Store_t * pStore, const char * pFilename, int fS
                 pTiEntry = pTEntry->head;
                 while ( pTiEntry )
                 {
-                    if ( pStore->fVeryVerbose && !pTiEntry->pNetwork && pTiEntry->fResLimit )
-                        Ses_StorePrintEntry( pTEntry, pTiEntry );
-
                     if ( !fSynthImp && pTiEntry->pNetwork && !pTiEntry->fResLimit )    { pTiEntry = pTiEntry->next; continue; }
                     if ( !fSynthRL && pTiEntry->pNetwork && pTiEntry->fResLimit )      { pTiEntry = pTiEntry->next; continue; }
                     if ( !fUnsynthImp && !pTiEntry->pNetwork && !pTiEntry->fResLimit ) { pTiEntry = pTiEntry->next; continue; }
@@ -1592,11 +1710,37 @@ static inline void Ses_ManPrintVars( Ses_Man_t * pSes )
   Synopsis    [Synthesis algorithm.]
 
 ***********************************************************************/
+static void Ses_ManComputeMaxGates( Ses_Man_t * pSes )
+{
+    int s = 1, lvl = pSes->nMaxDepth, avail = pSes->nSpecVars, l;
+
+    pSes->nMaxGates = 0;
+
+    /* s is the number of gates we have in the current level */
+    while ( s && /* while there are nodes to branch from */
+            lvl && /* while we are at some level */
+            avail * 2 > s /* while there are still enough available nodes (heuristic) */ )
+    {
+        /* erase from s if we have arriving nodes */
+        for ( l = 0; l < pSes->nSpecVars; ++l )
+            if ( pSes->pArrTimeProfile[l] == lvl )
+            {
+                --s;
+                --avail;
+            }
+
+        --lvl;
+        pSes->nMaxGates += s;
+        s *= 2;
+    }
+}
+
 // returns 0, if current max depth and arrival times are not consistent
 static int Ses_CheckDepthConsistency( Ses_Man_t * pSes )
 {
-    int l, i, mask = ~0;
+    int l, i, fAdded, nLevel;
     int fMaxGatesLevel2 = 1;
+    Vec_Int_t * pStairDecVars;
 
     pSes->fDecStructure = 0;
 
@@ -1619,9 +1763,6 @@ static int Ses_CheckDepthConsistency( Ses_Man_t * pSes )
 
             pSes->fDecStructure++;
 
-            if ( pSes->nSpecVars < 6u )
-                mask = Abc_Tt6Mask( 1u << pSes->nSpecVars );
-
             /* A subset B <=> A and B = A */
             if ( !( ( pSes->pDecVars >> l ) & 1 ) )
             {
@@ -1630,6 +1771,53 @@ static int Ses_CheckDepthConsistency( Ses_Man_t * pSes )
                 return 0;
             }
         }
+    }
+
+    /* more complicated decomposition */
+    if ( pSes->fDecStructure )
+    {
+        pStairDecVars = Vec_IntAlloc( 0 );
+
+        nLevel = 1;
+        while ( 1 )
+        {
+            fAdded = 0;
+
+            for ( l = 0; l < pSes->nSpecVars; ++l )
+                if ( pSes->pArrTimeProfile[l] + nLevel == pSes->nMaxDepth )
+                {
+                    if ( fAdded )
+                    {
+                        assert( nLevel == Vec_IntSize( pStairDecVars ) );
+                        if ( fAdded > 1 || ( nLevel + 1 < pSes->nSpecVars ) )
+                        {
+                            Vec_IntFree( pStairDecVars );
+                            if ( pSes->fReasonVerbose )
+                                printf( "give up due to impossible decomposition at level %d", nLevel );
+                            return 0;
+                        }
+                    }
+
+                    Vec_IntPush( pStairDecVars, l );
+                    fAdded++;
+                }
+
+            if ( !fAdded ) break;
+            ++nLevel;
+        }
+
+        if ( Vec_IntSize( pStairDecVars ) && !Abc_TtIsStairDecomposable( pSes->pSpec, pSes->nSpecWords, Vec_IntArray( pStairDecVars ), Vec_IntSize( pStairDecVars ) ) )
+        {
+            if ( pSes->fReasonVerbose )
+            {
+                printf( "give up due to impossible stair decomposition at level %d: ", nLevel );
+                Vec_IntPrint( pStairDecVars );
+            }
+            Vec_IntFree( pStairDecVars );
+            return 0;
+        }
+
+        Vec_IntFree( pStairDecVars );
     }
 
     /* check if depth's match with structure at second level from top */
@@ -1669,10 +1857,18 @@ static int Ses_CheckDepthConsistency( Ses_Man_t * pSes )
 static int Ses_CheckGatesConsistency( Ses_Man_t * pSes, int nGates )
 {
     /* give up if number of gates is impossible for given depth */
-    if ( pSes->nMaxDepth != -1 && nGates >= (1 << pSes->nMaxDepth ) )
+    if ( pSes->nMaxDepth != -1 && nGates >= ( 1 << pSes->nMaxDepth ) )
     {
         if ( pSes->fReasonVerbose )
             printf( "give up due to impossible depth (depth = %d, gates = %d)", pSes->nMaxDepth, nGates );
+        return 0;
+    }
+
+    /* give up if number of gates is impossible for given depth and arrival times */
+    if ( pSes->nMaxDepth != -1 && pSes->pArrTimeProfile && nGates > pSes->nMaxGates )
+    {
+        if ( pSes->fReasonVerbose )
+            printf( "give up due to impossible depth and arrival times (depth = %d, gates = %d)", pSes->nMaxDepth, nGates );
         return 0;
     }
 
@@ -1731,21 +1927,30 @@ static void Ses_AdjustDepthAndArrivalTimes( Ses_Man_t * pSes, int nGates )
 
 static int Ses_ManFindMinimumSize( Ses_Man_t * pSes )
 {
-    int nGates = pSes->nStartGates, f, fRes, fSat;
+    int nGates = pSes->nStartGates, f, fRes, fSat, nOffset = 0, fFirst = 1;
     abctime timeStart;
 
     /* store whether call was unsuccessful due to resource limit and not due to impossible constraint */
     pSes->fHitResLimit = 0;
 
     /* do the arrival times allow for a network? */
-    if ( pSes->nMaxDepth != -1 && pSes->pArrTimeProfile && !Ses_CheckDepthConsistency( pSes ) )
-        return 0;
+    if ( pSes->nMaxDepth != -1 && pSes->pArrTimeProfile )
+    {
+        if ( !Ses_CheckDepthConsistency( pSes ) )
+            return 0;
+        Ses_ManComputeMaxGates( pSes );
+        nOffset = pSes->nMaxGates >= 10 ? 3 : 2;
+    }
 
     //Ses_ManStoreDepthAndArrivalTimes( pSes );
 
     while ( true )
     {
         ++nGates;
+
+        Abc_DebugErase( nOffset + ( nGates > 10 ? 5 : 4 ), pSes->fVeryVerbose && !fFirst );
+        Abc_DebugPrintIntInt( " (%d/%d)", nGates, pSes->nMaxGates, pSes->fVeryVerbose );
+        fFirst = 0;
 
         //Ses_AdjustDepthAndArrivalTimes( pSes, nGates );
 
@@ -1796,6 +2001,8 @@ static int Ses_ManFindMinimumSize( Ses_Man_t * pSes )
     }
 
     //Ses_ManRestoreDepthAndArrivalTimes( pSes );
+
+    Abc_DebugErase( nOffset + ( nGates >= 10 ? 5 : 4 ), pSes->fVeryVerbose );
     return fRes;
 }
 
@@ -1863,7 +2070,8 @@ Gia_Man_t * Gia_ManFindExact( word * pTruth, int nVars, int nFunc, int nMaxDepth
     pSes->nStartGates = nStartGates;
     pSes->fVeryVerbose = 1;
     pSes->fExtractVerbose = 1;
-    pSes->fSatVerbose = 1;
+    pSes->fSatVerbose = 0;
+    pSes->fReasonVerbose = 1;
     if ( fVerbose )
         Ses_ManPrintFuncs( pSes );
 
@@ -2221,11 +2429,11 @@ int Abc_ExactDelayCost( word * pTruth, int nVars, int * pArrTimeProfile, char * 
         }
 
         if ( s_pSesStore->fVeryVerbose )
-            printf( "\n" );
+            printf( "        \n" );
 
         /* log unsuccessful case for debugging */
         if ( s_pSesStore->pDebugEntries && pSes->fHitResLimit )
-            Ses_StorePrintDebugEntry( s_pSesStore, pTruth, nVars, pNormalArrTime, pSes->nMaxDepth, pSol );
+            Ses_StorePrintDebugEntry( s_pSesStore, pTruth, nVars, pNormalArrTime, pSes->nMaxDepth, pSol, nVars - 2 );
 
         pSes->timeTotal = Abc_Clock() - timeStartExact;
 
