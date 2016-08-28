@@ -1204,12 +1204,13 @@ static int Ses_ManCreateClauses( Ses_Man_t * pSes )
     }
 
     /* EXTRA clauses: symmetric variables */
-    if ( pSes->nMaxDepth == -1 && pSes->nSpecFunc == 1 ) /* only check if there is one output function */
+    if ( /*pSes->nMaxDepth == -1 &&*/ pSes->nSpecFunc == 1 ) /* only check if there is one output function */
         for ( q = 1; q < pSes->nSpecVars; ++q )
             for ( p = 0; p < q; ++p )
-                if ( Extra_TruthVarsSymm( (unsigned*)( pSes->pSpec ), pSes->nSpecVars, p, q ) )
+                if ( Extra_TruthVarsSymm( (unsigned*)( pSes->pSpec ), pSes->nSpecVars, p, q ) &&
+                     ( !pSes->pArrTimeProfile || ( pSes->pArrTimeProfile[p] == pSes->pArrTimeProfile[q] ) ) )
                 {
-                    if ( pSes->fVeryVerbose )
+                    if ( pSes->fSatVerbose )
                         printf( "variables %d and %d are symmetric\n", p, q );
                     for ( i = 0; i < pSes->nGates; ++i )
                         for ( j = 0; j < q; ++j )
@@ -2033,6 +2034,8 @@ Abc_Ntk_t * Abc_NtkFindExact( word * pTruth, int nVars, int nFunc, int nMaxDepth
 
     pSes = Ses_ManAlloc( pTruth, nVars, nFunc, nMaxDepth, pArrTimeProfile, 0, nBTLimit, fVerbose );
     pSes->nStartGates = nStartGates;
+    pSes->fReasonVerbose = 1;
+    pSes->fSatVerbose = 1;
     if ( fVerbose )
         Ses_ManPrintFuncs( pSes );
 
@@ -2069,7 +2072,7 @@ Gia_Man_t * Gia_ManFindExact( word * pTruth, int nVars, int nFunc, int nMaxDepth
     pSes = Ses_ManAlloc( pTruth, nVars, nFunc, nMaxDepth, pArrTimeProfile, 1, nBTLimit, fVerbose );
     pSes->nStartGates = nStartGates;
     pSes->fVeryVerbose = 1;
-    pSes->fExtractVerbose = 1;
+    pSes->fExtractVerbose = 0;
     pSes->fSatVerbose = 0;
     pSes->fReasonVerbose = 1;
     if ( fVerbose )
