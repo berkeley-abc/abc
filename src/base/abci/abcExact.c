@@ -205,12 +205,14 @@ struct Ses_Man_t_
     int          fExtractVerbose;       /* be verbose about solution extraction */
     int          fSatVerbose;           /* be verbose about SAT solving */
     int          fReasonVerbose;        /* be verbose about give-up reasons */
+    word         pTtValues[4];          /* truth table values to assign */
 
     int          nGates;                /* number of gates */
     int          nStartGates;           /* number of gates to start search (-1), i.e., to start from 1 gate, one needs to specify 0 */
     int          nMaxGates;             /* maximum number of gates given max. delay and arrival times */
     int          fDecStructure;         /* set to 1 or higher if nSpecFunc = 1 and f = x_i OP g(X \ {x_i}), otherwise 0 (determined when solving) */
     int          pDecVars;              /* mask of variables that can be decomposed at top-level */
+    word         pTtObjs[100];          /* temporary truth tables */
 
     int          nSimVars;              /* number of simulation vars x(i, t) */
     int          nOutputVars;           /* number of output variables g(h, i) */
@@ -965,6 +967,52 @@ static inline int Ses_ManDepthVar( Ses_Man_t * pSes, int i, int j )
 
 /**Function*************************************************************
 
+  Synopsis    [Compute truth table from a solution.]
+
+***********************************************************************/
+static word * Ses_ManDeriveTruth( Ses_Man_t * pSes, char * pSol, int fInvert )
+{
+    int i, f, j, k, w, nGates = pSol[ABC_EXACT_SOL_NGATES];
+    char * p;
+    word * pTruth, * pTruth0, * pTruth1;
+    assert( pSol[ABC_EXACT_SOL_NFUNC] == 1 );
+
+    p = pSol + 3;
+
+    memset( pSes->pTtObjs, 0, sizeof( word ) * 4 * nGates );
+
+    for ( i = 0; i < nGates; ++i )
+    {
+        f = *p++;
+        assert( *p++ == 2 );
+        j = *p++;
+        k = *p++;
+
+        pTruth0 = j < pSes->nSpecVars ? &s_Truths8[j << 2] : &pSes->pTtObjs[( j - pSes->nSpecVars ) << 2];
+        pTruth1 = k < pSes->nSpecVars ? &s_Truths8[k << 2] : &pSes->pTtObjs[( k - pSes->nSpecVars ) << 2];
+
+        pTruth = &pSes->pTtObjs[i << 2];
+
+        if ( f & 1 )
+            for ( w = 0; w < pSes->nSpecWords; ++w )
+                pTruth[w] |= ~pTruth0[w] & pTruth1[w];
+        if ( ( f >> 1 ) & 1 )
+            for ( w = 0; w < pSes->nSpecWords; ++w )
+                pTruth[w] |= pTruth0[w] & ~pTruth1[w];
+        if ( ( f >> 2 ) & 1 )
+            for ( w = 0; w < pSes->nSpecWords; ++w )
+                pTruth[w] |= pTruth0[w] & pTruth1[w];
+    }
+
+    assert( Abc_Lit2Var( *p ) == nGates - 1 );
+    if ( fInvert && Abc_LitIsCompl( *p ) )
+        Abc_TtNot( pTruth, pSes->nSpecWords );
+
+    return pTruth;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Setup variables to find network with nGates gates.]
 
 ***********************************************************************/
@@ -1033,6 +1081,47 @@ static inline void Ses_ManCreateMainClause( Ses_Man_t * pSes, int t, int i, int 
     sat_solver_addclause( pSes->pSat, pLits, pLits + ctr );
 }
 
+static int inline Ses_ManCreateTruthTableClause( Ses_Man_t * pSes, int t )
+{
+    int i, j, k, h;
+    int pLits[3];
+
+    for ( i = 0; i < pSes->nGates; ++i )
+    {
+        /* main clauses */
+        for ( j = 0; j < pSes->nSpecVars + i; ++j )
+            for ( k = j + 1; k < pSes->nSpecVars + i; ++k )
+            {
+                Ses_ManCreateMainClause( pSes, t, i, j, k, 0, 0, 1 );
+                Ses_ManCreateMainClause( pSes, t, i, j, k, 0, 1, 0 );
+                Ses_ManCreateMainClause( pSes, t, i, j, k, 0, 1, 1 );
+                Ses_ManCreateMainClause( pSes, t, i, j, k, 1, 0, 0 );
+                Ses_ManCreateMainClause( pSes, t, i, j, k, 1, 0, 1 );
+                Ses_ManCreateMainClause( pSes, t, i, j, k, 1, 1, 0 );
+                Ses_ManCreateMainClause( pSes, t, i, j, k, 1, 1, 1 );
+            }
+
+        /* output clauses */
+        if ( pSes->nSpecFunc != 1 )
+            for ( h = 0; h < pSes->nSpecFunc; ++h )
+            {
+                pLits[0] = Abc_Var2Lit( Ses_ManOutputVar( pSes, h, i ), 1 );
+                pLits[1] = Abc_Var2Lit( Ses_ManSimVar( pSes, i, t ), 1 - Abc_TtGetBit( &pSes->pSpec[h << 2], t + 1 ) );
+                if ( !sat_solver_addclause( pSes->pSat, pLits, pLits + 2 ) )
+                    return 0;
+            }
+    }
+
+    if ( pSes->nSpecFunc == 1 )
+    {
+        pLits[0] = Abc_Var2Lit( Ses_ManSimVar( pSes, pSes->nGates - 1, t ), 1 - Abc_TtGetBit( pSes->pSpec, t + 1 ) );
+        if ( !sat_solver_addclause( pSes->pSat, pLits, pLits + 1 ) )
+            return 0;
+    }
+
+    return 1;
+}
+
 static int Ses_ManCreateClauses( Ses_Man_t * pSes )
 {
     extern int Extra_TruthVarsSymm( unsigned * pTruth, int nVars, int iVar0, int iVar1 );
@@ -1043,38 +1132,9 @@ static int Ses_ManCreateClauses( Ses_Man_t * pSes )
 
     for ( t = 0; t < pSes->nRows; ++t )
     {
-        for ( i = 0; i < pSes->nGates; ++i )
-        {
-            /* main clauses */
-            for ( j = 0; j < pSes->nSpecVars + i; ++j )
-                for ( k = j + 1; k < pSes->nSpecVars + i; ++k )
-                {
-                    Ses_ManCreateMainClause( pSes, t, i, j, k, 0, 0, 1 );
-                    Ses_ManCreateMainClause( pSes, t, i, j, k, 0, 1, 0 );
-                    Ses_ManCreateMainClause( pSes, t, i, j, k, 0, 1, 1 );
-                    Ses_ManCreateMainClause( pSes, t, i, j, k, 1, 0, 0 );
-                    Ses_ManCreateMainClause( pSes, t, i, j, k, 1, 0, 1 );
-                    Ses_ManCreateMainClause( pSes, t, i, j, k, 1, 1, 0 );
-                    Ses_ManCreateMainClause( pSes, t, i, j, k, 1, 1, 1 );
-                }
-
-            /* output clauses */
-            if ( pSes->nSpecFunc != 1 )
-                for ( h = 0; h < pSes->nSpecFunc; ++h )
-                {
-                    pLits[0] = Abc_Var2Lit( Ses_ManOutputVar( pSes, h, i ), 1 );
-                    pLits[1] = Abc_Var2Lit( Ses_ManSimVar( pSes, i, t ), 1 - Abc_TtGetBit( &pSes->pSpec[h << 2], t + 1 ) );
-                    if ( !sat_solver_addclause( pSes->pSat, pLits, pLits + 2 ) )
-                        return 0;
-                }
-        }
-
-        if ( pSes->nSpecFunc == 1 )
-        {
-            pLits[0] = Abc_Var2Lit( Ses_ManSimVar( pSes, pSes->nGates - 1, t ), 1 - Abc_TtGetBit( pSes->pSpec, t + 1 ) );
-            if ( !sat_solver_addclause( pSes->pSat, pLits, pLits + 1 ) )
+        if ( Abc_TtGetBit( pSes->pTtValues, t ) )
+            if ( !Ses_ManCreateTruthTableClause( pSes, t ) )
                 return 0;
-        }
     }
 
     /* if there is only one output, we know it must point to the last gate  */
@@ -1541,6 +1601,10 @@ static char * Ses_ManExtractSolution( Ses_Man_t * pSes )
     /* have we used all the fields? */
     assert( ( p - pSol ) == nSol );
 
+    /* printf( "found network: " ); */
+    /* Abc_TtPrintHexRev( stdout, Ses_ManDeriveTruth( pSes, pSol, 1 ), pSes->nSpecVars ); */
+    /* printf( "\n" ); */
+
     return pSol;
 }
 
@@ -1980,10 +2044,51 @@ static void Ses_AdjustDepthAndArrivalTimes( Ses_Man_t * pSes, int nGates )
     Abc_ExactAdjustDepthAndArrivalTimes( pSes->nSpecVars, nGates, pSes->nMaxDepthTmp, &pSes->nMaxDepth, pSes->pArrTimeProfileTmp, pSes->pArrTimeProfile, pSes->nArrTimeMax - 1 );
 }
 
+/* return: (2: continue, 1: found, 0: gave up) */
+static int Ses_ManFindNetworkExact( Ses_Man_t * pSes, int nGates )
+{
+    int f, fSat;
+    abctime timeStart;
+
+    /* solve */
+    timeStart = Abc_Clock();
+    Ses_ManCreateVars( pSes, nGates );
+    f = Ses_ManCreateDepthClauses( pSes );
+    pSes->timeInstance += ( Abc_Clock() - timeStart );
+    if ( !f ) return 2; /* proven UNSAT while creating clauses */
+
+    /* first solve */
+    fSat = Ses_ManSolve( pSes );
+    if ( fSat == 0 )
+        return 2; /* UNSAT, continue with next # of gates */
+    else if ( fSat == 2 )
+    {
+        pSes->fHitResLimit = 1;
+        return 0;
+    }
+
+    timeStart = Abc_Clock();
+    f = Ses_ManCreateClauses( pSes );
+    pSes->timeInstance += ( Abc_Clock() - timeStart );
+    if ( !f ) return 2; /* proven UNSAT while creating clauses */
+
+    fSat = Ses_ManSolve( pSes );
+    if ( fSat == 1 )
+        return 1;
+    else if ( fSat == 2 )
+    {
+        pSes->fHitResLimit = 1;
+        return 0;
+    }
+
+    return 2; /* UNSAT continue */
+}
+
 static int Ses_ManFindMinimumSize( Ses_Man_t * pSes )
 {
-    int nGates = pSes->nStartGates, f, fRes, fSat, nOffset = 0, fFirst = 1;
-    abctime timeStart;
+    int nGates = pSes->nStartGates, fRes, fSat, nOffset = 0, fFirst = 1, iMint;
+    char * pSol;
+    word pTruth[4];
 
     /* store whether call was unsuccessful due to resource limit and not due to impossible constraint */
     pSes->fHitResLimit = 0;
@@ -1998,6 +2103,9 @@ static int Ses_ManFindMinimumSize( Ses_Man_t * pSes )
     }
 
     //Ses_ManStoreDepthAndArrivalTimes( pSes );
+
+    //memset( pSes->pTtValues, (word)~0, 4 * sizeof( word ) );
+    memset( pSes->pTtValues, 0, 4 * sizeof( word ) );
 
     while ( true )
     {
@@ -2016,41 +2124,82 @@ static int Ses_ManFindMinimumSize( Ses_Man_t * pSes )
             break;
         }
 
-        /* solve */
-        timeStart = Abc_Clock();
-        Ses_ManCreateVars( pSes, nGates );
-        f = Ses_ManCreateDepthClauses( pSes );
-        pSes->timeInstance += ( Abc_Clock() - timeStart );
-        if ( !f ) continue; /* proven UNSAT while creating clauses */
+        fRes = Ses_ManFindNetworkExact( pSes, nGates );
+        if ( fRes == 2 ) continue; /* unsat */
+        if ( fRes == 0 ) break; /* undef */
 
-        /* first solve */
-        fSat = Ses_ManSolve( pSes );
-        if ( fSat == 0 )
-            continue; /* UNSAT, continue with next # of gates */
-        else if ( fSat == 2 )
+        while ( true )
         {
-            pSes->fHitResLimit = 1;
-            fRes = 0;
+            pSol = Ses_ManExtractSolution( pSes );
+            Abc_TtXor( pTruth, Ses_ManDeriveTruth( pSes, pSol, 0 ), pSes->pSpec, pSes->nSpecWords, 0 );
+            ABC_FREE( pSol );
+            iMint = Abc_TtFindFirstBit( pTruth, pSes->nSpecVars );
+
+            if ( iMint == -1 )
+            {
+                assert( fRes == 1 );
+                break;
+            }
+
+            assert( iMint );
+            Abc_TtSetBit( pSes->pTtValues, iMint - 1 );
+            if ( !Ses_ManCreateTruthTableClause( pSes, iMint - 1 ) ) /* UNSAT, continue */
+            {
+                fRes = 2;
+                break;
+            }
+
+            if ( ( fSat = Ses_ManSolve( pSes ) ) == 1 ) continue;
+
+            if ( fSat == 0 )
+                fRes = 2;
+            else if ( fSat == 2 )
+            {
+                pSes->fHitResLimit = 1;
+                fRes = 0;
+            }
+
             break;
         }
 
-        timeStart = Abc_Clock();
-        f = Ses_ManCreateClauses( pSes );
-        pSes->timeInstance += ( Abc_Clock() - timeStart );
-        if ( !f ) continue; /* proven UNSAT while creating clauses */
+        if ( fRes != 2 )
+            break;
 
-        fSat = Ses_ManSolve( pSes );
-        if ( fSat == 1 )
-        {
-            fRes = 1;
-            break;
-        }
-        else if ( fSat == 2 )
-        {
-            pSes->fHitResLimit = 1;
-            fRes = 0;
-            break;
-        }
+        /* /\* solve *\/ */
+        /* timeStart = Abc_Clock(); */
+        /* Ses_ManCreateVars( pSes, nGates ); */
+        /* f = Ses_ManCreateDepthClauses( pSes ); */
+        /* pSes->timeInstance += ( Abc_Clock() - timeStart ); */
+        /* if ( !f ) continue; /\* proven UNSAT while creating clauses *\/ */
+
+        /* /\* first solve *\/ */
+        /* fSat = Ses_ManSolve( pSes ); */
+        /* if ( fSat == 0 ) */
+        /*     continue; /\* UNSAT, continue with next # of gates *\/ */
+        /* else if ( fSat == 2 ) */
+        /* { */
+        /*     pSes->fHitResLimit = 1; */
+        /*     fRes = 0; */
+        /*     break; */
+        /* } */
+
+        /* timeStart = Abc_Clock(); */
+        /* f = Ses_ManCreateClauses( pSes ); */
+        /* pSes->timeInstance += ( Abc_Clock() - timeStart ); */
+        /* if ( !f ) continue; /\* proven UNSAT while creating clauses *\/ */
+
+        /* fSat = Ses_ManSolve( pSes ); */
+        /* if ( fSat == 1 ) */
+        /* { */
+        /*     fRes = 1; */
+        /*     break; */
+        /* } */
+        /* else if ( fSat == 2 ) */
+        /* { */
+        /*     pSes->fHitResLimit = 1; */
+        /*     fRes = 0; */
+        /*     break; */
+        /* } */
 
         /* UNSAT => continue */
     }
