@@ -1163,6 +1163,60 @@ static int Ses_ManCreateClauses( Ses_Man_t * pSes )
         }
     }
 
+    /* only binary clauses */
+    if ( 1 ) /* TODO: add some meaningful parameter */
+    {
+        for ( i = 0; i < pSes->nGates; ++i )
+        {
+            pLits[0] = Abc_Var2Lit( Ses_ManGateVar( pSes, i, 0, 1 ), 0 );
+            pLits[1] = Abc_Var2Lit( Ses_ManGateVar( pSes, i, 1, 0 ), 0 );
+            pLits[2] = Abc_Var2Lit( Ses_ManGateVar( pSes, i, 1, 1 ), 0 );
+            sat_solver_addclause( pSes->pSat, pLits, pLits + 3 );
+
+            pLits[0] = Abc_Var2Lit( Ses_ManGateVar( pSes, i, 0, 1 ), 1 );
+            pLits[1] = Abc_Var2Lit( Ses_ManGateVar( pSes, i, 1, 0 ), 0 );
+            pLits[2] = Abc_Var2Lit( Ses_ManGateVar( pSes, i, 1, 1 ), 1 );
+            sat_solver_addclause( pSes->pSat, pLits, pLits + 3 );
+
+            pLits[0] = Abc_Var2Lit( Ses_ManGateVar( pSes, i, 0, 1 ), 0 );
+            pLits[1] = Abc_Var2Lit( Ses_ManGateVar( pSes, i, 1, 0 ), 1 );
+            pLits[2] = Abc_Var2Lit( Ses_ManGateVar( pSes, i, 1, 1 ), 1 );
+            sat_solver_addclause( pSes->pSat, pLits, pLits + 3 );
+        }
+
+        for ( i = 0; i < pSes->nGates; ++i )
+            for ( k = 1; k < pSes->nSpecVars + i; ++k )
+                for ( j = 0; j < k; ++j )
+                {
+                    pLits[0] = Abc_Var2Lit( Ses_ManSelectVar( pSes, i, j, k ), 1 );
+
+                    for ( kk = 1; kk < pSes->nSpecVars + i; ++kk )
+                        for ( jj = 0; jj < kk; ++jj )
+                        {
+                            if ( k == kk && j == jj ) continue;
+                            pLits[1] = Abc_Var2Lit( Ses_ManSelectVar( pSes, i, jj, kk ), 1 );
+
+                            if ( pLits[0] < pLits[1] )
+                                sat_solver_addclause( pSes->pSat, pLits, pLits + 2 );
+                        }
+                }
+
+        /* Vec_IntGrowResize( vLits, pSes->nGates * ( pSes->nSpecVars + pSes->nGates - 2 ) ); */
+
+        /* for ( j = 0; j < pSes->nSpecVars; ++j ) */
+        /* { */
+        /*     jj = 0; */
+        /*     for ( i = 0; i < pSes->nGates; ++i ) */
+        /*     { */
+        /*         for ( k = 0; k < j; ++k ) */
+        /*             Vec_IntSetEntry( vLits, jj++, Abc_Var2Lit( Ses_ManSelectVar( pSes, i, k, j ), 0 ) ); */
+        /*         for ( k = j + 1; k < pSes->nSpecVars + i; ++k ) */
+        /*             Vec_IntSetEntry( vLits, jj++, Abc_Var2Lit( Ses_ManSelectVar( pSes, i, j, k ), 0 ) ); */
+        /*     } */
+        /*     sat_solver_addclause( pSes->pSat, Vec_IntArray( vLits ), Vec_IntArray( vLits ) + jj ); */
+        /* } */
+    }
+
     /* EXTRA clauses: use gate i at least once */
     Vec_IntGrowResize( vLits, pSes->nSpecFunc + pSes->nGates * ( pSes->nSpecVars + pSes->nGates - 2 ) );
     for ( i = 0; i < pSes->nGates; ++i )
@@ -1208,7 +1262,7 @@ static int Ses_ManCreateClauses( Ses_Man_t * pSes )
         for ( q = 1; q < pSes->nSpecVars; ++q )
             for ( p = 0; p < q; ++p )
                 if ( Extra_TruthVarsSymm( (unsigned*)( pSes->pSpec ), pSes->nSpecVars, p, q ) &&
-                     ( !pSes->pArrTimeProfile || ( pSes->pArrTimeProfile[p] == pSes->pArrTimeProfile[q] ) ) )
+                     ( !pSes->pArrTimeProfile || ( pSes->pArrTimeProfile[p] <= pSes->pArrTimeProfile[q] ) ) )
                 {
                     if ( pSes->fSatVerbose )
                         printf( "variables %d and %d are symmetric\n", p, q );
