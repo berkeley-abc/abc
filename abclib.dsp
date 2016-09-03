@@ -5371,7 +5371,15 @@ SOURCE=.\src\proof\acec\acecOrder.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\proof\acec\acecPo.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\proof\acec\acecPolyn.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\proof\acec\acecRe.c
 # End Source File
 # Begin Source File
 
