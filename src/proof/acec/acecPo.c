@@ -339,7 +339,6 @@ Vec_Wec_t * Gia_PolynBuildNew2( Gia_Man_t * pGia, Vec_Int_t * vRootLits, Vec_Int
     // complement leave nodes
     Vec_IntForEachEntry( vLeaves, iObj, i )
     {
-        Gia_Obj_t * pObj = Gia_ManObj( pGia, iObj );
         int iLits[2] = { Abc_Var2Lit(iObj, 0),  Abc_Var2Lit(iObj, 1) };
         // add inverter
         Vec_Int_t * vArray = Vec_WecEntry( vLit2Mono, iLits[1] );

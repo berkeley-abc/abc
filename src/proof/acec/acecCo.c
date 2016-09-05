@@ -93,7 +93,7 @@ Vec_Int_t * Gia_PolynCoreOrder( Gia_Man_t * pGia, Vec_Int_t * vAdds, Vec_Int_t *
     Vec_Int_t * vRoots  = Vec_IntAlloc( 5 * Gia_ManCoNum(pGia) );
     Vec_Int_t * vLeaves = Vec_IntAlloc( 2 * Gia_ManCiNum(pGia) );
     Vec_Wec_t * vMap    = Vec_WecStart( Gia_ManObjNum(pGia) );
-    int i, k, Index, Driver, Entry1, Entry2;
+    int i, k, Index, Driver, Entry1, Entry2 = -1;
     // nodes driven by adders into adder indexes
     for ( i = 0; 5*i < Vec_IntSize(vAdds); i++ )
     {
