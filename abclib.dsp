@@ -5351,6 +5351,10 @@ SOURCE=.\src\proof\acec\acec.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\proof\acec\acecCo.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\proof\acec\acecCore.c
 # End Source File
 # Begin Source File
