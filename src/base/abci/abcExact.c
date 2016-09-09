@@ -75,33 +75,61 @@ static int Abc_TtIsSubsetWithMask( word * pSmall, word * pLarge, word * pMask, i
     return 1;
 }
 
+static int Abc_TtCofsOppositeWithMask( word * pTruth, word * pMask, int nWords, int iVar )
+{
+    if ( iVar < 6 )
+    {
+        int w, Shift = ( 1 << iVar );
+        for ( w = 0; w < nWords; ++w )
+            if ( ( ( pTruth[w] << Shift ) & s_Truths6[iVar] & pMask[w] ) != ( ~pTruth[w] & s_Truths6[iVar] & pMask[w] ) )
+                return 0;
+        return 1;
+    }
+    else
+    {
+        int w, Step = ( 1 << ( iVar - 6 ) );
+        word * p = pTruth, * m = pMask, * pLimit = pTruth + nWords;
+        for ( ; p < pLimit; p += 2 * Step, m += 2 * Step )
+            for ( w = 0; w < Step; ++w )
+                if ( ( p[w] & m[w] ) != ( ~p[w + Step] & m[w + Step] ) )
+                    return 0;
+        return 1;
+    }
+}
+
 // checks whether we can decompose as OP(x^p, g) where OP in {AND, OR} and p in {0, 1}
 // returns p if OP = AND, and 2 + p if OP = OR
-static int Abc_TtIsTopDecomposable( word * pTruth, word * pMask, int nWords, int nVar )
+static int Abc_TtIsTopDecomposable( word * pTruth, word * pMask, int nWords, int iVar )
 {
-    assert( nVar < 8 );
+    assert( iVar < 8 );
 
-    if ( Abc_TtIsSubsetWithMask( pTruth, &s_Truths8[nVar << 2], pMask, nWords ) ) return 1;
-    if ( Abc_TtIsSubsetWithMask( pTruth, &s_Truths8Neg[nVar << 2], pMask, nWords ) ) return 2;
-    if ( Abc_TtIsSubsetWithMask( &s_Truths8[nVar << 2], pTruth, pMask, nWords ) ) return 3;
-    if ( Abc_TtIsSubsetWithMask( &s_Truths8Neg[nVar << 2], pTruth, pMask, nWords ) ) return 4;
+    if ( Abc_TtIsSubsetWithMask( pTruth, &s_Truths8[iVar << 2], pMask, nWords ) ) return 1;
+    if ( Abc_TtIsSubsetWithMask( pTruth, &s_Truths8Neg[iVar << 2], pMask, nWords ) ) return 2;
+    if ( Abc_TtIsSubsetWithMask( &s_Truths8[iVar << 2], pTruth, pMask, nWords ) ) return 3;
+    if ( Abc_TtIsSubsetWithMask( &s_Truths8Neg[iVar << 2], pTruth, pMask, nWords ) ) return 4;
+    if ( Abc_TtCofsOppositeWithMask( pTruth, pMask, nWords, iVar ) ) return 5;
 
     return 0;
 }
 
 // checks whether we can decompose as OP(x1, OP(x2, OP(x3, ...))) where pVars = {x1, x2, x3, ...}
 // OP can be different and vars can be complemented
-static int Abc_TtIsStairDecomposable( word * pTruth, int nWords, int * pVars, int nSize )
+static int Abc_TtIsStairDecomposable( word * pTruth, int nWords, int * pVars, int nSize, int * pStairFunc )
 {
     int i, d;
     word pMask[4];
+    word pCopy[4];
 
+    Abc_TtCopy( pCopy, pTruth, nWords, 0 );
     Abc_TtMask( pMask, nWords, nWords * 64 );
 
     for ( i = 0; i < nSize; ++i )
     {
-        d = Abc_TtIsTopDecomposable( pTruth, pMask, nWords, pVars[i] );
-        if ( !d ) return 0; /* not decomposable */
+        d = Abc_TtIsTopDecomposable( pCopy, pMask, nWords, pVars[i] );
+        if ( !d )
+            return 0; /* not decomposable */
+
+        pStairFunc[i] = d;
 
         switch ( d )
         {
@@ -112,6 +140,9 @@ static int Abc_TtIsStairDecomposable( word * pTruth, int nWords, int * pVars, in
         case 2: /* AND(!x, g) */
         case 3: /* OR(x, g) */
             Abc_TtAnd( pMask, pMask, &s_Truths8Neg[pVars[i] << 2], nWords, 0 );
+            break;
+        case 5:
+            Abc_TtXor( pCopy, pCopy, &s_Truths8[pVars[i] << 2], nWords, 0 );
             break;
         }
     }
@@ -206,12 +237,16 @@ struct Ses_Man_t_
     int          fSatVerbose;           /* be verbose about SAT solving */
     int          fReasonVerbose;        /* be verbose about give-up reasons */
     word         pTtValues[4];          /* truth table values to assign */
+    Vec_Int_t *  vPolar;                /* variables with positive polarity */
+    Vec_Int_t *  vAssump;               /* assumptions */
 
     int          nGates;                /* number of gates */
     int          nStartGates;           /* number of gates to start search (-1), i.e., to start from 1 gate, one needs to specify 0 */
     int          nMaxGates;             /* maximum number of gates given max. delay and arrival times */
     int          fDecStructure;         /* set to 1 or higher if nSpecFunc = 1 and f = x_i OP g(X \ {x_i}), otherwise 0 (determined when solving) */
     int          pDecVars;              /* mask of variables that can be decomposed at top-level */
+    Vec_Int_t *  vStairDecVars;         /* list of stair decomposable variables */
+    int          pStairDecFunc[8];      /* list of stair decomposable functions */
     word         pTtObjs[100];          /* temporary truth tables */
 
     int          nSimVars;              /* number of simulation vars x(i, t) */
@@ -220,6 +255,7 @@ struct Ses_Man_t_
     int          nSelectVars;           /* number of select variables s(i, j, k) */
     int          nDepthVars;            /* number of depth variables d(i, j) */
 
+    int          nSimOffset;            /* offset where gate variables start */
     int          nOutputOffset;         /* offset where output variables start */
     int          nGateOffset;           /* offset where gate variables start */
     int          nSelectOffset;         /* offset where select variables start */
@@ -826,28 +862,14 @@ static void Ses_StoreRead( Ses_Store_t * pStore, const char * pFilename, int fSy
 // computes top decomposition of variables wrt. to AND and OR
 static inline void Ses_ManComputeTopDec( Ses_Man_t * pSes )
 {
-    int l, i, mask = ~0;
-    word * pVar;
-    int fAnd, fAndC, fOr, fOrC;
+    int l;
+    word pMask[4];
 
-    if ( pSes->nSpecVars < 6u )
-        mask = Abc_Tt6Mask( 1u << pSes->nSpecVars );
+    Abc_TtMask( pMask, pSes->nSpecWords, pSes->nSpecWords * 64 );
 
     for ( l = 0; l < pSes->nSpecVars; ++l )
-    {
-        pVar = &s_Truths8[l << 2];
-        fAnd = fAndC = fOr = fOrC = 1;
-
-        for ( i = 0; i < pSes->nSpecWords; ++i )
-        {
-            fAnd  &= (  pVar[i] & pSes->pSpec[i] & mask ) == ( pSes->pSpec[i] & mask );
-            fAndC &= ( ~pVar[i] & pSes->pSpec[i] & mask ) == ( pSes->pSpec[i] & mask );
-            fOr   &= (  pVar[i] & pSes->pSpec[i] & mask ) == (  pVar[i]       & mask );
-            fOrC  &= ( ~pVar[i] & pSes->pSpec[i] & mask ) == ( ~pVar[i]       & mask );
-        }
-
-        pSes->pDecVars |= ( fAnd | fAndC | fOr | fOrC ) << l;
-    }
+        if ( Abc_TtIsTopDecomposable( pSes->pSpec, pMask, pSes->nSpecWords, l ) )
+            pSes->pDecVars |= ( 1 << l );
 }
 
 static inline Ses_Man_t * Ses_ManAlloc( word * pTruth, int nVars, int nFunc, int nMaxDepth, int * pArrTimeProfile, int fMakeAIG, int nBTLimit, int fVerbose )
@@ -881,6 +903,9 @@ static inline Ses_Man_t * Ses_ManAlloc( word * pTruth, int nVars, int nFunc, int
     p->fVeryVerbose    = 0;
     p->fExtractVerbose = 0;
     p->fSatVerbose     = 0;
+    p->vPolar          = Vec_IntAlloc( 100 );
+    p->vAssump         = Vec_IntAlloc( 10 );
+    p->vStairDecVars   = Vec_IntAlloc( nVars );
 
     if ( p->nSpecFunc == 1 )
         Ses_ManComputeTopDec( p );
@@ -899,6 +924,10 @@ static inline void Ses_ManCleanLight( Ses_Man_t * pSes )
     if ( pSes->pArrTimeProfile )
         for ( i = 0; i < pSes->nSpecVars; ++i )
             pSes->pArrTimeProfile[i] += pSes->nArrTimeDelta;
+
+    Vec_IntFree( pSes->vPolar );
+    Vec_IntFree( pSes->vAssump );
+    Vec_IntFree( pSes->vStairDecVars );
 
     ABC_FREE( pSes );
 }
@@ -920,7 +949,7 @@ static inline int Ses_ManSimVar( Ses_Man_t * pSes, int i, int t )
     assert( i < pSes->nGates );
     assert( t < pSes->nRows );
 
-    return pSes->nRows * i + t;
+    return pSes->nSimOffset + pSes->nRows * i + t;
 }
 
 static inline int Ses_ManOutputVar( Ses_Man_t * pSes, int h, int i )
@@ -1022,7 +1051,7 @@ static void Ses_ManCreateVars( Ses_Man_t * pSes, int nGates )
 
     if ( pSes->fSatVerbose )
     {
-        printf( "create variables for network with %d functions over %d variables and %d gates\n", pSes->nSpecFunc, pSes->nSpecVars, nGates );
+        printf( "create variables for network with %d functions over %d variables and %d/%d gates\n", pSes->nSpecFunc, pSes->nSpecVars, nGates, pSes->nMaxGates );
     }
 
     pSes->nGates      = nGates;
@@ -1034,10 +1063,23 @@ static void Ses_ManCreateVars( Ses_Man_t * pSes, int nGates )
         pSes->nSelectVars += ( i * ( i - 1 ) ) / 2;
     pSes->nDepthVars = pSes->nMaxDepth > 0 ? nGates * pSes->nArrTimeMax + ( nGates * ( nGates + 1 ) ) / 2 : 0;
 
-    pSes->nOutputOffset = pSes->nSimVars;
-    pSes->nGateOffset   = pSes->nSimVars + pSes->nOutputVars;
-    pSes->nSelectOffset = pSes->nSimVars + pSes->nOutputVars + pSes->nGateVars;
-    pSes->nDepthOffset  = pSes->nSimVars + pSes->nOutputVars + pSes->nGateVars + pSes->nSelectVars;
+    /* pSes->nSimOffset    = 0; */
+    /* pSes->nOutputOffset = pSes->nSimVars; */
+    /* pSes->nGateOffset   = pSes->nSimVars + pSes->nOutputVars; */
+    /* pSes->nSelectOffset = pSes->nSimVars + pSes->nOutputVars + pSes->nGateVars; */
+    /* pSes->nDepthOffset  = pSes->nSimVars + pSes->nOutputVars + pSes->nGateVars + pSes->nSelectVars; */
+
+    pSes->nDepthOffset  = 0;
+    pSes->nSelectOffset = pSes->nDepthVars;
+    pSes->nGateOffset   = pSes->nDepthVars + pSes->nSelectVars;
+    pSes->nOutputOffset = pSes->nDepthVars + pSes->nSelectVars + pSes->nGateVars;
+    pSes->nSimOffset    = pSes->nDepthVars + pSes->nSelectVars + pSes->nGateVars + pSes->nOutputVars;
+
+    /* pSes->nDepthOffset  = 0; */
+    /* pSes->nSelectOffset = pSes->nDepthVars; */
+    /* pSes->nOutputOffset = pSes->nDepthVars + pSes->nSelectVars; */
+    /* pSes->nGateOffset   = pSes->nDepthVars + pSes->nSelectVars + pSes->nOutputVars; */
+    /* pSes->nSimOffset    = pSes->nDepthVars + pSes->nSelectVars + pSes->nOutputVars + pSes->nGateVars; */
 
     /* if we already have a SAT solver, then restart it (this saves a lot of time) */
     if ( pSes->pSat )
@@ -1052,6 +1094,16 @@ static void Ses_ManCreateVars( Ses_Man_t * pSes, int nGates )
   Synopsis    [Create clauses.]
 
 ***********************************************************************/
+static inline void Ses_ManGateCannotHaveChild( Ses_Man_t * pSes, int i, int j )
+{
+    int k;
+
+    for ( k = 0; k < j; ++k )
+        Vec_IntPush( pSes->vAssump, Abc_Var2Lit( Ses_ManSelectVar( pSes, i, k, j ), 1 ) );
+    for ( k = j + 1; k < pSes->nSpecVars + i; ++k )
+        Vec_IntPush( pSes->vAssump, Abc_Var2Lit( Ses_ManSelectVar( pSes, i, j, k ), 1 ) );
+}
+
 static inline void Ses_ManCreateMainClause( Ses_Man_t * pSes, int t, int i, int j, int k, int a, int b, int c )
 {
     int pLits[5], ctr = 0;
@@ -1113,11 +1165,7 @@ static int inline Ses_ManCreateTruthTableClause( Ses_Man_t * pSes, int t )
     }
 
     if ( pSes->nSpecFunc == 1 )
-    {
-        pLits[0] = Abc_Var2Lit( Ses_ManSimVar( pSes, pSes->nGates - 1, t ), 1 - Abc_TtGetBit( pSes->pSpec, t + 1 ) );
-        if ( !sat_solver_addclause( pSes->pSat, pLits, pLits + 1 ) )
-            return 0;
-    }
+        Vec_IntPush( pSes->vAssump, Abc_Var2Lit( Ses_ManSimVar( pSes, pSes->nGates - 1, t ), 1 - Abc_TtGetBit( pSes->pSpec, t + 1 ) ) );
 
     return 1;
 }
@@ -1141,14 +1189,8 @@ static int Ses_ManCreateClauses( Ses_Man_t * pSes )
     if ( pSes->nSpecFunc == 1 )
     {
         for ( i = 0; i < pSes->nGates - 1; ++i )
-        {
-            pLits[0] = Abc_Var2Lit( Ses_ManOutputVar( pSes, 0, i ), 1 );
-            if ( !sat_solver_addclause( pSes->pSat, pLits, pLits + 1 ) )
-                return 0;
-        }
-        pLits[0] = Abc_Var2Lit( Ses_ManOutputVar( pSes, 0, pSes->nGates - 1 ), 0 );
-        if ( !sat_solver_addclause( pSes->pSat, pLits, pLits + 1 ) )
-            return 0;
+            Vec_IntPush( pSes->vAssump, Abc_Var2Lit( Ses_ManOutputVar( pSes, 0, i ), 1 ) );
+        Vec_IntPush( pSes->vAssump, Abc_Var2Lit( Ses_ManOutputVar( pSes, 0, pSes->nGates - 1 ), 0 ) );
 
         vLits = Vec_IntAlloc( 0u );
     }
@@ -1277,6 +1319,44 @@ static int Ses_ManCreateClauses( Ses_Man_t * pSes )
         /* } */
     }
 
+    /* EXTRA stair decomposition */
+    if ( Vec_IntSize( pSes->vStairDecVars ) )
+    {
+        Vec_IntForEachEntry( pSes->vStairDecVars, j, i )
+        {
+            Vec_IntPush( pSes->vAssump, Abc_Var2Lit( Ses_ManSelectVar( pSes, pSes->nGates - 1 - i, j, pSes->nSpecVars + pSes->nGates - 2 - i ), 0 ) );
+
+            switch ( pSes->pStairDecFunc[i] )
+            {
+            case 1: /* AND(x,g) */
+                Vec_IntPush( pSes->vAssump, Abc_Var2Lit( Ses_ManGateVar( pSes, pSes->nGates - 1 - i, 0, 1 ), 1 ) );
+                Vec_IntPush( pSes->vAssump, Abc_Var2Lit( Ses_ManGateVar( pSes, pSes->nGates - 1 - i, 1, 0 ), 1 ) );
+                Vec_IntPush( pSes->vAssump, Abc_Var2Lit( Ses_ManGateVar( pSes, pSes->nGates - 1 - i, 1, 1 ), 0 ) );
+                break;
+            case 2: /* AND(!x,g) */
+                Vec_IntPush( pSes->vAssump, Abc_Var2Lit( Ses_ManGateVar( pSes, pSes->nGates - 1 - i, 0, 1 ), 0 ) );
+                Vec_IntPush( pSes->vAssump, Abc_Var2Lit( Ses_ManGateVar( pSes, pSes->nGates - 1 - i, 1, 0 ), 1 ) );
+                Vec_IntPush( pSes->vAssump, Abc_Var2Lit( Ses_ManGateVar( pSes, pSes->nGates - 1 - i, 1, 1 ), 1 ) );
+                break;
+            case 3: /* OR(x,g) */
+                Vec_IntPush( pSes->vAssump, Abc_Var2Lit( Ses_ManGateVar( pSes, pSes->nGates - 1 - i, 0, 1 ), 0 ) );
+                Vec_IntPush( pSes->vAssump, Abc_Var2Lit( Ses_ManGateVar( pSes, pSes->nGates - 1 - i, 1, 0 ), 0 ) );
+                Vec_IntPush( pSes->vAssump, Abc_Var2Lit( Ses_ManGateVar( pSes, pSes->nGates - 1 - i, 1, 1 ), 0 ) );
+                break;
+            case 4: /* OR(!x,g) */
+                assert( 0 ); /* should be impossible since all gates are normal */
+            case 5: /* XOR(x,g) */
+                Vec_IntPush( pSes->vAssump, Abc_Var2Lit( Ses_ManGateVar( pSes, pSes->nGates - 1 - i, 0, 1 ), 0 ) );
+                Vec_IntPush( pSes->vAssump, Abc_Var2Lit( Ses_ManGateVar( pSes, pSes->nGates - 1 - i, 1, 0 ), 0 ) );
+                Vec_IntPush( pSes->vAssump, Abc_Var2Lit( Ses_ManGateVar( pSes, pSes->nGates - 1 - i, 1, 1 ), 1 ) );
+                break;
+            default:
+                printf( "func: %d\n", pSes->pStairDecFunc[i] );
+                assert( 0 );
+            }
+        }
+    }
+
     /* EXTRA clauses: use gate i at least once */
     Vec_IntGrowResize( vLits, pSes->nSpecFunc + pSes->nGates * ( pSes->nSpecVars + pSes->nGates - 2 ) );
     for ( i = 0; i < pSes->nGates; ++i )
@@ -1394,11 +1474,8 @@ static int Ses_ManCreateDepthClauses( Ses_Man_t * pSes )
                 }
         }
         else
-        {
             /* arrival times are 0 */
-            pLits[0] = Abc_Var2Lit( Ses_ManDepthVar( pSes, i, 0 ), 0 );
-            sat_solver_addclause( pSes->pSat, pLits, pLits + 1 );
-        }
+            Vec_IntPush( pSes->vAssump, Abc_Var2Lit( Ses_ManDepthVar( pSes, i, 0 ), 0 ) );
 
         /* reverse order encoding of depth variables */
         for ( j = 1; j <= pSes->nArrTimeMax + i; ++j )
@@ -1427,6 +1504,8 @@ static int Ses_ManCreateDepthClauses( Ses_Man_t * pSes )
   Synopsis    [Solve.]
 
 ***********************************************************************/
+static inline double Sat_Wrd2Dbl( word w )  { return (double)(unsigned)(w&0x3FFFFFFF) + (double)(1<<30)*(unsigned)(w>>30); }
+
 static inline int Ses_ManSolve( Ses_Man_t * pSes )
 {
     int status;
@@ -1434,15 +1513,20 @@ static inline int Ses_ManSolve( Ses_Man_t * pSes )
 
     if ( pSes->fSatVerbose )
     {
-        printf( "solve SAT instance with %d clauses and %d variables\n", sat_solver_nclauses( pSes->pSat ), sat_solver_nvars( pSes->pSat ) );
+        printf( "SAT   CL: %7d   VA: %5d", sat_solver_nclauses( pSes->pSat ), sat_solver_nvars( pSes->pSat ) );
+        fflush( stdout );
     }
 
     timeStart = Abc_Clock();
-    status = sat_solver_solve( pSes->pSat, NULL, NULL, pSes->nBTLimit, 0, 0, 0 );
+    status = sat_solver_solve( pSes->pSat, Vec_IntArray( pSes->vAssump ), Vec_IntLimit( pSes->vAssump ), pSes->nBTLimit, 0, 0, 0 );
     timeDelta = Abc_Clock() - timeStart;
 
     if ( pSes->fSatVerbose )
-        Sat_SolverPrintStats( stdout, pSes->pSat );
+        printf( "   RE:   %2d   ST: %4.f   CO: %7.0f   DE: %6.0f    PR: %6.0f\n",
+                status,
+                Sat_Wrd2Dbl( pSes->pSat->stats.starts ), Sat_Wrd2Dbl( pSes->pSat->stats.conflicts ),
+                Sat_Wrd2Dbl( pSes->pSat->stats.decisions ), Sat_Wrd2Dbl( pSes->pSat->stats.propagations ) );
+        //Sat_SolverPrintStats( stdout, pSes->pSat );
 
     pSes->timeSat += timeDelta;
 
@@ -1483,8 +1567,8 @@ static inline int Ses_ManSolve( Ses_Man_t * pSes )
 // ngates:      integer with number of gates
 // gate[i]:     | op | nfanin | fanin[1] | ... | fanin[nfanin] |
 //   op:        integer of gate's truth table (divided by 2, because gate is normal)
-//   nfanin[i]: integer with number of fanins
-//   fanin:     integer to primary input or other gate
+//   nfanin:    integer with number of fanins
+//   fanin[i]:  integer to primary input or other gate
 // func[i]:     | fanin | delay | pin[1] | ... | pin[nvars] |
 //   fanin:     integer as literal to some gate (not primary input), can be complemented
 //   delay:     maximum delay to output (taking arrival times into account, not normalized) or 0 if not specified
@@ -1859,8 +1943,8 @@ static int Ses_CheckDepthConsistency( Ses_Man_t * pSes )
 {
     int l, i, fAdded, nLevel;
     int fMaxGatesLevel2 = 1;
-    Vec_Int_t * pStairDecVars;
 
+    Vec_IntClear( pSes->vStairDecVars );
     pSes->fDecStructure = 0;
 
     for ( l = 0; l < pSes->nSpecVars; ++l )
@@ -1871,7 +1955,7 @@ static int Ses_CheckDepthConsistency( Ses_Man_t * pSes )
                 printf( "give up due to impossible arrival time (depth = %d, input = %d, arrival time = %d)", pSes->nMaxDepth, l, pSes->pArrTimeProfile[l] );
             return 0;
         }
-        else if ( pSes->nSpecFunc == 1 && pSes->fMakeAIG && pSes->pArrTimeProfile[l] + 1 == pSes->nMaxDepth )
+        else if ( pSes->nSpecFunc == 1 && pSes->pArrTimeProfile[l] + 1 == pSes->nMaxDepth )
         {
             if ( ( pSes->fDecStructure == 1 && pSes->nSpecVars > 2 ) || pSes->fDecStructure == 2 )
             {
@@ -1895,8 +1979,6 @@ static int Ses_CheckDepthConsistency( Ses_Man_t * pSes )
     /* more complicated decomposition */
     if ( pSes->fDecStructure )
     {
-        pStairDecVars = Vec_IntAlloc( 0 );
-
         nLevel = 1;
         while ( 1 )
         {
@@ -1907,17 +1989,18 @@ static int Ses_CheckDepthConsistency( Ses_Man_t * pSes )
                 {
                     if ( fAdded )
                     {
-                        assert( nLevel == Vec_IntSize( pStairDecVars ) );
+                        assert( nLevel == Vec_IntSize( pSes->vStairDecVars ) );
                         if ( fAdded > 1 || ( nLevel + 1 < pSes->nSpecVars ) )
                         {
-                            Vec_IntFree( pStairDecVars );
                             if ( pSes->fReasonVerbose )
                                 printf( "give up due to impossible decomposition at level %d", nLevel );
                             return 0;
                         }
                     }
-
-                    Vec_IntPush( pStairDecVars, l );
+                    else
+                    {
+                        Vec_IntPush( pSes->vStairDecVars, l );
+                    }
                     fAdded++;
                 }
 
@@ -1925,18 +2008,15 @@ static int Ses_CheckDepthConsistency( Ses_Man_t * pSes )
             ++nLevel;
         }
 
-        if ( Vec_IntSize( pStairDecVars ) && !Abc_TtIsStairDecomposable( pSes->pSpec, pSes->nSpecWords, Vec_IntArray( pStairDecVars ), Vec_IntSize( pStairDecVars ) ) )
+        if ( Vec_IntSize( pSes->vStairDecVars ) && !Abc_TtIsStairDecomposable( pSes->pSpec, pSes->nSpecWords, Vec_IntArray( pSes->vStairDecVars ), Vec_IntSize( pSes->vStairDecVars ), pSes->pStairDecFunc ) )
         {
             if ( pSes->fReasonVerbose )
             {
                 printf( "give up due to impossible stair decomposition at level %d: ", nLevel );
-                Vec_IntPrint( pStairDecVars );
+                Vec_IntPrint( pSes->vStairDecVars );
             }
-            Vec_IntFree( pStairDecVars );
             return 0;
         }
-
-        Vec_IntFree( pStairDecVars );
     }
 
     /* check if depth's match with structure at second level from top */
@@ -2052,10 +2132,18 @@ static int Ses_ManFindNetworkExact( Ses_Man_t * pSes, int nGates )
 
     /* solve */
     timeStart = Abc_Clock();
+    Vec_IntClear( pSes->vPolar );
+    Vec_IntClear( pSes->vAssump );
     Ses_ManCreateVars( pSes, nGates );
-    f = Ses_ManCreateDepthClauses( pSes );
-    pSes->timeInstance += ( Abc_Clock() - timeStart );
-    if ( !f ) return 2; /* proven UNSAT while creating clauses */
+
+    if ( pSes->nMaxDepth != -1 )
+    {
+        f = Ses_ManCreateDepthClauses( pSes );
+        pSes->timeInstance += ( Abc_Clock() - timeStart );
+        if ( !f ) return 2; /* proven UNSAT while creating clauses */
+    }
+
+    sat_solver_set_polarity( pSes->pSat, Vec_IntArray( pSes->vPolar ), Vec_IntSize( pSes->vPolar ) );
 
     /* first solve */
     fSat = Ses_ManSolve( pSes );
@@ -2102,6 +2190,9 @@ static int Ses_ManFindMinimumSize( Ses_Man_t * pSes )
         nOffset = pSes->nMaxGates >= 10 ? 3 : 2;
     }
 
+    if ( Vec_IntSize( pSes->vStairDecVars ) )
+        nGates = Abc_MaxInt( nGates, Vec_IntSize( pSes->vStairDecVars ) - 1 );
+
     //Ses_ManStoreDepthAndArrivalTimes( pSes );
 
     //memset( pSes->pTtValues, (word)~0, 4 * sizeof( word ) );
@@ -2142,7 +2233,7 @@ static int Ses_ManFindMinimumSize( Ses_Man_t * pSes )
             }
 
             assert( iMint );
-            Abc_TtSetBit( pSes->pTtValues, iMint - 1 );
+            //Abc_TtSetBit( pSes->pTtValues, iMint - 1 );
             if ( !Ses_ManCreateTruthTableClause( pSes, iMint - 1 ) ) /* UNSAT, continue */
             {
                 fRes = 2;
