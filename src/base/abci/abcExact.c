@@ -1324,6 +1324,11 @@ static int Ses_ManCreateClauses( Ses_Man_t * pSes )
     {
         Vec_IntForEachEntry( pSes->vStairDecVars, j, i )
         {
+            if ( pSes->nGates - 2 - i < 0 )
+            {
+                Vec_IntFree( vLits );
+                return 0;
+            }
             Vec_IntPush( pSes->vAssump, Abc_Var2Lit( Ses_ManSelectVar( pSes, pSes->nGates - 1 - i, j, pSes->nSpecVars + pSes->nGates - 2 - i ), 0 ) );
 
             //printf( "dec %d for var %d\n", pSes->pStairDecFunc[i], j );
