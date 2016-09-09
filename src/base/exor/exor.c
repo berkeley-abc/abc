@@ -78,6 +78,7 @@ extern int s_fDecreaseLiterals;
   SeeAlso     []
 
 ***********************************************************************/
+/*
 static int QCost[16][16] = 
 {
     {  1}, // 0
@@ -90,6 +91,7 @@ static int QCost[16][16] =
     { 56,  56,  56,  56,  58,  60,  62,  64}, // 7
     { 0 }
 };
+*/
 int GetQCost( int nVars, int nNegs )
 {
     int Extra;
