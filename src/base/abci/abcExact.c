@@ -1344,7 +1344,10 @@ static int Ses_ManCreateClauses( Ses_Man_t * pSes )
                 Vec_IntPush( pSes->vAssump, Abc_Var2Lit( Ses_ManGateVar( pSes, pSes->nGates - 1 - i, 1, 1 ), 0 ) );
                 break;
             case 4: /* OR(!x,g) */
-                assert( 0 ); /* should be impossible since all gates are normal */
+                Vec_IntPush( pSes->vAssump, Abc_Var2Lit( Ses_ManGateVar( pSes, pSes->nGates - 1 - i, 0, 1 ), 0 ) );
+                Vec_IntPush( pSes->vAssump, Abc_Var2Lit( Ses_ManGateVar( pSes, pSes->nGates - 1 - i, 1, 0 ), 1 ) );
+                Vec_IntPush( pSes->vAssump, Abc_Var2Lit( Ses_ManGateVar( pSes, pSes->nGates - 1 - i, 1, 1 ), 0 ) );
+                break;
             case 5: /* XOR(x,g) */
                 Vec_IntPush( pSes->vAssump, Abc_Var2Lit( Ses_ManGateVar( pSes, pSes->nGates - 1 - i, 0, 1 ), 0 ) );
                 Vec_IntPush( pSes->vAssump, Abc_Var2Lit( Ses_ManGateVar( pSes, pSes->nGates - 1 - i, 1, 0 ), 0 ) );
