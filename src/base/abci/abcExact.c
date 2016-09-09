@@ -1326,27 +1326,29 @@ static int Ses_ManCreateClauses( Ses_Man_t * pSes )
         {
             Vec_IntPush( pSes->vAssump, Abc_Var2Lit( Ses_ManSelectVar( pSes, pSes->nGates - 1 - i, j, pSes->nSpecVars + pSes->nGates - 2 - i ), 0 ) );
 
+            //printf( "dec %d for var %d\n", pSes->pStairDecFunc[i], j );
+
             switch ( pSes->pStairDecFunc[i] )
             {
             case 1: /* AND(x,g) */
                 Vec_IntPush( pSes->vAssump, Abc_Var2Lit( Ses_ManGateVar( pSes, pSes->nGates - 1 - i, 0, 1 ), 1 ) );
-                Vec_IntPush( pSes->vAssump, Abc_Var2Lit( Ses_ManGateVar( pSes, pSes->nGates - 1 - i, 1, 0 ), 1 ) );
-                Vec_IntPush( pSes->vAssump, Abc_Var2Lit( Ses_ManGateVar( pSes, pSes->nGates - 1 - i, 1, 1 ), 0 ) );
+                //Vec_IntPush( pSes->vAssump, Abc_Var2Lit( Ses_ManGateVar( pSes, pSes->nGates - 1 - i, 1, 0 ), 1 ) );
+                //Vec_IntPush( pSes->vAssump, Abc_Var2Lit( Ses_ManGateVar( pSes, pSes->nGates - 1 - i, 1, 1 ), 0 ) );
                 break;
             case 2: /* AND(!x,g) */
-                Vec_IntPush( pSes->vAssump, Abc_Var2Lit( Ses_ManGateVar( pSes, pSes->nGates - 1 - i, 0, 1 ), 0 ) );
+                //Vec_IntPush( pSes->vAssump, Abc_Var2Lit( Ses_ManGateVar( pSes, pSes->nGates - 1 - i, 0, 1 ), 0 ) );
                 Vec_IntPush( pSes->vAssump, Abc_Var2Lit( Ses_ManGateVar( pSes, pSes->nGates - 1 - i, 1, 0 ), 1 ) );
                 Vec_IntPush( pSes->vAssump, Abc_Var2Lit( Ses_ManGateVar( pSes, pSes->nGates - 1 - i, 1, 1 ), 1 ) );
                 break;
             case 3: /* OR(x,g) */
-                Vec_IntPush( pSes->vAssump, Abc_Var2Lit( Ses_ManGateVar( pSes, pSes->nGates - 1 - i, 0, 1 ), 0 ) );
+                //Vec_IntPush( pSes->vAssump, Abc_Var2Lit( Ses_ManGateVar( pSes, pSes->nGates - 1 - i, 0, 1 ), 0 ) );
                 Vec_IntPush( pSes->vAssump, Abc_Var2Lit( Ses_ManGateVar( pSes, pSes->nGates - 1 - i, 1, 0 ), 0 ) );
                 Vec_IntPush( pSes->vAssump, Abc_Var2Lit( Ses_ManGateVar( pSes, pSes->nGates - 1 - i, 1, 1 ), 0 ) );
                 break;
             case 4: /* OR(!x,g) */
-                Vec_IntPush( pSes->vAssump, Abc_Var2Lit( Ses_ManGateVar( pSes, pSes->nGates - 1 - i, 0, 1 ), 0 ) );
-                Vec_IntPush( pSes->vAssump, Abc_Var2Lit( Ses_ManGateVar( pSes, pSes->nGates - 1 - i, 1, 0 ), 1 ) );
-                Vec_IntPush( pSes->vAssump, Abc_Var2Lit( Ses_ManGateVar( pSes, pSes->nGates - 1 - i, 1, 1 ), 0 ) );
+                ////Vec_IntPush( pSes->vAssump, Abc_Var2Lit( Ses_ManGateVar( pSes, pSes->nGates - 1 - i, 0, 1 ), 0 ) );
+                ////Vec_IntPush( pSes->vAssump, Abc_Var2Lit( Ses_ManGateVar( pSes, pSes->nGates - 1 - i, 1, 0 ), 1 ) );
+                ////Vec_IntPush( pSes->vAssump, Abc_Var2Lit( Ses_ManGateVar( pSes, pSes->nGates - 1 - i, 1, 1 ), 0 ) );
                 break;
             case 5: /* XOR(x,g) */
                 Vec_IntPush( pSes->vAssump, Abc_Var2Lit( Ses_ManGateVar( pSes, pSes->nGates - 1 - i, 0, 1 ), 0 ) );
