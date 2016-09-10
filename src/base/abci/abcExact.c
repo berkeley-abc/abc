@@ -317,6 +317,7 @@ struct Ses_Store_t_
     Ses_TruthEntry_t * pEntries[SES_STORE_TABLE_SIZE]; /* hash table for truth table entries */
     sat_solver       * pSat;                           /* own SAT solver instance to reuse when calling exact algorithm */
     FILE             * pDebugEntries;                  /* debug unsynth. (rl) entries */
+    char             * szDBName;                       /* if given, database is written every time a new entry is added */
 
     /* statistics */
     unsigned long      nCutCount;                      /* number of cuts investigated */
@@ -418,6 +419,9 @@ static inline void Ses_StoreClean( Ses_Store_t * pStore )
         }
 
     sat_solver_delete( pStore->pSat );
+
+    if ( pStore->szDBName )
+        ABC_FREE( pStore->szDBName );
     ABC_FREE( pStore );
 }
 
@@ -553,6 +557,69 @@ static void Abc_ExactNormalizeArrivalTimesForNetwork( int nVars, int * pArrTimeP
     Vec_IntFree( vLevels );
 }
 
+static void Ses_StoreWrite( Ses_Store_t * pStore, const char * pFilename, int fSynthImp, int fSynthRL, int fUnsynthImp, int fUnsynthRL )
+{
+    int i;
+    char zero = '\0';
+    unsigned long nEntries = 0;
+    Ses_TruthEntry_t * pTEntry;
+    Ses_TimesEntry_t * pTiEntry;
+    FILE * pFile;
+
+    pFile = fopen( pFilename, "wb" );
+    if (pFile == NULL)
+    {
+        printf( "cannot open file \"%s\" for writing\n", pFilename );
+        return;
+    }
+
+    if ( fSynthImp )   nEntries += pStore->nSynthesizedImp;
+    if ( fSynthRL )    nEntries += pStore->nSynthesizedRL;
+    if ( fUnsynthImp ) nEntries += pStore->nUnsynthesizedImp;
+    if ( fUnsynthRL )  nEntries += pStore->nUnsynthesizedRL;
+    fwrite( &nEntries, sizeof( unsigned long ), 1, pFile );
+
+    for ( i = 0; i < SES_STORE_TABLE_SIZE; ++i )
+        if ( pStore->pEntries[i] )
+        {
+            pTEntry = pStore->pEntries[i];
+
+            while ( pTEntry )
+            {
+                pTiEntry = pTEntry->head;
+                while ( pTiEntry )
+                {
+                    if ( !fSynthImp && pTiEntry->pNetwork && !pTiEntry->fResLimit )    { pTiEntry = pTiEntry->next; continue; }
+                    if ( !fSynthRL && pTiEntry->pNetwork && pTiEntry->fResLimit )      { pTiEntry = pTiEntry->next; continue; }
+                    if ( !fUnsynthImp && !pTiEntry->pNetwork && !pTiEntry->fResLimit ) { pTiEntry = pTiEntry->next; continue; }
+                    if ( !fUnsynthRL && !pTiEntry->pNetwork && pTiEntry->fResLimit )   { pTiEntry = pTiEntry->next; continue; }
+
+                    fwrite( pTEntry->pTruth, sizeof( word ), 4, pFile );
+                    fwrite( &pTEntry->nVars, sizeof( int ), 1, pFile );
+                    fwrite( pTiEntry->pArrTimeProfile, sizeof( int ), 8, pFile );
+                    fwrite( &pTiEntry->fResLimit, sizeof( int ), 1, pFile );
+
+                    if ( pTiEntry->pNetwork )
+                    {
+                        fwrite( pTiEntry->pNetwork, sizeof( char ), 3 + 4 * pTiEntry->pNetwork[ABC_EXACT_SOL_NGATES] + 2 + pTiEntry->pNetwork[ABC_EXACT_SOL_NVARS], pFile );
+                    }
+                    else
+                    {
+                        fwrite( &zero, sizeof( char ), 1, pFile );
+                        fwrite( &zero, sizeof( char ), 1, pFile );
+                        fwrite( &zero, sizeof( char ), 1, pFile );
+                    }
+
+                    pTiEntry = pTiEntry->next;
+                }
+                pTEntry = pTEntry->next;
+            }
+        }
+
+
+    fclose( pFile );
+}
+
 // pArrTimeProfile is normalized
 // returns 1 if and only if a new TimesEntry has been created
 int Ses_StoreAddEntry( Ses_Store_t * pStore, word * pTruth, int nVars, int * pArrTimeProfile, char * pSol, int fResLimit )
@@ -613,7 +680,7 @@ int Ses_StoreAddEntry( Ses_Store_t * pStore, word * pTruth, int nVars, int * pAr
     }
     else
     {
-        assert( 0 );
+        //assert( 0 );
         /* item was already present */
         fAdded = 0;
     }
@@ -623,28 +690,31 @@ int Ses_StoreAddEntry( Ses_Store_t * pStore, word * pTruth, int nVars, int * pAr
     {
         if ( fResLimit )
         {
-            s_pSesStore->nSynthesizedRL++;
-            s_pSesStore->pSynthesizedRL[nVars]++;
+            pStore->nSynthesizedRL++;
+            pStore->pSynthesizedRL[nVars]++;
         }
         else
         {
-            s_pSesStore->nSynthesizedImp++;
-            s_pSesStore->pSynthesizedImp[nVars]++;
+            pStore->nSynthesizedImp++;
+            pStore->pSynthesizedImp[nVars]++;
         }
     }
     else
     {
         if ( fResLimit )
         {
-            s_pSesStore->nUnsynthesizedRL++;
-            s_pSesStore->pUnsynthesizedRL[nVars]++;
+            pStore->nUnsynthesizedRL++;
+            pStore->pUnsynthesizedRL[nVars]++;
         }
         else
         {
-            s_pSesStore->nUnsynthesizedImp++;
-            s_pSesStore->pUnsynthesizedImp[nVars]++;
+            pStore->nUnsynthesizedImp++;
+            pStore->pUnsynthesizedImp[nVars]++;
         }
     }
+
+    if ( fAdded && pStore->szDBName )
+        Ses_StoreWrite( pStore, pStore->szDBName, 1, 0, 0, 0 );
 
     return fAdded;
 }
@@ -742,69 +812,6 @@ int Ses_StoreGetEntry( Ses_Store_t * pStore, word * pTruth, int nVars, int * pAr
     return 1;
 }
 
-static void Ses_StoreWrite( Ses_Store_t * pStore, const char * pFilename, int fSynthImp, int fSynthRL, int fUnsynthImp, int fUnsynthRL )
-{
-    int i;
-    char zero = '\0';
-    unsigned long nEntries = 0;
-    Ses_TruthEntry_t * pTEntry;
-    Ses_TimesEntry_t * pTiEntry;
-    FILE * pFile;
-
-    pFile = fopen( pFilename, "wb" );
-    if (pFile == NULL)
-    {
-        printf( "cannot open file \"%s\" for writing\n", pFilename );
-        return;
-    }
-
-    if ( fSynthImp )   nEntries += pStore->nSynthesizedImp;
-    if ( fSynthRL )    nEntries += pStore->nSynthesizedRL;
-    if ( fUnsynthImp ) nEntries += pStore->nUnsynthesizedImp;
-    if ( fUnsynthRL )  nEntries += pStore->nUnsynthesizedRL;
-    fwrite( &nEntries, sizeof( unsigned long ), 1, pFile );
-
-    for ( i = 0; i < SES_STORE_TABLE_SIZE; ++i )
-        if ( pStore->pEntries[i] )
-        {
-            pTEntry = pStore->pEntries[i];
-
-            while ( pTEntry )
-            {
-                pTiEntry = pTEntry->head;
-                while ( pTiEntry )
-                {
-                    if ( !fSynthImp && pTiEntry->pNetwork && !pTiEntry->fResLimit )    { pTiEntry = pTiEntry->next; continue; }
-                    if ( !fSynthRL && pTiEntry->pNetwork && pTiEntry->fResLimit )      { pTiEntry = pTiEntry->next; continue; }
-                    if ( !fUnsynthImp && !pTiEntry->pNetwork && !pTiEntry->fResLimit ) { pTiEntry = pTiEntry->next; continue; }
-                    if ( !fUnsynthRL && !pTiEntry->pNetwork && pTiEntry->fResLimit )   { pTiEntry = pTiEntry->next; continue; }
-
-                    fwrite( pTEntry->pTruth, sizeof( word ), 4, pFile );
-                    fwrite( &pTEntry->nVars, sizeof( int ), 1, pFile );
-                    fwrite( pTiEntry->pArrTimeProfile, sizeof( int ), 8, pFile );
-                    fwrite( &pTiEntry->fResLimit, sizeof( int ), 1, pFile );
-
-                    if ( pTiEntry->pNetwork )
-                    {
-                        fwrite( pTiEntry->pNetwork, sizeof( char ), 3 + 4 * pTiEntry->pNetwork[ABC_EXACT_SOL_NGATES] + 2 + pTiEntry->pNetwork[ABC_EXACT_SOL_NVARS], pFile );
-                    }
-                    else
-                    {
-                        fwrite( &zero, sizeof( char ), 1, pFile );
-                        fwrite( &zero, sizeof( char ), 1, pFile );
-                        fwrite( &zero, sizeof( char ), 1, pFile );
-                    }
-
-                    pTiEntry = pTiEntry->next;
-                }
-                pTEntry = pTEntry->next;
-            }
-        }
-
-
-    fclose( pFile );
-}
-
 static void Ses_StoreRead( Ses_Store_t * pStore, const char * pFilename, int fSynthImp, int fSynthRL, int fUnsynthImp, int fUnsynthRL )
 {
     int i;
@@ -816,6 +823,12 @@ static void Ses_StoreRead( Ses_Store_t * pStore, const char * pFilename, int fSy
     char * pNetwork;
     FILE * pFile;
     int value;
+
+    if ( pStore->szDBName )
+    {
+        printf( "cannot read from database when szDBName is set" );
+        return;
+    }
 
     pFile = fopen( pFilename, "rb" );
     if (pFile == NULL)
@@ -2535,7 +2548,12 @@ void Abc_ExactStart( int nBTLimit, int fMakeAIG, int fVerbose, int fVeryVerbose,
         s_pSesStore = Ses_StoreAlloc( nBTLimit, fMakeAIG, fVerbose );
         s_pSesStore->fVeryVerbose = fVeryVerbose;
         if ( pFilename )
+        {
             Ses_StoreRead( s_pSesStore, pFilename, 1, 0, 0, 0 );
+
+            s_pSesStore->szDBName = ABC_CALLOC( char, strlen( pFilename ) + 1 );
+            strcpy( s_pSesStore->szDBName, pFilename );
+        }
         if ( s_pSesStore->fVeryVerbose )
         {
             s_pSesStore->pDebugEntries = fopen( "bms.debug", "w" );
