@@ -2197,19 +2197,19 @@ static int Ses_ManFindNetworkExact( Ses_Man_t * pSes, int nGates )
 }
 
 // is there a network for a given number of gates
-/* return: (2: continue, 1: found, 0: gave up) */
+/* return: (3: impossible, 2: continue, 1: found, 0: gave up) */
 static int Ses_ManFindNetworkExactCEGAR( Ses_Man_t * pSes, int nGates, char ** pSol )
 {
-    int fFirst = 0, fRes, iMint, fSat;
+    int fRes, iMint, fSat;
     word pTruth[4];
 
     /* debug */
-    Abc_DebugErase( pSes->nDebugOffset + ( nGates > 10 ? 5 : 4 ), pSes->fVeryVerbose && !fFirst );
+    Abc_DebugErase( pSes->nDebugOffset + ( nGates > 10 ? 5 : 4 ), pSes->fVeryVerbose );
     Abc_DebugPrintIntInt( " (%d/%d)", nGates, pSes->nMaxGates, pSes->fVeryVerbose );
 
     /* do #gates and max depth allow for a network? */
     if ( !Ses_CheckGatesConsistency( pSes, nGates ) )
-        return 0;
+        return 3;
 
     fRes = Ses_ManFindNetworkExact( pSes, nGates );
     if ( fRes != 1 ) return fRes;
@@ -2256,26 +2256,26 @@ static char * Ses_ManFindMinimumSizeBottomUp( Ses_Man_t * pSes )
 
     memset( pSes->pTtValues, 0, 4 * sizeof( word ) );
 
+    Abc_DebugPrintIntInt( " (%d/%d)", nGates, pSes->nMaxGates, pSes->fVeryVerbose );
+
     while ( true )
     {
         ++nGates;
 
         fRes = Ses_ManFindNetworkExactCEGAR( pSes, nGates, &pSol );
 
-        printf( "fRes = %d\n", fRes );
-
         if ( fRes == 0 )
         {
             pSes->fHitResLimit = 1;
             break;
         }
-        else if ( fRes == 1 )
+        else if ( fRes == 1 || fRes == 3 )
             break;
     }
 
     Abc_DebugErase( pSes->nDebugOffset + ( nGates >= 10 ? 5 : 4 ), pSes->fVeryVerbose );
 
-    return fRes ? pSol : NULL;
+    return pSol;
 }
 
 static char * Ses_ManFindMinimumSizeTopDown( Ses_Man_t * pSes, int nMinGates )
@@ -2284,6 +2284,8 @@ static char * Ses_ManFindMinimumSizeTopDown( Ses_Man_t * pSes, int nMinGates )
     char * pSol = NULL, * pSol2 = NULL;
 
     pSes->fHitResLimit = 0;
+
+    Abc_DebugPrintIntInt( " (%d/%d)", nGates, pSes->nMaxGates, pSes->fVeryVerbose );
 
     while ( true )
     {
@@ -2294,7 +2296,7 @@ static char * Ses_ManFindMinimumSizeTopDown( Ses_Man_t * pSes, int nMinGates )
             pSes->fHitResLimit = 1;
             break;
         }
-        else if ( fRes == 2 )
+        else if ( fRes == 2 || fRes == 3 )
             break;
 
         pSol = pSol2;
@@ -2304,6 +2306,8 @@ static char * Ses_ManFindMinimumSizeTopDown( Ses_Man_t * pSes, int nMinGates )
 
         --nGates;
     }
+
+    Abc_DebugErase( pSes->nDebugOffset + ( nGates >= 10 ? 5 : 4 ), pSes->fVeryVerbose );
 
     return pSol;
 }
