@@ -273,6 +273,8 @@ struct Ses_Man_t_
     int          nSatCalls;             /* number of SAT calls */
     int          nUnsatCalls;           /* number of UNSAT calls */
     int          nUndefCalls;           /* number of UNDEF calls */
+
+    int          nDebugOffset;          /* for debug printing */
 };
 
 /***********************************************************************
@@ -1333,14 +1335,13 @@ static int Ses_ManCreateClauses( Ses_Man_t * pSes )
     }
 
     /* EXTRA stair decomposition */
-    if ( Vec_IntSize( pSes->vStairDecVars ) )
+    if (Vec_IntSize( pSes->vStairDecVars ) )
     {
         Vec_IntForEachEntry( pSes->vStairDecVars, j, i )
         {
-            if ( pSes->nGates - 2 - i < 0 )
+            if ( pSes->nGates - 2 - i < j )
             {
-                Vec_IntFree( vLits );
-                return 0;
+                continue;
             }
             Vec_IntPush( pSes->vAssump, Abc_Var2Lit( Ses_ManSelectVar( pSes, pSes->nGates - 1 - i, j, pSes->nSpecVars + pSes->nGates - 2 - i ), 0 ) );
 
@@ -2195,14 +2196,121 @@ static int Ses_ManFindNetworkExact( Ses_Man_t * pSes, int nGates )
     return 2; /* UNSAT continue */
 }
 
-static int Ses_ManFindMinimumSize( Ses_Man_t * pSes )
+// is there a network for a given number of gates
+/* return: (2: continue, 1: found, 0: gave up) */
+static int Ses_ManFindNetworkExactCEGAR( Ses_Man_t * pSes, int nGates, char ** pSol )
 {
-    int nGates = pSes->nStartGates, fRes, fSat, nOffset = 0, fFirst = 1, iMint;
-    char * pSol;
+    int fFirst = 0, fRes, iMint, fSat;
     word pTruth[4];
+
+    /* debug */
+    Abc_DebugErase( pSes->nDebugOffset + ( nGates > 10 ? 5 : 4 ), pSes->fVeryVerbose && !fFirst );
+    Abc_DebugPrintIntInt( " (%d/%d)", nGates, pSes->nMaxGates, pSes->fVeryVerbose );
+
+    /* do #gates and max depth allow for a network? */
+    if ( !Ses_CheckGatesConsistency( pSes, nGates ) )
+        return 0;
+
+    fRes = Ses_ManFindNetworkExact( pSes, nGates );
+    if ( fRes != 1 ) return fRes;
+
+    while ( true )
+    {
+        *pSol = Ses_ManExtractSolution( pSes );
+        Abc_TtXor( pTruth, Ses_ManDeriveTruth( pSes, *pSol, 0 ), pSes->pSpec, pSes->nSpecWords, 0 );
+        iMint = Abc_TtFindFirstBit( pTruth, pSes->nSpecVars );
+
+        if ( iMint == -1 )
+        {
+            assert( fRes == 1 );
+            return 1;
+        }
+        ABC_FREE( *pSol );
+
+        //Abc_TtSetBit( pSes->pTtValues, iMint - 1 );
+        if ( !Ses_ManCreateTruthTableClause( pSes, iMint - 1 ) ) /* UNSAT, continue */
+            return 2;
+
+        if ( ( fSat = Ses_ManSolve( pSes ) ) == 1 ) continue;
+
+        return ( fSat == 2 ) ? 0 : 2;
+    }
+}
+
+// find minimum size by increasing the number of gates
+static char * Ses_ManFindMinimumSizeBottomUp( Ses_Man_t * pSes )
+{
+    int nGates = pSes->nStartGates, fRes;
+    char * pSol = NULL;
 
     /* store whether call was unsuccessful due to resource limit and not due to impossible constraint */
     pSes->fHitResLimit = 0;
+
+    pSes->nDebugOffset = pSes->nMaxGates >= 10 ? 3 : 2;
+
+    /* adjust number of gates if there is a stair decomposition */
+    if ( Vec_IntSize( pSes->vStairDecVars ) )
+        nGates = Abc_MaxInt( nGates, Vec_IntSize( pSes->vStairDecVars ) - 1 );
+
+    //Ses_ManStoreDepthAndArrivalTimes( pSes );
+
+    memset( pSes->pTtValues, 0, 4 * sizeof( word ) );
+
+    while ( true )
+    {
+        ++nGates;
+
+        fRes = Ses_ManFindNetworkExactCEGAR( pSes, nGates, &pSol );
+
+        printf( "fRes = %d\n", fRes );
+
+        if ( fRes == 0 )
+        {
+            pSes->fHitResLimit = 1;
+            break;
+        }
+        else if ( fRes == 1 )
+            break;
+    }
+
+    Abc_DebugErase( pSes->nDebugOffset + ( nGates >= 10 ? 5 : 4 ), pSes->fVeryVerbose );
+
+    return fRes ? pSol : NULL;
+}
+
+static char * Ses_ManFindMinimumSizeTopDown( Ses_Man_t * pSes, int nMinGates )
+{
+    int nGates = pSes->nMaxGates, fRes;
+    char * pSol = NULL, * pSol2 = NULL;
+
+    pSes->fHitResLimit = 0;
+
+    while ( true )
+    {
+        fRes = Ses_ManFindNetworkExactCEGAR( pSes, nGates, &pSol2 );
+
+        if ( fRes == 0 )
+        {
+            pSes->fHitResLimit = 1;
+            break;
+        }
+        else if ( fRes == 2 )
+            break;
+
+        pSol = pSol2;
+
+        if ( nGates == nMinGates )
+            break;
+
+        --nGates;
+    }
+
+    return pSol;
+}
+
+static char * Ses_ManFindMinimumSize( Ses_Man_t * pSes )
+{
+    char * pSol;
 
     /* do the arrival times allow for a network? */
     if ( pSes->nMaxDepth != -1 && pSes->pArrTimeProfile )
@@ -2210,119 +2318,16 @@ static int Ses_ManFindMinimumSize( Ses_Man_t * pSes )
         if ( !Ses_CheckDepthConsistency( pSes ) )
             return 0;
         Ses_ManComputeMaxGates( pSes );
-        nOffset = pSes->nMaxGates >= 10 ? 3 : 2;
     }
 
-    if ( Vec_IntSize( pSes->vStairDecVars ) )
-        nGates = Abc_MaxInt( nGates, Vec_IntSize( pSes->vStairDecVars ) - 1 );
+    pSol = Ses_ManFindMinimumSizeBottomUp( pSes );
 
-    //Ses_ManStoreDepthAndArrivalTimes( pSes );
-
-    //memset( pSes->pTtValues, (word)~0, 4 * sizeof( word ) );
-    memset( pSes->pTtValues, 0, 4 * sizeof( word ) );
-
-    while ( true )
-    {
-        ++nGates;
-
-        Abc_DebugErase( nOffset + ( nGates > 10 ? 5 : 4 ), pSes->fVeryVerbose && !fFirst );
-        Abc_DebugPrintIntInt( " (%d/%d)", nGates, pSes->nMaxGates, pSes->fVeryVerbose );
-        fFirst = 0;
-
-        //Ses_AdjustDepthAndArrivalTimes( pSes, nGates );
-
-        /* do #gates and max depth allow for a network? */
-        if ( !Ses_CheckGatesConsistency( pSes, nGates ) )
-        {
-            fRes = 0;
-            break;
-        }
-
-        fRes = Ses_ManFindNetworkExact( pSes, nGates );
-        if ( fRes == 2 ) continue; /* unsat */
-        if ( fRes == 0 ) break; /* undef */
-
-        while ( true )
-        {
-            pSol = Ses_ManExtractSolution( pSes );
-            Abc_TtXor( pTruth, Ses_ManDeriveTruth( pSes, pSol, 0 ), pSes->pSpec, pSes->nSpecWords, 0 );
-            ABC_FREE( pSol );
-            iMint = Abc_TtFindFirstBit( pTruth, pSes->nSpecVars );
-
-            if ( iMint == -1 )
-            {
-                assert( fRes == 1 );
-                break;
-            }
-
-            assert( iMint );
-            //Abc_TtSetBit( pSes->pTtValues, iMint - 1 );
-            if ( !Ses_ManCreateTruthTableClause( pSes, iMint - 1 ) ) /* UNSAT, continue */
-            {
-                fRes = 2;
-                break;
-            }
-
-            if ( ( fSat = Ses_ManSolve( pSes ) ) == 1 ) continue;
-
-            if ( fSat == 0 )
-                fRes = 2;
-            else if ( fSat == 2 )
-            {
-                pSes->fHitResLimit = 1;
-                fRes = 0;
-            }
-
-            break;
-        }
-
-        if ( fRes != 2 )
-            break;
-
-        /* /\* solve *\/ */
-        /* timeStart = Abc_Clock(); */
-        /* Ses_ManCreateVars( pSes, nGates ); */
-        /* f = Ses_ManCreateDepthClauses( pSes ); */
-        /* pSes->timeInstance += ( Abc_Clock() - timeStart ); */
-        /* if ( !f ) continue; /\* proven UNSAT while creating clauses *\/ */
-
-        /* /\* first solve *\/ */
-        /* fSat = Ses_ManSolve( pSes ); */
-        /* if ( fSat == 0 ) */
-        /*     continue; /\* UNSAT, continue with next # of gates *\/ */
-        /* else if ( fSat == 2 ) */
-        /* { */
-        /*     pSes->fHitResLimit = 1; */
-        /*     fRes = 0; */
-        /*     break; */
-        /* } */
-
-        /* timeStart = Abc_Clock(); */
-        /* f = Ses_ManCreateClauses( pSes ); */
-        /* pSes->timeInstance += ( Abc_Clock() - timeStart ); */
-        /* if ( !f ) continue; /\* proven UNSAT while creating clauses *\/ */
-
-        /* fSat = Ses_ManSolve( pSes ); */
-        /* if ( fSat == 1 ) */
-        /* { */
-        /*     fRes = 1; */
-        /*     break; */
-        /* } */
-        /* else if ( fSat == 2 ) */
-        /* { */
-        /*     pSes->fHitResLimit = 1; */
-        /*     fRes = 0; */
-        /*     break; */
-        /* } */
-
-        /* UNSAT => continue */
-    }
-
-    //Ses_ManRestoreDepthAndArrivalTimes( pSes );
-
-    Abc_DebugErase( nOffset + ( nGates >= 10 ? 5 : 4 ), pSes->fVeryVerbose );
-    return fRes;
+    if ( !pSol && pSes->fHitResLimit && pSes->nGates != pSes->nMaxGates )
+        return Ses_ManFindMinimumSizeTopDown( pSes, pSes->nGates + 1 );
+    else
+        return pSol;
 }
+
 
 /**Function*************************************************************
 
@@ -2356,9 +2361,8 @@ Abc_Ntk_t * Abc_NtkFindExact( word * pTruth, int nVars, int nFunc, int nMaxDepth
     if ( fVerbose )
         Ses_ManPrintFuncs( pSes );
 
-    if ( Ses_ManFindMinimumSize( pSes ) )
+    if ( ( pSol = Ses_ManFindMinimumSize( pSes ) ) != NULL )
     {
-        pSol = Ses_ManExtractSolution( pSes );
         pNtk = Ses_ManExtractNtk( pSol );
         ABC_FREE( pSol );
     }
@@ -2395,9 +2399,8 @@ Gia_Man_t * Gia_ManFindExact( word * pTruth, int nVars, int nFunc, int nMaxDepth
     if ( fVerbose )
         Ses_ManPrintFuncs( pSes );
 
-    if ( Ses_ManFindMinimumSize( pSes ) )
+    if ( ( pSol = Ses_ManFindMinimumSize( pSes ) ) != NULL )
     {
-        pSol = Ses_ManExtractSolution( pSes );
         pGia = Ses_ManExtractGia( pSol );
         ABC_FREE( pSol );
     }
@@ -2645,7 +2648,7 @@ int Abc_ExactDelayCost( word * pTruth, int nVars, int * pArrTimeProfile, char * 
 {
     int i, nMaxArrival, nDelta, l;
     Ses_Man_t * pSes = NULL;
-    char * pSol = NULL, * p;
+    char * pSol = NULL, * pSol2 = NULL, * p;
     int pNormalArrTime[8];
     int Delay = ABC_INFINITY, nMaxDepth, fResLimit;
     abctime timeStart = Abc_Clock(), timeStartExact;
@@ -2730,7 +2733,7 @@ int Abc_ExactDelayCost( word * pTruth, int nVars, int * pArrTimeProfile, char * 
                 fflush( stdout );
             }
 
-            if ( Ses_ManFindMinimumSize( pSes ) )
+            if ( ( pSol2 = Ses_ManFindMinimumSize( pSes ) ) != NULL )
             {
                 if ( s_pSesStore->fVeryVerbose )
                 {
@@ -2739,7 +2742,7 @@ int Abc_ExactDelayCost( word * pTruth, int nVars, int * pArrTimeProfile, char * 
                 }
                 if ( pSol )
                     ABC_FREE( pSol );
-                pSol = Ses_ManExtractSolution( pSes );
+                pSol = pSol2;
                 pSes->nMaxDepth--;
             }
             else
