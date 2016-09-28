@@ -52,6 +52,7 @@ struct Pdr_Par_t_
     int fTwoRounds;       // use two rounds for generalization
     int fMonoCnf;         // monolythic CNF
     int fDumpInv;         // dump inductive invariant
+    int fUseSupp;         // use support in the invariant
     int fShortest;        // forces bug traces to be shortest
     int fShiftStart;      // allows clause pushing to start from an intermediate frame
     int fReuseProofOblig; // reuses proof-obligationgs in the last timeframe
