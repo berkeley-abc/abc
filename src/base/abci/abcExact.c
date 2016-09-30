@@ -841,7 +841,7 @@ static void Ses_StoreRead( Ses_Store_t * pStore, const char * pFilename, int fSy
 
     value = fread( &nEntries, sizeof( unsigned long ), 1, pFile );
 
-    for ( i = 0; i < nEntries; ++i )
+    for ( i = 0; i < (int)nEntries; ++i )
     {
         value = fread( pTruth, sizeof( word ), 4, pFile );
         value = fread( &nVars, sizeof( int ), 1, pFile );
@@ -1018,7 +1018,7 @@ static word * Ses_ManDeriveTruth( Ses_Man_t * pSes, char * pSol, int fInvert )
 {
     int i, f, j, k, w, nGates = pSol[ABC_EXACT_SOL_NGATES];
     char * p;
-    word * pTruth, * pTruth0, * pTruth1;
+    word * pTruth = NULL, * pTruth0, * pTruth1;
     assert( pSol[ABC_EXACT_SOL_NFUNC] == 1 );
 
     p = pSol + 3;

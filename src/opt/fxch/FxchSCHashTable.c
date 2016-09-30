@@ -217,7 +217,7 @@ int Fxch_SCHashTableInsert( Fxch_SCHashTable_t* pSCHashTable,
         int* pOutputID1 = Vec_IntEntryP( pSCHashTable->pFxchMan->vOutputID, pNewEntry->iCube * pSCHashTable->pFxchMan->nSizeOutputID );
         int Result = 0;
         int Base;
-        int iNewDiv, i, z;
+        int iNewDiv = -1, i, z;
 
         if ( !Fxch_SCHashTableEntryCompare( pSCHashTable, vCubes, pEntry, pNewEntry ) )
             continue;
@@ -290,14 +290,14 @@ int Fxch_SCHashTableRemove( Fxch_SCHashTable_t* pSCHashTable,
         if ( pBin->vSCData[iEntry].iCube == iCube )
             break;
 
-    assert( ( iEntry != pBin->Size ) && ( pBin->Size != 0 ) );
+    assert( ( iEntry != (int)pBin->Size ) && ( pBin->Size != 0 ) );
 
     pEntry = &( pBin->vSCData[iEntry] );
     for ( idx = 0; idx < (int)pBin->Size; idx++ )
     if ( idx != iEntry )
     {
         int Base,
-            iDiv;
+            iDiv = -1;
 
         int i, z,
             iCube0,
