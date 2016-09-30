@@ -60,6 +60,7 @@ void Pdr_ManSetDefaultParams( Pdr_Par_t * pPars )
     pPars->fTwoRounds     =       0;  // use two rounds for generalization
     pPars->fMonoCnf       =       0;  // monolythic CNF
     pPars->fDumpInv       =       0;  // dump inductive invariant
+    pPars->fUseSupp       =       1;  // using support variables in the invariant
     pPars->fShortest      =       0;  // forces bug traces to be shortest
     pPars->fUsePropOut    =       1;  // use property output
     pPars->fVerbose       =       0;  // verbose output
