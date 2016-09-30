@@ -981,12 +981,25 @@ Wlc_Ntk_t * Smt_PrsBuild2( Smt_Prs_t * p )
                 assert( !strcmp("Bool", Smt_VecEntryName(p, vFans, 3)) );
                 Range = 1;
                 pValue = Smt_VecEntryName(p, vFans, 4);
-                if ( !strcmp("false", pValue) )
-                    pValue = "#b0";
-                else if ( !strcmp("true", pValue) )
-                    pValue = "#b1";
-                else assert( 0 );
-                Status = Smt_PrsBuildConstant( pNtk, pValue, Range, pName );
+                if ( pValue != NULL )
+                {
+                    if ( !strcmp("false", pValue) )
+                        pValue = "#b0";
+                    else if ( !strcmp("true", pValue) )
+                        pValue = "#b1";
+                    else assert( 0 );
+                    Status = Smt_PrsBuildConstant( pNtk, pValue, Range, pName );
+                }
+                else
+                {
+                    iObj = Smt_PrsBuild2_rec( pNtk, p, Vec_IntEntry(vFans, 4), -1, pName );
+                    if ( iObj == 0 )
+                    {
+                        Wlc_NtkFree( pNtk ); pNtk = NULL;
+                        goto finish;
+                    }
+                    continue;
+                }
             }
             else
             {
