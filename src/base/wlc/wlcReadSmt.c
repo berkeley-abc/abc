@@ -136,7 +136,7 @@ static inline int Smt_StrToType( char * pName, int * pfSigned )
     else if ( !strcmp(pName, "bvlshr") )
         Type = WLC_OBJ_SHIFT_R;       // 09: shift right
     else if ( !strcmp(pName, "bvashr") )
-        Type = WLC_OBJ_SHIFT_RA;      // 10: shift right (arithmetic)
+        Type = WLC_OBJ_SHIFT_RA , *pfSigned = 1;      // 10: shift right (arithmetic)
     else if ( !strcmp(pName, "bvshl") )
         Type = WLC_OBJ_SHIFT_L;       // 11: shift left
 //    else if ( !strcmp(pName, "") )
@@ -266,7 +266,7 @@ static inline int Smt_PrsReadType( Smt_Prs_t * p, int iSig, int * pfSigned, int 
   SeeAlso     []
 
 ***********************************************************************/
-static inline int Smt_PrsCreateNode( Wlc_Ntk_t * pNtk, int Type, int fSigned, int Range, Vec_Int_t * vFanins, char * pName )
+static inline int Smt_PrsCreateNodeOld( Wlc_Ntk_t * pNtk, int Type, int fSigned, int Range, Vec_Int_t * vFanins, char * pName )
 {
     char Buffer[100];
     int NameId, fFound;
@@ -290,6 +290,286 @@ static inline int Smt_PrsCreateNode( Wlc_Ntk_t * pNtk, int Type, int fSigned, in
     assert( iObj == NameId );
     return iObj;
 }
+static inline int Smt_PrsCreateNode( Wlc_Ntk_t * pNtk, int Type, int fSigned, int Range, Vec_Int_t * vFanins, char * pName )
+{
+    char Buffer[100];
+    char * pNameFanin;
+    int NameId, fFound, old_size, new_size;
+    int iObj, iFanin0, iFanin1; 
+    Vec_Int_t * v2Fanins = Vec_IntStartFull(2);
+    
+    assert( Type > 0 );
+    assert( Range >= 0 );
+    assert( fSigned >= 0 );
+    
+    // allow more than 2 fanins for specific operators
+    // if (Vec_IntSize(vFanins)<=2 || Type == WLC_OBJ_BIT_CONCAT || Type == WLC_OBJ_MUX )
+    // explicitely secify allowed multi operators
+    if (Vec_IntSize(vFanins)<=2 || 
+        !( Type == WLC_OBJ_BIT_AND ||       // 16:`` bitwise AND
+          Type == WLC_OBJ_BIT_OR ||        // 17: bitwise OR
+          Type == WLC_OBJ_BIT_XOR ||       // 18: bitwise XOR
+          Type == WLC_OBJ_BIT_NAND ||      // 19: bitwise AND
+          Type == WLC_OBJ_BIT_NOR ||       // 20: bitwise OR
+          Type == WLC_OBJ_BIT_NXOR ||      // 21: bitwise NXOR
+
+          Type == WLC_OBJ_LOGIC_IMPL ||    // 27: logic implication
+          Type == WLC_OBJ_LOGIC_AND ||     // 28: logic AND
+          Type == WLC_OBJ_LOGIC_OR ||      // 29: logic OR
+          Type == WLC_OBJ_LOGIC_XOR ||     // 30: logic XOR
+          Type == WLC_OBJ_COMP_EQU ||      // 31: compare equal
+          Type == WLC_OBJ_COMP_NOTEQU ||   // 32: compare not equal
+          Type == WLC_OBJ_COMP_LESS ||     // 33: compare less
+          Type == WLC_OBJ_COMP_MORE ||     // 34: compare more
+          Type == WLC_OBJ_COMP_LESSEQU ||  // 35: compare less or equal
+          Type == WLC_OBJ_COMP_MOREEQU || // 36: compare more or equal
+
+          Type == WLC_OBJ_ARI_ADD ||       // 43: arithmetic addition
+          Type == WLC_OBJ_ARI_SUB ||       // 44: arithmetic subtraction
+          Type == WLC_OBJ_ARI_MULTI ||     // 45: arithmetic multiplier
+          Type == WLC_OBJ_ARI_DIVIDE       // 46: arithmetic division 
+        ))
+        goto FINISHED_WITH_FANINS;
+
+    // we will be creating nodes backwards. this way we can pop from vFanins easier
+    while (Vec_IntSize(vFanins)>2)
+    {
+        // getting 2 fanins at a time
+        old_size = Vec_IntSize(vFanins);
+        iFanin0 = Vec_IntPop(vFanins);
+        iFanin1 = Vec_IntPop(vFanins);
+        
+        Vec_IntWriteEntry(v2Fanins,0,iFanin0);
+        Vec_IntWriteEntry(v2Fanins,1,iFanin1);
+        
+        iObj = Wlc_ObjAlloc( pNtk, Type, fSigned, Range-1, 0 );
+        sprintf( Buffer, "_n%d_", iObj );
+        pNameFanin = Buffer;
+        NameId = Abc_NamStrFindOrAdd( pNtk->pManName, pNameFanin, &fFound );
+        
+        assert( !fFound );
+        assert( iObj == NameId );
+        
+        Wlc_ObjAddFanins( pNtk, Wlc_NtkObj(pNtk, iObj), v2Fanins );
+        
+        // pushing the new node
+        Vec_IntPush(vFanins, iObj);
+        new_size = Vec_IntSize(vFanins);
+        assert(new_size<old_size);
+    }
+    
+FINISHED_WITH_FANINS:
+
+    Vec_IntFree(v2Fanins);
+    
+    // to deal with long shifts create extra bit select (ROTATE as well ??)
+    // this is a temporary hack
+    // basically we keep only 32 bits.
+    // bits 0 - 30 are kept same as original    
+    // bit 31 will be the reduction or of all bits from 31 to Range-1
+    if (Type == WLC_OBJ_SHIFT_R || Type == WLC_OBJ_SHIFT_RA || Type == WLC_OBJ_SHIFT_L)
+    {
+        int iFanin1 = Vec_IntEntry(vFanins,1);
+        int range1 = Wlc_ObjRange( Wlc_NtkObj(pNtk, iFanin1) );
+        int iObj1, iObj2, iObj3;
+        assert(Vec_IntSize(vFanins)>=2);
+        if (range1>32)
+        {
+            Vec_Int_t * newFanins = Vec_IntAlloc(10);
+            Vec_IntPush(newFanins,iFanin1);
+            Vec_IntPushTwo( newFanins, 30, 0 );
+            
+            iObj1 = Wlc_ObjAlloc( pNtk, WLC_OBJ_BIT_SELECT, 0, 30, 0 );
+            sprintf( Buffer, "_n%d_", iObj1 );
+            pNameFanin = Buffer;
+            NameId = Abc_NamStrFindOrAdd( pNtk->pManName, pNameFanin, &fFound );
+        
+            assert( !fFound );
+            assert( iObj1 == NameId );
+        
+            Wlc_ObjAddFanins( pNtk, Wlc_NtkObj(pNtk, iObj1), newFanins );
+            
+            // bit select of larger bits
+            Vec_IntPop(newFanins);
+            Vec_IntPop(newFanins);
+            Vec_IntPushTwo( newFanins, range1-1, 31 );
+            iObj2 = Wlc_ObjAlloc( pNtk, WLC_OBJ_BIT_SELECT, 0, range1-1, 31 );
+            sprintf( Buffer, "_n%d_", iObj2 );
+            pNameFanin = Buffer;
+            NameId = Abc_NamStrFindOrAdd( pNtk->pManName, pNameFanin, &fFound );
+        
+            assert( !fFound );
+            assert( iObj2 == NameId );
+        
+            Wlc_ObjAddFanins( pNtk, Wlc_NtkObj(pNtk, iObj2), newFanins );
+            
+            // reduction or
+            Vec_IntPop( newFanins );
+            Vec_IntPop( newFanins );
+            Vec_IntWriteEntry( newFanins, 0, iObj2 );
+            iObj3 = Wlc_ObjAlloc( pNtk, WLC_OBJ_REDUCT_OR, 0, 0, 0 );
+            sprintf( Buffer, "_n%d_", iObj3 );
+            pNameFanin = Buffer;
+            NameId = Abc_NamStrFindOrAdd( pNtk->pManName, pNameFanin, &fFound );
+        
+            assert( !fFound );
+            assert( iObj3 == NameId );
+        
+            Wlc_ObjAddFanins( pNtk, Wlc_NtkObj(pNtk, iObj3), newFanins );
+        
+            // concat all together
+            Vec_IntWriteEntry( newFanins, 0, iObj3 );
+            Vec_IntPush( newFanins, iObj1 );
+            iObj = Wlc_ObjAlloc( pNtk, WLC_OBJ_BIT_CONCAT, 0, 31, 0 );
+            sprintf( Buffer, "_n%d_", iObj );
+            pNameFanin = Buffer;
+            NameId = Abc_NamStrFindOrAdd( pNtk->pManName, pNameFanin, &fFound );
+        
+            assert( !fFound );
+            assert( iObj == NameId );
+        
+            Wlc_ObjAddFanins( pNtk, Wlc_NtkObj(pNtk, iObj), newFanins );
+        
+            // pushing the new node
+            Vec_IntWriteEntry(vFanins, 1, iObj);
+            Vec_IntFree(newFanins);
+        }
+    }
+    
+    iObj = Wlc_ObjAlloc( pNtk, Type, fSigned, Range-1, 0 );
+    
+    // add node's name
+    if ( pName == NULL )
+    {
+        sprintf( Buffer, "_n%d_", iObj );
+        pName = Buffer;
+    }
+    NameId = Abc_NamStrFindOrAdd( pNtk->pManName, pName, &fFound );
+    assert( !fFound );
+    assert( iObj == NameId );
+    
+    Wlc_ObjAddFanins( pNtk, Wlc_NtkObj(pNtk, iObj), vFanins );
+    if ( fSigned )
+    {
+        Wlc_NtkObj(pNtk, iObj)->Signed = fSigned;
+//        if ( Vec_IntSize(vFanins) > 0 )
+//            Wlc_NtkObj(pNtk, Vec_IntEntry(vFanins, 0))->Signed = fSigned;
+//        if ( Vec_IntSize(vFanins) > 1 )
+//            Wlc_NtkObj(pNtk, Vec_IntEntry(vFanins, 1))->Signed = fSigned;
+    }
+        
+    return iObj;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline char * Smt_GetHexFromDecimalString(char * pStr)
+{
+    int i,k=0, nDigits = strlen(pStr);
+    int digit, carry = 0;
+    int metNonZeroBit;
+    int nBits;
+    char * hex;
+    
+    Vec_Int_t * decimal = Vec_IntAlloc(nDigits);
+    Vec_Int_t * rev;
+    
+    for (i=0;i<nDigits;i++)
+        Vec_IntPush(decimal,pStr[i]-'0');
+
+    // firstly fill-in the reversed vector
+    rev = Vec_IntAlloc(10);
+    metNonZeroBit = 0;
+    while(k<nDigits)
+    {
+        digit = Vec_IntEntry(decimal,k);
+        if (!digit && !carry)
+        {
+            k++;
+            if (k>=nDigits)
+            {
+                if (!metNonZeroBit)
+                    break;
+                else
+                {
+                     Vec_IntPush(rev,carry);
+                    carry = 0;
+                    k = 0;
+                    metNonZeroBit = 0;
+                }
+            }
+            continue;
+        }
+        
+        if (!metNonZeroBit)
+            metNonZeroBit = 1;
+
+        digit = carry*10 + digit;
+        carry = digit%2;
+        digit = digit / 2;
+        Vec_IntWriteEntry(decimal,k,digit);
+
+        k++;
+        if (k>=nDigits)
+        {
+            Vec_IntPush(rev,carry);   
+            carry = 0; 
+            k = 0;
+            metNonZeroBit = 0;
+        }
+    }
+    
+    Vec_IntFree(decimal);
+    
+    if (!Vec_IntSize(rev))
+        Vec_IntPush(rev,0);
+
+    while (Vec_IntSize(rev)%4)
+        Vec_IntPush(rev,0);
+    
+    nBits = Vec_IntSize(rev);
+    hex = (char *)malloc((nBits/4+1)*sizeof(char));
+ 
+    for (k=0;k<nBits/4;k++)
+    {   
+        int number = Vec_IntEntry(rev,k*4) + 2*Vec_IntEntry(rev,k*4+1) + 4*Vec_IntEntry(rev,k*4+2) + 8*Vec_IntEntry(rev,k*4+3);
+        char letter;
+
+        switch(number) {
+            case 0: letter = '0'; break;
+            case 1: letter = '1'; break;
+            case 2: letter = '2'; break;
+            case 3: letter = '3'; break;
+            case 4: letter = '4'; break;
+            case 5: letter = '5'; break;
+            case 6: letter = '6'; break;
+            case 7: letter = '7'; break;
+            case 8: letter = '8'; break;
+            case 9: letter = '9'; break;
+            case 10: letter = 'a'; break;
+            case 11: letter = 'b'; break;
+            case 12: letter = 'c'; break;
+            case 13: letter = 'd'; break;
+            case 14: letter = 'e'; break;
+            case 15: letter = 'f'; break;
+            default: assert(0);
+        }
+        hex[nBits/4-1-k] = letter;
+    }
+    hex[nBits/4] = '\0';
+    Vec_IntFree(rev);
+
+    return hex;
+}            
 static inline int Smt_PrsBuildConstant( Wlc_Ntk_t * pNtk, char * pStr, int nBits, char * pName )
 {
     int i, nDigits, iObj;
@@ -298,6 +578,7 @@ static inline int Smt_PrsBuildConstant( Wlc_Ntk_t * pNtk, char * pStr, int nBits
     {
         if ( pStr[0] >= '0' && pStr[0] <= '9' )
         {
+            /*
             int w, nWords, Number = atoi( pStr );
             if ( nBits == -1 )
             {
@@ -307,6 +588,16 @@ static inline int Smt_PrsBuildConstant( Wlc_Ntk_t * pNtk, char * pStr, int nBits
             nWords = Abc_BitWordNum( nBits );
             for ( w = 0; w < nWords; w++ )
                 Vec_IntPush( vFanins, w ? 0 : Number );
+            */
+            
+            // convert decimal to hex to parse large constants
+            char * pHex = Smt_GetHexFromDecimalString(pStr);
+            
+            if ( nBits == -1 )
+                nBits = strlen(pHex)*4;
+
+            Vec_IntFill( vFanins, Abc_BitWordNum(nBits), 0 );
+            nDigits = Abc_TtReadHexNumber( (word *)Vec_IntArray(vFanins), pHex );
         }
         else
         {
@@ -836,6 +1127,7 @@ int Smt_PrsBuild2_rec( Wlc_Ntk_t * pNtk, Smt_Prs_t * p, int iNode, int iObjPrev,
                 int iObj = Abc_NamStrFind( pNtk->pManName, pStr0 );
                 if ( iObj )
                     return iObj;
+
                 Type0 = Smt_StrToType( pStr0, &fSigned );
                 if ( Type0 == 0 )
                     return 0;
@@ -853,6 +1145,7 @@ int Smt_PrsBuild2_rec( Wlc_Ntk_t * pNtk, Smt_Prs_t * p, int iNode, int iObjPrev,
                     }
                     Vec_IntPush( vFanins, iObj );
                 }
+
                 // find range
                 Range = 0;
                 if ( Type0 >= WLC_OBJ_LOGIC_NOT && Type0 <= WLC_OBJ_REDUCT_XOR )
