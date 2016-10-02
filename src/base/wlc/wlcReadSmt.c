@@ -648,6 +648,12 @@ int Smt_PrsBuildNode( Wlc_Ntk_t * pNtk, Smt_Prs_t * p, int iNode, int RangeOut, 
             // s3087
             int fFound, iObj = Abc_NamStrFindOrAdd( pNtk->pManName, pStr, &fFound );
             assert( fFound );
+            // create buffer if the name of the fanin has different name
+            if ( pName && strcmp(pStr, pName) )
+            {
+                Vec_IntFill( &p->vTempFans, 1, iObj );
+                iObj = Smt_PrsCreateNode( pNtk, WLC_OBJ_BUF, 0, RangeOut, &p->vTempFans, pName );
+            }
             return iObj;
         }
     }
@@ -1192,7 +1198,7 @@ Wlc_Ntk_t * Smt_PrsBuild2( Smt_Prs_t * p )
     Vec_Int_t * vFansRoot, * vFans, * vFans2; 
     Vec_Int_t * vAsserts = Vec_IntAlloc(100);
     int i, Root, Fan, iObj, NameId, Range, Status, nBits = 0;
-    char * pName, * pRange, * pValue;
+    char * pName, * pRange;
     // start network and create primary inputs
     pNtk = Wlc_NtkAlloc( p->pName, 1000 );
     pNtk->pManName = Abc_NamStart( 1000, 24 );
@@ -1272,27 +1278,13 @@ Wlc_Ntk_t * Smt_PrsBuild2( Smt_Prs_t * p )
             {
                 // (define-fun s_2 () Bool false)
                 assert( !strcmp("Bool", Smt_VecEntryName(p, vFans, 3)) );
-                Range = 1;
-                pValue = Smt_VecEntryName(p, vFans, 4);
-                if ( pValue != NULL )
+                iObj = Smt_PrsBuild2_rec( pNtk, p, Vec_IntEntry(vFans, 4), -1, pName );
+                if ( iObj == 0 )
                 {
-                    if ( !strcmp("false", pValue) )
-                        pValue = "#b0";
-                    else if ( !strcmp("true", pValue) )
-                        pValue = "#b1";
-                    else assert( 0 );
-                    Status = Smt_PrsBuildConstant( pNtk, pValue, Range, pName );
+                    Wlc_NtkFree( pNtk ); pNtk = NULL;
+                    goto finish;
                 }
-                else
-                {
-                    iObj = Smt_PrsBuild2_rec( pNtk, p, Vec_IntEntry(vFans, 4), -1, pName );
-                    if ( iObj == 0 )
-                    {
-                        Wlc_NtkFree( pNtk ); pNtk = NULL;
-                        goto finish;
-                    }
-                    continue;
-                }
+                continue;
             }
             else
             {
