@@ -161,7 +161,7 @@ int Abc_CommandReadWlc( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     // perform reading
     if ( !strcmp( Extra_FileNameExtension(pFileName), "v" )  )
-        pNtk = Wlc_ReadVer( pFileName );
+        pNtk = Wlc_ReadVer( pFileName, NULL );
     else if ( !strcmp( Extra_FileNameExtension(pFileName), "smt" ) || !strcmp( Extra_FileNameExtension(pFileName), "smt2" )  )
         pNtk = Wlc_ReadSmt( pFileName, fOldParser, fPrintTree );
     else

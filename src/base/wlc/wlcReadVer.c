@@ -75,14 +75,14 @@ static inline int          Wlc_PrsStrCmp( char * pStr, char * pWhat )   { return
   SeeAlso     []
 
 ***********************************************************************/
-Wlc_Prs_t * Wlc_PrsStart( char * pFileName )
+Wlc_Prs_t * Wlc_PrsStart( char * pFileName, char * pStr )
 {
     Wlc_Prs_t * p;
-    if ( !Extra_FileCheck( pFileName ) )
+    if ( pFileName && !Extra_FileCheck( pFileName ) )
         return NULL;
     p = ABC_CALLOC( Wlc_Prs_t, 1 );
     p->pFileName = pFileName;
-    p->pBuffer   = Extra_FileReadContents( pFileName );
+    p->pBuffer   = pStr ? Abc_UtilStrsav(pStr) : Extra_FileReadContents( pFileName );
     p->nFileSize = strlen(p->pBuffer);  assert( p->nFileSize > 0 );
     p->vLines    = Vec_IntAlloc( p->nFileSize / 50 );
     p->vStarts   = Vec_IntAlloc( p->nFileSize / 50 );
@@ -1248,12 +1248,14 @@ startword:
     }
     return 1;
 }
-Wlc_Ntk_t * Wlc_ReadVer( char * pFileName )
+Wlc_Ntk_t * Wlc_ReadVer( char * pFileName, char * pStr )
 {
     Wlc_Prs_t * p;
     Wlc_Ntk_t * pNtk = NULL;
+    // either file name or string is given
+    assert( (pFileName == NULL) != (pStr == NULL) );
     // start the parser 
-    p = Wlc_PrsStart( pFileName );
+    p = Wlc_PrsStart( pFileName, pStr );
     if ( p == NULL )
         return NULL;
     // detect lines
@@ -1286,7 +1288,7 @@ finish:
 void Io_ReadWordTest( char * pFileName )
 {
     Gia_Man_t * pNew;
-    Wlc_Ntk_t * pNtk = Wlc_ReadVer( pFileName );
+    Wlc_Ntk_t * pNtk = Wlc_ReadVer( pFileName, NULL );
     if ( pNtk == NULL )
         return;
     Wlc_WriteVer( pNtk, "test.v", 0, 0 );

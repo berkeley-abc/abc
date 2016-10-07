@@ -286,7 +286,7 @@ extern void           Wlc_NtkDeleteSim( Vec_Ptr_t * p );
 /*=== wlcStdin.c ========================================================*/
 extern int            Wlc_StdinProcessSmt( Abc_Frame_t * pAbc, char * pCmd );
 /*=== wlcReadVer.c ========================================================*/
-extern Wlc_Ntk_t *    Wlc_ReadVer( char * pFileName );
+extern Wlc_Ntk_t *    Wlc_ReadVer( char * pFileName, char * pStr );
 /*=== wlcWriteVer.c ========================================================*/
 extern void           Wlc_WriteVer( Wlc_Ntk_t * p, char * pFileName, int fAddCos, int fNoFlops );
 
