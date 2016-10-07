@@ -21,6 +21,7 @@
 #include "gia.h"
 #include "opt/sfm/sfm.h"
 #include "misc/tim/tim.h"
+#include "misc/util/utilTruth.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -61,7 +62,7 @@ Sfm_Ntk_t * Gia_ManExtractMfs( Gia_Man_t * p )
     Vec_Int_t * vArray;
     Vec_Int_t * vLeaves;
     Tim_Man_t * pManTime = (Tim_Man_t *)p->pManTime;
-    int nBoxes   = Gia_ManBoxNum(p);
+    int nBoxes   = Gia_ManBoxNum(p), nVars;
     int nRealPis = nBoxes ? Tim_ManPiNum(pManTime) : Gia_ManPiNum(p);
     int nRealPos = nBoxes ? Tim_ManPoNum(pManTime) : Gia_ManPoNum(p);
     int i, j, k, curCi, curCo, nBoxIns, nBoxOuts;
@@ -101,6 +102,8 @@ Sfm_Ntk_t * Gia_ManExtractMfs( Gia_Man_t * p )
         assert( Vec_IntSize(vLeaves) <= 6 );
         assert( Vec_IntSize(vLeaves) == Gia_ObjLutSize(p, Id) );
         uTruth = *Gia_ObjComputeTruthTableCut( p, Gia_ManObj(p, Id), vLeaves );
+        nVars = Abc_Tt6MinBase( &uTruth, Vec_IntArray(vArray), Vec_IntSize(vArray) );
+        Vec_IntShrink( vArray, nVars );
         Vec_WrdWriteEntry( vTruths, Counter, uTruth );
         Gia_ObjSetCopyArray( p, Id, Counter++ );
     }
@@ -147,18 +150,6 @@ Sfm_Ntk_t * Gia_ManExtractMfs( Gia_Man_t * p )
                     // CI corresponding to the box outputs
                     pObj = Gia_ManCi( p, curCi + j );
                     Counter = Gia_ObjCopyArray( p, Gia_ObjId(p, pObj) );
-                    // box output in the extra manager
-                    pObjExtra = Gia_ManCo( p->pAigExtra, curCi - nRealPis + j );
-                    // compute truth table
-                    if ( Gia_ObjFaninId0p(p->pAigExtra, pObjExtra) == 0 )
-                        uTruth = 0;
-                    else if ( Gia_ObjIsCi(Gia_ObjFanin0(pObjExtra)) )
-                        uTruth = uTruths6[Gia_ObjCioId(Gia_ObjFanin0(pObjExtra))];
-                    else
-                        uTruth = *Gia_ObjComputeTruthTableCut( p->pAigExtra, Gia_ObjFanin0(pObjExtra), vLeaves );
-                    uTruth = Gia_ObjFaninC0(pObjExtra) ? ~uTruth : uTruth;
-                    Vec_WrdWriteEntry( vTruths, Counter, uTruth );
-                    //Dau_DsdPrintFromTruth( &uTruth, Vec_IntSize(vLeaves) );
                     // add box inputs (POs of the AIG) as fanins
                     vArray = Vec_WecEntry( vFanins, Counter );
                     Vec_IntGrow( vArray, nBoxIns );
@@ -169,6 +160,20 @@ Sfm_Ntk_t * Gia_ManExtractMfs( Gia_Man_t * p )
                         Vec_IntPush( vArray, Gia_ObjCopyArray(p, iFan) );
                     }
                     Vec_StrWriteEntry( vFixed, Counter, (char)1 );
+                    // box output in the extra manager
+                    pObjExtra = Gia_ManCo( p->pAigExtra, curCi - nRealPis + j );
+                    // compute truth table
+                    if ( Gia_ObjFaninId0p(p->pAigExtra, pObjExtra) == 0 )
+                        uTruth = 0;
+                    else if ( Gia_ObjIsCi(Gia_ObjFanin0(pObjExtra)) )
+                        uTruth = uTruths6[Gia_ObjCioId(Gia_ObjFanin0(pObjExtra))];
+                    else
+                        uTruth = *Gia_ObjComputeTruthTableCut( p->pAigExtra, Gia_ObjFanin0(pObjExtra), vLeaves );
+                    uTruth = Gia_ObjFaninC0(pObjExtra) ? ~uTruth : uTruth;
+                    //Dau_DsdPrintFromTruth( &uTruth, Vec_IntSize(vArray) );
+                    nVars = Abc_Tt6MinBase( &uTruth, Vec_IntArray(vArray), Vec_IntSize(vArray) );
+                    Vec_IntShrink( vArray, nVars );
+                    Vec_WrdWriteEntry( vTruths, Counter, uTruth );
                 }
             }
             else // create buffers for black box inputs and outputs
@@ -346,6 +351,7 @@ Gia_Man_t * Gia_ManInsertMfs( Gia_Man_t * p, Sfm_Ntk_t * pNtk )
         }
         else // internal CO
         {
+            assert( pTruth[0] == uTruthVar || pTruth[0] == ~uTruthVar );
             iLitNew = Gia_ManAppendCo( pNew, Abc_LitNotCond(Vec_IntEntry(vLeaves, 0), pTruth[0] == ~uTruthVar) );
             //printf("Group = %d. po = %d\n", iGroup>>1, iMfsId );
         }
