@@ -163,13 +163,19 @@ void Sfm_NtkDfs_rec( Sfm_Ntk_t * p, int iNode, Vec_Int_t * vNodes, Vec_Wec_t * v
         Vec_IntPush( vNodes, iNode );
     }
 }
-Vec_Int_t * Sfm_NtkDfs( Sfm_Ntk_t * p, Vec_Wec_t * vGroups, Vec_Int_t * vGroupMap, Vec_Int_t * vBoxesLeft )
+Vec_Int_t * Sfm_NtkDfs( Sfm_Ntk_t * p, Vec_Wec_t * vGroups, Vec_Int_t * vGroupMap, Vec_Int_t * vBoxesLeft, int fAllBoxes )
 {
     Vec_Int_t * vNodes;
     int i;
     Vec_IntClear( vBoxesLeft );
     vNodes = Vec_IntAlloc( p->nObjs );
     Sfm_NtkIncrementTravId( p );
+    if ( fAllBoxes )
+    {
+        Vec_Int_t * vGroup;
+        Vec_WecForEachLevel( vGroups, vGroup, i )
+            Sfm_NtkDfs_rec( p, Vec_IntEntry(vGroup, 0), vNodes, vGroups, vGroupMap, vBoxesLeft );
+    }
     Sfm_NtkForEachPo( p, i )
         Sfm_NtkDfs_rec( p, Sfm_ObjFanin(p, i, 0), vNodes, vGroups, vGroupMap, vBoxesLeft );
     return vNodes;

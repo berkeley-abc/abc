@@ -54,6 +54,7 @@ void Sfm_ParSetDefault( Sfm_Par_t * pPars )
     pPars->fRrOnly      =    0;  // perform redundancy removal
     pPars->fArea        =    0;  // performs optimization for area
     pPars->fMoreEffort  =    0;  // performs high-affort minimization
+    pPars->fAllBoxes    =    0;  // enable preserving all boxes
     pPars->fVerbose     =    0;  // enable basic stats
     pPars->fVeryVerbose =    0;  // enable detailed stats
 }

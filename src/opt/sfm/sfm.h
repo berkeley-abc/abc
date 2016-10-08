@@ -67,6 +67,7 @@ struct Sfm_Par_t_
     int             fZeroCost;     // enable zero-cost replacement
     int             fUseSim;       // enable simulation
     int             fPrintDecs;    // enable printing decompositions
+    int             fAllBoxes;     // enable preserving all boxes
     int             fLibVerbose;   // enable library stats
     int             fDelayVerbose; // enable delay stats
     int             fVerbose;      // enable basic stats
@@ -93,7 +94,7 @@ extern word *       Sfm_NodeReadTruth( Sfm_Ntk_t * p, int i );
 extern int          Sfm_NodeReadFixed( Sfm_Ntk_t * p, int i );
 extern int          Sfm_NodeReadUsed( Sfm_Ntk_t * p, int i );
 /*=== sfmWin.c ==========================================================*/
-extern Vec_Int_t *  Sfm_NtkDfs( Sfm_Ntk_t * p, Vec_Wec_t * vGroups, Vec_Int_t * vGroupMap, Vec_Int_t * vBoxesLeft );
+extern Vec_Int_t *  Sfm_NtkDfs( Sfm_Ntk_t * p, Vec_Wec_t * vGroups, Vec_Int_t * vGroupMap, Vec_Int_t * vBoxesLeft, int fAllBoxes );
 
 
 ABC_NAMESPACE_HEADER_END

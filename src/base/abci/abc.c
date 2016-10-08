@@ -40612,7 +40612,7 @@ int Abc_CommandAbc9Mfs( Abc_Frame_t * pAbc, int argc, char ** argv )
     pPars->nDepthMax   =  100;
     pPars->nWinSizeMax = 2000; 
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "WFDMLCNdaevwh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "WFDMLCNdaebvwh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -40702,6 +40702,9 @@ int Abc_CommandAbc9Mfs( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'e':
             pPars->fMoreEffort ^= 1;
             break;
+        case 'b':
+            pPars->fAllBoxes ^= 1;
+            break;
         case 'v':
             pPars->fVerbose ^= 1;
             break;
@@ -40734,7 +40737,7 @@ int Abc_CommandAbc9Mfs( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &mfs [-WFDMLCN <num>] [-daevwh]\n" );
+    Abc_Print( -2, "usage: &mfs [-WFDMLCN <num>] [-daebvwh]\n" );
     Abc_Print( -2, "\t           performs don't-care-based optimization of logic networks\n" );
     Abc_Print( -2, "\t-W <num> : the number of levels in the TFO cone (0 <= num) [default = %d]\n",             pPars->nTfoLevMax );
     Abc_Print( -2, "\t-F <num> : the max number of fanouts to skip (1 <= num) [default = %d]\n",                pPars->nFanoutMax );
@@ -40746,6 +40749,7 @@ usage:
     Abc_Print( -2, "\t-d       : toggle performing redundancy removal [default = %s]\n",                        pPars->fRrOnly? "yes": "no" );
     Abc_Print( -2, "\t-a       : toggle minimizing area or area+edges [default = %s]\n",                        pPars->fArea? "area": "area+edges" );
     Abc_Print( -2, "\t-e       : toggle high-effort resubstitution [default = %s]\n",                           pPars->fMoreEffort? "yes": "no" );
+    Abc_Print( -2, "\t-b       : toggle preserving all while boxes [default = %s]\n",                           pPars->fAllBoxes? "yes": "no" );
     Abc_Print( -2, "\t-v       : toggle printing optimization summary [default = %s]\n",                        pPars->fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-w       : toggle printing detailed stats for each node [default = %s]\n",                pPars->fVeryVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h       : print the command usage\n");

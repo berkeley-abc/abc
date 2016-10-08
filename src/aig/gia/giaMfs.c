@@ -239,7 +239,7 @@ Sfm_Ntk_t * Gia_ManExtractMfs( Gia_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-Gia_Man_t * Gia_ManInsertMfs( Gia_Man_t * p, Sfm_Ntk_t * pNtk )
+Gia_Man_t * Gia_ManInsertMfs( Gia_Man_t * p, Sfm_Ntk_t * pNtk, int fAllBoxes )
 {
     extern int Gia_ManFromIfLogicCreateLut( Gia_Man_t * pNew, word * pRes, Vec_Int_t * vLeaves, Vec_Int_t * vCover, Vec_Int_t * vMapping, Vec_Int_t * vMapping2 );
     Gia_Man_t * pNew;  Gia_Obj_t * pObj;
@@ -294,7 +294,7 @@ Gia_Man_t * Gia_ManInsertMfs( Gia_Man_t * p, Sfm_Ntk_t * pNtk )
 
     // collect nodes in the given order
     vBoxesLeft = Vec_IntAlloc( nBoxes );
-    vMfsTopo = Sfm_NtkDfs( pNtk, vGroups, vGroupMap, vBoxesLeft );
+    vMfsTopo = Sfm_NtkDfs( pNtk, vGroups, vGroupMap, vBoxesLeft, fAllBoxes );
     assert( Vec_IntSize(vBoxesLeft) <= nBoxes );
     assert( Vec_IntSize(vMfsTopo) > 0 );
 
@@ -458,7 +458,7 @@ Gia_Man_t * Gia_ManPerformMfs( Gia_Man_t * p, Sfm_Par_t * pPars )
     }
     else
     {
-        pNew = Gia_ManInsertMfs( p, pNtk );
+        pNew = Gia_ManInsertMfs( p, pNtk, pPars->fAllBoxes );
         if( pPars->fVerbose )
             Abc_Print( 1, "The network has %d nodes changed by \"&mfs\".\n", nNodes );
         // check integrity
