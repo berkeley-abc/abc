@@ -70,7 +70,8 @@ Vec_Int_t * Gia_PolynAddHaRoots( Gia_Man_t * pGia )
         Vec_IntPush( vNewOuts, Abc_Lit2Var(iRoot) );
     }
     Vec_IntFree( vXorPairs );
-    printf( "On top of %d COs, created %d new adder outputs.\n", Gia_ManCoNum(pGia), Vec_IntSize(vNewOuts) );
+    Vec_IntReverseOrder( vNewOuts );
+//    Vec_IntPop( vNewOuts );
     return vNewOuts;
 }
 
@@ -220,15 +221,28 @@ Vec_Int_t * Gia_PolynCoreCollect( Gia_Man_t * pGia, Vec_Int_t * vAdds, Vec_Int_t
   SeeAlso     []
 
 ***********************************************************************/
-void Gia_PolynCorePrintCones( Gia_Man_t * pGia, Vec_Int_t * vLeaves )
+void Gia_PolynCorePrintCones( Gia_Man_t * pGia, Vec_Int_t * vLeaves, int fVerbose )
 {
     int i, iObj;
-    Vec_IntForEachEntry( vLeaves, iObj, i )
+    if ( fVerbose )
     {
-        printf( "%4d : ", i );
-        printf( "Supp = %3d  ", Gia_ManSuppSize(pGia, &iObj, 1) );
-        printf( "Cone = %3d  ", Gia_ManConeSize(pGia, &iObj, 1) );
-        printf( "\n" );
+        Vec_IntForEachEntry( vLeaves, iObj, i )
+        {
+            printf( "%4d : ", i );
+            printf( "Supp = %3d  ", Gia_ManSuppSize(pGia, &iObj, 1) );
+            printf( "Cone = %3d  ", Gia_ManConeSize(pGia, &iObj, 1) );
+            printf( "\n" );
+        }
+    }
+    else
+    {
+        int SuppMax = 0, ConeMax = 0;
+        Vec_IntForEachEntry( vLeaves, iObj, i )
+        {
+            SuppMax = Abc_MaxInt( SuppMax, Gia_ManSuppSize(pGia, &iObj, 1) );
+            ConeMax = Abc_MaxInt( ConeMax, Gia_ManConeSize(pGia, &iObj, 1) );
+        }
+        printf( "Remaining cones:  Count = %d.  SuppMax = %d.  ConeMax = %d.\n", Vec_IntSize(vLeaves), SuppMax, ConeMax );
     }
 }
 
@@ -243,7 +257,16 @@ void Gia_PolynCorePrintCones( Gia_Man_t * pGia, Vec_Int_t * vLeaves )
   SeeAlso     []
 
 ***********************************************************************/
-Gia_Man_t * Gia_PolynCoreDupTree( Gia_Man_t * p, Vec_Int_t * vAddCos, Vec_Int_t * vLeaves, Vec_Int_t * vNodes )
+int Gia_PolynCoreDupTreePlus_rec( Gia_Man_t * pNew, Gia_Man_t * p, Gia_Obj_t * pObj )
+{
+    if ( ~pObj->Value )
+        return pObj->Value;
+    assert( Gia_ObjIsAnd(pObj) );
+    Gia_PolynCoreDupTreePlus_rec( pNew, p, Gia_ObjFanin0(pObj) );
+    Gia_PolynCoreDupTreePlus_rec( pNew, p, Gia_ObjFanin1(pObj) );
+    return pObj->Value = Gia_ManAppendAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+} 
+Gia_Man_t * Gia_PolynCoreDupTree( Gia_Man_t * p, Vec_Int_t * vAddCos, Vec_Int_t * vLeaves, Vec_Int_t * vNodes, int fAddCones )
 {
     Gia_Man_t * pNew;
     Gia_Obj_t * pObj;
@@ -254,8 +277,18 @@ Gia_Man_t * Gia_PolynCoreDupTree( Gia_Man_t * p, Vec_Int_t * vAddCos, Vec_Int_t 
     pNew->pName = Abc_UtilStrsav( p->pName );
     pNew->pSpec = Abc_UtilStrsav( p->pSpec );
     Gia_ManConst0(p)->Value = 0;
-    Gia_ManForEachObjVec( vLeaves, p, pObj, i )
-        pObj->Value = Gia_ManAppendCi(pNew);
+    if ( fAddCones )
+    {
+        Gia_ManForEachPi( p, pObj, i )
+            pObj->Value = Gia_ManAppendCi(pNew);
+        Gia_ManForEachObjVec( vLeaves, p, pObj, i )
+            pObj->Value = Gia_PolynCoreDupTreePlus_rec( pNew, p, pObj );
+    }
+    else
+    {
+        Gia_ManForEachObjVec( vLeaves, p, pObj, i )
+            pObj->Value = Gia_ManAppendCi(pNew);
+    }
     Gia_ManForEachObjVec( vNodes, p, pObj, i )
         pObj->Value = Gia_ManAppendAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
     Gia_ManForEachCo( p, pObj, i )
@@ -277,7 +310,7 @@ Gia_Man_t * Gia_PolynCoreDupTree( Gia_Man_t * p, Vec_Int_t * vAddCos, Vec_Int_t 
   SeeAlso     []
 
 ***********************************************************************/
-Gia_Man_t * Gia_PolynCoreDetectTest_int( Gia_Man_t * pGia, Vec_Int_t * vAddCos )
+Gia_Man_t * Gia_PolynCoreDetectTest_int( Gia_Man_t * pGia, Vec_Int_t * vAddCos, int fAddCones, int fVerbose )
 {
     extern Vec_Int_t * Ree_ManComputeCuts( Gia_Man_t * p, int fVerbose );
     abctime clk = Abc_Clock();
@@ -289,9 +322,9 @@ Gia_Man_t * Gia_PolynCoreDetectTest_int( Gia_Man_t * pGia, Vec_Int_t * vAddCos )
         Vec_IntSize(vAdds), Vec_IntSize(vLeaves), Vec_IntSize(vRoots), Vec_IntSize(vNodes), Vec_IntSize(vOrder) );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
 
-    Gia_PolynCorePrintCones( pGia, vLeaves );
+    Gia_PolynCorePrintCones( pGia, vLeaves, fVerbose );
 
-    pNew = Gia_PolynCoreDupTree( pGia, vAddCos, vLeaves, vNodes );
+    pNew = Gia_PolynCoreDupTree( pGia, vAddCos, vLeaves, vNodes, fAddCones );
 
     Vec_IntFree( vAdds );
     Vec_IntFree( vLeaves );
@@ -300,10 +333,11 @@ Gia_Man_t * Gia_PolynCoreDetectTest_int( Gia_Man_t * pGia, Vec_Int_t * vAddCos )
     Vec_IntFree( vNodes );
     return pNew;
 }
-Gia_Man_t * Gia_PolynCoreDetectTest( Gia_Man_t * pGia )
+Gia_Man_t * Gia_PolynCoreDetectTest( Gia_Man_t * pGia, int fAddExtra, int fAddCones, int fVerbose )
 {
-    Vec_Int_t * vAddCos = Gia_PolynAddHaRoots( pGia );
-    Gia_Man_t * pNew = Gia_PolynCoreDetectTest_int( pGia, vAddCos );
+    Vec_Int_t * vAddCos = fAddExtra ? Gia_PolynAddHaRoots( pGia ) : Vec_IntAlloc(0);
+    Gia_Man_t * pNew = Gia_PolynCoreDetectTest_int( pGia, vAddCos, fAddCones, fVerbose );
+    printf( "On top of %d COs, created %d new adder outputs.\n", Gia_ManCoNum(pGia), Vec_IntSize(vAddCos) );
     Vec_IntFree( vAddCos );
     return pNew;
 }

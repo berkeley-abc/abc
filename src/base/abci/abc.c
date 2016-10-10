@@ -475,8 +475,8 @@ static int Abc_CommandAbc9Bmci               ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandAbc9PoXsim             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Demiter            ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Fadds              ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandAbc9Polyn              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9ATree              ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9Polyn              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Acec               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Esop               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Exorcism           ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -1116,8 +1116,8 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "ABC9",         "&poxsim",       Abc_CommandAbc9PoXsim,       0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&demiter",      Abc_CommandAbc9Demiter,      0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&fadds",        Abc_CommandAbc9Fadds,        0 );
-    Cmd_CommandAdd( pAbc, "ABC9",         "&polyn",        Abc_CommandAbc9Polyn,        0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&atree",        Abc_CommandAbc9ATree,        0 );
+    Cmd_CommandAdd( pAbc, "ABC9",         "&polyn",        Abc_CommandAbc9Polyn,        0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&acec",         Abc_CommandAbc9Acec,         0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&esop",         Abc_CommandAbc9Esop,         0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&exorcism",     Abc_CommandAbc9Exorcism,     0 );
@@ -40183,15 +40183,89 @@ usage:
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_CommandAbc9Polyn( Abc_Frame_t * pAbc, int argc, char ** argv )
+int Abc_CommandAbc9ATree( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    Vec_Int_t * vOrder = NULL;
-    int c, fSimple = 1, fSigned = 0, fVerbose = 0, fVeryVerbose = 0;
+    extern Gia_Man_t * Gia_PolynCoreDetectTest( Gia_Man_t * pGia, int fAddExtra, int fAddCones, int fVerbose );
+    Gia_Man_t * pTemp = NULL;
+    int c, fAddExtra = 0, fAddCones = 0, fVerbose = 0, fVeryVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "asvwh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "ecvwh" ) ) != EOF )
     {
         switch ( c )
         {
+        case 'e':
+            fAddExtra ^= 1;
+            break;
+        case 'c':
+            fAddCones ^= 1;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'w':
+            fVeryVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pAbc->pGia == NULL )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9Esop(): There is no AIG.\n" );
+        return 0;
+    }
+    pTemp = Gia_PolynCoreDetectTest( pAbc->pGia, fAddExtra, fAddCones, fVerbose );
+    Abc_FrameUpdateGia( pAbc, pTemp );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: &atree [-ecvwh]\n" );
+    Abc_Print( -2, "\t         extracts adder tree rooting in primary outputs\n" );
+    Abc_Print( -2, "\t-e     : toggles adding extra outputs [default = %s]\n",  fAddExtra? "yes": "no" );
+    Abc_Print( -2, "\t-c     : toggles duplicating complete AIG [default = %s]\n",  fAddCones? "yes": "no" );
+    Abc_Print( -2, "\t-v     : toggles printing verbose information [default = %s]\n",  fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-w     : toggles printing very verbose information [default = %s]\n",  fVeryVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc9Polyn( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern void Gia_PolynBuild2Test( Gia_Man_t * pGia, int nExtra, int fSigned, int fVerbose, int fVeryVerbose );
+    Vec_Int_t * vOrder = NULL;
+    int c, nExtra = -1, fOld = 0, fSimple = 1, fSigned = 0, fVerbose = 0, fVeryVerbose = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Noasvwh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'N':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-N\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nExtra = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nExtra < 0 )
+                goto usage;
+            break;
+        case 'o':
+            fOld ^= 1;
+            break;
         case 'a':
             fSimple ^= 1;
             break;
@@ -40215,67 +40289,23 @@ int Abc_CommandAbc9Polyn( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Abc_CommandAbc9Esop(): There is no AIG.\n" );
         return 0;
     }
-    vOrder = fSimple ? NULL : Gia_PolynReorder( pAbc->pGia, fVerbose, fVeryVerbose );
-    Gia_PolynBuild( pAbc->pGia, vOrder, fSigned, fVerbose, fVeryVerbose );
-    Vec_IntFreeP( &vOrder );
+    if ( fOld )
+    {
+        vOrder = fSimple ? NULL : Gia_PolynReorder( pAbc->pGia, fVerbose, fVeryVerbose );
+        Gia_PolynBuild( pAbc->pGia, vOrder, fSigned, fVerbose, fVeryVerbose );
+        Vec_IntFreeP( &vOrder );
+    }
+    else
+        Gia_PolynBuild2Test( pAbc->pGia, nExtra, fSigned, fVerbose, fVeryVerbose );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &polyn [-asvwh]\n" );
+    Abc_Print( -2, "usage: &polyn [-N num] [-oasvwh]\n" );
     Abc_Print( -2, "\t         derives algebraic polynomial from AIG\n" );
+    Abc_Print( -2, "\t-N num : the number of additional primary outputs (-1 = unused) [default = %d]\n", nExtra );
+    Abc_Print( -2, "\t-o     : toggles old computation [default = %s]\n",  fOld? "yes": "no" );
     Abc_Print( -2, "\t-a     : toggles simple computation [default = %s]\n",  fSimple? "yes": "no" );
     Abc_Print( -2, "\t-s     : toggles signed computation [default = %s]\n",  fSigned? "yes": "no" );
-    Abc_Print( -2, "\t-v     : toggles printing verbose information [default = %s]\n",  fVerbose? "yes": "no" );
-    Abc_Print( -2, "\t-w     : toggles printing very verbose information [default = %s]\n",  fVeryVerbose? "yes": "no" );
-    Abc_Print( -2, "\t-h     : print the command usage\n");
-    return 1;
-}
-
-/**Function*************************************************************
-
-  Synopsis    []
-
-  Description []
-
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Abc_CommandAbc9ATree( Abc_Frame_t * pAbc, int argc, char ** argv )
-{
-    extern Gia_Man_t * Gia_PolynCoreDetectTest( Gia_Man_t * pGia );
-    Gia_Man_t * pTemp = NULL;
-    int c, fVerbose = 0, fVeryVerbose = 0;
-    Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "vwh" ) ) != EOF )
-    {
-        switch ( c )
-        {
-        case 'v':
-            fVerbose ^= 1;
-            break;
-        case 'w':
-            fVeryVerbose ^= 1;
-            break;
-        case 'h':
-            goto usage;
-        default:
-            goto usage;
-        }
-    }
-    if ( pAbc->pGia == NULL )
-    {
-        Abc_Print( -1, "Abc_CommandAbc9Esop(): There is no AIG.\n" );
-        return 0;
-    }
-    pTemp = Gia_PolynCoreDetectTest( pAbc->pGia );
-    Abc_FrameUpdateGia( pAbc, pTemp );
-    return 0;
-
-usage:
-    Abc_Print( -2, "usage: &atree [-vwh]\n" );
-    Abc_Print( -2, "\t         extracts adder tree rooting in primary outputs\n" );
     Abc_Print( -2, "\t-v     : toggles printing verbose information [default = %s]\n",  fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-w     : toggles printing very verbose information [default = %s]\n",  fVeryVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");

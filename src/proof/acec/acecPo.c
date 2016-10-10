@@ -34,6 +34,57 @@ ABC_NAMESPACE_IMPL_START
 
 /**Function*************************************************************
 
+  Synopsis    [Checks that items are unique and in order.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline void Vec_IntPushOrderAbs( Vec_Int_t * p, int Entry )
+{
+    int i;
+    for ( i = 0; i < p->nSize; i++ )
+        assert( Entry != p->pArray[i] );
+    if ( p->nSize == p->nCap )
+    {
+        if ( p->nCap < 16 )
+            Vec_IntGrow( p, 16 );
+        else
+            Vec_IntGrow( p, 2 * p->nCap );
+    }
+    p->nSize++;
+    for ( i = p->nSize-2; i >= 0; i-- )
+        if ( Abc_AbsInt(p->pArray[i]) < Abc_AbsInt(Entry) )
+            p->pArray[i+1] = p->pArray[i];
+        else
+            break;
+    p->pArray[i+1] = Entry;
+}
+static inline void Vec_IntAppendMinusAbs( Vec_Int_t * vVec1, Vec_Int_t * vVec2, int fMinus )
+{
+    int Entry, i;
+    Vec_IntClear( vVec1 );
+    Vec_IntForEachEntry( vVec2, Entry, i )
+        Vec_IntPushOrderAbs( vVec1, fMinus ? -Entry : Entry );
+}
+static inline void Vec_IntCheckUniqueOrderAbs( Vec_Int_t * p )
+{
+    int i;
+    for ( i = 1; i < p->nSize; i++ )
+        assert( Abc_AbsInt(p->pArray[i-1]) > Abc_AbsInt(p->pArray[i]) );
+}
+static inline void Vec_IntCheckUniqueOrder( Vec_Int_t * p )
+{
+    int i;
+    for ( i = 1; i < p->nSize; i++ )
+        assert( p->pArray[i-1] < p->pArray[i] );
+}
+
+/**Function*************************************************************
+
   Synopsis    [Prints polynomial.]
 
   Description []
@@ -43,24 +94,27 @@ ABC_NAMESPACE_IMPL_START
   SeeAlso     []
 
 ***********************************************************************/
-void Gia_PolynPrintMono( Vec_Int_t * vConst, Vec_Int_t * vMono )
+void Gia_PolynPrintMono( Vec_Int_t * vConst, Vec_Int_t * vMono, int Prev )
 {
     int k, Entry;
+    printf( "%c ", Prev != Abc_AbsInt(Vec_IntEntry(vConst, 0)) ? '|' : ' ' );
     Vec_IntForEachEntry( vConst, Entry, k )
         printf( "%s2^%d", Entry < 0 ? "-" : "+", Abc_AbsInt(Entry)-1 );
     Vec_IntForEachEntry( vMono, Entry, k )
-        printf( " * %d", Entry );
+        printf( " * %d", Entry-1 );
     printf( "\n" );
 }
 void Gia_PolynPrint( Vec_Wec_t * vPolyn )
 {
-    Vec_Int_t * vConst, * vMono;  int i;
+    Vec_Int_t * vConst, * vMono;  
+    int i, Prev = -1;
     printf( "Polynomial with %d monomials:\n", Vec_WecSize(vPolyn)/2 );
     for ( i = 0; i < Vec_WecSize(vPolyn)/2; i++ )
     {
         vConst = Vec_WecEntry( vPolyn, 2*i+0 );
         vMono  = Vec_WecEntry( vPolyn, 2*i+1 );
-        Gia_PolynPrintMono( vConst, vMono );
+        Gia_PolynPrintMono( vConst, vMono, Prev );
+        Prev = Abc_AbsInt( Vec_IntEntry(vConst, 0) );
     }
 }
 void Gia_PolynPrintStats( Vec_Wec_t * vPolyn )
@@ -106,11 +160,17 @@ void Gia_PolynPrintStats( Vec_Wec_t * vPolyn )
   SeeAlso     []
 
 ***********************************************************************/
+int Gia_PolynGetResultCompare( int * p0, int * p1 )
+{
+    if ( p0[2] < p1[2] ) return -1;
+    if ( p0[2] > p1[2] ) return  1;
+    return 0;
+}
 Vec_Wec_t * Gia_PolynGetResult( Hsh_VecMan_t * pHashC, Hsh_VecMan_t * pHashM, Vec_Int_t * vCoefs )
 {
     Vec_Int_t * vClass, * vLevel, * vArray;
     Vec_Wec_t * vPolyn, * vSorted;
-    int i, k, iConst, iMono;
+    int i, k, iConst, iMono, iFirst;
     // find the largest 
     int nLargest = 0, nNonConst = 0;
     Vec_IntForEachEntry( vCoefs, iConst, iMono )
@@ -130,20 +190,26 @@ Vec_Wec_t * Gia_PolynGetResult( Hsh_VecMan_t * pHashC, Hsh_VecMan_t * pHashM, Ve
             continue;
         vArray = Hsh_VecReadEntry( pHashC, iConst );
         vLevel = Vec_WecEntry( vSorted, Abc_AbsInt(Vec_IntEntry(vArray, 0)) );
-        Vec_IntPushTwo( vLevel, iConst, iMono );
+        vArray = Hsh_VecReadEntry( pHashM, iMono );
+        iFirst = Vec_IntSize(vArray) ? Vec_IntEntry(vArray, 0) : -1;
+        Vec_IntPushThree( vLevel, iConst, iMono, iFirst );
     }
     // reload in the given order
     vPolyn = Vec_WecAlloc( 2*nNonConst );
     Vec_WecForEachLevel( vSorted, vClass, i )
     {
-        Vec_IntForEachEntryDouble( vClass, iConst, iMono, k )
+        // sort monomials by the index of the first variable
+        qsort( Vec_IntArray(vClass), Vec_IntSize(vClass)/3, 12, (int (*)(const void *, const void *))Gia_PolynGetResultCompare );
+        Vec_IntForEachEntryTriple( vClass, iConst, iMono, iFirst, k )
         {
             vArray = Hsh_VecReadEntry( pHashC, iConst );
+            Vec_IntCheckUniqueOrderAbs( vArray );
             vLevel = Vec_WecPushLevel( vPolyn );
             Vec_IntGrow( vLevel, Vec_IntSize(vArray) );
             Vec_IntAppend( vLevel, vArray );
 
             vArray = Hsh_VecReadEntry( pHashM, iMono );
+            Vec_IntCheckUniqueOrder( vArray );
             vLevel = Vec_WecPushLevel( vPolyn );
             Vec_IntGrow( vLevel, Vec_IntSize(vArray) );
             Vec_IntAppend( vLevel, vArray );
@@ -192,7 +258,7 @@ static inline void Gia_PolynMergeConstOne( Vec_Int_t * vConst, int New )
             return;
         }
     }
-    Vec_IntPushUniqueOrder( vConst, New );
+    Vec_IntPushOrderAbs( vConst, New );
 }
 static inline void Gia_PolynMergeConst( Vec_Int_t * vTempC, Hsh_VecMan_t * pHashC, int iConstAdd )
 {
@@ -203,6 +269,8 @@ static inline void Gia_PolynMergeConst( Vec_Int_t * vTempC, Hsh_VecMan_t * pHash
         Gia_PolynMergeConstOne( vTempC, New );
         vConstAdd = Hsh_VecReadEntry( pHashC, iConstAdd );
     }
+    Vec_IntCheckUniqueOrderAbs( vConstAdd );
+    //Vec_IntPrint( vConstAdd );
 }
 static inline int Gia_PolynBuildAdd( Hsh_VecMan_t * pHashC, Hsh_VecMan_t * pHashM, Vec_Int_t * vCoefs, 
                                      Vec_Wec_t * vLit2Mono, Vec_Int_t * vTempC, Vec_Int_t * vTempM )
@@ -263,15 +331,15 @@ static inline int Gia_PolynHandleOne( Hsh_VecMan_t * pHashC, Hsh_VecMan_t * pHas
     assert( status );
     // create new monomial
     if ( iLitNew0 == -1 && iLitNew1 == -1 )     // no new lit - the same const
-        Vec_IntAppendMinus( vTempC, vArrayC, 0 );
+        Vec_IntAppendMinusAbs( vTempC, vArrayC, 0 );
     else if ( iLitNew0 > -1 && iLitNew1 == -1 ) // one new lit - opposite const
     {
-        Vec_IntAppendMinus( vTempC, vArrayC, 1 );
+        Vec_IntAppendMinusAbs( vTempC, vArrayC, 1 );
         Vec_IntPushUniqueOrder( vTempM, iLitNew0 );
     }
     else if ( iLitNew0 > -1 && iLitNew1 > -1 )  // both new lit - the same const
     {
-        Vec_IntAppendMinus( vTempC, vArrayC, 0 );
+        Vec_IntAppendMinusAbs( vTempC, vArrayC, 0 );
         Vec_IntPushUniqueOrder( vTempM, iLitNew0 );
         Vec_IntPushUniqueOrder( vTempM, iLitNew1 );
     }
@@ -279,7 +347,7 @@ static inline int Gia_PolynHandleOne( Hsh_VecMan_t * pHashC, Hsh_VecMan_t * pHas
     return Gia_PolynBuildAdd( pHashC, pHashM, vCoefs, vLit2Mono, vTempC, vTempM );
 }
 
-Vec_Wec_t * Gia_PolynBuildNew2( Gia_Man_t * pGia, Vec_Int_t * vRootLits, Vec_Int_t * vLeaves, Vec_Int_t * vNodes, int fSigned, int fVerbose, int fVeryVerbose )
+Vec_Wec_t * Gia_PolynBuildNew2( Gia_Man_t * pGia, Vec_Int_t * vRootLits, int nExtra, Vec_Int_t * vLeaves, Vec_Int_t * vNodes, int fSigned, int fVerbose, int fVeryVerbose )
 {
     abctime clk = Abc_Clock();
     Vec_Wec_t * vPolyn;
@@ -299,7 +367,8 @@ Vec_Wec_t * Gia_PolynBuildNew2( Gia_Man_t * pGia, Vec_Int_t * vRootLits, Vec_Int
     // create output signature
     Vec_IntForEachEntry( vRootLits, iLit, i )
     {
-        Vec_IntFill( vTempC, 1, (fSigned && i == Vec_IntSize(vRootLits)-1) ? -i-1 : i+1 );
+        int Value = 1 + Abc_MinInt( i, Vec_IntSize(vRootLits)-nExtra );
+        Vec_IntFill( vTempC, 1, (fSigned && i == Vec_IntSize(vRootLits)-1-nExtra) ? -Value : Value );
         Vec_IntFill( vTempM, 1, iLit );
         nMonos += Gia_PolynBuildAdd( pHashC, pHashM, vCoefs, vLit2Mono, vTempC, vTempM );
         nBuilds++;
@@ -392,7 +461,7 @@ static inline void Gia_PolynPrepare4( Vec_Int_t * vTempC[4], Vec_Int_t * vTempM[
 {
     int i, k, Entry;
     for ( i = 0; i < 4; i++ )
-        Vec_IntAppendMinus( vTempC[i], vConst, i & 1 );
+        Vec_IntAppendMinusAbs( vTempC[i], vConst, i & 1 );
     for ( i = 0; i < 4; i++ )
         Vec_IntClear( vTempM[i] );
     Vec_IntForEachEntry( vMono, Entry, k )
@@ -405,7 +474,7 @@ static inline void Gia_PolynPrepare4( Vec_Int_t * vTempC[4], Vec_Int_t * vTempM[
     Vec_IntPushUniqueOrder( vTempM[3], iFan1 );
 }
 
-Vec_Wec_t * Gia_PolynBuildNew( Gia_Man_t * pGia, Vec_Int_t * vRootLits, Vec_Int_t * vLeaves, Vec_Int_t * vNodes, int fSigned, int fVerbose, int fVeryVerbose )
+Vec_Wec_t * Gia_PolynBuildNew( Gia_Man_t * pGia, Vec_Int_t * vRootLits, int nExtra, Vec_Int_t * vLeaves, Vec_Int_t * vNodes, int fSigned, int fVerbose, int fVeryVerbose )
 {
     abctime clk = Abc_Clock();
     Vec_Wec_t * vPolyn;
@@ -425,12 +494,17 @@ Vec_Wec_t * Gia_PolynBuildNew( Gia_Man_t * pGia, Vec_Int_t * vRootLits, Vec_Int_
     Hsh_VecManAdd( pHashM, vTempM[0] );
     Vec_IntPush( vCoefs, 0 );
 
+    if ( nExtra )
+        printf( "Assigning %d outputs from %d to %d rank %d.\n", nExtra, Vec_IntSize(vRootLits)-nExtra, Vec_IntSize(vRootLits)-1, Vec_IntSize(vRootLits)-nExtra );
+
     // create output signature
     Vec_IntForEachEntry( vRootLits, iLit, i )
     {
-        Gia_PolynPrepare2( vTempC, vTempM, Abc_Lit2Var(iLit), i+1 );
-        if ( fSigned && i == Vec_IntSize(vRootLits)-1 )
+        int Value = 1 + Abc_MinInt( i, Vec_IntSize(vRootLits)-nExtra );
+        Gia_PolynPrepare2( vTempC, vTempM, Abc_Lit2Var(iLit), Value );
+        if ( fSigned && i >= Vec_IntSize(vRootLits)-nExtra-1 )
         {
+            if ( fVeryVerbose ) printf( "Out %d : Negative   Value = %d\n", i, Value-1 );
             if ( Abc_LitIsCompl(iLit) )
             {
                 nMonos += Gia_PolynBuildAdd( pHashC, pHashM, vCoefs, vLit2Mono, vTempC[1], vTempM[0] );   // -C
@@ -442,6 +516,7 @@ Vec_Wec_t * Gia_PolynBuildNew( Gia_Man_t * pGia, Vec_Int_t * vRootLits, Vec_Int_
         }
         else 
         {
+            if ( fVeryVerbose ) printf( "Out %d : Positive   Value = %d\n", i, Value-1 );
             if ( Abc_LitIsCompl(iLit) )
             {
                 nMonos += Gia_PolynBuildAdd( pHashC, pHashM, vCoefs, vLit2Mono, vTempC[0], vTempM[0] );   //  C
@@ -526,7 +601,7 @@ Vec_Wec_t * Gia_PolynBuildNew( Gia_Man_t * pGia, Vec_Int_t * vRootLits, Vec_Int_
   SeeAlso     []
 
 ***********************************************************************/
-void Gia_PolynBuild2Test( Gia_Man_t * pGia )
+void Gia_PolynBuild2Test( Gia_Man_t * pGia, int nExtra, int fSigned, int fVerbose, int fVeryVerbose )
 {
     Vec_Wec_t * vPolyn;
     Vec_Int_t * vRootLits = Vec_IntAlloc( Gia_ManCoNum(pGia) );
@@ -534,6 +609,21 @@ void Gia_PolynBuild2Test( Gia_Man_t * pGia )
     Vec_Int_t * vNodes    = Vec_IntAlloc( Gia_ManAndNum(pGia) );
     Gia_Obj_t * pObj;
     int i;
+
+    // print logic level
+    if ( nExtra == -1 )
+    {
+        int LevelMax = -1, iMax = -1;
+        Gia_ManLevelNum( pGia );
+        Gia_ManForEachCo( pGia, pObj, i )
+            if ( LevelMax < Gia_ObjLevel(pGia, pObj) )
+            {
+                LevelMax = Gia_ObjLevel(pGia, pObj);
+                iMax = i;
+            }
+        nExtra = Gia_ManCoNum(pGia) - iMax - 1;
+        printf( "Determined the number of extra outputs to be %d.\n", nExtra );
+    }
 
     Gia_ManForEachObj( pGia, pObj, i )
         if ( Gia_ObjIsCi(pObj) )
@@ -543,10 +633,12 @@ void Gia_PolynBuild2Test( Gia_Man_t * pGia )
         else if ( Gia_ObjIsCo(pObj) )
             Vec_IntPush( vRootLits, Gia_ObjFaninLit0p(pGia, pObj) );
 
-    vPolyn = Gia_PolynBuildNew( pGia, vRootLits, vLeaves, vNodes, 0, 0, 0 );
-//    printf( "Polynomial has %d monomials.\n", Vec_WecSize(vPolyn)/2 );
-//    Gia_PolynPrintStats( vPolyn );
-//    Gia_PolynPrint( vPolyn );
+    vPolyn = Gia_PolynBuildNew( pGia, vRootLits, nExtra, vLeaves, vNodes, fSigned, fVerbose, fVeryVerbose );
+    //printf( "Polynomial has %d monomials.\n", Vec_WecSize(vPolyn)/2 );
+    if ( fVerbose || fVeryVerbose )
+        Gia_PolynPrintStats( vPolyn );
+    if ( fVeryVerbose )
+        Gia_PolynPrint( vPolyn );
     Vec_WecFree( vPolyn );
 
     Vec_IntFree( vRootLits );
