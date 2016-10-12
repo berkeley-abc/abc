@@ -371,12 +371,14 @@ static inline void Abc_SclWireLoadSelFree( SC_WireLoadSel * p )
     Vec_FltErase( &p->vAreaFrom );
     Vec_FltErase( &p->vAreaTo );
     Vec_PtrFreeData( &p->vWireLoadModel );
+    Vec_PtrErase( &p->vWireLoadModel );
     ABC_FREE( p->pName );
     ABC_FREE( p );
 }
 static inline void Abc_SclTableTemplFree( SC_TableTempl * p )
 {
     Vec_PtrFreeData( &p->vVars );
+    Vec_PtrErase( &p->vVars );
     Vec_VecErase( (Vec_Vec_t *)&p->vIndex );
     ABC_FREE( p->pName );
     ABC_FREE( p );
