@@ -132,7 +132,7 @@ void Gia_ManSuperCollectXor_rec( Gia_Man_t * p, Gia_Obj_t * pObj, int fStrict )
         (fStrict && Gia_ObjRefNum(p, pObj) > 1) || 
         Gia_ObjRefNum(p, pObj) > 2 || 
         (Gia_ObjRefNum(p, pObj) == 2 && (Gia_ObjRefNum(p, Gia_ObjFanin0(pObj)) == 1 || Gia_ObjRefNum(p, Gia_ObjFanin1(pObj)) == 1)) || 
-        Vec_IntSize(p->vSuper) > 10000 )
+        Vec_IntSize(p->vSuper) > 50 )
     {
         Vec_IntPush( p->vSuper, Gia_ObjToLit(p, pObj) );
         return;
@@ -148,7 +148,7 @@ void Gia_ManSuperCollectAnd_rec( Gia_Man_t * p, Gia_Obj_t * pObj, int fStrict )
         (fStrict && Gia_ObjRefNum(p, pObj) > 1) || 
         Gia_ObjRefNum(p, pObj) > 2 || 
         (Gia_ObjRefNum(p, pObj) == 2 && (Gia_ObjRefNum(p, Gia_ObjFanin0(pObj)) == 1 || Gia_ObjRefNum(p, Gia_ObjFanin1(pObj)) == 1)) || 
-        Vec_IntSize(p->vSuper) > 10000 )
+        Vec_IntSize(p->vSuper) > 50 )
     {
         Vec_IntPush( p->vSuper, Gia_ObjToLit(p, pObj) );
         return;
