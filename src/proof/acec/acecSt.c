@@ -313,7 +313,7 @@ void Acec_GenerateNpnTable()
     for ( i = 0; i < 256; i++ )
     {
         printf( "{" );
-        Extra_PrintHex( stdout, &Table[i], 3 );
+        Extra_PrintHex( stdout, (unsigned *)&Table[i], 3 );
         printf( ", " );
         // find the class
         for ( k = 0; k < nClasses; k++ )
@@ -324,7 +324,7 @@ void Acec_GenerateNpnTable()
         Map[i] = k;
         // print
         printf( "%2d}, // ", k );
-        Extra_PrintHex( stdout, &i, 3 );
+        Extra_PrintHex( stdout, (unsigned *)&i, 3 );
         printf( " = %3d\n", i );
     }
 }
