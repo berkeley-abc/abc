@@ -109,13 +109,15 @@ void Gia_ObjComputeTruthTable6Lut_rec( Gia_Man_t * p, int iObj, Vec_Wrd_t * vTem
 {
     word uTruth0, uTruth1;
     Gia_Obj_t * pObj = Gia_ManObj( p, iObj );
-    if ( !Gia_ObjIsAnd(pObj) )
+    if ( Gia_ObjIsTravIdCurrentId(p, iObj) )
         return;
+    Gia_ObjSetTravIdCurrentId(p, iObj);
+    assert( Gia_ObjIsAnd(pObj) );
     Gia_ObjComputeTruthTable6Lut_rec( p, Gia_ObjFaninId0p(p, pObj), vTemp );
     Gia_ObjComputeTruthTable6Lut_rec( p, Gia_ObjFaninId1p(p, pObj), vTemp );
-    uTruth0 = Vec_WrdEntry( vTemp, Gia_ObjFanin0(pObj)->Value );
+    uTruth0 = Vec_WrdEntry( vTemp, Gia_ObjFaninId0p(p, pObj) );
     uTruth0 = Gia_ObjFaninC0(pObj) ? ~uTruth0 : uTruth0;
-    uTruth1 = Vec_WrdEntry( vTemp, Gia_ObjFanin1(pObj)->Value );
+    uTruth1 = Vec_WrdEntry( vTemp, Gia_ObjFaninId1p(p, pObj) );
     uTruth1 = Gia_ObjFaninC1(pObj) ? ~uTruth1 : uTruth1;
     Vec_WrdWriteEntry( vTemp, iObj, uTruth0 & uTruth1 );
 }
@@ -124,8 +126,12 @@ word Gia_ObjComputeTruthTable6Lut( Gia_Man_t * p, int iObj, Vec_Wrd_t * vTemp )
     int i, Fanin;
     assert( Vec_WrdSize(vTemp) == Gia_ManObjNum(p) );
     assert( Gia_ObjIsLut(p, iObj) );
+    Gia_ManIncrementTravId( p );
     Gia_LutForEachFanin( p, iObj, Fanin, i )
+    {
+        Gia_ObjSetTravIdCurrentId( p, Fanin );
         Vec_WrdWriteEntry( vTemp, Fanin, s_Truth6[i] );
+    }
     assert( i <= 6 );
     Gia_ObjComputeTruthTable6Lut_rec( p, iObj, vTemp );
     return Vec_WrdEntry( vTemp, iObj );

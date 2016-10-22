@@ -5387,6 +5387,10 @@ SOURCE=.\src\proof\acec\acecRe.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\proof\acec\acecSt.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\proof\acec\acecUtil.c
 # End Source File
 # End Group

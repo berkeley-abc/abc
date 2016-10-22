@@ -28192,9 +28192,10 @@ int Abc_CommandAbc9MuxProfile( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     extern void Gia_ManMuxProfiling( Gia_Man_t * p );
     extern void Gia_ManProfileStructures( Gia_Man_t * p, int nLimit, int fVerbose );
-    int c, fMuxes = 0, nLimit = 0, fVerbose = 0;
+    extern void Acec_StatsCollect( Gia_Man_t * p, int fVerbose );
+    int c, fNpn = 0, fMuxes = 0, nLimit = 0, fVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "Nmvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Nnmvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -28208,6 +28209,9 @@ int Abc_CommandAbc9MuxProfile( Abc_Frame_t * pAbc, int argc, char ** argv )
             globalUtilOptind++;
             if ( nLimit < 0 )
                 goto usage;
+            break;
+        case 'n':
+            fNpn ^= 1;
             break;
         case 'm':
             fMuxes ^= 1;
@@ -28226,16 +28230,26 @@ int Abc_CommandAbc9MuxProfile( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Abc_CommandAbc9MuxProfile(): There is no AIG.\n" );
         return 1;
     }
-    if ( fMuxes )
+    if ( fNpn )
+    {
+        if ( !Gia_ManHasMapping(pAbc->pGia) || Gia_ManLutSizeMax(pAbc->pGia) >= 4 )
+        {
+            Abc_Print( -1, "Abc_CommandAbc9MuxProfile(): Expecting AIG mapped into 3-LUTs.\n" );
+            return 1;
+        }
+        Acec_StatsCollect( pAbc->pGia, fVerbose );
+    }
+    else if ( fMuxes )
         Gia_ManMuxProfiling( pAbc->pGia );
     else
         Gia_ManProfileStructures( pAbc->pGia, nLimit, fVerbose );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &profile [-N num] [-mvh]\n" );
+    Abc_Print( -2, "usage: &profile [-N num] [-nmvh]\n" );
     Abc_Print( -2, "\t         profile gate structures appearing in the AIG\n" );
     Abc_Print( -2, "\t-N num : limit on class size to show [default = %d]\n", nLimit );
+    Abc_Print( -2, "\t-n     : toggle profiling NPN-classes (for 3-LUT mapped AIGs) [default = %s]\n", fNpn? "yes": "no" );
     Abc_Print( -2, "\t-m     : toggle profiling MUX structures [default = %s]\n", fMuxes? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle verbose output [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
