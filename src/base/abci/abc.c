@@ -7295,7 +7295,7 @@ int Abc_CommandExact( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     extern Gia_Man_t * Gia_ManFindExact( word * pTruth, int nVars, int nFunc, int nMaxDepth, int * pArrivalTimes, int nBTLimit, int nStartGates, int fVerbose );
 
-    int c, nMaxDepth = -1, fMakeAIG = 0, fTest = 0, fVerbose = 0, nVars = 0, nVarsTmp, nFunc = 0, nStartGates = 1, nBTLimit = 100;
+    int c, nMaxDepth = -1, fMakeAIG = 0, fTest = 0, fVerbose = 0, nVars = 0, nVarsTmp, nFunc = 0, nStartGates = 1, nBTLimit = 400000;
     char * p1, * p2;
     word pTruth[64];
     int pArrTimeProfile[8], fHasArrTimeProfile = 0;
@@ -7423,7 +7423,7 @@ int Abc_CommandExact( Abc_Frame_t * pAbc, int argc, char ** argv )
         if ( pGiaRes )
             Abc_FrameUpdateGia( pAbc, pGiaRes );
         else
-            Abc_Print( 0, "Could not find AIG within given resource constraints.\n" );
+            Abc_Print( 0, "Could not find AIG within given resource constraints, retry with different value for -C.\n" );
     }
     else
     {
@@ -7434,7 +7434,7 @@ int Abc_CommandExact( Abc_Frame_t * pAbc, int argc, char ** argv )
             Abc_FrameClearVerifStatus( pAbc );
         }
         else
-            Abc_Print( 0, "Could not find network within given resource constraints.\n" );
+            Abc_Print( 0, "Could not find network within given resource constraints, retry with different value for -C.\n" );
     }
     return 0;
 
@@ -7444,7 +7444,7 @@ usage:
     Abc_Print( -2, "\t-D <num>  : constrain maximum depth (if too low, algorithm may not terminate)\n" );
     Abc_Print( -2, "\t-A <list> : input arrival times (comma separated list)\n" );
     Abc_Print( -2, "\t-S <num>  : number of start gates in search [default = %s]\n", nStartGates );
-    Abc_Print( -2, "\t-C <num>  : the limit on the number of conflicts [default = %d]\n", nBTLimit );
+    Abc_Print( -2, "\t-C <num>  : the limit on the number of conflicts; turn off with 0 [default = %d]\n", nBTLimit );
     Abc_Print( -2, "\t-a        : toggle create AIG [default = %s]\n", fMakeAIG ? "yes" : "no" );
     Abc_Print( -2, "\t-t        : run test suite\n" );
     Abc_Print( -2, "\t-v        : toggle verbose printout [default = %s]\n", fVerbose ? "yes" : "no" );

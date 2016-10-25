@@ -2314,7 +2314,7 @@ static char * Ses_ManFindMinimumSizeTopDown( Ses_Man_t * pSes, int nMinGates )
 
 static char * Ses_ManFindMinimumSize( Ses_Man_t * pSes )
 {
-    char * pSol;
+    char * pSol = NULL;
 
     /* do the arrival times allow for a network? */
     if ( pSes->nMaxDepth != -1 && pSes->pArrTimeProfile )
@@ -2326,7 +2326,7 @@ static char * Ses_ManFindMinimumSize( Ses_Man_t * pSes )
 
     pSol = Ses_ManFindMinimumSizeBottomUp( pSes );
 
-    if ( !pSol && pSes->fHitResLimit && pSes->nGates != pSes->nMaxGates )
+    if ( !pSol && pSes->nMaxDepth != -1 && pSes->fHitResLimit && pSes->nGates != pSes->nMaxGates )
         return Ses_ManFindMinimumSizeTopDown( pSes, pSes->nGates + 1 );
     else
         return pSol;
@@ -2360,8 +2360,8 @@ Abc_Ntk_t * Abc_NtkFindExact( word * pTruth, int nVars, int nFunc, int nMaxDepth
 
     pSes = Ses_ManAlloc( pTruth, nVars, nFunc, nMaxDepth, pArrTimeProfile, 0, nBTLimit, fVerbose );
     pSes->nStartGates = nStartGates;
-    pSes->fReasonVerbose = 1;
-    pSes->fSatVerbose = 1;
+    pSes->fReasonVerbose = 0;
+    pSes->fSatVerbose = 0;
     if ( fVerbose )
         Ses_ManPrintFuncs( pSes );
 
