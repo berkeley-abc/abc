@@ -1,4 +1,5 @@
 SRC +=  src/base/io/io.c \
+    src/base/io/ioJson.c \
     src/base/io/ioReadAiger.c \
     src/base/io/ioReadBaf.c \
     src/base/io/ioReadBblif.c \

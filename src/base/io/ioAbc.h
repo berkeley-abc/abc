@@ -28,6 +28,7 @@
 
 #include "base/abc/abc.h"
 #include "misc/extra/extra.h"
+#include "misc/util/utilNam.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                         PARAMETERS                               ///
@@ -57,6 +58,7 @@ typedef enum {
     IO_FILE_EDIF,      
     IO_FILE_EQN,      
     IO_FILE_GML,      
+    IO_FILE_JSON,      
     IO_FILE_LIST,      
     IO_FILE_PLA,      
     IO_FILE_MOPLA,      
@@ -152,6 +154,9 @@ extern Abc_Obj_t *        Io_ReadCreateInv( Abc_Ntk_t * pNtk, char * pNameIn, ch
 extern Abc_Obj_t *        Io_ReadCreateBuf( Abc_Ntk_t * pNtk, char * pNameIn, char * pNameOut );
 extern FILE *             Io_FileOpen( const char * FileName, const char * PathVar, const char * Mode, int fVerbose );
 
+/*=== ioJson.c ===========================================================*/
+extern void               Io_ReadJson( char * pFileName );
+extern void               Io_WriteJson( char * pFileName );
 
 
 

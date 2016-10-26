@@ -567,6 +567,10 @@ SOURCE=.\src\base\io\ioInt.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\base\io\ioJson.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\base\io\ioReadAiger.c
 # End Source File
 # Begin Source File
@@ -776,6 +780,10 @@ SOURCE=.\src\base\wlc\wlcBlast.c
 # Begin Source File
 
 SOURCE=.\src\base\wlc\wlcCom.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\wlc\wlcJson.c
 # End Source File
 # Begin Source File
 

@@ -75,6 +75,8 @@ Vec_Int_t * Abc_FrameReadStatusVec( Abc_Frame_t * p )        { return s_GlobalFr
 Vec_Ptr_t * Abc_FrameReadPoEquivs( Abc_Frame_t * p )         { return s_GlobalFrame->vPoEquivs;    }        
 Vec_Int_t * Abc_FrameReadPoStatuses( Abc_Frame_t * p )       { return s_GlobalFrame->vStatuses;    }        
 Vec_Int_t * Abc_FrameReadObjIds( Abc_Frame_t * p )           { return s_GlobalFrame->vAbcObjIds;   }        
+Abc_Nam_t * Abc_FrameReadJsonStrs( Abc_Frame_t * p )         { return s_GlobalFrame->pJsonStrs;    }     
+Vec_Wec_t * Abc_FrameReadJsonObjs( Abc_Frame_t * p )         { return s_GlobalFrame->vJsonObjs;    }   
        
 int         Abc_FrameReadCexPiNum( Abc_Frame_t * p )         { return s_GlobalFrame->pCex->nPis;   }               
 int         Abc_FrameReadCexRegNum( Abc_Frame_t * p )        { return s_GlobalFrame->pCex->nRegs;  }               
@@ -95,6 +97,8 @@ void        Abc_FrameSetManDsd2( void * pMan )               { if (s_GlobalFrame
 void        Abc_FrameSetInv( Vec_Int_t * vInv )              { Vec_IntFreeP(&s_GlobalFrame->pAbcWlcInv); s_GlobalFrame->pAbcWlcInv = vInv; }
 void        Abc_FrameSetCnf( Vec_Int_t * vCnf )              { Vec_IntFreeP(&s_GlobalFrame->pAbcWlcCnf); s_GlobalFrame->pAbcWlcCnf = vCnf; }
 void        Abc_FrameSetStr( Vec_Str_t * vStr )              { Vec_StrFreeP(&s_GlobalFrame->pAbcWlcStr); s_GlobalFrame->pAbcWlcStr = vStr; }
+void        Abc_FrameSetJsonStrs( Abc_Nam_t * pStrs )        { Abc_NamDeref( s_GlobalFrame->pJsonStrs ); s_GlobalFrame->pJsonStrs = pStrs; }
+void        Abc_FrameSetJsonObjs( Vec_Wec_t * vObjs )        { Vec_WecFreeP(&s_GlobalFrame->vJsonObjs ); s_GlobalFrame->vJsonObjs = vObjs; }
 
 int         Abc_FrameIsBatchMode()                           { return s_GlobalFrame ? s_GlobalFrame->fBatchMode : 0;              } 
 
@@ -225,6 +229,8 @@ void Abc_FrameDeallocate( Abc_Frame_t * p )
     Vec_IntFreeP( &p->pAbcWlcInv );
     Vec_IntFreeP( &p->pAbcWlcCnf );
     Vec_StrFreeP( &p->pAbcWlcStr );
+    Abc_NamDeref( s_GlobalFrame->pJsonStrs );
+    Vec_WecFreeP(&s_GlobalFrame->vJsonObjs );    
     ABC_FREE( p );
     s_GlobalFrame = NULL;
 }
