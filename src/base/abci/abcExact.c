@@ -1405,6 +1405,21 @@ static int Ses_ManCreateClauses( Ses_Man_t * pSes )
     }
     Vec_IntFree( vLits );
 
+    /* EXTRA clauses: no reapplying operand */
+    if ( pSes->nGates > 1 )
+        for ( i = 0; i < pSes->nGates - 1; ++i )
+            for ( ii = i + 1; ii < pSes->nGates; ++ii )
+                for ( k = 1; k < pSes->nSpecVars + i; ++k )
+                    for ( j = 0; j < k; ++j )
+                    {
+                        pLits[0] = Abc_Var2Lit( Ses_ManSelectVar( pSes, i, j, k ), 1 );
+                        pLits[1] = Abc_Var2Lit( Ses_ManSelectVar( pSes, ii, j, pSes->nSpecVars + i ), 1 );
+                        sat_solver_addclause( pSes->pSat, pLits, pLits + 2 );
+
+                        pLits[1] = Abc_Var2Lit( Ses_ManSelectVar( pSes, ii, k, pSes->nSpecVars + i ), 1 );
+                        sat_solver_addclause( pSes->pSat, pLits, pLits + 2 );
+                    }
+
     /* EXTRA clauses: co-lexicographic order */
     for ( i = 0; i < pSes->nGates - 1; ++i )
     {
