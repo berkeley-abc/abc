@@ -239,6 +239,8 @@ struct Ses_Man_t_
     word         pTtValues[4];          /* truth table values to assign */
     Vec_Int_t *  vPolar;                /* variables with positive polarity */
     Vec_Int_t *  vAssump;               /* assumptions */
+    int          nRandRowAssigns;       /* number of random row assignments to initialize CEGAR */
+    int          fKeepRowAssigns;       /* if 1, keep counter examples in CEGAR for next number of gates */
 
     int          nGates;                /* number of gates */
     int          nStartGates;           /* number of gates to start search (-1), i.e., to start from 1 gate, one needs to specify 0 */
@@ -921,9 +923,13 @@ static inline Ses_Man_t * Ses_ManAlloc( word * pTruth, int nVars, int nFunc, int
     p->vPolar          = Vec_IntAlloc( 100 );
     p->vAssump         = Vec_IntAlloc( 10 );
     p->vStairDecVars   = Vec_IntAlloc( nVars );
+    p->nRandRowAssigns = 2 * nVars;
+    p->fKeepRowAssigns = 0;
 
     if ( p->nSpecFunc == 1 )
         Ses_ManComputeTopDec( p );
+
+    srand( 0xCAFE );
 
     return p;
 }
@@ -1409,6 +1415,7 @@ static int Ses_ManCreateClauses( Ses_Man_t * pSes )
                 {
                     pLits[0] = Abc_Var2Lit( Ses_ManSelectVar( pSes, i, j, k ), 1 );
                     pLits[1] = Abc_Var2Lit( Ses_ManSelectVar( pSes, i + 1, jj, k ), 1 );
+                    sat_solver_addclause( pSes->pSat, pLits, pLits + 2 );
                 }
 
             for ( j = 0; j < k; ++j )
@@ -1417,6 +1424,7 @@ static int Ses_ManCreateClauses( Ses_Man_t * pSes )
                     {
                         pLits[0] = Abc_Var2Lit( Ses_ManSelectVar( pSes, i, j, k ), 1 );
                         pLits[1] = Abc_Var2Lit( Ses_ManSelectVar( pSes, i + 1, jj, kk ), 1 );
+                        sat_solver_addclause( pSes->pSat, pLits, pLits + 2 );
                     }
         }
     }
@@ -2200,7 +2208,7 @@ static int Ses_ManFindNetworkExact( Ses_Man_t * pSes, int nGates )
 /* return: (3: impossible, 2: continue, 1: found, 0: gave up) */
 static int Ses_ManFindNetworkExactCEGAR( Ses_Man_t * pSes, int nGates, char ** pSol )
 {
-    int fRes, iMint, fSat;
+    int fRes, iMint, fSat, i;
     word pTruth[4];
 
     /* debug */
@@ -2210,6 +2218,9 @@ static int Ses_ManFindNetworkExactCEGAR( Ses_Man_t * pSes, int nGates, char ** p
     /* do #gates and max depth allow for a network? */
     if ( !Ses_CheckGatesConsistency( pSes, nGates ) )
         return 3;
+
+    for ( i = 0; i < pSes->nRandRowAssigns; ++i )
+        Abc_TtSetBit( pSes->pTtValues, rand() % pSes->nRows );
 
     fRes = Ses_ManFindNetworkExact( pSes, nGates );
     if ( fRes != 1 ) return fRes;
@@ -2227,7 +2238,8 @@ static int Ses_ManFindNetworkExactCEGAR( Ses_Man_t * pSes, int nGates, char ** p
         }
         ABC_FREE( *pSol );
 
-        //Abc_TtSetBit( pSes->pTtValues, iMint - 1 );
+        if ( pSes->fKeepRowAssigns )
+            Abc_TtSetBit( pSes->pTtValues, iMint - 1 );
         if ( !Ses_ManCreateTruthTableClause( pSes, iMint - 1 ) ) /* UNSAT, continue */
             return 2;
 
