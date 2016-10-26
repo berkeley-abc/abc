@@ -134,6 +134,8 @@ struct Abc_Frame_t_
     void *          pAbcBac;
     void *          pAbcCba;
     void *          pAbcPla;
+    Abc_Nam_t *     pJsonStrs;
+    Vec_Wec_t *     vJsonObjs;
 #ifdef ABC_USE_CUDD
     DdManager *     dd;            // temporary BDD package
 #endif

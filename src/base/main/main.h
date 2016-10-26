@@ -122,6 +122,8 @@ extern ABC_DLL Vec_Int_t *     Abc_FrameReadStatusVec( Abc_Frame_t * p );
 extern ABC_DLL Vec_Ptr_t *     Abc_FrameReadPoEquivs( Abc_Frame_t * p );  
 extern ABC_DLL Vec_Int_t *     Abc_FrameReadPoStatuses( Abc_Frame_t * p );  
 extern ABC_DLL Vec_Int_t *     Abc_FrameReadObjIds( Abc_Frame_t * p );
+extern ABC_DLL Abc_Nam_t *     Abc_FrameReadJsonStrs( Abc_Frame_t * p );  
+extern ABC_DLL Vec_Wec_t *     Abc_FrameReadJsonObjs( Abc_Frame_t * p );
 
 extern ABC_DLL int             Abc_FrameReadCexPiNum( Abc_Frame_t * p );              
 extern ABC_DLL int             Abc_FrameReadCexRegNum( Abc_Frame_t * p );              
@@ -145,6 +147,8 @@ extern ABC_DLL void            Abc_FrameSetManDsd2( void * pMan );
 extern ABC_DLL void            Abc_FrameSetInv( Vec_Int_t * vInv );
 extern ABC_DLL void            Abc_FrameSetCnf( Vec_Int_t * vInv );
 extern ABC_DLL void            Abc_FrameSetStr( Vec_Str_t * vInv );
+extern ABC_DLL void            Abc_FrameSetJsonStrs( Abc_Nam_t * pStrs );
+extern ABC_DLL void            Abc_FrameSetJsonObjs( Vec_Wec_t * vObjs );
 
 extern ABC_DLL int             Abc_FrameCheckPoConst( Abc_Frame_t * p, int iPoNum );
 
