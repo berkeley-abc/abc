@@ -2246,7 +2246,7 @@ static int Ses_ManFindNetworkExactCEGAR( Ses_Man_t * pSes, int nGates, char ** p
         Abc_TtXor( pTruth, Ses_ManDeriveTruth( pSes, *pSol, 0 ), pSes->pSpec, pSes->nSpecWords, 0 );
         iMint = Abc_TtFindFirstBit( pTruth, pSes->nSpecVars );
 
-        if ( iMint == -1 )
+        if ( iMint == -1 || (pSes->nSpecVars < 6 && iMint > pSes->nRows) )
         {
             assert( fRes == 1 );
             return 1;
