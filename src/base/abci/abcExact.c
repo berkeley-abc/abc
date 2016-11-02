@@ -1195,7 +1195,7 @@ static int Ses_ManCreateClauses( Ses_Man_t * pSes )
 {
     extern int Extra_TruthVarsSymm( unsigned * pTruth, int nVars, int iVar0, int iVar1 );
 
-    int h, i, j, k, t, ii, jj, kk, p, q;
+    int h, i, j, k, t, ii, jj, kk, iii, p, q;
     int pLits[3];
     Vec_Int_t * vLits = NULL;
 
@@ -1419,6 +1419,18 @@ static int Ses_ManCreateClauses( Ses_Man_t * pSes )
                         pLits[1] = Abc_Var2Lit( Ses_ManSelectVar( pSes, ii, k, pSes->nSpecVars + i ), 1 );
                         sat_solver_addclause( pSes->pSat, pLits, pLits + 2 );
                     }
+    if ( pSes->nGates > 2 )
+        for ( i = 0; i < pSes->nGates - 2; ++i )
+            for ( ii = i + 1; ii < pSes->nGates - 1; ++ii )
+                for ( iii = ii + 1; iii < pSes->nGates; ++iii )
+                    for ( k = 1; k < pSes->nSpecVars + i; ++k )
+                        for ( j = 0; j < k; ++j )
+                            {
+                                pLits[0] = Abc_Var2Lit( Ses_ManSelectVar( pSes, i, j, k ), 1 );
+                                pLits[1] = Abc_Var2Lit( Ses_ManSelectVar( pSes, ii, j, k ), 1 );
+                                pLits[1] = Abc_Var2Lit( Ses_ManSelectVar( pSes, iii, i, ii ), 1 );
+                                sat_solver_addclause( pSes->pSat, pLits, pLits + 3 );
+                            }
 
     /* EXTRA clauses: co-lexicographic order */
     for ( i = 0; i < pSes->nGates - 1; ++i )
@@ -1595,6 +1607,9 @@ static inline int Ses_ManSolve( Ses_Man_t * pSes )
         pSes->timeSatUndef += timeDelta;
         if ( pSes->fSatVerbose )
         {
+            //Sat_SolverWriteDimacs( pSes->pSat, "/tmp/test.cnf", Vec_IntArray( pSes->vAssump ), Vec_IntLimit( pSes->vAssump ), 1 );
+            //exit( 42 );
+
             printf( "resource limit reached\n" );
         }
         return 2;
