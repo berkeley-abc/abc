@@ -967,6 +967,10 @@ SOURCE=.\src\base\cba\cbaReadVer.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\base\cba\cbaTypes.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\base\cba\cbaWriteBlif.c
 # End Source File
 # Begin Source File
