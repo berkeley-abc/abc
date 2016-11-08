@@ -6212,6 +6212,9 @@ usage:
     Abc_Print( -2, "\t               3: disjoint-support decomposition with cofactoring\n" );
     Abc_Print( -2, "\t               4: updated disjoint-support decomposition with cofactoring\n" );
     Abc_Print( -2, "\t               5: enumerating decomposable variable sets\n" );
+    Abc_Print( -2, "\t               6: disjoint-support decomposition with cofactoring and boolean difference analysis\n" );
+    Abc_Print( -2, "\t                  from V. Callegaro, F. S. Marranghello, M. G. A. Martins, R. P. Ribas and A. I. Reis,\n");
+    Abc_Print( -2, "\t                  \"Bottom-up disjoint-support decomposition based on cofactor and boolean difference analysis,\" ICCD'15.\n" );
     Abc_Print( -2, "\t-N <num> : the number of support variables (binary files only) [default = unused]\n" );
     Abc_Print( -2, "\t-v       : toggle verbose printout [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h       : print the command usage\n");
