@@ -842,7 +842,6 @@ void Abc_NtkFinSimulateOne( Abc_Ntk_t * pNtk, Vec_Int_t * vTypes, Vec_Int_t * vC
     Vec_WecForEachLevelStop( vRes, vClass, i, iLevel+1 )
     {
         int k, iFin, Index, Value;
-        int iFin0 = Vec_IntEntry( vClass, 0 );
         int Index0 = Vec_IntEntry( vClass, 1 );
         Vec_IntForEachEntryDoubleStart( vClass, iFin, Index, k, 2 )
         {
@@ -952,7 +951,6 @@ void Abc_NtkFinLocalSetup( Vec_Int_t * vPairs, Vec_Int_t * vList, Vec_Wec_t * vM
     Vec_IntForEachEntry( vList, iFin, i )
     {
         int iObj = Vec_IntEntry( vPairs, 2*iFin );
-        int Type = Vec_IntEntry( vPairs, 2*iFin+1 );
         Vec_Int_t * vArray = Vec_WecEntry( vMap2, iObj );
         Vec_IntPushTwo( vArray, iFin, i );
         Vec_IntPushTwo( vResArray, iFin, i );
@@ -993,7 +991,6 @@ int Abc_NtkFinRefinement( Abc_Ntk_t * pNtk, Vec_Int_t * vTypes, Vec_Int_t * vCos
     Vec_WecForEachLevel( vRes, vClass, i )
     {
         int iFin0  = Vec_IntEntry( vClass, 0 );
-        int Index0 = Vec_IntEntry( vClass, 1 );
         Vec_IntForEachEntryDoubleStart( vClass, iFin, Index, k, 2 )
         {
             int Objs[2]  = { Vec_IntEntry(vPairs, 2*iFin0),   Vec_IntEntry(vPairs, 2*iFin)   }; 
