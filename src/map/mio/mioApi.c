@@ -44,6 +44,7 @@ char *            Mio_LibraryReadName          ( Mio_Library_t * pLib )  { retur
 int               Mio_LibraryReadGateNum       ( Mio_Library_t * pLib )  { return pLib->nGates;     }
 Mio_Gate_t *      Mio_LibraryReadGates         ( Mio_Library_t * pLib )  { return pLib->pGates;     }
 Mio_Gate_t **     Mio_LibraryReadGateArray     ( Mio_Library_t * pLib )  { return pLib->ppGatesName;}
+Mio_Gate_t *      Mio_LibraryReadGateById      ( Mio_Library_t * pLib, int Id ) { assert( pLib->ppGates0[Id]->Cell == Id ); return pLib->ppGates0[Id];}
 Mio_Gate_t *      Mio_LibraryReadBuf           ( Mio_Library_t * pLib )  { return pLib->pGateBuf;   }
 Mio_Gate_t *      Mio_LibraryReadInv           ( Mio_Library_t * pLib )  { return pLib->pGateInv;   }
 Mio_Gate_t *      Mio_LibraryReadConst0        ( Mio_Library_t * pLib )  { return pLib->pGate0;     }
