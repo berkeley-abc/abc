@@ -233,7 +233,7 @@ Vec_Int_t * Io_ReadFins( Abc_Ntk_t * pNtk, char * pFileName, int fVerbose )
         Vec_IntPushTwo( vPairs, Vec_IntEntry(vMap, iObj), Type );
     }
     assert( Vec_IntSize(vPairs) == 2 * nLines );
-    printf( "Finished reading %d lines.\n", nLines - 1 );
+    printf( "Finished reading %d lines from the fault list file \"%s\".\n", nLines - 1, pFileName );
 
     // verify the reader by printing the results
     if ( fVerbose )
