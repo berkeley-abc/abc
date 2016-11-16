@@ -112,6 +112,7 @@ extern char *            Mio_LibraryReadName       ( Mio_Library_t * pLib );
 extern int               Mio_LibraryReadGateNum    ( Mio_Library_t * pLib );
 extern Mio_Gate_t *      Mio_LibraryReadGates      ( Mio_Library_t * pLib );
 extern Mio_Gate_t **     Mio_LibraryReadGateArray  ( Mio_Library_t * pLib );
+extern Mio_Gate_t *      Mio_LibraryReadGateById   ( Mio_Library_t * pLib, int iD );
 extern Mio_Gate_t *      Mio_LibraryReadGateByName ( Mio_Library_t * pLib, char * pName, char * pOutName );
 extern char *            Mio_LibraryReadSopByName  ( Mio_Library_t * pLib, char * pName );    
 extern Mio_Gate_t *      Mio_LibraryReadGateByTruth( Mio_Library_t * pLib, word t );
