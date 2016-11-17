@@ -2674,6 +2674,18 @@ SOURCE=.\src\opt\fxch\FxchMan.c
 SOURCE=.\src\opt\fxch\FxchSCHashTable.c
 # End Source File
 # End Group
+# Begin Group "dsc"
+
+# PROP Default_Filter ""
+# Begin Source File
+
+SOURCE=.\src\opt\dsc\dsc.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\dsc\dsc.h
+# End Source File
+# End Group
 # End Group
 # Begin Group "map"
 

@@ -59,17 +59,17 @@ inline void xorInPlace( word * pOut, word * pIn2, int nWords)
 }
 
 void dsc_debug_node(Dsc_node_t * pNode, int nVars, const int TRUTH_WORDS) {
+    int i;
     printf("Node:\t%s\n",pNode->exp);
     printf("\tneg cof:\t");Abc_TtPrintHexRev(stdout, pNode->pNegCof, nVars);
     printf("\tpos cof:\t");Abc_TtPrintHexRev(stdout, pNode->pPosCof, nVars);
     printf("\tbool diff:\t");Abc_TtPrintHexRev(stdout, pNode->pBoolDiff, nVars);
     printf("\toff:\t");
-    int i;
-    for (i=1;i<=pNode->off[0];i++) {
+    for (i=1;i<=(int)pNode->off[0];i++) {
         printf("%c%c", (pNode->off[i] & 1U) ? ' ' : '!', 'a'+(pNode->off[i] >> 1));
     }
     printf("\ton:\t");
-    for (i=1;i<=pNode->on[0];i++) {
+    for (i=1;i<=(int)pNode->on[0];i++) {
         printf("%c%c", (pNode->on[i] & 1U) ? ' ' : '!', 'a'+(pNode->on[i] >> 1));
     }
     printf("\n");
@@ -127,10 +127,10 @@ void merge(unsigned int * const pOut, const unsigned int * const pIn) {
 }
 
 void dsc_and_group(Dsc_node_t * pOut, Dsc_node_t * ni, int niPolarity, Dsc_node_t * nj, int njPolarity, int nVars, const int TRUTH_WORDS) {
+    unsigned int* xiOFF, * xiON, * xjOFF, * xjON;
     // expression
     concat(pOut->exp, '(', ')', ni->exp, niPolarity, nj->exp, njPolarity);
     // ON-OFF
-    unsigned int* xiOFF, * xiON, * xjOFF, * xjON;
     if (niPolarity) {
         xiOFF = ni->off;
         xiON = ni->on;
@@ -151,14 +151,14 @@ void dsc_and_group(Dsc_node_t * pOut, Dsc_node_t * ni, int niPolarity, Dsc_node_
         int xiOFFSize = xiOFF[0];
         int xjOFFSize = xjOFF[0];
         if (xiOFFSize <= xjOFFSize) {
-            pOut->off[0] = xiOFFSize; // set the number of elements
             int i;
+            pOut->off[0] = xiOFFSize; // set the number of elements
             for (i = 1; i <= xiOFFSize; i++) {
                 pOut->off[i] = xiOFF[i];
             }
         } else {
-            pOut->off[0] = xjOFFSize; // set the number of elements
             int i;
+            pOut->off[0] = xjOFFSize; // set the number of elements
             for (i = 1; i <= xjOFFSize; i++) {
                 pOut->off[i] = xjOFF[i];
             }
@@ -168,15 +168,15 @@ void dsc_and_group(Dsc_node_t * pOut, Dsc_node_t * ni, int niPolarity, Dsc_node_
     }
     // creating both new ON specification and positive cofactor of the new group
     {
+        int i;
+        int j;
         unsigned int xiONSize = xiON[0];
         unsigned int xjONSize = xjON[0];
         pOut->on[0] = xiONSize + xjONSize;
-        int i;
-        for (i = 1; i <= xiONSize; i++) {
+        for (i = 1; i <= (int)xiONSize; i++) {
             pOut->on[i] = xiON[i];
         }
-        int j;
-        for (j = 1; j <= xjONSize; j++) {
+        for (j = 1; j <= (int)xjONSize; j++) {
             pOut->on[i++] = xjON[j];
         }
         // set the positive cofactor of the new group
@@ -194,13 +194,11 @@ void dsc_and_group(Dsc_node_t * pOut, Dsc_node_t * ni, int niPolarity, Dsc_node_
 }
 
 void dsc_xor_group(Dsc_node_t * pOut, Dsc_node_t * ni, Dsc_node_t * nj, int nVars, const int TRUTH_WORDS) {
-    // expression
-    concat(pOut->exp, '[', ']', ni->exp, 1, nj->exp, 1);
     //
-    const unsigned int const * xiOFF = ni->off;
-    const unsigned int const * xiON = ni->on;
-    const unsigned int const * xjOFF = nj->off;
-    const unsigned int const * xjON = nj->on;
+    const unsigned int * xiOFF = ni->off;
+    const unsigned int * xiON = ni->on;
+    const unsigned int * xjOFF = nj->off;
+    const unsigned int * xjON = nj->on;
     //
     const int xiOFFSize = xiOFF[0];
     const int xiONSize = xiON[0];
@@ -210,6 +208,8 @@ void dsc_xor_group(Dsc_node_t * pOut, Dsc_node_t * ni, Dsc_node_t * nj, int nVar
     int minCCSize = xiOFFSize;
     int minCCPolarity = 0;
     Dsc_node_t * minCCNode = ni;
+    // expression
+    concat(pOut->exp, '[', ']', ni->exp, 1, nj->exp, 1);
     if (minCCSize > xiONSize) {
         minCCSize = xiONSize;
         minCCPolarity = 1;
@@ -312,14 +312,17 @@ extern int Dsc_Decompose(word * pTruth, const int nVarsInit, char * const pRes, 
     const int TRUTH_WORDS = Abc_TtWordNum(nVarsInit);
     const int NEED_POOL_ALLOC = (pool == NULL);
 
-    pRes[0] = '\0';
-    pRes[1] = '\0';
-
     Dsc_node_t nodes[DSC_MAX_VAR];
     Dsc_node_t *newNodes[DSC_MAX_VAR];
     Dsc_node_t *oldNodes[DSC_MAX_VAR];
 
+    Dsc_node_t freeNodes[DSC_MAX_VAR]; // N is the maximum number of possible groups.
+    int f = 0; // f represent the next free position in the freeNodes array
+    int o = 0; // o stands for the number of already tested nodes
     int n = 0; // n will represent the number of current nodes (i.e. support)
+
+    pRes[0] = '\0';
+    pRes[1] = '\0';
 
     if (NEED_POOL_ALLOC)
         pool = ABC_ALLOC(word, 3 * TRUTH_WORDS * nVarsInit);
@@ -375,10 +378,6 @@ extern int Dsc_Decompose(word * pTruth, const int nVarsInit, char * const pRes, 
             return -1;
         }
     }
-    Dsc_node_t freeNodes[DSC_MAX_VAR]; // N is the maximum number of possible groups.
-    int f = 0; // f represent the next free position in the freeNodes array
-
-    int o = 0; // o stands for the number of already tested nodes
     while (n > 0) {
         int tempN = 0;
         int i, j, iPolarity, jPolarity;
