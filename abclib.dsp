@@ -2686,6 +2686,38 @@ SOURCE=.\src\opt\dsc\dsc.c
 SOURCE=.\src\opt\dsc\dsc.h
 # End Source File
 # End Group
+# Begin Group "sbd"
+
+# PROP Default_Filter ""
+# Begin Source File
+
+SOURCE=.\src\opt\sbd\sbd.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\sbd\sbd.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\sbd\sbdCnf.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\sbd\sbdCore.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\sbd\sbdInt.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\sbd\sbdSat.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\sbd\sbdWin.c
+# End Source File
+# End Group
 # End Group
 # Begin Group "map"
 
