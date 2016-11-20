@@ -28,9 +28,10 @@ ABC_NAMESPACE_IMPL_START
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-#define MAX_M 12 // max inputs
-#define MAX_N 20 // max nodes
+#define MAX_M  8 // max inputs
+#define MAX_N 30 // max nodes
 #define MAX_K  6 // max lutsize
+#define MAX_D  8 // max delays
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -47,17 +48,22 @@ ABC_NAMESPACE_IMPL_START
   SeeAlso     []
 
 ***********************************************************************/
-sat_solver * Sbd_SolverTopo( int M, int N, int K, int pVars[MAX_N][MAX_M+MAX_N][MAX_K] ) // inputs, nodes, lutsize
+sat_solver * Sbd_SolverTopo( int M, int N, int K, int pVars[MAX_N][MAX_M+MAX_N][MAX_K], int pVars2[MAX_M+MAX_N][MAX_D], int pDelays[], int Req, int * pnVars ) // inputs, nodes, lutsize
 {
     sat_solver * pSat = NULL;
     Vec_Int_t * vTemp = Vec_IntAlloc(100);
     // assign vars
-    int RetValue, n, i, j, k, nVars = 0;
-    for ( n = 0; n < N; n++ )
+    int RetValue, n, i, j, j2, k, k2, d, Count, nVars = 0;
+    for ( n = 0; n < N;   n++ )
     for ( i = 0; i < M+N; i++ )
-    for ( k = 0; k < K; k++ )
+    for ( k = 0; k < K;   k++ )
+        pVars[n][i][k] = -1;
+    for ( n = 0; n < N;   n++ )
+    for ( i = 0; i < M+n; i++ )
+    for ( k = 0; k < K;   k++ )
         pVars[n][i][k] = nVars++;
-    printf( "Number of vars = %d.\n", nVars );
+    printf( "Number of topo vars = %d.\n", nVars );
+    *pnVars = nVars;
     // add constraints
     pSat = sat_solver_new();
     sat_solver_setnvars( pSat, nVars );
@@ -67,55 +73,128 @@ sat_solver * Sbd_SolverTopo( int M, int N, int K, int pVars[MAX_N][MAX_M+MAX_N][
         Vec_IntClear( vTemp );
         for ( n = 0; n < N; n++ )
         for ( k = 0; k < K; k++ )
-            Vec_IntPush( vTemp, Abc_Var2Lit(pVars[n][i][k], 0) );
+            if ( pVars[n][i][k] >= 0 )
+                Vec_IntPush( vTemp, Abc_Var2Lit(pVars[n][i][k], 0) );
         RetValue = sat_solver_addclause( pSat, Vec_IntArray(vTemp), Vec_IntLimit(vTemp) );
         assert( RetValue );
     }
-    // each fanin of each node is connected
+    printf( "Added %d node connectivity constraints.\n", i );
+    // each fanin of each node is connected exactly once
+    Count = 0;
     for ( n = 0; n < N; n++ )
     for ( k = 0; k < K; k++ )
     {
+        // connected
         Vec_IntClear( vTemp );
         for ( i = 0; i < M+n; i++ )
             Vec_IntPush( vTemp, Abc_Var2Lit(pVars[n][i][k], 0) );
         RetValue = sat_solver_addclause( pSat, Vec_IntArray(vTemp), Vec_IntLimit(vTemp) );
         assert( RetValue );
-    }
-    // each fanin is connected once; fanins are ordered; nodes are ordered
-    for ( n = 0; n < N;   n++ )
-    for ( i = 0; i < M+N; i++ )
-    for ( k = 0; k < K;   k++ )
-    {
-        int n2 = n, i2 = i, k2 = k;
-        for ( n2 = 0; n2 <= n;   n2++ )
-        for ( i2 = i; i2 <  M+N; i2++ )
-        for ( k2 = 0; k2 <= k;   k2++ )
+        // exactly once
+        for ( i = 0;   i < M+n; i++ )
+        for ( j = i+1; j < M+n; j++ )
         {
-            if ( n2 == n && i2 == i && k2 == k )
-                continue;
-            Vec_IntFillTwo( vTemp, 2, Abc_Var2Lit(pVars[n][i][k], 1), Abc_Var2Lit(pVars[n2][i2][k2], 1) );
+            Vec_IntFillTwo( vTemp, 2, Abc_Var2Lit(pVars[n][i][k], 1), Abc_Var2Lit(pVars[n][j][k], 1) );
             RetValue = sat_solver_addclause( pSat, Vec_IntArray(vTemp), Vec_IntLimit(vTemp) );
             assert( RetValue );
+            Count++;
         }
     }
+    printf( "Added %d fanin connectivity constraints.\n", Count );
+    // node fanins are unique
+    Count = 0;
+    for ( n = 0; n < N;   n++ )
+    for ( i = 0; i < M+n; i++ )
+    for ( k = 0; k < K;   k++ )
+    for ( j = i; j < M+n; j++ )
+    for ( k2 = k+1; k2 < K; k2++ )
+    {
+        Vec_IntFillTwo( vTemp, 2, Abc_Var2Lit(pVars[n][i][k], 1), Abc_Var2Lit(pVars[n][j][k2], 1) );
+        RetValue = sat_solver_addclause( pSat, Vec_IntArray(vTemp), Vec_IntLimit(vTemp) );
+        assert( RetValue );
+        Count++;
+    }
+    printf( "Added %d fanin exclusivity constraints.\n", Count );
+    // nodes are ordered
+    Count = 0;
+    for ( n = 1; n < N;     n++ )
+    for ( i = 0; i < M+n-1; i++ )
+    {
+        // first of n cannot be smaller than first of n-1 (but can be equal)
+        for ( j = i+1; j < M+n-1; j++ )
+        {
+            Vec_IntFillTwo( vTemp, 2, Abc_Var2Lit(pVars[n][i][0], 1), Abc_Var2Lit(pVars[n-1][j][0], 1) );
+            RetValue = sat_solver_addclause( pSat, Vec_IntArray(vTemp), Vec_IntLimit(vTemp) );
+            assert( RetValue );
+            Count++;
+        }
+        // if first nodes of n and n-1 are equal, second nodes are ordered
+        Vec_IntFillTwo( vTemp, 2, Abc_Var2Lit(pVars[n][i][0], 1), Abc_Var2Lit(pVars[n-1][i][0], 1) );
+        for ( j = 0;    j < i;  j++ )
+        for ( j2 = j+1; j2 < i; j2++ )
+        {
+            Vec_IntPushTwo( vTemp, Abc_Var2Lit(pVars[n][j][1], 1), Abc_Var2Lit(pVars[n-1][j2][1], 1) );
+            RetValue = sat_solver_addclause( pSat, Vec_IntArray(vTemp), Vec_IntLimit(vTemp) );
+            assert( RetValue );
+            Vec_IntShrink( vTemp, 2 );
+            Count++;
+        }
+    }
+    printf( "Added %d node ordering constraints.\n", Count );
     // exclude fanins of two-input nodes
+    Count = 0;
     if ( K == 2 )
-    for ( n = 0; n < N;   n++ )
-    for ( i = M; i < M+N; i++ )
+    for ( n = 1; n < N;   n++ )
+    for ( i = M; i < M+n; i++ )
+    for ( j = 0; j < i;   j++ )
     for ( k = 0; k < K;   k++ )
     {
-        int k2;
-        for ( j = 0;  j < i;  j++ )
-        for ( k2 = 0; k2 < K; k2++ )
-        {
-            Vec_IntClear( vTemp );
-            Vec_IntPush( vTemp, Abc_Var2Lit(pVars[n][i][k], 1) );
-            Vec_IntPush( vTemp, Abc_Var2Lit(pVars[n][j][!k], 1) );
-            Vec_IntPush( vTemp, Abc_Var2Lit(pVars[i-M][j][k2], 1) );
-            RetValue = sat_solver_addclause( pSat, Vec_IntArray(vTemp), Vec_IntLimit(vTemp) );
-            assert( RetValue );
-        }
+        Vec_IntClear( vTemp );
+        Vec_IntPush( vTemp, Abc_Var2Lit(pVars[n][i][0], 1) );
+        Vec_IntPush( vTemp, Abc_Var2Lit(pVars[n][j][1], 1) );
+        Vec_IntPush( vTemp, Abc_Var2Lit(pVars[i-M][j][k], 1) );
+        RetValue = sat_solver_addclause( pSat, Vec_IntArray(vTemp), Vec_IntLimit(vTemp) );
+        assert( RetValue );
+        Count++;
     }
+    printf( "Added %d two-node non-triviality constraints.\n", Count );
+
+
+    // assign delay vars
+    assert( Req < MAX_D-1 );
+    for ( i = 0; i < M+N;   i++ )
+    for ( d = 0; d < MAX_D; d++ )
+        pVars2[i][d] = nVars++;
+    printf( "Number of total vars = %d.\n", nVars );
+    // set input delays
+    for ( i = 0; i < M; i++ )
+    {
+        assert( pDelays[i] < MAX_D-2 );
+        Vec_IntFill( vTemp, 1, Abc_Var2Lit(pVars2[i][pDelays[i]], 0) );
+        RetValue = sat_solver_addclause( pSat, Vec_IntArray(vTemp), Vec_IntLimit(vTemp) );
+        assert( RetValue );
+    }
+    // set output delay
+    for ( k = Req; k < MAX_D; k++ )
+    {
+        Vec_IntFill( vTemp, 1, Abc_Var2Lit(pVars2[M+N-1][Req+1], 1) );
+        RetValue = sat_solver_addclause( pSat, Vec_IntArray(vTemp), Vec_IntLimit(vTemp) );
+        assert( RetValue );
+    }
+    // set internal nodes
+    for ( n = 0; n < N;   n++ )
+    for ( i = 0; i < M+n; i++ )
+    for ( k = 0; k < K;   k++ )
+    for ( d = 0; d < MAX_D-1; d++ )
+    {
+        Vec_IntFill( vTemp, 1, Abc_Var2Lit(pVars[n][i][k],   1) );
+        Vec_IntPush( vTemp,    Abc_Var2Lit(pVars2[i][d],     1) );
+        Vec_IntPush( vTemp,    Abc_Var2Lit(pVars2[M+n][d+1], 0) );
+        RetValue = sat_solver_addclause( pSat, Vec_IntArray(vTemp), Vec_IntLimit(vTemp) );
+        assert( RetValue );
+    }
+
+    
     Vec_IntFree( vTemp );
     return pSat;
 }
@@ -132,8 +211,11 @@ void Sbd_SolverTopoPrint( sat_solver * pSat, int M, int N, int K, int pVars[MAX_
         printf( "%2d %c | ", i, i < M ? 'i' : ' ' );
         for ( n = 0; n < N; n++ )
         {
-            for ( k = 0; k < K; k++ )
-                printf( "%c", sat_solver_var_value(pSat, pVars[n][i][k]) ? '*' : '.' );
+            for ( k = K-1; k >= 0; k-- )
+                if ( pVars[n][i][k] == -1 )
+                    printf( " " );
+                else                    
+                    printf( "%c", sat_solver_var_value(pSat, pVars[n][i][k]) ? '*' : '.' );
             printf( "  " );
         }
         printf( "\n" );
@@ -141,14 +223,16 @@ void Sbd_SolverTopoPrint( sat_solver * pSat, int M, int N, int K, int pVars[MAX_
 }
 void Sbd_SolverTopoTest()
 {
-    int M = 4;  //  6;  // inputs
-    int N = 4;  // 16;  // nodes
-    int K = 2;  //  2;  // lutsize
+    int M = 8;  //  6;  // inputs
+    int N = 3;  // 16;  // nodes
+    int K = 4;  //  2;  // lutsize
     int status, v, nVars, nIter, nSols = 0;
     int pVars[MAX_N][MAX_M+MAX_N][MAX_K]; // 20 x 32 x 6 = 3840
+    int pVars2[MAX_M+MAX_N][MAX_D];       // 20 x 32 x 6 = 3840
+    int pDelays[MAX_M] = {1,0,0,0,1};
+    abctime clk = Abc_Clock();
     Vec_Int_t * vLits = Vec_IntAlloc(100);
-    sat_solver * pSat = Sbd_SolverTopo( M, N, K, pVars );
-    nVars = sat_solver_nvars( pSat );
+    sat_solver * pSat = Sbd_SolverTopo( M, N, K, pVars, pVars2, pDelays, 2, &nVars );
     for ( nIter = 0; nIter < 1000000; nIter++ )
     {
         // find onset minterm
@@ -160,7 +244,8 @@ void Sbd_SolverTopoTest()
         assert( status == l_True );
         nSols++;
         // print solution
-        Sbd_SolverTopoPrint( pSat, M, N, K, pVars );
+        if ( nIter < 5 )
+            Sbd_SolverTopoPrint( pSat, M, N, K, pVars );
         // remember variable values
         Vec_IntClear( vLits );
         for ( v = 0; v < nVars; v++ )
@@ -170,12 +255,91 @@ void Sbd_SolverTopoTest()
         status = sat_solver_addclause( pSat, Vec_IntArray(vLits), Vec_IntLimit(vLits) );
         if ( status == 0 )
             break;
+        //if ( nIter == 5 )
+        //    break;
     }
-    printf( "Found %d solutions.\n", nSols );
     sat_solver_delete( pSat );
     Vec_IntFree( vLits );
+    printf( "Found %d solutions. ", nSols );
+    Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
 }
 
+
+
+/**Function*************************************************************
+
+  Synopsis    [Synthesize random topology.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Sbd_SolverSynth( int M, int N, int K, int pLuts[MAX_N][MAX_K] )
+{
+    int Used[MAX_M+MAX_N] = {0};
+    int nUnused = M;
+    int n, iFan0, iFan1;
+    srand( time(NULL) );
+    for ( n = 0; nUnused < N - n; n++ )
+    {
+        iFan0 = iFan1 = 0;
+        while ( (iFan0 = rand() % (M + n)) == (iFan1 = rand() % (M + n)) )
+            ;
+        pLuts[n][0] = iFan0;
+        pLuts[n][1] = iFan1;
+        if ( Used[iFan0] == 0 )
+        {
+            Used[iFan0] = 1;
+            nUnused--;
+        }
+        if ( Used[iFan1] == 0 )
+        {
+            Used[iFan1] = 1;
+            nUnused--;
+        }
+        nUnused++;
+    }
+    if ( nUnused == N - n )
+    {
+        // undo the first one
+        for ( iFan0 = 0; iFan0 < M+n; iFan0++ )
+            if ( Used[iFan0] )
+            {
+                Used[iFan0] = 0;
+                nUnused++;
+                break;
+            }
+
+    }
+    assert( nUnused == N - n + 1 );
+    for ( ; n < N; n++ )
+    {
+        for ( iFan0 = 0; iFan0 < M+n; iFan0++ )
+            if ( Used[iFan0] == 0 )
+            {
+                Used[iFan0] = 1;
+                break;
+            }
+        assert( iFan0 < M+n );
+        for ( iFan1 = 0; iFan1 < M+n; iFan1++ )
+            if ( Used[iFan1] == 0 )
+            {
+                Used[iFan1] = 1;
+                break;
+            }
+        assert( iFan1 < M+n );
+        pLuts[n][0] = iFan0;
+        pLuts[n][1] = iFan1;
+    }
+
+    printf( "{\n" );
+    for ( n = 0; n < N; n++ )
+        printf( "    {%d, %d}%s // %d\n", pLuts[n][0], pLuts[n][1], n==N-1 ? "" :",", M+n );
+    printf( "};\n" );
+}
 
 
 /**Function*************************************************************
@@ -191,10 +355,9 @@ void Sbd_SolverTopoTest()
 ***********************************************************************/
 word Sbd_SolverTruth( int M, int N, int K, int pLuts[MAX_N][MAX_K], int pValues[MAX_N*((1<<MAX_K)-1)] )
 {
-    word Truths[MAX_M+MAX_N];
     int i, k, v, nLutPars = (1 << K) - 1;
-    assert( M <= 6 );
-    assert( N <= MAX_N );
+    word Truths[MAX_M+MAX_N];
+    assert( M <= 6 && N <= MAX_N );
     for ( i = 0; i < M; i++ )
         Truths[i] = s_Truths6[i];
     for ( i = 0; i < N; i++ )
@@ -213,6 +376,35 @@ word Sbd_SolverTruth( int M, int N, int K, int pLuts[MAX_N][MAX_K], int pValues[
     }
     return Truths[M+N-1];
 }
+word * Sbd_SolverTruthWord( int M, int N, int K, int pLuts[MAX_N][MAX_K], int pValues[MAX_N*((1<<MAX_K)-1)], word * pTruthsElem, int fCompl )
+{
+    int i, k, v, nLutPars = (1 << K) - 1;
+    int nWords = Abc_TtWordNum( M );
+    word * pRes = pTruthsElem + (M+N-1)*nWords;
+    assert( M <= MAX_M && N <= MAX_N );
+    for ( i = 0; i < N; i++ )
+    {
+        word * pMint, * pTruth = pTruthsElem + (M+i)*nWords;
+        Abc_TtClear( pTruth, nWords );
+        for ( k = 1; k <= nLutPars; k++ )
+        {            
+            if ( !pValues[i*nLutPars+k-1] )
+                continue;
+            pMint = pTruthsElem + (M+N)*nWords;
+            Abc_TtFill( pMint, nWords );
+            for ( v = 0; v < K; v++ )
+            {
+                word * pFanin = pTruthsElem + pLuts[i][v]*nWords;
+                Abc_TtAndSharp( pMint, pMint, pFanin, nWords, ((k >> v) & 1) == 0 );
+            }
+            Abc_TtOr( pTruth, pTruth, pMint, nWords );
+        }
+    }
+    if ( fCompl )
+        Abc_TtNot( pRes, nWords );
+    return pRes;
+}
+
 
 /**Function*************************************************************
 
@@ -225,30 +417,34 @@ word Sbd_SolverTruth( int M, int N, int K, int pLuts[MAX_N][MAX_K], int pValues[
   SeeAlso     []
 
 ***********************************************************************/
-int Sbd_SolverFunc( int M, int N, int K, int pLuts[MAX_N][MAX_K], word TruthInit, int * pValues ) 
+int Sbd_SolverFunc( int M, int N, int K, int pLuts[MAX_N][MAX_K], word * pTruthInit, int * pValues ) 
 {
     int fVerbose = 0;
+    abctime clk = Abc_Clock();
+    abctime clk2, clkOther = 0;
     sat_solver * pSat = NULL;
+    int nWords = Abc_TtWordNum(M);
     int pLits[MAX_K+2], pLits2[MAX_K+2], nLits;
     int nLutPars = (1 << K) - 1, nVars = N * nLutPars;
-    int i, k, m, status, iMint, Iter, fCompl = (int)(TruthInit & 1);
-    word TruthNew, Truth = (TruthInit & 1) ? ~TruthInit : TruthInit;
-    word Mask = M < 6 ? Abc_Tt6Mask(1 << M) : ~(word)0;
-    printf( "Number of parameters %d x %d = %d.\n", N, nLutPars, nVars );
+    int i, k, m, status, iMint, Iter, fCompl = (int)(pTruthInit[0] & 1);
+    // create truth tables
+    word * pTruthNew, * pTruths = ABC_ALLOC( word, Abc_TtWordNum(MAX_N) * (MAX_M + MAX_N + 1) );
+    Abc_TtElemInit2( pTruths, M );
     // create solver
     pSat = sat_solver_new();
     sat_solver_setnvars( pSat, nVars );
+    printf( "Number of parameters %d x %d = %d.\n", N, nLutPars, nVars );
     // start with the last minterm
-    iMint = (1 << M) - 1;
+//    iMint = (1 << M) - 1;
+    iMint = 1;
     for ( Iter = 0; Iter < (1 << M); Iter++ )
     {
         // assign the first intermediate variable
         int nVarStart = sat_solver_nvars(pSat);
         sat_solver_setnvars( pSat, nVarStart + N - 1 );
-
         // add clauses for nodes
-        if ( fVerbose )
-            printf( "\nIter %3d : Minterm %d\n", Iter, iMint );
+        //if ( fVerbose )
+            printf( "Iter %3d : Mint = %3d. Conflicts =%8d.\n", Iter, iMint, sat_solver_nconflicts(pSat) );
         for ( i = 0; i < N; i++ )
         for ( m = 0; m <= nLutPars; m++ )
         {
@@ -284,7 +480,7 @@ int Sbd_SolverFunc( int M, int N, int K, int pLuts[MAX_N][MAX_K], word TruthInit
                 nLits++;
             }
             // add clauses
-            if ( i != N - 1 || ((TruthInit >> iMint) & 1) != fCompl )
+            if ( i != N - 1 || Abc_TtGetBit(pTruthInit, iMint) != fCompl )
             {
                 status = sat_solver_addclause( pSat, pLits2, pLits2 + nLits );
                 if ( status == 0 )
@@ -293,7 +489,7 @@ int Sbd_SolverFunc( int M, int N, int K, int pLuts[MAX_N][MAX_K], word TruthInit
                     goto finish;
                 }
             }
-            if ( (i != N - 1 || ((TruthInit >> iMint) & 1) == fCompl) && m > 0 )
+            if ( (i != N - 1 || Abc_TtGetBit(pTruthInit, iMint) == fCompl) && m > 0 )
             {
                 status = sat_solver_addclause( pSat, pLits, pLits + nLits );
                 if ( status == 0 )
@@ -318,7 +514,11 @@ int Sbd_SolverFunc( int M, int N, int K, int pLuts[MAX_N][MAX_K], word TruthInit
         // collect values
         for ( i = 0; i < nVars; i++ )
             pValues[i] = sat_solver_var_value(pSat, i);
-        TruthNew = Sbd_SolverTruth( M, N, K, pLuts, pValues );
+
+        clk2 = Abc_Clock();
+        pTruthNew = Sbd_SolverTruthWord( M, N, K, pLuts, pValues, pTruths, fCompl );
+        clkOther += Abc_Clock() - clk2;
+
         if ( fVerbose )
         {
             for ( i = 0; i < nVars; i++ )
@@ -327,18 +527,21 @@ int Sbd_SolverFunc( int M, int N, int K, int pLuts[MAX_N][MAX_K], word TruthInit
             for ( i = nVars; i < sat_solver_nvars(pSat); i++ )
                 printf( "%d=%d ", i, sat_solver_var_value(pSat, i) );
             printf( "\n" );
-            Extra_PrintBinary( stdout, (unsigned *)&Truth, (1 << M) );    printf( "\n" );
-            Extra_PrintBinary( stdout, (unsigned *)&TruthNew, (1 << M) ); printf( "\n" );
+            Extra_PrintBinary( stdout, (unsigned *)pTruthInit, (1 << M) );  printf( "\n" );
+            Extra_PrintBinary( stdout, (unsigned *)pTruthNew,  (1 << M) );  printf( "\n" );
         }
-        if ( (Truth & Mask) == (Mask & TruthNew) )
+        if ( Abc_TtEqual(pTruthInit, pTruthNew, nWords) )
             break;
 
         // get new minterm
-        iMint = Abc_Tt6FirstBit( Truth ^ TruthNew );
+        iMint = Abc_TtFindFirstDiffBit( pTruthInit, pTruthNew, M );
     }
 finish:
-    printf( "Finished after %d iterations and %d conflicts.\n", Iter, sat_solver_nconflicts(pSat) );
+    printf( "Finished after %d iterations and %d conflicts.  ", Iter, sat_solver_nconflicts(pSat) );
     sat_solver_delete( pSat );
+    ABC_FREE( pTruths );
+    Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
+    Abc_PrintTime( 1, "Time", clkOther );
     return fCompl;
 }
 void Sbd_SolverFuncTest() 
@@ -346,15 +549,58 @@ void Sbd_SolverFuncTest()
 //    int M = 4;  //  6;  // inputs
 //    int N = 3;  // 16;  // nodes
 //    int K = 2;  //  2;  // lutsize
+//    word Truth = ~((word)3 << 8);
+//    int pLuts[MAX_N][MAX_K] = { {0,1}, {2,3}, {4,5}, {6,7}, {8,9} };
+
+/*
+    int M =  6;  //  6;  // inputs
+    int N = 19;  // 16;  // nodes
+    int K =  2;  //  2;  // lutsize
+    word pTruth[4] = { ABC_CONST(0x9ef7a8d9c7193a0f), 0, 0, 0 };
+    int pLuts[MAX_N][MAX_K] = { 
+        {3, 5}, {1, 6}, {0, 5}, {8, 2}, {7, 9},
+        {0, 1}, {2, 11}, {5, 12}, {3, 13}, {1, 14},
+        {10, 15}, {11, 2}, {3, 17}, {9, 18}, {0, 13},
+        {20, 7}, {19, 21}, {4, 16}, {23, 22} 
+    };
+*/
+
+/*
     int M = 6;  //  6;  // inputs
     int N = 5;  // 16;  // nodes
-    int K = 2;  //  2;  // lutsize
-//    word Truth = ~(word)(1 << 0);
-    word Truth = ~(word)(23423);
-    int pLuts[MAX_N][MAX_K] = { {0,1}, {2,3}, {4,5}, {6,7}, {8,9} };
+    int K = 4;  //  2;  // lutsize
+    word Truth = ABC_CONST(0x9ef7a8d9c7193a0f);
+    int pLuts[MAX_N][MAX_K] = { 
+        {0, 1, 2, 3}, // 6
+        {1, 2, 3, 4}, // 7
+        {2, 3, 4, 5}, // 8
+        {0, 1, 4, 5}, // 9
+        {6, 7, 8, 9}  // 10
+    };
+*/
+
+/*
+    int M =  8;  //  6;  // inputs
+    int N =  7;  // 16;  // nodes
+    int K =  2;  //  2;  // lutsize
+//    word pTruth[4] = { 0, 0, 0, ABC_CONST(0x8000000000000000) };
+//    word pTruth[4] = { ABC_CONST(0x0000000000000001), 0, 0, 0 };
+    word pTruth[4] = { 0, 0, 0, ABC_CONST(0x0000000000020000) };
+    int pLuts[MAX_N][MAX_K] = { {0,1}, {2,3}, {4,5}, {6,7}, {8,9}, {10,11}, {12,13} };
+*/
+
+    int M =  8;  //  6;  // inputs
+    int N =  7;  // 16;  // nodes
+    int K =  2;  //  2;  // lutsize
+    word pTruth[4] = { ABC_CONST(0x0000080000020000), ABC_CONST(0x0000000000020000), ABC_CONST(0x0000000000000000), ABC_CONST(0x0000000000020000) };
+    int pLuts[MAX_N][MAX_K] = { {0,1}, {2,3}, {4,5}, {6,7}, {8,9}, {10,11}, {12,13} };
+
     int pValues[MAX_N*((1<<MAX_K)-1)];
-    int i, k, nLutPars = (1 << K) - 1;
-    int Res = Sbd_SolverFunc( M, N, K, pLuts, Truth, pValues );
+    int Res, i, k, nLutPars = (1 << K) - 1;
+
+    //Sbd_SolverSynth( M, N, K, pLuts );
+
+    Res = Sbd_SolverFunc( M, N, K, pLuts, pTruth, pValues );
     if ( Res == -1 )
     {
         printf( "Solution does not exist.\n" );

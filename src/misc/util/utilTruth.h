@@ -1603,6 +1603,14 @@ static inline int Abc_TtFindFirstBit( word * pIn, int nVars )
             return 64*w + Abc_Tt6FirstBit(pIn[w]);
     return -1;
 }
+static inline int Abc_TtFindFirstDiffBit( word * pIn1, word * pIn2, int nVars )
+{
+    int w, nWords = Abc_TtWordNum(nVars);
+    for ( w = 0; w < nWords; w++ )
+        if ( pIn1[w] ^ pIn2[w] )
+            return 64*w + Abc_Tt6FirstBit(pIn1[w] ^ pIn2[w]);
+    return -1;
+}
 static inline int Abc_TtFindFirstZero( word * pIn, int nVars )
 {
     int w, nWords = Abc_TtWordNum(nVars);
