@@ -489,7 +489,7 @@ int Sbm_ManTestSat( void * pMan )
 
     StartSol = Vec_IntSize(p->vSolCuts);
 //    StartSol = 30;
-    while ( fKeepTrying )
+    while ( fKeepTrying && StartSol-fKeepTrying > 0 )
     {
         printf( "Trying to find mapping with %d gates.\n", StartSol-fKeepTrying );
     //    for ( i = Vec_IntSize(p->vSolCuts)-5; i < nVars; i++ )

@@ -7463,7 +7463,7 @@ usage:
     Abc_Print( -2, "\t           finds optimum networks using SAT-based exact synthesis for hex truth tables <truth1> <truth2> ...\n" );
     Abc_Print( -2, "\t-D <num>  : constrain maximum depth (if too low, algorithm may not terminate)\n" );
     Abc_Print( -2, "\t-A <list> : input arrival times (comma separated list)\n" );
-    Abc_Print( -2, "\t-S <num>  : number of start gates in search [default = %s]\n", nStartGates );
+    Abc_Print( -2, "\t-S <num>  : number of start gates in search [default = %d]\n", nStartGates );
     Abc_Print( -2, "\t-C <num>  : the limit on the number of conflicts; turn off with 0 [default = %d]\n", nBTLimit );
     Abc_Print( -2, "\t-a        : toggle create AIG [default = %s]\n", fMakeAIG ? "yes" : "no" );
     Abc_Print( -2, "\t-t        : run test suite\n" );
