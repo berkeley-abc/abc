@@ -63,7 +63,7 @@ typedef enum {
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_NtkGenFaultList( Abc_Ntk_t * pNtk, char * pFileName )
+void Abc_NtkGenFaultList( Abc_Ntk_t * pNtk, char * pFileName, int fStuckAt )
 {
     Mio_Library_t * pLib = (Mio_Library_t *)pNtk->pManFunc;
     Mio_Gate_t * pGate;
@@ -84,14 +84,16 @@ void Abc_NtkGenFaultList( Abc_Ntk_t * pNtk, char * pFileName )
         fprintf( pFile, "%d %s %s\n", Count, Abc_ObjName(pObj), "SA0" ), Count++;
         fprintf( pFile, "%d %s %s\n", Count, Abc_ObjName(pObj), "SA1" ), Count++;
         fprintf( pFile, "%d %s %s\n", Count, Abc_ObjName(pObj), "NEG" ), Count++;
+        if ( fStuckAt )
+            continue;
         // add other faults, which correspond to changing the given gate
         // by another gate with the same support-size from the same library
         Mio_LibraryForEachGate( pLib, pGate )
             if ( pGate != pGateObj && Mio_GateReadPinNum(pGate) == nInputs )
                 fprintf( pFile, "%d %s %s\n", Count, Abc_ObjName(pObj), Mio_GateReadName(pGate) ), Count++;
     }
-    printf( "Generated fault list \"%s\" for network \"%s\" with %d nodes and %d faults.\n", 
-        pFileName, Abc_NtkName(pNtk), Abc_NtkNodeNum(pNtk), Count-1 );
+    printf( "Generated fault list \"%s\" for network \"%s\" with %d nodes and %d %sfaults.\n", 
+        pFileName, Abc_NtkName(pNtk), Abc_NtkNodeNum(pNtk), Count-1, fStuckAt ? "stuck-at ":"" );
     fclose( pFile );
 }
 

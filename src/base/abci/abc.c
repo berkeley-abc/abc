@@ -7241,17 +7241,20 @@ usage:
 int Abc_CommandFaultClasses( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     extern void Abc_NtkDetectClassesTest( Abc_Ntk_t * pNtk, int fSeq, int fVerbose, int fVeryVerbose );
-    extern void Abc_NtkGenFaultList( Abc_Ntk_t * pNtk, char * pFileName );
+    extern void Abc_NtkGenFaultList( Abc_Ntk_t * pNtk, char * pFileName, int fStuckAt );
     Abc_Ntk_t * pNtk;
-    int c, fGen = 0, fSeq = 0, fVerbose = 0, fVeryVerbose = 0;
+    int c, fGen = 0, fStuckAt = 0, fSeq = 0, fVerbose = 0, fVeryVerbose = 0;
     pNtk = Abc_FrameReadNtk(pAbc);
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "gsvwh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "gcsvwh" ) ) != EOF )
     {
         switch ( c )
         {
         case 'g':
             fGen ^= 1;
+            break;
+        case 'c':
+            fStuckAt ^= 1;
             break;
         case 's':
             fSeq ^= 1;
@@ -7281,18 +7284,19 @@ int Abc_CommandFaultClasses( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( fGen )
     {
         char * pFileName = Extra_FileNameGenericAppend(Abc_NtkSpec(pNtk), "_faults.txt");
-        Abc_NtkGenFaultList( pNtk, pFileName );
+        Abc_NtkGenFaultList( pNtk, pFileName, fStuckAt );
     }
     else
         Abc_NtkDetectClassesTest( pNtk, fSeq, fVerbose, fVeryVerbose );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: faultclasses [-gsvwh]\n" );
+    Abc_Print( -2, "usage: faultclasses [-gcsvwh]\n" );
     Abc_Print( -2, "\t           computes equivalence classes of faults in the given mapped netlist;\n" );
     Abc_Print( -2, "\t           the fault list with faults in the format: <fault_id> <node_name> <fault_name>\n" );
     Abc_Print( -2, "\t           should be read by command \"read_fins\" before calling this command\n" );
     Abc_Print( -2, "\t-g       : toggle generating a fault list for the current mapped network [default = %s]\n", fGen? "yes": "no" );
+    Abc_Print( -2, "\t-c       : toggle using only stuck-at faults in the generated fault list [default = %s]\n", fStuckAt? "yes": "no" );
     Abc_Print( -2, "\t-s       : toggle detecting sequential equivalence classes [default = %s]\n", fSeq? "yes": "no" );
     Abc_Print( -2, "\t-v       : toggle verbose printout during computation [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-w       : toggle printing of resulting fault equivalence classes [default = %s]\n", fVeryVerbose? "yes": "no" );
