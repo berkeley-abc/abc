@@ -34,6 +34,7 @@
 #include "misc/vec/vec.h"
 #include "sat/bsat/satSolver.h"
 #include "misc/util/utilNam.h"
+#include "misc/util/utilTruth.h"
 #include "map/scl/sclLib.h"
 #include "map/scl/sclCon.h"
 #include "bool/kit/kit.h"

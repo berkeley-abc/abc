@@ -37,6 +37,179 @@ ABC_NAMESPACE_IMPL_START
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
+#define SBD_LUTS_MAX   2
+#define SBD_SIZE_MAX   4
+#define SBD_DIV_MAX   16
+
+// new AIG manager
+typedef struct Sbd_Pro_t_ Sbd_Pro_t;
+struct Sbd_Pro_t_
+{
+    int             nLuts;  // LUT count
+    int             nSize;  // LUT size
+    int             nDivs;  // divisor count
+    int             nVars;  // intermediate variables (nLuts * nSize)
+    int             nPars;  // total parameter count (nLuts * (1 << nSize) + nLuts * nSize * nDivs) 
+    int             pPars1[SBD_LUTS_MAX][1<<SBD_SIZE_MAX];            // lut parameters
+    int             pPars2[SBD_LUTS_MAX][SBD_SIZE_MAX][SBD_DIV_MAX];  // topo parameters
+    int             pVars[SBD_LUTS_MAX][SBD_SIZE_MAX+1];              // internal variables
+    int             pDivs[SBD_DIV_MAX];                               // divisor variables (external)
+};
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Int_t * Sbd_ProblemSetup( Sbd_Pro_t * p, int nLuts, int nSize, int nDivs )
+{
+    Vec_Int_t * vCnf = Vec_IntAlloc( 1000 );
+    int i, k, d, v, n, iVar = 0;
+    assert( nLuts >= 1 && nLuts <= 2 );
+    memset( p, 0, sizeof(Sbd_Pro_t) );
+    p->nLuts = nLuts;
+    p->nSize = nSize;
+    p->nDivs = nDivs;
+    p->nVars = nLuts * nSize;
+    p->nPars = nLuts * (1 << nSize) + nLuts * nSize * nDivs;
+    // set parameters
+    for ( i = 0; i < nLuts; i++ )
+    for ( k = 0; k < (1 << nSize); k++ )
+        p->pPars1[i][k] = iVar++;
+    for ( i = 0; i < nLuts; i++ )
+    for ( k = 0; k < nSize; k++ )
+    for ( d = 0; d < nDivs; d++ )
+        p->pPars2[i][k][d] = iVar++;
+    // set intermediate variables
+    for ( i = 0; i < nLuts; i++ )
+    for ( k = 0; k < nSize; k++ )
+        p->pVars[i][k] = iVar++;
+    // set top variables 
+    for ( i = 1; i < nLuts; i++ )
+        p->pVars[i][nSize] = p->pVars[i-1][0];
+    // set divisor variables
+    for ( d = 0; d < nDivs; d++ )
+        p->pDivs[d] = iVar++;
+    assert( iVar == p->nPars + p->nVars + p->nDivs );
+
+    // input compatiblity clauses
+    for ( i = 0; i < nLuts; i++ )
+    for ( k = (i > 0); k < nSize; k++ )
+    for ( d = 0; d < nDivs; d++ )
+    for ( n = 0; n < nDivs; n++ )
+    {
+        if ( n < d )
+        {
+            Vec_IntPush( vCnf, Abc_Var2Lit(p->pPars2[i][k][d], 0) );
+            Vec_IntPush( vCnf, Abc_Var2Lit(p->pPars2[i][k][n], 0) );
+            Vec_IntPush( vCnf, -1 );
+        }
+        else if ( k < nSize-1 )
+        {
+            Vec_IntPush( vCnf, Abc_Var2Lit(p->pPars2[i][k][d], 0) );
+            Vec_IntPush( vCnf, Abc_Var2Lit(p->pPars2[i][k+1][n], 0) );
+            Vec_IntPush( vCnf, -1 );
+        }
+    }
+
+    // create LUT clauses
+    for ( i = 0; i < nLuts; i++ )
+    for ( k = 0; k < (1 << nSize); k++ )
+    for ( n = 0; n < 2; n++ )
+    {
+        for ( v = 0; v < nSize; v++ )
+            Vec_IntPush( vCnf, Abc_Var2Lit(p->pPars1[i][v], (k >> v) & 1) );
+        Vec_IntPush( vCnf, Abc_Var2Lit(p->pVars[i][nSize], n) );
+        Vec_IntPush( vCnf, Abc_Var2Lit(p->pPars1[i][k], !n) );
+        Vec_IntPush( vCnf, -1 );
+    }
+
+    // create input clauses
+    for ( i = 0; i < nLuts; i++ )
+    for ( k = (i > 0); k < nSize; k++ )
+    for ( d = 0; d < nDivs; d++ )
+    for ( n = 0; n < 2; n++ )
+    {
+        Vec_IntPush( vCnf, Abc_Var2Lit(p->pPars2[i][k][d], 0) );
+        Vec_IntPush( vCnf, Abc_Var2Lit(p->pPars1[i][k], n) );
+        Vec_IntPush( vCnf, Abc_Var2Lit(p->pDivs[d], !n) );
+        Vec_IntPush( vCnf, -1 );
+    }
+
+    return vCnf;
+}
+// add clauses to the don't-care computation solver
+void Sbd_ProblemLoad1( Sbd_Pro_t * p, Vec_Int_t * vCnf, int iStartVar, int * pDivVars, int iTopVar, sat_solver * pSat )
+{
+    int pLits[8], nLits, i, k, iLit, RetValue;
+    int ThisTopVar = p->pVars[0][p->nSize];
+    int FirstDivVar = p->nPars + p->nVars;
+    // add clauses
+    for ( i = 0; i < Vec_IntSize(vCnf); i++ )
+    {
+        assert( Vec_IntEntry(vCnf, i) != -1 );
+        for ( k = i+1; k < Vec_IntSize(vCnf); k++ )
+            if ( Vec_IntEntry(vCnf, i) == -1 )
+                break;
+        nLits = 0;
+        Vec_IntForEachEntryStartStop( vCnf, iLit, i, i, k ) {
+            if ( Abc_Lit2Var(iLit) == ThisTopVar )
+                pLits[nLits++] = Abc_Var2Lit( ThisTopVar, Abc_LitIsCompl(iLit) );
+            else if ( Abc_Lit2Var(iLit) >= FirstDivVar )
+                pLits[nLits++] = Abc_Var2Lit( pDivVars[Abc_Lit2Var(iLit)-FirstDivVar], Abc_LitIsCompl(iLit) );
+            else
+                pLits[nLits++] = iLit + 2 * iStartVar;
+        }
+        assert( nLits <= 8 );
+        RetValue = sat_solver_addclause( pSat, pLits, pLits + nLits );
+        assert( RetValue );
+    }
+}
+// add clauses to the functionality evaluation solver
+void Sbd_ProblemLoad2( Sbd_Pro_t * p, Vec_Wec_t * vCnf, int iStartVar, int * pDivVarValues, int iTopVarValue, sat_solver * pSat )
+{
+    Vec_Int_t * vLevel;
+    int pLits[8], nLits, i, k, iLit, RetValue;
+    int ThisTopVar = p->pVars[0][p->nSize];
+    int FirstDivVar = p->nPars + p->nVars;
+    int FirstIntVar = p->nPars;
+    // add clauses
+    Vec_WecForEachLevel( vCnf, vLevel, i )
+    {
+        nLits = 0;
+        Vec_IntForEachEntry( vLevel, iLit, k ) {
+            if ( Abc_Lit2Var(iLit) == ThisTopVar )
+            {
+                if ( Abc_LitIsCompl(iLit) == iTopVarValue )
+                    break;
+                continue;
+            }
+            else if ( Abc_Lit2Var(iLit) >= FirstDivVar )
+            {
+                if ( Abc_LitIsCompl(iLit) == pDivVarValues[Abc_Lit2Var(iLit)-FirstDivVar] )
+                    break;
+                continue;
+            }
+            else if ( Abc_Lit2Var(iLit) >= FirstIntVar )
+                pLits[nLits++] = iLit + 2 * iStartVar;
+            else
+                pLits[nLits++] = iLit;
+        }
+        if ( k < Vec_IntSize(vLevel) )
+            continue;
+        assert( nLits <= 8 );
+        RetValue = sat_solver_addclause( pSat, pLits, pLits + nLits );
+        assert( RetValue );
+    }
+}
+
+
 /**Function*************************************************************
 
   Synopsis    []

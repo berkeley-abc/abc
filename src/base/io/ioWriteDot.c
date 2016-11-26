@@ -74,7 +74,7 @@ void Io_WriteDotNtk( Abc_Ntk_t * pNtk, Vec_Ptr_t * vNodes, Vec_Ptr_t * vNodesSho
     Abc_Obj_t * pNode, * pFanin;
     char * pSopString;
     int LevelMin, LevelMax, fHasCos, Level, i, k, fHasBdds, fCompl, Prev;
-    int Limit = 300;
+    int Limit = 500;
 
     assert( Abc_NtkIsStrash(pNtk) || Abc_NtkIsLogic(pNtk) );
 

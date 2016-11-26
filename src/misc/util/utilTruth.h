@@ -266,6 +266,28 @@ static inline void Abc_TtAnd( word * pOut, word * pIn1, word * pIn2, int nWords,
         for ( w = 0; w < nWords; w++ )
             pOut[w] = pIn1[w] & pIn2[w];
 }
+static inline void Abc_TtAndCompl( word * pOut, word * pIn1, int fCompl1, word * pIn2, int fCompl2, int nWords )
+{
+    int w;
+    if ( fCompl1 )
+    {
+        if ( fCompl2 )
+            for ( w = 0; w < nWords; w++ )
+                pOut[w] = ~pIn1[w] & ~pIn2[w];
+        else
+            for ( w = 0; w < nWords; w++ )
+                pOut[w] = ~pIn1[w] & pIn2[w];
+    }
+    else
+    {
+        if ( fCompl2 )
+            for ( w = 0; w < nWords; w++ )
+                pOut[w] = pIn1[w] & ~pIn2[w];
+        else
+            for ( w = 0; w < nWords; w++ )
+                pOut[w] = pIn1[w] & pIn2[w];
+    }
+}
 static inline void Abc_TtAndSharp( word * pOut, word * pIn1, word * pIn2, int nWords, int fCompl )
 {
     int w;
@@ -287,6 +309,12 @@ static inline void Abc_TtOr( word * pOut, word * pIn1, word * pIn2, int nWords )
     int w;
     for ( w = 0; w < nWords; w++ )
         pOut[w] = pIn1[w] | pIn2[w];
+}
+static inline void Abc_TtOrXor( word * pOut, word * pIn1, word * pIn2, int nWords )
+{
+    int w;
+    for ( w = 0; w < nWords; w++ )
+        pOut[w] |= pIn1[w] ^ pIn2[w];
 }
 static inline void Abc_TtXor( word * pOut, word * pIn1, word * pIn2, int nWords, int fCompl )
 {
