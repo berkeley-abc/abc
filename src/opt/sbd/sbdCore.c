@@ -48,6 +48,7 @@ struct Sbd_Man_t_
     Vec_Int_t *     vTfo;        // TFO (excludes node, includes roots)
     Vec_Int_t *     vLeaves;     // leaves (TFI leaves + extended leaves)
     Vec_Int_t *     vTfi;        // TFI (TFI + node + extended TFI)
+    Vec_Int_t *     vDivs;       // divisors
     Vec_Int_t *     vCounts[2];  // counters of zeros and ones
 };
 
@@ -76,7 +77,7 @@ void Sbd_ParSetDefault( Sbd_Par_t * pPars )
 {
     memset( pPars, 0, sizeof(Sbd_Par_t) );
     pPars->nLutSize     = 4;  // target LUT size
-    pPars->nTfoLevels   = 4;  // the number of TFO levels (windowing)
+    pPars->nTfoLevels   = 3;  // the number of TFO levels (windowing)
     pPars->nTfoFanMax   = 4;  // the max number of fanouts (windowing)
     pPars->nWinSizeMax  = 0;  // maximum window size (windowing)
     pPars->nBTLimit     = 0;  // maximum number of SAT conflicts 
@@ -102,6 +103,7 @@ Vec_Wec_t * Sbd_ManWindowRoots( Gia_Man_t * p, int nTfoLevels, int nTfoFanMax )
     Vec_Wec_t * vTfos = Vec_WecStart( Gia_ManObjNum(p) ); // TFO nodes with roots marked
     Vec_Wec_t * vTemp = Vec_WecStart( Gia_ManObjNum(p) ); // storage
     Vec_Int_t * vNodes, * vNodes0, * vNodes1;
+    Vec_Bit_t * vPoDrivers = Vec_BitStart( Gia_ManObjNum(p) );
     int i, k, k2, Id, Fan;
     Gia_ManLevelNum( p );
     Gia_ManCreateRefs( p );
@@ -112,13 +114,15 @@ Vec_Wec_t * Sbd_ManWindowRoots( Gia_Man_t * p, int nTfoLevels, int nTfoFanMax )
         Vec_IntGrow( vNodes, 1 );
         Vec_IntPush( vNodes, Id );
     }
+    Gia_ManForEachCoDriverId( p, Id, i )
+        Vec_BitWriteEntry( vPoDrivers, Id, 1 );
     Gia_ManForEachAndId( p, Id )
     {
-        int fAlwaysRoot = Gia_ObjRefNumId(p, Id) >= nTfoFanMax;
+        int fAlwaysRoot = Vec_BitEntry(vPoDrivers, Id) || (Gia_ObjRefNumId(p, Id) >= nTfoFanMax);
         vNodes0 = Vec_WecEntry( vTemp, Gia_ObjFaninId0(Gia_ManObj(p, Id), Id) );
         vNodes1 = Vec_WecEntry( vTemp, Gia_ObjFaninId1(Gia_ManObj(p, Id), Id) );
         vNodes = Vec_WecEntry( vTemp, Id );
-        Vec_IntTwoMerge2( vNodes, vNodes0, vNodes1 );
+        Vec_IntTwoMerge2( vNodes0, vNodes1, vNodes );
         k2 = 0;
         Vec_IntForEachEntry( vNodes, Fan, k )
         {
@@ -127,10 +131,16 @@ Vec_Wec_t * Sbd_ManWindowRoots( Gia_Man_t * p, int nTfoLevels, int nTfoFanMax )
             if ( !fRoot ) Vec_IntWriteEntry( vNodes, k2++, Fan );
         }
         Vec_IntShrink( vNodes, k2 );
-        Vec_IntPush( vNodes, Id );
+        if ( fAlwaysRoot )
+            Vec_WecPush( vTfos, Id, Abc_Var2Lit(Id, 1) );
+        else
+            Vec_IntPush( vNodes, Id );
     }
     Vec_WecFree( vTemp );
+    Vec_BitFree( vPoDrivers );
+
     // print the results
+    if ( 1 )
     Vec_WecForEachLevel( vTfos, vNodes, i )
     {
         if ( !Gia_ObjIsAnd(Gia_ManObj(p, i)) )
@@ -139,8 +149,8 @@ Vec_Wec_t * Sbd_ManWindowRoots( Gia_Man_t * p, int nTfoLevels, int nTfoFanMax )
         Vec_IntForEachEntry( vNodes, Fan, k )
             printf( "%d%s ", Abc_Lit2Var(Fan), Abc_LitIsCompl(Fan)? "*":"" );
         printf( "\n" );
-
     }
+
     return vTfos;
 }
 
@@ -171,6 +181,7 @@ Sbd_Man_t * Sbd_ManStart( Gia_Man_t * pGia, Sbd_Par_t * pPars )
     p->vCover     = Vec_IntStart( 100 );
     p->vLeaves    = Vec_IntAlloc( Gia_ManCiNum(pGia) );
     p->vTfi       = Vec_IntAlloc( Gia_ManAndNum(pGia) );
+    p->vDivs      = Vec_IntAlloc( Gia_ManObjNum(pGia) );
     p->vCounts[0] = Vec_IntAlloc( 100 );
     p->vCounts[1] = Vec_IntAlloc( 100 );
     // start input cuts
@@ -199,8 +210,10 @@ void Sbd_ManStop( Sbd_Man_t * p )
     Vec_IntFree( p->vCover  );
     Vec_IntFree( p->vLeaves );
     Vec_IntFree( p->vTfi );
+    Vec_IntFree( p->vDivs );
     Vec_IntFree( p->vCounts[0] );
     Vec_IntFree( p->vCounts[1] );
+    ABC_FREE( p );
 }
 
 
@@ -234,20 +247,38 @@ void Sbd_ManWindowSim_rec( Sbd_Man_t * p, int Node )
     Sbd_ManWindowSim_rec( p, Gia_ObjFaninId1(pObj, Node) );
     Vec_IntPush( p->vTfi, Node );
     // simulate
-    Abc_TtAndCompl( Sbd_ObjSim0(p, Node), 
-        Sbd_ObjSim0(p, Gia_ObjFaninId0(pObj, Node)), Gia_ObjFaninC0(pObj), 
-        Sbd_ObjSim0(p, Gia_ObjFaninId1(pObj, Node)), Gia_ObjFaninC1(pObj), 
-        p->pPars->nWords );
-    if ( pObj->fMark0 )
-        Abc_TtAndCompl( Sbd_ObjSim1(p, Node), 
-            Gia_ObjFanin0(pObj)->fMark0 ? Sbd_ObjSim1(p, Gia_ObjFaninId0(pObj, Node)) : Sbd_ObjSim0(p, Gia_ObjFaninId0(pObj, Node)), Gia_ObjFaninC0(pObj), 
-            Gia_ObjFanin0(pObj)->fMark0 ? Sbd_ObjSim1(p, Gia_ObjFaninId0(pObj, Node)) : Sbd_ObjSim0(p, Gia_ObjFaninId1(pObj, Node)), Gia_ObjFaninC1(pObj), 
+    if ( Gia_ObjIsXor(pObj) )
+    {
+        Abc_TtXor( Sbd_ObjSim0(p, Node), 
+            Sbd_ObjSim0(p, Gia_ObjFaninId0(pObj, Node)), 
+            Sbd_ObjSim0(p, Gia_ObjFaninId1(pObj, Node)), 
+            p->pPars->nWords, 
+            Gia_ObjFaninC0(pObj) ^ Gia_ObjFaninC1(pObj) );
+        if ( pObj->fMark0 )
+            Abc_TtXor( Sbd_ObjSim1(p, Node), 
+                Gia_ObjFanin0(pObj)->fMark0 ? Sbd_ObjSim1(p, Gia_ObjFaninId0(pObj, Node)) : Sbd_ObjSim0(p, Gia_ObjFaninId0(pObj, Node)), 
+                Gia_ObjFanin1(pObj)->fMark0 ? Sbd_ObjSim1(p, Gia_ObjFaninId1(pObj, Node)) : Sbd_ObjSim0(p, Gia_ObjFaninId1(pObj, Node)), 
+                p->pPars->nWords, 
+                Gia_ObjFaninC0(pObj) ^ Gia_ObjFaninC1(pObj) );
+    }
+    else
+    {
+        Abc_TtAndCompl( Sbd_ObjSim0(p, Node), 
+            Sbd_ObjSim0(p, Gia_ObjFaninId0(pObj, Node)), Gia_ObjFaninC0(pObj), 
+            Sbd_ObjSim0(p, Gia_ObjFaninId1(pObj, Node)), Gia_ObjFaninC1(pObj), 
             p->pPars->nWords );
+        if ( pObj->fMark0 )
+            Abc_TtAndCompl( Sbd_ObjSim1(p, Node), 
+                Gia_ObjFanin0(pObj)->fMark0 ? Sbd_ObjSim1(p, Gia_ObjFaninId0(pObj, Node)) : Sbd_ObjSim0(p, Gia_ObjFaninId0(pObj, Node)), Gia_ObjFaninC0(pObj), 
+                Gia_ObjFanin1(pObj)->fMark0 ? Sbd_ObjSim1(p, Gia_ObjFaninId1(pObj, Node)) : Sbd_ObjSim0(p, Gia_ObjFaninId1(pObj, Node)), Gia_ObjFaninC1(pObj), 
+                p->pPars->nWords );
+    }
 }
 void Sbd_ManPropagateControl( Sbd_Man_t * p, int Node )
 {
-    int iObj0 = Gia_ObjFaninId0(Gia_ManObj(p->pGia, Node), Node);
-    int iObj1 = Gia_ObjFaninId1(Gia_ManObj(p->pGia, Node), Node);
+    Gia_Obj_t * pNode = Gia_ManObj(p->pGia, Node);
+    int iObj0 = Gia_ObjFaninId0(pNode, Node);
+    int iObj1 = Gia_ObjFaninId1(pNode, Node);
     word * pCtrl  = Sbd_ObjSim2(p, Node);
     word * pCtrl0 = Sbd_ObjSim2(p, iObj0);
     word * pCtrl1 = Sbd_ObjSim2(p, iObj1);
@@ -255,10 +286,13 @@ void Sbd_ManPropagateControl( Sbd_Man_t * p, int Node )
     word * pSims0 = Sbd_ObjSim0(p, iObj0);
     word * pSims1 = Sbd_ObjSim0(p, iObj1);
     int w;
+//    printf( "Node %2d : %d %d\n", Node, (int)(pSims[0] & 1), (int)(pCtrl[0] & 1) );
     for ( w = 0; w < p->pPars->nWords; w++ )
     {
-        pCtrl0[w] = pCtrl[w] & (pSims[w] | pSims1[w]);
-        pCtrl1[w] = pCtrl[w] & (pSims[w] | pSims0[w] | (~pSims0[w] & ~pSims1[w]));
+        word Sim0 = Gia_ObjFaninC0(pNode) ? ~pSims0[w] : pSims0[w];
+        word Sim1 = Gia_ObjFaninC1(pNode) ? ~pSims1[w] : pSims1[w];
+        pCtrl0[w] = pCtrl[w] & (pSims[w] | Sim1 | (~Sim0 & ~Sim1));
+        pCtrl1[w] = pCtrl[w] & (pSims[w] | Sim0);
     }
 }
 void Sbd_ManWindow( Sbd_Man_t * p, int Pivot )
@@ -269,11 +303,14 @@ void Sbd_ManWindow( Sbd_Man_t * p, int Pivot )
     p->vTfo = Vec_WecEntry( p->vTfos, Pivot );
     Vec_IntClear( p->vLeaves );
     Vec_IntClear( p->vTfi );
+    Vec_IntClear( p->vDivs );
     // simulate TFI cone
     Gia_ManIncrementTravId( p->pGia );
     Sbd_ManWindowSim_rec( p, Pivot );
     p->nTfiLeaves = Vec_IntSize( p->vLeaves );
     p->nTfiNodes = Vec_IntSize( p->vTfi );
+    Vec_IntAppend( p->vDivs, p->vLeaves );
+    Vec_IntAppend( p->vDivs, p->vTfi );
     // simulate node
     Gia_ManObj(p->pGia, Pivot)->fMark0 = 1;
     Abc_TtCopy( Sbd_ObjSim1(p, Pivot), Sbd_ObjSim0(p, Pivot), p->pPars->nWords, 1 );
@@ -282,7 +319,7 @@ void Sbd_ManWindow( Sbd_Man_t * p, int Pivot )
     {
         Gia_ManObj(p->pGia, Abc_Lit2Var(Node))->fMark0 = 1;
         if ( Abc_LitIsCompl(Node) ) 
-            Sbd_ManWindowSim_rec( p, Node );
+            Sbd_ManWindowSim_rec( p, Abc_Lit2Var(Node) );
     }
     // remove marks
     Gia_ManObj(p->pGia, Pivot)->fMark0 = 0;
@@ -292,9 +329,9 @@ void Sbd_ManWindow( Sbd_Man_t * p, int Pivot )
     Abc_TtClear( Sbd_ObjSim2(p, Pivot), p->pPars->nWords );
     Vec_IntForEachEntry( p->vTfo, Node, i )
         if ( Abc_LitIsCompl(Node) ) // root
-            Abc_TtOrXor( Sbd_ObjSim2(p, Pivot), Sbd_ObjSim0(p, Node), Sbd_ObjSim1(p, Node), p->pPars->nWords );
-    // propagate controlability to TFI
-    for ( i = p->nTfiNodes; i >= 0 && (Node = Vec_IntEntry(p->vTfi, i)); i-- )
+            Abc_TtOrXor( Sbd_ObjSim2(p, Pivot), Sbd_ObjSim0(p, Abc_Lit2Var(Node)), Sbd_ObjSim1(p, Abc_Lit2Var(Node)), p->pPars->nWords );
+    // propagate controlability to fanins for the TFI nodes starting from the pivot
+    for ( i = p->nTfiLeaves + p->nTfiNodes - 1; i >= p->nTfiLeaves && ((Node = Vec_IntEntry(p->vDivs, i)), 1); i-- )
         Sbd_ManPropagateControl( p, Node );
 }
 
@@ -319,11 +356,11 @@ void Sbd_ManPrintObj( Sbd_Man_t * p, int Pivot )
     for ( k = 0; k < p->pPars->nWords * 64; k++ )
     {
         printf( "%3d : ", k );
-        Vec_IntForEachEntry( p->vTfi, Id, i )
+        Vec_IntForEachEntry( p->vDivs, Id, i )
         {
             word * pSims = Sbd_ObjSim0( p, Id );
             word * pCtrl = Sbd_ObjSim2( p, Id );
-            if ( i == Vec_IntSize(p->vTfi)-1 )
+            if ( i == Vec_IntSize(p->vDivs)-1 )
             {
                 if ( Abc_TtGetBit(pCtrl, k) )
                     Vec_IntPush( p->vCounts[Abc_TtGetBit(pSims, k)], k );
@@ -335,15 +372,15 @@ void Sbd_ManPrintObj( Sbd_Man_t * p, int Pivot )
     }
     // covering table
     printf( "Exploring %d x %d covering table.\n", Vec_IntSize(p->vCounts[0]), Vec_IntSize(p->vCounts[1]) );
-    Vec_IntForEachEntry( p->vCounts[0], Bit0, k0 )
-    Vec_IntForEachEntry( p->vCounts[1], Bit1, k1 )
+    Vec_IntForEachEntryStop( p->vCounts[0], Bit0, k0, 5 )
+    Vec_IntForEachEntryStop( p->vCounts[1], Bit1, k1, 5 )
     {
         printf( "%3d %3d : ", Bit0, Bit1 );
-        Vec_IntForEachEntry( p->vTfi, Id, i )
+        Vec_IntForEachEntry( p->vDivs, Id, i )
         {
             word * pSims = Sbd_ObjSim0( p, Id );
             word * pCtrl = Sbd_ObjSim2( p, Id );
-            if ( i == Vec_IntSize(p->vTfi)-1 )
+            if ( i == Vec_IntSize(p->vDivs)-1 )
                 printf( " " );
             printf( "%c", (Abc_TtGetBit(pCtrl, Bit0) && Abc_TtGetBit(pCtrl, Bit1) && Abc_TtGetBit(pSims, Bit0) != Abc_TtGetBit(pSims, Bit1)) ? '1' : '.' );
         }
@@ -512,9 +549,11 @@ Gia_Man_t * Sbd_NtkPerform( Gia_Man_t * pGia, Sbd_Par_t * pPars )
     {
         if ( Sbd_ManComputeCut( p, Pivot ) )
             continue;
+        printf( "Looking at node %d\n", Pivot );
         Sbd_ManWindow( p, Pivot );
         if ( Sbd_ManExplore( p, Pivot, pCut, &Truth ) )
             Sbd_ManImplement( p, Pivot, pCut, Truth );
+        break;
     }
     pNew = Sbd_ManDerive( pGia, p->vMirrors );
     Sbd_ManStop( p );
