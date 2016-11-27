@@ -34,6 +34,7 @@ static int  Abc_CommandPs       ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int  Abc_CommandBlast    ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int  Abc_CommandPsInv    ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int  Abc_CommandGetInv   ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int  Abc_CommandProfile  ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int  Abc_CommandTest     ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 static inline Wlc_Ntk_t * Wlc_AbcGetNtk( Abc_Frame_t * pAbc )                       { return (Wlc_Ntk_t *)pAbc->pAbcWlc;                      }
@@ -67,6 +68,7 @@ void Wlc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Word level", "%blast",      Abc_CommandBlast,     0 );
     Cmd_CommandAdd( pAbc, "Word level", "%psinv",      Abc_CommandPsInv,     0 );
     Cmd_CommandAdd( pAbc, "Word level", "%getinv",     Abc_CommandGetInv,    0 );
+    Cmd_CommandAdd( pAbc, "Word level", "%profile",    Abc_CommandProfile,   0 );
     Cmd_CommandAdd( pAbc, "Word level", "%test",       Abc_CommandTest,      0 );
 }
 
@@ -554,6 +556,50 @@ int Abc_CommandGetInv( Abc_Frame_t * pAbc, int argc, char ** argv )
   SeeAlso     []
 
 ******************************************************************************/
+int Abc_CommandProfile( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    Wlc_Ntk_t * pNtk = Wlc_AbcGetNtk(pAbc);
+    int c, fVerbose  = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pNtk == NULL )
+    {
+        Abc_Print( 1, "Abc_CommandProfile(): There is no current design.\n" );
+        return 0;
+    }
+    Wlc_WinProfileArith( pNtk );
+    return 0;
+usage:
+    Abc_Print( -2, "usage: %%profile [-vh]\n" );
+    Abc_Print( -2, "\t         profiles arithmetic components in the word-level networks\n" );
+    Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
+    return 1;
+}
+
+/**Function********************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+******************************************************************************/
 int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     extern void Wlc_NtkSimulateTest( Wlc_Ntk_t * p );
@@ -575,7 +621,7 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     if ( pNtk == NULL )
     {
-        Abc_Print( 1, "Abc_CommandBlast(): There is no current design.\n" );
+        Abc_Print( 1, "Abc_CommandTest(): There is no current design.\n" );
         return 0;
     }
     // transform
