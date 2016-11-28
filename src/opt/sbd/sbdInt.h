@@ -49,6 +49,8 @@
 
 ABC_NAMESPACE_HEADER_START
 
+#define SBD_SAT_UNDEC 0x1234567812345678
+#define SBD_SAT_SAT   0x8765432187654321
 
 ////////////////////////////////////////////////////////////////////////
 ///                         BASIC TYPES                              ///
