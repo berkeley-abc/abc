@@ -44,11 +44,14 @@ ABC_NAMESPACE_IMPL_START
 ***********************************************************************/
 void Gia_PolynCoreNonXors_rec( Gia_Man_t * pGia, Gia_Obj_t * pObj, Vec_Int_t * vXorPairs )
 {
+    extern int Gia_ManSuppSizeOne( Gia_Man_t * p, Gia_Obj_t * pObj );
     Gia_Obj_t * pFan0, * pFan1;
     if ( !Gia_ObjRecognizeExor(pObj, &pFan0, &pFan1) )
         return;
     Gia_PolynCoreNonXors_rec( pGia, Gia_Regular(pFan0), vXorPairs );
     Gia_PolynCoreNonXors_rec( pGia, Gia_Regular(pFan1), vXorPairs );
+    //if ( Gia_ManSuppSizeOne(pGia, pObj) > 4 )
+    //if ( Gia_ObjId(pGia, pObj) >= 73 )
     Vec_IntPushTwo( vXorPairs, Gia_ObjId(pGia, Gia_Regular(pFan0)), Gia_ObjId(pGia, Gia_Regular(pFan1)) );
 }
 Vec_Int_t * Gia_PolynAddHaRoots( Gia_Man_t * pGia )
@@ -95,7 +98,7 @@ Vec_Int_t * Gia_PolynCoreOrder( Gia_Man_t * pGia, Vec_Int_t * vAdds, Vec_Int_t *
     Vec_Int_t * vLeaves = Vec_IntAlloc( 2 * Gia_ManCiNum(pGia) );
     Vec_Wec_t * vMap    = Vec_WecStart( Gia_ManObjNum(pGia) );
     int i, k, Index, Driver, Entry1, Entry2 = -1;
-    // nodes driven by adders into adder indexes
+    // map nodes driven by adders into adder indexes
     for ( i = 0; 5*i < Vec_IntSize(vAdds); i++ )
     {
         Entry1 = Vec_IntEntry( vAdds, 5*i + 3 );
@@ -318,8 +321,11 @@ Gia_Man_t * Gia_PolynCoreDetectTest_int( Gia_Man_t * pGia, Vec_Int_t * vAddCos, 
     Vec_Int_t * vAdds = Ree_ManComputeCuts( pGia, 1 );
     Vec_Int_t * vLeaves, * vRoots, * vOrder = Gia_PolynCoreOrder( pGia, vAdds, vAddCos, &vLeaves, &vRoots );
     Vec_Int_t * vNodes = Gia_PolynCoreCollect( pGia, vAdds, vOrder );
+
+    //Gia_ManShow( pGia, vNodes, 0 );
+    
     printf( "Detected %d FAs/HAs. Roots = %d. Leaves = %d. Nodes = %d. Adds = %d. ", 
-        Vec_IntSize(vAdds), Vec_IntSize(vLeaves), Vec_IntSize(vRoots), Vec_IntSize(vNodes), Vec_IntSize(vOrder) );
+        Vec_IntSize(vAdds)/5, Vec_IntSize(vLeaves), Vec_IntSize(vRoots), Vec_IntSize(vNodes), Vec_IntSize(vOrder) );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
 
     Gia_PolynCorePrintCones( pGia, vLeaves, fVerbose );
