@@ -733,7 +733,7 @@ int Sbd_ManExplore( Sbd_Man_t * p, int Pivot, word * pTruth )
     extern word Sbd_ManSolve( sat_solver * pSat, int PivotVar, int FreeVar, Vec_Int_t * vDivVars, Vec_Int_t * vValues, Vec_Int_t * vTemp );
 
     word MatrS[64] = {0}, MatrC[2][64] = {{0}}, Cubes[2][2][64] = {{{0}}}, Cover[64] = {0}, Cube, Cube0, Cube1, Target;
-    int c0, c1, c2, c3, i, k, n, Index, nCubes[2] = {0}, nRows = 0, fFound = 0;
+    int c0 = 0, c1 = 0, c2 = 0, c3 = 0, i, k, n, Index, nCubes[2] = {0}, nRows = 0;
 
     int PivotVar = Vec_IntEntry(p->vObj2Var, Pivot);
     int FreeVar = Vec_IntSize(p->vWinObjs) + Vec_IntSize(p->vTfo) + Vec_IntSize(p->vRoots);
