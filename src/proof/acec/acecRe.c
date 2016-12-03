@@ -69,6 +69,18 @@ void Ree_TruthPrecompute()
     }
     printf( "\n" );
 }
+void Ree_TruthPrecompute2()
+{
+    int i, b;
+    for ( i = 0; i < 8; i++ )
+    {
+        word Truth = 0xE8;
+        for ( b = 0; b < 3; b++ )
+            if ( (i >> b) & 1 )
+                Truth = Abc_Tt6Flip( Truth, b );
+        printf( "%d = %X\n", i, 0xFF & (int)Truth );
+    }
+}
 
 /**Function*************************************************************
 
@@ -239,7 +251,7 @@ void Ree_ManCutPrint( int * pCut, int Count, word Truth )
 void Ree_ManCutMerge( Gia_Man_t * p, int iObj, int * pList0, int * pList1, Vec_Int_t * vCuts, Hash_IntMan_t * pHash, Vec_Int_t * vData )
 {
     int fVerbose = 0;
-    int i, k, c, Value, Truth, TruthC, * pCut0, * pCut1, pCut[5], Count = 0;
+    int i, k, c, Value, Truth, TruthC, * pCut0, * pCut1, pCut[6], Count = 0;
     if ( fVerbose )
         printf( "Object %d\n", iObj );
     Vec_IntFill( vCuts, 2, 1 );
@@ -290,7 +302,7 @@ void Ree_ManCutMerge( Gia_Man_t * p, int iObj, int * pList0, int * pList1, Vec_I
 ***********************************************************************/
 Vec_Int_t * Ree_ManDeriveAdds( Hash_IntMan_t * p, Vec_Int_t * vData )
 {
-    int i, j, k, iObj, iObj2, Value, Truth, CountX, CountM, Index = 0;
+    int i, j, k, iObj, iObj2, Value, Truth, Truth2, CountX, CountM, Index = 0;
     int nEntries = Hash_IntManEntryNum(p);
     Vec_Int_t * vAdds = Vec_IntAlloc( 1000 );
     Vec_Int_t * vXors = Vec_IntStart( nEntries + 1 );
@@ -325,9 +337,9 @@ Vec_Int_t * Ree_ManDeriveAdds( Hash_IntMan_t * p, Vec_Int_t * vData )
         if ( Index == -1 )
             continue;
         if ( Truth == 0x66 || Truth == 0x99 || Truth == 0x69 || Truth == 0x96 )
-            Vec_WecPush( vXorMap, Index, iObj );
+            Vec_IntPushTwo( Vec_WecEntry(vXorMap, Index), iObj, Truth );
         else
-            Vec_WecPush( vMajMap, Index, iObj );
+            Vec_IntPushTwo( Vec_WecEntry(vMajMap, Index), iObj, Truth );
     }
     Vec_IntFree( vIndex );
     // create pairs
@@ -336,11 +348,22 @@ Vec_Int_t * Ree_ManDeriveAdds( Hash_IntMan_t * p, Vec_Int_t * vData )
         Vec_Int_t * vXorOne = Vec_WecEntry( vXorMap, i );
         Vec_Int_t * vMajOne = Vec_WecEntry( vMajMap, i );
         Hash_IntObj_t * pObj = Hash_IntObj( p, Value );
-        Vec_IntForEachEntry( vXorOne, iObj, j )
-        Vec_IntForEachEntry( vMajOne, iObj2, k )
+        Vec_IntForEachEntryDouble( vXorOne, iObj, Truth, j )
+        Vec_IntForEachEntryDouble( vMajOne, iObj2, Truth2, k )
         {
+            int SignAnd[8] = {0x88, 0x44, 0x22, 0x11, 0xEE, 0xDD, 0xBB, 0x77};
+            int SignMaj[8] = {0xE8, 0xD4, 0xB2, 0x71, 0x8E, 0x4D, 0x2B, 0x17};
+            int n, SignXor = (Truth == 0x99 || Truth == 0x69) << 3;
+            for ( n = 0; n < 8; n++ )
+                if ( Truth2 == SignMaj[n] )
+                    break;
+            if ( n == 8 ) 
+                for ( n = 0; n < 8; n++ )
+                    if ( Truth2 == SignAnd[n] )
+                        break;
+            assert( n < 8 );
             Vec_IntPushThree( vAdds, pObj->iData0, pObj->iData1, pObj->iData2 ); 
-            Vec_IntPushTwo( vAdds, iObj, iObj2 );
+            Vec_IntPushThree( vAdds, iObj, iObj2, SignXor | n );
         }
     }
     Vec_IntFree( vIndexRev );
@@ -384,10 +407,56 @@ Vec_Int_t * Ree_ManComputeCuts( Gia_Man_t * p, int fVerbose )
     vAdds = Ree_ManDeriveAdds( pHash, vData );
     if ( fVerbose )
         printf( "Adds = %d.  Total = %d.  Hashed = %d.  Hashed/Adds = %.2f.\n", 
-            Vec_IntSize(vAdds)/5, Vec_IntSize(vData)/3, Hash_IntManEntryNum(pHash), 5.0*Hash_IntManEntryNum(pHash)/Vec_IntSize(vAdds) );
+            Vec_IntSize(vAdds)/6, Vec_IntSize(vData)/3, Hash_IntManEntryNum(pHash), 6.0*Hash_IntManEntryNum(pHash)/Vec_IntSize(vAdds) );
     Vec_IntFree( vData );
     Hash_IntManStop( pHash );
     return vAdds;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Highlight nodes inside FAs.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Ree_CollectInsiders_rec( Gia_Man_t * pGia, int iObj, Vec_Bit_t * vVisited, Vec_Bit_t * vInsiders )
+{
+    if ( Vec_BitEntry(vVisited, iObj) )
+        return;
+    Vec_BitSetEntry( vVisited, iObj, 1 );
+    Ree_CollectInsiders_rec( pGia, Gia_ObjFaninId0p(pGia, Gia_ManObj(pGia, iObj)), vVisited, vInsiders );
+    Ree_CollectInsiders_rec( pGia, Gia_ObjFaninId1p(pGia, Gia_ManObj(pGia, iObj)), vVisited, vInsiders );
+    Vec_BitSetEntry( vInsiders, iObj, 1 );
+}
+Vec_Bit_t * Ree_CollectInsiders( Gia_Man_t * pGia, Vec_Int_t * vAdds )
+{
+    Vec_Bit_t * vVisited = Vec_BitStart( Gia_ManObjNum(pGia) );
+    Vec_Bit_t * vInsiders = Vec_BitStart( Gia_ManObjNum(pGia) );
+    int i, Entry1, Entry2, Entry3;
+    for ( i = 0; 6*i < Vec_IntSize(vAdds); i++ )
+    {
+        if ( Vec_IntEntry(vAdds, 6*i+2) == 0 ) // HADD
+            continue;
+        // mark inputs
+        Entry1 = Vec_IntEntry( vAdds, 6*i + 0 );
+        Entry2 = Vec_IntEntry( vAdds, 6*i + 1 );
+        Entry3 = Vec_IntEntry( vAdds, 6*i + 2 );
+        Vec_BitWriteEntry( vVisited, Entry1, 1 );
+        Vec_BitWriteEntry( vVisited, Entry2, 1 );
+        Vec_BitWriteEntry( vVisited, Entry3, 1 );
+        // traverse from outputs
+        Entry1 = Vec_IntEntry( vAdds, 6*i + 3 );
+        Entry2 = Vec_IntEntry( vAdds, 6*i + 4 );
+        Ree_CollectInsiders_rec( pGia, Entry1, vVisited, vInsiders );
+        Ree_CollectInsiders_rec( pGia, Entry2, vVisited, vInsiders );
+    }
+    Vec_BitFree( vVisited );
+    return vInsiders;
 }
 
 /**Function*************************************************************
@@ -401,28 +470,80 @@ Vec_Int_t * Ree_ManComputeCuts( Gia_Man_t * p, int fVerbose )
   SeeAlso     []
 
 ***********************************************************************/
+// removes HAs whose AND2 is part of XOR2 without additional fanout
+void Ree_ManRemoveTrivial( Gia_Man_t * p, Vec_Int_t * vAdds )
+{
+    Gia_Obj_t * pObjX, * pObjM;
+    int i, k = 0;
+    ABC_FREE( p->pRefs );
+    Gia_ManCreateRefs( p );
+    for ( i = 0; 6*i < Vec_IntSize(vAdds); i++ )
+    {
+        if ( Vec_IntEntry(vAdds, 6*i+2) == 0 ) // HADD
+        {
+            pObjX = Gia_ManObj( p, Vec_IntEntry(vAdds, 6*i+3) );
+            pObjM = Gia_ManObj( p, Vec_IntEntry(vAdds, 6*i+4) );
+            if ( (pObjM == Gia_ObjFanin0(pObjX) || pObjM == Gia_ObjFanin1(pObjX)) && Gia_ObjRefNum(p, pObjM) == 1 )
+                continue;
+        }
+        memmove( Vec_IntArray(vAdds) + 6*k++, Vec_IntArray(vAdds) + 6*i, 6*sizeof(int) );
+    }
+    assert( k <= i );
+    Vec_IntShrink( vAdds, 6*k );
+}
+// removes HAs fully contained inside FAs
+void Ree_ManRemoveContained( Gia_Man_t * p, Vec_Int_t * vAdds )
+{
+    Vec_Bit_t * vInsiders = Ree_CollectInsiders( p, vAdds );
+    int i, k = 0;
+    for ( i = 0; 6*i < Vec_IntSize(vAdds); i++ )
+    {
+        if ( Vec_IntEntry(vAdds, 6*i+2) == 0 ) // HADD
+            if ( Vec_BitEntry(vInsiders, Vec_IntEntry(vAdds, 6*i+3)) && Vec_BitEntry(vInsiders, Vec_IntEntry(vAdds, 6*i+4)) )
+                continue;
+        memmove( Vec_IntArray(vAdds) + 6*k++, Vec_IntArray(vAdds) + 6*i, 6*sizeof(int) );
+    }
+    assert( k <= i );
+    Vec_IntShrink( vAdds, 6*k );
+    Vec_BitFree( vInsiders );
+}
+
+int Ree_ManCountFadds( Vec_Int_t * vAdds )
+{
+    int i, Count = 0;
+    for ( i = 0; 6*i < Vec_IntSize(vAdds); i++ )
+        if ( Vec_IntEntry(vAdds, 6*i+2) != 0 )
+            Count++;
+    return Count;
+}
+void Ree_ManPrintAdders( Vec_Int_t * vAdds, int fVerbose )
+{
+    int i;
+    for ( i = 0; 6*i < Vec_IntSize(vAdds); i++ )
+    {
+        //if ( Vec_IntEntry(vAdds, 6*i+2) == 0 )
+        //    continue;
+        if ( !fVerbose )
+            continue;
+        printf( "%6d : ", i );
+        printf( "%6d ", Vec_IntEntry(vAdds, 6*i+0) );
+        printf( "%6d ", Vec_IntEntry(vAdds, 6*i+1) );
+        printf( "%6d ", Vec_IntEntry(vAdds, 6*i+2) );
+        printf( "   ->  " );
+        printf( "%6d ", Vec_IntEntry(vAdds, 6*i+3) );
+        printf( "%6d ", Vec_IntEntry(vAdds, 6*i+4) );
+        printf( "  (%d)", Vec_IntEntry(vAdds, 6*i+5) );
+        printf( "\n" );
+    }
+}
 void Ree_ManComputeCutsTest( Gia_Man_t * p )
 {
     abctime clk = Abc_Clock();
     Vec_Int_t * vAdds = Ree_ManComputeCuts( p, 1 );
-    int i, Count = 0;
-    for ( i = 0; 5*i < Vec_IntSize(vAdds); i++ )
-    {
-        if ( Vec_IntEntry(vAdds, 5*i+2) == 0 )
-            continue;
-        Count++;
-        continue;
-        printf( "%6d : ", i );
-        printf( "%6d ", Vec_IntEntry(vAdds, 5*i+0) );
-        printf( "%6d ", Vec_IntEntry(vAdds, 5*i+1) );
-        printf( "%6d ", Vec_IntEntry(vAdds, 5*i+2) );
-        printf( "   ->  " );
-        printf( "%6d ", Vec_IntEntry(vAdds, 5*i+3) );
-        printf( "%6d ", Vec_IntEntry(vAdds, 5*i+4) );
-        printf( "\n" );
-    }
+    int nFadds = Ree_ManCountFadds( vAdds );
+    Ree_ManPrintAdders( vAdds, 1 );
+    printf( "Detected %d FAs and %d HAs.  ", nFadds, Vec_IntSize(vAdds)/6-nFadds );
     Vec_IntFree( vAdds );
-    printf( "Detected %d FAs and %d HAs.  ", Count, Vec_IntSize(vAdds)/5-Count );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
 }
 
