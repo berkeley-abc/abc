@@ -28220,9 +28220,10 @@ int Abc_CommandAbc9MuxProfile( Abc_Frame_t * pAbc, int argc, char ** argv )
     extern void Gia_ManMuxProfiling( Gia_Man_t * p );
     extern void Gia_ManProfileStructures( Gia_Man_t * p, int nLimit, int fVerbose );
     extern void Acec_StatsCollect( Gia_Man_t * p, int fVerbose );
-    int c, fNpn = 0, fMuxes = 0, nLimit = 0, fVerbose = 0;
+    extern void Acec_ManProfile( Gia_Man_t * p, int fVerbose );
+    int c, fNpn = 0, fMuxes = 0, fAdders = 0, nLimit = 0, fVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "Nnmvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Nnmavh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -28242,6 +28243,9 @@ int Abc_CommandAbc9MuxProfile( Abc_Frame_t * pAbc, int argc, char ** argv )
             break;
         case 'm':
             fMuxes ^= 1;
+            break;
+        case 'a':
+            fAdders ^= 1;
             break;
         case 'v':
             fVerbose ^= 1;
@@ -28268,16 +28272,19 @@ int Abc_CommandAbc9MuxProfile( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     else if ( fMuxes )
         Gia_ManMuxProfiling( pAbc->pGia );
+    else if ( fAdders )
+        Acec_ManProfile( pAbc->pGia, fVerbose );
     else
         Gia_ManProfileStructures( pAbc->pGia, nLimit, fVerbose );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &profile [-N num] [-nmvh]\n" );
+    Abc_Print( -2, "usage: &profile [-N num] [-nmavh]\n" );
     Abc_Print( -2, "\t         profile gate structures appearing in the AIG\n" );
     Abc_Print( -2, "\t-N num : limit on class size to show [default = %d]\n", nLimit );
     Abc_Print( -2, "\t-n     : toggle profiling NPN-classes (for 3-LUT mapped AIGs) [default = %s]\n", fNpn? "yes": "no" );
     Abc_Print( -2, "\t-m     : toggle profiling MUX structures [default = %s]\n", fMuxes? "yes": "no" );
+    Abc_Print( -2, "\t-a     : toggle profiling adder structures [default = %s]\n", fAdders? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle verbose output [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;

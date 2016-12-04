@@ -248,10 +248,11 @@ void Ree_ManCutPrint( int * pCut, int Count, word Truth )
     Abc_TtPrintHexRev( stdout, &Truth, 3 );
     printf( "\n" );
 }
-void Ree_ManCutMerge( Gia_Man_t * p, int iObj, int * pList0, int * pList1, Vec_Int_t * vCuts, Hash_IntMan_t * pHash, Vec_Int_t * vData )
+void Ree_ManCutMerge( Gia_Man_t * p, int iObj, int * pList0, int * pList1, Vec_Int_t * vCuts, Hash_IntMan_t * pHash, Vec_Int_t * vData, Vec_Int_t * vXors )
 {
     int fVerbose = 0;
     int i, k, c, Value, Truth, TruthC, * pCut0, * pCut1, pCut[6], Count = 0;
+    int iXor2 = -1, iXor3 = -1;
     if ( fVerbose )
         printf( "Object %d\n", iObj );
     Vec_IntFill( vCuts, 2, 1 );
@@ -266,12 +267,16 @@ void Ree_ManCutMerge( Gia_Man_t * p, int iObj, int * pList0, int * pList1, Vec_I
             continue;
         Truth = TruthC = Ree_ManCutTruth(Gia_ManObj(p, iObj), pCut0, pCut1, pCut);
         //assert( Truth == Ree_ObjComputeTruth(p, iObj, pCut) );
+        if ( Truth & 0x80 )
+            Truth = 0xFF & ~Truth;
+        if ( Truth == 0x66 && iXor2 == -1 )
+            iXor2 = Vec_IntSize(vCuts);
+        else if ( Truth == 0x69 && iXor3 == -1 )
+            iXor3 = Vec_IntSize(vCuts);
         Vec_IntAddToEntry( vCuts, 0, 1 );  
         for ( c = 0; c <= pCut[0]; c++ )
             Vec_IntPush( vCuts, pCut[c] );
-        Vec_IntPush( vCuts, Truth );
-        if ( Truth & 0x80 )
-            Truth = 0xFF & ~Truth;
+        Vec_IntPush( vCuts, TruthC );
         if ( (Truth == 0x66 || Truth == 0x11 || Truth == 0x22 || Truth == 0x44 || Truth == 0x77) && pCut[0] == 2 )
         {
             assert( pCut[0] == 2 );
@@ -287,6 +292,19 @@ void Ree_ManCutMerge( Gia_Man_t * p, int iObj, int * pList0, int * pList1, Vec_I
         if ( fVerbose )
             Ree_ManCutPrint( pCut, ++Count, TruthC );
     }
+    if ( !vXors )
+        return;
+    if ( iXor2 > 0 )
+        pCut0 = Vec_IntEntryP( vCuts, iXor2 );
+    else if ( iXor3 > 0 )
+        pCut0 = Vec_IntEntryP( vCuts, iXor3 );
+    else
+        return;
+    Vec_IntPush( vXors, iObj );
+    for ( c = 1; c <= pCut0[0]; c++ )
+        Vec_IntPush( vXors, pCut0[c] );
+    if ( pCut0[0] == 2 )
+        Vec_IntPush( vXors, 0 );
 }
 
 /**Function*************************************************************
@@ -300,7 +318,7 @@ void Ree_ManCutMerge( Gia_Man_t * p, int iObj, int * pList0, int * pList1, Vec_I
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Int_t * Ree_ManDeriveAdds( Hash_IntMan_t * p, Vec_Int_t * vData )
+Vec_Int_t * Ree_ManDeriveAdds( Hash_IntMan_t * p, Vec_Int_t * vData, int fVerbose )
 {
     int i, j, k, iObj, iObj2, Value, Truth, Truth2, CountX, CountM, Index = 0;
     int nEntries = Hash_IntManEntryNum(p);
@@ -327,7 +345,8 @@ Vec_Int_t * Ree_ManDeriveAdds( Hash_IntMan_t * p, Vec_Int_t * vData )
         }
     Vec_IntFree( vXors );
     Vec_IntFree( vMajs );
-    printf( "Detected %d shared cuts among %d hashed cuts.\n", Index, nEntries );
+    //if ( fVerbose )
+    //    printf( "Detected %d shared cuts among %d hashed cuts.\n", Index, nEntries );
     // collect nodes
     vXorMap = Vec_WecStart( Index );
     vMajMap = Vec_WecStart( Index );
@@ -371,7 +390,7 @@ Vec_Int_t * Ree_ManDeriveAdds( Hash_IntMan_t * p, Vec_Int_t * vData )
     Vec_WecFree( vMajMap );
     return vAdds;
 }
-Vec_Int_t * Ree_ManComputeCuts( Gia_Man_t * p, int fVerbose )
+Vec_Int_t * Ree_ManComputeCuts( Gia_Man_t * p, Vec_Int_t ** pvXors, int fVerbose )
 {
     Gia_Obj_t * pObj; 
     int * pList0, * pList1, i, nCuts = 0;
@@ -390,23 +409,24 @@ Vec_Int_t * Ree_ManComputeCuts( Gia_Man_t * p, int fVerbose )
         Vec_IntPush( vCuts, Gia_ObjId(p, pObj) );
         Vec_IntPush( vCuts, 0xAA );
     }
+    if ( pvXors ) *pvXors = Vec_IntAlloc( 1000 );
     Gia_ManForEachAnd( p, pObj, i )
     {
         pList0 = Vec_IntEntryP( vCuts, Vec_IntEntry(vCuts, Gia_ObjFaninId0(pObj, i)) );
         pList1 = Vec_IntEntryP( vCuts, Vec_IntEntry(vCuts, Gia_ObjFaninId1(pObj, i)) );
-        Ree_ManCutMerge( p, i, pList0, pList1, vTemp, pHash, vData );
+        Ree_ManCutMerge( p, i, pList0, pList1, vTemp, pHash, vData, pvXors ? *pvXors : NULL );
         Vec_IntWriteEntry( vCuts, i, Vec_IntSize(vCuts) );
         Vec_IntAppend( vCuts, vTemp );
         nCuts += Vec_IntEntry( vTemp, 0 );
     }
     if ( fVerbose )
-        printf( "Nodes = %d.  Cuts = %d.  Cuts/Node = %.2f.  Ints/Node = %.2f.\n", 
+        printf( "AIG nodes = %d.  Cuts = %d.  Cuts/Node = %.2f.  Ints/Node = %.2f.\n", 
             Gia_ManAndNum(p), nCuts, 1.0*nCuts/Gia_ManAndNum(p), 1.0*Vec_IntSize(vCuts)/Gia_ManAndNum(p) );
     Vec_IntFree( vTemp );
     Vec_IntFree( vCuts );
-    vAdds = Ree_ManDeriveAdds( pHash, vData );
+    vAdds = Ree_ManDeriveAdds( pHash, vData, fVerbose );
     if ( fVerbose )
-        printf( "Adds = %d.  Total = %d.  Hashed = %d.  Hashed/Adds = %.2f.\n", 
+        printf( "Adders = %d.  Total cuts = %d.  Hashed cuts = %d.  Hashed/Adders = %.2f.\n", 
             Vec_IntSize(vAdds)/6, Vec_IntSize(vData)/3, Hash_IntManEntryNum(pHash), 6.0*Hash_IntManEntryNum(pHash)/Vec_IntSize(vAdds) );
     Vec_IntFree( vData );
     Hash_IntManStop( pHash );
@@ -539,7 +559,7 @@ void Ree_ManPrintAdders( Vec_Int_t * vAdds, int fVerbose )
 void Ree_ManComputeCutsTest( Gia_Man_t * p )
 {
     abctime clk = Abc_Clock();
-    Vec_Int_t * vAdds = Ree_ManComputeCuts( p, 1 );
+    Vec_Int_t * vAdds = Ree_ManComputeCuts( p, NULL, 1 );
     int nFadds = Ree_ManCountFadds( vAdds );
     Ree_ManPrintAdders( vAdds, 1 );
     printf( "Detected %d FAs and %d HAs.  ", nFadds, Vec_IntSize(vAdds)/6-nFadds );

@@ -387,10 +387,10 @@ Gia_Man_t * Gia_PolynCoreDupTree( Gia_Man_t * p, Vec_Int_t * vAddCos, Vec_Int_t 
 ***********************************************************************/
 Gia_Man_t * Gia_PolynCoreDetectTest_int( Gia_Man_t * pGia, Vec_Int_t * vAddCos, int fAddCones, int fVerbose )
 {
-    extern Vec_Int_t * Ree_ManComputeCuts( Gia_Man_t * p, int fVerbose );
+    extern Vec_Int_t * Ree_ManComputeCuts( Gia_Man_t * p, Vec_Int_t ** pvXors, int fVerbose );
     abctime clk = Abc_Clock();
     Gia_Man_t * pNew;
-    Vec_Int_t * vAdds = Ree_ManComputeCuts( pGia, 1 );
+    Vec_Int_t * vAdds = Ree_ManComputeCuts( pGia, NULL, 1 );
     Vec_Int_t * vLeaves, * vRoots, * vOrder = Gia_PolynCoreOrder( pGia, vAdds, vAddCos, &vLeaves, &vRoots );
     Vec_Int_t * vNodes = Gia_PolynCoreCollect( pGia, vAdds, vOrder );
 

@@ -260,9 +260,9 @@ void Sbd_ManPropagateControlOne( Sbd_Man_t * p, int Node )
     int iObj0 = Gia_ObjFaninId0(pNode, Node);
     int iObj1 = Gia_ObjFaninId1(pNode, Node);
 
-    word * pSims  = Sbd_ObjSim0(p, Node);
-    word * pSims0 = Sbd_ObjSim0(p, iObj0);
-    word * pSims1 = Sbd_ObjSim0(p, iObj1);
+//    word * pSims  = Sbd_ObjSim0(p, Node);
+//    word * pSims0 = Sbd_ObjSim0(p, iObj0);
+//    word * pSims1 = Sbd_ObjSim0(p, iObj1);
 
     word * pCtrl  = Sbd_ObjSim2(p, Node);
     word * pCtrl0 = Sbd_ObjSim2(p, iObj0);
@@ -277,8 +277,8 @@ void Sbd_ManPropagateControlOne( Sbd_Man_t * p, int Node )
 
     for ( w = 0; w < p->pPars->nWords; w++ )
     {
-        word Sim0 = Gia_ObjFaninC0(pNode) ? ~pSims0[w] : pSims0[w];
-        word Sim1 = Gia_ObjFaninC1(pNode) ? ~pSims1[w] : pSims1[w];
+//        word Sim0 = Gia_ObjFaninC0(pNode) ? ~pSims0[w] : pSims0[w];
+//        word Sim1 = Gia_ObjFaninC1(pNode) ? ~pSims1[w] : pSims1[w];
 
         pCtrl0[w] |= pCtrl[w];// & (pSims[w] | Sim1 | (~Sim0 & ~Sim1));
         pCtrl1[w] |= pCtrl[w];// & (pSims[w] | Sim0 | (~Sim0 & ~Sim1));

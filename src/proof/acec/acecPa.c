@@ -248,13 +248,13 @@ int Pas_ManComputeCuts( Gia_Man_t * p, Vec_Int_t * vAdds, Vec_Int_t * vOrder, Ve
 ***********************************************************************/
 void Pas_ManComputeCutsTest( Gia_Man_t * p )
 {
-    extern Vec_Int_t * Ree_ManComputeCuts( Gia_Man_t * p, int fVerbose );
+    extern Vec_Int_t * Ree_ManComputeCuts( Gia_Man_t * p, Vec_Int_t ** pvXors, int fVerbose );
     extern Vec_Int_t * Gia_PolynCoreOrder( Gia_Man_t * pGia, Vec_Int_t * vAdds, Vec_Int_t * vAddCos, Vec_Int_t ** pvIns, Vec_Int_t ** pvOuts );
 
     extern int Ree_ManCountFadds( Vec_Int_t * vAdds );
     extern void Ree_ManPrintAdders( Vec_Int_t * vAdds, int fVerbose );
     abctime clk = Abc_Clock();
-    Vec_Int_t * vAdds = Ree_ManComputeCuts( p, 1 );
+    Vec_Int_t * vAdds = Ree_ManComputeCuts( p, NULL, 1 );
     Vec_Int_t * vIns, * vOuts;
     Vec_Int_t * vOrder = Gia_PolynCoreOrder( p, vAdds, NULL, &vIns, &vOuts );
     int nTrees, nFadds = Ree_ManCountFadds( vAdds );
