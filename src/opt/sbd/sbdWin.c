@@ -155,9 +155,9 @@ word Sbd_ManSolve( sat_solver * pSat, int PivotVar, int FreeVar, Vec_Int_t * vDi
     int nBTLimit = 0;
     word uCube, uTruth = 0;
     int status, i, iVar, nFinal, * pFinal, pLits[2], nIter = 0;
+    assert( FreeVar < sat_solver_nvars(pSat) );
     pLits[0] = Abc_Var2Lit( PivotVar, 0 ); // F = 1
     pLits[1] = Abc_Var2Lit( FreeVar, 0 );  // iNewLit
-    assert( Vec_IntSize(vValues) <= sat_solver_nvars(pSat) );
     while ( 1 ) 
     {
         // find onset minterm
@@ -169,7 +169,7 @@ word Sbd_ManSolve( sat_solver * pSat, int PivotVar, int FreeVar, Vec_Int_t * vDi
         assert( status == l_True );
         // remember variable values
         for ( i = 0; i < Vec_IntSize(vValues); i++ )
-            Vec_IntWriteEntry( vValues, i, sat_solver_var_value(pSat, i) );
+            Vec_IntWriteEntry( vValues, i, 2*sat_solver_var_value(pSat, i) );
         // collect divisor literals
         Vec_IntClear( vTemp );
         Vec_IntPush( vTemp, Abc_LitNot(pLits[0]) ); // F = 0
@@ -203,7 +203,27 @@ word Sbd_ManSolve( sat_solver * pSat, int PivotVar, int FreeVar, Vec_Int_t * vDi
     assert( status == l_True );
     // store the counter-example
     for ( i = 0; i < Vec_IntSize(vValues); i++ )
-        Vec_IntAddToEntry( vValues, i, 2*sat_solver_var_value(pSat, i) );
+        Vec_IntAddToEntry( vValues, i, sat_solver_var_value(pSat, i) );
+
+    for ( i = 0; i < Vec_IntSize(vValues); i++ )
+        Vec_IntAddToEntry( vValues, i, 0xC );
+/*
+    // reduce the counter example
+    for ( n = 0; n < 2; n++ )
+    {
+        Vec_IntClear( vTemp );
+        Vec_IntPush( vTemp, Abc_Var2Lit(PivotVar, n) ); // n = 0 => F = 1  (expanding offset against onset)
+        for ( i = 0; i < Vec_IntSize(vValues); i++ )
+            Vec_IntPush( vTemp, Abc_Var2Lit(i, !((Vec_IntEntry(vValues, i) >> n) & 1)) );
+        status = sat_solver_solve( pSat, Vec_IntArray(vTemp), Vec_IntArray(vTemp) + Vec_IntSize(vTemp), nBTLimit, 0, 0, 0 );
+        assert( status == l_False );
+        // compute cube and add clause
+        nFinal = sat_solver_final( pSat, &pFinal );
+        for ( i = 0; i < nFinal; i++ )
+            if ( Abc_Lit2Var(pFinal[i]) != PivotVar )
+                Vec_IntAddToEntry( vValues, Abc_Lit2Var(pFinal[i]), 1 << (n+2) );
+    }
+*/
     return SBD_SAT_SAT;
 }
 

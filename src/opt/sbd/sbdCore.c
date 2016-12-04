@@ -44,6 +44,13 @@ struct Sbd_Man_t_
     Vec_Int_t *     vLits;       // temporary
     int             nConsts;     // constants
     int             nChanges;    // changes
+    abctime         timeWin;
+    abctime         timeCnf;
+    abctime         timeSat;
+    abctime         timeCov;
+    abctime         timeEnu;
+    abctime         timeOther;
+    abctime         timeTotal;
     // target node
     int             Pivot;       // target node
     Vec_Int_t *     vTfo;        // TFO (excludes node, includes roots) - precomputed
@@ -176,6 +183,7 @@ Sbd_Man_t * Sbd_ManStart( Gia_Man_t * pGia, Sbd_Par_t * pPars )
 {
     int i, w, Id;
     Sbd_Man_t * p = ABC_CALLOC( Sbd_Man_t, 1 );  
+    p->timeTotal  = Abc_Clock();
     p->pPars      = pPars;
     p->pGia       = pGia;
     p->vTfos      = Sbd_ManWindowRoots( pGia, pPars->nTfoLevels, pPars->nTfoFanMax );
@@ -207,7 +215,7 @@ Sbd_Man_t * Sbd_ManStart( Gia_Man_t * pGia, Sbd_Par_t * pPars )
     Gia_ManRandom( 1 );
     Gia_ManForEachCiId( pGia, Id, i )
         for ( w = 0; w < p->pPars->nWords; w++ )
-            Sbd_ObjSim0(p, Id)[w] = Gia_ManRandomW( 0 );
+            Sbd_ObjSim0(p, Id)[w] = Gia_ManRandomW( 0 );     
     return p;
 }
 void Sbd_ManStop( Sbd_Man_t * p )
@@ -272,15 +280,16 @@ void Sbd_ManPropagateControlOne( Sbd_Man_t * p, int Node )
         word Sim0 = Gia_ObjFaninC0(pNode) ? ~pSims0[w] : pSims0[w];
         word Sim1 = Gia_ObjFaninC1(pNode) ? ~pSims1[w] : pSims1[w];
 
-        pCtrl0[w] |= pCtrl[w] & (pSims[w] | Sim1 | (~Sim0 & ~Sim1));
-        pCtrl1[w] |= pCtrl[w] & (pSims[w] | Sim0);
+        pCtrl0[w] |= pCtrl[w];// & (pSims[w] | Sim1 | (~Sim0 & ~Sim1));
+        pCtrl1[w] |= pCtrl[w];// & (pSims[w] | Sim0 | (~Sim0 & ~Sim1));
 
-        pDtrl0[w] |= pDtrl[w] & (pSims[w] | Sim1);
-        pDtrl1[w] |= pDtrl[w] & (pSims[w] | Sim0 | (~Sim0 & ~Sim1));
+        pDtrl0[w] |= pDtrl[w];// & (pSims[w] | Sim1 | (~Sim0 & ~Sim1));
+        pDtrl1[w] |= pDtrl[w];// & (pSims[w] | Sim0 | (~Sim0 & ~Sim1));
     }
 }
 void Sbd_ManPropagateControl( Sbd_Man_t * p, int Pivot )
 {
+    abctime clk = Abc_Clock();
     int i, Node;
     Abc_TtCopy( Sbd_ObjSim3(p, Pivot), Sbd_ObjSim2(p, Pivot), p->pPars->nWords, 0 );
     // clean controlability
@@ -294,11 +303,13 @@ void Sbd_ManPropagateControl( Sbd_Man_t * p, int Pivot )
     for ( i = Vec_IntEntry(p->vObj2Var, Pivot); i >= 0 && ((Node = Vec_IntEntry(p->vWinObjs, i)), 1); i-- )
         if ( Gia_ObjIsAnd(Gia_ManObj(p->pGia, Node)) )
             Sbd_ManPropagateControlOne( p, Node );
+    p->timeWin += Abc_Clock() - clk;
 }
 void Sbd_ManUpdateOrder( Sbd_Man_t * p, int Pivot )
 {
     int i, k, Node;
     Vec_Int_t * vLevel;
+    int nTimeValidDivs = 0;
     // collect divisors by logic level
     int LevelMax = Vec_IntEntry(p->vLutLevs, Pivot);
     Vec_WecClear( p->vDivLevels );
@@ -316,10 +327,13 @@ void Sbd_ManUpdateOrder( Sbd_Man_t * p, int Pivot )
             Vec_IntWriteEntry( p->vObj2Var, Node, Vec_IntSize(p->vWinObjs) );
             Vec_IntPush( p->vWinObjs, Node );
         }
-        // detect useful divisors
+        // remember divisor cutoff
         if ( i == LevelMax - 2 )
-            Vec_IntFill( p->vDivValues, Vec_IntSize(p->vWinObjs), 0 );
+            nTimeValidDivs = Vec_IntSize(p->vWinObjs);
     }
+    assert( nTimeValidDivs > 0 );
+    Vec_IntFill( p->vDivValues, Abc_MinInt(63, nTimeValidDivs), 0 );
+    //printf( "%d ", Abc_MinInt(63, nTimeValidDivs) );
 }
 void Sbd_ManWindowSim_rec( Sbd_Man_t * p, int NodeInit )
 {
@@ -378,14 +392,16 @@ void Sbd_ManWindowSim_rec( Sbd_Man_t * p, int NodeInit )
 }
 int Sbd_ManWindow( Sbd_Man_t * p, int Pivot )
 {
+    abctime clk = Abc_Clock();
     int i, Node;
     // assign pivot and TFO (assume siminfo is assigned at the PIs)
     p->Pivot = Pivot;
     p->vTfo = Vec_WecEntry( p->vTfos, Pivot );
-    // simulate TFI cone
+    // add constant node
     Vec_IntClear( p->vWinObjs );
     Vec_IntWriteEntry( p->vObj2Var, 0, Vec_IntSize(p->vWinObjs) );
     Vec_IntPush( p->vWinObjs, 0 );
+    // simulate TFI cone
     Gia_ManIncrementTravId( p->pGia );
     Gia_ObjSetTravIdCurrentId(p->pGia, 0);
     Sbd_ManWindowSim_rec( p, Pivot );
@@ -419,11 +435,10 @@ int Sbd_ManWindow( Sbd_Man_t * p, int Pivot )
     Vec_IntForEachEntry( p->vTfo, Node, i )
         if ( Abc_LitIsCompl(Node) ) // root
             Abc_TtOrXor( Sbd_ObjSim2(p, Pivot), Sbd_ObjSim0(p, Abc_Lit2Var(Node)), Sbd_ObjSim1(p, Abc_Lit2Var(Node)), p->pPars->nWords );
+    p->timeWin += Abc_Clock() - clk;
     // propagate controlability to fanins for the TFI nodes starting from the pivot
     Sbd_ManPropagateControl( p, Pivot );
-    // return 1 if window is too large
-    if ( p->pPars->fVerbose && Vec_IntSize(p->vDivValues) >= 64 )
-        printf( "Window is too large.\n" );
+    assert( Vec_IntSize(p->vDivValues) < 64 );
     return (int)(Vec_IntSize(p->vDivValues) >= 64);
 }
 
@@ -441,15 +456,17 @@ int Sbd_ManWindow( Sbd_Man_t * p, int Pivot )
 int Sbd_ManCheckConst( Sbd_Man_t * p, int Pivot )
 {
     extern void Sbd_ManPrintObj( Sbd_Man_t * p, int Pivot );
-    int nMintCount = 16;
+    int nMintCount = 1;
     Vec_Ptr_t * vSims;
     word * pSims = Sbd_ObjSim0( p, Pivot );
     word * pCtrl = Sbd_ObjSim2( p, Pivot );
     int PivotVar = Vec_IntEntry(p->vObj2Var, Pivot);
     int RetValue, i, iObj, Ind, fFindOnset, nCares[2] = {0};
+    abctime clk = Abc_Clock();
     extern int Sbd_ManCollectConstants( sat_solver * pSat, int nCareMints[2], int PivotVar, word * pVarSims[], Vec_Int_t * vInds );
     extern sat_solver * Sbd_ManSatSolver( sat_solver * pSat, Gia_Man_t * p, Vec_Int_t * vMirrors, int Pivot, Vec_Int_t * vWinObjs, Vec_Int_t * vObj2Var, Vec_Int_t * vTfo, Vec_Int_t * vRoots );
     p->pSat = Sbd_ManSatSolver( p->pSat, p->pGia, p->vMirrors, Pivot, p->vWinObjs, p->vObj2Var, p->vTfo, p->vRoots );
+    p->timeCnf += Abc_Clock() - clk;
     //return -1;
     //Sbd_ManPrintObj( p, Pivot );
 
@@ -508,6 +525,7 @@ int Sbd_ManCheckConst( Sbd_Man_t * p, int Pivot )
     {
         if ( p->pPars->fVerbose )
             printf( "Found stuck-at-%d node %d.\n", RetValue, Pivot );
+        Vec_IntWriteEntry( p->vLutLevs, Pivot, 0 );
         p->nConsts++;
         return RetValue;
     }
@@ -726,24 +744,156 @@ void Sbd_ManPrintObj( Sbd_Man_t * p, int Pivot )
     }
 }
 
+void Sbd_ManMatrPrint( word Cover[64], int nCol, int nRows )
+{
+    int i, k;
+    for ( i = 0; i <= nCol; i++ )
+    {
+        printf( "%2d : ", i );
+        for ( k = 0; k < nRows; k++ )
+            for ( k = 0; k < nRows; k++ )
+                printf( "%d", (int)((Cover[i] >> k) & 1) );
+        printf( "\n"); 
+    }
+    printf( "\n");
+}
+static inline void Sbd_ManCoverReverseOrder( word Cover[64] )
+{
+    int i;
+    for ( i = 0; i < 32; i++ )
+    {
+        word Cube = Cover[i];
+        Cover[i] = Cover[63-i]; 
+        Cover[63-i] = Cube;
+    }
+}
+
+static inline int Sbd_ManAddCube1( word Cover[64], int nRows, word Cube )
+{
+    int n, m;
+    if ( 0 )
+    {
+        printf( "Adding cube: " );
+        for ( n = 0; n < 64; n++ )
+            printf( "%d", (int)((Cube >> n) & 1) );
+        printf( "\n" );
+    }
+    // do not add contained Cube
+    assert( nRows <= 64 );
+    for ( n = 0; n < nRows; n++ )
+        if ( (Cover[n] & Cube) == Cover[n] ) // Cube is contained
+            return nRows;
+    // remove rows contained by Cube
+    for ( n = m = 0; n < nRows; n++ )
+        if ( (Cover[n] & Cube) != Cube ) // Cover[n] is not contained
+            Cover[m++] = Cover[n];
+    if ( m < 64 )
+        Cover[m++] = Cube;
+    for ( n = m; n < nRows; n++ )
+        Cover[n] = 0;
+    nRows = m;
+    return nRows;
+}
+static inline int Sbd_ManAddCube2( word Cover[2][64], int nRows, word Cube[2] )
+{
+    int n, m;
+    // do not add contained Cube
+    assert( nRows <= 64 );
+    for ( n = 0; n < nRows; n++ )
+        if ( (Cover[0][n] & Cube[0]) == Cover[0][n] && (Cover[1][n] & Cube[1]) == Cover[1][n] ) // Cube is contained
+            return nRows;
+    // remove rows contained by Cube
+    for ( n = m = 0; n < nRows; n++ )
+        if ( (Cover[0][n] & Cube[0]) != Cube[0] || (Cover[1][n] & Cube[1]) != Cube[1] ) // Cover[n] is not contained
+        {
+            Cover[0][m] = Cover[0][n];
+            Cover[1][m] = Cover[1][n];
+            m++;
+        }
+    if ( m < 64 )
+    {
+        Cover[0][m] = Cube[0];
+        Cover[1][m] = Cube[1];
+        m++;
+    }
+    for ( n = m; n < nRows; n++ )
+        Cover[0][n] = Cover[1][n] = 0;
+    nRows = m;
+    return nRows;
+}
+
+static inline int Sbd_ManFindCands( Sbd_Man_t * p, word Cover[64], int nDivs )
+{
+    int c0, c1, c2, c3;
+    word Target = Cover[nDivs];
+    Vec_IntClear( p->vDivVars );
+    for ( c0 = 0;    c0 < nDivs; c0++ )
+        if ( Cover[c0] == Target )
+        {
+            Vec_IntPush( p->vDivVars, c0 );
+            return 1;
+        }
+
+    for ( c0 = 0;    c0 < nDivs; c0++ )
+    for ( c1 = c0+1; c1 < nDivs; c1++ )
+        if ( (Cover[c0] | Cover[c1]) == Target )
+        {
+            Vec_IntPush( p->vDivVars, c0 );
+            Vec_IntPush( p->vDivVars, c1 );
+            return 1;
+        }
+
+    for ( c0 = 0;    c0 < nDivs; c0++ )
+    for ( c1 = c0+1; c1 < nDivs; c1++ )
+    for ( c2 = c1+1; c2 < nDivs; c2++ )
+        if ( (Cover[c0] | Cover[c1] | Cover[c2]) == Target )
+        {
+            Vec_IntPush( p->vDivVars, c0 );
+            Vec_IntPush( p->vDivVars, c1 );
+            Vec_IntPush( p->vDivVars, c2 );
+            return 1;
+        }
+
+    for ( c0 = 0;    c0 < nDivs; c0++ )
+    for ( c1 = c0+1; c1 < nDivs; c1++ )
+    for ( c2 = c1+1; c2 < nDivs; c2++ )
+    for ( c3 = c2+1; c3 < nDivs; c3++ )
+    {
+        if ( (Cover[c0] | Cover[c1] | Cover[c2] | Cover[c3]) == Target )
+        {
+            Vec_IntPush( p->vDivVars, c0 );
+            Vec_IntPush( p->vDivVars, c1 );
+            Vec_IntPush( p->vDivVars, c2 );
+            Vec_IntPush( p->vDivVars, c3 );
+            return 1;
+        }
+    }
+    return 0;
+}
 
 int Sbd_ManExplore( Sbd_Man_t * p, int Pivot, word * pTruth )
 {
     int fVerbose = 0;
+    abctime clk, clkSat = 0, clkEnu = 0, clkAll = Abc_Clock();
+    int nIters, nItersMax = 32;
     extern word Sbd_ManSolve( sat_solver * pSat, int PivotVar, int FreeVar, Vec_Int_t * vDivVars, Vec_Int_t * vValues, Vec_Int_t * vTemp );
 
-    word MatrS[64] = {0}, MatrC[2][64] = {{0}}, Cubes[2][2][64] = {{{0}}}, Cover[64] = {0}, Cube, Cube0, Cube1, Target;
-    int c0 = 0, c1 = 0, c2 = 0, c3 = 0, i, k, n, Index, nCubes[2] = {0}, nRows = 0;
+    word MatrS[64] = {0}, MatrC[2][64] = {{0}}, Cubes[2][2][64] = {{{0}}}, Cover[64] = {0}, Cube, CubeNew[2];
+    int i, k, n, Index, nCubes[2] = {0}, nRows = 0, nRowsOld;
 
+    int nDivs = Vec_IntSize(p->vDivValues);
     int PivotVar = Vec_IntEntry(p->vObj2Var, Pivot);
     int FreeVar = Vec_IntSize(p->vWinObjs) + Vec_IntSize(p->vTfo) + Vec_IntSize(p->vRoots);
     int RetValue = 0;
+
+    if ( p->pPars->fVerbose )
+        printf( "Node %d.  Useful divisors = %d.\n", Pivot, nDivs );
 
     if ( fVerbose )
         Sbd_ManPrintObj( p, Pivot );
 
     // collect bit-matrices
-    for ( i = 0; i < Vec_IntSize(p->vDivValues); i++ )
+    for ( i = 0; i < nDivs; i++ )
     {
         MatrS[63-i]    = *Sbd_ObjSim0( p, Vec_IntEntry(p->vWinObjs, i) );
         MatrC[0][63-i] = *Sbd_ObjSim2( p, Vec_IntEntry(p->vWinObjs, i) );
@@ -762,34 +912,26 @@ int Sbd_ManExplore( Sbd_Man_t * p, int Pivot, word * pTruth )
     // collect cubes
     for ( i = 0; i < 64; i++ )
     {
-        assert( Abc_TtGetBit(&MatrC[0][i], Vec_IntSize(p->vDivValues)) == Abc_TtGetBit(&MatrC[1][i], Vec_IntSize(p->vDivValues)) );
-        if ( !Abc_TtGetBit(&MatrC[0][i], Vec_IntSize(p->vDivValues)) )
+        assert( Abc_TtGetBit(&MatrC[0][i], nDivs) == Abc_TtGetBit(&MatrC[1][i], nDivs) );
+        if ( !Abc_TtGetBit(&MatrC[0][i], nDivs) )
             continue;
-        Index = Abc_TtGetBit(&MatrS[i], Vec_IntSize(p->vDivValues)); // Index==0 offset; Index==1 onset
+        Index = Abc_TtGetBit(&MatrS[i], nDivs); // Index==0 offset; Index==1 onset
         for ( n = 0; n < 2; n++ )
         {
             if ( n && MatrC[0][i] == MatrC[1][i] )
                 continue;
             assert( MatrC[n][i] );
-            Cube0 = ~MatrS[i] & MatrC[n][i];
-            Cube1 =  MatrS[i] & MatrC[n][i];
-            assert( Cube0 || Cube1 );
-            for ( k = 0; k < nCubes[Index]; k++ )
-                if ( Cubes[Index][0][k] == Cube0 && Cubes[Index][1][k] == Cube1 )
-                    break;
-            if ( k == nCubes[Index] && k < 64 )
-            {
-                Cubes[Index][0][nCubes[Index]] = Cube0;
-                Cubes[Index][1][nCubes[Index]] = Cube1;
-                nCubes[Index]++;
-            }
+            CubeNew[0] = ~MatrS[i] & MatrC[n][i];
+            CubeNew[1] =  MatrS[i] & MatrC[n][i];
+            assert( CubeNew[0] || CubeNew[1] );
+            nCubes[Index] = Sbd_ManAddCube2( Cubes[Index], nCubes[Index], CubeNew );
         }
     }
 
     if ( p->pPars->fVerbose )
         printf( "Generated matrix with %d x %d entries.\n", nCubes[0], nCubes[1] );
 
-    if ( fVerbose )
+    if ( p->pPars->fVerbose )
     for ( n = 0; n < 2; n++ )
     {
         printf( "%s:\n", n ? "Onset" : "Offset" );
@@ -804,96 +946,99 @@ int Sbd_ManExplore( Sbd_Man_t * p, int Pivot, word * pTruth )
         printf( "\n" );
     }
 
-    // collect cover
-    for ( i = 0; i < nCubes[0]; i++ )
-    for ( k = 0; k < nCubes[1]; k++ )
+    // create covering table
+    nRows = 0;
+    for ( i = 0; i < nCubes[0] && nRows < 32; i++ )
+    for ( k = 0; k < nCubes[1] && nRows < 32; k++ )
     {
         Cube = (Cubes[0][1][i] & Cubes[1][0][k]) | (Cubes[0][0][i] & Cubes[1][1][k]);
         assert( Cube );
-        for ( n = 0; n < nRows; n++ )
-            if ( Cover[63-n] == Cube )
-                break;
-        if ( n == nRows && n < 64 )
-            Cover[63-nRows++] = Cube;
+        nRows = Sbd_ManAddCube1( Cover, nRows, Cube );
     }
+
+    Sbd_ManCoverReverseOrder( Cover );
 
     if ( p->pPars->fVerbose )
         printf( "Generated cover with %d entries.\n", nRows );
 
-
+    //if ( p->pPars->fVerbose )
     //Sbd_PrintMatrix64( Cover );
     Sbd_TransposeMatrix64( Cover );
+    //if ( p->pPars->fVerbose )
     //Sbd_PrintMatrix64( Cover );
 
-    // swap
-    for ( i = 0; i < 32; i++ )
-    {
-        Cube = Cover[i];
-        Cover[i] = Cover[63-i]; 
-        Cover[63-i] = Cube;
-    }
+    Sbd_ManCoverReverseOrder( Cover );
 
-    if ( fVerbose )
-    {
-        for ( i = 0; i <= nRows; i++, printf( "\n") )
-            for ( k = 0; k < 64; k++ )
-                printf( "%d", (int)((Cover[i] >> k) & 1) );
-    }
-
-    Target = Cover[Vec_IntSize(p->vDivValues)];
-    for ( c0 = 0;    c0 < Vec_IntSize(p->vDivValues); c0++ )
-    for ( c1 = c0+1; c1 < Vec_IntSize(p->vDivValues); c1++ )
-    for ( c2 = c1+1; c2 < Vec_IntSize(p->vDivValues); c2++ )
-    for ( c3 = c2+1; c3 < Vec_IntSize(p->vDivValues); c3++ )
-    {
-        if ( (Cover[c0] | Cover[c1] | Cover[c2] | Cover[c3]) == Target )
-            goto finish;
-    }
-finish:
-    if ( c0 == Vec_IntSize(p->vDivValues) )
+    nRowsOld = nRows;
+    for ( nIters = 0; nIters < nItersMax && nRows < 64; nIters++ )
     {
         if ( p->pPars->fVerbose )
-            printf( "Cannot find a feasible cover.\n" );
-        return RetValue;
-    }
+            Sbd_ManMatrPrint( Cover, nDivs, nRows );
 
-    Vec_IntClear( p->vDivVars );
-    Vec_IntPush( p->vDivVars, c0 );
-    Vec_IntPush( p->vDivVars, c1 );
-    Vec_IntPush( p->vDivVars, c2 );
-    Vec_IntPush( p->vDivVars, c3 );
-    
-    if ( p->pPars->fVerbose )
-        printf( "Feasible cover:  " );
-    if ( p->pPars->fVerbose )
-        Vec_IntPrint( p->vDivVars );
-
-    *pTruth = Sbd_ManSolve( p->pSat, PivotVar, FreeVar, p->vDivVars, p->vDivValues, p->vLits );
-    if ( *pTruth == SBD_SAT_UNDEC )
-        printf( "Node %d:  Undecided.\n", Pivot );
-    else if ( *pTruth == SBD_SAT_SAT )
-    {
-        if ( p->pPars->fVerbose )
+        clk = Abc_Clock();
+        if ( !Sbd_ManFindCands( p, Cover, nDivs ) )
         {
-            int i;
-            printf( "Node %d:  SAT.\n", Pivot );
-            for ( i = 0; i < Vec_IntSize(p->vDivValues); i++ )
-                printf( "%d", Vec_IntEntry(p->vDivValues, i) & 1 );
-            printf( "\n" );
-            for ( i = 0; i < Vec_IntSize(p->vDivValues); i++ )
-                printf( "%d", Vec_IntEntry(p->vDivValues, i) >> 1 );
-            printf( "\n" );
+            if ( p->pPars->fVerbose )
+                printf( "Cannot find a feasible cover.\n" );
+            clkEnu += Abc_Clock() - clk;
+            clkAll = Abc_Clock() - clkAll - clkSat - clkEnu;
+            p->timeSat += clkSat;
+            p->timeCov += clkAll;
+            p->timeEnu += clkEnu;
+            return RetValue;
         }
-    }
-    else
-    {
+        clkEnu += Abc_Clock() - clk;
+    
         if ( p->pPars->fVerbose )
-            printf( "Node %d:  UNSAT.\n", Pivot );
-        if ( p->pPars->fVerbose )
-            Extra_PrintBinary( stdout, (unsigned *)pTruth, 1 << Vec_IntSize(p->vDivVars) ), printf( "\n" );
-        RetValue = 1;
-    }
+            printf( "Candidate support:  " ),
+            Vec_IntPrint( p->vDivVars );
 
+        clk = Abc_Clock();
+        *pTruth = Sbd_ManSolve( p->pSat, PivotVar, FreeVar+nIters, p->vDivVars, p->vDivValues, p->vLits );
+        clkSat += Abc_Clock() - clk;
+
+        if ( *pTruth == SBD_SAT_UNDEC )
+            printf( "Node %d:  Undecided.\n", Pivot );
+        else if ( *pTruth == SBD_SAT_SAT )
+        {
+            if ( p->pPars->fVerbose )
+            {
+                int i;
+                printf( "Node %d:  SAT.\n", Pivot );
+                for ( i = 0; i < nDivs; i++ )
+                    printf( "%d", i % 10 );
+                printf( "\n" );
+                for ( i = 0; i < nDivs; i++ )
+                    printf( "%c", (Vec_IntEntry(p->vDivValues, i) & 0x4) ? '0' + (Vec_IntEntry(p->vDivValues, i) & 1) : 'x' );
+                printf( "\n" );
+                for ( i = 0; i < nDivs; i++ )
+                    printf( "%c", (Vec_IntEntry(p->vDivValues, i) & 0x8) ? '0' + ((Vec_IntEntry(p->vDivValues, i) >> 1) & 1) : 'x' );
+                printf( "\n" );
+            }
+            // add row to the covering table
+            for ( i = 0; i < nDivs; i++ )
+                if ( Vec_IntEntry(p->vDivValues, i) == 0xE || Vec_IntEntry(p->vDivValues, i) == 0xD )
+                    Cover[i] |= ((word)1 << nRows);
+            Cover[nDivs] |= ((word)1 << nRows);
+            nRows++;
+        }
+        else
+        {
+            if ( p->pPars->fVerbose )
+            {
+                printf( "Node %d:  UNSAT.\n", Pivot );
+                Extra_PrintBinary( stdout, (unsigned *)pTruth, 1 << Vec_IntSize(p->vDivVars) ), printf( "\n" );
+            }
+            RetValue = 1;
+            break;
+        }
+        //break;
+    }
+    //printf( "Node %4d : Iter = %4d  Start table = %4d  Final table = %4d\n", Pivot, nIters, nRowsOld, nRows );
+    clkAll = Abc_Clock() - clkAll - clkSat - clkEnu;
+    p->timeSat += clkSat;
+    p->timeCov += clkAll;
+    p->timeEnu += clkEnu;
     return RetValue;
 }
 
@@ -930,9 +1075,11 @@ int Sbd_CutMergeSimple( Sbd_Man_t * p, int * pCut1, int * pCut2, int * pCut )
         *pBeg++ = *pBeg2++;
     return (pCut[0] = pBeg - pCut - 1);
 }
-int Sbd_ManComputeCut( Sbd_Man_t * p, int Node )
+/*
+int Sbd_ManMergeCuts( Sbd_Man_t * p, int Node )
 {
-    int pCut[2*SBD_MAX_LUTSIZE];     
+    int Result  = 1; // no need to resynthesize
+    int pCut[2*SBD_MAX_LUTSIZE+1];     
     int iFan0   = Gia_ObjFaninId0( Gia_ManObj(p->pGia, Node), Node );
     int iFan1   = Gia_ObjFaninId1( Gia_ManObj(p->pGia, Node), Node );
     int Level0  = Vec_IntEntry( p->vLutLevs, iFan0 );
@@ -940,30 +1087,147 @@ int Sbd_ManComputeCut( Sbd_Man_t * p, int Node )
     int LevMax  = (Level0 || Level1) ? Abc_MaxInt(Level0, Level1) : 1;
     int * pCut0 = Sbd_ObjCut( p, iFan0 );
     int * pCut1 = Sbd_ObjCut( p, iFan1 );
-    int Cut0[2] = {1, iFan0}, * pCut0Temp = Level0 < LevMax ? Cut0 : pCut0; 
-    int Cut1[2] = {1, iFan1}, * pCut1Temp = Level1 < LevMax ? Cut1 : pCut1; 
-    int nSize   = Sbd_CutMergeSimple( p, pCut0Temp, pCut1Temp, pCut );
-    int Result  = 1; // no need to resynthesize
-    assert( iFan0 != iFan1 );
+    int nSize   = Sbd_CutMergeSimple( p, pCut0, pCut1, pCut );
     if ( nSize > p->pPars->nLutSize )
     {
-        pCut[0] = 2;
-        pCut[1] = iFan0 < iFan1 ? iFan0 : iFan1;
-        pCut[2] = iFan0 < iFan1 ? iFan1 : iFan0;
-        Result  = LevMax ? 0 : 1;
-        LevMax++;
+        if ( Level0 != Level1 )
+        {
+            int Cut0[2] = {1, iFan0}, * pCut0Temp = Level0 < LevMax ? Cut0 : pCut0; 
+            int Cut1[2] = {1, iFan1}, * pCut1Temp = Level1 < LevMax ? Cut1 : pCut1; 
+            nSize = Sbd_CutMergeSimple( p, pCut0Temp, pCut1Temp, pCut );
+        }
+        if ( nSize > p->pPars->nLutSize )
+        {
+            pCut[0] = 2;
+            pCut[1] = iFan0 < iFan1 ? iFan0 : iFan1;
+            pCut[2] = iFan0 < iFan1 ? iFan1 : iFan0;
+            Result  = LevMax ? 0 : 1;
+            LevMax++;
+        }
     }
+    assert( iFan0 != iFan1 );
     assert( Vec_IntEntry(p->vLutLevs, Node) == 0 );
     Vec_IntWriteEntry( p->vLutLevs, Node, LevMax );
     memcpy( Sbd_ObjCut(p, Node), pCut, sizeof(int) * (pCut[0] + 1) );
     //printf( "Setting node %d with delay %d (result = %d).\n", Node, LevMax, Result );
     return Result;
 }
+*/
+int Sbd_ManMergeCuts( Sbd_Man_t * p, int Node )
+{
+    int pCut11[2*SBD_MAX_LUTSIZE+1];     
+    int pCut01[2*SBD_MAX_LUTSIZE+1];     
+    int pCut10[2*SBD_MAX_LUTSIZE+1];     
+    int pCut00[2*SBD_MAX_LUTSIZE+1];     
+    int iFan0   = Gia_ObjFaninId0( Gia_ManObj(p->pGia, Node), Node );
+    int iFan1   = Gia_ObjFaninId1( Gia_ManObj(p->pGia, Node), Node );
+    int Level0  = Vec_IntEntry( p->vLutLevs, iFan0 ) ? Vec_IntEntry( p->vLutLevs, iFan0 ) : 1;
+    int Level1  = Vec_IntEntry( p->vLutLevs, iFan1 ) ? Vec_IntEntry( p->vLutLevs, iFan1 ) : 1;
+    int * pCut0 = Sbd_ObjCut( p, iFan0 );
+    int * pCut1 = Sbd_ObjCut( p, iFan1 );
+    int Cut0[2] = {1, iFan0}; 
+    int Cut1[2] = {1, iFan1}; 
+    int nSize11 = Sbd_CutMergeSimple( p, pCut0, pCut1, pCut11 );
+    int nSize01 = Sbd_CutMergeSimple( p,  Cut0, pCut1, pCut01 );
+    int nSize10 = Sbd_CutMergeSimple( p, pCut0,  Cut1, pCut10 );
+    int nSize00 = Sbd_CutMergeSimple( p,  Cut0,  Cut1, pCut00 );
+    int Lev11   = nSize11 <= p->pPars->nLutSize ? Abc_MaxInt(Level0,   Level1)   : ABC_INFINITY;
+    int Lev01   = nSize01 <= p->pPars->nLutSize ? Abc_MaxInt(Level0+1, Level1)   : ABC_INFINITY;
+    int Lev10   = nSize10 <= p->pPars->nLutSize ? Abc_MaxInt(Level0,   Level1+1) : ABC_INFINITY;
+    int Lev00   = nSize00 <= p->pPars->nLutSize ? Abc_MaxInt(Level0+1, Level1+1) : ABC_INFINITY;
+    int * pCutRes = pCut11;
+    int LevCur    = Lev11;
+    if ( Lev01 < LevCur || (Lev01 == LevCur && pCut01[0] < pCutRes[0]) )
+    {
+        pCutRes = pCut01;
+        LevCur  = Lev01;
+    }
+    if ( Lev10 < LevCur || (Lev10 == LevCur && pCut10[0] < pCutRes[0]) )
+    {
+        pCutRes = pCut10;
+        LevCur  = Lev10;
+    }
+    if ( Lev00 < LevCur || (Lev00 == LevCur && pCut00[0] < pCutRes[0]) )
+    {
+        pCutRes = pCut00;
+        LevCur  = Lev00;
+    }
+    assert( iFan0 != iFan1 );
+    assert( Vec_IntEntry(p->vLutLevs, Node) == 0 );
+    Vec_IntWriteEntry( p->vLutLevs, Node, LevCur );
+    assert( pCutRes[0] <= p->pPars->nLutSize );
+    memcpy( Sbd_ObjCut(p, Node), pCutRes, sizeof(int) * (pCutRes[0] + 1) );
+    //printf( "Setting node %d with delay %d.\n", Node, LevCur );
+    return LevCur == Abc_MaxInt(Level0, Level1);
+}
+int Sbd_ManDelay( Sbd_Man_t * p )
+{
+    int i, Id, Delay = 0;
+    Gia_ManForEachCoDriverId( p->pGia, Id, i )
+        Delay = Abc_MaxInt( Delay, Vec_IntEntry(p->vLutLevs, Id) );
+    return Delay;
+}
+void Sbd_ManMergeTest( Sbd_Man_t * p )
+{
+    int Node;
+    Gia_ManForEachAndId( p->pGia, Node )
+        Sbd_ManMergeCuts( p, Node );
+    printf( "Delay %d.\n", Sbd_ManDelay(p) );
+}
+
+void Sbd_ManFindCut_rec( Gia_Man_t * p, Gia_Obj_t * pObj )
+{
+    if ( pObj->fMark1 )
+        return;
+    pObj->fMark1 = 1;
+    if ( pObj->fMark0 )
+        return;
+    assert( Gia_ObjIsAnd(pObj) );
+    Sbd_ManFindCut_rec( p, Gia_ObjFanin0(pObj) );
+    Sbd_ManFindCut_rec( p, Gia_ObjFanin1(pObj) );
+}
+void Sbd_ManFindCutUnmark_rec( Gia_Man_t * p, Gia_Obj_t * pObj )
+{
+    if ( !pObj->fMark1 )
+        return;
+    pObj->fMark1 = 0;
+    if ( pObj->fMark0 )
+        return;
+    assert( Gia_ObjIsAnd(pObj) );
+    Sbd_ManFindCutUnmark_rec( p, Gia_ObjFanin0(pObj) );
+    Sbd_ManFindCutUnmark_rec( p, Gia_ObjFanin1(pObj) );
+}
+void Sbd_ManFindCut( Sbd_Man_t * p, int Node, Vec_Int_t * vCutLits )
+{
+    int pCut[SBD_MAX_LUTSIZE+1];     
+    int i, LevelMax = 0;
+    // label reachable nodes 
+    Gia_Obj_t * pTemp, * pObj = Gia_ManObj(p->pGia, Node);
+    Sbd_ManFindCut_rec( p->pGia, pObj );
+    // collect 
+    pCut[0] = 0;
+    Gia_ManForEachObjVec( vCutLits, p->pGia, pTemp, i )
+        if ( pTemp->fMark1 )
+        {
+            LevelMax = Abc_MaxInt( LevelMax, Vec_IntEntry(p->vLutLevs, Gia_ObjId(p->pGia, pTemp)) );
+            pCut[1+pCut[0]++] = Gia_ObjId(p->pGia, pTemp);
+        }
+    assert( pCut[0] <= p->pPars->nLutSize );
+    // unlabel reachable nodes
+    Sbd_ManFindCutUnmark_rec( p->pGia, pObj );
+    // create cut
+    assert( Vec_IntEntry(p->vLutLevs, Node) == 0 );
+    Vec_IntWriteEntry( p->vLutLevs, Node, LevelMax+1 );
+    memcpy( Sbd_ObjCut(p, Node), pCut, sizeof(int) * (pCut[0] + 1) );
+}
+
 int Sbd_ManImplement( Sbd_Man_t * p, int Pivot, word Truth )
 {
-    int i, k, w, iLit, Node;
+    int i, k, w, iLit, Entry, Node;
     int iObjLast = Gia_ManObjNum(p->pGia);
     int iCurLev = Vec_IntEntry(p->vLutLevs, Pivot);
+    int iNewLev;
+    Gia_Obj_t * pObj;
     // collect leaf literals
     Vec_IntClear( p->vLits );
     Vec_IntForEachEntry( p->vDivVars, Node, i )
@@ -986,7 +1250,13 @@ int Sbd_ManImplement( Sbd_Man_t * p, int Pivot, word Truth )
     Vec_IntWriteEntry( p->vMirrors, Pivot, iLit );
     if ( p->pPars->fVerbose )
         printf( "Replacing node %d by literal %d.\n", Pivot, iLit );
-    // extend data-structure for new nodes
+    // translate literals into variables
+    Vec_IntForEachEntry( p->vLits, Entry, i )
+        Vec_IntWriteEntry( p->vLits, i, Abc_Lit2Var(Entry) );
+    // label inputs
+    Gia_ManForEachObjVec( p->vLits, p->pGia, pObj, i )
+        pObj->fMark0 = 1;
+    // extend data-structure to accommodate new nodes
     assert( Vec_IntSize(p->vLutLevs) == iObjLast );
     for ( i = iObjLast; i < Gia_ManObjNum(p->pGia); i++ )
     {
@@ -994,13 +1264,20 @@ int Sbd_ManImplement( Sbd_Man_t * p, int Pivot, word Truth )
         Vec_IntPush( p->vObj2Var, 0 );
         Vec_IntPush( p->vMirrors, -1 );
         Vec_IntFillExtra( p->vLutCuts, Vec_IntSize(p->vLutCuts) + p->pPars->nLutSize + 1, 0 );
-        Sbd_ManComputeCut( p, i );
+        Sbd_ManFindCut( p, i, p->vLits );
         for ( k = 0; k < 4; k++ )
             for ( w = 0; w < p->pPars->nWords; w++ )
                 Vec_WrdPush( p->vSims[k], 0 );
     }
+    // unlabel inputs
+    Gia_ManForEachObjVec( p->vLits, p->pGia, pObj, i )
+        pObj->fMark0 = 0;
     // make sure delay reduction is achieved
-    assert( Vec_IntEntry(p->vLutLevs, Abc_Lit2Var(iLit)) < iCurLev );
+    iNewLev = Vec_IntEntry( p->vLutLevs, Abc_Lit2Var(iLit) );
+    assert( iNewLev < iCurLev );
+    // update delay of the initial node
+    assert( Vec_IntEntry(p->vLutLevs, Pivot) == iCurLev );
+    Vec_IntWriteEntry( p->vLutLevs, Pivot, iNewLev );
     p->nChanges++;
     return 0;
 }
@@ -1074,16 +1351,18 @@ Gia_Man_t * Sbd_NtkPerform( Gia_Man_t * pGia, Sbd_Par_t * pPars )
 {
     Gia_Man_t * pNew;  
     Sbd_Man_t * p = Sbd_ManStart( pGia, pPars );
-    int nNodesOld = Gia_ManObjNum(pGia);
+    int nNodesOld = Gia_ManObjNum(pGia);//, Count = 0;
     int RetValue, Pivot; word Truth = 0;
     assert( pPars->nLutSize <= 6 );
+    //Sbd_ManMergeTest( p );
+    //return NULL;
     Gia_ManForEachAndId( pGia, Pivot )
     {
         if ( Pivot >= nNodesOld )
             break;
-        if ( Sbd_ManComputeCut( p, Pivot ) )
+        if ( Sbd_ManMergeCuts( p, Pivot ) )
             continue;
-        //if ( Pivot != 313 )
+        //if ( Pivot != 344 )
         //    continue;
         if ( p->pPars->fVerbose )
             printf( "\nLooking at node %d\n", Pivot );
@@ -1093,10 +1372,25 @@ Gia_Man_t * Sbd_NtkPerform( Gia_Man_t * pGia, Sbd_Par_t * pPars )
         if ( RetValue >= 0 )
             Vec_IntWriteEntry( p->vMirrors, Pivot, RetValue );
         else if ( Sbd_ManExplore( p, Pivot, &Truth ) )
+        {
             Sbd_ManImplement( p, Pivot, Truth );
+            //if ( Count++ == 1 )
+            //    break;
+        }
     }
-    printf( "Found %d constants and %d replacements.\n", p->nConsts, p->nChanges );
+    printf( "Found %d constants and %d replacements with delay %d.  ", p->nConsts, p->nChanges, Sbd_ManDelay(p) );
+    p->timeTotal = Abc_Clock() - p->timeTotal;
+    Abc_PrintTime( 1, "Time", p->timeTotal );
     pNew = Sbd_ManDerive( pGia, p->vMirrors );
+    // print runtime statistics
+    p->timeOther = p->timeTotal - p->timeWin - p->timeCnf - p->timeSat - p->timeCov - p->timeEnu;
+    ABC_PRTP( "Win", p->timeWin  ,  p->timeTotal );
+    ABC_PRTP( "Cnf", p->timeCnf  ,  p->timeTotal );
+    ABC_PRTP( "Sat", p->timeSat  ,  p->timeTotal );
+    ABC_PRTP( "Cov", p->timeCov  ,  p->timeTotal );
+    ABC_PRTP( "Enu", p->timeEnu  ,  p->timeTotal );
+    ABC_PRTP( "Oth", p->timeOther,  p->timeTotal );
+    ABC_PRTP( "ALL", p->timeTotal,  p->timeTotal );
     Sbd_ManStop( p );
     return pNew;
 }
