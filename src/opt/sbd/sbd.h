@@ -45,6 +45,7 @@ struct Sbd_Par_t_
     int             nBTLimit;     // maximum number of SAT conflicts 
     int             nWords;       // simulation word count
     int             fArea;        // area-oriented optimization
+    int             fCover;       // use complete cover procedure
     int             fVerbose;     // verbose flag
     int             fVeryVerbose; // verbose flag
 };

@@ -123,7 +123,10 @@ sat_solver * Sbd_ManSatSolver( sat_solver * pSat, Gia_Man_t * p, Vec_Int_t * vMi
         RetValue = sat_solver_addclause( pSat, Vec_IntArray(vFaninVars), Vec_IntLimit(vFaninVars) );
         Vec_IntFree( vFaninVars );
         if ( RetValue == 0 )
-            return 0;
+        {
+            sat_solver_delete( pSat );
+            return NULL;
+        }
         assert( sat_solver_nvars(pSat) == nVars + 32 );
     }
     // finalize

@@ -27643,6 +27643,7 @@ static inline int Gia_ManCompareWithBest( Gia_Man_t * pBest, Gia_Man_t * p, int 
         *pnBestLuts = nCurLuts;
         *pnBestEdges = nCurEdges;
         *pnBestLevels = nCurLevels;
+        //printf( "\nUpdating best (%d %d %d).\n\n", nCurLuts, nCurEdges, nCurLevels );
         return 1;
     }
     return 0;
@@ -31023,7 +31024,7 @@ usage:
     Abc_Print( -2, "\t-C num : the max number of conflicts at a node [default = %d]\n", pPars->nBTLimit );
     Abc_Print( -2, "\t-S num : the max number of SAT variables [default = %d]\n", pPars->nSatVarMax );
     Abc_Print( -2, "\t-K num : the target LUT size for downstream mapping [default = %d]\n", nLutSize );
-    Abc_Print( -2, "\t-R num   : the delay relaxation ratio (num >= 0) [default = %d]\n",   nRelaxRatio );
+    Abc_Print( -2, "\t-R num : the delay relaxation ratio (num >= 0) [default = %d]\n",   nRelaxRatio );
     Abc_Print( -2, "\t-f     : toggle using lighter logic synthesis [default = %s]\n", pPars->fLightSynth? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle verbose printout [default = %s]\n", pPars->fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
@@ -40852,7 +40853,7 @@ int Abc_CommandAbc9Mfsd( Abc_Frame_t * pAbc, int argc, char ** argv )
     Sbd_Par_t Pars, * pPars = &Pars;
     Sbd_ParSetDefault( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "KWFMCavwh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "KWFMCacvwh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -40914,6 +40915,9 @@ int Abc_CommandAbc9Mfsd( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'a':
             pPars->fArea ^= 1;
             break;
+        case 'c':
+            pPars->fCover ^= 1;
+            break;
         case 'v':
             pPars->fVerbose ^= 1;
             break;
@@ -40946,7 +40950,7 @@ int Abc_CommandAbc9Mfsd( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &mfsd [-KWFMC <num>] [-avwh]\n" );
+    Abc_Print( -2, "usage: &mfsd [-KWFMC <num>] [-acvwh]\n" );
     Abc_Print( -2, "\t           performs SAT-based delay-oriented AIG optimization\n" );
     Abc_Print( -2, "\t-K <num> : the LUT size for delay minimization (2 <= num <= 6) [default = %d]\n",         pPars->nLutSize );
     Abc_Print( -2, "\t-W <num> : the number of levels in the TFO cone (0 <= num) [default = %d]\n",             pPars->nTfoLevels );
@@ -40954,6 +40958,7 @@ usage:
     Abc_Print( -2, "\t-M <num> : the max node count of windows to consider (0 = no limit) [default = %d]\n",    pPars->nWinSizeMax );
     Abc_Print( -2, "\t-C <num> : the max number of conflicts in one SAT run (0 = no limit) [default = %d]\n",   pPars->nBTLimit );
     Abc_Print( -2, "\t-a       : toggle minimizing area or area+edges [default = %s]\n",                        pPars->fArea? "area": "area+edges" );
+    Abc_Print( -2, "\t-c       : toggle using complete slow covering procedure [default = %s]\n",               pPars->fCover? "yes": "no" );
     Abc_Print( -2, "\t-v       : toggle printing optimization summary [default = %s]\n",                        pPars->fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-w       : toggle printing detailed stats for each node [default = %s]\n",                pPars->fVeryVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h       : print the command usage\n");
