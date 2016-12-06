@@ -54,6 +54,10 @@ extern void   Abc_NtkInputMiniAig( void * pAbc, void * pMiniAig );
 extern void * Abc_NtkOutputMiniAig( void * pAbc );
 extern void   Abc_NtkSetFlopNum( void * pAbc, int nFlops );
 
+// procedures to input/output 'mini AIG'
+extern void   Abc_NtkInputMiniLut( void * pAbc, void * pMiniLut );
+extern void * Abc_NtkOutputMiniLut( void * pAbc );
+
 // procedures to set CI/CO arrival/required times
 extern void   Abc_NtkSetCiArrivalTime( void * pAbc, int iCi, float Rise, float Fall );
 extern void   Abc_NtkSetCoRequiredTime( void * pAbc, int iCo, float Rise, float Fall );

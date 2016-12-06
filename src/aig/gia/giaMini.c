@@ -300,7 +300,7 @@ Mini_Lut_t * Gia_ManToMiniLut( Gia_Man_t * pGia )
     }
     // set registers
     Mini_LutSetRegNum( p, Gia_ManRegNum(pGia) );
-    Mini_LutPrintStats( p );
+    //Mini_LutPrintStats( p );
     return p;
 }
 
