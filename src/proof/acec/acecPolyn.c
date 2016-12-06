@@ -429,7 +429,7 @@ void Gia_PolynBuild2( Gia_Man_t * pGia, int fSigned, int fVerbose, int fVeryVerb
 {
     Hsh_VecMan_t * pHashC = Hsh_VecManStart( 1000 );    // hash table for constants
     Hsh_VecMan_t * pHashM = Hsh_VecManStart( 1000 );    // hash table for monomials
-    Vec_Wec_t * vLit2Mono = Vec_WecStart( Gia_ManObjNum(pGia) * 2 );
+    //Vec_Wec_t * vLit2Mono = Vec_WecStart( Gia_ManObjNum(pGia) * 2 );
 
     Hsh_VecManStop( pHashC );
     Hsh_VecManStop( pHashM );

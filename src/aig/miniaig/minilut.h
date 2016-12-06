@@ -214,8 +214,8 @@ static Mini_Lut_t * Mini_LutLoad( char * pFileName )
     p->nSize   = p->nCap = nSize;
     RetValue = fread( &p->nRegs,   sizeof(int), 1, pFile );
     RetValue = fread( &p->LutSize, sizeof(int), 1, pFile );
-    p->pArray  = MINI_LUT_ALLOC( int, p->nCap * p->LutSize );
-    p->pTruths = MINI_LUT_ALLOC( int, p->nCap * Mini_LutWordNum(p->LutSize) );
+    p->pArray  = MINI_LUT_ALLOC( int,      p->nCap * p->LutSize );
+    p->pTruths = MINI_LUT_ALLOC( unsigned, p->nCap * Mini_LutWordNum(p->LutSize) );
     RetValue = fread( p->pArray,   sizeof(int), p->nCap * p->LutSize, pFile );
     RetValue = fread( p->pTruths,  sizeof(int), p->nCap * Mini_LutWordNum(p->LutSize), pFile );
     fclose( pFile );

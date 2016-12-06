@@ -11867,7 +11867,7 @@ int Abc_CommandTestColor( Abc_Frame_t * pAbc, int argc, char ** argv )
 ***********************************************************************/
 int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
+    //Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
     int nCutMax      =  1;
     int nLeafMax     =  4;
     int nDivMax      =  2;
