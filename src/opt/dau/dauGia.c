@@ -460,7 +460,7 @@ int Dsm_ManTruthToGia( void * p, word * pTruth, Vec_Int_t * vLeaves, Vec_Int_t *
     if ( nSizeNonDec )
         m_NonDsd++;
 //    printf( "%s\n", pDsd );
-    if ( fDelayBalance )
+    if ( fDelayBalance && pGia->vLevels )
         return Dau_DsdToGia( pGia, pDsd, Vec_IntArray(vLeaves), vCover );
     else
         return Dau_DsdToGia2( pGia, pDsd, Vec_IntArray(vLeaves), vCover );

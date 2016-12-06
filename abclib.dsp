@@ -4577,6 +4577,10 @@ SOURCE=.\src\aig\gia\giaUtil.c
 
 SOURCE=.\src\aig\miniaig\miniaig.h
 # End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\miniaig\minilut.h
+# End Source File
 # End Group
 # End Group
 # Begin Group "bool"
