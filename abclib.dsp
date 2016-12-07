@@ -807,6 +807,10 @@ SOURCE=.\src\base\wlc\wlcStdin.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\base\wlc\wlcWin.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\base\wlc\wlcWriteVer.c
 # End Source File
 # End Group
@@ -964,6 +968,10 @@ SOURCE=.\src\base\cba\cbaReadBlif.c
 # Begin Source File
 
 SOURCE=.\src\base\cba\cbaReadVer.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\cba\cbaTypes.h
 # End Source File
 # Begin Source File
 
@@ -2668,6 +2676,50 @@ SOURCE=.\src\opt\fxch\FxchMan.c
 # Begin Source File
 
 SOURCE=.\src\opt\fxch\FxchSCHashTable.c
+# End Source File
+# End Group
+# Begin Group "dsc"
+
+# PROP Default_Filter ""
+# Begin Source File
+
+SOURCE=.\src\opt\dsc\dsc.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\dsc\dsc.h
+# End Source File
+# End Group
+# Begin Group "sbd"
+
+# PROP Default_Filter ""
+# Begin Source File
+
+SOURCE=.\src\opt\sbd\sbd.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\sbd\sbd.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\sbd\sbdCnf.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\sbd\sbdCore.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\sbd\sbdInt.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\sbd\sbdSat.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\sbd\sbdWin.c
 # End Source File
 # End Group
 # End Group
@@ -4525,6 +4577,10 @@ SOURCE=.\src\aig\gia\giaUtil.c
 
 SOURCE=.\src\aig\miniaig\miniaig.h
 # End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\miniaig\minilut.h
+# End Source File
 # End Group
 # End Group
 # Begin Group "bool"
@@ -5359,6 +5415,10 @@ SOURCE=.\src\proof\acec\acec.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\proof\acec\acecCl.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\proof\acec\acecCo.c
 # End Source File
 # Begin Source File
@@ -5383,11 +5443,19 @@ SOURCE=.\src\proof\acec\acecOrder.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\proof\acec\acecPa.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\proof\acec\acecPo.c
 # End Source File
 # Begin Source File
 
 SOURCE=.\src\proof\acec\acecPolyn.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\proof\acec\acecPool.c
 # End Source File
 # Begin Source File
 

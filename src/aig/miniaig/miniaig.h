@@ -78,6 +78,7 @@ static void Mini_AigPush( Mini_Aig_t * p, int Lit0, int Lit1 )
 {
     if ( p->nSize + 2 > p->nCap )
     {
+        assert( p->nSize < MINI_AIG_NULL/4 );
         if ( p->nCap < MINI_AIG_START_SIZE )
             Mini_AigGrow( p, MINI_AIG_START_SIZE );
         else

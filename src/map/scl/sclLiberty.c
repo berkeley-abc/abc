@@ -1614,10 +1614,14 @@ Vec_Str_t * Scl_LibertyReadSclStr( Scl_Tree_t * p, int fVerbose, int fVeryVerbos
         Vec_Flt_t * vArray;
         assert( Vec_PtrSize(vTemples) % 4 == 0 );
         Vec_PtrForEachEntry( Vec_Flt_t *, vTemples, vArray, i )
+        {
+            if ( vArray == NULL )
+                continue;
             if ( i % 4 == 0 )
                 ABC_FREE( vArray );
             else if ( i % 4 == 2 || i % 4 == 3 )
                 Vec_FltFree( vArray );
+        }
         Vec_PtrFree( vTemples );
     }
     if ( fVerbose )

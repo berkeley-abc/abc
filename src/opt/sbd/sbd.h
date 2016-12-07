@@ -1,10 +1,10 @@
 /**CFile****************************************************************
 
-  FileName    [abcapis.h]
+  FileName    [sbd.h]
 
   SystemName  [ABC: Logic synthesis and verification system.]
 
-  PackageName [Include this file in the external code calling ABC.]
+  PackageName [SAT-based optimization using internal don't-cares.]
 
   Synopsis    [External declarations.]
 
@@ -12,14 +12,14 @@
   
   Affiliation [UC Berkeley]
 
-  Date        [Ver. 1.0. Started - September 29, 2012.]
+  Date        [Ver. 1.0. Started - June 20, 2005.]
 
-  Revision    [$Id: abcapis.h,v 1.00 2012/09/29 00:00:00 alanmi Exp $]
+  Revision    [$Id: sbd.h,v 1.00 2005/06/20 00:00:00 alanmi Exp $]
 
 ***********************************************************************/
  
-#ifndef MINI_AIG__abc_apis_h
-#define MINI_AIG__abc_apis_h
+#ifndef ABC__opt_sbd__h
+#define ABC__opt_sbd__h
 
 ////////////////////////////////////////////////////////////////////////
 ///                          INCLUDES                                ///
@@ -29,9 +29,27 @@
 ///                         PARAMETERS                               ///
 ////////////////////////////////////////////////////////////////////////
 
+ABC_NAMESPACE_HEADER_START
+
 ////////////////////////////////////////////////////////////////////////
 ///                         BASIC TYPES                              ///
 ////////////////////////////////////////////////////////////////////////
+
+typedef struct Sbd_Par_t_ Sbd_Par_t;
+struct Sbd_Par_t_
+{
+    int             nLutSize;     // target LUT size
+    int             nTfoLevels;   // the number of TFO levels (windowing)
+    int             nTfoFanMax;   // the max number of fanouts (windowing)
+    int             nWinSizeMax;  // maximum window size (windowing)
+    int             nBTLimit;     // maximum number of SAT conflicts 
+    int             nWords;       // simulation word count
+    int             fArea;        // area-oriented optimization
+    int             fCover;       // use complete cover procedure
+    int             fVerbose;     // verbose flag
+    int             fVeryVerbose; // verbose flag
+};
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                      MACRO DEFINITIONS                           ///
@@ -41,38 +59,13 @@
 ///                    FUNCTION DECLARATIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
-// procedures to start and stop the ABC framework
-extern void   Abc_Start();
-extern void   Abc_Stop();
+/*=== sbdCnf.c ==========================================================*/
+/*=== sbdCore.c ==========================================================*/
+extern void         Sbd_ParSetDefault( Sbd_Par_t * pPars );
+extern Gia_Man_t *  Sbd_NtkPerform( Gia_Man_t * p, Sbd_Par_t * pPars );
 
-// procedures to get the ABC framework (pAbc) and execute commands in it
-extern void * Abc_FrameGetGlobalFrame();
-extern int    Cmd_CommandExecute( void * pAbc, char * pCommandLine );
 
-// procedures to input/output 'mini AIG'
-extern void   Abc_NtkInputMiniAig( void * pAbc, void * pMiniAig );
-extern void * Abc_NtkOutputMiniAig( void * pAbc );
-extern void   Abc_NtkSetFlopNum( void * pAbc, int nFlops );
-
-// procedures to input/output 'mini AIG'
-extern void   Abc_NtkInputMiniLut( void * pAbc, void * pMiniLut );
-extern void * Abc_NtkOutputMiniLut( void * pAbc );
-
-// procedures to set CI/CO arrival/required times
-extern void   Abc_NtkSetCiArrivalTime( void * pAbc, int iCi, float Rise, float Fall );
-extern void   Abc_NtkSetCoRequiredTime( void * pAbc, int iCo, float Rise, float Fall );
-
-// procedure to set AND-gate delay to tech-independent synthesis and mapping
-extern void   Abc_NtkSetAndGateDelay( void * pAbc, float Delay );
-
-// procedures to return the mapped network
-extern int *  Abc_NtkOutputMiniMapping( void * pAbc );
-extern void   Abc_NtkPrintMiniMapping( int * pArray );
-
-// procedures to access verifization status and a counter-example
-extern int    Abc_FrameReadProbStatus( void * pAbc );   
-extern void * Abc_FrameReadCex( void * pAbc );    
-
+ABC_NAMESPACE_HEADER_END
 
 #endif
 

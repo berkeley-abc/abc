@@ -19,8 +19,10 @@
 ***********************************************************************/
 
 #include "gia.h"
+#include "opt/dau/dau.h"
 #include "base/main/main.h"
 #include "aig/miniaig/miniaig.h"
+#include "aig/miniaig/minilut.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -178,6 +180,186 @@ void Gia_ManWriteMiniAig( Gia_Man_t * pGia, char * pFileName )
     Mini_Aig_t * p = Gia_ManToMiniAig( pGia );
     Mini_AigDump( p, pFileName );
     Mini_AigStop( p );
+}
+
+
+
+
+/**Function*************************************************************
+
+  Synopsis    [Converts MiniLUT into GIA.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Gia_Man_t * Gia_ManFromMiniLut( Mini_Lut_t * p )
+{
+    Gia_Man_t * pGia, * pTemp;
+    Vec_Int_t * vCopies;
+    Vec_Int_t * vCover = Vec_IntAlloc( 1000 );
+    Vec_Int_t * vLits = Vec_IntAlloc( 100 );
+    int i, k, Fan, iGiaLit, nNodes;
+    int LutSize = Abc_MaxInt( 2, Mini_LutSize(p) );
+    assert( LutSize <= 6 );
+    // get the number of nodes
+    nNodes = Mini_LutNodeNum(p);
+    // create ABC network
+    pGia = Gia_ManStart( 3 * nNodes );
+    pGia->pName = Abc_UtilStrsav( "MiniLut" );
+    // create mapping from MiniLUT objects into ABC objects
+    vCopies = Vec_IntAlloc( nNodes );
+    Vec_IntPush( vCopies, 0 );
+    Vec_IntPush( vCopies, 1 );
+    // iterate through the objects
+    Gia_ManHashAlloc( pGia );
+    for ( i = 2; i < nNodes; i++ )
+    {
+        if ( Mini_LutNodeIsPi( p, i ) )
+            iGiaLit = Gia_ManAppendCi(pGia);
+        else if ( Mini_LutNodeIsPo( p, i ) )
+            iGiaLit = Gia_ManAppendCo(pGia, Vec_IntEntry(vCopies, Mini_LutNodeFanin(p, i, 0)));
+        else if ( Mini_LutNodeIsNode( p, i ) )
+        {
+            unsigned * puTruth = Mini_LutNodeTruth( p, i );
+            word Truth = LutSize == 6 ? *(word *)puTruth : ((word)*puTruth << 32) | (word)*puTruth; 
+            Vec_IntClear( vLits );
+            Mini_LutForEachFanin( p, i, Fan, k )
+                Vec_IntPush( vLits, Vec_IntEntry(vCopies, Fan) );
+            iGiaLit = Dsm_ManTruthToGia( pGia, &Truth, vLits, vCover );
+        }
+        else assert( 0 );
+        Vec_IntPush( vCopies, iGiaLit );
+    }
+    Vec_IntFree( vCover );
+    Vec_IntFree( vLits );
+    Gia_ManHashStop( pGia );
+    assert( Vec_IntSize(vCopies) == nNodes );
+    Vec_IntFree( vCopies );
+    Gia_ManSetRegNum( pGia, Mini_LutRegNum(p) );
+    pGia = Gia_ManCleanup( pTemp = pGia );
+    Gia_ManStop( pTemp );
+    return pGia;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Converts GIA into MiniLUT.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Mini_Lut_t * Gia_ManToMiniLut( Gia_Man_t * pGia )
+{
+    Mini_Lut_t * p;
+    Vec_Wrd_t * vTruths;
+    Gia_Obj_t * pObj, * pFanin;
+    int i, k, LutSize, pVars[16];
+    word Truth;
+    assert( Gia_ManHasMapping(pGia) );
+    LutSize = Gia_ManLutSizeMax( pGia );
+    assert( LutSize >= 2 );
+    // create the manager
+    p = Mini_LutStart( LutSize );
+    // create primary inputs
+    Gia_ManFillValue( pGia );
+    Gia_ManForEachCi( pGia, pObj, i )
+        pObj->Value = Mini_LutCreatePi(p);
+    // create internal nodes
+    vTruths = Vec_WrdStart( Gia_ManObjNum(pGia) );
+    Gia_ManForEachLut( pGia, i )
+    {
+        pObj = Gia_ManObj( pGia, i );
+        Gia_LutForEachFaninObj( pGia, i, pFanin, k )
+            pVars[k] = pFanin->Value;
+        Truth = Gia_LutComputeTruth6( pGia, i, vTruths );
+        pObj->Value = Mini_LutCreateNode( p, Gia_ObjLutSize(pGia, i), pVars, (unsigned *)&Truth );
+    }
+    Vec_WrdFree( vTruths );
+    // create primary outputs
+    Gia_ManForEachCo( pGia, pObj, i )
+    {
+        if ( Gia_ObjFanin0(pObj) == Gia_ManConst0(pGia) )
+            pObj->Value = Mini_LutCreatePo( p, Gia_ObjFaninC0(pObj) );
+        else if ( !Gia_ObjFaninC0(pObj) )
+            pObj->Value = Mini_LutCreatePo( p, Gia_ObjFanin0(pObj)->Value );
+        else // add inverter LUT
+        {
+            word TruthInv = ABC_CONST(0x5555555555555555);
+            int Fanin = Gia_ObjFanin0(pObj)->Value;
+            int LutInv = Mini_LutCreateNode( p, 1, &Fanin, (unsigned *)&TruthInv );
+            pObj->Value = Mini_LutCreatePo( p, LutInv );
+        }
+    }
+    // set registers
+    Mini_LutSetRegNum( p, Gia_ManRegNum(pGia) );
+    //Mini_LutPrintStats( p );
+    return p;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Procedures to input/output MiniAIG into/from internal GIA.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_FrameGiaInputMiniLut( Abc_Frame_t * pAbc, void * p )
+{
+    Gia_Man_t * pGia;
+    if ( pAbc == NULL )
+        printf( "ABC framework is not initialized by calling Abc_Start()\n" );
+    pGia = Gia_ManFromMiniLut( (Mini_Lut_t *)p );
+    Abc_FrameUpdateGia( pAbc, pGia );
+//    Gia_ManDelete( pGia );
+}
+void * Abc_FrameGiaOutputMiniLut( Abc_Frame_t * pAbc )
+{
+    Gia_Man_t * pGia;
+    if ( pAbc == NULL )
+        printf( "ABC framework is not initialized by calling Abc_Start()\n" );
+    pGia = Abc_FrameReadGia( pAbc );
+    if ( pGia == NULL )
+        printf( "Current network in ABC framework is not defined.\n" );
+    return Gia_ManToMiniLut( pGia );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Procedures to read/write GIA to/from MiniAIG file.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Gia_Man_t * Gia_ManReadMiniLut( char * pFileName )
+{
+    Mini_Lut_t * p = Mini_LutLoad( pFileName );
+    Gia_Man_t * pGia = Gia_ManFromMiniLut( p );
+    ABC_FREE( pGia->pName );
+    pGia->pName = Extra_FileNameGeneric( pFileName ); 
+    Mini_LutStop( p );
+    return pGia;
+}
+void Gia_ManWriteMiniLut( Gia_Man_t * pGia, char * pFileName )
+{
+    Mini_Lut_t * p = Gia_ManToMiniLut( pGia );
+    Mini_LutDump( p, pFileName );
+    Mini_LutStop( p );
 }
 
 ////////////////////////////////////////////////////////////////////////

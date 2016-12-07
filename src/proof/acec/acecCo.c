@@ -44,11 +44,14 @@ ABC_NAMESPACE_IMPL_START
 ***********************************************************************/
 void Gia_PolynCoreNonXors_rec( Gia_Man_t * pGia, Gia_Obj_t * pObj, Vec_Int_t * vXorPairs )
 {
+    extern int Gia_ManSuppSizeOne( Gia_Man_t * p, Gia_Obj_t * pObj );
     Gia_Obj_t * pFan0, * pFan1;
     if ( !Gia_ObjRecognizeExor(pObj, &pFan0, &pFan1) )
         return;
     Gia_PolynCoreNonXors_rec( pGia, Gia_Regular(pFan0), vXorPairs );
     Gia_PolynCoreNonXors_rec( pGia, Gia_Regular(pFan1), vXorPairs );
+    //if ( Gia_ManSuppSizeOne(pGia, pObj) > 4 )
+    //if ( Gia_ObjId(pGia, pObj) >= 73 )
     Vec_IntPushTwo( vXorPairs, Gia_ObjId(pGia, Gia_Regular(pFan0)), Gia_ObjId(pGia, Gia_Regular(pFan1)) );
 }
 Vec_Int_t * Gia_PolynAddHaRoots( Gia_Man_t * pGia )
@@ -87,38 +90,30 @@ Vec_Int_t * Gia_PolynAddHaRoots( Gia_Man_t * pGia )
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Int_t * Gia_PolynCoreOrder( Gia_Man_t * pGia, Vec_Int_t * vAdds, Vec_Int_t * vAddCos, Vec_Int_t ** pvIns, Vec_Int_t ** pvOuts )
+Vec_Wec_t * Gia_PolynComputeMap( Vec_Int_t * vAdds, int nObjs )
 {
-    Vec_Int_t * vOrder  = Vec_IntAlloc( 1000 );
-    Vec_Bit_t * vIsRoot = Vec_BitStart( Gia_ManObjNum(pGia) );
-    Vec_Int_t * vRoots  = Vec_IntAlloc( 5 * Gia_ManCoNum(pGia) );
-    Vec_Int_t * vLeaves = Vec_IntAlloc( 2 * Gia_ManCiNum(pGia) );
-    Vec_Wec_t * vMap    = Vec_WecStart( Gia_ManObjNum(pGia) );
-    int i, k, Index, Driver, Entry1, Entry2 = -1;
-    // nodes driven by adders into adder indexes
-    for ( i = 0; 5*i < Vec_IntSize(vAdds); i++ )
+    // map nodes driven by adders into adder indexes
+    Vec_Wec_t * vMap = Vec_WecStart( nObjs );  int i;
+    for ( i = 0; 6*i < Vec_IntSize(vAdds); i++ )
     {
-        Entry1 = Vec_IntEntry( vAdds, 5*i + 3 );
-        Entry2 = Vec_IntEntry( vAdds, 5*i + 4 );
+        int Entry1 = Vec_IntEntry( vAdds, 6*i + 3 );
+        int Entry2 = Vec_IntEntry( vAdds, 6*i + 4 );
         Vec_WecPush( vMap, Entry1, i );
         Vec_WecPush( vMap, Entry1, Entry2 );
         Vec_WecPush( vMap, Entry2, i );
         Vec_WecPush( vMap, Entry2, Entry1 );
     }
-    // collect roots
-    Gia_ManForEachCoDriverId( pGia, Driver, i )
-    {
-        Vec_IntPush( vRoots, Driver );
+    return vMap;
+}
+Vec_Int_t * Gia_PolynCoreOrder_int( Gia_Man_t * pGia, Vec_Int_t * vAdds, Vec_Wec_t * vMap, Vec_Int_t * vRoots, Vec_Int_t ** pvIns )
+{
+    Vec_Int_t * vOrder  = Vec_IntAlloc( 1000 );
+    Vec_Bit_t * vIsRoot = Vec_BitStart( Gia_ManObjNum(pGia) );
+    int i, k, Index, Driver, Entry1, Entry2 = -1;
+    // mark roots
+    Vec_IntForEachEntry( vRoots, Driver, i )
         Vec_BitWriteEntry( vIsRoot, Driver, 1 );
-    }
-    // collect additional outputs
-    Vec_IntForEachEntry( vAddCos, Driver, i )
-    {
-        Vec_IntPush( vRoots, Driver );
-        Vec_BitWriteEntry( vIsRoot, Driver, 1 );
-    }
-    // detect full adder tree
-    *pvOuts = Vec_IntDup( vRoots );
+    // collect boxes
     while ( 1 )
     {
         // iterate through boxes driving this one
@@ -140,9 +135,9 @@ Vec_Int_t * Gia_PolynCoreOrder( Gia_Man_t * pGia, Vec_Int_t * vAdds, Vec_Int_t *
             Vec_IntRemove( vRoots, Entry1 );
             Vec_IntRemove( vRoots, Entry2 );
             // set new marks
-            Entry1 = Vec_IntEntry( vAdds, 5*Index + 0 );
-            Entry2 = Vec_IntEntry( vAdds, 5*Index + 1 );
-            Driver = Vec_IntEntry( vAdds, 5*Index + 2 );
+            Entry1 = Vec_IntEntry( vAdds, 6*Index + 0 );
+            Entry2 = Vec_IntEntry( vAdds, 6*Index + 1 );
+            Driver = Vec_IntEntry( vAdds, 6*Index + 2 );
             Vec_BitWriteEntry( vIsRoot, Entry1, 1 );
             Vec_BitWriteEntry( vIsRoot, Entry2, 1 );
             Vec_BitWriteEntry( vIsRoot, Driver, 1 );
@@ -155,15 +150,95 @@ Vec_Int_t * Gia_PolynCoreOrder( Gia_Man_t * pGia, Vec_Int_t * vAdds, Vec_Int_t *
             break;
     }
     // collect remaining leaves
-    Vec_BitForEachEntryStart( vIsRoot, Driver, i, 1 )
-        if ( Driver )
-            Vec_IntPush( vLeaves, i );
-    *pvIns = vLeaves;
-    // cleanup
+    if ( pvIns )
+    {
+        *pvIns = Vec_IntAlloc( Vec_BitSize(vIsRoot) );
+        Vec_BitForEachEntryStart( vIsRoot, Driver, i, 1 )
+            if ( Driver )
+                Vec_IntPush( *pvIns, i );
+    }
     Vec_BitFree( vIsRoot );
+    return vOrder;
+}
+Vec_Int_t * Gia_PolynCoreOrder( Gia_Man_t * pGia, Vec_Int_t * vAdds, Vec_Int_t * vAddCos, Vec_Int_t ** pvIns, Vec_Int_t ** pvOuts )
+{
+    Vec_Int_t * vOrder;
+    Vec_Wec_t * vMap = Gia_PolynComputeMap( vAdds, Gia_ManObjNum(pGia) );
+    Vec_Int_t * vRoots = Vec_IntAlloc( Gia_ManCoNum(pGia) );
+    int i, Driver;
+    // collect roots
+    Gia_ManForEachCoDriverId( pGia, Driver, i )
+        Vec_IntPush( vRoots, Driver );
+    // collect additional outputs
+    if ( vAddCos )
+        Vec_IntForEachEntry( vAddCos, Driver, i )
+            Vec_IntPush( vRoots, Driver );
+    // remember roots
+    if ( pvOuts )
+        *pvOuts = Vec_IntDup( vRoots );
+    // create order
+    vOrder = Gia_PolynCoreOrder_int( pGia, vAdds, vMap, vRoots, pvIns );
     Vec_IntFree( vRoots );
     Vec_WecFree( vMap );
+    printf( "Collected %d boxes.\n", Vec_IntSize(vOrder) );
     return vOrder;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_PolyCollectRoots_rec( Vec_Int_t * vAdds, Vec_Wec_t * vMap, Vec_Bit_t * vMarks, int iBox, Vec_Int_t * vRoots )
+{
+    int k;
+    for ( k = 0; k < 3; k++ )
+    {
+        int i, Index, Sum, Carry = Vec_IntEntry( vAdds, 6*iBox+k );
+        Vec_Int_t * vLevel = Vec_WecEntry( vMap, Carry );
+        if ( Carry == 0 )
+            continue;
+        Vec_IntForEachEntryDouble( vLevel, Index, Sum, i )
+            if ( Vec_IntEntry(vAdds, 6*Index+4) == Carry && !Vec_BitEntry(vMarks, Sum) )
+            {
+                Vec_IntPush( vRoots, Sum );
+                Gia_PolyCollectRoots_rec( vAdds, vMap, vMarks, Index, vRoots );
+            }
+    }
+}
+void Gia_PolyCollectRoots( Vec_Int_t * vAdds, Vec_Wec_t * vMap, Vec_Bit_t * vMarks, int iBox, Vec_Int_t * vRoots )
+{
+    Vec_IntClear( vRoots );
+    Vec_IntPush( vRoots, Vec_IntEntry(vAdds, 6*iBox+3) );
+    Vec_IntPush( vRoots, Vec_IntEntry(vAdds, 6*iBox+4) );
+    Gia_PolyCollectRoots_rec( vAdds, vMap, vMarks, iBox, vRoots );
+}
+Vec_Wec_t * Gia_PolynCoreOrderArray( Gia_Man_t * pGia, Vec_Int_t * vAdds, Vec_Int_t * vRootBoxes )
+{
+    extern Vec_Bit_t * Acec_ManPoolGetPointed( Gia_Man_t * p, Vec_Int_t * vAdds );
+    Vec_Bit_t * vMarks = Acec_ManPoolGetPointed( pGia, vAdds );
+    Vec_Wec_t * vMap   = Gia_PolynComputeMap( vAdds, Gia_ManObjNum(pGia) );
+    Vec_Wec_t * vRes   = Vec_WecStart( Vec_IntSize(vRootBoxes) );
+    Vec_Int_t * vRoots = Vec_IntAlloc( 64 );
+    Vec_Int_t * vOrder;
+    int i, iBox;
+    Vec_IntForEachEntry( vRootBoxes, iBox, i )
+    {
+        Gia_PolyCollectRoots( vAdds, vMap, vMarks, iBox, vRoots );
+        vOrder = Gia_PolynCoreOrder_int( pGia, vAdds, vMap, vRoots, NULL );
+        Vec_IntAppend( Vec_WecEntry(vRes, i), vOrder );
+        Vec_IntFree( vOrder );
+    }
+    Vec_BitFree( vMarks );
+    Vec_IntFree( vRoots );
+    Vec_WecFree( vMap );
+    return vRes;
 }
 
 /**Function*************************************************************
@@ -194,15 +269,15 @@ Vec_Int_t * Gia_PolynCoreCollect( Gia_Man_t * pGia, Vec_Int_t * vAdds, Vec_Int_t
     Vec_IntForEachEntryReverse( vOrder, Index, i )
     {
         // mark inputs
-        Entry1 = Vec_IntEntry( vAdds, 5*Index + 0 );
-        Entry2 = Vec_IntEntry( vAdds, 5*Index + 1 );
-        Entry3 = Vec_IntEntry( vAdds, 5*Index + 2 );
+        Entry1 = Vec_IntEntry( vAdds, 6*Index + 0 );
+        Entry2 = Vec_IntEntry( vAdds, 6*Index + 1 );
+        Entry3 = Vec_IntEntry( vAdds, 6*Index + 2 );
         Vec_BitWriteEntry( vVisited, Entry1, 1 );
         Vec_BitWriteEntry( vVisited, Entry2, 1 );
         Vec_BitWriteEntry( vVisited, Entry3, 1 );
         // traverse from outputs
-        Entry1 = Vec_IntEntry( vAdds, 5*Index + 3 );
-        Entry2 = Vec_IntEntry( vAdds, 5*Index + 4 );
+        Entry1 = Vec_IntEntry( vAdds, 6*Index + 3 );
+        Entry2 = Vec_IntEntry( vAdds, 6*Index + 4 );
         Gia_PolynCoreCollect_rec( pGia, Entry1, vNodes, vVisited );
         Gia_PolynCoreCollect_rec( pGia, Entry2, vNodes, vVisited );
     }
@@ -312,14 +387,17 @@ Gia_Man_t * Gia_PolynCoreDupTree( Gia_Man_t * p, Vec_Int_t * vAddCos, Vec_Int_t 
 ***********************************************************************/
 Gia_Man_t * Gia_PolynCoreDetectTest_int( Gia_Man_t * pGia, Vec_Int_t * vAddCos, int fAddCones, int fVerbose )
 {
-    extern Vec_Int_t * Ree_ManComputeCuts( Gia_Man_t * p, int fVerbose );
+    extern Vec_Int_t * Ree_ManComputeCuts( Gia_Man_t * p, Vec_Int_t ** pvXors, int fVerbose );
     abctime clk = Abc_Clock();
     Gia_Man_t * pNew;
-    Vec_Int_t * vAdds = Ree_ManComputeCuts( pGia, 1 );
+    Vec_Int_t * vAdds = Ree_ManComputeCuts( pGia, NULL, 1 );
     Vec_Int_t * vLeaves, * vRoots, * vOrder = Gia_PolynCoreOrder( pGia, vAdds, vAddCos, &vLeaves, &vRoots );
     Vec_Int_t * vNodes = Gia_PolynCoreCollect( pGia, vAdds, vOrder );
+
+    //Gia_ManShow( pGia, vNodes, 0 );
+    
     printf( "Detected %d FAs/HAs. Roots = %d. Leaves = %d. Nodes = %d. Adds = %d. ", 
-        Vec_IntSize(vAdds), Vec_IntSize(vLeaves), Vec_IntSize(vRoots), Vec_IntSize(vNodes), Vec_IntSize(vOrder) );
+        Vec_IntSize(vAdds)/6, Vec_IntSize(vLeaves), Vec_IntSize(vRoots), Vec_IntSize(vNodes), Vec_IntSize(vOrder) );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
 
     Gia_PolynCorePrintCones( pGia, vLeaves, fVerbose );

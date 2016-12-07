@@ -2378,6 +2378,7 @@ int IoCommandWriteCex( Abc_Frame_t * pAbc, int argc, char **argv )
         Abc_Obj_t * pObj;
         FILE * pFile;
         int i, f;
+        /*
         Abc_NtkForEachLatch( pNtk, pObj, i )
             if ( !Abc_LatchIsInit0(pObj) )
             {
@@ -2385,7 +2386,7 @@ int IoCommandWriteCex( Abc_Frame_t * pAbc, int argc, char **argv )
                 fprintf( stdout, "Run commands \"undc\" and \"zero\" and then rerun the equivalence check.\n" );
                 return 1;
             }
-
+        */
         pFile = fopen( pFileName, "w" );
         if ( pFile == NULL )
         {

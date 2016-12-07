@@ -586,7 +586,10 @@ void Mio_LibrarySortGates( Mio_Library_t * pLib )
     int i = 0;
     ppGates = ABC_ALLOC( Mio_Gate_t *, pLib->nGates );
     Mio_LibraryForEachGate( pLib, pGate )
+    {
+        pGate->Cell = i;
         ppGates[i++] = pGate;
+    }
     assert( i == pLib->nGates );
     // sort gates by name
     pLib->ppGates0 = ABC_ALLOC( Mio_Gate_t *, pLib->nGates );

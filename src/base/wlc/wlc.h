@@ -244,6 +244,8 @@ static inline Wlc_Obj_t *  Wlc_ObjFoToFi( Wlc_Ntk_t * p, Wlc_Obj_t * pObj )     
 
 #define Wlc_ObjForEachFanin( pObj, iFanin, i )                                      \
     for ( i = 0; (i < Wlc_ObjFaninNum(pObj)) && (((iFanin) = Wlc_ObjFaninId(pObj, i)), 1); i++ )
+#define Wlc_ObjForEachFaninObj( p, pObj, pFanin, i )                                \
+    for ( i = 0; (i < Wlc_ObjFaninNum(pObj)) && (((pFanin) = Wlc_NtkObj(p, Wlc_ObjFaninId(pObj, i))), 1); i++ )
 #define Wlc_ObjForEachFaninReverse( pObj, iFanin, i )                               \
     for ( i = Wlc_ObjFaninNum(pObj) - 1; (i >= 0) && (((iFanin) = Wlc_ObjFaninId(pObj, i)), 1); i-- )
 
@@ -272,6 +274,8 @@ extern char *         Wlc_ObjName( Wlc_Ntk_t * p, int iObj );
 extern void           Wlc_ObjUpdateType( Wlc_Ntk_t * p, Wlc_Obj_t * pObj, int Type );
 extern void           Wlc_ObjAddFanins( Wlc_Ntk_t * p, Wlc_Obj_t * pObj, Vec_Int_t * vFanins );
 extern void           Wlc_NtkFree( Wlc_Ntk_t * p );
+extern void           Wlc_NtkPrintNode( Wlc_Ntk_t * p, Wlc_Obj_t * pObj );
+extern void           Wlc_NtkPrintNodeArray( Wlc_Ntk_t * p, Vec_Int_t * vArray );
 extern void           Wlc_NtkPrintNodes( Wlc_Ntk_t * p, int Type );
 extern void           Wlc_NtkPrintStats( Wlc_Ntk_t * p, int fDistrib, int fVerbose );
 extern Wlc_Ntk_t *    Wlc_NtkDupDfs( Wlc_Ntk_t * p );
@@ -287,6 +291,8 @@ extern void           Wlc_NtkDeleteSim( Vec_Ptr_t * p );
 extern int            Wlc_StdinProcessSmt( Abc_Frame_t * pAbc, char * pCmd );
 /*=== wlcReadVer.c ========================================================*/
 extern Wlc_Ntk_t *    Wlc_ReadVer( char * pFileName, char * pStr );
+/*=== wlcWin.c =============================================================*/
+extern void           Wlc_WinProfileArith( Wlc_Ntk_t * p );
 /*=== wlcWriteVer.c ========================================================*/
 extern void           Wlc_WriteVer( Wlc_Ntk_t * p, char * pFileName, int fAddCos, int fNoFlops );
 

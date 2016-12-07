@@ -292,6 +292,10 @@ int Wlc_BlastLessSigned( Gia_Man_t * pNew, int * pArg0, int * pArg1, int nBits )
 void Wlc_BlastFullAdder( Gia_Man_t * pNew, int a, int b, int c, int * pc, int * ps )
 {
     int fUseXor = 0;
+    int fCompl = (a == 1 || b == 1 || c == 1);
+    // propagate complement through the FA - helps generate less redundant logic
+    if ( fCompl )
+        a = Abc_LitNot(a), b = Abc_LitNot(b), c = Abc_LitNot(c); 
     if ( fUseXor )
     {
         int Xor  = Gia_ManHashXor(pNew, a, b);
@@ -310,6 +314,8 @@ void Wlc_BlastFullAdder( Gia_Man_t * pNew, int a, int b, int c, int * pc, int * 
         *ps      = Gia_ManHashAnd(pNew, Abc_LitNot(And2), Abc_LitNot(And2_));
         *pc      = Gia_ManHashOr (pNew, And1, And2);
     }
+    if ( fCompl )
+        *ps = Abc_LitNot(*ps), *pc = Abc_LitNot(*pc); 
 }
 void Wlc_BlastAdder( Gia_Man_t * pNew, int * pAdd0, int * pAdd1, int nBits ) // result is in pAdd0
 {
@@ -412,6 +418,7 @@ void Wlc_BlastMultiplier( Gia_Man_t * pNew, int * pArgA, int * pArgB, int nArgA,
     assert( fSigned == 0 || fSigned == 1 );
     // prepare result
     Vec_IntFill( vRes, nArgA + nArgB, 0 );
+    //Vec_IntFill( vRes, nArgA + nArgB + 1, 0 );
     pRes = Vec_IntArray( vRes );
     // prepare intermediate storage
     Vec_IntFill( vTemp, 2 * nArgA, 0 );
@@ -426,6 +433,7 @@ void Wlc_BlastMultiplier( Gia_Man_t * pNew, int * pArgA, int * pArgB, int nArgA,
     pArgS[nArgA-1] = fSigned;
     for ( a = 0; a < nArgA; a++ )
         Wlc_BlastFullAdderCtrl( pNew, 1, pArgC[a], pArgS[a], Carry, &Carry, &pRes[nArgB+a], 0 );
+    //Vec_IntWriteEntry( vRes, nArgA + nArgB, Carry );
 }
 void Wlc_BlastDivider( Gia_Man_t * pNew, int * pNum, int nNum, int * pDiv, int nDiv, int fQuo, Vec_Int_t * vRes )
 {
@@ -804,7 +812,7 @@ void Wlc_BlastBooth( Gia_Man_t * pNew, int * pArgA, int * pArgB, int nArgA, int 
         Vec_WecPush( vLevels, k, 0 );
     }
     //Vec_WecPrint( vProds, 0 );
-
+    //printf( "Cutoff ID for partial products = %d.\n", Gia_ManObjNum(pNew) );
     Wlc_BlastReduceMatrix( pNew, vProds, vLevels, vRes );
 
     Vec_WecFree( vProds );
@@ -1360,6 +1368,7 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Vec_Int_t * vBoxIds, int iOutput, in
     {
         pNew = Gia_ManCleanup( pTemp = pNew );
         Gia_ManDupRemapLiterals( vBits, pTemp );
+        //printf( "Cutoff ID %d became %d.\n", 75, Abc_Lit2Var(Gia_ManObj(pTemp, 73)->Value) );
         Gia_ManStop( pTemp );
     }
     // transform AIG with init state

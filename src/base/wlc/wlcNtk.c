@@ -44,8 +44,8 @@ static char * Wlc_Names[WLC_OBJ_NUMBER+1] = {
     ">>>",                 // 10: shift right (arithmetic)
     "<<",                  // 11: shift left
     "<<<",                 // 12: shift left (arithmetic)
-    "rotateR",             // 13: rotate right
-    "rotateL",             // 14: rotate left
+    "rotR",                // 13: rotate right
+    "rotL",                // 14: rotate left
     "~",                   // 15: bitwise NOT
     "&",                   // 16: bitwise AND
     "|",                   // 17: bitwise OR
@@ -55,8 +55,8 @@ static char * Wlc_Names[WLC_OBJ_NUMBER+1] = {
     "~^",                  // 21: bitwise NXOR
     "[:]",                 // 22: bit selection
     "{,}",                 // 23: bit concatenation
-    "zeroPad",             // 24: zero padding
-    "signExt",             // 25: sign extension
+    "zPad",                // 24: zero padding
+    "sExt",                // 25: sign extension
     "!",                   // 26: logic NOT
     "=>",                  // 27: logic implication
     "&&",                  // 28: logic AND
@@ -83,7 +83,7 @@ static char * Wlc_Names[WLC_OBJ_NUMBER+1] = {
     "**",                  // 49: arithmetic power
     "-",                   // 50: arithmetic minus
     "sqrt",                // 51: integer square root
-    "square",              // 52: integer square
+    "squar",               // 52: integer square
     "table",               // 53: bit table
     NULL                   // 54: unused
 };
@@ -471,6 +471,57 @@ void Wlc_NtkPrintDistrib( Wlc_Ntk_t * p, int fVerbose )
     Vec_VecFree( (Vec_Vec_t *)vOccurs );
     Vec_IntFree( vAnds );
 }
+void Wlc_NtkPrintNode( Wlc_Ntk_t * p, Wlc_Obj_t * pObj )
+{
+    printf( "%8d  :  ", Wlc_ObjId(p, pObj) );
+    printf( "%3d%s",    Wlc_ObjRange(pObj), Wlc_ObjIsSigned(pObj) ? "s" : " " );
+    if ( pObj->Type == WLC_OBJ_CONST )
+        printf( "                          " );
+    else
+    {
+        printf( " = %3d%s  %5s  ",  Wlc_ObjRange(Wlc_ObjFanin0(p, pObj)), Wlc_ObjIsSigned(Wlc_ObjFanin0(p, pObj)) ? "s" : " ", Wlc_Names[(int)pObj->Type] );
+        if ( Wlc_ObjFaninNum(pObj) > 1 )
+            printf( "%3d%s ",       Wlc_ObjRange(Wlc_ObjFanin1(p, pObj)), Wlc_ObjIsSigned(Wlc_ObjFanin1(p, pObj)) ? "s" : " " );
+        else
+            printf( "     " );
+        if ( Wlc_ObjFaninNum(pObj) > 2 )
+            printf( "%3d%s ",       Wlc_ObjRange(Wlc_ObjFanin2(p, pObj)), Wlc_ObjIsSigned(Wlc_ObjFanin2(p, pObj)) ? "s" : " " );
+        else
+            printf( "     " );
+    }
+    printf( " :    " );
+    printf( "%-12s",   Wlc_ObjName(p, Wlc_ObjId(p, pObj)) );
+    if ( pObj->Type == WLC_OBJ_CONST )
+    {
+        printf( " =  %d\'%sh", Wlc_ObjRange(pObj), Wlc_ObjIsSigned(pObj) ? "s":"" );
+        if ( pObj->fXConst )
+        {
+            int k;
+            for ( k = 0; k < (Wlc_ObjRange(pObj) + 3) / 4; k++ )
+                printf( "x" );
+        }
+        else
+            Abc_TtPrintHexArrayRev( stdout, (word *)Wlc_ObjConstValue(pObj), (Wlc_ObjRange(pObj) + 3) / 4 );
+    }
+    else
+    {
+        printf( " =  %-12s  %5s  ", Wlc_ObjName(p, Wlc_ObjFaninId0(pObj)), Wlc_Names[(int)pObj->Type] );
+        if ( Wlc_ObjFaninNum(pObj) > 1 )
+            printf( "%-12s ",       Wlc_ObjName(p, Wlc_ObjFaninId1(pObj)) );
+        else
+            printf( "             " );
+        if ( Wlc_ObjFaninNum(pObj) > 2 )
+            printf( "%-12s ",       Wlc_ObjName(p, Wlc_ObjFaninId2(pObj)) );
+    }
+    printf( "\n" );
+}
+void Wlc_NtkPrintNodeArray( Wlc_Ntk_t * p, Vec_Int_t * vArray )
+{
+    Wlc_Obj_t * pObj; 
+    int i;
+    Wlc_NtkForEachObjVec( vArray, p, pObj, i )
+        Wlc_NtkPrintNode( p, pObj );
+}
 void Wlc_NtkPrintNodes( Wlc_Ntk_t * p, int Type )
 {
     Wlc_Obj_t * pObj; 
@@ -480,16 +531,8 @@ void Wlc_NtkPrintNodes( Wlc_Ntk_t * p, int Type )
     {
         if ( (int)pObj->Type != Type )
             continue;
-        printf( "%8d  :",      Counter++ );
-        printf( "%8d  :  ",    i );
-        printf( "%3d%s = ",    Wlc_ObjRange(pObj),                   Wlc_ObjIsSigned(pObj) ? "s" : " " );
-        printf( "%3d%s  %s ",  Wlc_ObjRange(Wlc_ObjFanin0(p, pObj)), Wlc_ObjIsSigned(Wlc_ObjFanin0(p, pObj)) ? "s" : " ", Wlc_Names[Type] );
-        printf( "%3d%s ",      Wlc_ObjRange(Wlc_ObjFanin1(p, pObj)), Wlc_ObjIsSigned(Wlc_ObjFanin1(p, pObj)) ? "s" : " " );
-        printf( " :    " );
-        printf( "%-12s =  ",   Wlc_ObjName(p, i) );
-        printf( "%-12s  %s  ", Wlc_ObjName(p, Wlc_ObjFaninId0(pObj)), Wlc_Names[Type] );
-        printf( "%-12s ",      Wlc_ObjName(p, Wlc_ObjFaninId1(pObj)) );
-        printf( "\n" );
+        printf( "%8d  :", Counter++ );
+        Wlc_NtkPrintNode( p, pObj );
     }
 }
 void Wlc_NtkPrintStats( Wlc_Ntk_t * p, int fDistrib, int fVerbose )

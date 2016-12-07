@@ -238,12 +238,28 @@ int Dau_DsdBalance( Gia_Man_t * pGia, int * pFans, int nFans, int fAnd )
     assert( nFans > 1 );
     iFan0 = pFans[--nFans];
     iFan1 = pFans[--nFans];
-    if ( fAnd )
-        iFan = Gia_ManHashAnd( pGia, iFan0, iFan1 );
-    else if ( pGia->pMuxes )
-        iFan = Gia_ManHashXorReal( pGia, iFan0, iFan1 );
-    else 
-        iFan = Gia_ManHashXor( pGia, iFan0, iFan1 );
+    if ( pGia->pHTable == NULL )
+    {
+        if ( fAnd )
+            iFan = Gia_ManAppendAnd( pGia, iFan0, iFan1 );
+        else if ( pGia->pMuxes )
+        {
+            int fCompl = Abc_LitIsCompl(iFan0) ^ Abc_LitIsCompl(iFan1);
+            iFan = Gia_ManAppendXorReal( pGia, Abc_LitRegular(iFan0), Abc_LitRegular(iFan1) );
+            iFan = Abc_LitNotCond( iFan, fCompl );
+        }
+        else 
+            iFan = Gia_ManAppendXor( pGia, iFan0, iFan1 );
+    }
+    else
+    {
+        if ( fAnd )
+            iFan = Gia_ManHashAnd( pGia, iFan0, iFan1 );
+        else if ( pGia->pMuxes )
+            iFan = Gia_ManHashXorReal( pGia, iFan0, iFan1 );
+        else 
+            iFan = Gia_ManHashXor( pGia, iFan0, iFan1 );
+    }
     pObj = Gia_ManObj(pGia, Abc_Lit2Var(iFan));
     if ( Gia_ObjIsAnd(pObj) )
     {
@@ -340,14 +356,24 @@ int Dau_DsdToGia_rec( Gia_Man_t * pGia, char * pStr, char ** p, int * pMatches, 
             assert( **p == '{' && *q == '}' );
             *p = q;
         }
-        if ( pGia->pMuxes )
-            Res = Gia_ManHashMuxReal( pGia, Temp[0], Temp[1], Temp[2] );
+        if ( pGia->pHTable == NULL )
+        {
+            if ( pGia->pMuxes )
+                Res = Gia_ManAppendMux( pGia, Temp[0], Temp[1], Temp[2] );
+            else
+                Res = Gia_ManAppendMux( pGia, Temp[0], Temp[1], Temp[2] );
+        }
         else
-            Res = Gia_ManHashMux( pGia, Temp[0], Temp[1], Temp[2] );
+        {
+            if ( pGia->pMuxes )
+                Res = Gia_ManHashMuxReal( pGia, Temp[0], Temp[1], Temp[2] );
+            else
+                Res = Gia_ManHashMux( pGia, Temp[0], Temp[1], Temp[2] );
+        }
         pObj = Gia_ManObj(pGia, Abc_Lit2Var(Res));
         if ( Gia_ObjIsAnd(pObj) )
         {
-            if ( pGia->pMuxes )
+            if ( pGia->pMuxes && pGia->pHTable != NULL )
                 Gia_ObjSetMuxLevel( pGia, pObj );
             else 
             {
@@ -377,7 +403,7 @@ int Dau_DsdToGia_rec( Gia_Man_t * pGia, char * pStr, char ** p, int * pMatches, 
         vLeaves.nSize = nVars;
         vLeaves.pArray = Fanins;      
         nObjOld = Gia_ManObjNum(pGia);
-        Res = Kit_TruthToGia( pGia, (unsigned *)pFunc, nVars, vCover, &vLeaves, 1 );
+        Res = Kit_TruthToGia( pGia, (unsigned *)pFunc, nVars, vCover, &vLeaves, pGia->pHTable != NULL );
 //        assert( nVars <= 6 );
 //        Res = Dau_DsdToGiaCompose_rec( pGia, pFunc[0], Fanins, nVars );
         for ( i = nObjOld; i < Gia_ManObjNum(pGia); i++ )
@@ -434,7 +460,7 @@ int Dsm_ManTruthToGia( void * p, word * pTruth, Vec_Int_t * vLeaves, Vec_Int_t *
     if ( nSizeNonDec )
         m_NonDsd++;
 //    printf( "%s\n", pDsd );
-    if ( fDelayBalance )
+    if ( fDelayBalance && pGia->vLevels )
         return Dau_DsdToGia( pGia, pDsd, Vec_IntArray(vLeaves), vCover );
     else
         return Dau_DsdToGia2( pGia, pDsd, Vec_IntArray(vLeaves), vCover );

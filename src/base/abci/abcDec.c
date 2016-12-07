@@ -26,6 +26,7 @@
 #include "bool/kit/kit.h"
 #include "opt/dau/dau.h"
 #include "misc/util/utilTruth.h"
+#include "opt/dsc/dsc.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -484,6 +485,8 @@ void Abc_TruthDecPerform( Abc_TtStore_t * p, int DecType, int fVerbose )
         pAlgoName = "fast DSD";
     else if ( DecType == 5 )
         pAlgoName = "analysis";
+    else if ( DecType == 6 )
+            pAlgoName = "DSD ICCD'15";
 
     if ( pAlgoName )
         printf( "Applying %-10s to %8d func%s of %2d vars...  ",  
@@ -577,6 +580,23 @@ void Abc_TruthDecPerform( Abc_TtStore_t * p, int DecType, int fVerbose )
             if ( fVerbose )
                 printf( "\n" );
         }
+    } else if ( DecType == 6 )
+    {
+        char pDsd[DSC_MAX_STR];
+        /* memory pool with a capacity of storing 3*nVars
+        truth-tables for negative and positive cofactors and
+        the boolean difference for each input variable */
+        word *mem_pool = Dsc_alloc_pool(p->nVars);
+        for ( i = 0; i < p->nFuncs; i++ )
+        {
+            if ( fVerbose )
+                printf( "%7d :      ", i );
+            Dsc_Decompose(p->pFuncs[i], p->nVars, pDsd, mem_pool);
+            if ( fVerbose )
+                printf( "%s\n", pDsd[0] ? pDsd : "NULL");
+            nNodes += Dsc_CountAnds( pDsd );
+        }
+        Dsc_free_pool(mem_pool);
     }
     else assert( 0 );
 
@@ -629,7 +649,7 @@ int Abc_DecTest( char * pFileName, int DecType, int nVarNum, int fVerbose )
         printf( "Using truth tables from file \"%s\"...\n", pFileName );
     if ( DecType == 0 )
         { if ( nVarNum < 0 ) Abc_TtStoreTest( pFileName ); }
-    else if ( DecType >= 1 && DecType <= 5 )
+    else if ( DecType >= 1 && DecType <= 6 )
         Abc_TruthDecTest( pFileName, DecType, nVarNum, fVerbose );
     else
         printf( "Unknown decomposition type value (%d).\n", DecType );

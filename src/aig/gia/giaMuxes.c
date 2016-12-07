@@ -100,7 +100,7 @@ Gia_Man_t * Gia_ManDupMuxes( Gia_Man_t * p, int Limit )
     Gia_Obj_t * pObj, * pFan0, * pFan1, * pFanC, * pSiblNew, * pObjNew;
     int i;
     assert( p->pMuxes == NULL );
-    assert( Limit >= 1 ); // allows to create AIG with XORs without MUXes
+    assert( Limit >= 0 ); // allows to create AIG with XORs without MUXes
     ABC_FREE( p->pRefs );
     Gia_ManCreateRefs( p ); 
     // start the new manager

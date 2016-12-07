@@ -266,6 +266,28 @@ static inline void Abc_TtAnd( word * pOut, word * pIn1, word * pIn2, int nWords,
         for ( w = 0; w < nWords; w++ )
             pOut[w] = pIn1[w] & pIn2[w];
 }
+static inline void Abc_TtAndCompl( word * pOut, word * pIn1, int fCompl1, word * pIn2, int fCompl2, int nWords )
+{
+    int w;
+    if ( fCompl1 )
+    {
+        if ( fCompl2 )
+            for ( w = 0; w < nWords; w++ )
+                pOut[w] = ~pIn1[w] & ~pIn2[w];
+        else
+            for ( w = 0; w < nWords; w++ )
+                pOut[w] = ~pIn1[w] & pIn2[w];
+    }
+    else
+    {
+        if ( fCompl2 )
+            for ( w = 0; w < nWords; w++ )
+                pOut[w] = pIn1[w] & ~pIn2[w];
+        else
+            for ( w = 0; w < nWords; w++ )
+                pOut[w] = pIn1[w] & pIn2[w];
+    }
+}
 static inline void Abc_TtAndSharp( word * pOut, word * pIn1, word * pIn2, int nWords, int fCompl )
 {
     int w;
@@ -287,6 +309,12 @@ static inline void Abc_TtOr( word * pOut, word * pIn1, word * pIn2, int nWords )
     int w;
     for ( w = 0; w < nWords; w++ )
         pOut[w] = pIn1[w] | pIn2[w];
+}
+static inline void Abc_TtOrXor( word * pOut, word * pIn1, word * pIn2, int nWords )
+{
+    int w;
+    for ( w = 0; w < nWords; w++ )
+        pOut[w] |= pIn1[w] ^ pIn2[w];
 }
 static inline void Abc_TtXor( word * pOut, word * pIn1, word * pIn2, int nWords, int fCompl )
 {
@@ -1601,6 +1629,14 @@ static inline int Abc_TtFindFirstBit( word * pIn, int nVars )
     for ( w = 0; w < nWords; w++ )
         if ( pIn[w] )
             return 64*w + Abc_Tt6FirstBit(pIn[w]);
+    return -1;
+}
+static inline int Abc_TtFindFirstDiffBit( word * pIn1, word * pIn2, int nVars )
+{
+    int w, nWords = Abc_TtWordNum(nVars);
+    for ( w = 0; w < nWords; w++ )
+        if ( pIn1[w] ^ pIn2[w] )
+            return 64*w + Abc_Tt6FirstBit(pIn1[w] ^ pIn2[w]);
     return -1;
 }
 static inline int Abc_TtFindFirstZero( word * pIn, int nVars )
