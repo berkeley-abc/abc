@@ -539,7 +539,6 @@ void Gia_WriteDotAig( Gia_Man_t * p, char * pFileName, Vec_Int_t * vAdds, Vec_In
             }
             else if ( Vec_IntEntry(vMapXors, iNode) >= 0 )
             {
-                int iXor = Vec_IntEntry(vMapXors, iNode);
                 fprintf( pFile, "  Node%d [label = \"%d\"", iNode, iNode ); 
                 fprintf( pFile, ", shape = doublecircle" );
             }
