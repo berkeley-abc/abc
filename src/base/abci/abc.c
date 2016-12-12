@@ -1,15 +1,15 @@
 /**CFile****************************************************************
- 
-  FileName    [abc.c] 
+
+  FileName    [abc.c]
 
   SystemName  [ABC: Logic synthesis and verification system.]
 
   PackageName [Network and node package.]
-  
+
   Synopsis    [Command file.]
 
   Author      [Alan Mishchenko]
-   
+
   Affiliation [UC Berkeley]
 
   Date        [Ver. 1.0. Started - June 20, 2005.]
@@ -42,6 +42,7 @@
 #include "bool/kit/kit.h"
 #include "map/amap/amap.h"
 #include "opt/ret/retInt.h"
+#include "sat/xsat/xsat.h"
 #include "sat/cnf/cnf.h"
 #include "proof/cec/cec.h"
 #include "proof/acec/acec.h"
@@ -306,6 +307,7 @@ static int Abc_CommandDCec                   ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandDSec                   ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandSat                    ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandDSat                   ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandXSat                   ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandPSat                   ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandProve                  ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandIProve                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -520,7 +522,7 @@ extern Abc_Ntk_t * Abc_NtkFromAigPhase( Aig_Man_t * pMan );
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -545,7 +547,7 @@ void Abc_FrameReplaceCex( Abc_Frame_t * pAbc, Abc_Cex_t ** ppCex )
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -623,7 +625,7 @@ Vec_Int_t * Abc_FrameDeriveStatusArray( Vec_Ptr_t * vCexes )
     Vec_PtrForEachEntry( Abc_Cex_t *, vCexes, pCex, i )
         if ( pCex != NULL )
             Vec_IntWriteEntry( vStatuses, i, 0 ); // set this output as SAT
-    return vStatuses;    
+    return vStatuses;
 }
 
 /**Function*************************************************************
@@ -951,6 +953,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Verification", "match",         Abc_CommandMatch,            0 );
     Cmd_CommandAdd( pAbc, "Verification", "sat",           Abc_CommandSat,              0 );
     Cmd_CommandAdd( pAbc, "Verification", "dsat",          Abc_CommandDSat,             0 );
+    Cmd_CommandAdd( pAbc, "Verification", "xsat",          Abc_CommandXSat,             0 );
     Cmd_CommandAdd( pAbc, "Verification", "psat",          Abc_CommandPSat,             0 );
     Cmd_CommandAdd( pAbc, "Verification", "prove",         Abc_CommandProve,            1 );
     Cmd_CommandAdd( pAbc, "Verification", "iprove",        Abc_CommandIProve,           1 );
@@ -966,8 +969,8 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Verification", "constr",        Abc_CommandConstr,           0 );
     Cmd_CommandAdd( pAbc, "Verification", "unfold",        Abc_CommandUnfold,           1 );
     Cmd_CommandAdd( pAbc, "Verification", "fold",          Abc_CommandFold,             1 );
-    Cmd_CommandAdd( pAbc, "Verification", "unfold2",       Abc_CommandUnfold2,          1 );    // jlong 
-    Cmd_CommandAdd( pAbc, "Verification", "fold2",         Abc_CommandFold2,            1 );    // jlong 
+    Cmd_CommandAdd( pAbc, "Verification", "unfold2",       Abc_CommandUnfold2,          1 );    // jlong
+    Cmd_CommandAdd( pAbc, "Verification", "fold2",         Abc_CommandFold2,            1 );    // jlong
     Cmd_CommandAdd( pAbc, "Verification", "bm",            Abc_CommandBm,               1 );
     Cmd_CommandAdd( pAbc, "Verification", "bm2",           Abc_CommandBm2,              1 );
     Cmd_CommandAdd( pAbc, "Verification", "saucy3",        Abc_CommandSaucy,            1 );
@@ -2717,8 +2720,8 @@ int Abc_CommandPrintStatus( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
         if ( fShort )
         {
-            printf( "Status array contains %d SAT, %d UNSAT, and %d UNDEC entries (out of %d).", 
-                Vec_IntCountEntry(pAbc->vStatuses, 0), Vec_IntCountEntry(pAbc->vStatuses, 1), 
+            printf( "Status array contains %d SAT, %d UNSAT, and %d UNDEC entries (out of %d).",
+                Vec_IntCountEntry(pAbc->vStatuses, 0), Vec_IntCountEntry(pAbc->vStatuses, 1),
                 Vec_IntCountEntry(pAbc->vStatuses, -1), Vec_IntSize(pAbc->vStatuses) );
         }
         else
@@ -5296,7 +5299,7 @@ int Abc_CommandMfs2( Abc_Frame_t * pAbc, int argc, char ** argv )
         }
         if ( Vec_IntSize(pAbc->vIndFlops) != Abc_NtkLatchNum(pNtk) )
         {
-            Abc_Print( -1, "The saved flop count (%d) does not match that of the current network (%d).\n", 
+            Abc_Print( -1, "The saved flop count (%d) does not match that of the current network (%d).\n",
                 Vec_IntSize(pAbc->vIndFlops), Abc_NtkLatchNum(pNtk) );
             return 0;
         }
@@ -6380,7 +6383,7 @@ int Abc_CommandTestRPO(Abc_Frame_t * pAbc, int argc, char ** argv) {
                 goto usage;
         }
     }
-    if (argc != globalUtilOptind + 1) 
+    if (argc != globalUtilOptind + 1)
     {
         Abc_Print(1, "Input file is not given.\n");
         goto usage;
@@ -12007,7 +12010,7 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
 */
 //    if ( pNtk )
-//        Abc_NtkMakeLegit( pNtk ); 
+//        Abc_NtkMakeLegit( pNtk );
     {
 //        extern void Ifd_ManDsdTest();
 //        Ifd_ManDsdTest();
@@ -14270,7 +14273,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -14311,7 +14314,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -14390,7 +14393,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -15765,7 +15768,7 @@ int Abc_CommandMap( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nGatesMin = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nGatesMin < 0 ) 
+            if ( nGatesMin < 0 )
                 goto usage;
             break;
         case 'a':
@@ -16468,7 +16471,7 @@ usage:
   SeeAlso     []
 
 ***********************************************************************/
-#if 0 
+#if 0
 int Abc_CommandFpga( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     char Buffer[100];
@@ -16839,7 +16842,7 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nRelaxRatio = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nRelaxRatio < 0 ) 
+            if ( pPars->nRelaxRatio < 0 )
                 goto usage;
             break;
         case 'N':
@@ -17213,7 +17216,7 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
             return 0;
         }
     }
- 
+
     // complain if truth tables are requested but the cut size is too large
     if ( pPars->fTruth && pPars->nLutSize > IF_MAX_FUNC_LUTSIZE )
     {
@@ -18120,7 +18123,7 @@ int Abc_CommandInit( Abc_Frame_t * pAbc, int argc, char ** argv )
                 Abc_LatchSetInit0( pObj );
             else if ( pInitStr[i] == '1' )
                 Abc_LatchSetInit1( pObj );
-            else 
+            else
                 Abc_LatchSetInitDc( pObj );
         return 0;
     }
@@ -18302,7 +18305,7 @@ int Abc_CommandUndc( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     if ( fUseCex )
     {
-        char * pInit; 
+        char * pInit;
         Abc_Cex_t * pTemp;
         int k, nFlopsX = 0;
         if ( pAbc->pCex == NULL )
@@ -18317,7 +18320,7 @@ int Abc_CommandUndc( Abc_Frame_t * pAbc, int argc, char ** argv )
         // compare this value
         if ( Abc_NtkPiNum(pNtk) + nFlopsX != pAbc->pCex->nPis )
         {
-            Abc_Print( -1, "The number of PIs (%d) plus X-valued flops (%d) in the original network does not match the number of PIs in the current CEX (%d).\n", 
+            Abc_Print( -1, "The number of PIs (%d) plus X-valued flops (%d) in the original network does not match the number of PIs in the current CEX (%d).\n",
                 Abc_NtkPiNum(pNtk), Abc_NtkLatchNum(pNtk), pAbc->pCex->nPis );
             return 1;
         }
@@ -20701,7 +20704,7 @@ int Abc_CommandSim3( Abc_Frame_t * pAbc, int argc, char ** argv )
     extern int Abc_NtkDarSeqSim3( Abc_Ntk_t * pNtk, Ssw_RarPars_t * pPars );
     Ssw_RarPars_t Pars, * pPars = &Pars;
     Abc_Ntk_t * pNtkRes, * pNtk = Abc_FrameReadNtk(pAbc);
-    Vec_Ptr_t * vSeqModelVec; 
+    Vec_Ptr_t * vSeqModelVec;
     int c;
     Ssw_RarSetDefaultParams( pPars );
     Extra_UtilGetoptReset();
@@ -23168,6 +23171,144 @@ usage:
   SeeAlso     []
 
 ***********************************************************************/
+int Abc_CommandXSat( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    abctime clk;
+    int c;
+    int fVerbose   = 0;
+    int nConfLimit = 0;
+    int nInsLimit  = 0;
+    int nLearnedStart = 0;
+    int nLearnedDelta = 0;
+    int nLearnedPerce = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "CILDEhv" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'C':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-C\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nConfLimit = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nConfLimit < 0 )
+                goto usage;
+            break;
+        case 'I':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-I\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nInsLimit = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nInsLimit < 0 )
+                goto usage;
+            break;
+        case 'L':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-L\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nLearnedStart = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nLearnedStart < 0 )
+                goto usage;
+            break;
+        case 'D':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-D\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nLearnedDelta = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nLearnedDelta < 0 )
+                goto usage;
+            break;
+        case 'E':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-E\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nLearnedPerce = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nLearnedPerce < 0 )
+                goto usage;
+            break;
+        case 'h':
+            goto usage;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+
+        default:
+            goto usage;
+        }
+    }
+
+    if ( argc == globalUtilOptind + 1 )
+    {
+        char * pFileName = argv[globalUtilOptind];
+        xSAT_Solver_t * p;
+        int status;
+
+        FILE * pFile = fopen( pFileName, "rb" );
+        if ( pFile == NULL )
+        {
+            printf( "Cannot open file \"%s\" for writing.\n", pFileName );
+            return 0;
+        }
+        xSAT_SolverParseDimacs( pFile, &p );
+
+        clk = Abc_Clock();
+        status = xSAT_SolverSolve( p );
+        fclose( pFile );
+
+        xSAT_SolverPrintStats( p );
+        if ( status == 0 )
+            Abc_Print( 1, "UNDECIDED      " );
+        else if ( status == 1 )
+            Abc_Print( 1, "SATISFIABLE    " );
+        else
+            Abc_Print( 1, "UNSATISFIABLE  " );
+
+        Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
+
+        xSAT_SolverDestroy( p );
+        return 0;
+    }
+
+usage:
+    Abc_Print( -2, "usage: xsat [-CILDE num] [-hv]<file>.cnf\n" );
+    Abc_Print( -2, "\t         solves the combinational miter using SAT solver MiniSat-1.14\n" );
+    Abc_Print( -2, "\t         derives CNF from the current network and leaves it unchanged\n" );
+    Abc_Print( -2, "\t-C num : limit on the number of conflicts [default = %d]\n",    nConfLimit );
+    Abc_Print( -2, "\t-I num : limit on the number of inspections [default = %d]\n", nInsLimit );
+    Abc_Print( -2, "\t-L num : starting value for learned clause removal [default = %d]\n", nLearnedStart );
+    Abc_Print( -2, "\t-D num : delta value for learned clause removal [default = %d]\n", nLearnedDelta );
+    Abc_Print( -2, "\t-E num : ratio percentage for learned clause removal [default = %d]\n", nLearnedPerce );
+    Abc_Print( -2, "\t-v     : prints verbose information [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 int Abc_CommandPSat( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
@@ -24155,7 +24296,7 @@ int Abc_CommandBmc3( Abc_Frame_t * pAbc, int argc, char ** argv )
         }
     }
     vStatuses = Abc_FrameDeriveStatusArray( vSeqModelVec );
-    Abc_FrameReplacePoStatuses( pAbc, &vStatuses );        
+    Abc_FrameReplacePoStatuses( pAbc, &vStatuses );
     if ( vSeqModelVec )
         Abc_FrameReplaceCexVec( pAbc, &vSeqModelVec );
     else
@@ -25483,47 +25624,47 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
 
 ***********************************************************************/
 int Abc_CommandBm2( Abc_Frame_t * pAbc, int argc, char ** argv )
-{   
+{
     FILE * pOut, * pErr;
     Abc_Ntk_t *pNtk, *pNtk1, *pNtk2;
-    int fDelete1, fDelete2; 
+    int fDelete1, fDelete2;
     Abc_Obj_t * pObj;
     char ** pArgvNew;
-    int c, nArgcNew, i; 
+    int c, nArgcNew, i;
 
     extern void saucyGateWay( Abc_Ntk_t * pNtk, Abc_Obj_t * pNodePo, FILE * gFile, int fBooleanMatching,
                               int fLookForSwaps, int fFixOutputs, int fFixInputs, int fQuiet, int fPrintTree);
 
     pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
-    pErr = Abc_FrameReadErr(pAbc);  
-    
+    pErr = Abc_FrameReadErr(pAbc);
+
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
     {
         switch ( c )
         {
         case 'h':
-            goto usage;        
+            goto usage;
         default:
             Abc_Print( -2, "Unknown switch.\n");
             goto usage;
         }
     }
-    
+
     pArgvNew = argv + globalUtilOptind;
     nArgcNew = argc - globalUtilOptind;
     if ( !Abc_NtkPrepareTwoNtks( pErr, pNtk, pArgvNew, nArgcNew , &pNtk1, &pNtk2, &fDelete1, &fDelete2 ) )
         return 1;
-        
-    if( (unsigned)Abc_NtkPiNum(pNtk1) != (unsigned)Abc_NtkPiNum(pNtk2) || 
+
+    if( (unsigned)Abc_NtkPiNum(pNtk1) != (unsigned)Abc_NtkPiNum(pNtk2) ||
         (unsigned)Abc_NtkPoNum(pNtk1) != (unsigned)Abc_NtkPoNum(pNtk2) )
     {
         Abc_Print( -2, "Mismatch in the number of inputs or outputs\n");
@@ -25532,7 +25673,7 @@ int Abc_CommandBm2( Abc_Frame_t * pAbc, int argc, char ** argv )
         if ( fDelete2 ) Abc_NtkDelete( pNtk2 );
         return 1;
     }
-    
+
     Abc_NtkPermute(pNtk2, 1, 1, 0, NULL );
     Abc_NtkShortNames(pNtk2);
 
@@ -25562,7 +25703,7 @@ int Abc_CommandBm2( Abc_Frame_t * pAbc, int argc, char ** argv )
     saucyGateWay( pNtk1, NULL, NULL, 1, 0, 0, 0, 0, 0);
 
     if ( fDelete1 ) Abc_NtkDelete( pNtk1 );
-    if ( fDelete2 ) Abc_NtkDelete( pNtk2 );     
+    if ( fDelete2 ) Abc_NtkDelete( pNtk2 );
     return 0;
 
 usage:
@@ -25570,8 +25711,8 @@ usage:
     Abc_Print( -2, "\t        performs Boolean matching (PP-equivalence)\n" );
     Abc_Print( -2, "\t        for equivalent circuits, permutation that maps one circuit\n" );
     Abc_Print( -2, "\t        to another is printed to standard output (PIs and POs of the\n" );
-    Abc_Print( -2, "\t        first network have prefix \"N1:\", while PIs and POs of the\n" ); 
-    Abc_Print( -2, "\t        second network have prefix \"N2:\")\n" ); 
+    Abc_Print( -2, "\t        first network have prefix \"N1:\", while PIs and POs of the\n" );
+    Abc_Print( -2, "\t        second network have prefix \"N2:\")\n" );
     Abc_Print( -2, "\t-h    : print the command usage\n");
     Abc_Print( -2, "\tfile1 : the file with the first network\n");
     Abc_Print( -2, "\tfile2 : the file with the second network\n");
@@ -25593,14 +25734,14 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
 
 ***********************************************************************/
 int Abc_CommandSaucy( Abc_Frame_t * pAbc, int argc, char ** argv )
-{   
+{
     Abc_Ntk_t *pNtk;
     char * outputName = NULL;
     FILE * gFile = NULL;
@@ -25629,20 +25770,20 @@ int Abc_CommandSaucy( Abc_Frame_t * pAbc, int argc, char ** argv )
             outputName = argv[globalUtilOptind];
             if ( !strcmp(argv[globalUtilOptind], "all") )
                 fOutputsOneAtTime ^= 1;
-            globalUtilOptind++;         
+            globalUtilOptind++;
             break;
         case 'F':
             if ( globalUtilOptind >= argc )
             {
                 Abc_Print( -1, "Command line switch \"-F\" should be followed by a file name.\n" );
                 goto usage;
-            }           
+            }
             if ( (gFile = fopen( argv[globalUtilOptind], "w" )) == NULL )
             {
-                Abc_Print( -1, "Cannot create output file \"%s\". ", argv[globalUtilOptind] );              
+                Abc_Print( -1, "Cannot create output file \"%s\". ", argv[globalUtilOptind] );
                 return 1;
             }
-            globalUtilOptind++;         
+            globalUtilOptind++;
             break;
         case 'i':
             fFixOutputs ^= 1;
@@ -25665,9 +25806,9 @@ int Abc_CommandSaucy( Abc_Frame_t * pAbc, int argc, char ** argv )
             Abc_Print( -2, "Unknown switch.\n");
             goto usage;
         }
-    }    
-    
-    pNtk = Abc_FrameReadNtk(pAbc);  
+    }
+
+    pNtk = Abc_FrameReadNtk(pAbc);
 
     if ( pNtk == NULL )
     {
@@ -25690,21 +25831,21 @@ int Abc_CommandSaucy( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_NtkForEachPo( pNtk, pNodePo, i ) {
             printf("Ouput %s\n\n", Abc_ObjName(pNodePo));
             saucyGateWay( pNtk, pNodePo, gFile, 0, fLookForSwaps, fFixOutputs, fFixInputs, fQuiet, fPrintTree );
-            printf("----------------------------------------\n");           
+            printf("----------------------------------------\n");
         }
         fclose(hadi);
     } else if (outputName != NULL) {
         int i;
-        Abc_Obj_t * pNodePo;        
+        Abc_Obj_t * pNodePo;
         Abc_NtkForEachPo( pNtk, pNodePo, i ) {
             if (!strcmp(Abc_ObjName(pNodePo), outputName)) {
                 saucyGateWay( pNtk, pNodePo, gFile, 0, fLookForSwaps, fFixOutputs, fFixInputs, fQuiet, fPrintTree );
                 Abc_NtkDelete( pNtk );
                 return 0;
-            }   
+            }
         }
         Abc_Print( -1, "Output not found\n" );
-        return 1;       
+        return 1;
     } else
         saucyGateWay( pNtk, NULL, gFile, 0, fLookForSwaps, fFixOutputs, fFixInputs, fQuiet, fPrintTree );
 
@@ -25715,9 +25856,9 @@ int Abc_CommandSaucy( Abc_Frame_t * pAbc, int argc, char ** argv )
 usage:
     Abc_Print( -2, "usage: saucy3 [-O <name>] [-F <file>] [-iosqvh]\n\n" );
     Abc_Print( -2, "\t            computes functional symmetries of the netowrk\n" );
-    Abc_Print( -2, "\t            prints symmetry generators to the standard output\n" );   
+    Abc_Print( -2, "\t            prints symmetry generators to the standard output\n" );
     Abc_Print( -2, "\t-O <name> : (optional) compute symmetries only for output given by name\n");
-    Abc_Print( -2, "\t            only inputs in the output cone are permuted\n");  
+    Abc_Print( -2, "\t            only inputs in the output cone are permuted\n");
     Abc_Print( -2, "\t            (special case) name=all, compute symmetries for each\n" );
     Abc_Print( -2, "\t            output, but only one output at a time\n" );
     Abc_Print( -2, "\t            [default = compute symmetries by permuting all I/Os]\n" );
@@ -25726,8 +25867,8 @@ usage:
     Abc_Print( -2, "\t-o        : permute just the outputs (fix the inputs) [default = no]\n");
     Abc_Print( -2, "\t-s        : only look for swaps of inputs [default = no]\n");
     Abc_Print( -2, "\t-q        : quiet (do not print symmetry generators) [default = no]\n");
-    Abc_Print( -2, "\t-v        : verbose (print the search tree) [default = no]\n");   
-    Abc_Print( -2, "\t-h        : print the command usage\n"); 
+    Abc_Print( -2, "\t-v        : verbose (print the search tree) [default = no]\n");
+    Abc_Print( -2, "\t-h        : print the command usage\n");
 
     Abc_Print( -2, "\t            \n" );
     Abc_Print( -2, "\t            This command was contributed by Hadi Katebi from U Michigan.\n" );
@@ -27055,7 +27196,7 @@ int Abc_CommandAbc9Read( Abc_Frame_t * pAbc, int argc, char ** argv )
         pAig = Gia_ManReadMiniLut( FileName );
 //    else if ( Extra_FileIsType( FileName, ".v", NULL, NULL ) )
 //        Abc3_ReadShowHie( FileName, fSkipStrash );
-    else 
+    else
         pAig = Gia_AigerRead( FileName, fGiaSimple, fSkipStrash, 0 );
     if ( pAig )
         Abc_FrameUpdateGia( pAbc, pAig );
@@ -27466,8 +27607,8 @@ int Abc_CommandAbc9Get( Abc_Frame_t * pAbc, int argc, char ** argv )
         Vec_FltFreeP( &pGia->vOutReqs );
         pGia->DefInArrs  = Abc_NtkReadDefaultArrivalWorst(pNtk);
         pGia->DefOutReqs = Abc_NtkReadDefaultRequiredWorst(pNtk);
-        pGia->vInArrs  = Vec_FltAllocArray( Abc_NtkGetCiArrivalFloats(pNtk), Abc_NtkCiNum(pNtk) ); 
-        pGia->vOutReqs = Vec_FltAllocArray( Abc_NtkGetCoRequiredFloats(pNtk), Abc_NtkCoNum(pNtk) ); 
+        pGia->vInArrs  = Vec_FltAllocArray( Abc_NtkGetCiArrivalFloats(pNtk), Abc_NtkCiNum(pNtk) );
+        pGia->vOutReqs = Vec_FltAllocArray( Abc_NtkGetCoRequiredFloats(pNtk), Abc_NtkCoNum(pNtk) );
     }
     Abc_FrameUpdateGia( pAbc, pGia );
     return 0;
@@ -27626,7 +27767,7 @@ usage:
   Synopsis    [Compares to versions of the design and finds the best.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -27637,11 +27778,11 @@ static inline int Gia_ManCompareWithBest( Gia_Man_t * pBest, Gia_Man_t * p, int 
     int nCurLuts, nCurEdges, nCurLevels;
     Gia_ManLutParams( p, &nCurLuts, &nCurEdges, &nCurLevels );
     if ( pBest == NULL ||
-         Gia_ManPiNum(pBest) != Gia_ManPiNum(p) || 
-         Gia_ManPoNum(pBest) != Gia_ManPoNum(p) || 
+         Gia_ManPiNum(pBest) != Gia_ManPiNum(p) ||
+         Gia_ManPoNum(pBest) != Gia_ManPoNum(p) ||
          Gia_ManRegNum(pBest) != Gia_ManRegNum(p) ||
          strcmp(Gia_ManName(pBest), Gia_ManName(p)) ||
-         (!fArea && (*pnBestLevels > nCurLevels || (*pnBestLevels == nCurLevels && 2*(*pnBestLuts) + *pnBestEdges > 2*nCurLuts + nCurEdges))) || 
+         (!fArea && (*pnBestLevels > nCurLevels || (*pnBestLevels == nCurLevels && 2*(*pnBestLuts) + *pnBestEdges > 2*nCurLuts + nCurEdges))) ||
          ( fArea && (*pnBestLuts   > nCurLuts   || (*pnBestLuts   == nCurLuts   && *pnBestLevels > nCurLevels)))
        )
     {
@@ -27659,7 +27800,7 @@ static inline int Gia_ManCompareWithBest( Gia_Man_t * pBest, Gia_Man_t * p, int 
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -27697,7 +27838,7 @@ int Abc_CommandAbc9Save( Abc_Frame_t * pAbc, int argc, char ** argv )
     // save the design as best
     Gia_ManStopP( &pAbc->pGiaBest );
     pAbc->pGiaBest = Gia_ManDupWithAttributes( pAbc->pGia );
-    return 0; 
+    return 0;
 
 usage:
     Abc_Print( -2, "usage: &save [-ah]\n" );
@@ -27712,7 +27853,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -30868,7 +31009,7 @@ int Abc_CommandAbc9Syn2( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nRelaxRatio = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nRelaxRatio < 0 ) 
+            if ( nRelaxRatio < 0 )
                 goto usage;
             break;
         case 'a':
@@ -30908,7 +31049,7 @@ int Abc_CommandAbc9Syn2( Abc_Frame_t * pAbc, int argc, char ** argv )
             printf( "DSD manager has incompatible number of variables. Delay minimization is not performed.\n" );
             fDelayMin = 0;
         }
-    } 
+    }
     pTemp = Gia_ManAigSyn2( pAbc->pGia, fOldAlgo, fCoarsen, fCutMin, nRelaxRatio, fDelayMin, fVerbose, fVeryVerbose );
     Abc_FrameUpdateGia( pAbc, pTemp );
     return 0;
@@ -31005,7 +31146,7 @@ int Abc_CommandAbc9Synch2( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nRelaxRatio = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nRelaxRatio < 0 ) 
+            if ( nRelaxRatio < 0 )
                 goto usage;
             break;
         case 'f':
@@ -32857,7 +32998,7 @@ int Abc_CommandAbc9Cec( Abc_Frame_t * pAbc, int argc, char ** argv )
             pAbc->Status = Cec_ManVerify( pTemp, pPars );
             ABC_SWAP( Abc_Cex_t *, pAbc->pGia->pCexComb, pTemp->pCexComb );
             Gia_ManStop( pTemp );
-        }        
+        }
         Abc_FrameReplaceCex( pAbc, &pAbc->pGia->pCexComb );
         return 0;
     }
@@ -33749,7 +33890,7 @@ int Abc_CommandAbc9If( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nRelaxRatio = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nRelaxRatio < 0 ) 
+            if ( pPars->nRelaxRatio < 0 )
                 goto usage;
             break;
         case 'T':
@@ -34867,7 +35008,7 @@ int Abc_CommandAbc9Lf( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nRelaxRatio = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nRelaxRatio < 0 ) 
+            if ( pPars->nRelaxRatio < 0 )
                 goto usage;
             break;
         case 'L':
@@ -34878,7 +35019,7 @@ int Abc_CommandAbc9Lf( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nCoarseLimit = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nCoarseLimit < 0 ) 
+            if ( pPars->nCoarseLimit < 0 )
                 goto usage;
             break;
         case 'E':
@@ -34889,7 +35030,7 @@ int Abc_CommandAbc9Lf( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nAreaTuner = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nAreaTuner < 0 ) 
+            if ( pPars->nAreaTuner < 0 )
                 goto usage;
             break;
         case 'D':
@@ -35099,7 +35240,7 @@ int Abc_CommandAbc9Mf( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nRelaxRatio = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nRelaxRatio < 0 ) 
+            if ( pPars->nRelaxRatio < 0 )
                 goto usage;
             break;
         case 'L':
@@ -35110,7 +35251,7 @@ int Abc_CommandAbc9Mf( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nCoarseLimit = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nCoarseLimit < 0 ) 
+            if ( pPars->nCoarseLimit < 0 )
                 goto usage;
             break;
         case 'E':
@@ -35121,7 +35262,7 @@ int Abc_CommandAbc9Mf( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nAreaTuner = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nAreaTuner < 0 ) 
+            if ( pPars->nAreaTuner < 0 )
                 goto usage;
             break;
         case 'D':
@@ -35303,7 +35444,7 @@ int Abc_CommandAbc9Nf( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nRelaxRatio = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nRelaxRatio < 0 ) 
+            if ( pPars->nRelaxRatio < 0 )
                 goto usage;
             break;
         case 'L':
@@ -35314,7 +35455,7 @@ int Abc_CommandAbc9Nf( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nCoarseLimit = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nCoarseLimit < 0 ) 
+            if ( pPars->nCoarseLimit < 0 )
                 goto usage;
             break;
         case 'E':
@@ -35325,7 +35466,7 @@ int Abc_CommandAbc9Nf( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nAreaTuner = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nAreaTuner < 0 ) 
+            if ( pPars->nAreaTuner < 0 )
                 goto usage;
             break;
         case 'D':
@@ -35518,7 +35659,7 @@ int Abc_CommandAbc9Of( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nRelaxRatio = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nRelaxRatio < 0 ) 
+            if ( pPars->nRelaxRatio < 0 )
                 goto usage;
             break;
         case 'L':
@@ -35529,7 +35670,7 @@ int Abc_CommandAbc9Of( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nCoarseLimit = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nCoarseLimit < 0 ) 
+            if ( pPars->nCoarseLimit < 0 )
                 goto usage;
             break;
         case 'E':
@@ -35540,7 +35681,7 @@ int Abc_CommandAbc9Of( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nAreaTuner = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nAreaTuner < 0 ) 
+            if ( pPars->nAreaTuner < 0 )
                 goto usage;
             break;
         case 'D':
@@ -35886,7 +36027,7 @@ int Abc_CommandAbc9Edge( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
         //Edg_ManAssignEdgeNew( pAbc->pGia, nEdges, fVerbose );
         Seg_ManComputeDelay( pAbc->pGia, DelayMax, nFanouts, nEdges==2, fVerbose );
-        return 0;        
+        return 0;
     }
     if ( pAbc->pGia->pManTime && fReverse )
     {
@@ -35895,7 +36036,7 @@ int Abc_CommandAbc9Edge( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     if ( fReverse )
         DelayMax = Gia_ManComputeEdgeDelay2( pAbc->pGia );
-    else 
+    else
         DelayMax = Gia_ManComputeEdgeDelay( pAbc->pGia, nEdges == 2 );
     //printf( "The number of edges = %d.  Delay = %d.\n", Gia_ManEvalEdgeCount(pAbc->pGia), DelayMax );
     return 0;
@@ -38307,7 +38448,7 @@ int Abc_CommandAbc9MultiProve( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     pAbc->Status = Gia_ManMultiProve( pAbc->pGia, pPars );
     vStatuses = Abc_FrameDeriveStatusArray( pAbc->pGia->vSeqModelVec );
-    Abc_FrameReplacePoStatuses( pAbc, &vStatuses );        
+    Abc_FrameReplacePoStatuses( pAbc, &vStatuses );
     Abc_FrameReplaceCexVec( pAbc, &pAbc->pGia->vSeqModelVec );
     return 0;
 
@@ -38454,7 +38595,7 @@ int Abc_CommandAbc9Bmc( Abc_Frame_t * pAbc, int argc, char ** argv )
     Bmc_AndPar_t Pars, * pPars = &Pars;
     memset( pPars, 0, sizeof(Bmc_AndPar_t) );
     pPars->nStart        =    0;  // starting timeframe
-    pPars->nFramesMax    =    0;  // maximum number of timeframes 
+    pPars->nFramesMax    =    0;  // maximum number of timeframes
     pPars->nFramesAdd    =   50;  // the number of additional frames
     pPars->nConfLimit    =    0;  // maximum number of conflicts at a node
     pPars->nTimeOut      =    0;  // timeout in seconds
@@ -38463,9 +38604,9 @@ int Abc_CommandAbc9Bmc( Abc_Frame_t * pAbc, int argc, char ** argv )
     pPars->fDumpFrames   =    0;  // dump unrolled timeframes
     pPars->fUseSynth     =    0;  // use synthesis
     pPars->fUseOldCnf    =    0;  // use old CNF construction
-    pPars->fVerbose      =    0;  // verbose 
-    pPars->fVeryVerbose  =    0;  // very verbose 
-    pPars->fNotVerbose   =    0;  // skip line-by-line print-out 
+    pPars->fVerbose      =    0;  // verbose
+    pPars->fVeryVerbose  =    0;  // very verbose
+    pPars->fNotVerbose   =    0;  // skip line-by-line print-out
     pPars->iFrame        =    0;  // explored up to this frame
     pPars->nFailOuts     =    0;  // the number of failed outputs
     pPars->nDropOuts     =    0;  // the number of dropped outputs
@@ -39166,7 +39307,7 @@ usage:
     Abc_Print( -2, "\t              ((a&b)^p)             complement at the output\n");
     Abc_Print( -2, "\t              (((a^p)&(b^q))^r)     complement at the inputs and at the output\n");
     Abc_Print( -2, "\t              (a?(b?~s:r):(b?q:p))  functionally observable fault at the output\n");
-    Abc_Print( -2, "\t              (p?(a|b):(a&b))       replace AND by OR\n");    
+    Abc_Print( -2, "\t              (p?(a|b):(a&b))       replace AND by OR\n");
     return 1;
 }
 
@@ -40039,7 +40180,7 @@ int Abc_CommandAbc9Demiter( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
         char pName0[1000] = "miter_part0.aig";
         char pName1[1000] = "miter_part1.aig";
-        Gia_Man_t * pPart1, * pPart2; 
+        Gia_Man_t * pPart1, * pPart2;
         if ( Gia_ManPoNum(pAbc->pGia) % 2 != 0 )
         {
             Abc_Print( -1, "Abc_CommandAbc9Demiter(): Does not look like a dual-output miter.\n" );
@@ -40481,7 +40622,7 @@ int Abc_CommandAbc9Acec( Abc_Frame_t * pAbc, int argc, char ** argv )
             Gia_ManDemiterDual( pDual, &pGia0, &pGia1 );
             Gia_ManStop( pDual );
             pAbc->Status = Gia_PolynCec( pGia0, pGia1, pPars );
-        }        
+        }
         Abc_FrameReplaceCex( pAbc, &pGia0->pCexComb );
         Gia_ManStop( pGia0 );
         Gia_ManStop( pGia1 );
@@ -40687,7 +40828,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -40701,7 +40842,7 @@ int Abc_CommandAbc9Mfs( Abc_Frame_t * pAbc, int argc, char ** argv )
     Sfm_ParSetDefault( pPars );
     pPars->nTfoLevMax  =    5;
     pPars->nDepthMax   =  100;
-    pPars->nWinSizeMax = 2000; 
+    pPars->nWinSizeMax = 2000;
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "WFDMLCNdaebvwh" ) ) != EOF )
     {
@@ -40852,7 +40993,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -41324,7 +41465,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -41385,7 +41526,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
