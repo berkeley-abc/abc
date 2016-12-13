@@ -77,16 +77,14 @@ static inline void xSAT_MemGrow( xSAT_Mem_t * p, unsigned nCap )
     unsigned nPrevCap = p->nCap;
     if ( p->nCap >= nCap )
         return;
-
     while (p->nCap < nCap)
     {
-        unsigned delta = ((p->nCap >> 1) + (p->nCap >> 3) + 2) & ~1;
+        unsigned delta = ( ( p->nCap >> 1 ) + ( p->nCap >> 3 ) + 2 ) & ~1;
         p->nCap += delta;
         assert(p->nCap >= nPrevCap);
     }
-
     assert(p->nCap > 0);
-    p->pData = ABC_REALLOC(unsigned, p->pData, p->nCap);
+    p->pData = ABC_REALLOC( unsigned, p->pData, p->nCap );
 }
 
 /**Function*************************************************************
@@ -160,12 +158,10 @@ static inline unsigned xSAT_MemAppend( xSAT_Mem_t * p, int nSize )
 {
     unsigned nPrevSize;
     assert(nSize > 0);
-    xSAT_MemGrow(p, p->nSize + nSize);
-
+    xSAT_MemGrow( p, p->nSize + nSize );
     nPrevSize = p->nSize;
     p->nSize += nSize;
     assert(p->nSize > nPrevSize);
-
     return nPrevSize;
 }
 

@@ -51,6 +51,7 @@ xSAT_SolverOptions_t DefaultConfig =
     30     //.nLBDFrozenClause = 30
 };
 
+
 /**Function*************************************************************
 
   Synopsis    []
@@ -125,7 +126,6 @@ void xSAT_SolverDestroy( xSAT_Solver_t * s )
     xSAT_VecWatchListFree( s->vWatches );
     xSAT_VecWatchListFree( s->vBinWatches );
 
-    // delete vectors
     xSAT_HeapFree(s->hOrder);
     Vec_IntFree( s->vTrailLim );
     Vec_IntFree( s->vTrail );

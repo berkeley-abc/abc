@@ -39,7 +39,7 @@ struct xSAT_Clause_t_
     unsigned fReallocd :  1;
     unsigned fCanBeDel :  1;
     unsigned nLBD      : 28;
-    unsigned nSize;
+    int nSize;
     union {
         int Lit;
         unsigned Act;
@@ -60,7 +60,7 @@ struct xSAT_Clause_t_
   SeeAlso     []
 
 ***********************************************************************/
-static int xSAT_ClauseCompare( const void * p1, const void * p2 )
+static inline int xSAT_ClauseCompare( const void * p1, const void * p2 )
 {
     xSAT_Clause_t * pC1 = ( xSAT_Clause_t * ) p1;
     xSAT_Clause_t * pC2 = ( xSAT_Clause_t * ) p2;
@@ -91,12 +91,12 @@ static int xSAT_ClauseCompare( const void * p1, const void * p2 )
   SeeAlso     []
 
 ***********************************************************************/
-static void xSAT_ClausePrint( xSAT_Clause_t * pCla )
+static inline void xSAT_ClausePrint( xSAT_Clause_t * pCla )
 {
     int i;
 
     printf("{ ");
-    for ( i = 0; i < (int)pCla->nSize; i++ )
+    for ( i = 0; i < pCla->nSize; i++ )
         printf("%d ", pCla->pData[i].Lit );
     printf("}\n");
 }

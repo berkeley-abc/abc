@@ -81,9 +81,9 @@ struct xSAT_SolverOptions_t_
     char fVerbose;
 
     // Limits
-    word nConfLimit;    // external limit on the number of conflicts
-    word nInsLimit;     // external limit on the number of implications
-    abctime     nRuntimeLimit; // external limit on runtime
+    iword   nConfLimit;    // external limit on the number of conflicts
+    iword   nInsLimit;     // external limit on the number of implications
+    abctime nRuntimeLimit; // external limit on runtime
 
     // Constants used for restart heuristic
     double K; // Forces a restart
@@ -105,13 +105,13 @@ struct xSAT_Stats_t_
     unsigned nStarts;
     unsigned nReduceDB;
 
-    word nDecisions;
-    word nPropagations;
-    word nInspects;
-    word nConflicts;
+    iword nDecisions;
+    iword nPropagations;
+    iword nInspects;
+    iword nConflicts;
 
-    word nClauseLits;
-    word nLearntLits;
+    iword nClauseLits;
+    iword nLearntLits;
 };
 
 struct xSAT_Solver_t_
@@ -143,7 +143,7 @@ struct xSAT_Solver_t_
 
     int     nAssignSimplify; /* Number of top-level assignments since last
                               * execution of 'simplify()'. */
-    word nPropSimplify;   /* Remaining number of propagations that must be
+    int64_t nPropSimplify;   /* Remaining number of propagations that must be
                               * made before next execution of 'simplify()'. */
 
     /* Temporary data used by Search method */
@@ -203,10 +203,10 @@ static inline xSAT_Clause_t * xSAT_SolverReadClause( xSAT_Solver_t * s, unsigned
 static inline int xSAT_SolverIsClauseSatisfied( xSAT_Solver_t * s, xSAT_Clause_t * pCla )
 {
     int i;
-    int * lits = &( pCla->pData[0].Lit );
+    int * Lits = &( pCla->pData[0].Lit );
 
-    for ( i = 0; i < (int)pCla->nSize; i++ )
-        if ( Vec_StrEntry( s->vAssigns, xSAT_Lit2Var( lits[i] ) ) == xSAT_LitSign( ( lits[i] ) ) )
+    for ( i = 0; i < pCla->nSize; i++ )
+        if ( Vec_StrEntry( s->vAssigns, xSAT_Lit2Var( Lits[i] ) ) == xSAT_LitSign( ( Lits[i] ) ) )
             return true;
 
     return false;

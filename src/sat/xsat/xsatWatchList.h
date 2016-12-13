@@ -118,9 +118,9 @@ static inline void xSAT_WatchListShrink( xSAT_WatchList_t * v, int k )
 static inline void xSAT_WatchListPush( xSAT_WatchList_t * v, xSAT_Watcher_t e )
 {
     assert( v );
-    if (v->nSize == v->nCap)
+    if ( v->nSize == v->nCap )
     {
-        int newsize = (v->nCap < 4) ? 4 : (v->nCap / 2) * 3;
+        int newsize = ( v->nCap < 4 ) ? 4 : ( v->nCap / 2 ) * 3;
 
         v->pArray = ABC_REALLOC( xSAT_Watcher_t, v->pArray, newsize );
         if ( v->pArray == NULL )
@@ -167,9 +167,9 @@ static inline void xSAT_WatchListRemove( xSAT_WatchList_t * v, unsigned CRef )
     xSAT_Watcher_t* ws = xSAT_WatchListArray(v);
     int j = 0;
 
-    for (; ws[j].CRef != CRef; j++);
-    assert(j < xSAT_WatchListSize(v));
-    memmove(v->pArray + j, v->pArray + j + 1, (v->nSize - j - 1) * sizeof(xSAT_Watcher_t));
+    for ( ; ws[j].CRef != CRef; j++ );
+    assert( j < xSAT_WatchListSize( v ) );
+    memmove( v->pArray + j, v->pArray + j + 1, ( v->nSize - j - 1 ) * sizeof( xSAT_Watcher_t ) );
     v->nSize -= 1;
 }
 
@@ -190,7 +190,7 @@ static inline xSAT_VecWatchList_t * xSAT_VecWatchListAlloc( int nCap )
 
     v->nCap   = 4;
     v->nSize  = 0;
-    v->pArray = (xSAT_WatchList_t *) ABC_CALLOC(xSAT_WatchList_t, sizeof( xSAT_WatchList_t ) * v->nCap);
+    v->pArray = ( xSAT_WatchList_t * ) ABC_CALLOC(xSAT_WatchList_t, sizeof( xSAT_WatchList_t ) * v->nCap);
     return v;
 }
 
@@ -233,7 +233,7 @@ static inline void xSAT_VecWatchListPush( xSAT_VecWatchList_t* v )
         int newsize = (v->nCap < 4) ? v->nCap * 2 : (v->nCap / 2) * 3;
 
         v->pArray = ABC_REALLOC( xSAT_WatchList_t, v->pArray, newsize );
-        memset( v->pArray + v->nCap, 0, sizeof(xSAT_WatchList_t) * (newsize - v->nCap) );
+        memset( v->pArray + v->nCap, 0, sizeof( xSAT_WatchList_t ) * ( newsize - v->nCap ) );
         if ( v->pArray == NULL )
         {
             printf( "Failed to realloc memory from %.1f MB to %.1f MB.\n",
