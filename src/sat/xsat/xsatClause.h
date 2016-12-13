@@ -96,7 +96,7 @@ static void xSAT_ClausePrint( xSAT_Clause_t * pCla )
     int i;
 
     printf("{ ");
-    for ( i = 0; i < pCla->nSize; i++ )
+    for ( i = 0; i < (int)pCla->nSize; i++ )
         printf("%d ", pCla->pData[i].Lit );
     printf("}\n");
 }

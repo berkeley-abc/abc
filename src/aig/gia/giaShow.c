@@ -52,9 +52,9 @@ void Gia_WriteDotAigSimple( Gia_Man_t * p, char * pFileName, Vec_Int_t * vBold )
     int LevelMax, Prev, Level, i;
     int fConstIsUsed = 0;
 
-    if ( Gia_ManAndNum(p) > 200 )
+    if ( Gia_ManAndNum(p) > 500 )
     {
-        fprintf( stdout, "Cannot visualize AIG with more than 200 nodes.\n" );
+        fprintf( stdout, "Cannot visualize AIG with more than 500 nodes.\n" );
         return;
     }
     if ( (pFile = fopen( pFileName, "w" )) == NULL )
@@ -378,7 +378,7 @@ int Gia_ShowAddOut( Vec_Int_t * vAdds, Vec_Int_t * vMapAdds, int Node )
 {
     int iBox = Vec_IntEntry( vMapAdds, Node );
     if ( iBox >= 0 )
-        return Vec_IntEntry( vAdds, 6*iBox+3 );
+        return Vec_IntEntry( vAdds, 6*iBox+4 );
     return Node;
 }
 void Gia_WriteDotAig( Gia_Man_t * p, char * pFileName, Vec_Int_t * vAdds, Vec_Int_t * vXors, Vec_Int_t * vMapAdds, Vec_Int_t * vMapXors, Vec_Int_t * vOrder )
@@ -388,9 +388,9 @@ void Gia_WriteDotAig( Gia_Man_t * p, char * pFileName, Vec_Int_t * vAdds, Vec_In
     int LevelMax, Prev, Level, i;
     int fConstIsUsed = 0;
 
-    if ( Gia_ManAndNum(p) > 500 )
+    if ( Gia_ManAndNum(p) > 1000 )
     {
-        fprintf( stdout, "Cannot visualize AIG with more than 200 nodes.\n" );
+        fprintf( stdout, "Cannot visualize AIG with more than 1000 nodes.\n" );
         return;
     }
     if ( (pFile = fopen( pFileName, "w" )) == NULL )
@@ -750,7 +750,7 @@ int Gia_ShowCollectObjs_rec( Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Int_t * vAdds,
         Level = 1 + Abc_MaxInt( Abc_MaxInt(Level0, Level1), Level2 );
         Gia_ObjSetLevelId( p, Vec_IntEntry(vAdds, 6*iBox+3), Level );
         Gia_ObjSetLevelId( p, Vec_IntEntry(vAdds, 6*iBox+4), Level );
-        pObj = Gia_ManObj( p, Vec_IntEntry(vAdds, 6*iBox+3) );
+        pObj = Gia_ManObj( p, Vec_IntEntry(vAdds, 6*iBox+4) );
     }
     else if ( Vec_IntEntry(vMapXors, Gia_ObjId(p, pObj)) >= 0 )
     {

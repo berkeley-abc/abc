@@ -70,7 +70,7 @@ enum
     LitUndef = -2
 };
 
-#define CRefUndef UINT32_MAX
+#define CRefUndef 0xFFFFFFFF
 
 ////////////////////////////////////////////////////////////////////////
 ///                    STRUCTURE DEFINITIONS                         ///
@@ -81,8 +81,8 @@ struct xSAT_SolverOptions_t_
     char fVerbose;
 
     // Limits
-    ABC_INT64_T nConfLimit;    // external limit on the number of conflicts
-    ABC_INT64_T nInsLimit;     // external limit on the number of implications
+    word nConfLimit;    // external limit on the number of conflicts
+    word nInsLimit;     // external limit on the number of implications
     abctime     nRuntimeLimit; // external limit on runtime
 
     // Constants used for restart heuristic
@@ -105,13 +105,13 @@ struct xSAT_Stats_t_
     unsigned nStarts;
     unsigned nReduceDB;
 
-    ABC_INT64_T nDecisions;
-    ABC_INT64_T nPropagations;
-    ABC_INT64_T nInspects;
-    ABC_INT64_T nConflicts;
+    word nDecisions;
+    word nPropagations;
+    word nInspects;
+    word nConflicts;
 
-    ABC_INT64_T nClauseLits;
-    ABC_INT64_T nLearntLits;
+    word nClauseLits;
+    word nLearntLits;
 };
 
 struct xSAT_Solver_t_
@@ -143,7 +143,7 @@ struct xSAT_Solver_t_
 
     int     nAssignSimplify; /* Number of top-level assignments since last
                               * execution of 'simplify()'. */
-    int64_t nPropSimplify;   /* Remaining number of propagations that must be
+    word nPropSimplify;   /* Remaining number of propagations that must be
                               * made before next execution of 'simplify()'. */
 
     /* Temporary data used by Search method */
@@ -195,16 +195,17 @@ static inline int xSAT_SolverDecisionLevel( xSAT_Solver_t * s )
     return Vec_IntSize( s->vTrailLim );
 }
 
-static inline xSAT_Clause_t * xSAT_SolverReadClause( xSAT_Solver_t * s, uint32_t h )
+static inline xSAT_Clause_t * xSAT_SolverReadClause( xSAT_Solver_t * s, unsigned h )
 {
     return xSAT_MemClauseHand( s->pMemory, h );
 }
 
 static inline int xSAT_SolverIsClauseSatisfied( xSAT_Solver_t * s, xSAT_Clause_t * pCla )
 {
+    int i;
     int * lits = &( pCla->pData[0].Lit );
 
-    for ( int i = 0; i < pCla->nSize; i++ )
+    for ( i = 0; i < (int)pCla->nSize; i++ )
         if ( Vec_StrEntry( s->vAssigns, xSAT_Lit2Var( lits[i] ) ) == xSAT_LitSign( ( lits[i] ) ) )
             return true;
 
@@ -232,14 +233,14 @@ static inline void xSAT_SolverPrintState( xSAT_Solver_t * s )
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DECLARATIONS                        ///
 ////////////////////////////////////////////////////////////////////////
-extern uint32_t xSAT_SolverClaNew( xSAT_Solver_t* s, Vec_Int_t * vLits, int fLearnt );
+extern unsigned xSAT_SolverClaNew( xSAT_Solver_t* s, Vec_Int_t * vLits, int fLearnt );
 extern char    xSAT_SolverSearch( xSAT_Solver_t * s );
 
 extern void xSAT_SolverGarbageCollect( xSAT_Solver_t * s );
 
-extern int xSAT_SolverEnqueue( xSAT_Solver_t* s, int Lit, uint32_t From );
+extern int xSAT_SolverEnqueue( xSAT_Solver_t* s, int Lit, unsigned From );
 extern void xSAT_SolverCancelUntil( xSAT_Solver_t* s, int Level);
-extern uint32_t xSAT_SolverPropagate( xSAT_Solver_t* s );
+extern unsigned xSAT_SolverPropagate( xSAT_Solver_t* s );
 extern void xSAT_SolverRebuildOrderHeap( xSAT_Solver_t* s );
 
 ABC_NAMESPACE_HEADER_END

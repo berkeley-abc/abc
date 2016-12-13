@@ -32,23 +32,23 @@ ABC_NAMESPACE_IMPL_START
 
 xSAT_SolverOptions_t DefaultConfig =
 {
-    .fVerbose = 1,
+    1,     //.fVerbose = 1,
 
-    .nConfLimit = 0,
-    .nInsLimit = 0,
-    .nRuntimeLimit = 0,
+    0,     //.nConfLimit = 0,
+    0,     //.nInsLimit = 0,
+    0,     //.nRuntimeLimit = 0,
 
-    .K = 0.8,
-    .R = 1.4,
-    .nFirstBlockRestart = 10000,
-    .nSizeLBDQueue = 50,
-    .nSizeTrailQueue = 5000,
+    0.8,   //.K = 0.8,
+    1.4,   //.R = 1.4,
+    10000, //.nFirstBlockRestart = 10000,
+    50,    //.nSizeLBDQueue = 50,
+    5000,  //.nSizeTrailQueue = 5000,
 
-    .nConfFirstReduce = 2000,
-    .nIncReduce = 300,
-    .nSpecialIncReduce = 1000,
+    2000,  //.nConfFirstReduce = 2000,
+    300,   //.nIncReduce = 300,
+    1000,  //.nSpecialIncReduce = 1000,
 
-    .nLBDFrozenClause = 30
+    30     //.nLBDFrozenClause = 30
 };
 
 /**Function*************************************************************
@@ -142,6 +142,7 @@ void xSAT_SolverDestroy( xSAT_Solver_t * s )
     Vec_StrFree( s->vAssigns );
     Vec_IntFree( s->vLevels );
     Vec_IntFree( s->vReasons );
+    Vec_IntFree( s->vStamp );
 
     xSAT_BQueueFree(s->bqLBD);
     xSAT_BQueueFree(s->bqTrail);
@@ -163,7 +164,7 @@ void xSAT_SolverDestroy( xSAT_Solver_t * s )
 int xSAT_SolverSimplify( xSAT_Solver_t * s )
 {
     int i, j;
-    uint32_t CRef;
+    unsigned CRef;
     assert( xSAT_SolverDecisionLevel(s) == 0 );
 
     if ( xSAT_SolverPropagate(s) != CRefUndef )

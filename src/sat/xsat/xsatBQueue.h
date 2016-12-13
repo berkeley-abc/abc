@@ -24,6 +24,7 @@
 ////////////////////////////////////////////////////////////////////////
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
+
 #include "misc/util/abc_global.h"
 
 ABC_NAMESPACE_HEADER_START
@@ -31,6 +32,7 @@ ABC_NAMESPACE_HEADER_START
 ////////////////////////////////////////////////////////////////////////
 ///                    STRUCTURE DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
+
 typedef struct xSAT_BQueue_t_ xSAT_BQueue_t;
 struct xSAT_BQueue_t_
 {
@@ -38,13 +40,14 @@ struct xSAT_BQueue_t_
     int nCap;
     int iFirst;
     int iEmpty;
-    uint64_t nSum;
-    uint32_t * pData;
+    word nSum;
+    word * pData;
 };
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DECLARATIONS                        ///
 ////////////////////////////////////////////////////////////////////////
+
 /**Function*************************************************************
 
   Synopsis    []
@@ -60,7 +63,7 @@ static inline xSAT_BQueue_t * xSAT_BQueueNew( int nCap )
 {
     xSAT_BQueue_t * p = ABC_CALLOC( xSAT_BQueue_t, 1 );
     p->nCap = nCap;
-    p->pData = ABC_CALLOC( uint32_t, nCap );
+    p->pData = ABC_CALLOC( word, nCap );
     return p;
 }
 
@@ -92,7 +95,7 @@ static inline void xSAT_BQueueFree( xSAT_BQueue_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-static inline void xSAT_BQueuePush( xSAT_BQueue_t * p, uint32_t Value )
+static inline void xSAT_BQueuePush( xSAT_BQueue_t * p, word Value )
 {
     if ( p->nSize == p->nCap )
     {
@@ -125,8 +128,8 @@ static inline void xSAT_BQueuePush( xSAT_BQueue_t * p, uint32_t Value )
 ***********************************************************************/
 static inline int xSAT_BQueuePop( xSAT_BQueue_t * p )
 {
-    assert( p->nSize >= 1 );
     int RetValue = p->pData[p->iFirst];
+    assert( p->nSize >= 1 );
     p->nSum -= RetValue;
     p->iFirst = ( p->iFirst + 1 ) % p->nCap;
     p->nSize--;
@@ -144,9 +147,9 @@ static inline int xSAT_BQueuePop( xSAT_BQueue_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-static inline uint32_t xSAT_BQueueAvg( xSAT_BQueue_t * p )
+static inline word xSAT_BQueueAvg( xSAT_BQueue_t * p )
 {
-    return ( uint32_t )( p->nSum / ( ( uint64_t ) p->nSize ) );
+    return ( word )( p->nSum / ( ( word ) p->nSize ) );
 }
 
 /**Function*************************************************************

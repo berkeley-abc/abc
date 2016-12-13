@@ -374,7 +374,7 @@ Cnf_Dat_t * Cnf_DataReadFromFile( char * pFileName )
     // create
     pCnf = ABC_CALLOC( Cnf_Dat_t, 1 );
     pCnf->nVars     = nVars;
-    pCnf->nClauses  = nClas;
+    pCnf->nClauses  = Vec_IntSize(vClas)-1;
     pCnf->nLiterals = Vec_IntSize(vLits);
     pCnf->pClauses  = ABC_ALLOC( int *, Vec_IntSize(vClas) );
     pCnf->pClauses[0] = Vec_IntReleaseArray(vLits);

@@ -36,10 +36,10 @@ ABC_NAMESPACE_HEADER_START
 typedef struct xSAT_Mem_t_ xSAT_Mem_t;
 struct xSAT_Mem_t_
 {
-    uint32_t   nSize;
-    uint32_t   nCap;
-    uint32_t   nWasted;
-    uint32_t * pData;
+    unsigned   nSize;
+    unsigned   nCap;
+    unsigned   nWasted;
+    unsigned * pData;
 };
 
 ////////////////////////////////////////////////////////////////////////
@@ -58,7 +58,7 @@ struct xSAT_Mem_t_
 ***********************************************************************/
 static inline xSAT_Clause_t *  xSAT_MemClauseHand( xSAT_Mem_t * p, int h )
 {
-    return h != UINT32_MAX ? ( xSAT_Clause_t * )( p->pData + h ) : NULL;
+    return h != 0xFFFFFFFF ? ( xSAT_Clause_t * )( p->pData + h ) : NULL;
 }
 
 /**Function*************************************************************
@@ -72,21 +72,21 @@ static inline xSAT_Clause_t *  xSAT_MemClauseHand( xSAT_Mem_t * p, int h )
   SeeAlso     []
 
 ***********************************************************************/
-static inline void xSAT_MemGrow( xSAT_Mem_t * p, uint32_t nCap )
+static inline void xSAT_MemGrow( xSAT_Mem_t * p, unsigned nCap )
 {
+    unsigned nPrevCap = p->nCap;
     if ( p->nCap >= nCap )
         return;
 
-    uint32_t nPrevCap = p->nCap;
     while (p->nCap < nCap)
     {
-        uint32_t delta = ((p->nCap >> 1) + (p->nCap >> 3) + 2) & ~1;
+        unsigned delta = ((p->nCap >> 1) + (p->nCap >> 3) + 2) & ~1;
         p->nCap += delta;
         assert(p->nCap >= nPrevCap);
     }
 
     assert(p->nCap > 0);
-    p->pData = ABC_REALLOC(uint32_t, p->pData, p->nCap);
+    p->pData = ABC_REALLOC(unsigned, p->pData, p->nCap);
 }
 
 /**Function*************************************************************
@@ -156,12 +156,13 @@ static inline void xSAT_MemFree( xSAT_Mem_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-static inline uint32_t xSAT_MemAppend( xSAT_Mem_t * p, int nSize )
+static inline unsigned xSAT_MemAppend( xSAT_Mem_t * p, int nSize )
 {
+    unsigned nPrevSize;
     assert(nSize > 0);
     xSAT_MemGrow(p, p->nSize + nSize);
 
-    uint32_t nPrevSize = p->nSize;
+    nPrevSize = p->nSize;
     p->nSize += nSize;
     assert(p->nSize > nPrevSize);
 
@@ -179,9 +180,9 @@ static inline uint32_t xSAT_MemAppend( xSAT_Mem_t * p, int nSize )
   SeeAlso     []
 
 ***********************************************************************/
-static inline uint32_t xSAT_MemCRef( xSAT_Mem_t * p, uint32_t * pC )
+static inline unsigned xSAT_MemCRef( xSAT_Mem_t * p, unsigned * pC )
 {
-    return ( uint32_t )( pC - &(p->pData[0]) );
+    return ( unsigned )( pC - &(p->pData[0]) );
 }
 
 /**Function*************************************************************
@@ -195,7 +196,7 @@ static inline uint32_t xSAT_MemCRef( xSAT_Mem_t * p, uint32_t * pC )
   SeeAlso     []
 
 ***********************************************************************/
-static inline uint32_t xSAT_MemCap( xSAT_Mem_t * p )
+static inline unsigned xSAT_MemCap( xSAT_Mem_t * p )
 {
     return p->nCap;
 }
@@ -211,7 +212,7 @@ static inline uint32_t xSAT_MemCap( xSAT_Mem_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-static inline uint32_t xSAT_MemWastedCap( xSAT_Mem_t * p )
+static inline unsigned xSAT_MemWastedCap( xSAT_Mem_t * p )
 {
     return p->nWasted;
 }

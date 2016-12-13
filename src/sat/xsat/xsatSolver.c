@@ -101,8 +101,9 @@ void xSAT_SolverRebuildOrderHeap( xSAT_Solver_t* s )
 static inline void xSAT_SolverVarActRescale( xSAT_Solver_t * s )
 {
     unsigned * pActivity = (unsigned *) Vec_IntArray( s->vActivity );
+    int i;
 
-    for ( int i = 0; i < Vec_IntSize( s->vActivity ); i++ )
+    for ( i = 0; i < Vec_IntSize( s->vActivity ); i++ )
         pActivity[i] >>= 19;
 
     s->nVarActInc >>= 19;
@@ -166,7 +167,7 @@ static inline void xSAT_SolverClaActRescale( xSAT_Solver_t * s )
 
     Vec_IntForEachEntry( s->vLearnts, CRef, i )
     {
-        pC = xSAT_SolverReadClause( s, (uint32_t) CRef );
+        pC = xSAT_SolverReadClause( s, (unsigned) CRef );
         pC->pData[pC->nSize].Act >>= 14;
     }
     s->nClaActInc >>= 14;
@@ -221,9 +222,10 @@ static inline void xSAT_SolverClaActDecay( xSAT_Solver_t * s )
 static inline int xSAT_SolverClaCalcLBD( xSAT_Solver_t * s, xSAT_Clause_t * pCla )
 {
     int nLBD = 0;
+    int i;
 
     s->nStamp++;
-    for ( int i = 0; i < pCla->nSize; i++ )
+    for ( i = 0; i < (int)pCla->nSize; i++ )
     {
         int Level = Vec_IntEntry( s->vLevels, xSAT_Lit2Var( pCla->pData[i].Lit ) );
         if ( (unsigned) Vec_IntEntry( s->vStamp, Level ) != s->nStamp )
@@ -238,9 +240,10 @@ static inline int xSAT_SolverClaCalcLBD( xSAT_Solver_t * s, xSAT_Clause_t * pCla
 static inline int xSAT_SolverClaCalcLBD2( xSAT_Solver_t * s, Vec_Int_t * vLits )
 {
     int nLBD = 0;
+    int i;
 
     s->nStamp++;
-    for ( int i = 0; i < Vec_IntSize( vLits ); i++ )
+    for ( i = 0; i < Vec_IntSize( vLits ); i++ )
     {
         int Level = Vec_IntEntry( s->vLevels, xSAT_Lit2Var( Vec_IntEntry( vLits, i ) ) );
         if ( (unsigned) Vec_IntEntry( s->vStamp, Level ) != s->nStamp )
@@ -263,17 +266,18 @@ static inline int xSAT_SolverClaCalcLBD2( xSAT_Solver_t * s, Vec_Int_t * vLits )
   SeeAlso     []
 
 ***********************************************************************/
-uint32_t xSAT_SolverClaNew( xSAT_Solver_t * s, Vec_Int_t * vLits , int fLearnt )
+unsigned xSAT_SolverClaNew( xSAT_Solver_t * s, Vec_Int_t * vLits , int fLearnt )
 {
-    assert( Vec_IntSize( vLits ) > 1);
-    assert( fLearnt == 0 || fLearnt == 1 );
-
-    uint32_t CRef;
+    unsigned CRef;
     xSAT_Clause_t * pCla;
     xSAT_Watcher_t w1;
     xSAT_Watcher_t w2;
+    unsigned nWords;
 
-    uint32_t nWords = 3 + fLearnt + Vec_IntSize( vLits );
+    assert( Vec_IntSize( vLits ) > 1);
+    assert( fLearnt == 0 || fLearnt == 1 );
+
+    nWords = 3 + fLearnt + Vec_IntSize( vLits );
     CRef = xSAT_MemAppend( s->pMemory, nWords );
     pCla = xSAT_SolverReadClause( s, CRef );
     pCla->fLearnt = fLearnt;
@@ -326,11 +330,11 @@ uint32_t xSAT_SolverClaNew( xSAT_Solver_t * s, Vec_Int_t * vLits , int fLearnt )
   SeeAlso     []
 
 ***********************************************************************/
-int xSAT_SolverEnqueue( xSAT_Solver_t* s, int Lit, uint32_t Reason )
+int xSAT_SolverEnqueue( xSAT_Solver_t* s, int Lit, unsigned Reason )
 {
     int Var = xSAT_Lit2Var( Lit );
 
-    Vec_StrWriteEntry( s->vAssigns, Var, xSAT_LitSign( Lit ) );
+    Vec_StrWriteEntry( s->vAssigns, Var, (char)xSAT_LitSign( Lit ) );
     Vec_IntWriteEntry( s->vLevels, Var, xSAT_SolverDecisionLevel( s ) );
     Vec_IntWriteEntry( s->vReasons, Var, (int) Reason );
     Vec_IntPush( s->vTrail, Lit );
@@ -370,16 +374,17 @@ static inline void xSAT_SolverNewDecision( xSAT_Solver_t* s, int Lit )
 ***********************************************************************/
 void xSAT_SolverCancelUntil( xSAT_Solver_t * s, int Level )
 {
+    int c;
     if ( xSAT_SolverDecisionLevel( s ) <= Level )
         return;
 
-    for ( int c = Vec_IntSize( s->vTrail ) - 1; c >= Vec_IntEntry( s->vTrailLim, Level ); c-- )
+    for ( c = Vec_IntSize( s->vTrail ) - 1; c >= Vec_IntEntry( s->vTrailLim, Level ); c-- )
     {
         int Var = xSAT_Lit2Var( Vec_IntEntry( s->vTrail, c ) );
 
         Vec_StrWriteEntry( s->vAssigns, Var, VarX );
         Vec_IntWriteEntry( s->vReasons, Var, ( int ) CRefUndef );
-        Vec_StrWriteEntry( s->vPolarity, Var, xSAT_LitSign( Vec_IntEntry( s->vTrail, c ) ) );
+        Vec_StrWriteEntry( s->vPolarity, Var, ( char )xSAT_LitSign( Vec_IntEntry( s->vTrail, c ) ) );
 
         if ( !xSAT_HeapInHeap( s->hOrder, Var ) )
             xSAT_HeapInsert( s->hOrder, Var );
@@ -405,17 +410,17 @@ static int xSAT_SolverIsLitRemovable( xSAT_Solver_t* s, int Lit, int MinLevel )
 {
     int top = Vec_IntSize( s->vTagged );
 
-    assert( (uint32_t) Vec_IntEntry( s->vReasons, xSAT_Lit2Var( Lit ) ) != CRefUndef );
+    assert( (unsigned) Vec_IntEntry( s->vReasons, xSAT_Lit2Var( Lit ) ) != CRefUndef );
     Vec_IntClear( s->vStack );
     Vec_IntPush( s->vStack, xSAT_Lit2Var( Lit ) );
 
     while ( Vec_IntSize( s->vStack ) )
     {
         int v = Vec_IntPop(  s->vStack );
-        assert( (uint32_t) Vec_IntEntry( s->vReasons, v ) != CRefUndef);
-        xSAT_Clause_t* c = xSAT_SolverReadClause(s, ( uint32_t ) Vec_IntEntry( s->vReasons, v ) );
+        xSAT_Clause_t* c = xSAT_SolverReadClause(s, ( unsigned ) Vec_IntEntry( s->vReasons, v ) );
         int* Lits = &( c->pData[0].Lit );
         int  i;
+        assert( (unsigned) Vec_IntEntry( s->vReasons, v ) != CRefUndef);
 
         if( c->nSize == 2 && Vec_StrEntry( s->vAssigns, xSAT_Lit2Var( Lits[0] ) ) == xSAT_LitSign( xSAT_NegLit( Lits[0] ) ) )
         {
@@ -423,12 +428,12 @@ static int xSAT_SolverIsLitRemovable( xSAT_Solver_t* s, int Lit, int MinLevel )
             ABC_SWAP( int, Lits[0], Lits[1] );
         }
 
-        for (i = 1; i < c->nSize; i++)
+        for (i = 1; i < (int)c->nSize; i++)
         {
             int v = xSAT_Lit2Var( Lits[i] );
             if ( !Vec_StrEntry( s->vSeen, v ) && Vec_IntEntry( s->vLevels, v ) )
             {
-                if ( (uint32_t) Vec_IntEntry( s->vReasons, v ) != CRefUndef && ((1 << (Vec_IntEntry( s->vLevels, v ) & 31)) & MinLevel))
+                if ( (unsigned) Vec_IntEntry( s->vReasons, v ) != CRefUndef && ((1 << (Vec_IntEntry( s->vLevels, v ) & 31)) & MinLevel))
                 {
                     Vec_IntPush( s->vStack, v );
                     Vec_IntPush( s->vTagged, Lits[i] );
@@ -474,7 +479,7 @@ static void xSAT_SolverClaMinimisation( xSAT_Solver_t * s, Vec_Int_t * vLits )
     /* Remove reduntant literals */
     Vec_IntAppend( s->vTagged, vLits );
     for ( i = j = 1; i < Vec_IntSize( vLits ); i++ )
-        if ( (uint32_t) Vec_IntEntry( s->vReasons, xSAT_Lit2Var( pLits[i] ) ) == CRefUndef || !xSAT_SolverIsLitRemovable( s, pLits[i], MinLevel ) )
+        if ( (unsigned) Vec_IntEntry( s->vReasons, xSAT_Lit2Var( pLits[i] ) ) == CRefUndef || !xSAT_SolverIsLitRemovable( s, pLits[i], MinLevel ) )
             pLits[j++] = pLits[i];
     Vec_IntShrink( vLits, j );
 
@@ -483,33 +488,40 @@ static void xSAT_SolverClaMinimisation( xSAT_Solver_t * s, Vec_Int_t * vLits )
     {
         int Lit;
         int FlaseLit = xSAT_NegLit( pLits[0] );
+        int nb;
+        int l;
+
+        xSAT_WatchList_t * ws;
+        xSAT_Watcher_t * begin;
+        xSAT_Watcher_t * end;
+        xSAT_Watcher_t * pWatcher;
 
         s->nStamp++;
         Vec_IntForEachEntry( vLits, Lit, i )
             Vec_IntWriteEntry( s->vStamp, xSAT_Lit2Var( Lit ), s->nStamp );
 
-        xSAT_WatchList_t * ws = xSAT_VecWatchListEntry( s->vBinWatches, FlaseLit );
-        xSAT_Watcher_t * begin = xSAT_WatchListArray( ws );
-        xSAT_Watcher_t * end   = begin + xSAT_WatchListSize( ws );
-        xSAT_Watcher_t * pWatcher;
+        ws = xSAT_VecWatchListEntry( s->vBinWatches, FlaseLit );
+        begin = xSAT_WatchListArray( ws );
+        end   = begin + xSAT_WatchListSize( ws );
+        pWatcher;
 
-        int nb = 0;
+        nb = 0;
         for ( pWatcher = begin; pWatcher < end; pWatcher++ )
         {
             int ImpLit = pWatcher->Blocker;
 
-            if ( Vec_IntEntry( s->vStamp, xSAT_Lit2Var( ImpLit ) ) == s->nStamp && Vec_StrEntry( s->vAssigns, xSAT_Lit2Var( ImpLit ) ) == xSAT_LitSign( ImpLit ) )
+            if ( Vec_IntEntry( s->vStamp, xSAT_Lit2Var( ImpLit ) ) == (int)s->nStamp && Vec_StrEntry( s->vAssigns, xSAT_Lit2Var( ImpLit ) ) == xSAT_LitSign( ImpLit ) )
             {
                 nb++;
                 Vec_IntWriteEntry( s->vStamp, xSAT_Lit2Var( ImpLit ), s->nStamp - 1 );
             }
         }
 
-        int l = Vec_IntSize( vLits ) - 1;
+        l = Vec_IntSize( vLits ) - 1;
         if ( nb > 0 )
         {
             for ( i = 1; i < Vec_IntSize( vLits ) - nb; i++ )
-                if ( Vec_IntEntry( s->vStamp, xSAT_Lit2Var( pLits[i] ) ) != s->nStamp )
+                if ( Vec_IntEntry( s->vStamp, xSAT_Lit2Var( pLits[i] ) ) != (int)s->nStamp )
                 {
                     int TempLit = pLits[l];
                     pLits[l] = pLits[i];
@@ -533,20 +545,22 @@ static void xSAT_SolverClaMinimisation( xSAT_Solver_t * s, Vec_Int_t * vLits )
   SeeAlso     []
 
 ***********************************************************************/
-static void xSAT_SolverAnalyze( xSAT_Solver_t* s, uint32_t ConfCRef, Vec_Int_t * vLearnt, int * OutBtLevel, unsigned * nLBD )
+static void xSAT_SolverAnalyze( xSAT_Solver_t* s, unsigned ConfCRef, Vec_Int_t * vLearnt, int * OutBtLevel, unsigned * nLBD )
 {
     int* trail   = Vec_IntArray( s->vTrail );
     int Count     = 0;
     int p       = LitUndef;
     int Idx     = Vec_IntSize( s->vTrail ) - 1;
     int* Lits;
+    int Lit;
     int i, j;
 
     Vec_IntPush( vLearnt, LitUndef );
     do
     {
+        xSAT_Clause_t * c;
         assert( ConfCRef != CRefUndef );
-        xSAT_Clause_t * c = xSAT_SolverReadClause(s, ConfCRef);
+        c = xSAT_SolverReadClause(s, ConfCRef);
         Lits = &( c->pData[0].Lit );
 
         if( p != LitUndef && c->nSize == 2 && Vec_StrEntry( s->vAssigns, xSAT_Lit2Var(Lits[0])) == xSAT_LitSign( xSAT_NegLit( Lits[0] ) ) )
@@ -569,7 +583,7 @@ static void xSAT_SolverAnalyze( xSAT_Solver_t* s, uint32_t ConfCRef, Vec_Int_t *
             }
         }
 
-        for ( j = ( p == LitUndef ? 0 : 1 ); j < c->nSize; j++ )
+        for ( j = ( p == LitUndef ? 0 : 1 ); j < (int)c->nSize; j++ )
         {
             int Var = xSAT_Lit2Var( Lits[j] );
 
@@ -592,7 +606,7 @@ static void xSAT_SolverAnalyze( xSAT_Solver_t* s, uint32_t ConfCRef, Vec_Int_t *
 
         // Next clause to look at
         p = trail[Idx+1];
-        ConfCRef = (uint32_t) Vec_IntEntry( s->vReasons, xSAT_Lit2Var( p ) );
+        ConfCRef = (unsigned) Vec_IntEntry( s->vReasons, xSAT_Lit2Var( p ) );
         Vec_StrWriteEntry( s->vSeen, xSAT_Lit2Var( p ), 0 );
         Count--;
 
@@ -638,7 +652,6 @@ static void xSAT_SolverAnalyze( xSAT_Solver_t* s, uint32_t ConfCRef, Vec_Int_t *
         Vec_IntClear( s->vLastDLevel );
     }
 
-    int Lit;
     Vec_IntForEachEntry( s->vTagged, Lit, i )
         Vec_StrWriteEntry( s->vSeen, xSAT_Lit2Var( Lit ), 0 );
     Vec_IntClear( s->vTagged );
@@ -655,9 +668,9 @@ static void xSAT_SolverAnalyze( xSAT_Solver_t* s, uint32_t ConfCRef, Vec_Int_t *
   SeeAlso     []
 
 ***********************************************************************/
-uint32_t xSAT_SolverPropagate( xSAT_Solver_t* s )
+unsigned xSAT_SolverPropagate( xSAT_Solver_t* s )
 {
-    uint32_t hConfl = CRefUndef;
+    unsigned hConfl = CRefUndef;
     int * Lits;
     int NegLit;
     int nProp = 0;
@@ -689,13 +702,16 @@ uint32_t xSAT_SolverPropagate( xSAT_Solver_t* s )
 
         for ( i = j = begin; i < end; )
         {
+            xSAT_Clause_t* c;
+            xSAT_Watcher_t w;
+
             if ( Vec_StrEntry( s->vAssigns, xSAT_Lit2Var( i->Blocker ) ) == xSAT_LitSign( i->Blocker ) )
             {
                 *j++ = *i++;
                 continue;
             }
 
-            xSAT_Clause_t* c = xSAT_SolverReadClause( s, i->CRef );
+            c = xSAT_SolverReadClause( s, i->CRef );
             Lits = &( c->pData[0].Lit );
 
             // Make sure the false literal is data[1]:
@@ -707,8 +723,9 @@ uint32_t xSAT_SolverPropagate( xSAT_Solver_t* s )
             }
             assert( Lits[1] == NegLit );
 
-            xSAT_Watcher_t w = { .CRef = i->CRef,
-                                 .Blocker = Lits[0] };
+            w.CRef = i->CRef;
+            w.Blocker = Lits[0];
+
             // If 0th watch is true, then clause is already satisfied.
             if ( Lits[0] != i->Blocker && Vec_StrEntry( s->vAssigns, xSAT_Lit2Var( Lits[0] ) ) == xSAT_LitSign( Lits[0] ) )
                 *j++ = w;
@@ -774,7 +791,7 @@ void xSAT_SolverReduceDB( xSAT_Solver_t * s )
     abctime clk = Abc_Clock();
     int nLearnedOld = Vec_IntSize( s->vLearnts );
     int i, limit;
-    uint32_t CRef;
+    unsigned CRef;
     xSAT_Clause_t * c;
     xSAT_Clause_t ** learnts_cls;
 
@@ -795,10 +812,11 @@ void xSAT_SolverReduceDB( xSAT_Solver_t * s )
     Vec_IntClear( s->vLearnts );
     for ( i = 0; i < nLearnedOld; i++ )
     {
+        unsigned CRef;
         c = learnts_cls[i];
-        uint32_t CRef = xSAT_MemCRef( s->pMemory, (uint32_t * ) c );
+        CRef = xSAT_MemCRef( s->pMemory, (unsigned * ) c );
         assert(c->fMark == 0);
-        if ( c->fCanBeDel && c->nLBD > 2 && c->nSize > 2 && (uint32_t) Vec_IntEntry( s->vReasons, xSAT_Lit2Var( c->pData[0].Lit ) ) != CRef && ( i < limit ) )
+        if ( c->fCanBeDel && c->nLBD > 2 && c->nSize > 2 && (unsigned) Vec_IntEntry( s->vReasons, xSAT_Lit2Var( c->pData[0].Lit ) ) != CRef && ( i < limit ) )
         {
             c->fMark = 1;
             s->Stats.nLearntLits -= c->nSize;
@@ -838,19 +856,19 @@ void xSAT_SolverReduceDB( xSAT_Solver_t * s )
 ***********************************************************************/
 char xSAT_SolverSearch( xSAT_Solver_t * s )
 {
-    ABC_INT64_T conflictC  = 0;
+    iword conflictC  = 0;
 
     s->Stats.nStarts++;
     for (;;)
     {
-        uint32_t hConfl = xSAT_SolverPropagate( s );
+        unsigned hConfl = xSAT_SolverPropagate( s );
 
         if ( hConfl != CRefUndef )
         {
             /* Conflict */
             int BacktrackLevel;
             unsigned nLBD;
-            uint32_t CRef;
+            unsigned CRef;
 
             s->Stats.nConflicts++;
             conflictC++;
@@ -859,7 +877,7 @@ char xSAT_SolverSearch( xSAT_Solver_t * s )
                 return LBoolFalse;
 
             xSAT_BQueuePush( s->bqTrail, Vec_IntSize( s->vTrail ) );
-            if ( s->Stats.nConflicts > s->Config.nFirstBlockRestart && xSAT_BQueueIsValid( s->bqLBD ) && ( Vec_IntSize( s->vTrail ) > ( s->Config.R * xSAT_BQueueAvg( s->bqTrail ) ) ) )
+            if ( s->Stats.nConflicts > s->Config.nFirstBlockRestart && xSAT_BQueueIsValid( s->bqLBD ) && ( Vec_IntSize( s->vTrail ) > ( s->Config.R * (iword)xSAT_BQueueAvg( s->bqTrail ) ) ) )
                 xSAT_BQueueClean(s->bqLBD);
 
             Vec_IntClear( s->vLearntClause );
@@ -879,7 +897,7 @@ char xSAT_SolverSearch( xSAT_Solver_t * s )
         {
             /* No conflict */
             int NextVar;
-            if ( xSAT_BQueueIsValid( s->bqLBD ) && ( ( xSAT_BQueueAvg( s->bqLBD ) * s->Config.K ) > ( s->nSumLBD / s->Stats.nConflicts ) ) )
+            if ( xSAT_BQueueIsValid( s->bqLBD ) && ( ( (iword)xSAT_BQueueAvg( s->bqLBD ) * s->Config.K ) > ( s->nSumLBD / (iword)s->Stats.nConflicts ) ) )
             {
                 xSAT_BQueueClean( s->bqLBD );
                 xSAT_SolverCancelUntil( s, 0 );
@@ -923,17 +941,20 @@ char xSAT_SolverSearch( xSAT_Solver_t * s )
   SeeAlso     []
 
 ***********************************************************************/
-void xSAT_SolverClaRealloc( xSAT_Mem_t * pDest, xSAT_Mem_t * pSrc, uint32_t * pCRef )
+void xSAT_SolverClaRealloc( xSAT_Mem_t * pDest, xSAT_Mem_t * pSrc, unsigned * pCRef )
 {
     xSAT_Clause_t * pOldCla = xSAT_MemClauseHand( pSrc, *pCRef );
+    unsigned nNewCRef;
+    xSAT_Clause_t * pNewCla;
+
     if ( pOldCla->fReallocd )
     {
-        *pCRef = (uint32_t) pOldCla->nSize;
+        *pCRef = (unsigned) pOldCla->nSize;
         return;
     }
 
-    uint32_t nNewCRef = xSAT_MemAppend( pDest, 3 + pOldCla->fLearnt + pOldCla->nSize );
-    xSAT_Clause_t * pNewCla = xSAT_MemClauseHand( pDest, nNewCRef );
+    nNewCRef = xSAT_MemAppend( pDest, 3 + pOldCla->fLearnt + pOldCla->nSize );
+    pNewCla = xSAT_MemClauseHand( pDest, nNewCRef );
 
     memcpy( pNewCla, pOldCla, ( 3 + pOldCla->fLearnt + pOldCla->nSize ) * 4 );
 
@@ -956,7 +977,7 @@ void xSAT_SolverClaRealloc( xSAT_Mem_t * pDest, xSAT_Mem_t * pSrc, uint32_t * pC
 void xSAT_SolverGarbageCollect( xSAT_Solver_t * s )
 {
     int i;
-    uint32_t * pArray;
+    unsigned * pArray;
     xSAT_Mem_t * pNewMemMngr = xSAT_MemAlloc(  xSAT_MemCap( s->pMemory ) - xSAT_MemWastedCap( s->pMemory ) );
 
     for ( i = 0; i < 2 * Vec_StrSize( s->vAssigns ); i++ )
@@ -977,14 +998,14 @@ void xSAT_SolverGarbageCollect( xSAT_Solver_t * s )
     }
 
     for ( i = 0; i < Vec_IntSize( s->vTrail ); i++ )
-        if ( (uint32_t) Vec_IntEntry( s->vReasons, xSAT_Lit2Var( Vec_IntEntry( s->vTrail, i ) ) ) != CRefUndef )
+        if ( (unsigned) Vec_IntEntry( s->vReasons, xSAT_Lit2Var( Vec_IntEntry( s->vTrail, i ) ) ) != CRefUndef )
             xSAT_SolverClaRealloc( pNewMemMngr, s->pMemory, &( Vec_IntArray( s->vReasons )[xSAT_Lit2Var( Vec_IntEntry( s->vTrail, i ) )] ) );
 
-    pArray = ( uint32_t * ) Vec_IntArray( s->vLearnts );
+    pArray = ( unsigned * ) Vec_IntArray( s->vLearnts );
     for ( i = 0; i < Vec_IntSize( s->vLearnts ); i++ )
         xSAT_SolverClaRealloc( pNewMemMngr, s->pMemory, &(pArray[i]) );
 
-    pArray = (uint32_t *) Vec_IntArray( s->vClauses );
+    pArray = (unsigned *) Vec_IntArray( s->vClauses );
     for ( i = 0; i < Vec_IntSize( s->vClauses ); i++ )
         xSAT_SolverClaRealloc( pNewMemMngr, s->pMemory, &(pArray[i]) );
 

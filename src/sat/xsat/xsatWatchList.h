@@ -34,7 +34,7 @@ ABC_NAMESPACE_HEADER_START
 typedef struct xSAT_Watcher_t_ xSAT_Watcher_t;
 struct xSAT_Watcher_t_
 {
-    uint32_t CRef;
+    unsigned CRef;
     int Blocker;
 };
 
@@ -162,7 +162,7 @@ static inline xSAT_Watcher_t* xSAT_WatchListArray( xSAT_WatchList_t * v )
   SeeAlso     []
 
 ***********************************************************************/
-static inline void xSAT_WatchListRemove( xSAT_WatchList_t * v, uint32_t CRef )
+static inline void xSAT_WatchListRemove( xSAT_WatchList_t * v, unsigned CRef )
 {
     xSAT_Watcher_t* ws = xSAT_WatchListArray(v);
     int j = 0;
@@ -207,7 +207,8 @@ static inline xSAT_VecWatchList_t * xSAT_VecWatchListAlloc( int nCap )
 ***********************************************************************/
 static inline void xSAT_VecWatchListFree( xSAT_VecWatchList_t* v )
 {
-    for( int i = 0; i < v->nSize; i++ )
+    int i;
+    for( i = 0; i < v->nSize; i++ )
         xSAT_WatchListFree( v->pArray + i );
 
     ABC_FREE( v->pArray );
