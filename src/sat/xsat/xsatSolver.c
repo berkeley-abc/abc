@@ -503,7 +503,6 @@ static void xSAT_SolverClaMinimisation( xSAT_Solver_t * s, Vec_Int_t * vLits )
         ws = xSAT_VecWatchListEntry( s->vBinWatches, FlaseLit );
         begin = xSAT_WatchListArray( ws );
         end   = begin + xSAT_WatchListSize( ws );
-        pWatcher;
 
         nb = 0;
         for ( pWatcher = begin; pWatcher < end; pWatcher++ )
@@ -999,7 +998,7 @@ void xSAT_SolverGarbageCollect( xSAT_Solver_t * s )
 
     for ( i = 0; i < Vec_IntSize( s->vTrail ); i++ )
         if ( (unsigned) Vec_IntEntry( s->vReasons, xSAT_Lit2Var( Vec_IntEntry( s->vTrail, i ) ) ) != CRefUndef )
-            xSAT_SolverClaRealloc( pNewMemMngr, s->pMemory, &( Vec_IntArray( s->vReasons )[xSAT_Lit2Var( Vec_IntEntry( s->vTrail, i ) )] ) );
+            xSAT_SolverClaRealloc( pNewMemMngr, s->pMemory, (unsigned *)&( Vec_IntArray( s->vReasons )[xSAT_Lit2Var( Vec_IntEntry( s->vTrail, i ) )] ) );
 
     pArray = ( unsigned * ) Vec_IntArray( s->vLearnts );
     for ( i = 0; i < Vec_IntSize( s->vLearnts ); i++ )
