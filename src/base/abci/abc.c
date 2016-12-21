@@ -19532,7 +19532,7 @@ int Abc_CommandSeqSweep( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     if ( Abc_NtkIsComb(pNtk) )
     {
-        Abc_Print( -1, "The network is combinational (run \"fraig\" or \"fraig_sweep\").\n" );
+        Abc_Print( 0, "The network is combinational (run \"fraig\" or \"fraig_sweep\").\n" );
         return 0;
     }
 
@@ -31954,7 +31954,7 @@ int Abc_CommandAbc9Scorr( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     if ( Gia_ManRegNum(pAbc->pGia) == 0 )
     {
-        Abc_Print( -1, "The network is combinational.\n" );
+        Abc_Print( 0, "The network is combinational.\n" );
         return 0;
     }
     pTemp = Cec_ManLSCorrespondence( pAbc->pGia, pPars );
