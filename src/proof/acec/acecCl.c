@@ -127,7 +127,7 @@ Vec_Int_t * Acec_CollectXorTops( Gia_Man_t * p )
             break;
         }
         Vec_IntPush( vRootXorSet, Gia_ObjId(p, pObj) );
-        Vec_IntPush( vRootXorSet, fXor1 ? Gia_ObjId(p, Gia_Regular(pFan1))  : Gia_ObjId(p, Gia_Regular(pFan0)) );
+        Vec_IntPush( vRootXorSet, fXor1 ? Gia_ObjId(p, Gia_Regular(pFan0))  : Gia_ObjId(p, Gia_Regular(pFan1)) );
         Vec_IntPush( vRootXorSet, fXor1 ? Gia_ObjId(p, Gia_Regular(pFan10)) : Gia_ObjId(p, Gia_Regular(pFan00)) );
         Vec_IntPush( vRootXorSet, fXor1 ? Gia_ObjId(p, Gia_Regular(pFan11)) : Gia_ObjId(p, Gia_Regular(pFan01)) );
     }
@@ -173,10 +173,101 @@ int Acec_DetectLitPolarity( Gia_Man_t * p, int Node, int Leaf )
     if ( Lit0 != -1 && Lit1 != -1 )
     {
         assert( Lit0 == Lit1 );
+        printf( "Problem for leaf %d\n", Leaf );
         return Lit0;
     }
     return Lit0 != -1 ? Lit0 : Lit1;
 }
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Acec_DetectComputeSuppOne_rec( Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Int_t * vSupp, Vec_Int_t * vNods )
+{
+    if ( Gia_ObjIsTravIdCurrent(p, pObj) )
+        return;
+    Gia_ObjSetTravIdCurrent(p, pObj);
+    if ( pObj->fMark0 )
+    {
+        Vec_IntPush( vSupp, Gia_ObjId(p, pObj) );
+        return;
+    }
+    assert( Gia_ObjIsAnd(pObj) );
+    Acec_DetectComputeSuppOne_rec( p, Gia_ObjFanin0(pObj), vSupp, vNods );
+    Acec_DetectComputeSuppOne_rec( p, Gia_ObjFanin1(pObj), vSupp, vNods );
+    Vec_IntPush( vNods, Gia_ObjId(p, pObj) );
+}
+void Acec_DetectComputeSupports( Gia_Man_t * p, Vec_Int_t * vRootXorSet )
+{
+    Vec_Int_t * vNods = Vec_IntAlloc( 100 ); 
+    Vec_Int_t * vPols = Vec_IntAlloc( 100 ); 
+    Vec_Int_t * vSupp = Vec_IntAlloc( 100 );  int i, k, Node, Pol;
+    for ( i = 0; 4*i < Vec_IntSize(vRootXorSet); i++ )
+    {
+        Gia_ManObj( p, Vec_IntEntry(vRootXorSet, 4*i+1) )->fMark0 = 1;
+        Gia_ManObj( p, Vec_IntEntry(vRootXorSet, 4*i+2) )->fMark0 = 1;
+        Gia_ManObj( p, Vec_IntEntry(vRootXorSet, 4*i+3) )->fMark0 = 1;
+    }
+    for ( i = 1; 4*i < Vec_IntSize(vRootXorSet); i++ )
+    {
+        Vec_IntClear( vSupp );
+        Gia_ManIncrementTravId( p );
+
+        Gia_ManObj( p, Vec_IntEntry(vRootXorSet, 4*i+1) )->fMark0 = 0;
+        Acec_DetectComputeSuppOne_rec( p, Gia_ManObj( p, Vec_IntEntry(vRootXorSet, 4*i+1) ), vSupp, vNods );
+        Gia_ManObj( p, Vec_IntEntry(vRootXorSet, 4*i+1) )->fMark0 = 1;
+
+        Vec_IntSort( vSupp, 0 );
+
+        printf( "Out %4d : %4d  \n", i, Vec_IntEntry(vRootXorSet, 4*i+1) );
+        Vec_IntPrint( vSupp );
+
+        printf( "Cone:\n" );
+        Vec_IntForEachEntry( vNods, Node, k )
+            Gia_ObjPrint( p, Gia_ManObj(p, Node) );
+
+
+        Vec_IntClear( vPols );
+        Vec_IntForEachEntry( vSupp, Node, k )
+            Vec_IntPush( vPols, Acec_DetectLitPolarity(p, Vec_IntEntry(vRootXorSet, 4*i+1), Node) );
+
+        Vec_IntForEachEntryTwo( vSupp, vPols, Node, Pol, k )
+            printf( "%d(%d)  ", Node, Abc_LitIsCompl(Pol) );
+
+        printf( "\n" );
+
+        Vec_IntPrint( vSupp );
+    }
+    for ( i = 0; 4*i < Vec_IntSize(vRootXorSet); i++ )
+    {
+        Gia_ManObj( p, Vec_IntEntry(vRootXorSet, 4*i+1) )->fMark0 = 0;
+        Gia_ManObj( p, Vec_IntEntry(vRootXorSet, 4*i+2) )->fMark0 = 0;
+        Gia_ManObj( p, Vec_IntEntry(vRootXorSet, 4*i+3) )->fMark0 = 0;
+    }
+    Vec_IntFree( vSupp );
+    Vec_IntFree( vPols );
+    Vec_IntFree( vNods );
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 Gia_Man_t * Acec_DetectXorBuildNew( Gia_Man_t * p, Vec_Int_t * vRootXorSet )
 {
     Gia_Man_t * pNew;
@@ -236,6 +327,8 @@ Gia_Man_t * Acec_DetectAdditional( Gia_Man_t * p, int fVerbose )
     vRootXorSet = Acec_CollectXorTops( p );
     if ( vRootXorSet )
     {
+        Acec_DetectComputeSupports( p, vRootXorSet );
+
         pNew = Acec_DetectXorBuildNew( p, vRootXorSet );
         Vec_IntFree( vRootXorSet );
     }

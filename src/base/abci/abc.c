@@ -28592,14 +28592,17 @@ usage:
 int Abc_CommandAbc9Show( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Vec_Int_t * vBold = NULL;
-    int c, fAdders = 0;
+    int c, fAdders = 0, fFadds = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "ah" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "afh" ) ) != EOF )
     {
         switch ( c )
         {
         case 'a':
             fAdders ^= 1;
+            break;
+        case 'f':
+            fFadds ^= 1;
             break;
         case 'h':
             goto usage;
@@ -28623,14 +28626,15 @@ int Abc_CommandAbc9Show( Abc_Frame_t * pAbc, int argc, char ** argv )
         Gia_ManForEachLut( pAbc->pGia, c )
             Vec_IntPush( vBold, c );
     }
-    Gia_ManShow( pAbc->pGia, vBold, fAdders );
+    Gia_ManShow( pAbc->pGia, vBold, fAdders, fFadds );
     Vec_IntFreeP( &vBold );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &show [-ah]\n" );
+    Abc_Print( -2, "usage: &show [-afh]\n" );
     Abc_Print( -2, "\t        shows the current GIA using GSView\n" );
     Abc_Print( -2, "\t-a    : toggle visualazing adders [default = %s]\n", fAdders? "yes": "no" );
+    Abc_Print( -2, "\t-f    : toggle only showing full-adders with \"-a\" [default = %s]\n", fFadds? "yes": "no" );
     Abc_Print( -2, "\t-h    : print the command usage\n");
     return 1;
 }

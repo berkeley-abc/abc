@@ -1,6 +1,7 @@
 SRC +=    src/proof/acec/acecCl.c \
     src/proof/acec/acecCore.c \
     src/proof/acec/acecCo.c \
+    src/proof/acec/acecBo.c \
     src/proof/acec/acecRe.c \
     src/proof/acec/acecPa.c \
     src/proof/acec/acecPo.c \

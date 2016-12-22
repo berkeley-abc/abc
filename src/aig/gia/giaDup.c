@@ -3377,6 +3377,26 @@ Gia_Man_t * Gia_ManDupOuts( Gia_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
+Vec_Wec_t * Gia_ManCreateNodeSupps( Gia_Man_t * p, Vec_Int_t * vNodes, int fVerbose )
+{
+    abctime clk = Abc_Clock();
+    Gia_Obj_t * pObj; int i, Id;
+    Vec_Wec_t * vSuppsNo = Vec_WecStart( Vec_IntSize(vNodes) );
+    Vec_Wec_t * vSupps = Vec_WecStart( Gia_ManObjNum(p) );
+    Gia_ManForEachCiId( p, Id, i )
+        Vec_IntPush( Vec_WecEntry(vSupps, Id), i );
+    Gia_ManForEachAnd( p, pObj, Id )
+        Vec_IntTwoMerge2( Vec_WecEntry(vSupps, Gia_ObjFaninId0(pObj, Id)), 
+                          Vec_WecEntry(vSupps, Gia_ObjFaninId1(pObj, Id)), 
+                          Vec_WecEntry(vSupps, Id) ); 
+    Gia_ManForEachObjVec( vNodes, p, pObj, i )
+        Vec_IntAppend( Vec_WecEntry(vSuppsNo, i), Vec_WecEntry(vSupps, Gia_ObjId(p, pObj)) );
+    Vec_WecFree( vSupps );
+    if ( fVerbose )
+        Abc_PrintTime( 1, "Support computation", Abc_Clock() - clk );
+    return vSuppsNo;
+}
+
 Vec_Wec_t * Gia_ManCreateCoSupps( Gia_Man_t * p, int fVerbose )
 {
     abctime clk = Abc_Clock();
@@ -3690,6 +3710,81 @@ Gia_Man_t * Gia_ManDupDemiter( Gia_Man_t * p, int fVerbose )
   SeeAlso     []
 
 ***********************************************************************/
+void Gia_ManDupDemiterOrderXors2( Gia_Man_t * p, Vec_Int_t * vXors )
+{
+    int i, iObj, * pPerm;
+    Vec_Int_t * vSizes = Vec_IntAlloc( 100 );
+    Vec_IntForEachEntry( vXors, iObj, i )
+        Vec_IntPush( vSizes, Gia_ManSuppSize(p, &iObj, 1) );
+    pPerm = Abc_MergeSortCost( Vec_IntArray(vSizes), Vec_IntSize(vSizes) );
+    Vec_IntClear( vSizes );
+    for ( i = 0; i < Vec_IntSize(vXors); i++ )
+        Vec_IntPush( vSizes, Vec_IntEntry(vXors, pPerm[i]) );
+    ABC_FREE( pPerm );
+    Vec_IntClear( vXors );
+    Vec_IntAppend( vXors, vSizes );
+    Vec_IntFree( vSizes );
+}
+int Gia_ManDupDemiterFindMin( Vec_Wec_t * vSupps, Vec_Int_t * vTakenIns, Vec_Int_t * vTakenOuts )
+{
+    Vec_Int_t * vLevel;
+    int i, k, iObj, iObjBest = -1;
+    int Count, CountBest = ABC_INFINITY;
+    Vec_WecForEachLevel( vSupps, vLevel, i )
+    {
+        if ( Vec_IntEntry(vTakenOuts, i) )
+            continue;
+        Count = 0;
+        Vec_IntForEachEntry( vLevel, iObj, k )
+            Count += !Vec_IntEntry(vTakenIns, iObj);
+        if ( CountBest > Count )
+        {
+            CountBest = Count;
+            iObjBest = i;
+        }
+    }
+    return iObjBest;
+}
+void Gia_ManDupDemiterOrderXors( Gia_Man_t * p, Vec_Int_t * vXors )
+{
+    extern Vec_Wec_t * Gia_ManCreateNodeSupps( Gia_Man_t * p, Vec_Int_t * vNodes, int fVerbose );
+    Vec_Wec_t * vSupps = Gia_ManCreateNodeSupps( p, vXors, 0 );
+    Vec_Int_t * vTakenIns = Vec_IntStart( Gia_ManCiNum(p) );
+    Vec_Int_t * vTakenOuts = Vec_IntStart( Vec_IntSize(vXors) );
+    Vec_Int_t * vOrder = Vec_IntAlloc( Vec_IntSize(vXors) );
+    int i, k, iObj;
+    // add outputs in the order of increasing supports
+    for ( i = 0; i < Vec_IntSize(vXors); i++ )
+    {
+        int Index = Gia_ManDupDemiterFindMin( vSupps, vTakenIns, vTakenOuts );
+        assert( Index >= 0 && Index < Vec_IntSize(vXors) );
+        Vec_IntPush( vOrder, Vec_IntEntry(vXors, Index) );
+        assert( !Vec_IntEntry( vTakenOuts, Index ) );
+        Vec_IntWriteEntry( vTakenOuts, Index, 1 );
+        Vec_IntForEachEntry( Vec_WecEntry(vSupps, Index), iObj, k )
+            Vec_IntWriteEntry( vTakenIns, iObj, 1 );
+    }
+    Vec_WecFree( vSupps );
+    Vec_IntFree( vTakenIns );
+    Vec_IntFree( vTakenOuts );
+    // reload
+    Vec_IntClear( vXors );
+    Vec_IntAppend( vXors, vOrder );
+    Vec_IntFree( vOrder );
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 void Gia_ManSetMark0Dfs_rec( Gia_Man_t * p, int iObj )
 {
     Gia_Obj_t * pObj;
@@ -3781,8 +3876,8 @@ void Gia_ManCollectTopXors_rec( Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Int_t * vXo
 }
 Vec_Int_t * Gia_ManCollectTopXors( Gia_Man_t * p )
 {
-    int i, iObj, iObj2, fFlip, * pPerm, Count1 = 0;
-    Vec_Int_t * vXors, * vSizes, * vPart[2], * vOrder; 
+    int i, iObj, iObj2, fFlip, Count1 = 0;
+    Vec_Int_t * vXors, * vPart[2], * vOrder; 
     Gia_Obj_t * pFan[2], * pObj = Gia_ManCo(p, 0);
     assert( Gia_ManCoNum(p) == 1 );
     vXors = Vec_IntAlloc( 100 );
@@ -3791,17 +3886,8 @@ Vec_Int_t * Gia_ManCollectTopXors( Gia_Man_t * p )
     else
         Vec_IntPush( vXors, Gia_ObjId(p, Gia_ObjFanin0(pObj)) );
     // order by support size
-    vSizes = Vec_IntAlloc( 100 );
-    Vec_IntForEachEntry( vXors, iObj, i )
-        Vec_IntPush( vSizes, Gia_ManSuppSize(p, &iObj, 1) );
-    pPerm = Abc_MergeSortCost( Vec_IntArray(vSizes), Vec_IntSize(vSizes) );
-    Vec_IntClear( vSizes );
-    for ( i = 0; i < Vec_IntSize(vXors); i++ )
-        Vec_IntPush( vSizes, Vec_IntEntry(vXors, pPerm[i]) );
-    ABC_FREE( pPerm );
-    Vec_IntClear( vXors );
-    Vec_IntAppend( vXors, vSizes );
-    Vec_IntFree( vSizes );
+    Gia_ManDupDemiterOrderXors( p, vXors );
+    //Vec_IntPrint( vXors );
     Vec_IntReverseOrder( vXors ); // from MSB to LSB
     // divide into groups
     Gia_ManCleanMark01(p);
