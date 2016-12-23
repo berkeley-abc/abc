@@ -139,6 +139,8 @@ OBJ := \
 	$(patsubst %.c, %.o,  $(filter %.c, $(SRC)))  \
 	$(patsubst %.y, %.o,  $(filter %.y, $(SRC)))
 
+LIBOBJ := $(filter-out src/base/main/main.o,$(OBJ))
+
 DEP := $(OBJ:.o=.d)
 
 # implicit rules
@@ -186,10 +188,14 @@ $(PROG): $(OBJ)
 	@echo "$(MSG_PREFIX)\`\` Building binary:" $(notdir $@)
 	$(VERBOSE)$(LD) -o $@ $^ $(LIBS)
 
-lib$(PROG).a: $(OBJ)
+lib$(PROG).a: $(LIBOBJ)
 	@echo "$(MSG_PREFIX)\`\` Linking:" $(notdir $@)
 	$(VERBOSE)ar rv $@ $?
 	$(VERBOSE)ranlib $@
+
+lib$(PROG).so: $(LIBOBJ)
+	@echo "$(MSG_PREFIX)\`\` Linking:" $(notdir $@)
+	$(VERBOSE)$(CXX) -shared -o $@ $^ $(LIBS)
 
 docs:
 	@echo "$(MSG_PREFIX)\`\` Building documentation." $(notdir $@)

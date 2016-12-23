@@ -53,6 +53,13 @@ The current version of ABC can be compiled with C compiler or C++ compiler.
  * To compile as C++ code with namespaces: make sure that `CC=g++` and `ABC_NAMESPACE` is set to
    the name of the requested namespace. For example, add `-DABC_NAMESPACE=xxx` to OPTFLAGS.
 
+## Building a shared library
+
+ * Compile the code as position-independent by adding `ABC_USE_PIC=1`.
+ * Build the `libabc.so` target: 
+ 
+     make ABC_USE_PIC=1 libabc.so
+
 ## Bug reporting:
 
 Please try to reproduce all the reported bugs and unexpected features using the latest 
