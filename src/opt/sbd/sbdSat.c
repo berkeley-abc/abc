@@ -37,10 +37,6 @@ ABC_NAMESPACE_IMPL_START
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
-#define SBD_LUTS_MAX   2
-#define SBD_SIZE_MAX   4
-#define SBD_DIV_MAX   16
-
 // new AIG manager
 typedef struct Sbd_Pro_t_ Sbd_Pro_t;
 struct Sbd_Pro_t_

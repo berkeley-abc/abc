@@ -52,10 +52,21 @@ ABC_NAMESPACE_HEADER_START
 #define SBD_SAT_UNDEC 0x1234567812345678
 #define SBD_SAT_SAT   0x8765432187654321
 
+#define SBD_LUTS_MAX  2
+#define SBD_SIZE_MAX  4
+#define SBD_DIV_MAX   7
+
 ////////////////////////////////////////////////////////////////////////
 ///                         BASIC TYPES                              ///
 ////////////////////////////////////////////////////////////////////////
 
+typedef struct Sbd_Str_t_ Sbd_Str_t;
+struct Sbd_Str_t_
+{
+    int               fLut;                 // LUT or SEL
+    int               nVarIns;              // input count
+    int               VarIns[SBD_DIV_MAX];  // input vars
+};
 
 ////////////////////////////////////////////////////////////////////////
 ///                      MACRO DEFINITIONS                           ///

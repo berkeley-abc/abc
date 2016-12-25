@@ -39,19 +39,26 @@ ABC_NAMESPACE_IMPL_START
   a DFS ordered array of objects (vWinObjs) whose indexed in the array
   (which will be used as SAT variables) are given in array vObj2Var.
   The TFO nodes are listed as the last ones in vWinObjs. The root nodes
-  are labeled with Abc_LitIsCompl() in vTfo and also given in vRoots.]
+  are labeled with Abc_LitIsCompl() in vTfo and also given in vRoots.
+  If fQbf is 1, returns the instance meant for QBF solving. It is using
+  the last variable (LastVar) as the placeholder for the second copy
+  of the pivot node.]
                
   SideEffects []
 
   SeeAlso     []
 
 ***********************************************************************/
-sat_solver * Sbd_ManSatSolver( sat_solver * pSat, Gia_Man_t * p, Vec_Int_t * vMirrors, int Pivot, Vec_Int_t * vWinObjs, Vec_Int_t * vObj2Var, Vec_Int_t * vTfo, Vec_Int_t * vRoots )
+sat_solver * Sbd_ManSatSolver( sat_solver * pSat, Gia_Man_t * p, Vec_Int_t * vMirrors, 
+                               int Pivot, Vec_Int_t * vWinObjs, Vec_Int_t * vObj2Var, 
+                               Vec_Int_t * vTfo, Vec_Int_t * vRoots, int fQbf )
 {
     Gia_Obj_t * pObj;
+    int nAddVars = 64;
     int i, iLit = 1, iObj, Fan0, Fan1, Lit0m, Lit1m, Node, fCompl0, fCompl1, RetValue;
     int TfoStart = Vec_IntSize(vWinObjs) - Vec_IntSize(vTfo);
     int PivotVar = Vec_IntEntry(vObj2Var, Pivot);
+    int LastVar = Vec_IntSize(vWinObjs) + Vec_IntSize(vTfo) + Vec_IntSize(vRoots);
     //Vec_IntPrint( vWinObjs );
     //Vec_IntPrint( vTfo );
     //Vec_IntPrint( vRoots );
@@ -60,7 +67,7 @@ sat_solver * Sbd_ManSatSolver( sat_solver * pSat, Gia_Man_t * p, Vec_Int_t * vMi
         pSat = sat_solver_new();
     else
         sat_solver_restart( pSat );
-    sat_solver_setnvars( pSat, Vec_IntSize(vWinObjs) + Vec_IntSize(vTfo) + Vec_IntSize(vRoots) + 32 );
+    sat_solver_setnvars( pSat, Vec_IntSize(vWinObjs) + Vec_IntSize(vTfo) + Vec_IntSize(vRoots) + nAddVars );
     // create constant 0 clause
     sat_solver_addclause( pSat, &iLit, &iLit + 1 );
     // add clauses for all nodes
@@ -100,8 +107,13 @@ sat_solver * Sbd_ManSatSolver( sat_solver * pSat, Gia_Man_t * p, Vec_Int_t * vMi
         Fan1 = Vec_IntEntry( vObj2Var, Fan1 );
         Fan0 = Fan0 < TfoStart ? Fan0 : Fan0 + Vec_IntSize(vTfo);
         Fan1 = Fan1 < TfoStart ? Fan1 : Fan1 + Vec_IntSize(vTfo);
-        fCompl0 = Gia_ObjFaninC0(pObj) ^ (Fan0 == PivotVar) ^ (Lit0m >= 0 && Abc_LitIsCompl(Lit0m));
-        fCompl1 = Gia_ObjFaninC1(pObj) ^ (Fan1 == PivotVar) ^ (Lit1m >= 0 && Abc_LitIsCompl(Lit1m));
+        if ( fQbf )
+        {
+            Fan0 = Fan0 == PivotVar ? LastVar : Fan0;
+            Fan1 = Fan1 == PivotVar ? LastVar : Fan1;
+        }
+        fCompl0 = Gia_ObjFaninC0(pObj) ^ (!fQbf && Fan0 == PivotVar) ^ (Lit0m >= 0 && Abc_LitIsCompl(Lit0m));
+        fCompl1 = Gia_ObjFaninC1(pObj) ^ (!fQbf && Fan1 == PivotVar) ^ (Lit1m >= 0 && Abc_LitIsCompl(Lit1m));
         if ( Gia_ObjIsXor(pObj) )
             sat_solver_add_xor( pSat, Node, Fan0, Fan1, fCompl0 ^ fCompl1 );
         else
@@ -127,7 +139,7 @@ sat_solver * Sbd_ManSatSolver( sat_solver * pSat, Gia_Man_t * p, Vec_Int_t * vMi
             sat_solver_delete( pSat );
             return NULL;
         }
-        assert( sat_solver_nvars(pSat) == nVars + 32 );
+        assert( sat_solver_nvars(pSat) == nVars + nAddVars );
     }
     // finalize
     RetValue = sat_solver_simplify( pSat );
@@ -143,7 +155,7 @@ sat_solver * Sbd_ManSatSolver( sat_solver * pSat, Gia_Man_t * p, Vec_Int_t * vMi
 
   Synopsis    [Solves one SAT problem.]
 
-  Description [Computes node function for PivotVar with fanins in vDivVars
+  Description [Computes node function for PivotVar with fanins in vDivSet
   using don't-care represented in the SAT solver. Uses array vValues to 
   return the values of the first Vec_IntSize(vValues) SAT variables in case
   the implementation of the node with the given fanins does not exist.]
@@ -153,12 +165,13 @@ sat_solver * Sbd_ManSatSolver( sat_solver * pSat, Gia_Man_t * p, Vec_Int_t * vMi
   SeeAlso     []
 
 ***********************************************************************/
-word Sbd_ManSolve( sat_solver * pSat, int PivotVar, int FreeVar, Vec_Int_t * vDivVars, Vec_Int_t * vValues, Vec_Int_t * vTemp )
+word Sbd_ManSolve( sat_solver * pSat, int PivotVar, int FreeVar, Vec_Int_t * vDivSet, Vec_Int_t * vDivVars, Vec_Int_t * vDivValues, Vec_Int_t * vTemp )
 {
     int nBTLimit = 0;
     word uCube, uTruth = 0;
     int status, i, iVar, nFinal, * pFinal, pLits[2], nIter = 0;
     assert( FreeVar < sat_solver_nvars(pSat) );
+    assert( Vec_IntSize(vDivVars) == Vec_IntSize(vDivValues) );
     pLits[0] = Abc_Var2Lit( PivotVar, 0 ); // F = 1
     pLits[1] = Abc_Var2Lit( FreeVar, 0 );  // iNewLit
     while ( 1 ) 
@@ -171,12 +184,12 @@ word Sbd_ManSolve( sat_solver * pSat, int PivotVar, int FreeVar, Vec_Int_t * vDi
             return uTruth;
         assert( status == l_True );
         // remember variable values
-        for ( i = 0; i < Vec_IntSize(vValues); i++ )
-            Vec_IntWriteEntry( vValues, i, 2*sat_solver_var_value(pSat, i) );
+        Vec_IntForEachEntry( vDivVars, iVar, i )
+            Vec_IntWriteEntry( vDivValues, i, 2*sat_solver_var_value(pSat, iVar) );
         // collect divisor literals
         Vec_IntClear( vTemp );
         Vec_IntPush( vTemp, Abc_LitNot(pLits[0]) ); // F = 0
-        Vec_IntForEachEntry( vDivVars, iVar, i )
+        Vec_IntForEachEntry( vDivSet, iVar, i )
             Vec_IntPush( vTemp, sat_solver_var_literal(pSat, iVar) );
         // check against offset
         status = sat_solver_solve( pSat, Vec_IntArray(vTemp), Vec_IntArray(vTemp) + Vec_IntSize(vTemp), nBTLimit, 0, 0, 0 );
@@ -195,7 +208,7 @@ word Sbd_ManSolve( sat_solver * pSat, int PivotVar, int FreeVar, Vec_Int_t * vDi
             if ( pFinal[i] == pLits[0] )
                 continue;
             Vec_IntPush( vTemp, pFinal[i] );
-            iVar = Vec_IntFind( vDivVars, Abc_Lit2Var(pFinal[i]) );   assert( iVar >= 0 );
+            iVar = Vec_IntFind( vDivSet, Abc_Lit2Var(pFinal[i]) );   assert( iVar >= 0 );
             uCube &= Abc_LitIsCompl(pFinal[i]) ? s_Truths6[iVar] : ~s_Truths6[iVar];
         }
         uTruth |= uCube;
@@ -205,11 +218,11 @@ word Sbd_ManSolve( sat_solver * pSat, int PivotVar, int FreeVar, Vec_Int_t * vDi
     }
     assert( status == l_True );
     // store the counter-example
-    for ( i = 0; i < Vec_IntSize(vValues); i++ )
-        Vec_IntAddToEntry( vValues, i, sat_solver_var_value(pSat, i) );
+    Vec_IntForEachEntry( vDivVars, iVar, i )
+        Vec_IntAddToEntry( vDivValues, i, sat_solver_var_value(pSat, iVar) );
 
-    for ( i = 0; i < Vec_IntSize(vValues); i++ )
-        Vec_IntAddToEntry( vValues, i, 0xC );
+    for ( i = 0; i < Vec_IntSize(vDivValues); i++ )
+        Vec_IntAddToEntry( vDivValues, i, 0xC );
 /*
     // reduce the counter example
     for ( n = 0; n < 2; n++ )
@@ -229,6 +242,138 @@ word Sbd_ManSolve( sat_solver * pSat, int PivotVar, int FreeVar, Vec_Int_t * vDi
 */
     return SBD_SAT_SAT;
 }
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Sbd_ManSolve2( sat_solver * pSat, int PivotVar, int FreeVar, Vec_Int_t * vDivVars, Vec_Int_t * vDivValues, Vec_Int_t * vTemp, Vec_Int_t * vSop )
+{
+    int nBTLimit = 0;
+    int status, i, iVar, nFinal, * pFinal, pLits[2], nIter = 0;
+    assert( FreeVar < sat_solver_nvars(pSat) );
+    assert( Vec_IntSize(vDivVars) == Vec_IntSize(vDivValues) );
+    pLits[0] = Abc_Var2Lit( PivotVar, 0 ); // F = 1
+    pLits[1] = Abc_Var2Lit( FreeVar, 0 );  // iNewLit
+    Vec_IntClear( vSop );
+    while ( 1 ) 
+    {
+        // find onset minterm
+        status = sat_solver_solve( pSat, pLits, pLits + 2, nBTLimit, 0, 0, 0 );
+        if ( status == l_Undef )
+            return 0;
+        if ( status == l_False )
+            return 1;
+        assert( status == l_True );
+        // remember variable values
+        //for ( i = 0; i < Vec_IntSize(vValues); i++ )
+        //    Vec_IntWriteEntry( vValues, i, 2*sat_solver_var_value(pSat, i) );
+        // collect divisor literals
+        Vec_IntClear( vTemp );
+        Vec_IntPush( vTemp, Abc_LitNot(pLits[0]) ); // F = 0
+        //Vec_IntForEachEntry( vDivSet, iVar, i )
+        Vec_IntForEachEntry( vDivVars, iVar, i )
+            Vec_IntPush( vTemp, sat_solver_var_literal(pSat, iVar) );
+        // check against offset
+        status = sat_solver_solve( pSat, Vec_IntArray(vTemp), Vec_IntArray(vTemp) + Vec_IntSize(vTemp), nBTLimit, 0, 0, 0 );
+        if ( status == l_Undef )
+            return 0;
+        if ( status == l_True )
+            break;
+        assert( status == l_False );
+        // compute cube and add clause
+        nFinal = sat_solver_final( pSat, &pFinal );
+        Vec_IntClear( vTemp );
+        Vec_IntPush( vTemp, Abc_LitNot(pLits[1]) ); // NOT(iNewLit)
+        for ( i = 0; i < nFinal; i++ )
+        {
+            if ( pFinal[i] == pLits[0] )
+                continue;
+            Vec_IntPush( vTemp, pFinal[i] );
+            iVar = Vec_IntFind( vDivVars, Abc_Lit2Var(pFinal[i]) );   assert( iVar >= 0 );
+            //uCube &= Abc_LitIsCompl(pFinal[i]) ? s_Truths6[iVar] : ~s_Truths6[iVar];
+            Vec_IntPush( vSop, Abc_Var2Lit( iVar, !Abc_LitIsCompl(pFinal[i]) ) );
+        }
+        //uTruth |= uCube;
+        Vec_IntPush( vSop, -1 );
+        status = sat_solver_addclause( pSat, Vec_IntArray(vTemp), Vec_IntArray(vTemp) + Vec_IntSize(vTemp) );
+        assert( status );
+        nIter++;
+    }
+    assert( status == l_True );
+    // store the counter-example
+    //for ( i = 0; i < Vec_IntSize(vValues); i++ )
+    //    Vec_IntAddToEntry( vValues, i, sat_solver_var_value(pSat, i) );
+    return 0;
+}
+
+word Sbd_ManSolverSupp( Vec_Int_t * vSop, int * pInds, int * pnVars )
+{
+    word Supp = 0;
+    int i, Entry, nVars = 0;
+    Vec_IntForEachEntry( vSop, Entry, i )
+    {
+        if ( Entry == -1 )
+            continue;
+        assert( Abc_Lit2Var(Entry) < 64 );
+        if ( (Supp >> Abc_Lit2Var(Entry)) & 1 )
+            continue;
+        pInds[Abc_Lit2Var(Entry)] = nVars++;
+        Supp |= (word)1 << Abc_Lit2Var(Entry);
+    }
+    *pnVars = nVars;
+    return Supp;
+}
+void Sbd_ManSolverPrint( Vec_Int_t * vSop )
+{
+    int v, i, Entry, nVars, pInds[64];
+    word Supp = Sbd_ManSolverSupp( vSop, pInds, &nVars );
+    char Cube[65] = {'\0'};
+    assert( Cube[nVars] == '\0' );
+    for ( v = 0; v < nVars; v++ )
+        Cube[v] = '-';
+    Vec_IntForEachEntry( vSop, Entry, i )
+    {
+        if ( Entry == -1 )
+        {
+            printf( "%s\n", Cube );
+            for ( v = 0; v < nVars; v++ )
+                Cube[v] = '-';
+            continue;
+        }
+        Cube[pInds[Abc_Lit2Var(Entry)]] = '1' - (char)Abc_LitIsCompl(Entry);
+    }
+}
+void Sbd_ManSolveSelect( Gia_Man_t * p, Vec_Int_t * vMirrors, int Pivot, Vec_Int_t * vDivVars, Vec_Int_t * vDivValues, Vec_Int_t * vWinObjs, Vec_Int_t * vObj2Var, Vec_Int_t * vTfo, Vec_Int_t * vRoots )
+{
+    Vec_Int_t * vSop = Vec_IntAlloc( 100 );
+    Vec_Int_t * vTemp = Vec_IntAlloc( 100 );
+    sat_solver * pSat = Sbd_ManSatSolver( NULL, p, vMirrors, Pivot, vWinObjs, vObj2Var, vTfo, vRoots, 0 );
+    int PivotVar = Vec_IntEntry(vObj2Var, Pivot);
+    int FreeVar = Vec_IntSize(vWinObjs) + Vec_IntSize(vTfo) + Vec_IntSize(vRoots);
+    int Status = Sbd_ManSolve2( pSat, PivotVar, FreeVar, vDivVars, vDivValues, vTemp, vSop );
+    printf( "Pivot = %4d. Divs = %4d.  ", Pivot, Vec_IntSize(vDivVars) );
+    if ( Status == 0 )
+        printf( "UNSAT.\n" );
+    else
+    {
+        int nVars, pInds[64];
+        word Supp = Sbd_ManSolverSupp( vSop, pInds, &nVars );
+        //Sbd_ManSolverPrint( vSop );
+        printf( "SAT with %d vars and %d cubes.\n", nVars, Vec_IntCountEntry(vSop, -1) );
+    }
+    Vec_IntFree( vTemp );
+    Vec_IntFree( vSop );
+    sat_solver_delete( pSat );
+}
+
 
 /**Function*************************************************************
 

@@ -2763,6 +2763,10 @@ SOURCE=.\src\opt\sbd\sbdInt.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\opt\sbd\sbdLut.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\opt\sbd\sbdSat.c
 # End Source File
 # Begin Source File
