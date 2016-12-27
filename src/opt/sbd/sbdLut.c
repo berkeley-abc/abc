@@ -197,7 +197,7 @@ int Sbd_ProblemSolve( Gia_Man_t * p, Vec_Int_t * vMirrors,
     sat_solver * pSatCec = Sbd_ManSatSolver( NULL, p, vMirrors, Pivot, vWinObjs, vObj2Var, vTfo, vRoots, 1 );
     sat_solver * pSatQbf = sat_solver_new();
 
-    int PivotVar   = Vec_IntEntry(vObj2Var, Pivot);
+    //int PivotVar   = Vec_IntEntry(vObj2Var, Pivot);
 
     int nVars      = Vec_IntSize( vDivSet );
     int nPars      = Sbd_ProblemCountParams( nStrs, pStr0 );

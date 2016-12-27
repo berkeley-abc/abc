@@ -75,6 +75,8 @@ static inline word * Sbd_ObjSim1( Sbd_Man_t * p, int i ) { return Vec_WrdEntryP(
 static inline word * Sbd_ObjSim2( Sbd_Man_t * p, int i ) { return Vec_WrdEntryP( p->vSims[2], p->pPars->nWords * i );         }
 static inline word * Sbd_ObjSim3( Sbd_Man_t * p, int i ) { return Vec_WrdEntryP( p->vSims[3], p->pPars->nWords * i );         }
 
+extern word Sbd_ManSolve( sat_solver * pSat, int PivotVar, int FreeVar, Vec_Int_t * vDivSet, Vec_Int_t * vDivVars, Vec_Int_t * vDivValues, Vec_Int_t * vTemp );
+
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
@@ -975,7 +977,6 @@ int Sbd_ManExplore( Sbd_Man_t * p, int Pivot, word * pTruth )
     int fVerbose = 0;
     abctime clk, clkSat = 0, clkEnu = 0, clkAll = Abc_Clock();
     int nIters, nItersMax = 32;
-    extern word Sbd_ManSolve( sat_solver * pSat, int PivotVar, int FreeVar, Vec_Int_t * vDivSet, Vec_Int_t * vDivVars, Vec_Int_t * vDivValues, Vec_Int_t * vTemp );
 
     word MatrS[64] = {0}, MatrC[2][64] = {{0}}, Cubes[2][2][64] = {{{0}}}, Cover[64] = {0}, Cube, CubeNew[2];
     int i, k, n, Node, Index, nCubes[2] = {0}, nRows = 0, nRowsOld;
@@ -1147,7 +1148,7 @@ int Sbd_ManExplore2( Sbd_Man_t * p, int Pivot, word * pTruth )
     extern int Sbd_ManCollectConstantsNew( sat_solver * pSat, Vec_Int_t * vDivVars, int nConsts, int PivotVar, word * pOnset, word * pOffset );
     abctime clk = Abc_Clock();
     word Onset[64] = {0}, Offset[64] = {0}, Cube;
-    word CoverRows[256] = {0}, CoverCols[64] = {{0}};
+    word CoverRows[64] = {0}, CoverCols[64] = {0};
     int nIters, nItersMax = 32;
     int i, k, nRows = 0;
 
