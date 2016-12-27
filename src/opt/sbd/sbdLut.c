@@ -19,6 +19,7 @@
 ***********************************************************************/
 
 #include "sbdInt.h"
+#include "misc/util/utilTruth.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -46,17 +47,18 @@ int Sbd_ProblemCountParams( int nStrs, Sbd_Str_t * pStr0 )
 {
     Sbd_Str_t * pStr;  int nPars = 0;
     for ( pStr = pStr0; pStr < pStr0 + nStrs; pStr++ )
-        nPars += (pStr->fLut ? 1 << pStr->nVarIns : pStr->nVarIns);
+        nPars += pStr->fLut ? 1 << pStr->nVarIns : pStr->nVarIns;
     return nPars;
 }
 // add clauses for the structure
-void Sbd_ProblemAddClauses( sat_solver * pSat, int nVars, int nStrs, int * pVars, Sbd_Str_t * pStr0 )
+int Sbd_ProblemAddClauses( sat_solver * pSat, int nVars, int nStrs, int * pVars, Sbd_Str_t * pStr0 )
 {   
     // variable order:  inputs, structure outputs, parameters
     Sbd_Str_t * pStr;
     int VarOut = nVars;
     int VarPar = nVars + nStrs;
     int m, k, n, status, pLits[SBD_SIZE_MAX+2];
+//printf( "Start par = %d.  ", VarPar );
     for ( pStr = pStr0; pStr < pStr0 + nStrs; pStr++, VarOut++ )
     {
         if ( pStr->fLut )
@@ -72,12 +74,14 @@ void Sbd_ProblemAddClauses( sat_solver * pSat, int nVars, int nStrs, int * pVars
                     pLits[pStr->nVarIns]   = Abc_Var2Lit( pVars[VarPar], n );
                     pLits[pStr->nVarIns+1] = Abc_Var2Lit( pVars[VarOut], !n );
                     status = sat_solver_addclause( pSat, pLits, pLits + pStr->nVarIns + 2 );
-                    assert( status );
+                    if ( !status )
+                        return 0;
                 }
             }
         }
         else
         {
+            assert( pStr->nVarIns <= SBD_DIV_MAX );
             for ( k = 0; k < pStr->nVarIns; k++, VarPar++ )
             {
                 for ( n = 0; n < 2; n++ )
@@ -86,22 +90,32 @@ void Sbd_ProblemAddClauses( sat_solver * pSat, int nVars, int nStrs, int * pVars
                     pLits[1] = Abc_Var2Lit( pVars[VarOut], n );
                     pLits[2] = Abc_Var2Lit( pVars[pStr->VarIns[k]], !n );
                     status = sat_solver_addclause( pSat, pLits, pLits + 3 );
-                    assert( status );
+                    if ( !status )
+                        return 0;
                 }
             }
         }
     }
+//printf( "Stop par = %d.\n", VarPar );
+    return 1;
 }
 void Sbd_ProblemAddClausesInit( sat_solver * pSat, int nVars, int nStrs, int * pVars, Sbd_Str_t * pStr0 )
 {
     Sbd_Str_t * pStr;
     int VarPar = nVars + nStrs;
-    int m, m2, pLits[2], status;
+    int m, m2, status, pLits[SBD_DIV_MAX];
     // make sure selector parameters are mutually exclusive
-    for ( pStr = pStr0; pStr < pStr0 + nStrs; pStr++, VarPar = pStr->fLut ? 1 << pStr->nVarIns : pStr->nVarIns )
+    for ( pStr = pStr0; pStr < pStr0 + nStrs; VarPar += pStr->fLut ? 1 << pStr->nVarIns : pStr->nVarIns, pStr++ )
     {
         if ( pStr->fLut )
             continue;
+        // one variable should be selected
+        assert( pStr->nVarIns <= SBD_DIV_MAX );
+        for ( m = 0; m < pStr->nVarIns; m++ )
+            pLits[m] = Abc_Var2Lit( pVars[VarPar + m], 0 );
+        status = sat_solver_addclause( pSat, pLits, pLits + pStr->nVarIns );
+        assert( status );
+        // two variables cannot be selected
         for ( m = 0; m < pStr->nVarIns; m++ )
         for ( m2 = m+1; m2 < pStr->nVarIns; m2++ )
         {
@@ -120,15 +134,44 @@ void Sbd_ProblemPrintSolution( int nStrs, Sbd_Str_t * pStr0, Vec_Int_t * vLits )
     for ( pStr = pStr0; pStr < pStr0 + nStrs; pStr++ )
     {
         nIters = pStr->fLut ? 1 << pStr->nVarIns : pStr->nVarIns;
-        printf( "%s%d : ", pStr->fLut ? "LUT":"SEL", pStr-pStr0 );
-        for ( m = 0; m < nIters; m++ )
-            printf( "%d", Abc_LitIsCompl(Vec_IntEntry(vLits, iLit++)) );
-        printf( "\n" );
+        printf( "%s%d : ", pStr->fLut ? "LUT":"SEL", (int)(pStr-pStr0) );
+        for ( m = 0; m < nIters; m++, iLit++ )
+            printf( "%d", !Abc_LitIsCompl(Vec_IntEntry(vLits, iLit)) );
+        printf( "    {" );
+        for ( m = 0; m < pStr->nVarIns; m++ )
+            printf( " %d", pStr->VarIns[m] );
+        printf( " }\n" );
     }
     assert( iLit == Vec_IntSize(vLits) );
 }
-void Sbd_ProblemCollectSolution( int nStrs, Sbd_Str_t * pStr0, Vec_Int_t * vLits, word Truths[SBD_LUTS_MAX] )
+void Sbd_ProblemCollectSolution( int nStrs, Sbd_Str_t * pStr0, Vec_Int_t * vLits )
 {
+    Sbd_Str_t * pStr;
+    int m, nIters, iLit = 0;
+    for ( pStr = pStr0; pStr < pStr0 + nStrs; pStr++ )
+    {
+        pStr->Res = 0;
+        if ( pStr->fLut )
+        {
+            nIters = 1 << pStr->nVarIns;
+            for ( m = 0; m < nIters; m++, iLit++ )
+                if ( !Abc_LitIsCompl(Vec_IntEntry(vLits, iLit)) )
+                    Abc_TtSetBit( &pStr->Res, m );
+            Abc_TtStretch6( &pStr->Res, pStr->nVarIns, 6 );
+        }
+        else
+        {
+            nIters = 0;
+            for ( m = 0; m < pStr->nVarIns; m++, iLit++ )
+                if ( !Abc_LitIsCompl(Vec_IntEntry(vLits, iLit)) )
+                {
+                    pStr->Res = pStr->VarIns[m];
+                    nIters++;
+                }
+            assert( nIters == 1 );
+        }
+    }
+    assert( iLit == Vec_IntSize(vLits) );
 }
 
 /**Function*************************************************************
@@ -145,38 +188,39 @@ void Sbd_ProblemCollectSolution( int nStrs, Sbd_Str_t * pStr0, Vec_Int_t * vLits
 int Sbd_ProblemSolve( Gia_Man_t * p, Vec_Int_t * vMirrors, 
                        int Pivot, Vec_Int_t * vWinObjs, Vec_Int_t * vObj2Var, 
                        Vec_Int_t * vTfo, Vec_Int_t * vRoots, 
-                       Vec_Int_t * vDivSet, int nStrs, Sbd_Str_t * pStr0, word Truths[SBD_LUTS_MAX] )  // divisors, structures
+                       Vec_Int_t * vDivSet, int nStrs, Sbd_Str_t * pStr0 )  // divisors, structures
 {
     extern sat_solver * Sbd_ManSatSolver( sat_solver * pSat, Gia_Man_t * p, Vec_Int_t * vMirrors, int Pivot, Vec_Int_t * vWinObjs, Vec_Int_t * vObj2Var, Vec_Int_t * vTfo, Vec_Int_t * vRoots, int fQbf );
     
+    int fVerbose = 1;
     Vec_Int_t * vLits    = Vec_IntAlloc( 100 );
     sat_solver * pSatCec = Sbd_ManSatSolver( NULL, p, vMirrors, Pivot, vWinObjs, vObj2Var, vTfo, vRoots, 1 );
     sat_solver * pSatQbf = sat_solver_new();
+
+    int PivotVar   = Vec_IntEntry(vObj2Var, Pivot);
 
     int nVars      = Vec_IntSize( vDivSet );
     int nPars      = Sbd_ProblemCountParams( nStrs, pStr0 );
 
     int VarCecOut  = Vec_IntSize(vWinObjs) + Vec_IntSize(vTfo) + Vec_IntSize(vRoots);
-    int VarCecPar  = VarCecOut + 1;
-    int VarCecFree = VarCecPar + nPars;
+    int VarCecPar  = VarCecOut + nStrs;
 
     int VarQbfPar  = 0;
     int VarQbfFree = nPars;
 
     int pVarsCec[256];
     int pVarsQbf[256];
-    int i, iVar, iLit;
+    int i, iVar, iLit, nIters;
     int RetValue = 0;
 
-    assert( Vec_IntSize(vDivSet) <= SBD_SIZE_MAX );
+    assert( Vec_IntSize(vDivSet) <= SBD_DIV_MAX );
     assert( nVars + nStrs + nPars <= 256 );
 
     // collect CEC variables
     Vec_IntForEachEntry( vDivSet, iVar, i )
         pVarsCec[i] = iVar;
-    pVarsCec[nVars] = VarCecOut;
-    for ( i = 1; i < nStrs; i++ )
-        pVarsCec[nVars + i] = VarCecFree++;
+    for ( i = 0; i < nStrs; i++ )
+        pVarsCec[nVars + i] = VarCecOut + i;
     for ( i = 0; i < nPars; i++ )
         pVarsCec[nVars + nStrs + i] = VarCecPar + i;
 
@@ -197,13 +241,24 @@ int Sbd_ProblemSolve( Gia_Man_t * p, Vec_Int_t * vMirrors,
     Vec_IntClear( vLits );
     for ( i = 0; i < nPars; i++ )
         Vec_IntPush( vLits, Abc_Var2Lit(VarCecPar + i, 1) );
-    while ( 1 )
+    for ( nIters = 0; nIters < (1 << nVars); nIters++ )
     {
         // check if these parameters solve the problem
         int status = sat_solver_solve( pSatCec, Vec_IntArray(vLits), Vec_IntLimit(vLits), 0, 0, 0, 0 );
         if ( status == l_False ) // solution found
             break;
         assert( status == l_True );
+//        Vec_IntForEachEntry( vWinObjs, iVar, i )
+//            printf( "Node = %4d.  SatVar = %4d.  Value = %d.\n", iVar, i, sat_solver_var_value(pSatCec, i) );
+
+        if ( fVerbose )
+        {
+            printf( "Iter %3d : ", nIters );
+            for ( i = 0; i < nPars; i++ )
+                printf( "%d", !Abc_LitIsCompl(Vec_IntEntry(vLits, i)) );
+            printf( "    " );
+        }
+
         Vec_IntClear( vLits );
         // create new QBF variables
         for ( i = 0; i < nVars + nStrs; i++ )
@@ -211,15 +266,20 @@ int Sbd_ProblemSolve( Gia_Man_t * p, Vec_Int_t * vMirrors,
         // set their values
         Vec_IntForEachEntry( vDivSet, iVar, i )
         {
-            iLit = Abc_Var2Lit( pVarsQbf[i], sat_solver_var_value(pSatCec, iVar) );
+            iLit = Abc_Var2Lit( pVarsQbf[i], !sat_solver_var_value(pSatCec, iVar) );
             status = sat_solver_addclause( pSatQbf, &iLit, &iLit + 1 );
             assert( status );
+            if ( fVerbose )
+                printf( "%d", sat_solver_var_value(pSatCec, iVar) );
         }
         iLit = Abc_Var2Lit( pVarsQbf[nVars], sat_solver_var_value(pSatCec, VarCecOut) );
         status = sat_solver_addclause( pSatQbf, &iLit, &iLit + 1 );
         assert( status );
+        if ( fVerbose )
+            printf( " %d\n", !sat_solver_var_value(pSatCec, VarCecOut) );
         // add clauses to the QBF problem
-        Sbd_ProblemAddClauses( pSatQbf, nVars, nStrs, pVarsQbf, pStr0 );
+        if ( !Sbd_ProblemAddClauses( pSatQbf, nVars, nStrs, pVarsQbf, pStr0 ) )
+            break; // solution does not exist
         // check if solution still exists
         status = sat_solver_solve( pSatQbf, NULL, NULL, 0, 0, 0, 0 );
         if ( status == l_False ) // solution does not exist
@@ -228,12 +288,12 @@ int Sbd_ProblemSolve( Gia_Man_t * p, Vec_Int_t * vMirrors,
         // find the new values of parameters
         assert( Vec_IntSize(vLits) == 0 );
         for ( i = 0; i < nPars; i++ )
-            Vec_IntPush( vLits, Abc_Var2Lit(VarCecPar + i, sat_solver_var_value(pSatQbf, VarQbfPar + i)) );
+            Vec_IntPush( vLits, Abc_Var2Lit(VarCecPar + i, !sat_solver_var_value(pSatQbf, VarQbfPar + i)) );
     }
     if ( Vec_IntSize(vLits) > 0 )
     {
         Sbd_ProblemPrintSolution( nStrs, pStr0, vLits );
-        Sbd_ProblemCollectSolution( nStrs, pStr0, vLits, Truths );
+        Sbd_ProblemCollectSolution( nStrs, pStr0, vLits );
         RetValue = 1;
     }
     else 

@@ -777,15 +777,15 @@ void Sbd_ManPrintObj( Sbd_Man_t * p, int Pivot )
     }
 }
 
-void Sbd_ManMatrPrint( word Cover[64], int nCol, int nRows )
+void Sbd_ManMatrPrint( Sbd_Man_t * p, word Cover[], int nCol, int nRows )
 {
     int i, k;
     for ( i = 0; i <= nCol; i++ )
     {
         printf( "%2d : ", i );
+        printf( "%d ", i == nCol ? Vec_IntEntry(p->vLutLevs, p->Pivot) : Vec_IntEntry(p->vLutLevs, Vec_IntEntry(p->vWinObjs, Vec_IntEntry(p->vDivVars, i))) );
         for ( k = 0; k < nRows; k++ )
-            for ( k = 0; k < nRows; k++ )
-                printf( "%d", (int)((Cover[i] >> k) & 1) );
+            printf( "%d", (int)((Cover[i] >> k) & 1) );
         printf( "\n"); 
     }
     printf( "\n");
@@ -801,18 +801,18 @@ static inline void Sbd_ManCoverReverseOrder( word Cover[64] )
     }
 }
 
-static inline int Sbd_ManAddCube1( word Cover[64], int nRows, word Cube )
+static inline int Sbd_ManAddCube1( int nRowLimit, word Cover[], int nRows, word Cube )
 {
     int n, m;
     if ( 0 )
     {
         printf( "Adding cube: " );
-        for ( n = 0; n < 64; n++ )
+        for ( n = 0; n < nRowLimit; n++ )
             printf( "%d", (int)((Cube >> n) & 1) );
         printf( "\n" );
     }
     // do not add contained Cube
-    assert( nRows <= 64 );
+    assert( nRows <= nRowLimit );
     for ( n = 0; n < nRows; n++ )
         if ( (Cover[n] & Cube) == Cover[n] ) // Cube is contained
             return nRows;
@@ -820,7 +820,7 @@ static inline int Sbd_ManAddCube1( word Cover[64], int nRows, word Cube )
     for ( n = m = 0; n < nRows; n++ )
         if ( (Cover[n] & Cube) != Cube ) // Cover[n] is not contained
             Cover[m++] = Cover[n];
-    if ( m < 64 )
+    if ( m < nRowLimit )
         Cover[m++] = Cube;
     for ( n = m; n < nRows; n++ )
         Cover[n] = 0;
@@ -855,7 +855,7 @@ static inline int Sbd_ManAddCube2( word Cover[2][64], int nRows, word Cube[2] )
     return nRows;
 }
 
-static inline int Sbd_ManFindCandsSimple( Sbd_Man_t * p, word Cover[64], int nDivs )
+static inline int Sbd_ManFindCandsSimple( Sbd_Man_t * p, word Cover[], int nDivs )
 {
     int c0, c1, c2, c3;
     word Target = Cover[nDivs];
@@ -1052,7 +1052,7 @@ int Sbd_ManExplore( Sbd_Man_t * p, int Pivot, word * pTruth )
     {
         Cube = (Cubes[0][1][i] & Cubes[1][0][k]) | (Cubes[0][0][i] & Cubes[1][1][k]);
         assert( Cube );
-        nRows = Sbd_ManAddCube1( Cover, nRows, Cube );
+        nRows = Sbd_ManAddCube1( 64, Cover, nRows, Cube );
     }
 
     Sbd_ManCoverReverseOrder( Cover );
@@ -1072,7 +1072,7 @@ int Sbd_ManExplore( Sbd_Man_t * p, int Pivot, word * pTruth )
     for ( nIters = 0; nIters < nItersMax && nRows < 64; nIters++ )
     {
         if ( p->pPars->fVerbose )
-            Sbd_ManMatrPrint( Cover, nDivs, nRows );
+            Sbd_ManMatrPrint( p, Cover, nDivs, nRows );
 
         clk = Abc_Clock();
         if ( !Sbd_ManFindCands( p, Cover, nDivs ) )
@@ -1141,10 +1141,123 @@ int Sbd_ManExplore( Sbd_Man_t * p, int Pivot, word * pTruth )
     return RetValue;
 }
 
-int Sbd_ManExplore2( Sbd_Man_t * p, int Pivot, 
-                     int nLuts, int nSels, int nVarsDivs[SBD_LUTS_MAX], 
-                     int pVarsDivs[SBD_LUTS_MAX][SBD_SIZE_MAX], word Truths[SBD_LUTS_MAX] )
+int Sbd_ManExplore2( Sbd_Man_t * p, int Pivot, word * pTruth )
 {
+    extern sat_solver * Sbd_ManSatSolver( sat_solver * pSat, Gia_Man_t * p, Vec_Int_t * vMirrors, int Pivot, Vec_Int_t * vWinObjs, Vec_Int_t * vObj2Var, Vec_Int_t * vTfo, Vec_Int_t * vRoots, int fQbf );
+    extern int Sbd_ManCollectConstantsNew( sat_solver * pSat, Vec_Int_t * vDivVars, int nConsts, int PivotVar, word * pOnset, word * pOffset );
+    abctime clk = Abc_Clock();
+    word Onset[64] = {0}, Offset[64] = {0}, Cube;
+    word CoverRows[256] = {0}, CoverCols[64] = {{0}};
+    int nIters, nItersMax = 32;
+    int i, k, nRows = 0;
+
+    int PivotVar = Vec_IntEntry(p->vObj2Var, Pivot);
+    int FreeVar = Vec_IntSize(p->vWinObjs) + Vec_IntSize(p->vTfo) + Vec_IntSize(p->vRoots);
+    int nDivs = Vec_IntSize( p->vDivVars );
+    int nConsts = 4;
+    int RetValue;
+
+    if ( p->pSat )
+        sat_solver_delete( p->pSat );
+    p->pSat = NULL;
+
+    p->pSat = Sbd_ManSatSolver( p->pSat, p->pGia, p->vMirrors, Pivot, p->vWinObjs, p->vObj2Var, p->vTfo, p->vRoots, 0 );
+    p->timeCnf += Abc_Clock() - clk;
+
+    assert( nConsts <= 8 );
+    RetValue = Sbd_ManCollectConstantsNew( p->pSat, p->vDivVars, nConsts, PivotVar, Onset, Offset );
+    if ( RetValue >= 0 )
+    {
+        if ( p->pPars->fVerbose )
+            printf( "Found stuck-at-%d node %d.\n", RetValue, Pivot );
+        Vec_IntWriteEntry( p->vLutLevs, Pivot, 0 );
+        p->nConsts++;
+        return RetValue;
+    }
+
+    // create rows of the table
+    nRows = 0;
+    for ( i = 0; i < nConsts; i++ )
+    for ( k = 0; k < nConsts; k++ )
+    {
+        Cube = Onset[i] ^ Offset[k];
+        assert( Cube );
+        nRows = Sbd_ManAddCube1( 256, CoverRows, nRows, Cube );
+    }
+    assert( nRows <= 64 );
+    
+    // create columns of the table
+    for ( i = 0; i < nRows; i++ )
+        for ( k = 0; k <= nDivs; k++ )
+            if ( (CoverRows[i] >> k) & 1 )
+                Abc_TtXorBit(&CoverCols[k], i);
+
+    // solve the covering problem
+    for ( nIters = 0; nIters < nItersMax && nRows < 64; nIters++ )
+    {
+        if ( p->pPars->fVerbose )
+            Sbd_ManMatrPrint( p, CoverCols, nDivs, nRows );
+
+        clk = Abc_Clock();
+        if ( !Sbd_ManFindCands( p, CoverCols, nDivs ) )
+        {
+            if ( p->pPars->fVerbose )
+                printf( "Cannot find a feasible cover.\n" );
+            //clkEnu += Abc_Clock() - clk;
+            //clkAll = Abc_Clock() - clkAll - clkSat - clkEnu;
+            //p->timeSat += clkSat;
+            //p->timeCov += clkAll;
+            //p->timeEnu += clkEnu;
+            return 0;
+        }
+        //clkEnu += Abc_Clock() - clk;
+    
+        if ( p->pPars->fVerbose )
+            printf( "Candidate support:  " ),
+            Vec_IntPrint( p->vDivSet );
+
+        clk = Abc_Clock();
+        *pTruth = Sbd_ManSolve( p->pSat, PivotVar, FreeVar+nIters, p->vDivSet, p->vDivVars, p->vDivValues, p->vLits );
+        //clkSat += Abc_Clock() - clk;
+
+        if ( *pTruth == SBD_SAT_UNDEC )
+            printf( "Node %d:  Undecided.\n", Pivot );
+        else if ( *pTruth == SBD_SAT_SAT )
+        {
+            if ( p->pPars->fVerbose )
+            {
+                int i;
+                printf( "Node %d:  SAT.\n", Pivot );
+                for ( i = 0; i < nDivs; i++ )
+                    printf( "%d", Vec_IntEntry(p->vLutLevs, Vec_IntEntry(p->vWinObjs, Vec_IntEntry(p->vDivVars, i))) );
+                printf( "\n" );
+                for ( i = 0; i < nDivs; i++ )
+                    printf( "%d", i % 10 );
+                printf( "\n" );
+                for ( i = 0; i < nDivs; i++ )
+                    printf( "%c", (Vec_IntEntry(p->vDivValues, i) & 0x4) ? '0' + (Vec_IntEntry(p->vDivValues, i) & 1) : 'x' );
+                printf( "\n" );
+                for ( i = 0; i < nDivs; i++ )
+                    printf( "%c", (Vec_IntEntry(p->vDivValues, i) & 0x8) ? '0' + ((Vec_IntEntry(p->vDivValues, i) >> 1) & 1) : 'x' );
+                printf( "\n" );
+            }
+            // add row to the covering table
+            for ( i = 0; i < nDivs; i++ )
+                if ( Vec_IntEntry(p->vDivValues, i) == 0xE || Vec_IntEntry(p->vDivValues, i) == 0xD )
+                    CoverCols[i] |= ((word)1 << nRows);
+            CoverCols[nDivs] |= ((word)1 << nRows);
+            nRows++;
+        }
+        else
+        {
+            if ( p->pPars->fVerbose )
+            {
+                printf( "Node %d:  UNSAT.   ", Pivot );
+                Extra_PrintBinary( stdout, (unsigned *)pTruth, 1 << Vec_IntSize(p->vDivSet) ), printf( "\n" );
+            }
+            return 1;
+        }
+    }
     return 0;
 }
 
@@ -1465,7 +1578,7 @@ void Sbd_NtkPerformOne( Sbd_Man_t * p, int Pivot )
     if ( Sbd_ManMergeCuts( p, Pivot ) )
         return;
 
-//    if ( Pivot != 13 )
+//    if ( Pivot != 70 )
 //        return;
 
     if ( p->pPars->fVerbose )
@@ -1481,7 +1594,7 @@ void Sbd_NtkPerformOne( Sbd_Man_t * p, int Pivot )
         Vec_IntWriteEntry( p->vMirrors, Pivot, RetValue );
         //printf( "    --> Pivot %4d.  Constant %d.\n", Pivot, RetValue );
     }
-    else if ( Sbd_ManExplore( p, Pivot, &Truth ) )
+    else if ( Sbd_ManExplore2( p, Pivot, &Truth ) )
     {
         Sbd_ManImplement( p, Pivot, Truth );
         //printf( "    --> Pivot %4d.  Supp %d.\n", Pivot, Vec_IntSize(p->vDivSet) );
@@ -1493,26 +1606,23 @@ void Sbd_NtkPerformOne( Sbd_Man_t * p, int Pivot )
                                        Gia_Man_t * p, Vec_Int_t * vMirrors, 
                                        int Pivot, Vec_Int_t * vWinObjs, Vec_Int_t * vObj2Var, 
                                        Vec_Int_t * vTfo, Vec_Int_t * vRoots, 
-                                       Vec_Int_t * vDivSet, int nStrs, Sbd_Str_t * pStr0, word Truths[SBD_LUTS_MAX] 
+                                       Vec_Int_t * vDivSet, int nStrs, Sbd_Str_t * pStr0 
                                    );
 
-        Sbd_Str_t Strs[2] = {
-            {1, 4, {0, 1, 2, 7}},
-            {1, 4, {3, 4, 5, 6}}
-        };
-
-        word Truths[SBD_LUTS_MAX];
+//        Sbd_Str_t Strs[2] = {   {1, 4, {0, 1, 2, 8}},   {1, 4, {3, 4, 5, 6}}    };
+//        Sbd_Str_t Strs[2] = {   {1, 4, {1, 4, 5, 7}},   {1, 4, {0, 1, 2, 3}}    };
+        Sbd_Str_t Strs[3] = {   {1, 4, {8, 4, 5, 7}},   {1, 4, {0, 1, 2, 3}},   {0, 4, {0, 1, 2, 3}}    };
 
         Vec_Int_t * vDivSet = Vec_IntAlloc( 8 );
 
         int i, RetValue;
         
-        for ( i = 0; i < 7; i++ )
+        for ( i = 0; i < 6; i++ )
             Vec_IntPush( vDivSet, i+1 );
 
         RetValue = Sbd_ProblemSolve( p->pGia, p->vMirrors, 
                                      Pivot, p->vWinObjs, p->vObj2Var, p->vTfo, p->vRoots,
-                                     vDivSet, 2, Strs, Truths );
+                                     vDivSet, 3, Strs );
         if ( RetValue )
         {
             printf( "Solving succeded.\n" );

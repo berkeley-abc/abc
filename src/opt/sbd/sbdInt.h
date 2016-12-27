@@ -66,6 +66,7 @@ struct Sbd_Str_t_
     int               fLut;                 // LUT or SEL
     int               nVarIns;              // input count
     int               VarIns[SBD_DIV_MAX];  // input vars
+    word              Res;                  // result of solving
 };
 
 ////////////////////////////////////////////////////////////////////////

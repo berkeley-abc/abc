@@ -141,6 +141,17 @@ sat_solver * Sbd_ManSatSolver( sat_solver * pSat, Gia_Man_t * p, Vec_Int_t * vMi
         }
         assert( sat_solver_nvars(pSat) == nVars + nAddVars );
     }
+    else if ( fQbf )
+    {
+        int n, pLits[2];
+        for ( n = 0; n < 2; n++ )
+        {
+            pLits[0] = Abc_Var2Lit( PivotVar, n );
+            pLits[1] = Abc_Var2Lit( LastVar, n );
+            RetValue = sat_solver_addclause( pSat, pLits, pLits + 2 );
+            assert( RetValue );
+        }
+    }
     // finalize
     RetValue = sat_solver_simplify( pSat );
     if ( RetValue == 0 )
@@ -414,6 +425,30 @@ int Sbd_ManCollectConstants( sat_solver * pSat, int nCareMints[2], int PivotVar,
         for ( k = 0; k <= PivotVar; k++ )
             if ( Abc_TtGetBit(pVarSims[k], Ind) != sat_solver_var_value(pSat, k) )
                 Abc_TtXorBit(pVarSims[k], Ind);
+    }
+    return -1;
+}
+
+int Sbd_ManCollectConstantsNew( sat_solver * pSat, Vec_Int_t * vDivVars, int nConsts, int PivotVar, word * pOnset, word * pOffset )
+{
+    int nBTLimit = 0;
+    int n, i, k, status, iLit, iVar; 
+    word * pPats[2] = {pOnset, pOffset};
+    assert( Vec_IntSize(vDivVars) < 64 );
+    for ( n = 0; n < 2; n++ )
+    for ( i = 0; i < nConsts; i++ )
+    {
+        sat_solver_random_polarity( pSat );
+        iLit = Abc_Var2Lit( PivotVar, n );
+        status = sat_solver_solve( pSat, &iLit, &iLit + 1, nBTLimit, 0, 0, 0 );
+        if ( status == l_Undef )
+            return -2;
+        if ( status == l_False )
+            return n;
+        pPats[n][i] = ((word)!n) << Vec_IntSize(vDivVars);
+        Vec_IntForEachEntry( vDivVars, iVar, k )
+            if ( sat_solver_var_value(pSat, iVar) )
+                Abc_TtXorBit(&pPats[n][i], k);
     }
     return -1;
 }
