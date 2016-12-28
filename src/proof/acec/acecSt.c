@@ -21,6 +21,8 @@
 #include "acecInt.h"
 #include "misc/vec/vecWec.h"
 #include "misc/extra/extra.h"
+#include "aig/aig/aig.h"
+#include "opt/dar/dar.h"
 
 ABC_NAMESPACE_IMPL_START
 
