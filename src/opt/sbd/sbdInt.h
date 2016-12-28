@@ -60,6 +60,8 @@ ABC_NAMESPACE_HEADER_START
 ///                         BASIC TYPES                              ///
 ////////////////////////////////////////////////////////////////////////
 
+typedef struct Sbd_Sto_t_ Sbd_Sto_t;
+
 typedef struct Sbd_Str_t_ Sbd_Str_t;
 struct Sbd_Str_t_
 {
@@ -78,7 +80,14 @@ struct Sbd_Str_t_
 ///                    FUNCTION DECLARATIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
-/*=== sbdCnf.c ==========================================================*/
+/*=== sbdCut.c ==========================================================*/
+extern Sbd_Sto_t * Sbd_StoAlloc( Gia_Man_t * pGia, Vec_Int_t * vMirrors, int nLutSize, int nCutSize, int nCutNum, int fCutMin, int fVerbose );
+extern void        Sbd_StoFree( Sbd_Sto_t * p );
+extern void        Sbd_StoRefObj( Sbd_Sto_t * p, int iObj, int iMirror );
+extern void        Sbd_StoDefefObj( Sbd_Sto_t * p, int iObj );
+extern void        Sbd_StoComputeCutsObj( Sbd_Sto_t * p, int iObj, int Delay, int Level );
+extern void        Sbd_StoComputeCutsCi( Sbd_Sto_t * p, int iObj, int Delay, int Level );
+extern int         Sbd_StoComputeCutsNode( Sbd_Sto_t * p, int iObj );
 
 ABC_NAMESPACE_HEADER_END
 
