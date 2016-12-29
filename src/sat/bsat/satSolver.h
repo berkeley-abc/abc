@@ -229,7 +229,12 @@ static void sat_solver_compress(sat_solver* s)
         (void) RetValue;
     }
 }
-
+static void sat_solver_delete_p( sat_solver ** ps )
+{
+    if ( *ps )
+        sat_solver_delete( *ps );
+    *ps = NULL;
+}
 static void sat_solver_clean_polarity(sat_solver* s, int * pVars, int nVars )
 {
     int i;

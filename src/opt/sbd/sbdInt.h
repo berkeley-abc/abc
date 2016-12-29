@@ -54,7 +54,7 @@ ABC_NAMESPACE_HEADER_START
 
 #define SBD_LUTS_MAX  2
 #define SBD_SIZE_MAX  4
-#define SBD_DIV_MAX   7
+#define SBD_DIV_MAX   8
 
 ////////////////////////////////////////////////////////////////////////
 ///                         BASIC TYPES                              ///
@@ -88,6 +88,8 @@ extern void        Sbd_StoDefefObj( Sbd_Sto_t * p, int iObj );
 extern void        Sbd_StoComputeCutsObj( Sbd_Sto_t * p, int iObj, int Delay, int Level );
 extern void        Sbd_StoComputeCutsCi( Sbd_Sto_t * p, int iObj, int Delay, int Level );
 extern int         Sbd_StoComputeCutsNode( Sbd_Sto_t * p, int iObj );
+extern int         Sbd_StoObjBestCut( Sbd_Sto_t * p, int iObj, int * pLeaves );
+
 
 ABC_NAMESPACE_HEADER_END
 
