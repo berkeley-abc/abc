@@ -41010,7 +41010,7 @@ int Abc_CommandAbc9Mfsd( Abc_Frame_t * pAbc, int argc, char ** argv )
     Sbd_Par_t Pars, * pPars = &Pars;
     Sbd_ParSetDefault( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "KWFMCacvwh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "KSWFMCacvwh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -41023,6 +41023,17 @@ int Abc_CommandAbc9Mfsd( Abc_Frame_t * pAbc, int argc, char ** argv )
             pPars->nLutSize = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
             if ( pPars->nLutSize < 0 )
+                goto usage;
+            break;
+        case 'S':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-S\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nLutNum = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nLutNum < 0 )
                 goto usage;
             break;
         case 'W':
@@ -41107,9 +41118,10 @@ int Abc_CommandAbc9Mfsd( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &mfsd [-KWFMC <num>] [-acvwh]\n" );
+    Abc_Print( -2, "usage: &mfsd [-KSWFMC <num>] [-acvwh]\n" );
     Abc_Print( -2, "\t           performs SAT-based delay-oriented AIG optimization\n" );
     Abc_Print( -2, "\t-K <num> : the LUT size for delay minimization (2 <= num <= 6) [default = %d]\n",         pPars->nLutSize );
+    Abc_Print( -2, "\t-S <num> : the LUT structure size (1 <= num <= 2) [default = %d]\n",                      pPars->nLutNum );
     Abc_Print( -2, "\t-W <num> : the number of levels in the TFO cone (0 <= num) [default = %d]\n",             pPars->nTfoLevels );
     Abc_Print( -2, "\t-F <num> : the max number of fanouts to skip (1 <= num) [default = %d]\n",                pPars->nTfoFanMax );
     Abc_Print( -2, "\t-M <num> : the max node count of windows to consider (0 = no limit) [default = %d]\n",    pPars->nWinSizeMax );

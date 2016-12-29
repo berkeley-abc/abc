@@ -40,8 +40,9 @@ struct Sbd_Cut_t_
     int             iFunc;                     // functionality
     int             Cost;                      // cut cost
     int             CostLev;                   // cut cost
-    unsigned        nSlowLeaves  : 14;         // slow leaves
-    unsigned        nTreeLeaves  : 14;         // tree leaves
+    unsigned        nTreeLeaves  :  9;         // tree leaves
+    unsigned        nSlowLeaves  :  9;         // slow leaves
+    unsigned        nTopLeaves   : 10;         // top leaves
     unsigned        nLeaves      :  4;         // leaf count
     int             pLeaves[SBD_MAX_CUTSIZE];  // leaves
 };
@@ -442,13 +443,6 @@ static inline int Sbd_CutCountBits( word i )
     i = ((i + (i >> 4)) & 0x0F0F0F0F0F0F0F0F);
     return (i*(0x0101010101010101))>>56;
 }
-static inline int Sbd_CutSlowLeaves( Sbd_Sto_t * p, int iObj, Sbd_Cut_t * pCut )
-{
-    int i, Count = 0, Delay = Vec_IntEntry(p->vDelays, iObj);
-    for ( i = 0; i < (int)pCut->nLeaves; i++ )
-        Count += (Vec_IntEntry(p->vDelays, pCut->pLeaves[i]) - Delay >= -1);
-    return Count;
-}
 static inline int Sbd_CutCost( Sbd_Sto_t * p, Sbd_Cut_t * pCut )
 {
     int i, Cost = 0;
@@ -470,6 +464,20 @@ static inline int Sbd_CutTreeLeaves( Sbd_Sto_t * p, Sbd_Cut_t * pCut )
         Cost += Vec_IntEntry( p->vRefs, pCut->pLeaves[i] ) == 1;
     return Cost;
 }
+static inline int Sbd_CutSlowLeaves( Sbd_Sto_t * p, int iObj, Sbd_Cut_t * pCut )
+{
+    int i, Count = 0, Delay = Vec_IntEntry(p->vDelays, iObj);
+    for ( i = 0; i < (int)pCut->nLeaves; i++ )
+        Count += (Vec_IntEntry(p->vDelays, pCut->pLeaves[i]) - Delay >= -1);
+    return Count;
+}
+static inline int Sbd_CutTopLeaves( Sbd_Sto_t * p, int iObj, Sbd_Cut_t * pCut )
+{
+    int i, Count = 0, Delay = Vec_IntEntry(p->vDelays, iObj);
+    for ( i = 0; i < (int)pCut->nLeaves; i++ )
+        Count += (Vec_IntEntry(p->vDelays, pCut->pLeaves[i]) - Delay == -2);
+    return Count;
+}
 static inline void Sbd_CutAddUnit( Sbd_Sto_t * p, int iObj )
 {
     Vec_Int_t * vThis = Vec_WecEntry( p->vCuts, iObj );
@@ -480,6 +488,14 @@ static inline void Sbd_CutAddUnit( Sbd_Sto_t * p, int iObj )
     Vec_IntPush( vThis, 1 );
     Vec_IntPush( vThis, iObj );
     Vec_IntPush( vThis, 2 );
+}
+static inline void Sbd_CutAddZero( Sbd_Sto_t * p, int iObj )
+{
+    Vec_Int_t * vThis = Vec_WecEntry( p->vCuts, iObj );
+    assert( Vec_IntSize(vThis) == 0 );
+    Vec_IntPush( vThis, 1 );
+    Vec_IntPush( vThis, 0 );
+    Vec_IntPush( vThis, 0 );
 }
 static inline int Sbd_StoPrepareSet( Sbd_Sto_t * p, int iObj, int Index )
 {
@@ -495,8 +511,9 @@ static inline int Sbd_StoPrepareSet( Sbd_Sto_t * p, int iObj, int Index )
         pCutTemp->Sign = Sbd_CutGetSign( pCutTemp );
         pCutTemp->Cost = Sbd_CutCost( p, pCutTemp );
         pCutTemp->CostLev = Sbd_CutCostLev( p, pCutTemp );
-        pCutTemp->nSlowLeaves = Sbd_CutSlowLeaves( p, iObj, pCutTemp );
         pCutTemp->nTreeLeaves = Sbd_CutTreeLeaves( p, pCutTemp );
+        pCutTemp->nSlowLeaves = Sbd_CutSlowLeaves( p, iObj, pCutTemp );
+        pCutTemp->nTopLeaves  = Sbd_CutTopLeaves( p, iObj, pCutTemp );
     }
     return pList[0];
 }
@@ -542,6 +559,7 @@ static inline void Sbd_StoComputeSpec( Sbd_Sto_t * p, int iObj, Sbd_Cut_t ** pCu
     int i;
     for ( i = 0; i < nCuts; i++ )
     {
+        pCuts[i]->nTopLeaves  = Sbd_CutTopLeaves( p, iObj, pCuts[i] );
         pCuts[i]->nSlowLeaves = Sbd_CutSlowLeaves( p, iObj, pCuts[i] );
         p->nCutsSpec += (pCuts[i]->nSlowLeaves == 0);
     }
@@ -555,8 +573,8 @@ static inline void Sbd_CutPrint( Sbd_Sto_t * p, int iObj, Sbd_Cut_t * pCut )
         printf( " %*d", nDigits, pCut->pLeaves[i] );
     for ( ; i < (int)p->nCutSize; i++ )
         printf( " %*s", nDigits, " " );
-    printf( "  }  Cost = %3d  CostL = %3d  Slow = %d  Tree = %d  ", 
-        pCut->Cost, pCut->CostLev, pCut->nSlowLeaves, pCut->nTreeLeaves );
+    printf( "  }  Cost = %3d  CostL = %3d  Tree = %d  Slow = %d  Top = %d  ", 
+        pCut->Cost, pCut->CostLev, pCut->nTreeLeaves, pCut->nSlowLeaves, pCut->nTopLeaves );
     printf( "%c ", pCut->nSlowLeaves == 0 ? '*' : ' ' );
     for ( i = 0; i < (int)pCut->nLeaves; i++ )
         printf( "%3d ", Vec_IntEntry(p->vDelays, pCut->pLeaves[i]) - Delay );
@@ -607,7 +625,7 @@ void Sbd_StoMergeCuts( Sbd_Sto_t * p, int iObj )
     p->nCutsR = nCutsR;
     p->Pivot = iObj;
     // debug printout
-    if ( 1 )
+    if ( 0 )
     {
         printf( "*** Obj = %4d  Delay = %4d  NumCuts = %4d\n", iObj, Vec_IntEntry(p->vDelays, iObj), nCutsR );
         for ( i = 0; i < nCutsR; i++ )
@@ -687,6 +705,11 @@ void Sbd_StoComputeCutsObj( Sbd_Sto_t * p, int iObj, int Delay, int Level )
         Vec_WecPushLevel( p->vCuts );
     }
 }
+void Sbd_StoComputeCutsConst0( Sbd_Sto_t * p, int iObj )
+{
+    Sbd_StoComputeCutsObj( p, iObj, 0, 0 );
+    Sbd_CutAddZero( p, iObj );
+}
 void Sbd_StoComputeCutsCi( Sbd_Sto_t * p, int iObj, int Delay, int Level )
 {
     Sbd_StoComputeCutsObj( p, iObj, Delay, Level );
@@ -732,11 +755,14 @@ int Sbd_StoObjBestCut( Sbd_Sto_t * p, int iObj, int * pLeaves )
     Sbd_Cut_t * pCutBest = NULL;   int i;
     assert( p->Pivot == iObj );
     for ( i = 0; i < p->nCutsR; i++ )
-    {
-        if ( (int)p->ppCuts[i]->nLeaves > p->nLutSize && (pCutBest == NULL || Sbd_CutCompare2(pCutBest, p->ppCuts[i]) == 1) )
+        if ( (int)p->ppCuts[i]->nLeaves > p->nLutSize && 
+             (int)p->ppCuts[i]->nSlowLeaves == 0 &&
+             (int)p->ppCuts[i]->nTopLeaves <= p->nLutSize-1 &&
+             (pCutBest == NULL || Sbd_CutCompare2(pCutBest, p->ppCuts[i]) == 1) )
             pCutBest = p->ppCuts[i];
-    }
-Sbd_CutPrint( p, iObj, pCutBest );
+    if ( pCutBest == NULL )
+        return -1;
+//Sbd_CutPrint( p, iObj, pCutBest );
     assert( pCutBest->nLeaves <= SBD_DIV_MAX );
     for ( i = 0; i < (int)pCutBest->nLeaves; i++ )
         pLeaves[i] = pCutBest->pLeaves[i];
@@ -751,7 +777,7 @@ void Sbd_StoComputeCutsTest( Gia_Man_t * pGia )
     Gia_ManForEachObj( p->pGia, pObj, iObj )
         Sbd_StoRefObj( p, iObj, -1 );
     // compute cuts
-    Sbd_StoComputeCutsObj( p, 0, 0, 0 );
+    Sbd_StoComputeCutsConst0( p, 0 );
     Gia_ManForEachCiId( p->pGia, iObj, i )
         Sbd_StoComputeCutsCi( p, iObj, 0, 0 );
     Gia_ManForEachAnd( p->pGia, pObj, iObj )

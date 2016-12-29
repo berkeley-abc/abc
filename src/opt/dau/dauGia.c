@@ -241,7 +241,7 @@ int Dau_DsdBalance( Gia_Man_t * pGia, int * pFans, int nFans, int fAnd )
     if ( pGia->pHTable == NULL )
     {
         if ( fAnd )
-            iFan = Gia_ManAppendAnd( pGia, iFan0, iFan1 );
+            iFan = Gia_ManAppendAnd2( pGia, iFan0, iFan1 );
         else if ( pGia->pMuxes )
         {
             int fCompl = Abc_LitIsCompl(iFan0) ^ Abc_LitIsCompl(iFan1);

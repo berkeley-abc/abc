@@ -84,7 +84,8 @@ struct Sbd_Str_t_
 extern Sbd_Sto_t * Sbd_StoAlloc( Gia_Man_t * pGia, Vec_Int_t * vMirrors, int nLutSize, int nCutSize, int nCutNum, int fCutMin, int fVerbose );
 extern void        Sbd_StoFree( Sbd_Sto_t * p );
 extern void        Sbd_StoRefObj( Sbd_Sto_t * p, int iObj, int iMirror );
-extern void        Sbd_StoDefefObj( Sbd_Sto_t * p, int iObj );
+extern void        Sbd_StoDerefObj( Sbd_Sto_t * p, int iObj );
+extern void        Sbd_StoComputeCutsConst0( Sbd_Sto_t * p, int iObj );
 extern void        Sbd_StoComputeCutsObj( Sbd_Sto_t * p, int iObj, int Delay, int Level );
 extern void        Sbd_StoComputeCutsCi( Sbd_Sto_t * p, int iObj, int Delay, int Level );
 extern int         Sbd_StoComputeCutsNode( Sbd_Sto_t * p, int iObj );

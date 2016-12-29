@@ -157,7 +157,7 @@ void Sbd_ProblemCollectSolution( int nStrs, Sbd_Str_t * pStr0, Vec_Int_t * vLits
             for ( m = 0; m < nIters; m++, iLit++ )
                 if ( !Abc_LitIsCompl(Vec_IntEntry(vLits, iLit)) )
                     Abc_TtSetBit( &pStr->Res, m );
-            Abc_TtStretch6( &pStr->Res, pStr->nVarIns, 6 );
+            pStr->Res = Abc_Tt6Stretch( pStr->Res, pStr->nVarIns );
         }
         else
         {
@@ -192,12 +192,11 @@ int Sbd_ProblemSolve( Gia_Man_t * p, Vec_Int_t * vMirrors,
 {
     extern sat_solver * Sbd_ManSatSolver( sat_solver * pSat, Gia_Man_t * p, Vec_Int_t * vMirrors, int Pivot, Vec_Int_t * vWinObjs, Vec_Int_t * vObj2Var, Vec_Int_t * vTfo, Vec_Int_t * vRoots, int fQbf );
     
-    int fVerbose = 1;
+    int fVerbose = 0;
+    abctime clk = Abc_Clock();
     Vec_Int_t * vLits    = Vec_IntAlloc( 100 );
     sat_solver * pSatCec = Sbd_ManSatSolver( NULL, p, vMirrors, Pivot, vWinObjs, vObj2Var, vTfo, vRoots, 1 );
     sat_solver * pSatQbf = sat_solver_new();
-
-    //int PivotVar   = Vec_IntEntry(vObj2Var, Pivot);
 
     int nVars      = Vec_IntSize( vDivSet );
     int nPars      = Sbd_ProblemCountParams( nStrs, pStr0 );
@@ -248,8 +247,6 @@ int Sbd_ProblemSolve( Gia_Man_t * p, Vec_Int_t * vMirrors,
         if ( status == l_False ) // solution found
             break;
         assert( status == l_True );
-//        Vec_IntForEachEntry( vWinObjs, iVar, i )
-//            printf( "Node = %4d.  SatVar = %4d.  Value = %d.\n", iVar, i, sat_solver_var_value(pSatCec, i) );
 
         if ( fVerbose )
         {
@@ -292,16 +289,16 @@ int Sbd_ProblemSolve( Gia_Man_t * p, Vec_Int_t * vMirrors,
     }
     if ( Vec_IntSize(vLits) > 0 )
     {
-        Sbd_ProblemPrintSolution( nStrs, pStr0, vLits );
+        //Sbd_ProblemPrintSolution( nStrs, pStr0, vLits );
         Sbd_ProblemCollectSolution( nStrs, pStr0, vLits );
         RetValue = 1;
     }
-    else 
-        printf( "Solution does not exist.\n" );
-
     sat_solver_delete( pSatCec );
     sat_solver_delete( pSatQbf );
     Vec_IntFree( vLits );
+
+    if ( fVerbose )
+        Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     return RetValue;
 }
 

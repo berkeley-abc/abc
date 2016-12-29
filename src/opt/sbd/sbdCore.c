@@ -1,12 +1,12 @@
 /**CFile****************************************************************
 
-  FileName    [sbd.c]
+  FileName    [sbdCore.c]
 
   SystemName  [ABC: Logic synthesis and verification system.]
 
   PackageName [SAT-based optimization using internal don't-cares.]
 
-  Synopsis    []
+  Synopsis    [Core procedures.]
 
   Author      [Alan Mishchenko]
   
@@ -14,7 +14,7 @@
 
   Date        [Ver. 1.0. Started - June 20, 2005.]
 
-  Revision    [$Id: sbd.c,v 1.00 2005/06/20 00:00:00 alanmi Exp $]
+  Revision    [$Id: sbdCore.c,v 1.00 2005/06/20 00:00:00 alanmi Exp $]
 
 ***********************************************************************/
 
@@ -30,7 +30,6 @@ ABC_NAMESPACE_IMPL_START
 
 #define SBD_MAX_LUTSIZE 6
 
-
 typedef struct Sbd_Man_t_ Sbd_Man_t;
 struct Sbd_Man_t_
 {
@@ -44,13 +43,13 @@ struct Sbd_Man_t_
     Vec_Int_t *     vCover;      // temporary
     Vec_Int_t *     vLits;       // temporary
     Vec_Int_t *     vLits2;      // temporary
-    int             nConsts;     // constants
-    int             nChanges;    // changes
+    int             nLuts[3];    // 0=const, 1=1lut, 2=2lut
     abctime         timeWin;
     abctime         timeCnf;
     abctime         timeSat;
     abctime         timeCov;
     abctime         timeEnu;
+    abctime         timeQbf;
     abctime         timeOther;
     abctime         timeTotal;
     Sbd_Sto_t *     pSto;
@@ -98,6 +97,7 @@ void Sbd_ParSetDefault( Sbd_Par_t * pPars )
 {
     memset( pPars, 0, sizeof(Sbd_Par_t) );
     pPars->nLutSize     = 4;  // target LUT size
+    pPars->nLutNum      = 2;  // target LUT count
     pPars->nTfoLevels   = 2;  // the number of TFO levels (windowing)
     pPars->nTfoFanMax   = 4;  // the max number of fanouts (windowing)
     pPars->nWinSizeMax  = 0;  // maximum window size (windowing)
@@ -489,24 +489,26 @@ int Sbd_ManWindow( Sbd_Man_t * p, int Pivot )
 ***********************************************************************/
 int Sbd_ManCheckConst( Sbd_Man_t * p, int Pivot )
 {
+    extern int Sbd_ManCollectConstants( sat_solver * pSat, int nCareMints[2], int PivotVar, word * pVarSims[], Vec_Int_t * vInds );
+    extern sat_solver * Sbd_ManSatSolver( sat_solver * pSat, Gia_Man_t * p, Vec_Int_t * vMirrors, int Pivot, Vec_Int_t * vWinObjs, Vec_Int_t * vObj2Var, Vec_Int_t * vTfo, Vec_Int_t * vRoots, int fQbf );
     extern void Sbd_ManPrintObj( Sbd_Man_t * p, int Pivot );
+
     int nMintCount = 1;
     Vec_Ptr_t * vSims;
     word * pSims = Sbd_ObjSim0( p, Pivot );
     word * pCtrl = Sbd_ObjSim2( p, Pivot );
     int PivotVar = Vec_IntEntry(p->vObj2Var, Pivot);
     int RetValue, i, iObj, Ind, fFindOnset, nCares[2] = {0};
+
     abctime clk = Abc_Clock();
-    extern int Sbd_ManCollectConstants( sat_solver * pSat, int nCareMints[2], int PivotVar, word * pVarSims[], Vec_Int_t * vInds );
-    extern sat_solver * Sbd_ManSatSolver( sat_solver * pSat, Gia_Man_t * p, Vec_Int_t * vMirrors, int Pivot, Vec_Int_t * vWinObjs, Vec_Int_t * vObj2Var, Vec_Int_t * vTfo, Vec_Int_t * vRoots, int fQbf );
     p->pSat = Sbd_ManSatSolver( p->pSat, p->pGia, p->vMirrors, Pivot, p->vWinObjs, p->vObj2Var, p->vTfo, p->vRoots, 0 );
     p->timeCnf += Abc_Clock() - clk;
     if ( p->pSat == NULL )
     {
-        if ( p->pPars->fVerbose )
-            printf( "Found stuck-at-%d node %d.\n", 0, Pivot );
+        //if ( p->pPars->fVerbose )
+        //    printf( "Found stuck-at-%d node %d.\n", 0, Pivot );
         Vec_IntWriteEntry( p->vLutLevs, Pivot, 0 );
-        p->nConsts++;
+        p->nLuts[0]++;
         return 0;
     }
     //return -1;
@@ -526,7 +528,7 @@ int Sbd_ManCheckConst( Sbd_Man_t * p, int Pivot )
     nCares[0] = nCares[0] < nMintCount ? nMintCount - nCares[0] : 0;
     nCares[1] = nCares[1] < nMintCount ? nMintCount - nCares[1] : 0;
 
-    if ( p->pPars->fVerbose )
+    if ( p->pPars->fVeryVerbose )
         printf( "Computing %d offset and %d onset minterms for node %d.\n", nCares[0], nCares[1], Pivot );
 
     if ( Vec_IntSize(p->vLits) >= nCares[0] + nCares[1] )
@@ -565,10 +567,10 @@ int Sbd_ManCheckConst( Sbd_Man_t * p, int Pivot )
     Vec_PtrFree( vSims );
     if ( RetValue >= 0 )
     {
-        if ( p->pPars->fVerbose )
+        if ( p->pPars->fVeryVerbose )
             printf( "Found stuck-at-%d node %d.\n", RetValue, Pivot );
         Vec_IntWriteEntry( p->vLutLevs, Pivot, 0 );
-        p->nConsts++;
+        p->nLuts[0]++;
         return RetValue;
     }
     // set controlability of these minterms
@@ -1153,7 +1155,7 @@ int Sbd_ManExplore2( Sbd_Man_t * p, int Pivot, word * pTruth )
 {
     extern sat_solver * Sbd_ManSatSolver( sat_solver * pSat, Gia_Man_t * p, Vec_Int_t * vMirrors, int Pivot, Vec_Int_t * vWinObjs, Vec_Int_t * vObj2Var, Vec_Int_t * vTfo, Vec_Int_t * vRoots, int fQbf );
     extern int Sbd_ManCollectConstantsNew( sat_solver * pSat, Vec_Int_t * vDivVars, int nConsts, int PivotVar, word * pOnset, word * pOffset );
-    abctime clk = Abc_Clock();
+    abctime clk, clkSat = 0, clkEnu = 0, clkAll;
     word Onset[64] = {0}, Offset[64] = {0}, Cube;
     word CoverRows[64] = {0}, CoverCols[64] = {0};
     int nIters, nItersMax = 32;
@@ -1165,20 +1167,25 @@ int Sbd_ManExplore2( Sbd_Man_t * p, int Pivot, word * pTruth )
     int nConsts = 4;
     int RetValue;
 
-    sat_solver_delete_p( &p->pSat );
+    clk = Abc_Clock();
+    //sat_solver_delete_p( &p->pSat );
     p->pSat = Sbd_ManSatSolver( p->pSat, p->pGia, p->vMirrors, Pivot, p->vWinObjs, p->vObj2Var, p->vTfo, p->vRoots, 0 );
     p->timeCnf += Abc_Clock() - clk;
+    clkAll = Abc_Clock();
 
     assert( nConsts <= 8 );
+    clk = Abc_Clock();
     RetValue = Sbd_ManCollectConstantsNew( p->pSat, p->vDivVars, nConsts, PivotVar, Onset, Offset );
+    clkSat += Abc_Clock() - clk;
     if ( RetValue >= 0 )
     {
-        if ( p->pPars->fVerbose )
+        if ( p->pPars->fVeryVerbose )
             printf( "Found stuck-at-%d node %d.\n", RetValue, Pivot );
         Vec_IntWriteEntry( p->vLutLevs, Pivot, 0 );
-        p->nConsts++;
+        p->nLuts[0]++;
         return RetValue;
     }
+    RetValue = 0;
 
     // create rows of the table
     nRows = 0;
@@ -1200,36 +1207,35 @@ int Sbd_ManExplore2( Sbd_Man_t * p, int Pivot, word * pTruth )
     // solve the covering problem
     for ( nIters = 0; nIters < nItersMax && nRows < 64; nIters++ )
     {
-        if ( p->pPars->fVerbose )
+        if ( p->pPars->fVeryVerbose )
             Sbd_ManMatrPrint( p, CoverCols, nDivs, nRows );
 
         clk = Abc_Clock();
         if ( !Sbd_ManFindCands( p, CoverCols, nDivs ) )
         {
-            if ( p->pPars->fVerbose )
+            if ( p->pPars->fVeryVerbose )
                 printf( "Cannot find a feasible cover.\n" );
-            //clkEnu += Abc_Clock() - clk;
-            //clkAll = Abc_Clock() - clkAll - clkSat - clkEnu;
-            //p->timeSat += clkSat;
-            //p->timeCov += clkAll;
-            //p->timeEnu += clkEnu;
+            clkEnu += Abc_Clock() - clk;
+            clkAll = Abc_Clock() - clkAll - clkSat - clkEnu;
+            p->timeSat += clkSat;
+            p->timeCov += clkAll;
+            p->timeEnu += clkEnu;
             return 0;
         }
-        //clkEnu += Abc_Clock() - clk;
     
-        if ( p->pPars->fVerbose )
+        if ( p->pPars->fVeryVerbose )
             printf( "Candidate support:  " ),
             Vec_IntPrint( p->vDivSet );
 
         clk = Abc_Clock();
         *pTruth = Sbd_ManSolve( p->pSat, PivotVar, FreeVar+nIters, p->vDivSet, p->vDivVars, p->vDivValues, p->vLits );
-        //clkSat += Abc_Clock() - clk;
+        clkSat += Abc_Clock() - clk;
 
         if ( *pTruth == SBD_SAT_UNDEC )
             printf( "Node %d:  Undecided.\n", Pivot );
         else if ( *pTruth == SBD_SAT_SAT )
         {
-            if ( p->pPars->fVerbose )
+            if ( p->pPars->fVeryVerbose )
             {
                 int i;
                 printf( "Node %d:  SAT.\n", Pivot );
@@ -1255,15 +1261,21 @@ int Sbd_ManExplore2( Sbd_Man_t * p, int Pivot, word * pTruth )
         }
         else
         {
-            if ( p->pPars->fVerbose )
+            if ( p->pPars->fVeryVerbose )
             {
                 printf( "Node %d:  UNSAT.   ", Pivot );
                 Extra_PrintBinary( stdout, (unsigned *)pTruth, 1 << Vec_IntSize(p->vDivSet) ), printf( "\n" );
             }
-            return 1;
+            p->nLuts[1]++;
+            RetValue = 1;
+            break;
         }
     }
-    return 0;
+    clkAll = Abc_Clock() - clkAll - clkSat - clkEnu;
+    p->timeSat += clkSat;
+    p->timeCov += clkAll;
+    p->timeEnu += clkEnu;
+    return RetValue;
 }
 
 int Sbd_ManExplore3( Sbd_Man_t * p, int Pivot, int * pnStrs, Sbd_Str_t * Strs )
@@ -1277,37 +1289,41 @@ int Sbd_ManExplore3( Sbd_Man_t * p, int Pivot, int * pnStrs, Sbd_Str_t * Strs )
     extern sat_solver * Sbd_ManSatSolver( sat_solver * pSat, Gia_Man_t * p, Vec_Int_t * vMirrors, int Pivot, Vec_Int_t * vWinObjs, Vec_Int_t * vObj2Var, Vec_Int_t * vTfo, Vec_Int_t * vRoots, int fQbf );
     extern int Sbd_ManCollectConstantsNew( sat_solver * pSat, Vec_Int_t * vDivVars, int nConsts, int PivotVar, word * pOnset, word * pOffset );
     abctime clk = Abc_Clock();
+    word Truth;
 
     int PivotVar = Vec_IntEntry(p->vObj2Var, Pivot);
     int FreeVar = Vec_IntSize(p->vWinObjs) + Vec_IntSize(p->vTfo) + Vec_IntSize(p->vRoots);
-    int nDivs = Vec_IntSize( p->vDivVars );
+    //int nDivs = Vec_IntSize( p->vDivVars );
     int Delay = Vec_IntEntry( p->vLutLevs, Pivot );
-    int i, k, iObj, nIters;
+    int i, k, iObj, nIters, RetValue;
 
     int nLeaves, pLeaves[SBD_DIV_MAX];
 
-    int pNodesTop[SBD_DIV_MAX], pNodesBot[SBD_DIV_MAX], pNodeRefs[SBD_DIV_MAX];
+    int pNodesTop[SBD_DIV_MAX], pNodesBot[SBD_DIV_MAX];//, pNodeRefs[SBD_DIV_MAX];
     int nNodesTop = 0, nNodesBot = 0, nNodesDiff = 0;
 
-    sat_solver_delete_p( &p->pSat );
+    //sat_solver_delete_p( &p->pSat );
     p->pSat = Sbd_ManSatSolver( p->pSat, p->pGia, p->vMirrors, Pivot, p->vWinObjs, p->vObj2Var, p->vTfo, p->vRoots, 0 );
     p->timeCnf += Abc_Clock() - clk;
 
     // extract one cut
     nLeaves = Sbd_StoObjBestCut( p->pSto, Pivot, pLeaves );
+    if ( nLeaves == -1 )
+        return 0;
 
     // solve the covering problem
     for ( nIters = 0; nIters < nLeaves; nIters++ )
     {
-        word Truth;
         // try to remove one variable from divisors
         Vec_IntClear( p->vDivSet );
         for ( i = 0; i < nLeaves; i++ )
             if ( i != nIters && pLeaves[i] != -1 )
                 Vec_IntPush( p->vDivSet, Vec_IntEntry(p->vObj2Var, pLeaves[i]) );
         assert( Vec_IntSize(p->vDivSet) < nLeaves );
-
+        // compute truth table
+        clk = Abc_Clock();
         Truth = Sbd_ManSolve( p->pSat, PivotVar, FreeVar+nIters, p->vDivSet, p->vDivVars, p->vDivValues, p->vLits );
+        p->timeSat += Abc_Clock() - clk;
         if ( Truth == SBD_SAT_UNDEC )
             printf( "Node %d:  Undecided.\n", Pivot );
         else if ( Truth == SBD_SAT_SAT )
@@ -1315,15 +1331,33 @@ int Sbd_ManExplore3( Sbd_Man_t * p, int Pivot, int * pnStrs, Sbd_Str_t * Strs )
         else
             pLeaves[nIters] = -1;
     }
-
     Vec_IntClear( p->vDivSet );
     for ( i = 0; i < nLeaves; i++ )
         if ( pLeaves[i] != -1 )
             Vec_IntPush( p->vDivSet, pLeaves[i] );
-    printf( "Reduced %d -> %d\n", nLeaves, Vec_IntSize(p->vDivSet) );
+    //printf( "Reduced %d -> %d\n", nLeaves, Vec_IntSize(p->vDivSet) );
+    if ( Vec_IntSize(p->vDivSet) <= p->pPars->nLutSize )
+    {
+        *pnStrs = 1;
+        // remap divisors
+        Vec_IntForEachEntry( p->vDivSet, iObj, i )
+            Vec_IntWriteEntry( p->vDivSet, i, Vec_IntEntry(p->vObj2Var, iObj) );
+        // compute truth table
+        clk = Abc_Clock();
+        Truth = Sbd_ManSolve( p->pSat, PivotVar, FreeVar+nIters, p->vDivSet, p->vDivVars, p->vDivValues, p->vLits );
+        p->timeSat += Abc_Clock() - clk;
+        assert( Truth != SBD_SAT_UNDEC && Truth != SBD_SAT_SAT );
+        // create structure
+        Strs->fLut = 1;
+        Strs->nVarIns = Vec_IntSize( p->vDivSet );
+        for ( i = 0; i < Strs->nVarIns; i++ )
+            Strs->VarIns[i] = i;
+        Strs->Res = Truth;
+        p->nLuts[1]++;
+        //Extra_PrintBinary( stdout, (unsigned *)&Truth, 1 << Strs->nVarIns ), printf( "\n" );
+        return 1;
+    }
     assert( Vec_IntSize(p->vDivSet) > p->pPars->nLutSize );
-
-    //Delay++;
 
     // count number of nodes on each level
     nNodesTop = 0, nNodesBot = 0;
@@ -1336,8 +1370,8 @@ int Sbd_ManExplore3( Sbd_Man_t * p, int Pivot, int * pnStrs, Sbd_Str_t * Strs )
             pNodesTop[nNodesTop++] = i;
         else // if ( DelayDiff < -2 )
             pNodesBot[nNodesBot++] = i;
-        Vec_IntWriteEntry( p->vDivSet, iObj, Vec_IntEntry(p->vObj2Var, pLeaves[i]) );
-        pNodeRefs[i] = Gia_ObjRefNumId( p->pGia, iObj );
+        Vec_IntWriteEntry( p->vDivSet, i, Vec_IntEntry(p->vObj2Var, iObj) );
+        //pNodeRefs[i] = Gia_ObjRefNumId( p->pGia, iObj );
     }
     if ( i < Vec_IntSize(p->vDivSet) )
         return 0;
@@ -1379,9 +1413,15 @@ int Sbd_ManExplore3( Sbd_Man_t * p, int Pivot, int * pnStrs, Sbd_Str_t * Strs )
         Strs[2+k].Res = 0;
     }
 
-    return Sbd_ProblemSolve( p->pGia, p->vMirrors, 
-                             Pivot, p->vWinObjs, p->vObj2Var, p->vTfo, p->vRoots,
-                             p->vDivSet, *pnStrs, Strs );
+    clk = Abc_Clock();
+    RetValue = Sbd_ProblemSolve( p->pGia, p->vMirrors, 
+                                 Pivot, p->vWinObjs, p->vObj2Var, p->vTfo, p->vRoots,
+                                 p->vDivSet, *pnStrs, Strs );
+    p->timeQbf += Abc_Clock() - clk;
+
+    if ( RetValue ) 
+        p->nLuts[2]++;
+    return RetValue;
 }
 
 
@@ -1622,7 +1662,6 @@ int Sbd_ManImplement( Sbd_Man_t * p, int Pivot, word Truth )
     // update delay of the initial node
     assert( Vec_IntEntry(p->vLutLevs, Pivot) == iCurLev );
     Vec_IntWriteEntry( p->vLutLevs, Pivot, iNewLev );
-    p->nChanges++;
     return 0;
 }
 
@@ -1677,13 +1716,14 @@ int Sbd_ManImplement2( Sbd_Man_t * p, int Pivot, int nStrs, Sbd_Str_t * pStrs )
     // remember this function
     assert( Vec_IntEntry(p->vMirrors, Pivot) == -1 );
     Vec_IntWriteEntry( p->vMirrors, Pivot, iLit );
-    if ( p->pPars->fVerbose )
+    if ( p->pPars->fVeryVerbose )
         printf( "Replacing node %d by literal %d.\n", Pivot, iLit );
 
     // extend data-structure to accommodate new nodes
     assert( Vec_IntSize(p->vLutLevs) == iObjLast );
     for ( i = iObjLast; i < Gia_ManObjNum(p->pGia); i++ )
         Sbd_StoRefObj( p->pSto, i, i == Gia_ManObjNum(p->pGia)-1 ? Pivot : -1 );
+    Sbd_StoDerefObj( p->pSto, Pivot );
     for ( i = iObjLast; i < Gia_ManObjNum(p->pGia); i++ )
     {
         int Delay = Sbd_StoComputeCutsNode( p->pSto, i );
@@ -1703,7 +1743,6 @@ int Sbd_ManImplement2( Sbd_Man_t * p, int Pivot, int nStrs, Sbd_Str_t * pStrs )
     // update delay of the initial node
     assert( Vec_IntEntry(p->vLutLevs, Pivot) == iCurLev );
     Vec_IntWriteEntry( p->vLutLevs, Pivot, iNewLev );
-    p->nChanges++;
     return 0;
 }
 
@@ -1781,11 +1820,10 @@ Gia_Man_t * Sbd_ManDerive( Gia_Man_t * p, Vec_Int_t * vMirrors )
 ***********************************************************************/
 void Sbd_NtkPerformOne( Sbd_Man_t * p, int Pivot )
 {
-//    extern void Sbd_ManSolveSelect( Gia_Man_t * p, Vec_Int_t * vMirrors, int Pivot, Vec_Int_t * vDivVars, Vec_Int_t * vDivValues, Vec_Int_t * vWinObjs, Vec_Int_t * vObj2Var, Vec_Int_t * vTfo, Vec_Int_t * vRoots );
     Sbd_Str_t Strs[4];
-    int nStrs = 0;
+    int i, RetValue, nStrs = 0;
+    word Truth = 0;
 
-    int RetValue; word Truth = 0;
     if ( !p->pSto )
     {
         if ( Sbd_ManMergeCuts( p, Pivot ) )
@@ -1795,83 +1833,39 @@ void Sbd_NtkPerformOne( Sbd_Man_t * p, int Pivot )
 //    if ( Pivot != 15 )
 //        return;
 
-    if ( p->pPars->fVerbose )
-        printf( "\nLooking at node %d\n", Pivot );
     if ( Sbd_ManWindow( p, Pivot ) )
         return;
-
-//    Sbd_ManSolveSelect( p->pGia, p->vMirrors, Pivot, p->vDivVars, p->vDivValues, p->vWinObjs, p->vObj2Var, p->vTfo, p->vRoots );
 
     RetValue = Sbd_ManCheckConst( p, Pivot );
     if ( RetValue >= 0 )
     {
         Vec_IntWriteEntry( p->vMirrors, Pivot, RetValue );
-        //printf( "    --> Pivot %4d.  Constant %d.\n", Pivot, RetValue );
+        if ( p->pPars->fVerbose ) printf( "Node %5d:  Detected constant %d.\n", Pivot, RetValue );
     }
-    else if ( Sbd_ManExplore3( p, Pivot, &nStrs, Strs ) )
+    else if ( p->pPars->nLutNum >= 1 && Sbd_ManExplore2( p, Pivot, &Truth ) )
     {
-        //Sbd_ManImplement( p, Pivot, Truth );
+        Strs->fLut = 1;
+        Strs->nVarIns = Vec_IntSize( p->vDivSet );
+        for ( i = 0; i < Strs->nVarIns; i++ )
+            Strs->VarIns[i] = i;
+        Strs->Res = Truth;
+        Sbd_ManImplement2( p, Pivot, 1, Strs );
+        if ( p->pPars->fVerbose ) printf( "Node %5d:  Detected LUT%d\n", Pivot, p->pPars->nLutSize );
+    }
+    else if ( p->pPars->nLutNum >= 2 && Sbd_ManExplore3( p, Pivot, &nStrs, Strs ) )
+    {
         Sbd_ManImplement2( p, Pivot, nStrs, Strs );
-        //printf( "    --> Pivot %4d.  Supp %d.\n", Pivot, Vec_IntSize(p->vDivSet) );
+        if ( p->pPars->fVerbose ) printf( "Node %5d:  Detected %d%d\n", Pivot, p->pPars->nLutSize, p->pPars->nLutSize );
     }
-/*
-    else if ( Sbd_ManExplore2( p, Pivot, &Truth ) )
-    {
-        int i;
-        Sbd_Str_t Strs;
-        Strs.fLut = 1;
-        Strs.nVarIns = Vec_IntSize( p->vDivSet );
-        for ( i = 0; i < Strs.nVarIns; i++ )
-            Strs.VarIns[i] = i;
-        Strs.Res = Truth;
-        //Sbd_ManImplement( p, Pivot, Truth );
-        Sbd_ManImplement2( p, Pivot, 1, &Strs );
-        //printf( "    --> Pivot %4d.  Supp %d.\n", Pivot, Vec_IntSize(p->vDivSet) );
-    }
-*/
-
-/*
-    else
-    {
-        extern int Sbd_ProblemSolve( 
-                                       Gia_Man_t * p, Vec_Int_t * vMirrors, 
-                                       int Pivot, Vec_Int_t * vWinObjs, Vec_Int_t * vObj2Var, 
-                                       Vec_Int_t * vTfo, Vec_Int_t * vRoots, 
-                                       Vec_Int_t * vDivSet, int nStrs, Sbd_Str_t * pStr0 
-                                   );
-
-//        Sbd_Str_t Strs[2] = {   {1, 4, {0, 1, 2, 8}},   {1, 4, {3, 4, 5, 6}}    };
-//        Sbd_Str_t Strs[2] = {   {1, 4, {1, 4, 5, 7}},   {1, 4, {0, 1, 2, 3}}    };
-        Sbd_Str_t Strs[3] = {   {1, 4, {8, 4, 5, 7}},   {1, 4, {0, 1, 2, 3}},   {0, 4, {0, 1, 2, 3}}    };
-
-        Vec_Int_t * vDivSet = Vec_IntAlloc( 8 );
-
-        int i, RetValue;
-        
-        for ( i = 0; i < 6; i++ )
-            Vec_IntPush( vDivSet, i+1 );
-
-        RetValue = Sbd_ProblemSolve( p->pGia, p->vMirrors, 
-                                     Pivot, p->vWinObjs, p->vObj2Var, p->vTfo, p->vRoots,
-                                     vDivSet, 3, Strs );
-        if ( RetValue )
-        {
-            printf( "Solving succeded.\n" );
-            //Sbd_ManImplement2( p, Pivot, Truth, nLuts, nSels, nVarsDivs, pVarsDivs, Truths );
-        }
-        Vec_IntFree( vDivSet );
-    }
-*/
 }
 Gia_Man_t * Sbd_NtkPerform( Gia_Man_t * pGia, Sbd_Par_t * pPars )
 {
     Gia_Man_t * pNew;  
     Gia_Obj_t * pObj;
     Sbd_Man_t * p = Sbd_ManStart( pGia, pPars );
-    int nNodesOld = Gia_ManObjNum(pGia);//, Count = 0;
+    int nNodesOld = Gia_ManObjNum(pGia);
     int k, Pivot;
     assert( pPars->nLutSize <= 6 );
-    //Sbd_ManMergeTest( p );
     // prepare references
     Gia_ManForEachObj( p->pGia, pObj, Pivot )
         Sbd_StoRefObj( p->pSto, Pivot, -1 );
@@ -1886,32 +1880,6 @@ Gia_Man_t * Sbd_NtkPerform( Gia_Man_t * pGia, Sbd_Par_t * pPars )
         {
             Pivot = Gia_ObjId( pGia, pObj );
             if ( Pivot >= nNodesOld )
-                continue;
-            if ( Gia_ObjIsAnd(pObj) )
-                Sbd_NtkPerformOne( p, Pivot );
-            else if ( Gia_ObjIsCi(pObj) )
-            {
-                int arrTime = Tim_ManGetCiArrival( (Tim_Man_t*)pGia->pManTime, Gia_ObjCioId(pObj) );
-                Vec_IntWriteEntry( p->vLutLevs, Pivot, arrTime );
-            }
-            else if ( Gia_ObjIsCo(pObj) )
-            {
-                int arrTime = Vec_IntEntry( p->vLutLevs, Gia_ObjFaninId0(pObj, Pivot) );
-                Tim_ManSetCoArrival( (Tim_Man_t*)pGia->pManTime, Gia_ObjCioId(pObj), arrTime );
-            }
-            else if ( !Gia_ObjIsConst0(pObj) )
-                assert( 0 );
-        }
-        //Tim_ManPrint( pGia->pManTime );
-        Tim_ManStop( (Tim_Man_t *)pGia->pManTime );
-        pGia->pManTime = pTimOld;
-        Vec_IntFree( vNodes );
-    }
-    else
-    {
-        Gia_ManForEachObj( pGia, pObj, Pivot )
-        {
-            if ( Pivot == nNodesOld )
                 break;
             if ( Gia_ObjIsAnd(pObj) )
             {
@@ -1920,23 +1888,61 @@ Gia_Man_t * Sbd_NtkPerform( Gia_Man_t * pGia, Sbd_Par_t * pPars )
                 if ( Delay > 1 )
                     Sbd_NtkPerformOne( p, Pivot );
             }
-            else if ( !Gia_ObjIsCo(pObj) )
+            else if ( Gia_ObjIsCi(pObj) )
+            {
+                int arrTime = Tim_ManGetCiArrival( (Tim_Man_t*)pGia->pManTime, Gia_ObjCioId(pObj) );
+                Vec_IntWriteEntry( p->vLutLevs, Pivot, arrTime );
+                Sbd_StoComputeCutsCi( p->pSto, Pivot, arrTime, arrTime );
+            }
+            else if ( Gia_ObjIsCo(pObj) )
+            {
+                int arrTime = Vec_IntEntry( p->vLutLevs, Gia_ObjFaninId0(pObj, Pivot) );
+                Tim_ManSetCoArrival( (Tim_Man_t*)pGia->pManTime, Gia_ObjCioId(pObj), arrTime );
+            }
+            else if ( Gia_ObjIsConst0(pObj) )
+                Sbd_StoComputeCutsConst0( p->pSto, 0 );
+            else assert( 0 );
+        }
+        //Tim_ManPrint( pGia->pManTime );
+        Tim_ManStop( (Tim_Man_t *)pGia->pManTime );
+        pGia->pManTime = pTimOld;
+        Vec_IntFree( vNodes );
+    }
+    else
+    {
+        Sbd_StoComputeCutsConst0( p->pSto, 0 );
+        Gia_ManForEachObj( pGia, pObj, Pivot )
+        {
+            if ( Pivot >= nNodesOld )
+                break;
+            if ( Gia_ObjIsCi(pObj) )
                 Sbd_StoComputeCutsCi( p->pSto, Pivot, 0, 0 );
+            else if ( Gia_ObjIsAnd(pObj) )
+            {
+                int Delay = Sbd_StoComputeCutsNode( p->pSto, Pivot );
+                Vec_IntWriteEntry( p->vLutLevs, Pivot, Delay );
+                if ( Delay > 1 )
+                    Sbd_NtkPerformOne( p, Pivot );
+            }
+            //if ( nNodesOld != Gia_ManObjNum(pGia) )
+            //    break;
         }
     }
-    printf( "Found %d constants and %d replacements with delay %d.  ", p->nConsts, p->nChanges, Sbd_ManDelay(p) );
+    printf( "Found %d constants, %d one-LUT and %d two-LUT replacements with delay %d.  ", 
+        p->nLuts[0], p->nLuts[1], p->nLuts[2], Sbd_ManDelay(p) );
     p->timeTotal = Abc_Clock() - p->timeTotal;
     Abc_PrintTime( 1, "Time", p->timeTotal );
     pNew = Sbd_ManDerive( pGia, p->vMirrors );
     // print runtime statistics
-    p->timeOther = p->timeTotal - p->timeWin - p->timeCnf - p->timeSat - p->timeCov - p->timeEnu;
-    if ( 0 )
+    p->timeOther = p->timeTotal - p->timeWin - p->timeCnf - p->timeSat - p->timeCov - p->timeEnu - p->timeQbf;
+    if ( p->pPars->fVerbose )
     {
         ABC_PRTP( "Win", p->timeWin  ,  p->timeTotal );
         ABC_PRTP( "Cnf", p->timeCnf  ,  p->timeTotal );
         ABC_PRTP( "Sat", p->timeSat  ,  p->timeTotal );
         ABC_PRTP( "Cov", p->timeCov  ,  p->timeTotal );
         ABC_PRTP( "Enu", p->timeEnu  ,  p->timeTotal );
+        ABC_PRTP( "Qbf", p->timeQbf  ,  p->timeTotal );
         ABC_PRTP( "Oth", p->timeOther,  p->timeTotal );
         ABC_PRTP( "ALL", p->timeTotal,  p->timeTotal );
     }
