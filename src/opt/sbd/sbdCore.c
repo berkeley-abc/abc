@@ -52,6 +52,7 @@ struct Sbd_Man_t_
     abctime         timeCnf;
     abctime         timeSat;
     abctime         timeQbf;
+    abctime         timeNew;
     abctime         timeOther;
     abctime         timeTotal;
     Sbd_Sto_t *     pSto;
@@ -440,7 +441,10 @@ int Sbd_ManWindow( Sbd_Man_t * p, int Pivot )
     Gia_ObjSetTravIdCurrentId(p->pGia, 0);
     Sbd_ManWindowSim_rec( p, Pivot );
     if ( p->pPars->nWinSizeMax && Vec_IntSize(p->vWinObjs) > p->pPars->nWinSizeMax )
+    {
+        p->timeWin += Abc_Clock() - clk;
         return 0;
+    }
     Sbd_ManUpdateOrder( p, Pivot );
     assert( Vec_IntSize(p->vDivVars) == Vec_IntSize(p->vDivValues) );
     assert( Vec_IntSize(p->vDivVars) < Vec_IntSize(p->vWinObjs) );
@@ -466,7 +470,10 @@ int Sbd_ManWindow( Sbd_Man_t * p, int Pivot )
         Vec_IntPush( p->vWinObjs, Abc_Lit2Var(Node) );
     }
     if ( p->pPars->nWinSizeMax && Vec_IntSize(p->vWinObjs) > p->pPars->nWinSizeMax )
+    {
+        p->timeWin += Abc_Clock() - clk;
         return 0;
+    }
     // compute controlability for node
     if ( Vec_IntSize(p->vTfo) == 0 )
         Abc_TtFill( Sbd_ObjSim2(p, Pivot), p->pPars->nWords );
@@ -1855,13 +1862,16 @@ int Sbd_ManImplement2( Sbd_Man_t * p, int Pivot, int nStrs, Sbd_Str_t * pStrs )
     assert( Vec_IntSize(p->vLutLevs) == iObjLast );
     for ( i = iObjLast; i < Gia_ManObjNum(p->pGia); i++ )
     {
+        assert( i == Vec_IntSize(p->vMirrors) );
         Vec_IntPush( p->vMirrors, -1 );
         Sbd_StoRefObj( p->pSto, i, i == Gia_ManObjNum(p->pGia)-1 ? Pivot : -1 );
     }
     Sbd_StoDerefObj( p->pSto, Pivot );
     for ( i = iObjLast; i < Gia_ManObjNum(p->pGia); i++ )
     {
+        abctime clk = Abc_Clock();
         int Delay = Sbd_StoComputeCutsNode( p->pSto, i );
+        p->timeCut += Abc_Clock() - clk;
         assert( i == Vec_IntSize(p->vLutLevs) );
         Vec_IntPush( p->vLutLevs, Delay );
         Vec_IntPush( p->vObj2Var, 0 );

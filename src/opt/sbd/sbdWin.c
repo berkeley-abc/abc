@@ -360,6 +360,7 @@ void Sbd_ManSolverPrint( Vec_Int_t * vSop )
         }
         Cube[pInds[Abc_Lit2Var(Entry)]] = '1' - (char)Abc_LitIsCompl(Entry);
     }
+    Supp = 0;
 }
 void Sbd_ManSolveSelect( Gia_Man_t * p, Vec_Int_t * vMirrors, int Pivot, Vec_Int_t * vDivVars, Vec_Int_t * vDivValues, Vec_Int_t * vWinObjs, Vec_Int_t * vObj2Var, Vec_Int_t * vTfo, Vec_Int_t * vRoots )
 {
@@ -378,6 +379,7 @@ void Sbd_ManSolveSelect( Gia_Man_t * p, Vec_Int_t * vMirrors, int Pivot, Vec_Int
         word Supp = Sbd_ManSolverSupp( vSop, pInds, &nVars );
         //Sbd_ManSolverPrint( vSop );
         printf( "SAT with %d vars and %d cubes.\n", nVars, Vec_IntCountEntry(vSop, -1) );
+        Supp = 0;
     }
     Vec_IntFree( vTemp );
     Vec_IntFree( vSop );
