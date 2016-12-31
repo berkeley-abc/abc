@@ -54,7 +54,6 @@ sat_solver * Sbd_ManSatSolver( sat_solver * pSat, Gia_Man_t * p, Vec_Int_t * vMi
                                Vec_Int_t * vTfo, Vec_Int_t * vRoots, int fQbf )
 {
     Gia_Obj_t * pObj;
-    int nAddVars = 64;
     int i, iLit = 1, iObj, Fan0, Fan1, Lit0m, Lit1m, Node, fCompl0, fCompl1, RetValue;
     int TfoStart = Vec_IntSize(vWinObjs) - Vec_IntSize(vTfo);
     int PivotVar = Vec_IntEntry(vObj2Var, Pivot);
@@ -67,7 +66,7 @@ sat_solver * Sbd_ManSatSolver( sat_solver * pSat, Gia_Man_t * p, Vec_Int_t * vMi
         pSat = sat_solver_new();
     else
         sat_solver_restart( pSat );
-    sat_solver_setnvars( pSat, Vec_IntSize(vWinObjs) + Vec_IntSize(vTfo) + Vec_IntSize(vRoots) + nAddVars );
+    sat_solver_setnvars( pSat, Vec_IntSize(vWinObjs) + Vec_IntSize(vTfo) + Vec_IntSize(vRoots) + SBD_FVAR_MAX );
     // create constant 0 clause
     sat_solver_addclause( pSat, &iLit, &iLit + 1 );
     // add clauses for all nodes
@@ -139,7 +138,7 @@ sat_solver * Sbd_ManSatSolver( sat_solver * pSat, Gia_Man_t * p, Vec_Int_t * vMi
             sat_solver_delete( pSat );
             return NULL;
         }
-        assert( sat_solver_nvars(pSat) == nVars + nAddVars );
+        assert( sat_solver_nvars(pSat) == nVars + SBD_FVAR_MAX );
     }
     else if ( fQbf )
     {

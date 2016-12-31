@@ -249,7 +249,7 @@ int Dau_DsdBalance( Gia_Man_t * pGia, int * pFans, int nFans, int fAnd )
             iFan = Abc_LitNotCond( iFan, fCompl );
         }
         else 
-            iFan = Gia_ManAppendXor( pGia, iFan0, iFan1 );
+            iFan = Gia_ManAppendXor2( pGia, iFan0, iFan1 );
     }
     else
     {

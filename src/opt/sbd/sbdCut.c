@@ -27,9 +27,9 @@ ABC_NAMESPACE_IMPL_START
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-#define SBD_MAX_CUTSIZE   8
-#define SBD_MAX_CUTNUM    1001
-#define SBD_MAX_TT_WORDS  ((SBD_MAX_CUTSIZE > 6) ? 1 << (SBD_MAX_CUTSIZE-6) : 1)
+#define SBD_MAX_CUTSIZE    10
+#define SBD_MAX_CUTNUM     501
+#define SBD_MAX_TT_WORDS   ((SBD_MAX_CUTSIZE > 6) ? 1 << (SBD_MAX_CUTSIZE-6) : 1)
 
 #define SBD_CUT_NO_LEAF   0xF
 
@@ -568,6 +568,7 @@ static inline void Sbd_CutPrint( Sbd_Sto_t * p, int iObj, Sbd_Cut_t * pCut )
 {
     int i, nDigits = Abc_Base10Log(Gia_ManObjNum(p->pGia)); 
     int Delay = Vec_IntEntry(p->vDelays, iObj);
+    if ( pCut == NULL ) { printf( "No cut.\n" ); return; }
     printf( "%d  {", pCut->nLeaves );
     for ( i = 0; i < (int)pCut->nLeaves; i++ )
         printf( " %*d", nDigits, pCut->pLeaves[i] );
@@ -724,45 +725,88 @@ int Sbd_StoComputeCutsNode( Sbd_Sto_t * p, int iObj )
     Sbd_StoMergeCuts( p, iObj );
     return Vec_IntEntry( p->vDelays, iObj );
 }
+int Sbd_StoObjRefs( Sbd_Sto_t * p, int iObj )
+{
+    return Vec_IntEntry(p->vRefs, iObj);
+}
 void Sbd_StoRefObj( Sbd_Sto_t * p, int iObj, int iMirror )
 {
     Gia_Obj_t * pObj = Gia_ManObj(p->pGia, iObj);
     assert( iObj == Vec_IntSize(p->vRefs) );
     assert( iMirror < iObj );
-    Vec_IntPush( p->vRefs, iMirror > 0 ? Vec_IntEntry(p->vRefs, iMirror) : 0 );
+    Vec_IntPush( p->vRefs, 0 );
+//printf( "Ref %d\n", iObj );
+    if ( iMirror > 0 )
+    {
+        Vec_IntWriteEntry( p->vRefs, iObj, Vec_IntEntry(p->vRefs, iMirror) );
+        Vec_IntWriteEntry( p->vRefs, iMirror, 1 );
+    }
     if ( Gia_ObjIsAnd(pObj) )
     {
-        Vec_IntAddToEntry( p->vRefs, Gia_ObjFaninId0(pObj, iObj), 1 );
-        Vec_IntAddToEntry( p->vRefs, Gia_ObjFaninId1(pObj, iObj), 1 );
+        int Lit0m = Vec_IntEntry( p->vMirrors, Gia_ObjFaninId0(pObj, iObj) );
+        int Lit1m = Vec_IntEntry( p->vMirrors, Gia_ObjFaninId1(pObj, iObj) );
+        int Fan0 = Lit0m >= 0 ? Abc_Lit2Var(Lit0m) : Gia_ObjFaninId0(pObj, iObj);
+        int Fan1 = Lit1m >= 0 ? Abc_Lit2Var(Lit1m) : Gia_ObjFaninId1(pObj, iObj);
+        Vec_IntAddToEntry( p->vRefs, Fan0, 1 );
+        Vec_IntAddToEntry( p->vRefs, Fan1, 1 );
     }
     else if ( Gia_ObjIsCo(pObj) )
+    {
+        int Lit0m = Vec_IntEntry( p->vMirrors, Gia_ObjFaninId0(pObj, iObj) );
+        assert( Lit0m == -1 );
         Vec_IntAddToEntry( p->vRefs, Gia_ObjFaninId0(pObj, iObj), 1 );
+    }
 }
 void Sbd_StoDerefObj( Sbd_Sto_t * p, int iObj )
 {
-    Gia_Obj_t * pObj = Gia_ManObj(p->pGia, iObj);
+    Gia_Obj_t * pObj;
+    int Lit0m, Lit1m, Fan0, Fan1;
+    return;
+
+    pObj = Gia_ManObj(p->pGia, iObj);
+    if ( Vec_IntEntry(p->vRefs, iObj) == 0 )
+        printf( "Ref count mismatch at node %d\n", iObj );
+    assert( Vec_IntEntry(p->vRefs, iObj) > 0 );
     Vec_IntAddToEntry( p->vRefs, iObj, -1 );
     if ( Vec_IntEntry( p->vRefs, iObj ) > 0 )
         return;
     if ( Gia_ObjIsCi(pObj) )
         return;
+//printf( "Deref %d\n", iObj );
     assert( Gia_ObjIsAnd(pObj) );
-    Sbd_StoDerefObj( p, Gia_ObjFaninId0(pObj, iObj) );
-    Sbd_StoDerefObj( p, Gia_ObjFaninId1(pObj, iObj) );
+    Lit0m = Vec_IntEntry( p->vMirrors, Gia_ObjFaninId0(pObj, iObj) );
+    Lit1m = Vec_IntEntry( p->vMirrors, Gia_ObjFaninId1(pObj, iObj) );
+    Fan0 = Lit0m >= 0 ? Abc_Lit2Var(Lit0m) : Gia_ObjFaninId0(pObj, iObj);
+    Fan1 = Lit1m >= 0 ? Abc_Lit2Var(Lit1m) : Gia_ObjFaninId1(pObj, iObj);
+    if ( Fan0 ) Sbd_StoDerefObj( p, Fan0 );
+    if ( Fan1 ) Sbd_StoDerefObj( p, Fan1 );
 }
-int Sbd_StoObjBestCut( Sbd_Sto_t * p, int iObj, int * pLeaves )
+int Sbd_StoObjBestCut( Sbd_Sto_t * p, int iObj, int nSize, int * pLeaves )
 {
+    int fVerbose = 0;
     Sbd_Cut_t * pCutBest = NULL;   int i;
     assert( p->Pivot == iObj );
+    if ( fVerbose && iObj % 1000 == 0 )
+        printf( "Node %6d : \n", iObj );
     for ( i = 0; i < p->nCutsR; i++ )
+    {
+        if ( fVerbose && iObj % 1000 == 0 )
+            Sbd_CutPrint( p, iObj, p->ppCuts[i] );
+        if ( nSize && (int)p->ppCuts[i]->nLeaves != nSize )
+            continue;
         if ( (int)p->ppCuts[i]->nLeaves > p->nLutSize && 
-             (int)p->ppCuts[i]->nSlowLeaves == 0 &&
+             (int)p->ppCuts[i]->nSlowLeaves <= 1 &&
              (int)p->ppCuts[i]->nTopLeaves <= p->nLutSize-1 &&
              (pCutBest == NULL || Sbd_CutCompare2(pCutBest, p->ppCuts[i]) == 1) )
             pCutBest = p->ppCuts[i];
+    }
+    if ( fVerbose && iObj % 1000 == 0 )
+    {
+        printf( "Best cut of size %d:\n", nSize );
+        Sbd_CutPrint( p, iObj, pCutBest );
+    }
     if ( pCutBest == NULL )
         return -1;
-//Sbd_CutPrint( p, iObj, pCutBest );
     assert( pCutBest->nLeaves <= SBD_DIV_MAX );
     for ( i = 0; i < (int)pCutBest->nLeaves; i++ )
         pLeaves[i] = pCutBest->pLeaves[i];

@@ -96,7 +96,6 @@ int Sbd_ProblemAddClauses( sat_solver * pSat, int nVars, int nStrs, int * pVars,
             }
         }
     }
-//printf( "Stop par = %d.\n", VarPar );
     return 1;
 }
 void Sbd_ProblemAddClausesInit( sat_solver * pSat, int nVars, int nStrs, int * pVars, Sbd_Str_t * pStr0 )

@@ -40,6 +40,8 @@ struct Sbd_Par_t_
 {
     int             nLutSize;     // target LUT size
     int             nLutNum;      // target LUT count
+    int             nCutSize;     // target cut size
+    int             nCutNum;      // target cut count
     int             nTfoLevels;   // the number of TFO levels (windowing)
     int             nTfoFanMax;   // the max number of fanouts (windowing)
     int             nWinSizeMax;  // maximum window size (windowing)

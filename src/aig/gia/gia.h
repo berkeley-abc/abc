@@ -665,21 +665,6 @@ static inline int Gia_ManAppendAnd( Gia_Man_t * p, int iLit0, int iLit1 )
     }
     return Gia_ObjId( p, pObj ) << 1;
 }
-static inline int Gia_ManAppendAnd2( Gia_Man_t * p, int iLit0, int iLit1 )  
-{ 
-    if ( !p->fGiaSimple )
-    {
-        if ( iLit0 < 2 )
-            return iLit0 ? iLit1 : 0;
-        if ( iLit1 < 2 )
-            return iLit1 ? iLit0 : 0;
-        if ( iLit0 == iLit1 )
-            return iLit1;
-        if ( iLit0 == Abc_LitNot(iLit1) )
-            return 0;
-    }
-    return Gia_ManAppendAnd( p, iLit0, iLit1 );
-}
 static inline int Gia_ManAppendXorReal( Gia_Man_t * p, int iLit0, int iLit1 )  
 { 
     Gia_Obj_t * pObj = Gia_ManAppendObj( p );
@@ -780,6 +765,44 @@ static inline int Gia_ManAppendXor( Gia_Man_t * p, int iLit0, int iLit1 )
 { 
     return Gia_ManAppendMux( p, iLit0, Abc_LitNot(iLit1), iLit1 );
 }
+
+static inline int Gia_ManAppendAnd2( Gia_Man_t * p, int iLit0, int iLit1 )  
+{ 
+    if ( !p->fGiaSimple )
+    {
+        if ( iLit0 < 2 )
+            return iLit0 ? iLit1 : 0;
+        if ( iLit1 < 2 )
+            return iLit1 ? iLit0 : 0;
+        if ( iLit0 == iLit1 )
+            return iLit1;
+        if ( iLit0 == Abc_LitNot(iLit1) )
+            return 0;
+    }
+    return Gia_ManAppendAnd( p, iLit0, iLit1 );
+}
+static inline int Gia_ManAppendOr2( Gia_Man_t * p, int iLit0, int iLit1 )
+{
+    return Abc_LitNot(Gia_ManAppendAnd2( p, Abc_LitNot(iLit0), Abc_LitNot(iLit1) ));
+}
+static inline int Gia_ManAppendMux2( Gia_Man_t * p, int iCtrl, int iData1, int iData0 )  
+{ 
+    int iTemp0 = Gia_ManAppendAnd2( p, Abc_LitNot(iCtrl), iData0 );
+    int iTemp1 = Gia_ManAppendAnd2( p, iCtrl, iData1 );
+    return Abc_LitNotCond( Gia_ManAppendAnd2( p, Abc_LitNot(iTemp0), Abc_LitNot(iTemp1) ), 1 );
+}
+static inline int Gia_ManAppendMaj2( Gia_Man_t * p, int iData0, int iData1, int iData2 )  
+{ 
+    int iTemp0 = Gia_ManAppendOr2( p, iData1, iData2 );
+    int iTemp1 = Gia_ManAppendAnd2( p, iData0, iTemp0 );
+    int iTemp2 = Gia_ManAppendAnd2( p, iData1, iData2 );
+    return Gia_ManAppendOr2( p, iTemp1, iTemp2 );
+}
+static inline int Gia_ManAppendXor2( Gia_Man_t * p, int iLit0, int iLit1 )  
+{ 
+    return Gia_ManAppendMux2( p, iLit0, Abc_LitNot(iLit1), iLit1 );
+}
+
 static inline void Gia_ManPatchCoDriver( Gia_Man_t * p, int iCoIndex, int iLit0 )  
 {
     Gia_Obj_t * pObjCo  = Gia_ManCo( p, iCoIndex );
