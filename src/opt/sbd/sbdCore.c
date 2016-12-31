@@ -1883,7 +1883,7 @@ int Sbd_ManImplement2( Sbd_Man_t * p, int Pivot, int nStrs, Sbd_Str_t * pStrs )
     }
     // make sure delay reduction is achieved
     iNewLev = Vec_IntEntry( p->vLutLevs, Abc_Lit2Var(iLit) );
-    assert( iNewLev < iCurLev );
+    assert( !iNewLev || iNewLev < iCurLev );
     // update delay of the initial node
     assert( Vec_IntEntry(p->vLutLevs, Pivot) == iCurLev );
     Vec_IntWriteEntry( p->vLutLevs, Pivot, iNewLev );
