@@ -1851,7 +1851,7 @@ int Sbd_ManImplement2( Sbd_Man_t * p, int Pivot, int nStrs, Sbd_Str_t * pStrs )
         Vec_IntWriteEntry( p->vLits, Vec_IntSize(p->vLits)-nStrs+i, iLit );
     }
     iLit = Vec_IntEntry( p->vLits, Vec_IntSize(p->vDivSet) );
-    assert( iObjLast == Gia_ManObjNum(p->pGia) || Abc_Lit2Var(iLit) == Gia_ManObjNum(p->pGia)-1 );
+    //assert( iObjLast == Gia_ManObjNum(p->pGia) || Abc_Lit2Var(iLit) == Gia_ManObjNum(p->pGia)-1 );
     // remember this function
     assert( Vec_IntEntry(p->vMirrors, Pivot) == -1 );
     Vec_IntWriteEntry( p->vMirrors, Pivot, iLit );
