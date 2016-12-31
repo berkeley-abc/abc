@@ -361,7 +361,7 @@ int Dau_DsdToGia_rec( Gia_Man_t * pGia, char * pStr, char ** p, int * pMatches, 
             if ( pGia->pMuxes )
                 Res = Gia_ManAppendMux( pGia, Temp[0], Temp[1], Temp[2] );
             else
-                Res = Gia_ManAppendMux( pGia, Temp[0], Temp[1], Temp[2] );
+                Res = Gia_ManAppendMux2( pGia, Temp[0], Temp[1], Temp[2] );
         }
         else
         {
