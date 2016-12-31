@@ -96,12 +96,12 @@ void Lpk_IfManStart( Lpk_Man_t * p )
 int Lpk_NodeHasChanged( Lpk_Man_t * p, int iNode )
 {
     Vec_Ptr_t * vNodes;
-    Abc_Obj_t * pTemp;
+    Abc_Obj_t * pTemp, * pTemp2;
     int i;
     vNodes = Vec_VecEntry( p->vVisited, iNode );
     if ( Vec_PtrSize(vNodes) == 0 )
         return 1;
-    Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pTemp, i )
+    Vec_PtrForEachEntryDouble( Abc_Obj_t *, Abc_Obj_t *, vNodes, pTemp, pTemp2, i )
     {
         // check if the node has changed
         pTemp = Abc_NtkObj( p->pNtk, (int)(ABC_PTRUINT_T)pTemp );
@@ -110,7 +110,7 @@ int Lpk_NodeHasChanged( Lpk_Man_t * p, int iNode )
         // check if the number of fanouts has changed
 //        if ( Abc_ObjFanoutNum(pTemp) != (int)Vec_PtrEntry(vNodes, i+1) )
 //            return 1;
-        i++;
+//        i++;
     }
     return 0;
 }

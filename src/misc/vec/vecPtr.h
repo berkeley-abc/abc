@@ -65,7 +65,7 @@ struct Vec_Ptr_t_
 #define Vec_PtrForEachEntryTwo( Type1, vVec1, Type2, vVec2, pEntry1, pEntry2, i )                  \
     for ( i = 0; (i < Vec_PtrSize(vVec1)) && (((pEntry1) = (Type1)Vec_PtrEntry(vVec1, i)), 1) && (((pEntry2) = (Type2)Vec_PtrEntry(vVec2, i)), 1); i++ )
 #define Vec_PtrForEachEntryDouble( Type1, Type2, vVec, Entry1, Entry2, i )                                \
-    for ( i = 0; (i+1 < Vec_IntSize(vVec)) && (((Entry1) = (Type1)Vec_PtrEntry(vVec, i)), 1) && (((Entry2) = (Type2)Vec_PtrEntry(vVec, i+1)), 1); i += 2 )
+    for ( i = 0; (i+1 < Vec_PtrSize(vVec)) && (((Entry1) = (Type1)Vec_PtrEntry(vVec, i)), 1) && (((Entry2) = (Type2)Vec_PtrEntry(vVec, i+1)), 1); i += 2 )
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///

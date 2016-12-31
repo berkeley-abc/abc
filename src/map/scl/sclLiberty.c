@@ -509,7 +509,7 @@ char * Scl_LibertyFileContents( char * pFileName, int nContents )
 {
     FILE * pFile = fopen( pFileName, "rb" );
     char * pContents = ABC_ALLOC( char, nContents+1 );
-    int RetValue;
+    int RetValue = 0;
     RetValue = fread( pContents, nContents, 1, pFile );
     fclose( pFile );
     pContents[nContents] = 0;
@@ -518,7 +518,7 @@ char * Scl_LibertyFileContents( char * pFileName, int nContents )
 void Scl_LibertyStringDump( char * pFileName, Vec_Str_t * vStr )
 {
     FILE * pFile = fopen( pFileName, "wb" );
-    int RetValue;
+    int RetValue = 0;
     if ( pFile == NULL )
     {
         printf( "Scl_LibertyStringDump(): The output file is unavailable.\n" );
@@ -583,7 +583,7 @@ Scl_Tree_t * Scl_LibertyParse( char * pFileName, int fVerbose )
         return NULL;
     pPos = p->pContents;
     Scl_LibertyWipeOutComments( p->pContents, p->pContents+p->nContents );
-    if ( !Scl_LibertyBuildItem( p, &pPos, p->pContents + p->nContents ) == 0 )
+    if ( (!Scl_LibertyBuildItem( p, &pPos, p->pContents + p->nContents )) == 0 )
     {
         if ( p->pError ) printf( "%s", p->pError );
         printf( "Parsing failed.  " );
