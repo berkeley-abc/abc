@@ -1993,7 +1993,7 @@ Gia_Man_t * Sbd_ManDerive( Gia_Man_t * p, Vec_Int_t * vMirrors )
 ***********************************************************************/
 void Sbd_NtkPerformOne( Sbd_Man_t * p, int Pivot )
 {
-    Sbd_Str_t Strs[SBD_DIV_MAX]; word Truth = 0;
+    Sbd_Str_t Strs[SBD_DIV_MAX]; //word Truth = 0;
     int RetValue, nStrs = 0;
     if ( !p->pSto && Sbd_ManMergeCuts( p, Pivot ) )
         return;
