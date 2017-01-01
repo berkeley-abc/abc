@@ -62,6 +62,7 @@ ABC_NAMESPACE_HEADER_START
 ////////////////////////////////////////////////////////////////////////
 
 typedef struct Sbd_Sto_t_ Sbd_Sto_t;
+typedef struct Sbd_Srv_t_ Sbd_Srv_t; 
 
 typedef struct Sbd_Str_t_ Sbd_Str_t;
 struct Sbd_Str_t_
@@ -92,6 +93,12 @@ extern void         Sbd_StoComputeCutsObj( Sbd_Sto_t * p, int iObj, int Delay, i
 extern void         Sbd_StoComputeCutsCi( Sbd_Sto_t * p, int iObj, int Delay, int Level );
 extern int          Sbd_StoComputeCutsNode( Sbd_Sto_t * p, int iObj );
 extern int          Sbd_StoObjBestCut( Sbd_Sto_t * p, int iObj, int nSize, int * pLeaves );
+/*=== sbdCut2.c ==========================================================*/
+extern Sbd_Srv_t *  Sbd_ManCutServerStart( Gia_Man_t * pGia, Vec_Int_t * vMirrors, 
+                                   Vec_Int_t * vLutLevs, Vec_Int_t * vLevs, Vec_Int_t * vRefs, 
+                                   int nLutSize, int nCutSize, int nCutNum, int fVerbose );
+extern void         Sbd_ManCutServerStop( Sbd_Srv_t * p );
+extern int          Sbd_ManCutServerFirst( Sbd_Srv_t * p, int iObj, int * pLeaves );
 /*=== sbdWin.c ==========================================================*/
 extern word         Sbd_ManSolve( sat_solver * pSat, int PivotVar, int FreeVar, Vec_Int_t * vDivSet, Vec_Int_t * vDivVars, Vec_Int_t * vDivValues, Vec_Int_t * vTemp );
 extern sat_solver * Sbd_ManSatSolver( sat_solver * pSat, Gia_Man_t * p, Vec_Int_t * vMirrors, int Pivot, Vec_Int_t * vWinObjs, Vec_Int_t * vObj2Var, Vec_Int_t * vTfo, Vec_Int_t * vRoots, int fQbf );

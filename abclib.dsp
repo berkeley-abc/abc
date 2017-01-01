@@ -2763,6 +2763,10 @@ SOURCE=.\src\opt\sbd\sbdCut.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\opt\sbd\sbdCut2.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\opt\sbd\sbdInt.h
 # End Source File
 # Begin Source File

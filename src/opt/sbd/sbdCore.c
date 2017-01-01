@@ -56,6 +56,7 @@ struct Sbd_Man_t_
     abctime         timeOther;
     abctime         timeTotal;
     Sbd_Sto_t *     pSto;
+    Sbd_Srv_t *     pSrv;
     // target node
     int             Pivot;       // target node
     int             DivCutoff;   // the place where D-2 divisors begin
@@ -230,7 +231,8 @@ Sbd_Man_t * Sbd_ManStart( Gia_Man_t * pGia, Sbd_Par_t * pPars )
         for ( w = 0; w < p->pPars->nWords; w++ )
             Sbd_ObjSim0(p, Id)[w] = Gia_ManRandomW( 0 );     
     // cut enumeration
-    p->pSto = Sbd_StoAlloc( pGia, p->vMirrors, pPars->nLutSize, pPars->nCutSize, pPars->nCutNum, 1, 1 );
+    p->pSto = Sbd_StoAlloc( pGia, p->vMirrors, pPars->nLutSize, pPars->nLutSize, pPars->nCutNum, 1, 1 );
+    p->pSrv = Sbd_ManCutServerStart( pGia, p->vMirrors, p->vLutLevs, NULL, NULL, pPars->nLutSize, pPars->nCutSize, pPars->nCutNum, 0 );
     return p;
 }
 void Sbd_ManStop( Sbd_Man_t * p )
@@ -257,6 +259,7 @@ void Sbd_ManStop( Sbd_Man_t * p )
     Vec_WrdFree( p->vMatrix );
     sat_solver_delete_p( &p->pSat );
     Sbd_StoFree( p->pSto );
+    Sbd_ManCutServerStop( p->pSrv );
     ABC_FREE( p );
 }
 
@@ -1320,6 +1323,11 @@ int Sbd_ManExploreCut( Sbd_Man_t * p, int Pivot, int nLeaves, int * pLeaves, int
         clk = Abc_Clock();
         Truth = Sbd_ManSolve( p->pSat, PivotVar, (*pFreeVar)++, p->vDivSet, p->vDivVars, p->vDivValues, p->vLits );
         p->timeSat += Abc_Clock() - clk;
+        if ( Truth == SBD_SAT_SAT )
+        {
+            printf( "The cut at node %d is not topological.\n", p->Pivot );
+            return 0;
+        }
         assert( Truth != SBD_SAT_UNDEC && Truth != SBD_SAT_SAT );
         // create structure
         Strs->fLut = 1;
@@ -1552,6 +1560,17 @@ int Sbd_ManExplore3( Sbd_Man_t * p, int Pivot, int * pnStrs, Sbd_Str_t * Strs )
     p->pSat = Sbd_ManSatSolver( p->pSat, p->pGia, p->vMirrors, Pivot, p->vWinObjs, p->vObj2Var, p->vTfo, p->vRoots, 0 );
     p->timeCnf += Abc_Clock() - clk;
     // extract one cut
+    if ( p->pSrv )
+    {
+        nLeaves = Sbd_ManCutServerFirst( p->pSrv, Pivot, pLeaves );
+        if ( nLeaves == -1 )
+            return 0;
+        assert( nLeaves <= p->pPars->nCutSize );
+        if ( Sbd_ManExploreCut( p, Pivot, nLeaves, pLeaves, pnStrs, Strs, &FreeVar ) )
+            return 1;
+        return 0;
+    }
+    // extract one cut
     for ( nSize = p->pPars->nLutSize + 1; nSize <= p->pPars->nCutSize; nSize++ )
     {
         nLeaves = Sbd_StoObjBestCut( p->pSto, Pivot, nSize, pLeaves );
@@ -1679,6 +1698,7 @@ int Sbd_ManMergeCuts( Sbd_Man_t * p, int Node )
     assert( iFan0 != iFan1 );
     assert( Vec_IntEntry(p->vLutLevs, Node) == 0 );
     Vec_IntWriteEntry( p->vLutLevs, Node, LevCur );
+    //Vec_IntWriteEntry( p->vLevs, Node, 1+Abc_MaxInt(Vec_IntEntry(p->vLevs, iFan0), Vec_IntEntry(p->vLevs, iFan1)) );
     assert( pCutRes[0] <= p->pPars->nLutSize );
     memcpy( Sbd_ObjCut(p, Node), pCutRes, sizeof(int) * (pCutRes[0] + 1) );
 //printf( "Setting node %d with delay %d.\n", Node, LevCur );
@@ -1742,6 +1762,7 @@ void Sbd_ManFindCut( Sbd_Man_t * p, int Node, Vec_Int_t * vCutLits )
     // create cut
     assert( Vec_IntEntry(p->vLutLevs, Node) == 0 );
     Vec_IntWriteEntry( p->vLutLevs, Node, LevelMax+1 );
+    //Vec_IntWriteEntry( p->vLevs, Node, 1+Abc_MaxInt(Vec_IntEntry(p->vLevs, Gia_ObjFaninId0(pObj, Node)), Vec_IntEntry(p->vLevs, Gia_ObjFaninId1(pObj, Node))) );
     memcpy( Sbd_ObjCut(p, Node), pCut, sizeof(int) * (pCut[0] + 1) );
 }
 
@@ -1803,11 +1824,13 @@ int Sbd_ManImplement( Sbd_Man_t * p, int Pivot, word Truth )
     // update delay of the initial node
     assert( Vec_IntEntry(p->vLutLevs, Pivot) == iCurLev );
     Vec_IntWriteEntry( p->vLutLevs, Pivot, iNewLev );
+    //Vec_IntWriteEntry( p->vLevs, Pivot, 1+Abc_MaxInt(Vec_IntEntry(p->vLevs, Gia_ObjFaninId0(pObj, Pivot)), Vec_IntEntry(p->vLevs, Gia_ObjFaninId1(pObj, Pivot))) );
     return 0;
 }
 
 int Sbd_ManImplement2( Sbd_Man_t * p, int Pivot, int nStrs, Sbd_Str_t * pStrs )
 {
+    Gia_Obj_t * pObj = NULL;
     int i, k, w, iLit, Node;
     int iObjLast = Gia_ManObjNum(p->pGia);
     int iCurLev = Vec_IntEntry(p->vLutLevs, Pivot);
@@ -1871,11 +1894,13 @@ int Sbd_ManImplement2( Sbd_Man_t * p, int Pivot, int nStrs, Sbd_Str_t * pStrs )
     Sbd_StoDerefObj( p->pSto, Pivot );
     for ( i = iObjLast; i < Gia_ManObjNum(p->pGia); i++ )
     {
+        Gia_Obj_t * pObjI = Gia_ManObj( p->pGia, i );
         abctime clk = Abc_Clock();
         int Delay = Sbd_StoComputeCutsNode( p->pSto, i );
         p->timeCut += Abc_Clock() - clk;
         assert( i == Vec_IntSize(p->vLutLevs) );
         Vec_IntPush( p->vLutLevs, Delay );
+        //Vec_IntPush( p->vLevs, 1+Abc_MaxInt(Vec_IntEntry(p->vLevs, Gia_ObjFaninId0(pObjI, i)), Vec_IntEntry(p->vLevs, Gia_ObjFaninId1(pObjI, i))) );
         Vec_IntPush( p->vObj2Var, 0 );
         Vec_IntFillExtra( p->vLutCuts, Vec_IntSize(p->vLutCuts) + p->pPars->nLutSize + 1, 0 );
         //Sbd_ManFindCut( p, i, p->vLits );
@@ -1887,8 +1912,10 @@ int Sbd_ManImplement2( Sbd_Man_t * p, int Pivot, int nStrs, Sbd_Str_t * pStrs )
     iNewLev = Vec_IntEntry( p->vLutLevs, Abc_Lit2Var(iLit) );
     assert( !iNewLev || iNewLev < iCurLev );
     // update delay of the initial node
+    pObj = Gia_ManObj( p->pGia, Pivot );
     assert( Vec_IntEntry(p->vLutLevs, Pivot) == iCurLev );
     Vec_IntWriteEntry( p->vLutLevs, Pivot, iNewLev );
+    //Vec_IntWriteEntry( p->vLevs, Pivot, Pivot ? 1+Abc_MaxInt(Vec_IntEntry(p->vLevs, Gia_ObjFaninId0(pObj, Pivot)), Vec_IntEntry(p->vLevs, Gia_ObjFaninId1(pObj, Pivot))) : 0 );
     return 0;
 }
 
