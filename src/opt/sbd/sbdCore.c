@@ -1894,7 +1894,7 @@ int Sbd_ManImplement2( Sbd_Man_t * p, int Pivot, int nStrs, Sbd_Str_t * pStrs )
     Sbd_StoDerefObj( p->pSto, Pivot );
     for ( i = iObjLast; i < Gia_ManObjNum(p->pGia); i++ )
     {
-        Gia_Obj_t * pObjI = Gia_ManObj( p->pGia, i );
+        //Gia_Obj_t * pObjI = Gia_ManObj( p->pGia, i );
         abctime clk = Abc_Clock();
         int Delay = Sbd_StoComputeCutsNode( p->pSto, i );
         p->timeCut += Abc_Clock() - clk;
