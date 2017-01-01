@@ -336,36 +336,6 @@ int Sbd_ManCutServerFirst( Sbd_Srv_t * p, int iObj, int * pLeaves )
         return Vec_IntSize(p->vCut);
     }
 
-#if 0
-    // recompute the cut
-    Vec_IntClear( p->vCut );
-    Gia_ManIncrementTravId( p->pGia );
-    RetValue = Sbd_ManCutCollect_rec( p->pGia, p->vMirrors, iObj, LevStop-1, p->vLutLevs, p->vCut );
-    if ( RetValue == 0 ) // cannot build delay-improving cut
-        return -1;
-    // check if the current cut is good
-    Vec_IntSort( p->vCut, 0 );
-/*
-    Sbd_ManCutReload( p->vMirrors, p->vLutLevs, LevStop, p->vCut, p->vCutTop, p->vCutBot );
-    if ( Vec_IntSize(p->vCut) <= p->nCutSize && Vec_IntSize(p->vCutTop) <= p->nLutSize-1 )
-    {
-        //printf( "%d ", Vec_IntSize(p->vCut) );
-        memcpy( pLeaves, Vec_IntArray(p->vCut), sizeof(int) * Vec_IntSize(p->vCut) );
-        return Vec_IntSize(p->vCut);
-    }
-*/
-    // try to expand the cut
-    Sbd_ManCutExpand( p->pGia, p->vMirrors, p->vLutLevs, p->vCut );
-    Sbd_ManCutReload( p->vMirrors, p->vLutLevs, LevStop, p->vCut, p->vCutTop, p->vCutBot );
-    if ( Vec_IntSize(p->vCut) <= p->nCutSize && Vec_IntSize(p->vCutTop) <= p->nLutSize-1 )
-    {
-        //printf( "2=(%d,%d) ", Vec_IntSize(p->vCutTop), Vec_IntSize(p->vCutBot) );
-        //printf( "%d ", Vec_IntSize(p->vCut) );
-        memcpy( pLeaves, Vec_IntArray(p->vCut), sizeof(int) * Vec_IntSize(p->vCut) );
-        return Vec_IntSize(p->vCut);
-    }
-#endif
-
     // try to reduce the topmost
     Vec_IntClear( p->vCut0 );
     Vec_IntAppend( p->vCut0, p->vCut );
@@ -420,6 +390,35 @@ int Sbd_ManCutServerFirst( Sbd_Srv_t * p, int iObj, int * pLeaves )
             }
         }
     }
+
+    // recompute the cut
+    Vec_IntClear( p->vCut );
+    Gia_ManIncrementTravId( p->pGia );
+    RetValue = Sbd_ManCutCollect_rec( p->pGia, p->vMirrors, iObj, LevStop-1, p->vLutLevs, p->vCut );
+    if ( RetValue == 0 ) // cannot build delay-improving cut
+        return -1;
+    // check if the current cut is good
+    Vec_IntSort( p->vCut, 0 );
+/*
+    Sbd_ManCutReload( p->vMirrors, p->vLutLevs, LevStop, p->vCut, p->vCutTop, p->vCutBot );
+    if ( Vec_IntSize(p->vCut) <= p->nCutSize && Vec_IntSize(p->vCutTop) <= p->nLutSize-1 )
+    {
+        //printf( "%d ", Vec_IntSize(p->vCut) );
+        memcpy( pLeaves, Vec_IntArray(p->vCut), sizeof(int) * Vec_IntSize(p->vCut) );
+        return Vec_IntSize(p->vCut);
+    }
+*/
+    // try to expand the cut
+    Sbd_ManCutExpand( p->pGia, p->vMirrors, p->vLutLevs, p->vCut );
+    Sbd_ManCutReload( p->vMirrors, p->vLutLevs, LevStop, p->vCut, p->vCutTop, p->vCutBot );
+    if ( Vec_IntSize(p->vCut) <= p->nCutSize && Vec_IntSize(p->vCutTop) <= p->nLutSize-1 )
+    {
+        //printf( "2=(%d,%d) ", Vec_IntSize(p->vCutTop), Vec_IntSize(p->vCutBot) );
+        //printf( "%d ", Vec_IntSize(p->vCut) );
+        memcpy( pLeaves, Vec_IntArray(p->vCut), sizeof(int) * Vec_IntSize(p->vCut) );
+        return Vec_IntSize(p->vCut);
+    }
+
     return -1;
 }
 

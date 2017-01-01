@@ -2009,6 +2009,7 @@ void Sbd_NtkPerformOne( Sbd_Man_t * p, int Pivot )
         Vec_IntWriteEntry( p->vMirrors, Pivot, RetValue );
         if ( p->pPars->fVerbose ) printf( "Node %5d:  Detected constant %d.\n", Pivot, RetValue );
     }
+/*
     else if ( p->pPars->nLutNum >= 1 && Sbd_ManExplore2( p, Pivot, &Truth ) )
     {
         int i;
@@ -2020,6 +2021,7 @@ void Sbd_NtkPerformOne( Sbd_Man_t * p, int Pivot )
         Sbd_ManImplement2( p, Pivot, 1, Strs );
         if ( p->pPars->fVerbose ) printf( "Node %5d:  Detected LUT%d\n", Pivot, p->pPars->nLutSize );
     }
+*/
     else if ( p->pPars->nLutNum >= 2 && Sbd_ManExplore3( p, Pivot, &nStrs, Strs ) )
     {
         Sbd_ManImplement2( p, Pivot, nStrs, Strs );
