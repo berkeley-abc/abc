@@ -360,12 +360,14 @@ void Sbd_ManUpdateOrder( Sbd_Man_t * p, int Pivot )
     if ( p->DivCutoff == -1 )
         p->DivCutoff = 0;
     // verify
+/*
     assert( Vec_IntSize(p->vDivVars) < 64 );
     Vec_IntForEachEntryStart( p->vDivVars, Node, i, p->DivCutoff )
         assert( Vec_IntEntry(p->vLutLevs, Vec_IntEntry(p->vWinObjs, Node)) == LevelMax - 2 );
     Vec_IntForEachEntryStop( p->vDivVars, Node, i, p->DivCutoff )
         assert( Vec_IntEntry(p->vLutLevs, Vec_IntEntry(p->vWinObjs, Node)) < LevelMax - 2 );
     Vec_IntFill( p->vDivValues, Vec_IntSize(p->vDivVars), 0 );
+*/
     //printf( "%d ", Vec_IntSize(p->vDivVars) );
 //    printf( "Node %4d :  Win = %5d.   Divs = %5d.    D1 = %5d.  D2 = %5d.\n",  
 //        Pivot, Vec_IntSize(p->vWinObjs), Vec_IntSize(p->vDivVars), Vec_IntSize(p->vDivVars)-p->DivCutoff, p->DivCutoff );
