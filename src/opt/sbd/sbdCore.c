@@ -1992,7 +1992,7 @@ void Sbd_ManDeriveMapping( Sbd_Man_t * p, Gia_Man_t * pNew )
             Vec_IntPushUniqueOrder( vLeaves, iObjNew );
         }
         assert( Vec_IntSize(vLeaves) <= p->pPars->nLutSize );
-        assert( Vec_IntSize(vLeaves) > 1 );
+        //assert( Vec_IntSize(vLeaves) > 1 );
         pCutNew[0] = Vec_IntSize(vLeaves);
         memcpy( pCutNew+1, Vec_IntArray(vLeaves), sizeof(int) * Vec_IntSize(vLeaves) );
     }
