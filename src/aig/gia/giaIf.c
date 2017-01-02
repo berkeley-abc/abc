@@ -539,22 +539,14 @@ void Gia_ManPrintMappingStats( Gia_Man_t * p, char * pDumpFile )
         {
             sprintf( FileNameOld, "%s", p->pName );
             fprintf( pTable, "\n" );
-            fprintf( pTable, "%s  ", p->pName );
-//            fprintf( pTable, "%d ", Gia_ManCiNum(p) );
-//            fprintf( pTable, "%d ", Gia_ManCoNum(p) );
-//            fprintf( pTable, "%d  ", Gia_ManAndNum(p) );
-//            fprintf( pTable, "%d ", Gia_ManPiNum(p) - Gia_ManBoxCiNum(p) - Gia_ManRegBoxNum(p) );
-//            fprintf( pTable, "%d ", Gia_ManPoNum(p) - Gia_ManBoxCoNum(p) - Gia_ManRegBoxNum(p) );
-//            fprintf( pTable, "%d ", Gia_ManClockDomainNum(p) );
-
+            fprintf( pTable, "%s ", p->pName );
             fprintf( pTable, " " );
-            fprintf( pTable, "%d ", p->MappedDelay  );
-            fprintf( pTable, "%d ", p->MappedArea   );
-            fprintf( pTable, "%d ", nFanins         );
-            fprintf( pTable, "%d ", LevelMax        );
+            fprintf( pTable, "%d ", Gia_ManAndNum(p) );
             fprintf( pTable, "%d ", nLuts           );
-//            fprintf( pTable, "%d ", Gia_ManRegBoxNum(p) );
-//            fprintf( pTable, "%d ", Gia_ManNonRegBoxNum(p) );
+            fprintf( pTable, "%d ", Gia_ManLutLevelWithBoxes(p) );
+            fprintf( pTable, "%d ", Gia_ManRegBoxNum(p) );
+            fprintf( pTable, "%d ", Gia_ManNonRegBoxNum(p) );
+            fprintf( pTable, "%.2f", 1.0*(Abc_Clock() - clk)/CLOCKS_PER_SEC );
             clk = Abc_Clock();
         }
         else
@@ -2014,7 +2006,7 @@ void Gia_ManMappingVerify( Gia_Man_t * p )
 void Gia_ManTransferMapping( Gia_Man_t * p, Gia_Man_t * pGia )
 {
     Gia_Obj_t * pObj;
-    int i, k, iFan;
+    int i, k, iFan, iPlace;
     if ( !Gia_ManHasMapping(pGia) )
         return;
     Gia_ManMappingVerify( pGia );
@@ -2023,12 +2015,20 @@ void Gia_ManTransferMapping( Gia_Man_t * p, Gia_Man_t * pGia )
     Vec_IntFill( p->vMapping, Gia_ManObjNum(p), 0 );
     Gia_ManForEachLut( pGia, i )
     {
+        if ( Gia_ObjValue(Gia_ManObj(pGia, i)) == ~0 ) // handle dangling LUT
+            continue;
         assert( !Abc_LitIsCompl(Gia_ObjValue(Gia_ManObj(pGia, i))) );
         pObj = Gia_ManObj( p, Abc_Lit2Var(Gia_ObjValue(Gia_ManObj(pGia, i))) );
         Vec_IntWriteEntry( p->vMapping, Gia_ObjId(p, pObj), Vec_IntSize(p->vMapping) );
+        iPlace = Vec_IntSize( p->vMapping );
         Vec_IntPush( p->vMapping, Gia_ObjLutSize(pGia, i) );
         Gia_LutForEachFanin( pGia, i, iFan, k )
-            Vec_IntPush( p->vMapping, Abc_Lit2Var(Gia_ObjValue(Gia_ManObj(pGia, iFan))) );
+        {
+            if ( Gia_ObjValue(Gia_ManObj(pGia, iFan)) == ~0 ) // handle dangling LUT fanin
+                Vec_IntAddToEntry( p->vMapping, iPlace, -1 );
+            else
+                Vec_IntPush( p->vMapping, Abc_Lit2Var(Gia_ObjValue(Gia_ManObj(pGia, iFan))) );
+        }
         iFan = Abc_Lit2Var( Gia_ObjValue(Gia_ManObj(pGia, Abc_AbsInt(Gia_ObjLutMuxId(pGia, i)))) );
         Vec_IntPush( p->vMapping, Gia_ObjLutIsMux(pGia, i) ? -iFan : iFan );
     }
