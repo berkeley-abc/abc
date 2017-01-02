@@ -41010,7 +41010,7 @@ int Abc_CommandAbc9Mfsd( Abc_Frame_t * pAbc, int argc, char ** argv )
     Sbd_Par_t Pars, * pPars = &Pars;
     Sbd_ParSetDefault( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "KSNPWFMCacvwh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "KSNPWFMCmcdpvwh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -41102,11 +41102,17 @@ int Abc_CommandAbc9Mfsd( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( pPars->nBTLimit < 0 )
                 goto usage;
             break;
-        case 'a':
-            pPars->fArea ^= 1;
+        case 'm':
+            pPars->fMapping ^= 1;
             break;
         case 'c':
-            pPars->fCover ^= 1;
+            pPars->fMoreCuts ^= 1;
+            break;
+        case 'd':
+            pPars->fFindDivs ^= 1;
+            break;
+        case 'p':
+            pPars->fUsePath ^= 1;
             break;
         case 'v':
             pPars->fVerbose ^= 1;
@@ -41122,25 +41128,22 @@ int Abc_CommandAbc9Mfsd( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     if ( pAbc->pGia == NULL )
     {
-        Abc_Print( -1, "Abc_CommandAbc9Mfs(): There is no AIG.\n" );
+        Abc_Print( -1, "Abc_CommandAbc9Mfsd(): There is no AIG.\n" );
         return 0;
     }
     if ( Gia_ManBufNum(pAbc->pGia) )
     {
-        Abc_Print( -1, "Abc_CommandAbc9Mfs(): This command does not work with barrier buffers.\n" );
+        Abc_Print( -1, "Abc_CommandAbc9Mfsd(): This command does not work with barrier buffers.\n" );
         return 1;
     }
     if ( Gia_ManHasMapping(pAbc->pGia) )
-    {
-        Abc_Print( -1, "Abc_CommandAbc9Mfs(): The current AIG has mapping (run &st to unmap).\n" );
-        return 0;
-    }
+        Abc_Print( 1, "The current AIG has mapping, which can be used to determine critical path if \"-p\" is selected.\n" );
     pTemp = Sbd_NtkPerform( pAbc->pGia, pPars );
     Abc_FrameUpdateGia( pAbc, pTemp );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &mfsd [-KSNPWFMC <num>] [-acvwh]\n" );
+    Abc_Print( -2, "usage: &mfsd [-KSNPWFMC <num>] [-mcdpvwh]\n" );
     Abc_Print( -2, "\t           performs SAT-based delay-oriented AIG optimization\n" );
     Abc_Print( -2, "\t-K <num> : the LUT size for delay minimization (2 <= num <= 6) [default = %d]\n",         pPars->nLutSize );
     Abc_Print( -2, "\t-S <num> : the LUT structure size (1 <= num <= 2) [default = %d]\n",                      pPars->nLutNum );
@@ -41150,8 +41153,10 @@ usage:
     Abc_Print( -2, "\t-F <num> : the max number of fanouts to skip (1 <= num) [default = %d]\n",                pPars->nTfoFanMax );
     Abc_Print( -2, "\t-M <num> : the max node count of windows to consider (0 = no limit) [default = %d]\n",    pPars->nWinSizeMax );
     Abc_Print( -2, "\t-C <num> : the max number of conflicts in one SAT run (0 = no limit) [default = %d]\n",   pPars->nBTLimit );
-    Abc_Print( -2, "\t-a       : toggle minimizing area or area+edges [default = %s]\n",                        pPars->fArea? "area": "area+edges" );
-    Abc_Print( -2, "\t-c       : toggle using complete slow covering procedure [default = %s]\n",               pPars->fCover? "yes": "no" );
+    Abc_Print( -2, "\t-m       : toggle generating delay-oriented mapping [default = %s]\n",                    pPars->fMapping? "area": "area+edges" );
+    Abc_Print( -2, "\t-c       : toggle using several cuts at each node [default = %s]\n",                      pPars->fMoreCuts? "yes": "no" );
+    Abc_Print( -2, "\t-d       : toggle additional search for good divisors [default = %s]\n",                  pPars->fFindDivs? "yes": "no" );
+    Abc_Print( -2, "\t-p       : toggle optimizing critical path only [default = %s]\n",                        pPars->fUsePath? "yes": "no" );
     Abc_Print( -2, "\t-v       : toggle printing optimization summary [default = %s]\n",                        pPars->fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-w       : toggle printing detailed stats for each node [default = %s]\n",                pPars->fVeryVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h       : print the command usage\n");

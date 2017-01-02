@@ -92,6 +92,7 @@ extern void         Sbd_StoComputeCutsConst0( Sbd_Sto_t * p, int iObj );
 extern void         Sbd_StoComputeCutsObj( Sbd_Sto_t * p, int iObj, int Delay, int Level );
 extern void         Sbd_StoComputeCutsCi( Sbd_Sto_t * p, int iObj, int Delay, int Level );
 extern int          Sbd_StoComputeCutsNode( Sbd_Sto_t * p, int iObj );
+extern void         Sbd_StoSaveBestDelayCut( Sbd_Sto_t * p, int iObj, int * pCut );
 extern int          Sbd_StoObjBestCut( Sbd_Sto_t * p, int iObj, int nSize, int * pLeaves );
 /*=== sbdCut2.c ==========================================================*/
 extern Sbd_Srv_t *  Sbd_ManCutServerStart( Gia_Man_t * pGia, Vec_Int_t * vMirrors, 
@@ -104,6 +105,8 @@ extern word         Sbd_ManSolve( sat_solver * pSat, int PivotVar, int FreeVar, 
 extern sat_solver * Sbd_ManSatSolver( sat_solver * pSat, Gia_Man_t * p, Vec_Int_t * vMirrors, int Pivot, Vec_Int_t * vWinObjs, Vec_Int_t * vObj2Var, Vec_Int_t * vTfo, Vec_Int_t * vRoots, int fQbf );
 extern int          Sbd_ManCollectConstants( sat_solver * pSat, int nCareMints[2], int PivotVar, word * pVarSims[], Vec_Int_t * vInds );
 extern int          Sbd_ManCollectConstantsNew( sat_solver * pSat, Vec_Int_t * vDivVars, int nConsts, int PivotVar, word * pOnset, word * pOffset );
+/*=== sbdPath.c ==========================================================*/
+extern Vec_Bit_t *  Sbc_ManCriticalPath( Gia_Man_t * p );
 /*=== sbdQbf.c ==========================================================*/
 extern int          Sbd_ProblemSolve( 
                                        Gia_Man_t * p, Vec_Int_t * vMirrors, 

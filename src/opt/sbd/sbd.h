@@ -47,6 +47,10 @@ struct Sbd_Par_t_
     int             nWinSizeMax;  // maximum window size (windowing)
     int             nBTLimit;     // maximum number of SAT conflicts 
     int             nWords;       // simulation word count
+    int             fMapping;     // generate mapping
+    int             fMoreCuts;    // use several cuts
+    int             fFindDivs;    // perform divisor search
+    int             fUsePath;     // optimize only critical path
     int             fArea;        // area-oriented optimization
     int             fCover;       // use complete cover procedure
     int             fVerbose;     // verbose flag

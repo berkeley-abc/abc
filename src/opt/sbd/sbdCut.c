@@ -65,10 +65,11 @@ struct Sbd_Sto_t_
     Sbd_Cut_t *     ppCuts[SBD_MAX_CUTNUM];    // temporary cut pointers
     int             nCutsR;                    // the number of cuts
     int             Pivot;                     // current object
-    double          CutCount[4];               // cut counters
+    int             iCutBest;                  // best-delay cut
     int             nCutsSpec;                 // special cuts
     int             nCutsOver;                 // overflow cuts
     int             DelayMin;                  // minimum delay
+    double          CutCount[4];               // cut counters
     abctime         clkStart;                  // starting time
 };
 
@@ -540,6 +541,7 @@ static inline void Sbd_StoComputeDelay( Sbd_Sto_t * p, int iObj, Sbd_Cut_t ** pC
 {
     int i, v, Delay, DelayMin = ABC_INFINITY;
     assert( nCuts > 0 );
+    p->iCutBest = -1;
     for ( i = 0; i < nCuts; i++ )
     {
         if ( (int)pCuts[i]->nLeaves > p->nLutSize )
@@ -547,8 +549,16 @@ static inline void Sbd_StoComputeDelay( Sbd_Sto_t * p, int iObj, Sbd_Cut_t ** pC
         Delay = 0;
         for ( v = 0; v < (int)pCuts[i]->nLeaves; v++ )
             Delay = Abc_MaxInt( Delay, Vec_IntEntry(p->vDelays, pCuts[i]->pLeaves[v]) );
-        DelayMin = Abc_MinInt( DelayMin, Delay );
+        //DelayMin = Abc_MinInt( DelayMin, Delay );
+        if ( DelayMin > Delay )
+        {
+            DelayMin = Delay;
+            p->iCutBest = i;
+        }
+        else if ( DelayMin == Delay && p->iCutBest >= 0 && pCuts[p->iCutBest]->nLeaves > pCuts[i]->nLeaves )
+            p->iCutBest = i;
     }
+    assert( p->iCutBest >= 0 );
     assert( DelayMin < ABC_INFINITY );
     DelayMin = (nCuts > 1 || pCuts[0]->nLeaves > 1) ? DelayMin + 1 : DelayMin;
     Vec_IntWriteEntry( p->vDelays, iObj, DelayMin );
@@ -724,6 +734,14 @@ int Sbd_StoComputeCutsNode( Sbd_Sto_t * p, int iObj )
     Sbd_StoComputeCutsObj( p, iObj, -1, 1 + Abc_MaxInt(Lev0, Lev1) );
     Sbd_StoMergeCuts( p, iObj );
     return Vec_IntEntry( p->vDelays, iObj );
+}
+void Sbd_StoSaveBestDelayCut( Sbd_Sto_t * p, int iObj, int * pCut )
+{
+    Sbd_Cut_t * pCutBest = p->ppCuts[p->iCutBest]; int i;
+    assert( iObj == p->Pivot );
+    pCut[0] = pCutBest->nLeaves;
+    for ( i = 0; i < (int)pCutBest->nLeaves; i++ )
+        pCut[i+1] = pCutBest->pLeaves[i];
 }
 int Sbd_StoObjRefs( Sbd_Sto_t * p, int iObj )
 {
