@@ -61,12 +61,14 @@ int Sbc_ManAddInternalToPath_rec( Gia_Man_t * p, int iObj, Vec_Bit_t * vPath )
 }
 void Sbc_ManAddInternalToPath( Gia_Man_t * p, Vec_Bit_t * vPath )
 {
-    int iObj;
+    int k, iFan, iObj;
     Gia_ManForEachLut( p, iObj )
     {
         if ( !Vec_BitEntry(vPath, iObj) )
             continue;
         Gia_ManIncrementTravId( p );
+        Gia_LutForEachFanin( p, iObj, iFan, k )
+            Gia_ObjSetTravIdCurrentId(p, iFan);
         Sbc_ManAddInternalToPath_rec( p, iObj, vPath );
     }
 }
@@ -106,7 +108,7 @@ Vec_Bit_t * Sbc_ManCriticalPath( Gia_Man_t * p )
         pLevels = Vec_IntArray( p->vLevels );
     Gia_ManIncrementTravId( p );
     Gia_ManForEachCoDriverId( p, iDriver, k )
-        if ( pLevels[iDriver] == nLevels && iDriver )
+        if ( (pLevels[iDriver] == nLevels) && iDriver )
             Sbc_ManCriticalPath_rec( p, pLevels, iDriver, nLevels-1, vPath );
     if ( !p->pManTime )
         ABC_FREE( pLevels );
