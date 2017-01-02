@@ -1945,7 +1945,7 @@ int Sbd_ManImplement2( Sbd_Man_t * p, int Pivot, int nStrs, Sbd_Str_t * pStrs )
 void Sbd_ManDeriveMapping_rec( Sbd_Man_t * p, Gia_Man_t * pNew, int iObj )
 {
     Gia_Obj_t * pObj; int k, * pCut;
-    if ( Gia_ObjIsTravIdCurrentId(pNew, iObj) )
+    if ( !iObj || Gia_ObjIsTravIdCurrentId(pNew, iObj) )
         return;
     Gia_ObjSetTravIdCurrentId(pNew, iObj);
     pObj = Gia_ManObj( pNew, iObj );
