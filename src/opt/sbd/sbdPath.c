@@ -19,6 +19,7 @@
 ***********************************************************************/
 
 #include "sbdInt.h"
+#include "misc/tim/tim.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -92,12 +93,28 @@ void Sbc_ManCriticalPath_rec( Gia_Man_t * p, int * pLevels, int iObj, int LevelF
     Gia_ObjSetTravIdCurrentId(p, iObj);
     pObj = Gia_ManObj( p, iObj );
     if ( Gia_ObjIsCi(pObj) )
+    {
+        Tim_Man_t * pManTime = (Tim_Man_t *)p->pManTime;
+        int iBox = pManTime ? Tim_ManBoxForCi( pManTime, Gia_ObjCioId(pObj) ) : -1;
+        if ( iBox >= 0 )
+        {
+            int curCo = Tim_ManBoxInputFirst( pManTime, iBox );
+            int nBoxInputs = Tim_ManBoxInputNum( pManTime, iBox );
+            for ( k = 0; k < nBoxInputs; k++ )
+            {
+                Gia_Obj_t * pCo = Gia_ManCo( p, curCo + k );
+                int iDriver = Gia_ObjFaninId0p( p, pCo );
+                if ( (pLevels[iDriver] >= LevelFan-1) && iDriver )
+                    Sbc_ManCriticalPath_rec( p, pLevels, iDriver, pLevels[iDriver], vPath );
+            }
+        }
         return;
+    }
     assert( Gia_ObjIsAnd(pObj) );
     Vec_BitWriteEntry( vPath, iObj, 1 );
     Gia_LutForEachFanin( p, iObj, iFan, k )
-        if ( pLevels[iFan] == LevelFan )
-            Sbc_ManCriticalPath_rec( p, pLevels, iFan, LevelFan-1, vPath );
+        if ( pLevels[iFan] >= LevelFan-1 )
+            Sbc_ManCriticalPath_rec( p, pLevels, iFan, pLevels[iFan], vPath );
 }
 Vec_Bit_t * Sbc_ManCriticalPath( Gia_Man_t * p )
 {
@@ -109,7 +126,7 @@ Vec_Bit_t * Sbc_ManCriticalPath( Gia_Man_t * p )
     Gia_ManIncrementTravId( p );
     Gia_ManForEachCoDriverId( p, iDriver, k )
         if ( (pLevels[iDriver] == nLevels) && iDriver )
-            Sbc_ManCriticalPath_rec( p, pLevels, iDriver, nLevels-1, vPath );
+            Sbc_ManCriticalPath_rec( p, pLevels, iDriver, pLevels[iDriver], vPath );
     if ( !p->pManTime )
         ABC_FREE( pLevels );
     Sbc_ManAddInternalToPath( p, vPath );
