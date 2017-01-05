@@ -52,6 +52,8 @@ extern int    Cmd_CommandExecute( void * pAbc, char * pCommandLine );
 // procedures to input/output 'mini AIG'
 extern void   Abc_NtkInputMiniAig( void * pAbc, void * pMiniAig );
 extern void * Abc_NtkOutputMiniAig( void * pAbc );
+extern void   Abc_FrameGiaInputMiniAig( void * pAbc, void * p );
+extern void * Abc_FrameGiaOutputMiniAig( void * pAbc );
 extern void   Abc_NtkSetFlopNum( void * pAbc, int nFlops );
 
 // procedures to input/output 'mini LUT'
