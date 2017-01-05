@@ -2086,7 +2086,7 @@ void Sbd_NtkPerformOne( Sbd_Man_t * p, int Pivot )
     if ( RetValue >= 0 )
     {
         Vec_IntWriteEntry( p->vMirrors, Pivot, RetValue );
-        if ( p->pPars->fVerbose ) printf( "Node %5d:  Detected constant %d.\n", Pivot, RetValue );
+        //if ( p->pPars->fVerbose ) printf( "Node %5d:  Detected constant %d.\n", Pivot, RetValue );
     }
     else if ( p->pPars->fFindDivs && p->pPars->nLutNum >= 1 && Sbd_ManExplore2( p, Pivot, &Truth ) )
     {
@@ -2097,19 +2097,19 @@ void Sbd_NtkPerformOne( Sbd_Man_t * p, int Pivot )
             Strs->VarIns[i] = i;
         Strs->Res = Truth;
         Sbd_ManImplement2( p, Pivot, 1, Strs );
-        if ( p->pPars->fVerbose ) printf( "Node %5d:  Detected LUT%d\n", Pivot, p->pPars->nLutSize );
+        //if ( p->pPars->fVerbose ) printf( "Node %5d:  Detected LUT%d\n", Pivot, p->pPars->nLutSize );
     }
     else if ( p->pPars->nLutNum >= 2 && Sbd_ManExplore3( p, Pivot, &nStrs, Strs ) )
     {
         Sbd_ManImplement2( p, Pivot, nStrs, Strs );
         if ( !p->pPars->fVerbose ) 
             return;
-        if ( Vec_IntSize(p->vDivSet) <= 4 )
-            printf( "Node %5d:  Detected %d\n", Pivot, p->pPars->nLutSize );
-        else if ( Vec_IntSize(p->vDivSet) <= 6 || (Vec_IntSize(p->vDivSet) == 7 && nStrs == 2) )
-            printf( "Node %5d:  Detected %d%d\n", Pivot, p->pPars->nLutSize, p->pPars->nLutSize );
-        else 
-            printf( "Node %5d:  Detected %d%d%d\n", Pivot, p->pPars->nLutSize, p->pPars->nLutSize, p->pPars->nLutSize );
+        //if ( Vec_IntSize(p->vDivSet) <= 4 )
+        //    printf( "Node %5d:  Detected %d\n", Pivot, p->pPars->nLutSize );
+        //else if ( Vec_IntSize(p->vDivSet) <= 6 || (Vec_IntSize(p->vDivSet) == 7 && nStrs == 2) )
+        //    printf( "Node %5d:  Detected %d%d\n", Pivot, p->pPars->nLutSize, p->pPars->nLutSize );
+        //else 
+        //    printf( "Node %5d:  Detected %d%d%d\n", Pivot, p->pPars->nLutSize, p->pPars->nLutSize, p->pPars->nLutSize );
     }
     else
         p->nUsed--;
@@ -2193,17 +2193,19 @@ Gia_Man_t * Sbd_NtkPerform( Gia_Man_t * pGia, Sbd_Par_t * pPars )
         }
     }
     Vec_BitFreeP( &vPath );
-    printf( "K = %d. S = %d. N = %d. P = %d.  ", 
-        p->pPars->nLutSize, p->pPars->nLutNum, p->pPars->nCutSize, p->pPars->nCutNum );
-    printf( "Try = %d. Use = %d.  C = %d. 1 = %d. 2 = %d. 3a = %d. 3b = %d.  Lev = %d.  ", 
-        p->nTried, p->nUsed, p->nLuts[0], p->nLuts[1], p->nLuts[2], p->nLuts[3], p->nLuts[4], Sbd_ManDelay(p) );
     p->timeTotal = Abc_Clock() - p->timeTotal;
-    Abc_PrintTime( 1, "Time", p->timeTotal );
-    //Sbd_ManDeriveMapping2( p );
+    if ( p->pPars->fVerbose )
+    {
+        printf( "K = %d. S = %d. N = %d. P = %d.  ", 
+            p->pPars->nLutSize, p->pPars->nLutNum, p->pPars->nCutSize, p->pPars->nCutNum );
+        printf( "Try = %d. Use = %d.  C = %d. 1 = %d. 2 = %d. 3a = %d. 3b = %d.  Lev = %d.  ", 
+            p->nTried, p->nUsed, p->nLuts[0], p->nLuts[1], p->nLuts[2], p->nLuts[3], p->nLuts[4], Sbd_ManDelay(p) );
+        Abc_PrintTime( 1, "Time", p->timeTotal );
+    }
     pNew = Sbd_ManDerive( p, pGia, p->vMirrors );
     // print runtime statistics
     p->timeOther = p->timeTotal - p->timeWin - p->timeCut - p->timeCov - p->timeCnf - p->timeSat - p->timeQbf;
-    //if ( p->pPars->fVerbose )
+    if ( p->pPars->fVerbose )
     {
         ABC_PRTP( "Win", p->timeWin  ,  p->timeTotal );
         ABC_PRTP( "Cut", p->timeCut  ,  p->timeTotal );
