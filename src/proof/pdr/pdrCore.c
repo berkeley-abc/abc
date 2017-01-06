@@ -922,10 +922,11 @@ int Pdr_ManSolve( Aig_Man_t * pAig, Pdr_Par_t * pPars )
     }
     if ( p->pPars->fDumpInv )
     {
+        char * pFileName = Extra_FileNameGenericAppend(p->pAig->pName, "_inv.pla");
         Abc_FrameSetCnf( Pdr_ManDeriveInfinityClauses( p, RetValue!=1 ) );
         Abc_FrameSetStr( Pdr_ManDumpString(p) );
         Abc_FrameSetInv( Pdr_ManCountFlopsInv(p) );
-        Pdr_ManDumpClauses( p, (char *)"inv.pla", RetValue==1 );
+        Pdr_ManDumpClauses( p, pFileName, RetValue==1 );
     }
     p->tTotal += Abc_Clock() - clk;
     Pdr_ManStop( p );
