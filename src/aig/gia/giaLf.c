@@ -2012,14 +2012,14 @@ void Lf_ManPrintStats( Lf_Man_t * p, char * pTitle )
     if ( !p->pPars->fVerbose )
         return;
     printf( "%s :  ", pTitle );
-    printf( "Level =%6lu   ",   p->pPars->Delay );
-    printf( "Area =%9lu   ",    p->pPars->Area );
-    printf( "Edge =%9lu   ",    p->pPars->Edge );
-    printf( "LUT =%9lu  ",      p->pPars->Area+p->nInverters );
+    printf( "Level =%6lu   ",   (long)p->pPars->Delay );
+    printf( "Area =%9lu   ",    (long)p->pPars->Area );
+    printf( "Edge =%9lu   ",    (long)p->pPars->Edge );
+    printf( "LUT =%9lu  ",      (long)p->pPars->Area+p->nInverters );
     if ( Vec_FltSize(&p->vSwitches) )
         printf( "Swt =%8.1f  ", p->Switches );
     if ( p->pPars->fUseMux7 )
-        printf( "Mux7 =%7lu  ", p->pPars->Mux7 );
+        printf( "Mux7 =%7lu  ", (long)p->pPars->Mux7 );
     Abc_PrintTime( 1, "Time", Abc_Clock() - p->clkStart );
     fflush( stdout );
 }
