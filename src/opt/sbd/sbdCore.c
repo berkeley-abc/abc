@@ -1964,7 +1964,7 @@ void Sbd_ManDeriveMapping_rec( Sbd_Man_t * p, Gia_Man_t * pNew, int iObj )
 void Sbd_ManDeriveMapping( Sbd_Man_t * p, Gia_Man_t * pNew )
 {
     Gia_Obj_t * pObj, * pFan; 
-    int i, k, iFan, iObjNew, * pCut, * pCutNew;
+    int i, k, iFan, iObjNew, iFanNew, * pCut, * pCutNew;
     Vec_Int_t * vLeaves = Vec_IntAlloc( 100 );
     // derive cuts for the new manager
     p->vLutCuts2 = Vec_IntStart( Gia_ManObjNum(pNew) * (p->pPars->nLutSize + 1) );
@@ -1986,10 +1986,10 @@ void Sbd_ManDeriveMapping( Sbd_Man_t * p, Gia_Man_t * pNew )
             pFan = Gia_ManObj( p->pGia, iFan );
             if ( pFan->Value == ~0 )
                 continue;
-            iObjNew = Abc_Lit2Var( pFan->Value );
-            if ( iObjNew == 0 )
+            iFanNew = Abc_Lit2Var( pFan->Value );
+            if ( iFanNew == 0 || iFanNew == iObjNew )
                 continue;
-            Vec_IntPushUniqueOrder( vLeaves, iObjNew );
+            Vec_IntPushUniqueOrder( vLeaves, iFanNew );
         }
         assert( Vec_IntSize(vLeaves) <= p->pPars->nLutSize );
         //assert( Vec_IntSize(vLeaves) > 1 );
