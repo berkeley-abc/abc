@@ -577,11 +577,12 @@ Gia_Man_t * Gia_ManCompress2( Gia_Man_t * p, int fUpdateLevel, int fVerbose )
 ***********************************************************************/
 Gia_Man_t * Gia_ManPerformDch( Gia_Man_t * p, void * pPars )
 {
+    int fUseMapping = 0;
     Gia_Man_t * pGia, * pGia1;
     Aig_Man_t * pNew;
     if ( p->pManTime && p->vLevels == NULL )
         Gia_ManLevelWithBoxes( p );
-    if ( Gia_ManHasMapping(p) )
+    if ( fUseMapping && Gia_ManHasMapping(p) )
         pGia1 = (Gia_Man_t *)Dsm_ManDeriveGia( p, 0 );
     else
         pGia1 = Gia_ManDup( p );
