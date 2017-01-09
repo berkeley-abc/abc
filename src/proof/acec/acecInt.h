@@ -27,7 +27,6 @@
 ////////////////////////////////////////////////////////////////////////
 
 #include "aig/gia/gia.h"
-#include "proof/cec/cec.h"
 #include "acec.h"
 
 ////////////////////////////////////////////////////////////////////////
@@ -37,6 +36,16 @@
 
 ABC_NAMESPACE_HEADER_START
  
+
+typedef struct Acec_Box_t_ Acec_Box_t;
+struct Acec_Box_t_
+{
+    Gia_Man_t *    pGia;      // AIG manager
+    Vec_Wec_t *    vLeafLits; // leaf literals by rank
+    Vec_Wec_t *    vRootLits; // root literals by rank
+    Vec_Wec_t *    vShared;   // shared leaves
+    Vec_Wec_t *    vUnique;   // unique leaves
+};
 
 ////////////////////////////////////////////////////////////////////////
 ///                         BASIC TYPES                              ///
@@ -54,6 +63,8 @@ ABC_NAMESPACE_HEADER_START
 ///                    FUNCTION DECLARATIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
+/*=== acecPa.c ========================================================*/
+extern Acec_Box_t *  Acec_DeriveBox( Gia_Man_t * p );
 /*=== acecUtil.c ========================================================*/
 extern void          Gia_PolynAnalyzeXors( Gia_Man_t * pGia, int fVerbose );
 extern Vec_Int_t *   Gia_PolynCollectLastXor( Gia_Man_t * pGia, int fVerbose );

@@ -38,6 +38,21 @@ ABC_NAMESPACE_HEADER_START
 ///                         BASIC TYPES                              ///
 ////////////////////////////////////////////////////////////////////////
 
+// combinational equivalence checking parameters
+typedef struct Acec_ParCec_t_ Acec_ParCec_t;
+struct Acec_ParCec_t_
+{
+    int              nBTLimit;      // conflict limit at a node
+    int              TimeLimit;     // the runtime limit in seconds
+    int              fMiter;        // input circuit is a miter
+    int              fDualOutput;   // dual-output miter
+    int              fTwoOutput;    // two-output miter
+    int              fSilent;       // print no messages
+    int              fVeryVerbose;  // verbose stats
+    int              fVerbose;      // verbose stats
+    int              iOutFail;      // the number of failed output
+};
+
 ////////////////////////////////////////////////////////////////////////
 ///                      MACRO DEFINITIONS                           ///
 ////////////////////////////////////////////////////////////////////////
@@ -51,7 +66,8 @@ ABC_NAMESPACE_HEADER_START
 ////////////////////////////////////////////////////////////////////////
 
 /*=== acecCore.c ========================================================*/
-extern int           Gia_PolynCec( Gia_Man_t * pGia0, Gia_Man_t * pGia1, Cec_ParCec_t * pPars );
+extern void          Acec_ManCecSetDefaultParams( Acec_ParCec_t * p );
+extern int           Acec_Solve( Gia_Man_t * pGia0, Gia_Man_t * pGia1, Acec_ParCec_t * pPars );
 /*=== acecFadds.c ========================================================*/
 extern Vec_Int_t *   Gia_ManDetectFullAdders( Gia_Man_t * p, int fVerbose, Vec_Int_t ** vCutsXor2 );
 extern Vec_Int_t *   Gia_ManDetectHalfAdders( Gia_Man_t * p, int fVerbose );

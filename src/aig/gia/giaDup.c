@@ -3879,12 +3879,20 @@ Vec_Int_t * Gia_ManCollectTopXors( Gia_Man_t * p )
     int i, iObj, iObj2, fFlip, Count1 = 0;
     Vec_Int_t * vXors, * vPart[2], * vOrder; 
     Gia_Obj_t * pFan[2], * pObj = Gia_ManCo(p, 0);
-    assert( Gia_ManCoNum(p) == 1 );
     vXors = Vec_IntAlloc( 100 );
-    if ( Gia_ObjFaninC0(pObj) )
-        Gia_ManCollectTopXors_rec( p, Gia_ObjFanin0(pObj), vXors );
+    if ( Gia_ManCoNum(p) == 1 )
+    {
+        if ( Gia_ObjFaninC0(pObj) )
+            Gia_ManCollectTopXors_rec( p, Gia_ObjFanin0(pObj), vXors );
+        else
+            Vec_IntPush( vXors, Gia_ObjId(p, Gia_ObjFanin0(pObj)) );
+    }
     else
-        Vec_IntPush( vXors, Gia_ObjId(p, Gia_ObjFanin0(pObj)) );
+    {
+        Gia_ManForEachCo( p, pObj, i )
+            if ( Gia_ObjFaninId0p(p, pObj) > 0 )
+                Vec_IntPush( vXors, Gia_ObjFaninId0p(p, pObj) );
+    }
     // order by support size
     Gia_ManDupDemiterOrderXors( p, vXors );
     //Vec_IntPrint( vXors );

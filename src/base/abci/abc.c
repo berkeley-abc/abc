@@ -40532,14 +40532,12 @@ usage:
 int Abc_CommandAbc9Acec( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     FILE * pFile;
-    Cec_ParCec_t ParsCec, * pPars = &ParsCec;
-    Gia_Man_t * pSecond;
-    char * FileName, * pTemp;
+    Acec_ParCec_t ParsCec, * pPars = &ParsCec;
     char ** pArgvNew;
-    int c, nArgcNew, fMiter = 0, fDualOutput = 0, fTwoOutput = 0;
-    Cec_ManCecSetDefaultParams( pPars );
+    int c, nArgcNew;
+    Acec_ManCecSetDefaultParams( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "CTnmdtvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "CTmdtvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -40565,17 +40563,14 @@ int Abc_CommandAbc9Acec( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( pPars->TimeLimit < 0 )
                 goto usage;
             break;
-        case 'n':
-            pPars->fNaive ^= 1;
-            break;
         case 'm':
-            fMiter ^= 1;
+            pPars->fMiter ^= 1;
             break;
         case 'd':
-            fDualOutput ^= 1;
+            pPars->fDualOutput ^= 1;
             break;
         case 't':
-            fTwoOutput ^= 1;
+            pPars->fTwoOutput ^= 1;
             break;
         case 'v':
             pPars->fVerbose ^= 1;
@@ -40586,15 +40581,20 @@ int Abc_CommandAbc9Acec( Abc_Frame_t * pAbc, int argc, char ** argv )
             goto usage;
         }
     }
-    if ( fMiter )
+    if ( pPars->fMiter )
     {
         Gia_Man_t * pGia0, * pGia1, * pDual;
+        if ( argc != globalUtilOptind )
+        {
+            Abc_Print( -1, "Abc_CommandAbc9Acec(): If the input is a miter, it cannot be given on the command line.\n" );
+            return 1;
+        }
         if ( pAbc->pGia == NULL )
         {
             Abc_Print( -1, "Abc_CommandAbc9Acec(): There is no AIG.\n" );
             return 1;
         }
-        if ( fDualOutput )
+        if ( pPars->fDualOutput )
         {
             if ( Gia_ManPoNum(pAbc->pGia) & 1 )
             {
@@ -40604,28 +40604,28 @@ int Abc_CommandAbc9Acec( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( !pPars->fSilent )
             Abc_Print( 1, "Assuming the current network is a double-output miter. (Conflict limit = %d.)\n", pPars->nBTLimit );
             Gia_ManDemiterDual( pAbc->pGia, &pGia0, &pGia1 );
-            pAbc->Status = Gia_PolynCec( pGia0, pGia1, pPars );
+            pAbc->Status = Acec_Solve( pGia0, pGia1, pPars );
         }
-        else if ( fTwoOutput )
+        else if ( pPars->fTwoOutput )
         {
             if ( Gia_ManPoNum(pAbc->pGia) & 1 )
             {
-                Abc_Print( -1, "The dual-output miter should have an even number of outputs.\n" );
+                Abc_Print( -1, "The two-output miter should have an even number of outputs.\n" );
                 return 1;
             }
             if ( !pPars->fSilent )
             Abc_Print( 1, "Assuming the current network is a two-word miter. (Conflict limit = %d.)\n", pPars->nBTLimit );
             Gia_ManDemiterTwoWords( pAbc->pGia, &pGia0, &pGia1 );
-            pAbc->Status = Gia_PolynCec( pGia0, pGia1, pPars );
+            pAbc->Status = Acec_Solve( pGia0, pGia1, pPars );
         }
-        else
+        else // regular single- or multi-output miter
         {
             if ( !pPars->fSilent )
-            Abc_Print( 1, "Assuming the current network is a single-output miter. (Conflict limit = %d.)\n", pPars->nBTLimit );
+            Abc_Print( 1, "Assuming the current network is a regular single- or multi-output miter. (Conflict limit = %d.)\n", pPars->nBTLimit );
             pDual = Gia_ManDemiterToDual( pAbc->pGia );
             Gia_ManDemiterDual( pDual, &pGia0, &pGia1 );
             Gia_ManStop( pDual );
-            pAbc->Status = Gia_PolynCec( pGia0, pGia1, pPars );
+            pAbc->Status = Acec_Solve( pGia0, pGia1, pPars );
         }
         Abc_FrameReplaceCex( pAbc, &pGia0->pCexComb );
         Gia_ManStop( pGia0 );
@@ -40635,52 +40635,96 @@ int Abc_CommandAbc9Acec( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     pArgvNew = argv + globalUtilOptind;
     nArgcNew = argc - globalUtilOptind;
-    if ( nArgcNew != 1 )
+    if ( nArgcNew == 0 || nArgcNew == 1 )
     {
-        if ( pAbc->pGia->pSpec == NULL )
+        Gia_Man_t * pSecond;
+        char * pTemp, * FileName = NULL;
+        if ( nArgcNew == 0 )
         {
-            Abc_Print( -1, "File name is not given on the command line.\n" );
-            return 1;
+            FileName = pAbc->pGia->pSpec;
+            if ( FileName == NULL )
+            {
+                Abc_Print( -1, "File name is not given on the command line.\n" );
+                return 1;
+            }
         }
-        FileName = pAbc->pGia->pSpec;
+        else // if ( nArgcNew == 1 )
+        {
+            FileName = pArgvNew[0];
+            // fix the wrong symbol
+            for ( pTemp = FileName; *pTemp; pTemp++ )
+                if ( *pTemp == '>' )
+                    *pTemp = '\\';
+            if ( (pFile = fopen( FileName, "r" )) == NULL )
+            {
+                Abc_Print( -1, "Cannot open input file \"%s\". ", FileName );
+                if ( (FileName = Extra_FileGetSimilarName( FileName, ".aig", NULL, NULL, NULL, NULL )) )
+                    Abc_Print( 1, "Did you mean \"%s\"?", FileName );
+                Abc_Print( 1, "\n" );
+                return 1;
+            }
+            fclose( pFile );
+        }
+        pSecond = Gia_AigerRead( FileName, 0, 0, 0 );
+        if ( pSecond == NULL )
+        {
+            Abc_Print( -1, "Reading AIGER has failed.\n" );
+            return 0;
+        }
+        pAbc->Status = Acec_Solve( pAbc->pGia, pSecond, pPars );
+        Abc_FrameReplaceCex( pAbc, &pAbc->pGia->pCexComb );
+        Gia_ManStop( pSecond );
+    }
+    else if ( nArgcNew == 2 )
+    {
+        Gia_Man_t * pGias[2] = {NULL};  int i;
+        char * pTemp, * FileName[2] = { pArgvNew[0], pArgvNew[1] };
+        for ( i = 0; i < 2; i++ )
+        {
+            // fix the wrong symbol
+            for ( pTemp = FileName[i]; *pTemp; pTemp++ )
+                if ( *pTemp == '>' )
+                    *pTemp = '\\';
+            if ( (pFile = fopen( FileName[i], "r" )) == NULL )
+            {
+                Abc_Print( -1, "Cannot open input file \"%s\". ", FileName[i] );
+                if ( (FileName[i] = Extra_FileGetSimilarName( FileName[i], ".aig", NULL, NULL, NULL, NULL )) )
+                    Abc_Print( 1, "Did you mean \"%s\"?", FileName[i] );
+                Abc_Print( 1, "\n" );
+                return 1;
+            }
+            fclose( pFile );
+            pGias[i] = Gia_AigerRead( FileName[i], 0, 0, 0 );
+            if ( pGias[i] == NULL )
+            {
+                Abc_Print( -1, "Reading AIGER has failed.\n" );
+                return 0;
+            }
+        }
+        pAbc->Status = Acec_Solve( pGias[0], pGias[1], pPars );
+        Abc_FrameReplaceCex( pAbc, &pGias[0]->pCexComb );
+        Gia_ManStop( pGias[0] );
+        Gia_ManStop( pGias[1] );
     }
     else
-        FileName = pArgvNew[0];
-    // fix the wrong symbol
-    for ( pTemp = FileName; *pTemp; pTemp++ )
-        if ( *pTemp == '>' )
-            *pTemp = '\\';
-    if ( (pFile = fopen( FileName, "r" )) == NULL )
     {
-        Abc_Print( -1, "Cannot open input file \"%s\". ", FileName );
-        if ( (FileName = Extra_FileGetSimilarName( FileName, ".aig", NULL, NULL, NULL, NULL )) )
-            Abc_Print( 1, "Did you mean \"%s\"?", FileName );
-        Abc_Print( 1, "\n" );
+        Abc_Print( -1, "Too many command-line arguments.\n" );
         return 1;
     }
-    fclose( pFile );
-    pSecond = Gia_AigerRead( FileName, 0, 0, 0 );
-    if ( pSecond == NULL )
-    {
-        Abc_Print( -1, "Reading AIGER has failed.\n" );
-        return 0;
-    }
-    pAbc->Status = Gia_PolynCec( pAbc->pGia, pSecond, pPars );
-    Abc_FrameReplaceCex( pAbc, &pAbc->pGia->pCexComb );
-    Gia_ManStop( pSecond );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &acec [-CT num] [-nmdtvh]\n" );
+    Abc_Print( -2, "usage: &acec [-CT num] [-mdtvh] <file1> <file2>\n" );
     Abc_Print( -2, "\t         combinational equivalence checking for arithmetic circuits\n" );
     Abc_Print( -2, "\t-C num : the max number of conflicts at a node [default = %d]\n", pPars->nBTLimit );
     Abc_Print( -2, "\t-T num : approximate runtime limit in seconds [default = %d]\n", pPars->TimeLimit );
-    Abc_Print( -2, "\t-n     : toggle using naive SAT-based checking [default = %s]\n", pPars->fNaive? "yes":"no");
-    Abc_Print( -2, "\t-m     : toggle miter vs. two circuits [default = %s]\n", fMiter? "miter":"two circuits");
-    Abc_Print( -2, "\t-d     : toggle using dual output miter [default = %s]\n", fDualOutput? "yes":"no");
-    Abc_Print( -2, "\t-t     : toggle using two-word miter [default = %s]\n", fTwoOutput? "yes":"no");
+    Abc_Print( -2, "\t-m     : toggle miter vs. two circuits [default = %s]\n", pPars->fMiter? "miter":"two circuits");
+    Abc_Print( -2, "\t-d     : toggle using dual output miter [default = %s]\n", pPars->fDualOutput? "yes":"no");
+    Abc_Print( -2, "\t-t     : toggle using two-word miter [default = %s]\n", pPars->fTwoOutput? "yes":"no");
     Abc_Print( -2, "\t-v     : toggle verbose output [default = %s]\n", pPars->fVerbose? "yes":"no");
     Abc_Print( -2, "\t-h     : print the command usage\n");
+    Abc_Print( -2, "\tfile1  : (optional) the file with the first network\n");
+    Abc_Print( -2, "\tfile2  : (optional) the file with the second network\n");
     return 1;
 }
 
