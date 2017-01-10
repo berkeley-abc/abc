@@ -41,6 +41,8 @@ typedef struct Acec_Box_t_ Acec_Box_t;
 struct Acec_Box_t_
 {
     Gia_Man_t *    pGia;      // AIG manager
+    Vec_Wec_t *    vLeafs;    // leaf literals by rank
+    Vec_Wec_t *    vRoots;    // root literals by rank
     Vec_Wec_t *    vLeafLits; // leaf literals by rank
     Vec_Wec_t *    vRootLits; // root literals by rank
     Vec_Wec_t *    vShared;   // shared leaves
