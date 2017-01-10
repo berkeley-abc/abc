@@ -303,17 +303,9 @@ void Acec_ManPrintRanks( Vec_Int_t * vPairs )
 ***********************************************************************/
 void Acec_ManProfile( Gia_Man_t * p, int fVerbose )
 {
-    extern Vec_Int_t * Ree_ManComputeCuts( Gia_Man_t * p, Vec_Int_t ** pvXors, int fVerbose );
-    extern void Ree_ManRemoveTrivial( Gia_Man_t * p, Vec_Int_t * vAdds );
-    extern void Ree_ManRemoveContained( Gia_Man_t * p, Vec_Int_t * vAdds );
-    extern int Ree_ManCountFadds( Vec_Int_t * vAdds );
-    extern void Ree_ManPrintAdders( Vec_Int_t * vAdds, int fVerbose );
-
     abctime clk = Abc_Clock();
     Vec_Wec_t * vBoxes; int i;
     Vec_Int_t * vXors, * vAdds = Ree_ManComputeCuts( p, &vXors, fVerbose );
-    Ree_ManRemoveTrivial( p, vAdds );
-    Ree_ManRemoveContained( p, vAdds );
 
     //Ree_ManPrintAdders( vAdds, 1 );
     printf( "Detected %d full-adders and %d half-adders.  Found %d XOR-cuts.  ", Ree_ManCountFadds(vAdds), Vec_IntSize(vAdds)/6-Ree_ManCountFadds(vAdds), Vec_IntSize(vXors)/4 );
@@ -396,13 +388,6 @@ Vec_Int_t * Acec_ManPoolTopMost( Gia_Man_t * p, Vec_Int_t * vAdds )
 }
 void Acec_ManPool( Gia_Man_t * p )
 {
-    extern Vec_Int_t * Ree_ManComputeCuts( Gia_Man_t * p, Vec_Int_t ** pvXors, int fVerbose );
-    extern Vec_Wec_t * Gia_PolynCoreOrderArray( Gia_Man_t * pGia, Vec_Int_t * vAdds, Vec_Int_t * vRootBoxes );
-
-    extern int Ree_ManCountFadds( Vec_Int_t * vAdds );
-    extern void Ree_ManPrintAdders( Vec_Int_t * vAdds, int fVerbose );
-    extern void Ree_ManRemoveTrivial( Gia_Man_t * p, Vec_Int_t * vAdds );
-    extern void Ree_ManRemoveContained( Gia_Man_t * p, Vec_Int_t * vAdds );
     Vec_Int_t * vTops, * vTree;
     Vec_Wec_t * vTrees;
 
@@ -413,8 +398,6 @@ void Acec_ManPool( Gia_Man_t * p )
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
 
     clk = Abc_Clock();
-    Ree_ManRemoveTrivial( p, vAdds );
-    Ree_ManRemoveContained( p, vAdds );
     nFadds = Ree_ManCountFadds( vAdds );
     printf( "Detected %d FAs and %d HAs.  ", nFadds, Vec_IntSize(vAdds)/6-nFadds );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );

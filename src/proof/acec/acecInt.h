@@ -63,11 +63,16 @@ struct Acec_Box_t_
 ///                    FUNCTION DECLARATIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
-/*=== acecPa.c ========================================================*/
+/*=== acecCo.c ========================================================*/
+extern Vec_Int_t *   Gia_PolynCoreOrder( Gia_Man_t * pGia, Vec_Int_t * vAdds, Vec_Int_t * vAddCos, Vec_Int_t ** pvIns, Vec_Int_t ** pvOuts );
+extern Vec_Wec_t *   Gia_PolynCoreOrderArray( Gia_Man_t * pGia, Vec_Int_t * vAdds, Vec_Int_t * vRootBoxes );
+/*=== acecTree.c ========================================================*/
 extern Acec_Box_t *  Acec_DeriveBox( Gia_Man_t * p );
 /*=== acecUtil.c ========================================================*/
 extern void          Gia_PolynAnalyzeXors( Gia_Man_t * pGia, int fVerbose );
 extern Vec_Int_t *   Gia_PolynCollectLastXor( Gia_Man_t * pGia, int fVerbose );
+
+
 
 ABC_NAMESPACE_HEADER_END
 

@@ -76,6 +76,10 @@ extern Vec_Int_t *   Gia_PolynReorder( Gia_Man_t * pGia, int fVerbose, int fVery
 extern Vec_Int_t *   Gia_PolynFindOrder( Gia_Man_t * pGia, Vec_Int_t * vFadds, Vec_Int_t * vHadds, int fVerbose, int fVeryVerbose );
 /*=== acecPolyn.c ========================================================*/
 extern void          Gia_PolynBuild( Gia_Man_t * pGia, Vec_Int_t * vOrder, int fSigned, int fVerbose, int fVeryVerbose );
+/*=== acecRe.c ========================================================*/
+extern Vec_Int_t *   Ree_ManComputeCuts( Gia_Man_t * p, Vec_Int_t ** pvXors, int fVerbose );
+extern int           Ree_ManCountFadds( Vec_Int_t * vAdds );
+extern void          Ree_ManPrintAdders( Vec_Int_t * vAdds, int fVerbose );
 
 
 ABC_NAMESPACE_HEADER_END

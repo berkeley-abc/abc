@@ -392,6 +392,8 @@ Vec_Int_t * Ree_ManDeriveAdds( Hash_IntMan_t * p, Vec_Int_t * vData, int fVerbos
 }
 Vec_Int_t * Ree_ManComputeCuts( Gia_Man_t * p, Vec_Int_t ** pvXors, int fVerbose )
 {
+    extern void Ree_ManRemoveTrivial( Gia_Man_t * p, Vec_Int_t * vAdds );
+    extern void Ree_ManRemoveContained( Gia_Man_t * p, Vec_Int_t * vAdds );
     Gia_Obj_t * pObj; 
     int * pList0, * pList1, i, nCuts = 0;
     Hash_IntMan_t * pHash = Hash_IntManStart( 1000 );
@@ -430,6 +432,8 @@ Vec_Int_t * Ree_ManComputeCuts( Gia_Man_t * p, Vec_Int_t ** pvXors, int fVerbose
             Vec_IntSize(vAdds)/6, Vec_IntSize(vData)/3, Hash_IntManEntryNum(pHash), 6.0*Hash_IntManEntryNum(pHash)/Vec_IntSize(vAdds) );
     Vec_IntFree( vData );
     Hash_IntManStop( pHash );
+    Ree_ManRemoveTrivial( p, vAdds );
+    Ree_ManRemoveContained( p, vAdds );
     return vAdds;
 }
 

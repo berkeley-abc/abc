@@ -306,18 +306,10 @@ Gia_Man_t * Acec_DetectXorBuildNew( Gia_Man_t * p, Vec_Int_t * vRootXorSet )
 ***********************************************************************/
 Gia_Man_t * Acec_DetectAdditional( Gia_Man_t * p, int fVerbose )
 {
-    extern Vec_Int_t * Ree_ManComputeCuts( Gia_Man_t * p, Vec_Int_t ** pvXors, int fVerbose );
-    extern void Ree_ManRemoveTrivial( Gia_Man_t * p, Vec_Int_t * vAdds );
-    extern void Ree_ManRemoveContained( Gia_Man_t * p, Vec_Int_t * vAdds );
-    extern int Ree_ManCountFadds( Vec_Int_t * vAdds );
-    extern void Ree_ManPrintAdders( Vec_Int_t * vAdds, int fVerbose );
-
     abctime clk = Abc_Clock();
     Gia_Man_t * pNew;
     Vec_Int_t * vRootXorSet;
 //    Vec_Int_t * vXors, * vAdds = Ree_ManComputeCuts( p, &vXors, 0 );
-//    Ree_ManRemoveTrivial( p, vAdds );
-//    Ree_ManRemoveContained( p, vAdds );
 
     //Ree_ManPrintAdders( vAdds, 1 );
 //    printf( "Detected %d full-adders and %d half-adders.  Found %d XOR-cuts.  ", Ree_ManCountFadds(vAdds), Vec_IntSize(vAdds)/6-Ree_ManCountFadds(vAdds), Vec_IntSize(vXors)/4 );

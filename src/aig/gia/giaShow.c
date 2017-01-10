@@ -814,18 +814,12 @@ void Gia_ShowProcess( Gia_Man_t * p, char * pFileName, Vec_Int_t * vAdds, Vec_In
 }
 void Gia_ManShow( Gia_Man_t * pMan, Vec_Int_t * vBold, int fAdders, int fFadds )
 {
-    extern Vec_Int_t * Ree_ManComputeCuts( Gia_Man_t * p, Vec_Int_t ** pvXors, int fVerbose );
-    extern void Ree_ManRemoveTrivial( Gia_Man_t * p, Vec_Int_t * vAdds );
-    extern void Ree_ManRemoveContained( Gia_Man_t * p, Vec_Int_t * vAdds );
-
     extern void Abc_ShowFile( char * FileNameDot );
     static int Counter = 0;
     char FileNameDot[200];
     FILE * pFile;
 
     Vec_Int_t * vXors, * vAdds = Ree_ManComputeCuts( pMan, &vXors, 0 );
-    Ree_ManRemoveTrivial( pMan, vAdds );
-    Ree_ManRemoveContained( pMan, vAdds );
 
     // create the file name
 //    Gia_ShowGetFileName( pMan->pName, FileNameDot );
