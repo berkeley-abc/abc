@@ -70,12 +70,14 @@ void Acec_ManCecSetDefaultParams( Acec_ParCec_t * p )
 ***********************************************************************/
 void Acec_BoxFree( Acec_Box_t * pBox )
 {
+    Vec_WecFreeP( &pBox->vAdds );
     Vec_WecFreeP( &pBox->vLeafs );
     Vec_WecFreeP( &pBox->vRoots );
     Vec_WecFreeP( &pBox->vLeafLits );
     Vec_WecFreeP( &pBox->vRootLits );
     Vec_WecFreeP( &pBox->vUnique );
     Vec_WecFreeP( &pBox->vShared );
+    Vec_BitFreeP( &pBox->vInvHadds );
     ABC_FREE( pBox );
 }
 void Acec_BoxFreeP( Acec_Box_t ** ppBox )

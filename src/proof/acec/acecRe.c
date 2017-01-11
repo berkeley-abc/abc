@@ -370,7 +370,7 @@ Vec_Int_t * Ree_ManDeriveAdds( Hash_IntMan_t * p, Vec_Int_t * vData, int fVerbos
         Vec_IntForEachEntryDouble( vXorOne, iObj, Truth, j )
         Vec_IntForEachEntryDouble( vMajOne, iObj2, Truth2, k )
         {
-            int SignAnd[8] = {0x88, 0x44, 0x22, 0x11, 0xEE, 0xDD, 0xBB, 0x77};
+            int SignAnd[8] = {0x88, 0x44, 0x22, 0x11, 0x77, 0xBB, 0xDD, 0xEE};
             int SignMaj[8] = {0xE8, 0xD4, 0xB2, 0x71, 0x8E, 0x4D, 0x2B, 0x17};
             int n, SignXor = (Truth == 0x99 || Truth == 0x69) << 3;
             for ( n = 0; n < 8; n++ )
@@ -389,6 +389,14 @@ Vec_Int_t * Ree_ManDeriveAdds( Hash_IntMan_t * p, Vec_Int_t * vData, int fVerbos
     Vec_WecFree( vXorMap );
     Vec_WecFree( vMajMap );
     return vAdds;
+}
+int Ree_ManCompare( int * pCut0, int * pCut1 )
+{
+    if ( pCut0[3] < pCut1[3] ) return -1;
+    if ( pCut0[3] > pCut1[3] ) return  1;
+    if ( pCut0[4] < pCut1[4] ) return -1;
+    if ( pCut0[4] > pCut1[4] ) return  1;
+    return 0;
 }
 Vec_Int_t * Ree_ManComputeCuts( Gia_Man_t * p, Vec_Int_t ** pvXors, int fVerbose )
 {
@@ -427,6 +435,7 @@ Vec_Int_t * Ree_ManComputeCuts( Gia_Man_t * p, Vec_Int_t ** pvXors, int fVerbose
     Vec_IntFree( vTemp );
     Vec_IntFree( vCuts );
     vAdds = Ree_ManDeriveAdds( pHash, vData, fVerbose );
+    qsort( Vec_IntArray(vAdds), Vec_IntSize(vAdds)/6, 24, (int (*)(const void *, const void *))Ree_ManCompare );
     if ( fVerbose )
         printf( "Adders = %d.  Total cuts = %d.  Hashed cuts = %d.  Hashed/Adders = %.2f.\n", 
             Vec_IntSize(vAdds)/6, Vec_IntSize(vData)/3, Hash_IntManEntryNum(pHash), 6.0*Hash_IntManEntryNum(pHash)/Vec_IntSize(vAdds) );
