@@ -21,6 +21,7 @@
 #include "gia.h"
 #include "proof/cec/cec.h"
 #include "proof/acec/acec.h"
+#include "misc/extra/extra.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -815,15 +816,10 @@ void Gia_ShowProcess( Gia_Man_t * p, char * pFileName, Vec_Int_t * vAdds, Vec_In
 void Gia_ManShow( Gia_Man_t * pMan, Vec_Int_t * vBold, int fAdders, int fFadds )
 {
     extern void Abc_ShowFile( char * FileNameDot );
-    static int Counter = 0;
     char FileNameDot[200];
     FILE * pFile;
-
     Vec_Int_t * vXors, * vAdds = Ree_ManComputeCuts( pMan, &vXors, 0 );
-
-    // create the file name
-//    Gia_ShowGetFileName( pMan->pName, FileNameDot );
-    sprintf( FileNameDot, "temp%02d.dot", Counter++ );
+    sprintf( FileNameDot, "%s", Extra_FileNameGenericAppend(pMan->pName, ".dot") );
     // check that the file can be opened
     if ( (pFile = fopen( FileNameDot, "w" )) == NULL )
     {
