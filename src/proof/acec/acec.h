@@ -80,6 +80,8 @@ extern void          Gia_PolynBuild( Gia_Man_t * pGia, Vec_Int_t * vOrder, int f
 extern Vec_Int_t *   Ree_ManComputeCuts( Gia_Man_t * p, Vec_Int_t ** pvXors, int fVerbose );
 extern int           Ree_ManCountFadds( Vec_Int_t * vAdds );
 extern void          Ree_ManPrintAdders( Vec_Int_t * vAdds, int fVerbose );
+/*=== acecTree.c ========================================================*/
+extern Gia_Man_t *   Acec_Normalize( Gia_Man_t * pGia, int fVerbose );
 
 
 ABC_NAMESPACE_HEADER_END

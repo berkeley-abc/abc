@@ -1509,7 +1509,7 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Vec_Int_t * vBoxIds, int iOutput, in
         assert( Vec_PtrSize(pNew->vNamesOut) == Gia_ManCoNum(pNew) );
     }
 
-    pNew->pSpec = Abc_UtilStrsav( p->pSpec ? p->pSpec : p->pName );
+    //pNew->pSpec = Abc_UtilStrsav( p->pSpec ? p->pSpec : p->pName );
     // dump the miter parts
     if ( 0 )
     {

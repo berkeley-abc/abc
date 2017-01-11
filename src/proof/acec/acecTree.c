@@ -33,6 +33,36 @@ ABC_NAMESPACE_IMPL_START
 
 /**Function*************************************************************
 
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Acec_BoxFree( Acec_Box_t * pBox )
+{
+    Vec_WecFreeP( &pBox->vAdds );
+    Vec_WecFreeP( &pBox->vLeafs );
+    Vec_WecFreeP( &pBox->vRoots );
+    Vec_WecFreeP( &pBox->vLeafLits );
+    Vec_WecFreeP( &pBox->vRootLits );
+    Vec_WecFreeP( &pBox->vUnique );
+    Vec_WecFreeP( &pBox->vShared );
+    Vec_BitFreeP( &pBox->vInvHadds );
+    ABC_FREE( pBox );
+}
+void Acec_BoxFreeP( Acec_Box_t ** ppBox )
+{
+    if ( *ppBox )
+        Acec_BoxFree( *ppBox );
+    *ppBox = NULL;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Find internal cut points with exactly one adder fanin/fanout.]
 
   Description [Returns a map of point into its input/output adder.]
@@ -412,6 +442,31 @@ void Acec_TreePhases( Gia_Man_t * p, Vec_Int_t * vAdds, Vec_Wec_t * vBoxes,
   SeeAlso     []
 
 ***********************************************************************/
+void Acec_PrintAdders( Vec_Wec_t * vBoxes, Vec_Int_t * vAdds )
+{
+    Vec_Int_t * vLevel;
+    int i, k, iBox;
+    Vec_WecForEachLevel( vBoxes, vLevel, i )
+    {
+        printf( " %4d : {", i );
+        Vec_IntForEachEntry( vLevel, iBox, k )
+            printf( " %s%d=(%d,%d)", Vec_IntEntry(vAdds, 6*iBox+2) == 0 ? "*":"", iBox, 
+                                     Vec_IntEntry(vAdds, 6*iBox+3), Vec_IntEntry(vAdds, 6*iBox+4) );
+        printf( " }\n" );
+    }
+}
+void Vec_WecPrintLits( Vec_Wec_t * p )
+{
+    Vec_Int_t * vVec;
+    int i, k, Entry;
+    Vec_WecForEachLevel( p, vVec, i )
+    {
+        printf( " %4d : {", i );
+        Vec_IntForEachEntry( vVec, Entry, k )
+            printf( " %c%d", Abc_LitIsCompl(Entry) ? '-' : '+', Abc_Lit2Var(Entry) );
+        printf( " }\n" );
+    }
+}
 void Acec_PrintRootLits( Vec_Wec_t * vRoots )
 {
     Vec_Int_t * vLevel;
@@ -427,30 +482,6 @@ void Acec_PrintRootLits( Vec_Wec_t * vRoots )
             printf( "%d%s%s ", Node, fCout ? "*" : "", (fCout && fFadd) ? "*" : "" );
         }
         printf( "\n" );
-    }
-}
-void Acec_PrintAdders( Vec_Wec_t * vBoxes, Vec_Int_t * vAdds )
-{
-    Vec_Int_t * vLevel;
-    int i, k, iBox;
-    Vec_WecForEachLevel( vBoxes, vLevel, i )
-    {
-        printf( " %4d : {", i );
-        Vec_IntForEachEntry( vLevel, iBox, k )
-            printf( " (%d,%d)", Vec_IntEntry(vAdds, 6*iBox+3), Vec_IntEntry(vAdds, 6*iBox+4) );
-        printf( " }\n" );
-    }
-}
-void Vec_WecPrintLits( Vec_Wec_t * p )
-{
-    Vec_Int_t * vVec;
-    int i, k, Entry;
-    Vec_WecForEachLevel( p, vVec, i )
-    {
-        printf( " %4d : {", i );
-        Vec_IntForEachEntry( vVec, Entry, k )
-            printf( " %c%d", Abc_LitIsCompl(Entry) ? '-' : '+', Abc_Lit2Var(Entry) );
-        printf( " }\n" );
     }
 }
 void Acec_PrintBox( Acec_Box_t * pBox, Vec_Int_t * vAdds )
@@ -488,7 +519,6 @@ Acec_Box_t * Acec_CreateBox( Gia_Man_t * p, Vec_Int_t * vAdds, Vec_Int_t * vTree
 }
 void Acec_CreateBoxTest( Gia_Man_t * p )
 {
-    extern void Acec_BoxFree( Acec_Box_t * pBox );
     Acec_Box_t * pBox;
     Vec_Wec_t * vTrees;
     Vec_Int_t * vTree;
@@ -511,8 +541,8 @@ void Acec_CreateBoxTest( Gia_Man_t * p )
         printf( "Processing tree %d:  Ranks = %d.  Adders = %d.  Leaves = %d.  Roots = %d.\n", 
             i, Vec_WecSize(pBox->vAdds), Vec_WecSizeSize(pBox->vAdds), 
             Vec_WecSizeSize(pBox->vLeafLits), Vec_WecSizeSize(pBox->vRootLits)  );
-        //Acec_PrintBox( pBox );
-        Acec_BoxFree( pBox );
+        Acec_PrintBox( pBox, vAdds );
+        Acec_BoxFreeP( &pBox );
     }
 
     Vec_WecFree( vTrees );
@@ -530,9 +560,22 @@ void Acec_CreateBoxTest( Gia_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-Acec_Box_t * Acec_DeriveBox( Gia_Man_t * p )
+Acec_Box_t * Acec_DeriveBox( Gia_Man_t * p, int fVerbose )
 {
-    return NULL;
+    Acec_Box_t * pBox = NULL;
+    Vec_Int_t * vAdds = Ree_ManComputeCuts( p, NULL, fVerbose );
+    Vec_Wec_t * vTrees = Acec_TreeFindTrees( p, vAdds );
+    if ( vTrees && Vec_WecSize(vTrees) > 0 )
+        pBox = Acec_CreateBox( p, vAdds, Vec_WecEntry(vTrees, 0) );
+    if ( pBox )//&& fVerbose )
+        printf( "Processing tree %d:  Ranks = %d.  Adders = %d.  Leaves = %d.  Roots = %d.\n", 
+            0, Vec_WecSize(pBox->vAdds), Vec_WecSizeSize(pBox->vAdds), 
+            Vec_WecSizeSize(pBox->vLeafLits), Vec_WecSizeSize(pBox->vRootLits)  );
+    if ( pBox && fVerbose )
+        Acec_PrintBox( pBox, vAdds );
+    Vec_WecFreeP( &vTrees );
+    Vec_IntFree( vAdds );
+    return pBox;
 }
 
 ////////////////////////////////////////////////////////////////////////

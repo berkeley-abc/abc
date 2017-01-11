@@ -68,98 +68,6 @@ void Acec_ManCecSetDefaultParams( Acec_ParCec_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-void Acec_BoxFree( Acec_Box_t * pBox )
-{
-    Vec_WecFreeP( &pBox->vAdds );
-    Vec_WecFreeP( &pBox->vLeafs );
-    Vec_WecFreeP( &pBox->vRoots );
-    Vec_WecFreeP( &pBox->vLeafLits );
-    Vec_WecFreeP( &pBox->vRootLits );
-    Vec_WecFreeP( &pBox->vUnique );
-    Vec_WecFreeP( &pBox->vShared );
-    Vec_BitFreeP( &pBox->vInvHadds );
-    ABC_FREE( pBox );
-}
-void Acec_BoxFreeP( Acec_Box_t ** ppBox )
-{
-    if ( *ppBox )
-        Acec_BoxFree( *ppBox );
-    *ppBox = NULL;
-}
-
-/**Function*************************************************************
-
-  Synopsis    []
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Acec_InsertHadd( Gia_Man_t * pNew, int In[2], int Out[2] )
-{
-    int And, Or;
-    Out[1] = Gia_ManAppendAnd2( pNew, In[0], In[1] );
-    And    = Gia_ManAppendAnd2( pNew, Abc_LitNot(In[0]), Abc_LitNot(In[1]) );
-    Or     = Gia_ManAppendOr2( pNew, Out[1], And );
-    Out[0] = Abc_LitNot( Or );
-}
-void Acec_InsertFadd( Gia_Man_t * pNew, int In[3], int Out[2] )
-{
-    int In2[2], Out1[2], Out2[2];
-    Acec_InsertHadd( pNew, In, Out1 );
-    In2[0] = Out1[0];
-    In2[1] = In[2];
-    Acec_InsertHadd( pNew, In2, Out2 );
-    Out[0] = Out2[0];
-    Out[1] = Gia_ManAppendOr2( pNew, Out1[1], Out2[1] );
-}
-Vec_Int_t * Acec_InsertTree( Gia_Man_t * pNew, Vec_Wec_t * vLeafMap )
-{
-    Vec_Int_t * vRootRanks = Vec_IntAlloc( Vec_WecSize(vLeafMap) + 5 );
-    Vec_Int_t * vLevel;
-    int i, In[3], Out[2];
-    Vec_WecForEachLevel( vLeafMap, vLevel, i )
-    {
-        if ( Vec_IntSize(vLevel) == 0 )
-        {
-            Vec_IntPush( vRootRanks, 0 );
-            continue;
-        }
-        while ( Vec_IntSize(vLevel) > 1 )
-        {
-            if ( Vec_IntSize(vLevel) == 2 )
-                Vec_IntPush( vLevel, 0 );
-            In[0] = Vec_IntPop( vLevel );
-            In[1] = Vec_IntPop( vLevel );
-            In[2] = Vec_IntPop( vLevel );
-            Acec_InsertFadd( pNew, In, Out );
-            Vec_IntPush( vLevel, Out[0] );
-            if ( i-1 < Vec_WecSize(vLeafMap) )
-                vLevel = Vec_WecEntry(vLeafMap, i+1);
-            else
-                vLevel = Vec_WecPushLevel(vLeafMap);
-            Vec_IntPush( vLevel, Out[1] );
-        }
-        assert( Vec_IntSize(vLevel) == 1 );
-        Vec_IntPush( vRootRanks, Vec_IntEntry(vLevel, 0) );
-    }
-    return vRootRanks;
-}
-
-/**Function*************************************************************
-
-  Synopsis    []
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
 Gia_Man_t * Acec_FindEquivs( Gia_Man_t * pBase, Gia_Man_t * pAdd )
 {
     Gia_Obj_t * pObj;
@@ -251,12 +159,14 @@ int Acec_MatchBoxes( Acec_Box_t * pBox0, Acec_Box_t * pBox1 )
         int * pEnd1 = Vec_IntLimit(vLevel1);
         while ( pBeg0 < pEnd0 && pBeg1 < pEnd1 )
         {
-            if ( *pBeg0 == *pBeg1 )
+            int Entry0 = Abc_Lit2LitV( Vec_IntArray(vMap0), *pBeg0 );
+            int Entry1 = Abc_Lit2LitV( Vec_IntArray(vMap1), *pBeg1 );
+            if ( Entry0 == Entry1 )
             {
                 Vec_IntPush( vShared0, *pBeg0++ );
                 Vec_IntPush( vShared1, *pBeg1++ );
             }
-            else if ( *pBeg0 > *pBeg1 )
+            else if ( Entry0 > Entry1 )
                 Vec_IntPush( vUnique0, *pBeg0++ );
             else 
                 Vec_IntPush( vUnique1, *pBeg1++ );
@@ -269,103 +179,12 @@ int Acec_MatchBoxes( Acec_Box_t * pBox0, Acec_Box_t * pBox1 )
         assert( Vec_IntSize(vShared0) + Vec_IntSize(vUnique0) == Vec_IntSize(vLevel0) );
         assert( Vec_IntSize(vShared1) + Vec_IntSize(vUnique1) == Vec_IntSize(vLevel1) );
     }
+    Vec_IntFree( vMap0 );
+    Vec_IntFree( vMap1 );
     nTotal = Vec_WecSizeSize(pBox0->vShared);
     printf( "Box0: Matched %d entries out of %d.\n", nTotal, Vec_WecSizeSize(pBox0->vLeafLits) );
     printf( "Box1: Matched %d entries out of %d.\n", nTotal, Vec_WecSizeSize(pBox1->vLeafLits) );
     return nTotal;
-}
-
-/**Function*************************************************************
-
-  Synopsis    []
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Acec_InsertBox_rec( Gia_Man_t * pNew, Gia_Man_t * p, Gia_Obj_t * pObj )
-{
-    if ( ~pObj->Value )
-        return pObj->Value;
-    assert( Gia_ObjIsAnd(pObj) );
-    Acec_InsertBox_rec( pNew, p, Gia_ObjFanin0(pObj) );
-    Acec_InsertBox_rec( pNew, p, Gia_ObjFanin1(pObj) );
-    return (pObj->Value = Gia_ManAppendAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) ));
-}
-Vec_Int_t * Acec_BuildTree( Gia_Man_t * pNew, Gia_Man_t * p, Vec_Wec_t * vLeafLits )
-{
-    Vec_Wec_t * vLeafMap = Vec_WecStart( Vec_WecSize(vLeafLits) );
-    Vec_Int_t * vLevel, * vRootRanks;  
-    int i, k, iLit, iLitNew;
-    Vec_WecForEachLevel( vLeafLits, vLevel, i )
-        Vec_IntForEachEntry( vLevel, iLit, k )
-        {
-            Gia_Obj_t * pObj = Gia_ManObj( p, Abc_Lit2Var(iLit) );
-            iLitNew = Acec_InsertBox_rec( pNew, p, pObj );
-            iLitNew = Abc_LitNotCond( iLitNew, Abc_LitIsCompl(iLit) );
-            Vec_WecPush( vLeafMap, i, iLitNew );
-        }
-    // construct map of root literals
-    vRootRanks = Acec_InsertTree( pNew, vLeafMap );
-    Vec_WecFree( vLeafMap );
-    return vRootRanks;
-}
-
-Gia_Man_t * Acec_InsertBox( Acec_Box_t * pBox, int fAll )
-{
-    Gia_Man_t * p = pBox->pGia;
-    Gia_Man_t * pNew;
-    Gia_Obj_t * pObj;
-    Vec_Int_t * vRootRanks, * vLevel;
-    int i, k, iLit, iLitNew;
-    pNew = Gia_ManStart( Gia_ManObjNum(p) );
-    pNew->pName = Abc_UtilStrsav( p->pName );
-    pNew->pSpec = Abc_UtilStrsav( p->pSpec );
-    Gia_ManConst0(p)->Value = 0;
-    Gia_ManForEachCi( p, pObj, i )
-        pObj->Value = Gia_ManAppendCi( pNew );
-    // implement tree
-    if ( fAll )
-        vRootRanks = Acec_BuildTree( pNew, p, pBox->vLeafLits );
-    else
-    {
-        Vec_Wec_t * vLeafLits;
-        assert( pBox->vShared != NULL );
-        assert( pBox->vUnique != NULL );
-        vRootRanks = Acec_BuildTree( p, p, pBox->vShared );
-        // add these roots to the unique ones
-        vLeafLits = Vec_WecDup( pBox->vUnique );
-        Vec_IntForEachEntry( vRootRanks, iLit, i )
-        {
-            if ( i < Vec_WecSize(vLeafLits) )
-                vLevel = Vec_WecEntry(vLeafLits, i);
-            else
-                vLevel = Vec_WecPushLevel(vLeafLits);
-            Vec_IntPush( vLevel, iLit );
-        }
-        Vec_IntFree( vRootRanks );
-        vRootRanks = Acec_BuildTree( pNew, p, vLeafLits );
-        Vec_WecFree( vLeafLits );
-    }
-    // update polarity of literals
-    Vec_WecForEachLevel( pBox->vRootLits, vLevel, i )
-        Vec_IntForEachEntry( vLevel, iLit, k )
-        {
-            pObj = Gia_ManObj( p, Abc_Lit2Var(iLit) );
-            iLitNew = k ? 0 : Vec_IntEntry( vRootRanks, k );
-            pObj->Value = Abc_LitNotCond( iLitNew, Abc_LitIsCompl(iLit) );
-        }
-    Vec_IntFree( vRootRanks );
-    // construct the outputs
-    Gia_ManForEachCo( p, pObj, i )
-        Acec_InsertBox_rec( pNew, p, Gia_ObjFanin0(pObj) );
-    Gia_ManForEachCo( p, pObj, i )
-        pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
-    Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
-    return pNew;
 }
 
 /**Function*************************************************************
@@ -385,8 +204,8 @@ int Acec_Solve( Gia_Man_t * pGia0, Gia_Man_t * pGia1, Acec_ParCec_t * pPars )
     Gia_Man_t * pMiter;
     Gia_Man_t * pGia0n = pGia0, * pGia1n = pGia1;
     Cec_ParCec_t ParsCec, * pCecPars = &ParsCec;
-    Acec_Box_t * pBox0 = Acec_DeriveBox( pGia0 );
-    Acec_Box_t * pBox1 = Acec_DeriveBox( pGia1 );
+    Acec_Box_t * pBox0 = Acec_DeriveBox( pGia0, pPars->fVerbose );
+    Acec_Box_t * pBox1 = Acec_DeriveBox( pGia1, pPars->fVerbose );
     if ( pBox0 == NULL || pBox1 == NULL ) // cannot match
         printf( "Cannot find arithmetic boxes in both LHS and RHS. Trying regular CEC.\n" );
     else if ( !Acec_MatchBoxes( pBox0, pBox1 ) ) // cannot find matching
@@ -403,7 +222,7 @@ int Acec_Solve( Gia_Man_t * pGia0, Gia_Man_t * pGia1, Acec_ParCec_t * pPars )
     pMiter = Gia_ManMiter( pGia0n, pGia1n, 0, 1, 0, 0, pPars->fVerbose );
     if ( pMiter )
     {
-        int fDumpMiter = 1;
+        int fDumpMiter = 0;
         if ( fDumpMiter )
         {
             Abc_Print( 0, "The verification miter is written into file \"%s\".\n", "acec_miter.aig" );

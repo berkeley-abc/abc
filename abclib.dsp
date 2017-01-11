@@ -5507,6 +5507,10 @@ SOURCE=.\src\proof\acec\acecInt.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\proof\acec\acecNorm.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\proof\acec\acecOrder.c
 # End Source File
 # Begin Source File
