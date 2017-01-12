@@ -8,6 +8,7 @@ SRC +=    src/proof/acec/acecCl.c \
     src/proof/acec/acecPool.c \
     src/proof/acec/acecCover.c \
     src/proof/acec/acecFadds.c \
+    src/proof/acec/acecMult.c \
     src/proof/acec/acecNorm.c \
     src/proof/acec/acecOrder.c \
     src/proof/acec/acecPolyn.c \

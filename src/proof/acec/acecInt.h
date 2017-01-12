@@ -70,6 +70,8 @@ struct Acec_Box_t_
 /*=== acecCo.c ========================================================*/
 extern Vec_Int_t *   Gia_PolynCoreOrder( Gia_Man_t * pGia, Vec_Int_t * vAdds, Vec_Int_t * vAddCos, Vec_Int_t ** pvIns, Vec_Int_t ** pvOuts );
 extern Vec_Wec_t *   Gia_PolynCoreOrderArray( Gia_Man_t * pGia, Vec_Int_t * vAdds, Vec_Int_t * vRootBoxes );
+/*=== acecMult.c ========================================================*/
+extern Vec_Int_t *   Acec_MultDetectInputs( Gia_Man_t * p, Vec_Wec_t * vLeafLits, Vec_Wec_t * vRootLits );
 /*=== acecNorm.c ========================================================*/
 extern Gia_Man_t *   Acec_InsertBox( Acec_Box_t * pBox, int fAll );
 /*=== acecTree.c ========================================================*/

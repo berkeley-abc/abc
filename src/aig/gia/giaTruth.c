@@ -139,6 +139,57 @@ word Gia_ObjComputeTruthTable6Lut( Gia_Man_t * p, int iObj, Vec_Wrd_t * vTemp )
 
 /**Function*************************************************************
 
+  Synopsis    [Computes truth table up to 6 inputs in terms of CIs.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+word Gia_ObjComputeTruth6( Gia_Man_t * p, int iObj, Vec_Int_t * vSupp, Vec_Wrd_t * vTemp )
+{
+    int i, Fanin;
+    assert( Vec_WrdSize(vTemp) == Gia_ManObjNum(p) );
+    assert( Vec_IntSize(vSupp) <= 6 );
+    Gia_ManIncrementTravId( p );
+    Vec_IntForEachEntry( vSupp, Fanin, i )
+    {
+        Gia_ObjSetTravIdCurrentId( p, Fanin );
+        Vec_WrdWriteEntry( vTemp, Fanin, s_Truth6[i] );
+    }
+    Gia_ObjComputeTruthTable6Lut_rec( p, iObj, vTemp );
+    return Vec_WrdEntry( vTemp, iObj );
+}
+void Gia_ObjComputeTruth6CisSupport_rec( Gia_Man_t * p, int iObj, Vec_Int_t * vSupp )
+{
+    Gia_Obj_t * pObj = Gia_ManObj( p, iObj );
+    if ( Gia_ObjIsTravIdCurrentId(p, iObj) )
+        return;
+    Gia_ObjSetTravIdCurrentId(p, iObj);
+    if ( Gia_ObjIsCi(pObj) )
+    {
+        Vec_IntPushOrder( vSupp, iObj );
+        return;
+    }
+    assert( Gia_ObjIsAnd(pObj) );
+    Gia_ObjComputeTruth6CisSupport_rec( p, Gia_ObjFaninId0p(p, pObj), vSupp );
+    Gia_ObjComputeTruth6CisSupport_rec( p, Gia_ObjFaninId1p(p, pObj), vSupp );
+}
+word Gia_ObjComputeTruth6Cis( Gia_Man_t * p, int iLit, Vec_Int_t * vSupp, Vec_Wrd_t * vTemp )
+{
+    int iObj = Abc_Lit2Var(iLit); 
+    Vec_IntClear( vSupp );
+    if ( !iObj ) return Abc_LitIsCompl(iLit) ? ~(word)0 : (word)0;
+    Gia_ManIncrementTravId( p );
+    Gia_ObjComputeTruth6CisSupport_rec( p, iObj, vSupp );
+    Gia_ObjComputeTruth6( p, iObj, vSupp, vTemp );
+    return Abc_LitIsCompl(iLit) ? ~Vec_WrdEntry(vTemp, iObj) : Vec_WrdEntry(vTemp, iObj);
+}
+
+/**Function*************************************************************
+
   Synopsis    [Computes truth table up to 6 inputs.]
 
   Description []
