@@ -645,10 +645,20 @@ void Wlc_IntInsert( Vec_Int_t * vProd, Vec_Int_t * vLevel, int Node, int Level )
 }
 void Wlc_BlastPrintMatrix( Gia_Man_t * p, Vec_Wec_t * vProds )
 {
+    int fVerbose = 0;
     Vec_Int_t * vSupp = Vec_IntAlloc( 100 );
     Vec_Wrd_t * vTemp = Vec_WrdStart( Gia_ManObjNum(p) );
     Vec_Int_t * vLevel;  word Truth;
     int i, k, iLit; 
+    Vec_WecForEachLevel( vProds, vLevel, i )
+        Vec_IntForEachEntry( vLevel, iLit, k )
+            if ( Gia_ObjIsAnd(Gia_ManObj(p, Abc_Lit2Var(iLit))) )
+                Vec_IntPushUnique( vSupp, Abc_Lit2Var(iLit) );
+    printf( "Booth partial products: %d pps, %d unique, %d nodes.\n", 
+        Vec_WecSizeSize(vProds), Vec_IntSize(vSupp), Gia_ManAndNum(p) );
+    Vec_IntPrint( vSupp );
+
+    if ( fVerbose )
     Vec_WecForEachLevel( vProds, vLevel, i )
         Vec_IntForEachEntry( vLevel, iLit, k )
         {

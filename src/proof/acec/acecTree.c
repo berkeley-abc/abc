@@ -45,13 +45,10 @@ ABC_NAMESPACE_IMPL_START
 void Acec_BoxFree( Acec_Box_t * pBox )
 {
     Vec_WecFreeP( &pBox->vAdds );
-    Vec_WecFreeP( &pBox->vLeafs );
-    Vec_WecFreeP( &pBox->vRoots );
     Vec_WecFreeP( &pBox->vLeafLits );
     Vec_WecFreeP( &pBox->vRootLits );
     Vec_WecFreeP( &pBox->vUnique );
     Vec_WecFreeP( &pBox->vShared );
-    Vec_BitFreeP( &pBox->vInvHadds );
     ABC_FREE( pBox );
 }
 void Acec_BoxFreeP( Acec_Box_t ** ppBox )
@@ -118,6 +115,141 @@ void Acec_TreeFilterTrees( Gia_Man_t * p, Vec_Int_t * vAdds, Vec_Wec_t * vTrees 
     int i;
     Vec_WecForEachLevel( vTrees, vLevel, i )
         Acec_TreeFilterOne( p, vAdds, vLevel );
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Acec_TreeVerifyPhaseOne_rec( Gia_Man_t * p, Gia_Obj_t * pObj )
+{
+    int Truth0, Truth1;
+    if ( Gia_ObjIsTravIdCurrent(p, pObj) )
+        return pObj->Value;
+    Gia_ObjSetTravIdCurrent(p, pObj);
+    assert( Gia_ObjIsAnd(pObj) );
+    assert( !Gia_ObjIsXor(pObj) );
+    Truth0 = Acec_TreeVerifyPhaseOne_rec( p, Gia_ObjFanin0(pObj) );
+    Truth1 = Acec_TreeVerifyPhaseOne_rec( p, Gia_ObjFanin1(pObj) );
+    Truth0 = Gia_ObjFaninC0(pObj) ? 0xFF & ~Truth0 : Truth0;
+    Truth1 = Gia_ObjFaninC1(pObj) ? 0xFF & ~Truth1 : Truth1;
+    return (pObj->Value = Truth0 & Truth1);
+}
+void Acec_TreeVerifyPhaseOne( Gia_Man_t * p, Vec_Int_t * vAdds, int iBox )
+{
+    Gia_Obj_t * pObj;
+    unsigned TruthXor, TruthMaj, Truths[3] = { 0xAA, 0xCC, 0xF0 };
+    int k, iObj, fFadd = Vec_IntEntry(vAdds, 6*iBox+2) > 0;
+
+    int Sign = Vec_IntEntry( vAdds, 6*iBox+5 ), Phase[5];
+    for ( k = 0; k < 5; k++ )
+        Phase[k] = (Sign >> (4+k)) & 1;
+
+    Gia_ManIncrementTravId( p );
+    for ( k = 0; k < 3; k++ )
+    {
+        iObj = Vec_IntEntry( vAdds, 6*iBox+k );
+        if ( iObj == 0 )
+            continue;
+        pObj = Gia_ManObj( p, iObj );
+        pObj->Value = Phase[k] ? 0xFF & ~Truths[k] : Truths[k];
+        Gia_ObjSetTravIdCurrent( p, pObj );
+    }
+
+    iObj = Vec_IntEntry( vAdds, 6*iBox+3 );
+    TruthXor = Acec_TreeVerifyPhaseOne_rec( p, Gia_ManObj(p, iObj) );
+    TruthXor = Phase[3] ? 0xFF & ~TruthXor : TruthXor;
+
+    iObj = Vec_IntEntry( vAdds, 6*iBox+4 );
+    TruthMaj = Acec_TreeVerifyPhaseOne_rec( p, Gia_ManObj(p, iObj) );
+    TruthMaj = Phase[4] ? 0xFF & ~TruthMaj : TruthMaj;
+
+    if ( fFadd ) // FADD
+    {
+        if ( TruthXor != 0x96 )
+            printf( "Fadd %d sum %d is wrong.\n", iBox, Vec_IntEntry( vAdds, 6*iBox+3 ) );
+        if ( TruthMaj != 0xE8 )
+            printf( "Fadd %d carry %d is wrong.\n", iBox, Vec_IntEntry( vAdds, 6*iBox+4 ) );
+    }
+    else
+    {
+        if ( TruthXor != 0x66 )
+            printf( "Hadd %d sum %d is wrong.\n", iBox, Vec_IntEntry( vAdds, 6*iBox+3 ) );
+        if ( TruthMaj != 0x88 )
+            printf( "Hadd %d carry %d is wrong.\n", iBox, Vec_IntEntry( vAdds, 6*iBox+4 ) );
+    }
+}
+void Acec_TreeVerifyPhases( Gia_Man_t * p, Vec_Int_t * vAdds, Vec_Wec_t * vBoxes )
+{
+    Vec_Int_t * vLevel;
+    int i, k, Box;
+    Vec_WecForEachLevel( vBoxes, vLevel, i )
+        Vec_IntForEachEntry( vLevel, Box, k )
+            Acec_TreeVerifyPhaseOne( p, vAdds, Box );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Creates polarity.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Int_t * Acec_TreeCarryMap( Gia_Man_t * p, Vec_Int_t * vAdds, Vec_Wec_t * vBoxes )
+{
+    Vec_Int_t * vMap = Vec_IntStartFull( Gia_ManObjNum(p) );
+    Vec_Int_t * vLevel;
+    int i, k, Box;
+    Vec_WecForEachLevel( vBoxes, vLevel, i )
+        Vec_IntForEachEntry( vLevel, Box, k )
+            Vec_IntWriteEntry( vMap, Vec_IntEntry(vAdds, 6*Box+4), Box );
+    return vMap;
+}
+void Acec_TreePhases_rec( Gia_Man_t * p, Vec_Int_t * vAdds, Vec_Int_t * vMap, int Node, int fPhase )
+{
+    int k, iBox, iXor, Sign, fXorPhase, fPhaseThis;
+    assert( Node != 0 );
+    iBox = Vec_IntEntry( vMap, Node );
+    if ( iBox == -1 )
+        return;
+    assert( Node == Vec_IntEntry( vAdds, 6*iBox+4 ) );
+    iXor = Vec_IntEntry( vAdds, 6*iBox+3 );
+    Sign = Vec_IntEntry( vAdds, 6*iBox+5 ) & 0xFFFFFFF0;
+    fXorPhase = ((Sign >> 3) & 1);
+    if ( Vec_IntEntry(vAdds, 6*iBox+2) == 0 )
+    {
+        fPhase ^= ((Sign >> 2) & 1);
+        if ( fPhase ) // complemented HADD
+            Sign |= (1 << 6);
+    }
+    for ( k = 0; k < 3; k++ )
+    {
+        int iObj = Vec_IntEntry( vAdds, 6*iBox+k );
+        if ( iObj == 0 )
+            continue;
+        fPhaseThis = ((Sign >> k) & 1) ^ fPhase;
+        fXorPhase ^= fPhaseThis;
+        Acec_TreePhases_rec( p, vAdds, vMap, iObj, fPhaseThis );
+        if ( fPhaseThis )
+            Sign |= (1 << (4+k));
+    }
+    if ( fXorPhase )
+        Sign |= (1 << 7);
+    if ( fPhase )
+        Sign |= (1 << 8);
+    // save updated signature
+    Vec_IntWriteEntry( vAdds, 6*iBox+5, Sign );
 }
 
 /**Function*************************************************************
@@ -251,256 +383,6 @@ void Acec_TreeFindTreesTest( Gia_Man_t * p )
 
 /**Function*************************************************************
 
-  Synopsis    [Creates leaves and roots.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Acec_CreateBoxMaxRank( Vec_Int_t * vTree )
-{
-    int k, Box, Rank, MaxRank = 0;
-    Vec_IntForEachEntryDouble( vTree, Box, Rank, k )
-        MaxRank = Abc_MaxInt( MaxRank, Rank );
-    return MaxRank;
-}
-void Acec_TreeInsOuts( Gia_Man_t * p, Vec_Int_t * vAdds, Vec_Int_t * vTree, Vec_Wec_t * vBoxes, Vec_Wec_t * vLeaves, Vec_Wec_t * vRoots )
-{
-    Vec_Bit_t * vIsLeaf = Vec_BitStart( Gia_ManObjNum(p) );
-    Vec_Bit_t * vIsRoot = Vec_BitStart( Gia_ManObjNum(p) );
-    Vec_Int_t * vLevel;
-    int i, k, Box, Rank;
-    Vec_BitWriteEntry( vIsLeaf, 0, 1 );
-    Vec_BitWriteEntry( vIsRoot, 0, 1 );
-    Vec_IntForEachEntryDouble( vTree, Box, Rank, i )
-    {
-        Vec_BitWriteEntry( vIsLeaf, Vec_IntEntry(vAdds, 6*Box+0), 1 );
-        Vec_BitWriteEntry( vIsLeaf, Vec_IntEntry(vAdds, 6*Box+1), 1 );
-        Vec_BitWriteEntry( vIsLeaf, Vec_IntEntry(vAdds, 6*Box+2), 1 );
-        Vec_BitWriteEntry( vIsRoot, Vec_IntEntry(vAdds, 6*Box+3), 1 );
-        Vec_BitWriteEntry( vIsRoot, Vec_IntEntry(vAdds, 6*Box+4), 1 );
-    }
-    Vec_IntForEachEntryDouble( vTree, Box, Rank, i )
-    {
-        Vec_WecPush( vBoxes, Rank, Box );
-        for ( k = 0; k < 3; k++ )
-        {
-            if ( Vec_BitEntry( vIsRoot, Vec_IntEntry(vAdds, 6*Box+k) ) )
-                continue;
-            Vec_BitWriteEntry( vIsRoot, Vec_IntEntry(vAdds, 6*Box+k), 1 );
-            Vec_WecPush( vLeaves, Rank, Vec_IntEntry(vAdds, 6*Box+k) );
-        }
-        for ( k = 3; k < 5; k++ )
-        {
-            if ( Vec_BitEntry( vIsLeaf, Vec_IntEntry(vAdds, 6*Box+k) ) )
-                continue;
-            Vec_BitWriteEntry( vIsLeaf, Vec_IntEntry(vAdds, 6*Box+k), 1 );
-            Vec_WecPush( vRoots, k == 4 ? Rank + 1 : Rank, Abc_Var2Lit(Abc_Var2Lit(Vec_IntEntry(vAdds, 6*Box+k), k==4), Vec_IntEntry(vAdds, 6*Box+2)!=0)  );
-        }
-    }
-    Vec_BitFree( vIsLeaf );
-    Vec_BitFree( vIsRoot );
-    // sort each level
-    Vec_WecForEachLevel( vBoxes, vLevel, i )
-        Vec_IntSort( vLevel, 0 );
-    Vec_WecForEachLevel( vLeaves, vLevel, i )
-        Vec_IntSort( vLevel, 0 );
-    Vec_WecForEachLevel( vRoots, vLevel, i )
-        Vec_IntSort( vLevel, 0 );
-}
-
-/**Function*************************************************************
-
-  Synopsis    []
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Acec_TreeVerifyPhaseOne_rec( Gia_Man_t * p, Gia_Obj_t * pObj )
-{
-    int Truth0, Truth1;
-    if ( Gia_ObjIsTravIdCurrent(p, pObj) )
-        return pObj->Value;
-    Gia_ObjSetTravIdCurrent(p, pObj);
-    assert( Gia_ObjIsAnd(pObj) );
-    assert( !Gia_ObjIsXor(pObj) );
-    Truth0 = Acec_TreeVerifyPhaseOne_rec( p, Gia_ObjFanin0(pObj) );
-    Truth1 = Acec_TreeVerifyPhaseOne_rec( p, Gia_ObjFanin1(pObj) );
-    Truth0 = Gia_ObjFaninC0(pObj) ? 0xFF & ~Truth0 : Truth0;
-    Truth1 = Gia_ObjFaninC1(pObj) ? 0xFF & ~Truth1 : Truth1;
-    return (pObj->Value = Truth0 & Truth1);
-}
-void Acec_TreeVerifyPhaseOne( Gia_Man_t * p, Vec_Int_t * vAdds, int iBox, Vec_Bit_t * vPhase )
-{
-    Gia_Obj_t * pObj;
-    unsigned TruthXor, TruthMaj, Truths[3] = { 0xAA, 0xCC, 0xF0 };
-    int k, iObj, fFadd = Vec_IntEntry(vAdds, 6*iBox+2) > 0;
-
-    //if ( !fFadd )
-    //    return;
-
-    Gia_ManIncrementTravId( p );
-    for ( k = 0; k < 3; k++ )
-    {
-        iObj = Vec_IntEntry( vAdds, 6*iBox+k );
-        if ( iObj == 0 )
-            continue;
-        pObj = Gia_ManObj( p, iObj );
-        pObj->Value = Vec_BitEntry(vPhase, iObj) ? 0xFF & ~Truths[k] : Truths[k];
-        Gia_ObjSetTravIdCurrent( p, pObj );
-    }
-
-    iObj = Vec_IntEntry( vAdds, 6*iBox+3 );
-    TruthXor = Acec_TreeVerifyPhaseOne_rec( p, Gia_ManObj(p, iObj) );
-    TruthXor = Vec_BitEntry(vPhase, iObj) ? 0xFF & ~TruthXor : TruthXor;
-
-    iObj = Vec_IntEntry( vAdds, 6*iBox+4 );
-    TruthMaj = Acec_TreeVerifyPhaseOne_rec( p, Gia_ManObj(p, iObj) );
-    TruthMaj = Vec_BitEntry(vPhase, iObj) ? 0xFF & ~TruthMaj : TruthMaj;
-
-    if ( fFadd ) // FADD
-    {
-        if ( TruthXor != 0x96 )
-            printf( "Fadd %d sum %d is wrong.\n", iBox, Vec_IntEntry( vAdds, 6*iBox+3 ) );
-        if ( TruthMaj != 0xE8 )
-            printf( "Fadd %d carry %d is wrong.\n", iBox, Vec_IntEntry( vAdds, 6*iBox+4 ) );
-    }
-    else
-    {
-        if ( TruthXor != 0x66 )
-            printf( "Hadd %d sum %d is wrong.\n", iBox, Vec_IntEntry( vAdds, 6*iBox+3 ) );
-        if ( TruthMaj != 0x88 )
-            printf( "Hadd %d carry %d is wrong.\n", iBox, Vec_IntEntry( vAdds, 6*iBox+4 ) );
-    }
-}
-void Acec_TreeVerifyPhases( Gia_Man_t * p, Vec_Int_t * vAdds, Vec_Wec_t * vBoxes, Vec_Bit_t * vPhase )
-{
-    Vec_Int_t * vLevel;
-    int i, k, Box;
-    Vec_WecForEachLevel( vBoxes, vLevel, i )
-        Vec_IntForEachEntry( vLevel, Box, k )
-            Acec_TreeVerifyPhaseOne( p, vAdds, Box, vPhase );
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Creates polarity.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-Vec_Int_t * Acec_TreeCarryMap( Gia_Man_t * p, Vec_Int_t * vAdds, Vec_Wec_t * vBoxes )
-{
-    Vec_Int_t * vMap = Vec_IntStartFull( Gia_ManObjNum(p) );
-    Vec_Int_t * vLevel;
-    int i, k, Box;
-    Vec_WecForEachLevel( vBoxes, vLevel, i )
-        Vec_IntForEachEntry( vLevel, Box, k )
-            Vec_IntWriteEntry( vMap, Vec_IntEntry(vAdds, 6*Box+4), Box );
-    return vMap;
-}
-void Acec_TreePhases_rec( Gia_Man_t * p, Vec_Int_t * vAdds, Vec_Int_t * vMap, int Node, int fPhase,
-                         Vec_Bit_t * vPhase, Vec_Bit_t * vInvHadds, Vec_Bit_t * vVisit )
-{
-    int k, iBox, iXor, Sign, fXorPhase, fPhaseThis;
-    assert( Node != 0 );
-    if ( Vec_BitEntry(vVisit, Node) )
-    {
-        //assert( Vec_BitEntry(vPhase, Node) == fPhase );
-        if ( Vec_BitEntry(vPhase, Node) != fPhase )
-            printf( "Phase check failed for node %d.\n", Node );
-        return;
-    }
-    Vec_BitWriteEntry( vVisit, Node, 1 );
-    if ( fPhase )
-        Vec_BitWriteEntry( vPhase, Node, fPhase );
-    iBox = Vec_IntEntry( vMap, Node );
-    if ( iBox == -1 )
-        return;
-    assert( Node == Vec_IntEntry( vAdds, 6*iBox+4 ) );
-    iXor = Vec_IntEntry( vAdds, 6*iBox+3 );
-    Sign = Vec_IntEntry( vAdds, 6*iBox+5 );
-    fXorPhase = ((Sign >> 3) & 1);
-    if ( Vec_IntEntry(vAdds, 6*iBox+2) == 0 )
-    {
-        fPhase ^= ((Sign >> 2) & 1);
-        // remember complemented HADD
-        if ( fPhase )
-            Vec_BitWriteEntry( vInvHadds, iBox, 1 );
-    }
-    for ( k = 0; k < 3; k++ )
-    {
-        int iObj = Vec_IntEntry( vAdds, 6*iBox+k );
-        if ( iObj == 0 )
-            continue;
-        fPhaseThis = ((Sign >> k) & 1) ^ fPhase;
-        fXorPhase ^= fPhaseThis;
-        Acec_TreePhases_rec( p, vAdds, vMap, iObj, fPhaseThis, vPhase, vInvHadds, vVisit );
-    }
-    if ( Vec_BitEntry(vVisit, iXor) )
-    {
-        //assert( Vec_BitEntry(vPhase, iXor) == fXorPhase );
-        if ( Vec_BitEntry(vPhase, iXor) != fXorPhase )
-            printf( "Phase check failed for XOR %d.\n", iXor );
-        return;
-    }
-    if ( fXorPhase )
-        Vec_BitWriteEntry( vPhase, iXor, fXorPhase );
-}
-void Acec_TreePhases( Gia_Man_t * p, Vec_Int_t * vAdds, Vec_Wec_t * vBoxes, 
-                     Vec_Wec_t * vLeaves, Vec_Wec_t * vRoots, 
-                     Vec_Wec_t * vLeafLits, Vec_Wec_t * vRootLits, Vec_Bit_t * vInvHadds )
-{
-    Vec_Int_t * vMap = Acec_TreeCarryMap( p, vAdds, vBoxes );
-    Vec_Bit_t * vPhase = Vec_BitStart( Gia_ManObjNum(p) );
-    Vec_Bit_t * vVisit = Vec_BitStart( Gia_ManObjNum(p) );
-    Vec_Int_t * vLevel;
-    int i, k, iObj;
-    Vec_WecForEachLevelReverse( vRoots, vLevel, i )
-    {
-        Vec_IntForEachEntry( vLevel, iObj, k )
-        {
-            int fFadd = Abc_LitIsCompl(iObj);
-            int fCout = Abc_LitIsCompl(Abc_Lit2Var(iObj));
-            int Node  = Abc_Lit2Var(Abc_Lit2Var(iObj));
-            if ( !fCout )
-                continue;
-            Acec_TreePhases_rec( p, vAdds, vMap, Node, fFadd, vPhase, vInvHadds, vVisit );
-        }
-    }
-    Vec_IntFree( vMap );
-    Vec_BitFree( vVisit );
-    Acec_TreeVerifyPhases( p, vAdds, vBoxes, vPhase );
-    // create leaves
-    Vec_WecForEachLevel( vLeaves, vLevel, i )
-        Vec_IntForEachEntry( vLevel, iObj, k )
-            Vec_WecPush( vLeafLits, i, Abc_Var2Lit(iObj, Vec_BitEntry(vPhase, iObj)) );
-    // add constants
-    Vec_WecForEachLevel( vBoxes, vLevel, i )
-        Vec_IntForEachEntry( vLevel, iObj, k )
-            if ( Vec_BitEntry(vInvHadds, iObj) )
-                Vec_WecPush( vLeafLits, i, 1 );
-    // create roots
-    Vec_WecForEachLevel( vRoots, vLevel, i )
-        Vec_IntForEachEntry( vLevel, iObj, k )
-            iObj >>= 2, Vec_WecPush( vRootLits, i, Abc_Var2Lit(iObj, Vec_BitEntry(vPhase, iObj)) );
-    // cleanup
-    Vec_BitFree( vPhase );
-}
-
-/**Function*************************************************************
-
   Synopsis    [Derives one adder tree.]
 
   Description []
@@ -564,25 +446,69 @@ void Acec_PrintBox( Acec_Box_t * pBox, Vec_Int_t * vAdds )
     //Acec_PrintRootLits( pBox->vRoots );
 }
 
+int Acec_CreateBoxMaxRank( Vec_Int_t * vTree )
+{
+    int k, Box, Rank, MaxRank = 0;
+    Vec_IntForEachEntryDouble( vTree, Box, Rank, k )
+        MaxRank = Abc_MaxInt( MaxRank, Rank );
+    return MaxRank;
+}
 Acec_Box_t * Acec_CreateBox( Gia_Man_t * p, Vec_Int_t * vAdds, Vec_Int_t * vTree )
 {
     int MaxRank = Acec_CreateBoxMaxRank(vTree);
+    Vec_Bit_t * vIsLeaf = Vec_BitStart( Gia_ManObjNum(p) );
+    Vec_Bit_t * vIsRoot = Vec_BitStart( Gia_ManObjNum(p) );
+    Vec_Int_t * vLevel, * vMap;
+    int i, k, Box, Rank;
 
     Acec_Box_t * pBox = ABC_CALLOC( Acec_Box_t, 1 );
-    pBox->pGia      = p;
+    pBox->pGia        = p;
+    pBox->vAdds       = Vec_WecStart( MaxRank + 1 );
+    pBox->vLeafLits   = Vec_WecStart( MaxRank + 1 );
+    pBox->vRootLits   = Vec_WecStart( MaxRank + 2 );
 
-    pBox->vAdds     = Vec_WecStart( MaxRank + 1 );
-    pBox->vLeafs    = Vec_WecStart( MaxRank + 1 );
-    pBox->vRoots    = Vec_WecStart( MaxRank + 2 );
+    // collect boxes; mark inputs/outputs
+    Vec_IntForEachEntryDouble( vTree, Box, Rank, i )
+    {
+        Vec_WecPush( pBox->vAdds, Rank, Box );
+        Vec_BitWriteEntry( vIsLeaf, Vec_IntEntry(vAdds, 6*Box+0), 1 );
+        Vec_BitWriteEntry( vIsLeaf, Vec_IntEntry(vAdds, 6*Box+1), 1 );
+        Vec_BitWriteEntry( vIsLeaf, Vec_IntEntry(vAdds, 6*Box+2), 1 );
+        Vec_BitWriteEntry( vIsRoot, Vec_IntEntry(vAdds, 6*Box+3), 1 );
+        Vec_BitWriteEntry( vIsRoot, Vec_IntEntry(vAdds, 6*Box+4), 1 );
+    }
+    // sort each level
+    Vec_WecForEachLevel( pBox->vAdds, vLevel, i )
+        Vec_IntSort( vLevel, 0 );
 
-    Acec_TreeInsOuts( p, vAdds, vTree, pBox->vAdds, pBox->vLeafs, pBox->vRoots );
+    // set phases
+    vMap = Acec_TreeCarryMap( p, vAdds, pBox->vAdds );
+    Vec_IntForEachEntryDouble( vTree, Box, Rank, i )
+        if ( !Vec_BitEntry( vIsLeaf, Vec_IntEntry(vAdds, 6*Box+4) ) )
+            Acec_TreePhases_rec( p, vAdds, vMap, Vec_IntEntry(vAdds, 6*Box+4), Vec_IntEntry(vAdds, 6*Box+2) != 0 );
+    Acec_TreeVerifyPhases( p, vAdds, pBox->vAdds );
+    Vec_IntFree( vMap );
 
-    pBox->vLeafLits = Vec_WecStart( Vec_WecSize(pBox->vLeafs) );
-    pBox->vRootLits = Vec_WecStart( Vec_WecSize(pBox->vRoots) );
-    pBox->vInvHadds = Vec_BitStart( Vec_IntSize(vAdds)/6 );
-
-    Acec_TreePhases( p, vAdds, pBox->vAdds, pBox->vLeafs, pBox->vRoots, pBox->vLeafLits, pBox->vRootLits, pBox->vInvHadds );
-
+    // collect inputs/outputs
+    Vec_BitWriteEntry( vIsLeaf, 0, 0 );
+    Vec_BitWriteEntry( vIsRoot, 0, 0 );
+    Vec_IntForEachEntryDouble( vTree, Box, Rank, i )
+    {
+        int Sign = Vec_IntEntry( vAdds, 6*Box+5 );
+        for ( k = 0; k < 3; k++ )
+            if ( !Vec_BitEntry( vIsRoot, Vec_IntEntry(vAdds, 6*Box+k) ) )
+                Vec_WecPush( pBox->vLeafLits, Rank, Abc_Var2Lit(Vec_IntEntry(vAdds, 6*Box+k), (Sign >> (4+k)) & 1) );
+        for ( k = 3; k < 5; k++ )
+            if ( !Vec_BitEntry( vIsLeaf, Vec_IntEntry(vAdds, 6*Box+k) ) )
+                Vec_WecPush( pBox->vRootLits, k == 4 ? Rank + 1 : Rank, Abc_Var2Lit(Vec_IntEntry(vAdds, 6*Box+k), (Sign >> (7+k)) & 1) );
+    }
+    Vec_BitFree( vIsLeaf );
+    Vec_BitFree( vIsRoot );
+    // sort each level
+    Vec_WecForEachLevel( pBox->vLeafLits, vLevel, i )
+        Vec_IntSort( vLevel, 0 );
+    Vec_WecForEachLevel( pBox->vRootLits, vLevel, i )
+        Vec_IntSort( vLevel, 0 );
     return pBox;
 }
 void Acec_CreateBoxTest( Gia_Man_t * p )
@@ -641,7 +567,7 @@ Acec_Box_t * Acec_DeriveBox( Gia_Man_t * p, int fVerbose )
             Vec_WecSizeSize(pBox->vLeafLits), Vec_WecSizeSize(pBox->vRootLits)  );
     if ( pBox && fVerbose )
         Acec_PrintBox( pBox, vAdds );
-    //Acec_MultDetectInputs( p, pBox->vLeafLits, pBox->vRootLits );
+    Acec_MultDetectInputs( p, pBox->vLeafLits, pBox->vRootLits );
     Vec_WecFreeP( &vTrees );
     Vec_IntFree( vAdds );
     return pBox;

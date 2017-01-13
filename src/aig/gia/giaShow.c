@@ -52,7 +52,7 @@ void Gia_ShowPath( Gia_Man_t * p, char * pFileName )
     Gia_Obj_t * pNode;
     Vec_Bit_t * vPath = Vec_BitStart( Gia_ManObjNum(p) );
     int i, k, iFan, LevelMax, nLevels, * pLevels, Level, Prev;
-    int nLuts = 0, nNodes = 0, nEdges = 0, nEdgesAll = 0;
+    int nLuts = 0, nNodes = 0, nEdges = 0;
     assert( Gia_ManHasMapping(p) );
 
     // set critical CO drivers
@@ -670,7 +670,7 @@ int Gia_ShowAddOut( Vec_Int_t * vAdds, Vec_Int_t * vMapAdds, int Node )
         return Vec_IntEntry( vAdds, 6*iBox+4 );
     return Node;
 }
-void Gia_WriteDotAig( Gia_Man_t * p, char * pFileName, Vec_Int_t * vAdds, Vec_Int_t * vXors, Vec_Int_t * vMapAdds, Vec_Int_t * vMapXors, Vec_Int_t * vOrder )
+void Gia_WriteDotAig( Gia_Man_t * p, char * pFileName, Vec_Int_t * vBold, Vec_Int_t * vAdds, Vec_Int_t * vXors, Vec_Int_t * vMapAdds, Vec_Int_t * vMapXors, Vec_Int_t * vOrder )
 {
     FILE * pFile;
     Gia_Obj_t * pNode;//, * pTemp, * pPrev;
@@ -688,6 +688,11 @@ void Gia_WriteDotAig( Gia_Man_t * p, char * pFileName, Vec_Int_t * vAdds, Vec_In
         fprintf( stdout, "Cannot open the intermediate file \"%s\".\n", pFileName );
         return;
     }
+
+    // mark the nodes
+    if ( vBold )
+        Gia_ManForEachObjVec( vBold, p, pNode, i )
+            pNode->fMark0 = 1;
 
     // compute levels
     LevelMax = 1 + p->nLevels;
@@ -819,7 +824,7 @@ void Gia_WriteDotAig( Gia_Man_t * p, char * pFileName, Vec_Int_t * vAdds, Vec_In
             else
                 fprintf( pFile, ", shape = ellipse" );
 */
-            if ( Vec_IntEntry(vMapAdds, iNode) >= 0 )
+            if ( !pNode->fMark0 && Vec_IntEntry(vMapAdds, iNode) >= 0 )
             {
                 int iBox = Vec_IntEntry(vMapAdds, iNode);
                 fprintf( pFile, "  Node%d [label = \"%d_%d\"", Gia_ShowAddOut(vAdds, vMapAdds, iNode), Vec_IntEntry(vAdds, 6*iBox+3), Vec_IntEntry(vAdds, 6*iBox+4) ); 
@@ -848,8 +853,8 @@ void Gia_WriteDotAig( Gia_Man_t * p, char * pFileName, Vec_Int_t * vAdds, Vec_In
                 fprintf( pFile, "  Node%d [label = \"%d\"", iNode, iNode ); 
                 fprintf( pFile, ", shape = ellipse" );
             }
-//            if ( pNode->fMark0 )
-//                fprintf( pFile, ", style = filled" );
+            if ( pNode->fMark0 )
+                fprintf( pFile, ", style = filled" );
             fprintf( pFile, "];\n" );
         }
         fprintf( pFile, "}" );
@@ -920,8 +925,6 @@ void Gia_WriteDotAig( Gia_Man_t * p, char * pFileName, Vec_Int_t * vAdds, Vec_In
     Gia_ManForEachObjVec( vOrder, p, pNode, i )
     {
         int iNode = Gia_ObjId( p, pNode );
-//        if ( !Gia_ObjIsAnd(pNode) && !Gia_ObjIsCo(pNode) && !Gia_ObjIsBuf(pNode) )
-//            continue;
         if ( Vec_IntEntry(vMapAdds, Gia_ObjId(p, pNode)) >= 0 )
         {
             int k, iBox = Vec_IntEntry(vMapAdds, iNode);
@@ -989,6 +992,11 @@ void Gia_WriteDotAig( Gia_Man_t * p, char * pFileName, Vec_Int_t * vAdds, Vec_In
     fprintf( pFile, "\n" );
     fprintf( pFile, "\n" );
     fclose( pFile );
+
+    // unmark nodes
+    if ( vBold )
+        Gia_ManForEachObjVec( vBold, p, pNode, i )
+            pNode->fMark0 = 0;
 
     Vec_IntFreeP( &p->vLevels );
 }
@@ -1093,12 +1101,12 @@ Vec_Int_t * Gia_ShowCollectObjs( Gia_Man_t * p, Vec_Int_t * vAdds, Vec_Int_t * v
   SeeAlso     []
 
 ***********************************************************************/
-void Gia_ShowProcess( Gia_Man_t * p, char * pFileName, Vec_Int_t * vAdds, Vec_Int_t * vXors, int fFadds )
+void Gia_ShowProcess( Gia_Man_t * p, char * pFileName, Vec_Int_t * vBold, Vec_Int_t * vAdds, Vec_Int_t * vXors, int fFadds )
 {
     Vec_Int_t * vMapAdds = Gia_ShowMapAdds( p, vAdds, fFadds );
     Vec_Int_t * vMapXors = Gia_ShowMapXors( p, vXors );
     Vec_Int_t * vOrder = Gia_ShowCollectObjs( p, vAdds, vXors, vMapAdds, vMapXors );
-    Gia_WriteDotAig( p, pFileName, vAdds, vXors, vMapAdds, vMapXors, vOrder );
+    Gia_WriteDotAig( p, pFileName, vBold, vAdds, vXors, vMapAdds, vMapXors, vOrder );
     Vec_IntFree( vMapAdds );
     Vec_IntFree( vMapXors );
     Vec_IntFree( vOrder );
@@ -1121,7 +1129,7 @@ void Gia_ManShow( Gia_Man_t * pMan, Vec_Int_t * vBold, int fAdders, int fFadds, 
     if ( fPath )
         Gia_ShowPath( pMan, FileNameDot );
     else if ( fAdders )
-        Gia_ShowProcess( pMan, FileNameDot, vAdds, vXors, fFadds );
+        Gia_ShowProcess( pMan, FileNameDot, vBold, vAdds, vXors, fFadds );
     else
         Gia_WriteDotAigSimple( pMan, FileNameDot, vBold );
     // visualize the file 

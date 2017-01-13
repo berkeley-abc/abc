@@ -20,6 +20,7 @@
 
 #include "acecInt.h"
 #include "misc/extra/extra.h"
+#include "misc/util/utilTruth.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -400,6 +401,15 @@ Vec_Int_t * Acec_MultDetectInputs( Gia_Man_t * p, Vec_Wec_t * vLeafLits, Vec_Wec
                 if ( Vec_IntSize(vSupp) <= 2 ) printf( "       " );
                 printf( "  " );
                 Vec_IntPrint( vSupp );
+                /*
+                if ( Truth == 0xF335ACC0F335ACC0 )
+                {
+                    int iObj = Abc_Lit2Var(iLit);
+                    Gia_Man_t * pGia0 = Gia_ManDupAndCones( p, &iObj, 1, 1 );
+                    Gia_ManShow( pGia0, NULL, 0, 0, 0 );
+                    Gia_ManStop( pGia0 );
+                }
+                */
             }
             // support rank counts
             Vec_IntForEachEntry( vSupp, Entry, j )
@@ -421,6 +431,103 @@ Vec_Int_t * Acec_MultDetectInputs( Gia_Man_t * p, Vec_Wec_t * vLeafLits, Vec_Wec
     Vec_IntFree( vRanks );
     Vec_IntFree( vCounts );
     return vInputs;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Acec_MultFindPPs_rec( Gia_Man_t * p, int iObj, Vec_Int_t * vBold )
+{
+    Gia_Obj_t * pObj;
+    pObj = Gia_ManObj( p, iObj );
+    if ( pObj->fMark0 )
+        return;
+    pObj->fMark0 = 1;
+    if ( !Gia_ObjIsAnd(pObj) )
+        return;
+    Acec_MultFindPPs_rec( p, Gia_ObjFaninId0(pObj, iObj), vBold );
+    Acec_MultFindPPs_rec( p, Gia_ObjFaninId1(pObj, iObj), vBold );
+    Vec_IntPush( vBold, iObj );
+}
+Vec_Int_t * Acec_MultFindPPs( Gia_Man_t * p )
+{
+    word Saved[32] = {
+        ABC_CONST(0xF335ACC0F335ACC0),
+        ABC_CONST(0x35C035C035C035C0),
+        ABC_CONST(0xD728D728D728D728),
+        ABC_CONST(0xFD80FD80FD80FD80),
+        ABC_CONST(0xACC0ACC0ACC0ACC0),
+        ABC_CONST(0x7878787878787878),
+        ABC_CONST(0x2828282828282828),
+        ABC_CONST(0xD0D0D0D0D0D0D0D0),
+        ABC_CONST(0x8080808080808080),
+        ABC_CONST(0x8888888888888888),
+        ABC_CONST(0xAAAAAAAAAAAAAAAA),
+        ABC_CONST(0x5555555555555555),
+
+        ABC_CONST(0xD5A8D5A8D5A8D5A8),
+        ABC_CONST(0x2A572A572A572A57),
+        ABC_CONST(0xF3C0F3C0F3C0F3C0),
+        ABC_CONST(0x5858585858585858),
+        ABC_CONST(0xA7A7A7A7A7A7A7A7),
+        ABC_CONST(0x2727272727272727),
+        ABC_CONST(0xD8D8D8D8D8D8D8D8)
+    };
+
+    Vec_Int_t * vBold = Vec_IntAlloc( 100 );
+    Vec_Int_t * vSupp = Vec_IntAlloc( 100 );
+    Vec_Wrd_t * vTemp = Vec_WrdStart( Gia_ManObjNum(p) );
+    int i, iObj, nProds = 0;
+    Gia_ManCleanMark0(p);
+    Gia_ManForEachAndId( p, iObj )
+    {
+        word Truth = Gia_ObjComputeTruth6Cis( p, Abc_Var2Lit(iObj, 0), vSupp, vTemp );
+        vSupp->nSize = Abc_Tt6MinBase( &Truth, vSupp->pArray, vSupp->nSize );
+        if ( Vec_IntSize(vSupp) > 5  )
+            continue;
+        for ( i = 0; i < 32; i++ )
+        {
+            if ( Saved[i] == 0 )
+                break;
+            if ( Truth == Saved[i] || Truth == ~Saved[i] )
+            {
+                //Vec_IntPush( vBold, iObj );
+                Acec_MultFindPPs_rec( p, iObj, vBold );
+                printf( "%d ", iObj );
+                nProds++;
+                break;
+            }
+        }
+/*
+        Extra_PrintHex( stdout, (unsigned*)&Truth, Vec_IntSize(vSupp) );
+        if ( Vec_IntSize(vSupp) == 4 ) printf( "    " );
+        if ( Vec_IntSize(vSupp) == 3 ) printf( "      " );
+        if ( Vec_IntSize(vSupp) <= 2 ) printf( "       " );
+        printf( "  " );
+        Vec_IntPrint( vSupp );
+*/
+    }
+    printf( "\n" );
+    Gia_ManCleanMark0(p);
+    printf( "Collected %d pps and %d nodes.\n", nProds, Vec_IntSize(vBold) );
+
+    Vec_IntFree( vSupp );
+    Vec_WrdFree( vTemp );
+    return vBold;
+}
+void Acec_MultFindPPsTest( Gia_Man_t * p )
+{
+    Vec_Int_t * vBold = Acec_MultFindPPs( p );
+    Gia_ManShow( p, vBold, 1, 0, 0 );
+    Vec_IntFree( vBold );
 }
 
 ////////////////////////////////////////////////////////////////////////
