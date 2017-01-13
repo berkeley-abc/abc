@@ -134,6 +134,60 @@ Vec_Bit_t * Sbc_ManCriticalPath( Gia_Man_t * p )
 }
 
 
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Sbc_ManDelayTrace( Gia_Man_t * p )
+{
+    Vec_Bit_t * vPath = Vec_BitStart( Gia_ManObjNum(p) );
+    int i, k, iFan, nLevels, * pLevels;
+    int nLuts = 0, nNodes = 0, nEdges = 0, nEdgesAll = 0;
+    if ( !Gia_ManHasMapping(p) )
+    {
+        printf( "No mapping is available.\n" );
+        return;
+    }
+    assert( Gia_ManHasMapping(p) );
+    // set critical CO drivers
+    nLevels = Gia_ManLutLevel( p, &pLevels );
+    Gia_ManForEachCoDriverId( p, iFan, i )
+        if ( pLevels[iFan] == nLevels )
+            Vec_BitWriteEntry( vPath, iFan, 1 );
+    // set critical internal nodes
+    Gia_ManForEachLutReverse( p, i )
+    { 
+        nLuts++;
+        if ( !Vec_BitEntry(vPath, i) )
+            continue;
+        nNodes++;
+        Gia_LutForEachFanin( p, i, iFan, k )
+        {
+            if ( pLevels[iFan] +1 < pLevels[i] )
+                continue;
+            assert( pLevels[iFan] + 1 == pLevels[i] );
+            Vec_BitWriteEntry( vPath, iFan, 1 );
+            nEdges++;
+            //printf( "%d -> %d\n", i, iFan );
+        }
+    }
+    Gia_ManForEachLut( p, i )
+        Gia_LutForEachFanin( p, i, iFan, k )
+            nEdgesAll += (Vec_BitEntry(vPath, i) && Vec_BitEntry(vPath, iFan));
+
+    ABC_FREE( pLevels );
+    Vec_BitFree( vPath );
+    printf( "AIG = %d. LUT = %d. Lev = %d.   Path nodes = %d.  Path edges = %d. (%d.)\n", 
+        Gia_ManAndNum(p), nLuts, nLevels, nNodes, nEdges, nEdgesAll );
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
