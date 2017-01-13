@@ -184,6 +184,8 @@ word Gia_ObjComputeTruth6Cis( Gia_Man_t * p, int iLit, Vec_Int_t * vSupp, Vec_Wr
     if ( !iObj ) return Abc_LitIsCompl(iLit) ? ~(word)0 : (word)0;
     Gia_ManIncrementTravId( p );
     Gia_ObjComputeTruth6CisSupport_rec( p, iObj, vSupp );
+    if ( Vec_IntSize(vSupp) > 6 )
+        return 0;
     Gia_ObjComputeTruth6( p, iObj, vSupp, vTemp );
     return Abc_LitIsCompl(iLit) ? ~Vec_WrdEntry(vTemp, iObj) : Vec_WrdEntry(vTemp, iObj);
 }

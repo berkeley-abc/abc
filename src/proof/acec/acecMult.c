@@ -389,7 +389,7 @@ Vec_Int_t * Acec_MultDetectInputs( Gia_Man_t * p, Vec_Wec_t * vLeafLits, Vec_Wec
         Vec_IntForEachEntry( vLevel, iLit, k )
         {
             word Truth = Gia_ObjComputeTruth6Cis( p, iLit, vSupp, vTemp );
-            if ( Vec_IntSize(vSupp) >= 4 )
+            if ( Vec_IntSize(vSupp) >= 0 )
             {
                 printf( "Leaf = %4d : ", Abc_Lit2Var(iLit) );
                 printf( "Rank = %2d  ", i );

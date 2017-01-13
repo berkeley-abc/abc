@@ -63,6 +63,65 @@ void Acec_BoxFreeP( Acec_Box_t ** ppBox )
 
 /**Function*************************************************************
 
+  Synopsis    [Filters trees by removing TFO of roots.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Acec_TreeFilterOne( Gia_Man_t * p, Vec_Int_t * vAdds, Vec_Int_t * vTree )
+{
+    Vec_Bit_t * vIsRoot = Vec_BitStart( Gia_ManObjNum(p) );
+    Vec_Bit_t * vMarked = Vec_BitStart( Gia_ManObjNum(p) ) ;
+    Gia_Obj_t * pObj;
+    int i, k = 0, Box, Rank;
+    // mark roots
+    Vec_IntForEachEntryDouble( vTree, Box, Rank, i )
+    {
+        Vec_BitWriteEntry( vIsRoot, Vec_IntEntry(vAdds, 6*Box+3), 1 );
+        Vec_BitWriteEntry( vIsRoot, Vec_IntEntry(vAdds, 6*Box+4), 1 );
+    }
+    Vec_IntForEachEntryDouble( vTree, Box, Rank, i )
+    {
+        Vec_BitWriteEntry( vIsRoot, Vec_IntEntry(vAdds, 6*Box+0), 0 );
+        Vec_BitWriteEntry( vIsRoot, Vec_IntEntry(vAdds, 6*Box+1), 0 );
+        Vec_BitWriteEntry( vIsRoot, Vec_IntEntry(vAdds, 6*Box+2), 0 );
+    }
+    // iterate through nodes to detect TFO of roots
+    Gia_ManForEachAnd( p, pObj, i )
+    {
+        if ( Vec_BitEntry(vIsRoot, Gia_ObjFaninId0(pObj,i)) || Vec_BitEntry(vIsRoot, Gia_ObjFaninId1(pObj,i)) ||
+             Vec_BitEntry(vMarked, Gia_ObjFaninId0(pObj,i)) || Vec_BitEntry(vMarked, Gia_ObjFaninId1(pObj,i)) )
+            Vec_BitWriteEntry( vMarked, i, 1 );
+    }
+    // remove those that overlap with roots
+    Vec_IntForEachEntryDouble( vTree, Box, Rank, i )
+    {
+        if ( Vec_BitEntry(vMarked, Vec_IntEntry(vAdds, 6*Box+3)) || Vec_BitEntry(vMarked, Vec_IntEntry(vAdds, 6*Box+4)) )
+        {
+            printf( "Removing box %d=(%d,%d) of rank %d.\n", Box, Vec_IntEntry(vAdds, 6*Box+3), Vec_IntEntry(vAdds, 6*Box+4), Rank ); 
+            continue;
+        }
+        Vec_IntWriteEntry( vTree, k++, Box );
+        Vec_IntWriteEntry( vTree, k++, Rank );
+    }
+    Vec_IntShrink( vTree, k );
+    Vec_BitFree( vIsRoot );
+    Vec_BitFree( vMarked );
+}
+void Acec_TreeFilterTrees( Gia_Man_t * p, Vec_Int_t * vAdds, Vec_Wec_t * vTrees )
+{
+    Vec_Int_t * vLevel;
+    int i;
+    Vec_WecForEachLevel( vTrees, vLevel, i )
+        Acec_TreeFilterOne( p, vAdds, vLevel );
+}
+
+/**Function*************************************************************
+
   Synopsis    [Find internal cut points with exactly one adder fanin/fanout.]
 
   Description [Returns a map of point into its input/output adder.]
@@ -163,6 +222,8 @@ Vec_Wec_t * Acec_TreeFindTrees( Gia_Man_t * p, Vec_Int_t * vAdds )
     }
     Vec_BitFree( vFound );
     Vec_IntFree( vMap );
+    // filter trees
+    Acec_TreeFilterTrees( p, vAdds, vTrees );
     // sort by size
     Vec_WecSort( vTrees, 1 );
     return vTrees;
@@ -580,7 +641,7 @@ Acec_Box_t * Acec_DeriveBox( Gia_Man_t * p, int fVerbose )
             Vec_WecSizeSize(pBox->vLeafLits), Vec_WecSizeSize(pBox->vRootLits)  );
     if ( pBox && fVerbose )
         Acec_PrintBox( pBox, vAdds );
-//    Acec_MultDetectInputs( p, pBox->vLeafLits, pBox->vRootLits );
+    //Acec_MultDetectInputs( p, pBox->vLeafLits, pBox->vRootLits );
     Vec_WecFreeP( &vTrees );
     Vec_IntFree( vAdds );
     return pBox;
