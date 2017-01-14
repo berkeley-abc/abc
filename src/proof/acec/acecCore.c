@@ -68,7 +68,7 @@ void Acec_ManCecSetDefaultParams( Acec_ParCec_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-Gia_Man_t * Acec_FindEquivs( Gia_Man_t * pBase, Gia_Man_t * pAdd )
+Gia_Man_t * Acec_CommonStart( Gia_Man_t * pBase, Gia_Man_t * pAdd )
 {
     Gia_Obj_t * pObj;
     int i;
@@ -93,33 +93,67 @@ Gia_Man_t * Acec_FindEquivs( Gia_Man_t * pBase, Gia_Man_t * pAdd )
         pObj->Value = Gia_ManHashAnd( pBase, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
     return pBase;
 }
-Vec_Int_t * Acec_CountRemap( Gia_Man_t * pAdd )
+void Acec_CommonFinish( Gia_Man_t * pBase )
+{
+    int Id;
+    Gia_ManCreateRefs( pBase );
+    Gia_ManForEachAndId( pBase, Id )
+        if ( Gia_ObjRefNumId(pBase, Id) == 0 )
+            Gia_ManAppendCo( pBase, Abc_Var2Lit(Id,0) );
+}
+Vec_Int_t * Acec_CountRemap( Gia_Man_t * pAdd, Gia_Man_t * pBase )
 {
     Gia_Obj_t * pObj; int i;
     Vec_Int_t * vMapNew = Vec_IntStartFull( Gia_ManObjNum(pAdd) );
+    Gia_ManSetPhase( pAdd );
+    Vec_IntWriteEntry( vMapNew, 0, 0 );
     Gia_ManForEachCand( pAdd, pObj, i )
-        Vec_IntWriteEntry( vMapNew, i, Abc_Lit2Var(pObj->Value) );
+    {
+        int iObjBase = Abc_Lit2Var(pObj->Value);
+        Gia_Obj_t * pObjBase = Gia_ManObj( pBase, iObjBase );
+        int iObjRepr = Abc_Lit2Var(pObjBase->Value);
+        Vec_IntWriteEntry( vMapNew, i, Abc_Var2Lit(iObjRepr, Gia_ObjPhase(pObj)) );
+    }
     return vMapNew;
 }
 void Acec_ComputeEquivClasses( Gia_Man_t * pOne, Gia_Man_t * pTwo, Vec_Int_t ** pvMap1, Vec_Int_t ** pvMap2 )
 {
-    Gia_Man_t * pBase;
-    pBase = Acec_FindEquivs( NULL, pOne );
-    pBase = Acec_FindEquivs( pBase, pTwo );
-    *pvMap1 = Acec_CountRemap( pOne );
-    *pvMap2 = Acec_CountRemap( pTwo );
+    Gia_Man_t * pBase, * pRepr;
+    pBase = Acec_CommonStart( NULL, pOne );
+    pBase = Acec_CommonStart( pBase, pTwo );
+    Acec_CommonFinish( pBase );
+
+    //Gia_ManShow( pBase, NULL, 0, 0, 0 );
+
+    pRepr = Gia_ManComputeGiaEquivs( pBase, 100, 0 );
+    *pvMap1 = Acec_CountRemap( pOne, pBase );
+    *pvMap2 = Acec_CountRemap( pTwo, pBase );
     Gia_ManStop( pBase );
+    Gia_ManStop( pRepr );
 }
-static inline void Acec_MatchBoxesSort( int * pArray, int nSize, int * pCosts )
+void Acec_MatchBoxesSort( int * pArray, int nSize, int * pCostLits )
 {
     int i, j, best_i;
     for ( i = 0; i < nSize-1; i++ )
     {
         best_i = i;
         for ( j = i+1; j < nSize; j++ )
-            if ( pCosts[Abc_Lit2Var(pArray[j])] > pCosts[Abc_Lit2Var(pArray[best_i])] )
+            if ( Abc_Lit2LitL(pCostLits, pArray[j]) > Abc_Lit2LitL(pCostLits, pArray[best_i]) )
                 best_i = j;
         ABC_SWAP( int, pArray[i], pArray[best_i] );
+    }
+}
+void Acec_MatchPrintEquivLits( Vec_Wec_t * vLits, int * pCostLits )
+{
+    Vec_Int_t * vLevel;
+    int i, k, Entry;
+    printf( "Leaf literals and their classes:\n" );
+    Vec_WecForEachLevel( vLits, vLevel, i )
+    {
+        printf( "Rank %2d : %2d  ", i, Vec_IntSize(vLevel) );
+        Vec_IntForEachEntry( vLevel, Entry, k )
+            printf( "%s%d(%d) ", Abc_LitIsCompl(Entry) ? "-":"+", Abc_Lit2Var(Entry), Abc_Lit2LitL(pCostLits, Entry) );
+        printf( "\n" );
     }
 }
 int Acec_MatchBoxes( Acec_Box_t * pBox0, Acec_Box_t * pBox1 )
@@ -132,6 +166,8 @@ int Acec_MatchBoxes( Acec_Box_t * pBox0, Acec_Box_t * pBox1 )
         Acec_MatchBoxesSort( Vec_IntArray(vLevel), Vec_IntSize(vLevel), Vec_IntArray(vMap0) );
     Vec_WecForEachLevel( pBox1->vLeafLits, vLevel, i )
         Acec_MatchBoxesSort( Vec_IntArray(vLevel), Vec_IntSize(vLevel), Vec_IntArray(vMap1) );
+    //Acec_MatchPrintEquivLits( pBox0->vLeafLits, Vec_IntArray(vMap0) );
+    //Acec_MatchPrintEquivLits( pBox1->vLeafLits, Vec_IntArray(vMap1) );
     // reorder nodes to have the same order
     assert( pBox0->vShared == NULL );
     assert( pBox1->vShared == NULL );
@@ -159,8 +195,9 @@ int Acec_MatchBoxes( Acec_Box_t * pBox0, Acec_Box_t * pBox1 )
         int * pEnd1 = Vec_IntLimit(vLevel1);
         while ( pBeg0 < pEnd0 && pBeg1 < pEnd1 )
         {
-            int Entry0 = Abc_Lit2LitV( Vec_IntArray(vMap0), *pBeg0 );
-            int Entry1 = Abc_Lit2LitV( Vec_IntArray(vMap1), *pBeg1 );
+            int Entry0 = Abc_Lit2LitL( Vec_IntArray(vMap0), *pBeg0 );
+            int Entry1 = Abc_Lit2LitL( Vec_IntArray(vMap1), *pBeg1 );
+            assert( *pBeg0 && *pBeg1 );
             if ( Entry0 == Entry1 )
             {
                 Vec_IntPush( vShared0, *pBeg0++ );
@@ -201,11 +238,16 @@ int Acec_MatchBoxes( Acec_Box_t * pBox0, Acec_Box_t * pBox1 )
 int Acec_Solve( Gia_Man_t * pGia0, Gia_Man_t * pGia1, Acec_ParCec_t * pPars )
 {
     int status = -1;
+    abctime clk = Abc_Clock();
     Gia_Man_t * pMiter;
     Gia_Man_t * pGia0n = pGia0, * pGia1n = pGia1;
     Cec_ParCec_t ParsCec, * pCecPars = &ParsCec;
-    Acec_Box_t * pBox0 = Acec_DeriveBox( pGia0, pPars->fVerbose );
-    Acec_Box_t * pBox1 = Acec_DeriveBox( pGia1, pPars->fVerbose );
+    Vec_Bit_t * vIgnore0 = pPars->fBooth ? Acec_BoothFindPPG(pGia0) : NULL;
+    Vec_Bit_t * vIgnore1 = pPars->fBooth ? Acec_BoothFindPPG(pGia1) : NULL;
+    Acec_Box_t * pBox0 = Acec_DeriveBox( pGia0, vIgnore0, pPars->fVerbose );
+    Acec_Box_t * pBox1 = Acec_DeriveBox( pGia1, vIgnore1, pPars->fVerbose );
+    Vec_BitFreeP( &vIgnore0 );
+    Vec_BitFreeP( &vIgnore1 );
     if ( pBox0 == NULL || pBox1 == NULL ) // cannot match
         printf( "Cannot find arithmetic boxes in both LHS and RHS. Trying regular CEC.\n" );
     else if ( !Acec_MatchBoxes( pBox0, pBox1 ) ) // cannot find matching
@@ -214,7 +256,8 @@ int Acec_Solve( Gia_Man_t * pGia0, Gia_Man_t * pGia1, Acec_ParCec_t * pPars )
     {
         pGia0n = Acec_InsertBox( pBox0, 1 );
         pGia1n = Acec_InsertBox( pBox1, 1 );
-        printf( "Found, matched, and normalized arithmetic boxes in LHS and RHS. Solving resulting CEC.\n" );
+        printf( "Matching of adder trees in LHS and RHS succeeded.  " );
+        Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     }
     // solve regular CEC problem 
     Cec_ManCecSetDefaultParams( pCecPars );

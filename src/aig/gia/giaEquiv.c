@@ -129,7 +129,7 @@ Gia_Man_t * Gia_ManOrigIdsReduce( Gia_Man_t * p, Vec_Int_t * vPairs )
     }
     Gia_ManHashStop( pNew );
     Gia_ManForEachCo( p, pObj, i )
-        Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
+        pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
     Vec_IntFree( vMap );
     // compute equivalences
     assert( !p->pReprs && !p->pNexts );
@@ -167,6 +167,31 @@ Gia_Man_t * Gia_ManOrigIdsReduceTest( Gia_Man_t * p, Vec_Int_t * vPairs )
     pNew = Gia_ManCleanup( pTemp = pNew );
     Gia_ManStop( pTemp );
     return pNew;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Compute equivalence classes of nodes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Gia_Man_t * Gia_ManComputeGiaEquivs( Gia_Man_t * pGia, int nConfs, int fVerbose )
+{
+    Gia_Man_t * pTemp;
+    Cec_ParFra_t ParsFra, * pPars = &ParsFra;
+    Cec_ManFraSetDefaultParams( pPars );
+    pPars->fUseOrigIds = 1;
+    pPars->fSatSweeping = 1;
+    pPars->nBTLimit = nConfs;
+    pPars->fVerbose = fVerbose;
+    pTemp = Cec_ManSatSweeping( pGia, pPars, 0 );
+    Gia_ManStop( pTemp );
+    return Gia_ManOrigIdsReduce( pGia, pGia->vIdsEquiv );
 }
 
 /**Function*************************************************************

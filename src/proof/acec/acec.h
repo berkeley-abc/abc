@@ -47,6 +47,7 @@ struct Acec_ParCec_t_
     int              fMiter;        // input circuit is a miter
     int              fDualOutput;   // dual-output miter
     int              fTwoOutput;    // two-output miter
+    int              fBooth;        // expecting Booth multiplier
     int              fSilent;       // print no messages
     int              fVeryVerbose;  // verbose stats
     int              fVerbose;      // verbose stats
@@ -81,7 +82,7 @@ extern Vec_Int_t *   Ree_ManComputeCuts( Gia_Man_t * p, Vec_Int_t ** pvXors, int
 extern int           Ree_ManCountFadds( Vec_Int_t * vAdds );
 extern void          Ree_ManPrintAdders( Vec_Int_t * vAdds, int fVerbose );
 /*=== acecTree.c ========================================================*/
-extern Gia_Man_t *   Acec_Normalize( Gia_Man_t * pGia, int fVerbose );
+extern Gia_Man_t *   Acec_Normalize( Gia_Man_t * pGia, int fBooth, int fVerbose );
 
 
 ABC_NAMESPACE_HEADER_END

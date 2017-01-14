@@ -490,18 +490,16 @@ Vec_Int_t * Acec_MultFindPPs( Gia_Man_t * p )
     Gia_ManForEachAndId( p, iObj )
     {
         word Truth = Gia_ObjComputeTruth6Cis( p, Abc_Var2Lit(iObj, 0), vSupp, vTemp );
+        if ( Vec_IntSize(vSupp) > 6  )
+            continue;
         vSupp->nSize = Abc_Tt6MinBase( &Truth, vSupp->pArray, vSupp->nSize );
         if ( Vec_IntSize(vSupp) > 5  )
             continue;
-        for ( i = 0; i < 32; i++ )
+        for ( i = 0; i < 32 && Saved[i]; i++ )
         {
-            if ( Saved[i] == 0 )
-                break;
             if ( Truth == Saved[i] || Truth == ~Saved[i] )
             {
-                //Vec_IntPush( vBold, iObj );
                 Acec_MultFindPPs_rec( p, iObj, vBold );
-                printf( "%d ", iObj );
                 nProds++;
                 break;
             }
@@ -515,13 +513,22 @@ Vec_Int_t * Acec_MultFindPPs( Gia_Man_t * p )
         Vec_IntPrint( vSupp );
 */
     }
-    printf( "\n" );
     Gia_ManCleanMark0(p);
     printf( "Collected %d pps and %d nodes.\n", nProds, Vec_IntSize(vBold) );
 
     Vec_IntFree( vSupp );
     Vec_WrdFree( vTemp );
     return vBold;
+}
+Vec_Bit_t * Acec_BoothFindPPG( Gia_Man_t * p )
+{
+    Vec_Bit_t * vIgnore = Vec_BitStart( Gia_ManObjNum(p) );
+    Vec_Int_t * vMap = Acec_MultFindPPs( p );
+    int i, Entry;
+    Vec_IntForEachEntry( vMap, Entry, i )
+        Vec_BitWriteEntry( vIgnore, Entry, 1 );
+    Vec_IntFree( vMap );
+    return vIgnore;
 }
 void Acec_MultFindPPsTest( Gia_Man_t * p )
 {

@@ -40543,7 +40543,7 @@ int Abc_CommandAbc9Acec( Abc_Frame_t * pAbc, int argc, char ** argv )
     int c, nArgcNew;
     Acec_ManCecSetDefaultParams( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "CTmdtvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "CTmdtbvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -40577,6 +40577,9 @@ int Abc_CommandAbc9Acec( Abc_Frame_t * pAbc, int argc, char ** argv )
             break;
         case 't':
             pPars->fTwoOutput ^= 1;
+            break;
+        case 'b':
+            pPars->fBooth ^= 1;
             break;
         case 'v':
             pPars->fVerbose ^= 1;
@@ -40720,13 +40723,14 @@ int Abc_CommandAbc9Acec( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &acec [-CT num] [-mdtvh] <file1> <file2>\n" );
+    Abc_Print( -2, "usage: &acec [-CT num] [-mdtbvh] <file1> <file2>\n" );
     Abc_Print( -2, "\t         combinational equivalence checking for arithmetic circuits\n" );
     Abc_Print( -2, "\t-C num : the max number of conflicts at a node [default = %d]\n", pPars->nBTLimit );
     Abc_Print( -2, "\t-T num : approximate runtime limit in seconds [default = %d]\n", pPars->TimeLimit );
     Abc_Print( -2, "\t-m     : toggle miter vs. two circuits [default = %s]\n", pPars->fMiter? "miter":"two circuits");
     Abc_Print( -2, "\t-d     : toggle using dual output miter [default = %s]\n", pPars->fDualOutput? "yes":"no");
     Abc_Print( -2, "\t-t     : toggle using two-word miter [default = %s]\n", pPars->fTwoOutput? "yes":"no");
+    Abc_Print( -2, "\t-b     : toggle working with Booth multipliers [default = %s]\n", pPars->fBooth? "yes":"no");
     Abc_Print( -2, "\t-v     : toggle verbose output [default = %s]\n", pPars->fVerbose? "yes":"no");
     Abc_Print( -2, "\t-h     : print the command usage\n");
     Abc_Print( -2, "\tfile1  : (optional) the file with the first network\n");
@@ -40748,12 +40752,15 @@ usage:
 int Abc_CommandAbc9Anorm( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Gia_Man_t * pTemp;
-    int c, fVerbose = 0;
+    int c, fBooth = 0, fVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "bvh" ) ) != EOF )
     {
         switch ( c )
         {
+        case 'b':
+            fBooth ^= 1;
+            break;
         case 'v':
             fVerbose ^= 1;
             break;
@@ -40768,13 +40775,14 @@ int Abc_CommandAbc9Anorm( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Abc_CommandAbc9Anorm(): There is no AIG.\n" );
         return 0;
     }
-    pTemp = Acec_Normalize( pAbc->pGia, fVerbose );
+    pTemp = Acec_Normalize( pAbc->pGia, fBooth, fVerbose );
     Abc_FrameUpdateGia( pAbc, pTemp );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &anorm [-vh]\n" );
+    Abc_Print( -2, "usage: &anorm [-bvh]\n" );
     Abc_Print( -2, "\t         normalize adder trees in the current AIG\n" );
+    Abc_Print( -2, "\t-b     : toggles working with Booth multipliers [default = %s]\n",  fBooth? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggles printing verbose information [default = %s]\n",  fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
