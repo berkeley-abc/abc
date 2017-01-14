@@ -112,7 +112,7 @@ int Acec_InsertBox_rec( Gia_Man_t * pNew, Gia_Man_t * p, Gia_Obj_t * pObj )
     assert( Gia_ObjIsAnd(pObj) );
     Acec_InsertBox_rec( pNew, p, Gia_ObjFanin0(pObj) );
     Acec_InsertBox_rec( pNew, p, Gia_ObjFanin1(pObj) );
-    return (pObj->Value = Gia_ManAppendAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) ));
+    return (pObj->Value = Gia_ManAppendAnd2( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) ));
 }
 Vec_Int_t * Acec_BuildTree( Gia_Man_t * pNew, Gia_Man_t * p, Vec_Wec_t * vLeafLits )
 {

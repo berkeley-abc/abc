@@ -20,6 +20,8 @@
 
 #include "acecInt.h"
 #include "proof/cec/cec.h"
+#include "misc/util/utilTruth.h"
+#include "misc/extra/extra.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -118,18 +120,19 @@ Vec_Int_t * Acec_CountRemap( Gia_Man_t * pAdd, Gia_Man_t * pBase )
 }
 void Acec_ComputeEquivClasses( Gia_Man_t * pOne, Gia_Man_t * pTwo, Vec_Int_t ** pvMap1, Vec_Int_t ** pvMap2 )
 {
+    abctime clk = Abc_Clock();
     Gia_Man_t * pBase, * pRepr;
     pBase = Acec_CommonStart( NULL, pOne );
     pBase = Acec_CommonStart( pBase, pTwo );
     Acec_CommonFinish( pBase );
-
     //Gia_ManShow( pBase, NULL, 0, 0, 0 );
-
     pRepr = Gia_ManComputeGiaEquivs( pBase, 100, 0 );
     *pvMap1 = Acec_CountRemap( pOne, pBase );
     *pvMap2 = Acec_CountRemap( pTwo, pBase );
     Gia_ManStop( pBase );
     Gia_ManStop( pRepr );
+    printf( "Finished computing equivalent nodes.  " );
+    Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
 }
 void Acec_MatchBoxesSort( int * pArray, int nSize, int * pCostLits )
 {
@@ -143,8 +146,10 @@ void Acec_MatchBoxesSort( int * pArray, int nSize, int * pCostLits )
         ABC_SWAP( int, pArray[i], pArray[best_i] );
     }
 }
-void Acec_MatchPrintEquivLits( Vec_Wec_t * vLits, int * pCostLits )
+void Acec_MatchPrintEquivLits( Gia_Man_t * p, Vec_Wec_t * vLits, int * pCostLits, int fVerbose )
 {
+    Vec_Int_t * vSupp = Vec_IntAlloc( 100 );
+    Vec_Wrd_t * vTemp = Vec_WrdStart( Gia_ManObjNum(p) );
     Vec_Int_t * vLevel;
     int i, k, Entry;
     printf( "Leaf literals and their classes:\n" );
@@ -155,6 +160,85 @@ void Acec_MatchPrintEquivLits( Vec_Wec_t * vLits, int * pCostLits )
             printf( "%s%d(%d) ", Abc_LitIsCompl(Entry) ? "-":"+", Abc_Lit2Var(Entry), Abc_Lit2LitL(pCostLits, Entry) );
         printf( "\n" );
     }
+    if ( !fVerbose )
+        return;
+    Vec_WecForEachLevel( vLits, vLevel, i )
+    {
+        if ( i != 20 )
+            continue;
+        Vec_IntForEachEntry( vLevel, Entry, k )
+        {
+            word Truth = Gia_ObjComputeTruth6Cis( p, Entry, vSupp, vTemp );
+            printf( "Rank = %4d : ", i );
+            printf( "Obj = %4d  ", Abc_Lit2Var(Entry) );
+            if ( Vec_IntSize(vSupp) > 6  )
+            {
+                printf( "Supp = %d.\n", Vec_IntSize(vSupp) );
+                continue;
+            }
+            vSupp->nSize = Abc_Tt6MinBase( &Truth, vSupp->pArray, vSupp->nSize );
+            if ( Vec_IntSize(vSupp) > 5  )
+            {
+                printf( "Supp = %d.\n", Vec_IntSize(vSupp) );
+                continue;
+            }
+            Extra_PrintHex( stdout, (unsigned*)&Truth, Vec_IntSize(vSupp) );
+            if ( Vec_IntSize(vSupp) == 4 ) printf( "    " );
+            if ( Vec_IntSize(vSupp) == 3 ) printf( "      " );
+            if ( Vec_IntSize(vSupp) <= 2 ) printf( "       " );
+            printf( "  " );
+            Vec_IntPrint( vSupp );
+        }
+        printf( "\n" );
+    }
+    Vec_IntFree( vSupp );
+    Vec_WrdFree( vTemp );
+}
+Vec_Wec_t * Acec_MatchCopy( Vec_Wec_t * vLits, Vec_Int_t * vMap )
+{
+    Vec_Wec_t * vRes = Vec_WecStart( Vec_WecSize(vLits) );
+    Vec_Int_t * vLevel; int i, k, iLit;
+    Vec_WecForEachLevel( vLits, vLevel, i )
+        Vec_IntForEachEntry( vLevel, iLit, k )
+            Vec_WecPush( vRes, i, Abc_Lit2LitL(Vec_IntArray(vMap), iLit) );
+    return vRes;
+}
+int Acec_MatchCountCommon( Vec_Wec_t * vLits1, Vec_Wec_t * vLits2, int Shift )
+{
+    Vec_Int_t * vRes = Vec_IntAlloc( 100 );
+    Vec_Int_t * vLevel1, * vLevel2; 
+    int i, nCommon = 0;
+    Vec_WecForEachLevel( vLits1, vLevel1, i )
+    {
+        if ( i+Shift < 0 || i+Shift >= Vec_WecSize(vLits2) )
+            continue;
+        vLevel2 = Vec_WecEntry( vLits2, i+Shift );
+        nCommon += Vec_IntTwoFindCommonReverse( vLevel1, vLevel2, vRes );
+    }
+    Vec_IntFree( vRes );
+    return nCommon;
+}
+void Acec_MatchCheckShift( Vec_Wec_t * vLits0, Vec_Wec_t * vLits1, Vec_Int_t * vMap0, Vec_Int_t * vMap1, Vec_Wec_t * vRoots0, Vec_Wec_t * vRoots1 )
+{
+    Vec_Wec_t * vRes0 = Acec_MatchCopy( vLits0, vMap0 );
+    Vec_Wec_t * vRes1 = Acec_MatchCopy( vLits1, vMap1 );
+    int nCommon      = Acec_MatchCountCommon( vRes0, vRes1,  0 );
+    int nCommonPlus  = Acec_MatchCountCommon( vRes0, vRes1,  1 );
+    int nCommonMinus = Acec_MatchCountCommon( vRes0, vRes1, -1 );
+    if ( nCommonPlus >= nCommonMinus && nCommonPlus > nCommon )
+    {
+        Vec_WecInsertLevel( vLits0, 0 );
+        Vec_WecInsertLevel( vRoots0, 0 );
+    }
+    else if ( nCommonMinus > nCommonPlus && nCommonMinus > nCommon )
+    {
+        Vec_WecInsertLevel( vLits1, 0 );
+        Vec_WecInsertLevel( vRoots1, 0 );
+    }
+    Vec_WecPrint( vRes0, 0 );
+    Vec_WecPrint( vRes1, 0 );
+    Vec_WecFree( vRes0 );
+    Vec_WecFree( vRes1 );
 }
 int Acec_MatchBoxes( Acec_Box_t * pBox0, Acec_Box_t * pBox1 )
 {
@@ -166,8 +250,11 @@ int Acec_MatchBoxes( Acec_Box_t * pBox0, Acec_Box_t * pBox1 )
         Acec_MatchBoxesSort( Vec_IntArray(vLevel), Vec_IntSize(vLevel), Vec_IntArray(vMap0) );
     Vec_WecForEachLevel( pBox1->vLeafLits, vLevel, i )
         Acec_MatchBoxesSort( Vec_IntArray(vLevel), Vec_IntSize(vLevel), Vec_IntArray(vMap1) );
-    //Acec_MatchPrintEquivLits( pBox0->vLeafLits, Vec_IntArray(vMap0) );
-    //Acec_MatchPrintEquivLits( pBox1->vLeafLits, Vec_IntArray(vMap1) );
+    Acec_MatchCheckShift( pBox0->vLeafLits, pBox1->vLeafLits, vMap0, vMap1, pBox0->vRootLits, pBox1->vRootLits );
+    
+    //Acec_MatchPrintEquivLits( pBox0->pGia, pBox0->vLeafLits, Vec_IntArray(vMap0), 0 );
+    //Acec_MatchPrintEquivLits( pBox1->pGia, pBox1->vLeafLits, Vec_IntArray(vMap1), 0 );
+
     // reorder nodes to have the same order
     assert( pBox0->vShared == NULL );
     assert( pBox1->vShared == NULL );
@@ -216,11 +303,15 @@ int Acec_MatchBoxes( Acec_Box_t * pBox0, Acec_Box_t * pBox1 )
         assert( Vec_IntSize(vShared0) + Vec_IntSize(vUnique0) == Vec_IntSize(vLevel0) );
         assert( Vec_IntSize(vShared1) + Vec_IntSize(vUnique1) == Vec_IntSize(vLevel1) );
     }
-    Vec_IntFree( vMap0 );
-    Vec_IntFree( vMap1 );
     nTotal = Vec_WecSizeSize(pBox0->vShared);
     printf( "Box0: Matched %d entries out of %d.\n", nTotal, Vec_WecSizeSize(pBox0->vLeafLits) );
     printf( "Box1: Matched %d entries out of %d.\n", nTotal, Vec_WecSizeSize(pBox1->vLeafLits) );
+
+    //Acec_MatchPrintEquivLits( pBox0->pGia, pBox0->vUnique, Vec_IntArray(vMap0), 0 );
+    //Acec_MatchPrintEquivLits( pBox1->pGia, pBox1->vUnique, Vec_IntArray(vMap1), 0 );
+
+    Vec_IntFree( vMap0 );
+    Vec_IntFree( vMap1 );
     return nTotal;
 }
 
@@ -258,6 +349,9 @@ int Acec_Solve( Gia_Man_t * pGia0, Gia_Man_t * pGia1, Acec_ParCec_t * pPars )
         pGia1n = Acec_InsertBox( pBox1, 1 );
         printf( "Matching of adder trees in LHS and RHS succeeded.  " );
         Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
+        // remove the last output
+        //Gia_ManPatchCoDriver( pGia0n, Gia_ManCoNum(pGia0n)-1, 0 );
+        //Gia_ManPatchCoDriver( pGia1n, Gia_ManCoNum(pGia1n)-1, 0 );
     }
     // solve regular CEC problem 
     Cec_ManCecSetDefaultParams( pCecPars );

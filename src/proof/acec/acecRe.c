@@ -147,6 +147,7 @@ static inline int Ree_ManCutFind( int iObj, int * pCut )
 }
 static inline int Ree_ManCutNotFind( int iObj1, int iObj2, int * pCut )
 {
+    assert( pCut[0] == 3 );
     if ( pCut[3] != iObj1 && pCut[3] != iObj2 ) return 0;
     if ( pCut[2] != iObj1 && pCut[2] != iObj2 ) return 1;
     if ( pCut[1] != iObj1 && pCut[1] != iObj2 ) return 2;
@@ -162,13 +163,19 @@ static inline int Ree_ManCutTruthOne( int * pCut0, int * pCut )
     Truth0 = fComp0 ? ~Truth0 : Truth0;
     if ( pCut0[0] == 2 )
     {
-        int Truths[3][8] = {
-            { 0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77 }, // {0,1,-}
-            { 0x00, 0x05, 0x0A, 0x0F, 0x50, 0x55, 0x5A, 0x5F }, // {0,-,1}
-            { 0x00, 0x03, 0x0C, 0x0F, 0x30, 0x33, 0x3C, 0x3F }  // {-,0,1}
-        };
-        int Truth = Truths[Ree_ManCutNotFind(pCut0[1], pCut0[2], pCut)][Truth0 & 0x7];
-        return 0xFF & (fComp0 ? ~Truth : Truth);
+        if ( pCut[0] == 3 )
+        {
+            int Truths[3][8] = {
+                { 0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77 }, // {0,1,-}
+                { 0x00, 0x05, 0x0A, 0x0F, 0x50, 0x55, 0x5A, 0x5F }, // {0,-,1}
+                { 0x00, 0x03, 0x0C, 0x0F, 0x30, 0x33, 0x3C, 0x3F }  // {-,0,1}
+            };
+            int Truth = Truths[Ree_ManCutNotFind(pCut0[1], pCut0[2], pCut)][Truth0 & 0x7];
+            return 0xFF & (fComp0 ? ~Truth : Truth);
+        }
+        assert( pCut[0] == 2 );
+        assert( pCut[1] == pCut0[1] && pCut[2] == pCut0[2] );
+        return pCut0[pCut0[0]+1];
     }
     if ( pCut0[0] == 1 )
     {
@@ -236,10 +243,10 @@ int Ree_ObjComputeTruth( Gia_Man_t * p, int iObj, int * pCut )
   SeeAlso     []
 
 ***********************************************************************/
-void Ree_ManCutPrint( int * pCut, int Count, word Truth )
+void Ree_ManCutPrint( int * pCut, int Count, word Truth, int iObj )
 {
     int c;
-    printf( "%d : ", Count );
+    printf( "%d : %d : ", Count, iObj );
     for ( c = 1; c <= pCut[0]; c++ )
         printf( "%3d ", pCut[c] );
     for (      ; c <= 4; c++ )
@@ -290,7 +297,7 @@ void Ree_ManCutMerge( Gia_Man_t * p, int iObj, int * pList0, int * pList1, Vec_I
             Vec_IntPushThree( vData, iObj, Value, TruthC );
         }
         if ( fVerbose )
-            Ree_ManCutPrint( pCut, ++Count, TruthC );
+            Ree_ManCutPrint( pCut, ++Count, TruthC, iObj );
     }
     if ( !vXors )
         return;

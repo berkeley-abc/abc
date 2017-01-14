@@ -504,14 +504,18 @@ Vec_Int_t * Acec_MultFindPPs( Gia_Man_t * p )
                 break;
             }
         }
-/*
-        Extra_PrintHex( stdout, (unsigned*)&Truth, Vec_IntSize(vSupp) );
-        if ( Vec_IntSize(vSupp) == 4 ) printf( "    " );
-        if ( Vec_IntSize(vSupp) == 3 ) printf( "      " );
-        if ( Vec_IntSize(vSupp) <= 2 ) printf( "       " );
-        printf( "  " );
-        Vec_IntPrint( vSupp );
-*/
+        /*
+        if ( Saved[i] )
+        {
+            printf( "Obj = %4d  ", iObj );
+            Extra_PrintHex( stdout, (unsigned*)&Truth, Vec_IntSize(vSupp) );
+            if ( Vec_IntSize(vSupp) == 4 ) printf( "    " );
+            if ( Vec_IntSize(vSupp) == 3 ) printf( "      " );
+            if ( Vec_IntSize(vSupp) <= 2 ) printf( "       " );
+            printf( "  " );
+            Vec_IntPrint( vSupp );
+        }
+        */
     }
     Gia_ManCleanMark0(p);
     printf( "Collected %d pps and %d nodes.\n", nProds, Vec_IntSize(vBold) );

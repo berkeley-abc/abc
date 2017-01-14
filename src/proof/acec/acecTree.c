@@ -392,7 +392,7 @@ Vec_Wec_t * Acec_TreeFindTrees( Gia_Man_t * p, Vec_Int_t * vAdds, Vec_Bit_t * vI
     Vec_BitFree( vFound );
     Vec_IntFree( vMap );
     // filter trees
-    Acec_TreeFilterTrees( p, vAdds, vTrees );
+    //Acec_TreeFilterTrees( p, vAdds, vTrees );
     // sort by size
     Vec_WecSort( vTrees, 1 );
     return vTrees;
@@ -478,7 +478,7 @@ Acec_Box_t * Acec_CreateBox( Gia_Man_t * p, Vec_Int_t * vAdds, Vec_Int_t * vTree
     Vec_Bit_t * vIsLeaf = Vec_BitStart( Gia_ManObjNum(p) );
     Vec_Bit_t * vIsRoot = Vec_BitStart( Gia_ManObjNum(p) );
     Vec_Int_t * vLevel, * vMap;
-    int i, j, k, Box, Rank;
+    int i, j, k, Box, Rank, Count = 0;
 
     Acec_Box_t * pBox = ABC_CALLOC( Acec_Box_t, 1 );
     pBox->pGia        = p;
@@ -532,6 +532,30 @@ Acec_Box_t * Acec_CreateBox( Gia_Man_t * p, Vec_Int_t * vAdds, Vec_Int_t * vTree
         Vec_IntSort( vLevel, 0 );
     Vec_WecForEachLevel( pBox->vRootLits, vLevel, i )
         Vec_IntSort( vLevel, 0 );
+    //return pBox;
+    // push literals forward
+    //Vec_WecPrint( pBox->vLeafLits, 0 );
+    Vec_WecForEachLevel( pBox->vLeafLits, vLevel, i )
+    {
+        int This, Prev = Vec_IntEntry(vLevel, 0);
+        Vec_IntForEachEntryStart( vLevel, This, j, 1 )
+        {
+            if ( Prev != This )
+            {
+                Prev = This;
+                continue;
+            }
+            if ( i+1 >= Vec_WecSize(pBox->vLeafLits) )
+                continue;
+            Vec_IntPushOrder( Vec_WecEntry(pBox->vLeafLits, i+1), This );
+            Vec_IntDrop( vLevel, j-- );
+            Vec_IntDrop( vLevel, j-- );
+            Prev = -1;
+            Count++;
+        }
+    }
+    printf( "Pushed forward %d input literals.\n", Count );
+    //Vec_WecPrint( pBox->vLeafLits, 0 );
     return pBox;
 }
 void Acec_CreateBoxTest( Gia_Man_t * p )

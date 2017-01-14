@@ -30,6 +30,8 @@ ABC_NAMESPACE_IMPL_START
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
+#define NODE_MAX 2000
+
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
@@ -79,11 +81,11 @@ void Gia_ShowPath( Gia_Man_t * p, char * pFileName )
         }
     }
 
-    if ( nNodes > 500 )
+    if ( nNodes > NODE_MAX )
     {
         ABC_FREE( pLevels );
         Vec_BitFree( vPath );
-        fprintf( stdout, "Cannot visualize AIG with more than 500 critical nodes.\n" );
+        fprintf( stdout, "Cannot visualize AIG with more than %d critical nodes.\n", NODE_MAX );
         return;
     }
     if ( (pFile = fopen( pFileName, "w" )) == NULL )
@@ -341,9 +343,9 @@ void Gia_WriteDotAigSimple( Gia_Man_t * p, char * pFileName, Vec_Int_t * vBold )
     int LevelMax, Prev, Level, i;
     int fConstIsUsed = 0;
 
-    if ( Gia_ManAndNum(p) > 500 )
+    if ( Gia_ManAndNum(p) > NODE_MAX )
     {
-        fprintf( stdout, "Cannot visualize AIG with more than 500 nodes.\n" );
+        fprintf( stdout, "Cannot visualize AIG with more than %d nodes.\n", NODE_MAX );
         return;
     }
     if ( (pFile = fopen( pFileName, "w" )) == NULL )
@@ -678,9 +680,9 @@ void Gia_WriteDotAig( Gia_Man_t * p, char * pFileName, Vec_Int_t * vBold, Vec_In
     int fConstIsUsed = 0;
     int nFadds = Ree_ManCountFadds( vAdds );
 
-    if ( Gia_ManAndNum(p) > 1000 )
+    if ( Gia_ManAndNum(p) > NODE_MAX )
     {
-        fprintf( stdout, "Cannot visualize AIG with more than 1000 nodes.\n" );
+        fprintf( stdout, "Cannot visualize AIG with more than %d nodes.\n", NODE_MAX );
         return;
     }
     if ( (pFile = fopen( pFileName, "w" )) == NULL )
