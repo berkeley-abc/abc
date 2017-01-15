@@ -450,6 +450,7 @@ Vec_Int_t * Ree_ManComputeCuts( Gia_Man_t * p, Vec_Int_t ** pvXors, int fVerbose
     Hash_IntManStop( pHash );
     Ree_ManRemoveTrivial( p, vAdds );
     Ree_ManRemoveContained( p, vAdds );
+    //Ree_ManPrintAdders( vAdds, 1 );
     return vAdds;
 }
 
@@ -523,6 +524,10 @@ void Ree_ManRemoveTrivial( Gia_Man_t * p, Vec_Int_t * vAdds )
         {
             pObjX = Gia_ManObj( p, Vec_IntEntry(vAdds, 6*i+3) );
             pObjM = Gia_ManObj( p, Vec_IntEntry(vAdds, 6*i+4) );
+            // rule out if MAJ is a fanout of XOR
+            //if ( pObjX == Gia_ObjFanin0(pObjM) || pObjX == Gia_ObjFanin1(pObjM) )
+            //    continue;
+            // rule out if MAJ is a fanin of XOR and has no other fanouts
             if ( (pObjM == Gia_ObjFanin0(pObjX) || pObjM == Gia_ObjFanin1(pObjX)) && Gia_ObjRefNum(p, pObjM) == 1 )
                 continue;
         }

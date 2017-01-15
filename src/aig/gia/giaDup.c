@@ -3046,6 +3046,71 @@ Gia_Man_t * Gia_ManDupAndCones( Gia_Man_t * p, int * pAnds, int nAnds, int fTrim
     return pNew;
 
 }
+void Gia_ManDupAndConesLimit_rec( Gia_Man_t * pNew, Gia_Man_t * p, int iObj, int Level )
+{
+    Gia_Obj_t * pObj = Gia_ManObj(p, iObj);
+    if ( ~pObj->Value )
+        return;
+    if ( !Gia_ObjIsAnd(pObj) || Gia_ObjLevel(p, pObj) < Level )
+    {
+        pObj->Value = Gia_ManAppendCi( pNew );
+        //printf( "PI %d for %d.\n", Abc_Lit2Var(pObj->Value), iObj );
+        return;
+    }
+    Gia_ManDupAndConesLimit_rec( pNew, p, Gia_ObjFaninId0(pObj, iObj), Level );
+    Gia_ManDupAndConesLimit_rec( pNew, p, Gia_ObjFaninId1(pObj, iObj), Level );
+    pObj->Value = Gia_ManAppendAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+    //printf( "Obj %d for %d.\n", Abc_Lit2Var(pObj->Value), iObj );
+}
+Gia_Man_t * Gia_ManDupAndConesLimit( Gia_Man_t * p, int * pAnds, int nAnds, int Level )
+{
+    Gia_Man_t * pNew;
+    int i;
+    pNew = Gia_ManStart( 1000 );
+    pNew->pName = Abc_UtilStrsav( p->pName );
+    pNew->pSpec = Abc_UtilStrsav( p->pSpec );
+    Gia_ManLevelNum( p );
+    Gia_ManFillValue( p );
+    Gia_ManConst0(p)->Value = 0;
+    for ( i = 0; i < nAnds; i++ )
+        Gia_ManDupAndConesLimit_rec( pNew, p, pAnds[i], Level );
+    for ( i = 0; i < nAnds; i++ )
+        Gia_ManAppendCo( pNew, Gia_ManObj(p, pAnds[i])->Value );
+    return pNew;
+}
+
+void Gia_ManDupAndConesLimit2_rec( Gia_Man_t * pNew, Gia_Man_t * p, int iObj, int Level )
+{
+    Gia_Obj_t * pObj = Gia_ManObj(p, iObj);
+    if ( ~pObj->Value )
+        return;
+    if ( !Gia_ObjIsAnd(pObj) || Level <= 0 )
+    {
+        pObj->Value = Gia_ManAppendCi( pNew );
+        //printf( "PI %d for %d.\n", Abc_Lit2Var(pObj->Value), iObj );
+        return;
+    }
+    Gia_ManDupAndConesLimit2_rec( pNew, p, Gia_ObjFaninId0(pObj, iObj), Level-1 );
+    Gia_ManDupAndConesLimit2_rec( pNew, p, Gia_ObjFaninId1(pObj, iObj), Level-1 );
+    pObj->Value = Gia_ManAppendAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+    //printf( "Obj %d for %d.\n", Abc_Lit2Var(pObj->Value), iObj );
+}
+Gia_Man_t * Gia_ManDupAndConesLimit2( Gia_Man_t * p, int * pAnds, int nAnds, int Level )
+{
+    Gia_Man_t * pNew;
+    int i;
+    pNew = Gia_ManStart( 1000 );
+    pNew->pName = Abc_UtilStrsav( p->pName );
+    pNew->pSpec = Abc_UtilStrsav( p->pSpec );
+    Gia_ManFillValue( p );
+    Gia_ManConst0(p)->Value = 0;
+    for ( i = 0; i < nAnds; i++ )
+        Gia_ManDupAndConesLimit2_rec( pNew, p, pAnds[i], Level );
+    for ( i = 0; i < nAnds; i++ )
+        Gia_ManAppendCo( pNew, Gia_ManObj(p, pAnds[i])->Value );
+    return pNew;
+
+}
 
 /**Function*************************************************************
 

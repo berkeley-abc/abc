@@ -66,6 +66,8 @@ struct Acec_ParCec_t_
 ///                    FUNCTION DECLARATIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
+/*=== acecCl.c ========================================================*/
+extern Gia_Man_t *   Acec_ManDecla( Gia_Man_t * pGia, int fBooth, int fVerbose );
 /*=== acecCore.c ========================================================*/
 extern void          Acec_ManCecSetDefaultParams( Acec_ParCec_t * p );
 extern int           Acec_Solve( Gia_Man_t * pGia0, Gia_Man_t * pGia1, Acec_ParCec_t * pPars );

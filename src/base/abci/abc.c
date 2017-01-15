@@ -482,6 +482,7 @@ static int Abc_CommandAbc9ATree              ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandAbc9Polyn              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Acec               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Anorm              ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9Decla              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Esop               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Exorcism           ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Mfs                ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -1126,6 +1127,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "ABC9",         "&polyn",        Abc_CommandAbc9Polyn,        0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&acec",         Abc_CommandAbc9Acec,         0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&anorm",        Abc_CommandAbc9Anorm,        0 );
+    Cmd_CommandAdd( pAbc, "ABC9",         "&decla",        Abc_CommandAbc9Decla,        0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&esop",         Abc_CommandAbc9Esop,         0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&exorcism",     Abc_CommandAbc9Exorcism,     0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&mfs",          Abc_CommandAbc9Mfs,          0 );
@@ -40799,6 +40801,57 @@ usage:
   SeeAlso     []
 
 ***********************************************************************/
+int Abc_CommandAbc9Decla( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    Gia_Man_t * pTemp;
+    int c, fBooth = 0, fVerbose = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "bvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'b':
+            fBooth ^= 1;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pAbc->pGia == NULL )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9Decla(): There is no AIG.\n" );
+        return 0;
+    }
+    pTemp = Acec_ManDecla( pAbc->pGia, fBooth, fVerbose );
+    Abc_FrameUpdateGia( pAbc, pTemp );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: &decla [-bvh]\n" );
+    Abc_Print( -2, "\t         removes carry look ahead adders\n" );
+    Abc_Print( -2, "\t-b     : toggles working with Booth multipliers [default = %s]\n",  fBooth? "yes": "no" );
+    Abc_Print( -2, "\t-v     : toggles printing verbose information [default = %s]\n",  fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
+    return 1;
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 int Abc_CommandAbc9Esop( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     extern Gia_Man_t * Eso_ManCompute( Gia_Man_t * pGia, int fVerbose, Vec_Wec_t ** pvRes );
@@ -42690,7 +42743,6 @@ int Abc_CommandAbc9Test( Abc_Frame_t * pAbc, int argc, char ** argv )
 //    Jf_ManTestCnf( pAbc->pGia );
 //    Gia_ManCheckFalseTest( pAbc->pGia, nFrames );
 //    Gia_ParTest( pAbc->pGia, nWords, nProcs );
-    Acec_MultFindPPsTest( pAbc->pGia );
 
 //    printf( "\nThis command is currently disabled.\n\n" );
     return 0;

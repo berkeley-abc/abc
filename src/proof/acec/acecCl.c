@@ -335,6 +335,94 @@ Gia_Man_t * Acec_DetectAdditional( Gia_Man_t * p, int fVerbose )
     return pNew;
 }
 
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Int_t * Acec_RewriteTop( Gia_Man_t * p, Acec_Box_t * pBox )
+{
+    Vec_Int_t * vRes = Vec_IntAlloc( Gia_ManCoNum(p) + 1 );
+    Vec_Int_t * vLevel;
+    int i, k, iLit;
+    Vec_WecPrintLits( pBox->vRootLits );
+    Vec_WecForEachLevel( pBox->vRootLits, vLevel, i )
+    {
+        int In[3] = {0}, Out[2];
+        assert( Vec_IntSize(vLevel) > 0 );
+        assert( Vec_IntSize(vLevel) <= 3 );
+        if ( Vec_IntSize(vLevel) == 1 )
+        {
+            Vec_IntPush( vRes, Vec_IntEntry(vLevel, 0) );
+            continue;
+        }
+        Vec_IntForEachEntry( vLevel, iLit, k )
+            In[k] = iLit;
+        Acec_InsertFadd( p, In, Out );
+        Vec_IntPush( vRes, Out[0] );
+        if ( i+1 < Vec_WecSize(pBox->vRootLits) )
+            Vec_IntPush( Vec_WecEntry(pBox->vRootLits, i+1), Out[1] );
+        else
+            Vec_IntPush( Vec_WecPushLevel(pBox->vRootLits), Out[1] );
+    }
+    assert( Vec_IntSize(vRes) >= Gia_ManCoNum(p) );
+    Vec_IntShrink( vRes, Gia_ManCoNum(p) );
+    return vRes;
+}
+Gia_Man_t * Acec_RewriteReplace( Gia_Man_t * p, Vec_Int_t * vRes )
+{
+    Gia_Man_t * pNew, * pTemp;
+    Gia_Obj_t * pObj;  int i;
+    assert( Gia_ManCoNum(p) == Vec_IntSize(vRes) );
+    // create new manager
+    pNew = Gia_ManStart( Gia_ManObjNum(p) );
+    pNew->pName = Abc_UtilStrsav( p->pName );
+    pNew->pSpec = Abc_UtilStrsav( p->pSpec );
+    Gia_ManSetPhase( p );
+    Gia_ManFillValue( p );
+    Gia_ManConst0(p)->Value = 0;
+    Gia_ManForEachCi( p, pObj, i )
+        pObj->Value = Gia_ManAppendCi(pNew);
+    Gia_ManForEachAnd( p, pObj, i )
+        pObj->Value = Gia_ManAppendAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+    Gia_ManForEachCo( p, pObj, i )
+    {
+        int iLit = Vec_IntEntry( vRes, i );
+        int Phase1 = Gia_ObjPhase(pObj);
+        int Phase2 = Abc_LitIsCompl(iLit) ^ Gia_ObjPhase(Gia_ManObj(p, Abc_Lit2Var(iLit)));
+        int iLitNew = Abc_Var2Lit( Abc_Lit2Var(iLit), Phase1 ^ Phase2 );
+        pObj->Value = Gia_ManAppendCo( pNew, iLitNew );
+    }
+    pNew = Gia_ManCleanup( pTemp = pNew );
+    Gia_ManStop( pTemp );
+    return pNew;
+}
+Gia_Man_t * Acec_ManDecla( Gia_Man_t * pGia, int fBooth, int fVerbose )
+{
+    int status = -1;
+    abctime clk = Abc_Clock();
+    Gia_Man_t * pNew = NULL;
+    Vec_Bit_t * vIgnore = fBooth ? Acec_BoothFindPPG(pGia) : NULL;
+    Acec_Box_t * pBox = Acec_DeriveBox( pGia, vIgnore, fVerbose );
+    Vec_Int_t * vResult;
+    Vec_BitFreeP( &vIgnore );
+    if ( pBox == NULL ) // cannot match
+    {
+        printf( "Cannot find arithmetic boxes.\n" );
+        return Gia_ManDup( pGia );
+    }
+    vResult = Acec_RewriteTop( pGia, pBox );
+    pNew = Acec_RewriteReplace( pGia, vResult );
+    Vec_IntFree( vResult );
+    return pNew;
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

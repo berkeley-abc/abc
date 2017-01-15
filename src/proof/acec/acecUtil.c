@@ -90,6 +90,29 @@ void Gia_PolynAnalyzeXors( Gia_Man_t * pGia, int fVerbose )
     Vec_IntFree( vXors );
 }
 
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Gia_Man_t * Gia_ManDupTopMostRange( Gia_Man_t * p )
+{
+    Gia_Man_t * pNew;
+    Vec_Int_t * vTops = Vec_IntAlloc( 10 );
+    int i;
+    for ( i = 45; i < 52; i++ )
+        Vec_IntPush( vTops, Gia_ObjId( p, Gia_ObjFanin0(Gia_ManCo(p, i)) ) );
+    pNew = Gia_ManDupAndConesLimit( p, Vec_IntArray(vTops), Vec_IntSize(vTops), 100 );
+    Vec_IntFree( vTops );
+    return pNew;
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

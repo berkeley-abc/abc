@@ -66,6 +66,30 @@ void Acec_BoxFreeP( Acec_Box_t ** ppBox )
 
 /**Function*************************************************************
 
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Acec_VerifyBoxLeaves( Acec_Box_t * pBox, Vec_Bit_t * vIgnore )
+{
+    Vec_Int_t * vLevel;
+    int i, k, iLit, Count = 0;
+    if ( vIgnore == NULL )
+        return;
+    Vec_WecForEachLevel( pBox->vLeafLits, vLevel, i )
+        Vec_IntForEachEntry( vLevel, iLit, k )
+            if ( Gia_ObjIsAnd(Gia_ManObj(pBox->pGia, Abc_Lit2Var(iLit))) && !Vec_BitEntry(vIgnore, Abc_Lit2Var(iLit)) )
+                printf( "Internal node %d of rank %d is not part of PPG.\n", Abc_Lit2Var(iLit), i ), Count++;
+    printf( "Detected %d suspicious leaves.\n", Count );
+}
+
+/**Function*************************************************************
+
   Synopsis    [Filters trees by removing TFO of roots.]
 
   Description []
@@ -103,6 +127,18 @@ void Acec_TreeFilterOne( Gia_Man_t * p, Vec_Int_t * vAdds, Vec_Int_t * vTree )
     // remove those that overlap with roots
     Vec_IntForEachEntryDouble( vTree, Box, Rank, i )
     {
+/*
+        if ( Vec_IntEntry(vAdds, 6*Box+3) == 24 && Vec_IntEntry(vAdds, 6*Box+4) == 22 )
+        {
+            printf( "**** removing special one \n" );
+            continue;
+        }
+        if ( Vec_IntEntry(vAdds, 6*Box+3) == 48 && Vec_IntEntry(vAdds, 6*Box+4) == 49 )
+        {
+            printf( "**** removing special one \n" );
+            continue;
+        }
+*/
         if ( Vec_BitEntry(vMarked, Vec_IntEntry(vAdds, 6*Box+3)) || Vec_BitEntry(vMarked, Vec_IntEntry(vAdds, 6*Box+4)) )
         {
             printf( "Removing box %d=(%d,%d) of rank %d.\n", Box, Vec_IntEntry(vAdds, 6*Box+3), Vec_IntEntry(vAdds, 6*Box+4), Rank ); 
@@ -121,6 +157,73 @@ void Acec_TreeFilterTrees( Gia_Man_t * p, Vec_Int_t * vAdds, Vec_Wec_t * vTrees 
     int i;
     Vec_WecForEachLevel( vTrees, vLevel, i )
         Acec_TreeFilterOne( p, vAdds, vLevel );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Filters trees by removing TFO of roots.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Acec_TreeMarkTFI_rec( Gia_Man_t * p, int Id, Vec_Bit_t * vMarked )
+{
+    Gia_Obj_t * pObj = Gia_ManObj(p, Id);
+    if ( Vec_BitEntry(vMarked, Id) )
+        return;
+    Vec_BitWriteEntry( vMarked, Id, 1 );
+    if ( !Gia_ObjIsAnd(pObj) )
+        return;
+    Acec_TreeMarkTFI_rec( p, Gia_ObjFaninId0(pObj, Id), vMarked );
+    Acec_TreeMarkTFI_rec( p, Gia_ObjFaninId1(pObj, Id), vMarked );
+}
+void Acec_TreeFilterOne2( Gia_Man_t * p, Vec_Int_t * vAdds, Vec_Int_t * vTree )
+{
+    Vec_Bit_t * vIsLeaf = Vec_BitStart( Gia_ManObjNum(p) );
+    Vec_Bit_t * vMarked = Vec_BitStart( Gia_ManObjNum(p) ) ;
+    Gia_Obj_t * pObj;
+    int i, k = 0, Box, Rank;
+    // mark leaves
+    Vec_IntForEachEntryDouble( vTree, Box, Rank, i )
+    {
+        Vec_BitWriteEntry( vIsLeaf, Vec_IntEntry(vAdds, 6*Box+0), 1 );
+        Vec_BitWriteEntry( vIsLeaf, Vec_IntEntry(vAdds, 6*Box+1), 1 );
+        Vec_BitWriteEntry( vIsLeaf, Vec_IntEntry(vAdds, 6*Box+2), 1 );
+    }
+    Vec_IntForEachEntryDouble( vTree, Box, Rank, i )
+    {
+        Vec_BitWriteEntry( vIsLeaf, Vec_IntEntry(vAdds, 6*Box+3), 0 );
+        Vec_BitWriteEntry( vIsLeaf, Vec_IntEntry(vAdds, 6*Box+4), 0 );
+    }
+    // mark TFI of leaves
+    Gia_ManForEachAnd( p, pObj, i )
+        if ( Vec_BitEntry(vIsLeaf, i) )
+            Acec_TreeMarkTFI_rec( p, i, vMarked );
+    // remove those that overlap with the marked TFI
+    Vec_IntForEachEntryDouble( vTree, Box, Rank, i )
+    {
+        if ( Vec_BitEntry(vMarked, Vec_IntEntry(vAdds, 6*Box+3)) || Vec_BitEntry(vMarked, Vec_IntEntry(vAdds, 6*Box+4)) )
+        {
+            printf( "Removing box %d=(%d,%d) of rank %d.\n", Box, Vec_IntEntry(vAdds, 6*Box+3), Vec_IntEntry(vAdds, 6*Box+4), Rank ); 
+            continue;
+        }
+        Vec_IntWriteEntry( vTree, k++, Box );
+        Vec_IntWriteEntry( vTree, k++, Rank );
+    }
+    Vec_IntShrink( vTree, k );
+    Vec_BitFree( vIsLeaf );
+    Vec_BitFree( vMarked );
+}
+void Acec_TreeFilterTrees2( Gia_Man_t * p, Vec_Int_t * vAdds, Vec_Wec_t * vTrees )
+{
+    Vec_Int_t * vLevel;
+    int i;
+    Vec_WecForEachLevel( vTrees, vLevel, i )
+        Acec_TreeFilterOne2( p, vAdds, vLevel );
 }
 
 /**Function*************************************************************
@@ -392,7 +495,7 @@ Vec_Wec_t * Acec_TreeFindTrees( Gia_Man_t * p, Vec_Int_t * vAdds, Vec_Bit_t * vI
     Vec_BitFree( vFound );
     Vec_IntFree( vMap );
     // filter trees
-    //Acec_TreeFilterTrees( p, vAdds, vTrees );
+    Acec_TreeFilterTrees( p, vAdds, vTrees );
     // sort by size
     Vec_WecSort( vTrees, 1 );
     return vTrees;
@@ -437,20 +540,11 @@ void Acec_PrintAdders( Vec_Wec_t * vBoxes, Vec_Int_t * vAdds )
     {
         printf( " %4d : %2d  {", i, Vec_IntSize(vLevel) );
         Vec_IntForEachEntry( vLevel, iBox, k )
+        {
             printf( " %s%d=(%d,%d)", Vec_IntEntry(vAdds, 6*iBox+2) == 0 ? "*":"", iBox, 
                                      Vec_IntEntry(vAdds, 6*iBox+3), Vec_IntEntry(vAdds, 6*iBox+4) );
-        printf( " }\n" );
-    }
-}
-void Vec_WecPrintLits( Vec_Wec_t * p )
-{
-    Vec_Int_t * vVec;
-    int i, k, Entry;
-    Vec_WecForEachLevel( p, vVec, i )
-    {
-        printf( " %4d : %2d  {", i, Vec_IntSize(vVec) );
-        Vec_IntForEachEntry( vVec, Entry, k )
-            printf( " %c%d", Abc_LitIsCompl(Entry) ? '-' : '+', Abc_Lit2Var(Entry) );
+            //printf( "(%d,%d,%d)", Vec_IntEntry(vAdds, 6*iBox+0), Vec_IntEntry(vAdds, 6*iBox+1), Vec_IntEntry(vAdds, 6*iBox+2) );
+        }
         printf( " }\n" );
     }
 }
@@ -505,7 +599,10 @@ Acec_Box_t * Acec_CreateBox( Gia_Man_t * p, Vec_Int_t * vAdds, Vec_Int_t * vTree
     Vec_WecForEachLevelReverse( pBox->vAdds, vLevel, i )
         Vec_IntForEachEntry( vLevel, Box, k )
             if ( !Vec_BitEntry( vIsLeaf, Vec_IntEntry(vAdds, 6*Box+4) ) )
+            {
+                //printf( "Pushing phase of output %d of box %d\n", Vec_IntEntry(vAdds, 6*Box+4), Box );
                 Acec_TreePhases_rec( p, vAdds, vMap, Vec_IntEntry(vAdds, 6*Box+4), Vec_IntEntry(vAdds, 6*Box+2) != 0, vVisit );
+            }
     Acec_TreeVerifyPhases( p, vAdds, pBox->vAdds );
     Acec_TreeVerifyPhases2( p, vAdds, pBox->vAdds );
     Vec_BitFree( vVisit );
@@ -521,7 +618,14 @@ Acec_Box_t * Acec_CreateBox( Gia_Man_t * p, Vec_Int_t * vAdds, Vec_Int_t * vTree
                     Vec_WecPush( pBox->vLeafLits, i, Abc_Var2Lit(Vec_IntEntry(vAdds, 6*Box+k), Acec_SignBit2(vAdds, Box, k)) );
             for ( k = 3; k < 5; k++ )
                 if ( !Vec_BitEntry( vIsLeaf, Vec_IntEntry(vAdds, 6*Box+k) ) )
+                {
+                    //if ( Vec_IntEntry(vAdds, 6*Box+k) == 10942 )
+                    //{
+                    //    printf( "++++++++++++ Skipping special\n" );
+                    //    continue;
+                    //}
                     Vec_WecPush( pBox->vRootLits, k == 4 ? i + 1 : i, Abc_Var2Lit(Vec_IntEntry(vAdds, 6*Box+k), Acec_SignBit2(vAdds, Box, k)) );
+                }
             if ( Vec_IntEntry(vAdds, 6*Box+2) == 0 && Acec_SignBit2(vAdds, Box, 2) )
                 Vec_WecPush( pBox->vLeafLits, i, 1 );
         }
@@ -531,8 +635,9 @@ Acec_Box_t * Acec_CreateBox( Gia_Man_t * p, Vec_Int_t * vAdds, Vec_Int_t * vTree
     Vec_WecForEachLevel( pBox->vLeafLits, vLevel, i )
         Vec_IntSort( vLevel, 0 );
     Vec_WecForEachLevel( pBox->vRootLits, vLevel, i )
-        Vec_IntSort( vLevel, 0 );
+        Vec_IntSort( vLevel, 1 );
     //return pBox;
+/*
     // push literals forward
     //Vec_WecPrint( pBox->vLeafLits, 0 );
     Vec_WecForEachLevel( pBox->vLeafLits, vLevel, i )
@@ -555,6 +660,7 @@ Acec_Box_t * Acec_CreateBox( Gia_Man_t * p, Vec_Int_t * vAdds, Vec_Int_t * vTree
         }
     }
     printf( "Pushed forward %d input literals.\n", Count );
+*/
     //Vec_WecPrint( pBox->vLeafLits, 0 );
     return pBox;
 }
@@ -607,13 +713,17 @@ Acec_Box_t * Acec_DeriveBox( Gia_Man_t * p, Vec_Bit_t * vIgnore, int fVerbose )
     Vec_Int_t * vAdds = Ree_ManComputeCuts( p, NULL, fVerbose );
     Vec_Wec_t * vTrees = Acec_TreeFindTrees( p, vAdds, vIgnore );
     if ( vTrees && Vec_WecSize(vTrees) > 0 )
+    {
         pBox = Acec_CreateBox( p, vAdds, Vec_WecEntry(vTrees, 0) );
+        Acec_VerifyBoxLeaves( pBox, vIgnore );
+    }
     if ( pBox )//&& fVerbose )
         printf( "Processing tree %d:  Ranks = %d.  Adders = %d.  Leaves = %d.  Roots = %d.\n", 
             0, Vec_WecSize(pBox->vAdds), Vec_WecSizeSize(pBox->vAdds), 
             Vec_WecSizeSize(pBox->vLeafLits), Vec_WecSizeSize(pBox->vRootLits)  );
     if ( pBox && fVerbose )
         Acec_PrintBox( pBox, vAdds );
+    //Acec_PrintAdders( pBox0->vAdds, vAdds );
     //Acec_MultDetectInputs( p, pBox->vLeafLits, pBox->vRootLits );
     Vec_WecFreeP( &vTrees );
     Vec_IntFree( vAdds );

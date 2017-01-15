@@ -30,6 +30,8 @@ ABC_NAMESPACE_IMPL_START
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
+#define TRUTH_UNUSED 0x1234567812345678
+
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
@@ -58,6 +60,79 @@ void Acec_ManCecSetDefaultParams( Acec_ParCec_t * p )
     p->fVerbose       =       0;    // verbose stats
     p->iOutFail       =      -1;    // the number of failed output
 }  
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Acec_VerifyClasses( Gia_Man_t * p, Vec_Wec_t * vLits, Vec_Wec_t * vReprs )
+{
+    Vec_Ptr_t * vFunc = Vec_PtrAlloc( Vec_WecSize(vLits) );
+    Vec_Int_t * vSupp = Vec_IntAlloc( 100 );
+    Vec_Wrd_t * vTemp = Vec_WrdStart( Gia_ManObjNum(p) );
+    Vec_Int_t * vLevel;
+    int i, j, k, Entry, Entry2, nOvers = 0, nErrors = 0;
+    Vec_WecForEachLevel( vLits, vLevel, i )
+    {
+        Vec_Wrd_t * vTruths = Vec_WrdAlloc( Vec_IntSize(vLevel) );
+        Vec_IntForEachEntry( vLevel, Entry, k )
+        {
+            word Truth = Gia_ObjComputeTruth6Cis( p, Entry, vSupp, vTemp );
+            if ( Vec_IntSize(vSupp) > 6  )
+            {
+                nOvers++;
+                Vec_WrdPush( vTruths, TRUTH_UNUSED );
+                continue;
+            }
+            vSupp->nSize = Abc_Tt6MinBase( &Truth, vSupp->pArray, vSupp->nSize );
+            if ( Vec_IntSize(vSupp) > 5  )
+            {
+                nOvers++;
+                Vec_WrdPush( vTruths, TRUTH_UNUSED );
+                continue;
+            }
+            Vec_WrdPush( vTruths, Truth );
+        }
+        Vec_PtrPush( vFunc, vTruths );
+    }
+    if ( nOvers )
+        printf( "Detected %d oversize support nodes.\n", nOvers );
+    Vec_IntFree( vSupp );
+    Vec_WrdFree( vTemp );
+    // verify the classes
+    Vec_WecForEachLevel( vReprs, vLevel, i )
+    {
+        Vec_Wrd_t * vTruths = (Vec_Wrd_t *)Vec_PtrEntry( vFunc, i );
+        Vec_IntForEachEntry( vLevel, Entry, k )
+        Vec_IntForEachEntryStart( vLevel, Entry2, j, k+1 )
+        {
+            word Truth = Vec_WrdEntry( vTruths, k );
+            word Truth2 = Vec_WrdEntry( vTruths, j );
+            if ( Entry == Entry2 )
+            {
+                nErrors++;
+                if ( Truth != Truth2 && Truth != TRUTH_UNUSED && Truth2 != TRUTH_UNUSED )
+                    printf( "Rank %d:  Lit %d and %d do not pass verification.\n", i, k, j );
+            }
+            if ( Entry == Abc_LitNot(Entry2) )
+            {
+                nErrors++;
+                if ( Truth != ~Truth2 && Truth != TRUTH_UNUSED && Truth2 != TRUTH_UNUSED )
+                    printf( "Rank %d:  Lit %d and %d do not pass verification.\n", i, k, j );
+            }
+        }
+    }
+    if ( nErrors )
+        printf( "Total errors in equivalence classes = %d.\n", nErrors );
+    Vec_VecFree( (Vec_Vec_t *)vFunc );
+}
 
 /**Function*************************************************************
 
@@ -148,13 +223,15 @@ void Acec_MatchBoxesSort( int * pArray, int nSize, int * pCostLits )
 }
 void Acec_MatchPrintEquivLits( Gia_Man_t * p, Vec_Wec_t * vLits, int * pCostLits, int fVerbose )
 {
-    Vec_Int_t * vSupp = Vec_IntAlloc( 100 );
-    Vec_Wrd_t * vTemp = Vec_WrdStart( Gia_ManObjNum(p) );
+    Vec_Int_t * vSupp;
+    Vec_Wrd_t * vTemp;
     Vec_Int_t * vLevel;
     int i, k, Entry;
     printf( "Leaf literals and their classes:\n" );
     Vec_WecForEachLevel( vLits, vLevel, i )
     {
+        if ( Vec_IntSize(vLevel) == 0 )
+            continue;
         printf( "Rank %2d : %2d  ", i, Vec_IntSize(vLevel) );
         Vec_IntForEachEntry( vLevel, Entry, k )
             printf( "%s%d(%d) ", Abc_LitIsCompl(Entry) ? "-":"+", Abc_Lit2Var(Entry), Abc_Lit2LitL(pCostLits, Entry) );
@@ -162,13 +239,25 @@ void Acec_MatchPrintEquivLits( Gia_Man_t * p, Vec_Wec_t * vLits, int * pCostLits
     }
     if ( !fVerbose )
         return;
+    vSupp = Vec_IntAlloc( 100 );
+    vTemp = Vec_WrdStart( Gia_ManObjNum(p) );
     Vec_WecForEachLevel( vLits, vLevel, i )
     {
-        if ( i != 20 )
+        //if ( i != 20 )
+        //    continue;
+        if ( Vec_IntSize(vLevel) == 0 )
             continue;
         Vec_IntForEachEntry( vLevel, Entry, k )
         {
             word Truth = Gia_ObjComputeTruth6Cis( p, Entry, vSupp, vTemp );
+/*
+            {
+                int iObj = Abc_Lit2Var(Entry);
+                Gia_Man_t * pGia0 = Gia_ManDupAndCones( p, &iObj, 1, 1 );
+                Gia_ManShow( pGia0, NULL, 0, 0, 0 );
+                Gia_ManStop( pGia0 );
+            }
+*/
             printf( "Rank = %4d : ", i );
             printf( "Obj = %4d  ", Abc_Lit2Var(Entry) );
             if ( Vec_IntSize(vSupp) > 6  )
@@ -218,7 +307,7 @@ int Acec_MatchCountCommon( Vec_Wec_t * vLits1, Vec_Wec_t * vLits2, int Shift )
     Vec_IntFree( vRes );
     return nCommon;
 }
-void Acec_MatchCheckShift( Vec_Wec_t * vLits0, Vec_Wec_t * vLits1, Vec_Int_t * vMap0, Vec_Int_t * vMap1, Vec_Wec_t * vRoots0, Vec_Wec_t * vRoots1 )
+void Acec_MatchCheckShift( Gia_Man_t * pGia0, Gia_Man_t * pGia1, Vec_Wec_t * vLits0, Vec_Wec_t * vLits1, Vec_Int_t * vMap0, Vec_Int_t * vMap1, Vec_Wec_t * vRoots0, Vec_Wec_t * vRoots1 )
 {
     Vec_Wec_t * vRes0 = Acec_MatchCopy( vLits0, vMap0 );
     Vec_Wec_t * vRes1 = Acec_MatchCopy( vLits1, vMap1 );
@@ -229,14 +318,24 @@ void Acec_MatchCheckShift( Vec_Wec_t * vLits0, Vec_Wec_t * vLits1, Vec_Int_t * v
     {
         Vec_WecInsertLevel( vLits0, 0 );
         Vec_WecInsertLevel( vRoots0, 0 );
+        printf( "Shifted one level up.\n" );
     }
     else if ( nCommonMinus > nCommonPlus && nCommonMinus > nCommon )
     {
         Vec_WecInsertLevel( vLits1, 0 );
         Vec_WecInsertLevel( vRoots1, 0 );
+        printf( "Shifted one level down.\n" );
     }
-    Vec_WecPrint( vRes0, 0 );
-    Vec_WecPrint( vRes1, 0 );
+    //printf( "Input literals:\n" );
+    //Vec_WecPrintLits( vLits0 );
+    printf( "Equiv classes:\n" );
+    Vec_WecPrintLits( vRes0 );
+    //printf( "Input literals:\n" );
+    //Vec_WecPrintLits( vLits1 );
+    printf( "Equiv classes:\n" );
+    Vec_WecPrintLits( vRes1 );
+    //Acec_VerifyClasses( pGia0, vLits0, vRes0 );
+    //Acec_VerifyClasses( pGia1, vLits1, vRes1 );
     Vec_WecFree( vRes0 );
     Vec_WecFree( vRes1 );
 }
@@ -250,10 +349,14 @@ int Acec_MatchBoxes( Acec_Box_t * pBox0, Acec_Box_t * pBox1 )
         Acec_MatchBoxesSort( Vec_IntArray(vLevel), Vec_IntSize(vLevel), Vec_IntArray(vMap0) );
     Vec_WecForEachLevel( pBox1->vLeafLits, vLevel, i )
         Acec_MatchBoxesSort( Vec_IntArray(vLevel), Vec_IntSize(vLevel), Vec_IntArray(vMap1) );
-    Acec_MatchCheckShift( pBox0->vLeafLits, pBox1->vLeafLits, vMap0, vMap1, pBox0->vRootLits, pBox1->vRootLits );
+    Acec_MatchCheckShift( pBox0->pGia, pBox1->pGia, pBox0->vLeafLits, pBox1->vLeafLits, vMap0, vMap1, pBox0->vRootLits, pBox1->vRootLits );
     
     //Acec_MatchPrintEquivLits( pBox0->pGia, pBox0->vLeafLits, Vec_IntArray(vMap0), 0 );
     //Acec_MatchPrintEquivLits( pBox1->pGia, pBox1->vLeafLits, Vec_IntArray(vMap1), 0 );
+    printf( "Outputs:\n" );
+    Vec_WecPrintLits( pBox0->vRootLits );
+    printf( "Outputs:\n" );
+    Vec_WecPrintLits( pBox1->vRootLits );
 
     // reorder nodes to have the same order
     assert( pBox0->vShared == NULL );
@@ -350,8 +453,11 @@ int Acec_Solve( Gia_Man_t * pGia0, Gia_Man_t * pGia1, Acec_ParCec_t * pPars )
         printf( "Matching of adder trees in LHS and RHS succeeded.  " );
         Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
         // remove the last output
-        //Gia_ManPatchCoDriver( pGia0n, Gia_ManCoNum(pGia0n)-1, 0 );
-        //Gia_ManPatchCoDriver( pGia1n, Gia_ManCoNum(pGia1n)-1, 0 );
+        Gia_ManPatchCoDriver( pGia0n, Gia_ManCoNum(pGia0n)-1, 0 );
+        Gia_ManPatchCoDriver( pGia1n, Gia_ManCoNum(pGia1n)-1, 0 );
+
+        Gia_ManPatchCoDriver( pGia0n, Gia_ManCoNum(pGia0n)-2, 0 );
+        Gia_ManPatchCoDriver( pGia1n, Gia_ManCoNum(pGia1n)-2, 0 );
     }
     // solve regular CEC problem 
     Cec_ManCecSetDefaultParams( pCecPars );

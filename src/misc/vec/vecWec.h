@@ -561,6 +561,18 @@ static inline void Vec_WecPrint( Vec_Wec_t * p, int fSkipSingles )
         printf( " }\n" );
     }
 }
+static inline void Vec_WecPrintLits( Vec_Wec_t * p )
+{
+    Vec_Int_t * vVec;
+    int i, k, iLit;
+    Vec_WecForEachLevel( p, vVec, i )
+    {
+        printf( " %4d : %2d  {", i, Vec_IntSize(vVec) );
+        Vec_IntForEachEntry( vVec, iLit, k )
+            printf( " %c%d", Abc_LitIsCompl(iLit) ? '-' : '+', Abc_Lit2Var(iLit) );
+        printf( " }\n" );
+    }
+}
 
 /**Function*************************************************************
 

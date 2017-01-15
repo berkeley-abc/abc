@@ -1014,16 +1014,23 @@ void Gia_WriteDotAig( Gia_Man_t * p, char * pFileName, Vec_Int_t * vBold, Vec_In
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Int_t * Gia_ShowMapAdds( Gia_Man_t * p, Vec_Int_t * vAdds, int fFadds )
+Vec_Int_t * Gia_ShowMapAdds( Gia_Man_t * p, Vec_Int_t * vAdds, int fFadds, Vec_Int_t * vBold )
 {
-    Vec_Int_t * vMapAdds = Vec_IntStartFull( Gia_ManObjNum(p) ); int i;
+    Vec_Bit_t * vIsBold = Vec_BitStart( Gia_ManObjNum(p) );
+    Vec_Int_t * vMapAdds = Vec_IntStartFull( Gia_ManObjNum(p) ); int i, Entry;
+    if ( vBold )
+        Vec_IntForEachEntry( vBold, Entry, i )
+            Vec_BitWriteEntry( vIsBold, Entry, 1 );
     for ( i = 0; 6*i < Vec_IntSize(vAdds); i++ )
     {
         if ( fFadds && Vec_IntEntry(vAdds, 6*i+2) == 0 )
             continue;
+        if ( Vec_BitEntry(vIsBold, Vec_IntEntry(vAdds, 6*i+3)) || Vec_BitEntry(vIsBold, Vec_IntEntry(vAdds, 6*i+4)) )
+            continue;
         Vec_IntWriteEntry( vMapAdds, Vec_IntEntry(vAdds, 6*i+3), i );
         Vec_IntWriteEntry( vMapAdds, Vec_IntEntry(vAdds, 6*i+4), i );
     }
+    Vec_BitFree( vIsBold );
     return vMapAdds;
 }
 Vec_Int_t * Gia_ShowMapXors( Gia_Man_t * p, Vec_Int_t * vXors )
@@ -1105,7 +1112,7 @@ Vec_Int_t * Gia_ShowCollectObjs( Gia_Man_t * p, Vec_Int_t * vAdds, Vec_Int_t * v
 ***********************************************************************/
 void Gia_ShowProcess( Gia_Man_t * p, char * pFileName, Vec_Int_t * vBold, Vec_Int_t * vAdds, Vec_Int_t * vXors, int fFadds )
 {
-    Vec_Int_t * vMapAdds = Gia_ShowMapAdds( p, vAdds, fFadds );
+    Vec_Int_t * vMapAdds = Gia_ShowMapAdds( p, vAdds, fFadds, vBold );
     Vec_Int_t * vMapXors = Gia_ShowMapXors( p, vXors );
     Vec_Int_t * vOrder = Gia_ShowCollectObjs( p, vAdds, vXors, vMapAdds, vMapXors );
     Gia_WriteDotAig( p, pFileName, vBold, vAdds, vXors, vMapAdds, vMapXors, vOrder );
