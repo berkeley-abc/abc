@@ -127,6 +127,10 @@ void Acec_TreeFilterOne( Gia_Man_t * p, Vec_Int_t * vAdds, Vec_Int_t * vTree )
     // remove those that overlap with roots
     Vec_IntForEachEntryDouble( vTree, Box, Rank, i )
     {
+        // special case of the first bit
+//        if ( i == 0 )
+//            continue;
+
 /*
         if ( Vec_IntEntry(vAdds, 6*Box+3) == 24 && Vec_IntEntry(vAdds, 6*Box+4) == 22 )
         {
@@ -415,7 +419,7 @@ Vec_Int_t * Acec_TreeFindPoints( Gia_Man_t * p, Vec_Int_t * vAdds, Vec_Bit_t * v
     int i;
     for ( i = 0; 6*i < Vec_IntSize(vAdds); i++ )
     {
-        if ( vIgnore && (Vec_BitEntry(vIgnore, Vec_IntEntry(vAdds, 6*i+3)) || Vec_BitEntry(vIgnore, Vec_IntEntry(vAdds, 6*i+4))) )
+        if ( vIgnore && (Vec_BitEntry(vIgnore, Vec_IntEntry(vAdds, 6*i+3)) && Vec_BitEntry(vIgnore, Vec_IntEntry(vAdds, 6*i+4))) )
             continue;
         Acec_TreeAddInOutPoint( vMap, Vec_IntEntry(vAdds, 6*i+0), i, 0 );
         Acec_TreeAddInOutPoint( vMap, Vec_IntEntry(vAdds, 6*i+1), i, 0 );
@@ -468,7 +472,7 @@ void Acec_TreeFindTrees_rec( Vec_Int_t * vAdds, Vec_Int_t * vMap, int iObj, int 
     Acec_TreeFindTrees2_rec( vAdds, vMap, In,  Acec_TreeWhichPoint(vAdds, In, iObj) == 4 ? Rank-1 : Rank, vTree, vFound );
     Acec_TreeFindTrees2_rec( vAdds, vMap, Out, Rank, vTree, vFound );
 }
-Vec_Wec_t * Acec_TreeFindTrees( Gia_Man_t * p, Vec_Int_t * vAdds, Vec_Bit_t * vIgnore )
+Vec_Wec_t * Acec_TreeFindTrees( Gia_Man_t * p, Vec_Int_t * vAdds, Vec_Bit_t * vIgnore, int fFilterIn, int fFilterOut )
 {
     Vec_Wec_t * vTrees = Vec_WecAlloc( 10 );
     Vec_Int_t * vMap   = Acec_TreeFindPoints( p, vAdds, vIgnore );
@@ -495,7 +499,10 @@ Vec_Wec_t * Acec_TreeFindTrees( Gia_Man_t * p, Vec_Int_t * vAdds, Vec_Bit_t * vI
     Vec_BitFree( vFound );
     Vec_IntFree( vMap );
     // filter trees
-    Acec_TreeFilterTrees( p, vAdds, vTrees );
+    if ( fFilterIn )
+        Acec_TreeFilterTrees2( p, vAdds, vTrees );
+    else if ( fFilterOut )
+        Acec_TreeFilterTrees( p, vAdds, vTrees );
     // sort by size
     Vec_WecSort( vTrees, 1 );
     return vTrees;
@@ -511,7 +518,7 @@ void Acec_TreeFindTreesTest( Gia_Man_t * p )
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
 
     clk = Abc_Clock();
-    vTrees = Acec_TreeFindTrees( p, vAdds, NULL );
+    vTrees = Acec_TreeFindTrees( p, vAdds, NULL, 0, 0 );
     printf( "Collected %d trees with %d adders in them.  ", Vec_WecSize(vTrees), Vec_WecSizeSize(vTrees)/2 );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     Vec_WecPrint( vTrees, 0 );
@@ -572,7 +579,7 @@ Acec_Box_t * Acec_CreateBox( Gia_Man_t * p, Vec_Int_t * vAdds, Vec_Int_t * vTree
     Vec_Bit_t * vIsLeaf = Vec_BitStart( Gia_ManObjNum(p) );
     Vec_Bit_t * vIsRoot = Vec_BitStart( Gia_ManObjNum(p) );
     Vec_Int_t * vLevel, * vMap;
-    int i, j, k, Box, Rank, Count = 0;
+    int i, j, k, Box, Rank;//, Count = 0;
 
     Acec_Box_t * pBox = ABC_CALLOC( Acec_Box_t, 1 );
     pBox->pGia        = p;
@@ -583,6 +590,11 @@ Acec_Box_t * Acec_CreateBox( Gia_Man_t * p, Vec_Int_t * vAdds, Vec_Int_t * vTree
     // collect boxes; mark inputs/outputs
     Vec_IntForEachEntryDouble( vTree, Box, Rank, i )
     {
+//        if ( 37 == Box && 6 == Rank )
+//        {
+//            printf( "Skipping one adder...\n" );
+//            continue;
+//        }
         Vec_BitWriteEntry( vIsLeaf, Vec_IntEntry(vAdds, 6*Box+0), 1 );
         Vec_BitWriteEntry( vIsLeaf, Vec_IntEntry(vAdds, 6*Box+1), 1 );
         Vec_BitWriteEntry( vIsLeaf, Vec_IntEntry(vAdds, 6*Box+2), 1 );
@@ -677,7 +689,7 @@ void Acec_CreateBoxTest( Gia_Man_t * p )
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
 
     clk = Abc_Clock();
-    vTrees = Acec_TreeFindTrees( p, vAdds, NULL );
+    vTrees = Acec_TreeFindTrees( p, vAdds, NULL, 0, 0 );
     printf( "Collected %d trees with %d adders in them.  ", Vec_WecSize(vTrees), Vec_WecSizeSize(vTrees)/2 );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     //Vec_WecPrint( vTrees, 0 );
@@ -707,11 +719,11 @@ void Acec_CreateBoxTest( Gia_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-Acec_Box_t * Acec_DeriveBox( Gia_Man_t * p, Vec_Bit_t * vIgnore, int fVerbose )
+Acec_Box_t * Acec_DeriveBox( Gia_Man_t * p, Vec_Bit_t * vIgnore, int fFilterIn, int fFilterOut, int fVerbose )
 {
     Acec_Box_t * pBox = NULL;
     Vec_Int_t * vAdds = Ree_ManComputeCuts( p, NULL, fVerbose );
-    Vec_Wec_t * vTrees = Acec_TreeFindTrees( p, vAdds, vIgnore );
+    Vec_Wec_t * vTrees = Acec_TreeFindTrees( p, vAdds, vIgnore, fFilterIn, fFilterOut );
     if ( vTrees && Vec_WecSize(vTrees) > 0 )
     {
         pBox = Acec_CreateBox( p, vAdds, Vec_WecEntry(vTrees, 0) );

@@ -201,7 +201,7 @@ Gia_Man_t * Acec_InsertBox( Acec_Box_t * pBox, int fAll )
 Gia_Man_t * Acec_Normalize( Gia_Man_t * pGia, int fBooth, int fVerbose )
 {
     Vec_Bit_t * vIgnore = fBooth ? Acec_BoothFindPPG( pGia ) : NULL;
-    Acec_Box_t * pBox = Acec_DeriveBox( pGia, vIgnore, fVerbose );
+    Acec_Box_t * pBox = Acec_DeriveBox( pGia, vIgnore, 0, 0, fVerbose );
     Gia_Man_t * pNew  = Acec_InsertBox( pBox, 1 );
     Acec_BoxFreeP( &pBox );
     Vec_BitFreeP( &vIgnore );

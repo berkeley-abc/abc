@@ -350,9 +350,15 @@ Vec_Int_t * Acec_RewriteTop( Gia_Man_t * p, Acec_Box_t * pBox )
 {
     Vec_Int_t * vRes = Vec_IntAlloc( Gia_ManCoNum(p) + 1 );
     Vec_Int_t * vLevel;
-    int i, k, iLit;
-    Vec_WecPrintLits( pBox->vRootLits );
-    Vec_WecForEachLevel( pBox->vRootLits, vLevel, i )
+    int i, k, iStart, iLit, Driver, Count = 0;
+    // determine how much to shift
+    Driver = Gia_ObjFaninId0p( p, Gia_ManCo(p, 0) );
+    Vec_WecForEachLevel( pBox->vRootLits, vLevel, iStart )
+        if ( Abc_Lit2Var(Vec_IntEntry(vLevel,0)) == Driver )
+            break;
+    assert( iStart < Gia_ManCoNum(p) );
+    //Vec_WecPrintLits( pBox->vRootLits );
+    Vec_WecForEachLevelStart( pBox->vRootLits, vLevel, i, iStart )
     {
         int In[3] = {0}, Out[2];
         assert( Vec_IntSize(vLevel) > 0 );
@@ -370,9 +376,11 @@ Vec_Int_t * Acec_RewriteTop( Gia_Man_t * p, Acec_Box_t * pBox )
             Vec_IntPush( Vec_WecEntry(pBox->vRootLits, i+1), Out[1] );
         else
             Vec_IntPush( Vec_WecPushLevel(pBox->vRootLits), Out[1] );
+        Count++;
     }
     assert( Vec_IntSize(vRes) >= Gia_ManCoNum(p) );
     Vec_IntShrink( vRes, Gia_ManCoNum(p) );
+    printf( "Added %d adders for replace CLAs.  ", Count );
     return vRes;
 }
 Gia_Man_t * Acec_RewriteReplace( Gia_Man_t * p, Vec_Int_t * vRes )
@@ -384,7 +392,6 @@ Gia_Man_t * Acec_RewriteReplace( Gia_Man_t * p, Vec_Int_t * vRes )
     pNew = Gia_ManStart( Gia_ManObjNum(p) );
     pNew->pName = Abc_UtilStrsav( p->pName );
     pNew->pSpec = Abc_UtilStrsav( p->pSpec );
-    Gia_ManSetPhase( p );
     Gia_ManFillValue( p );
     Gia_ManConst0(p)->Value = 0;
     Gia_ManForEachCi( p, pObj, i )
@@ -394,22 +401,26 @@ Gia_Man_t * Acec_RewriteReplace( Gia_Man_t * p, Vec_Int_t * vRes )
     Gia_ManForEachCo( p, pObj, i )
     {
         int iLit = Vec_IntEntry( vRes, i );
-        int Phase1 = Gia_ObjPhase(pObj);
-        int Phase2 = Abc_LitIsCompl(iLit) ^ Gia_ObjPhase(Gia_ManObj(p, Abc_Lit2Var(iLit)));
-        int iLitNew = Abc_Var2Lit( Abc_Lit2Var(iLit), Phase1 ^ Phase2 );
-        pObj->Value = Gia_ManAppendCo( pNew, iLitNew );
+        Gia_Obj_t * pRepr = Gia_ManObj( p, Abc_Lit2Var(iLit) );
+        pObj->Value = Gia_ManAppendCo( pNew, pRepr->Value );
     }
+    // set correct phase
+    Gia_ManSetPhase( p );
+    Gia_ManSetPhase( pNew );
+    Gia_ManForEachCo( pNew, pObj, i )
+        if ( Gia_ObjPhase(pObj) != Gia_ObjPhase(Gia_ManCo(p, i)) )
+            Gia_ObjFlipFaninC0( pObj );
+    // remove dangling nodes
     pNew = Gia_ManCleanup( pTemp = pNew );
     Gia_ManStop( pTemp );
     return pNew;
 }
 Gia_Man_t * Acec_ManDecla( Gia_Man_t * pGia, int fBooth, int fVerbose )
 {
-    int status = -1;
     abctime clk = Abc_Clock();
     Gia_Man_t * pNew = NULL;
     Vec_Bit_t * vIgnore = fBooth ? Acec_BoothFindPPG(pGia) : NULL;
-    Acec_Box_t * pBox = Acec_DeriveBox( pGia, vIgnore, fVerbose );
+    Acec_Box_t * pBox = Acec_DeriveBox( pGia, vIgnore, 0, 0, fVerbose );
     Vec_Int_t * vResult;
     Vec_BitFreeP( &vIgnore );
     if ( pBox == NULL ) // cannot match
@@ -418,8 +429,10 @@ Gia_Man_t * Acec_ManDecla( Gia_Man_t * pGia, int fBooth, int fVerbose )
         return Gia_ManDup( pGia );
     }
     vResult = Acec_RewriteTop( pGia, pBox );
+    Acec_BoxFreeP( &pBox );
     pNew = Acec_RewriteReplace( pGia, vResult );
     Vec_IntFree( vResult );
+    Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     return pNew;
 }
 

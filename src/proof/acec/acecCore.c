@@ -328,12 +328,12 @@ void Acec_MatchCheckShift( Gia_Man_t * pGia0, Gia_Man_t * pGia1, Vec_Wec_t * vLi
     }
     //printf( "Input literals:\n" );
     //Vec_WecPrintLits( vLits0 );
-    printf( "Equiv classes:\n" );
-    Vec_WecPrintLits( vRes0 );
+    //printf( "Equiv classes:\n" );
+    //Vec_WecPrintLits( vRes0 );
     //printf( "Input literals:\n" );
     //Vec_WecPrintLits( vLits1 );
-    printf( "Equiv classes:\n" );
-    Vec_WecPrintLits( vRes1 );
+    //printf( "Equiv classes:\n" );
+    //Vec_WecPrintLits( vRes1 );
     //Acec_VerifyClasses( pGia0, vLits0, vRes0 );
     //Acec_VerifyClasses( pGia1, vLits1, vRes1 );
     Vec_WecFree( vRes0 );
@@ -353,10 +353,10 @@ int Acec_MatchBoxes( Acec_Box_t * pBox0, Acec_Box_t * pBox1 )
     
     //Acec_MatchPrintEquivLits( pBox0->pGia, pBox0->vLeafLits, Vec_IntArray(vMap0), 0 );
     //Acec_MatchPrintEquivLits( pBox1->pGia, pBox1->vLeafLits, Vec_IntArray(vMap1), 0 );
-    printf( "Outputs:\n" );
-    Vec_WecPrintLits( pBox0->vRootLits );
-    printf( "Outputs:\n" );
-    Vec_WecPrintLits( pBox1->vRootLits );
+    //printf( "Outputs:\n" );
+    //Vec_WecPrintLits( pBox0->vRootLits );
+    //printf( "Outputs:\n" );
+    //Vec_WecPrintLits( pBox1->vRootLits );
 
     // reorder nodes to have the same order
     assert( pBox0->vShared == NULL );
@@ -438,8 +438,8 @@ int Acec_Solve( Gia_Man_t * pGia0, Gia_Man_t * pGia1, Acec_ParCec_t * pPars )
     Cec_ParCec_t ParsCec, * pCecPars = &ParsCec;
     Vec_Bit_t * vIgnore0 = pPars->fBooth ? Acec_BoothFindPPG(pGia0) : NULL;
     Vec_Bit_t * vIgnore1 = pPars->fBooth ? Acec_BoothFindPPG(pGia1) : NULL;
-    Acec_Box_t * pBox0 = Acec_DeriveBox( pGia0, vIgnore0, pPars->fVerbose );
-    Acec_Box_t * pBox1 = Acec_DeriveBox( pGia1, vIgnore1, pPars->fVerbose );
+    Acec_Box_t * pBox0 = Acec_DeriveBox( pGia0, vIgnore0, 0, 0, pPars->fVerbose );
+    Acec_Box_t * pBox1 = Acec_DeriveBox( pGia1, vIgnore1, 0, 0, pPars->fVerbose );
     Vec_BitFreeP( &vIgnore0 );
     Vec_BitFreeP( &vIgnore1 );
     if ( pBox0 == NULL || pBox1 == NULL ) // cannot match
