@@ -207,6 +207,9 @@ void Acec_TreeFilterOne2( Gia_Man_t * p, Vec_Int_t * vAdds, Vec_Int_t * vTree )
     Gia_ManForEachAnd( p, pObj, i )
         if ( Vec_BitEntry(vIsLeaf, i) )
             Acec_TreeMarkTFI_rec( p, i, vMarked );
+    // additional one
+//if ( 10942 < Gia_ManObjNum(p) )
+//    Acec_TreeMarkTFI_rec( p, 10942, vMarked );
     // remove those that overlap with the marked TFI
     Vec_IntForEachEntryDouble( vTree, Box, Rank, i )
     {
@@ -419,7 +422,7 @@ Vec_Int_t * Acec_TreeFindPoints( Gia_Man_t * p, Vec_Int_t * vAdds, Vec_Bit_t * v
     int i;
     for ( i = 0; 6*i < Vec_IntSize(vAdds); i++ )
     {
-        if ( vIgnore && (Vec_BitEntry(vIgnore, Vec_IntEntry(vAdds, 6*i+3)) && Vec_BitEntry(vIgnore, Vec_IntEntry(vAdds, 6*i+4))) )
+        if ( vIgnore && (Vec_BitEntry(vIgnore, Vec_IntEntry(vAdds, 6*i+3)) || Vec_BitEntry(vIgnore, Vec_IntEntry(vAdds, 6*i+4))) )
             continue;
         Acec_TreeAddInOutPoint( vMap, Vec_IntEntry(vAdds, 6*i+0), i, 0 );
         Acec_TreeAddInOutPoint( vMap, Vec_IntEntry(vAdds, 6*i+1), i, 0 );

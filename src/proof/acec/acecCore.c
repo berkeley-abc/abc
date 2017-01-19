@@ -307,6 +307,50 @@ int Acec_MatchCountCommon( Vec_Wec_t * vLits1, Vec_Wec_t * vLits2, int Shift )
     Vec_IntFree( vRes );
     return nCommon;
 }
+void Vec_IntInsertOrder( Vec_Int_t * vLits, Vec_Int_t * vClasses, int Lit, int Class )
+{
+    int i;
+    for ( i = Vec_IntSize(vClasses)-1; i >= 0; i-- )
+        if ( Vec_IntEntry(vClasses,i) >= Class )
+            break;
+    Vec_IntInsert( vLits, i+1, Lit );
+    Vec_IntInsert( vClasses, i+1, Class );
+}
+void Acec_MoveDuplicates( Vec_Wec_t * vLits, Vec_Wec_t * vClasses )
+{
+    Vec_Int_t * vLevel1, * vLevel2; 
+    int i, k, Prev, This, Entry;
+    Vec_WecForEachLevel( vLits, vLevel1, i )
+    {
+        if ( i == Vec_WecSize(vLits) - 1 )
+            break;
+        vLevel2 = Vec_WecEntry(vClasses, i);
+        assert( Vec_IntSize(vLevel1) == Vec_IntSize(vLevel2) );
+        Prev = -1;
+        Vec_IntForEachEntry( vLevel2, This, k )
+        {
+            if ( Prev != This )
+            {
+                Prev = This;
+                continue;
+            }
+            Prev = -1;
+            Entry = Vec_IntEntry( vLevel1, k );
+
+            Vec_IntDrop( vLevel1, k );
+            Vec_IntDrop( vLevel2, k-- );
+
+            Vec_IntDrop( vLevel1, k );
+            Vec_IntDrop( vLevel2, k-- );
+
+            Vec_IntInsertOrder( Vec_WecEntry(vLits, i+1), Vec_WecEntry(vClasses, i+1), Entry, This );
+
+            assert( Vec_IntSize(vLevel1)                  == Vec_IntSize(vLevel2) );
+            assert( Vec_IntSize(Vec_WecEntry(vLits, i+1)) == Vec_IntSize(Vec_WecEntry(vClasses, i+1)) );
+        }
+    }
+}
+
 void Acec_MatchCheckShift( Gia_Man_t * pGia0, Gia_Man_t * pGia1, Vec_Wec_t * vLits0, Vec_Wec_t * vLits1, Vec_Int_t * vMap0, Vec_Int_t * vMap1, Vec_Wec_t * vRoots0, Vec_Wec_t * vRoots1 )
 {
     Vec_Wec_t * vRes0 = Acec_MatchCopy( vLits0, vMap0 );
@@ -318,14 +362,20 @@ void Acec_MatchCheckShift( Gia_Man_t * pGia0, Gia_Man_t * pGia1, Vec_Wec_t * vLi
     {
         Vec_WecInsertLevel( vLits0, 0 );
         Vec_WecInsertLevel( vRoots0, 0 );
+        Vec_WecInsertLevel( vRes0, 0 );
         printf( "Shifted one level up.\n" );
     }
     else if ( nCommonMinus > nCommonPlus && nCommonMinus > nCommon )
     {
         Vec_WecInsertLevel( vLits1, 0 );
         Vec_WecInsertLevel( vRoots1, 0 );
+        Vec_WecInsertLevel( vRes1, 0 );
         printf( "Shifted one level down.\n" );
     }
+    Acec_MoveDuplicates( vLits0, vRes0 );
+    Acec_MoveDuplicates( vLits1, vRes1 );
+
+    //Vec_WecPrintLits( vLits1 );
     //printf( "Input literals:\n" );
     //Vec_WecPrintLits( vLits0 );
     //printf( "Equiv classes:\n" );
@@ -410,6 +460,10 @@ int Acec_MatchBoxes( Acec_Box_t * pBox0, Acec_Box_t * pBox1 )
     printf( "Box0: Matched %d entries out of %d.\n", nTotal, Vec_WecSizeSize(pBox0->vLeafLits) );
     printf( "Box1: Matched %d entries out of %d.\n", nTotal, Vec_WecSizeSize(pBox1->vLeafLits) );
 
+    //Acec_MatchPrintEquivLits( pBox0->pGia, pBox0->vShared, Vec_IntArray(vMap0), 0 );
+    //Acec_MatchPrintEquivLits( pBox1->pGia, pBox1->vShared, Vec_IntArray(vMap1), 0 );
+    //printf( "\n" );
+
     //Acec_MatchPrintEquivLits( pBox0->pGia, pBox0->vUnique, Vec_IntArray(vMap0), 0 );
     //Acec_MatchPrintEquivLits( pBox1->pGia, pBox1->vUnique, Vec_IntArray(vMap1), 0 );
 
@@ -448,8 +502,8 @@ int Acec_Solve( Gia_Man_t * pGia0, Gia_Man_t * pGia1, Acec_ParCec_t * pPars )
         printf( "Cannot match arithmetic boxes in LHS and RHS. Trying regular CEC.\n" );
     else 
     {
-        pGia0n = Acec_InsertBox( pBox0, 1 );
-        pGia1n = Acec_InsertBox( pBox1, 1 );
+        pGia0n = Acec_InsertBox( pBox0, 0 );
+        pGia1n = Acec_InsertBox( pBox1, 0 );
         printf( "Matching of adder trees in LHS and RHS succeeded.  " );
         Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
         // remove the last output

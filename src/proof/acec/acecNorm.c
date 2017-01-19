@@ -76,9 +76,19 @@ Vec_Int_t * Acec_InsertTree( Gia_Man_t * pNew, Vec_Wec_t * vLeafMap )
         {
             if ( Vec_IntSize(vLevel) == 2 )
                 Vec_IntPush( vLevel, 0 );
-            In[2] = Vec_IntPop( vLevel );
-            In[1] = Vec_IntPop( vLevel );
-            In[0] = Vec_IntPop( vLevel );
+            //In[2] = Vec_IntPop( vLevel );
+            //In[1] = Vec_IntPop( vLevel );
+            //In[0] = Vec_IntPop( vLevel );
+
+            In[0] = Vec_IntEntry( vLevel, 0 );
+            Vec_IntDrop( vLevel, 0 );
+
+            In[1] = Vec_IntEntry( vLevel, 0 );
+            Vec_IntDrop( vLevel, 0 );
+
+            In[2] = Vec_IntEntry( vLevel, 0 );
+            Vec_IntDrop( vLevel, 0 );
+
             Acec_InsertFadd( pNew, In, Out );
             Vec_IntPush( vLevel, Out[0] );
             if ( i+1 < Vec_WecSize(vLeafMap) )
@@ -114,11 +124,22 @@ int Acec_InsertBox_rec( Gia_Man_t * pNew, Gia_Man_t * p, Gia_Obj_t * pObj )
     Acec_InsertBox_rec( pNew, p, Gia_ObjFanin1(pObj) );
     return (pObj->Value = Gia_ManAppendAnd2( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) ));
 }
-Vec_Int_t * Acec_BuildTree( Gia_Man_t * pNew, Gia_Man_t * p, Vec_Wec_t * vLeafLits )
+Vec_Int_t * Acec_BuildTree( Gia_Man_t * pNew, Gia_Man_t * p, Vec_Wec_t * vLeafLits, Vec_Int_t * vRootLits )
 {
     Vec_Wec_t * vLeafMap = Vec_WecStart( Vec_WecSize(vLeafLits) );
     Vec_Int_t * vLevel, * vRootRanks;  
     int i, k, iLit, iLitNew;
+    // add roo literals
+    if ( vRootLits )
+        Vec_IntForEachEntry( vRootLits, iLit, i )
+        {
+            if ( i < Vec_WecSize(vLeafMap) )
+                vLevel = Vec_WecEntry(vLeafMap, i);
+            else
+                vLevel = Vec_WecPushLevel(vLeafMap);
+            Vec_IntPush( vLevel, iLit );
+        }
+    // add other literals
     Vec_WecForEachLevel( vLeafLits, vLevel, i )
         Vec_IntForEachEntry( vLevel, iLit, k )
         {
@@ -137,7 +158,7 @@ Gia_Man_t * Acec_InsertBox( Acec_Box_t * pBox, int fAll )
     Gia_Man_t * p = pBox->pGia;
     Gia_Man_t * pNew;
     Gia_Obj_t * pObj;
-    Vec_Int_t * vRootRanks, * vLevel;
+    Vec_Int_t * vRootRanks, * vLevel, * vTemp;
     int i, k, iLit, iLitNew;
     pNew = Gia_ManStart( Gia_ManObjNum(p) );
     pNew->pName = Abc_UtilStrsav( p->pName );
@@ -148,26 +169,14 @@ Gia_Man_t * Acec_InsertBox( Acec_Box_t * pBox, int fAll )
         pObj->Value = Gia_ManAppendCi( pNew );
     // implement tree
     if ( fAll )
-        vRootRanks = Acec_BuildTree( pNew, p, pBox->vLeafLits );
+        vRootRanks = Acec_BuildTree( pNew, p, pBox->vLeafLits, NULL );
     else
     {
-        Vec_Wec_t * vLeafLits;
         assert( pBox->vShared != NULL );
         assert( pBox->vUnique != NULL );
-        vRootRanks = Acec_BuildTree( p, p, pBox->vShared );
-        // add these roots to the unique ones
-        vLeafLits = Vec_WecDup( pBox->vUnique );
-        Vec_IntForEachEntry( vRootRanks, iLit, i )
-        {
-            if ( i < Vec_WecSize(vLeafLits) )
-                vLevel = Vec_WecEntry(vLeafLits, i);
-            else
-                vLevel = Vec_WecPushLevel(vLeafLits);
-            Vec_IntPush( vLevel, iLit );
-        }
-        Vec_IntFree( vRootRanks );
-        vRootRanks = Acec_BuildTree( pNew, p, vLeafLits );
-        Vec_WecFree( vLeafLits );
+        vRootRanks = Acec_BuildTree( pNew, p, pBox->vShared, NULL );
+        vRootRanks = Acec_BuildTree( pNew, p, pBox->vUnique, vTemp = vRootRanks );
+        Vec_IntFree( vTemp );
     }
     // update polarity of literals
     Vec_WecForEachLevel( pBox->vRootLits, vLevel, i )
