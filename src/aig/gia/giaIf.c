@@ -544,20 +544,20 @@ void Gia_ManPrintMappingStats( Gia_Man_t * p, char * pDumpFile )
             fprintf( pTable, "%d ", Gia_ManAndNum(p) );
             fprintf( pTable, "%d ", nLuts           );
             fprintf( pTable, "%d ", Gia_ManLutLevelWithBoxes(p) );
-            fprintf( pTable, "%d ", Gia_ManRegBoxNum(p) );
-            fprintf( pTable, "%d ", Gia_ManNonRegBoxNum(p) );
-            fprintf( pTable, "%.2f", 1.0*(Abc_Clock() - clk)/CLOCKS_PER_SEC );
+            //fprintf( pTable, "%d ", Gia_ManRegBoxNum(p) );
+            //fprintf( pTable, "%d ", Gia_ManNonRegBoxNum(p) );
+            //fprintf( pTable, "%.2f", 1.0*(Abc_Clock() - clk)/CLOCKS_PER_SEC );
             clk = Abc_Clock();
         }
         else
         {
-            printf( "This part of the code is currently not used.\n" );
-            assert( 0 );
+            //printf( "This part of the code is currently not used.\n" );
+            //assert( 0 );
             fprintf( pTable, " " );
             fprintf( pTable, "%d ", nLuts           );
-            fprintf( pTable, "%d ", LevelMax        );
-            fprintf( pTable, "%d ", Gia_ManRegBoxNum(p) );
-            fprintf( pTable, "%d ", Gia_ManNonRegBoxNum(p) );
+            fprintf( pTable, "%d ", Gia_ManLutLevelWithBoxes(p) );
+            //fprintf( pTable, "%d ", Gia_ManRegBoxNum(p) );
+            //fprintf( pTable, "%d ", Gia_ManNonRegBoxNum(p) );
             fprintf( pTable, "%.2f", 1.0*(Abc_Clock() - clk)/CLOCKS_PER_SEC );
             clk = Abc_Clock();
         }
