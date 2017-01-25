@@ -691,20 +691,17 @@ void Pdr_InvPrint( Vec_Int_t * vInv, int fVerbose )
     }
 }
 
-int Pdr_InvCheck( Gia_Man_t * p, Vec_Int_t * vInv, int fVerbose )
+int Pdr_InvCheck_int( Gia_Man_t * p, Vec_Int_t * vInv, int fVerbose, sat_solver * pSat )
 {
     int nBTLimit = 0;
-    int i, k, status, nFailed = 0; 
-    // create SAT solver
-    Cnf_Dat_t * pCnf = Mf_ManGenerateCnf( p, 8, 0, 0, 0 );
-    sat_solver * pSat = (sat_solver *)Cnf_DataWriteIntoSolver( pCnf, 1, 0 );
+    int fCheckProperty = 1;
+    int i, k, status, nFailed = 0, nFailedOuts = 0; 
     // collect cubes
     int * pCube, * pList = Vec_IntArray(vInv);
     // create variables
     Vec_Int_t * vLits = Vec_IntAlloc(100);
-    int iFoVarBeg = pCnf->nVars - Gia_ManRegNum(p);
+    int iFoVarBeg = sat_solver_nvars(pSat) - Gia_ManRegNum(p);
     int iFiVarBeg = 1 + Gia_ManPoNum(p);
-    assert( Gia_ManPoNum(p) == 1 );
     // add cubes
     Pdr_ForEachCube( pList, pCube, i )
     {
@@ -713,9 +710,33 @@ int Pdr_InvCheck( Gia_Man_t * p, Vec_Int_t * vInv, int fVerbose )
         for ( k = 0; k < pCube[0]; k++ )
             if ( pCube[k+1] != -1 )
                 Vec_IntPush( vLits, Abc_Var2Lit(iFoVarBeg + Abc_Lit2Var(pCube[k+1]), !Abc_LitIsCompl(pCube[k+1])) );
+        if ( Vec_IntSize(vLits) == 0 )
+        {
+            Vec_IntFree( vLits );
+            return 1;
+        }
         // add it to the solver
         status = sat_solver_addclause( pSat, Vec_IntArray(vLits), Vec_IntLimit(vLits) );
         assert( status == 1 );
+    }
+    // verify property output
+    if ( fCheckProperty )
+    {
+        for ( i = 0; i < Gia_ManPoNum(p); i++ )
+        {
+            Vec_IntFill( vLits, 1, Abc_Var2Lit(1+i, 0) );
+            status = sat_solver_solve( pSat, Vec_IntArray(vLits), Vec_IntLimit(vLits), nBTLimit, 0, 0, 0 );
+            if ( status == l_Undef ) // timeout
+                break;
+            if ( status == l_True ) // sat - property fails
+            {
+                if ( fVerbose )
+                    printf( "Coverage check failed for output %d.\n", i );
+                nFailedOuts++;
+                continue;
+            }
+            assert( status == l_False ); // unsat - property holds
+        }
     }
     // iterate through cubes in the direct order
     Pdr_ForEachCube( pList, pCube, i )
@@ -735,12 +756,22 @@ int Pdr_InvCheck( Gia_Man_t * p, Vec_Int_t * vInv, int fVerbose )
         assert( status == l_True );
         nFailed++;
         if ( fVerbose )
-            printf( "Verification failed for clause %d.\n", i );
+            printf( "Inductiveness check failed for clause %d.\n", i );
     }
-    Cnf_DataFree( pCnf );
-    sat_solver_delete( pSat );
     Vec_IntFree( vLits );
-    return nFailed;
+    return nFailed + nFailedOuts;
+}
+
+int Pdr_InvCheck( Gia_Man_t * p, Vec_Int_t * vInv, int fVerbose )
+{
+    int RetValue;
+    Cnf_Dat_t * pCnf = Mf_ManGenerateCnf( p, 8, 0, 0, 0 );
+    sat_solver * pSat = (sat_solver *)Cnf_DataWriteIntoSolver( pCnf, 1, 0 );
+    assert( sat_solver_nvars(pSat) == pCnf->nVars );
+    Cnf_DataFree( pCnf );
+    RetValue = Pdr_InvCheck_int( p, vInv, fVerbose, pSat );
+    sat_solver_delete( pSat );
+    return RetValue;
 }
 
 Vec_Int_t * Pdr_InvMinimize( Gia_Man_t * p, Vec_Int_t * vInv, int fVerbose )
@@ -760,8 +791,8 @@ Vec_Int_t * Pdr_InvMinimize( Gia_Man_t * p, Vec_Int_t * vInv, int fVerbose )
     int iFoVarBeg = pCnf->nVars - Gia_ManRegNum(p);
     int iFiVarBeg = 1 + Gia_ManPoNum(p);
     int iAuxVarBeg = sat_solver_nvars(pSat);
-    assert( Gia_ManPoNum(p) == 1 );
     // allocate auxiliary variables
+    assert( sat_solver_nvars(pSat) == pCnf->nVars );
     sat_solver_setnvars( pSat, sat_solver_nvars(pSat) + nCubes );
     // add clauses
     Pdr_ForEachCube( pList, pCube, i )
@@ -785,25 +816,28 @@ Vec_Int_t * Pdr_InvMinimize( Gia_Man_t * p, Vec_Int_t * vInv, int fVerbose )
             if ( k != i && !Vec_BitEntry(vRemoved, k) ) // skip this cube and already removed cubes
                 Vec_IntPush( vLits, Abc_Var2Lit(iAuxVarBeg + k, 0) ); // pos aux literal
         nLits = Vec_IntSize( vLits );
-
         // check if the property still holds
         if ( fCheckProperty )
         {
-            Vec_IntPush( vLits, Abc_Var2Lit(1, 0) );
-            status = sat_solver_solve( pSat, Vec_IntArray(vLits), Vec_IntLimit(vLits), nBTLimit, 0, 0, 0 );
-            if ( status == l_Undef ) // timeout
+            for ( k = 0; k < Gia_ManPoNum(p); k++ )
             {
-                fFailed = 1;
+                Vec_IntShrink( vLits, nLits );
+                Vec_IntPush( vLits, Abc_Var2Lit(1+k, 0) );
+                status = sat_solver_solve( pSat, Vec_IntArray(vLits), Vec_IntLimit(vLits), nBTLimit, 0, 0, 0 );
+                if ( status == l_Undef ) // timeout
+                {
+                    fFailed = 1;
+                    break;
+                }
+                if ( status == l_True ) // sat - property fails
+                    break;
+                assert( status == l_False ); // unsat - property holds
+            }
+            if ( fFailed )
                 break;
-            }
-            if ( status == l_True ) // sat - property fails
-            {
-                //printf( "property fails if clause %d is removed\n", i );
+            if ( k < Gia_ManPoNum(p) )
                 continue;
-            }
-            assert( status == l_False ); // unsat - property holds
         }
-
         // check other clauses
         fCannot = 0;
         Pdr_ForEachCube( pList, pCube, n )
@@ -866,6 +900,9 @@ Vec_Int_t * Pdr_InvMinimizeLits( Gia_Man_t * p, Vec_Int_t * vInv, int fVerbose )
     Vec_Int_t * vRes = NULL;
     abctime clk = Abc_Clock();
     int i, k, nLits = 0, * pCube, * pList = Vec_IntArray(vInv), nRemoved = 0;
+    Cnf_Dat_t * pCnf = Mf_ManGenerateCnf( p, 8, 0, 0, 0 );
+    sat_solver * pSat;
+//    sat_solver * pSat = (sat_solver *)Cnf_DataWriteIntoSolver( pCnf, 1, 0 );
     Pdr_ForEachCube( pList, pCube, i )
     {
         nLits += pCube[0];
@@ -873,16 +910,23 @@ Vec_Int_t * Pdr_InvMinimizeLits( Gia_Man_t * p, Vec_Int_t * vInv, int fVerbose )
         {
             int Save = pCube[k+1];
             pCube[k+1] = -1;
-            if ( Pdr_InvCheck(p, vInv, 0) )
-            {
+            //sat_solver_bookmark( pSat );
+            pSat = (sat_solver *)Cnf_DataWriteIntoSolver( pCnf, 1, 0 );
+            if ( Pdr_InvCheck_int(p, vInv, 0, pSat) )
                 pCube[k+1] = Save;
-                continue;
+            else
+            {
+                if ( fVerbose )
+                printf( "Removing lit %d from clause %d.\n", k, i );
+                nRemoved++;
             }
-            if ( fVerbose )
-            printf( "Removing lit %d from clause %d.\n", k, i );
-            nRemoved++;
+            sat_solver_delete( pSat );
+            //sat_solver_rollback( pSat );
+            //sat_solver_bookmark( pSat );
         }
     }
+    Cnf_DataFree( pCnf );
+    //sat_solver_delete( pSat );
     if ( nRemoved )
         printf( "Invariant minimization reduced %d literals (out of %d).  ", nRemoved, nLits );
     else

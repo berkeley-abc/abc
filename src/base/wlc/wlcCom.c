@@ -681,7 +681,7 @@ int Abc_CommandInvCheck( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( nFailed )
         printf( "Invariant verification failed for %d clauses (out of %d).\n", nFailed, Vec_IntEntry(Wlc_AbcGetInv(pAbc),0) );
     else
-        printf( "Invariant verification passes.\n" );
+        printf( "Invariant verification succeeded.\n" );
     return 0;
 usage:
     Abc_Print( -2, "usage: inv_check [-vh]\n" );
