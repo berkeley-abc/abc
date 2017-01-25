@@ -688,7 +688,7 @@ void Pdr_InvPrint( Vec_Int_t * vInv )
     Vec_StrFree( vStr );
 }
 
-void Pdr_InvCheck( Gia_Man_t * p, Vec_Int_t * vInv )
+int Pdr_InvCheck( Gia_Man_t * p, Vec_Int_t * vInv )
 {
     int nBTLimit = 0;
     int i, k, status, nFailed = 0; 
@@ -699,7 +699,6 @@ void Pdr_InvCheck( Gia_Man_t * p, Vec_Int_t * vInv )
     int * pCube, * pList = Vec_IntArray(vInv), nCubes = pList[0];
     // create variables
     Vec_Int_t * vLits = Vec_IntAlloc(100);
-    int nVars = Gia_ManRegNum(p);
     int iFoVarBeg = pCnf->nVars - Gia_ManRegNum(p);
     int iFiVarBeg = 1 + Gia_ManPoNum(p);
     assert( Gia_ManPoNum(p) == 1 );
@@ -709,7 +708,8 @@ void Pdr_InvCheck( Gia_Man_t * p, Vec_Int_t * vInv )
         // collect literals
         Vec_IntClear( vLits );
         for ( k = 0; k < pCube[0]; k++ )
-            Vec_IntPush( vLits, Abc_Var2Lit(iFoVarBeg + Abc_Lit2Var(pCube[k+1]), !Abc_LitIsCompl(pCube[k+1])) );
+            if ( pCube[k+1] != -1 )
+                Vec_IntPush( vLits, Abc_Var2Lit(iFoVarBeg + Abc_Lit2Var(pCube[k+1]), !Abc_LitIsCompl(pCube[k+1])) );
         // add it to the solver
         status = sat_solver_addclause( pSat, Vec_IntArray(vLits), Vec_IntLimit(vLits) );
         assert( status == 1 );
@@ -720,7 +720,8 @@ void Pdr_InvCheck( Gia_Man_t * p, Vec_Int_t * vInv )
         // collect cube
         Vec_IntClear( vLits );
         for ( k = 0; k < pCube[0]; k++ )
-           Vec_IntPush( vLits, Abc_Var2Lit(iFiVarBeg + Abc_Lit2Var(pCube[k+1]), Abc_LitIsCompl(pCube[k+1])) );
+            if ( pCube[k+1] != -1 )
+                Vec_IntPush( vLits, Abc_Var2Lit(iFiVarBeg + Abc_Lit2Var(pCube[k+1]), Abc_LitIsCompl(pCube[k+1])) );
         // check if this cube intersects with the complement of other cubes in the solver
         // if it does not intersect, then it is redundant and can be skipped
         status = sat_solver_solve( pSat, Vec_IntArray(vLits), Vec_IntLimit(vLits), nBTLimit, 0, 0, 0 );
@@ -731,18 +732,16 @@ void Pdr_InvCheck( Gia_Man_t * p, Vec_Int_t * vInv )
         assert( status == l_True );
         nFailed++;
     }
-    if ( nFailed )
-        printf( "Invariant verification failed for %d clauses (out of %d).\n", nFailed, nCubes );
-    else
-        printf( "Invariant verification passes.\n" );
     Cnf_DataFree( pCnf );
     sat_solver_delete( pSat );
     Vec_IntFree( vLits );
+    return nFailed;
 }
 
 Vec_Int_t * Pdr_InvMinimize( Gia_Man_t * p, Vec_Int_t * vInv )
 {
     int nBTLimit = 0;
+    int fCheckProperty = 0;
     int n, i, k, status, nLits, fFailed = 0, fCannot = 0, nRemoved = 0; 
     Vec_Int_t * vRes = NULL;
     // create SAT solver
@@ -752,7 +751,6 @@ Vec_Int_t * Pdr_InvMinimize( Gia_Man_t * p, Vec_Int_t * vInv )
     // create variables
     Vec_Int_t * vLits = Vec_IntAlloc(100);
     Vec_Bit_t * vRemoved = Vec_BitStart( nCubes );
-    int nVars = Gia_ManRegNum(p);
     int iFoVarBeg = pCnf->nVars - Gia_ManRegNum(p);
     int iFiVarBeg = 1 + Gia_ManPoNum(p);
     int iAuxVarBeg = sat_solver_nvars(pSat);
@@ -781,7 +779,26 @@ Vec_Int_t * Pdr_InvMinimize( Gia_Man_t * p, Vec_Int_t * vInv )
             if ( k != i && !Vec_BitEntry(vRemoved, k) ) // skip this cube and already removed cubes
                 Vec_IntPush( vLits, Abc_Var2Lit(iAuxVarBeg + k, 0) ); // pos aux literal
         nLits = Vec_IntSize( vLits );
-        // try removing other clauses
+
+        // check if the property still holds
+        if ( fCheckProperty )
+        {
+            Vec_IntPush( vLits, Abc_Var2Lit(1, 0) );
+            status = sat_solver_solve( pSat, Vec_IntArray(vLits), Vec_IntLimit(vLits), nBTLimit, 0, 0, 0 );
+            if ( status == l_Undef ) // timeout
+            {
+                fFailed = 1;
+                break;
+            }
+            if ( status == l_True ) // sat - property fails
+            {
+                //printf( "property fails if clause %d is removed\n", i );
+                continue;
+            }
+            assert( status == l_False ); // unsat - property holds
+        }
+
+        // check other clauses
         fCannot = 0;
         Pdr_ForEachCube( pList, pCube, n )
         {
@@ -833,6 +850,50 @@ Vec_Int_t * Pdr_InvMinimize( Gia_Man_t * p, Vec_Int_t * vInv )
     sat_solver_delete( pSat );
     Vec_BitFree( vRemoved );
     Vec_IntFree( vLits );
+    return vRes;
+}
+
+Vec_Int_t * Pdr_InvMinimizeLits( Gia_Man_t * p, Vec_Int_t * vInv )
+{
+    Vec_Int_t * vRes = NULL;
+    int i, k, nLits = 0, * pCube, * pList = Vec_IntArray(vInv), nRemoved = 0;
+    Pdr_ForEachCube( pList, pCube, i )
+    {
+        nLits += pCube[0];
+        for ( k = 0; k < pCube[0]; k++ )
+        {
+            int Save = pCube[k+1];
+            pCube[k+1] = -1;
+            if ( Pdr_InvCheck(p, vInv) )
+            {
+                pCube[k+1] = Save;
+                continue;
+            }
+            printf( "Removing lit %d from clause %d.\n", k, i );
+            nRemoved++;
+        }
+    }
+    if ( nRemoved )
+        printf( "Invariant minimization reduced %d literals (out of %d).\n", nRemoved, nLits );
+    else
+        printf( "Invariant minimization did not change the invariant.\n" ); 
+    if ( nRemoved > 0 ) // finished without timeout and removed some lits
+    {
+        vRes = Vec_IntAlloc( 1000 );
+        Vec_IntPush( vRes, pList[0] );
+        Pdr_ForEachCube( pList, pCube, i )
+        {
+            int nLits = 0;
+            for ( k = 0; k < pCube[0]; k++ )
+                if ( pCube[k+1] != -1 )
+                    nLits++;
+            Vec_IntPush( vRes, nLits );
+            for ( k = 0; k < pCube[0]; k++ )
+                if ( pCube[k+1] != -1 )
+                    Vec_IntPush( vRes, pCube[k+1] );
+        }
+        Vec_IntPush( vRes, Vec_IntEntryLast(vInv) );
+    }
     return vRes;
 }
 

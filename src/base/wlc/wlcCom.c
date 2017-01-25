@@ -646,8 +646,8 @@ usage:
 ******************************************************************************/
 int Abc_CommandInvCheck( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern Vec_Int_t * Pdr_InvCheck( Gia_Man_t * p, Vec_Int_t * vInv );
-    int c, fVerbose  = 0;
+    extern int Pdr_InvCheck( Gia_Man_t * p, Vec_Int_t * vInv );
+    int c, nFailed, fVerbose  = 0;
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
     {
@@ -677,7 +677,11 @@ int Abc_CommandInvCheck( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( 1, "Abc_CommandInvMin(): The number of flops in the invariant and in GIA should be the same.\n" );
         return 0;
     }
-    Pdr_InvCheck( pAbc->pGia, Wlc_AbcGetInv(pAbc)  );
+    nFailed = Pdr_InvCheck( pAbc->pGia, Wlc_AbcGetInv(pAbc) );
+    if ( nFailed )
+        printf( "Invariant verification failed for %d clauses (out of %d).\n", nFailed, Vec_IntEntry(Wlc_AbcGetInv(pAbc),0) );
+    else
+        printf( "Invariant verification passes.\n" );
     return 0;
 usage:
     Abc_Print( -2, "usage: inv_check [-vh]\n" );
@@ -808,13 +812,17 @@ usage:
 int Abc_CommandInvMin( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     extern Vec_Int_t * Pdr_InvMinimize( Gia_Man_t * p, Vec_Int_t * vInv );
+    extern Vec_Int_t * Pdr_InvMinimizeLits( Gia_Man_t * p, Vec_Int_t * vInv );
     Vec_Int_t * vInv, * vInv2;
-    int c, fVerbose  = 0;
+    int c, fLits = 0, fVerbose  = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "lvh" ) ) != EOF )
     {
         switch ( c )
         {
+            case 'l':
+                fLits ^= 1;
+                break;
             case 'v':
                 fVerbose ^= 1;
                 break;
@@ -840,14 +848,18 @@ int Abc_CommandInvMin( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( 1, "Abc_CommandInvMin(): The number of flops in the invariant and in GIA should be the same.\n" );
         return 0;
     }
-    vInv2 = Pdr_InvMinimize( pAbc->pGia, vInv );
+    if ( fLits )
+        vInv2 = Pdr_InvMinimizeLits( pAbc->pGia, vInv );
+    else
+        vInv2 = Pdr_InvMinimize( pAbc->pGia, vInv );
     if ( vInv2 )
         Abc_FrameSetInv( vInv2 );
     return 0;
 usage:
-    Abc_Print( -2, "usage: inv_min [-vh]\n" );
-    Abc_Print( -2, "\t         minimizes the number of clauses in the current invariant\n" );
+    Abc_Print( -2, "usage: inv_min [-lvh]\n" );
+    Abc_Print( -2, "\t         performs minimization of the current invariant\n" );
     Abc_Print( -2, "\t         (AIG representing the design should be in the &-space)\n" );
+    Abc_Print( -2, "\t-l     : toggle minimizing literals rather than clauses [default = %s]\n", fLits? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;

@@ -176,7 +176,7 @@ Abc_Ntk_t * Wlc_NtkGetInv( Wlc_Ntk_t * pNtk, Vec_Int_t * vInv )
 
 /**Function*************************************************************
 
-  Synopsis    [Translate current network into an interpolant.]
+  Synopsis    [Translate current network into an invariant.]
 
   Description []
                
