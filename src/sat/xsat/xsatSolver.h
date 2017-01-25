@@ -143,7 +143,7 @@ struct xSAT_Solver_t_
 
     int     nAssignSimplify; /* Number of top-level assignments since last
                               * execution of 'simplify()'. */
-    int64_t nPropSimplify;   /* Remaining number of propagations that must be
+    iword   nPropSimplify;   /* Remaining number of propagations that must be
                               * made before next execution of 'simplify()'. */
 
     /* Temporary data used by Search method */

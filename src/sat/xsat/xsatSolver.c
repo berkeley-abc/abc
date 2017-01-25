@@ -334,7 +334,7 @@ int xSAT_SolverEnqueue( xSAT_Solver_t * s, int Lit, unsigned Reason )
 {
     int Var = xSAT_Lit2Var( Lit );
 
-    Vec_StrWriteEntry( s->vAssigns, Var, xSAT_LitSign( Lit ) );
+    Vec_StrWriteEntry( s->vAssigns, Var, (char)xSAT_LitSign( Lit ) );
     Vec_IntWriteEntry( s->vLevels, Var, xSAT_SolverDecisionLevel( s ) );
     Vec_IntWriteEntry( s->vReasons, Var, ( int ) Reason );
     Vec_IntPush( s->vTrail, Lit );

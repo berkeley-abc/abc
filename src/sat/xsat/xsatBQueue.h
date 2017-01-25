@@ -125,8 +125,9 @@ static inline void xSAT_BQueuePush( xSAT_BQueue_t * p, unsigned Value )
 ***********************************************************************/
 static inline int xSAT_BQueuePop( xSAT_BQueue_t * p )
 {
+    int RetValue;
     assert( p->nSize >= 1 );
-    int RetValue = p->pData[p->iFirst];
+    RetValue = p->pData[p->iFirst];
     p->nSum -= RetValue;
     p->iFirst = ( p->iFirst + 1 ) % p->nCap;
     p->nSize--;
