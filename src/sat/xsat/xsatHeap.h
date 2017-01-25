@@ -48,7 +48,7 @@ struct xSAT_Heap_t_
   SeeAlso     []
 
 ***********************************************************************/
-inline int xSAT_HeapSize( xSAT_Heap_t * h )
+static inline int xSAT_HeapSize( xSAT_Heap_t * h )
 {
     return Vec_IntSize( h->vHeap );
 }
@@ -64,7 +64,7 @@ inline int xSAT_HeapSize( xSAT_Heap_t * h )
   SeeAlso     []
 
 ***********************************************************************/
-inline int xSAT_HeapInHeap( xSAT_Heap_t * h, int Var )
+static inline int xSAT_HeapInHeap( xSAT_Heap_t * h, int Var )
 {
     return ( Var < Vec_IntSize( h->vIndices ) ) && ( Vec_IntEntry( h->vIndices, Var ) >= 0 );
 }
