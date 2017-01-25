@@ -926,6 +926,8 @@ int Pdr_ManSolve( Aig_Man_t * pAig, Pdr_Par_t * pPars )
         Abc_FrameSetInv( Pdr_ManDeriveInfinityClauses( p, RetValue!=1 ) );
         Pdr_ManDumpClauses( p, pFileName, RetValue==1 );
     }
+    else if ( RetValue == 1 )
+        Abc_FrameSetInv( Pdr_ManDeriveInfinityClauses( p, RetValue!=1 ) );
     p->tTotal += Abc_Clock() - clk;
     Pdr_ManStop( p );
     pPars->iFrame--;
