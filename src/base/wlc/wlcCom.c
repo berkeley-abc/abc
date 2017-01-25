@@ -601,7 +601,7 @@ usage:
 ******************************************************************************/
 int Abc_CommandInvPrint( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern void Pdr_InvPrint( Vec_Int_t * vInv );
+    extern void Pdr_InvPrint( Vec_Int_t * vInv, int fVerbose );
     int c, fVerbose  = 0;
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
@@ -622,7 +622,7 @@ int Abc_CommandInvPrint( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( 1, "Abc_CommandInvPs(): Invariant is not available.\n" );
         return 0;
     }
-    Pdr_InvPrint( Wlc_AbcGetInv(pAbc) );
+    Pdr_InvPrint( Wlc_AbcGetInv(pAbc), fVerbose );
     return 0;
 usage:
     Abc_Print( -2, "usage: inv_print [-vh]\n" );
@@ -646,7 +646,7 @@ usage:
 ******************************************************************************/
 int Abc_CommandInvCheck( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern int Pdr_InvCheck( Gia_Man_t * p, Vec_Int_t * vInv );
+    extern int Pdr_InvCheck( Gia_Man_t * p, Vec_Int_t * vInv, int fVerbose );
     int c, nFailed, fVerbose  = 0;
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
@@ -677,7 +677,7 @@ int Abc_CommandInvCheck( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( 1, "Abc_CommandInvMin(): The number of flops in the invariant and in GIA should be the same.\n" );
         return 0;
     }
-    nFailed = Pdr_InvCheck( pAbc->pGia, Wlc_AbcGetInv(pAbc) );
+    nFailed = Pdr_InvCheck( pAbc->pGia, Wlc_AbcGetInv(pAbc), fVerbose );
     if ( nFailed )
         printf( "Invariant verification failed for %d clauses (out of %d).\n", nFailed, Vec_IntEntry(Wlc_AbcGetInv(pAbc),0) );
     else
@@ -811,8 +811,8 @@ usage:
 ******************************************************************************/
 int Abc_CommandInvMin( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern Vec_Int_t * Pdr_InvMinimize( Gia_Man_t * p, Vec_Int_t * vInv );
-    extern Vec_Int_t * Pdr_InvMinimizeLits( Gia_Man_t * p, Vec_Int_t * vInv );
+    extern Vec_Int_t * Pdr_InvMinimize( Gia_Man_t * p, Vec_Int_t * vInv, int fVerbose );
+    extern Vec_Int_t * Pdr_InvMinimizeLits( Gia_Man_t * p, Vec_Int_t * vInv, int fVerbose );
     Vec_Int_t * vInv, * vInv2;
     int c, fLits = 0, fVerbose  = 0;
     Extra_UtilGetoptReset();
@@ -849,9 +849,9 @@ int Abc_CommandInvMin( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 0;
     }
     if ( fLits )
-        vInv2 = Pdr_InvMinimizeLits( pAbc->pGia, vInv );
+        vInv2 = Pdr_InvMinimizeLits( pAbc->pGia, vInv, fVerbose );
     else
-        vInv2 = Pdr_InvMinimize( pAbc->pGia, vInv );
+        vInv2 = Pdr_InvMinimize( pAbc->pGia, vInv, fVerbose );
     if ( vInv2 )
         Abc_FrameSetInv( vInv2 );
     return 0;

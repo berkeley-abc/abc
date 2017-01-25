@@ -678,17 +678,20 @@ Vec_Str_t * Pdr_InvPrintStr( Vec_Int_t * vInv, Vec_Int_t * vCounts )
     Vec_IntFree( vMap );
     return vStr;
 }
-void Pdr_InvPrint( Vec_Int_t * vInv )
+void Pdr_InvPrint( Vec_Int_t * vInv, int fVerbose )
 {
-    Vec_Int_t * vCounts = Pdr_InvCounts( vInv );
-    Vec_Str_t * vStr = Pdr_InvPrintStr( vInv, vCounts );
     printf( "Invariant contains %d clauses with %d literals and %d flops (out of %d).\n", Vec_IntEntry(vInv, 0), Vec_IntSize(vInv)-Vec_IntEntry(vInv, 0)-2, Pdr_InvUsedFlopNum(vInv), Vec_IntEntryLast(vInv) );
-    printf( "%s", Vec_StrArray( vStr ) );
-    Vec_IntFree( vCounts );
-    Vec_StrFree( vStr );
+    if ( fVerbose )
+    {
+        Vec_Int_t * vCounts = Pdr_InvCounts( vInv );
+        Vec_Str_t * vStr = Pdr_InvPrintStr( vInv, vCounts );
+        printf( "%s", Vec_StrArray( vStr ) );
+        Vec_IntFree( vCounts );
+        Vec_StrFree( vStr );
+    }
 }
 
-int Pdr_InvCheck( Gia_Man_t * p, Vec_Int_t * vInv )
+int Pdr_InvCheck( Gia_Man_t * p, Vec_Int_t * vInv, int fVerbose )
 {
     int nBTLimit = 0;
     int i, k, status, nFailed = 0; 
@@ -696,7 +699,7 @@ int Pdr_InvCheck( Gia_Man_t * p, Vec_Int_t * vInv )
     Cnf_Dat_t * pCnf = Mf_ManGenerateCnf( p, 8, 0, 0, 0 );
     sat_solver * pSat = (sat_solver *)Cnf_DataWriteIntoSolver( pCnf, 1, 0 );
     // collect cubes
-    int * pCube, * pList = Vec_IntArray(vInv), nCubes = pList[0];
+    int * pCube, * pList = Vec_IntArray(vInv);
     // create variables
     Vec_Int_t * vLits = Vec_IntAlloc(100);
     int iFoVarBeg = pCnf->nVars - Gia_ManRegNum(p);
@@ -731,6 +734,8 @@ int Pdr_InvCheck( Gia_Man_t * p, Vec_Int_t * vInv )
             continue;
         assert( status == l_True );
         nFailed++;
+        if ( fVerbose )
+            printf( "Verification failed for clause %d.\n", i );
     }
     Cnf_DataFree( pCnf );
     sat_solver_delete( pSat );
@@ -738,10 +743,11 @@ int Pdr_InvCheck( Gia_Man_t * p, Vec_Int_t * vInv )
     return nFailed;
 }
 
-Vec_Int_t * Pdr_InvMinimize( Gia_Man_t * p, Vec_Int_t * vInv )
+Vec_Int_t * Pdr_InvMinimize( Gia_Man_t * p, Vec_Int_t * vInv, int fVerbose )
 {
     int nBTLimit = 0;
-    int fCheckProperty = 0;
+    int fCheckProperty = 1;
+    abctime clk = Abc_Clock();
     int n, i, k, status, nLits, fFailed = 0, fCannot = 0, nRemoved = 0; 
     Vec_Int_t * vRes = NULL;
     // create SAT solver
@@ -827,14 +833,16 @@ Vec_Int_t * Pdr_InvMinimize( Gia_Man_t * p, Vec_Int_t * vInv )
             break;
         if ( fCannot )
             continue;
+        if ( fVerbose )
         printf( "Removing clause %d.\n", i );
         Vec_BitWriteEntry( vRemoved, i, 1 );
         nRemoved++;
     }
     if ( nRemoved )
-        printf( "Invariant minimization reduced %d clauses (out of %d).\n", nRemoved, nCubes );
+        printf( "Invariant minimization reduced %d clauses (out of %d).  ", nRemoved, nCubes );
     else
-        printf( "Invariant minimization did not change the invariant.\n" ); 
+        printf( "Invariant minimization did not change the invariant.  " ); 
+    Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     // cleanup cover
     if ( !fFailed && nRemoved > 0 ) // finished without timeout and removed some cubes
     {
@@ -853,9 +861,10 @@ Vec_Int_t * Pdr_InvMinimize( Gia_Man_t * p, Vec_Int_t * vInv )
     return vRes;
 }
 
-Vec_Int_t * Pdr_InvMinimizeLits( Gia_Man_t * p, Vec_Int_t * vInv )
+Vec_Int_t * Pdr_InvMinimizeLits( Gia_Man_t * p, Vec_Int_t * vInv, int fVerbose )
 {
     Vec_Int_t * vRes = NULL;
+    abctime clk = Abc_Clock();
     int i, k, nLits = 0, * pCube, * pList = Vec_IntArray(vInv), nRemoved = 0;
     Pdr_ForEachCube( pList, pCube, i )
     {
@@ -864,19 +873,21 @@ Vec_Int_t * Pdr_InvMinimizeLits( Gia_Man_t * p, Vec_Int_t * vInv )
         {
             int Save = pCube[k+1];
             pCube[k+1] = -1;
-            if ( Pdr_InvCheck(p, vInv) )
+            if ( Pdr_InvCheck(p, vInv, 0) )
             {
                 pCube[k+1] = Save;
                 continue;
             }
+            if ( fVerbose )
             printf( "Removing lit %d from clause %d.\n", k, i );
             nRemoved++;
         }
     }
     if ( nRemoved )
-        printf( "Invariant minimization reduced %d literals (out of %d).\n", nRemoved, nLits );
+        printf( "Invariant minimization reduced %d literals (out of %d).  ", nRemoved, nLits );
     else
-        printf( "Invariant minimization did not change the invariant.\n" ); 
+        printf( "Invariant minimization did not change the invariant.  " ); 
+    Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     if ( nRemoved > 0 ) // finished without timeout and removed some lits
     {
         vRes = Vec_IntAlloc( 1000 );
