@@ -95,8 +95,6 @@ void        Abc_FrameSetStatus( int Status )                 { ABC_FREE( s_Globa
 void        Abc_FrameSetManDsd( void * pMan )                { if (s_GlobalFrame->pManDsd  && s_GlobalFrame->pManDsd  != pMan) If_DsdManFree((If_DsdMan_t *)s_GlobalFrame->pManDsd,  0); s_GlobalFrame->pManDsd = pMan;  }
 void        Abc_FrameSetManDsd2( void * pMan )               { if (s_GlobalFrame->pManDsd2 && s_GlobalFrame->pManDsd2 != pMan) If_DsdManFree((If_DsdMan_t *)s_GlobalFrame->pManDsd2, 0); s_GlobalFrame->pManDsd2 = pMan; }
 void        Abc_FrameSetInv( Vec_Int_t * vInv )              { Vec_IntFreeP(&s_GlobalFrame->pAbcWlcInv); s_GlobalFrame->pAbcWlcInv = vInv; }
-void        Abc_FrameSetCnf( Vec_Int_t * vCnf )              { Vec_IntFreeP(&s_GlobalFrame->pAbcWlcCnf); s_GlobalFrame->pAbcWlcCnf = vCnf; }
-void        Abc_FrameSetStr( Vec_Str_t * vStr )              { Vec_StrFreeP(&s_GlobalFrame->pAbcWlcStr); s_GlobalFrame->pAbcWlcStr = vStr; }
 void        Abc_FrameSetJsonStrs( Abc_Nam_t * pStrs )        { Abc_NamDeref( s_GlobalFrame->pJsonStrs ); s_GlobalFrame->pJsonStrs = pStrs; }
 void        Abc_FrameSetJsonObjs( Vec_Wec_t * vObjs )        { Vec_WecFreeP(&s_GlobalFrame->vJsonObjs ); s_GlobalFrame->vJsonObjs = vObjs; }
 
@@ -227,8 +225,6 @@ void Abc_FrameDeallocate( Abc_Frame_t * p )
     ABC_FREE( p->pCex2 );
     ABC_FREE( p->pCex );
     Vec_IntFreeP( &p->pAbcWlcInv );
-    Vec_IntFreeP( &p->pAbcWlcCnf );
-    Vec_StrFreeP( &p->pAbcWlcStr );
     Abc_NamDeref( s_GlobalFrame->pJsonStrs );
     Vec_WecFreeP(&s_GlobalFrame->vJsonObjs );    
     ABC_FREE( p );
