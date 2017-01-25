@@ -295,6 +295,7 @@ Mini_Lut_t * Gia_ManToMiniLut( Gia_Man_t * pGia )
     word Truth;
     assert( Gia_ManHasMapping(pGia) );
     LutSize = Gia_ManLutSizeMax( pGia );
+    LutSize = Abc_MaxInt( LutSize, 2 );
     assert( LutSize >= 2 );
     // create the manager
     p = Mini_LutStart( LutSize );
