@@ -2759,7 +2759,23 @@ SOURCE=.\src\opt\sbd\sbdCore.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\opt\sbd\sbdCut.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\sbd\sbdCut2.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\opt\sbd\sbdInt.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\sbd\sbdLut.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\sbd\sbdPath.c
 # End Source File
 # Begin Source File
 
@@ -5463,6 +5479,10 @@ SOURCE=.\src\proof\acec\acec.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\proof\acec\acecBo.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\proof\acec\acecCl.c
 # End Source File
 # Begin Source File
@@ -5484,6 +5504,14 @@ SOURCE=.\src\proof\acec\acecFadds.c
 # Begin Source File
 
 SOURCE=.\src\proof\acec\acecInt.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\proof\acec\acecMult.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\proof\acec\acecNorm.c
 # End Source File
 # Begin Source File
 
@@ -5512,6 +5540,10 @@ SOURCE=.\src\proof\acec\acecRe.c
 # Begin Source File
 
 SOURCE=.\src\proof\acec\acecSt.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\proof\acec\acecTree.c
 # End Source File
 # Begin Source File
 

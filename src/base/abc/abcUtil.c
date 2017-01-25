@@ -1077,6 +1077,7 @@ void Abc_NtkLogicMakeSimpleCosTest( Abc_Ntk_t * pNtk, int fDuplicate )
 ***********************************************************************/
 int Abc_NtkLogicMakeSimpleCos( Abc_Ntk_t * pNtk, int fDuplicate )
 {
+    int fAddBuffers = 1;
     Vec_Ptr_t * vDrivers, * vCoTerms;
     Abc_Obj_t * pNode, * pDriver, * pDriverNew, * pFanin;
     int i, k, LevelMax, nTotal = 0;
@@ -1191,6 +1192,12 @@ int Abc_NtkLogicMakeSimpleCos( Abc_Ntk_t * pNtk, int fDuplicate )
     // collect COs that needs fixing by adding buffers or duplicating
     vCoTerms = Vec_PtrAlloc( 100 );
     Abc_NtkIncrementTravId( pNtk );
+    
+    // The following cases should be addressed only if the network is written 
+    // into a BLIF file. Otherwise, it is possible to skip them:
+    // (1) if a CO points to a CI with a different name
+    // (2) if an internal node drives more than one CO
+    if ( fAddBuffers )
     Abc_NtkForEachCo( pNtk, pNode, i )
     {
         // if the driver is a CI and has different name, this is an error

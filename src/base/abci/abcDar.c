@@ -1946,17 +1946,17 @@ finish:
     // report the miter
     if ( RetValue == 1 )
     {
-        Abc_Print( 1, "Networks are equivalent.   " );
+        Abc_Print( 1, "Networks are equivalent.  " );
 ABC_PRT( "Time", Abc_Clock() - clkTotal );
     }
     else if ( RetValue == 0 )
     {
-        Abc_Print( 1, "Networks are NOT EQUIVALENT.   " );
+        Abc_Print( 1, "Networks are NOT EQUIVALENT.  " );
 ABC_PRT( "Time", Abc_Clock() - clkTotal );
     }
     else
     {
-        Abc_Print( 1, "Networks are UNDECIDED.   " );
+        Abc_Print( 1, "Networks are UNDECIDED.  " );
 ABC_PRT( "Time", Abc_Clock() - clkTotal );
     }
     fflush( stdout );
@@ -3695,17 +3695,17 @@ int Abc_NtkDarInduction( Abc_Ntk_t * pNtk, int nTimeOut, int nFramesMax, int nCo
     RetValue = Saig_ManInduction( pMan, nTimeOut, nFramesMax, nConfMax, fUnique, fUniqueAll, fGetCex, fVerbose, fVeryVerbose );
     if ( RetValue == 1 )
     {
-        Abc_Print( 1, "Networks are equivalent.   " );
+        Abc_Print( 1, "Networks are equivalent.  " );
 ABC_PRT( "Time", Abc_Clock() - clkTotal );
     }
     else if ( RetValue == 0 )
     {
-        Abc_Print( 1, "Networks are NOT EQUIVALENT.   " );
+        Abc_Print( 1, "Networks are NOT EQUIVALENT.  " );
 ABC_PRT( "Time", Abc_Clock() - clkTotal );
     }
     else
     {
-        Abc_Print( 1, "Networks are UNDECIDED.   " );
+        Abc_Print( 1, "Networks are UNDECIDED.  " );
 ABC_PRT( "Time", Abc_Clock() - clkTotal );
     }
     if ( fGetCex )

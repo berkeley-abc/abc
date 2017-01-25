@@ -547,17 +547,17 @@ int Fra_FraigCecTop( Aig_Man_t * pMan1, Aig_Man_t * pMan2, int nConfLimit, int n
     // report the miter
     if ( RetValue == 1 )
     {
-        printf( "Networks are equivalent.   " );
+        printf( "Networks are equivalent.  " );
 ABC_PRT( "Time", Abc_Clock() - clkTotal );
     }
     else if ( RetValue == 0 )
     {
-        printf( "Networks are NOT EQUIVALENT.   " );
+        printf( "Networks are NOT EQUIVALENT.  " );
 ABC_PRT( "Time", Abc_Clock() - clkTotal );
     }
     else
     {
-        printf( "Networks are UNDECIDED.   " );
+        printf( "Networks are UNDECIDED.  " );
 ABC_PRT( "Time", Abc_Clock() - clkTotal );
     }
     fflush( stdout );

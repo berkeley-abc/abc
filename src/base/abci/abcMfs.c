@@ -259,7 +259,7 @@ int Abc_NtkPerformMfs( Abc_Ntk_t * pNtk, Sfm_Par_t * pPars )
     if ( nFaninMax > 6 )
     {
         Abc_Print( 1, "Currently \"mfs\" cannot process the network containing nodes with more than 6 fanins.\n" );
-        return 0;
+        return 1;
     }
     if ( !Abc_NtkHasSop(pNtk) )
         if ( !Abc_NtkToSop( pNtk, -1, ABC_INFINITY ) )

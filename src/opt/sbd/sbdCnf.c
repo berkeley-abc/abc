@@ -44,7 +44,7 @@ ABC_NAMESPACE_IMPL_START
 ***********************************************************************/
 void Sbd_PrintCnf( Vec_Str_t * vCnf )
 {
-    char Entry;
+    signed char Entry;
     int i, Lit;
     Vec_StrForEachEntry( vCnf, Entry, i )
     {
@@ -121,7 +121,7 @@ int Sbd_TruthToCnf( word Truth, int nVars, Vec_Int_t * vCover, Vec_Str_t * vCnf 
 void Sbd_TranslateCnf( Vec_Wec_t * vRes, Vec_Str_t * vCnf, Vec_Int_t * vFaninMap, int iPivotVar )
 {
     Vec_Int_t * vClause;
-    char Entry;
+    signed char Entry;
     int i, Lit;
     Vec_WecClear( vRes );
     vClause = Vec_WecPushLevel( vRes );

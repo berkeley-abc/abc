@@ -122,6 +122,7 @@ void Abc_NtkCecSat( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nConfLimit, int nI
 ***********************************************************************/
 void Abc_NtkCecFraig( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nSeconds, int fVerbose )
 {
+    abctime clk = Abc_Clock();
     Prove_Params_t Params, * pParams = &Params;
 //    Fraig_Params_t Params;
 //    Fraig_Man_t * pMan;
@@ -170,18 +171,20 @@ void Abc_NtkCecFraig( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nSeconds, int fV
     RetValue = Abc_NtkMiterIsConstant( pMiter );
     if ( RetValue == 0 )
     {
-        printf( "Networks are NOT EQUIVALENT after structural hashing.\n" );
+        printf( "Networks are NOT EQUIVALENT after structural hashing.  " );
         // report the error
         pMiter->pModel = Abc_NtkVerifyGetCleanModel( pMiter, 1 );
         Abc_NtkVerifyReportError( pNtk1, pNtk2, pMiter->pModel );
         ABC_FREE( pMiter->pModel );
         Abc_NtkDelete( pMiter );
+        Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
         return;
     }
     if ( RetValue == 1 )
     {
-        printf( "Networks are equivalent after structural hashing.\n" );
+        printf( "Networks are equivalent after structural hashing.  " );
         Abc_NtkDelete( pMiter );
+        Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
         return;
     }
 /*
@@ -220,18 +223,19 @@ void Abc_NtkCecFraig( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nSeconds, int fV
 //    pParams->fVerbose = 1;
     RetValue = Abc_NtkIvyProve( &pMiter, pParams );
     if ( RetValue == -1 )
-        printf( "Networks are undecided (resource limits is reached).\n" );
+        printf( "Networks are undecided (resource limits is reached).  " );
     else if ( RetValue == 0 )
     {
         int * pSimInfo = Abc_NtkVerifySimulatePattern( pMiter, pMiter->pModel );
         if ( pSimInfo[0] != 1 )
             printf( "ERROR in Abc_NtkMiterProve(): Generated counter-example is invalid.\n" );
         else
-            printf( "Networks are NOT EQUIVALENT.\n" );
+            printf( "Networks are NOT EQUIVALENT.  " );
         ABC_FREE( pSimInfo );
     }
     else
-        printf( "Networks are equivalent.\n" );
+        printf( "Networks are equivalent.  " );
+    Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     if ( pMiter->pModel )
         Abc_NtkVerifyReportError( pNtk1, pNtk2, pMiter->pModel );
     Abc_NtkDelete( pMiter );

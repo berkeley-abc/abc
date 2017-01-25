@@ -584,6 +584,8 @@ int Gia_ManLutLevelWithBoxes( Gia_Man_t * p )
     Gia_Obj_t * pObj, * pObjIn;
     int i, k, j, curCi, curCo, LevelMax;
     assert( Gia_ManRegNum(p) == 0 );
+    if ( pManTime == NULL )
+        return Gia_ManLutLevel(p, NULL);
     // copy const and real PIs
     Gia_ManCleanLevels( p, Gia_ManObjNum(p) );
     Gia_ObjSetLevel( p, Gia_ManConst0(p), 0 );

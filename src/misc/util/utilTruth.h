@@ -2612,7 +2612,7 @@ static inline int Abc_TtProcessBiDec( word * pTruth, int nVars, int nSuppLim )
 static inline void Abc_TtProcessBiDecTest( word * pTruth, int nVars, int nSuppLim )
 {
     word This, That, pTemp[64];
-    int Res, resThis, resThat, nThis, nThat;
+    int Res, resThis, resThat;//, nThis, nThat;
     int nWords = Abc_TtWordNum(nVars);
     Abc_TtCopy( pTemp, pTruth, nWords, 0 );
     Res = Abc_TtProcessBiDec( pTemp, nVars, nSuppLim );
@@ -2634,8 +2634,8 @@ static inline void Abc_TtProcessBiDecTest( word * pTruth, int nVars, int nSuppLi
 
 //    Dau_DsdPrintFromTruth( pTemp, nVars );
 
-    nThis = Abc_TtBitCount16(resThis);
-    nThat = Abc_TtBitCount16(resThat);
+    //nThis = Abc_TtBitCount16(resThis);
+    //nThat = Abc_TtBitCount16(resThat);
 
     printf( "Variable sets:    " );
     Abc_TtPrintVarSet( resThis, nVars );

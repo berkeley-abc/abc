@@ -1256,10 +1256,10 @@ void Jf_ManComputeCuts( Jf_Man_t * p, int fEdge )
     }
     if ( p->pPars->fVerbose )
     {
-        printf( "CutPair = %lu  ", p->CutCount[0] );
-        printf( "Merge = %lu  ",   p->CutCount[1] );
-        printf( "Eval = %lu  ",    p->CutCount[2] );
-        printf( "Cut = %lu  ",     p->CutCount[3] );
+        printf( "CutPair = %lu  ", (long)p->CutCount[0] );
+        printf( "Merge = %lu  ",   (long)p->CutCount[1] );
+        printf( "Eval = %lu  ",    (long)p->CutCount[2] );
+        printf( "Cut = %lu  ",     (long)p->CutCount[3] );
         Abc_PrintTime( 1, "Time",  Abc_Clock() - p->clkStart );
         printf( "Memory:  " );
         printf( "Gia = %.2f MB  ", Gia_ManMemory(p->pGia) / (1<<20) );
@@ -1702,11 +1702,11 @@ void Jf_ManPrintStats( Jf_Man_t * p, char * pTitle )
     if ( !p->pPars->fVerbose )
         return;
     printf( "%s :  ", pTitle );
-    printf( "Level =%6lu   ", p->pPars->Delay );
-    printf( "Area =%9lu   ",  p->pPars->Area );
-    printf( "Edge =%9lu   ",  p->pPars->Edge );
+    printf( "Level =%6lu   ", (long)p->pPars->Delay );
+    printf( "Area =%9lu   ",  (long)p->pPars->Area );
+    printf( "Edge =%9lu   ",  (long)p->pPars->Edge );
     if ( p->pPars->fGenCnf )
-    printf( "Cnf =%9lu   ",   p->pPars->Clause );
+    printf( "Cnf =%9lu   ",   (long)p->pPars->Clause );
     Abc_PrintTime( 1, "Time", Abc_Clock() - p->clkStart );
     fflush( stdout );
 }

@@ -284,7 +284,7 @@ void Pdr_SetPrintStr( Vec_Str_t * vStr, Pdr_Set_t * p, int nRegs, Vec_Int_t * vF
     }
     Vec_StrPushBuffer( vStr, pBuff, k );
     Vec_StrPush( vStr, ' ' );
-    Vec_StrPush( vStr, '0' );
+    Vec_StrPush( vStr, '1' );
     Vec_StrPush( vStr, '\n' );
     ABC_FREE( pBuff );
 }

@@ -147,6 +147,7 @@ static inline int Ree_ManCutFind( int iObj, int * pCut )
 }
 static inline int Ree_ManCutNotFind( int iObj1, int iObj2, int * pCut )
 {
+    assert( pCut[0] == 3 );
     if ( pCut[3] != iObj1 && pCut[3] != iObj2 ) return 0;
     if ( pCut[2] != iObj1 && pCut[2] != iObj2 ) return 1;
     if ( pCut[1] != iObj1 && pCut[1] != iObj2 ) return 2;
@@ -162,13 +163,19 @@ static inline int Ree_ManCutTruthOne( int * pCut0, int * pCut )
     Truth0 = fComp0 ? ~Truth0 : Truth0;
     if ( pCut0[0] == 2 )
     {
-        int Truths[3][8] = {
-            { 0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77 }, // {0,1,-}
-            { 0x00, 0x05, 0x0A, 0x0F, 0x50, 0x55, 0x5A, 0x5F }, // {0,-,1}
-            { 0x00, 0x03, 0x0C, 0x0F, 0x30, 0x33, 0x3C, 0x3F }  // {-,0,1}
-        };
-        int Truth = Truths[Ree_ManCutNotFind(pCut0[1], pCut0[2], pCut)][Truth0 & 0x7];
-        return 0xFF & (fComp0 ? ~Truth : Truth);
+        if ( pCut[0] == 3 )
+        {
+            int Truths[3][8] = {
+                { 0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77 }, // {0,1,-}
+                { 0x00, 0x05, 0x0A, 0x0F, 0x50, 0x55, 0x5A, 0x5F }, // {0,-,1}
+                { 0x00, 0x03, 0x0C, 0x0F, 0x30, 0x33, 0x3C, 0x3F }  // {-,0,1}
+            };
+            int Truth = Truths[Ree_ManCutNotFind(pCut0[1], pCut0[2], pCut)][Truth0 & 0x7];
+            return 0xFF & (fComp0 ? ~Truth : Truth);
+        }
+        assert( pCut[0] == 2 );
+        assert( pCut[1] == pCut0[1] && pCut[2] == pCut0[2] );
+        return pCut0[pCut0[0]+1];
     }
     if ( pCut0[0] == 1 )
     {
@@ -236,10 +243,10 @@ int Ree_ObjComputeTruth( Gia_Man_t * p, int iObj, int * pCut )
   SeeAlso     []
 
 ***********************************************************************/
-void Ree_ManCutPrint( int * pCut, int Count, word Truth )
+void Ree_ManCutPrint( int * pCut, int Count, word Truth, int iObj )
 {
     int c;
-    printf( "%d : ", Count );
+    printf( "%d : %d : ", Count, iObj );
     for ( c = 1; c <= pCut[0]; c++ )
         printf( "%3d ", pCut[c] );
     for (      ; c <= 4; c++ )
@@ -290,7 +297,7 @@ void Ree_ManCutMerge( Gia_Man_t * p, int iObj, int * pList0, int * pList1, Vec_I
             Vec_IntPushThree( vData, iObj, Value, TruthC );
         }
         if ( fVerbose )
-            Ree_ManCutPrint( pCut, ++Count, TruthC );
+            Ree_ManCutPrint( pCut, ++Count, TruthC, iObj );
     }
     if ( !vXors )
         return;
@@ -370,7 +377,7 @@ Vec_Int_t * Ree_ManDeriveAdds( Hash_IntMan_t * p, Vec_Int_t * vData, int fVerbos
         Vec_IntForEachEntryDouble( vXorOne, iObj, Truth, j )
         Vec_IntForEachEntryDouble( vMajOne, iObj2, Truth2, k )
         {
-            int SignAnd[8] = {0x88, 0x44, 0x22, 0x11, 0xEE, 0xDD, 0xBB, 0x77};
+            int SignAnd[8] = {0x88, 0x44, 0x22, 0x11, 0x77, 0xBB, 0xDD, 0xEE};
             int SignMaj[8] = {0xE8, 0xD4, 0xB2, 0x71, 0x8E, 0x4D, 0x2B, 0x17};
             int n, SignXor = (Truth == 0x99 || Truth == 0x69) << 3;
             for ( n = 0; n < 8; n++ )
@@ -390,8 +397,18 @@ Vec_Int_t * Ree_ManDeriveAdds( Hash_IntMan_t * p, Vec_Int_t * vData, int fVerbos
     Vec_WecFree( vMajMap );
     return vAdds;
 }
+int Ree_ManCompare( int * pCut0, int * pCut1 )
+{
+    if ( pCut0[3] < pCut1[3] ) return -1;
+    if ( pCut0[3] > pCut1[3] ) return  1;
+    if ( pCut0[4] < pCut1[4] ) return -1;
+    if ( pCut0[4] > pCut1[4] ) return  1;
+    return 0;
+}
 Vec_Int_t * Ree_ManComputeCuts( Gia_Man_t * p, Vec_Int_t ** pvXors, int fVerbose )
 {
+    extern void Ree_ManRemoveTrivial( Gia_Man_t * p, Vec_Int_t * vAdds );
+    extern void Ree_ManRemoveContained( Gia_Man_t * p, Vec_Int_t * vAdds );
     Gia_Obj_t * pObj; 
     int * pList0, * pList1, i, nCuts = 0;
     Hash_IntMan_t * pHash = Hash_IntManStart( 1000 );
@@ -425,11 +442,15 @@ Vec_Int_t * Ree_ManComputeCuts( Gia_Man_t * p, Vec_Int_t ** pvXors, int fVerbose
     Vec_IntFree( vTemp );
     Vec_IntFree( vCuts );
     vAdds = Ree_ManDeriveAdds( pHash, vData, fVerbose );
+    qsort( Vec_IntArray(vAdds), Vec_IntSize(vAdds)/6, 24, (int (*)(const void *, const void *))Ree_ManCompare );
     if ( fVerbose )
         printf( "Adders = %d.  Total cuts = %d.  Hashed cuts = %d.  Hashed/Adders = %.2f.\n", 
             Vec_IntSize(vAdds)/6, Vec_IntSize(vData)/3, Hash_IntManEntryNum(pHash), 6.0*Hash_IntManEntryNum(pHash)/Vec_IntSize(vAdds) );
     Vec_IntFree( vData );
     Hash_IntManStop( pHash );
+    Ree_ManRemoveTrivial( p, vAdds );
+    Ree_ManRemoveContained( p, vAdds );
+    //Ree_ManPrintAdders( vAdds, 1 );
     return vAdds;
 }
 
@@ -503,6 +524,10 @@ void Ree_ManRemoveTrivial( Gia_Man_t * p, Vec_Int_t * vAdds )
         {
             pObjX = Gia_ManObj( p, Vec_IntEntry(vAdds, 6*i+3) );
             pObjM = Gia_ManObj( p, Vec_IntEntry(vAdds, 6*i+4) );
+            // rule out if MAJ is a fanout of XOR
+            //if ( pObjX == Gia_ObjFanin0(pObjM) || pObjX == Gia_ObjFanin1(pObjM) )
+            //    continue;
+            // rule out if MAJ is a fanin of XOR and has no other fanouts
             if ( (pObjM == Gia_ObjFanin0(pObjX) || pObjM == Gia_ObjFanin1(pObjX)) && Gia_ObjRefNum(p, pObjM) == 1 )
                 continue;
         }

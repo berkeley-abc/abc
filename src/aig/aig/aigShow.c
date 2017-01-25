@@ -19,6 +19,7 @@
 ***********************************************************************/
 
 #include "aig.h"
+#include "misc/extra/extra.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -340,12 +341,10 @@ void Aig_WriteDotAig( Aig_Man_t * pMan, char * pFileName, int fHaig, Vec_Ptr_t *
 void Aig_ManShow( Aig_Man_t * pMan, int fHaig, Vec_Ptr_t * vBold )
 {
     extern void Abc_ShowFile( char * FileNameDot );
-    static int Counter = 0;
     char FileNameDot[200];
     FILE * pFile;
     // create the file name
-//    Aig_ShowGetFileName( pMan->pName, FileNameDot );
-    sprintf( FileNameDot, "temp%02d.dot", Counter++ );
+    sprintf( FileNameDot, "%s", Extra_FileNameGenericAppend(pMan->pName, ".dot") );
     // check that the file can be opened
     if ( (pFile = fopen( FileNameDot, "w" )) == NULL )
     {

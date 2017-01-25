@@ -196,7 +196,7 @@ int Abc_RealMain( int argc, char * argv[] )
             case 't':
                 if ( TypeCheck( pAbc, globalUtilOptarg ) )
                 {
-                    if ( !strcmp(globalUtilOptarg, "none") == 0 )
+                    if ( (!strcmp(globalUtilOptarg, "none")) == 0 )
                     {
                         fInitRead = 1;
                         sprintf( sReadCmd, "read_%s", globalUtilOptarg );
@@ -211,7 +211,7 @@ int Abc_RealMain( int argc, char * argv[] )
             case 'T':
                 if ( TypeCheck( pAbc, globalUtilOptarg ) )
                 {
-                    if (!strcmp(globalUtilOptarg, "none") == 0)
+                    if ( (!strcmp(globalUtilOptarg, "none")) == 0)
                     {
                         fFinalWrite = 1;
                         sprintf( sWriteCmd, "write_%s", globalUtilOptarg);

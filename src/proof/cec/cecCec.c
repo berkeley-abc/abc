@@ -85,7 +85,7 @@ int Cec_ManVerifyOld( Gia_Man_t * pMiter, int fVerbose, int * piOutFail, abctime
     {
         if ( !fSilent )
         {
-            Abc_Print( 1, "Networks are equivalent.   " );
+            Abc_Print( 1, "Networks are equivalent.  " );
             Abc_PrintTime( 1, "Time", Abc_Clock() - clkTotal );
         }
     }
@@ -93,7 +93,7 @@ int Cec_ManVerifyOld( Gia_Man_t * pMiter, int fVerbose, int * piOutFail, abctime
     {
         if ( !fSilent )
         {
-            Abc_Print( 1, "Networks are NOT EQUIVALENT.   " );
+            Abc_Print( 1, "Networks are NOT EQUIVALENT.  " );
             Abc_PrintTime( 1, "Time", Abc_Clock() - clkTotal );
         }
         if ( pMiterCec->pData == NULL )
@@ -120,7 +120,7 @@ int Cec_ManVerifyOld( Gia_Man_t * pMiter, int fVerbose, int * piOutFail, abctime
     }
     else if ( !fSilent )
     {
-        Abc_Print( 1, "Networks are UNDECIDED.   " );
+        Abc_Print( 1, "Networks are UNDECIDED.  " );
         Abc_PrintTime( 1, "Time", Abc_Clock() - clkTotal );
     }
     fflush( stdout );

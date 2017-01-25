@@ -1415,11 +1415,11 @@ void Mf_ManPrintStats( Mf_Man_t * p, char * pTitle )
     if ( !p->pPars->fVerbose )
         return;
     printf( "%s :  ", pTitle );
-    printf( "Level =%6lu   ",   p->pPars->Delay );
-    printf( "Area =%9lu   ",  p->pPars->Area );
-    printf( "Edge =%9lu   ",  p->pPars->Edge );
+    printf( "Level =%6lu   ",   (long)p->pPars->Delay );
+    printf( "Area =%9lu   ",  (long)p->pPars->Area );
+    printf( "Edge =%9lu   ",  (long)p->pPars->Edge );
     if ( p->pPars->fGenCnf )
-        printf( "CNF =%9lu   ", p->pPars->Clause );
+        printf( "CNF =%9lu   ", (long)p->pPars->Clause );
     Abc_PrintTime( 1, "Time", Abc_Clock() - p->clkStart );
     fflush( stdout );
 }

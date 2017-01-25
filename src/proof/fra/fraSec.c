@@ -606,7 +606,7 @@ finish:
     {
         if ( !pParSec->fSilent )
         {
-            printf( "Networks are equivalent.   " );
+            printf( "Networks are equivalent.  " );
 ABC_PRT( "Time", Abc_Clock() - clkTotal );
         }
         if ( pParSec->fReportSolution && !pParSec->fRecursive )
@@ -630,7 +630,7 @@ ABC_PRT( "Time", Abc_Clock() - clkTotal );
         }
         if ( !pParSec->fSilent )
         {
-            printf( "Networks are NOT EQUIVALENT.   " );
+            printf( "Networks are NOT EQUIVALENT.  " );
 ABC_PRT( "Time", Abc_Clock() - clkTotal );
         }
         if ( pParSec->fReportSolution && !pParSec->fRecursive )

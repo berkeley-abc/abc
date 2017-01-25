@@ -22,6 +22,7 @@
 #include "proof/fra/fra.h"
 #include "proof/dch/dch.h"
 #include "opt/dar/dar.h"
+#include "opt/dau/dau.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -576,11 +577,17 @@ Gia_Man_t * Gia_ManCompress2( Gia_Man_t * p, int fUpdateLevel, int fVerbose )
 ***********************************************************************/
 Gia_Man_t * Gia_ManPerformDch( Gia_Man_t * p, void * pPars )
 {
-    Gia_Man_t * pGia;
+    int fUseMapping = 0;
+    Gia_Man_t * pGia, * pGia1;
     Aig_Man_t * pNew;
     if ( p->pManTime && p->vLevels == NULL )
         Gia_ManLevelWithBoxes( p );
-    pNew = Gia_ManToAig( p, 0 );
+    if ( fUseMapping && Gia_ManHasMapping(p) )
+        pGia1 = (Gia_Man_t *)Dsm_ManDeriveGia( p, 0 );
+    else
+        pGia1 = Gia_ManDup( p );
+    pNew = Gia_ManToAig( pGia1, 0 );
+    Gia_ManStop( pGia1 );
     pNew = Dar_ManChoiceNew( pNew, (Dch_Pars_t *)pPars );
 //    pGia = Gia_ManFromAig( pNew );
     pGia = Gia_ManFromAigChoices( pNew );

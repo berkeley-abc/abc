@@ -481,6 +481,8 @@ static int Abc_CommandAbc9Fadds              ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandAbc9ATree              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Polyn              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Acec               ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9Anorm              ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9Decla              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Esop               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Exorcism           ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Mfs                ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -1124,6 +1126,8 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "ABC9",         "&atree",        Abc_CommandAbc9ATree,        0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&polyn",        Abc_CommandAbc9Polyn,        0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&acec",         Abc_CommandAbc9Acec,         0 );
+    Cmd_CommandAdd( pAbc, "ABC9",         "&anorm",        Abc_CommandAbc9Anorm,        0 );
+    Cmd_CommandAdd( pAbc, "ABC9",         "&decla",        Abc_CommandAbc9Decla,        0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&esop",         Abc_CommandAbc9Esop,         0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&exorcism",     Abc_CommandAbc9Exorcism,     0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&mfs",          Abc_CommandAbc9Mfs,          0 );
@@ -19532,7 +19536,7 @@ int Abc_CommandSeqSweep( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     if ( Abc_NtkIsComb(pNtk) )
     {
-        Abc_Print( -1, "The network is combinational (run \"fraig\" or \"fraig_sweep\").\n" );
+        Abc_Print( 0, "The network is combinational (run \"fraig\" or \"fraig_sweep\").\n" );
         return 0;
     }
 
@@ -28592,14 +28596,20 @@ usage:
 int Abc_CommandAbc9Show( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Vec_Int_t * vBold = NULL;
-    int c, fAdders = 0;
+    int c, fAdders = 0, fFadds = 0, fPath = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "ah" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "afph" ) ) != EOF )
     {
         switch ( c )
         {
         case 'a':
             fAdders ^= 1;
+            break;
+        case 'f':
+            fFadds ^= 1;
+            break;
+        case 'p':
+            fPath ^= 1;
             break;
         case 'h':
             goto usage;
@@ -28623,14 +28633,16 @@ int Abc_CommandAbc9Show( Abc_Frame_t * pAbc, int argc, char ** argv )
         Gia_ManForEachLut( pAbc->pGia, c )
             Vec_IntPush( vBold, c );
     }
-    Gia_ManShow( pAbc->pGia, vBold, fAdders );
+    Gia_ManShow( pAbc->pGia, vBold, fAdders, fFadds, fPath );
     Vec_IntFreeP( &vBold );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &show [-ah]\n" );
+    Abc_Print( -2, "usage: &show [-afph]\n" );
     Abc_Print( -2, "\t        shows the current GIA using GSView\n" );
     Abc_Print( -2, "\t-a    : toggle visualazing adders [default = %s]\n", fAdders? "yes": "no" );
+    Abc_Print( -2, "\t-f    : toggle showing only full-adders with \"-a\" [default = %s]\n", fFadds? "yes": "no" );
+    Abc_Print( -2, "\t-p    : toggle showing the critical path of a LUT mapping [default = %s]\n", fPath? "yes": "no" );
     Abc_Print( -2, "\t-h    : print the command usage\n");
     return 1;
 }
@@ -31954,7 +31966,7 @@ int Abc_CommandAbc9Scorr( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     if ( Gia_ManRegNum(pAbc->pGia) == 0 )
     {
-        Abc_Print( -1, "The network is combinational.\n" );
+        Abc_Print( 0, "The network is combinational.\n" );
         return 0;
     }
     pTemp = Cec_ManLSCorrespondence( pAbc->pGia, pPars );
@@ -32915,8 +32927,7 @@ int Abc_CommandAbc9Cec( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Cec_ParCec_t ParsCec, * pPars = &ParsCec;
     FILE * pFile;
-    Gia_Man_t * pSecond, * pMiter;
-    char * FileName, * pTemp;
+    Gia_Man_t * pGias[2] = {NULL, NULL}, * pMiter;
     char ** pArgvNew;
     int c, nArgcNew, fMiter = 0, fDualOutput = 0, fDumpMiter = 0;
     Cec_ManCecSetDefaultParams( pPars );
@@ -32971,13 +32982,15 @@ int Abc_CommandAbc9Cec( Abc_Frame_t * pAbc, int argc, char ** argv )
             goto usage;
         }
     }
-    if ( pAbc->pGia == NULL )
-    {
-        Abc_Print( -1, "Abc_CommandAbc9Cec(): There is no AIG.\n" );
-        return 1;
-    }
+    pArgvNew = argv + globalUtilOptind;
+    nArgcNew = argc - globalUtilOptind;
     if ( fMiter )
     {
+        if ( pAbc->pGia == NULL || nArgcNew != 0 )
+        {
+            Abc_Print( -1, "Abc_CommandAbc9Cec(): A miter cannot be given as an argument of command &cec and should be entered using &r.\n" );
+            return 1;
+        }
         if ( fDualOutput )
         {
             if ( Gia_ManPoNum(pAbc->pGia) & 1 )
@@ -32986,14 +32999,14 @@ int Abc_CommandAbc9Cec( Abc_Frame_t * pAbc, int argc, char ** argv )
                 return 1;
             }
             if ( !pPars->fSilent )
-            Abc_Print( 1, "Assuming the current network is a double-output miter. (Conflict limit = %d.)\n", pPars->nBTLimit );
+            Abc_Print( 1, "Assuming the current network is a double-output miter.\n" );
             pAbc->Status = Cec_ManVerify( pAbc->pGia, pPars );
         }
         else
         {
             Gia_Man_t * pTemp;
             if ( !pPars->fSilent )
-            Abc_Print( 1, "Assuming the current network is a single-output miter. (Conflict limit = %d.)\n", pPars->nBTLimit );
+            Abc_Print( 1, "Assuming the current network is a single-output miter.\n" );
             pTemp = Gia_ManDemiterToDual( pAbc->pGia );
             pAbc->Status = Cec_ManVerify( pTemp, pPars );
             ABC_SWAP( Abc_Cex_t *, pAbc->pGia->pCexComb, pTemp->pCexComb );
@@ -33002,41 +33015,81 @@ int Abc_CommandAbc9Cec( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_FrameReplaceCex( pAbc, &pAbc->pGia->pCexComb );
         return 0;
     }
-
-    pArgvNew = argv + globalUtilOptind;
-    nArgcNew = argc - globalUtilOptind;
-    if ( nArgcNew != 1 )
+    if ( nArgcNew > 2 )
     {
-        if ( pAbc->pGia->pSpec == NULL )
-        {
-            Abc_Print( -1, "File name is not given on the command line.\n" );
-            return 1;
-        }
-        FileName = pAbc->pGia->pSpec;
-    }
-    else
-        FileName = pArgvNew[0];
-    // fix the wrong symbol
-    for ( pTemp = FileName; *pTemp; pTemp++ )
-        if ( *pTemp == '>' )
-            *pTemp = '\\';
-    if ( (pFile = fopen( FileName, "r" )) == NULL )
-    {
-        Abc_Print( -1, "Cannot open input file \"%s\". ", FileName );
-        if ( (FileName = Extra_FileGetSimilarName( FileName, ".aig", NULL, NULL, NULL, NULL )) )
-            Abc_Print( 1, "Did you mean \"%s\"?", FileName );
-        Abc_Print( 1, "\n" );
+        Abc_Print( -1, "Abc_CommandAbc9Cec(): Wrong number of command-line arguments.\n" );
         return 1;
     }
-    fclose( pFile );
-    pSecond = Gia_AigerRead( FileName, 0, 0, 0 );
-    if ( pSecond == NULL )
+    if ( nArgcNew == 2 )
     {
-        Abc_Print( -1, "Reading AIGER has failed.\n" );
-        return 0;
+        char * pFileNames[2] = { pArgvNew[0], pArgvNew[1] }, * pTemp;
+        int n;
+        for ( n = 0; n < 2; n++ )
+        {
+            // fix the wrong symbol
+            for ( pTemp = pFileNames[n]; *pTemp; pTemp++ )
+                if ( *pTemp == '>' )
+                    *pTemp = '\\';
+            if ( (pFile = fopen( pFileNames[n], "r" )) == NULL )
+            {
+                Abc_Print( -1, "Cannot open input file \"%s\". ", pFileNames[n] );
+                if ( (pFileNames[n] = Extra_FileGetSimilarName( pFileNames[n], ".aig", NULL, NULL, NULL, NULL )) )
+                    Abc_Print( 1, "Did you mean \"%s\"?", pFileNames[n] );
+                Abc_Print( 1, "\n" );
+                return 1;
+            }
+            fclose( pFile );
+            pGias[n] = Gia_AigerRead( pFileNames[n], 0, 0, 0 );
+            if ( pGias[n] == NULL )
+            {
+                Abc_Print( -1, "Reading AIGER from file \"%s\" has failed.\n", pFileNames[n] );
+                return 0;
+            }
+        }
+    }
+    else
+    {
+        char * FileName, * pTemp;
+        if ( pAbc->pGia == NULL )
+        {
+            Abc_Print( -1, "Abc_CommandAbc9Cec(): There is no current AIG.\n" );
+            return 1;
+        }
+        pGias[0] = pAbc->pGia;
+        if ( nArgcNew == 1 )
+            FileName = pArgvNew[0];
+        else
+        {
+            assert( nArgcNew == 0 );
+            if ( pAbc->pGia->pSpec == NULL )
+            {
+                Abc_Print( -1, "File name is not given on the command line.\n" );
+                return 1;
+            }
+            FileName = pAbc->pGia->pSpec;
+        }
+        // fix the wrong symbol
+        for ( pTemp = FileName; *pTemp; pTemp++ )
+            if ( *pTemp == '>' )
+                *pTemp = '\\';
+        if ( (pFile = fopen( FileName, "r" )) == NULL )
+        {
+            Abc_Print( -1, "Cannot open input file \"%s\". ", FileName );
+            if ( (FileName = Extra_FileGetSimilarName( FileName, ".aig", NULL, NULL, NULL, NULL )) )
+                Abc_Print( 1, "Did you mean \"%s\"?", FileName );
+            Abc_Print( 1, "\n" );
+            return 1;
+        }
+        fclose( pFile );
+        pGias[1] = Gia_AigerRead( FileName, 0, 0, 0 );
+        if ( pGias[1] == NULL )
+        {
+            Abc_Print( -1, "Reading AIGER has failed.\n" );
+            return 0;
+        }
     }
     // compute the miter
-    pMiter = Gia_ManMiter( pAbc->pGia, pSecond, 0, 1, 0, 0, pPars->fVerbose );
+    pMiter = Gia_ManMiter( pGias[0], pGias[1], 0, 1, 0, 0, pPars->fVerbose );
     if ( pMiter )
     {
         if ( fDumpMiter )
@@ -33045,10 +33098,12 @@ int Abc_CommandAbc9Cec( Abc_Frame_t * pAbc, int argc, char ** argv )
             Gia_AigerWrite( pMiter, "cec_miter.aig", 0, 0 );
         }
         pAbc->Status = Cec_ManVerify( pMiter, pPars );
-        Abc_FrameReplaceCex( pAbc, &pAbc->pGia->pCexComb );
+        Abc_FrameReplaceCex( pAbc, &pGias[0]->pCexComb );
         Gia_ManStop( pMiter );
     }
-    Gia_ManStop( pSecond );
+    if ( pGias[0] != pAbc->pGia )
+        Gia_ManStop( pGias[0] );
+    Gia_ManStop( pGias[1] );
     return 0;
 
 usage:
@@ -36166,7 +36221,7 @@ int Abc_CommandAbc9SatLut( Abc_Frame_t * pAbc, int argc, char ** argv )
 
 usage:
     Abc_Print( -2, "usage: &satlut [-NICDQ num] [-drwvh]\n" );
-    Abc_Print( -2, "\t           performs SAT-based remapping of the 4-LUT network\n" );
+    Abc_Print( -2, "\t           performs SAT-based remapping of the LUT-mapped network\n" );
     Abc_Print( -2, "\t-N num   : the limit on AIG nodes in the window (num <= 128) [default = %d]\n", nNumber );
     Abc_Print( -2, "\t-I num   : the limit on the number of improved windows [default = %d]\n", nImproves );
     Abc_Print( -2, "\t-C num   : the limit on the number of conflicts [default = %d]\n", nBTLimit );
@@ -40528,14 +40583,12 @@ usage:
 int Abc_CommandAbc9Acec( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     FILE * pFile;
-    Cec_ParCec_t ParsCec, * pPars = &ParsCec;
-    Gia_Man_t * pSecond;
-    char * FileName, * pTemp;
+    Acec_ParCec_t ParsCec, * pPars = &ParsCec;
     char ** pArgvNew;
-    int c, nArgcNew, fMiter = 0, fDualOutput = 0, fTwoOutput = 0;
-    Cec_ManCecSetDefaultParams( pPars );
+    int c, nArgcNew;
+    Acec_ManCecSetDefaultParams( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "CTnmdtvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "CTmdtbvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -40561,17 +40614,17 @@ int Abc_CommandAbc9Acec( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( pPars->TimeLimit < 0 )
                 goto usage;
             break;
-        case 'n':
-            pPars->fNaive ^= 1;
-            break;
         case 'm':
-            fMiter ^= 1;
+            pPars->fMiter ^= 1;
             break;
         case 'd':
-            fDualOutput ^= 1;
+            pPars->fDualOutput ^= 1;
             break;
         case 't':
-            fTwoOutput ^= 1;
+            pPars->fTwoOutput ^= 1;
+            break;
+        case 'b':
+            pPars->fBooth ^= 1;
             break;
         case 'v':
             pPars->fVerbose ^= 1;
@@ -40582,15 +40635,20 @@ int Abc_CommandAbc9Acec( Abc_Frame_t * pAbc, int argc, char ** argv )
             goto usage;
         }
     }
-    if ( fMiter )
+    if ( pPars->fMiter )
     {
         Gia_Man_t * pGia0, * pGia1, * pDual;
+        if ( argc != globalUtilOptind )
+        {
+            Abc_Print( -1, "Abc_CommandAbc9Acec(): If the input is a miter, it cannot be given on the command line.\n" );
+            return 1;
+        }
         if ( pAbc->pGia == NULL )
         {
             Abc_Print( -1, "Abc_CommandAbc9Acec(): There is no AIG.\n" );
             return 1;
         }
-        if ( fDualOutput )
+        if ( pPars->fDualOutput )
         {
             if ( Gia_ManPoNum(pAbc->pGia) & 1 )
             {
@@ -40600,28 +40658,28 @@ int Abc_CommandAbc9Acec( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( !pPars->fSilent )
             Abc_Print( 1, "Assuming the current network is a double-output miter. (Conflict limit = %d.)\n", pPars->nBTLimit );
             Gia_ManDemiterDual( pAbc->pGia, &pGia0, &pGia1 );
-            pAbc->Status = Gia_PolynCec( pGia0, pGia1, pPars );
+            pAbc->Status = Acec_Solve( pGia0, pGia1, pPars );
         }
-        else if ( fTwoOutput )
+        else if ( pPars->fTwoOutput )
         {
             if ( Gia_ManPoNum(pAbc->pGia) & 1 )
             {
-                Abc_Print( -1, "The dual-output miter should have an even number of outputs.\n" );
+                Abc_Print( -1, "The two-output miter should have an even number of outputs.\n" );
                 return 1;
             }
             if ( !pPars->fSilent )
             Abc_Print( 1, "Assuming the current network is a two-word miter. (Conflict limit = %d.)\n", pPars->nBTLimit );
             Gia_ManDemiterTwoWords( pAbc->pGia, &pGia0, &pGia1 );
-            pAbc->Status = Gia_PolynCec( pGia0, pGia1, pPars );
+            pAbc->Status = Acec_Solve( pGia0, pGia1, pPars );
         }
-        else
+        else // regular single- or multi-output miter
         {
             if ( !pPars->fSilent )
-            Abc_Print( 1, "Assuming the current network is a single-output miter. (Conflict limit = %d.)\n", pPars->nBTLimit );
+            Abc_Print( 1, "Assuming the current network is a regular single- or multi-output miter. (Conflict limit = %d.)\n", pPars->nBTLimit );
             pDual = Gia_ManDemiterToDual( pAbc->pGia );
             Gia_ManDemiterDual( pDual, &pGia0, &pGia1 );
             Gia_ManStop( pDual );
-            pAbc->Status = Gia_PolynCec( pGia0, pGia1, pPars );
+            pAbc->Status = Acec_Solve( pGia0, pGia1, pPars );
         }
         Abc_FrameReplaceCex( pAbc, &pGia0->pCexComb );
         Gia_ManStop( pGia0 );
@@ -40631,54 +40689,200 @@ int Abc_CommandAbc9Acec( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     pArgvNew = argv + globalUtilOptind;
     nArgcNew = argc - globalUtilOptind;
-    if ( nArgcNew != 1 )
+    if ( nArgcNew == 0 || nArgcNew == 1 )
     {
-        if ( pAbc->pGia->pSpec == NULL )
+        Gia_Man_t * pSecond;
+        char * pTemp, * FileName = NULL;
+        if ( nArgcNew == 0 )
         {
-            Abc_Print( -1, "File name is not given on the command line.\n" );
-            return 1;
+            FileName = pAbc->pGia->pSpec;
+            if ( FileName == NULL )
+            {
+                Abc_Print( -1, "File name is not given on the command line.\n" );
+                return 1;
+            }
         }
-        FileName = pAbc->pGia->pSpec;
+        else // if ( nArgcNew == 1 )
+        {
+            FileName = pArgvNew[0];
+            // fix the wrong symbol
+            for ( pTemp = FileName; *pTemp; pTemp++ )
+                if ( *pTemp == '>' )
+                    *pTemp = '\\';
+            if ( (pFile = fopen( FileName, "r" )) == NULL )
+            {
+                Abc_Print( -1, "Cannot open input file \"%s\". ", FileName );
+                if ( (FileName = Extra_FileGetSimilarName( FileName, ".aig", NULL, NULL, NULL, NULL )) )
+                    Abc_Print( 1, "Did you mean \"%s\"?", FileName );
+                Abc_Print( 1, "\n" );
+                return 1;
+            }
+            fclose( pFile );
+        }
+        pSecond = Gia_AigerRead( FileName, 0, 0, 0 );
+        if ( pSecond == NULL )
+        {
+            Abc_Print( -1, "Reading AIGER has failed.\n" );
+            return 0;
+        }
+        pAbc->Status = Acec_Solve( pAbc->pGia, pSecond, pPars );
+        Abc_FrameReplaceCex( pAbc, &pAbc->pGia->pCexComb );
+        Gia_ManStop( pSecond );
+    }
+    else if ( nArgcNew == 2 )
+    {
+        Gia_Man_t * pGias[2] = {NULL};  int i;
+        char * pTemp, * FileName[2] = { pArgvNew[0], pArgvNew[1] };
+        for ( i = 0; i < 2; i++ )
+        {
+            // fix the wrong symbol
+            for ( pTemp = FileName[i]; *pTemp; pTemp++ )
+                if ( *pTemp == '>' )
+                    *pTemp = '\\';
+            if ( (pFile = fopen( FileName[i], "r" )) == NULL )
+            {
+                Abc_Print( -1, "Cannot open input file \"%s\". ", FileName[i] );
+                if ( (FileName[i] = Extra_FileGetSimilarName( FileName[i], ".aig", NULL, NULL, NULL, NULL )) )
+                    Abc_Print( 1, "Did you mean \"%s\"?", FileName[i] );
+                Abc_Print( 1, "\n" );
+                return 1;
+            }
+            fclose( pFile );
+            pGias[i] = Gia_AigerRead( FileName[i], 0, 0, 0 );
+            if ( pGias[i] == NULL )
+            {
+                Abc_Print( -1, "Reading AIGER has failed.\n" );
+                return 0;
+            }
+        }
+        pAbc->Status = Acec_Solve( pGias[0], pGias[1], pPars );
+        Abc_FrameReplaceCex( pAbc, &pGias[0]->pCexComb );
+        Gia_ManStop( pGias[0] );
+        Gia_ManStop( pGias[1] );
     }
     else
-        FileName = pArgvNew[0];
-    // fix the wrong symbol
-    for ( pTemp = FileName; *pTemp; pTemp++ )
-        if ( *pTemp == '>' )
-            *pTemp = '\\';
-    if ( (pFile = fopen( FileName, "r" )) == NULL )
     {
-        Abc_Print( -1, "Cannot open input file \"%s\". ", FileName );
-        if ( (FileName = Extra_FileGetSimilarName( FileName, ".aig", NULL, NULL, NULL, NULL )) )
-            Abc_Print( 1, "Did you mean \"%s\"?", FileName );
-        Abc_Print( 1, "\n" );
+        Abc_Print( -1, "Too many command-line arguments.\n" );
         return 1;
     }
-    fclose( pFile );
-    pSecond = Gia_AigerRead( FileName, 0, 0, 0 );
-    if ( pSecond == NULL )
-    {
-        Abc_Print( -1, "Reading AIGER has failed.\n" );
-        return 0;
-    }
-    pAbc->Status = Gia_PolynCec( pAbc->pGia, pSecond, pPars );
-    Abc_FrameReplaceCex( pAbc, &pAbc->pGia->pCexComb );
-    Gia_ManStop( pSecond );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &acec [-CT num] [-nmdtvh]\n" );
+    Abc_Print( -2, "usage: &acec [-CT num] [-mdtbvh] <file1> <file2>\n" );
     Abc_Print( -2, "\t         combinational equivalence checking for arithmetic circuits\n" );
     Abc_Print( -2, "\t-C num : the max number of conflicts at a node [default = %d]\n", pPars->nBTLimit );
     Abc_Print( -2, "\t-T num : approximate runtime limit in seconds [default = %d]\n", pPars->TimeLimit );
-    Abc_Print( -2, "\t-n     : toggle using naive SAT-based checking [default = %s]\n", pPars->fNaive? "yes":"no");
-    Abc_Print( -2, "\t-m     : toggle miter vs. two circuits [default = %s]\n", fMiter? "miter":"two circuits");
-    Abc_Print( -2, "\t-d     : toggle using dual output miter [default = %s]\n", fDualOutput? "yes":"no");
-    Abc_Print( -2, "\t-t     : toggle using two-word miter [default = %s]\n", fTwoOutput? "yes":"no");
+    Abc_Print( -2, "\t-m     : toggle miter vs. two circuits [default = %s]\n", pPars->fMiter? "miter":"two circuits");
+    Abc_Print( -2, "\t-d     : toggle using dual output miter [default = %s]\n", pPars->fDualOutput? "yes":"no");
+    Abc_Print( -2, "\t-t     : toggle using two-word miter [default = %s]\n", pPars->fTwoOutput? "yes":"no");
+    Abc_Print( -2, "\t-b     : toggle working with Booth multipliers [default = %s]\n", pPars->fBooth? "yes":"no");
     Abc_Print( -2, "\t-v     : toggle verbose output [default = %s]\n", pPars->fVerbose? "yes":"no");
+    Abc_Print( -2, "\t-h     : print the command usage\n");
+    Abc_Print( -2, "\tfile1  : (optional) the file with the first network\n");
+    Abc_Print( -2, "\tfile2  : (optional) the file with the second network\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc9Anorm( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    Gia_Man_t * pTemp;
+    int c, fBooth = 0, fVerbose = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "bvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'b':
+            fBooth ^= 1;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pAbc->pGia == NULL )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9Anorm(): There is no AIG.\n" );
+        return 0;
+    }
+    pTemp = Acec_Normalize( pAbc->pGia, fBooth, fVerbose );
+    Abc_FrameUpdateGia( pAbc, pTemp );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: &anorm [-bvh]\n" );
+    Abc_Print( -2, "\t         normalize adder trees in the current AIG\n" );
+    Abc_Print( -2, "\t-b     : toggles working with Booth multipliers [default = %s]\n",  fBooth? "yes": "no" );
+    Abc_Print( -2, "\t-v     : toggles printing verbose information [default = %s]\n",  fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
 }
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc9Decla( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    Gia_Man_t * pTemp;
+    int c, fBooth = 0, fVerbose = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "bvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'b':
+            fBooth ^= 1;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pAbc->pGia == NULL )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9Decla(): There is no AIG.\n" );
+        return 0;
+    }
+    pTemp = Acec_ManDecla( pAbc->pGia, fBooth, fVerbose );
+    Abc_FrameUpdateGia( pAbc, pTemp );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: &decla [-bvh]\n" );
+    Abc_Print( -2, "\t         removes carry look ahead adders\n" );
+    Abc_Print( -2, "\t-b     : toggles working with Booth multipliers [default = %s]\n",  fBooth? "yes": "no" );
+    Abc_Print( -2, "\t-v     : toggles printing verbose information [default = %s]\n",  fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
+    return 1;
+}
+
 
 /**Function*************************************************************
 
@@ -41006,7 +41210,7 @@ int Abc_CommandAbc9Mfsd( Abc_Frame_t * pAbc, int argc, char ** argv )
     Sbd_Par_t Pars, * pPars = &Pars;
     Sbd_ParSetDefault( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "KWFMCacvwh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "KSNPWFMCmcdpvwh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -41019,6 +41223,39 @@ int Abc_CommandAbc9Mfsd( Abc_Frame_t * pAbc, int argc, char ** argv )
             pPars->nLutSize = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
             if ( pPars->nLutSize < 0 )
+                goto usage;
+            break;
+        case 'S':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-S\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nLutNum = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nLutNum < 0 )
+                goto usage;
+            break;
+        case 'N':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-N\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nCutSize = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nCutSize < 0 )
+                goto usage;
+            break;
+        case 'P':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-P\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nCutNum = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nCutNum < 0 )
                 goto usage;
             break;
         case 'W':
@@ -41065,11 +41302,17 @@ int Abc_CommandAbc9Mfsd( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( pPars->nBTLimit < 0 )
                 goto usage;
             break;
-        case 'a':
-            pPars->fArea ^= 1;
+        case 'm':
+            pPars->fMapping ^= 1;
             break;
         case 'c':
-            pPars->fCover ^= 1;
+            pPars->fMoreCuts ^= 1;
+            break;
+        case 'd':
+            pPars->fFindDivs ^= 1;
+            break;
+        case 'p':
+            pPars->fUsePath ^= 1;
             break;
         case 'v':
             pPars->fVerbose ^= 1;
@@ -41085,33 +41328,35 @@ int Abc_CommandAbc9Mfsd( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     if ( pAbc->pGia == NULL )
     {
-        Abc_Print( -1, "Abc_CommandAbc9Mfs(): There is no AIG.\n" );
+        Abc_Print( -1, "Abc_CommandAbc9Mfsd(): There is no AIG.\n" );
         return 0;
     }
     if ( Gia_ManBufNum(pAbc->pGia) )
     {
-        Abc_Print( -1, "Abc_CommandAbc9Mfs(): This command does not work with barrier buffers.\n" );
+        Abc_Print( -1, "Abc_CommandAbc9Mfsd(): This command does not work with barrier buffers.\n" );
         return 1;
     }
     if ( Gia_ManHasMapping(pAbc->pGia) )
-    {
-        Abc_Print( -1, "Abc_CommandAbc9Mfs(): The current AIG has mapping (run &st to unmap).\n" );
-        return 0;
-    }
+        Abc_Print( 1, "The current AIG has mapping, which can be used to determine critical path if \"-p\" is selected.\n" );
     pTemp = Sbd_NtkPerform( pAbc->pGia, pPars );
     Abc_FrameUpdateGia( pAbc, pTemp );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &mfsd [-KWFMC <num>] [-acvwh]\n" );
+    Abc_Print( -2, "usage: &mfsd [-KSNPWFMC <num>] [-mcdpvwh]\n" );
     Abc_Print( -2, "\t           performs SAT-based delay-oriented AIG optimization\n" );
     Abc_Print( -2, "\t-K <num> : the LUT size for delay minimization (2 <= num <= 6) [default = %d]\n",         pPars->nLutSize );
+    Abc_Print( -2, "\t-S <num> : the LUT structure size (1 <= num <= 2) [default = %d]\n",                      pPars->nLutNum );
+    Abc_Print( -2, "\t-N <num> : the cut size considered for optimization (2 <= num <= 10) [default = %d]\n",   pPars->nCutSize );
+    Abc_Print( -2, "\t-P <num> : the number of cuts computed at a node (1 <= num <= 500) [default = %d]\n",     pPars->nCutNum );
     Abc_Print( -2, "\t-W <num> : the number of levels in the TFO cone (0 <= num) [default = %d]\n",             pPars->nTfoLevels );
     Abc_Print( -2, "\t-F <num> : the max number of fanouts to skip (1 <= num) [default = %d]\n",                pPars->nTfoFanMax );
     Abc_Print( -2, "\t-M <num> : the max node count of windows to consider (0 = no limit) [default = %d]\n",    pPars->nWinSizeMax );
     Abc_Print( -2, "\t-C <num> : the max number of conflicts in one SAT run (0 = no limit) [default = %d]\n",   pPars->nBTLimit );
-    Abc_Print( -2, "\t-a       : toggle minimizing area or area+edges [default = %s]\n",                        pPars->fArea? "area": "area+edges" );
-    Abc_Print( -2, "\t-c       : toggle using complete slow covering procedure [default = %s]\n",               pPars->fCover? "yes": "no" );
+    Abc_Print( -2, "\t-m       : toggle generating delay-oriented mapping [default = %s]\n",                    pPars->fMapping? "yes": "no" );
+    Abc_Print( -2, "\t-c       : toggle using several cuts at each node [default = %s]\n",                      pPars->fMoreCuts? "yes": "no" );
+    Abc_Print( -2, "\t-d       : toggle additional search for good divisors [default = %s]\n",                  pPars->fFindDivs? "yes": "no" );
+    Abc_Print( -2, "\t-p       : toggle optimizing critical path only [default = %s]\n",                        pPars->fUsePath? "yes": "no" );
     Abc_Print( -2, "\t-v       : toggle printing optimization summary [default = %s]\n",                        pPars->fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-w       : toggle printing detailed stats for each node [default = %s]\n",                pPars->fVeryVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h       : print the command usage\n");
@@ -42541,8 +42786,6 @@ int Abc_CommandAbc9Test( Abc_Frame_t * pAbc, int argc, char ** argv )
 //    Jf_ManTestCnf( pAbc->pGia );
 //    Gia_ManCheckFalseTest( pAbc->pGia, nFrames );
 //    Gia_ParTest( pAbc->pGia, nWords, nProcs );
-//    Gia_PolynExplore( pAbc->pGia );
-//    Gia_ManTestSatEnum( pAbc->pGia );
 
 //    printf( "\nThis command is currently disabled.\n\n" );
     return 0;

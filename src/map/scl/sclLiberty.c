@@ -509,7 +509,7 @@ char * Scl_LibertyFileContents( char * pFileName, int nContents )
 {
     FILE * pFile = fopen( pFileName, "rb" );
     char * pContents = ABC_ALLOC( char, nContents+1 );
-    int RetValue;
+    int RetValue = 0;
     RetValue = fread( pContents, nContents, 1, pFile );
     fclose( pFile );
     pContents[nContents] = 0;
@@ -518,7 +518,7 @@ char * Scl_LibertyFileContents( char * pFileName, int nContents )
 void Scl_LibertyStringDump( char * pFileName, Vec_Str_t * vStr )
 {
     FILE * pFile = fopen( pFileName, "wb" );
-    int RetValue;
+    int RetValue = 0;
     if ( pFile == NULL )
     {
         printf( "Scl_LibertyStringDump(): The output file is unavailable.\n" );
@@ -583,7 +583,7 @@ Scl_Tree_t * Scl_LibertyParse( char * pFileName, int fVerbose )
         return NULL;
     pPos = p->pContents;
     Scl_LibertyWipeOutComments( p->pContents, p->pContents+p->nContents );
-    if ( !Scl_LibertyBuildItem( p, &pPos, p->pContents + p->nContents ) == 0 )
+    if ( (!Scl_LibertyBuildItem( p, &pPos, p->pContents + p->nContents )) == 0 )
     {
         if ( p->pError ) printf( "%s", p->pError );
         printf( "Parsing failed.  " );
@@ -765,10 +765,10 @@ Vec_Str_t * Scl_LibertyParseGenlibStr( char * pFileName, int fVerbose )
 ***********************************************************************/
 //#define SCL_DEBUG
 #ifdef SCL_DEBUG
-static inline void Vec_StrPutI_( Vec_Str_t * vOut, int Val )     {  printf( "%d ",  Val );  Vec_StrPutI( vOut, Val );  }
-static inline void Vec_StrPutW_( Vec_Str_t * vOut, word Val )    {  printf( "%lu ", Val );  Vec_StrPutW( vOut, Val );  }
-static inline void Vec_StrPutF_( Vec_Str_t * vOut, float Val )   {  printf( "%f ",  Val );  Vec_StrPutF( vOut, Val );  }
-static inline void Vec_StrPutS_( Vec_Str_t * vOut, char * Val )  {  printf( "%s ",  Val );  Vec_StrPutS( vOut, Val );  }
+static inline void Vec_StrPutI_( Vec_Str_t * vOut, int Val )     {  printf( "%d ",  Val );        Vec_StrPutI( vOut, Val );  }
+static inline void Vec_StrPutW_( Vec_Str_t * vOut, word Val )    {  printf( "%lu ", (long)Val );  Vec_StrPutW( vOut, Val );  }
+static inline void Vec_StrPutF_( Vec_Str_t * vOut, float Val )   {  printf( "%f ",  Val );        Vec_StrPutF( vOut, Val );  }
+static inline void Vec_StrPutS_( Vec_Str_t * vOut, char * Val )  {  printf( "%s ",  Val );        Vec_StrPutS( vOut, Val );  }
 static inline void Vec_StrPut_( Vec_Str_t * vOut )               {  printf( "\n" ); }
 #else
 static inline void Vec_StrPutI_( Vec_Str_t * vOut, int Val )     { Vec_StrPutI( vOut, Val );  }
