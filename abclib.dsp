@@ -799,6 +799,10 @@ SOURCE=.\src\base\wlc\wlcReadVer.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\base\wlc\wlcShow.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\base\wlc\wlcSim.c
 # End Source File
 # Begin Source File

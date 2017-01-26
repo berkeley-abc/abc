@@ -157,6 +157,7 @@ struct Wlc_Ntk_t_
     Vec_Int_t              vTravIds;           // trav IDs of the objects
     Vec_Int_t              vCopies;            // object first bits
     Vec_Int_t              vBits;              // object mapping into AIG nodes
+    Vec_Int_t              vLevels;            // object levels
 };
 
 static inline int          Wlc_NtkObjNum( Wlc_Ntk_t * p )                           { return p->iObj - 1;                                                      }
@@ -206,6 +207,8 @@ static inline int          Wlc_ObjSign( Wlc_Obj_t * p )                         
 static inline int *        Wlc_ObjConstValue( Wlc_Obj_t * p )                       { assert(p->Type == WLC_OBJ_CONST);      return Wlc_ObjFanins(p);          }
 static inline int          Wlc_ObjTableId( Wlc_Obj_t * p )                          { assert(p->Type == WLC_OBJ_TABLE);      return p->Fanins[1];              }
 static inline word *       Wlc_ObjTable( Wlc_Ntk_t * p, Wlc_Obj_t * pObj )          { return (word *)Vec_PtrEntry( p->vTables, Wlc_ObjTableId(pObj) );         }
+static inline int          Wlc_ObjLevelId( Wlc_Ntk_t * p, int iObj )                { return Vec_IntEntry( &p->vLevels, iObj );                                }
+static inline int          Wlc_ObjLevel( Wlc_Ntk_t * p, Wlc_Obj_t * pObj )          { return Wlc_ObjLevelId( p, Wlc_ObjId(p, pObj) );                          }
 
 static inline void         Wlc_NtkCleanCopy( Wlc_Ntk_t * p )                        { Vec_IntFill( &p->vCopies, p->nObjsAlloc, 0 );                            }
 static inline int          Wlc_NtkHasCopy( Wlc_Ntk_t * p )                          { return Vec_IntSize( &p->vCopies ) > 0;                                   }
@@ -230,6 +233,8 @@ static inline Wlc_Obj_t *  Wlc_ObjFoToFi( Wlc_Ntk_t * p, Wlc_Obj_t * pObj )     
 
 #define Wlc_NtkForEachObj( p, pObj, i )                                             \
     for ( i = 1; (i < Wlc_NtkObjNumMax(p)) && (((pObj) = Wlc_NtkObj(p, i)), 1); i++ )
+#define Wlc_NtkForEachObjReverse( p, pObj, i )                                      \
+    for ( i = Wlc_NtkObjNumMax(p) - 1; (i > 0) && (((pObj) = Wlc_NtkObj(p, i)), 1); i-- )
 #define Wlc_NtkForEachObjVec( vVec, p, pObj, i )                                    \
     for ( i = 0; (i < Vec_IntSize(vVec)) && (((pObj) = Wlc_NtkObj(p, Vec_IntEntry(vVec, i))), 1); i++ )
 #define Wlc_NtkForEachPi( p, pPi, i )                                               \
@@ -266,6 +271,7 @@ extern Gia_Man_t *    Wlc_NtkBitBlast( Wlc_Ntk_t * p, Vec_Int_t * vBoxIds, int i
 /*=== wlcCom.c ========================================================*/
 extern void           Wlc_SetNtk( Abc_Frame_t * pAbc, Wlc_Ntk_t * pNtk );
 /*=== wlcNtk.c ========================================================*/
+extern char *         Wlc_ObjTypeName( Wlc_Obj_t * p );
 extern Wlc_Ntk_t *    Wlc_NtkAlloc( char * pName, int nObjsAlloc );
 extern int            Wlc_ObjAlloc( Wlc_Ntk_t * p, int Type, int Signed, int End, int Beg );
 extern int            Wlc_ObjCreate( Wlc_Ntk_t * p, int Type, int Signed, int End, int Beg, Vec_Int_t * vFanins );
@@ -275,12 +281,16 @@ extern char *         Wlc_ObjName( Wlc_Ntk_t * p, int iObj );
 extern void           Wlc_ObjUpdateType( Wlc_Ntk_t * p, Wlc_Obj_t * pObj, int Type );
 extern void           Wlc_ObjAddFanins( Wlc_Ntk_t * p, Wlc_Obj_t * pObj, Vec_Int_t * vFanins );
 extern void           Wlc_NtkFree( Wlc_Ntk_t * p );
+extern int            Wlc_NtkCreateLevels( Wlc_Ntk_t * p );
+extern int            Wlc_NtkCreateLevelsRev( Wlc_Ntk_t * p );
 extern void           Wlc_NtkPrintNode( Wlc_Ntk_t * p, Wlc_Obj_t * pObj );
 extern void           Wlc_NtkPrintNodeArray( Wlc_Ntk_t * p, Vec_Int_t * vArray );
 extern void           Wlc_NtkPrintNodes( Wlc_Ntk_t * p, int Type );
 extern void           Wlc_NtkPrintStats( Wlc_Ntk_t * p, int fDistrib, int fVerbose );
-extern Wlc_Ntk_t *    Wlc_NtkDupDfs( Wlc_Ntk_t * p );
+extern Wlc_Ntk_t *    Wlc_NtkDupDfs( Wlc_Ntk_t * p, int fMarked );
 extern void           Wlc_NtkTransferNames( Wlc_Ntk_t * pNew, Wlc_Ntk_t * p );
+extern void           Wlc_NtkCleanMarks( Wlc_Ntk_t * p );
+extern void           Wlc_NtkMarkCone( Wlc_Ntk_t * p, int iPo );
 extern Wlc_Ntk_t *    Wlc_NtkDupSingleNodes( Wlc_Ntk_t * p );
 /*=== wlcReadSmt.c ========================================================*/
 extern Wlc_Ntk_t *    Wlc_ReadSmtBuffer( char * pFileName, char * pBuffer, char * pLimit, int fOldParser, int fPrintTree );

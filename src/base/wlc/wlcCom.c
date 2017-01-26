@@ -31,8 +31,10 @@ ABC_NAMESPACE_IMPL_START
 static int  Abc_CommandReadWlc  ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int  Abc_CommandWriteWlc ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int  Abc_CommandPs       ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int  Abc_CommandCone     ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int  Abc_CommandBlast    ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int  Abc_CommandProfile  ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int  Abc_CommandShow     ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int  Abc_CommandTest     ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 static int  Abc_CommandInvPs    ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -68,8 +70,10 @@ void Wlc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Word level", "%read",       Abc_CommandReadWlc,   0 );
     Cmd_CommandAdd( pAbc, "Word level", "%write",      Abc_CommandWriteWlc,  0 );
     Cmd_CommandAdd( pAbc, "Word level", "%ps",         Abc_CommandPs,        0 );
+    Cmd_CommandAdd( pAbc, "Word level", "%cone",       Abc_CommandCone,      0 );
     Cmd_CommandAdd( pAbc, "Word level", "%blast",      Abc_CommandBlast,     0 );
     Cmd_CommandAdd( pAbc, "Word level", "%profile",    Abc_CommandProfile,   0 );
+    Cmd_CommandAdd( pAbc, "Word level", "%show",       Abc_CommandShow,      0 );
     Cmd_CommandAdd( pAbc, "Word level", "%test",       Abc_CommandTest,      0 );
 
     Cmd_CommandAdd( pAbc, "Word level", "inv_ps",      Abc_CommandInvPs,     0 );
@@ -343,6 +347,70 @@ usage:
   SeeAlso     []
 
 ******************************************************************************/
+int Abc_CommandCone( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    Wlc_Ntk_t * pNtk = Wlc_AbcGetNtk(pAbc);
+    int c, iOutput = -1, fVerbose  = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Ovh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'O':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-O\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            iOutput = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( iOutput < 0 )
+                goto usage;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pNtk == NULL )
+    {
+        Abc_Print( 1, "Abc_CommandCone(): There is no current design.\n" );
+        return 0;
+    }
+    if ( iOutput < 0 || iOutput >= Wlc_NtkPoNum(pNtk) )
+    {
+        Abc_Print( 1, "Abc_CommandCone(): Illegal output index (%d) (should be 0 <= num < %d).\n", iOutput, Wlc_NtkPoNum(pNtk) );
+        return 0;
+    }
+    printf( "Extracting output %d.\n", iOutput );
+    Wlc_NtkMarkCone( pNtk, iOutput );
+    pNtk = Wlc_NtkDupDfs( pNtk, 1 );
+    Wlc_AbcUpdateNtk( pAbc, pNtk );
+    return 0;
+usage:
+    Abc_Print( -2, "usage: %%cone [-O num] [-vh]\n" );
+    Abc_Print( -2, "\t         extracts cone of the given word-level output\n" );
+    Abc_Print( -2, "\t-O num : zero-based index of the word-level output to extract [default = %d]\n", iOutput );
+    Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
+    return 1;
+}
+
+/**Function********************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+******************************************************************************/
 int Abc_CommandBlast( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Wlc_Ntk_t * pNtk = Wlc_AbcGetNtk(pAbc);
@@ -478,6 +546,54 @@ usage:
     Abc_Print( -2, "\t         profiles arithmetic components in the word-level networks\n" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandShow( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern void Wlc_NtkShow( Wlc_Ntk_t * p, Vec_Int_t * vBold );
+    Wlc_Ntk_t * pNtk = Wlc_AbcGetNtk(pAbc);
+    int c, fVerbose = 0;
+    // set defaults
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        default:
+            goto usage;
+        }
+    }
+    if ( pNtk == NULL )
+    {
+        Abc_Print( -1, "Empty network.\n" );
+        return 1;
+    }
+    Wlc_NtkShow( pNtk, NULL );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: %%show [-h]\n" );
+    Abc_Print( -2, "       visualizes the network structure using DOT and GSVIEW\n" );
+#ifdef WIN32
+    Abc_Print( -2, "       \"dot.exe\" and \"gsview32.exe\" should be set in the paths\n" );
+    Abc_Print( -2, "       (\"gsview32.exe\" may be in \"C:\\Program Files\\Ghostgum\\gsview\\\")\n" );
+#endif
+    Abc_Print( -2, "\t-h    : print the command usage\n");
     return 1;
 }
 

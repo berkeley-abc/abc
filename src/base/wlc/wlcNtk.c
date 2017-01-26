@@ -88,6 +88,8 @@ static char * Wlc_Names[WLC_OBJ_NUMBER+1] = {
     NULL                   // 54: unused
 };
 
+char * Wlc_ObjTypeName( Wlc_Obj_t * p ) { return Wlc_Names[p->Type]; }
+
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
@@ -224,6 +226,7 @@ void Wlc_NtkFree( Wlc_Ntk_t * p )
     ABC_FREE( p->vValues.pArray );
     ABC_FREE( p->vCopies.pArray );
     ABC_FREE( p->vBits.pArray );
+    ABC_FREE( p->vLevels.pArray );
     ABC_FREE( p->pInits );
     ABC_FREE( p->pObjs );
     ABC_FREE( p->pName );
@@ -242,6 +245,81 @@ int Wlc_NtkMemUsage( Wlc_Ntk_t * p )
     Mem += Abc_NamMemUsed(p->pManName);
     Mem += Mem_FlexReadMemUsage(p->pMemFanin);
     return Mem;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Assigns object levels.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Wlc_NtkCreateLevels( Wlc_Ntk_t * p )
+{
+    Wlc_Obj_t * pObj; 
+    int i, k, iFanin, Level, LevelMax = 0;
+    Vec_IntFill( &p->vLevels, Wlc_NtkObjNumMax(p), 0 );
+    Wlc_NtkForEachObj( p, pObj, i )
+    {
+        Level = 0;
+        Wlc_ObjForEachFanin( pObj, iFanin, k )
+            Level = Abc_MaxInt( Level, Wlc_ObjLevelId(p, iFanin) + 1 );
+        Vec_IntWriteEntry( &p->vLevels, i, Level );
+        LevelMax = Abc_MaxInt( LevelMax, Level );
+    }
+    return LevelMax;
+}
+int Wlc_NtkCreateLevelsRev( Wlc_Ntk_t * p )
+{
+    Wlc_Obj_t * pObj; 
+    int i, k, iFanin, Level, LevelMax = 0;
+    Vec_IntFill( &p->vLevels, Wlc_NtkObjNumMax(p), 0 );
+    Wlc_NtkForEachObjReverse( p, pObj, i )
+    {
+        if ( Wlc_ObjIsCi(pObj) )
+            continue;
+        Level = Wlc_ObjLevel(p, pObj) + 1;
+        Wlc_ObjForEachFanin( pObj, iFanin, k )
+            Vec_IntUpdateEntry( &p->vLevels, iFanin, Level );
+        LevelMax = Abc_MaxInt( LevelMax, Level );
+    }
+    // reverse the values
+    Wlc_NtkForEachObj( p, pObj, i )
+        Vec_IntWriteEntry( &p->vLevels, i, LevelMax - Wlc_ObjLevelId(p, i) );
+    Wlc_NtkForEachCi( p, pObj, i )
+        Vec_IntWriteEntry( &p->vLevels, Wlc_ObjId(p, pObj), 0 );
+    return LevelMax;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Collects statistics for each side of the miter.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Wlc_NtkCollectStats( Wlc_Ntk_t * p, int nObjs[2][WLC_OBJ_NUMBER] )
+{
+    Wlc_Obj_t * pObj;
+    int n, i;
+    if ( Wlc_NtkPoNum(p) != 2 )
+        return;
+    for ( n = 0; n < 2; n++ )
+    {
+        Wlc_NtkMarkCone( p, n );
+        Wlc_NtkForEachObj( p, pObj, i )
+            if ( pObj->Mark )
+                nObjs[n][pObj->Type]++;
+    }
+    Wlc_NtkCleanMarks( p );
 }
 
 /**Function*************************************************************
@@ -300,11 +378,13 @@ void Wlc_NtkPrintDistribSortOne( Vec_Ptr_t * vTypes, Vec_Ptr_t * vOccurs, int Ty
 }
 void Wlc_NtkPrintDistrib( Wlc_Ntk_t * p, int fVerbose )
 {
+    int nObjs[2][WLC_OBJ_NUMBER] = {{0}}; // counter of objects of each type
     Wlc_Obj_t * pObj, * pObjRange = NULL; int nCountRange = 0;
     Vec_Ptr_t * vTypes, * vOccurs;
     Vec_Int_t * vAnds = Vec_IntStart( WLC_OBJ_NUMBER );
     word Sign;
     int i, k, s, s0, s1;
+    Wlc_NtkCollectStats( p, nObjs );
     // allocate statistics arrays
     vTypes  = Vec_PtrStart( WLC_OBJ_NUMBER );
     vOccurs = Vec_PtrStart( WLC_OBJ_NUMBER );
@@ -435,28 +515,40 @@ void Wlc_NtkPrintDistrib( Wlc_Ntk_t * p, int fVerbose )
         else if ( pObj->Type == WLC_OBJ_ARI_SQUARE )    
             Vec_IntAddToEntry( vAnds, WLC_OBJ_ARI_SQUARE,   5 * Wlc_ObjRange(Wlc_ObjFanin0(p, pObj)) * Wlc_ObjRange(Wlc_ObjFanin1(p, pObj))  );
     }
-    if ( nCountRange )
+    if ( nCountRange && Vec_IntSize(&p->vNameIds) > 0 )
     {
         printf( "Warning: %d objects of the design have non-zero-based ranges.\n", nCountRange );
         printf( "In particular, object %6d with name \"%s\" has range %d=[%d:%d]\n", Wlc_ObjId(p, pObjRange), 
             Abc_NamStr(p->pManName, Wlc_ObjNameId(p, Wlc_ObjId(p, pObjRange))), Wlc_ObjRange(pObjRange), pObjRange->End, pObjRange->Beg );
     }
     // print by occurrence
-    printf( "ID  :  name  occurrence    and2 (occurrence)<output_range>=<input_range>.<input_range> ...\n" );
+    printf( "ID  :  name  occurrence%s    and2 (occurrence)<output_range>=<input_range>.<input_range> ...\n", Wlc_NtkPoNum(p) == 2 ? "     Left Share Right":"" );
     for ( i = 0; i < WLC_OBJ_NUMBER; i++ )
     {
         Vec_Wrd_t * vType  = (Vec_Wrd_t *)Vec_PtrEntry( vTypes, i );
         Vec_Wrd_t * vOccur = (Vec_Wrd_t *)Vec_PtrEntry( vOccurs, i );
         if ( p->nObjs[i] == 0 )
             continue;
-        printf( "%2d  :  %-8s  %6d%8d ", i, Wlc_Names[i], p->nObjs[i], Vec_IntEntry(vAnds, i) );
+        printf( "%2d  :  %-8s  %6d", i, Wlc_Names[i], p->nObjs[i] );
+        if ( Wlc_NtkPoNum(p) == 2 )
+        {
+            printf( "   " );
+            printf( "%6d", nObjs[0][i] );
+            printf( "%6d", nObjs[0][i]+nObjs[1][i]-p->nObjs[i] );
+            printf( "%6d", nObjs[1][i] );
+        }
+        printf( "%8d ", Vec_IntEntry(vAnds, i) );
         // sort by occurence
         Wlc_NtkPrintDistribSortOne( vTypes, vOccurs, i );
         Vec_WrdForEachEntry( vType, Sign, k )
         {
             Wlc_NtkPrintDistribFromSign( Sign, &s, &s0, &s1 );
             if ( ((k % 6) == 5 && s1) || ((k % 8) == 7 && !s1) )
+            {
                 printf( "\n                                " );
+                if ( Wlc_NtkPoNum(p) == 2 )
+                    printf( "                     " );
+            }
             printf( "(%d)", (int)Vec_WrdEntry( vOccur, k ) );
             printf( "%s%d",      Abc_LitIsCompl(s)?"-":"",  Abc_Lit2Var(s) );
             if ( s0 )
@@ -623,7 +715,7 @@ void Wlc_NtkDupDfs_rec( Wlc_Ntk_t * pNew, Wlc_Ntk_t * p, int iObj, Vec_Int_t * v
         Wlc_NtkDupDfs_rec( pNew, p, iFanin, vFanins );
     Wlc_ObjDup( pNew, p, iObj, vFanins );
 }
-Wlc_Ntk_t * Wlc_NtkDupDfs( Wlc_Ntk_t * p )
+Wlc_Ntk_t * Wlc_NtkDupDfs( Wlc_Ntk_t * p, int fMarked )
 {
     Wlc_Ntk_t * pNew;
     Wlc_Obj_t * pObj;
@@ -634,11 +726,14 @@ Wlc_Ntk_t * Wlc_NtkDupDfs( Wlc_Ntk_t * p )
     pNew = Wlc_NtkAlloc( p->pName, p->nObjsAlloc );
     pNew->fSmtLib = p->fSmtLib;
     Wlc_NtkForEachCi( p, pObj, i )
-        Wlc_ObjDup( pNew, p, Wlc_ObjId(p, pObj), vFanins );
+        if ( !fMarked || pObj->Mark )
+            Wlc_ObjDup( pNew, p, Wlc_ObjId(p, pObj), vFanins );
     Wlc_NtkForEachCo( p, pObj, i )
-        Wlc_NtkDupDfs_rec( pNew, p, Wlc_ObjId(p, pObj), vFanins );
+        if ( !fMarked || pObj->Mark )
+            Wlc_NtkDupDfs_rec( pNew, p, Wlc_ObjId(p, pObj), vFanins );
     Wlc_NtkForEachCo( p, pObj, i )
-        Wlc_ObjSetCo( pNew, Wlc_ObjCopyObj(pNew, p, pObj), pObj->fIsFi );
+        if ( !fMarked || pObj->Mark )
+            Wlc_ObjSetCo( pNew, Wlc_ObjCopyObj(pNew, p, pObj), pObj->fIsFi );
     if ( p->vInits )
     pNew->vInits = Vec_IntDup( p->vInits );
     if ( p->pInits )
@@ -664,6 +759,59 @@ void Wlc_NtkTransferNames( Wlc_Ntk_t * pNew, Wlc_Ntk_t * p )
     // transfer table
     pNew->pMemTable = p->pMemTable;  p->pMemTable = NULL;
     pNew->vTables = p->vTables;      p->vTables = NULL;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Select the cone of the given output.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Wlc_NtkCleanMarks( Wlc_Ntk_t * p )
+{
+    Wlc_Obj_t * pObj;
+    int i;
+    Wlc_NtkForEachObj( p, pObj, i )
+        pObj->Mark = 0;
+}
+void Wlc_NtkMarkCone_rec( Wlc_Ntk_t * p, Wlc_Obj_t * pObj, Vec_Int_t * vFlops )
+{
+    int i, iFanin;
+    if ( pObj->Mark )
+        return;
+    pObj->Mark = 1;
+    if ( Wlc_ObjIsCi(pObj) )
+    {
+        if ( !Wlc_ObjIsPi(pObj) )
+            Vec_IntPush( vFlops, Wlc_ObjCiId(pObj) );
+        return;
+    }
+    Wlc_ObjForEachFanin( pObj, iFanin, i )
+        Wlc_NtkMarkCone_rec( p, Wlc_NtkObj(p, iFanin), vFlops );
+}
+void Wlc_NtkMarkCone( Wlc_Ntk_t * p, int iPo )
+{
+    Vec_Int_t * vFlops;
+    Wlc_Obj_t * pObj;
+    int i, CiId, CoId;
+    Wlc_NtkCleanMarks( p );
+    Wlc_NtkForEachPi( p, pObj, i )
+        pObj->Mark = 1;
+    vFlops = Vec_IntAlloc( 100 );
+    Wlc_NtkForEachPo( p, pObj, i )
+        if ( i == iPo )
+            Wlc_NtkMarkCone_rec( p, pObj, vFlops );
+    Vec_IntForEachEntry( vFlops, CiId, i )
+    {
+        CoId = Wlc_NtkPoNum(p) + CiId - Wlc_NtkPiNum(p);
+        Wlc_NtkMarkCone_rec( p, Wlc_NtkCo(p, CoId), vFlops );
+    }
+    Vec_IntFree( vFlops );
 }
 
 /**Function*************************************************************
