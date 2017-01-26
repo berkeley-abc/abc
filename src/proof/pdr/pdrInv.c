@@ -691,7 +691,7 @@ void Pdr_InvPrint( Vec_Int_t * vInv, int fVerbose )
     }
 }
 
-int Pdr_InvCheck_int( Gia_Man_t * p, Vec_Int_t * vInv, int fVerbose, sat_solver * pSat )
+int Pdr_InvCheck_int( Gia_Man_t * p, Vec_Int_t * vInv, int fVerbose, sat_solver * pSat, int fSkip )
 {
     int nBTLimit = 0;
     int fCheckProperty = 1;
@@ -733,6 +733,11 @@ int Pdr_InvCheck_int( Gia_Man_t * p, Vec_Int_t * vInv, int fVerbose, sat_solver 
                 if ( fVerbose )
                     printf( "Coverage check failed for output %d.\n", i );
                 nFailedOuts++;
+                if ( fSkip )
+                {
+                    Vec_IntFree( vLits );
+                    return 1;
+                }
                 continue;
             }
             assert( status == l_False ); // unsat - property holds
@@ -755,6 +760,11 @@ int Pdr_InvCheck_int( Gia_Man_t * p, Vec_Int_t * vInv, int fVerbose, sat_solver 
             continue;
         assert( status == l_True );
         nFailed++;
+        if ( fSkip )
+        {
+            Vec_IntFree( vLits );
+            return 1;
+        }
         if ( fVerbose )
             printf( "Inductiveness check failed for clause %d.\n", i );
     }
@@ -769,7 +779,7 @@ int Pdr_InvCheck( Gia_Man_t * p, Vec_Int_t * vInv, int fVerbose )
     sat_solver * pSat = (sat_solver *)Cnf_DataWriteIntoSolver( pCnf, 1, 0 );
     assert( sat_solver_nvars(pSat) == pCnf->nVars );
     Cnf_DataFree( pCnf );
-    RetValue = Pdr_InvCheck_int( p, vInv, fVerbose, pSat );
+    RetValue = Pdr_InvCheck_int( p, vInv, fVerbose, pSat, 0 );
     sat_solver_delete( pSat );
     return RetValue;
 }
@@ -912,7 +922,7 @@ Vec_Int_t * Pdr_InvMinimizeLits( Gia_Man_t * p, Vec_Int_t * vInv, int fVerbose )
             pCube[k+1] = -1;
             //sat_solver_bookmark( pSat );
             pSat = (sat_solver *)Cnf_DataWriteIntoSolver( pCnf, 1, 0 );
-            if ( Pdr_InvCheck_int(p, vInv, 0, pSat) )
+            if ( Pdr_InvCheck_int(p, vInv, 0, pSat, 1) )
                 pCube[k+1] = Save;
             else
             {
