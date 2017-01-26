@@ -219,6 +219,8 @@ static inline int Smt_StrToType( char * pName, int * pfSigned )
         Type = WLC_OBJ_ARI_REM, *pfSigned = 1;       // 40: arithmetic remainder
     else if ( !strcmp(pName, "bvsmod") )
         Type = WLC_OBJ_ARI_MODULUS, *pfSigned = 1;   // 40: arithmetic modulus
+    else if ( !strcmp(pName, "=") )
+        Type = WLC_OBJ_COMP_EQU;   // 40: arithmetic modulus
 //    else if ( !strcmp(pName, "") )
 //        Type = WLC_OBJ_ARI_POWER;     // 41: arithmetic power
     else if ( !strcmp(pName, "bvneg") )
@@ -255,6 +257,8 @@ static inline int Smt_PrsReadType( Smt_Prs_t * p, int iSig, int * pfSigned, int 
     }
 }
 
+static inline int Smt_StrType( char * str ) { return Smt_StrToType(str, NULL); }
+
 /**Function*************************************************************
 
   Synopsis    []
@@ -274,20 +278,27 @@ static inline int Smt_PrsCreateNodeOld( Wlc_Ntk_t * pNtk, int Type, int fSigned,
     assert( Type > 0 );
     assert( Range >= 0 );
     assert( fSigned >= 0 );
-    Wlc_ObjAddFanins( pNtk, Wlc_NtkObj(pNtk, iObj), vFanins );
-    if ( fSigned )
-        Wlc_NtkObj(pNtk, iObj)->Signed = fSigned;
-    if ( Type == WLC_OBJ_SHIFT_RA )
-        Wlc_NtkObj(pNtk, iObj)->Signed = 1;
+    
+    // add node's name
     if ( pName == NULL )
     {
         sprintf( Buffer, "_n%d_", iObj );
         pName = Buffer;
     }
-    // add node's name
     NameId = Abc_NamStrFindOrAdd( pNtk->pManName, pName, &fFound );
     assert( !fFound );
     assert( iObj == NameId );
+    
+    Wlc_ObjAddFanins( pNtk, Wlc_NtkObj(pNtk, iObj), vFanins );
+    if ( fSigned )
+    {
+        Wlc_NtkObj(pNtk, iObj)->Signed = fSigned;
+//        if ( Vec_IntSize(vFanins) > 0 )
+//            Wlc_NtkObj(pNtk, Vec_IntEntry(vFanins, 0))->Signed = fSigned;
+//        if ( Vec_IntSize(vFanins) > 1 )
+//            Wlc_NtkObj(pNtk, Vec_IntEntry(vFanins, 1))->Signed = fSigned;
+    }
+
     return iObj;
 }
 static inline int Smt_PrsCreateNode( Wlc_Ntk_t * pNtk, int Type, int fSigned, int Range, Vec_Int_t * vFanins, char * pName )
@@ -302,8 +313,7 @@ static inline int Smt_PrsCreateNode( Wlc_Ntk_t * pNtk, int Type, int fSigned, in
     assert( Range >= 0 );
     assert( fSigned >= 0 );
     
-    // allow more than 2 fanins for specific operators
-    // if (Vec_IntSize(vFanins)<=2 || Type == WLC_OBJ_BIT_CONCAT || Type == WLC_OBJ_MUX )
+    //if (Vec_IntSize(vFanins)<=2 || Type == WLC_OBJ_BIT_CONCAT || Type == WLC_OBJ_MUX )
     // explicitely secify allowed multi operators
     if (Vec_IntSize(vFanins)<=2 || 
         !( Type == WLC_OBJ_BIT_AND ||       // 16:`` bitwise AND
@@ -362,17 +372,17 @@ FINISHED_WITH_FANINS:
 
     Vec_IntFree(v2Fanins);
     
-    // to deal with long shifts create extra bit select (ROTATE as well ??)
+    //added to deal with long shifts create extra bit select (ROTATE as well ??)
     // this is a temporary hack
-    // basically we keep only 32 bits.
-    // bits 0 - 30 are kept same as original    
-    // bit 31 will be the reduction or of all bits from 31 to Range-1
+    // basically we keep only 32 bits. 
+    // bit[31] will be the copy of original MSB (sign bit, just in case) UPDATE: assume it is unsigned first????
+    // bit[31] will be the reduction or of any bits from [31] to Range
     if (Type == WLC_OBJ_SHIFT_R || Type == WLC_OBJ_SHIFT_RA || Type == WLC_OBJ_SHIFT_L)
     {
-        int iFanin1 = Vec_IntEntry(vFanins,1);
-        int range1 = Wlc_ObjRange( Wlc_NtkObj(pNtk, iFanin1) );
-        int iObj1, iObj2, iObj3;
+        int range1, iObj1, iObj2, iObj3;
         assert(Vec_IntSize(vFanins)>=2);
+        iFanin1 = Vec_IntEntry(vFanins,1);
+        range1 = Wlc_ObjRange( Wlc_NtkObj(pNtk, iFanin1) );
         if (range1>32)
         {
             Vec_Int_t * newFanins = Vec_IntAlloc(10);
@@ -389,6 +399,8 @@ FINISHED_WITH_FANINS:
         
             Wlc_ObjAddFanins( pNtk, Wlc_NtkObj(pNtk, iObj1), newFanins );
             
+            //printf("obj1: %d\n",iObj1);
+            
             // bit select of larger bits
             Vec_IntPop(newFanins);
             Vec_IntPop(newFanins);
@@ -402,6 +414,7 @@ FINISHED_WITH_FANINS:
             assert( iObj2 == NameId );
         
             Wlc_ObjAddFanins( pNtk, Wlc_NtkObj(pNtk, iObj2), newFanins );
+            //printf("obj2: %d\n",iObj2);
             
             // reduction or
             Vec_IntPop( newFanins );
@@ -416,6 +429,7 @@ FINISHED_WITH_FANINS:
             assert( iObj3 == NameId );
         
             Wlc_ObjAddFanins( pNtk, Wlc_NtkObj(pNtk, iObj3), newFanins );
+            //printf("obj3: %d\n",iObj3);
         
             // concat all together
             Vec_IntWriteEntry( newFanins, 0, iObj3 );
@@ -429,6 +443,7 @@ FINISHED_WITH_FANINS:
             assert( iObj == NameId );
         
             Wlc_ObjAddFanins( pNtk, Wlc_NtkObj(pNtk, iObj), newFanins );
+            //printf("obj: %d\n",iObj);
         
             // pushing the new node
             Vec_IntWriteEntry(vFanins, 1, iObj);
@@ -461,34 +476,22 @@ FINISHED_WITH_FANINS:
     return iObj;
 }
 
-/**Function*************************************************************
-
-  Synopsis    []
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
 static inline char * Smt_GetHexFromDecimalString(char * pStr)
 {
     int i,k=0, nDigits = strlen(pStr);
     int digit, carry = 0;
-    int metNonZeroBit;
-    int nBits;
-    char * hex;
+    int metNonZeroBit = 0;
     
     Vec_Int_t * decimal = Vec_IntAlloc(nDigits);
     Vec_Int_t * rev;
+    int nBits;
+    char * hex;
     
     for (i=0;i<nDigits;i++)
         Vec_IntPush(decimal,pStr[i]-'0');
 
-    // firstly fill-in the reversed vector
+    // firstly fillin the reversed vector
     rev = Vec_IntAlloc(10);
-    metNonZeroBit = 0;
     while(k<nDigits)
     {
         digit = Vec_IntEntry(decimal,k);
@@ -501,7 +504,7 @@ static inline char * Smt_GetHexFromDecimalString(char * pStr)
                     break;
                 else
                 {
-                     Vec_IntPush(rev,carry);
+                    Vec_IntPush(rev,carry);
                     carry = 0;
                     k = 0;
                     metNonZeroBit = 0;
@@ -564,12 +567,17 @@ static inline char * Smt_GetHexFromDecimalString(char * pStr)
             default: assert(0);
         }
         hex[nBits/4-1-k] = letter;
+        //if (k<Vec_IntSize(rev))
+        //    Vec_IntPush(vFanins,Vec_IntEntry(rev,k));
+        //else
+        //    Vec_IntPush(vFanins,0);
     }
     hex[nBits/4] = '\0';
     Vec_IntFree(rev);
 
     return hex;
-}            
+}           
+    
 static inline int Smt_PrsBuildConstant( Wlc_Ntk_t * pNtk, char * pStr, int nBits, char * pName )
 {
     int i, nDigits, iObj;
@@ -578,6 +586,25 @@ static inline int Smt_PrsBuildConstant( Wlc_Ntk_t * pNtk, char * pStr, int nBits
     {
         if ( pStr[0] >= '0' && pStr[0] <= '9' )
         {
+            // added: sanity check for large constants
+            /*
+            Vec_Int_t * temp = Vec_IntAlloc(10);
+            int fullBits = -1;
+            Smt_GetBinaryFromDecimalString(pStr,temp,&fullBits);
+            Vec_IntFree(temp);
+            assert(fullBits < 32);*/
+
+            char * pHex = Smt_GetHexFromDecimalString(pStr);
+            
+            if ( nBits == -1 )
+                nBits = strlen(pHex)*4;
+            
+            //printf("nbits: %d\n",nBits);
+            
+            Vec_IntFill( vFanins, Abc_BitWordNum(nBits), 0 );
+            nDigits = Abc_TtReadHexNumber( (word *)Vec_IntArray(vFanins), pHex );
+            ABC_FREE( pHex );
+            
             /*
             int w, nWords, Number = atoi( pStr );
             if ( nBits == -1 )
@@ -589,15 +616,6 @@ static inline int Smt_PrsBuildConstant( Wlc_Ntk_t * pNtk, char * pStr, int nBits
             for ( w = 0; w < nWords; w++ )
                 Vec_IntPush( vFanins, w ? 0 : Number );
             */
-            
-            // convert decimal to hex to parse large constants
-            char * pHex = Smt_GetHexFromDecimalString(pStr);
-            
-            if ( nBits == -1 )
-                nBits = strlen(pHex)*4;
-
-            Vec_IntFill( vFanins, Abc_BitWordNum(nBits), 0 );
-            nDigits = Abc_TtReadHexNumber( (word *)Vec_IntArray(vFanins), pHex );
         }
         else
         {
@@ -648,12 +666,6 @@ int Smt_PrsBuildNode( Wlc_Ntk_t * pNtk, Smt_Prs_t * p, int iNode, int RangeOut, 
             // s3087
             int fFound, iObj = Abc_NamStrFindOrAdd( pNtk->pManName, pStr, &fFound );
             assert( fFound );
-            // create buffer if the name of the fanin has different name
-            if ( pName && strcmp(pStr, pName) )
-            {
-                Vec_IntFill( &p->vTempFans, 1, iObj );
-                iObj = Smt_PrsCreateNode( pNtk, WLC_OBJ_BUF, 0, RangeOut, &p->vTempFans, pName );
-            }
             return iObj;
         }
     }
@@ -804,13 +816,6 @@ Wlc_Ntk_t * Smt_PrsBuild( Smt_Prs_t * p )
         // skip ()
         Fan = Vec_IntEntry(vFans, 2);
         assert( !Smt_EntryIsName(Fan) );
-        vFans2 = Smt_VecEntryNode(p, vFans, 2);
-        if ( Vec_IntSize(vFans2) > 0 )
-        {
-            printf( "File parsing error: Uninterpreted functions are not supported.\n" );
-            Wlc_NtkFree( pNtk ); pNtk = NULL;
-            goto finish;
-        }
         // check type (Bool or BitVec)
         Fan = Vec_IntEntry(vFans, 3);
         if ( Smt_EntryIsName(Fan) ) 
@@ -1006,6 +1011,14 @@ char * Smt_PrsGenName( Smt_Prs_t * p )
 }
 int Smt_PrsBuild2_rec( Wlc_Ntk_t * pNtk, Smt_Prs_t * p, int iNode, int iObjPrev, char * pName )
 {
+    char suffix[100];
+    sprintf(suffix,"_as%d",pNtk->nAssert);
+
+    //char * prepStr = Abc_NamStr(p->pStrs, Abc_Lit2Var(iNode));
+    //printf("prestr: %s\n",prepStr);
+    
+    //printf("inode: %d %d\n",iNode,Smt_EntryIsName(iNode));
+    
     if ( Smt_EntryIsName(iNode) )
     {
         char * pStr = Abc_NamStr(p->pStrs, Abc_Lit2Var(iNode));
@@ -1018,7 +1031,27 @@ int Smt_PrsBuild2_rec( Wlc_Ntk_t * pNtk, Smt_Prs_t * p, int iNode, int iObjPrev,
             return Smt_PrsBuildConstant( pNtk, pStr, -1, pName ? pName : Smt_PrsGenName(p) );
         else
         {
-            int fFound, iObj = Abc_NamStrFindOrAdd( pNtk->pManName, pStr, &fFound );
+            int fFound, iObj;
+            // look either for global DECLARE-FUN variable or local LET
+            char * pStr_glb = (char *)malloc(strlen(pStr) + 4 +1); //glb
+            char * pStr_loc = (char *)malloc(strlen(pStr) + strlen(suffix) +1);
+            strcpy(pStr_glb,pStr);
+            strcat(pStr_glb,"_glb");
+            strcpy(pStr_loc,pStr);
+            strcat(pStr_loc,suffix);
+            
+            fFound =  Abc_NamStrFind( pNtk->pManName, pStr_glb );
+            
+            if (fFound)
+                pStr = pStr_glb;
+            else
+            {
+                assert( Abc_NamStrFind( pNtk->pManName, pStr_loc ));
+                pStr = pStr_loc;
+            }
+            // FIXME: delete memory of pStr 
+            
+            iObj = Abc_NamStrFindOrAdd( pNtk->pManName, pStr, &fFound );
             assert( fFound );
             // create buffer if the name of the fanin has different name
             if ( pName && strcmp(Wlc_ObjName(pNtk, iObj), pName) )
@@ -1026,9 +1059,11 @@ int Smt_PrsBuild2_rec( Wlc_Ntk_t * pNtk, Smt_Prs_t * p, int iNode, int iObjPrev,
                 Vec_IntFill( &p->vTempFans, 1, iObj );
                 iObj = Smt_PrsCreateNode( pNtk, WLC_OBJ_BUF, 0, Wlc_ObjRange(Wlc_NtkObj(pNtk, iObj)), &p->vTempFans, pName );
             }
+            ABC_FREE( pStr_glb );
+            ABC_FREE( pStr_loc );
             return iObj;
         }
-     }
+    }
     else
     {
         Vec_Int_t * vRoots, * vRoots1, * vFans3; 
@@ -1039,7 +1074,7 @@ int Smt_PrsBuild2_rec( Wlc_Ntk_t * pNtk, Smt_Prs_t * p, int iNode, int iObjPrev,
         if ( Smt_EntryIsName(iRoot0) )
         {
             char * pName2, * pStr0 = Abc_NamStr(p->pStrs, Abc_Lit2Var(iRoot0));
-            if ( Abc_Lit2Var(iRoot0) == SMT_PRS_LET )
+            if ( Abc_Lit2Var(iRoot0) == SMT_PRS_LET || Abc_Lit2Var(iRoot0) == SMT_PRS_DEFINE_FUN) //added define-fun is similar to let
             {
                 // let ((s35550 (bvor s48 s35549)))
                 assert( Vec_IntSize(vRoots) == 3 );
@@ -1051,6 +1086,7 @@ int Smt_PrsBuild2_rec( Wlc_Ntk_t * pNtk, Smt_Prs_t * p, int iNode, int iObjPrev,
                 // iterate through the parts
                 Vec_IntForEachEntry( vRoots1, Fan, k )
                 {
+                    char * temp;
                     // s35550 (bvor s48 s35549)
                     assert( !Smt_EntryIsName(Fan) );
                     vFans3 = Smt_EntryNode(p, Fan);
@@ -1059,11 +1095,26 @@ int Smt_PrsBuild2_rec( Wlc_Ntk_t * pNtk, Smt_Prs_t * p, int iNode, int iObjPrev,
                     Fan3 = Vec_IntEntry(vFans3, 0);
                     assert( Smt_EntryIsName(Fan3) );
                     pName2 = Smt_EntryName(p, Fan3);
+                    // create a local name with suffix
+                    if ( Abc_Lit2Var(iRoot0) == SMT_PRS_LET )
+                    {   
+                        temp = (char *)malloc(strlen(pName2) + strlen(suffix) + 1);
+                        strcpy(temp, pName2);
+                        strcat(temp,suffix);
+                    }
+                    else 
+                    {   temp = (char *)malloc(strlen(pName2) + 4 + 1);
+                        strcpy(temp, pName2);
+                        strcat(temp,"_glb");
+                    }
+                    // FIXME: need to delete memory of pName2
+                    pName2 = temp;
                     // get function
                     Fan3 = Vec_IntEntry(vFans3, 1);
                     //assert( !Smt_EntryIsName(Fan3) );
                     // solve the problem
                     iObj = Smt_PrsBuild2_rec( pNtk, p, Fan3, -1, pName2 ); // NULL ); //pName2 );
+                    ABC_FREE( temp );
                     if ( iObj == 0 )
                         return 0;
                     // create buffer
@@ -1133,7 +1184,6 @@ int Smt_PrsBuild2_rec( Wlc_Ntk_t * pNtk, Smt_Prs_t * p, int iNode, int iObjPrev,
                 int iObj = Abc_NamStrFind( pNtk->pManName, pStr0 );
                 if ( iObj )
                     return iObj;
-
                 Type0 = Smt_StrToType( pStr0, &fSigned );
                 if ( Type0 == 0 )
                     return 0;
@@ -1151,7 +1201,6 @@ int Smt_PrsBuild2_rec( Wlc_Ntk_t * pNtk, Smt_Prs_t * p, int iNode, int iObjPrev,
                     }
                     Vec_IntPush( vFanins, iObj );
                 }
-
                 // find range
                 Range = 0;
                 if ( Type0 >= WLC_OBJ_LOGIC_NOT && Type0 <= WLC_OBJ_REDUCT_XOR )
@@ -1197,7 +1246,7 @@ Wlc_Ntk_t * Smt_PrsBuild2( Smt_Prs_t * p )
     Wlc_Ntk_t * pNtk;
     Vec_Int_t * vFansRoot, * vFans, * vFans2; 
     Vec_Int_t * vAsserts = Vec_IntAlloc(100);
-    int i, Root, Fan, iObj, NameId, Range, Status, nBits = 0;
+    int i, Root, Fan, iObj, NameId, Range, nBits = 0;
     char * pName, * pRange;
     // start network and create primary inputs
     pNtk = Wlc_NtkAlloc( p->pName, 1000 );
@@ -1214,22 +1263,22 @@ Wlc_Ntk_t * Smt_PrsBuild2( Smt_Prs_t * p )
         // create variables
         if ( Abc_Lit2Var(Fan) == SMT_PRS_DECLARE_FUN )
         {
+            char * pName_glb;
             assert( Vec_IntSize(vFans) == 4 );
             assert( Smt_VecEntryIsType(vFans, 0, SMT_PRS_DECLARE_FUN) );
             // get name
             Fan = Vec_IntEntry(vFans, 1);
             assert( Smt_EntryIsName(Fan) );
             pName = Smt_EntryName(p, Fan);
+            // added: giving a global suffix 
+            pName_glb = (char *) malloc(strlen(pName) + 4 + 1);
+            strcpy(pName_glb,pName);
+            strcat(pName_glb,"_glb");
+            // FIXME: delete memory of pName
+            pName = pName_glb;
             // skip ()
             Fan = Vec_IntEntry(vFans, 2);
             assert( !Smt_EntryIsName(Fan) );
-            vFans2 = Smt_VecEntryNode(p, vFans, 2);
-            if ( Vec_IntSize(vFans2) > 0 )
-            {
-                printf( "File parsing error: Uninterpreted functions are not supported.\n" );
-                Wlc_NtkFree( pNtk ); pNtk = NULL;
-                goto finish;
-            }
             // check type (Bool or BitVec)
             Fan = Vec_IntEntry(vFans, 3);
             if ( Smt_EntryIsName(Fan) ) 
@@ -1259,9 +1308,11 @@ Wlc_Ntk_t * Smt_PrsBuild2( Smt_Prs_t * p )
             Vec_IntPush( &pNtk->vValues, nBits );
             Vec_IntPush( &pNtk->vValues, Range );
             nBits += Range;
+            ABC_FREE( pName_glb );
         }
         // create constants
-        else if ( Abc_Lit2Var(Fan) == SMT_PRS_DEFINE_FUN )
+        /*
+        else if ( Abc_Lit2Var(Fan) == SMT_PRS_DEFINE_FUN ) // added: we parse DEFINE_FUN in LET
         {
             assert( Vec_IntSize(vFans) == 5 );
             assert( Smt_VecEntryIsType(vFans, 0, SMT_PRS_DEFINE_FUN) );
@@ -1269,6 +1320,14 @@ Wlc_Ntk_t * Smt_PrsBuild2( Smt_Prs_t * p )
             Fan = Vec_IntEntry(vFans, 1);
             assert( Smt_EntryIsName(Fan) );
             pName = Smt_EntryName(p, Fan);
+            
+            // added: giving a global suffix 
+            char * pName_glb = (char *) malloc(strlen(pName) + 4 + 1);
+            strcpy(pName_glb,pName);
+            strcat(pName_glb,"_glb");
+            // FIXME: delete memory of pName
+            pName = pName_glb;
+            
             // skip ()
             Fan = Vec_IntEntry(vFans, 2);
             assert( !Smt_EntryIsName(Fan) );
@@ -1278,13 +1337,17 @@ Wlc_Ntk_t * Smt_PrsBuild2( Smt_Prs_t * p )
             {
                 // (define-fun s_2 () Bool false)
                 assert( !strcmp("Bool", Smt_VecEntryName(p, vFans, 3)) );
-                iObj = Smt_PrsBuild2_rec( pNtk, p, Vec_IntEntry(vFans, 4), -1, pName );
-                if ( iObj == 0 )
-                {
-                    Wlc_NtkFree( pNtk ); pNtk = NULL;
-                    goto finish;
-                }
-                continue;
+                Range = 1;
+                pValue = Smt_VecEntryName(p, vFans, 4);
+                
+                //printf("value: %s\n",pValue);
+                
+                if ( !strcmp("false", pValue) )
+                    pValue = "#b0";
+                else if ( !strcmp("true", pValue) )
+                    pValue = "#b1";
+                else assert( 0 );
+                Status = Smt_PrsBuildConstant( pNtk, pValue, Range, pName );    
             }
             else
             {
@@ -1292,6 +1355,74 @@ Wlc_Ntk_t * Smt_PrsBuild2( Smt_Prs_t * p )
                 // (define-fun s1 () (_ BitVec 8) (bvneg #x7f))
                 // get range
                 Fan = Vec_IntEntry(vFans, 3);
+                
+                assert( !Smt_EntryIsName(Fan) );
+                vFans2 = Smt_VecEntryNode(p, vFans, 3);
+                assert( Vec_IntSize(vFans2) == 3 );
+                assert( !strcmp("_", Smt_VecEntryName(p, vFans2, 0)) );
+                assert( !strcmp("BitVec", Smt_VecEntryName(p, vFans2, 1)) );
+                // get range
+                Fan = Vec_IntEntry(vFans2, 2);
+                
+                assert( Smt_EntryIsName(Fan) );
+                pRange = Smt_EntryName(p, Fan);
+                Range = atoi(pRange);
+                
+                // added: can parse functions too
+                Vec_Int_t * vFans3 = Smt_VecEntryNode(p, vFans, 4);
+                Fan = Vec_IntEntry(vFans3, 0);
+                
+                // get constant
+                //Fan = Vec_IntEntry(vFans, 4);
+                
+                //printf("fan3: %s\n",Fan);
+                //printf("fan0: %s\n",Smt_VecEntryName(p, vFans3, 0));
+                //printf("fan1: %s\n",Smt_VecEntryName(p, vFans3, 1));
+                //printf("fan2: %s\n",Smt_VecEntryName(p, vFans3, 2));
+                //printf("fan3: %s\n",Smt_VecEntryName(p, vFans3, 3));
+                
+                Status = Smt_PrsBuildNode( pNtk, p, Fan, Range, pName );
+            }        
+            if ( !Status )
+            {
+                Wlc_NtkFree( pNtk ); pNtk = NULL;
+                goto finish;
+            }
+        }
+        */
+        // added: new way to parse define-fun
+        // create constants
+        else if ( Abc_Lit2Var(Fan) == SMT_PRS_DEFINE_FUN ) 
+        {
+            char * pName_glb;
+            // (define-fun def_16001 () Bool (or def_15999 def_16000))
+            // (define-fun def_15990 () (_ BitVec 24) (concat def_15988 def_15989))
+            assert( Smt_VecEntryIsType(vFans, 0, SMT_PRS_DEFINE_FUN) );
+            assert( Vec_IntSize(vFans) == 5 ); // const or definition
+            
+            // get name
+            Fan = Vec_IntEntry(vFans, 1);
+            assert( Smt_EntryIsName(Fan) );
+            pName = Smt_EntryName(p, Fan);
+            // added: giving a global suffix 
+            pName_glb = (char *) malloc(strlen(pName) + 4 + 1);
+            strcpy(pName_glb,pName);
+            strcat(pName_glb,"_glb");
+            // FIXME: delete memory of pName
+            pName = pName_glb;
+            
+            //get range
+            Fan = Vec_IntEntry(vFans, 3);
+            if ( Smt_EntryIsName(Fan) ) 
+            {
+                // (define-fun s_2 () Bool false)
+                assert( !strcmp("Bool", Smt_VecEntryName(p, vFans, 3)) );
+                Range = 1;  
+            }
+            else
+            {
+                // (define-fun s702 () (_ BitVec 4) #xe)
+                // (define-fun s1 () (_ BitVec 8) (bvneg #x7f))
                 assert( !Smt_EntryIsName(Fan) );
                 vFans2 = Smt_VecEntryNode(p, vFans, 3);
                 assert( Vec_IntSize(vFans2) == 3 );
@@ -1302,16 +1433,13 @@ Wlc_Ntk_t * Smt_PrsBuild2( Smt_Prs_t * p )
                 assert( Smt_EntryIsName(Fan) );
                 pRange = Smt_EntryName(p, Fan);
                 Range = atoi(pRange);
-                // get constant
-                Fan = Vec_IntEntry(vFans, 4);
-                Status = Smt_PrsBuildNode( pNtk, p, Fan, Range, pName );
-            }        
-            if ( !Status )
-            {
-                Wlc_NtkFree( pNtk ); pNtk = NULL;
-                goto finish;
             }
+        
+            iObj = Smt_PrsBuild2_rec( pNtk, p, Vec_IntEntry(vFans, 4), Range, pName );
+            assert( iObj );
+            ABC_FREE( pName_glb );
         }
+        
         // collect assertion outputs
         else if ( Abc_Lit2Var(Fan) == SMT_PRS_ASSERT )
         {
@@ -1321,6 +1449,7 @@ Wlc_Ntk_t * Smt_PrsBuild2( Smt_Prs_t * p )
             //(assert (not (= s0 #x00)))
             assert( Vec_IntSize(vFans) == 2 );
             assert( Smt_VecEntryIsType(vFans, 0, SMT_PRS_ASSERT) );
+            pNtk->nAssert++; // added
             iObj = Smt_PrsBuild2_rec( pNtk, p, Vec_IntEntry(vFans, 1), -1, NULL );
             if ( iObj == 0 )
             {
@@ -1336,6 +1465,9 @@ Wlc_Ntk_t * Smt_PrsBuild2( Smt_Prs_t * p )
     // build AND of asserts
     if ( Vec_IntSize(vAsserts) == 1 )
         iObj = Smt_PrsCreateNode( pNtk, WLC_OBJ_BUF, 0, 1, vAsserts, "miter" );
+    // added: 0 asserts
+    else if ( Vec_IntSize(vAsserts) == 0 )
+        iObj = Smt_PrsBuildConstant( pNtk, "#b1", 1, "miter" );
     else
     {
         iObj = Smt_PrsCreateNode( pNtk, WLC_OBJ_BIT_CONCAT, 0, Vec_IntSize(vAsserts), vAsserts, NULL );
@@ -1413,18 +1545,35 @@ static inline char * Smt_PrsLoadFile( char * pFileName, char ** ppLimit )
 static inline int Smt_PrsRemoveComments( char * pBuffer, char * pLimit )
 {
     char * pTemp; int nCount1 = 0, nCount2 = 0, fHaveBar = 0;
+    int backslash = 0;
     for ( pTemp = pBuffer; pTemp < pLimit; pTemp++ )
     {
         if ( *pTemp == '(' )
-            nCount1++;
+            { if ( !fHaveBar ) nCount1++; }
         else if ( *pTemp == ')' )
-            nCount2++;
+            { if ( !fHaveBar ) nCount2++; }
         else if ( *pTemp == '|' )
             fHaveBar ^= 1;
         else if ( *pTemp == ';' && !fHaveBar )
             while ( *pTemp && *pTemp != '\n' )
                 *pTemp++ = ' ';
+        // added: hack to remove quotes 
+        else if ( *pTemp == '\"' && *(pTemp-1) != '\\' && !fHaveBar )
+        {
+            *pTemp++ = ' ';
+            while ( *pTemp && (*pTemp != '\"' || backslash))
+            {
+                if (*pTemp == '\\')
+                    backslash = 1;
+                else 
+                    backslash = 0;
+                *pTemp++ = ' ';
+            }
+            // remove the last quote symbol
+            *pTemp = ' ';
+        }
     }
+    
     if ( nCount1 != nCount2 )
         printf( "The input SMTLIB file has different number of opening and closing parentheses (%d and %d).\n", nCount1, nCount2 );
     else if ( nCount1 == 0 )
@@ -1455,7 +1604,6 @@ static inline void Smt_PrsFree( Smt_Prs_t * p )
     Vec_IntErase( &p->vStack );
     Vec_IntErase( &p->vTempFans );
     //Vec_WecErase( &p->vDepth );
-    Vec_WecErase( &p->vObjs );
     ABC_FREE( p );
 }
 
@@ -1499,6 +1647,15 @@ void Smt_PrsReadLines( Smt_Prs_t * p )
     for ( p->pCur = p->pBuffer; p->pCur < p->pLimit; p->pCur++ )
     {
         Smt_PrsSkipSpaces( p );
+        if ( *p->pCur == '|' )
+        {
+            *p->pCur = ' ';
+            while ( *p->pCur && *p->pCur != '|' )
+                *p->pCur++ = ' ';
+            if ( *p->pCur == '|' )
+                *p->pCur = ' ';
+            continue;
+        }
         if ( *p->pCur == '(' )
         {
             // add new node at this depth
@@ -1524,12 +1681,13 @@ void Smt_PrsReadLines( Smt_Prs_t * p )
             {
                 // remove strange characters (this can lead to name clashes)
                 int iToken;
+                /* commented out for SMT comp
                 char * pTemp;
                 if ( *pStart == '?' )
                     *pStart = '_';
                 for ( pTemp = pStart; pTemp < p->pCur; pTemp++ )
                     if ( *pTemp == '.' )
-                        *pTemp = '_';
+                        *pTemp = '_';*/
                 // create and save token for this string
                 iToken = Abc_NamStrFindOrAddLim( p->pStrs, pStart, p->pCur--, NULL );
                 Vec_IntPush( Vec_WecEntry(&p->vObjs, Vec_IntEntryLast(&p->vStack)), Abc_Var2Lit(iToken, 1) );

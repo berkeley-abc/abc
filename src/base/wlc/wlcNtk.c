@@ -195,14 +195,14 @@ void Wlc_ObjAddFanins( Wlc_Ntk_t * p, Wlc_Obj_t * pObj, Vec_Int_t * vFanins )
 {
     assert( pObj->nFanins == 0 );
     pObj->nFanins = Vec_IntSize(vFanins);
-    if ( Wlc_ObjHasArray(pObj) )
-        pObj->pFanins[0] = (int *)Mem_FlexEntryFetch( p->pMemFanin, Vec_IntSize(vFanins) * sizeof(int) );
-    memcpy( Wlc_ObjFanins(pObj), Vec_IntArray(vFanins), sizeof(int) * Vec_IntSize(vFanins) );
     // special treatment of CONST, SELECT and TABLE
     if ( pObj->Type == WLC_OBJ_CONST )
         pObj->nFanins = 0;
     else if ( pObj->Type == WLC_OBJ_BIT_SELECT || pObj->Type == WLC_OBJ_TABLE )
         pObj->nFanins = 1;
+    if ( Wlc_ObjHasArray(pObj) )
+        pObj->pFanins[0] = (int *)Mem_FlexEntryFetch( p->pMemFanin, Vec_IntSize(vFanins) * sizeof(int) );
+    memcpy( Wlc_ObjFanins(pObj), Vec_IntArray(vFanins), sizeof(int) * Vec_IntSize(vFanins) );
 }
 void Wlc_NtkFree( Wlc_Ntk_t * p )
 {

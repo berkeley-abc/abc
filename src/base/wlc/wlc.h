@@ -140,6 +140,7 @@ struct Wlc_Ntk_t_
     int                    nObjs[WLC_OBJ_NUMBER]; // counter of objects of each type
     int                    nAnds[WLC_OBJ_NUMBER]; // counter of AND gates after blasting
     int                    fSmtLib;            // the network comes from an SMT-LIB file
+    int                    nAssert;            // the number of asserts
     // memory for objects
     Wlc_Obj_t *            pObjs;
     int                    iObj;
