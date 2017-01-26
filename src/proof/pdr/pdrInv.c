@@ -759,14 +759,14 @@ int Pdr_InvCheck_int( Gia_Man_t * p, Vec_Int_t * vInv, int fVerbose, sat_solver 
         if ( status == l_False ) // unsat -- correct
             continue;
         assert( status == l_True );
+        if ( fVerbose )
+            printf( "Inductiveness check failed for clause %d.\n", i );
         nFailed++;
         if ( fSkip )
         {
             Vec_IntFree( vLits );
             return 1;
         }
-        if ( fVerbose )
-            printf( "Inductiveness check failed for clause %d.\n", i );
     }
     Vec_IntFree( vLits );
     return nFailed + nFailedOuts;
