@@ -314,12 +314,22 @@ void Wlc_NtkCollectStats( Wlc_Ntk_t * p, int nObjs[2][WLC_OBJ_NUMBER] )
         return;
     for ( n = 0; n < 2; n++ )
     {
-        Wlc_NtkMarkCone( p, n );
+        Wlc_NtkMarkCone( p, n, 1 );
         Wlc_NtkForEachObj( p, pObj, i )
             if ( pObj->Mark )
                 nObjs[n][pObj->Type]++;
     }
     Wlc_NtkCleanMarks( p );
+}
+int Wlc_NtkCountRealPis( Wlc_Ntk_t * p )
+{
+    Wlc_Obj_t * pObj;
+    int i, Count = 0;
+    Wlc_NtkMarkCone( p, -1, 1 );
+    Wlc_NtkForEachPi( p, pObj, i )
+        Count += pObj->Mark;
+    Wlc_NtkCleanMarks( p );
+    return Count;
 }
 
 /**Function*************************************************************
@@ -376,7 +386,7 @@ void Wlc_NtkPrintDistribSortOne( Vec_Ptr_t * vTypes, Vec_Ptr_t * vOccurs, int Ty
     Vec_WrdReverseOrder( vType );
     Vec_WrdReverseOrder( vOccur );
 }
-void Wlc_NtkPrintDistrib( Wlc_Ntk_t * p, int fVerbose )
+void Wlc_NtkPrintDistrib( Wlc_Ntk_t * p, int fTwoSides, int fVerbose )
 {
     int nObjs[2][WLC_OBJ_NUMBER] = {{0}}; // counter of objects of each type
     Wlc_Obj_t * pObj, * pObjRange = NULL; int nCountRange = 0;
@@ -384,7 +394,10 @@ void Wlc_NtkPrintDistrib( Wlc_Ntk_t * p, int fVerbose )
     Vec_Int_t * vAnds = Vec_IntStart( WLC_OBJ_NUMBER );
     word Sign;
     int i, k, s, s0, s1;
-    Wlc_NtkCollectStats( p, nObjs );
+    if ( Wlc_NtkPoNum(p) != 2 )
+        fTwoSides = 0;
+    if ( fTwoSides )
+        Wlc_NtkCollectStats( p, nObjs );
     // allocate statistics arrays
     vTypes  = Vec_PtrStart( WLC_OBJ_NUMBER );
     vOccurs = Vec_PtrStart( WLC_OBJ_NUMBER );
@@ -489,11 +502,11 @@ void Wlc_NtkPrintDistrib( Wlc_Ntk_t * p, int fVerbose )
         else if ( pObj->Type == WLC_OBJ_REDUCT_XOR )   
             Vec_IntAddToEntry( vAnds, WLC_OBJ_REDUCT_XOR,   3 * Wlc_ObjRange(Wlc_ObjFanin0(p, pObj)) - 3 );
         else if ( pObj->Type == WLC_OBJ_REDUCT_NAND )   
-            Vec_IntAddToEntry( vAnds, WLC_OBJ_REDUCT_NAND,       Wlc_ObjRange(Wlc_ObjFanin0(p, pObj)) - 1 );
+            Vec_IntAddToEntry( vAnds, WLC_OBJ_REDUCT_NAND,      Wlc_ObjRange(Wlc_ObjFanin0(p, pObj)) - 1 );
         else if ( pObj->Type == WLC_OBJ_REDUCT_NOR )    
-            Vec_IntAddToEntry( vAnds, WLC_OBJ_REDUCT_NOR,        Wlc_ObjRange(Wlc_ObjFanin0(p, pObj)) - 1 );
+            Vec_IntAddToEntry( vAnds, WLC_OBJ_REDUCT_NOR,       Wlc_ObjRange(Wlc_ObjFanin0(p, pObj)) - 1 );
         else if ( pObj->Type == WLC_OBJ_REDUCT_NXOR )   
-            Vec_IntAddToEntry( vAnds, WLC_OBJ_REDUCT_NXOR,   3 * Wlc_ObjRange(Wlc_ObjFanin0(p, pObj)) - 3 );
+            Vec_IntAddToEntry( vAnds, WLC_OBJ_REDUCT_NXOR,  3 * Wlc_ObjRange(Wlc_ObjFanin0(p, pObj)) - 3 );
         else if ( pObj->Type == WLC_OBJ_ARI_ADD )       
             Vec_IntAddToEntry( vAnds, WLC_OBJ_ARI_ADD,      9 * Wlc_ObjRange(Wlc_ObjFanin0(p, pObj)) );
         else if ( pObj->Type == WLC_OBJ_ARI_SUB )       
@@ -522,7 +535,7 @@ void Wlc_NtkPrintDistrib( Wlc_Ntk_t * p, int fVerbose )
             Abc_NamStr(p->pManName, Wlc_ObjNameId(p, Wlc_ObjId(p, pObjRange))), Wlc_ObjRange(pObjRange), pObjRange->End, pObjRange->Beg );
     }
     // print by occurrence
-    printf( "ID  :  name  occurrence%s    and2 (occurrence)<output_range>=<input_range>.<input_range> ...\n", Wlc_NtkPoNum(p) == 2 ? "     Left Share Right":"" );
+    printf( "ID  :  name  occurrence%s    and2 (occurrence)<output_range>=<input_range>.<input_range> ...\n", fTwoSides ? "     Left Share Right":"" );
     for ( i = 0; i < WLC_OBJ_NUMBER; i++ )
     {
         Vec_Wrd_t * vType  = (Vec_Wrd_t *)Vec_PtrEntry( vTypes, i );
@@ -530,11 +543,12 @@ void Wlc_NtkPrintDistrib( Wlc_Ntk_t * p, int fVerbose )
         if ( p->nObjs[i] == 0 )
             continue;
         printf( "%2d  :  %-8s  %6d", i, Wlc_Names[i], p->nObjs[i] );
-        if ( Wlc_NtkPoNum(p) == 2 )
+        if ( fTwoSides )
         {
+            int nTotal = i == WLC_OBJ_PI ? Wlc_NtkCountRealPis(p) : p->nObjs[i];
             printf( "   " );
             printf( "%6d", nObjs[0][i] );
-            printf( "%6d", nObjs[0][i]+nObjs[1][i]-p->nObjs[i] );
+            printf( "%6d", nObjs[0][i]+nObjs[1][i]-nTotal );
             printf( "%6d", nObjs[1][i] );
         }
         printf( "%8d ", Vec_IntEntry(vAnds, i) );
@@ -546,7 +560,7 @@ void Wlc_NtkPrintDistrib( Wlc_Ntk_t * p, int fVerbose )
             if ( ((k % 6) == 5 && s1) || ((k % 8) == 7 && !s1) )
             {
                 printf( "\n                                " );
-                if ( Wlc_NtkPoNum(p) == 2 )
+                if ( fTwoSides )
                     printf( "                     " );
             }
             printf( "(%d)", (int)Vec_WrdEntry( vOccur, k ) );
@@ -627,11 +641,11 @@ void Wlc_NtkPrintNodes( Wlc_Ntk_t * p, int Type )
         Wlc_NtkPrintNode( p, pObj );
     }
 }
-void Wlc_NtkPrintStats( Wlc_Ntk_t * p, int fDistrib, int fVerbose )
+void Wlc_NtkPrintStats( Wlc_Ntk_t * p, int fDistrib, int fTwoSides, int fVerbose )
 {
     int i;
     printf( "%-20s : ",        p->pName );
-    printf( "PI = %4d  ",      Wlc_NtkPiNum(p) );
+    printf( "PI = %4d  ",      Wlc_NtkCountRealPis(p) ); //Wlc_NtkPiNum(p) );
     printf( "PO = %4d  ",      Wlc_NtkPoNum(p) );
     printf( "FF = %4d  ",      Wlc_NtkFfNum(p) );
     printf( "Obj = %6d  ",     Wlc_NtkObjNum(p) );
@@ -639,7 +653,7 @@ void Wlc_NtkPrintStats( Wlc_Ntk_t * p, int fDistrib, int fVerbose )
     printf( "\n" );
     if ( fDistrib )
     {
-        Wlc_NtkPrintDistrib( p, fVerbose );
+        Wlc_NtkPrintDistrib( p, fTwoSides, fVerbose );
         return;
     }
     if ( !fVerbose )
@@ -654,6 +668,41 @@ void Wlc_NtkPrintStats( Wlc_Ntk_t * p, int fDistrib, int fVerbose )
         else
             printf( "%2d  :  %-8s  %6d\n", i, Wlc_Names[i], p->nObjs[i] );
     }
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Wlc_NtkTransferNames( Wlc_Ntk_t * pNew, Wlc_Ntk_t * p )
+{
+    int i;
+    assert( !Wlc_NtkHasCopy(pNew)   && Wlc_NtkHasCopy(p)   );
+    assert( !Wlc_NtkHasNameId(pNew) && Wlc_NtkHasNameId(p) );
+    assert( pNew->pManName  == NULL && p->pManName != NULL );
+    Wlc_NtkCleanNameId( pNew );
+    for ( i = 0; i < p->nObjsAlloc; i++ )
+        if ( Wlc_ObjCopy(p, i) && i < Vec_IntSize(&p->vNameIds) && Wlc_ObjNameId(p, i) )
+            Wlc_ObjSetNameId( pNew, Wlc_ObjCopy(p, i), Wlc_ObjNameId(p, i) );
+    pNew->pManName = p->pManName; 
+    p->pManName = NULL;
+    Vec_IntErase( &p->vNameIds );
+    // transfer table
+    pNew->pMemTable = p->pMemTable;  p->pMemTable = NULL;
+    pNew->vTables = p->vTables;      p->vTables = NULL;
+}
+char * Wlc_NtkNewName( Wlc_Ntk_t * p, int iCoId, int fSeq )
+{
+    static char pBuffer[1000];
+    sprintf( pBuffer, "%s_o%d_%s", p->pName, iCoId, fSeq ? "seq": "comb" );
+    return pBuffer;
 }
 
 /**Function*************************************************************
@@ -715,50 +764,42 @@ void Wlc_NtkDupDfs_rec( Wlc_Ntk_t * pNew, Wlc_Ntk_t * p, int iObj, Vec_Int_t * v
         Wlc_NtkDupDfs_rec( pNew, p, iFanin, vFanins );
     Wlc_ObjDup( pNew, p, iObj, vFanins );
 }
-Wlc_Ntk_t * Wlc_NtkDupDfs( Wlc_Ntk_t * p, int fMarked )
+Wlc_Ntk_t * Wlc_NtkDupDfs( Wlc_Ntk_t * p, int fMarked, int fSeq )
 {
     Wlc_Ntk_t * pNew;
     Wlc_Obj_t * pObj;
     Vec_Int_t * vFanins;
     int i;
-    Wlc_NtkCleanCopy( p );
     vFanins = Vec_IntAlloc( 100 );
+    Wlc_NtkCleanCopy( p );
     pNew = Wlc_NtkAlloc( p->pName, p->nObjsAlloc );
     pNew->fSmtLib = p->fSmtLib;
     Wlc_NtkForEachCi( p, pObj, i )
         if ( !fMarked || pObj->Mark )
+        {
+            unsigned Type = pObj->Type;
+            if ( !fSeq ) pObj->Type = WLC_OBJ_PI;
             Wlc_ObjDup( pNew, p, Wlc_ObjId(p, pObj), vFanins );
+            pObj->Type = Type;
+        }
     Wlc_NtkForEachCo( p, pObj, i )
         if ( !fMarked || pObj->Mark )
             Wlc_NtkDupDfs_rec( pNew, p, Wlc_ObjId(p, pObj), vFanins );
     Wlc_NtkForEachCo( p, pObj, i )
         if ( !fMarked || pObj->Mark )
-            Wlc_ObjSetCo( pNew, Wlc_ObjCopyObj(pNew, p, pObj), pObj->fIsFi );
-    if ( p->vInits )
-    pNew->vInits = Vec_IntDup( p->vInits );
-    if ( p->pInits )
-    pNew->pInits = Abc_UtilStrsav( p->pInits );
+            Wlc_ObjSetCo( pNew, Wlc_ObjCopyObj(pNew, p, pObj), fSeq ? pObj->fIsFi : 0 );
     Vec_IntFree( vFanins );
+    if ( !fMarked )
+    {
+        if ( p->vInits )
+            pNew->vInits = Vec_IntDup( p->vInits );
+        if ( p->pInits )
+            pNew->pInits = Abc_UtilStrsav( p->pInits );
+    }
     if ( p->pSpec )
     pNew->pSpec = Abc_UtilStrsav( p->pSpec );
+    Wlc_NtkTransferNames( pNew, p );
     return pNew;
-}
-void Wlc_NtkTransferNames( Wlc_Ntk_t * pNew, Wlc_Ntk_t * p )
-{
-    int i;
-    assert( !Wlc_NtkHasCopy(pNew)   && Wlc_NtkHasCopy(p)   );
-    assert( !Wlc_NtkHasNameId(pNew) && Wlc_NtkHasNameId(p) );
-    assert( pNew->pManName  == NULL && p->pManName != NULL );
-    Wlc_NtkCleanNameId( pNew );
-    for ( i = 0; i < p->nObjsAlloc; i++ )
-        if ( Wlc_ObjCopy(p, i) && i < Vec_IntSize(&p->vNameIds) && Wlc_ObjNameId(p, i) )
-            Wlc_ObjSetNameId( pNew, Wlc_ObjCopy(p, i), Wlc_ObjNameId(p, i) );
-    pNew->pManName = p->pManName; 
-    p->pManName = NULL;
-    Vec_IntErase( &p->vNameIds );
-    // transfer table
-    pNew->pMemTable = p->pMemTable;  p->pMemTable = NULL;
-    pNew->vTables = p->vTables;      p->vTables = NULL;
 }
 
 /**Function*************************************************************
@@ -779,6 +820,30 @@ void Wlc_NtkCleanMarks( Wlc_Ntk_t * p )
     Wlc_NtkForEachObj( p, pObj, i )
         pObj->Mark = 0;
 }
+int Wlc_NtkCountMarked( Wlc_Ntk_t * p, int * pnPis, int * pnFos, int * pnAdders, int * pnMults )
+{
+    Wlc_Obj_t * pObj;
+    int i, nNodes = 0;
+    *pnPis = *pnFos = *pnAdders = *pnMults = 0;
+    Wlc_NtkForEachObj( p, pObj, i )
+    {
+        if ( !pObj->Mark )
+            continue;
+        if ( Wlc_ObjIsPi(pObj) )
+            (*pnPis)++;
+        else if ( Wlc_ObjIsCi(pObj) )
+            (*pnFos)++;
+        else if ( pObj->Mark )
+        {
+            nNodes++;
+            if ( pObj->Type == WLC_OBJ_ARI_ADD || pObj->Type == WLC_OBJ_ARI_SUB )
+                (*pnAdders)++;
+            else if ( pObj->Type == WLC_OBJ_ARI_MULTI )
+                (*pnMults)++;
+        }
+    }
+    return nNodes;
+}
 void Wlc_NtkMarkCone_rec( Wlc_Ntk_t * p, Wlc_Obj_t * pObj, Vec_Int_t * vFlops )
 {
     int i, iFanin;
@@ -794,24 +859,43 @@ void Wlc_NtkMarkCone_rec( Wlc_Ntk_t * p, Wlc_Obj_t * pObj, Vec_Int_t * vFlops )
     Wlc_ObjForEachFanin( pObj, iFanin, i )
         Wlc_NtkMarkCone_rec( p, Wlc_NtkObj(p, iFanin), vFlops );
 }
-void Wlc_NtkMarkCone( Wlc_Ntk_t * p, int iPo )
+void Wlc_NtkMarkCone( Wlc_Ntk_t * p, int iCoId, int fSeq )
 {
     Vec_Int_t * vFlops;
     Wlc_Obj_t * pObj;
     int i, CiId, CoId;
     Wlc_NtkCleanMarks( p );
-    Wlc_NtkForEachPi( p, pObj, i )
-        pObj->Mark = 1;
+//    Wlc_NtkForEachPi( p, pObj, i )
+//        pObj->Mark = 1;
     vFlops = Vec_IntAlloc( 100 );
-    Wlc_NtkForEachPo( p, pObj, i )
-        if ( i == iPo )
+    Wlc_NtkForEachCo( p, pObj, i )
+        if ( iCoId == -1 || i == iCoId )
             Wlc_NtkMarkCone_rec( p, pObj, vFlops );
+    if ( fSeq )
     Vec_IntForEachEntry( vFlops, CiId, i )
     {
         CoId = Wlc_NtkPoNum(p) + CiId - Wlc_NtkPiNum(p);
         Wlc_NtkMarkCone_rec( p, Wlc_NtkCo(p, CoId), vFlops );
     }
     Vec_IntFree( vFlops );
+}
+void Wlc_NtkProfileCones( Wlc_Ntk_t * p )
+{
+    Wlc_Obj_t * pObj; 
+    int i, nPis, nFos, nNodes, nAdders, nMults;
+    Wlc_NtkForEachCo( p, pObj, i )
+    {
+        Wlc_NtkMarkCone( p, i, 0 );
+        nNodes = Wlc_NtkCountMarked( p, &nPis, &nFos, &nAdders, &nMults );
+        printf( "Cone %5d : ", i );
+        printf( "PI = %4d  ", nPis );
+        printf( "FO = %4d  ", nFos );
+        printf( "Node = %6d  ", nNodes );
+        printf( "Add/Sub = %4d  ", nAdders );
+        printf( "Mult = %4d  ", nMults );
+        printf( "\n" );
+    }
+    Wlc_NtkCleanMarks( p );
 }
 
 /**Function*************************************************************
@@ -871,6 +955,64 @@ Wlc_Ntk_t * Wlc_NtkDupSingleNodes( Wlc_Ntk_t * p )
     return pNew;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Creates short names for all objects.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Wlc_NtkShortNames( Wlc_Ntk_t * p )
+{
+    Wlc_Obj_t * pObj;
+    char pBuffer[100];
+    int nDigits, NameId, fFound, i;
+    int nFlops = Wlc_NtkCoNum(p) - Wlc_NtkPoNum(p);
+    nDigits = Abc_Base10Log( nFlops );
+    Wlc_NtkForEachCo( p, pObj, i )
+    {
+        if ( Wlc_ObjIsPo(pObj) )
+            continue;
+        sprintf( pBuffer, "%s%0*d", "fi", nDigits, i - Wlc_NtkPoNum(p) );
+        NameId = Abc_NamStrFindOrAdd( p->pManName, pBuffer, &fFound );
+        Wlc_ObjSetNameId( p, Wlc_ObjId(p, pObj), NameId );
+    }
+    Wlc_NtkForEachCi( p, pObj, i )
+    {
+        if ( Wlc_ObjIsPi(pObj) )
+            continue;
+        sprintf( pBuffer, "%s%0*d", "fo", nDigits, i - Wlc_NtkPiNum(p) );
+        NameId = Abc_NamStrFindOrAdd( p->pManName, pBuffer, &fFound );
+        Wlc_ObjSetNameId( p, Wlc_ObjId(p, pObj), NameId );
+    }
+    nDigits = Abc_Base10Log( Wlc_NtkPoNum(p) );
+    Wlc_NtkForEachPo( p, pObj, i )
+    {
+        sprintf( pBuffer, "%s%0*d", "po", nDigits, i );
+        NameId = Abc_NamStrFindOrAdd( p->pManName, pBuffer, &fFound );
+        Wlc_ObjSetNameId( p, Wlc_ObjId(p, pObj), NameId );
+    }
+    nDigits = Abc_Base10Log( Wlc_NtkPiNum(p) );
+    Wlc_NtkForEachPi( p, pObj, i )
+    {
+        sprintf( pBuffer, "%s%0*d", "pi", nDigits, i );
+        NameId = Abc_NamStrFindOrAdd( p->pManName, pBuffer, &fFound );
+        Wlc_ObjSetNameId( p, Wlc_ObjId(p, pObj), NameId );
+    }
+    nDigits = Abc_Base10Log( Wlc_NtkObjNum(p) );
+    Wlc_NtkForEachObj( p, pObj, i )
+    {
+        if ( Wlc_ObjIsCi(pObj) || Wlc_ObjIsCo(pObj) )
+            continue;
+        sprintf( pBuffer, "%s%0*d", "n", nDigits, i );
+        NameId = Abc_NamStrFindOrAdd( p->pManName, pBuffer, &fFound );
+        Wlc_ObjSetNameId( p, Wlc_ObjId(p, pObj), NameId );
+    }
+}
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

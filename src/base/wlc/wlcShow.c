@@ -143,7 +143,7 @@ void Wlc_NtkDumpDot( Wlc_Ntk_t * p, char * pFileName, Vec_Int_t * vBold )
     fprintf( pFile, "          fontsize=18,\n" );
     fprintf( pFile, "          fontname = \"Times-Roman\",\n" );
     fprintf( pFile, "          label=\"" );
-    fprintf( pFile, "The word-level network contains %d nodes and spans %d levels.", Wlc_NtkObjNum(p)-Wlc_NtkPiNum(p)-Wlc_NtkPoNum(p)-Wlc_NtkFfNum(p), LevelMax-1 );
+    fprintf( pFile, "The word-level network contains %d nodes and spans %d levels.", Wlc_NtkObjNum(p)-Wlc_NtkCiNum(p), LevelMax-1 );
     fprintf( pFile, "\\n" );
     fprintf( pFile, "\"\n" );
     fprintf( pFile, "         ];\n" );
@@ -159,8 +159,9 @@ void Wlc_NtkDumpDot( Wlc_Ntk_t * p, char * pFileName, Vec_Int_t * vBold )
     // generate the CO nodes
     Wlc_NtkForEachCo( p, pNode, i )
     {
-        fprintf( pFile, "  NodePo%d [label = \"%s %d\"", Wlc_ObjId(p, pNode), Wlc_ObjName(p, Wlc_ObjId(p, pNode)), Wlc_ObjRange(pNode) ); 
-        fprintf( pFile, ", shape = %s", "invtriangle" );
+        pNode = Wlc_ObjCo2PoFo(p, i);
+        fprintf( pFile, "  NodePo%d [label = \"%s_in %d\"", Wlc_ObjId(p, pNode), Wlc_ObjName(p, Wlc_ObjId(p, pNode)), Wlc_ObjRange(pNode) ); 
+        fprintf( pFile, ", shape = %s", i < Wlc_NtkPoNum(p) ? "invtriangle" : "box" );
         fprintf( pFile, ", color = coral, fillcolor = coral" );
         fprintf( pFile, "];\n" );
     }
@@ -224,7 +225,7 @@ void Wlc_NtkDumpDot( Wlc_Ntk_t * p, char * pFileName, Vec_Int_t * vBold )
     Wlc_NtkForEachCi( p, pNode, i )
     {
         fprintf( pFile, "  Node%d [label = \"%s %d\"", Wlc_ObjId(p, pNode), Wlc_ObjName(p, Wlc_ObjId(p, pNode)), Wlc_ObjRange(pNode) ); 
-        fprintf( pFile, ", shape = %s", "triangle" );
+        fprintf( pFile, ", shape = %s", i < Wlc_NtkPiNum(p) ? "triangle" : "box" );
         fprintf( pFile, ", color = coral, fillcolor = coral" );
         fprintf( pFile, "];\n" );
     }
@@ -235,11 +236,15 @@ void Wlc_NtkDumpDot( Wlc_Ntk_t * p, char * pFileName, Vec_Int_t * vBold )
     // generate invisible edges from the square down
     fprintf( pFile, "title1 -> title2 [style = invis];\n" );
     Wlc_NtkForEachCo( p, pNode, i )
+    {
+        pNode = Wlc_ObjCo2PoFo( p, i );
         fprintf( pFile, "title2 -> NodePo%d [style = invis];\n", Wlc_ObjId(p, pNode) );
+    }
     // generate invisible edges among the COs
     Prev = -1;
     Wlc_NtkForEachCo( p, pNode, i )
     {
+        pNode = Wlc_ObjCo2PoFo( p, i );
         if ( i > 0 )
             fprintf( pFile, "NodePo%d -> NodePo%d [style = invis];\n", Prev, Wlc_ObjId(p, pNode) );
         Prev = Wlc_ObjId(p, pNode);
@@ -254,22 +259,21 @@ void Wlc_NtkDumpDot( Wlc_Ntk_t * p, char * pFileName, Vec_Int_t * vBold )
     }
 
     // generate edges
+    Wlc_NtkForEachCo( p, pNode, i )
+    {
+        fprintf( pFile, "NodePo%d",  Wlc_ObjId(p, Wlc_ObjCo2PoFo(p, i)) );
+        fprintf( pFile, " -> " );
+        fprintf( pFile, "Node%d",  Wlc_ObjId(p, pNode) );
+        fprintf( pFile, " [" );
+        fprintf( pFile, "style = %s", pNode->Signed? "dotted" : "solid" );
+        fprintf( pFile, "]" );
+        fprintf( pFile, ";\n" );
+    }
     Wlc_NtkForEachObj( p, pNode, i )
     {
         int k, iFanin;
         if ( Wlc_ObjIsCi(pNode) )
             continue;
-        if ( Wlc_ObjIsCo(pNode) )
-        {
-            // generate the edge from this node to the next
-            fprintf( pFile, "NodePo%d",  i );
-            fprintf( pFile, " -> " );
-            fprintf( pFile, "Node%d",  i );
-            fprintf( pFile, " [" );
-            fprintf( pFile, "style = %s", pNode->Signed? "dotted" : "bold" );
-            fprintf( pFile, "]" );
-            fprintf( pFile, ";\n" );
-        }
         // generate the edge from this node to the next
         Wlc_ObjForEachFanin( pNode, iFanin, k )
         {
@@ -277,7 +281,9 @@ void Wlc_NtkDumpDot( Wlc_Ntk_t * p, char * pFileName, Vec_Int_t * vBold )
             fprintf( pFile, " -> " );
             fprintf( pFile, "Node%d",  iFanin );
             fprintf( pFile, " [" );
-            fprintf( pFile, "style = %s", Wlc_NtkObj(p, iFanin)->Signed? "dotted" : "bold" );
+            fprintf( pFile, "style = %s", Wlc_NtkObj(p, iFanin)->Signed? "dotted" : "solid" );
+            if ( pNode->Type == WLC_OBJ_MUX && k == 0 )
+                fprintf( pFile, ", style = %s", "bold" );
             fprintf( pFile, "]" );
             fprintf( pFile, ";\n" );
         }

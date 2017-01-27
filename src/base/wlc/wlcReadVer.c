@@ -28,7 +28,7 @@ ABC_NAMESPACE_IMPL_START
 ////////////////////////////////////////////////////////////////////////
 
 // Word-level Verilog file parser
-#define WLV_PRS_MAX_LINE   1000
+#define WLV_PRS_MAX_LINE   10000
 
 typedef struct Wlc_Prs_t_  Wlc_Prs_t;
 struct Wlc_Prs_t_ 
@@ -1265,8 +1265,7 @@ Wlc_Ntk_t * Wlc_ReadVer( char * pFileName, char * pStr )
     if ( !Wlc_PrsDerive( p ) )
         goto finish;
     // derive topological order
-    pNtk = Wlc_NtkDupDfs( p->pNtk, 0 );
-    Wlc_NtkTransferNames( pNtk, p->pNtk );
+    pNtk = Wlc_NtkDupDfs( p->pNtk, 0, 1 );
     pNtk->pSpec = Abc_UtilStrsav( pFileName );
 finish:
     Wlc_PrsPrintErrorMessage( p );

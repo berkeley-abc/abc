@@ -173,8 +173,7 @@ Wlc_Ntk_t * Wlc_NtkAbstractNodes( Wlc_Ntk_t * p, Vec_Int_t * vNodesInit )
     if ( vNodes != vNodesInit )
         Vec_IntFree( vNodes );
     // reconstruct topological order
-    pNew = Wlc_NtkDupDfs( p, 0 );
-    Wlc_NtkTransferNames( pNew, p );
+    pNew = Wlc_NtkDupDfs( p, 0, 1 );
     return pNew;
 }
 
@@ -278,8 +277,7 @@ Wlc_Ntk_t * Wlc_NtkUifNodePairs( Wlc_Ntk_t * p, Vec_Int_t * vPairsInit )
     if ( vPairs != vPairsInit )
         Vec_IntFree( vPairs );
     // reconstruct topological order
-    pNew = Wlc_NtkDupDfs( p, 0 );
-    Wlc_NtkTransferNames( pNew, p );
+    pNew = Wlc_NtkDupDfs( p, 0, 1 );
     return pNew;
 }
 

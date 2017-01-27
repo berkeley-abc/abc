@@ -221,7 +221,8 @@ static inline int          Wlc_NtkHasNameId( Wlc_Ntk_t * p )                    
 static inline void         Wlc_ObjSetNameId( Wlc_Ntk_t * p, int iObj, int i )       { Vec_IntWriteEntry( &p->vNameIds, iObj, i );                              }
 static inline int          Wlc_ObjNameId( Wlc_Ntk_t * p, int iObj )                 { return Vec_IntEntry( &p->vNameIds, iObj );                               }
 
-static inline Wlc_Obj_t *  Wlc_ObjFoToFi( Wlc_Ntk_t * p, Wlc_Obj_t * pObj )        { assert( pObj->Type == WLC_OBJ_FO ); return Wlc_NtkCo(p, Wlc_NtkCoNum(p) - Wlc_NtkCiNum(p) + Wlc_ObjCiId(pObj)); } 
+static inline Wlc_Obj_t *  Wlc_ObjFo2Fi( Wlc_Ntk_t * p, Wlc_Obj_t * pObj )          { assert( pObj->Type == WLC_OBJ_FO ); return Wlc_NtkCo(p, Wlc_NtkPoNum(p) + Wlc_ObjCiId(pObj) - Wlc_NtkPiNum(p)); } 
+static inline Wlc_Obj_t *  Wlc_ObjCo2PoFo( Wlc_Ntk_t * p, int iCoId )               { return iCoId < Wlc_NtkPoNum(p) ? Wlc_NtkPo(p, iCoId) : Wlc_NtkCi(p, Wlc_NtkPiNum(p) + iCoId - Wlc_NtkPoNum(p)); } 
 
 ////////////////////////////////////////////////////////////////////////
 ///                      MACRO DEFINITIONS                           ///
@@ -283,15 +284,19 @@ extern void           Wlc_ObjAddFanins( Wlc_Ntk_t * p, Wlc_Obj_t * pObj, Vec_Int
 extern void           Wlc_NtkFree( Wlc_Ntk_t * p );
 extern int            Wlc_NtkCreateLevels( Wlc_Ntk_t * p );
 extern int            Wlc_NtkCreateLevelsRev( Wlc_Ntk_t * p );
+extern int            Wlc_NtkCountRealPis( Wlc_Ntk_t * p );
 extern void           Wlc_NtkPrintNode( Wlc_Ntk_t * p, Wlc_Obj_t * pObj );
 extern void           Wlc_NtkPrintNodeArray( Wlc_Ntk_t * p, Vec_Int_t * vArray );
 extern void           Wlc_NtkPrintNodes( Wlc_Ntk_t * p, int Type );
-extern void           Wlc_NtkPrintStats( Wlc_Ntk_t * p, int fDistrib, int fVerbose );
-extern Wlc_Ntk_t *    Wlc_NtkDupDfs( Wlc_Ntk_t * p, int fMarked );
+extern void           Wlc_NtkPrintStats( Wlc_Ntk_t * p, int fDistrib, int fTwoSides, int fVerbose );
 extern void           Wlc_NtkTransferNames( Wlc_Ntk_t * pNew, Wlc_Ntk_t * p );
+extern char *         Wlc_NtkNewName( Wlc_Ntk_t * p, int iCoId, int fSeq );
+extern Wlc_Ntk_t *    Wlc_NtkDupDfs( Wlc_Ntk_t * p, int fMarked, int fSeq );
 extern void           Wlc_NtkCleanMarks( Wlc_Ntk_t * p );
-extern void           Wlc_NtkMarkCone( Wlc_Ntk_t * p, int iPo );
+extern void           Wlc_NtkMarkCone( Wlc_Ntk_t * p, int iCoId, int fSeq );
+extern void           Wlc_NtkProfileCones( Wlc_Ntk_t * p );
 extern Wlc_Ntk_t *    Wlc_NtkDupSingleNodes( Wlc_Ntk_t * p );
+extern void           Wlc_NtkShortNames( Wlc_Ntk_t * p );
 /*=== wlcReadSmt.c ========================================================*/
 extern Wlc_Ntk_t *    Wlc_ReadSmtBuffer( char * pFileName, char * pBuffer, char * pLimit, int fOldParser, int fPrintTree );
 extern Wlc_Ntk_t *    Wlc_ReadSmt( char * pFileName, int fOldParser, int fPrintTree );

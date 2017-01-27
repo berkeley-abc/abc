@@ -409,7 +409,7 @@ void Wlc_WriteVerInt( FILE * pFile, Wlc_Ntk_t * p, int fNoFlops )
             fprintf( pFile, " reg%d (",       i );
             fprintf( pFile, " .q( %s ),",      Wlc_ObjName(p, Wlc_ObjId(p, pObj)) );
             fprintf( pFile, " .qbar()," );
-            fprintf( pFile, " .d( %s ),",      Wlc_ObjName(p, Wlc_ObjId(p, Wlc_ObjFoToFi(p, pObj))) );
+            fprintf( pFile, " .d( %s ),",      Wlc_ObjName(p, Wlc_ObjId(p, Wlc_ObjFo2Fi(p, pObj))) );
             fprintf( pFile, " .clk( %s ),",    "1\'b0" );
             fprintf( pFile, " .arst( %s ),",   "1\'b0" );
             if ( p->vInits )
