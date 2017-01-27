@@ -364,10 +364,10 @@ usage:
 int Abc_CommandCone( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Wlc_Ntk_t * pNtk = Wlc_AbcGetNtk(pAbc);
-    int c, iOutput = -1, fSeq = 0, fVerbose  = 0;
+    int c, iOutput = -1, Range = 1, fAllPis = 0, fSeq = 0, fVerbose  = 0;
     char * pName;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "Osvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "ORisvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -381,6 +381,20 @@ int Abc_CommandCone( Abc_Frame_t * pAbc, int argc, char ** argv )
             globalUtilOptind++;
             if ( iOutput < 0 )
                 goto usage;
+            break;
+        case 'R':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-R\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            Range = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( Range < 0 )
+                goto usage;
+            break;
+        case 'i':
+            fAllPis ^= 1;
             break;
         case 's':
             fSeq ^= 1;
@@ -406,16 +420,18 @@ int Abc_CommandCone( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     printf( "Extracting output %d as a %s word-level network.\n", iOutput, fSeq ? "sequential" : "combinational" );
     pName = Wlc_NtkNewName( pNtk, iOutput, fSeq );
-    Wlc_NtkMarkCone( pNtk, iOutput, fSeq );
+    Wlc_NtkMarkCone( pNtk, iOutput, Range, fSeq, fAllPis );
     pNtk = Wlc_NtkDupDfs( pNtk, 1, fSeq );
     ABC_FREE( pNtk->pName );
     pNtk->pName = Abc_UtilStrsav( pName );
     Wlc_AbcUpdateNtk( pAbc, pNtk );
     return 0;
 usage:
-    Abc_Print( -2, "usage: %%cone [-O num] [-svh]\n" );
-    Abc_Print( -2, "\t         extracts cone of the given word-level output\n" );
-    Abc_Print( -2, "\t-O num : zero-based index of the word-level output to extract [default = %d]\n", iOutput );
+    Abc_Print( -2, "usage: %%cone [-OR num] [-isvh]\n" );
+    Abc_Print( -2, "\t         extracts logic cone of one or more word-level outputs\n" );
+    Abc_Print( -2, "\t-O num : zero-based index of the first word-level output to extract [default = %d]\n", iOutput );
+    Abc_Print( -2, "\t-R num : total number of word-level outputs to extract [default = %d]\n", Range );
+    Abc_Print( -2, "\t-i     : toggle using support composed of all primary inputs [default = %s]\n", fAllPis? "yes": "no" );
     Abc_Print( -2, "\t-s     : toggle performing extracting sequential cones [default = %s]\n", fSeq? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");

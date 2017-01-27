@@ -314,7 +314,7 @@ void Wlc_NtkCollectStats( Wlc_Ntk_t * p, int nObjs[2][WLC_OBJ_NUMBER] )
         return;
     for ( n = 0; n < 2; n++ )
     {
-        Wlc_NtkMarkCone( p, n, 1 );
+        Wlc_NtkMarkCone( p, n, 1, 1, 0 );
         Wlc_NtkForEachObj( p, pObj, i )
             if ( pObj->Mark )
                 nObjs[n][pObj->Type]++;
@@ -325,7 +325,7 @@ int Wlc_NtkCountRealPis( Wlc_Ntk_t * p )
 {
     Wlc_Obj_t * pObj;
     int i, Count = 0;
-    Wlc_NtkMarkCone( p, -1, 1 );
+    Wlc_NtkMarkCone( p, -1, -1, 1, 0 );
     Wlc_NtkForEachPi( p, pObj, i )
         Count += pObj->Mark;
     Wlc_NtkCleanMarks( p );
@@ -859,17 +859,18 @@ void Wlc_NtkMarkCone_rec( Wlc_Ntk_t * p, Wlc_Obj_t * pObj, Vec_Int_t * vFlops )
     Wlc_ObjForEachFanin( pObj, iFanin, i )
         Wlc_NtkMarkCone_rec( p, Wlc_NtkObj(p, iFanin), vFlops );
 }
-void Wlc_NtkMarkCone( Wlc_Ntk_t * p, int iCoId, int fSeq )
+void Wlc_NtkMarkCone( Wlc_Ntk_t * p, int iCoId, int Range, int fSeq, int fAllPis )
 {
     Vec_Int_t * vFlops;
     Wlc_Obj_t * pObj;
     int i, CiId, CoId;
     Wlc_NtkCleanMarks( p );
-//    Wlc_NtkForEachPi( p, pObj, i )
-//        pObj->Mark = 1;
+    if ( fAllPis )
+    Wlc_NtkForEachPi( p, pObj, i )
+        pObj->Mark = 1;
     vFlops = Vec_IntAlloc( 100 );
     Wlc_NtkForEachCo( p, pObj, i )
-        if ( iCoId == -1 || i == iCoId )
+        if ( iCoId == -1 || (i >= iCoId && i < iCoId + Range) )
             Wlc_NtkMarkCone_rec( p, pObj, vFlops );
     if ( fSeq )
     Vec_IntForEachEntry( vFlops, CiId, i )
@@ -885,7 +886,7 @@ void Wlc_NtkProfileCones( Wlc_Ntk_t * p )
     int i, nPis, nFos, nNodes, nAdders, nMults;
     Wlc_NtkForEachCo( p, pObj, i )
     {
-        Wlc_NtkMarkCone( p, i, 0 );
+        Wlc_NtkMarkCone( p, i, 1, 0, 0 );
         nNodes = Wlc_NtkCountMarked( p, &nPis, &nFos, &nAdders, &nMults );
         printf( "Cone %5d : ", i );
         printf( "PI = %4d  ", nPis );

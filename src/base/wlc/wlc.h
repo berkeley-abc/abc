@@ -293,7 +293,7 @@ extern void           Wlc_NtkTransferNames( Wlc_Ntk_t * pNew, Wlc_Ntk_t * p );
 extern char *         Wlc_NtkNewName( Wlc_Ntk_t * p, int iCoId, int fSeq );
 extern Wlc_Ntk_t *    Wlc_NtkDupDfs( Wlc_Ntk_t * p, int fMarked, int fSeq );
 extern void           Wlc_NtkCleanMarks( Wlc_Ntk_t * p );
-extern void           Wlc_NtkMarkCone( Wlc_Ntk_t * p, int iCoId, int fSeq );
+extern void           Wlc_NtkMarkCone( Wlc_Ntk_t * p, int iCoId, int Range, int fSeq, int fAllPis );
 extern void           Wlc_NtkProfileCones( Wlc_Ntk_t * p );
 extern Wlc_Ntk_t *    Wlc_NtkDupSingleNodes( Wlc_Ntk_t * p );
 extern void           Wlc_NtkShortNames( Wlc_Ntk_t * p );
