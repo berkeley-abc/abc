@@ -37,6 +37,7 @@ ABC_NAMESPACE_IMPL_START
 #define MF_NO_LEAF    31
 #define MF_TT_WORDS  ((MF_LEAF_MAX > 6) ? 1 << (MF_LEAF_MAX-6) : 1)
 #define MF_NO_FUNC    134217727     // (1<<27)-1
+#define MF_EPSILON 0.005
 
 typedef struct Mf_Cut_t_ Mf_Cut_t; 
 struct Mf_Cut_t_
@@ -920,8 +921,8 @@ static inline int Mf_SetLastCutContainsArea( Mf_Cut_t ** pCuts, int nCuts )
 }
 static inline int Mf_CutCompareArea( Mf_Cut_t * pCut0, Mf_Cut_t * pCut1 )
 {
-    if ( pCut0->Flow    < pCut1->Flow    )  return -1;
-    if ( pCut0->Flow    > pCut1->Flow    )  return  1;
+    if ( pCut0->Flow    < pCut1->Flow - MF_EPSILON )  return -1;
+    if ( pCut0->Flow    > pCut1->Flow + MF_EPSILON )  return  1;
     if ( pCut0->Delay   < pCut1->Delay   )  return -1;
     if ( pCut0->Delay   > pCut1->Delay   )  return  1;
     if ( pCut0->nLeaves < pCut1->nLeaves )  return -1;
@@ -1544,7 +1545,7 @@ static inline void Mf_ObjComputeBestCut( Mf_Man_t * p, int iObj )
         assert( !Mf_CutIsTriv(pCut, iObj) );
         assert( Mf_CutSize(pCut) <= p->pPars->nLutSize );
         Flow = p->fUseEla ? Mf_CutAreaDerefed(p, pCut) : Mf_CutFlow(p, pCut, &Time);
-        if ( pCutBest == NULL || FlowBest > Flow || (FlowBest == Flow && TimeBest > Time) )
+        if ( pCutBest == NULL || FlowBest > Flow + MF_EPSILON || (FlowBest > Flow - MF_EPSILON && TimeBest > Time) )
             pCutBest = pCut, FlowBest = Flow, TimeBest = Time;
     }
     assert( pCutBest != NULL );

@@ -36,6 +36,7 @@ ABC_NAMESPACE_IMPL_START
 #define LF_NO_LEAF   255
 #define LF_CUT_WORDS (4+LF_LEAF_MAX/2)
 #define LF_TT_WORDS  ((LF_LEAF_MAX > 6) ? 1 << (LF_LEAF_MAX-6) : 1)
+#define LF_EPSILON 0.005
 
 typedef struct Lf_Cut_t_ Lf_Cut_t; 
 struct Lf_Cut_t_
@@ -847,16 +848,16 @@ static inline int Lf_CutCompareDelay( Lf_Cut_t * pCut0, Lf_Cut_t * pCut1 )
     if ( pCut0->Delay   > pCut1->Delay   )  return  1;
     if ( pCut0->nLeaves < pCut1->nLeaves )  return -1;
     if ( pCut0->nLeaves > pCut1->nLeaves )  return  1;
-    if ( pCut0->Flow    < pCut1->Flow    )  return -1;
-    if ( pCut0->Flow    > pCut1->Flow    )  return  1;
+    if ( pCut0->Flow    < pCut1->Flow - LF_EPSILON )  return -1;
+    if ( pCut0->Flow    > pCut1->Flow + LF_EPSILON )  return  1;
     return 0;
 }
 static inline int Lf_CutCompareArea( Lf_Cut_t * pCut0, Lf_Cut_t * pCut1 )
 {
     if ( pCut0->fLate   < pCut1->fLate   )  return -1;
     if ( pCut0->fLate   > pCut1->fLate   )  return  1;
-    if ( pCut0->Flow    < pCut1->Flow    )  return -1;
-    if ( pCut0->Flow    > pCut1->Flow    )  return  1;
+    if ( pCut0->Flow    < pCut1->Flow - LF_EPSILON )  return -1;
+    if ( pCut0->Flow    > pCut1->Flow + LF_EPSILON )  return  1;
     if ( pCut0->Delay   < pCut1->Delay   )  return -1;
     if ( pCut0->Delay   > pCut1->Delay   )  return  1;
     if ( pCut0->nLeaves < pCut1->nLeaves )  return -1;
@@ -1304,7 +1305,7 @@ void Lf_ObjMergeOrder( Lf_Man_t * p, int iObj )
     p->nCutEqual++;
     // area cut
     iCutUsed = 0;
-    if ( nCutsR > 1 && pCutsR[0]->Flow > pCutsR[1]->Flow )//&& !pCutsR[1]->fLate ) // can remove !fLate
+    if ( nCutsR > 1 && pCutsR[0]->Flow > pCutsR[1]->Flow + LF_EPSILON )//&& !pCutsR[1]->fLate ) // can remove !fLate
     {
         pBest->Cut[1].Handle = Lf_MemSaveCut(&p->vStoreNew, pCutsR[1], iObj);
         pBest->Delay[1] = pCutsR[1]->Delay;

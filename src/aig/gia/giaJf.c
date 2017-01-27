@@ -36,6 +36,7 @@ ABC_NAMESPACE_IMPL_START
 #define JF_LEAF_MAX   8
 #define JF_WORD_MAX  ((JF_LEAF_MAX > 6) ? 1 << (JF_LEAF_MAX-6) : 1)
 #define JF_CUT_MAX   16
+#define JF_EPSILON 0.005
 
 typedef struct Jf_Cut_t_ Jf_Cut_t; 
 struct Jf_Cut_t_
@@ -940,15 +941,16 @@ float Jf_CutCompareDelay( Jf_Cut_t * pOld, Jf_Cut_t * pNew )
 {
     if ( pOld->Time    != pNew->Time    ) return pOld->Time    - pNew->Time;
     if ( pOld->pCut[0] != pNew->pCut[0] ) return pOld->pCut[0] - pNew->pCut[0];
-    if ( pOld->Flow    != pNew->Flow    ) return pOld->Flow    - pNew->Flow;
+//    if ( pOld->Flow    != pNew->Flow    ) return pOld->Flow    - pNew->Flow;
+    if ( pOld->Flow < pNew->Flow - JF_EPSILON ) return -1;
+    if ( pOld->Flow > pNew->Flow + JF_EPSILON ) return 1;
     return 0;
 }
 float Jf_CutCompareArea( Jf_Cut_t * pOld, Jf_Cut_t * pNew )
 {
-//    float Epsilon = (float)0.001;
-//    if ( pOld->Flow > pNew->Flow + Epsilon ) return 1;
-//    if ( pOld->Flow < pNew->Flow - Epsilon ) return -1;
-    if ( pOld->Flow    != pNew->Flow    ) return pOld->Flow    - pNew->Flow;
+//    if ( pOld->Flow    != pNew->Flow    ) return pOld->Flow    - pNew->Flow;
+    if ( pOld->Flow < pNew->Flow - JF_EPSILON ) return -1;
+    if ( pOld->Flow > pNew->Flow + JF_EPSILON ) return 1;
     if ( pOld->pCut[0] != pNew->pCut[0] ) return pOld->pCut[0] - pNew->pCut[0];
     if ( pOld->Time    != pNew->Time    ) return pOld->Time    - pNew->Time;
     return 0;
@@ -1367,7 +1369,7 @@ void Jf_ObjComputeBestCut( Jf_Man_t * p, Gia_Obj_t * pObj, int fEdge, int fEla )
         if ( fEdge && !fEla ) 
             Jf_CutSetCost(pCut, Jf_CutSize(pCut));
         Area = fEla ? Jf_CutArea(p, pCut, fEdge) : Jf_CutFlow(p, pCut) + Jf_CutCost(pCut);
-        if ( pCutBest == NULL || AreaBest > Area || (AreaBest == Area && TimeBest > (Time = Jf_CutArr(p, pCut))) )
+        if ( pCutBest == NULL || AreaBest > Area + JF_EPSILON || (AreaBest > Area - JF_EPSILON && TimeBest > (Time = Jf_CutArr(p, pCut))) )
             pCutBest = pCut, AreaBest = Area, TimeBest = Time;
     }
     Vec_IntWriteEntry( &p->vArr,  iObj, Jf_CutArr(p, pCutBest) );
