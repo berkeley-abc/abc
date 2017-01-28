@@ -70,6 +70,7 @@ static inline xFloat_t   xSat_FloatCreateConst2point5()                  { retur
 static inline xFloat_t   xSat_FloatCreateMaximum()                       { return xSat_Uint2Float( 0xFFFFFFFF );                              }
 
 static inline float      xSat_Float2Float( xFloat_t a )                  { assert(a.Exp < 127); return Abc_Int2Float(((a.Exp + 127) << 23) | ((a.Mnt & 0x7FFF) << 8)); }
+static inline xFloat_t   xSat_FloatFromFloat( float a )                  { int A = Abc_Float2Int(a); assert(a >= 1.0); return xSat_FloatCreate((A >> 23)-127, 0x8000 | ((A >> 8) & 0x7FFF)); }
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -180,6 +181,13 @@ static inline void xSat_FloatTest()
     xFloat_t c1p5 = xSat_FloatCreateConst1point5();
     xFloat_t c2p5 = xSat_FloatCreateConst2point5();
 
+    xFloat_t c1_   = xSat_FloatFromFloat(1.0);
+    xFloat_t c2_   = xSat_FloatFromFloat(2.0);
+    xFloat_t c3_   = xSat_FloatFromFloat(3.0);
+    xFloat_t c12_  = xSat_FloatFromFloat(12.0);
+    xFloat_t c1p5_ = xSat_FloatFromFloat(1.5);
+    xFloat_t c2p5_ = xSat_FloatFromFloat(2.5);
+
     xFloat_t sum1 = xSat_FloatAdd(c1, c1p5);
     xFloat_t mul1 = xSat_FloatMul(c2, c1p5);
 
@@ -196,6 +204,13 @@ static inline void xSat_FloatTest()
     printf( "12 = %f\n",  xSat_Float2Float(c12) );
     printf( "1.5 = %f\n", xSat_Float2Float(c1p5) );
     printf( "2.5 = %f\n", xSat_Float2Float(c2p5) );
+
+    printf( "Converted 1 = %f\n",   xSat_Float2Float(c1_) );
+    printf( "Converted 2 = %f\n",   xSat_Float2Float(c2_) );
+    printf( "Converted 3 = %f\n",   xSat_Float2Float(c3_) );
+    printf( "Converted 12 = %f\n",  xSat_Float2Float(c12_) );
+    printf( "Converted 1.5 = %f\n", xSat_Float2Float(c1p5_) );
+    printf( "Converted 2.5 = %f\n", xSat_Float2Float(c2p5_) );
 
     printf( "1.0 + 1.5 = %f\n", xSat_Float2Float(sum1) );
     printf( "2.0 * 1.5 = %f\n", xSat_Float2Float(mul1) );
