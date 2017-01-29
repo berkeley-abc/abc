@@ -333,6 +333,37 @@ void Acec_TreeVerifyPhases2( Gia_Man_t * p, Vec_Int_t * vAdds, Vec_Wec_t * vBoxe
     Vec_BitFree( vPhase );
     Vec_BitFree( vRoots );
 }
+void Acec_TreeVerifyConnections( Gia_Man_t * p, Vec_Int_t * vAdds, Vec_Wec_t * vBoxes )
+{
+    Vec_Int_t * vCounts = Vec_IntStartFull( Gia_ManObjNum(p) );
+    Vec_Int_t * vLevel;
+    int i, k, n, Box;
+    // mark outputs
+    Vec_WecForEachLevel( vBoxes, vLevel, i )
+        Vec_IntForEachEntry( vLevel, Box, k )
+        {
+            Vec_IntWriteEntry( vCounts, Vec_IntEntry( vAdds, 6*Box+3 ), 0 );
+            Vec_IntWriteEntry( vCounts, Vec_IntEntry( vAdds, 6*Box+4 ), 0 );
+        }
+    // count fanouts
+    Vec_WecForEachLevel( vBoxes, vLevel, i )
+        Vec_IntForEachEntry( vLevel, Box, k )
+            for ( n = 0; n < 3; n++ )
+                if ( Vec_IntEntry( vCounts, Vec_IntEntry(vAdds, 6*Box+n) ) != -1 )
+                    Vec_IntAddToEntry( vCounts, Vec_IntEntry(vAdds, 6*Box+n), 1 );
+    // print out
+    printf( "The adder tree has %d internal cut points. ", Vec_IntCountLarger(vCounts, -1) );
+    if ( Vec_IntCountLarger(vCounts, 1) == 0 )
+        printf( "There is no internal fanouts.\n" );
+    else
+    {
+        printf( "These %d points have more than one fanout:\n", Vec_IntCountLarger(vCounts, 1) );
+        Vec_IntForEachEntry( vCounts, Box, i )
+            if ( Box > 1 )
+                printf( "Node %d(lev %d) has fanout %d.\n", i, Gia_ObjLevelId(p, i), Box );
+    }
+    Vec_IntFree( vCounts );
+}
 
 /**Function*************************************************************
 
@@ -534,7 +565,7 @@ void Acec_TreeFindTreesTest( Gia_Man_t * p )
   SideEffects []
 
   SeeAlso     []
-
+`
 ***********************************************************************/
 void Acec_PrintAdders( Vec_Wec_t * vBoxes, Vec_Int_t * vAdds )
 {
@@ -560,6 +591,10 @@ void Acec_TreePrintBox( Acec_Box_t * pBox, Vec_Int_t * vAdds )
     Vec_WecPrintLits( pBox->vLeafLits );
     printf( "Outputs:\n" );
     Vec_WecPrintLits( pBox->vRootLits );
+//    printf( "Node %d has level %d.\n", 3715, Gia_ObjLevelId(pBox->pGia, 3715) );
+//    printf( "Node %d has level %d.\n", 167, Gia_ObjLevelId(pBox->pGia, 167) );
+//    printf( "Node %d has level %d.\n", 278, Gia_ObjLevelId(pBox->pGia, 278) );
+//    printf( "Node %d has level %d.\n", 597, Gia_ObjLevelId(pBox->pGia, 597) );
 }
 
 int Acec_CreateBoxMaxRank( Vec_Int_t * vTree )

@@ -88,7 +88,7 @@ extern void          Acec_BoxFreeP( Acec_Box_t ** ppBox );
 extern void          Gia_PolynAnalyzeXors( Gia_Man_t * pGia, int fVerbose );
 extern Vec_Int_t *   Gia_PolynCollectLastXor( Gia_Man_t * pGia, int fVerbose );
 /*=== acecUtil.c ========================================================*/
-extern Acec_Box_t *  Acec_DetectXorTrees( Gia_Man_t * p, int fVerbose );
+extern Acec_Box_t *  Acec_ProduceBox( Gia_Man_t * p, int fVerbose );
 
 
 

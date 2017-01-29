@@ -429,6 +429,7 @@ char * Wlc_PrsConvertInitValues( Wlc_Ntk_t * p )
     Vec_Str_t * vStr = Vec_StrAlloc( 1000 );
     Vec_IntForEachEntry( p->vInits, Value, i )
     {
+        char * pname = Wlc_ObjName( p, Value );
         if ( Value < 0 )
         {
             for ( k = 0; k < -Value; k++ )

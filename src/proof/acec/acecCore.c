@@ -319,7 +319,7 @@ void Vec_IntInsertOrder( Vec_Int_t * vLits, Vec_Int_t * vClasses, int Lit, int C
 void Acec_MoveDuplicates( Vec_Wec_t * vLits, Vec_Wec_t * vClasses )
 {
     Vec_Int_t * vLevel1, * vLevel2; 
-    int i, k, Prev, This, Entry;
+    int i, k, Prev, This, Entry, Counter = 0;
     Vec_WecForEachLevel( vLits, vLevel1, i )
     {
         if ( i == Vec_WecSize(vLits) - 1 )
@@ -347,8 +347,10 @@ void Acec_MoveDuplicates( Vec_Wec_t * vLits, Vec_Wec_t * vClasses )
 
             assert( Vec_IntSize(vLevel1)                  == Vec_IntSize(vLevel2) );
             assert( Vec_IntSize(Vec_WecEntry(vLits, i+1)) == Vec_IntSize(Vec_WecEntry(vClasses, i+1)) );
+            Counter++;
         }
     }
+    printf( "Moved %d pairs of PPs to normalize the matrix.\n", Counter );
 }
 
 void Acec_MatchCheckShift( Gia_Man_t * pGia0, Gia_Man_t * pGia1, Vec_Wec_t * vLits0, Vec_Wec_t * vLits1, Vec_Int_t * vMap0, Vec_Int_t * vMap1, Vec_Wec_t * vRoots0, Vec_Wec_t * vRoots1 )
@@ -490,12 +492,14 @@ int Acec_Solve( Gia_Man_t * pGia0, Gia_Man_t * pGia1, Acec_ParCec_t * pPars )
     Gia_Man_t * pMiter;
     Gia_Man_t * pGia0n = pGia0, * pGia1n = pGia1;
     Cec_ParCec_t ParsCec, * pCecPars = &ParsCec;
-    Vec_Bit_t * vIgnore0 = pPars->fBooth ? Acec_BoothFindPPG(pGia0) : NULL;
-    Vec_Bit_t * vIgnore1 = pPars->fBooth ? Acec_BoothFindPPG(pGia1) : NULL;
-    Acec_Box_t * pBox0 = Acec_DeriveBox( pGia0, vIgnore0, 0, 0, pPars->fVerbose );
-    Acec_Box_t * pBox1 = Acec_DeriveBox( pGia1, vIgnore1, 0, 0, pPars->fVerbose );
-    Vec_BitFreeP( &vIgnore0 );
-    Vec_BitFreeP( &vIgnore1 );
+//    Vec_Bit_t * vIgnore0 = pPars->fBooth ? Acec_BoothFindPPG(pGia0) : NULL;
+//    Vec_Bit_t * vIgnore1 = pPars->fBooth ? Acec_BoothFindPPG(pGia1) : NULL;
+//    Acec_Box_t * pBox0 = Acec_DeriveBox( pGia0, vIgnore0, 0, 0, pPars->fVerbose );
+//    Acec_Box_t * pBox1 = Acec_DeriveBox( pGia1, vIgnore1, 0, 0, pPars->fVerbose );
+//    Vec_BitFreeP( &vIgnore0 );
+//    Vec_BitFreeP( &vIgnore1 );
+    Acec_Box_t * pBox0 = Acec_ProduceBox( pGia0, pPars->fVerbose );
+    Acec_Box_t * pBox1 = Acec_ProduceBox( pGia1, pPars->fVerbose );
     if ( pBox0 == NULL || pBox1 == NULL ) // cannot match
         printf( "Cannot find arithmetic boxes in both LHS and RHS. Trying regular CEC.\n" );
     else if ( !Acec_MatchBoxes( pBox0, pBox1 ) ) // cannot find matching
