@@ -499,6 +499,7 @@ Vec_Int_t * Acec_MultFindPPs( Gia_Man_t * p )
         {
             if ( Truth == Saved[i] || Truth == ~Saved[i] )
             {
+                //printf( "*** Node %d is PP with support %d.\n", iObj, Vec_IntSize(vSupp) );
                 Acec_MultFindPPs_rec( p, iObj, vBold );
                 nProds++;
                 break;

@@ -27,12 +27,6 @@ ABC_NAMESPACE_IMPL_START
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-static inline int Acec_SignBit( Vec_Int_t * vAdds, int iBox, int b )  { return (Vec_IntEntry(vAdds, 6*iBox+5) >> b)      & 1; }
-static inline int Acec_SignBit2( Vec_Int_t * vAdds, int iBox, int b ) { return (Vec_IntEntry(vAdds, 6*iBox+5) >> (16+b)) & 1; }
-
-static inline void Acec_SignSetBit( Vec_Int_t * vAdds, int iBox, int b, int v )  { if ( v ) *Vec_IntEntryP(vAdds, 6*iBox+5) |= (1 << b);      }
-static inline void Acec_SignSetBit2( Vec_Int_t * vAdds, int iBox, int b, int v ) { if ( v ) *Vec_IntEntryP(vAdds, 6*iBox+5) |= (1 << (16+b)); }
-
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
@@ -558,7 +552,7 @@ void Acec_PrintAdders( Vec_Wec_t * vBoxes, Vec_Int_t * vAdds )
         printf( " }\n" );
     }
 }
-void Acec_PrintBox( Acec_Box_t * pBox, Vec_Int_t * vAdds )
+void Acec_TreePrintBox( Acec_Box_t * pBox, Vec_Int_t * vAdds )
 {
     printf( "Adders:\n" );
     Acec_PrintAdders( pBox->vAdds, vAdds );
@@ -703,7 +697,7 @@ void Acec_CreateBoxTest( Gia_Man_t * p )
         printf( "Processing tree %d:  Ranks = %d.  Adders = %d.  Leaves = %d.  Roots = %d.\n", 
             i, Vec_WecSize(pBox->vAdds), Vec_WecSizeSize(pBox->vAdds), 
             Vec_WecSizeSize(pBox->vLeafLits), Vec_WecSizeSize(pBox->vRootLits)  );
-        Acec_PrintBox( pBox, vAdds );
+        Acec_TreePrintBox( pBox, vAdds );
         Acec_BoxFreeP( &pBox );
     }
 
@@ -737,7 +731,7 @@ Acec_Box_t * Acec_DeriveBox( Gia_Man_t * p, Vec_Bit_t * vIgnore, int fFilterIn, 
             0, Vec_WecSize(pBox->vAdds), Vec_WecSizeSize(pBox->vAdds), 
             Vec_WecSizeSize(pBox->vLeafLits), Vec_WecSizeSize(pBox->vRootLits)  );
     if ( pBox && fVerbose )
-        Acec_PrintBox( pBox, vAdds );
+        Acec_TreePrintBox( pBox, vAdds );
     //Acec_PrintAdders( pBox0->vAdds, vAdds );
     //Acec_MultDetectInputs( p, pBox->vLeafLits, pBox->vRootLits );
     Vec_WecFreeP( &vTrees );

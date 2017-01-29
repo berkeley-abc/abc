@@ -1963,6 +1963,10 @@ SOURCE=.\src\sat\xsat\xsatCnfReader.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\sat\xsat\xsatFloat.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\sat\xsat\xsatHeap.h
 # End Source File
 # Begin Source File
@@ -5552,6 +5556,10 @@ SOURCE=.\src\proof\acec\acecTree.c
 # Begin Source File
 
 SOURCE=.\src\proof\acec\acecUtil.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\proof\acec\acecXor.c
 # End Source File
 # End Group
 # End Group

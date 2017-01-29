@@ -56,6 +56,12 @@ struct Acec_Box_t_
 ///                      MACRO DEFINITIONS                           ///
 ////////////////////////////////////////////////////////////////////////
 
+static inline int Acec_SignBit( Vec_Int_t * vAdds, int iBox, int b )  { return (Vec_IntEntry(vAdds, 6*iBox+5) >> b)      & 1; }
+static inline int Acec_SignBit2( Vec_Int_t * vAdds, int iBox, int b ) { return (Vec_IntEntry(vAdds, 6*iBox+5) >> (16+b)) & 1; }
+
+static inline void Acec_SignSetBit( Vec_Int_t * vAdds, int iBox, int b, int v )  { if ( v ) *Vec_IntEntryP(vAdds, 6*iBox+5) |= (1 << b);      }
+static inline void Acec_SignSetBit2( Vec_Int_t * vAdds, int iBox, int b, int v ) { if ( v ) *Vec_IntEntryP(vAdds, 6*iBox+5) |= (1 << (16+b)); }
+
 ////////////////////////////////////////////////////////////////////////
 ///                             ITERATORS                            ///
 ////////////////////////////////////////////////////////////////////////
@@ -75,11 +81,14 @@ extern void          Acec_InsertFadd( Gia_Man_t * pNew, int In[3], int Out[2] );
 extern Gia_Man_t *   Acec_InsertBox( Acec_Box_t * pBox, int fAll );
 /*=== acecTree.c ========================================================*/
 extern void          Acec_PrintAdders( Vec_Wec_t * vBoxes, Vec_Int_t * vAdds );
+extern void          Acec_TreePrintBox( Acec_Box_t * pBox, Vec_Int_t * vAdds );
 extern Acec_Box_t *  Acec_DeriveBox( Gia_Man_t * p, Vec_Bit_t * vIgnore, int fFilterIn, int fFilterOut, int fVerbose );
 extern void          Acec_BoxFreeP( Acec_Box_t ** ppBox );
 /*=== acecUtil.c ========================================================*/
 extern void          Gia_PolynAnalyzeXors( Gia_Man_t * pGia, int fVerbose );
 extern Vec_Int_t *   Gia_PolynCollectLastXor( Gia_Man_t * pGia, int fVerbose );
+/*=== acecUtil.c ========================================================*/
+extern Acec_Box_t *  Acec_DetectXorTrees( Gia_Man_t * p, int fVerbose );
 
 
 
