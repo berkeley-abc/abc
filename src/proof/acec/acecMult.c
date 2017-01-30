@@ -435,6 +435,72 @@ Vec_Int_t * Acec_MultDetectInputs( Gia_Man_t * p, Vec_Wec_t * vLeafLits, Vec_Wec
 
 /**Function*************************************************************
 
+  Synopsis    [Mark nodes whose function is exactly that of a Booth PP.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Bit_t * Acec_MultMarkPPs( Gia_Man_t * p )
+{
+    word Saved[32] = {
+        ABC_CONST(0xF335ACC0F335ACC0),
+        ABC_CONST(0x35C035C035C035C0),
+        ABC_CONST(0xD728D728D728D728),
+        ABC_CONST(0xFD80FD80FD80FD80),
+        ABC_CONST(0xACC0ACC0ACC0ACC0),
+        ABC_CONST(0x7878787878787878),
+        ABC_CONST(0x2828282828282828),
+        ABC_CONST(0xD0D0D0D0D0D0D0D0),
+        ABC_CONST(0x8080808080808080),
+        ABC_CONST(0x8888888888888888),
+        ABC_CONST(0xAAAAAAAAAAAAAAAA),
+        ABC_CONST(0x5555555555555555),
+
+        ABC_CONST(0xD5A8D5A8D5A8D5A8),
+        ABC_CONST(0x2A572A572A572A57),
+        ABC_CONST(0xF3C0F3C0F3C0F3C0),
+        ABC_CONST(0x5858585858585858),
+        ABC_CONST(0xA7A7A7A7A7A7A7A7),
+        ABC_CONST(0x2727272727272727),
+        ABC_CONST(0xD8D8D8D8D8D8D8D8)
+    };
+
+    Vec_Bit_t * vRes = Vec_BitStart( Gia_ManObjNum(p) );
+    Vec_Wrd_t * vTemp = Vec_WrdStart( Gia_ManObjNum(p) );
+    Vec_Int_t * vSupp = Vec_IntAlloc( 100 );
+    int i, iObj, nProds = 0;
+    Gia_ManCleanMark0(p);
+    Gia_ManForEachAndId( p, iObj )
+    {
+        word Truth = Gia_ObjComputeTruth6Cis( p, Abc_Var2Lit(iObj, 0), vSupp, vTemp );
+        if ( Vec_IntSize(vSupp) > 6  )
+            continue;
+        vSupp->nSize = Abc_Tt6MinBase( &Truth, vSupp->pArray, vSupp->nSize );
+        if ( Vec_IntSize(vSupp) > 5  )
+            continue;
+        for ( i = 0; i < 32 && Saved[i]; i++ )
+        {
+            if ( Truth == Saved[i] || Truth == ~Saved[i] )
+            {
+                Vec_BitWriteEntry( vRes, iObj, 1 );
+                nProds++;
+                break;
+            }
+        }
+    }
+    Gia_ManCleanMark0(p);
+    printf( "Collected %d pps.\n", nProds );
+    Vec_IntFree( vSupp );
+    Vec_WrdFree( vTemp );
+    return vRes;
+}
+
+/**Function*************************************************************
+
   Synopsis    []
 
   Description []

@@ -937,8 +937,8 @@ int Gia_ObjRecognizeExor( Gia_Obj_t * pObj, Gia_Obj_t ** ppFan0, Gia_Obj_t ** pp
         return 0;
     if ( Gia_ObjFaninC0(p0) == Gia_ObjFaninC0(p1) || Gia_ObjFaninC1(p0) == Gia_ObjFaninC1(p1) )
         return 0;
-    *ppFan0 = Gia_ObjChild0(p0);
-    *ppFan1 = Gia_ObjChild1(p0);
+    if ( ppFan0 ) *ppFan0 = Gia_ObjChild0(p0);
+    if ( ppFan1 ) *ppFan1 = Gia_ObjChild1(p0);
     return 1;
 }
 

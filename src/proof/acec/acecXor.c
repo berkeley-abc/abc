@@ -44,6 +44,35 @@ ABC_NAMESPACE_IMPL_START
   SeeAlso     []
 
 ***********************************************************************/
+void Acec_CheckXors( Gia_Man_t * p, Vec_Int_t * vXors )
+{
+    Gia_Obj_t * pFan0, * pFan1;
+    Vec_Int_t * vCount2 = Vec_IntAlloc( Gia_ManObjNum(p) );
+    int i, Entry, Count = 0;
+    for ( i = 0; 4*i < Vec_IntSize(vXors); i++ )
+        if ( Vec_IntEntry(vXors, 4*i+3) == 0 )
+            Vec_IntAddToEntry( vCount2, Vec_IntEntry(vXors, 4*i), 1 );
+    Vec_IntForEachEntry( vCount2, Entry, i )
+        if ( Entry > 1 )
+            printf( "*** Obj %d has %d two-input XOR cuts.\n", i, Entry ), Count++;
+        else if ( Entry == 1 && Gia_ObjRecognizeExor(Gia_ManObj(p, i), &pFan0, &pFan1) )
+            printf( "*** Obj %d cannot be recognized as XOR.\n", i );
+    if ( Count == 0 )
+        printf( "*** There no multiple two-input XOR cuts.\n" );
+    Vec_IntFree( vCount2 );
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 Vec_Int_t * Acec_OrderTreeRoots( Gia_Man_t * p, Vec_Int_t * vAdds, Vec_Int_t * vXorRoots, Vec_Int_t * vRanks )
 {
     Vec_Int_t * vOrder = Vec_IntAlloc( Vec_IntSize(vXorRoots) );
@@ -151,7 +180,6 @@ Vec_Int_t * Acec_FindXorRoots( Gia_Man_t * p, Vec_Int_t * vXors )
         if ( !Vec_BitEntry(vMapXorIns, Vec_IntEntry(vXors, 4*i)) )
             Vec_IntPushUniqueOrder( vXorRoots, Vec_IntEntry(vXors, 4*i) );
     Vec_BitFree( vMapXorIns );
-//Vec_IntRemove( vXorRoots, 54 );
     return vXorRoots;
 }
 // collects XOR trees belonging to each of XOR roots
@@ -184,8 +212,9 @@ Vec_Int_t * Acec_RankTrees( Gia_Man_t * p, Vec_Int_t * vXors, Vec_Int_t * vXorRo
                 Vec_IntWriteEntry( vRanks, Node, Rank );
             else
                 Vec_IntPush( vDoubles, Node );
-            //if ( Entry != -1 )
-            //printf( "Xor node %d belongs to Tree %d and Tree %d.\n", Node, Entry, Rank );
+
+            if ( Entry != -1 && Gia_ObjIsAnd(Gia_ManObj(p, Node)))
+            printf( "Xor node %d belongs to Tree %d and Tree %d.\n", Node, Entry, Rank );
         }
     }
     // remove duplicated entries
@@ -211,6 +240,7 @@ Vec_Wec_t * Acec_FindXorLeaves( Gia_Man_t * p, Vec_Int_t * vXors, Vec_Int_t * vA
         for ( k = 1; k < 4; k++ )
         {
             int Fanin = Vec_IntEntry(vXors, 4*i+k);
+            //int RankFanin = Vec_IntEntry(vRanks, Fanin);
             if ( Fanin == 0 )
                 continue;
             if ( Vec_BitEntry(vMapXors, Fanin) )
@@ -218,6 +248,8 @@ Vec_Wec_t * Acec_FindXorLeaves( Gia_Man_t * p, Vec_Int_t * vXors, Vec_Int_t * vA
                 assert( Rank == Vec_IntEntry(vRanks, Fanin) );
                 continue;
             }
+//            if ( Vec_BitEntry(vMapXors, Fanin) && Rank == RankFanin )
+//                continue;
             if ( Vec_IntEntry(vMapMajs, Fanin) == -1 ) // no adder driving this input
                 Vec_WecPush( vXorLeaves, Rank, Fanin );
             else if ( Vec_IntEntry(vRanks, Xor) > 0 ) // save adder box
@@ -230,7 +262,26 @@ Vec_Wec_t * Acec_FindXorLeaves( Gia_Man_t * p, Vec_Int_t * vXors, Vec_Int_t * vA
         *pvAddBoxes = vAddBoxes;
     return vXorLeaves;
 }
+void Acec_CheckBoothPPs( Gia_Man_t * p, Vec_Wec_t * vLitLeaves )
+{
+    Vec_Bit_t * vMarked = Acec_MultMarkPPs( p );
+    Vec_Int_t * vLevel;
+    int i, k, iLit;
+    Vec_WecForEachLevel( vLitLeaves, vLevel, i )
+    {
+        int CountPI = 0, CountB = 0, CountNB = 0;
+        Vec_IntForEachEntry( vLevel, iLit, k )
+            if ( !Gia_ObjIsAnd(Gia_ManObj(p, Abc_Lit2Var(iLit))) )
+                CountPI++;
+            else if ( Vec_BitEntry( vMarked, Abc_Lit2Var(iLit) ) )
+                CountB++;
+            else
+                CountNB++;
 
+        printf( "Rank %2d : Lits = %5d    PI = %d  Booth = %5d  Non-Booth = %5d\n", i, Vec_IntSize(vLevel), CountPI, CountB, CountNB );
+    }
+    Vec_BitFree( vMarked );
+}
 Acec_Box_t * Acec_FindBox( Gia_Man_t * p, Vec_Int_t * vAdds, Vec_Wec_t * vAddBoxes, Vec_Wec_t * vXorLeaves, Vec_Int_t * vXorRoots )
 {
     extern Vec_Int_t * Acec_TreeCarryMap( Gia_Man_t * p, Vec_Int_t * vAdds, Vec_Wec_t * vBoxes );
@@ -315,6 +366,8 @@ Acec_Box_t * Acec_FindBox( Gia_Man_t * p, Vec_Int_t * vAdds, Vec_Wec_t * vAddBox
         Vec_IntSort( vLevel, 0 );
     Vec_WecForEachLevel( pBox->vRootLits, vLevel, i )
         Vec_IntSort( vLevel, 1 );
+
+    //Acec_CheckBoothPPs( p, pBox->vLeafLits );
     return pBox;
 }
 
@@ -331,9 +384,13 @@ Acec_Box_t * Acec_ProduceBox( Gia_Man_t * p, int fVerbose )
 
     Gia_ManLevelNum(p);
 
+    //Acec_CheckXors( p, vXors );
+
     //Ree_ManPrintAdders( vAdds, 1 );
-    printf( "Detected %d full-adders and %d half-adders.  Found %d XOR-cuts.  ", Ree_ManCountFadds(vAdds), Vec_IntSize(vAdds)/6-Ree_ManCountFadds(vAdds), Vec_IntSize(vXors)/4 );
-    Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
+    if ( fVerbose )
+        printf( "Detected %d full-adders and %d half-adders.  Found %d XOR-cuts.  ", Ree_ManCountFadds(vAdds), Vec_IntSize(vAdds)/6-Ree_ManCountFadds(vAdds), Vec_IntSize(vXors)/4 );
+    if ( fVerbose )
+        Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
 
     vXorRoots = Acec_OrderTreeRoots( p, vAdds, vTemp = vXorRoots, vRanks );
     Vec_IntFree( vTemp );

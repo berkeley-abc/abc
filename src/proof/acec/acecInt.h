@@ -76,6 +76,7 @@ extern Vec_Wec_t *   Gia_PolynCoreOrderArray( Gia_Man_t * pGia, Vec_Int_t * vAdd
 /*=== acecMult.c ========================================================*/
 extern Vec_Int_t *   Acec_MultDetectInputs( Gia_Man_t * p, Vec_Wec_t * vLeafLits, Vec_Wec_t * vRootLits );
 extern Vec_Bit_t *   Acec_BoothFindPPG( Gia_Man_t * p );
+extern Vec_Bit_t *   Acec_MultMarkPPs( Gia_Man_t * p );
 /*=== acecNorm.c ========================================================*/
 extern void          Acec_InsertFadd( Gia_Man_t * pNew, int In[3], int Out[2] );
 extern Gia_Man_t *   Acec_InsertBox( Acec_Box_t * pBox, int fAll );

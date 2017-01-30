@@ -5551,6 +5551,10 @@ SOURCE=.\src\proof\acec\acecSt.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\proof\acec\acecStruct.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\proof\acec\acecTree.c
 # End Source File
 # Begin Source File
