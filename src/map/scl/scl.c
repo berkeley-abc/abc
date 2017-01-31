@@ -259,7 +259,7 @@ usage:
     fprintf( pAbc->Err, "\t-d       : toggle dumping the parsed library into file \"*_temp.lib\" [default = %s]\n", fDump? "yes": "no" );
     fprintf( pAbc->Err, "\t-n       : toggle replacing gate/pin names by short strings [default = %s]\n", fShortNames? "yes": "no" );
     fprintf( pAbc->Err, "\t-v       : toggle writing verbose information [default = %s]\n", fVerbose? "yes": "no" );
-    fprintf( pAbc->Err, "\t-v       : toggle writing information about skipped gates [default = %s]\n", fVeryVerbose? "yes": "no" );
+    fprintf( pAbc->Err, "\t-w       : toggle writing information about skipped gates [default = %s]\n", fVeryVerbose? "yes": "no" );
     fprintf( pAbc->Err, "\t-h       : prints the command summary\n" );
     fprintf( pAbc->Err, "\t<file>   : the name of a file to read\n" );
     return 1;
