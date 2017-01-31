@@ -48,6 +48,9 @@ struct Smt_Prs_t_
     char ErrorStr[1000];     
 };
 
+//#define SMT_GLO_SUFFIX "_glb"
+#define SMT_GLO_SUFFIX ""
+
 // parser name types
 typedef enum { 
     SMT_PRS_NONE = 0, 
@@ -634,7 +637,10 @@ static inline int Smt_PrsBuildConstant( Wlc_Ntk_t * pNtk, char * pStr, int nBits
             if ( pStr[2+i] == '1' )
                 Abc_InfoSetBit( (unsigned *)Vec_IntArray(vFanins), nBits-1-i );
             else if ( pStr[2+i] != '0' )
+            {
+                Vec_IntFree( vFanins );
                 return 0;
+            }
     }
     else if ( pStr[1] == 'x' ) // hexadecimal
     {
@@ -643,9 +649,16 @@ static inline int Smt_PrsBuildConstant( Wlc_Ntk_t * pNtk, char * pStr, int nBits
         Vec_IntFill( vFanins, Abc_BitWordNum(nBits), 0 );
         nDigits = Abc_TtReadHexNumber( (word *)Vec_IntArray(vFanins), pStr+2 );
         if ( nDigits != (nBits + 3)/4 )
+        {
+            Vec_IntFree( vFanins );
             return 0;
+        }
     }
-    else return 0;
+    else 
+    {
+        Vec_IntFree( vFanins );
+        return 0;
+    }
     // create constant node
     iObj = Smt_PrsCreateNode( pNtk, WLC_OBJ_CONST, 0, nBits, vFanins, pName );
     Vec_IntFree( vFanins );
@@ -1036,7 +1049,7 @@ int Smt_PrsBuild2_rec( Wlc_Ntk_t * pNtk, Smt_Prs_t * p, int iNode, int iObjPrev,
             char * pStr_glb = (char *)malloc(strlen(pStr) + 4 +1); //glb
             char * pStr_loc = (char *)malloc(strlen(pStr) + strlen(suffix) +1);
             strcpy(pStr_glb,pStr);
-            strcat(pStr_glb,"_glb");
+            strcat(pStr_glb,SMT_GLO_SUFFIX);
             strcpy(pStr_loc,pStr);
             strcat(pStr_loc,suffix);
             
@@ -1105,7 +1118,7 @@ int Smt_PrsBuild2_rec( Wlc_Ntk_t * pNtk, Smt_Prs_t * p, int iNode, int iObjPrev,
                     else 
                     {   temp = (char *)malloc(strlen(pName2) + 4 + 1);
                         strcpy(temp, pName2);
-                        strcat(temp,"_glb");
+                        strcat(temp,SMT_GLO_SUFFIX);
                     }
                     // FIXME: need to delete memory of pName2
                     pName2 = temp;
@@ -1273,7 +1286,7 @@ Wlc_Ntk_t * Smt_PrsBuild2( Smt_Prs_t * p )
             // added: giving a global suffix 
             pName_glb = (char *) malloc(strlen(pName) + 4 + 1);
             strcpy(pName_glb,pName);
-            strcat(pName_glb,"_glb");
+            strcat(pName_glb,SMT_GLO_SUFFIX);
             // FIXME: delete memory of pName
             pName = pName_glb;
             // skip ()
@@ -1324,7 +1337,7 @@ Wlc_Ntk_t * Smt_PrsBuild2( Smt_Prs_t * p )
             // added: giving a global suffix 
             char * pName_glb = (char *) malloc(strlen(pName) + 4 + 1);
             strcpy(pName_glb,pName);
-            strcat(pName_glb,"_glb");
+            strcat(pName_glb,SMT_GLO_SUFFIX);
             // FIXME: delete memory of pName
             pName = pName_glb;
             
@@ -1407,7 +1420,7 @@ Wlc_Ntk_t * Smt_PrsBuild2( Smt_Prs_t * p )
             // added: giving a global suffix 
             pName_glb = (char *) malloc(strlen(pName) + 4 + 1);
             strcpy(pName_glb,pName);
-            strcat(pName_glb,"_glb");
+            strcat(pName_glb,SMT_GLO_SUFFIX);
             // FIXME: delete memory of pName
             pName = pName_glb;
             
@@ -1604,6 +1617,7 @@ static inline void Smt_PrsFree( Smt_Prs_t * p )
     Vec_IntErase( &p->vStack );
     Vec_IntErase( &p->vTempFans );
     //Vec_WecErase( &p->vDepth );
+    Vec_WecErase( &p->vObjs );
     ABC_FREE( p );
 }
 
@@ -1634,6 +1648,7 @@ static inline void Smt_PrsSkipNonSpaces( Smt_Prs_t * p )
 }
 void Smt_PrsReadLines( Smt_Prs_t * p )
 {
+    int fFirstTime = 1;
     assert( Vec_IntSize(&p->vStack) == 0 );
     //assert( Vec_WecSize(&p->vDepth) == 0 );
     assert( Vec_WecSize(&p->vObjs) == 0 );
@@ -1647,8 +1662,9 @@ void Smt_PrsReadLines( Smt_Prs_t * p )
     for ( p->pCur = p->pBuffer; p->pCur < p->pLimit; p->pCur++ )
     {
         Smt_PrsSkipSpaces( p );
-        if ( *p->pCur == '|' )
+        if ( fFirstTime && *p->pCur == '|' )
         {
+            fFirstTime = 0;
             *p->pCur = ' ';
             while ( *p->pCur && *p->pCur != '|' )
                 *p->pCur++ = ' ';
