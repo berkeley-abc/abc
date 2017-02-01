@@ -2933,6 +2933,160 @@ void Abc_NtkTransferPhases( Abc_Ntk_t * pNtkNew, Abc_Ntk_t * pNtk )
             Vec_IntWriteEntry( pNtkNew->vPhases, Abc_ObjId( (Abc_Obj_t *)pObj->pCopy ), Vec_IntEntry(pNtk->vPhases, i) );
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Starts a new network using existing network as a model.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Ntk_t * Abc_NtkDeriveWithOnePo( Abc_Ntk_t * pNtk, Vec_Int_t * vNodeIds, Vec_Int_t * vNodeValues )
+{
+    int fCopyNames = 1;
+    Abc_Ntk_t * pNtkNew; 
+    Abc_Obj_t * pObj, * pFanin, * pObjNew, * pOutputNew;
+    Vec_Ptr_t * vFanins = Vec_PtrAlloc( 100 );
+    int i, k, Id, Value;
+    // start the network
+    pNtkNew = Abc_NtkAlloc( pNtk->ntkType, pNtk->ntkFunc, 1 );
+    // duplicate the name and the spec
+    pNtkNew->pName = Extra_UtilStrsav(pNtk->pName);
+    pNtkNew->pSpec = Extra_UtilStrsav(pNtk->pSpec);
+    // clean the node copy fields
+    Abc_NtkCleanCopy( pNtk );
+    // map the constant nodes
+    if ( Abc_NtkIsStrash(pNtk) && Abc_NtkIsStrash(pNtkNew) )
+        Abc_AigConst1(pNtk)->pCopy = Abc_AigConst1(pNtkNew);
+    // clone CIs/CIs/boxes
+    Abc_NtkForEachPi( pNtk, pObj, i )
+        Abc_NtkDupObj( pNtkNew, pObj, fCopyNames );
+    //Abc_NtkForEachPo( pNtk, pObj, i )
+    //    Abc_NtkDupObj( pNtkNew, pObj, fCopyNames );
+    // create one PO
+    pObjNew = Abc_NtkCreateObj( pNtkNew, ABC_OBJ_PO );
+    Abc_ObjAssignName( pObjNew, "monitor", NULL );
+    // create boxes
+    Abc_NtkForEachBox( pNtk, pObj, i )
+        Abc_NtkDupBox( pNtkNew, pObj, fCopyNames );
+
+    // duplicate nodes (CIs/COs/latches are already duplicated)
+    Abc_NtkForEachObj( pNtk, pObj, i )
+        if ( pObj->pCopy == NULL && !Abc_ObjIsPo(pObj) )
+            Abc_NtkDupObj(pNtkNew, pObj, 0);
+    // reconnect all objects except boxes (they are already connected) and POs (they will be connected later)
+    Abc_NtkForEachObj( pNtk, pObj, i )
+        if ( !Abc_ObjIsPo(pObj) && !Abc_ObjIsBox(pObj) && !Abc_ObjIsBo(pObj) )
+            Abc_ObjForEachFanin( pObj, pFanin, k )
+                Abc_ObjAddFanin( pObj->pCopy, pFanin->pCopy );
+
+    // AND nodes (with interters if needed)
+    pOutputNew = NULL;
+    Vec_IntForEachEntryTwo( vNodeIds, vNodeValues, Id, Value, i )
+    {
+        pObjNew = Abc_NtkObj( pNtk, Id )->pCopy;
+        if ( Value == 0 ) // negative polarity - add inverter
+            pObjNew = Abc_NtkCreateNodeInv( pNtkNew, pObjNew );
+        if ( pOutputNew == NULL )
+            pOutputNew = pObjNew;
+        else
+        {
+            Vec_PtrFillTwo( vFanins, 2, pOutputNew, pObjNew );
+            pOutputNew = Abc_NtkCreateNodeAnd( pNtkNew, vFanins );
+        }
+    }
+    Vec_PtrFree( vFanins );
+    // create the only POs, which is the AND of the corresponding nodes
+    Abc_ObjAddFanin( Abc_NtkPo(pNtkNew, 0), pOutputNew );
+
+    // check that the CI/CO/latches are copied correctly
+    assert( Abc_NtkPoNum(pNtkNew)    == 1 );
+    assert( Abc_NtkCiNum(pNtkNew)    == Abc_NtkCiNum(pNtk) );
+    assert( Abc_NtkLatchNum(pNtkNew) == Abc_NtkLatchNum(pNtk) );
+    return pNtkNew;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Derives the AIG representing a property.]
+
+  Description [Given is a sequential logic network (Abc_Ntk_t) and 
+  an array of nodes (vector of object IDs) and their values (vector of 0s or 1s).
+  This procedure creates a sequential AIG (Abc_Ntk_t), which can be given to a 
+  sequential model checker (in particular "pdr") to prove that the given 
+  combination of values never appears at the intenal nodes of the network, 
+  or produce a counter-example showing that it can appear.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Ntk_t * Abc_NtkCreatePropertyMonitor( Abc_Ntk_t * p, Vec_Int_t * vNodeIds, Vec_Int_t * vNodeValues )
+{
+    Abc_Ntk_t * pMonitor, * pStrashed, * pResult;
+    // sequential cleanup parameters
+    int fLatchConst  =   1;
+    int fLatchEqual  =   1;
+    int fSaveNames   =   1;
+    int fUseMvSweep  =   0;
+    int nFramesSymb  =   1;
+    int nFramesSatur = 512;
+    int fVerbose     =   0;
+    int fVeryVerbose =   0;
+    // expecting sequential logic network
+    assert( Abc_NtkIsLogic(p) );
+    assert( Abc_NtkLatchNum(p) > 0 );
+    assert( Vec_IntSize(vNodeIds) > 0 );
+    assert( Vec_IntSize(vNodeIds) == Vec_IntSize(vNodeValues) );
+    // derive ABC network whose only output is 1 iff the given nodes have the given values
+    pMonitor = Abc_NtkDeriveWithOnePo( p, vNodeIds, vNodeValues );
+    // perform structural hashing
+    pStrashed = Abc_NtkStrash( pMonitor, 0, 1, 0 );
+    Abc_NtkDelete( pMonitor );
+    // it is a good idea to run sequential cleanup before giving the network to PDR
+    pResult = Abc_NtkDarLatchSweep( pStrashed, fLatchConst, fLatchEqual, fSaveNames, fUseMvSweep, nFramesSymb, nFramesSatur, fVerbose, fVeryVerbose );
+    Abc_NtkDelete( pStrashed );
+    return pResult;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Testbench.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Ntk_t * Abc_NtkCreatePropertyMonitorTest( Abc_Ntk_t * p )
+{
+    Abc_Ntk_t * pNtk;
+    Vec_Int_t * vNodeIds = Vec_IntAlloc( 100 );
+    Vec_Int_t * vNodeValues = Vec_IntAlloc( 100 );
+
+    // this test will only work for the network, which has nodes with internal IDs such as these
+    Vec_IntPush( vNodeIds, 90 );
+    Vec_IntPush( vNodeIds, 80 );
+    Vec_IntPush( vNodeIds, 100 );
+
+    Vec_IntPush( vNodeValues, 1 );
+    Vec_IntPush( vNodeValues, 0 );
+    Vec_IntPush( vNodeValues, 1 );
+
+    pNtk = Abc_NtkCreatePropertyMonitor( p, vNodeIds, vNodeValues );
+
+    Vec_IntFree( vNodeIds );
+    Vec_IntFree( vNodeValues );
+
+    return pNtk;
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
