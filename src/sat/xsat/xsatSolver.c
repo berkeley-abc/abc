@@ -680,12 +680,10 @@ unsigned xSAT_SolverPropagate( xSAT_Solver_t* s )
         nProp++;
         for ( i = begin; i < end; i++ )
         {
-            if ( Vec_StrEntry( s->vAssigns, xSAT_Lit2Var( i->Blocker ) ) == xSAT_LitSign( xSAT_NegLit( i->Blocker ) ) )
-            {
-                return i->CRef;
-            }
-            else if ( Vec_StrEntry( s->vAssigns, xSAT_Lit2Var( i->Blocker ) ) == VarX )
+            if ( Vec_StrEntry( s->vAssigns, xSAT_Lit2Var( i->Blocker ) ) == VarX )
                 xSAT_SolverEnqueue( s, i->Blocker, i->CRef );
+            else if ( Vec_StrEntry( s->vAssigns, xSAT_Lit2Var( i->Blocker ) ) == xSAT_LitSign( xSAT_NegLit( i->Blocker ) ) )
+                return i->CRef;
         }
 
         ws    = xSAT_VecWatchListEntry( s->vWatches, p );
