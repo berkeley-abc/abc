@@ -20,6 +20,7 @@
 
 #include "pdrInt.h"
 #include "base/main/main.h"
+#include "misc/hash/hash.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -57,7 +58,10 @@ void Pdr_ManSetDefaultParams( Pdr_Par_t * pPars )
     pPars->nConfLimit     =       0;  // limit on SAT solver conflicts
     pPars->nConfGenLimit  =       0;  // limit on SAT solver conflicts during generalization
     pPars->nRestLimit     =       0;  // limit on the number of proof-obligations
+    pPars->nRandomSeed   = 91648253;  // value to seed the SAT solver with
     pPars->fTwoRounds     =       0;  // use two rounds for generalization
+    pPars->fSkipDown      =       1;  // apply down in generalization
+    pPars->fCtgs          =       0;  // handle CTGs in down
     pPars->fMonoCnf       =       0;  // monolythic CNF
     pPars->fDumpInv       =       0;  // dump inductive invariant
     pPars->fUseSupp       =       1;  // using support variables in the invariant
@@ -296,6 +300,190 @@ int * Pdr_ManSortByPriority( Pdr_Man_t * p, Pdr_Set_t * pCube )
 
 /**Function*************************************************************
 
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int ZPdr_ManSimpleMic( Pdr_Man_t * p, int k, Pdr_Set_t ** ppCube )
+{
+    int * pOrder;
+    int i, j, n, Lit, RetValue;
+    Pdr_Set_t * pCubeTmp;
+    // perform generalization
+    if ( p->pPars->fSkipGeneral )
+      return 0;
+
+    // sort literals by their occurences
+    pOrder = Pdr_ManSortByPriority( p, *ppCube );
+    // try removing literals
+    for ( j = 0; j < (*ppCube)->nLits; j++ )
+    {
+        // use ordering
+    //        i = j;
+        i = pOrder[j];
+
+        assert( (*ppCube)->Lits[i] != -1 );
+        // check init state
+        if ( Pdr_SetIsInit(*ppCube, i) )
+            continue;
+        // try removing this literal
+        Lit = (*ppCube)->Lits[i]; (*ppCube)->Lits[i] = -1; 
+        RetValue = Pdr_ManCheckCube( p, k, *ppCube, NULL, p->pPars->nConfLimit, 0 );
+        if ( RetValue == -1 )
+            return -1;
+        (*ppCube)->Lits[i] = Lit;
+        if ( RetValue == 0 )
+            continue;
+
+        // remove j-th entry
+        for ( n = j; n < (*ppCube)->nLits-1; n++ )
+            pOrder[n] = pOrder[n+1];
+        j--;
+
+        // success - update the cube
+        *ppCube = Pdr_SetCreateFrom( pCubeTmp = *ppCube, i );
+        Pdr_SetDeref( pCubeTmp );
+        assert( (*ppCube)->nLits > 0 );
+        i--;
+
+        // get the ordering by decreasing priorit
+        pOrder = Pdr_ManSortByPriority( p, *ppCube );
+    }
+    return 0;
+}
+
+
+ 
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int ZPdr_ManDown( Pdr_Man_t * p, int k, Pdr_Set_t ** ppCube, Pdr_Set_t * pPred, Hash_Int_t * keep, Pdr_Set_t * pIndCube, int * added )
+{
+    int RetValue = 0, CtgRetValue, i, ctgAttempts, l, micResult;
+    int kMax = Vec_PtrSize(p->vSolvers)-1;
+    Pdr_Set_t * pCubeTmp, * pCubeMin, * pCtg;
+    while ( RetValue == 0 )
+    {
+        ctgAttempts = 0;
+        while ( p->pPars->fCtgs && RetValue == 0 && k > 1 && ctgAttempts < 3 )
+        {
+            pCtg = Pdr_SetDup ( pPred );
+            //Check CTG for inductiveness
+            if ( Pdr_SetIsInit( pCtg, -1 ) )
+            {
+                Pdr_SetDeref( pCtg );
+                break;
+            }
+            if (*added == 0)
+            {
+                for ( i = 1; i <= k; i++ )
+                    Pdr_ManSolverAddClause( p, i, pIndCube);
+                *added = 1;
+            }
+            ctgAttempts++;
+            CtgRetValue = Pdr_ManCheckCube ( p, k-1, pCtg, NULL, p->pPars->nConfLimit, 0 );
+            if ( CtgRetValue != 1 )
+            {
+                Pdr_SetDeref( pCtg );
+                break;
+            }
+            pCubeMin = Pdr_ManReduceClause( p, k-1, pCtg );
+            if ( pCubeMin == NULL )
+                pCubeMin = Pdr_SetDup ( pCtg );
+
+            for ( l = k; l < kMax; l++ )
+                if ( !Pdr_ManCheckCube( p, l, pCubeMin, NULL, 0, 0 ) )
+                    break;
+            micResult = ZPdr_ManSimpleMic( p, l-1, &pCubeMin );
+            assert ( micResult != -1 );
+
+            // add new clause
+            if ( p->pPars->fVeryVerbose )
+            {
+                Abc_Print( 1, "Adding cube " );
+                Pdr_SetPrint( stdout, pCubeMin, Aig_ManRegNum(p->pAig), NULL );
+                Abc_Print( 1, " to frame %d.\n", l );
+            }
+            // set priority flops
+            for ( i = 0; i < pCubeMin->nLits; i++ )
+            {
+                assert( pCubeMin->Lits[i] >= 0 );
+                assert( (pCubeMin->Lits[i] / 2) < Aig_ManRegNum(p->pAig) );
+                Vec_IntAddToEntry( p->vPrio, pCubeMin->Lits[i] / 2, 1 );
+            }
+
+            Vec_VecPush( p->vClauses, l, pCubeMin );   // consume ref
+            p->nCubes++;
+            // add clause
+            for ( i = 1; i <= l; i++ )
+                Pdr_ManSolverAddClause( p, i, pCubeMin );
+            RetValue = Pdr_ManCheckCube ( p, k, *ppCube, &pPred, p->pPars->nConfLimit, 0 );
+            assert( RetValue >= 0 );
+            Pdr_SetDeref( pCtg );
+            if ( RetValue == 1 )
+            {
+                //printf ("IT'S A ONE\n");
+                return 1;
+            }
+        }
+
+        //join
+        if ( p->pPars->fVeryVerbose )
+        {
+            printf("Cube:\n");
+            ZPdr_SetPrint( *ppCube );
+            printf("\nPred:\n");
+            ZPdr_SetPrint( pPred );
+        }
+        *ppCube = ZPdr_SetIntersection( pCubeTmp = *ppCube, pPred, keep );
+        Pdr_SetDeref( pCubeTmp );
+        Pdr_SetDeref( pPred );
+        if ( *ppCube == NULL )
+            return 0;
+        if ( p->pPars->fVeryVerbose )
+        {
+          printf("Intersection:\n");
+          ZPdr_SetPrint( *ppCube );
+        }
+        if ( Pdr_SetIsInit( *ppCube, -1 ) )
+        {
+          if ( p->pPars->fVeryVerbose )
+            printf ("Failed initiation\n");
+          return 0;
+        }
+        RetValue = Pdr_ManCheckCube ( p, k, *ppCube, &pPred, p->pPars->nConfLimit, 0 );
+        if ( RetValue == -1 )
+            return -1;
+        if ( RetValue == 1 )
+        {
+            //printf ("*********IT'S A ONE\n");
+            break;
+        }
+        if ( RetValue == 0 && (*ppCube)->nLits == 1)
+        {
+            Pdr_SetDeref( pPred ); // fixed memory leak
+            // A workaround for the incomplete assignment returned by the SAT
+            // solver
+            return 0;
+        }
+    }
+    return 1;
+}
+/**Function*************************************************************
+
   Synopsis    [Returns 1 if the state could be blocked.]
 
   Description []
@@ -307,10 +495,12 @@ int * Pdr_ManSortByPriority( Pdr_Man_t * p, Pdr_Set_t * pCube )
 ***********************************************************************/
 int Pdr_ManGeneralize( Pdr_Man_t * p, int k, Pdr_Set_t * pCube, Pdr_Set_t ** ppPred, Pdr_Set_t ** ppCubeMin )
 {
-    Pdr_Set_t * pCubeMin, * pCubeTmp = NULL;
+    Pdr_Set_t * pCubeMin, * pCubeTmp = NULL, * pPred = NULL, * pCubeCpy = NULL;
     int i, j, n, Lit, RetValue;
     abctime clk = Abc_Clock();
     int * pOrder;
+    int added = 0;
+    Hash_Int_t * keep = NULL;
     // if there is no induction, return
     *ppCubeMin = NULL;
     RetValue = Pdr_ManCheckCube( p, k, pCube, ppPred, p->pPars->nConfLimit, 0 );
@@ -318,9 +508,11 @@ int Pdr_ManGeneralize( Pdr_Man_t * p, int k, Pdr_Set_t * pCube, Pdr_Set_t ** ppP
         return -1;
     if ( RetValue == 0 )
     {
-        p->tGeneral += Abc_Clock() - clk;
+        p->tGeneral += clock() - clk;
         return 0;
     }
+    
+    keep = p->pPars->fSkipDown ? NULL : Hash_IntAlloc( 1 );
 
     // reduce clause using assumptions
 //    pCubeMin = Pdr_SetDup( pCube );
@@ -340,13 +532,22 @@ int Pdr_ManGeneralize( Pdr_Man_t * p, int k, Pdr_Set_t * pCube, Pdr_Set_t ** ppP
     //        i = j;
             i = pOrder[j];
 
-            // check init state
             assert( pCubeMin->Lits[i] != -1 );
+            if ( keep && Hash_IntExists( keep, pCubeMin->Lits[i] ) )
+            {
+                //printf("Undroppable\n");
+                continue;
+            }
+
+            // check init state
             if ( Pdr_SetIsInit(pCubeMin, i) )
                 continue;
             // try removing this literal
-            Lit = pCubeMin->Lits[i]; pCubeMin->Lits[i] = -1;
-            RetValue = Pdr_ManCheckCube( p, k, pCubeMin, NULL, p->pPars->nConfLimit, 1 );
+            Lit = pCubeMin->Lits[i]; pCubeMin->Lits[i] = -1; 
+            if ( p->pPars->fSkipDown )
+              RetValue = Pdr_ManCheckCube( p, k, pCubeMin, NULL, p->pPars->nConfLimit, 1 );
+            else
+              RetValue = Pdr_ManCheckCube( p, k, pCubeMin, &pPred, p->pPars->nConfLimit, 1 );
             if ( RetValue == -1 )
             {
                 Pdr_SetDeref( pCubeMin );
@@ -354,7 +555,39 @@ int Pdr_ManGeneralize( Pdr_Man_t * p, int k, Pdr_Set_t * pCube, Pdr_Set_t ** ppP
             }
             pCubeMin->Lits[i] = Lit;
             if ( RetValue == 0 )
+            {
+              if ( p->pPars->fSkipDown )
+                  continue;
+              pCubeCpy = Pdr_SetCreateFrom ( pCubeMin, i );
+              RetValue = ZPdr_ManDown ( p, k, &pCubeCpy, pPred, keep, pCubeMin, &added );
+              if ( p->pPars->fCtgs )
+                //CTG handling code messes up with the internal order array
+                pOrder = Pdr_ManSortByPriority( p, pCubeMin );
+              if ( RetValue == -1 )
+              {
+                  Pdr_SetDeref( pCubeMin );
+                  Pdr_SetDeref( pCubeCpy );
+                  Pdr_SetDeref( pPred );
+                  return -1;
+              }
+              if ( RetValue == 0 )
+              {
+                if ( keep ) 
+                  Hash_IntWriteEntry( keep, pCubeMin->Lits[i], 0 );
+                if ( pCubeCpy )
+                  Pdr_SetDeref( pCubeCpy );
                 continue;
+              }
+              //Inductive subclause
+              added = 0;
+              Pdr_SetDeref( pCubeMin );
+              pCubeMin = pCubeCpy;
+              assert( pCubeMin->nLits > 0 );
+              pOrder = Pdr_ManSortByPriority( p, pCubeMin );
+              j = -1;
+              continue;
+            }
+            added = 0;
 
             // remove j-th entry
             for ( n = j; n < pCubeMin->nLits-1; n++ )
@@ -383,7 +616,7 @@ int Pdr_ManGeneralize( Pdr_Man_t * p, int k, Pdr_Set_t * pCube, Pdr_Set_t ** ppP
             if ( Pdr_SetIsInit(pCubeMin, i) )
                 continue;
             // try removing this literal
-            Lit = pCubeMin->Lits[i]; pCubeMin->Lits[i] = -1;
+            Lit = pCubeMin->Lits[i]; pCubeMin->Lits[i] = -1; 
             RetValue = Pdr_ManCheckCube( p, k, pCubeMin, NULL, p->pPars->nConfLimit, 0 );
             if ( RetValue == -1 )
             {
@@ -411,8 +644,18 @@ int Pdr_ManGeneralize( Pdr_Man_t * p, int k, Pdr_Set_t * pCube, Pdr_Set_t ** ppP
     }
 
     assert( ppCubeMin != NULL );
+    if ( p->pPars->fVeryVerbose )
+    {
+        printf("Cube:\n");
+        for ( i = 0; i < pCubeMin->nLits; i++)
+        {
+          printf ("%d ", pCubeMin->Lits[i]);
+        }
+        printf("\n");
+    }
     *ppCubeMin = pCubeMin;
     p->tGeneral += Abc_Clock() - clk;
+    if ( keep ) Hash_IntFree( keep );
     return 1;
 }
 

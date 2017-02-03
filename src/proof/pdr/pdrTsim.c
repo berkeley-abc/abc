@@ -476,7 +476,9 @@ Pdr_ManPrintCex( p->pAig, vCiObjs, vCiVals, vCi2Rem );
     assert( Vec_IntSize(vRes) > 0 );
     p->tTsim += Abc_Clock() - clk;
     pRes = Pdr_SetCreate( vRes, vPiLits );
-    assert( k == 0 || !Pdr_SetIsInit(pRes, -1) );
+    //ZH: Disabled assertion because this invariant doesn't hold with down
+    //because of the join operation which can bring in initial states
+    //assert( k == 0 || !Pdr_SetIsInit(pRes, -1) );
     return pRes;
 }
 

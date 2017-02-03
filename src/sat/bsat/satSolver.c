@@ -1085,6 +1085,77 @@ sat_solver* sat_solver_new(void)
     return s;
 }
 
+sat_solver* zsat_solver_new_seed(double seed)
+{
+    sat_solver* s = (sat_solver*)ABC_CALLOC( char, sizeof(sat_solver));
+
+//    Vec_SetAlloc_(&s->Mem, 15);
+    Sat_MemAlloc_(&s->Mem, 15);
+    s->hLearnts = -1;
+    s->hBinary = Sat_MemAppend( &s->Mem, NULL, 2, 0, 0 );
+    s->binary = clause_read( s, s->hBinary );
+
+    s->nLearntStart = LEARNT_MAX_START_DEFAULT;  // starting learned clause limit
+    s->nLearntDelta = LEARNT_MAX_INCRE_DEFAULT;  // delta of learned clause limit
+    s->nLearntRatio = LEARNT_MAX_RATIO_DEFAULT;  // ratio of learned clause limit
+    s->nLearntMax   = s->nLearntStart;
+
+    // initialize vectors
+    veci_new(&s->order);
+    veci_new(&s->trail_lim);
+    veci_new(&s->tagged);
+//    veci_new(&s->learned);
+    veci_new(&s->act_clas);
+    veci_new(&s->stack);
+//    veci_new(&s->model);
+    veci_new(&s->act_vars);
+    veci_new(&s->unit_lits);
+    veci_new(&s->temp_clause);
+    veci_new(&s->conf_final);
+
+    // initialize arrays
+    s->wlists    = 0;
+    s->activity  = 0;
+    s->orderpos  = 0;
+    s->reasons   = 0;
+    s->trail     = 0;
+
+    // initialize other vars
+    s->size                   = 0;
+    s->cap                    = 0;
+    s->qhead                  = 0;
+    s->qtail                  = 0;
+#ifdef USE_FLOAT_ACTIVITY
+    s->var_inc                = 1;
+    s->cla_inc                = 1;
+    s->var_decay              = (float)(1 / 0.95 );
+    s->cla_decay              = (float)(1 / 0.999);
+#else
+    s->var_inc                = (1 <<  5);
+    s->cla_inc                = (1 << 11);
+#endif
+    s->root_level             = 0;
+//    s->simpdb_assigns         = 0;
+//    s->simpdb_props           = 0;
+    s->random_seed            = seed;
+    s->progress_estimate      = 0;
+//    s->binary                 = (clause*)ABC_ALLOC( char, sizeof(clause) + sizeof(lit)*2);
+//    s->binary->size_learnt    = (2 << 1);
+    s->verbosity              = 0;
+
+    s->stats.starts           = 0;
+    s->stats.decisions        = 0;
+    s->stats.propagations     = 0;
+    s->stats.inspects         = 0;
+    s->stats.conflicts        = 0;
+    s->stats.clauses          = 0;
+    s->stats.clauses_literals = 0;
+    s->stats.learnts          = 0;
+    s->stats.learnts_literals = 0;
+    s->stats.tot_literals     = 0;
+    return s;
+}
+
 void sat_solver_setnvars(sat_solver* s,int n)
 {
     int var;
@@ -1233,6 +1304,55 @@ void sat_solver_restart( sat_solver* s )
 //    s->simpdb_assigns         = 0;
 //    s->simpdb_props           = 0;
     s->random_seed            = 91648253;
+    s->progress_estimate      = 0;
+    s->verbosity              = 0;
+
+    s->stats.starts           = 0;
+    s->stats.decisions        = 0;
+    s->stats.propagations     = 0;
+    s->stats.inspects         = 0;
+    s->stats.conflicts        = 0;
+    s->stats.clauses          = 0;
+    s->stats.clauses_literals = 0;
+    s->stats.learnts          = 0;
+    s->stats.learnts_literals = 0;
+    s->stats.tot_literals     = 0;
+}
+
+void zsat_solver_restart_seed( sat_solver* s, double seed )
+{
+    int i;
+    Sat_MemRestart( &s->Mem );
+    s->hLearnts = -1;
+    s->hBinary = Sat_MemAppend( &s->Mem, NULL, 2, 0, 0 );
+    s->binary = clause_read( s, s->hBinary );
+
+    veci_resize(&s->act_clas, 0);
+    veci_resize(&s->trail_lim, 0);
+    veci_resize(&s->order, 0);
+    for ( i = 0; i < s->size*2; i++ )
+        s->wlists[i].size = 0;
+
+    s->nDBreduces = 0;
+
+    // initialize other vars
+    s->size                   = 0;
+//    s->cap                    = 0;
+    s->qhead                  = 0;
+    s->qtail                  = 0;
+#ifdef USE_FLOAT_ACTIVITY
+    s->var_inc                = 1;
+    s->cla_inc                = 1;
+    s->var_decay              = (float)(1 / 0.95  );
+    s->cla_decay              = (float)(1 / 0.999 );
+#else
+    s->var_inc                = (1 <<  5);
+    s->cla_inc                = (1 << 11);
+#endif
+    s->root_level             = 0;
+//    s->simpdb_assigns         = 0;
+//    s->simpdb_props           = 0;
+    s->random_seed            = seed;
     s->progress_estimate      = 0;
     s->verbosity              = 0;
 

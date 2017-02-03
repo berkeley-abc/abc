@@ -260,6 +260,85 @@ void Pdr_SetPrint( FILE * pFile, Pdr_Set_t * p, int nRegs, Vec_Int_t * vFlopCoun
   SeeAlso     []
 
 ***********************************************************************/
+void ZPdr_SetPrint( Pdr_Set_t * p )
+{
+    int i;
+    for ( i = 0; i < p->nLits; i++)
+        printf ("%d ", p->Lits[i]);
+    printf ("\n");
+
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Return the intersection of p1 and p2.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Pdr_Set_t * ZPdr_SetIntersection( Pdr_Set_t * p1, Pdr_Set_t * p2, Hash_Int_t * keep )
+{
+    Pdr_Set_t * pIntersection;
+    Vec_Int_t * vCommonLits, * vPiLits;
+    int i, j, nLits;
+    nLits = p1->nLits;
+    if ( p2->nLits < nLits )
+        nLits = p2->nLits;
+    vCommonLits = Vec_IntAlloc( nLits );
+    vPiLits = Vec_IntAlloc( 1 );
+    for ( i = 0, j = 0; i < p1->nLits && j < p2->nLits; )
+    {
+        if ( p1->Lits[i] > p2->Lits[j] )
+        {
+            if ( Hash_IntExists( keep, p2->Lits[j] ) )
+            {
+                //about to drop a literal that should not be dropped
+                Vec_IntFree( vCommonLits );
+                Vec_IntFree( vPiLits );
+                return NULL;
+            }
+            j++;
+        }
+        else if ( p1->Lits[i] < p2->Lits[j] )
+        {
+            if ( Hash_IntExists( keep, p1->Lits[i] ) )
+            {
+                //about to drop a literal that should not be dropped
+                Vec_IntFree( vCommonLits );
+                Vec_IntFree( vPiLits );
+                return NULL;
+            }
+            i++;
+        }
+        else
+        {
+          Vec_IntPush( vCommonLits, p1->Lits[i] );
+          i++;
+          j++;
+        }
+    }
+    pIntersection = Pdr_SetCreate( vCommonLits, vPiLits );
+    Vec_IntFree( vCommonLits );
+    Vec_IntFree( vPiLits );
+    return pIntersection;
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 void Pdr_SetPrintStr( Vec_Str_t * vStr, Pdr_Set_t * p, int nRegs, Vec_Int_t * vFlopCounts )
 {
     char * pBuff;

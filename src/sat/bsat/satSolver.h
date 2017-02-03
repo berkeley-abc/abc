@@ -42,6 +42,7 @@ struct sat_solver_t;
 typedef struct sat_solver_t sat_solver;
 
 extern sat_solver* sat_solver_new(void);
+extern sat_solver* zsat_solver_new_seed(double seed);
 extern void        sat_solver_delete(sat_solver* s);
 
 extern int         sat_solver_addclause(sat_solver* s, lit* begin, lit* end);
@@ -54,6 +55,7 @@ extern int         sat_solver_push(sat_solver* s, int p);
 extern void        sat_solver_pop(sat_solver* s);
 extern void        sat_solver_set_resource_limits(sat_solver* s, ABC_INT64_T nConfLimit, ABC_INT64_T nInsLimit, ABC_INT64_T nConfLimitGlobal, ABC_INT64_T nInsLimitGlobal);
 extern void        sat_solver_restart( sat_solver* s );
+extern void        zsat_solver_restart_seed( sat_solver* s, double seed );
 extern void        sat_solver_rollback( sat_solver* s );
 
 extern int         sat_solver_nvars(sat_solver* s);

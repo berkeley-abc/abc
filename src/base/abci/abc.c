@@ -26008,7 +26008,7 @@ int Abc_CommandPdr( Abc_Frame_t * pAbc, int argc, char ** argv )
     int c;
     Pdr_ManSetDefaultParams( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "MFCDRTHGaxrmsipdegovwzh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "MFCDRTHGSaxrmsipdegoncvwzh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -26100,6 +26100,17 @@ int Abc_CommandPdr( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( pPars->nTimeOutGap < 0 )
                 goto usage;
             break;
+        case 'S':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-S\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nRandomSeed = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nRandomSeed < 0 )
+                goto usage;
+            break;
         case 'a':
             pPars->fSolveAll ^= 1;
             break;
@@ -26132,6 +26143,12 @@ int Abc_CommandPdr( Abc_Frame_t * pAbc, int argc, char ** argv )
             break;
         case 'o':
             pPars->fUsePropOut ^= 1;
+            break;
+        case 'n':
+            pPars->fSkipDown ^= 1;
+            break;
+        case 'c':
+            pPars->fCtgs ^= 1;
             break;
         case 'v':
             pPars->fVerbose ^= 1;
@@ -26174,9 +26191,9 @@ int Abc_CommandPdr( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: pdr [-MFCDRTHG <num>] [-axrmsipdegovwzh]\n" );
+    Abc_Print( -2, "usage: pdr [-MFCDRTHGS <num>] [-axrmsipdegoncvwzh]\n" );
     Abc_Print( -2, "\t         model checking using property directed reachability (aka IC3)\n" );
-    Abc_Print( -2, "\t         pioneered by Aaron Bradley (http://ecee.colorado.edu/~bradleya/ic3/)\n" );
+    Abc_Print( -2, "\t         pioneered by Aaron R. Bradley (http://theory.stanford.edu/~arbrad/)\n" );
     Abc_Print( -2, "\t         with improvements by Niklas Een (http://een.se/niklas/)\n" );
     Abc_Print( -2, "\t-M num : limit on unused vars to trigger SAT solver recycling [default = %d]\n",       pPars->nRecycle );
     Abc_Print( -2, "\t-F num : limit on timeframes explored to stop computation [default = %d]\n",           pPars->nFrameMax );
@@ -26186,6 +26203,7 @@ usage:
     Abc_Print( -2, "\t-T num : runtime limit, in seconds (0 = no limit) [default = %d]\n",                   pPars->nTimeOut );
     Abc_Print( -2, "\t-H num : runtime limit per output, in miliseconds (with \"-a\") [default = %d]\n",     pPars->nTimeOutOne );
     Abc_Print( -2, "\t-G num : runtime gap since the last CEX (0 = no limit) [default = %d]\n",              pPars->nTimeOutGap );
+    Abc_Print( -2, "\t-S num : * value to seed the SAT solver with [default = %d]\n",                          pPars->nRandomSeed );
     Abc_Print( -2, "\t-a     : toggle solving all outputs even if one of them is SAT [default = %s]\n",      pPars->fSolveAll? "yes": "no" );
     Abc_Print( -2, "\t-x     : toggle storing CEXes when solving all outputs [default = %s]\n",              pPars->fStoreCex? "yes": "no" );
     Abc_Print( -2, "\t-r     : toggle using more effort in generalization [default = %s]\n",                 pPars->fTwoRounds? "yes": "no" );
@@ -26197,10 +26215,19 @@ usage:
     Abc_Print( -2, "\t-e     : toggle using only support variables in the invariant [default = %s]\n",       pPars->fUseSupp? "yes": "no" );
     Abc_Print( -2, "\t-g     : toggle skipping expensive generalization step [default = %s]\n",              pPars->fSkipGeneral? "yes": "no" );
     Abc_Print( -2, "\t-o     : toggle using property output as inductive hypothesis [default = %s]\n",       pPars->fUsePropOut? "yes": "no" );
+    Abc_Print( -2, "\t-n     : * toggle skipping \'down\' in generalization [default = %s]\n",                 pPars->fSkipDown? "yes": "no" );
+    Abc_Print( -2, "\t-c     : * toggle handling CTGs in \'down\' [default = %s]\n",                           pPars->fCtgs? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing optimization summary [default = %s]\n",                       pPars->fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-w     : toggle printing detailed stats default = %s]\n",                              pPars->fVeryVerbose? "yes": "no" );
     Abc_Print( -2, "\t-z     : toggle suppressing report about solved outputs [default = %s]\n",             pPars->fNotVerbose? "yes": "no" );
-    Abc_Print( -2, "\t-h     : print the command usage\n");
+    Abc_Print( -2, "\t-h     : print the command usage\n\n");
+    Abc_Print( -2, "\t* Implementation of switches -S, -n, and -c is contributed by Zyad Hassan.\n");
+    Abc_Print( -2, "\t  The theory and experiments supporting this work can be found in the following paper:\n");
+    Abc_Print( -2, "\t  Zyad Hassan, Aaron R. Bradley, Fabio Somenzi, \"Better Generalization in IC3\", FMCAD 2013.\n");
+    Abc_Print( -2, "\t  (http://www.cs.utexas.edu/users/hunt/FMCAD/FMCAD13/papers/85-Better-Generalization-IC3.pdf)\n");
+
+    
+
     return 1;
 }
 

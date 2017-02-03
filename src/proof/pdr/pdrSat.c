@@ -51,7 +51,8 @@ sat_solver * Pdr_ManCreateSolver( Pdr_Man_t * p, int k )
     assert( Vec_VecSize(p->vClauses) == k );
     assert( Vec_IntSize(p->vActVars) == k );
     // create new solver
-    pSat = sat_solver_new();
+//    pSat = sat_solver_new();
+    pSat = zsat_solver_new_seed(p->pPars->nRandomSeed);
     pSat = Pdr_ManNewSolver( pSat, p, k, (int)(k == 0) );
     Vec_PtrPush( p->vSolvers, pSat );
     Vec_VecExpand( p->vClauses, k );
@@ -86,7 +87,8 @@ sat_solver * Pdr_ManFetchSolver( Pdr_Man_t * p, int k )
     p->nStarts++;
 //    sat_solver_delete( pSat );
 //    pSat = sat_solver_new();
-    sat_solver_restart( pSat );
+//    sat_solver_restart( pSat );
+    zsat_solver_restart_seed( pSat, p->pPars->nRandomSeed );
     // create new SAT solver
     pSat = Pdr_ManNewSolver( pSat, p, k, (int)(k == 0) );
     // write new SAT solver

@@ -30,6 +30,7 @@
 #include "sat/cnf/cnf.h"
 #include "sat/bsat/satSolver.h"
 #include "pdr.h" 
+#include "misc/hash/hashInt.h"
 
 ABC_NAMESPACE_HEADER_START
 
@@ -196,10 +197,13 @@ extern Pdr_Set_t *     Pdr_SetCreateSubset( Pdr_Set_t * pSet, int * pLits, int n
 extern Pdr_Set_t *     Pdr_SetDup( Pdr_Set_t * pSet );
 extern Pdr_Set_t *     Pdr_SetRef( Pdr_Set_t * p );
 extern void            Pdr_SetDeref( Pdr_Set_t * p );
+extern Pdr_Set_t *     ZPdr_SetIntersection( Pdr_Set_t * p1, Pdr_Set_t * p2, Hash_Int_t * keep );
 extern int             Pdr_SetContains( Pdr_Set_t * pOld, Pdr_Set_t * pNew );
 extern int             Pdr_SetContainsSimple( Pdr_Set_t * pOld, Pdr_Set_t * pNew );
 extern int             Pdr_SetIsInit( Pdr_Set_t * p, int iRemove );
+extern int             ZPdr_SetIsInit( Pdr_Set_t * p );
 extern void            Pdr_SetPrint( FILE * pFile, Pdr_Set_t * p, int nRegs, Vec_Int_t * vFlopCounts );
+extern void            ZPdr_SetPrint( Pdr_Set_t * p );
 extern void            Pdr_SetPrintStr( Vec_Str_t * vStr, Pdr_Set_t * p, int nRegs, Vec_Int_t * vFlopCounts );
 extern int             Pdr_SetCompare( Pdr_Set_t ** pp1, Pdr_Set_t ** pp2 );
 extern Pdr_Obl_t *     Pdr_OblStart( int k, int prio, Pdr_Set_t * pState, Pdr_Obl_t * pNext );
