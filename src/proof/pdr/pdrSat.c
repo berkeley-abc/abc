@@ -377,7 +377,14 @@ int Pdr_ManCheckCube( Pdr_Man_t * p, int k, Pdr_Set_t * pCube, Pdr_Set_t ** ppPr
         p->tSatSat += clk;
         p->nCallsS++;
         if ( ppPred )
-            *ppPred = Pdr_ManTernarySim( p, k, pCube );
+        {
+            abctime clk = Abc_Clock();
+            if ( p->pPars->fNewXSim )
+                *ppPred = Txs_ManTernarySim( p->pTxs, k, pCube );
+            else
+                *ppPred = Pdr_ManTernarySim( p, k, pCube );
+            p->tTsim += Abc_Clock() - clk;
+        }
         RetValue = 0;
     }
 

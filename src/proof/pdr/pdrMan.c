@@ -70,6 +70,8 @@ Pdr_Man_t * Pdr_ManStart( Aig_Man_t * pAig, Pdr_Par_t * pPars, Vec_Int_t * vPrio
     p->vSuppLits= Vec_IntAlloc( 100 );  // support literals
     p->pCubeJust= Pdr_SetAlloc( Saig_ManRegNum(pAig) );
     p->pCnfMan  = Cnf_ManStart();
+    // ternary simulation
+    p->pTxs     = Txs_ManStart( p, pAig, p->vPrio );
     // additional AIG data-members
     if ( pAig->pFanData == NULL )
         Aig_ManFanoutStart( pAig );
@@ -150,6 +152,8 @@ void Pdr_ManStop( Pdr_Man_t * p )
     Vec_WecFreeP( &p->vVLits );
     // CNF manager
     Cnf_ManStop( p->pCnfMan );
+    // terminary simulation
+    Txs_ManStop( p->pTxs );
     // internal use
     Vec_IntFreeP( &p->vPrio   );  // priority flops
     Vec_IntFree( p->vLits     );  // array of literals

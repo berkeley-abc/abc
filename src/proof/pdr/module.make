@@ -4,4 +4,5 @@ SRC +=    src/proof/pdr/pdrCnf.c \
     src/proof/pdr/pdrMan.c \
     src/proof/pdr/pdrSat.c \
     src/proof/pdr/pdrTsim.c \
+    src/proof/pdr/pdrTsim2.c \
     src/proof/pdr/pdrUtil.c 

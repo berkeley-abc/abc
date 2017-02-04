@@ -42,6 +42,8 @@ ABC_NAMESPACE_HEADER_START
 ///                         BASIC TYPES                              ///
 ////////////////////////////////////////////////////////////////////////
 
+typedef struct Txs_Man_t_ Txs_Man_t;
+
 typedef struct Pdr_Set_t_ Pdr_Set_t;
 struct Pdr_Set_t_
 {
@@ -87,6 +89,8 @@ struct Pdr_Man_t_
     int *       pOrder;    // ordering of the lits
     Vec_Int_t * vActVars;  // the counter of activation variables
     int         iUseFrame; // the first used frame
+    // terminary simulation
+    Txs_Man_t * pTxs;      
     // internal use
     Vec_Int_t * vPrio;     // priority flops
     Vec_Int_t * vLits;     // array of literals
@@ -189,6 +193,10 @@ extern int             Pdr_ManCheckCubeCs( Pdr_Man_t * p, int k, Pdr_Set_t * pCu
 extern int             Pdr_ManCheckCube( Pdr_Man_t * p, int k, Pdr_Set_t * pCube, Pdr_Set_t ** ppPred, int nConfLimit, int fTryConf );
 /*=== pdrTsim.c ==========================================================*/
 extern Pdr_Set_t *     Pdr_ManTernarySim( Pdr_Man_t * p, int k, Pdr_Set_t * pCube );
+/*=== pdrTsim2.c ==========================================================*/
+extern Txs_Man_t *     Txs_ManStart( Pdr_Man_t * pMan, Aig_Man_t * pAig, Vec_Int_t * vPrio );
+extern void            Txs_ManStop( Txs_Man_t * );
+extern Pdr_Set_t *     Txs_ManTernarySim( Txs_Man_t * p, int k, Pdr_Set_t * pCube );
 /*=== pdrUtil.c ==========================================================*/
 extern Pdr_Set_t *     Pdr_SetAlloc( int nSize );
 extern Pdr_Set_t *     Pdr_SetCreate( Vec_Int_t * vLits, Vec_Int_t * vPiLits );

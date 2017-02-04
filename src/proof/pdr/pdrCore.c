@@ -63,6 +63,7 @@ void Pdr_ManSetDefaultParams( Pdr_Par_t * pPars )
     pPars->fSkipDown      =       1;  // apply down in generalization
     pPars->fCtgs          =       0;  // handle CTGs in down
     pPars->fMonoCnf       =       0;  // monolythic CNF
+    pPars->fNewXSim       =       0;  // updated X-valued simulation
     pPars->fDumpInv       =       0;  // dump inductive invariant
     pPars->fUseSupp       =       1;  // using support variables in the invariant
     pPars->fShortest      =       0;  // forces bug traces to be shortest

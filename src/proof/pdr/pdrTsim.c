@@ -364,7 +364,7 @@ Pdr_Set_t * Pdr_ManTernarySim( Pdr_Man_t * p, int k, Pdr_Set_t * pCube )
     Vec_Int_t * vRes    = p->vRes;     // final result (flop literals)
     Aig_Obj_t * pObj;
     int i, Entry, RetValue;
-    abctime clk = Abc_Clock();
+    //abctime clk = Abc_Clock();
 
     // collect CO objects
     Vec_IntClear( vCoObjs );
@@ -474,7 +474,7 @@ Pdr_ManPrintCex( p->pAig, vCiObjs, vCiVals, vCi2Rem );
     // derive the set of resulting registers
     Pdr_ManDeriveResult( p->pAig, vCiObjs, vCiVals, vCi2Rem, vRes, vPiLits );
     assert( Vec_IntSize(vRes) > 0 );
-    p->tTsim += Abc_Clock() - clk;
+    //p->tTsim += Abc_Clock() - clk;
     pRes = Pdr_SetCreate( vRes, vPiLits );
     //ZH: Disabled assertion because this invariant doesn't hold with down
     //because of the join operation which can bring in initial states

@@ -52,6 +52,7 @@ struct Pdr_Par_t_
     int nRandomSeed;      // value to seed the SAT solver with
     int fTwoRounds;       // use two rounds for generalization
     int fMonoCnf;         // monolythic CNF
+    int fNewXSim;         // updated X-valued simulation
     int fDumpInv;         // dump inductive invariant
     int fUseSupp;         // use support in the invariant
     int fShortest;        // forces bug traces to be shortest

@@ -26008,7 +26008,7 @@ int Abc_CommandPdr( Abc_Frame_t * pAbc, int argc, char ** argv )
     int c;
     Pdr_ManSetDefaultParams( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "MFCDRTHGSaxrmsipdegoncvwzh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "MFCDRTHGSaxrmusipdegoncvwzh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -26123,6 +26123,9 @@ int Abc_CommandPdr( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'm':
             pPars->fMonoCnf ^= 1;
             break;
+        case 'u':
+            pPars->fNewXSim ^= 1;
+            break;
         case 's':
             pPars->fShortest ^= 1;
             break;
@@ -26191,7 +26194,7 @@ int Abc_CommandPdr( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: pdr [-MFCDRTHGS <num>] [-axrmsipdegoncvwzh]\n" );
+    Abc_Print( -2, "usage: pdr [-MFCDRTHGS <num>] [-axrmusipdegoncvwzh]\n" );
     Abc_Print( -2, "\t         model checking using property directed reachability (aka IC3)\n" );
     Abc_Print( -2, "\t         pioneered by Aaron R. Bradley (http://theory.stanford.edu/~arbrad/)\n" );
     Abc_Print( -2, "\t         with improvements by Niklas Een (http://een.se/niklas/)\n" );
@@ -26208,6 +26211,7 @@ usage:
     Abc_Print( -2, "\t-x     : toggle storing CEXes when solving all outputs [default = %s]\n",              pPars->fStoreCex? "yes": "no" );
     Abc_Print( -2, "\t-r     : toggle using more effort in generalization [default = %s]\n",                 pPars->fTwoRounds? "yes": "no" );
     Abc_Print( -2, "\t-m     : toggle using monolythic CNF computation [default = %s]\n",                    pPars->fMonoCnf? "yes": "no" );
+    Abc_Print( -2, "\t-u     : toggle updated X-valued simulation [default = %s]\n",                         pPars->fNewXSim? "yes": "no" );
     Abc_Print( -2, "\t-s     : toggle creating only shortest counter-examples [default = %s]\n",             pPars->fShortest? "yes": "no" );
     Abc_Print( -2, "\t-i     : toggle clause pushing from an intermediate timeframe [default = %s]\n",       pPars->fShiftStart? "yes": "no" );
     Abc_Print( -2, "\t-p     : toggle reusing proof-obligations in the last timeframe [default = %s]\n",     pPars->fReuseProofOblig? "yes": "no" );
