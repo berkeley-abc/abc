@@ -342,24 +342,6 @@ int Pdr_ManCheckCube( Pdr_Man_t * p, int k, Pdr_Set_t * pCube, Pdr_Set_t ** ppPr
             else
                 return -1;
         }
-/*
-        if ( RetValue == l_True )
-        {
-            int RetValue2 = Pdr_ManCubeJust( p, k, pCube );
-            if ( RetValue2 )
-                p->nCasesSS++;
-            else
-                p->nCasesSU++;
-        }
-        else
-        {
-            int RetValue2 = Pdr_ManCubeJust( p, k, pCube );
-            if ( RetValue2 )
-                p->nCasesUS++;
-            else
-                p->nCasesUU++;
-        }
-*/
     }
     clk = Abc_Clock() - clk;
     p->tSat += clk;

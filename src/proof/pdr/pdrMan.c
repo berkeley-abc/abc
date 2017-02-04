@@ -67,8 +67,6 @@ Pdr_Man_t * Pdr_ManStart( Aig_Man_t * pAig, Pdr_Par_t * pPars, Vec_Int_t * vPrio
     p->vVisits  = Vec_IntAlloc( 100 );  // intermediate
     p->vCi2Rem  = Vec_IntAlloc( 100 );  // CIs to be removed
     p->vRes     = Vec_IntAlloc( 100 );  // final result
-    p->vSuppLits= Vec_IntAlloc( 100 );  // support literals
-    p->pCubeJust= Pdr_SetAlloc( Saig_ManRegNum(pAig) );
     p->pCnfMan  = Cnf_ManStart();
     // ternary simulation
     p->pTxs     = Txs_ManStart( p, pAig, p->vPrio );
@@ -166,9 +164,7 @@ void Pdr_ManStop( Pdr_Man_t * p )
     Vec_IntFree( p->vVisits   );  // intermediate
     Vec_IntFree( p->vCi2Rem   );  // CIs to be removed
     Vec_IntFree( p->vRes      );  // final result
-    Vec_IntFree( p->vSuppLits );  // support literals
     Vec_PtrFreeP( &p->vInfCubes );
-    ABC_FREE( p->pCubeJust );
     ABC_FREE( p->pTime4Outs );
     if ( p->vCexes )
         Vec_PtrFreeFree( p->vCexes );

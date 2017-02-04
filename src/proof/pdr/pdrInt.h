@@ -103,8 +103,6 @@ struct Pdr_Man_t_
     Vec_Int_t * vVisits;   // intermediate
     Vec_Int_t * vCi2Rem;   // CIs to be removed
     Vec_Int_t * vRes;      // final result
-    Vec_Int_t * vSuppLits; // support literals
-    Pdr_Set_t * pCubeJust; // justification
     abctime *   pTime4Outs;// timeout per output
     Vec_Ptr_t * vInfCubes; // infinity clauses/cubes
     // statistics
@@ -224,7 +222,6 @@ extern void            Pdr_QueueClean( Pdr_Man_t * p );
 extern void            Pdr_QueuePush( Pdr_Man_t * p, Pdr_Obl_t * pObl );
 extern void            Pdr_QueuePrint( Pdr_Man_t * p );
 extern void            Pdr_QueueStop( Pdr_Man_t * p );
-extern int             Pdr_ManCubeJust( Pdr_Man_t * p, int k, Pdr_Set_t * pCube );
 
 ABC_NAMESPACE_HEADER_END
 

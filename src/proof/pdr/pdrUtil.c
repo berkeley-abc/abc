@@ -753,8 +753,6 @@ int Pdr_NtkFindSatAssign_rec( Aig_Man_t * pAig, Aig_Obj_t * pNode, int Value, Pd
     pNode->fMarkA = Value;
     if ( Aig_ObjIsCi(pNode) )
     {
-//        if ( vSuppLits )
-//            Vec_IntPush( vSuppLits, Abc_Var2Lit( Aig_ObjCioId(pNode), !Value ) );
         if ( Saig_ObjIsLo(pAig, pNode) )
         {
 //            pCube->Lits[pCube->nLits++] = Abc_Var2Lit( Aig_ObjCioId(pNode) - Saig_ManPiNum(pAig), !Value );
@@ -792,60 +790,6 @@ int Pdr_NtkFindSatAssign_rec( Aig_Man_t * pAig, Aig_Obj_t * pNode, int Value, Pd
     else
         return Pdr_NtkFindSatAssign_rec(pAig, Aig_ObjFanin0(pNode), Aig_ObjFaninC0(pNode), pCube, Heur);
 }
-
-/**Function*************************************************************
-
-  Synopsis    [Returns 1 if SAT assignment is found; 0 otherwise.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Pdr_ManCubeJust( Pdr_Man_t * p, int k, Pdr_Set_t * pCube )
-{
-    Aig_Obj_t * pNode;
-    int i, v, fCompl;
-//    return 0;
-    for ( i = 0; i < 4; i++ )
-    {
-        // derive new assignment
-        p->pCubeJust->nLits = 0;
-        p->pCubeJust->Sign  = 0;
-        Aig_ManIncrementTravId( p->pAig );
-        for ( v = 0; v < pCube->nLits; v++ )
-        {
-            if ( pCube->Lits[v] == -1 )
-                continue;
-            pNode  = Saig_ManLi( p->pAig, lit_var(pCube->Lits[v]) );
-            fCompl = lit_sign(pCube->Lits[v]) ^ Aig_ObjFaninC0(pNode);
-            if ( !Pdr_NtkFindSatAssign_rec( p->pAig, Aig_ObjFanin0(pNode), !fCompl, p->pCubeJust, i ) )
-                break;
-        }
-        if ( v < pCube->nLits )
-            continue;
-        // figure this out!!!
-        if ( p->pCubeJust->nLits == 0 )
-            continue;
-        // successfully derived new assignment
-        Vec_IntSelectSort( p->pCubeJust->Lits, p->pCubeJust->nLits );
-        // check assignment against this cube
-        if ( Pdr_SetContainsSimple( p->pCubeJust, pCube ) )
-            continue;
-//printf( "\n" );
-//Pdr_SetPrint( stdout, pCube,        Saig_ManRegNum(p->pAig), NULL ); printf( "\n" );
-//Pdr_SetPrint( stdout, p->pCubeJust, Saig_ManRegNum(p->pAig), NULL ); printf( "\n" );
-        // check assignment against the clauses
-        if ( Pdr_ManCheckContainment( p, k, p->pCubeJust ) )
-            continue;
-        // find good assignment
-        return 1;
-    }
-    return 0;
-}
-
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
