@@ -366,6 +366,8 @@ int Pdr_ManCheckCube( Pdr_Man_t * p, int k, Pdr_Set_t * pCube, Pdr_Set_t ** ppPr
             else
                 *ppPred = Pdr_ManTernarySim( p, k, pCube );
             p->tTsim += Abc_Clock() - clk;
+            p->nXsimLits += (*ppPred)->nLits;
+            p->nXsimRuns++;
         }
         RetValue = 0;
     }

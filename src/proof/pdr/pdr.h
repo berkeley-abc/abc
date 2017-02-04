@@ -53,6 +53,7 @@ struct Pdr_Par_t_
     int fTwoRounds;       // use two rounds for generalization
     int fMonoCnf;         // monolythic CNF
     int fNewXSim;         // updated X-valued simulation
+    int fFlopPrio;        // use structural flop priorities
     int fDumpInv;         // dump inductive invariant
     int fUseSupp;         // use support in the invariant
     int fShortest;        // forces bug traces to be shortest

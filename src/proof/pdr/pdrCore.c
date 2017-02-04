@@ -63,6 +63,7 @@ void Pdr_ManSetDefaultParams( Pdr_Par_t * pPars )
     pPars->fSkipDown      =       1;  // apply down in generalization
     pPars->fCtgs          =       0;  // handle CTGs in down
     pPars->fMonoCnf       =       0;  // monolythic CNF
+    pPars->fFlopPrio      =       0;  // use structural flop priorities
     pPars->fNewXSim       =       0;  // updated X-valued simulation
     pPars->fDumpInv       =       0;  // dump inductive invariant
     pPars->fUseSupp       =       1;  // using support variables in the invariant
@@ -313,7 +314,7 @@ int * Pdr_ManSortByPriority( Pdr_Man_t * p, Pdr_Set_t * pCube )
 int ZPdr_ManSimpleMic( Pdr_Man_t * p, int k, Pdr_Set_t ** ppCube )
 {
     int * pOrder;
-    int i, j, n, Lit, RetValue;
+    int i, j, Lit, RetValue;
     Pdr_Set_t * pCubeTmp;
     // perform generalization
     if ( p->pPars->fSkipGeneral )
@@ -341,19 +342,14 @@ int ZPdr_ManSimpleMic( Pdr_Man_t * p, int k, Pdr_Set_t ** ppCube )
         if ( RetValue == 0 )
             continue;
 
-        // remove j-th entry
-        for ( n = j; n < (*ppCube)->nLits-1; n++ )
-            pOrder[n] = pOrder[n+1];
-        j--;
-
         // success - update the cube
         *ppCube = Pdr_SetCreateFrom( pCubeTmp = *ppCube, i );
         Pdr_SetDeref( pCubeTmp );
         assert( (*ppCube)->nLits > 0 );
-        i--;
 
-        // get the ordering by decreasing priorit
+        // get the ordering by decreasing priority
         pOrder = Pdr_ManSortByPriority( p, *ppCube );
+        j--;
     }
     return 0;
 }
@@ -423,7 +419,7 @@ int ZPdr_ManDown( Pdr_Man_t * p, int k, Pdr_Set_t ** ppCube, Pdr_Set_t * pPred, 
             {
                 assert( pCubeMin->Lits[i] >= 0 );
                 assert( (pCubeMin->Lits[i] / 2) < Aig_ManRegNum(p->pAig) );
-                Vec_IntAddToEntry( p->vPrio, pCubeMin->Lits[i] / 2, 1 );
+                Vec_IntAddToEntry( p->vPrio, pCubeMin->Lits[i] / 2, 1 << p->nPrioShift );
             }
 
             Vec_VecPush( p->vClauses, l, pCubeMin );   // consume ref
@@ -456,14 +452,14 @@ int ZPdr_ManDown( Pdr_Man_t * p, int k, Pdr_Set_t ** ppCube, Pdr_Set_t * pPred, 
             return 0;
         if ( p->pPars->fVeryVerbose )
         {
-          printf("Intersection:\n");
-          ZPdr_SetPrint( *ppCube );
+            printf("Intersection:\n");
+            ZPdr_SetPrint( *ppCube );
         }
         if ( Pdr_SetIsInit( *ppCube, -1 ) )
         {
-          if ( p->pPars->fVeryVerbose )
-            printf ("Failed initiation\n");
-          return 0;
+            if ( p->pPars->fVeryVerbose )
+                printf ("Failed initiation\n");
+            return 0;
         }
         RetValue = Pdr_ManCheckCube ( p, k, *ppCube, &pPred, p->pPars->nConfLimit, 0 );
         if ( RetValue == -1 )
@@ -497,7 +493,7 @@ int ZPdr_ManDown( Pdr_Man_t * p, int k, Pdr_Set_t ** ppCube, Pdr_Set_t * pPred, 
 int Pdr_ManGeneralize( Pdr_Man_t * p, int k, Pdr_Set_t * pCube, Pdr_Set_t ** ppPred, Pdr_Set_t ** ppCubeMin )
 {
     Pdr_Set_t * pCubeMin, * pCubeTmp = NULL, * pPred = NULL, * pCubeCpy = NULL;
-    int i, j, n, Lit, RetValue;
+    int i, j, Lit, RetValue;
     abctime clk = Abc_Clock();
     int * pOrder;
     int added = 0;
@@ -546,9 +542,9 @@ int Pdr_ManGeneralize( Pdr_Man_t * p, int k, Pdr_Set_t * pCube, Pdr_Set_t ** ppP
             // try removing this literal
             Lit = pCubeMin->Lits[i]; pCubeMin->Lits[i] = -1; 
             if ( p->pPars->fSkipDown )
-              RetValue = Pdr_ManCheckCube( p, k, pCubeMin, NULL, p->pPars->nConfLimit, 1 );
+                RetValue = Pdr_ManCheckCube( p, k, pCubeMin, NULL, p->pPars->nConfLimit, 1 );
             else
-              RetValue = Pdr_ManCheckCube( p, k, pCubeMin, &pPred, p->pPars->nConfLimit, 1 );
+                RetValue = Pdr_ManCheckCube( p, k, pCubeMin, &pPred, p->pPars->nConfLimit, 1 );
             if ( RetValue == -1 )
             {
                 Pdr_SetDeref( pCubeMin );
@@ -557,52 +553,47 @@ int Pdr_ManGeneralize( Pdr_Man_t * p, int k, Pdr_Set_t * pCube, Pdr_Set_t ** ppP
             pCubeMin->Lits[i] = Lit;
             if ( RetValue == 0 )
             {
-              if ( p->pPars->fSkipDown )
-                  continue;
-              pCubeCpy = Pdr_SetCreateFrom ( pCubeMin, i );
-              RetValue = ZPdr_ManDown ( p, k, &pCubeCpy, pPred, keep, pCubeMin, &added );
-              if ( p->pPars->fCtgs )
-                //CTG handling code messes up with the internal order array
+                if ( p->pPars->fSkipDown )
+                    continue;
+                pCubeCpy = Pdr_SetCreateFrom ( pCubeMin, i );
+                RetValue = ZPdr_ManDown ( p, k, &pCubeCpy, pPred, keep, pCubeMin, &added );
+                if ( p->pPars->fCtgs )
+                    //CTG handling code messes up with the internal order array
+                    pOrder = Pdr_ManSortByPriority( p, pCubeMin );
+                if ( RetValue == -1 )
+                {
+                    Pdr_SetDeref( pCubeMin );
+                    Pdr_SetDeref( pCubeCpy );
+                    Pdr_SetDeref( pPred );
+                    return -1;
+                }
+                if ( RetValue == 0 )
+                {
+                    if ( keep ) 
+                        Hash_IntWriteEntry( keep, pCubeMin->Lits[i], 0 );
+                    if ( pCubeCpy )
+                        Pdr_SetDeref( pCubeCpy );
+                    continue;
+                }
+                //Inductive subclause
+                added = 0;
+                Pdr_SetDeref( pCubeMin );
+                pCubeMin = pCubeCpy;
+                assert( pCubeMin->nLits > 0 );
                 pOrder = Pdr_ManSortByPriority( p, pCubeMin );
-              if ( RetValue == -1 )
-              {
-                  Pdr_SetDeref( pCubeMin );
-                  Pdr_SetDeref( pCubeCpy );
-                  Pdr_SetDeref( pPred );
-                  return -1;
-              }
-              if ( RetValue == 0 )
-              {
-                if ( keep ) 
-                  Hash_IntWriteEntry( keep, pCubeMin->Lits[i], 0 );
-                if ( pCubeCpy )
-                  Pdr_SetDeref( pCubeCpy );
+                j = -1;
                 continue;
-              }
-              //Inductive subclause
-              added = 0;
-              Pdr_SetDeref( pCubeMin );
-              pCubeMin = pCubeCpy;
-              assert( pCubeMin->nLits > 0 );
-              pOrder = Pdr_ManSortByPriority( p, pCubeMin );
-              j = -1;
-              continue;
             }
             added = 0;
-
-            // remove j-th entry
-            for ( n = j; n < pCubeMin->nLits-1; n++ )
-                pOrder[n] = pOrder[n+1];
-            j--;
 
             // success - update the cube
             pCubeMin = Pdr_SetCreateFrom( pCubeTmp = pCubeMin, i );
             Pdr_SetDeref( pCubeTmp );
             assert( pCubeMin->nLits > 0 );
-            i--;
 
-            // get the ordering by decreasing priorit
+            // get the ordering by decreasing priority
             pOrder = Pdr_ManSortByPriority( p, pCubeMin );
+            j--;
         }
 
         if ( p->pPars->fTwoRounds )
@@ -628,19 +619,14 @@ int Pdr_ManGeneralize( Pdr_Man_t * p, int k, Pdr_Set_t * pCube, Pdr_Set_t ** ppP
             if ( RetValue == 0 )
                 continue;
 
-            // remove j-th entry
-            for ( n = j; n < pCubeMin->nLits-1; n++ )
-                pOrder[n] = pOrder[n+1];
-            j--;
-
             // success - update the cube
             pCubeMin = Pdr_SetCreateFrom( pCubeTmp = pCubeMin, i );
             Pdr_SetDeref( pCubeTmp );
             assert( pCubeMin->nLits > 0 );
-            i--;
 
-            // get the ordering by decreasing priorit
+            // get the ordering by decreasing priority
             pOrder = Pdr_ManSortByPriority( p, pCubeMin );
+            j--;
         }
     }
 
@@ -762,7 +748,7 @@ int Pdr_ManBlockCube( Pdr_Man_t * p, Pdr_Set_t * pCube )
             {
                 assert( pCubeMin->Lits[i] >= 0 );
                 assert( (pCubeMin->Lits[i] / 2) < Aig_ManRegNum(p->pAig) );
-                Vec_IntAddToEntry( p->vPrio, pCubeMin->Lits[i] / 2, 1 );
+                Vec_IntAddToEntry( p->vPrio, pCubeMin->Lits[i] / 2, 1 << p->nPrioShift );
             }
             Vec_VecPush( p->vClauses, k, pCubeMin );   // consume ref
             p->nCubes++;

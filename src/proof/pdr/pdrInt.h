@@ -82,6 +82,7 @@ struct Pdr_Man_t_
     Vec_Wec_t * vVLits;    // CNF literals
     // data representation
     int         iOutCur;   // current output
+    int         nPrioShift;// priority shift
     Vec_Ptr_t * vCexes;    // counter-examples for each output
     Vec_Ptr_t * vSolvers;  // SAT solvers
     Vec_Vec_t * vClauses;  // clauses by timeframe
@@ -121,6 +122,8 @@ struct Pdr_Man_t_
     int         nQueCur;
     int         nQueMax;
     int         nQueLim;
+    int         nXsimRuns;
+    int         nXsimLits;
     // runtime
     abctime     timeToStop;
     abctime     timeToStopOne;

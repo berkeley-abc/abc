@@ -404,67 +404,65 @@ Pdr_ManPrintCex( p->pAig, vCiObjs, vCiVals, NULL );
     RetValue = Pdr_ManSimDataInit( p->pAig, vCiObjs, vCiVals, vNodes, vCoObjs, vCoVals, NULL );
     assert( RetValue );
 
-#if 1
-    // try removing high-priority flops
-    Vec_IntClear( vCi2Rem );
-    Aig_ManForEachObjVec( vCiObjs, p->pAig, pObj, i )
+    // iteratively remove flops
+    if ( p->pPars->fFlopPrio )
     {
-        if ( !Saig_ObjIsLo( p->pAig, pObj ) )
-            continue;
-        Entry = Aig_ObjCioId(pObj) - Saig_ManPiNum(p->pAig);
-        if ( vPrio != NULL && Vec_IntEntry( vPrio, Entry ) != 0 )
-            continue;
-        Vec_IntClear( vUndo );
-        if ( Pdr_ManExtendOne( p->pAig, pObj, vUndo, vVisits ) )
-            Vec_IntPush( vCi2Rem, Aig_ObjId(pObj) );
-        else
-            Pdr_ManExtendUndo( p->pAig, vUndo );
+        // collect flops and sort them by priority
+        Vec_IntClear( vRes );
+        Aig_ManForEachObjVec( vCiObjs, p->pAig, pObj, i )
+        {
+            if ( !Saig_ObjIsLo( p->pAig, pObj ) )
+                continue;
+            Entry = Aig_ObjCioId(pObj) - Saig_ManPiNum(p->pAig);
+            Vec_IntPush( vRes, Entry );
+        }
+        Vec_IntSelectSortCost( Vec_IntArray(vRes), Vec_IntSize(vRes), vPrio );
+
+        // try removing flops starting from low-priority to high-priority
+        Vec_IntClear( vCi2Rem );
+        Vec_IntForEachEntry( vRes, Entry, i )
+        {
+            pObj = Aig_ManCi( p->pAig, Saig_ManPiNum(p->pAig) + Entry );
+            assert( Saig_ObjIsLo( p->pAig, pObj ) );
+            Vec_IntClear( vUndo );
+            if ( Pdr_ManExtendOne( p->pAig, pObj, vUndo, vVisits ) )
+                Vec_IntPush( vCi2Rem, Aig_ObjId(pObj) );
+            else
+                Pdr_ManExtendUndo( p->pAig, vUndo );
+        }
     }
-    // try removing low-priority flops
-    Aig_ManForEachObjVec( vCiObjs, p->pAig, pObj, i )
+    else
     {
-        if ( !Saig_ObjIsLo( p->pAig, pObj ) )
-            continue;
-        Entry = Aig_ObjCioId(pObj) - Saig_ManPiNum(p->pAig);
-        if ( vPrio == NULL || Vec_IntEntry( vPrio, Entry ) == 0 )
-            continue;
-        Vec_IntClear( vUndo );
-        if ( Pdr_ManExtendOne( p->pAig, pObj, vUndo, vVisits ) )
-            Vec_IntPush( vCi2Rem, Aig_ObjId(pObj) );
-        else
-            Pdr_ManExtendUndo( p->pAig, vUndo );
+        // try removing low-priority flops first
+        Vec_IntClear( vCi2Rem );
+        Aig_ManForEachObjVec( vCiObjs, p->pAig, pObj, i )
+        {
+            if ( !Saig_ObjIsLo( p->pAig, pObj ) )
+                continue;
+            Entry = Aig_ObjCioId(pObj) - Saig_ManPiNum(p->pAig);
+            if ( vPrio != NULL && Vec_IntEntry( vPrio, Entry ) != 0 )
+                continue;
+            Vec_IntClear( vUndo );
+            if ( Pdr_ManExtendOne( p->pAig, pObj, vUndo, vVisits ) )
+                Vec_IntPush( vCi2Rem, Aig_ObjId(pObj) );
+            else
+                Pdr_ManExtendUndo( p->pAig, vUndo );
+        }
+        // try removing high-priority flops next
+        Aig_ManForEachObjVec( vCiObjs, p->pAig, pObj, i )
+        {
+            if ( !Saig_ObjIsLo( p->pAig, pObj ) )
+                continue;
+            Entry = Aig_ObjCioId(pObj) - Saig_ManPiNum(p->pAig);
+            if ( vPrio == NULL || Vec_IntEntry( vPrio, Entry ) == 0 )
+                continue;
+            Vec_IntClear( vUndo );
+            if ( Pdr_ManExtendOne( p->pAig, pObj, vUndo, vVisits ) )
+                Vec_IntPush( vCi2Rem, Aig_ObjId(pObj) );
+            else
+                Pdr_ManExtendUndo( p->pAig, vUndo );
+        }
     }
-#else
-    // try removing low-priority flops
-    Aig_ManForEachObjVec( vCiObjs, p->pAig, pObj, i )
-    {
-        if ( !Saig_ObjIsLo( p->pAig, pObj ) )
-            continue;
-        Entry = Aig_ObjCioId(pObj) - Saig_ManPiNum(p->pAig);
-        if ( vPrio == NULL || Vec_IntEntry( vPrio, Entry ) == 0 )
-            continue;
-        Vec_IntClear( vUndo );
-        if ( Pdr_ManExtendOne( p->pAig, pObj, vUndo, vVisits ) )
-            Vec_IntPush( vCi2Rem, Aig_ObjId(pObj) );
-        else
-            Pdr_ManExtendUndo( p->pAig, vUndo );
-    }
-    // try removing high-priority flops
-    Vec_IntClear( vCi2Rem );
-    Aig_ManForEachObjVec( vCiObjs, p->pAig, pObj, i )
-    {
-        if ( !Saig_ObjIsLo( p->pAig, pObj ) )
-            continue;
-        Entry = Aig_ObjCioId(pObj) - Saig_ManPiNum(p->pAig);
-        if ( vPrio != NULL && Vec_IntEntry( vPrio, Entry ) != 0 )
-            continue;
-        Vec_IntClear( vUndo );
-        if ( Pdr_ManExtendOne( p->pAig, pObj, vUndo, vVisits ) )
-            Vec_IntPush( vCi2Rem, Aig_ObjId(pObj) );
-        else
-            Pdr_ManExtendUndo( p->pAig, vUndo );
-    }
-#endif
 
 if ( p->pPars->fVeryVerbose )
 Pdr_ManPrintCex( p->pAig, vCiObjs, vCiVals, vCi2Rem );

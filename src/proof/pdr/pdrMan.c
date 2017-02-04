@@ -19,6 +19,7 @@
 ***********************************************************************/
 
 #include "pdrInt.h"
+#include "aig/gia/giaAig.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -30,6 +31,94 @@ ABC_NAMESPACE_IMPL_START
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
+
+/**Function*************************************************************
+
+  Synopsis    [Structural analysis.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Int_t * Pdr_ManDeriveFlopPriorities2( Gia_Man_t * p, int fMuxCtrls, int * pnPrioShift )
+{
+    Vec_Int_t * vRes = NULL;
+    Gia_Obj_t * pObj; 
+    int MaxEntry = 0;
+    int i, * pPerm;
+    // create flop costs
+    Vec_Int_t * vCosts = Vec_IntStart( Gia_ManRegNum(p) );
+    Gia_ManCreateRefs(p);
+    Gia_ManForEachRo( p, pObj, i )
+    {
+        Vec_IntWriteEntry( vCosts, i, Gia_ObjRefNum(p, pObj) );
+        MaxEntry = Abc_MaxInt( MaxEntry, Gia_ObjRefNum(p, pObj) );
+    }
+    MaxEntry++;
+    ABC_FREE( p->pRefs );
+    // add costs due to MUX inputs
+    if ( fMuxCtrls )
+    {
+        int fVerbose = 0;
+        Vec_Bit_t * vCtrls = Vec_BitStart( Gia_ManObjNum(p) );
+        Vec_Bit_t * vDatas = Vec_BitStart( Gia_ManObjNum(p) );
+        Gia_Obj_t * pCtrl, * pData1, * pData0; 
+        int nCtrls = 0, nDatas = 0, nBoth = 0;
+        Gia_ManForEachAnd( p, pObj, i )
+        {
+            if ( !Gia_ObjIsMuxType(pObj) )
+                continue;
+            pCtrl  = Gia_ObjRecognizeMux( pObj, &pData1, &pData0 );
+            pCtrl  = Gia_Regular(pCtrl);
+            pData1 = Gia_Regular(pData1);
+            pData0 = Gia_Regular(pData0);
+            Vec_BitWriteEntry( vCtrls, Gia_ObjId(p, pCtrl), 1 );
+            Vec_BitWriteEntry( vDatas, Gia_ObjId(p, pData1), 1 );
+            Vec_BitWriteEntry( vDatas, Gia_ObjId(p, pData0), 1 );
+        }
+        Gia_ManForEachRo( p, pObj, i )
+            if ( Vec_BitEntry(vCtrls, Gia_ObjId(p, pObj)) )
+                Vec_IntAddToEntry( vCosts, i, 2*MaxEntry );
+            //else if ( Vec_BitEntry(vDatas, Gia_ObjId(p, pObj)) )
+            //    Vec_IntAddToEntry( vCosts, i,   MaxEntry );
+        MaxEntry *= 3;
+        // print out
+        if ( fVerbose )
+        {
+            Gia_ManForEachRo( p, pObj, i )
+            {
+                if ( Vec_BitEntry(vCtrls, Gia_ObjId(p, pObj)) )
+                    nCtrls++;
+                if ( Vec_BitEntry(vDatas, Gia_ObjId(p, pObj)) )
+                    nDatas++;
+                if ( Vec_BitEntry(vCtrls, Gia_ObjId(p, pObj)) && Vec_BitEntry(vDatas, Gia_ObjId(p, pObj)) )
+                    nBoth++;
+            }
+            printf( "%10s : Flops = %5d.  Ctrls = %5d.  Datas = %5d.  Both = %5d.\n", Gia_ManName(p), Gia_ManRegNum(p), nCtrls, nDatas, nBoth );
+        }
+        Vec_BitFree( vCtrls );
+        Vec_BitFree( vDatas );
+    }
+    *pnPrioShift = 1 + Abc_Base2Log( MaxEntry );
+    // create ordering based on costs
+    pPerm = Abc_MergeSortCost( Vec_IntArray(vCosts), Vec_IntSize(vCosts) );
+    vRes = Vec_IntAllocArray( pPerm, Vec_IntSize(vCosts) );
+    Vec_IntFree( vCosts );
+    vCosts = Vec_IntInvert( vRes, -1 );
+    Vec_IntFree( vRes );
+//Vec_IntPrint( vCosts );
+    return vCosts;
+}
+Vec_Int_t * Pdr_ManDeriveFlopPriorities( Aig_Man_t * pAig, int fMuxCtrls, int * pnPrioShift )
+{
+    Gia_Man_t * pGia = Gia_ManFromAigSimple(pAig);
+    Vec_Int_t * vRes = Pdr_ManDeriveFlopPriorities2(pGia, fMuxCtrls, pnPrioShift);
+    Gia_ManStop( pGia );
+    return vRes;
+}
 
 /**Function*************************************************************
 
@@ -56,7 +145,13 @@ Pdr_Man_t * Pdr_ManStart( Aig_Man_t * pAig, Pdr_Par_t * pPars, Vec_Int_t * vPrio
     if ( !p->pPars->fMonoCnf )
         p->vVLits   = Vec_WecStart( 1+Abc_MaxInt(1, Aig_ManLevels(pAig)) );
     // internal use
-    p->vPrio    = vPrioInit ? vPrioInit : Vec_IntStart( Aig_ManRegNum(pAig) );  // priority flops
+    p->nPrioShift   = 0;
+    if ( vPrioInit )
+        p->vPrio = vPrioInit;
+    else if ( pPars->fFlopPrio )
+        p->vPrio = Pdr_ManDeriveFlopPriorities(pAig, 0, &p->nPrioShift);
+    else
+        p->vPrio = Vec_IntStart( Aig_ManRegNum(pAig) );
     p->vLits    = Vec_IntAlloc( 100 );  // array of literals
     p->vCiObjs  = Vec_IntAlloc( 100 );  // cone leaves
     p->vCoObjs  = Vec_IntAlloc( 100 );  // cone roots
@@ -69,7 +164,7 @@ Pdr_Man_t * Pdr_ManStart( Aig_Man_t * pAig, Pdr_Par_t * pPars, Vec_Int_t * vPrio
     p->vRes     = Vec_IntAlloc( 100 );  // final result
     p->pCnfMan  = Cnf_ManStart();
     // ternary simulation
-    p->pTxs     = Txs_ManStart( p, pAig, p->vPrio );
+    p->pTxs     = pPars->fNewXSim ? Txs_ManStart( p, pAig, p->vPrio ) : NULL;
     // additional AIG data-members
     if ( pAig->pFanData == NULL )
         Aig_ManFanoutStart( pAig );
@@ -151,7 +246,8 @@ void Pdr_ManStop( Pdr_Man_t * p )
     // CNF manager
     Cnf_ManStop( p->pCnfMan );
     // terminary simulation
-    Txs_ManStop( p->pTxs );
+    if ( p->pPars->fNewXSim )
+        Txs_ManStop( p->pTxs );
     // internal use
     Vec_IntFreeP( &p->vPrio   );  // priority flops
     Vec_IntFree( p->vLits     );  // array of literals
