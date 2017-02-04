@@ -43,15 +43,134 @@ ABC_NAMESPACE_IMPL_START
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Int_t * Pdr_ManDeriveFlopPriorities2( Gia_Man_t * p, int fMuxCtrls, int * pnPrioShift )
+Vec_Int_t * Pdr_ManDeriveFlopPriorities3( Gia_Man_t * p, int fMuxCtrls )
 {
+    int fDiscount = 0;
+    Vec_Wec_t * vLevels;
+    Vec_Int_t * vRes, * vLevel, * vCosts;
+    Gia_Obj_t * pObj, * pCtrl, * pData0, * pData1; 
+    int i, k, Entry, MaxEntry = 0;
+    Gia_ManCreateRefs(p);
+    // discount references
+    if ( fDiscount )
+    Gia_ManForEachAnd( p, pObj, i )
+    {
+        if ( !Gia_ObjIsMuxType(pObj) )
+            continue;
+        pCtrl  = Gia_Regular(Gia_ObjRecognizeMux(pObj, &pData1, &pData0));
+        pData0 = Gia_Regular(pData0);
+        pData1 = Gia_Regular(pData1);
+        p->pRefs[Gia_ObjId(p, pCtrl)]--;
+        if ( pData0 == pData1 )
+            p->pRefs[Gia_ObjId(p, pData0)]--;
+    }
+    // create flop costs
+    vCosts = Vec_IntAlloc( Gia_ManRegNum(p) );
+    Gia_ManForEachRo( p, pObj, i )
+    {
+        Vec_IntPush( vCosts, Gia_ObjRefNum(p, pObj) );
+        MaxEntry = Abc_MaxInt( MaxEntry, Gia_ObjRefNum(p, pObj) );
+        //printf( "%d(%d) ", i, Gia_ObjRefNum(p, pObj) );
+    }
+    //printf( "\n" );
+    MaxEntry++;
+    // add costs due to MUX inputs
+    if ( fMuxCtrls )
+    {
+        int fVerbose = 0;
+        Vec_Bit_t * vCtrls = Vec_BitStart( Gia_ManObjNum(p) );
+        Vec_Bit_t * vDatas = Vec_BitStart( Gia_ManObjNum(p) );
+        Gia_Obj_t * pCtrl, * pData1, * pData0; 
+        int nCtrls = 0, nDatas = 0, nBoth = 0;
+        Gia_ManForEachAnd( p, pObj, i )
+        {
+            if ( !Gia_ObjIsMuxType(pObj) )
+                continue;
+            pCtrl  = Gia_ObjRecognizeMux( pObj, &pData1, &pData0 );
+            pCtrl  = Gia_Regular(pCtrl);
+            pData1 = Gia_Regular(pData1);
+            pData0 = Gia_Regular(pData0);
+            Vec_BitWriteEntry( vCtrls, Gia_ObjId(p, pCtrl), 1 );
+            Vec_BitWriteEntry( vDatas, Gia_ObjId(p, pData1), 1 );
+            Vec_BitWriteEntry( vDatas, Gia_ObjId(p, pData0), 1 );
+        }
+        Gia_ManForEachRo( p, pObj, i )
+            if ( Vec_BitEntry(vCtrls, Gia_ObjId(p, pObj)) )
+                Vec_IntAddToEntry( vCosts, i, MaxEntry );
+            //else if ( Vec_BitEntry(vDatas, Gia_ObjId(p, pObj)) )
+            //    Vec_IntAddToEntry( vCosts, i,   MaxEntry );
+        MaxEntry = 2*MaxEntry + 1;
+        // print out
+        if ( fVerbose )
+        {
+            Gia_ManForEachRo( p, pObj, i )
+            {
+                if ( Vec_BitEntry(vCtrls, Gia_ObjId(p, pObj)) )
+                    nCtrls++;
+                if ( Vec_BitEntry(vDatas, Gia_ObjId(p, pObj)) )
+                    nDatas++;
+                if ( Vec_BitEntry(vCtrls, Gia_ObjId(p, pObj)) && Vec_BitEntry(vDatas, Gia_ObjId(p, pObj)) )
+                    nBoth++;
+            }
+            printf( "%10s : Flops = %5d.  Ctrls = %5d.  Datas = %5d.  Both = %5d.\n", Gia_ManName(p), Gia_ManRegNum(p), nCtrls, nDatas, nBoth );
+        }
+        Vec_BitFree( vCtrls );
+        Vec_BitFree( vDatas );
+    }
+    // create levelized structure
+    vLevels = Vec_WecStart( MaxEntry );
+    Vec_IntForEachEntry( vCosts, Entry, i )
+        Vec_WecPush( vLevels, Entry, i );
+    // collect in this order
+    MaxEntry = 0;
+    vRes = Vec_IntStart( Gia_ManRegNum(p) );
+    Vec_WecForEachLevel( vLevels, vLevel, i )
+        Vec_IntForEachEntry( vLevel, Entry, k )
+            Vec_IntWriteEntry( vRes, Entry, MaxEntry++ );
+        //printf( "%d ", Gia_ObjRefNum(p, Gia_ManCi(p, Gia_ManPiNum(p)+Entry)) );
+    //printf( "\n" );
+    assert( MaxEntry == Gia_ManRegNum(p) );
+    Vec_WecFree( vLevels );
+    Vec_IntFree( vCosts );
+    ABC_FREE( p->pRefs );
+//Vec_IntPrint( vRes );
+    return vRes;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Structural analysis.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Int_t * Pdr_ManDeriveFlopPriorities2( Gia_Man_t * p, int fMuxCtrls )
+{
+    int fDiscount = 0;
     Vec_Int_t * vRes = NULL;
-    Gia_Obj_t * pObj; 
+    Gia_Obj_t * pObj, * pCtrl, * pData0, * pData1; 
     int MaxEntry = 0;
     int i, * pPerm;
     // create flop costs
     Vec_Int_t * vCosts = Vec_IntStart( Gia_ManRegNum(p) );
     Gia_ManCreateRefs(p);
+    // discount references
+    if ( fDiscount )
+    Gia_ManForEachAnd( p, pObj, i )
+    {
+        if ( !Gia_ObjIsMuxType(pObj) )
+            continue;
+        pCtrl  = Gia_Regular(Gia_ObjRecognizeMux(pObj, &pData1, &pData0));
+        pData0 = Gia_Regular(pData0);
+        pData1 = Gia_Regular(pData1);
+        p->pRefs[Gia_ObjId(p, pCtrl)]--;
+        if ( pData0 == pData1 )
+            p->pRefs[Gia_ObjId(p, pData0)]--;
+    }
     Gia_ManForEachRo( p, pObj, i )
     {
         Vec_IntWriteEntry( vCosts, i, Gia_ObjRefNum(p, pObj) );
@@ -81,10 +200,9 @@ Vec_Int_t * Pdr_ManDeriveFlopPriorities2( Gia_Man_t * p, int fMuxCtrls, int * pn
         }
         Gia_ManForEachRo( p, pObj, i )
             if ( Vec_BitEntry(vCtrls, Gia_ObjId(p, pObj)) )
-                Vec_IntAddToEntry( vCosts, i, 2*MaxEntry );
+                Vec_IntAddToEntry( vCosts, i, MaxEntry );
             //else if ( Vec_BitEntry(vDatas, Gia_ObjId(p, pObj)) )
             //    Vec_IntAddToEntry( vCosts, i,   MaxEntry );
-        MaxEntry *= 3;
         // print out
         if ( fVerbose )
         {
@@ -102,7 +220,6 @@ Vec_Int_t * Pdr_ManDeriveFlopPriorities2( Gia_Man_t * p, int fMuxCtrls, int * pn
         Vec_BitFree( vCtrls );
         Vec_BitFree( vDatas );
     }
-    *pnPrioShift = 1 + Abc_Base2Log( MaxEntry );
     // create ordering based on costs
     pPerm = Abc_MergeSortCost( Vec_IntArray(vCosts), Vec_IntSize(vCosts) );
     vRes = Vec_IntAllocArray( pPerm, Vec_IntSize(vCosts) );
@@ -112,10 +229,10 @@ Vec_Int_t * Pdr_ManDeriveFlopPriorities2( Gia_Man_t * p, int fMuxCtrls, int * pn
 //Vec_IntPrint( vCosts );
     return vCosts;
 }
-Vec_Int_t * Pdr_ManDeriveFlopPriorities( Aig_Man_t * pAig, int fMuxCtrls, int * pnPrioShift )
+Vec_Int_t * Pdr_ManDeriveFlopPriorities( Aig_Man_t * pAig, int fMuxCtrls )
 {
     Gia_Man_t * pGia = Gia_ManFromAigSimple(pAig);
-    Vec_Int_t * vRes = Pdr_ManDeriveFlopPriorities2(pGia, fMuxCtrls, pnPrioShift);
+    Vec_Int_t * vRes = Pdr_ManDeriveFlopPriorities2(pGia, fMuxCtrls);
     Gia_ManStop( pGia );
     return vRes;
 }
@@ -145,11 +262,11 @@ Pdr_Man_t * Pdr_ManStart( Aig_Man_t * pAig, Pdr_Par_t * pPars, Vec_Int_t * vPrio
     if ( !p->pPars->fMonoCnf )
         p->vVLits   = Vec_WecStart( 1+Abc_MaxInt(1, Aig_ManLevels(pAig)) );
     // internal use
-    p->nPrioShift   = 0;
+    p->nPrioShift = Abc_Base2Log(Aig_ManRegNum(pAig));
     if ( vPrioInit )
         p->vPrio = vPrioInit;
     else if ( pPars->fFlopPrio )
-        p->vPrio = Pdr_ManDeriveFlopPriorities(pAig, 0, &p->nPrioShift);
+        p->vPrio = Pdr_ManDeriveFlopPriorities(pAig, 1);
     else
         p->vPrio = Vec_IntStart( Aig_ManRegNum(pAig) );
     p->vLits    = Vec_IntAlloc( 100 );  // array of literals
