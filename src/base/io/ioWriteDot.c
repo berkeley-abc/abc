@@ -394,7 +394,7 @@ void Io_WriteDotNtk( Abc_Ntk_t * pNtk, Vec_Ptr_t * vNodes, Vec_Ptr_t * vNodesSho
             fprintf( pFile, "Node%d",  pNode->Id );
             fprintf( pFile, " -> " );
             fprintf( pFile, "Node%d",  pFanin->Id );
-            fprintf( pFile, " [style = %s", fCompl? "dotted" : "bold" );
+            fprintf( pFile, " [style = %s", fCompl? "dotted" : "solid" );
 //            fprintf( pFile, ", label = \"%c\"", 'a' + k );
             fprintf( pFile, "]" );
             fprintf( pFile, ";\n" );
@@ -764,7 +764,7 @@ void Io_WriteDotSeq( Abc_Ntk_t * pNtk, Vec_Ptr_t * vNodes, Vec_Ptr_t * vNodesSho
             fprintf( pFile, "Node%d",  pNode->Id );
             fprintf( pFile, " -> " );
             fprintf( pFile, "Node%d",  pFanin->Id );
-            fprintf( pFile, " [style = %s", fCompl? "dotted" : "bold" );
+            fprintf( pFile, " [style = %s", fCompl? "dotted" : "solid" );
 //            fprintf( pFile, ", label = \"%c\"", 'a' + k );
             fprintf( pFile, "]" );
             fprintf( pFile, ";\n" );

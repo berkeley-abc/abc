@@ -290,7 +290,7 @@ void Gia_ShowPath( Gia_Man_t * p, char * pFileName )
                 fprintf( pFile, " -> " );
                 fprintf( pFile, "Node%d",  Gia_ObjFaninId0p(p, pNode) );
                 fprintf( pFile, " [" );
-                fprintf( pFile, "style = %s", "bold" );
+                fprintf( pFile, "style = %s", "solid" );
                 fprintf( pFile, "]" );
                 fprintf( pFile, ";\n" );
             }
@@ -308,7 +308,7 @@ void Gia_ShowPath( Gia_Man_t * p, char * pFileName )
             fprintf( pFile, " -> " );
             fprintf( pFile, "Node%d",  iFan );
             fprintf( pFile, " [" );
-            fprintf( pFile, "style = %s", "bold" );
+            fprintf( pFile, "style = %s", "solid" );
             fprintf( pFile, "]" );
             fprintf( pFile, ";\n" );
         }
@@ -583,7 +583,7 @@ void Gia_WriteDotAigSimple( Gia_Man_t * p, char * pFileName, Vec_Int_t * vBold )
         fprintf( pFile, " -> " );
         fprintf( pFile, "Node%d",  Gia_ObjFaninId0(pNode, i) );
         fprintf( pFile, " [" );
-        fprintf( pFile, "style = %s", Gia_ObjFaninC0(pNode)? "dotted" : "bold" );
+        fprintf( pFile, "style = %s", Gia_ObjFaninC0(pNode)? "dotted" : "solid" );
 //        if ( Gia_NtkIsSeq(pNode->p) && Seq_ObjFaninL0(pNode) > 0 )
 //        fprintf( pFile, ", label = \"%s\"", Seq_ObjFaninGetInitPrintable(pNode,0) );
         fprintf( pFile, "]" );
@@ -595,7 +595,7 @@ void Gia_WriteDotAigSimple( Gia_Man_t * p, char * pFileName, Vec_Int_t * vBold )
         fprintf( pFile, " -> " );
         fprintf( pFile, "Node%d",  Gia_ObjFaninId1(pNode, i) );
         fprintf( pFile, " [" );
-        fprintf( pFile, "style = %s", Gia_ObjFaninC1(pNode)? "dotted" : "bold" );
+        fprintf( pFile, "style = %s", Gia_ObjFaninC1(pNode)? "dotted" : "solid" );
 //        if ( Gia_NtkIsSeq(pNode->p) && Seq_ObjFaninL1(pNode) > 0 )
 //        fprintf( pFile, ", label = \"%s\"", Seq_ObjFaninGetInitPrintable(pNode,1) );
         fprintf( pFile, "]" );
@@ -624,7 +624,7 @@ void Gia_WriteDotAigSimple( Gia_Man_t * p, char * pFileName, Vec_Int_t * vBold )
                 fprintf( pFile, "Node%d",  pPrev->Id );
                 fprintf( pFile, " -> " );
                 fprintf( pFile, "Node%d",  pTemp->Id );
-                fprintf( pFile, " [style = %s]", Gia_IsComplement(pTemp->pEquiv)? "dotted" : "bold" );
+                fprintf( pFile, " [style = %s]", Gia_IsComplement(pTemp->pEquiv)? "dotted" : "solid" );
                 fprintf( pFile, ";\n" );
                 pPrev = pTemp;
             }
@@ -632,7 +632,7 @@ void Gia_WriteDotAigSimple( Gia_Man_t * p, char * pFileName, Vec_Int_t * vBold )
             fprintf( pFile, "Node%d",  pPrev->Id );
             fprintf( pFile, " -> " );
             fprintf( pFile, "Node%d",  pNode->Id );
-            fprintf( pFile, " [style = %s]", Gia_IsComplement(pPrev->pEquiv)? "dotted" : "bold" );
+            fprintf( pFile, " [style = %s]", Gia_IsComplement(pPrev->pEquiv)? "dotted" : "solid" );
             fprintf( pFile, ";\n" );
         }
 */
@@ -920,7 +920,7 @@ void Gia_WriteDotAig( Gia_Man_t * p, char * pFileName, Vec_Int_t * vBold, Vec_In
         fprintf( pFile, " -> " );
         fprintf( pFile, "Node%d",  Gia_ShowAddOut(vAdds, vMapAdds, Gia_ObjFaninId0(pNode, iNode)) );
         fprintf( pFile, " [" );
-        fprintf( pFile, "style = %s", Gia_ObjFaninC0(pNode)? "dotted" : "bold" );
+        fprintf( pFile, "style = %s", Gia_ObjFaninC0(pNode)? "dotted" : "solid" );
         fprintf( pFile, "]" );
         fprintf( pFile, ";\n" );
     }
@@ -933,11 +933,13 @@ void Gia_WriteDotAig( Gia_Man_t * p, char * pFileName, Vec_Int_t * vBold, Vec_In
             for ( k = 0; k < 3; k++ )
                 if ( Vec_IntEntry(vAdds, 6*iBox+k) )
                 {
+                    int iBox2 = Vec_IntEntry(vMapAdds, Vec_IntEntry(vAdds, 6*iBox+k));
+                    int fXor2 = iBox2 >= 0 ? (int)(Vec_IntEntry(vAdds, 6*iBox2+3) == Vec_IntEntry(vAdds, 6*iBox+k)) : 0;
                     fprintf( pFile, "Node%d",  Gia_ShowAddOut(vAdds, vMapAdds, iNode) );
                     fprintf( pFile, " -> " );
                     fprintf( pFile, "Node%d",  Gia_ShowAddOut(vAdds, vMapAdds, Vec_IntEntry(vAdds, 6*iBox+k)) );
                     fprintf( pFile, " [" );
-                    fprintf( pFile, "style = %s", 0? "dotted" : "bold" );
+                    fprintf( pFile, "style = %s", fXor2? "bold" : "solid" );
                     fprintf( pFile, "]" );
                     fprintf( pFile, ";\n" );
                 }
@@ -949,11 +951,12 @@ void Gia_WriteDotAig( Gia_Man_t * p, char * pFileName, Vec_Int_t * vBold, Vec_In
             for ( k = 1; k < 4; k++ )
                 if ( Vec_IntEntry(vXors, 4*iXor+k) )
                 {
+                    int iXor2 = Vec_IntEntry(vMapXors, Vec_IntEntry(vXors, 4*iXor+k));
                     fprintf( pFile, "Node%d",  iNode );
                     fprintf( pFile, " -> " );
                     fprintf( pFile, "Node%d",  Gia_ShowAddOut(vAdds, vMapAdds, Vec_IntEntry(vXors, 4*iXor+k)) );
                     fprintf( pFile, " [" );
-                    fprintf( pFile, "style = %s", 0? "dotted" : "bold" );
+                    fprintf( pFile, "style = %s", iXor2 >= 0? "bold" : "solid" );
                     fprintf( pFile, "]" );
                     fprintf( pFile, ";\n" );
                 }
@@ -964,7 +967,7 @@ void Gia_WriteDotAig( Gia_Man_t * p, char * pFileName, Vec_Int_t * vBold, Vec_In
         fprintf( pFile, " -> " );
         fprintf( pFile, "Node%d",  Gia_ShowAddOut(vAdds, vMapAdds, Gia_ObjFaninId0(pNode, iNode)) );
         fprintf( pFile, " [" );
-        fprintf( pFile, "style = %s", Gia_ObjFaninC0(pNode)? "dotted" : "bold" );
+        fprintf( pFile, "style = %s", Gia_ObjFaninC0(pNode)? "dotted" : "solid" );
         fprintf( pFile, "]" );
         fprintf( pFile, ";\n" );
         if ( !Gia_ObjIsAnd(pNode) )
@@ -974,7 +977,7 @@ void Gia_WriteDotAig( Gia_Man_t * p, char * pFileName, Vec_Int_t * vBold, Vec_In
         fprintf( pFile, " -> " );
         fprintf( pFile, "Node%d",  Gia_ShowAddOut(vAdds, vMapAdds, Gia_ObjFaninId1(pNode, iNode)) );
         fprintf( pFile, " [" );
-        fprintf( pFile, "style = %s", Gia_ObjFaninC1(pNode)? "dotted" : "bold" );
+        fprintf( pFile, "style = %s", Gia_ObjFaninC1(pNode)? "dotted" : "solid" );
         fprintf( pFile, "]" );
         fprintf( pFile, ";\n" );
 
@@ -985,7 +988,7 @@ void Gia_WriteDotAig( Gia_Man_t * p, char * pFileName, Vec_Int_t * vBold, Vec_In
         fprintf( pFile, " -> " );
         fprintf( pFile, "Node%d",  Gia_ShowAddOut(vAdds, vMapAdds, Gia_ObjFaninId2(p, iNode)) );
         fprintf( pFile, " [" );
-        fprintf( pFile, "style = %s", Gia_ObjFaninC2(p, pNode)? "dotted" : "bold" );
+        fprintf( pFile, "style = %s", Gia_ObjFaninC2(p, pNode)? "dotted" : "solid" );
         fprintf( pFile, "]" );
         fprintf( pFile, ";\n" );
     }
