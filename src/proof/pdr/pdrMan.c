@@ -53,16 +53,18 @@ Vec_Int_t * Pdr_ManDeriveFlopPriorities3( Gia_Man_t * p, int fMuxCtrls )
     Gia_ManCreateRefs(p);
     // discount references
     if ( fDiscount )
-    Gia_ManForEachAnd( p, pObj, i )
     {
-        if ( !Gia_ObjIsMuxType(pObj) )
-            continue;
-        pCtrl  = Gia_Regular(Gia_ObjRecognizeMux(pObj, &pData1, &pData0));
-        pData0 = Gia_Regular(pData0);
-        pData1 = Gia_Regular(pData1);
-        p->pRefs[Gia_ObjId(p, pCtrl)]--;
-        if ( pData0 == pData1 )
-            p->pRefs[Gia_ObjId(p, pData0)]--;
+        Gia_ManForEachAnd( p, pObj, i )
+        {
+            if ( !Gia_ObjIsMuxType(pObj) )
+                continue;
+            pCtrl  = Gia_Regular(Gia_ObjRecognizeMux(pObj, &pData1, &pData0));
+            pData0 = Gia_Regular(pData0);
+            pData1 = Gia_Regular(pData1);
+            p->pRefs[Gia_ObjId(p, pCtrl)]--;
+            if ( pData0 == pData1 )
+                p->pRefs[Gia_ObjId(p, pData0)]--;
+        }
     }
     // create flop costs
     vCosts = Vec_IntAlloc( Gia_ManRegNum(p) );
@@ -160,16 +162,18 @@ Vec_Int_t * Pdr_ManDeriveFlopPriorities2( Gia_Man_t * p, int fMuxCtrls )
     Gia_ManCreateRefs(p);
     // discount references
     if ( fDiscount )
-    Gia_ManForEachAnd( p, pObj, i )
     {
-        if ( !Gia_ObjIsMuxType(pObj) )
-            continue;
-        pCtrl  = Gia_Regular(Gia_ObjRecognizeMux(pObj, &pData1, &pData0));
-        pData0 = Gia_Regular(pData0);
-        pData1 = Gia_Regular(pData1);
-        p->pRefs[Gia_ObjId(p, pCtrl)]--;
-        if ( pData0 == pData1 )
-            p->pRefs[Gia_ObjId(p, pData0)]--;
+        Gia_ManForEachAnd( p, pObj, i )
+        {
+            if ( !Gia_ObjIsMuxType(pObj) )
+                continue;
+            pCtrl  = Gia_Regular(Gia_ObjRecognizeMux(pObj, &pData1, &pData0));
+            pData0 = Gia_Regular(pData0);
+            pData1 = Gia_Regular(pData1);
+            p->pRefs[Gia_ObjId(p, pCtrl)]--;
+            if ( pData0 == pData1 )
+                p->pRefs[Gia_ObjId(p, pData0)]--;
+        }
     }
     Gia_ManForEachRo( p, pObj, i )
     {
