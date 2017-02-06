@@ -63,8 +63,9 @@ void Pdr_ManSetDefaultParams( Pdr_Par_t * pPars )
     pPars->fSkipDown      =       1;  // apply down in generalization
     pPars->fCtgs          =       0;  // handle CTGs in down
     pPars->fMonoCnf       =       0;  // monolythic CNF
-    pPars->fFlopPrio      =       0;  // use structural flop priorities
     pPars->fNewXSim       =       0;  // updated X-valued simulation
+    pPars->fFlopPrio      =       0;  // use structural flop priorities
+    pPars->fFlopOrder     =       0;  // order flops for 'analyze_final' during generalization
     pPars->fDumpInv       =       0;  // dump inductive invariant
     pPars->fUseSupp       =       1;  // using support variables in the invariant
     pPars->fShortest      =       0;  // forces bug traces to be shortest
@@ -479,6 +480,31 @@ int ZPdr_ManDown( Pdr_Man_t * p, int k, Pdr_Set_t ** ppCube, Pdr_Set_t * pPred, 
     }
     return 1;
 }
+
+/**Function*************************************************************
+
+  Synopsis    [Specialized sorting of flops based on cost.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline void Vec_IntSelectSortCostReverseLit( int * pArray, int nSize, Vec_Int_t * vCosts )
+{
+    int i, j, best_i;
+    for ( i = 0; i < nSize-1; i++ )
+    {
+        best_i = i;
+        for ( j = i+1; j < nSize; j++ )
+            if ( Vec_IntEntry(vCosts, Abc_Lit2Var(pArray[j])) > Vec_IntEntry(vCosts, Abc_Lit2Var(pArray[best_i])) )
+                best_i = j;
+        ABC_SWAP( int, pArray[i], pArray[best_i] );
+    }
+}
+
 /**Function*************************************************************
 
   Synopsis    [Returns 1 if the state could be blocked.]
@@ -500,7 +526,11 @@ int Pdr_ManGeneralize( Pdr_Man_t * p, int k, Pdr_Set_t * pCube, Pdr_Set_t ** ppP
     Hash_Int_t * keep = NULL;
     // if there is no induction, return
     *ppCubeMin = NULL;
+    if ( p->pPars->fFlopOrder )
+        Vec_IntSelectSortCostReverseLit( pCube->Lits, pCube->nLits, p->vPrio );
     RetValue = Pdr_ManCheckCube( p, k, pCube, ppPred, p->pPars->nConfLimit, 0 );
+    if ( p->pPars->fFlopOrder )
+        Vec_IntSelectSort( pCube->Lits, pCube->nLits );
     if ( RetValue == -1 )
         return -1;
     if ( RetValue == 0 )

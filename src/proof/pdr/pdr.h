@@ -54,6 +54,7 @@ struct Pdr_Par_t_
     int fMonoCnf;         // monolythic CNF
     int fNewXSim;         // updated X-valued simulation
     int fFlopPrio;        // use structural flop priorities
+    int fFlopOrder;       // order flops for 'analyze_final' during generalization
     int fDumpInv;         // dump inductive invariant
     int fUseSupp;         // use support in the invariant
     int fShortest;        // forces bug traces to be shortest
