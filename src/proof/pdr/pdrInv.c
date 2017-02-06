@@ -467,10 +467,10 @@ void Pdr_ManReportInvariant( Pdr_Man_t * p )
     Vec_Ptr_t * vCubes;
     int kStart = Pdr_ManFindInvariantStart( p );
     vCubes = Pdr_ManCollectCubes( p, kStart );
-//    Abc_Print( 1, "Invariant F[%d] : %d clauses with %d flops (out of %d) (%.2f)\n", 
-//        kStart, Vec_PtrSize(vCubes), Pdr_ManCountVariables(p, kStart), Aig_ManRegNum(p->pAig), 1.0*p->nXsimLits/p->nXsimRuns );
-    Abc_Print( 1, "Invariant F[%d] : %d clauses with %d flops (out of %d)\n", 
-        kStart, Vec_PtrSize(vCubes), Pdr_ManCountVariables(p, kStart), Aig_ManRegNum(p->pAig) );
+    Abc_Print( 1, "Invariant F[%d] : %d clauses with %d flops (out of %d) (%.2f)\n", 
+        kStart, Vec_PtrSize(vCubes), Pdr_ManCountVariables(p, kStart), Aig_ManRegNum(p->pAig), 1.0*p->nXsimLits/p->nXsimRuns );
+//    Abc_Print( 1, "Invariant F[%d] : %d clauses with %d flops (out of %d)\n", 
+//        kStart, Vec_PtrSize(vCubes), Pdr_ManCountVariables(p, kStart), Aig_ManRegNum(p->pAig) );
     Vec_PtrFree( vCubes );
 }
 

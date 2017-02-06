@@ -158,7 +158,7 @@ void Bmc_CexCarePropagateFwd( Gia_Man_t * p, Abc_Cex_t * pCex, int fGrow, Vec_In
   SeeAlso     []
 
 ***********************************************************************/
-void Bmc_CexCarePropagateBwdOne( Gia_Man_t * p, Abc_Cex_t * pCex, int f, Abc_Cex_t * pCexMin )
+void Bmc_CexCarePropagateBwdOne( Gia_Man_t * p, Abc_Cex_t * pCex, int f, int fGrow, Abc_Cex_t * pCexMin )
 {
     Gia_Obj_t * pObj;
     int i, Phase0, Phase1;
@@ -184,10 +184,33 @@ void Bmc_CexCarePropagateBwdOne( Gia_Man_t * p, Abc_Cex_t * pCex, int f, Abc_Cex
             Gia_ObjFanin0(pObj)->fPhase = 1;
         else // if ( !Phase0 && !Phase1 )
         {
-            if ( Abc_Lit2Var(Gia_ObjFanin0(pObj)->Value) <= Abc_Lit2Var(Gia_ObjFanin1(pObj)->Value) )
+            if ( Gia_ObjFanin0(pObj)->fPhase || Gia_ObjFanin1(pObj)->fPhase )
+                continue;
+            if ( Gia_ObjIsPi(p, Gia_ObjFanin0(pObj)) )
                 Gia_ObjFanin0(pObj)->fPhase = 1;
-            else
+            else if ( Gia_ObjIsPi(p, Gia_ObjFanin1(pObj)) )
                 Gia_ObjFanin1(pObj)->fPhase = 1;
+//            else if ( Gia_ObjIsAnd(Gia_ObjFanin0(pObj)) && Txs_ObjIsJust(p, Gia_ObjFanin0(pObj)) )
+//                Gia_ObjFanin0(pObj)->fPhase = 1;
+//            else if ( Gia_ObjIsAnd(Gia_ObjFanin1(pObj)) && Txs_ObjIsJust(p, Gia_ObjFanin1(pObj)) )
+//                Gia_ObjFanin1(pObj)->fPhase = 1;
+            else
+            {
+                if ( fGrow & 1 )
+                {
+                    if ( Abc_Lit2Var(Gia_ObjFanin0(pObj)->Value) >= Abc_Lit2Var(Gia_ObjFanin1(pObj)->Value) )
+                        Gia_ObjFanin0(pObj)->fPhase = 1;
+                    else
+                        Gia_ObjFanin1(pObj)->fPhase = 1;
+                }
+                else
+                {
+                    if ( Abc_Lit2Var(Gia_ObjFanin0(pObj)->Value) <= Abc_Lit2Var(Gia_ObjFanin1(pObj)->Value) )
+                        Gia_ObjFanin0(pObj)->fPhase = 1;
+                    else
+                        Gia_ObjFanin1(pObj)->fPhase = 1;
+                }
+            }
         }
     }
     Gia_ManForEachPi( p, pObj, i )
@@ -210,7 +233,7 @@ Abc_Cex_t * Bmc_CexCarePropagateBwd( Gia_Man_t * p, Abc_Cex_t * pCex, Vec_Int_t 
         Gia_ManForEachRo( p, pObj, i )
             pObj->Value = Vec_IntEntry( vPrios, f * pCex->nRegs + i );
         Bmc_CexCarePropagateFwdOne( p, pCex, f, fGrow );
-        Bmc_CexCarePropagateBwdOne( p, pCex, f, pCexMin );
+        Bmc_CexCarePropagateBwdOne( p, pCex, f, fGrow, pCexMin );
         Gia_ManForEachRiRo( p, pObjRi, pObjRo, i )
             pObjRi->fPhase = pObjRo->fPhase;
     }

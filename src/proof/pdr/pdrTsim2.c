@@ -36,6 +36,7 @@ struct Txs_Man_t_
     Vec_Int_t * vCiVals;   // cone leaf values (0/1 CI values)
     Vec_Int_t * vCoVals;   // cone root values (0/1 CO values)
     Vec_Int_t * vNodes;    // cone nodes (node obj IDs)
+    Vec_Int_t * vTemp;     // cone nodes (node obj IDs)
     Vec_Int_t * vPiLits;   // resulting array of PI literals
     Vec_Int_t * vFfLits;   // resulting array of flop literals
     Pdr_Man_t * pMan;      // calling manager
@@ -72,6 +73,7 @@ Txs_Man_t * Txs_ManStart( Pdr_Man_t * pMan, Aig_Man_t * pAig, Vec_Int_t * vPrio 
     p->vCiVals = Vec_IntAlloc( 100 );  // cone leaf values (0/1 CI values)
     p->vCoVals = Vec_IntAlloc( 100 );  // cone root values (0/1 CO values)
     p->vNodes  = Vec_IntAlloc( 100 );  // cone nodes (node obj IDs)
+    p->vTemp   = Vec_IntAlloc( 100 );  // cone nodes (node obj IDs)
     p->vPiLits = Vec_IntAlloc( 100 );  // resulting array of PI literals
     p->vFfLits = Vec_IntAlloc( 100 );  // resulting array of flop literals
     p->pMan    = pMan;                 // calling manager
@@ -85,6 +87,7 @@ void Txs_ManStop( Txs_Man_t * p )
     Vec_IntFree( p->vCiVals );
     Vec_IntFree( p->vCoVals );
     Vec_IntFree( p->vNodes );
+    Vec_IntFree( p->vTemp );
     Vec_IntFree( p->vPiLits );
     Vec_IntFree( p->vFfLits );
     ABC_FREE( p );
@@ -143,7 +146,8 @@ void Txs_ManForwardPass( Gia_Man_t * p,
                          Vec_Int_t * vPrio, Vec_Int_t * vCiObjs, Vec_Int_t * vCiVals, 
                          Vec_Int_t * vNodes, Vec_Int_t * vCoObjs, Vec_Int_t * vCoVals )
 {
-    Gia_Obj_t * pObj, * pFan0, * pFan1; int i;
+    Gia_Obj_t * pObj, * pFan0, * pFan1; 
+    int i, value0, value1;
     pObj = Gia_ManConst0(p);
     pObj->fMark0 = 0;
     pObj->fMark1 = 0;
@@ -158,15 +162,17 @@ void Txs_ManForwardPass( Gia_Man_t * p,
     {
         pFan0 = Gia_ObjFanin0(pObj);
         pFan1 = Gia_ObjFanin1(pObj);
-        pObj->fMark0 = (pFan0->fMark0 ^ Gia_ObjFaninC0(pObj)) & (pFan1->fMark0 ^ Gia_ObjFaninC1(pObj));
+        value0 = pFan0->fMark0 ^ Gia_ObjFaninC0(pObj);
+        value1 = pFan1->fMark0 ^ Gia_ObjFaninC1(pObj);
+        pObj->fMark0 = value0 && value1;
         pObj->fMark1 = 0;
         if ( pObj->fMark0 )
             pObj->Value = Abc_MinInt( pFan0->Value, pFan1->Value );
-        else if ( pFan0->fMark0 )
+        else if ( value0 )
             pObj->Value = pFan1->Value;
-        else if ( pFan1->fMark0 )
+        else if ( value1 )
             pObj->Value = pFan0->Value;
-        else // if ( pFan0->fMark0 == 0 && pFan1->fMark0 == 0 )
+        else // if ( value0 == 0 && value1 == 0 )
             pObj->Value = Abc_MaxInt( pFan0->Value, pFan1->Value );
         assert( ~pObj->Value );
     }
@@ -202,9 +208,9 @@ static inline int Txs_ObjIsJust( Gia_Man_t * p, Gia_Obj_t * pObj )
     assert( !pObj->fMark0 );
     assert( !value0 || !value1 );
     if ( value0 )
-        return pFan1->fMark1;
+        return pFan1->fMark1 || Gia_ObjIsPi(p, pFan1);
     if ( value1 )
-        return pFan0->fMark1;
+        return pFan0->fMark1 || Gia_ObjIsPi(p, pFan0);
     assert( !value0 && !value1 );
     return pFan0->fMark1 || pFan1->fMark1 || Gia_ObjIsPi(p, pFan0) || Gia_ObjIsPi(p, pFan1);
 }
@@ -215,6 +221,7 @@ void Txs_ManBackwardPass( Gia_Man_t * p, Vec_Int_t * vCiObjs, Vec_Int_t * vNodes
     {
         if ( !pObj->fMark1 )
             continue;
+        pObj->fMark1 = 0;
         pFan0 = Gia_ObjFanin0(pObj);
         pFan1 = Gia_ObjFanin1(pObj);
         if ( pObj->fMark0 )
@@ -263,6 +270,156 @@ void Txs_ManBackwardPass( Gia_Man_t * p, Vec_Int_t * vCiObjs, Vec_Int_t * vNodes
             Vec_IntPush( vFfLits, Abc_Var2Lit(Gia_ObjCioId(pObj)-Gia_ManPiNum(p), !pObj->fMark0) );
     }
     assert( Vec_IntSize(vFfLits) > 0 );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Collects justification path.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Txs_ManSelectJustPath( Gia_Man_t * p, Vec_Int_t * vNodes, Vec_Int_t * vCoObjs, Vec_Int_t * vRes )
+{
+    Gia_Obj_t * pObj, * pFan0, * pFan1; 
+    int i, value0, value1;
+    // mark CO drivers
+    Gia_ManForEachObjVec( vCoObjs, p, pObj, i )
+        Gia_ObjFanin0(pObj)->fMark1 = 1;
+    // collect just paths
+    Vec_IntClear( vRes );
+    Gia_ManForEachObjVecReverse( vNodes, p, pObj, i )
+    {
+        if ( !pObj->fMark1 )
+            continue;
+        pObj->fMark1 = 0;
+        Vec_IntPush( vRes, Gia_ObjId(p, pObj) );
+        pFan0 = Gia_ObjFanin0(pObj);
+        pFan1 = Gia_ObjFanin1(pObj);
+        if ( pObj->fMark0 )
+        {
+            pFan0->fMark1 = 1;
+            pFan1->fMark1 = 1;
+            continue;
+        }
+        value0 = pFan0->fMark0 ^ Gia_ObjFaninC0(pObj);
+        value1 = pFan1->fMark0 ^ Gia_ObjFaninC1(pObj);
+        assert( !value0 || !value1 );
+        if ( value0 )
+            pFan1->fMark1 = 1;
+        else if ( value1 )
+            pFan0->fMark1 = 1;
+        else // if ( !value0 && !value1 )
+        {
+            pFan0->fMark1 = 1;
+            pFan1->fMark1 = 1;
+        }
+    }
+    Vec_IntReverseOrder( vRes );
+}
+void Txs_ManCollectJustPis( Gia_Man_t * p, Vec_Int_t * vCiObjs, Vec_Int_t * vPiLits )
+{
+    Gia_Obj_t * pObj; int i;
+    Vec_IntClear( vPiLits );
+    Gia_ManForEachObjVec( vCiObjs, p, pObj, i )
+        if ( pObj->fMark1 && Gia_ObjIsPi(p, pObj) )
+            Vec_IntPush( vPiLits, Abc_Var2Lit(Gia_ObjCioId(pObj), !pObj->fMark0) );
+}
+void Txs_ManInitPrio( Gia_Man_t * p, Vec_Int_t * vCiObjs )
+{
+    Gia_Obj_t * pObj; int i;
+    Gia_ManConst0(p)->Value = 0x7FFFFFFF;
+    Gia_ManForEachObjVec( vCiObjs, p, pObj, i )
+        pObj->Value = Gia_ObjIsPi(p, pObj) ? 0x7FFFFFFF : Gia_ObjCioId(pObj) - Gia_ManPiNum(p);
+}
+void Txs_ManPropagatePrio( Gia_Man_t * p, Vec_Int_t * vNodes, Vec_Int_t * vPrio )
+{
+    Gia_Obj_t * pObj, * pFan0, * pFan1;
+    int i, value0, value1;
+    Gia_ManForEachObjVec( vNodes, p, pObj, i )
+    {
+        pFan0 = Gia_ObjFanin0(pObj);
+        pFan1 = Gia_ObjFanin1(pObj);
+        if ( pObj->fMark0 )
+        {
+//            pObj->Value = Abc_MinInt( pFan0->Value, pFan1->Value );
+            if ( pFan0->Value == 0x7FFFFFFF )
+                pObj->Value = pFan1->Value;
+            else if ( pFan1->Value == 0x7FFFFFFF )
+                pObj->Value = pFan0->Value;
+            else if ( Vec_IntEntry(vPrio, pFan0->Value) < Vec_IntEntry(vPrio, pFan1->Value) )
+                pObj->Value = pFan0->Value;
+            else
+                pObj->Value = pFan1->Value;
+            continue;
+        }
+        value0 = pFan0->fMark0 ^ Gia_ObjFaninC0(pObj);
+        value1 = pFan1->fMark0 ^ Gia_ObjFaninC1(pObj);
+        assert( !value0 || !value1 );
+        if ( value0 )
+            pObj->Value = pFan1->Value;
+        else if ( value1 )
+            pObj->Value = pFan0->Value;
+        else // if ( value0 == 0 && value1 == 0 )
+        {
+//            pObj->Value = Abc_MaxInt( pFan0->Value, pFan1->Value );
+            if ( pFan0->Value == 0x7FFFFFFF || pFan1->Value == 0x7FFFFFFF )
+                pObj->Value = 0x7FFFFFFF;
+            else if ( Vec_IntEntry(vPrio, pFan0->Value) >= Vec_IntEntry(vPrio, pFan1->Value) )
+                pObj->Value = pFan0->Value;
+            else
+                pObj->Value = pFan1->Value;
+        }
+        assert( ~pObj->Value );
+    }
+}
+int Txs_ManFindMinId( Gia_Man_t * p, Vec_Int_t * vCoObjs, Vec_Int_t * vPrio )
+{
+    Gia_Obj_t * pObj; int i, iMinId = -1;
+    Gia_ManForEachObjVec( vCoObjs, p, pObj, i )
+        if ( Gia_ObjFanin0(pObj)->Value != 0x7FFFFFFF )
+        {
+            if ( iMinId == -1 || Vec_IntEntry(vPrio, iMinId) > Vec_IntEntry(vPrio, Gia_ObjFanin0(pObj)->Value) )
+                iMinId = Gia_ObjFanin0(pObj)->Value;
+        }
+    return iMinId;
+}
+void Txs_ManFindCiReduction( Gia_Man_t * p, 
+                         Vec_Int_t * vPrio, Vec_Int_t * vCiObjs, 
+                         Vec_Int_t * vNodes, Vec_Int_t * vCoObjs, 
+                         Vec_Int_t * vPiLits, Vec_Int_t * vFfLits, Vec_Int_t * vTemp )
+{
+    Gia_Obj_t * pObj;
+    int iPrioCi;
+    // propagate PI influence
+    Txs_ManSelectJustPath( p, vNodes, vCoObjs, vTemp );
+    Txs_ManCollectJustPis( p, vCiObjs, vPiLits );
+//    printf( "%d -> %d  ", Vec_IntSize(vNodes), Vec_IntSize(vTemp) );
+    // iteratively detect and remove smallest IDs
+    Vec_IntClear( vFfLits );
+    Txs_ManInitPrio( p, vCiObjs );
+    while ( 1 )
+    {
+        Txs_ManPropagatePrio( p, vTemp, vPrio );
+        iPrioCi = Txs_ManFindMinId( p, vCoObjs, vPrio );
+        if ( iPrioCi == -1 )
+            break;
+        pObj = Gia_ManCi( p, Gia_ManPiNum(p)+iPrioCi );
+        Vec_IntPush( vFfLits, Abc_Var2Lit(iPrioCi, !pObj->fMark0) );
+        pObj->Value = 0x7FFFFFFF;
+    }
+}
+void Txs_ManPrintFlopLits( Vec_Int_t * vFfLits, Vec_Int_t * vPrio )
+{
+    int i, Entry;
+    printf( "%3d : ", Vec_IntSize(vFfLits) );
+    Vec_IntForEachEntry( vFfLits, Entry, i )
+        printf( "%s%d(%d) ", Abc_LitIsCompl(Entry)? "+":"-", Abc_Lit2Var(Entry), Vec_IntEntry(vPrio, Abc_Lit2Var(Entry)) );
+    printf( "\n" );
 }
 
 /**Function*************************************************************
@@ -332,6 +489,7 @@ void Txs_ManVerify( Gia_Man_t * p, Vec_Int_t * vCiObjs, Vec_Int_t * vNodes, Vec_
 ***********************************************************************/
 Pdr_Set_t * Txs_ManTernarySim( Txs_Man_t * p, int k, Pdr_Set_t * pCube )
 {
+    int fTryNew = 1;
     Pdr_Set_t * pRes;
     Gia_Obj_t * pObj;
     // collect CO objects
@@ -370,7 +528,10 @@ Abc_Print( 1, " in frame %d.\n", k );
 
     // perform two passes
     Txs_ManForwardPass( p->pGia, p->vPrio, p->vCiObjs, p->vCiVals, p->vNodes, p->vCoObjs, p->vCoVals );
-    Txs_ManBackwardPass( p->pGia, p->vCiObjs, p->vNodes, p->vPiLits, p->vFfLits );
+    if ( fTryNew )
+        Txs_ManFindCiReduction( p->pGia, p->vPrio, p->vCiObjs, p->vNodes, p->vCoObjs, p->vPiLits, p->vFfLits, p->vTemp );
+    else
+        Txs_ManBackwardPass( p->pGia, p->vCiObjs, p->vNodes, p->vPiLits, p->vFfLits );
     Txs_ManVerify( p->pGia, p->vCiObjs, p->vNodes, p->vPiLits, p->vFfLits, p->vCoObjs, p->vCoVals );
 
     // derive the final set

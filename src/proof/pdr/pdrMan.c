@@ -271,7 +271,9 @@ Pdr_Man_t * Pdr_ManStart( Aig_Man_t * pAig, Pdr_Par_t * pPars, Vec_Int_t * vPrio
         p->vPrio = vPrioInit;
     else if ( pPars->fFlopPrio )
         p->vPrio = Pdr_ManDeriveFlopPriorities(pAig, 1);
-    else
+    else if ( p->pPars->fNewXSim )
+        p->vPrio = Vec_IntStartNatural( Aig_ManRegNum(pAig) );
+    else 
         p->vPrio = Vec_IntStart( Aig_ManRegNum(pAig) );
     p->vLits    = Vec_IntAlloc( 100 );  // array of literals
     p->vCiObjs  = Vec_IntAlloc( 100 );  // cone leaves
