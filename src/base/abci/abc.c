@@ -43,6 +43,7 @@
 #include "map/amap/amap.h"
 #include "opt/ret/retInt.h"
 #include "sat/xsat/xsat.h"
+#include "sat/satoko/satoko.h"
 #include "sat/cnf/cnf.h"
 #include "proof/cec/cec.h"
 #include "proof/acec/acec.h"
@@ -308,6 +309,7 @@ static int Abc_CommandDSec                   ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandSat                    ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandDSat                   ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandXSat                   ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandSatoko                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandPSat                   ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandProve                  ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandIProve                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -956,6 +958,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Verification", "sat",           Abc_CommandSat,              0 );
     Cmd_CommandAdd( pAbc, "Verification", "dsat",          Abc_CommandDSat,             0 );
     Cmd_CommandAdd( pAbc, "Verification", "xsat",          Abc_CommandXSat,             0 );
+    Cmd_CommandAdd( pAbc, "Verification", "satoko",        Abc_CommandSatoko,           0 );
     Cmd_CommandAdd( pAbc, "Verification", "psat",          Abc_CommandPSat,             0 );
     Cmd_CommandAdd( pAbc, "Verification", "prove",         Abc_CommandProve,            1 );
     Cmd_CommandAdd( pAbc, "Verification", "iprove",        Abc_CommandIProve,           1 );
@@ -23313,6 +23316,83 @@ usage:
   SeeAlso     []
 
 ***********************************************************************/
+int Abc_CommandSatoko( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    abctime clk;
+    int c;
+    satoko_opts_t opts;
+
+    satoko_default_opts(&opts);
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Chv" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'C':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-C\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            opts.conf_limit = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( opts.conf_limit < 0 )
+                goto usage;
+            break;
+        case 'h':
+            goto usage;
+        case 'v':
+            opts.verbose ^= 1;
+            break;
+
+        default:
+            goto usage;
+        }
+    }
+
+    if ( argc == globalUtilOptind + 1 )
+    {
+        char * pFileName = argv[globalUtilOptind];
+        satoko_t * p;
+        int status;
+
+        satoko_parse_dimacs( pFileName, &p );
+    satoko_configure(p, &opts);
+
+        clk = Abc_Clock();
+        status = satoko_solve( p );
+
+        if ( status == SATOKO_UNDEC )
+            Abc_Print( 1, "UNDECIDED      " );
+        else if ( status == SATOKO_SAT )
+            Abc_Print( 1, "SATISFIABLE    " );
+        else
+            Abc_Print( 1, "UNSATISFIABLE  " );
+
+        Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
+
+        satoko_destroy( p );
+        return 0;
+    }
+
+usage:
+    Abc_Print( -2, "usage: satoko [-CILDE num] [-hv]<file>.cnf\n" );
+    Abc_Print( -2, "\t-C num : limit on the number of conflicts [default = %d]\n", opts.conf_limit );
+    Abc_Print( -2, "\t-v     : prints verbose information [default = %s]\n", opts.verbose? "yes": "no" );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
+    return 1;
+}
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 int Abc_CommandPSat( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
@@ -26238,7 +26318,7 @@ usage:
     Abc_Print( -2, "\t  Zyad Hassan, Aaron R. Bradley, Fabio Somenzi, \"Better Generalization in IC3\", FMCAD 2013.\n");
     Abc_Print( -2, "\t  (http://www.cs.utexas.edu/users/hunt/FMCAD/FMCAD13/papers/85-Better-Generalization-IC3.pdf)\n");
 
-    
+
 
     return 1;
 }
