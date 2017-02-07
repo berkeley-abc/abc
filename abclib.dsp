@@ -1994,6 +1994,90 @@ SOURCE=.\src\sat\xsat\xsatUtils.h
 SOURCE=.\src\sat\xsat\xsatWatchList.h
 # End Source File
 # End Group
+# Begin Group "satoko"
+
+# PROP Default_Filter ""
+# Begin Source File
+
+SOURCE=.\src\sat\satoko\act_clause.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\satoko\act_var.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\satoko\utils\b_queue.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\satoko\cdb.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\satoko\clause.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\satoko\cnf_reader.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\satoko\utils\heap.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\satoko\utils\mem.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\satoko\utils\misc.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\satoko\satoko.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\satoko\solver.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\satoko\solver.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\satoko\solver_api.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\satoko\utils\sort.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\satoko\types.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\satoko\utils\vec\vec_char.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\satoko\utils\vec\vec_dble.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\satoko\utils\vec\vec_int.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\satoko\utils\vec\vec_uint.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\satoko\watch_list.h
+# End Source File
+# End Group
 # End Group
 # Begin Group "opt"
 

@@ -97,7 +97,7 @@ static void read_clause(char **token, vec_uint_t *lits)
             break;
         sign = (var > 0);
         var = abs(var) - 1;
-        vec_uint_push_back(lits, var2lit((unsigned) var, !sign));
+        vec_uint_push_back(lits, var2lit((unsigned) var, (char)!sign));
     }
 }
 

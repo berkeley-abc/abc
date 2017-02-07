@@ -330,7 +330,7 @@ static inline int solver_rst(solver_t *s)
 
 static inline int solver_block_rst(solver_t *s)
 {
-    return s->stats.n_conflicts > s->opts.fst_block_rst &&
+    return s->stats.n_conflicts > (int)s->opts.fst_block_rst &&
            b_queue_is_valid(s->bq_lbd) &&
            ((long)vec_uint_size(s->trail) > (s->opts.b_rst * (long)b_queue_avg(s->bq_trail)));
 }

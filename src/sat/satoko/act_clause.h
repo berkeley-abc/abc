@@ -26,9 +26,9 @@ static inline void clause_act_rescale(solver_t *s)
 
     vec_uint_foreach(s->learnts, cref, i) {
         clause = clause_read(s, cref);
-        clause->data[clause->size].act *= 1e-20;
+        clause->data[clause->size].act *= (float)1e-20;
     }
-    s->clause_act_inc  *= 1e-20;
+    s->clause_act_inc  *= (float)1e-20;
 }
 
 /** Increment the activity value of one clause ('clause')
