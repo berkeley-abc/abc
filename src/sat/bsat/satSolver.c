@@ -492,7 +492,7 @@ int sat_solver_clause_new(sat_solver* s, lit* begin, lit* end, int learnt)
 #ifdef USE_FLOAT_ACTIVITY_NEW
         veci_push(&s->act_clas, xSat_Float2Uint(xSat_FloatCreateConst1()));
 #else
-        veci_push(&s->act_clas, 0);
+        veci_push(&s->act_clas, s->cla_inc);
 #endif
 #else
         veci_push(&s->act_clas, (1<<10));
@@ -1532,8 +1532,16 @@ void sat_solver_reducedb(sat_solver* s)
     Sat_MemForEachLearned( pMem, c, i, k )
     {
         Id = clause_id(c);
-        pSortValues[Id] = (((7 - Abc_MinInt(c->lbd, 7)) << 28) | (act_clas[Id] >> 4));
 //        pSortValues[Id] = act[Id];
+#ifdef USE_FLOAT_ACTIVITY
+#ifdef USE_FLOAT_ACTIVITY_NEW
+        pSortValues[Id] = ((7 - Abc_MinInt(c->lbd, 7)) << 28) | (act_clas[Id] >> 4);
+#else
+        pSortValues[Id] = ((7 - Abc_MinInt(c->lbd, 7)) << 28);// | (act_clas[Id] >> 4);
+#endif
+#else
+        pSortValues[Id] = ((7 - Abc_MinInt(c->lbd, 7)) << 28) | (act_clas[Id] >> 4);
+#endif
         assert( pSortValues[Id] >= 0 );
     }
 
@@ -1639,7 +1647,15 @@ void sat_solver_rollback( sat_solver* s )
         if ( s->activity2 )
         {
             s->var_inc = s->var_inc2;
+#ifdef USE_FLOAT_ACTIVITY
+#ifdef USE_FLOAT_ACTIVITY_NEW
+            memcpy( s->activity, s->activity2, sizeof(xFloat_t) * s->iVarPivot );
+#else
+            memcpy( s->activity, s->activity2, sizeof(double) * s->iVarPivot );
+#endif
+#else
             memcpy( s->activity, s->activity2, sizeof(unsigned) * s->iVarPivot );
+#endif
         }
         veci_resize(&s->order, 0);
         for ( i = 0; i < s->iVarPivot; i++ )
