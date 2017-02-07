@@ -51,14 +51,14 @@ struct Dsc_node_t_
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
-inline void xorInPlace( word * pOut, word * pIn2, int nWords)
+static inline void xorInPlace( word * pOut, word * pIn2, int nWords)
 {
     int w;
     for ( w = 0; w < nWords; w++ )
         pOut[w] ^= pIn2[w];
 }
 
-void dsc_debug_node(Dsc_node_t * pNode, int nVars, const int TRUTH_WORDS) {
+static inline void dsc_debug_node(Dsc_node_t * pNode, int nVars, const int TRUTH_WORDS) {
     int i;
     printf("Node:\t%s\n",pNode->exp);
     printf("\tneg cof:\t");Abc_TtPrintHexRev(stdout, pNode->pNegCof, nVars);
@@ -75,7 +75,7 @@ void dsc_debug_node(Dsc_node_t * pNode, int nVars, const int TRUTH_WORDS) {
     printf("\n");
 }
 
-inline int dsc_and_test(Dsc_node_t *ni, Dsc_node_t *nj, const int TRUTH_WORDS, int* ci, int* cj) {
+static inline int dsc_and_test(Dsc_node_t *ni, Dsc_node_t *nj, const int TRUTH_WORDS, int* ci, int* cj) {
             if (Abc_TtEqual(ni->pNegCof, nj->pNegCof, TRUTH_WORDS)) {*ci=1; *cj=1; return 1;}
     else     if (Abc_TtEqual(ni->pNegCof, nj->pPosCof, TRUTH_WORDS)) {*ci=1; *cj=0; return 1;}
     else     if (Abc_TtEqual(ni->pPosCof, nj->pNegCof, TRUTH_WORDS)) {*ci=0; *cj=1; return 1;}
@@ -83,11 +83,11 @@ inline int dsc_and_test(Dsc_node_t *ni, Dsc_node_t *nj, const int TRUTH_WORDS, i
     return 0;
 }
 
-inline int dsc_xor_test(Dsc_node_t *ni, Dsc_node_t *nj, const int TRUTH_WORDS) {
+static inline int dsc_xor_test(Dsc_node_t *ni, Dsc_node_t *nj, const int TRUTH_WORDS) {
     return Abc_TtEqual(ni->pBoolDiff, nj->pBoolDiff, TRUTH_WORDS);
 }
 
-void concat(char* target, char begin, char end, char* s1, int s1Polarity, char* s2, int s2Polarity) {
+static inline void concat(char* target, char begin, char end, char* s1, int s1Polarity, char* s2, int s2Polarity) {
     *target++ = begin;
     //s1
     if (!s1Polarity)
@@ -104,7 +104,7 @@ void concat(char* target, char begin, char end, char* s1, int s1Polarity, char* 
     *target = '\0';
 }
 
-void cubeCofactor(word * const pTruth, const unsigned int * const cubeCof, const int TRUTH_WORDS) {
+static inline void cubeCofactor(word * const pTruth, const unsigned int * const cubeCof, const int TRUTH_WORDS) {
     int size = cubeCof[0];
     int i;
     for (i = 1; i <= size; i++) {
@@ -117,7 +117,7 @@ void cubeCofactor(word * const pTruth, const unsigned int * const cubeCof, const
     }
 }
 
-void merge(unsigned int * const pOut, const unsigned int * const pIn) {
+static inline void merge(unsigned int * const pOut, const unsigned int * const pIn) {
     const int elementsToCopy = pIn[0];
     int i, j;
     for (i = pOut[0]+1, j = 1; j <= elementsToCopy; i++, j++) {
