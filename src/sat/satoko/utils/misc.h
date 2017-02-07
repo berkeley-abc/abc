@@ -9,8 +9,6 @@
 #ifndef satoko__utils__misc_h
 #define satoko__utils__misc_h
 
-#include <stdint.h>
-
 #include "misc/util/abc_global.h"
 ABC_NAMESPACE_HEADER_START
 

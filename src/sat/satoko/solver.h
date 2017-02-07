@@ -42,13 +42,13 @@ struct satoko_stats {
     unsigned n_starts;
     unsigned n_reduce_db;
 
-    long long n_decisions;
-    long long n_propagations;
-    long long n_inspects;
-    long long n_conflicts;
+    long n_decisions;
+    long n_propagations;
+    long n_inspects;
+    long n_conflicts;
 
-    long long n_original_lits;
-    long long n_learnt_lits;
+    long n_original_lits;
+    long n_learnt_lits;
 };
 
 typedef struct solver_t_ solver_t;
@@ -82,17 +82,9 @@ struct solver_t_ {
     unsigned i_qhead; /* Head of propagation queue (as index into the trail). */
     unsigned n_assigns_simplify; /* Number of top-level assignments since
                     last execution of 'simplify()'. */
-    long long n_props_simplify;  /* Remaining number of propagations that
-                    must be made before next execution of
-                    'simplify()'. */
-
-    /* Temporary data used by Search method */
-    b_queue_t *bq_trail;
-    b_queue_t *bq_lbd;
-    long RC1;
-    long RC2;
-    unsigned n_confl_bfr_reduce;
-    float sum_lbd;
+    long n_props_simplify;  /* Remaining number of propagations that
+                   must be made before next execution of
+                   'simplify()'. */
 
     /* Temporary data used by Analyze */
     vec_uint_t *temp_lits;
@@ -101,10 +93,18 @@ struct solver_t_ {
     vec_uint_t *stack;
     vec_uint_t *last_dlevel;
 
+    /* Temporary data used by Search method */
+    b_queue_t *bq_trail;
+    b_queue_t *bq_lbd;
+    long RC1;
+    long RC2;
+    long n_confl_bfr_reduce;
+    float sum_lbd;
+
     /* Misc temporary */
+    unsigned cur_stamp; /* Used for marking literals and levels of interest */
     vec_uint_t *stamps; /* Multipurpose stamp used to calculate LBD and
                  * clauses minimization with binary resolution */
-    unsigned cur_stamp; /* Used for marking literals and levels of interest */
 
     struct satoko_stats stats;
     struct satoko_opts opts;

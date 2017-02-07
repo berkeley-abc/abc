@@ -30,8 +30,8 @@ typedef struct solver_t_ satoko_t;
 typedef struct satoko_opts satoko_opts_t;
 struct satoko_opts {
     /* Limits */
-    long long conf_limit;  /* Limit on the n.of conflicts */
-    long long prop_limit;  /* Limit on the n.of implications */
+    long conf_limit;  /* Limit on the n.of conflicts */
+    long prop_limit;  /* Limit on the n.of implications */
 
     /* Constants used for restart heuristic */
     double f_rst;          /* Used to force a restart */

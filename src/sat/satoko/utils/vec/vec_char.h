@@ -248,9 +248,10 @@ static inline long vec_char_memory(vec_char_t *p)
 
 static inline void vec_char_print(vec_char_t* p)
 {
+    unsigned i;
     assert(p != NULL);
     fprintf(stdout, "Vector has %u(%u) entries: {", p->size, p->cap);
-    for (unsigned i = 0; i < p->size; i++)
+    for (i = 0; i < p->size; i++)
         fprintf(stdout, " %d", p->data[i]);
     fprintf(stdout, " }\n");
 }

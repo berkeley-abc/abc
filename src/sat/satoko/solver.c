@@ -325,14 +325,14 @@ static inline void solver_analyze(solver_t *s, unsigned cref, vec_uint_t *learnt
 static inline int solver_rst(solver_t *s)
 {
     return b_queue_is_valid(s->bq_lbd) &&
-           (((long long)b_queue_avg(s->bq_lbd) * s->opts.f_rst) > (s->sum_lbd / s->stats.n_conflicts));
+           (((long)b_queue_avg(s->bq_lbd) * s->opts.f_rst) > (s->sum_lbd / s->stats.n_conflicts));
 }
 
 static inline int solver_block_rst(solver_t *s)
 {
     return s->stats.n_conflicts > s->opts.fst_block_rst &&
            b_queue_is_valid(s->bq_lbd) &&
-           (vec_uint_size(s->trail) > (s->opts.b_rst * (long long)b_queue_avg(s->bq_trail)));
+           ((long)vec_uint_size(s->trail) > (s->opts.b_rst * (long)b_queue_avg(s->bq_trail)));
 }
 
 static inline void solver_handle_conflict(solver_t *s, unsigned confl_cref)

@@ -23357,7 +23357,7 @@ int Abc_CommandSatoko( Abc_Frame_t * pAbc, int argc, char ** argv )
         int status;
 
         satoko_parse_dimacs( pFileName, &p );
-    satoko_configure(p, &opts);
+        satoko_configure(p, &opts);
 
         clk = Abc_Clock();
         status = satoko_solve( p );

@@ -68,9 +68,9 @@ static inline void print_opts(solver_t *s)
 static inline void print_stats(solver_t *s)
 {
     printf("starts        : %10d\n", s->stats.n_starts);
-    printf("conflicts     : %10lld\n", s->stats.n_conflicts);
-    printf("decisions     : %10lld\n", s->stats.n_decisions);
-    printf("propagations  : %10lld\n", s->stats.n_propagations);
+    printf("conflicts     : %10ld\n", s->stats.n_conflicts);
+    printf("decisions     : %10ld\n", s->stats.n_decisions);
+    printf("propagations  : %10ld\n", s->stats.n_propagations);
 }
 
 //===------------------------------------------------------------------------===
@@ -166,13 +166,13 @@ void satoko_default_opts(satoko_opts_t *opts)
     opts->inc_special_reduce = 1000;
     opts->lbd_freeze_clause = 30;
     /* VSIDS heuristic */
-    opts->var_decay = 0.95;
-    opts->clause_decay = 0.995;
+    opts->var_decay = (act_t) 0.95;
+    opts->clause_decay = (clause_act_t) 0.995;
     /* Binary resolution */
     opts->clause_max_sz_bin_resol = 30;
     opts->clause_min_lbd_bin_resol = 6;
 
-    opts->garbage_max_ratio = 0.3;
+    opts->garbage_max_ratio = (float) 0.3;
 }
 
 /**

@@ -21,7 +21,7 @@ struct b_queue_t_ {
     unsigned cap;
     unsigned i_first;
     unsigned i_empty;
-    unsigned long long sum;
+    unsigned long sum;
     unsigned *data;
 };
 
@@ -61,7 +61,7 @@ static inline void b_queue_push(b_queue_t *p, unsigned Value)
 
 static inline unsigned b_queue_avg(b_queue_t *p)
 {
-    return (unsigned)(p->sum / ((unsigned long long) p->size));
+    return (unsigned)(p->sum / ((unsigned long) p->size));
 }
 
 static inline unsigned b_queue_is_valid(b_queue_t *p)
