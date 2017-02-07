@@ -145,12 +145,22 @@ static inline void order_update(sat_solver* s, int v) // updateorder
 
     assert(s->orderpos[v] != -1);
 
+#ifdef USE_FLOAT_ACTIVITY_NEW
+    while (i != 0 && xSat_LessThan(s->activity[heap[parent]], s->activity[x]) ){
+        heap[i]           = heap[parent];
+        orderpos[heap[i]] = i;
+        i                 = parent;
+        parent            = (i - 1) / 2;
+    }
+#else
     while (i != 0 && s->activity[x] > s->activity[heap[parent]]){
         heap[i]           = heap[parent];
         orderpos[heap[i]] = i;
         i                 = parent;
         parent            = (i - 1) / 2;
     }
+#endif
+
     heap[i]     = x;
     orderpos[x] = i;
 }
@@ -192,11 +202,21 @@ static inline int  order_select(sat_solver* s, float random_var_freq) // selectv
             int    i     = 0;
             int    child = 1;
             while (child < size){
+
+#ifdef USE_FLOAT_ACTIVITY_NEW
+                if (child+1 < size && xSat_LessThan(s->activity[heap[child]], s->activity[heap[child+1]]) )
+                    child++;
+                assert(child < size);
+                if ( !xSat_LessThan(s->activity[x], s->activity[heap[child]]) )
+                    break;
+#else
                 if (child+1 < size && s->activity[heap[child]] < s->activity[heap[child+1]])
                     child++;
                 assert(child < size);
                 if (s->activity[x] >= s->activity[heap[child]])
                     break;
+#endif
+
                 heap[i]           = heap[child];
                 orderpos[heap[i]] = i;
                 i                 = child;
@@ -213,6 +233,7 @@ static inline int  order_select(sat_solver* s, float random_var_freq) // selectv
 
 void sat_solver_set_var_activity(sat_solver* s, int * pVars, int nVars) 
 {
+#ifndef USE_FLOAT_ACTIVITY_NEW
     int i;
     for (i = 0; i < s->size; i++)
         s->activity[i] = 0;
@@ -223,12 +244,53 @@ void sat_solver_set_var_activity(sat_solver* s, int * pVars, int nVars)
         s->activity[iVar] = nVars-i;
         order_update( s, iVar );
     }
+#endif
 }
 
 //=================================================================================================
 // Activity functions:
 
 #ifdef USE_FLOAT_ACTIVITY
+
+#ifdef USE_FLOAT_ACTIVITY_NEW
+
+static inline void act_var_rescale(sat_solver* s)  {
+    xFloat_t * activity = s->activity;
+    int i;
+    for (i = 0; i < s->size; i++)
+        activity[i] = xSat_FloatDiv( activity[i], 1<<10 ); // activity[i] / 2^1024
+    s->var_inc = xSat_FloatDiv( s->var_inc, 1<<10 ); 
+}
+static inline void act_clause_rescale(sat_solver* s) {
+    xFloat_t* activity = (xFloat_t *)veci_begin(&s->act_clas);
+    int i;
+    for (i = 0; i < veci_size(&s->act_clas); i++)
+        activity[i] = xSat_FloatDiv( activity[i], 1<<10 ); // activity[i] / 2^1024
+    s->cla_inc = xSat_FloatDiv( s->cla_inc, 1<<10 );
+}
+static inline void act_var_bump(sat_solver* s, int v) {
+    s->activity[v] = xSat_FloatAdd( s->activity[v], s->var_inc );
+    if ( xSat_LessThan(xSat_FloatCreate(1 << 12, 1 << 15), s->activity[v]) ) // 2^4096 < s->activity[v]
+        act_var_rescale(s);
+    if (s->orderpos[v] != -1)
+        order_update(s,v);
+}
+static inline void act_var_bump_global(sat_solver* s, int v) {
+    assert(0);
+}
+static inline void act_var_bump_factor(sat_solver* s, int v) {
+    assert(0);
+}
+static inline void act_clause_bump(sat_solver* s, clause *c) {
+    xFloat_t* act = (xFloat_t *)veci_begin(&s->act_clas) + c->lits[c->size];
+    *act = xSat_FloatAdd( *act, s->cla_inc );
+    if ( xSat_LessThan(xSat_FloatCreate(1 << 12, 1 << 15), *act) )  // 2^4096 < *act
+        act_clause_rescale(s);
+}
+static inline void act_var_decay(sat_solver* s)    { s->var_inc = xSat_FloatMul(s->var_inc, s->var_decay); }
+static inline void act_clause_decay(sat_solver* s) { s->cla_inc = xSat_FloatMul(s->cla_inc, s->cla_decay); }
+
+#else
 
 static inline void act_var_rescale(sat_solver* s)  {
     double* activity = s->activity;
@@ -238,18 +300,11 @@ static inline void act_var_rescale(sat_solver* s)  {
     s->var_inc *= 1e-100;
 }
 static inline void act_clause_rescale(sat_solver* s) {
-//    static abctime Total = 0;
-    clause** cs = (clause**)veci_begin(&s->learnts);
-    int i;//, clk = Abc_Clock();
-    for (i = 0; i < veci_size(&s->learnts); i++){
-        float a = clause_activity(cs[i]);
-        clause_setactivity(cs[i], a * (float)1e-20);
-    }
+    float* activity = (float *)veci_begin(&s->act_clas);
+    int i;
+    for (i = 0; i < veci_size(&s->act_clas); i++)
+        activity[i] *= (float)1e-20;
     s->cla_inc *= (float)1e-20;
-
-    Total += Abc_Clock() - clk;
-//    printf( "Rescaling...   Cla inc = %10.3f  Conf = %10d   ", s->cla_inc,  s->stats.conflicts );
-//    Abc_PrintTime( 1, "Time", Total );
 }
 static inline void act_var_bump(sat_solver* s, int v) {
     s->activity[v] += s->var_inc;
@@ -259,30 +314,21 @@ static inline void act_var_bump(sat_solver* s, int v) {
         order_update(s,v);
 }
 static inline void act_var_bump_global(sat_solver* s, int v) {
-    if ( !s->pGlobalVars )
-        return;
-    s->activity[v] += (s->var_inc * 3.0 * s->pGlobalVars[v]);
-    if (s->activity[v] > 1e100)
-        act_var_rescale(s);
-    if (s->orderpos[v] != -1)
-        order_update(s,v);
+    assert(0);
 }
 static inline void act_var_bump_factor(sat_solver* s, int v) {
-    if ( !s->factors )
-        return;
-    s->activity[v] += (s->var_inc * s->factors[v]);
-    if (s->activity[v] > 1e100)
-        act_var_rescale(s);
-    if (s->orderpos[v] != -1)
-        order_update(s,v);
+    assert(0);
 }
 static inline void act_clause_bump(sat_solver* s, clause *c) {
-    float a = clause_activity(c) + s->cla_inc;
-    clause_setactivity(c,a);
-    if (a > 1e20) act_clause_rescale(s);
+    float* act = (float *)veci_begin(&s->act_clas) + c->lits[c->size];
+    *act += s->cla_inc;
+    if (*act > 1e20) 
+        act_clause_rescale(s);
 }
 static inline void act_var_decay(sat_solver* s)    { s->var_inc *= s->var_decay; }
 static inline void act_clause_decay(sat_solver* s) { s->cla_inc *= s->cla_decay; }
+
+#endif
 
 #else
 
@@ -296,17 +342,12 @@ static inline void act_var_rescale(sat_solver* s) {
 }
 
 static inline void act_clause_rescale(sat_solver* s) {
-    static abctime Total = 0;
-    abctime clk = Abc_Clock();
     unsigned* activity = (unsigned *)veci_begin(&s->act_clas);
     int i;
     for (i = 0; i < veci_size(&s->act_clas); i++)
         activity[i] >>= 14;
     s->cla_inc >>= 14;
     s->cla_inc = Abc_MaxInt( s->cla_inc, (1<<10) );
-    Total += Abc_Clock() - clk;
-//    printf( "Rescaling...   Cla inc = %5d  Conf = %10d   ", s->cla_inc,  s->stats.conflicts );
-//    Abc_PrintTime( 1, "Time", Total );
 }
 
 static inline void act_var_bump(sat_solver* s, int v) {
@@ -447,7 +488,15 @@ int sat_solver_clause_new(sat_solver* s, lit* begin, lit* end, int learnt)
         assert( clause_id(c) == veci_size(&s->act_clas) );
 //        veci_push(&s->learned, h);
 //        act_clause_bump(s,clause_read(s, h));
+#ifdef USE_FLOAT_ACTIVITY
+#ifdef USE_FLOAT_ACTIVITY_NEW
+        veci_push(&s->act_clas, xSat_Float2Uint(xSat_FloatCreateConst1()));
+#else
+        veci_push(&s->act_clas, 0);
+#endif
+#else
         veci_push(&s->act_clas, (1<<10));
+#endif
         s->stats.learnts++;
         s->stats.learnts_literals += size;
     }
@@ -1055,10 +1104,17 @@ sat_solver* sat_solver_new(void)
     s->qhead                  = 0;
     s->qtail                  = 0;
 #ifdef USE_FLOAT_ACTIVITY
+#ifdef USE_FLOAT_ACTIVITY_NEW
+    s->var_inc                = xSat_FloatCreateConst1();
+    s->cla_inc                = xSat_FloatCreateConst1();
+    s->var_decay              = xSat_FloatFromFloat( (float)(1 / 0.95) );
+    s->cla_decay              = xSat_FloatFromFloat( (float)(1 / 0.999) );
+#else
     s->var_inc                = 1;
     s->cla_inc                = 1;
     s->var_decay              = (float)(1 / 0.95 );
     s->cla_decay              = (float)(1 / 0.999);
+#endif
 #else
     s->var_inc                = (1 <<  5);
     s->cla_inc                = (1 << 11);
@@ -1126,10 +1182,17 @@ sat_solver* zsat_solver_new_seed(double seed)
     s->qhead                  = 0;
     s->qtail                  = 0;
 #ifdef USE_FLOAT_ACTIVITY
+#ifdef USE_FLOAT_ACTIVITY_NEW
+    s->var_inc                = xSat_FloatCreateConst1();
+    s->cla_inc                = xSat_FloatCreateConst1();
+    s->var_decay              = xSat_FloatFromFloat( (float)(1 / 0.95) );
+    s->cla_decay              = xSat_FloatFromFloat( (float)(1 / 0.999) );
+#else
     s->var_inc                = 1;
     s->cla_inc                = 1;
     s->var_decay              = (float)(1 / 0.95 );
     s->cla_decay              = (float)(1 / 0.999);
+#endif
 #else
     s->var_inc                = (1 <<  5);
     s->cla_inc                = (1 << 11);
@@ -1174,7 +1237,11 @@ void sat_solver_setnvars(sat_solver* s,int n)
         s->tags      = ABC_REALLOC(char,   s->tags,     s->cap);
         s->loads     = ABC_REALLOC(char,   s->loads,    s->cap);
 #ifdef USE_FLOAT_ACTIVITY
+#ifdef USE_FLOAT_ACTIVITY_NEW
+        s->activity  = ABC_REALLOC(xFloat_t,   s->activity, s->cap);
+#else
         s->activity  = ABC_REALLOC(double,   s->activity, s->cap);
+#endif
 #else
         s->activity  = ABC_REALLOC(unsigned, s->activity, s->cap);
         s->activity2 = ABC_REALLOC(unsigned, s->activity2,s->cap);
@@ -1198,7 +1265,11 @@ void sat_solver_setnvars(sat_solver* s,int n)
         if ( s->wlists[2*var+1].ptr == NULL )
             veci_new(&s->wlists[2*var+1]);
 #ifdef USE_FLOAT_ACTIVITY
+#ifdef USE_FLOAT_ACTIVITY_NEW
+        s->activity[var] = xSat_FloatCreateConst1();
+#else
         s->activity[var] = 0;
+#endif
 #else
         s->activity[var] = (1<<10);
 #endif
@@ -1292,10 +1363,17 @@ void sat_solver_restart( sat_solver* s )
     s->qhead                  = 0;
     s->qtail                  = 0;
 #ifdef USE_FLOAT_ACTIVITY
+#ifdef USE_FLOAT_ACTIVITY_NEW
+    s->var_inc                = xSat_FloatCreateConst1();
+    s->cla_inc                = xSat_FloatCreateConst1();
+    s->var_decay              = xSat_FloatFromFloat( (float)(1 / 0.95) );
+    s->cla_decay              = xSat_FloatFromFloat( (float)(1 / 0.999) );
+#else
     s->var_inc                = 1;
     s->cla_inc                = 1;
-    s->var_decay              = (float)(1 / 0.95  );
-    s->cla_decay              = (float)(1 / 0.999 );
+    s->var_decay              = (float)(1 / 0.95 );
+    s->cla_decay              = (float)(1 / 0.999);
+#endif
 #else
     s->var_inc                = (1 <<  5);
     s->cla_inc                = (1 << 11);
@@ -1341,10 +1419,17 @@ void zsat_solver_restart_seed( sat_solver* s, double seed )
     s->qhead                  = 0;
     s->qtail                  = 0;
 #ifdef USE_FLOAT_ACTIVITY
+#ifdef USE_FLOAT_ACTIVITY_NEW
+    s->var_inc                = xSat_FloatCreateConst1();
+    s->cla_inc                = xSat_FloatCreateConst1();
+    s->var_decay              = xSat_FloatFromFloat( (float)(1 / 0.95) );
+    s->cla_decay              = xSat_FloatFromFloat( (float)(1 / 0.999) );
+#else
     s->var_inc                = 1;
     s->cla_inc                = 1;
-    s->var_decay              = (float)(1 / 0.95  );
-    s->cla_decay              = (float)(1 / 0.999 );
+    s->var_decay              = (float)(1 / 0.95 );
+    s->cla_decay              = (float)(1 / 0.999);
+#endif
 #else
     s->var_inc                = (1 <<  5);
     s->cla_inc                = (1 << 11);
@@ -1382,7 +1467,11 @@ double sat_solver_memory( sat_solver* s )
     Mem += s->cap * sizeof(char);     // ABC_FREE(s->tags     );
     Mem += s->cap * sizeof(char);     // ABC_FREE(s->loads    );
 #ifdef USE_FLOAT_ACTIVITY
+#ifdef USE_FLOAT_ACTIVITY_NEW
+    Mem += s->cap * sizeof(xFloat_t);   // ABC_FREE(s->activity );
+#else
     Mem += s->cap * sizeof(double);   // ABC_FREE(s->activity );
+#endif
 #else
     Mem += s->cap * sizeof(unsigned); // ABC_FREE(s->activity );
     if ( s->activity2 )
@@ -1600,10 +1689,17 @@ void sat_solver_rollback( sat_solver* s )
         s->qhead                  = 0;
         s->qtail                  = 0;
 #ifdef USE_FLOAT_ACTIVITY
+#ifdef USE_FLOAT_ACTIVITY_NEW
+        s->var_inc                = xSat_FloatCreateConst1();
+        s->cla_inc                = xSat_FloatCreateConst1();
+        s->var_decay              = xSat_FloatFromFloat( (float)(1 / 0.95) );
+        s->cla_decay              = xSat_FloatFromFloat( (float)(1 / 0.999) );
+#else
         s->var_inc                = 1;
         s->cla_inc                = 1;
-        s->var_decay              = (float)(1 / 0.95  );
-        s->cla_decay              = (float)(1 / 0.999 );
+        s->var_decay              = (float)(1 / 0.95 );
+        s->cla_decay              = (float)(1 / 0.999);
+#endif
 #else
         s->var_inc                = (1 <<  5);
         s->cla_inc                = (1 << 11);

@@ -30,10 +30,12 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 
 #include "satVec.h"
 #include "satClause.h"
+#include "sat/xsat/xsatFloat.h"
 
 ABC_NAMESPACE_HEADER_START
 
 //#define USE_FLOAT_ACTIVITY
+//#define USE_FLOAT_ACTIVITY_NEW
 
 //=================================================================================================
 // Public interface:
@@ -117,11 +119,23 @@ struct sat_solver_t
 
     // activities
 #ifdef USE_FLOAT_ACTIVITY
+#ifdef USE_FLOAT_ACTIVITY_NEW
+    xFloat_t    var_inc;       // Amount to bump next variable with.
+    xFloat_t    var_inc2;      // Amount to bump next variable with.
+    xFloat_t    var_decay;     // INVERSE decay factor for variable activity: stores 1/decay. 
+    xFloat_t    cla_inc;       // Amount to bump next clause with.
+    xFloat_t    cla_decay;     // INVERSE decay factor for clause activity: stores 1/decay.
+    xFloat_t*   activity;      // A heuristic measurement of the activity of a variable.
+    xFloat_t*   activity2;     // backup variable activity
+#else
     double      var_inc;       // Amount to bump next variable with.
+    double      var_inc2;      // Amount to bump next variable with.
     double      var_decay;     // INVERSE decay factor for variable activity: stores 1/decay. 
     float       cla_inc;       // Amount to bump next clause with.
     float       cla_decay;     // INVERSE decay factor for clause activity: stores 1/decay.
     double*     activity;      // A heuristic measurement of the activity of a variable.
+    double*     activity2;     // A heuristic measurement of the activity of a variable.
+#endif
 #else
     int         var_inc;       // Amount to bump next variable with.
     int         var_inc2;      // Amount to bump next variable with.
@@ -218,9 +232,21 @@ static int sat_solver_var_literal( sat_solver* s, int v )
 static void sat_solver_act_var_clear(sat_solver* s) 
 {
     int i;
+#ifdef USE_FLOAT_ACTIVITY
+#ifdef USE_FLOAT_ACTIVITY_NEW
+    for (i = 0; i < s->size; i++)
+        s->activity[i] = xSat_FloatCreateConst1();
+    s->var_inc = xSat_FloatCreateConst1();
+#else
     for (i = 0; i < s->size; i++)
         s->activity[i] = 0;
     s->var_inc = 1;
+#endif
+#else
+    for (i = 0; i < s->size; i++)
+        s->activity[i] = 0;
+    s->var_inc = (1 <<  5);
+#endif
 }
 static void sat_solver_compress(sat_solver* s) 
 {
@@ -286,8 +312,18 @@ static inline void sat_solver_bookmark(sat_solver* s)
     Sat_MemBookMark( &s->Mem );
     if ( s->activity2 )
     {
+#ifdef USE_FLOAT_ACTIVITY
+#ifdef USE_FLOAT_ACTIVITY_NEW
+        s->var_inc2 = s->var_inc;
+        memcpy( s->activity2, s->activity, sizeof(xFloat_t) * s->iVarPivot );
+#else
+        s->var_inc2 = s->var_inc;
+        memcpy( s->activity2, s->activity, sizeof(double) * s->iVarPivot );
+#endif
+#else
         s->var_inc2 = s->var_inc;
         memcpy( s->activity2, s->activity, sizeof(unsigned) * s->iVarPivot );
+#endif
     }
 }
 static inline void sat_solver_set_pivot_variables( sat_solver* s, int * pPivots, int nPivots )
