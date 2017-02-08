@@ -4639,6 +4639,10 @@ SOURCE=.\src\aig\gia\giaSatMap.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\aig\gia\giaSatoko.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\aig\gia\giaScl.c
 # End Source File
 # Begin Source File

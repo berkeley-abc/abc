@@ -310,6 +310,7 @@ static int Abc_CommandSat                    ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandDSat                   ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandXSat                   ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandSatoko                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9Satoko             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandPSat                   ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandProve                  ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandIProve                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -959,6 +960,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Verification", "dsat",          Abc_CommandDSat,             0 );
     Cmd_CommandAdd( pAbc, "Verification", "xsat",          Abc_CommandXSat,             0 );
     Cmd_CommandAdd( pAbc, "Verification", "satoko",        Abc_CommandSatoko,           0 );
+    Cmd_CommandAdd( pAbc, "Verification", "&satoko",       Abc_CommandAbc9Satoko,       0 );
     Cmd_CommandAdd( pAbc, "Verification", "psat",          Abc_CommandPSat,             0 );
     Cmd_CommandAdd( pAbc, "Verification", "prove",         Abc_CommandProve,            1 );
     Cmd_CommandAdd( pAbc, "Verification", "iprove",        Abc_CommandIProve,           1 );
@@ -23356,11 +23358,12 @@ int Abc_CommandSatoko( Abc_Frame_t * pAbc, int argc, char ** argv )
         satoko_t * p;
         int status;
 
-        satoko_parse_dimacs( pFileName, &p );
+        status = satoko_parse_dimacs( pFileName, &p );
         satoko_configure(p, &opts);
 
         clk = Abc_Clock();
-        status = satoko_solve( p );
+        if ( status == SATOKO_OK )
+            status = satoko_solve( p );
 
         if ( status == SATOKO_UNDEC )
             Abc_Print( 1, "UNDECIDED      " );
@@ -23382,6 +23385,72 @@ usage:
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
 }
+
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc9Satoko( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern void Gia_ManCallSatoko( Gia_Man_t * p, satoko_opts_t * opts, int fSplit );
+    int c, fSplit = 0;
+
+    satoko_opts_t opts;
+    satoko_default_opts(&opts);
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Csvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'C':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-C\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            opts.conf_limit = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( opts.conf_limit < 0 )
+                goto usage;
+            break;
+        case 's':
+            fSplit ^= 1;
+            break;
+        case 'v':
+            opts.verbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+
+        default:
+            goto usage;
+        }
+    }
+    if ( pAbc->pGia == NULL )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9Satoko(): There is no AIG.\n" );
+        return 1;
+    }
+    Gia_ManCallSatoko( pAbc->pGia, &opts, fSplit );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: &satoko [-C num] [-svh]\n" );
+    Abc_Print( -2, "\t-C num : limit on the number of conflicts [default = %d]\n", opts.conf_limit );
+    Abc_Print( -2, "\t-s     : split multi-output miter into individual outputs [default = %s]\n", fSplit? "yes": "no" );
+    Abc_Print( -2, "\t-v     : prints verbose information [default = %s]\n", opts.verbose? "yes": "no" );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
+    return 1;
+}
+
 /**Function*************************************************************
 
   Synopsis    []

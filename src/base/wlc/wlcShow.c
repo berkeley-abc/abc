@@ -49,9 +49,9 @@ void Wlc_NtkDumpDot( Wlc_Ntk_t * p, char * pFileName, Vec_Int_t * vBold )
     Wlc_Obj_t * pNode;
     int LevelMax, Prev, Level, i;
 
-    if ( Wlc_NtkObjNum(p) > 1000 )
+    if ( Wlc_NtkObjNum(p) > 2000 )
     {
-        fprintf( stdout, "Cannot visualize WLC with more than %d nodes.\n", 1000 );
+        fprintf( stdout, "Cannot visualize WLC with more than %d nodes.\n", 2000 );
         return;
     }
     if ( (pFile = fopen( pFileName, "w" )) == NULL )
