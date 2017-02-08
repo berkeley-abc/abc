@@ -54,7 +54,7 @@ satoko_t * Gia_ManCreateSatoko( Gia_Man_t * p )
     //sat_solver_setnvars( pSat, p->nVars );
     for ( i = 0; i < pCnf->nClauses; i++ )
     {
-        if ( !satoko_add_clause( pSat, pCnf->pClauses[i], pCnf->pClauses[i+1]-pCnf->pClauses[i] ) )
+        if ( !satoko_add_clause( pSat, (unsigned *)pCnf->pClauses[i], pCnf->pClauses[i+1]-pCnf->pClauses[i] ) )
         {
             Cnf_DataFree( pCnf );
             satoko_destroy( pSat );
