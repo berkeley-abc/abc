@@ -707,6 +707,45 @@ char * Wlc_NtkNewName( Wlc_Ntk_t * p, int iCoId, int fSeq )
 
 /**Function*************************************************************
 
+  Synopsis    [Reduce init vector.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Int_t * Wlc_ReduceMarkedInitVec( Wlc_Ntk_t * p, Vec_Int_t * vInit )
+{
+    Vec_Int_t * vInitNew = Vec_IntDup( vInit );
+    Wlc_Obj_t * pObj; int i, k = 0;
+    assert( Vec_IntSize(vInit) == Wlc_NtkCiNum(p) - Wlc_NtkPiNum(p) );
+    Wlc_NtkForEachCi( p, pObj, i )
+        if ( !Wlc_ObjIsPi(pObj) && pObj->Mark )
+            Vec_IntWriteEntry( vInitNew, k++, Vec_IntEntry(vInit, i) );
+    Vec_IntShrink( vInitNew, k );
+    return vInitNew;
+}
+char * Wlc_ReduceMarkedInitStr( Wlc_Ntk_t * p, char * pInit )
+{
+    char * pInitNew = Abc_UtilStrsav( pInit );
+    Wlc_Obj_t * pObj; int i, b, nBits = 0, k = 0;
+    Wlc_NtkForEachCi( p, pObj, i )
+    {
+        if ( !Wlc_ObjIsPi(pObj) && pObj->Mark )
+            for ( b = 0; b < Wlc_ObjRange(pObj); b++ )
+                pInitNew[k++] = pInitNew[nBits+b];
+        if ( !Wlc_ObjIsPi(pObj) )
+            nBits += Wlc_ObjRange(pObj);
+    }
+    pInitNew[k] = '\0';
+    assert( nBits == (int)strlen(pInit) );
+    return pInitNew;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Duplicates the network in a topological order.]
 
   Description []
@@ -764,7 +803,7 @@ void Wlc_NtkDupDfs_rec( Wlc_Ntk_t * pNew, Wlc_Ntk_t * p, int iObj, Vec_Int_t * v
         Wlc_NtkDupDfs_rec( pNew, p, iFanin, vFanins );
     Wlc_ObjDup( pNew, p, iObj, vFanins );
 }
-Wlc_Ntk_t * Wlc_NtkDupDfs( Wlc_Ntk_t * p, int fMarked, int fSeq )
+Wlc_Ntk_t * Wlc_NtkDupDfs( Wlc_Ntk_t * p, int fMarked, int fSeq, Vec_Int_t * vPisNew )
 {
     Wlc_Ntk_t * pNew;
     Wlc_Obj_t * pObj;
@@ -774,14 +813,33 @@ Wlc_Ntk_t * Wlc_NtkDupDfs( Wlc_Ntk_t * p, int fMarked, int fSeq )
     Wlc_NtkCleanCopy( p );
     pNew = Wlc_NtkAlloc( p->pName, p->nObjsAlloc );
     pNew->fSmtLib = p->fSmtLib;
-    Wlc_NtkForEachCi( p, pObj, i )
-        if ( !fMarked || pObj->Mark )
+    if ( vPisNew )
+    {
+        // duplicate marked PIs
+        Wlc_NtkForEachPi( p, pObj, i )
+            if ( pObj->Mark )
+                Wlc_ObjDup( pNew, p, Wlc_ObjId(p, pObj), vFanins );
+        // duplicated additional PIs
+        Wlc_NtkForEachObjVec( vPisNew, p, pObj, i )
         {
             unsigned Type = pObj->Type;
-            if ( !fSeq ) pObj->Type = WLC_OBJ_PI;
+            assert( !Wlc_ObjIsPi(pObj) );
+            pObj->Type = WLC_OBJ_PI;
             Wlc_ObjDup( pNew, p, Wlc_ObjId(p, pObj), vFanins );
             pObj->Type = Type;
         }
+    }
+    else
+    {
+        Wlc_NtkForEachCi( p, pObj, i )
+            if ( !fMarked || pObj->Mark )
+            {
+                unsigned Type = pObj->Type;
+                if ( !fSeq ) pObj->Type = WLC_OBJ_PI;
+                Wlc_ObjDup( pNew, p, Wlc_ObjId(p, pObj), vFanins );
+                pObj->Type = Type;
+            }
+    }
     Wlc_NtkForEachCo( p, pObj, i )
         if ( !fMarked || pObj->Mark )
             Wlc_NtkDupDfs_rec( pNew, p, Wlc_ObjId(p, pObj), vFanins );
@@ -789,12 +847,22 @@ Wlc_Ntk_t * Wlc_NtkDupDfs( Wlc_Ntk_t * p, int fMarked, int fSeq )
         if ( !fMarked || pObj->Mark )
             Wlc_ObjSetCo( pNew, Wlc_ObjCopyObj(pNew, p, pObj), fSeq ? pObj->fIsFi : 0 );
     Vec_IntFree( vFanins );
-    if ( !fMarked )
+    if ( fSeq )
     {
-        if ( p->vInits )
-            pNew->vInits = Vec_IntDup( p->vInits );
-        if ( p->pInits )
-            pNew->pInits = Abc_UtilStrsav( p->pInits );
+        if ( fMarked )
+        {
+            if ( p->vInits )
+                pNew->vInits = Wlc_ReduceMarkedInitVec( p, p->vInits );
+            if ( p->pInits )
+                pNew->pInits = Wlc_ReduceMarkedInitStr( p, p->pInits );
+        }
+        else
+        {
+            if ( p->vInits )
+                pNew->vInits = Vec_IntDup( p->vInits );
+            if ( p->pInits )
+                pNew->pInits = Abc_UtilStrsav( p->pInits );
+        }
     }
     if ( p->pSpec )
     pNew->pSpec = Abc_UtilStrsav( p->pSpec );

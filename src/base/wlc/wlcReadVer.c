@@ -1265,7 +1265,7 @@ Wlc_Ntk_t * Wlc_ReadVer( char * pFileName, char * pStr )
     if ( !Wlc_PrsDerive( p ) )
         goto finish;
     // derive topological order
-    pNtk = Wlc_NtkDupDfs( p->pNtk, 0, 1 );
+    pNtk = Wlc_NtkDupDfs( p->pNtk, 0, 1, NULL );
     pNtk->pSpec = Abc_UtilStrsav( pFileName );
 finish:
     Wlc_PrsPrintErrorMessage( p );

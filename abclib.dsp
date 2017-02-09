@@ -779,6 +779,10 @@ SOURCE=.\src\base\wlc\wlcAbs.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\base\wlc\wlcAbs2.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\base\wlc\wlcBlast.c
 # End Source File
 # Begin Source File
@@ -2068,6 +2072,10 @@ SOURCE=.\src\sat\satoko\utils\vec\vec_char.h
 # Begin Source File
 
 SOURCE=.\src\sat\satoko\utils\vec\vec_dble.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\satoko\utils\vec\vec_flt.h
 # End Source File
 # Begin Source File
 
