@@ -66,11 +66,11 @@ extern int Gia_ManCallSatokoOne( Gia_Man_t * p, satoko_opts_t * opts, int iOutpu
 ***********************************************************************/
 void Cmd_RunAutoTunerPrintOptions( satoko_opts_t * pOpts )
 {
-    printf( "-C %d  ",   pOpts->conf_limit );
+    printf( "-C %d  ",   (int)pOpts->conf_limit );
     printf( "-V %.3f  ", pOpts->var_decay );
     printf( "-W %.3f  ", pOpts->clause_decay );
     if ( pOpts->verbose )
-        printf( "-v",     pOpts->verbose );
+        printf( "-v" );
     printf( "\n" );
 }
 
@@ -150,7 +150,6 @@ void * Cmd_RunAutoTunerEvalWorkerThread( void * pArg )
 }
 int Cmd_RunAutoTunerEval( Vec_Ptr_t * vAigs, satoko_opts_t * pOpts, int nProcs )
 {
-    abctime clkTotal = Abc_Clock();
     Cmd_AutoData_t ThData[CMD_THR_MAX];
     pthread_t WorkerThread[CMD_THR_MAX];
     int i, status, fWorkToDo = 1, TotalCost = 0;
@@ -377,10 +376,10 @@ Vec_Ptr_t * Cmf_CreateOptions( Vec_Wec_t * vPars )
   SeeAlso     []
 
 ***********************************************************************/
-static inline Cmf_IsSpace( char p )          { return p == ' ' || p == '\t' || p == '\n' ||  p == '\r'; }
-static inline Cmf_IsLowerCaseChar( char p )  { return p >= 'a' && p <= 'z';                             }
-static inline Cmf_IsUpperCaseChar( char p )  { return p >= 'A' && p <= 'Z';                             }
-static inline Cmf_IsDigit( char p )          { return (p >= '0' && p <= '9') || p == '.';               }
+static inline int Cmf_IsSpace( char p )          { return p == ' ' || p == '\t' || p == '\n' ||  p == '\r'; }
+static inline int Cmf_IsLowerCaseChar( char p )  { return p >= 'a' && p <= 'z';                             }
+static inline int Cmf_IsUpperCaseChar( char p )  { return p >= 'A' && p <= 'Z';                             }
+static inline int Cmf_IsDigit( char p )          { return (p >= '0' && p <= '9') || p == '.';               }
 
 Vec_Wec_t * Cmd_ReadParamChoices( char * pConfig )
 {
