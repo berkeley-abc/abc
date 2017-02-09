@@ -523,6 +523,10 @@ SOURCE=.\src\base\cmd\cmdApi.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\base\cmd\cmdAuto.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\base\cmd\cmdFlag.c
 # End Source File
 # Begin Source File

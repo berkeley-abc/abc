@@ -21,6 +21,7 @@
 #include "gia.h"
 #include "sat/cnf/cnf.h"
 #include "sat/satoko/satoko.h"
+#include "sat/satoko/solver.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -68,17 +69,19 @@ satoko_t * Gia_ManCreateSatoko( Gia_Man_t * p )
     satoko_destroy( pSat );
     return NULL;
 }
-void Gia_ManCallSatokoOne( Gia_Man_t * p, satoko_opts_t * opts, int iOutput )
+int Gia_ManCallSatokoOne( Gia_Man_t * p, satoko_opts_t * opts, int iOutput )
 {
     abctime clk = Abc_Clock();
     satoko_t * pSat;
-    int status;
+    int status, Cost = 0;
+
 
     pSat = Gia_ManCreateSatoko( p );
     if ( pSat )
     {
         satoko_configure(pSat, opts);
         status = satoko_solve( pSat );
+        Cost = (unsigned)pSat->stats.n_conflicts;
         satoko_destroy( pSat );
     }
     else 
@@ -97,6 +100,7 @@ void Gia_ManCallSatokoOne( Gia_Man_t * p, satoko_opts_t * opts, int iOutput )
         Abc_Print( 1, "UNSATISFIABLE  " );
 
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
+    return Cost;
 }
 void Gia_ManCallSatoko( Gia_Man_t * p, satoko_opts_t * opts, int fSplit )
 {

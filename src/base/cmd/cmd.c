@@ -60,6 +60,7 @@ static int CmdCommandSis           ( Abc_Frame_t * pAbc, int argc, char ** argv 
 static int CmdCommandMvsis         ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int CmdCommandCapo          ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int CmdCommandStarter       ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int CmdCommandAutoTuner     ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 extern int Cmd_CommandAbcLoadPlugIn( Abc_Frame_t * pAbc, int argc, char ** argv );
 
@@ -110,6 +111,7 @@ void Cmd_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Various", "mvsis",       CmdCommandMvsis,           1 );
     Cmd_CommandAdd( pAbc, "Various", "capo",        CmdCommandCapo,            0 );
     Cmd_CommandAdd( pAbc, "Various", "starter",     CmdCommandStarter,         0 );
+    Cmd_CommandAdd( pAbc, "Various", "autotuner",   CmdCommandAutoTuner,       0 );
 
     Cmd_CommandAdd( pAbc, "Various", "load_plugin", Cmd_CommandAbcLoadPlugIn,  0 );
 }
@@ -2454,6 +2456,118 @@ usage:
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     Abc_Print( -2, "\t<file> : file name with ABC command lines (or benchmark names, if <cmd> is given)\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int CmdCommandAutoTuner( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern void Cmd_RunAutoTuner( char * pConfig, char * pFileList, int nCores );
+    FILE * pFile;
+    char * pFileConf = NULL;
+    char * pFileList = NULL;
+    char * pFileName;
+    int c, nCores    =  3;
+    int fVerbose     =  0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "NCFvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'N':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-N\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nCores = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nCores < 0 ) 
+                goto usage;
+            break;
+        case 'C':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-C\" should be followed by a string (possibly in quotes).\n" );
+                goto usage;
+            }
+            pFileConf = argv[globalUtilOptind];
+            globalUtilOptind++;
+            break;
+        case 'F':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-F\" should be followed by a string (possibly in quotes).\n" );
+                goto usage;
+            }
+            pFileList = argv[globalUtilOptind];
+            globalUtilOptind++;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pFileConf == NULL )
+    {
+        Abc_Print( -2, "File containing configuration for autotuning is not given.\n" );
+        return 1;
+    }
+    if ( pFileList == NULL )
+    {
+        Abc_Print( -2, "File contining list of files for autotuning is not given.\n" );
+        return 1;
+    }
+    // get the input file name
+    pFileName = pFileConf;
+    if ( (pFile = Io_FileOpen( pFileName, "open_path", "rb", 0 )) == NULL )
+//    if ( (pFile = fopen( pFileName, "rb" )) == NULL )
+    {
+        Abc_Print( -2, "Cannot open configuration file \"%s\". ", pFileName );
+        if (( pFileName = Extra_FileGetSimilarName( pFileName, ".c", ".s", ".scr", ".script", NULL ) ))
+            Abc_Print( -2, "Did you mean \"%s\"?", pFileName );
+        Abc_Print( -2, "\n" );
+        return 1;
+    }
+    fclose( pFile );
+    // get the input file name
+    pFileName = pFileList;
+    if ( (pFile = Io_FileOpen( pFileName, "open_path", "rb", 0 )) == NULL )
+//    if ( (pFile = fopen( pFileName, "rb" )) == NULL )
+    {
+        Abc_Print( -2, "Cannot open the file list \"%s\". ", pFileName );
+        if (( pFileName = Extra_FileGetSimilarName( pFileName, ".c", ".s", ".scr", ".script", NULL ) ))
+            Abc_Print( -2, "Did you mean \"%s\"?", pFileName );
+        Abc_Print( -2, "\n" );
+        return 1;
+    }
+    fclose( pFile );
+    // run commands
+    Cmd_RunAutoTuner( pFileConf, pFileList, nCores );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: autotuner [-N num] [-C file] [-F file] [-vh]\n" );
+    Abc_Print( -2, "\t         runs command lines listed in <file> concurrently on <num> CPUs\n" );
+    Abc_Print( -2, "\t-N num : the number of concurrent jobs including the controler [default = %d]\n", nCores );
+    Abc_Print( -2, "\t-C cmd : configuration file for autotuning\n" );
+    Abc_Print( -2, "\t-F cmd : list of files to be used for autotuning\n" );
+    Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
 }
 

@@ -16782,7 +16782,7 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
     If_ManSetDefaultPars( pPars );
     pPars->pLutLib = (If_LibLut_t *)Abc_FrameReadLibLut();
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "KCFAGRNTXYDEWSqaflepmrsdbgxyuojiktncvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "K:CFAGRNTXYDEWSqaflepmrsdbgxyuojiktncvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -38135,9 +38135,9 @@ int Abc_CommandAbc9Cone( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Gia_Man_t * pTemp;
     Vec_Int_t * vPos;
-    int c, iOutNum = -1, nOutRange = 1, iPartNum = -1, nLevelMax = 0, nTimeWindow = 0, fUseAllCis = 0, fVerbose = 0;
+    int c, iOutNum = -1, nOutRange = 1, iPartNum = -1, nLevelMax = 0, nTimeWindow = 0, fUseAllCis = 0, fExtractAll = 0, fVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "ORPLWavh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "ORPLWaevh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -38199,6 +38199,9 @@ int Abc_CommandAbc9Cone( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'a':
             fUseAllCis ^= 1;
             break;
+        case 'e':
+            fExtractAll ^= 1;
+            break;
         case 'v':
             fVerbose ^= 1;
             break;
@@ -38212,6 +38215,21 @@ int Abc_CommandAbc9Cone( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
         Abc_Print( -1, "Abc_CommandAbc9Cone(): There is no AIG.\n" );
         return 1;
+    }
+    if ( fExtractAll )
+    {
+        char Buffer[1000];
+        Gia_Obj_t * pObj; 
+        int i, nDigits = Abc_Base10Log(Gia_ManPoNum(pAbc->pGia));
+        Gia_ManForEachPo( pAbc->pGia, pObj, i )
+        {
+            Gia_Man_t * pOne = Gia_ManDupDfsCone( pAbc->pGia, pObj );
+            sprintf( Buffer, "%s_%0*d.aig", Extra_FileNameGeneric(pAbc->pGia->pSpec), nDigits, i );
+            Gia_AigerWrite( pOne, Buffer, 0, 0 );
+            Gia_ManStop( pOne );
+        }
+        printf( "Dumped all outputs into individual AIGER files.\n" );
+        return 0;
     }
     if ( nLevelMax || nTimeWindow )
     {
@@ -38260,7 +38278,7 @@ int Abc_CommandAbc9Cone( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &cone [-ORPLW num] [-avh]\n" );
+    Abc_Print( -2, "usage: &cone [-ORPLW num] [-aevh]\n" );
     Abc_Print( -2, "\t         extracting multi-output sequential logic cones\n" );
     Abc_Print( -2, "\t-O num : the index of first PO to extract [default = %d]\n", iOutNum );
     Abc_Print( -2, "\t-R num : (optional) the number of outputs to extract [default = %d]\n", nOutRange );
@@ -38268,6 +38286,7 @@ usage:
     Abc_Print( -2, "\t-L num : (optional) extract cones with higher level [default = %d]\n", nLevelMax );
     Abc_Print( -2, "\t-W num : (optional) extract cones falling into this window [default = %d]\n", nTimeWindow );
     Abc_Print( -2, "\t-a     : toggle keeping all CIs or structral support only [default = %s]\n", fUseAllCis? "all": "structural" );
+    Abc_Print( -2, "\t-e     : toggle writing all outputs into individual files [default = %s]\n", fExtractAll? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
