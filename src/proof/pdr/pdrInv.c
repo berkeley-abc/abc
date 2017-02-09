@@ -756,6 +756,8 @@ int Pdr_InvCheck_int( Gia_Man_t * p, Vec_Int_t * vInv, int fVerbose, sat_solver 
         // check if this cube intersects with the complement of other cubes in the solver
         // if it does not intersect, then it is redundant and can be skipped
         status = sat_solver_solve( pSat, Vec_IntArray(vLits), Vec_IntLimit(vLits), nBTLimit, 0, 0, 0 );
+        if ( status != l_True && fVerbose )
+            printf( "Finished checking clause %d (out of %d)...\r", i, pList[0] );
         if ( status == l_Undef ) // timeout
             break;
         if ( status == l_False ) // unsat -- correct

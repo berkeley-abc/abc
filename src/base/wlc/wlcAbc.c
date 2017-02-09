@@ -185,8 +185,9 @@ Abc_Ntk_t * Wlc_NtkGetInv( Wlc_Ntk_t * pNtk, Vec_Int_t * vInv )
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Int_t * Wlc_NtkGetPut( Abc_Ntk_t * pNtk, int nRegs )
+Vec_Int_t * Wlc_NtkGetPut( Abc_Ntk_t * pNtk, Gia_Man_t * pGia )
 {
+    int nRegs = Gia_ManRegNum(pGia);
     Vec_Int_t * vRes = NULL;
     if ( Abc_NtkPoNum(pNtk) != 1 )
         printf( "The number of outputs is other than 1.\n" );
@@ -194,26 +195,57 @@ Vec_Int_t * Wlc_NtkGetPut( Abc_Ntk_t * pNtk, int nRegs )
         printf( "The number of internal nodes is other than 1.\n" );
     else
     {
-        Abc_Obj_t * pNode = Abc_ObjFanin0( Abc_NtkCo(pNtk, 0) );
+        Abc_Nam_t * pNames = NULL;
+        Abc_Obj_t * pFanin, * pNode = Abc_ObjFanin0( Abc_NtkCo(pNtk, 0) );
         char * pName, * pCube, * pSop = (char *)pNode->pData;
         Vec_Int_t * vFanins = Vec_IntAlloc( Abc_ObjFaninNum(pNode) );
-        Abc_Obj_t * pFanin; int i, k, Value, nLits;
+        int i, k, Value, nLits, Counter = 0;
+        if ( pGia->vNamesIn )
+        {
+            // hash the names
+            pNames = Abc_NamStart( 100, 16 );
+            Vec_PtrForEachEntry( char *, pGia->vNamesIn, pName, i )
+            {
+                Value = Abc_NamStrFindOrAdd( pNames, pName, NULL );
+                assert( Value == i+1 );
+                //printf( "%s(%d) ", pName, i );
+            }
+            //printf( "\n" );
+        }
         Abc_ObjForEachFanin( pNode, pFanin, i )
         {
             assert( Abc_ObjIsCi(pFanin) );
             pName = Abc_ObjName(pFanin);
-            for ( k = (int)strlen(pName)-1; k >= 0; k-- )
-                if ( pName[k] < '0' || pName[k] > '9' )
-                    break;
-            if ( k == (int)strlen(pName)-1 )
+            if ( pNames )
             {
-                printf( "Cannot read input name of fanin %d.\n", i );
-                Value = i;
+                Value = Abc_NamStrFind(pNames, pName) - 1;
+                if ( Value == -1 )
+                {
+                    if ( Counter++ == 0 )
+                        printf( "Cannot read input name \"%s\" of fanin %d.\n", pName, i );
+                    Value = i;
+                }
             }
-            else 
-                Value = atoi(pName + k + 1);
+            else
+            {
+                for ( k = (int)strlen(pName)-1; k >= 0; k-- )
+                    if ( pName[k] < '0' || pName[k] > '9' )
+                        break;
+                if ( k == (int)strlen(pName)-1 )
+                {
+                    if ( Counter++ == 0 )
+                        printf( "Cannot read input name \"%s\" of fanin %d.\n", pName, i );
+                    Value = i;
+                }
+                else 
+                    Value = atoi(pName + k + 1);
+            }
             Vec_IntPush( vFanins, Value );
         }
+        if ( Counter )
+            printf( "Cannot read names for %d inputs of the invariant.\n", Counter );
+        if ( pNames )
+            Abc_NamStop( pNames );
         assert( Vec_IntSize(vFanins) == Abc_ObjFaninNum(pNode) );
         vRes = Vec_IntAlloc( 1000 );
         Vec_IntPush( vRes, Abc_SopGetCubeNum(pSop) );

@@ -872,6 +872,7 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Vec_Int_t * vBoxIds, int iOutput, in
 {
     int fVerbose = 0;
     int fUseOldMultiplierBlasting = 0;
+    int fSkipBitRange = 0;
     Tim_Man_t * pManTime = NULL;
     Gia_Man_t * pTemp, * pNew, * pExtra = NULL;
     Wlc_Obj_t * pObj;
@@ -1448,7 +1449,7 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Vec_Int_t * vBoxIds, int iOutput, in
     {
         char * pName = Wlc_ObjName(p, Wlc_ObjId(p, pObj));
         nRange = Wlc_ObjRange( pObj );
-        if ( nRange == 1 )
+        if ( fSkipBitRange && nRange == 1 )
             Vec_PtrPush( pNew->vNamesIn, Abc_UtilStrsav(pName) );
         else
             for ( k = 0; k < nRange; k++ )
@@ -1475,7 +1476,7 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Vec_Int_t * vBoxIds, int iOutput, in
     {
         char * pName = Wlc_ObjName(p, Wlc_ObjId(p, pObj));
         nRange = Wlc_ObjRange( pObj );
-        if ( nRange == 1 )
+        if ( fSkipBitRange && nRange == 1 )
             Vec_PtrPush( pNew->vNamesIn, Abc_UtilStrsav(pName) );
         else
             for ( k = 0; k < nRange; k++ )
@@ -1498,7 +1499,7 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Vec_Int_t * vBoxIds, int iOutput, in
         {
             char * pName = Wlc_ObjName(p, Wlc_ObjId(p, pObj));
             nRange = Wlc_ObjRange( pObj );
-            if ( nRange == 1 )
+            if ( fSkipBitRange && nRange == 1 )
                 Vec_PtrPush( pNew->vNamesOut, Abc_UtilStrsav(pName) );
             else
                 for ( k = 0; k < nRange; k++ )
@@ -1513,7 +1514,7 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Vec_Int_t * vBoxIds, int iOutput, in
         {
             char * pName = Wlc_ObjName(p, Wlc_ObjId(p, pObj));
             nRange = Wlc_ObjRange( pObj );
-            if ( nRange == 1 )
+            if ( fSkipBitRange && nRange == 1 )
                 Vec_PtrPush( pNew->vNamesOut, Abc_UtilStrsav(pName) );
             else
                 for ( k = 0; k < nRange; k++ )
@@ -1532,7 +1533,7 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Vec_Int_t * vBoxIds, int iOutput, in
         {
             char * pName = Wlc_ObjName(p, Wlc_ObjId(p, pObj));
             nRange = Wlc_ObjRange( pObj );
-            if ( nRange == 1 )
+            if ( fSkipBitRange && nRange == 1 )
                 Vec_PtrPush( pNew->vNamesOut, Abc_UtilStrsav(pName) );
             else
                 for ( k = 0; k < nRange; k++ )

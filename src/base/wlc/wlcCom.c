@@ -1051,7 +1051,7 @@ usage:
 ******************************************************************************/
 int Abc_CommandInvPut( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern Vec_Int_t * Wlc_NtkGetPut( Abc_Ntk_t * pNtk, int nRegs );
+    extern Vec_Int_t * Wlc_NtkGetPut( Abc_Ntk_t * pNtk, Gia_Man_t * pGia );
     Vec_Int_t * vInv = NULL;
     Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
     int c, fVerbose  = 0;
@@ -1080,7 +1080,7 @@ int Abc_CommandInvPut( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 0;
     }
     // derive the network
-    vInv = Wlc_NtkGetPut( pNtk, Gia_ManRegNum(pAbc->pGia) );
+    vInv = Wlc_NtkGetPut( pNtk, pAbc->pGia );
     if ( vInv )
         Abc_FrameSetInv( vInv );
     return 0;
