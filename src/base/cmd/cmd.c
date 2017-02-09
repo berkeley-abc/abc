@@ -2562,10 +2562,10 @@ int CmdCommandAutoTuner( Abc_Frame_t * pAbc, int argc, char ** argv )
 
 usage:
     Abc_Print( -2, "usage: autotuner [-N num] [-C file] [-F file] [-vh]\n" );
-    Abc_Print( -2, "\t         runs command lines listed in <file> concurrently on <num> CPUs\n" );
+    Abc_Print( -2, "\t         performs autotuning\n" );
     Abc_Print( -2, "\t-N num : the number of concurrent jobs including the controler [default = %d]\n", nCores );
-    Abc_Print( -2, "\t-C cmd : configuration file for autotuning\n" );
-    Abc_Print( -2, "\t-F cmd : list of files to be used for autotuning\n" );
+    Abc_Print( -2, "\t-C cmd : configuration file with settings for autotuning\n" );
+    Abc_Print( -2, "\t-F cmd : list of AIGER files to be used for autotuning\n" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
