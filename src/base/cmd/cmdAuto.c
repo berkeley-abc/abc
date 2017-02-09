@@ -486,7 +486,7 @@ void Cmd_RunAutoTuner( char * pConfig, char * pFileList, int nCores )
         Vec_PtrForEachEntryDouble( satoko_opts_t *, char *, vOpts, pOpts, pString, i )
         {
             abctime clk = Abc_Clock();
-            printf( "Evaluating options  %20s...  ", pString );
+            printf( "Evaluating settings: %20s...  \n", pString );
             Result = Cmd_RunAutoTunerEval( vAigs, pOpts, nCores );
             printf( "Cost = %6d.  ", Result );
             Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
@@ -497,9 +497,9 @@ void Cmd_RunAutoTuner( char * pConfig, char * pFileList, int nCores )
                 pOptsBest = pOpts;
             }
         }
-        printf( "The best options are: %20s    ", pStringBest );
+        printf( "The best settings are: %20s    \n", pStringBest );
         printf( "Best cost = %6d.  ", ResultBest );
-        Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
+        Abc_PrintTime( 1, "Total time", Abc_Clock() - clk );
     }
     // cleanup
     if ( vPars ) Vec_WecFree( vPars );
