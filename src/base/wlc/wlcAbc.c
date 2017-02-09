@@ -218,8 +218,8 @@ Vec_Int_t * Wlc_NtkGetPut( Abc_Ntk_t * pNtk, Gia_Man_t * pGia )
             pName = Abc_ObjName(pFanin);
             if ( pNames )
             {
-                Value = Abc_NamStrFind(pNames, pName) - 1;
-                if ( Value == -1 )
+                Value = Abc_NamStrFind(pNames, pName) - 1 - Gia_ManPiNum(pGia);
+                if ( Value < 0 )
                 {
                     if ( Counter++ == 0 )
                         printf( "Cannot read input name \"%s\" of fanin %d.\n", pName, i );

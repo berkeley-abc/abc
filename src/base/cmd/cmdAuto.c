@@ -67,8 +67,8 @@ extern int Gia_ManCallSatokoOne( Gia_Man_t * p, satoko_opts_t * opts, int iOutpu
 void Cmd_RunAutoTunerPrintOptions( satoko_opts_t * pOpts )
 {
     printf( "-C %d  ",   (int)pOpts->conf_limit );
-    printf( "-V %.3f  ", pOpts->var_decay );
-    printf( "-W %.3f  ", pOpts->clause_decay );
+    printf( "-V %.3f  ", (float)pOpts->var_decay );
+    printf( "-W %.3f  ", (float)pOpts->clause_decay );
     if ( pOpts->verbose )
         printf( "-v" );
     printf( "\n" );
