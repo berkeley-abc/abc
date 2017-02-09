@@ -12,14 +12,14 @@
 #include "misc/util/abc_global.h"
 ABC_NAMESPACE_HEADER_START
 
-#define mkt_swap(type, a, b)  { type t = a; a = b; b = t; }
+#define stk_swap(type, a, b)  { type t = a; a = b; b = t; }
 
-static inline unsigned mkt_uint_max(unsigned a, unsigned b)
+static inline unsigned stk_uint_max(unsigned a, unsigned b)
 {
     return a > b ?  a : b;
 }
 
-static inline int mkt_uint_compare(const void *p1, const void *p2)
+static inline int stk_uint_compare(const void *p1, const void *p2)
 {
     const unsigned pp1 = *(const unsigned *)p1;
     const unsigned pp2 = *(const unsigned *)p2;

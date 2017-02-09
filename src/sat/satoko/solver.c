@@ -45,7 +45,7 @@ static inline int lit_is_removable(solver_t* s, unsigned lit, unsigned min_level
         assert(var_reason(s, var) != UNDEF);
         if (c->size == 2 && lit_value(s, lits[0]) == LIT_FALSE) {
             assert(lit_value(s, lits[1]) == LIT_TRUE);
-            mkt_swap(unsigned, lits[0], lits[1]);
+            stk_swap(unsigned, lits[0], lits[1]);
         }
 
         /* Check scan the literals of the reason clause.
@@ -126,7 +126,7 @@ static inline void clause_bin_resolution(solver_t *s, vec_uint_t *clause_lits)
         sz = vec_uint_size(clause_lits) - 1;
         for (i = 1; i < vec_uint_size(clause_lits) - counter; i++)
             if (vec_uint_at(s->stamps, lit2var(lits[i])) != s->cur_stamp) {
-                mkt_swap(unsigned, lits[i], lits[sz]);
+                stk_swap(unsigned, lits[i], lits[sz]);
                 i--;
                 sz--;
             }
@@ -268,7 +268,7 @@ static inline void solver_analyze(solver_t *s, unsigned cref, vec_uint_t *learnt
 
         if (p != UNDEF && clause->size == 2 && lit_value(s, lits[0]) == LIT_FALSE) {
             assert(lit_value(s, lits[1]) == LIT_TRUE);
-            mkt_swap(unsigned, lits[0], lits[1] );
+            stk_swap(unsigned, lits[0], lits[1] );
         }
 
         if (clause->f_learnt)
@@ -310,7 +310,7 @@ static inline void solver_analyze(solver_t *s, unsigned cref, vec_uint_t *learnt
     *bt_level = solver_calc_bt_level(s, learnt);
     *lbd = clause_clac_lbd(s, vec_uint_data(learnt), vec_uint_size(learnt));
 
-    if (vec_uint_size( s->last_dlevel) > 0) {
+    if (vec_uint_size(s->last_dlevel) > 0) {
         vec_uint_foreach(s->last_dlevel, var, i) {
             if (clause_read(s, var_reason(s, var))->lbd < *lbd)
                 var_act_bump(s, var);
@@ -428,7 +428,7 @@ static inline void solver_reduce_cdb(solver_t *s)
     vec_uint_foreach(s->learnts, cref, i)
         learnts_cls[i] = clause_read(s, cref);
 
-    limit = n_learnts / 2;
+    limit = (unsigned)(n_learnts * s->opts.learnt_ratio);
 
     satoko_sort((void *)learnts_cls, n_learnts,
             (int (*)(const void *, const void *)) clause_compare);
@@ -562,7 +562,7 @@ unsigned solver_propagate(solver_t *s)
             // Make sure the false literal is data[1]:
             neg_lit = lit_neg(p);
             if (lits[0] == neg_lit)
-                mkt_swap(unsigned, lits[0], lits[1]);
+                stk_swap(unsigned, lits[0], lits[1]);
             assert(lits[1] == neg_lit);
 
             w.cref = i->cref;
@@ -635,7 +635,8 @@ char solver_search(solver_t *s)
                 satoko_simplify(s);
 
             /* Reduce the set of learnt clauses */
-            if (s->stats.n_conflicts >= s->n_confl_bfr_reduce) {
+            if (s->opts.learnt_ratio &&
+                s->stats.n_conflicts >= s->n_confl_bfr_reduce) {
                 s->RC1 = (s->stats.n_conflicts / s->RC2) + 1;
                 solver_reduce_cdb(s);
                 s->RC2 += s->opts.inc_reduce;

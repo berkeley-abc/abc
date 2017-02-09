@@ -9,6 +9,7 @@
 #ifndef satoko__satoko_h
 #define satoko__satoko_h
 
+#include "types.h"
 #include "misc/util/abc_global.h"
 ABC_NAMESPACE_HEADER_START
 
@@ -45,10 +46,11 @@ struct satoko_opts {
     unsigned inc_reduce;         /* Increment to reduce */
     unsigned inc_special_reduce; /* Special increment to reduce */
     unsigned lbd_freeze_clause;
+    float learnt_ratio;          /* Percentage of learned clauses to remove */
 
     /* VSIDS heuristic */
     float clause_decay;
-    double var_decay;
+    act_t var_decay;
 
     /* Binary resolution */
     unsigned clause_max_sz_bin_resol;

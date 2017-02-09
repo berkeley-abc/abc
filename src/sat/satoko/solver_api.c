@@ -165,6 +165,7 @@ void satoko_default_opts(satoko_opts_t *opts)
     opts->inc_reduce = 300;
     opts->inc_special_reduce = 1000;
     opts->lbd_freeze_clause = 30;
+    opts->learnt_ratio = 0.5;
     /* VSIDS heuristic */
     opts->var_decay = (act_t) 0.95;
     opts->clause_decay = (clause_act_t) 0.995;
@@ -187,7 +188,7 @@ void satoko_configure(satoko_t *s, satoko_opts_t *user_opts)
 int satoko_simplify(solver_t * s)
 {
     unsigned i, j = 0;
-        unsigned cref;
+    unsigned cref;
 
     assert(solver_dlevel(s) == 0);
     if (solver_propagate(s) != UNDEF)
@@ -198,7 +199,7 @@ int satoko_simplify(solver_t * s)
     vec_uint_foreach(s->originals, cref, i) {
         struct clause *clause = clause_read(s, cref);
 
-            if (clause_is_satisfied(s, clause)) {
+    if (clause_is_satisfied(s, clause)) {
             clause->f_mark = 1;
             s->stats.n_original_lits -= clause->size;
             clause_unwatch(s, cref);
@@ -236,7 +237,7 @@ int satoko_add_clause(solver_t *s, unsigned *lits, unsigned size)
     unsigned max_var;
     unsigned cref;
 
-    qsort((void *) lits, size, sizeof(unsigned), mkt_uint_compare);
+    qsort((void *) lits, size, sizeof(unsigned), stk_uint_compare);
     max_var = lit2var(lits[size - 1]);
     while (max_var >= vec_act_size(s->activity))
         satoko_add_variable(s, LIT_FALSE);

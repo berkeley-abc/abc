@@ -56,10 +56,9 @@ static inline void clause_act_rescale(solver_t *s)
 
     vec_uint_foreach(s->learnts, cref, i) {
         clause = clause_read(s, cref);
-        clause->data[clause->size].act >>= 14;
+        clause->data[clause->size].act >>= 10;
     }
-    s->clause_act_inc >>= 14;
-    s->clause_act_inc = mkt_uint_max(s->clause_act_inc, (1 << 10));
+    s->clause_act_inc = stk_uint_max((s->clause_act_inc >> 10), (1 << 11));
 }
 
 static inline void clause_act_bump(solver_t *s, struct clause *clause)
