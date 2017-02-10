@@ -251,6 +251,20 @@ Abc_Cex_t * Bmc_CexCarePropagateBwd( Gia_Man_t * p, Abc_Cex_t * pCex, Vec_Int_t 
   SeeAlso     []
 
 ***********************************************************************/
+Abc_Cex_t * Bmc_CexCareTotal( Abc_Cex_t ** pCexes, int nCexes )
+{
+    int i, k, nWords = Abc_BitWordNum( pCexes[0]->nBits );
+    Abc_Cex_t * pCexMin = Abc_CexAlloc( pCexes[0]->nRegs, pCexes[0]->nPis, pCexes[0]->iFrame + 1 );
+    pCexMin->iPo    = pCexes[0]->iPo;
+    pCexMin->iFrame = pCexes[0]->iFrame;
+    for ( i = 0; i < nWords; i++ )
+    {
+        pCexMin->pData[i] = pCexes[0]->pData[i];
+        for ( k = 1; k < nCexes; k++ )
+            pCexMin->pData[i] &= pCexes[k]->pData[i];
+    }
+    return pCexMin;
+}
 Abc_Cex_t * Bmc_CexCareMinimizeAig( Gia_Man_t * p, Abc_Cex_t * pCex, int fCheck, int fVerbose )
 {
     int nTryCexes = 4; // belongs to range [1;4]
@@ -314,15 +328,19 @@ Abc_Cex_t * Bmc_CexCareMinimizeAig( Gia_Man_t * p, Abc_Cex_t * pCex, int fCheck,
             pCexBest  = pCexMin[k];
         }
     }
+    if ( fVerbose )
+    {
+        Abc_Cex_t * pTotal = Bmc_CexCareTotal( pCexMin, nTryCexes );
+        printf( "Final    :    " );
+        Bmc_CexPrint( pCexBest, Gia_ManPiNum(p), 0 );
+        printf( "Total    :    " );
+        Bmc_CexPrint( pTotal, Gia_ManPiNum(p), 0 );
+        Abc_CexFreeP( &pTotal );
+    }
     for ( k = 0; k < nTryCexes; k++ )
         if ( pCexBest != pCexMin[k] )
             Abc_CexFreeP( &pCexMin[k] );
     // verify and return
-    if ( fVerbose )
-    {
-        printf( "Final    :    " );
-        Bmc_CexPrint( pCexBest, Gia_ManPiNum(p), 0 );
-    }
     if ( !Bmc_CexVerify( p, pCex, pCexBest ) )
         printf( "Counter-example verification has failed.\n" );
     else if ( fCheck ) 
