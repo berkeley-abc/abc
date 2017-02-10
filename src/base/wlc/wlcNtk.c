@@ -648,7 +648,7 @@ void Wlc_NtkPrintStats( Wlc_Ntk_t * p, int fDistrib, int fTwoSides, int fVerbose
     printf( "PI = %4d  ",      Wlc_NtkCountRealPis(p) ); //Wlc_NtkPiNum(p) );
     printf( "PO = %4d  ",      Wlc_NtkPoNum(p) );
     printf( "FF = %4d  ",      Wlc_NtkFfNum(p) );
-    printf( "Obj = %6d  ",     Wlc_NtkObjNum(p) );
+    printf( "Obj = %6d  ",     Wlc_NtkObjNum(p) - Wlc_NtkPiNum(p) - Wlc_NtkPoNum(p) - Wlc_NtkFfNum(p) );
     printf( "Mem = %.3f MB",   1.0*Wlc_NtkMemUsage(p)/(1<<20) );
     printf( "\n" );
     if ( fDistrib )
@@ -723,7 +723,7 @@ Vec_Int_t * Wlc_ReduceMarkedInitVec( Wlc_Ntk_t * p, Vec_Int_t * vInit )
     assert( Vec_IntSize(vInit) == Wlc_NtkCiNum(p) - Wlc_NtkPiNum(p) );
     Wlc_NtkForEachCi( p, pObj, i )
         if ( !Wlc_ObjIsPi(pObj) && pObj->Mark )
-            Vec_IntWriteEntry( vInitNew, k++, Vec_IntEntry(vInit, i) );
+            Vec_IntWriteEntry( vInitNew, k++, Vec_IntEntry(vInit, i - Wlc_NtkPiNum(p)) );
     Vec_IntShrink( vInitNew, k );
     return vInitNew;
 }
@@ -803,7 +803,7 @@ void Wlc_NtkDupDfs_rec( Wlc_Ntk_t * pNew, Wlc_Ntk_t * p, int iObj, Vec_Int_t * v
         Wlc_NtkDupDfs_rec( pNew, p, iFanin, vFanins );
     Wlc_ObjDup( pNew, p, iObj, vFanins );
 }
-Wlc_Ntk_t * Wlc_NtkDupDfs( Wlc_Ntk_t * p, int fMarked, int fSeq, Vec_Int_t * vPisNew )
+Wlc_Ntk_t * Wlc_NtkDupDfs( Wlc_Ntk_t * p, int fMarked, int fSeq )
 {
     Wlc_Ntk_t * pNew;
     Wlc_Obj_t * pObj;
@@ -813,33 +813,14 @@ Wlc_Ntk_t * Wlc_NtkDupDfs( Wlc_Ntk_t * p, int fMarked, int fSeq, Vec_Int_t * vPi
     Wlc_NtkCleanCopy( p );
     pNew = Wlc_NtkAlloc( p->pName, p->nObjsAlloc );
     pNew->fSmtLib = p->fSmtLib;
-    if ( vPisNew )
-    {
-        // duplicate marked PIs
-        Wlc_NtkForEachPi( p, pObj, i )
-            if ( pObj->Mark )
-                Wlc_ObjDup( pNew, p, Wlc_ObjId(p, pObj), vFanins );
-        // duplicated additional PIs
-        Wlc_NtkForEachObjVec( vPisNew, p, pObj, i )
+    Wlc_NtkForEachCi( p, pObj, i )
+        if ( !fMarked || pObj->Mark )
         {
             unsigned Type = pObj->Type;
-            assert( !Wlc_ObjIsPi(pObj) );
-            pObj->Type = WLC_OBJ_PI;
+            if ( !fSeq ) pObj->Type = WLC_OBJ_PI;
             Wlc_ObjDup( pNew, p, Wlc_ObjId(p, pObj), vFanins );
             pObj->Type = Type;
         }
-    }
-    else
-    {
-        Wlc_NtkForEachCi( p, pObj, i )
-            if ( !fMarked || pObj->Mark )
-            {
-                unsigned Type = pObj->Type;
-                if ( !fSeq ) pObj->Type = WLC_OBJ_PI;
-                Wlc_ObjDup( pNew, p, Wlc_ObjId(p, pObj), vFanins );
-                pObj->Type = Type;
-            }
-    }
     Wlc_NtkForEachCo( p, pObj, i )
         if ( !fMarked || pObj->Mark )
             Wlc_NtkDupDfs_rec( pNew, p, Wlc_ObjId(p, pObj), vFanins );
@@ -865,7 +846,72 @@ Wlc_Ntk_t * Wlc_NtkDupDfs( Wlc_Ntk_t * p, int fMarked, int fSeq, Vec_Int_t * vPi
         }
     }
     if ( p->pSpec )
-    pNew->pSpec = Abc_UtilStrsav( p->pSpec );
+        pNew->pSpec = Abc_UtilStrsav( p->pSpec );
+    Wlc_NtkTransferNames( pNew, p );
+    return pNew;
+}
+Wlc_Ntk_t * Wlc_NtkDupDfsAbs( Wlc_Ntk_t * p, Vec_Int_t * vPisOld, Vec_Int_t * vPisNew, Vec_Int_t * vFlops )
+{
+    Wlc_Ntk_t * pNew;
+    Wlc_Obj_t * pObj;
+    Vec_Int_t * vFanins;
+    int i;
+    Wlc_NtkCleanCopy( p );
+    pNew = Wlc_NtkAlloc( p->pName, p->nObjsAlloc );
+    pNew->fSmtLib = p->fSmtLib;
+
+    // duplicate marked PIs
+    vFanins = Vec_IntAlloc( 100 );
+    Wlc_NtkForEachObjVec( vPisOld, p, pObj, i )
+    {
+        assert( Wlc_ObjIsPi(pObj) );
+        Wlc_ObjDup( pNew, p, Wlc_ObjId(p, pObj), vFanins );
+    }
+    // duplicate additional PIs
+    Wlc_NtkForEachObjVec( vPisNew, p, pObj, i )
+    {
+        unsigned Type = pObj->Type;
+        int nFanins = Wlc_ObjFaninNum(pObj);
+        assert( !Wlc_ObjIsPi(pObj) );
+        pObj->Type = WLC_OBJ_PI;
+        pObj->nFanins = 0;
+        Wlc_ObjDup( pNew, p, Wlc_ObjId(p, pObj), vFanins );
+        pObj->Type = Type;
+        pObj->nFanins = (unsigned)nFanins;
+    }
+    // duplicate flop outputs
+    Wlc_NtkForEachObjVec( vFlops, p, pObj, i )
+    {
+        assert( !Wlc_ObjIsPi(pObj) && Wlc_ObjIsCi(pObj) );
+        Wlc_ObjDup( pNew, p, Wlc_ObjId(p, pObj), vFanins );
+    }
+
+    // duplicate logic cones of primary outputs
+    Wlc_NtkForEachPo( p, pObj, i )
+        Wlc_NtkDupDfs_rec( pNew, p, Wlc_ObjId(p, pObj), vFanins );
+    // duplidate logic cone of flop inputs
+    Wlc_NtkForEachObjVec( vFlops, p, pObj, i )
+        Wlc_NtkDupDfs_rec( pNew, p, Wlc_ObjId(p, Wlc_ObjFo2Fi(p, pObj)), vFanins );
+
+    // duplicate POs
+    Wlc_NtkForEachPo( p, pObj, i )
+        Wlc_ObjSetCo( pNew, Wlc_ObjCopyObj(pNew, p, pObj), 0 );
+    // duplicate flop inputs 
+    Wlc_NtkForEachObjVec( vFlops, p, pObj, i )
+        Wlc_ObjSetCo( pNew, Wlc_ObjCopyObj(pNew, p, Wlc_ObjFo2Fi(p, pObj)), 1 );
+    Vec_IntFree( vFanins );
+
+    // mark flop outputs
+    Wlc_NtkForEachObjVec( vFlops, p, pObj, i )
+        pObj->Mark = 1;
+    if ( p->vInits )
+        pNew->vInits = Wlc_ReduceMarkedInitVec( p, p->vInits );
+    if ( p->pInits )
+        pNew->pInits = Wlc_ReduceMarkedInitStr( p, p->pInits );
+    Wlc_NtkCleanMarks( p );
+
+    if ( p->pSpec )
+        pNew->pSpec = Abc_UtilStrsav( p->pSpec );
     Wlc_NtkTransferNames( pNew, p );
     return pNew;
 }

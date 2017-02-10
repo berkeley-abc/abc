@@ -423,7 +423,7 @@ int Abc_CommandCone( Abc_Frame_t * pAbc, int argc, char ** argv )
     printf( "Extracting output %d as a %s word-level network.\n", iOutput, fSeq ? "sequential" : "combinational" );
     pName = Wlc_NtkNewName( pNtk, iOutput, fSeq );
     Wlc_NtkMarkCone( pNtk, iOutput, Range, fSeq, fAllPis );
-    pNtk = Wlc_NtkDupDfs( pNtk, 1, fSeq, NULL );
+    pNtk = Wlc_NtkDupDfs( pNtk, 1, fSeq );
     ABC_FREE( pNtk->pName );
     pNtk->pName = Abc_UtilStrsav( pName );
     Wlc_AbcUpdateNtk( pAbc, pNtk );
@@ -941,6 +941,7 @@ usage:
 ******************************************************************************/
 int Abc_CommandInvCheck( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
+    abctime clk = Abc_Clock();
     extern int Pdr_InvCheck( Gia_Man_t * p, Vec_Int_t * vInv, int fVerbose );
     int c, nFailed, fVerbose  = 0;
     Extra_UtilGetoptReset();
@@ -974,9 +975,10 @@ int Abc_CommandInvCheck( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     nFailed = Pdr_InvCheck( pAbc->pGia, Wlc_AbcGetInv(pAbc), fVerbose );
     if ( nFailed )
-        printf( "Invariant verification failed for %d clauses (out of %d).\n", nFailed, Vec_IntEntry(Wlc_AbcGetInv(pAbc),0) );
+        printf( "Invariant verification failed for %d clauses (out of %d). ", nFailed, Vec_IntEntry(Wlc_AbcGetInv(pAbc),0) );
     else
-        printf( "Invariant verification succeeded.\n" );
+        printf( "Invariant verification succeeded.    " );
+    Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     return 0;
 usage:
     Abc_Print( -2, "usage: inv_check [-vh]\n" );
