@@ -63,6 +63,7 @@ struct Pdr_Par_t_
     int fSkipGeneral;     // skips expensive generalization step
     int fSkipDown;        // skips the application of down
     int fCtgs;            // handle CTGs in down
+    int fUseAbs;          // use abstraction 
     int fVerbose;         // verbose output`
     int fVeryVerbose;     // very verbose output
     int fNotVerbose;      // not printing line by line progress

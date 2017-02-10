@@ -90,6 +90,7 @@ struct Pdr_Man_t_
     int *       pOrder;    // ordering of the lits
     Vec_Int_t * vActVars;  // the counter of activation variables
     int         iUseFrame; // the first used frame
+    Vec_Int_t * vAbs;      // abstraction (mapping abstracted flop ID into its PPIs number)
     // terminary simulation
     Txs_Man_t * pTxs;      
     // internal use

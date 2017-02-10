@@ -286,6 +286,8 @@ Pdr_Man_t * Pdr_ManStart( Aig_Man_t * pAig, Pdr_Par_t * pPars, Vec_Int_t * vPrio
     p->vCi2Rem  = Vec_IntAlloc( 100 );  // CIs to be removed
     p->vRes     = Vec_IntAlloc( 100 );  // final result
     p->pCnfMan  = Cnf_ManStart();
+    if ( p->vAbs )
+        p->vAbs = Vec_IntStart( Aig_ManRegNum(pAig) );
     // ternary simulation
     p->pTxs     = pPars->fNewXSim ? Txs_ManStart( p, pAig, p->vPrio ) : NULL;
     // additional AIG data-members
@@ -368,6 +370,7 @@ void Pdr_ManStop( Pdr_Man_t * p )
     Vec_WecFreeP( &p->vVLits );
     // CNF manager
     Cnf_ManStop( p->pCnfMan );
+    Vec_IntFreeP( &p->vAbs );
     // terminary simulation
     if ( p->pPars->fNewXSim )
         Txs_ManStop( p->pTxs );
