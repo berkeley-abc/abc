@@ -48,8 +48,6 @@ struct Qbf_Man_t_
     abctime         clkSat;         // SAT solver time
 };
 
-extern Cnf_Dat_t * Mf_ManGenerateCnf( Gia_Man_t * pGia, int nLutSize, int fCnfObjIds, int fAddOrCla, int fVerbose );
-
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
@@ -192,7 +190,7 @@ int Gia_ManSatEnum( Gia_Man_t * pGia, int nConfLimit, int nTimeOut, int fVerbose
     int i, iLit, iParVarBeg, Iter;
     int nSolutions = 0, RetValue = 0;
     abctime clkStart = Abc_Clock();
-    pCnf = Mf_ManGenerateCnf( pGia, 8, 0, 1, 0 );
+    pCnf = (Cnf_Dat_t *)Mf_ManGenerateCnf( pGia, 8, 0, 1, 0, 0 );
     pSat = (sat_solver *)Cnf_DataWriteIntoSolver( pCnf, 1, 0 );
     iParVarBeg = pCnf->nVars - Gia_ManPiNum(pGia);// - 1;
     Cnf_DataFree( pCnf );
@@ -247,7 +245,7 @@ void Gia_QbfDumpFile( Gia_Man_t * pGia, int nPars )
 {
     // original problem: \exists p \forall x \exists y.  M(p,x,y)
     // negated problem:  \forall p \exists x \exists y. !M(p,x,y)
-    Cnf_Dat_t * pCnf = Mf_ManGenerateCnf( pGia, 8, 0, 1, 0 );
+    Cnf_Dat_t * pCnf = (Cnf_Dat_t *)Mf_ManGenerateCnf( pGia, 8, 0, 1, 0, 0 );
     Vec_Int_t * vVarMap, * vForAlls, * vExists;
     Gia_Obj_t * pObj;
     char * pFileName;
@@ -291,7 +289,7 @@ Qbf_Man_t * Gia_QbfAlloc( Gia_Man_t * pGia, int nPars, int fVerbose )
     Qbf_Man_t * p;
     Cnf_Dat_t * pCnf;
     Gia_ObjFlipFaninC0( Gia_ManPo(pGia, 0) );
-    pCnf = Mf_ManGenerateCnf( pGia, 8, 0, 1, 0 );
+    pCnf = (Cnf_Dat_t *)Mf_ManGenerateCnf( pGia, 8, 0, 1, 0, 0 );
     Gia_ObjFlipFaninC0( Gia_ManPo(pGia, 0) );
     p = ABC_CALLOC( Qbf_Man_t, 1 );
     p->clkStart   = Abc_Clock();
@@ -426,7 +424,7 @@ Gia_Man_t * Gia_QbfCofactor( Gia_Man_t * p, int nPars, Vec_Int_t * vValues, Vec_
 /*
 int Gia_QbfAddCofactor( Qbf_Man_t * p, Gia_Man_t * pCof )
 {
-    Cnf_Dat_t * pCnf = Mf_ManGenerateCnf( pCof, 8, 0, 1, 0 );
+    Cnf_Dat_t * pCnf = (Cnf_Dat_t *)Mf_ManGenerateCnf( pCof, 8, 0, 1, 0, 0 );
     int i, iFirstVar = sat_solver_nvars(p->pSatSyn) + pCnf->nVars - Gia_ManPiNum(pCof);// - 1;
     pCnf->pMan = NULL;
     Cnf_DataLift( pCnf, sat_solver_nvars(p->pSatSyn) );
@@ -459,7 +457,7 @@ void Cnf_SpecialDataLift( Cnf_Dat_t * p, int nVarsPlus, int firstPiVar, int last
 
 int Gia_QbfAddCofactor( Qbf_Man_t * p, Gia_Man_t * pCof )
 {
-    Cnf_Dat_t * pCnf = Mf_ManGenerateCnf( pCof, 8, 0, 1, 0 );
+    Cnf_Dat_t * pCnf = (Cnf_Dat_t *)Mf_ManGenerateCnf( pCof, 8, 0, 1, 0, 0 );
     int i, useold = 0;
     int iFirstVar = useold ? sat_solver_nvars(p->pSatSyn) + pCnf->nVars - Gia_ManPiNum(pCof) : pCnf->nVars - Gia_ManPiNum(pCof); //-1   
     pCnf->pMan = NULL;

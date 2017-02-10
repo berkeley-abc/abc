@@ -185,10 +185,9 @@ Gia_Man_t * Gia_ManDupPosAndPropagateInit( Gia_Man_t * p )
 }
 sat_solver * Gia_ManDeriveSatSolver( Gia_Man_t * p, Vec_Int_t * vSatIds )
 {
-//    extern Cnf_Dat_t * Mf_ManGenerateCnf( Gia_Man_t * pGia, int nLutSize, int fCnfObjIds, int fAddOrCla, int fVerbose );
     sat_solver * pSat;
     Aig_Man_t * pAig = Gia_ManToAigSimple( p );
-//    Cnf_Dat_t * pCnf = Mf_ManGenerateCnf( p, 8, 0, 0, 0 );
+//    Cnf_Dat_t * pCnf = (Cnf_Dat_t *)Mf_ManGenerateCnf( p, 8, 0, 0, 0, 0 );
     Cnf_Dat_t * pCnf = Cnf_Derive( pAig, Aig_ManCoNum(pAig) );
     // save SAT vars for the primary inputs
     if ( vSatIds )

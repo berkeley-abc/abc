@@ -901,8 +901,7 @@ Vec_Int_t * Abc_NtkFinCheckPair( Abc_Ntk_t * pNtk, Vec_Int_t * vTypes, Vec_Int_t
     }
     else
     {
-        extern Cnf_Dat_t * Mf_ManGenerateCnf( Gia_Man_t * pGia, int nLutSize, int fCnfObjIds, int fAddOrCla, int fVerbose );
-        Cnf_Dat_t * pCnf = Mf_ManGenerateCnf( pGia, 8, 0, 1, 0 );
+        Cnf_Dat_t * pCnf = (Cnf_Dat_t *)Mf_ManGenerateCnf( pGia, 8, 0, 1, 0, 0 );
         sat_solver * pSat = (sat_solver *)Cnf_DataWriteIntoSolver( pCnf, 1, 0 );
         if ( pSat == NULL )
         {

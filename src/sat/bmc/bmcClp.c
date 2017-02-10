@@ -30,8 +30,6 @@ ABC_NAMESPACE_IMPL_START
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-extern Cnf_Dat_t * Mf_ManGenerateCnf( Gia_Man_t * pGia, int nLutSize, int fCnfObjIds, int fAddOrCla, int fVerbose );
-
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
@@ -651,7 +649,7 @@ Vec_Str_t * Bmc_CollapseOneInt2( Gia_Man_t * p, int nCubeLim, int nBTLimit, int 
     int iOut = 0, iLit, iVar, status, n, Count, Start;
 
     // create SAT solver
-    Cnf_Dat_t * pCnf = Mf_ManGenerateCnf( p, 8, 0, 0, 0 );
+    Cnf_Dat_t * pCnf = (Cnf_Dat_t *)Mf_ManGenerateCnf( p, 8, 0, 0, 0, 0 );
     sat_solver * pSat[3] = { 
         (sat_solver *)Cnf_DataWriteIntoSolver(pCnf, 1, 0), 
         (sat_solver *)Cnf_DataWriteIntoSolver(pCnf, 1, 0),
@@ -841,7 +839,7 @@ Vec_Str_t * Bmc_CollapseOneOld( Gia_Man_t * p, int nCubeLim, int nBTLimit, int f
 {
     int fVeryVerbose = fVerbose;
     int nVars = Gia_ManCiNum(p);
-    Cnf_Dat_t * pCnf = Mf_ManGenerateCnf( p, 8, 0, 0, 0 );
+    Cnf_Dat_t * pCnf = (Cnf_Dat_t *)Mf_ManGenerateCnf( p, 8, 0, 0, 0, 0 );
     sat_solver * pSat[2]      = { (sat_solver *)Cnf_DataWriteIntoSolver(pCnf, 1, 0), (sat_solver *)Cnf_DataWriteIntoSolver(pCnf, 1, 0) };
     sat_solver * pSatClean[2] = { (sat_solver *)Cnf_DataWriteIntoSolver(pCnf, 1, 0), (sat_solver *)Cnf_DataWriteIntoSolver(pCnf, 1, 0) };
     Vec_Str_t * vSop[2]   = { Vec_StrAlloc(1000),  Vec_StrAlloc(1000)  }, * vRes = NULL;
@@ -1173,7 +1171,7 @@ cleanup:
 }
 Vec_Str_t * Bmc_CollapseOne3( Gia_Man_t * p, int nCubeLim, int nBTLimit, int fCanon, int fReverse, int fVerbose )
 {
-    Cnf_Dat_t * pCnf = Mf_ManGenerateCnf( p, 8, 0, 0, 0 );
+    Cnf_Dat_t * pCnf = (Cnf_Dat_t *)Mf_ManGenerateCnf( p, 8, 0, 0, 0, 0 );
     sat_solver * pSat0 = (sat_solver *)Cnf_DataWriteIntoSolver(pCnf, 1, 0);
     sat_solver * pSat1 = (sat_solver *)Cnf_DataWriteIntoSolver(pCnf, 1, 0);
     sat_solver * pSat2 = (sat_solver *)Cnf_DataWriteIntoSolver(pCnf, 1, 0);
@@ -1507,7 +1505,7 @@ cleanup:
 }
 Vec_Str_t * Bmc_CollapseOne( Gia_Man_t * p, int nCubeLim, int nBTLimit, int fCanon, int fReverse, int fVerbose )
 {
-    Cnf_Dat_t * pCnf = Mf_ManGenerateCnf( p, 8, 0, 0, 0 );
+    Cnf_Dat_t * pCnf = (Cnf_Dat_t *)Mf_ManGenerateCnf( p, 8, 0, 0, 0, 0 );
     sat_solver * pSat = (sat_solver *)Cnf_DataWriteIntoSolver(pCnf, 1, 0);
     Vec_Str_t * vSop = Bmc_CollapseOne_int( pSat, Gia_ManCiNum(p), nCubeLim, nBTLimit, fCanon, fReverse, fVerbose );
     sat_solver_delete( pSat );

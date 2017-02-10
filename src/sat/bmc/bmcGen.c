@@ -29,8 +29,6 @@ ABC_NAMESPACE_IMPL_START
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-extern Cnf_Dat_t * Mf_ManGenerateCnf( Gia_Man_t * pGia, int nLutSize, int fCnfObjIds, int fAddOrCla, int fVerbose );
-
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
@@ -131,7 +129,7 @@ void Gia_ManMoFindSimulate( Gia_Man_t * p, int nWords )
 int Gia_ManTestSatEnum( Gia_Man_t * p )
 {
     abctime clk = Abc_Clock(), clk2, clkTotal = 0;
-    Cnf_Dat_t * pCnf = Mf_ManGenerateCnf( p, 8, 0, 0, 0 );
+    Cnf_Dat_t * pCnf = (Cnf_Dat_t *)Mf_ManGenerateCnf( p, 8, 0, 0, 0, 0 );
     sat_solver * pSat = (sat_solver *)Cnf_DataWriteIntoSolver(pCnf, 1, 0);
     int i, v, status, iLit, nWords = 1, iOutVar = 1, Count = 0;
     Vec_Int_t * vVars = Vec_IntAlloc( 1000 );

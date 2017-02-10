@@ -30,8 +30,6 @@ ABC_NAMESPACE_IMPL_START
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-extern Cnf_Dat_t * Mf_ManGenerateCnf( Gia_Man_t * pGia, int nLutSize, int fCnfObjIds, int fAddOrCla, int fVerbose );
-
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
@@ -50,7 +48,7 @@ extern Cnf_Dat_t * Mf_ManGenerateCnf( Gia_Man_t * pGia, int nLutSize, int fCnfOb
 satoko_t * Gia_ManCreateSatoko( Gia_Man_t * p )
 {
     satoko_t * pSat = satoko_create();
-    Cnf_Dat_t * pCnf = Mf_ManGenerateCnf( p, 8, 0, 1, 0 );
+    Cnf_Dat_t * pCnf = (Cnf_Dat_t *)Mf_ManGenerateCnf( p, 8, 0, 1, 0, 0 );
     int i, status;
     //sat_solver_setnvars( pSat, p->nVars );
     for ( i = 0; i < pCnf->nClauses; i++ )

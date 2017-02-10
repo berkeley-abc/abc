@@ -392,11 +392,10 @@ int Bmc_PerformISearchOne( Gia_Man_t * p, int nFramesMax, int nTimeOut, int fRev
         pCnf = Cnf_DeriveGiaRemapped( pMiter );
     else
     {
-        extern Cnf_Dat_t * Mf_ManGenerateCnf( Gia_Man_t * pGia, int nLutSize, int fCnfObjIds, int fAddOrCla, int fVerbose );
         //pMiter = Jf_ManDeriveCnf( pTemp = pMiter, 0 );
         //Gia_ManStop( pTemp );
         //pCnf = (Cnf_Dat_t *)pMiter->pData; pMiter->pData = NULL;
-        pCnf = Mf_ManGenerateCnf( pMiter, 8, 0, 0, 0 );
+        pCnf = (Cnf_Dat_t *)Mf_ManGenerateCnf( pMiter, 8, 0, 0, 0, 0 );
     }
 /*
     // collect positive literals

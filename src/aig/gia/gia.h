@@ -311,6 +311,7 @@ struct Jf_Par_t_
     int            fGenCnf;
     int            fCnfObjIds;
     int            fAddOrCla;
+    int            fCnfMapping;
     int            fPureAig;
     int            fDoAverage;
     int            fCutHashing;
@@ -1405,6 +1406,7 @@ extern int                 Gia_MmStepReadMemUsage( Gia_MmStep_t * p );
 /*=== giaMf.c ===========================================================*/
 extern void                Mf_ManSetDefaultPars( Jf_Par_t * pPars );
 extern Gia_Man_t *         Mf_ManPerformMapping( Gia_Man_t * pGia, Jf_Par_t * pPars );
+extern void *              Mf_ManGenerateCnf( Gia_Man_t * pGia, int nLutSize, int fCnfObjIds, int fAddOrCla, int fMapping, int fVerbose );
 /*=== giaMini.c ===========================================================*/
 extern Gia_Man_t *         Gia_ManReadMiniAig( char * pFileName );
 extern void                Gia_ManWriteMiniAig( Gia_Man_t * pGia, char * pFileName );

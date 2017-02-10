@@ -626,8 +626,6 @@ Vec_Int_t * Pdr_ManDeriveInfinityClauses( Pdr_Man_t * p, int fReduce )
 ***********************************************************************/
 #define Pdr_ForEachCube( pList, pCut, i ) for ( i = 0, pCut = pList + 1; i < pList[0]; i++, pCut += pCut[0] + 1 )
 
-extern Cnf_Dat_t * Mf_ManGenerateCnf( Gia_Man_t * pGia, int nLutSize, int fCnfObjIds, int fAddOrCla, int fVerbose );
-
 Vec_Int_t * Pdr_InvMap( Vec_Int_t * vCounts )
 {
     int i, k = 0, Count;
@@ -779,7 +777,7 @@ int Pdr_InvCheck_int( Gia_Man_t * p, Vec_Int_t * vInv, int fVerbose, sat_solver 
 int Pdr_InvCheck( Gia_Man_t * p, Vec_Int_t * vInv, int fVerbose )
 {
     int RetValue;
-    Cnf_Dat_t * pCnf = Mf_ManGenerateCnf( p, 8, 0, 0, 0 );
+    Cnf_Dat_t * pCnf = (Cnf_Dat_t *)Mf_ManGenerateCnf( p, 8, 0, 0, 0, 0 );
     sat_solver * pSat = (sat_solver *)Cnf_DataWriteIntoSolver( pCnf, 1, 0 );
     assert( sat_solver_nvars(pSat) == pCnf->nVars );
     Cnf_DataFree( pCnf );
@@ -796,7 +794,7 @@ Vec_Int_t * Pdr_InvMinimize( Gia_Man_t * p, Vec_Int_t * vInv, int fVerbose )
     int n, i, k, status, nLits, fFailed = 0, fCannot = 0, nRemoved = 0; 
     Vec_Int_t * vRes = NULL;
     // create SAT solver
-    Cnf_Dat_t * pCnf = Mf_ManGenerateCnf( p, 8, 0, 0, 0 );
+    Cnf_Dat_t * pCnf = (Cnf_Dat_t *)Mf_ManGenerateCnf( p, 8, 0, 0, 0, 0 );
     sat_solver * pSat = (sat_solver *)Cnf_DataWriteIntoSolver( pCnf, 1, 0 );
     int * pCube, * pList = Vec_IntArray(vInv), nCubes = pList[0];
     // create variables
@@ -914,7 +912,7 @@ Vec_Int_t * Pdr_InvMinimizeLits( Gia_Man_t * p, Vec_Int_t * vInv, int fVerbose )
     Vec_Int_t * vRes = NULL;
     abctime clk = Abc_Clock();
     int i, k, nLits = 0, * pCube, * pList = Vec_IntArray(vInv), nRemoved = 0;
-    Cnf_Dat_t * pCnf = Mf_ManGenerateCnf( p, 8, 0, 0, 0 );
+    Cnf_Dat_t * pCnf = (Cnf_Dat_t *)Mf_ManGenerateCnf( p, 8, 0, 0, 0, 0 );
     sat_solver * pSat;
 //    sat_solver * pSat = (sat_solver *)Cnf_DataWriteIntoSolver( pCnf, 1, 0 );
     Pdr_ForEachCube( pList, pCube, i )

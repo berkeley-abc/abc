@@ -29,8 +29,6 @@ ABC_NAMESPACE_IMPL_START
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-extern Cnf_Dat_t * Mf_ManGenerateCnf( Gia_Man_t * pGia, int nLutSize, int fCnfObjIds, int fAddOrCla, int fVerbose );
-
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
@@ -169,7 +167,7 @@ void Gia_ManDeriveOneTest( Gia_Man_t * p )
     Gia_Man_t * pNew;
     Gia_Obj_t * pObj, * pRoot;
     Vec_Int_t * vValues = Vec_IntStart( Gia_ManCiNum(p) );
-    Cnf_Dat_t * pCnf = Mf_ManGenerateCnf( p, 8, 0, 0, 0 );
+    Cnf_Dat_t * pCnf = (Cnf_Dat_t *)Mf_ManGenerateCnf( p, 8, 0, 0, 0, 0 );
     int i, iVar, nIter, iPoVarBeg = pCnf->nVars - Gia_ManCiNum(p);
     sat_solver * pSat = (sat_solver *)Cnf_DataWriteIntoSolver( pCnf, 1, 0 );
     Vec_Int_t * vLits = Vec_IntAlloc( 100 );

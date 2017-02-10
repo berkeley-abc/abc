@@ -30,8 +30,6 @@ ABC_NAMESPACE_IMPL_START
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-extern Cnf_Dat_t * Mf_ManGenerateCnf( Gia_Man_t * pGia, int nLutSize, int fCnfObjIds, int fAddOrCla, int fVerbose );
-
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
@@ -598,7 +596,7 @@ int Bmc_FxCompute( Gia_Man_t * p )
     extern Gia_Man_t * Gia_ManDupOnsetOffset( Gia_Man_t * p );
     Gia_Man_t * p2 = Gia_ManDupOnsetOffset( p );
     // create SAT solver
-    Cnf_Dat_t * pCnf = Mf_ManGenerateCnf( p2, 8, 0, 0, 0 );
+    Cnf_Dat_t * pCnf = (Cnf_Dat_t *)Mf_ManGenerateCnf( p2, 8, 0, 0, 0, 0 );
     sat_solver * pSat = (sat_solver *)Cnf_DataWriteIntoSolver( pCnf, 1, 0 );
     // compute parameters
     int nOuts = Gia_ManCoNum(p);
@@ -674,7 +672,7 @@ int Bmc_FxComputeOne( Gia_Man_t * p, int nIterMax, int nDiv2Add )
 {
     int Extra    = 1000;
     // create SAT solver
-    Cnf_Dat_t * pCnf = Mf_ManGenerateCnf( p, 8, 0, 0, 0 );
+    Cnf_Dat_t * pCnf = (Cnf_Dat_t *)Mf_ManGenerateCnf( p, 8, 0, 0, 0, 0 );
     sat_solver * pSat = (sat_solver *)Cnf_DataWriteIntoSolver( pCnf, 1, 0 );
     // compute parameters
     int nCiVars   = Gia_ManCiNum(p);             // PI count
