@@ -272,9 +272,9 @@ void Abc_CexPrintStats( Abc_Cex_t * p )
         p->iPo, p->iFrame, p->nRegs, p->nPis, p->nBits, 
         Counter, 100.0 * Counter / (p->nBits - p->nRegs) );
 }
-void Abc_CexPrintStatsInputs( Abc_Cex_t * p, int nInputs )
+void Abc_CexPrintStatsInputs( Abc_Cex_t * p, int nRealPis )
 {
-    int k, Counter = 0, Counter2 = 0;
+    int k, Counter = 0, CounterPi = 0, CounterPpi = 0;
     if ( p == NULL )
     {
         printf( "The counter example is NULL.\n" );
@@ -285,16 +285,27 @@ void Abc_CexPrintStatsInputs( Abc_Cex_t * p, int nInputs )
         printf( "The counter example is present but not available (pointer has value \"1\").\n" );
         return;
     }
+    assert( nRealPis <= p->nPis );
     for ( k = 0; k < p->nBits; k++ )
     {
         Counter += Abc_InfoHasBit(p->pData, k);
-        if ( (k - p->nRegs) % p->nPis < nInputs )
-            Counter2 += Abc_InfoHasBit(p->pData, k);
+        if ( nRealPis == p->nPis )
+            continue;
+        if ( (k - p->nRegs) % p->nPis < nRealPis )
+            CounterPi += Abc_InfoHasBit(p->pData, k);
+        else
+            CounterPpi += Abc_InfoHasBit(p->pData, k);
     }
-    printf( "CEX: Po =%4d  Frame =%4d  FF = %d  PI = %d  Bit =%8d  1s =%8d (%5.2f %%) 1sIn =%8d (%5.2f %%)\n", 
+    printf( "CEX: Po =%4d  Fr =%4d  FF = %d  PI = %d  Bit =%7d  1 =%8d (%5.2f %%)", 
         p->iPo, p->iFrame, p->nRegs, p->nPis, p->nBits, 
-        Counter,  100.0 * Counter  / (p->nBits - p->nRegs), 
-        Counter2, 100.0 * Counter2 / (p->nBits - p->nRegs - (p->iFrame + 1) * (p->nPis - nInputs)) );
+        Counter,  100.0 * Counter    / ((p->iFrame + 1) * p->nPis ) );
+    if ( nRealPis < p->nPis )
+    {
+        printf( " 1pi =%8d (%5.2f %%) 1ppi =%8d (%5.2f %%)", 
+            CounterPi,  100.0 * CounterPi  / ((p->iFrame + 1) * nRealPis ), 
+            CounterPpi, 100.0 * CounterPpi / ((p->iFrame + 1) * (p->nPis - nRealPis)) );
+    }
+    printf( "\n" );
 }
 
 /**Function*************************************************************
