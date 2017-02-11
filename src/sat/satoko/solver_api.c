@@ -12,8 +12,8 @@
 #include <math.h>
 
 #include "act_var.h"
-#include "utils/misc.h"
 #include "solver.h"
+#include "utils/misc.h"
 
 #include "misc/util/abc_global.h"
 ABC_NAMESPACE_IMPL_START
@@ -167,7 +167,9 @@ void satoko_default_opts(satoko_opts_t *opts)
     opts->lbd_freeze_clause = 30;
     opts->learnt_ratio = 0.5;
     /* VSIDS heuristic */
-    opts->var_decay = (act_t) 0.95;
+    opts->var_act_limit = VAR_ACT_LIMIT;
+    opts->var_act_rescale = VAR_ACT_RESCALE;
+    opts->var_decay = VAR_ACT_DECAY;
     opts->clause_decay = (clause_act_t) 0.995;
     /* Binary resolution */
     opts->clause_max_sz_bin_resol = 30;
@@ -306,6 +308,11 @@ int satoko_final_conflict(solver_t *s, unsigned *out)
            sizeof(unsigned) * vec_uint_size(s->final_conflict));
     return vec_uint_size(s->final_conflict);
 
+}
+
+satoko_stats_t satoko_stats(satoko_t *s)
+{
+    return s->stats;
 }
 
 ABC_NAMESPACE_IMPL_END

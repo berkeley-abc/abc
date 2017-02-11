@@ -32,7 +32,7 @@ typedef struct satoko_opts satoko_opts_t;
 struct satoko_opts {
     /* Limits */
     long conf_limit;  /* Limit on the n.of conflicts */
-    long prop_limit;  /* Limit on the n.of implications */
+    long prop_limit;  /* Limit on the n.of propagations */
 
     /* Constants used for restart heuristic */
     double f_rst;          /* Used to force a restart */
@@ -42,7 +42,7 @@ struct satoko_opts {
     unsigned sz_trail_bqueue; /* Size of the moving avarege queue for Trail size (block restart) */
 
     /* Constants used for clause database reduction heuristic */
-    unsigned n_conf_fst_reduce;  /* N.of conflicts before first reduction */
+    unsigned n_conf_fst_reduce;  /* N.of conflicts before first clause databese reduction */
     unsigned inc_reduce;         /* Increment to reduce */
     unsigned inc_special_reduce; /* Special increment to reduce */
     unsigned lbd_freeze_clause;
@@ -50,7 +50,9 @@ struct satoko_opts {
 
     /* VSIDS heuristic */
     float clause_decay;
-    act_t var_decay;
+    double var_decay;
+    act_t var_act_limit;
+    act_t var_act_rescale;
 
     /* Binary resolution */
     unsigned clause_max_sz_bin_resol;
@@ -58,6 +60,21 @@ struct satoko_opts {
     float garbage_max_ratio;
     char verbose;
 };
+
+typedef struct satoko_stats satoko_stats_t;
+struct satoko_stats {
+    unsigned n_starts;
+    unsigned n_reduce_db;
+
+    long n_decisions;
+    long n_propagations;
+    long n_inspects;
+    long n_conflicts;
+
+    long n_original_lits;
+    long n_learnt_lits;
+};
+
 
 //===------------------------------------------------------------------------===
 extern satoko_t *satoko_create(void);
@@ -81,7 +98,9 @@ extern int  satoko_solve(satoko_t *);
  *  - The return value is either the size of the array or -1 in case the final
  * conflict cluase was not generated.
  */
-extern int  satoko_final_conflict(satoko_t *, unsigned *);
+extern int satoko_final_conflict(satoko_t *, unsigned *);
+
+extern satoko_stats_t satoko_stats(satoko_t *);
 
 ABC_NAMESPACE_HEADER_END
 #endif /* satoko__satoko_h */
