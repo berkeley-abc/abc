@@ -2031,6 +2031,10 @@ SOURCE=.\src\sat\satoko\cnf_reader.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\sat\satoko\utils\fixed.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\sat\satoko\utils\heap.h
 # End Source File
 # Begin Source File

@@ -16,11 +16,11 @@ ABC_NAMESPACE_HEADER_START
 
 typedef unsigned fixed_t;
 static const int FIXED_W_BITS = 16; /* */
-static const int FIXED_F_BITS = 32 - FIXED_W_BITS;
-static const int FIXED_F_MASK = (1 << FIXED_F_BITS) - 1;
+static const int FIXED_F_BITS = 16;//32 - FIXED_W_BITS;
+static const int FIXED_F_MASK = 0xFFFF; //(1 << FIXED_F_BITS) - 1;
 static const fixed_t FIXED_MAX = 0xFFFFFFFF;
 static const fixed_t FIXED_MIN = 0x00000000;
-static const fixed_t FIXED_ONE = (1 << FIXED_F_BITS);
+static const fixed_t FIXED_ONE = 0x10000;//(1 << FIXED_F_BITS);
 
 /* Conversion functions */
 static inline fixed_t uint2fixed(unsigned a) { return a * FIXED_ONE; }
