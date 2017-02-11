@@ -11,7 +11,7 @@
 
 #include "mem.h"
 #include "../types.h"
-#include "vec/vec_dble.h"
+#include "vec/vec_sdbl.h"
 #include "vec/vec_int.h"
 #include "vec/vec_uint.h"
 

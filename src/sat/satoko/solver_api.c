@@ -169,7 +169,7 @@ void satoko_default_opts(satoko_opts_t *opts)
     /* VSIDS heuristic */
     opts->var_act_limit = VAR_ACT_LIMIT;
     opts->var_act_rescale = VAR_ACT_RESCALE;
-    opts->var_decay = VAR_ACT_DECAY;
+    opts->var_decay = 0.95;
     opts->clause_decay = (clause_act_t) 0.995;
     /* Binary resolution */
     opts->clause_max_sz_bin_resol = 30;
@@ -222,7 +222,9 @@ void satoko_add_variable(solver_t *s, char sign)
     vec_wl_push(s->bin_watches);
     vec_wl_push(s->watches);
     vec_wl_push(s->watches);
-    vec_act_push_back(s->activity, 0);
+    /* Variable activity are initialized with the lowest possible value
+     * which in satoko double implementation (SDBL) is the constant 1 */
+    vec_act_push_back(s->activity, SDBL_CONST1);
     vec_uint_push_back(s->levels, 0);
     vec_char_push_back(s->assigns, VAR_UNASSING);
     vec_char_push_back(s->polarity, sign);

@@ -49,10 +49,11 @@ struct satoko_opts {
     float learnt_ratio;          /* Percentage of learned clauses to remove */
 
     /* VSIDS heuristic */
-    float clause_decay;
     double var_decay;
+    float clause_decay;
+    unsigned var_act_rescale;
     act_t var_act_limit;
-    act_t var_act_rescale;
+
 
     /* Binary resolution */
     unsigned clause_max_sz_bin_resol;

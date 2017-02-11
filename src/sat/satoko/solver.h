@@ -24,7 +24,7 @@
 #include "utils/mem.h"
 #include "utils/misc.h"
 #include "utils/vec/vec_char.h"
-#include "utils/vec/vec_dble.h"
+#include "utils/vec/vec_sdbl.h"
 #include "utils/vec/vec_uint.h"
 
 #include "misc/util/abc_global.h"
