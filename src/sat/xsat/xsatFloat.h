@@ -22,7 +22,6 @@
 #define ABC__sat__xSAT__xsatFloat_h
 
 #include "misc/util/abc_global.h"
-#include "misc/vec/vecInt.h"
 
 ABC_NAMESPACE_HEADER_START
 
