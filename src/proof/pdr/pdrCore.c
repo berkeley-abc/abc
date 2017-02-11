@@ -863,7 +863,7 @@ int Pdr_ManSolveInt( Pdr_Man_t * p )
     {
         if ( p->pPars->fUseAbs && iFrame == 2 )
         {
-            int i, Prio, Num = Saig_ManPiNum(p->pAig);
+            int i, Prio;
             assert( p->vAbsFlops == NULL );
             p->vAbsFlops  = Vec_IntStart( Saig_ManRegNum(p->pAig) );
             p->vMapFf2Ppi = Vec_IntStartFull( Saig_ManRegNum(p->pAig) );

@@ -252,12 +252,12 @@ Gia_Man_t * Gia_ManDupAbs( Gia_Man_t * p, Vec_Int_t * vMapPpi2Ff, Vec_Int_t * vM
     }
     Vec_IntForEachEntry( vMapFf2Ppi, Used, Flop )
     {
+        pObj = Gia_ManCi( p, Gia_ManPiNum(p) + Flop );
         if ( Used >= 0 )
         {
             assert( pObj->Value != ~0 );
             continue;
         }
-        pObj = Gia_ManCi( p, Gia_ManPiNum(p) + Flop );
         assert( pObj->Value == ~0 );
         pObj->Value = Gia_ManAppendCi(pNew);
     }
