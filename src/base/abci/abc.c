@@ -23326,7 +23326,11 @@ int Abc_CommandSatoko( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     satoko_default_opts(&opts);
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "Chv" ) ) != EOF )
+#ifdef SATOKO_ACT_VAR_FIXED
+    while ( ( c = Extra_UtilGetopt( argc, argv, "CPDEFGHIJKLMNOQRSTUhv" ) ) != EOF )
+#else
+    while ( ( c = Extra_UtilGetopt( argc, argv, "CPDEFGHIJKLMNOQRShv" ) ) != EOF )
+#endif
     {
         switch ( c )
         {
@@ -23341,6 +23345,184 @@ int Abc_CommandSatoko( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( opts.conf_limit < 0 )
                 goto usage;
             break;
+         case 'P':
+                if ( globalUtilOptind >= argc )
+                {
+                    Abc_Print( -1, "Command line switch \"-P\" should be followed by an integer.\n" );
+                    goto usage;
+                }
+                opts.prop_limit = atoi(argv[globalUtilOptind]);
+                globalUtilOptind++;
+                if ( opts.prop_limit < 0 )
+                    goto usage;
+                break;
+         case 'D':
+               if ( globalUtilOptind >= argc )
+               {
+                   Abc_Print( -1, "Command line switch \"-D\" should be followed by an float.\n" );
+                   goto usage;
+               }
+               opts.f_rst = atof(argv[globalUtilOptind]);
+               globalUtilOptind++;
+               if ( opts.f_rst < 0 )
+                   goto usage;
+               break;
+         case 'E':
+               if ( globalUtilOptind >= argc )
+               {
+                   Abc_Print( -1, "Command line switch \"-E\" should be followed by an float.\n" );
+                   goto usage;
+               }
+               opts.b_rst = atof(argv[globalUtilOptind]);
+               globalUtilOptind++;
+               if ( opts.b_rst < 0 )
+                   goto usage;
+               break;
+         case 'F':
+               if ( globalUtilOptind >= argc )
+               {
+                   Abc_Print( -1, "Command line switch \"-F\" should be followed by an integer.\n" );
+                   goto usage;
+               }
+               opts.fst_block_rst = (unsigned)atoi(argv[globalUtilOptind]);
+               globalUtilOptind++;
+               break;
+         case 'G':
+               if ( globalUtilOptind >= argc )
+               {
+                   Abc_Print( -1, "Command line switch \"-G\" should be followed by an integer.\n" );
+                   goto usage;
+               }
+               opts.sz_lbd_bqueue = (unsigned)atoi(argv[globalUtilOptind]);
+               globalUtilOptind++;
+               break;
+         case 'H':
+               if ( globalUtilOptind >= argc )
+               {
+                   Abc_Print( -1, "Command line switch \"-H\" should be followed by an integer.\n" );
+                   goto usage;
+               }
+               opts.sz_trail_bqueue = (unsigned)atoi(argv[globalUtilOptind]);
+               globalUtilOptind++;
+               break;
+         case 'I':
+               if ( globalUtilOptind >= argc )
+               {
+                   Abc_Print( -1, "Command line switch \"-I\" should be followed by an integer.\n" );
+                   goto usage;
+               }
+               opts.n_conf_fst_reduce = (unsigned)atoi(argv[globalUtilOptind]);
+               globalUtilOptind++;
+               break;
+         case 'J':
+               if ( globalUtilOptind >= argc )
+               {
+                   Abc_Print( -1, "Command line switch \"-J\" should be followed by an integer.\n" );
+                   goto usage;
+               }
+               opts.inc_reduce = (unsigned)atoi(argv[globalUtilOptind]);
+               globalUtilOptind++;
+               break;
+         case 'K':
+               if ( globalUtilOptind >= argc )
+               {
+                   Abc_Print( -1, "Command line switch \"-K\" should be followed by an integer.\n" );
+                   goto usage;
+               }
+               opts.inc_special_reduce = (unsigned)atoi(argv[globalUtilOptind]);
+               globalUtilOptind++;
+               break;
+         case 'L':
+               if ( globalUtilOptind >= argc )
+               {
+                   Abc_Print( -1, "Command line switch \"-L\" should be followed by an integer.\n" );
+                   goto usage;
+               }
+               opts.lbd_freeze_clause = (unsigned)atoi(argv[globalUtilOptind]);
+               globalUtilOptind++;
+               break;
+         case 'M':
+               if ( globalUtilOptind >= argc )
+               {
+                   Abc_Print( -1, "Command line switch \"-M\" should be followed by an integer.\n" );
+                   goto usage;
+               }
+               opts.learnt_ratio = atof(argv[globalUtilOptind]) / 100;
+               globalUtilOptind++;
+               if ( opts.learnt_ratio < 0 )
+                   goto usage;
+               break;
+         case 'N':
+               if ( globalUtilOptind >= argc )
+               {
+                   Abc_Print( -1, "Command line switch \"-M\" should be followed by an integer.\n" );
+                   goto usage;
+               }
+               opts.garbage_max_ratio = atof(argv[globalUtilOptind]) / 100;
+               globalUtilOptind++;
+               if ( opts.garbage_max_ratio < 0 )
+                   goto usage;
+               break;
+         case 'O':
+               if ( globalUtilOptind >= argc )
+               {
+                   Abc_Print( -1, "Command line switch \"-O\" should be followed by an integer.\n" );
+                   goto usage;
+               }
+               opts.clause_max_sz_bin_resol = (unsigned)atoi(argv[globalUtilOptind]);
+               globalUtilOptind++;
+               break;
+         case 'Q':
+               if ( globalUtilOptind >= argc )
+               {
+                   Abc_Print( -1, "Command line switch \"-O\" should be followed by an integer.\n" );
+                   goto usage;
+               }
+               opts.clause_min_lbd_bin_resol = (unsigned)atoi(argv[globalUtilOptind]);
+               globalUtilOptind++;
+               break;
+         case 'R':
+               if ( globalUtilOptind >= argc )
+               {
+                   Abc_Print( -1, "Command line switch \"-R\" should be followed by an float.\n" );
+                   goto usage;
+               }
+               opts.clause_decay = atof(argv[globalUtilOptind]);
+               globalUtilOptind++;
+               if ( opts.clause_decay < 0 )
+                   goto usage;
+               break;
+         case 'S':
+               if ( globalUtilOptind >= argc )
+               {
+                   Abc_Print( -1, "Command line switch \"-S\" should be followed by an float.\n" );
+                   goto usage;
+               }
+               opts.var_decay = atof(argv[globalUtilOptind]);
+               globalUtilOptind++;
+               if ( opts.var_decay < 0 )
+                   goto usage;
+               break;
+#ifdef SATOKO_ACT_VAR_FIXED
+         case 'T':
+               if ( globalUtilOptind >= argc )
+               {
+                   Abc_Print( -1, "Command line switch \"-T\" should be followed by an float.\n" );
+                   goto usage;
+               }
+               opts.var_act_limit = (unsigned)strtol(argv[globalUtilOptind], NULL, 16);
+               globalUtilOptind++;
+               break;
+         case 'U':
+               if ( globalUtilOptind >= argc )
+               {
+                   Abc_Print( -1, "Command line switch \"-U\" should be followed by an float.\n" );
+                   goto usage;
+               }
+               opts.var_act_rescale = (unsigned)strtol(argv[globalUtilOptind], NULL, 16);
+               globalUtilOptind++;
+               break;
+#endif
         case 'h':
             goto usage;
         case 'v':
@@ -23379,9 +23561,37 @@ int Abc_CommandSatoko( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
 
 usage:
-    Abc_Print( -2, "usage: satoko [-CILDE num] [-hv]<file>.cnf\n" );
+#ifdef SATOKO_ACT_VAR_FIXED
+    Abc_Print( -2, "usage: satoko [-CPDEFGHIJKLMNOQRSTU num] [-hv]<file>.cnf\n" );
+#else
+    Abc_Print( -2, "usage: satoko [-CPDEFGHIJKLMNOQRS num] [-hv]<file>.cnf\n" );
+#endif
     Abc_Print( -2, "\t-C num : limit on the number of conflicts [default = %d]\n", opts.conf_limit );
-    Abc_Print( -2, "\t-v     : prints verbose information [default = %s]\n", opts.verbose? "yes": "no" );
+    Abc_Print( -2, "\t-P num : limit on the number of propagations [default = %d]\n", opts.conf_limit );
+    Abc_Print( -2, "\n\tConstants used for restart heuristic:\n");
+    Abc_Print( -2, "\t-D num : Constant value used by restart heuristics in forcing restarts [default = %f]\n", opts.f_rst );
+    Abc_Print( -2, "\t-E num : Constant value used by restart heuristics in  blocking restarts [default = %f]\n", opts.b_rst );
+    Abc_Print( -2, "\t-F num : Lower bound n.of conflicts for start blocking restarts [default = %d]\n", opts.fst_block_rst );
+    Abc_Print( -2, "\t-G num : Size of the moving avarege queue for LBD (force restart) [default = %d]\n", opts.sz_lbd_bqueue );
+    Abc_Print( -2, "\t-H num : Size of the moving avarege queue for Trail size (block restart) [default = %d]\n", opts.sz_trail_bqueue );
+    Abc_Print( -2, "\n\tConstants used for clause database reduction heuristic:\n");
+    Abc_Print( -2, "\t-I num : N.of conflicts before first clause databese reduction [default = %d]\n", opts.n_conf_fst_reduce );
+    Abc_Print( -2, "\t-J num : Increment to reduce [default = %d]\n", opts.inc_reduce );
+    Abc_Print( -2, "\t-K num : Special increment to reduce [default = %d]\n", opts.inc_special_reduce );
+    Abc_Print( -2, "\t-L num : Protecs clauses from deletion for one turn if its LBD is lower [default = %d]\n", opts.lbd_freeze_clause );
+    Abc_Print( -2, "\t-M num : Percentage of learned clauses to remove [default = %d]\n", ( int )( 100 * opts.learnt_ratio ) );
+    Abc_Print( -2, "\t-N num : Max percentage of garbage in clause database [default = %d]\n", ( int )( 100 * opts.garbage_max_ratio ) );
+    Abc_Print( -2, "\n\tConstants used for binary resolution (clause minimization):\n");
+    Abc_Print( -2, "\t-O num : Max clause size for binary resolution [default = %d]\n", opts.clause_max_sz_bin_resol );
+    Abc_Print( -2, "\t-Q num : Min clause LBD for binary resolution [default = %d]\n", opts.clause_min_lbd_bin_resol );
+    Abc_Print( -2, "\n\tConstants used for branching (VSIDS heuristic):\n");
+    Abc_Print( -2, "\t-R num : Clause activity decay factor (when using float clause activity) [default = %f]\n", opts.clause_decay );
+    Abc_Print( -2, "\t-S num : Varibale activity decay factor [default = %f]\n", opts.var_decay );
+#ifdef SATOKO_ACT_VAR_FIXED
+    Abc_Print( -2, "\t-T num : Variable activity limit valeu [default = 0x%08X]\n", opts.var_act_limit );
+    Abc_Print( -2, "\t-U num : Variable activity re-scale factor [default = 0x%08X]\n", opts.var_act_rescale );
+#endif
+    Abc_Print( -2, "\n\t-v     : prints verbose information [default = %s]\n", opts.verbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
 }
@@ -38219,7 +38429,7 @@ int Abc_CommandAbc9Cone( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( fExtractAll )
     {
         char Buffer[1000];
-        Gia_Obj_t * pObj; 
+        Gia_Obj_t * pObj;
         int i, nDigits = Abc_Base10Log(Gia_ManPoNum(pAbc->pGia));
         Gia_ManForEachPo( pAbc->pGia, pObj, i )
         {

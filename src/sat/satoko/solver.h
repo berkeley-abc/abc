@@ -38,19 +38,6 @@ enum {
 
 #define UNDEF 0xFFFFFFFF
 
-struct satoko_stats {
-    unsigned n_starts;
-    unsigned n_reduce_db;
-
-    long n_decisions;
-    long n_propagations;
-    long n_inspects;
-    long n_conflicts;
-
-    long n_original_lits;
-    long n_learnt_lits;
-};
-
 typedef struct solver_t_ solver_t;
 struct solver_t_ {
     /* User data */
