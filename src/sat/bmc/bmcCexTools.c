@@ -304,10 +304,10 @@ void Bmc_CexBuildNetworkTest( Gia_Man_t * p, Abc_Cex_t * pCex )
   SeeAlso     []
 
 ***********************************************************************/
-void Bmc_CexPrint( Abc_Cex_t * pCex, int nInputs, int fVerbose )
+void Bmc_CexPrint( Abc_Cex_t * pCex, int nRealPis, int fVerbose )
 {
     int i, k, Count, iBit = pCex->nRegs;
-    Abc_CexPrintStatsInputs( pCex, nInputs );
+    Abc_CexPrintStatsInputs( pCex, nRealPis );
     if ( !fVerbose )
         return;
 
@@ -315,7 +315,7 @@ void Bmc_CexPrint( Abc_Cex_t * pCex, int nInputs, int fVerbose )
     {
         Count = 0;
         printf( "%3d : ", i );
-        for ( k = 0; k < nInputs; k++ )
+        for ( k = 0; k < nRealPis; k++ )
         {
             Count += Abc_InfoHasBit(pCex->pData, iBit);
             printf( "%d", Abc_InfoHasBit(pCex->pData, iBit++) );
