@@ -30,7 +30,8 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 
 #include "satVec.h"
 #include "satClause.h"
-#include "sat/xsat/xsatFloat.h"
+#include "misc/util/utilFloat.h"
+#include "misc/util/utilDouble.h"
 
 ABC_NAMESPACE_HEADER_START
 

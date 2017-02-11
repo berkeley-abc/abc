@@ -1,6 +1,6 @@
 /**CFile****************************************************************
 
-  FileName    [xdouble.h]
+  FileName    [utilDouble.h]
 
   SystemName  [ABC: Logic synthesis and verification system.]
 
@@ -45,10 +45,6 @@ ABC_NAMESPACE_HEADER_START
 
     Only addition, multiplication, and division by 2^n are currently implemented.
 */
-
-static inline word   Abc_Dbl2Word( double Dbl )         { union { word x; double y; } v; v.y = Dbl; return v.x;         }
-static inline double Abc_Word2Dbl( word Num )           { union { word x; double y; } v; v.x = Num; return v.y;         }
-
 
 typedef word xdbl;
 

@@ -1971,10 +1971,6 @@ SOURCE=.\src\sat\xsat\xsatCnfReader.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\sat\xsat\xsatFloat.h
-# End Source File
-# Begin Source File
-
 SOURCE=.\src\sat\xsat\xsatHeap.h
 # End Source File
 # Begin Source File
@@ -2031,10 +2027,6 @@ SOURCE=.\src\sat\satoko\cnf_reader.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\sat\satoko\utils\fixed.h
-# End Source File
-# Begin Source File
-
 SOURCE=.\src\sat\satoko\utils\heap.h
 # End Source File
 # Begin Source File
@@ -2048,6 +2040,10 @@ SOURCE=.\src\sat\satoko\utils\misc.h
 # Begin Source File
 
 SOURCE=.\src\sat\satoko\satoko.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\satoko\utils\sdbl.h
 # End Source File
 # Begin Source File
 
@@ -2072,10 +2068,6 @@ SOURCE=.\src\sat\satoko\types.h
 # Begin Source File
 
 SOURCE=.\src\sat\satoko\utils\vec\vec_char.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\sat\satoko\utils\vec\vec_dble.h
 # End Source File
 # Begin Source File
 
@@ -3659,7 +3651,15 @@ SOURCE=.\src\misc\util\utilColor.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\misc\util\utilDouble.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\misc\util\utilFile.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\util\utilFloat.h
 # End Source File
 # Begin Source File
 

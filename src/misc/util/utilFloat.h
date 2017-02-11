@@ -1,11 +1,10 @@
 /**CFile****************************************************************
 
-  FileName    [xsatFloat.h]
+  FileName    [utilFloat.h]
 
   SystemName  [ABC: Logic synthesis and verification system.]
 
-  PackageName [xSAT - A SAT solver written in C.
-               Read the license file for more info.]
+  PackageName []
 
   Synopsis    [Floating point number implementation.]
 
