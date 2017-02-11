@@ -324,8 +324,8 @@ void Pdr_ManStop( Pdr_Man_t * p )
     Aig_ManCleanMarkAB( p->pAig );
     if ( p->pPars->fVerbose ) 
     {
-        Abc_Print( 1, "Block =%5d  Oblig =%6d  Clause =%6d  Call =%6d (sat=%.1f%%)  Start =%4d\n", 
-            p->nBlocks, p->nObligs, p->nCubes, p->nCalls, 100.0 * p->nCallsS / p->nCalls, p->nStarts );
+        Abc_Print( 1, "Block =%5d  Oblig =%6d  Clause =%6d  Call =%6d (sat=%.1f%%)  Cex =%4d  Start =%4d\n", 
+            p->nBlocks, p->nObligs, p->nCubes, p->nCalls, 100.0 * p->nCallsS / p->nCalls, p->nCexesTotal, p->nStarts );
         ABC_PRTP( "SAT solving", p->tSat,       p->tTotal );
         ABC_PRTP( "  unsat    ", p->tSatUnsat,  p->tTotal );
         ABC_PRTP( "  sat      ", p->tSatSat,    p->tTotal );
@@ -334,6 +334,7 @@ void Pdr_ManStop( Pdr_Man_t * p )
         ABC_PRTP( "Ternary sim", p->tTsim,      p->tTotal );
         ABC_PRTP( "Containment", p->tContain,   p->tTotal );
         ABC_PRTP( "CNF compute", p->tCnf,       p->tTotal );
+        ABC_PRTP( "Refinement ", p->tAbs,       p->tTotal );
         ABC_PRTP( "TOTAL      ", p->tTotal,     p->tTotal );
         fflush( stdout );
     }
@@ -503,7 +504,7 @@ Abc_Cex_t * Pdr_ManDeriveCexAbs( Pdr_Man_t * p )
     assert( f == nFrames );
     // perform CEX minimization
     pAbs = Gia_ManDupAbs( p->pGia, p->vMapPpi2Ff, p->vMapFf2Ppi );
-    pCexCare = Bmc_CexCareMinimizeAig( pAbs, nPis, pCex, 1, 1, 1 );
+    pCexCare = Bmc_CexCareMinimizeAig( pAbs, nPis, pCex, 1, 0, 0 );
     Gia_ManStop( pAbs );
     assert( pCexCare->nPis == pCex->nPis );
     Abc_CexFree( pCex );
@@ -520,7 +521,9 @@ Abc_Cex_t * Pdr_ManDeriveCexAbs( Pdr_Man_t * p )
     Abc_CexFree( pCexCare );
     if ( nFfRefined == 0 ) // no refinement -- this is a real CEX
         return Pdr_ManDeriveCex(p);
-    printf( "CEX-based refinement refined %d flops.\n", nFfRefined );
+    //printf( "CEX-based refinement refined %d flops.\n", nFfRefined );
+    p->nCexesTotal++;
+    p->nCexes++;
     return NULL;
 }
 

@@ -96,6 +96,8 @@ struct Pdr_Man_t_
     Vec_Int_t * vAbsFlops; // flops currently used
     Vec_Int_t * vMapFf2Ppi;
     Vec_Int_t * vMapPpi2Ff;
+    int         nCexes;
+    int         nCexesTotal;
     // terminary simulation
     Txs_Man_t * pTxs;      
     // internal use
@@ -142,6 +144,7 @@ struct Pdr_Man_t_
     abctime     tTsim;
     abctime     tContain;
     abctime     tCnf;
+    abctime     tAbs;
     abctime     tTotal;
 };
 

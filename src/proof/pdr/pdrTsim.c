@@ -476,7 +476,7 @@ Pdr_ManPrintCex( p->pAig, vCiObjs, vCiVals, vCi2Rem );
     // move abstracted literals from flops to inputs
     if ( p->pPars->fUseAbs && p->vAbsFlops )
     {
-        int i, iLit, k = 0, fAllNegs = 1;
+        int i, iLit, Used, k = 0, fAllNegs = 1;
         Vec_IntForEachEntry( vRes, iLit, i )
         {
             if ( Vec_IntEntry(p->vAbsFlops, Abc_Lit2Var(iLit)) ) // used flop
@@ -500,6 +500,21 @@ Pdr_ManPrintCex( p->pAig, vCiObjs, vCiVals, vCi2Rem );
                     Vec_IntPush( vRes, Abc_Var2Lit(Entry, 0) );
                     break;
                 }
+            }
+            // add any flop that is not in the cone
+            if ( i == Vec_IntSize(vCiObjs) )
+            {
+                Vec_IntForEachEntry( p->vAbsFlops, Used, i )
+                {
+                    if ( !Used )
+                        continue;
+                    if ( Vec_IntFind( vRes, Abc_Var2Lit(i, 1) ) >= 0 )
+                        continue;
+                    Vec_IntPush( vRes, Abc_Var2Lit(i, 0) );
+                    //Vec_IntPrint( vRes );
+                    break;
+                }
+                assert( i < Vec_IntSize(p->vAbsFlops) );
             }
         }
     }

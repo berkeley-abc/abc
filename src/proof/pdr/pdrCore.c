@@ -861,7 +861,8 @@ int Pdr_ManSolveInt( Pdr_Man_t * p )
     Pdr_ManCreateSolver( p, (iFrame = 0) );
     while ( 1 )
     {
-        if ( p->pPars->fUseAbs && iFrame == 2 )
+        int fRefined = 0;
+        if ( p->pPars->fUseAbs && iFrame == 3 )
         {
             int i, Prio;
             assert( p->vAbsFlops == NULL );
@@ -872,9 +873,8 @@ int Pdr_ManSolveInt( Pdr_Man_t * p )
                 if ( Prio >> p->nPrioShift  )
                     Vec_IntWriteEntry( p->vAbsFlops, i, 1 );
         }
-        if ( p->pPars->fUseAbs && p->vAbsFlops )
-            printf( "Starting frame %d with %d flops.\n", iFrame, Vec_IntCountPositive(p->vAbsFlops) );
-
+        //if ( p->pPars->fUseAbs && p->vAbsFlops )
+        //    printf( "Starting frame %d with %d flops.\n", iFrame, Vec_IntCountPositive(p->vAbsFlops) );
         p->nFrames = iFrame;
         assert( iFrame == Vec_PtrSize(p->vSolvers)-1 );
         p->iUseFrame = Abc_MaxInt(iFrame, 1);
@@ -1000,12 +1000,15 @@ int Pdr_ManSolveInt( Pdr_Man_t * p )
                         p->pPars->iFrame = iFrame;
                         if ( !p->pPars->fSolveAll )
                         {
+                            abctime clk = Abc_Clock();
                             Abc_Cex_t * pCex = Pdr_ManDeriveCexAbs(p);
+                            p->tAbs += Abc_Clock() - clk;
                             if ( pCex == NULL )
                             {
                                 assert( p->pPars->fUseAbs );
                                 Pdr_QueueClean( p );
                                 pCube = NULL;
+                                fRefined = 1;
                                 break; // keep solving
                             }
                             p->pAig->pSeqModel = pCex;
@@ -1058,7 +1061,7 @@ int Pdr_ManSolveInt( Pdr_Man_t * p )
         }
 
         if ( p->pPars->fVerbose )
-            Pdr_ManPrintProgress( p, 1, Abc_Clock() - clkStart );
+            Pdr_ManPrintProgress( p, !fRefined, Abc_Clock() - clkStart );
         // open a new timeframe
         p->nQueLim = p->pPars->nRestLimit;
         assert( pCube == NULL );

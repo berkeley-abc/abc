@@ -80,8 +80,10 @@ void Pdr_ManPrintProgress( Pdr_Man_t * p, int fClose, abctime Time )
     }
     for ( i = ThisSize; i < 70; i++ )
         Abc_Print( 1, " " );
-    Abc_Print( 1, "%6d", p->nQueMax );
-    Abc_Print( 1, "%6d", p->nAbsFlops );
+    Abc_Print( 1, "%5d", p->nQueMax );
+    Abc_Print( 1, "%5d", p->vAbsFlops ? Vec_IntCountPositive(p->vAbsFlops) : p->nAbsFlops );
+    if ( p->pPars->fUseAbs )
+    Abc_Print( 1, "%5d", p->nCexes );
     Abc_Print( 1, "%10.2f sec", 1.0*Time/CLOCKS_PER_SEC );
     if ( p->pPars->fSolveAll )
         Abc_Print( 1, "  CEX =%4d", p->pPars->nFailOuts );
@@ -89,7 +91,7 @@ void Pdr_ManPrintProgress( Pdr_Man_t * p, int fClose, abctime Time )
         Abc_Print( 1, "  T/O =%3d", p->pPars->nDropOuts );
     Abc_Print( 1, "%s", fClose ? "\n":"\r" );
     if ( fClose )
-        p->nQueMax = 0;
+        p->nQueMax = 0, p->nCexes = 0;
     fflush( stdout );
 }
 
