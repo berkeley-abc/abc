@@ -251,9 +251,9 @@ Abc_Cex_t * Bmc_CexCareTotal( Abc_Cex_t ** pCexes, int nCexes )
     }
     return pCexMin;
 }
-Abc_Cex_t * Bmc_CexCareMinimizeAig( Gia_Man_t * p, int nPPis, Abc_Cex_t * pCex, int fCheck, int fVerbose )
+Abc_Cex_t * Bmc_CexCareMinimizeAig( Gia_Man_t * p, int nRealPis, Abc_Cex_t * pCex, int nTryCexes, int fCheck, int fVerbose )
 {
-    int nTryCexes = 4; // belongs to range [1;4]
+    //int nTryCexes = 4; // belongs to range [1;4]
     Abc_Cex_t * pCexBest, * pCexMin[4] = {NULL};
     int k, f, i, nOnesBest, nOnesCur, Counter = 0;
     Vec_Int_t * vPriosIn, * vPriosFf;
@@ -278,7 +278,7 @@ Abc_Cex_t * Bmc_CexCareMinimizeAig( Gia_Man_t * p, int nPPis, Abc_Cex_t * pCex, 
     if ( fVerbose )
     {
         printf( "Original :    " );
-        Bmc_CexPrint( pCex, Gia_ManPiNum(p) - nPPis, 0 );
+        Bmc_CexPrint( pCex, nRealPis, 0 );
     }
     vPriosIn = Vec_IntAlloc( pCex->nPis  * (pCex->iFrame + 1) );
     vPriosFf = Vec_IntAlloc( pCex->nRegs * (pCex->iFrame + 1) );
@@ -290,37 +290,37 @@ Abc_Cex_t * Bmc_CexCareMinimizeAig( Gia_Man_t * p, int nPPis, Abc_Cex_t * pCex, 
         if ( k == 0 )
         {
             for ( f = 0; f <= pCex->iFrame; f++ )
-                for ( i = nPPis; i < Gia_ManPiNum(p); i++ )
+                for ( i = nRealPis; i < Gia_ManPiNum(p); i++ )
                     Vec_IntWriteEntry( vPriosIn, f * pCex->nPis + i, Abc_Var2Lit(Counter++, Abc_InfoHasBit(pCex->pData, pCex->nRegs + pCex->nPis * f + i)) );
             for ( f = 0; f <= pCex->iFrame; f++ )
-                for ( i = 0; i < nPPis; i++ )
+                for ( i = 0; i < nRealPis; i++ )
                     Vec_IntWriteEntry( vPriosIn, f * pCex->nPis + i, Abc_Var2Lit(Counter++, Abc_InfoHasBit(pCex->pData, pCex->nRegs + pCex->nPis * f + i)) );
         }
         else if ( k == 1 )
         {
             for ( f = pCex->iFrame; f >= 0; f-- )
-                for ( i = nPPis; i < Gia_ManPiNum(p); i++ )
+                for ( i = nRealPis; i < Gia_ManPiNum(p); i++ )
                     Vec_IntWriteEntry( vPriosIn, f * pCex->nPis + i, Abc_Var2Lit(Counter++, Abc_InfoHasBit(pCex->pData, pCex->nRegs + pCex->nPis * f + i)) );
             for ( f = pCex->iFrame; f >= 0; f-- )
-                for ( i = 0; i < nPPis; i++ )
+                for ( i = 0; i < nRealPis; i++ )
                     Vec_IntWriteEntry( vPriosIn, f * pCex->nPis + i, Abc_Var2Lit(Counter++, Abc_InfoHasBit(pCex->pData, pCex->nRegs + pCex->nPis * f + i)) );
         }
         else if ( k == 2 )
         {
             for ( f = 0; f <= pCex->iFrame; f++ )
-                for ( i = Gia_ManPiNum(p) - 1; i >= nPPis; i-- )
+                for ( i = Gia_ManPiNum(p) - 1; i >= nRealPis; i-- )
                     Vec_IntWriteEntry( vPriosIn, f * pCex->nPis + i, Abc_Var2Lit(Counter++, Abc_InfoHasBit(pCex->pData, pCex->nRegs + pCex->nPis * f + i)) );
             for ( f = 0; f <= pCex->iFrame; f++ )
-                for ( i = nPPis - 1; i >= 0; i-- )
+                for ( i = nRealPis - 1; i >= 0; i-- )
                     Vec_IntWriteEntry( vPriosIn, f * pCex->nPis + i, Abc_Var2Lit(Counter++, Abc_InfoHasBit(pCex->pData, pCex->nRegs + pCex->nPis * f + i)) );
         }
         else if ( k == 3 )
         {
             for ( f = pCex->iFrame; f >= 0; f-- )
-                for ( i = Gia_ManPiNum(p) - 1; i >= nPPis; i-- )
+                for ( i = Gia_ManPiNum(p) - 1; i >= nRealPis; i-- )
                     Vec_IntWriteEntry( vPriosIn, f * pCex->nPis + i, Abc_Var2Lit(Counter++, Abc_InfoHasBit(pCex->pData, pCex->nRegs + pCex->nPis * f + i)) );
             for ( f = pCex->iFrame; f >= 0; f-- )
-                for ( i = nPPis - 1; i >= 0; i-- )
+                for ( i = nRealPis - 1; i >= 0; i-- )
                     Vec_IntWriteEntry( vPriosIn, f * pCex->nPis + i, Abc_Var2Lit(Counter++, Abc_InfoHasBit(pCex->pData, pCex->nRegs + pCex->nPis * f + i)) );
         }
         else assert( 0 );
@@ -328,37 +328,37 @@ Abc_Cex_t * Bmc_CexCareMinimizeAig( Gia_Man_t * p, int nPPis, Abc_Cex_t * pCex, 
         if ( k == 0 )
         {
             for ( f = pCex->iFrame; f >= 0; f-- )
-                for ( i = nPPis; i < Gia_ManPiNum(p); i++ )
+                for ( i = Gia_ManPiNum(p) - 1; i >= nRealPis; i-- )
                     Vec_IntWriteEntry( vPriosIn, f * pCex->nPis + i, Abc_Var2Lit(Counter++, Abc_InfoHasBit(pCex->pData, pCex->nRegs + pCex->nPis * f + i)) );
             for ( f = pCex->iFrame; f >= 0; f-- )
-                for ( i = 0; i < nPPis; i++ )
+                for ( i = nRealPis - 1; i >= 0; i-- )
                     Vec_IntWriteEntry( vPriosIn, f * pCex->nPis + i, Abc_Var2Lit(Counter++, Abc_InfoHasBit(pCex->pData, pCex->nRegs + pCex->nPis * f + i)) );
         }
         else if ( k == 1 )
         {
             for ( f = pCex->iFrame; f >= 0; f-- )
-                for ( i = nPPis; i < Gia_ManPiNum(p); i++ )
+                for ( i = Gia_ManPiNum(p) - 1; i >= nRealPis; i-- )
                     Vec_IntWriteEntry( vPriosIn, f * pCex->nPis + i, Abc_Var2Lit(Counter++, Abc_InfoHasBit(pCex->pData, pCex->nRegs + pCex->nPis * f + i)) );
             for ( f = pCex->iFrame; f >= 0; f-- )
-                for ( i = nPPis - 1; i >= 0; i-- )
+                for ( i = 0; i < nRealPis; i++ )
                     Vec_IntWriteEntry( vPriosIn, f * pCex->nPis + i, Abc_Var2Lit(Counter++, Abc_InfoHasBit(pCex->pData, pCex->nRegs + pCex->nPis * f + i)) );
         }
         else if ( k == 2 )
         {
             for ( f = pCex->iFrame; f >= 0; f-- )
-                for ( i = Gia_ManPiNum(p) - 1; i >= nPPis; i-- )
+                for ( i = nRealPis; i < Gia_ManPiNum(p); i++ )
                     Vec_IntWriteEntry( vPriosIn, f * pCex->nPis + i, Abc_Var2Lit(Counter++, Abc_InfoHasBit(pCex->pData, pCex->nRegs + pCex->nPis * f + i)) );
             for ( f = pCex->iFrame; f >= 0; f-- )
-                for ( i = 0; i < nPPis; i++ )
+                for ( i = nRealPis - 1; i >= 0; i-- )
                     Vec_IntWriteEntry( vPriosIn, f * pCex->nPis + i, Abc_Var2Lit(Counter++, Abc_InfoHasBit(pCex->pData, pCex->nRegs + pCex->nPis * f + i)) );
         }
         else if ( k == 3 )
         {
             for ( f = pCex->iFrame; f >= 0; f-- )
-                for ( i = Gia_ManPiNum(p) - 1; i >= nPPis; i-- )
+                for ( i = nRealPis; i < Gia_ManPiNum(p); i++ )
                     Vec_IntWriteEntry( vPriosIn, f * pCex->nPis + i, Abc_Var2Lit(Counter++, Abc_InfoHasBit(pCex->pData, pCex->nRegs + pCex->nPis * f + i)) );
             for ( f = pCex->iFrame; f >= 0; f-- )
-                for ( i = nPPis - 1; i >= 0; i-- )
+                for ( i = 0; i < nRealPis; i++ )
                     Vec_IntWriteEntry( vPriosIn, f * pCex->nPis + i, Abc_Var2Lit(Counter++, Abc_InfoHasBit(pCex->pData, pCex->nRegs + pCex->nPis * f + i)) );
         }
         else assert( 0 );
@@ -377,15 +377,15 @@ Abc_Cex_t * Bmc_CexCareMinimizeAig( Gia_Man_t * p, int nPPis, Abc_Cex_t * pCex, 
         if ( fVerbose )
         {
             if ( k == 0 )
-                printf( "PiUp FrUp:    " );
+                printf( "PI-  PPI-:    " );
             else if ( k == 1 )
-                printf( "PiUp FrDn:    " );
+                printf( "PI+  PPI-:    " );
             else if ( k == 2 )
-                printf( "PiDn FrUp:    " );
+                printf( "PI-  PPI+:    " );
             else if ( k == 3 )
-                printf( "PiDn FrDn:    " );
+                printf( "PI+  PPI+:    " );
             else assert( 0 );
-            Bmc_CexPrint( pCexMin[k], Gia_ManPiNum(p) - nPPis, 0 );
+            Bmc_CexPrint( pCexMin[k], nRealPis, 0 );
         }
     }
     Vec_IntFree( vPriosIn );
@@ -395,6 +395,8 @@ Abc_Cex_t * Bmc_CexCareMinimizeAig( Gia_Man_t * p, int nPPis, Abc_Cex_t * pCex, 
     nOnesBest = Abc_CexCountOnes(pCexMin[0]);
     for ( k = 1; k < nTryCexes; k++ )
     {
+        if ( pCexMin[k] == NULL )
+            continue;
         nOnesCur = Abc_CexCountOnes(pCexMin[k]);
         if ( nOnesBest > nOnesCur )
         {
@@ -406,13 +408,13 @@ Abc_Cex_t * Bmc_CexCareMinimizeAig( Gia_Man_t * p, int nPPis, Abc_Cex_t * pCex, 
     {
         //Abc_Cex_t * pTotal = Bmc_CexCareTotal( pCexMin, nTryCexes );
         printf( "Final    :    " );
-        Bmc_CexPrint( pCexBest, Gia_ManPiNum(p) - nPPis, 0 );
+        Bmc_CexPrint( pCexBest, nRealPis, 0 );
         //printf( "Total    :    " );
-        //Bmc_CexPrint( pTotal, Gia_ManPiNum(p) - nPPis, 0 );
+        //Bmc_CexPrint( pTotal, nRealPis, 0 );
         //Abc_CexFreeP( &pTotal );
     }
     for ( k = 0; k < nTryCexes; k++ )
-        if ( pCexBest != pCexMin[k] )
+        if ( pCexMin[k] && pCexBest != pCexMin[k] )
             Abc_CexFreeP( &pCexMin[k] );
     // verify and return
     if ( !Bmc_CexVerify( p, pCex, pCexBest ) )
@@ -421,10 +423,10 @@ Abc_Cex_t * Bmc_CexCareMinimizeAig( Gia_Man_t * p, int nPPis, Abc_Cex_t * pCex, 
         printf( "Counter-example verification succeeded.\n" );
     return pCexBest;
 }
-Abc_Cex_t * Bmc_CexCareMinimize( Aig_Man_t * p, int nPPis, Abc_Cex_t * pCex, int fCheck, int fVerbose )
+Abc_Cex_t * Bmc_CexCareMinimize( Aig_Man_t * p, int nRealPis, Abc_Cex_t * pCex, int nTryCexes, int fCheck, int fVerbose )
 {
     Gia_Man_t * pGia = Gia_ManFromAigSimple( p );
-    Abc_Cex_t * pCexMin = Bmc_CexCareMinimizeAig( pGia, nPPis, pCex, fCheck, fVerbose );
+    Abc_Cex_t * pCexMin = Bmc_CexCareMinimizeAig( pGia, nRealPis, pCex, nTryCexes, fCheck, fVerbose );
     Gia_ManStop( pGia );
     return pCexMin;
 }
@@ -459,7 +461,7 @@ void Bmc_CexCareVerify( Aig_Man_t * p, Abc_Cex_t * pCex, Abc_Cex_t * pCexMin, in
 /*
     {
         Aig_Man_t * pAig = Abc_NtkToDar( pNtk, 0, 1 );
-        Abc_Cex_t * pCex = Bmc_CexCareMinimize( pAig, 3*Saig_ManPiNum(pAig)/4, pAbc->pCex, 1, 1 );
+        Abc_Cex_t * pCex = Bmc_CexCareMinimize( pAig, 3*Saig_ManPiNum(pAig)/4, 4, pAbc->pCex, 1, 1 );
         Aig_ManStop( pAig );
         Abc_CexFree( pCex );
     }

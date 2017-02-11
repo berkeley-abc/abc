@@ -19,7 +19,7 @@
 ***********************************************************************/
 
 #include "pdrInt.h"
-#include "aig/gia/giaAig.h"
+#include "sat/bmc/bmc.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -233,13 +233,6 @@ Vec_Int_t * Pdr_ManDeriveFlopPriorities2( Gia_Man_t * p, int fMuxCtrls )
 //Vec_IntPrint( vCosts );
     return vCosts;
 }
-Vec_Int_t * Pdr_ManDeriveFlopPriorities( Aig_Man_t * pAig, int fMuxCtrls )
-{
-    Gia_Man_t * pGia = Gia_ManFromAigSimple(pAig);
-    Vec_Int_t * vRes = Pdr_ManDeriveFlopPriorities2(pGia, fMuxCtrls);
-    Gia_ManStop( pGia );
-    return vRes;
-}
 
 /**Function*************************************************************
 
@@ -258,6 +251,7 @@ Pdr_Man_t * Pdr_ManStart( Aig_Man_t * pAig, Pdr_Par_t * pPars, Vec_Int_t * vPrio
     p = ABC_CALLOC( Pdr_Man_t, 1 );
     p->pPars    = pPars;
     p->pAig     = pAig;
+    p->pGia     = (pPars->fFlopPrio || p->pPars->fNewXSim || p->pPars->fUseAbs) ? Gia_ManFromAigSimple(pAig) : NULL;
     p->vSolvers = Vec_PtrAlloc( 0 );
     p->vClauses = Vec_VecAlloc( 0 );
     p->pQueue   = NULL;
@@ -270,7 +264,7 @@ Pdr_Man_t * Pdr_ManStart( Aig_Man_t * pAig, Pdr_Par_t * pPars, Vec_Int_t * vPrio
     if ( vPrioInit )
         p->vPrio = vPrioInit;
     else if ( pPars->fFlopPrio )
-        p->vPrio = Pdr_ManDeriveFlopPriorities(pAig, 1);
+        p->vPrio = Pdr_ManDeriveFlopPriorities2(p->pGia, 1);
     else if ( p->pPars->fNewXSim )
         p->vPrio = Vec_IntStartNatural( Aig_ManRegNum(pAig) );
     else 
@@ -286,8 +280,6 @@ Pdr_Man_t * Pdr_ManStart( Aig_Man_t * pAig, Pdr_Par_t * pPars, Vec_Int_t * vPrio
     p->vCi2Rem  = Vec_IntAlloc( 100 );  // CIs to be removed
     p->vRes     = Vec_IntAlloc( 100 );  // final result
     p->pCnfMan  = Cnf_ManStart();
-    if ( p->vAbs )
-        p->vAbs = Vec_IntStart( Aig_ManRegNum(pAig) );
     // ternary simulation
     p->pTxs     = pPars->fNewXSim ? Txs_ManStart( p, pAig, p->vPrio ) : NULL;
     // additional AIG data-members
@@ -328,6 +320,7 @@ void Pdr_ManStop( Pdr_Man_t * p )
     Pdr_Set_t * pCla;
     sat_solver * pSat;
     int i, k;
+    Gia_ManStopP( &p->pGia );
     Aig_ManCleanMarkAB( p->pAig );
     if ( p->pPars->fVerbose ) 
     {
@@ -370,7 +363,9 @@ void Pdr_ManStop( Pdr_Man_t * p )
     Vec_WecFreeP( &p->vVLits );
     // CNF manager
     Cnf_ManStop( p->pCnfMan );
-    Vec_IntFreeP( &p->vAbs );
+    Vec_IntFreeP( &p->vAbsFlops );
+    Vec_IntFreeP( &p->vMapFf2Ppi );
+    Vec_IntFreeP( &p->vMapPpi2Ff );
     // terminary simulation
     if ( p->pPars->fNewXSim )
         Txs_ManStop( p->pTxs );
@@ -419,7 +414,6 @@ Abc_Cex_t * Pdr_ManDeriveCex( Pdr_Man_t * p )
         nFrames++;
     // create the counter-example
     pCex = Abc_CexAlloc( Aig_ManRegNum(p->pAig), Saig_ManPiNum(p->pAig), nFrames );
-//    pCex->iPo    = (p->pPars->iOutput==-1)? 0 : p->pPars->iOutput;
     pCex->iPo    = p->iOutCur;
     pCex->iFrame = nFrames-1;
     for ( pObl = p->pQueue, f = 0; pObl; pObl = pObl->pNext, f++ )
@@ -428,6 +422,8 @@ Abc_Cex_t * Pdr_ManDeriveCex( Pdr_Man_t * p )
             Lit = pObl->pState->Lits[i];
             if ( lit_sign(Lit) )
                 continue;
+            if ( lit_var(Lit) >= pCex->nPis ) // allows PPI literals to be thrown away
+                continue;
             assert( lit_var(Lit) < pCex->nPis );
             Abc_InfoSetBit( pCex->pData, pCex->nRegs + f * pCex->nPis + lit_var(Lit) );
         }
@@ -435,6 +431,97 @@ Abc_Cex_t * Pdr_ManDeriveCex( Pdr_Man_t * p )
     if ( !Saig_ManVerifyCex(p->pAig, pCex) )
         printf( "CEX for output %d is not valid.\n", p->iOutCur );
     return pCex;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Derives counter-example when abstraction is used.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Cex_t * Pdr_ManDeriveCexAbs( Pdr_Man_t * p )
+{
+    extern Gia_Man_t * Gia_ManDupAbs( Gia_Man_t * p, Vec_Int_t * vMapPpi2Ff, Vec_Int_t * vMapFf2Ppi );
+
+    Gia_Man_t * pAbs;
+    Abc_Cex_t * pCex, * pCexCare;
+    Pdr_Obl_t * pObl;
+    int i, f, Lit, Flop, nFrames = 0;
+    int nPis = Saig_ManPiNum(p->pAig);
+    int nFfRefined = 0;
+    if ( !p->pPars->fUseAbs )
+        return Pdr_ManDeriveCex(p);
+    // restore previous map
+    Vec_IntForEachEntry( p->vMapPpi2Ff, Flop, i )
+    {
+        assert( Vec_IntEntry( p->vMapFf2Ppi, Flop ) == i );
+        Vec_IntWriteEntry( p->vMapFf2Ppi, Flop, -1 );
+    }
+    Vec_IntClear( p->vMapPpi2Ff );
+    // count the number of frames
+    for ( pObl = p->pQueue; pObl; pObl = pObl->pNext )
+    {
+        for ( i = pObl->pState->nLits; i < pObl->pState->nTotal; i++ )
+        {
+            Lit = pObl->pState->Lits[i]; 
+            if ( lit_var(Lit) < nPis ) // PI literal
+                continue;
+            Flop = lit_var(Lit) - nPis;
+            if ( Vec_IntEntry(p->vMapFf2Ppi, Flop) >= 0 ) // already used PPI literal
+                continue;
+            Vec_IntWriteEntry( p->vMapFf2Ppi, Flop, Vec_IntSize(p->vMapPpi2Ff) );
+            Vec_IntPush( p->vMapPpi2Ff, Flop );
+        }
+        nFrames++;
+    }
+    if ( Vec_IntSize(p->vMapPpi2Ff) == 0 ) // no PPIs -- this is a real CEX
+        return Pdr_ManDeriveCex(p);
+    // create the counter-example
+    pCex = Abc_CexAlloc( Aig_ManRegNum(p->pAig) - Vec_IntSize(p->vMapPpi2Ff), Saig_ManPiNum(p->pAig) + Vec_IntSize(p->vMapPpi2Ff), nFrames );
+    pCex->iPo    = p->iOutCur;
+    pCex->iFrame = nFrames-1;
+    for ( pObl = p->pQueue, f = 0; pObl; pObl = pObl->pNext, f++ )
+        for ( i = pObl->pState->nLits; i < pObl->pState->nTotal; i++ )
+        {
+            Lit = pObl->pState->Lits[i];
+            if ( lit_sign(Lit) )
+                continue;
+            if ( lit_var(Lit) < nPis ) // PI literal
+                Abc_InfoSetBit( pCex->pData, pCex->nRegs + f * pCex->nPis + lit_var(Lit) );
+            else
+            {
+                int iPPI = nPis + Vec_IntEntry(p->vMapFf2Ppi, lit_var(Lit) - nPis);
+                assert( iPPI < pCex->nPis );
+                Abc_InfoSetBit( pCex->pData, pCex->nRegs + f * pCex->nPis + iPPI );
+            }
+        }
+    assert( f == nFrames );
+    // perform CEX minimization
+    pAbs = Gia_ManDupAbs( p->pGia, p->vMapPpi2Ff, p->vMapFf2Ppi );
+    pCexCare = Bmc_CexCareMinimizeAig( pAbs, nPis, pCex, 1, 1, 1 );
+    Gia_ManStop( pAbs );
+    assert( pCexCare->nPis == pCex->nPis );
+    Abc_CexFree( pCex );
+    // detect care PPIs
+    for ( f = 0; f < nFrames; f++ )
+    {
+        for ( i = nPis; i < pCexCare->nPis; i++ )
+            if ( Abc_InfoHasBit(pCexCare->pData, pCexCare->nRegs + pCexCare->nPis * f + i) )
+            {
+                if ( Vec_IntEntry(p->vAbsFlops, Vec_IntEntry(p->vMapPpi2Ff, i-nPis)) == 0 ) // currently abstracted
+                    Vec_IntWriteEntry( p->vAbsFlops, Vec_IntEntry(p->vMapPpi2Ff, i-nPis), 1 ), nFfRefined++;
+            }
+    }
+    Abc_CexFree( pCexCare );
+    if ( nFfRefined == 0 ) // no refinement -- this is a real CEX
+        return Pdr_ManDeriveCex(p);
+    printf( "CEX-based refinement refined %d flops.\n", nFfRefined );
+    return NULL;
 }
 
 ////////////////////////////////////////////////////////////////////////

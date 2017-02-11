@@ -31,6 +31,7 @@
 #include "sat/bsat/satSolver.h"
 #include "pdr.h" 
 #include "misc/hash/hashInt.h"
+#include "aig/gia/giaAig.h"
 
 ABC_NAMESPACE_HEADER_START
 
@@ -71,6 +72,7 @@ struct Pdr_Man_t_
     // input problem
     Pdr_Par_t * pPars;     // parameters
     Aig_Man_t * pAig;      // user's AIG
+    Gia_Man_t * pGia;      // user's AIG
     // static CNF representation
     Cnf_Man_t * pCnfMan;   // CNF manager
     Cnf_Dat_t * pCnf1;     // CNF for this AIG
@@ -90,7 +92,10 @@ struct Pdr_Man_t_
     int *       pOrder;    // ordering of the lits
     Vec_Int_t * vActVars;  // the counter of activation variables
     int         iUseFrame; // the first used frame
-    Vec_Int_t * vAbs;      // abstraction (mapping abstracted flop ID into its PPIs number)
+    int         nAbsFlops; // the number of flops used
+    Vec_Int_t * vAbsFlops; // flops currently used
+    Vec_Int_t * vMapFf2Ppi;
+    Vec_Int_t * vMapPpi2Ff;
     // terminary simulation
     Txs_Man_t * pTxs;      
     // internal use
@@ -161,8 +166,6 @@ static inline abctime      Pdr_ManTimeLimit( Pdr_Man_t * p )
 ///                    FUNCTION DECLARATIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
-/*=== pdrCex.c ==========================================================*/
-extern Abc_Cex_t *     Pdr_ManDeriveCex( Pdr_Man_t * p );
 /*=== pdrCnf.c ==========================================================*/
 extern int             Pdr_ObjSatVar( Pdr_Man_t * p, int k, int Pol, Aig_Obj_t * pObj );
 extern int             Pdr_ObjRegNum( Pdr_Man_t * p, int k, int iSatVar );
@@ -183,6 +186,7 @@ extern Vec_Int_t *     Pdr_ManDeriveInfinityClauses( Pdr_Man_t * p, int fReduce 
 extern Pdr_Man_t *     Pdr_ManStart( Aig_Man_t * pAig, Pdr_Par_t * pPars, Vec_Int_t * vPrioInit );
 extern void            Pdr_ManStop( Pdr_Man_t * p );
 extern Abc_Cex_t *     Pdr_ManDeriveCex( Pdr_Man_t * p );
+extern Abc_Cex_t *     Pdr_ManDeriveCexAbs( Pdr_Man_t * p );
 /*=== pdrSat.c ==========================================================*/
 extern sat_solver *    Pdr_ManCreateSolver( Pdr_Man_t * p, int k );
 extern sat_solver *    Pdr_ManFetchSolver( Pdr_Man_t * p, int k );

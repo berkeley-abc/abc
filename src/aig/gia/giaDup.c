@@ -231,6 +231,80 @@ Gia_Man_t * Gia_ManDupOrderDfs( Gia_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
+Gia_Man_t * Gia_ManDupAbs( Gia_Man_t * p, Vec_Int_t * vMapPpi2Ff, Vec_Int_t * vMapFf2Ppi )
+{
+    Gia_Man_t * pNew;
+    Gia_Obj_t * pObj;
+    int k, Flop, Used;
+    assert( Vec_IntSize(vMapFf2Ppi) == Vec_IntSize(vMapPpi2Ff) + Vec_IntCountEntry(vMapFf2Ppi, -1) );
+    Gia_ManFillValue( p );
+    pNew = Gia_ManStart( Gia_ManObjNum(p) );
+    pNew->pName = Abc_UtilStrsav( p->pName );
+    pNew->pSpec = Abc_UtilStrsav( p->pSpec );
+    Gia_ManConst0(p)->Value = 0;
+    // create inputs
+    Gia_ManForEachPi( p, pObj, k )
+        pObj->Value = Gia_ManAppendCi(pNew);
+    Vec_IntForEachEntry( vMapPpi2Ff, Flop, k )
+    {
+        pObj = Gia_ManCi( p, Gia_ManPiNum(p) + Flop );
+        pObj->Value = Gia_ManAppendCi(pNew);
+    }
+    Vec_IntForEachEntry( vMapFf2Ppi, Used, Flop )
+    {
+        if ( Used >= 0 )
+        {
+            assert( pObj->Value != ~0 );
+            continue;
+        }
+        pObj = Gia_ManCi( p, Gia_ManPiNum(p) + Flop );
+        assert( pObj->Value == ~0 );
+        pObj->Value = Gia_ManAppendCi(pNew);
+    }
+    Gia_ManForEachCi( p, pObj, k )
+        assert( pObj->Value != ~0 );
+    // create nodes
+    Gia_ManForEachPo( p, pObj, k )
+        Gia_ManDupOrderDfs_rec( pNew, p, Gia_ObjFanin0(pObj) );
+    Vec_IntForEachEntry( vMapFf2Ppi, Used, Flop )
+    {
+        if ( Used >= 0 )
+            continue;
+        pObj = Gia_ManCi( p, Gia_ManPiNum(p) + Flop );
+        pObj = Gia_ObjRoToRi( p, pObj );
+        Gia_ManDupOrderDfs_rec( pNew, p, Gia_ObjFanin0(pObj) );
+    }
+    // create outputs
+    Gia_ManForEachPo( p, pObj, k )
+        pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
+    Vec_IntForEachEntry( vMapFf2Ppi, Used, Flop )
+    {
+        if ( Used >= 0 )
+            continue;
+        pObj = Gia_ManCi( p, Gia_ManPiNum(p) + Flop );
+        pObj = Gia_ObjRoToRi( p, pObj );
+        pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
+    }
+    Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) - Vec_IntSize(vMapPpi2Ff) );
+    assert( Gia_ManPiNum(pNew) == Gia_ManPiNum(p) + Vec_IntSize(vMapPpi2Ff) );
+    assert( Gia_ManCiNum(pNew) == Gia_ManCiNum(p) );
+    assert( Gia_ManPoNum(pNew) == Gia_ManPoNum(p) );
+    assert( Gia_ManCoNum(pNew) == Gia_ManCoNum(p) - Vec_IntSize(vMapPpi2Ff) );
+    return pNew;
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    [Duplicates AIG while putting objects in the DFS order.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 Gia_Man_t * Gia_ManDupOutputGroup( Gia_Man_t * p, int iOutStart, int iOutStop )
 {
     Gia_Man_t * pNew;

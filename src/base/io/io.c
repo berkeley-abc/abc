@@ -2420,7 +2420,7 @@ int IoCommandWriteCex( Abc_Frame_t * pAbc, int argc, char **argv )
                         Bmc_CexCareVerify( pAig, pCex, pCare, fVerbose );
                 }
                 else
-                    pCare = Bmc_CexCareMinimize( pAig, 0, pCex, fCheckCex, fVerbose );
+                    pCare = Bmc_CexCareMinimize( pAig, Saig_ManPiNum(pAig), pCex, 4, fCheckCex, fVerbose );
                 Aig_ManStop( pAig );
             }
             // output flop values (unaffected by the minimization)

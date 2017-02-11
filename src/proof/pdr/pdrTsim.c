@@ -440,7 +440,7 @@ Pdr_ManPrintCex( p->pAig, vCiObjs, vCiVals, NULL );
             if ( !Saig_ObjIsLo( p->pAig, pObj ) )
                 continue;
             Entry = Aig_ObjCioId(pObj) - Saig_ManPiNum(p->pAig);
-            if ( vPrio != NULL && Vec_IntEntry( vPrio, Entry ) != 0 )
+            if ( Vec_IntEntry(vPrio, Entry) )
                 continue;
             Vec_IntClear( vUndo );
             if ( Pdr_ManExtendOne( p->pAig, pObj, vUndo, vVisits ) )
@@ -454,7 +454,7 @@ Pdr_ManPrintCex( p->pAig, vCiObjs, vCiVals, NULL );
             if ( !Saig_ObjIsLo( p->pAig, pObj ) )
                 continue;
             Entry = Aig_ObjCioId(pObj) - Saig_ManPiNum(p->pAig);
-            if ( vPrio == NULL || Vec_IntEntry( vPrio, Entry ) == 0 )
+            if ( !Vec_IntEntry(vPrio, Entry) )
                 continue;
             Vec_IntClear( vUndo );
             if ( Pdr_ManExtendOne( p->pAig, pObj, vUndo, vVisits ) )
@@ -473,7 +473,39 @@ Pdr_ManPrintCex( p->pAig, vCiObjs, vCiVals, vCi2Rem );
     Pdr_ManDeriveResult( p->pAig, vCiObjs, vCiVals, vCi2Rem, vRes, vPiLits );
     assert( Vec_IntSize(vRes) > 0 );
     //p->tTsim += Abc_Clock() - clk;
+    // move abstracted literals from flops to inputs
+    if ( p->pPars->fUseAbs && p->vAbsFlops )
+    {
+        int i, iLit, k = 0, fAllNegs = 1;
+        Vec_IntForEachEntry( vRes, iLit, i )
+        {
+            if ( Vec_IntEntry(p->vAbsFlops, Abc_Lit2Var(iLit)) ) // used flop
+            {
+                Vec_IntWriteEntry( vRes, k++, iLit );
+                fAllNegs &= Abc_LitIsCompl(iLit);
+            }
+            else
+                Vec_IntPush( vPiLits, 2*Saig_ManPiNum(p->pAig) + iLit );
+        }
+        Vec_IntShrink( vRes, k );
+        if ( fAllNegs ) // insert any positive literal
+        {
+            Aig_ManForEachObjVec( vCiObjs, p->pAig, pObj, i )
+            {
+                if ( !Saig_ObjIsLo( p->pAig, pObj ) )
+                    continue;
+                if ( Vec_IntEntry(vCiVals, i) )
+                {
+                    Entry = Aig_ObjCioId(pObj) - Saig_ManPiNum(p->pAig);
+                    Vec_IntPush( vRes, Abc_Var2Lit(Entry, 0) );
+                    break;
+                }
+            }
+        }
+    }
     pRes = Pdr_SetCreate( vRes, vPiLits );
+    assert( k == 0 || !Pdr_SetIsInit(pRes, -1) );
+
     //ZH: Disabled assertion because this invariant doesn't hold with down
     //because of the join operation which can bring in initial states
     //assert( k == 0 || !Pdr_SetIsInit(pRes, -1) );

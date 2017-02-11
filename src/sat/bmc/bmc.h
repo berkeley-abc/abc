@@ -164,7 +164,8 @@ extern int               Saig_ManBmcScalable( Aig_Man_t * pAig, Saig_ParBmc_t * 
 extern int               Gia_ManBmcPerform( Gia_Man_t * p, Bmc_AndPar_t * pPars );
 /*=== bmcCexCare.c ==========================================================*/
 extern Abc_Cex_t *       Bmc_CexCareExtendToObjects( Gia_Man_t * p, Abc_Cex_t * pCex, Abc_Cex_t * pCexCare );
-extern Abc_Cex_t *       Bmc_CexCareMinimize( Aig_Man_t * p, int nPPis, Abc_Cex_t * pCex, int fCheck, int fVerbose );
+extern Abc_Cex_t *       Bmc_CexCareMinimize( Aig_Man_t * p, int nRealPis, Abc_Cex_t * pCex, int nTryCexes, int fCheck, int fVerbose );
+extern Abc_Cex_t *       Bmc_CexCareMinimizeAig( Gia_Man_t * p, int nRealPis, Abc_Cex_t * pCex, int nTryCexes, int fCheck, int fVerbose );
 extern void              Bmc_CexCareVerify( Aig_Man_t * p, Abc_Cex_t * pCex, Abc_Cex_t * pCexMin, int fVerbose );
 /*=== bmcCexCut.c ==========================================================*/
 extern Gia_Man_t *       Bmc_GiaTargetStates( Gia_Man_t * p, Abc_Cex_t * pCex, int iFrBeg, int iFrEnd, int fCombOnly, int fGenAll, int fAllFrames, int fVerbose );
