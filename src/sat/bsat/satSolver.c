@@ -1456,7 +1456,7 @@ void sat_solver_reducedb(sat_solver* s)
 
     s->nDBreduces++;
 
-    printf( "Calling reduceDB with %d learned clause limit.\n", s->nLearntMax );
+    //printf( "Calling reduceDB with %d learned clause limit.\n", s->nLearntMax );
     s->nLearntMax = s->nLearntStart + s->nLearntDelta * s->nDBreduces;
 //    return;
 
