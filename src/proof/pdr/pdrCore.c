@@ -706,7 +706,7 @@ int Pdr_ManBlockCube( Pdr_Man_t * p, Pdr_Set_t * pCube )
     {
         Counter++;
         pThis = Pdr_QueueHead( p );
-        if ( pThis->iFrame == 0 )
+        if ( pThis->iFrame == 0 || (p->pPars->fUseAbs && Pdr_SetIsInit(pThis->pState, -1)) )
             return 0; // SAT
         if ( pThis->iFrame > kMax ) // finished this level
             return 1;
@@ -862,7 +862,7 @@ int Pdr_ManSolveInt( Pdr_Man_t * p )
     while ( 1 )
     {
         int fRefined = 0;
-        if ( p->pPars->fUseAbs && iFrame == 3 )
+        if ( p->pPars->fUseAbs && p->vAbsFlops == NULL && iFrame == 2 )
         {
             int i, Prio;
             assert( p->vAbsFlops == NULL );
@@ -995,7 +995,7 @@ int Pdr_ManSolveInt( Pdr_Man_t * p )
                             Abc_Print( 1, "*** Clauses after frame %d:\n", iFrame );
                             Pdr_ManPrintClauses( p, 0 );
                         }
-                        if ( p->pPars->fVerbose )
+                        if ( p->pPars->fVerbose && !p->pPars->fUseAbs )
                             Pdr_ManPrintProgress( p, !p->pPars->fSolveAll, Abc_Clock() - clkStart );
                         p->pPars->iFrame = iFrame;
                         if ( !p->pPars->fSolveAll )
@@ -1043,6 +1043,8 @@ int Pdr_ManSolveInt( Pdr_Man_t * p )
                         Pdr_ManPrintProgress( p, 0, Abc_Clock() - clkStart );
                 }
             }
+            if ( fRefined )
+                break;
             if ( p->pTime4Outs )
             {
                 abctime timeSince = Abc_Clock() - clkOne;
@@ -1059,9 +1061,10 @@ int Pdr_ManSolveInt( Pdr_Man_t * p )
                 p->timeToStopOne = 0;
             }
         }
-
         if ( p->pPars->fVerbose )
             Pdr_ManPrintProgress( p, !fRefined, Abc_Clock() - clkStart );
+        if ( fRefined )
+            continue;
         // open a new timeframe
         p->nQueLim = p->pPars->nRestLimit;
         assert( pCube == NULL );

@@ -473,54 +473,21 @@ Pdr_ManPrintCex( p->pAig, vCiObjs, vCiVals, vCi2Rem );
     Pdr_ManDeriveResult( p->pAig, vCiObjs, vCiVals, vCi2Rem, vRes, vPiLits );
     assert( Vec_IntSize(vRes) > 0 );
     //p->tTsim += Abc_Clock() - clk;
+
     // move abstracted literals from flops to inputs
     if ( p->pPars->fUseAbs && p->vAbsFlops )
     {
-        int i, iLit, Used, k = 0, fAllNegs = 1;
+        int i, iLit, k = 0;
         Vec_IntForEachEntry( vRes, iLit, i )
         {
             if ( Vec_IntEntry(p->vAbsFlops, Abc_Lit2Var(iLit)) ) // used flop
-            {
                 Vec_IntWriteEntry( vRes, k++, iLit );
-                fAllNegs &= Abc_LitIsCompl(iLit);
-            }
             else
                 Vec_IntPush( vPiLits, 2*Saig_ManPiNum(p->pAig) + iLit );
         }
         Vec_IntShrink( vRes, k );
-        if ( fAllNegs ) // insert any positive literal
-        {
-            Aig_ManForEachObjVec( vCiObjs, p->pAig, pObj, i )
-            {
-                if ( !Saig_ObjIsLo( p->pAig, pObj ) )
-                    continue;
-                if ( Vec_IntEntry(vCiVals, i) )
-                {
-                    Entry = Aig_ObjCioId(pObj) - Saig_ManPiNum(p->pAig);
-                    Vec_IntPush( vRes, Abc_Var2Lit(Entry, 0) );
-                    break;
-                }
-            }
-            // add any flop that is not in the cone
-            if ( i == Vec_IntSize(vCiObjs) )
-            {
-                Vec_IntForEachEntry( p->vAbsFlops, Used, i )
-                {
-                    if ( !Used )
-                        continue;
-                    if ( Vec_IntFind( vRes, Abc_Var2Lit(i, 1) ) >= 0 )
-                        continue;
-                    Vec_IntPush( vRes, Abc_Var2Lit(i, 0) );
-                    //Vec_IntPrint( vRes );
-                    break;
-                }
-                assert( i < Vec_IntSize(p->vAbsFlops) );
-            }
-        }
     }
     pRes = Pdr_SetCreate( vRes, vPiLits );
-    assert( k == 0 || !Pdr_SetIsInit(pRes, -1) );
-
     //ZH: Disabled assertion because this invariant doesn't hold with down
     //because of the join operation which can bring in initial states
     //assert( k == 0 || !Pdr_SetIsInit(pRes, -1) );
