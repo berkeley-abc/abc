@@ -93,6 +93,9 @@ struct solver_t_ {
     vec_uint_t *stamps; /* Multipurpose stamp used to calculate LBD and
                  * clauses minimization with binary resolution */
 
+    /* Temporary data used for solving cones */
+    vec_char_t *marks;
+
     struct satoko_stats stats;
     struct satoko_opts opts;
 };
@@ -132,6 +135,18 @@ static inline unsigned var_dlevel(solver_t *s, unsigned var)
 static inline unsigned var_reason(solver_t *s, unsigned var)
 {
     return vec_uint_at(s->reasons, var);
+}
+static inline int var_mark(solver_t *s, unsigned var)
+{
+    return (int)vec_char_at(s->marks, var);
+}
+static inline void var_set_mark(solver_t *s, unsigned var)
+{
+    vec_char_assign(s->marks, var, 1);
+}
+static inline void var_clean_mark(solver_t *s, unsigned var)
+{
+    vec_char_assign(s->marks, var, 0);
 }
 //===------------------------------------------------------------------------===
 // Inline lit functions
@@ -184,6 +199,14 @@ static inline int solver_enqueue(solver_t *s, unsigned lit, unsigned reason)
     vec_uint_assign(s->reasons, var, reason);
     vec_uint_push_back(s->trail, lit);
     return SATOKO_OK;
+}
+static inline int solver_varnum(solver_t *s)
+{
+    return vec_char_size(s->assigns);
+}
+static inline int solver_has_marks(solver_t *s)
+{
+    return (int)(s->marks != NULL);
 }
 
 //===------------------------------------------------------------------------===

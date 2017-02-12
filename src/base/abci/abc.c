@@ -23410,13 +23410,13 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9Satoko( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern void Gia_ManCallSatoko( Gia_Man_t * p, satoko_opts_t * opts, int fSplit );
-    int c, fSplit = 0;
+    extern void Gia_ManSatokoCall( Gia_Man_t * p, satoko_opts_t * opts, int fSplit, int fIncrem );
+    int c, fSplit = 0, fIncrem = 0;
 
     satoko_opts_t opts;
     satoko_default_opts(&opts);
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "Csvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Csivh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -23434,6 +23434,9 @@ int Abc_CommandAbc9Satoko( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 's':
             fSplit ^= 1;
             break;
+        case 'i':
+            fIncrem ^= 1;
+            break;
         case 'v':
             opts.verbose ^= 1;
             break;
@@ -23449,13 +23452,14 @@ int Abc_CommandAbc9Satoko( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Abc_CommandAbc9Satoko(): There is no AIG.\n" );
         return 1;
     }
-    Gia_ManCallSatoko( pAbc->pGia, &opts, fSplit );
+    Gia_ManSatokoCall( pAbc->pGia, &opts, fSplit, fIncrem );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &satoko [-C num] [-svh]\n" );
+    Abc_Print( -2, "usage: &satoko [-C num] [-sivh]\n" );
     Abc_Print( -2, "\t-C num : limit on the number of conflicts [default = %d]\n", opts.conf_limit );
     Abc_Print( -2, "\t-s     : split multi-output miter into individual outputs [default = %s]\n", fSplit? "yes": "no" );
+    Abc_Print( -2, "\t-i     : split multi-output miter and solve incrementally [default = %s]\n", fIncrem? "yes": "no" );
     Abc_Print( -2, "\t-v     : prints verbose information [default = %s]\n", opts.verbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;

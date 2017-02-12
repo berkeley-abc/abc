@@ -47,7 +47,7 @@ ABC_NAMESPACE_IMPL_START
 #define CMD_AUTO_LINE_MAX 1000  // max number of chars in the string
 #define CMD_AUTO_ARG_MAX   100  // max number of arguments in the call
 
-extern int Gia_ManCallSatokoOne( Gia_Man_t * p, satoko_opts_t * opts, int iOutput );
+extern int Gia_ManSatokoCallOne( Gia_Man_t * p, satoko_opts_t * opts, int iOutput );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -92,7 +92,7 @@ int Cmd_RunAutoTunerEvalSimple( Vec_Ptr_t * vAigs, satoko_opts_t * pOpts )
     //printf( "Tuning with options: " );
     //Cmd_RunAutoTunerPrintOptions( pOpts );
     Vec_PtrForEachEntry( Gia_Man_t *, vAigs, pGia, i )
-        TotalCost += Gia_ManCallSatokoOne( pGia, pOpts, -1 );
+        TotalCost += Gia_ManSatokoCallOne( pGia, pOpts, -1 );
     return TotalCost;
 }
 
@@ -142,7 +142,7 @@ void * Cmd_RunAutoTunerEvalWorkerThread( void * pArg )
             assert( 0 );
             return NULL;
         }
-        pThData->Result = Gia_ManCallSatokoOne( pThData->pGia, pThData->pOpts, -1 );
+        pThData->Result = Gia_ManSatokoCallOne( pThData->pGia, pThData->pOpts, -1 );
         pThData->fWorking = 0;
     }
     assert( 0 );

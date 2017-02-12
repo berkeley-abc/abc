@@ -190,14 +190,18 @@ static inline unsigned solver_decide(solver_t *s)
         if (heap_size(s->var_order) == 0) {
             next_var = UNDEF;
             return UNDEF;
-        } else
-            next_var = heap_remove_min(s->var_order);
+        }
+        next_var = heap_remove_min(s->var_order);
+        if (solver_has_marks(s) && !var_mark(s, next_var))
+            next_var = UNDEF;
     }
     return var2lit(next_var, vec_char_at(s->polarity, next_var));
 }
 
 static inline void solver_new_decision(solver_t *s, unsigned lit)
 {
+    if (solver_has_marks(s) && !var_mark(s, lit2var(lit)))
+        return;
     assert(var_value(s, lit2var(lit)) == VAR_UNASSING);
     vec_uint_push_back(s->trail_lim, vec_uint_size(s->trail));
     solver_enqueue(s, lit, UNDEF);
@@ -538,6 +542,8 @@ unsigned solver_propagate(solver_t *s)
 
         n_propagations++;
         watch_list_foreach(s->bin_watches, i, p) {
+            if (solver_has_marks(s) && !var_mark(s, lit2var(i->blocker)))
+                continue;
             if (var_value(s, lit2var(i->blocker)) == VAR_UNASSING)
                 solver_enqueue(s, i->blocker, i->cref);
             else if (lit_value(s, i->blocker) == LIT_FALSE)
@@ -550,6 +556,12 @@ unsigned solver_propagate(solver_t *s)
         for (i = j = begin; i < end;) {
             struct clause *clause;
             struct watcher w;
+
+            if (solver_has_marks(s) && !var_mark(s, lit2var(i->blocker)))
+            {
+                *j++ = *i++;
+                continue;
+            }
 
             if (lit_value(s, i->blocker) == LIT_TRUE) {
                 *j++ = *i++;

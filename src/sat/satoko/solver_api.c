@@ -145,11 +145,13 @@ void satoko_destroy(solver_t *s)
     vec_uint_free(s->stack);
     vec_uint_free(s->last_dlevel);
     vec_uint_free(s->stamps);
+    if (s->marks) vec_char_free(s->marks);
     satoko_free(s);
 }
 
 void satoko_default_opts(satoko_opts_t *opts)
 {
+    memset(opts, 0, sizeof(satoko_opts_t));
     opts->verbose = 0;
     /* Limits */
     opts->conf_limit = 0;
@@ -232,6 +234,7 @@ void satoko_add_variable(solver_t *s, char sign)
     vec_uint_push_back(s->stamps, 0);
     vec_char_push_back(s->seen, 0);
     heap_insert(s->var_order, var);
+    if (s->marks) vec_char_push_back(s->marks, 0);
 }
 
 int satoko_add_clause(solver_t *s, unsigned *lits, unsigned size)
@@ -287,8 +290,8 @@ int satoko_solve(solver_t *s)
     char status = SATOKO_UNDEC;
 
     assert(s);
-    if (s->opts.verbose)
-        print_opts(s);
+    //if (s->opts.verbose)
+    //    print_opts(s);
 
     while (status == SATOKO_UNDEC) {
         status = solver_search(s);
@@ -315,6 +318,26 @@ int satoko_final_conflict(solver_t *s, unsigned *out)
 satoko_stats_t satoko_stats(satoko_t *s)
 {
     return s->stats;
+}
+
+void satoko_mark_cone(satoko_t *s, int * pvars, int nvars)
+{
+    int i;
+    if (!solver_has_marks(s))
+         s->marks = vec_char_init(solver_varnum(s), 0);
+    for (i = 0; i < nvars; i++)
+    {
+        var_set_mark(s, pvars[i]);
+        if (!heap_in_heap(s->var_order, pvars[i]))
+            heap_insert(s->var_order, pvars[i]);
+    }
+}
+void satoko_unmark_cone(satoko_t *s, int * pvars, int nvars)
+{
+    int i;
+    assert(solver_has_marks(s));
+    for (i = 0; i < nvars; i++)
+        var_clean_mark(s, pvars[i]);
 }
 
 ABC_NAMESPACE_IMPL_END
