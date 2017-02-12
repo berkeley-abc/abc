@@ -874,7 +874,7 @@ int Pdr_ManSolveInt( Pdr_Man_t * p )
                     Vec_IntWriteEntry( p->vAbsFlops, i, 1 );
         }
         //if ( p->pPars->fUseAbs && p->vAbsFlops )
-        //    printf( "Starting frame %d with %d flops.\n", iFrame, Vec_IntCountPositive(p->vAbsFlops) );
+        //    printf( "Starting frame %d with %d (%d) flops.\n", iFrame, Vec_IntCountPositive(p->vAbsFlops), Vec_IntCountPositive(p->vPrio) );
         p->nFrames = iFrame;
         assert( iFrame == Vec_PtrSize(p->vSolvers)-1 );
         p->iUseFrame = Abc_MaxInt(iFrame, 1);
@@ -1061,10 +1061,19 @@ int Pdr_ManSolveInt( Pdr_Man_t * p )
                 p->timeToStopOne = 0;
             }
         }
+        if ( p->pPars->fUseAbs && p->vAbsFlops && !fRefined )
+        {
+            int i, Used;
+            Vec_IntForEachEntry( p->vAbsFlops, Used, i )
+                if ( Used && (Vec_IntEntry(p->vPrio, i) >> p->nPrioShift) == 0 )
+                    Vec_IntWriteEntry( p->vAbsFlops, i, 0 );
+        }
         if ( p->pPars->fVerbose )
             Pdr_ManPrintProgress( p, !fRefined, Abc_Clock() - clkStart );
         if ( fRefined )
             continue;
+        //if ( p->pPars->fUseAbs && p->vAbsFlops )
+        //    printf( "Finished frame %d with %d (%d) flops.\n", iFrame, Vec_IntCountPositive(p->vAbsFlops), Vec_IntCountPositive(p->vPrio) );
         // open a new timeframe
         p->nQueLim = p->pPars->nRestLimit;
         assert( pCube == NULL );
