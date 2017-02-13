@@ -862,16 +862,16 @@ int Pdr_ManSolveInt( Pdr_Man_t * p )
     while ( 1 )
     {
         int fRefined = 0;
-        if ( p->pPars->fUseAbs && p->vAbsFlops == NULL && iFrame == 2 )
+        if ( p->pPars->fUseAbs && p->vAbsFlops == NULL && iFrame == 1 )
         {
-            int i, Prio;
+//            int i, Prio;
             assert( p->vAbsFlops == NULL );
             p->vAbsFlops  = Vec_IntStart( Saig_ManRegNum(p->pAig) );
             p->vMapFf2Ppi = Vec_IntStartFull( Saig_ManRegNum(p->pAig) );
             p->vMapPpi2Ff = Vec_IntAlloc( 100 );
-            Vec_IntForEachEntry( p->vPrio, Prio, i )
-                if ( Prio >> p->nPrioShift  )
-                    Vec_IntWriteEntry( p->vAbsFlops, i, 1 );
+//            Vec_IntForEachEntry( p->vPrio, Prio, i )
+//                if ( Prio >> p->nPrioShift  )
+//                    Vec_IntWriteEntry( p->vAbsFlops, i, 1 );
         }
         //if ( p->pPars->fUseAbs && p->vAbsFlops )
         //    printf( "Starting frame %d with %d (%d) flops.\n", iFrame, Vec_IntCountPositive(p->vAbsFlops), Vec_IntCountPositive(p->vPrio) );
