@@ -10,6 +10,7 @@
 #define satoko__watch_list_h
 
 #include "utils/mem.h"
+#include "utils/misc.h"
 
 #include "misc/util/abc_global.h"
 ABC_NAMESPACE_HEADER_START
@@ -22,6 +23,7 @@ struct watcher {
 struct watch_list {
     unsigned cap;
     unsigned size;
+    unsigned n_bin;
     struct watcher *watchers;
 };
 
@@ -40,6 +42,10 @@ struct vec_wl_t_ {
          watch < watch_list_array(vec_wl_at(vec, lit)) + watch_list_size(vec_wl_at(vec, lit)); \
      watch++)
 
+#define watch_list_foreach_bin(vec, watch, lit) \
+    for (watch = watch_list_array(vec_wl_at(vec, lit)); \
+         watch < watch_list_array(vec_wl_at(vec, lit)) + vec_wl_at(vec, lit)->n_bin; \
+     watch++)
 //===------------------------------------------------------------------------===
 // Watch list API
 //===------------------------------------------------------------------------===
@@ -60,25 +66,33 @@ static inline void watch_list_shrink(struct watch_list *wl, unsigned size)
     wl->size = size;
 }
 
-static inline void watch_list_push(struct watch_list *wl, struct watcher w)
+static inline void watch_list_grow(struct watch_list *wl)
+{
+    unsigned new_size = (wl->cap < 4) ? 4 : (wl->cap / 2) * 3;
+    struct watcher *watchers =
+        satoko_realloc(struct watcher, wl->watchers, new_size);
+    if (watchers == NULL) {
+        printf("Failed to realloc memory from %.1f MB to %.1f "
+               "MB.\n",
+               1.0 * wl->cap / (1 << 20),
+               1.0 * new_size / (1 << 20));
+        fflush(stdout);
+        return;
+    }
+    wl->watchers = watchers;
+    wl->cap = new_size;
+}
+
+static inline void watch_list_push(struct watch_list *wl, struct watcher w, unsigned is_bin)
 {
     assert(wl);
-    if (wl->size == wl->cap) {
-        unsigned new_size = (wl->cap < 4) ? 4 : (wl->cap / 2) * 3;
-        struct watcher *watchers =
-            satoko_realloc(struct watcher, wl->watchers, new_size);
-        if (watchers == NULL) {
-            printf("Failed to realloc memory from %.1f MB to %.1f "
-                   "MB.\n",
-                   1.0 * wl->cap / (1 << 20),
-                   1.0 * new_size / (1 << 20));
-            fflush(stdout);
-            return;
-        }
-        wl->watchers = watchers;
-        wl->cap = new_size;
-    }
+    if (wl->size == wl->cap)
+        watch_list_grow(wl);
     wl->watchers[wl->size++] = w;
+    if (is_bin && wl->size > wl->n_bin) {
+        stk_swap(struct watcher, wl->watchers[wl->n_bin], wl->watchers[wl->size - 1]);
+        wl->n_bin++;
+    }
 }
 
 static inline struct watcher *watch_list_array(struct watch_list *wl)
@@ -86,11 +100,15 @@ static inline struct watcher *watch_list_array(struct watch_list *wl)
     return wl->watchers;
 }
 
-static inline void watch_list_remove(struct watch_list *wl, unsigned cref)
+static inline void watch_list_remove(struct watch_list *wl, unsigned cref, unsigned is_bin)
 {
     struct watcher *watchers = watch_list_array(wl);
     unsigned i;
-    for (i = 0; watchers[i].cref != cref; i++);
+    if (is_bin) {
+        for (i = 0; watchers[i].cref != cref; i++);
+        wl->n_bin--;
+    } else
+        for (i = wl->n_bin; watchers[i].cref != cref; i++);
     assert(i < watch_list_size(wl));
     memmove((wl->watchers + i), (wl->watchers + i + 1),
             (wl->size - i - 1) * sizeof(struct watcher));

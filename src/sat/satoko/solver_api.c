@@ -89,7 +89,6 @@ solver_t * satoko_create()
     s->originals = vec_uint_alloc(0);
     s->learnts = vec_uint_alloc(0);
     s->watches = vec_wl_alloc(0);
-    s->bin_watches = vec_wl_alloc(0);
     /* Activity heuristic */
     s->var_act_inc = VAR_ACT_INIT_INC;
     s->clause_act_inc = CLAUSE_ACT_INIT_INC;
@@ -128,7 +127,6 @@ void satoko_destroy(solver_t *s)
     vec_uint_free(s->originals);
     vec_uint_free(s->learnts);
     vec_wl_free(s->watches);
-    vec_wl_free(s->bin_watches);
     vec_act_free(s->activity);
     heap_free(s->var_order);
     vec_uint_free(s->levels);
@@ -145,7 +143,8 @@ void satoko_destroy(solver_t *s)
     vec_uint_free(s->stack);
     vec_uint_free(s->last_dlevel);
     vec_uint_free(s->stamps);
-    if (s->marks) vec_char_free(s->marks);
+    if (s->marks)
+        vec_char_free(s->marks);
     satoko_free(s);
 }
 
@@ -220,13 +219,9 @@ int satoko_simplify(solver_t * s)
 void satoko_add_variable(solver_t *s, char sign)
 {
     unsigned var = vec_act_size(s->activity);
-    vec_wl_push(s->bin_watches);
-    vec_wl_push(s->bin_watches);
     vec_wl_push(s->watches);
     vec_wl_push(s->watches);
-    /* Variable activity are initialized with the lowest possible value
-     * which in satoko double implementation (SDBL) is the constant 1 */
-    vec_act_push_back(s->activity, SDBL_CONST1);
+    vec_act_push_back(s->activity, 0);
     vec_uint_push_back(s->levels, 0);
     vec_char_push_back(s->assigns, VAR_UNASSING);
     vec_char_push_back(s->polarity, sign);
@@ -320,23 +315,23 @@ satoko_stats_t satoko_stats(satoko_t *s)
     return s->stats;
 }
 
-void satoko_mark_cone(satoko_t *s, int * pvars, int nvars)
+void satoko_mark_cone(satoko_t *s, int * pvars, int n_vars)
 {
     int i;
     if (!solver_has_marks(s))
-         s->marks = vec_char_init(solver_varnum(s), 0);
-    for (i = 0; i < nvars; i++)
-    {
+        s->marks = vec_char_init(solver_varnum(s), 0);
+    for (i = 0; i < n_vars; i++) {
         var_set_mark(s, pvars[i]);
         if (!heap_in_heap(s->var_order, pvars[i]))
             heap_insert(s->var_order, pvars[i]);
     }
 }
-void satoko_unmark_cone(satoko_t *s, int * pvars, int nvars)
+
+void satoko_unmark_cone(satoko_t *s, int *pvars, int n_vars)
 {
     int i;
     assert(solver_has_marks(s));
-    for (i = 0; i < nvars; i++)
+    for (i = 0; i < n_vars; i++)
         var_clean_mark(s, pvars[i]);
 }
 

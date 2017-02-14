@@ -49,7 +49,6 @@ struct solver_t_ {
     vec_uint_t *learnts;
     vec_uint_t *originals;
     vec_wl_t *watches;
-    vec_wl_t *bin_watches;
 
     /* Activity heuristic */
     act_t var_act_inc; /* Amount to bump next variable with. */
@@ -200,6 +199,7 @@ static inline int solver_enqueue(solver_t *s, unsigned lit, unsigned reason)
     vec_uint_push_back(s->trail, lit);
     return SATOKO_OK;
 }
+
 static inline int solver_varnum(solver_t *s)
 {
     return vec_char_size(s->assigns);
@@ -227,25 +227,15 @@ static inline void clause_watch(solver_t *s, unsigned cref)
     w2.cref = cref;
     w1.blocker = clause->data[1].lit;
     w2.blocker = clause->data[0].lit;
-    if (clause->size == 2) {
-        watch_list_push(vec_wl_at(s->bin_watches, lit_neg(clause->data[0].lit)), w1);
-        watch_list_push(vec_wl_at(s->bin_watches, lit_neg(clause->data[1].lit)), w2);
-    } else {
-        watch_list_push(vec_wl_at(s->watches, lit_neg(clause->data[0].lit)), w1);
-        watch_list_push(vec_wl_at(s->watches, lit_neg(clause->data[1].lit)), w2);
-    }
+    watch_list_push(vec_wl_at(s->watches, lit_neg(clause->data[0].lit)), w1, (clause->size == 2));
+    watch_list_push(vec_wl_at(s->watches, lit_neg(clause->data[1].lit)), w2, (clause->size == 2));
 }
 
 static inline void clause_unwatch(solver_t *s, unsigned cref)
 {
     struct clause *clause = cdb_handler(s->all_clauses, cref);
-    if (clause->size == 2) {
-        watch_list_remove(vec_wl_at(s->bin_watches, lit_neg(clause->data[0].lit)), cref);
-        watch_list_remove(vec_wl_at(s->bin_watches, lit_neg(clause->data[1].lit)), cref);
-    } else {
-        watch_list_remove(vec_wl_at(s->watches, lit_neg(clause->data[0].lit)), cref);
-        watch_list_remove(vec_wl_at(s->watches, lit_neg(clause->data[1].lit)), cref);
-    }
+    watch_list_remove(vec_wl_at(s->watches, lit_neg(clause->data[0].lit)), cref, (clause->size == 2));
+    watch_list_remove(vec_wl_at(s->watches, lit_neg(clause->data[1].lit)), cref, (clause->size == 2));
 }
 
 ABC_NAMESPACE_HEADER_END
