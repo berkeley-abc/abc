@@ -2333,6 +2333,52 @@ void Extra_zddDumpPla( DdManager * dd, DdNode * F, int nVars, char * pFileName )
     ABC_FREE( pCube );
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Constructing ZDD of a graph.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Extra_GraphExperiment()
+{
+    int Edges[5][5] = { 
+        {1, 3, 4}, 
+        {1, 5}, 
+        {2, 3, 5}, 
+        {2, 4} 
+    };
+    int e, n;
+
+    DdManager * dd = Cudd_Init( 0, 6, CUDD_UNIQUE_SLOTS, CUDD_CACHE_SLOTS, 0 );
+
+    // create the edges
+    DdNode * zGraph, * zEdge, * zVar, * zTemp;
+    zGraph = DD_ZERO(dd);                                                      Cudd_Ref( zGraph );
+    for ( e = 0; Edges[e][0]; e++ )
+    {
+        zEdge = DD_ONE(dd);                                                    Cudd_Ref( zEdge );
+        for ( n = 0; Edges[e][n]; n++ )
+        {
+            zVar = cuddZddGetNode( dd, Edges[e][n], DD_ONE(dd), DD_ZERO(dd) ); Cudd_Ref( zVar );
+            zEdge = Cudd_zddUnateProduct( dd, zTemp = zEdge, zVar );           Cudd_Ref( zEdge );
+            Cudd_RecursiveDerefZdd( dd, zTemp );
+            Cudd_RecursiveDerefZdd( dd, zVar );
+        }
+        zGraph = Cudd_zddUnion( dd, zTemp = zGraph, zEdge );                   Cudd_Ref( zGraph );
+        Cudd_RecursiveDerefZdd( dd, zTemp );
+        Cudd_RecursiveDerefZdd( dd, zEdge );
+    }
+
+    Cudd_zddPrintMinterm( dd, zGraph );
+
+    Cudd_RecursiveDerefZdd( dd, zGraph );
+    Cudd_Quit(dd);
+}
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
