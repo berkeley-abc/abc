@@ -158,6 +158,7 @@ struct Wlc_Ntk_t_
     Vec_Int_t              vCopies;            // object first bits
     Vec_Int_t              vBits;              // object mapping into AIG nodes
     Vec_Int_t              vLevels;            // object levels
+    Vec_Int_t              vRefs;              // object reference counters
 };
 
 typedef struct Wlc_Par_t_ Wlc_Par_t;
@@ -167,7 +168,10 @@ struct Wlc_Par_t_
     int                    nBitsMul;           // multiplier bit-widht 
     int                    nBitsMux;           // MUX bit-width
     int                    nBitsFlop;          // flop bit-width
-    int                    fVerbose;           // verbose output`
+    int                    nIterMax;           // the max number of iterations
+    int                    fXorOutput;         // XOR outputs of word-level miter
+    int                    fVerbose;           // verbose output
+    int                    fPdrVerbose;        // verbose output
 };
 
 static inline int          Wlc_NtkObjNum( Wlc_Ntk_t * p )                           { return p->iObj - 1;                                                      }
@@ -272,19 +276,15 @@ static inline Wlc_Obj_t *  Wlc_ObjCo2PoFo( Wlc_Ntk_t * p, int iCoId )           
 ////////////////////////////////////////////////////////////////////////
 
 /*=== wlcAbs.c ========================================================*/
-extern int            Wlc_NtkPairIsUifable( Wlc_Ntk_t * p, Wlc_Obj_t * pObj, Wlc_Obj_t * pObj2 );
-extern Vec_Int_t *    Wlc_NtkCollectMultipliers( Wlc_Ntk_t * p );
-extern Vec_Int_t *    Wlc_NtkFindUifableMultiplierPairs( Wlc_Ntk_t * p );
-extern Wlc_Ntk_t *    Wlc_NtkAbstractNodes( Wlc_Ntk_t * pNtk, Vec_Int_t * vNodes );
-extern Wlc_Ntk_t *    Wlc_NtkUifNodePairs( Wlc_Ntk_t * pNtk, Vec_Int_t * vPairs );
+extern int            Wlc_NtkAbsCore( Wlc_Ntk_t * p, Wlc_Par_t * pPars );
 /*=== wlcAbs2.c ========================================================*/
-extern void           Wlc_ManSetDefaultParams( Wlc_Par_t * pPars );
-extern Wlc_Ntk_t *    Wlc_NtkAbs( Wlc_Ntk_t * p, Wlc_Par_t * pPars );
+extern int            Wlc_NtkAbsCore2( Wlc_Ntk_t * p, Wlc_Par_t * pPars );
 /*=== wlcBlast.c ========================================================*/
 extern Gia_Man_t *    Wlc_NtkBitBlast( Wlc_Ntk_t * p, Vec_Int_t * vBoxIds, int iOutput, int nRange, int fGiaSimple, int fAddOutputs, int fBooth );
 /*=== wlcCom.c ========================================================*/
 extern void           Wlc_SetNtk( Abc_Frame_t * pAbc, Wlc_Ntk_t * pNtk );
 /*=== wlcNtk.c ========================================================*/
+extern void           Wlc_ManSetDefaultParams( Wlc_Par_t * pPars );
 extern char *         Wlc_ObjTypeName( Wlc_Obj_t * p );
 extern Wlc_Ntk_t *    Wlc_NtkAlloc( char * pName, int nObjsAlloc );
 extern int            Wlc_ObjAlloc( Wlc_Ntk_t * p, int Type, int Signed, int End, int Beg );
@@ -311,6 +311,9 @@ extern void           Wlc_NtkMarkCone( Wlc_Ntk_t * p, int iCoId, int Range, int 
 extern void           Wlc_NtkProfileCones( Wlc_Ntk_t * p );
 extern Wlc_Ntk_t *    Wlc_NtkDupSingleNodes( Wlc_Ntk_t * p );
 extern void           Wlc_NtkShortNames( Wlc_Ntk_t * p );
+extern int            Wlc_NtkDcFlopNum( Wlc_Ntk_t * p );
+extern void           Wlc_NtkSetRefs( Wlc_Ntk_t * p );
+extern int            Wlc_NtkCountObjBits( Wlc_Ntk_t * p, Vec_Int_t * vPisNew );
 /*=== wlcReadSmt.c ========================================================*/
 extern Wlc_Ntk_t *    Wlc_ReadSmtBuffer( char * pFileName, char * pBuffer, char * pLimit, int fOldParser, int fPrintTree );
 extern Wlc_Ntk_t *    Wlc_ReadSmt( char * pFileName, int fOldParser, int fPrintTree );
@@ -321,6 +324,12 @@ extern void           Wlc_NtkDeleteSim( Vec_Ptr_t * p );
 extern int            Wlc_StdinProcessSmt( Abc_Frame_t * pAbc, char * pCmd );
 /*=== wlcReadVer.c ========================================================*/
 extern Wlc_Ntk_t *    Wlc_ReadVer( char * pFileName, char * pStr );
+/*=== wlcUif.c ========================================================*/
+extern int            Wlc_NtkPairIsUifable( Wlc_Ntk_t * p, Wlc_Obj_t * pObj, Wlc_Obj_t * pObj2 );
+extern Vec_Int_t *    Wlc_NtkCollectMultipliers( Wlc_Ntk_t * p );
+extern Vec_Int_t *    Wlc_NtkFindUifableMultiplierPairs( Wlc_Ntk_t * p );
+extern Wlc_Ntk_t *    Wlc_NtkAbstractNodes( Wlc_Ntk_t * pNtk, Vec_Int_t * vNodes );
+extern Wlc_Ntk_t *    Wlc_NtkUifNodePairs( Wlc_Ntk_t * pNtk, Vec_Int_t * vPairs );
 /*=== wlcWin.c =============================================================*/
 extern void           Wlc_WinProfileArith( Wlc_Ntk_t * p );
 /*=== wlcWriteVer.c ========================================================*/

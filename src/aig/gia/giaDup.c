@@ -2171,6 +2171,43 @@ Gia_Man_t * Gia_ManDupDfsCiMap( Gia_Man_t * p, int * pCi2Lit, Vec_Int_t * vLits 
 
 /**Function*************************************************************
 
+  Synopsis    [Permute inputs.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Gia_Man_t * Gia_ManPermuteInputs( Gia_Man_t * p, int nPpis, int nExtra )
+{
+    Gia_Man_t * pNew;
+    Gia_Obj_t * pObj;
+    int i;
+    pNew = Gia_ManStart( Gia_ManObjNum(p) );
+    pNew->pName = Abc_UtilStrsav( p->pName );
+    pNew->pSpec = Abc_UtilStrsav( p->pSpec );
+    Gia_ManConst0(p)->Value = 0;
+    for ( i = 0; i < Gia_ManPiNum(p) - nPpis - nExtra; i++ ) // regular PIs
+        Gia_ManCi(p, i)->Value = Gia_ManAppendCi( pNew );
+    for ( i = Gia_ManPiNum(p) - nExtra; i < Gia_ManPiNum(p); i++ ) // extra PIs due to DC values
+        Gia_ManCi(p, i)->Value = Gia_ManAppendCi( pNew );
+    for ( i = Gia_ManPiNum(p) - nPpis - nExtra; i < Gia_ManPiNum(p) - nExtra; i++ ) // pseudo-PIs
+        Gia_ManCi(p, i)->Value = Gia_ManAppendCi( pNew );
+    for ( i = Gia_ManPiNum(p); i < Gia_ManCiNum(p); i++ ) // flop outputs
+        Gia_ManCi(p, i)->Value = Gia_ManAppendCi( pNew );
+    assert( Gia_ManCiNum(pNew) == Gia_ManCiNum(p) );
+    Gia_ManForEachAnd( p, pObj, i )
+        pObj->Value = Gia_ManAppendAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+    Gia_ManForEachCo( p, pObj, i )
+        pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
+    Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
+    return pNew;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Duplicates AIG in the DFS order.]
 
   Description []

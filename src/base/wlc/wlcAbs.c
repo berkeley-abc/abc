@@ -1,6 +1,6 @@
 /**CFile****************************************************************
 
-  FileName    [wlcAbs.c]
+  FileName    [wlcAbs1.c]
 
   SystemName  [ABC: Logic synthesis and verification system.]
 
@@ -14,11 +14,14 @@
 
   Date        [Ver. 1.0. Started - August 22, 2014.]
 
-  Revision    [$Id: wlcAbs.c,v 1.00 2014/09/12 00:00:00 alanmi Exp $]
+  Revision    [$Id: wlcAbs1.c,v 1.00 2014/09/12 00:00:00 alanmi Exp $]
 
 ***********************************************************************/
 
 #include "wlc.h"
+#include "proof/pdr/pdr.h"
+#include "aig/gia/giaAig.h"
+#include "sat/bmc/bmc.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -32,253 +35,370 @@ ABC_NAMESPACE_IMPL_START
 
 /**Function*************************************************************
 
-  Synopsis    [Check if two objects have the same input/output signatures.]
+  Synopsis    [Mark operators that meet the abstraction criteria.]
 
-  Description []
+  Description [This procedure returns the array of objects (vLeaves) that 
+  should be abstracted because of their high bit-width. It uses input array (vUnmark)
+  to not abstract those objects that have been refined in the previous rounds.]
                
   SideEffects []
 
   SeeAlso     []
 
 ***********************************************************************/
-int Wlc_NtkPairIsUifable( Wlc_Ntk_t * p, Wlc_Obj_t * pObj, Wlc_Obj_t * pObj2 )
+static Vec_Bit_t * Wlc_NtkAbsMarkOpers( Wlc_Ntk_t * p, Wlc_Par_t * pPars, Vec_Bit_t * vUnmark, int fVerbose )
 {
-    Wlc_Obj_t * pFanin, * pFanin2;  int k;
-    if ( Wlc_ObjRange(pObj) != Wlc_ObjRange(pObj2) )
-        return 0;
-    if ( Wlc_ObjIsSigned(pObj) != Wlc_ObjIsSigned(pObj2) )
-        return 0;
-    if ( Wlc_ObjFaninNum(pObj) != Wlc_ObjFaninNum(pObj2) )
-        return 0;
-    for ( k = 0; k < Wlc_ObjFaninNum(pObj); k++ )
-    {
-        pFanin = Wlc_ObjFanin(p, pObj, k);
-        pFanin2 = Wlc_ObjFanin(p, pObj2, k);
-        if ( Wlc_ObjRange(pFanin) != Wlc_ObjRange(pFanin2) )
-            return 0;
-        if ( Wlc_ObjIsSigned(pFanin) != Wlc_ObjIsSigned(pFanin2) )
-            return 0;
-    }
-    return 1;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Collect IDs of the multipliers.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-Vec_Int_t * Wlc_NtkCollectMultipliers( Wlc_Ntk_t * p )
-{
-    Wlc_Obj_t * pObj;  int i;
-    Vec_Int_t * vBoxIds = Vec_IntAlloc( 100 );
+    Vec_Bit_t * vLeaves = Vec_BitStart( Wlc_NtkObjNumMax(p) );
+    Wlc_Obj_t * pObj; int i, Count[4] = {0};
     Wlc_NtkForEachObj( p, pObj, i )
-        if ( pObj->Type == WLC_OBJ_ARI_MULTI )
-            Vec_IntPush( vBoxIds, i );
-    if ( Vec_IntSize( vBoxIds ) > 0 )
-        return vBoxIds;
-    Vec_IntFree( vBoxIds );
-    return NULL;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Returns all pairs of uifable multipliers.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-Vec_Int_t * Wlc_NtkFindUifableMultiplierPairs( Wlc_Ntk_t * p )
-{
-    Vec_Int_t * vMultis = Wlc_NtkCollectMultipliers( p );
-    Vec_Int_t * vPairs = Vec_IntAlloc( 2 );
-    Wlc_Obj_t * pObj, * pObj2;  int i, k;
-    // iterate through unique pairs
-    Wlc_NtkForEachObjVec( vMultis, p, pObj, i )
-        Wlc_NtkForEachObjVec( vMultis, p, pObj2, k )
+    {
+        if ( vUnmark && Vec_BitEntry(vUnmark, i) ) // not allow this object to be abstracted away
+            continue;
+        if ( pObj->Type == WLC_OBJ_ARI_ADD || pObj->Type == WLC_OBJ_ARI_SUB || pObj->Type == WLC_OBJ_ARI_MINUS )
         {
-            if ( k == i )  
-                break;
-            if ( Wlc_NtkPairIsUifable( p, pObj, pObj2 ) )
-            {
-                Vec_IntPush( vPairs, Wlc_ObjId(p, pObj) );
-                Vec_IntPush( vPairs, Wlc_ObjId(p, pObj2) );
-            }
+            if ( Wlc_ObjRange(pObj) >= pPars->nBitsAdd )
+                Vec_BitWriteEntry( vLeaves, Wlc_ObjId(p, pObj), 1 ), Count[0]++;
+            continue;
         }
-    Vec_IntFree( vMultis );
-    if ( Vec_IntSize( vPairs ) > 0 )
-        return vPairs;
-    Vec_IntFree( vPairs );
-    return NULL;
+        if ( pObj->Type == WLC_OBJ_ARI_MULTI || pObj->Type == WLC_OBJ_ARI_DIVIDE || pObj->Type == WLC_OBJ_ARI_REM || pObj->Type == WLC_OBJ_ARI_MODULUS )
+        {
+            if ( Wlc_ObjRange(pObj) >= pPars->nBitsMul )
+                Vec_BitWriteEntry( vLeaves, Wlc_ObjId(p, pObj), 1 ), Count[1]++;
+            continue;
+        }
+        if ( pObj->Type == WLC_OBJ_MUX )
+        {
+            if ( Wlc_ObjRange(pObj) >= pPars->nBitsMux )
+                Vec_BitWriteEntry( vLeaves, Wlc_ObjId(p, pObj), 1 ), Count[2]++;
+            continue;
+        }
+        if ( Wlc_ObjIsCi(pObj) && !Wlc_ObjIsPi(pObj) )
+        {
+            if ( Wlc_ObjRange(pObj) >= pPars->nBitsFlop )
+                Vec_BitWriteEntry( vLeaves, Wlc_ObjId(p, pObj), 1 ), Count[3]++;
+            continue;
+        }
+    }
+    if ( fVerbose )
+        printf( "Abstraction engine marked %d adds/subs, %d muls/divs, %d muxes, and %d flops to be abstracted away.\n", Count[0], Count[1], Count[2], Count[3] );
+    return vLeaves;
 }
-
-
 
 /**Function*************************************************************
 
-  Synopsis    [Abstracts nodes by replacing their outputs with new PIs.]
+  Synopsis    [Marks nodes to be included in the abstracted network.]
 
-  Description [If array is NULL, abstract all multipliers.]
+  Description [Marks all objects that will be included in the abstracted model.  
+  Stops at the objects (vLeaves) that are abstracted away. Returns three arrays:
+  a subset of original PIs (vPisOld), a subset of pseudo-PIs (vPisNew) and the
+  set of flops present as flops in the abstracted network.]
                
   SideEffects []
 
   SeeAlso     []
 
 ***********************************************************************/
-Wlc_Ntk_t * Wlc_NtkAbstractNodes( Wlc_Ntk_t * p, Vec_Int_t * vNodesInit )
+static void Wlc_NtkAbsMarkNodes_rec( Wlc_Ntk_t * p, Wlc_Obj_t * pObj, Vec_Bit_t * vLeaves, Vec_Int_t * vPisOld, Vec_Int_t * vPisNew, Vec_Int_t * vFlops )
 {
-    Vec_Int_t * vNodes = vNodesInit;
-    Wlc_Ntk_t * pNew;
+    int i, iFanin;
+    if ( pObj->Mark )
+        return;
+    pObj->Mark = 1;
+    if ( Vec_BitEntry(vLeaves, Wlc_ObjId(p, pObj)) )
+    {
+        assert( !Wlc_ObjIsPi(pObj) );
+        Vec_IntPush( vPisNew, Wlc_ObjId(p, pObj) );
+        return;
+    }
+    if ( Wlc_ObjIsCi(pObj) )
+    {
+        if ( Wlc_ObjIsPi(pObj) )
+            Vec_IntPush( vPisOld, Wlc_ObjId(p, pObj) );
+        else
+            Vec_IntPush( vFlops, Wlc_ObjId(p, pObj) );
+        return;
+    }
+    Wlc_ObjForEachFanin( pObj, iFanin, i )
+        Wlc_NtkAbsMarkNodes_rec( p, Wlc_NtkObj(p, iFanin), vLeaves, vPisOld, vPisNew, vFlops );
+}
+static void Wlc_NtkAbsMarkNodes( Wlc_Ntk_t * p, Vec_Bit_t * vLeaves, Vec_Int_t * vPisOld, Vec_Int_t * vPisNew, Vec_Int_t * vFlops )
+{
     Wlc_Obj_t * pObj;
-    int i, k, iObj, iFanin;
-    // get multipliers if not given
-    if ( vNodes == NULL )
-        vNodes = Wlc_NtkCollectMultipliers( p );
-    if ( vNodes == NULL )
-        return NULL;
-    // mark nodes
-    Wlc_NtkForEachObjVec( vNodes, p, pObj, i )
-        pObj->Mark = 1;
-    // iterate through the nodes in the DFS order
-    Wlc_NtkCleanCopy( p );
+    int i, Count = 0;
+    Wlc_NtkCleanMarks( p );
+    Wlc_NtkForEachCo( p, pObj, i )
+        Wlc_NtkAbsMarkNodes_rec( p, pObj, vLeaves, vPisOld, vPisNew, vFlops );
+    Wlc_NtkForEachObjVec( vFlops, p, pObj, i )
+        Wlc_NtkAbsMarkNodes_rec( p, Wlc_ObjFo2Fi(p, pObj), vLeaves, vPisOld, vPisNew, vFlops );
     Wlc_NtkForEachObj( p, pObj, i )
-    {
-        if ( i == Vec_IntSize(&p->vCopies) )
-            break;
-        if ( pObj->Mark ) {
-            // clean
-            pObj->Mark = 0;
-            // add fresh PI with the same number of bits
-            iObj = Wlc_ObjAlloc( p, WLC_OBJ_PI, Wlc_ObjIsSigned(pObj), Wlc_ObjRange(pObj) - 1, 0 );
-        }
-        else {
-            // update fanins 
-            Wlc_ObjForEachFanin( pObj, iFanin, k )
-                Wlc_ObjFanins(pObj)[k] = Wlc_ObjCopy(p, iFanin);
-            // node to remain
-            iObj = i;
-        }
-        Wlc_ObjSetCopy( p, i, iObj );
-    }
-    // POs do not change in this procedure
-    if ( vNodes != vNodesInit )
-        Vec_IntFree( vNodes );
-    // reconstruct topological order
-    pNew = Wlc_NtkDupDfs( p, 0, 1 );
-    return pNew;
+        Count += pObj->Mark;
+//    printf( "Collected %d old PIs, %d new PIs, %d flops, and %d other objects.\n", 
+//        Vec_IntSize(vPisOld), Vec_IntSize(vPisNew), Vec_IntSize(vFlops), 
+//        Count - Vec_IntSize(vPisOld) - Vec_IntSize(vPisNew) - Vec_IntSize(vFlops) );
+    Vec_IntSort( vPisOld, 0 );
+    Vec_IntSort( vPisNew, 0 );
+    Vec_IntSort( vFlops, 0 );
+    Wlc_NtkCleanMarks( p );
 }
 
 /**Function*************************************************************
 
-  Synopsis    [Adds UIF constraints to node pairs and updates POs.]
+  Synopsis    [Derive word-level abstracted model based on the parameter values.]
 
-  Description []
+  Description [Retuns the word-level abstracted network and the set of pseudo-PIs 
+  (vPisNew), which were created during abstraction. If the abstraction is
+  satisfiable, some of the pseudo-PIs will be un-abstracted. These pseudo-PIs
+  and their MFFC cones will be listed in the array (vUnmark), which will
+  force the abstraction to not stop at these pseudo-PIs in the future.]
                
   SideEffects []
 
   SeeAlso     []
 
 ***********************************************************************/
-Wlc_Ntk_t * Wlc_NtkUifNodePairs( Wlc_Ntk_t * p, Vec_Int_t * vPairsInit )
+static Wlc_Ntk_t * Wlc_NtkAbs( Wlc_Ntk_t * p, Wlc_Par_t * pPars, Vec_Bit_t * vUnmark, Vec_Int_t ** pvPisNew, int fVerbose )
 {
-    Vec_Int_t * vPairs = vPairsInit;
-    Wlc_Ntk_t * pNew;
-    Wlc_Obj_t * pObj, * pObj2;
-    Vec_Int_t * vUifConstrs, * vCompares, * vFanins;
-    int i, k, iObj, iObj2, iObjNew, iObjNew2;
-    int iFanin, iFanin2, iFaninNew;
-    // get multiplier pairs if not given
-    if ( vPairs == NULL )
-        vPairs = Wlc_NtkFindUifableMultiplierPairs( p );
-    if ( vPairs == NULL )
-        return NULL;
-    // sanity checks
-    assert( Vec_IntSize(vPairs) > 0 && Vec_IntSize(vPairs) % 2 == 0 );
-    // iterate through node pairs
-    vFanins = Vec_IntAlloc( 100 );
-    vCompares = Vec_IntAlloc( 100 );
-    vUifConstrs = Vec_IntAlloc( 100 );
-    Vec_IntForEachEntryDouble( vPairs, iObj, iObj2, i )
-    {
-        // get two nodes
-        pObj  = Wlc_NtkObj( p, iObj );
-        pObj2 = Wlc_NtkObj( p, iObj2 );
-        assert( Wlc_NtkPairIsUifable(p, pObj, pObj2) );
-        // create fanin comparator nodes
-        Vec_IntClear( vCompares );
-        Wlc_ObjForEachFanin( pObj, iFanin, k )
-        {
-            iFanin2 = Wlc_ObjFaninId( pObj2, k );
-            Vec_IntFillTwo( vFanins, 2, iFanin, iFanin2 );
-            iFaninNew = Wlc_ObjCreate( p, WLC_OBJ_COMP_NOTEQU, 0, 0, 0, vFanins );
-            Vec_IntPush( vCompares, iFaninNew );
-            // note that a pointer to Wlc_Obj_t (for example, pObj) can be invalidated after a call to 
-            // Wlc_ObjCreate() due to a possible realloc of the internal array of objects...
-            pObj = Wlc_NtkObj( p, iObj );
-        }
-        // concatenate fanin comparators
-        iObjNew = Wlc_ObjCreate( p, WLC_OBJ_BIT_CONCAT, 0, Vec_IntSize(vCompares) - 1, 0, vCompares );
-        // create reduction-OR node
-        Vec_IntFill( vFanins, 1, iObjNew );
-        iObjNew = Wlc_ObjCreate( p, WLC_OBJ_REDUCT_OR, 0, 0, 0, vFanins );
-        // craete output comparator node
-        Vec_IntFillTwo( vFanins, 2, iObj, iObj2 );
-        iObjNew2 = Wlc_ObjCreate( p, WLC_OBJ_COMP_EQU, 0, 0, 0, vFanins );
-        // create implication node (iObjNew is already complemented above)
-        Vec_IntFillTwo( vFanins, 2, iObjNew, iObjNew2 );
-        iObjNew = Wlc_ObjCreate( p, WLC_OBJ_LOGIC_OR, 0, 0, 0, vFanins );
-        // save the constraint
-        Vec_IntPush( vUifConstrs, iObjNew );
-    }
-    // derive the AND of the UIF contraints
-    assert( Vec_IntSize(vUifConstrs) > 0 );
-    if ( Vec_IntSize(vUifConstrs) == 1 )
-        iObjNew = Vec_IntEntry( vUifConstrs, 0 );
+    Wlc_Ntk_t * pNtkNew = NULL;
+    Vec_Int_t * vPisOld = Vec_IntAlloc( 100 );
+    Vec_Int_t * vPisNew = Vec_IntAlloc( 100 );
+    Vec_Int_t * vFlops  = Vec_IntAlloc( 100 );
+    Vec_Bit_t * vLeaves = Wlc_NtkAbsMarkOpers( p, pPars, vUnmark, fVerbose );
+    Wlc_NtkAbsMarkNodes( p, vLeaves, vPisOld, vPisNew, vFlops );
+    Vec_BitFree( vLeaves );
+    pNtkNew = Wlc_NtkDupDfsAbs( p, vPisOld, vPisNew, vFlops );
+    Vec_IntFree( vPisOld );
+    Vec_IntFree( vFlops );
+    if ( pvPisNew )
+        *pvPisNew = vPisNew;
     else
+        Vec_IntFree( vPisNew );
+    return pNtkNew;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Find what objects need to be un-abstracted.]
+
+  Description [Returns a subset of pseudo-PIs (vPisNew), which will be 
+  prevented from being abstracted in the future rounds of abstraction.
+  The AIG manager (pGia) is a bit-level view of the abstracted model.
+  The counter-example (pCex) is used to find waht PPIs to refine.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static Vec_Int_t * Wlc_NtkAbsRefinement( Wlc_Ntk_t * p, Gia_Man_t * pGia, Abc_Cex_t * pCex, Vec_Int_t * vPisNew )
+{
+    Vec_Int_t * vRefine = Vec_IntAlloc( 100 );
+    Abc_Cex_t * pCexCare;
+    Wlc_Obj_t * pObj; 
+    // count the number of bit-level PPIs and map them into word-level objects they were derived from
+    int f, i, b, nRealPis, nPpiBits = 0;
+    Vec_Int_t * vMap = Vec_IntStartFull( pCex->nPis );
+    Wlc_NtkForEachObjVec( vPisNew, p, pObj, i )
+        for ( b = 0; b < Wlc_ObjRange(pObj); b++ )
+            Vec_IntWriteEntry( vMap, nPpiBits++, Wlc_ObjId(p, pObj) );
+    // since PPIs are ordered last, the previous bits are real PIs
+    nRealPis = pCex->nPis - nPpiBits;
+    // find the care-set
+    pCexCare = Bmc_CexCareMinimizeAig( pGia, nRealPis, pCex, 1, 0, 0 );
+    assert( pCexCare->nPis == pCex->nPis );
+    // detect care PPIs
+    for ( f = 0; f <= pCexCare->iFrame; f++ )
+        for ( i = nRealPis; i < pCexCare->nPis; i++ )
+            if ( Abc_InfoHasBit(pCexCare->pData, pCexCare->nRegs + pCexCare->nPis * f + i) )
+                Vec_IntPushUniqueOrder( vRefine, Vec_IntEntry(vMap, i-nRealPis) );
+    Abc_CexFree( pCexCare );
+    Vec_IntFree( vMap );
+    if ( Vec_IntSize(vRefine) == 0 )// real CEX
+        Vec_IntFreeP( &vRefine );
+    return vRefine;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Mark MFFC cones of the un-abstracted objects.]
+
+  Description [The MFFC cones of the objects in vRefine are traversed
+  and all their nodes are marked in vUnmark.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static int Wlc_NtkNodeDeref_rec( Wlc_Ntk_t * p, Wlc_Obj_t * pNode, Vec_Bit_t * vUnmark )
+{
+    int i, Fanin, Counter = 1;
+    if ( Wlc_ObjIsCi(pNode) )
+        return 0;
+    Vec_BitWriteEntry( vUnmark, Wlc_ObjId(p, pNode), 1 );
+    Wlc_ObjForEachFanin( pNode, Fanin, i )
     {
-        // concatenate
-        iObjNew = Wlc_ObjCreate( p, WLC_OBJ_BIT_CONCAT, 0, Vec_IntSize(vUifConstrs) - 1, 0, vUifConstrs );
-        // create reduction-AND node
-        Vec_IntFill( vFanins, 1, iObjNew );
-        iObjNew = Wlc_ObjCreate( p, WLC_OBJ_REDUCT_AND, 0, 0, 0, vFanins );
+        Vec_IntAddToEntry( &p->vRefs, Fanin, -1 );
+        if ( Vec_IntEntry(&p->vRefs, Fanin) == 0 )
+            Counter += Wlc_NtkNodeDeref_rec( p, Wlc_NtkObj(p, Fanin), vUnmark );
     }
-    // update each PO to point to the new node
-    Wlc_NtkForEachPo( p, pObj, i )
+    return Counter;
+}
+static int Wlc_NtkNodeRef_rec( Wlc_Ntk_t * p, Wlc_Obj_t * pNode )
+{
+    int i, Fanin, Counter = 1;
+    if ( Wlc_ObjIsCi(pNode) )
+        return 0;
+    Wlc_ObjForEachFanin( pNode, Fanin, i )
     {
-        iObj = Wlc_ObjId(p, pObj);
-        Vec_IntFillTwo( vFanins, 2, iObj, iObjNew );
-        iObjNew = Wlc_ObjCreate( p, WLC_OBJ_LOGIC_AND, 0, 0, 0, vFanins );
-        // note that a pointer to Wlc_Obj_t (for example, pObj) can be invalidated after a call to 
-        // Wlc_ObjCreate() due to a possible realloc of the internal array of objects...
-        pObj = Wlc_NtkObj( p, iObj );
-        // update PO/CO arrays
-        assert( Vec_IntEntry(&p->vPos, i) == iObj );
-        assert( Vec_IntEntry(&p->vCos, i) == iObj );
-        Vec_IntWriteEntry( &p->vPos, i, iObjNew );
-        Vec_IntWriteEntry( &p->vCos, i, iObjNew );
-        // transfer the PO attribute
-        Wlc_NtkObj(p, iObjNew)->fIsPo = 1;
-        assert( pObj->fIsPo );
-        pObj->fIsPo = 0;
+        if ( Vec_IntEntry(&p->vRefs, Fanin) == 0 )
+            Counter += Wlc_NtkNodeRef_rec( p, Wlc_NtkObj(p, Fanin) );
+        Vec_IntAddToEntry( &p->vRefs, Fanin, 1 );
     }
-    // cleanup
-    Vec_IntFree( vUifConstrs );
-    Vec_IntFree( vCompares );
-    Vec_IntFree( vFanins );
-    if ( vPairs != vPairsInit )
-        Vec_IntFree( vPairs );
-    // reconstruct topological order
-    pNew = Wlc_NtkDupDfs( p, 0, 1 );
-    return pNew;
+    return Counter;
+}
+static int Wlc_NtkMarkMffc( Wlc_Ntk_t * p, Wlc_Obj_t * pNode, Vec_Bit_t * vUnmark )
+{
+    int Count1, Count2;
+    // if this is a flop output, compute MFFC of the corresponding flop input
+    while ( Wlc_ObjIsCi(pNode) )
+    {
+        Vec_BitWriteEntry( vUnmark, Wlc_ObjId(p, pNode), 1 );
+        pNode = Wlc_ObjFo2Fi(p, pNode);
+    }
+    assert( !Wlc_ObjIsCi(pNode) );
+    // dereference the node (and set the bits in vUnmark)
+    Count1 = Wlc_NtkNodeDeref_rec( p, pNode, vUnmark );
+    // reference it back
+    Count2 = Wlc_NtkNodeRef_rec( p, pNode );
+    assert( Count1 == Count2 );
+    return Count1;
+}
+static int Wlc_NtkRemoveFromAbstraction( Wlc_Ntk_t * p, Vec_Int_t * vRefine, Vec_Bit_t * vUnmark )
+{
+    Wlc_Obj_t * pObj; int i, nNodes = 0;
+    if ( Vec_IntSize(&p->vRefs) == 0 )
+        Wlc_NtkSetRefs( p );
+    Wlc_NtkForEachObjVec( vRefine, p, pObj, i )
+        nNodes += Wlc_NtkMarkMffc( p, pObj, vUnmark );
+    return nNodes;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Performs abstraction.]
+
+  Description [Derives initial abstraction based on user-specified
+  parameter values, which tell what is the smallest bit-width of a
+  primitive that is being abstracted away.  Currently only add/sub,
+  mul/div, mux, and flop are supported with individual parameters.
+  The second step is to refine the initial abstraction until the
+  point when the property is proved.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Wlc_NtkAbsCore( Wlc_Ntk_t * p, Wlc_Par_t * pPars )
+{
+    abctime clk = Abc_Clock();
+    int nIters, nNodes, nDcFlops, RetValue = -1;
+    // start the bitmap to mark objects that cannot be abstracted because of refinement
+    // currently, this bitmap is empty because abstraction begins without refinement
+    Vec_Bit_t * vUnmark = Vec_BitStart( Wlc_NtkObjNumMax(p) );
+    // set up parameters to run PDR
+    Pdr_Par_t PdrPars, * pPdrPars = &PdrPars;
+    Pdr_ManSetDefaultParams( pPdrPars );
+    pPdrPars->fUseAbs    = 1;   // use 'pdr -t'  (on-the-fly abstraction)
+    pPdrPars->fCtgs      = 1;   // use 'pdr -nc' (improved generalization)
+    pPdrPars->fSkipDown  = 0;   // use 'pdr -nc' (improved generalization)
+    //pPdrPars->nRestLimit = 500; // reset queue or proof-obligations when it gets larger than this
+    pPdrPars->fVerbose   = pPars->fPdrVerbose;
+    // perform refinement iterations
+    for ( nIters = 1; nIters < pPars->nIterMax; nIters++ )
+    {
+        Aig_Man_t * pAig;
+        Abc_Cex_t * pCex;
+        Vec_Int_t * vPisNew, * vRefine;  
+        Gia_Man_t * pGia, * pTemp;
+        Wlc_Ntk_t * pAbs;
+
+        if ( pPars->fVerbose )
+            printf( "\nIteration %d:\n", nIters );
+
+        // get abstracted GIA and the set of pseudo-PIs (vPisNew)
+        pAbs = Wlc_NtkAbs( p, pPars, vUnmark, &vPisNew, pPars->fVerbose );
+        pGia = Wlc_NtkBitBlast( pAbs, NULL, -1, 0, 0, 0, 0 );
+
+        // if the abstraction has flops with DC-init state,
+        // new PIs were introduced by bit-blasting at the end of the PI list
+        // here we move these variables to be *before* PPIs, because
+        // PPIs are supposed to be at the end of the PI list for refinement
+        nDcFlops = Wlc_NtkDcFlopNum(pAbs);
+        if ( nDcFlops > 0 ) // DC-init flops are present
+        {
+            pGia = Gia_ManPermuteInputs( pTemp = pGia, Wlc_NtkCountObjBits(p, vPisNew), nDcFlops );
+            Gia_ManStop( pTemp );
+        }
+        // if the word-level outputs have to be XORs, this is a place to do it
+        if ( pPars->fXorOutput )
+        {
+            pGia = Gia_ManTransformMiter2( pTemp = pGia );
+            Gia_ManStop( pTemp );
+        }
+        if ( pPars->fVerbose )
+        {
+            printf( "Derived abstraction with %d objects and %d PPIs. Bit-blasted AIG stats are:\n", Wlc_NtkObjNum(pAbs), Vec_IntSize(vPisNew) ); 
+            Gia_ManPrintStats( pGia, NULL );
+        }
+        Wlc_NtkFree( pAbs );
+
+        // try to prove abstracted GIA by converting it to AIG and calling PDR
+        pAig = Gia_ManToAigSimple( pGia );
+        RetValue = Pdr_ManSolve( pAig, pPdrPars );
+        pCex = pAig->pSeqModel; pAig->pSeqModel = NULL;
+        Aig_ManStop( pAig );
+
+        // consider outcomes
+        if ( pCex == NULL ) 
+        {
+            assert( RetValue ); // proved or undecided
+            Gia_ManStop( pGia );
+            Vec_IntFree( vPisNew );
+            break;
+        }
+
+        // perform refinement
+        vRefine = Wlc_NtkAbsRefinement( p, pGia, pCex, vPisNew );
+        Gia_ManStop( pGia );
+        Vec_IntFree( vPisNew );
+        if ( vRefine == NULL ) // real CEX
+        {
+            Abc_CexFree( pCex ); // return CEX in the future
+            break;
+        }
+
+        // update the set of objects to be un-abstracted
+        nNodes = Wlc_NtkRemoveFromAbstraction( p, vRefine, vUnmark );
+        if ( pPars->fVerbose )
+            printf( "Refinement of CEX in frame %d came up with %d un-abstacted PPIs, whose MFFCs include %d objects.\n", pCex->iFrame, Vec_IntSize(vRefine), nNodes );
+        Vec_IntFree( vRefine );
+        Abc_CexFree( pCex );
+    }
+    Vec_BitFree( vUnmark );
+    // report the result
+    if ( pPars->fVerbose )
+        printf( "\n" );
+    printf( "Abstraction " );
+    if ( RetValue == 0 )
+        printf( "resulted in a real CEX" );
+    else if ( RetValue == 1 )
+        printf( "is successfully proved" );
+    else 
+        printf( "timed out" );
+    printf( " after %d iterations. ", nIters );
+    Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
+    return RetValue;
 }
 
 ////////////////////////////////////////////////////////////////////////

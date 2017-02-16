@@ -33,6 +33,7 @@ static int  Abc_CommandWriteWlc   ( Abc_Frame_t * pAbc, int argc, char ** argv )
 static int  Abc_CommandPs         ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int  Abc_CommandCone       ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int  Abc_CommandAbs        ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int  Abc_CommandAbs2       ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int  Abc_CommandBlast      ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int  Abc_CommandProfile    ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int  Abc_CommandShortNames ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -74,6 +75,7 @@ void Wlc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Word level", "%ps",          Abc_CommandPs,         0 );
     Cmd_CommandAdd( pAbc, "Word level", "%cone",        Abc_CommandCone,       0 );
     Cmd_CommandAdd( pAbc, "Word level", "%abs",         Abc_CommandAbs,        0 );
+    Cmd_CommandAdd( pAbc, "Word level", "%abs2",        Abc_CommandAbs2,       0 );
     Cmd_CommandAdd( pAbc, "Word level", "%blast",       Abc_CommandBlast,      0 );
     Cmd_CommandAdd( pAbc, "Word level", "%profile",     Abc_CommandProfile,    0 );
     Cmd_CommandAdd( pAbc, "Word level", "%short_names", Abc_CommandShortNames, 0 );
@@ -458,7 +460,7 @@ int Abc_CommandAbs( Abc_Frame_t * pAbc, int argc, char ** argv )
     int c;
     Wlc_ManSetDefaultParams( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "AMXFvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "AMXFIxvwh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -506,8 +508,25 @@ int Abc_CommandAbs( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( pPars->nBitsFlop < 0 )
                 goto usage;
             break;
+        case 'I':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-I\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nIterMax = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nIterMax < 0 )
+                goto usage;
+            break;
+        case 'x':
+            pPars->fXorOutput ^= 1;
+            break;
         case 'v':
             pPars->fVerbose ^= 1;
+            break;
+        case 'w':
+            pPars->fPdrVerbose ^= 1;
             break;
         case 'h':
             goto usage;
@@ -520,17 +539,133 @@ int Abc_CommandAbs( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( 1, "Abc_CommandCone(): There is no current design.\n" );
         return 0;
     }
-    pNtk = Wlc_NtkAbs( pNtk, pPars );
-    Wlc_AbcUpdateNtk( pAbc, pNtk );
+    Wlc_NtkAbsCore( pNtk, pPars );
     return 0;
 usage:
-    Abc_Print( -2, "usage: %%abs [-AMXF num] [-vh]\n" );
+    Abc_Print( -2, "usage: %%abs [-AMXFI num] [-xvwh]\n" );
     Abc_Print( -2, "\t         abstraction for word-level networks\n" );
     Abc_Print( -2, "\t-A num : minimum bit-width of an adder/subtractor to abstract [default = %d]\n", pPars->nBitsAdd );
     Abc_Print( -2, "\t-M num : minimum bit-width of a multiplier to abstract [default = %d]\n",        pPars->nBitsMul );
     Abc_Print( -2, "\t-X num : minimum bit-width of a MUX operator to abstract [default = %d]\n",      pPars->nBitsMux );
     Abc_Print( -2, "\t-F num : minimum bit-width of a flip-flop to abstract [default = %d]\n",         pPars->nBitsFlop );
+    Abc_Print( -2, "\t-I num : maximum number of CEGAR iterations [default = %d]\n",                   pPars->nIterMax );
+    Abc_Print( -2, "\t-x     : toggle XORing outputs of word-level miter [default = %s]\n",            pPars->fXorOutput? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n",                  pPars->fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-w     : toggle printing verbose PDR output [default = %s]\n",                   pPars->fPdrVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
+    return 1;
+}
+
+/**Function********************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+******************************************************************************/
+int Abc_CommandAbs2( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    Wlc_Ntk_t * pNtk = Wlc_AbcGetNtk(pAbc);
+    Wlc_Par_t Pars, * pPars = &Pars;
+    int c;
+    Wlc_ManSetDefaultParams( pPars );
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "AMXFIxvwh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'A':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-A\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nBitsAdd = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nBitsAdd < 0 )
+                goto usage;
+            break;
+        case 'M':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-M\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nBitsMul = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nBitsMul < 0 )
+                goto usage;
+            break;
+        case 'X':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-X\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nBitsMux = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nBitsMux < 0 )
+                goto usage;
+            break;
+        case 'F':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-F\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nBitsFlop = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nBitsFlop < 0 )
+                goto usage;
+            break;
+        case 'I':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-I\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nIterMax = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nIterMax < 0 )
+                goto usage;
+            break;
+        case 'x':
+            pPars->fXorOutput ^= 1;
+            break;
+        case 'v':
+            pPars->fVerbose ^= 1;
+            break;
+        case 'w':
+            pPars->fPdrVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pNtk == NULL )
+    {
+        Abc_Print( 1, "Abc_CommandCone(): There is no current design.\n" );
+        return 0;
+    }
+    Wlc_NtkAbsCore2( pNtk, pPars );
+    return 0;
+usage:
+    Abc_Print( -2, "usage: %%abs2 [-AMXFI num] [-xvwh]\n" );
+    Abc_Print( -2, "\t         abstraction for word-level networks\n" );
+    Abc_Print( -2, "\t-A num : minimum bit-width of an adder/subtractor to abstract [default = %d]\n", pPars->nBitsAdd );
+    Abc_Print( -2, "\t-M num : minimum bit-width of a multiplier to abstract [default = %d]\n",        pPars->nBitsMul );
+    Abc_Print( -2, "\t-X num : minimum bit-width of a MUX operator to abstract [default = %d]\n",      pPars->nBitsMux );
+    Abc_Print( -2, "\t-F num : minimum bit-width of a flip-flop to abstract [default = %d]\n",         pPars->nBitsFlop );
+    Abc_Print( -2, "\t-I num : maximum number of CEGAR iterations [default = %d]\n",                   pPars->nIterMax );
+    Abc_Print( -2, "\t-x     : toggle XORing outputs of word-level miter [default = %s]\n",            pPars->fXorOutput? "yes": "no" );
+    Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n",                  pPars->fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-w     : toggle printing verbose PDR output [default = %s]\n",                   pPars->fPdrVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
 }
