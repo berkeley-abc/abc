@@ -378,7 +378,7 @@ int ZPdr_ManDown( Pdr_Man_t * p, int k, Pdr_Set_t ** ppCube, Pdr_Set_t * pPred, 
         ctgAttempts = 0;
         while ( p->pPars->fCtgs && RetValue == 0 && k > 1 && ctgAttempts < 3 )
         {
-            pCtg = Pdr_SetDup ( pPred );
+            pCtg = Pdr_SetDup( pPred );
             //Check CTG for inductiveness
             if ( Pdr_SetIsInit( pCtg, -1 ) )
             {
@@ -392,7 +392,7 @@ int ZPdr_ManDown( Pdr_Man_t * p, int k, Pdr_Set_t ** ppCube, Pdr_Set_t * pPred, 
                 *added = 1;
             }
             ctgAttempts++;
-            CtgRetValue = Pdr_ManCheckCube ( p, k-1, pCtg, NULL, p->pPars->nConfLimit, 0, 1 );
+            CtgRetValue = Pdr_ManCheckCube( p, k-1, pCtg, NULL, p->pPars->nConfLimit, 0, 1 );
             if ( CtgRetValue != 1 )
             {
                 Pdr_SetDeref( pCtg );
@@ -430,7 +430,8 @@ int ZPdr_ManDown( Pdr_Man_t * p, int k, Pdr_Set_t ** ppCube, Pdr_Set_t * pPred, 
             // add clause
             for ( i = 1; i <= l; i++ )
                 Pdr_ManSolverAddClause( p, i, pCubeMin );
-            RetValue = Pdr_ManCheckCube ( p, k, *ppCube, &pPred, p->pPars->nConfLimit, 0, 1 );
+            Pdr_SetDeref( pPred );
+            RetValue = Pdr_ManCheckCube( p, k, *ppCube, &pPred, p->pPars->nConfLimit, 0, 1 );
             assert( RetValue >= 0 );
             Pdr_SetDeref( pCtg );
             if ( RetValue == 1 )
@@ -464,7 +465,7 @@ int ZPdr_ManDown( Pdr_Man_t * p, int k, Pdr_Set_t ** ppCube, Pdr_Set_t * pPred, 
                 printf ("Failed initiation\n");
             return 0;
         }
-        RetValue = Pdr_ManCheckCube ( p, k, *ppCube, &pPred, p->pPars->nConfLimit, 0, 1 );
+        RetValue = Pdr_ManCheckCube( p, k, *ppCube, &pPred, p->pPars->nConfLimit, 0, 1 );
         if ( RetValue == -1 )
             return -1;
         if ( RetValue == 1 )
@@ -598,8 +599,8 @@ int Pdr_ManGeneralize( Pdr_Man_t * p, int k, Pdr_Set_t * pCube, Pdr_Set_t ** ppP
             {
                 if ( p->pPars->fSkipDown )
                     continue;
-                pCubeCpy = Pdr_SetCreateFrom ( pCubeMin, i );
-                RetValue = ZPdr_ManDown ( p, k, &pCubeCpy, pPred, keep, pCubeMin, &added );
+                pCubeCpy = Pdr_SetCreateFrom( pCubeMin, i );
+                RetValue = ZPdr_ManDown( p, k, &pCubeCpy, pPred, keep, pCubeMin, &added );
                 if ( p->pPars->fCtgs )
                     //CTG handling code messes up with the internal order array
                     pOrder = Pdr_ManSortByPriority( p, pCubeMin );
