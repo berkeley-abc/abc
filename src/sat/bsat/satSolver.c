@@ -328,12 +328,49 @@ static inline void act_var_bump(sat_solver* s, int v)
 }
 static inline void act_var_bump_global(sat_solver* s, int v) 
 {
-    assert(0);
+    if ( !s->pGlobalVars )
+        return;
+    if ( s->VarActType == 0 )
+    {
+        s->activity[v] += (int)((unsigned)s->var_inc * 3 * s->pGlobalVars[v]);
+        if (s->activity[v] & 0x80000000)
+            act_var_rescale(s);
+        if (s->orderpos[v] != -1)
+            order_update(s,v);
+    }
+    else if ( s->VarActType == 1 )
+    {
+        s->activity[v] += (unsigned)(Abc_Word2Dbl(s->var_inc) * 3.0 * s->pGlobalVars[v]);
+        if (Abc_Word2Dbl(s->activity[v]) > 1e100)
+            act_var_rescale(s);
+        if (s->orderpos[v] != -1)
+            order_update(s,v);
+    }
+    else assert( 0 );
 }
 static inline void act_var_bump_factor(sat_solver* s, int v) 
 {
-    assert(0);
+    if ( !s->factors )
+        return;
+    if ( s->VarActType == 0 )
+    {
+        s->activity[v] += (int)((unsigned)s->var_inc * (float)s->factors[v]);
+        if (s->activity[v] & 0x80000000)
+            act_var_rescale(s);
+        if (s->orderpos[v] != -1)
+            order_update(s,v);
+    }
+    else if ( s->VarActType == 1 )
+    {
+        s->activity[v] += (unsigned)(Abc_Word2Dbl(s->var_inc) * s->factors[v]);
+        if (Abc_Word2Dbl(s->activity[v]) > 1e100)
+            act_var_rescale(s);
+        if (s->orderpos[v] != -1)
+            order_update(s,v);
+    }
+    else assert( 0 );
 }
+
 static inline void act_var_decay(sat_solver* s)    
 { 
     if ( s->VarActType == 0 )
@@ -1234,7 +1271,7 @@ void sat_solver_setnvars(sat_solver* s,int n)
         else if ( s->VarActType == 1 )
             s->activity[var] = 0;
         else if ( s->VarActType == 2 )
-            s->activity[var] = Xdbl_Const1();
+            s->activity[var] = 0;
         else assert(0);
 
         s->pFreqs[var]   = 0;
