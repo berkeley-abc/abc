@@ -328,11 +328,11 @@ static inline void act_var_bump(sat_solver* s, int v)
 }
 static inline void act_var_bump_global(sat_solver* s, int v) 
 {
-    if ( !s->pGlobalVars )
+    if ( !s->pGlobalVars || !s->pGlobalVars[v] )
         return;
     if ( s->VarActType == 0 )
     {
-        s->activity[v] += (int)((unsigned)s->var_inc * 3 * s->pGlobalVars[v]);
+        s->activity[v] += (int)((unsigned)s->var_inc * 3);
         if (s->activity[v] & 0x80000000)
             act_var_rescale(s);
         if (s->orderpos[v] != -1)
@@ -340,8 +340,17 @@ static inline void act_var_bump_global(sat_solver* s, int v)
     }
     else if ( s->VarActType == 1 )
     {
-        s->activity[v] += (unsigned)(Abc_Word2Dbl(s->var_inc) * 3.0 * s->pGlobalVars[v]);
-        if (Abc_Word2Dbl(s->activity[v]) > 1e100)
+        double act = Abc_Word2Dbl(s->activity[v]) + Abc_Word2Dbl(s->var_inc) * 3.0;
+        s->activity[v] = Abc_Dbl2Word(act);
+        if ( act > 1e100)
+            act_var_rescale(s);
+        if (s->orderpos[v] != -1)
+            order_update(s,v);
+    }
+    else if ( s->VarActType == 2 )
+    {
+        s->activity[v] = Xdbl_Add( s->activity[v], Xdbl_Mul(s->var_inc, Xdbl_FromDouble(3.0)) );
+        if (s->activity[v] > ABC_CONST(0x014c924d692ca61b))
             act_var_rescale(s);
         if (s->orderpos[v] != -1)
             order_update(s,v);
@@ -362,8 +371,17 @@ static inline void act_var_bump_factor(sat_solver* s, int v)
     }
     else if ( s->VarActType == 1 )
     {
-        s->activity[v] += (unsigned)(Abc_Word2Dbl(s->var_inc) * s->factors[v]);
-        if (Abc_Word2Dbl(s->activity[v]) > 1e100)
+        double act = Abc_Word2Dbl(s->activity[v]) + Abc_Word2Dbl(s->var_inc) * s->factors[v];
+        s->activity[v] = Abc_Dbl2Word(act);
+        if ( act > 1e100)
+            act_var_rescale(s);
+        if (s->orderpos[v] != -1)
+            order_update(s,v);
+    }
+    else if ( s->VarActType == 2 )
+    {
+        s->activity[v] = Xdbl_Add( s->activity[v], Xdbl_Mul(s->var_inc, Xdbl_FromDouble(s->factors[v])) );
+        if (s->activity[v] > ABC_CONST(0x014c924d692ca61b))
             act_var_rescale(s);
         if (s->orderpos[v] != -1)
             order_update(s,v);
