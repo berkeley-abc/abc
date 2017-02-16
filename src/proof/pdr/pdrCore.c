@@ -60,8 +60,6 @@ void Pdr_ManSetDefaultParams( Pdr_Par_t * pPars )
     pPars->nRestLimit     =       0;  // limit on the number of proof-obligations
     pPars->nRandomSeed   = 91648253;  // value to seed the SAT solver with
     pPars->fTwoRounds     =       0;  // use two rounds for generalization
-    pPars->fSkipDown      =       1;  // apply down in generalization
-    pPars->fCtgs          =       0;  // handle CTGs in down
     pPars->fMonoCnf       =       0;  // monolythic CNF
     pPars->fNewXSim       =       0;  // updated X-valued simulation
     pPars->fFlopPrio      =       0;  // use structural flop priorities
@@ -70,6 +68,10 @@ void Pdr_ManSetDefaultParams( Pdr_Par_t * pPars )
     pPars->fUseSupp       =       1;  // using support variables in the invariant
     pPars->fShortest      =       0;  // forces bug traces to be shortest
     pPars->fUsePropOut    =       1;  // use property output
+    pPars->fSkipDown      =       1;  // apply down in generalization
+    pPars->fCtgs          =       0;  // handle CTGs in down
+    pPars->fUseAbs        =       0;  // use abstraction 
+    pPars->fUseSimpleRef  =       0;  // simplified CEX refinement
     pPars->fVerbose       =       0;  // verbose output
     pPars->fVeryVerbose   =       0;  // very verbose output
     pPars->fNotVerbose    =       0;  // not printing line-by-line progress

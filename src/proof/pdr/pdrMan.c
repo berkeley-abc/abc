@@ -482,45 +482,58 @@ Abc_Cex_t * Pdr_ManDeriveCexAbs( Pdr_Man_t * p )
     }
     if ( Vec_IntSize(p->vMapPpi2Ff) == 0 ) // no PPIs -- this is a real CEX
         return Pdr_ManDeriveCex(p);
-    // create the counter-example
-    pCex = Abc_CexAlloc( Aig_ManRegNum(p->pAig) - Vec_IntSize(p->vMapPpi2Ff), Saig_ManPiNum(p->pAig) + Vec_IntSize(p->vMapPpi2Ff), nFrames );
-    pCex->iPo    = p->iOutCur;
-    pCex->iFrame = nFrames-1;
-    for ( pObl = p->pQueue, f = 0; pObl; pObl = pObl->pNext, f++ )
-        for ( i = pObl->pState->nLits; i < pObl->pState->nTotal; i++ )
-        {
-            Lit = pObl->pState->Lits[i];
-            if ( lit_sign(Lit) )
-                continue;
-            if ( lit_var(Lit) < nPis ) // PI literal
-                Abc_InfoSetBit( pCex->pData, pCex->nRegs + f * pCex->nPis + lit_var(Lit) );
-            else
-            {
-                int iPPI = nPis + Vec_IntEntry(p->vMapFf2Ppi, lit_var(Lit) - nPis);
-                assert( iPPI < pCex->nPis );
-                Abc_InfoSetBit( pCex->pData, pCex->nRegs + f * pCex->nPis + iPPI );
-            }
-        }
-    assert( f == nFrames );
-    // perform CEX minimization
-    pAbs = Gia_ManDupAbs( p->pGia, p->vMapPpi2Ff, p->vMapFf2Ppi );
-    pCexCare = Bmc_CexCareMinimizeAig( pAbs, nPis, pCex, 1, 0, 0 );
-    Gia_ManStop( pAbs );
-    assert( pCexCare->nPis == pCex->nPis );
-    Abc_CexFree( pCex );
-    // detect care PPIs
-    for ( f = 0; f < nFrames; f++ )
+    if ( p->pPars->fUseSimpleRef )
     {
-        for ( i = nPis; i < pCexCare->nPis; i++ )
-            if ( Abc_InfoHasBit(pCexCare->pData, pCexCare->nRegs + pCexCare->nPis * f + i) )
-            {
-                if ( Vec_IntEntry(p->vAbsFlops, Vec_IntEntry(p->vMapPpi2Ff, i-nPis)) == 0 ) // currently abstracted
-                    Vec_IntWriteEntry( p->vAbsFlops, Vec_IntEntry(p->vMapPpi2Ff, i-nPis), 1 ), nFfRefined++;
-            }
+        // rely on ternary simulation to perform refinement
+        Vec_IntForEachEntry( p->vMapPpi2Ff, Flop, i )
+        {
+            assert( Vec_IntEntry(p->vAbsFlops, Flop) == 0 );
+            Vec_IntWriteEntry( p->vAbsFlops, Flop, 1 );
+            nFfRefined++;
+        }
     }
-    Abc_CexFree( pCexCare );
-    if ( nFfRefined == 0 ) // no refinement -- this is a real CEX
-        return Pdr_ManDeriveCex(p);
+    else
+    {
+        // create the counter-example
+        pCex = Abc_CexAlloc( Aig_ManRegNum(p->pAig) - Vec_IntSize(p->vMapPpi2Ff), Saig_ManPiNum(p->pAig) + Vec_IntSize(p->vMapPpi2Ff), nFrames );
+        pCex->iPo    = p->iOutCur;
+        pCex->iFrame = nFrames-1;
+        for ( pObl = p->pQueue, f = 0; pObl; pObl = pObl->pNext, f++ )
+            for ( i = pObl->pState->nLits; i < pObl->pState->nTotal; i++ )
+            {
+                Lit = pObl->pState->Lits[i];
+                if ( lit_sign(Lit) )
+                    continue;
+                if ( lit_var(Lit) < nPis ) // PI literal
+                    Abc_InfoSetBit( pCex->pData, pCex->nRegs + f * pCex->nPis + lit_var(Lit) );
+                else
+                {
+                    int iPPI = nPis + Vec_IntEntry(p->vMapFf2Ppi, lit_var(Lit) - nPis);
+                    assert( iPPI < pCex->nPis );
+                    Abc_InfoSetBit( pCex->pData, pCex->nRegs + f * pCex->nPis + iPPI );
+                }
+            }
+        assert( f == nFrames );
+        // perform CEX minimization
+        pAbs = Gia_ManDupAbs( p->pGia, p->vMapPpi2Ff, p->vMapFf2Ppi );
+        pCexCare = Bmc_CexCareMinimizeAig( pAbs, nPis, pCex, 1, 0, 0 );
+        Gia_ManStop( pAbs );
+        assert( pCexCare->nPis == pCex->nPis );
+        Abc_CexFree( pCex );
+        // detect care PPIs
+        for ( f = 0; f < nFrames; f++ )
+        {
+            for ( i = nPis; i < pCexCare->nPis; i++ )
+                if ( Abc_InfoHasBit(pCexCare->pData, pCexCare->nRegs + pCexCare->nPis * f + i) )
+                {
+                    if ( Vec_IntEntry(p->vAbsFlops, Vec_IntEntry(p->vMapPpi2Ff, i-nPis)) == 0 ) // currently abstracted
+                        Vec_IntWriteEntry( p->vAbsFlops, Vec_IntEntry(p->vMapPpi2Ff, i-nPis), 1 ), nFfRefined++;
+                }
+        }
+        Abc_CexFree( pCexCare );
+        if ( nFfRefined == 0 ) // no refinement -- this is a real CEX
+            return Pdr_ManDeriveCex(p);
+    }
     //printf( "CEX-based refinement refined %d flops.\n", nFfRefined );
     p->nCexesTotal++;
     p->nCexes++;

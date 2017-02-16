@@ -65,6 +65,7 @@ struct Pdr_Par_t_
     int fSkipDown;        // skips the application of down
     int fCtgs;            // handle CTGs in down
     int fUseAbs;          // use abstraction 
+    int fUseSimpleRef;    // simplified CEX refinement
     int fVerbose;         // verbose output`
     int fVeryVerbose;     // very verbose output
     int fNotVerbose;      // not printing line by line progress
