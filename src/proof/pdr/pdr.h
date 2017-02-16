@@ -60,6 +60,7 @@ struct Pdr_Par_t_
     int fShortest;        // forces bug traces to be shortest
     int fShiftStart;      // allows clause pushing to start from an intermediate frame
     int fReuseProofOblig; // reuses proof-obligationgs in the last timeframe
+    int fSimpleGeneral;   // simplified generalization
     int fSkipGeneral;     // skips expensive generalization step
     int fSkipDown;        // skips the application of down
     int fCtgs;            // handle CTGs in down

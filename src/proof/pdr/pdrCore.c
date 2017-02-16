@@ -125,7 +125,7 @@ Pdr_Set_t * Pdr_ManReduceClause( Pdr_Man_t * p, int k, Pdr_Set_t * pCube )
     // make sure the cube works
     {
     int RetValue;
-    RetValue = Pdr_ManCheckCube( p, k, pCubeMin, NULL, 0, 0 );
+    RetValue = Pdr_ManCheckCube( p, k, pCubeMin, NULL, 0, 0, 1 );
     assert( RetValue );
     }
 */
@@ -172,7 +172,7 @@ int Pdr_ManPushClauses( Pdr_Man_t * p )
             }
 
             // check if the clause can be moved to the next frame
-            RetValue2 = Pdr_ManCheckCube( p, k, pCubeK, NULL, 0, 0 );
+            RetValue2 = Pdr_ManCheckCube( p, k, pCubeK, NULL, 0, 0, 1 );
             if ( RetValue2 == -1 )
                 return -1;
             if ( !RetValue2 )
@@ -336,7 +336,7 @@ int ZPdr_ManSimpleMic( Pdr_Man_t * p, int k, Pdr_Set_t ** ppCube )
             continue;
         // try removing this literal
         Lit = (*ppCube)->Lits[i]; (*ppCube)->Lits[i] = -1; 
-        RetValue = Pdr_ManCheckCube( p, k, *ppCube, NULL, p->pPars->nConfLimit, 0 );
+        RetValue = Pdr_ManCheckCube( p, k, *ppCube, NULL, p->pPars->nConfLimit, 0, 1 );
         if ( RetValue == -1 )
             return -1;
         (*ppCube)->Lits[i] = Lit;
@@ -392,7 +392,7 @@ int ZPdr_ManDown( Pdr_Man_t * p, int k, Pdr_Set_t ** ppCube, Pdr_Set_t * pPred, 
                 *added = 1;
             }
             ctgAttempts++;
-            CtgRetValue = Pdr_ManCheckCube ( p, k-1, pCtg, NULL, p->pPars->nConfLimit, 0 );
+            CtgRetValue = Pdr_ManCheckCube ( p, k-1, pCtg, NULL, p->pPars->nConfLimit, 0, 1 );
             if ( CtgRetValue != 1 )
             {
                 Pdr_SetDeref( pCtg );
@@ -403,7 +403,7 @@ int ZPdr_ManDown( Pdr_Man_t * p, int k, Pdr_Set_t ** ppCube, Pdr_Set_t * pPred, 
                 pCubeMin = Pdr_SetDup ( pCtg );
 
             for ( l = k; l < kMax; l++ )
-                if ( !Pdr_ManCheckCube( p, l, pCubeMin, NULL, 0, 0 ) )
+                if ( !Pdr_ManCheckCube( p, l, pCubeMin, NULL, 0, 0, 1 ) )
                     break;
             micResult = ZPdr_ManSimpleMic( p, l-1, &pCubeMin );
             assert ( micResult != -1 );
@@ -430,7 +430,7 @@ int ZPdr_ManDown( Pdr_Man_t * p, int k, Pdr_Set_t ** ppCube, Pdr_Set_t * pPred, 
             // add clause
             for ( i = 1; i <= l; i++ )
                 Pdr_ManSolverAddClause( p, i, pCubeMin );
-            RetValue = Pdr_ManCheckCube ( p, k, *ppCube, &pPred, p->pPars->nConfLimit, 0 );
+            RetValue = Pdr_ManCheckCube ( p, k, *ppCube, &pPred, p->pPars->nConfLimit, 0, 1 );
             assert( RetValue >= 0 );
             Pdr_SetDeref( pCtg );
             if ( RetValue == 1 )
@@ -464,7 +464,7 @@ int ZPdr_ManDown( Pdr_Man_t * p, int k, Pdr_Set_t ** ppCube, Pdr_Set_t * pPred, 
                 printf ("Failed initiation\n");
             return 0;
         }
-        RetValue = Pdr_ManCheckCube ( p, k, *ppCube, &pPred, p->pPars->nConfLimit, 0 );
+        RetValue = Pdr_ManCheckCube ( p, k, *ppCube, &pPred, p->pPars->nConfLimit, 0, 1 );
         if ( RetValue == -1 )
             return -1;
         if ( RetValue == 1 )
@@ -530,7 +530,7 @@ int Pdr_ManGeneralize( Pdr_Man_t * p, int k, Pdr_Set_t * pCube, Pdr_Set_t ** ppP
     *ppCubeMin = NULL;
     if ( p->pPars->fFlopOrder )
         Vec_IntSelectSortCostReverseLit( pCube->Lits, pCube->nLits, p->vPrio );
-    RetValue = Pdr_ManCheckCube( p, k, pCube, ppPred, p->pPars->nConfLimit, 0 );
+    RetValue = Pdr_ManCheckCube( p, k, pCube, ppPred, p->pPars->nConfLimit, 0, 1 );
     if ( p->pPars->fFlopOrder )
         Vec_IntSelectSort( pCube->Lits, pCube->nLits );
     if ( RetValue == -1 )
@@ -552,6 +552,16 @@ int Pdr_ManGeneralize( Pdr_Man_t * p, int k, Pdr_Set_t * pCube, Pdr_Set_t ** ppP
     // perform generalization
     if ( !p->pPars->fSkipGeneral )
     {
+        // assume the unminimized cube
+        if ( p->pPars->fSimpleGeneral )
+        {
+            sat_solver *  pSat = Pdr_ManFetchSolver( p, k );
+            Vec_Int_t * vLits1 = Pdr_ManCubeToLits( p, k, pCubeMin, 1, 0 );
+            int RetValue1 = sat_solver_addclause( pSat, Vec_IntArray(vLits1), Vec_IntArray(vLits1) + Vec_IntSize(vLits1) );
+            assert( RetValue1 == 1 );
+            sat_solver_compress( pSat );
+        }
+
         // sort literals by their occurences
         pOrder = Pdr_ManSortByPriority( p, pCubeMin );
         // try removing literals
@@ -571,12 +581,13 @@ int Pdr_ManGeneralize( Pdr_Man_t * p, int k, Pdr_Set_t * pCube, Pdr_Set_t ** ppP
             // check init state
             if ( Pdr_SetIsInit(pCubeMin, i) )
                 continue;
+
             // try removing this literal
             Lit = pCubeMin->Lits[i]; pCubeMin->Lits[i] = -1; 
             if ( p->pPars->fSkipDown )
-                RetValue = Pdr_ManCheckCube( p, k, pCubeMin, NULL, p->pPars->nConfLimit, 1 );
+                RetValue = Pdr_ManCheckCube( p, k, pCubeMin, NULL, p->pPars->nConfLimit, 1, !p->pPars->fSimpleGeneral );
             else
-                RetValue = Pdr_ManCheckCube( p, k, pCubeMin, &pPred, p->pPars->nConfLimit, 1 );
+                RetValue = Pdr_ManCheckCube( p, k, pCubeMin, &pPred, p->pPars->nConfLimit, 1, !p->pPars->fSimpleGeneral );
             if ( RetValue == -1 )
             {
                 Pdr_SetDeref( pCubeMin );
@@ -641,7 +652,7 @@ int Pdr_ManGeneralize( Pdr_Man_t * p, int k, Pdr_Set_t * pCube, Pdr_Set_t ** ppP
                 continue;
             // try removing this literal
             Lit = pCubeMin->Lits[i]; pCubeMin->Lits[i] = -1; 
-            RetValue = Pdr_ManCheckCube( p, k, pCubeMin, NULL, p->pPars->nConfLimit, 0 );
+            RetValue = Pdr_ManCheckCube( p, k, pCubeMin, NULL, p->pPars->nConfLimit, 0, 1 );
             if ( RetValue == -1 )
             {
                 Pdr_SetDeref( pCubeMin );
@@ -759,7 +770,7 @@ int Pdr_ManBlockCube( Pdr_Man_t * p, Pdr_Set_t * pCube )
             assert( pPred == NULL );
             for ( k = pThis->iFrame; k < kMax; k++ )
             {
-                RetValue = Pdr_ManCheckCube( p, k, pCubeMin, NULL, 0, 0 );
+                RetValue = Pdr_ManCheckCube( p, k, pCubeMin, NULL, 0, 0, 1 );
                 if ( RetValue == -1 )
                 {
                     Pdr_OblDeref( pThis );
@@ -940,7 +951,7 @@ int Pdr_ManSolveInt( Pdr_Man_t * p )
                     p->pPars->iFrame = iFrame;
                     return -1;
                 }
-                RetValue = Pdr_ManCheckCube( p, iFrame, NULL, &pCube, p->pPars->nConfLimit, 0 );
+                RetValue = Pdr_ManCheckCube( p, iFrame, NULL, &pCube, p->pPars->nConfLimit, 0, 1 );
                 if ( RetValue == 1 )
                     break;
                 if ( RetValue == -1 )

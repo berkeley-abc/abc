@@ -26171,7 +26171,7 @@ int Abc_CommandPdr( Abc_Frame_t * pAbc, int argc, char ** argv )
     int c;
     Pdr_ManSetDefaultParams( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "MFCDQTHGSaxrmuyfsipdegonctvwzh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "MFCDQTHGSaxrmuyfsipdegjonctvwzh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -26313,6 +26313,9 @@ int Abc_CommandPdr( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'g':
             pPars->fSkipGeneral ^= 1;
             break;
+        case 'j':
+            pPars->fSimpleGeneral ^= 1;
+            break;
         case 'o':
             pPars->fUsePropOut ^= 1;
             break;
@@ -26366,7 +26369,7 @@ int Abc_CommandPdr( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: pdr [-MFCDQTHGS <num>] [-axrmuyfsipdegonctvwzh]\n" );
+    Abc_Print( -2, "usage: pdr [-MFCDQTHGS <num>] [-axrmuyfsipdegjonctvwzh]\n" );
     Abc_Print( -2, "\t         model checking using property directed reachability (aka IC3)\n" );
     Abc_Print( -2, "\t         pioneered by Aaron R. Bradley (http://theory.stanford.edu/~arbrad/)\n" );
     Abc_Print( -2, "\t         with improvements by Niklas Een (http://een.se/niklas/)\n" );
@@ -26392,6 +26395,7 @@ usage:
     Abc_Print( -2, "\t-d     : toggle dumping invariant (valid if init state is all-0) [default = %s]\n",    pPars->fDumpInv? "yes": "no" );
     Abc_Print( -2, "\t-e     : toggle using only support variables in the invariant [default = %s]\n",       pPars->fUseSupp? "yes": "no" );
     Abc_Print( -2, "\t-g     : toggle skipping expensive generalization step [default = %s]\n",              pPars->fSkipGeneral? "yes": "no" );
+    Abc_Print( -2, "\t-j     : toggle using simplified generalization step [default = %s]\n",                pPars->fSimpleGeneral? "yes": "no" );
     Abc_Print( -2, "\t-o     : toggle using property output as inductive hypothesis [default = %s]\n",       pPars->fUsePropOut? "yes": "no" );
     Abc_Print( -2, "\t-n     : * toggle skipping \'down\' in generalization [default = %s]\n",                 pPars->fSkipDown? "yes": "no" );
     Abc_Print( -2, "\t-c     : * toggle handling CTGs in \'down\' [default = %s]\n",                           pPars->fCtgs? "yes": "no" );
