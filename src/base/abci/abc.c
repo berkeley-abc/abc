@@ -26171,7 +26171,7 @@ int Abc_CommandPdr( Abc_Frame_t * pAbc, int argc, char ** argv )
     int c;
     Pdr_ManSetDefaultParams( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "MFCDRTHGSaxrmuyfsipdegonctvwzh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "MFCDQTHGSaxrmuyfsipdegonctvwzh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -26219,10 +26219,10 @@ int Abc_CommandPdr( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( pPars->nConfGenLimit < 0 )
                 goto usage;
             break;
-        case 'R':
+        case 'Q':
             if ( globalUtilOptind >= argc )
             {
-                Abc_Print( -1, "Command line switch \"-R\" should be followed by an integer.\n" );
+                Abc_Print( -1, "Command line switch \"-Q\" should be followed by an integer.\n" );
                 goto usage;
             }
             pPars->nRestLimit = atoi(argv[globalUtilOptind]);
@@ -26366,7 +26366,7 @@ int Abc_CommandPdr( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: pdr [-MFCDRTHGS <num>] [-axrmuyfsipdegonctvwzh]\n" );
+    Abc_Print( -2, "usage: pdr [-MFCDQTHGS <num>] [-axrmuyfsipdegonctvwzh]\n" );
     Abc_Print( -2, "\t         model checking using property directed reachability (aka IC3)\n" );
     Abc_Print( -2, "\t         pioneered by Aaron R. Bradley (http://theory.stanford.edu/~arbrad/)\n" );
     Abc_Print( -2, "\t         with improvements by Niklas Een (http://een.se/niklas/)\n" );
@@ -26374,7 +26374,7 @@ usage:
     Abc_Print( -2, "\t-F num : limit on timeframes explored to stop computation [default = %d]\n",           pPars->nFrameMax );
     Abc_Print( -2, "\t-C num : limit on conflicts in one SAT call (0 = no limit) [default = %d]\n",          pPars->nConfLimit );
     Abc_Print( -2, "\t-D num : limit on conflicts during ind-generalization (0 = no limit) [default = %d]\n",pPars->nConfGenLimit );
-    Abc_Print( -2, "\t-R num : limit on proof obligations before a restart (0 = no limit) [default = %d]\n", pPars->nRestLimit );
+    Abc_Print( -2, "\t-Q num : limit on proof obligations before a restart (0 = no limit) [default = %d]\n", pPars->nRestLimit );
     Abc_Print( -2, "\t-T num : runtime limit, in seconds (0 = no limit) [default = %d]\n",                   pPars->nTimeOut );
     Abc_Print( -2, "\t-H num : runtime limit per output, in miliseconds (with \"-a\") [default = %d]\n",     pPars->nTimeOutOne );
     Abc_Print( -2, "\t-G num : runtime gap since the last CEX (0 = no limit) [default = %d]\n",              pPars->nTimeOutGap );

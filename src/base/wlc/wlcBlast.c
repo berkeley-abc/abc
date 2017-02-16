@@ -1418,7 +1418,7 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Vec_Int_t * vBoxIds, int iOutput, in
         }
         else
         {
-            pNew = Gia_ManDupZeroUndc( pTemp = pNew, p->pInits, fGiaSimple, 1 );
+            pNew = Gia_ManDupZeroUndc( pTemp = pNew, p->pInits, fGiaSimple, 0 );
             Gia_ManDupRemapLiterals( vBits, pTemp );
             Gia_ManStop( pTemp );
         }

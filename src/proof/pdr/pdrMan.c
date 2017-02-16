@@ -455,7 +455,7 @@ Abc_Cex_t * Pdr_ManDeriveCexAbs( Pdr_Man_t * p )
     int i, f, Lit, Flop, nFrames = 0;
     int nPis = Saig_ManPiNum(p->pAig);
     int nFfRefined = 0;
-    if ( !p->pPars->fUseAbs )
+    if ( !p->pPars->fUseAbs || !p->vMapPpi2Ff )
         return Pdr_ManDeriveCex(p);
     // restore previous map
     Vec_IntForEachEntry( p->vMapPpi2Ff, Flop, i )

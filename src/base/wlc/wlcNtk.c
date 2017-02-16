@@ -96,6 +96,30 @@ char * Wlc_ObjTypeName( Wlc_Obj_t * p ) { return Wlc_Names[p->Type]; }
 
 /**Function*************************************************************
 
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Wlc_ManSetDefaultParams( Wlc_Par_t * pPars )
+{
+    memset( pPars, 0, sizeof(Wlc_Par_t) );
+    pPars->nBitsAdd    = ABC_INFINITY;   // adder bit-width
+    pPars->nBitsMul    = ABC_INFINITY;   // multiplier bit-widht 
+    pPars->nBitsMux    = ABC_INFINITY;   // MUX bit-width
+    pPars->nBitsFlop   = ABC_INFINITY;   // flop bit-width
+    pPars->nIterMax    =         1000;   // the max number of iterations
+    pPars->fXorOutput  =            1;   // XOR outputs of word-level miter
+    pPars->fVerbose    =            0;   // verbose output`
+    pPars->fPdrVerbose =            0;   // show verbose PDR output
+}
+
+/**Function*************************************************************
+
   Synopsis    [Working with models.]
 
   Description []
@@ -227,6 +251,7 @@ void Wlc_NtkFree( Wlc_Ntk_t * p )
     ABC_FREE( p->vCopies.pArray );
     ABC_FREE( p->vBits.pArray );
     ABC_FREE( p->vLevels.pArray );
+    ABC_FREE( p->vRefs.pArray );
     ABC_FREE( p->pInits );
     ABC_FREE( p->pObjs );
     ABC_FREE( p->pName );
@@ -912,7 +937,7 @@ Wlc_Ntk_t * Wlc_NtkDupDfsAbs( Wlc_Ntk_t * p, Vec_Int_t * vPisOld, Vec_Int_t * vP
 
     if ( p->pSpec )
         pNew->pSpec = Abc_UtilStrsav( p->pSpec );
-    Wlc_NtkTransferNames( pNew, p );
+    //Wlc_NtkTransferNames( pNew, p );
     return pNew;
 }
 
@@ -1127,6 +1152,70 @@ void Wlc_NtkShortNames( Wlc_Ntk_t * p )
         NameId = Abc_NamStrFindOrAdd( p->pManName, pBuffer, &fFound );
         Wlc_ObjSetNameId( p, Wlc_ObjId(p, pObj), NameId );
     }
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Count the number of flops initialized to DC value.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Wlc_NtkDcFlopNum( Wlc_Ntk_t * p )
+{
+    int i, nFlops, Count = 0;
+    if ( p->pInits == NULL )
+        return 0;
+    nFlops = strlen(p->pInits);
+    for ( i = 0; i < nFlops; i++ )
+        Count += (p->pInits[i] == 'x' || p->pInits[i] == 'X');
+    return Count;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Create references.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Wlc_NtkSetRefs( Wlc_Ntk_t * p )
+{
+    Wlc_Obj_t * pObj; int i, k, Fanin;
+    Vec_IntFill( &p->vRefs, Wlc_NtkObjNumMax(p), 0 );
+    Wlc_NtkForEachObj( p, pObj, i )
+        Wlc_ObjForEachFanin( pObj, Fanin, k )
+            Vec_IntAddToEntry( &p->vRefs, Fanin, 1 );
+    Wlc_NtkForEachCo( p, pObj, i )
+        Vec_IntAddToEntry( &p->vRefs, Wlc_ObjId(p, pObj), 1 );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [This procedure simply count the number of PPI bits.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Wlc_NtkCountObjBits( Wlc_Ntk_t * p, Vec_Int_t * vPisNew )
+{
+    Wlc_Obj_t * pObj; 
+    int i, Count = 0;
+    Wlc_NtkForEachObjVec( vPisNew, p, pObj, i )
+        Count += Wlc_ObjRange(pObj);
+    return Count;
 }
 
 ////////////////////////////////////////////////////////////////////////
