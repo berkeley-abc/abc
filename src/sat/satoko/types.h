@@ -26,6 +26,7 @@ typedef vec_sdbl_t vec_act_t ;
 #define vec_act_free(vec) vec_sdbl_free(vec)
 #define vec_act_size(vec) vec_sdbl_size(vec)
 #define vec_act_data(vec) vec_sdbl_data(vec)
+#define vec_act_shrink(vec, size) vec_sdbl_shrink(vec, size)
 #define vec_act_at(vec, idx) vec_sdbl_at(vec, idx)
 #define vec_act_push_back(vec, value) vec_sdbl_push_back(vec, value)
 

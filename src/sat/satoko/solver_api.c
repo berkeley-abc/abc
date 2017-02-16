@@ -229,7 +229,8 @@ void satoko_add_variable(solver_t *s, char sign)
     vec_uint_push_back(s->stamps, 0);
     vec_char_push_back(s->seen, 0);
     heap_insert(s->var_order, var);
-    if (s->marks) vec_char_push_back(s->marks, 0);
+    if (s->marks)
+        vec_char_push_back(s->marks, 0);
 }
 
 int satoko_add_clause(solver_t *s, unsigned *lits, unsigned size)
@@ -313,6 +314,59 @@ int satoko_final_conflict(solver_t *s, unsigned *out)
 satoko_stats_t satoko_stats(satoko_t *s)
 {
     return s->stats;
+}
+
+void satoko_bookmark(satoko_t *s)
+{
+    assert(solver_dlevel(s) == 0);
+    s->book_cl_orig = vec_uint_size(s->originals);
+    s->book_cl_lrnt = vec_uint_size(s->learnts);
+    s->book_vars = vec_char_size(s->assigns);
+    s->book_trail = vec_uint_size(s->trail);
+}
+
+void satoko_unbookmark(satoko_t *s)
+{
+    s->book_cl_orig = 0;
+    s->book_cl_lrnt = 0;
+    s->book_vars = 0;
+    s->book_trail = 0;
+}
+
+void satoko_rollback(satoko_t *s)
+{
+    unsigned i, cref;
+    unsigned n_originals = vec_uint_size(s->originals) - s->book_cl_orig;
+    unsigned n_learnts = vec_uint_size(s->learnts) - s->book_cl_lrnt;
+    struct clause **cl_to_remove;
+
+    assert(solver_dlevel(s) == 0);
+    cl_to_remove = satoko_alloc(struct clause *, n_originals + n_learnts);
+    /* Mark clauses */
+    vec_uint_foreach_start(s->originals, cref, i, s->book_cl_orig)
+        cl_to_remove[i] = clause_read(s, cref);
+    vec_uint_foreach_start(s->learnts, cref, i, s->book_cl_lrnt)
+        cl_to_remove[n_originals + i] = clause_read(s, cref);
+    for (i = 0; i < n_originals + n_learnts; i++) {
+        clause_unwatch(s, cdb_cref(s->all_clauses, (unsigned *)cl_to_remove[i]));
+        cl_to_remove[i]->f_mark = 1;
+    }
+    vec_uint_shrink(s->originals, s->book_cl_orig);
+    vec_uint_shrink(s->learnts, s->book_cl_lrnt);
+    /* Shrink variable related vectors */
+    vec_act_shrink(s->activity, s->book_vars);
+    vec_uint_shrink(s->levels, s->book_vars);
+    vec_uint_shrink(s->reasons, s->book_vars);
+    vec_char_shrink(s->assigns, s->book_vars);
+    vec_char_shrink(s->polarity, s->book_vars);
+    solver_rebuild_order(s);
+    /* Rewind solver and cancel level 0 assignments to the trail */
+    solver_cancel_until(s, 0);
+    vec_uint_shrink(s->trail, s->book_trail);
+    s->book_cl_orig = 0;
+    s->book_cl_lrnt = 0;
+    s->book_vars = 0;
+    s->book_trail = 0;
 }
 
 void satoko_mark_cone(satoko_t *s, int * pvars, int n_vars)

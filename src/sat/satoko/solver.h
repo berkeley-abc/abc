@@ -92,6 +92,12 @@ struct solver_t_ {
     vec_uint_t *stamps; /* Multipurpose stamp used to calculate LBD and
                  * clauses minimization with binary resolution */
 
+    /* Bookmark */
+    unsigned book_cl_orig; /* Bookmark for orignal problem clauses vector */
+    unsigned book_cl_lrnt; /* Bookmark for learnt clauses vector */
+    unsigned book_vars;    /* Bookmark number of variables */
+    unsigned book_trail;   /* Bookmark trail size */
+
     /* Temporary data used for solving cones */
     vec_char_t *marks;
 

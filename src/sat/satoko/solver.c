@@ -402,6 +402,7 @@ static inline void solver_garbage_collect(solver_t *s)
             clause_realloc(new_cdb, s->all_clauses, &(w->cref));
     }
 
+    /* Update CREFS */
     for (i = 0; i < vec_uint_size(s->trail); i++)
         if (lit_reason(s, vec_uint_at(s->trail, i)) != UNDEF)
             clause_realloc(new_cdb, s->all_clauses, &(vec_uint_data(s->reasons)[lit2var(vec_uint_at(s->trail, i))]));
@@ -427,7 +428,7 @@ static inline void solver_reduce_cdb(solver_t *s)
     struct clause **learnts_cls;
 
     learnts_cls = satoko_alloc(struct clause *, n_learnts);
-    vec_uint_foreach(s->learnts, cref, i)
+    vec_uint_foreach_start(s->learnts, cref, i, s->book_cl_lrnt)
         learnts_cls[i] = clause_read(s, cref);
 
     limit = (unsigned)(n_learnts * s->opts.learnt_ratio);
@@ -504,7 +505,7 @@ unsigned solver_clause_create(solver_t *s, vec_uint_t *lits, unsigned f_learnt)
     return cref;
 }
 
-void solver_cancel_until(solver_t * s, unsigned level)
+void solver_cancel_until(solver_t *s, unsigned level)
 {
     int i;
 

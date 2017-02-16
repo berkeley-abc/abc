@@ -100,6 +100,27 @@ static inline struct watcher *watch_list_array(struct watch_list *wl)
     return wl->watchers;
 }
 
+/* TODO: I still have mixed feelings if this change should be done, keeping the
+ * old code commented after it. */
+static inline void watch_list_remove(struct watch_list *wl, unsigned cref, unsigned is_bin)
+{
+    struct watcher *watchers = watch_list_array(wl);
+    unsigned i;
+    if (is_bin) {
+        for (i = 0; watchers[i].cref != cref; i++);
+        assert(i < watch_list_size(wl));
+        wl->n_bin--;
+        memmove((wl->watchers + i), (wl->watchers + i + 1),
+                (wl->size - i - 1) * sizeof(struct watcher));
+    } else {
+        for (i = wl->n_bin; watchers[i].cref != cref; i++);
+        assert(i < watch_list_size(wl));
+        stk_swap(struct watcher, wl->watchers[i], wl->watchers[wl->size - 1]);
+    }
+    wl->size -= 1;
+}
+
+/*
 static inline void watch_list_remove(struct watch_list *wl, unsigned cref, unsigned is_bin)
 {
     struct watcher *watchers = watch_list_array(wl);
@@ -114,6 +135,7 @@ static inline void watch_list_remove(struct watch_list *wl, unsigned cref, unsig
             (wl->size - i - 1) * sizeof(struct watcher));
     wl->size -= 1;
 }
+*/
 
 static inline vec_wl_t *vec_wl_alloc(unsigned cap)
 {

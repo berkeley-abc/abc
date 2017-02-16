@@ -89,9 +89,12 @@ extern void satoko_assump_push(satoko_t *s, unsigned);
 extern void satoko_assump_pop(satoko_t *s);
 extern int  satoko_simplify(satoko_t *);
 extern int  satoko_solve(satoko_t *);
-extern void satoko_mark_cone(satoko_t *s, int * pvars, int nvars);
-extern void satoko_unmark_cone(satoko_t *s, int * pvars, int nvars);
+extern void satoko_mark_cone(satoko_t *, int *, int);
+extern void satoko_unmark_cone(satoko_t *, int *, int);
 
+extern void satoko_rollback(satoko_t *);
+extern void satoko_bookmark(satoko_t *);
+extern void satoko_unbookmark(satoko_t *);
 /* If problem is unsatisfiable under assumptions, this function is used to
  * obtain the final conflict clause expressed in the assumptions.
  *

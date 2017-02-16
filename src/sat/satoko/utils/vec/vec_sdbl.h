@@ -86,6 +86,12 @@ static inline unsigned vec_sdbl_size(vec_sdbl_t *p)
     return p->size;
 }
 
+static inline void vec_sdbl_shrink(vec_sdbl_t *p, unsigned new_size)
+{
+    assert(new_size <= p->cap);
+    p->size = new_size;
+}
+
 static inline void vec_sdbl_resize(vec_sdbl_t *p, unsigned new_size)
 {
     p->size = new_size;
