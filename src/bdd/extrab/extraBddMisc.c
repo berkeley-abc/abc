@@ -2379,6 +2379,209 @@ void Extra_GraphExperiment()
     Cudd_RecursiveDerefZdd( dd, zGraph );
     Cudd_Quit(dd);
 }
+
+
+
+
+/**Function********************************************************************
+
+  Synopsis    [Performs the reordering-sensitive step of Extra_zddCombination().]
+
+  Description [Generates in a bottom-up fashion ZDD for one combination 
+               whose var values are given in the array VarValues. If necessary,
+               creates new variables on the fly.]
+
+  SideEffects []
+
+  SeeAlso     []
+
+******************************************************************************/
+DdNode * extraZddCombination(
+  DdManager* dd, 
+  int* VarValues, 
+  int nVars )
+{
+    int lev, index;
+    DdNode *zRes, *zTemp;
+
+    /* transform the combination from the array VarValues into a ZDD cube. */
+    zRes = dd->one;
+    cuddRef(zRes);
+
+    /*  go through levels starting bottom-up and create nodes 
+     *  if these variables are present in the comb
+     */
+    for (lev = nVars - 1; lev >= 0; lev--) 
+    { 
+        index = (lev >= dd->sizeZ) ? lev : dd->invpermZ[lev];
+        if (VarValues[index] == 1) 
+        {
+            /* compose zRes with ZERO for the given ZDD variable */
+            zRes = cuddZddGetNode( dd, index, zTemp = zRes, dd->zero );
+            if ( zRes == NULL ) 
+            {
+                Cudd_RecursiveDerefZdd( dd, zTemp );
+                return NULL;
+            }
+            cuddRef( zRes );
+            cuddDeref( zTemp );
+        }
+    }
+    cuddDeref( zRes );
+    return zRes;
+
+} /* end of extraZddCombination */
+
+/**Function********************************************************************
+
+  Synopsis    [Creates ZDD of the combination containing given variables.]
+
+  Description [Creates ZDD of the combination containing given variables.
+               VarValues contains 1 for a variable that belongs to the 
+               combination and 0 for a varible that does not belong. 
+               nVars is number of ZDD variables in the array.]
+
+  SideEffects [New ZDD variables are created if indices of the variables
+               present in the combination are larger than the currently
+               allocated number of ZDD variables.]
+
+  SeeAlso     []
+
+******************************************************************************/
+DdNode * Extra_zddCombination( 
+  DdManager *dd, 
+  int* VarValues, 
+  int nVars )
+{
+    DdNode  *res;
+    do {
+    dd->reordered = 0;
+    res = extraZddCombination(dd, VarValues, nVars);
+    } while (dd->reordered == 1);
+    return(res);
+
+} /* end of Extra_zddCombination */
+
+/**Function********************************************************************
+
+  Synopsis    [Generates a random set of combinations.]
+
+  Description [Given a set of n elements, each of which is encoded using one
+               ZDD variable, this function generates a random set of k subsets 
+               (combinations of elements) with density d. Assumes that k and n
+               are positive integers. Returns NULL if density is less than 0.0 
+               or more than 1.0.]
+
+  SideEffects [Allocates new ZDD variables if their current number is less than n.]
+
+  SeeAlso     []
+
+******************************************************************************/
+DdNode* Extra_zddRandomSet( 
+  DdManager * dd,   /* the DD manager */
+  int n,            /* the number of elements */
+  int k,            /* the number of combinations (subsets) */
+  double d)         /* average density of elements in combinations */
+{
+    DdNode *Result, *TempComb, *Aux;
+    int c, v, Limit, *VarValues;
+
+    /* sanity check the parameters */
+    if ( n <= 0 || k <= 0 || d < 0.0 || d > 1.0 )
+        return NULL;
+
+    /* allocate temporary storage for variable values */
+    VarValues = ABC_ALLOC( int, n );
+    if (VarValues == NULL) 
+    {
+        dd->errorCode = CUDD_MEMORY_OUT;
+        return NULL;
+    }
+
+    /* start the new set */
+    Result = dd->zero;
+    Cudd_Ref( Result );
+
+    /* seed random number generator */
+    Cudd_Srandom( time(NULL) );
+//  Cudd_Srandom( 4 );
+    /* determine the limit below which var belongs to the combination */
+    Limit = (int)(d * 2147483561.0);
+
+    /* add combinations one by one */
+    for ( c = 0; c < k; c++ )
+    {
+        for ( v = 0; v < n; v++ )
+            if ( Cudd_Random() <= Limit )
+                VarValues[v] = 1;
+            else
+                VarValues[v] = 0;
+
+        TempComb = Extra_zddCombination( dd, VarValues, n );
+        Cudd_Ref( TempComb );
+
+        /* make sure that this combination is not already in the set */
+        if ( c )
+        { /* at least one combination is already included */
+
+            Aux = Cudd_zddDiff( dd, Result, TempComb );
+            Cudd_Ref( Aux );
+            if ( Aux != Result )
+            {
+                Cudd_RecursiveDerefZdd( dd, Aux );
+                Cudd_RecursiveDerefZdd( dd, TempComb );
+                c--;
+                continue;
+            }
+            else 
+            { /* Aux is the same node as Result */
+                Cudd_Deref( Aux );
+            }
+        }
+
+        Result = Cudd_zddUnion( dd, Aux = Result, TempComb );
+        Cudd_Ref( Result );
+        Cudd_RecursiveDerefZdd( dd, Aux );
+        Cudd_RecursiveDerefZdd( dd, TempComb );
+    }
+
+    ABC_FREE( VarValues );
+    Cudd_Deref( Result );
+    return Result;
+
+} /* end of Extra_zddRandomSet */
+
+/**Function********************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+******************************************************************************/
+void Extra_ZddTest()
+{
+    int N  = 64;
+    int K0 = 1000;
+    int i, Size;
+    DdManager * dd = Cudd_Init( 0, 32, CUDD_UNIQUE_SLOTS, CUDD_CACHE_SLOTS, 0 );
+    for ( i = 1; i <= 10; i++ )
+    {
+        int K = K0 * i;
+        DdNode * zRandSet = Extra_zddRandomSet( dd, N, K, 0.5 );  Cudd_Ref(zRandSet);
+        Size = Cudd_zddDagSize(zRandSet);
+        //Cudd_zddPrintMinterm( dd, zRandSet );
+        printf( "N = %5d  K = %5d  BddSize = %6d   MemBdd = %8.3f MB   MemBit = %8.3f MB   Ratio = %8.3f %%\n", 
+            N, K, Size, 20.0*Size/(1<<20), 0.125 * N * K /(1<<20), 100.0*(0.125 * N * K)/(20.0*Size) );
+        Cudd_RecursiveDerefZdd( dd, zRandSet );
+    }
+    Cudd_Quit(dd);
+}
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
