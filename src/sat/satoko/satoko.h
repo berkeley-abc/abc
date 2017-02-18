@@ -83,7 +83,7 @@ extern void satoko_destroy(satoko_t *);
 extern void satoko_default_opts(satoko_opts_t *);
 extern void satoko_configure(satoko_t *, satoko_opts_t *);
 extern int  satoko_parse_dimacs(char *, satoko_t **);
-extern void satoko_add_variable(satoko_t *, char);
+extern int  satoko_add_variable(satoko_t *, char);
 extern int  satoko_add_clause(satoko_t *, unsigned *, unsigned);
 extern void satoko_assump_push(satoko_t *s, unsigned);
 extern void satoko_assump_pop(satoko_t *s);

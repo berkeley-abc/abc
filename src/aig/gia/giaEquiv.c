@@ -485,7 +485,7 @@ void Gia_ManEquivPrintClasses( Gia_Man_t * p, int fVerbose, float Mem )
     if ( fVerbose )
     {
 //        int Ent;
-        Abc_Print( 1, "Const0 = " );
+        Abc_Print( 1, "Const0 (%d) = ", Counter0 );
         Gia_ManForEachConst( p, i )
             Abc_Print( 1, "%d ", i );
         Abc_Print( 1, "\n" );

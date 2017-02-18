@@ -43,13 +43,13 @@ ABC_NAMESPACE_IMPL_START
 ***********************************************************************/
 static inline word * Wlc_ObjSim( Gia_Man_t * p, int iObj )
 {
-    return Vec_WrdEntryP( p->vSims, p->iPatsPi * iObj );
+    return Vec_WrdEntryP( p->vSims, p->nSimWords * iObj );
 }
 static inline void Wlc_ObjSimPi( Gia_Man_t * p, int iObj )
 {
     int w;
     word * pSim = Wlc_ObjSim( p, iObj );
-    for ( w = 0; w < p->iPatsPi; w++ )
+    for ( w = 0; w < p->nSimWords; w++ )
         pSim[w] = Gia_ManRandomW( 0 );
 }
 static inline void Wlc_ObjSimRo( Gia_Man_t * p, int iObj )
@@ -57,7 +57,7 @@ static inline void Wlc_ObjSimRo( Gia_Man_t * p, int iObj )
     int w;
     word * pSimRo = Wlc_ObjSim( p, iObj );
     word * pSimRi = Wlc_ObjSim( p, Gia_ObjRoToRiId(p, iObj) );
-    for ( w = 0; w < p->iPatsPi; w++ )
+    for ( w = 0; w < p->nSimWords; w++ )
         pSimRo[w] = pSimRi[w];
 }
 static inline void Wlc_ObjSimCo( Gia_Man_t * p, int iObj )
@@ -67,10 +67,10 @@ static inline void Wlc_ObjSimCo( Gia_Man_t * p, int iObj )
     word * pSimCo  = Wlc_ObjSim( p, iObj );
     word * pSimDri = Wlc_ObjSim( p, Gia_ObjFaninId0(pObj, iObj) );
     if ( Gia_ObjFaninC0(pObj) )
-        for ( w = 0; w < p->iPatsPi; w++ )
+        for ( w = 0; w < p->nSimWords; w++ )
             pSimCo[w] = ~pSimDri[w];
     else
-        for ( w = 0; w < p->iPatsPi; w++ )
+        for ( w = 0; w < p->nSimWords; w++ )
             pSimCo[w] =  pSimDri[w];
 }
 static inline void Wlc_ObjSimAnd( Gia_Man_t * p, int iObj )
@@ -81,16 +81,16 @@ static inline void Wlc_ObjSimAnd( Gia_Man_t * p, int iObj )
     word * pSim0 = Wlc_ObjSim( p, Gia_ObjFaninId0(pObj, iObj) );
     word * pSim1 = Wlc_ObjSim( p, Gia_ObjFaninId1(pObj, iObj) );
     if ( Gia_ObjFaninC0(pObj) && Gia_ObjFaninC1(pObj) )
-        for ( w = 0; w < p->iPatsPi; w++ )
+        for ( w = 0; w < p->nSimWords; w++ )
             pSim[w] = ~pSim0[w] & ~pSim1[w];
     else if ( Gia_ObjFaninC0(pObj) && !Gia_ObjFaninC1(pObj) )
-        for ( w = 0; w < p->iPatsPi; w++ )
+        for ( w = 0; w < p->nSimWords; w++ )
             pSim[w] = ~pSim0[w] & pSim1[w];
     else if ( !Gia_ObjFaninC0(pObj) && Gia_ObjFaninC1(pObj) )
-        for ( w = 0; w < p->iPatsPi; w++ )
+        for ( w = 0; w < p->nSimWords; w++ )
             pSim[w] = pSim0[w] & ~pSim1[w];
     else
-        for ( w = 0; w < p->iPatsPi; w++ )
+        for ( w = 0; w < p->nSimWords; w++ )
             pSim[w] = pSim0[w] & pSim1[w];
 }
 
@@ -135,7 +135,7 @@ Vec_Ptr_t * Wlc_NtkSimulate( Wlc_Ntk_t * p, Vec_Int_t * vNodes, int nWords, int 
     // allocate simulation info for one timeframe
     Vec_WrdFreeP( &pGia->vSims );
     pGia->vSims = Vec_WrdStart( Gia_ManObjNum(pGia) * nWords );
-    pGia->iPatsPi = nWords;
+    pGia->nSimWords = nWords;
     // allocate resulting simulation info
     vRes = Vec_PtrAlloc( Vec_IntSize(vNodes) );
     Wlc_NtkForEachObjVec( vNodes, p, pWlcObj, i )
@@ -188,7 +188,7 @@ Vec_Ptr_t * Wlc_NtkSimulate( Wlc_Ntk_t * p, Vec_Int_t * vNodes, int nWords, int 
             printf( "Replaced %d dangling internal bits with constant 0.\n", Counter );
     }
     Vec_WrdFreeP( &pGia->vSims );
-    pGia->iPatsPi = 0;
+    pGia->nSimWords = 0;
     Gia_ManStop( pGia );
     return vRes;
 }

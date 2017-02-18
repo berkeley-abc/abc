@@ -216,7 +216,7 @@ int satoko_simplify(solver_t * s)
     return SATOKO_OK;
 }
 
-void satoko_add_variable(solver_t *s, char sign)
+int satoko_add_variable(solver_t *s, char sign)
 {
     unsigned var = vec_act_size(s->activity);
     vec_wl_push(s->watches);
@@ -231,6 +231,7 @@ void satoko_add_variable(solver_t *s, char sign)
     heap_insert(s->var_order, var);
     if (s->marks)
         vec_char_push_back(s->marks, 0);
+    return var;
 }
 
 int satoko_add_clause(solver_t *s, unsigned *lits, unsigned size)
@@ -351,6 +352,7 @@ void satoko_rollback(satoko_t *s)
         clause_unwatch(s, cdb_cref(s->all_clauses, (unsigned *)cl_to_remove[i]));
         cl_to_remove[i]->f_mark = 1;
     }
+    satoko_free(cl_to_remove);
     vec_uint_shrink(s->originals, s->book_cl_orig);
     vec_uint_shrink(s->learnts, s->book_cl_lrnt);
     /* Shrink variable related vectors */
