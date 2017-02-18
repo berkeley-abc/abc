@@ -49,6 +49,121 @@ extern int Gia_ManToBridgeResult( FILE * pFile, int Result, Abc_Cex_t * pCex, in
   SeeAlso     []
 
 ***********************************************************************/
+void IPdr_ManPrintClauses( Vec_Vec_t * vClauses, int kStart, int nRegs )
+{
+    Vec_Ptr_t * vArrayK;
+    Pdr_Set_t * pCube;
+    int i, k, Counter = 0;
+    Vec_VecForEachLevelStart( vClauses, vArrayK, k, kStart )
+    {
+        Vec_PtrSort( vArrayK, (int (*)(void))Pdr_SetCompare );
+        Vec_PtrForEachEntry( Pdr_Set_t *, vArrayK, pCube, i )
+        {
+            Abc_Print( 1, "C=%4d. F=%4d ", Counter++, k );
+            Pdr_SetPrint( stdout, pCube, nRegs, NULL );  
+            Abc_Print( 1, "\n" ); 
+        }
+    }
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Vec_t * IPdr_ManSaveClauses( Pdr_Man_t * p )
+{
+    int i, k;
+    Vec_Vec_t * vClausesSaved;
+    Pdr_Set_t * pCla;
+
+    // Note that the last frame is empty
+    vClausesSaved = Vec_VecStart(Vec_VecSize(p->vClauses)-1);
+    Vec_VecForEachEntryStartStop( Pdr_Set_t *, p->vClauses, pCla, i, k, 0, Vec_VecSize(vClausesSaved) )
+        Vec_VecPush(vClausesSaved, i, Pdr_SetDup(pCla));
+ 
+    return vClausesSaved;
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+sat_solver * IPdr_ManSetSolver( Pdr_Man_t * p, int k )
+{
+    sat_solver * pSat;
+    Vec_Ptr_t * vArrayK;
+    Pdr_Set_t * pCube;
+    int i, j;
+
+    assert( Vec_PtrSize(p->vSolvers) == k );
+    assert( Vec_IntSize(p->vActVars) == k );
+
+    pSat = zsat_solver_new_seed(p->pPars->nRandomSeed);
+    pSat = Pdr_ManNewSolver( pSat, p, k, (int)(k == 0) );
+    Vec_PtrPush( p->vSolvers, pSat );
+    Vec_IntPush( p->vActVars, 0 );
+
+    // set the property output
+    Pdr_ManSetPropertyOutput( p, k );
+    // add the clauses
+    Vec_VecForEachLevelStart( p->vClauses, vArrayK, i, k )
+        Vec_PtrForEachEntry( Pdr_Set_t *, vArrayK, pCube, j )
+            Pdr_ManSolverAddClause( p, k, pCube );
+    return pSat;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int IPdr_ManRestore( Pdr_Man_t * p, Vec_Vec_t * vClauses )
+{
+    int i;
+
+    assert(vClauses);
+
+    Vec_VecFree(p->vClauses);
+    p->vClauses = vClauses;
+
+    for ( i = 0; i < Vec_VecSize(p->vClauses); ++i )
+        IPdr_ManSetSolver(p, i);
+
+    return 0;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 int IPdr_ManSolveInt( Pdr_Man_t * p )
 {
     int fPrintClauses = 0;
@@ -59,7 +174,7 @@ int IPdr_ManSolveInt( Pdr_Man_t * p )
     int nOutDigits = Abc_Base10Log( Saig_ManPoNum(p->pAig) );
     abctime clkStart = Abc_Clock(), clkOne = 0;
     p->timeToStop = p->pPars->nTimeOut ? p->pPars->nTimeOut * CLOCKS_PER_SEC + Abc_Clock(): 0;
-    assert( Vec_PtrSize(p->vSolvers) == 0 );
+    // assert( Vec_PtrSize(p->vSolvers) == 0 );
     // in the multi-output mode, mark trivial POs (those fed by const0) as solved 
     if ( p->pPars->fSolveAll )
         Saig_ManForEachPo( p->pAig, pObj, iFrame )
@@ -72,7 +187,13 @@ int IPdr_ManSolveInt( Pdr_Man_t * p )
             }
     // create the first timeframe
     p->pPars->timeLastSolved = Abc_Clock();
-    Pdr_ManCreateSolver( p, (iFrame = 0) );
+
+    if ( Vec_VecSize(p->vClauses) == 0 )
+        Pdr_ManCreateSolver( p, (iFrame = 0) );
+    else {
+        iFrame = Vec_VecSize(p->vClauses);
+        Pdr_ManCreateSolver( p, iFrame );
+    }
     while ( 1 )
     {
         int fRefined = 0;
@@ -406,6 +527,9 @@ int IPdr_ManSolve( Aig_Man_t * pAig, Pdr_Par_t * pPars )
 {
     Pdr_Man_t * p;
     int k, RetValue;
+    int i, nRegs;
+    Vec_Vec_t * vClausesSaved;
+
     abctime clk = Abc_Clock();
     if ( pPars->nTimeOutOne && !pPars->fSolveAll )
         pPars->nTimeOutOne = 0;
@@ -444,6 +568,26 @@ int IPdr_ManSolve( Aig_Man_t * pAig, Pdr_Par_t * pPars )
     else if ( RetValue == 1 )
         Abc_FrameSetInv( Pdr_ManDeriveInfinityClauses( p, RetValue!=1 ) );
     p->tTotal += Abc_Clock() - clk;
+
+    if (pPars->iFrame == pPars->nFrameMax)
+    {
+        vClausesSaved = IPdr_ManSaveClauses(p);
+        nRegs = Aig_ManRegNum(p->pAig);
+
+        Pdr_ManStop( p );
+
+        printf("PDR reached the max frame: %d\n", pPars->iFrame);
+        IPdr_ManPrintClauses(vClausesSaved, 0, nRegs);
+
+        p = Pdr_ManStart( pAig, pPars, NULL );
+        IPdr_ManRestore( p, vClausesSaved );
+
+        // Solve again
+        pPars->nFrameMax = pPars->nFrameMax + 1;
+        RetValue = IPdr_ManSolveInt(p);
+        IPdr_ManPrintClauses(p->vClauses, 0, nRegs);
+    }
+
     Pdr_ManStop( p );
     pPars->iFrame--;
     // convert all -2 (unknown) entries into -1 (undec)
@@ -455,7 +599,6 @@ int IPdr_ManSolve( Aig_Man_t * pAig, Pdr_Par_t * pPars )
         Gia_ManToBridgeAbort( stdout, 7, (unsigned char *)"timeout" );
     return RetValue;
 }
-
 
 
 /**Function*************************************************************
