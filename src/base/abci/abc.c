@@ -26434,6 +26434,7 @@ usage:
 int Abc_CommandIPdr( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     extern int Abc_NtkDarPdr( Abc_Ntk_t * pNtk, Pdr_Par_t * pPars );
+    extern int IPdr_ManSolve( Abc_Ntk_t * pNtk, Pdr_Par_t * pPars );
     Pdr_Par_t Pars, * pPars = &Pars;
     Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
     int c;
@@ -26629,6 +26630,7 @@ int Abc_CommandIPdr( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 0;
     }
     // run the procedure
+    IPdr_ManSolve( pNtk, pPars );
     pPars->fUseBridge = pAbc->fBridgeMode;
     pAbc->Status  = Abc_NtkDarPdr( pNtk, pPars );
     pAbc->nFrames = pNtk->vSeqModelVec ? -1 : pPars->iFrame;
