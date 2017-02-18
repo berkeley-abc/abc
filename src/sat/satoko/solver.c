@@ -362,13 +362,13 @@ static inline void solver_handle_conflict(solver_t *s, unsigned confl_cref)
 
 static inline void solver_analyze_final(solver_t *s, unsigned lit)
 {
-    unsigned i;
+    int i;
 
     vec_uint_push_back(s->final_conflict, lit);
     if (solver_dlevel(s) == 0)
         return;
     vec_char_assign(s->seen, lit2var(lit), 1);
-    for (i = vec_uint_size(s->trail) - 1; i <= vec_uint_at(s->trail_lim, 0); i--) {
+    for (i = (int) vec_uint_size(s->trail) - 1; i >= (int) vec_uint_at(s->trail_lim, 0); i--) {
         unsigned var = lit2var(vec_uint_at(s->trail, i));
 
         if (vec_char_at(s->seen, var)) {
