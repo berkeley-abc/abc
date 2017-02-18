@@ -2063,7 +2063,7 @@ void Gia_AigerWriteLut( Gia_Man_t * p, char * pFileName )
 ***********************************************************************/
 void Gia_ManDetectMuxes( Gia_Man_t * p )
 {
-    Gia_Obj_t * pObj, * pNodeT, * pNodeE; int i;
+    Gia_Obj_t * pObj = NULL, * pNodeT, * pNodeE; int i;
     Gia_ManForEachObj( p, pObj, i );
         if ( Gia_ObjIsAnd(pObj) && Gia_ObjRecognizeMux(pObj, &pNodeT, &pNodeE) )
             pObj->fMark0 = 1;

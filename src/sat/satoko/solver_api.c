@@ -234,7 +234,7 @@ int satoko_add_variable(solver_t *s, char sign)
     return var;
 }
 
-int satoko_add_clause(solver_t *s, unsigned *lits, unsigned size)
+int satoko_add_clause(solver_t *s, int *lits, int size)
 {
     unsigned i, j;
     unsigned prev_lit;
@@ -249,10 +249,10 @@ int satoko_add_clause(solver_t *s, unsigned *lits, unsigned size)
     vec_uint_clear(s->temp_lits);
     j = 0;
     prev_lit = UNDEF;
-    for (i = 0; i < size; i++) {
-        if (lits[i] == lit_neg(prev_lit) || lit_value(s, lits[i]) == LIT_TRUE)
+    for (i = 0; i < (unsigned)size; i++) {
+        if ((unsigned)lits[i] == lit_neg(prev_lit) || lit_value(s, lits[i]) == LIT_TRUE)
             return SATOKO_OK;
-        else if (lits[i] != prev_lit && var_value(s, lit2var(lits[i])) == VAR_UNASSING) {
+        else if ((unsigned)lits[i] != prev_lit && var_value(s, lit2var(lits[i])) == VAR_UNASSING) {
             prev_lit = lits[i];
             vec_uint_push_back(s->temp_lits, lits[i]);
         }
@@ -270,7 +270,7 @@ int satoko_add_clause(solver_t *s, unsigned *lits, unsigned size)
     return SATOKO_OK;
 }
 
-void satoko_assump_push(solver_t *s, unsigned lit)
+void satoko_assump_push(solver_t *s, int lit)
 {
     vec_uint_push_back(s->assumptions, lit);
 }
