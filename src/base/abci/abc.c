@@ -26630,9 +26630,8 @@ int Abc_CommandIPdr( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 0;
     }
     // run the procedure
-    IPdr_ManSolve( pNtk, pPars );
     pPars->fUseBridge = pAbc->fBridgeMode;
-    pAbc->Status  = Abc_NtkDarPdr( pNtk, pPars );
+    pAbc->Status  = IPdr_ManSolve( pNtk, pPars );
     pAbc->nFrames = pNtk->vSeqModelVec ? -1 : pPars->iFrame;
     Abc_FrameReplacePoStatuses( pAbc, &pPars->vOutMap );
     if ( pNtk->vSeqModelVec )
