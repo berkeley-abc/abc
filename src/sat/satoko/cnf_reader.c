@@ -141,7 +141,7 @@ int satoko_parse_dimacs(char *fname, satoko_t **solver)
                 return -1;
             }
             read_clause(&token, lits);
-            if (!satoko_add_clause(p, vec_uint_data(lits), vec_uint_size(lits))) {
+            if (!satoko_add_clause(p, (int*)vec_uint_data(lits), vec_uint_size(lits))) {
                 vec_uint_print(lits);
                 return 0;
             }
