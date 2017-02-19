@@ -323,7 +323,7 @@ int Wlc_NtkPdrAbs( Wlc_Ntk_t * p, Wlc_Par_t * pPars )
     Pdr_Par_t PdrPars, * pPdrPars = &PdrPars;
     Pdr_ManSetDefaultParams( pPdrPars );
     pPdrPars->fVerbose   = pPars->fPdrVerbose;
-    pPdrPars->fVeryVerbose = 1;
+    pPdrPars->fVeryVerbose = 0;
     
     // perform refinement iterations
     for ( nIters = 1; nIters < pPars->nIterMax; nIters++ )
@@ -368,14 +368,10 @@ int Wlc_NtkPdrAbs( Wlc_Ntk_t * p, Wlc_Par_t * pPars )
         pAig = Gia_ManToAigSimple( pGia );
 
         pPdr = Pdr_ManStart( pAig, pPdrPars, NULL );
+
         if ( vClauses ) {
-            if ( Vec_VecSize( vClauses) == 1 ) {
-                Vec_VecFree( vClauses );
-                vClauses = NULL;
-            } else {
-                assert( Vec_VecSize( vClauses) >= 2 ); 
-                IPdr_ManRestore(pPdr, vClauses);
-            }
+            assert( Vec_VecSize( vClauses) >= 2 ); 
+            IPdr_ManRestore( pPdr, vClauses );
         }
 
         RetValue = IPdr_ManSolveInt( pPdr );
@@ -406,7 +402,7 @@ int Wlc_NtkPdrAbs( Wlc_Ntk_t * p, Wlc_Par_t * pPars )
         }
 
         // spurious CEX, continue solving
-        vClauses = IPdr_ManSaveClauses( pPdr, 0 );
+        vClauses = IPdr_ManSaveClauses( pPdr, 1 );
         Pdr_ManStop( pPdr );
 
         // update the set of objects to be un-abstracted
@@ -465,7 +461,7 @@ int Wlc_NtkAbsCore( Wlc_Ntk_t * p, Wlc_Par_t * pPars )
     //pPdrPars->fSkipDown  = 0;   // use 'pdr -nc' (improved generalization)
     //pPdrPars->nRestLimit = 500; // reset queue or proof-obligations when it gets larger than this
     pPdrPars->fVerbose   = pPars->fPdrVerbose;
-    pPdrPars->fVeryVerbose = 1;
+    pPdrPars->fVeryVerbose = 0;
     // perform refinement iterations
     for ( nIters = 1; nIters < pPars->nIterMax; nIters++ )
     {

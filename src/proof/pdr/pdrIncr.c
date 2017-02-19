@@ -77,11 +77,51 @@ void IPdr_ManPrintClauses( Vec_Vec_t * vClauses, int kStart, int nRegs )
   SeeAlso     []
 
 ***********************************************************************/
+int IPdr_ManCheckClauses( Pdr_Man_t * p )
+{
+    Pdr_Set_t * pCubeK;
+    Vec_Ptr_t * vArrayK;
+    int j, k, RetValue, kMax = Vec_PtrSize(p->vSolvers)-1;
+    int iStartFrame = 1;
+
+    Vec_VecForEachLevelStartStop( p->vClauses, vArrayK, k, iStartFrame, kMax )
+    {
+        Vec_PtrForEachEntry( Pdr_Set_t *, vArrayK, pCubeK, j )
+        {
+            RetValue = Pdr_ManCheckCube( p, k, pCubeK, NULL, 0, 0, 1 );
+
+            if ( !RetValue ) {
+                printf( "Cube[%d][%d] not inductive!\n", k, j );
+            }
+
+            assert( RetValue == 1 );
+        }
+    }
+
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 Vec_Vec_t * IPdr_ManSaveClauses( Pdr_Man_t * p, int fDropLast )
 {
     int i, k;
     Vec_Vec_t * vClausesSaved;
     Pdr_Set_t * pCla;
+
+    if ( Vec_VecSize( p->vClauses ) == 1 )
+        return NULL;
+    if ( Vec_VecSize( p->vClauses ) == 2 && fDropLast )
+        return NULL;
 
     if ( fDropLast )
         vClausesSaved = Vec_VecStart( Vec_VecSize(p->vClauses)-1 );
@@ -147,9 +187,6 @@ int IPdr_ManRestore( Pdr_Man_t * p, Vec_Vec_t * vClauses )
 
     assert(vClauses);
 
-    printf( "IPdr restore:\n" );
-    IPdr_ManPrintClauses( vClauses, 0, Aig_ManRegNum( p->pAig ) );
-
     Vec_VecFree(p->vClauses);
     p->vClauses = vClauses;
 
@@ -197,8 +234,8 @@ int IPdr_ManSolveInt( Pdr_Man_t * p )
     if ( Vec_VecSize(p->vClauses) == 0 )
         Pdr_ManCreateSolver( p, (iFrame = 0) );
     else {
-        iFrame = Vec_VecSize(p->vClauses);
-        Pdr_ManCreateSolver( p, iFrame );
+        iFrame = Vec_VecSize(p->vClauses) - 1;
+        IPdr_ManCheckClauses( p );
     }
     while ( 1 )
     {
