@@ -81,6 +81,12 @@ static inline void cdb_remove(struct cdb *p, struct clause *clause)
     p->wasted += clause->size;
 }
 
+static inline void cdb_clear(struct cdb *p)
+{
+    p->wasted = 0;
+    p->size = 0;
+}
+
 static inline unsigned cdb_capacity(struct cdb *p)
 {
     return p->cap;

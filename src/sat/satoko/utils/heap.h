@@ -158,10 +158,7 @@ static inline void heap_build(heap_t *p, vec_uint_t *entries)
 
 static inline void heap_clear(heap_t *p)
 {
-    unsigned i;
-    int entry;
-    vec_int_foreach(p->indices, entry, i)
-        vec_int_assign(p->indices, i, -1);
+    vec_int_clear(p->indices);
     vec_uint_clear(p->data);
 }
 

@@ -160,6 +160,16 @@ static inline void vec_wl_free(vec_wl_t *vec_wl)
     satoko_free(vec_wl);
 }
 
+static inline void vec_wl_clean(vec_wl_t *vec_wl)
+{
+    unsigned i;
+    for (i = 0; i < vec_wl->size; i++) {
+        vec_wl->watch_lists[i].size = 0;
+        vec_wl->watch_lists[i].n_bin = 0;
+    }
+    vec_wl->size = 0;
+}
+
 static inline void vec_wl_push(vec_wl_t *vec_wl)
 {
     if (vec_wl->size == vec_wl->cap) {

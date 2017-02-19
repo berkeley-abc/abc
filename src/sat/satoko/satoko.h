@@ -80,6 +80,8 @@ struct satoko_stats {
 //===------------------------------------------------------------------------===
 extern satoko_t *satoko_create(void);
 extern void satoko_destroy(satoko_t *);
+extern void satoko_reset(satoko_t *);
+
 extern void satoko_default_opts(satoko_opts_t *);
 extern void satoko_configure(satoko_t *, satoko_opts_t *);
 extern int  satoko_parse_dimacs(char *, satoko_t **);
