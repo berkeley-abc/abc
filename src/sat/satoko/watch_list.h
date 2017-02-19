@@ -154,7 +154,7 @@ static inline vec_wl_t *vec_wl_alloc(unsigned cap)
 static inline void vec_wl_free(vec_wl_t *vec_wl)
 {
     unsigned i;
-    for (i = 0; i < vec_wl->size; i++)
+    for (i = 0; i < vec_wl->cap; i++)
         watch_list_free(vec_wl->watch_lists + i);
     satoko_free(vec_wl->watch_lists);
     satoko_free(vec_wl);

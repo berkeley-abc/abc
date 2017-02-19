@@ -356,10 +356,15 @@ void satoko_rollback(satoko_t *s)
     vec_uint_shrink(s->originals, s->book_cl_orig);
     vec_uint_shrink(s->learnts, s->book_cl_lrnt);
     /* Shrink variable related vectors */
+    for (i = s->book_vars; i < 2 * vec_char_size(s->assigns); i++)
+        vec_wl_at(s->watches, i)->size = 0;
+    s->watches->size = s->book_vars;
     vec_act_shrink(s->activity, s->book_vars);
     vec_uint_shrink(s->levels, s->book_vars);
     vec_uint_shrink(s->reasons, s->book_vars);
+    vec_uint_shrink(s->stamps, s->book_vars);
     vec_char_shrink(s->assigns, s->book_vars);
+    vec_char_shrink(s->seen, s->book_vars);
     vec_char_shrink(s->polarity, s->book_vars);
     solver_rebuild_order(s);
     /* Rewind solver and cancel level 0 assignments to the trail */
@@ -369,6 +374,10 @@ void satoko_rollback(satoko_t *s)
     s->book_cl_lrnt = 0;
     s->book_vars = 0;
     s->book_trail = 0;
+    if (!s->book_vars) {
+        s->all_clauses->size = 0;
+        s->all_clauses->wasted = 0;
+    }
 }
 
 void satoko_mark_cone(satoko_t *s, int * pvars, int n_vars)

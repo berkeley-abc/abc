@@ -364,6 +364,7 @@ static inline void solver_analyze_final(solver_t *s, unsigned lit)
 {
     int i;
 
+    vec_uint_clear(s->final_conflict);
     vec_uint_push_back(s->final_conflict, lit);
     if (solver_dlevel(s) == 0)
         return;
