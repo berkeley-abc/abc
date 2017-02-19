@@ -527,7 +527,6 @@ int IPdr_ManSolve( Aig_Man_t * pAig, Pdr_Par_t * pPars )
 {
     Pdr_Man_t * p;
     int k, RetValue;
-    int i, nRegs;
     Vec_Vec_t * vClausesSaved;
 
     abctime clk = Abc_Clock();
@@ -549,46 +548,49 @@ int IPdr_ManSolve( Aig_Man_t * pAig, Pdr_Par_t * pPars )
             pPars->fSolveAll ?    "yes" : "no" );
     }
     ABC_FREE( pAig->pSeqModel );
+
+
     p = Pdr_ManStart( pAig, pPars, NULL );
-    RetValue = IPdr_ManSolveInt( p );
-    if ( RetValue == 0 )
-        assert( pAig->pSeqModel != NULL || p->vCexes != NULL );
-    if ( p->vCexes )
-    {
-        assert( p->pAig->vSeqModelVec == NULL );
-        p->pAig->vSeqModelVec = p->vCexes;
-        p->vCexes = NULL;
-    }
-    if ( p->pPars->fDumpInv )
-    {
-        char * pFileName = Extra_FileNameGenericAppend(p->pAig->pName, "_inv.pla");
-        Abc_FrameSetInv( Pdr_ManDeriveInfinityClauses( p, RetValue!=1 ) );
-        Pdr_ManDumpClauses( p, pFileName, RetValue==1 );
-    }
-    else if ( RetValue == 1 )
-        Abc_FrameSetInv( Pdr_ManDeriveInfinityClauses( p, RetValue!=1 ) );
-    p->tTotal += Abc_Clock() - clk;
+    while ( 1 ) {
+        RetValue = IPdr_ManSolveInt( p );
 
-    if (pPars->iFrame == pPars->nFrameMax)
-    {
-        vClausesSaved = IPdr_ManSaveClauses(p);
-        nRegs = Aig_ManRegNum(p->pAig);
+        if ( RetValue == -1 && pPars->iFrame == pPars->nFrameMax) {
+            vClausesSaved = IPdr_ManSaveClauses( p );
 
+            Pdr_ManStop( p );
+
+            p = Pdr_ManStart( pAig, pPars, NULL );
+            IPdr_ManRestore( p, vClausesSaved );
+
+            pPars->nFrameMax = pPars->nFrameMax << 1;
+
+            continue;
+        }
+
+        if ( RetValue == 0 )
+            assert( pAig->pSeqModel != NULL || p->vCexes != NULL );
+        if ( p->vCexes )
+        {
+            assert( p->pAig->vSeqModelVec == NULL );
+            p->pAig->vSeqModelVec = p->vCexes;
+            p->vCexes = NULL;
+        }
+        if ( p->pPars->fDumpInv )
+        {
+            char * pFileName = Extra_FileNameGenericAppend(p->pAig->pName, "_inv.pla");
+                Abc_FrameSetInv( Pdr_ManDeriveInfinityClauses( p, RetValue!=1 ) );
+                Pdr_ManDumpClauses( p, pFileName, RetValue==1 );
+        }
+        else if ( RetValue == 1 )
+            Abc_FrameSetInv( Pdr_ManDeriveInfinityClauses( p, RetValue!=1 ) );
+
+        p->tTotal += Abc_Clock() - clk;
         Pdr_ManStop( p );
 
-        printf("PDR reached the max frame: %d\n", pPars->iFrame);
-        IPdr_ManPrintClauses(vClausesSaved, 0, nRegs);
-
-        p = Pdr_ManStart( pAig, pPars, NULL );
-        IPdr_ManRestore( p, vClausesSaved );
-
-        // Solve again
-        pPars->nFrameMax = pPars->nFrameMax + 1;
-        RetValue = IPdr_ManSolveInt(p);
-        IPdr_ManPrintClauses(p->vClauses, 0, nRegs);
+        break;
     }
-
-    Pdr_ManStop( p );
+    
+    
     pPars->iFrame--;
     // convert all -2 (unknown) entries into -1 (undec)
     if ( pPars->vOutMap )
