@@ -133,6 +133,17 @@ static void Wlc_NtkAbsMarkNodes( Wlc_Ntk_t * p, Vec_Bit_t * vLeaves, Vec_Int_t *
     Wlc_NtkCleanMarks( p );
     Wlc_NtkForEachCo( p, pObj, i )
         Wlc_NtkAbsMarkNodes_rec( p, pObj, vLeaves, vPisOld, vPisNew, vFlops );
+    
+    
+    Vec_IntClear(vFlops);
+    Wlc_NtkForEachCi( p, pObj, i ) {
+        if ( !Wlc_ObjIsPi(pObj) ) {
+            Vec_IntPush( vFlops, Wlc_ObjId(p, pObj) );
+            pObj->Mark = 1;
+        }
+    }
+    
+
     Wlc_NtkForEachObjVec( vFlops, p, pObj, i )
         Wlc_NtkAbsMarkNodes_rec( p, Wlc_ObjFo2Fi(p, pObj), vLeaves, vPisOld, vPisNew, vFlops );
     Wlc_NtkForEachObj( p, pObj, i )
@@ -312,6 +323,7 @@ int Wlc_NtkPdrAbs( Wlc_Ntk_t * p, Wlc_Par_t * pPars )
     Pdr_Par_t PdrPars, * pPdrPars = &PdrPars;
     Pdr_ManSetDefaultParams( pPdrPars );
     pPdrPars->fVerbose   = pPars->fPdrVerbose;
+    pPdrPars->fVeryVerbose = 1;
     
     // perform refinement iterations
     for ( nIters = 1; nIters < pPars->nIterMax; nIters++ )
@@ -356,8 +368,15 @@ int Wlc_NtkPdrAbs( Wlc_Ntk_t * p, Wlc_Par_t * pPars )
         pAig = Gia_ManToAigSimple( pGia );
 
         pPdr = Pdr_ManStart( pAig, pPdrPars, NULL );
-        if (vClauses)
-            IPdr_ManRestore(pPdr, vClauses);
+        if ( vClauses ) {
+            if ( Vec_VecSize( vClauses) == 1 ) {
+                Vec_VecFree( vClauses );
+                vClauses = NULL;
+            } else {
+                assert( Vec_VecSize( vClauses) >= 2 ); 
+                IPdr_ManRestore(pPdr, vClauses);
+            }
+        }
 
         RetValue = IPdr_ManSolveInt( pPdr );
 
@@ -441,11 +460,12 @@ int Wlc_NtkAbsCore( Wlc_Ntk_t * p, Wlc_Par_t * pPars )
     // set up parameters to run PDR
     Pdr_Par_t PdrPars, * pPdrPars = &PdrPars;
     Pdr_ManSetDefaultParams( pPdrPars );
-    pPdrPars->fUseAbs    = 1;   // use 'pdr -t'  (on-the-fly abstraction)
-    pPdrPars->fCtgs      = 1;   // use 'pdr -nc' (improved generalization)
-    pPdrPars->fSkipDown  = 0;   // use 'pdr -nc' (improved generalization)
+    //pPdrPars->fUseAbs    = 1;   // use 'pdr -t'  (on-the-fly abstraction)
+    //pPdrPars->fCtgs      = 1;   // use 'pdr -nc' (improved generalization)
+    //pPdrPars->fSkipDown  = 0;   // use 'pdr -nc' (improved generalization)
     //pPdrPars->nRestLimit = 500; // reset queue or proof-obligations when it gets larger than this
     pPdrPars->fVerbose   = pPars->fPdrVerbose;
+    pPdrPars->fVeryVerbose = 1;
     // perform refinement iterations
     for ( nIters = 1; nIters < pPars->nIterMax; nIters++ )
     {

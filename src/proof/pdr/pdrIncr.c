@@ -147,6 +147,9 @@ int IPdr_ManRestore( Pdr_Man_t * p, Vec_Vec_t * vClauses )
 
     assert(vClauses);
 
+    printf( "IPdr restore:\n" );
+    IPdr_ManPrintClauses( vClauses, 0, Aig_ManRegNum( p->pAig ) );
+
     Vec_VecFree(p->vClauses);
     p->vClauses = vClauses;
 
