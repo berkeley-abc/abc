@@ -541,7 +541,7 @@ int Abc_CommandPdrAbs( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( 1, "Abc_CommandCone(): There is no current design.\n" );
         return 0;
     }
-    Wlc_NtkAbsCore( pNtk, pPars );
+    Wlc_NtkPdrAbs( pNtk, pPars );
     return 0;
 usage:
     Abc_Print( -2, "usage: %%pdra [-AMXFI num] [-xvwh]\n" );

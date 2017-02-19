@@ -77,14 +77,17 @@ void IPdr_ManPrintClauses( Vec_Vec_t * vClauses, int kStart, int nRegs )
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Vec_t * IPdr_ManSaveClauses( Pdr_Man_t * p )
+Vec_Vec_t * IPdr_ManSaveClauses( Pdr_Man_t * p, int fDropLast )
 {
     int i, k;
     Vec_Vec_t * vClausesSaved;
     Pdr_Set_t * pCla;
 
-    // Note that the last frame is empty
-    vClausesSaved = Vec_VecStart(Vec_VecSize(p->vClauses)-1);
+    if ( fDropLast )
+        vClausesSaved = Vec_VecStart( Vec_VecSize(p->vClauses)-1 );
+    else 
+        vClausesSaved = Vec_VecStart( Vec_VecSize(p->vClauses) );
+
     Vec_VecForEachEntryStartStop( Pdr_Set_t *, p->vClauses, pCla, i, k, 0, Vec_VecSize(vClausesSaved) )
         Vec_VecPush(vClausesSaved, i, Pdr_SetDup(pCla));
  
@@ -555,7 +558,7 @@ int IPdr_ManSolve( Aig_Man_t * pAig, Pdr_Par_t * pPars )
         RetValue = IPdr_ManSolveInt( p );
 
         if ( RetValue == -1 && pPars->iFrame == pPars->nFrameMax) {
-            vClausesSaved = IPdr_ManSaveClauses( p );
+            vClausesSaved = IPdr_ManSaveClauses( p, 1 );
 
             Pdr_ManStop( p );
 
