@@ -20,6 +20,7 @@
 
 #include "wlc.h"
 #include "proof/pdr/pdr.h"
+#include "proof/pdr/pdrInt.h"
 #include "aig/gia/giaAig.h"
 #include "sat/bmc/bmc.h"
 
@@ -28,6 +29,10 @@ ABC_NAMESPACE_IMPL_START
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
+
+extern Vec_Vec_t *   IPdr_ManSaveClauses( Pdr_Man_t * p, int fDropLast );
+extern int           IPdr_ManRestore( Pdr_Man_t * p, Vec_Vec_t * vClauses );
+extern int           IPdr_ManSolveInt( Pdr_Man_t * p );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -297,6 +302,8 @@ static int Wlc_NtkRemoveFromAbstraction( Wlc_Ntk_t * p, Vec_Int_t * vRefine, Vec
 int Wlc_NtkPdrAbs( Wlc_Ntk_t * p, Wlc_Par_t * pPars )
 {
     abctime clk = Abc_Clock();
+    Pdr_Man_t * pPdr;
+    Vec_Vec_t * vClauses = NULL;
     int nIters, nNodes, nDcFlops, RetValue = -1;
     // start the bitmap to mark objects that cannot be abstracted because of refinement
     // currently, this bitmap is empty because abstraction begins without refinement
@@ -347,9 +354,14 @@ int Wlc_NtkPdrAbs( Wlc_Ntk_t * p, Wlc_Par_t * pPars )
 
         // try to prove abstracted GIA by converting it to AIG and calling PDR
         pAig = Gia_ManToAigSimple( pGia );
-        RetValue = Pdr_ManSolve( pAig, pPdrPars );
+
+        pPdr = Pdr_ManStart( pAig, pPdrPars, NULL );
+        if (vClauses)
+            IPdr_ManRestore(pPdr, vClauses);
+
+        RetValue = IPdr_ManSolveInt( pPdr );
+
         pCex = pAig->pSeqModel; pAig->pSeqModel = NULL;
-        Aig_ManStop( pAig );
 
         // consider outcomes
         if ( pCex == NULL ) 
@@ -357,6 +369,8 @@ int Wlc_NtkPdrAbs( Wlc_Ntk_t * p, Wlc_Par_t * pPars )
             assert( RetValue ); // proved or undecided
             Gia_ManStop( pGia );
             Vec_IntFree( vPisNew );
+            Pdr_ManStop( pPdr );
+            Aig_ManStop( pAig );
             break;
         }
 
@@ -367,8 +381,14 @@ int Wlc_NtkPdrAbs( Wlc_Ntk_t * p, Wlc_Par_t * pPars )
         if ( vRefine == NULL ) // real CEX
         {
             Abc_CexFree( pCex ); // return CEX in the future
+            Pdr_ManStop( pPdr );
+            Aig_ManStop( pAig );
             break;
         }
+
+        // spurious CEX, continue solving
+        vClauses = IPdr_ManSaveClauses( pPdr, 0 );
+        Pdr_ManStop( pPdr );
 
         // update the set of objects to be un-abstracted
         nNodes = Wlc_NtkRemoveFromAbstraction( p, vRefine, vUnmark );
@@ -376,6 +396,7 @@ int Wlc_NtkPdrAbs( Wlc_Ntk_t * p, Wlc_Par_t * pPars )
             printf( "Refinement of CEX in frame %d came up with %d un-abstacted PPIs, whose MFFCs include %d objects.\n", pCex->iFrame, Vec_IntSize(vRefine), nNodes );
         Vec_IntFree( vRefine );
         Abc_CexFree( pCex );
+        Aig_ManStop( pAig );
     }
 
     Vec_BitFree( vUnmark );
