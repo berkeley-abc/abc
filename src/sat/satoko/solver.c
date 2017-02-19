@@ -195,7 +195,7 @@ static inline unsigned solver_decide(solver_t *s)
         if (solver_has_marks(s) && !var_mark(s, next_var))
             next_var = UNDEF;
     }
-    return var2lit(next_var, vec_char_at(s->polarity, next_var));
+    return var2lit(next_var, var_polarity(s, next_var));
 }
 
 static inline void solver_new_decision(solver_t *s, unsigned lit)

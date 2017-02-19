@@ -132,6 +132,11 @@ static inline char var_value(solver_t *s, unsigned var)
     return vec_char_at(s->assigns, var);
 }
 
+static inline char var_polarity(solver_t *s, unsigned var)
+{
+    return vec_char_at(s->polarity, var);
+}
+
 static inline unsigned var_dlevel(solver_t *s, unsigned var)
 {
     return vec_uint_at(s->levels, var);
