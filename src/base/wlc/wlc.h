@@ -174,6 +174,21 @@ struct Wlc_Par_t_
     int                    fPdrVerbose;        // verbose output
 };
 
+
+typedef struct WlcPdr_Par_t_ WlcPdr_Par_t;
+struct WlcPdr_Par_t_
+{
+    int                    nBitsAdd;           // adder bit-width
+    int                    nBitsMul;           // multiplier bit-widht 
+    int                    nBitsMux;           // MUX bit-width
+    int                    nBitsFlop;          // flop bit-width
+    int                    nIterMax;           // the max number of iterations
+    int                    fXorOutput;         // XOR outputs of word-level miter
+    int                    fVerbose;           // verbose output
+    int                    fPdrVerbose;        // verbose output
+};
+
+
 static inline int          Wlc_NtkObjNum( Wlc_Ntk_t * p )                           { return p->iObj - 1;                                                      }
 static inline int          Wlc_NtkObjNumMax( Wlc_Ntk_t * p )                        { return p->iObj;                                                          }
 static inline int          Wlc_NtkPiNum( Wlc_Ntk_t * p )                            { return Vec_IntSize(&p->vPis);                                            }
@@ -277,7 +292,7 @@ static inline Wlc_Obj_t *  Wlc_ObjCo2PoFo( Wlc_Ntk_t * p, int iCoId )           
 
 /*=== wlcAbs.c ========================================================*/
 extern int            Wlc_NtkAbsCore( Wlc_Ntk_t * p, Wlc_Par_t * pPars );
-extern int            Wlc_NtkPdrAbs( Wlc_Ntk_t * p, Wlc_Par_t * pPars );
+extern int            Wlc_NtkPdrAbs( Wlc_Ntk_t * p, WlcPdr_Par_t * pPars );
 /*=== wlcAbs2.c ========================================================*/
 extern int            Wlc_NtkAbsCore2( Wlc_Ntk_t * p, Wlc_Par_t * pPars );
 /*=== wlcBlast.c ========================================================*/
@@ -286,6 +301,7 @@ extern Gia_Man_t *    Wlc_NtkBitBlast( Wlc_Ntk_t * p, Vec_Int_t * vBoxIds, int i
 extern void           Wlc_SetNtk( Abc_Frame_t * pAbc, Wlc_Ntk_t * pNtk );
 /*=== wlcNtk.c ========================================================*/
 extern void           Wlc_ManSetDefaultParams( Wlc_Par_t * pPars );
+extern void           WlcPdr_ManSetDefaultParams( WlcPdr_Par_t * pPars );
 extern char *         Wlc_ObjTypeName( Wlc_Obj_t * p );
 extern Wlc_Ntk_t *    Wlc_NtkAlloc( char * pName, int nObjsAlloc );
 extern int            Wlc_ObjAlloc( Wlc_Ntk_t * p, int Type, int Signed, int End, int Beg );

@@ -40,6 +40,31 @@ extern int           IPdr_ManSolveInt( Pdr_Man_t * p );
 
 /**Function*************************************************************
 
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+
+void WlcPdr_ManSetDefaultParams( WlcPdr_Par_t * pPars )
+{
+    memset( pPars, 0, sizeof(WlcPdr_Par_t) );
+    pPars->nBitsAdd    = ABC_INFINITY;   // adder bit-width
+    pPars->nBitsMul    = ABC_INFINITY;   // multiplier bit-width 
+    pPars->nBitsMux    = ABC_INFINITY;   // MUX bit-width
+    pPars->nBitsFlop   = ABC_INFINITY;   // flop bit-width
+    pPars->nIterMax    =         1000;   // the max number of iterations
+    pPars->fXorOutput  =            1;   // XOR outputs of word-level miter
+    pPars->fVerbose    =            0;   // verbose output
+    pPars->fPdrVerbose =            0;   // show verbose PDR output
+}
+
+/**Function*************************************************************
+
   Synopsis    [Mark operators that meet the abstraction criteria.]
 
   Description [This procedure returns the array of objects (vLeaves) that 
@@ -310,7 +335,7 @@ static int Wlc_NtkRemoveFromAbstraction( Wlc_Ntk_t * p, Vec_Int_t * vRefine, Vec
   SeeAlso     []
 
 ***********************************************************************/
-int Wlc_NtkPdrAbs( Wlc_Ntk_t * p, Wlc_Par_t * pPars )
+int Wlc_NtkPdrAbs( Wlc_Ntk_t * p, WlcPdr_Par_t * pPars )
 {
     abctime clk = Abc_Clock();
     abctime pdrClk;
