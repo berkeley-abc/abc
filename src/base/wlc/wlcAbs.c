@@ -313,6 +313,7 @@ static int Wlc_NtkRemoveFromAbstraction( Wlc_Ntk_t * p, Vec_Int_t * vRefine, Vec
 int Wlc_NtkPdrAbs( Wlc_Ntk_t * p, Wlc_Par_t * pPars )
 {
     abctime clk = Abc_Clock();
+    abctime pdrClk;
     Pdr_Man_t * pPdr;
     Vec_Vec_t * vClauses = NULL;
     int nIters, nNodes, nDcFlops, RetValue = -1;
@@ -368,6 +369,7 @@ int Wlc_NtkPdrAbs( Wlc_Ntk_t * p, Wlc_Par_t * pPars )
         pAig = Gia_ManToAigSimple( pGia );
 
         pPdr = Pdr_ManStart( pAig, pPdrPars, NULL );
+        pdrClk = Abc_Clock();
 
         if ( vClauses ) {
             assert( Vec_VecSize( vClauses) >= 2 ); 
@@ -375,6 +377,7 @@ int Wlc_NtkPdrAbs( Wlc_Ntk_t * p, Wlc_Par_t * pPars )
         }
 
         RetValue = IPdr_ManSolveInt( pPdr );
+        pPdr->tTotal += Abc_Clock() - pdrClk;
 
         pCex = pAig->pSeqModel; pAig->pSeqModel = NULL;
 
@@ -403,6 +406,7 @@ int Wlc_NtkPdrAbs( Wlc_Ntk_t * p, Wlc_Par_t * pPars )
 
         // spurious CEX, continue solving
         vClauses = IPdr_ManSaveClauses( pPdr, 0 );
+
         Pdr_ManStop( pPdr );
 
         // update the set of objects to be un-abstracted
