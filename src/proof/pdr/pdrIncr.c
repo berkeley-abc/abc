@@ -271,6 +271,13 @@ int IPdr_ManSolveInt( Pdr_Man_t * p, int fCheckClauses, int fPushClauses )
                 Abc_Print( 1, "IPDR: Finished pushing. After:\n" );
                 Pdr_ManPrintProgress( p, 1, Abc_Clock() - clkStart );
             }
+
+            if ( RetValue ) 
+            {
+                Pdr_ManReportInvariant( p );
+                Pdr_ManVerifyInvariant( p );
+                return 1;
+            }
         }
     }
     while ( 1 )
