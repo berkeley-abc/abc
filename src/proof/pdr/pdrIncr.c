@@ -99,7 +99,6 @@ int IPdr_ManCheckClauses( Pdr_Man_t * p )
             assert( RetValue == 1 );
         }
     }
-    printf( "XXX: Pass check clauses! %d frames and %d clauses checked\n", k, counter );
 
     return 1;
 }
@@ -149,7 +148,7 @@ Vec_Vec_t * IPdr_ManSaveClauses( Pdr_Man_t * p, int fDropLast )
   SeeAlso     []
 
 ***********************************************************************/
-sat_solver * IPdr_ManSetSolver( Pdr_Man_t * p, int k )
+sat_solver * IPdr_ManSetSolver( Pdr_Man_t * p, int k, int nTotal )
 {
     sat_solver * pSat;
     Vec_Ptr_t * vArrayK;
@@ -165,7 +164,12 @@ sat_solver * IPdr_ManSetSolver( Pdr_Man_t * p, int k )
     Vec_IntPush( p->vActVars, 0 );
 
     // set the property output
-    Pdr_ManSetPropertyOutput( p, k );
+    if ( k < nTotal - 1 )
+        Pdr_ManSetPropertyOutput( p, k );
+
+    if (k == 0)
+        return pSat;
+
     // add the clauses
     Vec_VecForEachLevelStart( p->vClauses, vArrayK, i, k )
         Vec_PtrForEachEntry( Pdr_Set_t *, vArrayK, pCube, j )
@@ -194,7 +198,7 @@ int IPdr_ManRestore( Pdr_Man_t * p, Vec_Vec_t * vClauses )
     p->vClauses = vClauses;
 
     for ( i = 0; i < Vec_VecSize(p->vClauses); ++i )
-        IPdr_ManSetSolver(p, i);
+        IPdr_ManSetSolver( p, i, Vec_VecSize( p->vClauses ) );
 
     return 0;
 }
