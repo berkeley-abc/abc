@@ -37,6 +37,7 @@ struct Cec2_Par_t_
     int              nSimRounds;    // simulation rounds
     int              nConfLimit;    // SAT solver conflict limit
     int              fIsMiter;      // this is a miter
+    int              fUseCones;     // use logic cones
     int              fVeryVerbose;  // verbose stats
     int              fVerbose;      // verbose stats
 };
@@ -54,6 +55,7 @@ struct Cec2_Man_t_
     Vec_Ptr_t *      vFanins;        // CNF construction
     Vec_Wrd_t *      vSims;          // CI simulation info
     Vec_Int_t *      vNodesNew;      // nodes
+    Vec_Int_t *      vSatVars;       // nodes
     Vec_Int_t *      vObjSatPairs;   // nodes
     Vec_Int_t *      vCexTriples;    // nodes
     // statistics
@@ -95,6 +97,7 @@ void Cec2_SetDefaultParams( Cec2_Par_t * p )
     p->nSimRounds     =       4;    // simulation rounds
     p->nConfLimit     =    1000;    // conflict limit at a node
     p->fIsMiter       =       0;    // this is a miter
+    p->fUseCones      =       1;     // use logic cones
     p->fVeryVerbose   =       0;    // verbose stats
     p->fVerbose       =       1;    // verbose stats
 }  
@@ -668,6 +671,7 @@ Cec2_Man_t * Cec2_ManCreate( Gia_Man_t * pAig, Cec2_Par_t * pPars )
     p->vFrontier    = Vec_PtrAlloc( 1000 );
     p->vFanins      = Vec_PtrAlloc( 100 );
     p->vNodesNew    = Vec_IntAlloc( 100 );
+    p->vSatVars     = Vec_IntAlloc( 100 );
     p->vObjSatPairs = Vec_IntAlloc( 100 );
     p->vCexTriples  = Vec_IntAlloc( 100 );
     // remember pointer to the solver in the AIG manager
@@ -702,6 +706,7 @@ void Cec2_ManDestroy( Cec2_Man_t * p )
     Vec_PtrFreeP( &p->vFrontier );
     Vec_PtrFreeP( &p->vFanins );
     Vec_IntFreeP( &p->vNodesNew );
+    Vec_IntFreeP( &p->vSatVars );
     Vec_IntFreeP( &p->vObjSatPairs );
     Vec_IntFreeP( &p->vCexTriples );
     ABC_FREE( p );
@@ -767,7 +772,10 @@ void Cec2_ManCollect_rec( Cec2_Man_t * p, int iObj )
     Gia_ObjSetTravIdCurrentId(p->pNew, iObj);
     pObj = Gia_ManObj( p->pNew, iObj );
     if ( Cec2_ObjSatId(p->pNew, pObj) >= 0 )
+    {
         Vec_IntPush( p->vNodesNew, iObj );
+        Vec_IntPush( p->vSatVars, Cec2_ObjSatId(p->pNew, pObj) );
+    }
     if ( !iObj )
         return;
     if ( Gia_ObjIsAnd(pObj) )
@@ -788,19 +796,21 @@ int Cec2_ManSolveTwo( Cec2_Man_t * p, int iObj0, int iObj1, int fPhase )
     if (iObj1 < iObj0) 
         iObj1 ^= iObj0, iObj0 ^= iObj1, iObj1 ^= iObj0;
     assert( iObj0 < iObj1 );
-    assert( solver_varnum(p->pSat) == 0 );
-    if ( !iObj0 )
+    assert( p->pPars->fUseCones || solver_varnum(p->pSat) == 0 );
+    if ( !iObj0 && Cec2_ObjSatId(p->pNew, Gia_ManConst0(p->pNew)) == -1 )
         Cec2_ObjSetSatId( p->pNew, Gia_ManConst0(p->pNew), satoko_add_variable(p->pSat, 0) );
     iVar0 = Cec2_ObjGetCnfVar( p, iObj0 );
     iVar1 = Cec2_ObjGetCnfVar( p, iObj1 );
     // collect inputs and internal nodes
     Vec_IntClear( p->vNodesNew );
+    Vec_IntClear( p->vSatVars );
     Vec_IntClear( p->vObjSatPairs );
     Gia_ManIncrementTravId( p->pNew );
     Cec2_ManCollect_rec( p, iObj0 );
     Cec2_ManCollect_rec( p, iObj1 );
 //printf( "%d ", Vec_IntSize(p->vNodesNew) );
     // solve direct
+    if ( p->pPars->fUseCones )  satoko_mark_cone( p->pSat, Vec_IntArray(p->vSatVars), Vec_IntSize(p->vSatVars) );
     satoko_assump_push( p->pSat, Abc_Var2Lit(iVar0, 1) );
     satoko_assump_push( p->pSat, Abc_Var2Lit(iVar1, fPhase) );
     status = satoko_solve( p->pSat );
@@ -815,8 +825,11 @@ int Cec2_ManSolveTwo( Cec2_Man_t * p, int iObj0, int iObj1, int fPhase )
         satoko_assump_pop( p->pSat );
         satoko_assump_pop( p->pSat );
     }
+    if ( p->pPars->fUseCones )  satoko_unmark_cone( p->pSat, Vec_IntArray(p->vSatVars), Vec_IntSize(p->vSatVars) );
     //if ( status == SATOKO_SAT )
     //    Cec2_ManVerify( p->pNew, iObj0, iObj1, fPhase, p->pSat );
+    if ( p->pPars->fUseCones )
+        return status;
     Gia_ManForEachObjVec( p->vNodesNew, p->pNew, pObj, i )
         Cec2_ObjCleanSatId( p->pNew, pObj );
     return status;
@@ -855,6 +868,8 @@ int Cec2_ManSweepNode( Cec2_Man_t * p, int iObj )
         assert( 0 );
         p->timeSatUndec += Abc_Clock() - clk;
     }
+    if ( p->pPars->fUseCones )
+        return RetValue;
     clk = Abc_Clock();
     satoko_rollback( p->pSat );
     p->timeExtra += Abc_Clock() - clk;
