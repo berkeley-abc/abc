@@ -402,7 +402,7 @@ int Wlc_NtkPdrAbs( Wlc_Ntk_t * p, Wlc_Par_t * pPars )
         }
 
         // spurious CEX, continue solving
-        vClauses = IPdr_ManSaveClauses( pPdr, 1 );
+        vClauses = IPdr_ManSaveClauses( pPdr, 0 );
         Pdr_ManStop( pPdr );
 
         // update the set of objects to be un-abstracted

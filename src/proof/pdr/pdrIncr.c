@@ -81,14 +81,16 @@ int IPdr_ManCheckClauses( Pdr_Man_t * p )
 {
     Pdr_Set_t * pCubeK;
     Vec_Ptr_t * vArrayK;
-    int j, k, RetValue, kMax = Vec_PtrSize(p->vSolvers)-1;
+    int j, k, RetValue, kMax = Vec_PtrSize(p->vSolvers);
     int iStartFrame = 1;
+    int counter = 0;
 
     Vec_VecForEachLevelStartStop( p->vClauses, vArrayK, k, iStartFrame, kMax )
     {
         Vec_PtrForEachEntry( Pdr_Set_t *, vArrayK, pCubeK, j )
         {
-            RetValue = Pdr_ManCheckCube( p, k, pCubeK, NULL, 0, 0, 1 );
+            ++counter;
+            RetValue = Pdr_ManCheckCube( p, k - 1, pCubeK, NULL, 0, 0, 1 );
 
             if ( !RetValue ) {
                 printf( "Cube[%d][%d] not inductive!\n", k, j );
@@ -97,6 +99,7 @@ int IPdr_ManCheckClauses( Pdr_Man_t * p )
             assert( RetValue == 1 );
         }
     }
+    printf( "XXX: Pass check clauses! %d frames and %d clauses checked\n", k, counter );
 
     return 1;
 }
