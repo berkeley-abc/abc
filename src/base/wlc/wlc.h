@@ -184,6 +184,8 @@ struct WlcPdr_Par_t_
     int                    nBitsFlop;          // flop bit-width
     int                    nIterMax;           // the max number of iterations
     int                    fXorOutput;         // XOR outputs of word-level miter
+    int                    fCheckClauses;      // Check clauses in the reloaded trace                    
+    int                    fPushClauses;       // Push clauses in the reloaded trace                    
     int                    fVerbose;           // verbose output
     int                    fPdrVerbose;        // verbose output
 };

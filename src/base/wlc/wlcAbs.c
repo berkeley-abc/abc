@@ -32,7 +32,7 @@ ABC_NAMESPACE_IMPL_START
 
 extern Vec_Vec_t *   IPdr_ManSaveClauses( Pdr_Man_t * p, int fDropLast );
 extern int           IPdr_ManRestore( Pdr_Man_t * p, Vec_Vec_t * vClauses );
-extern int           IPdr_ManSolveInt( Pdr_Man_t * p );
+extern int           IPdr_ManSolveInt( Pdr_Man_t * p, int fCheckClauses, int fPushClauses );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -59,6 +59,8 @@ void WlcPdr_ManSetDefaultParams( WlcPdr_Par_t * pPars )
     pPars->nBitsFlop   = ABC_INFINITY;   // flop bit-width
     pPars->nIterMax    =         1000;   // the max number of iterations
     pPars->fXorOutput  =            1;   // XOR outputs of word-level miter
+    pPars->fCheckClauses =          1;   // Check clauses in the reloaded trace                    
+    pPars->fPushClauses =           0;   // Push clauses in the reloaded trace                    
     pPars->fVerbose    =            0;   // verbose output
     pPars->fPdrVerbose =            0;   // show verbose PDR output
 }
@@ -76,7 +78,7 @@ void WlcPdr_ManSetDefaultParams( WlcPdr_Par_t * pPars )
   SeeAlso     []
 
 ***********************************************************************/
-static Vec_Bit_t * Wlc_NtkAbsMarkOpers( Wlc_Ntk_t * p, Wlc_Par_t * pPars, Vec_Bit_t * vUnmark, int fVerbose )
+static Vec_Bit_t * Wlc_NtkAbsMarkOpers( Wlc_Ntk_t * p, WlcPdr_Par_t * pPars, Vec_Bit_t * vUnmark, int fVerbose )
 {
     Vec_Bit_t * vLeaves = Vec_BitStart( Wlc_NtkObjNumMax(p) );
     Wlc_Obj_t * pObj; int i, Count[4] = {0};
@@ -197,7 +199,7 @@ static void Wlc_NtkAbsMarkNodes( Wlc_Ntk_t * p, Vec_Bit_t * vLeaves, Vec_Int_t *
   SeeAlso     []
 
 ***********************************************************************/
-static Wlc_Ntk_t * Wlc_NtkAbs( Wlc_Ntk_t * p, Wlc_Par_t * pPars, Vec_Bit_t * vUnmark, Vec_Int_t ** pvPisNew, int fVerbose )
+static Wlc_Ntk_t * Wlc_NtkAbs( Wlc_Ntk_t * p, WlcPdr_Par_t * pPars, Vec_Bit_t * vUnmark, Vec_Int_t ** pvPisNew, int fVerbose )
 {
     Wlc_Ntk_t * pNtkNew = NULL;
     Vec_Int_t * vPisOld = Vec_IntAlloc( 100 );
@@ -401,7 +403,7 @@ int Wlc_NtkPdrAbs( Wlc_Ntk_t * p, WlcPdr_Par_t * pPars )
             IPdr_ManRestore( pPdr, vClauses );
         }
 
-        RetValue = IPdr_ManSolveInt( pPdr );
+        RetValue = IPdr_ManSolveInt( pPdr, pPars->fCheckClauses, pPars->fPushClauses );
         pPdr->tTotal += Abc_Clock() - pdrClk;
 
         pCex = pAig->pSeqModel; pAig->pSeqModel = NULL;

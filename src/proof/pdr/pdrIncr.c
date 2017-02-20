@@ -68,7 +68,9 @@ void IPdr_ManPrintClauses( Vec_Vec_t * vClauses, int kStart, int nRegs )
 
 /**Function*************************************************************
 
-  Synopsis    []
+  Synopsis    [ Check if each cube c_k in frame k satisfies the query
+                R_{k-1} && T && !c_k && c_k' (must be UNSAT).
+                Return True if all cubes pass the check. ]
 
   Description []
                
@@ -214,7 +216,7 @@ int IPdr_ManRestore( Pdr_Man_t * p, Vec_Vec_t * vClauses )
   SeeAlso     []
 
 ***********************************************************************/
-int IPdr_ManSolveInt( Pdr_Man_t * p )
+int IPdr_ManSolveInt( Pdr_Man_t * p, int fCheckClauses, int fPushClauses )
 {
     int fPrintClauses = 0;
     Pdr_Set_t * pCube = NULL;
@@ -242,7 +244,34 @@ int IPdr_ManSolveInt( Pdr_Man_t * p )
         Pdr_ManCreateSolver( p, (iFrame = 0) );
     else {
         iFrame = Vec_VecSize(p->vClauses) - 1;
-        IPdr_ManCheckClauses( p );
+
+        if ( fCheckClauses )
+        {
+            if ( p->pPars->fVerbose )
+               Abc_Print( 1, "IPDR: Checking the reloaded length-%d trace...", iFrame + 1 ) ;
+            IPdr_ManCheckClauses( p );
+            if ( p->pPars->fVerbose )
+               Abc_Print( 1, " Passed!\n" ) ;
+        }
+
+        if ( fPushClauses )
+        {
+            p->iUseFrame = Abc_MaxInt(iFrame, 1);
+
+            if ( p->pPars->fVerbose ) 
+            {
+                Abc_Print( 1, "IPDR: Pushing the reloaded clauses. Before:\n" );
+                Pdr_ManPrintProgress( p, 1, Abc_Clock() - clkStart );
+            }
+
+            RetValue = Pdr_ManPushClauses( p );
+
+            if ( p->pPars->fVerbose ) 
+            {
+                Abc_Print( 1, "IPDR: Finished pushing. After:\n" );
+                Pdr_ManPrintProgress( p, 1, Abc_Clock() - clkStart );
+            }
+        }
     }
     while ( 1 )
     {
@@ -602,7 +631,7 @@ int IPdr_ManSolve( Aig_Man_t * pAig, Pdr_Par_t * pPars )
 
     p = Pdr_ManStart( pAig, pPars, NULL );
     while ( 1 ) {
-        RetValue = IPdr_ManSolveInt( p );
+        RetValue = IPdr_ManSolveInt( p, 1, 0 );
 
         if ( RetValue == -1 && pPars->iFrame == pPars->nFrameMax) {
             vClausesSaved = IPdr_ManSaveClauses( p, 1 );
