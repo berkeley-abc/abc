@@ -95,6 +95,7 @@ struct solver_t_ {
     /* Bookmark */
     unsigned book_cl_orig; /* Bookmark for orignal problem clauses vector */
     unsigned book_cl_lrnt; /* Bookmark for learnt clauses vector */
+    unsigned book_cdb;     /* Bookmark clause database size */
     unsigned book_vars;    /* Bookmark number of variables */
     unsigned book_trail;   /* Bookmark trail size */
 

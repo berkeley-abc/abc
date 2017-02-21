@@ -330,6 +330,7 @@ void satoko_unbookmark(satoko_t *s)
 {
     s->book_cl_orig = 0;
     s->book_cl_lrnt = 0;
+    s->book_cdb = 0;
     s->book_vars = 0;
     s->book_trail = 0;
 }
@@ -365,6 +366,7 @@ void satoko_reset(satoko_t *s)
     s->RC2 = s->opts.n_conf_fst_reduce;
     s->book_cl_orig = 0;
     s->book_cl_lrnt = 0;
+    s->book_cdb = 0;
     s->book_vars = 0;
     s->book_trail = 0;
 }
@@ -412,6 +414,8 @@ void satoko_rollback(satoko_t *s)
     /* Rewind solver and cancel level 0 assignments to the trail */
     solver_cancel_until(s, 0);
     vec_uint_shrink(s->trail, s->book_trail);
+    if (s->book_cdb)
+        s->all_clauses->size = s->book_cdb;
     s->book_cl_orig = 0;
     s->book_cl_lrnt = 0;
     s->book_vars = 0;

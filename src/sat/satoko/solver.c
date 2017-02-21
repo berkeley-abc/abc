@@ -397,6 +397,9 @@ static inline void solver_garbage_collect(solver_t *s)
     unsigned *array;
     struct cdb *new_cdb = cdb_alloc(cdb_capacity(s->all_clauses) - cdb_wasted(s->all_clauses));
 
+    if (s->book_cdb)
+        s->book_cdb = 0;
+
     for (i = 0; i < 2 * vec_char_size(s->assigns); i++) {
         struct watcher *w;
         watch_list_foreach(s->watches, w, i)
