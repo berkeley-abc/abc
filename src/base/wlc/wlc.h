@@ -170,6 +170,8 @@ struct Wlc_Par_t_
     int                    nBitsFlop;          // flop bit-width
     int                    nIterMax;           // the max number of iterations
     int                    fXorOutput;         // XOR outputs of word-level miter
+    int                    fCheckClauses;      // Check clauses in the reloaded trace                    
+    int                    fPushClauses;       // Push clauses in the reloaded trace                    
     int                    fVerbose;           // verbose output
     int                    fPdrVerbose;        // verbose output
 };
@@ -277,6 +279,7 @@ static inline Wlc_Obj_t *  Wlc_ObjCo2PoFo( Wlc_Ntk_t * p, int iCoId )           
 
 /*=== wlcAbs.c ========================================================*/
 extern int            Wlc_NtkAbsCore( Wlc_Ntk_t * p, Wlc_Par_t * pPars );
+extern int            Wlc_NtkPdrAbs( Wlc_Ntk_t * p, Wlc_Par_t * pPars );
 /*=== wlcAbs2.c ========================================================*/
 extern int            Wlc_NtkAbsCore2( Wlc_Ntk_t * p, Wlc_Par_t * pPars );
 /*=== wlcBlast.c ========================================================*/

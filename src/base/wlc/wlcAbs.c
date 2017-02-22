@@ -20,6 +20,7 @@
 
 #include "wlc.h"
 #include "proof/pdr/pdr.h"
+#include "proof/pdr/pdrInt.h"
 #include "aig/gia/giaAig.h"
 #include "sat/bmc/bmc.h"
 
@@ -28,6 +29,10 @@ ABC_NAMESPACE_IMPL_START
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
+
+extern Vec_Vec_t *   IPdr_ManSaveClauses( Pdr_Man_t * p, int fDropLast );
+extern int           IPdr_ManRestore( Pdr_Man_t * p, Vec_Vec_t * vClauses );
+extern int           IPdr_ManSolveInt( Pdr_Man_t * p, int fCheckClauses, int fPushClauses );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -128,6 +133,17 @@ static void Wlc_NtkAbsMarkNodes( Wlc_Ntk_t * p, Vec_Bit_t * vLeaves, Vec_Int_t *
     Wlc_NtkCleanMarks( p );
     Wlc_NtkForEachCo( p, pObj, i )
         Wlc_NtkAbsMarkNodes_rec( p, pObj, vLeaves, vPisOld, vPisNew, vFlops );
+    
+    
+    Vec_IntClear(vFlops);
+    Wlc_NtkForEachCi( p, pObj, i ) {
+        if ( !Wlc_ObjIsPi(pObj) ) {
+            Vec_IntPush( vFlops, Wlc_ObjId(p, pObj) );
+            pObj->Mark = 1;
+        }
+    }
+    
+
     Wlc_NtkForEachObjVec( vFlops, p, pObj, i )
         Wlc_NtkAbsMarkNodes_rec( p, Wlc_ObjFo2Fi(p, pObj), vLeaves, vPisOld, vPisNew, vFlops );
     Wlc_NtkForEachObj( p, pObj, i )
@@ -285,6 +301,141 @@ static int Wlc_NtkRemoveFromAbstraction( Wlc_Ntk_t * p, Vec_Int_t * vRefine, Vec
 
 /**Function*************************************************************
 
+  Synopsis    [Performs PDR with word-level abstraction.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Wlc_NtkPdrAbs( Wlc_Ntk_t * p, Wlc_Par_t * pPars )
+{
+    abctime clk = Abc_Clock();
+    abctime pdrClk;
+    Pdr_Man_t * pPdr;
+    Vec_Vec_t * vClauses = NULL;
+    int nIters, nNodes, nDcFlops, RetValue = -1;
+    // start the bitmap to mark objects that cannot be abstracted because of refinement
+    // currently, this bitmap is empty because abstraction begins without refinement
+    Vec_Bit_t * vUnmark = Vec_BitStart( Wlc_NtkObjNumMax(p) );
+    // set up parameters to run PDR
+    Pdr_Par_t PdrPars, * pPdrPars = &PdrPars;
+    Pdr_ManSetDefaultParams( pPdrPars );
+    pPdrPars->fVerbose   = pPars->fPdrVerbose;
+    pPdrPars->fVeryVerbose = 0;
+    
+    // perform refinement iterations
+    for ( nIters = 1; nIters < pPars->nIterMax; nIters++ )
+    {
+        Aig_Man_t * pAig;
+        Abc_Cex_t * pCex;
+        Vec_Int_t * vPisNew, * vRefine;  
+        Gia_Man_t * pGia, * pTemp;
+        Wlc_Ntk_t * pAbs;
+
+        if ( pPars->fVerbose )
+            printf( "\nIteration %d:\n", nIters );
+
+        // get abstracted GIA and the set of pseudo-PIs (vPisNew)
+        pAbs = Wlc_NtkAbs( p, pPars, vUnmark, &vPisNew, pPars->fVerbose );
+        pGia = Wlc_NtkBitBlast( pAbs, NULL, -1, 0, 0, 0, 0 );
+
+        // if the abstraction has flops with DC-init state,
+        // new PIs were introduced by bit-blasting at the end of the PI list
+        // here we move these variables to be *before* PPIs, because
+        // PPIs are supposed to be at the end of the PI list for refinement
+        nDcFlops = Wlc_NtkDcFlopNum(pAbs);
+        if ( nDcFlops > 0 ) // DC-init flops are present
+        {
+            pGia = Gia_ManPermuteInputs( pTemp = pGia, Wlc_NtkCountObjBits(p, vPisNew), nDcFlops );
+            Gia_ManStop( pTemp );
+        }
+        // if the word-level outputs have to be XORs, this is a place to do it
+        if ( pPars->fXorOutput )
+        {
+            pGia = Gia_ManTransformMiter2( pTemp = pGia );
+            Gia_ManStop( pTemp );
+        }
+        if ( pPars->fVerbose )
+        {
+            printf( "Derived abstraction with %d objects and %d PPIs. Bit-blasted AIG stats are:\n", Wlc_NtkObjNum(pAbs), Vec_IntSize(vPisNew) ); 
+            Gia_ManPrintStats( pGia, NULL );
+        }
+        Wlc_NtkFree( pAbs );
+
+        // try to prove abstracted GIA by converting it to AIG and calling PDR
+        pAig = Gia_ManToAigSimple( pGia );
+
+        pPdr = Pdr_ManStart( pAig, pPdrPars, NULL );
+        pdrClk = Abc_Clock();
+
+        if ( vClauses ) {
+            assert( Vec_VecSize( vClauses) >= 2 ); 
+            IPdr_ManRestore( pPdr, vClauses );
+        }
+
+        RetValue = IPdr_ManSolveInt( pPdr, pPars->fCheckClauses, pPars->fPushClauses );
+        pPdr->tTotal += Abc_Clock() - pdrClk;
+
+        pCex = pAig->pSeqModel; pAig->pSeqModel = NULL;
+
+        // consider outcomes
+        if ( pCex == NULL ) 
+        {
+            assert( RetValue ); // proved or undecided
+            Gia_ManStop( pGia );
+            Vec_IntFree( vPisNew );
+            Pdr_ManStop( pPdr );
+            Aig_ManStop( pAig );
+            break;
+        }
+
+        // perform refinement
+        vRefine = Wlc_NtkAbsRefinement( p, pGia, pCex, vPisNew );
+        Gia_ManStop( pGia );
+        Vec_IntFree( vPisNew );
+        if ( vRefine == NULL ) // real CEX
+        {
+            Abc_CexFree( pCex ); // return CEX in the future
+            Pdr_ManStop( pPdr );
+            Aig_ManStop( pAig );
+            break;
+        }
+
+        // spurious CEX, continue solving
+        vClauses = IPdr_ManSaveClauses( pPdr, 0 );
+
+        Pdr_ManStop( pPdr );
+
+        // update the set of objects to be un-abstracted
+        nNodes = Wlc_NtkRemoveFromAbstraction( p, vRefine, vUnmark );
+        if ( pPars->fVerbose )
+            printf( "Refinement of CEX in frame %d came up with %d un-abstacted PPIs, whose MFFCs include %d objects.\n", pCex->iFrame, Vec_IntSize(vRefine), nNodes );
+        Vec_IntFree( vRefine );
+        Abc_CexFree( pCex );
+        Aig_ManStop( pAig );
+    }
+
+    Vec_BitFree( vUnmark );
+    // report the result
+    if ( pPars->fVerbose )
+        printf( "\n" );
+    printf( "Abstraction " );
+    if ( RetValue == 0 )
+        printf( "resulted in a real CEX" );
+    else if ( RetValue == 1 )
+        printf( "is successfully proved" );
+    else 
+        printf( "timed out" );
+    printf( " after %d iterations. ", nIters );
+    Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
+    return RetValue;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Performs abstraction.]
 
   Description [Derives initial abstraction based on user-specified
@@ -309,11 +460,12 @@ int Wlc_NtkAbsCore( Wlc_Ntk_t * p, Wlc_Par_t * pPars )
     // set up parameters to run PDR
     Pdr_Par_t PdrPars, * pPdrPars = &PdrPars;
     Pdr_ManSetDefaultParams( pPdrPars );
-    pPdrPars->fUseAbs    = 1;   // use 'pdr -t'  (on-the-fly abstraction)
-    pPdrPars->fCtgs      = 1;   // use 'pdr -nc' (improved generalization)
-    pPdrPars->fSkipDown  = 0;   // use 'pdr -nc' (improved generalization)
+    //pPdrPars->fUseAbs    = 1;   // use 'pdr -t'  (on-the-fly abstraction)
+    //pPdrPars->fCtgs      = 1;   // use 'pdr -nc' (improved generalization)
+    //pPdrPars->fSkipDown  = 0;   // use 'pdr -nc' (improved generalization)
     //pPdrPars->nRestLimit = 500; // reset queue or proof-obligations when it gets larger than this
     pPdrPars->fVerbose   = pPars->fPdrVerbose;
+    pPdrPars->fVeryVerbose = 0;
     // perform refinement iterations
     for ( nIters = 1; nIters < pPars->nIterMax; nIters++ )
     {
