@@ -1,6 +1,6 @@
 /**CFile****************************************************************
 
-  FileName    [wlcAbs1.c]
+  FileName    [wlcAbs.c]
 
   SystemName  [ABC: Logic synthesis and verification system.]
 
@@ -8,13 +8,13 @@
 
   Synopsis    [Abstraction for word-level networks.]
 
-  Author      [Alan Mishchenko]
+  Author      [Yen-Sheng Ho, Alan Mishchenko]
   
   Affiliation [UC Berkeley]
 
   Date        [Ver. 1.0. Started - August 22, 2014.]
 
-  Revision    [$Id: wlcAbs1.c,v 1.00 2014/09/12 00:00:00 alanmi Exp $]
+  Revision    [$Id: wlcAbs.c,v 1.00 2014/09/12 00:00:00 alanmi Exp $]
 
 ***********************************************************************/
 
@@ -31,7 +31,7 @@ ABC_NAMESPACE_IMPL_START
 ////////////////////////////////////////////////////////////////////////
 
 extern Vec_Vec_t *   IPdr_ManSaveClauses( Pdr_Man_t * p, int fDropLast );
-extern int           IPdr_ManRestore( Pdr_Man_t * p, Vec_Vec_t * vClauses );
+extern int           IPdr_ManRestore( Pdr_Man_t * p, Vec_Vec_t * vClauses, Vec_Int_t * vMap );
 extern int           IPdr_ManSolveInt( Pdr_Man_t * p, int fCheckClauses, int fPushClauses );
 
 ////////////////////////////////////////////////////////////////////////
@@ -134,7 +134,7 @@ static void Wlc_NtkAbsMarkNodes( Wlc_Ntk_t * p, Vec_Bit_t * vLeaves, Vec_Int_t *
     Wlc_NtkForEachCo( p, pObj, i )
         Wlc_NtkAbsMarkNodes_rec( p, pObj, vLeaves, vPisOld, vPisNew, vFlops );
     
-    
+/*    
     Vec_IntClear(vFlops);
     Wlc_NtkForEachCi( p, pObj, i ) {
         if ( !Wlc_ObjIsPi(pObj) ) {
@@ -142,7 +142,7 @@ static void Wlc_NtkAbsMarkNodes( Wlc_Ntk_t * p, Vec_Bit_t * vLeaves, Vec_Int_t *
             pObj->Mark = 1;
         }
     }
-    
+*/    
 
     Wlc_NtkForEachObjVec( vFlops, p, pObj, i )
         Wlc_NtkAbsMarkNodes_rec( p, Wlc_ObjFo2Fi(p, pObj), vLeaves, vPisOld, vPisNew, vFlops );
@@ -172,7 +172,7 @@ static void Wlc_NtkAbsMarkNodes( Wlc_Ntk_t * p, Vec_Bit_t * vLeaves, Vec_Int_t *
   SeeAlso     []
 
 ***********************************************************************/
-static Wlc_Ntk_t * Wlc_NtkAbs( Wlc_Ntk_t * p, Wlc_Par_t * pPars, Vec_Bit_t * vUnmark, Vec_Int_t ** pvPisNew, int fVerbose )
+static Wlc_Ntk_t * Wlc_NtkAbs( Wlc_Ntk_t * p, Wlc_Par_t * pPars, Vec_Bit_t * vUnmark, Vec_Int_t ** pvPisNew, Vec_Int_t ** pvFlops, int fVerbose )
 {
     Wlc_Ntk_t * pNtkNew = NULL;
     Vec_Int_t * vPisOld = Vec_IntAlloc( 100 );
@@ -183,7 +183,10 @@ static Wlc_Ntk_t * Wlc_NtkAbs( Wlc_Ntk_t * p, Wlc_Par_t * pPars, Vec_Bit_t * vUn
     Vec_BitFree( vLeaves );
     pNtkNew = Wlc_NtkDupDfsAbs( p, vPisOld, vPisNew, vFlops );
     Vec_IntFree( vPisOld );
-    Vec_IntFree( vFlops );
+    if ( pvFlops )
+        *pvFlops = vFlops;
+    else
+        Vec_IntFree( vFlops );
     if ( pvPisNew )
         *pvPisNew = vPisNew;
     else
@@ -301,6 +304,55 @@ static int Wlc_NtkRemoveFromAbstraction( Wlc_Ntk_t * p, Vec_Int_t * vRefine, Vec
 
 /**Function*************************************************************
 
+  Synopsis    [Computes the map for remapping flop IDs used in the clauses.]
+
+  Description [Takes the original network (Wlc_Ntk_t) and the array of word-level 
+  flops used in the old abstraction (vFfOld) and those used in the new abstraction
+  (vFfNew). Returns the integer map, which remaps every binary flop found
+  in the old abstraction into a binary flop found in the new abstraction.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Int_t * Wlc_NtkFlopsRemap( Wlc_Ntk_t * p, Vec_Int_t * vFfOld, Vec_Int_t * vFfNew )
+{
+    Vec_Int_t * vMap = Vec_IntAlloc( 1000 );             // the resulting map
+    Vec_Int_t * vMapFfNew2Bit1 = Vec_IntAlloc( 1000 );   // first binary bit of each new word-level flop
+    int i, b, iFfOld, iFfNew, iBit1New, nBits = 0;
+    // map object IDs of old flops into their flop indexes
+    Vec_Int_t * vMapFfObj2FfId = Vec_IntStartFull( Wlc_NtkObjNumMax(p) );
+    Vec_IntForEachEntry( vFfNew, iFfNew, i )
+        Vec_IntWriteEntry( vMapFfObj2FfId, iFfNew, i );
+    // map each new flop index into its first bit
+    Vec_IntForEachEntry( vFfNew, iFfNew, i )
+    {
+        Wlc_Obj_t * pObj = Wlc_NtkObj( p, iFfNew );
+        int nRange = Wlc_ObjRange( pObj );
+        Vec_IntPush( vMapFfNew2Bit1, nBits );
+        nBits += nRange;
+    }
+    assert( Vec_IntSize(vMapFfNew2Bit1) == Vec_IntSize(vFfNew) );
+    // remap old binary flops into new binary flops
+    Vec_IntForEachEntry( vFfOld, iFfOld, i )
+    {
+        Wlc_Obj_t * pObj = Wlc_NtkObj( p, iFfOld );
+        int nRange = Wlc_ObjRange( pObj );
+        iFfNew = Vec_IntEntry( vMapFfObj2FfId, iFfOld );
+        assert( iFfNew >= 0 ); // every old flop should be present in the new abstraction
+        // find the first bit of this new flop
+        iBit1New = Vec_IntEntry( vMapFfNew2Bit1, iFfNew );
+        for ( b = 0; b < nRange; b++ )
+            Vec_IntPush( vMap, iBit1New + b );
+    }
+    Vec_IntFree( vMapFfNew2Bit1 );
+    Vec_IntFree( vMapFfObj2FfId );
+    return vMap;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Performs PDR with word-level abstraction.]
 
   Description []
@@ -316,7 +368,8 @@ int Wlc_NtkPdrAbs( Wlc_Ntk_t * p, Wlc_Par_t * pPars )
     abctime pdrClk;
     Pdr_Man_t * pPdr;
     Vec_Vec_t * vClauses = NULL;
-    int nIters, nNodes, nDcFlops, RetValue = -1;
+    Vec_Int_t * vFfOld = NULL, * vFfNew = NULL, * vMap = NULL;
+    int nIters, nNodes, nDcFlops, RetValue = -1, nGiaFfNumOld = -1;
     // start the bitmap to mark objects that cannot be abstracted because of refinement
     // currently, this bitmap is empty because abstraction begins without refinement
     Vec_Bit_t * vUnmark = Vec_BitStart( Wlc_NtkObjNumMax(p) );
@@ -339,8 +392,24 @@ int Wlc_NtkPdrAbs( Wlc_Ntk_t * p, Wlc_Par_t * pPars )
             printf( "\nIteration %d:\n", nIters );
 
         // get abstracted GIA and the set of pseudo-PIs (vPisNew)
-        pAbs = Wlc_NtkAbs( p, pPars, vUnmark, &vPisNew, pPars->fVerbose );
+        pAbs = Wlc_NtkAbs( p, pPars, vUnmark, &vPisNew, &vFfNew, pPars->fVerbose );
         pGia = Wlc_NtkBitBlast( pAbs, NULL, -1, 0, 0, 0, 0 );
+
+        // map old flops into new flops
+        if ( vFfOld )
+        {
+            assert( nGiaFfNumOld >= 0 );
+            vMap = Wlc_NtkFlopsRemap( p, vFfOld, vFfNew );
+            //Vec_IntPrint( vMap );
+            // if reset flop was added in the previous iteration, it will be added again in this iteration
+            // remap the last flop (reset flop) into the last flop (reset flop) of the current AIG
+            if ( Vec_IntSize(vMap) + 1 == nGiaFfNumOld )
+                Vec_IntPush( vMap, Gia_ManRegNum(pGia)-1 );
+            assert( Vec_IntSize(vMap) == nGiaFfNumOld );
+            Vec_IntFreeP( &vFfOld );
+        }
+        ABC_SWAP( Vec_Int_t *, vFfOld, vFfNew );
+        nGiaFfNumOld = Gia_ManRegNum(pGia);
 
         // if the abstraction has flops with DC-init state,
         // new PIs were introduced by bit-blasting at the end of the PI list
@@ -373,8 +442,9 @@ int Wlc_NtkPdrAbs( Wlc_Ntk_t * p, Wlc_Par_t * pPars )
 
         if ( vClauses ) {
             assert( Vec_VecSize( vClauses) >= 2 ); 
-            IPdr_ManRestore( pPdr, vClauses );
+            IPdr_ManRestore( pPdr, vClauses, vMap );
         }
+        Vec_IntFreeP( &vMap );
 
         RetValue = IPdr_ManSolveInt( pPdr, pPars->fCheckClauses, pPars->fPushClauses );
         pPdr->tTotal += Abc_Clock() - pdrClk;
@@ -418,6 +488,7 @@ int Wlc_NtkPdrAbs( Wlc_Ntk_t * p, Wlc_Par_t * pPars )
         Aig_ManStop( pAig );
     }
 
+    Vec_IntFreeP( &vFfOld );
     Vec_BitFree( vUnmark );
     // report the result
     if ( pPars->fVerbose )
@@ -479,7 +550,7 @@ int Wlc_NtkAbsCore( Wlc_Ntk_t * p, Wlc_Par_t * pPars )
             printf( "\nIteration %d:\n", nIters );
 
         // get abstracted GIA and the set of pseudo-PIs (vPisNew)
-        pAbs = Wlc_NtkAbs( p, pPars, vUnmark, &vPisNew, pPars->fVerbose );
+        pAbs = Wlc_NtkAbs( p, pPars, vUnmark, &vPisNew, NULL, pPars->fVerbose );
         pGia = Wlc_NtkBitBlast( pAbs, NULL, -1, 0, 0, 0, 0 );
 
         // if the abstraction has flops with DC-init state,

@@ -190,7 +190,7 @@ sat_solver * IPdr_ManSetSolver( Pdr_Man_t * p, int k, int nTotal )
   SeeAlso     []
 
 ***********************************************************************/
-int IPdr_ManRestore( Pdr_Man_t * p, Vec_Vec_t * vClauses )
+int IPdr_ManRestore( Pdr_Man_t * p, Vec_Vec_t * vClauses, Vec_Int_t * vMap )
 {
     int i;
 
@@ -198,6 +198,15 @@ int IPdr_ManRestore( Pdr_Man_t * p, Vec_Vec_t * vClauses )
 
     Vec_VecFree(p->vClauses);
     p->vClauses = vClauses;
+
+    // remap clause literals using mapping (old flop -> new flop) found in array vMap
+    if ( vMap )
+    {
+        Pdr_Set_t * pSet; int j, k;   
+        Vec_VecForEachEntry( Pdr_Set_t *, vClauses, pSet, i, j )
+            for ( k = 0; k < pSet->nLits; k++ )
+                pSet->Lits[k] = Abc_Lit2LitV( Vec_IntArray(vMap), pSet->Lits[k] );
+    }
 
     for ( i = 0; i < Vec_VecSize(p->vClauses); ++i )
         IPdr_ManSetSolver( p, i, Vec_VecSize( p->vClauses ) );
@@ -646,7 +655,7 @@ int IPdr_ManSolve( Aig_Man_t * pAig, Pdr_Par_t * pPars )
             Pdr_ManStop( p );
 
             p = Pdr_ManStart( pAig, pPars, NULL );
-            IPdr_ManRestore( p, vClausesSaved );
+            IPdr_ManRestore( p, vClausesSaved, NULL );
 
             pPars->nFrameMax = pPars->nFrameMax << 1;
 
