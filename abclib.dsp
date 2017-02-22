@@ -5355,6 +5355,10 @@ SOURCE=.\src\proof\pdr\pdrCore.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\proof\pdr\pdrIncr.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\proof\pdr\pdrInt.h
 # End Source File
 # Begin Source File
