@@ -458,9 +458,9 @@ usage:
 int Abc_CommandPdrAbs( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Wlc_Ntk_t * pNtk = Wlc_AbcGetNtk(pAbc);
-    WlcPdr_Par_t Pars, * pPars = &Pars;
+    Wlc_Par_t Pars, * pPars = &Pars;
     int c;
-    WlcPdr_ManSetDefaultParams( pPars );
+    Wlc_ManSetDefaultParams( pPars );
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "AMXFIcpxvwh" ) ) != EOF )
     {
