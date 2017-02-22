@@ -116,6 +116,7 @@ void Wlc_ManSetDefaultParams( Wlc_Par_t * pPars )
     pPars->fXorOutput  =            1;   // XOR outputs of word-level miter
     pPars->fCheckClauses =          1;   // Check clauses in the reloaded trace                    
     pPars->fPushClauses =           0;   // Push clauses in the reloaded trace                    
+    pPars->fMFFC       =            1;   // Refine the entire MFFC of a PPI 
     pPars->fVerbose    =            0;   // verbose output`
     pPars->fPdrVerbose =            0;   // show verbose PDR output
 }
