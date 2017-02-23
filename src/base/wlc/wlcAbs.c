@@ -390,6 +390,14 @@ int Wlc_NtkPdrAbs( Wlc_Ntk_t * p, Wlc_Par_t * pPars )
     pPdrPars->fVerbose   = pPars->fPdrVerbose;
     pPdrPars->fVeryVerbose = 0;
     
+    if ( pPars->fPdra )
+    {
+        pPdrPars->fUseAbs    = 1;   // use 'pdr -t'  (on-the-fly abstraction)
+        pPdrPars->fCtgs      = 1;   // use 'pdr -nc' (improved generalization)
+        pPdrPars->fSkipDown  = 0;   // use 'pdr -nc' (improved generalization)
+        pPdrPars->nRestLimit = 500; // reset queue or proof-obligations when it gets larger than this
+    } 
+
     // perform refinement iterations
     for ( nIters = 1; nIters < pPars->nIterMax; nIters++ )
     {

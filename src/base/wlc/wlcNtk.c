@@ -117,6 +117,7 @@ void Wlc_ManSetDefaultParams( Wlc_Par_t * pPars )
     pPars->fCheckClauses =          1;   // Check clauses in the reloaded trace                    
     pPars->fPushClauses =           0;   // Push clauses in the reloaded trace                    
     pPars->fMFFC       =            1;   // Refine the entire MFFC of a PPI 
+    pPars->fPdra       =            0;   // Use pdr -nct 
     pPars->fVerbose    =            0;   // verbose output`
     pPars->fPdrVerbose =            0;   // show verbose PDR output
 }

@@ -462,7 +462,7 @@ int Abc_CommandPdrAbs( Abc_Frame_t * pAbc, int argc, char ** argv )
     int c;
     Wlc_ManSetDefaultParams( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "AMXFIcpmxvwh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "AMXFIacpmxvwh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -521,6 +521,9 @@ int Abc_CommandPdrAbs( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( pPars->nIterMax < 0 )
                 goto usage;
             break;
+        case 'a':
+            pPars->fPdra ^= 1;
+            break;
         case 'x':
             pPars->fXorOutput ^= 1;
             break;
@@ -553,7 +556,7 @@ int Abc_CommandPdrAbs( Abc_Frame_t * pAbc, int argc, char ** argv )
     Wlc_NtkPdrAbs( pNtk, pPars );
     return 0;
 usage:
-    Abc_Print( -2, "usage: %%pdra [-AMXFI num] [-cpmxvwh]\n" );
+    Abc_Print( -2, "usage: %%pdra [-AMXFI num] [-acpmxvwh]\n" );
     Abc_Print( -2, "\t         abstraction for word-level networks\n" );
     Abc_Print( -2, "\t-A num : minimum bit-width of an adder/subtractor to abstract [default = %d]\n", pPars->nBitsAdd );
     Abc_Print( -2, "\t-M num : minimum bit-width of a multiplier to abstract [default = %d]\n",        pPars->nBitsMul );
@@ -561,6 +564,7 @@ usage:
     Abc_Print( -2, "\t-F num : minimum bit-width of a flip-flop to abstract [default = %d]\n",         pPars->nBitsFlop );
     Abc_Print( -2, "\t-I num : maximum number of CEGAR iterations [default = %d]\n",                   pPars->nIterMax );
     Abc_Print( -2, "\t-x     : toggle XORing outputs of word-level miter [default = %s]\n",            pPars->fXorOutput? "yes": "no" );
+    Abc_Print( -2, "\t-a     : toggle running pdr with -nct [default = %s]\n",        pPars->fPdra? "yes": "no" );
     Abc_Print( -2, "\t-c     : toggle checking clauses in the reloaded trace [default = %s]\n",        pPars->fCheckClauses? "yes": "no" );
     Abc_Print( -2, "\t-p     : toggle pushing clauses in the reloaded trace [default = %s]\n",         pPars->fPushClauses? "yes": "no" );
     Abc_Print( -2, "\t-m     : toggle refining the whole MFFC of a PPI [default = %s]\n",              pPars->fMFFC? "yes": "no" );

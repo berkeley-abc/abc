@@ -173,6 +173,7 @@ struct Wlc_Par_t_
     int                    fCheckClauses;      // Check clauses in the reloaded trace                    
     int                    fPushClauses;       // Push clauses in the reloaded trace                    
     int                    fMFFC;              // Refine the entire MFFC of a PPI                     
+    int                    fPdra;              // Use pdr -nct                     
     int                    fVerbose;           // verbose output
     int                    fPdrVerbose;        // verbose output
 };

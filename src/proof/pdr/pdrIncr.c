@@ -190,6 +190,21 @@ sat_solver * IPdr_ManSetSolver( Pdr_Man_t * p, int k, int nTotal )
   SeeAlso     []
 
 ***********************************************************************/
+
+int IPdr_ManRestoreAbsFlops( Pdr_Man_t * p )
+{
+    Pdr_Set_t * pSet; int i, j, k;   
+
+    Vec_VecForEachEntry( Pdr_Set_t *, p->vClauses, pSet, i, j )
+    {
+        for ( k = 0; k < pSet->nLits; k++ )
+        {
+            Vec_IntWriteEntry( p->vAbsFlops, Abc_Lit2Var(pSet->Lits[k]), 1 );
+        }
+    }
+    return 0;
+}
+
 int IPdr_ManRestore( Pdr_Man_t * p, Vec_Vec_t * vClauses, Vec_Int_t * vMap )
 {
     int i;
@@ -288,6 +303,17 @@ int IPdr_ManSolveInt( Pdr_Man_t * p, int fCheckClauses, int fPushClauses )
                 return 1;
             }
         }
+
+        if ( p->pPars->fUseAbs && p->vAbsFlops == NULL && iFrame >= 1 )
+        {
+            assert( p->vAbsFlops == NULL );
+            p->vAbsFlops  = Vec_IntStart( Saig_ManRegNum(p->pAig) );
+            p->vMapFf2Ppi = Vec_IntStartFull( Saig_ManRegNum(p->pAig) );
+            p->vMapPpi2Ff = Vec_IntAlloc( 100 );
+            
+            IPdr_ManRestoreAbsFlops( p );
+        }
+ 
     }
     while ( 1 )
     {
