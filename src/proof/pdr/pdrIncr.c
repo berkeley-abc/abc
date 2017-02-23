@@ -468,6 +468,9 @@ int IPdr_ManSolveInt( Pdr_Man_t * p, int fCheckClauses, int fPushClauses )
                                 break; // keep solving
                             }
                             p->pAig->pSeqModel = pCex;
+
+                            if ( p->pPars->fVerbose && p->pPars->fUseAbs )
+                                Pdr_ManPrintProgress( p, !p->pPars->fSolveAll, Abc_Clock() - clkStart );
                             return 0; // SAT
                         }
                         p->pPars->nFailOuts++;
@@ -517,6 +520,7 @@ int IPdr_ManSolveInt( Pdr_Man_t * p, int fCheckClauses, int fPushClauses )
                 p->timeToStopOne = 0;
             }
         }
+        /*
         if ( p->pPars->fUseAbs && p->vAbsFlops && !fRefined )
         {
             int i, Used;
@@ -524,6 +528,17 @@ int IPdr_ManSolveInt( Pdr_Man_t * p, int fCheckClauses, int fPushClauses )
                 if ( Used && (Vec_IntEntry(p->vPrio, i) >> p->nPrioShift) == 0 )
                     Vec_IntWriteEntry( p->vAbsFlops, i, 0 );
         }
+        */
+        if ( p->pPars->fUseAbs && p->vAbsFlops && !fRefined )
+        {
+            Pdr_Set_t * pSet;
+            int i, j, k;
+            Vec_IntFill( p->vAbsFlops, Vec_IntSize( p->vAbsFlops ), 0 );
+            Vec_VecForEachEntry( Pdr_Set_t *, p->vClauses, pSet, i, j )
+                for ( k = 0; k < pSet->nLits; k++ )
+                    Vec_IntWriteEntry( p->vAbsFlops, Abc_Lit2Var(pSet->Lits[k]), 1 );
+        }
+
         if ( p->pPars->fVerbose )
             Pdr_ManPrintProgress( p, !fRefined, Abc_Clock() - clkStart );
         if ( fRefined )
