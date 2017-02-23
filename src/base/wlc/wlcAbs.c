@@ -302,6 +302,17 @@ static int Wlc_NtkRemoveFromAbstraction( Wlc_Ntk_t * p, Vec_Int_t * vRefine, Vec
     return nNodes;
 }
 
+static int Wlc_NtkUnmarkRefinement( Wlc_Ntk_t * p, Vec_Int_t * vRefine, Vec_Bit_t * vUnmark )
+{
+    Wlc_Obj_t * pObj; int i, nNodes = 0;
+    Wlc_NtkForEachObjVec( vRefine, p, pObj, i )
+    {
+        Vec_BitWriteEntry( vUnmark, Wlc_ObjId(p, pObj), 1 );
+        ++nNodes;
+    }
+    return nNodes;
+}
+
 /**Function*************************************************************
 
   Synopsis    [Computes the map for remapping flop IDs used in the clauses.]
@@ -480,9 +491,19 @@ int Wlc_NtkPdrAbs( Wlc_Ntk_t * p, Wlc_Par_t * pPars )
         Pdr_ManStop( pPdr );
 
         // update the set of objects to be un-abstracted
-        nNodes = Wlc_NtkRemoveFromAbstraction( p, vRefine, vUnmark );
-        if ( pPars->fVerbose )
-            printf( "Refinement of CEX in frame %d came up with %d un-abstacted PPIs, whose MFFCs include %d objects.\n", pCex->iFrame, Vec_IntSize(vRefine), nNodes );
+        if ( pPars->fMFFC )
+        {
+            nNodes = Wlc_NtkRemoveFromAbstraction( p, vRefine, vUnmark );
+            if ( pPars->fVerbose )
+                printf( "Refinement of CEX in frame %d came up with %d un-abstacted PPIs, whose MFFCs include %d objects.\n", pCex->iFrame, Vec_IntSize(vRefine), nNodes );
+        }
+        else
+        {
+            nNodes = Wlc_NtkUnmarkRefinement( p, vRefine, vUnmark );
+            if ( pPars->fVerbose )
+                printf( "Refinement of CEX in frame %d came up with %d un-abstacted PPIs.\n", pCex->iFrame, Vec_IntSize(vRefine) );
+
+        }
         Vec_IntFree( vRefine );
         Abc_CexFree( pCex );
         Aig_ManStop( pAig );
