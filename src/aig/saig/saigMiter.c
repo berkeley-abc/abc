@@ -1111,12 +1111,12 @@ int Ssw_SecSpecial( Aig_Man_t * pPart0, Aig_Man_t * pPart1, int nFrames, int fVe
     // report the miter
     if ( RetValue == 1 )
     {
-        printf( "Networks are equivalent.   " );
+        printf( "Networks are equivalent.  " );
 ABC_PRT( "Time", Abc_Clock() - clkTotal );
     }
     else if ( RetValue == 0 )
     {
-        printf( "Networks are NOT EQUIVALENT.   " );
+        printf( "Networks are NOT EQUIVALENT.  " );
 ABC_PRT( "Time", Abc_Clock() - clkTotal );
         if ( pMiterCec->pData == NULL )
             printf( "Counter-example is not available.\n" );

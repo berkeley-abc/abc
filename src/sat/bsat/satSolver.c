@@ -151,6 +151,7 @@ static inline void order_update(sat_solver* s, int v) // updateorder
         i                 = parent;
         parent            = (i - 1) / 2;
     }
+
     heap[i]     = x;
     orderpos[x] = i;
 }
@@ -192,11 +193,13 @@ static inline int  order_select(sat_solver* s, float random_var_freq) // selectv
             int    i     = 0;
             int    child = 1;
             while (child < size){
+
                 if (child+1 < size && s->activity[heap[child]] < s->activity[heap[child+1]])
                     child++;
                 assert(child < size);
                 if (s->activity[x] >= s->activity[heap[child]])
                     break;
+
                 heap[i]           = heap[child];
                 orderpos[heap[i]] = i;
                 i                 = child;
@@ -214,138 +217,234 @@ static inline int  order_select(sat_solver* s, float random_var_freq) // selectv
 void sat_solver_set_var_activity(sat_solver* s, int * pVars, int nVars) 
 {
     int i;
+    assert( s->VarActType == 1 );
     for (i = 0; i < s->size; i++)
         s->activity[i] = 0;
-    s->var_inc = 1;
+    s->var_inc = Abc_Dbl2Word(1);
     for ( i = 0; i < nVars; i++ )
     {
         int iVar = pVars ? pVars[i] : i;
-        s->activity[iVar] = nVars-i;
+        s->activity[iVar] = Abc_Dbl2Word(nVars-i);
         order_update( s, iVar );
     }
 }
 
 //=================================================================================================
-// Activity functions:
+// variable activities
 
-#ifdef USE_FLOAT_ACTIVITY
-
-static inline void act_var_rescale(sat_solver* s)  {
-    double* activity = s->activity;
-    int i;
-    for (i = 0; i < s->size; i++)
-        activity[i] *= 1e-100;
-    s->var_inc *= 1e-100;
-}
-static inline void act_clause_rescale(sat_solver* s) {
-//    static abctime Total = 0;
-    clause** cs = (clause**)veci_begin(&s->learnts);
-    int i;//, clk = Abc_Clock();
-    for (i = 0; i < veci_size(&s->learnts); i++){
-        float a = clause_activity(cs[i]);
-        clause_setactivity(cs[i], a * (float)1e-20);
+static inline void solver_init_activities(sat_solver* s)  
+{
+    // variable activities
+    s->VarActType             = 0;
+    if ( s->VarActType == 0 )
+    {
+        s->var_inc            = (1 <<  5);
+        s->var_decay          = -1;
     }
-    s->cla_inc *= (float)1e-20;
+    else if ( s->VarActType == 1 )
+    {
+        s->var_inc            = Abc_Dbl2Word(1.0);
+        s->var_decay          = Abc_Dbl2Word(1.0 / 0.95);
+    }
+    else if ( s->VarActType == 2 )
+    {
+        s->var_inc            = Xdbl_FromDouble(1.0);
+        s->var_decay          = Xdbl_FromDouble(1.0 / 0.950);
+    }
+    else assert(0);
 
-    Total += Abc_Clock() - clk;
-//    printf( "Rescaling...   Cla inc = %10.3f  Conf = %10d   ", s->cla_inc,  s->stats.conflicts );
-//    Abc_PrintTime( 1, "Time", Total );
+    // clause activities
+    s->ClaActType             = 0;
+    if ( s->ClaActType == 0 )
+    {
+        s->cla_inc            = (1 << 11);
+        s->cla_decay          = -1;
+    }
+    else
+    {
+        s->cla_inc            = 1;
+        s->cla_decay          = (float)(1 / 0.999);
+    }
 }
-static inline void act_var_bump(sat_solver* s, int v) {
-    s->activity[v] += s->var_inc;
-    if (s->activity[v] > 1e100)
-        act_var_rescale(s);
-    if (s->orderpos[v] != -1)
-        order_update(s,v);
+
+static inline void act_var_rescale(sat_solver* s)  
+{
+    if ( s->VarActType == 0 )
+    {
+        word* activity = s->activity;
+        int i;
+        for (i = 0; i < s->size; i++)
+            activity[i] >>= 19;
+        s->var_inc >>= 19;
+        s->var_inc = Abc_MaxInt( (unsigned)s->var_inc, (1<<4) );
+    }
+    else if ( s->VarActType == 1 )
+    {
+        double* activity = (double*)s->activity;
+        int i;
+        for (i = 0; i < s->size; i++)
+            activity[i] *= 1e-100;
+        s->var_inc = Abc_Dbl2Word( Abc_Word2Dbl(s->var_inc) * 1e-100 );
+        //printf( "Rescaling var activity...\n" ); 
+    }
+    else if ( s->VarActType == 2 )
+    {
+        xdbl * activity = s->activity;
+        int i;
+        for (i = 0; i < s->size; i++)
+            activity[i] = Xdbl_Div( activity[i], 200 ); // activity[i] / 2^200
+        s->var_inc = Xdbl_Div( s->var_inc, 200 ); 
+    }
+    else assert(0);
 }
-static inline void act_var_bump_global(sat_solver* s, int v) {
-    if ( !s->pGlobalVars )
+static inline void act_var_bump(sat_solver* s, int v) 
+{
+    if ( s->VarActType == 0 )
+    {
+        s->activity[v] += s->var_inc;
+        if ((unsigned)s->activity[v] & 0x80000000)
+            act_var_rescale(s);
+        if (s->orderpos[v] != -1)
+            order_update(s,v);
+    }
+    else if ( s->VarActType == 1 )
+    {
+        double act = Abc_Word2Dbl(s->activity[v]) + Abc_Word2Dbl(s->var_inc);
+        s->activity[v] = Abc_Dbl2Word(act);
+        if (act > 1e100)
+            act_var_rescale(s);
+        if (s->orderpos[v] != -1)
+            order_update(s,v);
+    }
+    else if ( s->VarActType == 2 )
+    {
+        s->activity[v] = Xdbl_Add( s->activity[v], s->var_inc );
+        if (s->activity[v] > ABC_CONST(0x014c924d692ca61b))
+            act_var_rescale(s);
+        if (s->orderpos[v] != -1)
+            order_update(s,v);
+    }
+    else assert(0);
+}
+static inline void act_var_bump_global(sat_solver* s, int v) 
+{
+    if ( !s->pGlobalVars || !s->pGlobalVars[v] )
         return;
-    s->activity[v] += (s->var_inc * 3.0 * s->pGlobalVars[v]);
-    if (s->activity[v] > 1e100)
-        act_var_rescale(s);
-    if (s->orderpos[v] != -1)
-        order_update(s,v);
+    if ( s->VarActType == 0 )
+    {
+        s->activity[v] += (int)((unsigned)s->var_inc * 3);
+        if (s->activity[v] & 0x80000000)
+            act_var_rescale(s);
+        if (s->orderpos[v] != -1)
+            order_update(s,v);
+    }
+    else if ( s->VarActType == 1 )
+    {
+        double act = Abc_Word2Dbl(s->activity[v]) + Abc_Word2Dbl(s->var_inc) * 3.0;
+        s->activity[v] = Abc_Dbl2Word(act);
+        if ( act > 1e100)
+            act_var_rescale(s);
+        if (s->orderpos[v] != -1)
+            order_update(s,v);
+    }
+    else if ( s->VarActType == 2 )
+    {
+        s->activity[v] = Xdbl_Add( s->activity[v], Xdbl_Mul(s->var_inc, Xdbl_FromDouble(3.0)) );
+        if (s->activity[v] > ABC_CONST(0x014c924d692ca61b))
+            act_var_rescale(s);
+        if (s->orderpos[v] != -1)
+            order_update(s,v);
+    }
+    else assert( 0 );
 }
-static inline void act_var_bump_factor(sat_solver* s, int v) {
+static inline void act_var_bump_factor(sat_solver* s, int v) 
+{
     if ( !s->factors )
         return;
-    s->activity[v] += (s->var_inc * s->factors[v]);
-    if (s->activity[v] > 1e100)
-        act_var_rescale(s);
-    if (s->orderpos[v] != -1)
-        order_update(s,v);
-}
-static inline void act_clause_bump(sat_solver* s, clause *c) {
-    float a = clause_activity(c) + s->cla_inc;
-    clause_setactivity(c,a);
-    if (a > 1e20) act_clause_rescale(s);
-}
-static inline void act_var_decay(sat_solver* s)    { s->var_inc *= s->var_decay; }
-static inline void act_clause_decay(sat_solver* s) { s->cla_inc *= s->cla_decay; }
-
-#else
-
-static inline void act_var_rescale(sat_solver* s) {
-    unsigned* activity = s->activity;
-    int i;
-    for (i = 0; i < s->size; i++)
-        activity[i] >>= 19;
-    s->var_inc >>= 19;
-    s->var_inc = Abc_MaxInt( s->var_inc, (1<<4) );
-}
-
-static inline void act_clause_rescale(sat_solver* s) {
-    static abctime Total = 0;
-    abctime clk = Abc_Clock();
-    unsigned* activity = (unsigned *)veci_begin(&s->act_clas);
-    int i;
-    for (i = 0; i < veci_size(&s->act_clas); i++)
-        activity[i] >>= 14;
-    s->cla_inc >>= 14;
-    s->cla_inc = Abc_MaxInt( s->cla_inc, (1<<10) );
-    Total += Abc_Clock() - clk;
-//    printf( "Rescaling...   Cla inc = %5d  Conf = %10d   ", s->cla_inc,  s->stats.conflicts );
-//    Abc_PrintTime( 1, "Time", Total );
+    if ( s->VarActType == 0 )
+    {
+        s->activity[v] += (int)((unsigned)s->var_inc * (float)s->factors[v]);
+        if (s->activity[v] & 0x80000000)
+            act_var_rescale(s);
+        if (s->orderpos[v] != -1)
+            order_update(s,v);
+    }
+    else if ( s->VarActType == 1 )
+    {
+        double act = Abc_Word2Dbl(s->activity[v]) + Abc_Word2Dbl(s->var_inc) * s->factors[v];
+        s->activity[v] = Abc_Dbl2Word(act);
+        if ( act > 1e100)
+            act_var_rescale(s);
+        if (s->orderpos[v] != -1)
+            order_update(s,v);
+    }
+    else if ( s->VarActType == 2 )
+    {
+        s->activity[v] = Xdbl_Add( s->activity[v], Xdbl_Mul(s->var_inc, Xdbl_FromDouble(s->factors[v])) );
+        if (s->activity[v] > ABC_CONST(0x014c924d692ca61b))
+            act_var_rescale(s);
+        if (s->orderpos[v] != -1)
+            order_update(s,v);
+    }
+    else assert( 0 );
 }
 
-static inline void act_var_bump(sat_solver* s, int v) {
-    s->activity[v] += s->var_inc;
-    if (s->activity[v] & 0x80000000)
-        act_var_rescale(s);
-    if (s->orderpos[v] != -1)
-        order_update(s,v);
-}
-static inline void act_var_bump_global(sat_solver* s, int v) {
-    if ( !s->pGlobalVars )
-        return;
-    s->activity[v] += (int)(s->var_inc * 3 * s->pGlobalVars[v]);
-    if (s->activity[v] & 0x80000000)
-        act_var_rescale(s);
-    if (s->orderpos[v] != -1)
-        order_update(s,v);
-}
-static inline void act_var_bump_factor(sat_solver* s, int v) {
-    if ( !s->factors )
-        return;
-    s->activity[v] += (int)(s->var_inc * s->factors[v]);
-    if (s->activity[v] & 0x80000000)
-        act_var_rescale(s);
-    if (s->orderpos[v] != -1)
-        order_update(s,v);
+static inline void act_var_decay(sat_solver* s)    
+{ 
+    if ( s->VarActType == 0 )
+        s->var_inc += (s->var_inc >>  4); 
+    else if ( s->VarActType == 1 )
+        s->var_inc = Abc_Dbl2Word( Abc_Word2Dbl(s->var_inc) * Abc_Word2Dbl(s->var_decay) );
+    else if ( s->VarActType == 2 )
+        s->var_inc = Xdbl_Mul(s->var_inc, s->var_decay); 
+    else assert(0);
 }
 
-static inline void act_clause_bump(sat_solver* s, clause*c) {
-    unsigned* act = (unsigned *)veci_begin(&s->act_clas) + c->lits[c->size];
-    *act += s->cla_inc;
-    if ( *act & 0x80000000 )
-        act_clause_rescale(s);
+// clause activities
+static inline void act_clause_rescale(sat_solver* s) 
+{
+    if ( s->ClaActType == 0 )
+    {
+        unsigned* activity = (unsigned *)veci_begin(&s->act_clas);
+        int i;
+        for (i = 0; i < veci_size(&s->act_clas); i++)
+            activity[i] >>= 14;
+        s->cla_inc >>= 14;
+        s->cla_inc = Abc_MaxInt( s->cla_inc, (1<<10) );
+    }
+    else
+    {
+        float* activity = (float *)veci_begin(&s->act_clas);
+        int i;
+        for (i = 0; i < veci_size(&s->act_clas); i++)
+            activity[i] *= (float)1e-20;
+        s->cla_inc *= (float)1e-20;
+    }
 }
-
-static inline void act_var_decay(sat_solver* s)    { s->var_inc += (s->var_inc >>  4); }
-static inline void act_clause_decay(sat_solver* s) { s->cla_inc += (s->cla_inc >> 10); }
-
-#endif
+static inline void act_clause_bump(sat_solver* s, clause *c) 
+{
+    if ( s->ClaActType == 0 )
+    {
+        unsigned* act = (unsigned *)veci_begin(&s->act_clas) + c->lits[c->size];
+        *act += s->cla_inc;
+        if ( *act & 0x80000000 )
+            act_clause_rescale(s);
+    }
+    else
+    {
+        float* act = (float *)veci_begin(&s->act_clas) + c->lits[c->size];
+        *act += s->cla_inc;
+        if (*act > 1e20) 
+            act_clause_rescale(s);
+    }
+}
+static inline void act_clause_decay(sat_solver* s)    
+{ 
+    if ( s->ClaActType == 0 )
+        s->cla_inc += (s->cla_inc >> 10);
+    else
+        s->cla_inc *= s->cla_decay;
+}
 
 
 //=================================================================================================
@@ -447,7 +546,10 @@ int sat_solver_clause_new(sat_solver* s, lit* begin, lit* end, int learnt)
         assert( clause_id(c) == veci_size(&s->act_clas) );
 //        veci_push(&s->learned, h);
 //        act_clause_bump(s,clause_read(s, h));
-        veci_push(&s->act_clas, (1<<10));
+        if ( s->ClaActType == 0 )
+            veci_push(&s->act_clas, (1<<10));
+        else
+            veci_push(&s->act_clas, s->cla_inc);
         s->stats.learnts++;
         s->stats.learnts_literals += size;
     }
@@ -1037,7 +1139,6 @@ sat_solver* sat_solver_new(void)
     veci_new(&s->act_clas);
     veci_new(&s->stack);
 //    veci_new(&s->model);
-    veci_new(&s->act_vars);
     veci_new(&s->unit_lits);
     veci_new(&s->temp_clause);
     veci_new(&s->conf_final);
@@ -1054,19 +1155,79 @@ sat_solver* sat_solver_new(void)
     s->cap                    = 0;
     s->qhead                  = 0;
     s->qtail                  = 0;
-#ifdef USE_FLOAT_ACTIVITY
-    s->var_inc                = 1;
-    s->cla_inc                = 1;
-    s->var_decay              = (float)(1 / 0.95 );
-    s->cla_decay              = (float)(1 / 0.999);
-#else
-    s->var_inc                = (1 <<  5);
-    s->cla_inc                = (1 << 11);
-#endif
+
+    solver_init_activities(s);
+    veci_new(&s->act_vars);
+
     s->root_level             = 0;
 //    s->simpdb_assigns         = 0;
 //    s->simpdb_props           = 0;
     s->random_seed            = 91648253;
+    s->progress_estimate      = 0;
+//    s->binary                 = (clause*)ABC_ALLOC( char, sizeof(clause) + sizeof(lit)*2);
+//    s->binary->size_learnt    = (2 << 1);
+    s->verbosity              = 0;
+
+    s->stats.starts           = 0;
+    s->stats.decisions        = 0;
+    s->stats.propagations     = 0;
+    s->stats.inspects         = 0;
+    s->stats.conflicts        = 0;
+    s->stats.clauses          = 0;
+    s->stats.clauses_literals = 0;
+    s->stats.learnts          = 0;
+    s->stats.learnts_literals = 0;
+    s->stats.tot_literals     = 0;
+    return s;
+}
+
+sat_solver* zsat_solver_new_seed(double seed)
+{
+    sat_solver* s = (sat_solver*)ABC_CALLOC( char, sizeof(sat_solver));
+
+//    Vec_SetAlloc_(&s->Mem, 15);
+    Sat_MemAlloc_(&s->Mem, 15);
+    s->hLearnts = -1;
+    s->hBinary = Sat_MemAppend( &s->Mem, NULL, 2, 0, 0 );
+    s->binary = clause_read( s, s->hBinary );
+
+    s->nLearntStart = LEARNT_MAX_START_DEFAULT;  // starting learned clause limit
+    s->nLearntDelta = LEARNT_MAX_INCRE_DEFAULT;  // delta of learned clause limit
+    s->nLearntRatio = LEARNT_MAX_RATIO_DEFAULT;  // ratio of learned clause limit
+    s->nLearntMax   = s->nLearntStart;
+
+    // initialize vectors
+    veci_new(&s->order);
+    veci_new(&s->trail_lim);
+    veci_new(&s->tagged);
+//    veci_new(&s->learned);
+    veci_new(&s->act_clas);
+    veci_new(&s->stack);
+//    veci_new(&s->model);
+    veci_new(&s->unit_lits);
+    veci_new(&s->temp_clause);
+    veci_new(&s->conf_final);
+
+    // initialize arrays
+    s->wlists    = 0;
+    s->activity  = 0;
+    s->orderpos  = 0;
+    s->reasons   = 0;
+    s->trail     = 0;
+
+    // initialize other vars
+    s->size                   = 0;
+    s->cap                    = 0;
+    s->qhead                  = 0;
+    s->qtail                  = 0;
+
+    solver_init_activities(s);
+    veci_new(&s->act_vars);
+
+    s->root_level             = 0;
+//    s->simpdb_assigns         = 0;
+//    s->simpdb_props           = 0;
+    s->random_seed            = seed;
     s->progress_estimate      = 0;
 //    s->binary                 = (clause*)ABC_ALLOC( char, sizeof(clause) + sizeof(lit)*2);
 //    s->binary->size_learnt    = (2 << 1);
@@ -1102,12 +1263,8 @@ void sat_solver_setnvars(sat_solver* s,int n)
         s->polarity  = ABC_REALLOC(char,   s->polarity, s->cap);
         s->tags      = ABC_REALLOC(char,   s->tags,     s->cap);
         s->loads     = ABC_REALLOC(char,   s->loads,    s->cap);
-#ifdef USE_FLOAT_ACTIVITY
-        s->activity  = ABC_REALLOC(double,   s->activity, s->cap);
-#else
-        s->activity  = ABC_REALLOC(unsigned, s->activity, s->cap);
-        s->activity2 = ABC_REALLOC(unsigned, s->activity2,s->cap);
-#endif
+        s->activity  = ABC_REALLOC(word,   s->activity, s->cap);
+        s->activity2 = ABC_REALLOC(word,   s->activity2,s->cap);
         s->pFreqs    = ABC_REALLOC(char,   s->pFreqs,   s->cap);
 
         if ( s->factors )
@@ -1126,11 +1283,15 @@ void sat_solver_setnvars(sat_solver* s,int n)
             veci_new(&s->wlists[2*var]);
         if ( s->wlists[2*var+1].ptr == NULL )
             veci_new(&s->wlists[2*var+1]);
-#ifdef USE_FLOAT_ACTIVITY
-        s->activity[var] = 0;
-#else
-        s->activity[var] = (1<<10);
-#endif
+
+        if ( s->VarActType == 0 )
+            s->activity[var] = (1<<10);
+        else if ( s->VarActType == 1 )
+            s->activity[var] = 0;
+        else if ( s->VarActType == 2 )
+            s->activity[var] = 0;
+        else assert(0);
+
         s->pFreqs[var]   = 0;
         if ( s->factors )
         s->factors [var] = 0;
@@ -1207,7 +1368,6 @@ void sat_solver_restart( sat_solver* s )
     s->hBinary = Sat_MemAppend( &s->Mem, NULL, 2, 0, 0 );
     s->binary = clause_read( s, s->hBinary );
 
-    veci_resize(&s->act_clas, 0);
     veci_resize(&s->trail_lim, 0);
     veci_resize(&s->order, 0);
     for ( i = 0; i < s->size*2; i++ )
@@ -1220,19 +1380,60 @@ void sat_solver_restart( sat_solver* s )
 //    s->cap                    = 0;
     s->qhead                  = 0;
     s->qtail                  = 0;
-#ifdef USE_FLOAT_ACTIVITY
-    s->var_inc                = 1;
-    s->cla_inc                = 1;
-    s->var_decay              = (float)(1 / 0.95  );
-    s->cla_decay              = (float)(1 / 0.999 );
-#else
-    s->var_inc                = (1 <<  5);
-    s->cla_inc                = (1 << 11);
-#endif
+
+
+    // variable activities
+    solver_init_activities(s);
+    veci_resize(&s->act_clas, 0);
+
+
     s->root_level             = 0;
 //    s->simpdb_assigns         = 0;
 //    s->simpdb_props           = 0;
     s->random_seed            = 91648253;
+    s->progress_estimate      = 0;
+    s->verbosity              = 0;
+
+    s->stats.starts           = 0;
+    s->stats.decisions        = 0;
+    s->stats.propagations     = 0;
+    s->stats.inspects         = 0;
+    s->stats.conflicts        = 0;
+    s->stats.clauses          = 0;
+    s->stats.clauses_literals = 0;
+    s->stats.learnts          = 0;
+    s->stats.learnts_literals = 0;
+    s->stats.tot_literals     = 0;
+}
+
+void zsat_solver_restart_seed( sat_solver* s, double seed )
+{
+    int i;
+    Sat_MemRestart( &s->Mem );
+    s->hLearnts = -1;
+    s->hBinary = Sat_MemAppend( &s->Mem, NULL, 2, 0, 0 );
+    s->binary = clause_read( s, s->hBinary );
+
+    veci_resize(&s->trail_lim, 0);
+    veci_resize(&s->order, 0);
+    for ( i = 0; i < s->size*2; i++ )
+        s->wlists[i].size = 0;
+
+    s->nDBreduces = 0;
+
+    // initialize other vars
+    s->size                   = 0;
+//    s->cap                    = 0;
+    s->qhead                  = 0;
+    s->qtail                  = 0;
+
+    solver_init_activities(s);
+    veci_resize(&s->act_clas, 0);
+
+    s->root_level             = 0;
+//    s->simpdb_assigns         = 0;
+//    s->simpdb_props           = 0;
+    s->random_seed            = seed;
     s->progress_estimate      = 0;
     s->verbosity              = 0;
 
@@ -1261,13 +1462,9 @@ double sat_solver_memory( sat_solver* s )
     Mem += s->cap * sizeof(char);     // ABC_FREE(s->polarity );
     Mem += s->cap * sizeof(char);     // ABC_FREE(s->tags     );
     Mem += s->cap * sizeof(char);     // ABC_FREE(s->loads    );
-#ifdef USE_FLOAT_ACTIVITY
-    Mem += s->cap * sizeof(double);   // ABC_FREE(s->activity );
-#else
-    Mem += s->cap * sizeof(unsigned); // ABC_FREE(s->activity );
+    Mem += s->cap * sizeof(word);     // ABC_FREE(s->activity );
     if ( s->activity2 )
-    Mem += s->cap * sizeof(unsigned); // ABC_FREE(s->activity2);
-#endif
+    Mem += s->cap * sizeof(word);     // ABC_FREE(s->activity );
     if ( s->factors )
     Mem += s->cap * sizeof(double);   // ABC_FREE(s->factors  );
     Mem += s->cap * sizeof(int);      // ABC_FREE(s->orderpos );
@@ -1314,7 +1511,7 @@ void sat_solver_reducedb(sat_solver* s)
 
     s->nDBreduces++;
 
-//    printf( "Calling reduceDB with %d learned clause limit.\n", s->nLearntMax );
+    //printf( "Calling reduceDB with %d learned clause limit.\n", s->nLearntMax );
     s->nLearntMax = s->nLearntStart + s->nLearntDelta * s->nDBreduces;
 //    return;
 
@@ -1323,8 +1520,11 @@ void sat_solver_reducedb(sat_solver* s)
     Sat_MemForEachLearned( pMem, c, i, k )
     {
         Id = clause_id(c);
-        pSortValues[Id] = (((7 - Abc_MinInt(c->lbd, 7)) << 28) | (act_clas[Id] >> 4));
 //        pSortValues[Id] = act[Id];
+        if ( s->ClaActType == 0 )
+            pSortValues[Id] = ((7 - Abc_MinInt(c->lbd, 7)) << 28) | (act_clas[Id] >> 4);
+        else
+            pSortValues[Id] = ((7 - Abc_MinInt(c->lbd, 7)) << 28);// | (act_clas[Id] >> 4);
         assert( pSortValues[Id] >= 0 );
     }
 
@@ -1430,7 +1630,7 @@ void sat_solver_rollback( sat_solver* s )
         if ( s->activity2 )
         {
             s->var_inc = s->var_inc2;
-            memcpy( s->activity, s->activity2, sizeof(unsigned) * s->iVarPivot );
+            memcpy( s->activity, s->activity2, sizeof(word) * s->iVarPivot );
         }
         veci_resize(&s->order, 0);
         for ( i = 0; i < s->iVarPivot; i++ )
@@ -1479,15 +1679,9 @@ void sat_solver_rollback( sat_solver* s )
     //    s->cap                    = 0;
         s->qhead                  = 0;
         s->qtail                  = 0;
-#ifdef USE_FLOAT_ACTIVITY
-        s->var_inc                = 1;
-        s->cla_inc                = 1;
-        s->var_decay              = (float)(1 / 0.95  );
-        s->cla_decay              = (float)(1 / 0.999 );
-#else
-        s->var_inc                = (1 <<  5);
-        s->cla_inc                = (1 << 11);
-#endif
+
+        solver_init_activities(s);
+
         s->root_level             = 0;
         s->random_seed            = 91648253;
         s->progress_estimate      = 0;

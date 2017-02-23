@@ -194,6 +194,7 @@ struct Gia_Man_t_
     int            MappedDelay;   // delay after mapping
     // bit-parallel simulation
     int            iPatsPi;
+    int            nSimWords;
     Vec_Wrd_t *    vSims;
     Vec_Wrd_t *    vSimsPi;
     Vec_Int_t *    vClassOld;
@@ -311,6 +312,7 @@ struct Jf_Par_t_
     int            fGenCnf;
     int            fCnfObjIds;
     int            fAddOrCla;
+    int            fCnfMapping;
     int            fPureAig;
     int            fDoAverage;
     int            fCutHashing;
@@ -665,21 +667,6 @@ static inline int Gia_ManAppendAnd( Gia_Man_t * p, int iLit0, int iLit1 )
     }
     return Gia_ObjId( p, pObj ) << 1;
 }
-static inline int Gia_ManAppendAnd2( Gia_Man_t * p, int iLit0, int iLit1 )  
-{ 
-    if ( !p->fGiaSimple )
-    {
-        if ( iLit0 < 2 )
-            return iLit0 ? iLit1 : 0;
-        if ( iLit1 < 2 )
-            return iLit1 ? iLit0 : 0;
-        if ( iLit0 == iLit1 )
-            return iLit1;
-        if ( iLit0 == Abc_LitNot(iLit1) )
-            return 0;
-    }
-    return Gia_ManAppendAnd( p, iLit0, iLit1 );
-}
 static inline int Gia_ManAppendXorReal( Gia_Man_t * p, int iLit0, int iLit1 )  
 { 
     Gia_Obj_t * pObj = Gia_ManAppendObj( p );
@@ -780,6 +767,44 @@ static inline int Gia_ManAppendXor( Gia_Man_t * p, int iLit0, int iLit1 )
 { 
     return Gia_ManAppendMux( p, iLit0, Abc_LitNot(iLit1), iLit1 );
 }
+
+static inline int Gia_ManAppendAnd2( Gia_Man_t * p, int iLit0, int iLit1 )  
+{ 
+    if ( !p->fGiaSimple )
+    {
+        if ( iLit0 < 2 )
+            return iLit0 ? iLit1 : 0;
+        if ( iLit1 < 2 )
+            return iLit1 ? iLit0 : 0;
+        if ( iLit0 == iLit1 )
+            return iLit1;
+        if ( iLit0 == Abc_LitNot(iLit1) )
+            return 0;
+    }
+    return Gia_ManAppendAnd( p, iLit0, iLit1 );
+}
+static inline int Gia_ManAppendOr2( Gia_Man_t * p, int iLit0, int iLit1 )
+{
+    return Abc_LitNot(Gia_ManAppendAnd2( p, Abc_LitNot(iLit0), Abc_LitNot(iLit1) ));
+}
+static inline int Gia_ManAppendMux2( Gia_Man_t * p, int iCtrl, int iData1, int iData0 )  
+{ 
+    int iTemp0 = Gia_ManAppendAnd2( p, Abc_LitNot(iCtrl), iData0 );
+    int iTemp1 = Gia_ManAppendAnd2( p, iCtrl, iData1 );
+    return Abc_LitNotCond( Gia_ManAppendAnd2( p, Abc_LitNot(iTemp0), Abc_LitNot(iTemp1) ), 1 );
+}
+static inline int Gia_ManAppendMaj2( Gia_Man_t * p, int iData0, int iData1, int iData2 )  
+{ 
+    int iTemp0 = Gia_ManAppendOr2( p, iData1, iData2 );
+    int iTemp1 = Gia_ManAppendAnd2( p, iData0, iTemp0 );
+    int iTemp2 = Gia_ManAppendAnd2( p, iData1, iData2 );
+    return Gia_ManAppendOr2( p, iTemp1, iTemp2 );
+}
+static inline int Gia_ManAppendXor2( Gia_Man_t * p, int iLit0, int iLit1 )  
+{ 
+    return Gia_ManAppendMux2( p, iLit0, Abc_LitNot(iLit1), iLit1 );
+}
+
 static inline void Gia_ManPatchCoDriver( Gia_Man_t * p, int iCoIndex, int iLit0 )  
 {
     Gia_Obj_t * pObjCo  = Gia_ManCo( p, iCoIndex );
@@ -958,24 +983,26 @@ static inline void        Gia_ObjSetNext( Gia_Man_t * p, int Id, int Num )   { p
 
 static inline int         Gia_ObjIsConst( Gia_Man_t * p, int Id )            { return Gia_ObjRepr(p, Id) == 0;                                   }
 static inline int         Gia_ObjIsHead( Gia_Man_t * p, int Id )             { return Gia_ObjRepr(p, Id) == GIA_VOID && Gia_ObjNext(p, Id) > 0;  }
-static inline int         Gia_ObjIsNone( Gia_Man_t * p, int Id )             { return Gia_ObjRepr(p, Id) == GIA_VOID && Gia_ObjNext(p, Id) == 0; }
-static inline int         Gia_ObjIsTail( Gia_Man_t * p, int Id )             { return (Gia_ObjRepr(p, Id) > 0 && Gia_ObjRepr(p, Id) != GIA_VOID) && Gia_ObjNext(p, Id) == 0;                  }
+static inline int         Gia_ObjIsNone( Gia_Man_t * p, int Id )             { return Gia_ObjRepr(p, Id) == GIA_VOID && Gia_ObjNext(p, Id) <= 0; }
+static inline int         Gia_ObjIsTail( Gia_Man_t * p, int Id )             { return (Gia_ObjRepr(p, Id) > 0 && Gia_ObjRepr(p, Id) != GIA_VOID) && Gia_ObjNext(p, Id) <= 0;                  }
 static inline int         Gia_ObjIsClass( Gia_Man_t * p, int Id )            { return (Gia_ObjRepr(p, Id) > 0 && Gia_ObjRepr(p, Id) != GIA_VOID) || Gia_ObjNext(p, Id) > 0;                   }
 static inline int         Gia_ObjHasSameRepr( Gia_Man_t * p, int i, int k )  { assert( k ); return i? (Gia_ObjRepr(p, i) == Gia_ObjRepr(p, k) && Gia_ObjRepr(p, i) != GIA_VOID) : Gia_ObjRepr(p, k) == 0;  }
 static inline int         Gia_ObjIsFailedPair( Gia_Man_t * p, int i, int k ) { assert( k ); return i? (Gia_ObjFailed(p, i) || Gia_ObjFailed(p, k)) : Gia_ObjFailed(p, k);                     }
-static inline int         Gia_ClassIsPair( Gia_Man_t * p, int i )            { assert( Gia_ObjIsHead(p, i) ); assert( Gia_ObjNext(p, i) ); return Gia_ObjNext(p, Gia_ObjNext(p, i)) == 0;     }
+static inline int         Gia_ClassIsPair( Gia_Man_t * p, int i )            { assert( Gia_ObjIsHead(p, i) ); assert( Gia_ObjNext(p, i) ); return Gia_ObjNext(p, Gia_ObjNext(p, i)) <= 0;     }
 static inline void        Gia_ClassUndoPair( Gia_Man_t * p, int i )          { assert( Gia_ClassIsPair(p,i) ); Gia_ObjSetRepr(p, Gia_ObjNext(p, i), GIA_VOID); Gia_ObjSetNext(p, i, 0);       }
 
 #define Gia_ManForEachConst( p, i )                            \
     for ( i = 1; i < Gia_ManObjNum(p); i++ ) if ( !Gia_ObjIsConst(p, i) ) {} else
 #define Gia_ManForEachClass( p, i )                            \
     for ( i = 1; i < Gia_ManObjNum(p); i++ ) if ( !Gia_ObjIsHead(p, i) ) {} else
+#define Gia_ManForEachClass0( p, i )                            \
+    for ( i = 0; i < Gia_ManObjNum(p); i++ ) if ( !Gia_ObjIsHead(p, i) ) {} else
 #define Gia_ManForEachClassReverse( p, i )                     \
     for ( i = Gia_ManObjNum(p) - 1; i > 0; i-- ) if ( !Gia_ObjIsHead(p, i) ) {} else
 #define Gia_ClassForEachObj( p, i, iObj )                      \
-    for ( assert(Gia_ObjIsHead(p, i)), iObj = i; iObj; iObj = Gia_ObjNext(p, iObj) )
+    for ( assert(Gia_ObjIsHead(p, i)), iObj = i; iObj > 0; iObj = Gia_ObjNext(p, iObj) )
 #define Gia_ClassForEachObj1( p, i, iObj )                     \
-    for ( assert(Gia_ObjIsHead(p, i)), iObj = Gia_ObjNext(p, i); iObj; iObj = Gia_ObjNext(p, iObj) )
+    for ( assert(Gia_ObjIsHead(p, i)), iObj = Gia_ObjNext(p, i); iObj > 0; iObj = Gia_ObjNext(p, iObj) )
 
 
 static inline int         Gia_ObjFoffsetId( Gia_Man_t * p, int Id )                { return Vec_IntEntry( p->vFanout, Id );                                 }
@@ -1205,6 +1232,7 @@ extern Gia_Man_t *         Gia_ManDupTrimmed( Gia_Man_t * p, int fTrimCis, int f
 extern Gia_Man_t *         Gia_ManDupOntop( Gia_Man_t * p, Gia_Man_t * p2 );
 extern Gia_Man_t *         Gia_ManDupWithNewPo( Gia_Man_t * p1, Gia_Man_t * p2 );
 extern Gia_Man_t *         Gia_ManDupDfsCiMap( Gia_Man_t * p, int * pCi2Lit, Vec_Int_t * vLits );
+extern Gia_Man_t *         Gia_ManPermuteInputs( Gia_Man_t * p, int nPpis, int nExtra );
 extern Gia_Man_t *         Gia_ManDupDfsClasses( Gia_Man_t * p );
 extern Gia_Man_t *         Gia_ManDupTopAnd( Gia_Man_t * p, int fVerbose );
 extern Gia_Man_t *         Gia_ManMiter( Gia_Man_t * pAig0, Gia_Man_t * pAig1, int nInsDup, int fDualOut, int fSeq, int fImplic, int fVerbose );
@@ -1219,6 +1247,8 @@ extern Gia_Man_t *         Gia_ManChoiceMiter( Vec_Ptr_t * vGias );
 extern Gia_Man_t *         Gia_ManDupWithConstraints( Gia_Man_t * p, Vec_Int_t * vPoTypes );
 extern Gia_Man_t *         Gia_ManDupCones( Gia_Man_t * p, int * pPos, int nPos, int fTrimPis );
 extern Gia_Man_t *         Gia_ManDupAndCones( Gia_Man_t * p, int * pAnds, int nAnds, int fTrimPis );
+extern Gia_Man_t *         Gia_ManDupAndConesLimit( Gia_Man_t * p, int * pAnds, int nAnds, int Level );
+extern Gia_Man_t *         Gia_ManDupAndConesLimit2( Gia_Man_t * p, int * pAnds, int nAnds, int Level );
 extern Gia_Man_t *         Gia_ManDupOneHot( Gia_Man_t * p );
 extern Gia_Man_t *         Gia_ManDupLevelized( Gia_Man_t * p );
 extern Gia_Man_t *         Gia_ManDupFromVecs( Gia_Man_t * p, Vec_Int_t * vCis, Vec_Int_t * vAnds, Vec_Int_t * vCos, int nRegs );
@@ -1247,6 +1277,7 @@ extern void                Gia_ManOrigIdsInit( Gia_Man_t * p );
 extern void                Gia_ManOrigIdsStart( Gia_Man_t * p );
 extern void                Gia_ManOrigIdsRemap( Gia_Man_t * p, Gia_Man_t * pNew );
 extern Gia_Man_t *         Gia_ManOrigIdsReduce( Gia_Man_t * p, Vec_Int_t * vPairs );
+extern Gia_Man_t *         Gia_ManComputeGiaEquivs( Gia_Man_t * pGia, int nConfs, int fVerbose );
 extern void                Gia_ManEquivFixOutputPairs( Gia_Man_t * p );
 extern int                 Gia_ManCheckTopoOrder( Gia_Man_t * p );
 extern int *               Gia_ManDeriveNexts( Gia_Man_t * p );
@@ -1379,6 +1410,7 @@ extern int                 Gia_MmStepReadMemUsage( Gia_MmStep_t * p );
 /*=== giaMf.c ===========================================================*/
 extern void                Mf_ManSetDefaultPars( Jf_Par_t * pPars );
 extern Gia_Man_t *         Mf_ManPerformMapping( Gia_Man_t * pGia, Jf_Par_t * pPars );
+extern void *              Mf_ManGenerateCnf( Gia_Man_t * pGia, int nLutSize, int fCnfObjIds, int fAddOrCla, int fMapping, int fVerbose );
 /*=== giaMini.c ===========================================================*/
 extern Gia_Man_t *         Gia_ManReadMiniAig( char * pFileName );
 extern void                Gia_ManWriteMiniAig( Gia_Man_t * pGia, char * pFileName );
@@ -1403,7 +1435,7 @@ extern Gia_Man_t *         Gia_ManCleanupOutputs( Gia_Man_t * p, int nOutputs );
 extern Gia_Man_t *         Gia_ManSeqCleanup( Gia_Man_t * p );
 extern Gia_Man_t *         Gia_ManSeqStructSweep( Gia_Man_t * p, int fConst, int fEquiv, int fVerbose );
 /*=== giaShow.c ===========================================================*/
-extern void                Gia_ManShow( Gia_Man_t * pMan, Vec_Int_t * vBold, int fAdders );
+extern void                Gia_ManShow( Gia_Man_t * pMan, Vec_Int_t * vBold, int fAdders, int fFadds, int fPath );
 /*=== giaShrink.c ===========================================================*/
 extern Gia_Man_t *         Gia_ManMapShrink4( Gia_Man_t * p, int fKeepLevel, int fVerbose );
 extern Gia_Man_t *         Gia_ManMapShrink6( Gia_Man_t * p, int nFanoutMax, int fKeepLevel, int fVerbose );
@@ -1491,6 +1523,7 @@ extern int                 Gia_ManVerifyWithBoxes( Gia_Man_t * pGia, int nBTLimi
 extern word                Gia_LutComputeTruth6( Gia_Man_t * p, int iObj, Vec_Wrd_t * vTruths );
 extern word                Gia_ObjComputeTruthTable6Lut( Gia_Man_t * p, int iObj, Vec_Wrd_t * vTemp );
 extern word                Gia_ObjComputeTruthTable6( Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Int_t * vSupp, Vec_Wrd_t * vTruths );
+extern word                Gia_ObjComputeTruth6Cis( Gia_Man_t * p, int iLit, Vec_Int_t * vSupp, Vec_Wrd_t * vTemp );
 extern void                Gia_ObjCollectInternal( Gia_Man_t * p, Gia_Obj_t * pObj );
 extern word *              Gia_ObjComputeTruthTable( Gia_Man_t * p, Gia_Obj_t * pObj );
 extern void                Gia_ObjComputeTruthTableStart( Gia_Man_t * p, int nVarsMax );

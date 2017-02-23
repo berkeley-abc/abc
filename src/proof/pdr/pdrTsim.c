@@ -364,7 +364,7 @@ Pdr_Set_t * Pdr_ManTernarySim( Pdr_Man_t * p, int k, Pdr_Set_t * pCube )
     Vec_Int_t * vRes    = p->vRes;     // final result (flop literals)
     Aig_Obj_t * pObj;
     int i, Entry, RetValue;
-    abctime clk = Abc_Clock();
+    //abctime clk = Abc_Clock();
 
     // collect CO objects
     Vec_IntClear( vCoObjs );
@@ -404,67 +404,65 @@ Pdr_ManPrintCex( p->pAig, vCiObjs, vCiVals, NULL );
     RetValue = Pdr_ManSimDataInit( p->pAig, vCiObjs, vCiVals, vNodes, vCoObjs, vCoVals, NULL );
     assert( RetValue );
 
-#if 1
-    // try removing high-priority flops
-    Vec_IntClear( vCi2Rem );
-    Aig_ManForEachObjVec( vCiObjs, p->pAig, pObj, i )
+    // iteratively remove flops
+    if ( p->pPars->fFlopPrio )
     {
-        if ( !Saig_ObjIsLo( p->pAig, pObj ) )
-            continue;
-        Entry = Aig_ObjCioId(pObj) - Saig_ManPiNum(p->pAig);
-        if ( vPrio != NULL && Vec_IntEntry( vPrio, Entry ) != 0 )
-            continue;
-        Vec_IntClear( vUndo );
-        if ( Pdr_ManExtendOne( p->pAig, pObj, vUndo, vVisits ) )
-            Vec_IntPush( vCi2Rem, Aig_ObjId(pObj) );
-        else
-            Pdr_ManExtendUndo( p->pAig, vUndo );
+        // collect flops and sort them by priority
+        Vec_IntClear( vRes );
+        Aig_ManForEachObjVec( vCiObjs, p->pAig, pObj, i )
+        {
+            if ( !Saig_ObjIsLo( p->pAig, pObj ) )
+                continue;
+            Entry = Aig_ObjCioId(pObj) - Saig_ManPiNum(p->pAig);
+            Vec_IntPush( vRes, Entry );
+        }
+        Vec_IntSelectSortCost( Vec_IntArray(vRes), Vec_IntSize(vRes), vPrio );
+
+        // try removing flops starting from low-priority to high-priority
+        Vec_IntClear( vCi2Rem );
+        Vec_IntForEachEntry( vRes, Entry, i )
+        {
+            pObj = Aig_ManCi( p->pAig, Saig_ManPiNum(p->pAig) + Entry );
+            assert( Saig_ObjIsLo( p->pAig, pObj ) );
+            Vec_IntClear( vUndo );
+            if ( Pdr_ManExtendOne( p->pAig, pObj, vUndo, vVisits ) )
+                Vec_IntPush( vCi2Rem, Aig_ObjId(pObj) );
+            else
+                Pdr_ManExtendUndo( p->pAig, vUndo );
+        }
     }
-    // try removing low-priority flops
-    Aig_ManForEachObjVec( vCiObjs, p->pAig, pObj, i )
+    else
     {
-        if ( !Saig_ObjIsLo( p->pAig, pObj ) )
-            continue;
-        Entry = Aig_ObjCioId(pObj) - Saig_ManPiNum(p->pAig);
-        if ( vPrio == NULL || Vec_IntEntry( vPrio, Entry ) == 0 )
-            continue;
-        Vec_IntClear( vUndo );
-        if ( Pdr_ManExtendOne( p->pAig, pObj, vUndo, vVisits ) )
-            Vec_IntPush( vCi2Rem, Aig_ObjId(pObj) );
-        else
-            Pdr_ManExtendUndo( p->pAig, vUndo );
+        // try removing low-priority flops first
+        Vec_IntClear( vCi2Rem );
+        Aig_ManForEachObjVec( vCiObjs, p->pAig, pObj, i )
+        {
+            if ( !Saig_ObjIsLo( p->pAig, pObj ) )
+                continue;
+            Entry = Aig_ObjCioId(pObj) - Saig_ManPiNum(p->pAig);
+            if ( Vec_IntEntry(vPrio, Entry) )
+                continue;
+            Vec_IntClear( vUndo );
+            if ( Pdr_ManExtendOne( p->pAig, pObj, vUndo, vVisits ) )
+                Vec_IntPush( vCi2Rem, Aig_ObjId(pObj) );
+            else
+                Pdr_ManExtendUndo( p->pAig, vUndo );
+        }
+        // try removing high-priority flops next
+        Aig_ManForEachObjVec( vCiObjs, p->pAig, pObj, i )
+        {
+            if ( !Saig_ObjIsLo( p->pAig, pObj ) )
+                continue;
+            Entry = Aig_ObjCioId(pObj) - Saig_ManPiNum(p->pAig);
+            if ( !Vec_IntEntry(vPrio, Entry) )
+                continue;
+            Vec_IntClear( vUndo );
+            if ( Pdr_ManExtendOne( p->pAig, pObj, vUndo, vVisits ) )
+                Vec_IntPush( vCi2Rem, Aig_ObjId(pObj) );
+            else
+                Pdr_ManExtendUndo( p->pAig, vUndo );
+        }
     }
-#else
-    // try removing low-priority flops
-    Aig_ManForEachObjVec( vCiObjs, p->pAig, pObj, i )
-    {
-        if ( !Saig_ObjIsLo( p->pAig, pObj ) )
-            continue;
-        Entry = Aig_ObjCioId(pObj) - Saig_ManPiNum(p->pAig);
-        if ( vPrio == NULL || Vec_IntEntry( vPrio, Entry ) == 0 )
-            continue;
-        Vec_IntClear( vUndo );
-        if ( Pdr_ManExtendOne( p->pAig, pObj, vUndo, vVisits ) )
-            Vec_IntPush( vCi2Rem, Aig_ObjId(pObj) );
-        else
-            Pdr_ManExtendUndo( p->pAig, vUndo );
-    }
-    // try removing high-priority flops
-    Vec_IntClear( vCi2Rem );
-    Aig_ManForEachObjVec( vCiObjs, p->pAig, pObj, i )
-    {
-        if ( !Saig_ObjIsLo( p->pAig, pObj ) )
-            continue;
-        Entry = Aig_ObjCioId(pObj) - Saig_ManPiNum(p->pAig);
-        if ( vPrio != NULL && Vec_IntEntry( vPrio, Entry ) != 0 )
-            continue;
-        Vec_IntClear( vUndo );
-        if ( Pdr_ManExtendOne( p->pAig, pObj, vUndo, vVisits ) )
-            Vec_IntPush( vCi2Rem, Aig_ObjId(pObj) );
-        else
-            Pdr_ManExtendUndo( p->pAig, vUndo );
-    }
-#endif
 
 if ( p->pPars->fVeryVerbose )
 Pdr_ManPrintCex( p->pAig, vCiObjs, vCiVals, vCi2Rem );
@@ -474,9 +472,25 @@ Pdr_ManPrintCex( p->pAig, vCiObjs, vCiVals, vCi2Rem );
     // derive the set of resulting registers
     Pdr_ManDeriveResult( p->pAig, vCiObjs, vCiVals, vCi2Rem, vRes, vPiLits );
     assert( Vec_IntSize(vRes) > 0 );
-    p->tTsim += Abc_Clock() - clk;
+    //p->tTsim += Abc_Clock() - clk;
+
+    // move abstracted literals from flops to inputs
+    if ( p->pPars->fUseAbs && p->vAbsFlops )
+    {
+        int i, iLit, k = 0;
+        Vec_IntForEachEntry( vRes, iLit, i )
+        {
+            if ( Vec_IntEntry(p->vAbsFlops, Abc_Lit2Var(iLit)) ) // used flop
+                Vec_IntWriteEntry( vRes, k++, iLit );
+            else
+                Vec_IntPush( vPiLits, 2*Saig_ManPiNum(p->pAig) + iLit );
+        }
+        Vec_IntShrink( vRes, k );
+    }
     pRes = Pdr_SetCreate( vRes, vPiLits );
-    assert( k == 0 || !Pdr_SetIsInit(pRes, -1) );
+    //ZH: Disabled assertion because this invariant doesn't hold with down
+    //because of the join operation which can bring in initial states
+    //assert( k == 0 || !Pdr_SetIsInit(pRes, -1) );
     return pRes;
 }
 

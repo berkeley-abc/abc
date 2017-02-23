@@ -2081,7 +2081,7 @@ void Ivy_FraigPrintActivity( Ivy_FraigMan_t * p )
 {
     int i;
     for ( i = 0; i < p->nSatVars; i++ )
-        printf( "%d %d  ", i, p->pSat->activity[i] );
+        printf( "%d %d  ", i, (int)p->pSat->activity[i] );
     printf( "\n" );
 }
 

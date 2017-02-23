@@ -21,6 +21,7 @@
 #include "gia.h"
 #include "opt/dau/dau.h"
 #include "base/main/main.h"
+#include "misc/util/utilTruth.h"
 #include "aig/miniaig/miniaig.h"
 #include "aig/miniaig/minilut.h"
 
@@ -247,6 +248,34 @@ Gia_Man_t * Gia_ManFromMiniLut( Mini_Lut_t * p )
 
 /**Function*************************************************************
 
+  Synopsis    [Marks LUTs that should be complemented.]
+
+  Description [These are LUTs whose all PO fanouts require them
+  in negative polarity.  Other fanouts may require them in 
+  positive polarity.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Bit_t * Gia_ManFindComplLuts( Gia_Man_t * pGia )
+{
+    Gia_Obj_t * pObj;  int i;
+    // mark objects pointed by COs in negative polarity
+    Vec_Bit_t * vMarks = Vec_BitStart( Gia_ManObjNum(pGia) );
+    Gia_ManForEachCo( pGia, pObj, i )
+        if ( Gia_ObjIsAnd(Gia_ObjFanin0(pObj)) && Gia_ObjFaninC0(pObj) )
+            Vec_BitWriteEntry( vMarks, Gia_ObjFaninId0p(pGia, pObj), 1 );
+    // unmark objects pointed by COs in positive polarity
+    Gia_ManForEachCo( pGia, pObj, i )
+        if ( Gia_ObjIsAnd(Gia_ObjFanin0(pObj)) && !Gia_ObjFaninC0(pObj) )
+            Vec_BitWriteEntry( vMarks, Gia_ObjFaninId0p(pGia, pObj), 0 );
+    return vMarks;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Converts GIA into MiniLUT.]
 
   Description []
@@ -260,11 +289,13 @@ Mini_Lut_t * Gia_ManToMiniLut( Gia_Man_t * pGia )
 {
     Mini_Lut_t * p;
     Vec_Wrd_t * vTruths;
+    Vec_Bit_t * vMarks;
     Gia_Obj_t * pObj, * pFanin;
-    int i, k, LutSize, pVars[16];
+    int i, k, iFanin, LutSize, pVars[16];
     word Truth;
     assert( Gia_ManHasMapping(pGia) );
     LutSize = Gia_ManLutSizeMax( pGia );
+    LutSize = Abc_MaxInt( LutSize, 2 );
     assert( LutSize >= 2 );
     // create the manager
     p = Mini_LutStart( LutSize );
@@ -274,12 +305,17 @@ Mini_Lut_t * Gia_ManToMiniLut( Gia_Man_t * pGia )
         pObj->Value = Mini_LutCreatePi(p);
     // create internal nodes
     vTruths = Vec_WrdStart( Gia_ManObjNum(pGia) );
+    vMarks = Gia_ManFindComplLuts( pGia );
     Gia_ManForEachLut( pGia, i )
     {
         pObj = Gia_ManObj( pGia, i );
         Gia_LutForEachFaninObj( pGia, i, pFanin, k )
             pVars[k] = pFanin->Value;
         Truth = Gia_LutComputeTruth6( pGia, i, vTruths );
+        Truth = Vec_BitEntry(vMarks, i) ? ~Truth : Truth;
+        Gia_LutForEachFanin( pGia, i, iFanin, k )
+            if ( Vec_BitEntry(vMarks, iFanin) )
+                Truth = Abc_Tt6Flip( Truth, k );
         pObj->Value = Mini_LutCreateNode( p, Gia_ObjLutSize(pGia, i), pVars, (unsigned *)&Truth );
     }
     Vec_WrdFree( vTruths );
@@ -288,7 +324,7 @@ Mini_Lut_t * Gia_ManToMiniLut( Gia_Man_t * pGia )
     {
         if ( Gia_ObjFanin0(pObj) == Gia_ManConst0(pGia) )
             pObj->Value = Mini_LutCreatePo( p, Gia_ObjFaninC0(pObj) );
-        else if ( !Gia_ObjFaninC0(pObj) )
+        else if ( Gia_ObjFaninC0(pObj) == Vec_BitEntry(vMarks, Gia_ObjFaninId0p(pGia, pObj)) )
             pObj->Value = Mini_LutCreatePo( p, Gia_ObjFanin0(pObj)->Value );
         else // add inverter LUT
         {
@@ -298,6 +334,7 @@ Mini_Lut_t * Gia_ManToMiniLut( Gia_Man_t * pGia )
             pObj->Value = Mini_LutCreatePo( p, LutInv );
         }
     }
+    Vec_BitFree( vMarks );
     // set registers
     Mini_LutSetRegNum( p, Gia_ManRegNum(pGia) );
     //Mini_LutPrintStats( p );

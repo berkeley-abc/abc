@@ -537,8 +537,6 @@ extern Vec_Wec_t * Gia_ManCreateCoSupps( Gia_Man_t * p, int fVerbose );
 extern int         Gia_ManCoLargestSupp( Gia_Man_t * p, Vec_Wec_t * vSupps );
 extern Vec_Wec_t * Gia_ManIsoStrashReduceInt( Gia_Man_t * p, Vec_Wec_t * vSupps, int fVerbose );
 
-extern Cnf_Dat_t * Mf_ManGenerateCnf( Gia_Man_t * pGia, int nLutSize, int fCnfObjIds, int fAddOrCla, int fVerbose );
-
 /**Function*************************************************************
 
   Synopsis    [Derives GIA for the network.]
@@ -802,7 +800,7 @@ Vec_Ptr_t * Abc_GiaDeriveSops( Abc_Ntk_t * pNtkNew, Gia_Man_t * p, Vec_Wec_t * v
     if ( fCnfShared )
     {
         vMap = Vec_IntStartFull( Gia_ManObjNum(p) );
-        pCnf = Mf_ManGenerateCnf( p, 8, 1, 0, 0 );
+        pCnf = (Cnf_Dat_t *)Mf_ManGenerateCnf( p, 8, 1, 0, 0, 0 );
     }
     vSopsRepr = Vec_PtrStart( Vec_IntSize(vReprs) );
     pProgress = Extra_ProgressBarStart( stdout, Vec_IntSize(vReprs) );

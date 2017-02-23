@@ -303,6 +303,23 @@ static inline Vec_Int_t * Vec_WecPushLevel( Vec_Wec_t * p )
     ++p->nSize;
     return Vec_WecEntryLast( p );
 }
+static inline Vec_Int_t * Vec_WecInsertLevel( Vec_Wec_t * p, int i )
+{
+    Vec_Int_t * pTemp;
+    if ( p->nSize == p->nCap )
+    {
+        if ( p->nCap < 16 )
+            Vec_WecGrow( p, 16 );
+        else
+            Vec_WecGrow( p, 2 * p->nCap );
+    }
+    ++p->nSize;
+    assert( i >= 0 && i < p->nSize );
+    for ( pTemp = p->pArray + p->nSize - 2; pTemp >= p->pArray + i; pTemp-- )
+        pTemp[1] = pTemp[0];
+    Vec_IntZero( p->pArray + i );
+    return p->pArray + i;
+}
 
 /**Function*************************************************************
 
@@ -541,6 +558,18 @@ static inline void Vec_WecPrint( Vec_Wec_t * p, int fSkipSingles )
         printf( " %4d : {", i );
         Vec_IntForEachEntry( vVec, Entry, k )
             printf( " %d", Entry );
+        printf( " }\n" );
+    }
+}
+static inline void Vec_WecPrintLits( Vec_Wec_t * p )
+{
+    Vec_Int_t * vVec;
+    int i, k, iLit;
+    Vec_WecForEachLevel( p, vVec, i )
+    {
+        printf( " %4d : %2d  {", i, Vec_IntSize(vVec) );
+        Vec_IntForEachEntry( vVec, iLit, k )
+            printf( " %c%d", Abc_LitIsCompl(iLit) ? '-' : '+', Abc_Lit2Var(iLit) );
         printf( " }\n" );
     }
 }

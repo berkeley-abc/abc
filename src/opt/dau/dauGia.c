@@ -241,7 +241,7 @@ int Dau_DsdBalance( Gia_Man_t * pGia, int * pFans, int nFans, int fAnd )
     if ( pGia->pHTable == NULL )
     {
         if ( fAnd )
-            iFan = Gia_ManAppendAnd( pGia, iFan0, iFan1 );
+            iFan = Gia_ManAppendAnd2( pGia, iFan0, iFan1 );
         else if ( pGia->pMuxes )
         {
             int fCompl = Abc_LitIsCompl(iFan0) ^ Abc_LitIsCompl(iFan1);
@@ -249,7 +249,7 @@ int Dau_DsdBalance( Gia_Man_t * pGia, int * pFans, int nFans, int fAnd )
             iFan = Abc_LitNotCond( iFan, fCompl );
         }
         else 
-            iFan = Gia_ManAppendXor( pGia, iFan0, iFan1 );
+            iFan = Gia_ManAppendXor2( pGia, iFan0, iFan1 );
     }
     else
     {
@@ -361,7 +361,7 @@ int Dau_DsdToGia_rec( Gia_Man_t * pGia, char * pStr, char ** p, int * pMatches, 
             if ( pGia->pMuxes )
                 Res = Gia_ManAppendMux( pGia, Temp[0], Temp[1], Temp[2] );
             else
-                Res = Gia_ManAppendMux( pGia, Temp[0], Temp[1], Temp[2] );
+                Res = Gia_ManAppendMux2( pGia, Temp[0], Temp[1], Temp[2] );
         }
         else
         {

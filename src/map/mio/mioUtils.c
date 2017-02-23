@@ -569,7 +569,7 @@ Mio_Cell_t * Mio_CollectRootsNew( Mio_Library_t * pLib, int nInputs, int * pnGat
     if ( ppCells[3].pName == NULL )
         { printf( "Error: Cannot find inverter gate in the library.\n" );   return NULL; }
     // sort by delay
-    if ( iCell > 1 ) 
+    if ( iCell > 5 ) 
     {
         qsort( (void *)(ppCells + 4), iCell - 4, sizeof(Mio_Cell_t), 
                 (int (*)(const void *, const void *)) Mio_AreaCompare );
@@ -726,7 +726,7 @@ Mio_Cell2_t * Mio_CollectRootsNew2( Mio_Library_t * pLib, int nInputs, int * pnG
     if ( ppCells[3].pName == NULL )
         { printf( "Error: Cannot find inverter gate in the library.\n" );   return NULL; }
     // sort by delay
-    if ( iCell > 1 ) 
+    if ( iCell > 5 ) 
     {
         qsort( (void *)(ppCells + 4), iCell - 4, sizeof(Mio_Cell2_t), 
                 (int (*)(const void *, const void *)) Mio_AreaCompare2 );

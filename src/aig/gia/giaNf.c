@@ -41,6 +41,7 @@ ABC_NAMESPACE_IMPL_START
 #define NF_CUT_MAX  32
 #define NF_NO_LEAF  31
 #define NF_NO_FUNC  0x3FFFFFF
+#define NF_EPSILON  0.001
 
 typedef struct Nf_Cut_t_ Nf_Cut_t; 
 struct Nf_Cut_t_
@@ -171,7 +172,7 @@ static inline int          Nf_CfgCompl( Nf_Cfg_t Cfg, int i )                   
 int Nf_StoCellIsDominated( Mio_Cell2_t * pCell, int * pFans, int * pProf )
 {
     int k;
-    if ( pCell->AreaF < Abc_Int2Float(pProf[0]) )
+    if ( pCell->AreaF + NF_EPSILON < Abc_Int2Float(pProf[0]) )
         return 0;
     for ( k = 0; k < (int)pCell->nFanins; k++ )
         if ( pCell->iDelays[Abc_Lit2Var(pFans[k])] < pProf[k+1] )
@@ -802,8 +803,8 @@ static inline int Nf_CutCompareArea( Nf_Cut_t * pCut0, Nf_Cut_t * pCut1 )
 {
     if ( pCut0->Useless < pCut1->Useless )  return -1;
     if ( pCut0->Useless > pCut1->Useless )  return  1;
-    if ( pCut0->Flow    < pCut1->Flow    )  return -1;
-    if ( pCut0->Flow    > pCut1->Flow    )  return  1;
+    if ( pCut0->Flow    < pCut1->Flow - NF_EPSILON )  return -1;
+    if ( pCut0->Flow    > pCut1->Flow + NF_EPSILON )  return  1;
     if ( pCut0->Delay   < pCut1->Delay   )  return -1;
     if ( pCut0->Delay   > pCut1->Delay   )  return  1;
     if ( pCut0->nLeaves < pCut1->nLeaves )  return -1;
@@ -1162,7 +1163,7 @@ void Nf_ManCutMatchOne( Nf_Man_t * p, int iObj, int * pCut, int * pCutSet )
             pD->Cfg.fCompl = 0;
         }
 
-        if ( pA->F > AreaF )
+        if ( pA->F > AreaF + NF_EPSILON )
         {
             pA->D = Delay;
             pA->F = AreaF;
@@ -1310,7 +1311,7 @@ void Nf_ManCutMatch( Nf_Man_t * p, int iObj )
     }
     //assert( pAp->F < FLT_MAX || pAn->F < FLT_MAX );
     // try replacing pos with neg
-    if ( pAp->D == SCL_INFINITY || (pAp->F > pAn->F + p->InvAreaF && pAn->D + p->InvDelayI <= Required[0]) )
+    if ( pAp->D == SCL_INFINITY || (pAp->F > pAn->F + p->InvAreaF + NF_EPSILON && pAn->D + p->InvDelayI <= Required[0]) )
     {
         assert( p->Iter > 0 );
         *pAp = *pAn;
@@ -1322,7 +1323,7 @@ void Nf_ManCutMatch( Nf_Man_t * p, int iObj )
         //printf( "Using inverter to improve area at node %d in phase %d.\n", iObj, 1 );
     }
     // try replacing neg with pos
-    else if ( pAn->D == SCL_INFINITY || (pAn->F > pAp->F + p->InvAreaF && pAp->D + p->InvDelayI <= Required[1]) )
+    else if ( pAn->D == SCL_INFINITY || (pAn->F > pAp->F + p->InvAreaF + NF_EPSILON && pAp->D + p->InvDelayI <= Required[1]) )
     {
         assert( p->Iter > 0 );
         *pAn = *pAp;
@@ -1778,7 +1779,7 @@ void Nf_ManElaBestMatchOne( Nf_Man_t * p, int iObj, int c, int * pCut, int * pCu
         pMb->Cfg = Nf_Int2Cfg(0);
         pMb->fBest = 1;
         // compare
-        if ( pRes->F > pMb->F || (pRes->F == pMb->F && pRes->D > pMb->D) )
+        if ( pRes->F > pMb->F + NF_EPSILON || (pRes->F > pMb->F - NF_EPSILON && pRes->D > pMb->D) )
             *pRes = *pMb;
         return;
     }
@@ -1814,7 +1815,7 @@ void Nf_ManElaBestMatchOne( Nf_Man_t * p, int iObj, int c, int * pCut, int * pCu
         // compute area
         pMb->F = Scl_Int2Flt((int)Nf_MatchRefArea(p, iObj, c, pMb, Required));
         // compare
-        if ( pRes->F > pMb->F || (pRes->F == pMb->F && pRes->D > pMb->D) )
+        if ( pRes->F > pMb->F + NF_EPSILON || (pRes->F > pMb->F - NF_EPSILON && pRes->D > pMb->D) )
             *pRes = *pMb;
     }
 }

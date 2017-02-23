@@ -643,6 +643,41 @@ void Wlc_IntInsert( Vec_Int_t * vProd, Vec_Int_t * vLevel, int Node, int Level )
     Vec_IntInsert( vProd,  i + 1, Node  );
     Vec_IntInsert( vLevel, i + 1, Level );
 }
+void Wlc_BlastPrintMatrix( Gia_Man_t * p, Vec_Wec_t * vProds )
+{
+    int fVerbose = 0;
+    Vec_Int_t * vSupp = Vec_IntAlloc( 100 );
+    Vec_Wrd_t * vTemp = Vec_WrdStart( Gia_ManObjNum(p) );
+    Vec_Int_t * vLevel;  word Truth;
+    int i, k, iLit; 
+    Vec_WecForEachLevel( vProds, vLevel, i )
+        Vec_IntForEachEntry( vLevel, iLit, k )
+            if ( Gia_ObjIsAnd(Gia_ManObj(p, Abc_Lit2Var(iLit))) )
+                Vec_IntPushUnique( vSupp, Abc_Lit2Var(iLit) );
+    printf( "Booth partial products: %d pps, %d unique, %d nodes.\n", 
+        Vec_WecSizeSize(vProds), Vec_IntSize(vSupp), Gia_ManAndNum(p) );
+    Vec_IntPrint( vSupp );
+
+    if ( fVerbose )
+    Vec_WecForEachLevel( vProds, vLevel, i )
+        Vec_IntForEachEntry( vLevel, iLit, k )
+        {
+            printf( "Obj = %4d : ", Abc_Lit2Var(iLit) );
+            printf( "Compl = %d  ", Abc_LitIsCompl(iLit) );
+            printf( "Rank = %2d  ", i );
+            Truth = Gia_ObjComputeTruth6Cis( p, iLit, vSupp, vTemp );
+            Extra_PrintHex( stdout, (unsigned*)&Truth, Vec_IntSize(vSupp) );
+            if ( Vec_IntSize(vSupp) == 4 ) printf( "    " );
+            if ( Vec_IntSize(vSupp) == 3 ) printf( "      " );
+            if ( Vec_IntSize(vSupp) <= 2 ) printf( "       " );
+            printf( "  " );
+            Vec_IntPrint( vSupp );
+            if ( k == Vec_IntSize(vLevel)-1 )
+                printf( "\n" );
+        }
+    Vec_IntFree( vSupp );
+    Vec_WrdFree( vTemp );
+}
 void Wlc_BlastReduceMatrix( Gia_Man_t * pNew, Vec_Wec_t * vProds, Vec_Wec_t * vLevels, Vec_Int_t * vRes )
 {
     Vec_Int_t * vLevel, * vProd;
@@ -812,6 +847,7 @@ void Wlc_BlastBooth( Gia_Man_t * pNew, int * pArgA, int * pArgB, int nArgA, int 
         Vec_WecPush( vLevels, k, 0 );
     }
     //Vec_WecPrint( vProds, 0 );
+    //Wlc_BlastPrintMatrix( pNew, vProds );
     //printf( "Cutoff ID for partial products = %d.\n", Gia_ManObjNum(pNew) );
     Wlc_BlastReduceMatrix( pNew, vProds, vLevels, vRes );
 
@@ -836,6 +872,7 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Vec_Int_t * vBoxIds, int iOutput, in
 {
     int fVerbose = 0;
     int fUseOldMultiplierBlasting = 0;
+    int fSkipBitRange = 0;
     Tim_Man_t * pManTime = NULL;
     Gia_Man_t * pTemp, * pNew, * pExtra = NULL;
     Wlc_Obj_t * pObj;
@@ -1381,7 +1418,7 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Vec_Int_t * vBoxIds, int iOutput, in
         }
         else
         {
-            pNew = Gia_ManDupZeroUndc( pTemp = pNew, p->pInits, fGiaSimple, 1 );
+            pNew = Gia_ManDupZeroUndc( pTemp = pNew, p->pInits, fGiaSimple, 0 );
             Gia_ManDupRemapLiterals( vBits, pTemp );
             Gia_ManStop( pTemp );
         }
@@ -1412,7 +1449,7 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Vec_Int_t * vBoxIds, int iOutput, in
     {
         char * pName = Wlc_ObjName(p, Wlc_ObjId(p, pObj));
         nRange = Wlc_ObjRange( pObj );
-        if ( nRange == 1 )
+        if ( fSkipBitRange && nRange == 1 )
             Vec_PtrPush( pNew->vNamesIn, Abc_UtilStrsav(pName) );
         else
             for ( k = 0; k < nRange; k++ )
@@ -1439,7 +1476,7 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Vec_Int_t * vBoxIds, int iOutput, in
     {
         char * pName = Wlc_ObjName(p, Wlc_ObjId(p, pObj));
         nRange = Wlc_ObjRange( pObj );
-        if ( nRange == 1 )
+        if ( fSkipBitRange && nRange == 1 )
             Vec_PtrPush( pNew->vNamesIn, Abc_UtilStrsav(pName) );
         else
             for ( k = 0; k < nRange; k++ )
@@ -1462,7 +1499,7 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Vec_Int_t * vBoxIds, int iOutput, in
         {
             char * pName = Wlc_ObjName(p, Wlc_ObjId(p, pObj));
             nRange = Wlc_ObjRange( pObj );
-            if ( nRange == 1 )
+            if ( fSkipBitRange && nRange == 1 )
                 Vec_PtrPush( pNew->vNamesOut, Abc_UtilStrsav(pName) );
             else
                 for ( k = 0; k < nRange; k++ )
@@ -1477,7 +1514,7 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Vec_Int_t * vBoxIds, int iOutput, in
         {
             char * pName = Wlc_ObjName(p, Wlc_ObjId(p, pObj));
             nRange = Wlc_ObjRange( pObj );
-            if ( nRange == 1 )
+            if ( fSkipBitRange && nRange == 1 )
                 Vec_PtrPush( pNew->vNamesOut, Abc_UtilStrsav(pName) );
             else
                 for ( k = 0; k < nRange; k++ )
@@ -1496,7 +1533,7 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Vec_Int_t * vBoxIds, int iOutput, in
         {
             char * pName = Wlc_ObjName(p, Wlc_ObjId(p, pObj));
             nRange = Wlc_ObjRange( pObj );
-            if ( nRange == 1 )
+            if ( fSkipBitRange && nRange == 1 )
                 Vec_PtrPush( pNew->vNamesOut, Abc_UtilStrsav(pName) );
             else
                 for ( k = 0; k < nRange; k++ )
@@ -1509,7 +1546,7 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Vec_Int_t * vBoxIds, int iOutput, in
         assert( Vec_PtrSize(pNew->vNamesOut) == Gia_ManCoNum(pNew) );
     }
 
-    pNew->pSpec = Abc_UtilStrsav( p->pSpec ? p->pSpec : p->pName );
+    //pNew->pSpec = Abc_UtilStrsav( p->pSpec ? p->pSpec : p->pName );
     // dump the miter parts
     if ( 0 )
     {

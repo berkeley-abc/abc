@@ -35,32 +35,6 @@ ABC_NAMESPACE_IMPL_START
 
 /**Function*************************************************************
 
-  Synopsis    [Compute equivalence classes of nodes.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Abc_NtkComputeGiaEquivs( Gia_Man_t * pGia, int nConfs, int fVerbose )
-{
-    Gia_Man_t * pTemp;
-    Cec_ParFra_t ParsFra, * pPars = &ParsFra;
-    Cec_ManFraSetDefaultParams( pPars );
-    pPars->fUseOrigIds = 1;
-    pPars->fSatSweeping = 1;
-    pPars->nBTLimit = nConfs;
-    pPars->fVerbose = fVerbose;
-    pTemp = Cec_ManSatSweeping( pGia, pPars, 0 );
-    Gia_ManStop( pTemp );
-    pTemp = Gia_ManOrigIdsReduce( pGia, pGia->vIdsEquiv );
-    Gia_ManStop( pTemp );
-}
-
-/**Function*************************************************************
-
   Synopsis    [Converts AIG from HOP to GIA.]
 
   Description []
@@ -315,13 +289,15 @@ void Abc_NtkDumpEquivFile( char * pFileName, Vec_Int_t * vClasses, Abc_Ntk_t * p
 void Abc_NtkDumpEquiv( Abc_Ntk_t * pNtks[2], char * pFileName, int nConfs, int fByName, int fVerbose )
 {
     //abctime clk = Abc_Clock();
+    Gia_Man_t * pTemp;
     Vec_Int_t * vClasses;
     // derive shared AIG for the two networks
     Gia_Man_t * pGia = Abc_NtkAigToGiaTwo( pNtks[0], pNtks[1], fByName );
     if ( fVerbose )
         printf( "Computing equivalences for networks \"%s\" and \"%s\" with conflict limit %d.\n", Abc_NtkName(pNtks[0]), Abc_NtkName(pNtks[1]), nConfs );
     // compute equivalences in this AIG
-    Abc_NtkComputeGiaEquivs( pGia, nConfs, fVerbose );
+    pTemp = Gia_ManComputeGiaEquivs( pGia, nConfs, fVerbose );
+    Gia_ManStop( pTemp );
     //if ( fVerbose )
     //    Abc_PrintTime( 1, "Equivalence computation time", Abc_Clock() - clk );
     if ( fVerbose )

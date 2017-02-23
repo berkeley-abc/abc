@@ -49,14 +49,23 @@ struct Pdr_Par_t_
     int nTimeOut;         // timeout in seconds
     int nTimeOutGap;      // approximate timeout in seconds since the last change
     int nTimeOutOne;      // approximate timeout in seconds per one output
+    int nRandomSeed;      // value to seed the SAT solver with
     int fTwoRounds;       // use two rounds for generalization
     int fMonoCnf;         // monolythic CNF
+    int fNewXSim;         // updated X-valued simulation
+    int fFlopPrio;        // use structural flop priorities
+    int fFlopOrder;       // order flops for 'analyze_final' during generalization
     int fDumpInv;         // dump inductive invariant
     int fUseSupp;         // use support in the invariant
     int fShortest;        // forces bug traces to be shortest
     int fShiftStart;      // allows clause pushing to start from an intermediate frame
     int fReuseProofOblig; // reuses proof-obligationgs in the last timeframe
+    int fSimpleGeneral;   // simplified generalization
     int fSkipGeneral;     // skips expensive generalization step
+    int fSkipDown;        // skips the application of down
+    int fCtgs;            // handle CTGs in down
+    int fUseAbs;          // use abstraction 
+    int fUseSimpleRef;    // simplified CEX refinement
     int fVerbose;         // verbose output`
     int fVeryVerbose;     // very verbose output
     int fNotVerbose;      // not printing line by line progress

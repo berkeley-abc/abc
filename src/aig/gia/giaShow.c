@@ -21,6 +21,7 @@
 #include "gia.h"
 #include "proof/cec/cec.h"
 #include "proof/acec/acec.h"
+#include "misc/extra/extra.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -29,154 +30,11 @@ ABC_NAMESPACE_IMPL_START
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
+#define NODE_MAX 2000
+
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
-
-/**Function*************************************************************
-
-  Synopsis    []
-
-  Description []
-  
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-/*
-Vec_Int_t * Gia_WriteDotAigMarks( Gia_Man_t * p, Vec_Int_t * vFadds, Vec_Int_t * vHadds )
-{
-    int i;
-    Vec_Int_t * vMarks = Vec_IntStart( Gia_ManObjNum(p) );
-    for ( i = 0; i < Vec_IntSize(vHadds)/2; i++ )
-    {
-        Vec_IntWriteEntry( vMarks, Vec_IntEntry(vHadds, 2*i+0), Abc_Var2Lit(i+1, 0) );
-        Vec_IntWriteEntry( vMarks, Vec_IntEntry(vHadds, 2*i+1), Abc_Var2Lit(i+1, 0) );
-    }
-    for ( i = 0; i < Vec_IntSize(vFadds)/5; i++ )
-    {
-        Vec_IntWriteEntry( vMarks, Vec_IntEntry(vFadds, 5*i+3), Abc_Var2Lit(i+1, 1) );
-        Vec_IntWriteEntry( vMarks, Vec_IntEntry(vFadds, 5*i+4), Abc_Var2Lit(i+1, 1) );
-    }
-    return vMarks;
-}
-int Gia_WriteDotAigLevel_rec( Gia_Man_t * p, Vec_Int_t * vMarks, Vec_Int_t * vFadds, Vec_Int_t * vHadds, int Id, Vec_Int_t * vLevel )
-{
-    int Level = Vec_IntEntry(vLevel, Id), Mark = Vec_IntEntry(vMarks, Id);
-    if ( Level || Mark == -1 )
-        return Level;
-    if ( Mark == 0 )
-    {
-        Gia_Obj_t * pObj = Gia_ManObj( p, Id );
-        int Level0 = Gia_WriteDotAigLevel_rec( p, vMarks, vFadds, vHadds, Gia_ObjFaninId0(pObj, Id), vLevel );
-        int Level1 = Gia_WriteDotAigLevel_rec( p, vMarks, vFadds, vHadds, Gia_ObjFaninId1(pObj, Id), vLevel );
-        Level = Abc_MaxInt(Level0, Level1) + 1;
-        Vec_IntWriteEntry( vLevel, Id, Level );
-        Vec_IntWriteEntry( vMarks, Id, -1 );
-    }
-    else if ( Abc_LitIsCompl(Mark) ) // FA
-    {
-        int i, * pFanins = Vec_IntEntryP( vFadds, 5*(Abc_Lit2Var(Mark)-1) );
-        assert( pFanins[3] == Id || pFanins[4] == Id );
-        for ( i = 0; i < 3; i++ )
-            Level = Abc_MaxInt( Level, Gia_WriteDotAigLevel_rec( p, vMarks, vFadds, vHadds, pFanins[i], vLevel ) );
-        Vec_IntWriteEntry( vLevel, pFanins[3], Level+1 );
-        Vec_IntWriteEntry( vLevel, pFanins[4], Level+1 );
-    }
-    else  // HA
-    {
-        int * pFanins = Vec_IntEntryP( vHadds, 2*(Abc_Lit2Var(Mark)-1) );
-        Gia_Obj_t * pObj = Gia_ManObj( p, pFanins[1] );
-        int Level0 = Gia_WriteDotAigLevel_rec( p, vMarks, vFadds, vHadds, Gia_ObjFaninId0(pObj, Id), vLevel );
-        int Level1 = Gia_WriteDotAigLevel_rec( p, vMarks, vFadds, vHadds, Gia_ObjFaninId1(pObj, Id), vLevel );
-        assert( pFanins[0] == Id || pFanins[1] == Id );
-        Level = Abc_MaxInt(Level0, Level1) + 1;
-        Vec_IntWriteEntry( vLevel, pFanins[0], Level );
-        Vec_IntWriteEntry( vLevel, pFanins[1], Level );
-    }
-    return Level;
-}
-int Gia_WriteDotAigLevel( Gia_Man_t * p, Vec_Int_t * vFadds, Vec_Int_t * vHadds, Vec_Int_t ** pvMarks, Vec_Int_t ** pvLevel )
-{
-    Vec_Int_t * vMarks = Gia_WriteDotAigMarks( p, vFadds, vHadds );
-    Vec_Int_t * vLevel = Vec_IntStart( Gia_ManObjNum(p) );
-    int i, Id, Level = 0;
-    Vec_IntWriteEntry( vMarks, 0, -1 );
-    Gia_ManForEachCiId( p, Id, i )
-        Vec_IntWriteEntry( vMarks, Id, -1 );
-    Gia_ManForEachCoDriverId( p, Id, i )
-        Level = Abc_MaxInt( Level, Gia_WriteDotAigLevel_rec(p, vMarks, vFadds, vHadds, Id, vLevel) );
-    Gia_ManForEachCoId( p, Id, i )
-        Vec_IntWriteEntry( vMarks, Id, -1 );
-    *pvMarks = vMarks;
-    *pvLevel = vLevel;
-    return Level;
-}
-*/
-int Gia_WriteDotAigLevel( Gia_Man_t * p, Vec_Int_t * vFadds, Vec_Int_t * vHadds, Vec_Int_t * vRecord, Vec_Int_t ** pvLevel, Vec_Int_t ** pvMarks, Vec_Int_t ** pvRemap, Vec_Int_t ** pvRemap2 )
-{
-    Vec_Int_t * vLevel = Vec_IntStart( Gia_ManObjNum(p) );
-    Vec_Int_t * vMarks = Vec_IntStart( Gia_ManObjNum(p) );
-    Vec_Int_t * vRemap = Vec_IntStartNatural( Gia_ManObjNum(p) );
-    Vec_Int_t * vRemap2 = Vec_IntStartNatural( Gia_ManObjNum(p) );
-    int i, k, Id, Entry, LevelMax = 0;
-
-    Vec_IntWriteEntry( vMarks, 0, -1 );
-    Gia_ManForEachCiId( p, Id, i )
-        Vec_IntWriteEntry( vMarks, Id, -1 );
-    Gia_ManForEachCoId( p, Id, i )
-        Vec_IntWriteEntry( vMarks, Id, -1 );
-
-    Vec_IntForEachEntry( vRecord, Entry, i )
-    {
-        int Level = 0;
-        int Node = Abc_Lit2Var2(Entry);
-        int Attr = Abc_Lit2Att2(Entry);
-        if ( Attr == 2 )
-        {
-            int * pFanins = Vec_IntEntryP( vFadds, 5*Node );
-            for ( k = 0; k < 3; k++ )
-                Level = Abc_MaxInt( Level, Vec_IntEntry(vLevel, pFanins[k]) );
-            Vec_IntWriteEntry( vLevel, pFanins[3], Level+1 );
-            Vec_IntWriteEntry( vLevel, pFanins[4], Level+1 );
-            Vec_IntWriteEntry( vMarks, pFanins[4], Entry );
-            Vec_IntWriteEntry( vRemap, pFanins[3], pFanins[4] );
-            Vec_IntWriteEntry( vRemap2, pFanins[4], pFanins[3] );
-            //printf( "Making FA output %d.\n", pFanins[4] );
-        }
-        else if ( Attr == 1 )
-        {
-            int * pFanins = Vec_IntEntryP( vHadds, 2*Node );
-            Gia_Obj_t * pObj = Gia_ManObj( p, pFanins[1] );
-            int pFaninsIn[2] = { Gia_ObjFaninId0(pObj, pFanins[1]), Gia_ObjFaninId1(pObj, pFanins[1]) };
-            for ( k = 0; k < 2; k++ )
-                Level = Abc_MaxInt( Level, Vec_IntEntry(vLevel, pFaninsIn[k]) );
-            Vec_IntWriteEntry( vLevel, pFanins[0], Level+1 );
-            Vec_IntWriteEntry( vLevel, pFanins[1], Level+1 );
-            Vec_IntWriteEntry( vMarks, pFanins[1], Entry );
-            Vec_IntWriteEntry( vRemap, pFanins[0], pFanins[1] );
-            Vec_IntWriteEntry( vRemap2, pFanins[1], pFanins[0] );
-            //printf( "Making HA output %d %d.\n", pFanins[0], pFanins[1] );
-        }
-        else // if ( Attr == 3 || Attr == 0 )
-        {
-            Gia_Obj_t * pObj = Gia_ManObj( p, Node );
-            int pFaninsIn[2] = { Gia_ObjFaninId0(pObj, Node), Gia_ObjFaninId1(pObj, Node) };
-            for ( k = 0; k < 2; k++ )
-                Level = Abc_MaxInt( Level, Vec_IntEntry(vLevel, pFaninsIn[k]) );
-            Vec_IntWriteEntry( vLevel, Node, Level+1 );
-            Vec_IntWriteEntry( vMarks, Node, -1 );
-            //printf( "Making node %d.\n", Node );
-        }
-        LevelMax = Abc_MaxInt( LevelMax, Level+1 );
-    }
-    *pvLevel = vLevel;
-    *pvMarks = vMarks;
-    *pvRemap = vRemap;
-    *pvRemap2 = vRemap2;
-    return LevelMax;
-}
 
 /**Function*************************************************************
 
@@ -190,52 +48,64 @@ int Gia_WriteDotAigLevel( Gia_Man_t * p, Vec_Int_t * vFadds, Vec_Int_t * vHadds,
   SeeAlso     []
 
 ***********************************************************************/
-void Gia_WriteDotAig( Gia_Man_t * pMan, char * pFileName, Vec_Int_t * vBold, int fAdders )
+void Gia_ShowPath( Gia_Man_t * p, char * pFileName )
 {
-    Vec_Int_t * vFadds = NULL, * vHadds = NULL, * vRecord = NULL, * vMarks = NULL, * vRemap = NULL, * vRemap2 = NULL;
     FILE * pFile;
-    Gia_Obj_t * pNode;//, * pTemp, * pPrev;
-    int LevelMax, Prev, Level, i;
-    int fConstIsUsed = 0;
+    Gia_Obj_t * pNode;
+    Vec_Bit_t * vPath = Vec_BitStart( Gia_ManObjNum(p) );
+    int i, k, iFan, LevelMax, nLevels, * pLevels, Level, Prev;
+    int nLuts = 0, nNodes = 0, nEdges = 0;
+    assert( Gia_ManHasMapping(p) );
 
-    if ( Gia_ManAndNum(pMan) > 1000 )
+    // set critical CO drivers
+    nLevels = Gia_ManLutLevel( p, &pLevels );
+    Gia_ManForEachCoDriverId( p, iFan, i )
+        if ( pLevels[iFan] == nLevels )
+            Vec_BitWriteEntry( vPath, iFan, 1 );
+
+    // set critical internal nodes
+    Gia_ManForEachLutReverse( p, i )
+    { 
+        nLuts++;
+        if ( !Vec_BitEntry(vPath, i) )
+            continue;
+        nNodes++;
+        Gia_LutForEachFanin( p, i, iFan, k )
+        {
+            if ( pLevels[iFan] +1 < pLevels[i] )
+                continue;
+            assert( pLevels[iFan] + 1 == pLevels[i] );
+            Vec_BitWriteEntry( vPath, iFan, 1 );
+            nEdges++;
+            //printf( "%d -> %d\n", i, iFan );
+        }
+    }
+
+    if ( nNodes > NODE_MAX )
     {
-        fprintf( stdout, "Cannot visualize AIG with more than 1000 nodes.\n" );
+        ABC_FREE( pLevels );
+        Vec_BitFree( vPath );
+        fprintf( stdout, "Cannot visualize AIG with more than %d critical nodes.\n", NODE_MAX );
         return;
     }
     if ( (pFile = fopen( pFileName, "w" )) == NULL )
     {
+        ABC_FREE( pLevels );
+        Vec_BitFree( vPath );
         fprintf( stdout, "Cannot open the intermediate file \"%s\".\n", pFileName );
         return;
     }
 
-    // mark the nodes
-    if ( vBold )
-        Gia_ManForEachObjVec( vBold, pMan, pNode, i )
-            pNode->fMark0 = 1;
-    else if ( pMan->nXors || pMan->nMuxes )
-        Gia_ManForEachObj( pMan, pNode, i )
-            if ( Gia_ObjIsXor(pNode) || Gia_ObjIsMux(pMan, pNode) )
-                pNode->fMark0 = 1;
+    Vec_IntFreeP( &p->vLevels );
+    p->vLevels = Vec_IntAllocArray( pLevels, Gia_ManObjNum(p) );
 
-    // compute levels
-    if ( fAdders )
-    {
-        Vec_IntFreeP( &pMan->vLevels );
-        vFadds   = Gia_ManDetectFullAdders( pMan, 0, NULL );
-        vHadds   = Gia_ManDetectHalfAdders( pMan, 0 );
-        vRecord  = Gia_PolynFindOrder( pMan, vFadds, vHadds, 0, 0 );
-        LevelMax = 1 + Gia_WriteDotAigLevel( pMan, vFadds, vHadds, vRecord, &pMan->vLevels, &vMarks, &vRemap, &vRemap2 );
-    }
-    else
-        LevelMax = 1 + Gia_ManLevelNum( pMan );
-
-    // set output levels
-    Gia_ManForEachCo( pMan, pNode, i )
-        Vec_IntWriteEntry( pMan->vLevels, Gia_ObjId(pMan, pNode), LevelMax );
+    // compute CO levels
+    LevelMax = 1 + nLevels;
+    Gia_ManForEachCo( p, pNode, i )
+        Vec_IntWriteEntry( p->vLevels, Gia_ObjId(p, pNode), LevelMax );
 
     // write the DOT header
-    fprintf( pFile, "# %s\n",  "AIG structure generated by IVY package" );
+    fprintf( pFile, "# %s\n",  "AIG structure generated by GIA package" );
     fprintf( pFile, "\n" );
     fprintf( pFile, "digraph AIG {\n" );
     fprintf( pFile, "size = \"7.5,10\";\n" );
@@ -309,7 +179,7 @@ void Gia_WriteDotAig( Gia_Man_t * pMan, char * pFileName, Vec_Int_t * vBold, int
     fprintf( pFile, "          fontsize=18,\n" );
     fprintf( pFile, "          fontname = \"Times-Roman\",\n" );
     fprintf( pFile, "          label=\"" );
-    fprintf( pFile, "The set contains %d logic nodes and spans %d levels.", Gia_ManAndNum(pMan), LevelMax );
+    fprintf( pFile, "The critical path contains %d LUTs with %d critical edges and spans %d levels.", nNodes, nEdges, nLevels );
     fprintf( pFile, "\\n" );
     fprintf( pFile, "\"\n" );
     fprintf( pFile, "         ];\n" );
@@ -323,9 +193,273 @@ void Gia_WriteDotAig( Gia_Man_t * pMan, char * pFileName, Vec_Int_t * vBold, int
     // the labeling node of this level
     fprintf( pFile, "  Level%d;\n",  LevelMax );
     // generate the CO nodes
-    Gia_ManForEachCo( pMan, pNode, i )
+    Gia_ManForEachCo( p, pNode, i )
     {
-        if ( Gia_ObjFaninId0p(pMan, pNode) == 0 )
+        if ( Gia_ObjLevel(p, Gia_ObjFanin0(pNode)) < nLevels )
+            continue;
+        assert( Gia_ObjLevel(p, Gia_ObjFanin0(pNode)) == nLevels );
+        fprintf( pFile, "  Node%d [label = \"%d\"", Gia_ObjId(p, pNode), Gia_ObjId(p, pNode) ); 
+        fprintf( pFile, ", shape = %s", "invtriangle" );
+        fprintf( pFile, ", color = coral, fillcolor = coral" );
+        fprintf( pFile, "];\n" );
+    }
+    fprintf( pFile, "}" );
+    fprintf( pFile, "\n" );
+    fprintf( pFile, "\n" );
+
+    // generate nodes of each rank
+    for ( Level = LevelMax - 1; Level > 0; Level-- )
+    {
+        fprintf( pFile, "{\n" );
+        fprintf( pFile, "  rank = same;\n" );
+        // the labeling node of this level
+        fprintf( pFile, "  Level%d;\n",  Level );
+        Gia_ManForEachObj( p, pNode, i )
+        {
+            if ( (int)Gia_ObjLevel(p, pNode) != Level || !Vec_BitEntry(vPath, i) )
+                continue;
+            fprintf( pFile, "  Node%d [label = \"%d:%d\"", i, i, Gia_ObjIsAnd(pNode)? Gia_ObjLutSize(p, i) : 0 ); 
+            fprintf( pFile, ", shape = ellipse" );
+            if ( pNode->fMark0 )
+                fprintf( pFile, ", style = filled" );
+            fprintf( pFile, "];\n" );
+        }
+        fprintf( pFile, "}" );
+        fprintf( pFile, "\n" );
+        fprintf( pFile, "\n" );
+    }
+
+    // generate the CI nodes
+    fprintf( pFile, "{\n" );
+    fprintf( pFile, "  rank = same;\n" );
+    // the labeling node of this level
+    fprintf( pFile, "  Level%d;\n",  0 );
+    // generate the CI nodes
+    Gia_ManForEachCi( p, pNode, i )
+    {
+        if ( !Vec_BitEntry(vPath, Gia_ObjId(p, pNode)) )
+            continue;
+        fprintf( pFile, "  Node%d [label = \"%d\"", Gia_ObjId(p, pNode), Gia_ObjId(p, pNode) ); 
+        fprintf( pFile, ", shape = %s", "triangle" );
+        fprintf( pFile, ", color = coral, fillcolor = coral" );
+        fprintf( pFile, "];\n" );
+    }
+    fprintf( pFile, "}" );
+    fprintf( pFile, "\n" );
+    fprintf( pFile, "\n" );
+
+    // generate invisible edges from the square down
+    fprintf( pFile, "title1 -> title2 [style = invis];\n" );
+    Gia_ManForEachCo( p, pNode, i )
+    {
+        if ( Gia_ObjLevel(p, Gia_ObjFanin0(pNode)) < nLevels )
+            continue;
+        fprintf( pFile, "title2 -> Node%d [style = invis];\n", Gia_ObjId(p, pNode) );
+    }
+    // generate invisible edges among the COs
+    Prev = -1;
+    Gia_ManForEachCo( p, pNode, i )
+    {
+        if ( Gia_ObjLevel(p, Gia_ObjFanin0(pNode)) < nLevels )
+            continue;
+        assert( Gia_ObjLevel(p, Gia_ObjFanin0(pNode)) == nLevels );
+        if ( Prev >= 0 )
+            fprintf( pFile, "Node%d -> Node%d [style = invis];\n", Prev, Gia_ObjId(p, pNode) );
+        Prev = Gia_ObjId(p, pNode);
+    }
+    // generate invisible edges among the CIs
+    Prev = -1;
+    Gia_ManForEachCi( p, pNode, i )
+    {
+        if ( !Vec_BitEntry(vPath, Gia_ObjId(p, pNode)) )
+            continue;
+        if ( Prev >= 0 )
+            fprintf( pFile, "Node%d -> Node%d [style = invis];\n", Prev, Gia_ObjId(p, pNode) );
+        Prev = Gia_ObjId(p, pNode);
+    }
+
+    // generate edges
+    Gia_ManForEachObj( p, pNode, i )
+    {
+        if ( Gia_ObjIsCo(pNode) )
+        {
+            if ( Gia_ObjLevel(p, Gia_ObjFanin0(pNode)) == nLevels )
+            {
+                // generate the edge from this node to the next
+                fprintf( pFile, "Node%d",  i );
+                fprintf( pFile, " -> " );
+                fprintf( pFile, "Node%d",  Gia_ObjFaninId0p(p, pNode) );
+                fprintf( pFile, " [" );
+                fprintf( pFile, "style = %s", "solid" );
+                fprintf( pFile, "]" );
+                fprintf( pFile, ";\n" );
+            }
+            continue;
+        }
+        if ( !Gia_ObjIsAnd(pNode) || !Vec_BitEntry(vPath, i) )
+            continue;
+        Gia_LutForEachFanin( p, i, iFan, k )
+        {
+            if ( pLevels[iFan] + 1 < pLevels[i] )
+                continue;
+            assert( pLevels[iFan] + 1 == pLevels[i] );
+            // generate the edge from this node to the next
+            fprintf( pFile, "Node%d",  i );
+            fprintf( pFile, " -> " );
+            fprintf( pFile, "Node%d",  iFan );
+            fprintf( pFile, " [" );
+            fprintf( pFile, "style = %s", "solid" );
+            fprintf( pFile, "]" );
+            fprintf( pFile, ";\n" );
+        }
+    }
+
+    fprintf( pFile, "}" );
+    fprintf( pFile, "\n" );
+    fprintf( pFile, "\n" );
+    fclose( pFile );
+
+    Vec_IntFreeP( &p->vLevels );
+    Vec_BitFree( vPath );
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    [Writes the graph structure of AIG for DOT.]
+
+  Description [Useful for graph visualization using tools such as GraphViz: 
+  http://www.graphviz.org/]
+  
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_WriteDotAigSimple( Gia_Man_t * p, char * pFileName, Vec_Int_t * vBold )
+{
+    FILE * pFile;
+    Gia_Obj_t * pNode;//, * pTemp, * pPrev;
+    int LevelMax, Prev, Level, i;
+    int fConstIsUsed = 0;
+
+    if ( Gia_ManAndNum(p) > NODE_MAX )
+    {
+        fprintf( stdout, "Cannot visualize AIG with more than %d nodes.\n", NODE_MAX );
+        return;
+    }
+    if ( (pFile = fopen( pFileName, "w" )) == NULL )
+    {
+        fprintf( stdout, "Cannot open the intermediate file \"%s\".\n", pFileName );
+        return;
+    }
+
+    // mark the nodes
+    if ( vBold )
+        Gia_ManForEachObjVec( vBold, p, pNode, i )
+            pNode->fMark0 = 1;
+    else if ( p->nXors || p->nMuxes )
+        Gia_ManForEachObj( p, pNode, i )
+            if ( Gia_ObjIsXor(pNode) || Gia_ObjIsMux(p, pNode) )
+                pNode->fMark0 = 1;
+
+    // compute levels
+    LevelMax = 1 + Gia_ManLevelNum( p );
+    Gia_ManForEachCo( p, pNode, i )
+        Vec_IntWriteEntry( p->vLevels, Gia_ObjId(p, pNode), LevelMax );
+
+    // write the DOT header
+    fprintf( pFile, "# %s\n",  "AIG structure generated by GIA package" );
+    fprintf( pFile, "\n" );
+    fprintf( pFile, "digraph AIG {\n" );
+    fprintf( pFile, "size = \"7.5,10\";\n" );
+//  fprintf( pFile, "ranksep = 0.5;\n" );
+//  fprintf( pFile, "nodesep = 0.5;\n" );
+    fprintf( pFile, "center = true;\n" );
+//  fprintf( pFile, "orientation = landscape;\n" );
+//  fprintf( pFile, "edge [fontsize = 10];\n" );
+//  fprintf( pFile, "edge [dir = none];\n" );
+    fprintf( pFile, "edge [dir = back];\n" );
+    fprintf( pFile, "\n" );
+
+    // labels on the left of the picture
+    fprintf( pFile, "{\n" );
+    fprintf( pFile, "  node [shape = plaintext];\n" );
+    fprintf( pFile, "  edge [style = invis];\n" );
+    fprintf( pFile, "  LevelTitle1 [label=\"\"];\n" );
+    fprintf( pFile, "  LevelTitle2 [label=\"\"];\n" );
+    // generate node names with labels
+    for ( Level = LevelMax; Level >= 0; Level-- )
+    {
+        // the visible node name
+        fprintf( pFile, "  Level%d", Level );
+        fprintf( pFile, " [label = " );
+        // label name
+        fprintf( pFile, "\"" );
+        fprintf( pFile, "\"" );
+        fprintf( pFile, "];\n" );
+    }
+
+    // genetate the sequence of visible/invisible nodes to mark levels
+    fprintf( pFile, "  LevelTitle1 ->  LevelTitle2 ->" );
+    for ( Level = LevelMax; Level >= 0; Level-- )
+    {
+        // the visible node name
+        fprintf( pFile, "  Level%d",  Level );
+        // the connector
+        if ( Level != 0 )
+            fprintf( pFile, " ->" );
+        else
+            fprintf( pFile, ";" );
+    }
+    fprintf( pFile, "\n" );
+    fprintf( pFile, "}" );
+    fprintf( pFile, "\n" );
+    fprintf( pFile, "\n" );
+
+    // generate title box on top
+    fprintf( pFile, "{\n" );
+    fprintf( pFile, "  rank = same;\n" );
+    fprintf( pFile, "  LevelTitle1;\n" );
+    fprintf( pFile, "  title1 [shape=plaintext,\n" );
+    fprintf( pFile, "          fontsize=20,\n" );
+    fprintf( pFile, "          fontname = \"Times-Roman\",\n" );
+    fprintf( pFile, "          label=\"" );
+    fprintf( pFile, "%s", "AIG structure visualized by ABC" );
+    fprintf( pFile, "\\n" );
+    fprintf( pFile, "Benchmark \\\"%s\\\". ", "aig" );
+//    fprintf( pFile, "Time was %s. ",  Extra_TimeStamp() );
+    fprintf( pFile, "\"\n" );
+    fprintf( pFile, "         ];\n" );
+    fprintf( pFile, "}" );
+    fprintf( pFile, "\n" );
+    fprintf( pFile, "\n" );
+
+    // generate statistics box
+    fprintf( pFile, "{\n" );
+    fprintf( pFile, "  rank = same;\n" );
+    fprintf( pFile, "  LevelTitle2;\n" );
+    fprintf( pFile, "  title2 [shape=plaintext,\n" );
+    fprintf( pFile, "          fontsize=18,\n" );
+    fprintf( pFile, "          fontname = \"Times-Roman\",\n" );
+    fprintf( pFile, "          label=\"" );
+    fprintf( pFile, "The AIG contains %d nodes and spans %d levels.", Gia_ManAndNum(p), LevelMax-1 );
+    fprintf( pFile, "\\n" );
+    fprintf( pFile, "\"\n" );
+    fprintf( pFile, "         ];\n" );
+    fprintf( pFile, "}" );
+    fprintf( pFile, "\n" );
+    fprintf( pFile, "\n" );
+
+    // generate the COs
+    fprintf( pFile, "{\n" );
+    fprintf( pFile, "  rank = same;\n" );
+    // the labeling node of this level
+    fprintf( pFile, "  Level%d;\n",  LevelMax );
+    // generate the CO nodes
+    Gia_ManForEachCo( p, pNode, i )
+    {
+        if ( Gia_ObjFaninId0p(p, pNode) == 0 )
             fConstIsUsed = 1;
 /*
         if ( fHaig || pNode->pEquiv == NULL )
@@ -336,7 +470,7 @@ void Gia_WriteDotAig( Gia_Man_t * pMan, char * pFileName, Vec_Int_t * vBold, int
                 (Gia_ObjIsLatch(pNode)? "_in":""), pNode->Id, (Gia_ObjIsLatch(pNode)? "_in":""), 
                     Gia_Regular(pNode->pEquiv)->Id, Gia_IsComplement(pNode->pEquiv)? "\'":"" );
 */
-        fprintf( pFile, "  Node%d [label = \"%d\"", Gia_ObjId(pMan, pNode), Gia_ObjId(pMan, pNode) ); 
+        fprintf( pFile, "  Node%d [label = \"%d\"", Gia_ObjId(p, pNode), Gia_ObjId(p, pNode) ); 
 
         fprintf( pFile, ", shape = %s", "invtriangle" );
         fprintf( pFile, ", color = coral, fillcolor = coral" );
@@ -353,11 +487,9 @@ void Gia_WriteDotAig( Gia_Man_t * pMan, char * pFileName, Vec_Int_t * vBold, int
         fprintf( pFile, "  rank = same;\n" );
         // the labeling node of this level
         fprintf( pFile, "  Level%d;\n",  Level );
-        Gia_ManForEachObj( pMan, pNode, i )
+        Gia_ManForEachObj( p, pNode, i )
         {
-            if ( vMarks && Vec_IntEntry(vMarks, i) == 0 )
-                continue;
-            if ( (int)Gia_ObjLevel(pMan, pNode) != Level )
+            if ( (int)Gia_ObjLevel(p, pNode) != Level )
                 continue;
 /*
             if ( fHaig || pNode->pEquiv == NULL )
@@ -366,29 +498,14 @@ void Gia_WriteDotAig( Gia_Man_t * pMan, char * pFileName, Vec_Int_t * vBold, int
                 fprintf( pFile, "  Node%d [label = \"%d(%d%s)\"", pNode->Id, pNode->Id, 
                     Gia_Regular(pNode->pEquiv)->Id, Gia_IsComplement(pNode->pEquiv)? "\'":"" );
 */
-            if ( vMarks && Vec_IntEntry(vMarks, i) > 0 )
-            {
-                fprintf( pFile, "  Node%d [label = \"%d_%d\"", i, Vec_IntEntry(vRemap2, i), i ); 
-                if ( Abc_Lit2Att2(Vec_IntEntry(vMarks, i)) == 2 )
-                    fprintf( pFile, ", shape = doubleoctagon" );
-                else 
-                    fprintf( pFile, ", shape = octagon" );
-            }
-            else if ( Gia_ObjIsXor(pNode) )
-            {
-                fprintf( pFile, "  Node%d [label = \"%d\"", i, i ); 
+            fprintf( pFile, "  Node%d [label = \"%d\"", i, i ); 
+
+            if ( Gia_ObjIsXor(pNode) )
                 fprintf( pFile, ", shape = doublecircle" );
-            }
-            else if ( Gia_ObjIsMux(pMan, pNode) )
-            {
-                fprintf( pFile, "  Node%d [label = \"%d\"", i, i ); 
+            else if ( Gia_ObjIsMux(p, pNode) )
                 fprintf( pFile, ", shape = trapezium" );
-            }
             else
-            {
-                fprintf( pFile, "  Node%d [label = \"%d\"", i, i ); 
                 fprintf( pFile, ", shape = ellipse" );
-            }
 
             if ( pNode->fMark0 )
                 fprintf( pFile, ", style = filled" );
@@ -405,7 +522,7 @@ void Gia_WriteDotAig( Gia_Man_t * pMan, char * pFileName, Vec_Int_t * vBold, int
     // the labeling node of this level
     fprintf( pFile, "  Level%d;\n",  0 );
     // generate constant node
-    if ( fConstIsUsed || pMan->fGiaSimple )
+    if ( fConstIsUsed )
     {
         // check if the costant node is present
         fprintf( pFile, "  Node%d [label = \"Const0\"", 0 );
@@ -414,7 +531,7 @@ void Gia_WriteDotAig( Gia_Man_t * pMan, char * pFileName, Vec_Int_t * vBold, int
         fprintf( pFile, "];\n" );
     }
     // generate the CI nodes
-    Gia_ManForEachCi( pMan, pNode, i )
+    Gia_ManForEachCi( p, pNode, i )
     {
 /*
         if ( fHaig || pNode->pEquiv == NULL )
@@ -425,7 +542,7 @@ void Gia_WriteDotAig( Gia_Man_t * pMan, char * pFileName, Vec_Int_t * vBold, int
                 (Gia_ObjIsLatch(pNode)? "_out":""), pNode->Id, (Gia_ObjIsLatch(pNode)? "_out":""), 
                     Gia_Regular(pNode->pEquiv)->Id, Gia_IsComplement(pNode->pEquiv)? "\'":"" );
 */
-        fprintf( pFile, "  Node%d [label = \"%d\"", Gia_ObjId(pMan, pNode), Gia_ObjId(pMan, pNode) ); 
+        fprintf( pFile, "  Node%d [label = \"%d\"", Gia_ObjId(p, pNode), Gia_ObjId(p, pNode) ); 
 
         fprintf( pFile, ", shape = %s", "triangle" );
         fprintf( pFile, ", color = coral, fillcolor = coral" );
@@ -437,73 +554,37 @@ void Gia_WriteDotAig( Gia_Man_t * pMan, char * pFileName, Vec_Int_t * vBold, int
 
     // generate invisible edges from the square down
     fprintf( pFile, "title1 -> title2 [style = invis];\n" );
-    Gia_ManForEachCo( pMan, pNode, i )
-        fprintf( pFile, "title2 -> Node%d [style = invis];\n", Gia_ObjId(pMan, pNode) );
+    Gia_ManForEachCo( p, pNode, i )
+        fprintf( pFile, "title2 -> Node%d [style = invis];\n", Gia_ObjId(p, pNode) );
     // generate invisible edges among the COs
     Prev = -1;
-    Gia_ManForEachCo( pMan, pNode, i )
+    Gia_ManForEachCo( p, pNode, i )
     {
         if ( i > 0 )
-            fprintf( pFile, "Node%d -> Node%d [style = invis];\n", Prev, Gia_ObjId(pMan, pNode) );
-        Prev = Gia_ObjId(pMan, pNode);
+            fprintf( pFile, "Node%d -> Node%d [style = invis];\n", Prev, Gia_ObjId(p, pNode) );
+        Prev = Gia_ObjId(p, pNode);
+    }
+    // generate invisible edges among the CIs
+    Prev = -1;
+    Gia_ManForEachCi( p, pNode, i )
+    {
+        if ( i > 0 )
+            fprintf( pFile, "Node%d -> Node%d [style = invis];\n", Prev, Gia_ObjId(p, pNode) );
+        Prev = Gia_ObjId(p, pNode);
     }
 
     // generate edges
-    Gia_ManForEachObj( pMan, pNode, i )
+    Gia_ManForEachObj( p, pNode, i )
     {
         if ( !Gia_ObjIsAnd(pNode) && !Gia_ObjIsCo(pNode) && !Gia_ObjIsBuf(pNode) )
             continue;
-        if ( vMarks && Vec_IntEntry(vMarks, i) == 0 )
-            continue;
-        // consider half/full-adder
-        if ( vMarks && Vec_IntEntry(vMarks, i) > 0 )
-        {
-            int k, Mark = Vec_IntEntry(vMarks, i);
-            if ( Abc_Lit2Att2(Mark) == 2 ) // FA
-            {
-                int * pFanins = Vec_IntEntryP( vFadds, 5*Abc_Lit2Var2(Mark) );
-                if ( pFanins[3] == i )
-                    continue;
-                assert( pFanins[4] == i );
-                // generate the edge from this node to the next
-                for ( k = 0; k < 3; k++ )
-                {
-                    fprintf( pFile, "Node%d",  i );
-                    fprintf( pFile, " -> " );
-                    fprintf( pFile, "Node%d",  Vec_IntEntry(vRemap, pFanins[k]) );
-                    fprintf( pFile, " [" );
-                    fprintf( pFile, "style = %s", "bold" );
-                    fprintf( pFile, "]" );
-                    fprintf( pFile, ";\n" );
-                }
-            }
-            else  // HA
-            {
-                int * pFanins = Vec_IntEntryP( vHadds, 2*Abc_Lit2Var2(Mark) );
-                int pFaninsIn[2] = { Vec_IntEntry(vRemap, Gia_ObjFaninId0(pNode, i)), Vec_IntEntry(vRemap, Gia_ObjFaninId1(pNode, i)) };
-                if ( pFanins[0] == i )
-                    continue;
-                assert( pFanins[1] == i );
-                for ( k = 0; k < 2; k++ )
-                {
-                    fprintf( pFile, "Node%d",  i );
-                    fprintf( pFile, " -> " );
-                    fprintf( pFile, "Node%d",  Vec_IntEntry(vRemap, pFaninsIn[k]) );
-                    fprintf( pFile, " [" );
-                    fprintf( pFile, "style = %s", "bold" );
-                    fprintf( pFile, "]" );
-                    fprintf( pFile, ";\n" );
-                }
-            }
-            continue;
-        }
         // generate the edge from this node to the next
         fprintf( pFile, "Node%d",  i );
         fprintf( pFile, " -> " );
-        fprintf( pFile, "Node%d",  vRemap ? Vec_IntEntry(vRemap, Gia_ObjFaninId0(pNode, i)) : Gia_ObjFaninId0(pNode, i) );
+        fprintf( pFile, "Node%d",  Gia_ObjFaninId0(pNode, i) );
         fprintf( pFile, " [" );
-        fprintf( pFile, "style = %s", Gia_ObjFaninC0(pNode)? "dotted" : "bold" );
-//        if ( Gia_NtkIsSeq(pNode->pMan) && Seq_ObjFaninL0(pNode) > 0 )
+        fprintf( pFile, "style = %s", Gia_ObjFaninC0(pNode)? "dotted" : "solid" );
+//        if ( Gia_NtkIsSeq(pNode->p) && Seq_ObjFaninL0(pNode) > 0 )
 //        fprintf( pFile, ", label = \"%s\"", Seq_ObjFaninGetInitPrintable(pNode,0) );
         fprintf( pFile, "]" );
         fprintf( pFile, ";\n" );
@@ -512,23 +593,23 @@ void Gia_WriteDotAig( Gia_Man_t * pMan, char * pFileName, Vec_Int_t * vBold, int
         // generate the edge from this node to the next
         fprintf( pFile, "Node%d",  i );
         fprintf( pFile, " -> " );
-        fprintf( pFile, "Node%d",  vRemap ? Vec_IntEntry(vRemap, Gia_ObjFaninId1(pNode, i)) : Gia_ObjFaninId1(pNode, i) );
+        fprintf( pFile, "Node%d",  Gia_ObjFaninId1(pNode, i) );
         fprintf( pFile, " [" );
-        fprintf( pFile, "style = %s", Gia_ObjFaninC1(pNode)? "dotted" : "bold" );
-//        if ( Gia_NtkIsSeq(pNode->pMan) && Seq_ObjFaninL1(pNode) > 0 )
+        fprintf( pFile, "style = %s", Gia_ObjFaninC1(pNode)? "dotted" : "solid" );
+//        if ( Gia_NtkIsSeq(pNode->p) && Seq_ObjFaninL1(pNode) > 0 )
 //        fprintf( pFile, ", label = \"%s\"", Seq_ObjFaninGetInitPrintable(pNode,1) );
         fprintf( pFile, "]" );
         fprintf( pFile, ";\n" );
 
-        if ( !Gia_ObjIsMux(pMan, pNode) )
+        if ( !Gia_ObjIsMux(p, pNode) )
             continue;
         // generate the edge from this node to the next
         fprintf( pFile, "Node%d",  i );
         fprintf( pFile, " -> " );
-        fprintf( pFile, "Node%d",  vRemap ? Vec_IntEntry(vRemap, Gia_ObjFaninId2(pMan, i)) : Gia_ObjFaninId2(pMan, i) );
+        fprintf( pFile, "Node%d",  Gia_ObjFaninId2(p, i) );
         fprintf( pFile, " [" );
-        fprintf( pFile, "style = %s", Gia_ObjFaninC2(pMan, pNode)? "dotted" : "bold" );
-//        if ( Gia_NtkIsSeq(pNode->pMan) && Seq_ObjFaninL1(pNode) > 0 )
+        fprintf( pFile, "style = %s", Gia_ObjFaninC2(p, pNode)? "dotted" : "bold" );
+//        if ( Gia_NtkIsSeq(pNode->p) && Seq_ObjFaninL1(pNode) > 0 )
 //        fprintf( pFile, ", label = \"%s\"", Seq_ObjFaninGetInitPrintable(pNode,1) );
         fprintf( pFile, "]" );
         fprintf( pFile, ";\n" );
@@ -543,7 +624,7 @@ void Gia_WriteDotAig( Gia_Man_t * pMan, char * pFileName, Vec_Int_t * vBold, int
                 fprintf( pFile, "Node%d",  pPrev->Id );
                 fprintf( pFile, " -> " );
                 fprintf( pFile, "Node%d",  pTemp->Id );
-                fprintf( pFile, " [style = %s]", Gia_IsComplement(pTemp->pEquiv)? "dotted" : "bold" );
+                fprintf( pFile, " [style = %s]", Gia_IsComplement(pTemp->pEquiv)? "dotted" : "solid" );
                 fprintf( pFile, ";\n" );
                 pPrev = pTemp;
             }
@@ -551,7 +632,7 @@ void Gia_WriteDotAig( Gia_Man_t * pMan, char * pFileName, Vec_Int_t * vBold, int
             fprintf( pFile, "Node%d",  pPrev->Id );
             fprintf( pFile, " -> " );
             fprintf( pFile, "Node%d",  pNode->Id );
-            fprintf( pFile, " [style = %s]", Gia_IsComplement(pPrev->pEquiv)? "dotted" : "bold" );
+            fprintf( pFile, " [style = %s]", Gia_IsComplement(pPrev->pEquiv)? "dotted" : "solid" );
             fprintf( pFile, ";\n" );
         }
 */
@@ -564,18 +645,461 @@ void Gia_WriteDotAig( Gia_Man_t * pMan, char * pFileName, Vec_Int_t * vBold, int
 
     // unmark nodes
     if ( vBold )
-        Gia_ManForEachObjVec( vBold, pMan, pNode, i )
+        Gia_ManForEachObjVec( vBold, p, pNode, i )
             pNode->fMark0 = 0;
-    else if ( pMan->nXors || pMan->nMuxes )
-        Gia_ManCleanMark0( pMan );
+    else if ( p->nXors || p->nMuxes )
+        Gia_ManCleanMark0( p );
 
-    Vec_IntFreeP( &vFadds );
-    Vec_IntFreeP( &vHadds );
-    Vec_IntFreeP( &vRecord );
+    Vec_IntFreeP( &p->vLevels );
+}
 
-    Vec_IntFreeP( &pMan->vLevels );
-    Vec_IntFreeP( &vMarks );
-    Vec_IntFreeP( &vRemap );
+/**Function*************************************************************
+
+  Synopsis    [Writes the graph structure of AIG for DOT.]
+
+  Description [Useful for graph visualization using tools such as GraphViz: 
+  http://www.graphviz.org/]
+  
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Gia_ShowAddOut( Vec_Int_t * vAdds, Vec_Int_t * vMapAdds, int Node )
+{
+    int iBox = Vec_IntEntry( vMapAdds, Node );
+    if ( iBox >= 0 )
+        return Vec_IntEntry( vAdds, 6*iBox+4 );
+    return Node;
+}
+void Gia_WriteDotAig( Gia_Man_t * p, char * pFileName, Vec_Int_t * vBold, Vec_Int_t * vAdds, Vec_Int_t * vXors, Vec_Int_t * vMapAdds, Vec_Int_t * vMapXors, Vec_Int_t * vOrder )
+{
+    FILE * pFile;
+    Gia_Obj_t * pNode;//, * pTemp, * pPrev;
+    int LevelMax, Prev, Level, i;
+    int fConstIsUsed = 0;
+    int nFadds = Ree_ManCountFadds( vAdds );
+
+    if ( Gia_ManAndNum(p) > NODE_MAX )
+    {
+        fprintf( stdout, "Cannot visualize AIG with more than %d nodes.\n", NODE_MAX );
+        return;
+    }
+    if ( (pFile = fopen( pFileName, "w" )) == NULL )
+    {
+        fprintf( stdout, "Cannot open the intermediate file \"%s\".\n", pFileName );
+        return;
+    }
+
+    // mark the nodes
+    if ( vBold )
+        Gia_ManForEachObjVec( vBold, p, pNode, i )
+            pNode->fMark0 = 1;
+
+    // compute levels
+    LevelMax = 1 + p->nLevels;
+    Gia_ManForEachCo( p, pNode, i )
+        Vec_IntWriteEntry( p->vLevels, Gia_ObjId(p, pNode), LevelMax );
+
+    // write the DOT header
+    fprintf( pFile, "# %s\n",  "AIG structure generated by GIA package" );
+    fprintf( pFile, "\n" );
+    fprintf( pFile, "digraph AIG {\n" );
+    fprintf( pFile, "size = \"7.5,10\";\n" );
+//  fprintf( pFile, "ranksep = 0.5;\n" );
+//  fprintf( pFile, "nodesep = 0.5;\n" );
+    fprintf( pFile, "center = true;\n" );
+//  fprintf( pFile, "orientation = landscape;\n" );
+//  fprintf( pFile, "edge [fontsize = 10];\n" );
+//  fprintf( pFile, "edge [dir = none];\n" );
+    fprintf( pFile, "edge [dir = back];\n" );
+    fprintf( pFile, "\n" );
+
+    // labels on the left of the picture
+    fprintf( pFile, "{\n" );
+    fprintf( pFile, "  node [shape = plaintext];\n" );
+    fprintf( pFile, "  edge [style = invis];\n" );
+    fprintf( pFile, "  LevelTitle1 [label=\"\"];\n" );
+    fprintf( pFile, "  LevelTitle2 [label=\"\"];\n" );
+    // generate node names with labels
+    for ( Level = LevelMax; Level >= 0; Level-- )
+    {
+        // the visible node name
+        fprintf( pFile, "  Level%d", Level );
+        fprintf( pFile, " [label = " );
+        // label name
+        fprintf( pFile, "\"" );
+        fprintf( pFile, "\"" );
+        fprintf( pFile, "];\n" );
+    }
+
+    // genetate the sequence of visible/invisible nodes to mark levels
+    fprintf( pFile, "  LevelTitle1 ->  LevelTitle2 ->" );
+    for ( Level = LevelMax; Level >= 0; Level-- )
+    {
+        // the visible node name
+        fprintf( pFile, "  Level%d",  Level );
+        // the connector
+        if ( Level != 0 )
+            fprintf( pFile, " ->" );
+        else
+            fprintf( pFile, ";" );
+    }
+    fprintf( pFile, "\n" );
+    fprintf( pFile, "}" );
+    fprintf( pFile, "\n" );
+    fprintf( pFile, "\n" );
+
+    // generate title box on top
+    fprintf( pFile, "{\n" );
+    fprintf( pFile, "  rank = same;\n" );
+    fprintf( pFile, "  LevelTitle1;\n" );
+    fprintf( pFile, "  title1 [shape=plaintext,\n" );
+    fprintf( pFile, "          fontsize=20,\n" );
+    fprintf( pFile, "          fontname = \"Times-Roman\",\n" );
+    fprintf( pFile, "          label=\"" );
+    fprintf( pFile, "%s", "AIG structure visualized by ABC" );
+    fprintf( pFile, "\\n" );
+    fprintf( pFile, "Benchmark \\\"%s\\\". ", "aig" );
+//    fprintf( pFile, "Time was %s. ",  Extra_TimeStamp() );
+    fprintf( pFile, "\"\n" );
+    fprintf( pFile, "         ];\n" );
+    fprintf( pFile, "}" );
+    fprintf( pFile, "\n" );
+    fprintf( pFile, "\n" );
+
+    // generate statistics box
+    fprintf( pFile, "{\n" );
+    fprintf( pFile, "  rank = same;\n" );
+    fprintf( pFile, "  LevelTitle2;\n" );
+    fprintf( pFile, "  title2 [shape=plaintext,\n" );
+    fprintf( pFile, "          fontsize=18,\n" );
+    fprintf( pFile, "          fontname = \"Times-Roman\",\n" );
+    fprintf( pFile, "          label=\"" );
+    fprintf( pFile, "The AIG contains %d nodes, %d full-adders, and %d half-adders, and spans %d levels.", 
+        Gia_ManAndNum(p), nFadds, Vec_IntSize(vAdds)/6-nFadds, LevelMax-1 );
+    fprintf( pFile, "\\n" );
+    fprintf( pFile, "\"\n" );
+    fprintf( pFile, "         ];\n" );
+    fprintf( pFile, "}" );
+    fprintf( pFile, "\n" );
+    fprintf( pFile, "\n" );
+
+    // generate the COs
+    fprintf( pFile, "{\n" );
+    fprintf( pFile, "  rank = same;\n" );
+    // the labeling node of this level
+    fprintf( pFile, "  Level%d;\n",  LevelMax );
+    // generate the CO nodes
+    Gia_ManForEachCo( p, pNode, i )
+    {
+        if ( Gia_ObjFaninId0p(p, pNode) == 0 )
+            fConstIsUsed = 1;
+        fprintf( pFile, "  Node%d [label = \"%d\"", Gia_ObjId(p, pNode), Gia_ObjId(p, pNode) ); 
+
+        fprintf( pFile, ", shape = %s", "invtriangle" );
+        fprintf( pFile, ", color = coral, fillcolor = coral" );
+        fprintf( pFile, "];\n" );
+    }
+    fprintf( pFile, "}" );
+    fprintf( pFile, "\n" );
+    fprintf( pFile, "\n" );
+
+    // generate nodes of each rank
+    for ( Level = LevelMax - 1; Level > 0; Level-- )
+    {
+        fprintf( pFile, "{\n" );
+        fprintf( pFile, "  rank = same;\n" );
+        // the labeling node of this level
+        fprintf( pFile, "  Level%d;\n",  Level );
+        Gia_ManForEachObjVec( vOrder, p, pNode, i )
+        {
+            int iNode = Gia_ObjId( p, pNode );
+            if ( (int)Gia_ObjLevel(p, pNode) != Level )
+                continue;
+/*
+            fprintf( pFile, "  Node%d [label = \"%d\"", Gia_ObjId(p, pNode), Gia_ObjId(p, pNode) ); 
+            if ( Gia_ObjIsXor(pNode) )
+                fprintf( pFile, ", shape = doublecircle" );
+            else if ( Gia_ObjIsMux(p, pNode) )
+                fprintf( pFile, ", shape = trapezium" );
+            else
+                fprintf( pFile, ", shape = ellipse" );
+*/
+            if ( !pNode->fMark0 && Vec_IntEntry(vMapAdds, iNode) >= 0 )
+            {
+                int iBox = Vec_IntEntry(vMapAdds, iNode);
+                fprintf( pFile, "  Node%d [label = \"%d_%d\"", Gia_ShowAddOut(vAdds, vMapAdds, iNode), Vec_IntEntry(vAdds, 6*iBox+3), Vec_IntEntry(vAdds, 6*iBox+4) ); 
+                if ( Vec_IntEntry(vAdds, 6*iBox+2) == 0 )
+                    fprintf( pFile, ", shape = octagon" );
+                else 
+                    fprintf( pFile, ", shape = doubleoctagon" );
+            }
+            else if ( Vec_IntEntry(vMapXors, iNode) >= 0 )
+            {
+                fprintf( pFile, "  Node%d [label = \"%d\"", iNode, iNode ); 
+                fprintf( pFile, ", shape = doublecircle" );
+            }
+            else if ( Gia_ObjIsXor(pNode) )
+            {
+                fprintf( pFile, "  Node%d [label = \"%d\"", iNode, iNode ); 
+                fprintf( pFile, ", shape = doublecircle" );
+            }
+            else if ( Gia_ObjIsMux(p, pNode) )
+            {
+                fprintf( pFile, "  Node%d [label = \"%d\"", iNode, iNode ); 
+                fprintf( pFile, ", shape = trapezium" );
+            }
+            else
+            {
+                fprintf( pFile, "  Node%d [label = \"%d\"", iNode, iNode ); 
+                fprintf( pFile, ", shape = ellipse" );
+            }
+            if ( pNode->fMark0 )
+                fprintf( pFile, ", style = filled" );
+            fprintf( pFile, "];\n" );
+        }
+        fprintf( pFile, "}" );
+        fprintf( pFile, "\n" );
+        fprintf( pFile, "\n" );
+    }
+
+    // generate the CI nodes
+    fprintf( pFile, "{\n" );
+    fprintf( pFile, "  rank = same;\n" );
+    // the labeling node of this level
+    fprintf( pFile, "  Level%d;\n",  0 );
+    // generate constant node
+    if ( fConstIsUsed )
+    {
+        // check if the costant node is present
+        fprintf( pFile, "  Node%d [label = \"Const0\"", 0 );
+        fprintf( pFile, ", shape = ellipse" );
+        fprintf( pFile, ", color = coral, fillcolor = coral" );
+        fprintf( pFile, "];\n" );
+    }
+    // generate the CI nodes
+    Gia_ManForEachCi( p, pNode, i )
+    {
+        fprintf( pFile, "  Node%d [label = \"%d\"", Gia_ObjId(p, pNode), Gia_ObjId(p, pNode) ); 
+
+        fprintf( pFile, ", shape = %s", "triangle" );
+        fprintf( pFile, ", color = coral, fillcolor = coral" );
+        fprintf( pFile, "];\n" );
+    }
+    fprintf( pFile, "}" );
+    fprintf( pFile, "\n" );
+    fprintf( pFile, "\n" );
+
+    // generate invisible edges from the square down
+    fprintf( pFile, "title1 -> title2 [style = invis];\n" );
+    Gia_ManForEachCo( p, pNode, i )
+        fprintf( pFile, "title2 -> Node%d [style = invis];\n", Gia_ObjId(p, pNode) );
+    // generate invisible edges among the COs
+    Prev = -1;
+    Gia_ManForEachCo( p, pNode, i )
+    {
+        if ( i > 0 )
+            fprintf( pFile, "Node%d -> Node%d [style = invis];\n", Prev, Gia_ObjId(p, pNode) );
+        Prev = Gia_ObjId(p, pNode);
+    }
+    // generate invisible edges among the CIs
+    Prev = -1;
+    Gia_ManForEachCi( p, pNode, i )
+    {
+        if ( i > 0 )
+            fprintf( pFile, "Node%d -> Node%d [style = invis];\n", Prev, Gia_ObjId(p, pNode) );
+        Prev = Gia_ObjId(p, pNode);
+    }
+
+    // generate edges
+    Gia_ManForEachCo( p, pNode, i )
+    {
+        int iNode = Gia_ObjId( p, pNode );
+        fprintf( pFile, "Node%d",  iNode );
+        fprintf( pFile, " -> " );
+        fprintf( pFile, "Node%d",  Gia_ShowAddOut(vAdds, vMapAdds, Gia_ObjFaninId0(pNode, iNode)) );
+        fprintf( pFile, " [" );
+        fprintf( pFile, "style = %s", Gia_ObjFaninC0(pNode)? "dotted" : "solid" );
+        fprintf( pFile, "]" );
+        fprintf( pFile, ";\n" );
+    }
+    Gia_ManForEachObjVec( vOrder, p, pNode, i )
+    {
+        int iNode = Gia_ObjId( p, pNode );
+        if ( Vec_IntEntry(vMapAdds, Gia_ObjId(p, pNode)) >= 0 )
+        {
+            int k, iBox = Vec_IntEntry(vMapAdds, iNode);
+            for ( k = 0; k < 3; k++ )
+                if ( Vec_IntEntry(vAdds, 6*iBox+k) )
+                {
+                    int iBox2 = Vec_IntEntry(vMapAdds, Vec_IntEntry(vAdds, 6*iBox+k));
+                    int fXor2 = iBox2 >= 0 ? (int)(Vec_IntEntry(vAdds, 6*iBox2+3) == Vec_IntEntry(vAdds, 6*iBox+k)) : 0;
+                    fprintf( pFile, "Node%d",  Gia_ShowAddOut(vAdds, vMapAdds, iNode) );
+                    fprintf( pFile, " -> " );
+                    fprintf( pFile, "Node%d",  Gia_ShowAddOut(vAdds, vMapAdds, Vec_IntEntry(vAdds, 6*iBox+k)) );
+                    fprintf( pFile, " [" );
+                    fprintf( pFile, "style = %s", fXor2? "bold" : "solid" );
+                    fprintf( pFile, "]" );
+                    fprintf( pFile, ";\n" );
+                }
+            continue;
+        }
+        if ( Vec_IntEntry(vMapXors, Gia_ObjId(p, pNode)) >= 0 )
+        {
+            int k, iXor = Vec_IntEntry(vMapXors, iNode);
+            for ( k = 1; k < 4; k++ )
+                if ( Vec_IntEntry(vXors, 4*iXor+k) )
+                {
+                    int iXor2 = Vec_IntEntry(vMapXors, Vec_IntEntry(vXors, 4*iXor+k));
+                    fprintf( pFile, "Node%d",  iNode );
+                    fprintf( pFile, " -> " );
+                    fprintf( pFile, "Node%d",  Gia_ShowAddOut(vAdds, vMapAdds, Vec_IntEntry(vXors, 4*iXor+k)) );
+                    fprintf( pFile, " [" );
+                    fprintf( pFile, "style = %s", iXor2 >= 0? "bold" : "solid" );
+                    fprintf( pFile, "]" );
+                    fprintf( pFile, ";\n" );
+                }
+            continue;
+        }
+        // generate the edge from this node to the next
+        fprintf( pFile, "Node%d",  iNode );
+        fprintf( pFile, " -> " );
+        fprintf( pFile, "Node%d",  Gia_ShowAddOut(vAdds, vMapAdds, Gia_ObjFaninId0(pNode, iNode)) );
+        fprintf( pFile, " [" );
+        fprintf( pFile, "style = %s", Gia_ObjFaninC0(pNode)? "dotted" : "solid" );
+        fprintf( pFile, "]" );
+        fprintf( pFile, ";\n" );
+        if ( !Gia_ObjIsAnd(pNode) )
+            continue;
+        // generate the edge from this node to the next
+        fprintf( pFile, "Node%d",  iNode );
+        fprintf( pFile, " -> " );
+        fprintf( pFile, "Node%d",  Gia_ShowAddOut(vAdds, vMapAdds, Gia_ObjFaninId1(pNode, iNode)) );
+        fprintf( pFile, " [" );
+        fprintf( pFile, "style = %s", Gia_ObjFaninC1(pNode)? "dotted" : "solid" );
+        fprintf( pFile, "]" );
+        fprintf( pFile, ";\n" );
+
+        if ( !Gia_ObjIsMux(p, pNode) )
+            continue;
+        // generate the edge from this node to the next
+        fprintf( pFile, "Node%d",  iNode );
+        fprintf( pFile, " -> " );
+        fprintf( pFile, "Node%d",  Gia_ShowAddOut(vAdds, vMapAdds, Gia_ObjFaninId2(p, iNode)) );
+        fprintf( pFile, " [" );
+        fprintf( pFile, "style = %s", Gia_ObjFaninC2(p, pNode)? "dotted" : "solid" );
+        fprintf( pFile, "]" );
+        fprintf( pFile, ";\n" );
+    }
+
+    fprintf( pFile, "}" );
+    fprintf( pFile, "\n" );
+    fprintf( pFile, "\n" );
+    fclose( pFile );
+
+    // unmark nodes
+    if ( vBold )
+        Gia_ManForEachObjVec( vBold, p, pNode, i )
+            pNode->fMark0 = 0;
+
+    Vec_IntFreeP( &p->vLevels );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Returns DFS ordered array of objects and their levels.]
+
+  Description []
+  
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Int_t * Gia_ShowMapAdds( Gia_Man_t * p, Vec_Int_t * vAdds, int fFadds, Vec_Int_t * vBold )
+{
+    Vec_Bit_t * vIsBold = Vec_BitStart( Gia_ManObjNum(p) );
+    Vec_Int_t * vMapAdds = Vec_IntStartFull( Gia_ManObjNum(p) ); int i, Entry;
+    if ( vBold )
+        Vec_IntForEachEntry( vBold, Entry, i )
+            Vec_BitWriteEntry( vIsBold, Entry, 1 );
+    for ( i = 0; 6*i < Vec_IntSize(vAdds); i++ )
+    {
+        if ( fFadds && Vec_IntEntry(vAdds, 6*i+2) == 0 )
+            continue;
+        if ( Vec_BitEntry(vIsBold, Vec_IntEntry(vAdds, 6*i+3)) || Vec_BitEntry(vIsBold, Vec_IntEntry(vAdds, 6*i+4)) )
+            continue;
+        Vec_IntWriteEntry( vMapAdds, Vec_IntEntry(vAdds, 6*i+3), i );
+        Vec_IntWriteEntry( vMapAdds, Vec_IntEntry(vAdds, 6*i+4), i );
+    }
+    Vec_BitFree( vIsBold );
+    return vMapAdds;
+}
+Vec_Int_t * Gia_ShowMapXors( Gia_Man_t * p, Vec_Int_t * vXors )
+{
+    Vec_Int_t * vMapXors = Vec_IntStartFull( Gia_ManObjNum(p) ); int i;
+    for ( i = 0; 4*i < Vec_IntSize(vXors); i++ )
+        Vec_IntWriteEntry( vMapXors, Vec_IntEntry(vXors, 4*i), i );
+    return vMapXors;
+}
+int Gia_ShowCollectObjs_rec( Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Int_t * vAdds, Vec_Int_t * vXors, Vec_Int_t * vMapAdds, Vec_Int_t * vMapXors, Vec_Int_t * vOrder )
+{
+    int Level0, Level1, Level2 = 0, Level = 0;
+    if ( Gia_ObjIsTravIdCurrent(p, pObj) )
+        return Gia_ObjLevel(p, pObj);
+    Gia_ObjSetTravIdCurrent(p, pObj);
+    if ( Gia_ObjIsCi(pObj) )
+        return 0;
+    if ( Vec_IntEntry(vMapAdds, Gia_ObjId(p, pObj)) >= 0 )
+    {
+        int iBox = Vec_IntEntry(vMapAdds, Gia_ObjId(p, pObj));
+        Gia_ObjSetTravIdCurrentId(p, Vec_IntEntry(vAdds, 6*iBox+3) );
+        Gia_ObjSetTravIdCurrentId(p, Vec_IntEntry(vAdds, 6*iBox+4) );
+        Level0 = Gia_ShowCollectObjs_rec( p, Gia_ManObj( p, Vec_IntEntry(vAdds, 6*iBox+0) ), vAdds, vXors, vMapAdds, vMapXors, vOrder );
+        Level1 = Gia_ShowCollectObjs_rec( p, Gia_ManObj( p, Vec_IntEntry(vAdds, 6*iBox+1) ), vAdds, vXors, vMapAdds, vMapXors, vOrder );
+        if ( Vec_IntEntry(vAdds, 6*iBox+2) )
+        Level2 = Gia_ShowCollectObjs_rec( p, Gia_ManObj( p, Vec_IntEntry(vAdds, 6*iBox+2) ), vAdds, vXors, vMapAdds, vMapXors, vOrder );
+        Level = 1 + Abc_MaxInt( Abc_MaxInt(Level0, Level1), Level2 );
+        Gia_ObjSetLevelId( p, Vec_IntEntry(vAdds, 6*iBox+3), Level );
+        Gia_ObjSetLevelId( p, Vec_IntEntry(vAdds, 6*iBox+4), Level );
+        pObj = Gia_ManObj( p, Vec_IntEntry(vAdds, 6*iBox+4) );
+    }
+    else if ( Vec_IntEntry(vMapXors, Gia_ObjId(p, pObj)) >= 0 )
+    {
+        int iXor = Vec_IntEntry(vMapXors, Gia_ObjId(p, pObj));
+        Level0 = Gia_ShowCollectObjs_rec( p, Gia_ManObj( p, Vec_IntEntry(vXors, 4*iXor+1) ), vAdds, vXors, vMapAdds, vMapXors, vOrder );
+        Level1 = Gia_ShowCollectObjs_rec( p, Gia_ManObj( p, Vec_IntEntry(vXors, 4*iXor+2) ), vAdds, vXors, vMapAdds, vMapXors, vOrder );
+        if ( Vec_IntEntry(vXors, 4*iXor+3) )
+        Level2 = Gia_ShowCollectObjs_rec( p, Gia_ManObj( p, Vec_IntEntry(vXors, 4*iXor+3) ), vAdds, vXors, vMapAdds, vMapXors, vOrder );
+        Level = 1 + Abc_MaxInt( Abc_MaxInt(Level0, Level1), Level2 );
+        Gia_ObjSetLevel( p, pObj, Level );
+    }
+    else
+    {
+        assert( !Gia_ObjIsMux(p, pObj) );
+        Level0 = Gia_ShowCollectObjs_rec( p, Gia_ObjFanin0(pObj), vAdds, vXors, vMapAdds, vMapXors, vOrder );
+        Level1 = Gia_ShowCollectObjs_rec( p, Gia_ObjFanin1(pObj), vAdds, vXors, vMapAdds, vMapXors, vOrder );
+        Level = 1 + Abc_MaxInt(Level0, Level1);
+        Gia_ObjSetLevel( p, pObj, Level );
+    }
+    Vec_IntPush( vOrder, Gia_ObjId(p, pObj) );
+    p->nLevels = Abc_MaxInt( p->nLevels, Level );
+    return Level;
+}
+Vec_Int_t * Gia_ShowCollectObjs( Gia_Man_t * p, Vec_Int_t * vAdds, Vec_Int_t * vXors, Vec_Int_t * vMapAdds, Vec_Int_t * vMapXors )
+{
+    Gia_Obj_t * pObj; int i;
+    Vec_Int_t * vOrder = Vec_IntAlloc( 100 );
+    Gia_ManCleanLevels( p, Gia_ManObjNum(p) );
+    p->nLevels = 0;
+    Gia_ManIncrementTravId( p );
+    Gia_ObjSetTravIdCurrent(p, Gia_ManConst0(p));
+    Gia_ManForEachCi( p, pObj, i )
+        Gia_ObjSetTravIdCurrent(p, pObj);
+    Gia_ManForEachCo( p, pObj, i )
+        Gia_ShowCollectObjs_rec( p, Gia_ObjFanin0(pObj), vAdds, vXors, vMapAdds, vMapXors, vOrder );
+    return vOrder;
 }
 
 /**Function*************************************************************
@@ -589,15 +1113,23 @@ void Gia_WriteDotAig( Gia_Man_t * pMan, char * pFileName, Vec_Int_t * vBold, int
   SeeAlso     []
 
 ***********************************************************************/
-void Gia_ManShow( Gia_Man_t * pMan, Vec_Int_t * vBold, int fAdders )
+void Gia_ShowProcess( Gia_Man_t * p, char * pFileName, Vec_Int_t * vBold, Vec_Int_t * vAdds, Vec_Int_t * vXors, int fFadds )
+{
+    Vec_Int_t * vMapAdds = Gia_ShowMapAdds( p, vAdds, fFadds, vBold );
+    Vec_Int_t * vMapXors = Gia_ShowMapXors( p, vXors );
+    Vec_Int_t * vOrder = Gia_ShowCollectObjs( p, vAdds, vXors, vMapAdds, vMapXors );
+    Gia_WriteDotAig( p, pFileName, vBold, vAdds, vXors, vMapAdds, vMapXors, vOrder );
+    Vec_IntFree( vMapAdds );
+    Vec_IntFree( vMapXors );
+    Vec_IntFree( vOrder );
+}
+void Gia_ManShow( Gia_Man_t * pMan, Vec_Int_t * vBold, int fAdders, int fFadds, int fPath )
 {
     extern void Abc_ShowFile( char * FileNameDot );
-    static int Counter = 0;
     char FileNameDot[200];
     FILE * pFile;
-    // create the file name
-//    Gia_ShowGetFileName( pMan->pName, FileNameDot );
-    sprintf( FileNameDot, "temp%02d.dot", Counter++ );
+    Vec_Int_t * vXors = NULL, * vAdds = fAdders ? Ree_ManComputeCuts( pMan, &vXors, 0 ) : NULL;
+    sprintf( FileNameDot, "%s", Extra_FileNameGenericAppend(pMan->pName, ".dot") );
     // check that the file can be opened
     if ( (pFile = fopen( FileNameDot, "w" )) == NULL )
     {
@@ -606,10 +1138,21 @@ void Gia_ManShow( Gia_Man_t * pMan, Vec_Int_t * vBold, int fAdders )
     }
     fclose( pFile );
     // generate the file
-    Gia_WriteDotAig( pMan, FileNameDot, vBold, fAdders );
+    if ( fPath )
+        Gia_ShowPath( pMan, FileNameDot );
+    else if ( fAdders )
+        Gia_ShowProcess( pMan, FileNameDot, vBold, vAdds, vXors, fFadds );
+    else
+        Gia_WriteDotAigSimple( pMan, FileNameDot, vBold );
     // visualize the file 
     Abc_ShowFile( FileNameDot );
+
+    Vec_IntFreeP( &vAdds );
+    Vec_IntFreeP( &vXors );
 }
+
+
+
 
 
 ////////////////////////////////////////////////////////////////////////

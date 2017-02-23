@@ -33,8 +33,6 @@ ABC_NAMESPACE_IMPL_START
 // iterator thought the cubes
 #define Bmc_SopForEachCube( pSop, nVars, pCube )  for ( pCube = (pSop); *pCube; pCube += (nVars) + 3 )
 
-extern Cnf_Dat_t * Mf_ManGenerateCnf( Gia_Man_t * pGia, int nLutSize, int fCnfObjIds, int fAddOrCla, int fVerbose );
-
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
@@ -93,7 +91,7 @@ int Abc_ObjExpandCubes( Vec_Str_t * vSop, Gia_Man_t * p, int nVars )
 
     int fReverse = 0;
     Vec_Int_t * vVars = Vec_IntAlloc( nVars );
-    Cnf_Dat_t * pCnf = Mf_ManGenerateCnf( p, 8, 0, 0, 0 );
+    Cnf_Dat_t * pCnf = (Cnf_Dat_t *)Mf_ManGenerateCnf( p, 8, 0, 0, 0, 0 );
     sat_solver * pSat = (sat_solver *)Cnf_DataWriteIntoSolver(pCnf, 1, 0);
     int v, n, iLit, status, nCubesNew, iCiVarBeg = sat_solver_nvars(pSat) - nVars;
 

@@ -523,6 +523,10 @@ SOURCE=.\src\base\cmd\cmdApi.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\base\cmd\cmdAuto.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\base\cmd\cmdFlag.c
 # End Source File
 # Begin Source File
@@ -775,6 +779,10 @@ SOURCE=.\src\base\wlc\wlcAbs.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\base\wlc\wlcAbs2.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\base\wlc\wlcBlast.c
 # End Source File
 # Begin Source File
@@ -799,11 +807,19 @@ SOURCE=.\src\base\wlc\wlcReadVer.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\base\wlc\wlcShow.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\base\wlc\wlcSim.c
 # End Source File
 # Begin Source File
 
 SOURCE=.\src\base\wlc\wlcStdin.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\wlc\wlcUif.c
 # End Source File
 # Begin Source File
 
@@ -1938,6 +1954,142 @@ SOURCE=.\src\sat\bmc\bmcUnroll.c
 
 # PROP Default_Filter ""
 # End Group
+# Begin Group "xsat"
+
+# PROP Default_Filter ""
+# Begin Source File
+
+SOURCE=.\src\sat\xsat\xsat.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\xsat\xsatBQueue.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\xsat\xsatClause.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\xsat\xsatCnfReader.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\xsat\xsatHeap.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\xsat\xsatMemory.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\xsat\xsatSolver.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\xsat\xsatSolver.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\xsat\xsatSolverAPI.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\xsat\xsatUtils.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\xsat\xsatWatchList.h
+# End Source File
+# End Group
+# Begin Group "satoko"
+
+# PROP Default_Filter ""
+# Begin Source File
+
+SOURCE=.\src\sat\satoko\act_clause.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\satoko\act_var.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\satoko\utils\b_queue.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\satoko\cdb.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\satoko\clause.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\satoko\cnf_reader.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\satoko\utils\heap.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\satoko\utils\mem.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\satoko\utils\misc.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\satoko\satoko.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\satoko\utils\sdbl.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\satoko\solver.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\satoko\solver.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\satoko\solver_api.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\satoko\utils\sort.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\satoko\types.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\satoko\utils\vec\vec_char.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\satoko\utils\vec\vec_flt.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\satoko\utils\vec\vec_int.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\satoko\utils\vec\vec_uint.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\satoko\watch_list.h
+# End Source File
+# End Group
 # End Group
 # Begin Group "opt"
 
@@ -2711,7 +2863,23 @@ SOURCE=.\src\opt\sbd\sbdCore.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\opt\sbd\sbdCut.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\sbd\sbdCut2.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\opt\sbd\sbdInt.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\sbd\sbdLut.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\sbd\sbdPath.c
 # End Source File
 # Begin Source File
 
@@ -3487,7 +3655,15 @@ SOURCE=.\src\misc\util\utilColor.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\misc\util\utilDouble.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\misc\util\utilFile.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\util\utilFloat.h
 # End Source File
 # Begin Source File
 
@@ -4483,6 +4659,10 @@ SOURCE=.\src\aig\gia\giaSatMap.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\aig\gia\giaSatoko.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\aig\gia\giaScl.c
 # End Source File
 # Begin Source File
@@ -4847,6 +5027,10 @@ SOURCE=.\src\proof\cec\cecPat.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\proof\cec\cecSat.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\proof\cec\cecSeq.c
 # End Source File
 # Begin Source File
@@ -5171,6 +5355,10 @@ SOURCE=.\src\proof\pdr\pdrCore.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\proof\pdr\pdrIncr.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\proof\pdr\pdrInt.h
 # End Source File
 # Begin Source File
@@ -5188,6 +5376,10 @@ SOURCE=.\src\proof\pdr\pdrSat.c
 # Begin Source File
 
 SOURCE=.\src\proof\pdr\pdrTsim.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\proof\pdr\pdrTsim2.c
 # End Source File
 # Begin Source File
 
@@ -5415,6 +5607,10 @@ SOURCE=.\src\proof\acec\acec.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\proof\acec\acecBo.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\proof\acec\acecCl.c
 # End Source File
 # Begin Source File
@@ -5436,6 +5632,14 @@ SOURCE=.\src\proof\acec\acecFadds.c
 # Begin Source File
 
 SOURCE=.\src\proof\acec\acecInt.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\proof\acec\acecMult.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\proof\acec\acecNorm.c
 # End Source File
 # Begin Source File
 
@@ -5467,7 +5671,19 @@ SOURCE=.\src\proof\acec\acecSt.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\proof\acec\acecStruct.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\proof\acec\acecTree.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\proof\acec\acecUtil.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\proof\acec\acecXor.c
 # End Source File
 # End Group
 # End Group

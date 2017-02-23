@@ -85,7 +85,7 @@ int Cec_ManVerifyOld( Gia_Man_t * pMiter, int fVerbose, int * piOutFail, abctime
     {
         if ( !fSilent )
         {
-            Abc_Print( 1, "Networks are equivalent.   " );
+            Abc_Print( 1, "Networks are equivalent.  " );
             Abc_PrintTime( 1, "Time", Abc_Clock() - clkTotal );
         }
     }
@@ -93,7 +93,7 @@ int Cec_ManVerifyOld( Gia_Man_t * pMiter, int fVerbose, int * piOutFail, abctime
     {
         if ( !fSilent )
         {
-            Abc_Print( 1, "Networks are NOT EQUIVALENT.   " );
+            Abc_Print( 1, "Networks are NOT EQUIVALENT.  " );
             Abc_PrintTime( 1, "Time", Abc_Clock() - clkTotal );
         }
         if ( pMiterCec->pData == NULL )
@@ -120,7 +120,7 @@ int Cec_ManVerifyOld( Gia_Man_t * pMiter, int fVerbose, int * piOutFail, abctime
     }
     else if ( !fSilent )
     {
-        Abc_Print( 1, "Networks are UNDECIDED.   " );
+        Abc_Print( 1, "Networks are UNDECIDED.  " );
         Abc_PrintTime( 1, "Time", Abc_Clock() - clkTotal );
     }
     fflush( stdout );
@@ -225,8 +225,7 @@ int Cec_ManHandleSpecialCases( Gia_Man_t * p, Cec_ParCec_t * pPars )
 ***********************************************************************/
 int Cec_ManVerifyNaive( Gia_Man_t * p, Cec_ParCec_t * pPars )
 {
-    extern Cnf_Dat_t * Mf_ManGenerateCnf( Gia_Man_t * pGia, int nLutSize, int fCnfObjIds, int fAddOrCla, int fVerbose );
-    Cnf_Dat_t * pCnf = Mf_ManGenerateCnf( p, 8, 0, 0, 0 );
+    Cnf_Dat_t * pCnf = (Cnf_Dat_t *)Mf_ManGenerateCnf( p, 8, 0, 0, 0, 0 );
     sat_solver * pSat = (sat_solver *)Cnf_DataWriteIntoSolver( pCnf, 1, 0 );
     Gia_Obj_t * pObj0, * pObj1;
     abctime clkStart = Abc_Clock();

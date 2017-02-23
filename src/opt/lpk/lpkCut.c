@@ -234,7 +234,7 @@ void Lpk_NodeRecordImpact( Lpk_Man_t * p )
 {
     Lpk_Cut_t * pCut;
     Vec_Ptr_t * vNodes = Vec_VecEntry( p->vVisited, p->pObj->Id );
-    Abc_Obj_t * pNode;
+    Abc_Obj_t * pNode, * pNode2;
     int i, k;
     // collect the nodes that impact the given node
     Vec_PtrClear( vNodes );
@@ -252,11 +252,11 @@ void Lpk_NodeRecordImpact( Lpk_Man_t * p )
         }
     }
     // clear the marks
-    Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pNode, i )
+    Vec_PtrForEachEntryDouble( Abc_Obj_t *, Abc_Obj_t *, vNodes, pNode, pNode2, i )
     {
         pNode = Abc_NtkObj( p->pNtk, (int)(ABC_PTRUINT_T)pNode );
         pNode->fMarkC = 0;
-        i++;
+//        i++;
     }
 //printf( "%d ", Vec_PtrSize(vNodes) );
 }

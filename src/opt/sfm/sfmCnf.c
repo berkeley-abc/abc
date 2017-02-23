@@ -45,7 +45,7 @@ ABC_NAMESPACE_IMPL_START
 ***********************************************************************/
 void Sfm_PrintCnf( Vec_Str_t * vCnf )
 {
-    char Entry;
+    signed char Entry;
     int i, Lit;
     Vec_StrForEachEntry( vCnf, Entry, i )
     {
@@ -153,7 +153,7 @@ Vec_Wec_t * Sfm_CreateCnf( Sfm_Ntk_t * p )
 void Sfm_TranslateCnf( Vec_Wec_t * vRes, Vec_Str_t * vCnf, Vec_Int_t * vFaninMap, int iPivotVar )
 {
     Vec_Int_t * vClause;
-    char Entry;
+    signed char Entry;
     int i, Lit;
     Vec_WecClear( vRes );
     vClause = Vec_WecPushLevel( vRes );

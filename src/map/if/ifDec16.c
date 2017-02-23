@@ -902,7 +902,7 @@ void If_CluReverseOrder_old( word * pF, int nVars, int * V2P, int * P2V, int iVa
 // return the number of cofactors w.r.t. the topmost vars (nBSsize)
 int If_CluCountCofs( word * pF, int nVars, int nBSsize, int iShift, word pCofs[3][CLU_WRD_MAX/4] )
 {
-    word iCofs[128], iCof, Result = 0;
+    word iCofs[128] = {0}, iCof, Result = 0;
     word * pCofA, * pCofB;
     int nMints = (1 << nBSsize);
     int i, c, w, nCofs;

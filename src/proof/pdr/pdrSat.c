@@ -51,7 +51,8 @@ sat_solver * Pdr_ManCreateSolver( Pdr_Man_t * p, int k )
     assert( Vec_VecSize(p->vClauses) == k );
     assert( Vec_IntSize(p->vActVars) == k );
     // create new solver
-    pSat = sat_solver_new();
+//    pSat = sat_solver_new();
+    pSat = zsat_solver_new_seed(p->pPars->nRandomSeed);
     pSat = Pdr_ManNewSolver( pSat, p, k, (int)(k == 0) );
     Vec_PtrPush( p->vSolvers, pSat );
     Vec_VecExpand( p->vClauses, k );
@@ -86,7 +87,8 @@ sat_solver * Pdr_ManFetchSolver( Pdr_Man_t * p, int k )
     p->nStarts++;
 //    sat_solver_delete( pSat );
 //    pSat = sat_solver_new();
-    sat_solver_restart( pSat );
+//    sat_solver_restart( pSat );
+    zsat_solver_restart_seed( pSat, p->pPars->nRandomSeed );
     // create new SAT solver
     pSat = Pdr_ManNewSolver( pSat, p, k, (int)(k == 0) );
     // write new SAT solver
@@ -285,9 +287,9 @@ int Pdr_ManCheckCubeCs( Pdr_Man_t * p, int k, Pdr_Set_t * pCube )
   SeeAlso     []
 
 ***********************************************************************/
-int Pdr_ManCheckCube( Pdr_Man_t * p, int k, Pdr_Set_t * pCube, Pdr_Set_t ** ppPred, int nConfLimit, int fTryConf )
+int Pdr_ManCheckCube( Pdr_Man_t * p, int k, Pdr_Set_t * pCube, Pdr_Set_t ** ppPred, int nConfLimit, int fTryConf, int fUseLit )
 { 
-    int fUseLit = 1;
+    //int fUseLit = 0;
     int fLitUsed = 0;
     sat_solver * pSat;
     Vec_Int_t * vLits;
@@ -340,24 +342,6 @@ int Pdr_ManCheckCube( Pdr_Man_t * p, int k, Pdr_Set_t * pCube, Pdr_Set_t ** ppPr
             else
                 return -1;
         }
-/*
-        if ( RetValue == l_True )
-        {
-            int RetValue2 = Pdr_ManCubeJust( p, k, pCube );
-            if ( RetValue2 )
-                p->nCasesSS++;
-            else
-                p->nCasesSU++;
-        }
-        else
-        {
-            int RetValue2 = Pdr_ManCubeJust( p, k, pCube );
-            if ( RetValue2 )
-                p->nCasesUS++;
-            else
-                p->nCasesUU++;
-        }
-*/
     }
     clk = Abc_Clock() - clk;
     p->tSat += clk;
@@ -375,7 +359,16 @@ int Pdr_ManCheckCube( Pdr_Man_t * p, int k, Pdr_Set_t * pCube, Pdr_Set_t ** ppPr
         p->tSatSat += clk;
         p->nCallsS++;
         if ( ppPred )
-            *ppPred = Pdr_ManTernarySim( p, k, pCube );
+        {
+            abctime clk = Abc_Clock();
+            if ( p->pPars->fNewXSim )
+                *ppPred = Txs_ManTernarySim( p->pTxs, k, pCube );
+            else
+                *ppPred = Pdr_ManTernarySim( p, k, pCube );
+            p->tTsim += Abc_Clock() - clk;
+            p->nXsimLits += (*ppPred)->nLits;
+            p->nXsimRuns++;
+        }
         RetValue = 0;
     }
 

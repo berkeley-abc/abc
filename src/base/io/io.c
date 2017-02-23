@@ -2150,7 +2150,7 @@ int IoCommandWriteCnf2( Abc_Frame_t * pAbc, int argc, char **argv )
     extern void Mf_ManDumpCnf( Gia_Man_t * p, char * pFileName, int nLutSize, int fCnfObjIds, int fAddOrCla, int fVerbose );
     FILE * pFile;
     char * pFileName;
-    int nLutSize    = 6;
+    int nLutSize    = 8;
     int fNewAlgo    = 1;
     int fCnfObjIds  = 0;
     int fAddOrCla   = 1;
@@ -2420,7 +2420,7 @@ int IoCommandWriteCex( Abc_Frame_t * pAbc, int argc, char **argv )
                         Bmc_CexCareVerify( pAig, pCex, pCare, fVerbose );
                 }
                 else
-                    pCare = Bmc_CexCareMinimize( pAig, pCex, fCheckCex, fVerbose );
+                    pCare = Bmc_CexCareMinimize( pAig, Saig_ManPiNum(pAig), pCex, 4, fCheckCex, fVerbose );
                 Aig_ManStop( pAig );
             }
             // output flop values (unaffected by the minimization)

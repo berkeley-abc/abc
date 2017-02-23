@@ -23,7 +23,7 @@ MODULES := \
 	src/opt/cut src/opt/fxu src/opt/fxch src/opt/rwr src/opt/mfs src/opt/sim \
 	src/opt/ret src/opt/fret src/opt/res src/opt/lpk src/opt/nwk src/opt/rwt \
 	src/opt/cgt src/opt/csw src/opt/dar src/opt/dau src/opt/dsc src/opt/sfm src/opt/sbd \
-	src/sat/bsat src/sat/csat src/sat/msat src/sat/psat src/sat/cnf src/sat/bmc \
+	src/sat/bsat src/sat/xsat src/sat/satoko src/sat/csat src/sat/msat src/sat/psat src/sat/cnf src/sat/bmc \
 	src/bool/bdc src/bool/deco src/bool/dec src/bool/kit src/bool/lucky \
 	src/bool/rsb src/bool/rpo \
 	src/proof/pdr src/proof/abs src/proof/live src/proof/ssc src/proof/int \
@@ -139,6 +139,8 @@ OBJ := \
 	$(patsubst %.c, %.o,  $(filter %.c, $(SRC)))  \
 	$(patsubst %.y, %.o,  $(filter %.y, $(SRC)))
 
+LIBOBJ := $(filter-out src/base/main/main.o,$(OBJ))
+
 DEP := $(OBJ:.o=.d)
 
 # implicit rules
@@ -186,10 +188,14 @@ $(PROG): $(OBJ)
 	@echo "$(MSG_PREFIX)\`\` Building binary:" $(notdir $@)
 	$(VERBOSE)$(LD) -o $@ $^ $(LIBS)
 
-lib$(PROG).a: $(OBJ)
+lib$(PROG).a: $(LIBOBJ)
 	@echo "$(MSG_PREFIX)\`\` Linking:" $(notdir $@)
 	$(VERBOSE)ar rv $@ $?
 	$(VERBOSE)ranlib $@
+
+lib$(PROG).so: $(LIBOBJ)
+	@echo "$(MSG_PREFIX)\`\` Linking:" $(notdir $@)
+	$(VERBOSE)$(CXX) -shared -o $@ $^ $(LIBS)
 
 docs:
 	@echo "$(MSG_PREFIX)\`\` Building documentation." $(notdir $@)

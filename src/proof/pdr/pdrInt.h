@@ -30,6 +30,8 @@
 #include "sat/cnf/cnf.h"
 #include "sat/bsat/satSolver.h"
 #include "pdr.h" 
+#include "misc/hash/hashInt.h"
+#include "aig/gia/giaAig.h"
 
 ABC_NAMESPACE_HEADER_START
 
@@ -40,6 +42,8 @@ ABC_NAMESPACE_HEADER_START
 ////////////////////////////////////////////////////////////////////////
 ///                         BASIC TYPES                              ///
 ////////////////////////////////////////////////////////////////////////
+
+typedef struct Txs_Man_t_ Txs_Man_t;
 
 typedef struct Pdr_Set_t_ Pdr_Set_t;
 struct Pdr_Set_t_
@@ -68,6 +72,7 @@ struct Pdr_Man_t_
     // input problem
     Pdr_Par_t * pPars;     // parameters
     Aig_Man_t * pAig;      // user's AIG
+    Gia_Man_t * pGia;      // user's AIG
     // static CNF representation
     Cnf_Man_t * pCnfMan;   // CNF manager
     Cnf_Dat_t * pCnf1;     // CNF for this AIG
@@ -79,6 +84,7 @@ struct Pdr_Man_t_
     Vec_Wec_t * vVLits;    // CNF literals
     // data representation
     int         iOutCur;   // current output
+    int         nPrioShift;// priority shift
     Vec_Ptr_t * vCexes;    // counter-examples for each output
     Vec_Ptr_t * vSolvers;  // SAT solvers
     Vec_Vec_t * vClauses;  // clauses by timeframe
@@ -86,6 +92,14 @@ struct Pdr_Man_t_
     int *       pOrder;    // ordering of the lits
     Vec_Int_t * vActVars;  // the counter of activation variables
     int         iUseFrame; // the first used frame
+    int         nAbsFlops; // the number of flops used
+    Vec_Int_t * vAbsFlops; // flops currently used
+    Vec_Int_t * vMapFf2Ppi;
+    Vec_Int_t * vMapPpi2Ff;
+    int         nCexes;
+    int         nCexesTotal;
+    // terminary simulation
+    Txs_Man_t * pTxs;      
     // internal use
     Vec_Int_t * vPrio;     // priority flops
     Vec_Int_t * vLits;     // array of literals
@@ -98,8 +112,6 @@ struct Pdr_Man_t_
     Vec_Int_t * vVisits;   // intermediate
     Vec_Int_t * vCi2Rem;   // CIs to be removed
     Vec_Int_t * vRes;      // final result
-    Vec_Int_t * vSuppLits; // support literals
-    Pdr_Set_t * pCubeJust; // justification
     abctime *   pTime4Outs;// timeout per output
     Vec_Ptr_t * vInfCubes; // infinity clauses/cubes
     // statistics
@@ -118,6 +130,8 @@ struct Pdr_Man_t_
     int         nQueCur;
     int         nQueMax;
     int         nQueLim;
+    int         nXsimRuns;
+    int         nXsimLits;
     // runtime
     abctime     timeToStop;
     abctime     timeToStopOne;
@@ -130,6 +144,7 @@ struct Pdr_Man_t_
     abctime     tTsim;
     abctime     tContain;
     abctime     tCnf;
+    abctime     tAbs;
     abctime     tTotal;
 };
 
@@ -154,8 +169,6 @@ static inline abctime      Pdr_ManTimeLimit( Pdr_Man_t * p )
 ///                    FUNCTION DECLARATIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
-/*=== pdrCex.c ==========================================================*/
-extern Abc_Cex_t *     Pdr_ManDeriveCex( Pdr_Man_t * p );
 /*=== pdrCnf.c ==========================================================*/
 extern int             Pdr_ObjSatVar( Pdr_Man_t * p, int k, int Pol, Aig_Obj_t * pObj );
 extern int             Pdr_ObjRegNum( Pdr_Man_t * p, int k, int iSatVar );
@@ -176,6 +189,7 @@ extern Vec_Int_t *     Pdr_ManDeriveInfinityClauses( Pdr_Man_t * p, int fReduce 
 extern Pdr_Man_t *     Pdr_ManStart( Aig_Man_t * pAig, Pdr_Par_t * pPars, Vec_Int_t * vPrioInit );
 extern void            Pdr_ManStop( Pdr_Man_t * p );
 extern Abc_Cex_t *     Pdr_ManDeriveCex( Pdr_Man_t * p );
+extern Abc_Cex_t *     Pdr_ManDeriveCexAbs( Pdr_Man_t * p );
 /*=== pdrSat.c ==========================================================*/
 extern sat_solver *    Pdr_ManCreateSolver( Pdr_Man_t * p, int k );
 extern sat_solver *    Pdr_ManFetchSolver( Pdr_Man_t * p, int k );
@@ -185,9 +199,13 @@ extern Vec_Int_t *     Pdr_ManLitsToCube( Pdr_Man_t * p, int k, int * pArray, in
 extern void            Pdr_ManSolverAddClause( Pdr_Man_t * p, int k, Pdr_Set_t * pCube );
 extern void            Pdr_ManCollectValues( Pdr_Man_t * p, int k, Vec_Int_t * vObjIds, Vec_Int_t * vValues );
 extern int             Pdr_ManCheckCubeCs( Pdr_Man_t * p, int k, Pdr_Set_t * pCube );
-extern int             Pdr_ManCheckCube( Pdr_Man_t * p, int k, Pdr_Set_t * pCube, Pdr_Set_t ** ppPred, int nConfLimit, int fTryConf );
+extern int             Pdr_ManCheckCube( Pdr_Man_t * p, int k, Pdr_Set_t * pCube, Pdr_Set_t ** ppPred, int nConfLimit, int fTryConf, int fUseLit );
 /*=== pdrTsim.c ==========================================================*/
 extern Pdr_Set_t *     Pdr_ManTernarySim( Pdr_Man_t * p, int k, Pdr_Set_t * pCube );
+/*=== pdrTsim2.c ==========================================================*/
+extern Txs_Man_t *     Txs_ManStart( Pdr_Man_t * pMan, Aig_Man_t * pAig, Vec_Int_t * vPrio );
+extern void            Txs_ManStop( Txs_Man_t * );
+extern Pdr_Set_t *     Txs_ManTernarySim( Txs_Man_t * p, int k, Pdr_Set_t * pCube );
 /*=== pdrUtil.c ==========================================================*/
 extern Pdr_Set_t *     Pdr_SetAlloc( int nSize );
 extern Pdr_Set_t *     Pdr_SetCreate( Vec_Int_t * vLits, Vec_Int_t * vPiLits );
@@ -196,10 +214,13 @@ extern Pdr_Set_t *     Pdr_SetCreateSubset( Pdr_Set_t * pSet, int * pLits, int n
 extern Pdr_Set_t *     Pdr_SetDup( Pdr_Set_t * pSet );
 extern Pdr_Set_t *     Pdr_SetRef( Pdr_Set_t * p );
 extern void            Pdr_SetDeref( Pdr_Set_t * p );
+extern Pdr_Set_t *     ZPdr_SetIntersection( Pdr_Set_t * p1, Pdr_Set_t * p2, Hash_Int_t * keep );
 extern int             Pdr_SetContains( Pdr_Set_t * pOld, Pdr_Set_t * pNew );
 extern int             Pdr_SetContainsSimple( Pdr_Set_t * pOld, Pdr_Set_t * pNew );
 extern int             Pdr_SetIsInit( Pdr_Set_t * p, int iRemove );
+extern int             ZPdr_SetIsInit( Pdr_Set_t * p );
 extern void            Pdr_SetPrint( FILE * pFile, Pdr_Set_t * p, int nRegs, Vec_Int_t * vFlopCounts );
+extern void            ZPdr_SetPrint( Pdr_Set_t * p );
 extern void            Pdr_SetPrintStr( Vec_Str_t * vStr, Pdr_Set_t * p, int nRegs, Vec_Int_t * vFlopCounts );
 extern int             Pdr_SetCompare( Pdr_Set_t ** pp1, Pdr_Set_t ** pp2 );
 extern Pdr_Obl_t *     Pdr_OblStart( int k, int prio, Pdr_Set_t * pState, Pdr_Obl_t * pNext );
@@ -212,7 +233,6 @@ extern void            Pdr_QueueClean( Pdr_Man_t * p );
 extern void            Pdr_QueuePush( Pdr_Man_t * p, Pdr_Obl_t * pObl );
 extern void            Pdr_QueuePrint( Pdr_Man_t * p );
 extern void            Pdr_QueueStop( Pdr_Man_t * p );
-extern int             Pdr_ManCubeJust( Pdr_Man_t * p, int k, Pdr_Set_t * pCube );
 
 ABC_NAMESPACE_HEADER_END
 

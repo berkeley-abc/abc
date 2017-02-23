@@ -260,6 +260,85 @@ void Pdr_SetPrint( FILE * pFile, Pdr_Set_t * p, int nRegs, Vec_Int_t * vFlopCoun
   SeeAlso     []
 
 ***********************************************************************/
+void ZPdr_SetPrint( Pdr_Set_t * p )
+{
+    int i;
+    for ( i = 0; i < p->nLits; i++)
+        printf ("%d ", p->Lits[i]);
+    printf ("\n");
+
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Return the intersection of p1 and p2.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Pdr_Set_t * ZPdr_SetIntersection( Pdr_Set_t * p1, Pdr_Set_t * p2, Hash_Int_t * keep )
+{
+    Pdr_Set_t * pIntersection;
+    Vec_Int_t * vCommonLits, * vPiLits;
+    int i, j, nLits;
+    nLits = p1->nLits;
+    if ( p2->nLits < nLits )
+        nLits = p2->nLits;
+    vCommonLits = Vec_IntAlloc( nLits );
+    vPiLits = Vec_IntAlloc( 1 );
+    for ( i = 0, j = 0; i < p1->nLits && j < p2->nLits; )
+    {
+        if ( p1->Lits[i] > p2->Lits[j] )
+        {
+            if ( Hash_IntExists( keep, p2->Lits[j] ) )
+            {
+                //about to drop a literal that should not be dropped
+                Vec_IntFree( vCommonLits );
+                Vec_IntFree( vPiLits );
+                return NULL;
+            }
+            j++;
+        }
+        else if ( p1->Lits[i] < p2->Lits[j] )
+        {
+            if ( Hash_IntExists( keep, p1->Lits[i] ) )
+            {
+                //about to drop a literal that should not be dropped
+                Vec_IntFree( vCommonLits );
+                Vec_IntFree( vPiLits );
+                return NULL;
+            }
+            i++;
+        }
+        else
+        {
+          Vec_IntPush( vCommonLits, p1->Lits[i] );
+          i++;
+          j++;
+        }
+    }
+    pIntersection = Pdr_SetCreate( vCommonLits, vPiLits );
+    Vec_IntFree( vCommonLits );
+    Vec_IntFree( vPiLits );
+    return pIntersection;
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 void Pdr_SetPrintStr( Vec_Str_t * vStr, Pdr_Set_t * p, int nRegs, Vec_Int_t * vFlopCounts )
 {
     char * pBuff;
@@ -284,7 +363,7 @@ void Pdr_SetPrintStr( Vec_Str_t * vStr, Pdr_Set_t * p, int nRegs, Vec_Int_t * vF
     }
     Vec_StrPushBuffer( vStr, pBuff, k );
     Vec_StrPush( vStr, ' ' );
-    Vec_StrPush( vStr, '0' );
+    Vec_StrPush( vStr, '1' );
     Vec_StrPush( vStr, '\n' );
     ABC_FREE( pBuff );
 }
@@ -674,8 +753,6 @@ int Pdr_NtkFindSatAssign_rec( Aig_Man_t * pAig, Aig_Obj_t * pNode, int Value, Pd
     pNode->fMarkA = Value;
     if ( Aig_ObjIsCi(pNode) )
     {
-//        if ( vSuppLits )
-//            Vec_IntPush( vSuppLits, Abc_Var2Lit( Aig_ObjCioId(pNode), !Value ) );
         if ( Saig_ObjIsLo(pAig, pNode) )
         {
 //            pCube->Lits[pCube->nLits++] = Abc_Var2Lit( Aig_ObjCioId(pNode) - Saig_ManPiNum(pAig), !Value );
@@ -713,60 +790,6 @@ int Pdr_NtkFindSatAssign_rec( Aig_Man_t * pAig, Aig_Obj_t * pNode, int Value, Pd
     else
         return Pdr_NtkFindSatAssign_rec(pAig, Aig_ObjFanin0(pNode), Aig_ObjFaninC0(pNode), pCube, Heur);
 }
-
-/**Function*************************************************************
-
-  Synopsis    [Returns 1 if SAT assignment is found; 0 otherwise.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Pdr_ManCubeJust( Pdr_Man_t * p, int k, Pdr_Set_t * pCube )
-{
-    Aig_Obj_t * pNode;
-    int i, v, fCompl;
-//    return 0;
-    for ( i = 0; i < 4; i++ )
-    {
-        // derive new assignment
-        p->pCubeJust->nLits = 0;
-        p->pCubeJust->Sign  = 0;
-        Aig_ManIncrementTravId( p->pAig );
-        for ( v = 0; v < pCube->nLits; v++ )
-        {
-            if ( pCube->Lits[v] == -1 )
-                continue;
-            pNode  = Saig_ManLi( p->pAig, lit_var(pCube->Lits[v]) );
-            fCompl = lit_sign(pCube->Lits[v]) ^ Aig_ObjFaninC0(pNode);
-            if ( !Pdr_NtkFindSatAssign_rec( p->pAig, Aig_ObjFanin0(pNode), !fCompl, p->pCubeJust, i ) )
-                break;
-        }
-        if ( v < pCube->nLits )
-            continue;
-        // figure this out!!!
-        if ( p->pCubeJust->nLits == 0 )
-            continue;
-        // successfully derived new assignment
-        Vec_IntSelectSort( p->pCubeJust->Lits, p->pCubeJust->nLits );
-        // check assignment against this cube
-        if ( Pdr_SetContainsSimple( p->pCubeJust, pCube ) )
-            continue;
-//printf( "\n" );
-//Pdr_SetPrint( stdout, pCube,        Saig_ManRegNum(p->pAig), NULL ); printf( "\n" );
-//Pdr_SetPrint( stdout, p->pCubeJust, Saig_ManRegNum(p->pAig), NULL ); printf( "\n" );
-        // check assignment against the clauses
-        if ( Pdr_ManCheckContainment( p, k, p->pCubeJust ) )
-            continue;
-        // find good assignment
-        return 1;
-    }
-    return 0;
-}
-
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

@@ -986,8 +986,7 @@ int Gia_ManBmcPerformInt( Gia_Man_t * pGia, Bmc_AndPar_t * pPars )
     {
 //        p->pFrames = Jf_ManDeriveCnf( pTemp = p->pFrames, 1 );  Gia_ManStop( pTemp );
 //        p->pCnf = (Cnf_Dat_t *)p->pFrames->pData; p->pFrames->pData = NULL;
-        extern Cnf_Dat_t * Mf_ManGenerateCnf( Gia_Man_t * pGia, int nLutSize, int fCnfObjIds, int fAddOrCla, int fVerbose );
-        p->pCnf = Mf_ManGenerateCnf( p->pFrames, pPars->nLutSize, 1, 0, pPars->fVerbose );
+        p->pCnf = (Cnf_Dat_t *)Mf_ManGenerateCnf( p->pFrames, pPars->nLutSize, 1, 0, 0, pPars->fVerbose );
     }
     Vec_IntFillExtra( p->vId2Var, Gia_ManObjNum(p->pFrames), 0 );
     // create clauses for constant node

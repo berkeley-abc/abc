@@ -29,8 +29,6 @@ ABC_NAMESPACE_IMPL_START
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-extern Cnf_Dat_t * Mf_ManGenerateCnf( Gia_Man_t * pGia, int nLutSize, int fCnfObjIds, int fAddOrCla, int fVerbose );
-
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
@@ -48,13 +46,13 @@ extern Cnf_Dat_t * Mf_ManGenerateCnf( Gia_Man_t * pGia, int nLutSize, int fCnfOb
 ***********************************************************************/
 static inline word * Gia_ManMoObj( Gia_Man_t * p, int iObj )
 {
-    return Vec_WrdEntryP( p->vSims, iObj * p->iPatsPi );
+    return Vec_WrdEntryP( p->vSims, iObj * p->nSimWords );
 }
 static inline void Gia_ManMoSetCi( Gia_Man_t * p, int iObj )
 {
     int w;
     word * pSims = Gia_ManMoObj( p, iObj );
-    for ( w = 0; w < p->iPatsPi; w++ )
+    for ( w = 0; w < p->nSimWords; w++ )
         pSims[w] = Gia_ManRandomW( 0 );
 }
 static inline void Gia_ManMoSimAnd( Gia_Man_t * p, int iObj )
@@ -67,19 +65,19 @@ static inline void Gia_ManMoSimAnd( Gia_Man_t * p, int iObj )
     if ( Gia_ObjFaninC0(pObj) )
     {
         if (  Gia_ObjFaninC1(pObj) )
-            for ( w = 0; w < p->iPatsPi; w++ )
+            for ( w = 0; w < p->nSimWords; w++ )
                 pSims[w] = ~(pSims0[w] | pSims1[w]);
         else 
-            for ( w = 0; w < p->iPatsPi; w++ )
+            for ( w = 0; w < p->nSimWords; w++ )
                 pSims[w] = ~pSims0[w] & pSims1[w];
     }
     else 
     {
         if (  Gia_ObjFaninC1(pObj) )
-            for ( w = 0; w < p->iPatsPi; w++ )
+            for ( w = 0; w < p->nSimWords; w++ )
                 pSims[w] = pSims0[w] & ~pSims1[w];
         else 
-            for ( w = 0; w < p->iPatsPi; w++ )
+            for ( w = 0; w < p->nSimWords; w++ )
                 pSims[w] = pSims0[w] & pSims1[w];
     }
 }
@@ -91,12 +89,12 @@ static inline void Gia_ManMoSetCo( Gia_Man_t * p, int iObj )
     word * pSims0 = Gia_ManMoObj( p, Gia_ObjFaninId0(pObj, iObj) );
     if ( Gia_ObjFaninC0(pObj) )
     {
-        for ( w = 0; w < p->iPatsPi; w++ )
+        for ( w = 0; w < p->nSimWords; w++ )
             pSims[w] = ~pSims0[w];
     }
     else 
     {
-        for ( w = 0; w < p->iPatsPi; w++ )
+        for ( w = 0; w < p->nSimWords; w++ )
             pSims[w] = pSims0[w];
     }
 }
@@ -104,7 +102,7 @@ void Gia_ManMoFindSimulate( Gia_Man_t * p, int nWords )
 {
     int i, iObj;
     Gia_ManRandomW( 1 );
-    p->iPatsPi = nWords;
+    p->nSimWords = nWords;
     if ( p->vSims )
         Vec_WrdFill( p->vSims, nWords * Gia_ManObjNum(p), 0 );
     else
@@ -131,7 +129,7 @@ void Gia_ManMoFindSimulate( Gia_Man_t * p, int nWords )
 int Gia_ManTestSatEnum( Gia_Man_t * p )
 {
     abctime clk = Abc_Clock(), clk2, clkTotal = 0;
-    Cnf_Dat_t * pCnf = Mf_ManGenerateCnf( p, 8, 0, 0, 0 );
+    Cnf_Dat_t * pCnf = (Cnf_Dat_t *)Mf_ManGenerateCnf( p, 8, 0, 0, 0, 0 );
     sat_solver * pSat = (sat_solver *)Cnf_DataWriteIntoSolver(pCnf, 1, 0);
     int i, v, status, iLit, nWords = 1, iOutVar = 1, Count = 0;
     Vec_Int_t * vVars = Vec_IntAlloc( 1000 );

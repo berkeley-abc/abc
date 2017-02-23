@@ -102,35 +102,45 @@ int Extra_UtilGetopt( int argc, char *argv[], const char *optstring )
 
     globalUtilOptarg = NULL;
 
-    if (pScanStr == NULL || *pScanStr == '\0') {
-    if (globalUtilOptind == 0) globalUtilOptind++;
-    if (globalUtilOptind >= argc) return EOF;
-    place = argv[globalUtilOptind];
-    if (place[0] != '-' || place[1] == '\0') return EOF;
-    globalUtilOptind++;
-    if (place[1] == '-' && place[2] == '\0') return EOF;
-    pScanStr = place+1;
+    if (pScanStr == NULL || *pScanStr == '\0') 
+    {
+        if (globalUtilOptind == 0) 
+            globalUtilOptind++;
+        if (globalUtilOptind >= argc) 
+            return EOF;
+        place = argv[globalUtilOptind];
+        if (place[0] != '-' || place[1] == '\0') 
+            return EOF;
+        globalUtilOptind++;
+        if (place[1] == '-' && place[2] == '\0') 
+            return EOF;
+        pScanStr = place+1;
     }
 
     c = *pScanStr++;
     place = strchr(optstring, c);
     if (place == NULL || c == ':') {
-    (void) fprintf(stderr, "%s: unknown option %c\n", argv[0], c);
-    return '?';
-    }
-    if (*++place == ':') {
-    if (*pScanStr != '\0') {
-        globalUtilOptarg = pScanStr;
-        pScanStr = NULL;
-    } else {
-        if (globalUtilOptind >= argc) {
-        (void) fprintf(stderr, "%s: %c requires an argument\n", 
-            argv[0], c);
+        (void) fprintf(stderr, "%s: unknown option %c\n", argv[0], c);
         return '?';
-        }
-        globalUtilOptarg = argv[globalUtilOptind];
-        globalUtilOptind++;
     }
+    if (*++place == ':') 
+    {
+        if (*pScanStr != '\0') 
+        {
+            globalUtilOptarg = pScanStr;
+            pScanStr = NULL;
+        } 
+        else 
+        {
+            if (globalUtilOptind >= argc) 
+            {
+                (void) fprintf(stderr, "%s: %c requires an argument\n", 
+                    argv[0], c);
+                return '?';
+            }
+            globalUtilOptarg = argv[globalUtilOptind];
+            globalUtilOptind++;
+        }
     }
     return c;
 }

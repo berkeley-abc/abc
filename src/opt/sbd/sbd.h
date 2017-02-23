@@ -39,11 +39,18 @@ typedef struct Sbd_Par_t_ Sbd_Par_t;
 struct Sbd_Par_t_
 {
     int             nLutSize;     // target LUT size
+    int             nLutNum;      // target LUT count
+    int             nCutSize;     // target cut size
+    int             nCutNum;      // target cut count
     int             nTfoLevels;   // the number of TFO levels (windowing)
     int             nTfoFanMax;   // the max number of fanouts (windowing)
     int             nWinSizeMax;  // maximum window size (windowing)
     int             nBTLimit;     // maximum number of SAT conflicts 
     int             nWords;       // simulation word count
+    int             fMapping;     // generate mapping
+    int             fMoreCuts;    // use several cuts
+    int             fFindDivs;    // perform divisor search
+    int             fUsePath;     // optimize only critical path
     int             fArea;        // area-oriented optimization
     int             fCover;       // use complete cover procedure
     int             fVerbose;     // verbose flag

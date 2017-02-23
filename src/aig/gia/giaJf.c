@@ -36,6 +36,7 @@ ABC_NAMESPACE_IMPL_START
 #define JF_LEAF_MAX   8
 #define JF_WORD_MAX  ((JF_LEAF_MAX > 6) ? 1 << (JF_LEAF_MAX-6) : 1)
 #define JF_CUT_MAX   16
+#define JF_EPSILON 0.005
 
 typedef struct Jf_Cut_t_ Jf_Cut_t; 
 struct Jf_Cut_t_
@@ -940,15 +941,16 @@ float Jf_CutCompareDelay( Jf_Cut_t * pOld, Jf_Cut_t * pNew )
 {
     if ( pOld->Time    != pNew->Time    ) return pOld->Time    - pNew->Time;
     if ( pOld->pCut[0] != pNew->pCut[0] ) return pOld->pCut[0] - pNew->pCut[0];
-    if ( pOld->Flow    != pNew->Flow    ) return pOld->Flow    - pNew->Flow;
+//    if ( pOld->Flow    != pNew->Flow    ) return pOld->Flow    - pNew->Flow;
+    if ( pOld->Flow < pNew->Flow - JF_EPSILON ) return -1;
+    if ( pOld->Flow > pNew->Flow + JF_EPSILON ) return 1;
     return 0;
 }
 float Jf_CutCompareArea( Jf_Cut_t * pOld, Jf_Cut_t * pNew )
 {
-//    float Epsilon = (float)0.001;
-//    if ( pOld->Flow > pNew->Flow + Epsilon ) return 1;
-//    if ( pOld->Flow < pNew->Flow - Epsilon ) return -1;
-    if ( pOld->Flow    != pNew->Flow    ) return pOld->Flow    - pNew->Flow;
+//    if ( pOld->Flow    != pNew->Flow    ) return pOld->Flow    - pNew->Flow;
+    if ( pOld->Flow < pNew->Flow - JF_EPSILON ) return -1;
+    if ( pOld->Flow > pNew->Flow + JF_EPSILON ) return 1;
     if ( pOld->pCut[0] != pNew->pCut[0] ) return pOld->pCut[0] - pNew->pCut[0];
     if ( pOld->Time    != pNew->Time    ) return pOld->Time    - pNew->Time;
     return 0;
@@ -1256,10 +1258,10 @@ void Jf_ManComputeCuts( Jf_Man_t * p, int fEdge )
     }
     if ( p->pPars->fVerbose )
     {
-        printf( "CutPair = %lu  ", p->CutCount[0] );
-        printf( "Merge = %lu  ",   p->CutCount[1] );
-        printf( "Eval = %lu  ",    p->CutCount[2] );
-        printf( "Cut = %lu  ",     p->CutCount[3] );
+        printf( "CutPair = %lu  ", (long)p->CutCount[0] );
+        printf( "Merge = %lu  ",   (long)p->CutCount[1] );
+        printf( "Eval = %lu  ",    (long)p->CutCount[2] );
+        printf( "Cut = %lu  ",     (long)p->CutCount[3] );
         Abc_PrintTime( 1, "Time",  Abc_Clock() - p->clkStart );
         printf( "Memory:  " );
         printf( "Gia = %.2f MB  ", Gia_ManMemory(p->pGia) / (1<<20) );
@@ -1367,7 +1369,7 @@ void Jf_ObjComputeBestCut( Jf_Man_t * p, Gia_Obj_t * pObj, int fEdge, int fEla )
         if ( fEdge && !fEla ) 
             Jf_CutSetCost(pCut, Jf_CutSize(pCut));
         Area = fEla ? Jf_CutArea(p, pCut, fEdge) : Jf_CutFlow(p, pCut) + Jf_CutCost(pCut);
-        if ( pCutBest == NULL || AreaBest > Area || (AreaBest == Area && TimeBest > (Time = Jf_CutArr(p, pCut))) )
+        if ( pCutBest == NULL || AreaBest > Area + JF_EPSILON || (AreaBest > Area - JF_EPSILON && TimeBest > (Time = Jf_CutArr(p, pCut))) )
             pCutBest = pCut, AreaBest = Area, TimeBest = Time;
     }
     Vec_IntWriteEntry( &p->vArr,  iObj, Jf_CutArr(p, pCutBest) );
@@ -1702,11 +1704,11 @@ void Jf_ManPrintStats( Jf_Man_t * p, char * pTitle )
     if ( !p->pPars->fVerbose )
         return;
     printf( "%s :  ", pTitle );
-    printf( "Level =%6lu   ", p->pPars->Delay );
-    printf( "Area =%9lu   ",  p->pPars->Area );
-    printf( "Edge =%9lu   ",  p->pPars->Edge );
+    printf( "Level =%6lu   ", (long)p->pPars->Delay );
+    printf( "Area =%9lu   ",  (long)p->pPars->Area );
+    printf( "Edge =%9lu   ",  (long)p->pPars->Edge );
     if ( p->pPars->fGenCnf )
-    printf( "Cnf =%9lu   ",   p->pPars->Clause );
+    printf( "Cnf =%9lu   ",   (long)p->pPars->Clause );
     Abc_PrintTime( 1, "Time", Abc_Clock() - p->clkStart );
     fflush( stdout );
 }

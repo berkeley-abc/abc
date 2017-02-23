@@ -873,7 +873,7 @@ static void Ses_StoreRead( Ses_Store_t * pStore, const char * pFilename, int fSy
 
     fclose( pFile );
 
-    printf( "read %lu entries from file\n", nEntries );
+    printf( "read %lu entries from file\n", (long)nEntries );
 }
 
 // computes top decomposition of variables wrt. to AND and OR

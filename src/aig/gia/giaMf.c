@@ -37,6 +37,7 @@ ABC_NAMESPACE_IMPL_START
 #define MF_NO_LEAF    31
 #define MF_TT_WORDS  ((MF_LEAF_MAX > 6) ? 1 << (MF_LEAF_MAX-6) : 1)
 #define MF_NO_FUNC    134217727     // (1<<27)-1
+#define MF_EPSILON 0.005
 
 typedef struct Mf_Cut_t_ Mf_Cut_t; 
 struct Mf_Cut_t_
@@ -387,6 +388,8 @@ Cnf_Dat_t * Mf_ManDeriveCnf( Mf_Man_t * p, int fCnfObjIds, int fAddOrCla )
         Gia_ManForEachCoId( p->pGia, Id, i )
             pCnf->pClauses[0][iLit++] = Abc_Var2Lit(pCnfIds[Id], 0);
     }
+    if ( p->pPars->fCnfMapping )
+        pCnf->vMapping = Vec_IntStart( nVars );
     // add clauses for the COs
     Gia_ManForEachCo( p->pGia, pObj, i )
     {
@@ -400,6 +403,14 @@ Cnf_Dat_t * Mf_ManDeriveCnf( Mf_Man_t * p, int fCnfObjIds, int fAddOrCla )
         pCnf->pClauses[iCla++] = pCnf->pClauses[0] + iLit;
         pCnf->pClauses[0][iLit++] = Abc_Var2Lit(pCnfIds[Id], 1);
         pCnf->pClauses[0][iLit++] = Abc_Var2Lit(pCnfIds[DriId], Gia_ObjFaninC0(pObj));
+        // generate mapping
+        if ( pCnf->vMapping )
+        {
+            Vec_IntWriteEntry( pCnf->vMapping, pCnfIds[Id], Vec_IntSize(pCnf->vMapping) );
+            Vec_IntPush( pCnf->vMapping, 1 );
+            Vec_IntPush( pCnf->vMapping, pCnfIds[DriId] );
+            Vec_IntPush( pCnf->vMapping, Gia_ObjFaninC0(pObj) ? 0x55555555 : 0xAAAAAAAA );
+        }
     }
     // add clauses for the mapping
     Gia_ManForEachAndReverseId( p->pGia, Id )
@@ -425,6 +436,35 @@ Cnf_Dat_t * Mf_ManDeriveCnf( Mf_Man_t * p, int fCnfObjIds, int fAddOrCla )
             for ( k = 0; k < Mf_CutSize(pCut); k++ )
                 if ( Mf_CubeLit(pCubes[c], k) )
                     pCnf->pClauses[0][iLit++] = Abc_Var2Lit( pFanins[k], Mf_CubeLit(pCubes[c], k) == 2 );
+        }
+        // generate mapping
+        if ( pCnf->vMapping )
+        {
+            word pTruth[4], * pTruthP = Vec_MemReadEntry(p->vTtMem, iFunc);
+            assert( p->pPars->nLutSize <= 8 );
+            Abc_TtCopy( pTruth, pTruthP, Abc_Truth6WordNum(p->pPars->nLutSize), Abc_LitIsCompl(iFunc) );
+            assert( pCnfIds[Id] >= 0 && pCnfIds[Id] < nVars );
+            Vec_IntWriteEntry( pCnf->vMapping, pCnfIds[Id], Vec_IntSize(pCnf->vMapping) );
+            Vec_IntPush( pCnf->vMapping, Mf_CutSize(pCut) );
+            for ( k = 0; k < Mf_CutSize(pCut); k++ )
+                Vec_IntPush( pCnf->vMapping, pCnfIds[pCut[k+1]] );
+            Vec_IntPush( pCnf->vMapping, (unsigned)pTruth[0] );
+            if ( Mf_CutSize(pCut) >= 6 )
+            {
+                Vec_IntPush( pCnf->vMapping, (unsigned)(pTruth[0] >> 32) );
+                if ( Mf_CutSize(pCut) >= 7 )
+                {
+                    Vec_IntPush( pCnf->vMapping, (unsigned)(pTruth[1]) );
+                    Vec_IntPush( pCnf->vMapping, (unsigned)(pTruth[1] >> 32) );
+                }
+                if ( Mf_CutSize(pCut) >= 8 )
+                {
+                    Vec_IntPush( pCnf->vMapping, (unsigned)(pTruth[2]) );
+                    Vec_IntPush( pCnf->vMapping, (unsigned)(pTruth[2] >> 32) );
+                    Vec_IntPush( pCnf->vMapping, (unsigned)(pTruth[3]) );
+                    Vec_IntPush( pCnf->vMapping, (unsigned)(pTruth[3] >> 32) );
+                }
+            }
         }
     }
     // constant clause
@@ -920,8 +960,8 @@ static inline int Mf_SetLastCutContainsArea( Mf_Cut_t ** pCuts, int nCuts )
 }
 static inline int Mf_CutCompareArea( Mf_Cut_t * pCut0, Mf_Cut_t * pCut1 )
 {
-    if ( pCut0->Flow    < pCut1->Flow    )  return -1;
-    if ( pCut0->Flow    > pCut1->Flow    )  return  1;
+    if ( pCut0->Flow    < pCut1->Flow - MF_EPSILON )  return -1;
+    if ( pCut0->Flow    > pCut1->Flow + MF_EPSILON )  return  1;
     if ( pCut0->Delay   < pCut1->Delay   )  return -1;
     if ( pCut0->Delay   > pCut1->Delay   )  return  1;
     if ( pCut0->nLeaves < pCut1->nLeaves )  return -1;
@@ -1415,11 +1455,11 @@ void Mf_ManPrintStats( Mf_Man_t * p, char * pTitle )
     if ( !p->pPars->fVerbose )
         return;
     printf( "%s :  ", pTitle );
-    printf( "Level =%6lu   ",   p->pPars->Delay );
-    printf( "Area =%9lu   ",  p->pPars->Area );
-    printf( "Edge =%9lu   ",  p->pPars->Edge );
+    printf( "Level =%6lu   ",   (long)p->pPars->Delay );
+    printf( "Area =%9lu   ",  (long)p->pPars->Area );
+    printf( "Edge =%9lu   ",  (long)p->pPars->Edge );
     if ( p->pPars->fGenCnf )
-        printf( "CNF =%9lu   ", p->pPars->Clause );
+        printf( "CNF =%9lu   ", (long)p->pPars->Clause );
     Abc_PrintTime( 1, "Time", Abc_Clock() - p->clkStart );
     fflush( stdout );
 }
@@ -1544,7 +1584,7 @@ static inline void Mf_ObjComputeBestCut( Mf_Man_t * p, int iObj )
         assert( !Mf_CutIsTriv(pCut, iObj) );
         assert( Mf_CutSize(pCut) <= p->pPars->nLutSize );
         Flow = p->fUseEla ? Mf_CutAreaDerefed(p, pCut) : Mf_CutFlow(p, pCut, &Time);
-        if ( pCutBest == NULL || FlowBest > Flow || (FlowBest == Flow && TimeBest > Time) )
+        if ( pCutBest == NULL || FlowBest > Flow + MF_EPSILON || (FlowBest > Flow - MF_EPSILON && TimeBest > Time) )
             pCutBest = pCut, FlowBest = Flow, TimeBest = Time;
     }
     assert( pCutBest != NULL );
@@ -1635,28 +1675,29 @@ Gia_Man_t * Mf_ManPerformMapping( Gia_Man_t * pGia, Jf_Par_t * pPars )
   SeeAlso     []
 
 ***********************************************************************/
-Cnf_Dat_t * Mf_ManGenerateCnf( Gia_Man_t * pGia, int nLutSize, int fCnfObjIds, int fAddOrCla, int fVerbose )
+void * Mf_ManGenerateCnf( Gia_Man_t * pGia, int nLutSize, int fCnfObjIds, int fAddOrCla, int fMapping, int fVerbose )
 {
     Gia_Man_t * pNew;
     Jf_Par_t Pars, * pPars = &Pars;
     assert( nLutSize >= 3 && nLutSize <= 8 );
     Mf_ManSetDefaultPars( pPars );
-    pPars->fGenCnf    = 1;
-    pPars->fCoarsen   = !fCnfObjIds;
-    pPars->nLutSize   = nLutSize;
-    pPars->fCnfObjIds = fCnfObjIds;
-    pPars->fAddOrCla  = fAddOrCla;
-    pPars->fVerbose   = fVerbose;
+    pPars->fGenCnf     = 1;
+    pPars->fCoarsen    = !fCnfObjIds;
+    pPars->nLutSize    = nLutSize;
+    pPars->fCnfObjIds  = fCnfObjIds;
+    pPars->fAddOrCla   = fAddOrCla;
+    pPars->fCnfMapping = fMapping;
+    pPars->fVerbose    = fVerbose;
     pNew = Mf_ManPerformMapping( pGia, pPars );
     Gia_ManStopP( &pNew );
 //    Cnf_DataPrint( (Cnf_Dat_t *)pGia->pData, 1 );
-    return (Cnf_Dat_t*)pGia->pData;
+    return pGia->pData;
 }
 void Mf_ManDumpCnf( Gia_Man_t * p, char * pFileName, int nLutSize, int fCnfObjIds, int fAddOrCla, int fVerbose )
 {
     abctime clk = Abc_Clock();
     Cnf_Dat_t * pCnf;
-    pCnf = Mf_ManGenerateCnf( p, nLutSize, fCnfObjIds, fAddOrCla, fVerbose );
+    pCnf = (Cnf_Dat_t *)Mf_ManGenerateCnf( p, nLutSize, fCnfObjIds, fAddOrCla, 0, fVerbose );
     Cnf_DataWriteIntoFile( pCnf, pFileName, 0, NULL, NULL );
 //    if ( fVerbose )
     {

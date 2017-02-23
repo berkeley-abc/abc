@@ -109,7 +109,7 @@ Vec_Int_t * Gia_PolynCoreOrder_int( Gia_Man_t * pGia, Vec_Int_t * vAdds, Vec_Wec
 {
     Vec_Int_t * vOrder  = Vec_IntAlloc( 1000 );
     Vec_Bit_t * vIsRoot = Vec_BitStart( Gia_ManObjNum(pGia) );
-    int i, k, Index, Driver, Entry1, Entry2 = -1;
+    int i, k, Index = -1, Driver, Entry1, Entry2 = -1;
     // mark roots
     Vec_IntForEachEntry( vRoots, Driver, i )
         Vec_BitWriteEntry( vIsRoot, Driver, 1 );

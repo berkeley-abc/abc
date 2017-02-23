@@ -75,6 +75,7 @@ If_LibLut_t * If_LibLutRead( char * FileName )
             Abc_Print( 1, "Error in the LUT library file \"%s\".\n", FileName );
             ABC_FREE( p->pName );
             ABC_FREE( p );
+            fclose( pFile );
             return NULL;
         }
 
@@ -93,6 +94,7 @@ If_LibLut_t * If_LibLutRead( char * FileName )
             ABC_FREE( p->pName );
             ABC_FREE( p );
             Abc_Print( 1, "LUT %d has too many pins (%d). Max allowed is %d.\n", i, k, i );
+            fclose( pFile );
             return NULL;
         }
 
@@ -105,6 +107,7 @@ If_LibLut_t * If_LibLutRead( char * FileName )
             ABC_FREE( p->pName );
             ABC_FREE( p );
             Abc_Print( 1, "Skipping LUTs of size more than %d.\n", i );
+            fclose( pFile );
             return NULL;
         }
         i++;
@@ -136,6 +139,7 @@ If_LibLut_t * If_LibLutRead( char * FileName )
         }
     }
 
+    fclose( pFile );
     return p;
 }
 

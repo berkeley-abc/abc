@@ -30,10 +30,9 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 
 #include "satVec.h"
 #include "satClause.h"
+#include "misc/util/utilDouble.h"
 
 ABC_NAMESPACE_HEADER_START
-
-//#define USE_FLOAT_ACTIVITY
 
 //=================================================================================================
 // Public interface:
@@ -42,6 +41,7 @@ struct sat_solver_t;
 typedef struct sat_solver_t sat_solver;
 
 extern sat_solver* sat_solver_new(void);
+extern sat_solver* zsat_solver_new_seed(double seed);
 extern void        sat_solver_delete(sat_solver* s);
 
 extern int         sat_solver_addclause(sat_solver* s, lit* begin, lit* end);
@@ -54,6 +54,7 @@ extern int         sat_solver_push(sat_solver* s, int p);
 extern void        sat_solver_pop(sat_solver* s);
 extern void        sat_solver_set_resource_limits(sat_solver* s, ABC_INT64_T nConfLimit, ABC_INT64_T nInsLimit, ABC_INT64_T nConfLimitGlobal, ABC_INT64_T nInsLimitGlobal);
 extern void        sat_solver_restart( sat_solver* s );
+extern void        zsat_solver_restart_seed( sat_solver* s, double seed );
 extern void        sat_solver_rollback( sat_solver* s );
 
 extern int         sat_solver_nvars(sat_solver* s);
@@ -106,7 +107,6 @@ struct sat_solver_t
     int         hBinary;       // the special binary clause
     clause *    binary;
     veci*       wlists;        // watcher lists
-    veci        act_clas;      // contain clause activities
 
     // rollback
     int         iVarPivot;     // the pivot for variables
@@ -114,19 +114,17 @@ struct sat_solver_t
     int         hProofPivot;   // the pivot for proof records
 
     // activities
-#ifdef USE_FLOAT_ACTIVITY
-    double      var_inc;       // Amount to bump next variable with.
-    double      var_decay;     // INVERSE decay factor for variable activity: stores 1/decay. 
-    float       cla_inc;       // Amount to bump next clause with.
-    float       cla_decay;     // INVERSE decay factor for clause activity: stores 1/decay.
-    double*     activity;      // A heuristic measurement of the activity of a variable.
-#else
-    int         var_inc;       // Amount to bump next variable with.
-    int         var_inc2;      // Amount to bump next variable with.
-    int         cla_inc;       // Amount to bump next clause with.
-    unsigned*   activity;      // A heuristic measurement of the activity of a variable.
-    unsigned*   activity2;     // backup variable activity
-#endif
+    int         VarActType;
+    int         ClaActType;
+    word        var_inc;       // Amount to bump next variable with.
+    word        var_inc2;      // Amount to bump next variable with.
+    word        var_decay;     // INVERSE decay factor for variable activity: stores 1/decay. 
+    word*       activity;      // A heuristic measurement of the activity of a variable.
+    word*       activity2;     // backup variable activity
+    unsigned    cla_inc;       // Amount to bump next clause with.
+    unsigned    cla_decay;     // INVERSE decay factor for clause activity: stores 1/decay.
+    veci        act_clas;      // contain clause activities
+
     char *      pFreqs;        // how many times this variable was assigned a value
     int         nVarUsed;
 
@@ -216,9 +214,25 @@ static int sat_solver_var_literal( sat_solver* s, int v )
 static void sat_solver_act_var_clear(sat_solver* s) 
 {
     int i;
-    for (i = 0; i < s->size; i++)
-        s->activity[i] = 0;
-    s->var_inc = 1;
+    if ( s->VarActType == 0 )
+    {
+        for (i = 0; i < s->size; i++)
+            s->activity[i] = (1 << 10);
+        s->var_inc = (1 << 5);
+    }
+    else if ( s->VarActType == 1 )
+    {
+        for (i = 0; i < s->size; i++)
+            s->activity[i] = 0;
+        s->var_inc = 1;
+    }
+    else if ( s->VarActType == 2 )
+    {
+        for (i = 0; i < s->size; i++)
+            s->activity[i] = Xdbl_Const1();
+        s->var_inc = Xdbl_Const1();
+    }
+    else assert(0);
 }
 static void sat_solver_compress(sat_solver* s) 
 {
@@ -229,7 +243,12 @@ static void sat_solver_compress(sat_solver* s)
         (void) RetValue;
     }
 }
-
+static void sat_solver_delete_p( sat_solver ** ps )
+{
+    if ( *ps )
+        sat_solver_delete( *ps );
+    *ps = NULL;
+}
 static void sat_solver_clean_polarity(sat_solver* s, int * pVars, int nVars )
 {
     int i;
@@ -280,7 +299,7 @@ static inline void sat_solver_bookmark(sat_solver* s)
     if ( s->activity2 )
     {
         s->var_inc2 = s->var_inc;
-        memcpy( s->activity2, s->activity, sizeof(unsigned) * s->iVarPivot );
+        memcpy( s->activity2, s->activity, sizeof(word) * s->iVarPivot );
     }
 }
 static inline void sat_solver_set_pivot_variables( sat_solver* s, int * pPivots, int nPivots )

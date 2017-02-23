@@ -1692,6 +1692,24 @@ static inline int Vec_IntTwoFindCommon( Vec_Int_t * vArr1, Vec_Int_t * vArr2, Ve
     }
     return Vec_IntSize(vArr);
 }
+static inline int Vec_IntTwoFindCommonReverse( Vec_Int_t * vArr1, Vec_Int_t * vArr2, Vec_Int_t * vArr )
+{
+    int * pBeg1 = vArr1->pArray;
+    int * pBeg2 = vArr2->pArray;
+    int * pEnd1 = vArr1->pArray + vArr1->nSize;
+    int * pEnd2 = vArr2->pArray + vArr2->nSize;
+    Vec_IntClear( vArr );
+    while ( pBeg1 < pEnd1 && pBeg2 < pEnd2 )
+    {
+        if ( *pBeg1 == *pBeg2 )
+            Vec_IntPush( vArr, *pBeg1 ), pBeg1++, pBeg2++;
+        else if ( *pBeg1 > *pBeg2 )
+            pBeg1++;
+        else 
+            pBeg2++;
+    }
+    return Vec_IntSize(vArr);
+}
 
 /**Function*************************************************************
 

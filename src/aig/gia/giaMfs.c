@@ -451,6 +451,7 @@ Gia_Man_t * Gia_ManPerformMfs( Gia_Man_t * p, Sfm_Par_t * pPars )
     nNodes = Sfm_NtkPerform( pNtk, pPars );
     if ( nNodes == 0 )
     {
+        if ( p->pManTime )
         Abc_Print( 1, "The network is not changed by \"&mfs\".\n" );
         pNew = Gia_ManDup( p );
         pNew->vMapping = Vec_IntDup( p->vMapping );
