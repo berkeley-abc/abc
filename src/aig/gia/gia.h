@@ -1588,7 +1588,6 @@ extern void                Gia_ManSwapPos( Gia_Man_t * p, int i );
 extern Vec_Int_t *         Gia_ManSaveValue( Gia_Man_t * p );
 extern void                Gia_ManLoadValue( Gia_Man_t * p, Vec_Int_t * vValues );
 extern Vec_Int_t *         Gia_ManFirstFanouts( Gia_Man_t * p );
-extern void                Gia_ManDetectMuxes( Gia_Man_t * p );
 
 /*=== giaCTas.c ===========================================================*/
 typedef struct Tas_Man_t_  Tas_Man_t;

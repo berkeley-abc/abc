@@ -1000,12 +1000,14 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "ABC9",         "&save",         Abc_CommandAbc9Save,         0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&load",         Abc_CommandAbc9Load,         0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&r",            Abc_CommandAbc9Read,         0 );
+    Cmd_CommandAdd( pAbc, "ABC9",         "&read",         Abc_CommandAbc9Read,         0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&read_blif",    Abc_CommandAbc9ReadBlif,     0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&read_cblif",   Abc_CommandAbc9ReadCBlif,    0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&read_stg",     Abc_CommandAbc9ReadStg,      0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&read_ver",     Abc_CommandAbc9ReadVer,      0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&write_ver",    Abc_CommandAbc9WriteVer,     0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&w",            Abc_CommandAbc9Write,        0 );
+    Cmd_CommandAdd( pAbc, "ABC9",         "&write",        Abc_CommandAbc9Write,        0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&wlut",         Abc_CommandAbc9WriteLut,     0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&ps",           Abc_CommandAbc9Ps,           0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&pfan",         Abc_CommandAbc9PFan,         0 );
@@ -42428,7 +42430,7 @@ usage:
     Abc_Print( -2, "\t-Q num  : stop when abstraction size exceeds num %% during refinement (0<=num<=100) [default = %d]\n", pPars->nRatioMin2 );
     Abc_Print( -2, "\t-P num  : maximum percentage of added objects before a restart (0<=num<=100) [default = %d]\n", pPars->nRatioMax );
     Abc_Print( -2, "\t-B num  : the number of stable frames to call prover or dump abstraction [default = %d]\n", pPars->nFramesNoChangeLim );
-    Abc_Print( -2, "\t-A file : file name for dumping abstrated model [default = \"glabs.aig\"]\n" );
+    Abc_Print( -2, "\t-A file : file name for dumping abstrated model (&gla -d) or abstraction map (&gla -m)\n" );
     Abc_Print( -2, "\t-f      : toggle propagating fanout implications [default = %s]\n", pPars->fPropFanout? "yes": "no" );
     Abc_Print( -2, "\t-a      : toggle refinement by adding one layers of gates [default = %s]\n", pPars->fAddLayer? "yes": "no" );
     Abc_Print( -2, "\t-r      : toggle using improved refinement heuristics [default = %s]\n", pPars->fNewRefine? "yes": "no" );
