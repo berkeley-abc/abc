@@ -1539,9 +1539,27 @@ int Gia_ManPerformGla( Gia_Man_t * pAig, Abs_Par_t * pPars )
         Abc_Print( 1, "LrnStart = %d  LrnDelta = %d  LrnRatio = %d %%  Skip = %d  SimpleCNF = %d  Dump = %d\n", 
             pPars->nLearnedStart, pPars->nLearnedDelta, pPars->nLearnedPerce, pPars->fUseSkip, pPars->fUseSimple, pPars->fDumpVabs|pPars->fDumpMabs );
         if ( pPars->fDumpVabs || pPars->fDumpMabs )
-            Abc_Print( 1, "%s will be dumped into file \"%s\".\n", 
+            Abc_Print( 1, "%s will be continously dumped into file \"%s\".\n", 
                 pPars->fDumpVabs ? "Abstracted model" : "Miter with abstraction map",
                 Ga2_GlaGetFileName(p, pPars->fDumpVabs) );
+        if ( pPars->fDumpMabs )
+        {
+            // create trivial abstraction map
+            Gia_Obj_t * pObj; 
+            char * pFileName = Ga2_GlaGetFileName(p, 0);
+            Vec_Int_t * vMap = pAig->vGateClasses; pAig->vGateClasses = NULL;
+            pAig->vGateClasses = Vec_IntStart( Gia_ManObjNum(pAig) );
+            Vec_IntWriteEntry( pAig->vGateClasses, 0, 1 );
+            Gia_ManForEachAnd( pAig, pObj, i )
+                Vec_IntWriteEntry( pAig->vGateClasses, i, 1 );
+            Gia_ManForEachRo( pAig, pObj, i )
+                Vec_IntWriteEntry( pAig->vGateClasses, Gia_ObjId(pAig, pObj), 1 );
+            Gia_AigerWrite( pAig, pFileName, 0, 0 );
+            Vec_IntFree( pAig->vGateClasses );
+            pAig->vGateClasses = vMap;
+            if ( p->pPars->fVerbose )
+                Abc_Print( 1, "Dumping miter with abstraction map into file \"%s\"...\n", pFileName );
+        }
         Abc_Print( 1, " Frame   %%   Abs  PPI   FF   LUT   Confl  Cex   Vars   Clas   Lrns     Time        Mem\n" );
     }
     // iterate unrolling
