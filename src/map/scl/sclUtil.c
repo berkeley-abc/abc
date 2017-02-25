@@ -254,21 +254,21 @@ void Abc_SclReadTimingConstr( Abc_Frame_t * pAbc, char * pFileName, int fVerbose
         pToken = strtok( Buffer, " \t\r\n" );
         if ( pToken == NULL )
             continue;
-//        if ( !strcmp(pToken, "set_driving_cell") )
-        if ( !strcmp(pToken, "default_input_cell") )
+        if ( !strcmp(pToken, "set_driving_cell") )
+//        if ( !strcmp(pToken, "default_input_cell") )
         {
             Abc_FrameSetDrivingCell( Abc_UtilStrsav(strtok(NULL, " \t\r\n")) );
             if ( fVerbose ) 
                 printf( "Setting driving cell to be \"%s\".\n", Abc_FrameReadDrivingCell() );
         }
-//        else if ( !strcmp(pToken, "set_load") )
-        else if ( !strcmp(pToken, "default_output_load") )
+        else if ( !strcmp(pToken, "set_load") )
+//        else if ( !strcmp(pToken, "default_output_load") )
         {
             Abc_FrameSetMaxLoad( atof(strtok(NULL, " \t\r\n")) );
             if ( fVerbose ) 
                 printf( "Setting driving cell to be %f.\n", Abc_FrameReadMaxLoad() );
         }
-//        else printf( "Unrecognized token \"%s\".\n", pToken );
+        else printf( "Unrecognized token \"%s\".\n", pToken );
     }
     fclose( pFile );
 }
