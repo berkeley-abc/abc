@@ -38,6 +38,94 @@ extern int           IPdr_ManSolveInt( Pdr_Man_t * p, int fCheckClauses, int fPu
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
+Wlc_Ntk_t * Wlc_NtkIntroduceChoices( Wlc_Ntk_t * pNtk, Vec_Int_t * vNodes )
+{
+    if ( vNodes == NULL ) return NULL;
+
+    Wlc_Ntk_t * pNew;
+    Wlc_Obj_t * pObj;
+    int i, k, iObj, iFanin;
+    Vec_Int_t * vFanins = Vec_IntAlloc( 3 );
+    Vec_Int_t * vMapNode2Pi = Vec_IntStart( Wlc_NtkObjNum(pNtk) );
+    int nOrigObjNum = Wlc_NtkObjNumMax( pNtk );
+    Wlc_Ntk_t * p = Wlc_NtkDupDfs( pNtk, 0, 1 );
+
+    Wlc_NtkForEachObjVec( vNodes, pNtk, pObj, i ) 
+    {
+        // TODO : fix FOs here
+        Vec_IntWriteEntry(vNodes, i, Wlc_ObjCopy(pNtk, Wlc_ObjId(pNtk, pObj)));
+    }
+
+    // Vec_IntPrint(vNodes);
+    Wlc_NtkCleanCopy( p );
+
+    // mark nodes
+    Wlc_NtkForEachObjVec( vNodes, p, pObj, i ) 
+    {
+        iObj = Wlc_ObjId(p, pObj);
+        pObj->Mark = 1;
+        // add fresh PI with the same number of bits
+        Vec_IntWriteEntry( vMapNode2Pi, iObj, Wlc_ObjAlloc( p, WLC_OBJ_PI, Wlc_ObjIsSigned(pObj), Wlc_ObjRange(pObj) - 1, 0 ) );
+    }
+
+    // iterate through the nodes in the DFS order
+    Wlc_NtkForEachObj( p, pObj, i )
+    {
+        int isSigned, range, iSelID;
+        if ( i == nOrigObjNum ) 
+        {
+            // cout << "break at " << i << endl;
+            break;
+        }
+        if ( pObj->Mark ) 
+        {
+            // clean
+            pObj->Mark = 0;
+
+            isSigned = Wlc_ObjIsSigned(pObj);
+            range = Wlc_ObjRange(pObj);
+            iSelID = Wlc_ObjAlloc( p, WLC_OBJ_PI, 0, 0, 0);
+            Vec_IntClear(vFanins);
+            Vec_IntPush(vFanins, iSelID);
+            Vec_IntPush(vFanins, Vec_IntEntry( vMapNode2Pi, i ) );
+            Vec_IntPush(vFanins, i);
+            iObj = Wlc_ObjCreate(p, WLC_OBJ_MUX, isSigned, range - 1, 0, vFanins);
+        }
+        else 
+        {
+            // update fanins
+            Wlc_ObjForEachFanin( pObj, iFanin, k )
+                Wlc_ObjFanins(pObj)[k] = Wlc_ObjCopy(p, iFanin);
+            // node to remain
+            iObj = i;
+        }
+        Wlc_ObjSetCopy( p, i, iObj );
+    }
+
+    Wlc_NtkForEachCo( p, pObj, i )
+    {
+        iObj = Wlc_ObjId(p, pObj);
+        if (iObj != Wlc_ObjCopy(p, iObj)) 
+        {
+            if (pObj->fIsFi)
+                Wlc_NtkObj(p, Wlc_ObjCopy(p, iObj))->fIsFi = 1;
+            else
+                Wlc_NtkObj(p, Wlc_ObjCopy(p, iObj))->fIsPo = 1;
+
+            Vec_IntWriteEntry(&p->vCos, i, Wlc_ObjCopy(p, iObj));
+        }
+    }
+
+    // DumpWlcNtk(p);
+    pNew = Wlc_NtkDupDfs( p, 0, 1 );
+
+    Vec_IntFree( vFanins );
+    Vec_IntFree( vMapNode2Pi );
+    Wlc_NtkFree( p );
+
+    return pNew;
+}
+
 /**Function*************************************************************
 
   Synopsis    [Mark operators that meet the abstraction criteria.]
