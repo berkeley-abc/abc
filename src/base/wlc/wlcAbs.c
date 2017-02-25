@@ -49,6 +49,84 @@ int Wlc_NtkNumPiBits( Wlc_Ntk_t * pNtk )
     return num;
 }
 
+static Vec_Int_t * Wlc_NtkGetCoreSels( Gia_Man_t * pFrames, int nFrames, int num_sel_pis, int num_other_pis, int sel_pi_first, int nConfLimit ) 
+{
+    Vec_Int_t * vCores = NULL;
+    Aig_Man_t * pAigFrames = Gia_ManToAigSimple( pFrames );
+    Cnf_Dat_t * pCnf = Cnf_Derive(pAigFrames, Aig_ManCoNum(pAigFrames));
+    sat_solver * pSat = sat_solver_new();
+
+    sat_solver_setnvars(pSat, pCnf->nVars);
+
+    for (int i = 0; i < pCnf->nClauses; i++) 
+    {
+        if (!sat_solver_addclause(pSat, pCnf->pClauses[i], pCnf->pClauses[i + 1]))
+            assert(false);
+    }
+    // add PO clauses
+    {
+        Vec_Int_t* vLits = Vec_IntAlloc(100);
+        Aig_Obj_t* pObj;
+        int i, ret;
+        Aig_ManForEachCo( pAigFrames, pObj, i )
+        {
+            assert(pCnf->pVarNums[pObj->Id] >= 0);
+            Vec_IntPush(vLits, toLitCond(pCnf->pVarNums[pObj->Id], 0));
+        }
+        ret = sat_solver_addclause(pSat, Vec_IntArray(vLits), Vec_IntArray(vLits) + Vec_IntSize(vLits));
+        if (!ret) 
+            Abc_Print( 1, "UNSAT after adding PO clauses.\n" );
+
+        Vec_IntFree(vLits);
+    }
+    // main procedure
+    {
+        Vec_Int_t* vLits = Vec_IntAlloc(100);
+        Vec_Int_t* vMapVar2Sel = Vec_IntStart( pCnf->nVars );
+        int first_sel_pi = sel_pi_first ? 0 : num_other_pis;
+        for ( int i = 0; i < num_sel_pis; ++i ) 
+        {
+            int cur_pi = first_sel_pi + i;
+            int var = pCnf->pVarNums[Aig_ManCi(pAigFrames, cur_pi)->Id];
+            assert(var >= 0);
+            Vec_IntWriteEntry( vMapVar2Sel, var, i );
+            Vec_IntPush(vLits, toLitCond(var, 0));
+        }
+
+        {
+            int i, Entry;
+            Abc_Print( 1, "#vLits = %d; vLits = ", Vec_IntSize(vLits) );
+            Vec_IntForEachEntry(vLits, Entry, i)
+                Abc_Print( 1, "%d ", Entry);
+            Abc_Print( 1, "\n", Entry);
+        }
+        int status = sat_solver_solve(pSat, Vec_IntArray(vLits), Vec_IntArray(vLits) + Vec_IntSize(vLits), (ABC_INT64_T)(nConfLimit), (ABC_INT64_T)(0), (ABC_INT64_T)(0), (ABC_INT64_T)(0));
+        if (status == l_False) {
+            Abc_Print( 1, "UNSAT.\n" );
+            int nCoreLits, *pCoreLits;
+            nCoreLits = sat_solver_final(pSat, &pCoreLits);
+
+            vCores = Vec_IntAlloc( nCoreLits );
+            for (int i = 0; i < nCoreLits; i++) 
+            {
+                Vec_IntPush( vCores, Vec_IntEntry( vMapVar2Sel, lit_var( pCoreLits[i] ) ) );
+            }
+        } else if (status == l_True) {
+            Abc_Print( 1, "SAT.\n" );
+        } else {
+            Abc_Print( 1, "UNKNOWN.\n" );
+        }
+
+        Vec_IntFree(vLits);
+        Vec_IntFree(vMapVar2Sel);
+    }
+    Cnf_ManFree();
+    sat_solver_delete(pSat);
+    Aig_ManStop(pAigFrames);
+
+    return vCores;
+}
+
 static Gia_Man_t * Wlc_NtkUnrollWithCex(Wlc_Ntk_t * pChoice, Abc_Cex_t * pCex, int nbits_old_pis, int num_sel_pis, int * p_num_ppis, int sel_pi_first) 
 {
     Gia_Man_t * pGiaChoice = Wlc_NtkBitBlast( pChoice, NULL, -1, 0, 0, 0, 0 );
