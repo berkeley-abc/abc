@@ -38,6 +38,78 @@ extern int           IPdr_ManSolveInt( Pdr_Man_t * p, int fCheckClauses, int fPu
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
+int Wlc_NtkNumPiBits( Wlc_Ntk_t * pNtk ) 
+{
+    int num = 0;
+    int i;
+    Wlc_Obj_t * pObj;
+    Wlc_NtkForEachPi(pNtk, pObj, i) {
+        num += Wlc_ObjRange(pObj);
+    }
+    return num;
+}
+
+static Gia_Man_t * Wlc_NtkUnrollWithCex(Wlc_Ntk_t * pChoice, Abc_Cex_t * pCex, int nbits_old_pis, int num_sel_pis, int * p_num_ppis, int sel_pi_first) 
+{
+    Gia_Man_t * pGiaChoice = Wlc_NtkBitBlast( pChoice, NULL, -1, 0, 0, 0, 0 );
+    int nbits_new_pis = Wlc_NtkNumPiBits( pChoice );
+    int num_ppis = nbits_new_pis - nbits_old_pis - num_sel_pis;
+    *p_num_ppis = num_ppis;
+    int num_undc_pis = Gia_ManPiNum(pGiaChoice) - nbits_new_pis;
+    Gia_Man_t * pFrames = NULL;
+    Gia_Obj_t * pObj, * pObjRi;
+    int f, i;
+    int is_sel_pi;
+    Gia_Man_t * pGia;
+
+    Abc_Print( 1, "#orig_pis = %d, #ppis = %d, #sel_pis = %d, #undc_pis = %d\n", nbits_old_pis, num_ppis, num_sel_pis, num_undc_pis );
+    assert(Gia_ManPiNum(pGiaChoice)==nbits_old_pis+num_ppis+num_sel_pis+num_undc_pis);
+    assert(Gia_ManPiNum(pGiaChoice)==pCex->nPis+num_sel_pis);
+
+    pFrames = Gia_ManStart( 10000 );
+    pFrames->pName = Abc_UtilStrsav( pGiaChoice->pName );
+    Gia_ManHashAlloc( pFrames );
+    Gia_ManConst0(pGiaChoice)->Value = 0;
+    Gia_ManForEachRi( pGiaChoice, pObj, i )
+        pObj->Value = 0;
+
+    for ( f = 0; f <= pCex->iFrame; f++ ) 
+    {
+        for( i = 0; i < Gia_ManPiNum(pGiaChoice); i++ ) 
+        {
+            if ( i >= nbits_old_pis && i < nbits_old_pis + num_ppis + num_sel_pis ) 
+            {
+                is_sel_pi = sel_pi_first ? (i < nbits_old_pis + num_sel_pis) : (i >= nbits_old_pis + num_ppis);
+                if(f == 0 || !is_sel_pi)
+                    Gia_ManPi(pGiaChoice, i)->Value = Gia_ManAppendCi(pFrames);
+            } 
+            else if (i < nbits_old_pis) 
+            {
+                Gia_ManPi(pGiaChoice, i)->Value = Abc_InfoHasBit(pCex->pData, pCex->nRegs+pCex->nPis*f + i);
+            } 
+            else if (i >= nbits_old_pis + num_ppis + num_sel_pis) 
+            {
+                Gia_ManPi(pGiaChoice, i)->Value = Abc_InfoHasBit(pCex->pData, pCex->nRegs+pCex->nPis*f + i - num_sel_pis);
+            }
+        }
+        Gia_ManForEachRiRo( pGiaChoice, pObjRi, pObj, i )
+            pObj->Value = pObjRi->Value;
+        Gia_ManForEachAnd( pGiaChoice, pObj, i )
+            pObj->Value = Gia_ManHashAnd(pFrames, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj));
+        Gia_ManForEachCo( pGiaChoice, pObj, i )
+            pObj->Value = Gia_ObjFanin0Copy(pObj);
+        Gia_ManForEachPo( pGiaChoice, pObj, i )
+            Gia_ManAppendCo(pFrames, pObj->Value);
+    }
+    Gia_ManHashStop (pFrames);
+    Gia_ManSetRegNum(pFrames, 0);
+    pFrames = Gia_ManCleanup(pGia = pFrames);
+    Gia_ManStop(pGia);
+    Gia_ManStop(pGiaChoice);
+
+    return pFrames;
+}
+
 Wlc_Ntk_t * Wlc_NtkIntroduceChoices( Wlc_Ntk_t * pNtk, Vec_Int_t * vNodes )
 {
     if ( vNodes == NULL ) return NULL;
