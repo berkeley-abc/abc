@@ -113,6 +113,7 @@ void Wlc_ManSetDefaultParams( Wlc_Par_t * pPars )
     pPars->nBitsMux      = ABC_INFINITY;   // MUX bit-width
     pPars->nBitsFlop     = ABC_INFINITY;   // flop bit-width
     pPars->nIterMax      =         1000;   // the max number of iterations
+    pPars->nMuxLimit     = ABC_INFINITY;   // the max number of muxes
     pPars->fXorOutput    =            1;   // XOR outputs of word-level miter
     pPars->fCheckClauses =            1;   // Check clauses in the reloaded trace                    
     pPars->fPushClauses  =            0;   // Push clauses in the reloaded trace                    

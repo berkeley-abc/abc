@@ -34,6 +34,18 @@ extern Vec_Vec_t *   IPdr_ManSaveClauses( Pdr_Man_t * p, int fDropLast );
 extern int           IPdr_ManRestore( Pdr_Man_t * p, Vec_Vec_t * vClauses, Vec_Int_t * vMap );
 extern int           IPdr_ManSolveInt( Pdr_Man_t * p, int fCheckClauses, int fPushClauses );
 
+typedef struct Int_Pair_t_       Int_Pair_t;
+struct Int_Pair_t_
+{
+    int first;
+    int second;
+};
+
+int IntPairPtrCompare ( Int_Pair_t ** a, Int_Pair_t ** b )
+{
+    return (*a)->second < (*b)->second; 
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
@@ -455,10 +467,59 @@ static int Wlc_NtkUpdateBlacks( Wlc_Ntk_t * p, Wlc_Par_t * pPars, Vec_Int_t ** p
     return 0;
 }
 
+static Vec_Bit_t * Wlc_NtkMarkMuxes( Wlc_Ntk_t * p, Wlc_Par_t * pPars )
+{
+    Vec_Bit_t * vMuxMark = NULL;
+    Vec_Ptr_t * vMuxes = Vec_PtrAlloc( 1000 );
+    Wlc_Obj_t * pObj; int i;
+    Int_Pair_t * pPair;
+
+    if ( pPars->nMuxLimit == ABC_INFINITY )
+        return NULL;
+
+    vMuxMark = Vec_BitStart( Wlc_NtkObjNumMax( p ) );
+
+    Wlc_NtkForEachObj( p, pObj, i )
+    {
+        if ( pObj->Type == WLC_OBJ_MUX ) {
+            if ( Wlc_ObjRange(pObj) >= pPars->nBitsMux )
+            {
+                pPair = ABC_ALLOC( Int_Pair_t, 1 );
+                pPair->first = i;
+                pPair->second = Wlc_ObjRange( pObj );
+                Vec_PtrPush( vMuxes, pPair );
+            }
+        }
+    }
+
+    Vec_PtrSort( vMuxes, (int (*)(void))IntPairPtrCompare ) ;
+
+    Vec_PtrForEachEntry( Int_Pair_t *, vMuxes, pPair, i )
+    {
+        if ( i >= pPars->nMuxLimit )
+           break;
+        
+        Vec_BitWriteEntry( vMuxMark, pPair->first, 1 ); 
+    }
+
+    if ( i && pPars->fVerbose )
+        Abc_Print( 1, "%%PDRA: %d-th MUX has width = %d\n", i, pPair->second );
+
+    Vec_PtrForEachEntry( Int_Pair_t *, vMuxes, pPair, i )
+        ABC_FREE( pPair );
+    Vec_PtrFree( vMuxes );
+
+    return vMuxMark;
+}
+
 static Vec_Int_t * Wlc_NtkGetBlacks( Wlc_Ntk_t * p, Wlc_Par_t * pPars, Vec_Bit_t * vUnmark )
 {
     Vec_Int_t * vBlacks = Vec_IntAlloc( 100 ) ;
     Wlc_Obj_t * pObj; int i, Count[4] = {0};
+    Vec_Bit_t * vMuxMark = NULL;
+
+    vMuxMark = Wlc_NtkMarkMuxes( p, pPars ) ; 
+
     Wlc_NtkForEachObj( p, pObj, i )
     {
         if ( vUnmark && Vec_BitEntry(vUnmark, i) ) // not allow this object to be abstracted away
@@ -479,7 +540,12 @@ static Vec_Int_t * Wlc_NtkGetBlacks( Wlc_Ntk_t * p, Wlc_Par_t * pPars, Vec_Bit_t
         if ( pObj->Type == WLC_OBJ_MUX )
         {
             if ( Wlc_ObjRange(pObj) >= pPars->nBitsMux )
-                Vec_IntPush( vBlacks, Wlc_ObjId(p, pObj) ), Count[2]++;
+            {
+                if ( vMuxMark == NULL )
+                    Vec_IntPush( vBlacks, Wlc_ObjId(p, pObj) ), Count[2]++;
+                else if ( Vec_BitEntry( vMuxMark, i ) )
+                    Vec_IntPush( vBlacks, Wlc_ObjId(p, pObj) ), Count[2]++;
+            }
             continue;
         }
         if ( Wlc_ObjIsCi(pObj) && !Wlc_ObjIsPi(pObj) )
@@ -489,6 +555,8 @@ static Vec_Int_t * Wlc_NtkGetBlacks( Wlc_Ntk_t * p, Wlc_Par_t * pPars, Vec_Bit_t
             continue;
         }
     }
+    if ( vMuxMark )
+        Vec_BitFree( vMuxMark );
     if ( pPars->fVerbose )
         printf( "Abstraction engine marked %d adds/subs, %d muls/divs, %d muxes, and %d flops to be abstracted away.\n", Count[0], Count[1], Count[2], Count[3] );
     return vBlacks;
