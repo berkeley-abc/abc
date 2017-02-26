@@ -49,7 +49,7 @@ int Wlc_NtkNumPiBits( Wlc_Ntk_t * pNtk )
     return num;
 }
 
-static Vec_Int_t * Wlc_NtkGetCoreSels( Gia_Man_t * pFrames, int nFrames, int num_sel_pis, int num_other_pis, int sel_pi_first, int nConfLimit ) 
+static Vec_Int_t * Wlc_NtkGetCoreSels( Gia_Man_t * pFrames, int nFrames, int num_sel_pis, int num_other_pis, int sel_pi_first, int nConfLimit, Wlc_Par_t * pPars ) 
 {
     Vec_Int_t * vCores = NULL;
     Aig_Man_t * pAigFrames = Gia_ManToAigSimple( pFrames );
@@ -93,13 +93,13 @@ static Vec_Int_t * Wlc_NtkGetCoreSels( Gia_Man_t * pFrames, int nFrames, int num
             Vec_IntPush(vLits, toLitCond(var, 0));
         }
 
-        {
+        /*
             int i, Entry;
             Abc_Print( 1, "#vLits = %d; vLits = ", Vec_IntSize(vLits) );
             Vec_IntForEachEntry(vLits, Entry, i)
                 Abc_Print( 1, "%d ", Entry);
-            Abc_Print( 1, "\n", Entry);
-        }
+            Abc_Print( 1, "\n");
+        */
         int status = sat_solver_solve(pSat, Vec_IntArray(vLits), Vec_IntArray(vLits) + Vec_IntSize(vLits), (ABC_INT64_T)(nConfLimit), (ABC_INT64_T)(0), (ABC_INT64_T)(0), (ABC_INT64_T)(0));
         if (status == l_False) {
             Abc_Print( 1, "UNSAT.\n" );
@@ -167,7 +167,7 @@ static Gia_Man_t * Wlc_NtkUnrollWithCex(Wlc_Ntk_t * pChoice, Abc_Cex_t * pCex, i
             } 
             else if (i >= nbits_old_pis + num_ppis + num_sel_pis) 
             {
-                Gia_ManPi(pGiaChoice, i)->Value = Abc_InfoHasBit(pCex->pData, pCex->nRegs+pCex->nPis*f + i - num_sel_pis);
+                Gia_ManPi(pGiaChoice, i)->Value = Abc_InfoHasBit(pCex->pData, pCex->nRegs+pCex->nPis*f + i - num_sel_pis - num_ppis);
             }
         }
         Gia_ManForEachRiRo( pGiaChoice, pObjRi, pObj, i )
@@ -188,17 +188,19 @@ static Gia_Man_t * Wlc_NtkUnrollWithCex(Wlc_Ntk_t * pChoice, Abc_Cex_t * pCex, i
     return pFrames;
 }
 
-Wlc_Ntk_t * Wlc_NtkIntroduceChoices( Wlc_Ntk_t * pNtk, Vec_Int_t * vNodes )
+Wlc_Ntk_t * Wlc_NtkIntroduceChoices( Wlc_Ntk_t * pNtk, Vec_Int_t * vBlacks )
 {
-    if ( vNodes == NULL ) return NULL;
+    if ( vBlacks== NULL ) return NULL;
 
+    Vec_Int_t * vNodes = Vec_IntDup( vBlacks );
     Wlc_Ntk_t * pNew;
     Wlc_Obj_t * pObj;
     int i, k, iObj, iFanin;
     Vec_Int_t * vFanins = Vec_IntAlloc( 3 );
-    Vec_Int_t * vMapNode2Pi = Vec_IntStart( Wlc_NtkObjNum(pNtk) );
+    Vec_Int_t * vMapNode2Pi = Vec_IntStart( Wlc_NtkObjNumMax(pNtk) );
+    Vec_Int_t * vMapNode2Sel = Vec_IntStart( Wlc_NtkObjNumMax(pNtk) );
     int nOrigObjNum = Wlc_NtkObjNumMax( pNtk );
-    Wlc_Ntk_t * p = Wlc_NtkDupDfs( pNtk, 0, 1 );
+    Wlc_Ntk_t * p = Wlc_NtkDupDfsSimple( pNtk );
 
     Wlc_NtkForEachObjVec( vNodes, pNtk, pObj, i ) 
     {
@@ -218,10 +220,17 @@ Wlc_Ntk_t * Wlc_NtkIntroduceChoices( Wlc_Ntk_t * pNtk, Vec_Int_t * vNodes )
         Vec_IntWriteEntry( vMapNode2Pi, iObj, Wlc_ObjAlloc( p, WLC_OBJ_PI, Wlc_ObjIsSigned(pObj), Wlc_ObjRange(pObj) - 1, 0 ) );
     }
 
+    // add sel PI
+    Wlc_NtkForEachObjVec( vNodes, p, pObj, i ) 
+    {
+        iObj = Wlc_ObjId( p, pObj );
+        Vec_IntWriteEntry( vMapNode2Sel, iObj, Wlc_ObjAlloc( p, WLC_OBJ_PI, 0, 0, 0 ) );
+    }
+
     // iterate through the nodes in the DFS order
     Wlc_NtkForEachObj( p, pObj, i )
     {
-        int isSigned, range, iSelID;
+        int isSigned, range;
         if ( i == nOrigObjNum ) 
         {
             // cout << "break at " << i << endl;
@@ -234,9 +243,8 @@ Wlc_Ntk_t * Wlc_NtkIntroduceChoices( Wlc_Ntk_t * pNtk, Vec_Int_t * vNodes )
 
             isSigned = Wlc_ObjIsSigned(pObj);
             range = Wlc_ObjRange(pObj);
-            iSelID = Wlc_ObjAlloc( p, WLC_OBJ_PI, 0, 0, 0);
             Vec_IntClear(vFanins);
-            Vec_IntPush(vFanins, iSelID);
+            Vec_IntPush(vFanins, Vec_IntEntry( vMapNode2Sel, i) );
             Vec_IntPush(vFanins, Vec_IntEntry( vMapNode2Pi, i ) );
             Vec_IntPush(vFanins, i);
             iObj = Wlc_ObjCreate(p, WLC_OBJ_MUX, isSigned, range - 1, 0, vFanins);
@@ -267,13 +275,125 @@ Wlc_Ntk_t * Wlc_NtkIntroduceChoices( Wlc_Ntk_t * pNtk, Vec_Int_t * vNodes )
     }
 
     // DumpWlcNtk(p);
-    pNew = Wlc_NtkDupDfs( p, 0, 1 );
+    pNew = Wlc_NtkDupDfsSimple( p );
 
     Vec_IntFree( vFanins );
     Vec_IntFree( vMapNode2Pi );
+    Vec_IntFree( vMapNode2Sel );
+    Vec_IntFree( vNodes );
     Wlc_NtkFree( p );
 
     return pNew;
+}
+
+static Wlc_Ntk_t * Wlc_NtkAbs2( Wlc_Ntk_t * pNtk, Vec_Int_t * vBlacks, Vec_Int_t ** pvFlops )
+{
+    Vec_Int_t * vFlops  = Vec_IntAlloc( 100 );
+    Vec_Int_t * vNodes  = Vec_IntDup( vBlacks );
+    Wlc_Ntk_t * pNew;
+    Wlc_Obj_t * pObj;
+    int i, k, iObj, iFanin;
+    Vec_Int_t * vMapNode2Pi = Vec_IntStart( Wlc_NtkObjNumMax(pNtk) );
+    int nOrigObjNum = Wlc_NtkObjNumMax( pNtk );
+
+    if ( vNodes == NULL )
+        return NULL;
+
+    Wlc_Ntk_t * p = NULL;
+    p = Wlc_NtkDupDfsSimple( pNtk );
+
+    Wlc_NtkForEachCi( pNtk, pObj, i )
+    {
+        if ( !Wlc_ObjIsPi( pObj ) )
+            Vec_IntPush( vFlops, Wlc_ObjId( pNtk, pObj ) ); 
+    }
+
+    Wlc_NtkForEachObjVec( vNodes, pNtk, pObj, i ) 
+        Vec_IntWriteEntry(vNodes, i, Wlc_ObjCopy(pNtk, Wlc_ObjId(pNtk, pObj)));
+
+    // mark nodes
+    Wlc_NtkForEachObjVec( vNodes, p, pObj, i ) 
+    {
+        iObj = Wlc_ObjId(p, pObj);
+        pObj->Mark = 1;
+        // add fresh PI with the same number of bits
+        Vec_IntWriteEntry( vMapNode2Pi, iObj, Wlc_ObjAlloc( p, WLC_OBJ_PI, Wlc_ObjIsSigned(pObj), Wlc_ObjRange(pObj) - 1, 0 ) );
+    }
+
+    Wlc_NtkCleanCopy( p );
+
+    Wlc_NtkForEachObj( p, pObj, i )
+    {
+        if ( i == nOrigObjNum ) 
+            break;
+
+        if ( pObj->Mark ) {
+            // clean
+            pObj->Mark = 0;
+            iObj = Vec_IntEntry( vMapNode2Pi, i );
+        }
+        else {
+            // update fanins
+            Wlc_ObjForEachFanin( pObj, iFanin, k )
+                Wlc_ObjFanins(pObj)[k] = Wlc_ObjCopy(p, iFanin);
+            // node to remain
+            iObj = i;
+        }
+        Wlc_ObjSetCopy( p, i, iObj );
+    }
+
+    Wlc_NtkForEachCo( p, pObj, i )
+    {
+        iObj = Wlc_ObjId(p, pObj);
+        if (iObj != Wlc_ObjCopy(p, iObj)) 
+        {
+            if (pObj->fIsFi)
+                Wlc_NtkObj(p, Wlc_ObjCopy(p, iObj))->fIsFi = 1;
+            else
+                Wlc_NtkObj(p, Wlc_ObjCopy(p, iObj))->fIsPo = 1;
+
+
+            Vec_IntWriteEntry(&p->vCos, i, Wlc_ObjCopy(p, iObj));
+        }
+    }
+
+    pNew = Wlc_NtkDupDfsSimple( p );
+    Vec_IntFree( vMapNode2Pi );
+    Vec_IntFree( vNodes );
+    Wlc_NtkFree( p );
+
+    if ( pvFlops )
+        *pvFlops = vFlops;
+    else
+        Vec_IntFree( vFlops );
+
+    return pNew;
+}
+
+static Vec_Int_t * Wlc_NtkProofRefine( Wlc_Ntk_t * p, Wlc_Par_t * pPars, Gia_Man_t * pGia, Abc_Cex_t * pCex, Vec_Int_t * vBlacks )
+{
+    Vec_Int_t * vRefine = Vec_IntAlloc( 100 );
+    Wlc_Ntk_t * pNtkWithChoices = Wlc_NtkIntroduceChoices( p, vBlacks );
+    Vec_Int_t * vCoreSels;
+    int num_ppis = -1;
+    int Entry, i;
+    Gia_Man_t * pGiaFrames = Wlc_NtkUnrollWithCex( pNtkWithChoices, pCex, Wlc_NtkNumPiBits( p ), Vec_IntSize( vBlacks ), &num_ppis, 0 );
+    vCoreSels = Wlc_NtkGetCoreSels( pGiaFrames, pCex->iFrame+1, Vec_IntSize( vBlacks ), num_ppis, 0, 0, pPars );
+
+    Vec_IntForEachEntry( vCoreSels, Entry, i )
+        Vec_IntPush( vRefine, Vec_IntEntry( vBlacks, Entry ) );
+
+    Wlc_NtkFree( pNtkWithChoices );
+    Gia_ManStop( pGiaFrames );
+    Vec_IntFree( vCoreSels );
+
+    if ( Vec_IntSize( vRefine ) == 0 )
+    {
+        Vec_IntFree( vRefine );
+        vRefine = NULL;
+    }
+
+    return vRefine;
 }
 
 /**Function*************************************************************
@@ -289,6 +409,45 @@ Wlc_Ntk_t * Wlc_NtkIntroduceChoices( Wlc_Ntk_t * pNtk, Vec_Int_t * vNodes )
   SeeAlso     []
 
 ***********************************************************************/
+static Vec_Int_t * Wlc_NtkGetBlacks( Wlc_Ntk_t * p, Wlc_Par_t * pPars, Vec_Bit_t * vUnmark )
+{
+    Vec_Int_t * vBlacks = Vec_IntAlloc( 100 ) ;
+    Wlc_Obj_t * pObj; int i, Count[4] = {0};
+    Wlc_NtkForEachObj( p, pObj, i )
+    {
+        if ( vUnmark && Vec_BitEntry(vUnmark, i) ) // not allow this object to be abstracted away
+            continue;
+
+        if ( pObj->Type == WLC_OBJ_ARI_ADD || pObj->Type == WLC_OBJ_ARI_SUB || pObj->Type == WLC_OBJ_ARI_MINUS )
+        {
+            if ( Wlc_ObjRange(pObj) >= pPars->nBitsAdd )
+                Vec_IntPush( vBlacks, Wlc_ObjId(p, pObj) ), Count[0]++;
+            continue;
+        }
+        if ( pObj->Type == WLC_OBJ_ARI_MULTI || pObj->Type == WLC_OBJ_ARI_DIVIDE || pObj->Type == WLC_OBJ_ARI_REM || pObj->Type == WLC_OBJ_ARI_MODULUS )
+        {
+            if ( Wlc_ObjRange(pObj) >= pPars->nBitsMul )
+                Vec_IntPush( vBlacks, Wlc_ObjId(p, pObj) ), Count[1]++;
+            continue;
+        }
+        if ( pObj->Type == WLC_OBJ_MUX )
+        {
+            if ( Wlc_ObjRange(pObj) >= pPars->nBitsMux )
+                Vec_IntPush( vBlacks, Wlc_ObjId(p, pObj) ), Count[2]++;
+            continue;
+        }
+        if ( Wlc_ObjIsCi(pObj) && !Wlc_ObjIsPi(pObj) )
+        {
+            if ( Wlc_ObjRange(pObj) >= pPars->nBitsFlop )
+                Vec_IntPush( vBlacks, Wlc_ObjId(p, pObj) ), Count[3]++;
+            continue;
+        }
+    }
+    if ( pPars->fVerbose )
+        printf( "Abstraction engine marked %d adds/subs, %d muls/divs, %d muxes, and %d flops to be abstracted away.\n", Count[0], Count[1], Count[2], Count[3] );
+    return vBlacks;
+}
+
 static Vec_Bit_t * Wlc_NtkAbsMarkOpers( Wlc_Ntk_t * p, Wlc_Par_t * pPars, Vec_Bit_t * vUnmark, int fVerbose )
 {
     Vec_Bit_t * vLeaves = Vec_BitStart( Wlc_NtkObjNumMax(p) );
@@ -641,7 +800,8 @@ int Wlc_NtkPdrAbs( Wlc_Ntk_t * p, Wlc_Par_t * pPars )
     {
         Aig_Man_t * pAig;
         Abc_Cex_t * pCex;
-        Vec_Int_t * vPisNew, * vRefine;  
+        Vec_Int_t * vPisNew = NULL;  
+        Vec_Int_t * vRefine;  
         Gia_Man_t * pGia, * pTemp;
         Wlc_Ntk_t * pAbs;
 
@@ -649,7 +809,15 @@ int Wlc_NtkPdrAbs( Wlc_Ntk_t * p, Wlc_Par_t * pPars )
             printf( "\nIteration %d:\n", nIters );
 
         // get abstracted GIA and the set of pseudo-PIs (vPisNew)
-        pAbs = Wlc_NtkAbs( p, pPars, vUnmark, &vPisNew, &vFfNew, pPars->fVerbose );
+        if ( pPars->fProofRefine )
+        {
+            vPisNew = Wlc_NtkGetBlacks( p, pPars, vUnmark );
+            pAbs = Wlc_NtkAbs2( p, vPisNew, &vFfNew );
+        }
+        else
+        {
+            pAbs = Wlc_NtkAbs( p, pPars, vUnmark, &vPisNew, &vFfNew, pPars->fVerbose );
+        }
         pGia = Wlc_NtkBitBlast( pAbs, NULL, -1, 0, 0, 0, 0 );
 
         // map old flops into new flops
@@ -720,7 +888,10 @@ int Wlc_NtkPdrAbs( Wlc_Ntk_t * p, Wlc_Par_t * pPars )
         }
 
         // perform refinement
-        vRefine = Wlc_NtkAbsRefinement( p, pGia, pCex, vPisNew );
+        if ( pPars->fProofRefine ) 
+            vRefine = Wlc_NtkProofRefine( p, pPars, pGia, pCex, vPisNew );
+        else
+            vRefine = Wlc_NtkAbsRefinement( p, pGia, pCex, vPisNew );
         Gia_ManStop( pGia );
         Vec_IntFree( vPisNew );
         if ( vRefine == NULL ) // real CEX
@@ -754,7 +925,7 @@ int Wlc_NtkPdrAbs( Wlc_Ntk_t * p, Wlc_Par_t * pPars )
         Abc_CexFree( pCex );
         Aig_ManStop( pAig );
     }
-
+    
     Vec_IntFreeP( &vFfOld );
     Vec_BitFree( vUnmark );
     // report the result

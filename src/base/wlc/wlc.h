@@ -174,6 +174,7 @@ struct Wlc_Par_t_
     int                    fPushClauses;       // Push clauses in the reloaded trace                    
     int                    fMFFC;              // Refine the entire MFFC of a PPI                     
     int                    fPdra;              // Use pdr -nct                     
+    int                    fProofRefine;       // Use proof-based refinement
     int                    fVerbose;           // verbose output
     int                    fPdrVerbose;        // verbose output
 };
@@ -311,6 +312,7 @@ extern void           Wlc_NtkTransferNames( Wlc_Ntk_t * pNew, Wlc_Ntk_t * p );
 extern char *         Wlc_NtkNewName( Wlc_Ntk_t * p, int iCoId, int fSeq );
 extern Wlc_Ntk_t *    Wlc_NtkDupDfs( Wlc_Ntk_t * p, int fMarked, int fSeq );
 extern Wlc_Ntk_t *    Wlc_NtkDupDfsAbs( Wlc_Ntk_t * p, Vec_Int_t * vPisOld, Vec_Int_t * vPisNew, Vec_Int_t * vFlops );
+extern Wlc_Ntk_t *    Wlc_NtkDupDfsSimple( Wlc_Ntk_t * p );
 extern void           Wlc_NtkCleanMarks( Wlc_Ntk_t * p );
 extern void           Wlc_NtkMarkCone( Wlc_Ntk_t * p, int iCoId, int Range, int fSeq, int fAllPis );
 extern void           Wlc_NtkProfileCones( Wlc_Ntk_t * p );
