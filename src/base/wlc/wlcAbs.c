@@ -49,7 +49,7 @@ int Wlc_NtkNumPiBits( Wlc_Ntk_t * pNtk )
     return num;
 }
 
-static Vec_Int_t * Wlc_NtkGetCoreSels( Gia_Man_t * pFrames, int nFrames, int num_sel_pis, int num_other_pis, int sel_pi_first, int nConfLimit, Wlc_Par_t * pPars ) 
+static Vec_Int_t * Wlc_NtkGetCoreSels( Gia_Man_t * pFrames, int nFrames, int num_sel_pis, int num_other_pis, Vec_Bit_t * vMark, int sel_pi_first, int nConfLimit, Wlc_Par_t * pPars ) 
 {
     Vec_Int_t * vCores = NULL;
     Aig_Man_t * pAigFrames = Gia_ManToAigSimple( pFrames );
@@ -88,11 +88,15 @@ static Vec_Int_t * Wlc_NtkGetCoreSels( Gia_Man_t * pFrames, int nFrames, int num
         {
             int cur_pi = first_sel_pi + i;
             int var = pCnf->pVarNums[Aig_ManCi(pAigFrames, cur_pi)->Id];
+            int Lit;
             assert(var >= 0);
             Vec_IntWriteEntry( vMapVar2Sel, var, i );
-            Vec_IntPush(vLits, toLitCond(var, 0));
+            Lit = toLitCond( var, 0 );
+            if ( Vec_BitEntry( vMark, i ) )
+                Vec_IntPush(vLits, Lit);
+            else
+                sat_solver_addclause( pSat, &Lit, &Lit+1 );
         }
-
         /*
             int i, Entry;
             Abc_Print( 1, "#vLits = %d; vLits = ", Vec_IntSize(vLits) );
@@ -295,12 +299,7 @@ static Wlc_Ntk_t * Wlc_NtkAbs2( Wlc_Ntk_t * pNtk, Vec_Int_t * vBlacks, Vec_Int_t
     int i, k, iObj, iFanin;
     Vec_Int_t * vMapNode2Pi = Vec_IntStart( Wlc_NtkObjNumMax(pNtk) );
     int nOrigObjNum = Wlc_NtkObjNumMax( pNtk );
-
-    if ( vNodes == NULL )
-        return NULL;
-
-    Wlc_Ntk_t * p = NULL;
-    p = Wlc_NtkDupDfsSimple( pNtk );
+    Wlc_Ntk_t * p = Wlc_NtkDupDfsSimple( pNtk );
 
     Wlc_NtkForEachCi( pNtk, pObj, i )
     {
@@ -370,30 +369,51 @@ static Wlc_Ntk_t * Wlc_NtkAbs2( Wlc_Ntk_t * pNtk, Vec_Int_t * vBlacks, Vec_Int_t
     return pNew;
 }
 
-static Vec_Int_t * Wlc_NtkProofRefine( Wlc_Ntk_t * p, Wlc_Par_t * pPars, Gia_Man_t * pGia, Abc_Cex_t * pCex, Vec_Int_t * vBlacks )
+static int Wlc_NtkProofRefine( Wlc_Ntk_t * p, Wlc_Par_t * pPars, Abc_Cex_t * pCex, Vec_Int_t * vBlacks, Vec_Int_t ** pvRefine )
 {
-    Vec_Int_t * vRefine = Vec_IntAlloc( 100 );
-    Wlc_Ntk_t * pNtkWithChoices = Wlc_NtkIntroduceChoices( p, vBlacks );
+    Vec_Int_t * vRefine = NULL;
+    Vec_Bit_t * vUnmark;
+    Vec_Bit_t * vChoiceMark; 
+    Wlc_Ntk_t * pNtkWithChoices = NULL; 
     Vec_Int_t * vCoreSels;
     int num_ppis = -1;
     int Entry, i;
-    Gia_Man_t * pGiaFrames = Wlc_NtkUnrollWithCex( pNtkWithChoices, pCex, Wlc_NtkNumPiBits( p ), Vec_IntSize( vBlacks ), &num_ppis, 0 );
-    vCoreSels = Wlc_NtkGetCoreSels( pGiaFrames, pCex->iFrame+1, Vec_IntSize( vBlacks ), num_ppis, 0, 0, pPars );
 
+    if ( *pvRefine == NULL )
+        return 0;
+
+    vUnmark = Vec_BitStart( Wlc_NtkObjNumMax( p ) );
+    vChoiceMark = Vec_BitStart( Vec_IntSize( vBlacks ) );      
+
+    Vec_IntForEachEntry( *pvRefine, Entry, i )
+        Vec_BitWriteEntry( vUnmark, Entry, 1 );
+
+    Vec_IntForEachEntry( vBlacks, Entry, i )
+    {
+        if ( Vec_BitEntry( vUnmark, Entry ) )
+            Vec_BitWriteEntry( vChoiceMark, i, 1 );
+    }
+
+    pNtkWithChoices = Wlc_NtkIntroduceChoices( p, vBlacks );
+    Gia_Man_t * pGiaFrames = Wlc_NtkUnrollWithCex( pNtkWithChoices, pCex, Wlc_NtkNumPiBits( p ), Vec_IntSize( vBlacks ), &num_ppis, 0 );
+    vCoreSels = Wlc_NtkGetCoreSels( pGiaFrames, pCex->iFrame+1, Vec_IntSize( vBlacks ), num_ppis, vChoiceMark, 0, 0, pPars );
+    Wlc_NtkFree( pNtkWithChoices );
+    Gia_ManStop( pGiaFrames );
+    Vec_BitFree( vUnmark );
+    Vec_BitFree( vChoiceMark );
+ 
+    assert( Vec_IntSize( vCoreSels ) );
+
+    vRefine = Vec_IntAlloc( 100 );
     Vec_IntForEachEntry( vCoreSels, Entry, i )
         Vec_IntPush( vRefine, Vec_IntEntry( vBlacks, Entry ) );
 
-    Wlc_NtkFree( pNtkWithChoices );
-    Gia_ManStop( pGiaFrames );
     Vec_IntFree( vCoreSels );
 
-    if ( Vec_IntSize( vRefine ) == 0 )
-    {
-        Vec_IntFree( vRefine );
-        vRefine = NULL;
-    }
+    Vec_IntFree( *pvRefine );
+    *pvRefine = vRefine;
 
-    return vRefine;
+    return 0;
 }
 
 /**Function*************************************************************
@@ -888,10 +908,9 @@ int Wlc_NtkPdrAbs( Wlc_Ntk_t * p, Wlc_Par_t * pPars )
         }
 
         // perform refinement
+        vRefine = Wlc_NtkAbsRefinement( p, pGia, pCex, vPisNew );
         if ( pPars->fProofRefine ) 
-            vRefine = Wlc_NtkProofRefine( p, pPars, pGia, pCex, vPisNew );
-        else
-            vRefine = Wlc_NtkAbsRefinement( p, pGia, pCex, vPisNew );
+            Wlc_NtkProofRefine( p, pPars, pCex, vPisNew, &vRefine );
         Gia_ManStop( pGia );
         Vec_IntFree( vPisNew );
         if ( vRefine == NULL ) // real CEX
