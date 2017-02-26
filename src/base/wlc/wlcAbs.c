@@ -456,8 +456,6 @@ static int Wlc_NtkUpdateBlacks( Wlc_Ntk_t * p, Wlc_Par_t * pPars, Vec_Int_t ** p
             Count[3]++;
     }
     
-    assert( Vec_IntSize( vBlacks ) );
-
     Vec_IntFree( *pvBlacks );
     *pvBlacks = vBlacks;
 
