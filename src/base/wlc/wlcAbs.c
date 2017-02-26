@@ -410,25 +410,51 @@ static int Wlc_NtkProofRefine( Wlc_Ntk_t * p, Wlc_Par_t * pPars, Abc_Cex_t * pCe
 
     Vec_IntFree( vCoreSels );
 
+    if ( pPars->fVerbose )
+        Abc_Print( 1, "Proof-based refinement reduces %d (out of %d) white boxes\n", Vec_IntSize( *pvRefine ) - Vec_IntSize( vRefine ), Vec_IntSize( *pvRefine ) );
+
     Vec_IntFree( *pvRefine );
     *pvRefine = vRefine;
 
     return 0;
 }
 
-/**Function*************************************************************
+static int Wlc_NtkUpdateBlacks( Wlc_Ntk_t * p, Wlc_Par_t * pPars, Vec_Int_t ** pvBlacks, Vec_Bit_t * vUnmark )
+{
+    int Entry, i;
+    Wlc_Obj_t * pObj; int Count[4] = {0};
+    Vec_Int_t * vBlacks = Vec_IntAlloc( 100 );
 
-  Synopsis    [Mark operators that meet the abstraction criteria.]
+    assert( *pvBlacks );
 
-  Description [This procedure returns the array of objects (vLeaves) that 
-  should be abstracted because of their high bit-width. It uses input array (vUnmark)
-  to not abstract those objects that have been refined in the previous rounds.]
-               
-  SideEffects []
+    Vec_IntForEachEntry( *pvBlacks, Entry, i )
+    {
+        if ( Vec_BitEntry( vUnmark, Entry) )
+            continue;
+        Vec_IntPush( vBlacks, Entry );
 
-  SeeAlso     []
+        pObj = Wlc_NtkObj( p, Entry );
+        if ( pObj->Type == WLC_OBJ_ARI_ADD || pObj->Type == WLC_OBJ_ARI_SUB || pObj->Type == WLC_OBJ_ARI_MINUS )
+            Count[0]++;
+        else if ( pObj->Type == WLC_OBJ_ARI_MULTI || pObj->Type == WLC_OBJ_ARI_DIVIDE || pObj->Type == WLC_OBJ_ARI_REM || pObj->Type == WLC_OBJ_ARI_MODULUS )
+            Count[1]++;
+        else if ( pObj->Type == WLC_OBJ_MUX )
+            Count[2]++;
+        else if ( Wlc_ObjIsCi(pObj) && !Wlc_ObjIsPi(pObj) )
+            Count[3]++;
+    }
+    
+    assert( Vec_IntSize( vBlacks ) );
 
-***********************************************************************/
+    Vec_IntFree( *pvBlacks );
+    *pvBlacks = vBlacks;
+
+    if ( pPars->fVerbose )
+        printf( "Abstraction engine marked %d adds/subs, %d muls/divs, %d muxes, and %d flops to be abstracted away.\n", Count[0], Count[1], Count[2], Count[3] );
+
+    return 0;
+}
+
 static Vec_Int_t * Wlc_NtkGetBlacks( Wlc_Ntk_t * p, Wlc_Par_t * pPars, Vec_Bit_t * vUnmark )
 {
     Vec_Int_t * vBlacks = Vec_IntAlloc( 100 ) ;
@@ -467,6 +493,20 @@ static Vec_Int_t * Wlc_NtkGetBlacks( Wlc_Ntk_t * p, Wlc_Par_t * pPars, Vec_Bit_t
         printf( "Abstraction engine marked %d adds/subs, %d muls/divs, %d muxes, and %d flops to be abstracted away.\n", Count[0], Count[1], Count[2], Count[3] );
     return vBlacks;
 }
+
+/**Function*************************************************************
+
+  Synopsis    [Mark operators that meet the abstraction criteria.]
+
+  Description [This procedure returns the array of objects (vLeaves) that 
+  should be abstracted because of their high bit-width. It uses input array (vUnmark)
+  to not abstract those objects that have been refined in the previous rounds.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 
 static Vec_Bit_t * Wlc_NtkAbsMarkOpers( Wlc_Ntk_t * p, Wlc_Par_t * pPars, Vec_Bit_t * vUnmark, int fVerbose )
 {
@@ -797,6 +837,7 @@ int Wlc_NtkPdrAbs( Wlc_Ntk_t * p, Wlc_Par_t * pPars )
     Pdr_Man_t * pPdr;
     Vec_Vec_t * vClauses = NULL;
     Vec_Int_t * vFfOld = NULL, * vFfNew = NULL, * vMap = NULL;
+    Vec_Int_t * vBlacks = NULL;
     int nIters, nNodes, nDcFlops, RetValue = -1, nGiaFfNumOld = -1;
     // start the bitmap to mark objects that cannot be abstracted because of refinement
     // currently, this bitmap is empty because abstraction begins without refinement
@@ -831,8 +872,12 @@ int Wlc_NtkPdrAbs( Wlc_Ntk_t * p, Wlc_Par_t * pPars )
         // get abstracted GIA and the set of pseudo-PIs (vPisNew)
         if ( pPars->fProofRefine )
         {
-            vPisNew = Wlc_NtkGetBlacks( p, pPars, vUnmark );
-            pAbs = Wlc_NtkAbs2( p, vPisNew, &vFfNew );
+            if ( vBlacks == NULL )
+                vBlacks = Wlc_NtkGetBlacks( p, pPars, vUnmark );
+            else
+                Wlc_NtkUpdateBlacks( p, pPars, &vBlacks, vUnmark );
+            pAbs = Wlc_NtkAbs2( p, vBlacks, &vFfNew );
+            vPisNew = Vec_IntDup( vBlacks );
         }
         else
         {
@@ -945,6 +990,8 @@ int Wlc_NtkPdrAbs( Wlc_Ntk_t * p, Wlc_Par_t * pPars )
         Aig_ManStop( pAig );
     }
     
+    if ( vBlacks )
+        Vec_IntFree( vBlacks );
     Vec_IntFreeP( &vFfOld );
     Vec_BitFree( vUnmark );
     // report the result
