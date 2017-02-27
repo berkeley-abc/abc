@@ -465,21 +465,45 @@ static int Wlc_NtkUpdateBlacks( Wlc_Ntk_t * p, Wlc_Par_t * pPars, Vec_Int_t ** p
     return 0;
 }
 
-static Vec_Bit_t * Wlc_NtkMarkMuxes( Wlc_Ntk_t * p, Wlc_Par_t * pPars )
+static Vec_Bit_t * Wlc_NtkMarkLimit( Wlc_Ntk_t * p, Wlc_Par_t * pPars )
 {
-    Vec_Bit_t * vMuxMark = NULL;
+    Vec_Bit_t * vMarks = NULL;
+    Vec_Ptr_t * vAdds  = Vec_PtrAlloc( 1000 );
     Vec_Ptr_t * vMuxes = Vec_PtrAlloc( 1000 );
+    Vec_Ptr_t * vMults = Vec_PtrAlloc( 1000 );
+    Vec_Ptr_t * vFlops = Vec_PtrAlloc( 1000 );
     Wlc_Obj_t * pObj; int i;
     Int_Pair_t * pPair;
 
-    if ( pPars->nMuxLimit == ABC_INFINITY )
+    if ( pPars->nLimit == ABC_INFINITY )
         return NULL;
 
-    vMuxMark = Vec_BitStart( Wlc_NtkObjNumMax( p ) );
+    vMarks = Vec_BitStart( Wlc_NtkObjNumMax( p ) );
 
     Wlc_NtkForEachObj( p, pObj, i )
     {
-        if ( pObj->Type == WLC_OBJ_MUX ) {
+        if ( pObj->Type == WLC_OBJ_ARI_ADD || pObj->Type == WLC_OBJ_ARI_SUB || pObj->Type == WLC_OBJ_ARI_MINUS )
+        {
+            if ( Wlc_ObjRange(pObj) >= pPars->nBitsAdd )
+            {
+                pPair = ABC_ALLOC( Int_Pair_t, 1 );
+                pPair->first = i;
+                pPair->second = Wlc_ObjRange( pObj );
+                Vec_PtrPush( vAdds, pPair );
+            }
+        }
+        else if ( pObj->Type == WLC_OBJ_ARI_MULTI || pObj->Type == WLC_OBJ_ARI_DIVIDE || pObj->Type == WLC_OBJ_ARI_REM || pObj->Type == WLC_OBJ_ARI_MODULUS )
+        {
+            if ( Wlc_ObjRange(pObj) >= pPars->nBitsMul )
+            {
+                pPair = ABC_ALLOC( Int_Pair_t, 1 );
+                pPair->first = i;
+                pPair->second = Wlc_ObjRange( pObj );
+                Vec_PtrPush( vMults, pPair );
+            }
+        }
+        else if ( pObj->Type == WLC_OBJ_MUX ) 
+        {
             if ( Wlc_ObjRange(pObj) >= pPars->nBitsMux )
             {
                 pPair = ABC_ALLOC( Int_Pair_t, 1 );
@@ -488,60 +512,103 @@ static Vec_Bit_t * Wlc_NtkMarkMuxes( Wlc_Ntk_t * p, Wlc_Par_t * pPars )
                 Vec_PtrPush( vMuxes, pPair );
             }
         }
+        else if ( Wlc_ObjIsCi(pObj) && !Wlc_ObjIsPi(pObj) )
+        {
+            if ( Wlc_ObjRange(pObj) >= pPars->nBitsFlop )
+            {
+                pPair = ABC_ALLOC( Int_Pair_t, 1 );
+                pPair->first = i;
+                pPair->second = Wlc_ObjRange( pObj );
+                Vec_PtrPush( vFlops, pPair );
+            }
+        }
     }
 
+    Vec_PtrSort( vAdds,  (int (*)(void))IntPairPtrCompare ) ;
+    Vec_PtrSort( vMults, (int (*)(void))IntPairPtrCompare ) ;
     Vec_PtrSort( vMuxes, (int (*)(void))IntPairPtrCompare ) ;
+    Vec_PtrSort( vFlops, (int (*)(void))IntPairPtrCompare ) ;
+
+    Vec_PtrForEachEntry( Int_Pair_t *, vAdds, pPair, i )
+    {
+        if ( i >= pPars->nLimit ) break;
+        Vec_BitWriteEntry( vMarks, pPair->first, 1 ); 
+    }
+    if ( i && pPars->fVerbose ) Abc_Print( 1, "%%PDRA: %d-th ADD has width = %d\n", i, pPair->second );
+
+    Vec_PtrForEachEntry( Int_Pair_t *, vMults, pPair, i )
+    {
+        if ( i >= pPars->nLimit ) break;
+        Vec_BitWriteEntry( vMarks, pPair->first, 1 ); 
+    }
+    if ( i && pPars->fVerbose ) Abc_Print( 1, "%%PDRA: %d-th MUL has width = %d\n", i, pPair->second );
 
     Vec_PtrForEachEntry( Int_Pair_t *, vMuxes, pPair, i )
     {
-        if ( i >= pPars->nMuxLimit )
-           break;
-        
-        Vec_BitWriteEntry( vMuxMark, pPair->first, 1 ); 
+        if ( i >= pPars->nLimit ) break; 
+        Vec_BitWriteEntry( vMarks, pPair->first, 1 ); 
     }
+    if ( i && pPars->fVerbose ) Abc_Print( 1, "%%PDRA: %d-th MUX has width = %d\n", i, pPair->second );
 
-    if ( i && pPars->fVerbose )
-        Abc_Print( 1, "%%PDRA: %d-th MUX has width = %d\n", i, pPair->second );
+    Vec_PtrForEachEntry( Int_Pair_t *, vFlops, pPair, i )
+    {
+        if ( i >= pPars->nLimit ) break;
+        Vec_BitWriteEntry( vMarks, pPair->first, 1 ); 
+    }
+    if ( i && pPars->fVerbose ) Abc_Print( 1, "%%PDRA: %d-th FF has width = %d\n", i, pPair->second );
 
-    Vec_PtrForEachEntry( Int_Pair_t *, vMuxes, pPair, i )
-        ABC_FREE( pPair );
+
+    Vec_PtrForEachEntry( Int_Pair_t *, vAdds,  pPair, i ) ABC_FREE( pPair );
+    Vec_PtrForEachEntry( Int_Pair_t *, vMults, pPair, i ) ABC_FREE( pPair );
+    Vec_PtrForEachEntry( Int_Pair_t *, vMuxes, pPair, i ) ABC_FREE( pPair );
+    Vec_PtrForEachEntry( Int_Pair_t *, vFlops, pPair, i ) ABC_FREE( pPair );
+    Vec_PtrFree( vAdds );
+    Vec_PtrFree( vMults );
     Vec_PtrFree( vMuxes );
+    Vec_PtrFree( vFlops );
 
-    return vMuxMark;
+    return vMarks;
 }
 
-static Vec_Int_t * Wlc_NtkGetBlacks( Wlc_Ntk_t * p, Wlc_Par_t * pPars, Vec_Bit_t * vUnmark )
+static Vec_Int_t * Wlc_NtkGetBlacks( Wlc_Ntk_t * p, Wlc_Par_t * pPars )
 {
     Vec_Int_t * vBlacks = Vec_IntAlloc( 100 ) ;
     Wlc_Obj_t * pObj; int i, Count[4] = {0};
-    Vec_Bit_t * vMuxMark = NULL;
+    Vec_Bit_t * vMarks = NULL;
 
-    vMuxMark = Wlc_NtkMarkMuxes( p, pPars ) ; 
+    vMarks = Wlc_NtkMarkLimit( p, pPars ) ; 
 
     Wlc_NtkForEachObj( p, pObj, i )
     {
-        if ( vUnmark && Vec_BitEntry(vUnmark, i) ) // not allow this object to be abstracted away
-            continue;
-
         if ( pObj->Type == WLC_OBJ_ARI_ADD || pObj->Type == WLC_OBJ_ARI_SUB || pObj->Type == WLC_OBJ_ARI_MINUS )
         {
             if ( Wlc_ObjRange(pObj) >= pPars->nBitsAdd )
-                Vec_IntPushUniqueOrder( vBlacks, Wlc_ObjId(p, pObj) ), Count[0]++;
+            {
+                if ( vMarks == NULL )
+                    Vec_IntPushUniqueOrder( vBlacks, Wlc_ObjId(p, pObj) ), Count[0]++;
+                else if ( Vec_BitEntry( vMarks, i ) )
+                    Vec_IntPushUniqueOrder( vBlacks, Wlc_ObjId(p, pObj) ), Count[0]++;
+            }
             continue;
         }
         if ( pObj->Type == WLC_OBJ_ARI_MULTI || pObj->Type == WLC_OBJ_ARI_DIVIDE || pObj->Type == WLC_OBJ_ARI_REM || pObj->Type == WLC_OBJ_ARI_MODULUS )
         {
             if ( Wlc_ObjRange(pObj) >= pPars->nBitsMul )
-                Vec_IntPushUniqueOrder( vBlacks, Wlc_ObjId(p, pObj) ), Count[1]++;
+            {
+                if ( vMarks == NULL )
+                    Vec_IntPushUniqueOrder( vBlacks, Wlc_ObjId(p, pObj) ), Count[1]++;
+                else if ( Vec_BitEntry( vMarks, i ) )
+                    Vec_IntPushUniqueOrder( vBlacks, Wlc_ObjId(p, pObj) ), Count[1]++;
+            }
             continue;
         }
         if ( pObj->Type == WLC_OBJ_MUX )
         {
             if ( Wlc_ObjRange(pObj) >= pPars->nBitsMux )
             {
-                if ( vMuxMark == NULL )
+                if ( vMarks == NULL )
                     Vec_IntPushUniqueOrder( vBlacks, Wlc_ObjId(p, pObj) ), Count[2]++;
-                else if ( Vec_BitEntry( vMuxMark, i ) )
+                else if ( Vec_BitEntry( vMarks, i ) )
                     Vec_IntPushUniqueOrder( vBlacks, Wlc_ObjId(p, pObj) ), Count[2]++;
             }
             continue;
@@ -549,12 +616,17 @@ static Vec_Int_t * Wlc_NtkGetBlacks( Wlc_Ntk_t * p, Wlc_Par_t * pPars, Vec_Bit_t
         if ( Wlc_ObjIsCi(pObj) && !Wlc_ObjIsPi(pObj) )
         {
             if ( Wlc_ObjRange(pObj) >= pPars->nBitsFlop )
-                Vec_IntPushUniqueOrder( vBlacks, Wlc_ObjId( p, Wlc_ObjFo2Fi( p, pObj ) ) ), Count[3]++;
+            {
+                if ( vMarks == NULL )
+                    Vec_IntPushUniqueOrder( vBlacks, Wlc_ObjId( p, Wlc_ObjFo2Fi( p, pObj ) ) ), Count[3]++;
+                else if ( Vec_BitEntry( vMarks, i ) )
+                    Vec_IntPushUniqueOrder( vBlacks, Wlc_ObjId( p, Wlc_ObjFo2Fi( p, pObj ) ) ), Count[3]++;
+            }
             continue;
         }
     }
-    if ( vMuxMark )
-        Vec_BitFree( vMuxMark );
+    if ( vMarks )
+        Vec_BitFree( vMarks );
     if ( pPars->fVerbose )
         printf( "Abstraction engine marked %d adds/subs, %d muls/divs, %d muxes, and %d flops to be abstracted away.\n", Count[0], Count[1], Count[2], Count[3] );
     return vBlacks;
@@ -939,7 +1011,7 @@ int Wlc_NtkPdrAbs( Wlc_Ntk_t * p, Wlc_Par_t * pPars )
         if ( pPars->fProofRefine )
         {
             if ( vBlacks == NULL )
-                vBlacks = Wlc_NtkGetBlacks( p, pPars, vUnmark );
+                vBlacks = Wlc_NtkGetBlacks( p, pPars );
             else
                 Wlc_NtkUpdateBlacks( p, pPars, &vBlacks, vUnmark );
             pAbs = Wlc_NtkAbs2( p, vBlacks, &vFfNew );

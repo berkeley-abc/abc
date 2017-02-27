@@ -527,9 +527,9 @@ int Abc_CommandPdrAbs( Abc_Frame_t * pAbc, int argc, char ** argv )
                 Abc_Print( -1, "Command line switch \"-L\" should be followed by an integer.\n" );
                 goto usage;
             }
-            pPars->nMuxLimit = atoi(argv[globalUtilOptind]);
+            pPars->nLimit = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nMuxLimit < 0 )
+            if ( pPars->nLimit < 0 )
                 goto usage;
             break;
         case 'a':
@@ -577,7 +577,7 @@ usage:
     Abc_Print( -2, "\t-X num : minimum bit-width of a MUX operator to abstract [default = %d]\n",      pPars->nBitsMux );
     Abc_Print( -2, "\t-F num : minimum bit-width of a flip-flop to abstract [default = %d]\n",         pPars->nBitsFlop );
     Abc_Print( -2, "\t-I num : maximum number of CEGAR iterations [default = %d]\n",                   pPars->nIterMax );
-    Abc_Print( -2, "\t-L num : maximum number of muxes [default = %d]\n",                              pPars->nMuxLimit );
+    Abc_Print( -2, "\t-L num : maximum number of each type of signals [default = %d]\n",               pPars->nLimit );
     Abc_Print( -2, "\t-x     : toggle XORing outputs of word-level miter [default = %s]\n",            pPars->fXorOutput? "yes": "no" );
     Abc_Print( -2, "\t-a     : toggle running pdr with -nct [default = %s]\n",                         pPars->fPdra? "yes": "no" );
     Abc_Print( -2, "\t-b     : toggle using proof-based refinement [default = %s]\n",                  pPars->fProofRefine? "yes": "no" );
