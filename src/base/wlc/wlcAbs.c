@@ -460,7 +460,7 @@ static int Wlc_NtkUpdateBlacks( Wlc_Ntk_t * p, Wlc_Par_t * pPars, Vec_Int_t ** p
     *pvBlacks = vBlacks;
 
     if ( pPars->fVerbose )
-        printf( "Abstraction engine marked %d adds/subs, %d muls/divs, %d muxes, and %d flops to be abstracted away.\n", Count[0], Count[1], Count[2], Count[3] );
+        printf( "Abstraction engine marked %d adds/subs, %d muls/divs, %d muxes, and %d flops to be abstracted away.\n", Count[0], Count[1], Count[2], Vec_IntSize( vBlacks ) - Count[0] - Count[1] - Count[2] );
 
     return 0;
 }
@@ -526,13 +526,13 @@ static Vec_Int_t * Wlc_NtkGetBlacks( Wlc_Ntk_t * p, Wlc_Par_t * pPars, Vec_Bit_t
         if ( pObj->Type == WLC_OBJ_ARI_ADD || pObj->Type == WLC_OBJ_ARI_SUB || pObj->Type == WLC_OBJ_ARI_MINUS )
         {
             if ( Wlc_ObjRange(pObj) >= pPars->nBitsAdd )
-                Vec_IntPush( vBlacks, Wlc_ObjId(p, pObj) ), Count[0]++;
+                Vec_IntPushUniqueOrder( vBlacks, Wlc_ObjId(p, pObj) ), Count[0]++;
             continue;
         }
         if ( pObj->Type == WLC_OBJ_ARI_MULTI || pObj->Type == WLC_OBJ_ARI_DIVIDE || pObj->Type == WLC_OBJ_ARI_REM || pObj->Type == WLC_OBJ_ARI_MODULUS )
         {
             if ( Wlc_ObjRange(pObj) >= pPars->nBitsMul )
-                Vec_IntPush( vBlacks, Wlc_ObjId(p, pObj) ), Count[1]++;
+                Vec_IntPushUniqueOrder( vBlacks, Wlc_ObjId(p, pObj) ), Count[1]++;
             continue;
         }
         if ( pObj->Type == WLC_OBJ_MUX )
@@ -540,16 +540,16 @@ static Vec_Int_t * Wlc_NtkGetBlacks( Wlc_Ntk_t * p, Wlc_Par_t * pPars, Vec_Bit_t
             if ( Wlc_ObjRange(pObj) >= pPars->nBitsMux )
             {
                 if ( vMuxMark == NULL )
-                    Vec_IntPush( vBlacks, Wlc_ObjId(p, pObj) ), Count[2]++;
+                    Vec_IntPushUniqueOrder( vBlacks, Wlc_ObjId(p, pObj) ), Count[2]++;
                 else if ( Vec_BitEntry( vMuxMark, i ) )
-                    Vec_IntPush( vBlacks, Wlc_ObjId(p, pObj) ), Count[2]++;
+                    Vec_IntPushUniqueOrder( vBlacks, Wlc_ObjId(p, pObj) ), Count[2]++;
             }
             continue;
         }
         if ( Wlc_ObjIsCi(pObj) && !Wlc_ObjIsPi(pObj) )
         {
             if ( Wlc_ObjRange(pObj) >= pPars->nBitsFlop )
-                Vec_IntPush( vBlacks, Wlc_ObjId(p, pObj) ), Count[3]++;
+                Vec_IntPushUniqueOrder( vBlacks, Wlc_ObjId( p, Wlc_ObjFo2Fi( p, pObj ) ) ), Count[3]++;
             continue;
         }
     }
