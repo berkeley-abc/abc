@@ -1206,6 +1206,8 @@ int Wlc_NtkAbsCore( Wlc_Ntk_t * p, Wlc_Par_t * pPars )
             printf( "\nIteration %d:\n", nIters );
 
         // get abstracted GIA and the set of pseudo-PIs (vPisNew)
+        if ( nIters == 1 && pPars->nLimit < ABC_INFINITY )
+            Wlc_NtkSetUnmark( p, pPars, vUnmark );
         pAbs = Wlc_NtkAbs( p, pPars, vUnmark, &vPisNew, NULL, pPars->fVerbose );
         pGia = Wlc_NtkBitBlast( pAbs, NULL, -1, 0, 0, 0, 0 );
 
