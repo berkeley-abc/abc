@@ -982,7 +982,8 @@ Vec_Int_t * Wlc_NtkFlopsRemap( Wlc_Ntk_t * p, Vec_Int_t * vFfOld, Vec_Int_t * vF
 int Wlc_NtkPdrAbs( Wlc_Ntk_t * p, Wlc_Par_t * pPars )
 {
     abctime clk = Abc_Clock();
-    abctime pdrClk;
+    abctime clk2;
+    abctime tPdr = 0, tCbr = 0, tPbr = 0, tTotal = 0;
     Pdr_Man_t * pPdr;
     Vec_Vec_t * vClauses = NULL;
     Vec_Int_t * vFfOld = NULL, * vFfNew = NULL, * vMap = NULL;
@@ -1080,7 +1081,7 @@ int Wlc_NtkPdrAbs( Wlc_Ntk_t * p, Wlc_Par_t * pPars )
         pAig = Gia_ManToAigSimple( pGia );
 
         pPdr = Pdr_ManStart( pAig, pPdrPars, NULL );
-        pdrClk = Abc_Clock();
+        clk2 = Abc_Clock();
 
         if ( vClauses ) {
             assert( Vec_VecSize( vClauses) >= 2 ); 
@@ -1089,7 +1090,8 @@ int Wlc_NtkPdrAbs( Wlc_Ntk_t * p, Wlc_Par_t * pPars )
         Vec_IntFreeP( &vMap );
 
         RetValue = IPdr_ManSolveInt( pPdr, pPars->fCheckClauses, pPars->fPushClauses );
-        pPdr->tTotal += Abc_Clock() - pdrClk;
+        pPdr->tTotal += Abc_Clock() - clk2;
+        tPdr += pPdr->tTotal;
 
         pCex = pAig->pSeqModel; pAig->pSeqModel = NULL;
 
@@ -1105,9 +1107,15 @@ int Wlc_NtkPdrAbs( Wlc_Ntk_t * p, Wlc_Par_t * pPars )
         }
 
         // perform refinement
+        clk2 = Abc_Clock();
         vRefine = Wlc_NtkAbsRefinement( p, pGia, pCex, vPisNew );
+        tCbr += Abc_Clock() - clk2;
         if ( pPars->fProofRefine ) 
+        {
+            clk2 = Abc_Clock();
             Wlc_NtkProofRefine( p, pPars, pCex, vPisNew, &vRefine );
+            tPbr += Abc_Clock() - clk2;
+        }
         Gia_ManStop( pGia );
         Vec_IntFree( vPisNew );
         if ( vRefine == NULL ) // real CEX
@@ -1124,6 +1132,7 @@ int Wlc_NtkPdrAbs( Wlc_Ntk_t * p, Wlc_Par_t * pPars )
         Pdr_ManStop( pPdr );
 
         // update the set of objects to be un-abstracted
+        clk2 = Abc_Clock();
         if ( pPars->fMFFC )
         {
             nNodes = Wlc_NtkRemoveFromAbstraction( p, vRefine, vUnmark );
@@ -1137,6 +1146,8 @@ int Wlc_NtkPdrAbs( Wlc_Ntk_t * p, Wlc_Par_t * pPars )
                 printf( "Refinement of CEX in frame %d came up with %d un-abstacted PPIs.\n", pCex->iFrame, Vec_IntSize(vRefine) );
 
         }
+        tCbr += Abc_Clock() - clk2;
+
         Vec_IntFree( vRefine );
         Abc_CexFree( pCex );
         Aig_ManStop( pAig );
@@ -1157,7 +1168,18 @@ int Wlc_NtkPdrAbs( Wlc_Ntk_t * p, Wlc_Par_t * pPars )
     else 
         printf( "timed out" );
     printf( " after %d iterations. ", nIters );
-    Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
+    tTotal = Abc_Clock() - clk;
+    Abc_PrintTime( 1, "Time", tTotal );
+
+    if ( pPars->fVerbose )
+    {
+        ABC_PRTP( "PDR          ", tPdr,                          tTotal );
+        ABC_PRTP( "CEX Refine   ", tCbr,                          tTotal );
+        ABC_PRTP( "Proof Refine ", tPbr,                          tTotal );
+        ABC_PRTP( "Misc.        ", tTotal - tPdr - tCbr - tPbr,   tTotal );
+        ABC_PRTP( "Total        ", tTotal,                        tTotal );
+    }
+    
     return RetValue;
 }
 
