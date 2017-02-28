@@ -570,6 +570,17 @@ static Vec_Bit_t * Wlc_NtkMarkLimit( Wlc_Ntk_t * p, Wlc_Par_t * pPars )
     return vMarks;
 }
 
+static void Wlc_NtkSetUnmark( Wlc_Ntk_t * p, Wlc_Par_t * pPars, Vec_Bit_t * vUnmark )
+{
+    int Entry, i;
+    Vec_Bit_t * vMarks = Wlc_NtkMarkLimit( p, pPars );
+
+    Vec_BitForEachEntry( vMarks, Entry, i )
+        Vec_BitWriteEntry( vUnmark, i, Entry^1 );
+
+    Vec_BitFree( vMarks );
+}
+
 static Vec_Int_t * Wlc_NtkGetBlacks( Wlc_Ntk_t * p, Wlc_Par_t * pPars )
 {
     Vec_Int_t * vBlacks = Vec_IntAlloc( 100 ) ;
@@ -1019,6 +1030,9 @@ int Wlc_NtkPdrAbs( Wlc_Ntk_t * p, Wlc_Par_t * pPars )
         }
         else
         {
+            if ( nIters == 1 && pPars->nLimit < ABC_INFINITY )
+                Wlc_NtkSetUnmark( p, pPars, vUnmark );
+
             pAbs = Wlc_NtkAbs( p, pPars, vUnmark, &vPisNew, &vFfNew, pPars->fVerbose );
         }
         pGia = Wlc_NtkBitBlast( pAbs, NULL, -1, 0, 0, 0, 0 );
