@@ -573,7 +573,7 @@ int Abc_CommandPdrAbs( Abc_Frame_t * pAbc, int argc, char ** argv )
     Wlc_NtkPdrAbs( pNtk, pPars );
     return 0;
 usage:
-    Abc_Print( -2, "usage: %%pdra [-AMXFIL num] [-abcpmxvwh]\n" );
+    Abc_Print( -2, "usage: %%pdra [-AMXFIL num] [-abrcpmxvwh]\n" );
     Abc_Print( -2, "\t         abstraction for word-level networks\n" );
     Abc_Print( -2, "\t-A num : minimum bit-width of an adder/subtractor to abstract [default = %d]\n", pPars->nBitsAdd );
     Abc_Print( -2, "\t-M num : minimum bit-width of a multiplier to abstract [default = %d]\n",        pPars->nBitsMul );
