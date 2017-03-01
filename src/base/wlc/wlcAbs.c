@@ -302,6 +302,40 @@ Wlc_Ntk_t * Wlc_NtkIntroduceChoices( Wlc_Ntk_t * pNtk, Vec_Int_t * vBlacks )
     return pNew;
 }
 
+static int Wlc_NtkCexIsReal( Wlc_Ntk_t * pOrig, Abc_Cex_t * pCex ) 
+{
+    Gia_Man_t * pGiaOrig = Wlc_NtkBitBlast( pOrig, NULL, -1, 0, 0, 0, 0 );
+    int f, i;
+    Gia_Obj_t * pObj, * pObjRi;
+
+    Gia_ManConst0(pGiaOrig)->Value = 0;
+    Gia_ManForEachRi( pGiaOrig, pObj, i )
+        pObj->Value = 0;
+    for ( f = 0; f <= pCex->iFrame; f++ ) 
+    {
+        for( i = 0; i < Gia_ManPiNum( pGiaOrig ); i++ ) 
+            Gia_ManPi(pGiaOrig, i)->Value = Abc_InfoHasBit(pCex->pData, pCex->nRegs+pCex->nPis*f + i);
+        Gia_ManForEachRiRo( pGiaOrig, pObjRi, pObj, i )
+            pObj->Value = pObjRi->Value;
+        Gia_ManForEachAnd( pGiaOrig, pObj, i )
+            pObj->Value = Gia_ObjFanin0Copy(pObj) & Gia_ObjFanin1Copy(pObj);
+        Gia_ManForEachCo( pGiaOrig, pObj, i )
+            pObj->Value = Gia_ObjFanin0Copy(pObj);
+        Gia_ManForEachPo( pGiaOrig, pObj, i ) 
+        {
+            if (pObj->Value==1) {
+                Abc_Print( 1, "CEX is real on the original model.\n" );
+                Gia_ManStop(pGiaOrig);
+                return 1;
+            }
+        }
+    }
+
+    // Abc_Print( 1, "CEX is spurious.\n" );
+    Gia_ManStop(pGiaOrig);
+    return 0;
+}
+
 static Wlc_Ntk_t * Wlc_NtkAbs2( Wlc_Ntk_t * pNtk, Vec_Int_t * vBlacks, Vec_Int_t ** pvFlops )
 {
     Vec_Int_t * vFlops  = Vec_IntAlloc( 100 );
@@ -1102,6 +1136,16 @@ int Wlc_NtkPdrAbs( Wlc_Ntk_t * p, Wlc_Par_t * pPars )
             assert( RetValue ); // proved or undecided
             Gia_ManStop( pGia );
             Vec_IntFree( vPisNew );
+            Pdr_ManStop( pPdr );
+            Aig_ManStop( pAig );
+            break;
+        }
+
+        // verify CEX
+        if ( Wlc_NtkCexIsReal( p, pCex ) )
+        {
+            vRefine = NULL;
+            Abc_CexFree( pCex ); // return CEX in the future
             Pdr_ManStop( pPdr );
             Aig_ManStop( pAig );
             break;
