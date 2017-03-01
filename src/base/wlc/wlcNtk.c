@@ -120,6 +120,7 @@ void Wlc_ManSetDefaultParams( Wlc_Par_t * pPars )
     pPars->fMFFC         =            1;   // Refine the entire MFFC of a PPI 
     pPars->fPdra         =            0;   // Use pdr -nct 
     pPars->fProofRefine  =            0;   // Use proof-based refinement
+    pPars->fHybrid       =            1;   // Use a hybrid of CBR and PBR
     pPars->fVerbose      =            0;   // verbose output`
     pPars->fPdrVerbose   =            0;   // show verbose PDR output
 }

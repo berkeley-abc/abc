@@ -462,7 +462,7 @@ int Abc_CommandPdrAbs( Abc_Frame_t * pAbc, int argc, char ** argv )
     int c;
     Wlc_ManSetDefaultParams( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "AMXFILabcpmxvwh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "AMXFILabrcpmxvwh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -538,6 +538,9 @@ int Abc_CommandPdrAbs( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'b':
             pPars->fProofRefine ^= 1;
             break;
+        case 'r':
+            pPars->fHybrid ^= 1;
+            break;
         case 'x':
             pPars->fXorOutput ^= 1;
             break;
@@ -581,6 +584,7 @@ usage:
     Abc_Print( -2, "\t-x     : toggle XORing outputs of word-level miter [default = %s]\n",            pPars->fXorOutput? "yes": "no" );
     Abc_Print( -2, "\t-a     : toggle running pdr with -nct [default = %s]\n",                         pPars->fPdra? "yes": "no" );
     Abc_Print( -2, "\t-b     : toggle using proof-based refinement [default = %s]\n",                  pPars->fProofRefine? "yes": "no" );
+    Abc_Print( -2, "\t-r     : toggle using both cex-based and proof-based refinement [default = %s]\n",                  pPars->fHybrid? "yes": "no" );
     Abc_Print( -2, "\t-c     : toggle checking clauses in the reloaded trace [default = %s]\n",        pPars->fCheckClauses? "yes": "no" );
     Abc_Print( -2, "\t-p     : toggle pushing clauses in the reloaded trace [default = %s]\n",         pPars->fPushClauses? "yes": "no" );
     Abc_Print( -2, "\t-m     : toggle refining the whole MFFC of a PPI [default = %s]\n",              pPars->fMFFC? "yes": "no" );

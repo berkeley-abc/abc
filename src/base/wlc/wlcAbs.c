@@ -1107,9 +1107,16 @@ int Wlc_NtkPdrAbs( Wlc_Ntk_t * p, Wlc_Par_t * pPars )
         }
 
         // perform refinement
-        clk2 = Abc_Clock();
-        vRefine = Wlc_NtkAbsRefinement( p, pGia, pCex, vPisNew );
-        tCbr += Abc_Clock() - clk2;
+        if ( pPars->fHybrid || !pPars->fProofRefine )
+        {
+            clk2 = Abc_Clock();
+            vRefine = Wlc_NtkAbsRefinement( p, pGia, pCex, vPisNew );
+            tCbr += Abc_Clock() - clk2;
+        }
+        else // proof-based only
+        {
+            vRefine = Vec_IntDup( vPisNew );
+        }
         if ( pPars->fProofRefine ) 
         {
             clk2 = Abc_Clock();

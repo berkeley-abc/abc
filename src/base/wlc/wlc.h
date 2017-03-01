@@ -171,11 +171,12 @@ struct Wlc_Par_t_
     int                    nIterMax;           // the max number of iterations
     int                    nLimit;             // the max number of signals
     int                    fXorOutput;         // XOR outputs of word-level miter
-    int                    fCheckClauses;      // Check clauses in the reloaded trace                    
-    int                    fPushClauses;       // Push clauses in the reloaded trace                    
-    int                    fMFFC;              // Refine the entire MFFC of a PPI                     
-    int                    fPdra;              // Use pdr -nct                     
+    int                    fCheckClauses;      // Check clauses in the reloaded trace
+    int                    fPushClauses;       // Push clauses in the reloaded trace
+    int                    fMFFC;              // Refine the entire MFFC of a PPI
+    int                    fPdra;              // Use pdr -nct
     int                    fProofRefine;       // Use proof-based refinement
+    int                    fHybrid;            // Use a hybrid of CBR and PBR
     int                    fVerbose;           // verbose output
     int                    fPdrVerbose;        // verbose output
 };
