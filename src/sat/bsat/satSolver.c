@@ -2168,6 +2168,58 @@ int sat_solver_solve_lexsat( sat_solver* s, int * pLits, int nLits )
     return status;
 }
 
+// This procedure is called on a set of assumptions to minimize their number.
+// The procedure relies on the fact that the current set of assumptions is UNSAT.  
+// It receives and returns SAT solver without assumptions. It returns the number 
+// of assumptions after minimization. The set of assumptions is returned in pLits.
+int sat_solver_minimize_assumptions( sat_solver* s, int * pLits, int nLits, int nConfLimit )
+{
+    int i, k, nLitsL, nLitsR, nResL, nResR;
+    if ( nLits == 1 )
+    {
+        // since the problem is UNSAT, we will try to solve it without assuming the last literal
+        // the result is UNSAT, the last literal can be dropped; otherwise, it is needed
+        int status = l_False;
+        int Temp = s->nConfLimit; 
+        s->nConfLimit = nConfLimit;
+        status = sat_solver_solve_internal( s );
+        s->nConfLimit = Temp;
+        return (int)(status != l_False); // return 1 if the problem is not UNSAT
+    }
+    assert( nLits >= 2 );
+    nLitsR = nLits / 2;
+    nLitsL = nLits - nLitsR;
+    // assume the left lits
+    for ( i = 0; i < nLitsL; i++ )
+        if ( !sat_solver_push(s, pLits[i]) )
+        {
+            for ( k = i; k >= 0; k-- )
+                sat_solver_pop(s);
+            return sat_solver_minimize_assumptions( s, pLits, i+1, nConfLimit );
+        }
+    // solve for the right lits
+    nResL = sat_solver_minimize_assumptions( s, pLits + nLitsL, nLitsR, nConfLimit );
+    for ( i = 0; i < nLitsL; i++ )
+        sat_solver_pop(s);
+    // swap literals
+    assert( nResL <= nLitsL );
+    for ( i = 0; i < nResL; i++ )
+        ABC_SWAP( int, pLits[i], pLits[nLitsL+i] );
+    // assume the right lits
+    for ( i = 0; i < nResL; i++ )
+        if ( !sat_solver_push(s, pLits[i]) )
+        {
+            for ( k = i; k >= 0; k-- )
+                sat_solver_pop(s);
+            return sat_solver_minimize_assumptions( s, pLits, i+1, nConfLimit );
+        }
+    // solve for the left lits
+    nResR = sat_solver_minimize_assumptions( s, pLits + nResL, nLitsL, nConfLimit );
+    for ( i = 0; i < nResL; i++ )
+        sat_solver_pop(s);
+    return nResL + nResR;
+}
+
 
 int sat_solver_nvars(sat_solver* s)
 {
