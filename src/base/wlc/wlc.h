@@ -177,6 +177,7 @@ struct Wlc_Par_t_
     int                    fPdra;              // Use pdr -nct
     int                    fProofRefine;       // Use proof-based refinement
     int                    fHybrid;            // Use a hybrid of CBR and PBR
+    int                    fCheckCombUnsat;    // Check if ABS becomes comb. unsat
     int                    fVerbose;           // verbose output
     int                    fPdrVerbose;        // verbose output
 };

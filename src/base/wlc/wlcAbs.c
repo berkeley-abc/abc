@@ -33,6 +33,7 @@ ABC_NAMESPACE_IMPL_START
 extern Vec_Vec_t *   IPdr_ManSaveClauses( Pdr_Man_t * p, int fDropLast );
 extern int           IPdr_ManRestore( Pdr_Man_t * p, Vec_Vec_t * vClauses, Vec_Int_t * vMap );
 extern int           IPdr_ManSolveInt( Pdr_Man_t * p, int fCheckClauses, int fPushClauses );
+extern int           IPdr_ManCheckCombUnsat( Pdr_Man_t * p );
 
 typedef struct Int_Pair_t_       Int_Pair_t;
 struct Int_Pair_t_
@@ -1111,20 +1112,49 @@ int Wlc_NtkPdrAbs( Wlc_Ntk_t * p, Wlc_Par_t * pPars )
             Gia_ManPrintStats( pGia, NULL );
         }
         Wlc_NtkFree( pAbs );
+        // Gia_AigerWrite( pGia, "abs.aig", 0, 0 );
 
         // try to prove abstracted GIA by converting it to AIG and calling PDR
         pAig = Gia_ManToAigSimple( pGia );
 
-        pPdr = Pdr_ManStart( pAig, pPdrPars, NULL );
-        clk2 = Abc_Clock();
 
+        if ( vClauses && pPars->fCheckCombUnsat )
+        {
+            clk2 = Abc_Clock();
+
+            Pdr_Man_t * pPdr2;
+            pPdrPars->fVerbose = 0;
+            pPdr2 = Pdr_ManStart( pAig, pPdrPars, NULL );
+            RetValue = IPdr_ManCheckCombUnsat( pPdr2 );
+            Pdr_ManStop( pPdr2 );
+            pPdrPars->fVerbose = pPars->fPdrVerbose;
+
+            tPdr += Abc_Clock() - clk2;
+
+            if ( RetValue == 1 )
+            {
+                if ( pPars->fVerbose )
+                    Abc_PrintTime( 1,  "ABS becomes combinationally UNSAT. Time", Abc_Clock() - clk2 );
+                Gia_ManStop( pGia );
+                Vec_IntFree( vPisNew );
+                Aig_ManStop( pAig );
+                break;
+            }
+            
+            if ( pPars->fVerbose )
+                Abc_PrintTime( 1, "Check comb. unsat failed. Time", Abc_Clock() - clk2 );
+        }
+
+        clk2 = Abc_Clock();
+        pPdr = Pdr_ManStart( pAig, pPdrPars, NULL );
         if ( vClauses ) {
             assert( Vec_VecSize( vClauses) >= 2 ); 
             IPdr_ManRestore( pPdr, vClauses, vMap );
         }
         Vec_IntFreeP( &vMap );
 
-        RetValue = IPdr_ManSolveInt( pPdr, pPars->fCheckClauses, pPars->fPushClauses );
+        if ( !vClauses || RetValue != 1 )
+            RetValue = IPdr_ManSolveInt( pPdr, pPars->fCheckClauses, pPars->fPushClauses );
         pPdr->tTotal += Abc_Clock() - clk2;
         tPdr += pPdr->tTotal;
 

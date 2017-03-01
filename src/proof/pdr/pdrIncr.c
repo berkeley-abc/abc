@@ -738,6 +738,19 @@ int IPdr_ManSolve( Aig_Man_t * pAig, Pdr_Par_t * pPars )
     return RetValue;
 }
 
+int IPdr_ManCheckCombUnsat( Pdr_Man_t * p )
+{
+    int iFrame, RetValue = -1;
+
+    Pdr_ManCreateSolver( p, (iFrame = 0) );
+    Pdr_ManCreateSolver( p, (iFrame = 1) );
+
+    p->nFrames = iFrame;
+    p->iUseFrame = Abc_MaxInt(iFrame, 1);
+
+    RetValue = Pdr_ManCheckCube( p, iFrame, NULL, NULL, p->pPars->nConfLimit, 0, 1 );
+    return RetValue;
+}
 
 /**Function*************************************************************
 
