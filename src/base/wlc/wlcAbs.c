@@ -67,10 +67,11 @@ static Vec_Int_t * Wlc_NtkGetCoreSels( Gia_Man_t * pFrames, int nFrames, int num
     Aig_Man_t * pAigFrames = Gia_ManToAigSimple( pFrames );
     Cnf_Dat_t * pCnf = Cnf_Derive(pAigFrames, Aig_ManCoNum(pAigFrames));
     sat_solver * pSat = sat_solver_new();
+    int i;
 
     sat_solver_setnvars(pSat, pCnf->nVars);
 
-    for (int i = 0; i < pCnf->nClauses; i++) 
+    for (i = 0; i < pCnf->nClauses; i++) 
     {
         if (!sat_solver_addclause(pSat, pCnf->pClauses[i], pCnf->pClauses[i + 1]))
             assert(false);
@@ -93,10 +94,11 @@ static Vec_Int_t * Wlc_NtkGetCoreSels( Gia_Man_t * pFrames, int nFrames, int num
     }
     // main procedure
     {
+        int status;
         Vec_Int_t* vLits = Vec_IntAlloc(100);
         Vec_Int_t* vMapVar2Sel = Vec_IntStart( pCnf->nVars );
         int first_sel_pi = sel_pi_first ? 0 : num_other_pis;
-        for ( int i = 0; i < num_sel_pis; ++i ) 
+        for ( i = 0; i < num_sel_pis; ++i ) 
         {
             int cur_pi = first_sel_pi + i;
             int var = pCnf->pVarNums[Aig_ManCi(pAigFrames, cur_pi)->Id];
@@ -116,14 +118,13 @@ static Vec_Int_t * Wlc_NtkGetCoreSels( Gia_Man_t * pFrames, int nFrames, int num
                 Abc_Print( 1, "%d ", Entry);
             Abc_Print( 1, "\n");
         */
-        int status = sat_solver_solve(pSat, Vec_IntArray(vLits), Vec_IntArray(vLits) + Vec_IntSize(vLits), (ABC_INT64_T)(nConfLimit), (ABC_INT64_T)(0), (ABC_INT64_T)(0), (ABC_INT64_T)(0));
+        status = sat_solver_solve(pSat, Vec_IntArray(vLits), Vec_IntArray(vLits) + Vec_IntSize(vLits), (ABC_INT64_T)(nConfLimit), (ABC_INT64_T)(0), (ABC_INT64_T)(0), (ABC_INT64_T)(0));
         if (status == l_False) {
-            Abc_Print( 1, "UNSAT.\n" );
             int nCoreLits, *pCoreLits;
+            Abc_Print( 1, "UNSAT.\n" );
             nCoreLits = sat_solver_final(pSat, &pCoreLits);
-
             vCores = Vec_IntAlloc( nCoreLits );
-            for (int i = 0; i < nCoreLits; i++) 
+            for (i = 0; i < nCoreLits; i++) 
             {
                 Vec_IntPush( vCores, Vec_IntEntry( vMapVar2Sel, lit_var( pCoreLits[i] ) ) );
             }
@@ -148,13 +149,13 @@ static Gia_Man_t * Wlc_NtkUnrollWithCex(Wlc_Ntk_t * pChoice, Abc_Cex_t * pCex, i
     Gia_Man_t * pGiaChoice = Wlc_NtkBitBlast( pChoice, NULL, -1, 0, 0, 0, 0 );
     int nbits_new_pis = Wlc_NtkNumPiBits( pChoice );
     int num_ppis = nbits_new_pis - nbits_old_pis - num_sel_pis;
-    *p_num_ppis = num_ppis;
     int num_undc_pis = Gia_ManPiNum(pGiaChoice) - nbits_new_pis;
     Gia_Man_t * pFrames = NULL;
     Gia_Obj_t * pObj, * pObjRi;
     int f, i;
     int is_sel_pi;
     Gia_Man_t * pGia;
+    *p_num_ppis = num_ppis;
 
     Abc_Print( 1, "#orig_pis = %d, #ppis = %d, #sel_pis = %d, #undc_pis = %d\n", nbits_old_pis, num_ppis, num_sel_pis, num_undc_pis );
     assert(Gia_ManPiNum(pGiaChoice)==nbits_old_pis+num_ppis+num_sel_pis+num_undc_pis);
@@ -206,8 +207,7 @@ static Gia_Man_t * Wlc_NtkUnrollWithCex(Wlc_Ntk_t * pChoice, Abc_Cex_t * pCex, i
 
 Wlc_Ntk_t * Wlc_NtkIntroduceChoices( Wlc_Ntk_t * pNtk, Vec_Int_t * vBlacks )
 {
-    if ( vBlacks== NULL ) return NULL;
-
+    //if ( vBlacks== NULL ) return NULL;
     Vec_Int_t * vNodes = Vec_IntDup( vBlacks );
     Wlc_Ntk_t * pNew;
     Wlc_Obj_t * pObj;
@@ -383,6 +383,7 @@ static Wlc_Ntk_t * Wlc_NtkAbs2( Wlc_Ntk_t * pNtk, Vec_Int_t * vBlacks, Vec_Int_t
 
 static int Wlc_NtkProofRefine( Wlc_Ntk_t * p, Wlc_Par_t * pPars, Abc_Cex_t * pCex, Vec_Int_t * vBlacks, Vec_Int_t ** pvRefine )
 {
+    Gia_Man_t * pGiaFrames;
     Vec_Int_t * vRefine = NULL;
     Vec_Bit_t * vUnmark;
     Vec_Bit_t * vChoiceMark; 
@@ -406,8 +407,8 @@ static int Wlc_NtkProofRefine( Wlc_Ntk_t * p, Wlc_Par_t * pPars, Abc_Cex_t * pCe
             Vec_BitWriteEntry( vChoiceMark, i, 1 );
     }
 
-    pNtkWithChoices = Wlc_NtkIntroduceChoices( p, vBlacks );
-    Gia_Man_t * pGiaFrames = Wlc_NtkUnrollWithCex( pNtkWithChoices, pCex, Wlc_NtkNumPiBits( p ), Vec_IntSize( vBlacks ), &num_ppis, 0 );
+    pNtkWithChoices = vBlacks ? Wlc_NtkIntroduceChoices( p, vBlacks ) : NULL;
+    pGiaFrames = Wlc_NtkUnrollWithCex( pNtkWithChoices, pCex, Wlc_NtkNumPiBits( p ), Vec_IntSize( vBlacks ), &num_ppis, 0 );
     vCoreSels = Wlc_NtkGetCoreSels( pGiaFrames, pCex->iFrame+1, Vec_IntSize( vBlacks ), num_ppis, vChoiceMark, 0, 0, pPars );
     Wlc_NtkFree( pNtkWithChoices );
     Gia_ManStop( pGiaFrames );
