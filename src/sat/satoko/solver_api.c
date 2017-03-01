@@ -152,6 +152,7 @@ void satoko_default_opts(satoko_opts_t *opts)
 {
     memset(opts, 0, sizeof(satoko_opts_t));
     opts->verbose = 0;
+    opts->no_simplify = 0;
     /* Limits */
     opts->conf_limit = 0;
     opts->prop_limit  = 0;
@@ -290,6 +291,10 @@ int satoko_solve(solver_t *s)
     //if (s->opts.verbose)
     //    print_opts(s);
 
+    if (!s->opts.no_simplify)
+        if (satoko_simplify(s) != SATOKO_OK)
+            return SATOKO_UNDEC;
+
     while (status == SATOKO_UNDEC) {
         status = solver_search(s);
         if (solver_check_limits(s) == 0)
@@ -297,6 +302,7 @@ int satoko_solve(solver_t *s)
     }
     if (s->opts.verbose)
         print_stats(s);
+    
     solver_cancel_until(s, vec_uint_size(s->assumptions));
     return status;
 }
@@ -309,7 +315,6 @@ int satoko_final_conflict(solver_t *s, unsigned *out)
     memcpy(out, vec_uint_data(s->final_conflict),
            sizeof(unsigned) * vec_uint_size(s->final_conflict));
     return vec_uint_size(s->final_conflict);
-
 }
 
 satoko_stats_t satoko_stats(satoko_t *s)
@@ -324,6 +329,7 @@ void satoko_bookmark(satoko_t *s)
     s->book_cl_lrnt = vec_uint_size(s->learnts);
     s->book_vars = vec_char_size(s->assigns);
     s->book_trail = vec_uint_size(s->trail);
+    s->opts.no_simplify = 1;
 }
 
 void satoko_unbookmark(satoko_t *s)
@@ -333,6 +339,7 @@ void satoko_unbookmark(satoko_t *s)
     s->book_cdb = 0;
     s->book_vars = 0;
     s->book_trail = 0;
+    s->opts.no_simplify = 0;
 }
 
 void satoko_reset(satoko_t *s)
@@ -441,5 +448,44 @@ void satoko_unmark_cone(satoko_t *s, int *pvars, int n_vars)
     for (i = 0; i < n_vars; i++)
         var_clean_mark(s, pvars[i]);
 }
+
+void satoko_write_dimacs(satoko_t *s, char *fname, int wrt_lrnt, int zero_var)
+{
+    FILE *file;
+    unsigned i;
+    unsigned n_vars = vec_act_size(s->activity);
+    unsigned n_orig = vec_uint_size(s->originals) + vec_uint_size(s->assumptions);
+    unsigned n_lrnts = vec_uint_size(s->learnts);
+    unsigned *array;
+
+    assert(wrt_lrnt == 0 || wrt_lrnt == 1);
+    assert(zero_var == 0 || zero_var == 1);
+    if (fname != NULL)
+        file = fopen(fname, "w");
+    else
+        file = stdout;
+    
+    if (file == NULL) {
+        printf( "Error: Cannot open output file.\n");
+        return;
+    }
+    fprintf(file, "p cnf %d %d\n", n_vars, wrt_lrnt ? n_orig + n_lrnts : n_orig);
+    array = vec_uint_data(s->assumptions);
+    for (i = 0; i < vec_uint_size(s->assumptions); i++)
+        fprintf(file, "%d\n", array[i] & 1 ? -(array[i] + !zero_var) : array[i] + !zero_var);
+    
+    array = vec_uint_data(s->originals);
+    for (i = 0; i < vec_uint_size(s->originals); i++)
+        clause_dump(file, clause_read(s, array[i]), !zero_var);
+    
+    if (wrt_lrnt) {
+        printf(" Lertns %u", n_lrnts);
+        array = vec_uint_data(s->learnts);
+        for (i = 0; i < n_lrnts; i++)
+            clause_dump(file, clause_read(s, array[i]), !zero_var);
+    }
+
+}
+
 
 ABC_NAMESPACE_IMPL_END

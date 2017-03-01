@@ -644,7 +644,7 @@ char solver_search(solver_t *s)
                 solver_cancel_until(s, 0);
                 return SATOKO_UNDEC;
             }
-            if (solver_dlevel(s) == 0)
+            if (!s->opts.no_simplify && solver_dlevel(s) == 0)
                 satoko_simplify(s);
 
             /* Reduce the set of learnt clauses */

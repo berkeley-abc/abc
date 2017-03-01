@@ -61,6 +61,7 @@
 #include "bool/rpo/rpo.h"
 #include "map/mpm/mpm.h"
 #include "opt/fret/fretime.h"
+#include "opt/nwk/nwkMerge.h"
 
 #ifndef _WIN32
 #include <unistd.h>
@@ -124,7 +125,7 @@ static int Abc_CommandTrace                  ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandSpeedup                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandPowerdown              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAddBuffs               ( Abc_Frame_t * pAbc, int argc, char ** argv );
-//static int Abc_CommandMerge                  ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandMerge                  ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandTestDec                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandTestNpn                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandTestRPO                ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -774,7 +775,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Synthesis",    "speedup",       Abc_CommandSpeedup,          1 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "powerdown",     Abc_CommandPowerdown,        1 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "addbuffs",      Abc_CommandAddBuffs,         1 );
-//    Cmd_CommandAdd( pAbc, "Synthesis",    "merge",         Abc_CommandMerge,            1 );
+    Cmd_CommandAdd( pAbc, "Synthesis",    "merge",         Abc_CommandMerge,            1 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "testdec",       Abc_CommandTestDec,          0 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "testnpn",       Abc_CommandTestNpn,          0 );
     Cmd_CommandAdd( pAbc, "LogiCS",       "testrpo",       Abc_CommandTestRPO,          0 );
@@ -6011,7 +6012,7 @@ usage:
     return 1;
 }
 
-#if 0
+//#if 0
 /**Function*************************************************************
 
   Synopsis    []
@@ -6144,7 +6145,7 @@ usage:
     Abc_Print( -2, "\t-h       : print the command usage\n");
     return 1;
 }
-#endif
+//#endif
 
 
 

@@ -1823,13 +1823,17 @@ int Scl_CommandReadConstr( Abc_Frame_t * pAbc, int argc, char ** argv )
     Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
     FILE * pFile;
     char * pFileName;
+    int fUseNewFormat = 0;
     int c, fVerbose = 0;
 
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "nvh" ) ) != EOF )
     {
         switch ( c )
         {
+        case 'n':
+            fVerbose ^= 1;
+            break;
         case 'v':
             fVerbose ^= 1;
             break;
@@ -1850,25 +1854,29 @@ int Scl_CommandReadConstr( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
     fclose( pFile );
-//    Abc_SclReadTimingConstr( pAbc, pFileName, fVerbose );
 
-    if ( pNtk == NULL )
+    if ( !fUseNewFormat )
+        Abc_SclReadTimingConstr( pAbc, pFileName, fVerbose );
+    else
     {
-        fprintf( pAbc->Err, "There is no current network.\n" );
-        return 1;
-    }
-
-    // input constraint manager
-    if ( pNtk )
-    {
-        Scl_Con_t * pCon = Scl_ConRead( pFileName, Abc_NtkNameMan(pNtk, 0), Abc_NtkNameMan(pNtk, 1) );
-        if ( pCon ) Scl_ConUpdateMan( pAbc, pCon );
+        if ( pNtk == NULL )
+        {
+            fprintf( pAbc->Err, "There is no current network.\n" );
+            return 1;
+        }
+        // input constraint manager
+        if ( pNtk )
+        {
+            Scl_Con_t * pCon = Scl_ConRead( pFileName, Abc_NtkNameMan(pNtk, 0), Abc_NtkNameMan(pNtk, 1) );
+            if ( pCon ) Scl_ConUpdateMan( pAbc, pCon );
+        }
     }
     return 0;
 
 usage:
-    fprintf( pAbc->Err, "usage: read_constr [-vh] <file>\n" );
+    fprintf( pAbc->Err, "usage: read_constr [-nvh] <file>\n" );
     fprintf( pAbc->Err, "\t         read file with timing constraints for standard-cell designs\n" );
+    fprintf( pAbc->Err, "\t-n     : toggle using new constraint file format [default = %s]\n", fUseNewFormat? "yes": "no" );
     fprintf( pAbc->Err, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     fprintf( pAbc->Err, "\t-h     : prints the command summary\n" );
     fprintf( pAbc->Err, "\t<file> : the name of a file to read\n" );
