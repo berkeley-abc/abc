@@ -2178,7 +2178,7 @@ int sat_solver_minimize_assumptions( sat_solver* s, int * pLits, int nLits, int 
     if ( nLits == 1 )
     {
         // since the problem is UNSAT, we will try to solve it without assuming the last literal
-        // the result is UNSAT, the last literal can be dropped; otherwise, it is needed
+        // if the result is UNSAT, the last literal can be dropped; otherwise, it is needed
         int status = l_False;
         int Temp = s->nConfLimit; 
         s->nConfLimit = nConfLimit;

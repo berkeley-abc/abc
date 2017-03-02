@@ -497,7 +497,7 @@ int ZPdr_ManDown( Pdr_Man_t * p, int k, Pdr_Set_t ** ppCube, Pdr_Set_t * pPred, 
   SeeAlso     []
 
 ***********************************************************************/
-static inline void Vec_IntSelectSortCostReverseLit( int * pArray, int nSize, Vec_Int_t * vCosts )
+static inline int Vec_IntSelectSortCostReverseLit( int * pArray, int nSize, Vec_Int_t * vCosts )
 {
     int i, j, best_i;
     for ( i = 0; i < nSize-1; i++ )
@@ -508,6 +508,137 @@ static inline void Vec_IntSelectSortCostReverseLit( int * pArray, int nSize, Vec
                 best_i = j;
         ABC_SWAP( int, pArray[i], pArray[best_i] );
     }
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Performs generalization using a different idea.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Pdr_ManGeneralize2( Pdr_Man_t * p, int k, Pdr_Set_t * pCube, Pdr_Set_t ** ppCubeMin )
+{
+    int fUseMinAss = 0;
+    sat_solver * pSat = Pdr_ManFetchSolver( p, k );
+    int Order = Vec_IntSelectSortCostReverseLit( pCube->Lits, pCube->nLits, p->vPrio );
+    Vec_Int_t * vLits1 = Pdr_ManCubeToLits( p, k, pCube, 1, 0 );
+    int RetValue, Count = 0, iLit, Lits[2], nLits = Vec_IntSize( vLits1 );
+    // create free variables
+    int i, iUseVar, iAndVar;
+    iAndVar = Pdr_ManFreeVar(p, k);
+    for ( i = 1; i < nLits; i++ )
+        Pdr_ManFreeVar(p, k);
+    iUseVar = Pdr_ManFreeVar(p, k);
+    for ( i = 1; i < nLits; i++ )
+        Pdr_ManFreeVar(p, k);
+    assert( iUseVar == iAndVar + nLits );
+    // if there is only one positive literal, put it in front and always assume
+    if ( fUseMinAss )
+    {
+        for ( i = 0; i < pCube->nLits; i++ )
+            Count += !Abc_LitIsCompl(pCube->Lits[i]);
+        if ( Count == 1 )
+        {
+            for ( i = 0; i < pCube->nLits; i++ )
+                if ( !Abc_LitIsCompl(pCube->Lits[i]) )
+                    break;
+            assert( i < pCube->nLits );
+            ABC_SWAP( int, pCube->Lits[0], pCube->Lits[i] );
+        }
+    }
+    // add clauses for the additional AND-gates
+    Vec_IntForEachEntry( vLits1, iLit, i )
+    {
+        sat_solver_add_buffer_enable( pSat, iAndVar + i, Abc_Lit2Var(iLit), iUseVar + i, Abc_LitIsCompl(iLit) );
+        Vec_IntWriteEntry( vLits1, i, Abc_Var2Lit(iAndVar + i, 0) );
+    }
+    // add clauses for the additional OR-gate
+    RetValue = sat_solver_addclause( pSat, Vec_IntArray(vLits1), Vec_IntLimit(vLits1) );
+    assert( RetValue == 1 );
+    // add implications
+    vLits1 = Pdr_ManCubeToLits( p, k, pCube, 0, 1 );
+    assert( Vec_IntSize(vLits1) == nLits );
+    Vec_IntForEachEntry( vLits1, iLit, i )
+    {
+        Lits[0] = Abc_Var2Lit(iUseVar + i, 1);
+        Lits[1] = iLit;
+        RetValue = sat_solver_addclause( pSat, Lits, Lits+2 );
+        assert( RetValue == 1 );
+        Vec_IntWriteEntry( vLits1, i, Abc_Var2Lit(iUseVar + i, 0) );
+    }
+    sat_solver_compress( pSat );
+    // perform minimization
+    if ( fUseMinAss )
+    {
+        if ( Count == 1 )
+        {
+            if ( !sat_solver_push(pSat, Vec_IntEntry(vLits1, 0)) ) // UNSAT after assuming the first (mandatory) literal
+                nLits = 1;
+            else
+                nLits = 1 + sat_solver_minimize_assumptions( pSat, Vec_IntArray(vLits1)+1, nLits-1, p->pPars->nConfLimit );
+            sat_solver_pop(pSat); // unassume the first literal
+        }
+        else
+            nLits = sat_solver_minimize_assumptions( pSat, Vec_IntArray(vLits1), nLits, p->pPars->nConfLimit );
+        Vec_IntShrink( vLits1, nLits );
+    }
+    else
+    {
+        int k, Entry;
+        // try removing one literal at a time in the old-fashioned way
+        Vec_Int_t * vTemp = Vec_IntAlloc( nLits );
+        for ( i = 0; i < nLits; i++ )
+        {
+            // check init state
+            if ( Pdr_SetIsInit(pCube, i) )
+                continue;
+            // load remaining literals
+            Vec_IntClear( vTemp );
+            Vec_IntForEachEntry( vLits1, Entry, k )
+                if ( Entry != -1 && k != i )
+                    Vec_IntPush( vTemp, Entry );
+            // solve with assumptions
+            RetValue = sat_solver_solve( pSat, Vec_IntArray(vTemp), Vec_IntLimit(vTemp), p->pPars->nConfLimit, 0, 0, 0 );
+            if ( RetValue == l_False )
+                Vec_IntWriteEntry( vLits1, i, -1 );
+        }
+        Vec_IntFree( vTemp );
+        // compact
+        k = 0;
+        Vec_IntForEachEntry( vLits1, Entry, i )
+            if ( Entry != -1 )
+                Vec_IntWriteEntry( vLits1, k++, Entry );
+        Vec_IntShrink( vLits1, k );
+    }
+    // remap auxiliary literals into original literals
+    Vec_IntForEachEntry( vLits1, iLit, i )
+        Vec_IntWriteEntry( vLits1, i, pCube->Lits[Abc_Lit2Var(iLit)-iUseVar] );
+    // make sure the cube has at least one positive literal
+    if ( fUseMinAss )
+    {
+        Vec_IntForEachEntry( vLits1, iLit, i )
+            if ( !Abc_LitIsCompl(iLit) )
+                break;
+        if ( i == Vec_IntSize(vLits1) )
+        {
+            // find positive lit in the cube
+            for ( i = 0; i < pCube->nLits; i++ )
+                if ( !Abc_LitIsCompl(pCube->Lits[i]) )
+                    break;
+            assert( i < pCube->nLits );
+            Vec_IntPush( vLits1, pCube->Lits[i] );
+        }
+    }
+    // create a subset cube
+    *ppCubeMin = Pdr_SetCreateSubset( pCube, Vec_IntArray(vLits1), Vec_IntSize(vLits1) );
+    assert( !Pdr_SetIsInit(*ppCubeMin, -1) );
+    return 0;
 }
 
 /**Function*************************************************************
@@ -543,14 +674,37 @@ int Pdr_ManGeneralize( Pdr_Man_t * p, int k, Pdr_Set_t * pCube, Pdr_Set_t ** ppP
         p->tGeneral += clock() - clk;
         return 0;
     }
-    
-    keep = p->pPars->fSkipDown ? NULL : Hash_IntAlloc( 1 );
 
     // reduce clause using assumptions
 //    pCubeMin = Pdr_SetDup( pCube );
     pCubeMin = Pdr_ManReduceClause( p, k, pCube );
     if ( pCubeMin == NULL )
         pCubeMin = Pdr_SetDup( pCube );
+
+    // perform simplified generalization
+    if ( p->pPars->fSimpleGeneral )
+    {
+        assert( pCubeMin->nLits > 0 );
+        if ( pCubeMin->nLits > 1 )
+        {
+            RetValue = Pdr_ManGeneralize2( p, k, pCubeMin, ppCubeMin );
+            Pdr_SetDeref( pCubeMin );
+            assert( ppCubeMin != NULL );
+            pCubeMin = *ppCubeMin;
+        }
+        *ppCubeMin = pCubeMin;
+        if ( p->pPars->fVeryVerbose )
+        {
+            printf("Cube:\n");
+            for ( i = 0; i < pCubeMin->nLits; i++)
+                printf ("%d ", pCubeMin->Lits[i]);
+            printf("\n");
+        }
+        p->tGeneral += Abc_Clock() - clk;
+        return 1;
+    }
+    
+    keep = p->pPars->fSkipDown ? NULL : Hash_IntAlloc( 1 );
 
     // perform generalization
     if ( !p->pPars->fSkipGeneral )
@@ -691,9 +845,7 @@ int Pdr_ManGeneralize( Pdr_Man_t * p, int k, Pdr_Set_t * pCube, Pdr_Set_t ** ppP
     {
         printf("Cube:\n");
         for ( i = 0; i < pCubeMin->nLits; i++)
-        {
-          printf ("%d ", pCubeMin->Lits[i]);
-        }
+            printf ("%d ", pCubeMin->Lits[i]);
         printf("\n");
     }
     *ppCubeMin = pCubeMin;
