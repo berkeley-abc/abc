@@ -2203,8 +2203,15 @@ int sat_solver_minimize_assumptions( sat_solver* s, int * pLits, int nLits, int 
         sat_solver_pop(s);
     // swap literals
     assert( nResL <= nLitsL );
+//    for ( i = 0; i < nResL; i++ )
+//        ABC_SWAP( int, pLits[i], pLits[nLitsL+i] );
+    veci_resize( &s->temp_clause, 0 );
+    for ( i = 0; i < nLitsL; i++ )
+        veci_push( &s->temp_clause, pLits[i] );
     for ( i = 0; i < nResL; i++ )
-        ABC_SWAP( int, pLits[i], pLits[nLitsL+i] );
+        pLits[i] = pLits[nLitsL+i];
+    for ( i = 0; i < nLitsL; i++ )
+        pLits[nResL+i] = veci_begin(&s->temp_clause)[i];
     // assume the right lits
     for ( i = 0; i < nResL; i++ )
         if ( !sat_solver_push(s, pLits[i]) )
