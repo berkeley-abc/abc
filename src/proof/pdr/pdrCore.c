@@ -288,7 +288,7 @@ int * Pdr_ManSortByPriority( Pdr_Man_t * p, Pdr_Set_t * pCube )
         best_i = i;
         for ( j = i+1; j < nSize; j++ )
 //            if ( pArray[j] < pArray[best_i] )
-            if ( pPrios[pCube->Lits[pArray[j]]>>1] < pPrios[pCube->Lits[pArray[best_i]]>>1] )
+            if ( pPrios[pCube->Lits[pArray[j]]>>1] < pPrios[pCube->Lits[pArray[best_i]]>>1] ) // list lower priority first (these will be removed first)
                 best_i = j;
         temp = pArray[i];
         pArray[i] = pArray[best_i];
@@ -488,7 +488,7 @@ int ZPdr_ManDown( Pdr_Man_t * p, int k, Pdr_Set_t ** ppCube, Pdr_Set_t * pPred, 
 
 /**Function*************************************************************
 
-  Synopsis    [Specialized sorting of flops based on cost.]
+  Synopsis    [Specialized sorting of flops based on priority.]
 
   Description []
                
@@ -497,14 +497,14 @@ int ZPdr_ManDown( Pdr_Man_t * p, int k, Pdr_Set_t ** ppCube, Pdr_Set_t * pPred, 
   SeeAlso     []
 
 ***********************************************************************/
-static inline int Vec_IntSelectSortCostReverseLit( int * pArray, int nSize, Vec_Int_t * vCosts )
+static inline int Vec_IntSelectSortPrioReverseLit( int * pArray, int nSize, Vec_Int_t * vPrios )
 {
     int i, j, best_i;
     for ( i = 0; i < nSize-1; i++ )
     {
         best_i = i;
         for ( j = i+1; j < nSize; j++ )
-            if ( Vec_IntEntry(vCosts, Abc_Lit2Var(pArray[j])) > Vec_IntEntry(vCosts, Abc_Lit2Var(pArray[best_i])) )
+            if ( Vec_IntEntry(vPrios, Abc_Lit2Var(pArray[j])) > Vec_IntEntry(vPrios, Abc_Lit2Var(pArray[best_i])) ) // prefer higher priority
                 best_i = j;
         ABC_SWAP( int, pArray[i], pArray[best_i] );
     }
@@ -526,7 +526,7 @@ int Pdr_ManGeneralize2( Pdr_Man_t * p, int k, Pdr_Set_t * pCube, Pdr_Set_t ** pp
 {
     int fUseMinAss = 0;
     sat_solver * pSat = Pdr_ManFetchSolver( p, k );
-    int Order = Vec_IntSelectSortCostReverseLit( pCube->Lits, pCube->nLits, p->vPrio );
+    int Order = Vec_IntSelectSortPrioReverseLit( pCube->Lits, pCube->nLits, p->vPrio );
     Vec_Int_t * vLits1 = Pdr_ManCubeToLits( p, k, pCube, 1, 0 );
     int RetValue, Count = 0, iLit, Lits[2], nLits = Vec_IntSize( vLits1 );
     // create free variables
@@ -541,7 +541,7 @@ int Pdr_ManGeneralize2( Pdr_Man_t * p, int k, Pdr_Set_t * pCube, Pdr_Set_t ** pp
     // if there is only one positive literal, put it in front and always assume
     if ( fUseMinAss )
     {
-        for ( i = 0; i < pCube->nLits; i++ )
+        for ( i = 0; i < pCube->nLits && Count < 2; i++ )
             Count += !Abc_LitIsCompl(pCube->Lits[i]);
         if ( Count == 1 )
         {
@@ -549,7 +549,10 @@ int Pdr_ManGeneralize2( Pdr_Man_t * p, int k, Pdr_Set_t * pCube, Pdr_Set_t ** pp
                 if ( !Abc_LitIsCompl(pCube->Lits[i]) )
                     break;
             assert( i < pCube->nLits );
-            ABC_SWAP( int, pCube->Lits[0], pCube->Lits[i] );
+            iLit = pCube->Lits[i];
+            for ( ; i > 0; i-- )
+                pCube->Lits[i] = pCube->Lits[i-1];
+            pCube->Lits[0] = iLit;
         }
     }
     // add clauses for the additional AND-gates
@@ -576,35 +579,51 @@ int Pdr_ManGeneralize2( Pdr_Man_t * p, int k, Pdr_Set_t * pCube, Pdr_Set_t ** pp
     // perform minimization
     if ( fUseMinAss )
     {
-        if ( Count == 1 )
+        if ( Count == 1 ) // always assume the only positive literal
         {
-            if ( !sat_solver_push(pSat, Vec_IntEntry(vLits1, 0)) ) // UNSAT after assuming the first (mandatory) literal
+            if ( !sat_solver_push(pSat, Vec_IntEntry(vLits1, 0)) ) // UNSAT with the first (mandatory) literal
                 nLits = 1;
             else
-                nLits = 1 + sat_solver_minimize_assumptions( pSat, Vec_IntArray(vLits1)+1, nLits-1, p->pPars->nConfLimit );
+                nLits = 1 + sat_solver_minimize_assumptions2( pSat, Vec_IntArray(vLits1)+1, nLits-1, p->pPars->nConfLimit );
             sat_solver_pop(pSat); // unassume the first literal
         }
         else
-            nLits = sat_solver_minimize_assumptions( pSat, Vec_IntArray(vLits1), nLits, p->pPars->nConfLimit );
+            nLits = sat_solver_minimize_assumptions2( pSat, Vec_IntArray(vLits1), nLits, p->pPars->nConfLimit );
         Vec_IntShrink( vLits1, nLits );
     }
     else
     {
-        int k, Entry;
         // try removing one literal at a time in the old-fashioned way
+        int k, Entry;
         Vec_Int_t * vTemp = Vec_IntAlloc( nLits );
-        for ( i = 0; i < nLits; i++ )
+        for ( i = nLits - 1; i >= 0; i-- )
         {
-            // check init state
-            if ( Pdr_SetIsInit(pCube, i) )
-                continue;
+            // if we are about to remove a positive lit, make sure at least one positive lit remains
+            if ( !Abc_LitIsCompl(Vec_IntEntry(vLits1, i)) )
+            {
+                Vec_IntForEachEntry( vLits1, iLit, k )
+                    if ( iLit != -1 && k != i && !Abc_LitIsCompl(iLit) )
+                        break;
+                if ( k == Vec_IntSize(vLits1) ) // no other positive literals, except the i-th one
+                    continue;
+            }
             // load remaining literals
             Vec_IntClear( vTemp );
             Vec_IntForEachEntry( vLits1, Entry, k )
                 if ( Entry != -1 && k != i )
                     Vec_IntPush( vTemp, Entry );
+                else if ( Entry != -1 ) // assume opposite literal
+                    Vec_IntPush( vTemp, Abc_LitNot(Entry) );
             // solve with assumptions
             RetValue = sat_solver_solve( pSat, Vec_IntArray(vTemp), Vec_IntLimit(vTemp), p->pPars->nConfLimit, 0, 0, 0 );
+            // commit the literal
+            if ( RetValue == l_False )
+            {
+                int LitNot = Abc_LitNot(Vec_IntEntry(vLits1, i));
+                int RetValue = sat_solver_addclause( pSat, &LitNot, &LitNot+1 );
+                assert( RetValue );
+            }
+            // update the clause
             if ( RetValue == l_False )
                 Vec_IntWriteEntry( vLits1, i, -1 );
         }
@@ -625,7 +644,7 @@ int Pdr_ManGeneralize2( Pdr_Man_t * p, int k, Pdr_Set_t * pCube, Pdr_Set_t ** pp
         Vec_IntForEachEntry( vLits1, iLit, i )
             if ( !Abc_LitIsCompl(iLit) )
                 break;
-        if ( i == Vec_IntSize(vLits1) )
+        if ( i == Vec_IntSize(vLits1) ) // has no positive literals
         {
             // find positive lit in the cube
             for ( i = 0; i < pCube->nLits; i++ )
@@ -633,7 +652,10 @@ int Pdr_ManGeneralize2( Pdr_Man_t * p, int k, Pdr_Set_t * pCube, Pdr_Set_t ** pp
                     break;
             assert( i < pCube->nLits );
             Vec_IntPush( vLits1, pCube->Lits[i] );
+//            printf( "-" );
         }
+//        else
+//            printf( "+" );
     }
     // create a subset cube
     *ppCubeMin = Pdr_SetCreateSubset( pCube, Vec_IntArray(vLits1), Vec_IntSize(vLits1) );
@@ -664,7 +686,7 @@ int Pdr_ManGeneralize( Pdr_Man_t * p, int k, Pdr_Set_t * pCube, Pdr_Set_t ** ppP
     // if there is no induction, return
     *ppCubeMin = NULL;
     if ( p->pPars->fFlopOrder )
-        Vec_IntSelectSortCostReverseLit( pCube->Lits, pCube->nLits, p->vPrio );
+        Vec_IntSelectSortPrioReverseLit( pCube->Lits, pCube->nLits, p->vPrio );
     RetValue = Pdr_ManCheckCube( p, k, pCube, ppPred, p->pPars->nConfLimit, 0, 1 );
     if ( p->pPars->fFlopOrder )
         Vec_IntSelectSort( pCube->Lits, pCube->nLits );
