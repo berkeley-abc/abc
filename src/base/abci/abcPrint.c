@@ -351,9 +351,8 @@ void Abc_NtkPrintStats( Abc_Ntk_t * pNtk, int fFactored, int fSaveBest, int fDum
         Abc_Print( 1,"  power =%7.2f", Abc_NtkMfsTotalSwitching(pNtk) );
     if ( fGlitch )
     {
-        extern float Abc_NtkMfsTotalGlitching( Abc_Ntk_t * pNtk );
         if ( Abc_NtkIsLogic(pNtk) && Abc_NtkGetFaninMax(pNtk) <= 6 )
-            Abc_Print( 1,"  glitch =%7.2f %%", Abc_NtkMfsTotalGlitching(pNtk) );
+            Abc_Print( 1,"  glitch =%7.2f %%", Abc_NtkMfsTotalGlitching(pNtk, 4000, 8, 0) );
         else
             printf( "\nCurrently computes glitching only for K-LUT networks with K <= 6." );
     }
@@ -1744,7 +1743,7 @@ extern Gli_Man_t * Gli_ManAlloc( int nObjs, int nRegs, int nFanioPairs );
 extern void        Gli_ManStop( Gli_Man_t * p );
 extern int         Gli_ManCreateCi( Gli_Man_t * p, int nFanouts );
 extern int         Gli_ManCreateCo( Gli_Man_t * p, int iFanin );
-extern int         Gli_ManCreateNode( Gli_Man_t * p, Vec_Int_t * vFanins, int nFanouts, unsigned * puTruth );
+extern int         Gli_ManCreateNode( Gli_Man_t * p, Vec_Int_t * vFanins, int nFanouts, word * pGateTruth );
 
 extern void        Gli_ManSwitchesAndGlitches( Gli_Man_t * p, int nPatterns, float PiTransProb, int fVerbose );
 extern int         Gli_ObjNumSwitches( Gli_Man_t * p, int iNode );
@@ -1761,13 +1760,14 @@ extern int         Gli_ObjNumGlitches( Gli_Man_t * p, int iNode );
   SeeAlso     []
 
 ***********************************************************************/
-float Abc_NtkMfsTotalGlitching( Abc_Ntk_t * pNtk )
+float Abc_NtkMfsTotalGlitchingLut( Abc_Ntk_t * pNtk, int nPats, int Prob, int fVerbose )
 {
     int nSwitches, nGlitches;
     Gli_Man_t * p;
     Vec_Ptr_t * vNodes;
     Vec_Int_t * vFanins, * vTruth;
     Abc_Obj_t * pObj, * pFanin;
+    Vec_Wrd_t * vTruths; word * pTruth;
     unsigned * puTruth;
     int i, k;
     assert( Abc_NtkIsLogic(pNtk) );
@@ -1781,6 +1781,7 @@ float Abc_NtkMfsTotalGlitching( Abc_Ntk_t * pNtk )
     vNodes = Abc_NtkDfs( pNtk, 0 );
     vFanins = Vec_IntAlloc( 6 );
     vTruth = Vec_IntAlloc( 1 << 12 );
+    vTruths = Vec_WrdStart( Abc_NtkObjNumMax(pNtk) );
 
     // derive network for glitch computation
     p = Gli_ManAlloc( Vec_PtrSize(vNodes) + Abc_NtkCiNum(pNtk) + Abc_NtkCoNum(pNtk),
@@ -1795,7 +1796,9 @@ float Abc_NtkMfsTotalGlitching( Abc_Ntk_t * pNtk )
         Abc_ObjForEachFanin( pObj, pFanin, k )
             Vec_IntPush( vFanins, pFanin->iTemp );
         puTruth = Hop_ManConvertAigToTruth( (Hop_Man_t *)pNtk->pManFunc, (Hop_Obj_t *)pObj->pData, Abc_ObjFaninNum(pObj), vTruth, 0 );
-        pObj->iTemp = Gli_ManCreateNode( p, vFanins, Abc_ObjFanoutNum(pObj), puTruth );
+        pTruth = Vec_WrdEntryP( vTruths, Abc_ObjId(pObj) );
+        *pTruth = ((word)puTruth[Abc_ObjFaninNum(pObj) == 6] << 32) | (word)puTruth[0];
+        pObj->iTemp = Gli_ManCreateNode( p, vFanins, Abc_ObjFanoutNum(pObj), pTruth );
     }
     Abc_NtkForEachCo( pNtk, pObj, i )
         Gli_ManCreateCo( p, Abc_ObjFanin0(pObj)->iTemp );
@@ -1815,6 +1818,72 @@ float Abc_NtkMfsTotalGlitching( Abc_Ntk_t * pNtk )
     Gli_ManStop( p );
     Vec_PtrFree( vNodes );
     Vec_IntFree( vTruth );
+    Vec_IntFree( vFanins );
+    Vec_WrdFree( vTruths );
+    return nSwitches ? 100.0*(nGlitches-nSwitches)/nSwitches : 0.0;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Returns the percentable of increased power due to glitching.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+float Abc_NtkMfsTotalGlitching( Abc_Ntk_t * pNtk, int nPats, int Prob, int fVerbose )
+{
+    int nSwitches, nGlitches;
+    Gli_Man_t * p;
+    Vec_Ptr_t * vNodes;
+    Vec_Int_t * vFanins;
+    Abc_Obj_t * pObj, * pFanin;
+    int i, k, nFaninMax = Abc_NtkGetFaninMax(pNtk);
+    if ( !Abc_NtkIsMappedLogic(pNtk) )
+        return Abc_NtkMfsTotalGlitchingLut( pNtk, nPats, Prob, fVerbose );
+    assert( Abc_NtkIsMappedLogic(pNtk) );
+    if ( nFaninMax > 16 )
+    {
+        printf( "Abc_NtkMfsTotalGlitching() This procedure works only for mapped networks with LUTs size up to 6 inputs.\n" );
+        return -1.0;
+    }
+    vNodes = Abc_NtkDfs( pNtk, 0 );
+    vFanins = Vec_IntAlloc( 6 );
+
+    // derive network for glitch computation
+    p = Gli_ManAlloc( Vec_PtrSize(vNodes) + Abc_NtkCiNum(pNtk) + Abc_NtkCoNum(pNtk),
+        Abc_NtkLatchNum(pNtk), Abc_NtkGetTotalFanins(pNtk) + Abc_NtkCoNum(pNtk) );
+    Abc_NtkForEachObj( pNtk, pObj, i )
+        pObj->iTemp = -1;
+    Abc_NtkForEachCi( pNtk, pObj, i )
+        pObj->iTemp = Gli_ManCreateCi( p, Abc_ObjFanoutNum(pObj) );
+    Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pObj, i )
+    {
+        Vec_IntClear( vFanins );
+        Abc_ObjForEachFanin( pObj, pFanin, k )
+            Vec_IntPush( vFanins, pFanin->iTemp );
+        pObj->iTemp = Gli_ManCreateNode( p, vFanins, Abc_ObjFanoutNum(pObj), Mio_GateReadTruthP((Mio_Gate_t *)pObj->pData) );
+    }
+    Abc_NtkForEachCo( pNtk, pObj, i )
+        Gli_ManCreateCo( p, Abc_ObjFanin0(pObj)->iTemp );
+
+    // compute glitching
+    Gli_ManSwitchesAndGlitches( p, nPats, 1.0/Prob, fVerbose );
+
+    // compute the ratio
+    nSwitches = nGlitches = 0;
+    Abc_NtkForEachObj( pNtk, pObj, i )
+        if ( pObj->iTemp >= 0 )
+        {
+            nSwitches += Abc_ObjFanoutNum(pObj) * Gli_ObjNumSwitches(p, pObj->iTemp);
+            nGlitches += Abc_ObjFanoutNum(pObj) * Gli_ObjNumGlitches(p, pObj->iTemp);
+        }
+
+    Gli_ManStop( p );
+    Vec_PtrFree( vNodes );
     Vec_IntFree( vFanins );
     return nSwitches ? 100.0*(nGlitches-nSwitches)/nSwitches : 0.0;
 }
