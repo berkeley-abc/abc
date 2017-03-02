@@ -638,6 +638,7 @@ int Pdr_ManGeneralize2( Pdr_Man_t * p, int k, Pdr_Set_t * pCube, Pdr_Set_t ** pp
     // create a subset cube
     *ppCubeMin = Pdr_SetCreateSubset( pCube, Vec_IntArray(vLits1), Vec_IntSize(vLits1) );
     assert( !Pdr_SetIsInit(*ppCubeMin, -1) );
+    Order = 0;
     return 0;
 }
 
