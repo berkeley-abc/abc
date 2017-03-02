@@ -317,6 +317,7 @@ static int Abc_CommandPSat                   ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandProve                  ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandIProve                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandDebug                  ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandEco                    ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandBmc                    ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandBmc2                   ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandBmc3                   ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -968,6 +969,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Verification", "prove",         Abc_CommandProve,            1 );
     Cmd_CommandAdd( pAbc, "Verification", "iprove",        Abc_CommandIProve,           1 );
     Cmd_CommandAdd( pAbc, "Verification", "debug",         Abc_CommandDebug,            0 );
+    Cmd_CommandAdd( pAbc, "Verification", "eco",           Abc_CommandEco,              0 );
     Cmd_CommandAdd( pAbc, "Verification", "bmc",           Abc_CommandBmc,              0 );
     Cmd_CommandAdd( pAbc, "Verification", "bmc2",          Abc_CommandBmc2,             0 );
     Cmd_CommandAdd( pAbc, "Verification", "bmc3",          Abc_CommandBmc3,             1 );
@@ -23934,6 +23936,50 @@ int Abc_CommandDebug( Abc_Frame_t * pAbc, int argc, char ** argv )
 usage:
     Abc_Print( -2, "usage: debug [-h]\n" );
     Abc_Print( -2, "\t        performs automated debugging of the given procedure\n" );
+    Abc_Print( -2, "\t-h    : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandEco( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern void Abc_NtkEco( char * pFileNames[3] );
+    char * pFileNames[3] = {NULL};  int c;
+    // set defaults
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( globalUtilOptind + 3 != argc )
+    {
+        Abc_Print( -1, "Expecting three file names on the command line.\n" );
+        return 1;
+    }
+    for ( c = 0; c < 3; c++ )
+        pFileNames[c] = argv[globalUtilOptind+c];
+    Abc_NtkEco( pFileNames );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: eco [-h]\n" );
+    Abc_Print( -2, "\t        performs experimental ECO computation\n" );
     Abc_Print( -2, "\t-h    : print the command usage\n");
     return 1;
 }

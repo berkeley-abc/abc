@@ -271,6 +271,10 @@ SOURCE=.\src\base\abci\abcDsd.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\base\abci\abcEco.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\base\abci\abcExact.c
 # End Source File
 # Begin Source File
