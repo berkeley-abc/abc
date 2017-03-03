@@ -923,9 +923,9 @@ void Abc_NtkPrintMiniMapping( int * pArray )
   SeeAlso     []
 
 ***********************************************************************/
-int * Abc_NtkOutputMiniMapping( void * pAbc0 )
+int * Abc_NtkOutputMiniMapping( Abc_Frame_t * pAbc )
 {
-    Abc_Frame_t * pAbc = (Abc_Frame_t *)pAbc0;
+    //Abc_Frame_t * pAbc = (Abc_Frame_t *)pAbc0;
     Abc_Ntk_t * pNtk;
     Vec_Int_t * vMapping;
     int * pArray;
@@ -977,9 +977,9 @@ void Abc_NtkTestMiniMapping( Abc_Ntk_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_NtkSetCiArrivalTime( void * pAbc0, int iCi, float Rise, float Fall )
+void Abc_NtkSetCiArrivalTime( Abc_Frame_t * pAbc, int iCi, float Rise, float Fall )
 {
-    Abc_Frame_t * pAbc = (Abc_Frame_t *)pAbc0;
+    //Abc_Frame_t * pAbc = (Abc_Frame_t *)pAbc0;
     Abc_Ntk_t * pNtk;
     Abc_Obj_t * pNode;
     if ( pAbc == NULL )
@@ -1001,9 +1001,9 @@ void Abc_NtkSetCiArrivalTime( void * pAbc0, int iCi, float Rise, float Fall )
     pNode = Abc_NtkCi( pNtk, iCi );
     Abc_NtkTimeSetArrival( pNtk, Abc_ObjId(pNode), Rise, Fall );
 }
-void Abc_NtkSetCoRequiredTime( void * pAbc0, int iCo, float Rise, float Fall )
+void Abc_NtkSetCoRequiredTime( Abc_Frame_t * pAbc, int iCo, float Rise, float Fall )
 {
-    Abc_Frame_t * pAbc = (Abc_Frame_t *)pAbc0;
+    //Abc_Frame_t * pAbc = (Abc_Frame_t *)pAbc0;
     Abc_Ntk_t * pNtk;
     Abc_Obj_t * pNode;
     if ( pAbc == NULL )\
@@ -1037,9 +1037,9 @@ void Abc_NtkSetCoRequiredTime( void * pAbc0, int iCo, float Rise, float Fall )
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_NtkSetAndGateDelay( void * pAbc0, float Delay )
+void Abc_NtkSetAndGateDelay( Abc_Frame_t * pAbc, float Delay )
 {
-    Abc_Frame_t * pAbc = (Abc_Frame_t *)pAbc0;
+    //Abc_Frame_t * pAbc = (Abc_Frame_t *)pAbc0;
     Abc_Ntk_t * pNtk;
     if ( pAbc == NULL )
     {

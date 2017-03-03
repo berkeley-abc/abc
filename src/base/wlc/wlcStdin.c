@@ -239,7 +239,7 @@ int Wlc_StdinProcessSmt( Abc_Frame_t * pAbc, char * pCmd )
             return 0;
         }
         // report value of this variable
-        Wlc_NtkReport( (Wlc_Ntk_t *)pAbc->pAbcWlc, Abc_FrameReadCex(pAbc), pName, 16 );
+        Wlc_NtkReport( (Wlc_Ntk_t *)pAbc->pAbcWlc, (Abc_Cex_t *)Abc_FrameReadCex(pAbc), pName, 16 );
         Vec_StrFree( vInput );
         fflush( stdout );
     }

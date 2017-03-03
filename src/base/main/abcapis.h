@@ -33,47 +33,65 @@
 ///                         BASIC TYPES                              ///
 ////////////////////////////////////////////////////////////////////////
 
+typedef struct Abc_Frame_t_      Abc_Frame_t;
+
 ////////////////////////////////////////////////////////////////////////
 ///                      MACRO DEFINITIONS                           ///
 ////////////////////////////////////////////////////////////////////////
+
+#ifdef WIN32
+  #ifdef WIN32_NO_DLL
+    #define ABC_DLLEXPORT
+    #define ABC_DLLIMPORT
+  #else
+    #define ABC_DLLEXPORT __declspec(dllexport)
+    #define ABC_DLLIMPORT __declspec(dllimport)
+  #endif
+#else  /* defined(WIN32) */
+#define ABC_DLLIMPORT
+#endif /* defined(WIN32) */
+
+#ifndef ABC_DLL
+#define ABC_DLL ABC_DLLIMPORT
+#endif
 
 ////////////////////////////////////////////////////////////////////////
 ///                    FUNCTION DECLARATIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
 // procedures to start and stop the ABC framework
-extern void   Abc_Start();
-extern void   Abc_Stop();
+extern ABC_DLL void   Abc_Start();
+extern ABC_DLL void   Abc_Stop();
 
 // procedures to get the ABC framework (pAbc) and execute commands in it
-extern void * Abc_FrameGetGlobalFrame();
-extern int    Cmd_CommandExecute( void * pAbc, char * pCommandLine );
+extern ABC_DLL Abc_Frame_t * Abc_FrameGetGlobalFrame();
+extern ABC_DLL int   Cmd_CommandExecute( Abc_Frame_t * pAbc, const char * pCommandLine );
 
 // procedures to input/output 'mini AIG'
-extern void   Abc_NtkInputMiniAig( void * pAbc, void * pMiniAig );
-extern void * Abc_NtkOutputMiniAig( void * pAbc );
-extern void   Abc_FrameGiaInputMiniAig( void * pAbc, void * p );
-extern void * Abc_FrameGiaOutputMiniAig( void * pAbc );
-extern void   Abc_NtkSetFlopNum( void * pAbc, int nFlops );
+extern ABC_DLL void   Abc_NtkInputMiniAig( Abc_Frame_t * pAbc, void * pMiniAig );
+extern ABC_DLL void * Abc_NtkOutputMiniAig( Abc_Frame_t * pAbc );
+extern ABC_DLL void   Abc_FrameGiaInputMiniAig( Abc_Frame_t * pAbc, void * p );
+extern ABC_DLL void * Abc_FrameGiaOutputMiniAig( Abc_Frame_t * pAbc );
+extern ABC_DLL void   Abc_NtkSetFlopNum( Abc_Frame_t * pAbc, int nFlops );
 
 // procedures to input/output 'mini LUT'
-extern void   Abc_FrameGiaInputMiniLut( void * pAbc, void * pMiniLut );
-extern void * Abc_FrameGiaOutputMiniLut( void * pAbc );
+extern ABC_DLL void   Abc_FrameGiaInputMiniLut( Abc_Frame_t * pAbc, void * pMiniLut );
+extern ABC_DLL void * Abc_FrameGiaOutputMiniLut( Abc_Frame_t * pAbc );
 
 // procedures to set CI/CO arrival/required times
-extern void   Abc_NtkSetCiArrivalTime( void * pAbc, int iCi, float Rise, float Fall );
-extern void   Abc_NtkSetCoRequiredTime( void * pAbc, int iCo, float Rise, float Fall );
+extern ABC_DLL void   Abc_NtkSetCiArrivalTime( Abc_Frame_t * pAbc, int iCi, float Rise, float Fall );
+extern ABC_DLL void   Abc_NtkSetCoRequiredTime( Abc_Frame_t * pAbc, int iCo, float Rise, float Fall );
 
 // procedure to set AND-gate delay to tech-independent synthesis and mapping
-extern void   Abc_NtkSetAndGateDelay( void * pAbc, float Delay );
+extern ABC_DLL void   Abc_NtkSetAndGateDelay( Abc_Frame_t * pAbc, float Delay );
 
 // procedures to return the mapped network
-extern int *  Abc_NtkOutputMiniMapping( void * pAbc );
-extern void   Abc_NtkPrintMiniMapping( int * pArray );
+extern ABC_DLL int *  Abc_NtkOutputMiniMapping( Abc_Frame_t * pAbc );
+extern ABC_DLL void   Abc_NtkPrintMiniMapping( int * pArray );
 
 // procedures to access verifization status and a counter-example
-extern int    Abc_FrameReadProbStatus( void * pAbc );   
-extern void * Abc_FrameReadCex( void * pAbc );    
+extern ABC_DLL int    Abc_FrameReadProbStatus( Abc_Frame_t * pAbc );   
+extern ABC_DLL void * Abc_FrameReadCex( Abc_Frame_t * pAbc );    
 
 
 #endif
