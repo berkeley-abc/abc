@@ -313,6 +313,7 @@ static int Abc_CommandDSat                   ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandXSat                   ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandSatoko                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Satoko             ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9Sat3               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandPSat                   ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandProve                  ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandIProve                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -965,6 +966,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Verification", "xsat",          Abc_CommandXSat,             0 );
     Cmd_CommandAdd( pAbc, "Verification", "satoko",        Abc_CommandSatoko,           0 );
     Cmd_CommandAdd( pAbc, "Verification", "&satoko",       Abc_CommandAbc9Satoko,       0 );
+    Cmd_CommandAdd( pAbc, "Verification", "&sat3",         Abc_CommandAbc9Sat3,         0 );
     Cmd_CommandAdd( pAbc, "Verification", "psat",          Abc_CommandPSat,             0 );
     Cmd_CommandAdd( pAbc, "Verification", "prove",         Abc_CommandProve,            1 );
     Cmd_CommandAdd( pAbc, "Verification", "iprove",        Abc_CommandIProve,           1 );
@@ -23546,6 +23548,74 @@ int Abc_CommandAbc9Satoko( Abc_Frame_t * pAbc, int argc, char ** argv )
 
 usage:
     Abc_Print( -2, "usage: &satoko [-C num] [-sivh]\n" );
+    Abc_Print( -2, "\t-C num : limit on the number of conflicts [default = %d]\n", opts.conf_limit );
+    Abc_Print( -2, "\t-s     : split multi-output miter into individual outputs [default = %s]\n", fSplit? "yes": "no" );
+    Abc_Print( -2, "\t-i     : split multi-output miter and solve incrementally [default = %s]\n", fIncrem? "yes": "no" );
+    Abc_Print( -2, "\t-v     : prints verbose information [default = %s]\n", opts.verbose? "yes": "no" );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc9Sat3( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern void Gia_ManSat3Call( Gia_Man_t * p, int fSplit );
+    int c, fSplit = 0, fIncrem = 0;
+
+    satoko_opts_t opts;
+    satoko_default_opts(&opts);
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Csivh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'C':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-C\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            opts.conf_limit = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( opts.conf_limit < 0 )
+                goto usage;
+            break;
+        case 's':
+            fSplit ^= 1;
+            break;
+        case 'i':
+            fIncrem ^= 1;
+            break;
+        case 'v':
+            opts.verbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+
+        default:
+            goto usage;
+        }
+    }
+    if ( pAbc->pGia == NULL )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9Sat3(): There is no AIG.\n" );
+        return 1;
+    }
+    Gia_ManSat3Call( pAbc->pGia, fSplit );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: &sat3 [-C num] [-sivh]\n" );
     Abc_Print( -2, "\t-C num : limit on the number of conflicts [default = %d]\n", opts.conf_limit );
     Abc_Print( -2, "\t-s     : split multi-output miter into individual outputs [default = %s]\n", fSplit? "yes": "no" );
     Abc_Print( -2, "\t-i     : split multi-output miter and solve incrementally [default = %s]\n", fIncrem? "yes": "no" );
