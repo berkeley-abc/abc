@@ -59,5 +59,19 @@ static inline void clause_print(struct clause *clause)
     printf("}\n");
 }
 
+static inline void clause_dump(FILE *file, struct clause *clause, int no_zero_var) 
+{
+    unsigned i;
+    for (i = 0; i < clause->size; i++) {
+        int var = (clause->data[i].lit >> 1);
+        char pol = (clause->data[i].lit & 1);
+        fprintf(file, "%d ", pol ? -(var + no_zero_var) : (var + no_zero_var));
+    }
+    if (no_zero_var)
+        fprintf(file, "0\n");
+    else
+        fprintf(file, "\n");
+}
+
 ABC_NAMESPACE_HEADER_END
 #endif /* satoko__clause_h */

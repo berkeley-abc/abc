@@ -169,9 +169,14 @@ struct Wlc_Par_t_
     int                    nBitsMux;           // MUX bit-width
     int                    nBitsFlop;          // flop bit-width
     int                    nIterMax;           // the max number of iterations
+    int                    nLimit;             // the max number of signals
     int                    fXorOutput;         // XOR outputs of word-level miter
-    int                    fCheckClauses;      // Check clauses in the reloaded trace                    
-    int                    fPushClauses;       // Push clauses in the reloaded trace                    
+    int                    fCheckClauses;      // Check clauses in the reloaded trace
+    int                    fPushClauses;       // Push clauses in the reloaded trace
+    int                    fMFFC;              // Refine the entire MFFC of a PPI
+    int                    fPdra;              // Use pdr -nct
+    int                    fProofRefine;       // Use proof-based refinement
+    int                    fHybrid;            // Use a hybrid of CBR and PBR
     int                    fVerbose;           // verbose output
     int                    fPdrVerbose;        // verbose output
 };
@@ -309,6 +314,7 @@ extern void           Wlc_NtkTransferNames( Wlc_Ntk_t * pNew, Wlc_Ntk_t * p );
 extern char *         Wlc_NtkNewName( Wlc_Ntk_t * p, int iCoId, int fSeq );
 extern Wlc_Ntk_t *    Wlc_NtkDupDfs( Wlc_Ntk_t * p, int fMarked, int fSeq );
 extern Wlc_Ntk_t *    Wlc_NtkDupDfsAbs( Wlc_Ntk_t * p, Vec_Int_t * vPisOld, Vec_Int_t * vPisNew, Vec_Int_t * vFlops );
+extern Wlc_Ntk_t *    Wlc_NtkDupDfsSimple( Wlc_Ntk_t * p );
 extern void           Wlc_NtkCleanMarks( Wlc_Ntk_t * p );
 extern void           Wlc_NtkMarkCone( Wlc_Ntk_t * p, int iCoId, int Range, int fSeq, int fAllPis );
 extern void           Wlc_NtkProfileCones( Wlc_Ntk_t * p );

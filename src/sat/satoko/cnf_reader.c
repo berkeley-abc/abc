@@ -150,7 +150,7 @@ int satoko_parse_dimacs(char *fname, satoko_t **solver)
     vec_uint_free(lits);
     satoko_free(buffer);
     *solver = p;
-    return satoko_simplify(p);
+    return SATOKO_OK;
 }
 
 ABC_NAMESPACE_IMPL_END

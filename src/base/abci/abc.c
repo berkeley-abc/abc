@@ -61,6 +61,7 @@
 #include "bool/rpo/rpo.h"
 #include "map/mpm/mpm.h"
 #include "opt/fret/fretime.h"
+#include "opt/nwk/nwkMerge.h"
 
 #ifndef _WIN32
 #include <unistd.h>
@@ -121,10 +122,11 @@ static int Abc_CommandMfs                    ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandMfs2                   ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandMfs3                   ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandTrace                  ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandGlitch                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandSpeedup                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandPowerdown              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAddBuffs               ( Abc_Frame_t * pAbc, int argc, char ** argv );
-//static int Abc_CommandMerge                  ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandMerge                  ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandTestDec                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandTestNpn                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandTestRPO                ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -315,6 +317,7 @@ static int Abc_CommandPSat                   ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandProve                  ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandIProve                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandDebug                  ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandEco                    ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandBmc                    ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandBmc2                   ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandBmc3                   ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -771,10 +774,11 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Synthesis",    "mfs2",          Abc_CommandMfs2,             1 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "mfs3",          Abc_CommandMfs3,             1 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "trace",         Abc_CommandTrace,            0 );
+    Cmd_CommandAdd( pAbc, "Synthesis",    "glitch",        Abc_CommandGlitch,           0 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "speedup",       Abc_CommandSpeedup,          1 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "powerdown",     Abc_CommandPowerdown,        1 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "addbuffs",      Abc_CommandAddBuffs,         1 );
-//    Cmd_CommandAdd( pAbc, "Synthesis",    "merge",         Abc_CommandMerge,            1 );
+    Cmd_CommandAdd( pAbc, "Synthesis",    "merge",         Abc_CommandMerge,            1 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "testdec",       Abc_CommandTestDec,          0 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "testnpn",       Abc_CommandTestNpn,          0 );
     Cmd_CommandAdd( pAbc, "LogiCS",       "testrpo",       Abc_CommandTestRPO,          0 );
@@ -965,6 +969,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Verification", "prove",         Abc_CommandProve,            1 );
     Cmd_CommandAdd( pAbc, "Verification", "iprove",        Abc_CommandIProve,           1 );
     Cmd_CommandAdd( pAbc, "Verification", "debug",         Abc_CommandDebug,            0 );
+    Cmd_CommandAdd( pAbc, "Verification", "eco",           Abc_CommandEco,              0 );
     Cmd_CommandAdd( pAbc, "Verification", "bmc",           Abc_CommandBmc,              0 );
     Cmd_CommandAdd( pAbc, "Verification", "bmc2",          Abc_CommandBmc2,             0 );
     Cmd_CommandAdd( pAbc, "Verification", "bmc3",          Abc_CommandBmc3,             1 );
@@ -1000,12 +1005,14 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "ABC9",         "&save",         Abc_CommandAbc9Save,         0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&load",         Abc_CommandAbc9Load,         0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&r",            Abc_CommandAbc9Read,         0 );
+    Cmd_CommandAdd( pAbc, "ABC9",         "&read",         Abc_CommandAbc9Read,         0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&read_blif",    Abc_CommandAbc9ReadBlif,     0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&read_cblif",   Abc_CommandAbc9ReadCBlif,    0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&read_stg",     Abc_CommandAbc9ReadStg,      0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&read_ver",     Abc_CommandAbc9ReadVer,      0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&write_ver",    Abc_CommandAbc9WriteVer,     0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&w",            Abc_CommandAbc9Write,        0 );
+    Cmd_CommandAdd( pAbc, "ABC9",         "&write",        Abc_CommandAbc9Write,        0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&wlut",         Abc_CommandAbc9WriteLut,     0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&ps",           Abc_CommandAbc9Ps,           0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&pfan",         Abc_CommandAbc9PFan,         0 );
@@ -5715,6 +5722,88 @@ usage:
   SeeAlso     []
 
 ***********************************************************************/
+int Abc_CommandGlitch( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
+    int nPats    = 4000;
+    int Prob     =    8;
+    int fVerbose =    1;
+    int c;
+
+    // set defaults
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "NPvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'N':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-N\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nPats = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nPats < 1 )
+                goto usage;
+            break;
+        case 'P':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-P\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            Prob = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( Prob < 1 )
+                goto usage;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pNtk == NULL )
+    {
+        Abc_Print( -1, "Empty network.\n" );
+        return 1;
+    }
+    if ( !Abc_NtkIsLogic(pNtk) )
+    {
+        Abc_Print( -1, "This command can only be applied to a mapped logic network.\n" );
+        return 1;
+    }
+    if ( Abc_NtkIsMappedLogic(pNtk) || Abc_NtkGetFaninMax(pNtk) <= 6 )
+        Abc_Print( 1, "Glitching adds %7.2f %% of signal transitions, compared to switching.\n", Abc_NtkMfsTotalGlitching(pNtk, nPats, Prob, fVerbose) );
+    else
+        printf( "Currently computes glitching only for K-LUT networks with K <= 6.\n" );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: glitch [-NP <num>] [-vh]\n" );
+    Abc_Print( -2, "\t           comparing glitching activity to switching activity\n" );
+    Abc_Print( -2, "\t-N <num> : the number of random patterns to use (0 < num < 1000000) [default = %d]\n", nPats );
+    Abc_Print( -2, "\t-P <num> : once in how many cycles an input changes its value [default = %d]\n", Prob );
+    Abc_Print( -2, "\t-v       : toggle printing optimization summary [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h       : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 int Abc_CommandSpeedup( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Abc_Ntk_t * pNtk, * pNtkRes;
@@ -6009,7 +6098,7 @@ usage:
     return 1;
 }
 
-#if 0
+//#if 0
 /**Function*************************************************************
 
   Synopsis    []
@@ -6142,7 +6231,7 @@ usage:
     Abc_Print( -2, "\t-h       : print the command usage\n");
     return 1;
 }
-#endif
+//#endif
 
 
 
@@ -23847,6 +23936,50 @@ int Abc_CommandDebug( Abc_Frame_t * pAbc, int argc, char ** argv )
 usage:
     Abc_Print( -2, "usage: debug [-h]\n" );
     Abc_Print( -2, "\t        performs automated debugging of the given procedure\n" );
+    Abc_Print( -2, "\t-h    : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandEco( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern void Abc_NtkEco( char * pFileNames[3] );
+    char * pFileNames[3] = {NULL};  int c;
+    // set defaults
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( globalUtilOptind + 3 != argc )
+    {
+        Abc_Print( -1, "Expecting three file names on the command line.\n" );
+        return 1;
+    }
+    for ( c = 0; c < 3; c++ )
+        pFileNames[c] = argv[globalUtilOptind+c];
+    Abc_NtkEco( pFileNames );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: eco [-h]\n" );
+    Abc_Print( -2, "\t        performs experimental ECO computation\n" );
     Abc_Print( -2, "\t-h    : print the command usage\n");
     return 1;
 }
@@ -42428,7 +42561,7 @@ usage:
     Abc_Print( -2, "\t-Q num  : stop when abstraction size exceeds num %% during refinement (0<=num<=100) [default = %d]\n", pPars->nRatioMin2 );
     Abc_Print( -2, "\t-P num  : maximum percentage of added objects before a restart (0<=num<=100) [default = %d]\n", pPars->nRatioMax );
     Abc_Print( -2, "\t-B num  : the number of stable frames to call prover or dump abstraction [default = %d]\n", pPars->nFramesNoChangeLim );
-    Abc_Print( -2, "\t-A file : file name for dumping abstrated model [default = \"glabs.aig\"]\n" );
+    Abc_Print( -2, "\t-A file : file name for dumping abstrated model (&gla -d) or abstraction map (&gla -m)\n" );
     Abc_Print( -2, "\t-f      : toggle propagating fanout implications [default = %s]\n", pPars->fPropFanout? "yes": "no" );
     Abc_Print( -2, "\t-a      : toggle refinement by adding one layers of gates [default = %s]\n", pPars->fAddLayer? "yes": "no" );
     Abc_Print( -2, "\t-r      : toggle using improved refinement heuristics [default = %s]\n", pPars->fNewRefine? "yes": "no" );

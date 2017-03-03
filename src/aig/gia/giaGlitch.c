@@ -37,7 +37,7 @@ struct Gli_Obj_t_
     unsigned       nFanins  :  3;    // the number of fanins
     unsigned       nFanouts : 25;    // total number of fanouts
     unsigned       Handle;           // ID of the node
-    unsigned       uTruth[2];        // truth table of the node
+    word *         pTruth;           // truth table of the node
     unsigned       uSimInfo;         // simulation info of the node
     union 
     {
@@ -333,7 +333,7 @@ static inline int Gli_NodeComputeValue( Gli_Obj_t * pNode )
     int i, Phase = 0;
     for ( i = 0; i < (int)pNode->nFanins; i++ )
         Phase |= (Gli_ObjFanin(pNode, i)->fPhase << i);
-    return Abc_InfoHasBit( pNode->uTruth, Phase );
+    return Abc_InfoHasBit( (unsigned *)pNode->pTruth, Phase );
 }
 
 /**Function*************************************************************
@@ -352,7 +352,7 @@ static inline int Gli_NodeComputeValue2( Gli_Obj_t * pNode )
     int i, Phase = 0;
     for ( i = 0; i < (int)pNode->nFanins; i++ )
         Phase |= (Gli_ObjFanin(pNode, i)->fPhase2 << i);
-    return Abc_InfoHasBit( pNode->uTruth, Phase );
+    return Abc_InfoHasBit( (unsigned *)pNode->pTruth, Phase );
 }
 
 /**Function*************************************************************
@@ -366,16 +366,15 @@ static inline int Gli_NodeComputeValue2( Gli_Obj_t * pNode )
   SeeAlso     []
 
 ***********************************************************************/
-int Gli_ManCreateNode( Gli_Man_t * p, Vec_Int_t * vFanins, int nFanouts, unsigned * puTruth )
+int Gli_ManCreateNode( Gli_Man_t * p, Vec_Int_t * vFanins, int nFanouts, word * pGateTruth )
 {
     Gli_Obj_t * pObj, * pFanin;
     int i;
-    assert( Vec_IntSize(vFanins) <= 6 );
+    assert( Vec_IntSize(vFanins) <= 16 );
     pObj = Gli_ObjAlloc( p, Vec_IntSize(vFanins), nFanouts );
     Gli_ManForEachEntry( vFanins, p, pFanin, i )
         Gli_ObjAddFanin( pObj, pFanin );
-    pObj->uTruth[0] = puTruth[0];
-    pObj->uTruth[1] = puTruth[Vec_IntSize(vFanins) == 6];
+    pObj->pTruth = pGateTruth;
     pObj->fPhase = pObj->fPhase2 = Gli_NodeComputeValue( pObj );
     return pObj->Handle;
 }
@@ -584,7 +583,7 @@ unsigned Gli_ManSimulateSeqNode( Gli_Man_t * p, Gli_Obj_t * pNode )
     int nFanins = Gli_ObjFaninNum(pNode);
     int i, k, Phase;
     Gli_Obj_t * pFanin;
-    assert( nFanins <= 6 );
+    assert( nFanins <= 16 );
     Gli_ObjForEachFanin( pNode, pFanin, i )
         pSimInfos[i] = pFanin->uSimInfo;
     for ( i = 0; i < 32; i++ )
@@ -593,7 +592,7 @@ unsigned Gli_ManSimulateSeqNode( Gli_Man_t * p, Gli_Obj_t * pNode )
         for ( k = 0; k < nFanins; k++ )
             if ( (pSimInfos[k] >> i) & 1 )
                 Phase |= (1 << k);
-        if ( Abc_InfoHasBit( pNode->uTruth, Phase ) )
+        if ( Abc_InfoHasBit( (unsigned *)pNode->pTruth, Phase ) )
             Result |= (1 << i);
     }
     return Result;
@@ -772,7 +771,7 @@ void Gli_ManSwitchesAndGlitches( Gli_Man_t * p, int nPatterns, float PiTransProb
     }
     if ( fVerbose )
     {
-        printf( "\nSimulated %d patterns.  ", nPatterns );
+        printf( "Simulated %d patterns.  Input transition probability %.2f.  ", nPatterns, PiTransProb );
         ABC_PRMn( "Memory", 4*p->nObjData );
         ABC_PRT( "Time", Abc_Clock() - clk );
     }

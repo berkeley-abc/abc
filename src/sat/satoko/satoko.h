@@ -60,6 +60,7 @@ struct satoko_opts {
     unsigned clause_min_lbd_bin_resol;
     float garbage_max_ratio;
     char verbose;
+    char no_simplify;
 };
 
 typedef struct satoko_stats satoko_stats_t;
@@ -108,6 +109,16 @@ extern void satoko_unbookmark(satoko_t *);
  */
 extern int satoko_final_conflict(satoko_t *, unsigned *);
 
+/* Procedure to dump a DIMACS file.
+ * - It receives as input the solver, a file name string and two integers.
+ * - If the file name string is NULL the solver will dump in stdout.
+ * - The first argument can be either 0 or 1 and is an option to dump learnt 
+ *   clauses. (value 1 will dump them).
+ * - The seccond argument can be either 0 or 1 and is an option to use 0 as a 
+ *   variable ID or not. Keep in mind that if 0 is used as an ID the generated
+ *   file will not be a DIMACS. (value 1 will use 0 as ID).
+ */
+extern void satoko_write_dimacs(satoko_t *, char *, int, int);
 extern satoko_stats_t satoko_stats(satoko_t *);
 
 ABC_NAMESPACE_HEADER_END

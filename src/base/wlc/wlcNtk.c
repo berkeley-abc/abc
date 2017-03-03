@@ -108,16 +108,21 @@ char * Wlc_ObjTypeName( Wlc_Obj_t * p ) { return Wlc_Names[p->Type]; }
 void Wlc_ManSetDefaultParams( Wlc_Par_t * pPars )
 {
     memset( pPars, 0, sizeof(Wlc_Par_t) );
-    pPars->nBitsAdd    = ABC_INFINITY;   // adder bit-width
-    pPars->nBitsMul    = ABC_INFINITY;   // multiplier bit-widht 
-    pPars->nBitsMux    = ABC_INFINITY;   // MUX bit-width
-    pPars->nBitsFlop   = ABC_INFINITY;   // flop bit-width
-    pPars->nIterMax    =         1000;   // the max number of iterations
-    pPars->fXorOutput  =            1;   // XOR outputs of word-level miter
-    pPars->fCheckClauses =          1;   // Check clauses in the reloaded trace                    
-    pPars->fPushClauses =           0;   // Push clauses in the reloaded trace                    
-    pPars->fVerbose    =            0;   // verbose output`
-    pPars->fPdrVerbose =            0;   // show verbose PDR output
+    pPars->nBitsAdd      = ABC_INFINITY;   // adder bit-width
+    pPars->nBitsMul      = ABC_INFINITY;   // multiplier bit-widht 
+    pPars->nBitsMux      = ABC_INFINITY;   // MUX bit-width
+    pPars->nBitsFlop     = ABC_INFINITY;   // flop bit-width
+    pPars->nIterMax      =         1000;   // the max number of iterations
+    pPars->nLimit        = ABC_INFINITY;   // the max number of signals
+    pPars->fXorOutput    =            1;   // XOR outputs of word-level miter
+    pPars->fCheckClauses =            1;   // Check clauses in the reloaded trace                    
+    pPars->fPushClauses  =            0;   // Push clauses in the reloaded trace                    
+    pPars->fMFFC         =            1;   // Refine the entire MFFC of a PPI 
+    pPars->fPdra         =            0;   // Use pdr -nct 
+    pPars->fProofRefine  =            0;   // Use proof-based refinement
+    pPars->fHybrid       =            1;   // Use a hybrid of CBR and PBR
+    pPars->fVerbose      =            0;   // verbose output`
+    pPars->fPdrVerbose   =            0;   // show verbose PDR output
 }
 
 /**Function*************************************************************
@@ -830,6 +835,33 @@ void Wlc_NtkDupDfs_rec( Wlc_Ntk_t * pNew, Wlc_Ntk_t * p, int iObj, Vec_Int_t * v
         Wlc_NtkDupDfs_rec( pNew, p, iFanin, vFanins );
     Wlc_ObjDup( pNew, p, iObj, vFanins );
 }
+
+Wlc_Ntk_t * Wlc_NtkDupDfsSimple( Wlc_Ntk_t * p )
+{
+    Wlc_Ntk_t * pNew;
+    Wlc_Obj_t * pObj;
+    Vec_Int_t * vFanins;
+    int i;
+    Wlc_NtkCleanCopy( p );
+    vFanins = Vec_IntAlloc( 100 );
+    pNew = Wlc_NtkAlloc( p->pName, p->nObjsAlloc );
+    pNew->fSmtLib = p->fSmtLib;
+    Wlc_NtkForEachCi( p, pObj, i )
+        Wlc_ObjDup( pNew, p, Wlc_ObjId(p, pObj), vFanins );
+    Wlc_NtkForEachCo( p, pObj, i )
+        Wlc_NtkDupDfs_rec( pNew, p, Wlc_ObjId(p, pObj), vFanins );
+    Wlc_NtkForEachCo( p, pObj, i )
+        Wlc_ObjSetCo( pNew, Wlc_ObjCopyObj(pNew, p, pObj), pObj->fIsFi );
+    if ( p->vInits )
+    pNew->vInits = Vec_IntDup( p->vInits );
+    if ( p->pInits )
+    pNew->pInits = Abc_UtilStrsav( p->pInits );
+    Vec_IntFree( vFanins );
+    if ( p->pSpec )
+    pNew->pSpec = Abc_UtilStrsav( p->pSpec );
+    return pNew;
+}
+
 Wlc_Ntk_t * Wlc_NtkDupDfs( Wlc_Ntk_t * p, int fMarked, int fSeq )
 {
     Wlc_Ntk_t * pNew;
