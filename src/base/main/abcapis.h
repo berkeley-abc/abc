@@ -35,7 +35,6 @@
 
 ABC_NAMESPACE_HEADER_START
 
-struct Abc_Frame_t_;
 typedef struct Abc_Frame_t_      Abc_Frame_t;
 
 ////////////////////////////////////////////////////////////////////////
