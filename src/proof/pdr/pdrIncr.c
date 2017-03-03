@@ -59,8 +59,9 @@ void IPdr_ManPrintClauses( Vec_Vec_t * vClauses, int kStart, int nRegs )
         Vec_PtrSort( vArrayK, (int (*)(void))Pdr_SetCompare );
         Vec_PtrForEachEntry( Pdr_Set_t *, vArrayK, pCube, i )
         {
-            Abc_Print( 1, "C=%4d. F=%4d ", Counter++, k );
-            Pdr_SetPrint( stdout, pCube, nRegs, NULL );  
+            Abc_Print( 1, "Frame[%4d]Cube[%4d] = ", k, Counter++ );
+            // Pdr_SetPrint( stdout, pCube, nRegs, NULL );  
+            ZPdr_SetPrint( pCube );  
             Abc_Print( 1, "\n" ); 
         }
     }
@@ -749,6 +750,108 @@ int IPdr_ManCheckCombUnsat( Pdr_Man_t * p )
     p->iUseFrame = Abc_MaxInt(iFrame, 1);
 
     RetValue = Pdr_ManCheckCube( p, iFrame, NULL, NULL, p->pPars->nConfLimit, 0, 1 );
+    return RetValue;
+}
+
+int IPdr_ManCheckCubeReduce( Pdr_Man_t * p, Vec_Ptr_t * vClauses, Pdr_Set_t * pCube, int nConfLimit )
+{ 
+    sat_solver * pSat;
+    Vec_Int_t * vLits, * vLitsA;
+    int Lit, RetValue = l_True;
+    int i;
+    Pdr_Set_t * pCla;
+    int iActVar = 0;
+    abctime clk = Abc_Clock();
+
+    pSat = Pdr_ManSolver( p, 1 );
+
+    if ( pCube == NULL ) // solve the property
+    {
+        Lit = toLit( Pdr_ObjSatVar(p, 1, 2, Aig_ManCo(p->pAig, p->iOutCur)) ); // pos literal (property fails)
+        RetValue = sat_solver_addclause( pSat, &Lit, &Lit+1 );
+        assert( RetValue == 1 );
+
+        vLitsA = Vec_IntStart( Vec_PtrSize( vClauses ) );
+        iActVar = Pdr_ManFreeVar( p, 1 );
+        for ( i = 1; i < Vec_PtrSize( vClauses ); ++i )
+            Pdr_ManFreeVar( p, 1 );
+        Vec_PtrForEachEntry( Pdr_Set_t *, vClauses, pCla, i )
+        {
+            vLits = Pdr_ManCubeToLits( p, 1, pCla, 1, 0 );
+            Lit = Abc_Var2Lit( iActVar + i, 1 );
+            Vec_IntPush( vLits, Lit );
+
+            RetValue = sat_solver_addclause( pSat, Vec_IntArray(vLits), Vec_IntArray(vLits) + Vec_IntSize(vLits) );
+            assert( RetValue == 1 );
+            Vec_IntWriteEntry( vLitsA, i, Abc_Var2Lit( iActVar + i, 0 )  );
+        }
+        sat_solver_compress( pSat );
+
+        // solve 
+        RetValue = sat_solver_solve( pSat, Vec_IntArray(vLitsA), Vec_IntArray(vLitsA) + Vec_IntSize(vLitsA), nConfLimit, 0, 0, 0 );
+        Vec_IntFree( vLitsA );
+
+        if ( RetValue == l_Undef )
+            return -1;
+    }
+
+    assert( RetValue != l_Undef );
+    if ( RetValue == l_False ) // UNSAT
+    {
+        int ncorelits, *pcorelits;
+        Vec_Ptr_t * vTemp = NULL;
+        Vec_Bit_t * vMark = NULL;
+
+        ncorelits = sat_solver_final(pSat, &pcorelits);
+        Abc_Print( 1, "UNSAT at the last frame. nCores = %d (out of %d).", ncorelits, Vec_PtrSize( vClauses ) );
+        Abc_PrintTime( 1, "    Time", Abc_Clock() - clk );
+
+        vTemp = Vec_PtrDup( vClauses );
+        vMark = Vec_BitStart( Vec_PtrSize( vClauses) );
+        Vec_PtrClear( vClauses );
+        for ( i = 0; i < ncorelits; ++i )
+        {
+            //Abc_Print( 1, "Core[%d] = lit(%d) = var(%d) = %d-th set\n", i, pcorelits[i], Abc_Lit2Var(pcorelits[i]), Abc_Lit2Var(pcorelits[i]) - iActVar );
+            Vec_BitWriteEntry( vMark, Abc_Lit2Var( pcorelits[i] ) - iActVar, 1 );
+        }
+        
+        Vec_PtrForEachEntry( Pdr_Set_t *, vTemp, pCla, i )
+        {
+            if ( Vec_BitEntry( vMark, i ) )
+            { 
+                Vec_PtrPush( vClauses, pCla );
+                continue;
+            }
+            Pdr_SetDeref( pCla );
+        }
+
+        Vec_PtrFree( vTemp );
+        Vec_BitFree( vMark );
+        RetValue = 1;
+    }
+    else // SAT
+    {
+        Abc_Print( 1, "SAT at the last frame." );
+        Abc_PrintTime( 1, "    Time", Abc_Clock() - clk );
+        RetValue = 0;
+    }
+
+    return RetValue;
+}
+
+int IPdr_ManReduceClauses( Pdr_Man_t * p, Vec_Vec_t * vClauses )
+{
+    int iFrame, RetValue = -1;
+    Vec_Ptr_t * vLast = NULL;
+
+    Pdr_ManCreateSolver( p, (iFrame = 0) );
+    Pdr_ManCreateSolver( p, (iFrame = 1) );
+
+    p->nFrames = iFrame;
+    p->iUseFrame = Abc_MaxInt(iFrame, 1);
+
+    vLast = Vec_VecEntry( vClauses, Vec_VecSize( vClauses ) - 1 );
+    RetValue = IPdr_ManCheckCubeReduce( p, vLast, NULL, p->pPars->nConfLimit );
     return RetValue;
 }
 

@@ -34,6 +34,8 @@ extern Vec_Vec_t *   IPdr_ManSaveClauses( Pdr_Man_t * p, int fDropLast );
 extern int           IPdr_ManRestore( Pdr_Man_t * p, Vec_Vec_t * vClauses, Vec_Int_t * vMap );
 extern int           IPdr_ManSolveInt( Pdr_Man_t * p, int fCheckClauses, int fPushClauses );
 extern int           IPdr_ManCheckCombUnsat( Pdr_Man_t * p );
+extern int           IPdr_ManReduceClauses( Pdr_Man_t * p, Vec_Vec_t * vClauses );
+extern void          IPdr_ManPrintClauses( Vec_Vec_t * vClauses, int kStart, int nRegs );
 
 typedef struct Int_Pair_t_       Int_Pair_t;
 struct Int_Pair_t_
