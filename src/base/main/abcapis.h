@@ -33,6 +33,9 @@
 ///                         BASIC TYPES                              ///
 ////////////////////////////////////////////////////////////////////////
 
+ABC_NAMESPACE_HEADER_START
+
+struct Abc_Frame_t_;
 typedef struct Abc_Frame_t_      Abc_Frame_t;
 
 ////////////////////////////////////////////////////////////////////////
@@ -93,6 +96,7 @@ extern ABC_DLL void   Abc_NtkPrintMiniMapping( int * pArray );
 extern ABC_DLL int    Abc_FrameReadProbStatus( Abc_Frame_t * pAbc );   
 extern ABC_DLL void * Abc_FrameReadCex( Abc_Frame_t * pAbc );    
 
+ABC_NAMESPACE_HEADER_END
 
 #endif
 
