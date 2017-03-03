@@ -271,6 +271,10 @@ SOURCE=.\src\base\abci\abcDsd.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\base\abci\abcEco.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\base\abci\abcExact.c
 # End Source File
 # Begin Source File
@@ -693,6 +697,10 @@ SOURCE=.\src\base\io\ioWriteVerilog.c
 # Begin Group "main"
 
 # PROP Default_Filter ""
+# Begin Source File
+
+SOURCE=.\src\base\main\abcapis.h
+# End Source File
 # Begin Source File
 
 SOURCE=.\src\base\main\libSupport.c

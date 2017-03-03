@@ -34,10 +34,8 @@
 #include "misc/vec/vec.h"
 #include "misc/st/st.h"
 
-ABC_NAMESPACE_HEADER_START
-// the framework containing all data
-typedef struct Abc_Frame_t_      Abc_Frame_t;
-ABC_NAMESPACE_HEADER_END
+// the framework containing all data is defined here
+#include "abcapis.h"
 
 #include "base/cmd/cmd.h"
 #include "base/io/ioAbc.h"
@@ -116,7 +114,7 @@ extern ABC_DLL void            Abc_FrameSetBridgeMode();
 
 extern ABC_DLL int             Abc_FrameReadBmcFrames( Abc_Frame_t * p );              
 extern ABC_DLL int             Abc_FrameReadProbStatus( Abc_Frame_t * p );              
-extern ABC_DLL Abc_Cex_t *     Abc_FrameReadCex( Abc_Frame_t * p );              
+extern ABC_DLL void *          Abc_FrameReadCex( Abc_Frame_t * p );              
 extern ABC_DLL Vec_Ptr_t *     Abc_FrameReadCexVec( Abc_Frame_t * p );  
 extern ABC_DLL Vec_Int_t *     Abc_FrameReadStatusVec( Abc_Frame_t * p );  
 extern ABC_DLL Vec_Ptr_t *     Abc_FrameReadPoEquivs( Abc_Frame_t * p );  

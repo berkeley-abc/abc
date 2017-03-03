@@ -353,11 +353,37 @@ int Bmc_CollapseIrredundantFull( Vec_Str_t * vSop, int nCubes, int nVars )
   SeeAlso     []
 
 ***********************************************************************/
+int Bmc_CollapseExpandRound2( sat_solver * pSat, Vec_Int_t * vLits, Vec_Int_t * vTemp, int nBTLimit, int fOnOffSetLit )
+{
+    // put into new array
+    int i, iLit, nLits;
+    Vec_IntClear( vTemp );
+    Vec_IntForEachEntry( vLits, iLit, i )
+        if ( iLit != -1 )
+            Vec_IntPush( vTemp, iLit );
+    assert( Vec_IntSize(vTemp) > 0 );
+    // assume condition literal
+    if ( fOnOffSetLit >= 0 )
+        sat_solver_push( pSat, fOnOffSetLit );
+    // minimize
+    nLits = sat_solver_minimize_assumptions( pSat, Vec_IntArray(vTemp), Vec_IntSize(vTemp), nBTLimit );
+    Vec_IntShrink( vTemp, nLits );
+    // assume conditional literal
+    if ( fOnOffSetLit >= 0 )
+        sat_solver_pop( pSat );
+    // modify output literas
+    Vec_IntForEachEntry( vLits, iLit, i )
+        if ( iLit != -1 && Vec_IntFind(vTemp, iLit) == -1 )
+            Vec_IntWriteEntry( vLits, i, -1 );
+    return 0;
+}
+
 int Bmc_CollapseExpandRound( sat_solver * pSat, sat_solver * pSatOn, Vec_Int_t * vLits, Vec_Int_t * vNums, Vec_Int_t * vTemp, int nBTLimit, int fCanon, int fOnOffSetLit )
 {
     int fProfile = 0;
     int k, n, iLit, status;
     abctime clk;
+    //return Bmc_CollapseExpandRound2( pSat, vLits, vTemp, nBTLimit, fOnOffSetLit );
     // try removing one literal at a time
     for ( k = Vec_IntSize(vLits) - 1; k >= 0; k-- )
     {
