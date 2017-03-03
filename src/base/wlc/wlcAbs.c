@@ -21,6 +21,7 @@
 #include "wlc.h"
 #include "proof/pdr/pdr.h"
 #include "proof/pdr/pdrInt.h"
+#include "proof/ssw/ssw.h"
 #include "aig/gia/giaAig.h"
 #include "sat/bmc/bmc.h"
 
@@ -1122,9 +1123,39 @@ int Wlc_NtkPdrAbs( Wlc_Ntk_t * p, Wlc_Par_t * pPars )
 
         if ( vClauses && pPars->fCheckCombUnsat )
         {
+            Pdr_Man_t * pPdr2;
+            Aig_Man_t * pAigScorr;
+            Ssw_Pars_t ScorrPars, * pScorrPars = &ScorrPars;
+            int nAnds;
+            
             clk2 = Abc_Clock();
 
-            Pdr_Man_t * pPdr2;
+            Ssw_ManSetDefaultParams( pScorrPars );
+            pScorrPars->fStopWhenGone = 1;
+            pScorrPars->nFramesK = 1;
+            pAigScorr = Ssw_SignalCorrespondence( pAig, pScorrPars );
+            assert ( pAigScorr );
+            nAnds = Aig_ManAndNum( pAigScorr); 
+            Aig_ManStop( pAigScorr );
+
+            if ( nAnds == 0 )
+            {
+                if ( pPars->fVerbose )
+                    Abc_PrintTime( 1, "SCORR proved UNSAT. Time", Abc_Clock() - clk2 );
+                RetValue = 1;
+                Gia_ManStop( pGia );
+                Vec_IntFree( vPisNew );
+                Aig_ManStop( pAig );
+                break;
+            }
+            else if ( pPars->fVerbose )
+            {
+                Abc_Print( 1, "SCORR failed with %d ANDs. ", nAnds);
+                Abc_PrintTime( 1, "Time", Abc_Clock() - clk2 );
+            }
+
+            clk2 = Abc_Clock();
+
             pPdrPars->fVerbose = 0;
             pPdr2 = Pdr_ManStart( pAig, pPdrPars, NULL );
             RetValue = IPdr_ManCheckCombUnsat( pPdr2 );
