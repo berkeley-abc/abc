@@ -1743,6 +1743,14 @@ SOURCE=.\src\sat\bsat\satSolver2i.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\sat\bsat\satSolver3.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\bsat\satSolver3.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\sat\bsat\satStore.c
 # End Source File
 # Begin Source File

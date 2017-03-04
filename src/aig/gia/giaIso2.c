@@ -27,7 +27,7 @@ ABC_NAMESPACE_IMPL_START
 
 
 #define ISO_MASK 0xFF
-static int s_256Primes[ISO_MASK+1] = 
+static unsigned int s_256Primes[ISO_MASK+1] = 
 {
     0x984b6ad9,0x18a6eed3,0x950353e2,0x6222f6eb,0xdfbedd47,0xef0f9023,0xac932a26,0x590eaf55,
     0x97d0a034,0xdc36cd2e,0x22736b37,0xdc9066b0,0x2eb2f98b,0x5d9c7baf,0x85747c9e,0x8aca1055,

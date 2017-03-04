@@ -56,8 +56,8 @@ struct Scl_Con_t_
 #define SCL_OUTPUT_REQ   "output_required"
 #define SCL_OUTPUT_LOAD  "output_load"
 
-#define SCL_DIRECTIVE(ITEM)     "."ITEM
-#define SCL_DEF_DIRECTIVE(ITEM) ".default_"ITEM
+#define SCL_DIRECTIVE(ITEM)     "."#ITEM
+#define SCL_DEF_DIRECTIVE(ITEM) ".default_"#ITEM
 
 #define SCL_NUM          1000
 #define SCL_INFINITY    (0x3FFFFFFF)

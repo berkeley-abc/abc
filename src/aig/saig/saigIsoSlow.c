@@ -120,7 +120,7 @@ static int s_1kPrimes[ISO_MASK+1] = {
 */
 
 #define ISO_MASK 0x3FF
-static int s_1kPrimes[ISO_MASK+1] = 
+static unsigned int s_1kPrimes[ISO_MASK+1] = 
 //#define ISO_MASK 0xFF
 //static int s_1kPrimes[0x3FF+1] = 
 {

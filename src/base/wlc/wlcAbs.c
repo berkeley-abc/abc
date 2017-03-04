@@ -21,6 +21,7 @@
 #include "wlc.h"
 #include "proof/pdr/pdr.h"
 #include "proof/pdr/pdrInt.h"
+#include "proof/ssw/ssw.h"
 #include "aig/gia/giaAig.h"
 #include "sat/bmc/bmc.h"
 
@@ -33,6 +34,9 @@ ABC_NAMESPACE_IMPL_START
 extern Vec_Vec_t *   IPdr_ManSaveClauses( Pdr_Man_t * p, int fDropLast );
 extern int           IPdr_ManRestore( Pdr_Man_t * p, Vec_Vec_t * vClauses, Vec_Int_t * vMap );
 extern int           IPdr_ManSolveInt( Pdr_Man_t * p, int fCheckClauses, int fPushClauses );
+extern int           IPdr_ManCheckCombUnsat( Pdr_Man_t * p );
+extern int           IPdr_ManReduceClauses( Pdr_Man_t * p, Vec_Vec_t * vClauses );
+extern void          IPdr_ManPrintClauses( Vec_Vec_t * vClauses, int kStart, int nRegs );
 
 typedef struct Int_Pair_t_       Int_Pair_t;
 struct Int_Pair_t_
@@ -300,6 +304,40 @@ Wlc_Ntk_t * Wlc_NtkIntroduceChoices( Wlc_Ntk_t * pNtk, Vec_Int_t * vBlacks )
     Wlc_NtkFree( p );
 
     return pNew;
+}
+
+static int Wlc_NtkCexIsReal( Wlc_Ntk_t * pOrig, Abc_Cex_t * pCex ) 
+{
+    Gia_Man_t * pGiaOrig = Wlc_NtkBitBlast( pOrig, NULL, -1, 0, 0, 0, 0 );
+    int f, i;
+    Gia_Obj_t * pObj, * pObjRi;
+
+    Gia_ManConst0(pGiaOrig)->Value = 0;
+    Gia_ManForEachRi( pGiaOrig, pObj, i )
+        pObj->Value = 0;
+    for ( f = 0; f <= pCex->iFrame; f++ ) 
+    {
+        for( i = 0; i < Gia_ManPiNum( pGiaOrig ); i++ ) 
+            Gia_ManPi(pGiaOrig, i)->Value = Abc_InfoHasBit(pCex->pData, pCex->nRegs+pCex->nPis*f + i);
+        Gia_ManForEachRiRo( pGiaOrig, pObjRi, pObj, i )
+            pObj->Value = pObjRi->Value;
+        Gia_ManForEachAnd( pGiaOrig, pObj, i )
+            pObj->Value = Gia_ObjFanin0Copy(pObj) & Gia_ObjFanin1Copy(pObj);
+        Gia_ManForEachCo( pGiaOrig, pObj, i )
+            pObj->Value = Gia_ObjFanin0Copy(pObj);
+        Gia_ManForEachPo( pGiaOrig, pObj, i ) 
+        {
+            if (pObj->Value==1) {
+                Abc_Print( 1, "CEX is real on the original model.\n" );
+                Gia_ManStop(pGiaOrig);
+                return 1;
+            }
+        }
+    }
+
+    // Abc_Print( 1, "CEX is spurious.\n" );
+    Gia_ManStop(pGiaOrig);
+    return 0;
 }
 
 static Wlc_Ntk_t * Wlc_NtkAbs2( Wlc_Ntk_t * pNtk, Vec_Int_t * vBlacks, Vec_Int_t ** pvFlops )
@@ -1077,20 +1115,83 @@ int Wlc_NtkPdrAbs( Wlc_Ntk_t * p, Wlc_Par_t * pPars )
             Gia_ManPrintStats( pGia, NULL );
         }
         Wlc_NtkFree( pAbs );
+        // Gia_AigerWrite( pGia, "abs.aig", 0, 0 );
 
         // try to prove abstracted GIA by converting it to AIG and calling PDR
         pAig = Gia_ManToAigSimple( pGia );
 
-        pPdr = Pdr_ManStart( pAig, pPdrPars, NULL );
-        clk2 = Abc_Clock();
 
+        if ( vClauses && pPars->fCheckCombUnsat )
+        {
+            Pdr_Man_t * pPdr2;
+            
+            if ( Aig_ManAndNum( pAig ) <= 20000 )
+            { 
+                Aig_Man_t * pAigScorr;
+                Ssw_Pars_t ScorrPars, * pScorrPars = &ScorrPars;
+                int nAnds;
+
+                clk2 = Abc_Clock();
+
+                Ssw_ManSetDefaultParams( pScorrPars );
+                pScorrPars->fStopWhenGone = 1;
+                pScorrPars->nFramesK = 1;
+                pAigScorr = Ssw_SignalCorrespondence( pAig, pScorrPars );
+                assert ( pAigScorr );
+                nAnds = Aig_ManAndNum( pAigScorr); 
+                Aig_ManStop( pAigScorr );
+
+                if ( nAnds == 0 )
+                {
+                    if ( pPars->fVerbose )
+                        Abc_PrintTime( 1, "SCORR proved UNSAT. Time", Abc_Clock() - clk2 );
+                    RetValue = 1;
+                    Gia_ManStop( pGia );
+                    Vec_IntFree( vPisNew );
+                    Aig_ManStop( pAig );
+                    break;
+                }
+                else if ( pPars->fVerbose )
+                {
+                    Abc_Print( 1, "SCORR failed with %d ANDs. ", nAnds);
+                    Abc_PrintTime( 1, "Time", Abc_Clock() - clk2 );
+                }
+            }
+
+            clk2 = Abc_Clock();
+
+            pPdrPars->fVerbose = 0;
+            pPdr2 = Pdr_ManStart( pAig, pPdrPars, NULL );
+            RetValue = IPdr_ManCheckCombUnsat( pPdr2 );
+            Pdr_ManStop( pPdr2 );
+            pPdrPars->fVerbose = pPars->fPdrVerbose;
+
+            tPdr += Abc_Clock() - clk2;
+
+            if ( RetValue == 1 )
+            {
+                if ( pPars->fVerbose )
+                    Abc_PrintTime( 1,  "ABS becomes combinationally UNSAT. Time", Abc_Clock() - clk2 );
+                Gia_ManStop( pGia );
+                Vec_IntFree( vPisNew );
+                Aig_ManStop( pAig );
+                break;
+            }
+            
+            if ( pPars->fVerbose )
+                Abc_PrintTime( 1, "Check comb. unsat failed. Time", Abc_Clock() - clk2 );
+        }
+
+        clk2 = Abc_Clock();
+        pPdr = Pdr_ManStart( pAig, pPdrPars, NULL );
         if ( vClauses ) {
             assert( Vec_VecSize( vClauses) >= 2 ); 
             IPdr_ManRestore( pPdr, vClauses, vMap );
         }
         Vec_IntFreeP( &vMap );
 
-        RetValue = IPdr_ManSolveInt( pPdr, pPars->fCheckClauses, pPars->fPushClauses );
+        if ( !vClauses || RetValue != 1 )
+            RetValue = IPdr_ManSolveInt( pPdr, pPars->fCheckClauses, pPars->fPushClauses );
         pPdr->tTotal += Abc_Clock() - clk2;
         tPdr += pPdr->tTotal;
 
@@ -1102,6 +1203,16 @@ int Wlc_NtkPdrAbs( Wlc_Ntk_t * p, Wlc_Par_t * pPars )
             assert( RetValue ); // proved or undecided
             Gia_ManStop( pGia );
             Vec_IntFree( vPisNew );
+            Pdr_ManStop( pPdr );
+            Aig_ManStop( pAig );
+            break;
+        }
+
+        // verify CEX
+        if ( Wlc_NtkCexIsReal( p, pCex ) )
+        {
+            vRefine = NULL;
+            Abc_CexFree( pCex ); // return CEX in the future
             Pdr_ManStop( pPdr );
             Aig_ManStop( pAig );
             break;
