@@ -1921,7 +1921,7 @@ static inline void Ses_ManPrintFuncs( Ses_Man_t * pSes )
     for ( h = 0; h < pSes->nSpecFunc; ++h )
     {
         printf( "  func %d: ", h + 1 );
-        Abc_TtPrintHexRev( stdout, &pSes->pSpec[h >> 2], pSes->nSpecVars );
+        Abc_TtPrintHexRev( stdout, &pSes->pSpec[h << 2], pSes->nSpecVars );
         printf( "\n" );
     }
 
@@ -2357,6 +2357,29 @@ static char * Ses_ManFindMinimumSizeTopDown( Ses_Man_t * pSes, int nMinGates )
 static char * Ses_ManFindMinimumSize( Ses_Man_t * pSes )
 {
     char * pSol = NULL;
+    int i = pSes->nStartGates + 1, fRes;
+
+    /* if more than one function, no CEGAR */
+    if ( pSes->nSpecFunc > 1 )
+    {
+      while ( true )
+      {
+        if ( pSes->fVerbose )
+        {
+          printf( "try with %d gates\n", i );
+        }
+
+        memset( pSes->pTtValues, ~0, 4 * sizeof( word ) );
+        fRes = Ses_ManFindNetworkExact( pSes, i++ );
+        if ( fRes == 2 ) continue;
+        if ( fRes == 0 ) break;
+
+        pSol = Ses_ManExtractSolution( pSes );
+        break;
+      }
+
+      return pSol;
+    }
 
     /* do the arrival times allow for a network? */
     if ( pSes->nMaxDepth != -1 && pSes->pArrTimeProfile )
