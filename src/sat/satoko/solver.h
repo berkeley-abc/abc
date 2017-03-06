@@ -40,6 +40,7 @@ enum {
 
 typedef struct solver_t_ solver_t;
 struct solver_t_ {
+    int status;
     /* User data */
     vec_uint_t *assumptions;
     vec_uint_t *final_conflict;

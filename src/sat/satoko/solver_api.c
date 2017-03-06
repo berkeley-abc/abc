@@ -81,6 +81,7 @@ solver_t * satoko_create()
     solver_t *s = satoko_calloc(solver_t, 1);
 
     satoko_default_opts(&s->opts);
+    s->status = SATOKO_OK;
     /* User data */
     s->assumptions = vec_uint_alloc(0);
     s->final_conflict = vec_uint_alloc(0);
@@ -259,11 +260,12 @@ int satoko_add_clause(solver_t *s, int *lits, int size)
         }
     }
 
-    if (vec_uint_size(s->temp_lits) == 0)
+    if (vec_uint_size(s->temp_lits) == 0) {
+        s->status = SATOKO_ERR;
         return SATOKO_ERR;
-    if (vec_uint_size(s->temp_lits) == 1) {
+    } if (vec_uint_size(s->temp_lits) == 1) {
         solver_enqueue(s, vec_uint_at(s->temp_lits, 0), UNDEF);
-        return (solver_propagate(s) == UNDEF);
+        return (s->status = (solver_propagate(s) == UNDEF));
     }
 
     cref = solver_clause_create(s, s->temp_lits, 0);
@@ -285,11 +287,15 @@ void satoko_assump_pop(solver_t *s)
 
 int satoko_solve(solver_t *s)
 {
-    char status = SATOKO_UNDEC;
+    int status = SATOKO_UNDEC;
 
     assert(s);
     //if (s->opts.verbose)
     //    print_opts(s);
+    if (s->status == SATOKO_ERR) {
+        printf("Satoko in inconsistent state\n");
+        return SATOKO_UNDEC;
+    }
 
     if (!s->opts.no_simplify)
         if (satoko_simplify(s) != SATOKO_OK)
@@ -324,6 +330,7 @@ satoko_stats_t satoko_stats(satoko_t *s)
 
 void satoko_bookmark(satoko_t *s)
 {
+    assert(s->status == SATOKO_OK);
     assert(solver_dlevel(s) == 0);
     s->book_cl_orig = vec_uint_size(s->originals);
     s->book_cl_lrnt = vec_uint_size(s->learnts);
@@ -334,6 +341,7 @@ void satoko_bookmark(satoko_t *s)
 
 void satoko_unbookmark(satoko_t *s)
 {
+    assert(s->status == SATOKO_OK);
     s->book_cl_orig = 0;
     s->book_cl_lrnt = 0;
     s->book_cdb = 0;
@@ -366,6 +374,7 @@ void satoko_reset(satoko_t *s)
     vec_uint_clear(s->stack);
     vec_uint_clear(s->last_dlevel);
     vec_uint_clear(s->stamps);
+    s->status = SATOKO_OK;
     s->var_act_inc = VAR_ACT_INIT_INC;
     s->clause_act_inc = CLAUSE_ACT_INIT_INC;
     s->n_confl_bfr_reduce = s->opts.n_conf_fst_reduce;
@@ -385,6 +394,7 @@ void satoko_rollback(satoko_t *s)
     unsigned n_learnts = vec_uint_size(s->learnts) - s->book_cl_lrnt;
     struct clause **cl_to_remove;
 
+    assert(s->status == SATOKO_OK);
     assert(solver_dlevel(s) == 0);
     if (!s->book_vars) {
         satoko_reset(s);
@@ -454,7 +464,7 @@ void satoko_write_dimacs(satoko_t *s, char *fname, int wrt_lrnt, int zero_var)
     FILE *file;
     unsigned i;
     unsigned n_vars = vec_act_size(s->activity);
-    unsigned n_orig = vec_uint_size(s->originals) + vec_uint_size(s->assumptions);
+    unsigned n_orig = vec_uint_size(s->originals) + vec_uint_size(s->trail);
     unsigned n_lrnts = vec_uint_size(s->learnts);
     unsigned *array;
 
@@ -470,8 +480,8 @@ void satoko_write_dimacs(satoko_t *s, char *fname, int wrt_lrnt, int zero_var)
         return;
     }
     fprintf(file, "p cnf %d %d\n", n_vars, wrt_lrnt ? n_orig + n_lrnts : n_orig);
-    array = vec_uint_data(s->assumptions);
-    for (i = 0; i < vec_uint_size(s->assumptions); i++)
+    array = vec_uint_data(s->trail);
+    for (i = 0; i < vec_uint_size(s->trail); i++)
         fprintf(file, "%d\n", array[i] & 1 ? -(array[i] + !zero_var) : array[i] + !zero_var);
     
     array = vec_uint_data(s->originals);
@@ -479,7 +489,6 @@ void satoko_write_dimacs(satoko_t *s, char *fname, int wrt_lrnt, int zero_var)
         clause_dump(file, clause_read(s, array[i]), !zero_var);
     
     if (wrt_lrnt) {
-        printf(" Lertns %u", n_lrnts);
         array = vec_uint_data(s->learnts);
         for (i = 0; i < n_lrnts; i++)
             clause_dump(file, clause_read(s, array[i]), !zero_var);
