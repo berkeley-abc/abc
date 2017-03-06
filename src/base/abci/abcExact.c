@@ -1428,7 +1428,7 @@ static int Ses_ManCreateClauses( Ses_Man_t * pSes )
                             {
                                 pLits[0] = Abc_Var2Lit( Ses_ManSelectVar( pSes, i, j, k ), 1 );
                                 pLits[1] = Abc_Var2Lit( Ses_ManSelectVar( pSes, ii, j, k ), 1 );
-                                pLits[1] = Abc_Var2Lit( Ses_ManSelectVar( pSes, iii, i, ii ), 1 );
+                                pLits[2] = Abc_Var2Lit( Ses_ManSelectVar( pSes, iii, i, ii ), 1 );
                                 sat_solver_addclause( pSes->pSat, pLits, pLits + 3 );
                             }
 
