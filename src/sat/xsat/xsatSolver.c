@@ -790,7 +790,7 @@ void xSAT_SolverReduceDB( xSAT_Solver_t * s )
 
     limit = nLearnedOld / 2;
 
-    xSAT_UtilSort((void *) learnts_cls, nLearnedOld,
+    xSAT_UtilSort((void **) learnts_cls, nLearnedOld,
                   (int (*)( const void *, const void * )) xSAT_ClauseCompare);
 
     if ( learnts_cls[nLearnedOld / 2]->nLBD <= 3 )

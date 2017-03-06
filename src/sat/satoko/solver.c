@@ -437,7 +437,7 @@ static inline void solver_reduce_cdb(solver_t *s)
 
     limit = (unsigned)(n_learnts * s->opts.learnt_ratio);
 
-    satoko_sort((void *)learnts_cls, n_learnts,
+    satoko_sort((void **)learnts_cls, n_learnts,
             (int (*)(const void *, const void *)) clause_compare);
 
     if (learnts_cls[n_learnts / 2]->lbd <= 3)
