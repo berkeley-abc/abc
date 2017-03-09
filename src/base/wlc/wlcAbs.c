@@ -1060,7 +1060,7 @@ int Wlc_NtkPdrAbs( Wlc_Ntk_t * p, Wlc_Par_t * pPars )
             printf( "\nIteration %d:\n", nIters );
 
         // get abstracted GIA and the set of pseudo-PIs (vPisNew)
-        if ( pPars->fProofRefine )
+        if ( pPars->fAbs2 || pPars->fProofRefine )
         {
             if ( vBlacks == NULL )
                 vBlacks = Wlc_NtkGetBlacks( p, pPars );
@@ -1352,14 +1352,28 @@ int Wlc_NtkAbsCore( Wlc_Ntk_t * p, Wlc_Par_t * pPars )
         Vec_Int_t * vPisNew, * vRefine;  
         Gia_Man_t * pGia, * pTemp;
         Wlc_Ntk_t * pAbs;
+        Vec_Int_t * vBlacks = NULL;
 
         if ( pPars->fVerbose )
             printf( "\nIteration %d:\n", nIters );
 
         // get abstracted GIA and the set of pseudo-PIs (vPisNew)
-        if ( nIters == 1 && pPars->nLimit < ABC_INFINITY )
-            Wlc_NtkSetUnmark( p, pPars, vUnmark );
-        pAbs = Wlc_NtkAbs( p, pPars, vUnmark, &vPisNew, NULL, pPars->fVerbose );
+        if ( pPars->fAbs2 )
+        {
+            if ( vBlacks == NULL )
+                vBlacks = Wlc_NtkGetBlacks( p, pPars );
+            else
+                Wlc_NtkUpdateBlacks( p, pPars, &vBlacks, vUnmark );
+            pAbs = Wlc_NtkAbs2( p, vBlacks, NULL );
+            vPisNew = Vec_IntDup( vBlacks );
+        }
+        else
+        {
+            if ( nIters == 1 && pPars->nLimit < ABC_INFINITY )
+                Wlc_NtkSetUnmark( p, pPars, vUnmark );
+
+            pAbs = Wlc_NtkAbs( p, pPars, vUnmark, &vPisNew, NULL, pPars->fVerbose );
+        }
         pGia = Wlc_NtkBitBlast( pAbs, NULL, -1, 0, 0, 0, 0 );
 
         // if the abstraction has flops with DC-init state,

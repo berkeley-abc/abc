@@ -122,6 +122,7 @@ void Wlc_ManSetDefaultParams( Wlc_Par_t * pPars )
     pPars->fProofRefine  =            0;   // Use proof-based refinement
     pPars->fHybrid       =            1;   // Use a hybrid of CBR and PBR
     pPars->fCheckCombUnsat =          0;   // Check if ABS becomes comb. unsat
+    pPars->fAbs2         =            0;   // Use UFAR style createAbs
     pPars->fVerbose      =            0;   // verbose output`
     pPars->fPdrVerbose   =            0;   // show verbose PDR output
 }
