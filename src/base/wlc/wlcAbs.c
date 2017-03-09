@@ -1331,6 +1331,7 @@ int Wlc_NtkPdrAbs( Wlc_Ntk_t * p, Wlc_Par_t * pPars )
 int Wlc_NtkAbsCore( Wlc_Ntk_t * p, Wlc_Par_t * pPars )
 {
     abctime clk = Abc_Clock();
+    Vec_Int_t * vBlacks = NULL;
     int nIters, nNodes, nDcFlops, RetValue = -1;
     // start the bitmap to mark objects that cannot be abstracted because of refinement
     // currently, this bitmap is empty because abstraction begins without refinement
@@ -1352,7 +1353,6 @@ int Wlc_NtkAbsCore( Wlc_Ntk_t * p, Wlc_Par_t * pPars )
         Vec_Int_t * vPisNew, * vRefine;  
         Gia_Man_t * pGia, * pTemp;
         Wlc_Ntk_t * pAbs;
-        Vec_Int_t * vBlacks = NULL;
 
         if ( pPars->fVerbose )
             printf( "\nIteration %d:\n", nIters );
@@ -1431,6 +1431,7 @@ int Wlc_NtkAbsCore( Wlc_Ntk_t * p, Wlc_Par_t * pPars )
         Vec_IntFree( vRefine );
         Abc_CexFree( pCex );
     }
+    Vec_IntFree( vBlacks );
     Vec_BitFree( vUnmark );
     // report the result
     if ( pPars->fVerbose )
