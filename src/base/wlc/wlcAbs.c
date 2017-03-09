@@ -1028,6 +1028,7 @@ int Wlc_NtkPdrAbs( Wlc_Ntk_t * p, Wlc_Par_t * pPars )
     Vec_Int_t * vFfOld = NULL, * vFfNew = NULL, * vMap = NULL;
     Vec_Int_t * vBlacks = NULL;
     int nIters, nNodes, nDcFlops, RetValue = -1, nGiaFfNumOld = -1;
+    int nTotalCla = 0;
     // start the bitmap to mark objects that cannot be abstracted because of refinement
     // currently, this bitmap is empty because abstraction begins without refinement
     Vec_Bit_t * vUnmark = Vec_BitStart( Wlc_NtkObjNumMax(p) );
@@ -1247,6 +1248,13 @@ int Wlc_NtkPdrAbs( Wlc_Ntk_t * p, Wlc_Par_t * pPars )
 
         // spurious CEX, continue solving
         vClauses = IPdr_ManSaveClauses( pPdr, 0 );
+        if ( vClauses && pPars->fVerbose )
+        {
+            int i;
+            Vec_Ptr_t * vVec; 
+            Vec_VecForEachLevel( vClauses, vVec, i )
+                nTotalCla += Vec_PtrSize( vVec ); 
+        }
 
         Pdr_ManStop( pPdr );
 
@@ -1290,6 +1298,8 @@ int Wlc_NtkPdrAbs( Wlc_Ntk_t * p, Wlc_Par_t * pPars )
     tTotal = Abc_Clock() - clk;
     Abc_PrintTime( 1, "Time", tTotal );
 
+    if ( pPars->fVerbose )
+        Abc_Print( 1, "PDRA reused %d clauses.\n", nTotalCla );
     if ( pPars->fVerbose )
     {
         ABC_PRTP( "PDR          ", tPdr,                          tTotal );
