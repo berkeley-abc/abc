@@ -265,8 +265,8 @@ Pdr_Man_t * Pdr_ManStart( Aig_Man_t * pAig, Pdr_Par_t * pPars, Vec_Int_t * vPrio
         p->vPrio = vPrioInit;
     else if ( pPars->fFlopPrio )
         p->vPrio = Pdr_ManDeriveFlopPriorities2(p->pGia, 1);
-    else if ( p->pPars->fNewXSim )
-        p->vPrio = Vec_IntStartNatural( Aig_ManRegNum(pAig) );
+//    else if ( p->pPars->fNewXSim )
+//        p->vPrio = Vec_IntStartNatural( Aig_ManRegNum(pAig) );
     else 
         p->vPrio = Vec_IntStart( Aig_ManRegNum(pAig) );
     p->vLits    = Vec_IntAlloc( 100 );  // array of literals
@@ -281,7 +281,7 @@ Pdr_Man_t * Pdr_ManStart( Aig_Man_t * pAig, Pdr_Par_t * pPars, Vec_Int_t * vPrio
     p->vRes     = Vec_IntAlloc( 100 );  // final result
     p->pCnfMan  = Cnf_ManStart();
     // ternary simulation
-    p->pTxs     = pPars->fNewXSim ? Txs_ManStart( p, pAig, p->vPrio ) : NULL;
+    p->pTxs3    = pPars->fNewXSim ? Txs3_ManStart( p, pAig, p->vPrio ) : NULL;
     // additional AIG data-members
     if ( pAig->pFanData == NULL )
         Aig_ManFanoutStart( pAig );
@@ -369,7 +369,7 @@ void Pdr_ManStop( Pdr_Man_t * p )
     Vec_IntFreeP( &p->vMapPpi2Ff );
     // terminary simulation
     if ( p->pPars->fNewXSim )
-        Txs_ManStop( p->pTxs );
+        Txs3_ManStop( p->pTxs3 );
     // internal use
     Vec_IntFreeP( &p->vPrio   );  // priority flops
     Vec_IntFree( p->vLits     );  // array of literals

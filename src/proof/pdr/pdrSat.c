@@ -147,7 +147,7 @@ Vec_Int_t * Pdr_ManCubeToLits( Pdr_Man_t * p, int k, Pdr_Set_t * pCube, int fCom
     int i, iVar, iVarMax = 0;
     abctime clk = Abc_Clock();
     Vec_IntClear( p->vLits );
-    assert( !(fNext && fCompl) );
+//    assert( !(fNext && fCompl) );
     for ( i = 0; i < pCube->nLits; i++ )
     {
         if ( pCube->Lits[i] == -1 )
@@ -362,7 +362,7 @@ int Pdr_ManCheckCube( Pdr_Man_t * p, int k, Pdr_Set_t * pCube, Pdr_Set_t ** ppPr
         {
             abctime clk = Abc_Clock();
             if ( p->pPars->fNewXSim )
-                *ppPred = Txs_ManTernarySim( p->pTxs, k, pCube );
+                *ppPred = Txs3_ManTernarySim( p->pTxs3, k, pCube );
             else
                 *ppPred = Pdr_ManTernarySim( p, k, pCube );
             p->tTsim += Abc_Clock() - clk;
