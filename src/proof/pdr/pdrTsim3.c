@@ -187,14 +187,14 @@ printf( "%d %d %d \n", Vec_IntSize(p->vCiObjs), Vec_IntSize(p->vFosPre), Vec_Int
 ***********************************************************************/
 Pdr_Set_t * Txs3_ManTernarySim( Txs3_Man_t * p, int k, Pdr_Set_t * pCube )
 {
-    int fTryNew = 1;
-    int fUseLit = 1;
+//    int fTryNew = 1;
+//    int fUseLit = 1;
     int fVerbose = 0;
     sat_solver * pSat;
     Pdr_Set_t * pRes;
     Gia_Obj_t * pObj;
     Vec_Int_t * vVar2Ids, * vLits;
-    int i, Lit, LitAux, Var, Value, RetValue, nCoreLits, * pCoreLits, nLits;
+    int i, Lit, LitAux, Var, Value, RetValue, nCoreLits, * pCoreLits;//, nLits;
 //    if ( k == 0 )
 //        fVerbose = 1;
     // collect CO objects

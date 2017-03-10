@@ -5403,6 +5403,10 @@ SOURCE=.\src\proof\pdr\pdrTsim2.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\proof\pdr\pdrTsim3.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\proof\pdr\pdrUtil.c
 # End Source File
 # End Group
