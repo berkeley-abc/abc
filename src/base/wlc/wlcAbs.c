@@ -625,6 +625,7 @@ static Vec_Int_t * Wlc_NtkGetBlacks( Wlc_Ntk_t * p, Wlc_Par_t * pPars )
     Vec_Int_t * vBlacks = Vec_IntAlloc( 100 ) ;
     Wlc_Obj_t * pObj; int i, Count[4] = {0};
     Vec_Bit_t * vMarks = NULL;
+    int nTotal = 0;
 
     vMarks = Wlc_NtkMarkLimit( p, pPars ) ; 
 
@@ -634,6 +635,7 @@ static Vec_Int_t * Wlc_NtkGetBlacks( Wlc_Ntk_t * p, Wlc_Par_t * pPars )
         {
             if ( Wlc_ObjRange(pObj) >= pPars->nBitsAdd )
             {
+                ++nTotal;
                 if ( vMarks == NULL )
                     Vec_IntPushUniqueOrder( vBlacks, Wlc_ObjId(p, pObj) ), Count[0]++;
                 else if ( Vec_BitEntry( vMarks, i ) )
@@ -645,6 +647,7 @@ static Vec_Int_t * Wlc_NtkGetBlacks( Wlc_Ntk_t * p, Wlc_Par_t * pPars )
         {
             if ( Wlc_ObjRange(pObj) >= pPars->nBitsMul )
             {
+                ++nTotal;
                 if ( vMarks == NULL )
                     Vec_IntPushUniqueOrder( vBlacks, Wlc_ObjId(p, pObj) ), Count[1]++;
                 else if ( Vec_BitEntry( vMarks, i ) )
@@ -656,6 +659,7 @@ static Vec_Int_t * Wlc_NtkGetBlacks( Wlc_Ntk_t * p, Wlc_Par_t * pPars )
         {
             if ( Wlc_ObjRange(pObj) >= pPars->nBitsMux )
             {
+                ++nTotal;
                 if ( vMarks == NULL )
                     Vec_IntPushUniqueOrder( vBlacks, Wlc_ObjId(p, pObj) ), Count[2]++;
                 else if ( Vec_BitEntry( vMarks, i ) )
@@ -667,6 +671,7 @@ static Vec_Int_t * Wlc_NtkGetBlacks( Wlc_Ntk_t * p, Wlc_Par_t * pPars )
         {
             if ( Wlc_ObjRange(pObj) >= pPars->nBitsFlop )
             {
+                ++nTotal;
                 if ( vMarks == NULL )
                     Vec_IntPushUniqueOrder( vBlacks, Wlc_ObjId( p, Wlc_ObjFo2Fi( p, pObj ) ) ), Count[3]++;
                 else if ( Vec_BitEntry( vMarks, i ) )
@@ -678,7 +683,7 @@ static Vec_Int_t * Wlc_NtkGetBlacks( Wlc_Ntk_t * p, Wlc_Par_t * pPars )
     if ( vMarks )
         Vec_BitFree( vMarks );
     if ( pPars->fVerbose )
-        printf( "Abstraction engine marked %d adds/subs, %d muls/divs, %d muxes, and %d flops to be abstracted away.\n", Count[0], Count[1], Count[2], Count[3] );
+        printf( "Abstraction engine marked %d adds/subs, %d muls/divs, %d muxes, and %d flops to be abstracted away (out of %d signals).\n", Count[0], Count[1], Count[2], Count[3], nTotal );
     return vBlacks;
 }
 
