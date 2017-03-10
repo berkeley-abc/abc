@@ -148,7 +148,7 @@ static Vec_Int_t * Wlc_NtkGetCoreSels( Gia_Man_t * pFrames, int nFrames, int num
     return vCores;
 }
 
-static Gia_Man_t * Wlc_NtkUnrollWithCex(Wlc_Ntk_t * pChoice, Abc_Cex_t * pCex, int nbits_old_pis, int num_sel_pis, int * p_num_ppis, int sel_pi_first) 
+static Gia_Man_t * Wlc_NtkUnrollWithCex(Wlc_Ntk_t * pChoice, Abc_Cex_t * pCex, int nbits_old_pis, int num_sel_pis, int * p_num_ppis, int sel_pi_first, int fUsePPI) 
 {
     Gia_Man_t * pGiaChoice = Wlc_NtkBitBlast( pChoice, NULL, -1, 0, 0, 0, 0 );
     int nbits_new_pis = Wlc_NtkNumPiBits( pChoice );
@@ -179,8 +179,15 @@ static Gia_Man_t * Wlc_NtkUnrollWithCex(Wlc_Ntk_t * pChoice, Abc_Cex_t * pCex, i
             if ( i >= nbits_old_pis && i < nbits_old_pis + num_ppis + num_sel_pis ) 
             {
                 is_sel_pi = sel_pi_first ? (i < nbits_old_pis + num_sel_pis) : (i >= nbits_old_pis + num_ppis);
-                if(f == 0 || !is_sel_pi)
+                if( f == 0 && is_sel_pi )
                     Gia_ManPi(pGiaChoice, i)->Value = Gia_ManAppendCi(pFrames);
+                if( !is_sel_pi )
+                {
+                    if ( !fUsePPI )
+                        Gia_ManPi(pGiaChoice, i)->Value = Gia_ManAppendCi(pFrames);
+                    else
+                        Gia_ManPi(pGiaChoice, i)->Value = Abc_InfoHasBit(pCex->pData, pCex->nRegs+pCex->nPis*f + i + num_undc_pis);
+                }
             } 
             else if (i < nbits_old_pis) 
             {
@@ -446,8 +453,13 @@ static int Wlc_NtkProofRefine( Wlc_Ntk_t * p, Wlc_Par_t * pPars, Abc_Cex_t * pCe
     }
 
     pNtkWithChoices = vBlacks ? Wlc_NtkIntroduceChoices( p, vBlacks ) : NULL;
-    pGiaFrames = Wlc_NtkUnrollWithCex( pNtkWithChoices, pCex, Wlc_NtkNumPiBits( p ), Vec_IntSize( vBlacks ), &num_ppis, 0 );
-    vCoreSels = Wlc_NtkGetCoreSels( pGiaFrames, pCex->iFrame+1, Vec_IntSize( vBlacks ), num_ppis, vChoiceMark, 0, 0, pPars );
+    pGiaFrames = Wlc_NtkUnrollWithCex( pNtkWithChoices, pCex, Wlc_NtkNumPiBits( p ), Vec_IntSize( vBlacks ), &num_ppis, 0, pPars->fProofUsePPI );
+
+    if ( !pPars->fProofUsePPI )
+        vCoreSels = Wlc_NtkGetCoreSels( pGiaFrames, pCex->iFrame+1, Vec_IntSize( vBlacks ), num_ppis, vChoiceMark, 0, 0, pPars );
+    else
+        vCoreSels = Wlc_NtkGetCoreSels( pGiaFrames, pCex->iFrame+1, Vec_IntSize( vBlacks ), 0, vChoiceMark, 0, 0, pPars );
+
     Wlc_NtkFree( pNtkWithChoices );
     Gia_ManStop( pGiaFrames );
     Vec_BitFree( vUnmark );

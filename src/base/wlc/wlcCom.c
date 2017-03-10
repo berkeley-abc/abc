@@ -462,7 +462,7 @@ int Abc_CommandPdrAbs( Abc_Frame_t * pAbc, int argc, char ** argv )
     int c;
     Wlc_ManSetDefaultParams( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "AMXFILabrcdpmuxvwh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "AMXFILabrcdipmuxvwh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -550,6 +550,9 @@ int Abc_CommandPdrAbs( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'd':
             pPars->fAbs2 ^= 1;
             break;
+        case 'i':
+            pPars->fProofUsePPI ^= 1;
+            break;
         case 'p':
             pPars->fPushClauses ^= 1;
             break;
@@ -579,7 +582,7 @@ int Abc_CommandPdrAbs( Abc_Frame_t * pAbc, int argc, char ** argv )
     Wlc_NtkPdrAbs( pNtk, pPars );
     return 0;
 usage:
-    Abc_Print( -2, "usage: %%pdra [-AMXFIL num] [-abrcdpmxuvwh]\n" );
+    Abc_Print( -2, "usage: %%pdra [-AMXFIL num] [-abrcdipmxuvwh]\n" );
     Abc_Print( -2, "\t         abstraction for word-level networks\n" );
     Abc_Print( -2, "\t-A num : minimum bit-width of an adder/subtractor to abstract [default = %d]\n", pPars->nBitsAdd );
     Abc_Print( -2, "\t-M num : minimum bit-width of a multiplier to abstract [default = %d]\n",        pPars->nBitsMul );
@@ -593,6 +596,7 @@ usage:
     Abc_Print( -2, "\t-r     : toggle using both cex-based and proof-based refinement [default = %s]\n",                  pPars->fHybrid? "yes": "no" );
     Abc_Print( -2, "\t-c     : toggle checking clauses in the reloaded trace [default = %s]\n",        pPars->fCheckClauses? "yes": "no" );
     Abc_Print( -2, "\t-d     : toggle using another way of creating abstractions [default = %s]\n",    pPars->fAbs2? "yes": "no" );
+    Abc_Print( -2, "\t-i     : toggle using PPI values in proof-based refinement [default = %s]\n",    pPars->fProofUsePPI? "yes": "no" );
     Abc_Print( -2, "\t-u     : toggle checking combinationally unsat [default = %s]\n",                pPars->fCheckCombUnsat? "yes": "no" );
     Abc_Print( -2, "\t-p     : toggle pushing clauses in the reloaded trace [default = %s]\n",         pPars->fPushClauses? "yes": "no" );
     Abc_Print( -2, "\t-m     : toggle refining the whole MFFC of a PPI [default = %s]\n",              pPars->fMFFC? "yes": "no" );

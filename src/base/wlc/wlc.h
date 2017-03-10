@@ -179,6 +179,7 @@ struct Wlc_Par_t_
     int                    fHybrid;            // Use a hybrid of CBR and PBR
     int                    fCheckCombUnsat;    // Check if ABS becomes comb. unsat
     int                    fAbs2;              // Use UFAR style createAbs
+    int                    fProofUsePPI;       // Use PPI values in PBR
     int                    fVerbose;           // verbose output
     int                    fPdrVerbose;        // verbose output
 };
