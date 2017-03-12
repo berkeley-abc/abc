@@ -32664,13 +32664,14 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9Fraig( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
+    extern Gia_Man_t * Cec2_ManSimulateTest( Gia_Man_t * p, Cec_ParFra_t * pPars );
     Cec_ParFra_t ParsFra, * pPars = &ParsFra;
     Gia_Man_t * pTemp;
-    int c;
+    int c, fUseAlgo = 0;
     Cec_ManFraSetDefaultParams( pPars );
     pPars->fSatSweeping = 1;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "WRILDCrmdcwvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "WRILDCrmdcnwvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -32752,6 +32753,9 @@ int Abc_CommandAbc9Fraig( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'c':
             pPars->fRunCSat ^= 1;
             break;
+        case 'n':
+            fUseAlgo ^= 1;
+            break;
         case 'w':
             pPars->fVeryVerbose ^= 1;
             break;
@@ -32767,12 +32771,15 @@ int Abc_CommandAbc9Fraig( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Abc_CommandAbc9Fraig(): There is no AIG.\n" );
         return 1;
     }
-    pTemp = Cec_ManSatSweeping( pAbc->pGia, pPars, 0 );
+    if ( fUseAlgo )
+        pTemp = Cec2_ManSimulateTest( pAbc->pGia, pPars );
+    else
+        pTemp = Cec_ManSatSweeping( pAbc->pGia, pPars, 0 );
     Abc_FrameUpdateGia( pAbc, pTemp );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &fraig [-WRILDC <num>] [-rmdcwvh]\n" );
+    Abc_Print( -2, "usage: &fraig [-WRILDC <num>] [-rmdcnwvh]\n" );
     Abc_Print( -2, "\t         performs combinational SAT sweeping\n" );
     Abc_Print( -2, "\t-W num : the number of simulation words [default = %d]\n", pPars->nWords );
     Abc_Print( -2, "\t-R num : the number of simulation rounds [default = %d]\n", pPars->nRounds );
@@ -32784,6 +32791,7 @@ usage:
     Abc_Print( -2, "\t-m     : toggle miter vs. any circuit [default = %s]\n", pPars->fCheckMiter? "miter": "circuit" );
     Abc_Print( -2, "\t-d     : toggle using double output miters [default = %s]\n", pPars->fDualOut? "yes": "no" );
     Abc_Print( -2, "\t-c     : toggle using circuit-based solver [default = %s]\n", pPars->fRunCSat? "yes": "no" );
+    Abc_Print( -2, "\t-n     : toggle using new implementation [default = %s]\n", fUseAlgo? "yes": "no" );
     Abc_Print( -2, "\t-w     : toggle printing even more verbose information [default = %s]\n", pPars->fVeryVerbose? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", pPars->fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");

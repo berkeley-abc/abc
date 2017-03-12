@@ -22,6 +22,7 @@
 #include "misc/util/utilTruth.h"
 #include "sat/satoko/satoko.h"
 #include "sat/satoko/solver.h"
+#include "cec.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -35,6 +36,7 @@ struct Cec2_Par_t_
 {
     int              nSimWords;     // simulation words
     int              nSimRounds;    // simulation rounds
+    int              nItersMax;     // max number of iterations
     int              nConfLimit;    // SAT solver conflict limit
     int              fIsMiter;      // this is a miter
     int              fUseCones;     // use logic cones
@@ -93,13 +95,14 @@ static inline void   Cec2_ObjCleanSatId( Gia_Man_t * p, Gia_Obj_t * pObj )      
 void Cec2_SetDefaultParams( Cec2_Par_t * p )
 {
     memset( p, 0, sizeof(Cec2_Par_t) );
-    p->nSimWords      =       8;    // simulation words
+    p->nSimWords      =      12;    // simulation words
     p->nSimRounds     =       4;    // simulation rounds
+    p->nItersMax      =      10;    // max number of iterations
     p->nConfLimit     =    1000;    // conflict limit at a node
     p->fIsMiter       =       0;    // this is a miter
-    p->fUseCones      =       1;     // use logic cones
+    p->fUseCones      =       0;     // use logic cones
     p->fVeryVerbose   =       0;    // verbose stats
-    p->fVerbose       =       1;    // verbose stats
+    p->fVerbose       =       0;    // verbose stats
 }  
 
 /**Function*************************************************************
@@ -447,7 +450,7 @@ void Cec2_ManSimulateCis( Gia_Man_t * p )
     int i, Id;
     Gia_ManForEachCiId( p, Id, i )
         Cec2_ObjSimCi( p, Id );
-    p->iPatsPi = 1;
+    p->iPatsPi = 0;
 }
 Abc_Cex_t * Cec2_ManDeriveCex( Gia_Man_t * p, int iOut, int iPat )
 {
@@ -885,7 +888,7 @@ void Cec2_ManPrintStats( Gia_Man_t * p, Cec2_Par_t * pPars, Cec2_Man_t * pMan )
     printf( "F =%5d ", pMan ? pMan->nSatUndec : 0 );
     Gia_ManEquivPrintClasses( p, pPars->fVeryVerbose, 0 );
 }
-int Cec2_ManPerformSweeping( Gia_Man_t * p, Cec2_Par_t * pPars )
+int Cec2_ManPerformSweeping( Gia_Man_t * p, Cec2_Par_t * pPars, Gia_Man_t ** ppNew )
 {
     Cec2_Man_t * pMan = Cec2_ManCreate( p, pPars ); 
     Gia_Obj_t * pObj, * pRepr, * pObjNew; 
@@ -923,7 +926,7 @@ int Cec2_ManPerformSweeping( Gia_Man_t * p, Cec2_Par_t * pPars )
     }
     // perform sweeping
     //pMan = Cec2_ManCreate( p, pPars );
-    for ( Iter = 0; fDisproved; Iter++ )
+    for ( Iter = 0; fDisproved && Iter < pPars->nItersMax; Iter++ )
     {
         fDisproved = 0;
         Cec2_ManSimulateCis( p );
@@ -960,7 +963,7 @@ int Cec2_ManPerformSweeping( Gia_Man_t * p, Cec2_Par_t * pPars )
             if ( Cec2_ManSweepNode(pMan, i) )
                 continue;
             pObj->Value = ~0;
-            //Vec_IntPushThree( pMan->vCexTriples, Gia_ObjId(p, pRepr), i, Abc_Var2Lit(p->iPatsPi, pObj->fPhase ^ pRepr->fPhase) );
+            Vec_IntPushThree( pMan->vCexTriples, Gia_ObjId(p, pRepr), i, Abc_Var2Lit(p->iPatsPi, pObj->fPhase ^ pRepr->fPhase) );
             // mark nodes as disproved
             fDisproved = 1;
             //if ( Iter > 5 )
@@ -978,21 +981,40 @@ int Cec2_ManPerformSweeping( Gia_Man_t * p, Cec2_Par_t * pPars )
         }
         Cec2_ManPrintStats( p, pPars, pMan );
     }
+    // finish the AIG, if it is not finished
+    if ( ppNew )
+    {
+        Gia_ManForEachAnd( p, pObj, i )
+            if ( !~pObj->Value ) 
+                pObj->Value = Gia_ManHashAnd( pMan->pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+        Gia_ManForEachCo( p, pObj, i )
+            pObj->Value = Gia_ManAppendCo( pMan->pNew, Gia_ObjFanin0Copy(pObj) );
+        *ppNew = Gia_ManCleanup( pMan->pNew );
+        (*ppNew)->pName = Abc_UtilStrsav( p->pName );
+        (*ppNew)->pSpec = Abc_UtilStrsav( p->pSpec );
+    }
     Cec2_ManDestroy( pMan );
     //Gia_ManEquivPrintClasses( p, 1, 0 );
     return p->pCexSeq ? 0 : 1;
 }
-void Cec2_ManSimulateTest( Gia_Man_t * p )
+Gia_Man_t * Cec2_ManSimulateTest( Gia_Man_t * p, Cec_ParFra_t * pPars0 )
 {
+    Gia_Man_t * pNew = NULL;
     //abctime clk = Abc_Clock();
     Cec2_Par_t Pars, * pPars = &Pars;
     Cec2_SetDefaultParams( pPars );
+    // set resource limits
+//    pPars->nSimWords  = pPars0->nWords;     // simulation words
+//    pPars->nSimRounds = pPars0->nRounds;    // simulation rounds
+//    pPars->nItersMax  = pPars0->nItersMax;  // max number of iterations
+    pPars->nConfLimit = pPars0->nBTLimit;   // conflict limit at a node
+    pPars->fVerbose   = pPars0->fVerbose;
 //    Gia_ManComputeGiaEquivs( p, 100000, 0 );
 //    Gia_ManEquivPrintClasses( p, 1, 0 );
-    Cec2_ManPerformSweeping( p, pPars );
+    Cec2_ManPerformSweeping( p, pPars, &pNew );
     //Abc_PrintTime( 1, "SAT sweeping time", Abc_Clock() - clk );
+    return pNew;
 }
-
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
