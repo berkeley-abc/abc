@@ -54,6 +54,35 @@ int IntPairPtrCompare ( Int_Pair_t ** a, Int_Pair_t ** b )
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
+void Wlc_NtkPrintNtk( Wlc_Ntk_t * p )
+{
+    int i;
+    Wlc_Obj_t * pObj;
+
+    Abc_Print( 1, "PIs:");
+    Wlc_NtkForEachPi( p, pObj, i )
+        Abc_Print( 1, " %s", Wlc_ObjName(p, Wlc_ObjId(p, pObj)) );
+    Abc_Print( 1, "\n\n");
+
+    Abc_Print( 1, "POs:");
+    Wlc_NtkForEachPo( p, pObj, i )
+        Abc_Print( 1, " %s", Wlc_ObjName(p, Wlc_ObjId(p, pObj)) );
+    Abc_Print( 1, "\n\n");
+
+    Abc_Print( 1, "FO(Fi)s:");
+    Wlc_NtkForEachCi( p, pObj, i )
+        if ( !Wlc_ObjIsPi( pObj ) )
+            Abc_Print( 1, " %s(%s)", Wlc_ObjName(p, Wlc_ObjId(p, pObj)), Wlc_ObjName(p, Wlc_ObjId(p, Wlc_ObjFo2Fi(p, pObj))) );
+    Abc_Print( 1, "\n\n");
+
+    Abc_Print( 1, "Objs:\n");
+    Wlc_NtkForEachObj( p, pObj, i )
+    {
+        if ( !Wlc_ObjIsCi(pObj) )
+           Wlc_NtkPrintNode( p, pObj ) ;
+    }
+}
+
 void Wlc_NtkAbsGetSupp_rec( Wlc_Ntk_t * p, Wlc_Obj_t * pObj, Vec_Bit_t * vCiMarks, Vec_Int_t * vSuppRefs, Vec_Int_t * vSuppList )
 {
     int i, iFanin, iObj;
@@ -106,6 +135,7 @@ void Wlc_NtkAbsAnalyzeRefine( Wlc_Ntk_t * p, Vec_Int_t * vBlacks, Vec_Bit_t * vU
     vDeltaB    = Vec_IntAlloc( Vec_IntSize(vBlacks) );
     vSuppList  = Vec_IntAlloc( Wlc_NtkCiNum(p) + Vec_IntSize(vBlacks) );
     vSuppRefs  = Vec_IntAlloc( Wlc_NtkObjNumMax( p ) );
+
 
     Vec_IntFill( vSuppRefs, Wlc_NtkObjNumMax( p ), 0 );
 
@@ -1177,6 +1207,7 @@ int Wlc_NtkPdrAbs( Wlc_Ntk_t * p, Wlc_Par_t * pPars )
         pPdrPars->nRestLimit = 500; // reset queue or proof-obligations when it gets larger than this
     } 
 
+    
     // perform refinement iterations
     for ( nIters = 1; nIters < pPars->nIterMax; nIters++ )
     {
