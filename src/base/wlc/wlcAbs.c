@@ -54,6 +54,33 @@ int IntPairPtrCompare ( Int_Pair_t ** a, Int_Pair_t ** b )
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
+void Wlc_NtkAbsGetSupp_rec( Wlc_Ntk_t * p, Wlc_Obj_t * pObj, Vec_Bit_t * vCiMarks, Vec_Int_t * vSuppRefs, Vec_Int_t * vSuppList )
+{
+    int i, iFanin, iObj;
+    if ( pObj->Mark ) // visited
+        return;
+    pObj->Mark = 1;
+    iObj = Wlc_ObjId( p, pObj );
+    if ( Vec_BitEntry( vCiMarks, iObj ) )
+    {
+        if ( vSuppRefs )
+            Vec_IntAddToEntry( vSuppRefs, iObj, 1 );
+        if ( vSuppList )
+            Vec_IntPush( vSuppList, iObj );
+        return;
+    }
+    Wlc_ObjForEachFanin( pObj, iFanin, i )
+        Wlc_NtkAbsGetSupp_rec( p, Wlc_NtkObj(p, iFanin), vCiMarks, vSuppRefs, vSuppList );
+}
+
+void Wlc_NtkAbsGetSupp( Wlc_Ntk_t * p, Wlc_Obj_t * pObj, Vec_Bit_t * vCiMarks, Vec_Int_t * vSuppRefs, Vec_Int_t * vSuppList)
+{
+    assert( vSuppRefs || vSuppList );
+    Wlc_NtkCleanMarks( p );
+
+    Wlc_NtkAbsGetSupp_rec( p, pObj, vCiMarks, vSuppRefs, vSuppList );
+}
+
 int Wlc_NtkNumPiBits( Wlc_Ntk_t * pNtk ) 
 {
     int num = 0;
@@ -63,6 +90,92 @@ int Wlc_NtkNumPiBits( Wlc_Ntk_t * pNtk )
         num += Wlc_ObjRange(pObj);
     }
     return num;
+}
+
+void Wlc_NtkAbsAnalyzeRefine( Wlc_Ntk_t * p, Vec_Int_t * vBlacks, Vec_Bit_t * vUnmark, int * nDisj, int * nNDisj )
+{
+    Vec_Bit_t * vCurCis, * vCandCis;
+    Vec_Int_t * vSuppList;
+    Vec_Int_t * vDeltaB;
+    Vec_Int_t * vSuppRefs;
+    int i, Entry;
+    Wlc_Obj_t * pObj;
+    
+    vCurCis    = Vec_BitStart( Wlc_NtkObjNumMax( p ) );
+    vCandCis   = Vec_BitStart( Wlc_NtkObjNumMax( p ) );
+    vDeltaB    = Vec_IntAlloc( Vec_IntSize(vBlacks) );
+    vSuppList  = Vec_IntAlloc( Wlc_NtkCiNum(p) + Vec_IntSize(vBlacks) );
+    vSuppRefs  = Vec_IntAlloc( Wlc_NtkObjNumMax( p ) );
+
+    Vec_IntFill( vSuppRefs, Wlc_NtkObjNumMax( p ), 0 );
+
+    Wlc_NtkForEachCi( p, pObj, i )
+    {
+        Vec_BitWriteEntry( vCurCis, Wlc_ObjId(p, pObj), 1 ) ;
+        Vec_BitWriteEntry( vCandCis, Wlc_ObjId(p, pObj), 1 ) ;
+    }
+
+    Vec_IntForEachEntry( vBlacks, Entry, i )
+    {
+        Vec_BitWriteEntry( vCurCis, Entry, 1 );
+        if ( !Vec_BitEntry( vUnmark, Entry ) )
+            Vec_BitWriteEntry( vCandCis, Entry, 1 );
+        else
+            Vec_IntPush( vDeltaB, Entry );
+    }
+    assert( Vec_IntSize( vDeltaB ) );
+    
+    Wlc_NtkForEachCo( p, pObj, i )
+        Wlc_NtkAbsGetSupp( p, pObj, vCurCis, vSuppRefs, NULL );
+    
+    /*
+    Abc_Print( 1, "SuppCurrentAbs =" );
+    Wlc_NtkForEachObj( p, pObj, i )
+        if ( Vec_IntEntry(vSuppRefs, i) > 0 )
+            Abc_Print( 1, " %d", i );
+    Abc_Print( 1, "\n" );
+    */
+
+    Vec_IntForEachEntry( vDeltaB, Entry, i )
+        Wlc_NtkAbsGetSupp( p, Wlc_NtkObj(p, Entry), vCandCis, vSuppRefs, NULL );
+
+    Vec_IntForEachEntry( vDeltaB, Entry, i )
+    {
+        int iSupp, ii;
+        int fDisjoint = 1;
+
+        Vec_IntClear( vSuppList );
+        Wlc_NtkAbsGetSupp( p, Wlc_NtkObj(p, Entry), vCandCis, NULL, vSuppList );
+
+        //Abc_Print( 1, "SuppCandAbs =" );
+        Vec_IntForEachEntry( vSuppList, iSupp, ii )
+        {
+            //Abc_Print( 1, " %d(%d)", iSupp, Vec_IntEntry( vSuppRefs, iSupp ) );
+            if ( Vec_IntEntry( vSuppRefs, iSupp ) >= 2 )
+            {
+                fDisjoint = 0;
+                break;
+            }
+        }
+        //Abc_Print( 1, "\n" );
+        
+        if ( fDisjoint )
+        {
+            //Abc_Print( 1, "PPI[%d] is disjoint.\n", Entry );
+            ++(*nDisj);
+        }
+        else 
+        {
+            //Abc_Print( 1, "PPI[%d] is non-disjoint.\n", Entry );
+            ++(*nNDisj);
+        }
+    }
+
+    Vec_BitFree( vCurCis );
+    Vec_BitFree( vCandCis );
+    Vec_IntFree( vDeltaB );
+    Vec_IntFree( vSuppList );
+    Vec_IntFree( vSuppRefs );
 }
 
 static Vec_Int_t * Wlc_NtkGetCoreSels( Gia_Man_t * pFrames, int nFrames, int num_sel_pis, int num_other_pis, Vec_Bit_t * vMark, int sel_pi_first, int nConfLimit, Wlc_Par_t * pPars ) 
@@ -1046,6 +1159,7 @@ int Wlc_NtkPdrAbs( Wlc_Ntk_t * p, Wlc_Par_t * pPars )
     Vec_Int_t * vBlacks = NULL;
     int nIters, nNodes, nDcFlops, RetValue = -1, nGiaFfNumOld = -1;
     int nTotalCla = 0;
+    int nDisj = 0, nNDisj = 0;
     // start the bitmap to mark objects that cannot be abstracted because of refinement
     // currently, this bitmap is empty because abstraction begins without refinement
     Vec_Bit_t * vUnmark = Vec_BitStart( Wlc_NtkObjNumMax(p) );
@@ -1290,6 +1404,9 @@ int Wlc_NtkPdrAbs( Wlc_Ntk_t * p, Wlc_Par_t * pPars )
                 printf( "Refinement of CEX in frame %d came up with %d un-abstacted PPIs.\n", pCex->iFrame, Vec_IntSize(vRefine) );
 
         }
+        Wlc_NtkAbsAnalyzeRefine( p, vBlacks, vUnmark, &nDisj, &nNDisj );
+        if ( pPars->fVerbose )
+            Abc_Print( 1, "Refine analysis (total): %d disjoint PPIs and %d non-disjoint PPIs\n", nDisj, nNDisj );
         tCbr += Abc_Clock() - clk2;
 
         Vec_IntFree( vRefine );
