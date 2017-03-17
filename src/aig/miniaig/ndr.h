@@ -113,7 +113,8 @@ typedef enum {
     NDR_NAME,              // 7:  name
     NDR_RANGE,             // 8:  bit range
     NDR_FUNCTION,          // 9:  specified for some operators (PLAs, etc)
-    NDR_UNKNOWN            // 10: unknown
+    NDR_TARGET,            // 10: target
+    NDR_UNKNOWN            // 11: unknown
 } Ndr_RecordType_t; 
 
 // operator types
@@ -337,7 +338,6 @@ static inline void Ndr_DataPushString( Ndr_Data_t * p, int Type, char * pFunc )
     Ndr_DataPushArray( p, Type, (strlen(pFunc) + 4) / 4, (int *)pFunc );
 }
 
-
 ////////////////////////////////////////////////////////////////////////
 ///                     VERILOG WRITING                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -407,6 +407,28 @@ static inline char * Ndr_ObjReadOutName( Ndr_Data_t * p, int Obj, char ** pNames
 static inline char * Ndr_ObjReadInName( Ndr_Data_t * p, int Obj, char ** pNames )
 {
     return pNames[Ndr_ObjReadBody(p, Obj, NDR_INPUT)];
+}
+
+static inline int Ndr_DataCiNum( Ndr_Data_t * p, int Mod )
+{ 
+    int Obj, Count = 0;
+    Ndr_ModForEachPi( p, Mod, Obj )
+        Count++;
+    return Count;
+}
+static inline int Ndr_DataCoNum( Ndr_Data_t * p, int Mod )
+{ 
+    int Obj, Count = 0;
+    Ndr_ModForEachPo( p, Mod, Obj )
+        Count++;
+    return Count;
+}
+static inline int Ndr_DataObjNum( Ndr_Data_t * p, int Mod )
+{ 
+    int Obj, Count = 0;
+    Ndr_ModForEachObj( p, Mod, Obj )
+        Count++;
+    return Count;
 }
 
 // to write signal names, this procedure takes a mapping of name IDs into actual char-strings (pNames)
