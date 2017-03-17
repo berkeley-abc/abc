@@ -457,6 +457,7 @@ static int Abc_CommandAbc9ReachN             ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandAbc9ReachY             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 #endif
 static int Abc_CommandAbc9Undo               ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9Mesh               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Iso                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9IsoNpn             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9IsoSt              ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -1109,6 +1110,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "ABC9",         "&reachy",       Abc_CommandAbc9ReachY,       0 );
 #endif
     Cmd_CommandAdd( pAbc, "ABC9",         "&undo",         Abc_CommandAbc9Undo,         0 );
+    Cmd_CommandAdd( pAbc, "ABC9",         "&mesh",         Abc_CommandAbc9Mesh,         0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&iso",          Abc_CommandAbc9Iso,          0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&isonpn",       Abc_CommandAbc9IsoNpn,       0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&isost",        Abc_CommandAbc9IsoSt,        0 );
@@ -38017,6 +38019,106 @@ usage:
     Abc_Print( -2, "usage: &undo [-h]\n" );
     Abc_Print( -2, "\t        reverses the previous AIG transformation\n" );
     Abc_Print( -2, "\t-h    : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc9Mesh( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern void Bmc_MeshTest( Gia_Man_t * p, int X, int Y, int T, int fVerbose );
+    int X =  4;
+    int Y =  4;
+    int T =  3;
+    int c, fVerbose = 1;
+    // set defaults
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "XYTh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'X':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-X\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            X = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( X < 3 )
+                goto usage;
+            break;
+        case 'Y':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-Y\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            Y = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( Y < 3 )
+                goto usage;
+            break;
+        case 'T':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-T\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            T = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( T < 2 )
+                goto usage;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pAbc->pGia == NULL )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9Mesh(): There is no design.\n" );
+        return 1;
+    }
+    if ( Gia_ManCoNum(pAbc->pGia) != 1 )
+    {
+        Abc_Print( -1, "Currently this command expects AIG with one output.\n" );
+        return 1;
+    }
+    if ( Gia_ManCiNum(pAbc->pGia) > 20 )
+    {
+        Abc_Print( -1, "Currently this command expects AIG with no more than 20 nodes.\n" );
+        return 1;
+    }
+    if ( Gia_ManLevelNum(pAbc->pGia) > T )
+    {
+        Abc_Print( -1, "The depth of the AIG (%d) cannot be larger than the latency (%d).\n", Gia_ManLevelNum(pAbc->pGia), T );
+        return 1;
+    }
+    Bmc_MeshTest( pAbc->pGia, X, Y, T, fVerbose );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: &mesh [-XYT num] [-h]\n" );
+    Abc_Print( -2, "\t         creates a mesh architecture for the given AIG\n" );
+    Abc_Print( -2, "\t-X num : horizontal size of the mesh (X >= 3) [default = %d]\n", X );
+    Abc_Print( -2, "\t-Y num : vertical size of the mesh (Y >= 3) [default = %d]\n", Y );
+    Abc_Print( -2, "\t-T num : the latency of the mesh (T >= 2) [default = %d]\n", T );
+    Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
 }
 
