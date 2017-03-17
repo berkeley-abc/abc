@@ -59,15 +59,15 @@ static inline void        Cba_AbcUpdateMan( Abc_Frame_t * pAbc, Cba_Man_t * p ) 
 ******************************************************************************/
 void Cba_Init( Abc_Frame_t * pAbc )
 {
-    Cmd_CommandAdd( pAbc, "New word level", "@read",       Cba_CommandRead,      0 );
-    Cmd_CommandAdd( pAbc, "New word level", "@write",      Cba_CommandWrite,     0 );
-    Cmd_CommandAdd( pAbc, "New word level", "@ps",         Cba_CommandPs,        0 );
-    Cmd_CommandAdd( pAbc, "New word level", "@put",        Cba_CommandPut,       0 );
-    Cmd_CommandAdd( pAbc, "New word level", "@get",        Cba_CommandGet,       0 );
-    Cmd_CommandAdd( pAbc, "New word level", "@clp",        Cba_CommandClp,       0 );
-    Cmd_CommandAdd( pAbc, "New word level", "@blast",      Cba_CommandBlast,     0 );
-    Cmd_CommandAdd( pAbc, "New word level", "@cec",        Cba_CommandCec,       0 );
-    Cmd_CommandAdd( pAbc, "New word level", "@test",       Cba_CommandTest,      0 );
+    Cmd_CommandAdd( pAbc, "New word level", ":read",       Cba_CommandRead,      0 );
+    Cmd_CommandAdd( pAbc, "New word level", ":write",      Cba_CommandWrite,     0 );
+    Cmd_CommandAdd( pAbc, "New word level", ":ps",         Cba_CommandPs,        0 );
+    Cmd_CommandAdd( pAbc, "New word level", ":put",        Cba_CommandPut,       0 );
+    Cmd_CommandAdd( pAbc, "New word level", ":get",        Cba_CommandGet,       0 );
+    Cmd_CommandAdd( pAbc, "New word level", ":clp",        Cba_CommandClp,       0 );
+    Cmd_CommandAdd( pAbc, "New word level", ":blast",      Cba_CommandBlast,     0 );
+    Cmd_CommandAdd( pAbc, "New word level", ":cec",        Cba_CommandCec,       0 );
+    Cmd_CommandAdd( pAbc, "New word level", ":test",       Cba_CommandTest,      0 );
 }
 
 /**Function********************************************************************
@@ -173,7 +173,7 @@ int Cba_CommandRead( Abc_Frame_t * pAbc, int argc, char ** argv )
     Cba_AbcUpdateMan( pAbc, p );
     return 0;
 usage:
-    Abc_Print( -2, "usage: @read [-tdvh] <file_name>\n" );
+    Abc_Print( -2, "usage: :read [-tdvh] <file_name>\n" );
     Abc_Print( -2, "\t         reads hierarchical design\n" );
     Abc_Print( -2, "\t-t     : toggle testing the parser [default = %s]\n", fTest? "yes": "no" );
     Abc_Print( -2, "\t-d     : toggle computing DFS ordering [default = %s]\n", fDfs? "yes": "no" );
@@ -248,7 +248,7 @@ int Cba_CommandWrite( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     return 0;
 usage:
-    Abc_Print( -2, "usage: @write [-cvh]\n" );
+    Abc_Print( -2, "usage: :write [-cvh]\n" );
     Abc_Print( -2, "\t         writes the design into a file in BLIF or Verilog\n" );
     Abc_Print( -2, "\t-c     : toggle inlining input concatenations [default = %s]\n",  fInclineCats? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n",  fVerbose? "yes": "no" );
@@ -327,7 +327,7 @@ int Cba_CommandPs( Abc_Frame_t * pAbc, int argc, char ** argv )
         Cba_NtkPrintNodes( Cba_ManRoot(p), CBA_BOX_ADD );
     return 0;
 usage:
-    Abc_Print( -2, "usage: @ps [-M num] [-madvh]\n" );
+    Abc_Print( -2, "usage: :ps [-M num] [-madvh]\n" );
     Abc_Print( -2, "\t         prints statistics\n" );
     Abc_Print( -2, "\t-M num : the number of first modules to report [default = %d]\n", nModules );
     Abc_Print( -2, "\t-m     : toggle printing multipliers [default = %s]\n",         fShowMulti? "yes": "no" );
@@ -388,7 +388,7 @@ int Cba_CommandPut( Abc_Frame_t * pAbc, int argc, char ** argv )
     Abc_FrameUpdateGia( pAbc, pGia );
     return 0;
 usage:
-    Abc_Print( -2, "usage: @put [-bsvh]\n" );
+    Abc_Print( -2, "usage: :put [-bsvh]\n" );
     Abc_Print( -2, "\t         extracts AIG from the hierarchical design\n" );
     Abc_Print( -2, "\t-b     : toggle using barrier buffers [default = %s]\n", fBarBufs? "yes": "no" );
     Abc_Print( -2, "\t-s     : toggle blasting sequential elements [default = %s]\n", fSeq? "yes": "no" );
@@ -456,7 +456,7 @@ int Cba_CommandGet( Abc_Frame_t * pAbc, int argc, char ** argv )
     Cba_AbcUpdateMan( pAbc, pNew );
     return 0;
 usage:
-    Abc_Print( -2, "usage: @get [-mvh]\n" );
+    Abc_Print( -2, "usage: :get [-mvh]\n" );
     Abc_Print( -2, "\t         extracts AIG or mapped network into the hierarchical design\n" );
     Abc_Print( -2, "\t-m     : toggle using mapped network from main-space [default = %s]\n", fMapped? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
@@ -502,7 +502,7 @@ int Cba_CommandClp( Abc_Frame_t * pAbc, int argc, char ** argv )
     Cba_AbcUpdateMan( pAbc, pNew );
     return 0;
 usage:
-    Abc_Print( -2, "usage: @clp [-vh]\n" );
+    Abc_Print( -2, "usage: :clp [-vh]\n" );
     Abc_Print( -2, "\t         collapses the current hierarchical design\n" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
@@ -556,7 +556,7 @@ int Cba_CommandBlast( Abc_Frame_t * pAbc, int argc, char ** argv )
     Abc_FrameUpdateGia( pAbc, pNew );
     return 0;
 usage:
-    Abc_Print( -2, "usage: @blast [-svh]\n" );
+    Abc_Print( -2, "usage: :blast [-svh]\n" );
     Abc_Print( -2, "\t         performs bit-blasting of the word-level design\n" );
     Abc_Print( -2, "\t-s     : toggle blasting sequential elements [default = %s]\n", fSeq? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
@@ -672,7 +672,7 @@ int Cba_CommandCec( Abc_Frame_t * pAbc, int argc, char ** argv )
     Gia_ManStop( pSecond );
     return 0;
 usage:
-    Abc_Print( -2, "usage: @cec [-vh]\n" );
+    Abc_Print( -2, "usage: :cec [-vh]\n" );
     Abc_Print( -2, "\t         combinational equivalence checking\n" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", pPars->fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
@@ -715,7 +715,7 @@ int Cba_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     return 0;
 usage:
-    Abc_Print( -2, "usage: @test [-vh]\n" );
+    Abc_Print( -2, "usage: :test [-vh]\n" );
     Abc_Print( -2, "\t         experiments with word-level networks\n" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");

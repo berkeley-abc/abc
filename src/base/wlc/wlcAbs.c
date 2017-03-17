@@ -320,7 +320,7 @@ static Vec_Int_t * Wlc_NtkGetCoreSels( Gia_Man_t * pFrames, int nFrames, int num
 
 static Gia_Man_t * Wlc_NtkUnrollWithCex(Wlc_Ntk_t * pChoice, Abc_Cex_t * pCex, int nbits_old_pis, int num_sel_pis, int * p_num_ppis, int sel_pi_first, int fUsePPI) 
 {
-    Gia_Man_t * pGiaChoice = Wlc_NtkBitBlast( pChoice, NULL, -1, 0, 0, 0, 0 );
+    Gia_Man_t * pGiaChoice = Wlc_NtkBitBlast( pChoice, NULL, -1, 0, 0, 0, 0, 0 );
     int nbits_new_pis = Wlc_NtkNumPiBits( pChoice );
     int num_ppis = nbits_new_pis - nbits_old_pis - num_sel_pis;
     int num_undc_pis = Gia_ManPiNum(pGiaChoice) - nbits_new_pis;
@@ -485,7 +485,7 @@ Wlc_Ntk_t * Wlc_NtkIntroduceChoices( Wlc_Ntk_t * pNtk, Vec_Int_t * vBlacks )
 
 static int Wlc_NtkCexIsReal( Wlc_Ntk_t * pOrig, Abc_Cex_t * pCex ) 
 {
-    Gia_Man_t * pGiaOrig = Wlc_NtkBitBlast( pOrig, NULL, -1, 0, 0, 0, 0 );
+    Gia_Man_t * pGiaOrig = Wlc_NtkBitBlast( pOrig, NULL, -1, 0, 0, 0, 0, 0 );
     int f, i;
     Gia_Obj_t * pObj, * pObjRi;
 
@@ -1224,7 +1224,7 @@ Aig_Man_t * Wla_ManBitBlast( Wla_Man_t * pWla )
     int nDcFlops;
     Gia_Man_t * pTemp;
 
-    pWla->pGia = Wlc_NtkBitBlast( pWla->pAbs, NULL, -1, 0, 0, 0, 0 );
+    pWla->pGia = Wlc_NtkBitBlast( pWla->pAbs, NULL, -1, 0, 0, 0, 0, 0 );
 
     // if the abstraction has flops with DC-init state,
     // new PIs were introduced by bit-blasting at the end of the PI list
@@ -1567,7 +1567,7 @@ int Wlc_NtkPdrAbs2( Wlc_Ntk_t * p, Wlc_Par_t * pPars )
 
             pAbs = Wlc_NtkAbs( p, pPars, vUnmark, &vPisNew, &vFfNew, pPars->fVerbose );
         }
-        pGia = Wlc_NtkBitBlast( pAbs, NULL, -1, 0, 0, 0, 0 );
+        pGia = Wlc_NtkBitBlast( pAbs, NULL, -1, 0, 0, 0, 0, 0 );
 
         // map old flops into new flops
         if ( vFfOld )
@@ -1869,7 +1869,7 @@ int Wlc_NtkAbsCore( Wlc_Ntk_t * p, Wlc_Par_t * pPars )
 
             pAbs = Wlc_NtkAbs( p, pPars, vUnmark, &vPisNew, NULL, pPars->fVerbose );
         }
-        pGia = Wlc_NtkBitBlast( pAbs, NULL, -1, 0, 0, 0, 0 );
+        pGia = Wlc_NtkBitBlast( pAbs, NULL, -1, 0, 0, 0, 0, 0 );
 
         // if the abstraction has flops with DC-init state,
         // new PIs were introduced by bit-blasting at the end of the PI list

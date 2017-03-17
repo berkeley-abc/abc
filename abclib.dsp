@@ -799,6 +799,10 @@ SOURCE=.\src\base\wlc\wlcCom.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\base\wlc\wlcGraft.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\base\wlc\wlcJson.c
 # End Source File
 # Begin Source File

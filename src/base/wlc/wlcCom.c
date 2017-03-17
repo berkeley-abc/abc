@@ -36,6 +36,7 @@ static int  Abc_CommandAbs        ( Abc_Frame_t * pAbc, int argc, char ** argv )
 static int  Abc_CommandPdrAbs     ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int  Abc_CommandAbs2       ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int  Abc_CommandBlast      ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int  Abc_CommandGraft      ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int  Abc_CommandProfile    ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int  Abc_CommandShortNames ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int  Abc_CommandShow       ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -79,6 +80,7 @@ void Wlc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Word level", "%pdra",        Abc_CommandPdrAbs,     0 );
     Cmd_CommandAdd( pAbc, "Word level", "%abs2",        Abc_CommandAbs2,       0 );
     Cmd_CommandAdd( pAbc, "Word level", "%blast",       Abc_CommandBlast,      0 );
+    Cmd_CommandAdd( pAbc, "Word level", "%graft",       Abc_CommandGraft,      0 );
     Cmd_CommandAdd( pAbc, "Word level", "%profile",     Abc_CommandProfile,    0 );
     Cmd_CommandAdd( pAbc, "Word level", "%short_names", Abc_CommandShortNames, 0 );
     Cmd_CommandAdd( pAbc, "Word level", "%show",        Abc_CommandShow,       0 );
@@ -933,7 +935,7 @@ int Abc_CommandBlast( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 0;
     }
     // transform
-    pNew = Wlc_NtkBitBlast( pNtk, vBoxIds, iOutput, nOutputRange, fGiaSimple, fAddOutputs, fBooth );
+    pNew = Wlc_NtkBitBlast( pNtk, vBoxIds, iOutput, nOutputRange, fGiaSimple, fAddOutputs, fBooth, 0 );
     Vec_IntFreeP( &vBoxIds );
     if ( pNew == NULL )
     {
@@ -951,6 +953,52 @@ usage:
     Abc_Print( -2, "\t-o     : toggle using additional POs on the word-level boundaries [default = %s]\n", fAddOutputs? "yes": "no" );
     Abc_Print( -2, "\t-m     : toggle creating boxes for all multipliers in the design [default = %s]\n", fMulti? "yes": "no" );
     Abc_Print( -2, "\t-b     : toggle generating radix-4 Booth multipliers [default = %s]\n", fBooth? "yes": "no" );
+    Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
+    return 1;
+}
+
+/**Function********************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+******************************************************************************/
+int Abc_CommandGraft( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern Wlc_Ntk_t * Wlc_NtkGraftMulti( Wlc_Ntk_t * p, int fVerbose );
+    Wlc_Ntk_t * pNtk = Wlc_AbcGetNtk(pAbc);
+    int c, fVerbose  = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pNtk == NULL )
+    {
+        Abc_Print( 1, "Abc_CommandGraft(): There is no current design.\n" );
+        return 0;
+    }
+    pNtk = Wlc_NtkGraftMulti( pNtk, fVerbose );
+    Wlc_AbcUpdateNtk( pAbc, pNtk );
+    return 0;
+usage:
+    Abc_Print( -2, "usage: %%graft [-vh]\n" );
+    Abc_Print( -2, "\t         detects multipliers in LHS of the miter and moves them to RHS\n" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
