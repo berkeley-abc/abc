@@ -1967,6 +1967,10 @@ SOURCE=.\src\sat\bmc\bmcMesh.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\sat\bmc\bmcMesh2.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\sat\bmc\bmcMulti.c
 # End Source File
 # Begin Source File

@@ -19,8 +19,9 @@
 ***********************************************************************/
 
 #include "bmc.h"
-#include "sat/satoko/satoko.h"
-#include "sat/satoko/solver.h"
+//#include "sat/satoko/satoko.h"
+//#include "sat/satoko/solver.h"
+#include "sat/bsat/satSolver.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -40,6 +41,8 @@ inline int Bmc_MeshUVar( int Me[102][102], int x, int y ) { return Me[x][y] + Me
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
+
+
 /**Function*************************************************************
 
   Synopsis    []
@@ -51,10 +54,11 @@ inline int Bmc_MeshUVar( int Me[102][102], int x, int y ) { return Me[x][y] + Me
   SeeAlso     []
 
 ***********************************************************************/
-static inline Bmc_MeshVarValue( satoko_t * p, int v )
+static inline int Bmc_MeshVarValue2( sat_solver * p, int v )
 {
-    int value = var_value(p, v) != VAR_UNASSING ? var_value(p, v) : var_polarity(p, v);
-    return value == LIT_TRUE;
+//    int value = var_value(p, v) != VAR_UNASSING ? var_value(p, v) : var_polarity(p, v);
+//    return value == LIT_TRUE;
+    return sat_solver_var_value( p, v );
 }
 
 /**Function*************************************************************
@@ -68,12 +72,12 @@ static inline Bmc_MeshVarValue( satoko_t * p, int v )
   SeeAlso     []
 
 ***********************************************************************/
-int Bmc_MeshAddOneHotness( satoko_t * pSat, int iFirst, int iLast )
+int Bmc_MeshAddOneHotness2( sat_solver * pSat, int iFirst, int iLast )
 {
     int i, j, v, pVars[100], nVars  = 0, nCount = 0;
     assert( iFirst < iLast && iFirst + 110 > iLast );
     for ( v = iFirst; v < iLast; v++ )
-        if ( Bmc_MeshVarValue(pSat, v) ) // v = 1
+        if ( Bmc_MeshVarValue2(pSat, v) ) // v = 1
         {
             assert( nVars < 100 );
             pVars[ nVars++ ] = v;
@@ -86,7 +90,7 @@ int Bmc_MeshAddOneHotness( satoko_t * pSat, int iFirst, int iLast )
         int pLits[2], RetValue;
         pLits[0] = Abc_Var2Lit( pVars[i], 1 );
         pLits[1] = Abc_Var2Lit( pVars[j], 1 );
-        RetValue = satoko_add_clause( pSat, pLits, 2 );  assert( RetValue );
+        RetValue = sat_solver_addclause( pSat, pLits, pLits+2 );  assert( RetValue );
         nCount++;
     }
     return nCount;
@@ -103,10 +107,11 @@ int Bmc_MeshAddOneHotness( satoko_t * pSat, int iFirst, int iLast )
   SeeAlso     []
 
 ***********************************************************************/
-void Bmc_MeshTest( Gia_Man_t * p, int X, int Y, int T, int fVerbose )
+void Bmc_MeshTest2( Gia_Man_t * p, int X, int Y, int T, int fVerbose )
 {
     abctime clk = Abc_Clock();
-    satoko_t * pSat = satoko_create();
+//    sat_solver * pSat = satoko_create();
+    sat_solver * pSat = sat_solver_new();
     Gia_Obj_t * pObj;
     int Me[102][102] = {{0}};
     int pN[102][2] = {{0}};
@@ -165,19 +170,19 @@ void Bmc_MeshTest( Gia_Man_t * p, int X, int Y, int T, int fVerbose )
             for ( t = 0; t < T; t++ )
             {
                 Lit = Abc_Var2Lit( iTVar+t, (int)(t > 0) );
-                RetValue = satoko_add_clause( pSat, &Lit, 1 );  assert( RetValue );
+                RetValue = sat_solver_addclause( pSat, &Lit, &Lit+1 );  assert( RetValue );
             }
             // internal nodes are not allowed
             for ( g = I; g < G; g++ )
             {
                 Lit = Abc_Var2Lit( iGVar+g, 1 );
-                RetValue = satoko_add_clause( pSat, &Lit, 1 );  assert( RetValue );
+                RetValue = sat_solver_addclause( pSat, &Lit, &Lit+1 );  assert( RetValue );
             }
         }
         else // not a boundary
         {
             Lit = Abc_Var2Lit( iTVar, 1 );  // cannot have time 0
-            RetValue = satoko_add_clause( pSat, &Lit, 1 );  assert( RetValue );
+            RetValue = sat_solver_addclause( pSat, &Lit, &Lit+1 );  assert( RetValue );
         }
     }
     for ( x = 1; x < X-1; x++ )
@@ -211,7 +216,7 @@ void Bmc_MeshTest( Gia_Man_t * p, int X, int Y, int T, int fVerbose )
         {
             pLits[0] = Abc_Var2Lit( iGVar+g, 1 );
             pLits[1] = Abc_Var2Lit( iUVar, 0 );
-            RetValue = satoko_add_clause( pSat, pLits, 2 );  assert( RetValue );
+            RetValue = sat_solver_addclause( pSat, pLits, pLits+2 );  assert( RetValue );
             nClauses++;
         }
 
@@ -219,14 +224,14 @@ void Bmc_MeshTest( Gia_Man_t * p, int X, int Y, int T, int fVerbose )
         pLits[0] = Abc_Var2Lit( iUVar, 1 );
         for ( t = 1; t < T; t++ )
             pLits[t] = Abc_Var2Lit( iTVar+t, 0 );
-        RetValue = satoko_add_clause( pSat, pLits, T );  assert( RetValue );
+        RetValue = sat_solver_addclause( pSat, pLits, pLits+T );  assert( RetValue );
         nClauses++;
 
         // at least one config is used
         pLits[0] = Abc_Var2Lit( iUVar, 1 );
         for ( c = 0; c < NCPARS; c++ )
             pLits[c+1] = Abc_Var2Lit( iCVar+c, 0 );
-        RetValue = satoko_add_clause( pSat, pLits, NCPARS+1 );  assert( RetValue );
+        RetValue = sat_solver_addclause( pSat, pLits, pLits+NCPARS+1 );  assert( RetValue );
         nClauses++;
 
         // constraints for each time
@@ -242,14 +247,14 @@ void Bmc_MeshTest( Gia_Man_t * p, int X, int Y, int T, int fVerbose )
                 pLits[ nLits++ ] = Abc_Var2Lit( iGVar+g, 1 );
                 pLits[ nLits++ ] = Abc_Var2Lit( iCVar+c, 1 );
                 pLits[ nLits++ ] = Abc_Var2Lit( iTVars[c]+t-1, 0 );
-                RetValue = satoko_add_clause( pSat, pLits, nLits );  assert( RetValue );
+                RetValue = sat_solver_addclause( pSat, pLits, pLits+nLits );  assert( RetValue );
 
                 nLits = 0;
                 pLits[ nLits++ ] = Abc_Var2Lit( iTVar+t, 1 );
                 pLits[ nLits++ ] = Abc_Var2Lit( iGVar+g, 1 );
                 pLits[ nLits++ ] = Abc_Var2Lit( iCVar+c, 1 );
                 pLits[ nLits++ ] = Abc_Var2Lit( iGVars[c]+g, 0 );
-                RetValue = satoko_add_clause( pSat, pLits, nLits );  assert( RetValue );
+                RetValue = sat_solver_addclause( pSat, pLits, pLits+nLits );  assert( RetValue );
 
                 nClauses += 2;
             }
@@ -258,7 +263,7 @@ void Bmc_MeshTest( Gia_Man_t * p, int X, int Y, int T, int fVerbose )
             {
                 pLits[0] = Abc_Var2Lit( iGVar+g, 1 );
                 pLits[1] = Abc_Var2Lit( iCVar+c, 1 );
-                RetValue = satoko_add_clause( pSat, pLits, 2 );  assert( RetValue );
+                RetValue = sat_solver_addclause( pSat, pLits, pLits+2 );  assert( RetValue );
                 nClauses++;
             }
             // node
@@ -266,20 +271,21 @@ void Bmc_MeshTest( Gia_Man_t * p, int X, int Y, int T, int fVerbose )
             for ( c = 0; c < 12; c++ )
             {
                 assert( pN[g][0] >= 0 && pN[g][1] >= 0 );
+                assert( pN[g][0] <  g && pN[g][1] <  g );
 
                 nLits = 0;
                 pLits[ nLits++ ] = Abc_Var2Lit( iTVar+t, 1 );
                 pLits[ nLits++ ] = Abc_Var2Lit( iGVar+g, 1 );
                 pLits[ nLits++ ] = Abc_Var2Lit( iCVar+c+4, 1 );
                 pLits[ nLits++ ] = Abc_Var2Lit( iTVars[Conf[c][0]]+t-1, 0 );
-                RetValue = satoko_add_clause( pSat, pLits, nLits );  assert( RetValue );
+                RetValue = sat_solver_addclause( pSat, pLits, pLits+nLits );  assert( RetValue );
 
                 nLits = 0;
                 pLits[ nLits++ ] = Abc_Var2Lit( iTVar+t, 1 );
                 pLits[ nLits++ ] = Abc_Var2Lit( iGVar+g, 1 );
                 pLits[ nLits++ ] = Abc_Var2Lit( iCVar+c+4, 1 );
                 pLits[ nLits++ ] = Abc_Var2Lit( iTVars[Conf[c][1]]+t-1, 0 );
-                RetValue = satoko_add_clause( pSat, pLits, nLits );  assert( RetValue );
+                RetValue = sat_solver_addclause( pSat, pLits, pLits+nLits );  assert( RetValue );
 
 
                 nLits = 0;
@@ -287,14 +293,14 @@ void Bmc_MeshTest( Gia_Man_t * p, int X, int Y, int T, int fVerbose )
                 pLits[ nLits++ ] = Abc_Var2Lit( iGVar+g, 1 );
                 pLits[ nLits++ ] = Abc_Var2Lit( iCVar+c+4, 1 );
                 pLits[ nLits++ ] = Abc_Var2Lit( iGVars[Conf[c][0]]+pN[g][0], 0 );
-                RetValue = satoko_add_clause( pSat, pLits, nLits );  assert( RetValue );
+                RetValue = sat_solver_addclause( pSat, pLits, pLits+nLits );  assert( RetValue );
 
                 nLits = 0;
                 pLits[ nLits++ ] = Abc_Var2Lit( iTVar+t, 1 );
                 pLits[ nLits++ ] = Abc_Var2Lit( iGVar+g, 1 );
                 pLits[ nLits++ ] = Abc_Var2Lit( iCVar+c+4, 1 );
                 pLits[ nLits++ ] = Abc_Var2Lit( iGVars[Conf[c][1]]+pN[g][1], 0 );
-                RetValue = satoko_add_clause( pSat, pLits, nLits );  assert( RetValue );
+                RetValue = sat_solver_addclause( pSat, pLits, pLits+nLits );  assert( RetValue );
 
                 nClauses += 4;
             }
@@ -305,12 +311,13 @@ void Bmc_MeshTest( Gia_Man_t * p, int X, int Y, int T, int fVerbose )
     {
         int iGVar = Bmc_MeshGVar( Me, 1, 1 ) + G-1;
         Lit = Abc_Var2Lit( iGVar, 0 );
-        RetValue = satoko_add_clause( pSat, &Lit, 1 );  
+        RetValue = sat_solver_addclause( pSat, &Lit, &Lit+1 );  
         if ( RetValue == 0 )
         {
             printf( "Problem has no solution. " );
             Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
-            satoko_destroy( pSat );
+//            satoko_destroy( pSat );
+            sat_solver_delete( pSat );
             return;
         }
     }
@@ -321,18 +328,22 @@ void Bmc_MeshTest( Gia_Man_t * p, int X, int Y, int T, int fVerbose )
     while ( 1 )
     {
         int nAddClauses = 0;
-        status = satoko_solve( pSat );
-        if ( status == SATOKO_UNSAT )
+//        status = satoko_solve( pSat );
+        status = sat_solver_solve( pSat, NULL, NULL, 0, 0, 0, 0 );
+//        if ( status == SATOKO_UNSAT )
+        if ( status == l_False )
         {
             printf( "Problem has no solution. " );
             break;
         }
-        if ( status == SATOKO_UNDEC )
+//        if ( status == SATOKO_UNDEC )
+        if ( status == l_Undef )
         {
             printf( "Computation timed out. " );
             break;
         }
-        assert( status == SATOKO_SAT );
+//        assert( status == SATOKO_SAT );
+        assert( status == l_True );
         // check if the solution is valid and add constraints
         for ( x = 0; x < X; x++ )
         for ( y = 0; y < Y; y++ )
@@ -340,16 +351,16 @@ void Bmc_MeshTest( Gia_Man_t * p, int X, int Y, int T, int fVerbose )
             if ( x == 0 || x == X-1 || y == 0 || y == Y-1 ) // boundary
             {
                 int iGVar = Bmc_MeshGVar( Me, x, y );
-                nAddClauses += Bmc_MeshAddOneHotness( pSat, iGVar, iGVar + G );
+                nAddClauses += Bmc_MeshAddOneHotness2( pSat, iGVar, iGVar + G );
             }
             else
             {
                 int iTVar = Bmc_MeshTVar( Me, x, y );
                 int iGVar = Bmc_MeshGVar( Me, x, y );
                 int iCVar = Bmc_MeshCVar( Me, x, y );
-                nAddClauses += Bmc_MeshAddOneHotness( pSat, iTVar, iTVar + T );
-                nAddClauses += Bmc_MeshAddOneHotness( pSat, iGVar, iGVar + G );
-                nAddClauses += Bmc_MeshAddOneHotness( pSat, iCVar, iCVar + NCPARS );
+                nAddClauses += Bmc_MeshAddOneHotness2( pSat, iTVar, iTVar + T );
+                nAddClauses += Bmc_MeshAddOneHotness2( pSat, iGVar, iGVar + G );
+                nAddClauses += Bmc_MeshAddOneHotness2( pSat, iCVar, iCVar + NCPARS );
             }
         }
         if ( nAddClauses > 0 )
@@ -359,16 +370,18 @@ void Bmc_MeshTest( Gia_Man_t * p, int X, int Y, int T, int fVerbose )
         }
         printf( "Satisfying solution found. " );
 /*
-        iVar = solver_varnum(pSat);
+//        iVar = solver_varnum(pSat);
+        iVar = sat_solver_nvars(pSat);
         for ( i = 0; i < iVar; i++ )
-            if ( Bmc_MeshVarValue(pSat, i) )
+            if ( Bmc_MeshVarValue2(pSat, i) )
                 printf( "%d ", i );
         printf( "\n" );
 */
         break;
     }
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
-    if ( status == SATOKO_SAT )
+//    if ( status == SATOKO_SAT )
+    if ( status == l_True )
     {
         // count the number of nodes and buffers
         int nBuffs = 0, nNodes = 0;
@@ -377,13 +390,13 @@ void Bmc_MeshTest( Gia_Man_t * p, int X, int Y, int T, int fVerbose )
         {
             int iCVar = Bmc_MeshCVar( Me, x, y );
             for ( c = 0; c < 4; c++ )
-                if ( Bmc_MeshVarValue(pSat, iCVar+c) )
+                if ( Bmc_MeshVarValue2(pSat, iCVar+c) )
                 {
                     //printf( "Buffer y=%d x=%d  (var = %d; config = %d)\n", y, x, iCVar+c, c );
                     nBuffs++;
                 }
             for ( c = 4; c < NCPARS; c++ )
-                if ( Bmc_MeshVarValue(pSat, iCVar+c) )
+                if ( Bmc_MeshVarValue2(pSat, iCVar+c) )
                 {
                     //printf( "Node   y=%d x=%d  (var = %d; config = %d)\n", y, x, iCVar+c, c );
                     nNodes++;
@@ -406,7 +419,7 @@ void Bmc_MeshTest( Gia_Man_t * p, int X, int Y, int T, int fVerbose )
                 int fFound = 0;                ;
                 for ( t = 0; t < T; t++ )
                 for ( g = 0; g < G; g++ )
-                    if ( Bmc_MeshVarValue(pSat, iTVar+t) && Bmc_MeshVarValue(pSat, iGVar+g) )
+                    if ( Bmc_MeshVarValue2(pSat, iTVar+t) && Bmc_MeshVarValue2(pSat, iGVar+g) )
                     {
                         printf( " %c%-2d ", 'a' + g, t );
                         fFound = 1;
@@ -421,8 +434,12 @@ void Bmc_MeshTest( Gia_Man_t * p, int X, int Y, int T, int fVerbose )
             printf( "\n" );
         }
     }
-    satoko_destroy( pSat );
+    //satoko_destroy( pSat );
+    sat_solver_delete( pSat );
 }
+
+
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

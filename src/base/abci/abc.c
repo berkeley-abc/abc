@@ -38036,13 +38036,15 @@ usage:
 int Abc_CommandAbc9Mesh( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     extern void Bmc_MeshTest( Gia_Man_t * p, int X, int Y, int T, int fVerbose );
+    extern void Bmc_MeshTest2( Gia_Man_t * p, int X, int Y, int T, int fVerbose );
     int X =  4;
     int Y =  4;
     int T =  3;
+    int fUseSatoko = 1;
     int c, fVerbose = 1;
     // set defaults
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "XYTh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "XYTsh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -38079,6 +38081,9 @@ int Abc_CommandAbc9Mesh( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( T < 2 )
                 goto usage;
             break;
+        case 's':
+            fUseSatoko ^= 1;
+            break;
         case 'v':
             fVerbose ^= 1;
             break;
@@ -38108,15 +38113,19 @@ int Abc_CommandAbc9Mesh( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "The depth of the AIG (%d) cannot be larger than the latency (%d).\n", Gia_ManLevelNum(pAbc->pGia), T );
         return 1;
     }
-    Bmc_MeshTest( pAbc->pGia, X, Y, T, fVerbose );
+    if ( fUseSatoko )
+        Bmc_MeshTest( pAbc->pGia, X, Y, T, fVerbose );
+    else
+        Bmc_MeshTest2( pAbc->pGia, X, Y, T, fVerbose );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &mesh [-XYT num] [-h]\n" );
+    Abc_Print( -2, "usage: &mesh [-XYT num] [-sh]\n" );
     Abc_Print( -2, "\t         creates a mesh architecture for the given AIG\n" );
     Abc_Print( -2, "\t-X num : horizontal size of the mesh (X >= 3) [default = %d]\n", X );
     Abc_Print( -2, "\t-Y num : vertical size of the mesh (Y >= 3) [default = %d]\n", Y );
     Abc_Print( -2, "\t-T num : the latency of the mesh (T >= 2) [default = %d]\n", T );
+    Abc_Print( -2, "\t-s     : toggle using new SAT solver Satoko [default = %s]\n", fUseSatoko? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
