@@ -1390,9 +1390,13 @@ void Wla_ManRefine( Wla_Man_t * pWla )
             printf( "Refinement of CEX in frame %d came up with %d un-abstacted PPIs.\n", pWla->pCex->iFrame, Vec_IntSize(pWla->vRefine) );
 
     }
-    Wlc_NtkAbsAnalyzeRefine( pWla->p, pWla->vBlacks, pWla->vUnmark, &pWla->nDisj, &pWla->nNDisj );
-    if ( pWla->pPars->fVerbose )
+    /*
+    if ( pWla->pPars->fVerbose ) 
+    {
+        Wlc_NtkAbsAnalyzeRefine( pWla->p, pWla->vBlacks, pWla->vUnmark, &pWla->nDisj, &pWla->nNDisj );
         Abc_Print( 1, "Refine analysis (total): %d disjoint PPIs and %d non-disjoint PPIs\n", pWla->nDisj, pWla->nNDisj );
+    }
+    */
     pWla->tCbr += Abc_Clock() - clk;
 
     Pdr_ManStop( pWla->pPdr ); pWla->pPdr = NULL;
