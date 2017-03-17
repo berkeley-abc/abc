@@ -868,7 +868,7 @@ void Wlc_BlastBooth( Gia_Man_t * pNew, int * pArgA, int * pArgB, int nArgA, int 
   SeeAlso     []
 
 ***********************************************************************/
-Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Vec_Int_t * vBoxIds, int iOutput, int nOutputRange, int fGiaSimple, int fAddOutputs, int fBooth )
+Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Vec_Int_t * vBoxIds, int iOutput, int nOutputRange, int fGiaSimple, int fAddOutputs, int fBooth, int fNoCleanup )
 {
     int fVerbose = 0;
     int fUseOldMultiplierBlasting = 0;
@@ -1401,7 +1401,7 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Vec_Int_t * vBoxIds, int iOutput, in
     assert( nFFins == nFFouts );
     Gia_ManSetRegNum( pNew, nFFins );
     // finalize AIG
-    if ( !fGiaSimple )
+    if ( !fGiaSimple && !fNoCleanup )
     {
         pNew = Gia_ManCleanup( pTemp = pNew );
         Gia_ManDupRemapLiterals( vBits, pTemp );
