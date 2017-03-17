@@ -32,10 +32,10 @@ ABC_NAMESPACE_IMPL_START
 
 #define NCPARS 16
 
-inline int Bmc_MeshTVar( int Me[102][102], int x, int y ) { return Me[x][y];                                         }
-inline int Bmc_MeshGVar( int Me[102][102], int x, int y ) { return Me[x][y] + Me[101][100];                          }
-inline int Bmc_MeshCVar( int Me[102][102], int x, int y ) { return Me[x][y] + Me[101][100] + Me[101][101];           }
-inline int Bmc_MeshUVar( int Me[102][102], int x, int y ) { return Me[x][y] + Me[101][100] + Me[101][101] + NCPARS;  }
+static inline int Bmc_MeshTVar( int Me[102][102], int x, int y ) { return Me[x][y];                                         }
+static inline int Bmc_MeshGVar( int Me[102][102], int x, int y ) { return Me[x][y] + Me[101][100];                          }
+static inline int Bmc_MeshCVar( int Me[102][102], int x, int y ) { return Me[x][y] + Me[101][100] + Me[101][101];           }
+static inline int Bmc_MeshUVar( int Me[102][102], int x, int y ) { return Me[x][y] + Me[101][100] + Me[101][101] + NCPARS;  }
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
