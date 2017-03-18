@@ -25,6 +25,17 @@
 #include "aig/gia/giaAig.h"
 #include "sat/bmc/bmc.h"
 
+#ifdef ABC_USE_PTHREADS
+
+#ifdef _WIN32
+#include "../lib/pthread.h"
+#else
+#include <pthread.h>
+#include <unistd.h>
+#endif
+
+#endif
+
 ABC_NAMESPACE_IMPL_START
 
 ////////////////////////////////////////////////////////////////////////
@@ -66,6 +77,18 @@ struct Wla_Man_t_
     abctime tCbr;
     abctime tPbr;
 };
+
+// information given to the thread
+typedef struct Bmc3_ThData_t_
+{
+    Aig_Man_t *  pAig;
+    Abc_Cex_t ** ppCex;
+    int          RunId;
+} Bmc3_ThData_t;
+
+// mutext to control access to shared variables
+extern pthread_mutex_t g_mutex;
+static volatile int g_nRunIds = 0;             // the number of the last prover instance
 
 int IntPairPtrCompare ( Int_Pair_t ** a, Int_Pair_t ** b )
 {
@@ -1299,11 +1322,59 @@ int Wla_ManCheckCombUnsat( Wla_Man_t * pWla, Aig_Man_t * pAig )
     return RetValue;
 }
 
+int Bmc3_test( Aig_Man_t * pAig, int RunId, Abc_Cex_t ** ppCex )
+{
+    char * p = ABC_ALLOC( char, 111 );
+    while ( 1 )
+    {
+        if ( RunId < g_nRunIds )
+            break;
+    }
+    ABC_FREE( p );
+    return -1;
+}
+
+void * Wla_Bmc3Thread ( void * pArg )
+{
+    int RetValue = -1;
+    Bmc3_ThData_t * pData = (Bmc3_ThData_t *)pArg;
+    RetValue = Bmc3_test( pData->pAig, pData->RunId, pData->ppCex );
+
+    if ( RetValue == -1 )
+            Abc_Print( 1, "Cancelled bmc3 %d.\n", pData->RunId );
+
+    // free memory
+    Aig_ManStop( pData->pAig );
+    ABC_FREE( pData );
+
+    // quit this thread
+    pthread_exit( NULL );
+    assert(0);
+    return NULL;
+}
+
+void Wla_ManConcurrentBmc3( pthread_t * pThread, Aig_Man_t * pAig )
+{
+    int status;
+
+    Bmc3_ThData_t * pData;
+    pData = ABC_CALLOC( Bmc3_ThData_t, 1 );
+    pData->pAig = pAig;
+    pData->ppCex = NULL;
+    status = pthread_mutex_lock(&g_mutex);  assert( status == 0 );
+    pData->RunId = ++g_nRunIds;
+    status = pthread_mutex_unlock(&g_mutex);  assert( status == 0 );
+
+    status = pthread_create( pThread, NULL, Wla_Bmc3Thread, pData );
+    assert( status == 0 );
+}
+
 int Wla_ManSolve( Wla_Man_t * pWla, Aig_Man_t * pAig )
 {
     abctime clk;
     Pdr_Man_t * pPdr;
     int RetValue = -1;
+    int status;
 
     if ( pWla->vClauses && pWla->pPars->fCheckCombUnsat )
     {
@@ -1319,6 +1390,19 @@ int Wla_ManSolve( Wla_Man_t * pWla, Aig_Man_t * pAig )
 
         if ( pWla->pPars->fVerbose )
             Abc_PrintTime( 1, "Check comb. unsat failed. Time", Abc_Clock() - clk );
+    }
+
+    if ( pWla->pPars->fUseBmc3 )
+    {
+        pthread_t Bmc3Thread;
+
+        Wla_ManConcurrentBmc3( &Bmc3Thread, Aig_ManDupSimple(pAig) );
+        status = pthread_mutex_lock(&g_mutex);  assert( status == 0 );
+        ++g_nRunIds;
+        status = pthread_mutex_unlock(&g_mutex);  assert( status == 0 );
+
+        status = pthread_join( Bmc3Thread, NULL );
+        assert( status == 0 );
     }
 
     clk = Abc_Clock();

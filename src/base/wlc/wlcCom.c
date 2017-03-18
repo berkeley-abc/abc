@@ -464,7 +464,7 @@ int Abc_CommandPdrAbs( Abc_Frame_t * pAbc, int argc, char ** argv )
     int c;
     Wlc_ManSetDefaultParams( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "AMXFILabrcdipmuxvwh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "AMXFILabrcdipqmuxvwh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -558,6 +558,9 @@ int Abc_CommandPdrAbs( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'p':
             pPars->fPushClauses ^= 1;
             break;
+        case 'q':
+            pPars->fUseBmc3 ^= 1;
+            break;
         case 'm':
             pPars->fMFFC ^= 1;
             break;
@@ -584,7 +587,7 @@ int Abc_CommandPdrAbs( Abc_Frame_t * pAbc, int argc, char ** argv )
     Wlc_NtkPdrAbs( pNtk, pPars );
     return 0;
 usage:
-    Abc_Print( -2, "usage: %%pdra [-AMXFIL num] [-abrcdipmxuvwh]\n" );
+    Abc_Print( -2, "usage: %%pdra [-AMXFIL num] [-abrcdipqmxuvwh]\n" );
     Abc_Print( -2, "\t         abstraction for word-level networks\n" );
     Abc_Print( -2, "\t-A num : minimum bit-width of an adder/subtractor to abstract [default = %d]\n", pPars->nBitsAdd );
     Abc_Print( -2, "\t-M num : minimum bit-width of a multiplier to abstract [default = %d]\n",        pPars->nBitsMul );
@@ -601,6 +604,7 @@ usage:
     Abc_Print( -2, "\t-i     : toggle using PPI values in proof-based refinement [default = %s]\n",    pPars->fProofUsePPI? "yes": "no" );
     Abc_Print( -2, "\t-u     : toggle checking combinationally unsat [default = %s]\n",                pPars->fCheckCombUnsat? "yes": "no" );
     Abc_Print( -2, "\t-p     : toggle pushing clauses in the reloaded trace [default = %s]\n",         pPars->fPushClauses? "yes": "no" );
+    Abc_Print( -2, "\t-q     : toggle running bmc3 in parallel for CEX [default = %s]\n",              pPars->fUseBmc3? "yes": "no" );
     Abc_Print( -2, "\t-m     : toggle refining the whole MFFC of a PPI [default = %s]\n",              pPars->fMFFC? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n",                  pPars->fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-w     : toggle printing verbose PDR output [default = %s]\n",                   pPars->fPdrVerbose? "yes": "no" );
