@@ -1251,6 +1251,54 @@ Aig_Man_t * Wla_ManBitBlast( Wla_Man_t * pWla, Wlc_Ntk_t * pAbs )
     return pAig;
 }
 
+int Wla_ManCheckCombUnsat( Wla_Man_t * pWla, Aig_Man_t * pAig )
+{
+    Pdr_Man_t * pPdr;
+    abctime clk;
+    int RetValue = -1;
+
+    if ( Aig_ManAndNum( pAig ) <= 20000 )
+    { 
+        Aig_Man_t * pAigScorr;
+        Ssw_Pars_t ScorrPars, * pScorrPars = &ScorrPars;
+        int nAnds;
+
+        clk = Abc_Clock();
+
+        Ssw_ManSetDefaultParams( pScorrPars );
+        pScorrPars->fStopWhenGone = 1;
+        pScorrPars->nFramesK = 1;
+        pAigScorr = Ssw_SignalCorrespondence( pAig, pScorrPars );
+        assert ( pAigScorr );
+        nAnds = Aig_ManAndNum( pAigScorr); 
+        Aig_ManStop( pAigScorr );
+
+        if ( nAnds == 0 )
+        {
+            if ( pWla->pPars->fVerbose )
+                Abc_PrintTime( 1, "SCORR proved UNSAT. Time", Abc_Clock() - clk );
+            return 1;
+        }
+        else if ( pWla->pPars->fVerbose )
+        {
+            Abc_Print( 1, "SCORR failed with %d ANDs. ", nAnds);
+            Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
+        }
+    }
+
+    clk = Abc_Clock();
+
+    pWla->pPdrPars->fVerbose = 0;
+    pPdr = Pdr_ManStart( pAig, pWla->pPdrPars, NULL );
+    RetValue = IPdr_ManCheckCombUnsat( pPdr );
+    Pdr_ManStop( pPdr );
+    pWla->pPdrPars->fVerbose = pWla->pPars->fPdrVerbose;
+
+    pWla->tPdr += Abc_Clock() - clk;
+
+    return RetValue;
+}
+
 int Wla_ManSolve( Wla_Man_t * pWla, Aig_Man_t * pAig )
 {
     abctime clk;
@@ -1259,45 +1307,9 @@ int Wla_ManSolve( Wla_Man_t * pWla, Aig_Man_t * pAig )
 
     if ( pWla->vClauses && pWla->pPars->fCheckCombUnsat )
     {
-        if ( Aig_ManAndNum( pAig ) <= 20000 )
-        { 
-            Aig_Man_t * pAigScorr;
-            Ssw_Pars_t ScorrPars, * pScorrPars = &ScorrPars;
-            int nAnds;
-
-            clk = Abc_Clock();
-
-            Ssw_ManSetDefaultParams( pScorrPars );
-            pScorrPars->fStopWhenGone = 1;
-            pScorrPars->nFramesK = 1;
-            pAigScorr = Ssw_SignalCorrespondence( pAig, pScorrPars );
-            assert ( pAigScorr );
-            nAnds = Aig_ManAndNum( pAigScorr); 
-            Aig_ManStop( pAigScorr );
-
-            if ( nAnds == 0 )
-            {
-                if ( pWla->pPars->fVerbose )
-                    Abc_PrintTime( 1, "SCORR proved UNSAT. Time", Abc_Clock() - clk );
-                return 1;
-            }
-            else if ( pWla->pPars->fVerbose )
-            {
-                Abc_Print( 1, "SCORR failed with %d ANDs. ", nAnds);
-                Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
-            }
-        }
-
         clk = Abc_Clock();
 
-        pWla->pPdrPars->fVerbose = 0;
-        pPdr = Pdr_ManStart( pAig, pWla->pPdrPars, NULL );
-        RetValue = IPdr_ManCheckCombUnsat( pPdr );
-        Pdr_ManStop( pPdr );
-        pWla->pPdrPars->fVerbose = pWla->pPars->fPdrVerbose;
-
-        pWla->tPdr += Abc_Clock() - clk;
-
+        RetValue = Wla_ManCheckCombUnsat( pWla, pAig );
         if ( RetValue == 1 )
         {
             if ( pWla->pPars->fVerbose )
