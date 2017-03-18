@@ -369,6 +369,7 @@ static int Abc_CommandAbc9PFan               ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandAbc9PSig               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Status             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9MuxProfile         ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9Unate              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Rex2Gia            ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9RexWalk            ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Show               ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -1022,6 +1023,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "ABC9",         "&psig",         Abc_CommandAbc9PSig,         0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&status",       Abc_CommandAbc9Status,       0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&profile",      Abc_CommandAbc9MuxProfile,   0 );
+    Cmd_CommandAdd( pAbc, "ABC9",         "&unate",        Abc_CommandAbc9Unate,        0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&rex2gia",      Abc_CommandAbc9Rex2Gia,      0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&rexwalk",      Abc_CommandAbc9RexWalk,      0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&show",         Abc_CommandAbc9Show,         0 );
@@ -28862,6 +28864,55 @@ usage:
     Abc_Print( -2, "\t-n     : toggle profiling NPN-classes (for 3-LUT mapped AIGs) [default = %s]\n", fNpn? "yes": "no" );
     Abc_Print( -2, "\t-m     : toggle profiling MUX structures [default = %s]\n", fMuxes? "yes": "no" );
     Abc_Print( -2, "\t-a     : toggle profiling adder structures [default = %s]\n", fAdders? "yes": "no" );
+    Abc_Print( -2, "\t-v     : toggle verbose output [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc9Unate( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern void Gia_ManCheckUnateTest( Gia_Man_t * p, int fComputeAll, int fVerbose );
+    int c, fComputeAll = 0, fVerbose = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "avh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'a':
+            fComputeAll ^= 1;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pAbc->pGia == NULL )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9Unate(): There is no AIG.\n" );
+        return 1;
+    }
+    Gia_ManCheckUnateTest( pAbc->pGia, fComputeAll, fVerbose );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: &unate [-avh]\n" );
+    Abc_Print( -2, "\t         prints info about unatements of CO funcs in terms of CI vars\n" );
+    Abc_Print( -2, "\t-a     : toggle using efficient computation for all pairs [default = %s]\n", fComputeAll? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle verbose output [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;

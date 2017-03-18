@@ -103,7 +103,10 @@ clkBdd = Abc_Clock() - clk;
 //            p = Extra_UnateComputeSlow( dd, pbGlobal[i] );
             p = Extra_UnateComputeSlow( dd, (DdNode *)Abc_ObjGlobalBdd(pNode) );
             if ( fVerbose )
+            {
+                printf( "Out%4d : ", i );
                 Extra_UnateInfoPrint( p );
+            }
             TotalSupps += p->nVars;
             TotalUnate += p->nUnate;
             Extra_UnateInfoDissolve( p );
@@ -119,7 +122,10 @@ clkBdd = Abc_Clock() - clk;
 //            p = Extra_UnateComputeFast( dd, pbGlobal[i] );
             p = Extra_UnateComputeFast( dd, (DdNode *)Abc_ObjGlobalBdd(pNode) );
             if ( fVerbose )
+            {
+                printf( "Out%4d : ", i );
                 Extra_UnateInfoPrint( p );
+            }
             TotalSupps += p->nVars;
             TotalUnate += p->nUnate;
             Extra_UnateInfoDissolve( p );
