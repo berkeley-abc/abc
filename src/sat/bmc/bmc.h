@@ -73,6 +73,8 @@ struct Saig_ParBmc_t_
     int         nDropOuts;      // the number of dropped outputs
     abctime     timeLastSolved; // the time when the last output was solved
     int(*pFuncOnFail)(int,Abc_Cex_t*); // called for a failed output in MO mode
+    int         RunId;          // BMC id in this run 
+    int(*pFuncStop)(int);       // callback to terminate
 };
 
  

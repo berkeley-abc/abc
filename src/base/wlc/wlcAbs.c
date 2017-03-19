@@ -87,6 +87,7 @@ typedef struct Bmc3_ThData_t_
     Aig_Man_t *  pAig;
     Abc_Cex_t ** ppCex;
     int          RunId;
+    int          fVerbose;
 } Bmc3_ThData_t;
 
 // mutext to control access to shared variables
@@ -1334,6 +1335,8 @@ void * Wla_Bmc3Thread ( void * pArg )
     Abc_Ntk_t * pAbcNtk = Abc_NtkFromAigPhase( pData->pAig );
     Saig_ParBmc_t BmcPars, *pBmcPars = &BmcPars;
     Saig_ParBmcSetDefaultParams( pBmcPars );
+    pBmcPars->pFuncStop = Wla_CallBackToStop;
+    pBmcPars->RunId = pData->RunId;
 
     RetValue = Abc_NtkDarBmc3( pAbcNtk, pBmcPars, 0 );
 
@@ -1342,7 +1345,9 @@ void * Wla_Bmc3Thread ( void * pArg )
         assert( pAbcNtk->pSeqModel );
         *(pData->ppCex) = pAbcNtk->pSeqModel;
         pAbcNtk->pSeqModel = NULL;
-        Abc_Print( 1, "BMC3 found CEX. RunId=%d.\n", pData->RunId );
+
+        if ( pData->fVerbose )
+            Abc_Print( 1, "Bmc3 found CEX. RunId=%d.\n", pData->RunId );
 
         status = pthread_mutex_lock(&g_mutex);  assert( status == 0 );
         ++g_nRunIds;
@@ -1350,7 +1355,8 @@ void * Wla_Bmc3Thread ( void * pArg )
     }
     else
     {
-        Abc_Print( 1, "BMC3 got cancelled. RunId=%d.\n", pData->RunId );
+        if ( pData->fVerbose )
+            Abc_Print( 1, "Bmc3 was cancelled. RunId=%d.\n", pData->RunId );
     }
 
     // free memory
@@ -1364,7 +1370,7 @@ void * Wla_Bmc3Thread ( void * pArg )
     return NULL;
 }
 
-void Wla_ManConcurrentBmc3( pthread_t * pThread, Aig_Man_t * pAig, Abc_Cex_t ** ppCex )
+void Wla_ManConcurrentBmc3( pthread_t * pThread, Aig_Man_t * pAig, Abc_Cex_t ** ppCex, int fVerbose )
 {
     int status;
 
@@ -1373,6 +1379,7 @@ void Wla_ManConcurrentBmc3( pthread_t * pThread, Aig_Man_t * pAig, Abc_Cex_t ** 
     pData->pAig = pAig;
     pData->ppCex = ppCex;
     pData->RunId = g_nRunIds;
+    pData->fVerbose = fVerbose;
 
     status = pthread_create( pThread, NULL, Wla_Bmc3Thread, pData );
     assert( status == 0 );
@@ -1410,7 +1417,7 @@ int Wla_ManSolve( Wla_Man_t * pWla, Aig_Man_t * pAig )
         pWla->pPdrPars->pFuncStop = Wla_CallBackToStop;
 
         pBmc3Thread = ABC_CALLOC( pthread_t, 1 );
-        Wla_ManConcurrentBmc3( pBmc3Thread, Aig_ManDupSimple( pAig ), &pBmcCex );
+        Wla_ManConcurrentBmc3( pBmc3Thread, Aig_ManDupSimple( pAig ), &pBmcCex, pWla->pPars->fVerbose );
     }
 
     clk = Abc_Clock();
