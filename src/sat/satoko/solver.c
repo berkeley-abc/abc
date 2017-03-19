@@ -518,9 +518,9 @@ void solver_cancel_until(solver_t *s, unsigned level)
     for (i = (int) vec_uint_size(s->trail) - 1; i >= (int) vec_uint_at(s->trail_lim, level); i--) {
         unsigned var = lit2var(vec_uint_at(s->trail, (unsigned) i));
 
+        vec_char_assign(s->polarity, var, vec_char_at(s->assigns, var));
         vec_char_assign(s->assigns, var, VAR_UNASSING);
         vec_uint_assign(s->reasons, var, UNDEF);
-        vec_char_assign(s->polarity, var, lit_polarity(vec_uint_at(s->trail, (unsigned) i)));
         if (!heap_in_heap(s->var_order, var))
             heap_insert(s->var_order, var);
     }
