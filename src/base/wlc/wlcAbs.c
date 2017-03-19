@@ -48,6 +48,9 @@ extern int           IPdr_ManSolveInt( Pdr_Man_t * p, int fCheckClauses, int fPu
 extern int           IPdr_ManCheckCombUnsat( Pdr_Man_t * p );
 extern int           IPdr_ManReduceClauses( Pdr_Man_t * p, Vec_Vec_t * vClauses );
 extern void          IPdr_ManPrintClauses( Vec_Vec_t * vClauses, int kStart, int nRegs );
+extern Abc_Ntk_t *   Abc_NtkFromAigPhase( Aig_Man_t * pAig );
+extern int           Abc_NtkDarBmc3( Abc_Ntk_t * pAbcNtk, Saig_ParBmc_t * pBmcPars, int fOrDecomp );
+extern int           Abs_CallBackToStop( int RunId );
 
 typedef struct Int_Pair_t_       Int_Pair_t;
 struct Int_Pair_t_
@@ -89,6 +92,7 @@ typedef struct Bmc3_ThData_t_
 // mutext to control access to shared variables
 extern pthread_mutex_t g_mutex;
 static volatile int g_nRunIds = 0;             // the number of the last prover instance
+static int Wla_CallBackToStop( int RunId ) { assert( RunId <= g_nRunIds ); return RunId < g_nRunIds; }
 
 int IntPairPtrCompare ( Int_Pair_t ** a, Int_Pair_t ** b )
 {
@@ -1322,28 +1326,35 @@ int Wla_ManCheckCombUnsat( Wla_Man_t * pWla, Aig_Man_t * pAig )
     return RetValue;
 }
 
-int Bmc3_test( Aig_Man_t * pAig, int RunId, Abc_Cex_t ** ppCex )
-{
-    char * p = ABC_ALLOC( char, 111 );
-    while ( 1 )
-    {
-        if ( RunId < g_nRunIds )
-            break;
-    }
-    ABC_FREE( p );
-    return -1;
-}
-
 void * Wla_Bmc3Thread ( void * pArg )
 {
+    int status;
     int RetValue = -1;
     Bmc3_ThData_t * pData = (Bmc3_ThData_t *)pArg;
-    RetValue = Bmc3_test( pData->pAig, pData->RunId, pData->ppCex );
+    Abc_Ntk_t * pAbcNtk = Abc_NtkFromAigPhase( pData->pAig );
+    Saig_ParBmc_t BmcPars, *pBmcPars = &BmcPars;
+    Saig_ParBmcSetDefaultParams( pBmcPars );
 
-    if ( RetValue == -1 )
-            Abc_Print( 1, "Cancelled bmc3 %d.\n", pData->RunId );
+    RetValue = Abc_NtkDarBmc3( pAbcNtk, pBmcPars, 0 );
+
+    if ( RetValue == 0 )
+    {
+        assert( pAbcNtk->pSeqModel );
+        *(pData->ppCex) = pAbcNtk->pSeqModel;
+        pAbcNtk->pSeqModel = NULL;
+        Abc_Print( 1, "BMC3 found CEX. RunId=%d.\n", pData->RunId );
+
+        status = pthread_mutex_lock(&g_mutex);  assert( status == 0 );
+        ++g_nRunIds;
+        status = pthread_mutex_unlock(&g_mutex);  assert( status == 0 );
+    }
+    else
+    {
+        Abc_Print( 1, "BMC3 got cancelled. RunId=%d.\n", pData->RunId );
+    }
 
     // free memory
+    Abc_NtkDelete( pAbcNtk );
     Aig_ManStop( pData->pAig );
     ABC_FREE( pData );
 
@@ -1353,17 +1364,15 @@ void * Wla_Bmc3Thread ( void * pArg )
     return NULL;
 }
 
-void Wla_ManConcurrentBmc3( pthread_t * pThread, Aig_Man_t * pAig )
+void Wla_ManConcurrentBmc3( pthread_t * pThread, Aig_Man_t * pAig, Abc_Cex_t ** ppCex )
 {
     int status;
 
     Bmc3_ThData_t * pData;
     pData = ABC_CALLOC( Bmc3_ThData_t, 1 );
     pData->pAig = pAig;
-    pData->ppCex = NULL;
-    status = pthread_mutex_lock(&g_mutex);  assert( status == 0 );
-    pData->RunId = ++g_nRunIds;
-    status = pthread_mutex_unlock(&g_mutex);  assert( status == 0 );
+    pData->ppCex = ppCex;
+    pData->RunId = g_nRunIds;
 
     status = pthread_create( pThread, NULL, Wla_Bmc3Thread, pData );
     assert( status == 0 );
@@ -1373,8 +1382,11 @@ int Wla_ManSolve( Wla_Man_t * pWla, Aig_Man_t * pAig )
 {
     abctime clk;
     Pdr_Man_t * pPdr;
+    Abc_Cex_t * pBmcCex = NULL;
+    pthread_t * pBmc3Thread = NULL;
     int RetValue = -1;
     int status;
+    int RunId = g_nRunIds;
 
     if ( pWla->vClauses && pWla->pPars->fCheckCombUnsat )
     {
@@ -1394,15 +1406,11 @@ int Wla_ManSolve( Wla_Man_t * pWla, Aig_Man_t * pAig )
 
     if ( pWla->pPars->fUseBmc3 )
     {
-        pthread_t Bmc3Thread;
+        pWla->pPdrPars->RunId = g_nRunIds;
+        pWla->pPdrPars->pFuncStop = Wla_CallBackToStop;
 
-        Wla_ManConcurrentBmc3( &Bmc3Thread, Aig_ManDupSimple(pAig) );
-        status = pthread_mutex_lock(&g_mutex);  assert( status == 0 );
-        ++g_nRunIds;
-        status = pthread_mutex_unlock(&g_mutex);  assert( status == 0 );
-
-        status = pthread_join( Bmc3Thread, NULL );
-        assert( status == 0 );
+        pBmc3Thread = ABC_CALLOC( pthread_t, 1 );
+        Wla_ManConcurrentBmc3( pBmc3Thread, Aig_ManDupSimple( pAig ), &pBmcCex );
     }
 
     clk = Abc_Clock();
@@ -1418,8 +1426,30 @@ int Wla_ManSolve( Wla_Man_t * pWla, Aig_Man_t * pAig )
     pWla->vClauses = IPdr_ManSaveClauses( pPdr, 0 );
     Pdr_ManStop( pPdr );
 
-    pWla->pCex = pAig->pSeqModel;
-    pAig->pSeqModel = NULL;
+
+    if ( pWla->pPars->fUseBmc3 )
+    {
+        if ( RunId == g_nRunIds )
+        {
+            status = pthread_mutex_lock(&g_mutex);  assert( status == 0 );
+            ++g_nRunIds;
+            status = pthread_mutex_unlock(&g_mutex);  assert( status == 0 );
+        }
+
+        status = pthread_join( *pBmc3Thread, NULL );
+        assert( status == 0 );
+        ABC_FREE( pBmc3Thread );
+    }
+
+    if ( pBmcCex )
+    {
+        pWla->pCex = pBmcCex ;
+    }
+    else
+    {
+        pWla->pCex = pAig->pSeqModel;
+        pAig->pSeqModel = NULL;
+    }
 
     // consider outcomes
     if ( pWla->pCex == NULL ) 
