@@ -53,8 +53,9 @@ static inline int Bmc_MeshUVar( int Me[102][102], int x, int y ) { return Me[x][
 ***********************************************************************/
 static inline int Bmc_MeshVarValue( satoko_t * p, int v )
 {
-    int value = var_value(p, v) != VAR_UNASSING ? var_value(p, v) : var_polarity(p, v);
-    return value == LIT_TRUE;
+//    int value = var_value(p, v) != VAR_UNASSING ? var_value(p, v) : var_polarity(p, v);
+//    return value == LIT_TRUE;
+    return var_polarity(p, v) == LIT_TRUE;
 }
 
 /**Function*************************************************************

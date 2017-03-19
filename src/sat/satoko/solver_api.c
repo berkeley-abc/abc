@@ -480,9 +480,9 @@ void satoko_write_dimacs(satoko_t *s, char *fname, int wrt_lrnt, int zero_var)
         return;
     }
     fprintf(file, "p cnf %d %d\n", n_vars, wrt_lrnt ? n_orig + n_lrnts : n_orig);
-    array = vec_uint_data(s->trail);
-    for (i = 0; i < vec_uint_size(s->trail); i++)
-        fprintf(file, "%d\n", array[i] & 1 ? -(array[i] + !zero_var) : array[i] + !zero_var);
+    for (i = 0; i < vec_char_size(s->assigns); i++)
+        if ( var_value(s, i) != VAR_UNASSING )
+            fprintf(file, "%d\n", var_value(s, i) == LIT_FALSE ? -(int)(i + !zero_var) : i + !zero_var);
     
     array = vec_uint_data(s->originals);
     for (i = 0; i < vec_uint_size(s->originals); i++)
