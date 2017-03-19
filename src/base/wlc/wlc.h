@@ -185,6 +185,29 @@ struct Wlc_Par_t_
     int                    fPdrVerbose;        // verbose output
 };
 
+typedef struct Wla_Man_t_ Wla_Man_t;
+struct Wla_Man_t_
+{
+    Wlc_Ntk_t * p;
+    Wlc_Par_t * pPars;
+    Vec_Vec_t * vClauses;
+    Vec_Int_t * vBlacks;
+    Abc_Cex_t * pCex;
+    Gia_Man_t * pGia;
+    Vec_Bit_t * vUnmark;
+    void      * pPdrPars;
+    void      * pThread;
+
+    int nIters;
+    int nTotalCla;
+    int nDisj;
+    int nNDisj;
+
+    abctime tPdr;
+    abctime tCbr;
+    abctime tPbr;
+};
+
 static inline int          Wlc_NtkObjNum( Wlc_Ntk_t * p )                           { return p->iObj - 1;                                                      }
 static inline int          Wlc_NtkObjNumMax( Wlc_Ntk_t * p )                        { return p->iObj;                                                          }
 static inline int          Wlc_NtkPiNum( Wlc_Ntk_t * p )                            { return Vec_IntSize(&p->vPis);                                            }

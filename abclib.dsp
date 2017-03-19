@@ -787,6 +787,10 @@ SOURCE=.\src\base\wlc\wlcAbs.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\base\wlc\wlcPth.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\base\wlc\wlcAbs2.c
 # End Source File
 # Begin Source File
