@@ -23,6 +23,7 @@
 #include "map/mio/mio.h"
 #include "bool/dec/dec.h"
 #include "opt/fxu/fxu.h"
+#include "aig/miniaig/ndr.h"
 
 #ifdef ABC_USE_CUDD
 #include "bdd/extrab/extraBdd.h"
@@ -3085,6 +3086,59 @@ Abc_Ntk_t * Abc_NtkCreatePropertyMonitorTest( Abc_Ntk_t * p )
     Vec_IntFree( vNodeValues );
 
     return pNtk;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_GateToType( Abc_Obj_t * pObj )
+{
+    char * pGateName = Mio_GateReadName((Mio_Gate_t *)pObj->pData);
+    if ( !strncmp(pGateName, "buf",  3) )  return ABC_OPER_BIT_BUF;
+    if ( !strncmp(pGateName, "inv",  3) )  return ABC_OPER_BIT_INV;
+    if ( !strncmp(pGateName, "and",  3) )  return ABC_OPER_BIT_AND;
+    if ( !strncmp(pGateName, "nand", 4) )  return ABC_OPER_BIT_NAND;
+    if ( !strncmp(pGateName, "or",   2) )  return ABC_OPER_BIT_OR;
+    if ( !strncmp(pGateName, "nor",  3) )  return ABC_OPER_BIT_NOR;
+    if ( !strncmp(pGateName, "xor",  3) )  return ABC_OPER_BIT_XOR;
+    if ( !strncmp(pGateName, "nxor", 4) )  return ABC_OPER_BIT_NXOR;
+    assert( 0 );
+    return -1;
+}
+Vec_Wec_t * Abc_SopSynthesize( Vec_Ptr_t * vSops )
+{
+    Vec_Wec_t * vRes = NULL;
+    Abc_Ntk_t * pNtk = Abc_NtkCreateFromSops( "top", vSops );
+    Abc_Ntk_t * pNtkNew;
+    Abc_Obj_t * pObj, * pFanin;
+    int i, k, iNode = 0;
+    Abc_FrameReplaceCurrentNetwork( Abc_FrameReadGlobalFrame(), pNtk );
+    Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "fx; strash; balance; dc2; map -a" );
+    pNtkNew = Abc_FrameReadNtk( Abc_FrameReadGlobalFrame() );
+    Abc_NtkDelete( pNtk );
+    vRes = Vec_WecStart( Abc_NtkPiNum(pNtkNew) + Abc_NtkNodeNum(pNtkNew) + Abc_NtkPoNum(pNtkNew) );
+    Abc_NtkForEachPi( pNtkNew, pObj, i )
+        pObj->iTemp = iNode++;
+    Abc_NtkForEachNode( pNtkNew, pObj, i )
+    {
+        Vec_Int_t * vNode = Vec_WecEntry(vRes, iNode);
+        Vec_IntPush( vNode, Abc_GateToType(pObj) );
+        Abc_ObjForEachFanin( pObj, pFanin, k )
+            Vec_IntPush( vNode, pFanin->iTemp );
+        pObj->iTemp = iNode++;
+    }
+    Abc_NtkForEachPo( pNtkNew, pObj, i )
+        Vec_IntPushTwo( Vec_WecEntry(vRes, iNode++), ABC_OPER_BIT_BUF, Abc_ObjFanin0(pObj)->iTemp );
+    assert( Vec_WecSize(vRes) == iNode );
+    return vRes;
 }
 
 ////////////////////////////////////////////////////////////////////////

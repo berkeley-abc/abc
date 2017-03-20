@@ -31,6 +31,8 @@
 #include <string.h>
 #include <assert.h>
 
+#include "abcOper.h"
+
 //ABC_NAMESPACE_HEADER_START 
 
 #ifdef _WIN32
@@ -63,7 +65,7 @@
     As another example, consider a two-input AND-gate.  In this case, the recent is composed 
     of a header {NDR_OBJECT, 4}  containing record type (NDR_OBJECT) and the body size (4), followed 
     by an array of records creating the AND-gate:  (a) name, (b) operation type, (c) fanins.   
-    The complete record  looks as follows: {  {NDR_OBJECT, 5}, {{{NDR_NAME, 1}, 357}, {{NDR_OPERTYPE, 1}, WLC_OBJ_LOGIC_AND}, 
+    The complete record  looks as follows: {  {NDR_OBJECT, 5}, {{{NDR_NAME, 1}, 357}, {{NDR_OPERTYPE, 1}, ABC_OPER_LOGIC_AND}, 
     {{NDR_INPUT, 2}, {<id_fanin1>, <id_fanin2>}}} }.   Please note that only body entries are counted towards size. 
     In the case of one name, there is only one body entry.  In the case of the AND-gate, there are 4 body entries 
     (name ID, gate type, first fanin, second fanin).
@@ -117,126 +119,6 @@ typedef enum {
     NDR_UNKNOWN            // 11: unknown
 } Ndr_RecordType_t; 
 
-// operator types
-typedef enum { 
-    WLC_OBJ_NONE = 0,      // 00: unknown
-    WLC_OBJ_PI,            // 01: primary input 
-    WLC_OBJ_PO,            // 02: primary output
-    WLC_OBJ_FO,            // 03: flop output (unused)
-    WLC_OBJ_FI,            // 04: flop input (unused)
-    WLC_OBJ_FF,            // 05: flop
-    WLC_OBJ_CONST,         // 06: constant
-    WLC_OBJ_BUF,           // 07: buffer
-    WLC_OBJ_MUX,           // 08: multiplexer
-    WLC_OBJ_SHIFT_R,       // 09: shift right
-    WLC_OBJ_SHIFT_RA,      // 10: shift right (arithmetic)
-    WLC_OBJ_SHIFT_L,       // 11: shift left
-    WLC_OBJ_SHIFT_LA,      // 12: shift left (arithmetic)
-    WLC_OBJ_ROTATE_R,      // 13: rotate right
-    WLC_OBJ_ROTATE_L,      // 14: rotate left
-    WLC_OBJ_BIT_NOT,       // 15: bitwise NOT
-    WLC_OBJ_BIT_AND,       // 16: bitwise AND
-    WLC_OBJ_BIT_OR,        // 17: bitwise OR
-    WLC_OBJ_BIT_XOR,       // 18: bitwise XOR
-    WLC_OBJ_BIT_NAND,      // 19: bitwise AND
-    WLC_OBJ_BIT_NOR,       // 20: bitwise OR
-    WLC_OBJ_BIT_NXOR,      // 21: bitwise NXOR
-    WLC_OBJ_BIT_SELECT,    // 22: bit selection
-    WLC_OBJ_BIT_CONCAT,    // 23: bit concatenation
-    WLC_OBJ_BIT_ZEROPAD,   // 24: zero padding
-    WLC_OBJ_BIT_SIGNEXT,   // 25: sign extension
-    WLC_OBJ_LOGIC_NOT,     // 26: logic NOT
-    WLC_OBJ_LOGIC_IMPL,    // 27: logic implication
-    WLC_OBJ_LOGIC_AND,     // 28: logic AND
-    WLC_OBJ_LOGIC_OR,      // 29: logic OR
-    WLC_OBJ_LOGIC_XOR,     // 30: logic XOR
-    WLC_OBJ_COMP_EQU,      // 31: compare equal
-    WLC_OBJ_COMP_NOTEQU,   // 32: compare not equal
-    WLC_OBJ_COMP_LESS,     // 33: compare less
-    WLC_OBJ_COMP_MORE,     // 34: compare more
-    WLC_OBJ_COMP_LESSEQU,  // 35: compare less or equal
-    WLC_OBJ_COMP_MOREEQU,  // 36: compare more or equal
-    WLC_OBJ_REDUCT_AND,    // 37: reduction AND
-    WLC_OBJ_REDUCT_OR,     // 38: reduction OR
-    WLC_OBJ_REDUCT_XOR,    // 39: reduction XOR
-    WLC_OBJ_REDUCT_NAND,   // 40: reduction NAND
-    WLC_OBJ_REDUCT_NOR,    // 41: reduction NOR
-    WLC_OBJ_REDUCT_NXOR,   // 42: reduction NXOR
-    WLC_OBJ_ARI_ADD,       // 43: arithmetic addition
-    WLC_OBJ_ARI_SUB,       // 44: arithmetic subtraction
-    WLC_OBJ_ARI_MULTI,     // 45: arithmetic multiplier
-    WLC_OBJ_ARI_DIVIDE,    // 46: arithmetic division
-    WLC_OBJ_ARI_REM,       // 47: arithmetic remainder
-    WLC_OBJ_ARI_MODULUS,   // 48: arithmetic modulus
-    WLC_OBJ_ARI_POWER,     // 49: arithmetic power
-    WLC_OBJ_ARI_MINUS,     // 50: arithmetic minus
-    WLC_OBJ_ARI_SQRT,      // 51: integer square root
-    WLC_OBJ_ARI_SQUARE,    // 52: integer square
-    WLC_OBJ_TABLE,         // 53: bit table
-    WLC_OBJ_NUMBER         // 54: unused
-} Wlc_ObjType_t;
-
-// printing operator types
-static inline char * Ndr_OperName( int Type )
-{
-    if ( Type == WLC_OBJ_NONE         )   return NULL;
-    if ( Type == WLC_OBJ_PI           )   return "pi";        // 01: primary input 
-    if ( Type == WLC_OBJ_PO           )   return "po";        // 02: primary output (unused)
-    if ( Type == WLC_OBJ_FO           )   return "ff";        // 03: flop output
-    if ( Type == WLC_OBJ_FI           )   return "bi";        // 04: flop input (unused)
-    if ( Type == WLC_OBJ_FF           )   return "ff";        // 05: flop (unused)
-    if ( Type == WLC_OBJ_CONST        )   return "const";     // 06: constant
-    if ( Type == WLC_OBJ_BUF          )   return "buf";       // 07: buffer
-    if ( Type == WLC_OBJ_MUX          )   return "mux";       // 08: multiplexer
-    if ( Type == WLC_OBJ_SHIFT_R      )   return ">>";        // 09: shift right
-    if ( Type == WLC_OBJ_SHIFT_RA     )   return ">>>";       // 10: shift right (arithmetic)
-    if ( Type == WLC_OBJ_SHIFT_L      )   return "<<";        // 11: shift left
-    if ( Type == WLC_OBJ_SHIFT_LA     )   return "<<<";       // 12: shift left (arithmetic)
-    if ( Type == WLC_OBJ_ROTATE_R     )   return "rotR";      // 13: rotate right
-    if ( Type == WLC_OBJ_ROTATE_L     )   return "rotL";      // 14: rotate left
-    if ( Type == WLC_OBJ_BIT_NOT      )   return "~";         // 15: bitwise NOT
-    if ( Type == WLC_OBJ_BIT_AND      )   return "&";         // 16: bitwise AND
-    if ( Type == WLC_OBJ_BIT_OR       )   return "|";         // 17: bitwise OR
-    if ( Type == WLC_OBJ_BIT_XOR      )   return "^";         // 18: bitwise XOR
-    if ( Type == WLC_OBJ_BIT_NAND     )   return "~&";        // 19: bitwise NAND
-    if ( Type == WLC_OBJ_BIT_NOR      )   return "~|";        // 20: bitwise NOR
-    if ( Type == WLC_OBJ_BIT_NXOR     )   return "~^";        // 21: bitwise NXOR
-    if ( Type == WLC_OBJ_BIT_SELECT   )   return "[:]";       // 22: bit selection
-    if ( Type == WLC_OBJ_BIT_CONCAT   )   return "{}";        // 23: bit concatenation
-    if ( Type == WLC_OBJ_BIT_ZEROPAD  )   return "zPad";      // 24: zero padding
-    if ( Type == WLC_OBJ_BIT_SIGNEXT  )   return "sExt";      // 25: sign extension
-    if ( Type == WLC_OBJ_LOGIC_NOT    )   return "!";         // 26: logic NOT
-    if ( Type == WLC_OBJ_LOGIC_IMPL   )   return "=>";        // 27: logic implication
-    if ( Type == WLC_OBJ_LOGIC_AND    )   return "&&";        // 28: logic AND
-    if ( Type == WLC_OBJ_LOGIC_OR     )   return "||";        // 29: logic OR
-    if ( Type == WLC_OBJ_LOGIC_XOR    )   return "^^";        // 30: logic XOR
-    if ( Type == WLC_OBJ_COMP_EQU     )   return "==";        // 31: compare equal
-    if ( Type == WLC_OBJ_COMP_NOTEQU  )   return "!=";        // 32: compare not equal
-    if ( Type == WLC_OBJ_COMP_LESS    )   return "<";         // 33: compare less
-    if ( Type == WLC_OBJ_COMP_MORE    )   return ">";         // 34: compare more
-    if ( Type == WLC_OBJ_COMP_LESSEQU )   return "<=";        // 35: compare less or equal
-    if ( Type == WLC_OBJ_COMP_MOREEQU )   return ">=";        // 36: compare more or equal
-    if ( Type == WLC_OBJ_REDUCT_AND   )   return "&";         // 37: reduction AND
-    if ( Type == WLC_OBJ_REDUCT_OR    )   return "|";         // 38: reduction OR
-    if ( Type == WLC_OBJ_REDUCT_XOR   )   return "^";         // 39: reduction XOR
-    if ( Type == WLC_OBJ_REDUCT_NAND  )   return "~&";        // 40: reduction NAND
-    if ( Type == WLC_OBJ_REDUCT_NOR   )   return "~|";        // 41: reduction NOR
-    if ( Type == WLC_OBJ_REDUCT_NXOR  )   return "~^";        // 42: reduction NXOR
-    if ( Type == WLC_OBJ_ARI_ADD      )   return "+";         // 43: arithmetic addition
-    if ( Type == WLC_OBJ_ARI_SUB      )   return "-";         // 44: arithmetic subtraction
-    if ( Type == WLC_OBJ_ARI_MULTI    )   return "*";         // 45: arithmetic multiplier
-    if ( Type == WLC_OBJ_ARI_DIVIDE   )   return "/";         // 46: arithmetic division
-    if ( Type == WLC_OBJ_ARI_REM      )   return "%";         // 47: arithmetic reminder
-    if ( Type == WLC_OBJ_ARI_MODULUS  )   return "mod";       // 48: arithmetic modulus
-    if ( Type == WLC_OBJ_ARI_POWER    )   return "**";        // 49: arithmetic power
-    if ( Type == WLC_OBJ_ARI_MINUS    )   return "-";         // 50: arithmetic minus
-    if ( Type == WLC_OBJ_ARI_SQRT     )   return "sqrt";      // 51: integer square root
-    if ( Type == WLC_OBJ_ARI_SQUARE   )   return "squar";     // 52: integer square
-    if ( Type == WLC_OBJ_TABLE        )   return "table";     // 53: bit table
-    if ( Type == WLC_OBJ_NUMBER       )   return NULL;        // 54: unused
-    return NULL;
-}
-
 
 ////////////////////////////////////////////////////////////////////////
 ///                         BASIC TYPES                              ///
@@ -278,16 +160,19 @@ static inline void          Ndr_DataPush( Ndr_Data_t * p, int Type, int Entry ) 
 
 // iterates over primary inputs of a module
 #define Ndr_ModForEachPi( p, Mod, Obj )                               \
-    Ndr_ModForEachObj( p, 0, Obj ) if ( !Ndr_ObjIsType(p, Obj, WLC_OBJ_PI) ) {} else
+    Ndr_ModForEachObj( p, 0, Obj ) if ( !Ndr_ObjIsType(p, Obj, ABC_OPER_CI) ) {} else
 
 // iteraots over primary outputs of a module
 #define Ndr_ModForEachPo( p, Mod, Obj )                               \
-    Ndr_ModForEachObj( p, 0, Obj ) if ( !Ndr_ObjIsType(p, Obj, WLC_OBJ_PO) ) {} else
+    Ndr_ModForEachObj( p, 0, Obj ) if ( !Ndr_ObjIsType(p, Obj, ABC_OPER_CO) ) {} else
 
 // iterates over internal nodes of a module
 #define Ndr_ModForEachNode( p, Mod, Obj )                             \
-    Ndr_ModForEachObj( p, 0, Obj ) if ( Ndr_ObjIsType(p, Obj, WLC_OBJ_PI) || Ndr_ObjIsType(p, Obj, WLC_OBJ_PO) ) {} else
+    Ndr_ModForEachObj( p, 0, Obj ) if ( Ndr_ObjIsType(p, Obj, ABC_OPER_CI) || Ndr_ObjIsType(p, Obj, ABC_OPER_CO) ) {} else
 
+// iterates over target signals of a module
+#define Ndr_ModForEachTarget( p, Mod, Obj )                           \
+    for ( Obj = Mod + 1; Obj < Ndr_DataEnd(p, Mod); Obj += Ndr_DataSize(p, Obj) ) if (Ndr_DataType(p, Obj) != NDR_TARGET) {} else
 
 ////////////////////////////////////////////////////////////////////////
 ///                    INTERNAL PROCEDURES                           ///
@@ -298,7 +183,7 @@ static inline void Ndr_DataResize( Ndr_Data_t * p, int Add )
 {
     if ( p->nSize + Add <= p->nCap )
         return;
-    p->nCap *= 2;
+    p->nCap  = Abc_MaxInt( 2 * p->nCap, p->nSize + Add );
     p->pHead = (unsigned char*)realloc( p->pHead,   p->nCap );
     p->pBody = (unsigned int *)realloc( p->pBody, 4*p->nCap );
 }
@@ -481,16 +366,16 @@ static inline void Ndr_ModuleWriteVerilog( char * pFileName, void * pModule, cha
         nArray = Ndr_ObjReadArray( p, Obj, NDR_INPUT, &pArray );
         if ( nArray == 0 )
             fprintf( pFile, "%s;\n", (char *)Ndr_ObjReadBodyP(p, Obj, NDR_FUNCTION) );
-        else if ( nArray == 1 && Ndr_ObjReadBody(p, Obj, NDR_OPERTYPE) == WLC_OBJ_BUF )
+        else if ( nArray == 1 && Ndr_ObjReadBody(p, Obj, NDR_OPERTYPE) == ABC_OPER_BIT_BUF )
             fprintf( pFile, "%s;\n", pNames[pArray[0]] );
         else if ( nArray == 1 )
-            fprintf( pFile, "%s %s;\n", Ndr_OperName(Ndr_ObjReadBody(p, Obj, NDR_OPERTYPE)), pNames[pArray[0]] );
+            fprintf( pFile, "%s %s;\n", Abc_OperName(Ndr_ObjReadBody(p, Obj, NDR_OPERTYPE)), pNames[pArray[0]] );
         else if ( nArray == 2 )
-            fprintf( pFile, "%s %s %s;\n", pNames[pArray[0]], Ndr_OperName(Ndr_ObjReadBody(p, Obj, NDR_OPERTYPE)), pNames[pArray[1]] );
-        else if ( Ndr_ObjReadBody(p, Obj, NDR_OPERTYPE) == WLC_OBJ_MUX )
+            fprintf( pFile, "%s %s %s;\n", pNames[pArray[0]], Abc_OperName(Ndr_ObjReadBody(p, Obj, NDR_OPERTYPE)), pNames[pArray[1]] );
+        else if ( Ndr_ObjReadBody(p, Obj, NDR_OPERTYPE) == ABC_OPER_BIT_MUX )
             fprintf( pFile, "%s ? %s : %s;\n", pNames[pArray[0]], pNames[pArray[1]], pNames[pArray[2]] );
         else
-            fprintf( pFile, "<cannot write operation %s>;\n", Ndr_OperName(Ndr_ObjReadBody(p, Obj, NDR_OPERTYPE)) );
+            fprintf( pFile, "<cannot write operation %s>;\n", Abc_OperName(Ndr_ObjReadBody(p, Obj, NDR_OPERTYPE)) );
     }
 
     fprintf( pFile, "\nendmodule\n\n" );
@@ -615,10 +500,10 @@ static inline void Ndr_ModuleTest()
     void * pModule = Ndr_ModuleCreate( 1 );
 
     // add objects to the modele
-    Ndr_ModuleAddObject( pModule, WLC_OBJ_PI,       0,   3, 0, 0,   0, NULL,      1, &NameIdA,   NULL      ); // no fanins
-    Ndr_ModuleAddObject( pModule, WLC_OBJ_CONST,    0,   3, 0, 0,   0, NULL,      1, &NameIdC,   "4'b1010" ); // no fanins
-    Ndr_ModuleAddObject( pModule, WLC_OBJ_ARI_ADD,  0,   3, 0, 0,   2, Fanins,    1, &NameIdS,   NULL      ); // fanins are a and const10 
-    Ndr_ModuleAddObject( pModule, WLC_OBJ_PO,       0,   3, 0, 0,   1, &NameIdS,  0, NULL,       NULL      ); // fanin is a
+    Ndr_ModuleAddObject( pModule, ABC_OPER_CI,       0,   3, 0, 0,   0, NULL,      1, &NameIdA,   NULL      ); // no fanins
+    Ndr_ModuleAddObject( pModule, ABC_OPER_CONST,    0,   3, 0, 0,   0, NULL,      1, &NameIdC,   "4'b1010" ); // no fanins
+    Ndr_ModuleAddObject( pModule, ABC_OPER_ARI_ADD,  0,   3, 0, 0,   2, Fanins,    1, &NameIdS,   NULL      ); // fanins are a and const10 
+    Ndr_ModuleAddObject( pModule, ABC_OPER_CO,       0,   3, 0, 0,   1, &NameIdS,  0, NULL,       NULL      ); // fanin is a
 
     // write Verilog for verification
     Ndr_ModuleWriteVerilog( NULL, pModule, ppNames );

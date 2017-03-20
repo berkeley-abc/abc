@@ -32,7 +32,7 @@ ABC_NAMESPACE_IMPL_START
 ////////////////////////////////////////////////////////////////////////
 
 static Mio_Library_t * Mio_LibraryReadOne( char * FileName, int fExtendedFormat, st__table * tExcludeGate, int fVerbose );
-static Mio_Library_t * Mio_LibraryReadBuffer( char * pBuffer, int fExtendedFormat, st__table * tExcludeGate, int fVerbose );
+       Mio_Library_t * Mio_LibraryReadBuffer( char * pBuffer, int fExtendedFormat, st__table * tExcludeGate, int fVerbose );
 static int             Mio_LibraryReadInternal( Mio_Library_t * pLib, char * pBuffer, int fExtendedFormat, st__table * tExcludeGate, int fVerbose );
 static Mio_Gate_t *    Mio_LibraryReadGate( char ** ppToken, int fExtendedFormat );
 static Mio_Pin_t *     Mio_LibraryReadPin( char ** ppToken, int fExtendedFormat );

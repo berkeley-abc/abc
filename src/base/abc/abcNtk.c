@@ -2201,6 +2201,45 @@ Abc_Ntk_t * Abc_NtkNodeDup( Abc_Ntk_t * pNtkInit, int nLimit, int fVerbose )
     return pNtk;
 }
 
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Ntk_t * Abc_NtkCreateFromSops( char * pName, Vec_Ptr_t * vSops )
+{
+    int i, k, nObjBeg;
+    char * pSop = (char *)Vec_PtrEntry(vSops, 0);
+    Abc_Ntk_t * pNtk = Abc_NtkAlloc( ABC_NTK_LOGIC, ABC_FUNC_SOP, 1 );
+    pNtk->pName = Extra_UtilStrsav( pName );
+    for ( k = 0; pSop[k] != ' '; k++ )
+        Abc_NtkCreatePi( pNtk );
+    nObjBeg = Abc_NtkObjNumMax(pNtk);
+    Vec_PtrForEachEntry( char *, vSops, pSop, i )
+    {
+        Abc_Obj_t * pObj = Abc_NtkCreateNode( pNtk );
+        pObj->pData = Abc_SopRegister( (Mem_Flex_t*)pNtk->pManFunc, pSop );
+        for ( k = 0; pSop[k] != ' '; k++ )
+            Abc_ObjAddFanin( pObj, Abc_NtkCi(pNtk, k) );
+    }
+    for ( i = 0; i < Vec_PtrSize(vSops); i++ )
+    {
+        Abc_Obj_t * pObj = Abc_NtkObj( pNtk, nObjBeg + i );
+        Abc_Obj_t * pObjPo = Abc_NtkCreatePo( pNtk );
+        Abc_ObjAddFanin( pObjPo, pObj );
+    }
+    Abc_NtkAddDummyPiNames( pNtk );
+    Abc_NtkAddDummyPoNames( pNtk );
+    return pNtk;
+}
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

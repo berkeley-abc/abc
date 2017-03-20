@@ -130,6 +130,7 @@ static int Abc_CommandMerge                  ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandTestDec                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandTestNpn                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandTestRPO                ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandTestRun                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 static int Abc_CommandRewrite                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandRefactor               ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -785,6 +786,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Synthesis",    "testdec",       Abc_CommandTestDec,          0 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "testnpn",       Abc_CommandTestNpn,          0 );
     Cmd_CommandAdd( pAbc, "LogiCS",       "testrpo",       Abc_CommandTestRPO,          0 );
+    Cmd_CommandAdd( pAbc, "Synthesis",    "testrun",       Abc_CommandTestRun,          0 );
 
     Cmd_CommandAdd( pAbc, "Synthesis",    "rewrite",       Abc_CommandRewrite,          1 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "refactor",      Abc_CommandRefactor,         1 );
@@ -6510,6 +6512,53 @@ usage:
     Abc_Print(-2, "\t<file>   : a text file with truth tables in hexadecimal, listed one per line,\n");
     Abc_Print(-2, "\t           or a binary file with an array of truth tables (in this case,\n");
     Abc_Print(-2, "\t           -N <num> is required to determine how many functions are stored)\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandTestRun( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern void Acb_NtkTestRun( char * pFileNames[3], int fVerbose );
+    int c, fVerbose = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+//    pArgvNew = argv + globalUtilOptind;
+//    nArgcNew = argc - globalUtilOptind;
+    if ( argc - globalUtilOptind != 3 )
+    {
+        Abc_Print( 1, "Expecting three file names on the command line.\n" );
+        goto usage;
+    }
+    Acb_NtkTestRun( argv + globalUtilOptind, fVerbose );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: testrun [-vh]\n" );
+    Abc_Print( -2, "\t         performs testing by running internal procedures\n" );
+    Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
 }
 
